@@ -13,6 +13,7 @@
  ** S NO   Date            Author          Change Description              
  ** --   --------         -------          --------------------------------            
     1    28-07-2025    Sahdev Saliya       Created  
+	2    19-11-2025    Devendra Shekh      Added MasterCompanyId for AspNetUsers
 
 	exec [USP_GetEmployeeViewDetailsList] 243
 **************************************************************/ 
@@ -98,7 +99,7 @@ BEGIN
 		FROM [dbo].Employee e WITH(NOLOCK)
 		LEFT JOIN [dbo].EmployeeManagementStructureDetails msd WITH(NOLOCK) ON e.EmployeeId = msd.ReferenceID AND msd.ModuleID = @ModuleId
 		LEFT JOIN [dbo].EmployeeExpertise ee WITH(NOLOCK) ON e.EmployeeExpertiseId = ee.EmployeeExpertiseId
-		LEFT JOIN [dbo].AspNetUsers anu WITH(NOLOCK) ON e.EmployeeId = anu.EmployeeId
+		LEFT JOIN [dbo].AspNetUsers anu WITH(NOLOCK) ON e.EmployeeId = anu.EmployeeId AND e.MasterCompanyId = anu.MasterCompanyId
 		 WHERE e.EmployeeId = @EmployeeId
 
 		SELECT 

@@ -10,10 +10,11 @@
  ** PR   Date				Author				Change Description            
  ** --   -------------		----------------	--------------------------------          
     1    03-Nov-2025		Divyesh Kathiriya	Created
+	2    19-Nov-2025		Devendra Shekh		Added MasterCompanyId for AspNetUsers
     
  -- EXEC [USP_EmployeeUploadList] @MasterCompanyId=1
 **************************************************************/
-CREATE   PROCEDURE [DBO].[USP_EmployeeUploadList]
+CREATE   PROCEDURE [dbo].[USP_EmployeeUploadList]
 @MasterCompanyId INT
 AS
 BEGIN
@@ -30,7 +31,7 @@ BEGIN
 			[EM].[ManagementStructureId],
 			[EM].[MasterCompanyId]
 		FROM [DBO].[Employee] EM WITH(NOLOCK)
-		LEFT JOIN [DBO].[AspNetUsers] ASP WITH(NOLOCK) ON [EM].[EmployeeId] = [ASP].[EmployeeId]
+		LEFT JOIN [DBO].[AspNetUsers] ASP WITH(NOLOCK) ON [EM].[EmployeeId] = [ASP].[EmployeeId] AND [EM].[MasterCompanyId] = [ASP].[MasterCompanyId]
 		WHERE [ASP].[EmployeeId] IS NULL AND [EM].[IsUploadEmployee]  = 1 AND [EM].[MasterCompanyId] = @MasterCompanyId;
 	
 	END TRY 

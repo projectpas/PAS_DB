@@ -218,7 +218,7 @@ BEGIN
 							   WHERE [SalesOrderQuotePartId] = @SalesOrderQuotePartId
 						  END
 						  ELSE
-						  BEGIN			select 'end'				
+						  BEGIN						
 								--Set ILs Qty as Part Qty
 							    SET @QtyQuoted = @ILSQty;
 

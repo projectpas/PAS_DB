@@ -153,25 +153,26 @@ BEGIN
 					 	IsLotAssigned BIT NULL,
 					 	LotId BIGINT NULL
 					 )
-
+					
 					 SELECT 
 					 @LinePartNumber = CRFQM.[PartNumber]
 					 FROM [dbo].[CustomerRfqQuoteDetails] CRFQD WITH(NOLOCK) 
 					 JOIN [dbo].[CustomerRfqPartMapping] CRFQM WITH(NOLOCK) ON CRFQM.[CustomerRfqPartMappingId] = CRFQD.[CustomerRfqPartMappingId]
 					 WHERE CRFQD.[CustomerRfqQuoteDetailsId] = @CustomerRfqQuoteDetailsId;
-					 
+
 					 --Get SOQ Added in RFQ
 					 SELECT @RefrenceId = [ReferenceId], @RFQModuleId = [ModuleId]
 					 FROM [dbo].[CustomerRfq] WITH(NOLOCK) WHERE [CustomerRfqId] = @CustomerRfqId;
 
 					 --Get ItemasterId based on RFQ part
-					 SELECT TOP 1 @RFQItemMasterId = [ItemMasterId] 
-					 FROM [dbo].[SalesOrderQuotePartV1] WITH(NOLOCK) 
-					 WHERE LOWER(TRIM([PartNumber])) = LOWER(TRIM(@LinePartNumber))
-					 AND [ConditionId] = @ConditionId;
+					 SELECT TOP 1 @RFQItemMasterId = IM.[ItemMasterId] 
+					 FROM [dbo].[SalesOrderQuotePartV1] SOQP WITH(NOLOCK) 
+					 INNER JOIN [dbo].[itemmaster] IM WITH(NOLOCK) ON IM.ItemMasterId = SOQP.ItemMasterId
+					 WHERE LOWER(TRIM(IM.[PartNumber])) = LOWER(TRIM(@LinePartNumber))
+					 AND SOQP.[ConditionId] = @ConditionId;
 					
 					 IF(ISNULL(@RefrenceId,0) > 0 AND @RFQModuleId = @ModuleId)
-					 BEGIN				
+					 BEGIN		 		
 						  IF EXISTS(SELECT TOP 1 SalesOrderQuotePartId FROM [dbo].[SalesOrderQuotePartv1] WITH(NOLOCK) WHERE [SalesOrderQuoteId] = @RefrenceId AND [ItemMasterId] = @RFQItemMasterId AND [ConditionId] = @ConditionId)
 						  BEGIN 
 							   SELECT @SalesOrderQuotePartId = [SalesOrderQuotePartId] 
@@ -203,7 +204,7 @@ BEGIN
 							   QtyQuoted = @ILSQty
 							   WHERE [SalesOrderQuotePartId] = @SalesOrderQuotePartId
 							   AND [ConditionId] = @ConditionId
-
+							  
 							   --Update Price in existing records
 							   UPDATE [DBO].[SalesOrderQuotePartCost]
 							   SET UnitSalesPrice = @SalesPrice_U,
@@ -217,7 +218,7 @@ BEGIN
 							   WHERE [SalesOrderQuotePartId] = @SalesOrderQuotePartId
 						  END
 						  ELSE
-						  BEGIN							
+						  BEGIN			select 'end'				
 								--Set ILs Qty as Part Qty
 							    SET @QtyQuoted = @ILSQty;
 

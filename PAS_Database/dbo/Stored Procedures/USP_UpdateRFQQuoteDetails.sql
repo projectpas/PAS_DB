@@ -32,6 +32,7 @@ BEGIN
 						@IlsPrice AS DECIMAL(18,2),
 						@ConditionId AS INT,
 						@ILSQty AS INT,
+						@CustomerRfqQuoteDetailsId AS BIGINT=0,
 						@RefrenceId AS BIGINT=0,
 						@RFQModuleId AS INT,
 						@ModuleId AS INT,
@@ -91,7 +92,7 @@ BEGIN
 												[IlsPrice],[IlsPriceType],[IlsTagDate],[IlsLeadTime],[IlsMinQty],
 												[IlsComment],[IlsCondition],[ConditionId],[ItemMasterId]
 										FROM @tbl_IlsRfqQuoteDetailsType;
-
+				
 				SELECT @RfqQuoteLoopID = MAX(ID) FROM #RfqQuoteDetail;
 				SELECT @MinRFQId = MIN(ID) FROM #RfqQuoteDetail;
 
@@ -99,7 +100,8 @@ BEGIN
 				BEGIN
 					 SELECT @IlsPrice = [IlsPrice],
 					 	   @ConditionId = [ConditionId],
-					 	   @ILSQty = [IlsQty]
+					 	   @ILSQty = [IlsQty],
+						   @CustomerRfqQuoteDetailsId = CustomerRfqQuoteDetailsId
 					 FROM #RfqQuoteDetail WHERE ID = @MinRFQId;
 					 
 					 IF OBJECT_ID(N'tempdb..#SOQPartDetails') IS NOT NULL
@@ -152,24 +154,32 @@ BEGIN
 					 	LotId BIGINT NULL
 					 )
 
+					 SELECT 
+					 @LinePartNumber = CRFQM.[PartNumber]
+					 FROM [dbo].[CustomerRfqQuoteDetails] CRFQD WITH(NOLOCK) 
+					 JOIN [dbo].[CustomerRfqPartMapping] CRFQM WITH(NOLOCK) ON CRFQM.[CustomerRfqPartMappingId] = CRFQD.[CustomerRfqPartMappingId]
+					 WHERE CRFQD.[CustomerRfqQuoteDetailsId] = @CustomerRfqQuoteDetailsId;
+					 
 					 --Get SOQ Added in RFQ
-					 SELECT @RefrenceId = [ReferenceId], @RFQModuleId = [ModuleId],@LinePartNumber = LinePartNumber FROM [dbo].[CustomerRfq] WITH(NOLOCK) WHERE [CustomerRfqId] = @CustomerRfqId;
+					 SELECT @RefrenceId = [ReferenceId], @RFQModuleId = [ModuleId]
+					 FROM [dbo].[CustomerRfq] WITH(NOLOCK) WHERE [CustomerRfqId] = @CustomerRfqId;
 
 					 --Get ItemasterId based on RFQ part
-					 SELECT @RFQItemMasterId = [ItemMasterId] 
-					 FROM [dbo].[ItemMaster] WITH(NOLOCK) 
-					 WHERE LOWER(TRIM([PartNumber])) = LOWER(TRIM(@LinePartNumber));
-					 
+					 SELECT TOP 1 @RFQItemMasterId = [ItemMasterId] 
+					 FROM [dbo].[SalesOrderQuotePartV1] WITH(NOLOCK) 
+					 WHERE LOWER(TRIM([PartNumber])) = LOWER(TRIM(@LinePartNumber))
+					 AND [ConditionId] = @ConditionId;
+					
 					 IF(ISNULL(@RefrenceId,0) > 0 AND @RFQModuleId = @ModuleId)
-					 BEGIN						
+					 BEGIN				
 						  IF EXISTS(SELECT TOP 1 SalesOrderQuotePartId FROM [dbo].[SalesOrderQuotePartv1] WITH(NOLOCK) WHERE [SalesOrderQuoteId] = @RefrenceId AND [ItemMasterId] = @RFQItemMasterId AND [ConditionId] = @ConditionId)
-						  BEGIN
+						  BEGIN 
 							   SELECT @SalesOrderQuotePartId = [SalesOrderQuotePartId] 
 							   FROM [dbo].[SalesOrderQuotePartv1] WITH(NOLOCK) 
 							   WHERE [SalesOrderQuoteId] = @RefrenceId 
 							   AND [ItemMasterId] = @RFQItemMasterId
 							   AND [ConditionId] = @ConditionId;
-
+							    
 							   --Set ILs Qty as Part Qty
 							   SET @QtyQuoted = @ILSQty;
 
@@ -192,6 +202,7 @@ BEGIN
 							   SET QtyRequested = @ILSQty,
 							   QtyQuoted = @ILSQty
 							   WHERE [SalesOrderQuotePartId] = @SalesOrderQuotePartId
+							   AND [ConditionId] = @ConditionId
 
 							   --Update Price in existing records
 							   UPDATE [DBO].[SalesOrderQuotePartCost]

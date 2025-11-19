@@ -27,8 +27,10 @@
 	9	 06/25/2025   Vishal Suthar	   Handle the case of having the same stockline after repair
 	10	 07/07/2025   Vishal Suthar	   Fixed an issue with updating new condition and provision in material stockline level
 	11	 07/25/2025   Vishal Suthar	   Fixed an issue with not updating the Provision with new implementation
+	12   11/19/2025   Moin Bloch       Fixed an issue For WO Kit When We Change Condition at Receiving Time 
 
 exec sp_executesql N'EXEC dbo.USP_CreateWOStocklineFromRO @RepairOrderId',N'@RepairOrderId bigint',@RepairOrderId=692
+EXEC [dbo].[USP_CreateWOStocklineFromRO]   3034,'ADMIN User' 
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_CreateWOStocklineFromRO]    
 (    
@@ -1223,7 +1225,7 @@ SET NOCOUNT ON
 
 														UPDATE dbo.WorkOrderMaterialStockLineKit
 														SET ProvisionId = @ProvisionId,
-														ConditionId = @NewConditionId
+														ConditionId = @NewConditionId1
 														WHERE WorkOrderMaterialStockLineKitId = @ExWorkOrderMaterialStockLineId;
 													END
 												END
@@ -1321,8 +1323,8 @@ SET NOCOUNT ON
 				DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name() 
 
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
-              , @AdhocComments     VARCHAR(150)    = 'USP_CreateWOStocklineFromRO' 
-              , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = ' + ISNULL(@RepairOrderId, '') + ''
+              , @AdhocComments     VARCHAR(150)    = 'USP_CreateWOStocklineFromRO'              
+			  , @ProcedureParameters VARCHAR(3000) = '@Parameter1 = ''' + CAST(ISNULL(@RepairOrderId, '') AS VARCHAR(100))  
               , @ApplicationName VARCHAR(100) = 'PAS'
 -----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------
 

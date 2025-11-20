@@ -19,7 +19,7 @@
 	6    27-06-2025  Bhargav Saliya		 Add New Fields @NumberOfItemCount 
 	7    13-08-2025  Rajesh Gami		 Add New Parameters @SourceBy,@MarketplaceRef And as same as for Return 
 	8    24-09-2025  Sahdev Saliya       Added New Dropdown Filter Lead Source
-	9    06-11-2025  Rajesh Gami		Correct the QuoteAmount 
+	9    20-11-2025  Rajesh Gami		Correct the QuoteAmount 
 **************************************************************/ 
 CREATE    PROCEDURE [dbo].[SearchSOQViewData]
  -- Add the parameters for the stored procedure here
@@ -161,7 +161,7 @@ BEGIN
 	   INNER JOIN DBO.SalesOrderQuotePartCost SOC WITH (NOLOCK) ON S.SalesOrderQuotePartId = SOC.SalesOrderQuotePartId
        Where S.SalesOrderQuoteId=SOQ.SalesOrderQuoteId
       ) B
-	   OUTER APPLY (
+	   OUTER APPLY ( /*********  Total Part Wise COST Calculation (Quote Amount) **********/
 					SELECT SUM(X.NetSales) AS NetSales
 						FROM (
 
@@ -186,7 +186,7 @@ BEGIN
 													END
 												), 0)
 												* -1
-												+ ISNULL(SUM(SOP.QtyRequested), 0)
+												+ ISNULL(SOP.QtyRequested, 0)
 											) * ISNULL(U.UnitSalesPrice, 0)
 										)
 								END)
@@ -214,7 +214,7 @@ BEGIN
 							OUTER APPLY (
 								SELECT  
 									ISNULL(SOQPS2.UnitSalesPrice, 0) AS UnitSalesPrice
-								FROM DBO.SalesOrderQuotePartCost SOQPS2 WITH (NOLOCK)
+								FROM DBO.SalesOrderQuotePartV1 SOQPS2 WITH (NOLOCK)
 								 LEFT JOIN DBO.SalesOrderQuoteStocklineV1 stk2 WITH (NOLOCK) 
 								ON stk2.SalesOrderQuotePartId = SOQPS2.SalesOrderQuotePartId
 								WHERE SOQPS2.SalesOrderQuoteId = quote.SalesOrderQuoteId 
@@ -225,7 +225,7 @@ BEGIN
 
 							WHERE quote.SalesOrderQuoteId = SOQ.SalesOrderQuoteId
 							AND SOP.SalesOrderQuoteId =SOQ.SalesOrderQuoteId
-							GROUP BY U.UnitSalesPrice
+							GROUP BY U.UnitSalesPrice,SOP.SalesOrderQuotePartId,SOP.QtyRequested
 							) AS X
       ) Z
 	  OUTER APPLY(SELECT count(SalesOrderQuotePartId) as 'Items' FROM [dbo].[SalesOrderQuotePartV1] soqv1 with(nolock) where soqv1.SalesOrderQuoteId = SOQ.SalesOrderQuoteId GROUP BY soqv1.SalesOrderQuoteId) PartCount

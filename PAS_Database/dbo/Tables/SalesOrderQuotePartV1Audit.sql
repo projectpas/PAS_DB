@@ -33,8 +33,11 @@
     [PriorityName]               VARCHAR (100)   NULL,
     [StatusName]                 VARCHAR (100)   NULL,
     [OldSalesOrderQuotePartId]   BIGINT          NULL,
+    [UnitSalesPrice]             DECIMAL (18, 2) NULL,
     CONSTRAINT [PK_SalesOrderQuotePartV1Audit] PRIMARY KEY CLUSTERED ([AuditSalesOrderQuotePartId] ASC)
 );
+
+
 
 
 

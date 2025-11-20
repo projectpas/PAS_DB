@@ -10,12 +10,14 @@
     [NewValue]     NVARCHAR (MAX) NULL,
     [UpdatedBy]    NVARCHAR (100) NULL,
     [ChangedBy]    [sysname]      DEFAULT (original_login()) NOT NULL,
-    [ChangedAt]    DATETIME2 (3)  DEFAULT (sysdatetime()) NOT NULL,
+    [ChangedAt]    DATETIME2 (3)  DEFAULT (getutcdate()) NOT NULL,
     [HostName]     [sysname]      DEFAULT (host_name()) NOT NULL,
     [AppName]      NVARCHAR (128) DEFAULT (app_name()) NOT NULL,
     [SessionId]    INT            DEFAULT (@@spid) NOT NULL,
     PRIMARY KEY CLUSTERED ([AuditId] ASC)
 );
+
+
 
 
 GO

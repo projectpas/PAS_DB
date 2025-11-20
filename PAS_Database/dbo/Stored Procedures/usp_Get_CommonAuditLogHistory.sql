@@ -17,9 +17,11 @@
     1		07-NOV-2025		HEMANT SALIYA			Created  
     2       11-NOV-2025     AYUSHI PATEL            Mapped ModuleId to Module 
     3       12-NOV-2025     AYUSHI PATEL            Removed TableName, PKJson, ChangedBy, Actions from output; added UpdatedDate fallback to ChangedAt; excluded columns via IgnoreColumn.
+    4       20-NOV-2025     AYUSHI PATEL            Converted UpdatedDate/CreatedDate to employee timezone .
 --EXEC dbo.usp_Get_CommonAuditLogHistory @Module='WorkOrder', @PK_Key='WorkOrderId', @PK_Value=4482
 --EXEC dbo.usp_Get_CommonAuditLogHistory @ModuleId=1, @PK_Key='CustomerId', @PK_Value=4493
 --EXEC dbo.usp_Get_CommonAuditLogHistory @ModuleId=2, @PK_Key='VendorId', @PK_Value=5418 
+--exec usp_Get_CommonAuditLogHistory @ModuleId=1,@PK_Key=N'CustomerId',@PK_Value=4495,@EmployeeId=234
 **********************/ 
 
 CREATE   PROC [dbo].[usp_Get_CommonAuditLogHistory]
@@ -29,7 +31,8 @@ CREATE   PROC [dbo].[usp_Get_CommonAuditLogHistory]
     @StartAt    datetime2(3)  = NULL,       -- inclusive
     @EndAt      datetime2(3)  = NULL,       -- exclusive
     @UseOld     bit           = 0,          -- 0 = pivot NewValue, 1 = pivot OldValue
-    @SortDir    nvarchar(4)   = N'DESC'     -- ASC | DESC (by ChangedAt)
+    @SortDir    nvarchar(4)   = N'DESC' ,    -- ASC | DESC (by ChangedAt)
+    @EmployeeId BIGINT = NULL
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -38,6 +41,15 @@ BEGIN
     -- Validate sort dir
     IF @SortDir NOT IN (N'ASC', N'DESC') SET @SortDir = N'DESC';
     DECLARE @Module VARCHAR(100) = (SELECT ModuleName FROM dbo.Module WITH (NOLOCK) WHERE ModuleId = @ModuleId);
+    
+    DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
+    SELECT @CurrntEmpTimeZoneDesc = COALESCE(ETZ.[Description], LTZ.[Description])
+    FROM dbo.Employee E WITH (NOLOCK)
+    LEFT JOIN dbo.TimeZone ETZ WITH (NOLOCK) ON E.TimeZoneId = ETZ.TimeZoneId
+    LEFT JOIN dbo.LegalEntity LE WITH (NOLOCK) ON E.LegalEntityId = LE.LegalEntityId
+    LEFT JOIN dbo.TimeZone LTZ WITH (NOLOCK) ON LE.TimeZoneId = LTZ.TimeZoneId
+    WHERE E.EmployeeId = @EmployeeId;
+
     ----------------------------------------------------------------
     -- Build dynamic column list from ColumnName in the filtered scope
     -- (ensures only relevant fields appear as pivoted columns)
@@ -66,7 +78,11 @@ BEGIN
             AND ic.ColumnName = AL.ColumnName
     )
     ) AS c;
+    IF CHARINDEX('[UpdatedDate]', @cols) = 0
+    SET @cols = @cols + ',[UpdatedDate]';
 
+    IF CHARINDEX('[CreatedDate]', @cols) = 0
+    SET @cols = @cols + ',[CreatedDate]';
     -- If nothing to pivot, return an empty-shaped set
     IF (@cols IS NULL OR @cols = '')
     BEGIN
@@ -82,7 +98,9 @@ BEGIN
         SELECT @cols_out =
             STRING_AGG(s.value, ',')
         FROM STRING_SPLIT(@cols, ',') AS s
-        WHERE s.value <> '[UpdatedDate]';
+        WHERE s.value NOT IN ('[UpdatedDate]', '[CreatedDate]');
+
+
 
     DECLARE @valExpr nvarchar(20) =
         CASE WHEN @UseOld = 1 THEN N'OldValue' ELSE N'NewValue' END;
@@ -147,12 +165,28 @@ BEGIN
             GROUP BY TableName, PKJson, ChangedAt, [Action]
         )
         SELECT
-          COALESCE(p.[UpdatedDate], p.ChangedAt) AS UpdatedDate'
-          + CASE WHEN ISNULL(@cols_out, N'') <> N'' THEN
-                N', ' + REPLACE(@cols_out, '],[', '], p.[')
-            ELSE N''
-            END
-          + N'
+            CASE 
+                WHEN @CurrntEmpTimeZoneDesc IS NULL OR LEN(@CurrntEmpTimeZoneDesc) = 0
+                     THEN COALESCE(p.[UpdatedDate], p.ChangedAt)
+                WHEN TRY_CAST(p.[UpdatedDate] AS datetime2(3)) IS NULL
+                     OR TRY_CAST(p.[UpdatedDate] AS date) = ''0001-01-01''
+                     THEN CAST(dbo.ConvertUTCtoLocal(p.ChangedAt, @CurrntEmpTimeZoneDesc) AS datetime2(3))
+                ELSE CAST(dbo.ConvertUTCtoLocal(TRY_CAST(p.[UpdatedDate] AS datetime2(3)), @CurrntEmpTimeZoneDesc) AS datetime2(3))
+            END AS UpdatedDate,
+
+            CASE 
+                WHEN @CurrntEmpTimeZoneDesc IS NULL OR LEN(@CurrntEmpTimeZoneDesc) = 0
+                     THEN p.[CreatedDate]
+                WHEN TRY_CAST(p.[CreatedDate] AS datetime2(3)) IS NULL
+                     OR TRY_CAST(p.[CreatedDate] AS date) = ''0001-01-01''
+                     THEN NULL
+                ELSE CAST(dbo.ConvertUTCtoLocal(TRY_CAST(p.[CreatedDate] AS datetime2(3)), @CurrntEmpTimeZoneDesc) AS datetime2(3))
+            END AS CreatedDate'
+            + CASE WHEN ISNULL(@cols_out, N'') <> N'' THEN
+                    N', ' + REPLACE(@cols_out, '],[', '], p.[')
+                ELSE N''
+              END
+            + N'
         FROM
         (
             SELECT TableName, PKJson, ChangedAt, ChangedBy, ColumnName, ValToPivot
@@ -172,8 +206,8 @@ BEGIN
 
     EXEC sp_executesql
         @sql,
-        N'@Module sysname, @StartAt datetime2(3), @EndAt datetime2(3), @PK_Key nvarchar(128), @PK_Value nvarchar(128)',
-        @Module=@Module, @StartAt=@StartAt, @EndAt=@EndAt, @PK_Key=@PK_Key, @PK_Value=@PK_Value;
+        N'@Module sysname, @StartAt datetime2(3), @EndAt datetime2(3), @PK_Key nvarchar(128), @PK_Value nvarchar(128), @CurrntEmpTimeZoneDesc varchar(100)',
+        @Module=@Module, @StartAt=@StartAt, @EndAt=@EndAt, @PK_Key=@PK_Key, @PK_Value=@PK_Value,@CurrntEmpTimeZoneDesc = @CurrntEmpTimeZoneDesc;
     END TRY    
   
     BEGIN CATCH  
@@ -201,5 +235,5 @@ BEGIN
     RAISERROR ('Unexpected Error Occured in the database. Please let the support team know of the error number : %d', 16, 1, @ErrorLogID)  
   
     RETURN (1);  
-  END CATCH  
+  END CATCH   
 END

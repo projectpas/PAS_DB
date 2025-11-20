@@ -20,7 +20,7 @@
 	7    15-07-2025  Rajesh Gami		Fixed: Getting proper status as shown as in header
 	8    13-08-2025  Rajesh Gami		 Add New Parameters @SourceBy,@MarketplaceRef And as same as for Return
     9    24-09-2025  Sahdev Saliya       Added New Dropdown Filter Lead Source
-	10   06-11-2025  Rajesh Gami		Correct the QuoteAmount 
+	10   20-11-2025  Rajesh Gami		 Correct the QuoteAmount
 **************************************************************/ 
 CREATE PROCEDURE [dbo].[SearchPNViewData]  
  @PageNumber int,  
@@ -140,7 +140,7 @@ BEGIN
 	  CASE WHEN ISNULL(SourceBy,'') = '' THEN 'PAS' ELSE SOQ.SourceBy END SourceBy, 
 	  ISNULL(SOQ.MarketplaceRef,'') MarketplaceRef,
 	  SP.SalesOrderQuotePartId,
-	  SP.QtyQuoted,SP.QtyRequested,SPC.UnitSalesPrice MainUnitSalesPrice
+	  SP.QtyQuoted,SP.QtyRequested,SP.UnitSalesPrice MainUnitSalesPrice
     FROM DBO.SalesOrderQuote SOQ WITH (NOLOCK)  
 	INNER JOIN DBO.MasterSalesOrderQuoteStatus MST WITH (NOLOCK) on SOQ.StatusId = MST.Id
     LEFT JOIN DBO.SalesOrderQuotePartV1 SP WITH (NOLOCK) ON SOQ.SalesOrderQuoteId = SP.SalesOrderQuoteId and SP.IsDeleted = 0  
@@ -158,7 +158,7 @@ BEGIN
 	SOQ.IsNewVersionCreated,SOQ.StatusId,SOQ.CustomerReference,Priority,SP.PriorityName,E.FirstName, E.LastName,
     IM.partnumber,M.Name,IM.partnumber, im.PartDescription, im.PartDescription,  
     SOQ.AccountTypeName,SO.SalesOrderNumber, SOQ.CreatedDate, SOQ.UpdatedDate,MST.Name,
-	SOQ.UpdatedBy, SOQ.CreatedBy,SOQ.IsDeleted,SOQ.Version, SOQ.SourceBy, SOQ.MarketplaceRef,SP.SalesOrderQuotePartId,SP.QtyQuoted,SP.QtyRequested,SPC.UnitSalesPrice)
+	SOQ.UpdatedBy, SOQ.CreatedBy,SOQ.IsDeleted,SOQ.Version, SOQ.SourceBy, SOQ.MarketplaceRef,SP.SalesOrderQuotePartId,SP.QtyQuoted,SP.QtyRequested,SP.UnitSalesPrice)
 	,  
     FinalResult AS (SELECT SalesOrderQuoteId,SalesOrderQuoteNumber,QuoteDate,CustomerId,CustomerName,Status,VersionNumber,ISNULL(QuoteAmount,0) AS QuoteAmount,IsNewVersionCreated,StatusId  
      ,CustomerReference,Priority,PriorityType,SalesPerson,PartNumber,ManufacturerType,PartNumberType,PartDescription,PartDescriptionType,CustomerType,SalesOrderNumber,  
@@ -253,6 +253,7 @@ BEGIN
      OFFSET @RecordFrom ROWS   
      FETCH NEXT @PageSize ROWS ONLY  
        
+	  /****** Total Part Wise COST Calculation (Quote Amount)******/
 	   ;WITH CTE_Cost AS (
 			SELECT 
 				dt.SalesOrderQuotePartId,
@@ -263,6 +264,8 @@ BEGIN
 			LEFT JOIN DBO.SalesOrderQuoteStockLineCost SC WITH (NOLOCK) ON SC.SalesOrderQuoteStocklineId = stk.SalesOrderQuoteStocklineId
 			GROUP BY dt.SalesOrderQuotePartId
 		)
+	
+	 /****** Final Table Return Logic*******/
 		SELECT 
 			main.*,
 			(((main.QtyRequested - ISNULL(c.TotalQtyQuoted, 0)) * ISNULL(main.MainUnitSalesPrice, 0))
@@ -270,9 +273,6 @@ BEGIN
 			  INTO #tmpSOPartTblDataFinal
 		FROM #tmpSOPartTblData main
 		LEFT JOIN CTE_Cost c ON main.SalesOrderQuotePartId = c.SalesOrderQuotePartId;
-
-		--ALTER TABLE #tmpSOPartTblDataFinal
-		--ALTER COLUMN QuoteAmount DECIMAL(18,4) NULL;
 
 		Update #tmpSOPartTblDataFinal SET QuoteAmount = ISNULL(TotalPartCost ,0)
 		SELECT * FROM #tmpSOPartTblDataFinal

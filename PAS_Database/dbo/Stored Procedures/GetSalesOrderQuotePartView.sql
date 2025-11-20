@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿
+/*************************************************************           
  ** File:   [GetSalesOrderQuotePartView]           
  ** Author:   Vishal Suthar
  ** Description: This stored procedure is used to get Sales Order Quote Part Data
@@ -18,7 +19,8 @@
 	5    12-12-2024   Vishal Suthar		Fixed Qty Quoted when no stockline is added
 	6    09-01-2025   Amit Ghediya		Modified to get STK level Available & onhnad qty.
   	7    19-SEP-2025  RAJESH GAMI	    Added return field: netSalesPricePerUnit
-	8    05-NOV-2025  RAJESH GAMI	    Added return field: TotalPartCost   
+	8    05-NOV-2025  RAJESH GAMI	    Added return field: TotalPartCost
+	9    20-NOV-2025  RAJESH GAMI	    Fixed TotalPartCost Issue
  EXEC [DBO].[GetSalesOrderQuotePartView] 980, 'USD'
 **************************************************************/
 CREATE PROCEDURE [dbo].[GetSalesOrderQuotePartView]
@@ -101,12 +103,9 @@ BEGIN
 			CASE WHEN SC.SalesOrderQuoteStocklineId IS NOT NULL THEN ISNULL(SC.NetSaleAmount, 0) ELSE ISNULL(PS.GrossSaleAmount, 0) END GrossSalePricePerUnit,
 			CASE WHEN SC.SalesOrderQuoteStocklineId IS NOT NULL THEN ISNULL(SC.NetSaleAmount, 0) ELSE ISNULL(PS.GrossSaleAmount, 0) END GrossSalePrice,
 			TaxPercentage = 0,--dbo.GetCustomerTaxBaseOnPartDetail(part.SalesOrderQuoteId, part.SalesOrderQuotePartId, soq.CustomerId), 
-			--ISNULL(part.TaxType, '') AS TaxType,
 			'' AS TaxType,
 			ISNULL(PS.TaxAmount, 0) TaxAmount,
-			--ISNULL(part.QtyPrevQuoted, 0) AS QtyPrevQuoted,
 			0 AS QtyPrevQuoted,
-			--part.AltOrEqType,
 			'' AltOrEqType,
 			Freight = ISNULL((
 				SELECT SUM(sqf.BillingAmount) 
@@ -154,7 +153,6 @@ BEGIN
 			itemMaster.ItemClassificationName AS ItemClassification,
 			itemMaster.ItemGroup,
 			ISNULL(mf.Name, '') AS ManufacturerName,
-			--part.SalesPriceExpiryDate,
 			NULL SalesPriceExpiryDate,
 			part.IsNoQuote,
 			qs.TraceableToName,
@@ -163,7 +161,7 @@ BEGIN
 			ISNULL(fcu.Code, '') AS CurrencyDescription,
 			part.CurrencyId,
 			CASE WHEN SC.SalesOrderQuoteStocklineId IS NOT NULL THEN ISNULL(SC.NetSaleAmountPerUnit, 0) ELSE ISNULL(PS.NetSaleAmountPerUnit, 0) END netSalesPricePerUnit,
-			PS.UnitSalesPrice MainUnitSalesPrice,
+			part.UnitSalesPrice MainUnitSalesPrice,
 			ISNULL((CASE WHEN SC.SalesOrderQuoteStocklineId IS NOT NULL THEN ISNULL(SC.NetSaleAmount, 0) ELSE ISNULL(PS.NetSaleAmount, 0) END), 0) NetSalePriceExtendedPart
 
 		INTO #tmpSOPartTbl 
@@ -185,8 +183,7 @@ BEGIN
 		WHERE part.SalesOrderQuoteId = @SalesQuoteId AND part.IsDeleted = 0
 		ORDER BY part.CreatedDate;
 
-		--Select *,(((main.QtyRequested - (Select SUM(ISNULL(QtyQuoted,0)) from #tmpSOPartTbl sub WHERE main.SalesOrderQuotePartId =sub.SalesOrderQuotePartId)) * ISNULL(main.MainUnitSalesPrice,0)) + (Select SUM(ISNULL(NetSalePriceExtended,0)) from #tmpSOPartTbl sub WHERE main.SalesOrderQuotePartId =sub.SalesOrderQuotePartId )) AS TotalPartCost from #tmpSOPartTbl main
-
+	/****** Total Part Wise COST Calculation ******/
 		;WITH CTE_Cost AS (
 			SELECT 
 				SalesOrderQuotePartId,
@@ -195,6 +192,9 @@ BEGIN
 			FROM #tmpSOPartTbl
 			GROUP BY SalesOrderQuotePartId
 		)
+
+		
+	/****** Final Table Return *******/
 		SELECT 
 			main.*,
 			(((main.QtyRequested - ISNULL(c.TotalQtyQuoted, 0)) * ISNULL(main.MainUnitSalesPrice, 0))

@@ -18,7 +18,7 @@
 	7    16-12-2024   Shrey Chandegara  Updated for @PriorityId in  not update proper
 	5    05-07-2015   BHARGAV SALIYA	Change the Save SOQ Order Using @SOMInID
 	6    15-09-2025	  Amit Ghediya		Update for Reset Approval Process
-
+	7    20-11-2025	  Rajesh Gami		Added UnitSalesPrice in SalesOrderPartV1 table
 declare @p1 dbo.SOPartListType
 insert into @p1 values(497,1269,216,12,2,178289,NULL,1,5,2,NULL,NULL,3,1,1200,0,0,1200,0,670,330.00,NULL,NULL,NULL,600.00,0,0,1200,335,44.17,0,NULL,N'',NULL,1,N'Jim Roberts')
 insert into @p1 values(501,1269,264,2,2,NULL,NULL,1,3,0,NULL,NULL,3,1,0,0,0,0,0,0,0,NULL,NULL,NULL,300.00,0,0,900,0,100.00,0,NULL,N'',NULL,1,N'Jim Roberts')
@@ -135,7 +135,7 @@ BEGIN
 		DECLARE @SizeLength AS decimal(18,4);
 		DECLARE @SizeWidth AS decimal(18,4);
 		DECLARE @SizeHeight AS decimal(18,4);
-		DECLARE @PriorityId BIGINT = 0;
+		DECLARE @PriorityId BIGINT = 0, @StocklineCount int = 0;
 
 		SELECT @SalesOrderPartId = SalesOrderPartId, @SalesOrderId = SalesOrderId, @ItemMasterId = ItemMasterId, @ConditionId = ConditionId, @StocklineId = StocklineId,
 		@SalesOrderStocklineId = SalesOrderStocklineId, @MasterCompanyId = MasterCompanyId, @UnitSalesPrice = UnitSalesPrice, @MarkUpAmount = MarkUpAmount, @DiscountAmount = DiscountAmount, @QtyOrder = QtyOrder,
@@ -159,8 +159,8 @@ BEGIN
 				LEFT JOIN [DBO].[SalesOrder] SO WITH (NOLOCK) ON SO.CustomerId = CF.CustomerId
 				WHERE SO.SalesOrderId = @SalesOrderId;
 
-				INSERT INTO [dbo].[SalesOrderPartV1] ([SalesOrderId],[ItemMasterId],[ConditionId],[QtyRequested],[QtyOrder],[QtyReserved],[CurrencyId],[FxRate],[PriorityId],[StatusId],[CustomerRequestDate],[PromisedDate],[EstimatedShipDate],[Notes],[MasterCompanyId],[CreatedBy],[CreatedDate],[UpdatedBy],[UpdatedDate],[IsActive],[IsDeleted],[ECCN],[HSCODE],[Weight],[SizeLength],[SizeWidth],[SizeHeight],[AltOrEqType])
-				SELECT SalesOrderId, ItemMasterId, ConditionId, QtyRequested, QtyOrder, 0, CurrencyId, FxRate, PriorityId, @SOPartStatus, CustomerRequestDate, PromisedDate, EstimatedShipDate, Notes, MasterCompanyId, CreatedBy, GETUTCDATE(), CreatedBy, GETUTCDATE(), 1, 0,ECCN,HSCODE,[Weight],SizeLength,SizeWidth,SizeHeight,[AltOrEqType]
+				INSERT INTO [dbo].[SalesOrderPartV1] ([SalesOrderId],[ItemMasterId],[ConditionId],[QtyRequested],[QtyOrder],[QtyReserved],[CurrencyId],[FxRate],[PriorityId],[StatusId],[CustomerRequestDate],[PromisedDate],[EstimatedShipDate],[Notes],[MasterCompanyId],[CreatedBy],[CreatedDate],[UpdatedBy],[UpdatedDate],[IsActive],[IsDeleted],[ECCN],[HSCODE],[Weight],[SizeLength],[SizeWidth],[SizeHeight],[AltOrEqType],UnitSalesPrice)
+				SELECT SalesOrderId, ItemMasterId, ConditionId, QtyRequested, QtyOrder, 0, CurrencyId, FxRate, PriorityId, @SOPartStatus, CustomerRequestDate, PromisedDate, EstimatedShipDate, Notes, MasterCompanyId, CreatedBy, GETUTCDATE(), CreatedBy, GETUTCDATE(), 1, 0,ECCN,HSCODE,[Weight],SizeLength,SizeWidth,SizeHeight,[AltOrEqType],UnitSalesPrice
 				FROM #SOPartDetails WHERE ID = @SOMInID;
 
 				SET @SalesOrderPartId = SCOPE_IDENTITY();
@@ -238,7 +238,8 @@ BEGIN
 			BEGIN
 			     SELECT @ExistingUnitSales = SOPC.UnitSalesPrice  FROM [DBO].[SalesOrderPartCost] SOPC WITH (NOLOCK) WHERE SOPC.SalesOrderPartId = @SalesOrderPartId;
 			END
-			
+			SET @StocklineCount = ISNULL((SELECT COUNT(SalesOrderPartId) FROM #SOPartDetails WHERE SalesOrderPartId = @SalesOrderPartId AND ISNULL(StocklineId,0) > 0),0)
+
 			UPDATE [DBO].[SalesOrderPartV1]
 			SET Notes = @Notes,
 			CustomerRequestDate = @CustomerRequestDate,
@@ -251,7 +252,8 @@ BEGIN
 			SizeLength = @SizeLength,
 			SizeWidth = @SizeWidth,
 			SizeHeight = @SizeHeight,
-			PriorityId = @PriorityId
+			PriorityId = @PriorityId,
+			UnitSalesPrice = (CASE WHEN @StocklineCount > 0 THEN UnitSalesPrice ELSE @UnitSalesPrice END)
 			WHERE SalesOrderPartId = @SalesOrderPartId;
 
 			UPDATE [DBO].[SalesOrderPartV1]

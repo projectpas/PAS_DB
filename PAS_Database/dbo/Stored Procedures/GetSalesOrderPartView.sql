@@ -32,6 +32,7 @@
 	19   07-Aug-2025  RAJESH GAMI	    Getting LotNumber 
 	20   19-SEP-2025  RAJESH GAMI	    Added return field: netSalesPricePerUnit
 	21   05-NOV-2025  RAJESH GAMI	    Added return field: TotalPartCost
+	22    20-NOV-2025  RAJESH GAMI	    Fixed TotalPartCost Issue
 -- EXEC [DBO].[GetSalesOrderPartView] 706,0
 **************************************************************/
 CREATE   PROCEDURE [dbo].[GetSalesOrderPartView]
@@ -201,7 +202,7 @@ BEGIN
 		(CASE WHEN ISNULL(part.ItemMasterId,0) != 0 AND ISNULL(part.ItemMasterId,0) != ISNULL(qs.ItemMasterId,0) THEN qs.ItemMasterId ELSE 0 END) as RevisedPNItemMasterId,
 		CASE WHEN @LOTNumber = '' THEN '' ELSE (CASE WHEN (SELECT LotId FROM dbo.LotTransInOutDetails LTI WHERE LTI.LotId = SO.LotId AND LTI.StockLineId = Stk.StockLineId ) >0 THEN @LOTNumber ELSE '' END) END  AS LotNumber,
 		CASE WHEN SC.SalesOrderStocklineId IS NOT NULL THEN ISNULL(SC.NetSaleAmountPerUnit, 0) ELSE ISNULL(PS.NetSaleAmountPerUnit, 0) END AS netSalesPricePerUnit,
-		PS.UnitSalesPrice MainUnitSalesPrice,
+		part.UnitSalesPrice MainUnitSalesPrice,
 		ISNULL((CASE WHEN SC.SalesOrderStocklineId IS NOT NULL THEN ISNULL(SC.NetSaleAmount, 0) ELSE ISNULL(PS.NetSaleAmount, 0) END), 0) NetSalePriceExtendedPart
 
 		INTO #tmpSOPartTblV1 
@@ -215,11 +216,9 @@ BEGIN
     LEFT JOIN DBO.ItemMasterExportInfo imx WITH (NOLOCK) ON itemMaster.ItemMasterId = imx.ItemMasterId
     LEFT JOIN DBO.Manufacturer mf WITH (NOLOCK) ON itemMaster.ManufacturerId = mf.ManufacturerId
     LEFT JOIN DBO.Condition cp WITH (NOLOCK) ON part.ConditionId = cp.ConditionId
-	--LEFT JOIN DBO.Condition cpart WITH (NOLOCK) ON part.ConditionId = cpart.ConditionId
 	LEFT JOIN DBO.SalesOrderQuotePartV1 SOQP WITH (NOLOCK) ON SOQP.SalesOrderQuotePartId = part.SalesOrderQuotePartId
     LEFT JOIN DBO.SalesOrderQuote q WITH (NOLOCK) ON SOQP.SalesOrderQuoteId = q.SalesOrderQuoteId
     LEFT JOIN DBO.UnitOfMeasure iu WITH (NOLOCK) ON itemMaster.ConsumeUnitOfMeasureId = iu.UnitOfMeasureId
-    --LEFT JOIN DBO.SalesOrderReserveParts rPart WITH (NOLOCK) ON part.SalesOrderPartId = rPart.SalesOrderPartId AND part.SalesOrderId = rPart.SalesOrderId
     LEFT JOIN DBO.UnitOfMeasure um WITH (NOLOCK) ON itemMaster.PurchaseUnitOfMeasureId = um.UnitOfMeasureId
     LEFT JOIN DBO.PurchaseOrder po WITH (NOLOCK) ON qs.PurchaseOrderId = po.PurchaseOrderId
     LEFT JOIN DBO.RepairOrder ro WITH (NOLOCK) ON qs.RepairOrderId = ro.RepairOrderId
@@ -233,6 +232,7 @@ BEGIN
     AND ISNULL(rop.isAsset, 0) = 0
 	ORDER BY part.SalesOrderPartId;
 
+	/****** Total Part Wise COST Calculation ******/
 	;WITH CTE_Cost AS (
 			SELECT 
 				SalesOrderPartId,
@@ -241,6 +241,8 @@ BEGIN
 			FROM #tmpSOPartTblV1
 			GROUP BY SalesOrderPartId
 		)
+
+	/****** Final Table Return *******/
 		SELECT 
 			main.*,
 			(((main.QtyRequested - ISNULL(c.TotalQtyQuoted, 0)) * ISNULL(main.MainUnitSalesPrice, 0))

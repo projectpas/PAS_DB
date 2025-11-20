@@ -18,6 +18,7 @@
 	5	 10-04-2025  Vishal Suthar		Applied Optimization, Standard Formatting and Cleanup
 	6    27-06-2025  Bhargav Saliya		Add New Fields @NumberOfItemCount 
 	7    19-11-2025  RAJESH GAMI		Added SO Amount
+	10   20-11-2025  Rajesh Gami		Correct the SO Amount
 ************************************************************************/  
 CREATE   PROCEDURE [dbo].[SearchSalesOrderPNViewData]  
 	@PageNumber int,  
@@ -129,7 +130,7 @@ BEGIN
     ISNULL(SO.ShippedDate, '0001-01-01') as 'ShippedDate',   
     SO.IsDeleted, SOQ.VersionNumber,ISNULL(COUNT(SP.SalesOrderPartId),0) AS 'NumberOfItemCount' ,
 	ISNULL(SPC.NetSaleAmount, 0) AS soAmount,
-	SP.SalesOrderPartId, SP.QtyRequested ,sp.QtyOrder,SPC.UnitSalesPrice MainUnitSalesPrice
+	SP.SalesOrderPartId, SP.QtyRequested ,sp.QtyOrder,SP.UnitSalesPrice MainUnitSalesPrice
     FROM DBO.SalesOrder SO WITH (NOLOCK)
     INNER JOIN DBO.MasterSalesOrderQuoteStatus MST WITH (NOLOCK) on SO.StatusId = MST.Id
     LEFT JOIN DBO.SalesOrderPartV1 SP WITH (NOLOCK) on SO.SalesOrderId = SP.SalesOrderId and SP.IsDeleted = 0
@@ -146,7 +147,7 @@ BEGIN
     GROUP BY SO.SalesOrderId, SalesOrderNumber, SalesOrderQuoteNumber, SO.OpenDate,SO.ContractReference, SOQ.OpenDate, SO.CustomerId, SO.CustomerName,
     MST.Name, SPC.NetSaleAmount, SPC.UnitCost, SP.CustomerRequestDate, SO.StatusId, SO.CustomerReference,
     SP.PriorityName, E.FirstName, E.LastName, IM.partnumber,M.Name, IM.PartDescription, SOQ.VersionNumber,
-    SO.CreatedDate, SO.UpdatedDate, SO.UpdatedBy, SO.CreatedBy, SP.EstimatedShipDate, SP.PromisedDate, SO.ShippedDate, SO.IsDeleted, SO.Version,SP.QtyRequested ,sp.QtyOrder,SPC.UnitSalesPrice,SP.SalesOrderPartId),
+    SO.CreatedDate, SO.UpdatedDate, SO.UpdatedBy, SO.CreatedBy, SP.EstimatedShipDate, SP.PromisedDate, SO.ShippedDate, SO.IsDeleted, SO.Version,SP.QtyRequested ,sp.QtyOrder,SP.UnitSalesPrice,SP.SalesOrderPartId),
     FinalResult AS (
     SELECT SalesOrderId, SalesOrderNumber, SalesOrderQuoteNumber, VersionNumber, OpenDate,ContractReference, CustomerId, CustomerName, CustomerReference, Priority,
       PriorityType, QuoteAmount, UnitCost, RequestedDate, RequestedDateType, QuoteDate, EstimatedShipDate, EstimatedShipDateType, PromisedDate,
@@ -259,6 +260,7 @@ BEGIN
      OFFSET @RecordFrom ROWS   
      FETCH NEXT @PageSize ROWS ONLY  
 
+	   /****** Total Part Wise COST Calculation (SO Amount)******/
 	  ;WITH CTE_Cost AS (
 			SELECT 
 				dt.SalesOrderPartId,
@@ -269,6 +271,8 @@ BEGIN
 			LEFT JOIN DBO.SalesOrderStockLineCost SC WITH (NOLOCK) ON SC.SalesOrderStocklineId = stk.SalesOrderStocklineId
 			GROUP BY dt.SalesOrderPartId
 		)
+
+	/****** Final Table Return Logic*******/
 		SELECT 
 			main.*,
 			(((main.QtyRequested - ISNULL(c.TotalQtyQuoted, 0)) * ISNULL(main.MainUnitSalesPrice, 0))

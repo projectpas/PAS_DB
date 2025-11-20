@@ -20,6 +20,7 @@
 	7    27-06-2025  Bhargav Saliya		Add New Fields @NumberOfItemCount 
 	8    03-09-2025  AMIT GHEDIYA		Updated for filter issue (SalesQuoteNumber)
 	9    19-11-2025  RAJESH GAMI		Return SO Amount
+	10   20-11-2025  Rajesh Gami		Correct the SOAmount
 ************************************************************************/ 
 CREATE    PROCEDURE [dbo].[SearchSOViewData]    
 	@PageNumber INT,
@@ -130,7 +131,7 @@ BEGIN
       INNER JOIN [dbo].[RoleManagementStructure] RMS WITH (NOLOCK) ON SO.ManagementStructureId = RMS.EntityStructureId    
       INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId    
 
-	   OUTER APPLY (
+	   OUTER APPLY (  /*********  Total Part Wise COST Calculation (Quote Amount) **********/
 					SELECT SUM(X.NetSales) AS SoAmount
 						FROM (
 
@@ -180,7 +181,7 @@ BEGIN
 							OUTER APPLY (
 								SELECT  
 									ISNULL(SOQPS2.UnitSalesPrice, 0) AS UnitSalesPrice
-								FROM DBO.SalesOrderPartCost SOQPS2 WITH (NOLOCK)
+								FROM DBO.SalesOrderPartV1 SOQPS2 WITH (NOLOCK)
 								 LEFT JOIN DBO.SalesOrderStocklineV1 stk2 WITH (NOLOCK) 
 								ON stk2.SalesOrderPartId = SOQPS2.SalesOrderPartId
 								WHERE SOQPS2.SalesOrderId = quote.SalesOrderId 

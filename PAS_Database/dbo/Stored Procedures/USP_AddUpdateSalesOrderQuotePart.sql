@@ -15,7 +15,7 @@
 	4    12-12-2024   Vishal Suthar		 Modified query that updates QtyQuoted to Part Cost when No stockline is there
 	5    05-07-2015   BHARGAV SALIYA	 Change the Save SOQ Order Using @MinsoqId
 	6    15-09-2025	  Amit Ghediya		 Update for Reset Approval Process
-
+	7    20-11-2025	  Rajesh Gami		Added UnitSalesPrice in SalesOrderQuotePartV1 table
 declare @p1 dbo.SOQPartListType
 insert into @p1 values(909,871,318,7,3,NULL,3,NULL,1,3,3,NULL,NULL,1,1.000000,378.2,5,6.12,348.84,0,0,348.84,'2024-11-06 00:00:00','2024-11-07 00:00:00',NULL,120.00,2,2.4,360.00,0,100,0,NULL,N'',NULL,1,N'admin')
 insert into @p1 values(910,871,20753,9,3,NULL,3,NULL,1,3,3,NULL,NULL,NULL,1.000000,6.0,5,105.57,0,0,0,0,NULL,NULL,'2024-11-05 00:00:00',230.00,2,2.0,105.57,0,0,0,NULL,N'',NULL,1,N'admin')
@@ -126,7 +126,7 @@ BEGIN
 		DECLARE @IsNoQuote AS BIT = NULL;
 		DECLARE @IsLotAssigned AS BIT = NULL;
 		DECLARE @LotId AS BIGINT = 0;
-		DECLARE @PriorityId BIGINT = 0;
+		DECLARE @PriorityId BIGINT = 0,@StocklineCount INT =0;
 
 		SELECT @SalesOrderQuotePartId = SalesOrderQuotePartId, @SalesOrderQuoteId = SalesOrderQuoteId, @ItemMasterId = ItemMasterId, @ConditionId = ConditionId, @StocklineId = StocklineId,
 		@SalesOrderQuoteStocklineId = SalesOrderQuoteStocklineId, @MasterCompanyId = MasterCompanyId, @UnitSalesPrice = UnitSalesPrice, @MarkUpAmount = MarkUpAmount, @DiscountAmount = DiscountAmount, @QtyQuoted = QtyQuoted,
@@ -151,8 +151,8 @@ BEGIN
 				LEFT JOIN [DBO].[SalesOrderQuote] SOQ WITH (NOLOCK) ON SOQ.CustomerId = CF.CustomerId
 				WHERE SOQ.SalesOrderQuoteId = @SalesOrderQuoteId;
 
-				INSERT INTO [dbo].[SalesOrderQuotePartV1] ([SalesOrderQuoteId],[ItemMasterId],[ConditionId],[QtyRequested],[QtyQuoted],[CurrencyId],[FxRate],[PriorityId],[StatusId],[CustomerRequestDate],[PromisedDate],[EstimatedShipDate],[Notes],[MasterCompanyId],[CreatedBy],[CreatedDate],[UpdatedBy],[UpdatedDate],[IsActive],[IsDeleted],[IsLotAssigned],[LotId])
-				SELECT SalesOrderQuoteId, ItemMasterId, ConditionId, QtyRequested, QtyQuoted, CurrencyId, FxRate, PriorityId, @SOQPartStatus, CustomerRequestDate, PromisedDate, EstimatedShipDate, Notes, MasterCompanyId, CreatedBy, GETUTCDATE(), CreatedBy, GETUTCDATE(), 1, 0,IsLotAssigned,LotId
+				INSERT INTO [dbo].[SalesOrderQuotePartV1] ([SalesOrderQuoteId],[ItemMasterId],[ConditionId],[QtyRequested],[QtyQuoted],[CurrencyId],[FxRate],[PriorityId],[StatusId],[CustomerRequestDate],[PromisedDate],[EstimatedShipDate],[Notes],[MasterCompanyId],[CreatedBy],[CreatedDate],[UpdatedBy],[UpdatedDate],[IsActive],[IsDeleted],[IsLotAssigned],[LotId],UnitSalesPrice)
+				SELECT SalesOrderQuoteId, ItemMasterId, ConditionId, QtyRequested, QtyQuoted, CurrencyId, FxRate, PriorityId, @SOQPartStatus, CustomerRequestDate, PromisedDate, EstimatedShipDate, Notes, MasterCompanyId, CreatedBy, GETUTCDATE(), CreatedBy, GETUTCDATE(), 1, 0,IsLotAssigned,LotId,UnitSalesPrice
 				FROM #SOQPartDetails WHERE ID = @MinsoqId;
 
 				SET @SalesOrderQuotePartId = SCOPE_IDENTITY();
@@ -233,6 +233,7 @@ BEGIN
 			SET @IsQtyRequestedModified = CASE WHEN @ExistingQtyReq <> @QtyRequested THEN 1 ELSE 0 END;
 			SET @IsPriorityModified = CASE WHEN @ExistingPriority <> @PriorityId THEN 1 ELSE 0 END;
 			SET @IsUnitSalesModified = CASE WHEN @ExistingUnitSales <> CAST(ROUND(@UnitSalesPrice, 0) AS INT) THEN 1 ELSE 0 END;
+			SET @StocklineCount = ISNULL((SELECT COUNT(SalesOrderQuotePartId) FROM #SOQPartDetails WHERE SalesOrderQuotePartId = @SalesOrderQuotePartId AND ISNULL(StocklineId,0) > 0),0)
 
 			UPDATE [DBO].[SalesOrderQuotePartV1]
 			SET 
@@ -242,7 +243,8 @@ BEGIN
 			Notes = @Notes,
 			IsNoQuote = @IsNoQuote,
 			QtyRequested = @QtyRequested,
-			QtyQuoted = @QtyQuoted
+			QtyQuoted = @QtyQuoted,
+			UnitSalesPrice = (CASE WHEN @StocklineCount > 0 THEN UnitSalesPrice ELSE @UnitSalesPrice END)
 			WHERE SalesOrderQuotePartId = @SalesOrderQuotePartId
 
 			-- Update Part Details

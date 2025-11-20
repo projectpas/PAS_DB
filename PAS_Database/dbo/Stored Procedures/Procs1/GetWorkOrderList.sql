@@ -36,6 +36,8 @@
 	20   10/11/2025  Bhargav Saliya		Added New Filters WoTaskType
 	21   18/11/2025  Bhargav Saliya		Remove Case Condition For [IsWorkOrderTask] Field
 	22   19/11/2025   Amit Ghediya		Added New Field Location
+	23   20/11/2025   Sahdev Saliya         Added New Field :- ReceivedCondition, RevisedCondition
+
 	exec dbo.GetWorkOrderList @PageNumber=1,@PageSize=100,@SortColumn=default,@SortOrder=-1,@StatusID=1,@GlobalFilter=default,@ViewType=N'mpn',
 	@WorkOrderNum=default,@PartNumber=default,@PartDescription=default,@WorkScope=default,@Priority=default,@CustomerName=default,@CustomerAffiliation=default,@Stage=default,
 	@WorkOrderStatus=1,@OpenDate=default,@CustReqDate=default,@PromiseDate=default,@EstShipDate=default,@ShipDate=default,@CreatedDate=default,@UpdatedDate=default,@CreatedBy=default,
@@ -88,7 +90,9 @@ CREATE   PROCEDURE [dbo].[GetWorkOrderList]
 	 @Notes NVARCHAR(MAX) = NULL,
 	 @IsWorkOrderTask VARCHAR(50) = NULL,
 	 @location VARCHAR(100) = NULL,
-	 @WoTaskType BIT = NULL
+	 @WoTaskType BIT = NULL, 
+	 @ReceivedCondition VARCHAR(100) = NULL,
+	 @RevisedCondition VARCHAR(100) = NULL
 
 AS  
 BEGIN  
@@ -236,7 +240,9 @@ BEGIN
 			[WOPartId] NVARCHAR(100),
 			[Notes] NVARCHAR(MAX),
 			[IsWorkOrderTask] NVARCHAR(10),
-			[location] VARCHAR(100)
+			[location] VARCHAR(100),
+			[ReceivedCondition] VARCHAR(100),
+			[RevisedCondition] VARCHAR(100),
 		);
 
 		-- 2. Create the index for faster filtering/sorting
@@ -309,7 +315,9 @@ BEGIN
 			WPN.[ID] AS [WOPartId],
 			ISNULL(WPN.Notes,'') as Notes,
 			CASE WHEN ISNULL(WO.[WorkOrderFormTypeId], 0) = 1 THEN 'Dynamic' else 'Static' end AS [IsWorkOrderTask],
-			ISNULL(STK.[Location],'') AS [location]
+			ISNULL(STK.[Location],'') AS [location],
+			CD.[Description] AS 'ReceivedCondition',
+			RCD.[Description] AS 'RevisedCondition'
 			FROM [dbo].[WorkOrder] WO WITH(NOLOCK)  
 			JOIN [dbo].[WorkOrderPartNumber] WPN WITH(NOLOCK) ON WO.[WorkOrderId] = WPN.[WorkOrderId]  
 			LEFT JOIN [dbo].[Stockline] STK WITH(NOLOCK) ON WPN.StockLineId = STK.StockLineId
@@ -328,6 +336,8 @@ BEGIN
 			LEFT JOIN [dbo].[WorkOrderQuoteDetails] WOQD WITH (NOLOCK) ON WPN.[ID] = WOQD.[WOPartNoId] AND WOQD.[IsActive] = 1 AND WOQD.[IsVersionIncrease] = 0 
 			LEFT JOIN [dbo].[WorkOrderQuote] woq WITH (NOLOCK) ON woq.[workorderquoteid] = WOQD.[workorderquoteid]
 			LEFT JOIN [dbo].[WorkOrderQuoteStatus] wqs WITH (NOLOCK) ON woq.[QuoteStatusId] = wqs.[WorkOrderQuoteStatusId] 
+			LEFT JOIN dbo.Condition CD WITH(NOLOCK) ON WPN.ConditionId = CD.ConditionId  
+			LEFT JOIN dbo.Condition RCD WITH(NOLOCK) ON WPN.RevisedConditionId = RCD.ConditionId  
 		WHERE ((WO.[MasterCompanyId] = @MasterCompanyId) AND (WO.[IsDeleted] = @IsDeleted) AND (@IsActive IS NULL OR WO.[IsActive] = @IsActive) AND (@WorkOrderStatus = 0 OR WPN.[WorkOrderStatusId] = @WorkOrderStatus)
 		AND (@WoTaskType IS NULL OR WO.[WorkOrderFormTypeId] = @WoTaskType))  
         ),
@@ -335,7 +345,7 @@ BEGIN
 			SELECT [WorkOrderNum], [WorkOrderId], [CustomerId], [PartNos], [PartNoType], [PNDescription], [PNDescriptionType], [ManufacturerName], [ManufacturerNameType], [WorkScope], [WorkScopeType], [Priority], [PriorityType], [CustomerName], [CustomerType], [Stage], [StageType], [WorkOrderStatus], [WorkOrderStatusType], [OpenDate], [CustomerRequestDate], [CustomerRequestDateType],
 				[PromisedDate], [PromisedDateType], [EstimatedShipDate], [EstimatedShipDateType], [EstimatedCompletionDateType], [EstimatedCompletionDate], [CreatedDate], [UpdatedDate], [CreatedBy], [UpdatedBy], [IsActive], [IsDeleted], [WorkOrderStatusId], [WorkOrderType], [TechName], [TechStation], [SerialNumber],[RevisedSerialNumber],
 				[CustomerReference], [CustomerReferenceType], [IsSubWorkOrder], [MPNQuoteStatus],
-				CASE WHEN [MPNQuoteStatus] = @WOApprovalDesc THEN [ApprovedAmount] ELSE '' END AS [ApprovedAmount], [WOPartId],Notes,[IsWorkOrderTask],[location]
+				CASE WHEN [MPNQuoteStatus] = @WOApprovalDesc THEN [ApprovedAmount] ELSE '' END AS [ApprovedAmount], [WOPartId],Notes,[IsWorkOrderTask],[location],[ReceivedCondition], [RevisedCondition]
 			FROM Result
 		),
 		ResultCount AS(SELECT COUNT(WorkOrderId) AS totalItems FROM QuoteResult)  
@@ -347,7 +357,7 @@ BEGIN
 			   [CustomerRequestDateType], [PromisedDate], [PromisedDateType], [EstimatedShipDate], [EstimatedShipDateType],
 			   [EstimatedCompletionDateType], [EstimatedCompletionDate], [CreatedDate], [UpdatedDate], [CreatedBy], [UpdatedBy],
 			   [IsActive], [IsDeleted], [WorkOrderStatusId], [WorkOrderType], [TechName], [TechStation], [SerialNumber],[RevisedSerialNumber],
-			   [CustomerReference], [CustomerReferenceType], [IsSubWorkOrder], [MPNQuoteStatus], [ApprovedAmount], [WOPartId],Notes,[IsWorkOrderTask],[location]
+			   [CustomerReference], [CustomerReferenceType], [IsSubWorkOrder], [MPNQuoteStatus], [ApprovedAmount], [WOPartId],Notes,[IsWorkOrderTask],[location],[ReceivedCondition],[RevisedCondition]
 		FROM QuoteResult
         WHERE (  
         (@GlobalFilter <>'' AND 
@@ -376,7 +386,9 @@ BEGIN
 			([Notes] LIKE '%' +@GlobalFilter+'%') OR  
 			([IsSubWorkOrder] LIKE '%' + @GlobalFilter +'%') OR
 			([IsWorkOrderTask] LIKE '%' + @GlobalFilter +'%') OR
-			([location] LIKE '%' + @GlobalFilter +'%')
+			([location] LIKE '%' + @GlobalFilter +'%') OR
+			([ReceivedCondition] LIKE '%' + @GlobalFilter +'%') OR
+		    ([RevisedCondition] LIKE '%' + @GlobalFilter +'%')
 			)
 		)  
         OR     
@@ -410,7 +422,9 @@ BEGIN
 		(ISNULL(@Notes,'') ='' OR Notes LIKE '%' + @Notes+'%') AND  
 		(ISNULL(@IsSubWorkOrder,'') ='' OR [IsSubWorkOrder] LIKE '%' + @IsSubWorkOrder + '%') AND
 		(ISNULL(@IsWorkOrderTask,'') ='' OR [IsWorkOrderTask] LIKE '%' + @IsWorkOrderTask + '%') AND
-		(ISNULL(@location,'') ='' OR [location] LIKE '%' + @location + '%') 
+		(ISNULL(@location,'') ='' OR [location] LIKE '%' + @location + '%') AND
+		(ISNULL(@ReceivedCondition,'') ='' OR [ReceivedCondition] LIKE '%' + @ReceivedCondition + '%') AND
+	    (ISNULL(@RevisedCondition,'') ='' OR [RevisedCondition] LIKE '%' + @RevisedCondition + '%')  
 
         ))  
   
@@ -500,7 +514,11 @@ BEGIN
 		CASE WHEN (@SortOrder=-1 AND @SortColumn='ISWORKORDERTASK')  THEN IsWorkOrderTask END DESC,  
 		CASE WHEN (@SortOrder=1 AND @SortColumn='ISWORKORDERTASK')  THEN IsWorkOrderTask END ASC,
 		CASE WHEN (@SortOrder=-1 AND @SortColumn='LOCATION')  THEN [location] END DESC,  
-		CASE WHEN (@SortOrder=1 AND @SortColumn='LOCATION')  THEN [location] END ASC 
+		CASE WHEN (@SortOrder=1 AND @SortColumn='LOCATION')  THEN [location] END ASC ,
+	    CASE WHEN (@SortOrder=-1 AND @SortColumn='RECEIVEDCONDITION')  THEN [ReceivedCondition] END DESC,
+		CASE WHEN (@SortOrder=1 AND @SortColumn='RECEIVEDCONDITION')  THEN [ReceivedCondition] END ASC,
+		CASE WHEN (@SortOrder=-1 AND @SortColumn='REVISEDCONDITION')  THEN [RevisedCondition] END DESC,
+		CASE WHEN (@SortOrder=1 AND @SortColumn='REVISEDCONDITION')  THEN [RevisedCondition] END ASC
   
         OFFSET @RecordFrom ROWS   
         FETCH NEXT @PageSize ROWS ONLY  
@@ -587,7 +605,9 @@ BEGIN
 
 				 MAX(WPN.Notes)  AS 'Notes',
 				 WO.[IsWorkOrderTask],
-				 '' AS [location]
+				 '' AS [location],
+				MAX(CD.[Description])  AS 'ReceivedCondition',
+				MAX(RCD.[Description])  AS 'RevisedCondition'
 		  INTO #TempWOPartResult
           FROM Main WO WITH (NOLOCK)   
 			  JOIN [dbo].[WorkOrderPartNumber] WPN WITH (NOLOCK) ON WO.[WorkOrderId] = WPN.[WorkOrderId]
@@ -602,6 +622,8 @@ BEGIN
 				LEFT JOIN [dbo].[WorkOrderQuoteDetails] WOQD WITH (NOLOCK) ON WPN.[ID] = WOQD.[WOPartNoId] AND WOQD.[IsActive] = 1 AND WOQD.[IsVersionIncrease] = 0 
 				LEFT JOIN [dbo].[WorkOrderQuote] woq WITH (NOLOCK) ON woq.[workorderquoteid] = WOQD.[workorderquoteid]
 				LEFT JOIN [dbo].[WorkOrderQuoteStatus] wqs WITH (NOLOCK) ON woq.[QuoteStatusId] = wqs.[WorkOrderQuoteStatusId] 
+				LEFT JOIN dbo.Condition CD WITH(NOLOCK) ON WPN.ConditionId = CD.ConditionId  
+			    LEFT JOIN dbo.Condition RCD WITH(NOLOCK) ON WPN.RevisedConditionId = RCD.ConditionId  
           WHERE ((WO.[MasterCompanyId] = @MasterCompanyId) AND (WO.[IsDeleted] = @IsDeleted) AND (@IsActive IS NULL OR WO.[IsActive] = @IsActive)   
 				AND (@WorkOrderStatus = 0 OR WPN.[WorkOrderStatusId] = @WorkOrderStatus) AND (@WoTaskType IS NULL OR WO.[WorkOrderFormTypeId] = @WoTaskType))
 		  GROUP BY	WO.[WorkOrderNum],WO.[WorkOrderId],WO.[CustomerId],WO.[CustomerName],WO.[CustomerType], WO.[OpenDate], WO.[CreatedDate], WO.[UpdatedDate],WO.[CreatedBy], WO.[UpdatedBy],
@@ -642,6 +664,8 @@ BEGIN
 			  (CASE WHEN RowStatus = 'Multiple' THEN 'Multiple' ELSE MAX([MPNQuoteStatus]) END)  AS 'MPNQuoteStatus',
 			  (CASE WHEN RowStatus = 'Multiple' THEN 'Multiple' ELSE MAX([ApprovedAmount]) END)  AS 'ApprovedAmount',
 			  (CASE WHEN RowStatus = 'Multiple' THEN 'Multiple' ELSE MAX([Notes]) END)  AS 'Notes',
+			  (CASE WHEN RowStatus = 'Multiple' THEN 'Multiple' ELSE MAX([ReceivedCondition]) END)  AS 'ReceivedCondition',
+			  (CASE WHEN RowStatus = 'Multiple' THEN 'Multiple' ELSE MAX([RevisedCondition]) END)  AS 'RevisedCondition',
 			  [IsWorkOrderTask],
 			  [location]
 		  INTO #finalTemp FROM #TempWOPartResult 
@@ -656,7 +680,7 @@ BEGIN
               [EstimatedCompletionDate], [EstimatedCompletionDateType], [IsSubWorkOrder], UPPER([TechName]) [TechName], UPPER([TechNameType]) [TechNameType], UPPER([TechStation]) [TechStation], UPPER([TechStationType]) [TechStationType], 
 			  UPPER([CustomerReference]) [CustomerReference], UPPER([CustomerReferenceType]) [CustomerReferenceType], [SerialNumber],[RevisedSerialNumber], [MPNQuoteStatus], 
 			  CASE WHEN [MPNQuoteStatus] = 'Multiple' THEN [ApprovedAmount] WHEN [MPNQuoteStatus] = @WOApprovalDesc THEN [ApprovedAmount] ELSE '' END AS [ApprovedAmount],
-			  CASE WHEN UPPER([Notes]) ='MULTIPLE' THEN UPPER([Notes]) ELSE [Notes] END AS [Notes],[IsWorkOrderTask],[location]
+			  CASE WHEN UPPER([Notes]) ='MULTIPLE' THEN UPPER([Notes]) ELSE [Notes] END AS [Notes],[IsWorkOrderTask],[location],[ReceivedCondition],[RevisedCondition]
           FROM #finalTemp M   
           ),  
          ResultCount AS(SELECT COUNT([WorkOrderId]) AS totalItems FROM Result)  
@@ -686,7 +710,9 @@ BEGIN
 		   	([Notes] LIKE '%' +@GlobalFilter+'%') OR
 		   ([IsSubWorkOrder] LIKE '%' + @GlobalFilter +'%') OR
 		   ([IsWorkOrderTask] LIKE '%' + @GlobalFilter +'%') OR
-		   ([location] LIKE '%' + @GlobalFilter +'%')
+		   ([location] LIKE '%' + @GlobalFilter +'%') OR
+		   ([ReceivedCondition] LIKE '%' + @GlobalFilter +'%') OR
+		   ([RevisedCondition] LIKE '%' + @GlobalFilter +'%')
            ))  
            OR     
            (@GlobalFilter='' AND (ISNULL(@WorkOrderNum,'') ='' OR [WorkOrderNum] LIKE '%' + @WorkOrderNum+'%') AND  
@@ -720,7 +746,9 @@ BEGIN
 		   (ISNULL(@Notes,'') ='' OR Notes LIKE '%' + @Notes+'%') AND  
 		   (ISNULL(@IsSubWorkOrder,'') ='' OR [IsSubWorkOrder] LIKE '%' + @IsSubWorkOrder + '%') and
 		   (ISNULL(@IsWorkOrderTask,'') ='' OR [IsWorkOrderTask] LIKE '%' + @IsWorkOrderTask + '%') AND
-		   (ISNULL(@location,'') ='' OR [location] LIKE '%' + @location + '%') 
+		   (ISNULL(@location,'') ='' OR [location] LIKE '%' + @location + '%') AND
+		   (ISNULL(@ReceivedCondition,'') ='' OR [ReceivedCondition] LIKE '%' + @ReceivedCondition + '%') AND
+		   (ISNULL(@RevisedCondition,'') ='' OR [RevisedCondition] LIKE '%' + @RevisedCondition + '%') 
 
            ))  
   
@@ -810,7 +838,11 @@ BEGIN
 		 CASE WHEN (@SortOrder=-1 AND @SortColumn='ISSUBWORKORDER')  THEN [IsSubWorkOrder] END DESC,
 		 CASE WHEN (@SortOrder=-1 AND @SortColumn='ISWORKORDERTASK')  THEN [IsWorkOrderTask] END DESC,
 		 CASE WHEN (@SortOrder=-1 AND @SortColumn='LOCATION')  THEN [Location] END DESC,
-		 CASE WHEN (@SortOrder=1 AND @SortColumn='LOCATION')  THEN [Location] END ASC
+		 CASE WHEN (@SortOrder=1 AND @SortColumn='LOCATION')  THEN [Location] END ASC,
+		 CASE WHEN (@SortOrder=-1 AND @SortColumn='RECEIVEDCONDITION')  THEN [ReceivedCondition] END DESC,
+		 CASE WHEN (@SortOrder=1 AND @SortColumn='RECEIVEDCONDITION')  THEN [ReceivedCondition] END ASC,
+		 CASE WHEN (@SortOrder=-1 AND @SortColumn='REVISEDCONDITION')  THEN [RevisedCondition] END DESC,
+		 CASE WHEN (@SortOrder=1 AND @SortColumn='REVISEDCONDITION')  THEN [RevisedCondition] END ASC
   
          OFFSET @RecordFrom ROWS   
          FETCH NEXT @PageSize ROWS ONLY  

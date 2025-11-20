@@ -22,7 +22,9 @@
 	7	 19/04/2024	 Devendra Shekh	    added InvoiceTypeId to select and removed isExchange
 	8	 27/06/2024	 Moin Bloch	        added AcctingPeriodId 
 	9    07-07-2025  Moin Bloch         Changed Old To New Billing Table
--- EXEC GetCreditMemoById 8  
+	10   19-11-2025  Vishal Suthar      Fixed subquery with TOP 1 when it was returning more than 1 row
+
+-- EXEC GetCreditMemoById 103  
   
 ************************/  
 CREATE   PROCEDURE [dbo].[GetCreditMemoById]  
@@ -122,7 +124,7 @@ BEGIN
 			   WHERE SI.BillingInvoicingId = CM.[InvoiceId] AND ISNULL(SI.[IsPerformaInvoice],0) = 0
 			   FOR XML PATH('')), 1, 1, '')   
 			   END AS 'PORONum'  
-	  ,CASE WHEN CM.[IsWorkOrder]=1 THEN (SELECT ISNULL(SABD.WayBillRef,NULL) FROM [dbo].[BillingInvoicing] WB WITH (NOLOCK) 
+	  ,CASE WHEN CM.[IsWorkOrder]=1 THEN (SELECT TOP 1 ISNULL(SABD.WayBillRef,NULL) FROM [dbo].[BillingInvoicing] WB WITH (NOLOCK) 
 		    LEFT JOIN dbo.BillingInvoicingDetails SABD WITH (NOLOCK)  ON SABD.BillingInvoicingId = WB.BillingInvoicingId
 			WHERE WB.[BillingInvoicingId] = CM.[InvoiceId])  
 			WHEN ISNULL(CM.InvoiceTypeId, 0) = @ExchangeInvoiceTypeId THEN '' 

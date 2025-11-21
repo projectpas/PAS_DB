@@ -12,7 +12,7 @@
   ** S NO   Date            Author				Change Description              
  ** --   --------			-------				--------------------------------            
     1    04-November-2022	Vishal Suthar			Created
-
+    2    21-November-2025	Rajesh Gami				Added Quantity BackOrder
 EXECUTE   [dbo].[usprpt_GetStockLevelAnalysisReport] '2','2010-01-01','2022-04-26',null,1,10
 **************************************************************/
 CREATE    PROCEDURE [dbo].[usprpt_GetStockLevelAnalysisReport] 
@@ -228,7 +228,12 @@ BEGIN
 				UPPER(MSD.Level7Name) AS level7,   
 				UPPER(MSD.Level8Name) AS level8,    
 				UPPER(MSD.Level9Name) AS level9,    
-				UPPER(MSD.Level10Name) AS level10
+				UPPER(MSD.Level10Name) AS level10,
+				quantityBackOrdered =(SELECT TOP 1 SUM(ISNULL(pop.QuantityBackOrdered,0))
+										FROM dbo.PurchaseOrderPart pop WITH (NOLOCK)
+										INNER JOIN dbo.PurchaseOrder po WITH (NOLOCK) ON pop.PurchaseOrderId = po.PurchaseOrderId
+										WHERE pop.ItemMasterId = stl.ItemMasterId AND pop.ConditionId = stl.ConditionId
+											AND ISNULL(pop.IsDeleted, 0) = 0 AND po.[Status] <> 'Canceled')
 			FROM DBO.Stockline stl WITH (NOLOCK)
 			INNER JOIN dbo.ItemMaster IM WITH (NOLOCK) ON IM.ItemMasterId = stl.ItemMasterId
 			INNER JOIN dbo.StocklineManagementStructureDetails MSD WITH (NOLOCK)
@@ -292,7 +297,8 @@ BEGIN
 				MAX(level8) AS level8,
 				MAX(level9) AS level9,
 				MAX(level10) AS level10,
-				MAX(masterCompanyId) AS masterCompanyId
+				MAX(masterCompanyId) AS masterCompanyId,
+				MAX(quantityBackOrdered) as quantityBackOrdered
 			FROM rptCTE
 			GROUP BY pn, cond, site 
 		)
@@ -307,7 +313,7 @@ BEGIN
 				ELSE ISNULL(minqtyorder,0)
 			END AS qtytoorder,
 			warehouse, location, shelf, bin,
-			level1, level2, level3, level4, level5, level6, level7, level8, level9, level10
+			level1, level2, level3, level4, level5, level6, level7, level8, level9, level10,quantityBackOrdered
 		FROM GroupedCTE
 		ORDER BY pn DESC
 		OFFSET ((@PageNumber - 1) * @PageSize) ROWS

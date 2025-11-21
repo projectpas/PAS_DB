@@ -12,14 +12,18 @@
   ** S NO   Date            Author				Change Description              
  ** --   --------			-------				--------------------------------            
     1    04-November-2022	Vishal Suthar			Created
-    2    21-November-2025	Rajesh Gami				Added Quantity BackOrder
+	2    21-November-2025	Amit ghediya		    Added filter & sortOrder
+	3    21-November-2025	Rajesh Gami				Added Quantity BackOrder
+
 EXECUTE   [dbo].[usprpt_GetStockLevelAnalysisReport] '2','2010-01-01','2022-04-26',null,1,10
 **************************************************************/
 CREATE    PROCEDURE [dbo].[usprpt_GetStockLevelAnalysisReport] 
 @PageNumber int = 1,
 @PageSize int = NULL,
 @mastercompanyid int,
-@xmlFilter XML
+@xmlFilter XML,
+@SortColumn VARCHAR(50)=NULL,
+@SortOrder INT = NULL
 AS
 BEGIN
   SET NOCOUNT ON;
@@ -45,7 +49,18 @@ BEGIN
 	@Shelf VARCHAR(MAX) = NULL,
 	@Bin VARCHAR(MAX) = NULL,
 
-	@IsDownload BIT = NULL
+	@IsDownload BIT = NULL,
+	@stockuom VARCHAR(MAX) = NULL,
+	@pndescription VARCHAR(MAX) = NULL,
+	@manufacturer VARCHAR(MAX) = NULL,
+	@stocklevel INT = NULL,
+	@leadtimedays INT = NULL,
+	@qtyonhand INT = NULL,
+	@minqtyorder INT = NULL,
+	@qtyonavail INT = NULL,
+	@reorder VARCHAR(100) = NULL,
+	@qtytoorder INT = NULL,
+	@quantityBackOrdered INT = NULL
 
   BEGIN TRY
 	select 
@@ -84,14 +99,40 @@ BEGIN
 		@Shelf=case when filterby.value('(FieldName/text())[1]','VARCHAR(100)')='Shelf' 
 		then filterby.value('(FieldValue/text())[1]','VARCHAR(100)') else @Shelf end,
 		@Bin=case when filterby.value('(FieldName/text())[1]','VARCHAR(100)')='Bin' 
-		then filterby.value('(FieldValue/text())[1]','VARCHAR(100)') else @Bin end
-
+		then filterby.value('(FieldValue/text())[1]','VARCHAR(100)') else @Bin end,
+		@stockuom=case when filterby.value('(FieldName/text())[1]','VARCHAR(100)')='stockuom' 
+		then filterby.value('(FieldValue/text())[1]','VARCHAR(100)') else @stockuom end,
+		@pndescription=case when filterby.value('(FieldName/text())[1]','VARCHAR(100)')='pndescription' 
+		then filterby.value('(FieldValue/text())[1]','VARCHAR(100)') else @pndescription end,
+		@manufacturer=case when filterby.value('(FieldName/text())[1]','VARCHAR(100)')='manufacturer' 
+		then filterby.value('(FieldValue/text())[1]','VARCHAR(100)') else @manufacturer end,
+		@stocklevel=case when filterby.value('(FieldName/text())[1]','VARCHAR(100)')='stocklevel' 
+		then filterby.value('(FieldValue/text())[1]','VARCHAR(100)') else @stocklevel end,
+		@leadtimedays=case when filterby.value('(FieldName/text())[1]','VARCHAR(100)')='leadtimedays' 
+		then filterby.value('(FieldValue/text())[1]','VARCHAR(100)') else @leadtimedays end,
+		@qtyonhand=case when filterby.value('(FieldName/text())[1]','VARCHAR(100)')='qtyonhand' 
+		then filterby.value('(FieldValue/text())[1]','VARCHAR(100)') else @qtyonhand end,
+		@minqtyorder=case when filterby.value('(FieldName/text())[1]','VARCHAR(100)')='minqtyorder' 
+		then filterby.value('(FieldValue/text())[1]','VARCHAR(100)') else @minqtyorder end,
+		@qtyonavail=case when filterby.value('(FieldName/text())[1]','VARCHAR(100)')='qtyonavail' 
+		then filterby.value('(FieldValue/text())[1]','VARCHAR(100)') else @qtyonavail end,
+		@reorder=case when filterby.value('(FieldName/text())[1]','VARCHAR(100)')='reorder' 
+		then filterby.value('(FieldValue/text())[1]','VARCHAR(100)') else @reorder end,
+		@qtytoorder=case when filterby.value('(FieldName/text())[1]','VARCHAR(100)')='qtytoorder' 
+		then filterby.value('(FieldValue/text())[1]','VARCHAR(100)') else @qtytoorder end,
+		@quantityBackOrdered=case when filterby.value('(FieldName/text())[1]','VARCHAR(100)')='quantityBackOrdered' 
+		then filterby.value('(FieldValue/text())[1]','VARCHAR(100)') else @quantityBackOrdered end
   FROM
       @xmlFilter.nodes('/ArrayOfFilter/Filter')AS TEMPTABLE(filterby)
 
       DECLARE @ModuleID INT = 2; -- MS Module ID
 	  SET @IsDownload = CASE WHEN NULLIF(@PageSize,0) IS NULL THEN 1 ELSE 0 END
-	  	  
+	  	 
+		IF(ISNULL(@qtyonavail,0) > 0)
+		BEGIN
+			 SET @qtyonavail = CAST(@qtyonavail AS INT) 
+		END
+
 	   IF ISNULL(@PageSize,0)=0
 		BEGIN 
 		  SELECT @PageSize=COUNT(*)
@@ -246,6 +287,11 @@ BEGIN
 				AND stl.IsDeleted = 0 
 				AND ISNULL(stl.IsCustomerStock, 0) = 0
 				AND (ISNULL(@PN,'') = '' OR stl.ItemMasterId = @PN)
+				AND (ISNULL(@stockuom,'') ='' OR UnitOfMeasure LIKE '%' + @stockuom + '%')
+				AND (ISNULL(@pndescription,'') ='' OR pndescription LIKE '%' + @pndescription + '%')
+				AND (ISNULL(@manufacturer,'') ='' OR manufacturer LIKE '%' + @manufacturer + '%')
+				AND IM.StockLevel = ISNULL(@stocklevel,IM.StockLevel)
+				AND IM.LeadTimeDays = ISNULL(@leadtimedays,IM.LeadTimeDays)	
 				AND (ISNULL(@Condition,'') = '' OR stl.ConditionId IN (SELECT Item FROM DBO.SPLITSTRING(@Condition,',')))
 				AND (ISNULL(@Site,'') = '' OR stl.SiteId IN (SELECT Item FROM DBO.SPLITSTRING(@Site,',')))   
 				AND (ISNULL(@Warehouse,'') = '' OR stl.WarehouseId IN (SELECT Item FROM DBO.SPLITSTRING(@Warehouse,',')))   
@@ -315,7 +361,71 @@ BEGIN
 			warehouse, location, shelf, bin,
 			level1, level2, level3, level4, level5, level6, level7, level8, level9, level10,quantityBackOrdered
 		FROM GroupedCTE
-		ORDER BY pn DESC
+		WHERE 
+				qtyonhand = ISNULL(@qtyonhand,qtyonhand)
+				AND minqtyorder = ISNULL(@minqtyorder,minqtyorder)
+				AND qtyonhand = ISNULL(@qtyonhand,qtyonhand)
+				AND (ISNULL(@qtyonavail,'') = '' OR qtyonavail = @qtyonavail)
+				AND (ISNULL(@reorder,'') ='' OR CASE WHEN qtyonavail <= stocklevel THEN 'YES' ELSE 'NO' END LIKE '%' + @reorder + '%')
+				AND quantityBackOrdered = ISNULL(@quantityBackOrdered,quantityBackOrdered)	
+		ORDER BY  					 
+			CASE WHEN (@SortOrder=1  AND @SortColumn='pn') THEN pn END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='pn') THEN pn END DESC,
+			CASE WHEN (@SortOrder=1  AND @SortColumn='pndescription') THEN pndescription END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='pndescription') THEN pndescription END DESC,
+			CASE WHEN (@SortOrder=1  AND @SortColumn='manufacturer') THEN manufacturer END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='manufacturer') THEN manufacturer END DESC,
+			CASE WHEN (@SortOrder=1  AND @SortColumn='cond') THEN cond END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='cond') THEN cond END DESC,
+			CASE WHEN (@SortOrder=1  AND @SortColumn='stockuom') THEN stockuom END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='stockuom') THEN stockuom END DESC,
+			CASE WHEN (@SortOrder=1  AND @SortColumn='stocklevel') THEN stocklevel END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='stocklevel') THEN stocklevel END DESC,
+			CASE WHEN (@SortOrder=1  AND @SortColumn='leadtimedays') THEN leadtimedays END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='leadtimedays') THEN leadtimedays END DESC,
+			CASE WHEN (@SortOrder=1  AND @SortColumn='minqtyorder') THEN minqtyorder END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='minqtyorder') THEN minqtyorder END DESC,
+			CASE WHEN (@SortOrder=1  AND @SortColumn='qtyonhand') THEN qtyonhand END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='qtyonhand') THEN qtyonhand END DESC,
+			CASE WHEN (@SortOrder=1  AND @SortColumn='qtyonavail') THEN qtyonavail END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='qtyonavail') THEN qtyonavail END DESC,
+			CASE WHEN (@SortOrder=1  AND @SortColumn='reorder') THEN reorder END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='reorder') THEN reorder END DESC,
+			CASE WHEN (@SortOrder=1  AND @SortColumn='qtytoorder') THEN qtytoorder END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='qtytoorder') THEN qtytoorder END DESC,
+			CASE WHEN (@SortOrder=1  AND @SortColumn='site') THEN [site] END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='site') THEN [site] END DESC,
+			CASE WHEN (@SortOrder=1  AND @SortColumn='warehouse') THEN warehouse END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='warehouse') THEN warehouse END DESC,
+			CASE WHEN (@SortOrder=1  AND @SortColumn='location') THEN [location] END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='location') THEN [location] END DESC,
+			CASE WHEN (@SortOrder=1  AND @SortColumn='shelf') THEN shelf END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='shelf') THEN shelf END DESC,
+			CASE WHEN (@SortOrder=1  AND @SortColumn='bin') THEN bin END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='bin') THEN bin END DESC,
+			CASE WHEN (@SortOrder=1  AND @SortColumn='level1') THEN level1 END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='level1') THEN level1 END DESC,
+			CASE WHEN (@SortOrder=1  AND @SortColumn='level2') THEN level2 END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='level2') THEN level2 END DESC,
+			CASE WHEN (@SortOrder=1  AND @SortColumn='level3') THEN level3 END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='level3') THEN level3 END DESC,
+			CASE WHEN (@SortOrder=1  AND @SortColumn='level4') THEN level4 END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='level4') THEN level4 END DESC,
+			CASE WHEN (@SortOrder=1  AND @SortColumn='level5') THEN level5 END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='level5') THEN level5 END DESC,
+			CASE WHEN (@SortOrder=1  AND @SortColumn='level6') THEN level6 END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='level6') THEN level6 END DESC,
+			CASE WHEN (@SortOrder=1  AND @SortColumn='level7') THEN level7 END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='level7') THEN level7 END DESC,
+			CASE WHEN (@SortOrder=1  AND @SortColumn='level8') THEN level8 END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='level8') THEN level8 END DESC,
+			CASE WHEN (@SortOrder=1  AND @SortColumn='level9') THEN level9 END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='level9') THEN level9 END DESC,
+			CASE WHEN (@SortOrder=1  AND @SortColumn='level10') THEN level10 END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='level10') THEN level10 END DESC,
+			CASE WHEN (@SortOrder=1  AND @SortColumn='quantityBackOrdered') THEN quantityBackOrdered END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='quantityBackOrdered') THEN quantityBackOrdered END DESC
+
 		OFFSET ((@PageNumber - 1) * @PageSize) ROWS
 		FETCH NEXT @PageSize ROWS ONLY;
 

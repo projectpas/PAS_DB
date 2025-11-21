@@ -19,7 +19,7 @@ EXEC [RPT_GetWorkOrderPrintPdfData]
 ** 8    17/02/2025  Moin Bloch          Updated (Added Publication PublicationNo)
 ** 9	13/May/2025 Bhargav Saliya	    Added IsDisplayFooter to select
 ** 10	15/Aug/2025 Vishal Suthar	    Changed the condition to populate current serial number
-
+** 9	13/Nov/2025 Rajesh Gami			Added CustReqCertType
 EXEC RPT_GetWorkOrderPrintPdfData 9747,9850
 
 **************************************************************/
@@ -179,7 +179,8 @@ BEGIN
 			   FOR XML PATH('')              
 			   ), 1, 1, '')     
 			   ,ISNULL(wop.RevisedSerialNumber, '') as RevisedSerialNumber
-			   ,Isnull(wost.IsDisplayFooter,0) as IsDisplayFooter 
+			   ,Isnull(wost.IsDisplayFooter,0) as IsDisplayFooter ,
+			   ISNULL(rc.CustReqCertType,'') AS CustReqCertType
 			FROM Dbo.WorkOrder wo WITH(NOLOCK)              
 			INNER JOIN Dbo.WorkOrderWorkFlow wf WITH(NOLOCK) on wf.WorkOrderId = wo.WorkOrderId and wf.WorkOrderPartNoId=@workOrderPartNoId    
 			INNER JOIN Dbo.WorkOrderPartNumber wop WITH(NOLOCK) on wop.ID = wf.WorkOrderPartNoId

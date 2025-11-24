@@ -12,7 +12,7 @@
     2    28-Feb-2025		Devendra Shekh			Added New Fields([Descrepancy], [Resolution], [IsVersionIncrease])
 
 **************************************************************/
-CREATE   PROCEDURE [dbo].[USP_SaveWorkFlowMappingDetails]
+CREATE     PROCEDURE [dbo].[USP_SaveWorkFlowMappingDetails]
 	@tbl_WorkFlowTaskType WorkFlowTaskType READONLY,
     @WorkFlowTaskIds VARCHAR(1000) = NULL,
     @SequenceUpdate BIT = NULL
@@ -30,7 +30,7 @@ BEGIN
 				@WorkFlowNumber varchar(256),
 				@TaskId bigint,
 				@TaskDescription varchar(200),
-				@SequenceNumber int,
+				@SequenceNumber [decimal](10,3),
 				@Descrepancy nvarchar(max),
 				@Resolution nvarchar(max),
 				@IsVersionIncrease bit,
@@ -49,7 +49,7 @@ BEGIN
 			[WorkFlowNumber] [varchar](256) NULL,
 			[TaskId] [bigint] NULL,
 			[TaskDescription] [varchar](200) NULL,
-			[SequenceNumber] [int] NULL,
+			[SequenceNumber] [decimal](10,3) NULL,
 			[Descrepancy] [nvarchar](MAX) NULL,
 			[Resolution] [nvarchar](MAX) NULL,
 			[IsVersionIncrease] [bit] NULL,

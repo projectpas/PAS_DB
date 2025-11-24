@@ -4341,6 +4341,7 @@
     <Build Include="dbo\Stored Procedures\USP_updateItemMasterMappingPartNotesById.sql" />
     <Build Include="dbo\Views\vw_KitMasterProvision.sql" />
     <Build Include="dbo\Stored Procedures\usp_GetJournalEntriesDetailsByLeafNodeId_WithFilter.sql" />
+    <Build Include="dbo\Tables\WorkFlowTaskAudit.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

@@ -25,7 +25,7 @@ BEGIN
 		DECLARE @MaxSequence INT;
 		DECLARE @WorkOrderTaskId bigint,
 				@TaskId bigint,
-				@SequenceNumber int,
+				@SequenceNumber [decimal](10, 3),
 				@MasterCompanyId int,
 				@UpdatedBy varchar(256);
 
@@ -38,7 +38,7 @@ BEGIN
 			[WorkOrderTaskId] [bigint] NULL,
 			[WorkOrderId] [bigint] NULL,
 			[TaskId] [bigint] NULL,
-			[SequenceNumber] [int] NULL,
+			[SequenceNumber] [decimal](10, 3) NULL,
 			[MasterCompanyId] [int] NULL,
 			[UpdatedBy] [varchar](256) NULL
 		);

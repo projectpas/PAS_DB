@@ -1,7 +1,7 @@
 ﻿  /*************************************************************           
- ** File:   [USP_CheckLegalEntity_Exist]          
+ ** File:   [UpdateEmployeePassword]          
  ** Author:    
- ** Description: This stored procedure is used to Restore Deleted Records
+ ** Description: This stored procedure is used to update password to respected company
  ** Purpose:         
  ** Date:   
           
@@ -14,16 +14,14 @@
  **************************************************************           
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		-------------------------------- 
-    1   10/08/2023   Bhargav Saliya   UTC Date Changes
-	2   25/11/2025   Amit Ghediya     Get Employee data from company db if ther eis role for SuperAdmin.
+    1    25-11-2025    Amit Ghediya       Created 
      
 **************************************************************/
-CREATE   PROCEDURE [dbo].[UpdateDeletedRecords]  
-@TableName VARCHAR(50),  
-@Parameter1 VARCHAR(50),  
-@Parameter2 VARCHAR(50),
+CREATE     PROCEDURE [dbo].[UpdateEmployeePassword]  
+@EmployeeId  BIGINT = NULL,
+@Password VARCHAR(MAX) = NULL,
 @MasterCompanyId INT = NULL,
-@IsSuperAdmin bit = NULL
+@IsSuperAdmin BIT = NULL
 AS  
 BEGIN  
  SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED  
@@ -35,7 +33,7 @@ BEGIN
 		DECLARE @Sql NVARCHAR(MAX); 
 		DECLARE @paramDefs NVARCHAR(MAX);
 
-		IF(@IsSuperAdmin = 1 AND @TableName = 'Employee')
+		IF(@IsSuperAdmin = 1)
 		BEGIN
 			DECLARE @ConnectionString NVARCHAR(MAX) = NULL;
 			DECLARE @TargetDBName SYSNAME = NULL;
@@ -48,30 +46,34 @@ BEGIN
 			END
 
 			SET @TargetDBName = (SELECT REPLACE(value, 'Initial Catalog=', '') AS InitialCatalogm FROM STRING_SPLIT(@ConnectionString, ';') WHERE value LIKE 'Initial Catalog=%');
+			
+			--SET @sql = '
+			--	UPDATE [' + @TargetDBName + '].dbo.AspNetUsers
+			--	SET PasswordHash = '+ @Password +',
+			--		IsResetPassword = 1
+			--	WHERE EmployeeId = '+ @EmployeeId +'';
 
+			---- Execute dynamic SQL
+			--EXEC sp_executesql 
+			--	@sql, 
+			--	@paramDefs;
 			SET @sql = '
-				UPDATE [' + @TargetDBName + '].dbo.Employee
-				SET IsDeleted = 0,
-					UpdatedDate = GETUTCDATE()
-				WHERE EmployeeId = '+@Parameter2+'';
+				UPDATE [' + @TargetDBName + '].dbo.AspNetUsers
+				SET PasswordHash = @Password,
+					IsResetPassword = 1
+				WHERE EmployeeId = @EmployeeId;
+			';
 
-			-- Execute dynamic SQL
+			SET @paramDefs = N'@Password NVARCHAR(MAX), @EmployeeId BIGINT';
+
 			EXEC sp_executesql 
-				@sql, 
-				@paramDefs;
+				@sql,
+				@paramDefs,
+				@Password = @Password,
+				@EmployeeId = @EmployeeId;
 		END
-		ELSE
-		BEGIN
-			 IF @Parameter1 IS NOT NULL  AND @Parameter1 !='' AND  @Parameter2 IS NOT NULL  AND @Parameter2 !=''  
-		     BEGIN  
-				  SET @Sql = N'UPDATE ' + @TableName+ ' SET IsDeleted = 0, UpdatedDate = GETUTCDATE() WHERE IsDeleted = 1 AND CAST ( '+ @Parameter1 +' AS VARCHAR) = '+@Parameter2+'';  
-		     END  
-		     --PRINT @Sql  
-		     EXEC sp_executesql @Sql;  
-		END
-	      
 	   
-	    Select  @Parameter2 as [Value]   
+	    Select  @EmployeeId as [EmployeeId]   
 
   END  
   COMMIT  TRANSACTION  
@@ -83,8 +85,8 @@ BEGIN
    ROLLBACK TRAN;  
    DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name()   
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------  
-            , @AdhocComments     VARCHAR(150)    = 'UpdateDeletedRecords'   
-            , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = '''+ ISNULL(@TableName, '') + ''  
+            , @AdhocComments     VARCHAR(150)    = 'UpdateEmployeePassword'   
+            , @ProcedureParameters VARCHAR(3000)  = '@EmployeeId = '''+ ISNULL(@EmployeeId, '') + ''  
             , @ApplicationName VARCHAR(100) = 'PAS'  
 -----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------  
             exec spLogException   

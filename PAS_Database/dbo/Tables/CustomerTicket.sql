@@ -19,6 +19,7 @@
     [IsActive]         BIT            NULL,
     [IsDeleted]        BIT            NULL,
     [StatusId]         INT            NOT NULL,
-    [EmployeeId]       BIGINT         NOT NULL
+    [EmployeeId]       BIGINT         NOT NULL,
+    [TicketTypeId]     BIGINT         NULL
 );
 

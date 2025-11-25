@@ -15,6 +15,7 @@
     2    31/10/2025  Bhargav Saliya     Fixed Filters issues
     3    04/11/2025  Bhargav Saliya     Fixed Utc Date issues
     4    07/11/2025  Bhargav Saliya     Fixed Filters issues For Super Admin Role
+    5    21/11/2025  Bhargav Saliya     get Tickettype with Filter
 
 exec GetCustomerTicketList @PageNumber=1,@PageSize=10,@SortColumn=NULL,@SortOrder=-1,
 @GlobalFilter=N'',@TicketId=NULL,@Subject=NULL,@StatusDescription=NULL,@AssignTo=NULL,
@@ -43,7 +44,9 @@ CREATE   PROCEDURE [dbo].[GetCustomerTicketList]
 @StatusId INT = NULL,
 @DepartmentId INT = NULL,
 @CompanyName VARCHAR(500) = NULL,
-@UserEmployeeId BIGINT = NULL
+@UserEmployeeId BIGINT = NULL,
+@TicketType VARCHAR(100) = NULL,
+@Priority VARCHAR(100) = NULL
 AS 
 BEGIN
 	SET NOCOUNT ON;  
@@ -127,7 +130,8 @@ BEGIN
 				TS.Name AS 'StatusName',
 				TS.Description AS 'StatusDescription',
 				TP.PriorityId,
-				TP.Description AS 'Priority'
+				TP.Description AS 'Priority',
+				tt.Description as 'TicketType'
 			FROM [dbo].[CustomerTicket] CT WITH (NOLOCK)
 			LEFT JOIN [dbo].[MasterCompany] MS WITH (NOLOCK) ON CT.MasterCompanyId = MS.MasterCompanyId
 			LEFT JOIN [dbo].[SupportDepartment] SD WITH (NOLOCK) ON CT.DepartmentId = SD.DepartmentId
@@ -136,6 +140,7 @@ BEGIN
 			LEFT JOIN [dbo].[Employee] EMP WITH (NOLOCK) ON CT.AssignTo = EMP.EmployeeId
 			LEFT JOIN [dbo].[Employee] EMP1 WITH (NOLOCK) ON CT.EmployeeId = EMP1.EmployeeId
 			LEFT JOIN [dbo].[CustomerTicketResponse] CTR WITH (NOLOCK) ON CT.CustomerTicketId = CTR.CustomerTicketId 
+			LEFT JOIN [dbo].[TicketType] tt WITH (NOLOCK) ON CT.TicketTypeId = tt.TicketTypeId
 			WHERE 
 			((ISNULL(@IsSupertUser, 0) = 1 AND ((@EmployeeId IS NULL OR CT.EmployeeId = @EmployeeId) OR (@EmployeeId IS NULL OR CT.AssignTo = @EmployeeId)))
 				or (ISNULL(@IsSupertUser, 0) = 0 and CT.MasterCompanyId = @MasterCompanyId AND ((@EmployeeId IS NULL OR CT.EmployeeId = @EmployeeId) OR (@EmployeeId IS NULL OR CT.AssignTo = @EmployeeId)))
@@ -152,7 +157,8 @@ BEGIN
 				(StatusDescription LIKE '%' + @GlobalFilter + '%') OR
 				(AssignTo LIKE '%' + @GlobalFilter + '%') OR
 				(ReportedBy LIKE '%' + @GlobalFilter + '%') OR
-				(DepartmentDescription LIKE '%' + @GlobalFilter + '%')))
+				(DepartmentDescription LIKE '%' + @GlobalFilter + '%') OR
+				(TicketType LIKE '%' + @GlobalFilter + '%')))
 				OR
 				(@GlobalFilter = '' AND (ISNULL(@TicketID,'') = '' OR  TicketID LIKE '%' + @TicketID + '%') AND
 				(ISNULL(@Subject,'') = '' OR Subject LIKE '%' + @Subject + '%') AND
@@ -162,7 +168,9 @@ BEGIN
 				(ISNULL(@ReportedBy,'') = '' OR ReportedBy LIKE '%' + @ReportedBy + '%') AND
 				(ISNULL(@DepartmentDescription,'') = '' OR DepartmentDescription LIKE '%' + @DepartmentDescription + '%') AND
 				(ISNULL(@CreatedDate,'') = '' OR CAST(CreatedDate AS DATE)=CAST(@CreatedDate AS DATE)) AND
-				(ISNULL(@UpdatedDate,'') = '' OR CAST(UpdatedDate AS DATE)=CAST(@UpdatedDate AS DATE)))
+				(ISNULL(@UpdatedDate,'') = '' OR CAST(UpdatedDate AS DATE)=CAST(@UpdatedDate AS DATE)) AND
+				(ISNULL(@TicketType,'') = '' OR TicketType LIKE '%' + @TicketType + '%') AND
+				(ISNULL(@Priority,'') = '' OR Priority LIKE '%' + @Priority + '%'))
 			)
 
 			SELECT @Count = COUNT(CustomerTicketId) FROM #TempResult			
@@ -184,7 +192,11 @@ BEGIN
 			CASE WHEN (@SortOrder=1  AND @SortColumn='CreatedDate')  THEN CreatedDate END ASC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='CreatedDate')  THEN CreatedDate END DESC,
 			CASE WHEN (@SortOrder=1  AND @SortColumn='UpdatedDate')  THEN UpdatedDate END ASC,
-			CASE WHEN (@SortOrder=-1 AND @SortColumn='UpdatedDate')  THEN UpdatedDate END DESC
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='UpdatedDate')  THEN UpdatedDate END DESC,
+			CASE WHEN (@SortOrder=1  AND @SortColumn='TicketType')  THEN TicketType END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='TicketType')  THEN TicketType END DESC,
+			CASE WHEN (@SortOrder=1  AND @SortColumn='Priority')  THEN Priority END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='Priority')  THEN Priority END DESC
 
 			OFFSET @RecordFrom ROWS 
 			FETCH NEXT @PageSize ROWS ONLY

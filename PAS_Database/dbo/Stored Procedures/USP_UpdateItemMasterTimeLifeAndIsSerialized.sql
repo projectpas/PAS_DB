@@ -13,26 +13,26 @@
 **************************************************************/
 CREATE    PROCEDURE [dbo].[USP_UpdateItemMasterTimeLifeAndIsSerialized]
 @ItemMasterId BIGINT,
-@Active BIT,    
-@IsSerialize BIT 
+@ISActiveOrInActive BIT,    
+@IsSerializeOrIsTimeLife BIT 
 AS
 BEGIN
 	SET NOCOUNT ON;
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 	BEGIN TRY
 		
-		IF( @IsSerialize = 1 )
+		IF( @IsSerializeOrIsTimeLife = 1 )
 		BEGIN
 			UPDATE [dbo].[ItemMaster]
 			SET 
-				IsSerialized = @Active
+				IsSerialized = @ISActiveOrInActive
 			WHERE [ItemMasterId]  = @ItemMasterId
 		END
 		ELSE 	
 		BEGIN 
 			UPDATE [dbo].[ItemMaster]
 			SET 
-				IsTimeLife = @Active
+				IsTimeLife = @ISActiveOrInActive
 			WHERE [ItemMasterId]  = @ItemMasterId
 		END
 

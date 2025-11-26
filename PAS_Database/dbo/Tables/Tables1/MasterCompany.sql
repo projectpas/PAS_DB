@@ -26,8 +26,12 @@
     [IsQuickBookEnabled]       BIT            NULL,
     [IsBillingMultipleMPN]     BIT            DEFAULT ((0)) NULL,
     [ConnectionString]         NVARCHAR (MAX) NULL,
+    [TokenUserName]            VARCHAR (100)  NULL,
+    [TokenPassword]            VARCHAR (100)  NULL,
     CONSTRAINT [PK_MasterCompany] PRIMARY KEY CLUSTERED ([MasterCompanyId] ASC)
 );
+
+
 
 
 

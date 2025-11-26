@@ -4345,6 +4345,8 @@
     <Build Include="dbo\Stored Procedures\USP_EmployeeUpdateforDelete.sql" />
     <Build Include="dbo\Stored Procedures\UpdateEmployeePassword.sql" />
     <Build Include="dbo\Stored Procedures\GetTBDUserFromEachCompany.sql" />
+    <Build Include="dbo\Stored Procedures\USP_SaveNhaTlaPartsFromCrossReference.sql" />
+    <Build Include="dbo\User Defined Types\Nha_Tla_Alt_Equ_ItemMappingType.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

@@ -4342,6 +4342,8 @@
     <Build Include="dbo\Views\vw_KitMasterProvision.sql" />
     <Build Include="dbo\Stored Procedures\usp_GetJournalEntriesDetailsByLeafNodeId_WithFilter.sql" />
     <Build Include="dbo\Tables\WorkFlowTaskAudit.sql" />
+    <Build Include="dbo\Stored Procedures\USP_EmployeeUpdateforDelete.sql" />
+    <Build Include="dbo\Stored Procedures\UpdateEmployeePassword.sql" />
     <Build Include="dbo\Stored Procedures\GetTBDUserFromEachCompany.sql" />
   </ItemGroup>
   <ItemGroup>

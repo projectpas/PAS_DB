@@ -4344,6 +4344,7 @@
     <Build Include="dbo\Tables\WorkFlowTaskAudit.sql" />
     <Build Include="dbo\Stored Procedures\USP_EmployeeUpdateforDelete.sql" />
     <Build Include="dbo\Stored Procedures\UpdateEmployeePassword.sql" />
+    <Build Include="dbo\Stored Procedures\GetTBDUserFromEachCompany.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

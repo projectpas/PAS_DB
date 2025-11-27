@@ -4341,6 +4341,22 @@
     <Build Include="dbo\Stored Procedures\USP_updateItemMasterMappingPartNotesById.sql" />
     <Build Include="dbo\Views\vw_KitMasterProvision.sql" />
     <Build Include="dbo\Stored Procedures\usp_GetJournalEntriesDetailsByLeafNodeId_WithFilter.sql" />
+    <Build Include="dbo\Tables\WorkFlowTaskAudit.sql" />
+    <Build Include="dbo\Stored Procedures\USP_EmployeeUpdateforDelete.sql" />
+    <Build Include="dbo\Stored Procedures\UpdateEmployeePassword.sql" />
+    <Build Include="dbo\Stored Procedures\GetTBDUserFromEachCompany.sql" />
+    <Build Include="dbo\Stored Procedures\USP_SaveNhaTlaPartsFromCrossReference.sql" />
+    <Build Include="dbo\User Defined Types\Nha_Tla_Alt_Equ_ItemMappingType.sql" />
+    <Build Include="dbo\Stored Procedures\USP_UpdateItemMasterTimeLifeAndIsSerialized.sql" />
+    <Build Include="dbo\Stored Procedures\USP_searchItemmasterfordashboardheader.sql" />
+    <Build Include="dbo\Stored Procedures\USP_UpdateStockLineWorkOrderPart.sql" />
+    <Build Include="dbo\Stored Procedures\USP_SaveWorkOrderShipping.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetWorkOrderTypeIdAndShippingName.sql" />
+    <Build Include="dbo\User Defined Types\WorkOrderShippingType.sql" />
+    <Build Include="dbo\User Defined Types\WorkOrderShippingItemType.sql" />
+    <Build Include="dbo\User Defined Types\WorkOrderShippingItemsType.sql" />
+    <Build Include="dbo\User Defined Types\WorkOrderShippingItemListType.sql" />
+    <Build Include="dbo\User Defined Types\WorkOrderCustomsInfoType.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />
@@ -4374,5 +4390,6 @@
     <None Include="Snapshots\PAS_SPRINT_60.dacpac" />
     <None Include="Snapshots\PAS_SPRINT_61_Mid.dacpac" />
     <None Include="Snapshots\PAS_SPRINT_61.dacpac" />
+    <None Include="Snapshots\PAS_SPRINT_62.dacpac" />
   </ItemGroup>
 </Project>

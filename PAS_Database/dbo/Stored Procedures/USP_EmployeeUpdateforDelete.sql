@@ -1,9 +1,9 @@
 ﻿/*************************************************************           
- ** File:   [USP_UpdateEmployeeActiveStatus]           
+ ** File:   [USP_EmployeeUpdateforDelete]           
  ** Author:   Sahdev Saliya
- ** Description: This stored procedure is used to Update EmployeeActiveStatus List
+ ** Description: This stored procedure is used to Update Employeedelete
  ** Purpose:         
- ** Date:   07-08-2025       
+ ** Date:   25-11-2025     
           
  ** RETURN VALUE:           
   
@@ -12,19 +12,14 @@
  **************************************************************             
  ** S NO   Date            Author          Change Description              
  ** --   --------         -------          --------------------------------            
-    1    07-08-2025    Sahdev Saliya       Created  
-	2    25/11/2025    Amit Ghediya        Get Employee data from company db if ther eis role for SuperAdmin.
+    1    25-11-2025    Amit Ghediya       Created  
 
-   EXEC [USP_EmployeeUpdateforActiveStatus] 2, 1, 'admin', 2;
+   EXEC [USP_EmployeeUpdateforDelete] 234,1,1;
 **************************************************************/ 
-CREATE   PROCEDURE [dbo].[USP_EmployeeUpdateforActiveStatus]
-@id  BIGINT=NULL,
-@IsActive BIT=NULL,
-@UpdatedBy VARCHAR(256)=NULL,
-@EmployeeId BIGINT=NULL,
-@MasterCompanyId INT = NULL,
-@IsSuperAdmin bit = NULL
-
+CREATE     PROCEDURE [dbo].[USP_EmployeeUpdateforDelete]
+	@id  BIGINT=NULL,
+	@MasterCompanyId INT = NULL,
+	@IsSuperAdmin bit = NULL
 AS
 BEGIN
     SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
@@ -49,9 +44,8 @@ BEGIN
 
             SET @sql = '
 				UPDATE [' + @TargetDBName + '].dbo.Employee
-				SET IsActive = @IsActive,
-					UpdatedDate = GETUTCDATE(),
-					UpdatedBy = @UpdatedBy
+				SET IsDeleted = 1,
+					UpdatedDate = GETUTCDATE()
 				WHERE EmployeeId = @id;
 
 				SELECT *
@@ -59,28 +53,22 @@ BEGIN
 				WHERE EmployeeId = @id;
 			';
 
-			-- Define parameters for sp_executesql
 			SET @paramDefs = N'
-				@id BIGINT,
-				@IsActive BIT,
-				@UpdatedBy VARCHAR(256)
+				@id BIGINT
 			';
 
 			-- Execute dynamic SQL
 			EXEC sp_executesql 
 				@sql, 
 				@paramDefs,
-				@id = @id,
-				@IsActive = @IsActive,
-				@UpdatedBy = @UpdatedBy;
+				@id = @id;
 
         END
         ELSE
         BEGIN
             UPDATE dbo.Employee
-            SET IsActive = @IsActive,
-                UpdatedDate = GETUTCDATE(),
-                UpdatedBy = @UpdatedBy
+            SET IsDeleted = 1,
+                UpdatedDate = GETUTCDATE()
             WHERE EmployeeId = @id;
         END
 		
@@ -146,8 +134,8 @@ BEGIN
 					DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name() 
 
 	-----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
-				  , @AdhocComments     VARCHAR(150)    = 'USP_EmployeeUpdateforActiveStatus' 
-				  , @ProcedureParameters VARCHAR(3000) = '@Parameter1 = ''' + CAST(ISNULL(@EmployeeId, '') as varchar(100))   
+				  , @AdhocComments     VARCHAR(150)    = 'USP_EmployeeUpdateforDelete' 
+				  , @ProcedureParameters VARCHAR(3000) = '@Parameter1 = ''' + CAST(ISNULL(@id, '') as varchar(100))   
 				  , @ApplicationName VARCHAR(100) = 'PAS'
 	-----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------
 

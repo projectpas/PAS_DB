@@ -17,6 +17,8 @@
 	2    28-May-2025  Devendra Shekh		changes to read [ShipviaId]
 	3    29-Mar-2025  Amit Ghediya			Added isBypass flag for shipping. 
 	4    01-Nov-2025  RAJESH GAMI			ADDED : ShipWeightUnitOfMeasure
+	5    25-Nov-2025  Moin Bloch			ADDED : EntryNumber
+	
 	exec dbo.GetWorkOrderShipping @workOrderShippingId=3554
 ************************************************************************/    
 CREATE   PROCEDURE [dbo].[GetWorkOrderShipping]
@@ -31,8 +33,8 @@ BEGIN
     -- Retrieve Customer Reference
 		DECLARE @CustomerReference NVARCHAR(255);
 		SELECT TOP 1 @CustomerReference = wop.CustomerReference
-		FROM WorkOrderShippingItem t WITH(NOLOCK)
-		JOIN WorkOrderPartNumber wop WITH(NOLOCK) ON t.WorkOrderPartNumId = wop.ID
+		FROM dbo.WorkOrderShippingItem t WITH(NOLOCK)
+		JOIN dbo.WorkOrderPartNumber wop WITH(NOLOCK) ON t.WorkOrderPartNumId = wop.ID
 		WHERE t.WorkOrderShippingId = @workOrderShippingId;
 
 		-- Retrieve Work Order Shipping Details
@@ -135,6 +137,7 @@ BEGIN
 			wos.isIgnoreAWB,
 			wci.WorkOrderShippingId,
 			wci.EntryType,
+			wci.EntryNumber,
 			wci.EPU,
 			wci.CustomsValue,
 			CASE WHEN ISNULL(wci.NetMass,NULL) = NULL THEN NULL ELSE wci.NetMass END NetMass,

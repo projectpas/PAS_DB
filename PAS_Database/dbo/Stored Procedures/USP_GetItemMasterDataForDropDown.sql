@@ -20,22 +20,24 @@ BEGIN
     SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 	BEGIN TRY
 
-    IF LOWER(LTRIM(RTRIM(@Type))) = LOWER('Stock')
+    DECLARE @Stock VARCHAR(50) = 'Stock';
+
+    IF LOWER(LTRIM(RTRIM(@Type))) = LOWER(@Stock)
     BEGIN
         SELECT DISTINCT
             im.ItemMasterId,
             im.PartNumber,
             im.PartDescription,
             CASE 
-                WHEN (SELECT COUNT(*) 
-                      FROM ItemMaster im2 
+                WHEN (SELECT COUNT(im2.ItemMasterId) 
+                      FROM [DBO].ItemMaster im2 WITH(NOLOCK)
                       WHERE im2.PartNumber = im.PartNumber 
                         AND im2.MasterCompanyId = @MasterCompanyId) > 1
                 THEN im.PartNumber + ' - ' + im.ManufacturerName
                 ELSE im.PartNumber
             END AS label,
             im.ManufacturerName
-        FROM ItemMaster im
+        FROM [dbo].ItemMaster im WITH(NOLOCK)
         WHERE im.MasterCompanyId = @MasterCompanyId
           AND im.IsActive = 1
           AND im.IsDeleted = 0
@@ -48,20 +50,20 @@ BEGIN
             im.PartNumber,
             im.PartDescription,
             CASE
-                WHEN (SELECT COUNT(*) 
-                      FROM ItemMasterNonStock im2
+                WHEN (SELECT COUNT(im2.ItemMasterNonStockId) 
+                      FROM [DBO].ItemMasterNonStock im2 WITH(NOLOCK)
                       WHERE im2.PartNumber = im.PartNumber 
                         AND im2.MasterCompanyId = @MasterCompanyId) > 1
                 THEN im.PartNumber + ' - ' + 
                      (SELECT TOP 1 Name 
-                      FROM Manufacturer m 
+                      FROM [DBO].Manufacturer m WITH(NOLOCK)
                       WHERE m.ManufacturerId = im.ManufacturerId)
                 ELSE im.PartNumber
             END AS label,
             (SELECT TOP 1 Name 
-             FROM Manufacturer m 
+             FROM [DBO].Manufacturer m WITH(NOLOCK)
              WHERE m.ManufacturerId = im.ManufacturerId) AS ManufacturerName
-        FROM ItemMasterNonStock im
+        FROM [DBO].ItemMasterNonStock im WITH(NOLOCK)
         WHERE im.MasterCompanyId = @MasterCompanyId
           AND im.IsActive = 1
           AND im.IsDeleted = 0

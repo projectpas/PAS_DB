@@ -4345,6 +4345,7 @@
     <Build Include="dbo\Stored Procedures\USP_EmployeeUpdateforDelete.sql" />
     <Build Include="dbo\Stored Procedures\UpdateEmployeePassword.sql" />
     <Build Include="dbo\Stored Procedures\GetTBDUserFromEachCompany.sql" />
+    <Build Include="dbo\Stored Procedures\USP_UpdateItemMasterTimeLifeAndIsSerialized.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

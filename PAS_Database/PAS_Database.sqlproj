@@ -4357,6 +4357,10 @@
     <Build Include="dbo\User Defined Types\WorkOrderShippingItemsType.sql" />
     <Build Include="dbo\User Defined Types\WorkOrderShippingItemListType.sql" />
     <Build Include="dbo\User Defined Types\WorkOrderCustomsInfoType.sql" />
+    <Build Include="dbo\Stored Procedures\USP_UpdateItemMaster.sql" />
+    <Build Include="dbo\Stored Procedures\USP_addUpdatePurchaseAndSales.sql" />
+    <Build Include="dbo\User Defined Types\TBL_ItemMasterUpdateType.sql" />
+    <Build Include="dbo\User Defined Types\PurchaseSalesType.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

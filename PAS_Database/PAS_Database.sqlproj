@@ -4348,6 +4348,14 @@
     <Build Include="dbo\Stored Procedures\USP_SaveNhaTlaPartsFromCrossReference.sql" />
     <Build Include="dbo\User Defined Types\Nha_Tla_Alt_Equ_ItemMappingType.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdateItemMasterTimeLifeAndIsSerialized.sql" />
+    <Build Include="dbo\Stored Procedures\USP_UpdateStockLineWorkOrderPart.sql" />
+    <Build Include="dbo\Stored Procedures\USP_SaveWorkOrderShipping.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetWorkOrderTypeIdAndShippingName.sql" />
+    <Build Include="dbo\User Defined Types\WorkOrderShippingType.sql" />
+    <Build Include="dbo\User Defined Types\WorkOrderShippingItemType.sql" />
+    <Build Include="dbo\User Defined Types\WorkOrderShippingItemsType.sql" />
+    <Build Include="dbo\User Defined Types\WorkOrderShippingItemListType.sql" />
+    <Build Include="dbo\User Defined Types\WorkOrderCustomsInfoType.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

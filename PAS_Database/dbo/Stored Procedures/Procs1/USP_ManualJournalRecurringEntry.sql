@@ -1,5 +1,4 @@
-﻿
-/*************************************************************             
+﻿/*************************************************************             
  ** File:   [USP_ManualJournalRecurringEntry]             
  ** Author:   
  ** Description: This stored procedure is used to create manual JE while Post Recurring Entry
@@ -14,6 +13,7 @@
 	1    09/04/2023   Moin Bloch    Created
 	2    09/06/2023   Moin Bloch    Added Posted date for Accounting Batch
 	3    01/23/2024   AMIT GHEDIYA  Added Accounting Batch
+	4    11/28/2025   AMIT GHEDIYA  Update default status approve to pending
 
 	EXEC [dbo].[USP_ManualJournalRecurringEntry] 102,1
 
@@ -69,7 +69,7 @@ BEGIN
 		DECLARE @PostStatusId INT;
 
 		SELECT @CodeTypeId = [CodeTypeId] FROM [dbo].[CodeTypes] WITH(NOLOCK) WHERE [CodeType] = 'ManualJournalType';		
-		SELECT @StatusId = [ManualJournalStatusId] FROM [dbo].[ManualJournalStatus] WITH(NOLOCK) WHERE [Name] = 'Approved';
+		SELECT @StatusId = [ManualJournalStatusId] FROM [dbo].[ManualJournalStatus] WITH(NOLOCK) WHERE [Name] = 'Pending';
 		SELECT @PostStatusId = ManualJournalStatusId FROM [dbo].ManualJournalStatus WHERE [Name] = 'Posted';
 		SELECT @ManualJournalMSModuleId = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] = 'ManualJournal';
 		SELECT @MSModuleId = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] ='ManualJournalAccounting';

@@ -20,6 +20,7 @@
 	4    09-04-2024     RAJESH GAMI			Modified: Add reduce reserve from AsOfNow till Today
 	5    05-05-2025     VISHAL SUTHAR		Added one more parameter for (excluded locations)
 	6	 23-09-2025		Moin Bloch		    Added more fields
+	7	 28-11-2025		Devendra Shekh		Modified: managed '0' value for @id2
      
 exec usprpt_GetStockReportAsOfNow 
 @mastercompanyid=11, 
@@ -31,7 +32,7 @@ exec usprpt_GetStockReportAsOfNow
 @id8='448,453', 
 @strFilter=N'49!50,51!!!!!!!!'
 **************************************************************/
-CREATE       PROCEDURE [dbo].[usprpt_GetStockReportAsOfNow]
+CREATE        PROCEDURE [dbo].[usprpt_GetStockReportAsOfNow]
 	@mastercompanyid INT,
 	@id VARCHAR(100),
 	@id2 VARCHAR(100),
@@ -115,6 +116,11 @@ BEGIN
 	IF @id6 = 0
 	BEGIN
 		SET @id6 = NULL
+	END
+
+	IF ISNULL(@id2, '') = '0'
+	BEGIN
+		SET @id2 = NULL
 	END
 
 	IF OBJECT_ID(N'tempdb..#TEMPOriginalStocklineRecords') IS NOT NULL    

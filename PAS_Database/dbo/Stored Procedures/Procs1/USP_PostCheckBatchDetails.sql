@@ -26,6 +26,7 @@
 	10	 10/01/2025   AMIT GHEDIYA		Get accounting period based on selection.
 	11	 24/04/2025	  Devendra Shekh	Modify (Added [IsManualText] check for DistributionSetup)
 	12	 02/06/2025	  Abhishek Jirawla  Fixed Name concat read script
+	13	 27/10/2025   AMIT GHEDIYA		update for get glaccount from LE.
 
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_PostCheckBatchDetails]
@@ -91,6 +92,7 @@ BEGIN
 		DECLARE @ForeignCurrencyCode VARCHAR(20) = '';
 		DECLARE @FXRate DECIMAL(9,2) = 1;	--Default Value set to : 1
 		DECLARE @ReferenceModule VARCHAR(100) = 'CHEQUE';
+		DECLARE @legalEntityId BIGINT = NULL;
 
 		SELECT @Check = [VendorPaymentMethodId] FROM [VendorPaymentMethod] WITH(NOLOCK) WHERE Description = 'Check'; 
 		SELECT @AccountMSModuleId = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] ='Accounting';
@@ -163,7 +165,8 @@ BEGIN
 
 			--Select from as save at payment time
 			SELECT @AccountingPeriodId = acc.[AccountingCalendarId],
-						 @AccountingPeriod = acc.[PeriodName]
+						 @AccountingPeriod = acc.[PeriodName],
+						 @legalEntityId = VRH.[LegalEntityId]
 			FROM [dbo].[VendorReadyToPayHeader] VRH WITH(NOLOCK)
 			INNER JOIN [dbo].[AccountingCalendar] acc WITH(NOLOCK) ON VRH.AccountingPeriodId = acc.AccountingCalendarId AND acc.IsDeleted = 0
 			WHERE VRH.ReadyToPayId = @ReadyToPayId;
@@ -294,11 +297,22 @@ BEGIN
 					 AND DistributionMasterId = @DistributionMasterId AND MasterCompanyId = @MasterCompanyId
 				
 
-					SELECT @GlAccountId = G.GLAccountId,@GlAccountNumber = G.AccountCode,@GlAccountName = G.AccountName 
-					FROM LegalEntityBankingLockBox LB WITH(NOLOCK)
-					INNER JOIN VendorReadyToPayHeader V WITH(NOLOCK) ON LB.LegalEntityBankingLockBoxId = V.BankId
-					LEFT JOIN GLAccount G WITH(NOLOCK) ON LB.GLAccountId = G.GLAccountId
-					WHERE ReadyToPayId= @ReadyToPayId
+					--SELECT @GlAccountId = G.GLAccountId,@GlAccountNumber = G.AccountCode,@GlAccountName = G.AccountName 
+					--FROM LegalEntityBankingLockBox LB WITH(NOLOCK)
+					--INNER JOIN VendorReadyToPayHeader V WITH(NOLOCK) ON LB.LegalEntityBankingLockBoxId = V.BankId
+					--LEFT JOIN GLAccount G WITH(NOLOCK) ON LB.GLAccountId = G.GLAccountId
+					--WHERE ReadyToPayId= @ReadyToPayId
+					SELECT top 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,
+					@GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName,@CrDrType = CRDRType ,@IsAutoPost = ISNULL(IsAutoPost,0)
+					from DistributionSetup WITH(NOLOCK)  WHERE DistributionSetupCode = 'CKSBANKACCOUNT'
+					AND DistributionMasterId = @DistributionMasterId AND MasterCompanyId = @MasterCompanyId;
+
+					--SELECT @GLAccountId = [GLAccountId] FROM [DBO].[LegalEntityBankingCheque] WITH(NOLOCK) WHERE [LegalEntityId] = @legalEntityId AND IsPrimary = 1;
+			 
+					--IF(ISNULL(@GLAccountId,0) > 0)
+					--BEGIN
+					--  SELECT @GlAccountId = [GLAccountId] , @GlAccountNumber = [AccountCode],@GlAccountName = [AccountName] FROM [DBO].[GLAccount] WITH(NOLOCK) WHERE [GLAccountId] = @GLAccountId;
+					--END
 
 
 					INSERT INTO [dbo].[CommonBatchDetails]
@@ -312,7 +326,7 @@ BEGIN
 					CASE WHEN @CrDrType = 1 THEN 1 ELSE 0 END,
 					CASE WHEN @CrDrType = 1 THEN @CheckAmount ELSE 0 END,
 					CASE WHEN @CrDrType = 1 THEN 0 ELSE @CheckAmount END,
-					@ManagementStructureId ,'VendorPayment',@LastMSLevel,@AllMSlevels ,@MasterCompanyId,
+					@ManagementStructureId ,'VendorPayment56',@LastMSLevel,@AllMSlevels ,@MasterCompanyId,
 					@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@CheckNumber,@VendorName,@LocalCurrencyCode,@FXRate,@ForeignCurrencyCode,@ReadyToPayDetailsId,@ReferenceModule)
 
 					SET @CommonBatchDetailId = SCOPE_IDENTITY()

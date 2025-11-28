@@ -326,7 +326,7 @@ BEGIN
 					CASE WHEN @CrDrType = 1 THEN 1 ELSE 0 END,
 					CASE WHEN @CrDrType = 1 THEN @CheckAmount ELSE 0 END,
 					CASE WHEN @CrDrType = 1 THEN 0 ELSE @CheckAmount END,
-					@ManagementStructureId ,'VendorPayment56',@LastMSLevel,@AllMSlevels ,@MasterCompanyId,
+					@ManagementStructureId ,'VendorPayment',@LastMSLevel,@AllMSlevels ,@MasterCompanyId,
 					@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@CheckNumber,@VendorName,@LocalCurrencyCode,@FXRate,@ForeignCurrencyCode,@ReadyToPayDetailsId,@ReferenceModule)
 
 					SET @CommonBatchDetailId = SCOPE_IDENTITY()

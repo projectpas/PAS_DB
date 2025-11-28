@@ -4358,6 +4358,7 @@
     <Build Include="dbo\User Defined Types\WorkOrderShippingItemListType.sql" />
     <Build Include="dbo\User Defined Types\WorkOrderCustomsInfoType.sql" />
     <Build Include="dbo\Stored Procedures\usp_GenerateCsvData.sql" />
+    <Build Include="dbo\Stored Procedures\USP_AddVendorPaymentDetailsForManualManualJournalById.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

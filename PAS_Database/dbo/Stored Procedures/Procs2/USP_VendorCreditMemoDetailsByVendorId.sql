@@ -18,6 +18,7 @@
 	4    07/11/2023   AMIT GHEDIYA		Update Amount select Orignalamount to ApplierdAmt.
 	5    08/04/2023   Devendra Shekh	added result temp table and conditon for amount
 	6    08/04/2023   AMIT GHEDIYA		modify for get MJ is not payed in vendor payment.
+	7    26/11/2025   Moin Bloch		Removed Manual Journal List
      
 -- EXEC USP_VendorCreditMemoDetailsByVendorId 1,1287,0 
 **************************************************************/
@@ -69,41 +70,41 @@ BEGIN
 			GROUP BY VCM.VendorCreditMemoId,VCM.VendorCreditMemoNumber,V.VendorId,VE.VendorId,V.VendorName,VE.VendorName,CU.Code,
 					 VCM.VendorCreditMemoStatusId,CMS.[Name],VCM.MasterCompanyId,VCMM.VendorPaymentDetailsId,VCMM.VendorCreditMemoMappingId
 		
-		   UNION ALL
+		--   UNION ALL
 
-	 SELECT MJH.ManualJournalHeaderId AS VendorCreditMemoId,
-			UPPER(MJH.JournalNumber) AS VendorCreditMemoNumber,   
-			MJD.ReferenceId AS VendorId,
-			VED.VendorName,
-			CR.Code AS 'CurrencyName',
-			SUM(ISNULL(MJD.Credit,0) - ISNULL(MJD.Debit,0)) AS Amount,
-			MJH.[ManualJournalStatusId] AS 'StatusId',
-			MJS.[Name] AS 'Status',
-			MJH.MasterCompanyId,
-			IsCreditMemo = 1,
-			VendorPaymentDetailsId = CASE WHEN ISNULL(VCMM.VendorCreditMemoMappingId,0) > 0 THEN ISNULL(VCMM.VendorPaymentDetailsId,0) ELSE 0 END,
-			IsAlreadyUsed = CASE WHEN ISNULL(VCMM.VendorCreditMemoMappingId,0) > 0 THEN 1 ELSE 0 END,
-			SelectedforPayment = (SELECT COUNT(VCMM.VendorPaymentDetailsId) 
-				     FROM  [dbo].[VendorCreditMemoMapping] VCMM WITH (NOLOCK) WHERE 
-				   	 VCMM.VendorPaymentDetailsId = @VendorPaymentDetailsId 
-					 AND MJH.ManualJournalHeaderId = VCMM.VendorCreditMemoId),
-			5 AS InvoiceType,
-			'Manual Journal' PaymentType
-	 FROM [dbo].[ManualJournalHeader] MJH WITH(NOLOCK)   
-	   INNER JOIN [dbo].[ManualJournalDetails] MJD WITH(NOLOCK) ON MJH.ManualJournalHeaderId = MJD.ManualJournalHeaderId AND MJD.ReferenceTypeId = 2 
-		LEFT JOIN [dbo].[Vendor] VED WITH(NOLOCK) ON MJD.ReferenceId = VED.VendorId
-		LEFT JOIN [dbo].[Currency] CR WITH(NOLOCK) ON MJH.FunctionalCurrencyId = CR.CurrencyId
-		LEFT JOIN [dbo].[ManualJournalStatus] MJS WITH(NOLOCK) ON MJH.[ManualJournalStatusId] = MJS.[ManualJournalStatusId]
-		LEFT JOIN [dbo].[VendorCreditMemoMapping] VCMM WITH (NOLOCK) ON MJH.ManualJournalHeaderId = VCMM.VendorCreditMemoId
-    WHERE MJH.MasterCompanyId = @MasterCompanyId  
-      AND MJD.ReferenceId = @VendorId 
-      AND MJD.ReferenceTypeId = 2 
-	  AND ISNULL(MJD.IsVendorPayment,0) = 0
-      AND MJH.[ManualJournalStatusId] = @PostStatusId
-	  AND ISNULL(MJD.IsClosed,0) = 0
-	  GROUP BY MJH.ManualJournalHeaderId,MJH.JournalNumber,VED.VendorId,VED.VendorName,CR.Code,
-			   MJH.ManualJournalStatusId,MJS.[Name],MJH.MasterCompanyId,MJD.ReferenceId, 
-			   VCMM.VendorPaymentDetailsId,VCMM.VendorCreditMemoMappingId
+	 --SELECT MJH.ManualJournalHeaderId AS VendorCreditMemoId,
+		--	UPPER(MJH.JournalNumber) AS VendorCreditMemoNumber,   
+		--	MJD.ReferenceId AS VendorId,
+		--	VED.VendorName,
+		--	CR.Code AS 'CurrencyName',
+		--	SUM(ISNULL(MJD.Credit,0) - ISNULL(MJD.Debit,0)) AS Amount,
+		--	MJH.[ManualJournalStatusId] AS 'StatusId',
+		--	MJS.[Name] AS 'Status',
+		--	MJH.MasterCompanyId,
+		--	IsCreditMemo = 1,
+		--	VendorPaymentDetailsId = CASE WHEN ISNULL(VCMM.VendorCreditMemoMappingId,0) > 0 THEN ISNULL(VCMM.VendorPaymentDetailsId,0) ELSE 0 END,
+		--	IsAlreadyUsed = CASE WHEN ISNULL(VCMM.VendorCreditMemoMappingId,0) > 0 THEN 1 ELSE 0 END,
+		--	SelectedforPayment = (SELECT COUNT(VCMM.VendorPaymentDetailsId) 
+		--		     FROM  [dbo].[VendorCreditMemoMapping] VCMM WITH (NOLOCK) WHERE 
+		--		   	 VCMM.VendorPaymentDetailsId = @VendorPaymentDetailsId 
+		--			 AND MJH.ManualJournalHeaderId = VCMM.VendorCreditMemoId),
+		--	5 AS InvoiceType,
+		--	'Manual Journal' PaymentType
+	 --FROM [dbo].[ManualJournalHeader] MJH WITH(NOLOCK)   
+	 --  INNER JOIN [dbo].[ManualJournalDetails] MJD WITH(NOLOCK) ON MJH.ManualJournalHeaderId = MJD.ManualJournalHeaderId AND MJD.ReferenceTypeId = 2 
+		--LEFT JOIN [dbo].[Vendor] VED WITH(NOLOCK) ON MJD.ReferenceId = VED.VendorId
+		--LEFT JOIN [dbo].[Currency] CR WITH(NOLOCK) ON MJH.FunctionalCurrencyId = CR.CurrencyId
+		--LEFT JOIN [dbo].[ManualJournalStatus] MJS WITH(NOLOCK) ON MJH.[ManualJournalStatusId] = MJS.[ManualJournalStatusId]
+		--LEFT JOIN [dbo].[VendorCreditMemoMapping] VCMM WITH (NOLOCK) ON MJH.ManualJournalHeaderId = VCMM.VendorCreditMemoId
+  --  WHERE MJH.MasterCompanyId = @MasterCompanyId  
+  --    AND MJD.ReferenceId = @VendorId 
+  --    AND MJD.ReferenceTypeId = 2 
+	 -- AND ISNULL(MJD.IsVendorPayment,0) = 0
+  --    AND MJH.[ManualJournalStatusId] = @PostStatusId
+	 -- AND ISNULL(MJD.IsClosed,0) = 0
+	 -- GROUP BY MJH.ManualJournalHeaderId,MJH.JournalNumber,VED.VendorId,VED.VendorName,CR.Code,
+		--	   MJH.ManualJournalStatusId,MJS.[Name],MJH.MasterCompanyId,MJD.ReferenceId, 
+		--	   VCMM.VendorPaymentDetailsId,VCMM.VendorCreditMemoMappingId
 			   )
 			   SELECT * FROM Result WHERE Amount <> 0
 	

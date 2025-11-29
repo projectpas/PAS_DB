@@ -1,4 +1,20 @@
-﻿CREATE   PROCEDURE [dbo].[rpt_GetOrganizationTagType] 
+﻿/*************************************************************           
+ ** File:   [rpt_GetOrganizationTagType]           
+ ** Author:    
+ ** Description: Get OrganizationTagType Data
+ ** Purpose:         
+ ** Date:        
+ **************************************************************           
+  ** Change History           
+ **************************************************************           
+ ** S NO   Date         Author  			Change Description            
+ ** --   --------		-------				--------------------------------          
+	1											Created
+	2	28-Nov-2025		Devendra Shekh			Added Changes for blank option
+
+EXEC [dbo].[rpt_GetOrganizationTagType] 11 
+******************************/
+CREATE   PROCEDURE [dbo].[rpt_GetOrganizationTagType] 
 (
 	@mastercompanyid INT = NULL
 )
@@ -7,6 +23,8 @@ BEGIN
   SET NOCOUNT ON;
   SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
   BEGIN TRY
+		SELECT 0 AS OrganizationTagTypeId, '' AS [Name]   -- blank option
+		UNION ALL
 		SELECT OrganizationTagTypeId, [Name] FROM DBO.OrganizationTagType OTT WITH (NOLOCK) 
 		WHERE OTT.MasterCompanyId = @mastercompanyid;
   END TRY

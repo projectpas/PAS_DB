@@ -23,6 +23,7 @@
 	7	 04/11/2024	  Devendra Shekh	Added ReferenceModule For [CommonBatchDetails]
 	8    11/05/2024   Amit Ghediya		Handle bypass accounting entry.
 	9	 02/06/2025	  Abhishek Jirawla  Fixed Name concat read script
+	10   26/11/2025   Moin Bloch        Add Vendor Payment Details Entry
      
 EXEC USP_ManualJournal_PostCheckBatchDetails 10243
 **************************************************************/
@@ -428,8 +429,12 @@ BEGIN
 
 		SELECT @ManualJournalStatusId = ManualJournalStatusId from [DBO].[ManualJournalStatus] where UPPER([Name]) = UPPER(@StatusPosted)
 		--Update  Status to Post
-		UPDATE ManualJournalHeader SET ManualJournalStatusId = @ManualJournalStatusId WHERE ManualJournalHeaderId = @ManualJournalHeaderId;
+		UPDATE ManualJournalHeader SET ManualJournalStatusId = @ManualJournalStatusId WHERE ManualJournalHeaderId = @ManualJournalHeaderId;		
+
+		EXEC [dbo].[USP_AddVendorPaymentDetailsForManualManualJournalById] @ManualJournalHeaderId;
+
 		SELECT @ManualJournalHeaderId AS 'ManualJournalHeaderId';
+
 	END	
 	COMMIT  TRANSACTION
 	END TRY

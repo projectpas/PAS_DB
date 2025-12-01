@@ -4349,6 +4349,23 @@
     <Build Include="dbo\User Defined Types\Nha_Tla_Alt_Equ_ItemMappingType.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdateItemMasterTimeLifeAndIsSerialized.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetKit.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetItemMasterDataForDropDown.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetAircraftMappedAudit.sql" />
+    <Build Include="dbo\Stored Procedures\USP_searchItemmasterfordashboardheader.sql" />
+    <Build Include="dbo\Stored Procedures\USP_UpdateStockLineWorkOrderPart.sql" />
+    <Build Include="dbo\Stored Procedures\USP_SaveWorkOrderShipping.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetWorkOrderTypeIdAndShippingName.sql" />
+    <Build Include="dbo\User Defined Types\WorkOrderShippingType.sql" />
+    <Build Include="dbo\User Defined Types\WorkOrderShippingItemType.sql" />
+    <Build Include="dbo\User Defined Types\WorkOrderShippingItemsType.sql" />
+    <Build Include="dbo\User Defined Types\WorkOrderShippingItemListType.sql" />
+    <Build Include="dbo\User Defined Types\WorkOrderCustomsInfoType.sql" />
+    <Build Include="dbo\Stored Procedures\USP_UpdateItemMaster.sql" />
+    <Build Include="dbo\Stored Procedures\USP_addUpdatePurchaseAndSales.sql" />
+    <Build Include="dbo\User Defined Types\TBL_ItemMasterUpdateType.sql" />
+    <Build Include="dbo\User Defined Types\PurchaseSalesType.sql" />
+    <Build Include="dbo\Stored Procedures\usp_GenerateCsvData.sql" />
+    <Build Include="dbo\Stored Procedures\USP_AddVendorPaymentDetailsForManualManualJournalById.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

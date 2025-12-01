@@ -39,6 +39,10 @@
     [VendorProformaInvoiceId]       BIGINT          NULL,
     [LastMSLevel]                   VARCHAR (256)   NULL,
     [LegalEntityId]                 BIGINT          NULL,
+    [ManualJournalHeaderId]         BIGINT          NULL,
+    [ManualJournalDetailsId]        BIGINT          NULL,
     CONSTRAINT [PK_VendorPaymentDetails] PRIMARY KEY CLUSTERED ([VendorPaymentDetailsId] ASC)
 );
+
+
 

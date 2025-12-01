@@ -20,6 +20,7 @@
     3    10/09/2024   Devendra Shekh		Modified to get GLAccount with Code and Name
     4    10/09/2024   Devendra Shekh		added case to select MasterCompanyId
 	5    17/09/2024   AMIT GHEDIYA			added AutoPost.
+	6    27/11/2025   Bhargav Saliya		Modified(Get GL accound code and name from the GLAcount Table instead of [DistributionSetup] table).
 
      
  EXECUTE [GetJounalTypeSettingData] 1
@@ -95,7 +96,7 @@ BEGIN
 							[DistributionSetupID], [Name], [GlAccountId], [GlAccountName], [JournalTypeId], [DistributionMasterId], [IsDebit], [DisplayNumber], [MasterCompanyId], 
 							[CreatedBy], [UpdatedBy], [IsActive], [IsDeleted], [UpdatedDate], [CreatedDate], [CRDRType], [CRDRTypeName], [IsManualText], [ManualText], [SequenceNo])
 				SELECT	[JournalTypeCode], [JournalTypeName], JTD.ID, [IsEnforcePrint], [IsAppendtoBatch], DS.[IsAutoPost],
-						DS.[ID], [Name], [GlAccountId], (CASE WHEN ISNULL([GlAccountNumber], '') = '' THEN ISNULL([GlAccountName], '') ELSE ISNULL([GlAccountNumber], '') + ' - ' + ISNULL([GlAccountName], '') END),
+						DS.[ID], [Name], DS.[GlAccountId], (CASE WHEN ISNULL(G.[AccountCode], '') = '' THEN ISNULL(G.[AccountName], '') ELSE ISNULL(G.[AccountCode], '') + ' - ' + ISNULL(G.[AccountName], '') END),
 						JTD.[JournalTypeId], [DistributionMasterId], [IsDebit], [DisplayNumber], JTD.[MasterCompanyId], 
 						JTD.[CreatedBy], JTD.[UpdatedBy], JTD.[IsActive], JTD.[IsDeleted] ,isnull(JTD.UpdatedDate,GETUTCDATE()) as UpdatedDate ,isnull(JTD.CreatedDate,GETUTCDATE()) as CreatedDate,
 						CRDRType,
@@ -104,7 +105,8 @@ BEGIN
 								WHEN CRDRType=2 THEN 'DR/CR' ELSE '' END as 'CRDRTypeName',
 						ISNULL(IsManualText,0) IsManualText, ISNULL(ManualText, '') ManualText, [SequenceNo]
 				FROM JournalTypeData JTD WITH(NOLOCK) 
-				LEFT JOIN dbo.DistributionSetup DS WITH(NOLOCK) ON DS.JournalTypeID = JTD.JournalTypeId AND DS.MasterCompanyId = JTD.MasterCompanyId;
+				LEFT JOIN dbo.DistributionSetup DS WITH(NOLOCK) ON DS.JournalTypeID = JTD.JournalTypeId AND DS.MasterCompanyId = JTD.MasterCompanyId
+				LEFT JOIN dbo.GLAccount G WITH(NOLOCK) ON DS.GlAccountId = G.GlAccountId AND DS.MasterCompanyId = G.MasterCompanyId;
 
 				SELECT * FROM #GLAllocationResults ORDER BY [SequenceNo], [JournalTypeId] ASC;
 

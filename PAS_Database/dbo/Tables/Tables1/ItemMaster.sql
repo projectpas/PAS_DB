@@ -213,6 +213,8 @@
 
 
 
+
+
 GO
 
 
@@ -243,3 +245,112 @@ BEGIN
 
 
 END
+GO
+CREATE     TRIGGER [dbo].[trg_Audit_dbo_ItemMaster]
+        ON [dbo].[ItemMaster]
+        AFTER INSERT, UPDATE, DELETE
+        AS
+        BEGIN
+            SET NOCOUNT ON;
+            ;WITH
+             d AS (SELECT d.[ItemMasterId],d.[ItemTypeId],d.[PartAlternatePartId],d.[ItemGroupId],d.[ItemClassificationId],d.[IsHazardousMaterial],d.[IsExpirationDateAvailable],d.[ExpirationDate],d.[IsReceivedDateAvailable],d.[DaysReceived],d.[IsManufacturingDateAvailable],d.[ManufacturingDays],d.[IsTagDateAvailable],d.[TagDays],d.[IsOpenDateAvailable],d.[OpenDays],d.[IsShippedDateAvailable],d.[ShippedDays],d.[IsOtherDateAvailable],d.[OtherDays],d.[ProvisionId],d.[ManufacturerId],d.[IsDER],d.[NationalStockNumber],d.[IsSchematic],d.[OverhaulHours],d.[RPHours],d.[TestHours],d.[RFQTracking],d.[GLAccountId],d.[PurchaseUnitOfMeasureId],d.[StockUnitOfMeasureId],d.[ConsumeUnitOfMeasureId],d.[LeadTimeDays],d.[ReorderPoint],d.[ReorderQuantiy],d.[MinimumOrderQuantity],d.[PartListPrice],d.[PriorityId],d.[WarningId],d.[Memo],d.[ExportCountryId],d.[ExportValue],d.[ExportCurrencyId],d.[ExportWeight],d.[ExportWeightUnit],d.[ExportSizeLength],d.[ExportSizeWidth],d.[ExportSizeHeight],d.[ExportSizeUnit],d.[ExportClassificationId],d.[PurchaseCurrencyId],d.[SalesIsFixedPrice],d.[SalesCurrencyId],d.[SalesLastSalePriceDate],d.[SalesLastSalesDiscountPercentDate],d.[IsActive],d.[CurrencyId],d.[MasterCompanyId],d.[CreatedBy],d.[UpdatedBy],d.[CreatedDate],d.[UpdatedDate],d.[TurnTimeOverhaulHours],d.[TurnTimeRepairHours],d.[SoldUnitOfMeasureId],d.[IsDeleted],d.[ExportUomId],d.[partnumber],d.[PartDescription],d.[isTimeLife],d.[isSerialized],d.[ManagementStructureId],d.[ShelfLife],d.[DiscountPurchasePercent],d.[UnitCost],d.[ListPrice],d.[PriceDate],d.[ItemNonStockClassificationId],d.[StockLevel],d.[ExportECCN],d.[ITARNumber],d.[ShelfLifeAvailable],d.[mfgHours],d.[IsPma],d.[turnTimeMfg],d.[turnTimeBenchTest],d.[IsExportUnspecified],d.[IsExportNONMilitary],d.[IsExportMilitary],d.[IsExportDual],d.[IsOemPNId],d.[MasterPartId],d.[RepairUnitOfMeasureId],d.[RevisedPartId],d.[SiteId],d.[WarehouseId],d.[LocationId],d.[ShelfId],d.[BinId],d.[ItemMasterAssetTypeId],d.[IsHotItem],d.[ExportSizeUnitOfMeasureId],d.[IsAcquiredMethodBuy],d.[IsOEM],d.[RevisedPart],d.[OEMPN],d.[ItemClassificationName],d.[ItemGroup],d.[AssetAcquistionType],d.[ManufacturerName],d.[PurchaseUnitOfMeasure],d.[StockUnitOfMeasure],d.[ConsumeUnitOfMeasure],d.[PurchaseCurrency],d.[SalesCurrency],d.[GLAccount],d.[Priority],d.[SiteName],d.[WarehouseName],d.[LocationName],d.[ShelfName],d.[BinName],d.[CurrentStlNo],d.[MTBUR],d.[NE],d.[NS],d.[OH],d.[REP],d.[SVC],d.[Figure],d.[Item],d.[UNCode],d.[InventoryGLSettingId],d.[GoodsReceivedNotInvoicesGLAccId],d.[WorkInProgressGLAccId],d.[InventoryToBillGLAccId],d.[FinishedGoodsGLAccId],d.[InventoryExchAgreementGLAccId],d.[InventoryReserveGLAccId],d.[COGS_WorkOrderGLAccId],d.[COGS_SalesOrderGLAccId],d.[COGS_QtyVarianceGLAccId],d.[COGS_UnitCostVarianceGLAccId],d.[RevenueMroGLAccId],d.[RevenueSoGLAccId],d.[RevenueExchGLAccId],d.[COGS_ExchSalesOrderGLAccId],d.[GoodsReceivedNotInvoicesGLAccName],d.[WorkInProgressGLAccName],d.[InventoryToBillGLAccName],d.[FinishedGoodsGLAccName],d.[InventoryExchAgreementGLAccName],d.[InventoryReserveGLAccName],d.[COGS_WorkOrderGLAccName],d.[COGS_SalesOrderGLAccName],d.[COGS_QtyVarianceGLAccName],d.[COGS_UnitCostVarianceGLAccName],d.[RevenueMroGLAccName],d.[RevenueSoGLAccName],d.[RevenueExchGLAccName],d.[COGS_ExchSalesOrderGLAccName],d.[QuickBooksReferenceId],d.[IsUpdated],d.[LastSyncDate],d.[SyncToken],d.[WorkOrderFormTypeId] FROM deleted d),
+             i AS (SELECT i.[ItemMasterId],i.[ItemTypeId],i.[PartAlternatePartId],i.[ItemGroupId],i.[ItemClassificationId],i.[IsHazardousMaterial],i.[IsExpirationDateAvailable],i.[ExpirationDate],i.[IsReceivedDateAvailable],i.[DaysReceived],i.[IsManufacturingDateAvailable],i.[ManufacturingDays],i.[IsTagDateAvailable],i.[TagDays],i.[IsOpenDateAvailable],i.[OpenDays],i.[IsShippedDateAvailable],i.[ShippedDays],i.[IsOtherDateAvailable],i.[OtherDays],i.[ProvisionId],i.[ManufacturerId],i.[IsDER],i.[NationalStockNumber],i.[IsSchematic],i.[OverhaulHours],i.[RPHours],i.[TestHours],i.[RFQTracking],i.[GLAccountId],i.[PurchaseUnitOfMeasureId],i.[StockUnitOfMeasureId],i.[ConsumeUnitOfMeasureId],i.[LeadTimeDays],i.[ReorderPoint],i.[ReorderQuantiy],i.[MinimumOrderQuantity],i.[PartListPrice],i.[PriorityId],i.[WarningId],i.[Memo],i.[ExportCountryId],i.[ExportValue],i.[ExportCurrencyId],i.[ExportWeight],i.[ExportWeightUnit],i.[ExportSizeLength],i.[ExportSizeWidth],i.[ExportSizeHeight],i.[ExportSizeUnit],i.[ExportClassificationId],i.[PurchaseCurrencyId],i.[SalesIsFixedPrice],i.[SalesCurrencyId],i.[SalesLastSalePriceDate],i.[SalesLastSalesDiscountPercentDate],i.[IsActive],i.[CurrencyId],i.[MasterCompanyId],i.[CreatedBy],i.[UpdatedBy],i.[CreatedDate],i.[UpdatedDate],i.[TurnTimeOverhaulHours],i.[TurnTimeRepairHours],i.[SoldUnitOfMeasureId],i.[IsDeleted],i.[ExportUomId],i.[partnumber],i.[PartDescription],i.[isTimeLife],i.[isSerialized],i.[ManagementStructureId],i.[ShelfLife],i.[DiscountPurchasePercent],i.[UnitCost],i.[ListPrice],i.[PriceDate],i.[ItemNonStockClassificationId],i.[StockLevel],i.[ExportECCN],i.[ITARNumber],i.[ShelfLifeAvailable],i.[mfgHours],i.[IsPma],i.[turnTimeMfg],i.[turnTimeBenchTest],i.[IsExportUnspecified],i.[IsExportNONMilitary],i.[IsExportMilitary],i.[IsExportDual],i.[IsOemPNId],i.[MasterPartId],i.[RepairUnitOfMeasureId],i.[RevisedPartId],i.[SiteId],i.[WarehouseId],i.[LocationId],i.[ShelfId],i.[BinId],i.[ItemMasterAssetTypeId],i.[IsHotItem],i.[ExportSizeUnitOfMeasureId],i.[IsAcquiredMethodBuy],i.[IsOEM],i.[RevisedPart],i.[OEMPN],i.[ItemClassificationName],i.[ItemGroup],i.[AssetAcquistionType],i.[ManufacturerName],i.[PurchaseUnitOfMeasure],i.[StockUnitOfMeasure],i.[ConsumeUnitOfMeasure],i.[PurchaseCurrency],i.[SalesCurrency],i.[GLAccount],i.[Priority],i.[SiteName],i.[WarehouseName],i.[LocationName],i.[ShelfName],i.[BinName],i.[CurrentStlNo],i.[MTBUR],i.[NE],i.[NS],i.[OH],i.[REP],i.[SVC],i.[Figure],i.[Item],i.[UNCode],i.[InventoryGLSettingId],i.[GoodsReceivedNotInvoicesGLAccId],i.[WorkInProgressGLAccId],i.[InventoryToBillGLAccId],i.[FinishedGoodsGLAccId],i.[InventoryExchAgreementGLAccId],i.[InventoryReserveGLAccId],i.[COGS_WorkOrderGLAccId],i.[COGS_SalesOrderGLAccId],i.[COGS_QtyVarianceGLAccId],i.[COGS_UnitCostVarianceGLAccId],i.[RevenueMroGLAccId],i.[RevenueSoGLAccId],i.[RevenueExchGLAccId],i.[COGS_ExchSalesOrderGLAccId],i.[GoodsReceivedNotInvoicesGLAccName],i.[WorkInProgressGLAccName],i.[InventoryToBillGLAccName],i.[FinishedGoodsGLAccName],i.[InventoryExchAgreementGLAccName],i.[InventoryReserveGLAccName],i.[COGS_WorkOrderGLAccName],i.[COGS_SalesOrderGLAccName],i.[COGS_QtyVarianceGLAccName],i.[COGS_UnitCostVarianceGLAccName],i.[RevenueMroGLAccName],i.[RevenueSoGLAccName],i.[RevenueExchGLAccName],i.[COGS_ExchSalesOrderGLAccName],i.[QuickBooksReferenceId],i.[IsUpdated],i.[LastSyncDate],i.[SyncToken],i.[WorkOrderFormTypeId] FROM inserted i),
+             paired AS (
+                SELECT
+                    COALESCE(i.ItemMasterId, d.ItemMasterId ) AS ItemMasterId,
+                    (SELECT d.* FOR JSON PATH, WITHOUT_ARRAY_WRAPPER) AS old_row_json,
+                    (SELECT i.* FOR JSON PATH, WITHOUT_ARRAY_WRAPPER) AS new_row_json, 
+                    CASE
+                        WHEN i.ItemMasterId IS NOT NULL AND d.ItemMasterId IS NOT NULL THEN 'U'
+                        WHEN i.ItemMasterId IS NOT NULL AND d.ItemMasterId IS NULL     THEN 'I'
+                        WHEN i.ItemMasterId IS NULL     AND d.ItemMasterId IS NOT NULL THEN 'D'
+                    END AS Action,
+
+                    (SELECT COALESCE(i.ItemMasterId, d.ItemMasterId) AS ItemMasterId
+                     FOR JSON PATH, WITHOUT_ARRAY_WRAPPER) AS PKJson
+                FROM d
+                FULL OUTER JOIN i
+                    ON i.ItemMasterId = d.ItemMasterId
+            ),
+
+            oldv AS (
+                SELECT
+                    p.PKJson,
+                    p.ItemMasterId,
+                    v.[key]  AS ColumnName,
+                    v.value  AS OldValue
+                FROM paired p
+                CROSS APPLY OPENJSON(p.old_row_json) v
+                WHERE NOT EXISTS (
+                    SELECT 1
+                    FROM dbo.IgnoreColumn ign
+                    WHERE ign.SchemaName = N'dbo'
+                      AND ign.TableName  = N'ItemMaster'
+                      AND ign.ColumnName = N'ItemMasterId'
+                )),
+            newv AS (
+                SELECT
+                    p.PKJson,
+                    p.ItemMasterId ,
+                    v.[key]  AS ColumnName,
+                    v.value  AS NewValue
+                FROM paired p
+                CROSS APPLY OPENJSON(p.new_row_json) v
+                WHERE NOT EXISTS (
+                    SELECT 1
+                    FROM dbo.IgnoreColumn ign
+                    WHERE ign.SchemaName = N'dbo'
+                      AND ign.TableName  = N'ItemMaster'
+                      AND ign.ColumnName = N'ItemMasterId'
+                )),
+            merged AS (
+                SELECT
+                    COALESCE(n.PKJson, o.PKJson)                AS PKJson,
+                    COALESCE(n.ColumnName, o.ColumnName)        AS ColumnName,
+                    o.OldValue,
+                    n.NewValue,
+                    p.Action
+                FROM paired p
+                LEFT JOIN oldv o
+                    ON o.ItemMasterId = p.ItemMasterId
+                LEFT JOIN newv n
+                    ON n.ItemMasterId = p.ItemMasterId
+                   AND n.ColumnName = o.ColumnName
+                UNION ALL
+                SELECT
+                    n.PKJson,
+                    n.ColumnName,
+                    NULL AS OldValue,
+                    n.NewValue,
+                    p.Action
+                FROM paired p
+                LEFT JOIN newv n
+                    ON n.ItemMasterId = p.ItemMasterId
+                WHERE NOT EXISTS (
+                    SELECT 1
+                    FROM oldv o2
+                    WHERE o2.ItemMasterId = p.ItemMasterId
+                      AND o2.ColumnName    = n.ColumnName
+                )
+            )
+            INSERT dbo.AuditLog (SchemaName, TableName, PKJson, ColumnName, Action, OldValue, NewValue)
+            SELECT
+                N'dbo' AS SchemaName,
+                N'ItemMaster' AS TableName,
+                m.PKJson,
+                m.ColumnName,
+                m.Action,
+                m.OldValue,
+                m.NewValue
+            FROM merged m
+            WHERE
+                (m.Action = 'U' AND (
+                     (m.OldValue IS NULL AND m.NewValue IS NOT NULL)
+                  OR (m.OldValue IS NOT NULL AND m.NewValue IS NULL)
+                  OR (m.OldValue <> m.NewValue)
+                ))
+                OR
+                (m.Action = 'I' AND m.NewValue IS NOT NULL)
+                OR
+                (m.Action = 'D' AND m.OldValue IS NOT NULL);
+        END;

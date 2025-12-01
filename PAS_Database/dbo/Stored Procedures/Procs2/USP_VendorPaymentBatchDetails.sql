@@ -24,6 +24,7 @@
 	8	 10/01/2025   AMIT GHEDIYA		Get accounting period based on selection.
 	9	 24/04/2025	  Devendra Shekh    Modify (Added [IsManualText] check for DistributionSetup)
 	10	 02/06/2025	  Abhishek Jirawla  Fixed Name concat read script
+	11	 27/10/2025   AMIT GHEDIYA		update for get glaccount from LE.
 	
 	EXEC USP_VendorPaymentBatchDetails 122
 	
@@ -613,7 +614,10 @@ BEGIN
 				    BEGIN					
 						SELECT TOP 1 @DistributionSetupId = [ID], @DistributionName = [Name], 
 						             @JournalTypeId = [JournalTypeId], @CrDrType = [CRDRType],
-									 @IsAutoPost = ISNULL(IsAutoPost,0) 
+									 @IsAutoPost = ISNULL(IsAutoPost,0),
+									 @GlAccountId = [GlAccountId],
+									 @GlAccountNumber = [GlAccountNumber],
+									 @GlAccountName = [GlAccountName]
 							  FROM [dbo].[DistributionSetup] WITH(NOLOCK)							
 							 WHERE [DistributionSetupCode] = CASE WHEN @PaymentMethodId = @DomesticWire OR @PaymentMethodId = @InternationalWire THEN 'WRT-BANKACCOUNT' 
 						                                        WHEN @PaymentMethodId = @ACHTransfer THEN 'ACHT-BANKACCOUNT'
@@ -622,11 +626,11 @@ BEGIN
 							   AND [DistributionMasterId] = @DistributionMasterId 
 							   AND [MasterCompanyId] = @MasterCompanyId;				
 
-						SELECT @GlAccountId = G.[GLAccountId], @GlAccountNumber = G.[AccountCode], @GlAccountName = G.[AccountName]
-							FROM [dbo].[LegalEntityBankingLockBox] LB WITH(NOLOCK)
-							INNER JOIN [dbo].[VendorReadyToPayHeader] V WITH(NOLOCK) ON LB.[LegalEntityBankingLockBoxId] = V.[BankId]
-							 LEFT JOIN [dbo].[GLAccount] G WITH(NOLOCK) ON LB.[GLAccountId] = G.[GLAccountId]
-							WHERE [ReadyToPayId] = @ReadyToPayId;
+						--SELECT @GlAccountId = G.[GLAccountId], @GlAccountNumber = G.[AccountCode], @GlAccountName = G.[AccountName]
+						--	FROM [dbo].[LegalEntityBankingLockBox] LB WITH(NOLOCK)
+						--	INNER JOIN [dbo].[VendorReadyToPayHeader] V WITH(NOLOCK) ON LB.[LegalEntityBankingLockBoxId] = V.[BankId]
+						--	 LEFT JOIN [dbo].[GLAccount] G WITH(NOLOCK) ON LB.[GLAccountId] = G.[GLAccountId]
+						--	WHERE [ReadyToPayId] = @ReadyToPayId;
 							
 						INSERT INTO [dbo].[CommonBatchDetails]
 							       ([JournalBatchDetailId]

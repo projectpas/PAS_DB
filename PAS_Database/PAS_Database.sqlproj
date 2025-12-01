@@ -4348,6 +4348,7 @@
     <Build Include="dbo\Stored Procedures\USP_SaveNhaTlaPartsFromCrossReference.sql" />
     <Build Include="dbo\User Defined Types\Nha_Tla_Alt_Equ_ItemMappingType.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdateItemMasterTimeLifeAndIsSerialized.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetAircraftMappedAudit.sql" />
     <Build Include="dbo\Stored Procedures\USP_searchItemmasterfordashboardheader.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdateStockLineWorkOrderPart.sql" />
     <Build Include="dbo\Stored Procedures\USP_SaveWorkOrderShipping.sql" />

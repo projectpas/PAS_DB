@@ -19,6 +19,30 @@
     [IsActive]         BIT            NULL,
     [IsDeleted]        BIT            NULL,
     [StatusId]         INT            NOT NULL,
-    [EmployeeId]       BIGINT         NOT NULL
+    [EmployeeId]       BIGINT         NOT NULL,
+    [TicketTypeId]     BIGINT         NULL
 );
 
+
+GO
+CREATE TRIGGER [dbo].[Trg_CustomerTicketAudit] ON [dbo].[CustomerTicket]
+
+   AFTER INSERT,DELETE,UPDATE  
+
+AS   
+
+BEGIN  
+
+
+
+ INSERT INTO [dbo].[CustomerTicketAudit]  
+
+ SELECT * FROM INSERTED  
+
+
+
+ SET NOCOUNT ON;  
+
+
+
+END

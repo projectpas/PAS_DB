@@ -36,8 +36,8 @@ BEGIN
 		ISNULL(wos.WorkScopeCode, '') AS WorkScopeName,
 		kIM.Memo
 	FROM [dbo].[KitMaster] kIM WITH (NOLOCK)
-	LEFT JOIN [dbo].[ItemMaster] imst ON kIM.ItemMasterId = imst.ItemMasterId
-	LEFT JOIN [dbo].[WorkScope] wos ON kIM.WorkScopeId = wos.WorkScopeId
+	LEFT JOIN [dbo].[ItemMaster] imst  WITH (NOLOCK) ON kIM.ItemMasterId = imst.ItemMasterId
+	LEFT JOIN [dbo].[WorkScope]  wos WITH (NOLOCK) ON  kIM.WorkScopeId = wos.WorkScopeId
 	WHERE kIM.KitId = @KitId;
 
 	END TRY

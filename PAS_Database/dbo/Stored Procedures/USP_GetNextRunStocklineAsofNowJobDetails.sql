@@ -11,9 +11,10 @@
  **************************************************************             
  ** PR   Date         Author		Change Description              
  ** --   --------     -------		--------------------------------            
-    1    11/09/2025   MOIN BLOCH     Created  
-	2    25/09/2025   MOIN BLOCH     added GroupById
-	3    03/10/2025   MOIN BLOCH	 Updated Datatype of ExecutionDate & Added New Fields
+    1    11/09/2025   MOIN BLOCH		Created  
+	2    25/09/2025   MOIN BLOCH		added GroupById
+	3    03/10/2025   MOIN BLOCH		Updated Datatype of ExecutionDate & Added New Fields
+	4    28/11/2025   Devendra Shekh	Passed '0' as [TagType]
 --  EXEC [dbo].[USP_GetNextRunStocklineAsofNowJobDetails] 1
 ************************************************************************/    
 CREATE     PROCEDURE [dbo].[USP_GetNextRunStocklineAsofNowJobDetails]
@@ -117,7 +118,7 @@ BEGIN
 			   @ExcludedLocations [ExcludedLocations],
 			   @MSLevel [MSLevel],
 			   @Location [Location],
-			   '' [TagType],			   
+			   '0' [TagType],			   
 			   1  [IsCustomerStock],
 			   @ManagementStructureId [ManagementStructureId],
 			   @GroupById [GroupById],

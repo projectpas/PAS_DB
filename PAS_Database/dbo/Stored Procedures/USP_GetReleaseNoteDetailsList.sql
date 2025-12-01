@@ -17,8 +17,9 @@
  ** --   --------		 -------		--------------------------------          
     1    22-May-2025   Bhargav Saliya		Created
     2    16-Sept-2025  Devendra Shekh		Added ReleaseNotesTitleDetails Select
+	3    27-nov-2025   Nakul Chandigara     Added a Missing colummn [TypeId]  
 
-EXEC [USP_GetReleaseNoteDetailsList] 233, 1, 0
+EXEC [USP_GetReleaseNoteDetailsList] 2, 1, 0
 **************************************************************/
 CREATE   PROCEDURE	[dbo].[USP_GetReleaseNoteDetailsList]
     @EmployeeId BIGINT,
@@ -57,7 +58,7 @@ BEGIN
 		ORDER BY RHD.ReleaseNoteHeaderId DESC
 
 		SELECT 
-			[TitleId], [ReleaseNoteHeaderId], [Title], [SprintName], [Type], [TitleDescription]
+			[TitleId], [ReleaseNoteHeaderId], [Title], [SprintName], [Type], [TitleDescription],[TypeId]
 		FROM
 		(
 			SELECT 
@@ -66,7 +67,8 @@ BEGIN
 				rtd.[Title],
 				rtd.[SprintName],
 				WT.[WorkType] AS [Type],
-				rtd.[Description] AS TitleDescription
+				rtd.[Description] AS TitleDescription,
+				rtd.TypeId
 			FROM DBO.[ReleaseNotesTitleDetails] rtd WITH (NOLOCK) 
 			INNER JOIN DBO.[ReleaseNoteHeadersDetails] rh WITH(NOLOCK) ON rtd.[ReleaseNoteHeaderId] = rh.[ReleaseNoteHeaderId]
 			LEFT JOIN DBO.[WorkType] WT WITH(NOLOCK) ON rtd.TypeId = WT.WorkTypeId

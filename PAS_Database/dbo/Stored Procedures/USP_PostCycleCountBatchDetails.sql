@@ -18,6 +18,7 @@
 	5    05/12/2024          Moin Bloch          Added @IsAccountByPass Flag
 	7    27/12/2024          Moin Bloch          Updated Added LegalEntityId
 	8    31/01/2025          AMIT GHEDIYA        Modify(get Distribution based on new settings from stockline level)
+	9    28/11/2025          Moin Bloch          Changed Logic For CR/DR
 
     EXEC [dbo].[USP_PostCycleCountBatchDetails] 
 **************************************************************/
@@ -384,9 +385,12 @@ BEGIN
 							 --CASE WHEN @CRDRType = 1 THEN 1 ELSE 0 END,
 							 --CASE WHEN @CRDRType = 1 THEN @TotalAmount ELSE 0 END,
 							 --CASE WHEN @CRDRType = 1 THEN 0 ELSE @TotalAmount END,
-							 CASE WHEN @TotalAmount > 0 THEN 1 ELSE 0 END,
+							 --CASE WHEN @TotalAmount > 0 THEN 1 ELSE 0 END,
+							 --CASE WHEN @TotalAmount > 0 THEN @TotalAmount ELSE 0 END,
+							 --CASE WHEN @TotalAmount > 0 THEN 0 ELSE ABS(@TotalAmount) END,
+							 CASE WHEN @TotalAmount > 0 THEN 0 ELSE 1 END,
+							 CASE WHEN @TotalAmount > 0 THEN 0  ELSE ABS(@TotalAmount) END,
 							 CASE WHEN @TotalAmount > 0 THEN @TotalAmount ELSE 0 END,
-							 CASE WHEN @TotalAmount > 0 THEN 0 ELSE ABS(@TotalAmount) END,	
 							 @ManagementStructureId,'CycleCount',@LastMSLevel,@AllMSlevels,@MasterCompanyId,
 							 @UpdatedBy,@UpdatedBy,GETUTCDATE(),GETUTCDATE(),1,0,
 							 @CycleCountNumber,@StockLineNumber,@LocalCurrencyCode,@FXRate,@ForeignCurrencyCode,
@@ -448,9 +452,12 @@ BEGIN
 							 @DistributionSetupId,@DistributionName,@JournalBatchHeaderId,1,
 							 @GlAccountId,@GlAccountNumber,@GlAccountName,GETUTCDATE(),GETUTCDATE(),
 							 @JournalTypeId,@JournalTypename,						
-							 CASE WHEN @TotalAmount > 0 THEN 0 ELSE 1 END,
+							 --CASE WHEN @TotalAmount > 0 THEN 0 ELSE 1 END,
+							 --CASE WHEN @TotalAmount > 0 THEN 0 ELSE ABS(@TotalAmount) END,
+							 --CASE WHEN @TotalAmount > 0 THEN @TotalAmount ELSE 0 END,	
+							 CASE WHEN @TotalAmount > 0 THEN 1 ELSE 0 END,
+							 CASE WHEN @TotalAmount > 0 THEN @TotalAmount ELSE 0 END,
 							 CASE WHEN @TotalAmount > 0 THEN 0 ELSE ABS(@TotalAmount) END,
-							 CASE WHEN @TotalAmount > 0 THEN @TotalAmount ELSE 0 END,							
 							 @ManagementStructureId,'CycleCount',@LastMSLevel,@AllMSlevels,@MasterCompanyId,
 							 @UpdatedBy,@UpdatedBy, GETUTCDATE(),GETUTCDATE(),1,0,
 							 @CycleCountNumber,@StockLineNumber,@LocalCurrencyCode,@FXRate,@ForeignCurrencyCode,

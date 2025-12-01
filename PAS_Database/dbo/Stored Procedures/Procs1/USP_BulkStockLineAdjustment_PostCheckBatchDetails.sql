@@ -30,6 +30,7 @@
 	14	 15/01/2025   AMIT GHEDIYA		Modify(get Distribution based on new settings from stockline level)
 	15   03/Feb/2025  RAJESH GAMI		Added QuantityAdjustment while Increase or Decrease the QTY.
 	16	 02/06/2025	  Abhishek Jirawla  Fixed Name concat read script
+	17   27/11/2025   AMIT GHEDIYA		update for get glaccount from setup.
 
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_BulkStockLineAdjustment_PostCheckBatchDetails]
@@ -422,12 +423,12 @@ BEGIN
 						SELECT @GlAccountNumber = AccountCode,@GlAccountName=AccountName FROM [DBO].[GLAccount] WITH(NOLOCK) WHERE GLAccountId=@GlAccountId;
 
 						--GET GL Accounting Data from GLAccout based on stockline
-						SELECT @GlAccountId = [GLAccountId],
-							   @GlAccountNumber = [AccountCode],
-							   @GlAccountName = [AccountName]
-						FROM [dbo].[GLAccount] WITH(NOLOCK)
-						WHERE [GLAccountId] = @InventoryReserveGLAccId
-						AND [MasterCompanyId] = @MasterCompanyId;
+						--SELECT @GlAccountId = [GLAccountId],
+						--	   @GlAccountNumber = [AccountCode],
+						--	   @GlAccountName = [AccountName]
+						--FROM [dbo].[GLAccount] WITH(NOLOCK)
+						--WHERE [GLAccountId] = @InventoryReserveGLAccId
+						--AND [MasterCompanyId] = @MasterCompanyId;
 
 						IF(@DetailQtyAdjustment > 0) -- Debit entry
 						BEGIN

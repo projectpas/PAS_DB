@@ -41,6 +41,7 @@
 	24   01/JAN/2025  RAJESH GAMI       Remove Discount Percentage from the proforma invoice
 	25   11-03-2025   ABHISHEK JIRAWLA  IsVendorOnHold check for payment hold
 	26   11-03-2025   AMIT GHEDIYA      Update LegalEntityId condition to get from VendorPaymentDetailst table
+	27   27-11-2025   Moin Bloch	    added Manual Journal
      
 -- EXEC VendorReadyToPayList 1,NULL,NULL,1  
 --EXEC dbo.VendorReadyToPayList @MasterCompanyId=1,@StartDate=default,@EndDate=default,@LegalEntityId=1
@@ -137,6 +138,7 @@ BEGIN
 		[CreatedDate] DATETIME2 NULL,
 		[VendorProformaInvoiceId] BIGINT NULL,
 		[IsVendorOnHold] BIT NULL,
+		[ManualJournalHeaderId] BIGINT NULL,
 		) 
 
 	INSERT #tmpVendorCreditMemoMapping ([VendorCreditMemoMappingId],[VendorCreditMemoId],[VendorPaymentDetailsId],[VendorId])
@@ -465,7 +467,92 @@ BEGIN
 				                 AND IsVoidedCheck = 0 AND CheckNumber IS NULL GROUP BY VD.VendorPaymentDetailsId,VD.InvoiceNum
 				) discNewData WHERE #TempVendorReadyToPayList.VendorReadyToPayDetailsTypeId = 3 AND #TempVendorReadyToPayList.InvoiceNum = discNewData.InvoiceNum
 
+				
+       -- Manual Journal
 
+	   INSERT INTO #TempVendorReadyToPayList([VendorPaymentDetailsId],[ReadyToPayId],[DueDate],[VendorId],[VendorName],[PaymentMethodId],[PaymentMethodName],[ReceivingReconciliationId]
+					,[InvoiceNum],[CurrencyId],[CurrencyName],[FXRate],[OriginalAmount],[PaymentMade],[AmountDue],[PaidAmount],[NetDays],[Percentage]
+					,[DaysPastDue],[DiscountDate],[DiscountAvailable],[DiscountToken],[StatusId],[Status],[MasterCompanyId],[ReadyToPaymentMade]
+					,[DefaultPaymentMethod],[IsCheckPayment],[IsDomesticWirePayment],[IsInternationlWirePayment],[IsACHTransferPayment],[IsCreditCardPayment],[IsCreditMemo]
+					,[SelectedforPayment],[IsEnable],[IsCustomerCreditMemo],[CreditMemoHeaderId],[VendorReadyToPayDetailsTypeId],[NonPOInvoiceId], 
+					 [CustomerCreditPaymentDetailId],[CreatedDate],[IsVendorOnHold],[ManualJournalHeaderId])
+		SELECT DISTINCT VPD.VendorPaymentDetailsId,
+		                VPD.ReadyToPayId,
+		                CASE WHEN IIF(TRY_CAST(MJH.[EntryDate] AS DATETIME) IS NULL, 0, 1 ) = 1
+				        THEN DATEADD(DAY,ISNULL(CTM.[NetDays],0),MJH.[EntryDate]) ELSE NULL END,  
+					    VPD.[VendorId],
+					    VPD.[VendorName],
+					    VPD.[PaymentMethodId],
+					    VPD.[PaymentMethodName],  
+                        VPD.[ReceivingReconciliationId],
+					    VPD.[InvoiceNum],
+					    VPD.[CurrencyId],
+					    VPD.[CurrencyName],
+					    VPD.[FXRate],  
+					    ISNULL(VPD.[InvoiceTotal],0) AS OriginalAmount,
+					    0 AS [PaymentMade],  
+					    (ISNULL(VPD.[RemainingAmount],0) + (ISNULL(VPD.[InvoiceTotal],0) - 0 - ISNULL(VPD.[PaymentMade],0) - ISNULL(VPD.[RemainingAmount],0))) AS AmountDue,  
+                        ISNULL(VPD.[PaymentMade],0),  
+                        ISNULL(CTM.[NetDays],0),
+					    ISNULL(p.[PercentValue],0) AS [Percentage], 						
+						CASE WHEN DATEDIFF(DAY, (CAST(VPD.[DueDate] AS DATETIME) + ISNULL(CTM.[NetDays],0)), GETUTCDATE()) <= 0 THEN 0 ELSE DATEDIFF(DAY, (CAST(VPD.[DueDate] AS DATETIME) + ISNULL(CTM.[NetDays],0)), GETUTCDATE()) END AS [DaysPastDue],  
+					    CASE WHEN ISNULL(CTM.[Days],0) > 0 THEN DATEADD(DAY, ISNULL(CTM.[Days],0), MJH.[EntryDate]) ELSE '' END AS DiscountDate,
+					    (CASE WHEN ISNULL(DATEDIFF(DAY, (CAST(VPD.[DueDate] AS DATETIME) + ISNULL(CTM.[Days],0)), GETUTCDATE()), 0) <= 0 THEN CAST((VPD.[InvoiceTotal] * ISNULL(p.[PercentValue],0) / 100) AS DECIMAL(10,2)) ELSE 0 END) - 0 AS [DiscountAvailable],  
+					    0 'DiscountToken',
+					    VPD.[StatusId],
+					    VPD.[Status],
+					    VPD.[MasterCompanyId],
+					    0 'ReadyToPaymentMade',
+						[DefaultPaymentMethod] = (SELECT TOP 1 VP.[DefaultPaymentMethod] FROM [dbo].[VendorPayment] VP WITH(NOLOCK) WHERE VP.[VendorId] = V.[VendorId] AND vp.[IsDeleted] = 0),
+				        [IsCheckPayment] = (SELECT CASE WHEN COUNT(ch.[CheckPaymentId]) > 0 THEN 1 ELSE 0 END  FROM [dbo].[VendorCheckPayment] VP WITH(NOLOCK) INNER JOIN [dbo].[CheckPayment] ch WITH(NOLOCK) on ch.CheckPaymentId=vp.CheckPaymentId  WHERE VP.VendorId = V.VendorId AND ch.IsDeleted = 0),
+				        [IsDomesticWirePayment] = (SELECT CASE WHEN COUNT(VP.VendorDomesticWirePaymentId) > 0 THEN 1 ELSE 0 END  FROM [dbo].[VendorDomesticWirePayment] VP WITH(NOLOCK) WHERE VP.VendorId = V.VendorId AND vp.IsDeleted = 0),
+				        [IsInternationlWirePayment] = (SELECT CASE WHEN COUNT(VP.VendorInternationalWirePaymentId) > 0 THEN 1 ELSE 0 END FROM [dbo].[VendorInternationlWirePayment] VP WITH(NOLOCK) WHERE VP.VendorId = V.VendorId AND vp.IsDeleted = 0),
+				        [IsACHTransferPayment] = (SELECT CASE WHEN COUNT(VP.VendorDomesticWirePaymentId) > 0 THEN 1 ELSE 0 END  FROM [dbo].[VendorDomesticWirePayment] VP WITH(NOLOCK) WHERE VP.VendorId = V.VendorId AND vp.IsDeleted = 0),
+	                    [IsCreditCardPayment] = (SELECT TOP 1 CASE WHEN VP.DefaultPaymentMethod = @CreditCardPaymentMethodId THEN 1 ELSE 0 END FROM [dbo].[VendorPayment] VP WITH(NOLOCK) WHERE VP.VendorId = V.VendorId AND vp.IsDeleted = 0),
+				        [IsCreditMemo] = 0,
+						[SelectedforPayment] = 0,
+						--[SelectedforPayment] = (SELECT CASE WHEN COUNT(ISNULL(VCMD.VendorCreditMemoId,0)) > 0 THEN 1 ELSE 0 END
+						--FROM [dbo].[VendorCreditMemo] VCM 
+						--	LEFT JOIN [dbo].[VendorCreditMemoDetail] VCMD WITH (NOLOCK) ON VCM.VendorCreditMemoId = VCMD.VendorCreditMemoId
+						--	LEFT JOIN [dbo].[VendorRMA] VR WITH (NOLOCK) ON VR.VendorRMAId = VCM.VendorRMAId
+						--	LEFT JOIN [dbo].[Vendor] VD WITH(NOLOCK) ON VCM.VendorId = VD.VendorId
+						--	LEFT JOIN [dbo].[Vendor] VE WITH(NOLOCK) ON VR.VendorId = VE.VendorId
+						--WHERE VCM.VendorCreditMemoStatusId = @VendorCreditMemoStatusId 
+						--AND VCM.IsVendorPayment IS NULL 
+						--AND CASE WHEN VCM.VendorId IS NOT NULL THEN VCM.VendorId ELSE VE.VendorId END = V.VendorId
+						--HAVING SUM(ISNULL(VCMD.ApplierdAmt,0)) > 0),
+						IsEnable = (SELECT CASE WHEN COUNT(VRTPD.[ReadyToPayDetailsId]) > 0 THEN 0 ELSE 1 END  FROM [dbo].[VendorReadyToPayDetails] VRTPD WITH(NOLOCK)
+									WHERE VRTPD.VendorPaymentDetailsId = VPD.VendorPaymentDetailsId AND ISNULL(VRTPD.IsGenerated,0) = 0),
+						IsCustomerCreditMemo = 0,
+						ISNULL(VPD.[CreditMemoHeaderId],0),
+						[VendorReadyToPayDetailsTypeId] = 4,
+						0,
+						[CustomerCreditPaymentDetailId] = 0,
+						VPD.[CreatedDate],
+						V.[IsVendorOnHold],
+						VPD.[ManualJournalHeaderId]
+			      FROM [dbo].[VendorPaymentDetails] VPD WITH(NOLOCK)  
+			INNER JOIN [dbo].[ManualJournalHeader] MJH WITH(NOLOCK) ON VPD.[ManualJournalHeaderId] = MJH.[ManualJournalHeaderId]	
+			INNER JOIN [dbo].[Vendor] V WITH(NOLOCK) ON VPD.[VendorId] = V.[VendorId]  
+			 LEFT JOIN [dbo].[CreditTerms] CTM WITH(NOLOCK) ON CTM.[CreditTermsId] = V.[CreditTermsId]
+		     LEFT JOIN [dbo].[Percent] p WITH(NOLOCK) ON CAST(ctm.[PercentId] AS INT) = p.[PercentId]
+			     WHERE [VPD].[MasterCompanyId] = @MasterCompanyId 
+		           AND [VPD].[RemainingAmount] > 0
+				   AND ISNULL(VPD.[ManualJournalHeaderId],0) <> 0
+				   AND ((@StartDate IS NULL AND @EndDate IS NULL) OR (DATEADD(Day, ISNULL(ctm.[NetDays],0), VPD.[DueDate])) BETWEEN @StartDate AND @EndDate)
+				   AND VPD.[LegalEntityId] = @LegalEntityId
+
+				--UPDATE  #TempVendorReadyToPayList 
+				--SET AmountDue = ISNULL(AmountDue,0) - ISNULL(discNewData.DiscountToken,0), DiscountAvailable = ISNULL(DiscountAvailable,0) - ISNULL(discNewData.DiscountToken,0),
+				--	DiscountToken = ISNULL(discNewData.DiscountToken,0), ReadyToPaymentMade = ISNULL(discNewData.ReadyToPaymentMade,0)
+				--FROM(SELECT VD.VendorPaymentDetailsId,SUM(ISNULL(VD.PaymentMade,0) + ISNULL(VD.CreditMemoAmount,0)) ReadyToPaymentMade,SUM(ISNULL(VD.DiscountToken,0)) DiscountToken, VD.InvoiceNum
+				--			   FROM [dbo].[VendorPaymentDetails] VPD WITH(NOLOCK) 
+				--			    LEFT JOIN [dbo].[VendorReadyToPayDetails] VD WITH(NOLOCK) ON VPD.ManualJournalHeaderId = VD.ManualJournalHeaderId	
+				--			   WHERE ISNULL(VD.VendorPaymentDetailsId,0) = VPD.VendorPaymentDetailsId
+				--                 AND IsVoidedCheck = 0 AND CheckNumber IS NULL GROUP BY VD.VendorPaymentDetailsId,VD.InvoiceNum
+				--) discNewData WHERE #TempVendorReadyToPayList.VendorReadyToPayDetailsTypeId = 3 AND #TempVendorReadyToPayList.InvoiceNum = discNewData.InvoiceNum
+							   
+							   
 				--CustomerCreditPayment DETAILS
 		INSERT INTO #TempVendorReadyToPayList(VendorPaymentDetailsId, ReadyToPayId, DueDate, VendorId, VendorName, PaymentMethodId, PaymentMethodName, ReceivingReconciliationId
 					,InvoiceNum, CurrencyId, CurrencyName, FXRate, OriginalAmount, PaymentMade, AmountDue, PaidAmount, NetDays, [Percentage]
@@ -646,16 +733,15 @@ BEGIN
 				) discNewData WHERE #TempVendorReadyToPayList.VendorReadyToPayDetailsTypeId = 4 AND #TempVendorReadyToPayList.InvoiceNum = discNewData.InvoiceNum
 
 				--Update for MJ is addd for Vendor
-				UPDATE  #TempVendorReadyToPayList 
-				SET SelectedforPayment = mjNewData.SelectedforPayment
-				FROM(SELECT CASE WHEN ReferenceId > 0 THEN 1 ELSE 0 END As SelectedforPayment, ReferenceId AS VendorId
-							   FROM [dbo].[ManualJournalDetails] MJD WITH(NOLOCK)
-							JOIN [dbo].[ManualJournalHeader] MJH WITH(NOLOCK) ON MJD.ManualJournalHeaderId = MJH.ManualJournalHeaderId
-							LEFT JOIN [dbo].[VendorCreditMemoMapping] VCMM WITH(NOLOCK) ON VCMM.VendorCreditMemoId = MJD.ManualJournalHeaderId AND VCMM.VendorId = MJD.ReferenceId --AND ISNULL(VCMM.IsPosted,0) = 0 
-					 WHERE ReferenceTypeId = @ManualJRefrenceTypeId AND MJH.ManualJournalStatusId = @ManualJStatusId AND VCMM.IsPosted IS NULL AND ISNULL(MJD.IsVendorPayment,0) = 0
-				) mjNewData WHERE #TempVendorReadyToPayList.VendorId = mjNewData.VendorId AND ISNULL(#TempVendorReadyToPayList.SelectedforPayment, 0) = 0
+				--UPDATE  #TempVendorReadyToPayList 
+				--SET SelectedforPayment = mjNewData.SelectedforPayment
+				--FROM(SELECT CASE WHEN ReferenceId > 0 THEN 1 ELSE 0 END As SelectedforPayment, ReferenceId AS VendorId
+				--			   FROM [dbo].[ManualJournalDetails] MJD WITH(NOLOCK)
+				--			JOIN [dbo].[ManualJournalHeader] MJH WITH(NOLOCK) ON MJD.ManualJournalHeaderId = MJH.ManualJournalHeaderId
+				--			LEFT JOIN [dbo].[VendorCreditMemoMapping] VCMM WITH(NOLOCK) ON VCMM.VendorCreditMemoId = MJD.ManualJournalHeaderId AND VCMM.VendorId = MJD.ReferenceId --AND ISNULL(VCMM.IsPosted,0) = 0 
+				--	 WHERE ReferenceTypeId = @ManualJRefrenceTypeId AND MJH.ManualJournalStatusId = @ManualJStatusId AND VCMM.IsPosted IS NULL AND ISNULL(MJD.IsVendorPayment,0) = 0
+				--) mjNewData WHERE #TempVendorReadyToPayList.VendorId = mjNewData.VendorId AND ISNULL(#TempVendorReadyToPayList.SelectedforPayment, 0) = 0 AND #TempVendorReadyToPayList.[ManualJournalHeaderId] IS NULL
 
-				--)
 
 		SELECT [ID] ,      
 			[VendorPaymentDetailsId] ,

@@ -24,6 +24,7 @@
 	13	 11/04/2024   Devendra Shekh Added ReferenceId, ReferenceModule For [CommonBatchDetails]
 	14	 11/02/2025   AMIT GHEDIYA   Update for batch gl account basd on stockline
 	15	 02/06/2025	  Abhishek Jirawla  Fixed Name concat read script
+	16	 01/12/2025   AMIT GHEDIYA   Update for batch gl account basd on stockline (Goods Received Not Invoiced (GRNI))
 **************************************************************/  
 CREATE   PROCEDURE [dbo].[usp_PostROCreateStocklineBatchDetails]
 @tbl_PostStocklineBatchType PostStocklineBatchType READONLY,
@@ -463,8 +464,10 @@ BEGIN
 
 											-----Goods Received Not Invoiced (GRNI)--------
 								  
-											 SELECT top 1 @DistributionSetupId=ID, @DistributionName=Name, @JournalTypeId =JournalTypeId, @GlAccountId=GlAccountId,
-												@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName,@CrDrType = CRDRType  
+											 SELECT top 1 @DistributionSetupId=ID, @DistributionName=Name, @JournalTypeId =JournalTypeId,
+											 --@GlAccountId=GlAccountId,
+												--@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName,
+												@CrDrType = CRDRType  
 											 FROM [DBO].DistributionSetup WITH(NOLOCK)  
 											 WHERE UPPER(DistributionSetupCode) = UPPER('RROGRNI') AND MasterCompanyId = @MasterCompanyId
 											 AND DistributionMasterId = @DistributionMasterId

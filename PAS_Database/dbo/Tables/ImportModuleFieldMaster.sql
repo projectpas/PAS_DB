@@ -33,6 +33,13 @@
     [ChekDuplticateRef1]        VARCHAR (150)  NULL,
     [ChekDuplticateRef2]        VARCHAR (150)  NULL,
     [DisplaySortOrder]          INT            NULL,
+    [SourceTableName]           VARCHAR (150)  NULL,
+    [SourceColumnName]          VARCHAR (150)  NULL,
+    [JoinCondition]             VARCHAR (MAX)  NULL,
+    [IsMultipleRows]            BIT            DEFAULT ((0)) NOT NULL,
+    [MultiValueQuery]           NVARCHAR (MAX) NULL,
     CONSTRAINT [PK_ImportModuleFieldMaster] PRIMARY KEY CLUSTERED ([ImportModuleFieldMasterId] ASC)
 );
+
+
 

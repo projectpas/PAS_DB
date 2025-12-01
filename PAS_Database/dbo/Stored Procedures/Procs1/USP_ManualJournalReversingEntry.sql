@@ -14,6 +14,7 @@
 	2    09/05/2023   Moin Bloch    Added MS for Accounting Batch
 	3    09/06/2023   Moin Bloch    Added Posted date for Accounting Batch
 	4    01/23/2024   AMIT GHEDIYA  Added Accounting Batch
+	5    11/28/2025   AMIT GHEDIYA  Update default status approve to pending
 	
 	EXEC [dbo].[USP_ManualJournalReversingEntry] 102,1
 
@@ -67,7 +68,7 @@ BEGIN
 		DECLARE @PostStatusId INT;
 
 		SELECT @CodeTypeId = [CodeTypeId] FROM [dbo].[CodeTypes] WITH(NOLOCK) WHERE [CodeType] = 'ManualJournalType';		
-		SELECT @StatusId = [ManualJournalStatusId] FROM [dbo].[ManualJournalStatus] WITH(NOLOCK) WHERE [Name] = 'Approved';
+		SELECT @StatusId = [ManualJournalStatusId] FROM [dbo].[ManualJournalStatus] WITH(NOLOCK) WHERE [Name] = 'Pending';
 		SELECT @RevStatusId = [ReversingStatusId] FROM [dbo].[ReversingStatus] WITH(NOLOCK) WHERE [Name] = 'Reversed';
 		SELECT @PostStatusId = ManualJournalStatusId FROM [dbo].ManualJournalStatus WHERE [Name] = 'Posted';
 		SELECT @ManualJournalMSModuleId = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] = 'ManualJournal';

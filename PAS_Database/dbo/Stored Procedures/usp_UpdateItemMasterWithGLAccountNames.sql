@@ -9,6 +9,8 @@
  ** --   --------			-------				--------------------------------            
     1    22-July-2025		Ayushi Patel			Created
     2    27-OCt-2025		Devendra Shekh			Added Missing GLAccountIds Update for ItemMaster
+    3 	 20-Nov-2025        Divyesh Kathiriya		Added Default Value for "OEM/PMA/DER"
+
 **************************************************************/
 CREATE PROCEDURE [dbo].[usp_UpdateItemMasterWithGLAccountNames]
     @ItemMasterId BIGINT,
@@ -58,11 +60,21 @@ BEGIN
         DECLARE @IsPma BIT = 0, @IsDER BIT = 0, @IsOEM BIT = 0;
 
         IF UPPER(LTRIM(RTRIM(@PartSourceVal))) = 'PMA'
+        BEGIN
             SET @IsPma = 1;
+        END
         ELSE IF UPPER(LTRIM(RTRIM(@PartSourceVal))) = 'DER'
+        BEGIN
             SET @IsDER = 1;
+        END
         ELSE IF UPPER(LTRIM(RTRIM(@PartSourceVal))) = 'OEM'
+        BEGIN
             SET @IsOEM = 1;
+        END
+        ELSE
+        BEGIN
+            SET @IsOEM = 1;
+        END
 
         UPDATE IM
         SET

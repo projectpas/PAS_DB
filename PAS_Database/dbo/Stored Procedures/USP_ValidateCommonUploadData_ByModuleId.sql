@@ -33,6 +33,7 @@
 	23	 03-Nov-2025        Divyesh Kathitiya		Added New Module "Employee"
 	24	 10-Nov-2025	    Priyansh Patel			Updated column name UnitPrice to FlatRatePrice
 	25	 19-Nov-2025	    Devendra Shekh			added MasterCompanyId for [Employee] exists Check
+	26 	 20-Nov-2025        Divyesh Kathiriya		Added Condition of multiple Dropdown value for "ItemMaster"
 
 declare @p4 dbo.UploadModuleDataTableType
 insert into @p4 values(4,N'VICTOR ADMAS',1,N'{
@@ -390,6 +391,7 @@ BEGIN
 			UPDATE TMP
 			SET TMP.[RecordStatus] =	CASE	WHEN ISNULL(IMF.IsRequired, 0) = 1 AND ISNULL(TMP.FieldValue, '') = '' THEN IMF.HeaderName + ' is Required'
 												WHEN ISNULL(IMF.IsRequired, 0) = 1 AND ISNULL(IMF.DropdownListType, '') != ''  AND ISNULL(IMF.FieldValue, '') = '' THEN IMF.HeaderName + ' is Required'
+												WHEN (@ModuleId = @ItemMasterModule) AND ISNULL(IMF.IsRequired, 0) = 0 AND ISNULL(IMF.DropdownListType, '') != '' AND ISNULL(IMF.FieldValue, '') = '' THEN ''												
 												--WHEN ISNULL(IMF.IsRequired, 0) = 1 AND ISNULL(IMF.DropdownListType, '') != ''  AND ISNULL(IMF.DropdownListValueId, '') = '' THEN 'Pleas Enter Correct ' + IMF.HeaderName
 												WHEN (@ModuleId = @MROPriceMasterModule OR @ModuleId = @MROPriceMasterListModule)
 													 AND IMF.FieldName = 'CustomerId' 
@@ -397,7 +399,7 @@ BEGIN
 													 AND ISNULL(IMF.DropdownListValueId, '') = '' 
 													 AND UPPER(TRIM(TMP.FieldValue)) = 'ALL'
 												THEN
-													' '
+													' '	
 
 												WHEN ISNULL(IMF.DropdownListType, '') != ''  
 													 AND ISNULL(IMF.DropdownListValueId, '') = '' 
@@ -492,7 +494,7 @@ BEGIN
 												--WHEN IMF.DropdownListValue = 'PartNumber' AND @ManufacturerId IS NOT NULL AND @ManufacturerName IS NOT NULL 
 												--	AND LOWER(@ManufacturerId) != LOWER(@ManufacturerName) THEN 'Incorrect Manufacturer'
 												WHEN ISNULL(IMF.DuplicateErrorMsg, '') != '' THEN IMF.DuplicateErrorMsg
-										ELSE ''
+										ELSE '  '
 										END,
 				TMP.FieldValue = CASE WHEN ISNULL(IMF.DropdownListTable, '') != '' THEN IMF.DropdownListValueId ELSE TMP.FieldValue END
 			FROM #ImportFields IMF WITH(NOLOCK)
@@ -534,7 +536,7 @@ BEGIN
 					
 					--SET @ColumnReferenceId = CASE WHEN ISNULL(@RSDropdownListValueId, '') != '' THEN  CAST(@RSDropdownListValueId AS BIGINT) ELSE 0 END;
 				END
-				IF(@ModuleId != @GLModule AND @ModuleId != @EmployeeModule)
+				IF(@ModuleId != @GLModule AND @ModuleId != @EmployeeModule AND @ModuleId != @ItemMasterModule)
 				BEGIN
 					SELECT @ColumnReferenceId =  DropdownListValueId FROM #ImportFields WHERE ImportModuleFieldMasterId = @CurrentRow;
 				END

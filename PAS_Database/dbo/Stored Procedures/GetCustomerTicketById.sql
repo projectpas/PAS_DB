@@ -14,6 +14,7 @@
     1    11/11/2024  Ekta Chandegra     Created
 	2    17/01/2025  Ekta Chandegra     Retrieve Employee name and email
 	3    27/01/2025  Bhargav Saliya     Convert Date as per time zone
+	4    11/21/2025  Bhargav Saliya     Get TicketType
 
 
 exec [dbo].[GetCustomerTicketById] @CustomerTicketId = 4
@@ -108,13 +109,16 @@ BEGIN
 				CT.AssignTo,
 				EMP.FirstName +' '+EMP.LastName AS AssignToName, 
 				EMP.Email AS AssignToEmail, 
-				CT.AttachmentId
+				CT.AttachmentId,
+				tt.Description,
+				tt.TicketTypeId
 			FROM
 			[dbo].[CustomerTicket] CT WITH (NOLOCK)
 			LEFT JOIN [dbo].[SupportDepartment] SD WITH (NOLOCK) ON CT.DepartmentId = SD.DepartmentId
 			LEFT JOIN [dbo].[TicketStatus] TS WITH (NOLOCK) ON CT.StatusId = TS.TicketStatusId
 			LEFT JOIN [dbo].[TicketPriority] TP WITH (NOLOCK) ON CT.PriorityId = TP.PriorityId
 			LEFT JOIN [dbo].[Employee] EMP WITH (NOLOCK) ON CT.AssignTo = EMP.EmployeeId
+			LEFT JOIN [dbo].[TicketType] tt WITH (NOLOCK) ON CT.TicketTypeId = tt.TicketTypeId
 			WHERE CT.CustomerTicketId = @CustomerTicketId
 			AND ISNULL(CT.IsActive,0) = 1
 			AND ISNULL(CT.IsDeleted,0) = 0

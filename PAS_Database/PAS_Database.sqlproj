@@ -4366,6 +4366,8 @@
     <Build Include="dbo\User Defined Types\PurchaseSalesType.sql" />
     <Build Include="dbo\Stored Procedures\usp_GenerateCsvData.sql" />
     <Build Include="dbo\Stored Procedures\USP_AddVendorPaymentDetailsForManualManualJournalById.sql" />
+    <Build Include="dbo\Tables\TicketType.sql" />
+    <Build Include="dbo\Tables\CustomerTicketAudit.sql" />
     <Build Include="dbo\Stored Procedures\USP_DeleteKitPart.sql" />
     <Build Include="dbo\Stored Procedures\usp_GetItemMasterKitById.sql" />
   </ItemGroup>

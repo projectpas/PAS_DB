@@ -11,12 +11,13 @@
  ** PR   Date         Author				Change Description            
  ** --   --------     -------				--------------------------------          
     1    23-12-2024   HEMNAT SALIYA			Created
+	2    02-12-2025   Moin Bloch 			Modified Added MasterCompanyId Parameter 
 	
 	EXEC [GetNewStocklineInventoryMismatch]
 **************************************************************/
 
 CREATE   PROCEDURE [dbo].[GetNewStocklineInventoryMismatch]
-
+@MasterCompanyId INT = NULL
 AS
 BEGIN
     SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
@@ -26,10 +27,10 @@ BEGIN
 
 			  DECLARE @StocklineId BIGINT;
 			  DECLARE @DisplayType INT;
-			  DECLARE @MasterCompanyId VARCHAR(100);
+			  --DECLARE @MasterCompanyId VARCHAR(100);
 			  
 			  
-			  SET @MasterCompanyId = '11, 12, 18, 19, 20'
+			  --SET @MasterCompanyId = '11, 12, 18, 19, 20'
 			  SET @DisplayType = 1
 			  
 			  DECLARE @WOModule varchar(50) = 'WorkOrder',  @SubWorkOrderModule varchar(50) = 'SubWorkOrder',@SOModule varchar(50) = 'SalesOrder',

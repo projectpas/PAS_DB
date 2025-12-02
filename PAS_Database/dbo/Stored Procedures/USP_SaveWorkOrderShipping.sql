@@ -13,6 +13,7 @@
  ** --   --------     -------		--------------------------------              
     1    03-Nov-2025   Priyansh Patel		Created  
 	2    25-Nov-2025   Moin Bloch		    Format SP & Fix ShippingStatus
+	3    02-Dec-2025   Moin Bloch		    Modified Added UpsSuccess & UpsError
 ************************************************************************/  
 
 CREATE   PROCEDURE [dbo].[USP_SaveWorkOrderShipping]
@@ -600,6 +601,8 @@ BEGIN
 			   CAST('' AS NVARCHAR(200)) AS ShippingSuccess,
 			   CAST('' AS NVARCHAR(200)) AS FedexSuccess,
 			   CAST('' AS NVARCHAR(200)) AS FedexError,
+			   CAST('' AS NVARCHAR(200)) AS UpsSuccess,
+			   CAST('' AS NVARCHAR(200)) AS UpsError,
 			-- Serialize the TVP as JSON
 			 (SELECT * FROM @WorkOrderShippingItemList WSI
 			    WHERE WSI.WorkOrderShippingId = WO.WorkOrderShippingId

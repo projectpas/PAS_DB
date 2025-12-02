@@ -34,7 +34,9 @@
 	24	 10-Nov-2025	    Priyansh Patel			Updated column name UnitPrice to FlatRatePrice
 	25	 19-Nov-2025	    Devendra Shekh			added MasterCompanyId for [Employee] exists Check
 	26 	 20-Nov-2025        Divyesh Kathiriya		Added Condition of multiple Dropdown value for "ItemMaster"
-
+	27   26-Nov-2025        Ayushi Patel            Added common validation for FieldType = 'number' to allow only whole numeric values (no decimals, no alphabets), and return appropriate RecordStatus message.
+	28   26-Nov-2025        Ayushi Patel            Added condition to skip duplicate validation SP when any RecordStatus contains error.
+	29	 02-DEC-2025        Ayushi Patel			Added New SingleScreen Modules
 declare @p4 dbo.UploadModuleDataTableType
 insert into @p4 values(4,N'VICTOR ADMAS',1,N'{
   "partnumber": "AEIN122",
@@ -81,7 +83,10 @@ BEGIN
 		DECLARE @DuplicateErroMsg AS VARCHAR(150);
 		DECLARE @ReferenceTable AS VARCHAR(150);
 		DECLARE @IsDuplicate BIT = NULL;
-		DECLARE @AlterModule AS BIGINT, @GLModule AS BIGINT, @ItemMasterModule AS BIGINT, @CustomerModule AS BIGINT,@StocklineModule AS BIGINT, @EmployeeModule AS BIGINT;
+		DECLARE @AlterModule AS BIGINT, @GLModule AS BIGINT, @ItemMasterModule AS BIGINT, @CustomerModule AS BIGINT,@StocklineModule AS BIGINT, @EmployeeModule AS BIGINT, @DiscountModule AS BIGINT;
+		DECLARE @DefaultMessageModule AS BIGINT, @CertificationTypeModule AS BIGINT, @LeadSource AS BIGINT, @UnitOfMeasureModule AS BIGINT, @AssetAcquisitionTypeModule AS BIGINT, @DocumentTypeModule AS BIGINT , @ShippingViaModule AS BIGINT;
+
+		DECLARE @POROCategory AS BIGINT , @CapabilityTypeModule AS BIGINT , @VendorClassificationModule AS BIGINT , @chargeModule AS BIGINT;;
 		DECLARE @PriceMasterModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'PriceMaster');
 		DECLARE @PurchaseSalesModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'PurchaseSales');
 		SET @AlterModule = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'AlternateItemMaster');
@@ -90,8 +95,66 @@ BEGIN
 		SET @CustomerModule = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'Customer');
 		SET @StocklineModule = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'Stockline');
 		SET @EmployeeModule = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'Employee');
+		SET @DiscountModule = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'Discount');
+		SET @LeadSource = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'LeadSource');
+		SET @CertificationTypeModule = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'CertificationType');
+		SET @DefaultMessageModule = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'DefaultMessage');
+		SET @AssetAcquisitionTypeModule = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'AssetAcquisitionType');
+		SET @UnitOfMeasureModule = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'UnitOfMeasure');
+		SET @DocumentTypeModule = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'DocumentType');
+		SET @ShippingViaModule = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'ShippingVia');
+		SET @CapabilityTypeModule = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'CapabilityType');
+		SET @POROCategory = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'POROCategory');
+		SET @VendorClassificationModule = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'VendorClassification');
+		SET @chargeModule = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'charge');
+
+		DECLARE @PriorityModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'Priority');
 		DECLARE @MROPriceMasterModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'MROPriceMaster');
 		DECLARE @MROPriceMasterListModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'MROPriceMasterList');
+		DECLARE @CodePrefixesModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'CodePrefixes'); 
+		DECLARE @ContactTagModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'ContactTag'); 
+		DECLARE @wingtypeModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'wingtype');
+		DECLARE @VendorRMAReturnReasonModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'VendorRMAReturnReason');
+		DECLARE @ShippingTermsModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'ShippingTerms');
+		DECLARE @TermsConditionModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'TermsCondition');
+		DECLARE @InvoiceDeliveryPrefStatus AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'InvoiceDeliveryPrefStatus');
+		DECLARE @ExchangeCoreLetterType AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'ExchangeCoreLetterType');
+		DECLARE @VendorAuditTypeModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'VendorAuditType');
+		DECLARE @VendorStatusModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'VendorStatus');
+		DECLARE @RankingModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'Ranking');
+		DECLARE @CustomerSettingsModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'CustomerSettings');
+		DECLARE @CustomerClassificationModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'CustomerClassification');
+		DECLARE @TaxTypeModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'TaxType');
+		DECLARE @creditTermsModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'creditTerms');
+		DECLARE @PercentModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'Percent');
+		DECLARE @CountriesModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'countries');
+		DECLARE @TagTypeModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'TagType');
+		DECLARE @CustomerTypeModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'CustomerType');
+		DECLARE @AircraftTypeModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'AircraftType');
+		DECLARE @AircraftModelModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'AircraftModel');
+		DECLARE @AircraftDashNumber AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'AircraftDashNumber');
+		DECLARE @EccnDeterminationSource AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'EccnDeterminationSource'); 
+		DECLARE @LotCostSourceReference AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'LotCostSourceReference'); 
+		DECLARE @StandardModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'Standard'); 
+		DECLARE @ItemGroupModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'ItemGroup'); 
+		DECLARE @ItemClassificationModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'ItemClassification'); 
+		DECLARE @ManufacturerModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'Manufacturer'); 
+		DECLARE @ATAReferenceModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'ATAReference'); 
+		DECLARE @ATAChapterModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'ATAChapter'); 
+		DECLARE @TangibleClassModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'TangibleClass');  
+		DECLARE @AssetIntangibleTypeModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'AssetIntangibleType'); 
+		DECLARE @AssetStatusModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'AssetStatus'); 
+		DECLARE @AssetLocationModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'AssetLocation');
+		DECLARE @AssetDisposalTypeModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'AssetDisposalType');
+		DECLARE @AssetDepreciationMethodModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'AssetDepreciationMethod');
+		DECLARE @AssetDepConventionModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'AssetDepConvention');
+		DECLARE @AssetDepreciationFrequencyModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'AssetDepreciationFrequency');
+		DECLARE @AssetDepreciationIntervalModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'AssetDepreciationInterval');
+		DECLARE @AssetAttributeTypeModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'AssetAttributeType');
+		DECLARE @AssetIntangibleAttributeTypeModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'AssetIntangibleAttributeType');
+		DECLARE @SiteModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'Site');
+		DECLARE @WarehouseModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'Warehouse');
+		DECLARE @LocationModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'Location');
 
 		DECLARE @DropdownListTable VARCHAR(100) = NULL, 
 		@DropdownListId VARCHAR(100) = NULL, 
@@ -112,6 +175,7 @@ BEGIN
 		DECLARE @Level1Id INT;
 
 		SET @EmployeeMSId  = (SELECT [ManagementStructureId] FROM DBO.[Employee] WITH(NOLOCK) WHERE [EmployeeId] = @EmployeeId);
+		--SET @DropdownListTable = QUOTENAME(@DropdownListTable);
 
 		IF OBJECT_ID('tempdb..#ImportFields') IS NOT NULL
 			DROP TABLE #ImportFields
@@ -247,10 +311,9 @@ BEGIN
 					END
 					--SET @ColumnReferenceId = CASE WHEN ISNULL(@DropdownListValueId, '') != '' THEN  CAST(@DropdownListValueId AS BIGINT) ELSE 0 END;
 				END
-				
-				SET @CurrentRow += 1;
-			END
 			
+				SET @CurrentRow += 1;
+			END		
 			DECLARE @ManufacturerId VARCHAR(255)
 			DECLARE @ManufacturerName VARCHAR(255)
 			DECLARE @Manufacture VARCHAR(255)
@@ -387,12 +450,19 @@ BEGIN
 					END
 				END
 			END
-
+			
 			UPDATE TMP
 			SET TMP.[RecordStatus] =	CASE	WHEN ISNULL(IMF.IsRequired, 0) = 1 AND ISNULL(TMP.FieldValue, '') = '' THEN IMF.HeaderName + ' is Required'
 												WHEN ISNULL(IMF.IsRequired, 0) = 1 AND ISNULL(IMF.DropdownListType, '') != ''  AND ISNULL(IMF.FieldValue, '') = '' THEN IMF.HeaderName + ' is Required'
 												WHEN (@ModuleId = @ItemMasterModule) AND ISNULL(IMF.IsRequired, 0) = 0 AND ISNULL(IMF.DropdownListType, '') != '' AND ISNULL(IMF.FieldValue, '') = '' THEN ''												
 												--WHEN ISNULL(IMF.IsRequired, 0) = 1 AND ISNULL(IMF.DropdownListType, '') != ''  AND ISNULL(IMF.DropdownListValueId, '') = '' THEN 'Pleas Enter Correct ' + IMF.HeaderName
+												WHEN ISNULL(TMP.FieldValue, '') <> ''
+													 AND ISNULL(IMF.FieldType, '') = 'number'
+													 AND (
+															TRY_CAST(TMP.FieldValue AS INT) IS NULL 
+															OR CHARINDEX('.', TMP.FieldValue) > 0  
+														 )
+												THEN IMF.HeaderName + ' must be a whole number (decimals not allowed)'
 												WHEN (@ModuleId = @MROPriceMasterModule OR @ModuleId = @MROPriceMasterListModule)
 													 AND IMF.FieldName = 'CustomerId' 
 													 AND ISNULL(IMF.DropdownListType, '') != ''  
@@ -490,11 +560,18 @@ BEGIN
 															THEN 'Employee Firstname/Lastname with legal entity already exist.!'
 														ELSE ''
 													END	
+												WHEN (@ModuleId = @DiscountModule)
+													 AND ISNULL(TMP.FieldValue, '') <> '' 
+													 AND IMF.FieldName = 'DiscontValue'  
+													 AND (TRY_CAST(TMP.FieldValue AS INT) IS NULL
+														 OR TRY_CAST(TMP.FieldValue AS INT) < 1  
+														 OR TRY_CAST(TMP.FieldValue AS INT) > 100)
 
+												THEN 'Discount Value must be a whole number between 1 and 100'
 												--WHEN IMF.DropdownListValue = 'PartNumber' AND @ManufacturerId IS NOT NULL AND @ManufacturerName IS NOT NULL 
 												--	AND LOWER(@ManufacturerId) != LOWER(@ManufacturerName) THEN 'Incorrect Manufacturer'
 												WHEN ISNULL(IMF.DuplicateErrorMsg, '') != '' THEN IMF.DuplicateErrorMsg
-										ELSE '  '
+										ELSE ' '
 										END,
 				TMP.FieldValue = CASE WHEN ISNULL(IMF.DropdownListTable, '') != '' THEN IMF.DropdownListValueId ELSE TMP.FieldValue END
 			FROM #ImportFields IMF WITH(NOLOCK)
@@ -531,12 +608,14 @@ BEGIN
 					END
 					ELSE
 					BEGIN
-						UPDATE #ImportFields SET DropdownListValueId = '' WHERE ImportModuleFieldMasterId = @CurrentRow;;
+						UPDATE #ImportFields SET DropdownListValueId = '' WHERE ImportModuleFieldMasterId = @CurrentRow;
 					END
 					
 					--SET @ColumnReferenceId = CASE WHEN ISNULL(@RSDropdownListValueId, '') != '' THEN  CAST(@RSDropdownListValueId AS BIGINT) ELSE 0 END;
 				END
-				IF(@ModuleId != @GLModule AND @ModuleId != @EmployeeModule AND @ModuleId != @ItemMasterModule)
+
+
+				IF(@ModuleId != @GLModule AND @ModuleId != @EmployeeModule AND @ModuleId != @ItemMasterModule AND @ModuleId != @AssetAttributeTypeModule AND @ModuleId != @AssetIntangibleAttributeTypeModule)
 				BEGIN
 					SELECT @ColumnReferenceId =  DropdownListValueId FROM #ImportFields WHERE ImportModuleFieldMasterId = @CurrentRow;
 				END
@@ -567,7 +646,10 @@ BEGIN
 					END
 					ELSE
 					BEGIN
-						EXEC [dbo].[USP_ChekDuplicateValueForUpload] @ChekDuplticateRef1, @ChekDuplticateRef2, @DuplicateRefeValue1, @DuplicateRefeValue2, @ReferenceTable, @MasterCompanyId, @ModuleId, @UploadData, @UploadRecord, @IsDuplicate = @IsDuplicate OUTPUT;
+						IF NOT EXISTS (SELECT 1 FROM #DynamicKeyValue WHERE ISNULL(RecordStatus, '') <> '')
+						BEGIN
+							EXEC [dbo].[USP_ChekDuplicateValueForUpload] @ChekDuplticateRef1, @ChekDuplticateRef2, @DuplicateRefeValue1, @DuplicateRefeValue2, @ReferenceTable, @MasterCompanyId, @ModuleId, @UploadData, @UploadRecord, @IsDuplicate = @IsDuplicate OUTPUT;
+						END
 					END
 					IF(ISNULL(@IsDuplicate, 0) = 1)
 					BEGIN
@@ -579,6 +661,118 @@ BEGIN
 														WHEN @ModuleId = @StocklineModule THEN 'Entered Serial Number Already Exits for This PartNumber'
 														WHEN @ModuleId = @PriceMasterModule THEN 'Part and Condition mapping already exists'
 														WHEN @ModuleId = @EmployeeModule THEN 'Entered Email Already Exits!'
+														WHEN @ModuleId = @DiscountModule THEN 'Entered Discount Value Already Exits!'
+														WHEN @ModuleId = @DefaultMessageModule THEN 'Entered Module and Sequence Number Already Exits!'
+														WHEN @ModuleId = @CertificationTypeModule THEN 'Entered Certification Type Already Exits!'
+														WHEN @ModuleId = @LeadSource THEN 'Entered LeadSource Already Exits!'
+														WHEN @ModuleId = @UnitOfMeasureModule THEN 'Entered Data Already Exits!'
+														WHEN @ModuleId = @AssetAcquisitionTypeModule THEN 'Entered Data Already Exits!'
+														WHEN @ModuleId = @DocumentTypeModule THEN 'Entered Document Type Already Exits!'
+														WHEN @ModuleId = @ShippingViaModule THEN 'Entered Name Already Exits!'
+														WHEN @ModuleId = @POROCategory THEN 'Entered PORO Category Name Already Exits!'
+														WHEN @ModuleId = @CapabilityTypeModule THEN 'Entered Data Already Exits!'
+														WHEN @ModuleId = @VendorClassificationModule THEN 'Entered Vendor Classification Name Already Exits!'
+														WHEN @ModuleId = @chargeModule AND @ChekDuplticateRef1 = 'ChargeType'
+															THEN 'Entered ChargeType Already Exits!'
+														WHEN @ModuleId = @chargeModule AND @ChekDuplticateRef1 = 'SequenceNo'
+															THEN 'Entered SequenceNo Already Exits!'
+														WHEN @ModuleId = @PriorityModule THEN 'Entered Name Already Exits!'
+														WHEN @ModuleId = @CodePrefixesModule THEN 'Entered Code Type Already Exits!'
+														WHEN @ModuleId = @ContactTagModule THEN 'Entered Type Name Already Exits!'
+														WHEN @ModuleId = @wingtypeModule THEN 'Entered Wing Type Already Exits!'
+														WHEN @ModuleId = @VendorRMAReturnReasonModule THEN 'Entered Reason Already Exits!'
+														WHEN @ModuleId = @ShippingTermsModule AND @ChekDuplticateRef1 = 'Name'
+															THEN 'Entered Shipping Term Name Already Exits!'
+														WHEN @ModuleId = @ShippingTermsModule AND @ChekDuplticateRef1 = 'SequenceNo'
+															THEN 'Entered Sequence No Already Exits!'
+														WHEN @ModuleId = @TermsConditionModule THEN 'Entered Template Name Already Exits!'
+														WHEN @ModuleId = @InvoiceDeliveryPrefStatus AND @ChekDuplticateRef1 = 'Status'
+															THEN 'Entered Status Already Exits!'
+														WHEN @ModuleId = @InvoiceDeliveryPrefStatus AND @ChekDuplticateRef1 = 'SequenceNo'
+															THEN 'Entered Sequence No Already Exits!'
+														WHEN @ModuleId = @ExchangeCoreLetterType AND @ChekDuplticateRef1 = 'Name'
+															THEN 'Entered Name Already Exits!'
+														WHEN @ModuleId = @ExchangeCoreLetterType AND @ChekDuplticateRef1 = 'SequenceNo'
+															THEN 'Entered Sequence No Already Exits!'
+														WHEN @ModuleId = @VendorAuditTypeModule THEN 'Entered Vendor Audit Type Already Exits!'
+														WHEN @ModuleId = @VendorStatusModule THEN 'Entered Vendor Status Already Exits!'
+														WHEN @ModuleId = @RankingModule THEN 'Entered Description Already Exits!'
+														WHEN @ModuleId = @CustomerSettingsModule THEN 'Entered LegalEntity Already Exits!'
+														WHEN @ModuleId = @CustomerClassificationModule AND @ChekDuplticateRef1 = 'Description'
+															THEN 'Entered Classification name Already Exits!'
+														WHEN @ModuleId = @CustomerClassificationModule AND @ChekDuplticateRef1 = 'SequenceNo'
+															THEN 'Entered Sequence No Already Exits!'
+														WHEN @ModuleId = @TaxTypeModule THEN 'Entered Description Already Exits!'
+														WHEN @ModuleId = @creditTermsModule THEN 'Entered Credit Term Name Already Exits!'
+														WHEN @ModuleId = @PercentModule THEN 'Entered Percent Already Exits!'
+														WHEN @ModuleId = @CountriesModule AND @ChekDuplticateRef1 = 'countries_name'
+															THEN 'Entered Country Name Already Exists!'
+														WHEN @ModuleId = @CountriesModule AND @ChekDuplticateRef1 = 'nice_name'
+															THEN 'Entered Nice Name Already Exists!'
+														WHEN @ModuleId = @CountriesModule AND @ChekDuplticateRef1 = 'countries_iso_code'
+															THEN 'Entered Country ISO Code Already Exists!'
+														WHEN @ModuleId = @CountriesModule AND @ChekDuplticateRef1 = 'countries_iso3'
+															THEN 'Entered Country ISO3 Already Exists!'
+														WHEN @ModuleId = @CountriesModule AND @ChekDuplticateRef1 = 'countries_numcode'
+															THEN 'Entered Country Number Code Already Exists!'
+														WHEN @ModuleId = @CountriesModule AND @ChekDuplticateRef1 = 'countries_isd_code'
+															THEN 'Entered Country ISD Code Already Exists!'
+														WHEN @ModuleId = @CountriesModule AND @ChekDuplticateRef1 = 'SequenceNo'
+															THEN 'Entered Sequence Number Already Exists!'
+														WHEN @ModuleId = @TagTypeModule THEN 'Entered Tag Type Already Exits!'
+														WHEN @ModuleId = @CustomerTypeModule THEN 'Entered Customer Type Already Exits!'
+														WHEN @ModuleId = @AircraftTypeModule THEN 'Entered AircraftType Already Exits!'
+														WHEN @ModuleId = @AircraftModelModule THEN 'Entered Model Name Already Exits!'
+														WHEN @ModuleId = @AircraftDashNumber THEN 'Entered Dash Number Already Exits!'
+														WHEN @ModuleId = @EccnDeterminationSource THEN 'Entered Name Already Exits!'
+														WHEN @ModuleId = @LotCostSourceReference AND @ChekDuplticateRef1 = 'SourceName'
+															THEN 'Entered Source Name Already Exists!'
+														WHEN @ModuleId = @LotCostSourceReference AND @ChekDuplticateRef1 = 'Code'
+															THEN 'Entered Source Code Already Exists!'
+														WHEN @ModuleId = @StandardModule THEN 'Entered Standard Name Already Exits!'
+														WHEN @ModuleId = @ItemGroupModule THEN 'Entered Item Group Already Exits!'
+														WHEN @ModuleId = @ItemClassificationModule THEN 'Entered Classification Code Already Exits!'
+														WHEN @ModuleId = @ManufacturerModule THEN 'Entered Name Already Exits!'
+														WHEN @ModuleId = @ATAReferenceModule THEN 'Entered ATAReference Already Exits!'
+														WHEN @ModuleId = @ATAChapterModule THEN 'Entered Chapter Code Already Exits!'
+														WHEN @ModuleId = @TangibleClassModule THEN 'Entered Tangible Class Name Already Exits!'
+														WHEN @ModuleId = @AssetIntangibleTypeModule AND @ChekDuplticateRef1 = 'AssetIntangibleType'
+															THEN 'Entered Intangible Asset Class Already Exists!'
+														WHEN @ModuleId = @AssetIntangibleTypeModule AND @ChekDuplticateRef1 = 'AssetIntangibleCode'
+															THEN 'Entered Code Already Exists!'
+														WHEN @ModuleId = @AssetStatusModule THEN 'Entered Asset Status Name Already Exits!'
+														WHEN @ModuleId = @AssetLocationModule AND @ChekDuplticateRef1 = 'Code'
+															THEN 'Entered Code Already Exists!'
+														WHEN @ModuleId = @AssetLocationModule AND @ChekDuplticateRef1 = 'Name'
+															THEN 'Entered Asset Location Already Exists!'
+														WHEN @ModuleId = @AssetDisposalTypeModule AND @ChekDuplticateRef1 = 'AssetDisposalCode'
+															THEN 'Entered Code Already Exists!'
+														WHEN @ModuleId = @AssetDisposalTypeModule AND @ChekDuplticateRef1 = 'AssetDisposalName'
+															THEN 'Entered Asset Disposal Type Name Already Exists!'
+														WHEN @ModuleId = @AssetDepreciationMethodModule AND @ChekDuplticateRef1 = 'AssetDepreciationMethodCode'
+															THEN 'Entered Code Already Exists!'
+														WHEN @ModuleId = @AssetDepreciationMethodModule AND @ChekDuplticateRef1 = 'AssetDepreciationMethodName'
+															THEN 'Entered Name Already Exists!'
+														WHEN @ModuleId = @AssetDepreciationMethodModule AND @ChekDuplticateRef1 = 'AssetDepreciationMethodBasis'
+															THEN 'Entered Method Basis Already Exists!'
+														WHEN @ModuleId = @AssetDepreciationMethodModule AND @ChekDuplticateRef1 = 'SequenceNo'
+															THEN 'Entered Sequence No Already Exists!'
+														WHEN @ModuleId = @AssetDepConventionModule AND @ChekDuplticateRef1 = 'AssetDepConventionCode'
+															THEN 'Entered Code Already Exists!'
+														WHEN @ModuleId = @AssetDepConventionModule AND @ChekDuplticateRef1 = 'AssetDepConventionName'
+															THEN 'Entered Name Already Exists!'
+														WHEN @ModuleId = @AssetDepreciationFrequencyModule AND @ChekDuplticateRef1 = 'Name'
+															THEN 'Entered Name Already Exists!'
+														WHEN @ModuleId = @AssetDepreciationFrequencyModule AND @ChekDuplticateRef1 = 'Description'
+															THEN 'Entered Description Already Exists!'
+														WHEN @ModuleId = @AssetDepreciationIntervalModule AND @ChekDuplticateRef1 = 'AssetDepreciationIntervalCode'
+															THEN 'Entered Code Already Exists!'
+														WHEN @ModuleId = @AssetDepreciationIntervalModule AND @ChekDuplticateRef1 = 'AssetDepreciationIntervalName'
+															THEN 'Entered Name Already Exists!'
+														WHEN @ModuleId = @AssetAttributeTypeModule THEN 'Entered Name Already Exits!'
+														WHEN @ModuleId = @SiteModule THEN 'Entered Name Already Exits!'
+														WHEN @ModuleId = @WarehouseModule THEN 'Entered Name Already Exits!'
+														WHEN @ModuleId = @LocationModule THEN 'Entered Name Already Exits!'
 														ELSE '' END
 						WHERE ImportModuleFieldMasterId = @CurrentRow;
 					END
@@ -586,7 +780,7 @@ BEGIN
 				
 				SET @CurrentRow += 1;
 			END
-
+			
 			if (@ModuleId = @StocklineModule  OR @ModuleId = @PriceMasterModule OR @ModuleId = @MROPriceMasterModule   OR @ModuleId = @MROPriceMasterListModule )
 			BEGIN
 				SELECT @ManufacturerId = FieldValue 
@@ -714,7 +908,13 @@ BEGIN
 
 												WHEN ISNULL(TMP.FieldValue, '') != '' AND (IMF.FieldName = 'isAddressForBilling' OR IMF.FieldName = 'isAddressForShipping') AND (LOWER(TMP.FieldValue) NOT IN ('yes','no'))
 													THEN IMF.FieldName + ' must be YES OR NO'
-
+												WHEN (@ModuleId = @DiscountModule)
+													 AND ISNULL(TMP.FieldValue, '') <> '' 
+													 AND IMF.FieldName = 'DiscontValue' 
+													 AND (TRY_CAST(TMP.FieldValue AS INT) IS NULL
+														 OR TRY_CAST(TMP.FieldValue AS INT) < 1  
+														 OR TRY_CAST(TMP.FieldValue AS INT) > 100)
+												THEN 'Discount Value must be a whole number between 1 and 100'
 												--WHEN IMF.DropdownListValue = 'PartNumber' AND @ManufacturerId IS NOT NULL AND @ManufacturerName IS NOT NULL 
 												--	AND LOWER(@ManufacturerId) != LOWER(@ManufacturerName) THEN 'Incorrect Manufacturer'
 												WHEN ISNULL(IMF.IsRequired, 0) = 1 AND ISNULL(IMF.DropdownListType, '') != '' 

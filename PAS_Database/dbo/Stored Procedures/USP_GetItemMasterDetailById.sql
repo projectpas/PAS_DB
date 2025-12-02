@@ -16,6 +16,7 @@
 	4	 28-Aug-2025	Bhargav saliya		added new field Ranking
 	5	 22-Sep-2025	Divyesh Kathiriya   added new field: IsHotItem
 	6    27/11/2025  Bhargav Saliya	  Modified(Get GL accound code and name from the GLAcount Table).
+	8    02/12/2025  Bhargav Saliya	  Revert Changes.
 **************************************************************
  EXEC USP_GetItemMasterDetailById 96978
 **************************************************************/
@@ -139,21 +140,21 @@ BEGIN
 						COALESCE(iM.PurchaseUnitOfMeasure, '') AS purchaseUnitOfMeasure,
 						COALESCE(iM.ConsumeUnitOfMeasure, '') AS consumeUnitOfMeasure,
 						COALESCE(iM.StockUnitOfMeasure, '') AS stockUnitOfMeasure,
-						(CASE WHEN ISNULL(G.[AccountCode], '') = '' THEN ISNULL(G.[AccountName], '') ELSE ISNULL(G.[AccountCode], '') + ' - ' + ISNULL(G.[AccountName], '') END) AS [glAccount],
+						COALESCE(iM.GLAccount, '') AS glAccount,
 						its.StockInventoryName AS inventoryGLSettingName,
-						(CASE WHEN ISNULL(G2.[AccountCode], '') = '' THEN ISNULL(G2.[AccountName], '') ELSE ISNULL(G2.[AccountCode], '') + ' - ' + ISNULL(G2.[AccountName], '') END) AS [workInProgressGLAccName],
-						(CASE WHEN ISNULL(G3.[AccountCode], '') = '' THEN ISNULL(G3.[AccountName], '') ELSE ISNULL(G3.[AccountCode], '') + ' - ' + ISNULL(G3.[AccountName], '') END) AS [inventoryToBillGLAccName],
-						(CASE WHEN ISNULL(G4.[AccountCode], '') = '' THEN ISNULL(G4.[AccountName], '') ELSE ISNULL(G4.[AccountCode], '') + ' - ' + ISNULL(G4.[AccountName], '') END) AS [finishedGoodsGLAccName],
-						(CASE WHEN ISNULL(G5.[AccountCode], '') = '' THEN ISNULL(G5.[AccountName], '') ELSE ISNULL(G5.[AccountCode], '') + ' - ' + ISNULL(G5.[AccountName], '') END) AS [inventoryExchAgreementGLAccName],
-						(CASE WHEN ISNULL(G6.[AccountCode], '') = '' THEN ISNULL(G6.[AccountName], '') ELSE ISNULL(G6.[AccountCode], '') + ' - ' + ISNULL(G6.[AccountName], '') END) AS [inventoryReserveGLAccName],
-						(CASE WHEN ISNULL(G7.[AccountCode], '') = '' THEN ISNULL(G7.[AccountName], '') ELSE ISNULL(G7.[AccountCode], '') + ' - ' + ISNULL(G7.[AccountName], '') END) AS [cogS_WorkOrderGLAccName],
-						(CASE WHEN ISNULL(G8.[AccountCode], '') = '' THEN ISNULL(G8.[AccountName], '') ELSE ISNULL(G8.[AccountCode], '') + ' - ' + ISNULL(G8.[AccountName], '') END) AS [cogS_SalesOrderGLAccName],
-						(CASE WHEN ISNULL(G14.[AccountCode], '') = '' THEN ISNULL(G14.[AccountName], '') ELSE ISNULL(G14.[AccountCode], '') + ' - ' + ISNULL(G14.[AccountName], '') END) AS [cogS_ExchSalesOrderGLAccName],
-						(CASE WHEN ISNULL(G9.[AccountCode], '') = '' THEN ISNULL(G9.[AccountName], '') ELSE ISNULL(G9.[AccountCode], '') + ' - ' + ISNULL(G9.[AccountName], '') END) AS [cogS_QtyVarianceGLAccName],
-						(CASE WHEN ISNULL(G10.[AccountCode], '') = '' THEN ISNULL(G10.[AccountName], '') ELSE ISNULL(G10.[AccountCode], '') + ' - ' + ISNULL(G10.[AccountName], '') END) AS [cogS_UnitCostVarianceGLAccName],
-						(CASE WHEN ISNULL(G11.[AccountCode], '') = '' THEN ISNULL(G11.[AccountName], '') ELSE ISNULL(G11.[AccountCode], '') + ' - ' + ISNULL(G11.[AccountName], '') END) AS [revenueMroGLAccName],
-						(CASE WHEN ISNULL(G12.[AccountCode], '') = '' THEN ISNULL(G12.[AccountName], '') ELSE ISNULL(G12.[AccountCode], '') + ' - ' + ISNULL(G12.[AccountName], '') END) AS [revenueSoGLAccName],
-						(CASE WHEN ISNULL(G13.[AccountCode], '') = '' THEN ISNULL(G13.[AccountName], '') ELSE ISNULL(G13.[AccountCode], '') + ' - ' + ISNULL(G13.[AccountName], '') END) AS [revenueExchGLAccName],
+						COALESCE(iM.WorkInProgressGLAccName, '') AS workInProgressGLAccName,
+						COALESCE(iM.InventoryToBillGLAccName, '') AS inventoryToBillGLAccName,
+						COALESCE(iM.FinishedGoodsGLAccName, '') AS finishedGoodsGLAccName,
+						COALESCE(iM.InventoryExchAgreementGLAccName, '') AS inventoryExchAgreementGLAccName,
+						COALESCE(iM.InventoryReserveGLAccName, '') AS inventoryReserveGLAccName,
+						COALESCE(iM.COGS_WorkOrderGLAccName, '') AS cogS_WorkOrderGLAccName,
+						COALESCE(iM.COGS_SalesOrderGLAccName, '') AS cogS_SalesOrderGLAccName,
+						COALESCE(iM.COGS_ExchSalesOrderGLAccName, '') AS cogS_ExchSalesOrderGLAccName,
+						COALESCE(iM.COGS_QtyVarianceGLAccName, '') AS cogS_QtyVarianceGLAccName,
+						COALESCE(iM.COGS_UnitCostVarianceGLAccName, '') AS cogS_UnitCostVarianceGLAccName,
+						COALESCE(iM.RevenueMroGLAccName, '') AS revenueMroGLAccName,
+						COALESCE(iM.RevenueSoGLAccName, '') AS revenueSoGLAccName,
+						COALESCE(iM.RevenueExchGLAccName, '') AS revenueExchGLAccName,
 						iM.IsOemPNId,
 						imst.PartNumber AS [OemPN],
 						iM.IsDeleted,
@@ -183,29 +184,13 @@ BEGIN
 						iM.RevenueMroGLAccId,
 						iM.RevenueSoGLAccId,
 						iM.RevenueExchGLAccId,
-						--COALESCE(iM.GoodsReceivedNotInvoicesGLAccName, '') AS GoodsReceivedNotInvoicesGLAccName,
-						(CASE WHEN ISNULL(G1.[AccountCode], '') = '' THEN ISNULL(G1.[AccountName], '') ELSE ISNULL(G1.[AccountCode], '') + ' - ' + ISNULL(G1.[AccountName], '') END) AS [GoodsReceivedNotInvoicesGLAccName],
+						COALESCE(iM.GoodsReceivedNotInvoicesGLAccName, '') AS GoodsReceivedNotInvoicesGLAccName,
 						iM.WorkOrderFormTypeId,
 						ISNULL(iM.IsHotItem,0) AS IsHotItem
 					FROM dbo.ItemMaster iM WITH(NOLOCK)
 					LEFT JOIN CTE_IntegrationPortal itp ON iM.ItemMasterId = itp.ItemMasterId
 					LEFT JOIN CTE_InventoryGLSetting its ON iM.InventoryGLSettingId = its.InventoryGLSettingId
 					LEFT JOIN dbo.ItemMaster imst WITH(NOLOCK) ON iM.IsOemPNId = imst.ItemMasterId
-					LEFT JOIN [dbo].[GLAccount] G  WITH (NOLOCK) ON G.[GLaccountId] = iM.[GLaccountId]
-					LEFT JOIN [dbo].[GLAccount] G1  WITH (NOLOCK) ON G1.[GLaccountId] = iM.[GoodsReceivedNotInvoicesGLAccId]
-					LEFT JOIN [dbo].[GLAccount] G2  WITH (NOLOCK) ON G2.[GLaccountId] = iM.[WorkInProgressGLAccId]
-					LEFT JOIN [dbo].[GLAccount] G3  WITH (NOLOCK) ON G3.[GLaccountId] = iM.[InventoryToBillGLAccId]
-					LEFT JOIN [dbo].[GLAccount] G4  WITH (NOLOCK) ON G4.[GLaccountId] = iM.[FinishedGoodsGLAccId]
-					LEFT JOIN [dbo].[GLAccount] G5  WITH (NOLOCK) ON G5.[GLaccountId] = iM.[InventoryExchAgreementGLAccId]
-					LEFT JOIN [dbo].[GLAccount] G6  WITH (NOLOCK) ON G6.[GLaccountId] = iM.[InventoryReserveGLAccId]
-					LEFT JOIN [dbo].[GLAccount] G7  WITH (NOLOCK) ON G7.[GLaccountId] = iM.[COGS_WorkOrderGLAccId]
-					LEFT JOIN [dbo].[GLAccount] G8  WITH (NOLOCK) ON G8.[GLaccountId] = iM.[COGS_SalesOrderGLAccId]
-					LEFT JOIN [dbo].[GLAccount] G9  WITH (NOLOCK) ON G9.[GLaccountId] = iM.[COGS_QtyVarianceGLAccId]
-					LEFT JOIN [dbo].[GLAccount] G10  WITH (NOLOCK) ON G10.[GLaccountId] = iM.[COGS_UnitCostVarianceGLAccId]
-					LEFT JOIN [dbo].[GLAccount] G11  WITH (NOLOCK) ON G11.[GLaccountId] = iM.[RevenueMroGLAccId]
-					LEFT JOIN [dbo].[GLAccount] G12  WITH (NOLOCK) ON G12.[GLaccountId] = iM.[RevenueSoGLAccId]
-					LEFT JOIN [dbo].[GLAccount] G13  WITH (NOLOCK) ON G13.[GLaccountId] = iM.[RevenueExchGLAccId]
-					LEFT JOIN [dbo].[GLAccount] G14  WITH (NOLOCK) ON G14.[GLaccountId] = iM.[COGS_ExchSalesOrderGLAccId]
 					WHERE iM.ItemMasterId = @ItemMasterId;	  
 		END
 		

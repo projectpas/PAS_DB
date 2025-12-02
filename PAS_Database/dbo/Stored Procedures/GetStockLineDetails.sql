@@ -23,6 +23,7 @@
 	7    23/07/2025  MOIN BLOCH 	  Added BatchNumber
 	8    24/09/2025  Sahdev Saliya    Added Classification
 	7    27/11/2025  Bhargav Saliya	  Modified(Get GL accound code and name from the GLAcount Table).
+	8    02/12/2025  Bhargav Saliya	  Revert Changes.
 
     EXEC dbo.GetStockLineDetails  179632  180170
 ***********************************************************************************************/
@@ -238,8 +239,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 			 ,0 'TagDays'
 			 ,0 'OpenDays'
 			 ,0 'ManufacturingDays'
-			 --,stl.[GlAccountName]
-			 ,(CASE WHEN ISNULL(G.[AccountCode], '') = '' THEN ISNULL(G.[AccountName], '') ELSE ISNULL(G.[AccountCode], '') + ' - ' + ISNULL(G.[AccountName], '') END) AS [GlAccountName]
+			 ,stl.[GlAccountName]
              ,stl.[AcquistionTypeId]
 			 ,ISNULL(iaty.[Name], '') 'AcquistionTypeName'
 			 ,stl.[RequestorId]
@@ -301,47 +301,33 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 			AS InventoryGLSettingName      
 			,stl.InventoryGLAccName AS  InventoryGLAccName      
 			,stl.GoodsReceivedNotInvoicesGLAccId  
-			--,stl.GoodsReceivedNotInvoicesGLAccName   
-			,(CASE WHEN ISNULL(G1.[AccountCode], '') = '' THEN ISNULL(G1.[AccountName], '') ELSE ISNULL(G1.[AccountCode], '') + ' - ' + ISNULL(G1.[AccountName], '') END) AS [GoodsReceivedNotInvoicesGLAccName]
+			,stl.GoodsReceivedNotInvoicesGLAccName   
 			,stl.WorkInProgressGLAccId 
-			--,stl.WorkInProgressGLAccName
-			,(CASE WHEN ISNULL(G2.[AccountCode], '') = '' THEN ISNULL(G2.[AccountName], '') ELSE ISNULL(G2.[AccountCode], '') + ' - ' + ISNULL(G2.[AccountName], '') END) AS [WorkInProgressGLAccName]
+			,stl.WorkInProgressGLAccName
 			,stl.InventoryToBillGLAccId 
-			--,stl.InventoryToBillGLAccName
-			,(CASE WHEN ISNULL(G3.[AccountCode], '') = '' THEN ISNULL(G3.[AccountName], '') ELSE ISNULL(G3.[AccountCode], '') + ' - ' + ISNULL(G3.[AccountName], '') END) AS [InventoryToBillGLAccName]
+			,stl.InventoryToBillGLAccName
 			,stl.FinishedGoodsGLAccId 
-			--,stl.FinishedGoodsGLAccName   
-			,(CASE WHEN ISNULL(G4.[AccountCode], '') = '' THEN ISNULL(G4.[AccountName], '') ELSE ISNULL(G4.[AccountCode], '') + ' - ' + ISNULL(G4.[AccountName], '') END) AS [FinishedGoodsGLAccName]
+			,stl.FinishedGoodsGLAccName   
 			,stl.InventoryExchAgreementGLAccId 
-			--,stl.InventoryExchAgreementGLAccName      
-			,(CASE WHEN ISNULL(G5.[AccountCode], '') = '' THEN ISNULL(G5.[AccountName], '') ELSE ISNULL(G5.[AccountCode], '') + ' - ' + ISNULL(G5.[AccountName], '') END) AS [InventoryExchAgreementGLAccName]
+			,stl.InventoryExchAgreementGLAccName      
 			,stl.InventoryReserveGLAccId
-			--,stl.InventoryReserveGLAccName   
-			,(CASE WHEN ISNULL(G6.[AccountCode], '') = '' THEN ISNULL(G6.[AccountName], '') ELSE ISNULL(G6.[AccountCode], '') + ' - ' + ISNULL(G6.[AccountName], '') END) AS [InventoryReserveGLAccName]
+			,stl.InventoryReserveGLAccName   
 			,stl.COGS_WorkOrderGLAccId
-			--,stl.COGS_WorkOrderGLAccName   
-			,(CASE WHEN ISNULL(G7.[AccountCode], '') = '' THEN ISNULL(G7.[AccountName], '') ELSE ISNULL(G7.[AccountCode], '') + ' - ' + ISNULL(G7.[AccountName], '') END) AS [COGS_WorkOrderGLAccName]
+			,stl.COGS_WorkOrderGLAccName   
 			,stl.COGS_SalesOrderGLAccId
-			--,stl.COGS_SalesOrderGLAccName   
-			,(CASE WHEN ISNULL(G8.[AccountCode], '') = '' THEN ISNULL(G8.[AccountName], '') ELSE ISNULL(G8.[AccountCode], '') + ' - ' + ISNULL(G8.[AccountName], '') END) AS [COGS_SalesOrderGLAccName]
+			,stl.COGS_SalesOrderGLAccName   
 			,stl.COGS_ExchSalesOrderGLAccId
-			--,stl.COGS_ExchSalesOrderGLAccName   
-			,(CASE WHEN ISNULL(G14.[AccountCode], '') = '' THEN ISNULL(G14.[AccountName], '') ELSE ISNULL(G14.[AccountCode], '') + ' - ' + ISNULL(G14.[AccountName], '') END) AS [COGS_ExchSalesOrderGLAccName]
+			,stl.COGS_ExchSalesOrderGLAccName   
 			,stl.COGS_QtyVarianceGLAccId
-			--,stl.COGS_QtyVarianceGLAccName   
-			,(CASE WHEN ISNULL(G9.[AccountCode], '') = '' THEN ISNULL(G9.[AccountName], '') ELSE ISNULL(G9.[AccountCode], '') + ' - ' + ISNULL(G9.[AccountName], '') END) AS [COGS_QtyVarianceGLAccName]
+			,stl.COGS_QtyVarianceGLAccName   
 			,stl.COGS_UnitCostVarianceGLAccId
-			--,stl.COGS_UnitCostVarianceGLAccName  
-			,(CASE WHEN ISNULL(G10.[AccountCode], '') = '' THEN ISNULL(G10.[AccountName], '') ELSE ISNULL(G10.[AccountCode], '') + ' - ' + ISNULL(G10.[AccountName], '') END) AS [COGS_UnitCostVarianceGLAccName]
+			,stl.COGS_UnitCostVarianceGLAccName  
 			,stl.RevenueMroGLAccId
-			--,stl.RevenueMroGLAccName        
-			,(CASE WHEN ISNULL(G11.[AccountCode], '') = '' THEN ISNULL(G11.[AccountName], '') ELSE ISNULL(G11.[AccountCode], '') + ' - ' + ISNULL(G11.[AccountName], '') END) AS [RevenueMroGLAccName]
+			,stl.RevenueMroGLAccName        
 			,stl.RevenueSoGLAccId
-			--,stl.RevenueSoGLAccName    
-			,(CASE WHEN ISNULL(G12.[AccountCode], '') = '' THEN ISNULL(G12.[AccountName], '') ELSE ISNULL(G12.[AccountCode], '') + ' - ' + ISNULL(G12.[AccountName], '') END) AS [RevenueSoGLAccName]
+			,stl.RevenueSoGLAccName    
 			,stl.RevenueExchGLAccId
-			--,stl.RevenueExchGLAccName
-			,(CASE WHEN ISNULL(G13.[AccountCode], '') = '' THEN ISNULL(G13.[AccountName], '') ELSE ISNULL(G13.[AccountCode], '') + ' - ' + ISNULL(G13.[AccountName], '') END) AS [RevenueExchGLAccName]
+			,stl.RevenueExchGLAccName
 			,ISNULL(stl.[QuantityAdjustment],0) QuantityAdjustment
 			,ISNULL(stl.IsPiecePart, 0) IsPiecePart
 			,ISNULL(stl.IsRepairManagement, 0) IsRepairManagement
@@ -390,21 +376,6 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 		 LEFT JOIN [dbo].[Customer] CUSTOBF  WITH (NOLOCK) ON CUSTOBF.[CustomerId] = stl.[ObtainFrom]     
          LEFT JOIN [dbo].[Vendor] VENOBF  WITH (NOLOCK) ON VENOBF.[VendorId] = stl.[ObtainFrom] 
          LEFT JOIN [dbo].[LegalEntity] COMOBF  WITH (NOLOCK) ON COMOBF.[LegalEntityId] = stl.[ObtainFrom]
-		 LEFT JOIN [dbo].[GLAccount] G  WITH (NOLOCK) ON G.[GLaccountId] = stl.[GLaccountId]
-		 LEFT JOIN [dbo].[GLAccount] G1  WITH (NOLOCK) ON G1.[GLaccountId] = stl.[GoodsReceivedNotInvoicesGLAccId]
-		 LEFT JOIN [dbo].[GLAccount] G2  WITH (NOLOCK) ON G2.[GLaccountId] = stl.[WorkInProgressGLAccId]
-		 LEFT JOIN [dbo].[GLAccount] G3  WITH (NOLOCK) ON G3.[GLaccountId] = stl.[InventoryToBillGLAccId]
-		 LEFT JOIN [dbo].[GLAccount] G4  WITH (NOLOCK) ON G4.[GLaccountId] = stl.[FinishedGoodsGLAccId]
-		 LEFT JOIN [dbo].[GLAccount] G5  WITH (NOLOCK) ON G5.[GLaccountId] = stl.[InventoryExchAgreementGLAccId]
-		 LEFT JOIN [dbo].[GLAccount] G6  WITH (NOLOCK) ON G6.[GLaccountId] = stl.[InventoryReserveGLAccId]
-		 LEFT JOIN [dbo].[GLAccount] G7  WITH (NOLOCK) ON G7.[GLaccountId] = stl.[COGS_WorkOrderGLAccId]
-		 LEFT JOIN [dbo].[GLAccount] G8  WITH (NOLOCK) ON G8.[GLaccountId] = stl.[COGS_SalesOrderGLAccId]
-		 LEFT JOIN [dbo].[GLAccount] G9  WITH (NOLOCK) ON G9.[GLaccountId] = stl.[COGS_QtyVarianceGLAccId]
-		 LEFT JOIN [dbo].[GLAccount] G10  WITH (NOLOCK) ON G10.[GLaccountId] = stl.[COGS_UnitCostVarianceGLAccId]
-		 LEFT JOIN [dbo].[GLAccount] G11  WITH (NOLOCK) ON G11.[GLaccountId] = stl.[RevenueMroGLAccId]
-		 LEFT JOIN [dbo].[GLAccount] G12  WITH (NOLOCK) ON G12.[GLaccountId] = stl.[RevenueSoGLAccId]
-		 LEFT JOIN [dbo].[GLAccount] G13  WITH (NOLOCK) ON G13.[GLaccountId] = stl.[RevenueExchGLAccId]
-		 LEFT JOIN [dbo].[GLAccount] G14  WITH (NOLOCK) ON G14.[GLaccountId] = stl.[COGS_ExchSalesOrderGLAccId]
 		WHERE stl.[IsDeleted] = 0 AND stl.[StockLineId] = @StockLineId
 
 	END TRY    

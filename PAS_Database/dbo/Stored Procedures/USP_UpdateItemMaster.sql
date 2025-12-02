@@ -22,13 +22,15 @@ BEGIN
   SET NOCOUNT ON;
   SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
   BEGIN TRY
-	DECLARE @imItemMasterId BIGINT ,@MasterCompanyId INT, @AccountingModuleId BIGINT;
+  BEGIN TRANSACTION
+	SET @RetMessage = '';
+	DECLARE @imItemMasterId BIGINT ,@imManufacturerId BIGINT,@imPartNumber VARCHAR(256),@MasterCompanyId INT, @AccountingModuleId BIGINT;
 
 	--MasterParts TABLE variables Declaration--
 	DECLARE @mItemMasterId BIGINT,@MasterPartId BIGINT,@PartDescription VARCHAR(256),@PartNumber VARCHAR(256),@ManufacturerId BIGINT,
 			@mMasterCompanyId BIGINT,@CreatedBy VARCHAR(200),@UpdatedBy VARCHAR(200),@CreatedDate DATETIME2,@IsActive BIT,@IsDeleted BIT;
 
-	SELECT @MasterCompanyId = MasterCompanyId FROM @tbl_ItemMasterUpdateType tempTbl where  tempTbl.ItemMasterId = @Id
+	SELECT @MasterCompanyId = MasterCompanyId,@imManufacturerId = ManufacturerId,@imPartNumber = PartNumber FROM @tbl_ItemMasterUpdateType tempTbl where  tempTbl.ItemMasterId = @Id
 
 	SELECT @AccountingModuleId = AccountingModuleId FROM dbo.AccountingModule WITH(NOLOCK) WHERE AccountingModuleName = 'ItemMaster' 
 
@@ -37,9 +39,8 @@ BEGIN
 			@UpdatedBy = UpdatedBy,@CreatedDate = CreatedDate,@IsActive = IsActive,@IsDeleted = IsDeleted
 	FROM [dbo].ItemMaster WITH(NOLOCK) WHERE ItemMasterId = @Id
 
-	SELECT @imItemMasterId = i.ItemMasterId FROM [dbo].ItemMaster i WITH(NOLOCK) 
-	JOIN @tbl_ItemMasterUpdateType tempTbl ON tempTbl.ManufacturerId = i.ManufacturerId AND tempTbl.PartNumber = i.PartNumber AND tempTbl.MasterCompanyId = i.MasterCompanyId 
-	WHERE i.ItemMasterId = @Id
+	SELECT TOP 1 @imItemMasterId = i.ItemMasterId FROM [dbo].ItemMaster i WITH(NOLOCK) 
+	WHERE i.ManufacturerId = @imManufacturerId AND i.PartNumber = @imPartNumber AND i.MasterCompanyId = @MasterCompanyId AND i.ItemMasterId <> @Id
 
 	IF @imItemMasterId IS NOT NULL
 	BEGIN
@@ -209,8 +210,10 @@ BEGIN
 
 	END
 	SELECT @MasterPartId AS [MasterPartId];
+  COMMIT TRANSACTION
   END TRY
   BEGIN CATCH
+  ROLLBACK TRANSACTION
 		DECLARE @ErrorLogID int,
             @DatabaseName varchar(100) = DB_NAME()
             -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------

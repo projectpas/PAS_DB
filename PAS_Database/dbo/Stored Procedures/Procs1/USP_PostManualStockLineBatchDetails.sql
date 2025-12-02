@@ -25,13 +25,16 @@
 	9	 11/04/2024			 Devendra Shekh			Added ReferenceId, ReferenceModule For [CommonBatchDetails]
     10	 17/02/2025			 AMIT GHEDIYA		    Modify(get Distribution based on new settings from stockline level)
 	11	 02/06/2025			 Abhishek Jirawla		Fixed Name concat read script
+    12   02/12/2025          Moin Bloch             Modify(Added dynamic )
+
      
 	 exec USP_PostManualStockLineBatchDetails 164040
 **************************************************************/
 
 CREATE   PROCEDURE [dbo].[USP_PostManualStockLineBatchDetails]
 (
-	@StocklineId BIGINT
+	@StocklineId BIGINT = NULL,
+	@AccountPayableglAccountId BIGINT = NULL
 )
 AS
 BEGIN 
@@ -252,23 +255,42 @@ BEGIN
 
 			 -----Account Payable || COGS / Inventory Reserve--------
 
-			 SELECT top 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId, @CRDRType =CRDRType,
-			 @GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName,@IsAutoPost = ISNULL(IsAutoPost,0) 
-			 FROM DistributionSetup WITH(NOLOCK)  WHERE UPPER(DistributionSetupCode) = UPPER('MSTK-ACCPAYABLE')  --WHERE UPPER(Name) =UPPER('COGS / Inventory Reserve') 
+			 SELECT top 1 @DistributionSetupId=ID,
+			              @DistributionName=Name,
+						  @JournalTypeId =JournalTypeId, 
+						  @CRDRType =CRDRType,
+			     --         @GlAccountId=GlAccountId,
+						  --@GlAccountNumber=GlAccountNumber,
+						  --@GlAccountName=GlAccountName,
+						  @IsAutoPost = ISNULL(IsAutoPost,0) 
+			 FROM dbo.DistributionSetup WITH(NOLOCK)  
+			 WHERE UPPER(DistributionSetupCode) = UPPER('MSTK-ACCPAYABLE')  --WHERE UPPER(Name) =UPPER('COGS / Inventory Reserve') 
 			 AND DistributionMasterId = (SELECT TOP 1 ID FROM dbo.DistributionMaster WITH(NOLOCK) WHERE DistributionCode = 'ManualStockLine')
 
 			 --GET STOCKLINE GLACCOUNT.
 			 SELECT @ReserveInventoryAccId = SL.InventoryReserveGLAccId -- For INVENTORY/ACCOUNTS PAYABLE Distribution.
 			    FROM [dbo].[Stockline] SL WITH(NOLOCK)					 
 			 WHERE SL.[StockLineId] = @StocklineId;
-			 
-			 --GET GL Accounting Data from GLAccout based on stockline
-			 SELECT @GlAccountId = [GLAccountId],
-			 	    @GlAccountNumber = [AccountCode],
-			 	    @GlAccountName = [AccountName]
-			 FROM [dbo].[GLAccount] WITH(NOLOCK)
-			 WHERE [GLAccountId] = @ReserveInventoryAccId
-			 AND [MasterCompanyId] = @MasterCompanyId;
+
+			 IF(@AccountPayableglAccountId > 0)
+			 BEGIN					
+				 SELECT @GlAccountId = [GLAccountId],
+			 			@GlAccountNumber = [AccountCode],
+			 			@GlAccountName = [AccountName]
+				 FROM [dbo].[GLAccount] WITH(NOLOCK)
+				 WHERE [GLAccountId] = @AccountPayableglAccountId
+				 AND [MasterCompanyId] = @MasterCompanyId;
+			 END
+			 ELSE
+			 BEGIN				 
+				 --GET GL Accounting Data from GLAccout based on stockline
+				 SELECT @GlAccountId = [GLAccountId],
+			 			@GlAccountNumber = [AccountCode],
+			 			@GlAccountName = [AccountName]
+				 FROM [dbo].[GLAccount] WITH(NOLOCK)
+				 WHERE [GLAccountId] = @ReserveInventoryAccId
+				 AND [MasterCompanyId] = @MasterCompanyId;
+			END
 
 			 INSERT INTO [dbo].[CommonBatchDetails]
 				(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],

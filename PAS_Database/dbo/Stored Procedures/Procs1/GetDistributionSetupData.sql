@@ -93,6 +93,53 @@ BEGIN
 					AND JournalTypeId = @JournalTypeID 
 			    ORDER BY DisplayNumber ASC 
 		END
+		--For CreditCard (Vendor Payment)
+		IF(@JournalTypeCode = @CreditCardCode)
+		BEGIN
+			 SELECT @GLAccountId = [GLAccountId] FROM [DBO].[LegalEntityBankingCheque] WITH(NOLOCK) WHERE [LegalEntityId] = @legalEntityId AND [IsPrimary] = 1;
+			 
+			 IF(ISNULL(@GLAccountId,0) > 0)
+			 BEGIN
+				  SELECT @GlAccountName = [AccountName] FROM [DBO].[GLAccount] WITH(NOLOCK) WHERE [GLAccountId] = @GLAccountId;
+			 END
+
+			 SELECT @DistributionSetupCode = [DistributionSetupCode] FROM [DBO].[DistributionSetup] WITH(NOLOCK) 
+			 WHERE DistributionMasterId = (SELECT [ID] FROM [DBO].[DistributionMaster] WITH(NOLOCK) WHERE [DistributionCode] = 'CREDITCARDPAYMENT')
+			 AND [JournalTypeId] = (SELECT [ID] FROM [DBO].[JournalType] WHERE JournalTypeCode = 'CCP')
+			 AND MasterCompanyId = @masterCompanyId
+			 AND DistributionSetupCode = 'CCP-BANKACCOUNT';
+
+			 SELECT  
+					[ID]
+					,[Name]
+					,CASE WHEN ISNULL([GlAccountId],0) > 0 THEN [GlAccountId] ELSE CASE WHEN ISNULL(DistributionSetupCode,'') = @DistributionSetupCode THEN ISNULL(@GLAccountId,0) ELSE [GlAccountId] END END AS [GlAccountId]
+					,CASE WHEN ISNULL([GlAccountId],0) > 0 THEN [GlAccountName] ELSE CASE WHEN ISNULL(DistributionSetupCode,'') = @DistributionSetupCode THEN ISNULL(@GlAccountName,0) ELSE [GlAccountName] END END AS [GlAccountName]
+					,[JournalTypeId]
+					,[DistributionMasterId]
+					,[IsDebit]
+					,[DisplayNumber]
+					,[MasterCompanyId]
+					,[CreatedBy]
+					,[UpdatedBy]
+					,[IsActive]
+					,[IsDeleted]
+					,ISNULL(UpdatedDate, GETUTCDATE()) UpdatedDate
+					,ISNULL(CreatedDate, GETUTCDATE()) CreatedDate
+					,CRDRType
+					,CASE 
+						WHEN CRDRType = 1 THEN 'DR'
+						WHEN CRDRType = 0 THEN 'CR'
+						WHEN CRDRType = 2 THEN 'DR/CR'
+						ELSE '' END AS CRDRTypeName,
+					 CASE WHEN ISNULL(IsManualText,0) = 1 THEN 0 ELSE ISNULL(IsManualText,0) END AS IsManualText,
+					 ManualText,
+					 IsAutoPost
+				FROM dbo.DistributionSetup WITH (NOLOCK)
+				WHERE IsDeleted = 0
+					AND MasterCompanyId = @masterCompanyId
+					AND JournalTypeId = @JournalTypeID 
+			    ORDER BY DisplayNumber ASC 
+		END
 		ELSE
 		--For ACH (Vendor Payment)
 		IF(@JournalTypeCode = @ACHCode)

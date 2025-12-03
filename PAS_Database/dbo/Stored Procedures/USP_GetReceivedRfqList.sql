@@ -28,7 +28,7 @@
 	15   18-09-2025  Devendra Shekh		 Modified (UTC DateTime Issue Resolved)
 	16   03-10-2025  Devendra Shekh		 Modified (added new Param : @Condition, @Quantity) And Added [IsCustomerStock] for Stk
 	17   17-11-2025  Devendra Shekh		 Modified (added new Param : @VendorRFQId, @PurchaseOrderNumber, @VendorRFQPurchaseOrderNumber)
-     
+    18   03-12-2025  Rajesh Gami		 Added Quote Sent Date (@QuoteSentDate)
 -- EXEC USP_GetReceivedRfqList 
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[USP_GetReceivedRfqList]
@@ -58,6 +58,7 @@ CREATE   PROCEDURE [dbo].[USP_GetReceivedRfqList]
 	@DateAssigned DATETIME=null,
 	@QuotedBy VARCHAR(50)=NULL,
 	@QuotedDate DATETIME=null,
+	@QuoteSentDate DATETIME=null,
 	@RefrenceQuoteNumber VARCHAR(50)=NULL,
 	@UserEmployeeId BIGINT = NULL,
 	@Condition VARCHAR(250) = NULL,
@@ -225,7 +226,17 @@ BEGIN
 						 WHEN RFQ.ModuleId = @SoModuleId THEN ISNULL(SO.[SalesOrderNumber],'') END AS RefrenceQuoteNumber,
 					CONVERT(DATE, DATEADD(SECOND, @BaseUtcOffsetSec, RFQ.[DateAssigned])) AS 'DateAssigned',
 					RFQ.[QuotedBy],
-					CONVERT(DATE, DATEADD(SECOND, @BaseUtcOffsetSec, RFQ.[QuotedDate])) AS 'QuotedDate',
+					CASE WHEN  RFQ.ModuleId = @SoqModuleId THEN CONVERT(DATE, DATEADD(SECOND, @BaseUtcOffsetSec, SOQ.[CreatedDate])) ELSE CONVERT(DATE, DATEADD(SECOND, @BaseUtcOffsetSec, RFQ.[QuotedDate])) END AS 'QuotedDate',
+					--CASE WHEN  RFQ.ModuleId = @SoqModuleId 
+					--	 THEN 
+					--		CASE WHEN (Select MAX(SOQA.CustomerApprovedDate) From DBO.SalesOrderQuoteApproval SOQA WITH(NOLOCK)  where SOQA.SalesOrderQuoteId =SOQ.SalesOrderQuoteId) IS NOT NULL THEN CONVERT(DATE, DATEADD(SECOND, @BaseUtcOffsetSec, (Select MAX(SOQA.CustomerApprovedDate) From DBO.SalesOrderQuoteApproval SOQA WITH(NOLOCK)  where SOQA.SalesOrderQuoteId  =SOQ.SalesOrderQuoteId))) ELSE NULL END
+					--	 ELSE NULL END AS 'quoteSentDate',
+					CASE WHEN  RFQ.ModuleId = @SoqModuleId 
+						 THEN 
+							CASE WHEN (Select TOP 1 SOQA.CustomerApprovedDate From dbo.SalesOrderQuotePartV1 SOQP WITH(NOLOCK)
+									INNER JOIN  DBO.SalesOrderQuoteApproval SOQA WITH(NOLOCK) ON SOQP.SalesOrderQuotePartId = SOQA.SalesOrderQuotePartId where SOQA.SalesOrderQuoteId =SOQ.SalesOrderQuoteId AND SOQP.PartNumber = RFQ.[LinePartNumber]) IS NOT NULL THEN CONVERT(DATE, DATEADD(SECOND, @BaseUtcOffsetSec, (Select SOQA.CustomerApprovedDate From dbo.SalesOrderQuotePartV1 SOQP WITH(NOLOCK) INNER JOIN  DBO.SalesOrderQuoteApproval SOQA WITH(NOLOCK) ON SOQP.SalesOrderQuotePartId = SOQA.SalesOrderQuotePartId where SOQA.SalesOrderQuoteId =SOQ.SalesOrderQuoteId AND SOQP.PartNumber =RFQ.[LinePartNumber]))) ELSE NULL END
+						 ELSE NULL END AS 'quoteSentDate',
+
 					CASE 
 						WHEN RFQ.IsQuote = 1 THEN	CASE	WHEN QSR.Code = @AautoSendQuote THEN 'YES (Quoted)' 
 															WHEN QSR.Code = @ReviewRequired THEN 'YES (Review Required)' 
@@ -318,7 +329,12 @@ BEGIN
 						 WHEN RFQ.ModuleId = @SoModuleId THEN ISNULL(SO.[SalesOrderNumber],'') END AS RefrenceQuoteNumber,
 					CONVERT(DATE, DATEADD(SECOND, @BaseUtcOffsetSec, RFQ.[DateAssigned])) AS 'DateAssigned',
 					RFQ.[QuotedBy],
-					CONVERT(DATE, DATEADD(SECOND, @BaseUtcOffsetSec, RFQ.[QuotedDate])) AS 'QuotedDate',
+					CASE WHEN  RFQ.ModuleId = @SoqModuleId THEN CONVERT(DATE, DATEADD(SECOND, @BaseUtcOffsetSec, SOQ.[CreatedDate])) ELSE CONVERT(DATE, DATEADD(SECOND, @BaseUtcOffsetSec, RFQ.[QuotedDate])) END AS 'QuotedDate',
+					CASE WHEN  RFQ.ModuleId = @SoqModuleId 
+						 THEN 
+							CASE WHEN (Select TOP 1 SOQA.CustomerApprovedDate From dbo.SalesOrderQuotePartV1 SOQP WITH(NOLOCK)
+									INNER JOIN  DBO.SalesOrderQuoteApproval SOQA WITH(NOLOCK) ON SOQP.SalesOrderQuotePartId = SOQA.SalesOrderQuotePartId where SOQA.SalesOrderQuoteId =SOQ.SalesOrderQuoteId AND SOQP.PartNumber = CRPM.[PartNumber]) IS NOT NULL THEN CONVERT(DATE, DATEADD(SECOND, @BaseUtcOffsetSec, (Select SOQA.CustomerApprovedDate From dbo.SalesOrderQuotePartV1 SOQP WITH(NOLOCK) INNER JOIN  DBO.SalesOrderQuoteApproval SOQA WITH(NOLOCK) ON SOQP.SalesOrderQuotePartId = SOQA.SalesOrderQuotePartId where SOQA.SalesOrderQuoteId =SOQ.SalesOrderQuoteId AND SOQP.PartNumber = CRPM.[PartNumber]))) ELSE NULL END
+						 ELSE NULL END AS 'quoteSentDate',
 					CASE 
 						WHEN RFQ.IsQuote = 1 THEN	CASE	WHEN QSR.Code = @AautoSendQuote THEN 'YES (Quoted)' 
 															WHEN QSR.Code = @ReviewRequired THEN 'YES (Review Required)' 
@@ -396,6 +412,7 @@ BEGIN
 							(DateAssigned like '%' +@GlobalFilter+'%') OR
 							(QuotedBy like '%' +@GlobalFilter+'%') OR
 							(QuotedDate like '%' +@GlobalFilter+'%') OR
+							(QuoteSentDate like '%' +@GlobalFilter+'%') OR
 							(EmployeeName like '%'+@GlobalFilter+'%') OR
 							(Condition like '%'+@GlobalFilter+'%') OR
 							(CAST(Quantity AS varchar(20)) like '%'+@GlobalFilter+'%') OR
@@ -416,7 +433,7 @@ BEGIN
 
 							(IsNull(@QuotedBy,'') ='' OR QuotedBy like '%'+ @QuotedBy+'%') and
 							(IsNull(@QuotedDate,'') ='' OR Cast(QuotedDate as date)=Cast(@QuotedDate as date)) and
-
+							(IsNull(@QuoteSentDate,'') ='' OR Cast(QuoteSentDate as date)=Cast(@QuoteSentDate as date)) and
 							(IsNull(@BuyerCompanyName,'') ='' OR companyName like '%'+@BuyerCompanyName+'%') and
 							(IsNull(@BuyerCountry,'') ='' OR country like '%'+ @BuyerCountry+'%') and
 							(IsNull(@LinePartNumber,'') ='' OR partNumber like '%'+@LinePartNumber+'%') and
@@ -444,6 +461,7 @@ BEGIN
 					CASE WHEN (@SortOrder=1 and @SortColumn='DateAssigned')  THEN DateAssigned END ASC,
 					CASE WHEN (@SortOrder=1 and @SortColumn='QuotedBy')  THEN QuotedBy END ASC,
 					CASE WHEN (@SortOrder=1 and @SortColumn='QuotedDate')  THEN QuotedDate END ASC,
+					CASE WHEN (@SortOrder=1 and @SortColumn='QuoteSentDate')  THEN QuoteSentDate END ASC,
 					CASE WHEN (@SortOrder=1 and @SortColumn='RFQFROM')  THEN rfqFrom END ASC,
 					CASE WHEN (@SortOrder=1 and @SortColumn='COMPANYNAME')  THEN companyName END ASC,
 					CASE WHEN (@SortOrder=1 and @SortColumn='COUNTRY')  THEN country END ASC,
@@ -470,6 +488,7 @@ BEGIN
 					CASE WHEN (@SortOrder=-1 and @SortColumn='DateAssigned')  THEN DateAssigned END DESC,
 					CASE WHEN (@SortOrder=-1 and @SortColumn='QuotedBy')  THEN QuotedBy END DESC,
 					CASE WHEN (@SortOrder=-1 and @SortColumn='QuotedDate')  THEN QuotedDate END DESC,
+					CASE WHEN (@SortOrder=-1 and @SortColumn='QuoteSentDate')  THEN QuoteSentDate END DESC,
 					CASE WHEN (@SortOrder=-1 and @SortColumn='RFQFROM')  THEN rfqFrom END DESC,
 					CASE WHEN (@SortOrder=-1 and @SortColumn='COMPANYNAME')  THEN companyName END DESC,
 					CASE WHEN (@SortOrder=-1 and @SortColumn='COUNTRY')  THEN country END DESC,

@@ -42,6 +42,7 @@
 	25   11-03-2025   ABHISHEK JIRAWLA  IsVendorOnHold check for payment hold
 	26   11-03-2025   AMIT GHEDIYA      Update LegalEntityId condition to get from VendorPaymentDetailst table
 	27   27-11-2025   Moin Bloch	    added Manual Journal
+	28   03-12-2025   AMIT GHEDIYA	    update Manual Journal code type to (4 to 6)
      
 -- EXEC VendorReadyToPayList 1,NULL,NULL,1  
 --EXEC dbo.VendorReadyToPayList @MasterCompanyId=1,@StartDate=default,@EndDate=default,@LegalEntityId=1
@@ -525,7 +526,7 @@ BEGIN
 									WHERE VRTPD.VendorPaymentDetailsId = VPD.VendorPaymentDetailsId AND ISNULL(VRTPD.IsGenerated,0) = 0),
 						IsCustomerCreditMemo = 0,
 						ISNULL(VPD.[CreditMemoHeaderId],0),
-						[VendorReadyToPayDetailsTypeId] = 4,
+						[VendorReadyToPayDetailsTypeId] = 6,
 						0,
 						[CustomerCreditPaymentDetailId] = 0,
 						VPD.[CreatedDate],

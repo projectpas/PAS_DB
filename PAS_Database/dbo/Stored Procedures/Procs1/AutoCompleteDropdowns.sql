@@ -32,6 +32,7 @@
 	15   14/Apr/2025  Moin Bloch	    Modified (Added field IsOEM for ItemMaster Table)
 	16   28/04/2025   Moin Bloch	    Modified (Order By [Sequence] ASC)
 	17   26/08/2025   Moin Bloch	    Modified (Added field IsPrintAdmin for Task Table)	
+    18   25/11/2025   Ayushi Patel      Escaped table name in dynamic SQL (added [] around @TableName) to support reserved names like Percent.
 
 --select * from dbo.Employee      
 --EXEC AutoCompleteDropdowns 'Employee','EmployeeId','FirstName','sur',1,20,'108,109,11',1       
@@ -307,24 +308,24 @@ AS BEGIN
                                   SET @Sql=N'INSERT INTO #TempTable (Value, Label, MasterCompanyId)   
            SELECT DISTINCT  CAST ( '+@Parameter1+' AS BIGINT) As Value,  
                    CAST ( '+      @Parameter2+' AS VARCHAR(MAX)) AS Label,   
-             MasterCompanyId FROM dbo.'+@TableName+' WITH(NOLOCK) WHERE MasterCompanyId = '+CAST(@MasterCompanyId AS nvarchar(50))+' AND CAST ( '+@Parameter1+' AS VARCHAR(MAX) ) IN (SELECT Item FROM DBO.SPLITSTRING('''+@Idlist+''','',''))      
+             MasterCompanyId FROM dbo.['+@TableName+'] WITH(NOLOCK) WHERE MasterCompanyId = '+CAST(@MasterCompanyId AS nvarchar(50))+' AND CAST ( '+@Parameter1+' AS VARCHAR(MAX) ) IN (SELECT Item FROM DBO.SPLITSTRING('''+@Idlist+''','',''))      
               
             INSERT INTO #TempTable (Value, Label, MasterCompanyId)   
             SELECT DISTINCT  CAST ( '+@Parameter1+' AS BIGINT) As Value,  
                 CAST('+           @Parameter2+' AS VARCHAR(MAX)) AS Label,  
-       MasterCompanyId FROM dbo.'+@TableName+' WITH(NOLOCK) WHERE MasterCompanyId = '+CAST(@MasterCompanyId AS nvarchar(50))+' AND IsActive=1 AND ISNULL(IsDeleted,0)=0 AND CAST ( '+@Parameter2+' AS VARCHAR(MAX)) !='''' AND '+@Parameter2+'  LIKE ''%'+@Parameter3+'%'''
+       MasterCompanyId FROM dbo.['+@TableName+'] WITH(NOLOCK) WHERE MasterCompanyId = '+CAST(@MasterCompanyId AS nvarchar(50))+' AND IsActive=1 AND ISNULL(IsDeleted,0)=0 AND CAST ( '+@Parameter2+' AS VARCHAR(MAX)) !='''' AND '+@Parameter2+'  LIKE ''%'+@Parameter3+'%'''
                          END
                      END
                      ELSE BEGIN
                          SET @Sql=N'INSERT INTO #TempTable (Value, Label, MasterCompanyId)   
                           SELECT DISTINCT  CAST ( '+@Parameter1+' AS BIGINT) As Value,  
         CAST('+          @Parameter2+' AS VARCHAR(MAX)) AS Label,  
-        MasterCompanyId FROM  dbo.'+@TableName+' WITH(NOLOCK) WHERE MasterCompanyId = '+CAST(@MasterCompanyId AS nvarchar(50))+' AND CAST ( '+@Parameter1+' AS VARCHAR(MAX) ) IN (SELECT Item FROM DBO.SPLITSTRING('''+@Idlist+''','',''))      
+        MasterCompanyId FROM  dbo.['+@TableName+'] WITH(NOLOCK) WHERE MasterCompanyId = '+CAST(@MasterCompanyId AS nvarchar(50))+' AND CAST ( '+@Parameter1+' AS VARCHAR(MAX) ) IN (SELECT Item FROM DBO.SPLITSTRING('''+@Idlist+''','',''))      
                
    INSERT INTO #TempTable (Value, Label, MasterCompanyId)   
             SELECT DISTINCT  CAST ( '+@Parameter1+' AS BIGINT) As Value,  
       CAST('+            @Parameter2+' AS VARCHAR(MAX)) AS Label,  
-      MasterCompanyId FROM dbo.'+@TableName+' WITH(NOLOCK) WHERE MasterCompanyId = '+CAST(@MasterCompanyId AS nvarchar(50))+' AND IsActive=1 AND ISNULL(IsDeleted,0)=0 AND CAST ( '+@Parameter2+' AS VARCHAR(MAX)) !='''' AND '+@Parameter2+'  LIKE ''%'+@Parameter3+'%''';
+      MasterCompanyId FROM dbo.['+@TableName+'] WITH(NOLOCK) WHERE MasterCompanyId = '+CAST(@MasterCompanyId AS nvarchar(50))+' AND IsActive=1 AND ISNULL(IsDeleted,0)=0 AND CAST ( '+@Parameter2+' AS VARCHAR(MAX)) !='''' AND '+@Parameter2+'  LIKE ''%'+@Parameter3+'%''';
                      END
             END
         END
@@ -528,24 +529,24 @@ AS BEGIN
                                   SET @Sql=N'INSERT INTO #TempTable (Value, Label, MasterCompanyId)   
              SELECT DISTINCT TOP '+@Count+' CAST ( '+@Parameter1+' AS BIGINT) As Value,  
                CAST ( '+          @Parameter2+' AS VARCHAR(MAX)) AS Label,   
-               MasterCompanyId FROM  dbo.'+@TableName+' WHERE MasterCompanyId =  '+CAST(@MasterCompanyId AS nvarchar(50))+'  AND CAST ( '+@Parameter1+' AS VARCHAR(MAX) ) IN (SELECT Item FROM DBO.SPLITSTRING('''+@Idlist+''','',''))      
+               MasterCompanyId FROM  dbo.['+@TableName+'] WHERE MasterCompanyId =  '+CAST(@MasterCompanyId AS nvarchar(50))+'  AND CAST ( '+@Parameter1+' AS VARCHAR(MAX) ) IN (SELECT Item FROM DBO.SPLITSTRING('''+@Idlist+''','',''))      
               
     INSERT INTO #TempTable (Value, Label, MasterCompanyId)   
         SELECT DISTINCT TOP '+    @Count+' CAST ( '+@Parameter1+' AS BIGINT) As Value,  
          CAST('+                  @Parameter2+' AS VARCHAR(MAX)) AS Label,  
-         MasterCompanyId FROM  dbo.'+@TableName+' WHERE MasterCompanyId =  '+CAST(@MasterCompanyId AS nvarchar(50))+'  AND IsActive=1 AND ISNULL(IsDeleted,0)=0 AND CAST ( '+@Parameter2+' AS VARCHAR(MAX)) !='''' AND '+@Parameter2+'  LIKE ''%'+@Parameter3+'%'''
+         MasterCompanyId FROM  dbo.['+@TableName+'] WHERE MasterCompanyId =  '+CAST(@MasterCompanyId AS nvarchar(50))+'  AND IsActive=1 AND ISNULL(IsDeleted,0)=0 AND CAST ( '+@Parameter2+' AS VARCHAR(MAX)) !='''' AND '+@Parameter2+'  LIKE ''%'+@Parameter3+'%'''
                          END
                      END
                      ELSE BEGIN
                          SET @Sql=N'INSERT INTO #TempTable (Value, Label, MasterCompanyId)   
                           SELECT DISTINCT TOP '+@Count+' CAST ( '+@Parameter1+' AS BIGINT) As Value,  
         CAST ( '+        @Parameter2+' AS VARCHAR(MAX)) AS Label,  
-        MasterCompanyId FROM  dbo.'+@TableName+' WHERE MasterCompanyId =  '+CAST(@MasterCompanyId AS nvarchar(50))+'  AND CAST ( '+@Parameter1+' AS VARCHAR(MAX) ) IN (SELECT Item FROM DBO.SPLITSTRING('''+@Idlist+''','',''))      
+        MasterCompanyId FROM  dbo.['+@TableName+'] WHERE MasterCompanyId =  '+CAST(@MasterCompanyId AS nvarchar(50))+'  AND CAST ( '+@Parameter1+' AS VARCHAR(MAX) ) IN (SELECT Item FROM DBO.SPLITSTRING('''+@Idlist+''','',''))      
                
           INSERT INTO #TempTable (Value, Label, MasterCompanyId)   
             SELECT DISTINCT TOP '+@Count+' CAST ( '+@Parameter1+' AS BIGINT) As Value,  
       CAST('+            @Parameter2+' AS VARCHAR(MAX)) AS Label,  
-      MasterCompanyId FROM  dbo.'+@TableName+' WHERE MasterCompanyId =  '+CAST(@MasterCompanyId AS nvarchar(50))+'  AND IsActive=1 AND ISNULL(IsDeleted,0)=0 AND CAST ( '+@Parameter2+' AS VARCHAR(MAX)) !='''' AND '+@Parameter2+'  LIKE ''%'+@Parameter3+'%''';
+      MasterCompanyId FROM  dbo.['+@TableName+'] WHERE MasterCompanyId =  '+CAST(@MasterCompanyId AS nvarchar(50))+'  AND IsActive=1 AND ISNULL(IsDeleted,0)=0 AND CAST ( '+@Parameter2+' AS VARCHAR(MAX)) !='''' AND '+@Parameter2+'  LIKE ''%'+@Parameter3+'%''';
                      END
             END
         END

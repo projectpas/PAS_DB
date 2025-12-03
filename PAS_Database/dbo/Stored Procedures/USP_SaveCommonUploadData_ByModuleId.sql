@@ -33,7 +33,8 @@
 	23 	 03-Nov-2025        Divyesh Kathiriya		Added New Module "Employee"
 	24	 10-Nov-2025	    Priyansh Patel			Updated column name UnitPrice to FlatRatePrice
 	25 	 20-Nov-2025        Divyesh Kathiriya		Added new field for "ItemMaster"
-
+	26   26-Nov-2025        Ayushi Patel            Updated dynamic INSERT/UPDATE queries to wrap ReferenceTable, ParentTable, and ChildTable names in [ ] to prevent syntax errors when table names are reserved keywords (e.g., Percent).
+	29	 02-DEC-2025        Ayushi Patel			Added New SingleScreen Modules
 exec USP_SaveCommonUploadData_ByModuleId @ModuleId=4,@UserName=N'VICTOR ADMAS',@MasterCompanyId=1, @EmployeeId = 236;
 **************************************************************/
 CREATE PROCEDURE [dbo].[USP_SaveCommonUploadData_ByModuleId]
@@ -88,7 +89,7 @@ BEGIN
 		DECLARE @ModuleTableId BIGINT,@ParentModuleTableId BIGINT, @TotalRecords BIGINT = 0, @CurrentRecord BIGINT = 0;
 		DECLARE @UploadRecord VARCHAR(MAX) = NULL;
 		DECLARE @ChildTable VARCHAR(100) = NULL, @ReferenceColumnName VARCHAR(100) = NULL, @ParentPrimaryColumnName VARCHAR(100) = NULL;
-		DECLARE @AlterModule AS BIGINT, @GLModule AS BIGINT, @ItemMasterModule AS BIGINT, @StocklineModule AS BIGINT, @CustomerModule AS BIGINT,@VendorModule AS BIGINT, @PublicationModule AS BIGINT, @EmployeeModule AS BIGINT, @ItemMasterAccountingModuleId AS INT;
+		DECLARE @AlterModule AS BIGINT, @GLModule AS BIGINT, @ItemMasterModule AS BIGINT, @StocklineModule AS BIGINT, @CustomerModule AS BIGINT,@VendorModule AS BIGINT, @PublicationModule AS BIGINT, @EmployeeModule AS BIGINT, @ItemMasterAccountingModuleId AS INT, @chargeModule AS BIGINT;
 		DECLARE @PriceMasterModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'PriceMaster');
 		DECLARE @PurchaseSalesModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'PurchaseSales');
 		DECLARE @MROPriceMasterModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'MROPriceMaster');
@@ -121,8 +122,14 @@ BEGIN
 		SET @VendorModule = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'Vendor');
 		SET @PublicationModule = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'Publication');
 		SET @EmployeeModule = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'Employee');
+		SET @chargeModule = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'charge');
 		SET @EnumEmployeeGeneralInfo = (SELECT [ManagementStructureModuleId] FROM [DBO].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] = 'EmployeeGeneralInfo');
-		SET @ItemMasterAccountingModuleId = (SELECT [AccountingModuleId] FROM [DBO].[AccountingModule] WITH(NOLOCK) WHERE UPPER([AccountingModuleName]) = 'ITEMMASTER'); 
+		SET @ItemMasterAccountingModuleId = (SELECT [AccountingModuleId] FROM [DBO].[AccountingModule] WITH(NOLOCK) WHERE UPPER([AccountingModuleName]) = 'ITEMMASTER');
+		DECLARE @LotCostSourceReference AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'LotCostSourceReference'); 
+		DECLARE @ItemGroupModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'ItemGroup'); 
+		DECLARE @ItemClassificationModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'ItemClassification'); 
+		DECLARE @SiteModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'Site');
+
 		SET @EmployeeMSId = (SELECT [ManagementStructureId] FROM [DBO].[Employee] WITH(NOLOCK) WHERE [EmployeeId] = @EmployeeId);
 		SET @PublicationMSId = (SELECT [ManagementStructureId] FROM DBO.[Employee] WITH(NOLOCK) WHERE [EmployeeId] = @EmployeeId);
 
@@ -557,7 +564,7 @@ BEGIN
 				SET @FieldValue += CAST(@MasterCompanyId AS VARCHAR) + ',''' + @UserName + ''',''' + @UserName + ''''
 				SET @RefFieldName = ISNULL(STUFF(@RefFieldName, CHARINDEX(',', @RefFieldName), 1, ''), '')
 				-- Final dynamic insert
-				SET @RefQuery = 'INSERT INTO ' + @ModuleParentTable + ' (' + @RefFieldName + ') VALUES (' + @FieldValue + ');'+ ' SET @ParentModuleTableId = SCOPE_IDENTITY()'; 
+				SET @RefQuery = 'INSERT INTO [' + @ModuleParentTable + '] (' + @RefFieldName + ') VALUES (' + @FieldValue + ');'+ ' SET @ParentModuleTableId = SCOPE_IDENTITY()'; 
 
 				EXEC sp_executesql @RefQuery, N'@ParentModuleTableId BIGINT OUTPUT',@ParentModuleTableId OUTPUT;
 				
@@ -818,6 +825,11 @@ BEGIN
 				VendorAudit,EDI,AeroExchange,Is1099Required,IsAllow,IsWarning,IsRestrict,IsWarningRestriction,MasterCompanyId,CreatedBy, UpdatedBy'
 				SET @FieldValue += '''' + @VendorCode + ''', 0, ' + CAST(@ParentModuleTableId AS VARCHAR(20)) + ', 0, 0, 0, 0, 0, 0,0,0,1,0,0,0, ';
 			END
+			ELSE IF(@ModuleId = @SiteModule)
+			BEGIN
+				SET @RefFieldName += ' , AddressId, MasterCompanyId, CreatedBy, UpdatedBy'
+				SET @FieldValue += '' + CAST(@ParentModuleTableId AS VARCHAR(20)) + ',';
+			END
 			ELSE IF(@ModuleId = @PublicationModule)
 			BEGIN
 				SET @RefFieldName += ' , Description, EntryDate, CreatedDate, UpdatedDate, EmployeeId, VerifiedStatus, Sequence, PublishedById, PublishedByRefId, PublishedByOthers, ManagementStructureIds, MasterCompanyId, CreatedBy, UpdatedBy ';
@@ -990,12 +1002,36 @@ BEGIN
 				SET @FieldValue += '''' + @EmployeeNum  + '''' + ','  + CAST(@LegalEntityId AS VARCHAR(50)) + ', 0, @UtcNow, @UtcNow,' + CAST(@EmployeeMSId AS VARCHAR(50)) + ' , ';				
 
 			END
+			ELSE IF(@ModuleId = @chargeModule)
+			BEGIN
+				SET @RefFieldName += ' , Description, MasterCompanyId, CreatedBy, UpdatedBy'
+				SET @FieldValue += ' '' '','  
+			END
+			ELSE IF(@ModuleId = @LotCostSourceReference)
+			BEGIN
+				SET @RefFieldName += ' , IsDeleted,IsActive,CreatedDate,UpdatedDate, MasterCompanyId, CreatedBy, UpdatedBy'
+				SET @FieldValue += '0,1,GETUTCDATE(),GETUTCDATE(), '
+			END
+			ELSE IF(@ModuleId = @ItemGroupModule)
+			BEGIN
+				SET @RefFieldName += ' , Description, MasterCompanyId, CreatedBy, UpdatedBy'
+				SET @FieldValue += ' '' '','  
+			END
+			ELSE IF(@ModuleId = @ItemClassificationModule)
+			BEGIN
+				SET @RefFieldName += ' , Description, MasterCompanyId, CreatedBy, UpdatedBy'
+				SET @FieldValue += ' '' '','  
+			END
 			ELSE
 			BEGIN
 				SET @RefFieldName += ' , MasterCompanyId, CreatedBy, UpdatedBy'
 				
 			END
-			
+			--IF(@ModuleId = @PublicationModule)
+			--	BEGIN
+			--		SET @RefFieldName += ' ,ManagementStructureId, IsActive, IsDeleted, CreatedDate, UpdatedDate';
+			--		SET @FieldValue += CAST(@PublicationMSId AS VARCHAR(50)) + ',1,0,@UtcNow,@UtcNow,';
+			--	END
 			SET @FieldValue += ' ' + CAST(@MasterCompanyId AS VARCHAR) + ',''' + @UserName + ''',''' + @UserName + '''' 
 			SET @RefFieldName = ISNULL(STUFF(@RefFieldName, CHARINDEX(',', @RefFieldName), 1, ''), '')
 			
@@ -1023,7 +1059,7 @@ BEGIN
 						SELECT @UpdateFields = STRING_AGG(f.FieldName + ' = ' + f.FieldValue, ', ')
 						FROM Pairs f;
 
-						SET @RefQuery = 'UPDATE ' + @ReferenceTable + ' SET ' + @UpdateFields + ' WHERE ItemMasterPurchaseSaleId = ' + CAST(@ItemMasterPurchaseSaleId AS VARCHAR(20)) + ';';
+						SET @RefQuery = 'UPDATE [' + @ReferenceTable + '] SET ' + @UpdateFields + ' WHERE ItemMasterPurchaseSaleId = ' + CAST(@ItemMasterPurchaseSaleId AS VARCHAR(20)) + ';';
 			END
 			ELSE IF( (@ModuleId = @MROPriceMasterModule OR @ModuleId = @MROPriceMasterListModule )  AND @isMROPriceDataExist = 1 AND @MatchedId IS NOT NULL)
 			BEGIN
@@ -1075,12 +1111,12 @@ BEGIN
 						FROM Pairs;
 						--SET @RefQuery = 'UPDATE ' + @ReferenceTable + ' SET ' + @MROUpdateFields + ' WHERE MROPriceMasterId = ' + CAST(@MatchedId AS bigint) + ';';
 							BEGIN
-								SET @RefQuery = 'UPDATE ' + @ReferenceTable + ' SET ' + @MROUpdateFields + ' WHERE MROPriceMasterId = ' + CAST(@MatchedId AS varchar(20)) + ';';
+								SET @RefQuery = 'UPDATE [' + @ReferenceTable + '] SET ' + @MROUpdateFields + ' WHERE MROPriceMasterId = ' + CAST(@MatchedId AS varchar(20)) + ';';
 							END
 					END
 			ELSE
 			BEGIN
-				SET @RefQuery = 'INSERT INTO ' + @ReferenceTable + ' (' + @RefFieldName + ' )' + ' VALUES (' + @FieldValue + ');' + ' SET @ModuleTableId = SCOPE_IDENTITY()';
+				SET @RefQuery = 'INSERT INTO [' + @ReferenceTable + '] (' + @RefFieldName + ' )' + ' VALUES (' + @FieldValue + ');' + ' SET @ModuleTableId = SCOPE_IDENTITY()';
 			END			
 
 			IF(@ModuleId = @PublicationModule)
@@ -1348,7 +1384,7 @@ BEGIN
 				SET @FieldValue += ' ' + CAST(@MasterCompanyId AS VARCHAR) + ',''' + @UserName + ''',''' + @UserName + '''' 
 				--SET @RefFieldName = ISNULL(STUFF(@RefFieldName, CHARINDEX(',', @RefFieldName), 1, ''), '')
 
-				SET @RefQuery = 'INSERT INTO ' + @ChildTable + ' (' + @RefFieldName + ' )' + ' VALUES (' + @FieldValue + ');'				
+				SET @RefQuery = 'INSERT INTO [' + @ChildTable + '] (' + @RefFieldName + ' )' + ' VALUES (' + @FieldValue + ');'				
 
 				IF(@ModuleId = @PublicationModule)
 				BEGIN

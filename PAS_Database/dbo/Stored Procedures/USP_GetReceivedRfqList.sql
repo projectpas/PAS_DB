@@ -29,6 +29,7 @@
 	16   03-10-2025  Devendra Shekh		 Modified (added new Param : @Condition, @Quantity) And Added [IsCustomerStock] for Stk
 	17   17-11-2025  Devendra Shekh		 Modified (added new Param : @VendorRFQId, @PurchaseOrderNumber, @VendorRFQPurchaseOrderNumber)
     18   03-12-2025  Rajesh Gami		 Added Quote Sent Date (@QuoteSentDate)
+	19   03-12-2025  Moin Bloch		     Modified Changed Quoted Column Status
 -- EXEC USP_GetReceivedRfqList 
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[USP_GetReceivedRfqList]
@@ -238,8 +239,8 @@ BEGIN
 						 ELSE NULL END AS 'quoteSentDate',
 
 					CASE 
-						WHEN RFQ.IsQuote = 1 THEN	CASE	WHEN QSR.Code = @AautoSendQuote THEN 'YES (Quoted)' 
-															WHEN QSR.Code = @ReviewRequired THEN 'YES (Review Required)' 
+						WHEN RFQ.IsQuote = 1 THEN	CASE	WHEN QSR.Code = @AautoSendQuote THEN 'Auto' 
+															WHEN QSR.Code = @ReviewRequired THEN 'Review Required' 
 															ELSE 'YES'	END
 						WHEN RFQ.IsQuote = 2 THEN 'No Quote' 
 						ELSE NULL
@@ -336,8 +337,8 @@ BEGIN
 									INNER JOIN  DBO.SalesOrderQuoteApproval SOQA WITH(NOLOCK) ON SOQP.SalesOrderQuotePartId = SOQA.SalesOrderQuotePartId where SOQA.SalesOrderQuoteId =SOQ.SalesOrderQuoteId AND SOQP.PartNumber = CRPM.[PartNumber]) IS NOT NULL THEN CONVERT(DATE, DATEADD(SECOND, @BaseUtcOffsetSec, (Select SOQA.CustomerApprovedDate From dbo.SalesOrderQuotePartV1 SOQP WITH(NOLOCK) INNER JOIN  DBO.SalesOrderQuoteApproval SOQA WITH(NOLOCK) ON SOQP.SalesOrderQuotePartId = SOQA.SalesOrderQuotePartId where SOQA.SalesOrderQuoteId =SOQ.SalesOrderQuoteId AND SOQP.PartNumber = CRPM.[PartNumber]))) ELSE NULL END
 						 ELSE NULL END AS 'quoteSentDate',
 					CASE 
-						WHEN RFQ.IsQuote = 1 THEN	CASE	WHEN QSR.Code = @AautoSendQuote THEN 'YES (Quoted)' 
-															WHEN QSR.Code = @ReviewRequired THEN 'YES (Review Required)' 
+						WHEN RFQ.IsQuote = 1 THEN	CASE	WHEN QSR.Code = @AautoSendQuote THEN 'Auto' 
+															WHEN QSR.Code = @ReviewRequired THEN 'Review Required' 
 															ELSE 'YES'	END
 						WHEN RFQ.IsQuote = 2 THEN 'No Quote' 
 						ELSE NULL

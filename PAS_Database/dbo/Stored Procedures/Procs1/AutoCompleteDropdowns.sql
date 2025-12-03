@@ -33,7 +33,7 @@
 	16   28/04/2025   Moin Bloch	    Modified (Order By [Sequence] ASC)
 	17   26/08/2025   Moin Bloch	    Modified (Added field IsPrintAdmin for Task Table)	
     18   25/11/2025   Ayushi Patel      Escaped table name in dynamic SQL (added [] around @TableName) to support reserved names like Percent.
-
+    19   03/12/2025   Ayushi Patel      Removed brackets from @TableName to avoid double [[TableName]] in dynamic SQL.
 --select * from dbo.Employee      
 --EXEC AutoCompleteDropdowns 'Employee','EmployeeId','FirstName','sur',1,20,'108,109,11',1       
 **************************************************************/
@@ -52,6 +52,9 @@ AS BEGIN
     SET NOCOUNT ON
     BEGIN TRY
         DECLARE @Sql NVARCHAR(MAX);
+
+        SET @TableName = LTRIM(RTRIM(@TableName));
+        SET @TableName = REPLACE(REPLACE(@TableName, '[', ''), ']', '');
 
         CREATE TABLE #TempTable (
 			Value BIGINT,

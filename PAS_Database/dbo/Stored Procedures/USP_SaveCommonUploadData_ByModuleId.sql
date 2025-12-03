@@ -129,6 +129,7 @@ BEGIN
 		DECLARE @ItemGroupModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'ItemGroup'); 
 		DECLARE @ItemClassificationModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'ItemClassification'); 
 		DECLARE @SiteModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'Site');
+		DECLARE @POROCategory AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'POROCategory');
 
 		SET @EmployeeMSId = (SELECT [ManagementStructureId] FROM [DBO].[Employee] WITH(NOLOCK) WHERE [EmployeeId] = @EmployeeId);
 		SET @PublicationMSId = (SELECT [ManagementStructureId] FROM DBO.[Employee] WITH(NOLOCK) WHERE [EmployeeId] = @EmployeeId);
@@ -473,6 +474,16 @@ BEGIN
 					WHERE FieldName = 'ConsumeUnitOfMeasureId';				
 				END
 			END
+			IF(@ModuleId = @POROCategory)
+			BEGIN
+				UPDATE #ImportFields
+				SET FieldValue =
+					CASE 
+						WHEN LOWER(LTRIM(RTRIM(FieldValue))) = 'yes' THEN '1'
+						ELSE '0'
+					END
+				WHERE FieldName IN ('IsPo', 'IsRo');
+			END
 
 			SELECT @TotalRow = MAX(ImportModuleFieldMasterId), @CurrentRow = MIN(ImportModuleFieldMasterId) FROM #ImportFields;
 
@@ -571,7 +582,7 @@ BEGIN
 				--EXEC (@RefQuery)
 			END
 
-
+			
 			-----parent table insert End-----
 			SET @FieldValue = '';
 			SET @RefFieldName = '';
@@ -1002,11 +1013,6 @@ BEGIN
 				SET @FieldValue += '''' + @EmployeeNum  + '''' + ','  + CAST(@LegalEntityId AS VARCHAR(50)) + ', 0, @UtcNow, @UtcNow,' + CAST(@EmployeeMSId AS VARCHAR(50)) + ' , ';				
 
 			END
-			ELSE IF(@ModuleId = @chargeModule)
-			BEGIN
-				SET @RefFieldName += ' , Description, MasterCompanyId, CreatedBy, UpdatedBy'
-				SET @FieldValue += ' '' '','  
-			END
 			ELSE IF(@ModuleId = @LotCostSourceReference)
 			BEGIN
 				SET @RefFieldName += ' , IsDeleted,IsActive,CreatedDate,UpdatedDate, MasterCompanyId, CreatedBy, UpdatedBy'
@@ -1216,6 +1222,7 @@ BEGIN
 				EXEC [DBO].[QuickBooks_UpdateModuleCountDetails] @MasterCompanyId, @ItemMasterAccountingModuleId;
 
 			END
+			
 			
 			IF(@ModuleId = @StocklineModule)
 			BEGIN

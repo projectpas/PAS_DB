@@ -34,6 +34,7 @@
 	17   18-APR-2025  Abhishek Jirawla  Added Integration Portal in Stockline
 	18   05-MAY-2025  Abhishek Jirawla  Added ObtainFrom in Stockline
 	19   16-JUL-2025  Moin Bloch        Modified ObtainFromType As NULL when it comes 0
+	20   03-Dec-2025  Moin Bloch        Modified Fix Status Closed For Split Part
 
 declare @p2 dbo.POPartsToReceive  
 insert into @p2 values(2371,4051,2)  
@@ -2540,8 +2541,12 @@ BEGIN
             )
 
             INSERT INTO #POParts ([PurchaseOrderId], [PurchaseOrderPartRecordId], [QuantityOrdered])
-            SELECT [PurchaseOrderId], [PurchaseOrderPartRecordId], [QuantityOrdered] FROM DBO.PurchaseOrderPart WITH (NOLOCK) WHERE PurchaseOrderId = @PurchaseOrderId;
-
+            --SELECT [PurchaseOrderId], [PurchaseOrderPartRecordId], [QuantityOrdered] FROM DBO.PurchaseOrderPart WITH (NOLOCK) WHERE PurchaseOrderId = @PurchaseOrderId;
+			SELECT [PurchaseOrderId],[PurchaseOrderPartRecordId],[QuantityOrdered] FROM [dbo].[PurchaseOrderPart] P WITH(NOLOCK)
+			WHERE P.[PurchaseOrderId] = @PurchaseOrderId AND 
+			    ((P.ParentId IS NOT NULL AND EXISTS (SELECT 1 FROM [dbo].[PurchaseOrderPart] C WITH(NOLOCK) WHERE C.PurchaseOrderId = P.PurchaseOrderId AND C.ParentId IS NOT NULL))
+			  OR (P.ParentId IS NULL AND NOT EXISTS (SELECT 1 FROM [dbo].[PurchaseOrderPart] C WITH(NOLOCK) WHERE C.PurchaseOrderId = P.PurchaseOrderId AND C.ParentId IS NOT NULL)));
+			  			   
             SELECT @POPartLoopID = MAX(ID) FROM #POParts;
 
             DECLARE @MainQuantityOrdered BIGINT = 0;

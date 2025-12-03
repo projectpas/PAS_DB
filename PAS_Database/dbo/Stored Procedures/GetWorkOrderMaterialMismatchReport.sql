@@ -9,13 +9,14 @@
  ** PR   Date         Author				Change Description            
  ** --   --------     -------				--------------------------------          
     1    26-09-2024   Shrey Chandegara		Created
-	1    21-03-2025   HEMANT SALIYA			Added KIT Options
-	
+	2    21-03-2025   HEMANT SALIYA			Added KIT Options
+	3    02-12-2025   Moin Bloch 			Modified Added MasterCompanyId Parameter 
+
 	EXEC [GetWorkOrderMaterialMismatchReport]
 **************************************************************/
 
 CREATE   PROCEDURE [dbo].[GetWorkOrderMaterialMismatchReport]
-
+@MasterCompanyId INT = NULL
 AS
 BEGIN
     SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
@@ -38,11 +39,11 @@ BEGIN
 			WOM.TotalIssued,
 			WOM.POId,
 			WOM.PONum
-		FROM WorkOrderMaterials WOM
+		FROM [dbo].[WorkOrderMaterials] WOM WITH(NOLOCK)
 		LEFT JOIN [dbo].[WorkOrder] WO WITH(NOLOCK) ON WO.WorkOrderId = WOM.WorkOrderId
 		LEFT JOIN [dbo].[ItemMaster] IM WITH(NOLOCK) ON IM.ItemMasterId = WOM.ItemMasterId
 		LEFT JOIN [dbo].[Condition] C WITH(NOLOCK) ON C.ConditionId = WOM.ConditionCodeId
-		WHERE (WOM.QuantityReserved != (select ISNULL(SUM(WMS.QtyReserved),0) from dbo.WorkOrderMaterialstockline WMS  with (Nolock) WHERE WMS.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId)
+		WHERE WOM.[MasterCompanyId] = @MasterCompanyId AND (WOM.QuantityReserved != (select ISNULL(SUM(WMS.QtyReserved),0) from dbo.WorkOrderMaterialstockline WMS  with (Nolock) WHERE WMS.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId)
 		OR WOM.QuantityIssued != (select ISNULL(SUM(WMS.QtyIssued),0) from dbo.WorkOrderMaterialstockline WMS  with (Nolock) WHERE WMS.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId))
 		AND (WOM.QuantityReserved > 0)
 
@@ -64,11 +65,11 @@ BEGIN
 			WOM.TotalIssued,
 			WOM.POId,
 			WOM.PONum
-		FROM WorkOrderMaterialsKit WOM
+		FROM [dbo].[WorkOrderMaterialsKit] WOM WITH(NOLOCK)
 		LEFT JOIN [dbo].[WorkOrder] WO WITH(NOLOCK) ON WO.WorkOrderId = WOM.WorkOrderId
 		LEFT JOIN [dbo].[ItemMaster] IM WITH(NOLOCK) ON IM.ItemMasterId = WOM.ItemMasterId
 		LEFT JOIN [dbo].[Condition] C WITH(NOLOCK) ON C.ConditionId = WOM.ConditionCodeId
-		WHERE (WOM.QuantityReserved != (select ISNULL(SUM(WMS.QtyReserved),0) from dbo.WorkOrderMaterialStockLineKit WMS  with (Nolock) WHERE WMS.WorkOrderMaterialsKitId = WOM.WorkOrderMaterialsKitId)
+		WHERE WOM.[MasterCompanyId] = @MasterCompanyId AND (WOM.QuantityReserved != (select ISNULL(SUM(WMS.QtyReserved),0) from dbo.WorkOrderMaterialStockLineKit WMS  with (Nolock) WHERE WMS.WorkOrderMaterialsKitId = WOM.WorkOrderMaterialsKitId)
 		OR WOM.QuantityIssued != (select ISNULL(SUM(WMS.QtyIssued),0) from dbo.WorkOrderMaterialStockLineKit WMS  with (Nolock) WHERE WMS.WorkOrderMaterialsKitId = WOM.WorkOrderMaterialsKitId))
 		AND (WOM.QuantityReserved > 0)
 	END

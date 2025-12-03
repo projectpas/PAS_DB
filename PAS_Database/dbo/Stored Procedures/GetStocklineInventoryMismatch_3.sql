@@ -15,17 +15,20 @@
 	3    30-01-2024   Vishal Suthar			Modified the SP to provide proper result
 	4    30-08-2024   Rajesh Gami 			Add ISNULL
 	5    30-08-2024   Rajesh Gami 			Add SUM of ChildQtyOnHand
+	6    02-12-2025   Moin Bloch 			Modified Added MasterCompanyId Parameter 
+
 	EXEC [GetStocklineInventoryMismatch]
 **************************************************************/
 
 CREATE PROC [dbo].[GetStocklineInventoryMismatch]
-
+@MasterCompanyId int = NULL
 AS
 BEGIN
     SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 	SET NOCOUNT ON;
 	BEGIN TRY
 	BEGIN
+	
 		SELECT TOP 100 sl.StockLineId,
 			sl.PartNumber, sl.PNDescription,sl.Manufacturer,
 			con.Description  As 'Condition',sl.MasterCompanyId, sl.StocklineNumber , sl.ControlNumber ,
@@ -36,7 +39,7 @@ BEGIN
 		INNER JOIN [dbo].[ItemMaster] im WITH (NOLOCK) ON sl.ItemMasterId = im.ItemMasterId
 		INNER JOIN [dbo].[Condition] con WITH (NOLOCK) ON sl.conditionId = con.conditionId
 		INNER JOIN [dbo].[ChildStockline] child WITH (NOLOCK) ON sl.StockLineId = child.StockLineId
-		WHERE sl.isActive = 1 AND sl.isDeleted = 0 AND sl.IsParent = 1
+		WHERE sl.[MasterCompanyId] = @MasterCompanyId AND sl.isActive = 1 AND sl.isDeleted = 0 AND sl.IsParent = 1
 		AND (ISNULL(sl.QuantityOnHand,0) + ISNULL(sl.QuantityIssued,0)) <> (ISNULL(sl.QuantityReserved,0) + ISNULL(sl.QuantityAvailable,0) + ISNULL(sl.QuantityIssued,0))
 		GROUP BY sl.StockLineId, sl.PartNumber, sl.PNDescription,sl.Manufacturer, sl.QuantityOnHand, con.Description, sl.MasterCompanyId, sl.StocklineNumber , sl.ControlNumber,
 		sl.IdNumber,sl.SerialNumber, sl.QuantityIssued, sl.QuantityReserved, sl.QuantityAvailable

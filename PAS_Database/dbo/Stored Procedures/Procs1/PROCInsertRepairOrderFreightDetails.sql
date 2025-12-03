@@ -12,6 +12,8 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    12/10/2022   Deep Patel     Created
+	2    02-12-2025   Sahdev Saliya  Entry for Updated in PDFPath is set to null.  
+
 -- EXEC [PROCInsertRepairOrderFreightDetails] 15
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[PROCInsertRepairOrderFreightDetails](@TableRepairOrderFreightType RepairOrderFreightType READONLY)  
@@ -80,6 +82,8 @@ BEGIN
 								   SOURCE.MasterCompanyId,SOURCE.CreatedBy,SOURCE.UpdatedBy,SOURCE.CreatedDate,SOURCE.UpdatedDate,SOURCE.IsActive,SOURCE.IsDeleted,SOURCE.LineNum,
 								   SOURCE.ManufacturerId,SOURCE.Manufacturer);	
 					END
+
+					UPDATE [dbo].[RepairOrder] SET [PDFPath] = NULL WHERE [RepairOrderId] = @RepairOrderId
 					
 				END
 			COMMIT  TRANSACTION

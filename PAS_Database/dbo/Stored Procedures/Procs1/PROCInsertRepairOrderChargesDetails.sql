@@ -13,6 +13,7 @@
  ** --   --------     -------			  --------------------------------          
     1    			  No-History
 	2    02-08-2024   AMIT GHEDIYA		  Handle for update VendorName etc.. name at Update & Insert Time.
+	3    02-12-2025   SAHDEV SALIYA       Entry for Updated in PDFPath is set to null.
 
 -- EXEC PROCInsertRepairOrderChargesDetails
 ************************************************************************/
@@ -139,6 +140,8 @@ BEGIN
 					END
 
 					SELECT top 1 @RepairOrderId = RepairOrderId FROM @TableRepairOrderChargesType
+
+					UPDATE [dbo].[RepairOrder] SET [PDFPath] = NULL WHERE [RepairOrderId] = @RepairOrderId
 
 					--EXEC UpdateRepairOrderChargeNameColumnsWithId @RepairOrderId
 					

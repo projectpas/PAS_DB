@@ -1,4 +1,5 @@
-﻿/*********************               
+﻿
+/*********************               
  ** File:   [SP_GetVendorRFQPNViewList]               
  ** Author:   -    
  ** Description: This stored procedure is used to GetVendorRFQPNViewList      
@@ -15,7 +16,7 @@
 	4    07/08/2024   Rajesh Gami		Return vendor Reference number for the make duplicate functionality.
 	5    24/09/2025   Amit Ghediya		Vendor Filter
 	6    08/10/2025   Devendra Shekh	Added New Parameters @SourceBy,@MarketplaceRef And as same as for Select
-
+	7    04/12/2025   RAJESH GAMI		ADDED: @CustomerRFQNo and functionality while getting the list
 **********************/  
 
 CREATE   PROCEDURE [dbo].[SP_GetVendorRFQPNViewList]  
@@ -58,7 +59,8 @@ CREATE   PROCEDURE [dbo].[SP_GetVendorRFQPNViewList]
 @Level4Type varchar(200)=null,  
 @Memo VARCHAR(200) =NULL,
 @SourceBy varchar(50)=NULL,
-@MarketplaceRef varchar(50)=NULL
+@MarketplaceRef varchar(50)=NULL,
+@CustomerRFQNo varchar(400)=NULL
 AS  
 BEGIN  
 SET NOCOUNT ON;  
@@ -67,7 +69,7 @@ SET NOCOUNT ON;
   DECLARE @IsActive bit=1  
   DECLARE @Count Int,@TotalCount int = 0;  
   SET @RecordFrom = (@PageNumber-1)*@PageSize;  
-  
+  DECLARE @poModuleId INT = (SELECT TOP 1 ModuleId FROM dbo.Module WITH(NOLOCK) Where ModuleName = 'PurchaseOrder' AND ISNULL(IsActive,0) = 1 AND ISNULL(IsDeleted,0) = 0 )
   IF @IsDeleted IS NULL  
   BEGIN  
    SET @IsDeleted=0  
@@ -115,11 +117,17 @@ SET NOCOUNT ON;
      PO.UpdatedBy,PO.IsActive,PO.IsDeleted,PO.StatusId,PO.VendorId,PO.VendorName,PO.VendorCode,PO.[Status],  
      PO.Requisitioner AS RequestedBy,PO.VendorReference AS VendorReference,
 	 CASE WHEN ISNULL(SourceBy,'') = '' THEN 'PAS' ELSE PO.SourceBy END SourceBy, 
-	 ISNULL(PO.MarketplaceRef,'') MarketplaceRef
+	 ISNULL(PO.MarketplaceRef,'') MarketplaceRef,
+	 ISNULL(rfqData.RfqId,'-') as CustomerRFQNo
      FROM VendorRFQPurchaseOrder PO WITH (NOLOCK)  
      INNER JOIN dbo.PurchaseOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @MSModuleID AND MSD.ReferenceID = PO.VendorRFQPurchaseOrderId  
      INNER JOIN [dbo].[RoleManagementStructure] RMS WITH (NOLOCK) ON PO.ManagementStructureId = RMS.EntityStructureId  
      INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId  
+	 OUTER APPLY ( SELECT TOP 1 rfq.RfqId FROM dbo.VendorRFQPurchaseOrderPart part WITH(NOLOCK) 
+					INNER JOIN DBO.VendorRFQPart rfqPart WITH(NOLOCK) ON part.PurchaseOrderId = rfqPart.ReferenceId AND rfqPart.ModuleId = @poModuleId 
+					INNER JOIN DBO.ILSRFQPart ilsPart WITH(NOLOCK) ON rfqPart.ILSRFQDetailId = ilsPart.ILSRFQDetailId 
+					INNER JOIN DBO.CustomerRfq rfq WITH(NOLOCK) ON ilsPart.CustomerRfqId = rfq.CustomerRfqId
+					WHERE part.VendorRFQPurchaseOrderId =PO.VendorRFQPurchaseOrderId) rfqData
       WHERE ((PO.IsDeleted = @IsDeleted) AND (@StatusID IS NULL OR PO.StatusId = @StatusID))   
       AND PO.MasterCompanyId = @MasterCompanyId 
 	  AND (@VendorId IS NULL OR PO.VendorId = @VendorId))   
@@ -127,7 +135,7 @@ SET NOCOUNT ON;
    SELECT 
 	DISTINCT M.VendorRFQPurchaseOrderId,M.VendorRFQPurchaseOrderNumber,M.OpenDate,M.ClosedDate,M.CreatedDate,M.CreatedBy,M.UpdatedDate,  
      M.UpdatedBy,M.IsActive,M.IsDeleted,M.StatusId,M.VendorId,M.VendorName,M.VendorCode,M.[Status],  
-     M.RequestedBy AS RequestedBy,VendorReference, SourceBy, MarketplaceRef,
+     M.RequestedBy AS RequestedBy,VendorReference, SourceBy, MarketplaceRef,CustomerRFQNo,
      (Select SUM(QuantityOrdered) as QuantityOrdered from VendorRFQPurchaseOrderPart WITH (NOLOCK)   
      Where VendorRFQPurchaseOrderId = M.VendorRFQPurchaseOrderId AND IsDeleted=0 AND IsActive=1) as QuantityOrdered,  
      (Select SUM(UnitCost) as UnitCost from VendorRFQPurchaseOrderPart WITH (NOLOCK)   
@@ -214,7 +222,7 @@ SET NOCOUNT ON;
     
      GROUP BY M.VendorRFQPurchaseOrderId,VendorRFQPurchaseOrderNumber,OpenDate,ClosedDate,M.CreatedDate,M.CreatedBy,M.UpdatedDate,  
      M.UpdatedBy,M.IsActive,M.IsDeleted,M.StatusId,VendorId,VendorName,VendorCode,M.[Status],UnitCost,QuantityOrdered,  
-     RequestedBy,SP.PartNumber,SP.PartDescription, VendorReference, SourceBy, MarketplaceRef,
+     RequestedBy,SP.PartNumber,SP.PartDescription, VendorReference, SourceBy, MarketplaceRef,CustomerRFQNo,
      SP.StockType ,
 	 SP.VendorRFQPurchaseOrderId
      ,SP.Manufacturer,SP.Priority,SP.NeedByDate,SP.PromisedDate,sp.Memo,sp.Level1,sp.Level2,sp.Level3,sp.Level4  
@@ -244,6 +252,7 @@ SET NOCOUNT ON;
      (PromisedDateType LIKE '%' +@GlobalFilter+'%') OR 
 	 (SourceBy like '%' +@GlobalFilter+'%') OR
 	 (MarketplaceRef like '%' +@GlobalFilter+'%') OR
+	 (CustomerRFQNo like '%' +@GlobalFilter+'%') OR	 
      ([Status]  LIKE '%' +@GlobalFilter+'%')))  
      OR     
      (@GlobalFilter='' AND (ISNULL(@VendorRFQPurchaseOrderNumber,'') ='' OR VendorRFQPurchaseOrderNumber LIKE '%' + @VendorRFQPurchaseOrderNumber+'%') AND   
@@ -272,6 +281,7 @@ SET NOCOUNT ON;
 	 (ISNULL(@mgmtStructure,'') ='' OR LastMSLevel LIKE '%' + @mgmtStructure + '%') AND
 	 (ISNULL(@SourceBy,'') ='' OR SourceBy LIKE '%'+@SourceBy+'%') AND  
 	 (ISNULL(@MarketplaceRef,'') ='' OR MarketplaceRef LIKE '%'+@MarketplaceRef+'%') AND  
+	 (ISNULL(@CustomerRFQNo,'') ='' OR CustomerRFQNo LIKE '%'+@CustomerRFQNo+'%') AND 	 
      --(ISNULL(@Level2Type,'') ='' OR Level2 LIKE '%' + @Level2Type + '%') AND  
      --(ISNULL(@Level3Type,'') ='' OR Level3 LIKE '%' + @Level3Type + '%') AND  
      --(ISNULL(@Level4Type,'') ='' OR Level4 LIKE '%' + @Level4Type + '%') AND       
@@ -280,7 +290,7 @@ SET NOCOUNT ON;
 
 	 SELECT VendorRFQPurchaseOrderId,VendorRFQPurchaseOrderNumber,OpenDate,ClosedDate,CreatedDate,CreatedBy,UpdatedDate,  
      UpdatedBy,IsActive,IsDeleted,StatusId,VendorId,VendorName,VendorCode,[Status],UnitCost,QuantityOrdered  
-     ,RequestedBy,VendorReference, SourceBy, MarketplaceRef,
+     ,RequestedBy,VendorReference, SourceBy, MarketplaceRef,CustomerRFQNo,
 	 (Case When (SELECT Count(tc.VendorRFQPurchaseOrderId) FROM #TEMPData tc WHERE td.VendorRFQPurchaseOrderId = tc.VendorRFQPurchaseOrderId) > 1 Then 'Multiple' ELse MAX(td.PartNumber) End)  as 'PartNumber',
 	 (Case When (SELECT Count(tc.VendorRFQPurchaseOrderId) FROM #TEMPData tc WHERE td.VendorRFQPurchaseOrderId = tc.VendorRFQPurchaseOrderId) > 1 Then 'Multiple' ELse MAX(td.PartDescription) End)  as 'PartDescription',
 	 (Case When (SELECT Count(tc.VendorRFQPurchaseOrderId) FROM #TEMPData tc WHERE td.VendorRFQPurchaseOrderId = tc.VendorRFQPurchaseOrderId) > 1 Then 'Multiple' ELse MAX(td.PartNumberType) End)  as 'PartNumberType',
@@ -299,7 +309,7 @@ SET NOCOUNT ON;
    group by  
    VendorRFQPurchaseOrderId,VendorRFQPurchaseOrderNumber,OpenDate,ClosedDate,CreatedDate,CreatedBy,UpdatedDate,  
      UpdatedBy,IsActive,IsDeleted,StatusId,VendorId,VendorName,VendorCode,[Status],UnitCost,QuantityOrdered  
-     ,RequestedBy,VendorReference, SourceBy, MarketplaceRef,
+     ,RequestedBy,VendorReference, SourceBy, MarketplaceRef,CustomerRFQNo,
 	 --PartNumber,PartDescription,PartNumberType,PartDescriptionType,
 	 StockTypeType,  
      ManufacturerType,PriorityType,
@@ -314,7 +324,7 @@ SET NOCOUNT ON;
 	 	 SET @TotalCount = (SELECT COUNT(VendorRFQPurchaseOrderId) FROM #finalTemp)
    SELECT VendorRFQPurchaseOrderId,VendorRFQPurchaseOrderNumber,OpenDate,ClosedDate,CreatedDate,CreatedBy,UpdatedDate,  
      UpdatedBy,IsActive,IsDeleted,StatusId,VendorId,VendorName,VendorCode,[Status],UnitCost,QuantityOrdered  
-     ,RequestedBy,VendorReference,SourceBy, MarketplaceRef,
+     ,RequestedBy,VendorReference,SourceBy, MarketplaceRef,CustomerRFQNo,
 	 --(Case When (SELECT Count(tc.VendorRFQPurchaseOrderId) FROM #TEMPData tc WHERE td.VendorRFQPurchaseOrderId = tc.VendorRFQPurchaseOrderId) > 1 Then 'Multiple' ELse MAX(td.PartNumber) End)  as 'PartNumber',
 	 --(Case When (SELECT Count(tc.VendorRFQPurchaseOrderId) FROM #TEMPData tc WHERE td.VendorRFQPurchaseOrderId = tc.VendorRFQPurchaseOrderId) > 1 Then 'Multiple' ELse MAX(td.PartDescription) End)  as 'PartDescription',
 	 --(Case When (SELECT Count(tc.VendorRFQPurchaseOrderId) FROM #TEMPData tc WHERE td.VendorRFQPurchaseOrderId = tc.VendorRFQPurchaseOrderId) > 1 Then 'Multiple' ELse MAX(td.PartNumberType) End)  as 'PartNumberType',
@@ -336,7 +346,7 @@ SET NOCOUNT ON;
    group by  
    VendorRFQPurchaseOrderId,VendorRFQPurchaseOrderNumber,OpenDate,ClosedDate,CreatedDate,CreatedBy,UpdatedDate,  
      UpdatedBy,IsActive,IsDeleted,StatusId,VendorId,VendorName,VendorCode,[Status],UnitCost,QuantityOrdered  
-     ,RequestedBy,VendorReference,SourceBy, MarketplaceRef,
+     ,RequestedBy,VendorReference,SourceBy, MarketplaceRef,CustomerRFQNo,
 	 PartNumber,PartDescription,PartNumberType,PartDescriptionType,
 	 StockTypeType,  
      ManufacturerType,PriorityType,
@@ -405,7 +415,9 @@ SET NOCOUNT ON;
    CASE WHEN (@SortOrder=1  AND @SortColumn='SourceBy')  THEN SourceBy END ASC,  
    CASE WHEN (@SortOrder=-1 AND @SortColumn='SourceBy')  THEN SourceBy END DESC,
    CASE WHEN (@SortOrder=1  AND @SortColumn='MarketplaceRef')  THEN MarketplaceRef END ASC,  
-   CASE WHEN (@SortOrder=-1 AND @SortColumn='MarketplaceRef')  THEN MarketplaceRef END DESC
+   CASE WHEN (@SortOrder=-1 AND @SortColumn='MarketplaceRef')  THEN MarketplaceRef END DESC,
+   CASE WHEN (@SortOrder=1  AND @SortColumn='CustomerRFQNo')  THEN CustomerRFQNo END ASC,  
+   CASE WHEN (@SortOrder=-1 AND @SortColumn='CustomerRFQNo')  THEN CustomerRFQNo END DESC   
 
   
    OFFSET @RecordFrom ROWS   

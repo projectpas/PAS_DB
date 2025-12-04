@@ -31,6 +31,7 @@
 	17   17-11-2025  Devendra Shekh		 Modified (added new Param : @VendorRFQId, @PurchaseOrderNumber, @VendorRFQPurchaseOrderNumber)
     18   03-12-2025  Rajesh Gami		 Added Quote Sent Date (@QuoteSentDate)
 	19   03-12-2025  Moin Bloch		     Modified Changed Quoted Column Status
+	20   04-12-2025  Devendra Shekh		 Modified (added @SendQuote)
 -- EXEC USP_GetReceivedRfqList 
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[USP_GetReceivedRfqList]
@@ -67,7 +68,8 @@ CREATE   PROCEDURE [dbo].[USP_GetReceivedRfqList]
 	@Quantity INT = NULL,
 	@VendorRFQId VARCHAR(100) = NULL,
 	@PurchaseOrderNumber VARCHAR(MAX) = NULL,
-	@VendorRFQPurchaseOrderNumber VARCHAR(MAX) = NULL
+	@VendorRFQPurchaseOrderNumber VARCHAR(MAX) = NULL,
+	@SendQuote VARCHAR(100) = NULL
 AS
 BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
@@ -421,6 +423,7 @@ BEGIN
 							(VendorRFQId like '%'+@GlobalFilter+'%') OR
 							(PurchaseOrderNumber like '%'+@GlobalFilter+'%') OR
 							(VendorRFQPurchaseOrderNumber like '%'+@GlobalFilter+'%') OR
+							(QuoteStatus like '%'+@GlobalFilter+'%') OR
 							(RefrenceQuoteNumber like '%'+@GlobalFilter+'%')
 							))
 							OR   
@@ -448,6 +451,7 @@ BEGIN
 							(IsNull(@PurchaseOrderNumber,'') ='' OR PurchaseOrderNumber like '%'+ @PurchaseOrderNumber +'%') and
 							(IsNull(@VendorRFQPurchaseOrderNumber,'') ='' OR VendorRFQPurchaseOrderNumber like '%'+ @VendorRFQPurchaseOrderNumber +'%') and
 							(IsNull(@Quantity,'') ='' OR CAST(Quantity AS VARCHAR(20)) like '%' + CAST(@Quantity AS VARCHAR(20)) + '%') and 
+							(IsNull(@SendQuote,'') ='' OR QuoteStatus like '%'+ @SendQuote +'%') and
 							(IsNull(@CreatedDate,'') ='' OR Cast(CreatedDate as Date)=Cast(@CreatedDate as date)) and
 							(IsNull(@UpdatedDate,'') ='' OR Cast(UpdatedDate as date)=Cast(@UpdatedDate as date)))
 							)),
@@ -483,6 +487,7 @@ BEGIN
 					CASE WHEN (@SortOrder=1 and @SortColumn='VendorRFQId')  THEN VendorRFQId END ASC,
 					CASE WHEN (@SortOrder=1 and @SortColumn='PurchaseOrderNumber')  THEN PurchaseOrderNumber END ASC,
 					CASE WHEN (@SortOrder=1 and @SortColumn='VendorRFQPurchaseOrderNumber')  THEN VendorRFQPurchaseOrderNumber END ASC,
+					CASE WHEN (@SortOrder=1 and @SortColumn='SendQuote')  THEN QuoteStatus END ASC,
 
 					CASE WHEN (@SortOrder=-1 and @SortColumn='CUSTOMERRFQID')  THEN CustomerRfqId END DESC,
 					CASE WHEN (@SortOrder=-1 and @SortColumn='RFQID')  THEN RfqId END DESC,
@@ -509,7 +514,8 @@ BEGIN
 					CASE WHEN (@SortOrder=-1 and @SortColumn='Quantity')  THEN Quantity END DESC,
 					CASE WHEN (@SortOrder=-1 and @SortColumn='VendorRFQId')  THEN VendorRFQId END DESC,
 					CASE WHEN (@SortOrder=-1 and @SortColumn='PurchaseOrderNumber')  THEN PurchaseOrderNumber END DESC,
-					CASE WHEN (@SortOrder=-1 and @SortColumn='VendorRFQPurchaseOrderNumber')  THEN VendorRFQPurchaseOrderNumber END DESC
+					CASE WHEN (@SortOrder=-1 and @SortColumn='VendorRFQPurchaseOrderNumber')  THEN VendorRFQPurchaseOrderNumber END DESC,
+					CASE WHEN (@SortOrder=-1 and @SortColumn='SendQuote')  THEN QuoteStatus END DESC
 					OFFSET @RecordFrom ROWS 
 					FETCH NEXT @PageSize ROWS ONLY
 

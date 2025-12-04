@@ -15,6 +15,7 @@
 	3    27/08/2025	  Devendra Shekh	added PriceType
 	4    09/10/2025	  Devendra Shekh	added CustomerRfqId
 	5    13/10/2025   Devendra Shekh	added CustomerRfqId to Part Level
+	6    04/12/2025	  Devendra Shekh	added RFQSentDate
 **************************************************************
  EXEC USP_ThirdPartySendRFQDetailById 49,145,1 
 **************************************************************/
@@ -71,7 +72,8 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 					   part.MasterCompanyId,
 					   part.VendorName,
 					   ird.PriceType,
-					   part.CustomerRfqId
+					   part.CustomerRfqId,
+					   tr.CreatedDate AS 'RFQSentDate'
 			    FROM Dbo.ILSRFQPart part WITH(NOLOCK)
 					INNER JOIN Dbo.ILSRFQDetail ird WITH(NOLOCK) on part.ILSRFQDetailId = ird.ILSRFQDetailId
 					INNER JOIN Dbo.ThirdPartyRFQ tr WITH(NOLOCK)  on ird.ThirdPartyRFQId = tr.ThirdPartyRFQId

@@ -10,6 +10,7 @@
  ** PR     Date					Author		     		Change Description            
  ** --    --------				-------					-------------------------------          
     1     14-Nov-2025			Devendra Shekh			Created
+	2	  04-Dec-2025			Ayushi Patel			Filtered documents by AiIntegrationSetting DocumentType
 
 EXEC [usp_GetRFQPOAndPODocumentsByReferenceId]  1407,1,46
 **************************************************************/ 
@@ -30,7 +31,7 @@ BEGIN
 				@SOQ_DocModuleId INT = 0,
 				@PORerenceIds VARCHAR(MAX) = '',
 				@RFQPORerenceIds VARCHAR(MAX) = '';
-
+		
 		SELECT @PO_DocModuleId = [AttachmentModuleId] FROM [dbo].[AttachmentModule] WITH(NOLOCK) WHERE [Name] = 'PurchaseOrder';
 		SELECT @VRFQPO_DocModuleId = [AttachmentModuleId] FROM [dbo].[AttachmentModule] WITH(NOLOCK) WHERE [Name] = 'VendorRFQPurchaseOrder';
 		SELECT @SOQ_DocModuleId = [AttachmentModuleId] FROM [dbo].[AttachmentModule] WITH(NOLOCK) WHERE [Name] = 'SalesQuote';
@@ -70,7 +71,16 @@ BEGIN
 			INNER JOIN DBO.CommonDocumentDetails cdd WITH(NOLOCK) ON ad.AttachmentId = cdd.AttachmentId
 			WHERE cdd.MasterCompanyId = @MasterCompanyId			
 			AND ISNULL(cdd.IsActive,1) = 1 
-			AND ISNULL(cdd.IsDeleted,0) = 0		
+			AND ISNULL(cdd.IsDeleted,0) = 0	
+			AND cdd.DocumentTypeId IN (
+				SELECT TRY_CAST(value AS INT)
+				FROM STRING_SPLIT(
+					(SELECT DocumentTypeId 
+					 FROM AiIntegrationSetting 
+					 WHERE MasterCompanyId = @MasterCompanyId), 
+					','
+				)
+			 )
 			AND ((cdd.ModuleId = @PO_DocModuleId AND cdd.ReferenceId IN (SELECT ITEM FROM dbo.SplitString(ISNULL(@PORerenceIds, ''), ',')))
 			OR	(cdd.ModuleId = @VRFQPO_DocModuleId AND cdd.ReferenceId IN (SELECT ITEM FROM dbo.SplitString(ISNULL(@RFQPORerenceIds, ''), ',')))
 			)

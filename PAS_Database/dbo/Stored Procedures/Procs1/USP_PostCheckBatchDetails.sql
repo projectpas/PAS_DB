@@ -119,7 +119,7 @@ BEGIN
 		SELECT @CheckAmount = SUM(ISNULL(PaymentMade,0)),@DiscountAmount = SUM(ISNULL(DiscountToken,0)),@TotalAmount = SUM(ISNULL(PaymentMade,0)) + SUM(ISNULL(DiscountToken,0)),@CheckNumber = MAX(CheckNumber),@CheckDate = MAX(CheckDate)
 		FROM VendorReadyToPayDetails WITH(NOLOCK) WHERE ReadyToPayId = @ReadyToPayId AND ReadyToPayDetailsId = @ReadyToPayDetailsId AND VendorId = @VendorId AND [PaymentMethodId] = @Check; 	 		
 
-		SELECT @MasterCompanyId=MasterCompanyId,@UpdateBy=CreatedBy from dbo.VendorReadyToPayHeader WITH(NOLOCK) WHERE ReadyToPayId = @ReadyToPayId
+		SELECT @MasterCompanyId=MasterCompanyId,@UpdateBy=CreatedBy,@legalEntityId = [LegalEntityId] from dbo.VendorReadyToPayHeader WITH(NOLOCK) WHERE ReadyToPayId = @ReadyToPayId
 		SELECT @DistributionMasterId =ID,@DistributionCode =DistributionCode from DistributionMaster WITH(NOLOCK)  WHERE UPPER(DistributionCode)= UPPER('CheckPayment')	
 		SELECT @StatusId =Id,@StatusName=name from BatchStatus WITH(NOLOCK)  WHERE Name= 'Open'
 		SELECT top 1 @JournalTypeId =JournalTypeId from DistributionSetup WITH(NOLOCK)  WHERE DistributionMasterId =@DistributionMasterId
@@ -157,6 +157,20 @@ BEGIN
 			SET @ValidDistribution = 0;
 		END
 
+		IF(@ValidDistribution = 0)
+		BEGIN
+			 IF(ISNULL(@legalEntityId,0) > 0)
+			 BEGIN
+				 SELECT @LEGLAccountId = [GLAccountId] FROM [DBO].[LegalEntityBankingCheque] WITH(NOLOCK) WHERE [LegalEntityId] = @legalEntityId AND [IsPrimary] = 1;
+			 
+				 IF(ISNULL(@LEGLAccountId,0) > 0)
+				 BEGIN
+					  SELECT @LEGlAccountName = [AccountName] FROM [DBO].[GLAccount] WITH(NOLOCK) WHERE [GLAccountId] = @LEGLAccountId;
+					  SET @ValidDistribution = 1;
+				 END
+			END
+		END
+
 		IF(ISNULL(@TotalAmount,0) > 0 AND @ValidDistribution = 1 AND @IsAccountByPass = 0)
 		BEGIN
 			SELECT TOP 1  @AccountingPeriodId=acc.AccountingCalendarId,@AccountingPeriod=PeriodName 
@@ -168,21 +182,10 @@ BEGIN
 
 			--Select from as save at payment time
 			SELECT @AccountingPeriodId = acc.[AccountingCalendarId],
-						 @AccountingPeriod = acc.[PeriodName],
-						 @legalEntityId = VRH.[LegalEntityId]
+						 @AccountingPeriod = acc.[PeriodName]						 
 			FROM [dbo].[VendorReadyToPayHeader] VRH WITH(NOLOCK)
 			INNER JOIN [dbo].[AccountingCalendar] acc WITH(NOLOCK) ON VRH.AccountingPeriodId = acc.AccountingCalendarId AND acc.IsDeleted = 0
-			WHERE VRH.ReadyToPayId = @ReadyToPayId;
-
-			IF(ISNULL(@legalEntityId,0) > 0)
-			BEGIN
-				 SELECT @LEGLAccountId = [GLAccountId] FROM [DBO].[LegalEntityBankingCheque] WITH(NOLOCK) WHERE [LegalEntityId] = @legalEntityId AND [IsPrimary] = 1;
-			 
-				 IF(ISNULL(@LEGLAccountId,0) > 0)
-				 BEGIN
-					  SELECT @LEGlAccountName = [AccountName] FROM [DBO].[GLAccount] WITH(NOLOCK) WHERE [GLAccountId] = @LEGLAccountId;
-				 END
-			END
+			WHERE VRH.ReadyToPayId = @ReadyToPayId;			
 
 			IF(EXISTS (SELECT 1 FROM #tmpCodePrefixes WHERE CodeTypeId = @CodeTypeId))
 			BEGIN 
@@ -277,6 +280,7 @@ BEGIN
 
 			 IF(ISNULL(@GlAccountId,0) = 0)
 			 BEGIN
+					print 'a'
 				  SET @GlAccountId = @LEGLAccountId;
 				  SET @LEGlAccountName = @LEGlAccountName;
 			 END
@@ -334,6 +338,7 @@ BEGIN
 
 					IF(ISNULL(@GlAccountId,0) = 0)
 					BEGIN
+						print 'a1'
 						  SET @GlAccountId = @LEGLAccountId;
 						  SET @LEGlAccountName = @LEGlAccountName;
 					END
@@ -372,7 +377,7 @@ BEGIN
 	
 
 					IF(ISNULL(@GlAccountId,0) = 0)
-					BEGIN
+					BEGIN print 'a2'
 						  SET @GlAccountId = @LEGLAccountId;
 						  SET @LEGlAccountName = @LEGlAccountName;
 					END

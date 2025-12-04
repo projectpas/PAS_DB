@@ -330,6 +330,40 @@ BEGIN
 					SET @ValidDistribution = 0;
 				END
 
+				IF(@ValidDistribution = 0)
+				BEGIN
+					IF(ISNULL(@legalEntityId,0) > 0)
+					BEGIN
+						 IF(@PaymentMethodId = @DomesticWire)
+						 BEGIN
+							  SELECT @LEGLAccountId = glac.[GLAccountId] 
+							  FROM	[DBO].[InternationalWirePayment] t WITH(NOLOCK)
+							INNER JOIN [DBO].[LegalEntityInternationalWireBanking] ad WITH(NOLOCK) ON t.[InternationalWirePaymentId] = ad.[InternationalWirePaymentId]
+							LEFT JOIN [DBO].[GLAccount] glac WITH(NOLOCK) ON t.[GLAccountId] = glac.[GLAccountId]
+							WHERE ad.[LegalEntityId] = @LegalEntityId AND t.MasterCompanyId = @masterCompanyId;
+						 END
+
+						 IF(@PaymentMethodId = @ACHTransfer)
+						 BEGIN
+							 SELECT @LEGLAccountId = a.[GLAccountId]
+							FROM [DBO].[ACH] AS A WITH(NOLOCK)
+							LEFT JOIN [DBO].[GLAccount] AS GL WITH(NOLOCK) ON A.[GLAccountId] = GL.[GLAccountId]
+							WHERE A.[LegalEntityId] = @LegalEntityId AND a.MasterCompanyId = @masterCompanyId
+						 END
+
+						 IF(@PaymentMethodId = @CreditCard)
+						 BEGIN
+							 SELECT @LEGLAccountId = [GLAccountId] FROM [DBO].[LegalEntityBankingCheque] WITH(NOLOCK) WHERE [LegalEntityId] = @legalEntityId AND [IsPrimary] = 1;
+						 END
+			 
+						 IF(ISNULL(@LEGLAccountId,0) > 0)
+						 BEGIN
+							  SELECT @LEGlAccountName = [AccountName] FROM [DBO].[GLAccount] WITH(NOLOCK) WHERE [GLAccountId] = @LEGLAccountId;
+							  SET @ValidDistribution = 1;
+						 END
+					END
+				END
+
 				IF(ISNULL(@TotalAmount,0) > 0 AND @ValidDistribution = 1 AND @IsAccountByPass = 0)
 				BEGIN
 					

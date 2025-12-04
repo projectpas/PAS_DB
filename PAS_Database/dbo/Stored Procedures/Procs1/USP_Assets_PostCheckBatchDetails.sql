@@ -28,6 +28,7 @@
    12    29/11/2024   Abhishek Jirawla  Removing update of Asset Inventory Status from here. This Sp is only used to post batch details
    13	 02/06/2025	  Abhishek Jirawla  Fixed Name concat read script
    14	 09/15/2025	  Devendra Shekh	Added Missing Columns for [CommonBatchDetails] Insert
+   15	 12/03/2025	  AMIT GHEDIYA		Added Missing accounting for Written Off
 **************************************************************/
 
 CREATE     PROCEDURE [dbo].[USP_Assets_PostCheckBatchDetails]
@@ -116,7 +117,7 @@ BEGIN
 		DECLARE @IntangibleWriteOffGLAccountId AS BIGINT = 0;
 		DECLARE @AccountMSModuleId INT = 0;
 		DECLARE @WrittenDownStatus VARCHAR(100) = 'WrittenDown';
-		DECLARE @WrittenOffStatus VARCHAR(100) = 'WrittenOff';
+		DECLARE @WrittenOffStatus VARCHAR(100) = 'Written Off';
 		DECLARE @SoldStatus VARCHAR(100) = 'Sold';
 		DECLARE @ModuleName VARCHAR(10) = 'AST';
 		DECLARE @IsAutoPost INT = 0;

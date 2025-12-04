@@ -35,6 +35,7 @@
 	18   05-MAY-2025  Abhishek Jirawla  Added ObtainFrom in Stockline
 	19   16-JUL-2025  Moin Bloch        Modified ObtainFromType As NULL when it comes 0
 	20   03-Dec-2025  Moin Bloch        Modified Fix Status Closed For Split Part
+	21   04-Dec-2025  Moin Bloch        Modified Fix For Asset Inverntory
 
 declare @p2 dbo.POPartsToReceive  
 insert into @p2 values(2371,4051,2)  
@@ -1686,7 +1687,7 @@ BEGIN
                     END
                     ELSE
                     BEGIN
-                        SET @LoopID = @QtyToReceive;
+                        SET @LoopID = @QtyToReceive;						
                     END
 
                     WHILE (@LoopID > 0)
@@ -1888,7 +1889,7 @@ BEGIN
                         DECLARE @SelectedIsSameDetailsForAllParts_Asset BIT = 0;
                         DECLARE @IsTimeLIfe_Asset BIT;
 
-                        SELECT @QtyAdded_Asset = CASE WHEN @IsSerializedPart = 1 THEN [Qty] ELSE CASE WHEN IsSameDetailsForAllParts = 0 THEN [Qty] ELSE @QtyToReceive END END,
+                        SELECT @QtyAdded_Asset = CASE WHEN @IsSerializedPart = 1 THEN [Qty] ELSE CASE WHEN ISNULL(IsSameDetailsForAllParts,0) = 0 THEN [Qty] ELSE 1 END END,
                                @SelectedIsSameDetailsForAllParts_Asset = IsSameDetailsForAllParts,
                                @PurchaseOrderUnitCostAdded_Asset = UnitCost
                         FROM #tmpAssetInventoryDraft WHERE AssetInventoryDraftId = @SelectedStockLineDraftId_Asset;
@@ -1937,9 +1938,10 @@ BEGIN
                         DECLARE @ModuleId_AssetMS BIGINT = CASE WHEN @IsTangible = 1 THEN 42 ELSE 43 END;
 
                         SELECT @ManagementStructureEntityId_Asset = [ManagementStructureId]
-                        FROM DBO.Stockline WITH (NOLOCK) WHERE StocklineId = @NewStocklineId_Asset;
-
+                        FROM DBO.AssetInventory WITH (NOLOCK) WHERE [AssetInventoryId] = @NewStocklineId_Asset;
+												
                         EXEC dbo.[PROCAddAssetMSData] @NewStocklineId_Asset, @ManagementStructureEntityId_Asset, @MasterCompanyId, @UpdatedBy, @UpdatedBy, @ModuleId_AssetMS, 1;
+											   
 
                         IF (@IsSerializedPart = 0 AND @SelectedIsSameDetailsForAllParts_Asset = 1)
                         BEGIN

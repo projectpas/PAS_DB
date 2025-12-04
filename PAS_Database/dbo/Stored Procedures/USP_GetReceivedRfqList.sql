@@ -230,12 +230,12 @@ BEGIN
 					CASE WHEN  RFQ.ModuleId = @SoqModuleId THEN CONVERT(DATE, DATEADD(SECOND, @BaseUtcOffsetSec, SOQ.[CreatedDate])) ELSE CONVERT(DATE, DATEADD(SECOND, @BaseUtcOffsetSec, RFQ.[QuotedDate])) END AS 'QuotedDate',
 					--CASE WHEN  RFQ.ModuleId = @SoqModuleId 
 					--	 THEN 
-					--		CASE WHEN (Select MAX(SOQA.CustomerApprovedDate) From DBO.SalesOrderQuoteApproval SOQA WITH(NOLOCK)  where SOQA.SalesOrderQuoteId =SOQ.SalesOrderQuoteId) IS NOT NULL THEN CONVERT(DATE, DATEADD(SECOND, @BaseUtcOffsetSec, (Select MAX(SOQA.CustomerApprovedDate) From DBO.SalesOrderQuoteApproval SOQA WITH(NOLOCK)  where SOQA.SalesOrderQuoteId  =SOQ.SalesOrderQuoteId))) ELSE NULL END
+					--		CASE WHEN (Select MAX(SOQA.CustomerSentDate) From DBO.SalesOrderQuoteApproval SOQA WITH(NOLOCK)  where SOQA.SalesOrderQuoteId =SOQ.SalesOrderQuoteId) IS NOT NULL THEN CONVERT(DATE, DATEADD(SECOND, @BaseUtcOffsetSec, (Select MAX(SOQA.CustomerSentDate) From DBO.SalesOrderQuoteApproval SOQA WITH(NOLOCK)  where SOQA.SalesOrderQuoteId  =SOQ.SalesOrderQuoteId))) ELSE NULL END
 					--	 ELSE NULL END AS 'quoteSentDate',
 					CASE WHEN  RFQ.ModuleId = @SoqModuleId 
 						 THEN 
-							CASE WHEN (Select TOP 1 SOQA.CustomerApprovedDate From dbo.SalesOrderQuotePartV1 SOQP WITH(NOLOCK)
-									INNER JOIN  DBO.SalesOrderQuoteApproval SOQA WITH(NOLOCK) ON SOQP.SalesOrderQuotePartId = SOQA.SalesOrderQuotePartId where SOQA.SalesOrderQuoteId =SOQ.SalesOrderQuoteId AND SOQP.PartNumber = RFQ.[LinePartNumber]) IS NOT NULL THEN CONVERT(DATE, DATEADD(SECOND, @BaseUtcOffsetSec, (Select SOQA.CustomerApprovedDate From dbo.SalesOrderQuotePartV1 SOQP WITH(NOLOCK) INNER JOIN  DBO.SalesOrderQuoteApproval SOQA WITH(NOLOCK) ON SOQP.SalesOrderQuotePartId = SOQA.SalesOrderQuotePartId where SOQA.SalesOrderQuoteId =SOQ.SalesOrderQuoteId AND SOQP.PartNumber =RFQ.[LinePartNumber]))) ELSE NULL END
+							CASE WHEN (Select TOP 1 SOQA.CustomerSentDate From dbo.SalesOrderQuotePartV1 SOQP WITH(NOLOCK)
+									INNER JOIN  DBO.SalesOrderQuoteApproval SOQA WITH(NOLOCK) ON SOQP.SalesOrderQuotePartId = SOQA.SalesOrderQuotePartId where SOQA.SalesOrderQuoteId =SOQ.SalesOrderQuoteId AND SOQP.PartNumber = RFQ.[LinePartNumber]) IS NOT NULL THEN CONVERT(DATE, DATEADD(SECOND, @BaseUtcOffsetSec, (Select SOQA.CustomerSentDate From dbo.SalesOrderQuotePartV1 SOQP WITH(NOLOCK) INNER JOIN  DBO.SalesOrderQuoteApproval SOQA WITH(NOLOCK) ON SOQP.SalesOrderQuotePartId = SOQA.SalesOrderQuotePartId where SOQA.SalesOrderQuoteId =SOQ.SalesOrderQuoteId AND SOQP.PartNumber =RFQ.[LinePartNumber]))) ELSE NULL END
 						 ELSE NULL END AS 'quoteSentDate',
 
 					CASE 
@@ -333,8 +333,8 @@ BEGIN
 					CASE WHEN  RFQ.ModuleId = @SoqModuleId THEN CONVERT(DATE, DATEADD(SECOND, @BaseUtcOffsetSec, SOQ.[CreatedDate])) ELSE CONVERT(DATE, DATEADD(SECOND, @BaseUtcOffsetSec, RFQ.[QuotedDate])) END AS 'QuotedDate',
 					CASE WHEN  RFQ.ModuleId = @SoqModuleId 
 						 THEN 
-							CASE WHEN (Select TOP 1 SOQA.CustomerApprovedDate From dbo.SalesOrderQuotePartV1 SOQP WITH(NOLOCK)
-									INNER JOIN  DBO.SalesOrderQuoteApproval SOQA WITH(NOLOCK) ON SOQP.SalesOrderQuotePartId = SOQA.SalesOrderQuotePartId where SOQA.SalesOrderQuoteId =SOQ.SalesOrderQuoteId AND SOQP.PartNumber = CRPM.[PartNumber]) IS NOT NULL THEN CONVERT(DATE, DATEADD(SECOND, @BaseUtcOffsetSec, (Select SOQA.CustomerApprovedDate From dbo.SalesOrderQuotePartV1 SOQP WITH(NOLOCK) INNER JOIN  DBO.SalesOrderQuoteApproval SOQA WITH(NOLOCK) ON SOQP.SalesOrderQuotePartId = SOQA.SalesOrderQuotePartId where SOQA.SalesOrderQuoteId =SOQ.SalesOrderQuoteId AND SOQP.PartNumber = CRPM.[PartNumber]))) ELSE NULL END
+							CASE WHEN (Select TOP 1 SOQA.CustomerSentDate From dbo.SalesOrderQuotePartV1 SOQP WITH(NOLOCK)
+									INNER JOIN  DBO.SalesOrderQuoteApproval SOQA WITH(NOLOCK) ON SOQP.SalesOrderQuotePartId = SOQA.SalesOrderQuotePartId where SOQA.SalesOrderQuoteId =SOQ.SalesOrderQuoteId AND SOQP.PartNumber = CRPM.[PartNumber]) IS NOT NULL THEN CONVERT(DATE, DATEADD(SECOND, @BaseUtcOffsetSec, (Select SOQA.CustomerSentDate From dbo.SalesOrderQuotePartV1 SOQP WITH(NOLOCK) INNER JOIN  DBO.SalesOrderQuoteApproval SOQA WITH(NOLOCK) ON SOQP.SalesOrderQuotePartId = SOQA.SalesOrderQuotePartId where SOQA.SalesOrderQuoteId =SOQ.SalesOrderQuoteId AND SOQP.PartNumber = CRPM.[PartNumber]))) ELSE NULL END
 						 ELSE NULL END AS 'quoteSentDate',
 					CASE 
 						WHEN RFQ.IsQuote = 1 THEN	CASE	WHEN QSR.Code = @AautoSendQuote THEN 'Auto' 

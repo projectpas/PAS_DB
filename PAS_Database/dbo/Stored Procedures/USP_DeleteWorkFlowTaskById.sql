@@ -22,7 +22,7 @@ BEGIN
 		BEGIN TRY
 			BEGIN
 				DECLARE @WorkFlowTaskId BIGINT;
-				SELECT @WorkFlowTaskId = WorkFlowTaskId FROM DBO.WorkFlowTask WHERE WorkFlowId = @WorkFlowId AND TaskId = @TaskId;
+				SELECT @WorkFlowTaskId = WorkFlowTaskId FROM DBO.WorkFlowTask WITH(NOLOCK) WHERE WorkFlowId = @WorkFlowId AND TaskId = @TaskId;
 
 				DELETE FROM DBO.WorkflowDirection WHERE WorkflowId = @WorkFlowId AND TaskId = @TaskId;
 				DELETE FROM DBO.WorkflowChargesList WHERE WorkflowId = @WorkFlowId AND TaskId = @TaskId;

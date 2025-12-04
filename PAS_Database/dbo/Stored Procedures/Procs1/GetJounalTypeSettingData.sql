@@ -21,7 +21,8 @@
     4    10/09/2024   Devendra Shekh		added case to select MasterCompanyId
 	5    17/09/2024   AMIT GHEDIYA			added AutoPost.
 	6    27/11/2025   Bhargav Saliya		Modified(Get GL accound code and name from the GLAcount Table instead of [DistributionSetup] table).
-	7    03/11/2025   Bhargav Saliya		Added Memo.
+	7    03/12/2025   Bhargav Saliya		Added Memo.
+	8    04/12/2025   Bhargav Saliya		Fixed Filter issues For [IsAutoPost] 
 
      
  EXECUTE [GetJounalTypeSettingData] 1
@@ -51,7 +52,7 @@ BEGIN
 					[ID] BIGINT NULL,
 					[IsEnforcePrint] BIT NULL,
 					[IsAppendtoBatch] BIT NULL,
-					[IsAutoPost] BIT NULL,
+					[IsAutoPost] VARCHAR(50) NULL,
 					[DistributionSetupID] BIGINT NULL,
 					[Name] VARCHAR(200) NULL,
 					[GlAccountId] BIGINT NULL,
@@ -97,7 +98,7 @@ BEGIN
 				INSERT INTO #GLAllocationResults ( [JournalTypeCode], [JournalTypeName], [ID], [IsEnforcePrint], [IsAppendtoBatch], [IsAutoPost],
 							[DistributionSetupID], [Name], [GlAccountId], [GlAccountName], [JournalTypeId], [DistributionMasterId], [IsDebit], [DisplayNumber], [MasterCompanyId], 
 							[CreatedBy], [UpdatedBy], [IsActive], [IsDeleted], [UpdatedDate], [CreatedDate], [CRDRType], [CRDRTypeName], [IsManualText], [ManualText], [SequenceNo],[Memo])
-				SELECT	[JournalTypeCode], [JournalTypeName], JTD.ID, [IsEnforcePrint], [IsAppendtoBatch], DS.[IsAutoPost],
+				SELECT	[JournalTypeCode], [JournalTypeName], JTD.ID, [IsEnforcePrint], [IsAppendtoBatch], (CASE WHEN ISNULL(DS.[IsAutoPost],0) = 1 THEN 'Yes' ELSE 'No' END),
 						DS.[ID], [Name], DS.[GlAccountId], (CASE WHEN ISNULL(G.[AccountCode], '') = '' THEN ISNULL(G.[AccountName], '') ELSE ISNULL(G.[AccountCode], '') + ' - ' + ISNULL(G.[AccountName], '') END),
 						JTD.[JournalTypeId], [DistributionMasterId], [IsDebit], [DisplayNumber], JTD.[MasterCompanyId], 
 						JTD.[CreatedBy], JTD.[UpdatedBy], JTD.[IsActive], JTD.[IsDeleted] ,isnull(JTD.UpdatedDate,GETUTCDATE()) as UpdatedDate ,isnull(JTD.CreatedDate,GETUTCDATE()) as CreatedDate,

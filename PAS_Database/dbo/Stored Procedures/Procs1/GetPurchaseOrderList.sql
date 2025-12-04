@@ -30,7 +30,7 @@
 	14   07-04-2025    Shrey Chandegara    Modified due to PN-12013
 	15  10-04-2025     Moin Bloch          Modified change logic for QuantityReceived
 	16  02-12-2025      Sahdev Saliya       Added New Field :- Priority
-      
+	17  04/12/2025		RAJESH GAMI			ADDED: @CustomerRFQNo and functionality while getting the list      
 **************************************************************/      
 CREATE    PROCEDURE [dbo].[GetPurchaseOrderList]
 	@PageNumber int = 1,
@@ -65,14 +65,17 @@ CREATE    PROCEDURE [dbo].[GetPurchaseOrderList]
 	@QuantityBackOrdered varchar(50)= null,
 	@QuantityReceived varchar(50)= null,
 	@IsUpdated BIT = NULL,  
-    @Priority varchar(100) = NULL      
+    @Priority varchar(100) = NULL,
+	@CustomerRFQNo varchar(400)=NULL
 AS      
 BEGIN      
 	SET NOCOUNT ON;       
 	DECLARE @RecordFrom int;      
 	DECLARE @IsActive bit=1      
 	DECLARE @Count Int;      
-	DECLARE @MSModuleID INT = 4; -- Employee Management Structure Module ID      
+	DECLARE @MSModuleID INT = 4; -- Employee Management Structure Module ID     
+	DECLARE @poModuleId INT = (SELECT TOP 1 ModuleId FROM dbo.Module WITH(NOLOCK) Where ModuleName = 'PurchaseOrder' AND ISNULL(IsActive,0) = 1 AND ISNULL(IsDeleted,0) = 0 )
+	
 	SET @RecordFrom = (@PageNumber-1)*@PageSize;      
       
 	IF @IsDeleted IS NULL      
@@ -164,7 +167,8 @@ BEGIN
 		[SalesOrderNumber] NVARCHAR(250),
 		[RepairOrderNumber] NVARCHAR(250),
 		[EstDeliveryType] NVARCHAR(MAX),
-		[Priority] varchar(100)      
+		[Priority] varchar(100),
+		[CustomerRFQNo] varchar(400)      
 	);
         
 	BEGIN TRY      
@@ -176,7 +180,7 @@ BEGIN
 			INSERT INTO #TempPurchaseOrders ([PurchaseOrderId],[PurchaseOrderNumber],[PurchaseOrderNo],[OpenDate],[ClosedDate],[CreatedDate],[CreatedBy],[UpdatedDate],[UpdatedBy],
 								[IsActive],[IsDeleted],[StatusId],[VendorId],[VendorName],[VendorCode],[Status],[RequestedBy],[ApprovedBy],[QuantityOrdered],[QuantityBackOrdered],
 								[QuantityReceived],[PartNumberType],[PartDescription],[ManufacturerType],[WorkOrderNumType],[SalesOrderNumberType],[RepairOrderNumberType],[WorkOrderNum],
-								[SalesOrderNumber],[RepairOrderNumber],[EstDeliveryType],[Priority])				              
+								[SalesOrderNumber],[RepairOrderNumber],[EstDeliveryType],[Priority],[CustomerRFQNo])				              
 				SELECT DISTINCT PO.PurchaseOrderId,
 					PO.PurchaseOrderNumber,
 					PO.PurchaseOrderNumber AS PurchaseOrderNo,
@@ -211,8 +215,13 @@ BEGIN
 					(CASE WHEN COUNT(POP.PurchaseOrderPartRecordId) > 1 AND COUNT(POP.RepairOrderId) > 1 THEN 'Multiple' ELse MAX(POP.ReapairOrderNo) End)  as 'RepairOrderNumber', 
 					(CASE WHEN COUNT(POP.PurchaseOrderPartRecordId) > 1 Then 'Multiple' ELse MAX(CAST(CONVERT(VARCHAR, POP.EstDeliveryDate, 101) AS VARCHAR(MAX))) END) AS 'EstDeliveryType',
 					(CASE WHEN COUNT(POP.PurchaseOrderPartRecordId) > 1 THEN 'Multiple' ELSE MAX(POP.[Priority]) END) AS 'Priority' 
+					ISNULL(rfqData.CustomerRFQNo,'-') AS CustomerRFQNo
 				FROM [dbo].[PurchaseOrder] PO WITH (NOLOCK)    
-				LEFT JOIN  [dbo].[PurchaseOrderPart] POP WITH (NOLOCK) ON POP.PurchaseOrderId = PO.PurchaseOrderId AND POP.isParent=1   
+				LEFT JOIN  [dbo].[PurchaseOrderPart] POP WITH (NOLOCK) ON POP.PurchaseOrderId = PO.PurchaseOrderId AND POP.isParent=1  
+				OUTER APPLY (SELECT TOP 1 rfq.RfqId CustomerRFQNo FROM DBO.VendorRFQPart rfqPart WITH(NOLOCK) 
+					INNER JOIN DBO.ILSRFQPart ilsPart WITH(NOLOCK) ON rfqPart.ILSRFQDetailId = ilsPart.ILSRFQDetailId 
+					INNER JOIN DBO.CustomerRfq rfq WITH(NOLOCK) ON ilsPart.CustomerRfqId = rfq.CustomerRfqId
+					WHERE rfqPart.ModuleId = @poModuleId AND rfqPart.ReferenceId = PO.PurchaseOrderId) rfqData
 				WHERE ((PO.IsDeleted = @IsDeleted) AND (@StatusID IS NULL OR PO.StatusId = @StatusID))      
 				AND PO.MasterCompanyId = @MasterCompanyId AND (ISNULL(@IsUpdated,0) <> 1 OR ISNULL(PO.IsUpdated,0) = ISNULL(@IsUpdated,0))   
 				AND (@VendorId IS NULL OR PO.VendorId = @VendorId)
@@ -232,7 +241,7 @@ BEGIN
 					PO.VendorCode,  
 					PO.[Status],
 					PO.Requisitioner,
-					PO.ApprovedBy				 
+					PO.ApprovedBy,rfqData.CustomerRFQNo				 
 	
 	UPDATE TMP
 	SET TMP.WorkOrderNumType = WODATA.WorkOrderNumType
@@ -265,7 +274,7 @@ BEGIN
 			CAST(M.EstDeliveryType AS VARCHAR(MAX)) as 'EstDeliveryType',
 			0 as PurchaseOrderPartRecordId      
 			,M.QuantityOrdered,M.QuantityBackOrdered,M.QuantityReceived ,
-			M.[Priority]
+			M.[Priority],M.CustomerRFQNo
 		FROM #TempPurchaseOrders M    
 		WHERE ((@GlobalFilter <>'' AND ((PurchaseOrderNumber LIKE '%' +@GlobalFilter+'%') OR      
 			(CreatedBy LIKE '%' +@GlobalFilter+'%') OR      
@@ -273,7 +282,8 @@ BEGIN
 			(VendorName LIKE '%' +@GlobalFilter+'%') OR        
 			(RequestedBy LIKE '%' +@GlobalFilter+'%') OR      
 			(ApprovedBy LIKE '%' +@GlobalFilter+'%') OR           
-			([Status]  LIKE '%' +@GlobalFilter+'%') OR      
+			([Status]  LIKE '%' +@GlobalFilter+'%') OR
+			(M.CustomerRFQNo like '%' +@GlobalFilter+'%') OR    
 			(M.PartNumberType like '%' +@GlobalFilter+'%') OR      
 			(M.PartDescription like '%' +@GlobalFilter+'%') OR      
 			(M.ManufacturerType like '%' +@GlobalFilter+'%') OR      
@@ -296,7 +306,8 @@ BEGIN
 			(ISNULL(@CreatedDate, '') = '' OR CAST(CreatedDate AS Date) = CAST(@CreatedDate AS date)) AND      
 			(ISNULL(@UpdatedDate, '') = '' OR CAST(UpdatedDate AS date) = CAST(@UpdatedDate AS date)) AND      
 			(IsNull(@PartNumberType, '') = '' OR M.PartNumberType like '%'+ @PartNumberType +'%') and      
-			(IsNull(@PartDescription, '') = '' OR M.PartDescription like '%'+ @PartDescription +'%') and      
+			(IsNull(@PartDescription, '') = '' OR M.PartDescription like '%'+ @PartDescription +'%') and   
+			(IsNull(@CustomerRFQNo, '') = '' OR M.CustomerRFQNo like '%'+ @CustomerRFQNo +'%') and   		
 			(ISNULL(@EstDeliveryType, '') = '' OR M.EstDeliveryType like '%'+ @EstDeliveryType +'%') AND      
 			(IsNull(@ManufacturerType, '') = '' OR M.ManufacturerType like '%'+ @ManufacturerType +'%') and      
 			(IsNull(@SalesOrderNumberType, '') = '' OR M.SalesOrderNumberType like '%'+ @SalesOrderNumberType +'%') and      
@@ -311,7 +322,7 @@ BEGIN
 			SELECT PurchaseOrderId,PurchaseOrderNumber,PurchaseOrderNo,OpenDate,ClosedDate,CreatedDate,CreatedBy,UpdatedDate,UpdatedBy,IsActive,IsDeleted      
 			,StatusId,VendorId,VendorName,VendorCode,[Status],RequestedBy,ApprovedBy,'' PartNumber,PartNumberType,PartDescription,'' Manufacturer,ManufacturerType,WorkOrderNumType,SalesOrderNumberType,RepairOrderNumberType, RepairOrderNumber , SalesOrderNumber,WorkOrderNum,
       
-			CreatedDate,UpdatedDate,NumberOfItems,CreatedBy,UpdatedBy, '' EstDeliveryDate,EstDeliveryType,PurchaseOrderPartRecordId,QuantityOrdered,QuantityBackOrdered,QuantityReceived,[Priority] FROM ResultData,CTE_Count      
+			CreatedDate,UpdatedDate,NumberOfItems,CreatedBy,UpdatedBy, '' EstDeliveryDate,EstDeliveryType,PurchaseOrderPartRecordId,QuantityOrdered,QuantityBackOrdered,QuantityReceived,[Priority],CustomerRFQNo FROM ResultData,CTE_Count      
 		ORDER BY      
          
 			CASE WHEN (@SortOrder=1  AND @SortColumn='PurchaseOrderId')  THEN PurchaseOrderId END ASC,
@@ -363,7 +374,9 @@ BEGIN
 			CASE WHEN (@SortOrder=1  AND @SortColumn='estDeliveryType')  THEN estDeliveryType END ASC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='estDeliveryType')  THEN estDeliveryType END DESC,
 			CASE WHEN (@SortOrder=1 and @SortColumn='PRIORITY')  THEN [Priority] END ASC,
-	        CASE WHEN (@SortOrder=-1 and @SortColumn='PRIORITY')  THEN [Priority] END DESC
+	        CASE WHEN (@SortOrder=-1 and @SortColumn='PRIORITY')  THEN [Priority] END DESC,
+			CASE WHEN (@SortOrder=1 and @SortColumn='CustomerRFQNo')  THEN CustomerRFQNo END ASC,
+			CASE WHEN (@SortOrder=-1 and @SortColumn='CustomerRFQNo')  THEN CustomerRFQNo END DESC
 
 		OFFSET @RecordFrom ROWS       
 		FETCH NEXT @PageSize ROWS ONLY      
@@ -408,10 +421,17 @@ BEGIN
 			POP.[QuantityOrdered] - ISNULL(POP.[QuantityReceived],0) [QuantityBackOrdered],	
 			--ISNULL(POP.QuantityOrdered,0) - ISNULL(POP.QuantityBackOrdered,0) AS QuantityReceived,  
 			ISNULL(POP.[QuantityReceived],0) [QuantityReceived],
-			POP.[Priority]
+			POP.[Priority],
+			ISNULL(rfqData.CustomerRFQNo,'-') as CustomerRFQNo
 		FROM  [dbo].[PurchaseOrder] PO WITH (NOLOCK)  
 			INNER JOIN #tmpPurchaseOrderUserRole MSD WITH (NOLOCK) ON MSD.ReferenceID = PO.PurchaseOrderId
-			LEFT JOIN [dbo].[PurchaseOrderPart] POP WITH (NOLOCK) ON POP.PurchaseOrderId = PO.PurchaseOrderId AND POP.isParent=1      
+			LEFT JOIN [dbo].[PurchaseOrderPart] POP WITH (NOLOCK) ON POP.PurchaseOrderId = PO.PurchaseOrderId AND POP.isParent=1			
+			OUTER APPLY ( SELECT TOP 1 rfq.RfqId CustomerRFQNo FROM dbo.PurchaseOrderPart part WITH(NOLOCK) 
+					INNER JOIN DBO.VendorRFQPart rfqPart WITH(NOLOCK) ON part.PurchaseOrderId = rfqPart.ReferenceId AND rfqPart.ModuleId = @poModuleId 
+					INNER JOIN DBO.ILSRFQPart ilsPart WITH(NOLOCK) ON rfqPart.ILSRFQDetailId = ilsPart.ILSRFQDetailId 
+					INNER JOIN DBO.CustomerRfq rfq WITH(NOLOCK) ON ilsPart.CustomerRfqId = rfq.CustomerRfqId
+					WHERE part.PurchaseOrderId =PO.PurchaseOrderId) rfqData
+
 		WHERE ((PO.IsDeleted = @IsDeleted) AND (@StatusID IS NULL OR PO.StatusId = @StatusID)) AND PO.MasterCompanyId = @MasterCompanyId    
 				AND (@VendorId IS NULL OR PO.VendorId = @VendorId)
 		
@@ -427,7 +447,8 @@ BEGIN
 				(ApprovedBy LIKE '%' +@GlobalFilter+'%') OR           
 				([Status]  LIKE '%' +@GlobalFilter+'%') OR      
 				(PartNumber LIKE '%' +@GlobalFilter+'%') OR      
-				(PartDescription LIKE '%' +@GlobalFilter+'%') OR      
+				(PartDescription LIKE '%' +@GlobalFilter+'%') OR
+				(CustomerRFQNo LIKE '%' +@GlobalFilter+'%') OR  
 				(Manufacturer LIKE '%' +@GlobalFilter+'%') OR      
 				(SalesOrderNumberType LIKE '%' +@GlobalFilter+'%') OR      
 				(WorkOrderNumType LIKE '%' +@GlobalFilter+'%') OR      
@@ -448,7 +469,8 @@ BEGIN
 				(ISNULL(@CreatedDate,'') ='' OR CAST(CreatedDate AS Date)=CAST(@CreatedDate AS date)) AND      
 				(ISNULL(@UpdatedDate,'') ='' OR CAST(UpdatedDate AS date)=CAST(@UpdatedDate AS date)) AND      
 				(ISNULL(@PartNumberType,'') ='' OR PartNumber like '%'+ @PartNumberType+'%') AND      
-				(ISNULL(@PartDescription,'') ='' OR PartDescription like '%'+ @PartDescription+'%') AND      
+				(ISNULL(@PartDescription,'') ='' OR PartDescription like '%'+ @PartDescription+'%') AND 
+				(ISNULL(@CustomerRFQNo,'') ='' OR CustomerRFQNo like '%'+ @CustomerRFQNo+'%') AND 
 				(ISNULL(@EstDeliveryType,'') ='' OR EstDeliveryDateMulti like '%'+ @EstDeliveryType+'%') and      
 				(ISNULL(@ManufacturerType,'') ='' OR Manufacturer like '%'+ @ManufacturerType +'%') AND      
 				(ISNULL(@SalesOrderNumberType,'') ='' OR SalesOrderNumberType like '%'+@SalesOrderNumberType+'%') AND      
@@ -502,7 +524,9 @@ BEGIN
 	  CASE WHEN (@SortOrder=1  AND @SortColumn='quantityBackOrdered')  THEN cast(quantityBackOrdered as bigint) END ASC,
 	  CASE WHEN (@SortOrder=-1 AND @SortColumn='quantityBackOrdered')  THEN cast(quantityBackOrdered as bigint) END DESC ,
 	  CASE WHEN (@SortOrder=1 and @SortColumn='PRIORITY')  THEN [Priority] END ASC,
-	  CASE WHEN (@SortOrder=-1 and @SortColumn='PRIORITY')  THEN [Priority] END DESC
+	  CASE WHEN (@SortOrder=-1 and @SortColumn='PRIORITY')  THEN [Priority] END DESC,
+	  CASE WHEN (@SortOrder=1 and @SortColumn='CustomerRFQNo')  THEN CustomerRFQNo END ASC,
+	  CASE WHEN (@SortOrder=-1 and @SortColumn='CustomerRFQNo')  THEN CustomerRFQNo END DESC
 
 	  OFFSET @RecordFrom ROWS       
 	  FETCH NEXT @PageSize ROWS ONLY      

@@ -21,6 +21,7 @@
     4    10/09/2024   Devendra Shekh		added case to select MasterCompanyId
 	5    17/09/2024   AMIT GHEDIYA			added AutoPost.
 	6    27/11/2025   Bhargav Saliya		Modified(Get GL accound code and name from the GLAcount Table instead of [DistributionSetup] table).
+	7    03/11/2025   Bhargav Saliya		Added Memo.
 
      
  EXECUTE [GetJounalTypeSettingData] 1
@@ -68,7 +69,8 @@ BEGIN
 					[CRDRType] INT NULL,
 					[CRDRTypeName] VARCHAR(30) NULL,
 					[IsManualText] BIT NULL,
-					[ManualText] VARCHAR(100) NULL
+					[ManualText] VARCHAR(100) NULL,
+					[Memo] VARCHAR(MAX) NULL
 				)
 
 				;WITH JournalTypeData AS (
@@ -94,7 +96,7 @@ BEGIN
 
 				INSERT INTO #GLAllocationResults ( [JournalTypeCode], [JournalTypeName], [ID], [IsEnforcePrint], [IsAppendtoBatch], [IsAutoPost],
 							[DistributionSetupID], [Name], [GlAccountId], [GlAccountName], [JournalTypeId], [DistributionMasterId], [IsDebit], [DisplayNumber], [MasterCompanyId], 
-							[CreatedBy], [UpdatedBy], [IsActive], [IsDeleted], [UpdatedDate], [CreatedDate], [CRDRType], [CRDRTypeName], [IsManualText], [ManualText], [SequenceNo])
+							[CreatedBy], [UpdatedBy], [IsActive], [IsDeleted], [UpdatedDate], [CreatedDate], [CRDRType], [CRDRTypeName], [IsManualText], [ManualText], [SequenceNo],[Memo])
 				SELECT	[JournalTypeCode], [JournalTypeName], JTD.ID, [IsEnforcePrint], [IsAppendtoBatch], DS.[IsAutoPost],
 						DS.[ID], [Name], DS.[GlAccountId], (CASE WHEN ISNULL(G.[AccountCode], '') = '' THEN ISNULL(G.[AccountName], '') ELSE ISNULL(G.[AccountCode], '') + ' - ' + ISNULL(G.[AccountName], '') END),
 						JTD.[JournalTypeId], [DistributionMasterId], [IsDebit], [DisplayNumber], JTD.[MasterCompanyId], 
@@ -103,7 +105,7 @@ BEGIN
 						CASE	WHEN CRDRType=1 THEN 'DR' 
 								WHEN CRDRType=0 THEN 'CR'
 								WHEN CRDRType=2 THEN 'DR/CR' ELSE '' END as 'CRDRTypeName',
-						ISNULL(IsManualText,0) IsManualText, ISNULL(ManualText, '') ManualText, [SequenceNo]
+						ISNULL(IsManualText,0) IsManualText, ISNULL(ManualText, '') ManualText, [SequenceNo],Memo
 				FROM JournalTypeData JTD WITH(NOLOCK) 
 				LEFT JOIN dbo.DistributionSetup DS WITH(NOLOCK) ON DS.JournalTypeID = JTD.JournalTypeId AND DS.MasterCompanyId = JTD.MasterCompanyId
 				LEFT JOIN dbo.GLAccount G WITH(NOLOCK) ON DS.GlAccountId = G.GlAccountId AND DS.MasterCompanyId = G.MasterCompanyId;

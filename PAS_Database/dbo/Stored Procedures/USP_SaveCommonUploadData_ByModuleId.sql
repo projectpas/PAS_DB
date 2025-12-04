@@ -35,6 +35,8 @@
 	25 	 20-Nov-2025        Divyesh Kathiriya		Added new field for "ItemMaster"
 	26   26-Nov-2025        Ayushi Patel            Updated dynamic INSERT/UPDATE queries to wrap ReferenceTable, ParentTable, and ChildTable names in [ ] to prevent syntax errors when table names are reserved keywords (e.g., Percent).
 	29	 02-DEC-2025        Ayushi Patel			Added New SingleScreen Modules
+	30	 04-Dec-2025        Divyesh Kathiriya		Handle new line "/r/n" in All Filed
+
 exec USP_SaveCommonUploadData_ByModuleId @ModuleId=4,@UserName=N'VICTOR ADMAS',@MasterCompanyId=1, @EmployeeId = 236;
 **************************************************************/
 CREATE PROCEDURE [dbo].[USP_SaveCommonUploadData_ByModuleId]
@@ -155,7 +157,7 @@ BEGIN
 		CREATE TABLE #DynamicKeyValue (
 			[RecordId] [bigint] IDENTITY(1,1) NOT NULL,
 			[FieldName] VARCHAR(100) NULL, 
-			[FieldValue] VARCHAR(100) NULL, 
+			[FieldValue] VARCHAR(MAX) NULL, 
 			[RecordStatus] [varchar](max) NULL
 		);
 
@@ -176,6 +178,14 @@ BEGIN
 			TRUNCATE TABLE #DynamicKeyValue;
 
 			SELECT @UploadRecord = [RecordData] FROM #uploadDataResults WHERE [RecordId] = @CurrentRecord;
+
+------------START: Handle new line "/r/n"------------
+
+			SET @UploadRecord = REPLACE(@UploadRecord, CHAR(13) + CHAR(10), '\r\n');
+			SET @UploadRecord = REPLACE(@UploadRecord, CHAR(13), '\r\n');
+			SET @UploadRecord = REPLACE(@UploadRecord, CHAR(10), '\n');
+
+------------END: Handle new line "/r/n"------------
 
 			SET @UploadRecord = CASE WHEN @ModuleId = @PriceMasterModule OR @ModuleId = @PurchaseSalesModule  OR @ModuleId = @MROPriceMasterModule   OR @ModuleId = @MROPriceMasterListModule THEN  JSON_MODIFY(@UploadRecord, '$.ManufacturerId', NULL) ELSE @UploadRecord END; 
 

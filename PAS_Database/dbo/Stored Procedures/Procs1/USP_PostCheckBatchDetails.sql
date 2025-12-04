@@ -94,6 +94,9 @@ BEGIN
 		DECLARE @ReferenceModule VARCHAR(100) = 'CHEQUE';
 		DECLARE @legalEntityId BIGINT = NULL;
 
+		DECLARE @LEGLAccountId BIGINT = 0;
+		DECLARE	@LEGlAccountName VARCHAR(200) = NULL;
+
 		SELECT @Check = [VendorPaymentMethodId] FROM [VendorPaymentMethod] WITH(NOLOCK) WHERE Description = 'Check'; 
 		SELECT @AccountMSModuleId = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] ='Accounting';
 
@@ -170,6 +173,16 @@ BEGIN
 			FROM [dbo].[VendorReadyToPayHeader] VRH WITH(NOLOCK)
 			INNER JOIN [dbo].[AccountingCalendar] acc WITH(NOLOCK) ON VRH.AccountingPeriodId = acc.AccountingCalendarId AND acc.IsDeleted = 0
 			WHERE VRH.ReadyToPayId = @ReadyToPayId;
+
+			IF(ISNULL(@legalEntityId,0) > 0)
+			BEGIN
+				 SELECT @LEGLAccountId = [GLAccountId] FROM [DBO].[LegalEntityBankingCheque] WITH(NOLOCK) WHERE [LegalEntityId] = @legalEntityId AND [IsPrimary] = 1;
+			 
+				 IF(ISNULL(@LEGLAccountId,0) > 0)
+				 BEGIN
+					  SELECT @LEGlAccountName = [AccountName] FROM [DBO].[GLAccount] WITH(NOLOCK) WHERE [GLAccountId] = @LEGLAccountId;
+				 END
+			END
 
 			IF(EXISTS (SELECT 1 FROM #tmpCodePrefixes WHERE CodeTypeId = @CodeTypeId))
 			BEGIN 
@@ -262,6 +275,11 @@ BEGIN
 			 from DistributionSetup WITH(NOLOCK)  WHERE DistributionSetupCode = 'CKSACCPAYBLE'
 			 AND DistributionMasterId = @DistributionMasterId AND MasterCompanyId = @MasterCompanyId
 
+			 IF(ISNULL(@GlAccountId,0) = 0)
+			 BEGIN
+				  SET @GlAccountId = @LEGLAccountId;
+				  SET @LEGlAccountName = @LEGlAccountName;
+			 END
 
 			 INSERT INTO [dbo].[CommonBatchDetails]
 				(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],
@@ -314,6 +332,11 @@ BEGIN
 					--  SELECT @GlAccountId = [GLAccountId] , @GlAccountNumber = [AccountCode],@GlAccountName = [AccountName] FROM [DBO].[GLAccount] WITH(NOLOCK) WHERE [GLAccountId] = @GLAccountId;
 					--END
 
+					IF(ISNULL(@GlAccountId,0) = 0)
+					BEGIN
+						  SET @GlAccountId = @LEGLAccountId;
+						  SET @LEGlAccountName = @LEGlAccountName;
+					END
 
 					INSERT INTO [dbo].[CommonBatchDetails]
 					(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],
@@ -347,6 +370,12 @@ BEGIN
 					 from DistributionSetup WITH(NOLOCK)  WHERE  DistributionSetupCode = 'CKSDISCOUNTTAKEN' 
 					 AND DistributionMasterId = @DistributionMasterId AND MasterCompanyId = @MasterCompanyId
 	
+
+					IF(ISNULL(@GlAccountId,0) = 0)
+					BEGIN
+						  SET @GlAccountId = @LEGLAccountId;
+						  SET @LEGlAccountName = @LEGlAccountName;
+					END
 
 					INSERT INTO [dbo].[CommonBatchDetails]
 					(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],

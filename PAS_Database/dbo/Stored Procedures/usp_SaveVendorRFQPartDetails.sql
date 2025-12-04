@@ -12,6 +12,7 @@
     2    28-Aug-2025		Devendra Shekh		  Modified (added ModuleRef Related Changes)
     3    25-Sep-2025		Devendra Shekh		  Modified (Added Merge Insert/Update Changes)
 	4    04-Nov-2025		Devendra Shekh		  Modified (Getting VendorRFQPurchaseOrderNumber, RFQReferenceId, RFQModuleId Based On [PurChaseOrder]-[VendorRFQPurchaseOrderPart])
+	5    04-Dec-2025		Devendra Shekh		  Modified (added CreatedDate)
 
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[usp_SaveVendorRFQPartDetails] (
@@ -134,14 +135,14 @@ SET NOCOUNT ON
 		OUTER APPLY
 		(
 			SELECT * FROM (
-				SELECT [ILSRFQDetailId], VRFQP.[MasterCompanyId], VPO.VendorRFQPurchaseOrderNumber AS ReferenceNumber, VPO.VendorRFQPurchaseOrderId AS RFQReferenceId, @RFQPOModuleId AS RFQModuleId
+				SELECT [ILSRFQDetailId], VRFQP.[MasterCompanyId], VPO.VendorRFQPurchaseOrderNumber AS ReferenceNumber, VPO.VendorRFQPurchaseOrderId AS RFQReferenceId, @RFQPOModuleId AS RFQModuleId, VRFQP.CreatedDate
 				,COUNT(*) OVER (PARTITION BY [ILSRFQDetailId], [ModuleId]) AS RefModCount
 				FROM [DBO].[VendorRFQPart] VRFQP WITH(NOLOCK)
 				INNER JOIN DBO.PurchaseOrder PO WITH(NOLOCK) ON PO.PurchaseOrderId = VRFQP.ReferenceId
 				INNER JOIN DBO.VendorRFQPurchaseOrderPart VPOP WITH(NOLOCK) ON VPOP.PurchaseOrderId = PO.PurchaseOrderId
 				INNER JOIN DBO.VendorRFQPurchaseOrder VPO WITH(NOLOCK) ON VPO.VendorRFQPurchaseOrderId = VPOP.VendorRFQPurchaseOrderId
 				WHERE	ISNULL(VRFQP.[IsDeleted], 0) = 0 AND ISNULL(VRFQP.[IsActive], 0) = 1 AND VRFQP.[MasterCompanyId] = TMP.MasterCompanyId AND ISNULL([ModuleId], 0) = @POModuleId AND VRFQP.[VendorRFQPartId] = TMP.VendorRFQPartId
-						GROUP BY [ILSRFQDetailId], VRFQP.[MasterCompanyId], VPO.VendorRFQPurchaseOrderNumber, VPO.[VendorRFQPurchaseOrderId], [ModuleId]
+						GROUP BY [ILSRFQDetailId], VRFQP.[MasterCompanyId], VPO.VendorRFQPurchaseOrderNumber, VPO.[VendorRFQPurchaseOrderId], [ModuleId], VRFQP.CreatedDate
 				) AS t
 			WHERE t.RefModCount = 1
 		) RFQResult WHERE RFQResult.ILSRFQDetailId = TMP.ILSRFQDetailId AND RFQResult.MasterCompanyId = TMP.MasterCompanyId

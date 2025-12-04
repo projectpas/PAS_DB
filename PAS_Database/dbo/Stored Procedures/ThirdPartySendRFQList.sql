@@ -17,6 +17,7 @@
 	5    09-10-2025   Devendra Shekh  Added ReferenceId, ModuleId
 	6    14-10-2025   Devendra Shekh  Added VendorRFQPurchaseOrderNumber, RFQReferenceId, RFQModuleId
 	7    04-11-2025   Devendra Shekh  Getting VendorRFQPurchaseOrderNumber, RFQReferenceId, RFQModuleId Based On [PurChaseOrder]-[VendorRFQPurchaseOrderPart]
+	8    04-12-2025   Devendra Shekh  Modified to DateTime For rfqSentDate, vendorResponseDate
 **************************************************************
 **************************************************************/
 CREATE   PROCEDURE [dbo].[ThirdPartySendRFQList]
@@ -205,11 +206,11 @@ BEGIN
                        Upper(part.UpdatedBy) UpdatedBy,
 					   (CASE WHEN LOWER(TRIM(part.[PartNumber])) = LOWER(TRIM(IM.[partnumber])) THEN IM.[ItemMasterId] ELSE 0 END) ItemMasterId,
 					   (CASE WHEN LOWER(TRIM(part.[AltPartNumber])) = LOWER(TRIM(IMSC.[partnumber])) THEN IMSC.[ItemMasterId] ELSE 0 END) AltItemMasterId,
-					   CONVERT(DATE, DATEADD(SECOND, @BaseUtcOffsetSec, tr.CreatedDate)) AS 'RFQSentDate',
+					   CONVERT(DATETIME, DATEADD(SECOND, @BaseUtcOffsetSec, tr.CreatedDate)) AS 'RFQSentDate',
 					   part.VendorName,
 					   VRFQ.ReferenceNumber AS 'VendorRFQReferenceNumber',
 					   CASE WHEN ISNULL(VRFQ.[ILSRFQDetailId], 0) > 0 THEN 'YES' ELSE 'NO' END AS 'VendorResponseReceived',
-					   CONVERT(DATE, DATEADD(SECOND, @BaseUtcOffsetSec, VRFQ.[CreatedDate])) AS 'VendorResponseDate',
+					   CONVERT(DATETIME, DATEADD(SECOND, @BaseUtcOffsetSec, VRFQ.[CreatedDate])) AS 'VendorResponseDate',
 					   (
 							SELECT STRING_AGG(VendorName, ', ')
 							FROM (

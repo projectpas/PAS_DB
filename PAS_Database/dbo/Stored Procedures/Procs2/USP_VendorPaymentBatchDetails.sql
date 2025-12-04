@@ -113,6 +113,10 @@ BEGIN
 		DECLARE @IsAutoPost INT = 0;
 		DECLARE @IsBatchGenerated INT = 0;
 
+		DECLARE @legalEntityId BIGINT = NULL;
+		DECLARE @LEGLAccountId BIGINT = 0;
+		DECLARE	@LEGlAccountName VARCHAR(200) = NULL;
+
 		SELECT @Check = [VendorPaymentMethodId] FROM [VendorPaymentMethod] WITH(NOLOCK) WHERE Description = 'Check'; 
 		SELECT @DomesticWire = [VendorPaymentMethodId] FROM [VendorPaymentMethod] WITH(NOLOCK) WHERE Description = 'Domestic Wire';
 		SELECT @InternationalWire = [VendorPaymentMethodId] FROM [VendorPaymentMethod] WITH(NOLOCK) WHERE Description = 'International Wire';
@@ -309,13 +313,13 @@ BEGIN
 
 				SELECT @IsAccountByPass = [IsAccountByPass] FROM [dbo].[MasterCompany] WITH(NOLOCK) WHERE [MasterCompanyId] = @MasterCompanyId;
 
-				SELECT @BankGLAccId = G.[GLAccountId] 
+				SELECT @BankGLAccId = G.[GLAccountId],
+					   @legalEntityId = V.[LegalEntityId]
 				  FROM [dbo].[LegalEntityBankingLockBox] LB WITH(NOLOCK)
 				  INNER JOIN [dbo].[VendorReadyToPayHeader] V WITH(NOLOCK) ON LB.LegalEntityBankingLockBoxId = V.BankId
 				   LEFT JOIN [dbo].[GLAccount] G WITH(NOLOCK) ON LB.GLAccountId = G.GLAccountId
-				  WHERE [ReadyToPayId] = @ReadyToPayId;
-				  				
-		
+				  WHERE [ReadyToPayId] = @ReadyToPayId;		
+						
 				IF EXISTS(SELECT 1 FROM [dbo].[DistributionSetup] WITH(NOLOCK) WHERE [DistributionMasterId] = @DistributionMasterId AND [MasterCompanyId] = @MasterCompanyId AND ISNULL([GlAccountId],0) = 0 AND ISNULL([IsManualText],0) = 0)
 				BEGIN
 					SET @ValidDistribution = 0;
@@ -324,6 +328,40 @@ BEGIN
 				IF (ISNULL(@BankGLAccId,0) = 0)
 				BEGIN
 					SET @ValidDistribution = 0;
+				END
+
+				IF(@ValidDistribution = 0)
+				BEGIN
+					IF(ISNULL(@legalEntityId,0) > 0)
+					BEGIN
+						 IF(@PaymentMethodId = @DomesticWire)
+						 BEGIN
+							  SELECT @LEGLAccountId = glac.[GLAccountId] 
+							  FROM	[DBO].[InternationalWirePayment] t WITH(NOLOCK)
+							INNER JOIN [DBO].[LegalEntityInternationalWireBanking] ad WITH(NOLOCK) ON t.[InternationalWirePaymentId] = ad.[InternationalWirePaymentId]
+							LEFT JOIN [DBO].[GLAccount] glac WITH(NOLOCK) ON t.[GLAccountId] = glac.[GLAccountId]
+							WHERE ad.[LegalEntityId] = @LegalEntityId AND t.MasterCompanyId = @masterCompanyId;
+						 END
+
+						 IF(@PaymentMethodId = @ACHTransfer)
+						 BEGIN
+							 SELECT @LEGLAccountId = a.[GLAccountId]
+							FROM [DBO].[ACH] AS A WITH(NOLOCK)
+							LEFT JOIN [DBO].[GLAccount] AS GL WITH(NOLOCK) ON A.[GLAccountId] = GL.[GLAccountId]
+							WHERE A.[LegalEntityId] = @LegalEntityId AND a.MasterCompanyId = @masterCompanyId
+						 END
+
+						 IF(@PaymentMethodId = @CreditCard)
+						 BEGIN
+							 SELECT @LEGLAccountId = [GLAccountId] FROM [DBO].[LegalEntityBankingCheque] WITH(NOLOCK) WHERE [LegalEntityId] = @legalEntityId AND [IsPrimary] = 1;
+						 END
+			 
+						 IF(ISNULL(@LEGLAccountId,0) > 0)
+						 BEGIN
+							  SELECT @LEGlAccountName = [AccountName] FROM [DBO].[GLAccount] WITH(NOLOCK) WHERE [GLAccountId] = @LEGLAccountId;
+							  SET @ValidDistribution = 1;
+						 END
+					END
 				END
 
 				IF(ISNULL(@TotalAmount,0) > 0 AND @ValidDistribution = 1 AND @IsAccountByPass = 0)
@@ -522,7 +560,43 @@ BEGIN
 															END
 						     AND [DistributionMasterId] = @DistributionMasterId 
 						     AND [MasterCompanyId] = @MasterCompanyId
-							 
+					
+					IF(ISNULL(@legalEntityId,0) > 0)
+					BEGIN
+						 IF(@PaymentMethodId = @DomesticWire)
+						 BEGIN
+							  SELECT @LEGLAccountId = glac.[GLAccountId] 
+							  FROM	[DBO].[InternationalWirePayment] t WITH(NOLOCK)
+							INNER JOIN [DBO].[LegalEntityInternationalWireBanking] ad WITH(NOLOCK) ON t.[InternationalWirePaymentId] = ad.[InternationalWirePaymentId]
+							LEFT JOIN [DBO].[GLAccount] glac WITH(NOLOCK) ON t.[GLAccountId] = glac.[GLAccountId]
+							WHERE ad.[LegalEntityId] = @LegalEntityId AND t.MasterCompanyId = @masterCompanyId;
+						 END
+
+						 IF(@PaymentMethodId = @ACHTransfer)
+						 BEGIN
+							 SELECT @LEGLAccountId = a.[GLAccountId]
+							FROM [DBO].[ACH] AS A WITH(NOLOCK)
+							LEFT JOIN [DBO].[GLAccount] AS GL WITH(NOLOCK) ON A.[GLAccountId] = GL.[GLAccountId]
+							WHERE A.[LegalEntityId] = @LegalEntityId AND a.MasterCompanyId = @masterCompanyId
+						 END
+
+						 IF(@PaymentMethodId = @CreditCard)
+						 BEGIN
+							 SELECT @LEGLAccountId = [GLAccountId] FROM [DBO].[LegalEntityBankingCheque] WITH(NOLOCK) WHERE [LegalEntityId] = @legalEntityId AND [IsPrimary] = 1;
+						 END
+			 
+						 IF(ISNULL(@LEGLAccountId,0) > 0)
+						 BEGIN
+							  SELECT @LEGlAccountName = [AccountName] FROM [DBO].[GLAccount] WITH(NOLOCK) WHERE [GLAccountId] = @LEGLAccountId;
+						 END
+					END
+					
+					IF(ISNULL(@GlAccountId,0) = 0)
+					BEGIN
+						  SET @GlAccountId = @LEGLAccountId;
+						  SET @LEGlAccountName = @LEGlAccountName;
+					END
+
 					INSERT INTO [dbo].[CommonBatchDetails]
 							   ([JournalBatchDetailId]
 							   ,[JournalTypeNumber]
@@ -632,6 +706,12 @@ BEGIN
 						--	 LEFT JOIN [dbo].[GLAccount] G WITH(NOLOCK) ON LB.[GLAccountId] = G.[GLAccountId]
 						--	WHERE [ReadyToPayId] = @ReadyToPayId;
 							
+						IF(ISNULL(@GlAccountId,0) = 0)
+						BEGIN
+							  SET @GlAccountId = @LEGLAccountId;
+							  SET @LEGlAccountName = @LEGlAccountName;
+						END
+
 						INSERT INTO [dbo].[CommonBatchDetails]
 							       ([JournalBatchDetailId]
 							       ,[JournalTypeNumber]
@@ -737,6 +817,12 @@ BEGIN
 															END
 						         AND [DistributionMasterId] = @DistributionMasterId 
 						         AND [MasterCompanyId] = @MasterCompanyId;					
+
+						IF(ISNULL(@GlAccountId,0) = 0)
+						BEGIN
+							  SET @GlAccountId = @LEGLAccountId;
+							  SET @LEGlAccountName = @LEGlAccountName;
+						END
 
 						INSERT INTO [dbo].[CommonBatchDetails]
 							        ([JournalBatchDetailId]

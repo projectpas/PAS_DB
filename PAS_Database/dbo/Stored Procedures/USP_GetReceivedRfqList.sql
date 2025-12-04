@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿
+/*************************************************************           
  ** File:   [USP_GetReceivedRfqList]           
  ** Author:  Rajesh Gami
  ** Description: This stored procedure is used Get Received Rfq List data
@@ -235,7 +236,7 @@ BEGIN
 					CASE WHEN  RFQ.ModuleId = @SoqModuleId 
 						 THEN 
 							CASE WHEN (Select TOP 1 SOQA.CustomerSentDate From dbo.SalesOrderQuotePartV1 SOQP WITH(NOLOCK)
-									INNER JOIN  DBO.SalesOrderQuoteApproval SOQA WITH(NOLOCK) ON SOQP.SalesOrderQuotePartId = SOQA.SalesOrderQuotePartId where SOQA.SalesOrderQuoteId =SOQ.SalesOrderQuoteId AND SOQP.PartNumber = RFQ.[LinePartNumber]) IS NOT NULL THEN CONVERT(DATE, DATEADD(SECOND, @BaseUtcOffsetSec, (Select SOQA.CustomerSentDate From dbo.SalesOrderQuotePartV1 SOQP WITH(NOLOCK) INNER JOIN  DBO.SalesOrderQuoteApproval SOQA WITH(NOLOCK) ON SOQP.SalesOrderQuotePartId = SOQA.SalesOrderQuotePartId where SOQA.SalesOrderQuoteId =SOQ.SalesOrderQuoteId AND SOQP.PartNumber =RFQ.[LinePartNumber]))) ELSE NULL END
+									INNER JOIN  DBO.SalesOrderQuoteApproval SOQA WITH(NOLOCK) ON SOQP.SalesOrderQuotePartId = SOQA.SalesOrderQuotePartId where SOQA.SalesOrderQuoteId =SOQ.SalesOrderQuoteId AND SOQP.PartNumber = RFQ.[LinePartNumber]) IS NOT NULL THEN CONVERT(DATE, DATEADD(SECOND, @BaseUtcOffsetSec, (Select  top 1 SOQA.CustomerSentDate From dbo.SalesOrderQuotePartV1 SOQP WITH(NOLOCK) INNER JOIN  DBO.SalesOrderQuoteApproval SOQA WITH(NOLOCK) ON SOQP.SalesOrderQuotePartId = SOQA.SalesOrderQuotePartId where SOQA.SalesOrderQuoteId =SOQ.SalesOrderQuoteId AND SOQP.PartNumber =RFQ.[LinePartNumber]))) ELSE NULL END
 						 ELSE NULL END AS 'quoteSentDate',
 
 					CASE 
@@ -334,7 +335,7 @@ BEGIN
 					CASE WHEN  RFQ.ModuleId = @SoqModuleId 
 						 THEN 
 							CASE WHEN (Select TOP 1 SOQA.CustomerSentDate From dbo.SalesOrderQuotePartV1 SOQP WITH(NOLOCK)
-									INNER JOIN  DBO.SalesOrderQuoteApproval SOQA WITH(NOLOCK) ON SOQP.SalesOrderQuotePartId = SOQA.SalesOrderQuotePartId where SOQA.SalesOrderQuoteId =SOQ.SalesOrderQuoteId AND SOQP.PartNumber = CRPM.[PartNumber]) IS NOT NULL THEN CONVERT(DATE, DATEADD(SECOND, @BaseUtcOffsetSec, (Select SOQA.CustomerSentDate From dbo.SalesOrderQuotePartV1 SOQP WITH(NOLOCK) INNER JOIN  DBO.SalesOrderQuoteApproval SOQA WITH(NOLOCK) ON SOQP.SalesOrderQuotePartId = SOQA.SalesOrderQuotePartId where SOQA.SalesOrderQuoteId =SOQ.SalesOrderQuoteId AND SOQP.PartNumber = CRPM.[PartNumber]))) ELSE NULL END
+									INNER JOIN  DBO.SalesOrderQuoteApproval SOQA WITH(NOLOCK) ON SOQP.SalesOrderQuotePartId = SOQA.SalesOrderQuotePartId where SOQA.SalesOrderQuoteId =SOQ.SalesOrderQuoteId AND SOQP.PartNumber = CRPM.[PartNumber]) IS NOT NULL THEN CONVERT(DATE, DATEADD(SECOND, @BaseUtcOffsetSec, (Select top 1 SOQA.CustomerSentDate From dbo.SalesOrderQuotePartV1 SOQP WITH(NOLOCK) INNER JOIN  DBO.SalesOrderQuoteApproval SOQA WITH(NOLOCK) ON SOQP.SalesOrderQuotePartId = SOQA.SalesOrderQuotePartId where SOQA.SalesOrderQuoteId =SOQ.SalesOrderQuoteId AND SOQP.PartNumber = CRPM.[PartNumber]))) ELSE NULL END
 						 ELSE NULL END AS 'quoteSentDate',
 					CASE 
 						WHEN RFQ.IsQuote = 1 THEN	CASE	WHEN QSR.Code = @AautoSendQuote THEN 'Auto' 
@@ -580,6 +581,13 @@ BEGIN
 		IF @@trancount > 0
 			PRINT 'ROLLBACK'
 			ROLLBACK TRAN;
+			SELECT
+    ERROR_NUMBER() AS ErrorNumber,
+    ERROR_STATE() AS ErrorState,
+    ERROR_SEVERITY() AS ErrorSeverity,
+    ERROR_PROCEDURE() AS ErrorProcedure,
+    ERROR_LINE() AS ErrorLine,
+    ERROR_MESSAGE() AS ErrorMessage;
 			DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name() 
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
             , @AdhocComments     VARCHAR(150)    = 'USP_GetReceivedRfqList' 

@@ -280,7 +280,6 @@ BEGIN
 
 			 IF(ISNULL(@GlAccountId,0) = 0)
 			 BEGIN
-					print 'a'
 				  SET @GlAccountId = @LEGLAccountId;
 				  SET @LEGlAccountName = @LEGlAccountName;
 			 END
@@ -338,7 +337,6 @@ BEGIN
 
 					IF(ISNULL(@GlAccountId,0) = 0)
 					BEGIN
-						print 'a1'
 						  SET @GlAccountId = @LEGLAccountId;
 						  SET @LEGlAccountName = @LEGlAccountName;
 					END
@@ -377,7 +375,7 @@ BEGIN
 	
 
 					IF(ISNULL(@GlAccountId,0) = 0)
-					BEGIN print 'a2'
+					BEGIN 
 						  SET @GlAccountId = @LEGLAccountId;
 						  SET @LEGlAccountName = @LEGlAccountName;
 					END

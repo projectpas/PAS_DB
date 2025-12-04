@@ -16,6 +16,7 @@
  ** PR   Date				Author			Change Description            
  ** --   --------			-------			--------------------------------          
     1    02-April-2025   Bhargav Saliya		Created
+	2    04-Dec-2025	 Rajesh Gami		Added CustomerRFQNo while getting record
 exec [dbo].[USP_GetPurchaseOrderDetails] @PurchaseOrderId = 6708
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[USP_GetPurchaseOrderDetails]
@@ -109,7 +110,8 @@ BEGIN
 			ISNULL(posv.ShippingTerms, '') AS ShippingTerms,
 			ISNULL(fcu.Code, '') AS FunctionalCurrency,
 			ISNULL(rcu.Code, '') AS ReportCurrency,
-			CASE WHEN po.ForeignExchangeRate > 0 THEN po.ForeignExchangeRate ELSE 0 END AS ForeignExchangeRate
+			CASE WHEN po.ForeignExchangeRate > 0 THEN po.ForeignExchangeRate ELSE 0 END AS ForeignExchangeRate,
+			ISNULL(rfqData.CustomerRFQNo,'-') AS CustomerRFQNo
 		FROM PurchaseOrder po WITH(NOLOCK)
 		LEFT JOIN [dbo].AllAddress posadd WITH(NOLOCK) ON po.PurchaseOrderId = posadd.ReffranceId AND posadd.IsShippingAdd = 1 AND posadd.ModuleId = @ModuleId
 		LEFT JOIN [dbo].AllAddress pobadd WITH(NOLOCK) ON po.PurchaseOrderId = pobadd.ReffranceId AND pobadd.IsShippingAdd = 0 AND pobadd.ModuleId = @ModuleId
@@ -120,6 +122,11 @@ BEGIN
 		LEFT JOIN [dbo].PurchaseOrderManagementStructureDetails msd WITH(NOLOCK) ON po.PurchaseOrderId = msd.ReferenceID AND msd.ModuleID = @MsModuleId
 		LEFT JOIN [dbo].Currency fcu WITH(NOLOCK) ON po.FunctionalCurrencyId = fcu.CurrencyId AND fcu.IsActive = 1 AND fcu.IsDeleted = 0
 		LEFT JOIN [dbo].Currency rcu WITH(NOLOCK) ON po.ReportCurrencyId = rcu.CurrencyId AND rcu.IsActive = 1 AND rcu.IsDeleted = 0
+		OUTER APPLY ( SELECT TOP 1 rfq.RfqId CustomerRFQNo FROM dbo.PurchaseOrderPart part WITH(NOLOCK) 
+					INNER JOIN DBO.VendorRFQPart rfqPart WITH(NOLOCK) ON part.PurchaseOrderId = rfqPart.ReferenceId AND rfqPart.ModuleId = @ModuleId 
+					INNER JOIN DBO.ILSRFQPart ilsPart WITH(NOLOCK) ON rfqPart.ILSRFQDetailId = ilsPart.ILSRFQDetailId 
+					INNER JOIN DBO.CustomerRfq rfq WITH(NOLOCK) ON ilsPart.CustomerRfqId = rfq.CustomerRfqId
+					WHERE part.PurchaseOrderId =PO.PurchaseOrderId) rfqData
 		WHERE po.PurchaseOrderId = @PurchaseOrderId;
 	END
 	END TRY

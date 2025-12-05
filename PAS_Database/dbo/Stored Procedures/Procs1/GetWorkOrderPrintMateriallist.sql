@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [GetWorkOrderPrintPdfData]           
  ** Author:   Subhash Saliya
  ** Description: This stored procedure is used Work order Print  Details    
@@ -18,8 +17,9 @@
  ** --   --------     -------		 --------------------------------          
     1    06/02/2020   Subhash Saliya Created
     2    03/27/2023   Vishal Suthar  Modified to include KIT material data
+    3    12/04/2023   Bhargav Saliya Added Case For material data(>Dont get Sub WO material)
      
---EXEC [GetWorkOrderPrintMateriallist] 37,42
+--EXEC [GetWorkOrderPrintMateriallist] 10148,10350,10212
 **************************************************************/
 CREATE   PROCEDURE [dbo].[GetWorkOrderPrintMateriallist]
 	@WorkorderId bigint,
@@ -29,17 +29,19 @@ AS
 BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 	SET NOCOUNT ON;
+		
+		DECLARE @ProvisionId BIGINT = (SELECT ProvisionId FROM [Provision] WHERE [Description] = 'SUB WORK ORDER');
 
 		BEGIN TRY
 		BEGIN TRANSACTION
 			BEGIN  
-				SELECT  mt.Quantity,
-				        mt.QuantityIssued,
-						imt.partnumber as partnumber,
-						imt.PartDescription as PartDescription
+				SELECT  (mt.Quantity) AS Quantity,
+				        (mt.QuantityIssued) AS QuantityIssued,
+						imt.partnumber AS partnumber,
+						imt.PartDescription AS PartDescription
 				FROM WorkOrderMaterials mt WITH(NOLOCK)
 					LEFT JOIN ItemMaster imt WITH(NOLOCK) on imt.ItemMasterId = mt.ItemMasterId
-				WHERE mt.WorkFlowWorkOrderId = @workFlowWorkOrderId AND mt.IsDeleted = 0
+				WHERE mt.WorkFlowWorkOrderId = @workFlowWorkOrderId AND mt.IsDeleted = 0 AND mt.ProvisionId <> @ProvisionId
 
 				UNION ALL
 

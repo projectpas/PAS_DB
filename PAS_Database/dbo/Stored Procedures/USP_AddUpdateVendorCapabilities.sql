@@ -10,6 +10,7 @@
 ** PR   Date         Author         Change Description
 ** --   ----------   ------------   --------------------------------
 ** 1    02-07-2025   Ayushi Patel   Created
+** 2    05-12-2025   Moin Bloch     Added CapabilityTypeName
 
 -- EXEC USP_AddUpdateVendorCapabilities 4797
 **************************************************************/
@@ -72,7 +73,8 @@ BEGIN
                 @CostDate DATETIME2(7),
                 @CurrencyId BIGINT,
                 @Currency NVARCHAR(50),
-                @EmployeeId BIGINT;
+                @EmployeeId BIGINT,
+				@CapabilityTypeDesc VARCHAR(256)
 
             SELECT
                 @VendorCapabilityId = VendorCapabilityId,
@@ -98,11 +100,14 @@ BEGIN
             FROM #TempVendorCapabilities
             WHERE RowNum = @Row;
 
+			SELECT @CapabilityTypeDesc = [CapabilityTypeDesc] FROM [dbo].[CapabilityType] WITH(NOLOCK) WHERE [CapabilityTypeId] = @CapabilityTypeId AND [MasterCompanyId]=@MasterCompanyId
+			
             IF EXISTS (SELECT 1 FROM dbo.VendorCapability WITH(NOLOCK) WHERE VendorCapabilityId = @VendorCapabilityId)
             BEGIN
                 -- Update existing
                 UPDATE dbo.VendorCapability
                 SET CapabilityTypeId = @CapabilityTypeId,
+				    CapabilityTypeName = @CapabilityTypeDesc,
                     CapabilityTypeDescription = @CapabilityTypeDescription,
                     ItemMasterId = @ItemMasterId,
                     VendorRanking = @VendorRanking,
@@ -146,7 +151,7 @@ BEGIN
                     -- Insert new
                     INSERT INTO dbo.VendorCapability
                     (
-                        VendorId, CapabilityTypeId, CapabilityTypeDescription, ItemMasterId, VendorRanking,
+                        VendorId, CapabilityTypeId,[CapabilityTypeName],CapabilityTypeDescription, ItemMasterId, VendorRanking,
                         IsPMA, IsDER, Cost, TAT, Memo, IsActive, IsDeleted,
                         PartNumber, PartDescription, ManufacturerId, ManufacturerName,
                         CostDate, CurrencyId, Currency, EmployeeId,
@@ -154,7 +159,7 @@ BEGIN
                     )
                     VALUES
                     (
-                        @VendorId, @CapabilityTypeId, @CapabilityTypeDescription, @ItemMasterId, @VendorRanking,
+                        @VendorId, @CapabilityTypeId,@CapabilityTypeDesc, @CapabilityTypeDescription, @ItemMasterId, @VendorRanking,
                         @IsPMA, @IsDER, @Cost, @TAT, @Memo, @IsActive, @IsDeleted,
                         @PartNum, @PartDescription, @ManufacturerId, @ManufacturerName,
                         @CostDate, @CurrencyId, @Currency, @EmployeeId,

@@ -10,6 +10,7 @@
 ** PR   Date         Author         Change Description
 ** --   ----------   ------------   --------------------------------
 ** 1    02-07-2025   Ayushi Patel   Created
+** 2    05-12-2025   Moin Bloch   Added EmployeeName
 
 -- EXEC USP_GetVendorCapabilityList 4797
 **************************************************************/
@@ -57,12 +58,14 @@ BEGIN
             ISNULL(vc.IsDeleted,0) AS IsDeleted,
             vc.CurrencyId,
             vc.Currency,
-            vc.EmployeeId
-        FROM dbo.VendorCapability vc WITH (NOLOCK)
-        INNER JOIN dbo.Vendor v WITH (NOLOCK) ON vc.VendorId = v.VendorId
-        LEFT JOIN dbo.ItemMaster im WITH (NOLOCK) ON vc.ItemMasterId = im.ItemMasterId
-        LEFT JOIN dbo.Manufacturer man WITH (NOLOCK) ON im.ManufacturerId = man.ManufacturerId
-        LEFT JOIN dbo.CapabilityType vcat WITH (NOLOCK) ON CONVERT(INT, vc.CapabilityTypeId) = vcat.CapabilityTypeId
+            vc.EmployeeId,
+			E.FirstName + ' ' + E.LastName [EmployeeName]
+        FROM [dbo].[VendorCapability] vc WITH (NOLOCK)
+        INNER JOIN [dbo].[Vendor] v WITH (NOLOCK) ON vc.VendorId = v.VendorId
+         LEFT JOIN [dbo].[ItemMaster] im WITH (NOLOCK) ON vc.ItemMasterId = im.ItemMasterId
+         LEFT JOIN [dbo].[Manufacturer] man WITH (NOLOCK) ON im.ManufacturerId = man.ManufacturerId
+         LEFT JOIN [dbo].[CapabilityType] vcat WITH (NOLOCK) ON CONVERT(INT, vc.CapabilityTypeId) = vcat.CapabilityTypeId
+		 LEFT JOIN [dbo].[Employee] E WITH(NOLOCK) ON vc.EmployeeId = E.EmployeeId
         WHERE (@VendorId = 0 OR vc.VendorId = @VendorId)
           AND (@sStatus IS NULL OR ISNULL(vc.IsActive,0) = @sStatus)
         ORDER BY vc.CreatedDate;

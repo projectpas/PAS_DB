@@ -35,10 +35,10 @@ BEGIN
 		BEGIN TRY
 		BEGIN TRANSACTION
 			BEGIN  
-				SELECT  (mt.Quantity) AS Quantity,
-				        (mt.QuantityIssued) AS QuantityIssued,
-						imt.partnumber AS partnumber,
-						imt.PartDescription AS PartDescription
+				SELECT  mt.Quantity,
+				        mt.QuantityIssued,
+						imt.partnumber as partnumber,
+						imt.PartDescription as PartDescription
 				FROM WorkOrderMaterials mt WITH(NOLOCK)
 					LEFT JOIN ItemMaster imt WITH(NOLOCK) on imt.ItemMasterId = mt.ItemMasterId
 				WHERE mt.WorkFlowWorkOrderId = @workFlowWorkOrderId AND mt.IsDeleted = 0 AND mt.ProvisionId <> @ProvisionId

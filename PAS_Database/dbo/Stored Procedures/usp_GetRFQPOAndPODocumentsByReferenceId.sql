@@ -76,7 +76,7 @@ BEGIN
 				SELECT TRY_CAST(value AS INT)
 				FROM STRING_SPLIT(
 					(SELECT DocumentTypeId 
-					 FROM AiIntegrationSetting 
+					 FROM [dbo].[AiIntegrationSetting] WITH(NOLOCK)
 					 WHERE MasterCompanyId = @MasterCompanyId), 
 					','
 				)

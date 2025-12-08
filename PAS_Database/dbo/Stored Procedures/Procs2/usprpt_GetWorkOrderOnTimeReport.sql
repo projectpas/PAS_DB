@@ -14,10 +14,10 @@
  **************************************************************             
  ** S NO   Date            Author          Change Description              
  ** --   --------         -------          --------------------------------            
-    1    06-May-2022  Mahesh Sorathiya   Created  
+    1    06-May-2022   Mahesh Sorathiya   Created  
     2    31-JAN-2024   Devendra Shekh	added isperforma Flage for WO
     3    29-MARCH-2024 Ekta Chandegra	IsDeleted and IsActive flag is added
-
+	4    08-dec-2025   Ayushi Patel		Get one field (InvoiceDate) , changed the table name workOrderBillingInvoicing -> BillingInvoicing
 **************************************************************/  
 CREATE   PROCEDURE [dbo].[usprpt_GetWorkOrderOnTimeReport] 
 @PageNumber int = 1,
@@ -84,7 +84,7 @@ BEGIN
 		then filterby.value('(FieldValue/text())[1]','VARCHAR(100)') else @level10 end
 	  FROM
 		  @xmlFilter.nodes('/ArrayOfFilter/Filter')AS TEMPTABLE(filterby)
-
+	
 	  IF ISNULL(@PageSize,0)=0
 	  BEGIN 
 		  SELECT @PageSize=COUNT(*) 
@@ -98,7 +98,7 @@ BEGIN
 			LEFT JOIN DBO.Condition CDTN WITH (NOLOCK) ON WOPN.ConditionId = CDTN.ConditionId  
 			LEFT JOIN DBO.Employee AS E WITH (NOLOCK) ON WO.salespersonid = E.EmployeeId  
 			LEFT JOIN DBO.Employee AS E1 WITH (NOLOCK) ON WO.csrid = E1.Employeeid  
-			LEFT JOIN DBO.WorkOrderBillingInvoicing AS WBI WITH (NOLOCK) ON WO.WorkOrderId = WBI.WorkOrderId and IsVersionIncrease=0 AND ISNULL(WBI.IsPerformaInvoice, 0) = 0  
+			LEFT JOIN DBO.BillingInvoicing AS WBI WITH (NOLOCK) ON WO.WorkOrderId = WBI.ReferenceId and ISNULL(IsVersionIncrease,0)=0 AND ISNULL(WBI.IsPerformaInvoice, 0) = 0  
 			LEFT JOIN DBO.WorkOrderShippingItem AS WOSI WITH (NOLOCK) ON WOPN.ID = WOSI.WorkOrderPartNumId  
 			LEFT JOIN DBO.WorkOrderShipping AS WOS WITH (NOLOCK) ON WOSI.WorkOrderShippingId = WOS.WorkOrderShippingId  
 			LEFT JOIN DBO.WorkOrderQuote woq WITH (NOLOCK) ON WO.WorkOrderId = woq.WorkOrderId 
@@ -121,7 +121,7 @@ BEGIN
 
 	  SET @PageSize = CASE WHEN NULLIF(@PageSize,0) IS NULL THEN 10 ELSE @PageSize END
 	  SET @PageNumber = CASE WHEN NULLIF(@PageNumber,0) IS NULL THEN 1 ELSE @PageNumber END
-
+	 
       SELECT COUNT(1) OVER () AS TotalRecordsCount,  
 			UPPER(Customer.Name) 'customer',  
 			UPPER(Customer.CustomerCode) 'custcode',  
@@ -136,6 +136,7 @@ BEGIN
 			CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(WOQ.OpenDate, 'MM/dd/yyyy') ELSE CONVERT(VARCHAR(50), WOQ.OpenDate, 107) END 'qtedate', 
 			CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(WOQ.ApprovedDate, 'MM/dd/yyyy') ELSE CONVERT(VARCHAR(50), WOQ.ApprovedDate, 107) END 'approvaldate', 
 			CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(WOS.ShipDate, 'MM/dd/yyyy') ELSE CONVERT(VARCHAR(50), WOS.ShipDate, 107) END 'shipdate', 
+			CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(WBI.InvoiceDate, 'MM/dd/yyyy') ELSE CONVERT(VARCHAR(50), WBI.InvoiceDate, 107) END 'invdate', 
 			(CASE WHEN FORMAT(WOS.ShipDate,'MM/dd/yyyy') <= FORMAT(WOPN.PromisedDate,'MM/dd/yyyy') THEN 'YES' ELSE 'NO' END) AS 'ontime',
 			UPPER(MSD.Level1Name) AS level1,  
 			UPPER(MSD.Level2Name) AS level2, 
@@ -148,7 +149,7 @@ BEGIN
 			UPPER(MSD.Level9Name) AS level9, 
 			UPPER(MSD.Level10Name) AS level10,
 			UPPER(E.FirstName + ' ' + E.lastname) 'salesperson',  
-			UPPER(E1.firstname + ' ' + E1.lastname) 'csr'  
+			UPPER(E1.firstname + ' ' + E1.lastname) 'csr' 
       FROM DBO.WorkOrder WO WITH (NOLOCK)  
 		INNER JOIN DBO.WorkOrderPartNumber WOPN WITH (NOLOCK) ON WO.WorkOrderId = WOPN.WorkOrderId  
 		INNER JOIN dbo.WorkOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = WOPN.ID
@@ -159,7 +160,7 @@ BEGIN
         LEFT JOIN DBO.Condition CDTN WITH (NOLOCK) ON WOPN.ConditionId = CDTN.ConditionId  
         LEFT JOIN DBO.Employee AS E WITH (NOLOCK) ON WO.salespersonid = E.EmployeeId  
         LEFT JOIN DBO.Employee AS E1 WITH (NOLOCK) ON WO.csrid = E1.Employeeid  
-        LEFT JOIN DBO.WorkOrderBillingInvoicing AS WBI WITH (NOLOCK) ON WO.WorkOrderId = WBI.WorkOrderId and IsVersionIncrease=0 AND ISNULL(WBI.IsPerformaInvoice, 0) = 0  
+        LEFT JOIN DBO.BillingInvoicing AS WBI WITH (NOLOCK) ON WO.WorkOrderId = WBI.ReferenceId and ISNULL(IsVersionIncrease,0)=0 AND ISNULL(WBI.IsPerformaInvoice, 0) = 0  
         LEFT JOIN DBO.WorkOrderShippingItem AS WOSI WITH (NOLOCK) ON WOPN.ID = WOSI.WorkOrderPartNumId  
         LEFT JOIN DBO.WorkOrderShipping AS WOS WITH (NOLOCK) ON WOSI.WorkOrderShippingId = WOS.WorkOrderShippingId  
         LEFT JOIN DBO.WorkOrderQuote woq WITH (NOLOCK) ON WO.WorkOrderId = woq.WorkOrderId 

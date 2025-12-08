@@ -19,6 +19,7 @@
 	7	 19/02/2025	  Vishal Suthar			Optimized by removing the call to update stockline draft to outside the while loop
 	8	 23/07/2025	  RAJESH GAMI			Fixed: Get @OrderPartStatusId from the SOPartStatus table
 	9	 23/09/2025	  Amit Ghediya			Update VendorRFQ refrence
+	9	 05/12/2025	  Ayushi Patel			Added new fields SalesOrderQuoteId,SalesOrderQuoteNumber
 ************************************************************************/
 CREATE     PROCEDURE [dbo].[SP_AddUpdatePurchaseOrderParts]
 	@userName varchar(50) = NULL,
@@ -162,7 +163,10 @@ BEGIN
 									PART.VendorRFQPOPartRecordId = TMP.VendorRFQPOPartRecordId,PART.TraceableTo = TMP.TraceableTo,
 									PART.TraceableToName = TMP.TraceableToName,PART.TraceableToType = TMP.TraceableToType,
 									PART.TagTypeId = TMP.TagTypeId,PART.TaggedBy = TMP.TaggedBy,PART.TaggedByType = TMP.TaggedByType,
-									PART.TaggedByName = TMP.TaggedByName,PART.TaggedByTypeName = TMP.TaggedByTypeName,PART.TagDate = TMP.TagDate
+									PART.TaggedByName = TMP.TaggedByName,PART.TaggedByTypeName = TMP.TaggedByTypeName,PART.TagDate = TMP.TagDate,
+									PART.SalesOrderQuoteId = TMP.SalesOrderQuoteId,
+									PART.SalesOrderQuoteNumber = TMP.SalesOrderQuoteNumber
+
 								FROM DBO.PurchaseOrderPart PART
 								JOIN #tmpPoPartList TMP
 									ON PART.PurchaseOrderPartRecordId = TMP.PurchaseOrderPartRecordId
@@ -267,7 +271,9 @@ BEGIN
 					   ,[TaggedByType]
 					   ,[TaggedByName]
 					   ,[TaggedByTypeName]
-					   ,[TagDate], IsKit, IsSubWO)
+					   ,[TagDate], IsKit, IsSubWO
+					   ,[SalesOrderQuoteId]
+					   ,[SalesOrderQuoteNumber])
 			
 					   (SELECT 
 						@PurchaseOrderId
@@ -365,6 +371,8 @@ BEGIN
 					   ,TagDate
 					   ,CASE WHEN ISNULL(WorkOrderMaterialsId,0) = 0 THEN NULL ELSE (CASE WHEN IsKit = 0 THEN NULL ELSE IsKit END) END
 					   ,CASE WHEN ISNULL(WorkOrderMaterialsId,0) = 0 THEN NULL ELSE (CASE WHEN IsFromSubWorkOrder = 0  THEN  NULL ELSE IsFromSubWorkOrder END) END
+					   ,SalesOrderQuoteId
+					   ,SalesOrderQuoteNumber
 					    FROM #tmpPoPartList WHERE PoPartSrNum = @PartLoopId)
 
 					  SET @PurchaseOrderPartRecordId = SCOPE_IDENTITY();
@@ -516,7 +524,9 @@ BEGIN
 								   ,[TaggedByType]
 								   ,[TaggedByName]
 								   ,[TaggedByTypeName]
-								   ,[TagDate])
+								   ,[TagDate]
+								   ,[SalesOrderQuoteId]
+								   ,[SalesOrderQuoteNumber])
 			
 								   (SELECT 
 									@PurchaseOrderId
@@ -612,6 +622,8 @@ BEGIN
 								   ,tmp.TaggedByName
 								   ,tmp.TaggedByTypeName
 								   ,tmp.TagDate
+								   ,tmp.SalesOrderQuoteId
+								   ,tmp.SalesOrderQuoteNumber
 									FROM #tmpPoSplitParts split INNER JOIN  #tmpPoPartList tmp  ON split.PoPartSrNum = tmp.PoPartSrNum WHERE split.PoSplitPartSrNum = @SplitPartLoopId AND split.PoPartSrNum = @PartLoopId)
 
 									SET @PurchaseOrderPartRecordIdSplit = SCOPE_IDENTITY();
@@ -669,7 +681,9 @@ BEGIN
 										PART.VendorRFQPOPartRecordId = TMP.VendorRFQPOPartRecordId,PART.TraceableTo = TMP.TraceableTo,
 										PART.TraceableToName = TMP.TraceableToName,PART.TraceableToType = TMP.TraceableToType,
 										PART.TagTypeId = TMP.TagTypeId,PART.TaggedBy = TMP.TaggedBy,PART.TaggedByType = TMP.TaggedByType,
-										PART.TaggedByName = TMP.TaggedByName,PART.TaggedByTypeName = TMP.TaggedByTypeName,PART.TagDate = TMP.TagDate
+										PART.TaggedByName = TMP.TaggedByName,PART.TaggedByTypeName = TMP.TaggedByTypeName,PART.TagDate = TMP.TagDate,
+										PART.SalesOrderQuoteId = TMP.SalesOrderQuoteId,
+										PART.SalesOrderQuoteNumber = TMP.SalesOrderQuoteNumber
 									FROM DBO.PurchaseOrderPart PART
 									JOIN #tmpPoSplitParts split							 
 										ON PART.PurchaseOrderPartRecordId = split.PurchaseOrderPartRecordId

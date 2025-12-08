@@ -12,6 +12,7 @@
     1    29/07/2025   Moin Bloch   	    Created      
 	2    11/08/2025   Moin Bloch   	    Added IsRead,EmailPath,Subject 
 	3    12/08/2025   Moin Bloch   	    Added Subject 
+	4    08/12/2025   Devendra Shekh   	Added [VendorRfqId]
 
 -- EXEC USP_GetIntegrationEmailList 10,1,'',-1,'','','',1,1,2,0 
 **************************************************************/                   
@@ -97,8 +98,10 @@ BEGIN
 		  ,ISNULL(IE.[IsRead],0) [IsRead]
 		  ,IE.[EmailPath]
 		  ,CR.[RfqId]
+		  ,TPR.[RfqId] AS [VendorRfqId]
   FROM [dbo].[IntegrationEmail] IE WITH(NOLOCK)	    
   LEFT JOIN [dbo].[CustomerRfq] CR WITH(NOLOCK) ON IE.[CustomerRfqId] = CR.[CustomerRfqId]
+  LEFT JOIN [dbo].[ThirdPartyRFQ] TPR WITH(NOLOCK) ON IE.[ThirdPartyRFQId] = TPR.[ThirdPartyRFQId]
   WHERE ((IE.MasterCompanyId = @MasterCompanyId) 
     AND (IE.IsDeleted = 0) 	
 	AND (IE.[IsActive] = 1)
@@ -108,6 +111,7 @@ BEGIN
 	AND ((IE.[FromEmail] LIKE '%' + @GlobalFilter+'%') OR        
 	     (IE.[Subject] LIKE '%' + @GlobalFilter+'%') OR   
 		 (CR.[RfqId] LIKE '%' + @GlobalFilter+'%') OR   
+		 (TPR.[RfqId] LIKE '%' + @GlobalFilter+'%') OR   
 		 (IE.[EmailBody] LIKE '%' +@GlobalFilter+'%'))) OR           
 	(@GlobalFilter='' AND 	
 	(ISNULL(@Subject,'') ='' OR [FromEmail] LIKE '%' + @Subject +'%') AND  
@@ -118,13 +122,15 @@ BEGIN
 	CASE WHEN (@SortOrder=1 AND @SortColumn='Subject')  THEN [Subject] END ASC,   
 	CASE WHEN (@SortOrder=1 AND @SortColumn='EmailBody')  THEN [EmailBody] END ASC,   
 	CASE WHEN (@SortOrder=1  AND @SortColumn='CreatedDate')  THEN IE.[CreatedDate] END ASC,
-	CASE WHEN (@SortOrder=1  AND @SortColumn='RfqId') THEN [RfqId] END ASC,
+	CASE WHEN (@SortOrder=1  AND @SortColumn='RfqId') THEN CR.[RfqId] END ASC,
+	CASE WHEN (@SortOrder=1  AND @SortColumn='VendorRfqId') THEN TPR.[RfqId] END ASC,
 	CASE WHEN (@SortOrder=-1 AND @SortColumn='IntegrationEmailID') THEN [IntegrationEmailID] END DESC, 
 	CASE WHEN (@SortOrder=-1 AND @SortColumn='FromEmail')  THEN [FromEmail] END DESC,   
 	CASE WHEN (@SortOrder=-1 AND @SortColumn='Subject')  THEN [Subject] END DESC,        
 	CASE WHEN (@SortOrder=-1 AND @SortColumn='EmailBody')  THEN [EmailBody] END DESC,
 	CASE WHEN (@SortOrder=-1 AND @SortColumn='CreatedDate')  THEN IE.[CreatedDate] END DESC,	
-	CASE WHEN (@SortOrder=-1 AND @SortColumn='RfqId')  THEN [RfqId] END DESC	
+	CASE WHEN (@SortOrder=-1 AND @SortColumn='RfqId')  THEN CR.[RfqId] END DESC,
+	CASE WHEN (@SortOrder=-1 AND @SortColumn='VendorRfqId')  THEN TPR.[RfqId] END DESC
 
 	OFFSET @RecordFrom ROWS         
 	FETCH NEXT @PageSize ROWS ONLY   

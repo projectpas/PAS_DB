@@ -47,5 +47,7 @@
     [TaggedByTypeName]         VARCHAR (250)   NULL,
     [TagDate]                  DATETIME2 (7)   NULL,
     [IsNoQuote]                BIT             NULL,
-    [IsFromVendorRFQ]          BIGINT          NULL);
+    [IsFromVendorRFQ]          BIGINT          NULL,
+    [SalesOrderQuoteId]        BIGINT          NULL,
+    [SalesOrderQuoteNumber]    VARCHAR (250)   NULL);
 

@@ -12,14 +12,16 @@
 ** --   --------		-------				--------------------------------
 ** 1    18-Oct-2024		RAJESH GAMI		    CREATED
    2    10-APR-2025     Moin Bloch          Updated [QuantityReceived] For StockLine Count
+   3    05-DEC-2025     Ayushi Patel        Get new fields SalesOrderQuoteId,SalesOrderQuoteNumber
 
---EXEC [dbo].[USP_GetPurchaseOrderPartByPOId] 7791 ,NULL,NULL
+--EXEC [dbo].[USP_GetPurchaseOrderPartByPOId] 7910 ,NULL,NULL
 **************************************************************/ 
 
 CREATE       PROCEDURE [dbo].[USP_GetPurchaseOrderPartByPOId]
 @PurchaseOrderId bigint,
 @WorkOrderPartNoId bigint NULL =0,
 @SubWorkOrderMaterialsId bigint NULL = 0
+
 AS
 BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
@@ -142,7 +144,9 @@ BEGIN
 					TaggedByTypeName VARCHAR(250) NULL,
 					TagDate DATETIME2(7) NULL,
 					IsKit BIT NULL DEFAULT 0,
-					IsSubWO BIT NULL
+					IsSubWO BIT NULL,
+					SalesOrderQuoteId BIGINT NULL,
+					SalesOrderQuoteNumber VARCHAR(250) NULL,
 				);
 				 IF OBJECT_ID(N'tempdb..#tmpSubWOMtbl') IS NOT NULL    
 				BEGIN    
@@ -253,6 +257,8 @@ BEGIN
 					TagDate DATETIME2(7) NULL,
 					IsKit BIT NULL DEFAULT 0,
 					IsSubWO BIT NULL,
+					SalesOrderQuoteId BIGINT NULL,
+					SalesOrderQuoteNumber VARCHAR(250) NULL,
 					ExpectedSerialNumber VARCHAR(250) NULL,POChargesCount INT NULL, POFrightsCount INT NULL,IsApproved BIT NULL,
 					LastMSLevel VARCHAR(MAX) NULL,AllMSlevels VARCHAR(MAX) NULL,
 					LotNumber VARCHAR(100) NULL,
@@ -359,7 +365,9 @@ BEGIN
 				TaggedByTypeName,
 				TagDate,
 				IsKit,
-				IsSubWO
+				IsSubWO,
+				SalesOrderQuoteId,
+				SalesOrderQuoteNumber
 				FROM DBO.PurchaseOrderPart WITH(NOLOCK) WHERE PurchaseOrderId = @PurchaseOrderId AND ISNULL(IsDeleted,0) = 0 
 
 				--SELECT * INTO #tmpPoPartList FROM (SELECT * FROM DBO.PurchaseOrderPart WITH(NOLOCK) WHERE PurchaseOrderId = @PurchaseOrderId AND ISNULL(IsDeleted,0) = 0) AS partResult
@@ -516,7 +524,9 @@ BEGIN
 								TaggedByTypeName,
 								TagDate,
 								POChargesCount,
-								POFrightsCount
+								POFrightsCount,
+								SalesOrderQuoteId,
+								SalesOrderQuoteNumber
 								)
 							SELECT (CASE WHEN @ItemTypeId = @ItemTypeIdStock THEN (SELECT TOP 1 PartNumber  FROM DBO.ItemMaster  WITH(NOLOCK) WHERE ItemMasterId = @ItemMasterId)
 										 WHEN @ItemTypeId = @ItemTypeIdNonStock THEN (SELECT TOP 1 PartNumber  FROM DBO.ItemMasterNonStock  WITH(NOLOCK) WHERE MasterPartId = @ItemMasterId)
@@ -551,7 +561,9 @@ BEGIN
 									 AssetModel,AssetClass, ISNULL(IsLotAssigned,0) IsLotAssigned,ISNULL(LotId,0) LotId,ISNULL(LT.WorkOrderMaterialsId,0) WorkOrderMaterialsId,
 									 ExpectedSerialNumber,TraceableTo,TraceableToName,TraceableToType,TagTypeId,TaggedBy,TaggedByName,TaggedByType,TaggedByTypeName,TagDate,
 									 (SELECT COUNT(1) FROM dbo.PurchaseOrderCharges C WITH(NOLOCK) WHERE c.PurchaseOrderPartRecordId= LT.PurchaseOrderPartRecordId and ISNULL(c.IsDeleted,0) = 0)POChargesCount,
-									 (SELECT COUNT(1) FROM dbo.PurchaseOrderFreight C WITH(NOLOCK) WHERE c.PurchaseOrderPartRecordId= LT.PurchaseOrderPartRecordId and ISNULL(c.IsDeleted,0) = 0)POFrightsCount
+									 (SELECT COUNT(1) FROM dbo.PurchaseOrderFreight C WITH(NOLOCK) WHERE c.PurchaseOrderPartRecordId= LT.PurchaseOrderPartRecordId and ISNULL(c.IsDeleted,0) = 0)POFrightsCount,
+									 LT.SalesOrderQuoteId,
+									 LT.SalesOrderQuoteNumber
 
 									 FROM #tmpLoopTable LT LEFT JOIN #tmpPOPMs ms on ms.ReferenceID = LT.PurchaseOrderPartRecordId AND ms.ModuleID = @PoPartMGMTModuleId
 									 LEFT JOIN #tmpWOMTble wom on wom.WorkOrderMaterialsId = LT.WorkOrderMaterialsId

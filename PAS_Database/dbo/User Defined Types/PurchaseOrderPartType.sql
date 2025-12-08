@@ -103,5 +103,7 @@
     [IsFromSubWorkOrder]        BIT             DEFAULT ((0)) NULL,
     [IsKit]                     BIT             DEFAULT ((0)) NULL,
     [IsModified]                BIT             DEFAULT ((0)) NULL,
-    [IsFromVendorRFQ]           BIGINT          NULL);
+    [IsFromVendorRFQ]           BIGINT          NULL,
+    [SalesOrderQuoteId]         BIGINT          NULL,
+    [SalesOrderQuoteNumber]     VARCHAR (250)   NULL);
 

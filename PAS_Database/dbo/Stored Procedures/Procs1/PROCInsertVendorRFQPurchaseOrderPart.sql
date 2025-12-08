@@ -12,9 +12,9 @@
  ** --   --------     -------		-------------------------------            
 	1    01/12/2023   Amit Ghediya     Modify(Added Traceable & Tagged fields)
 	2	 23/09/2025	  Amit Ghediya	   Update VendorRFQ refrence
-
+	3    08/12/2025   Ayushi Patel	   Modify(Added SalesOrderQuoteId,SalesOrderQuoteNumber fields)
 **************************************************************/ 
-CREATE       PROCEDURE [dbo].[PROCInsertVendorRFQPurchaseOrderPart](@TableVendorRFQPurchaseOrderPart VendorRFQPurchaseOrderPartType READONLY)  
+CREATE  PROCEDURE [dbo].[PROCInsertVendorRFQPurchaseOrderPart](@TableVendorRFQPurchaseOrderPart VendorRFQPurchaseOrderPartType READONLY)  
 AS  
 BEGIN  
 	SET NOCOUNT ON;
@@ -52,15 +52,16 @@ BEGIN
 						TARGET.[UOMId] = SOURCE.UOMId,
 						TARGET.[TraceableTo] = SOURCE.TraceableTo,
 						TARGET.[TraceableToName] = SOURCE.TraceableToName,
-					TARGET.[TraceableToType] = SOURCE.TraceableToType,
+						TARGET.[TraceableToType] = SOURCE.TraceableToType,
 						TARGET.[TagTypeId] = SOURCE.TagTypeId,
 						TARGET.[TaggedByType] = SOURCE.TaggedByType,
 						TARGET.[TaggedBy] = SOURCE.TaggedBy,
 						TARGET.[TaggedByName] = SOURCE.TaggedByName,
 						TARGET.[TaggedByTypeName] = SOURCE.TaggedByTypeName,
 						TARGET.[TagDate] = SOURCE.TagDate,
-						TARGET.[IsNoQuote] = SOURCE.IsNoQuote
-
+						TARGET.[IsNoQuote] = SOURCE.IsNoQuote,
+						TARGET.[SalesOrderQuoteId] = SOURCE.SalesOrderQuoteId,
+						TARGET.[SalesOrderQuoteNumber] = SOURCE.SalesOrderQuoteNumber
 						WHEN NOT MATCHED BY TARGET
 						THEN
 							INSERT([VendorRFQPurchaseOrderId],[ItemMasterId],[PartNumber],[PartDescription],[StockType],
@@ -74,7 +75,7 @@ BEGIN
 								   ,[TaggedByType]
 								   ,[TaggedBy]
 								   ,[TaggedByName]
-								   ,[TaggedByTypeName],[TagDate],[IsNoQuote]
+								   ,[TaggedByTypeName],[TagDate],[IsNoQuote],[SalesOrderQuoteId], [SalesOrderQuoteNumber]
 								   )
 							VALUES(SOURCE.VendorRFQPurchaseOrderId,SOURCE.ItemMasterId,SOURCE.PartNumber,SOURCE.PartDescription,SOURCE.StockType,
 								   SOURCE.ManufacturerId,SOURCE.Manufacturer,SOURCE.PriorityId,SOURCE.Priority,SOURCE.NeedByDate,SOURCE.PromisedDate,
@@ -87,7 +88,7 @@ BEGIN
 								   ,SOURCE.TaggedByType
 								   ,SOURCE.TaggedBy
 								   ,SOURCE.TaggedByName
-								   ,SOURCE.TaggedByTypeName,SOURCE.TagDate,SOURCE.IsNoQuote
+								   ,SOURCE.TaggedByTypeName,SOURCE.TagDate,SOURCE.IsNoQuote,SOURCE.SalesOrderQuoteId, SOURCE.SalesOrderQuoteNumber
 								   );
 					
 					 
@@ -143,7 +144,14 @@ BEGIN
 				END
 			COMMIT  TRANSACTION
 		END TRY  
-		BEGIN CATCH      
+		BEGIN CATCH    
+			SELECT
+    ERROR_NUMBER() AS ErrorNumber,
+    ERROR_STATE() AS ErrorState,
+    ERROR_SEVERITY() AS ErrorSeverity,
+    ERROR_PROCEDURE() AS ErrorProcedure,
+    ERROR_LINE() AS ErrorLine,
+    ERROR_MESSAGE() AS ErrorMessage;
 			IF @@trancount > 0
 			PRINT 'ROLLBACK'
             ROLLBACK TRAN;

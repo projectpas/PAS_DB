@@ -36,6 +36,7 @@
     [IsActive]           BIT             CONSTRAINT [DF__VendorRFQPart__IsActive] DEFAULT ((1)) NULL,
     [ModuleId]           BIGINT          NULL,
     [ReferenceId]        BIGINT          NULL,
+    [IntegrationEmailID] BIGINT          NULL,
     CONSTRAINT [PK_VendorRFQPart] PRIMARY KEY CLUSTERED ([VendorRFQPartId] ASC)
 );
 

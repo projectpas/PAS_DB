@@ -97,10 +97,8 @@
     [IsKit]                     BIT             NULL,
     [IsSubWO]                   BIT             NULL,
     [QuantityReceived]          INT             DEFAULT ((0)) NULL,
+    [SalesOrderQuoteId]         BIGINT          NULL,
+    [SalesOrderQuoteNumber]     NVARCHAR (250)  NULL,
     CONSTRAINT [PK_PurchaseOrderPartAudit] PRIMARY KEY CLUSTERED ([PurchaseOrderPartAuditId] ASC)
 );
-
-
-
-
 

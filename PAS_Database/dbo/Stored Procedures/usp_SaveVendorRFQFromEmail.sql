@@ -9,7 +9,8 @@
  **************************************************************           
  ** PR   Date				Author				Change Description            
  ** --   --------			-------				--------------------------------          
-    1    05 Dec 2025		Devendra Shekh		Created
+    1	 05 Dec 2025		Devendra Shekh		Created
+	2	 08 Dec 2025		Devendra Shekh		Modified to save IntegrationEmailID to [VendorRFQPart] And [ThirdPartyRFQId] to [IntegrationEmail]
 
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[usp_SaveVendorRFQFromEmail]
@@ -27,7 +28,7 @@ BEGIN
 		IF EXISTS(SELECT 1 FROM @tbl_VendorPartRFQType)
 		BEGIN
 			DECLARE @CreatedBy VARCHAR(100), @MasterCompanyId INT;
-			DECLARE @ILSRFQDetailId BIGINT, @VendorId BIGINT;
+			DECLARE @ILSRFQDetailId BIGINT, @VendorId BIGINT, @ThirdPartyRFQId BIGINT = NULL;
 
 			IF OBJECT_ID(N'tempdb..#tmpVendorRfq') IS NOT NULL
 			BEGIN
@@ -69,9 +70,10 @@ BEGIN
 			
 			SELECT @CreatedBy = [CreatedBy], @MasterCompanyId = [MasterCompanyId] FROM [dbo].[IntegrationEmail] WITH(NOLOCK) WHERE [IntegrationEmailID] = @IntegrationEmailID;
 			
-			SELECT @ILSRFQDetailId = RFQD.ILSRFQDetailId FROM [dbo].[ILSRFQDetail] RFQD WITH(NOLOCK)
+			SELECT @ILSRFQDetailId = RFQD.ILSRFQDetailId, @ThirdPartyRFQId = RFQD.ThirdPartyRFQId FROM [dbo].[ILSRFQDetail] RFQD WITH(NOLOCK)
 			INNER JOIN [dbo].[ThirdPartyRFQ] TP WITH(NOLOCK) ON RFQD.ThirdPartyRFQId = TP.ThirdPartyRFQId
-			WHERE TP.[RFQId] = (SELECT TOP 1 [VendorRFQNumber] FROM @tbl_VendorRFQType) AND TP.MasterCompanyId = @MasterCompanyId
+			WHERE TP.MasterCompanyId = @MasterCompanyId
+			AND (TP.[RFQId] = (SELECT TOP 1 [VendorRFQNumber] FROM @tbl_VendorRFQType) OR TP.[PortalRFQId] = (SELECT TOP 1 [VendorRFQNumber] FROM @tbl_VendorRFQType))
 
 			IF(ISNULL(@EmployeeId, 0) = 0)
 			BEGIN
@@ -121,14 +123,14 @@ BEGIN
 			INSERT INTO [dbo].[VendorRFQPart]
 			(	
 				[ILSRFQDetailId], [ItemId], [ItemSupplierPartId], [VendorName], [VendorId], [Email], [Phone], [PartNumber], [RfqId], [Description], [AltPartNumber], [ReferenceNumber], [Traceability], [UnitOfMeasure], [Price], [PriceType], [LeadTime], 
-				[Qty], [RequestedQty], [MinQuantity], [Condition], [Address1], [Address2], [City], [Country], [PostalCode], [StateProvince], [MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsDeleted], [IsActive]
+				[Qty], [RequestedQty], [MinQuantity], [Condition], [Address1], [Address2], [City], [Country], [PostalCode], [StateProvince], [MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsDeleted], [IsActive], [IntegrationEmailID]
 			)
 			SELECT	@ILSRFQDetailId, [ItemId], [ItemSupplierPartId], [VendorName], @VendorId, [Email], [Phone], [PartNumber], [RfqId], [Description], [AltPartNumber], [ReferenceNumber], [Traceability], [UnitOfMeasure], [Price], [PriceType], [LeadTime], 
-					[Qty], [RequestedQty], [MinQuantity], [Condition], [Address1], [Address2], [City], [Country], [PostalCode], [StateProvince], @MasterCompanyId, @CreatedBy, @CreatedBy, GETUTCDATE(), GETUTCDATE(), 0, 1
+					[Qty], [RequestedQty], [MinQuantity], [Condition], [Address1], [Address2], [City], [Country], [PostalCode], [StateProvince], @MasterCompanyId, @CreatedBy, @CreatedBy, GETUTCDATE(), GETUTCDATE(), 0, 1, @IntegrationEmailID
 			FROM #tmpVendorRfq;
 		END
 
-		UPDATE [DBO].[IntegrationEmail] SET [IsProcessed] = 1 WHERE IntegrationEmailID = @IntegrationEmailID;
+		UPDATE [DBO].[IntegrationEmail] SET [IsProcessed] = 1, [ThirdPartyRFQId] = @ThirdPartyRFQId WHERE IntegrationEmailID = @IntegrationEmailID;
 	END		
 	--COMMIT
 	END TRY	

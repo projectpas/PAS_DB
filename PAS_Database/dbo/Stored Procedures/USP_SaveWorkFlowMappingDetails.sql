@@ -12,7 +12,7 @@
     2    28-Feb-2025		Devendra Shekh			Added New Fields([Descrepancy], [Resolution], [IsVersionIncrease])
 
 **************************************************************/
-CREATE     PROCEDURE [dbo].[USP_SaveWorkFlowMappingDetails]
+CREATE         PROCEDURE [dbo].[USP_SaveWorkFlowMappingDetails]
 	@tbl_WorkFlowTaskType WorkFlowTaskType READONLY,
     @WorkFlowTaskIds VARCHAR(1000) = NULL,
     @SequenceUpdate BIT = NULL
@@ -22,7 +22,6 @@ BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 
 	BEGIN TRY
-
 		DECLARE @rowCount INT, @currentRow INT;
 		DECLARE @MaxSequence INT;
 		DECLARE @WorkFlowTaskId bigint,
@@ -30,7 +29,7 @@ BEGIN
 				@WorkFlowNumber varchar(256),
 				@TaskId bigint,
 				@TaskDescription varchar(200),
-				@SequenceNumber [decimal](10,3),
+				@SequenceNumber [varchar](10),
 				@Descrepancy nvarchar(max),
 				@Resolution nvarchar(max),
 				@IsVersionIncrease bit,
@@ -49,7 +48,7 @@ BEGIN
 			[WorkFlowNumber] [varchar](256) NULL,
 			[TaskId] [bigint] NULL,
 			[TaskDescription] [varchar](200) NULL,
-			[SequenceNumber] [decimal](10,3) NULL,
+			[SequenceNumber] [varchar](10) NULL,
 			[Descrepancy] [nvarchar](MAX) NULL,
 			[Resolution] [nvarchar](MAX) NULL,
 			[IsVersionIncrease] [bit] NULL,
@@ -110,7 +109,12 @@ BEGIN
 			IF EXISTS (SELECT [WorkFlowTaskId] FROM [dbo].[WorkFlowTask] WHERE [MasterCompanyId] = @MasterCompanyId AND [TaskId] = @TaskId AND [WorkFlowId] = @WorkFlowId AND [WorkFlowTaskId] = @WorkFlowTaskId)
 			BEGIN
 				UPDATE [dbo].[WorkFlowTask]
-				SET	[SequenceNumber] = CASE WHEN ISNULL(@SequenceNumber, 0) = 0 THEN [SequenceNumber] ELSE @SequenceNumber END,
+				SET	[SequenceNumber] = 
+				CASE 
+					WHEN @SequenceNumber IS NULL OR LTRIM(RTRIM(@SequenceNumber)) = '' 
+						THEN [SequenceNumber]
+					ELSE @SequenceNumber
+				END,
 					[Descrepancy] = @Descrepancy,
 					[Resolution] = @Resolution,
 					[IsVersionIncrease] = @IsVersionIncrease,
@@ -121,11 +125,11 @@ BEGIN
 			ELSE
 			BEGIN
 
-				SELECT @MaxSequence = ISNULL(MAX(WFT.SequenceNumber), 0)
+				SELECT @MaxSequence = ISNULL(MAX(TRY_CAST(WFT.SequenceNumber AS FLOAT)), 0)
 				FROM [dbo].[WorkFlowTask] WFT WITH (NOLOCK)
 				WHERE WFT.MasterCompanyId = @MasterCompanyId AND WFT.WorkFlowId = @WorkFlowId;
 				
-				SET @SequenceNumber = CASE WHEN ISNULL(@SequenceNumber, 0) > ISNULL(@MaxSequence, 0) THEN @SequenceNumber ELSE ISNULL(@MaxSequence, 0) + 1 END;
+				SET @SequenceNumber = CASE WHEN ISNULL(CAST(@SequenceNumber AS INT), 0) > ISNULL(@MaxSequence, 0) THEN @SequenceNumber ELSE ISNULL(@MaxSequence, 0) + 1 END;
 
 				SELECT @Descrepancy = [Descrepancy], @Resolution = [Resolution] FROM [dbo].[Task] WITH(NOLOCK) WHERE [TaskId] = @TaskId AND [MasterCompanyId] = @MasterCompanyId;
 
@@ -134,7 +138,7 @@ BEGIN
 					[CreatedBy], [CreatedDate], [UpdatedBy], [UpdatedDate], [IsActive], [IsDeleted]
 				)
 				VALUES
-				(	@WorkFlowId, @WorkFlowNumber, @TaskId, @TaskDescription, @SequenceNumber, @Descrepancy, @Resolution, @IsVersionIncrease, @MasterCompanyId,
+				(	@WorkFlowId, @WorkFlowNumber, @TaskId, @TaskDescription, CAST('1.1' AS VARCHAR(10)), @Descrepancy, @Resolution, @IsVersionIncrease, @MasterCompanyId,
 					@CreatedBy, GETUTCDATE(), @UpdatedBy, GETUTCDATE(), 1, 0
 				);
 			END

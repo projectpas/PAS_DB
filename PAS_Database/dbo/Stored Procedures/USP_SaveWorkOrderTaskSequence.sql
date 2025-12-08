@@ -12,7 +12,7 @@
     2    04-Mar-2025		Vishal Suthar	Added WO Task History
 
 **************************************************************/
-CREATE     PROCEDURE [dbo].[USP_SaveWorkOrderTaskSequence]
+CREATE       PROCEDURE [dbo].[USP_SaveWorkOrderTaskSequence]
 	@tbl_WorkOrderTasks WorkOrderTasks READONLY
 AS
 BEGIN
@@ -25,7 +25,7 @@ BEGIN
 		DECLARE @MaxSequence INT;
 		DECLARE @WorkOrderTaskId bigint,
 				@TaskId bigint,
-				@SequenceNumber [decimal](10, 3),
+				@SequenceNumber [varchar](10),
 				@MasterCompanyId int,
 				@UpdatedBy varchar(256);
 
@@ -38,7 +38,7 @@ BEGIN
 			[WorkOrderTaskId] [bigint] NULL,
 			[WorkOrderId] [bigint] NULL,
 			[TaskId] [bigint] NULL,
-			[SequenceNumber] [decimal](10, 3) NULL,
+			[SequenceNumber] [varchar](10) NULL,
 			[MasterCompanyId] [int] NULL,
 			[UpdatedBy] [varchar](256) NULL
 		);
@@ -50,7 +50,7 @@ BEGIN
 
 		WHILE @currentRow <= @rowCount
 		BEGIN
-			DECLARE @OldSequence INT = 0;
+			DECLARE @OldSequence [varchar](10) = '0';
 			SELECT @OldSequence = SequenceNumber FROM [dbo].[WorkOrderTask] WITH (NOLOCK) WHERE [MasterCompanyId] = @MasterCompanyId AND [WorkOrderTaskId] = @WorkOrderTaskId
 
 			SELECT

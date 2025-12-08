@@ -11,7 +11,7 @@
  ** PR   Date				 Author				 Change Description            
  ** --   --------			---------			--------------------------------          
     1   16-Sept-2025		Devendra Shekh		 Created
-
+	2   08-Dec-2025         Moin Bloch           Added Default Company Address For VRFQ
 
 declare @p4 dbo.VendorRFQPOPartType
 insert into @p4 values(1,5416,2,96978,N'New',1,2400)
@@ -49,7 +49,8 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 		DECLARE @CreditTermsId INT, @Terms VARCHAR(500) = 0, @CreditLimit DECIMAL(18, 2);
 		DECLARE @CodeTypeId BIGINT, @CurrentNumber BIGINT = 0, @RFQPONumber NVARCHAR(200);
 		DECLARE @Memo NVARCHAR(MAX) = '', @CurrencyId INT, @FXRateValue DECIMAL(18, 2) = 1;
-		DECLARE @VendorContactId BIGINT, @VendorContact VARCHAR(150), @VendorContactPhone VARCHAR(50);
+		DECLARE @VendorContactId BIGINT, @VendorContact VARCHAR(150), @VendorContactPhone VARCHAR(50);		
+		DECLARE @RFQSentDate DATETIME2;
 
 		IF OBJECT_ID(N'tempdb..#tmpCodePrefix') IS NOT NULL
 		BEGIN
@@ -90,6 +91,11 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 		SELECT @Resale = [IsResale], @DeferredReceiver = [IsDeferredReceiver] FROM [dbo].[PurchaseOrderSettingMaster] WITH(NOLOCK) WHERE [MasterCompanyId] = @MasterCompanyId;
 		SELECT @MSModuleId = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] = 'VendorRFQPOHeader';
 		SELECT @PartMSModuleId = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] = 'VendorRFQPOPart';
+		SET @RFQSentDate = (SELECT [CreatedDate] FROM [dbo].[ThirdPartyRFQ] WITH(NOLOCK) WHERE [MasterCompanyId] = @MasterCompanyId AND [ThirdPartyRFQId] 
+						 = (SELECT [ThirdPartyRFQId] FROM [dbo].[ILSRFQDetail] WITH(NOLOCK) WHERE [MasterCompanyId] = @MasterCompanyId AND [ILSRFQDetailId]
+						 = (SELECT [ILSRFQDetailId] FROM [dbo].[VendorRFQPart] WITH(NOLOCK) WHERE [MasterCompanyId] = @MasterCompanyId AND [VendorRFQPartId]
+						 = (SELECT TOP 1 [VendorRFQPartId] FROM @tbl_VendorRFQPOPartType)
+						   )))
 
 		IF(ISNULL(@CurrencyId,0) = 0)
 		BEGIN
@@ -106,13 +112,18 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 			[VendorReference], [FunctionalCurrencyId], [ReportCurrencyId], [ForeignExchangeRate], [SourceBy], [MarketplaceRef]
 		)
 		VALUES ( 
-			@RFQPONumber, CAST(GETDATE() AS DATE), NULL, DATEADD(DAY, ISNULL(@QuoteWithinDays, 0), CAST(GETDATE() AS DATE)), @PriorityId, @PriorityDescription, @VendorId, @VendorName, @VendorCode, @VendorContactId, @VendorCode, @VendorContactPhone, @CreditTermsId,
+			@RFQPONumber, CAST(ISNULL(@RFQSentDate, GETDATE()) AS DATE), NULL, DATEADD(DAY, ISNULL(@QuoteWithinDays, 0), CAST(ISNULL(@RFQSentDate, GETDATE()) AS DATE)), @PriorityId, @PriorityDescription, @VendorId, @VendorName, @VendorCode, @VendorContactId, @VendorCode, @VendorContactPhone, @CreditTermsId,
 			@Terms, @CreditLimit, @EmployeeId, @UserName, @StatusId, @Status, NULL, @Resale, @DeferredReceiver, @Memo, @Memo, @ManagementStructureId, NULL, NULL, NULL, NULL,
-			@MasterCompanyId, @UserName, @UserName, GETUTCDATE(), GETUTCDATE(), 1, 0, NULL, 0, NULL, NULL, NULL, NULL,
+			@MasterCompanyId, @UserName, @UserName, ISNULL(@RFQSentDate, GETUTCDATE()), ISNULL(@RFQSentDate, GETUTCDATE()), 1, 0, NULL, 0, NULL, NULL, NULL, NULL,
 			NULL, @CurrencyId, @CurrencyId, @FXRateValue, @SourceBy, @MarketplaceRef
 		)
 
 		SET @VendorRFQPurchaseOrderId = SCOPE_IDENTITY();
+
+		DECLARE @VRFQModuleId INT=0
+		SELECT @VRFQModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'VendorRFQPurchaseOrder'
+
+		EXEC [dbo].[USP_AddDefaultCompanyAddress] @VendorRFQPurchaseOrderId,@VRFQModuleId,@MasterCompanyId,@UserName
 		
 		-- Update CodeData with new current number
 		UPDATE [dbo].[CodePrefixes]	SET [CurrentNummber] = @CurrentNumber WHERE [CodePrefixId] = (SELECT CodePrefixId FROM #tmpCodePrefix);

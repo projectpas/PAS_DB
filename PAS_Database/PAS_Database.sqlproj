@@ -4374,6 +4374,9 @@
     <Build Include="dbo\Stored Procedures\USP_updateGLAccountDistributionMemoById.sql" />
     <Build Include="dbo\Stored Procedures\USP_DeleteWorkFlowTaskById.sql" />
     <Build Include="dbo\Stored Procedures\usp_GetCustomerRFQAutoCompleteDropdowns.sql" />
+    <Build Include="dbo\Stored Procedures\usp_SaveVendorRFQFromEmail.sql" />
+    <Build Include="dbo\User Defined Types\VendorRFQType.sql" />
+    <Build Include="dbo\User Defined Types\VendorPartRFQType.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

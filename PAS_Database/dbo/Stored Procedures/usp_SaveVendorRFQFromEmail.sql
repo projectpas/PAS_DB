@@ -72,7 +72,8 @@ BEGIN
 			
 			SELECT @ILSRFQDetailId = RFQD.ILSRFQDetailId, @ThirdPartyRFQId = RFQD.ThirdPartyRFQId FROM [dbo].[ILSRFQDetail] RFQD WITH(NOLOCK)
 			INNER JOIN [dbo].[ThirdPartyRFQ] TP WITH(NOLOCK) ON RFQD.ThirdPartyRFQId = TP.ThirdPartyRFQId
-			WHERE TP.[RFQId] = (SELECT TOP 1 [VendorRFQNumber] FROM @tbl_VendorRFQType) AND TP.MasterCompanyId = @MasterCompanyId
+			WHERE TP.MasterCompanyId = @MasterCompanyId
+			AND (TP.[RFQId] = (SELECT TOP 1 [VendorRFQNumber] FROM @tbl_VendorRFQType) OR TP.[PortalRFQId] = (SELECT TOP 1 [VendorRFQNumber] FROM @tbl_VendorRFQType))
 
 			IF(ISNULL(@EmployeeId, 0) = 0)
 			BEGIN

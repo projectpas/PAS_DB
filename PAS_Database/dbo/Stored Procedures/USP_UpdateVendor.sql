@@ -10,6 +10,7 @@
 ** PR     Date         Author           Change Description            
 ** --    --------     -------           -------------------------------          
 ** 1     09-07-2025   Ayushi Patel      Created  
+   2     08-Dec-2025  Bhargav Saliya    Add SP [USP_UpdateVendorContact] for Updat Vendor Contact Detail
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_UpdateVendor]
     @VendorId BIGINT,
@@ -172,6 +173,8 @@ BEGIN
             @VendorId, 
             @UpdatedBy;
 
+		-- Updat Vendor Contact Detail
+		EXEC [dbo].[USP_UpdateVendorContact] @VendorId,@VendorEmail, @VendorPhone, @VendorPhoneExt, @UpdatedBy
         -- If Vendor is also Customer, update Customer
         IF @IsVendorAlsoCustomer = 1
         BEGIN

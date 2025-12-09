@@ -13,6 +13,7 @@
  ** --   --------         -------		     ----------------------------       
     1    01-04-2025     Ayushi Patel			      Created
     2    28-08-2025     Devendra Shekh			      Modified (added SourceBy, MarketplaceRef)
+	3    08-12-2025     Sahdev Saliya                 Added New Field :- VendorRFQPurchaseOrderNumber
 
 	USP_GetPOHeaderDetails 12345
 **************************************************************/
@@ -81,12 +82,14 @@ BEGIN
                 ISNULL(po.ReportCurrencyId, 0) AS ReportCurrencyId,
                 ISNULL(po.ForeignExchangeRate, 0) AS ForeignExchangeRate,
                 ISNULL(po.SourceBy, '') AS SourceBy,
-                ISNULL(po.MarketplaceRef, '') AS MarketplaceRef
+                ISNULL(po.MarketplaceRef, '') AS MarketplaceRef,
+				VRFQ.VendorRFQPurchaseOrderNumber
             FROM dbo.PurchaseOrder po WITH (NOLOCK)
             LEFT JOIN dbo.PurchaseOrderManagementStructureDetails msd WITH (NOLOCK)
                 ON po.PurchaseOrderId = msd.ReferenceID AND msd.ModuleID = @moduleId
             LEFT JOIN dbo.Vendor Ve WITH (NOLOCK)
                 ON po.VendorId = Ve.VendorId
+			LEFT JOIN dbo.VendorRFQPurchaseOrder VRFQ WITH (NOLOCK) ON po.VendorRFQPurchaseOrderId = VRFQ.VendorRFQPurchaseOrderId
 				WHERE po.PurchaseOrderId = @PurchaseOrderId;
         END
         COMMIT TRANSACTION;

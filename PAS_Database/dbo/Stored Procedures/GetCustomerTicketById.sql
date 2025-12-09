@@ -15,6 +15,7 @@
 	2    17/01/2025  Ekta Chandegra     Retrieve Employee name and email
 	3    27/01/2025  Bhargav Saliya     Convert Date as per time zone
 	4    11/21/2025  Bhargav Saliya     Get TicketType
+	5    12/09/2025  Bhargav Saliya     Revert the UTC Date Conversation
 
 
 exec [dbo].[GetCustomerTicketById] @CustomerTicketId = 4
@@ -28,12 +29,12 @@ BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED  
 	SET NOCOUNT ON
 
-		DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
-		SELECT @CurrntEmpTimeZoneDesc = COALESCE(ETZ.[Description], LTZ.[Description]) FROM dbo.Employee E WITH (NOLOCK) 
-			LEFT JOIN dbo.TimeZone ETZ WITH (NOLOCK) ON E.TimeZoneId = ETZ.TimeZoneId
-			LEFT JOIN dbo.LegalEntity LE WITH (NOLOCK) ON E.LegalEntityId = LE.LegalEntityId
-			LEFT JOIN dbo.TimeZone LTZ WITH (NOLOCK) ON LE.TimeZoneId = LTZ.TimeZoneId
-		WHERE E.EmployeeId = @EmployeeId; 
+		--DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
+		--SELECT @CurrntEmpTimeZoneDesc = COALESCE(ETZ.[Description], LTZ.[Description]) FROM dbo.Employee E WITH (NOLOCK) 
+		--	LEFT JOIN dbo.TimeZone ETZ WITH (NOLOCK) ON E.TimeZoneId = ETZ.TimeZoneId
+		--	LEFT JOIN dbo.LegalEntity LE WITH (NOLOCK) ON E.LegalEntityId = LE.LegalEntityId
+		--	LEFT JOIN dbo.TimeZone LTZ WITH (NOLOCK) ON LE.TimeZoneId = LTZ.TimeZoneId
+		--WHERE E.EmployeeId = @EmployeeId; 
 
 	BEGIN TRY
 		BEGIN
@@ -46,7 +47,8 @@ BEGIN
 				(ISNULL(CTR.ResponseBody,'')) AS ResponseBody,
 				CTR.CreatedBy,
 				CTR.UpdatedBy,
-				CASE WHEN CAST(CTR.CreatedDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE)THEN NULL ELSE (Cast(DBO.ConvertUTCtoLocal(CTR.CreatedDate, @CurrntEmpTimeZoneDesc) AS DATETIME))END CreatedDate,
+				--CASE WHEN CAST(CTR.CreatedDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE)THEN NULL ELSE (Cast(DBO.ConvertUTCtoLocal(CTR.CreatedDate, @CurrntEmpTimeZoneDesc) AS DATETIME))END CreatedDate,
+				CTR.CreatedDate,
 				CTR.UpdatedDate,
 				CTR.IsActive,
 				CTR.IsDeleted,
@@ -93,7 +95,8 @@ BEGIN
 				(ISNULL(CT.EmailBody,'')) AS EmailBody,
 				CT.FromEmail,
 				CT.CreatedBy,
-				CASE WHEN CAST(CT.CreatedDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE)THEN NULL ELSE (Cast(DBO.ConvertUTCtoLocal(CT.CreatedDate, @CurrntEmpTimeZoneDesc) AS DATETIME))END CreatedDate,
+				--CASE WHEN CAST(CT.CreatedDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE)THEN NULL ELSE (Cast(DBO.ConvertUTCtoLocal(CT.CreatedDate, @CurrntEmpTimeZoneDesc) AS DATETIME))END CreatedDate,
+				CT.CreatedDate,
 				CT.UpdatedBy,
 				CT.UpdatedDate,
 				CT.IsActive,

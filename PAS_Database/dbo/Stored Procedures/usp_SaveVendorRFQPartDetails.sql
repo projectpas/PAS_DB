@@ -14,6 +14,7 @@
 	4    04-Nov-2025		Devendra Shekh		  Modified (Getting VendorRFQPurchaseOrderNumber, RFQReferenceId, RFQModuleId Based On [PurChaseOrder]-[VendorRFQPurchaseOrderPart])
 	5    04-Dec-2025		Devendra Shekh		  Modified (added CreatedDate)
 	5    05-Dec-2025		Devendra Shekh		  Modified (defined #tmpResult for multiple insert)
+	6    09-Dec-2025		Devendra Shekh		  Modified (added [IntegrationEmailID], [HasAttachments])
 
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[usp_SaveVendorRFQPartDetails] (
@@ -83,6 +84,8 @@ SET NOCOUNT ON
 			[VendorRFQPurchaseOrderNumber] [varchar](100) NULL,
 			[RFQReferenceId] [bigint] NULL,
 			[RFQModuleId] [bigint] NULL,
+			[IntegrationEmailID] [bigint] NULL,
+			[HasAttachments] [bit] NULL,
 		)
 		
 		--IF OBJECT_ID(N'tempdb..#tmpVendorRFQPart') IS NOT NULL
@@ -175,14 +178,15 @@ SET NOCOUNT ON
 		INSERT INTO #tmpResult (
 			[VendorRFQPartId], [ILSRFQDetailId], [ItemId], [ItemSupplierPartId], [VendorName], [VendorId], [Email], [Phone], [PartNumber], [RfqId], [Description], [AltPartNumber], [ReferenceNumber], [Traceability], [UnitOfMeasure], [Price], [PriceType], [LeadTime], [Qty], [RequestedQty], [MinQuantity], 
 			[Condition], [Address1], [Address2], [City], [Country], [PostalCode], [StateProvince], [MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsDeleted], [IsActive], 
-			[SupplierName], [ItemMasterId], [ModuleId], [ReferenceId], [ModuleReferenceNumber], [VendorRFQPurchaseOrderNumber], [RFQReferenceId], [RFQModuleId] 
+			[SupplierName], [ItemMasterId], [ModuleId], [ReferenceId], [ModuleReferenceNumber], [VendorRFQPurchaseOrderNumber], [RFQReferenceId], [RFQModuleId], [IntegrationEmailID], [HasAttachments] 
 		)
 		SELECT	VRFQ.[VendorRFQPartId], VRFQ.[ILSRFQDetailId], VRFQ.[ItemId], VRFQ.[ItemSupplierPartId], VRFQ.[VendorName], VRFQ.[VendorId], VRFQ.[Email], VRFQ.[Phone], VRFQ.[PartNumber], VRFQ.[RfqId], VRFQ.[Description], VRFQ.[AltPartNumber], VRFQ.[ReferenceNumber], VRFQ.[Traceability], VRFQ.[UnitOfMeasure], VRFQ.[Price], VRFQ.[PriceType], VRFQ.[LeadTime], VRFQ.[Qty], VRFQ.[RequestedQty], VRFQ.[MinQuantity],
 				VRFQ.[Condition], VRFQ.[Address1], VRFQ.[Address2], VRFQ.[City], VRFQ.[Country], VRFQ.[PostalCode], VRFQ.[StateProvince], VRFQ.[MasterCompanyId], VRFQ.[CreatedBy], VRFQ.[UpdatedBy], VRFQ.[CreatedDate], VRFQ.[UpdatedDate], VRFQ.[IsDeleted], VRFQ.[IsActive],
 				VRFQ.[VendorName] as SupplierName, IM.ItemMasterId, VRFQ.ModuleId, VRFQ.ReferenceId, @ReferenceNumber AS ModuleReferenceNumber
-				, @ReferenceNumber AS VendorRFQPurchaseOrderNumber, 0 AS RFQReferenceId, 0 AS RFQModuleId
+				, @ReferenceNumber AS VendorRFQPurchaseOrderNumber, 0 AS RFQReferenceId, 0 AS RFQModuleId, VRFQ.IntegrationEmailID, IE.HasAttachments
 		FROM [dbo].[VendorRFQPart] VRFQ WITH(NOLOCK) 
 		LEFT JOIN dbo.ItemMaster IM WITH(NOLOCK) ON LOWER(TRIM(VRFQ.[PartNumber])) = LOWER(TRIM(IM.[partnumber])) AND VRFQ.[MasterCompanyId] = IM.[MasterCompanyId] AND IM.IsActive = 1 AND IM.IsDeleted = 0
+		LEFT JOIN [dbo].[IntegrationEmail] IE WITH(NOLOCK) ON IE.IntegrationEmailID = VRFQ.IntegrationEmailID
 		WHERE VRFQ.ILSRFQDetailId = @ILSRFQDetailId AND VRFQ.VendorRFQPartId NOT IN (SELECT VendorRFQPartId FROM #tmpResult);
 
 		UPDATE TMP

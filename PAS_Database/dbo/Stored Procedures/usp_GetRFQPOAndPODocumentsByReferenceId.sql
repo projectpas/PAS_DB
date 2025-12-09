@@ -80,7 +80,7 @@ BEGIN
 				dt.Name
 			FROM DBO.AttachmentDetails ad WITH(NOLOCK)
 			INNER JOIN DBO.CommonDocumentDetails cdd WITH(NOLOCK) ON ad.AttachmentId = cdd.AttachmentId
-			INNER JOIN DBO.DocumentType dt WITH(NOLOCK) ON cdd.DocumentTypeId = dt.DocumentTypeId
+			LEFT JOIN DBO.DocumentType dt WITH(NOLOCK) ON cdd.DocumentTypeId = dt.DocumentTypeId
 			WHERE cdd.MasterCompanyId = @MasterCompanyId			
 			AND ISNULL(cdd.IsActive,1) = 1 
 			AND ISNULL(cdd.IsDeleted,0) = 0	

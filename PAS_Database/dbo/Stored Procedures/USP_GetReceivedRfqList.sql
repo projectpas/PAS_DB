@@ -285,7 +285,7 @@ BEGIN
 				LEFT JOIN dbo.SalesOrderQuote SOQ WITH(NOLOCK) ON RFQ.[ReferenceId] = SOQ.[SalesOrderQuoteId] AND RFQ.[MasterCompanyId] = SOQ.[MasterCompanyId]
 				LEFT JOIN dbo.SalesOrder SO WITH(NOLOCK) ON RFQ.[ReferenceId] = SO.[SalesOrderId] AND RFQ.[MasterCompanyId] = SO.[MasterCompanyId]
 				LEFT JOIN dbo.QuoteSendReview QSR WITH(NOLOCK) ON QSR.QuoteSendReviewId = RFQ.QuoteSendReviewId
-				LEFT JOIN #VendorsRFQResult VRFQ WITH(NOLOCK) ON RFQ.CustomerRfqId = VRFQ.CustomerRfqId AND LOWER(TRIM(RFQ.LineDescription)) = LOWER(TRIM(VRFQ.PartNumber)) AND LOWER(TRIM(RFQ.Condition)) = LOWER(TRIM(VRFQ.Condition))
+				LEFT JOIN #VendorsRFQResult VRFQ WITH(NOLOCK) ON RFQ.CustomerRfqId = VRFQ.CustomerRfqId AND LOWER(TRIM(RFQ.LinePartNumber)) = LOWER(TRIM(VRFQ.PartNumber)) AND LOWER(TRIM(RFQ.Condition)) = LOWER(TRIM(VRFQ.Condition))
 				LEFT JOIN VendorRFQReferenceResult RR ON RR.ILSRFQDetailId = VRFQ.ILSRFQDetailId AND RR.[MasterCompanyId] = VRFQ.[MasterCompanyId] 
 				LEFT JOIN RFQReferenceResult RFQR ON RFQR.ILSRFQDetailId = VRFQ.ILSRFQDetailId AND RFQR.[MasterCompanyId] = VRFQ.[MasterCompanyId] 
 				--OUTER APPLY (

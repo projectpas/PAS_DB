@@ -12,12 +12,14 @@
  **************************************************************           
   ** Change History           
  **************************************************************           
- ** PR   Date         Author		Change Description            
- ** --   --------     -------		--------------------------------          
-    1    09/20/2024   Vishal Suthar Created
-    2    12/13/2024   Vishal Suthar Fixed an alias for Credit Terms
-    3    15-07-2025  Rajesh Gami	Fixed: showing proper status
- -- EXEC DBO.GetSalesOrderQuoteById 804
+ ** PR   Date			Author			Change Description            
+ ** --   --------		-------			--------------------------------          
+    1    09/20/2024		Vishal Suthar	Created
+    2    12/13/2024		Vishal Suthar	Fixed an alias for Credit Terms
+    3    15-07-2025		Rajesh Gami		Fixed: showing proper status
+    4    09-DEC-2025	Vishal Suthar	Fixed: added IsDeleted = 0 in join for AllAddress table
+
+ -- EXEC DBO.GetSalesOrderQuoteById 1484
 **************************************************************/ 
 CREATE    PROCEDURE [dbo].[GetSalesOrderQuoteById]
     @SalesOrderQuoteId INT
@@ -157,10 +159,10 @@ BEGIN
 		LEFT JOIN DBO.Countries ccon WITH (NOLOCK) ON addr.CountryId = ccon.countries_id
 		LEFT JOIN DBO.AllAddress sAddress WITH (NOLOCK) ON soq.SalesOrderQuoteId = sAddress.ReffranceId 
 			AND sAddress.ModuleId = @SalesQuoteModuleId 
-			AND sAddress.IsShippingAdd = 1
+			AND sAddress.IsShippingAdd = 1 AND sAddress.IsDeleted = 0
 		LEFT JOIN DBO.AllAddress bAddress WITH (NOLOCK) ON soq.SalesOrderQuoteId = bAddress.ReffranceId 
 			AND bAddress.ModuleId = @SalesQuoteModuleId
-			AND bAddress.IsShippingAdd = 0
+			AND bAddress.IsShippingAdd = 0 AND bAddress.IsDeleted = 0
 		LEFT JOIN DBO.AllShipVia allShipVia WITH (NOLOCK) ON soq.SalesOrderQuoteId = allShipVia.ReferenceId 
 			AND allShipVia.ModuleId = @SalesQuoteModuleId
 		LEFT JOIN DBO.CustomerContact cust_cont WITH (NOLOCK) ON soq.CustomerContactId = cust_cont.CustomerContactId

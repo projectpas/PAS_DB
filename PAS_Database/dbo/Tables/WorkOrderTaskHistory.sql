@@ -16,7 +16,7 @@
     [ParentId]                                     BIGINT         NULL,
     [InstructionTitle]                             VARCHAR (8000) NULL,
     [InstructionDetails]                           VARCHAR (MAX)  NULL,
-    [SequenceNumber]                               INT            NULL,
+    [SequenceNumber]                               VARCHAR (10)   NULL,
     [IsActive]                                     BIT            NULL,
     [IsDeleted]                                    BIT            NULL,
     [UpdatedBy]                                    VARCHAR (256)  NULL,
@@ -32,4 +32,6 @@
     [WorkOrderTaskInstructionPrintInWOQ]           BIT            NULL,
     [WorkOrderTaskInstructionSequence]             INT            NULL
 );
+
+
 

@@ -11,6 +11,7 @@
  ** --    --------				-------					-------------------------------          
     1     14-Nov-2025			Devendra Shekh			Created
 	2	  04-Dec-2025			Ayushi Patel			Filtered documents by AiIntegrationSetting DocumentType
+	3     05-12-2025			Ayushi Patel			Get Document From RFQ PO and PO by SalesOrderQuoteId
 
 EXEC [usp_GetRFQPOAndPODocumentsByReferenceId]  1407,1,46
 **************************************************************/ 
@@ -31,7 +32,7 @@ BEGIN
 				@SOQ_DocModuleId INT = 0,
 				@PORerenceIds VARCHAR(MAX) = '',
 				@RFQPORerenceIds VARCHAR(MAX) = '';
-		
+
 		SELECT @PO_DocModuleId = [AttachmentModuleId] FROM [dbo].[AttachmentModule] WITH(NOLOCK) WHERE [Name] = 'PurchaseOrder';
 		SELECT @VRFQPO_DocModuleId = [AttachmentModuleId] FROM [dbo].[AttachmentModule] WITH(NOLOCK) WHERE [Name] = 'VendorRFQPurchaseOrder';
 		SELECT @SOQ_DocModuleId = [AttachmentModuleId] FROM [dbo].[AttachmentModule] WITH(NOLOCK) WHERE [Name] = 'SalesQuote';
@@ -46,6 +47,13 @@ BEGIN
 				INNER JOIN [dbo].[CustomerRfq] RFQ WITH(NOLOCK) ON PT.CustomerRfqId = RFQ.CustomerRfqId
 				INNER JOIN [dbo].[VendorRFQPart] VRFQ WITH(NOLOCK) ON PT.ILSRFQDetailId = VRFQ.ILSRFQDetailId
 				WHERE RFQ.ModuleId = @SOQ_ModuleId AND RFQ.ReferenceId = @ReferenceId AND VRFQ.ModuleId = @PO_ModuleId AND PT.MasterCompanyId = @MasterCompanyId
+
+				UNION
+
+				SELECT DISTINCT PO.PurchaseOrderId AS ReferenceId
+				FROM [dbo].[PurchaseOrder] PO WITH(NOLOCK)
+				INNER JOIN [dbo].[PurchaseOrderPart] POP WITH(NOLOCK) ON POP.PurchaseOrderId = PO.PurchaseOrderId
+				WHERE PO.MasterCompanyId = @MasterCompanyId AND POP.SalesOrderQuoteId = @ReferenceId
 			)
 			SELECT @PORerenceIds = STRING_AGG([ReferenceId], ',') FROM Result;
 			 
@@ -53,7 +61,9 @@ BEGIN
 				SELECT DISTINCT VPO.VendorRFQPurchaseOrderId AS [ReferenceId]
 				FROM [dbo].[VendorRFQPurchaseOrder] VPO WITH(NOLOCK)
 				INNER JOIN [dbo].[VendorRFQPurchaseOrderPart] VPOP WITH(NOLOCK) ON VPO.VendorRFQPurchaseOrderId = VPOP.VendorRFQPurchaseOrderId
-				WHERE VPOP.PurchaseOrderId IN (SELECT value FROM STRING_SPLIT(ISNULL(@PORerenceIds, ''), ',')) AND VPO.MasterCompanyId = @MasterCompanyId
+				WHERE VPO.MasterCompanyId = @MasterCompanyId AND 
+				((VPOP.PurchaseOrderId IN (SELECT value FROM STRING_SPLIT(ISNULL(@PORerenceIds, ''), ','))) OR 
+				VPOP.SalesOrderQuoteId = @ReferenceId)
 			)
 			SELECT @RFQPORerenceIds = STRING_AGG([ReferenceId], ',') FROM VRFQResult;
 		END
@@ -76,7 +86,7 @@ BEGIN
 				SELECT TRY_CAST(value AS INT)
 				FROM STRING_SPLIT(
 					(SELECT DocumentTypeId 
-					 FROM [dbo].[AiIntegrationSetting] WITH(NOLOCK)
+					 FROM dbo.AiIntegrationSetting WITH(NOLOCK)
 					 WHERE MasterCompanyId = @MasterCompanyId), 
 					','
 				)

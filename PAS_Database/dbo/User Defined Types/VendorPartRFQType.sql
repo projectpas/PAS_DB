@@ -1,0 +1,20 @@
+﻿CREATE TYPE [dbo].[VendorPartRFQType] AS TABLE (
+    [ItemId]             BIGINT          NULL,
+    [ItemSupplierPartId] BIGINT          NULL,
+    [PartNumber]         VARCHAR (150)   NULL,
+    [RfqId]              VARCHAR (400)   NULL,
+    [Description]        NVARCHAR (MAX)  NULL,
+    [AltPartNumber]      VARCHAR (150)   NULL,
+    [ReferenceNumber]    VARCHAR (200)   NULL,
+    [Traceability]       VARCHAR (200)   NULL,
+    [UnitOfMeasure]      VARCHAR (100)   NULL,
+    [Price]              DECIMAL (18, 4) NULL,
+    [PriceType]          VARCHAR (100)   NULL,
+    [LeadTime]           VARCHAR (100)   NULL,
+    [Qty]                INT             NULL,
+    [RequestedQty]       INT             NULL,
+    [MinQuantity]        INT             NULL,
+    [Condition]          VARCHAR (50)    NULL,
+    [Notes]              VARCHAR (MAX)   NULL,
+    [IntegrationEmailID] BIGINT          NULL);
+

@@ -27,7 +27,7 @@ CREATE    PROCEDURE [dbo].[USP_AddUpdateWorkOrderTasks]
 	@WorkOrderPartNumberId BIGINT = NULL,
 	@IsIncludeInPrint BIT = NULL,
 	@HasInstruction BIT = NULL,
-	@SequenceNumber INT = NULL,
+	@SequenceNumber VARCHAR(10) = NULL,
 	@TechId BIGINT = NULL,
 	@TechName VARCHAR(100) = NULL,
 	@TechUpdatedDate DATETIME2(7) = NULL,
@@ -58,33 +58,73 @@ BEGIN
 
 	IF (ISNULL(@WorkOrderTaskId, 0) = 0)
 	BEGIN
-		DECLARE @CurrentSequenceNo INT = 0;
+		DECLARE @CurrentSequenceNo DECIMAL(18,6) = 0;
+        DECLARE @SequenceNumberDecimal DECIMAL(18,6) = NULL;
+        DECLARE @SequenceNumberToInsert VARCHAR(10) = NULL;
+        DECLARE @InsertedWorkOrderTaskId BIGINT = 0;
 
-		SELECT @CurrentSequenceNo = ISNULL(MAX(SequenceNumber), 0) FROM DBO.WorkOrderTask WHERE WorkOrderId = @WorkOrderId AND WorkFlowWorkOrderId = @WorkFlowWorkOrderId AND WorkOrderPartNumberId = ISNULL(@WorkOrderPartNumberId,0);
-		DECLARE @InsertedWorkOrderTaskId BIGINT = 0;
+        -- compute current max numeric sequence for given WorkOrderId + WorkFlowWorkOrderId + WorkOrderPartNumberId
+        SELECT @CurrentSequenceNo = ISNULL(MAX(TRY_CAST(SequenceNumber AS DECIMAL(18,6))), 0)
+        FROM DBO.WorkOrderTask WITH (NOLOCK)
+        WHERE WorkOrderId = @WorkOrderId
+            AND WorkFlowWorkOrderId = @WorkFlowWorkOrderId
+            AND WorkOrderPartNumberId = ISNULL(@WorkOrderPartNumberId, 0);
 
-		INSERT INTO DBO.WorkOrderTask ([WorkOrderId],[WorkFlowWorkOrderId],[TaskId],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],
-		[WorkOrderPartNumberId],[SequenceNumber],[OpenDate],[OpenBy],[IsIncludeInPrint],[HasInstruction],[TaskName])
-		SELECT @WorkOrderId, @WorkFlowWorkOrderId,@TaskId, @MasterCompanyId, @CreatedBy, @CreatedBy, GETUTCDATE(), GETUTCDATE(), 1, 0,
-		@WorkOrderPartNumberId, (@CurrentSequenceNo + 1), @OpenDate, @OpenBy, @IsIncludeInPrint, @HasInstruction, @TaskName;
+        -- try parse incoming string to decimal for comparison only
+        SET @SequenceNumberDecimal = TRY_CAST(@SequenceNumber AS DECIMAL(18,6));
 
-		SET @InsertedWorkOrderTaskId = SCOPE_IDENTITY();
+        IF @SequenceNumberDecimal IS NULL OR @SequenceNumberDecimal <= @CurrentSequenceNo
+        BEGIN
+            -- generate next integer sequence (as numeric)
+            SET @SequenceNumberDecimal = @CurrentSequenceNo + 1;
 
-		INSERT INTO DBO.WorkOrderTaskDetails ([WorkOrderTaskId],[OpenDate],[OpenBy],[TechId],[TechName],[TechUpdatedDate],[InspectorId],[InspectorName],[InspectorUpdatedDate],[Descrepancy],
-		[Resolution],[HasInstruction],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted], [PrintInWO], [PrintInWOQ],IsPrintInspector,IsPrintTechnician,[IsPrintAdmin])
-		SELECT @InsertedWorkOrderTaskId, @OpenDate, @OpenBy, @TechId, @TechName, @TechUpdatedDate, @InspectorId, @InspectorName, @InspectorUpdatedDate, @Descrepancy,
-		@Resolution, @HasInstruction, @MasterCompanyId, @CreatedBy, @CreatedBy, GETUTCDATE(), GETUTCDATE(), 1, 0, @PrintInWO, @PrintInWOQ,@IsPrintInspector,@IsPrintTechnician,@IsPrintAdmin;
+            -- convert to string (6 decimals fixed) then trim trailing zeros/dot
+            SET @SequenceNumberToInsert = RTRIM(REPLACE(STR(@SequenceNumberDecimal, 38, 6), ' ', ''));
 
-		-- Add Entry in History Table
-		SET @StatusCode = 'CreateWorkOrderTask';
+            WHILE RIGHT(@SequenceNumberToInsert, 1) = '0'
+                SET @SequenceNumberToInsert = LEFT(@SequenceNumberToInsert, LEN(@SequenceNumberToInsert) - 1);
 
-		SELECT @TemplateBody = TemplateBody FROM dbo.HistoryTemplate WITH(NOLOCK) WHERE TemplateCode = @StatusCode
+            IF RIGHT(@SequenceNumberToInsert, 1) = '.'
+                SET @SequenceNumberToInsert = LEFT(@SequenceNumberToInsert, LEN(@SequenceNumberToInsert) - 1);
 
-		SET @TemplateBody = REPLACE(@TemplateBody, '##TaskName##', ISNULL(@TaskName,''));
+            SET @SequenceNumberToInsert = LEFT(@SequenceNumberToInsert, 10);
+        END
+        ELSE
+        BEGIN
+            -- incoming string is valid and greater than max — preserve exact string (trim left/right spaces, enforce length)
+            SET @SequenceNumberToInsert = LEFT(LTRIM(RTRIM(@SequenceNumber)), 10);
+        END
 
-		EXEC USP_History @ModuleId, @WorkOrderId, @SubModuleId, @WorkOrderPartNumberId, '', @TaskName, @TemplateBody, @StatusCode, @MasterCompanyId, @CreatedBy, NULL, @CreatedBy, NULL
+        INSERT INTO DBO.WorkOrderTask
+        (
+            [WorkOrderId],[WorkFlowWorkOrderId],[TaskId],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],
+            [WorkOrderPartNumberId],[SequenceNumber],[OpenDate],[OpenBy],[IsIncludeInPrint],[HasInstruction],[TaskName]
+        )
+        VALUES
+        (
+            @WorkOrderId, @WorkFlowWorkOrderId, @TaskId, @MasterCompanyId, @CreatedBy, @CreatedBy, GETUTCDATE(), GETUTCDATE(), 1, 0,
+            @WorkOrderPartNumberId, @SequenceNumberToInsert, @OpenDate, @OpenBy, @IsIncludeInPrint, @HasInstruction, @TaskName
+        );
 
-		SELECT @InsertedWorkOrderTaskId AS WorkOrderTaskId;
+        SET @InsertedWorkOrderTaskId = SCOPE_IDENTITY();
+
+        INSERT INTO DBO.WorkOrderTaskDetails
+        (
+            [WorkOrderTaskId],[OpenDate],[OpenBy],[TechId],[TechName],[TechUpdatedDate],[InspectorId],[InspectorName],[InspectorUpdatedDate],[Descrepancy],
+            [Resolution],[HasInstruction],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[PrintInWO],[PrintInWOQ],
+            IsPrintInspector,IsPrintTechnician,[IsPrintAdmin]
+        )
+        SELECT 
+            @InsertedWorkOrderTaskId, @OpenDate, @OpenBy, @TechId, @TechName, @TechUpdatedDate, @InspectorId, @InspectorName, @InspectorUpdatedDate, @Descrepancy,
+            @Resolution, @HasInstruction, @MasterCompanyId, @CreatedBy, @CreatedBy, GETUTCDATE(), GETUTCDATE(), 1, 0, @PrintInWO, @PrintInWOQ, @IsPrintInspector, @IsPrintTechnician, @IsPrintAdmin;
+
+        -- Add Entry in History Table
+        SET @StatusCode = 'CreateWorkOrderTask';
+        SELECT @TemplateBody = TemplateBody FROM dbo.HistoryTemplate WITH(NOLOCK) WHERE TemplateCode = @StatusCode;
+        SET @TemplateBody = REPLACE(@TemplateBody, '##TaskName##', ISNULL(@TaskName,''));
+        EXEC USP_History @ModuleId, @WorkOrderId, @SubModuleId, @WorkOrderPartNumberId, '', @TaskName, @TemplateBody, @StatusCode, @MasterCompanyId, @CreatedBy, NULL, @CreatedBy, NULL;
+
+        SELECT @InsertedWorkOrderTaskId AS WorkOrderTaskId;
 	END
 	ELSE
 	BEGIN

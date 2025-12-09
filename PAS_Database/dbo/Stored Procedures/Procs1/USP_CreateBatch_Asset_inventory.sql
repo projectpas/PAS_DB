@@ -19,6 +19,7 @@
 	7    14/02/2023	  Moin Bloch		 Updated Used Distribution Setup Code Insted of Name 
 	8	 23/05/2024   Abhishek Jirawla   Changing UnitCost to Total Cost
 	9    19/09/2024	  AMIT GHEDIYA		 Added for AutoPost Batch
+	10   05/12/2025	  AMIT GHEDIYA		 modify dis for WriteDown
 
 -- EXEC USP_BatchTriggerBasedonDistribution 3
    EXEC [dbo].[USP_CreateBatch_Asset_inventory] 10406,1,'150.00','AssetInventory','admin',1,'AssetWriteOff',0
@@ -161,7 +162,8 @@ BEGIN
 		DECLARE @AccountMSModuleId INT = 0
 		SELECT @AccountMSModuleId = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] ='Accounting';
 
-		SELECT @DistributionMasterId =ID FROM DBO.DistributionMaster WITH(NOLOCK)  WHERE UPPER(DistributionCode)= UPPER('AssetInventory')
+		--SELECT @DistributionMasterId =ID FROM DBO.DistributionMaster WITH(NOLOCK)  WHERE UPPER(DistributionCode)= UPPER('AssetInventory')
+		SELECT @DistributionMasterId =ID FROM DBO.DistributionMaster WITH(NOLOCK)  WHERE UPPER(DistributionCode)= UPPER('ASSETSALEWRITEDOWNWRITEOFF');
 
 		SELECT @IsAccountByPass =IsAccountByPass FROM DBO.MasterCompany WITH(NOLOCK)  WHERE MasterCompanyId= @MasterCompanyId
 		SELECT @DistributionCode =DistributionCode FROM DBO.DistributionMaster WITH(NOLOCK)  WHERE ID= @DistributionMasterId
@@ -262,11 +264,10 @@ BEGIN
 			SET @SelectedAccountingPeriodId = NULL
 		END
 
-		IF((@JournalTypeCode ='AST') and @IsAccountByPass=0)
+		IF((@JournalTypeCode ='AST-SALE') and @IsAccountByPass=0)
 		BEGIN
-
-			IF(@SelectedAccountingPeriodId = NULL)
-			BEGIN
+			IF(@SelectedAccountingPeriodId = NULL OR ISNULL(@SelectedAccountingPeriodId,'') = '')
+			BEGIN 
 				SELECT top 1  @AccountingPeriodId=acc.AccountingCalendarId,@AccountingPeriod=PeriodName FROM dbo.EntityStructureSetup est WITH(NOLOCK) 
 				INNER JOIN ManagementStructureLevel msl WITH(NOLOCK) on est.Level1Id = msl.ID 
 				INNER JOIN AccountingCalendar acc WITH(NOLOCK) on msl.LegalEntityId = acc.LegalEntityId and acc.IsDeleted =0
@@ -317,7 +318,7 @@ BEGIN
 				INSERT INTO [dbo].[BatchHeader]
 					([BatchName],[CurrentNumber],[EntryDate],[AccountingPeriod],AccountingPeriodId,[StatusId],[StatusName],[JournalTypeId],[JournalTypeName],[TotalDebit],[TotalCredit],[TotalBalance],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[Module])
                 VALUES
-					(@batch,@CurrentNumber,GETUTCDATE(),@AccountingPeriod,@AccountingPeriodId,@StatusId,@StatusName,@JournalTypeId,@JournalTypename,@Amount,@Amount,0,@MasterCompanyId,@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,'AST');
+					(@batch,@CurrentNumber,GETUTCDATE(),@AccountingPeriod,@AccountingPeriodId,@StatusId,@StatusName,@JournalTypeId,@JournalTypename,@Amount,@Amount,0,@MasterCompanyId,@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,'ASSETSALE');
             	          
 				SELECT @JournalBatchHeaderId = SCOPE_IDENTITY()
 				Update BatchHeader set CurrentNumber=@CurrentNumber  WHERE JournalBatchHeaderId= @JournalBatchHeaderId
@@ -742,9 +743,8 @@ BEGIN
 				END
 			END
 			
-			IF(UPPER(@DistributionCode) = UPPER('AssetInventory') AND UPPER(@StockType) = 'AssetWriteDown')
-			BEGIN
-				print 'AssetWriteDown'
+			IF(UPPER(@DistributionCode) = UPPER('ASSETSALEWRITEDOWNWRITEOFF') AND UPPER(@StockType) = 'AssetWriteDown')
+			BEGIN				
 				SELECT @ReferenceId=AssetInventoryId,@PurchaseOrderId=PurchaseOrderId,@RepairOrderId=RepairOrderId,@StocklineNumber=InventoryNumber
 				,@SiteId=[SiteId],@Site=[SiteName],@WarehouseId=[WarehouseId],@Warehouse=[Warehouse],@LocationId=[LocationId],@Location=[Location],@BinId=[BinId],@Bin=[BinName],@ShelfId=[ShelfId],@Shelf=[ShelfName]
 				,@AssetInventoryName=InventoryNumber
@@ -754,7 +754,8 @@ BEGIN
 				SELECT @VendorName =VendorName FROM Vendor WITH(NOLOCK)  WHERE VendorId= @VendorId;
 						
 				SET @UnitPrice = @Amount;
-				SET @Amount = (@AssetTotalPrice);
+				SET @Amount = ABS((@Amount - @AssetTotalPrice));
+
 
 				SELECT @WorkOrderNumber=InventoryNumber,@partId=PurchaseOrderPartRecordId,@ItemMasterId=MasterPartId,@ManagementStructureId=ManagementStructureId FROM AssetInventory WHERE AssetInventoryId=@AssetInventoryId;
 	            SELECT @MPNName = partnumber FROM ItemMaster WITH(NOLOCK)  WHERE ItemMasterId=@ItemmasterId 
@@ -768,12 +769,16 @@ BEGIN
 				SET @JournalTypeNumber = (SELECT * FROM dbo.udfGenerateCodeNumber(@currentNo,(SELECT CodePrefix FROM #tmpCodePrefixes WHERE CodeTypeId = @CodeTypeId), (SELECT CodeSufix FROM #tmpCodePrefixes WHERE CodeTypeId = @CodeTypeId)))
 
 				------Asset Account -----------
-				SELECT top 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId, @IsAutoPost = ISNULL(IsAutoPost,0)
-				FROM dbo.DistributionSetup WITH(NOLOCK)  WHERE UPPER(DistributionSetupCode) =UPPER('ASSETACCOUNT') 
-				AND DistributionMasterId=@DistributionMasterId AND MasterCompanyId = @MasterCompanyId
+				--SELECT top 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId, @IsAutoPost = ISNULL(IsAutoPost,0)
+				--FROM dbo.DistributionSetup WITH(NOLOCK)  WHERE UPPER(DistributionSetupCode) = UPPER('LOSSGAINONWRITEDOWNSALE')--UPPER('ASSETACCOUNT') 
+				--AND DistributionMasterId=@DistributionMasterId AND MasterCompanyId = @MasterCompanyId
+
+				SELECT TOP 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,
+					@GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName ,@CrDrType = CRDRType
+					FROM [DBO].[DistributionSetup] WITH(NOLOCK)  WHERE DistributionSetupCode = 'FIXEDASSETAC' AND MasterCompanyId = @MasterCompanyId
 
 				SELECT @GlAccountNumber=AccountCode,@GlAccountName=AccountName,@GlAccountId=@AcquiredGLAccountId 
-				FROM GLAccount WHERE GLAccountId=@AcquiredGLAccountId
+				FROM GLAccount WHERE GLAccountId=@AssetWriteDownGLAccountId
 
 				IF(@JournalBatchDetailId = 0)
 				BEGIN
@@ -791,14 +796,22 @@ BEGIN
 
 					SET @JournalBatchDetailId=SCOPE_IDENTITY();
 
+					DECLARE @IsSaleAssetDRCR INT = 0;
+					DECLARE @SaleAssetDRCR INT = 1;
+
+					IF(@UnitPrice > @AssetTotalPrice)
+					BEGIN
+						SET @IsSaleAssetDRCR = @SaleAssetDRCR;
+					END
+
 					INSERT INTO [dbo].[CommonBatchDetails]
 						(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
 						[IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId],[ModuleName],LastMSLevel,AllMSlevels,[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted])
 					VALUES
 						(@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,@JournalBatchHeaderId,1 ,@GlAccountId ,@GlAccountNumber ,@GlAccountName,GETUTCDATE(),GETUTCDATE(),@JournalTypeId ,@JournalTypename ,
-						CASE WHEN @CrDrType = 1 THEN 1 ELSE 0 END,
-						CASE WHEN @CrDrType = 1 THEN @Amount ELSE 0 END,
-						CASE WHEN @CrDrType = 1 THEN 0 ELSE @Amount END,
+						CASE WHEN @IsSaleAssetDRCR = 1 THEN 0 ELSE 1 END,
+						CASE WHEN @IsSaleAssetDRCR = 1 THEN 0 ELSE @Amount END,
+						CASE WHEN @IsSaleAssetDRCR = 1 THEN @Amount ELSE 0 END,
 						@ManagementStructureId ,@ModuleName,@LastMSLevel,@AllMSlevels ,@MasterCompanyId,@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0)
 
 					SET @CommonJournalBatchDetailId=SCOPE_IDENTITY()
@@ -818,12 +831,20 @@ BEGIN
 
 				END
 				------Asset Account -----------
-
+				
 				------Loss/(Gain) on Disposal of Assets -----------
-				SELECT top 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,
-				@GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName
-				FROM dbo.DistributionSetup WITH(NOLOCK)  WHERE  UPPER(DistributionSetupCode) =UPPER('LOSSGAINONDISPOSALOFASSETS') AND
-				DistributionMasterId=@DistributionMasterId AND MasterCompanyId = @MasterCompanyId
+				--SELECT top 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,
+				--@GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName
+				--FROM dbo.DistributionSetup WITH(NOLOCK)  WHERE  UPPER(DistributionSetupCode) = UPPER('FIXEDASSETAC') --UPPER('LOSSGAINONDISPOSALOFASSETS') AND
+				--AND DistributionMasterId=@DistributionMasterId AND MasterCompanyId = @MasterCompanyId
+
+				SELECT TOP 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,
+					@GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName ,@CrDrType = CRDRType
+					FROM [DBO].[DistributionSetup] WITH(NOLOCK)  WHERE DistributionSetupCode = 'LOSSGAINONWRITEDOWNSALE' AND MasterCompanyId = @MasterCompanyId
+
+				SELECT @GlAccountNumber=AccountCode,@GlAccountName=AccountName,@GlAccountId=@AcquiredGLAccountId 
+				FROM GLAccount WHERE GLAccountId=@AcquiredGLAccountId
+
 
 				IF(@JournalBatchDetailId = 0)
 				BEGIN
@@ -841,12 +862,20 @@ BEGIN
 					SET @JournalBatchDetailId=SCOPE_IDENTITY()
 				END
 
+				IF(@UnitPrice > @AssetTotalPrice)
+				BEGIN
+					SET @IsSaleAssetDRCR = @IsSaleAssetDRCR;
+				END
+				
 				INSERT INTO [dbo].[CommonBatchDetails]
 					(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
 					[IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId],[ModuleName],LastMSLevel,AllMSlevels,[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted])
 				VALUES
 					(@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,@JournalBatchHeaderId,1 ,@GlAccountId ,@GlAccountNumber ,@GlAccountName,GETUTCDATE(),GETUTCDATE(),@JournalTypeId ,@JournalTypename ,
-					1,@Amount,0,@ManagementStructureId ,@ModuleName,@LastMSLevel,@AllMSlevels ,@MasterCompanyId,@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0)
+					CASE WHEN @IsSaleAssetDRCR = 1 THEN 1 ELSE 0 END,
+					CASE WHEN @IsSaleAssetDRCR = 1 THEN @Amount ELSE 0 END,
+					CASE WHEN @IsSaleAssetDRCR = 1 THEN 0 ELSE @Amount END,
+					@ManagementStructureId ,@ModuleName,@LastMSLevel,@AllMSlevels ,@MasterCompanyId,@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0)
 
 				SET @CommonJournalBatchDetailId = SCOPE_IDENTITY()
 

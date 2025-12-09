@@ -17,6 +17,8 @@
  ** --   --------			-------			--------------------------------          
     1    02-April-2025   Bhargav Saliya		Created
 	2    04-Dec-2025	 Rajesh Gami		Added CustomerRFQNo while getting record
+	3    08-Dec-2025     Sahdev Saliya      Added New Field :- VendorRFQPurchaseOrderNumber
+
 exec [dbo].[USP_GetPurchaseOrderDetails] @PurchaseOrderId = 6708
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[USP_GetPurchaseOrderDetails]
@@ -111,7 +113,8 @@ BEGIN
 			ISNULL(fcu.Code, '') AS FunctionalCurrency,
 			ISNULL(rcu.Code, '') AS ReportCurrency,
 			CASE WHEN po.ForeignExchangeRate > 0 THEN po.ForeignExchangeRate ELSE 0 END AS ForeignExchangeRate,
-			ISNULL(rfqData.CustomerRFQNo,'-') AS CustomerRFQNo
+			ISNULL(rfqData.CustomerRFQNo,'-') AS CustomerRFQNo,
+			VRFQ.VendorRFQPurchaseOrderNumber
 		FROM PurchaseOrder po WITH(NOLOCK)
 		LEFT JOIN [dbo].AllAddress posadd WITH(NOLOCK) ON po.PurchaseOrderId = posadd.ReffranceId AND posadd.IsShippingAdd = 1 AND posadd.ModuleId = @ModuleId
 		LEFT JOIN [dbo].AllAddress pobadd WITH(NOLOCK) ON po.PurchaseOrderId = pobadd.ReffranceId AND pobadd.IsShippingAdd = 0 AND pobadd.ModuleId = @ModuleId
@@ -127,6 +130,7 @@ BEGIN
 					INNER JOIN DBO.ILSRFQPart ilsPart WITH(NOLOCK) ON rfqPart.ILSRFQDetailId = ilsPart.ILSRFQDetailId 
 					INNER JOIN DBO.CustomerRfq rfq WITH(NOLOCK) ON ilsPart.CustomerRfqId = rfq.CustomerRfqId
 					WHERE part.PurchaseOrderId =PO.PurchaseOrderId) rfqData
+		LEFT JOIN dbo.VendorRFQPurchaseOrder VRFQ WITH (NOLOCK) ON po.VendorRFQPurchaseOrderId = VRFQ.VendorRFQPurchaseOrderId
 		WHERE po.PurchaseOrderId = @PurchaseOrderId;
 	END
 	END TRY

@@ -21,6 +21,7 @@
 	10	 27 Aug 2025	Devendra Shekh		Modified (select employee from LegalEntity or Employee Table if @EmployeeId is null or 0)
 	11	 27 Oct 2025	Devendra Shekh		Modified (Create Item and Customer if Not Exists in System)
 	12	 04 Nov 2025	Devendra Shekh		Modified (Duplicate Customer Issue Resolved)
+	13	 10 Dec 2025	Devendra Shekh		Modified (Duplicate RFQ Issue Resolved)
 
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[usp_SaveEmailRFQ]
@@ -36,6 +37,9 @@ BEGIN
 	BEGIN TRY
 	BEGIN
 		DECLARE @CustomerRfqId BIGINT;
+
+		IF NOT EXISTS(SELECT 1 FROM [dbo].[CustomerRfq] CRQ WITH(NOLOCK) INNER JOIN [dbo].[IntegrationEmail] IE WITH(NOLOCK) ON IE.CustomerRfqId = CRQ.CustomerRfqId WHERE IE.IntegrationEmailID = @IntegrationEmailID)
+		BEGIN
 
 		IF EXISTS(SELECT 1 FROM @tbl_RfqPartDetailType)
 		BEGIN
@@ -303,6 +307,8 @@ BEGIN
 		END
 
 		SELECT @CustomerRfqId AS [CUSTOMERRFQID]
+
+		END
 	END		
 	--COMMIT
 	END TRY	

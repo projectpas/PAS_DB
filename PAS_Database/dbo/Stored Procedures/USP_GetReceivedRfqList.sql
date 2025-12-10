@@ -32,6 +32,7 @@
     18   03-12-2025  Rajesh Gami		 Added Quote Sent Date (@QuoteSentDate)
 	19   03-12-2025  Moin Bloch		     Modified Changed Quoted Column Status
 	20   04-12-2025  Devendra Shekh		 Modified (added @SendQuote)
+	21   10-12-2025  Devendra Shekh		 Modified (added IsActive/IsDeleted to Where)
 -- EXEC USP_GetReceivedRfqList 
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[USP_GetReceivedRfqList]
@@ -296,6 +297,7 @@ BEGIN
 				WHERE RFQ.MasterCompanyId = @MasterCompanyId 
 				AND (@IntegrationPortalId IS NULL OR RFQ.IntegrationPortalId = @IntegrationPortalId)
 				AND RFQ.IntegrationPortalId IN (@ILSPortalId, @OneFortyFivePortalId)
+				AND RFQ.IsActive = 1 AND RFQ.IsDeleted = 0
 
 				UNION ALL
 
@@ -398,6 +400,7 @@ BEGIN
 				--) IM
 				WHERE RFQ.MasterCompanyId = @MasterCompanyId 
 				AND RFQ.IntegrationPortalId IN (@EmailPortalId)
+				AND RFQ.IsActive = 1 AND RFQ.IsDeleted = 0
 				--AND RFQ.IsQuote IS NOT NULL 
 					AND (@IntegrationPortalId IS NULL OR RFQ.IntegrationPortalId = @IntegrationPortalId)),
 				FinalResult AS (

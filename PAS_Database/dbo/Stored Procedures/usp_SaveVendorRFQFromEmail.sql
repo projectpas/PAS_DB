@@ -11,6 +11,7 @@
  ** --   --------			-------				--------------------------------          
     1	 05 Dec 2025		Devendra Shekh		Created
 	2	 08 Dec 2025		Devendra Shekh		Modified to save IntegrationEmailID to [VendorRFQPart] And [ThirdPartyRFQId] to [IntegrationEmail]
+	3	 10 Dec 2025		Devendra Shekh		Duplicate RFQ Issue Resolved
 
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[usp_SaveVendorRFQFromEmail]
@@ -25,6 +26,10 @@ BEGIN
 	--BEGIN TRANSACTION;
 	BEGIN TRY
 	BEGIN
+
+		IF NOT EXISTS(SELECT 1 FROM [dbo].[ThirdPartyRFQ] TPR WITH(NOLOCK) INNER JOIN [dbo].[IntegrationEmail] IE WITH(NOLOCK) ON IE.ThirdPartyRFQId = TPR.ThirdPartyRFQId WHERE IE.IntegrationEmailID = @IntegrationEmailID)
+		BEGIN
+
 		IF EXISTS(SELECT 1 FROM @tbl_VendorPartRFQType)
 		BEGIN
 			DECLARE @CreatedBy VARCHAR(100), @MasterCompanyId INT;
@@ -131,6 +136,8 @@ BEGIN
 		END
 
 		UPDATE [DBO].[IntegrationEmail] SET [IsProcessed] = 1, [ThirdPartyRFQId] = @ThirdPartyRFQId WHERE IntegrationEmailID = @IntegrationEmailID;
+
+		END
 	END		
 	--COMMIT
 	END TRY	

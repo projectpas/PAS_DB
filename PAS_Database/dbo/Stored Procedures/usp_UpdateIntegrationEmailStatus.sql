@@ -23,7 +23,7 @@ SET NOCOUNT ON
 		BEGIN
 			 
 			DECLARE  @PendingeEmailStatus INT = 1, @InProgressEmailStatus INT = 2, @CompletedEmailStatus INT = 3, @FailedEmailStatus INT = 4;
-			DECLARE @TryLimit INT = 3;
+			DECLARE @TryLimit INT = 10;
 
 			IF(@EmailStatusId = @FailedEmailStatus)
 			BEGIN

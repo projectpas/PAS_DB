@@ -12,7 +12,7 @@
     1     14-Nov-2025			Devendra Shekh			Created
 	2	  04-Dec-2025			Ayushi Patel			Filtered documents by AiIntegrationSetting DocumentType
 	3     05-12-2025			Ayushi Patel			Get Document From RFQ PO and PO by SalesOrderQuoteId
-
+	4	  09-Dec-2025			Ayushi Patel			Get the field DocumentType (name)
 EXEC [usp_GetRFQPOAndPODocumentsByReferenceId]  1407,1,46
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[usp_GetRFQPOAndPODocumentsByReferenceId]
@@ -76,9 +76,11 @@ BEGIN
 				ad.Link,
 				ad.FileSize, 
 				ad.AttachmentId , 
-				ad.AttachmentDetailId
+				ad.AttachmentDetailId,
+				dt.Name
 			FROM DBO.AttachmentDetails ad WITH(NOLOCK)
 			INNER JOIN DBO.CommonDocumentDetails cdd WITH(NOLOCK) ON ad.AttachmentId = cdd.AttachmentId
+			LEFT JOIN DBO.DocumentType dt WITH(NOLOCK) ON cdd.DocumentTypeId = dt.DocumentTypeId
 			WHERE cdd.MasterCompanyId = @MasterCompanyId			
 			AND ISNULL(cdd.IsActive,1) = 1 
 			AND ISNULL(cdd.IsDeleted,0) = 0	

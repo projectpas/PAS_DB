@@ -13,6 +13,7 @@
  ** --   --------		-------			--------------------------------              
     1    26 SEP 2024	BHARGAV SALIYA		WO Refresh CreditLimit and Terms     
     2    10 OCT 2024	BHARGAV SALIYA		Updates PercentId, days and NetDays as per CreditTerms     
+	3    12 DEC 2025	Amit Ghediya		Updates creditTerms in WOQ
  
  EXEC [USP_WO_Refresh_CreditLimit_Terms] 3502,4401,true
  --exec dbo.USP_WO_Refresh_CreditLimit_Terms @CustomerId=3502,@wokorderId=4401,@IsGetCustomerCredirTems=1
@@ -89,7 +90,18 @@ BEGIN
 			SELECT C.CustomerAffiliationId as [AccountTypeId],[CreditTermId],[CreditLimit],[CustomerName],[CreditTerms] as [CreditTermName],CustomerType as [AccountTypeName] 
 			FROM [dbo].[Workorder] W WITH (NOLOCK)
 			LEFT JOIN [dbo].[Customer] C WITH (NOLOCK) ON W.CustomerId = C.CustomerId
-			WHERE WorkorderId = @workorderId 
+			WHERE WorkorderId = @workorderId ;
+
+			--Update in WOQ
+			IF EXISTS(SELECT TOP 1 [WorkOrderQuoteId] FROM [dbo].[WorkOrderQuote] WITH(NOLOCK) WHERE [WorkOrderId] = @workorderId)
+			BEGIN
+				 UPDATE [dbo].[WorkOrderQuote]
+				 SET 
+					[CreditLimit] =  @CeraditLimit,
+					[CreditTerms] = @CreaditTerms
+				 FROM [dbo].[WorkOrderQuote]  
+				 WHERE [WorkorderId] = @workorderId
+			END
 		END
 		
 		COMMIT  TRANSACTION
@@ -103,7 +115,7 @@ BEGIN
 
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
               , @AdhocComments     VARCHAR(150)    = 'USP_WO_Refresh_CreditLimit_Terms' 
-              , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = '''+ ISNULL(@CustomerId, '') + ''
+			  , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = ' + ISNULL(CAST(@CustomerId AS varchar(10)) ,'') +''
               , @ApplicationName VARCHAR(100) = 'PAS'
 -----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------
 

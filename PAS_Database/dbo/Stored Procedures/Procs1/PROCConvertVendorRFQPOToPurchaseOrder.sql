@@ -26,6 +26,7 @@
 	11   30/07/2024  Shrey Chandegara  Fixed Freight And Charge bug
 	12   11/09/2024  Amit Ghediya      Updated for add FunctionalCurrencyId,ReportCurrencyId,ForeignExchangeRate while Convert VendorRFQPO To PurchaseOrder.
 	13   25/09/2025  Devendra Shekh	   Added Changes for @IsFromRFQ to Update [VendorRFQPart]
+	14   12/12/2025  Devendra Shekh	   Added SP usp_MapRFQReferences For PO Part Reference Mapping
          
 -- EXEC [PROCConvertVendorRFQPOToPurchaseOrder] 13,0,0,2,22,3,0    
 ************************************************************************/    
@@ -325,6 +326,8 @@ BEGIN
 
 		UPDATE [dbo].[PurchaseOrderPart] SET [VendorListPrice] = [UnitCost] WHERE [PurchaseOrderId] = @Result AND [MasterCompanyId] = @MasterCompanyId;
 		UPDATE [dbo].[VendorRFQPart] SET [ModuleId] = @POModuleId, [ReferenceId] = @Result WHERE [ReferenceId] = @VendorRFQPurchaseOrderId AND [ModuleId] = @VRFQPOModuleId AND [MasterCompanyId] = @MasterCompanyId;
+
+		EXEC [dbo].[usp_MapRFQReferences] @POModuleId, @Result, @MasterCompanyId, @CreateBy;
 	 END
 
     END    

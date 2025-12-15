@@ -13,6 +13,7 @@
  ** --   --------		-------			--------------------------------              
     1    09/08/2024  	AMIT GHEDIYA	Created     
     2    14/08/2024  	Devendra Shekh	allowing null params values
+	3    11/12/2025     Sahdev Saliya   Resolved Duplicate email popup issue
  
  EXEC [CheckVendorDuplicateEmailContact] '123456789','AMIT@GDGD.COM',12
 ********************************************************************/ 
@@ -47,7 +48,7 @@ BEGIN
 					 END
 					 ELSE
 					 BEGIN 
-						 IF EXISTS(SELECT 1 FROM [dbo].[Vendor] WITH(NOLOCK) WHERE [VendorEmail] = @email AND [VendorId] != @vendorId AND [IsActive] = 1 AND [IsDeleted] = 0)
+						 IF EXISTS(SELECT 1 FROM [dbo].[Vendor] WITH(NOLOCK) WHERE [VendorEmail] = @email AND [VendorId] != @vendorId AND [IsActive] = 1 AND [IsDeleted] = 0 AND ISNULL(@email, '') <> '')
 						 BEGIN
 							  SET @ReturnStatus = -1;
 							  SET @ReturnMsg = @EmailReturnMsg;
@@ -68,7 +69,7 @@ BEGIN
 					 END
 					 ELSE
 					 BEGIN
-						 IF EXISTS(SELECT 1 FROM [dbo].[Vendor] WITH(NOLOCK) WHERE [VendorPhone] = @vendorPhone AND [VendorId] != @vendorId AND [IsActive] = 1 AND [IsDeleted] = 0)
+						 IF EXISTS(SELECT 1 FROM [dbo].[Vendor] WITH(NOLOCK) WHERE [VendorPhone] = @vendorPhone AND [VendorId] != @vendorId AND [IsActive] = 1 AND [IsDeleted] = 0 AND ISNULL(@vendorPhone, '') <> '')
 						 BEGIN
 							 SET @ReturnStatus = -2;
 							 SET @ReturnMsg = @ContactReturnMsg;
@@ -82,9 +83,9 @@ BEGIN
 				END
 				ELSE
 				BEGIN
-					IF EXISTS(SELECT 1 FROM [dbo].[Vendor] WITH(NOLOCK) WHERE [VendorEmail] = @email AND [VendorId] != @vendorId AND [IsActive] = 1 AND [IsDeleted] = 0)
+					IF EXISTS(SELECT 1 FROM [dbo].[Vendor] WITH(NOLOCK) WHERE [VendorEmail] = @email AND [VendorId] != @vendorId AND [IsActive] = 1 AND [IsDeleted] = 0 AND ISNULL(@email, '') <> '')
 					BEGIN
-						 IF EXISTS(SELECT 1 FROM [dbo].[Vendor] WITH(NOLOCK) WHERE [VendorPhone] = @vendorPhone AND [VendorId] != @vendorId AND [IsActive] = 1 AND [IsDeleted] = 0)
+						 IF EXISTS(SELECT 1 FROM [dbo].[Vendor] WITH(NOLOCK) WHERE [VendorPhone] = @vendorPhone AND [VendorId] != @vendorId AND [IsActive] = 1 AND [IsDeleted] = 0 AND ISNULL(@vendorPhone, '') <> '')
 						 BEGIN
 							  SET @ReturnStatus = -3;
 							  SET @ReturnMsg = @BothReturnMsg;
@@ -95,9 +96,9 @@ BEGIN
 							 SET @ReturnMsg = @EmailReturnMsg;
 						 END
 					END
-					ELSE IF EXISTS(SELECT 1 FROM [dbo].[Vendor] WITH(NOLOCK) WHERE [VendorPhone] = @vendorPhone AND [VendorId] != @vendorId AND [IsActive] = 1 AND [IsDeleted] = 0)
+					ELSE IF EXISTS(SELECT 1 FROM [dbo].[Vendor] WITH(NOLOCK) WHERE [VendorPhone] = @vendorPhone AND [VendorId] != @vendorId AND [IsActive] = 1 AND [IsDeleted] = 0 AND ISNULL(@vendorPhone, '') <> '')
 					BEGIN
-						 IF EXISTS(SELECT 1 FROM [dbo].[Vendor] WITH(NOLOCK) WHERE [VendorEmail] = @email AND [VendorId] != @vendorId AND [IsActive] = 1 AND [IsDeleted] = 0)
+						 IF EXISTS(SELECT 1 FROM [dbo].[Vendor] WITH(NOLOCK) WHERE [VendorEmail] = @email AND [VendorId] != @vendorId AND [IsActive] = 1 AND [IsDeleted] = 0 AND ISNULL(@email, '') <> '')
 						 BEGIN
 							  SET @ReturnStatus = -3;
 							  SET @ReturnMsg = @BothReturnMsg;
@@ -117,9 +118,9 @@ BEGIN
 			END
 			ELSE
 			BEGIN
-				IF EXISTS(SELECT 1 FROM [dbo].[Vendor] WITH(NOLOCK) WHERE [VendorEmail] = @email AND [IsActive] = 1 AND [IsDeleted] = 0)
+				IF EXISTS(SELECT 1 FROM [dbo].[Vendor] WITH(NOLOCK) WHERE [VendorEmail] = @email AND [IsActive] = 1 AND [IsDeleted] = 0 AND ISNULL(@email, '') <> '')
 				BEGIN
-					 IF EXISTS(SELECT 1 FROM [dbo].[Vendor] WITH(NOLOCK) WHERE [VendorPhone] = @vendorPhone AND [IsActive] = 1 AND [IsDeleted] = 0)
+					 IF EXISTS(SELECT 1 FROM [dbo].[Vendor] WITH(NOLOCK) WHERE [VendorPhone] = @vendorPhone AND [IsActive] = 1 AND [IsDeleted] = 0 AND ISNULL(@vendorPhone, '') <> '')
 					 BEGIN
 						  SET @ReturnStatus = -3;
 						  SET @ReturnMsg = @BothReturnMsg;
@@ -130,9 +131,9 @@ BEGIN
 						 SET @ReturnMsg = @EmailReturnMsg;
 					 END
 				END
-				ELSE IF EXISTS(SELECT 1 FROM [dbo].[Vendor] WITH(NOLOCK) WHERE [VendorPhone] = @vendorPhone AND [IsActive] = 1 AND [IsDeleted] = 0)
+				ELSE IF EXISTS(SELECT 1 FROM [dbo].[Vendor] WITH(NOLOCK) WHERE [VendorPhone] = @vendorPhone AND [IsActive] = 1 AND [IsDeleted] = 0 AND ISNULL(@vendorPhone, '') <> '')
 				BEGIN
-					 IF EXISTS(SELECT 1 FROM [dbo].[Vendor] WITH(NOLOCK) WHERE [VendorEmail] = @email AND [IsActive] = 1 AND [IsDeleted] = 0)
+					 IF EXISTS(SELECT 1 FROM [dbo].[Vendor] WITH(NOLOCK) WHERE [VendorEmail] = @email AND [IsActive] = 1 AND [IsDeleted] = 0 AND ISNULL(@email, '') <> '')
 					 BEGIN
 						  SET @ReturnStatus = -3;
 						  SET @ReturnMsg = @BothReturnMsg;

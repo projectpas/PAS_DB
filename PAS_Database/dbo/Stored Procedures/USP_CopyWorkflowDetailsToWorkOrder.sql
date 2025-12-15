@@ -21,6 +21,8 @@
 	5    05/12/2025   VISHAL SUTHAR		Added logic to re-generate sequence number for instructions.
 	6	 06/02/2025	  Abhishek Jirawla  Fixed @DataEnteredBy read script
 	7	 11/08/2025	  RAJESH GAMI		Fixed: Save same order as in the template & handle the delete value
+	8	 12/15/2025	  VISHAL SUTHAR		Fixed: Sequence number to copy same as what we have in workflow
+
 exec sp_executesql N'EXEC USP_CopyWorkflowDetailsToWorkOrder @WorkOrderId,@WorkflowId,@WorkOrderPartNumberId,@MasterCompanyId,@CreatedBy, @CreatedById, 
 @ListItem ',N'@WorkOrderId bigint,@WorkflowId bigint,@WorkOrderPartNumberId bigint,@MasterCompanyId int,@CreatedBy nvarchar(16),@CreatedById bigint,@listItem nvarchar(28)',
 @WorkOrderId=8625,@WorkflowId=2852,@WorkOrderPartNumberId=8253,@MasterCompanyId=1,@CreatedBy=N'Brandon  Taylor ',@CreatedById=58,@listItem=N',Directions'
@@ -204,7 +206,8 @@ SET NOCOUNT ON;
 												1 AS IsActive,
 												0 AS IsDeleted,
 												@workOrderPartNumberId AS WorkOrderPartNumberId,
-												ISNULL((SELECT COALESCE(MAX([SequenceNumber]), 0)  +  1 FROM dbo.WorkOrderTask WITH (NOLOCK) WHERE WorkOrderId = @WorkOrderId AND WorkFlowWorkOrderId = @WorkFlowWorkOrderId GROUP BY WorkOrderId, WorkFlowWorkOrderId), 1),
+												--ISNULL((SELECT COALESCE(MAX([SequenceNumber]), 0)  +  1 FROM dbo.WorkOrderTask WITH (NOLOCK) WHERE WorkOrderId = @WorkOrderId AND WorkFlowWorkOrderId = @WorkFlowWorkOrderId GROUP BY WorkOrderId, WorkFlowWorkOrderId), 1),
+												WFT.SequenceNumber,
 												T.IsPrintInWO AS IsIncludeInPrint,											
 												0 as HasInstruction,
 												T.[Description] as TaskName,

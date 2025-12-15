@@ -11,5 +11,11 @@
     [IsEmail]        BIT           NULL,
     [IsFax]          BIT           NULL,
     [VendorName]     VARCHAR (150) NULL,
-    [CustomerRfqId]  BIGINT        NULL);
+    [CustomerRfqId]  BIGINT        NULL,
+    [Address1]       VARCHAR (250) NULL,
+    [Address2]       VARCHAR (250) NULL,
+    [City]           VARCHAR (50)  NULL,
+    [StateProvince]  VARCHAR (50)  NULL,
+    [PostalCode]     VARCHAR (50)  NULL,
+    [Country]        VARCHAR (50)  NULL);
 

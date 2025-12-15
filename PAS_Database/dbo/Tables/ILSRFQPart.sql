@@ -19,6 +19,12 @@
     [IsActive]        BIT           CONSTRAINT [DF_ILSRFQPart_IsActive] DEFAULT ((0)) NULL,
     [VendorName]      VARCHAR (150) NULL,
     [CustomerRfqId]   BIGINT        NULL,
+    [Address1]        VARCHAR (250) NULL,
+    [Address2]        VARCHAR (250) NULL,
+    [City]            VARCHAR (50)  NULL,
+    [StateProvince]   VARCHAR (50)  NULL,
+    [PostalCode]      VARCHAR (50)  NULL,
+    [Country]         VARCHAR (50)  NULL,
     CONSTRAINT [PK_ILSRFQPart] PRIMARY KEY CLUSTERED ([ILSRFQPartId] ASC),
     CONSTRAINT [FK_ILSRFQPart_ILSRFQDetail] FOREIGN KEY ([ILSRFQDetailId]) REFERENCES [dbo].[ILSRFQDetail] ([ILSRFQDetailId])
 );

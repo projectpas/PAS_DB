@@ -4384,6 +4384,7 @@
     <Build Include="dbo\Stored Procedures\usp_MergePurchaseOrderPartReference.sql" />
     <Build Include="dbo\Stored Procedures\usp_MapRFQReferences.sql" />
     <Build Include="dbo\User Defined Types\PurchaseOrderPartReferenceType.sql" />
+    <Build Include="dbo\Stored Procedures\usp_GetILSRFQPartDetails.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

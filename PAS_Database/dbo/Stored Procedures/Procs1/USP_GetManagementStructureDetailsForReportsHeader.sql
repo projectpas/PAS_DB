@@ -21,6 +21,7 @@
 	6    06-12-2024   Shrey Chandegara      Add field 'Company' because use company name in original form
 	7    04-03-2025   Amit Ghediya			Added field UKCAALicense.
 	8    03-11-2025   Rajesh Gami			Added field MasterCompanyCode.
+	9    15-12-2025   Devendra Shekh		Added field CurrencyCode.
 
  EXECUTE USP_GetManagementStructureDetailsForReportsHeader 1
 **********************/ 
@@ -121,7 +122,8 @@ SET NOCOUNT ON
 					Upper(c.Email) as Email,
 					CompanyLogoPath = MS.companylogo,
 					[dbo].[ConvertUTCtoLocal](GETUTCDATE(),tz.description)  as 'CurrentDateTime',
-					MS.MasterCompanyCode as MasterCompanyCode
+					MS.MasterCompanyCode as MasterCompanyCode,
+					cn.Code as CurrencyCode
 				FROM EntityStructureSetup est
 					INNER JOIN ManagementStructureLevel msl WITH(NOLOCK) ON est.Level1Id = msl.ID
 					INNER JOIN LegalEntity le WITH(NOLOCK) ON msl.LegalEntityId = le.LegalEntityId
@@ -133,6 +135,7 @@ SET NOCOUNT ON
 					LEFT JOIN dbo.LegalEntityContact lec WITH(NOLOCK) ON le.LegalEntityId = lec.LegalEntityId AND lec.IsDefaultContact = 1
 					LEFT JOIN dbo.Contact c WITH(NOLOCK) ON c.ContactId = lec.ContactId 
 					LEFT JOIN dbo.TimeZone tz WITH(NOLOCK) ON tz.TimeZoneId = le.TimeZoneId
+					LEFT JOIN dbo.Currency cn WITH(NOLOCK) ON cn.CurrencyId = le.FunctionalCurrencyId
 				WHERE est.EntityStructureId = @ManagementStructId) AS Result
 
 

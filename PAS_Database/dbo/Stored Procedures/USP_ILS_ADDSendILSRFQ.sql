@@ -16,6 +16,7 @@
     3   27/Aug/2025    Devendra Shekh	added @PriceType Param
     4   09/Oct/2025    Devendra Shekh	added @CustomerRfqId Param
     5   13/Oct/2025    Devendra Shekh	removed @CustomerRfqId Param, added CustomerRfqId to Part Level
+    6   15/Dec/2025    Devendra Shekh	added Address Fields for ILSRFQPartType
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[USP_ILS_ADDSendILSRFQ]
 	@tbl_ILSRFQPartType ILSRFQPartType READONLY,
@@ -72,9 +73,9 @@ BEGIN
 			   /**** Insert Into the ISL RFQ Part Table If not inserted****/
 				   INSERT INTO [dbo].[ILSRFQPart]
 				   ([ILSRFQDetailId],[PartNumber],[AltPartNumber],[Exchange],[Description],[Qty],[RequestedQty],[Condition],[IsEmail],[IsFax]
-				   ,[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsDeleted],[IsActive],[VendorName],[CustomerRfqId])
+				   ,[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsDeleted],[IsActive],[VendorName],[CustomerRfqId], [Address1], [Address2], [City], [StateProvince], [PostalCode], [Country] )
 				   SELECT @ILSRFQDetailId,PartNumber,AltPartNumber,Exchange,Description,Qty,RequestedQty,Condition,IsEmail,IsFax
-				   ,@MasterCompanyId,@CreatedBy,@CreatedBy,GETUTCDATE(),GETUTCDATE() ,0 ,1,[VendorName],[CustomerRfqId]	  
+				   ,@MasterCompanyId,@CreatedBy,@CreatedBy,GETUTCDATE(),GETUTCDATE() ,0 ,1,[VendorName],[CustomerRfqId], [Address1], [Address2], [City], [StateProvince], [PostalCode], [Country] 	  
 				   FROM @tbl_ILSRFQPartType WHERE  ISNULL(ILSRFQPartId,0) = 0
 			END
 			ELSE
@@ -101,9 +102,9 @@ BEGIN
 				   /**** Insert Into the ISL RFQ Part Table ****/
 				   INSERT INTO [dbo].[ILSRFQPart]
 				   ([ILSRFQDetailId],[PartNumber],[AltPartNumber],[Exchange],[Description],[Qty],[RequestedQty],[Condition],[IsEmail],[IsFax]
-				   ,[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsDeleted],[IsActive],[VendorName],[CustomerRfqId])
+				   ,[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsDeleted],[IsActive],[VendorName],[CustomerRfqId], [Address1], [Address2], [City], [StateProvince], [PostalCode], [Country])
 				   SELECT @LatestILSRFQDetailId,PartNumber,AltPartNumber,Exchange,Description,Qty,RequestedQty,Condition,IsEmail,IsFax
-				   ,@MasterCompanyId,@CreatedBy,@CreatedBy,GETUTCDATE(),GETUTCDATE() ,0 ,1, VendorName, CustomerRfqId
+				   ,@MasterCompanyId,@CreatedBy,@CreatedBy,GETUTCDATE(),GETUTCDATE() ,0 ,1, VendorName, CustomerRfqId, [Address1], [Address2], [City], [StateProvince], [PostalCode], [Country] 
 				   FROM @tbl_ILSRFQPartType
 			END
 			

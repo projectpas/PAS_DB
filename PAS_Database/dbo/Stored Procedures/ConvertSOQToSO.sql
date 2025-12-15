@@ -27,6 +27,7 @@
 	11   28/02/2025   Ayushi Patel		Cast OpenDate As a Date
 	12   29/09/2025   Vishal Suthar		Fixed an issue with order of parts after transfer
 	13   16/10/2024   Moin Bloch		Updated Added SalesPersion Details
+	14   12/12/2025   Devendra Shekh	Added SP usp_MapRFQReferences For PO Part Reference Mapping
 
 declare @p13 bigint
 set @p13=NULL
@@ -515,6 +516,8 @@ BEGIN
 	EXEC ReallocateItemNo @SalesOrderId;
 
    END
+
+   EXEC [dbo].[usp_MapRFQReferences] @SOModuleId, @SalesOrderId, @MasterCompanyId, @EmployeeName;
 
    SELECT @SalesOrderId, @CustomerId;
 

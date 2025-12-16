@@ -18,6 +18,7 @@
     2    12/13/2024		Vishal Suthar	Fixed an alias for Credit Terms
     3    15-07-2025		Rajesh Gami		Fixed: showing proper status
     4    09-DEC-2025	Vishal Suthar	Fixed: added IsDeleted = 0 in join for AllAddress table
+    5    12-DEC-2025	Devendra Shekh	added cont.ContactId, ContactEmail
 
  -- EXEC DBO.GetSalesOrderQuoteById 1484
 **************************************************************/ 
@@ -144,7 +145,9 @@ BEGIN
 			ISNULL(sAddress.IsShippingAdd, 0) AS IsShippingAdd,
 			ISNULL(fcu.Code, '') AS FunctionalCurrency,
 			ISNULL(rcu.Code, '') AS ReportCurrency,
-			CASE WHEN soq.ForeignExchangeRate > 0 THEN soq.ForeignExchangeRate ELSE 0 END AS ForeignExchangeRate
+			CASE WHEN soq.ForeignExchangeRate > 0 THEN soq.ForeignExchangeRate ELSE 0 END AS ForeignExchangeRate,
+			cont.ContactId,
+			cont.Email AS ContactEmail
 		FROM DBO.SalesOrderQuote soq WITH (NOLOCK)
 		INNER JOIN DBO.MasterSalesOrderQuoteStatus MST WITH (NOLOCK) on SOQ.StatusId = MST.Id
 		LEFT JOIN DBO.ManagementStructure mn WITH (NOLOCK) ON soq.ManagementStructureId = mn.ManagementStructureId

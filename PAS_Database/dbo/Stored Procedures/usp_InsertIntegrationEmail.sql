@@ -15,15 +15,16 @@
  **************************************************************           
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
-    1    07/30/2025   Hemant Saliya Created
-	2    07/31/2025   Moin Bloch    Removed Attachment Fields
-	3    08/11/2025   Moin Bloch    Added  EmailPath Fields
-	4    08/12/2025   Moin Bloch    Added  condition for duplicate records
+    1    07/30/2025   Hemant Saliya		Created
+	2    07/31/2025   Moin Bloch		Removed Attachment Fields
+	3    08/11/2025   Moin Bloch		Added EmailPath Fields
+	4    08/12/2025   Moin Bloch		Added condition for duplicate records
+	5    16/12/2025   Devendra Shekh    Added Param @MessageId
      
 --EXEC [usp_InsertIntegrationEmail] 
 **************************************************************/
 
-CREATE    PROCEDURE [dbo].[usp_InsertIntegrationEmail]
+CREATE   PROCEDURE [dbo].[usp_InsertIntegrationEmail]
 @Subject           VARCHAR(500) = NULL,
 @EmailBody         NVARCHAR(MAX) = NULL,
 @ToEmail           NVARCHAR(320) = NULL,
@@ -45,6 +46,7 @@ CREATE    PROCEDURE [dbo].[usp_InsertIntegrationEmail]
 @EmailSection      INT,
 @ReceivedDate      DATETIME2 = NULL,
 @EmailPath         NVARCHAR(640) = NULL,
+@MessageId		   NVARCHAR(255) = NULL,
 @tbl_IntegrationEmailAttachmentType IntegrationEmailAttachmentType READONLY
 AS
 BEGIN
@@ -62,7 +64,7 @@ BEGIN
             [CC],[BCC],[ReferenceId],[ModuleId],[EmailStatus],
             [MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],
             [UpdatedDate],[IsActive],[IsDeleted],[HasAttachments],
-			[EmailReadBy],[EmailSection], [ReceivedDate],[EmailPath]
+			[EmailReadBy],[EmailSection], [ReceivedDate],[EmailPath],[MessageId]
         )
         VALUES
         (
@@ -70,7 +72,7 @@ BEGIN
             @CC,@BCC,@ReferenceId,@ModuleId,@EmailStatus,
             @MasterCompanyId,@CreatedBy,@UpdatedBy,@CreatedDate,
             @UpdatedDate,@IsActive,@IsDeleted,@HasAttachments,
-			@EmailReadBy,@EmailSection, @ReceivedDate,@EmailPath
+			@EmailReadBy,@EmailSection, @ReceivedDate,@EmailPath,@MessageId
         );
 
 		SET @IntegrationEmailID = SCOPE_IDENTITY();	  

@@ -21,6 +21,7 @@
 	5   23-Oct-2024     Sahdev Saliya       Added new field PartNumber in the Technician Labor Entry Report for filter
 	6   18/04/2025      Ayushi              Added the condition for pn , pndescription
 	7   22/04/2025      Amit Ghediya        Update for task table baseed on wo type.
+	8   09/12/2025      Amit Ghediya        Added Task filter
 **************************************************************/
 CREATE     PROCEDURE [dbo].[usprpt_GetWorkOrderLaborTrackingReport] 
 @PageNumber INT = 1,
@@ -39,6 +40,7 @@ BEGIN
 		@customername VARCHAR(40) = NULL,
 		@Fromdate DATETIME,
 		@Todate DATETIME,
+		@Task varchar(50) = NULL,
 		@WorkOrderId BIGINT = NULL,
 		@EmployeeId BIGINT = NULL,
 		@partnumber VARCHAR(50) = NULL,
@@ -62,6 +64,9 @@ BEGIN
 
 			@Todate=CASE WHEN filterby.value('(FieldName/text())[1]','VARCHAR(100)')='To Date' 
 			THEN convert(Date,filterby.value('(FieldValue/text())[1]','VARCHAR(100)')) ELSE @Todate END,
+
+			@Task=case when filterby.value('(FieldName/text())[1]','VARCHAR(100)')='Task' 
+			then filterby.value('(FieldValue/text())[1]','VARCHAR(100)') else @Task end,
 
 			@WorkOrderId=CASE WHEN filterby.value('(FieldName/text())[1]','VARCHAR(100)')='WO Num' 
 			THEN filterby.value('(FieldValue/text())[1]','VARCHAR(100)') ELSE @WorkOrderId END,
@@ -124,6 +129,7 @@ BEGIN
 				WHERE (CAST(WOT.StartTime AS DATE) BETWEEN CAST(@Fromdate AS DATE) AND CAST(@Todate AS DATE) OR CAST(WOT.EndTime AS DATE) BETWEEN CAST(@Fromdate AS DATE) AND CAST(@Todate AS DATE))
 					AND WO.mastercompanyid = @mastercompanyid
 					AND WO.IsActive = 1 AND WO.IsDeleted = 0
+					AND (ISNULL(@Task,'')='' OR WOT.TaskId IN(SELECT value FROM String_split(ISNULL(@Task,''), ',')))
 					AND (@EmployeeId IS NULL OR WOT.EmployeeId = @EmployeeId)
 					AND (@partnumber IS NULL OR WPN.ItemMasterId = @partnumber)
 					AND (@WorkOrderId IS NULL OR WO.WorkOrderId = @WorkOrderId)
@@ -196,6 +202,7 @@ BEGIN
 					(CAST(WOL.StatusChangedDate AS DATE) BETWEEN CAST(@Fromdate AS DATE) AND CAST(@Todate AS DATE)) AND
 					WO.mastercompanyid = @mastercompanyid
 					AND WO.IsActive = 1 AND WO.IsDeleted = 0
+					AND (ISNULL(@Task,'')='' OR WOL.TaskId IN(SELECT value FROM String_split(ISNULL(@Task,''), ',')))
 					AND (@EmployeeId IS NULL OR WOT.EmployeeId = @EmployeeId)
 					AND (@partnumber IS NULL OR WPN.ItemMasterId = @partnumber)
 					AND (@WorkOrderId IS NULL OR WO.WorkOrderId = @WorkOrderId)
@@ -261,6 +268,7 @@ BEGIN
 					(CAST(WOL.StatusChangedDate AS DATE) BETWEEN CAST(@Fromdate AS DATE) AND CAST(@Todate AS DATE)) AND							
 					WO.mastercompanyid = @mastercompanyid
 					AND WO.IsActive = 1 AND WO.IsDeleted = 0
+					AND (ISNULL(@Task,'')='' OR WOL.TaskId IN(SELECT value FROM String_split(ISNULL(@Task,''), ',')))
 					AND (@EmployeeId IS NULL OR WOL.EmployeeId = @EmployeeId)
 					AND (@partnumber IS NULL OR WPN.ItemMasterId = @partnumber)
 					AND (@WorkOrderId IS NULL OR WO.WorkOrderId = @WorkOrderId)

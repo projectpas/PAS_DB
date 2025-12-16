@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [GetPNTileRepairOrderList]          
  ** Author:  
  ** Description: This stored procedure is used get list of repair order history date for dashboard
@@ -18,6 +17,7 @@
 	2    06/12/2023	  Ekta Chandegra		Added new column 'SerialNumber'
 	4    08/12/2023   Jevik Raiyani		    add @statusValue
 	5    08/12/2023   Amit Ghediya          Modify(Added Traceable & Tagged fields)
+	6    04-12-2025	  Amit Ghediya			Added qtyShipped,qtyRemaining for shipping details
 
 **************************************************************/
 CREATE  PROCEDURE [dbo].[GetPNTileRepairOrderList]
@@ -50,8 +50,9 @@ CREATE  PROCEDURE [dbo].[GetPNTileRepairOrderList]
 @TagType VARCHAR(250) = NULL,
 @TaggedBy VARCHAR(250) = NULL,
 @TaggedDate datetime = NULL,
-@StatusValue varchar(50)= NULL
-	
+@StatusValue varchar(50)= NULL,
+@QtyShipped varchar(50) = NULL,
+@QtyRemaining varchar(50) = NULL
 AS
 BEGIN
 	SET NOCOUNT ON;
@@ -107,12 +108,15 @@ BEGIN
 					TAT.[Name] AS 'TagType',
 					ROP.TaggedByName AS 'TaggedBy',
 					ROP.TagDate AS 'taggedDate',
-					RO.[Status] AS StatusValue
+					RO.[Status] AS StatusValue,
+					ISNULL(ROSI.QtyShipped,0) AS QtyShipped,
+					ISNULL(ROP.QuantityOrdered,0) - ISNULL(ROSI.QtyShipped,0)AS QtyRemaining
 			   FROM [dbo].[RepairOrder] RO WITH (NOLOCK)			          			  
 			 INNER JOIN [dbo].[RepairOrderManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ModuleID = @MSModuleID AND MSD.ReferenceID = RO.RepairOrderId
 			 INNER JOIN [dbo].[RoleManagementStructure] RMS WITH (NOLOCK) ON RO.ManagementStructureId = RMS.EntityStructureId
 			 INNER JOIN [dbo].[EmployeeUserRole] EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
 			 INNER JOIN [dbo].[RepairOrderPart] ROP WITH (NOLOCK) ON ROP.RepairOrderId = RO.RepairOrderId AND ROP.isParent=1
+			 LEFT JOIN  [dbo].[RepairOrderShippingItem] ROSI WITH (NOLOCK) ON ROSI.RepairOrderPartId = ROP.RepairOrderPartRecordId
 			 INNER JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON IM.ItemMasterId = ROP.ItemMasterId 
 			  LEFT JOIN [dbo].[Stockline] STL WITH (NOLOCK) ON STL.StockLineId = ROP.StockLineId AND STL.IsParent = 1 AND STL.isActive = 1 AND STL.isDeleted = 0  	
 			  LEFT JOIN [dbo].[TagType] TAT WITH (NOLOCK) ON ROP.TagTypeId = TAT.TagTypeId
@@ -139,7 +143,9 @@ BEGIN
 					(TraceableTo LIKE '%' +@GlobalFilter+'%') OR
 					(TagType LIKE '%' +@GlobalFilter+'%') OR
 					(TaggedBy LIKE '%' +@GlobalFilter+'%') OR
-					(VendorName LIKE '%' +@GlobalFilter+'%'))
+					(VendorName LIKE '%' +@GlobalFilter+'%') OR
+					(QtyShipped like '%' +@GlobalFilter+'%') OR
+					(QtyRemaining like '%' +@GlobalFilter+'%'))
 					OR   
 					(@GlobalFilter='' AND (ISNULL(@PartNumber,'') ='' OR PartNumber LIKE '%' + @PartNumber+'%') AND 
 					(ISNULL(@PartDescription,'') ='' OR PartDescription LIKE '%' + @PartDescription + '%') AND
@@ -158,7 +164,9 @@ BEGIN
 					(ISNULL(@TagType,'') ='' OR TagType LIKE '%' + @TagType + '%') AND
 					(ISNULL(@TaggedBy,'') ='' OR TaggedBy LIKE '%' + @TaggedBy + '%') AND
 					(ISNULL(@taggedDate,'') ='' OR CAST(taggedDate AS DATE) = CAST(@ReceivedDate AS DATE)) AND
-					(ISNULL(@VendorName,'') ='' OR VendorName LIKE '%' + @VendorName + '%'))))
+					(ISNULL(@VendorName,'') ='' OR VendorName LIKE '%' + @VendorName + '%') AND
+					(ISNULL(@QtyShipped,'') ='' OR QtyShipped like '%'+@QtyShipped+'%') AND
+					(ISNULL(@QtyRemaining,'') ='' OR QtyRemaining like '%'+@QtyRemaining+'%'))))
 
 			SELECT @Count = COUNT(RepairOrderId) FROM #TempResult			
 
@@ -201,7 +209,11 @@ BEGIN
 			CASE WHEN (@SortOrder=1  AND @SortColumn='taggedDate')  THEN taggedDate END ASC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='taggedDate')  THEN taggedDate END DESC,
 			CASE WHEN (@SortOrder=1  AND @SortColumn='SerialNumber')  THEN SerialNumber END ASC,
-			CASE WHEN (@SortOrder=-1 AND @SortColumn='SerialNumber')  THEN SerialNumber END DESC
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='SerialNumber')  THEN SerialNumber END DESC,
+			CASE WHEN (@SortOrder=1 and @SortColumn='QtyShipped')  THEN QtyShipped END ASC,
+			CASE WHEN (@SortOrder=-1 and @SortColumn='QtyShipped')  THEN QtyShipped END DESC,
+			CASE WHEN (@SortOrder=1 and @SortColumn='QtyRemaining')  THEN QtyRemaining END ASC,
+			CASE WHEN (@SortOrder=-1 and @SortColumn='QtyRemaining')  THEN QtyRemaining END DESC
 			OFFSET @RecordFrom ROWS 
 			FETCH NEXT @PageSize ROWS ONLY
 		

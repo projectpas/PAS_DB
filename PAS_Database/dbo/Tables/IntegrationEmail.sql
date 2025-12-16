@@ -27,6 +27,7 @@
     [EmailStatusId]      INT            NULL,
     [AttemptCount]       INT            NULL,
     [ThirdPartyRFQId]    BIGINT         NULL,
+    [MessageId]          NVARCHAR (255) NULL,
     CONSTRAINT [PK_IntegrationEmail] PRIMARY KEY CLUSTERED ([IntegrationEmailID] ASC),
     CONSTRAINT [FK_IntegrationEmail_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId])
 );

@@ -16,6 +16,7 @@
     3    04/11/2025  Bhargav Saliya     Fixed Utc Date issues
     4    07/11/2025  Bhargav Saliya     Fixed Filters issues For Super Admin Role
     5    21/11/2025  Bhargav Saliya     get Tickettype with Filter
+    6    16/12/2025  Bhargav Saliya     Fixed Status Filter
 
 exec GetCustomerTicketList @PageNumber=1,@PageSize=10,@SortColumn=NULL,@SortOrder=-1,
 @GlobalFilter=N'',@TicketId=NULL,@Subject=NULL,@StatusDescription=NULL,@AssignTo=NULL,
@@ -126,7 +127,7 @@ BEGIN
 				SD.DepartmentId,
 				SD.Name AS 'DepartmentName',
 				SD.Description AS 'DepartmentDescription',
-				TS.TicketStatusId,
+				TS.TicketStatusId as 'StatusId',
 				TS.Name AS 'StatusName',
 				TS.Description AS 'StatusDescription',
 				TP.PriorityId,
@@ -142,8 +143,8 @@ BEGIN
 			LEFT JOIN [dbo].[CustomerTicketResponse] CTR WITH (NOLOCK) ON CT.CustomerTicketId = CTR.CustomerTicketId 
 			LEFT JOIN [dbo].[TicketType] tt WITH (NOLOCK) ON CT.TicketTypeId = tt.TicketTypeId
 			WHERE 
-			((ISNULL(@IsSupertUser, 0) = 1 AND ((@EmployeeId IS NULL OR CT.EmployeeId = @EmployeeId) OR (@EmployeeId IS NULL OR CT.AssignTo = @EmployeeId)))
-				or (ISNULL(@IsSupertUser, 0) = 0 and CT.MasterCompanyId = @MasterCompanyId AND ((@EmployeeId IS NULL OR CT.EmployeeId = @EmployeeId) OR (@EmployeeId IS NULL OR CT.AssignTo = @EmployeeId)))
+			(((ISNULL(@IsSupertUser, 0) = 1 AND ((@EmployeeId IS NULL OR CT.EmployeeId = @EmployeeId) OR (@EmployeeId IS NULL OR CT.AssignTo = @EmployeeId)))
+				or (ISNULL(@IsSupertUser, 0) = 0 and CT.MasterCompanyId = @MasterCompanyId AND ((@EmployeeId IS NULL OR CT.EmployeeId = @EmployeeId) OR (@EmployeeId IS NULL OR CT.AssignTo = @EmployeeId))))
 			AND ISNULL(CT.IsDeleted,0) = @IsDeleted
 			AND (@StatusId IS NULL OR TS.TicketStatusId = @StatusId)
 			AND (@DepartmentId IS NULL OR SD.DepartmentId = @DepartmentId)

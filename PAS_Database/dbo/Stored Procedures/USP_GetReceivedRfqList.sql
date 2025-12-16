@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [USP_GetReceivedRfqList]           
  ** Author:  Rajesh Gami
  ** Description: This stored procedure is used Get Received Rfq List data
@@ -33,6 +32,7 @@
 	19   03-12-2025  Moin Bloch		     Modified Changed Quoted Column Status
 	20   04-12-2025  Devendra Shekh		 Modified (added @SendQuote)
 	21   10-12-2025  Devendra Shekh		 Modified (added IsActive/IsDeleted to Where)
+	22   16-12-2025  Devendra Shekh		 Modified (added RFQNum)
 -- EXEC USP_GetReceivedRfqList 
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[USP_GetReceivedRfqList]
@@ -84,6 +84,7 @@ BEGIN
 					@SoqModuleId INT,
 					@SoModuleId INT;
 			DECLARE @PoModuleId BIGINT = 0, @RFQPOModuleId BIGINT = 0;
+			DECLARE @CodeTypes VARCHAR(100) = 'CustomerRFQ', @CodePrefix VARCHAR(10);
 
 				--Get module id
 				SELECT @SoqModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'SalesQuote';
@@ -91,6 +92,7 @@ BEGIN
 
 				SELECT @PoModuleId = [ModuleId] FROM [Dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'PurchaseOrder';
 				SELECT @RFQPOModuleId = [ModuleId] FROM [Dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'VendorRFQPurchaseOrder';
+				SELECT @CodePrefix = [CodePrefix] FROM [dbo].[CodePrefixes] WITH(NOLOCK) WHERE [MasterCompanyId] = @MasterCompanyId AND [CodeTypeId] = (SELECT [CodeTypeId] FROM [dbo].[CodeTypes] WITH(NOLOCK) WHERE [CodeType] = @CodeTypes)
 
 				SET @RecordFrom = (@PageNumber-1) * @PageSize;
 				IF @IsDeleted is null
@@ -274,7 +276,8 @@ BEGIN
 					RR.ReferenceId AS POReferenceId,
 					RR.ModuleId  AS POModuleId,
 					RFQR.RFQReferenceId,
-					RFQR.RFQModuleId
+					RFQR.RFQModuleId,
+					REPLACE(RFQ.RfqId, @CodePrefix, '')	AS RFQNum
 				FROM dbo.CustomerRfq RFQ WITH (NOLOCK)
 				--LEFT JOIN dbo.ItemMaster IM WITH(NOLOCK) ON RFQ.[LinePartNumber] = IM.[partnumber] AND RFQ.[MasterCompanyId] = IM.[MasterCompanyId]
 				LEFT JOIN ItemResult IM WITH(NOLOCK) ON LOWER(TRIM(RFQ.[LinePartNumber])) = LOWER(TRIM(IM.[partnumber])) AND RFQ.[MasterCompanyId] = IM.[MasterCompanyId]
@@ -377,7 +380,8 @@ BEGIN
 					RR.ReferenceId AS POReferenceId,
 					RR.ModuleId  AS POModuleId,
 					RFQR.RFQReferenceId,
-					RFQR.RFQModuleId
+					RFQR.RFQModuleId,
+					REPLACE(RFQ.RfqId, @CodePrefix, '')	AS RFQNum
 				FROM dbo.CustomerRfq RFQ WITH (NOLOCK)
 				LEFT JOIN dbo.Customer CU WITH(NOLOCK) ON (LOWER(TRIM(RFQ.[BuyerCompanyName])) = LOWER(TRIM(CU.[Name])) AND RFQ.[MasterCompanyId] = CU.[MasterCompanyId]) OR (RFQ.CustomerId = CU.CustomerId AND RFQ.[MasterCompanyId] = CU.[MasterCompanyId]) AND CU.IsActive = 1 AND CU.IsDeleted = 0
 				LEFT JOIN  dbo.CustomerContact CC  WITH (NOLOCK) ON CC.CustomerId=CU.CustomerId AND CC.IsDefaultContact=1
@@ -465,7 +469,7 @@ BEGIN
 					FROM FinalResult, ResultCount
 					ORDER BY  
 					CASE WHEN (@SortOrder=1 and @SortColumn='CUSTOMERRFQID')  THEN CustomerRfqId END DESC,
-					CASE WHEN (@SortOrder=1 and @SortColumn='RFQID')  THEN RfqId END ASC,
+					CASE WHEN (@SortOrder=1 and @SortColumn='RFQID')  THEN RFQNum END ASC,
 					CASE WHEN (@SortOrder=1 and @SortColumn='RFQCREATEDDATETYPE')  THEN RfqcreatedDate END ASC,
 					CASE WHEN (@SortOrder=1 and @SortColumn='DateAssigned')  THEN DateAssigned END ASC,
 					CASE WHEN (@SortOrder=1 and @SortColumn='QuotedBy')  THEN QuotedBy END ASC,
@@ -493,7 +497,7 @@ BEGIN
 					CASE WHEN (@SortOrder=1 and @SortColumn='SendQuote')  THEN QuoteStatus END ASC,
 
 					CASE WHEN (@SortOrder=-1 and @SortColumn='CUSTOMERRFQID')  THEN CustomerRfqId END DESC,
-					CASE WHEN (@SortOrder=-1 and @SortColumn='RFQID')  THEN RfqId END DESC,
+					CASE WHEN (@SortOrder=-1 and @SortColumn='RFQID')  THEN RFQNum END DESC,
 					CASE WHEN (@SortOrder=-1 and @SortColumn='RFQCREATEDDATETYPE')  THEN RfqcreatedDate END DESC,
 					CASE WHEN (@SortOrder=-1 and @SortColumn='DateAssigned')  THEN DateAssigned END DESC,
 					CASE WHEN (@SortOrder=-1 and @SortColumn='QuotedBy')  THEN QuotedBy END DESC,

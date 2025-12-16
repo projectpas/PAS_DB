@@ -146,11 +146,11 @@ SET NOCOUNT ON
 		WHERE RFD.ILSRFQDetailId IN (SELECT TOP 1 ILSRFQDetailId FROM #tmpILSRFQParts);
 
 		UPDATE TMP
-		SET	TMP.VendorName = Result.VendorName,
-			TMP.VendorCode = Result.VendorCode,
-			TMP.VendorContact =  Result.VendorContact,
-			TMP.CreditTerm = Result.[Name],
-			TMP.BuyerEmail = Result.Email,
+		SET	TMP.VendorName = ISNULL(Result.VendorName, ''),
+			TMP.VendorCode = ISNULL(Result.VendorCode, ''),
+			TMP.VendorContact =  ISNULL(Result.VendorContact, ''),
+			TMP.CreditTerm = ISNULL(Result.[Name], ''),
+			TMP.BuyerEmail = ISNULL(Result.Email, ''),
 			TMP.VendorRFQDate = CONVERT(datetime2,DATEADD(SECOND, @BaseUtcOffsetSec, TMP.CreatedDate))
 		FROM #tmpILSRFQ TMP
 		OUTER APPLY (

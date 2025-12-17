@@ -56,7 +56,7 @@ BEGIN
 		
 		DECLARE @IntegrationEmailID BIGINT = 0,@TotalRecord INT = 0
 
-		IF NOT EXISTS(SELECT 1 FROM [dbo].[IntegrationEmail] WITH(NOLOCK) WHERE [Subject]=@Subject AND [EmailBody] = @EmailBody AND [FromEmail]=@FromEmail AND [EmailReadBy]=@EmailReadBy)
+		IF NOT EXISTS(SELECT 1 FROM [dbo].[IntegrationEmail] WITH(NOLOCK) WHERE [Subject]=@Subject AND [EmailBody] = @EmailBody AND [FromEmail]=@FromEmail AND [EmailReadBy]=@EmailReadBy AND [MessageId]=@MessageId)
 		BEGIN
         INSERT INTO dbo.IntegrationEmail
         (

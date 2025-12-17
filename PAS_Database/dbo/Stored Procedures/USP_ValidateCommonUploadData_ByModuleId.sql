@@ -37,6 +37,7 @@
 	27   26-Nov-2025        Ayushi Patel            Added common validation for FieldType = 'number' to allow only whole numeric values (no decimals, no alphabets), and return appropriate RecordStatus message.
 	28   26-Nov-2025        Ayushi Patel            Added condition to skip duplicate validation SP when any RecordStatus contains error.
 	29	 02-DEC-2025        Ayushi Patel			Added New SingleScreen Modules
+	29	 17-DEC-2025        Nakul Chandigara  		Added New SingleScreen Modules
 declare @p4 dbo.UploadModuleDataTableType
 insert into @p4 values(4,N'VICTOR ADMAS',1,N'{
   "partnumber": "AEIN122",
@@ -85,6 +86,7 @@ BEGIN
 		DECLARE @IsDuplicate BIT = NULL;
 		DECLARE @AlterModule AS BIGINT, @GLModule AS BIGINT, @ItemMasterModule AS BIGINT, @CustomerModule AS BIGINT,@StocklineModule AS BIGINT, @EmployeeModule AS BIGINT, @DiscountModule AS BIGINT;
 		DECLARE @DefaultMessageModule AS BIGINT, @CertificationTypeModule AS BIGINT, @LeadSource AS BIGINT, @UnitOfMeasureModule AS BIGINT, @AssetAcquisitionTypeModule AS BIGINT, @DocumentTypeModule AS BIGINT , @ShippingViaModule AS BIGINT;
+		DECLARE @AssetAttributeType AS BIGINT
 
 		DECLARE @POROCategory AS BIGINT , @CapabilityTypeModule AS BIGINT , @VendorClassificationModule AS BIGINT , @chargeModule AS BIGINT;;
 		DECLARE @PriceMasterModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'PriceMaster');
@@ -107,6 +109,7 @@ BEGIN
 		SET @POROCategory = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'POROCategory');
 		SET @VendorClassificationModule = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'VendorClassification');
 		SET @chargeModule = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'charge');
+		SET @AssetAttributeType = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'AssetAttributeType');
 
 		DECLARE @PriorityModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'Priority');
 		DECLARE @MROPriceMasterModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'MROPriceMaster');
@@ -154,7 +157,38 @@ BEGIN
 		DECLARE @AssetIntangibleAttributeTypeModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'AssetIntangibleAttributeType');
 		DECLARE @SiteModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'Site');
 		DECLARE @WarehouseModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'Warehouse');
+		DECLARE @FindingModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'Finding');
+		DECLARE @InvoiceType AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'InvoiceType');
+		DECLARE @OrganizationTagType AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'OrganizationTagType');
+		DECLARE @ManagementStructureLevelModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'ManagementStructureLevel');
+		DECLARE @BalanceTypeModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'BalanceType');
+		DECLARE @LedgerModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'Ledger');
+		DECLARE @Master1099Module AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'Master1099');
+		DECLARE @RMAReasonModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'RMAReason');
+		DECLARE @CreditMemoReasonModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'CreditMemoReason');
+		DECLARE @InventoryGLSettingModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'InventoryGLSetting');
+		DECLARE @GLCashFlowClassificationModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'GLCashFlowClassification');
+		DECLARE @CurrencyModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'Currency');
+		DECLARE @MasterDiscountTypeModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'MasterDiscountType');
+		DECLARE @MasterBankFeesTypeModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'MasterBankFeesType');
+		DECLARE	@MasterAdjustReasonModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'MasterAdjustReason');
+		DECLARE	@JobTitleModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'JobTitle');
+		DECLARE	@EmployeeLeaveTypeModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'EmployeeLeaveType');
+		DECLARE	@EmployeeStationModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'EmployeeStation');
+		DECLARE	@EmployeeCertificationTypeModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'EmployeeCertificationType');
+		DECLARE	@EmployeeTrainingTypeModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'EmployeeTrainingType');
+		DECLARE @EmployeeExpertiseModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'EmployeeExpertise');
+		DECLARE @TaxRateModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'TaxRate');
+		DECLARE @stocklineadjustmentreasonModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'stocklineadjustmentreason');
+		DECLARE @WorkOrderStageModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'WorkOrderStage');
+		DECLARE @CommonTeardownTypeModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'CommonTeardownType');
+		DECLARE @TeardownReasonModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'TeardownReason');
+		DECLARE @WorkPerformedModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'WorkPerformed');
+		DECLARE @TaskStatusModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'TaskStatus');
+		DECLARE @ScrapreasonModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'Scrapreason');
+		DECLARE @EvidenceModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'Evidence');
 		DECLARE @LocationModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'Location');
+		
 
 		DECLARE @DropdownListTable VARCHAR(100) = NULL, 
 		@DropdownListId VARCHAR(100) = NULL, 
@@ -244,7 +278,7 @@ BEGIN
 			SET @ColumnReferenceId = '';
 
 			SELECT @UploadRecord = [UploadRecord] FROM #uploadDataResults WHERE [RecordId] = @CurrentRecord;
-
+			
 			SELECT [key], [value] INTO #TempDynamicData FROM OPENJSON(@UploadRecord);
 			
 			IF(@ModuleId=@ItemMasterModule)
@@ -272,7 +306,7 @@ BEGIN
 			FROM [DBO].[ImportModuleFieldMaster] IMF WITH(NOLOCK)
 			LEFT JOIN #DynamicKeyValue TMP ON TMP.FieldName = IMF.FieldName
 			WHERE IMF.[ModuleId] = @ModuleId
-
+			
 			--ORDER BY IMF.DisplaySortOrder ASC
 			--SELECT * FROM #ImportFields ----R
 			SELECT @TotalRow = MAX(ImportModuleFieldMasterId), @CurrentRow = MIN(ImportModuleFieldMasterId) FROM #ImportFields;
@@ -282,7 +316,7 @@ BEGIN
 
 				SELECT	@DropdownListTable = DropdownListTable, @DropdownListId = DropdownListId, @DropdownListValue = DropdownListValue, @DropdownLFieldValue = FieldValue, @IsChekColumnReference = IsChekColumnReference,@ReferenceColumn = '',@SelectFieldName = FieldName, @IsMultiValue = IsMultiValue
 				FROM #ImportFields WHERE ImportModuleFieldMasterId = @CurrentRow;
-
+				
 				IF(ISNULL(@DropdownListTable, '') != '' AND ISNULL(@DropdownLFieldValue, '') != '')
 				BEGIN
 					DECLARE @DropdownListValueId VARCHAR(100) = NULL;
@@ -294,10 +328,29 @@ BEGIN
 					END
 					ELSE
 					BEGIN
-
-						EXEC [dbo].[USP_GetDropdownValueId] @DropdownListTable, @DropdownListId, @DropdownListValue, @DropdownLFieldValue, @MasterCompanyId,@ModuleId,@ColumnReferenceId,@ReferenceColumn,@IsChekColumnReference, @FieldValueId = @DropdownListValueId OUTPUT;
+						IF (@DropdownListTable = 'Percent'
+							AND TRY_CONVERT(DECIMAL(18,4), @DropdownLFieldValue) IS NULL)
+						BEGIN
+							-- Set output blank/null
+							SET @DropdownListValueId = NULL;
+						END
+						ELSE
+						BEGIN
+							-- Execute SP normally
+							EXEC [dbo].[USP_GetDropdownValueId] 
+								@DropdownListTable, 
+								@DropdownListId, 
+								@DropdownListValue, 
+								@DropdownLFieldValue, 
+								@MasterCompanyId,
+								@ModuleId,
+								@ColumnReferenceId,
+								@ReferenceColumn,
+								@IsChekColumnReference, 
+								@FieldValueId = @DropdownListValueId OUTPUT;
+						END
 					END
-
+					
 					--IF(ISNULL(@DropdownListValueId, '') != '')
 					IF(ISNULL(@DropdownListValueId, '') != '' AND ISNULL(@IsMultiValue, 0) = 0)
 					BEGIN
@@ -311,9 +364,10 @@ BEGIN
 					END
 					--SET @ColumnReferenceId = CASE WHEN ISNULL(@DropdownListValueId, '') != '' THEN  CAST(@DropdownListValueId AS BIGINT) ELSE 0 END;
 				END
-			
+				
 				SET @CurrentRow += 1;
-			END		
+			END
+			
 			DECLARE @ManufacturerId VARCHAR(255)
 			DECLARE @ManufacturerName VARCHAR(255)
 			DECLARE @Manufacture VARCHAR(255)
@@ -450,6 +504,46 @@ BEGIN
 					END
 				END
 			END
+	
+			IF OBJECT_ID('tempdb..#WarehouseFields') IS NOT NULL
+			DROP TABLE #WarehouseFields
+		
+			CREATE TABLE #WarehouseFields
+			(
+				WarehouseId BIGINT,
+				WarehouseName VARCHAR(255)
+			)
+
+			--DECLARE @LocationModuleError BIT
+
+			--IF(@ModuleId = @LocationModule)
+			--BEGIN
+			--	DECLARE @SiteName varchar(100)  ;
+			--	DECLARE @WarehouseName varchar(100) ;
+			--	DECLARE @siteId BIGINT; 
+			--	SELECT @SiteName = FieldValue FROM #DynamicKeyValue WHERE FieldName = 'SiteId';
+			--	SELECT @WarehouseName = FieldValue FROM #DynamicKeyValue WHERE FieldName = 'WarehouseId';
+			--	SELECT @siteId = siteId FROM [Site] WHERE [Name] = @SiteName AND MasterCompanyId = @MasterCompanyId;
+
+			--    INSERT INTO #WarehouseFields (WarehouseId, WarehouseName)
+			--	SELECT WarehouseId, [Name]
+			--	FROM Warehouse
+			--	WHERE SiteId = @SiteId AND MasterCompanyId = @MasterCompanyId;
+		
+			--	IF NOT EXISTS
+			--	(
+			--		SELECT 1
+			--		FROM #WarehouseFields
+			--		WHERE TRIM(LOWER(WarehouseName)) = TRIM(LOWER(@WarehouseName))
+			--	)
+			--	BEGIN
+			--		SET @LocationModuleError = 1
+			--	END
+			--	ELSE
+			--	BEGIN
+			--		SET @LocationModuleError = 0
+			--	END
+			--END		
 			
 			UPDATE TMP
 			SET TMP.[RecordStatus] =	CASE	WHEN ISNULL(IMF.IsRequired, 0) = 1 AND ISNULL(TMP.FieldValue, '') = '' THEN IMF.HeaderName + ' is Required'
@@ -613,8 +707,6 @@ BEGIN
 					
 					--SET @ColumnReferenceId = CASE WHEN ISNULL(@RSDropdownListValueId, '') != '' THEN  CAST(@RSDropdownListValueId AS BIGINT) ELSE 0 END;
 				END
-
-
 				IF(@ModuleId != @GLModule AND @ModuleId != @EmployeeModule AND @ModuleId != @ItemMasterModule AND @ModuleId != @AssetAttributeTypeModule AND @ModuleId != @AssetIntangibleAttributeTypeModule)
 				BEGIN
 					SELECT @ColumnReferenceId =  DropdownListValueId FROM #ImportFields WHERE ImportModuleFieldMasterId = @CurrentRow;
@@ -622,6 +714,20 @@ BEGIN
 				
 				SET @CurrentRow += 1;
 			END
+
+			--IF(@ModuleId = @LocationModule)
+			--BEGIN 
+			--	DECLARE @WarehouseId BIGINT
+			--	SELECT @SiteName = FieldValue FROM #DynamicKeyValue WHERE FieldName = 'SiteId';
+			--	SELECT @WarehouseName = FieldValue FROM #DynamicKeyValue WHERE FieldName = 'WarehouseId';
+			--	SELECT @siteId = siteId FROM [Site] WHERE [Name] = @SiteName AND MasterCompanyId = @MasterCompanyId;
+			--	SELECT @WarehouseId = WarehouseId FROM Warehouse WHERE @WarehouseName = [Name] AND MasterCompanyId = @MasterCompanyId;
+
+			--	UPDATE #ImportFields
+			--	SET FieldValue = @WarehouseId 
+			--	WHERE FieldName = 'WarehouseId'
+			--END 
+
 			SELECT @TotalRow = MAX(ImportModuleFieldMasterId), @CurrentRow = MIN(ImportModuleFieldMasterId) FROM #ImportFields;
 			WHILE(@TotalRow >= @CurrentRow)
 			BEGIN
@@ -651,6 +757,7 @@ BEGIN
 							EXEC [dbo].[USP_ChekDuplicateValueForUpload] @ChekDuplticateRef1, @ChekDuplticateRef2, @DuplicateRefeValue1, @DuplicateRefeValue2, @ReferenceTable, @MasterCompanyId, @ModuleId, @UploadData, @UploadRecord, @IsDuplicate = @IsDuplicate OUTPUT;
 						END
 					END
+			
 					IF(ISNULL(@IsDuplicate, 0) = 1)
 					BEGIN
 						UPDATE #ImportFields 
@@ -783,6 +890,85 @@ BEGIN
 														WHEN @ModuleId = @SiteModule THEN 'Entered Name Already Exits!'
 														WHEN @ModuleId = @WarehouseModule THEN 'Entered Name Already Exits!'
 														WHEN @ModuleId = @LocationModule THEN 'Entered Name Already Exits!'
+														WHEN @ModuleId = @FindingModule AND @ChekDuplticateRef1 = 'FindingCode'
+															THEN 'Entered Code Already Exists!'
+														WHEN @ModuleId = @FindingModule AND @ChekDuplticateRef1 = 'Description'
+															THEN 'Entered Description Already Exists!'
+														WHEN @ModuleId = @InvoiceType AND @ChekDuplticateRef1 = 'Description'
+															THEN 'Entered Description Already Exists!'
+														WHEN @ModuleId = @OrganizationTagType AND @ChekDuplticateRef1 = 'Name'
+															THEN 'Entered Name Already Exists!'
+														WHEN @ModuleId = @ManagementStructureLevelModule AND @ChekDuplticateRef1 = 'Code'
+															THEN 'Entered Code Already Exists!'
+														WHEN @ModuleId = @AssetAttributeType AND @ChekDuplticateRef1 = 'AssetAttributeTypeName'
+															THEN 'Entered Name Already Exists!'
+														WHEN @ModuleId = @BalanceTypeModule AND @ChekDuplticateRef1 = 'BalanceTypeName'
+															THEN 'Entered Name Already Exists!'
+														WHEN @ModuleId = @LedgerModule AND @ChekDuplticateRef1 = 'LedgerName'
+															THEN 'Entered Ledger Name Already Exists!'
+														WHEN @ModuleId = @Master1099Module AND @ChekDuplticateRef1 = 'Name'
+															THEN 'Entered Name Already Exists!'
+														WHEN @ModuleId = @Master1099Module AND @ChekDuplticateRef1 = 'SequenceNo'
+															THEN 'Entered Sequence No Already Exists!'
+														WHEN @ModuleId = @Master1099Module AND @ChekDuplticateRef1 = 'Description'
+															THEN 'Entered Description Already Exists!'
+														WHEN @ModuleId = @RMAReasonModule AND @ChekDuplticateRef1 = 'Reason'  
+															THEN 'Entered Reason Already Exists!'
+														WHEN @ModuleId = @CreditMemoReasonModule AND @ChekDuplticateRef1 = 'Name'  
+															THEN 'Entered Credit Memo Reason Already Exists!'
+														WHEN @ModuleId = @InventoryGLSettingModule AND @ChekDuplticateRef1 = 'StockInventoryName'  
+															THEN 'Entered Item Accounting Type Already Exists!'
+														WHEN @ModuleId = @GLCashFlowClassificationModule AND @ChekDuplticateRef1 = 'GLClassFlowClassificationName'  
+															THEN 'Entered Classification Already Exists!'
+														WHEN @ModuleId = @CurrencyModule AND @ChekDuplticateRef1 = 'Code'  
+															THEN 'Entered Code Already Exists!'
+														WHEN @ModuleId = @MasterDiscountTypeModule AND @ChekDuplticateRef1 = 'Name'  
+															THEN 'Entered Discount Type Already Exists!'
+														WHEN @ModuleId = @MasterBankFeesTypeModule AND @ChekDuplticateRef1 = 'Name'  
+															THEN 'Entered Bank Fees Type Already Exists!'
+														WHEN @ModuleId = @MasterAdjustReasonModule AND @ChekDuplticateRef1 = 'Name'  
+															THEN 'Entered Adjust Reason Already Exists!'
+														WHEN @ModuleId = @JobTitleModule AND @ChekDuplticateRef1 = 'Description'  
+															THEN 'Entered Job Title Name Already Exists!'
+														WHEN @ModuleId = @EmployeeLeaveTypeModule AND @ChekDuplticateRef1 = 'LeaveType'  
+															THEN 'Entered Employee Leave Type Already Exists!'
+														WHEN @ModuleId = @EmployeeStationModule AND @ChekDuplticateRef1 = 'StationName'  
+															THEN 'Entered Employee Station Name Already Exists!'
+														WHEN @ModuleId = @EmployeeCertificationTypeModule AND @ChekDuplticateRef1 = 'Description'  
+															THEN 'Entered Employee Certification Type Already Exists!'
+														WHEN @ModuleId = @EmployeeTrainingTypeModule AND @ChekDuplticateRef1 = 'TrainingType'  
+															THEN 'Entered Employee Training Type Already Exists!'
+														WHEN @ModuleId = @EmployeeExpertiseModule AND @ChekDuplticateRef1 = 'Description'  
+															THEN 'Entered Expertise Name Already Exists!'
+														WHEN @ModuleId = @TaxRateModule AND @ChekDuplticateRef1 = 'TaxRate'  
+															THEN 'Entered TaxRate Already Exists!'
+														WHEN @ModuleId = @stocklineadjustmentreasonModule AND @ChekDuplticateRef1 = 'Description'  
+															THEN 'Entered Adjustment Reason Already Exists!'
+														WHEN @ModuleId = @WorkOrderStageModule AND @ChekDuplticateRef1 = 'Code'  
+															THEN 'Entered Stage Code Already Exists!'
+														WHEN @ModuleId = @WorkOrderStageModule AND @ChekDuplticateRef1 = 'Stage'  
+															THEN 'Entered Stage Already Exists!'
+														WHEN @ModuleId = @WorkOrderStageModule AND @ChekDuplticateRef1 = 'Sequence'  
+															THEN 'Entered Sequence No Already Exists!'
+														WHEN @ModuleId = @CommonTeardownTypeModule AND @ChekDuplticateRef1 = 'Name'  
+															THEN 'Entered Name Already Exists!'
+														WHEN @ModuleId = @CommonTeardownTypeModule AND @ChekDuplticateRef1 = 'Description'  
+															THEN 'Entered Description Already Exists!'
+														WHEN @ModuleId = @CommonTeardownTypeModule AND @ChekDuplticateRef1 = 'Sequence'  
+															THEN 'Entered Sequence No Already Exists!'
+														WHEN @ModuleId = @TeardownReasonModule AND @ChekDuplticateRef1 = 'Reason'  
+															THEN 'Entered Default Entries Already Exists!'
+														WHEN @ModuleId = @WorkPerformedModule AND @ChekDuplticateRef1 = 'WorkPerformedCode'  
+															THEN 'Entered Work Performed Code Already Exists!'
+														WHEN @ModuleId = @TaskStatusModule AND @ChekDuplticateRef1 = 'Description'  
+															THEN 'Entered Task Status Already Exists!'
+														WHEN @ModuleId = @ScrapreasonModule AND @ChekDuplticateRef1 = 'Reason'  
+															THEN 'Entered Reason Already Exists!'
+														WHEN @ModuleId = @EvidenceModule AND @ChekDuplticateRef1 = 'EvidenceName'  
+															THEN 'Entered Evidence Already Exists!'
+														--WHEN @ModuleId = @LocationModule    
+														--	THEN 'Entered Location Name And Warehouse Already Exists!'
+		
 														ELSE '' END
 						WHERE ImportModuleFieldMasterId = @CurrentRow;
 					END
@@ -929,6 +1115,9 @@ BEGIN
 												--	AND LOWER(@ManufacturerId) != LOWER(@ManufacturerName) THEN 'Incorrect Manufacturer'
 												WHEN ISNULL(IMF.IsRequired, 0) = 1 AND ISNULL(IMF.DropdownListType, '') != '' 
 													 AND ISNULL(IMF.DropdownListValueId, '') = '' AND ISNULL(IMF.ReferenceColumn, '') != '' THEN 'Pleas Enter Correct Pair of ' + IMF.HeaderName + ' ' + IMF.ReferenceColumn
+												--WHEN (@ModuleId = @LocationModule AND @LocationModuleError = 1 )
+												--	THEN 'Entered Warehouse Not Exists In This Site'
+												
 										ELSE ''
 										END,
 				TMP.FieldValue = CASE WHEN ISNULL(IMF.DropdownListTable, '') != '' THEN IMF.DropdownListValueId ELSE TMP.FieldValue END
@@ -936,7 +1125,7 @@ BEGIN
 			LEFT JOIN #DynamicKeyValue TMP ON TMP.FieldName = IMF.FieldName
 			WHERE IMF.[ModuleId] = @ModuleId
 			SELECT @Erorr = COALESCE(@Erorr + ',  ' + [RecordStatus], [RecordStatus]) FROM #DynamicKeyValue WHERE ISNULL([RecordStatus], '') != '';
-			
+			--SET @LocationModuleError = 0 
 			if (@ModuleId = @StocklineModule OR @ModuleId = @PriceMasterModule)  
 			BEGIN
 				IF @Manufacture IS NOT NULL AND
@@ -990,7 +1179,7 @@ BEGIN
 		END
 
 		SELECT * FROM [dbo].[UploadModuleData] WITH(NOLOCK) WHERE [ModuleId] = @ModuleId AND [MasterCompanyId] = @MasterCompanyId;
-
+		
 	COMMIT TRANSACTION
 	 
 	END TRY    

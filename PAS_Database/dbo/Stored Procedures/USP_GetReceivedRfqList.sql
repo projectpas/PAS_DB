@@ -33,7 +33,6 @@
 	20   04-12-2025  Devendra Shekh		 Modified (added @SendQuote)
 	21   10-12-2025  Devendra Shekh		 Modified (added IsActive/IsDeleted to Where)
 	22   16-12-2025  Devendra Shekh		 Modified (added RFQNum)
-	23   16-12-2025  Devendra Shekh		 Modified (added AllowAssign)
 -- EXEC USP_GetReceivedRfqList 
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[USP_GetReceivedRfqList]
@@ -130,13 +129,6 @@ BEGIN
 				
 				SELECT TOP 1 @BaseUtcOffsetSec = BaseUtcOffsetSec FROM dbo.TimeZone WITH(NOLOCK) WHERE [Description] = @CurrntEmpTimeZoneDesc
 				/* -------------- END: Get the timzone and UTC offset -------------- */
-				
-				IF OBJECT_ID('tempdb..#tmpSalesOrderStatus') IS NOT NULL
-				BEGIN
-					DROP TABLE #tmpSalesOrderStatus
-				END
-
-				SELECT Id INTO #tmpSalesOrderStatus FROM [dbo].[MasterSalesOrderStatus] WITH(NOLOCK) WHERE [Name] IN ('Closed', 'Cancelled');
 
 				DECLARE @ILSPortalId INT = 1, @OneFortyFivePortalId INT = 2, @EmailPortalId INT = 3;
 
@@ -286,7 +278,6 @@ BEGIN
 					RFQR.RFQReferenceId,
 					RFQR.RFQModuleId,
 					REPLACE(RFQ.RfqId, @CodePrefix, '')	AS RFQNum
-					,CASE WHEN RFQ.ModuleId = @SoqModuleId AND ISNULL(RFQ.[ReferenceId], 0) > 0 THEN CASE WHEN SOQ.StatusId IN (SELECT Id FROM #tmpSalesOrderStatus) THEN 0 ELSE 1 END ELSE 0 END AS AllowAssign
 				FROM dbo.CustomerRfq RFQ WITH (NOLOCK)
 				--LEFT JOIN dbo.ItemMaster IM WITH(NOLOCK) ON RFQ.[LinePartNumber] = IM.[partnumber] AND RFQ.[MasterCompanyId] = IM.[MasterCompanyId]
 				LEFT JOIN ItemResult IM WITH(NOLOCK) ON LOWER(TRIM(RFQ.[LinePartNumber])) = LOWER(TRIM(IM.[partnumber])) AND RFQ.[MasterCompanyId] = IM.[MasterCompanyId]
@@ -391,7 +382,6 @@ BEGIN
 					RFQR.RFQReferenceId,
 					RFQR.RFQModuleId,
 					REPLACE(RFQ.RfqId, @CodePrefix, '')	AS RFQNum
-					,CASE WHEN RFQ.ModuleId = @SoqModuleId AND ISNULL(RFQ.[ReferenceId], 0) > 0 THEN CASE WHEN SOQ.StatusId IN (SELECT Id FROM #tmpSalesOrderStatus) THEN 0 ELSE 1 END ELSE 0 END AS AllowAssign
 				FROM dbo.CustomerRfq RFQ WITH (NOLOCK)
 				LEFT JOIN dbo.Customer CU WITH(NOLOCK) ON (LOWER(TRIM(RFQ.[BuyerCompanyName])) = LOWER(TRIM(CU.[Name])) AND RFQ.[MasterCompanyId] = CU.[MasterCompanyId]) OR (RFQ.CustomerId = CU.CustomerId AND RFQ.[MasterCompanyId] = CU.[MasterCompanyId]) AND CU.IsActive = 1 AND CU.IsDeleted = 0
 				LEFT JOIN  dbo.CustomerContact CC  WITH (NOLOCK) ON CC.CustomerId=CU.CustomerId AND CC.IsDefaultContact=1

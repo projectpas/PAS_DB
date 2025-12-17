@@ -4389,6 +4389,9 @@
     <Build Include="dbo\Stored Procedures\USP_GetATAMappedByItemMasterId.sql" />
     <Build Include="dbo\Tables\RFQFollowUpTemplate.sql" />
     <Build Include="dbo\Stored Procedures\usp_getEmailTemplates_byTemplateType.sql" />
+    <Build Include="dbo\Tables\RFQFollowUpTemplateAudit.sql" />
+    <Build Include="dbo\Views\vw_RFQFollowUpTemplateAudit.sql" />
+    <Build Include="dbo\Views\vw_RFQFollowUpTemplate.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

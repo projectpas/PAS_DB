@@ -14,3 +14,22 @@
     CONSTRAINT [PK_RFQFollowUpTemplate] PRIMARY KEY CLUSTERED ([TemplateId] ASC)
 );
 
+
+GO
+CREATE   TRIGGER [dbo].[Trg_RFQFollowUpTemplateAudit]
+
+   ON  [dbo].[RFQFollowUpTemplate]
+
+   AFTER INSERT,DELETE,UPDATE
+
+AS
+
+BEGIN
+
+	INSERT INTO [RFQFollowUpTemplateAudit]
+
+	SELECT * FROM INSERTED
+
+	SET NOCOUNT ON;
+
+END

@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [ProcGetRoList]           
  ** Author:   Moin Bloch  
  ** Description: Get Data for Repair Order listing
@@ -26,6 +25,7 @@
 	09   14-04-2025     Moin Bloch          Modified Fix Order Isuee in RO List
 	10   25-04-2025     HEMANT SALIYA       Modified Fix Default Order Isuee in RO List Created By
 	11   13-05-2025     Bhargav Saliya      MULTIPLE checking for  WO and SO Number was improper so corrected it
+	12   04-12-2025     Amit Ghediya        Added qtyShipped,qtyRemaining for shipping details
      
 -- exec ProcGetRoList @PageNumber=1,@PageSize=20,@SortColumn=N'CreatedDate',@SortOrder=-1,@StatusID=6,@GlobalFilter=N'',@RepairOrderNumber=NULL,@OpenDate=NULL,@ClosedDate=NULL,@VendorName=NULL,@VendorCode=NULL,@Status=N'open',@ApprovedBy=NULL,@RequestedBy=NULL,@CreatedDate=NULL,@UpdatedDate=NULL,@CreatedBy=NULL,@UpdatedBy=NULL,@IsDeleted=0,@EmployeeId=223,@MasterCompanyId=1,@VendorId=NULL,@ViewType=N'roview',@PartNumberType=NULL,@PartDescription=NULL,@EstDeliveryType=NULL,@ManufacturerType=NULL,@SalesOrderNumberType=NULL,@WorkOrderNumType=NULL,@IsUpdated=0
 **************************************************************/
@@ -59,7 +59,9 @@ CREATE      PROCEDURE [dbo].[ProcGetRoList]
 	@ManufacturerType varchar(50) = null,
 	@SalesOrderNumberType varchar(50) = null,
 	@WorkOrderNumType varchar(50) = null,
-	@IsUpdated BIT = NULL
+	@IsUpdated BIT = NULL,
+	@qtyShipped varchar(50) = NULL,
+	@qtyRemaining varchar(50) = NULL
 AS
 BEGIN
 	SET NOCOUNT ON;
@@ -71,7 +73,7 @@ BEGIN
 		DECLARE @ItemTypeAsset Int;
 		DECLARE @ItemTypeStock Int;
 		DECLARE @ItemTypeNonStock Int;
-		DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
+		DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';	
 		SELECT 
 			@CurrntEmpTimeZoneDesc = COALESCE(
 				ETZ.[Description],  -- Prefer Employee's TimeZone description if available
@@ -135,7 +137,8 @@ BEGIN
 					MAX(ROP.EstRecordDate) AS MaxEstRecordDate,
 					MAX(ROP.Manufacturer) AS MaxManufacturer,
 					MAX(ROP.WorkOrderNo) AS MaxWorkOrderNo,
-					MAX(ROP.SalesOrderNo) AS MaxSalesOrderNo
+					MAX(ROP.SalesOrderNo) AS MaxSalesOrderNo,
+					SUM(ROP.QuantityOrdered) AS QuantityOrdered
 				FROM dbo.RepairOrderPart ROP WITH (NOLOCK)
 				WHERE ROP.IsParent = 1
 				GROUP BY ROP.RepairOrderId
@@ -166,7 +169,10 @@ BEGIN
 					CASE WHEN ROPA.PartCount > 1 THEN 'Multiple' ELSE ROPA.MaxManufacturer END AS ManufacturerType,
 					CASE WHEN ROPA.WorkOrderCount > 1 THEN 'Multiple' ELSE ROPA.MaxWorkOrderNo END AS WorkOrderNumType,
 					CASE WHEN ROPA.SalesOrderCount > 1 THEN 'Multiple' ELSE ROPA.MaxSalesOrderNo END AS SalesOrderNumberType,
-					0 AS isStkLable
+					0 AS isStkLable,
+					0 AS qtyShipped,
+					0 AS qtyRemaining,
+					ROPA.QuantityOrdered
 			INTO #tmpReceivingRoviewList
 			FROM DBO.RepairOrder RO WITH (NOLOCK)
 			 INNER JOIN dbo.RepairOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @MSModuleID AND MSD.ReferenceID = RO.RepairOrderId
@@ -183,7 +189,7 @@ BEGIN
 				   ROPA.MaxEstRecordDate,
 				   ROPA.MaxManufacturer,
 				   ROPA.MaxWorkOrderNo,
-				   ROPA.MaxSalesOrderNo,ROPA.WorkOrderCount,ROPA.SalesOrderCount
+				   ROPA.MaxSalesOrderNo,ROPA.WorkOrderCount,ROPA.SalesOrderCount,ROPA.QuantityOrdered
 
 		    UPDATE TMP
 				SET TMP.isStkLable = case when result.StkCount > 0 then 1 else 0 end
@@ -191,6 +197,19 @@ BEGIN
 				OUTER APPLY (
 					SELECT COUNT(stk.StockLineId) AS StkCount FROM DBO.Stockline stk WITH (NOLOCK) 
 					WHERE stk.RepairOrderId = TMP.RepairOrderId) 
+				AS result
+
+			UPDATE TMP1
+				SET TMP1.qtyShipped = ISNULL(result.QtyShipped, 0),
+					TMP1.qtyRemaining = ISNULL(result.QuantityOrdered, 0)
+				FROM #tmpReceivingRoviewList TMP1
+				OUTER APPLY (
+					SELECT 
+						ISNULL(TMP1.QuantityOrdered,0) - ISNULL(SUM(ROSI.QtyShipped),0)AS QuantityOrdered,
+						ISNULL(SUM(ROSI.QtyShipped),0) AS QtyShipped
+					FROM DBO.RepairOrderPart rop WITH (NOLOCK) 
+					LEFT JOIN DBO.RepairOrderShippingItem ROSI WITH (NOLOCK) ON ROSI.RepairOrderPartId = rop.RepairOrderPartRecordId
+					WHERE rop.RepairOrderId = TMP1.RepairOrderId) 
 				AS result
 
 			;WITH ResultData AS(
@@ -203,7 +222,7 @@ BEGIN
 					M.ManufacturerType,
 					M.WorkOrderNumType,
 					CAST(M.EstDeliveryType AS VARCHAR(MAX)) as 'EstDeliveryType',
-					0 as RepairOrderPartRecordId,isStkLable
+					0 as RepairOrderPartRecordId,isStkLable,qtyShipped,qtyRemaining
 				FROM #tmpReceivingRoviewList M 
 					
 			WHERE ((@GlobalFilter <>'' AND ((RepairOrderNumber LIKE '%' +@GlobalFilter+'%') OR	
@@ -218,7 +237,9 @@ BEGIN
 					(M.PartDescription like '%' +@GlobalFilter+'%') OR
 					(M.ManufacturerType like '%' +@GlobalFilter+'%') OR
 					(M.SalesOrderNumberType like '%' +@GlobalFilter+'%') OR
-					(M.WorkOrderNumType like '%' +@GlobalFilter+'%')))
+					(M.WorkOrderNumType like '%' +@GlobalFilter+'%') OR
+					(M.qtyShipped like '%' +@GlobalFilter+'%') OR
+					(M.qtyRemaining like '%' +@GlobalFilter+'%')))
 					OR 
 					(@GlobalFilter='' AND IsDeleted=@IsDeleted AND
 					(ISNULL(@RepairOrderNumber,'') ='' OR RepairOrderNumber LIKE '%' + @RepairOrderNumber+'%') AND 
@@ -238,13 +259,15 @@ BEGIN
 					(ISNULL(@EstDeliveryType,'') ='' OR M.EstDeliveryType like '%'+ @EstDeliveryType+'%') AND					
 					(ISNULL(@ManufacturerType,'') ='' OR M.ManufacturerType like '%'+ @ManufacturerType+'%') AND
 					(ISNULL(@SalesOrderNumberType,'') ='' OR M.SalesOrderNumberType like '%'+@SalesOrderNumberType+'%') AND
-					(ISNULL(@WorkOrderNumType,'') ='' OR M.WorkOrderNumType like '%'+@WorkOrderNumType+'%'))
+					(ISNULL(@WorkOrderNumType,'') ='' OR M.WorkOrderNumType like '%'+@WorkOrderNumType+'%') AND
+					(ISNULL(@qtyShipped,'') ='' OR M.qtyShipped like '%'+@qtyShipped+'%') AND
+					(ISNULL(@qtyRemaining,'') ='' OR M.qtyRemaining like '%'+@qtyRemaining+'%'))
 				   )), 
 					CTE_Count AS (Select COUNT(RepairOrderId) AS NumberOfItems FROM ResultData)
 					SELECT RepairOrderId,RepairOrderNumber,RepairOrderNo,OpenDate,ClosedDate,CreatedDate,CreatedBy,UpdatedDate,UpdatedBy,IsActive,IsDeleted
 						,VendorId,VendorName,VendorCode,StatusId,[Status],RequestedBy,ApprovedBy,
 						'' PartNumber, PartNumberType, PartDescription , '' Manufacturer, ManufacturerType, '' WorkOrderNum, WorkOrderNumType, '' SalesOrderNumber, SalesOrderNumberType,
-						CreatedDate, UpdatedDate, NumberOfItems, CreatedBy, UpdatedBy, '' EstDeliveryDateMulti, EstDeliveryType, RepairOrderPartRecordId ,isStkLable
+						CreatedDate, UpdatedDate, NumberOfItems, CreatedBy, UpdatedBy, '' EstDeliveryDateMulti, EstDeliveryType, RepairOrderPartRecordId ,isStkLable,qtyShipped,qtyRemaining
 					FROM ResultData, CTE_Count
 			ORDER BY  
             CASE WHEN (@SortOrder=1 AND @SortColumn='repairOrderNumber')  THEN repairOrderNumber END ASC,
@@ -282,7 +305,11 @@ BEGIN
 			CASE WHEN (@SortOrder=1 and @SortColumn='EstDeliveryType')  THEN EstDeliveryType END ASC,
 			CASE WHEN (@SortOrder=-1 and @SortColumn='EstDeliveryType')  THEN EstDeliveryType END DESC,
 			CASE WHEN (@SortOrder=1 and @SortColumn='RepairOrderId')  THEN RepairOrderId END ASC,
-			CASE WHEN (@SortOrder=-1 and @SortColumn='RepairOrderId')  THEN RepairOrderId END DESC
+			CASE WHEN (@SortOrder=-1 and @SortColumn='RepairOrderId')  THEN RepairOrderId END DESC,
+			CASE WHEN (@SortOrder=1 and @SortColumn='qtyShipped')  THEN qtyShipped END ASC,
+			CASE WHEN (@SortOrder=-1 and @SortColumn='qtyShipped')  THEN qtyShipped END DESC,
+			CASE WHEN (@SortOrder=1 and @SortColumn='qtyRemaining')  THEN qtyRemaining END ASC,
+			CASE WHEN (@SortOrder=-1 and @SortColumn='qtyRemaining')  THEN qtyRemaining END DESC
 			OFFSET @RecordFrom ROWS 
 			FETCH NEXT @PageSize ROWS ONLY
 		END
@@ -319,7 +346,10 @@ BEGIN
 				   CAST(ROP.EstRecordDate AS VARCHAR(MAX)) as EstDeliveryDateMulti,
 				   CAST(ROP.EstRecordDate AS VARCHAR(MAX)) as EstDeliveryType,
 				   ROP.RepairOrderPartRecordId,
-				   0 AS isStkLable
+				   0 AS isStkLable,
+				   0 AS qtyShipped,
+				   0 AS qtyRemaining,
+				   ROP.QuantityOrdered AS QuantityOrdered
 			INTO #tmpReceivingPnviewList
 			FROM  dbo.RepairOrder RO WITH (NOLOCK)
 			 INNER JOIN dbo.RepairOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @MSModuleID AND MSD.ReferenceID = RO.RepairOrderId
@@ -337,6 +367,18 @@ BEGIN
 					SELECT COUNT(stk.StockLineId) AS StkCount FROM DBO.Stockline stk WITH (NOLOCK) 
 					WHERE stk.RepairOrderId = TMP.RepairOrderId 
 					) AS result
+
+			UPDATE TMP1
+				SET TMP1.qtyShipped = ISNULL(result.QtyShipped, 0),
+					TMP1.qtyRemaining = ISNULL(result.QuantityOrdered, 0)
+				FROM #tmpReceivingPnviewList TMP1
+				OUTER APPLY (
+					SELECT 
+						ISNULL(TMP1.QuantityOrdered,0) - ISNULL(SUM(ROSI.QtyShipped),0) AS QuantityOrdered,
+						ISNULL(SUM(ROSI.QtyShipped),0) AS QtyShipped
+					FROM DBO.RepairOrderShippingItem ROSI WITH (NOLOCK)
+					WHERE ROSI.RepairOrderPartId = TMP1.RepairOrderPartRecordId) 
+				AS result
 
 					;with ResultCount AS(Select COUNT(RepairOrderId) AS totalItems FROM #tmpReceivingPnviewList)
 			SELECT * INTO #TempResult FROM  #tmpReceivingPnviewList

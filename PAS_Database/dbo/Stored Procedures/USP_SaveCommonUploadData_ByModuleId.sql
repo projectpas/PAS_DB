@@ -37,7 +37,7 @@
 	29	 02-DEC-2025        Ayushi Patel			Added New SingleScreen Modules
 	30	 04-Dec-2025        Divyesh Kathiriya		Handle new line "/r/n" in All Filed
 	31	 08-Dec-2025        Divyesh Kathiriya		Handle new tab "\", "\t" in All Filed
-
+	32	 17-DEC-2025        Nakul Chandigara  		Added New SingleScreen Modules
 exec USP_SaveCommonUploadData_ByModuleId @ModuleId=4,@UserName=N'VICTOR ADMAS',@MasterCompanyId=1, @EmployeeId = 236;
 **************************************************************/
 CREATE PROCEDURE [dbo].[USP_SaveCommonUploadData_ByModuleId]
@@ -52,7 +52,7 @@ BEGIN
 	BEGIN TRY    
 	
 	BEGIN TRANSACTION
-
+	
 		IF OBJECT_ID('tempdb..#uploadDataResults') IS NOT NULL
 			DROP TABLE #uploadDataResults
 
@@ -96,8 +96,9 @@ BEGIN
 		DECLARE @PriceMasterModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'PriceMaster');
 		DECLARE @PurchaseSalesModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'PurchaseSales');
 		DECLARE @MROPriceMasterModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'MROPriceMaster');
+		DECLARE @DefaultMessageModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'DefaultMessage');
 		DECLARE @isMROPriceDataExist BIT = 0;
-
+		DECLARE @EmployeeExpertiseModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'EmployeeExpertise');
 		DECLARE @MROPriceMasterListModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'MROPriceMasterList');
 
 		DECLARE @ItemMasterId BIGINT = 0;
@@ -133,10 +134,19 @@ BEGIN
 		DECLARE @ItemClassificationModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'ItemClassification'); 
 		DECLARE @SiteModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'Site');
 		DECLARE @POROCategory AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'POROCategory');
+		DECLARE @InventoryGLSettingModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'InventoryGLSetting');
+		DECLARE @WorkOrderStageModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'WorkOrderStage');
+		DECLARE @CommonTeardownTypeModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'CommonTeardownType');
+		DECLARE @LocationModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'Location');
 
 		SET @EmployeeMSId = (SELECT [ManagementStructureId] FROM [DBO].[Employee] WITH(NOLOCK) WHERE [EmployeeId] = @EmployeeId);
 		SET @PublicationMSId = (SELECT [ManagementStructureId] FROM DBO.[Employee] WITH(NOLOCK) WHERE [EmployeeId] = @EmployeeId);
 
+			DECLARE @WarehouseId BIGINT = NULL;
+			DECLARE @SiteId BIGINT;
+			DECLARE @SiteName VARCHAR(MAX);
+			DECLARE @WarehouseName VARCHAR(MAX);
+			
 		CREATE TABLE #uploadDataResults (
 			[RecordId] [bigint] IDENTITY(1,1) NOT NULL,
 			[UploadModuleDataId] [bigint] NOT NULL,
@@ -161,7 +171,7 @@ BEGIN
 			[FieldValue] VARCHAR(MAX) NULL, 
 			[RecordStatus] [varchar](max) NULL
 		);
-
+		
 		SELECT @ReferenceTable = ReferenceTable, @CodeTypeId = CodeTypeId, @ChildTable = ChildTable, @ReferenceColumnName = ReferenceColumnName , @ModuleParentTable = ModuleParentTable , @ParentPrimaryColumnName = ParentPrimaryColumnName 
 		FROM [dbo].[ImportModule] WITH(NOLOCK) WHERE [ImportModuleId] = @ModuleId;
 
@@ -172,26 +182,24 @@ BEGIN
 		FROM [dbo].[UploadModuleData] WHERE [ModuleId] = @ModuleId AND MasterCompanyId = @MasterCompanyId	;
 
 		SELECT @TotalRecords = MAX([RecordId]), @CurrentRecord = MIN([RecordId]) FROM #uploadDataResults;
-
+		
 		WHILE(ISNULL(@TotalRecords, 0) >= ISNULL(@CurrentRecord, 0))
 		BEGIN
-
+		
 			TRUNCATE TABLE #DynamicKeyValue;
 
 			SELECT @UploadRecord = [RecordData] FROM #uploadDataResults WHERE [RecordId] = @CurrentRecord;
 
-------------START: Handle new line, new tab "/r", "/n", "\", "\t" ------------
-
+			------------START: Handle new line, new tab "/r", "/n", "\", "\t" ------------
 			SET @UploadRecord = REPLACE(@UploadRecord, '\', '\\');			
 			SET @UploadRecord = REPLACE(@UploadRecord, CHAR(13) + CHAR(10), '\r\n');
 			SET @UploadRecord = REPLACE(@UploadRecord, CHAR(13), '\r\n');
 			SET @UploadRecord = REPLACE(@UploadRecord, CHAR(10), '\n');
 			SET @UploadRecord = REPLACE(@UploadRecord, CHAR(9), '\t');
-
 ------------END: Handle new line, new tab "/r", "/n", "\", "\t"------------
-
+			
 			SET @UploadRecord = CASE WHEN @ModuleId = @PriceMasterModule OR @ModuleId = @PurchaseSalesModule  OR @ModuleId = @MROPriceMasterModule   OR @ModuleId = @MROPriceMasterListModule THEN  JSON_MODIFY(@UploadRecord, '$.ManufacturerId', NULL) ELSE @UploadRecord END; 
-
+			
 			IF(@ModuleId = @StocklineModule)
 			BEGIN				
 				SET @UploadRecord = JSON_MODIFY(
@@ -214,11 +222,11 @@ BEGIN
 			FROM [DBO].[ImportModuleFieldMaster] IMF WITH(NOLOCK)
 			LEFT JOIN #DynamicKeyValue TMP ON TMP.FieldName = IMF.FieldName
 			WHERE IMF.[ModuleId] = @ModuleId  AND NOT ((@ModuleId = @PriceMasterModule OR @ModuleId = @PurchaseSalesModule OR @ModuleId = @MROPriceMasterModule  OR @ModuleId = @MROPriceMasterListModule) AND IMF.FieldName = 'ManufacturerId' );			
-
+			
 			DECLARE @Qty AS INT;
 			DECLARE @PurchaseUOMId AS BIGINT;
 			DECLARE @ManagementStructureId AS BIGINT;
-
+			
 			IF (@ModuleId = @StocklineModule) -- Stockline
 			BEGIN
 				DECLARE @StockLineNumber VARCHAR(100);
@@ -497,7 +505,75 @@ BEGIN
 					END
 				WHERE FieldName IN ('IsPo', 'IsRo');
 			END
+		--	DECLARE @IsDefault VARCHAR(50);
 
+		--SELECT @IsDefault = FieldValue 
+		--FROM #ImportFields 
+		--WHERE FieldName = 'IsDefault';
+
+		--	IF(@ModuleId = @DefaultMessageModule)
+		--	BEGIN
+		--	select 'defaultmsg'
+		--	    IF (LOWER(LTRIM(RTRIM(ISNULL(@IsDefault, '')))) = 'yes')
+		--	    BEGIN  
+		--	        UPDATE DefaultMessage
+		--	        SET IsDefault = 0
+		--	        WHERE IsDefault = 1
+		--	          AND ModuleID = @ModuleId
+		--	          AND MasterCompanyId = @MasterCompanyId;
+		--	    END 
+
+		--		UPDATE #ImportFields
+		--		SET FieldValue = CASE 
+		--							WHEN LOWER(LTRIM(RTRIM(ISNULL(FieldValue, '')))) = 'yes' THEN '1'
+		--							ELSE '0'
+		--						 END
+		--		WHERE FieldName = 'IsDefault';
+		--	END
+
+			IF(@ModuleId = @EmployeeExpertiseModule)
+			BEGIN
+				UPDATE #ImportFields
+				SET FieldValue =
+					CASE 
+						WHEN LOWER(LTRIM(RTRIM(FieldValue))) = 'yes' THEN '1'
+						ELSE '0'
+					END
+				WHERE FieldName = 'IsWorksInShop';
+			END
+			IF(@ModuleId = @WorkOrderStageModule)
+			BEGIN
+				UPDATE #ImportFields
+				SET FieldValue =
+					CASE 
+						WHEN LOWER(LTRIM(RTRIM(FieldValue))) = 'yes' THEN '1'
+						ELSE '0'
+					END
+				WHERE FieldName in ( 'IsCustAlerts', 'IncludeInDashboard', 'IncludeInStageReport', 'WorkableBacklog', 'IncludeInTAT', 'QuoteDays', 'ShippedDays','ApprovedDays' )
+			END
+			IF(@ModuleId = @CommonTeardownTypeModule)
+			BEGIN
+				UPDATE #ImportFields
+				SET FieldValue =
+					CASE 
+						WHEN LOWER(LTRIM(RTRIM(FieldValue))) = 'yes' THEN '1'
+						ELSE '0'
+					END
+				WHERE FieldName in ( 'IsDocument', 'IsInspectorDate', 'IsInspector', 'IsDate', 'IsTechnician' )
+			END
+		 --   IF (@ModuleId = @LocationModule)
+			--BEGIN
+			--	SELECT @SiteName = FieldValue FROM #DynamicKeyValue WHERE FieldName = 'SiteId';
+			--	SELECT @WarehouseName = FieldValue FROM #DynamicKeyValue WHERE FieldName = 'WarehouseId';
+			--	SELECT @WarehouseId = WarehouseId FROM Warehouse WHERE [Name] = @WarehouseName AND SiteId = @SiteName AND MasterCompanyId = @MasterCompanyId;
+			
+			--	UPDATE #ImportFields
+			--	SET FieldValue = @WarehouseId 
+			--	WHERE FieldName = 'WarehouseId'
+				
+			--	delete #ImportFields where FieldName = 'SiteId'
+			--	delete #DynamicKeyValue where FieldName = 'SiteId'
+			--END
 			SELECT @TotalRow = MAX(ImportModuleFieldMasterId), @CurrentRow = MIN(ImportModuleFieldMasterId) FROM #ImportFields;
 
 			WHILE(@TotalRow >= @CurrentRow)
@@ -549,7 +625,7 @@ BEGIN
 			UPDATE #ImportFields SET FieldValue = GETDATE() WHERE FieldName = 'ReceivedDate' AND ISNULL(FieldValue,'') = '';
 			
 			-----parent table insert Start-----
-
+			
 			IF(ISNULL(@ModuleParentTable, '') != '')
 			BEGIN
 				SET @RefFieldName = '' -- reset for parent
@@ -589,13 +665,10 @@ BEGIN
 				SET @RefFieldName = ISNULL(STUFF(@RefFieldName, CHARINDEX(',', @RefFieldName), 1, ''), '')
 				-- Final dynamic insert
 				SET @RefQuery = 'INSERT INTO [' + @ModuleParentTable + '] (' + @RefFieldName + ') VALUES (' + @FieldValue + ');'+ ' SET @ParentModuleTableId = SCOPE_IDENTITY()'; 
-
-				EXEC sp_executesql @RefQuery, N'@ParentModuleTableId BIGINT OUTPUT',@ParentModuleTableId OUTPUT;
 				
+				EXEC sp_executesql @RefQuery, N'@ParentModuleTableId BIGINT OUTPUT',@ParentModuleTableId OUTPUT;
 				--EXEC (@RefQuery)
 			END
-
-			
 			-----parent table insert End-----
 			SET @FieldValue = '';
 			SET @RefFieldName = '';
@@ -632,7 +705,7 @@ BEGIN
 							WHEN ISNULL(FieldType,'') = '' THEN FieldValue + ',' END))        
 				FROM #ImportFields        
 				WHERE ISNULL(IsModuleTableColumn, 0) = 1 
-	
+			
 			END
 			ELSE IF(@ModuleId = @CustomerModule)
 			BEGIN 
@@ -682,7 +755,7 @@ BEGIN
 							WHEN ISNULL(FieldType,'') = '' THEN FieldValue + ',' END))        
 				FROM #ImportFields        
 				WHERE ISNULL(IsModuleTableColumn, 0) = 1 
-	
+			
 			END
 			ELSE IF(@ModuleId = @VendorModule)
 			BEGIN 
@@ -779,8 +852,9 @@ BEGIN
 							WHEN FieldType = 'dropdown' THEN CASE WHEN ISNULL(FieldValue,'') = '' THEN 'NULL' ELSE FieldValue END + ','   
 							WHEN ISNULL(FieldType,'') = '' THEN FieldValue + ',' END))        
 				FROM #ImportFields        
-				WHERE ISNULL(IsModuleTableColumn, 0) = 1 
+				WHERE ISNULL(IsModuleTableColumn, 0) = 1
 			END
+			
 			IF(@ModuleId = @AlterModule)
 			BEGIN
 				SET @RefFieldName += ' , MappingType, MasterCompanyId, CreatedBy, UpdatedBy'
@@ -1041,6 +1115,11 @@ BEGIN
 				SET @RefFieldName += ' , Description, MasterCompanyId, CreatedBy, UpdatedBy'
 				SET @FieldValue += ' '' '','  
 			END
+			ELSE IF(@ModuleId = @InventoryGLSettingModule)
+			BEGIN
+				SET @RefFieldName += ' , CreatedDate,UpdatedDate, MasterCompanyId, CreatedBy, UpdatedBy'
+				SET @FieldValue += 'GETUTCDATE(),GETUTCDATE(), '
+			END
 			ELSE
 			BEGIN
 				SET @RefFieldName += ' , MasterCompanyId, CreatedBy, UpdatedBy'
@@ -1053,7 +1132,6 @@ BEGIN
 			--	END
 			SET @FieldValue += ' ' + CAST(@MasterCompanyId AS VARCHAR) + ',''' + @UserName + ''',''' + @UserName + '''' 
 			SET @RefFieldName = ISNULL(STUFF(@RefFieldName, CHARINDEX(',', @RefFieldName), 1, ''), '')
-			
 			IF((@ModuleId = @PriceMasterModule  OR @ModuleId = @PurchaseSalesModule) AND @isPriceDataExist = 1 )
 			BEGIN		
 					DECLARE @UpdateFields NVARCHAR(MAX) = '';
@@ -1133,11 +1211,11 @@ BEGIN
 								SET @RefQuery = 'UPDATE [' + @ReferenceTable + '] SET ' + @MROUpdateFields + ' WHERE MROPriceMasterId = ' + CAST(@MatchedId AS varchar(20)) + ';';
 							END
 					END
+			
 			ELSE
 			BEGIN
 				SET @RefQuery = 'INSERT INTO [' + @ReferenceTable + '] (' + @RefFieldName + ' )' + ' VALUES (' + @FieldValue + ');' + ' SET @ModuleTableId = SCOPE_IDENTITY()';
-			END			
-
+			END
 			IF(@ModuleId = @PublicationModule)
 			BEGIN
 				EXEC sp_executesql @RefQuery, N'@GetDate DATE, @UtcNow DATETIME2(7), @EmployeeId BIGINT, @ModuleTableId BIGINT OUTPUT', @GetDate = @GetDate, @UtcNow = @UtcNow, @EmployeeId = @EmployeeId, @ModuleTableId = @ModuleTableId OUTPUT;
@@ -1213,7 +1291,7 @@ BEGIN
 				ELSE
 				BEGIN
 					EXEC sp_executesql @RefQuery, N'@ModuleTableId BIGINT OUTPUT', @ModuleTableId OUTPUT;
-				END		
+				END	
 			END
 			
 			IF((@ModuleId = @PriceMasterModule OR @ModuleId = @PurchaseSalesModule) AND @ItemMasterId >0 )
@@ -1365,7 +1443,9 @@ BEGIN
 				WHERE [EmployeeId] = @ModuleTableId;			
 
 			END
+		
 			
+	
 			IF(ISNULL(@ChildTable, '') != '')
 			BEGIN
 				SET @RefFieldName = ''+ @ReferenceColumnName + '';
@@ -1405,7 +1485,7 @@ BEGIN
 				--SET @RefFieldName = ISNULL(STUFF(@RefFieldName, CHARINDEX(',', @RefFieldName), 1, ''), '')
 
 				SET @RefQuery = 'INSERT INTO [' + @ChildTable + '] (' + @RefFieldName + ' )' + ' VALUES (' + @FieldValue + ');'				
-
+				
 				IF(@ModuleId = @PublicationModule)
 				BEGIN
 					EXEC sp_executesql @RefQuery, N'@UtcNow datetime2(7)', @UtcNow = @UtcNow;
@@ -1413,7 +1493,7 @@ BEGIN
 				Else
 				BEGIN
 					EXEC (@RefQuery)
-				END				 
+				END	
 			END
 			
 ------------START: Save Mapping Data Of Multiple DropDownl List------------

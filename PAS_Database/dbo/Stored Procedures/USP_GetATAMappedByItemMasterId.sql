@@ -48,7 +48,9 @@ BEGIN
         iM.Level1,
         iM.Level2,
         iM.Level3,
-		ATAChapterName = iM.Level1 + CASE WHEN iM.Level2 IS NOT NULL AND LTRIM(RTRIM(iM.Level2)) <> '' THEN '-' + iM.Level2 ELSE '' END + CASE WHEN iM.Level3 IS NOT NULL AND LTRIM(RTRIM(iM.Level3)) <> '' THEN '-' + iM.Level3 ELSE '' END
+		ATAChapterName = CASE WHEN iM.Level1 IS NOT NULL AND LTRIM(RTRIM(iM.Level1)) <> '' THEN '-' + iM.Level1 ELSE '' END + 
+		                 CASE WHEN iM.Level2 IS NOT NULL AND LTRIM(RTRIM(iM.Level2)) <> '' THEN '-' + iM.Level2 ELSE '' END + 
+						 CASE WHEN iM.Level3 IS NOT NULL AND LTRIM(RTRIM(iM.Level3)) <> '' THEN '-' + iM.Level3 ELSE '' END 						
 	FROM [DBO].ItemMasterATAMapping iM WITH (NOLOCK)
 	JOIN [DBO].ItemMaster item WITH (NOLOCK) ON iM.ItemMasterId = item.ItemMasterId
 	WHERE  iM.ItemMasterId = @ItemMasterId AND iM.IsActive = 1 AND iM.IsDeleted = @IsDeleted

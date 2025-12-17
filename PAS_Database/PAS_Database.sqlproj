@@ -4387,6 +4387,8 @@
     <Build Include="dbo\Stored Procedures\usp_GetILSRFQPartDetails.sql" />
     <Build Include="dbo\Stored Procedures\usp_CheckIntegrationEmailExists.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetATAMappedByItemMasterId.sql" />
+    <Build Include="dbo\Tables\RFQFollowUpTemplate.sql" />
+    <Build Include="dbo\Stored Procedures\usp_getEmailTemplates_byTemplateType.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

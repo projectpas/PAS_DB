@@ -174,7 +174,7 @@ AS
 					--WHERE BillingInvoicingId = @BillingInvoicingId
 
 					UPDATE dbo.BillingInvoicing SET 
-						InvoiceStatus = 'Pending',
+						InvoiceStatus = 'Billed',
 						InvoiceStatusId = (SELECT [InvoiceStatusId] FROM [dbo].[InvoiceStatus] WITH(NOLOCK) WHERE [Status] = 'Billed'),
 						InvoiceFilePath = '', 						
 						WorkOrderShippingId = Null,

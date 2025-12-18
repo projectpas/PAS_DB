@@ -28,7 +28,7 @@ BEGIN
 	SET NOCOUNT ON;  
 	BEGIN TRY  
 
-			SELECT [IntegrationEmailID] FROM IntegrationEmail WHERE [MasterCompanyId] = @MasterCompanyId AND [MessageId] = @MessaegId;
+			SELECT [IntegrationEmailID] FROM DBO.IntegrationEmail WITH(NOLOCK) WHERE [MasterCompanyId] = @MasterCompanyId AND [MessageId] = @MessaegId;
 
 	END TRY      
 	BEGIN CATCH        

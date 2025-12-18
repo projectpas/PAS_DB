@@ -19,6 +19,7 @@
 	3    05/12/2024   Abhishek Jirawla Adding cost, accumalated depreciation and net book value
 	4	 12/12/2024	  Abhishek Jirawla Change made for Asset Inventory Status and Asset Available Status
 	5    04-03-2025  Shrey Chandegara		Modified due to timezone issue ( Add @CurrntEmpTimeZoneDesc)
+	6    17-12-2025  Bhargav Saliya    Get Asset Status
      
 --  EXEC [GetAssetInventoryList] 
 **************************************************************/
@@ -64,7 +65,8 @@ CREATE   PROCEDURE [dbo].[GetAssetInventoryList]
 @StklineNumber varchar(50) = null,
 @ControlNumber varchar(50) = null,
 @EmployeeId bigint=1,
-@LastMSLevel varchar(50) = null 
+@LastMSLevel varchar(50) = null,
+@StatusOfAsset varchar(100) = null
 AS
 BEGIN
 
@@ -190,7 +192,11 @@ BEGIN
 								UPPER(awo.WorkOrderNum) AS WorkOrderNum,
 								ISNULL(SUM(ISNULL(asm.UnitCost, 0) + ISNULL(asm.Freight, 0) + ISNULL(asm.Insurance, 0) + ISNULL(asm.Taxes, 0) + ISNULL(asm.InstallationCost, 0)),0) AS cost,
 								ISNULL(ADH.AccumlatedDepr, 0) AS accumlatedDepreciation,
-								ISNULL(ADH.NetBookValue, ISNULL(SUM(ISNULL(asm.UnitCost, 0) + ISNULL(asm.Freight, 0) + ISNULL(asm.Insurance, 0) + ISNULL(asm.Taxes, 0) + ISNULL(asm.InstallationCost, 0)),0)) AS netBookValue
+								ISNULL(ADH.NetBookValue, ISNULL(SUM(ISNULL(asm.UnitCost, 0) + ISNULL(asm.Freight, 0) + ISNULL(asm.Insurance, 0) + ISNULL(asm.Taxes, 0) + ISNULL(asm.InstallationCost, 0)),0)) AS netBookValue,
+								CASE WHEN ISNULL(asm.IsActive, 0) = 1 THEN 'Active'
+									 WHEN NULLIF(UPPER(COALESCE(ins.[Status], ans.[Status])), 'UNAVAILABLE') IS NOT NULL THEN COALESCE(ins.[Status], ans.[Status])
+									 ELSE 'Inactive'
+								END AS StatusOfAsset
 							FROM [dbo].[AssetInventory] asm WITH(NOLOCK)
 								INNER JOIN [dbo].[Asset] AS ast WITH(NOLOCK) ON ast.AssetRecordId=asm.AssetRecordId
 								LEFT JOIN  [dbo].[CheckInCheckOutWorkOrderAsset] aci WITH(NOLOCK) ON aci.AssetInventoryId = asm.AssetInventoryId AND aci.InventoryStatusId = @AssetInventoryCheckInStatus
@@ -206,6 +212,8 @@ BEGIN
 								INNER JOIN #tmpAssetUserRole DR ON DR.ReferenceID = asm.AssetInventoryId
 								LEFT JOIN  [dbo].[AssetDepreciationHistory] ADH  WITH (NOLOCK) ON asm.AssetInventoryId = ADH.AssetInventoryId
 									AND ADH.ID = (SELECT MAX(ID) FROM AssetDepreciationHistory WHERE IsActive = 1 AND IsDelete = 0 AND AssetInventoryId = ADH.AssetInventoryId)
+								LEFT JOIN DBO.AssetInventoryStatus ins WITH (NOLOCK) ON asm.InventoryStatusId = ins.AssetInventoryStatusId
+								LEFT JOIN DBO.AssetAvailableStatus ans WITH (NOLOCK) ON asm.InventoryStatusId = ans.AssetAvailableStatusId
 							WHERE ((asm.IsDeleted = @IsDeleted) AND (@AssetInventoryIds IS NULL OR asm.AssetInventoryId IN (SELECT Item FROM DBO.SPLITSTRING(@AssetInventoryIds,',')))			     
 							                                    AND (asm.MasterCompanyId = @MasterCompanyId) 
 																AND (@IsActive IS NULL OR ISNULL(asm.IsActive,1) = @IsActive))
@@ -249,7 +257,9 @@ BEGIN
 								UPPER(asm.statusNote), 
 								UPPER(awo.WorkOrderNum),
 								ADH.AccumlatedDepr,
-								ADH.NetBookValue
+								ADH.NetBookValue,
+								ins.Status,
+								ans.Status
 					), ResultCount AS(SELECT COUNT(AssetInventoryId) AS totalItems FROM Result)
 					SELECT * INTO #TempResult from  Result
 					WHERE (
@@ -275,7 +285,8 @@ BEGIN
 								(DivName LIKE '%' +@GlobalFilter+'%') OR
 								(DeptName LIKE '%' +@GlobalFilter+'%') OR
 								(UpdatedBy LIKE '%' +@GlobalFilter+'%') OR
-								(LastMSLevel LIKE '%' +@GlobalFilter+'%')
+								(LastMSLevel LIKE '%' +@GlobalFilter+'%') OR
+								(StatusOfAsset LIKE '%' +@GlobalFilter+'%')
 								))
 							OR   
 							(@GlobalFilter='' AND (ISNULL(@AssetId,'') ='' OR AssetId LIKE '%' + @AssetId+'%') AND
@@ -306,7 +317,8 @@ BEGIN
 								(ISNULL(@UpdatedDate,'') ='' OR CAST(UpdatedDate AS DATE)=CAST(@UpdatedDate AS DATE)) AND
 								(ISNULL(@CreatedBy,'') ='' OR CreatedBy LIKE '%' + @CreatedBy+'%') AND
 								(ISNULL(@UpdatedBy,'') ='' OR UpdatedBy LIKE '%' + @UpdatedBy+'%') AND
-								(ISNULL(@LastMSLevel,'') ='' OR LastMSLevel LIKE '%' + @LastMSLevel+'%') 
+								(ISNULL(@LastMSLevel,'') ='' OR LastMSLevel LIKE '%' + @LastMSLevel+'%') AND
+								(ISNULL(@StatusOfAsset,'') ='' OR StatusOfAsset LIKE '%' + @StatusOfAsset+'%')
 								))
 						
 					SELECT @Count = COUNT(AssetInventoryId) from #TempResult			
@@ -333,6 +345,7 @@ BEGIN
 					CASE WHEN (@SortOrder=1 and @SortColumn='AccumlatedDepreciation')  THEN AccumlatedDepreciation END ASC,
 					CASE WHEN (@SortOrder=1 and @SortColumn='NetBookValue')  THEN NetBookValue END ASC,
 					CASE WHEN (@SortOrder=1 and @SortColumn='LastMSLevel')  THEN LastMSLevel END ASC,
+					CASE WHEN (@SortOrder=1 and @SortColumn='StatusOfAsset')  THEN StatusOfAsset END ASC,
 
 					CASE WHEN (@SortOrder=-1 and @SortColumn='ASSETID')  THEN AssetId END Desc,
 					CASE WHEN (@SortOrder=-1 and @SortColumn='ASSETNAME')  THEN Name END Desc,
@@ -354,7 +367,8 @@ BEGIN
 					CASE WHEN (@SortOrder=-1 and @SortColumn='Cost')  THEN Cost END DESC,
 					CASE WHEN (@SortOrder=-1 and @SortColumn='AccumlatedDepreciation')  THEN AccumlatedDepreciation END DESC,
 					CASE WHEN (@SortOrder=-1 and @SortColumn='NetBookValue')  THEN NetBookValue END DESC,
-					CASE WHEN (@SortOrder=-1 and @SortColumn='LastMSLevel')  THEN LastMSLevel END DESC
+					CASE WHEN (@SortOrder=-1 and @SortColumn='LastMSLevel')  THEN LastMSLevel END DESC,
+					CASE WHEN (@SortOrder=-1 and @SortColumn='StatusOfAsset')  THEN StatusOfAsset END DESC
 					OFFSET @RecordFrom ROWS 
 					FETCH NEXT @PageSize ROWS ONLY
 				--END

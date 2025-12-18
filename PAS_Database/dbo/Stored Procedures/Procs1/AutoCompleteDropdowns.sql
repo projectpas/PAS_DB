@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿
+/*************************************************************           
  ** File:   [AutoCompleteDropdowns]           
  ** Author:   Vishal Suthar
  ** Description: This stored procedure is used to search part
@@ -34,6 +35,7 @@
 	17   26/08/2025   Moin Bloch	    Modified (Added field IsPrintAdmin for Task Table)	
     18   25/11/2025   Ayushi Patel      Escaped table name in dynamic SQL (added [] around @TableName) to support reserved names like Percent.
     19   03/12/2025   Ayushi Patel      Removed brackets from @TableName to avoid double [[TableName]] in dynamic SQL.
+    10   16/12/2025   Ayushi Patel  	Return fields: SalesOrderQuote for SalesOrderQuote Table
 --select * from dbo.Employee      
 --EXEC AutoCompleteDropdowns 'Employee','EmployeeId','FirstName','sur',1,20,'108,109,11',1       
 **************************************************************/
@@ -197,6 +199,30 @@ AS BEGIN
                          ORDER BY IsCertifyingStaff DESC
                      END
             END
+            ELSE IF(@TableName='SalesOrderQuote')BEGIN
+                        IF(@Parameter4=1)BEGIN
+                                 SELECT DISTINCT SalesOrderQuoteId AS Value, SalesOrderQuoteNumber AS Label
+                                 FROM dbo.SalesOrderQuote WITH(NOLOCK)
+                                 WHERE MasterCompanyId=@MasterCompanyId AND(IsActive=1 AND ISNULL(IsDeleted, 0)=0 AND IsNewVersionCreated = 0 AND(SalesOrderQuoteNumber LIKE '%'+@Parameter3+'%'))
+                                 UNION
+                                 SELECT DISTINCT SalesOrderQuoteId AS Value, SalesOrderQuoteNumber AS Label
+                                 FROM dbo.SalesOrderQuote WITH(NOLOCK)
+                                 WHERE MasterCompanyId=@MasterCompanyId AND IsNewVersionCreated = 0 AND SalesOrderQuoteId IN(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') )
+                                 ORDER BY SalesOrderQuoteId DESC
+                        END
+                        ELSE BEGIN
+                                 SELECT DISTINCT SalesOrderQuoteId AS Value, SalesOrderQuoteNumber AS Label
+                                 FROM dbo.SalesOrderQuote WITH(NOLOCK)
+                                 WHERE MasterCompanyId=@MasterCompanyId AND(IsActive=1 AND ISNULL(IsDeleted, 0)=0 
+                                 AND IsNewVersionCreated = 0 AND(SalesOrderQuoteNumber LIKE '%'+@Parameter3+'%'))
+                                 UNION
+                                 SELECT DISTINCT SalesOrderQuoteId AS Value, SalesOrderQuoteNumber AS Label
+                                 FROM dbo.SalesOrderQuote WITH(NOLOCK)
+                                 WHERE MasterCompanyId=@MasterCompanyId AND IsNewVersionCreated = 0 
+                                 AND SalesOrderQuoteId IN(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') )
+                                 ORDER BY SalesOrderQuoteId DESC
+                            END
+                        END
             ELSE BEGIN
                      IF(@Parameter4=1)BEGIN
                          IF(@TableName='ItemMaster' AND ISNULL(@IsFromUpload,0) = 0)BEGIN
@@ -307,6 +333,16 @@ AS BEGIN
 								 FROM dbo.VendorAuditType VAT WITH(NOLOCK)
 							  WHERE VAT.MasterCompanyId=@MasterCompanyId AND VAT.IsActive = 1 AND VAT.IsDeleted = 0;
 						 END
+                         ELSE IF(@TableName='SalesOrderQuote')BEGIN
+                                 SELECT DISTINCT TOP 20 SalesOrderQuoteId AS Value, SalesOrderQuoteNumber AS Label
+                                 FROM dbo.SalesOrderQuote WITH(NOLOCK)
+                                 WHERE MasterCompanyId=@MasterCompanyId AND(IsActive=1 AND ISNULL(IsDeleted, 0)=0 AND IsNewVersionCreated = 0 AND(SalesOrderQuoteNumber LIKE '%'+@Parameter3+'%'))
+                                 UNION
+                                 SELECT DISTINCT SalesOrderQuoteId AS Value, SalesOrderQuoteNumber AS Label
+                                 FROM dbo.SalesOrderQuote WITH(NOLOCK)
+                                 WHERE MasterCompanyId=@MasterCompanyId AND IsNewVersionCreated = 0 AND SalesOrderQuoteId IN(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') )
+                                 ORDER BY SalesOrderQuoteId DESC
+                        END
                          ELSE BEGIN
                                   SET @Sql=N'INSERT INTO #TempTable (Value, Label, MasterCompanyId)   
            SELECT DISTINCT  CAST ( '+@Parameter1+' AS BIGINT) As Value,  
@@ -443,6 +479,16 @@ AS BEGIN
                      FROM dbo.Stockline WITH(NOLOCK)
                      WHERE MasterCompanyId=@MasterCompanyId AND StocklineId IN(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') ) GROUP BY StockLineNumber
             END
+            ELSE IF(@TableName='SalesOrderQuote')BEGIN
+                     SELECT DISTINCT TOP 20 SalesOrderQuoteId AS Value, SalesOrderQuoteNumber AS Label
+                     FROM dbo.SalesOrderQuote WITH(NOLOCK)
+                     WHERE MasterCompanyId=@MasterCompanyId AND(IsActive=1 AND ISNULL(IsDeleted, 0)=0 AND IsNewVersionCreated = 0 AND(SalesOrderQuoteNumber LIKE '%'+@Parameter3+'%'))
+                     UNION
+                     SELECT DISTINCT SalesOrderQuoteId AS Value, SalesOrderQuoteNumber AS Label
+                     FROM dbo.SalesOrderQuote WITH(NOLOCK)
+                     WHERE MasterCompanyId=@MasterCompanyId AND IsNewVersionCreated = 0 AND SalesOrderQuoteId IN(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') )
+                     ORDER BY SalesOrderQuoteId DESC
+            END
             ELSE BEGIN
                      IF(@Parameter4=1)BEGIN
                          IF(@TableName='ItemMaster' AND ISNULL(@IsFromUpload,0) = 0)BEGIN
@@ -528,6 +574,16 @@ AS BEGIN
 								 FROM dbo.VendorAuditType VAT WITH(NOLOCK)
 							  WHERE VAT.MasterCompanyId=@MasterCompanyId AND VAT.IsActive = 1 AND VAT.IsDeleted = 0;
 						 END
+                         ELSE IF(@TableName='SalesOrderQuote')BEGIN
+                                 SELECT DISTINCT TOP 20 SalesOrderQuoteId AS Value, SalesOrderQuoteNumber AS Label
+                                 FROM dbo.SalesOrderQuote WITH(NOLOCK)
+                                 WHERE MasterCompanyId=@MasterCompanyId AND(IsActive=1 AND ISNULL(IsDeleted, 0)=0 AND IsNewVersionCreated = 0 AND(SalesOrderQuoteNumber LIKE '%'+@Parameter3+'%'))
+                                 UNION
+                                 SELECT DISTINCT SalesOrderQuoteId AS Value, SalesOrderQuoteNumber AS Label
+                                 FROM dbo.SalesOrderQuote WITH(NOLOCK)
+                                 WHERE MasterCompanyId=@MasterCompanyId AND IsNewVersionCreated = 0 AND SalesOrderQuoteId IN(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') )
+                                 ORDER BY SalesOrderQuoteId DESC
+                        END
                          ELSE BEGIN
                                   SET @Sql=N'INSERT INTO #TempTable (Value, Label, MasterCompanyId)   
              SELECT DISTINCT TOP '+@Count+' CAST ( '+@Parameter1+' AS BIGINT) As Value,  

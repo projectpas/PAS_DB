@@ -4392,6 +4392,7 @@
     <Build Include="dbo\Tables\RFQFollowUpTemplateAudit.sql" />
     <Build Include="dbo\Views\vw_RFQFollowUpTemplateAudit.sql" />
     <Build Include="dbo\Views\vw_RFQFollowUpTemplate.sql" />
+    <Build Include="dbo\Stored Procedures\USP_UpdateSOQInPOAndRFQParts.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

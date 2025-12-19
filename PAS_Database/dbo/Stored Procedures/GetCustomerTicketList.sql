@@ -17,6 +17,7 @@
     4    07/11/2025  Bhargav Saliya     Fixed Filters issues For Super Admin Role
     5    21/11/2025  Bhargav Saliya     get Tickettype with Filter
     6    16/12/2025  Bhargav Saliya     Fixed Status Filter
+    7    19/12/2025  Bhargav Saliya     Get New Field DaysSinceOpen
 
 exec GetCustomerTicketList @PageNumber=1,@PageSize=10,@SortColumn=NULL,@SortOrder=-1,
 @GlobalFilter=N'',@TicketId=NULL,@Subject=NULL,@StatusDescription=NULL,@AssignTo=NULL,
@@ -47,7 +48,8 @@ CREATE   PROCEDURE [dbo].[GetCustomerTicketList]
 @CompanyName VARCHAR(500) = NULL,
 @UserEmployeeId BIGINT = NULL,
 @TicketType VARCHAR(100) = NULL,
-@Priority VARCHAR(100) = NULL
+@Priority VARCHAR(100) = NULL,
+@DaysSinceOpen VARCHAR(100) = NULL
 AS 
 BEGIN
 	SET NOCOUNT ON;  
@@ -132,7 +134,8 @@ BEGIN
 				TS.Description AS 'StatusDescription',
 				TP.PriorityId,
 				TP.Description AS 'Priority',
-				tt.Description as 'TicketType'
+				tt.Description as 'TicketType',
+				'Opened ' + CAST(DATEDIFF(DAY,CAST(DBO.ConvertUTCtoLocal(CT.[CreatedDate], @CurrntEmpTimeZoneDesc) AS DATE),CAST(DBO.ConvertUTCtoLocal(GETUTCDATE(), @CurrntEmpTimeZoneDesc) AS DATE)) AS VARCHAR(10)) + ' Days Ago' AS DaysSinceOpen
 			FROM [dbo].[CustomerTicket] CT WITH (NOLOCK)
 			LEFT JOIN [dbo].[MasterCompany] MS WITH (NOLOCK) ON CT.MasterCompanyId = MS.MasterCompanyId
 			LEFT JOIN [dbo].[SupportDepartment] SD WITH (NOLOCK) ON CT.DepartmentId = SD.DepartmentId
@@ -171,7 +174,8 @@ BEGIN
 				(ISNULL(@CreatedDate,'') = '' OR CAST(CreatedDate AS DATE)=CAST(@CreatedDate AS DATE)) AND
 				(ISNULL(@UpdatedDate,'') = '' OR CAST(UpdatedDate AS DATE)=CAST(@UpdatedDate AS DATE)) AND
 				(ISNULL(@TicketType,'') = '' OR TicketType LIKE '%' + @TicketType + '%') AND
-				(ISNULL(@Priority,'') = '' OR Priority LIKE '%' + @Priority + '%'))
+				(ISNULL(@Priority,'') = '' OR Priority LIKE '%' + @Priority + '%') and
+				(ISNULL(@DaysSinceOpen,'') = '' OR DaysSinceOpen LIKE '%' + @DaysSinceOpen + '%'))
 			)
 
 			SELECT @Count = COUNT(CustomerTicketId) FROM #TempResult			
@@ -197,7 +201,9 @@ BEGIN
 			CASE WHEN (@SortOrder=1  AND @SortColumn='TicketType')  THEN TicketType END ASC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='TicketType')  THEN TicketType END DESC,
 			CASE WHEN (@SortOrder=1  AND @SortColumn='Priority')  THEN Priority END ASC,
-			CASE WHEN (@SortOrder=-1 AND @SortColumn='Priority')  THEN Priority END DESC
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='Priority')  THEN Priority END DESC,
+			CASE WHEN (@SortOrder=1  AND @SortColumn='DaysSinceOpen')  THEN DaysSinceOpen END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='DaysSinceOpen')  THEN DaysSinceOpen END DESC
 
 			OFFSET @RecordFrom ROWS 
 			FETCH NEXT @PageSize ROWS ONLY

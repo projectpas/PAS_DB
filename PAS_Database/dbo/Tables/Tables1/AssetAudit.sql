@@ -14,7 +14,7 @@
     [IsSerialized]                    BIT             NULL,
     [UnitOfMeasureId]                 BIGINT          NULL,
     [CurrencyId]                      INT             NULL,
-    [UnitCost]                        DECIMAL (18, 2) NULL,
+    [UnitCost]                        DECIMAL (18, 6) NULL,
     [ExpirationDate]                  DATETIME2 (7)   NULL,
     [Memo]                            NVARCHAR (MAX)  NULL,
     [TangibleClassId]                 BIGINT          NULL,

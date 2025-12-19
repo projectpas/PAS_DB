@@ -13,10 +13,10 @@
  ** S NO   Date            Author          Change Description              
  ** --   --------         -------          --------------------------------            
     1    31-10-2025    Sahdev Saliya       Created  
-
+	2    10 DEc @025   Rajesh Gami		   Return DecimalPlaces from UnitOfMeasure
 	exec [dbo].[USP_GetCommonForStocklineByItemMasterId]
 **************************************************************/
-CREATE   PROCEDURE [DBO].[USP_GetCommonForStocklineByItemMasterId]
+CREATE   PROCEDURE [dbo].[USP_GetCommonForStocklineByItemMasterId]
     @ItemMasterId BIGINT = NULL
 
 AS
@@ -30,11 +30,11 @@ BEGIN
 			iM.PartNumber,
 			iM.PartDescription,
 			iM.RevisedPartId,
-			imxl.ExchangeCoreCost AS CoreUnitCost,
+			ROUND(imxl.ExchangeCoreCost,2) AS CoreUnitCost,
 			iM.ItemMasterAssetTypeId AS AcquistionTypeId,
-			imps.SP_CalSPByPP_UnitSalePrice AS UnitSalesPrice,
+			ROUND(imps.SP_CalSPByPP_UnitSalePrice,2) AS UnitSalesPrice,
 			imps.ConditionId,
-			imps.PP_UnitPurchasePrice AS POUnitCost,
+			ROUND(imps.PP_UnitPurchasePrice,2) AS POUnitCost,
 			rPart.PartNumber AS RevisedPart,
 			iM.ItemGroup,
 			iM.ItemMasterAssetTypeId,
@@ -76,19 +76,23 @@ BEGIN
 			iM.IsTimeLife,
 			iM.IsActive,
 			iM.ManufacturerId,
-			iM.PurchaseUnitOfMeasureId,
+			ISNULL(iM.PurchaseUnitOfMeasureId,0) PurchaseUnitOfMeasureId,
 			iM.IsExpirationDateAvailable,
 			iM.IsReceivedDateAvailable,
 			iM.IsTagDateAvailable,
 			iM.InventoryGLSettingId,
-			iM.ItemClassificationName AS Classification
-
+			iM.ItemClassificationName AS Classification	,
+			ISNULL(uom.Class,'Decimal') as Class,
+			ISNULL(uom.DecimalPlaces,2) as DecimalPlaces,
+			ISNULL(iM.StockUnitOfMeasureId,0) StockUnitOfMeasureId,
+			ISNULL(iM.ConsumeUnitOfMeasureId,0) ConsumeUnitOfMeasureId
     FROM [DBO].[ItemMaster] iM WITH (NOLOCK)
         LEFT JOIN [DBO].[ItemMaster] rPart WITH (NOLOCK) ON iM.RevisedPartId = rPart.ItemMasterId
         LEFT JOIN [DBO].[ItemMasterExchangeLoan] imxl WITH (NOLOCK) ON iM.ItemMasterId = imxl.ItemMasterId
         LEFT JOIN [DBO].[ItemMasterPurchaseSale] imps WITH (NOLOCK) ON iM.ItemMasterId = imps.ItemMasterId
         LEFT JOIN [DBO].[ItemMasterExportInfo] imx WITH (NOLOCK) ON iM.ItemMasterId = imx.ItemMasterId
-        LEFT JOIN [DBO].[GLAccount] gl WITH (NOLOCK) ON iM.GLAccountId = gl.GLAccountId
+		LEFT JOIN [DBO].[GLAccount] gl WITH (NOLOCK) ON iM.GLAccountId = gl.GLAccountId
+        LEFT JOIN DBO.UnitOfMeasure uom WITH (NOLOCK) ON iM.PurchaseUnitOfMeasureId = uom.UnitOfMeasureId
     WHERE iM.ItemMasterId = @ItemMasterId;
     END TRY 
 

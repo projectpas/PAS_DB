@@ -1,4 +1,5 @@
-﻿/*********************************************************************************************           
+﻿
+/*********************************************************************************************           
  ** File:   [GetStockLineDetails]           
  ** Author:  MOIN BLOCH
  ** Description: This stored procedure is used GET Stockline Details By StockLineId
@@ -24,7 +25,7 @@
 	8    24/09/2025  Sahdev Saliya    Added Classification
 	7    27/11/2025  Bhargav Saliya	  Modified(Get GL accound code and name from the GLAcount Table).
 	8    02/12/2025  Bhargav Saliya	  Revert Changes.
-
+	9    10 DEc @025   Rajesh Gami		   Return DecimalPlaces from UnitOfMeasure, ConsumeUnitOfMeasureId
     EXEC dbo.GetStockLineDetails  179632  180170
 ***********************************************************************************************/
 
@@ -121,15 +122,15 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
               ,stl.[CalibrationMemo]
               ,stl.[OrderDate]
 			  ,ISNULL(po.[PurchaseOrderNumber], '') 'PurchaseOrderNumber'
-              ,ISNULL(stl.[PurchaseOrderUnitCost],0) 'PurchaseOrderUnitCost'
+              ,ROUND(ISNULL(stl.[PurchaseOrderUnitCost],0),2) 'PurchaseOrderUnitCost'
               ,ISNULL(ro.[RepairOrderNumber], '') 'RepairOrderNumber'
-			  ,ISNULL(stl.[RepairOrderUnitCost],0)  'RepairOrderUnitCost'
-              ,ISNULL(stl.[InventoryUnitCost],0) 'InventoryUnitCost'
+			  ,ROUND(ISNULL(stl.[RepairOrderUnitCost],0),2)  'RepairOrderUnitCost'
+              ,ROUND(ISNULL(stl.[InventoryUnitCost],0),2) 'InventoryUnitCost'
               ,stl.[ReceivedDate]
               ,stl.[ReconciliationNumber]
-              ,ISNULL(stl.[UnitSalesPrice],0) 'UnitSalesPrice'
+              ,ROUND(ISNULL(stl.[UnitSalesPrice],0),2) 'UnitSalesPrice'
               ,stl.[SalesPriceExpiryDate]
-              ,ISNULL(stl.[CoreUnitCost],0) 'CoreUnitCost'
+              ,ROUND(ISNULL(stl.[CoreUnitCost],0),2) 'CoreUnitCost'
               ,stl.[GLAccountId]
               ,stl.[AssetId]
               ,stl.[IsPMA]
@@ -153,7 +154,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 			  ,stl.[Condition] 'conditionType'
 			  ,im.[ItemTypeId]
 			  ,CASE WHEN stl.[PurchaseUnitOfMeasureId] > 0 then stl.[PurchaseUnitOfMeasureId] ELSE im.[PurchaseUnitOfMeasureId] END 'PurchaseUnitOfMeasureId'
-			  ,stl.[UnitOfMeasure]
+			  ,uom.ShortName as [UnitOfMeasure]	
               ,stl.[Manufacturer]
 			  ,'' [Code]        
               ,stl.[CreatedBy]
@@ -171,12 +172,12 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
               ,ISNULL(stl.[IsSerialized],0) IsSerialized
               ,stl.[WorkOrderId]
               ,stl.[PurchaseOrderPartRecordId]
-              ,stl.[PurchaseOrderExtendedCost]
+              ,ROUND(stl.[PurchaseOrderExtendedCost],2) PurchaseOrderExtendedCost
               ,stl.[ShippingViaId]
               ,stl.[RepairOrderPartRecordId]
-              ,ISNULL(stl.[WorkOrderExtendedCost],0) WorkOrderExtendedCost
+              ,ROUND(ISNULL(stl.[WorkOrderExtendedCost],0),2) WorkOrderExtendedCost
               ,NULL  'PurchaseOrderPartRecord'
-			  ,ISNULL(stl.[RepairOrderExtendedCost],0) RepairOrderExtendedCost
+			  ,ROUND(ISNULL(stl.[RepairOrderExtendedCost],0),2) RepairOrderExtendedCost
               ,ISNULL(stl.[IsHazardousMaterial],0) IsHazardousMaterial
               ,ISNULL(stl.[QuantityToReceive],0) QuantityToReceive
               ,stl.[ManufacturingTrace]
@@ -185,7 +186,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
               ,stl.[ShippingReference]
               ,im.[NationalStockNumber]
               ,stl.[EntryDate]
-              ,ISNULL(stl.[LotCost],0) LotCost
+              ,ROUND(ISNULL(stl.[LotCost],0),2) LotCost
               ,stl.[CustomerId]
               ,stl.[ExistingCustomerId]
 			  ,stl.[ExistingCustomer] 'ExistingCustomerName'
@@ -289,9 +290,9 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
               ,stl.[SubWorkOrderId]
               ,stl.[SubWorkOrderNumber]
 			  ,ISNULL(stl.[IsManualEntry], 0) AS IsManualEntry
-              ,ISNULL(stl.[Adjustment], 0) AS Adjustment
-              ,ISNULL(stl.[FreightAdjustment], 0) AS FreightAdjustment
-              ,ISNULL(stl.[TaxAdjustment], 0) AS TaxAdjustment
+              ,ROUND(ISNULL(stl.[Adjustment], 0),2) AS Adjustment
+              ,ROUND(ISNULL(stl.[FreightAdjustment], 0),2) AS FreightAdjustment
+              ,ROUND(ISNULL(stl.[TaxAdjustment], 0),2) AS TaxAdjustment
 			  ,'' AS TaxAdjustmentAmounts
 			  ,ISNULL(stl.[IsStkTimeLife], im.[IsTimeLife]) AS isTimeLife
 			  ,CASE WHEN stl.[IsSerialized] = 1 AND (stl.[SerialNumber] IS NULL OR stl.[SerialNumber] = '') THEN 1 ELSE 0 END AS IsSkipSerialNo
@@ -333,7 +334,14 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 			,ISNULL(stl.IsRepairManagement, 0) IsRepairManagement
 			,ISNULL(stl.[IsBatchStock],0) IsBatchStock
 			,stl.[BatchNumber]
-			,im.ItemClassificationName AS Classification
+			,im.ItemClassificationName AS Classification,
+			ISNULL(uom.Class,'Decimal')Class,
+			ISNULL(uom.DecimalPlaces,2) DecimalPlaces,
+    		CASE WHEN stl.StockUnitOfMeasureId > 0 then stl.StockUnitOfMeasureId ELSE im.StockUnitOfMeasureId END 'StockUnitOfMeasureId',
+			CASE WHEN stl.ConsumeUnitOfMeasureId > 0 then stl.ConsumeUnitOfMeasureId ELSE im.ConsumeUnitOfMeasureId END 'ConsumeUnitOfMeasureId',
+			uomConsume.ShortName as ConsumeUnitOfMeasure,
+			uomStock.ShortName as StockUnitOfMeasure,
+			ISNULL(stl.[PoPartUnitCost],0)PoPartUnitCost
 		FROM [dbo].[StockLine] stl WITH(NOLOCK)
 		INNER JOIN [dbo].[ItemMaster] im WITH(NOLOCK) ON stl.[ItemMasterId] = im.[ItemMasterId]
 		INNER JOIN [dbo].[StocklineManagementStructureDetails] msd WITH(NOLOCK) ON stl.[StockLineId] = msd.[ReferenceID] AND msd.[ModuleID] = @StocklineMSModuleId 
@@ -376,6 +384,9 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 		 LEFT JOIN [dbo].[Customer] CUSTOBF  WITH (NOLOCK) ON CUSTOBF.[CustomerId] = stl.[ObtainFrom]     
          LEFT JOIN [dbo].[Vendor] VENOBF  WITH (NOLOCK) ON VENOBF.[VendorId] = stl.[ObtainFrom] 
          LEFT JOIN [dbo].[LegalEntity] COMOBF  WITH (NOLOCK) ON COMOBF.[LegalEntityId] = stl.[ObtainFrom]
+		 LEFT JOIN DBO.UnitOfMeasure uom WITH (NOLOCK) ON stl.PurchaseUnitOfMeasureId = uom.UnitOfMeasureId
+		 LEFT JOIN DBO.UnitOfMeasure uomStock WITH (NOLOCK) ON stl.StockUnitOfMeasureId = uomStock.UnitOfMeasureId
+		 LEFT JOIN DBO.UnitOfMeasure uomConsume WITH (NOLOCK) ON stl.ConsumeUnitOfMeasureId = uomConsume.UnitOfMeasureId
 		WHERE stl.[IsDeleted] = 0 AND stl.[StockLineId] = @StockLineId
 
 	END TRY    

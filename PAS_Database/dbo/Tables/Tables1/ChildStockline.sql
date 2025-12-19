@@ -6,7 +6,7 @@
     [StocklineMatchKey]                   VARCHAR (100)   NULL,
     [ControlNumber]                       VARCHAR (50)    NULL,
     [ItemMasterId]                        BIGINT          NULL,
-    [Quantity]                            INT             NULL,
+    [Quantity]                            DECIMAL (18, 6) NULL,
     [ConditionId]                         BIGINT          NOT NULL,
     [SerialNumber]                        VARCHAR (30)    NULL,
     [ShelfLife]                           BIT             NULL,
@@ -70,7 +70,7 @@
     [AircraftTailNumber]                  NVARCHAR (200)  NULL,
     [ShippingViaId]                       BIGINT          NULL,
     [EngineSerialNumber]                  NVARCHAR (200)  NULL,
-    [QuantityRejected]                    INT             NOT NULL,
+    [QuantityRejected]                    DECIMAL (18, 6) NULL,
     [PurchaseOrderPartRecordId]           BIGINT          NULL,
     [ShippingAccount]                     NVARCHAR (200)  NULL,
     [ShippingReference]                   NVARCHAR (200)  NULL,
@@ -78,12 +78,12 @@
     [TimeLifeDetailsNotProvided]          BIT             NOT NULL,
     [WorkOrderId]                         BIGINT          NULL,
     [WorkOrderMaterialsId]                BIGINT          NULL,
-    [QuantityReserved]                    INT             NULL,
-    [QuantityTurnIn]                      INT             NULL,
-    [QuantityIssued]                      INT             NULL,
-    [QuantityOnHand]                      INT             NOT NULL,
-    [QuantityAvailable]                   INT             NULL,
-    [QuantityOnOrder]                     INT             NULL,
+    [QuantityReserved]                    DECIMAL (18, 6) NULL,
+    [QuantityTurnIn]                      DECIMAL (18, 6) NULL,
+    [QuantityIssued]                      DECIMAL (18, 6) NULL,
+    [QuantityOnHand]                      DECIMAL (18, 6) NULL,
+    [QuantityAvailable]                   DECIMAL (18, 6) NULL,
+    [QuantityOnOrder]                     DECIMAL (18, 6) NULL,
     [QtyReserved]                         INT             NULL,
     [QtyIssued]                           INT             NULL,
     [BlackListed]                         BIT             NOT NULL,
@@ -168,7 +168,7 @@
     [TagDays]                             INT             NULL,
     [OpenDays]                            INT             NULL,
     [ExchangeSalesOrderId]                BIGINT          NULL,
-    [RRQty]                               INT             NOT NULL,
+    [RRQty]                               DECIMAL (18, 6) NULL,
     [SubWorkOrderNumber]                  VARCHAR (50)    NULL,
     [IsManualEntry]                       BIT             NULL,
     [WorkOrderMaterialsKitId]             BIGINT          NULL,
@@ -191,8 +191,4 @@
     [SalesPriceExpiryDate]                DATETIME2 (7)   NULL,
     CONSTRAINT [PK_ChildStockline] PRIMARY KEY CLUSTERED ([ChildStockLineId] ASC)
 );
-
-
-
-
 

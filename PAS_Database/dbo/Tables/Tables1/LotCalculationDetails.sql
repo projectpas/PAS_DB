@@ -9,7 +9,7 @@
     [RepairCost]               DECIMAL (18, 2) NULL,
     [AdjustedLotCost]          DECIMAL (18, 2) NULL,
     [RepCost]                  DECIMAL (18, 2) NULL,
-    [Qty]                      INT             NULL,
+    [Qty]                      DECIMAL (18, 6) NULL,
     [TransferredInCost]        DECIMAL (18, 2) NULL,
     [TransferredOutCost]       DECIMAL (18, 2) NULL,
     [RemainingCost]            DECIMAL (18, 2) NULL,

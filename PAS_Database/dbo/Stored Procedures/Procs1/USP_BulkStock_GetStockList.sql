@@ -1,4 +1,6 @@
-﻿/*******           
+﻿
+
+/*******           
  ** File:   [USP_BulkStock_GetStockList]           
  ** Author: AMIT GHEDIYA
  ** Description: This stored procedure is used to Get Stock Listing 
@@ -15,6 +17,7 @@
 	3    30/10/2023			AMIT GHEDIYA			Get Serialized data when Qty,UnitCost,IntraCompany,InterComapny wise filter list.
 	4    06/10/2023         BHARGAV SALIYA          Get Customer Stock Data When isCustomerStock = 1 and Customer wise filter List
 	5    15/12/2023         BHARGAV SALIYA          ADD ONE Condition to get Customer Stock Data when [QuantityAvailable] > 0
+	6    12 DEc 2025		Rajesh Gami				Return DecimalPlaces from UnitOfMeasure
 *********
 *********/
 CREATE      PROCEDURE [dbo].[USP_BulkStock_GetStockList] 
@@ -72,14 +75,18 @@ BEGIN
 					   SL.[ControlNumber],
 					   SL.[IdNumber],
 					   SL.[QuantityAvailable],
-					   SL.[UnitCost],
+					   ROUND(SL.[UnitCost],2) UnitCost,
 					   SL.[ManagementStructureId],
 					   SL.[StockLineId],
 					   SL.[isSerialized],
-					   0 AS [IsSelected]
+					   SL.CreatedDate,
+					   0 AS [IsSelected],
+					   ISNULL(uom.Class,'Decimal')Class,
+					   ISNULL(uom.DecimalPlaces,2) DecimalPlaces
 					FROM [dbo].[Stockline] SL WITH (NOLOCK)
 						INNER JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON SL.[ItemMasterId] = IM.[ItemMasterId]
 						LEFT JOIN [dbo].[Manufacturer] MF WITH (NOLOCK) ON SL.[ManufacturerId] = MF.[ManufacturerId]
+						LEFT JOIN DBO.UnitOfMeasure uom WITH (NOLOCK) ON SL.StockUnitOfMeasureId = uom.UnitOfMeasureId
 					WHERE ISNULL(SL.[IsDeleted],0) = 0 AND ISNULL(SL.[IsActive],1) = 1 
 					AND SL.[MasterCompanyId] = @MasterCompanyId AND SL.[IsParent] = 1
 					AND SL.[QuantityOnHand] > 0 AND SL.[QuantityAvailable] > 0
@@ -113,7 +120,7 @@ BEGIN
 
 			SELECT @Count = COUNT([StockLineId]) FROM #TempResult
 
-			SELECT @Count AS NumberOfItems, [StockLineId],[isSerialized],[ItemMasterId],[PartNumber],[PartDescription],[Manufacturer],[Condition],[SerialNumber],[QuantityAvailable],[UnitCost],[StockLineNumber],[IdNumber],[ControlNumber],[IsSelected], @Count AS NumberOfItems FROM #TempResult
+			SELECT @Count AS NumberOfItems, [StockLineId],[isSerialized],CreatedDate,[ItemMasterId],[PartNumber],[PartDescription],[Manufacturer],[Condition],[SerialNumber],[QuantityAvailable],[UnitCost],[StockLineNumber],[IdNumber],[ControlNumber],[IsSelected], @Count AS NumberOfItems,Class,DecimalPlaces  FROM #TempResult
 			ORDER BY  
 			CASE WHEN (@SortOrder = 1  AND @SortColumn='PartNumber') THEN PartNumber END ASC,
 			CASE WHEN (@SortOrder = -1 AND @SortColumn='PartNumber') THEN PartNumber END DESC,
@@ -133,6 +140,7 @@ BEGIN
 			CASE WHEN (@SortOrder = -1 AND @SortColumn='UnitCost') THEN UnitCost END DESC,
 			CASE WHEN (@SortOrder = 1  AND @SortColumn='SerialNumber') THEN SerialNumber END ASC,
 			CASE WHEN (@SortOrder = -1 AND @SortColumn='SerialNumber') THEN SerialNumber END DESC,
+				CASE WHEN (@SortOrder = -1 AND @SortColumn='CreatedDate') THEN CreatedDate END DESC,
 			CASE WHEN (@SortOrder = 1  AND @SortColumn='StockLineNumber') THEN StockLineNumber END ASC,
 			CASE WHEN (@SortOrder = -1 AND @SortColumn='StockLineNumber') THEN StockLineNumber END DESC	
 		OFFSET @RecordFrom ROWS 
@@ -151,14 +159,17 @@ BEGIN
 					   SL.[ControlNumber],
 					   SL.[IdNumber],
 					   SL.[QuantityAvailable],
-					   SL.[UnitCost],
+					  ROUND(SL.[UnitCost],2) UnitCost,
 					   SL.[ManagementStructureId],
 					   SL.[StockLineId],
-					   SL.[isSerialized],
-					   0 AS [IsSelected]
+					   SL.[isSerialized],SL.CreatedDate,
+					   0 AS [IsSelected],
+					   ISNULL(uom.Class,'Decimal')Class,
+					   ISNULL(uom.DecimalPlaces,2) DecimalPlaces
 					FROM [dbo].[Stockline] SL WITH (NOLOCK)
 						INNER JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON SL.[ItemMasterId] = IM.[ItemMasterId]
 						LEFT JOIN [dbo].[Manufacturer] MF WITH (NOLOCK) ON SL.[ManufacturerId] = MF.[ManufacturerId]
+						LEFT JOIN DBO.UnitOfMeasure uom WITH (NOLOCK) ON SL.StockUnitOfMeasureId = uom.UnitOfMeasureId
 					WHERE ISNULL(SL.[IsDeleted],0) = 0 AND ISNULL(SL.[IsActive],1) = 1 
 					AND SL.[MasterCompanyId] = @MasterCompanyId AND SL.[IsParent] = 1
 					AND SL.[QuantityOnHand] > 0 AND SL.[QuantityAvailable] > 0
@@ -192,7 +203,7 @@ BEGIN
 
 			SELECT @Count = COUNT([StockLineId]) FROM #TempUnitResult
 
-			SELECT @Count AS NumberOfItems, [StockLineId],[isSerialized],[ItemMasterId],[PartNumber],[PartDescription],[Manufacturer],[Condition],[SerialNumber],[QuantityAvailable],[UnitCost],[StockLineNumber],[IdNumber],[ControlNumber],[IsSelected], @Count AS NumberOfItems FROM #TempUnitResult
+			SELECT @Count AS NumberOfItems, [StockLineId],[isSerialized],CreatedDate,[ItemMasterId],[PartNumber],[PartDescription],[Manufacturer],[Condition],[SerialNumber],[QuantityAvailable],[UnitCost],[StockLineNumber],[IdNumber],[ControlNumber],[IsSelected], @Count AS NumberOfItems,Class,DecimalPlaces  FROM #TempUnitResult
 			ORDER BY  
 				CASE WHEN (@SortOrder = 1  AND @SortColumn='PartNumber') THEN PartNumber END ASC,
 				CASE WHEN (@SortOrder = -1 AND @SortColumn='PartNumber') THEN PartNumber END DESC,
@@ -212,6 +223,7 @@ BEGIN
 				CASE WHEN (@SortOrder = -1 AND @SortColumn='UnitCost') THEN UnitCost END DESC,
 				CASE WHEN (@SortOrder = 1  AND @SortColumn='SerialNumber') THEN SerialNumber END ASC,
 				CASE WHEN (@SortOrder = -1 AND @SortColumn='SerialNumber') THEN SerialNumber END DESC,
+				CASE WHEN (@SortOrder = -1 AND @SortColumn='CreatedDate') THEN CreatedDate END DESC,
 				CASE WHEN (@SortOrder = 1  AND @SortColumn='StockLineNumber') THEN StockLineNumber END ASC,
 				CASE WHEN (@SortOrder = -1 AND @SortColumn='StockLineNumber') THEN StockLineNumber END DESC	
 			OFFSET @RecordFrom ROWS 
@@ -230,14 +242,18 @@ BEGIN
 					   SL.[ControlNumber],
 					   SL.[IdNumber],
 					   SL.[QuantityAvailable],
-					   SL.[UnitCost],
+					   ROUND(SL.[UnitCost],2) UnitCost,
 					   SL.[ManagementStructureId],
 					   SL.[StockLineId],
 					   SL.[isSerialized],
-					   0 AS [IsSelected]
+					   SL.CreatedDate,
+					   0 AS [IsSelected],
+					   ISNULL(uom.Class,'Decimal')Class,
+					   ISNULL(uom.DecimalPlaces,2) DecimalPlaces
 					FROM [dbo].[Stockline] SL WITH (NOLOCK)
 						INNER JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON SL.[ItemMasterId] = IM.[ItemMasterId]
 						LEFT JOIN [dbo].[Manufacturer] MF WITH (NOLOCK) ON SL.[ManufacturerId] = MF.[ManufacturerId]
+						LEFT JOIN DBO.UnitOfMeasure uom WITH (NOLOCK) ON SL.StockUnitOfMeasureId = uom.UnitOfMeasureId
 					WHERE ISNULL(SL.[IsDeleted],0) = 0 AND ISNULL(SL.[IsActive],1) = 1 
 					AND SL.[MasterCompanyId] = @MasterCompanyId AND SL.[IsParent] = 1
 					AND SL.[QuantityOnHand] > 0 AND SL.[QuantityAvailable] > 0
@@ -272,7 +288,7 @@ BEGIN
 
 			SELECT @Count = COUNT([StockLineId]) FROM #TempIntraInterResult
 
-			SELECT @Count AS NumberOfItems, [StockLineId],[isSerialized],[ItemMasterId],[PartNumber],[PartDescription],[Manufacturer],[Condition],[SerialNumber],[QuantityAvailable],[UnitCost],[StockLineNumber],[IdNumber],[ControlNumber],[IsSelected], @Count AS NumberOfItems FROM #TempIntraInterResult
+			SELECT @Count AS NumberOfItems, [StockLineId],[isSerialized],CreatedDate,[ItemMasterId],[PartNumber],[PartDescription],[Manufacturer],[Condition],[SerialNumber],[QuantityAvailable],[UnitCost],[StockLineNumber],[IdNumber],[ControlNumber],[IsSelected], @Count AS NumberOfItems,Class,DecimalPlaces  FROM #TempIntraInterResult
 			ORDER BY  
 				CASE WHEN (@SortOrder = 1  AND @SortColumn='PartNumber') THEN PartNumber END ASC,
 				CASE WHEN (@SortOrder = -1 AND @SortColumn='PartNumber') THEN PartNumber END DESC,
@@ -292,6 +308,7 @@ BEGIN
 				CASE WHEN (@SortOrder = -1 AND @SortColumn='UnitCost') THEN UnitCost END DESC,
 				CASE WHEN (@SortOrder = 1  AND @SortColumn='SerialNumber') THEN SerialNumber END ASC,
 				CASE WHEN (@SortOrder = -1 AND @SortColumn='SerialNumber') THEN SerialNumber END DESC,
+				CASE WHEN (@SortOrder = -1 AND @SortColumn='CreatedDate') THEN CreatedDate END DESC,
 				CASE WHEN (@SortOrder = 1  AND @SortColumn='StockLineNumber') THEN StockLineNumber END ASC,
 				CASE WHEN (@SortOrder = -1 AND @SortColumn='StockLineNumber') THEN StockLineNumber END DESC	
 			OFFSET @RecordFrom ROWS 
@@ -313,12 +330,16 @@ BEGIN
 					   SL.[UnitOfMeasure],
 					   SL.[QuantityOnHand],
 					   SL.[QuantityAvailable],
-					   SL.[UnitCost],
+					   ROUND(SL.[UnitCost],2) UnitCost,
 					   SL.[ManagementStructureId],
 					   SL.[StockLineId],
 					   SL.[IsCustomerStock],
-					   0 AS [IsSelected]
+					   SL.CreatedDate,
+					   0 AS [IsSelected],
+					   ISNULL(uom.Class,'Decimal')Class,
+					   ISNULL(uom.DecimalPlaces,2) DecimalPlaces
 					FROM [dbo].[Stockline] SL WITH (NOLOCK)
+						LEFT JOIN DBO.UnitOfMeasure uom WITH (NOLOCK) ON SL.StockUnitOfMeasureId = uom.UnitOfMeasureId
 						--INNER JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON SL.[ItemMasterId] = IM.[ItemMasterId]
 						--LEFT JOIN [dbo].[Manufacturer] MF WITH (NOLOCK) ON SL.[ManufacturerId] = MF.[ManufacturerId]
 						--LEFT JOIN [dbo].[Customer] C WITH (NOLOCK) ON SL.[CustomerId] = C.[CustomerId]
@@ -357,7 +378,7 @@ BEGIN
 
 			SELECT @Count = COUNT([StockLineId]) FROM #TempCustStockResult
 
-			SELECT @Count AS NumberOfItems, [StockLineId],[IsCustomerStock],[ItemMasterId],[PartNumber],[PartDescription],[Manufacturer],[Condition],[SerialNumber],[QuantityAvailable],[UnitCost],[StockLineNumber],[UnitOfMeasure],[QuantityOnHand],[IsSelected], @Count AS NumberOfItems FROM #TempCustStockResult
+			SELECT @Count AS NumberOfItems, [StockLineId],[IsCustomerStock],CreatedDate,[ItemMasterId],[PartNumber],[PartDescription],[Manufacturer],[Condition],[SerialNumber],[QuantityAvailable],[UnitCost],[StockLineNumber],[UnitOfMeasure],[QuantityOnHand],[IsSelected], @Count AS NumberOfItems ,Class,DecimalPlaces FROM #TempCustStockResult
 			ORDER BY  
 				CASE WHEN (@SortOrder = 1  AND @SortColumn='PartNumber') THEN PartNumber END ASC,
 				CASE WHEN (@SortOrder = -1 AND @SortColumn='PartNumber') THEN PartNumber END DESC,
@@ -377,6 +398,7 @@ BEGIN
 				CASE WHEN (@SortOrder = -1 AND @SortColumn='UnitCost') THEN UnitCost END DESC,
 				CASE WHEN (@SortOrder = 1  AND @SortColumn='SerialNumber') THEN SerialNumber END ASC,
 				CASE WHEN (@SortOrder = -1 AND @SortColumn='SerialNumber') THEN SerialNumber END DESC,
+				CASE WHEN (@SortOrder = -1 AND @SortColumn='CreatedDate') THEN CreatedDate END DESC,
 				CASE WHEN (@SortOrder = 1  AND @SortColumn='StockLineNumber') THEN StockLineNumber END ASC,
 				CASE WHEN (@SortOrder = -1 AND @SortColumn='StockLineNumber') THEN StockLineNumber END DESC	
 			OFFSET @RecordFrom ROWS 
@@ -397,14 +419,18 @@ BEGIN
 					   SL.[ControlNumber],
 					   SL.[IdNumber],
 					   SL.[QuantityAvailable],
-					   SL.[UnitCost],
+					   ROUND(SL.[UnitCost],2) UnitCost,
 					   SL.[ManagementStructureId],
 					   SL.[StockLineId],
 					   SL.[isSerialized],
-					   0 AS [IsSelected]
+					   SL.CreatedDate,
+					   0 AS [IsSelected],
+					   ISNULL(uom.Class,'Decimal')Class,
+					   ISNULL(uom.DecimalPlaces,2) DecimalPlaces
 					FROM [dbo].[Stockline] SL WITH (NOLOCK)
 						INNER JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON SL.[ItemMasterId] = IM.[ItemMasterId]
 						LEFT JOIN [dbo].[Manufacturer] MF WITH (NOLOCK) ON SL.[ManufacturerId] = MF.[ManufacturerId]
+						LEFT JOIN DBO.UnitOfMeasure uom WITH (NOLOCK) ON SL.StockUnitOfMeasureId = uom.UnitOfMeasureId
 					WHERE ISNULL(SL.[IsDeleted],0) = 0 AND ISNULL(SL.[IsActive],1) = 1 
 					AND SL.[MasterCompanyId] = @MasterCompanyId AND SL.[IsParent] = 1
 					AND SL.[QuantityOnHand] > 0 AND SL.[QuantityAvailable] > 0
@@ -438,7 +464,7 @@ BEGIN
 
 			SELECT @Count = COUNT([StockLineId]) FROM #TempOtherResult
 
-			SELECT @Count AS NumberOfItems, [StockLineId],[isSerialized],[ItemMasterId],[PartNumber],[PartDescription],[Manufacturer],[Condition],[SerialNumber],[QuantityAvailable],[UnitCost],[StockLineNumber],[IdNumber],[ControlNumber],[IsSelected], @Count AS NumberOfItems FROM #TempOtherResult
+			SELECT @Count AS NumberOfItems, [StockLineId],[isSerialized],CreatedDate,[ItemMasterId],[PartNumber],[PartDescription],[Manufacturer],[Condition],[SerialNumber],[QuantityAvailable],[UnitCost],[StockLineNumber],[IdNumber],[ControlNumber],[IsSelected], @Count AS NumberOfItems,Class,DecimalPlaces FROM #TempOtherResult
 			ORDER BY  
 				CASE WHEN (@SortOrder = 1  AND @SortColumn='PartNumber') THEN PartNumber END ASC,
 				CASE WHEN (@SortOrder = -1 AND @SortColumn='PartNumber') THEN PartNumber END DESC,
@@ -458,6 +484,7 @@ BEGIN
 				CASE WHEN (@SortOrder = -1 AND @SortColumn='UnitCost') THEN UnitCost END DESC,
 				CASE WHEN (@SortOrder = 1  AND @SortColumn='SerialNumber') THEN SerialNumber END ASC,
 				CASE WHEN (@SortOrder = -1 AND @SortColumn='SerialNumber') THEN SerialNumber END DESC,
+				CASE WHEN (@SortOrder = -1 AND @SortColumn='CreatedDate') THEN CreatedDate END DESC,
 				CASE WHEN (@SortOrder = 1  AND @SortColumn='StockLineNumber') THEN StockLineNumber END ASC,
 				CASE WHEN (@SortOrder = -1 AND @SortColumn='StockLineNumber') THEN StockLineNumber END DESC	
 			OFFSET @RecordFrom ROWS 

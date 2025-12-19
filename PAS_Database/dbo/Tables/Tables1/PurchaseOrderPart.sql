@@ -15,18 +15,18 @@
     [NeedByDate]                DATETIME2 (7)   NOT NULL,
     [ConditionId]               BIGINT          NULL,
     [Condition]                 VARCHAR (256)   NULL,
-    [QuantityOrdered]           INT             CONSTRAINT [PurchaseOrderPart_QuantityOrdered] DEFAULT ((0)) NOT NULL,
-    [QuantityBackOrdered]       INT             CONSTRAINT [PurchaseOrderPart_QuantityBackOrdered] DEFAULT ((0)) NOT NULL,
-    [QuantityRejected]          INT             CONSTRAINT [PurchaseOrderPart_QuantityRejected] DEFAULT ((0)) NULL,
-    [VendorListPrice]           DECIMAL (18, 2) CONSTRAINT [PurchaseOrderPart_VendorListPrice] DEFAULT ((0)) NOT NULL,
+    [QuantityOrdered]           DECIMAL (18, 6) CONSTRAINT [PurchaseOrderPart_QuantityOrdered] DEFAULT ((0)) NULL,
+    [QuantityBackOrdered]       DECIMAL (18, 6) CONSTRAINT [PurchaseOrderPart_QuantityBackOrdered] DEFAULT ((0)) NULL,
+    [QuantityRejected]          DECIMAL (18, 6) CONSTRAINT [PurchaseOrderPart_QuantityRejected] DEFAULT ((0)) NULL,
+    [VendorListPrice]           DECIMAL (18, 6) CONSTRAINT [PurchaseOrderPart_VendorListPrice] DEFAULT ((0)) NULL,
     [DiscountPercent]           BIGINT          CONSTRAINT [PurchaseOrderPart_DiscountPercent] DEFAULT ((0)) NULL,
-    [DiscountPerUnit]           DECIMAL (18, 2) CONSTRAINT [PurchaseOrderPart_DiscountPerUnit] DEFAULT ((0)) NOT NULL,
-    [DiscountAmount]            DECIMAL (18, 2) CONSTRAINT [PurchaseOrderPart_DiscountAmount] DEFAULT ((0)) NOT NULL,
-    [UnitCost]                  DECIMAL (18, 2) CONSTRAINT [PurchaseOrderPart_UnitCost] DEFAULT ((0)) NOT NULL,
-    [ExtendedCost]              DECIMAL (18, 2) CONSTRAINT [PurchaseOrderPart_ExtendedCost] DEFAULT ((0)) NOT NULL,
+    [DiscountPerUnit]           DECIMAL (18, 6) CONSTRAINT [PurchaseOrderPart_DiscountPerUnit] DEFAULT ((0)) NULL,
+    [DiscountAmount]            DECIMAL (18, 6) CONSTRAINT [PurchaseOrderPart_DiscountAmount] DEFAULT ((0)) NULL,
+    [UnitCost]                  DECIMAL (18, 6) CONSTRAINT [PurchaseOrderPart_UnitCost] DEFAULT ((0)) NULL,
+    [ExtendedCost]              DECIMAL (18, 6) CONSTRAINT [PurchaseOrderPart_ExtendedCost] DEFAULT ((0)) NULL,
     [FunctionalCurrencyId]      INT             NOT NULL,
     [FunctionalCurrency]        VARCHAR (50)    NULL,
-    [ForeignExchangeRate]       DECIMAL (18, 2) CONSTRAINT [PurchaseOrderPart_ForeignExchangeRate] DEFAULT ((0)) NOT NULL,
+    [ForeignExchangeRate]       DECIMAL (18, 6) CONSTRAINT [PurchaseOrderPart_ForeignExchangeRate] DEFAULT ((0)) NULL,
     [ReportCurrencyId]          INT             NOT NULL,
     [ReportCurrency]            VARCHAR (50)    NULL,
     [WorkOrderId]               BIGINT          NULL,
@@ -73,7 +73,7 @@
     [UpdatedDate]               DATETIME2 (7)   NOT NULL,
     [IsActive]                  BIT             CONSTRAINT [PurchaseOrderPart_DC_Active] DEFAULT ((1)) NOT NULL,
     [IsDeleted]                 BIT             CONSTRAINT [DF__PurchaseO__IsDel__6BBB7E0D] DEFAULT ((0)) NOT NULL,
-    [DiscountPercentValue]      DECIMAL (18, 2) CONSTRAINT [PurchaseOrderPart_DiscountPercentValue] DEFAULT ((0)) NULL,
+    [DiscountPercentValue]      DECIMAL (18, 6) CONSTRAINT [PurchaseOrderPart_DiscountPercentValue] DEFAULT ((0)) NULL,
     [EstDeliveryDate]           DATETIME2 (7)   NULL,
     [ExchangeSalesOrderId]      BIGINT          NULL,
     [ExchangeSalesOrderNo]      VARCHAR (250)   NULL,
@@ -95,7 +95,7 @@
     [TagDate]                   DATETIME2 (7)   NULL,
     [IsKit]                     BIT             NULL,
     [IsSubWO]                   BIT             NULL,
-    [QuantityReceived]          INT             DEFAULT ((0)) NULL,
+    [QuantityReceived]          DECIMAL (18, 6) CONSTRAINT [DF__PurchaseO__Quant__3133ADCF] DEFAULT ((0)) NULL,
     [SalesOrderQuoteId]         BIGINT          NULL,
     [SalesOrderQuoteNumber]     NVARCHAR (250)  NULL,
     CONSTRAINT [PK_PurchaseOrderPart] PRIMARY KEY CLUSTERED ([PurchaseOrderPartRecordId] ASC),
@@ -113,6 +113,8 @@
     CONSTRAINT [FK_PurchaseOrderPart_SalesOrderId] FOREIGN KEY ([SalesOrderId]) REFERENCES [dbo].[SalesOrder] ([SalesOrderId]),
     CONSTRAINT [FK_PurchaseOrderPart_WorkOrder] FOREIGN KEY ([WorkOrderId]) REFERENCES [dbo].[WorkOrder] ([WorkOrderId])
 );
+
+
 
 
 

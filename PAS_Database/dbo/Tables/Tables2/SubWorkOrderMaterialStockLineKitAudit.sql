@@ -5,9 +5,9 @@
     [StockLIneId]                BIGINT          NOT NULL,
     [ItemMasterId]               BIGINT          NOT NULL,
     [ConditionId]                BIGINT          NOT NULL,
-    [Quantity]                   INT             NULL,
-    [QtyReserved]                INT             NULL,
-    [QtyIssued]                  INT             NULL,
+    [Quantity]                   DECIMAL (18, 6) NULL,
+    [QtyReserved]                DECIMAL (18, 6) NULL,
+    [QtyIssued]                  DECIMAL (18, 6) NULL,
     [MasterCompanyId]            INT             NOT NULL,
     [CreatedBy]                  VARCHAR (256)   NOT NULL,
     [UpdatedBy]                  VARCHAR (256)   NOT NULL,
@@ -25,7 +25,7 @@
     [ExtendedPrice]              DECIMAL (20, 2) NULL,
     [ProvisionId]                INT             DEFAULT ((2)) NOT NULL,
     [RepairOrderId]              BIGINT          NULL,
-    [QuantityTurnIn]             INT             DEFAULT ((0)) NULL,
+    [QuantityTurnIn]             DECIMAL (18, 6) CONSTRAINT [DF__SubWorkOr__Quant__44468243] DEFAULT ((0)) NULL,
     [Figure]                     NVARCHAR (50)   NULL,
     [Item]                       NVARCHAR (50)   NULL,
     [ReferenceNumber]            VARCHAR (100)   NULL,
@@ -35,6 +35,4 @@
     [IssuedDate]                 DATETIME2 (7)   NULL,
     CONSTRAINT [PK_SubWorkOrderMaterialStockLineKitAudit] PRIMARY KEY CLUSTERED ([SWOMStockLineKitAuditId] ASC)
 );
-
-
 

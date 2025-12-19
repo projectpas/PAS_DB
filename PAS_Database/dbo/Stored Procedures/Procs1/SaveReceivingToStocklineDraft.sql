@@ -1,4 +1,5 @@
-﻿/*************************************************************               
+﻿
+/*************************************************************               
  ** File:   [SaveReceivingToStocklineDraft]               
  ** Author: Vishal Suthar    
  ** Description: This stored procedure is save receiving PO data into stockline draft    
@@ -28,6 +29,7 @@
 	12   12-11-2024   RAJESH GAMI       Handle the NULL value of WOMaterialsId
 	13   12-12-2024   ABHISHEK JIRAWLA  Change made for Asset Inventory Status and Asset Available Status
 	14   16-01-2025   ABHISHEK JIRAWLA  If Part is non serialized and Quantity is greater then 200 then only 1 entry should be made (PN-10836)
+	15   09-Dec-2025  Rajesh Gami		Added logic : INT to DECIMAL (QTY related Fields)
  EXEC [SaveReceivingToStocklineDraft] 2281, 'ADMIN User'    
 **************************************************************/    
 CREATE    PROCEDURE [dbo].[SaveReceivingToStocklineDraft]
@@ -48,13 +50,13 @@ BEGIN
     DECLARE @IdNumber AS VARCHAR(50);    
     
     DECLARE @PurchaseOrderPartRecordId BIGINT = 0, @WorkOrderMaterialsId BIGINT =0, @IsKit BIT = 0, @IsSubWO BIT = 0;    
-    DECLARE @QtyToTraverse INT = 0;    
-    DECLARE @QtyOrdered INT = 0;    
+    DECLARE @QtyToTraverse DECIMAL(18,6) = 0;    
+    DECLARE @QtyOrdered DECIMAL(18,6) = 0;    
     DECLARE @ItemMasterId BIGINT = 0;    
     DECLARE @ConditionId BIGINT = 0;    
     DECLARE @OrderDate [DATETIME2](7) ;    
-    DECLARE @POUnitCost DECIMAL(18, 2) = 0;    
-    DECLARE @POPartUnitCost DECIMAL(18, 2) = 0;    
+    DECLARE @POUnitCost DECIMAL(18,6) = 0;    
+    DECLARE @POPartUnitCost DECIMAL(18,6) = 0;    
     DECLARE @IdCodeTypeId BIGINT;    
     DECLARE @MasterCompanyId BIGINT;    
     DECLARE @ShipViaId BIGINT = 0;    
@@ -144,9 +146,9 @@ BEGIN
 	 DECLARE @NewStocklineDraftId BIGINT;    
 	 DECLARE @IsParent BIT = 1;
 
-	DECLARE @Quantity INT = 1;    
-	DECLARE @QuantityAvailable INT = 1;    
-	DECLARE @QuantityOnHand INT = 1;  
+	DECLARE @Quantity DECIMAL(18,6) = 1;    
+	DECLARE @QuantityAvailable DECIMAL(18,6) = 1;    
+	DECLARE @QuantityOnHand DECIMAL(18,6) = 1;  
     
 	IF ISNULL(@IsSerialized, 0) = 0 AND ISNULL(@LoopID_Qty, 0) >=200
 	BEGIN
@@ -483,7 +485,7 @@ BEGIN
 		@VerificationDefaultVendorId = ISNULL(AC.VerificationDefaultVendorId, 0), @VerificationFrequencyDays = ISNULL(AC.VerificationFrequencyDays, 0), @VerificationGlAccountId = ISNULL(AC.VerificationGlAccountId, 0), @VerificationMemo = ISNULL(AC.VerificationMemo, 0)
 	  FROM DBO.AssetCalibration AC WITH (NOLOCK) WHERE AssetRecordId = @ItemMasterId;
 
-	  DECLARE @AssetLife INT = 0, @InstallationCost DECIMAL = 0, @DepreciationStartDate DATETIME, @Freight DECIMAL, @Insurance DECIMAL, @Taxes DECIMAL, @TotalCost DECIMAL
+	  DECLARE @AssetLife INT = 0, @InstallationCost DECIMAL(18,6) = 0, @DepreciationStartDate DATETIME, @Freight DECIMAL(18,6), @Insurance DECIMAL(18,6), @Taxes DECIMAL(18,6), @TotalCost DECIMAL(18,6)
 	  SELECT @AssetLife = ISNULL(AAT.AssetLife, 0)
 	  FROM DBO.Asset A WITH (NOLOCK)
 		INNER JOIN AssetAttributeType AAT ON AAT.AssetAttributeTypeId = A.AssetAttributeTypeId

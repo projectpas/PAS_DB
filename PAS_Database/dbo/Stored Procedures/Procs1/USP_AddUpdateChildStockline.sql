@@ -1,4 +1,5 @@
-﻿/*************************************************************             
+﻿
+/*************************************************************             
  ** File:   [USP_AddUpdateChildStockline]
  ** Author:   Vishal Suthar
  ** Description: This stored procedure is used to add/update child stockline
@@ -29,14 +30,14 @@
 	13   27/11/2024		Moin Bloch			Add logic for Delete Available Child Qty
 	14   16/01/2025		ABHISHEK JIRAWLA	If Part is non serialized and Quantity is greater then 200 then only 1 entry should be made (PN-10836)
 	15   30/06/2025		Vishal Suthar		Added ActionId 24 for Receiving RO
-
+	16   25/11/2025		Rajesh Gami			Change the stockline Quantiy related feilds datatype INT to DECIMAL
 	EXEC USP_AddUpdateChildStockline 180043,23,6,'CycleCount','CC-000026','','','ADMIN User'
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_AddUpdateChildStockline]
 (
 	@StocklineId BIGINT = NULL,
 	@ActionId INT = NULL,
-	@QtyOnAction INT = NULL,
+	@QtyOnAction decimal(10,2) = NULL,
 	@ModuleName VARCHAR(100) NULL,
 	@ReferenceNumber VARCHAR(100) NULL,
 	@SubModuleName VARCHAR(100) NULL,
@@ -51,12 +52,12 @@ BEGIN
     BEGIN TRY  
     BEGIN TRANSACTION  
     BEGIN
-		DECLARE @UnAvailQtyCount INT = 0;
-		DECLARE @AvailQtyCount INT = 0;
-		DECLARE @RemainingAvailableQty INT = 0;
-		DECLARE @RemainingOHQty INT = 0;
-		DECLARE @RemainingReservedQty INT = 0;
-		DECLARE @RemainingIssuedQty INT = 0;
+		DECLARE @UnAvailQtyCount DECIMAL(18,2) = 0;
+		DECLARE @AvailQtyCount DECIMAL(18,2) = 0;
+		DECLARE @RemainingAvailableQty DECIMAL(18,2) = 0;
+		DECLARE @RemainingOHQty DECIMAL(18,2) = 0;
+		DECLARE @RemainingReservedQty DECIMAL(18,2) = 0;
+		DECLARE @RemainingIssuedQty DECIMAL(18,2) = 0;
 		DECLARE @IdCodeTypeId BIGINT;
 		DECLARE @CurrentIndex BIGINT;
 		DECLARE @CurrentIdNumber AS BIGINT;
@@ -69,10 +70,10 @@ BEGIN
 		DECLARE @StocklineToUpdate BIGINT;  
 		DECLARE @IdNumberUpdated VARCHAR(50);
 		DECLARE @Qty INT;
-		DECLARE @PrevReservedQty INT = 0,@PrevChildQty INT = 0;
-		DECLARE @PrevIssuedQty INT = 0;  
-		DECLARE @PrevOHQty INT = 0;  
-		DECLARE @PrevAvailableQty INT = 0, @OriginalQtyOnAction INT = @QtyOnAction;
+		DECLARE @PrevReservedQty DECIMAL(18,2) = 0,@PrevChildQty DECIMAL(18,2) = 0;
+		DECLARE @PrevIssuedQty DECIMAL(18,2) = 0;  
+		DECLARE @PrevOHQty DECIMAL(18,2) = 0;  
+		DECLARE @PrevAvailableQty DECIMAL(18,2) = 0, @OriginalQtyOnAction DECIMAL(18,2) = @QtyOnAction;
 		DECLARE @RecievingPOModuleId BIGINT = 0, @IncomingModuleId BIGINT = 0, @IsSerialized BIT = 0; 
 
 		SELECT @RecievingPOModuleId = ModuleId FROM DBO.Module WITH (NOLOCK) WHERE ModuleName = 'ReceivingPurchaseOrder'
@@ -81,7 +82,7 @@ BEGIN
 		SELECT @UnAvailQtyCount = COUNT(*) FROM DBO.ChildStockline CStk WITH (NOLOCK) WHERE CStk.StockLineId = @StocklineId AND CStk.QuantityOnHand = 0;
 		SELECT @AvailQtyCount = COUNT(*) FROM DBO.ChildStockline CStk WITH (NOLOCK) WHERE CStk.StockLineId = @StocklineId AND CStk.QuantityOnHand = 1 AND CStk.QuantityAvailable = 1;
 
-		DECLARE @RemainingQtyToCreate INT = 0;
+		DECLARE @RemainingQtyToCreate DECIMAL(18,2) = 0;
 		SET @RemainingQtyToCreate = @QtyOnAction - @UnAvailQtyCount;
 
 		IF (@ActionId = 1 OR @ActionId = 11 OR @ActionId = 7 OR @ActionId = 17)

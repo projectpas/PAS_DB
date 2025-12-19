@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [USP_GetQtyToBeReserveCountbasedOnProvision]           
  ** Author:   Hemant Saliya
  ** Description: This SP is Used Get Count for Reserver Qty based on Provision
@@ -13,8 +12,8 @@
  **************************************************************           
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
-    1    02/22/2021   Hemant Saliya Created
-
+    1    02/22/2021   Hemant Saliya    Created
+ 	2	 25/11/2025	  Rajesh Gami		Change the @QtyToBeReserve datatype INT to DECIMAL 
  DECLARE @QtyToBeReserve INT;       
  EXECUTE USP_GetQtyToBeReserveCountbasedOnProvision 53,1, @QtyToBeReserve OUTPUT 
  
@@ -24,7 +23,7 @@ CREATE PROCEDURE [dbo].[USP_GetQtyToBeReserveCountbasedOnProvision]
 (    
 @WorkOrderMaterialsId BIGINT = NULL,
 @IsFromSubWO BIT = 0,
-@QtyToBeReserve INT = null OUTPUT
+@QtyToBeReserve DECIMAL(18,6) = null OUTPUT
 )    
 AS    
 BEGIN    

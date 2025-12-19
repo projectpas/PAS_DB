@@ -4,7 +4,7 @@
     [ItemMasterId]             BIGINT          NOT NULL,
     [ConditionCodeId]          BIGINT          NOT NULL,
     [ItemClassificationId]     BIGINT          NOT NULL,
-    [Quantity]                 INT             NOT NULL,
+    [Quantity]                 DECIMAL (18, 6) NULL,
     [UnitOfMeasureId]          BIGINT          NOT NULL,
     [UnitCost]                 DECIMAL (20, 2) NOT NULL,
     [ExtendedCost]             DECIMAL (20, 2) NOT NULL,
@@ -45,6 +45,8 @@
     CONSTRAINT [FK_WorkOrderQuoteMaterial_UnitOfMeasure] FOREIGN KEY ([UnitOfMeasureId]) REFERENCES [dbo].[UnitOfMeasure] ([UnitOfMeasureId]),
     CONSTRAINT [FK_WorkOrderQuoteMaterial_WorkOrderQuoteDetails] FOREIGN KEY ([WorkOrderQuoteDetailsId]) REFERENCES [dbo].[WorkOrderQuoteDetails] ([WorkOrderQuoteDetailsId])
 );
+
+
 
 
 

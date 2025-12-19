@@ -17,9 +17,9 @@
     [ReceivedDate]                 DATETIME2 (7)   NULL,
     [IsSerialized]                 BIT             NOT NULL,
     [SerialNumber]                 VARCHAR (50)    NULL,
-    [Quantity]                     INT             NOT NULL,
-    [QuantityRejected]             INT             NULL,
-    [QuantityOnHand]               INT             NULL,
+    [Quantity]                     DECIMAL (18, 6) NULL,
+    [QuantityRejected]             DECIMAL (18, 6) NULL,
+    [QuantityOnHand]               DECIMAL (18, 6) NULL,
     [CurrencyId]                   BIGINT          NULL,
     [Currency]                     VARCHAR (50)    NULL,
     [ConditionId]                  BIGINT          NULL,
@@ -31,8 +31,8 @@
     [ManufacturerId]               BIGINT          NULL,
     [Manufacturer]                 VARCHAR (50)    NULL,
     [MfgExpirationDate]            DATETIME2 (7)   NULL,
-    [UnitCost]                     DECIMAL (18, 2) NULL,
-    [ExtendedCost]                 DECIMAL (18, 2) NULL,
+    [UnitCost]                     DECIMAL (18, 6) NULL,
+    [ExtendedCost]                 DECIMAL (18, 6) NULL,
     [Acquired]                     BIT             NULL,
     [IsHazardousMaterial]          BIT             NULL,
     [ItemNonStockClassificationId] BIGINT          NULL,
@@ -71,7 +71,7 @@
     [UpdatedDate]                  DATETIME2 (7)   CONSTRAINT [DF_NonStockInventory_UpdatedDate] DEFAULT (getdate()) NOT NULL,
     [IsActive]                     BIT             CONSTRAINT [DF_NonStockInventory_IsActive] DEFAULT ((1)) NOT NULL,
     [IsDeleted]                    BIT             CONSTRAINT [DF_NonStockInventory_IsDeleted] DEFAULT ((0)) NOT NULL,
-    [RRQty]                        INT             DEFAULT ((0)) NOT NULL,
+    [RRQty]                        DECIMAL (18, 6) CONSTRAINT [DF__NonStockI__RRQty__2F4B655D] DEFAULT ((0)) NULL,
     CONSTRAINT [PK_NonStockInventory] PRIMARY KEY CLUSTERED ([NonStockInventoryId] ASC),
     CONSTRAINT [FK_NonStockInventory_Bin] FOREIGN KEY ([BinId]) REFERENCES [dbo].[Bin] ([BinId]),
     CONSTRAINT [FK_NonStockInventory_GLAccountId] FOREIGN KEY ([GLAccountId]) REFERENCES [dbo].[GLAccount] ([GLAccountId]),
@@ -87,6 +87,8 @@
     CONSTRAINT [FK_NonStockInventory_Warehouse] FOREIGN KEY ([WarehouseId]) REFERENCES [dbo].[Warehouse] ([WarehouseId]),
     CONSTRAINT [FK_NonStockInventorye_Condition] FOREIGN KEY ([ConditionId]) REFERENCES [dbo].[Condition] ([ConditionId])
 );
+
+
 
 
 GO

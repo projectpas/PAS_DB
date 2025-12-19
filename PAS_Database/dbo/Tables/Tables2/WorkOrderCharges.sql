@@ -4,7 +4,7 @@
     [WorkFlowWorkOrderId] BIGINT          NOT NULL,
     [ChargesTypeId]       BIGINT          NOT NULL,
     [VendorId]            BIGINT          NULL,
-    [Quantity]            INT             NOT NULL,
+    [Quantity]            DECIMAL (18, 6) NULL,
     [MasterCompanyId]     INT             NOT NULL,
     [CreatedBy]           VARCHAR (256)   NOT NULL,
     [UpdatedBy]           VARCHAR (256)   NOT NULL,
@@ -27,6 +27,8 @@
     CONSTRAINT [FK_WorkOrderCharges_WorkFlowWorkOrderId] FOREIGN KEY ([WorkFlowWorkOrderId]) REFERENCES [dbo].[WorkOrderWorkFlow] ([WorkFlowWorkOrderId]),
     CONSTRAINT [FK_WorkOrderCharges_WorkOrder] FOREIGN KEY ([WorkOrderId]) REFERENCES [dbo].[WorkOrder] ([WorkOrderId])
 );
+
+
 
 
 

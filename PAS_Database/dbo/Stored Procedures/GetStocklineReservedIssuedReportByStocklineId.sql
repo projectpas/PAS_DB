@@ -1,4 +1,5 @@
-﻿/*************************************************************               
+﻿
+/*************************************************************               
  ** File:   [GetStocklineReservedIssuedReportByStocklineId]               
  ** Author: RAJESH GAMI 
  ** Description: Get Stockline Reserved/Issued Report By Stockline Id (Module wise)
@@ -20,7 +21,8 @@
 	7    18-12-2024    RAJESH GAMI		Skip the record if WO,RO,SO,Exch deleted
 	8    19-12-2024    RAJESH GAMI		Add MastercompanyId in the managementstructure JOIN
 	9    26-12-2024    RAJESH GAMI		Modified WPN to check RO is closed or not
-  10   13/02/2025    Ayushi Patel   converted the date into utc (RESERVED,ISSUED,RESERVEISSUE) , Added a case to get timeZone
+	10   13/02/2025    Ayushi Patel   converted the date into utc (RESERVED,ISSUED,RESERVEISSUE) , Added a case to get timeZone
+  	11   11-12-2025    RAJESH GAMI		Quantity Related Fields Change Type to DECIMAL
 	EXEC [dbo].[GetStocklineReservedIssuedReportByStocklineId] 183296,1,1
 
 **************************************************************/    
@@ -99,8 +101,8 @@ BEGIN
 	  StocklineNumber VARCHAR(200) NULL,
 	  ControlNumber VARCHAR(200) NULL,
 	  IdNumber VARCHAR(200) NULL,
-	  QuantityReserved INT NULL,
-	  QuantityIssued INT NULL,
+	  QuantityReserved DECIMAL(18,6) NULL,
+	  QuantityIssued DECIMAL(18,6) NULL,
 	  Module VARCHAR(80) NULL,
 	  ReferenceNumber VARCHAR(100) NULL,
 	  --ReservationDate DATETIME2 NULL,
@@ -120,9 +122,9 @@ BEGIN
 	  ReservedBy VARCHAR(Max) NULL DEFAULT '',
 	  IssuedDate DATETIME2 NULL,
 	  IssuedBy VARCHAR(Max) NULL DEFAULT '',
-	  Quantity INT NULL  DEFAULT 0,
-	  QuantityOnHand INT NULL  DEFAULT 0,
-	  QuantityAvailable INT NULL  DEFAULT 0,
+	  Quantity DECIMAL(18,6) NULL  DEFAULT 0,
+	  QuantityOnHand DECIMAL(18,6) NULL  DEFAULT 0,
+	  QuantityAvailable DECIMAL(18,6) NULL  DEFAULT 0,
 	  [Location] VARCHAR(Max) NULL DEFAULT '',
 	  SerialNumber VARCHAR(Max) NULL DEFAULT '',
 	  Comments VARCHAR(Max) NULL DEFAULT '',
@@ -135,8 +137,8 @@ BEGIN
 	  ReservedIssuedDate DATETIME2 NULL,
 	  ReservedIssuedBy VARCHAR(Max) NULL DEFAULT '',
 	  IsVendor BIT NULL DEFAULT 0,
-	  StlQtyReserved INT NULL  DEFAULT 0,
-	  StlQtyIssued INT NULL  DEFAULT 0,
+	  StlQtyReserved DECIMAL(18,6) NULL  DEFAULT 0,
+	  StlQtyIssued DECIMAL(18,6) NULL  DEFAULT 0,
      )    
 		 IF(@DisplayType = 1 OR @DisplayType = 3)
 		 BEGIN

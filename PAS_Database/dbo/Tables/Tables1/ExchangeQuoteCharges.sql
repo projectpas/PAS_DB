@@ -4,7 +4,7 @@
     [ExchangeQuotePartId]      BIGINT          NULL,
     [ChargesTypeId]            BIGINT          NOT NULL,
     [VendorId]                 BIGINT          NULL,
-    [Quantity]                 INT             NOT NULL,
+    [Quantity]                 DECIMAL (18, 6) NULL,
     [MarkupPercentageId]       BIGINT          NULL,
     [Description]              VARCHAR (256)   NULL,
     [UnitCost]                 DECIMAL (20, 2) NOT NULL,
@@ -31,6 +31,8 @@
     CONSTRAINT [FK_ExchangeQuoteCharges_Charge] FOREIGN KEY ([ChargesTypeId]) REFERENCES [dbo].[Charge] ([ChargeId]),
     CONSTRAINT [FK_ExchangeQuoteCharges_ExchangeQuote] FOREIGN KEY ([ExchangeQuoteId]) REFERENCES [dbo].[ExchangeQuote] ([ExchangeQuoteId])
 );
+
+
 
 
 

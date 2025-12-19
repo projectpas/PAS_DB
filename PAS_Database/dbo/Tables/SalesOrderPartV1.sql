@@ -3,9 +3,9 @@
     [SalesOrderId]          BIGINT          NOT NULL,
     [ItemMasterId]          BIGINT          NOT NULL,
     [ConditionId]           BIGINT          NOT NULL,
-    [QtyRequested]          INT             NOT NULL,
-    [QtyOrder]              INT             NOT NULL,
-    [QtyReserved]           INT             NOT NULL,
+    [QtyRequested]          DECIMAL (18, 6) NULL,
+    [QtyOrder]              DECIMAL (18, 6) NULL,
+    [QtyReserved]           DECIMAL (18, 6) NULL,
     [CurrencyId]            INT             NULL,
     [PriorityId]            BIGINT          NOT NULL,
     [StatusId]              INT             NOT NULL,
@@ -46,6 +46,8 @@
     CONSTRAINT [FK_SalesOrderPartV1_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId]),
     CONSTRAINT [FK_SalesOrderPartV1_Priority] FOREIGN KEY ([PriorityId]) REFERENCES [dbo].[Priority] ([PriorityId])
 );
+
+
 
 
 

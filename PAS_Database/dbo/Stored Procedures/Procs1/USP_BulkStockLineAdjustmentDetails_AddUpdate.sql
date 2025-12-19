@@ -1,4 +1,7 @@
-﻿/*************************************************************           
+﻿
+
+
+/*************************************************************           
  ** File:   [USP_BulkStockLineAdjustmentDetails_AddUpdate]           
  ** Author: AMIT GHEDIYA
  ** Description: This stored procedure is used to Add & Update Bulk StockLine Adjustment Details
@@ -19,8 +22,9 @@
 	7    01/04/2024   Abhishek Jirawla Added unreserve the quantity when deleted is true
 	8    24/09/2024   RAJESH GAMI      Added @BulkStkLineAdjHeaderId(Adjement number as a reference) into stockline history 
 	9    22/01/2025   AMIT GHEDIYA     Handle Stockline update when delete item.
+	10   16/12/2025   RAJESH GAMI      Quantity Related Fields Change the Type INT to DECIMAL
 *******************************************************************************/
-CREATE   PROCEDURE [dbo].[USP_BulkStockLineAdjustmentDetails_AddUpdate]
+CREATE     PROCEDURE [dbo].[USP_BulkStockLineAdjustmentDetails_AddUpdate]
 	@BulkStkLineAdjHeaderId BIGINT,
 	@CreatedBy VARCHAR(50),
 	@UpdatedBy VARCHAR(50),
@@ -35,15 +39,15 @@ BEGIN
 
 		DECLARE @MasterLoopID INT,
 				@BulkStockLineAdjustmentDetailsId BIGINT,
-				@Qty INT,
-				@NewQty INT,
-				@QtyAdjustment INT,
-				@UnitCost DECIMAL(18,2),
-				@NewUnitCost DECIMAL(18,2),
-				@UnitCostAdjustment DECIMAL(18,2),
-				@AdjustmentAmount DECIMAL(18,2),
-				@FreightAdjustment DECIMAL(18,2),
-				@TaxAdjustment DECIMAL(18,2),
+				@Qty DECIMAL(18,6),
+				@NewQty DECIMAL(18,6),
+				@QtyAdjustment DECIMAL(18,6),
+				@UnitCost DECIMAL(18,6),
+				@NewUnitCost DECIMAL(18,6),
+				@UnitCostAdjustment DECIMAL(18,6),
+				@AdjustmentAmount DECIMAL(18,6),
+				@FreightAdjustment DECIMAL(18,6),
+				@TaxAdjustment DECIMAL(18,6),
 				@IsDeleted BIT,
 				@StandAloneCreditMemoDetailsId BIGINT,
 				@ManagementStructureId BIGINT,
@@ -53,13 +57,13 @@ BEGIN
 				@AllMSlevels VARCHAR(256),
 				@ModuleId INT,
 				@StockLineAdjustmentTypeId INT,
-				@NewUnitCostTotransfer DECIMAL(18,2),
-				@QuantityOnHand DECIMAL(18,2),
+				@NewUnitCostTotransfer DECIMAL(18,6),
+				@QuantityOnHand DECIMAL(18,6),
 				@UnitOfMeasure VARCHAR(100),
 				@BulkStockAdjusmentStocklineId BIGINT,
 				@BulkStockModuleId INT, 
-				@OldQuantity INT,
-				@UpdatedQuantity INT,
+				@OldQuantity  DECIMAL(18,6),
+				@UpdatedQuantity  DECIMAL(18,6),
 				@StatusId INT,
 				@AdjustmentReasonId BIGINT;
 
@@ -78,15 +82,15 @@ BEGIN
 			[BulkStockLineAdjustmentDetailsId] [bigint] NULL,
 			[BulkStkLineAdjId] [bigint] NOT NULL,
 			[StockLineId] [bigint] NULL,
-			[Qty] [int] NOT NULL,
-			[NewQty] [int] NULL,
-			[QtyAdjustment] [int] NULL,
-			[UnitCost] [decimal](18,2) NULL,
-			[NewUnitCost] [decimal](18,2) NULL,
-			[UnitCostAdjustment] [decimal](18,2) NULL,
-			[AdjustmentAmount] [decimal](18,2) NULL,
-			[FreightAdjustment] [decimal](18,2) NULL,
-			[TaxAdjustment] [decimal](18,2) NULL,
+			[Qty]  DECIMAL(18,6) NOT NULL,
+			[NewQty]  DECIMAL(18,6) NULL,
+			[QtyAdjustment]  DECIMAL(18,6) NULL,
+			[UnitCost] DECIMAL(18,6) NULL,
+			[NewUnitCost] DECIMAL(18,6) NULL,
+			[UnitCostAdjustment] DECIMAL(18,6) NULL,
+			[AdjustmentAmount] DECIMAL(18,6) NULL,
+			[FreightAdjustment] DECIMAL(18,6) NULL,
+			[TaxAdjustment] DECIMAL(18,6) NULL,
 			[StockLineAdjustmentTypeId] [int] NOT NULL,
 			[ManagementStructureId] [bigint] NULL,
 			[FromManagementStructureId] [bigint] NULL,
@@ -94,8 +98,8 @@ BEGIN
 			[LastMSLevel] [varchar](200) NULL,
 			[AllMSlevels] [varchar](MAX) NULL,
 			[IsDeleted] [bit] NOT NULL,
-			[NewUnitCostTotransfer] [decimal](18, 2) NULL,
-			[QuantityOnHand] [decimal](18, 2) NULL,
+			[NewUnitCostTotransfer] DECIMAL(18,6) NULL,
+			[QuantityOnHand] DECIMAL(18,6) NULL,
 			[UnitOfMeasure] [varchar](100) NULL,
 			[AdjustmentReasonId] [bigint] NULL
 		)

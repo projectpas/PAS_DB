@@ -5,7 +5,7 @@
     [WorkFlowWorkOrderId]     BIGINT          NOT NULL,
     [ChargesTypeId]           BIGINT          NOT NULL,
     [VendorId]                BIGINT          NULL,
-    [Quantity]                INT             NOT NULL,
+    [Quantity]                DECIMAL (18, 6) NULL,
     [MasterCompanyId]         INT             NOT NULL,
     [CreatedBy]               VARCHAR (256)   NOT NULL,
     [UpdatedBy]               VARCHAR (256)   NOT NULL,
@@ -27,6 +27,4 @@
     [UOMId]                   BIGINT          NULL,
     CONSTRAINT [PK_WorkOrderChargesAudit] PRIMARY KEY CLUSTERED ([WorkOrderChargesAuditId] ASC)
 );
-
-
 

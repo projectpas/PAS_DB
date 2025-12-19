@@ -1,4 +1,6 @@
-﻿/*************************************************************           
+﻿
+
+/*************************************************************           
  ** File:   [UpdateStocklineColumnsWithId]           
  ** Author:   MOIN BLOCH
  ** Description: This stored procedure is used Update Stockline Details
@@ -23,6 +25,7 @@
 	7    09/01/2025   BHAVESH RAVAL   For the add new column in COGS_ExchSalesOrderGLAcc 
 	8    11/02/2025   Bhargav Saliya  Update GL Account
 	9    16/05/2025   Devendra Shekh  Updatting RepairOrderNumber, PurchaseOrderNumber, IsDocument
+	10   11/12/2025   Rajesh Gami	  UPDATE: StockUnitOfMeasure,ConsumeUnitOfMeasure
 -- EXEC [dbo].[UpdateStocklineColumnsWithId] 1
 **************************************************************/
 
@@ -61,6 +64,8 @@ BEGIN
 					SL.Condition = CN.[Description],
 					--SL.GlAccountName = CASE WHEN ISNULL(GL.AccountName, '') != '' THEN GL.AccountCode + ' - ' + GL.AccountName ELSE SL.glAccountname END,
 					SL.UnitOfMeasure = ISNULL(um.ShortName,''),
+					SL.StockUnitOfMeasure = ISNULL(umStock.ShortName,''),
+					SL.ConsumeUnitOfMeasure = ISNULL(umConsume.ShortName,''),
 					SL.Manufacturer = ISNULL(MF.[Name],''),
 					SL.Site = ISNULL(S.[Name],''),
 					SL.Warehouse = ISNULL(W.[Name],''),
@@ -107,7 +112,9 @@ BEGIN
 					 LEFT JOIN [dbo].[Location] L WITH(NOLOCK) ON L.LocationId = SL.LocationId
 					 LEFT JOIN [dbo].[Shelf] SF WITH(NOLOCK) ON SF.ShelfId = SL.ShelfId
 					 LEFT JOIN [dbo].[Bin] B WITH(NOLOCK) ON B.BinId = SL.BinId
-					 LEFT JOIN [dbo].[UnitOfMeasure] um WITH(NOLOCK) ON SL.PurchaseUnitOfMeasureId = um.UnitOfMeasureId 
+					 LEFT JOIN [dbo].[UnitOfMeasure] um WITH(NOLOCK) ON SL.PurchaseUnitOfMeasureId = um.UnitOfMeasureId
+					 LEFT JOIN [dbo].[UnitOfMeasure] umStock WITH(NOLOCK) ON SL.StockUnitOfMeasureId = umStock.UnitOfMeasureId 
+					 LEFT JOIN [dbo].[UnitOfMeasure] umConsume WITH(NOLOCK) ON SL.ConsumeUnitOfMeasureId = umConsume.UnitOfMeasureId 
 					 LEFT JOIN [dbo].[PurchaseOrder] po WITH(NOLOCK) ON SL.PurchaseOrderId = po.PurchaseOrderId
 					 LEFT JOIN [dbo].[RepairOrder] ro WITH(NOLOCK) ON SL.RepairOrderId = ro.RepairOrderId
 					 LEFT JOIN [dbo].[TagType] tagT WITH(NOLOCK) ON SL.TagTypeId = tagT.TagTypeId

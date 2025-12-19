@@ -4,9 +4,9 @@
     [SalesOrderId]          BIGINT          NOT NULL,
     [ItemMasterId]          BIGINT          NOT NULL,
     [ConditionId]           BIGINT          NOT NULL,
-    [QtyRequested]          INT             NOT NULL,
-    [QtyOrder]              INT             NOT NULL,
-    [QtyReserved]           INT             NOT NULL,
+    [QtyRequested]          DECIMAL (18, 6) NULL,
+    [QtyOrder]              DECIMAL (18, 6) NULL,
+    [QtyReserved]           DECIMAL (18, 6) NULL,
     [CurrencyId]            INT             NULL,
     [PriorityId]            BIGINT          NOT NULL,
     [StatusId]              INT             NOT NULL,
@@ -45,16 +45,4 @@
     [UnitSalesPrice]        DECIMAL (18, 2) NULL,
     CONSTRAINT [PK_SalesOrderPartV1Audit] PRIMARY KEY CLUSTERED ([AuditSalesOrderPartId] ASC)
 );
-
-
-
-
-
-
-
-
-
-
-
-
 

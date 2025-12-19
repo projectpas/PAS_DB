@@ -18,9 +18,9 @@
     [ReceivedDate]                 DATETIME2 (7)   NULL,
     [IsSerialized]                 BIT             NOT NULL,
     [SerialNumber]                 VARCHAR (50)    NULL,
-    [Quantity]                     INT             NOT NULL,
-    [QuantityRejected]             INT             NULL,
-    [QuantityOnHand]               INT             NULL,
+    [Quantity]                     DECIMAL (18, 6) NULL,
+    [QuantityRejected]             DECIMAL (18, 6) NULL,
+    [QuantityOnHand]               DECIMAL (18, 6) NULL,
     [CurrencyId]                   BIGINT          NULL,
     [Currency]                     VARCHAR (50)    NULL,
     [ConditionId]                  BIGINT          NULL,
@@ -32,8 +32,8 @@
     [ManufacturerId]               BIGINT          NULL,
     [Manufacturer]                 VARCHAR (50)    NULL,
     [MfgExpirationDate]            DATETIME2 (7)   NULL,
-    [UnitCost]                     DECIMAL (18, 2) NULL,
-    [ExtendedCost]                 DECIMAL (18, 2) NULL,
+    [UnitCost]                     DECIMAL (18, 6) NULL,
+    [ExtendedCost]                 DECIMAL (18, 6) NULL,
     [Acquired]                     BIT             NULL,
     [IsHazardousMaterial]          BIT             NULL,
     [ItemNonStockClassificationId] BIGINT          NULL,
@@ -72,7 +72,7 @@
     [UpdatedDate]                  DATETIME2 (7)   CONSTRAINT [DF_NonStockInventoryAudit_UpdatedDate] DEFAULT (getdate()) NOT NULL,
     [IsActive]                     BIT             CONSTRAINT [DF_NonStockInventoryAudit_IsActive] DEFAULT ((1)) NOT NULL,
     [IsDeleted]                    BIT             CONSTRAINT [DF_NonStockInventoryAudit_IsDeleted] DEFAULT ((0)) NOT NULL,
-    [RRQty]                        INT             DEFAULT ((0)) NOT NULL,
+    [RRQty]                        DECIMAL (18, 6) CONSTRAINT [DF__NonStockI__RRQty__303F8996] DEFAULT ((0)) NULL,
     CONSTRAINT [PK_NonStockInventoryAudit] PRIMARY KEY CLUSTERED ([NonStockInventoryAuditId] ASC)
 );
 

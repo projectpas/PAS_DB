@@ -1,4 +1,5 @@
-﻿/***************************************************************   
+﻿
+/***************************************************************   
  ** File:  [USP_GetAssetDetails]             
  ** Author: Ayushi Patel 
  ** Description: Get Asset Details
@@ -10,10 +11,10 @@
  ** PR   Date				Author  				Change Description              
  ** --   --------			-------				--------------------------------            
     1    2025-06-11		  Ayushi Patel				Created
-
+    2    10 Dec 2025	  Rajesh Gami		        Getting UOM Decimal Places
 	exec [USP_GetAssetDetails] 214
 *************************************************************/
-CREATE   PROCEDURE USP_GetAssetDetails
+CREATE   PROCEDURE [dbo].[USP_GetAssetDetails]
     @AssetRecordId BIGINT
 AS
 BEGIN
@@ -76,7 +77,8 @@ BEGIN
                 ISNULL(gl4.AccountCode + '-' + gl4.AccountName, '') AS SaleGL,
                 ISNULL(gl5.AccountCode + '-' + gl5.AccountName, '') AS WriteDownGL,
                 ISNULL(gl6.AccountCode + '-' + gl6.AccountName, '') AS WriteOffGL,
-                a.AssetAttributeTypeId
+                a.AssetAttributeTypeId,
+				ISNULL(uom.Class,'Decimal')Class, ISNULL(uom.DecimalPlaces,2) DecimalPlaces
             FROM DBO.Asset a WITH (NOLOCK)
             LEFT JOIN DBO.Asset alt WITH (NOLOCK) ON a.AlternateAssetRecordId = alt.AssetRecordId
             LEFT JOIN DBO.AssetIntangibleAttributeType aia WITH (NOLOCK) ON a.AssetIntangibleTypeId = aia.AssetIntangibleTypeId
@@ -142,7 +144,7 @@ BEGIN
                 a.Model,
                 a.Name,
                 a.UnexpiredTime,
-                a.UnitCost,
+                ROUND(a.UnitCost,2) UnitCost,
                 ISNULL(a.IsDepreciable, 0) AS IsDepreciable,
                 ISNULL(a.IsNonDepreciable, 0) AS IsNonDepreciable,
                 ISNULL(a.IsAmortizable, 0) AS IsAmortizable,
@@ -170,7 +172,7 @@ BEGIN
                 ISNULL(gl5.AccountCode + '-' + gl5.AccountName, '') AS SaleGL,
                 ISNULL(gl6.AccountCode + '-' + gl6.AccountName, '') AS WriteDownGL,
                 ISNULL(gl7.AccountCode + '-' + gl7.AccountName, '') AS WriteOffGL,
-                a.AssetAttributeTypeId
+                a.AssetAttributeTypeId,ISNULL(uom.Class,'Decimal')Class, ISNULL(uom.DecimalPlaces,2) DecimalPlaces
             FROM DBO.Asset a WITH (NOLOCK)
             LEFT JOIN DBO.Asset alt WITH (NOLOCK) ON a.AlternateAssetRecordId = alt.AssetRecordId
             LEFT JOIN DBO.Asset parent WITH (NOLOCK) ON a.AssetParentRecordId = parent.AssetRecordId

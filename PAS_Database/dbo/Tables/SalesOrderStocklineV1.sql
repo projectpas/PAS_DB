@@ -3,10 +3,10 @@
     [SalesOrderPartId]      BIGINT          NOT NULL,
     [StockLineId]           BIGINT          NOT NULL,
     [ConditionId]           BIGINT          NOT NULL,
-    [QtyOrder]              INT             NOT NULL,
-    [QtyReserved]           INT             NOT NULL,
-    [QtyAvailable]          INT             NOT NULL,
-    [QtyOH]                 INT             NOT NULL,
+    [QtyOrder]              DECIMAL (18, 6) NULL,
+    [QtyReserved]           DECIMAL (18, 6) NULL,
+    [QtyAvailable]          DECIMAL (18, 6) NULL,
+    [QtyOH]                 DECIMAL (18, 6) NULL,
     [CustomerRequestDate]   DATETIME2 (7)   NULL,
     [PromisedDate]          DATETIME2 (7)   NULL,
     [EstimatedShipDate]     DATETIME2 (7)   NULL,
@@ -33,6 +33,8 @@
     CONSTRAINT [PK_SalesOrderStocklineV1] PRIMARY KEY CLUSTERED ([SalesOrderStocklineId] ASC),
     CONSTRAINT [FK_SalesOrderStocklineV1_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId])
 );
+
+
 
 
 

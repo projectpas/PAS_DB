@@ -13,6 +13,9 @@
     [IsDeleted]            BIT            NOT NULL,
     [StandardId]           INT            DEFAULT ((0)) NOT NULL,
     [StandardName]         VARCHAR (256)  NULL,
-    [SequenceNo]           INT            NULL
+    [SequenceNo]           INT            NULL,
+    [ShortCode]            VARCHAR (20)   NULL,
+    [Class]                VARCHAR (100)  NULL,
+    [DecimalPlaces]        INT            NULL
 );
 

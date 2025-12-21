@@ -17,7 +17,7 @@
     4    07/11/2025  Bhargav Saliya     Fixed Filters issues For Super Admin Role
     5    21/11/2025  Bhargav Saliya     get Tickettype with Filter
     6    16/12/2025  Bhargav Saliya     Fixed Status Filter
-    7    19/12/2025  Bhargav Saliya     Get New Field DaysSinceOpen
+    7    19/12/2025  Bhargav Saliya     Get New Field DaysSinceOpen And Modified Status Filter into Multiselect
 
 exec GetCustomerTicketList @PageNumber=1,@PageSize=10,@SortColumn=NULL,@SortOrder=-1,
 @GlobalFilter=N'',@TicketId=NULL,@Subject=NULL,@StatusDescription=NULL,@AssignTo=NULL,
@@ -43,7 +43,7 @@ CREATE   PROCEDURE [dbo].[GetCustomerTicketList]
 @IsDeleted BIT = NULL,
 @MasterCompanyId BIGINT = NULL,
 @EmployeeId BIGINT = NULL,
-@StatusId INT = NULL,
+@StatusIds VARCHAR(MAX) = NULL,
 @DepartmentId INT = NULL,
 @CompanyName VARCHAR(500) = NULL,
 @UserEmployeeId BIGINT = NULL,
@@ -65,10 +65,10 @@ BEGIN
 			SET @EmployeeId = NULL
 		END
 
-		IF @StatusId = 0
-		BEGIN
-			SET @StatusId = NULL
-		END
+		--IF @StatusIds = 0
+		--BEGIN
+		--	SET @StatusIds = NULL
+		--END
 
 		IF @DepartmentId = 0
 		BEGIN
@@ -149,7 +149,7 @@ BEGIN
 			(((ISNULL(@IsSupertUser, 0) = 1 AND ((@EmployeeId IS NULL OR CT.EmployeeId = @EmployeeId) OR (@EmployeeId IS NULL OR CT.AssignTo = @EmployeeId)))
 				or (ISNULL(@IsSupertUser, 0) = 0 and CT.MasterCompanyId = @MasterCompanyId AND ((@EmployeeId IS NULL OR CT.EmployeeId = @EmployeeId) OR (@EmployeeId IS NULL OR CT.AssignTo = @EmployeeId))))
 			AND ISNULL(CT.IsDeleted,0) = @IsDeleted
-			AND (@StatusId IS NULL OR TS.TicketStatusId = @StatusId)
+			AND (@StatusIds IS NULL OR TS.TicketStatusId IN (SELECT value FROM STRING_SPLIT(@StatusIds, ',')))
 			AND (@DepartmentId IS NULL OR SD.DepartmentId = @DepartmentId)
 			)),
 			ResultCount AS (SELECT COUNT(CustomerTicketId) AS totalItems FROM Result)
@@ -230,7 +230,7 @@ BEGIN
              @Parameter14 = ' + ISNULL(@IsDeleted ,'') + ',
              @Parameter15 = ' + ISNULL(@MasterCompanyId,'') + ',
              @Parameter16 = ' + ISNULL(@EmployeeId,'') + ',
-             @Parameter17 = ' + ISNULL(@StatusId,'') + ',
+             @Parameter17 = ' + ISNULL(@StatusIds,'') + ',
              @Parameter18 = ' + ISNULL(@DepartmentId,'') + ',
              @Parameter19 = ' + ISNULL(@CompanyName,'') + ','
              , @ApplicationName VARCHAR(100) = 'PAS'        

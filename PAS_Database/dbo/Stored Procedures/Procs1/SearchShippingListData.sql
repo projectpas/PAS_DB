@@ -141,7 +141,7 @@ BEGIN
 							SOP.SalesOrderPartId as PartId,
 							SOPT.SOPickTicketId as PickTicketId,
 							sos.SalesOrderShippingId as ShippingId,
-							SUM(ISNULL(SOSI.QtyShipped,0)) AS QtyShipped,
+							ISNULL(SOSI.QtyShipped,0) AS QtyShipped,
 							SOPSI.PackagingSlipId AS PackagingSlipId,
 							0 AS VendorRMADetailId,
 							BI.InvoiceNo AS InvoiceNumber,
@@ -149,7 +149,7 @@ BEGIN
 							BI.InvoiceDate AS InvoiceDate,
 							CU.Code Currency,
 							BI.InvoiceStatus  AS InvoiceStatus,
-							ISNULL(sop.QtyOrder,0) - SUM(ISNULL(SOSI.QtyShipped,0)) AS QtyRemaining
+							ISNULL(sopt.QtyToShip,0) - ISNULL(SOSI.QtyShipped,0) AS QtyRemaining
 					FROM DBO.SalesOrderPartV1 sop WITH (NOLOCK)
 						LEFT JOIN DBO.SalesOrder so WITH (NOLOCK) ON so.SalesOrderId = sop.SalesOrderId
 						LEFT JOIN DBO.SalesOrderShipping SOS WITH (NOLOCK) ON SOS.SalesOrderId = SO.SalesOrderId
@@ -166,7 +166,7 @@ BEGIN
 					WHERE  sopt.IsDeleted = 0 and sopt.MasterCompanyId= @MasterCompanyId AND sopt.IsConfirmed = 1
 						
 					GROUP BY SOP.SalesOrderId,SO.SalesOrderNumber,ITM.partnumber,ITM.PartDescription,SO.CustomerName,SO.CustomerId,P.Description,SOS.AirwayBill,SV.Name,
-								SOS.ShipDate,SOS.AirwayBill,SOP.SalesOrderPartId,SOPT.SOPickTicketId, SO.customerId, sos.SalesOrderShippingId,SOSI.QtyShipped,sop.QtyOrder,SOPSI.PackagingSlipId
+								SOS.ShipDate,SOS.AirwayBill,SOP.SalesOrderPartId,SOPT.SOPickTicketId, SO.customerId, sos.SalesOrderShippingId,SOSI.QtyShipped,sop.QtyOrder,sopt.QtyToShip,SOPSI.PackagingSlipId
 								,sopt.ConfirmedDate,BI.InvoiceNo,BII.GrandTotal	,BI.InvoiceDate,CU.Code,BI.InvoiceStatus
 				
 					UNION

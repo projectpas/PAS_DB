@@ -21,7 +21,8 @@
  5 12-12-2024   Shrey Chandegara  Modify Due to change calculation of quotedays ,approvedays,shipdays and tatdays and add another filter
  6 09-Jan-2025	Devendra Shekh	Reading Revised PN details if exists
  7 03-Jul-2025	Devendra Shekh	Added @Stage for Filtering, Removed ConvertUTCtoLocal function, using BaseUtcOffsetSec for date conversion
- 4 08-dec-2025  Ayushi Patel	changed the table name workOrderBillingInvoicing -> BillingInvoicing
+ 8 08-dec-2025  Ayushi Patel	changed the table name workOrderBillingInvoicing -> BillingInvoicing
+ 9 11-Dec-2025  Ayushi Patel     Mapped BillingInvoicing through BillingInvoicingItems
 EXECUTE   [dbo].[usp_GetWorkOrderTATReport]   
 **************************************************************/  
 --EXEC usp_GetWorkOrderTATReport  '1,4,43,44,45,80,84,88','46,47','58,59','64,65,77'  
@@ -58,6 +59,7 @@ BEGIN
   @IsDownload BIT = NULL  
   
   DECLARE @ModuleID INT = 12; -- MS Module ID  
+  DECLARE @WoModuleID AS BIGINT = (select ModuleId from DBO.Module WITH (NOLOCK) where ModuleName = 'WorkOrder')
   SET @IsDownload = CASE WHEN NULLIF(@PageSize,0) IS NULL THEN 1 ELSE 0 END  
   
   SELECT @Fromdate=CASE WHEN filterby.value('(FieldName/text())[1]','VARCHAR(100)')='From Shipped Date'   
@@ -188,8 +190,10 @@ BEGIN
 		   INNER JOIN DBO.WorkOrderWorkFlow WOWF WITH (NOLOCK) ON WOWF.WorkOrderId = WO.WorkOrderId   
 		   INNER JOIN DBO.WorkOrderPartNumber WOPN WITH (NOLOCK) ON WOWF.WorkOrderPartNoId = WOPN.ID  
 		   INNER JOIN DBO.WorkOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = WOPN.ID  
-		   LEFT JOIN DBO.EntityStructureSetup ES ON ES.EntityStructureId=MSD.EntityMSID  
-		   LEFT JOIN DBO.BillingInvoicing WOBI WITH (NOLOCK) ON WO.WorkOrderId = WOBI.ReferenceId AND ISNULL(WOBI.IsVersionIncrease, 0)=0 AND ISNULL(WOBI.IsPerformaInvoice, 0) = 0  
+		   LEFT JOIN DBO.EntityStructureSetup ES ON ES.EntityStructureId=MSD.EntityMSID
+		   LEFT JOIN DBO.BillingInvoicingItems WBII ON WBII.SubReferenceId = WOPN.ID AND WBII.ModuleId = @WoModuleID
+		   LEFT JOIN DBO.BillingInvoicing AS WOBI WITH (NOLOCK) ON WBII.BillingInvoicingId = WOBI.BillingInvoicingId and ISNULL(WOBI.IsVersionIncrease,0)=0 AND ISNULL(WOBI.IsPerformaInvoice, 0) = 0 AND WOBI.ModuleId = @WoModuleID
+		   --LEFT JOIN DBO.BillingInvoicing WOBI WITH (NOLOCK) ON WO.WorkOrderId = WOBI.ReferenceId AND ISNULL(WOBI.IsVersionIncrease, 0)=0 AND ISNULL(WOBI.IsPerformaInvoice, 0) = 0  
 		   LEFT JOIN DBO.Condition CN WITH (NOLOCK) ON WOPN.ConditionId = CN.ConditionId  
 		   LEFT JOIN DBO.WorkOrderQuote woq WITH (NOLOCK) ON WO.WorkOrderId = woq.WorkOrderId AND woq.IsVersionIncrease=0  
 		   LEFT JOIN DBO.WorkOrderType WITH (NOLOCK) ON WO.WorkOrderTypeId = WorkOrderType.Id  
@@ -257,7 +261,9 @@ BEGIN
 	   INNER JOIN DBO.WorkOrderPartNumber WOPN WITH (NOLOCK) ON WOWF.WorkOrderPartNoId = WOPN.ID 
 	   INNER JOIN DBO.WorkOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = WOPN.ID  
 	   LEFT JOIN DBO.EntityStructureSetup ES ON ES.EntityStructureId=MSD.EntityMSID  
-	   LEFT JOIN DBO.BillingInvoicing WOBI WITH (NOLOCK) ON WO.WorkOrderId = WOBI.ReferenceId AND ISNULL(WOBI.IsVersionIncrease, 0)=0 AND ISNULL(WOBI.IsPerformaInvoice, 0) = 0 
+	   LEFT JOIN DBO.BillingInvoicingItems WBII ON WBII.SubReferenceId = WOPN.ID AND WBII.ModuleId = @WoModuleID
+	   LEFT JOIN DBO.BillingInvoicing AS WOBI WITH (NOLOCK) ON WBII.BillingInvoicingId = WOBI.BillingInvoicingId and ISNULL(WOBI.IsVersionIncrease,0)=0 AND ISNULL(WOBI.IsPerformaInvoice, 0) = 0 AND WOBI.ModuleId = @WoModuleID
+	   --LEFT JOIN DBO.BillingInvoicing WOBI WITH (NOLOCK) ON WO.WorkOrderId = WOBI.ReferenceId AND ISNULL(WOBI.IsVersionIncrease, 0)=0 AND ISNULL(WOBI.IsPerformaInvoice, 0) = 0 
 	   LEFT JOIN DBO.Condition CN WITH (NOLOCK) ON WOPN.ConditionId = CN.ConditionId  
 	   LEFT JOIN DBO.WorkOrderQuote woq WITH (NOLOCK) ON WO.WorkOrderId = woq.WorkOrderId AND woq.IsVersionIncrease=0  
 	   LEFT JOIN DBO.WorkOrderType WITH (NOLOCK) ON WO.WorkOrderTypeId = WorkOrderType.Id  

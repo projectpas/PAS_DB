@@ -33,6 +33,7 @@
 	20   04-12-2025  Devendra Shekh		 Modified (added @SendQuote)
 	21   10-12-2025  Devendra Shekh		 Modified (added IsActive/IsDeleted to Where)
 	22   16-12-2025  Devendra Shekh		 Modified (added RFQNum)
+	23   17-12-2025  Devendra Shekh		 Modified (added AllowAssign, FollowUpDate)
 -- EXEC USP_GetReceivedRfqList 
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[USP_GetReceivedRfqList]
@@ -70,7 +71,8 @@ CREATE   PROCEDURE [dbo].[USP_GetReceivedRfqList]
 	@VendorRFQId VARCHAR(100) = NULL,
 	@PurchaseOrderNumber VARCHAR(MAX) = NULL,
 	@VendorRFQPurchaseOrderNumber VARCHAR(MAX) = NULL,
-	@SendQuote VARCHAR(100) = NULL
+	@SendQuote VARCHAR(100) = NULL,
+	@FollowUpDate DATETIME=NULL
 AS
 BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
@@ -129,6 +131,13 @@ BEGIN
 				
 				SELECT TOP 1 @BaseUtcOffsetSec = BaseUtcOffsetSec FROM dbo.TimeZone WITH(NOLOCK) WHERE [Description] = @CurrntEmpTimeZoneDesc
 				/* -------------- END: Get the timzone and UTC offset -------------- */
+				
+				IF OBJECT_ID('tempdb..#tmpSalesOrderStatus') IS NOT NULL
+				BEGIN
+					DROP TABLE #tmpSalesOrderStatus
+				END
+
+				SELECT Id INTO #tmpSalesOrderStatus FROM [dbo].[MasterSalesOrderStatus] WITH(NOLOCK) WHERE [Name] IN ('Closed', 'Cancelled');
 
 				DECLARE @ILSPortalId INT = 1, @OneFortyFivePortalId INT = 2, @EmailPortalId INT = 3;
 
@@ -278,6 +287,8 @@ BEGIN
 					RFQR.RFQReferenceId,
 					RFQR.RFQModuleId,
 					REPLACE(RFQ.RfqId, @CodePrefix, '')	AS RFQNum
+					,CASE WHEN RFQ.ModuleId = @SoqModuleId AND ISNULL(RFQ.[ReferenceId], 0) > 0 THEN CASE WHEN SOQ.StatusId IN (SELECT Id FROM #tmpSalesOrderStatus) THEN 0 ELSE 1 END ELSE 0 END AS AllowAssign
+					,CONVERT(DATETIME2, DATEADD(SECOND, @BaseUtcOffsetSec, RFQ.[FollowUpDate])) AS 'FollowUpDate'
 				FROM dbo.CustomerRfq RFQ WITH (NOLOCK)
 				--LEFT JOIN dbo.ItemMaster IM WITH(NOLOCK) ON RFQ.[LinePartNumber] = IM.[partnumber] AND RFQ.[MasterCompanyId] = IM.[MasterCompanyId]
 				LEFT JOIN ItemResult IM WITH(NOLOCK) ON LOWER(TRIM(RFQ.[LinePartNumber])) = LOWER(TRIM(IM.[partnumber])) AND RFQ.[MasterCompanyId] = IM.[MasterCompanyId]
@@ -382,6 +393,8 @@ BEGIN
 					RFQR.RFQReferenceId,
 					RFQR.RFQModuleId,
 					REPLACE(RFQ.RfqId, @CodePrefix, '')	AS RFQNum
+					,CASE WHEN RFQ.ModuleId = @SoqModuleId AND ISNULL(RFQ.[ReferenceId], 0) > 0 THEN CASE WHEN SOQ.StatusId IN (SELECT Id FROM #tmpSalesOrderStatus) THEN 0 ELSE 1 END ELSE 0 END AS AllowAssign
+					,CONVERT(DATETIME2, DATEADD(SECOND, @BaseUtcOffsetSec, RFQ.[FollowUpDate])) AS 'FollowUpDate'
 				FROM dbo.CustomerRfq RFQ WITH (NOLOCK)
 				LEFT JOIN dbo.Customer CU WITH(NOLOCK) ON (LOWER(TRIM(RFQ.[BuyerCompanyName])) = LOWER(TRIM(CU.[Name])) AND RFQ.[MasterCompanyId] = CU.[MasterCompanyId]) OR (RFQ.CustomerId = CU.CustomerId AND RFQ.[MasterCompanyId] = CU.[MasterCompanyId]) AND CU.IsActive = 1 AND CU.IsDeleted = 0
 				LEFT JOIN  dbo.CustomerContact CC  WITH (NOLOCK) ON CC.CustomerId=CU.CustomerId AND CC.IsDefaultContact=1
@@ -460,6 +473,7 @@ BEGIN
 							(IsNull(@Quantity,'') ='' OR CAST(Quantity AS VARCHAR(20)) like '%' + CAST(@Quantity AS VARCHAR(20)) + '%') and 
 							(IsNull(@SendQuote,'') ='' OR QuoteStatus like '%'+ @SendQuote +'%') and
 							(IsNull(@CreatedDate,'') ='' OR Cast(CreatedDate as Date)=Cast(@CreatedDate as date)) and
+							(IsNull(@FollowUpDate,'') ='' OR Cast(FollowUpDate as Date)=Cast(@FollowUpDate as date)) and
 							(IsNull(@UpdatedDate,'') ='' OR Cast(UpdatedDate as date)=Cast(@UpdatedDate as date)))
 							)),
 						ResultCount AS (Select COUNT(CustomerRfqId) AS NumberOfItems FROM FinalResult)
@@ -495,6 +509,7 @@ BEGIN
 					CASE WHEN (@SortOrder=1 and @SortColumn='PurchaseOrderNumber')  THEN PurchaseOrderNumber END ASC,
 					CASE WHEN (@SortOrder=1 and @SortColumn='VendorRFQPurchaseOrderNumber')  THEN VendorRFQPurchaseOrderNumber END ASC,
 					CASE WHEN (@SortOrder=1 and @SortColumn='SendQuote')  THEN QuoteStatus END ASC,
+					CASE WHEN (@SortOrder=1 and @SortColumn='FollowUpDate')  THEN FollowUpDate END ASC,
 
 					CASE WHEN (@SortOrder=-1 and @SortColumn='CUSTOMERRFQID')  THEN CustomerRfqId END DESC,
 					CASE WHEN (@SortOrder=-1 and @SortColumn='RFQID')  THEN RFQNum END DESC,
@@ -522,7 +537,8 @@ BEGIN
 					CASE WHEN (@SortOrder=-1 and @SortColumn='VendorRFQId')  THEN VendorRFQId END DESC,
 					CASE WHEN (@SortOrder=-1 and @SortColumn='PurchaseOrderNumber')  THEN PurchaseOrderNumber END DESC,
 					CASE WHEN (@SortOrder=-1 and @SortColumn='VendorRFQPurchaseOrderNumber')  THEN VendorRFQPurchaseOrderNumber END DESC,
-					CASE WHEN (@SortOrder=-1 and @SortColumn='SendQuote')  THEN QuoteStatus END DESC
+					CASE WHEN (@SortOrder=-1 and @SortColumn='SendQuote')  THEN QuoteStatus END DESC,
+					CASE WHEN (@SortOrder=-1 and @SortColumn='FollowUpDate')  THEN FollowUpDate END DESC
 					OFFSET @RecordFrom ROWS 
 					FETCH NEXT @PageSize ROWS ONLY
 

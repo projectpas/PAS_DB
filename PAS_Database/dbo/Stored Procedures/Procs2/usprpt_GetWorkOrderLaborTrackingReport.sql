@@ -22,6 +22,7 @@
 	6   18/04/2025      Ayushi              Added the condition for pn , pndescription
 	7   22/04/2025      Amit Ghediya        Update for task table baseed on wo type.
 	8   09/12/2025      Amit Ghediya        Added Task filter
+	9   18/12/2025      Sahdev Saliya       pnDescription has been updated. 
 **************************************************************/
 CREATE     PROCEDURE [dbo].[usprpt_GetWorkOrderLaborTrackingReport] 
 @PageNumber INT = 1,
@@ -155,7 +156,7 @@ BEGIN
 			--COUNT(1) OVER () AS TotalRecordsCount,
 			UPPER(WO.WorkOrderNum) 'woNum',
 			CASE WHEN ISNULL(WPN.RevisedItemmasterid,0) > 0 THEN  UPPER(RIM.partnumber) ELSE  UPPER(IM.partnumber) END AS 'pn',  
-			CASE WHEN ISNULL(WPN.RevisedItemmasterid,0) > 0 THEN  UPPER(RIM.PartDescription) ELSE  UPPER(IM.PartDescription) END AS 'pndescription',  
+			CASE WHEN ISNULL(WPN.RevisedItemmasterid,0) > 0 THEN  UPPER(RIM.PartDescription) ELSE  UPPER(IM.PartDescription) END AS 'pnDescription',  
 			UPPER(IM.ManufacturerName) 'manufacturerName',
 			CASE WHEN ISNULL(WO.WorkOrderFormTypeId, 0) > 0 THEN WT.TaskName ELSE UPPER(T.[Description]) END AS 'task',
 			UPPER(TS.[Description]) 'taskStatus',
@@ -223,7 +224,7 @@ BEGIN
 			--COUNT(1) OVER () AS TotalRecordsCount,
 			UPPER(WO.WorkOrderNum) 'woNum',
 			CASE WHEN ISNULL(WPN.RevisedItemmasterid,0) > 0 THEN  UPPER(RIM.partnumber) ELSE  UPPER(IM.partnumber) END AS 'pn',  
-			CASE WHEN ISNULL(WPN.RevisedItemmasterid,0) > 0 THEN  UPPER(RIM.PartDescription) ELSE  UPPER(IM.PartDescription) END AS 'pndescription',
+			CASE WHEN ISNULL(WPN.RevisedItemmasterid,0) > 0 THEN  UPPER(RIM.PartDescription) ELSE  UPPER(IM.PartDescription) END AS 'pnDescription',
 			UPPER(IM.ManufacturerName) 'manufacturerName',
 			CASE WHEN ISNULL(WO.WorkOrderFormTypeId, 0) > 0 THEN WT.TaskName ELSE UPPER(T.[Description]) END AS 'task',
 			UPPER(TS.[Description]) 'taskStatus',

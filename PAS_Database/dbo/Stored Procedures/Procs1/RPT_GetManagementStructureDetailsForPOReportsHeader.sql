@@ -14,7 +14,7 @@
  ** --   --------     -------		--------------------------------          
     1    05/25/2023   Amit Ghediya		Created
 	2    04/07/2025   Devendra Shekh	added UKCAALicense to select
-
+	3   19-12-2025    Ayushi Patel		Return NULL License for 'PAR' MasterCompany
  EXECUTE RPT_GetManagementStructureDetailsForPOReportsHeader 1,1,2621
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[RPT_GetManagementStructureDetailsForPOReportsHeader]    
@@ -33,10 +33,10 @@ SET NOCOUNT ON
 		BEGIN TRANSACTION
 			BEGIN
 				DECLARE @ModuleId BIGINT,@IsRequestor BIT, @RequestedBy BIGINT, @Email VARCHAR(100) = NULL;
-
+				DECLARE @MasterCompanyCode VARCHAR(50);
 				SELECT @ModuleId = AttachmentModuleId FROM dbo.AttachmentModule WITH(NOLOCK) WHERE UPPER(Name) = UPPER('LEGALENTITYLOGO');
 				SELECT @IsRequestor = IsRequestor  FROM dbo.PurchaseOrderSettingMaster WITH(NOLOCK) WHERE MasterCompanyId = @MasterCompanyId;
-				
+				SELECT @MasterCompanyCode = MasterCompanyCode FROM DBO.MasterCompany WITH(NOLOCK) WHERE UPPER(MasterCompanyCode) = UPPER('PAR')
 				IF(@IsRequestor > 0)
 				BEGIN 
 					SELECT @RequestedBy = RequestedBy FROM dbo.PurchaseOrder WITH(NOLOCK) WHERE PurchaseOrderId = @PurchaseOrderId;
@@ -70,11 +70,41 @@ SET NOCOUNT ON
 					LogoName = atd.FileName,
 					AttachmentDetailId = atd.AttachmentDetailId,
 					Email = CASE WHEN @Email IS NULL THEN UPPER(c.Email) ELSE  UPPER(@Email) END,
-					Upper(le.FAALicense) as FAALicense,
-					Upper(le.EASALicense) as EASALicense,
-					Upper(le.CAACLicense) as CAACLicense,
-					Upper(le.TCCALicense) as TCCALicense,
-					Upper(le.UKCAALicense) as UKCAALicense,
+					--Upper(le.FAALicense) as FAALicense,
+					FAALicense =
+					CASE 
+						WHEN MS.MasterCompanyCode = @MasterCompanyCode
+						THEN NULL
+						ELSE UPPER(le.FAALicense)
+					END,
+					EASALicense =
+					CASE 
+						WHEN MS.MasterCompanyCode = @MasterCompanyCode
+						THEN NULL
+						ELSE UPPER(le.EASALicense)
+					END,
+					CAACLicense =
+					CASE 
+						WHEN MS.MasterCompanyCode = @MasterCompanyCode
+						THEN NULL
+						ELSE UPPER(le.CAACLicense)
+					END,
+					TCCALicense =
+					CASE 
+						WHEN MS.MasterCompanyCode = @MasterCompanyCode
+						THEN NULL
+						ELSE UPPER(le.TCCALicense)
+					END,
+					UKCAALicense =
+					CASE 
+						WHEN MS.MasterCompanyCode = @MasterCompanyCode
+						THEN NULL
+						ELSE UPPER(le.UKCAALicense)
+					END,
+					--Upper(le.EASALicense) as EASALicense,
+					--Upper(le.CAACLicense) as CAACLicense,
+					--Upper(le.TCCALicense) as TCCALicense,
+					--Upper(le.UKCAALicense) as UKCAALicense,
 					CompanyLogoPath = MS.companylogo
 				FROM EntityStructureSetup est
 					INNER JOIN ManagementStructureLevel msl WITH(NOLOCK) ON est.Level1Id = msl.ID

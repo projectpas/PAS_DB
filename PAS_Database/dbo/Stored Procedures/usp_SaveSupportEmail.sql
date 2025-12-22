@@ -11,7 +11,7 @@
  ** --   --------			-------				--------------------------------          
     1    28-Oct-2025		Devendra Shekh		Created
     2    31-Oct-2025		Devendra Shekh		Removed OutPut And Return As Select Table
-    3    22-Oct-2025		Devendra Shekh		Removed @MasterCompanyId Check For @CustomerTicketId Select
+    3    22-Dec-2025		Devendra Shekh		Removed @MasterCompanyId Check For @CustomerTicketId Select
 
 **************************************************************/
 CREATE   PROCEDURE [dbo].[usp_SaveSupportEmail]

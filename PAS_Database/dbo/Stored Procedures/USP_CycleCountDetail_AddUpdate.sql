@@ -1,4 +1,7 @@
-﻿/*************************************************************           
+﻿
+
+
+/*************************************************************           
  ** File:   [USP_CycleCountDetail_AddUpdate]           
  ** Author: Moin Bloch
  ** Description: This stored procedure is used to INSERT AND UPDATE Cycle Count Details
@@ -14,10 +17,10 @@
     1    23/10/2024   Moin Bloch		Created
 	2    26/12/2024   Moin Bloch		Added LegalEntityId Field	
 	3    14/05/2025   Amit Ghediya      Added Adjustment Reason.
-
+	4    22/12/2025   Rajesh Gami		Modify the type and SP (Change the type INT to DECIMAL for QTY related fields)
   EXEC [dbo].[USP_CycleCountDetail_AddUpdate]  
 ************************************************************************/
-CREATE     PROCEDURE [dbo].[USP_CycleCountDetail_AddUpdate]
+CREATE       PROCEDURE [dbo].[USP_CycleCountDetail_AddUpdate]
 @TableCycleCountDetailType CycleCountDetailType READONLY  
 AS  
 BEGIN  
@@ -64,10 +67,10 @@ BEGIN
 				[Shelf] [varchar](50) NULL,
 				[BinId] [bigint] NULL,
 				[Bin] [varchar](50) NULL,
-				[CurrentStockQuantity] [int] NULL,
-				[CountedQuantity] [int] NULL,
-				[DifferenceQuantity] [int] NULL,
-				[DifferenceAmount] [decimal](18, 2) NULL,
+				[CurrentStockQuantity] [decimal](18, 6) NULL,
+				[CountedQuantity] [decimal](18, 6) NULL,
+				[DifferenceQuantity] [decimal](18, 6) NULL,
+				[DifferenceAmount] [decimal](18, 6) NULL,
 				[IsCustomerStock] [bit] NULL,
 				[ManagementStructureId] [bigint] NULL,
 				[LegalEntityId] [bigint] NULL,

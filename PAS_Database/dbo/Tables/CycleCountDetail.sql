@@ -15,7 +15,7 @@
     [ConditionName]         VARCHAR (50)    NULL,
     [UnitOfMeasureId]       BIGINT          NOT NULL,
     [UnitOfMeasureName]     VARCHAR (50)    NULL,
-    [UnitCost]              DECIMAL (18, 2) NULL,
+    [UnitCost]              DECIMAL (18, 6) NULL,
     [CurrencyId]            BIGINT          NULL,
     [CurrencyName]          VARCHAR (50)    NULL,
     [SiteId]                BIGINT          NOT NULL,
@@ -28,10 +28,10 @@
     [Shelf]                 VARCHAR (50)    NULL,
     [BinId]                 BIGINT          NULL,
     [Bin]                   VARCHAR (50)    NULL,
-    [CurrentStockQuantity]  INT             NOT NULL,
-    [CountedQuantity]       INT             NOT NULL,
-    [DifferenceQuantity]    INT             NOT NULL,
-    [DifferenceAmount]      DECIMAL (18, 2) NOT NULL,
+    [CurrentStockQuantity]  DECIMAL (18, 6) NULL,
+    [CountedQuantity]       DECIMAL (18, 6) NULL,
+    [DifferenceQuantity]    DECIMAL (18, 6) NULL,
+    [DifferenceAmount]      DECIMAL (18, 6) NULL,
     [IsCustomerStock]       BIT             NULL,
     [ManagementStructureId] BIGINT          NOT NULL,
     [LegalEntityId]         BIGINT          NULL,
@@ -51,6 +51,8 @@
     CONSTRAINT [FK_CycleCountDetail_Stockline] FOREIGN KEY ([StockLineId]) REFERENCES [dbo].[Stockline] ([StockLineId]),
     CONSTRAINT [FK_CycleCountDetail_UnitOfMeasure] FOREIGN KEY ([UnitOfMeasureId]) REFERENCES [dbo].[UnitOfMeasure] ([UnitOfMeasureId])
 );
+
+
 
 
 

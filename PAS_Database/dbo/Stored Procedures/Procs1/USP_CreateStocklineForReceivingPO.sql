@@ -38,6 +38,7 @@
 	20   01-DEC-2025  Rajesh Gami       UOM Conversion Related Changes
 	21   03-Dec-2025  Moin Bloch        Modified Fix Status Closed For Split Part
 	22   04-Dec-2025  Moin Bloch        Modified Fix For Asset Inverntory
+    22   19-Dec-2025  HEMANT SALIYA     Modified for remove corss join
 declare @p2 dbo.POPartsToReceive  
 insert into @p2 values(2371,4051,2)  
   
@@ -438,10 +439,7 @@ BEGIN
                         SET @ReceiverNumber = (SELECT * FROM dbo.udfGenerateCodeNumberWithOutDash(@CurrentIdNumber, 'RecNo', (SELECT CodeSufix FROM #tmpCodePrefixes WHERE CodeTypeId = @IdCodeTypeId)))
 
                         /* PN Manufacturer Combination Stockline logic */
-                        IF OBJECT_ID(N'tempdb..#tmpPNManufacturer') IS NOT NULL
-                        BEGIN
-                            DROP TABLE #tmpPNManufacturer
-                        END
+                       IF OBJECT_ID('tempdb..#tmpPNManufacturer') IS NOT NULL DROP TABLE #tmpPNManufacturer;
 
                         CREATE TABLE #tmpPNManufacturer
                         (
@@ -452,32 +450,55 @@ BEGIN
                             CurrentStlNo BIGINT NULL,
                             isSerialized BIT NULL
                         );
-                        WITH CTE_Stockline (ItemMasterId, ManufacturerId, StockLineId)
-                        AS (SELECT ac.ItemMasterId, ac.ManufacturerId, MAX(ac.StockLineId) StockLineId 
-							FROM (SELECT DISTINCT ItemMasterId FROM DBO.Stockline WITH (NOLOCK)) ac1
-                                CROSS JOIN (SELECT DISTINCT ManufacturerId FROM DBO.Stockline WITH (NOLOCK)) ac2
-                                LEFT JOIN DBO.Stockline ac WITH (NOLOCK) ON ac.ItemMasterId = ac1.ItemMasterId AND ac.ManufacturerId = ac2.ManufacturerId
-                            WHERE ac.MasterCompanyId = @MasterCompanyId
-                            GROUP BY ac.ItemMasterId, ac.ManufacturerId
-                            HAVING COUNT(ac.ItemMasterId) > 0)
 
-                        INSERT INTO #tmpPNManufacturer
+                        ;WITH LastStockline AS
                         (
-                            ItemMasterId,
-                            ManufacturerId,
-                            StockLineNumber,
-                            CurrentStlNo,
-                            isSerialized
+                          SELECT
+                            s.ItemMasterId,
+                            s.ManufacturerId,
+                            MAX(s.StockLineId) AS StockLineId
+                          FROM dbo.Stockline s WITH (NOLOCK)
+                          WHERE s.MasterCompanyId = @MasterCompanyId
+                          GROUP BY s.ItemMasterId, s.ManufacturerId
                         )
-                        SELECT CSTL.ItemMasterId,
-                               CSTL.ManufacturerId,
-                               StockLineNumber,
-                               ISNULL(IM.CurrentStlNo, 0) AS CurrentStlNo,
-                               IM.isSerialized
-                        FROM CTE_Stockline CSTL
-						INNER JOIN DBO.Stockline STL WITH (NOLOCK)
-						INNER JOIN DBO.ItemMaster IM WITH (NOLOCK) ON STL.ItemMasterId = IM.ItemMasterId AND STL.ManufacturerId = IM.ManufacturerId 
-						ON CSTL.StockLineId = STL.StockLineId
+                        INSERT INTO #tmpPNManufacturer (ItemMasterId, ManufacturerId, StockLineNumber, CurrentStlNo, isSerialized)
+                        SELECT
+                          ls.ItemMasterId,
+                          ls.ManufacturerId,
+                          st.StockLineNumber,
+                          ISNULL(im.CurrentStlNo, 0),
+                          im.isSerialized
+                        FROM LastStockline ls
+                        JOIN dbo.Stockline st WITH (NOLOCK) ON st.StockLineId = ls.StockLineId
+                        JOIN dbo.ItemMaster im WITH (NOLOCK) ON im.ItemMasterId = ls.ItemMasterId AND im.ManufacturerId = ls.ManufacturerId;
+
+                        --Modifyed logic as per Above
+      --                  WITH CTE_Stockline (ItemMasterId, ManufacturerId, StockLineId)
+      --                  AS (SELECT ac.ItemMasterId, ac.ManufacturerId, MAX(ac.StockLineId) StockLineId 
+						--	FROM (SELECT DISTINCT ItemMasterId FROM DBO.Stockline WITH (NOLOCK)) ac1
+      --                          CROSS JOIN (SELECT DISTINCT ManufacturerId FROM DBO.Stockline WITH (NOLOCK)) ac2
+      --                          LEFT JOIN DBO.Stockline ac WITH (NOLOCK) ON ac.ItemMasterId = ac1.ItemMasterId AND ac.ManufacturerId = ac2.ManufacturerId
+      --                      WHERE ac.MasterCompanyId = @MasterCompanyId
+      --                      GROUP BY ac.ItemMasterId, ac.ManufacturerId
+      --                      HAVING COUNT(ac.ItemMasterId) > 0)
+
+      --                  INSERT INTO #tmpPNManufacturer
+      --                  (
+      --                      ItemMasterId,
+      --                      ManufacturerId,
+      --                      StockLineNumber,
+      --                      CurrentStlNo,
+      --                      isSerialized
+      --                  )
+      --                  SELECT CSTL.ItemMasterId,
+      --                         CSTL.ManufacturerId,
+      --                         StockLineNumber,
+      --                         ISNULL(IM.CurrentStlNo, 0) AS CurrentStlNo,
+      --                         IM.isSerialized
+      --                  FROM CTE_Stockline CSTL
+						--INNER JOIN DBO.Stockline STL WITH (NOLOCK)
+						--INNER JOIN DBO.ItemMaster IM WITH (NOLOCK) ON STL.ItemMasterId = IM.ItemMasterId AND STL.ManufacturerId = IM.ManufacturerId 
+						--ON CSTL.StockLineId = STL.StockLineId
                         /* PN Manufacturer Combination Stockline logic */
 
                         DELETE FROM #tmpCodePrefixes;

@@ -18,6 +18,7 @@
 	3    19/05/2025  Devendra Shekh		Added new Fields : TotalPartCost, DepositAmount
 	4    22/05/2025  Devendra Shekh		checking IsParent for @TotalPartCost
 	5    12 Nov 2025 RAJESH GAMI        Make changes for PAR company (BillTo|ShipTo Address)  
+	6    19-12-2025  Ayushi Patel		removed the condition from email that we applied for 'PAR'
 -- EXEC RPT_PrintPurchaseOrderDataById 7881
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[RPT_PrintPurchaseOrderDataById]
@@ -190,8 +191,7 @@ BEGIN
 					--CASE WHEN ISNULL(BC.[Email],'') != '' THEN Upper(BC.[Email])+'<br/>'ELSE ''END
 					--) BillToMergedAddress
 					--,
-				BillToMergedAddress1 = (SELECT dbo.ValidatePDFAddress(ADB.[Line1],ADB.[Line2],NULL,ADB.[City],ADB.[StateOrProvince],ADB.[PostalCode],ADB.[Country],ADB.[ContactPhoneNo],NULL, CASE WHEN MC.MasterCompanyCode = 'PAR' THEN '' ELSE BC.[Email] END)),
-					
+				BillToMergedAddress1 = (SELECT dbo.ValidatePDFAddress(ADB.[Line1],ADB.[Line2],NULL,ADB.[City],ADB.[StateOrProvince],ADB.[PostalCode],ADB.[Country],ADB.[ContactPhoneNo],NULL, BC.[Email])),	
 			   CASE
 			   WHEN ADB.[Line1] !='' OR ADB.[Line2] !='' 
 			   THEN

@@ -37,7 +37,8 @@
 	27   26-Nov-2025        Ayushi Patel            Added common validation for FieldType = 'number' to allow only whole numeric values (no decimals, no alphabets), and return appropriate RecordStatus message.
 	28   26-Nov-2025        Ayushi Patel            Added condition to skip duplicate validation SP when any RecordStatus contains error.
 	29	 02-DEC-2025        Ayushi Patel			Added New SingleScreen Modules
-	29	 17-DEC-2025        Nakul Chandigara  		Added New SingleScreen Modules
+	30	 17-DEC-2025        Nakul Chandigara  		Added New SingleScreen Modules
+	31	 18-DEC-2025        Nakul Chandigara  		Added New SingleScreen Modules
 declare @p4 dbo.UploadModuleDataTableType
 insert into @p4 values(4,N'VICTOR ADMAS',1,N'{
   "partnumber": "AEIN122",
@@ -188,6 +189,7 @@ BEGIN
 		DECLARE @ScrapreasonModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'Scrapreason');
 		DECLARE @EvidenceModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'Evidence');
 		DECLARE @LocationModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'Location');
+		DECLARE @PublicationTypeModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'PublicationType');
 		
 
 		DECLARE @DropdownListTable VARCHAR(100) = NULL, 
@@ -853,7 +855,7 @@ BEGIN
 														WHEN @ModuleId = @ATAReferenceModule THEN 'Entered ATAReference Already Exits!'
 														WHEN @ModuleId = @ATAChapterModule THEN 'Entered Chapter Code Already Exits!'
 														WHEN @ModuleId = @TangibleClassModule THEN 'Entered Tangible Class Name Already Exits!'
-														WHEN @ModuleId = @AssetIntangibleTypeModule AND @ChekDuplticateRef1 = 'AssetIntangibleType'
+														WHEN @ModuleId = @AssetIntangibleTypeModule AND @ChekDuplticateRef1 = 'AssetIntangibleName'
 															THEN 'Entered Intangible Asset Class Already Exists!'
 														WHEN @ModuleId = @AssetIntangibleTypeModule AND @ChekDuplticateRef1 = 'AssetIntangibleCode'
 															THEN 'Entered Code Already Exists!'
@@ -968,6 +970,11 @@ BEGIN
 															THEN 'Entered Evidence Already Exists!'
 														--WHEN @ModuleId = @LocationModule    
 														--	THEN 'Entered Location Name And Warehouse Already Exists!'
+														WHEN @ModuleId = @PublicationTypeModule AND @ChekDuplticateRef1 = 'Name'  
+															THEN 'Entered Pub Name Already Exists!'
+														WHEN @ModuleId = @PublicationTypeModule AND @ChekDuplticateRef1 = 'Description'  
+															THEN 'Entered Description Already Exists!'
+
 		
 														ELSE '' END
 						WHERE ImportModuleFieldMasterId = @CurrentRow;

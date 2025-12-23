@@ -34,6 +34,7 @@
 	21   10-12-2025  Devendra Shekh		 Modified (added IsActive/IsDeleted to Where)
 	22   16-12-2025  Devendra Shekh		 Modified (added RFQNum)
 	23   17-12-2025  Devendra Shekh		 Modified (added AllowAssign, FollowUpDate)
+	24   22-12-2025  Devendra Shekh		 Modified (set Default @SortColumn to CustomerRfqId)
 -- EXEC USP_GetReceivedRfqList 
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[USP_GetReceivedRfqList]
@@ -104,7 +105,7 @@ BEGIN
 				
 				IF @SortColumn is null
 				BEGIN
-					SET @SortColumn=Upper('CreatedDate')
+					SET @SortColumn=Upper('CustomerRfqId')
 				END 
 				Else
 				BEGIN 

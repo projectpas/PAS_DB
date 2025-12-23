@@ -69,7 +69,17 @@ SET NOCOUNT ON
 					PhoneExt = Upper(le.PhoneExt),
 					LogoName = atd.FileName,
 					AttachmentDetailId = atd.AttachmentDetailId,
-					Email = CASE WHEN @Email IS NULL THEN UPPER(c.Email) ELSE  UPPER(@Email) END,
+					--Email = CASE WHEN @Email IS NULL THEN UPPER(c.Email) ELSE  UPPER(@Email) END,
+					Email = 
+					CASE 
+						WHEN MS.MasterCompanyCode = @MasterCompanyCode 
+							 THEN UPPER(c.Email)
+						ELSE 
+							CASE 
+								WHEN @Email IS NULL THEN UPPER(c.Email) 
+								ELSE  UPPER(@Email) 
+							END
+					END,
 					--Upper(le.FAALicense) as FAALicense,
 					FAALicense =
 					CASE 

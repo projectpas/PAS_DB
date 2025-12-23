@@ -9,7 +9,7 @@
     [Memo]                     NVARCHAR (MAX)  NULL,
     [Amount]                   DECIMAL (20, 6) NULL,
     [MarkupPercentageId]       BIGINT          NULL,
-    [MarkupFixedPrice]         DECIMAL (20, 3) NULL,
+    [MarkupFixedPrice]         DECIMAL (20, 6) NULL,
     [HeaderMarkupId]           BIGINT          NULL,
     [BillingMethodId]          INT             NULL,
     [BillingRate]              DECIMAL (20, 6) NULL,

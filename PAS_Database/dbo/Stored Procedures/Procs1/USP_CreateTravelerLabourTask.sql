@@ -24,11 +24,12 @@
 	7	 10/28/2025	  Moin Bloch	  Modified (for Assign Total Hours to Work Add All Task )
 	8	 10/31/2025	  Moin Bloch	  Modified (Allow Labor Entry For Total Hours to Work Add All Task No Need To Check Traveler Setup )
 	9	 11/11/2025	  Moin Bloch	  Modified (Add Default Entry Of [DirectLaborOHCost],[BurdaenRatePercentageId],[TotalCostPerHour],[BurdenRateAmount] for Assign Total Hours to Work Add All Task )
+	10	 12/23/2025	  Bhargav Saliya  Remove Case @WorkOrderFormTypeId due to Not Able to add Labour entry For Dynamic WO
        
 -- EXEC [USP_CreateTravelerLabourTask] 44  
 **************************************************************/  
   
-CREATE    PROCEDURE [dbo].[USP_CreateTravelerLabourTask]  
+CREATE     PROCEDURE [dbo].[USP_CreateTravelerLabourTask]  
  @WorkOrderId bigint,    
  @WorkOrderPartNoId bigint,    
  @WorkFlowWorkOrderId bigint ,  
@@ -71,8 +72,8 @@ BEGIN
 				
 	SELECT @WorkOrderFormTypeId = ISNULL(WO.[WorkOrderFormTypeId],0) FROM [dbo].[WorkOrder] WO WITH(NOLOCK)	WHERE WO.[WorkOrderId] = @WorkOrderId;
 
-	IF(@WorkOrderFormTypeId = 0)
-	BEGIN
+	--IF(@WorkOrderFormTypeId = 0)
+	--BEGIN
                   
     SELECT TOP 1 @ManagementStructureId = [ManagementStructureId],@ItemMasterId = [ItemMasterId],@WorkScopeId = [WorkOrderScopeId],@IstravelerTask = [IsTraveler],@TechnicianId = [TechnicianId] FROM [dbo].[WorkOrderPartNumber] WITH(NOLOCK) WHERE [ID] = @WorkOrderPartNoId  
     
@@ -399,7 +400,7 @@ BEGIN
 			END
 		END
 	  END
-	 END
+	--END
    END  
   COMMIT  TRANSACTION  
   

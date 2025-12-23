@@ -19,7 +19,9 @@
 	 3    14-MAR-2024		Vishal Suthar		modified to get proper unit cost and extended unit cost based on received qty
 	 4    20-MAR-2024		Vishal Suthar		fixed an issue with join for repair order records
 	 5    29-MAR-2024		Ekta Chandegra		IsDeleted and IsActive flag is added
-	 6    09-APR-2025		RAJESH GAMI			Resolved the Extend cost and receivied Qty(Exclude the Adustment Qty from the calculation)       
+	 6    09-APR-2025		RAJESH GAMI			Resolved the Extend cost and receivied Qty(Exclude the Adustment Qty from the calculation)
+	 7    22-DEC-2025       SAHDEV SALIYA       Remove the tag type and add the vendor name.
+
 EXECUTE   [dbo].[usprpt_GetReceivingLogReport] '','2020-06-15','2021-06-15','1','1,4,43,44,45,80,84,88','46,47,66','48,49,50,58,59,67,68,69','51,52,53,54,55,56,57,60,61,62,64,70,71,72'  
 **************************************************************/  
 CREATE   PROCEDURE [dbo].[usprpt_GetReceivingLogReport] 
@@ -35,7 +37,8 @@ BEGIN
   declare @Fromdate datetime2,
 	@Todate datetime2,
 	@partnumber varchar(50) = NULL,
-	@tagtype varchar(50) = NULL,
+	--@tagtype varchar(50) = NULL,
+	@vendorname varchar(50) = NULL,
 	@level1 VARCHAR(MAX) = NULL,
 	@level2 VARCHAR(MAX) = NULL,
 	@level3 VARCHAR(MAX) = NULL,
@@ -57,8 +60,10 @@ BEGIN
 	then convert(Date,filterby.value('(FieldValue/text())[1]','VARCHAR(100)')) else @Todate end,
 	@partnumber=case when filterby.value('(FieldName/text())[1]','VARCHAR(100)')='PN(Optional)' 
 	then filterby.value('(FieldValue/text())[1]','VARCHAR(100)') else @partnumber end,
-	@tagtype=case when filterby.value('(FieldName/text())[1]','VARCHAR(100)')='Tag Type' 
-	then filterby.value('(FieldValue/text())[1]','VARCHAR(100)') else @tagtype end,
+	--@tagtype=case when filterby.value('(FieldName/text())[1]','VARCHAR(100)')='Tag Type' 
+	--then filterby.value('(FieldValue/text())[1]','VARCHAR(100)') else @tagtype end,
+	@vendorname=case when filterby.value('(FieldName/text())[1]','VARCHAR(100)')='Vendor Name' 
+	then filterby.value('(FieldValue/text())[1]','VARCHAR(100)') else @vendorname end,
 	@level1=case when filterby.value('(FieldName/text())[1]','VARCHAR(100)')='Level1' 
 	then filterby.value('(FieldValue/text())[1]','VARCHAR(100)') else @level1 end,
 	@level2=case when filterby.value('(FieldName/text())[1]','VARCHAR(100)')='Level2' 
@@ -91,7 +96,8 @@ BEGIN
 		  SELECT 
 				UPPER(POP.partnumber) 'pn',  
 				UPPER(POP.PartDescription) 'pndescription', 
-				UPPER(STL.ReceiverNumber) 'recnum',  
+				UPPER(STL.ReceiverNumber) 'recnum', 
+				UPPER(PO.VendorName) 'vendorName',  
 				FORMAT(STL.OrderDate, 'MM/dd/yyyy hh:mm:tt') 'orderdate',  
 				FORMAT(STL.ReceivedDate, 'MM/dd/yyyy hh:mm:tt') 'rcvddate',  
 				UPPER(PO.PurchaseOrderNumber) AS 'poronum',  
@@ -144,8 +150,9 @@ BEGIN
 			   AND CAST(STL.receiveddate AS DATE) BETWEEN CAST(@Fromdate AS DATE)  AND CAST(@Todate AS DATE)  
 			   AND STL.mastercompanyid = @mastercompanyid
 			   AND ISNULL(PO.IsDeleted,0) = 0  AND ISNULL(PO.IsActive,0) = 1
-			   AND
-			   (ISNULL(@tagtype,'')='' OR ES.OrganizationTagTypeId IN(SELECT value FROM String_split(ISNULL(@tagtype,''), ',')))
+			   --AND
+			   --(ISNULL(@tagtype,'')='' OR ES.OrganizationTagTypeId IN(SELECT value FROM String_split(ISNULL(@tagtype,''), ',')))
+			   	AND PO.VendorId=ISNULL(@vendorname,PO.VendorId) 
 				AND  (ISNULL(@Level1,'') ='' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))
 				AND  (ISNULL(@Level2,'') ='' OR MSD.[Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,',')))
 				AND  (ISNULL(@Level3,'') ='' OR MSD.[Level3Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level3,',')))
@@ -161,6 +168,7 @@ BEGIN
 				UPPER(POP.partnumber) 'pn',  
 				UPPER(POP.PartDescription) 'pndescription', 
 				UPPER(STL.ReceiverNumber) 'recnum',  
+				UPPER(PO.VendorName) 'vendorName',  
 				FORMAT(STL.OrderDate, 'MM/dd/yyyy hh:mm:tt') 'orderdate',  
 				FORMAT(STL.ReceivedDate, 'MM/dd/yyyy hh:mm:tt') 'rcvddate',  
 				UPPER(PO.RepairOrderNumber) AS 'poronum',  
@@ -213,8 +221,9 @@ BEGIN
 			   AND CAST(STL.receiveddate AS DATE) BETWEEN CAST(@Fromdate AS DATE)  AND CAST(@Todate AS DATE)  
 			   AND STL.mastercompanyid = @mastercompanyid
 			   AND ISNULL(PO.IsDeleted,0) = 0  AND ISNULL(PO.IsActive,0) = 1
-			   AND
-			   (ISNULL(@tagtype,'')='' OR ES.OrganizationTagTypeId IN(SELECT value FROM String_split(ISNULL(@tagtype,''), ',')))
+			   --AND
+			   --(ISNULL(@tagtype,'')='' OR ES.OrganizationTagTypeId IN(SELECT value FROM String_split(ISNULL(@tagtype,''), ',')))
+			    AND PO.VendorId=ISNULL(@vendorname,PO.VendorId) 
 				AND  (ISNULL(@Level1,'') ='' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))
 				AND  (ISNULL(@Level2,'') ='' OR MSD.[Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,',')))
 				AND  (ISNULL(@Level3,'') ='' OR MSD.[Level3Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level3,',')))
@@ -232,7 +241,7 @@ BEGIN
 	  SET @PageSize = CASE WHEN NULLIF(@PageSize,0) IS NULL THEN 10 ELSE @PageSize END
 	  SET @PageNumber = CASE WHEN NULLIF(@PageNumber,0) IS NULL THEN 1 ELSE @PageNumber END
 
-	  ;WITH rptCTE (TotalRecordsCount, pn, pndescription, recnum, orderdate, rcvddate, poronum, porostatus, ctrlnum, idnum, slnum, sernum, stocktype, altequiv, 
+	  ;WITH rptCTE (TotalRecordsCount, pn, pndescription, recnum, vendorName, orderdate, rcvddate, poronum, porostatus, ctrlnum, idnum, slnum, sernum, stocktype, altequiv, 
 					manufacturer, itemtype, qtyord, qtyrcvd, unitcost, extcost, qtyrej, qtyonbacklog,
 					receivedby, requestor, approver, site, warehouse, location, shelf, bin, level1, level2, level3, level4, level5, level6, level7, level8, level9, level10, masterCompanyId) AS (
 SELECT COUNT(1) OVER () AS TotalRecordsCount,* FROM(
@@ -240,6 +249,7 @@ SELECT COUNT(1) OVER () AS TotalRecordsCount,* FROM(
         UPPER(POP.partnumber) 'pn',  
         UPPER(POP.PartDescription) 'pndescription', 
         UPPER(STL.ReceiverNumber) 'recnum',  
+		UPPER(PO.VendorName) 'vendorName',  
         FORMAT(STL.OrderDate, 'MM/dd/yyyy hh:mm:tt') 'orderdate',  
         FORMAT(STL.ReceivedDate, 'MM/dd/yyyy hh:mm:tt') 'rcvddate',  
         UPPER(PO.PurchaseOrderNumber) AS 'poronum',  
@@ -295,8 +305,9 @@ SELECT COUNT(1) OVER () AS TotalRecordsCount,* FROM(
        AND CAST(STL.receiveddate AS DATE) BETWEEN CAST(@Fromdate AS DATE)  AND CAST(@Todate AS DATE)  
        AND STL.mastercompanyid = @mastercompanyid
 	   AND ISNULL(PO.IsDeleted,0) = 0  AND ISNULL(PO.IsActive,0) = 1
-	   AND 
-	   (ISNULL(@tagtype,'')='' OR ES.OrganizationTagTypeId IN(SELECT value FROM String_split(ISNULL(@tagtype,''), ',')))
+	   --AND 
+	   --(ISNULL(@tagtype,'')='' OR ES.OrganizationTagTypeId IN(SELECT value FROM String_split(ISNULL(@tagtype,''), ',')))
+	    AND PO.VendorId=ISNULL(@vendorname,PO.VendorId) 
 		AND  (ISNULL(@Level1,'') ='' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))
 		AND  (ISNULL(@Level2,'') ='' OR MSD.[Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,',')))
 		AND  (ISNULL(@Level3,'') ='' OR MSD.[Level3Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level3,',')))
@@ -311,7 +322,8 @@ SELECT COUNT(1) OVER () AS TotalRecordsCount,* FROM(
 	SELECT 
         UPPER(POP.partnumber) 'pn',  
         UPPER(POP.PartDescription) 'pndescription', 
-        UPPER(STL.ReceiverNumber) 'recnum',  
+        UPPER(STL.ReceiverNumber) 'recnum', 
+	    UPPER(PO.VendorName) 'vendorName',  
         FORMAT(STL.OrderDate, 'MM/dd/yyyy hh:mm:tt') 'orderdate',  
         FORMAT(STL.ReceivedDate, 'MM/dd/yyyy hh:mm:tt') 'rcvddate',  
         UPPER(PO.RepairOrderNumber) AS 'poronum',  
@@ -365,8 +377,9 @@ SELECT COUNT(1) OVER () AS TotalRecordsCount,* FROM(
        AND CAST(STL.receiveddate AS DATE) BETWEEN CAST(@Fromdate AS DATE)  AND CAST(@Todate AS DATE)  
        AND STL.mastercompanyid = @mastercompanyid
 	   AND ISNULL(PO.IsDeleted,0) = 0  AND ISNULL(PO.IsActive,0) = 1
-	   AND 
-	   (ISNULL(@tagtype,'')='' OR ES.OrganizationTagTypeId IN(SELECT value FROM String_split(ISNULL(@tagtype,''), ',')))
+	   --AND 
+	   --(ISNULL(@tagtype,'')='' OR ES.OrganizationTagTypeId IN(SELECT value FROM String_split(ISNULL(@tagtype,''), ',')))
+	   	AND PO.VendorId=ISNULL(@vendorname,PO.VendorId) 
 		AND  (ISNULL(@Level1,'') ='' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))
 		AND  (ISNULL(@Level2,'') ='' OR MSD.[Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,',')))
 		AND  (ISNULL(@Level3,'') ='' OR MSD.[Level3Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level3,',')))
@@ -378,9 +391,9 @@ SELECT COUNT(1) OVER () AS TotalRecordsCount,* FROM(
 		AND  (ISNULL(@Level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))
 		AND  (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))
    ) T )
-   ,FinalCTE(TotalRecordsCount, pn, pndescription, recnum, orderdate, rcvddate, poronum, porostatus, ctrlnum, idnum, slnum, sernum, stocktype, altequiv, manufacturer, itemtype, qtyord, qtyrcvd, unitcost, extcost, qtyrej, qtyonbacklog,
+   ,FinalCTE(TotalRecordsCount, pn, pndescription, recnum, vendorName, orderdate, rcvddate, poronum, porostatus, ctrlnum, idnum, slnum, sernum, stocktype, altequiv, manufacturer, itemtype, qtyord, qtyrcvd, unitcost, extcost, qtyrej, qtyonbacklog,
 				receivedby, requestor, approver, site, warehouse, location, shelf, bin, level1, level2, level3, level4, level5, level6, level7, level8, level9, level10, masterCompanyId) 
-			  AS (SELECT DISTINCT TotalRecordsCount, pn, pndescription, recnum, orderdate, rcvddate, poronum, porostatus, ctrlnum, idnum, slnum, sernum, stocktype, altequiv, manufacturer, itemtype, qtyord, qtyrcvd, unitcost, extcost, qtyrej, qtyonbacklog,
+			  AS (SELECT DISTINCT TotalRecordsCount, pn, pndescription, recnum, vendorName, orderdate, rcvddate, poronum, porostatus, ctrlnum, idnum, slnum, sernum, stocktype, altequiv, manufacturer, itemtype, qtyord, qtyrcvd, unitcost, extcost, qtyrej, qtyonbacklog,
 				receivedby, requestor, approver, site, warehouse, location, shelf, bin, level1, level2, level3, level4, level5, level6, level7, level8, level9, level10, masterCompanyId FROM rptCTE)
 
 			,WithTotal (masterCompanyId, TotalUnitCost, TotalExtCost ) 
@@ -390,7 +403,7 @@ SELECT COUNT(1) OVER () AS TotalRecordsCount,* FROM(
 				FROM FinalCTE
 				GROUP BY masterCompanyId)
 
-			  SELECT COUNT(2) OVER () AS TotalRecordsCount, pn, pndescription, recnum, orderdate, rcvddate, poronum, porostatus, ctrlnum, idnum, slnum, sernum, stocktype, altequiv, manufacturer, itemtype, qtyord, qtyrcvd,
+			  SELECT COUNT(2) OVER () AS TotalRecordsCount, pn, pndescription, recnum, vendorName, orderdate, rcvddate, poronum, porostatus, ctrlnum, idnum, slnum, sernum, stocktype, altequiv, manufacturer, itemtype, qtyord, qtyrcvd,
 					FORMAT(ISNULL(unitcost,0) , 'N', 'en-us') 'unitcost',    
 					FORMAT(ISNULL(extcost,0) , 'N', 'en-us') 'extcost',    
 					qtyrej, qtyonbacklog, receivedby, requestor, approver, site, warehouse, location, shelf, bin, level1, level2, level3, level4, level5, level6, level7, level8, level9, level10,

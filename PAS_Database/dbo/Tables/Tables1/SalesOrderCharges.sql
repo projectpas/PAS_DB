@@ -8,13 +8,13 @@
     [Quantity]                 DECIMAL (18, 6) NULL,
     [MarkupPercentageId]       BIGINT          NULL,
     [Description]              VARCHAR (256)   NULL,
-    [UnitCost]                 DECIMAL (20, 2) NOT NULL,
-    [ExtendedCost]             DECIMAL (20, 2) NOT NULL,
+    [UnitCost]                 DECIMAL (20, 6) NOT NULL,
+    [ExtendedCost]             DECIMAL (20, 6) NOT NULL,
     [MasterCompanyId]          INT             NOT NULL,
-    [MarkupFixedPrice]         DECIMAL (20, 2) NULL,
+    [MarkupFixedPrice]         DECIMAL (20, 6) NULL,
     [BillingMethodId]          INT             NULL,
-    [BillingAmount]            DECIMAL (20, 2) NULL,
-    [BillingRate]              DECIMAL (20, 2) NULL,
+    [BillingAmount]            DECIMAL (20, 6) NULL,
+    [BillingRate]              DECIMAL (20, 6) NULL,
     [HeaderMarkupId]           BIGINT          NULL,
     [RefNum]                   VARCHAR (20)    NULL,
     [CreatedBy]                VARCHAR (256)   NOT NULL,
@@ -35,6 +35,8 @@
     CONSTRAINT [FK_SalesOrderCharges_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId]),
     CONSTRAINT [FK_SalesOrderCharges_SalesOrderId] FOREIGN KEY ([SalesOrderId]) REFERENCES [dbo].[SalesOrder] ([SalesOrderId])
 );
+
+
 
 
 

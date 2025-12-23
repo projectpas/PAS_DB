@@ -1,6 +1,4 @@
-﻿
-
-/****************************************************************************************************************************************************************************/
+﻿/****************************************************************************************************************************************************************************/
 
 /****** Object:  UserDefinedFunction [dbo].[fn_ConvertUOM]    Script Date: 12/2/2025 3:39:07 PM ******/
 CREATE   FUNCTION [dbo].[fn_ConvertUOM]
@@ -13,9 +11,14 @@ CREATE   FUNCTION [dbo].[fn_ConvertUOM]
 RETURNS DECIMAL(18,6)
 AS
 BEGIN
-    DECLARE @Factor DECIMAL(18,8), @IsMultiply BIT = 0;
-
-    -- Case 1: Exact From → To conversion exists
+	-- Same UOM Return Same Qty / Cost
+    IF(@FromUOM = @ToUOM)
+	BEGIN
+		RETURN ROUND(@Qty, 6);
+	END
+	
+	DECLARE @Factor DECIMAL(18,8), @IsMultiply BIT = 0;
+	    -- Case 1: Exact From → To conversion exists
     SELECT @Factor = Factor, @IsMultiply = IsMultiply
     FROM dbo.UOMConversion WITH (NOLOCK)
     WHERE FromUOM = @FromUOM

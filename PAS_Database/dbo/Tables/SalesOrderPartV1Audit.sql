@@ -10,7 +10,7 @@
     [CurrencyId]            INT             NULL,
     [PriorityId]            BIGINT          NOT NULL,
     [StatusId]              INT             NOT NULL,
-    [FxRate]                DECIMAL (18, 4) NULL,
+    [FxRate]                DECIMAL (18, 6) NULL,
     [CustomerRequestDate]   DATETIME2 (7)   NULL,
     [PromisedDate]          DATETIME2 (7)   NULL,
     [EstimatedShipDate]     DATETIME2 (7)   NULL,
@@ -42,7 +42,7 @@
     [SizeWidth]             DECIMAL (10, 2) NULL,
     [SizeHeight]            DECIMAL (10, 2) NULL,
     [AltOrEqType]           VARCHAR (50)    NULL,
-    [UnitSalesPrice]        DECIMAL (18, 2) NULL,
+    [UnitSalesPrice]        DECIMAL (18, 6) NULL,
     CONSTRAINT [PK_SalesOrderPartV1Audit] PRIMARY KEY CLUSTERED ([AuditSalesOrderPartId] ASC)
 );
 

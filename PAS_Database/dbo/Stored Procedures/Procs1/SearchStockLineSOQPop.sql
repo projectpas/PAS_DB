@@ -19,7 +19,7 @@
 	3    05-01-2025			ABHISHEK JIRAWLA Allow Repair Management Customer Stock Stockline
 	4    05-30-2025			ABHISHEK JIRAWLA Adding Traceability Changes
      
- EXEC [dbo].[SearchStockLineSOQPop] '2', 33, 10,-1,NULL
+ EXEC [dbo].[SearchStockLineSOQPop] '115640', 2, 90,-1,NULL
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[SearchStockLineSOQPop]
 	@ItemMasterIdlist VARCHAR(max) = '0', 
@@ -75,37 +75,19 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 			,sl.ControlNumber
 			,sl.IdNumber
 			,uom.ShortName AS UomDescription
-			,ISNULL(sl.QuantityAvailable,0) AS QtyAvailable
-			,ISNULL(sl.QuantityOnHand, 0) AS QtyOnHand
-			--,ISNULL(sl.PurchaseOrderUnitCost, 0) AS unitCost
-			,(CASE WHEN ISNULL(lsm.IsUseMargin,0) = 1 THEN CONVERT(DECIMAL(10,2),((ISNULL(sl.UnitCost, 0) * ISNULL(per.PercentValue,0.00))/100 ))  ELSE  CONVERT(DECIMAL(10,2), ISNULL(sl.UnitCost, 0))  END)   AS unitCost
-			,ISNULL(sl.UnitSalesPrice, 0) AS unitSalePrice
-			--,CASE WHEN sl.TraceableToType = 1 THEN cusTraceble.Name
-			--		WHEN sl.TraceableToType = 2 THEN vTraceble.VendorName
-			--		WHEN sl.TraceableToType = 9 THEN leTraceble.Name
-			--		WHEN sl.TraceableToType = 4 THEN CAST(sl.TraceableTo as varchar)
-			--		ELSE
-			--			''
-			--		END
+			--,ISNULL(sl.QuantityAvailable,0) AS QtyAvailable
+			,([dbo].[fn_ConvertUOM](ISNULL(sl.[QuantityAvailable], 0),sl.[StockUnitOfMeasure], sl.[ConsumeUnitOfMeasure],0)) AS QtyAvailable 
+			--,ISNULL(sl.QuantityOnHand, 0) AS QtyOnHand
+			,([dbo].[fn_ConvertUOM](ISNULL(sl.[QuantityOnHand], 0),sl.[StockUnitOfMeasure], sl.[ConsumeUnitOfMeasure],0)) AS QtyOnHand 
+			--,ISNULL(sl.PurchaseOrderUnitCost, 0) AS unitCost			
+			--,(CASE WHEN ISNULL(lsm.IsUseMargin,0) = 1 THEN CONVERT(DECIMAL(18,2),((ISNULL(sl.UnitCost, 0) * ISNULL(per.PercentValue,0.00))/100 ))  
+			--ELSE  CONVERT(DECIMAL(18,2), ISNULL(sl.UnitCost, 0))  END)   AS unitCost
+			,([dbo].[fn_ConvertUOM](ISNULL(sl.UnitCost, 0),sl.[StockUnitOfMeasure], sl.[ConsumeUnitOfMeasure],1)) AS unitCost			
+			--,ISNULL(sl.UnitSalesPrice, 0) AS unitSalePrice
+			,([dbo].[fn_ConvertUOM](ISNULL(sl.UnitSalesPrice, 0),sl.[StockUnitOfMeasure], sl.[ConsumeUnitOfMeasure],1)) AS unitSalePrice
 			,sl.TraceableToName AS TracableToName
 			,sl.OwnerName AS OwnerName
-			,sl.ObtainFromName AS ObtainFromName
-			--,CASE WHEN sl.OwnerType = 1 THEN cusOwner.Name
-			--		WHEN sl.OwnerType = 2 THEN vOwner.VendorName
-			--		WHEN sl.OwnerType = 9 THEN leOwner.Name
-			--		WHEN sl.OwnerType = 4 THEN CAST(sl.Owner as varchar)
-			--		ELSE
-			--			''
-			--		END
-			--		AS [OwnerName]
-			--,CASE WHEN sl.ObtainFromType = 1 THEN cusObtain.Name
-			--		WHEN sl.ObtainFromType = 2 THEN vObtain.VendorName
-			--		WHEN sl.ObtainFromType = 9 THEN leObtain.Name
-			--		WHEN sl.ObtainFromType = 4 THEN CAST(sl.ObtainFrom as varchar)
-			--		ELSE
-			--			''
-			--		END
-			--		AS ObtainFromName
+			,sl.ObtainFromName AS ObtainFromName			
 					,sl.TagDate
 					,sl.TagType
 					,sl.CertifiedBy
@@ -129,8 +111,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 										THEN @ConditionId ELSE sl.ConditionId 
 										END
 			LEFT JOIN DBO.Condition c WITH(NOLOCK) ON c.ConditionId = sl.ConditionId
-			LEFT JOIN DBO.PurchaseOrder po WITH(NOLOCK) ON po.PurchaseOrderId = sl.PurchaseOrderId 
-				AND sl.IsDeleted = 0
+			LEFT JOIN DBO.PurchaseOrder po WITH(NOLOCK) ON po.PurchaseOrderId = sl.PurchaseOrderId AND sl.IsDeleted = 0
 			LEFT JOIN DBO.PurchaseOrderPart pop WITH(NOLOCK) ON po.PurchaseOrderId = pop.PurchaseOrderId 
 				AND pop.ItemMasterId = im.ItemMasterId 
 				AND pop.IsDeleted = 0 AND pop.isActive = 1
@@ -139,7 +120,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 			LEFT JOIN DBO.Manufacturer mf WITH(NOLOCK) ON sl.ManufacturerId = mf.ManufacturerId
 			LEFT JOIN DBO.ItemClassification ic WITH(NOLOCK) ON im.ItemClassificationId = ic.ItemClassificationId
 			LEFT JOIN DBO.UnitOfMeasure uom WITH(NOLOCK) ON im.PurchaseUnitOfMeasureId = uom.UnitOfMeasureId
-			LEFT JOIN DBO.UnitOfMeasure suom  WITH(NOLOCK) ON sl.PurchaseUnitOfMeasureId = suom.UnitOfMeasureId
+			LEFT JOIN DBO.UnitOfMeasure suom  WITH(NOLOCK) ON sl.ConsumeUnitOfMeasureId = suom.UnitOfMeasureId
 			LEFT JOIN DBO.Customer cusTraceble WITH(NOLOCK) ON sl.TraceableTo = cusTraceble.CustomerId
 			LEFT JOIN DBO.Vendor vTraceble WITH(NOLOCK) ON sl.TraceableTo = vTraceble.VendorId
 			LEFT JOIN DBO.LegalEntity leTraceble WITH(NOLOCK) ON sl.TraceableTo = leTraceble.LegalEntityId
@@ -149,8 +130,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 			LEFT JOIN DBO.Customer cusOwner WITH(NOLOCK) ON sl.Owner = cusOwner.CustomerId
 			LEFT JOIN DBO.Vendor vOwner WITH(NOLOCK) ON sl.Owner = vOwner.VendorId
 			LEFT JOIN DBO.LegalEntity leOwner WITH(NOLOCK) ON sl.Owner = leOwner.LegalEntityId
-			LEFT JOIN DBO.ItemMasterPurchaseSale imps WITH (NOLOCK) on imps.ItemMasterId = im.ItemMasterId
-							and imps.ConditionId = c.ConditionId
+			LEFT JOIN DBO.ItemMasterPurchaseSale imps WITH (NOLOCK) ON imps.ItemMasterId = im.ItemMasterId AND imps.ConditionId = c.ConditionId
 			LEFT JOIN DBO.Lot lot WITH(NOLOCK) ON sl.LotId = lot.LotId
 			LEFT JOIN DBO.LotSetupMaster lsm WITH(NOLOCK) ON sl.LotId = lsm.LotId AND lsm.IsUseMargin = 1
 			LEFT JOIN DBO.[Percent] per WITH(NOLOCK) ON lsm.MarginPercentageId = per.PercentId
@@ -201,11 +181,14 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 			,sl.ControlNumber
 			,sl.IdNumber
 			,uom.ShortName AS UomDescription
-			,ISNULL(sl.QuantityAvailable,0) AS QtyAvailable
-			,ISNULL(sl.QuantityOnHand, 0) AS QtyOnHand
-			--,ISNULL(sl.PurchaseOrderUnitCost, 0) AS unitCost
-			,ISNULL(sl.UnitCost, 0) AS unitCost
-			,ISNULL(sl.UnitSalesPrice, 0) AS unitSalePrice
+			--,ISNULL(sl.QuantityAvailable,0) AS QtyAvailable
+			,([dbo].[fn_ConvertUOM](ISNULL(sl.[QuantityAvailable], 0),sl.[StockUnitOfMeasure], sl.[ConsumeUnitOfMeasure],0)) AS QtyAvailable 
+			--,ISNULL(sl.QuantityOnHand, 0) AS QtyOnHand
+			,([dbo].[fn_ConvertUOM](ISNULL(sl.[QuantityOnHand], 0),sl.[StockUnitOfMeasure], sl.[ConsumeUnitOfMeasure],0)) AS QtyOnHand 			
+			--,ISNULL(sl.UnitCost, 0) AS unitCost
+			,([dbo].[fn_ConvertUOM](ISNULL(sl.UnitCost, 0),sl.[StockUnitOfMeasure], sl.[ConsumeUnitOfMeasure],1)) AS unitCost
+			--,ISNULL(sl.UnitSalesPrice, 0) AS unitSalePrice
+			,([dbo].[fn_ConvertUOM](ISNULL(sl.UnitSalesPrice, 0),sl.[StockUnitOfMeasure], sl.[ConsumeUnitOfMeasure],1)) AS unitSalePrice
 			,CASE WHEN sl.TraceableToType = 1 THEN cusTraceble.Name
 					WHEN sl.TraceableToType = 2 THEN vTraceble.VendorName
 					WHEN sl.TraceableToType = 9 THEN leTraceble.Name
@@ -253,8 +236,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 										THEN @ConditionId ELSE sl.ConditionId 
 										END
 			LEFT JOIN DBO.Condition c WITH(NOLOCK) ON c.ConditionId = sl.ConditionId
-			LEFT JOIN DBO.PurchaseOrder po WITH(NOLOCK) ON po.PurchaseOrderId = sl.PurchaseOrderId 
-				AND sl.IsDeleted = 0
+			LEFT JOIN DBO.PurchaseOrder po WITH(NOLOCK) ON po.PurchaseOrderId = sl.PurchaseOrderId AND sl.IsDeleted = 0
 			LEFT JOIN DBO.PurchaseOrderPart pop WITH(NOLOCK) ON po.PurchaseOrderId = pop.PurchaseOrderId 
 				AND pop.ItemMasterId = im.ItemMasterId 
 				AND pop.IsDeleted = 0 AND pop.isActive = 1
@@ -263,7 +245,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 			LEFT JOIN DBO.Manufacturer mf WITH(NOLOCK) ON sl.ManufacturerId = mf.ManufacturerId
 			LEFT JOIN DBO.ItemClassification ic WITH(NOLOCK) ON im.ItemClassificationId = ic.ItemClassificationId
 			LEFT JOIN DBO.UnitOfMeasure uom WITH(NOLOCK) ON im.PurchaseUnitOfMeasureId = uom.UnitOfMeasureId
-			LEFT JOIN DBO.UnitOfMeasure suom  WITH(NOLOCK) ON sl.PurchaseUnitOfMeasureId = suom.UnitOfMeasureId
+			LEFT JOIN DBO.UnitOfMeasure suom  WITH(NOLOCK) ON sl.ConsumeUnitOfMeasureId = suom.UnitOfMeasureId
 			LEFT JOIN DBO.Customer cusTraceble WITH(NOLOCK) ON sl.TraceableTo = cusTraceble.CustomerId
 			LEFT JOIN DBO.Vendor vTraceble WITH(NOLOCK) ON sl.TraceableTo = vTraceble.VendorId
 			LEFT JOIN DBO.LegalEntity leTraceble WITH(NOLOCK) ON sl.TraceableTo = leTraceble.LegalEntityId
@@ -273,9 +255,8 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 			LEFT JOIN DBO.Customer cusOwner WITH(NOLOCK) ON sl.Owner = cusOwner.CustomerId
 			LEFT JOIN DBO.Vendor vOwner WITH(NOLOCK) ON sl.Owner = vOwner.VendorId
 			LEFT JOIN DBO.LegalEntity leOwner WITH(NOLOCK) ON sl.Owner = leOwner.LegalEntityId
-			LEFT JOIN DBO.ItemMasterPurchaseSale imps WITH (NOLOCK) on imps.ItemMasterId = im.ItemMasterId
-							and imps.ConditionId = c.ConditionId
-						LEFT JOIN DBO.Lot lot WITH(NOLOCK) ON sl.LotId = lot.LotId
+			LEFT JOIN DBO.ItemMasterPurchaseSale imps WITH (NOLOCK) on imps.ItemMasterId = im.ItemMasterId AND imps.ConditionId = c.ConditionId
+		    LEFT JOIN DBO.Lot lot WITH(NOLOCK) ON sl.LotId = lot.LotId
 			LEFT JOIN DBO.LotSetupMaster lsm WITH(NOLOCK) ON sl.LotId = lsm.LotId
 			LEFT JOIN DBO.[Percent] per WITH(NOLOCK) ON lsm.MarginPercentageId = per.PercentId
 			LEFT JOIN DBO.ItemMasterExportInfo ime WITH (NOLOCK) ON im.ItemMasterId = ime.ItemMasterId
@@ -292,10 +273,10 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
               , @AdhocComments     VARCHAR(150)    = 'SearchStockLineSOQPop' 
-               , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = '''+ ISNULL(@ItemMasterIdlist, '') + ''',
-														@Parameter2 = ' + ISNULL(@ConditionId,'') + ', 
-														@Parameter3 = ' + ISNULL(@CustomerId,'') + ', 
-			                                            @Parameter4 = ' + ISNULL(@MappingType,'') +''
+              , @ProcedureParameters VARCHAR(3000) = '@Parameter1 = ''' + CAST(ISNULL(@ItemMasterIdlist, '') AS VARCHAR(100))
+			  + '@Parameter2 = ''' + CAST(ISNULL(@ConditionId, '') AS VARCHAR(100)) 
+			  + '@Parameter3 = ''' + CAST(ISNULL(@CustomerId, '') AS VARCHAR(100)) 
+			  + '@Parameter4 = ''' + CAST(ISNULL(@MappingType, '') AS VARCHAR(100)) 
               , @ApplicationName VARCHAR(100) = 'PAS'
 -----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------
 

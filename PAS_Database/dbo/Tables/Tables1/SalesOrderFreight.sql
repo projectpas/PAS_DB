@@ -6,13 +6,13 @@
     [ShipViaId]                BIGINT          NOT NULL,
     [Weight]                   VARCHAR (50)    NULL,
     [Memo]                     NVARCHAR (MAX)  NULL,
-    [Amount]                   DECIMAL (20, 3) NULL,
+    [Amount]                   DECIMAL (20, 6) NULL,
     [MarkupPercentageId]       BIGINT          NULL,
-    [MarkupFixedPrice]         DECIMAL (20, 2) NULL,
+    [MarkupFixedPrice]         DECIMAL (20, 6) NULL,
     [HeaderMarkupId]           BIGINT          NULL,
     [BillingMethodId]          INT             NULL,
-    [BillingRate]              DECIMAL (20, 2) NULL,
-    [BillingAmount]            DECIMAL (20, 2) NULL,
+    [BillingRate]              DECIMAL (20, 6) NULL,
+    [BillingAmount]            DECIMAL (20, 6) NULL,
     [Length]                   DECIMAL (10, 2) NULL,
     [Width]                    DECIMAL (10, 2) NULL,
     [Height]                   DECIMAL (10, 2) NULL,
@@ -38,6 +38,8 @@
     CONSTRAINT [FK_SalesOrderFreight_SalesOrder] FOREIGN KEY ([SalesOrderQuoteId]) REFERENCES [dbo].[SalesOrderQuote] ([SalesOrderQuoteId]),
     CONSTRAINT [FK_SalesOrderFreight_ShippingVia] FOREIGN KEY ([ShipViaId]) REFERENCES [dbo].[ShippingVia] ([ShippingViaId])
 );
+
+
 
 
 GO

@@ -169,7 +169,8 @@ BEGIN
 						WHEN itp.DaysDiff = 1 THEN 'OPENED YESTERDAY'
 						ELSE 'OPENED ' + itp.DaysDiff + ' DAYS AGO'
 					END
-				END AS DaysSinceOpen
+				END AS DaysSinceOpen,
+				CASE WHEN itp.TicketStatusId = @StatusCloseId THEN 0 ELSE ISNULL(CAST(itp.DaysDiff AS INT),0) END AS DaysDiff
 				--'Opened ' + CAST(DATEDIFF(DAY,CAST(DBO.ConvertUTCtoLocal(CT.[CreatedDate], @CurrntEmpTimeZoneDesc) AS DATE),CAST(DBO.ConvertUTCtoLocal(GETUTCDATE(), @CurrntEmpTimeZoneDesc) AS DATE)) AS VARCHAR(10)) + ' Days Ago' AS DaysSinceOpen
 			FROM [dbo].[CustomerTicket] CT WITH (NOLOCK)
 			LEFT JOIN [dbo].[MasterCompany] MS WITH (NOLOCK) ON CT.MasterCompanyId = MS.MasterCompanyId

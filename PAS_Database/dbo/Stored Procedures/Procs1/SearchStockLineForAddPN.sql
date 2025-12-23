@@ -18,6 +18,7 @@
  ** 4    10/11/2023	  HEMANT SALIYA   Added Condition Group Changes
  ** 5    08/29/2024	  Devendra Shekh  Duplicate StockLine Issue Resolved
  ** 6    05/12/2025	  Devendra Shekh  checking isActive and isDeleted for Alternate Part Select
+ ** 7    23/12/2025	  Devendra Shekh  added UOM Changes
        
 -- EXEC [dbo].[SearchStockLineForAddPN] '2', 33, 10,-1,NULL  
 **************************************************************/   
@@ -83,10 +84,10 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 			[ControlNumber] VARCHAR(50) NULL,
 			[IdNumber] VARCHAR(100) NULL,
 			[UomDescription] VARCHAR(100) NULL,
-			[QtyAvailable] INT NULL,
-			[QtyOnHand] INT NULL,
-			[unitCost] DECIMAL(18, 2) NULL,
-			[unitSalePrice] DECIMAL(18, 2) NULL,
+			[QtyAvailable] DECIMAL(18, 6) NULL,
+			[QtyOnHand] DECIMAL(18, 6) NULL,
+			[unitCost] DECIMAL(18, 6) NULL,
+			[unitSalePrice] DECIMAL(18, 6) NULL,
 			[TracableToName] VARCHAR(150) NULL,
 			[OwnerName] VARCHAR(150) NULL,
 			[ObtainFromName] VARCHAR(150) NULL,
@@ -102,7 +103,9 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 			[FixRate] DECIMAL(18, 2) NULL,
 			[CustomerId] BIGINT NULL,
 			[IsCustomerStock] BIT NULL,
-			[CustomerName] VARCHAR(100) NULL
+			[CustomerName] VARCHAR(100) NULL,
+			[ConsumeUnitOfMeasure] VARCHAR(250) NULL,
+			[StockUnitOfMeasure] VARCHAR(250) NULL,
 		);
 
 		SELECT TOP 1 @MasterCompanyId = MasterCompanyId FROM dbo.ItemMaster WITH (NOLOCK) WHERE ItemMasterId IN (SELECT Item FROM DBO.SPLITSTRING(@ItemMasterIdlist,','))     
@@ -123,7 +126,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 			[ItemClassificationCode], [ItemClassification], [ItemClassificationId], [ConditionDescription], [ConditionId], [AlternateFor], [StockType], [MappingType],
 			[StockLineNumber], [SerialNumber], [ControlNumber], [IdNumber], [UomDescription], [QtyAvailable], [QtyOnHand], [unitCost], [unitSalePrice], [TracableToName],
 			[OwnerName], [ObtainFromName], [TagDate], [TagType], [CertifiedBy], [CertifiedDate], [Memo], [Method], [MethodType], [PMA], [StkLineManufacturer], [FixRate], [CustomerId],
-			[IsCustomerStock], [CustomerName]
+			[IsCustomerStock], [CustomerName], [ConsumeUnitOfMeasure], [StockUnitOfMeasure]
 		)
 		SELECT DISTINCT  
 			im.PartNumber  
@@ -154,10 +157,10 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 			,sl.ControlNumber  
 			,sl.IdNumber  
 			,uom.ShortName AS UomDescription  
-			,ISNULL(sl.QuantityAvailable,0) AS QtyAvailable  
-			,ISNULL(sl.QuantityOnHand, 0) AS QtyOnHand  
-			,ISNULL(sl.UnitCost, 0) AS unitCost  
-			,ISNULL(sl.UnitSalesPrice, 0) AS unitSalePrice  
+			,ISNULL(dbo.fn_ConvertUOM(sl.QuantityAvailable, sl.StockUnitOfMeasure, sl.ConsumeUnitOfMeasure,0), 0) AS QtyAvailable
+			,ISNULL(dbo.fn_ConvertUOM(sl.QuantityOnHand, sl.StockUnitOfMeasure, sl.ConsumeUnitOfMeasure,0), 0) AS QtyOnHand
+			,ISNULL(dbo.fn_ConvertUOM(sl.UnitCost, sl.StockUnitOfMeasure, sl.ConsumeUnitOfMeasure,0), 1) AS unitCost
+			,ISNULL(dbo.fn_ConvertUOM(sl.UnitSalesPrice, sl.StockUnitOfMeasure, sl.ConsumeUnitOfMeasure,0), 1) AS unitSalePrice
 			--,CASE WHEN sl.TraceableToType = 1 THEN sl.TraceableToName  
 			--  WHEN sl.TraceableToType = 2 THEN sl.TraceableToName
 			--  WHEN sl.TraceableToType = 9 THEN sl.TraceableToName
@@ -192,6 +195,8 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 			sl.CustomerId,
 			sl.IsCustomerStock,
 			cus.Name As CustomerName
+			,sl.ConsumeUnitOfMeasure
+			,sl.StockUnitOfMeasure
 	   FROM DBO.ItemMaster im WITH(NOLOCK)  
 			JOIN DBO.StockLine sl WITH(NOLOCK) ON im.ItemMasterId = sl.ItemMasterId   
 				AND sl.isActive = 1 AND sl.IsDeleted = 0   
@@ -236,7 +241,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 			[ItemClassificationCode], [ItemClassification], [ItemClassificationId], [ConditionDescription], [ConditionId], [AlternateFor], [StockType], [MappingType],
 			[StockLineNumber], [SerialNumber], [ControlNumber], [IdNumber], [UomDescription], [QtyAvailable], [QtyOnHand], [unitCost], [unitSalePrice], [TracableToName],
 			[OwnerName], [ObtainFromName], [TagDate], [TagType], [CertifiedBy], [CertifiedDate], [Memo], [Method], [MethodType], [PMA], [StkLineManufacturer], [FixRate], [CustomerId],
-			[IsCustomerStock], [CustomerName]
+			[IsCustomerStock], [CustomerName], [ConsumeUnitOfMeasure], [StockUnitOfMeasure]
 		)
 	   SELECT DISTINCT  
 			im.PartNumber  
@@ -267,10 +272,10 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 			,sl.ControlNumber  
 			,sl.IdNumber  
 			,uom.ShortName AS UomDescription  
-			,ISNULL(sl.QuantityAvailable,0) AS QtyAvailable  
-			,ISNULL(sl.QuantityOnHand, 0) AS QtyOnHand  
-			,ISNULL(sl.UnitCost, 0) AS unitCost  
-			,ISNULL(sl.UnitSalesPrice, 0) AS unitSalePrice  
+			,ISNULL(dbo.fn_ConvertUOM(sl.QuantityAvailable, sl.StockUnitOfMeasure, sl.ConsumeUnitOfMeasure,0), 0) AS QtyAvailable
+			,ISNULL(dbo.fn_ConvertUOM(sl.QuantityOnHand, sl.StockUnitOfMeasure, sl.ConsumeUnitOfMeasure,0), 0) AS QtyOnHand
+			,ISNULL(dbo.fn_ConvertUOM(sl.UnitCost, sl.StockUnitOfMeasure, sl.ConsumeUnitOfMeasure,0), 1) AS unitCost
+			,ISNULL(dbo.fn_ConvertUOM(sl.UnitSalesPrice, sl.StockUnitOfMeasure, sl.ConsumeUnitOfMeasure,0), 1) AS unitSalePrice
 			,CASE WHEN sl.TraceableToType = 1 THEN cusTraceble.Name  
 			  WHEN sl.TraceableToType = 2 THEN vTraceble.VendorName  
 			  WHEN sl.TraceableToType = 9 THEN leTraceble.Name  
@@ -302,6 +307,8 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 			sl.CustomerId,
 			sl.IsCustomerStock,
 			cus.Name As CustomerName
+			,sl.ConsumeUnitOfMeasure
+			,sl.StockUnitOfMeasure
 	   FROM DBO.ItemMaster im WITH(NOLOCK)  
 		   JOIN DBO.StockLine sl WITH(NOLOCK) ON im.ItemMasterId = sl.ItemMasterId   
 			   AND sl.isActive = 1 AND sl.IsDeleted = 0   

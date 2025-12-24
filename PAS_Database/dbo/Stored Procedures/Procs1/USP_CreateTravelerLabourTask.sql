@@ -93,9 +93,8 @@ BEGIN
      BEGIN  
         SELECT top 1 @Traveler_setupid = ISNULL([Traveler_setupid],0) FROM [dbo].[Traveler_Setup] WITH(NOLOCK) WHERE WorkScopeId = @WorkScopeId AND ItemMasterId IS NULL AND IsVersionIncrease=0 AND ISNULL(Isactive,1)=1 AND ISNULL(IsDeleted,0)=0   
      END
-	 IF(@WorkOrderFormTypeId = 0)
-	 BEGIN
-		 IF(@TechnicianId > 0)
+
+	 IF(@TechnicianId > 0)
 		 BEGIN
 			 IF OBJECT_ID(N'tempdb..#tblBasedOnExpertise') IS NOT NULL
 			 BEGIN
@@ -132,7 +131,9 @@ BEGIN
 					@BurdenRateAmount = ISNULL(E.[BurdenRateAmount],0),
 					@TotalCostPerHour = ISNULL(E.[TotalCostPerHour],0)
 			   FROM #tblBasedOnExpertise E WHERE E.[EmployeeId] = @TechnicianId		   
-		 END	 
+	 END
+	 IF(@WorkOrderFormTypeId = 0)
+	 BEGIN
 
 		 IF(@Traveler_setupid > 0 AND @IstravelerTask = 1)  
 		 BEGIN  
@@ -401,46 +402,7 @@ BEGIN
 	END
 	ELSE
 	BEGIN
-		DECLARE @TaskId BIGINT,@Description VARCHAR(200) = NULL;
-
-		 IF(@TechnicianId > 0)
-		 BEGIN
-			 IF OBJECT_ID(N'tempdb..#tblBasedOnExpertise1') IS NOT NULL
-			 BEGIN
-				DROP TABLE #tblBasedOnExpertise1
- 			 END
-
-			 CREATE TABLE #tblBasedOnExpertise1
-			 (
-				[PKID] [BIGINT] NOT NULL IDENTITY, 
-				[EmployeeId] [BIGINT] NULL,
-				[EmployeeCode] [VARCHAR](50) NULL, 
-				[StationId]	[BIGINT] NULL,
-				[StationName] [VARCHAR](50) NULL, 
-				[FirstName] [VARCHAR](50) NULL, 
-				[LastName]	[VARCHAR](50) NULL, 
-				[MiddleName] [VARCHAR](50) NULL, 
-				[Name]   [VARCHAR](100) NULL, 
-				[IsWorksInShop] [BIT] NULL, 
-				[HourlyRate] [DECIMAL](18,2)  NULL, 
-				[BurdenRatePercentageId] [BIGINT] NULL,
-				[BurdenRatePercentage] [DECIMAL](18,2)  NULL, 
-				[FlatAmount] [DECIMAL](18,2)  NULL, 
-				[BurdenRateAmount] [DECIMAL](18,2)  NULL, 
-				[TotalCostPerHour] [DECIMAL](18,2)  NULL
-			 )
-
-			 INSERT INTO #tblBasedOnExpertise1		
-			 EXEC [dbo].[USP_Employee_GetEmployeeBasedOnExpertise] @ExpertiseId,@ManagementStructureId,'','0',0,0
-
-			 SELECT TOP 1 @HourlyRate = ISNULL(E.[HourlyRate],0), 
-					@BurdenRatePercentageId = E.[BurdenRatePercentageId],
-					@BurdenRatePercentage = ISNULL(E.[BurdenRatePercentage],0),
-					@FlatAmount = ISNULL(E.[FlatAmount],0),
-					@BurdenRateAmount = ISNULL(E.[BurdenRateAmount],0),
-					@TotalCostPerHour = ISNULL(E.[TotalCostPerHour],0)
-			   FROM #tblBasedOnExpertise1 E WHERE E.[EmployeeId] = @TechnicianId		   
-		 END	 
+		DECLARE @TaskId BIGINT,@Description VARCHAR(200) = NULL;	 
 
 		 IF(@Traveler_setupid > 0 AND @IstravelerTask = 1)  
 		 BEGIN  

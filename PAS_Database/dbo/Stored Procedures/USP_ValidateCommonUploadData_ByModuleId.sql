@@ -37,7 +37,10 @@
 	27   26-Nov-2025        Ayushi Patel            Added common validation for FieldType = 'number' to allow only whole numeric values (no decimals, no alphabets), and return appropriate RecordStatus message.
 	28   26-Nov-2025        Ayushi Patel            Added condition to skip duplicate validation SP when any RecordStatus contains error.
 	29	 02-DEC-2025        Ayushi Patel			Added New SingleScreen Modules
-	29	 17-DEC-2025        Nakul Chandigara  		Added New SingleScreen Modules
+	30	 17-DEC-2025        Nakul Chandigara  		Added New SingleScreen Modules
+	31	 18-DEC-2025        Nakul Chandigara  		Added New SingleScreen Modules
+	32   22-Dec-2025		Divyesh Kathiriya  		Added validation for Site,Warehouse,Location,Shelf,Bin
+
 declare @p4 dbo.UploadModuleDataTableType
 insert into @p4 values(4,N'VICTOR ADMAS',1,N'{
   "partnumber": "AEIN122",
@@ -84,6 +87,20 @@ BEGIN
 		DECLARE @DuplicateErroMsg AS VARCHAR(150);
 		DECLARE @ReferenceTable AS VARCHAR(150);
 		DECLARE @IsDuplicate BIT = NULL;
+		DECLARE @SiteError BIT;
+		DECLARE @WarehouseError BIT;
+		DECLARE @LocationError BIT;
+		DECLARE @ShelfError BIT;
+		DECLARE @BinError BIT;
+		DECLARE @SiteName varchar(255);
+		DECLARE @WarehouseName varchar(255);
+		DECLARE @LocationName varchar(255);
+		DECLARE @ShelfName varchar(255);
+		DECLARE @BinName varchar(255);
+		DECLARE @SiteId BIGINT;
+		DECLARE @WarehouseId BIGINT;
+		DECLARE @LocationId BIGINT;
+		DECLARE @ShelfId BIGINT;
 		DECLARE @AlterModule AS BIGINT, @GLModule AS BIGINT, @ItemMasterModule AS BIGINT, @CustomerModule AS BIGINT,@StocklineModule AS BIGINT, @EmployeeModule AS BIGINT, @DiscountModule AS BIGINT;
 		DECLARE @DefaultMessageModule AS BIGINT, @CertificationTypeModule AS BIGINT, @LeadSource AS BIGINT, @UnitOfMeasureModule AS BIGINT, @AssetAcquisitionTypeModule AS BIGINT, @DocumentTypeModule AS BIGINT , @ShippingViaModule AS BIGINT;
 		DECLARE @AssetAttributeType AS BIGINT
@@ -188,8 +205,8 @@ BEGIN
 		DECLARE @ScrapreasonModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'Scrapreason');
 		DECLARE @EvidenceModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'Evidence');
 		DECLARE @LocationModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'Location');
+		DECLARE @PublicationTypeModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'PublicationType');
 		
-
 		DECLARE @DropdownListTable VARCHAR(100) = NULL, 
 		@DropdownListId VARCHAR(100) = NULL, 
 		@DropdownListValue VARCHAR(100) = NULL, 
@@ -505,50 +522,128 @@ BEGIN
 				END
 			END
 	
-			IF OBJECT_ID('tempdb..#WarehouseFields') IS NOT NULL
-			DROP TABLE #WarehouseFields
-		
-			CREATE TABLE #WarehouseFields
-			(
-				WarehouseId BIGINT,
-				WarehouseName VARCHAR(255)
-			)
+			IF(@ModuleId = @ItemMasterModule)
+			BEGIN
+				IF OBJECT_ID('tempdb..#ItemMasterFields') IS NOT NULL
+				DROP TABLE #ItemMasterFields		
 
-			--DECLARE @LocationModuleError BIT
+				CREATE TABLE #ItemMasterFields
+				(
+					WarehouseId BIGINT,
+					WarehouseName VARCHAR(255),
+					LocationName VARCHAR(255),
+					ShelfName VARCHAR(255),
+					BinName VARCHAR(255),
+				)
 
-			--IF(@ModuleId = @LocationModule)
-			--BEGIN
-			--	DECLARE @SiteName varchar(100)  ;
-			--	DECLARE @WarehouseName varchar(100) ;
-			--	DECLARE @siteId BIGINT; 
-			--	SELECT @SiteName = FieldValue FROM #DynamicKeyValue WHERE FieldName = 'SiteId';
-			--	SELECT @WarehouseName = FieldValue FROM #DynamicKeyValue WHERE FieldName = 'WarehouseId';
-			--	SELECT @siteId = siteId FROM [Site] WHERE [Name] = @SiteName AND MasterCompanyId = @MasterCompanyId;
+				SELECT @SiteName = FieldValue FROM #DynamicKeyValue WHERE FieldName = 'SiteId';
+				SELECT @WarehouseName = FieldValue FROM #DynamicKeyValue WHERE FieldName = 'WarehouseId';
+				SELECT @LocationName = FieldValue FROM #DynamicKeyValue WHERE FieldName = 'LocationId';
+				SELECT @ShelfName = FieldValue FROM #DynamicKeyValue WHERE FieldName = 'ShelfId';
+				SELECT @BinName = FieldValue FROM #DynamicKeyValue WHERE FieldName = 'BinId';
 
-			--    INSERT INTO #WarehouseFields (WarehouseId, WarehouseName)
-			--	SELECT WarehouseId, [Name]
-			--	FROM Warehouse
-			--	WHERE SiteId = @SiteId AND MasterCompanyId = @MasterCompanyId;
-		
-			--	IF NOT EXISTS
-			--	(
-			--		SELECT 1
-			--		FROM #WarehouseFields
-			--		WHERE TRIM(LOWER(WarehouseName)) = TRIM(LOWER(@WarehouseName))
-			--	)
-			--	BEGIN
-			--		SET @LocationModuleError = 1
-			--	END
-			--	ELSE
-			--	BEGIN
-			--		SET @LocationModuleError = 0
-			--	END
-			--END		
+				SELECT @SiteId = [SiteId] FROM [DBO].[Site] WITH(NOLOCK) WHERE [Name] = @SiteName AND [MasterCompanyId] = @MasterCompanyId;
+				SELECT @WarehouseId = [WarehouseId] FROM [DBO].[Warehouse] WITH(NOLOCK) WHERE [Name] = @WarehouseName AND [MasterCompanyId] = @MasterCompanyId;
+				SELECT @LocationId = [LocationId] FROM [DBO].[Location] WITH(NOLOCK) WHERE [Name] = @LocationName AND [MasterCompanyId] = @MasterCompanyId;
+				SELECT @ShelfId = [ShelfId] FROM [DBO].[Shelf] WITH(NOLOCK) WHERE [Name] = @ShelfName AND [MasterCompanyId] = @MasterCompanyId;		
+
+			    INSERT INTO #ItemMasterFields (WarehouseId, WarehouseName)
+				SELECT [WarehouseId], [Name]
+				FROM [DBO].[Warehouse] WITH(NOLOCK)
+				WHERE [SiteId] = @SiteId AND [MasterCompanyId] = @MasterCompanyId;
+
+				INSERT INTO #ItemMasterFields (LocationName)
+				SELECT [Name]
+				FROM [DBO].[Location] WITH(NOLOCK)
+				WHERE [WarehouseId] = @WarehouseId AND [MasterCompanyId] = @MasterCompanyId;
+
+				INSERT INTO #ItemMasterFields (ShelfName)
+				SELECT [Name]
+				FROM [DBO].[Shelf] WITH(NOLOCK)
+				WHERE [LocationId] = @LocationId AND [MasterCompanyId] = @MasterCompanyId;
+
+				INSERT INTO #ItemMasterFields (BinName)
+				SELECT [Name]
+				FROM [DBO].[Bin] WITH(NOLOCK)
+				WHERE [ShelfId] = @ShelfId AND [MasterCompanyId] = @MasterCompanyId;
+
+				IF (@SiteId IS NULL)
+				BEGIN
+					SET @SiteError = 1
+				END
+				ELSE
+				BEGIN
+					SET @SiteError = 0
+				END	
+				
+				IF NOT EXISTS(SELECT WarehouseName FROM #ItemMasterFields WHERE TRIM(LOWER(WarehouseName)) = TRIM(LOWER(@WarehouseName)))
+				BEGIN
+					SET @WarehouseError = 1
+				END
+				ELSE
+				BEGIN
+					SET @WarehouseError = 0
+				END			
+
+				IF NOT EXISTS(SELECT LocationName FROM #ItemMasterFields WHERE TRIM(LOWER(LocationName)) = TRIM(LOWER(@LocationName)))
+				BEGIN
+					SET @LocationError = 1
+				END
+				ELSE
+				BEGIN
+					SET @LocationError = 0
+				END
+
+				IF NOT EXISTS(SELECT ShelfName FROM #ItemMasterFields WHERE TRIM(LOWER(ShelfName)) = TRIM(LOWER(@ShelfName)))
+				BEGIN
+					SET @ShelfError = 1
+				END
+				ELSE
+				BEGIN
+					SET @ShelfError = 0
+				END
+
+				IF NOT EXISTS(SELECT BinName FROM #ItemMasterFields WHERE TRIM(LOWER(BinName)) = TRIM(LOWER(@BinName)))
+				BEGIN
+					SET @BinError = 1
+				END
+				ELSE
+				BEGIN
+					SET @BinError = 0
+				END	
+			END			
 			
 			UPDATE TMP
 			SET TMP.[RecordStatus] =	CASE	WHEN ISNULL(IMF.IsRequired, 0) = 1 AND ISNULL(TMP.FieldValue, '') = '' THEN IMF.HeaderName + ' is Required'
 												WHEN ISNULL(IMF.IsRequired, 0) = 1 AND ISNULL(IMF.DropdownListType, '') != ''  AND ISNULL(IMF.FieldValue, '') = '' THEN IMF.HeaderName + ' is Required'
-												WHEN (@ModuleId = @ItemMasterModule) AND ISNULL(IMF.IsRequired, 0) = 0 AND ISNULL(IMF.DropdownListType, '') != '' AND ISNULL(IMF.FieldValue, '') = '' THEN ''												
+												WHEN (@ModuleId = @ItemMasterModule) AND ISNULL(IMF.IsRequired, 0) = 0 AND ISNULL(IMF.DropdownListType, '') != '' AND ISNULL(IMF.FieldValue, '') = '' THEN ''
+												WHEN (@ModuleId = @ItemMasterModule)
+												THEN LTRIM(RTRIM(
+															CASE 
+																WHEN (@SiteError = 1 AND [IMF].[FieldName] = 'SiteId')
+																THEN 'Entered Site Not Exists. '
+																ELSE ''
+															END
+														+	CASE 
+																WHEN (@WarehouseError = 1 AND [IMF].[FieldName] = 'WarehouseId')
+																THEN 'Entered Warehouse Not Exists In This Site. '
+																ELSE ''
+															END
+														+	CASE 
+																WHEN (@LocationError = 1 AND [IMF].[FieldName] = 'LocationId')
+																THEN 'Entered Location Not Exists In This Warehouse. '
+																ELSE ''
+															END
+														+	CASE 
+																WHEN (@ShelfError = 1 AND [IMF].[FieldName] = 'ShelfId')
+																THEN 'Entered Shelf Not Exists In This Location. '
+																ELSE ''
+															END
+														+	CASE 
+																WHEN (@BinError = 1 AND [IMF].[FieldName] = 'BinId')
+																THEN 'Entered Bin Not Exists In This Shelf. '
+																ELSE ''
+															END	))
 												--WHEN ISNULL(IMF.IsRequired, 0) = 1 AND ISNULL(IMF.DropdownListType, '') != ''  AND ISNULL(IMF.DropdownListValueId, '') = '' THEN 'Pleas Enter Correct ' + IMF.HeaderName
 												WHEN ISNULL(TMP.FieldValue, '') <> ''
 													 AND ISNULL(IMF.FieldType, '') = 'number'
@@ -853,7 +948,7 @@ BEGIN
 														WHEN @ModuleId = @ATAReferenceModule THEN 'Entered ATAReference Already Exits!'
 														WHEN @ModuleId = @ATAChapterModule THEN 'Entered Chapter Code Already Exits!'
 														WHEN @ModuleId = @TangibleClassModule THEN 'Entered Tangible Class Name Already Exits!'
-														WHEN @ModuleId = @AssetIntangibleTypeModule AND @ChekDuplticateRef1 = 'AssetIntangibleType'
+														WHEN @ModuleId = @AssetIntangibleTypeModule AND @ChekDuplticateRef1 = 'AssetIntangibleName'
 															THEN 'Entered Intangible Asset Class Already Exists!'
 														WHEN @ModuleId = @AssetIntangibleTypeModule AND @ChekDuplticateRef1 = 'AssetIntangibleCode'
 															THEN 'Entered Code Already Exists!'
@@ -968,6 +1063,11 @@ BEGIN
 															THEN 'Entered Evidence Already Exists!'
 														--WHEN @ModuleId = @LocationModule    
 														--	THEN 'Entered Location Name And Warehouse Already Exists!'
+														WHEN @ModuleId = @PublicationTypeModule AND @ChekDuplticateRef1 = 'Name'  
+															THEN 'Entered Pub Name Already Exists!'
+														WHEN @ModuleId = @PublicationTypeModule AND @ChekDuplticateRef1 = 'Description'  
+															THEN 'Entered Description Already Exists!'
+
 		
 														ELSE '' END
 						WHERE ImportModuleFieldMasterId = @CurrentRow;
@@ -1115,9 +1215,6 @@ BEGIN
 												--	AND LOWER(@ManufacturerId) != LOWER(@ManufacturerName) THEN 'Incorrect Manufacturer'
 												WHEN ISNULL(IMF.IsRequired, 0) = 1 AND ISNULL(IMF.DropdownListType, '') != '' 
 													 AND ISNULL(IMF.DropdownListValueId, '') = '' AND ISNULL(IMF.ReferenceColumn, '') != '' THEN 'Pleas Enter Correct Pair of ' + IMF.HeaderName + ' ' + IMF.ReferenceColumn
-												--WHEN (@ModuleId = @LocationModule AND @LocationModuleError = 1 )
-												--	THEN 'Entered Warehouse Not Exists In This Site'
-												
 										ELSE ''
 										END,
 				TMP.FieldValue = CASE WHEN ISNULL(IMF.DropdownListTable, '') != '' THEN IMF.DropdownListValueId ELSE TMP.FieldValue END
@@ -1125,7 +1222,7 @@ BEGIN
 			LEFT JOIN #DynamicKeyValue TMP ON TMP.FieldName = IMF.FieldName
 			WHERE IMF.[ModuleId] = @ModuleId
 			SELECT @Erorr = COALESCE(@Erorr + ',  ' + [RecordStatus], [RecordStatus]) FROM #DynamicKeyValue WHERE ISNULL([RecordStatus], '') != '';
-			--SET @LocationModuleError = 0 
+			
 			if (@ModuleId = @StocklineModule OR @ModuleId = @PriceMasterModule)  
 			BEGIN
 				IF @Manufacture IS NOT NULL AND

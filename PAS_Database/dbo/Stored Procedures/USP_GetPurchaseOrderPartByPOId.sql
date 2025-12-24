@@ -13,6 +13,7 @@
 ** 1    18-Oct-2024		RAJESH GAMI		    CREATED
    2    10-APR-2025     Moin Bloch          Updated [QuantityReceived] For StockLine Count
    3    05-DEC-2025     Ayushi Patel        Get new fields SalesOrderQuoteId,SalesOrderQuoteNumber
+   4    17-DEC-2025     Amit Ghediya        Get new fields SalesOrderCustomerId for redirect to so.
 
 --EXEC [dbo].[USP_GetPurchaseOrderPartByPOId] 7910 ,NULL,NULL
 **************************************************************/ 
@@ -38,7 +39,7 @@ BEGIN
 				DECLARE @GlAccountId BIGINT =0, @UOMId BIGINT,@IsPartApproved bit =0, @ActionId INT =0, @ApprovedActionId INT = (SELECT ApprovalProcessId FROM DBO.ApprovalProcess WITH(NOLOCK) WHERE Name ='Approved');
 				DECLARE @AssetAltEquiPartNumber VARCHAR(50),@Manufacturer VARCHAR(100), @GlAccount VARCHAR(200),@UnitOfMeasure VARCHAR(100),@PurchaseOrderPartRecordId BIGINT =0;
 				DECLARE @PoPartMGMTModuleId BIGINT = (SELECT ManagementStructureModuleId FROM DBO.ManagementStructureModule WITH(NOLOCK) WHERE ModuleName ='POPart'); 
-				DECLARE @wonum VARCHAR(MAX)='', @ronum VARCHAR(MAX)='', @sonum VARCHAR(MAX)='', @lotnum VARCHAR(MAX)='', @swonum VARCHAR(MAX)='',@esonum VARCHAR(MAX)='';
+				DECLARE @wonum VARCHAR(MAX)='', @ronum VARCHAR(MAX)='', @sonum VARCHAR(MAX)='',@soCustomerId BIGINT = 0,@soCount INT = 0,@SalesorderId BIGINT = 0, @lotnum VARCHAR(MAX)='', @swonum VARCHAR(MAX)='',@esonum VARCHAR(MAX)='';
                 IF OBJECT_ID(N'tempdb..#tmpPoPartList') IS NOT NULL    
 				BEGIN    
 					DROP TABLE #tmpPoPartList
@@ -86,6 +87,7 @@ BEGIN
 					RepairOrderId BIGINT NULL,
 					ReapairOrderNo VARCHAR(250) NULL,
 					SalesOrderId BIGINT NULL,
+					SoCount INT NULL,
 					SalesOrderNo VARCHAR(250) NULL,
 					ItemTypeId INT NULL,
 					ItemType VARCHAR(250) NULL,
@@ -198,7 +200,9 @@ BEGIN
 					RepairOrderId BIGINT NULL,
 					RepairOrderNo VARCHAR(250) NULL,
 					SalesOrderId BIGINT NULL,
+					SoCount INT NULL,
 					SalesOrderNo VARCHAR(250) NULL,
+					SoCustomerId BIGINT NULL,
 					ItemTypeId INT NULL,
 					ItemType VARCHAR(250) NULL,
 					GlAccountId BIGINT NULL,
@@ -307,6 +311,7 @@ BEGIN
 				RepairOrderId,
 				ReapairOrderNo,
 				SalesOrderId,
+				SoCount = (SELECT COUNT(POPR.ReferenceId) FROM DBO.PurchaseOrderPartReference POPR WITH(NOLOCK) WHERE POPR.PurchaseOrderPartId = POP.PurchaseOrderPartRecordId),
 				SalesOrderNo,
 				ItemTypeId,
 				ItemType,
@@ -368,7 +373,8 @@ BEGIN
 				IsSubWO,
 				SalesOrderQuoteId,
 				SalesOrderQuoteNumber
-				FROM DBO.PurchaseOrderPart WITH(NOLOCK) WHERE PurchaseOrderId = @PurchaseOrderId AND ISNULL(IsDeleted,0) = 0 
+				FROM DBO.PurchaseOrderPart POP WITH(NOLOCK) 
+				WHERE PurchaseOrderId = @PurchaseOrderId AND ISNULL(IsDeleted,0) = 0 
 
 				--SELECT * INTO #tmpPoPartList FROM (SELECT * FROM DBO.PurchaseOrderPart WITH(NOLOCK) WHERE PurchaseOrderId = @PurchaseOrderId AND ISNULL(IsDeleted,0) = 0) AS partResult
 				SET @TotalPartsCount = (SELECT COUNT(1) FROM #tmpPoPartList)
@@ -433,9 +439,12 @@ BEGIN
 							SET @ronum = (SELECT STRING_AGG(RepairOrderNumber, ',') FROM DBO.RepairOrder WITH(NOLOCK) WHERE RepairOrderId IN (SELECT ReferenceId
 																					FROM DBO.PurchaseOrderPartReference WITH(NOLOCK)
 																					WHERE PurchaseOrderId = @purchaseOrderId AND PurchaseOrderPartId = @purchaseOrderPartRecordId AND ModuleId = 2)); /* ModuleId = 2 for the RO */
-							SET @sonum = (SELECT STRING_AGG(SalesOrderNumber, ',')  FROM DBO.SalesOrder WITH(NOLOCK) WHERE SalesOrderId IN (SELECT ReferenceId
+							SELECT @sonum = STRING_AGG(SalesOrderNumber, ','), 
+								   @soCustomerId = MAX(CustomerId),
+								   @SalesorderId = MAX(SalesOrderId) FROM DBO.SalesOrder WITH(NOLOCK) WHERE SalesOrderId IN (SELECT ReferenceId
 																					FROM DBO.PurchaseOrderPartReference WITH(NOLOCK)
-																					WHERE PurchaseOrderId = @purchaseOrderId AND PurchaseOrderPartId = @purchaseOrderPartRecordId AND ModuleId = 3)); /* ModuleId = 3 for the SO */
+																					WHERE PurchaseOrderId = @purchaseOrderId AND PurchaseOrderPartId = @purchaseOrderPartRecordId AND ModuleId = 3); /* ModuleId = 3 for the SO */
+
 							SET @esonum = (SELECT STRING_AGG(ExchangeSalesOrderNumber, ',') FROM DBO.ExchangeSalesOrder WITH(NOLOCK) WHERE ExchangeSalesOrderId IN (SELECT ReferenceId
 																					FROM DBO.PurchaseOrderPartReference WITH(NOLOCK)
 																					WHERE PurchaseOrderId = @purchaseOrderId AND PurchaseOrderPartId = @purchaseOrderPartRecordId AND ModuleId = 4)); /* ModuleId = 4 for the Exchnage */
@@ -460,6 +469,7 @@ BEGIN
 								AllMSlevels,
 								WorkOrderNo,
 								SalesOrderNo,
+								SoCustomerId,
 								ExchangeSalesOrderNo,
 								SubWorkOrderNo,
 								LotNumber,
@@ -491,6 +501,7 @@ BEGIN
 								SubWorkOrderId,
 								RepairOrderId,
 								SalesOrderId,
+								SoCount,
 								ManagementStructureId,
 								Memo,
 								MasterCompanyId,
@@ -543,6 +554,7 @@ BEGIN
 									 ms.LastMSLevel, ms.AllMSlevels,
 									 @wonum as WorkOrderNo,
 									 @sonum as SalesOrderNo,
+									 @soCustomerId as SoCustomerId,
 									 @esonum as ExchangeSalesOrderNo,
 									 @swonum as SubWorkOrderNo,
 									 @lotnum as LotNumber,
@@ -555,7 +567,7 @@ BEGIN
 									 NeedByDate,EstDeliveryDate,
 									 ConditionId, Condition,QuantityOrdered,QuantityBackOrdered,QuantityRejected,LT.UnitCost,VendorListPrice,
 									 DiscountAmount,DiscountPercent,DiscountPercentValue,LT.ExtendedCost,FunctionalCurrencyId,ReportCurrencyId,ForeignExchangeRate,
-									 LT.WorkOrderId,SubWorkOrderId,RepairOrderId,SalesOrderId,ManagementStructureId,LT.Memo,LT.MasterCompanyId,lt.CreatedBy,lt.CreatedDate,
+									 LT.WorkOrderId,SubWorkOrderId,RepairOrderId,@SalesorderId,SoCount,ManagementStructureId,LT.Memo,LT.MasterCompanyId,lt.CreatedBy,lt.CreatedDate,
 									 lt.UpdatedBy, lt.UpdatedDate,lt.IsActive,lt.DiscountPerUnit,AltEquiPartNumberId,PriorityId,StockType,
 									 @StockLineCount StockLineCount, @DraftedStockLineCount DraftedStockLineCount,ExchangeSalesOrderId,ItemTypeId,ManufacturerPN,
 									 AssetModel,AssetClass, ISNULL(IsLotAssigned,0) IsLotAssigned,ISNULL(LotId,0) LotId,ISNULL(LT.WorkOrderMaterialsId,0) WorkOrderMaterialsId,
@@ -584,6 +596,7 @@ BEGIN
 								AllMSlevels,
 								WorkOrderNo,
 								SalesOrderNo,
+								SoCustomerId,
 								ExchangeSalesOrderNo,
 								SubWorkOrderNo,
 								LotNumber,
@@ -611,6 +624,7 @@ BEGIN
 								SubWorkOrderId,
 								RepairOrderId,
 								SalesOrderId,
+								SoCount,
 								ManagementStructureId,
 								Memo,
 								MasterCompanyId,
@@ -651,6 +665,7 @@ BEGIN
 									 ms.LastMSLevel, ms.AllMSlevels,
 									 @wonum as WorkOrderNo,
 									 @sonum as SalesOrderNo,
+									 @soCustomerId as SoCustomerId,
 									 @esonum as ExchangeSalesOrderNo,
 									 @swonum as SubWorkOrderNo,
 									 @lotnum as LotNumber,
@@ -660,7 +675,7 @@ BEGIN
 									 NeedByDate,EstDeliveryDate,
 									 ConditionId, Condition,QuantityOrdered,QuantityBackOrdered,QuantityRejected,LT.UnitCost,VendorListPrice,
 									 DiscountAmount,DiscountPercent,DiscountPercentValue,LT.ExtendedCost,FunctionalCurrencyId,ReportCurrencyId,ForeignExchangeRate,
-									 LT.WorkOrderId,SubWorkOrderId,RepairOrderId,SalesOrderId,ManagementStructureId,LT.Memo,LT.MasterCompanyId,lt.CreatedBy,lt.CreatedDate,
+									 LT.WorkOrderId,SubWorkOrderId,RepairOrderId,@SalesorderId,SoCount,ManagementStructureId,LT.Memo,LT.MasterCompanyId,lt.CreatedBy,lt.CreatedDate,
 									 lt.UpdatedBy, lt.UpdatedDate,lt.IsActive,lt.DiscountPerUnit,AltEquiPartNumberId,PriorityId,StockType,
 									 @StockLineCount StockLineCount, @DraftedStockLineCount DraftedStockLineCount,
 									 @IsPartApproved as IsApproved,POPartSplitAddressId,POPartSplitPostalCode,POPartSplitCountryId,POPartSplitState,POPartSplitCity,POPartSplitAddress3,
@@ -700,6 +715,7 @@ BEGIN
 					WorkOrderId,
 					RepairOrderId,
 					SalesOrderId,
+					SoCount,
 					ManagementStructureId,
 					Memo,
 					MasterCompanyId,
@@ -726,6 +742,7 @@ BEGIN
 						WOM.WorkOrderId,
 						0 RepairOrderId, -- RepairOrderId
 						0 SalesOrderId, -- SalesOrderId
+						0 SoCount,
 						0 ManagementStructureId, -- ManagementStructureId
 						'' Memo, -- Memo (empty string)
 						WOM.MasterCompanyId MasterCompanyId,
@@ -767,6 +784,7 @@ BEGIN
 						WorkOrderId,
 						RepairOrderId,
 						SalesOrderId,
+						SoCount,
 						ManagementStructureId,
 						Memo,
 						MasterCompanyId,
@@ -793,6 +811,7 @@ BEGIN
 							WOM.WorkOrderId,
 							0 RepairOrderId, -- RepairOrderId
 							0 SalesOrderId, -- SalesOrderId
+							0 SoCount,
 							0 ManagementStructureId, -- ManagementStructureId
 							'' Memo, -- Memo (empty string)
 							WOM.MasterCompanyId,

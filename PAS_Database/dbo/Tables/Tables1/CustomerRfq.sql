@@ -34,6 +34,7 @@
     [QuotedDate]          DATETIME       NULL,
     [QuoteSendReviewId]   INT            NULL,
     [CustomerId]          BIGINT         NULL,
+    [FollowUpDate]        DATETIME2 (7)  NULL,
     CONSTRAINT [PK_CustomerRfq] PRIMARY KEY CLUSTERED ([CustomerRfqId] ASC),
     CONSTRAINT [FK_CustomerRfq_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId])
 );

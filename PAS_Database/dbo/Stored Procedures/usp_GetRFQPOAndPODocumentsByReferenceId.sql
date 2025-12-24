@@ -13,6 +13,7 @@
 	2	  04-Dec-2025			Ayushi Patel			Filtered documents by AiIntegrationSetting DocumentType
 	3     05-12-2025			Ayushi Patel			Get Document From RFQ PO and PO by SalesOrderQuoteId
 	4	  09-Dec-2025			Ayushi Patel			Get the field DocumentType (name)
+	5	  19-Dec-2025			AMit Ghediya			Get Email doc.
 EXEC [usp_GetRFQPOAndPODocumentsByReferenceId]  1407,1,46
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[usp_GetRFQPOAndPODocumentsByReferenceId]
@@ -31,13 +32,16 @@ BEGIN
 				@VRFQPO_DocModuleId INT = 0,
 				@SOQ_DocModuleId INT = 0,
 				@PORerenceIds VARCHAR(MAX) = '',
-				@RFQPORerenceIds VARCHAR(MAX) = '';
+				@RFQPORerenceIds VARCHAR(MAX) = '',
+				@EmailDocRerenceIds VARCHAR(MAX) = '',
+				@EmailDoc_ModuleId INT = 0;
 
 		SELECT @PO_DocModuleId = [AttachmentModuleId] FROM [dbo].[AttachmentModule] WITH(NOLOCK) WHERE [Name] = 'PurchaseOrder';
 		SELECT @VRFQPO_DocModuleId = [AttachmentModuleId] FROM [dbo].[AttachmentModule] WITH(NOLOCK) WHERE [Name] = 'VendorRFQPurchaseOrder';
 		SELECT @SOQ_DocModuleId = [AttachmentModuleId] FROM [dbo].[AttachmentModule] WITH(NOLOCK) WHERE [Name] = 'SalesQuote';
 		SELECT @SOQ_ModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'SalesQuote';
 		SELECT @PO_ModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'PurchaseOrder';
+		SELECT @EmailDoc_ModuleId = [AttachmentModuleId] FROM [dbo].[AttachmentModule] WITH(NOLOCK) WHERE [Name] = 'EmailDocuments';;
 
 		IF(@ModuleId = @SOQ_DocModuleId)
 		BEGIN
@@ -54,6 +58,7 @@ BEGIN
 				FROM [dbo].[PurchaseOrder] PO WITH(NOLOCK)
 				INNER JOIN [dbo].[PurchaseOrderPart] POP WITH(NOLOCK) ON POP.PurchaseOrderId = PO.PurchaseOrderId
 				WHERE PO.MasterCompanyId = @MasterCompanyId AND POP.SalesOrderQuoteId = @ReferenceId
+
 			)
 			SELECT @PORerenceIds = STRING_AGG([ReferenceId], ',') FROM Result;
 			 
@@ -66,6 +71,15 @@ BEGIN
 				VPOP.SalesOrderQuoteId = @ReferenceId)
 			)
 			SELECT @RFQPORerenceIds = STRING_AGG([ReferenceId], ',') FROM VRFQResult;
+
+			;WITH EmailDocResult AS (
+				SELECT DISTINCT VRFQ.IntegrationEmailID
+				FROM [dbo].[ILSRFQPart] PT WITH(NOLOCK)
+				INNER JOIN [dbo].[CustomerRfq] RFQ WITH(NOLOCK) ON PT.CustomerRfqId = RFQ.CustomerRfqId
+				INNER JOIN [dbo].[VendorRFQPart] VRFQ WITH(NOLOCK) ON PT.ILSRFQDetailId = VRFQ.ILSRFQDetailId
+				WHERE RFQ.ModuleId = @SOQ_ModuleId AND RFQ.ReferenceId = @ReferenceId AND VRFQ.ModuleId != @PO_ModuleId AND PT.MasterCompanyId = @MasterCompanyId
+			)
+			SELECT @EmailDocRerenceIds = STRING_AGG([IntegrationEmailID], ',') FROM EmailDocResult;
 		END
 
 		SELECT	cdd.DocName, 
@@ -95,6 +109,7 @@ BEGIN
 			 )
 			AND ((cdd.ModuleId = @PO_DocModuleId AND cdd.ReferenceId IN (SELECT ITEM FROM dbo.SplitString(ISNULL(@PORerenceIds, ''), ',')))
 			OR	(cdd.ModuleId = @VRFQPO_DocModuleId AND cdd.ReferenceId IN (SELECT ITEM FROM dbo.SplitString(ISNULL(@RFQPORerenceIds, ''), ',')))
+			OR	(cdd.ModuleId = @EmailDoc_ModuleId AND cdd.ReferenceId IN (SELECT ITEM FROM dbo.SplitString(ISNULL(@EmailDocRerenceIds, ''), ',')))
 			)
 		
 	END TRY

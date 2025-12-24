@@ -4396,6 +4396,7 @@
     <Build Include="dbo\Stored Procedures\USP_GETIntegrationEmailID.sql" />
     <Build Include="dbo\Tables\AuditLogDisplayColumns.sql" />
     <Build Include="dbo\Stored Procedures\usp_Get_AuditLogDisplayColumnsByModule.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetAircraftTypeData.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

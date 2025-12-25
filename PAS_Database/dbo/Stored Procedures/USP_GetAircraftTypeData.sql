@@ -55,7 +55,7 @@ BEGIN
 				ISNULL([IsDeleted], 0) AS IsDeleted
 			FROM [DBO].[AircraftType] WITH(NOLOCK)
 			WHERE
-				[IsDeleted] = 0 AND [IsActive] = 1
+				[IsDeleted] = 0 AND [IsActive] = 1 AND [MasterCompanyId] = @MasterCompanyId
 			ORDER BY
 				[AircraftTypeId];
 		END

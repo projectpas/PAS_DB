@@ -16,6 +16,7 @@
 	5	04/Mar/2025	 Bhargav Saliya		UTC Date Changes
 	6	14/Jul/2025  Vishal Suthar		Added IsPrintAdmin flag
 	7	27/Aug/2025  Moin Bloch		    Added OldIsPrintAdmin flag
+	8	24/Dec/2025  Vishal Suthar		Converting sequence while sorting
 
 EXEC USP_GetWorkOrderTaskList 4670
 **************************************************************/
@@ -81,7 +82,7 @@ BEGIN
 			WHERE WOT.WorkOrderId = @WorkOrderId AND WOT.IsActive = 1 AND WOT.IsDeleted = 0 AND ISNULL(WOT.WorkOrderPartNumberId,0) = @WorkOrderPartNumberId
 			)
 			SELECT * INTO #LeafTempTbl FROM CTE
-			SELECT * FROM #LeafTempTbl ORDER BY SequenceNumber;
+			SELECT * FROM #LeafTempTbl ORDER BY TRY_CAST(SequenceNumber AS DECIMAL(10, 4));
 		END
 		ELSE
 		BEGIN
@@ -127,7 +128,7 @@ BEGIN
 			)
 
 			SELECT * INTO #LeafTempTblElse FROM CTE
-			SELECT * FROM #LeafTempTblElse ORDER BY SequenceNumber;
+			SELECT * FROM #LeafTempTblElse ORDER BY TRY_CAST(SequenceNumber AS DECIMAL(10, 4));
 		END
 		
 

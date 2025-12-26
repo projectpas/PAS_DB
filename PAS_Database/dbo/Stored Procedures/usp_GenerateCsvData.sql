@@ -15,10 +15,11 @@
  ** PR   Date         Author			Change Description
  ** --   --------     -------			--------------------------------
     1    11/25/2025   Vishal Suthar		Created
-
+	2    26/12/2025   Nakul Chandigra   changed the condition to get @SelectList and @JoinList , used IsUseJoinCondition insted of ParentTableRereneceTypeId 
+	
  EXEC usp_GenerateCsvData 1, 1
 **************************************************************/
-CREATE   PROCEDURE [usp_GenerateCsvData]
+CREATE   PROCEDURE [dbo].[usp_GenerateCsvData]
 (
     @ModuleId INT,
     @MasterCompanyId INT
@@ -35,7 +36,7 @@ BEGIN
 
 		SELECT TOP 1 @BaseTable = SourceTableName
 		FROM DBO.ImportModuleFieldMaster WITH (NOLOCK)
-		WHERE ModuleId = @ModuleId AND ParentTableRereneceTypeId = 0 AND IsActive = 1 AND IsDeleted = 0;
+		WHERE ModuleId = @ModuleId AND ParentTableRereneceTypeId = 0 AND IsActive = 1 AND IsDeleted = 0 AND  ISNULL(IsUseJoinCondition ,0)= 0 ;
 
 		SELECT @SelectList = STRING_AGG(
 			CASE 
@@ -43,9 +44,11 @@ BEGIN
 				THEN '(' + MultiValueQuery + ') AS [' + HeaderName + ']'
 				ELSE CONCAT(
 					CASE 
-						WHEN ParentTableRereneceTypeId = 0 THEN @BaseTable
+						WHEN ISNULL(IsUseJoinCondition ,0) = 0
+						THEN @BaseTable
 						ELSE SourceTableName
 					END,
+
 					'.', SourceColumnName,
 					' AS [', HeaderName, ']'
 					)
@@ -59,9 +62,8 @@ BEGIN
 		FROM (
 			SELECT DISTINCT JoinCondition
 			FROM DBO.ImportModuleFieldMaster WITH (NOLOCK)
-			WHERE ModuleId = @ModuleId AND ParentTableRereneceTypeId <> 0 AND ISNULL(JoinCondition,'') <> ''
+			WHERE ModuleId = @ModuleId AND (ISNULL(IsUseJoinCondition ,0)= 1 )  AND ISNULL(JoinCondition,'') <> ''
 		) AS J;
-
 		DECLARE @SQL NVARCHAR(MAX) = '
 			SELECT ' + @SelectList + '
 			FROM ' + @BaseTable + ' WITH(NOLOCK)
@@ -70,7 +72,6 @@ BEGIN
 			AND ' + @BaseTable + '.IsActive = 1
 			AND ' + @BaseTable + '.IsDeleted = 0
 			ORDER BY ' + @BaseTable + '.CreatedDate DESC;';
-
 		EXEC sp_executesql @SQL, N'@MasterCompanyId INT', @MasterCompanyId;
 
 	END TRY

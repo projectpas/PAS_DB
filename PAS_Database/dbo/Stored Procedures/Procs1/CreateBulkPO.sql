@@ -1,5 +1,4 @@
-﻿
-/***************************************************************************************************************************************             
+﻿/***************************************************************************************************************************************             
   ** Change History             
  ***************************************************************************************************************************************             
  ** PR   Date						 Author							Change Description              
@@ -9,6 +8,7 @@
 	3    23/10/2024              RAJESH GAMI                        Change the Local date to UTC date by default
 	3    25/10/2024              RAJESH GAMI                        Correction the @ShippingViaId value, And set the currency
 	4    18 MAR 2024             RAJESH GAMI                        Correction the Generate Code issue 
+	5    26/12/2025				 Amit Ghediya						Update Part memo
 ****************************************************************************************************************************************/ 
 CREATE   PROCEDURE [dbo].[CreateBulkPO]
 	@tbl_BulkPODetailType BulkPODetailType READONLY,
@@ -235,7 +235,7 @@ BEGIN
 					ISNULL(TYP.UnitCost,0),0,0,
 					0,ISNULL(TYP.UnitCost,0),(ISNULL(TYP.UnitCost,0) * ISNULL(TYP.Quantity,0)),@ReturnCurrencyId, @ReturnCurrency,1.0,@ReturnCurrencyId,@ReturnCurrency,TYP.WorkOrderId,TYP.WorkOrderNo,
 					NULL,NULL,NULL,NULL,NULL,NULL,1,'STOCK',IM.GLAccountId,IM.GLAccount,IM.PurchaseUnitOfMeasureId,IM.PurchaseUnitOfMeasure,
-					TYP.ManagementStructureId,NULL,NULL,NULL,NULL,NULL,1,NULL,NULL,NULL,NULL,NULL,
+					TYP.ManagementStructureId,NULL,NULL,NULL,NULL,NULL,1,TYP.[WorkOrderNo],NULL,NULL,NULL,NULL,
 					NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
 					NULL,NULL,NULL,TYP.MasterCompanyId,@updatedByName,@updatedByName,GETUTCDATE(),GETUTCDATE(),1,0,
 					0,NULL,NULL,NULL,NULL,NULL,cast(TYP.NeedBy as DATE),cast(TYP.EstReceivedDate as DATE), CASE WHEN TYP.WorkOrderMaterialsId > 0 THEN TYP.WorkOrderMaterialsId ELSE  (CASE WHEN TYP.WorkOrderMaterialsKitId > 0 THEN TYP.WorkOrderMaterialsKitId ELSE NULL END) END,

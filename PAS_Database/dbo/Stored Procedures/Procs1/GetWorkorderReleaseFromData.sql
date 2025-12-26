@@ -28,7 +28,7 @@ EXEC [GetSubWorkorderReleaseFromData]
 ** 17   13/10/2025  Moin Bloch       Updated to Dynamic VersionNo
 ** 18   19/12/2025  Vishal Suthar    Fixed the logic to populate dynamic templates instead of hard coded 2 templates for multiple CMMs for NEO
 
- EXEC [dbo].[GetWorkorderReleaseFromData] 8212,7835,1,0,2
+ EXEC [dbo].[GetWorkorderReleaseFromData] 10082,10264,1,0,2
 **************************************************************/ 
 
 CREATE   PROC [dbo].[GetWorkorderReleaseFromData]  
@@ -342,7 +342,11 @@ BEGIN
 					', '
 				) AS RevisionDate,
 				wo.WorkOrderNum,  
-				ven.[VendorName],
+				--ven.[VendorName],
+				STRING_AGG(
+					ISNULL(CONVERT(VARCHAR(20), ven.[VendorName]), '-'),
+					', '
+				) AS [VendorName],
 				'' ManufacturerName,
 				STRING_AGG(
 					ISNULL(CONVERT(VARCHAR(20), pub.[PublishedByOthers]), '-'),
@@ -442,7 +446,7 @@ BEGIN
 				le.CompanyName,
 				ad.Line1, ad.City, ad.StateOrProvince,
 				wo.WorkOrderNum,
-				ven.[VendorName],
+				--ven.[VendorName],
 				wop.RevisedPartDescription,
 				wop.RevisedPartNumber,
 				wop.CustomerReference,

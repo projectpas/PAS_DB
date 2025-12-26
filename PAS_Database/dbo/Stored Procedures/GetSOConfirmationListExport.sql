@@ -11,7 +11,8 @@
  **************************************************************           
  ** PR   Date			Author			Change Description            
  ** --   --------		-------			--------------------------------          
-    1    08-APR-2025   Abhishek Jirawla	Created
+    1    08-APR-2025   Abhishek Jirawla Created
+	2    26-12-2025    Nakul Chandigra  removed Formate from the Opendate 
      
  EXECUTE [GetSOConfirmationListExport] 1, pnview
 **************************************************************/ 
@@ -37,7 +38,7 @@ BEGIN
 				sops.StockLineId,
 				so.SalesOrderNumber,
 				ISNULL(q.SalesOrderQuoteNumber, '') AS SalesOrderQuoteNumber,
-				FORMAT(so.OpenDate, 'M/d/yyyy') AS OpenDate,
+				so.OpenDate,
 				ISNULL(cust.Name, '') AS CustomerName,
 				ISNULL(qs.StockLineNumber, '') AS StockLineNumber,
 				part.FxRate,

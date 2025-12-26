@@ -19,7 +19,8 @@ EXEC [RPT_GetWorkOrderPrintPdfData]
 ** 8    17/02/2025  Moin Bloch          Updated (Added Publication PublicationNo)
 ** 9	13/May/2025 Bhargav Saliya	    Added IsDisplayFooter to select
 ** 10	15/Aug/2025 Vishal Suthar	    Changed the condition to populate current serial number
-** 9	13/Nov/2025 Rajesh Gami			Added CustReqCertType
+** 11	13/Nov/2025 Rajesh Gami			Added CustReqCertType
+** 12   23/12/2025  Ayushi Patel		return wty(warranty) based on IsWarranty and IsAccepted field
 EXEC RPT_GetWorkOrderPrintPdfData 9747,9850
 
 **************************************************************/
@@ -78,8 +79,15 @@ BEGIN
 			CASE WHEN LEN(wo.notes) > 1370 THEN LEFT(wo.notes,1370) + '...' ELSE wo.notes END AS notes,    
 			p.Description as Priority,              
 			CASE WHEN wop.IsPMA = 1 THEN 'YES' else 'NO' END AS RestrictPMA,              
-			CASE WHEN wop.IsDER = 1 THEN 'YES' else 'NO' END AS RestrictDER,              
-			'' as wty,              
+			CASE WHEN wop.IsDER = 1 THEN 'YES' else 'NO' END AS RestrictDER,   
+			CASE 
+				WHEN wo.IsWarranty = 1 THEN 
+					CASE 
+						WHEN wo.IsAccepted = 1 THEN 'YES' 
+						ELSE 'NO' 
+					END
+				ELSE ''
+			END AS wty,
 			'' as wtyCode,            
 			UPPER(imt.partnumber) as IncomingPN,              
 			CASE WHEN isnull(wosc.RevisedPartId,0) >0 THEN  UPPER(rimt.partnumber) ELSE UPPER(imt.partnumber) END as RevisedPN,        

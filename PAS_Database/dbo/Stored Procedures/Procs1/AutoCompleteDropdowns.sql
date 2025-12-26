@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [AutoCompleteDropdowns]           
  ** Author:   Vishal Suthar
  ** Description: This stored procedure is used to search part
@@ -14,28 +13,30 @@
  **************************************************************           
   ** Change History           
  **************************************************************           
- ** PR   Date         Author		Change Description            
- ** --   --------     -------		--------------------------------          
-    1    06/14/2024   Vishal Suthar		Added History
-    2    06/14/2024   Vishal Suthar		Increased Limit of records from 20 to 50 for Item Master Module
-    3    10/03/2024   Devendra Shekh	Added case for BatchDetails
-	4    21/03/2024   BHARGAV SALIYA	Added case for Stockline
-	5    31/12/2024   Devendra Shekh	Added field IsSerialized for ItemMaster Table
-	6    03/01/2025   Moin Bloch  	    Added field IsTravelerTask, StandardHours, StandardMinute for Task Table
-	7    10/01/2025   Sahdev Saliya     Added Defult site as per setting while add new item 
-	8    24/01/2025   Sahdev Saliya     Added According To The Default Site Management Structure When Adding New items  
-    9    10/Feb/2025  RAJESH GAMI  	    Return fields: IsPrintInspector, IsPrintTechnician for Task Table
-	10   14/Feb/2025  RAJESH GAMI  	    Return fields: PublicationTemplate  for PublicationType Table
-	11   19/Feb/2025  AMIT GHEDIYA  	Added case for TaxType table.
-	12   11/Mar/2025  AMIT GHEDIYA      Added case for VendorOrderType table.
-	13   31/Mar/2025  Sahdev Saliya     Added case for EmployeeCertifyingStaff table.
-	14	 01/Mar/2025  Devendra Shekh	Modified (For Task Table - Order By Description ASC)
-	15   14/Apr/2025  Moin Bloch	    Modified (Added field IsOEM for ItemMaster Table)
-	16   28/04/2025   Moin Bloch	    Modified (Order By [Sequence] ASC)
-	17   26/08/2025   Moin Bloch	    Modified (Added field IsPrintAdmin for Task Table)	
-    18   25/11/2025   Ayushi Patel      Escaped table name in dynamic SQL (added [] around @TableName) to support reserved names like Percent.
-    19   03/12/2025   Ayushi Patel      Removed brackets from @TableName to avoid double [[TableName]] in dynamic SQL.
-    10   16/12/2025   Ayushi Patel  	Return fields: SalesOrderQuote for SalesOrderQuote Table
+ ** PR   Date         Author		        Change Description            
+ ** --   --------     -------		        --------------------------------          
+    1    06/14/2024   Vishal Suthar		    Added History
+    2    06/14/2024   Vishal Suthar		    Increased Limit of records from 20 to 50 for Item Master Module
+    3    10/03/2024   Devendra Shekh	    Added case for BatchDetails
+	4    21/03/2024   BHARGAV SALIYA	    Added case for Stockline
+	5    31/12/2024   Devendra Shekh	    Added field IsSerialized for ItemMaster Table
+	6    03/01/2025   Moin Bloch  	        Added field IsTravelerTask, StandardHours, StandardMinute for Task Table
+	7    10/01/2025   Sahdev Saliya         Added Defult site as per setting while add new item 
+	8    24/01/2025   Sahdev Saliya         Added According To The Default Site Management Structure When Adding New items  
+    9    10/Feb/2025  RAJESH GAMI  	        Return fields: IsPrintInspector, IsPrintTechnician for Task Table
+	10   14/Feb/2025  RAJESH GAMI  	        Return fields: PublicationTemplate  for PublicationType Table
+	11   19/Feb/2025  AMIT GHEDIYA  	    Added case for TaxType table.
+	12   11/Mar/2025  AMIT GHEDIYA          Added case for VendorOrderType table.
+	13   31/Mar/2025  Sahdev Saliya         Added case for EmployeeCertifyingStaff table.
+	14	 01/Mar/2025  Devendra Shekh	    Modified (For Task Table - Order By Description ASC)
+	15   14/Apr/2025  Moin Bloch	        Modified (Added field IsOEM for ItemMaster Table)
+	16   28/04/2025   Moin Bloch	        Modified (Order By [Sequence] ASC)
+	17   26/08/2025   Moin Bloch	        Modified (Added field IsPrintAdmin for Task Table)	
+    18   25/11/2025   Ayushi Patel          Escaped table name in dynamic SQL (added [] around @TableName) to support reserved names like Percent.
+    19   03/12/2025   Ayushi Patel          Removed brackets from @TableName to avoid double [[TableName]] in dynamic SQL.
+    20   16/12/2025   Ayushi Patel  	    Return fields: SalesOrderQuote for SalesOrderQuote Table
+    21   20-Dec-2025  Divyesh Kathiriya  	Added case for Warehouse,Location,Shelf,Bin
+
 --select * from dbo.Employee      
 --EXEC AutoCompleteDropdowns 'Employee','EmployeeId','FirstName','sur',1,20,'108,109,11',1       
 **************************************************************/
@@ -223,6 +224,34 @@ AS BEGIN
                                  ORDER BY SalesOrderQuoteId DESC
                             END
                         END
+            ELSE IF(@TableName='Warehouse')
+            BEGIN
+                SELECT DISTINCT [WarehouseId] AS Value, [Name] AS Label
+                FROM [DBO].[Warehouse] WITH(NOLOCK)
+                WHERE [MasterCompanyId] = @MasterCompanyId AND [SiteId] IN(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ','))
+                ORDER BY [WarehouseId] ASC
+            END
+            ELSE IF(@TableName='Location')
+            BEGIN  
+                SELECT DISTINCT [LocationId] AS Value, [Name] AS Label
+                FROM [DBO].[Location] WITH(NOLOCK)
+                WHERE [MasterCompanyId] = @MasterCompanyId AND [WarehouseId] IN(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ','))
+                ORDER BY [LocationId] ASC
+            END
+            ELSE IF(@TableName='Shelf')
+            BEGIN 
+                SELECT DISTINCT [ShelfId] AS Value, [Name] AS Label
+                FROM [DBO].[Shelf] WITH(NOLOCK)
+                WHERE [MasterCompanyId] = @MasterCompanyId AND [LocationId] IN(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ','))
+                ORDER BY [ShelfId] ASC 
+            END
+            ELSE IF(@TableName='Bin')
+            BEGIN 
+                SELECT DISTINCT [Binid] AS Value, [Name] AS Label
+                FROM [DBO].[Bin] WITH(NOLOCK)
+                WHERE [MasterCompanyId] = @MasterCompanyId AND [ShelfId] IN(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ','))
+                ORDER BY [Binid] ASC 
+            END           
             ELSE BEGIN
                      IF(@Parameter4=1)BEGIN
                          IF(@TableName='ItemMaster' AND ISNULL(@IsFromUpload,0) = 0)BEGIN

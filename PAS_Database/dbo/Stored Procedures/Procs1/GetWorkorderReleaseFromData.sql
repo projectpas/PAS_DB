@@ -26,11 +26,12 @@ EXEC [GetSubWorkorderReleaseFromData]
 ** 15   12/09/2025  Vishal Suthar    Fixed the issue with CMM & RSPEC data interchange
 ** 16   10/10/2025  Moin Bloch       Updated For Get VersionNo & IsVersionIncrease Flag
 ** 17   13/10/2025  Moin Bloch       Updated to Dynamic VersionNo
+** 18   19/12/2025  Vishal Suthar    Fixed the logic to populate dynamic templates instead of hard coded 2 templates for multiple CMMs for NEO
 
  EXEC [dbo].[GetWorkorderReleaseFromData] 8212,7835,1,0,2
 **************************************************************/ 
 
-CREATE   PROC [dbo].[GetWorkorderReleaseFromData]  
+CREATE    PROC [dbo].[GetWorkorderReleaseFromData]  
 @WorkorderId bigint,  
 @workOrderPartNumberId bigint,  
 @IsEasaLicense bit = 0 ,
@@ -90,10 +91,6 @@ BEGIN
 
 		IF(@CMMIds IS NOT NULL)
 		BEGIN
-			--INSERT INTO #tmprCMMIDsDetails ([CMMId])
-			--SELECT [PublicationRecordId] --(SELECT Item FROM DBO.SPLITSTRING(wop.CMMIds, ',')) AS cmmids 
-			--FROM [dbo].[Publication] WHERE [PublicationRecordId] IN (SELECT Item FROM DBO.SPLITSTRING(@CMMIds, ','))  
-			--ORDER BY PublicationTypeId DESC
 			INSERT INTO #tmprCMMIDsDetails ([CMMId])
 			SELECT [PublicationRecordId]
 			FROM [dbo].[Publication] P INNER JOIN [dbo].[PublicationType] PT ON P.PublicationTypeId = PT.PublicationTypeId
@@ -283,93 +280,185 @@ BEGIN
 
 		  SELECT @CMMID1 = CMMId FROM #tmprCMMIDsDetails WHERE [ID] = 1;
 		  SELECT @CMMID2 = CMMId FROM #tmprCMMIDsDetails WHERE [ID] = 2;
-		  				  
-		  SELECT 'UNITED STATES' AS Country,  
-				  '' AS trackingNo,  
-				  le.CompanyName AS OrganizationName,  
-				  ad.Line1 +' '+ ad.City +' '+ ad.StateOrProvince AS OrganizationAddress ,  
-				  wo.WorkOrderNum AS InvoiceNo,  
-				  '1' AS ItemName,  				  
-				  wop.RevisedPartDescription AS [Description],
-				  wop.RevisedPartNumber AS PartNumber,  
-				  wop.CustomerReference AS Reference,  
-				  wop.Quantity AS Quantity,  
-				  CASE WHEN ISNULL(wop.RevisedSerialNumber , '') = '' THEN UPPER(CASE WHEN ISNULL(sl.SerialNumber,'') = '' THEN '' ELSE sl.SerialNumber END)
-							ELSE UPPER(wop.RevisedSerialNumber) END AS Batchnumber,  
-				  CASE WHEN ISNULL(wop.RevisedConditionId,0) > 0 THEN UPPER(C.[Memo]) ELSE UPPER(wosc.[conditionName]) END AS [status],
-				  '' as Certifies,   
-				  0 AS approved ,  
-				  0 AS Nonapproved,  
-				  '' AS AuthorisedSign,   
-				  UPPER(le.FAALicense) AS AuthorizationNo,  
-				  '' as PrintedName,GETDATE() AS [Date],  
-				  '' as AuthorisedSign2,  
-				  UPPER(le.FAALicense) AS ApprovalCertificate,  
-				  '' AS PrintedName2,GETDATE() Date2,  
-				  0 AS CFR,  
-				  0 Otherregulation,  
-				  1 AS is8130from ,  
-				  wop.ReceivedDate,  
-				  wop.ManagementStructureId AS ManagementStructureId, 	
-				  @IsMultiple AS IsMultiple,				
-				  --UPPER(wosc.conditionName) AS ConditionName,
-				  CASE WHEN ISNULL(wop.[RevisedConditionId],0) > 0 THEN UPPER(C.[Memo]) ELSE UPPER(wosc.[conditionName]) END AS ConditionName,
-				  ISNULL(UPPER(pub.PublicationId),0) AS PublicationId,
-				  ISNULL(CONVERT(VARCHAR(20),UPPER(pub.RevisionNum)),'-') RevisionNum,
-				  UPPER(ISNULL(REPLACE(CONVERT(VARCHAR(100),pub.revisionDate,106),' ','/'),'-')) RevisionDate,
-				  ISNULL(UPPER(pub2.PublicationId),0) AS SecondPublicationId,
-				  ISNULL(CONVERT(VARCHAR(20),UPPER(pub2.RevisionNum)),'-') SecondRevisionNum,
-				  UPPER(ISNULL(REPLACE(CONVERT(VARCHAR(100),pub2.revisionDate,106),' ','/'),'-')) SecondRevisionDate,
-				  wo.[WorkOrderNum],				  				 
-				  ISNULL(pub.[PublishedById],0) PublishedById,
-				  ven.[VendorName],
-				  mf.[Name] ManufacturerName,
-				  pub.[PublishedByOthers],	
-				  wo.[MasterCompanyId],
-				  CASE WHEN @IsEasaUKLicense = 1 AND @formTypeId = @FAAEASAUK THEN 'UK' ELSE 'EASA' END AS IsEasaUKLicenseType,
-				  ('<div style = "position:relative; min-height:140px;max-height:150px;  font-family: Arial, Helvetica, sans-serif!important; letter-spacing: 1px!important; font-size:10px">') AS HeaderRemarks, 
-				 -- ('<div style = "position:relative; min-height:90px;max-height:100px;  font-family: Arial, Helvetica, sans-serif!important; letter-spacing: 1px!important; font-size:10px">' 
-					--+ (CASE WHEN wop.CMMId is not null and wop.CMMId > 0 THEN   
-					--		CASE WHEN wo.MasterCompanyId != @MTIMasterCompanyId THEN '<p>' + ('Publication ID: ' + ISNULL(UPPER(pub.PublicationId),0)) +'</p>'   
-					--				+'<p>'+(CASE WHEN pub.PublishedById = 2 THEN 'Published By: ' + ISNULL(UPPER(ven.VendorName),'-')  
-					--							 WHEN pub.PublishedById = 3 THEN 'Published By: ' +  ISNULL(UPPER(mf.Name),'-')  
-					--							 WHEN pub.PublishedById = 4 THEN 'Published By: ' +  isnull(UPPER(pub.PublishedByOthers),'-')  
-					--						ELSE '' END) + '</p>'   
-					--				+ '<p>' +'Revision No: ' + ISNULL(CONVERT(VARCHAR(20),pub.RevisionNum),'-') + '</p>'  
-					--				+ '<p>' +'Revision Date: ' + ISNULL(CONVERT(VARCHAR(100),pub.revisionDate,103),'-') + '</p> <p style="height:15px"></p>'  	 
-					--		ELSE  '<p>' + ('Unit ' + ISNULL(UPPER(wosc.conditionName),'-')) + ' I/A/W CMM ATA: ' + ISNULL(UPPER(pub.PublicationId),0) + ' REV: ' + ISNULL(CONVERT(VARCHAR(20),UPPER(pub.RevisionNum)),'-')  + ' DATED: ' + UPPER(ISNULL(REPLACE(CONVERT(VARCHAR(100),pub.revisionDate,106),' ','/'),'-')) +'</p>'   
-					--				+'<p>No FAA or '+ CASE WHEN @IsEasaUKLicense = 1 AND @formTypeId = @FAAEASAUK THEN 'UK' ELSE 'EASA' END +' S/B and AD`s complied with at this shop visit.</p>'   
-					--				+ '<p>' +'Full details of work carried out held on Work Order: ' + ISNULL(CONVERT(VARCHAR(20),UPPER(wo.WorkOrderNum)),'-') + '</p>  <br/>'  
-					--		END ELSE '' END)   	  
-					--	+ (CASE WHEN @IsEasaLicense = 1 AND @formTypeId = @FAAEASA THEN '<div style='+ '"bottom : 0px; position:absolute;font-size: 10px !important;line-height: 12px;"'+'>' + (REPLACE(REPLACE(ISNULL(wods.Dualreleaselanguage,'-'),'<p>',''),'</p>','') +' '+ le.EASALicense +'</div>') ELSE ''  END)        
-					--	+ (CASE WHEN @IsEasaUKLicense = 1 AND @formTypeId = @FAAEASAUK THEN '<div style='+ '"bottom : 0px; position:absolute;font-size: 10px !important;line-height: 12px;"'+'>' + (REPLACE(REPLACE(ISNULL(wods.Dualreleaselanguage,'-'),'<p>',''),'</p>','') +' '+ le.UKCAALicense +'</div>') ELSE ''  END)        
-					--	+ '</div>') Remarks,  
-						 (CASE WHEN @IsEasaLicense = 1 AND @formTypeId = @FAAEASA THEN '<div style='+ '"bottom : 0px; position:absolute;font-size: 10px !important;line-height: 12px;"'+'>' + (REPLACE(REPLACE(ISNULL(wods.Dualreleaselanguage,'-'),'<p>',''),'</p>','') +' '+ le.EASALicense +'</div>') ELSE ''  END)        
-					   + (CASE WHEN @IsEasaUKLicense = 1 AND @formTypeId = @FAAEASAUK THEN '<div style='+ '"bottom : 0px; position:absolute;font-size: 10px !important;line-height: 12px;"'+'>' + (REPLACE(REPLACE(ISNULL(wods.Dualreleaselanguage,'-'),'<p>',''),'</p>','') +' '+ le.UKCAALicense +'</div>') ELSE ''  END)        
-					   + '</div>' FooterRemarks,  
-						UPPER(le.EASALicense) AS EASALicense,  
-						@EmailBody AS EmailBody
-					   ,@VersionNo VersionNo
-					   ,0 AS IsVersionIncrease
-			FROM [dbo].[WorkOrderPartNumber] wop WITH(NOLOCK)   
-				  LEFT JOIN [dbo].[WorkOrder] wo  WITH(NOLOCK) ON wo.WorkOrderId = wop.WorkOrderId  
-				  LEFT JOIN [dbo].[WorkOrderDualReleaseSettings] wods  WITH(NOLOCK) ON wods.MasterCompanyId = wop.MasterCompanyId AND wo.WorkOrderTypeId = wods.WorkOrderTypeId AND wods.CountriesId = @CountryId
-				  LEFT JOIN [dbo].[ItemMaster] im  WITH(NOLOCK) ON im.ItemMasterId = wop.ItemMasterId  
-				  LEFT JOIN [dbo].[Stockline] sl  WITH(NOLOCK) ON sl.StockLineId = wop.StockLineId  
-				  LEFT JOIN [dbo].[ReceivingCustomerWork] rc  WITH(NOLOCK) ON rc.StockLineId = wop.StockLineId  
-				  LEFT JOIN [dbo].[WorkOrderManagementStructureDetails] MSD  WITH(NOLOCK) ON MSD.ModuleID = @MSModuleId AND MSD.ReferenceID = wop.Id  
-				  LEFT JOIN [dbo].[ManagementStructurelevel] MSL WITH(NOLOCK) ON MSL.ID = MSD.Level1Id  
-				  LEFT JOIN [dbo].[LegalEntity] le  WITH(NOLOCK) ON le.LegalEntityId   = MSL.LegalEntityId  
-				  LEFT JOIN [dbo].[Address] ad  WITH(NOLOCK) ON ad.AddressId = le.AddressId   
-				  LEFT JOIN [dbo].[WorkOrderSettlementDetails] wosc WITH(NOLOCK) ON wop.WorkOrderId = wosc.WorkOrderId AND wop.ID = wosc.workOrderPartNoId AND wosc.WorkOrderSettlementId = 9  
-				  LEFT JOIN [dbo].[ItemMaster] ims WITH(NOLOCK) ON ims.ItemMasterId = wosc.RevisedPartId  
-				  LEFT JOIN [dbo].[Publication] pub WITH(NOLOCK) ON pub.[PublicationRecordId] = @CMMID1 
-				  LEFT JOIN [dbo].[Publication] pub2 WITH(NOLOCK) ON pub2.[PublicationRecordId] = @CMMID2 				  
-				  LEFT JOIN [dbo].[Vendor] ven WITH(NOLOCK) ON pub.PublishedByRefId = ven.VendorId  
-				  LEFT JOIN [dbo].[Manufacturer] mf WITH(NOLOCK) ON pub.PublishedByRefId = mf.ManufacturerId 
-				 -- LEFT JOIN [dbo].[CommonWorkOrderTearDown] cwt WITH(NOLOCK) ON wo.WorkOrderId = cwt.WorkOrderId AND [CommonTeardownTypeId] = @CommonTeardownTypeId
-				  LEFT JOIN [dbo].[Condition] C WITH(NOLOCK) ON C.ConditionId = wop.RevisedConditionId
-			 WHERE wop.WorkOrderId = @WorkOrderId AND wop.ID=@workOrderPartNumberId 
+		  
+		  SELECT  
+				'UNITED STATES' AS Country,  
+				'' AS trackingNo,  
+				le.CompanyName AS OrganizationName,  
+				ad.Line1 + ' ' + ad.City + ' ' + ad.StateOrProvince AS OrganizationAddress,  
+				wo.WorkOrderNum AS InvoiceNo,  
+				'1' AS ItemName,  
+				wop.RevisedPartDescription AS [Description],  
+				wop.RevisedPartNumber AS PartNumber,  
+				wop.CustomerReference AS Reference,  
+				wop.Quantity AS Quantity,  
+				CASE 
+					WHEN ISNULL(wop.RevisedSerialNumber,'') = '' 
+					THEN UPPER(ISNULL(sl.SerialNumber,''))
+					ELSE UPPER(wop.RevisedSerialNumber) 
+				END AS Batchnumber,  
+				CASE 
+					WHEN ISNULL(wop.RevisedConditionId,0) > 0 
+					THEN UPPER(C.Memo) 
+					ELSE UPPER(wosc.ConditionName) 
+				END AS [Status],  
+				'' AS Certifies,  
+				0 AS Approved,  
+				0 AS Nonapproved,  
+				'' AS AuthorisedSign,  
+				UPPER(le.FAALicense) AS AuthorizationNo,  
+				'' AS PrintedName,  
+				GETDATE() AS [Date],  
+				'' AS AuthorisedSign2,  
+				UPPER(le.FAALicense) AS ApprovalCertificate,  
+				'' AS PrintedName2,  
+				GETDATE() AS Date2,  
+				0 AS CFR,  
+				0 AS OtherRegulation,  
+				1 AS Is8130From,  
+				wop.ReceivedDate,  
+				wop.ManagementStructureId,  
+				@IsMultiple AS IsMultiple,  
+				CASE 
+					WHEN ISNULL(wop.RevisedConditionId,0) > 0 
+					THEN UPPER(C.Memo) 
+					ELSE UPPER(wosc.ConditionName) 
+				END AS ConditionName,
+
+				STRING_AGG(UPPER(pub.PublicationId), ', ') AS PublicationId,
+
+				STRING_AGG(
+					ISNULL(CONVERT(VARCHAR(20), pub.RevisionNum), '-'),
+					', '
+				) AS RevisionNum,
+
+				STRING_AGG(
+					UPPER(
+						ISNULL(
+							REPLACE(CONVERT(VARCHAR(100), pub.RevisionDate, 106),' ','/'),
+							'-'
+						)
+					),
+					', '
+				) AS RevisionDate,
+				wo.WorkOrderNum,  
+				ven.[VendorName],
+				'' ManufacturerName,
+				STRING_AGG(
+					ISNULL(CONVERT(VARCHAR(20), pub.[PublishedByOthers]), '-'),
+					', '
+				) AS PublishedByOthers,
+				0 AS SecondPublicationId,
+				'' AS SecondRevisionNum,
+				GETDATE() AS SecondRevisionDate,
+				STRING_AGG(
+					CASE 
+						WHEN pub.PublishedById = 2 THEN UPPER(ven.VendorName)
+						WHEN pub.PublishedById = 3 THEN UPPER(mf.Name)
+						WHEN pub.PublishedById = 4 THEN UPPER(pub.PublishedByOthers)
+						ELSE ''
+					END,
+					', '
+				) AS PublishedBy,
+				ISNULL(0 ,0) PublishedById,
+				wo.MasterCompanyId,
+
+				CASE 
+					WHEN @IsEasaUKLicense = 1 AND @FormTypeId = @FAAEASAUK 
+					THEN 'UK' ELSE 'EASA' 
+				END AS IsEasaUKLicenseType,
+
+				'<div style="position:relative; min-height:140px; max-height:150px;
+					font-family:Arial, Helvetica, sans-serif!important;
+					letter-spacing:1px!important; font-size:10px">' AS HeaderRemarks,
+
+				(
+					CASE 
+						WHEN @IsEasaLicense = 1 AND @FormTypeId = @FAAEASA 
+						THEN '<div style="bottom:0; position:absolute; font-size:10px; line-height:12px;">'
+							 + REPLACE(REPLACE(ISNULL(wods.DualReleaseLanguage,'-'),'<p>',''),'</p>','')
+							 + ' ' + le.EASALicense + '</div>'
+						ELSE ''
+					END
+					+
+					CASE 
+						WHEN @IsEasaUKLicense = 1 AND @FormTypeId = @FAAEASAUK 
+						THEN '<div style="bottom:0; position:absolute; font-size:10px; line-height:12px;">'
+							 + REPLACE(REPLACE(ISNULL(wods.DualReleaseLanguage,'-'),'<p>',''),'</p>','')
+							 + ' ' + le.UKCAALicense + '</div>'
+						ELSE ''
+					END
+					+ '</div>'
+				) AS FooterRemarks,
+
+				UPPER(le.EASALicense) AS EASALicense,  
+				STRING_AGG(
+					REPLACE(
+						REPLACE(
+							REPLACE(
+								REPLACE(
+									REPLACE(
+										REPLACE(
+											ISNULL(PT.EmailBody,''),
+											'#PublicationByName', 
+											CASE 
+												WHEN pub.PublishedById = 2 THEN ISNULL(ven.VendorName,'-')
+												WHEN pub.PublishedById = 3 THEN ISNULL(mf.Name,'-')
+												WHEN pub.PublishedById = 4 THEN ISNULL(pub.PublishedByOthers,'-')
+												ELSE '-'
+											END
+										), '#PublicationName', UPPER(pub.PublicationId)
+									), '#RevisionDate', UPPER(ISNULL(REPLACE(CONVERT(VARCHAR(100), pub.RevisionDate,106),' ','/'), '-'))
+								), '#RevisionNumber', UPPER(pub.RevisionNum)
+							), '#Condition', CASE WHEN ISNULL(wop.RevisedConditionId,0) > 0 THEN UPPER(C.Memo) ELSE UPPER(wosc.ConditionName) END
+						), '#WorkOrderNumber', wo.WorkOrderNum
+					), CHAR(13) + CHAR(10)
+				) + CASE WHEN wo.MasterCompanyId = @NeoMasterCompanyId THEN '<br><br><br><br><br>' ELSE '' END AS EmailBody,
+
+				@VersionNo AS VersionNo,  
+				0 AS IsVersionIncrease  
+
+			FROM WorkOrderPartNumber wop WITH (NOLOCK)
+			LEFT JOIN WorkOrder wo WITH (NOLOCK) ON wo.WorkOrderId = wop.WorkOrderId  
+			LEFT JOIN WorkOrderDualReleaseSettings wods WITH (NOLOCK) ON wods.MasterCompanyId = wop.MasterCompanyId AND wods.WorkOrderTypeId = wo.WorkOrderTypeId 
+						AND wods.CountriesId = @CountryId  
+			LEFT JOIN Stockline sl WITH (NOLOCK) ON sl.StockLineId = wop.StockLineId  
+			LEFT JOIN WorkOrderSettlementDetails wosc WITH (NOLOCK) ON wop.WorkOrderId = wosc.WorkOrderId AND wop.ID = wosc.WorkOrderPartNoId AND wosc.WorkOrderSettlementId = 9  
+			LEFT JOIN WorkOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @MSModuleId AND MSD.ReferenceID = wop.Id
+			LEFT JOIN ManagementStructureLevel MSL WITH (NOLOCK) ON MSL.ID = MSD.Level1Id  
+			LEFT JOIN LegalEntity le WITH (NOLOCK) ON le.LegalEntityId = MSL.LegalEntityId  
+			LEFT JOIN Address ad WITH (NOLOCK) ON ad.AddressId = le.AddressId  
+			LEFT JOIN Condition C WITH (NOLOCK) ON C.ConditionId = wop.RevisedConditionId  
+			LEFT JOIN Publication pub WITH (NOLOCK)
+				ON pub.PublicationRecordId IN (
+					SELECT CAST(value AS BIGINT)
+					FROM STRING_SPLIT(@CMMIds, ',')
+				)
+			LEFT JOIN PublicationTemplate PT WITH (NOLOCK) ON PT.PublicationTypeId = pub.PublicationTypeId AND PT.IsActive = 1 AND PT.IsDeleted = 0
+			LEFT JOIN Vendor ven WITH (NOLOCK) ON pub.PublishedByRefId = ven.VendorId  
+			LEFT JOIN Manufacturer mf WITH (NOLOCK) ON pub.PublishedByRefId = mf.ManufacturerId  
+			WHERE wop.WorkOrderId = @WorkOrderId AND wop.ID = @WorkOrderPartNumberId
+			GROUP BY
+				le.CompanyName,
+				ad.Line1, ad.City, ad.StateOrProvince,
+				wo.WorkOrderNum,
+				ven.[VendorName],
+				wop.RevisedPartDescription,
+				wop.RevisedPartNumber,
+				wop.CustomerReference,
+				wop.Quantity,
+				wop.RevisedSerialNumber,
+				sl.SerialNumber,
+				wop.RevisedConditionId,
+				C.Memo,
+				wosc.ConditionName,
+				le.FAALicense,
+				wop.ReceivedDate,
+				wop.ManagementStructureId,
+				wo.MasterCompanyId,
+				le.EASALicense,
+				le.UKCAALicense,
+				wods.DualReleaseLanguage;
 		END	
 		END
 		ELSE

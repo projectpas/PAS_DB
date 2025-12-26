@@ -19,8 +19,9 @@
     3    29-MARCH-2024 Ekta Chandegra	IsDeleted and IsActive flag is added
 	4    08-dec-2025   Ayushi Patel		Get one field (InvoiceDate) , changed the table name workOrderBillingInvoicing -> BillingInvoicing
 	5    11-Dec-2025   Ayushi Patel     Mapped BillingInvoicing through BillingInvoicingItems
+	6	 23-Dec-2025   Ayushi Patel		Get The Newly versioned invoice 
 **************************************************************/  
-CREATE   PROCEDURE [dbo].[usprpt_GetWorkOrderOnTimeReport] 
+CREATE    PROCEDURE [dbo].[usprpt_GetWorkOrderOnTimeReport] 
 @PageNumber int = 1,
 @PageSize int = NULL,
 @mastercompanyid int,
@@ -100,7 +101,7 @@ BEGIN
 			LEFT JOIN DBO.Condition CDTN WITH (NOLOCK) ON WOPN.ConditionId = CDTN.ConditionId  
 			LEFT JOIN DBO.Employee AS E WITH (NOLOCK) ON WO.salespersonid = E.EmployeeId  
 			LEFT JOIN DBO.Employee AS E1 WITH (NOLOCK) ON WO.csrid = E1.Employeeid  
-			LEFT JOIN DBO.BillingInvoicingItems WBII ON WBII.SubReferenceId = WOPN.ID AND WBII.ModuleId = @WoModuleID
+			LEFT JOIN DBO.BillingInvoicingItems WBII ON WBII.SubReferenceId = WOPN.ID AND WBII.ModuleId = @WoModuleID and ISNULL(WBII.IsVersionIncrease,0)=0
 			LEFT JOIN DBO.BillingInvoicing AS WBI WITH (NOLOCK) ON WBII.BillingInvoicingId = WBI.BillingInvoicingId and ISNULL(WBI.IsVersionIncrease,0)=0 AND ISNULL(WBI.IsPerformaInvoice, 0) = 0 AND WBI.ModuleId = @WoModuleID
 			--LEFT JOIN DBO.BillingInvoicing AS WBI WITH (NOLOCK) ON WO.WorkOrderId = WBI.ReferenceId and ISNULL(IsVersionIncrease,0)=0 AND ISNULL(WBI.IsPerformaInvoice, 0) = 0  
 			LEFT JOIN DBO.WorkOrderShippingItem AS WOSI WITH (NOLOCK) ON WOPN.ID = WOSI.WorkOrderPartNumId  
@@ -164,7 +165,7 @@ BEGIN
         LEFT JOIN DBO.Condition CDTN WITH (NOLOCK) ON WOPN.ConditionId = CDTN.ConditionId  
         LEFT JOIN DBO.Employee AS E WITH (NOLOCK) ON WO.salespersonid = E.EmployeeId  
         LEFT JOIN DBO.Employee AS E1 WITH (NOLOCK) ON WO.csrid = E1.Employeeid  
-		LEFT JOIN DBO.BillingInvoicingItems WBII ON WBII.SubReferenceId = WOPN.ID AND WBII.ModuleId = @WoModuleID
+		LEFT JOIN DBO.BillingInvoicingItems WBII ON WBII.SubReferenceId = WOPN.ID AND WBII.ModuleId = @WoModuleID and ISNULL(WBII.IsVersionIncrease,0)=0
 		LEFT JOIN DBO.BillingInvoicing AS WBI WITH (NOLOCK) ON WBII.BillingInvoicingId = WBI.BillingInvoicingId and ISNULL(WBI.IsVersionIncrease,0)=0 AND ISNULL(WBI.IsPerformaInvoice, 0) = 0 AND WBI.ModuleId = @WoModuleID
         --LEFT JOIN DBO.BillingInvoicing AS WBI WITH (NOLOCK) ON WO.WorkOrderId = WBI.ReferenceId and ISNULL(IsVersionIncrease,0)=0 AND ISNULL(WBI.IsPerformaInvoice, 0) = 0  
         LEFT JOIN DBO.WorkOrderShippingItem AS WOSI WITH (NOLOCK) ON WOPN.ID = WOSI.WorkOrderPartNumId  

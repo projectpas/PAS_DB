@@ -20,7 +20,7 @@
 	6    04-12-2025	  Amit Ghediya			Added qtyShipped,qtyRemaining for shipping details
 
 **************************************************************/
-CREATE  PROCEDURE [dbo].[GetPNTileRepairOrderList]
+CREATE   PROCEDURE [dbo].[GetPNTileRepairOrderList]
 @PageNumber int = 1,
 @PageSize int = 10,
 @SortColumn varchar(50)=NULL,
@@ -116,7 +116,14 @@ BEGIN
 			 INNER JOIN [dbo].[RoleManagementStructure] RMS WITH (NOLOCK) ON RO.ManagementStructureId = RMS.EntityStructureId
 			 INNER JOIN [dbo].[EmployeeUserRole] EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
 			 INNER JOIN [dbo].[RepairOrderPart] ROP WITH (NOLOCK) ON ROP.RepairOrderId = RO.RepairOrderId AND ROP.isParent=1
-			 LEFT JOIN  [dbo].[RepairOrderShippingItem] ROSI WITH (NOLOCK) ON ROSI.RepairOrderPartId = ROP.RepairOrderPartRecordId
+			 LEFT JOIN (
+				SELECT 
+					RepairOrderPartId,
+					SUM(ISNULL(QtyShipped,0)) AS QtyShipped
+				FROM dbo.RepairOrderShippingItem WITH (NOLOCK)
+				WHERE IsDeleted = 0
+				GROUP BY RepairOrderPartId
+			 ) ROSI ON ROSI.RepairOrderPartId = ROP.RepairOrderPartRecordId
 			 INNER JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON IM.ItemMasterId = ROP.ItemMasterId 
 			  LEFT JOIN [dbo].[Stockline] STL WITH (NOLOCK) ON STL.StockLineId = ROP.StockLineId AND STL.IsParent = 1 AND STL.isActive = 1 AND STL.isDeleted = 0  	
 			  LEFT JOIN [dbo].[TagType] TAT WITH (NOLOCK) ON ROP.TagTypeId = TAT.TagTypeId

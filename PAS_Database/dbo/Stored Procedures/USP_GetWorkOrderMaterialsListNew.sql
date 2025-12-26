@@ -25,11 +25,12 @@
     14  25-04-2025		Devendra Shekh		    Modified (Added New Fields IssuedStkExtendedCost, ReservedStkExtendedCost, StkPONum, StkPONextDlvrDate, TotalIssuedStkExtendedCost, TotalReservedStkExtendedCost)
     15  14-05-2025		Devendra Shekh		    Modified (Added ISNULL to qty fields)
 	16  11-08-2025		Rajesh Gami			    Fixed: Order related issue while copy materials from the Template
+	17  24-12-2025		Amit Ghediya			Get WorkorderNum from wo.
 	
  EXECUTE [dbo].[USP_GetWorkOrderMaterialsList] 4257,3782, 0
 exec dbo.USP_GetWorkOrderMaterialsListNew @PageNumber=1,@PageSize=10,@SortColumn=default,@SortOrder=1,@WorkOrderId=5960,@WFWOId=5553,@ShowPendingToIssue=1
 **************************************************************/
-CREATE   PROCEDURE [dbo].[USP_GetWorkOrderMaterialsListNew]
+CREATE    PROCEDURE [dbo].[USP_GetWorkOrderMaterialsListNew]
 (    
 	@PageNumber int,  
 	@PageSize int,  
@@ -71,13 +72,14 @@ SET NOCOUNT ON
 				DECLARE @TotalMaterialParts INT = 0, @TotalStkParts INT = 0;
 				DECLARE @TotalIssuedStkExtendedCost DECIMAL(13,2);
 				DECLARE @TotalReservedStkExtendedCost DECIMAL(13,2);
+				DECLARE @WorkOrderNum VARCHAR(50) = NULL;
 
 				IF @Local_SortColumn IS NULL
 				BEGIN  
 					SET @Local_SortColumn = ('recordId')
 				END
 
-				SELECT @MasterCompanyId = MasterCompanyId,@WoTypeId = WorkOrderTypeId FROM dbo.WorkOrder WITH (NOLOCK) WHERE WorkOrderId = @Local_WorkOrderId;
+				SELECT @MasterCompanyId = MasterCompanyId,@WoTypeId = WorkOrderTypeId,@WorkOrderNum = [WorkOrderNum] FROM dbo.WorkOrder WITH (NOLOCK) WHERE WorkOrderId = @Local_WorkOrderId;
 				SELECT @WOPartNoId = WorkOrderPartNoId FROM dbo.WorkOrderWorkFlow WITH (NOLOCK) WHERE WorkFlowWorkOrderId = @Local_WFWOId;
 				SET @IsTeardownWO = (CASE WHEN (Select TOP 1 ID from dbo.WorkOrderType WITH(NOLOCK) WHERE UPPER(Description) = UPPER('Teardown') ) = @WoTypeId THEN 1 ELSE 0 END )
 				SELECT @SubProvisionId = ProvisionId FROM dbo.Provision WITH (NOLOCK) WHERE UPPER(StatusCode) = 'SUB WORK ORDER'
@@ -555,7 +557,8 @@ SET NOCOUNT ON
 						0 AS KitId,
 						IM.ItemGroup,
 						IM.ManufacturerName,
-						SL.WorkOrderNumber,
+						--SL.WorkOrderNumber,
+						@WorkOrderNum,
 						CASE WHEN SWO.SubWorkOrderId > 0 AND SWO.IsDeleted = 1 THEN '' ELSE SWO.SubWorkOrderNo END AS 'SubWorkOrderNo',
 						--WOM.WorkOrderId,
 						'' AS SalesOrder,
@@ -801,7 +804,8 @@ SET NOCOUNT ON
 						WOMKM.KitId AS KitId,
 						IM.ItemGroup,
 						IM.ManufacturerName,
-						SL.WorkOrderNumber,
+						--SL.WorkOrderNumber,
+						@WorkOrderNum,
 						CASE WHEN SWO.SubWorkOrderId > 0 AND SWO.IsDeleted = 1 THEN '' ELSE SWO.SubWorkOrderNo END AS 'SubWorkOrderNo',
 						--WOM.WorkOrderId,
 						'' AS SalesOrder,
@@ -1042,7 +1046,8 @@ SET NOCOUNT ON
 						0 AS KitId,
 						IM.ItemGroup,
 						IM.ManufacturerName,
-						SL.WorkOrderNumber,
+						--SL.WorkOrderNumber,
+						@WorkOrderNum,
 						CASE WHEN SWO.SubWorkOrderId > 0 AND SWO.IsDeleted = 1 THEN '' ELSE SWO.SubWorkOrderNo END AS 'SubWorkOrderNo',
 						--WOM.WorkOrderId,
 						'' AS SalesOrder,
@@ -1288,7 +1293,8 @@ SET NOCOUNT ON
 						WOMKM.KitId AS KitId,
 						IM.ItemGroup,
 						IM.ManufacturerName,
-						SL.WorkOrderNumber,
+						--SL.WorkOrderNumber,
+						@WorkOrderNum,
 						CASE WHEN SWO.SubWorkOrderId > 0 AND SWO.IsDeleted = 1 THEN '' ELSE SWO.SubWorkOrderNo END AS 'SubWorkOrderNo',
 						--WOM.WorkOrderId,
 						'' AS SalesOrder,

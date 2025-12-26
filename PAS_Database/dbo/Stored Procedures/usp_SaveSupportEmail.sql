@@ -11,9 +11,10 @@
  ** --   --------			-------				--------------------------------          
     1    28-Oct-2025		Devendra Shekh		Created
     2    31-Oct-2025		Devendra Shekh		Removed OutPut And Return As Select Table
+    3    22-Dec-2025		Devendra Shekh		Removed @MasterCompanyId Check For @CustomerTicketId Select
 
 **************************************************************/
-CREATE   PROCEDURE [dbo].[usp_SaveSupportEmail]
+CREATE    PROCEDURE [dbo].[usp_SaveSupportEmail]
 @MessageId           NVARCHAR(255) = NULL,
 @Subject             VARCHAR(500),
 @EmailBody           NVARCHAR(MAX),
@@ -73,7 +74,7 @@ SET NOCOUNT ON
 
 		IF(ISNULL(@TicketNumber, '') <> '') AND (ISNULL(@CustomerTicketId, 0) = 0)
 		BEGIN
-			SELECT TOP 1 @CustomerTicketId = ISNULL([CustomerTicketId], 0) FROM [dbo].[CustomerTicket] WITH(NOLOCK) WHERE [MasterCompanyId] = @MasterCompanyId AND [TicketID] = @TicketNumber;
+			SELECT TOP 1 @CustomerTicketId = ISNULL([CustomerTicketId], 0) FROM [dbo].[CustomerTicket] WITH(NOLOCK) WHERE [TicketID] = @TicketNumber;
 
 			UPDATE [dbo].[SupportEmail] SET [CustomerTicketId] = @CustomerTicketId WHERE [SupportEmailId] = @SupportEmailId;
 		END

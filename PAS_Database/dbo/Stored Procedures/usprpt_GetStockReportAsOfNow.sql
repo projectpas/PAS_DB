@@ -32,14 +32,14 @@ exec usprpt_GetStockReportAsOfNow
 @id8='448,453', 
 @strFilter=N'49!50,51!!!!!!!!'
 **************************************************************/
-CREATE        PROCEDURE [dbo].[usprpt_GetStockReportAsOfNow]
+CREATE    PROCEDURE [dbo].[usprpt_GetStockReportAsOfNow]
 	@mastercompanyid INT,
 	@id VARCHAR(100),
 	@id2 VARCHAR(100),
 	@id3 BIT,
 	@id5 VARCHAR(MAX),
 	@id6 BIGINT,
-	@id8 VARCHAR(MAX),
+	@id8 VARCHAR(MAX) = NULL,
 	@strFilter VARCHAR(MAX) = NULL
 AS
 BEGIN

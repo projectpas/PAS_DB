@@ -17,6 +17,8 @@
     4    07/11/2025  Bhargav Saliya     Fixed Filters issues For Super Admin Role
     5    21/11/2025  Bhargav Saliya     get Tickettype with Filter
     6    16/12/2025  Bhargav Saliya     Fixed Status Filter
+    7    19/12/2025  Bhargav Saliya     Get New Field DaysSinceOpen And Modified Status Filter into Multiselect
+	8	 22/12/2025  Bhargav Saliya     Modified [DaysSinceOpen] field
 
 exec GetCustomerTicketList @PageNumber=1,@PageSize=10,@SortColumn=NULL,@SortOrder=-1,
 @GlobalFilter=N'',@TicketId=NULL,@Subject=NULL,@StatusDescription=NULL,@AssignTo=NULL,
@@ -25,7 +27,7 @@ exec GetCustomerTicketList @PageNumber=1,@PageSize=10,@SortColumn=NULL,@SortOrde
 	
 ************************************************************************/
 
-CREATE   PROCEDURE [dbo].[GetCustomerTicketList]
+CREATE    PROCEDURE [dbo].[GetCustomerTicketList]
 @PageNumber INT = NULL,        
 @PageSize INT = NULL,        
 @SortColumn VARCHAR(50)=NULL,        
@@ -42,12 +44,13 @@ CREATE   PROCEDURE [dbo].[GetCustomerTicketList]
 @IsDeleted BIT = NULL,
 @MasterCompanyId BIGINT = NULL,
 @EmployeeId BIGINT = NULL,
-@StatusId INT = NULL,
+@StatusIds VARCHAR(MAX) = NULL,
 @DepartmentId INT = NULL,
 @CompanyName VARCHAR(500) = NULL,
 @UserEmployeeId BIGINT = NULL,
 @TicketType VARCHAR(100) = NULL,
-@Priority VARCHAR(100) = NULL
+@Priority VARCHAR(100) = NULL,
+@DaysSinceOpen VARCHAR(100) = NULL
 AS 
 BEGIN
 	SET NOCOUNT ON;  
@@ -56,6 +59,14 @@ BEGIN
 		DECLARE @RecordFrom INT;		
 		DECLARE @Count INT;
 		DECLARE @IsActive BIT;
+		DECLARE @StatusCloseId BIGINT;
+		DECLARE @Status TABLE (StatusId BIGINT);
+
+		SELECT @StatusCloseId = TicketStatusId FROM [dbo].[TicketStatus] WITH (NOLOCK) WHERE [Name] = 'Closed';
+
+		INSERT INTO @Status
+		SELECT value FROM STRING_SPLIT(@StatusIds, ',');
+
 		SET @RecordFrom = (@PageNumber - 1) * @PageSize;
 
 		IF @EmployeeId = 0
@@ -63,10 +74,10 @@ BEGIN
 			SET @EmployeeId = NULL
 		END
 
-		IF @StatusId = 0
-		BEGIN
-			SET @StatusId = NULL
-		END
+		--IF @StatusIds = 0
+		--BEGIN
+		--	SET @StatusIds = NULL
+		--END
 
 		IF @DepartmentId = 0
 		BEGIN
@@ -97,6 +108,8 @@ BEGIN
 			LEFT JOIN dbo.TimeZone LTZ WITH (NOLOCK) ON LE.TimeZoneId = LTZ.TimeZoneId
 		WHERE E.EmployeeId = @UserEmployeeId; 
 
+		
+
 		SELECT TOP 1 @empROleId = Id FROM DBO.UserRole WITH(NOLOCK) WHERE MasterCompanyId = @MasterCompanyId and [Name] = 'SUPERADMIN';
 
 		IF EXISTS(SELECT 1 FROM DBO.EmployeeUserRole WITH(NOLOCK) WHERE EmployeeId = @UserEmployeeId AND [RoleId] = @empROleId)
@@ -104,7 +117,17 @@ BEGIN
 			SET @IsSupertUser = 1
 		END
 
-		;WITH Result AS(
+		;WITH TKT_TicketDates AS (
+				SELECT
+					CT.CustomerTicketId,
+					TS.TicketStatusId,
+					CAST(DATEDIFF(DAY,CAST(DBO.ConvertUTCtoLocal(CT.[CreatedDate], @CurrntEmpTimeZoneDesc) AS DATE),CAST(DBO.ConvertUTCtoLocal(GETUTCDATE(), @CurrntEmpTimeZoneDesc) AS DATE)) AS VARCHAR(10)) AS DaysDiff
+				FROM dbo.CustomerTicket CT
+				JOIN dbo.TicketStatus TS ON CT.StatusId = TS.TicketStatusId
+				WHERE ISNULL(CT.IsDeleted, 0) = 0 AND CT.MasterCompanyId = @MasterCompanyId
+			),
+
+		Result AS(
 			SELECT DISTINCT
 				CT.CustomerTicketId,
 				(ISNULL(CT.TicketID,'')) AS TicketID,
@@ -132,7 +155,23 @@ BEGIN
 				TS.Description AS 'StatusDescription',
 				TP.PriorityId,
 				TP.Description AS 'Priority',
-				tt.Description as 'TicketType'
+				tt.Description as 'TicketType',
+				CASE 
+				WHEN itp.TicketStatusId = @StatusCloseId THEN
+					CASE 
+						WHEN itp.DaysDiff = 0 THEN 'CLOSED TODAY'
+						WHEN itp.DaysDiff = 1 THEN 'CLOSED YESTERDAY'
+						ELSE 'CLOSED ' + itp.DaysDiff + ' DAYS AGO'
+					END
+				ELSE
+					CASE 
+						WHEN itp.DaysDiff = 0 THEN 'OPENED TODAY'
+						WHEN itp.DaysDiff = 1 THEN 'OPENED YESTERDAY'
+						ELSE 'OPENED ' + itp.DaysDiff + ' DAYS AGO'
+					END
+				END AS DaysSinceOpen,
+				CASE WHEN itp.TicketStatusId = @StatusCloseId THEN 0 ELSE ISNULL(CAST(itp.DaysDiff AS INT),0) END AS DaysDiff
+				--'Opened ' + CAST(DATEDIFF(DAY,CAST(DBO.ConvertUTCtoLocal(CT.[CreatedDate], @CurrntEmpTimeZoneDesc) AS DATE),CAST(DBO.ConvertUTCtoLocal(GETUTCDATE(), @CurrntEmpTimeZoneDesc) AS DATE)) AS VARCHAR(10)) + ' Days Ago' AS DaysSinceOpen
 			FROM [dbo].[CustomerTicket] CT WITH (NOLOCK)
 			LEFT JOIN [dbo].[MasterCompany] MS WITH (NOLOCK) ON CT.MasterCompanyId = MS.MasterCompanyId
 			LEFT JOIN [dbo].[SupportDepartment] SD WITH (NOLOCK) ON CT.DepartmentId = SD.DepartmentId
@@ -142,11 +181,12 @@ BEGIN
 			LEFT JOIN [dbo].[Employee] EMP1 WITH (NOLOCK) ON CT.EmployeeId = EMP1.EmployeeId
 			LEFT JOIN [dbo].[CustomerTicketResponse] CTR WITH (NOLOCK) ON CT.CustomerTicketId = CTR.CustomerTicketId 
 			LEFT JOIN [dbo].[TicketType] tt WITH (NOLOCK) ON CT.TicketTypeId = tt.TicketTypeId
+			LEFT JOIN TKT_TicketDates itp ON CT.CustomerTicketId = itp.CustomerTicketId
 			WHERE 
 			(((ISNULL(@IsSupertUser, 0) = 1 AND ((@EmployeeId IS NULL OR CT.EmployeeId = @EmployeeId) OR (@EmployeeId IS NULL OR CT.AssignTo = @EmployeeId)))
 				or (ISNULL(@IsSupertUser, 0) = 0 and CT.MasterCompanyId = @MasterCompanyId AND ((@EmployeeId IS NULL OR CT.EmployeeId = @EmployeeId) OR (@EmployeeId IS NULL OR CT.AssignTo = @EmployeeId))))
 			AND ISNULL(CT.IsDeleted,0) = @IsDeleted
-			AND (@StatusId IS NULL OR TS.TicketStatusId = @StatusId)
+			AND (@StatusIds IS NULL OR TS.TicketStatusId IN (SELECT StatusId FROM @Status))
 			AND (@DepartmentId IS NULL OR SD.DepartmentId = @DepartmentId)
 			)),
 			ResultCount AS (SELECT COUNT(CustomerTicketId) AS totalItems FROM Result)
@@ -171,7 +211,8 @@ BEGIN
 				(ISNULL(@CreatedDate,'') = '' OR CAST(CreatedDate AS DATE)=CAST(@CreatedDate AS DATE)) AND
 				(ISNULL(@UpdatedDate,'') = '' OR CAST(UpdatedDate AS DATE)=CAST(@UpdatedDate AS DATE)) AND
 				(ISNULL(@TicketType,'') = '' OR TicketType LIKE '%' + @TicketType + '%') AND
-				(ISNULL(@Priority,'') = '' OR Priority LIKE '%' + @Priority + '%'))
+				(ISNULL(@Priority,'') = '' OR Priority LIKE '%' + @Priority + '%') and
+				(ISNULL(@DaysSinceOpen,'') = '' OR DaysSinceOpen LIKE '%' + @DaysSinceOpen + '%'))
 			)
 
 			SELECT @Count = COUNT(CustomerTicketId) FROM #TempResult			
@@ -197,7 +238,9 @@ BEGIN
 			CASE WHEN (@SortOrder=1  AND @SortColumn='TicketType')  THEN TicketType END ASC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='TicketType')  THEN TicketType END DESC,
 			CASE WHEN (@SortOrder=1  AND @SortColumn='Priority')  THEN Priority END ASC,
-			CASE WHEN (@SortOrder=-1 AND @SortColumn='Priority')  THEN Priority END DESC
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='Priority')  THEN Priority END DESC,
+			CASE WHEN (@SortOrder=1  AND @SortColumn='DaysSinceOpen')  THEN DaysSinceOpen END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='DaysSinceOpen')  THEN DaysSinceOpen END DESC
 
 			OFFSET @RecordFrom ROWS 
 			FETCH NEXT @PageSize ROWS ONLY
@@ -224,7 +267,7 @@ BEGIN
              @Parameter14 = ' + ISNULL(@IsDeleted ,'') + ',
              @Parameter15 = ' + ISNULL(@MasterCompanyId,'') + ',
              @Parameter16 = ' + ISNULL(@EmployeeId,'') + ',
-             @Parameter17 = ' + ISNULL(@StatusId,'') + ',
+             @Parameter17 = ' + ISNULL(@StatusIds,'') + ',
              @Parameter18 = ' + ISNULL(@DepartmentId,'') + ',
              @Parameter19 = ' + ISNULL(@CompanyName,'') + ','
              , @ApplicationName VARCHAR(100) = 'PAS'        

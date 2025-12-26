@@ -22,6 +22,7 @@
 	6	 06/02/2025	  Abhishek Jirawla  Fixed @DataEnteredBy read script
 	7	 11/08/2025	  RAJESH GAMI		Fixed: Save same order as in the template & handle the delete value
 	8	 12/15/2025	  VISHAL SUTHAR		Fixed: Sequence number to copy same as what we have in workflow
+	9	 12/24/2025	  VISHAL SUTHAR		Converting sequence while sorting and adding into workordertask table
 
 exec sp_executesql N'EXEC USP_CopyWorkflowDetailsToWorkOrder @WorkOrderId,@WorkflowId,@WorkOrderPartNumberId,@MasterCompanyId,@CreatedBy, @CreatedById, 
 @ListItem ',N'@WorkOrderId bigint,@WorkflowId bigint,@WorkOrderPartNumberId bigint,@MasterCompanyId int,@CreatedBy nvarchar(16),@CreatedById bigint,@listItem nvarchar(28)',
@@ -182,7 +183,8 @@ SET NOCOUNT ON;
 									)
 									
 									INSERT INTO #tmpWorkFlowTask(TaskId, WorkflowId)
-									SELECT TaskId, WorkflowId FROM dbo.WorkFlowTask WITH (NOLOCK) WHERE WorkflowId = @WorkflowId AND ISNULL(IsActive,0) = 1 AND ISNULL(IsDeleted,0) = 0 ORDER BY SequenceNumber ASC
+									SELECT TaskId, WorkflowId FROM dbo.WorkFlowTask WITH (NOLOCK) WHERE WorkflowId = @WorkflowId AND ISNULL(IsActive,0) = 1 AND ISNULL(IsDeleted,0) = 0 
+									ORDER BY TRY_CAST(SequenceNumber AS DECIMAL(10, 4)) ASC
 
 									SELECT @TaskTotalCounts = COUNT(ID) FROM #tmpWorkFlowTask;
 

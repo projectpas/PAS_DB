@@ -1,4 +1,30 @@
-﻿CREATE   PROCEDURE [dbo].[usprpt_GetWorkOrderLaborTrackingReport] 
+﻿/*************************************************************           
+ ** File:   [usprpt_GetWorkOrderLaborTrackingReport]           
+ ** Author:   
+ ** Description: Get Data for Work-Order Labor Tracking Report
+ ** Purpose:         
+ ** Date:     
+          
+ ** PARAMETERS:           
+         
+ ** RETURN VALUE:           
+  
+ **************************************************************           
+  ** Change History           
+ **************************************************************           
+ ** S NO   Date				Author  			Change Description            
+ ** --   --------		-------				--------------------------------          
+	1	25-AUG-2023		Ekta Chandegra		Convert text into uppercase
+	2	29-MARCH-2024	Ekta Chandegra		IaDeleted and IsActive flag is added
+	3	13-SEP-2024		Devendra Shekh		employee select issue resolved
+	4   11-Oct-2024     Sahdev Saliya       Date format changes
+	5   23-Oct-2024     Sahdev Saliya       Added new field PartNumber in the Technician Labor Entry Report for filter
+	6   18/04/2025      Ayushi              Added the condition for pn , pndescription
+	7   22/04/2025      Amit Ghediya        Update for task table baseed on wo type.
+	8   09/12/2025      Amit Ghediya        Added Task filter
+	9   18/12/2025      Sahdev Saliya       pnDescription has been updated. 
+**************************************************************/
+CREATE      PROCEDURE [dbo].[usprpt_GetWorkOrderLaborTrackingReport] 
 @PageNumber INT = 1,
 @PageSize INT = NULL,
 @mastercompanyid INT,

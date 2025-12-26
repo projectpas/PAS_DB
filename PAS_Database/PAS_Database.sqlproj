@@ -4402,6 +4402,9 @@
     <Build Include="dbo\Stored Procedures\GetReceivingRepairOrderForView.sql" />
     <Build Include="dbo\User Defined Types\TimeLifeType.sql" />
     <Build Include="dbo\Stored Procedures\USP_GETIntegrationEmailID.sql" />
+    <Build Include="dbo\Tables\AuditLogDisplayColumns.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetAircraftTypeData.sql" />
+    <Build Include="dbo\Stored Procedures\usp_Get_AuditLogDisplayColumnsByModule.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

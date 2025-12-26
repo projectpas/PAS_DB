@@ -20,7 +20,7 @@
 	9	 27/06/2025				 Rajesh Gami						Modified as per new Billing Invoice Table Structure & also implemented SO & fix the Currency related issue for the SO
 	10   04-12-2025				 Amit Ghediya						Added qtyShipped,qtyRemaining for shipping details
 **************************************************************/ 
-CREATE      PROCEDURE [dbo].[SearchShippingListData] 
+CREATE       PROCEDURE [dbo].[SearchShippingListData] 
 	@PageNumber int,
 	@PageSize int,
 	@SortColumn varchar(50) = null,
@@ -141,7 +141,7 @@ BEGIN
 							SOP.SalesOrderPartId as PartId,
 							SOPT.SOPickTicketId as PickTicketId,
 							sos.SalesOrderShippingId as ShippingId,
-							SUM(ISNULL(SOSI.QtyShipped,0)) AS QtyShipped,
+							ISNULL(SOSI.QtyShipped,0) AS QtyShipped,
 							SOPSI.PackagingSlipId AS PackagingSlipId,
 							0 AS VendorRMADetailId,
 							BI.InvoiceNo AS InvoiceNumber,
@@ -149,24 +149,22 @@ BEGIN
 							BI.InvoiceDate AS InvoiceDate,
 							CU.Code Currency,
 							BI.InvoiceStatus  AS InvoiceStatus,
-							ISNULL(sop.QtyOrder,0) - SUM(ISNULL(SOSI.QtyShipped,0)) AS QtyRemaining
-					FROM DBO.SalesOrderPartV1 sop WITH (NOLOCK)
-						LEFT JOIN DBO.SalesOrder so WITH (NOLOCK) ON so.SalesOrderId = sop.SalesOrderId
-						LEFT JOIN DBO.SalesOrderShipping SOS WITH (NOLOCK) ON SOS.SalesOrderId = SO.SalesOrderId
-						INNER JOIN DBO.SOPickTicket sopt WITH (NOLOCK) ON sopt.SalesOrderId = sop.SalesOrderId AND sopt.SalesOrderPartId = sop.SalesOrderPartId
-						LEFT JOIN DBO.SalesOrderShippingItem SOSI WITH (NOLOCK) ON SOSI.SalesOrderShippingId = SOS.SalesOrderShippingId and sosi.SOPickTicketId = sopt.SOPickTicketId
+							ISNULL(sopt.QtyToShip,0) - ISNULL(SOSI.QtyShipped,0) AS QtyRemaining
+					FROM	DBO.SOPickTicket sopt WITH (NOLOCK)
+						INNER JOIN DBO.SalesOrderPartV1 sop WITH (NOLOCK) ON sopt.SalesOrderId = sop.SalesOrderId AND sopt.SalesOrderPartId = sop.SalesOrderPartId
+						INNER JOIN DBO.SalesOrder so WITH (NOLOCK) ON so.SalesOrderId = sop.SalesOrderId
+						LEFT JOIN DBO.SalesOrderShippingItem SOSI WITH (NOLOCK) ON sosi.SOPickTicketId = sopt.SOPickTicketId
 						LEFT JOIN DBO.SalesOrderPackaginSlipItems SOPSI WITH (NOLOCK) ON SOPSI.SalesOrderPartId = SOP.SalesOrderPartId and SOPSI.SOPickTicketId = sopt.SOPickTicketId					
+						LEFT JOIN DBO.SalesOrderShipping SOS WITH (NOLOCK) ON SOS.SalesOrderShippingId = SOSI.SalesOrderShippingId
 						LEFT JOIN DBO.ItemMaster ITM WITH (NOLOCK) ON ITM.ItemMasterId = sop.ItemMasterId
 						LEFT JOIN DBO.Priority P WITH (NOLOCK)  ON P.PriorityId = sop.PriorityId
 						LEFT JOIN DBO.ShippingVia SV WITH (NOLOCK)  ON SV.ShippingViaId = sos.ShipViaId -- and SV.IsPrimary=1
 						LEFT JOIN [dbo].[BillingInvoicingItems] BII WITH (NOLOCK) ON BII.SubReferenceId = sop.SalesOrderPartId AND ISNULL(BII.IsVersionIncrease,0) = 0 AND ISNULL(BII.IsPerformaInvoice, 0) = 0 AND BII.ModuleId = @salesOrderModuleId
 						LEFT JOIN [dbo].[BillingInvoicing] BI WITH (NOLOCK) ON BI.BillingInvoicingId = BII.BillingInvoicingId AND ISNULL(BI.IsVersionIncrease,0) = 0 AND BI.IsVersionIncrease = 0 AND ISNULL(BI.IsPerformaInvoice, 0) = 0 AND BI.ModuleId = @salesOrderModuleId      
 						LEFT JOIN [dbo].[Currency] CU WITH (NOLOCK) ON so.FunctionalCurrencyId = CU.CurrencyId
-
 					WHERE  sopt.IsDeleted = 0 and sopt.MasterCompanyId= @MasterCompanyId AND sopt.IsConfirmed = 1
-						
 					GROUP BY SOP.SalesOrderId,SO.SalesOrderNumber,ITM.partnumber,ITM.PartDescription,SO.CustomerName,SO.CustomerId,P.Description,SOS.AirwayBill,SV.Name,
-								SOS.ShipDate,SOS.AirwayBill,SOP.SalesOrderPartId,SOPT.SOPickTicketId, SO.customerId, sos.SalesOrderShippingId,SOSI.QtyShipped,sop.QtyOrder,SOPSI.PackagingSlipId
+								SOS.ShipDate,SOS.AirwayBill,SOP.SalesOrderPartId,SOPT.SOPickTicketId, SO.customerId, sos.SalesOrderShippingId,SOSI.QtyShipped,sop.QtyOrder,sopt.QtyToShip,SOPSI.PackagingSlipId
 								,sopt.ConfirmedDate,BI.InvoiceNo,BII.GrandTotal	,BI.InvoiceDate,CU.Code,BI.InvoiceStatus
 				
 					UNION
@@ -434,23 +432,23 @@ BEGIN
 							BI.InvoiceDate AS InvoiceDate,
 							CU.Code Currency,
 							BI.InvoiceStatus  AS InvoiceStatus,
-							ISNULL(sop.QtyOrder,0) - ISNULL(SOSI.QtyShipped,0) AS QtyRemaining
-					FROM DBO.SalesOrderPartV1 sop WITH (NOLOCK)
-							LEFT JOIN DBO.SalesOrder so WITH (NOLOCK) ON so.SalesOrderId = sop.SalesOrderId
-							LEFT JOIN DBO.SalesOrderShipping SOS WITH (NOLOCK) ON SOS.SalesOrderId = SO.SalesOrderId
-							INNER JOIN DBO.SOPickTicket sopt WITH (NOLOCK) ON sopt.SalesOrderId = sop.SalesOrderId AND sopt.SalesOrderPartId = sop.SalesOrderPartId
-							LEFT JOIN DBO.SalesOrderShippingItem SOSI WITH (NOLOCK) ON SOSI.SalesOrderShippingId = SOS.SalesOrderShippingId and sosi.SOPickTicketId = sopt.SOPickTicketId
-							LEFT JOIN DBO.SalesOrderPackaginSlipItems SOPSI WITH (NOLOCK) ON SOPSI.SalesOrderPartId = SOP.SalesOrderPartId and SOPSI.SOPickTicketId = sopt.SOPickTicketId					
-							LEFT JOIN DBO.ItemMaster ITM WITH (NOLOCK) ON ITM.ItemMasterId = sop.ItemMasterId
-							LEFT JOIN DBO.Priority P WITH (NOLOCK)  ON P.PriorityId = sop.PriorityId
-							LEFT JOIN DBO.ShippingVia SV WITH (NOLOCK) ON SV.ShippingViaId = sos.ShipViaId -- and SV.CustomerId=sos.CustomerId -- and sv.IsPrimary=1
-							LEFT JOIN [dbo].[BillingInvoicingItems] BII WITH (NOLOCK) ON BII.SubReferenceId = sop.SalesOrderPartId AND ISNULL(BII.IsVersionIncrease,0) = 0 AND ISNULL(BII.IsPerformaInvoice, 0) = 0 AND BII.ModuleId = @salesOrderModuleId
-							LEFT JOIN [dbo].[BillingInvoicing] BI WITH (NOLOCK) ON BI.BillingInvoicingId = BII.BillingInvoicingId AND ISNULL(BI.IsVersionIncrease,0) = 0 AND BI.IsVersionIncrease = 0 AND ISNULL(BI.IsPerformaInvoice, 0) = 0 AND BI.ModuleId = @salesOrderModuleId      
-							LEFT JOIN [dbo].[Currency] CU WITH (NOLOCK) ON so.FunctionalCurrencyId = CU.CurrencyId
+							ISNULL(sopt.QtyToShip,0) - ISNULL(SOSI.QtyShipped,0) AS QtyRemaining
+					FROM DBO.SOPickTicket sopt WITH (NOLOCK)
+						INNER JOIN DBO.SalesOrderPartV1 sop WITH (NOLOCK) ON sopt.SalesOrderId = sop.SalesOrderId AND sopt.SalesOrderPartId = sop.SalesOrderPartId
+						INNER JOIN DBO.SalesOrder so WITH (NOLOCK) ON so.SalesOrderId = sop.SalesOrderId
+						LEFT JOIN DBO.SalesOrderShippingItem SOSI WITH (NOLOCK) ON sosi.SOPickTicketId = sopt.SOPickTicketId
+						LEFT JOIN DBO.SalesOrderPackaginSlipItems SOPSI WITH (NOLOCK) ON SOPSI.SalesOrderPartId = SOP.SalesOrderPartId and SOPSI.SOPickTicketId = sopt.SOPickTicketId					
+						LEFT JOIN DBO.SalesOrderShipping SOS WITH (NOLOCK) ON SOS.SalesOrderShippingId = SOSI.SalesOrderShippingId
+						LEFT JOIN DBO.ItemMaster ITM WITH (NOLOCK) ON ITM.ItemMasterId = sop.ItemMasterId
+						LEFT JOIN DBO.Priority P WITH (NOLOCK)  ON P.PriorityId = sop.PriorityId
+						LEFT JOIN DBO.ShippingVia SV WITH (NOLOCK)  ON SV.ShippingViaId = sos.ShipViaId
+						LEFT JOIN [dbo].[BillingInvoicingItems] BII WITH (NOLOCK) ON BII.SubReferenceId = sop.SalesOrderPartId AND ISNULL(BII.IsVersionIncrease,0) = 0 AND ISNULL(BII.IsPerformaInvoice, 0) = 0 AND BII.ModuleId = @salesOrderModuleId
+						LEFT JOIN [dbo].[BillingInvoicing] BI WITH (NOLOCK) ON BI.BillingInvoicingId = BII.BillingInvoicingId AND ISNULL(BI.IsVersionIncrease,0) = 0 AND BI.IsVersionIncrease = 0 AND ISNULL(BI.IsPerformaInvoice, 0) = 0 AND BI.ModuleId = @salesOrderModuleId      
+						LEFT JOIN [dbo].[Currency] CU WITH (NOLOCK) ON so.FunctionalCurrencyId = CU.CurrencyId
 					WHERE  sopt.IsDeleted = 0 and sopt.MasterCompanyId= @MasterCompanyId AND sopt.IsConfirmed = 1	AND SOS.AirwayBill IS NOT NULL			
 						
 					GROUP BY SOP.SalesOrderId,SO.SalesOrderNumber,ITM.partnumber,ITM.PartDescription,SO.CustomerName,SO.CustomerId,P.Description,SOS.AirwayBill,SV.Name,
-								SOS.ShipDate,SOS.AirwayBill,SOP.SalesOrderPartId,SOPT.SOPickTicketId, SO.customerId, sos.SalesOrderShippingId,SOSI.QtyShipped,sop.QtyOrder,SOPSI.PackagingSlipId
+								SOS.ShipDate,SOS.AirwayBill,SOP.SalesOrderPartId,SOPT.SOPickTicketId, SO.customerId, sos.SalesOrderShippingId,sopt.QtyToShip,SOSI.QtyShipped,sop.QtyOrder,SOPSI.PackagingSlipId
 								,BI.InvoiceNo,BII.GrandTotal,BI.InvoiceDate,CU.Code,BI.InvoiceStatus
 				
 					UNION
@@ -716,27 +714,24 @@ BEGIN
 							BI.InvoiceDate AS InvoiceDate,
 							CU.Code Currency,
 							BI.InvoiceStatus  AS InvoiceStatus,
-							ISNULL(sop.QtyOrder,0) - ISNULL(SOSI.QtyShipped,0) AS QtyRemaining
-					FROM DBO.SalesOrderPartV1 sop WITH (NOLOCK)
-						LEFT JOIN DBO.SalesOrder so WITH (NOLOCK) ON so.SalesOrderId = sop.SalesOrderId
-						LEFT JOIN DBO.SalesOrderShipping SOS WITH (NOLOCK) ON SOS.SalesOrderId = SO.SalesOrderId
-						INNER JOIN DBO.SOPickTicket sopt WITH (NOLOCK) ON sopt.SalesOrderId = sop.SalesOrderId AND sopt.SalesOrderPartId = sop.SalesOrderPartId
-						LEFT JOIN DBO.SalesOrderShippingItem SOSI WITH (NOLOCK) ON SOSI.SalesOrderShippingId = SOS.SalesOrderShippingId and sosi.SOPickTicketId = sopt.SOPickTicketId
+							ISNULL(sopt.QtyToShip,0) - ISNULL(SOSI.QtyShipped,0) AS QtyRemaining
+					FROM	DBO.SOPickTicket sopt WITH (NOLOCK)
+						INNER JOIN DBO.SalesOrderPartV1 sop WITH (NOLOCK) ON sopt.SalesOrderId = sop.SalesOrderId AND sopt.SalesOrderPartId = sop.SalesOrderPartId
+						INNER JOIN DBO.SalesOrder so WITH (NOLOCK) ON so.SalesOrderId = sop.SalesOrderId
+						LEFT JOIN DBO.SalesOrderShippingItem SOSI WITH (NOLOCK) ON sosi.SOPickTicketId = sopt.SOPickTicketId
 						LEFT JOIN DBO.SalesOrderPackaginSlipItems SOPSI WITH (NOLOCK) ON SOPSI.SalesOrderPartId = SOP.SalesOrderPartId and SOPSI.SOPickTicketId = sopt.SOPickTicketId					
+						LEFT JOIN DBO.SalesOrderShipping SOS WITH (NOLOCK) ON SOS.SalesOrderShippingId = SOSI.SalesOrderShippingId
 						LEFT JOIN DBO.ItemMaster ITM WITH (NOLOCK) ON ITM.ItemMasterId = sop.ItemMasterId
 						LEFT JOIN DBO.Priority P WITH (NOLOCK)  ON P.PriorityId = sop.PriorityId
-						LEFT JOIN DBO.CustomerDomensticShippingShipVia SV WITH (NOLOCK)  ON SV.CustomerId = so.CustomerId and SV.IsPrimary=1
-
+						LEFT JOIN DBO.ShippingVia SV WITH (NOLOCK)  ON SV.ShippingViaId = sos.ShipViaId
 						LEFT JOIN [dbo].[BillingInvoicingItems] BII WITH (NOLOCK) ON BII.SubReferenceId = sop.SalesOrderPartId AND ISNULL(BII.IsVersionIncrease,0) = 0 AND ISNULL(BII.IsPerformaInvoice, 0) = 0 AND BII.ModuleId = @salesOrderModuleId
 						LEFT JOIN [dbo].[BillingInvoicing] BI WITH (NOLOCK) ON BI.BillingInvoicingId = BII.BillingInvoicingId AND ISNULL(BI.IsVersionIncrease,0) = 0 AND BI.IsVersionIncrease = 0 AND ISNULL(BI.IsPerformaInvoice, 0) = 0 AND BI.ModuleId = @salesOrderModuleId      
 						LEFT JOIN [dbo].[Currency] CU WITH (NOLOCK) ON so.FunctionalCurrencyId = CU.CurrencyId
-
 					WHERE  sopt.IsDeleted = 0 and sopt.MasterCompanyId= @MasterCompanyId AND sopt.IsConfirmed = 1
-							and sop.SalesOrderPartId not in(SELECT SalesOrderPartId FROM DBO.SalesOrderShippingItem SOSI 
-											WHERE SOSI.IsDeleted = 0)
+							AND SOS.AirwayBill IS NULL
 						
 					GROUP BY SOP.SalesOrderId,SO.SalesOrderNumber,ITM.partnumber,ITM.PartDescription,SO.CustomerName,SO.CustomerId,P.Description,SOS.AirwayBill,
-								sopt.ConfirmedDate,SOS.AirwayBill,SOP.SalesOrderPartId,SOPT.SOPickTicketId, SO.customerId, sos.SalesOrderShippingId,SOSI.QtyShipped,sop.QtyOrder,SOPSI.PackagingSlipId
+								sopt.ConfirmedDate,SOS.AirwayBill,SOP.SalesOrderPartId,SOPT.SOPickTicketId, SO.customerId, sos.SalesOrderShippingId,sopt.QtyToShip,SOSI.QtyShipped,sop.QtyOrder,SOPSI.PackagingSlipId
 								,BI.InvoiceNo,BII.GrandTotal,BI.InvoiceDate,CU.Code,BI.InvoiceStatus
 				
 					UNION

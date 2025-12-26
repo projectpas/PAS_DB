@@ -38,10 +38,9 @@
 	20   01-DEC-2025  Rajesh Gami       UOM Conversion Related Changes
 	21   03-Dec-2025  Moin Bloch        Modified Fix Status Closed For Split Part
 	22   04-Dec-2025  Moin Bloch        Modified Fix For Asset Inverntory
-    22   19-Dec-2025  HEMANT SALIYA     Modified for remove corss join
-declare @p2 dbo.POPartsToReceive  
-insert into @p2 values(2371,4051,2)  
-  
+    23   19-Dec-2025  HEMANT SALIYA     Modified for remove corss join
+
+declare @p2 dbo.POPartsToReceive  insert into @p2 values(2371,4051,2)    
 exec dbo.USP_CreateStocklineForReceivingPO @PurchaseOrderId=2371,@tbl_POPartsToReceive=@p2,@UpdatedBy=N'ADMIN User',@MasterCompanyId=1  
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_CreateStocklineForReceivingPO]
@@ -471,35 +470,6 @@ BEGIN
                         FROM LastStockline ls
                         JOIN dbo.Stockline st WITH (NOLOCK) ON st.StockLineId = ls.StockLineId
                         JOIN dbo.ItemMaster im WITH (NOLOCK) ON im.ItemMasterId = ls.ItemMasterId AND im.ManufacturerId = ls.ManufacturerId;
-
-                        --Modifyed logic as per Above
-      --                  WITH CTE_Stockline (ItemMasterId, ManufacturerId, StockLineId)
-      --                  AS (SELECT ac.ItemMasterId, ac.ManufacturerId, MAX(ac.StockLineId) StockLineId 
-						--	FROM (SELECT DISTINCT ItemMasterId FROM DBO.Stockline WITH (NOLOCK)) ac1
-      --                          CROSS JOIN (SELECT DISTINCT ManufacturerId FROM DBO.Stockline WITH (NOLOCK)) ac2
-      --                          LEFT JOIN DBO.Stockline ac WITH (NOLOCK) ON ac.ItemMasterId = ac1.ItemMasterId AND ac.ManufacturerId = ac2.ManufacturerId
-      --                      WHERE ac.MasterCompanyId = @MasterCompanyId
-      --                      GROUP BY ac.ItemMasterId, ac.ManufacturerId
-      --                      HAVING COUNT(ac.ItemMasterId) > 0)
-
-      --                  INSERT INTO #tmpPNManufacturer
-      --                  (
-      --                      ItemMasterId,
-      --                      ManufacturerId,
-      --                      StockLineNumber,
-      --                      CurrentStlNo,
-      --                      isSerialized
-      --                  )
-      --                  SELECT CSTL.ItemMasterId,
-      --                         CSTL.ManufacturerId,
-      --                         StockLineNumber,
-      --                         ISNULL(IM.CurrentStlNo, 0) AS CurrentStlNo,
-      --                         IM.isSerialized
-      --                  FROM CTE_Stockline CSTL
-						--INNER JOIN DBO.Stockline STL WITH (NOLOCK)
-						--INNER JOIN DBO.ItemMaster IM WITH (NOLOCK) ON STL.ItemMasterId = IM.ItemMasterId AND STL.ManufacturerId = IM.ManufacturerId 
-						--ON CSTL.StockLineId = STL.StockLineId
-                        /* PN Manufacturer Combination Stockline logic */
 
                         DELETE FROM #tmpCodePrefixes;
 

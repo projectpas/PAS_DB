@@ -23,10 +23,11 @@
  7 03-Jul-2025	Devendra Shekh	Added @Stage for Filtering, Removed ConvertUTCtoLocal function, using BaseUtcOffsetSec for date conversion
  8 08-dec-2025  Ayushi Patel	changed the table name workOrderBillingInvoicing -> BillingInvoicing
  9 11-Dec-2025  Ayushi Patel     Mapped BillingInvoicing through BillingInvoicingItems
+ 10 23-Dec-2025  Ayushi Patel	 Get The Newly versioned invoice 
 EXECUTE   [dbo].[usp_GetWorkOrderTATReport]   
 **************************************************************/  
 --EXEC usp_GetWorkOrderTATReport  '1,4,43,44,45,80,84,88','46,47','58,59','64,65,77'  
-CREATE    PROCEDURE [dbo].[usprpt_GetWorkOrderTATReport]   
+CREATE     PROCEDURE [dbo].[usprpt_GetWorkOrderTATReport]   
 @PageNumber INT = 1,  
 @PageSize INT = NULL,  
 @mastercompanyid INT,  
@@ -191,7 +192,7 @@ BEGIN
 		   INNER JOIN DBO.WorkOrderPartNumber WOPN WITH (NOLOCK) ON WOWF.WorkOrderPartNoId = WOPN.ID  
 		   INNER JOIN DBO.WorkOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = WOPN.ID  
 		   LEFT JOIN DBO.EntityStructureSetup ES ON ES.EntityStructureId=MSD.EntityMSID
-		   LEFT JOIN DBO.BillingInvoicingItems WBII ON WBII.SubReferenceId = WOPN.ID AND WBII.ModuleId = @WoModuleID
+		   LEFT JOIN DBO.BillingInvoicingItems WBII ON WBII.SubReferenceId = WOPN.ID AND WBII.ModuleId = @WoModuleID and ISNULL(WBII.IsVersionIncrease,0)=0
 		   LEFT JOIN DBO.BillingInvoicing AS WOBI WITH (NOLOCK) ON WBII.BillingInvoicingId = WOBI.BillingInvoicingId and ISNULL(WOBI.IsVersionIncrease,0)=0 AND ISNULL(WOBI.IsPerformaInvoice, 0) = 0 AND WOBI.ModuleId = @WoModuleID
 		   --LEFT JOIN DBO.BillingInvoicing WOBI WITH (NOLOCK) ON WO.WorkOrderId = WOBI.ReferenceId AND ISNULL(WOBI.IsVersionIncrease, 0)=0 AND ISNULL(WOBI.IsPerformaInvoice, 0) = 0  
 		   LEFT JOIN DBO.Condition CN WITH (NOLOCK) ON WOPN.ConditionId = CN.ConditionId  
@@ -261,7 +262,7 @@ BEGIN
 	   INNER JOIN DBO.WorkOrderPartNumber WOPN WITH (NOLOCK) ON WOWF.WorkOrderPartNoId = WOPN.ID 
 	   INNER JOIN DBO.WorkOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = WOPN.ID  
 	   LEFT JOIN DBO.EntityStructureSetup ES ON ES.EntityStructureId=MSD.EntityMSID  
-	   LEFT JOIN DBO.BillingInvoicingItems WBII ON WBII.SubReferenceId = WOPN.ID AND WBII.ModuleId = @WoModuleID
+	   LEFT JOIN DBO.BillingInvoicingItems WBII ON WBII.SubReferenceId = WOPN.ID AND WBII.ModuleId = @WoModuleID and ISNULL(WBII.IsVersionIncrease,0)=0
 	   LEFT JOIN DBO.BillingInvoicing AS WOBI WITH (NOLOCK) ON WBII.BillingInvoicingId = WOBI.BillingInvoicingId and ISNULL(WOBI.IsVersionIncrease,0)=0 AND ISNULL(WOBI.IsPerformaInvoice, 0) = 0 AND WOBI.ModuleId = @WoModuleID
 	   --LEFT JOIN DBO.BillingInvoicing WOBI WITH (NOLOCK) ON WO.WorkOrderId = WOBI.ReferenceId AND ISNULL(WOBI.IsVersionIncrease, 0)=0 AND ISNULL(WOBI.IsPerformaInvoice, 0) = 0 
 	   LEFT JOIN DBO.Condition CN WITH (NOLOCK) ON WOPN.ConditionId = CN.ConditionId  

@@ -108,8 +108,6 @@ BEGIN
 			LEFT JOIN dbo.TimeZone LTZ WITH (NOLOCK) ON LE.TimeZoneId = LTZ.TimeZoneId
 		WHERE E.EmployeeId = @UserEmployeeId; 
 
-		
-
 		SELECT TOP 1 @empROleId = Id FROM DBO.UserRole WITH(NOLOCK) WHERE MasterCompanyId = @MasterCompanyId and [Name] = 'SUPERADMIN';
 
 		IF EXISTS(SELECT 1 FROM DBO.EmployeeUserRole WITH(NOLOCK) WHERE EmployeeId = @UserEmployeeId AND [RoleId] = @empROleId)
@@ -124,7 +122,9 @@ BEGIN
 					CAST(DATEDIFF(DAY,CAST(DBO.ConvertUTCtoLocal(CT.[CreatedDate], @CurrntEmpTimeZoneDesc) AS DATE),CAST(DBO.ConvertUTCtoLocal(GETUTCDATE(), @CurrntEmpTimeZoneDesc) AS DATE)) AS VARCHAR(10)) AS DaysDiff
 				FROM dbo.CustomerTicket CT
 				JOIN dbo.TicketStatus TS ON CT.StatusId = TS.TicketStatusId
-				WHERE ISNULL(CT.IsDeleted, 0) = 0 AND CT.MasterCompanyId = @MasterCompanyId
+				WHERE ((ISNULL(@IsSupertUser, 0) = 1 AND ((@EmployeeId IS NULL OR CT.EmployeeId = @EmployeeId) OR (@EmployeeId IS NULL OR CT.AssignTo = @EmployeeId)))
+				or (ISNULL(@IsSupertUser, 0) = 0 and CT.MasterCompanyId = @MasterCompanyId AND ((@EmployeeId IS NULL OR CT.EmployeeId = @EmployeeId) OR (@EmployeeId IS NULL OR CT.AssignTo = @EmployeeId))))
+				and ISNULL(CT.IsDeleted, 0) = 0 
 			),
 
 		Result AS(

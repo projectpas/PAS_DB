@@ -1,4 +1,5 @@
-﻿/***************************************************************  
+﻿
+/***************************************************************  
  ** File:   [USP_AddUpdateSalesOrderPart]
  ** Author:   Vishal Suthar
  ** Description: This stored procedure is used add or update sales order part details
@@ -26,7 +27,7 @@ insert into @p1 values(501,1269,264,2,2,NULL,NULL,1,3,0,NULL,NULL,3,1,0,0,0,0,0,
 exec USP_AddUpdateSalesOrderPart @tbl_SalesOrderPartList=@p1
 
 **************************************************************/
-CREATE     PROCEDURE [dbo].[USP_AddUpdateSalesOrderPart]
+create      PROCEDURE [dbo].[USP_AddUpdateSalesOrderPart]
 	@tbl_SalesOrderPartList SOPartListType READONLY
 AS
 BEGIN
@@ -53,29 +54,29 @@ BEGIN
 		StocklineId bigint,
 		SalesOrderStocklineId bigint,
 		StatusId int,
-		QtyRequested int,
-		QtyOrder int,
-		QtyAvailable int,
-		QtyOH int,
+		QtyRequested decimal(18, 6),
+		QtyOrder decimal(18, 6),
+		QtyAvailable decimal(18, 6),
+		QtyOH decimal(18, 6),
 		CurrencyId int,
-		FxRate decimal(18,4),
-		GrossSaleAmount decimal(18,4),
-		DiscountAmount decimal(18,4),
-		NetSaleAmount decimal(18,4),
-		TaxAmount decimal(18,4),
-		UnitCostExtended decimal(18,4),
-		MarginAmount decimal(18,4),
+		FxRate decimal(18, 6),
+		GrossSaleAmount decimal(18, 6),
+		DiscountAmount decimal(18, 6),
+		NetSaleAmount decimal(18, 6),
+		TaxAmount decimal(18, 6),
+		UnitCostExtended decimal(18, 6),
+		MarginAmount decimal(18, 6),
 		CustomerRequestDate datetime2(7),
 		PromisedDate datetime2(7),
 		EstimatedShipDate datetime2(7),
-		UnitSalesPrice decimal(18,4),
-		MarkUpPercentage decimal(18,4),
-		DiscountPercentage decimal(18,4),
-		MarkUpAmount decimal(18,4),
-		SalesPriceExtended decimal(18,4),
-		UnitCost decimal(18,4),
-		MarginPercentage decimal(18,4),
-		TaxPercentage decimal(18,4),
+		UnitSalesPrice decimal(18, 6),
+		MarkUpPercentage decimal(18, 6),
+		DiscountPercentage decimal(18, 6),
+		MarkUpAmount decimal(18, 6),
+		SalesPriceExtended decimal(18, 6),
+		UnitCost decimal(18, 6),
+		MarginPercentage decimal(18, 6),
+		TaxPercentage decimal(18, 6),
 		StatusName varchar(100),
 		AltOrEqType varchar(25),
 		Notes nvarchar(max),
@@ -83,10 +84,10 @@ BEGIN
 		CreatedBy varchar(100),
 		ECCN varchar(200),
 		HSCODE varchar(200),
-		Weight decimal(18,4),
-		SizeLength decimal(18,4),
-		SizeWidth decimal(18,4),
-		SizeHeight decimal(18,4)
+		Weight decimal(18, 6),
+		SizeLength decimal(18, 6),
+		SizeWidth decimal(18, 6),
+		SizeHeight decimal(18, 6)
 	)
 
 	INSERT INTO #SOPartDetails (SalesOrderPartId,SalesOrderId,ItemMasterId,ConditionId,PriorityId,StocklineId,SalesOrderStocklineId,StatusId,
@@ -113,16 +114,16 @@ BEGIN
 		DECLARE @ConditionId BIGINT = 0;
 		DECLARE @StocklineId BIGINT = 0;
 		DECLARE @MasterCompanyId BIGINT = 0;
-		DECLARE @UnitSalesPrice AS decimal(18,4);
-		DECLARE @MarkUpAmount AS decimal(18,4);
-		DECLARE @MarkUpPercentage AS decimal(18,4);
-		DECLARE @DiscountAmount AS decimal(18,4);
-		DECLARE @MarginAmount AS decimal(18,4);
-		DECLARE @UnitCost AS decimal(18,4);
-		DECLARE @MarginPercentage AS decimal(18,4);
-		DECLARE @DiscountPercentage AS decimal(18,4);
-		DECLARE @QtyOrder AS INT;
-		DECLARE @QtyRequested AS INT;
+		DECLARE @UnitSalesPrice AS decimal(18, 6)= 0;
+		DECLARE @MarkUpAmount AS decimal(18, 6)= 0;
+		DECLARE @MarkUpPercentage AS decimal(18, 6) = 0;
+		DECLARE @DiscountAmount AS decimal(18, 6) = 0;
+		DECLARE @MarginAmount AS decimal(18, 6) = 0;
+		DECLARE @UnitCost AS decimal(18, 6) = 0;
+		DECLARE @MarginPercentage AS decimal(18, 6) = 0;
+		DECLARE @DiscountPercentage AS decimal(18, 6) = 0;
+		DECLARE @QtyOrder AS decimal(18, 6) = 0;
+		DECLARE @QtyRequested AS decimal(18, 6) = 0;
 		DECLARE @CreatedBy AS VARCHAR(100);
 		DECLARE @Notes AS VARCHAR(MAX);
 		DECLARE @CustomerRequestDate AS Datetime2(7);
@@ -131,24 +132,67 @@ BEGIN
 		DECLARE @SOPartStatus BIGINT;
 		DECLARE @ECCN AS VARCHAR(200);
 		DECLARE @HSCODE AS VARCHAR(200);
-		DECLARE @Weight AS decimal(18,4);
-		DECLARE @SizeLength AS decimal(18,4);
-		DECLARE @SizeWidth AS decimal(18,4);
-		DECLARE @SizeHeight AS decimal(18,4);
+		DECLARE @Weight AS decimal(18, 6) = 0;
+		DECLARE @SizeLength AS decimal(18, 6) = 0;
+		DECLARE @SizeWidth AS decimal(18, 6) = 0;
+		DECLARE @SizeHeight AS decimal(18, 6) = 0;
+		DECLARE @TaxAmount AS DECIMAL(18, 6) = 0;
 		DECLARE @PriorityId BIGINT = 0, @StocklineCount int = 0;
+		DECLARE @PurchaseUnitOfMeasureId BIGINT = 0,  @StockUnitOfMeasureId BIGINT = 0,@ConsumeUnitOfMeasureId BIGINT = 0
+		DECLARE @POUnitOfMeasure VARCHAR(100), @StockUnitOfMeasure VARCHAR(100),@ConsumeUnitOfMeasure VARCHAR(100)
 
-		SELECT @SalesOrderPartId = SalesOrderPartId, @SalesOrderId = SalesOrderId, @ItemMasterId = ItemMasterId, @ConditionId = ConditionId, @StocklineId = StocklineId,
-		@SalesOrderStocklineId = SalesOrderStocklineId, @MasterCompanyId = MasterCompanyId, @UnitSalesPrice = UnitSalesPrice, @MarkUpAmount = MarkUpAmount, @DiscountAmount = DiscountAmount, @QtyOrder = QtyOrder,
-		@CreatedBy = CreatedBy, @MarkUpPercentage = MarkUpPercentage, @UnitCost = UnitCost, @MarginAmount = MarginAmount, @MarginPercentage = MarginPercentage,
-		@DiscountPercentage = DiscountPercentage, @QtyRequested = QtyRequested, @Notes = Notes, 
-		@CustomerRequestDate = CustomerRequestDate, @PromisedDate = PromisedDate, @EstimatedShipDate = EstimatedShipDate,@SOPartStatus = StatusId,
-		@ECCN = ECCN,@HSCODE = HSCODE, @Weight = [Weight], @SizeLength = SizeLength, @SizeWidth = SizeWidth, @SizeHeight = SizeHeight,@PriorityId = PriorityId
+		SELECT @SalesOrderPartId = SalesOrderPartId, 
+		@SalesOrderId = SalesOrderId, 
+		@ItemMasterId = ItemMasterId, 
+		@ConditionId = ConditionId,
+		@StocklineId = StocklineId,
+		@SalesOrderStocklineId = SalesOrderStocklineId, 
+		@MasterCompanyId = MasterCompanyId, 
+		@UnitSalesPrice = UnitSalesPrice, 
+		@MarkUpAmount = MarkUpAmount, 
+		@DiscountAmount = DiscountAmount,
+		@QtyOrder = QtyOrder,
+		@CreatedBy = CreatedBy, 
+		@MarkUpPercentage = MarkUpPercentage,   -- Need To discuss
+		@UnitCost = ISNULL(UnitCost,0), 
+		@MarginAmount = MarginAmount, 
+		@MarginPercentage = MarginPercentage,
+		@DiscountPercentage = DiscountPercentage,
+		@QtyRequested = QtyRequested, 
+		@Notes = Notes, 
+		@CustomerRequestDate = CustomerRequestDate, 
+		@PromisedDate = PromisedDate, 
+		@EstimatedShipDate = EstimatedShipDate,
+		@SOPartStatus = StatusId,
+		@ECCN = ECCN,
+		@HSCODE = HSCODE, 
+		@Weight = [Weight], 
+		@SizeLength = SizeLength, 
+		@SizeWidth = SizeWidth, 
+		@SizeHeight = SizeHeight,
+		@PriorityId = PriorityId,
+		@TaxAmount = ISNULL(TaxAmount,0)
 		FROM #SOPartDetails WHERE ID = @SOMInID;
-		
+
+		SELECT @PurchaseUnitOfMeasureId = [PurchaseUnitOfMeasureId],@StockUnitOfMeasureId =[StockUnitOfMeasureId], @ConsumeUnitOfMeasureId = [ConsumeUnitOfMeasureId] FROM [dbo].[ItemMaster] WITH(NOLOCK) WHERE [ItemMasterId] = @ItemMasterId;
+		SET @POUnitOfMeasure = (SELECT [ShortCode] FROM [dbo].[UnitOfMeasure] WITH(NOLOCK) WHERE [UnitOfMeasureId] = @PurchaseUnitOfMeasureId)
+		SET @StockUnitOfMeasure = (SELECT [ShortCode] FROM [dbo].[UnitOfMeasure] WITH(NOLOCK) WHERE [UnitOfMeasureId] = @StockUnitOfMeasureId)
+		SET @ConsumeUnitOfMeasure = (SELECT [ShortCode] FROM [dbo].[UnitOfMeasure] WITH(NOLOCK) WHERE [UnitOfMeasureId] = @ConsumeUnitOfMeasureId)
+        
+   	    --  UOM Conversion  --
+		SET @QtyRequested = ([dbo].[fn_ConvertUOM](ISNULL(@QtyRequested, 0),@ConsumeUnitOfMeasure, @StockUnitOfMeasure,0));
+		SET @QtyOrder = ([dbo].[fn_ConvertUOM](ISNULL(@QtyOrder, 0),@ConsumeUnitOfMeasure, @StockUnitOfMeasure,0));
+		SET @UnitSalesPrice = ([dbo].[fn_ConvertUOM](ISNULL(@UnitSalesPrice, 0),@ConsumeUnitOfMeasure, @StockUnitOfMeasure,1));
+		SET @MarkUpAmount = ([dbo].[fn_ConvertUOM](ISNULL(@MarkUpAmount, 0),@ConsumeUnitOfMeasure, @StockUnitOfMeasure,1));
+		SET @DiscountAmount = ([dbo].[fn_ConvertUOM](ISNULL(@DiscountAmount, 0),@ConsumeUnitOfMeasure, @StockUnitOfMeasure,1));
+		SET @TaxAmount = ([dbo].[fn_ConvertUOM](ISNULL(@TaxAmount, 0),@ConsumeUnitOfMeasure, @StockUnitOfMeasure,1));
+		SET @UnitCost = ([dbo].[fn_ConvertUOM](ISNULL(@UnitCost, 0),@ConsumeUnitOfMeasure, @StockUnitOfMeasure,1));		
+		SET @MarginAmount = ([dbo].[fn_ConvertUOM](ISNULL(@MarginAmount, 0),@ConsumeUnitOfMeasure, @StockUnitOfMeasure,1));
+
 		IF (ISNULL(@SalesOrderPartId, 0) = 0) -- Add New Part
 		BEGIN
 			SELECT @SOPartStatus = SOPartStatusId FROM [DBO].[SOPartStatus] WITH (NOLOCK) WHERE [PartStatus] = 'Open';
-
+						
 			IF NOT EXISTS (SELECT * FROM [dbo].[SalesOrderPartV1] WITH (NOLOCK) WHERE SalesOrderId = @SalesOrderId AND ItemMasterId = @ItemMasterId AND ConditionId = @ConditionId)
 			BEGIN
 				DECLARE @CurrencyCode VARCHAR(10) = '';
@@ -157,20 +201,20 @@ BEGIN
 				SELECT @CurrencyId = Curr.CurrencyId, @CurrencyCode = Curr.Code FROM [DBO].[CustomerFinancial] CF WITH (NOLOCK) 
 				LEFT JOIN [DBO].[Currency] Curr WITH (NOLOCK) ON CF.CurrencyId = Curr.CurrencyId 
 				LEFT JOIN [DBO].[SalesOrder] SO WITH (NOLOCK) ON SO.CustomerId = CF.CustomerId
-				WHERE SO.SalesOrderId = @SalesOrderId;
+				WHERE SO.SalesOrderId = @SalesOrderId;				
 
 				INSERT INTO [dbo].[SalesOrderPartV1] ([SalesOrderId],[ItemMasterId],[ConditionId],[QtyRequested],[QtyOrder],[QtyReserved],[CurrencyId],[FxRate],[PriorityId],[StatusId],[CustomerRequestDate],[PromisedDate],[EstimatedShipDate],[Notes],[MasterCompanyId],[CreatedBy],[CreatedDate],[UpdatedBy],[UpdatedDate],[IsActive],[IsDeleted],[ECCN],[HSCODE],[Weight],[SizeLength],[SizeWidth],[SizeHeight],[AltOrEqType],UnitSalesPrice)
-				SELECT SalesOrderId, ItemMasterId, ConditionId, QtyRequested, QtyOrder, 0, CurrencyId, FxRate, PriorityId, @SOPartStatus, CustomerRequestDate, PromisedDate, EstimatedShipDate, Notes, MasterCompanyId, CreatedBy, GETUTCDATE(), CreatedBy, GETUTCDATE(), 1, 0,ECCN,HSCODE,[Weight],SizeLength,SizeWidth,SizeHeight,[AltOrEqType],UnitSalesPrice
+				SELECT SalesOrderId, ItemMasterId, ConditionId, @QtyRequested, @QtyOrder, 0, CurrencyId, FxRate, PriorityId, @SOPartStatus, CustomerRequestDate, PromisedDate, EstimatedShipDate, Notes, MasterCompanyId, CreatedBy, GETUTCDATE(), CreatedBy, GETUTCDATE(), 1, 0,ECCN,HSCODE,[Weight],SizeLength,SizeWidth,SizeHeight,[AltOrEqType],@UnitSalesPrice
 				FROM #SOPartDetails WHERE ID = @SOMInID;
 
 				SET @SalesOrderPartId = SCOPE_IDENTITY();
 
-				DECLARE @SalesPrice AS decimal(18,4);
-				DECLARE @MarkUpAmt AS decimal(18,4);
-				DECLARE @DiscAmt AS decimal(18,4);
-				DECLARE @GrossAmt AS decimal(18,4);
-				DECLARE @NetSalesAmt AS decimal(18,4);
-				DECLARE @NetSalesPerUnitAmt AS decimal(18,4);
+				DECLARE @SalesPrice AS decimal(18, 6)=0;
+				DECLARE @MarkUpAmt AS decimal(18, 6)=0;
+				DECLARE @DiscAmt AS decimal(18, 6)=0;
+				DECLARE @GrossAmt AS decimal(18, 6)=0;
+				DECLARE @NetSalesAmt AS decimal(18, 6)=0;
+				DECLARE @NetSalesPerUnitAmt AS decimal(18, 6)=0;
 
 				SET @SalesPrice = ISNULL(@UnitSalesPrice, 0);
 				SET @MarkUpAmt = ISNULL(@MarkUpAmount, 0);
@@ -182,8 +226,8 @@ BEGIN
 				INSERT INTO [dbo].[SalesOrderPartCost] ([SalesOrderId], [SalesOrderPartId], [UnitSalesPrice], [UnitSalesPriceExtended], [MarkUpPercentage], [MarkUpAmount], [DiscountPercentage], [DiscountAmount],
 				[NetSaleAmount], [MiscCharges], [Freight], [TaxAmount], [TaxPercentage], [UnitCost], [UnitCostExtended], [MarginAmount], [MarginPercentage], [TotalRevenue], 
 				[MasterCompanyId], [CreatedBy], [CreatedDate], [UpdatedBy], [UpdatedDate], [IsActive], [IsDeleted], [NetSaleAmountPerUnit])
-				SELECT SalesOrderId, @SalesOrderPartId, UnitSalesPrice, ISNULL((UnitSalesPrice * QtyOrder), 0), MarkUpPercentage, ISNULL((MarkUpAmount * QtyOrder), 0), DiscountPercentage, ISNULL((DiscountAmount * QtyOrder), 0),
-				@NetSalesAmt, NULL, NULL, TaxAmount, TaxPercentage, UnitCost, ISNULL((UnitCost * QtyOrder), 0), MarginAmount, MarginPercentage, 0,
+				SELECT SalesOrderId, @SalesOrderPartId, @UnitSalesPrice, ISNULL((@UnitSalesPrice * @QtyOrder), 0), MarkUpPercentage, ISNULL((@MarkUpAmount * @QtyOrder), 0), DiscountPercentage, ISNULL((@DiscountAmount * @QtyOrder), 0),
+				@NetSalesAmt, NULL, NULL, @TaxAmount, TaxPercentage, @UnitCost, ISNULL((@UnitCost * @QtyOrder), 0), @MarginAmount, MarginPercentage, 0,
 				MasterCompanyId, CreatedBy, GETUTCDATE(), CreatedBy, GETUTCDATE(), 1, 0, @NetSalesPerUnitAmt
 				FROM #SOPartDetails WHERE ID = @SOMInID;				
 			END
@@ -224,10 +268,9 @@ BEGIN
 			EXEC [dbo].[USP_SOResetApprovalProcess] @SalesOrderId, @SalesOrderPartId,@MasterCompanyId
 		END
 		ELSE
-		BEGIN
-		
+		BEGIN		
 			DECLARE @IsQtyRequestedModified BIT,@IsPriorityModified BIT,@IsUnitSalesModified BIT;
-			DECLARE @ExistingQtyReq INT,@ExistingPriority INT,@ExistingUnitSales DECIMAL;
+			DECLARE @ExistingQtyReq DECIMAL(18, 6),@ExistingPriority INT,@ExistingUnitSales DECIMAL;
 
 			SELECT @ExistingQtyReq = SOP.QtyRequested,@ExistingPriority = PriorityId  FROM [DBO].[SalesOrderPartV1] SOP WITH (NOLOCK) WHERE SOP.SalesOrderPartId = @SalesOrderPartId;
 			IF(@SalesOrderStocklineId > 0)
@@ -239,7 +282,7 @@ BEGIN
 			     SELECT @ExistingUnitSales = SOPC.UnitSalesPrice  FROM [DBO].[SalesOrderPartCost] SOPC WITH (NOLOCK) WHERE SOPC.SalesOrderPartId = @SalesOrderPartId;
 			END
 			SET @StocklineCount = ISNULL((SELECT COUNT(SalesOrderPartId) FROM #SOPartDetails WHERE SalesOrderPartId = @SalesOrderPartId AND ISNULL(StocklineId,0) > 0),0)
-
+								   
 			UPDATE [DBO].[SalesOrderPartV1]
 			SET Notes = @Notes,
 			CustomerRequestDate = @CustomerRequestDate,
@@ -261,14 +304,14 @@ BEGIN
 			WHERE SalesOrderPartId = @SalesOrderPartId AND ItemMasterId = @ItemMasterId;
 
 			-- Update Part Details
-			DECLARE @QtyQuoted_U AS INT = 0;
+			DECLARE @QtyQuoted_U AS DECIMAL(18, 6) = 0;
 
-			DECLARE @SalesPrice_U AS decimal(18,4);
-			DECLARE @MarkUpAmt_U AS decimal(18,4);
-			DECLARE @DiscAmt_U AS decimal(18,4);
-			DECLARE @GrossAmt_U AS decimal(18,4);
-			DECLARE @NetSalesAmt_U AS decimal(18,4);
-			DECLARE @NetSalesPerUnitAmt_U AS decimal(18,4);
+			DECLARE @SalesPrice_U AS decimal(18, 6);
+			DECLARE @MarkUpAmt_U AS decimal(18, 6);
+			DECLARE @DiscAmt_U AS decimal(18, 6);
+			DECLARE @GrossAmt_U AS decimal(18, 6);
+			DECLARE @NetSalesAmt_U AS decimal(18, 6);
+			DECLARE @NetSalesPerUnitAmt_U AS decimal(18, 6);
 
 			SET @SalesPrice_U = ISNULL(@UnitSalesPrice, 0);
 			SET @MarkUpAmt_U = ISNULL(@MarkUpAmount, 0) * @QtyOrder;
@@ -305,8 +348,8 @@ BEGIN
 				PriorityId = @PriorityId
 				WHERE SalesOrderStocklineId = @SalesOrderStocklineId;
 
-				DECLARE @GrossAmt_S AS decimal(18,4);
-				DECLARE @NetSalesAmt_S AS decimal(18,4);
+				DECLARE @GrossAmt_S AS decimal(18, 6);
+				DECLARE @NetSalesAmt_S AS decimal(18, 6);
 
 				SET @MarkUpAmount = ISNULL(@MarkUpAmount, 0) * @QtyOrder;
 				SET @DiscountAmount = ISNULL(@DiscountAmount, 0) * @QtyOrder;
@@ -323,7 +366,6 @@ BEGIN
 				NetSaleAmount = ISNULL(@NetSalesAmt_S, 0)
 				WHERE SalesOrderStocklineId = @SalesOrderStocklineId;
 			END
-
 
 			SELECT @ExistingQtyReq = SOP.QtyRequested FROM [DBO].[SalesOrderPartV1] SOP WITH (NOLOCK) WHERE SOP.SalesOrderPartId = @SalesOrderPartId;
 			SET @IsQtyRequestedModified = CASE WHEN @ExistingQtyReq <> @QtyRequested THEN 1 ELSE 0 END;
@@ -344,7 +386,6 @@ BEGIN
 			FROM [DBO].[SalesOrderPartV1] SOP
 				INNER JOIN QuotedSums QS ON SOP.SalesOrderPartId = QS.SalesOrderPartId
 			WHERE SOP.SalesOrderPartId = @SalesOrderPartId;
-
 
 			IF EXISTS(SELECT * FROM #SOPartDetails WHERE  SalesOrderPartId = @SalesOrderPartId)
 			BEGIN

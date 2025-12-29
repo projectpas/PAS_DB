@@ -35,8 +35,8 @@ BEGIN
 			  SalesOrderPartid   bigint,
 			  ItemMasterId bigint,
 			  ConditionId bigint,
-			  QtyRequested INT,
-			  qty INT,
+			  QtyRequested DECIMAL(18,6),
+			  qty DECIMAL(18,6),
 			  LineId int NULL default 0
 			)
 
@@ -94,7 +94,7 @@ BEGIN
 			DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name()
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
             , @AdhocComments     VARCHAR(150)    = 'ReallocateItemNo' 
-            , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = '''+ ISNULL(@SalesOrderId, '') + ''''
+			, @ProcedureParameters VARCHAR(3000) = '@Parameter1 = ''' + CAST(ISNULL(@SalesOrderId, '') AS VARCHAR(100))  
             , @ApplicationName VARCHAR(100) = 'PAS'
 -----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------
 

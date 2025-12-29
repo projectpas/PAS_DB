@@ -60,21 +60,21 @@ SET NOCOUNT ON
 					ID BIGINT NOT NULL IDENTITY, 
 					[SalesOrderId] [bigint] NOT NULL,
 					[SalesOrderPartId] [bigint] NOT NULL,
-					[UnitSalesPrice] [decimal](18, 4) NULL,
-					[SalesPriceExtended] [decimal](18, 4) NULL,
-					[MarkUpPercentage] [decimal](18, 4) NULL,
-					[MarkUpAmount] [decimal](18, 4) NULL,
-					[DiscountAmount] [decimal](18, 4) NULL,
-					[GrossSaleAmount] [decimal](18, 4) NULL,
-					[NetSaleAmount] [decimal](18, 4) NULL,
-					[MiscCharges] [decimal](18, 4) NULL,
-					[Freight] [decimal](18, 4) NULL,
-					[TaxAmount] [decimal](18, 4) NULL,
-					[TaxPercentage] [decimal](18, 4) NULL,
-					[UnitCost] [decimal](18, 4) NULL,
-					[UnitCostExtended] [decimal](18, 4) NULL,
-					[MarginAmount] [decimal](18, 4) NULL,
-					[MarginPercentage] [decimal](18, 4) NULL
+					[UnitSalesPrice] [decimal](18, 6) NULL,
+					[SalesPriceExtended] [decimal](18, 6) NULL,
+					[MarkUpPercentage] [decimal](18, 6) NULL,
+					[MarkUpAmount] [decimal](18, 6) NULL,
+					[DiscountAmount] [decimal](18, 6) NULL,
+					[GrossSaleAmount] [decimal](18, 6) NULL,
+					[NetSaleAmount] [decimal](18, 6) NULL,
+					[MiscCharges] [decimal](18, 6) NULL,
+					[Freight] [decimal](18, 6) NULL,
+					[TaxAmount] [decimal](18, 6) NULL,
+					[TaxPercentage] [decimal](18, 6) NULL,
+					[UnitCost] [decimal](18, 6) NULL,
+					[UnitCostExtended] [decimal](18, 6) NULL,
+					[MarginAmount] [decimal](18, 6) NULL,
+					[MarginPercentage] [decimal](18, 6) NULL
 				)
 
 				INSERT INTO #SOPartCostDetails (SalesOrderId, SalesOrderPartId)
@@ -96,20 +96,20 @@ SET NOCOUNT ON
 					  [SalesOrderId] [bigint] NOT NULL,
 					  [SalesOrderPartId] [bigint] NOT NULL,
 					  [SalesOrderStocklineId] [bigint] NOT NULL,
-					  [UnitSalesPrice] [decimal](18, 4) NULL,
-					  [SalesPriceExtended] [decimal](18, 4) NULL,
-					  [MarkUpPercentage] [decimal](18, 4) NULL,
-					  [MarkUpAmount] [decimal](18, 4) NULL,
-					  [DiscountPercentage] [decimal](18, 4) NULL,
-					  [DiscountAmount] [decimal](18, 4) NULL,
-					  [UnitCost] [decimal](18, 4) NULL,
-					  [UnitCostExtended] [decimal](18, 4) NULL,
-					  [MarginAmount] [decimal](18, 4) NULL,
-					  [MarginPercentage] [decimal](18, 4) NULL
+					  [UnitSalesPrice] [decimal](18, 6) NULL,
+					  [SalesPriceExtended] [decimal](18, 6) NULL,
+					  [MarkUpPercentage] [decimal](18, 6) NULL,
+					  [MarkUpAmount] [decimal](18, 6) NULL,
+					  [DiscountPercentage] [decimal](18, 6) NULL,
+					  [DiscountAmount] [decimal](18, 6) NULL,
+					  [UnitCost] [decimal](18, 6) NULL,
+					  [UnitCostExtended] [decimal](18, 6) NULL,
+					  [MarginAmount] [decimal](18, 6) NULL,
+					  [MarginPercentage] [decimal](18, 6) NULL
 					)
 
-					DECLARE @Freight_S AS [decimal](18, 4);
-					DECLARE @Charges_S AS [decimal](18, 4);
+					DECLARE @Freight_S AS [decimal](18, 6);
+					DECLARE @Charges_S AS [decimal](18, 6);
 					DECLARE @SalesOrderQuoteModuleId BIGINT;
 
 					SELECT @Freight_S = ISNULL(SUM(F.BillingAmount), 0) FROM [DBO].[SalesOrderFreight] F WITH (NOLOCK)
@@ -118,11 +118,11 @@ SET NOCOUNT ON
 					SELECT @Charges_S = ISNULL(SUM(C.BillingAmount), 0) FROM [DBO].[SalesOrderCharges] C WITH (NOLOCK)
 					WHERE C.SalesOrderPartId = @SalesOrderPartId;
 
-					DECLARE @UnitSalesPrice_S AS [decimal](18, 4) = 0;
-					DECLARE @SalesPriceExtended_S AS [decimal](18, 4) = 0;
-					DECLARE @UnitCost_S AS [decimal](18, 4);
-					DECLARE @UnitCostExtended_S AS [decimal](18, 4);
-					DECLARE @DiscountAmount_S AS [decimal](18, 4);
+					DECLARE @UnitSalesPrice_S AS [decimal](18, 6) = 0;
+					DECLARE @SalesPriceExtended_S AS [decimal](18, 6) = 0;
+					DECLARE @UnitCost_S AS [decimal](18, 6);
+					DECLARE @UnitCostExtended_S AS [decimal](18, 6);
+					DECLARE @DiscountAmount_S AS [decimal](18, 6);
 
 					INSERT INTO #SOStocklineDetails ([SalesOrderId], [SalesOrderPartId], [SalesOrderStocklineId], [UnitSalesPrice], [SalesPriceExtended], [MarkUpPercentage], [MarkUpAmount], [DiscountPercentage], [DiscountAmount], [UnitCost],[UnitCostExtended],[MarginAmount],[MarginPercentage])
 					SELECT [SalesOrderId], [SalesOrderPartId], [SalesOrderStocklineId], [UnitSalesPrice], [UnitSalesPriceExtended], [MarkUpPercentage], [MarkUpAmount], [DiscountPercentage], [DiscountAmount], [UnitCost],[UnitCostExtended],[MarginAmount],[MarginPercentage]
@@ -135,8 +135,8 @@ SET NOCOUNT ON
 						BEGIN
 							DECLARE @SOPartId BIGINT;
 							DECLARE @SOStocklineId BIGINT;
-							DECLARE @PartQty INT = 0;
-							DECLARE @StockLineQty INT = 0;
+							DECLARE @PartQty DECIMAL(18,6) = 0;
+							DECLARE @StockLineQty DECIMAL(18,6) = 0;
 
 							SELECT @SOPartId = [SalesOrderPartId], @SOStocklineId = [SalesOrderStocklineId] FROM #SOStocklineDetails WHERE ID  = @MasterLoopID
 
@@ -193,7 +193,7 @@ SET NOCOUNT ON
 						WHERE SalesOrderPartId = @SalesOrderPartId;
 					END
 
-					DECLARE @SalesTax AS [decimal](18, 4) = 0;
+					DECLARE @SalesTax AS [decimal](18, 6) = 0;
 
 					UPDATE DBO.SalesOrderPartCost
 					SET 
@@ -297,9 +297,9 @@ SET NOCOUNT ON
 						 SalesOrderPartId BIGINT NULL,
 						 SalesOrderStocklineId BIGINT NULL,
 						 StocklineId BIGINT NULL,
-						 QtyToReserve INT NULL,
-						 QtyToShip INT NULL,
-						 QtyPtickTicketRemove INT NULL,
+						 QtyToReserve DECIMAL(18,6) NULL,
+						 QtyToShip DECIMAL(18,6) NULL,
+						 QtyPtickTicketRemove DECIMAL(18,6) NULL,
 					)
 
 					INSERT INTO #tmpSOPickTicket (SalesOrderPartId, SalesOrderStocklineId, StocklineId, QtyToReserve, QtyToShip)
@@ -320,11 +320,11 @@ SET NOCOUNT ON
 						SalesOrderPartId BIGINT NULL,
 						SalesOrderStocklineId BIGINT NULL,
 						StocklineId BIGINT NULL,
-						QtyToReserve INT NULL,
-						QtyToShip INT NULL,
-						QtyPtickTicketRemove INT NULL,
+						QtyToReserve DECIMAL(18,6) NULL,
+						QtyToShip DECIMAL(18,6) NULL,
+						QtyPtickTicketRemove DECIMAL(18,6) NULL,
 						PickTicketId BIGINT NULL,
-						PickTicketQtyToShip INT NULL,
+						PickTicketQtyToShip DECIMAL(18,6) NULL,
 					)
 					
 					INSERT INTO #tmpremovePT  SELECT  TMP.SalesOrderPartId, TMP.SalesOrderStocklineId, TMP.StocklineId, TMP.QtyToReserve, TMP.QtyToShip, TMP.QtyPtickTicketRemove, SOP.SOPickTicketId, SOP.QtyToShip FROM dbo.SOPickTicket SOP INNER JOIN  #tmpSOPickTicket TMP
@@ -334,9 +334,9 @@ SET NOCOUNT ON
 					SELECT  @LoopID = MAX(ID) FROM #tmpremovePT;
 
 					DECLARE @PickTicketId BIGINT = 0;
-					DECLARE @QtyRemove BIGINT = 0;
-					DECLARE @QtyAvilable BIGINT = 0;
-					DECLARE @PTQtytoShip BIGINT = 0;
+					DECLARE @QtyRemove DECIMAL(18,6) = 0;
+					DECLARE @QtyAvilable DECIMAL(18,6) = 0;
+					DECLARE @PTQtytoShip DECIMAL(18,6) = 0;
 
 					WHILE (@LoopID > 0)
 					BEGIN

@@ -19,6 +19,7 @@
     6    16/12/2025  Bhargav Saliya     Fixed Status Filter
     7    19/12/2025  Bhargav Saliya     Get New Field DaysSinceOpen And Modified Status Filter into Multiselect
 	8	 22/12/2025  Bhargav Saliya     Modified [DaysSinceOpen] field
+	9	 29/12/2025  Bhargav Saliya     Added Case For DaysDiff field
 
 exec GetCustomerTicketList @PageNumber=1,@PageSize=10,@SortColumn=NULL,@SortOrder=-1,
 @GlobalFilter=N'',@TicketId=NULL,@Subject=NULL,@StatusDescription=NULL,@AssignTo=NULL,
@@ -27,7 +28,7 @@ exec GetCustomerTicketList @PageNumber=1,@PageSize=10,@SortColumn=NULL,@SortOrde
 	
 ************************************************************************/
 
-CREATE   PROCEDURE [dbo].[GetCustomerTicketList]
+CREATE    PROCEDURE [dbo].[GetCustomerTicketList]
 @PageNumber INT = NULL,        
 @PageSize INT = NULL,        
 @SortColumn VARCHAR(50)=NULL,        
@@ -119,7 +120,8 @@ BEGIN
 				SELECT
 					CT.CustomerTicketId,
 					TS.TicketStatusId,
-					CAST(DATEDIFF(DAY,CAST(DBO.ConvertUTCtoLocal(CT.[CreatedDate], @CurrntEmpTimeZoneDesc) AS DATE),CAST(DBO.ConvertUTCtoLocal(GETUTCDATE(), @CurrntEmpTimeZoneDesc) AS DATE)) AS VARCHAR(10)) AS DaysDiff
+					CASE WHEN TS.TicketStatusId = @StatusCloseId THEN CAST(DATEDIFF(DAY,CAST(DBO.ConvertUTCtoLocal(CT.[UpdatedDate], @CurrntEmpTimeZoneDesc) AS DATE),CAST(DBO.ConvertUTCtoLocal(GETUTCDATE(), @CurrntEmpTimeZoneDesc) AS DATE)) AS VARCHAR(10))
+					ELSE CAST(DATEDIFF(DAY,CAST(DBO.ConvertUTCtoLocal(CT.[CreatedDate], @CurrntEmpTimeZoneDesc) AS DATE),CAST(DBO.ConvertUTCtoLocal(GETUTCDATE(), @CurrntEmpTimeZoneDesc) AS DATE)) AS VARCHAR(10)) END AS DaysDiff
 				FROM dbo.CustomerTicket CT
 				JOIN dbo.TicketStatus TS ON CT.StatusId = TS.TicketStatusId
 				WHERE ((ISNULL(@IsSupertUser, 0) = 1 AND ((@EmployeeId IS NULL OR CT.EmployeeId = @EmployeeId) OR (@EmployeeId IS NULL OR CT.AssignTo = @EmployeeId)))

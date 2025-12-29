@@ -21,10 +21,11 @@
 	5    03/13/2025   Vishal Suthar		Fixed issue with higher ReadyToPick
 	6    05/20/2025   Vishal Suthar		Fixed issue with readytopick which is populating wrong when qdjusted the qty
 	7    08/07/2025   Vishal Suthar		Added a check for approval of the part before generating pick ticket
+	8    26/12/2025   Amit Ghediya		Update condition for ReadyToPick
      
 -- EXEC [dbo].[sp_GetPickTicketApproveList] 851
 **************************************************************/
-CREATE   Procedure [dbo].[sp_GetPickTicketApproveList]
+CREATE    Procedure [dbo].[sp_GetPickTicketApproveList]
 	@SalesOrderId  bigint
 AS
 BEGIN
@@ -48,8 +49,9 @@ BEGIN
 		((SELECT TOP 1 QtyRequested FROM DBO.SalesOrderPartV1 WITH(NOLOCK) Where SalesOrderId = @SalesOrderId AND ItemMasterId = sop.ItemMasterId AND ConditionId = sop.ConditionId) - SUM(ISNULL(sopt.QtyToShip,0))) as QtyToPick,
 		'' as [Status], 
 		sop.ConditionId, 
-		(SELECT (ISNULL(SUM(agg.QtyReserved), 0) 
-			- ISNULL(SUM(ship.QtyShipped), 0) 
+		(SELECT ((ISNULL(SUM(agg.QtyReserved), 0) 
+			-- - ISNULL(SUM(ship.QtyShipped), 0) 
+			+ ISNULL(SUM(ship.QtyShipped), 0))
 			- ISNULL(SUM(sopt.QtyToShip), 0)
 		) AS ReadyToPick
 		FROM 

@@ -1,7 +1,7 @@
 ﻿CREATE TABLE [dbo].[ECCNDeterminationSource] (
     [EccnDeterminationSourceID] INT           IDENTITY (1, 1) NOT NULL,
     [Name]                      VARCHAR (100) NOT NULL,
-    [Description]               VARCHAR (100) NULL,
+    [Description]               VARCHAR (MAX) NULL,
     [MasterCompanyId]           INT           NOT NULL,
     [CreatedBy]                 VARCHAR (50)  NOT NULL,
     [CreatedDate]               DATETIME      CONSTRAINT [DF_ECCNDeterminationSource_CreatedDate] DEFAULT (getdate()) NOT NULL,
@@ -11,6 +11,8 @@
     [IsDeleted]                 BIT           CONSTRAINT [DF_ECCNDeterminationSource_IsDeleted] DEFAULT ((0)) NOT NULL,
     CONSTRAINT [PK_ECCNDeterminationSource] PRIMARY KEY CLUSTERED ([EccnDeterminationSourceID] ASC)
 );
+
+
 
 
 GO

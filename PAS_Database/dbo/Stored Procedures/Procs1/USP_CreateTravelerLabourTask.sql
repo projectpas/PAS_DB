@@ -25,6 +25,7 @@
 	8	 10/31/2025	  Moin Bloch	  Modified (Allow Labor Entry For Total Hours to Work Add All Task No Need To Check Traveler Setup )
 	9	 11/11/2025	  Moin Bloch	  Modified (Add Default Entry Of [DirectLaborOHCost],[BurdaenRatePercentageId],[TotalCostPerHour],[BurdenRateAmount] for Assign Total Hours to Work Add All Task )
 	10	 12/23/2025	  Bhargav Saliya  Added case For Dynamic Wo Labour Entry
+	11	 12/26/2025	  Bhargav Saliya  Add  Default Entry In [WorkOrderTaskDetails] fro 'All Task'
        
 -- EXEC [USP_CreateTravelerLabourTask] 10181,10386,10248,1,'JONAS  KAHNWALD'
 **************************************************************/  
@@ -522,6 +523,13 @@ BEGIN
 						SELECT @WorkOrderTaskId = [WorkOrderTaskId] FROM [dbo].[WorkOrderTask] WITH(NOLOCK) WHERE [WorkFlowWorkOrderId] = @WorkFlowWorkOrderId AND [WorkOrderId] = @WorkOrderId AND [MasterCompanyId]=@MasterCompanyId  
 					END	
 
+					IF NOT EXISTS(SELECT 1 FROM [dbo].[WorkOrderTaskDetails] WHERE [WorkOrderTaskId] = @WorkOrderTaskId AND [MasterCompanyId] = @MasterCompanyId AND ISNULL([IsDeleted],0) = 0)
+					BEGIN
+						INSERT INTO [dbo].[WorkOrderTaskDetails](WorkOrderTaskId,OpenDate,OpenBy,TechId,TechName,TechUpdatedDate,InspectorId,InspectorName,InspectorUpdatedDate,
+						Descrepancy,Resolution,HasInstruction,MasterCompanyId,CreatedBy,UpdatedBy,CreatedDate,UpdatedDate,IsActive,IsDeleted,PrintInWO,PrintInWOQ,IsPrintInspector,IsPrintTechnician,IsPrintAdmin)
+						VALUES(@WorkOrderTaskId,NULL,'',NULL,NULL,NULL,NULL,NULL,NULL,'','',NULL,@MasterCompanyId,@CreatedBy,@CreatedBy,GETUTCDATE(),GETUTCDATE(),1,0,0,0,1,1,0);
+					END
+
 					INSERT INTO [dbo].[WorkOrderLabor]  
 							([WorkOrderLaborHeaderId]  
 							,[TaskId]  
@@ -648,6 +656,13 @@ BEGIN
 						ELSE
 						BEGIN
 							SELECT @WorkOrderTaskId = [WorkOrderTaskId] FROM [dbo].[WorkOrderTask] WITH(NOLOCK) WHERE [WorkFlowWorkOrderId] = @WorkFlowWorkOrderId AND [WorkOrderId] = @WorkOrderId AND [MasterCompanyId]=@MasterCompanyId  
+						END
+
+						IF NOT EXISTS(SELECT 1 FROM [dbo].[WorkOrderTaskDetails] WHERE [WorkOrderTaskId] = @WorkOrderTaskId AND [MasterCompanyId] = @MasterCompanyId AND ISNULL([IsDeleted],0) = 0)
+						BEGIN
+							INSERT INTO [dbo].[WorkOrderTaskDetails](WorkOrderTaskId,OpenDate,OpenBy,TechId,TechName,TechUpdatedDate,InspectorId,InspectorName,InspectorUpdatedDate,
+							Descrepancy,Resolution,HasInstruction,MasterCompanyId,CreatedBy,UpdatedBy,CreatedDate,UpdatedDate,IsActive,IsDeleted,PrintInWO,PrintInWOQ,IsPrintInspector,IsPrintTechnician,IsPrintAdmin)
+							VALUES(@WorkOrderTaskId,NULL,'',NULL,NULL,NULL,NULL,NULL,NULL,'','',NULL,@MasterCompanyId,@CreatedBy,@CreatedBy,GETUTCDATE(),GETUTCDATE(),1,0,0,0,1,1,0);
 						END
 
 						INSERT INTO [dbo].[WorkOrderLabor]  

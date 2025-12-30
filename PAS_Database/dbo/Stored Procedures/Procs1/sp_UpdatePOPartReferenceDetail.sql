@@ -18,6 +18,7 @@
     1    10/19/2023   Vishal Suthar		Added history
     2    08/13/2023   Vishal Suthar		Modified to update PO Number and Est Dlvry Date when Alt or Equ part is mapped
 	3	 11/05/2024	  Vishal Suthar		Modified to make use of new SO Part tables
+	4	 12/30/2025	  Devendra Shekh	Modified WOM Kit Update Logic to WOM Update
 
  EXEC sp_UpdatePOPartReferenceDetail 214  
 **************************************************************/
@@ -51,9 +52,10 @@ BEGIN
 	END, PONum = P.PurchaseOrderNumber, POId = pop.PurchaseOrderId, PONextDlvrDate = pop.EstDeliveryDate  
 	FROM dbo.PurchaseOrderPart POP WITH (NOLOCK)
 	LEFT JOIN dbo.PurchaseOrderPartReference PP WITH (NOLOCK) ON PP.PurchaseOrderId = POP.PurchaseOrderId AND PP.PurchaseOrderPartId =  @PurchaseOrderPartId
-	INNER JOIN dbo.WorkOrderMaterialsKit WOM WITH (NOLOCK) ON WOM.WorkOrderId = POP.WorkOrderId and WOM.ConditionCodeId = POP.ConditionId and wom.ItemMasterId = pop.ItemMasterId  
+	LEFT JOIN [DBO].[Nha_Tla_Alt_Equ_ItemMapping] MainNha WITH (NOLOCK) ON MainNha.MappingItemMasterId = POP.ItemMasterId
+	INNER JOIN dbo.WorkOrderMaterialsKit WOM WITH (NOLOCK) ON WOM.WorkOrderId = PP.ReferenceId and WOM.ConditionCodeId = POP.ConditionId and (wom.ItemMasterId = pop.ItemMasterId OR wom.ItemMasterId = MainNha.ItemMasterId)
 	JOIN dbo.PurchaseOrder P WITH (NOLOCK) ON P.PurchaseOrderId = POP.PurchaseOrderId  
-	WHERE POP.PurchaseOrderId = @PurchaseOrderPartId  AND POP.isParent = 1 AND POP.WorkOrderId > 0 and ISNULL(POP.SubWorkOrderId,0)  = 0  AND PP.PurchaseOrderPartId =  @PurchaseOrderPartId
+	WHERE POP.PurchaseOrderPartRecordId = @PurchaseOrderPartId  AND POP.isParent = 1 AND PP.ModuleId = 1 and ISNULL(POP.SubWorkOrderId,0)  = 0  AND PP.PurchaseOrderPartId =  @PurchaseOrderPartId
   
 	UPDATE dbo.SubWorkOrderMaterials  
 	SET QtyOnOrder = POP.QuantityOrdered, QtyOnBkOrder = POP.QuantityBackOrdered, PONum = P.PurchaseOrderNumber ,POId = pop.PurchaseOrderId ,PONextDlvrDate = pop.NeedByDate  

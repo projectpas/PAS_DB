@@ -36,6 +36,7 @@
 	19   16-JUL-2025  Moin Bloch        Modified ObtainFromType As NULL when it comes 0
 	20   03-Dec-2025  Moin Bloch        Modified Fix Status Closed For Split Part
 	21   04-Dec-2025  Moin Bloch        Modified Fix For Asset Inverntory
+	22   30-Dec-2025  Sahdev Saliya     Update UI for Sales Price Dropdown in Purchase & Sales Information Changes
 
 declare @p2 dbo.POPartsToReceive  
 insert into @p2 values(2371,4051,2)  
@@ -817,6 +818,7 @@ BEGIN
 							DECLARE @PP_newUnitSalePrice DECIMAL(18, 2) = 0;
 							DECLARE @PP_newMarkUpAmount DECIMAL(18, 2) = 0;
 							DECLARE @PP_FlatPrice DECIMAL(18, 2) = 0;
+							DECLARE @SalePriceSelectId INT = (SELECT ItemMasterPurchaseSaleMasterId FROM [dbo].ItemMasterPurchaseSaleMaster WHERE [Name] = 'Flat');
 
                             SELECT @POP_UnitCost = POP.UnitCost,
                                    @POP_VendorListPrice = POP.VendorListPrice,
@@ -826,7 +828,6 @@ BEGIN
                                    @POP_ConditionId = POP.ConditionId,
 								   @PP_FlatPrice = IMP.SP_FSP_FlatPriceAmount,
 								   @PP_MarkUpPerc = p.PercentValue
-
 
                             FROM dbo.PurchaseOrderPart POP WITH (NOLOCK)
 							LEFT JOIN dbo.ItemMasterPurchaseSale IMP WITH (NOLOCK) ON POP.ItemMasterId = IMP.ItemMasterId AND POP.ConditionId = IMP.ConditionId
@@ -954,7 +955,7 @@ BEGIN
                                     1,
                                     0,
                                     @POP_ConditionId,
-                                    NULL,
+                                    @SalePriceSelectId,
                                     NULL,
                                     NULL,
                                     NULL,

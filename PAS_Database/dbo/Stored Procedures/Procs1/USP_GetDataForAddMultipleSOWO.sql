@@ -20,6 +20,7 @@
     6    11/05/2024	  Vishal Suthar			Modified to make use of new SO Part tables  
 	7	 12/05/2024	  Ayushi Patel			Added missing brackets in where clouse 
 	8	 12/17/2024	  Ayushi Patel			Added cancel so condition in where clouse
+	9    12/30/2025   Sahdev Saliya         Implemented filtering in all spaces using the search text.
 
  EXECUTE USP_GetDataForAddMultipleSOWO 'loadwo',102539,7,2688,14760     
 **************************************************************/         
@@ -28,7 +29,8 @@ CREATE    PROCEDURE [dbo].[USP_GetDataForAddMultipleSOWO]
 	@ItemMasterId BIGINT,      
 	@ConditionId BIGINT,      
 	@PurchaseOrderId BIGINT,      
-	@PurchaseOrderPartRecordId BIGINT      
+	@PurchaseOrderPartRecordId BIGINT,
+	@SearchText VARCHAR (50) = NULL
 AS
 BEGIN
  SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
@@ -59,7 +61,7 @@ BEGIN
 			LEFT JOIN [DBO].[ItemMaster] IM WITH (NOLOCK) ON IM.ItemMasterId = @ItemMasterId      
 			LEFT JOIN [DBO].[Condition] C WITH (NOLOCK) ON C.ConditionId = @ConditionId      
 			WHERE (WOM.ItemMasterId = @ItemMasterId AND WOM.ConditionCodeId = @ConditionId)
-			OR ((WOM.ItemMasterId = Nha.MappingItemMasterId OR WOM.ItemMasterId = MainNha.ItemMasterId) AND WOM.ConditionCodeId = @ConditionId)
+			OR ((WOM.ItemMasterId = Nha.MappingItemMasterId OR WOM.ItemMasterId = MainNha.ItemMasterId) AND WOM.ConditionCodeId = @ConditionId) AND (@SearchText is null or WO.WorkOrderNum LIKE '%'+@SearchText+'%')
 			GROUP BY WO.WorkOrderNum, WOP.PromisedDate, WOP.EstimatedCompletionDate, WOP.EstimatedShipDate, IM.partnumber, C.code, WO.WorkOrderId
 			ORDER BY WO.WorkOrderId DESC      
         END      
@@ -86,7 +88,7 @@ BEGIN
 			LEFT JOIN [DBO].[Condition] C WITH (NOLOCK) ON C.ConditionId = @ConditionId      
 			WHERE (SOP.ItemMasterId = @ItemMasterId AND SOP.ConditionId = @ConditionId 
 			OR ((SOP.ItemMasterId = Nha.MappingItemMasterId OR SOP.ItemMasterId = MainNha.ItemMasterId) AND SOP.ConditionId = @ConditionId))
-			AND SO.StatusId != @CloseSOStatusId AND SO.StatusId != @CancelSOStatusId 
+			AND SO.StatusId != @CloseSOStatusId AND SO.StatusId != @CancelSOStatusId AND (@SearchText is null or SO.SalesOrderNumber LIKE '%'+@SearchText+'%')
 			GROUP BY SOP.QtyRequested,SOR.QtyToReserve,SO.SalesOrderNumber,SO.SalesOrderId,  SOP.PromisedDate,SOP.CustomerRequestDate,SOP.EstimatedShipDate,IM.partnumber,C.Code      
 			ORDER BY SO.SalesOrderId DESC      
 		END      
@@ -113,7 +115,7 @@ BEGIN
 			WHERE ((WOM.ItemMasterId = @ItemMasterId AND WOM.ConditionCodeId = @ConditionId) OR 
 			((WOM.ItemMasterId = Nha.MappingItemMasterId OR WOM.ItemMasterId = MainNha.ItemMasterId) AND WOM.ConditionCodeId = @ConditionId) OR 
 			((WOMK.ItemMasterId = Nha.MappingItemMasterId OR WOMK.ItemMasterId = MainNha.ItemMasterId) AND WOMK.ConditionCodeId = @ConditionId) OR
-			(WOMK.ItemMasterId = @ItemMasterId AND WOMK.ConditionCodeId = @ConditionId))
+			(WOMK.ItemMasterId = @ItemMasterId AND WOMK.ConditionCodeId = @ConditionId)) AND (@SearchText is null or WO.WorkOrderNum LIKE '%'+@SearchText+'%')
 			GROUP BY WO.WorkOrderNum,      
 					WOP.PromisedDate,      
 					WOP.EstimatedCompletionDate,      
@@ -143,7 +145,7 @@ BEGIN
 			LEFT JOIN [DBO].[Nha_Tla_Alt_Equ_ItemMapping] MainNha WITH (NOLOCK) ON MainNha.MappingItemMasterId = @ItemMasterId AND (MainNha.MappingType = 1 OR MainNha.MappingType = 2)
 			WHERE (SOP.ItemMasterId = @ItemMasterId AND SOP.ConditionId = @ConditionId OR
 			((SOP.ItemMasterId = Nha.MappingItemMasterId OR SOP.ItemMasterId = MainNha.ItemMasterId) AND SOP.ConditionId = @ConditionId))
-			AND SO.StatusId != @CloseSOStatusId  AND SO.StatusId != @CancelSOStatusId  
+			AND SO.StatusId != @CloseSOStatusId  AND SO.StatusId != @CancelSOStatusId AND (@SearchText is null or SO.SalesOrderNumber LIKE '%'+@SearchText+'%')
 			GROUP BY SOP.QtyRequested,SOR.QtyToReserve,SO.SalesOrderNumber,SO.SalesOrderId,  SOP.PromisedDate,SOP.CustomerRequestDate,SOP.EstimatedShipDate,IM.partnumber,C.Code      
 			ORDER BY SO.SalesOrderId DESC;
 		END      
@@ -163,7 +165,7 @@ BEGIN
             LEFT JOIN [DBO].[RepairOrder] RO WITH (NOLOCK) ON RO.RepairOrderId = ROP.RepairOrderId       
 			LEFT JOIN [DBO].[ItemMaster] IM WITH (NOLOCK) ON IM.ItemMasterId = @ItemMasterId      
             LEFT JOIN [DBO].[Condition] C WITH (NOLOCK) ON C.ConditionId = @ConditionId      
-			WHERE ROP.ItemMasterId = @ItemMasterId AND ROP.ConditionId = @ConditionId      
+			WHERE ROP.ItemMasterId = @ItemMasterId AND ROP.ConditionId = @ConditionId AND (@SearchText is null or RO.RepairOrderNumber LIKE '%'+@SearchText+'%')
 			ORDER BY RO.RepairOrderId DESC;
 		END      
 		ELSE IF(@viewType = 'loadeso')      
@@ -186,7 +188,7 @@ BEGIN
 			LEFT JOIN [DBO].[Nha_Tla_Alt_Equ_ItemMapping] Nha WITH (NOLOCK) ON Nha.ItemMasterId = @ItemMasterId AND (Nha.MappingType = 1 OR Nha.MappingType = 2)
 			LEFT JOIN [DBO].[Nha_Tla_Alt_Equ_ItemMapping] MainNha WITH (NOLOCK) ON MainNha.MappingItemMasterId = @ItemMasterId AND (MainNha.MappingType = 1 OR MainNha.MappingType = 2)
             WHERE (ESOP.ItemMasterId = @ItemMasterId AND ESOP.ConditionId = @ConditionId
-			OR ((ESOP.ItemMasterId = Nha.MappingItemMasterId OR ESOP.ItemMasterId = MainNha.ItemMasterId) AND ESOP.ConditionId = @ConditionId))    
+			OR ((ESOP.ItemMasterId = Nha.MappingItemMasterId OR ESOP.ItemMasterId = MainNha.ItemMasterId) AND ESOP.ConditionId = @ConditionId)) AND (@SearchText is null or ESO.ExchangeSalesOrderNumber LIKE '%'+@SearchText+'%')
 			GROUP BY IM.partnumber,C.Code,ESO.ExchangeSalesOrderNumber,ESO.ExchangeSalesOrderId,ESOP.QtyRequested,SL.QuantityReserved
 			ORDER BY ESO.ExchangeSalesOrderId DESC;
 		END      
@@ -213,7 +215,7 @@ BEGIN
             WHERE ((SWM.ItemMasterId = @ItemMasterId AND SWM.ConditionCodeId = @ConditionId) 
 			OR ((SWM.ItemMasterId = Nha.MappingItemMasterId OR SWM.ItemMasterId = MainNha.ItemMasterId) AND SWM.ConditionCodeId = @ConditionId)
 			OR ((SWMK.ItemMasterId = Nha.MappingItemMasterId OR SWMK.ItemMasterId = MainNha.ItemMasterId) AND SWMK.ConditionCodeId = @ConditionId)
-			OR (SWMK.ItemMasterId = @ItemMasterId AND SWMK.ConditionCodeId = @ConditionId))
+			OR (SWMK.ItemMasterId = @ItemMasterId AND SWMK.ConditionCodeId = @ConditionId)) AND  (@SearchText is null or SWO.SubWorkOrderNo LIKE '%'+@SearchText+'%')
 			GROUP BY SWO.SubWorkOrderNo, IM.partnumber,C.code,SWO.SubWorkOrderId
 			ORDER BY SWO.SubWorkOrderId DESC;
 		END

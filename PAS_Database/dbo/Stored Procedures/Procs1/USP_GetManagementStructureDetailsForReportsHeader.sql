@@ -23,6 +23,7 @@
 	8    03-11-2025   Rajesh Gami			Added field MasterCompanyCode.
 	9    15-12-2025   Devendra Shekh		Added field CurrencyCode.
 	10   19-12-2025   Ayushi Patel			Return NULL License for 'PAR' MasterCompany
+	11   31-12-2025   Amit Ghediya			Static email for 'PAR' MasterCompany
  EXECUTE USP_GetManagementStructureDetailsForReportsHeader 1
 **********************/ 
 CREATE   PROCEDURE [dbo].[USP_GetManagementStructureDetailsForReportsHeader]    
@@ -40,12 +41,17 @@ SET NOCOUNT ON
 			BEGIN
 				DECLARE @ModuleId BIGINT;
 				DECLARE @MasterCompanyCode VARCHAR(50);
+				DECLARE @MasterCompanyCodeAll VARCHAR(50);
+				DECLARE @ParEmail VARCHAR(100) = 'phogan@phxair.net <br/> repairs@phxair.net';
+				DECLARE @FinalEmail NVARCHAR(500);
+				DECLARE @MasterCompanyId BIGINT;
+
 				SELECT @ModuleId = AttachmentModuleId FROM dbo.AttachmentModule WITH(NOLOCK) WHERE UPPER(Name) = UPPER('LEGALENTITYLOGO')
-				print @ModuleId
+				
 				DECLARE @MergedAddress NVARCHAR(MAX),@MergedAddressForCOC NVARCHAR(MAX);
 				DECLARE @Address1 NVARCHAR(255),@Address2 NVARCHAR(255),@City NVARCHAR(100),@StateOrProvince NVARCHAR(100),@PostalCode NVARCHAR(20);
 				DECLARE @Country NVARCHAR(100),@PhoneNumber NVARCHAR(50),@PhoneExt NVARCHAR(10),@Email NVARCHAR(255);
-				SELECT @MasterCompanyCode = MasterCompanyCode FROM DBO.MasterCompany WITH(NOLOCK) WHERE UPPER(MasterCompanyCode) = UPPER('PAR')
+				SELECT @MasterCompanyCode = MasterCompanyCode FROM DBO.MasterCompany WITH(NOLOCK) WHERE UPPER(MasterCompanyCode) = UPPER('PAR');
 			
 					 SELECT 
 						@Address1 = ad.Line1,
@@ -56,7 +62,8 @@ SET NOCOUNT ON
 						@Country = co.countries_name,
 						@PhoneNumber = le.PhoneNumber,
 						@PhoneExt = le.PhoneExt,
-						@Email = c.Email
+						@Email = c.Email,
+						@MasterCompanyId = le.MasterCompanyId
 						FROM EntityStructureSetup est
 							INNER JOIN ManagementStructureLevel msl WITH(NOLOCK) ON est.Level1Id = msl.ID
 							INNER JOIN LegalEntity le WITH(NOLOCK) ON msl.LegalEntityId = le.LegalEntityId
@@ -66,6 +73,16 @@ SET NOCOUNT ON
 							LEFT JOIN dbo.Contact c WITH(NOLOCK) ON c.ContactId = lec.ContactId 
 						WHERE est.EntityStructureId = @ManagementStructId
 				
+				SELECT @MasterCompanyCodeAll = [MasterCompanyCode] FROM DBO.MasterCompany WITH(NOLOCK) WHERE [MasterCompanyId] = @MasterCompanyId;
+				
+				--Bind static email for PAR Company.
+				SET @FinalEmail =
+								CASE 
+									WHEN ISNULL(@MasterCompanyCodeAll,'') != ISNULL(@MasterCompanyCode,'')
+										THEN @Email
+									ELSE @ParEmail
+								END;
+
 				EXEC [dbo].[SP_ValidatePDFAddress] 
                 @Address1 = @Address1,
                 @Address2 = @Address2,
@@ -76,7 +93,7 @@ SET NOCOUNT ON
                 @Country = @Country,
                 @PhoneNumber = @PhoneNumber,
                 @PhoneExt = @PhoneExt,
-                @Email = @Email,
+                @Email = @FinalEmail, --@Email,
                 @AddressOutput = @MergedAddress OUTPUT;
 
 				EXEC [dbo].[SP_ValidatePDFAddress] 

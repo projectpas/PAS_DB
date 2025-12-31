@@ -21,17 +21,24 @@
 	5    02/27/2025   AMIT GHEDIYA	    Change DataType OF ReceivedDate From DATETIME to DATE
  	6    20 MAR 2025  RAJESH GAMI		Change the JOIN from INNER to LEFT for the StocklineDraft
 	7    26 SEP 2025  RAJESH GAMI		Added EmployeeId
+	8    29 DEC 2025  Hemant Saliya		Handle Duplicate PN Label issue for MTI
 -- EXEC GetReceiverStockPO 2014, '1', 1, 1, 'RecNo000047', 3683
-exec dbo.GetReceiverStockPO @PurchaseOrderId=2014,@isParentData=N'0',@ItemMasterId=1,@ConditionId=1,@ReceiverNumber=N'RecNo000001',@PurchaseOrderPartId=0
+exec dbo.GetReceiverStockPO @PurchaseOrderId=9818,@isParentData=N'0',@ItemMasterId=1,@ConditionId=1,@ReceiverNumber=N'RecNo000001',@PurchaseOrderPartId=0
+
+ EXEC GetReceiverStockPO 9818, '1', 1, 1, ' ', 0,98
+ EXEC GetReceiverStockPO_New 9818, '0', 1, 1, 'RecNo000001','2025-12-22', 0,98
+ EXEC GetReceiverStockPO_New 9818, '0', 1, 1, 'RecNo000001', '2025-12-23', 0,98
+
 **************************************************************/
-CREATE    PROCEDURE [dbo].[GetReceiverStockPO]
-	@PurchaseOrderId bigint,
-	@isParentData varchar(10),
-	@ItemMasterId bigint,
-	@ConditionId int,
-	@ReceiverNumber varchar(100),
-	@PurchaseOrderPartId bigint,
-	@EmployeeId bigint
+CREATE     PROCEDURE [dbo].[GetReceiverStockPO]
+	@PurchaseOrderId bigint = NULL,
+	@isParentData varchar(10) = NULL,
+	@ItemMasterId bigint = NULL,
+	@ConditionId int = NULL,
+	@ReceiverNumber varchar(100) = NULL,
+	@ReceiverDate DATETIME = NULL,
+	@PurchaseOrderPartId bigint = NULL,
+	@EmployeeId bigint = NULL
 AS
 BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
@@ -82,6 +89,8 @@ BEGIN
 		END
 		IF(@isParentData = '0')
 		BEGIN
+			
+
 			SELECT i.ItemMasterId,
 				  sl.ConditionId,
 				  sl.PurchaseUnitOfMeasureId,
@@ -118,7 +127,7 @@ BEGIN
 			LEFT JOIN  [dbo].[Shelf] sf WITH(NOLOCK) ON sf.ShelfId = sl.ShelfId
 			LEFT JOIN  [dbo].[Location] lc WITH(NOLOCK) ON lc.LocationId = sl.LocationId
 			WHERE sl.PurchaseOrderId = @PurchaseOrderId AND (@PurchaseOrderPartId = 0 OR sl.PurchaseOrderPartRecordId = @PurchaseOrderPartId)
-			AND sl.ReceiverNumber = @ReceiverNumber AND sl.IsParent=1 and sl.isSerialized = 1
+			AND sl.ReceiverNumber = @ReceiverNumber AND CAST(sl.ReceivedDate AS DATE) = CAST(@ReceiverDate AS DATE) AND sl.IsParent=1 and sl.isSerialized = 1
 
 			UNION
 
@@ -158,7 +167,7 @@ BEGIN
 			LEFT JOIN  [dbo].[Shelf] sf WITH(NOLOCK) ON sf.ShelfId = sl.ShelfId
 			LEFT JOIN  [dbo].[Location] lc WITH(NOLOCK) ON lc.LocationId = sl.LocationId
 			WHERE sl.PurchaseOrderId = @PurchaseOrderId AND (@PurchaseOrderPartId = 0 OR sl.PurchaseOrderPartRecordId = @PurchaseOrderPartId)
-			AND sl.ReceiverNumber = @ReceiverNumber AND sl.IsParent=1 and sl.isSerialized = 0 
+			AND sl.ReceiverNumber = @ReceiverNumber AND CAST(sl.ReceivedDate AS DATE) = CAST(@ReceiverDate AS DATE) AND sl.IsParent=1 and sl.isSerialized = 0 
 
 			UNION
 
@@ -197,7 +206,7 @@ BEGIN
 			LEFT JOIN  [dbo].[Shelf] sf WITH(NOLOCK) ON sf.ShelfId = sl.ShelfId
 			LEFT JOIN  [dbo].[Location] lc WITH(NOLOCK) ON lc.LocationId = sl.LocationId
 			WHERE sl.PurchaseOrderId = @PurchaseOrderId AND (@PurchaseOrderPartId = 0 OR sl.PurchaseOrderPartRecordId = @PurchaseOrderPartId)
-			AND sl.ReceiverNumber = @ReceiverNumber AND sl.IsParent=1 AND sl.isSerialized = 0 AND sd.ForStockQty > 0
+			AND sl.ReceiverNumber = @ReceiverNumber AND CAST(sl.ReceivedDate AS DATE) = CAST(@ReceiverDate AS DATE) AND sl.IsParent=1 AND sl.isSerialized = 0 AND sd.ForStockQty > 0
 					   
 			UNION
 

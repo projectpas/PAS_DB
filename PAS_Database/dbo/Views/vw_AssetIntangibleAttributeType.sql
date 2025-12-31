@@ -1,10 +1,11 @@
 ﻿
 
+
 CREATE VIEW [dbo].[vw_AssetIntangibleAttributeType]
 AS
 SELECT IAT.*,
 IT.AssetIntangibleName AS AssetIntangibleType,
-ADM.AssetDepreciationMethodName AS AssetDepreciationMethod,
+--ADM.AssetDepreciationMethodName AS AssetDepreciationMethod,
 DF.Name AS AssetAmortizationInterval,
 IGL.AccountName AS IntangibleGLAccount,
 AEGL.AccountName AS AmortExpenseGLAccount,
@@ -23,7 +24,7 @@ LegalEntity = STUFF((SELECT ', ' + Name
           FOR XML PATH('')), 1, 2, '')
 FROM AssetIntangibleAttributeType IAT
 JOIN AssetIntangibleType IT ON IAT.AssetIntangibleTypeId=IT.AssetIntangibleTypeId
-JOIN AssetDepreciationMethod ADM ON IAT.AssetDepreciationMethodId=ADM.AssetDepreciationMethodId
+--JOIN AssetDepreciationMethod ADM ON IAT.AssetDepreciationMethodId=ADM.AssetDepreciationMethodId
 JOIN AssetDepreciationFrequency DF ON IAT.AssetAmortizationIntervalId=DF.AssetDepreciationFrequencyId
 JOIN GLAccount IGL ON IAT.IntangibleGLAccountId=IGL.GLAccountId
 JOIN GLAccount AEGL ON IAT.AmortExpenseGLAccountId=AEGL.GLAccountId

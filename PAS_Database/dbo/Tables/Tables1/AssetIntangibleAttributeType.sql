@@ -1,7 +1,6 @@
 ﻿CREATE TABLE [dbo].[AssetIntangibleAttributeType] (
     [AssetIntangibleAttributeTypeId] BIGINT         IDENTITY (1, 1) NOT NULL,
     [AssetIntangibleTypeId]          BIGINT         NOT NULL,
-    [AssetDepreciationMethodId]      BIGINT         NOT NULL,
     [IntangibleLifeYears]            INT            CONSTRAINT [DF_AssetIntangibleAttributeType_IntangibleLifeYears] DEFAULT ((0)) NOT NULL,
     [AssetAmortizationIntervalId]    BIGINT         NOT NULL,
     [IntangibleGLAccountId]          BIGINT         NOT NULL,
@@ -19,7 +18,6 @@
     [SelectedCompanyIds]             VARCHAR (1000) NOT NULL,
     CONSTRAINT [PK_AssetIntangibleType] PRIMARY KEY CLUSTERED ([AssetIntangibleAttributeTypeId] ASC),
     CONSTRAINT [FK_AssetIntangibleAttributeType_AssetAmortizationInterval] FOREIGN KEY ([AssetAmortizationIntervalId]) REFERENCES [dbo].[AssetAmortizationInterval] ([AssetAmortizationIntervalId]),
-    CONSTRAINT [FK_AssetIntangibleAttributeType_AssetDepreciationMethod] FOREIGN KEY ([AssetDepreciationMethodId]) REFERENCES [dbo].[AssetDepreciationMethod] ([AssetDepreciationMethodId]),
     CONSTRAINT [FK_AssetIntangibleAttributeType_AssetIntangibleType] FOREIGN KEY ([AssetIntangibleTypeId]) REFERENCES [dbo].[AssetIntangibleType] ([AssetIntangibleTypeId]),
     CONSTRAINT [FK_AssetIntangibleAttributeType_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId]),
     CONSTRAINT [FK_AssetIntangibleAttributeTypeAccAmort_GLAccount] FOREIGN KEY ([AccAmortDeprGLAccountId]) REFERENCES [dbo].[GLAccount] ([GLAccountId]),
@@ -30,10 +28,12 @@
 );
 
 
+
+
 GO
 
 
-create TRIGGER [dbo].[trg_AssetIntangibleAttributeType]
+CREATE TRIGGER [dbo].[trg_AssetIntangibleAttributeType]
 
    ON  [dbo].[AssetIntangibleAttributeType]
 
@@ -53,7 +53,9 @@ BEGIN
 
 
 
-	DECLARE @AssetIntangibleTypeId BIGINT,@AssetDepreciationMethodId BIGINT,@AssetAmortizationIntervalId BIGINT,
+	DECLARE @AssetIntangibleTypeId BIGINT,
+	--@AssetDepreciationMethodId BIGINT,
+	@AssetAmortizationIntervalId BIGINT,
 
 	@IntangibleGLAccountId BIGINT,@AmortExpenseGLAccountId BIGINT,@AccAmortDeprGLAccountId BIGINT,@IntangibleWriteDownGLAccountId BIGINT,
 
@@ -71,7 +73,9 @@ BEGIN
 
 
 
-	SELECT @AssetIntangibleTypeId=AssetIntangibleTypeId,@AssetDepreciationMethodId=AssetDepreciationMethodId,@AssetAmortizationIntervalId=AssetAmortizationIntervalId,
+	SELECT @AssetIntangibleTypeId=AssetIntangibleTypeId,
+	--@AssetDepreciationMethodId=AssetDepreciationMethodId,
+	@AssetAmortizationIntervalId=AssetAmortizationIntervalId,
 
 	@IntangibleGLAccountId=IntangibleGLAccountId,@AmortExpenseGLAccountId=AmortExpenseGLAccountId,@AccAmortDeprGLAccountId=AccAmortDeprGLAccountId,
 
@@ -83,7 +87,7 @@ BEGIN
 
 	SELECT @AssetIntangibleType=AssetIntangibleName FROM AssetIntangibleType WHERE AssetIntangibleTypeId=@AssetIntangibleTypeId
 
-	SELECT @AssetDepreciationMethod=AssetDepreciationMethodName FROM AssetDepreciationMethod WHERE AssetDepreciationMethodId=@AssetDepreciationMethodId
+	--SELECT @AssetDepreciationMethod=AssetDepreciationMethodName FROM AssetDepreciationMethod WHERE AssetDepreciationMethodId=@AssetDepreciationMethodId
 
 	SELECT @AssetAmortizationInterval=Name FROM AssetDepreciationFrequency WHERE AssetDepreciationFrequencyId=@AssetAmortizationIntervalId
 

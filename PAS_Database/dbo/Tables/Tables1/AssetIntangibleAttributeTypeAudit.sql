@@ -2,7 +2,6 @@
     [AssetIntangibleAttributeTypeAuditId] BIGINT         IDENTITY (1, 1) NOT NULL,
     [AssetIntangibleAttributeTypeId]      BIGINT         NOT NULL,
     [AssetIntangibleTypeId]               BIGINT         NOT NULL,
-    [AssetDepreciationMethodId]           BIGINT         NOT NULL,
     [IntangibleLifeYears]                 INT            NOT NULL,
     [AssetAmortizationIntervalId]         BIGINT         NOT NULL,
     [IntangibleGLAccountId]               BIGINT         NOT NULL,

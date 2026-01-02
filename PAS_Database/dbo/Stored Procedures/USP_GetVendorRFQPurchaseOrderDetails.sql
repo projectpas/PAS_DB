@@ -17,6 +17,7 @@
  ** --   --------		 -------		--------------------------------          
     1    22-April-2025   Bhargav Saliya		Created
 	2    28-Aug-2025     Devendra Shekh		Modified (added SourceBy, MarketplaceRef)
+	3    02-01-2026      Bhargav Saliya     Added New Field :- CustomerRFQNo
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[USP_GetVendorRFQPurchaseOrderDetails]
     @VendorRFQPurchaseOrderId BIGINT
@@ -26,7 +27,7 @@ BEGIN
 	SET NOCOUNT ON;
 
 	BEGIN TRY
-
+		DECLARE @poModuleId INT = (SELECT TOP 1 ModuleId FROM dbo.Module WITH(NOLOCK) Where ModuleName = 'PurchaseOrder' AND ISNULL(IsActive,0) = 1 AND ISNULL(IsDeleted,0) = 0 )
 		DECLARE @MSModuleId BIGINT = (SELECT ManagementStructureModuleId FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE ModuleName = 'VendorRFQPOHeader');
 
 		SELECT TOP 1
@@ -80,9 +81,15 @@ BEGIN
 			CASE WHEN po.ReportCurrencyId > 0 THEN po.ReportCurrencyId ELSE 0 END AS ReportCurrencyId,
 			CASE WHEN po.ForeignExchangeRate > 0 THEN po.ForeignExchangeRate ELSE 0 END AS ForeignExchangeRate,
 			ISNULL(po.SourceBy, '') AS SourceBy,
-			ISNULL(po.MarketplaceRef, '') AS MarketplaceRef
+			ISNULL(po.MarketplaceRef, '') AS MarketplaceRef,
+			ISNULL(rfqData.RfqId,'') CustomerRFQNo
 		FROM [dbo].[VendorRFQPurchaseOrder] po WITH(NOLOCK)
 		LEFT JOIN [dbo].[PurchaseOrderManagementStructureDetails] msd WITH(NOLOCK) ON po.VendorRFQPurchaseOrderId = msd.ReferenceID AND msd.ModuleID = @MSModuleId 
+		LEFT OUTER JOIN DBO.VendorRFQPurchaseOrderPart VPOP WITH (NOLOCK) ON VPOP.VendorRFQPurchaseOrderId=PO.VendorRFQPurchaseOrderId
+		OUTER APPLY (SELECT TOP 1 rfq.RfqId FROM DBO.VendorRFQPart rfqPart WITH(NOLOCK) 
+					INNER JOIN DBO.ILSRFQPart ilsPart WITH(NOLOCK) ON rfqPart.ILSRFQDetailId = ilsPart.ILSRFQDetailId 
+					INNER JOIN DBO.CustomerRfq rfq WITH(NOLOCK) ON ilsPart.CustomerRfqId = rfq.CustomerRfqId
+					WHERE VPOP.VendorRFQPurchaseOrderId =po.VendorRFQPurchaseOrderId AND rfqPart.ModuleId = @poModuleId AND rfqPart.ReferenceId = VPOP.PurchaseOrderId) rfqData
 		WHERE po.VendorRFQPurchaseOrderId = @VendorRFQPurchaseOrderId
 	END TRY
 	BEGIN CATCH      

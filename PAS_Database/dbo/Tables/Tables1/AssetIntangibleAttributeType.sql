@@ -16,6 +16,7 @@
     [IsActive]                       BIT            CONSTRAINT [DF_AssetIntangibleAttributeType_IsActive] DEFAULT ((1)) NOT NULL,
     [IsDeleted]                      BIT            CONSTRAINT [DF_AssetIntangibleAttributeType_IsDeleted] DEFAULT ((0)) NOT NULL,
     [SelectedCompanyIds]             VARCHAR (1000) NOT NULL,
+    [AssetDepreciationMethodId]      BIGINT         NULL,
     CONSTRAINT [PK_AssetIntangibleType] PRIMARY KEY CLUSTERED ([AssetIntangibleAttributeTypeId] ASC),
     CONSTRAINT [FK_AssetIntangibleAttributeType_AssetAmortizationInterval] FOREIGN KEY ([AssetAmortizationIntervalId]) REFERENCES [dbo].[AssetAmortizationInterval] ([AssetAmortizationIntervalId]),
     CONSTRAINT [FK_AssetIntangibleAttributeType_AssetIntangibleType] FOREIGN KEY ([AssetIntangibleTypeId]) REFERENCES [dbo].[AssetIntangibleType] ([AssetIntangibleTypeId]),
@@ -26,6 +27,8 @@
     CONSTRAINT [FK_AssetIntangibleAttributeTypeIntgWriteDown_GLAccount] FOREIGN KEY ([IntangibleWriteDownGLAccountId]) REFERENCES [dbo].[GLAccount] ([GLAccountId]),
     CONSTRAINT [FK_AssetIntangibleAttributeTypeWriteOff_GLAccount] FOREIGN KEY ([IntangibleWriteOffGLAccountId]) REFERENCES [dbo].[GLAccount] ([GLAccountId])
 );
+
+
 
 
 

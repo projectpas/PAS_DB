@@ -14,6 +14,7 @@
     1    01-04-2025     Ayushi Patel			      Created
     2    28-08-2025     Devendra Shekh			      Modified (added SourceBy, MarketplaceRef)
 	3    08-12-2025     Sahdev Saliya                 Added New Field :- VendorRFQPurchaseOrderNumber
+	4    02-01-2026     Bhargav Saliya                Added New Field :- CustomerRFQNo
 
 	USP_GetPOHeaderDetails 12345
 **************************************************************/
@@ -25,6 +26,7 @@ AS
 BEGIN
     SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
     SET NOCOUNT ON;
+	DECLARE @poModuleId INT = (SELECT TOP 1 ModuleId FROM dbo.Module WITH(NOLOCK) Where ModuleName = 'PurchaseOrder' AND ISNULL(IsActive,0) = 1 AND ISNULL(IsDeleted,0) = 0 )
 
     BEGIN TRY
         BEGIN TRANSACTION;
@@ -83,14 +85,21 @@ BEGIN
                 ISNULL(po.ForeignExchangeRate, 0) AS ForeignExchangeRate,
                 ISNULL(po.SourceBy, '') AS SourceBy,
                 ISNULL(po.MarketplaceRef, '') AS MarketplaceRef,
-				VRFQ.VendorRFQPurchaseOrderNumber
+				VRFQ.VendorRFQPurchaseOrderNumber,
+				ISNULL(rfqData.CustomerRFQNo,'') AS CustomerRFQNo
             FROM dbo.PurchaseOrder po WITH (NOLOCK)
             LEFT JOIN dbo.PurchaseOrderManagementStructureDetails msd WITH (NOLOCK)
                 ON po.PurchaseOrderId = msd.ReferenceID AND msd.ModuleID = @moduleId
             LEFT JOIN dbo.Vendor Ve WITH (NOLOCK)
                 ON po.VendorId = Ve.VendorId
 			LEFT JOIN dbo.VendorRFQPurchaseOrder VRFQ WITH (NOLOCK) ON po.VendorRFQPurchaseOrderId = VRFQ.VendorRFQPurchaseOrderId
-				WHERE po.PurchaseOrderId = @PurchaseOrderId;
+			OUTER APPLY (SELECT TOP 1 rfq.RfqId CustomerRFQNo FROM DBO.VendorRFQPart rfqPart WITH(NOLOCK) 
+				INNER JOIN DBO.ILSRFQPart ilsPart WITH(NOLOCK) ON rfqPart.ILSRFQDetailId = ilsPart.ILSRFQDetailId 
+				INNER JOIN DBO.CustomerRfq rfq WITH(NOLOCK) ON ilsPart.CustomerRfqId = rfq.CustomerRfqId
+				WHERE rfqPart.ModuleId = @poModuleId AND rfqPart.ReferenceId = po.PurchaseOrderId) rfqData
+
+			WHERE po.PurchaseOrderId = @PurchaseOrderId;
+			
         END
         COMMIT TRANSACTION;
     END TRY    

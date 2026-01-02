@@ -25,6 +25,7 @@
     [AccAmortDeprGLAccount]               VARCHAR (100)  NULL,
     [IntangibleWriteDownGLAccount]        VARCHAR (100)  NULL,
     [IntangibleWriteOffGLAccount]         VARCHAR (100)  NULL,
-    [LegalEntity]                         VARCHAR (MAX)  NULL
+    [LegalEntity]                         VARCHAR (MAX)  NULL,
+    [AssetDepreciationMethodId]           BIGINT         NULL
 );
 

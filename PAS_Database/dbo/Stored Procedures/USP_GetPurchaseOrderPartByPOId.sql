@@ -562,6 +562,7 @@ BEGIN
 									 @soCustomerId as SoCustomerId,
 									 @esonum as ExchangeSalesOrderNo,
 									 @swonum as SubWorkOrderNo,
+									-- @soCustomerId as SoCustomerId,
 									 @lotnum as LotNumber,
 									 @ronum as ReapairOrderNo,
 									 LT.ItemMasterId,

@@ -80,8 +80,8 @@
     [QuantityReserved]                    INT             NULL,
     [QuantityTurnIn]                      INT             NULL,
     [QuantityIssued]                      INT             NULL,
-    [QuantityOnHand]                      INT             CONSTRAINT [DF_Stockline_QuantityOnHand] DEFAULT ((0)) NOT NULL,
-    [QuantityAvailable]                   INT             CONSTRAINT [DF_Stockline_QuantityAvailable] DEFAULT ((0)) NULL,
+    [QuantityOnHand]                      INT             NOT NULL,
+    [QuantityAvailable]                   INT             NULL,
     [QuantityOnOrder]                     INT             NULL,
     [QtyReserved]                         INT             CONSTRAINT [DF_Stockline_QtyReserved] DEFAULT ((0)) NULL,
     [QtyIssued]                           INT             CONSTRAINT [DF_Stockline_QtyIssued] DEFAULT ((0)) NULL,
@@ -167,7 +167,7 @@
     [TagDays]                             INT             NULL,
     [OpenDays]                            INT             NULL,
     [ExchangeSalesOrderId]                BIGINT          NULL,
-    [RRQty]                               INT             CONSTRAINT [DF__tmp_ms_xx__RRQty__7D1E4195] DEFAULT ((0)) NOT NULL,
+    [RRQty]                               INT             NOT NULL,
     [SubWorkOrderNumber]                  VARCHAR (50)    NULL,
     [IsManualEntry]                       BIT             NULL,
     [WorkOrderMaterialsKitId]             BIGINT          NULL,
@@ -253,6 +253,8 @@
     CONSTRAINT [FK_StockLine_Warehouse] FOREIGN KEY ([WarehouseId]) REFERENCES [dbo].[Warehouse] ([WarehouseId]),
     CONSTRAINT [FK_StockLine_WorkOrder] FOREIGN KEY ([WorkOrderId]) REFERENCES [dbo].[WorkOrder] ([WorkOrderId])
 );
+
+
 
 
 

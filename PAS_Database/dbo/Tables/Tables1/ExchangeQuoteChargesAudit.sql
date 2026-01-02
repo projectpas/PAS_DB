@@ -5,7 +5,7 @@
     [ExchangeQuotePartId]         BIGINT          NULL,
     [ChargesTypeId]               BIGINT          NULL,
     [VendorId]                    BIGINT          NULL,
-    [Quantity]                    INT             NULL,
+    [Quantity]                    DECIMAL (18, 6) NULL,
     [MarkupPercentageId]          BIGINT          NULL,
     [Description]                 VARCHAR (256)   NULL,
     [UnitCost]                    DECIMAL (20, 2) NULL,
@@ -30,6 +30,4 @@
     [UOMId]                       BIGINT          NULL,
     CONSTRAINT [PK_ExchangeQuoteChargesAudit] PRIMARY KEY CLUSTERED ([AuditExchangeQuoteChargesId] ASC)
 );
-
-
 

@@ -1,5 +1,4 @@
-﻿
-/*************************************************************               
+﻿/*************************************************************               
  ** File:   [USP_GetStocklineHistoryDetailById]              
  ** Author:   Devendra      
  ** Description: Get stockline history detail by stocklineid  
@@ -20,6 +19,7 @@
  3  25-July-2023   Shrey Chandegara Add Parameter QtyOnAction For Filtering.
  4  13/02/2025     Ayushi Patel      converted the date into utc (updated) , Added a case to get timeZone   
  5  14/07/2025     RajeshGami        By default latest record should be on the top
+ 6  11/12/2025     RajeshGami        Retunr DecimalPlaces
 exec USP_GetStocklineHistoryDetailById @PageSize=10,@PageNumber=1,@SortColumn=N'StocklineHistoryId',@SortOrder=1,  
 @GlobalFilter=N'',@StocklineId=164065,@QuantityAvailable=0,@QuantityIssued=0,@QuantityOnHand=0,@QuantityReserved=0,  
 @TextMessage=NULL,@RefferenceId=NULL,@ModuleName=NULL,@UpdatedDate=NULL,@UpdatedBy=NULL,@Action=NULL,@SubModuleName=NULL,@SubRefferenceNumber=NULL  
@@ -33,9 +33,9 @@ CREATE    PROCEDURE [dbo].[USP_GetStocklineHistoryDetailById]
  @GlobalFilter VARCHAR(50) = null,     
  @StockLineId INT = NULL,  
  @QuantityAvailable INT=null,   
- @QuantityIssued INT=null,  
- @QuantityOnHand INT=null,   
- @QuantityReserved INT=null,    
+ @QuantityIssued  INT=null,  
+ @QuantityOnHand  INT=null,   
+ @QuantityReserved  INT=null,    
  @TextMessage VARCHAR(MAX) = null,    
  @RefferenceId varchar(50)=null,    
  @ModuleName varchar(50)=null,    
@@ -103,12 +103,15 @@ BEGIN
  case when CAST(StlHist.UpdatedDate as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(StlHist.UpdatedDate, @CurrntEmpTimeZoneDesc) as datetime))end UpdatedDate,
  StlHist.[Type] as 'Action',  
  ISNULL(SM.ModuleName, '') AS 'SubModuleName',  
- ISNULL(StlHist.SubRefferenceNumber, '') AS 'SubRefferenceNumber'  
+ ISNULL(StlHist.SubRefferenceNumber, '') AS 'SubRefferenceNumber',  
  --StlHist.MasterCompanyId   
+ ISNULL(uom.Class,'Decimal')Class,
+ ISNULL(uom.DecimalPlaces,2) DecimalPlaces
  FROM DBO.Stkline_History StlHist   
  INNER JOIN DBO.Module M WITH (NOLOCK) ON StlHist.ModuleId = M.ModuleId  
  INNER JOIN DBO.Stockline STL WITH (NOLOCK) ON StlHist.StocklineId = STL.StockLineId  
  LEFT JOIN DBO.Module SM WITH (NOLOCK) ON StlHist.SubModuleId = SM.ModuleId  
+ LEFT JOIN DBO.UnitOfMeasure uom WITH (NOLOCK) ON stl.StockUnitOfMeasureId = uom.UnitOfMeasureId 
  WHERE StlHist.StocklineId = @StockLineId),  
    FinalResult AS (    
  SELECT  rs.ModuleName,  rs.StockLineNumber,  
@@ -118,7 +121,7 @@ BEGIN
 	--		  INNER JOIN DBO.BulkStockLineAdjustmentDetails BSD WITH (NOLOCK) ON BS.BulkStkLineAdjId = BSD.BulkStkLineAdjId 
 	--		  WHERE BSD.StockLineId = rs.StocklineId ORDER BY BS.BulkStkLineAdjId DESC) ELSE rs.RefferenceId END) RefferenceId,  
  rs.StklineHistoryId,  rs.ModuleId, rs.StocklineId,  rs.QuantityAvailable, rs.QuantityOnHand,  rs.QuantityReserved,  rs.QuantityIssued    
-  ,  rs.QtyOnAction,  rs.TextMessage, rs.UpdatedBy, rs.UpdatedDate,  rs.[Action],  rs.SubModuleName,  rs.SubRefferenceNumber  FROM Result  rs
+  ,  rs.QtyOnAction,  rs.TextMessage, rs.UpdatedBy, rs.UpdatedDate,  rs.[Action],  rs.SubModuleName,  rs.SubRefferenceNumber,rs.Class,rs.DecimalPlaces  FROM Result  rs
  WHERE (    
   (@GlobalFilter <>'' AND ((ModuleName like '%' +@GlobalFilter+'%') OR     
   (RefferenceId like '%' +@GlobalFilter+'%') OR    
@@ -153,7 +156,7 @@ BEGIN
   )),    
   ResultCount AS (Select COUNT(StklineHistoryId) AS NumberOfItems FROM FinalResult)    
   SELECT ModuleName, StockLineNumber, RefferenceId, StklineHistoryId, ModuleId, StocklineId, QuantityAvailable, QuantityOnHand, QuantityReserved, QuantityIssued, QtyOnAction,  
-  TextMessage, UpdatedBy, UpdatedDate, Action, SubModuleName, SubRefferenceNumber, NumberOfItems FROM FinalResult, ResultCount    
+  TextMessage, UpdatedBy, UpdatedDate, Action, SubModuleName, SubRefferenceNumber, NumberOfItems,Class,DecimalPlaces FROM FinalResult, ResultCount    
   
   ORDER BY      
    CASE WHEN (@SortOrder=1 and @SortColumn='StklineHistoryId')  THEN StklineHistoryId END DESC,    
@@ -192,6 +195,13 @@ BEGIN
    FETCH NEXT @PageSize ROWS ONLY    
  END TRY  
  BEGIN CATCH  
+  SELECT
+    ERROR_NUMBER() AS ErrorNumber,
+    ERROR_STATE() AS ErrorState,
+    ERROR_SEVERITY() AS ErrorSeverity,
+    ERROR_PROCEDURE() AS ErrorProcedure,
+    ERROR_LINE() AS ErrorLine,
+    ERROR_MESSAGE() AS ErrorMessage;
    DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name()   
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------  
             , @AdhocComments     VARCHAR(150)    = 'USP_GetStocklineHistoryDetailById'   

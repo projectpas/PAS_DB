@@ -4,7 +4,7 @@
     [WorkOrderQuoteDetailsId]      BIGINT          NOT NULL,
     [ChargesTypeId]                BIGINT          NOT NULL,
     [VendorId]                     BIGINT          NULL,
-    [Quantity]                     INT             NOT NULL,
+    [Quantity]                     DECIMAL (18, 6) NULL,
     [MarkupPercentageId]           BIGINT          NULL,
     [Description]                  VARCHAR (256)   NULL,
     [UnitCost]                     DECIMAL (20, 2) NOT NULL,
@@ -32,6 +32,4 @@
     [UOMId]                        BIGINT          NULL,
     CONSTRAINT [PK_WorkOrderQuoteChargesAudit] PRIMARY KEY CLUSTERED ([WorkOrderQuoteChargesAuditId] ASC)
 );
-
-
 

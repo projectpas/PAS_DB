@@ -1,4 +1,6 @@
-﻿/*************************************************************             
+﻿
+
+/*************************************************************             
  ** File:   [USP_AddUpdateStocklineHistory]            
  ** Author:   Vishal Suthar  
  ** Description: This stored procedure is used to add/update stockline history 
@@ -17,7 +19,7 @@
     1    07/10/2023   Vishal Suthar		Created
 	2    6 Nov 2023  Rajesh Gami        SalesPrice Expriry Date And UnitSalesPrice related change
 	3    12/08/2024  Moin Bloch         Convert @StocklineId To varchar for Errolog
-  
+ 	4	 25/11/2025		Rajesh Gami		Change the stockline Quantiy related fields datatype INT to DECIMAL 
  EXEC [dbo].[USP_AddUpdateStocklineHistory] 163201, 16, 259, NULL, NULL, 16, 0, 'Admin User'
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_AddUpdateStocklineHistory]
@@ -28,7 +30,7 @@ CREATE   PROCEDURE [dbo].[USP_AddUpdateStocklineHistory]
 	@SubModuleId BIGINT = NULL,
 	@SubRefferenceId BIGINT = NULL,
 	@ActionId INT = NULL,
-	@Qty INT = NULL,
+	@Qty decimal(18,6) = NULL,
 	@UpdatedBy VARCHAR(100) = NULL
 )
 AS

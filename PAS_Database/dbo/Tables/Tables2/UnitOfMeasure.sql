@@ -20,11 +20,9 @@
 );
 
 
+
+
 GO
-
-
-
-
 CREATE TRIGGER [dbo].[Trg_UnitOfMeasureAudit]
 
    ON  [dbo].[UnitOfMeasure]
@@ -35,17 +33,13 @@ AS
 
 BEGIN
 
+DECLARE @StandardId int , @UnitOfMeasureId bigint , @MasterCompanyId int ,@SequenceNo int,@ShortCode VARCHAR(20);
 
-
-DECLARE @StandardId int , @UnitOfMeasureId bigint , @MasterCompanyId int ,@SequenceNo int;
-
-DECLARE @Description varchar(100),@ShortName varchar(100),@Memo varchar(100),@CreatedBy varchar(256),@UpdatedBy varchar(256),@StandardName varchar(256);
+DECLARE @Description varchar(100),@ShortName varchar(100),@Memo varchar(100),@CreatedBy varchar(256),@UpdatedBy varchar(256),@StandardName varchar(256),@Class varchar(100), @DecimalPlaces int;
 
 DECLARE @IsActive bit,@IsDeleted bit
 
 DECLARE @CreatedDate datetime, @UpdatedDate datetime;
-
-
 
 SELECT @UnitOfMeasureId = UnitOfMeasureId , @Description = [Description] , @ShortName = ShortName , @Memo=Memo ,
 
@@ -53,19 +47,15 @@ SELECT @UnitOfMeasureId = UnitOfMeasureId , @Description = [Description] , @Shor
 
 	   @UpdatedBy = UpdatedBy , @CreatedDate = CreatedDate , @UpdatedDate = UpdatedDate , @IsDeleted = IsDeleted,
 
-	   @StandardId = StandardId , @SequenceNo =  SequenceNo FROM INSERTED
+	   @StandardId = StandardId , @SequenceNo =  SequenceNo, @ShortCode = ShortCode, @Class = Class,@DecimalPlaces =DecimalPlaces FROM INSERTED
 
 SELECT @StandardName = StandardName FROM [dbo].[Standard] WHERE StandardId=@StandardId
-
-
 
 	INSERT INTO UnitOfMeasureAudit
 
 	SELECT @UnitOfMeasureId,@Description,@ShortName,@Memo,@MasterCompanyId,@IsActive,@CreatedBy,
 
-	       @UpdatedBy,@CreatedDate,@UpdatedDate,@IsDeleted,@StandardId,@StandardName,@SequenceNo FROM INSERTED
-
-
+	       @UpdatedBy,@CreatedDate,@UpdatedDate,@IsDeleted,@StandardId,@StandardName,@SequenceNo,@ShortCode,@Class,@DecimalPlaces FROM INSERTED
 
 	SET NOCOUNT ON;
 

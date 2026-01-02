@@ -13,7 +13,7 @@
     [IsSerialized]                    BIT             CONSTRAINT [Asset_IsSerialized] DEFAULT ((0)) NOT NULL,
     [UnitOfMeasureId]                 BIGINT          NULL,
     [CurrencyId]                      INT             NULL,
-    [UnitCost]                        DECIMAL (18, 2) NULL,
+    [UnitCost]                        DECIMAL (18, 6) NULL,
     [ExpirationDate]                  DATETIME2 (7)   NULL,
     [Memo]                            NVARCHAR (MAX)  NULL,
     [TangibleClassId]                 BIGINT          NULL,
@@ -58,6 +58,8 @@
     CONSTRAINT [FK_Asset_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId]),
     CONSTRAINT [FK_Asset_UnitOfMeasure] FOREIGN KEY ([UnitOfMeasureId]) REFERENCES [dbo].[UnitOfMeasure] ([UnitOfMeasureId])
 );
+
+
 
 
 

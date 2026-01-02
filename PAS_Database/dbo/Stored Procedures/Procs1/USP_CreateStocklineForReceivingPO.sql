@@ -1,4 +1,5 @@
-﻿/*************************************************************               
+﻿
+/*************************************************************               
  ** File:   [USP_CreateStocklineForReceivingPO]              
  ** Author:   Vishal Suthar    
  ** Description: This stored procedure is used to Crate stocklines for receiving PO  
@@ -34,13 +35,12 @@
 	17   18-APR-2025  Abhishek Jirawla  Added Integration Portal in Stockline
 	18   05-MAY-2025  Abhishek Jirawla  Added ObtainFrom in Stockline
 	19   16-JUL-2025  Moin Bloch        Modified ObtainFromType As NULL when it comes 0
-	20   03-Dec-2025  Moin Bloch        Modified Fix Status Closed For Split Part
-	21   04-Dec-2025  Moin Bloch        Modified Fix For Asset Inverntory
-	22   30-Dec-2025  Sahdev Saliya     Update UI for Sales Price Dropdown in Purchase & Sales Information Changes
+	20   01-DEC-2025  Rajesh Gami       UOM Conversion Related Changes
+	21   03-Dec-2025  Moin Bloch        Modified Fix Status Closed For Split Part
+	22   04-Dec-2025  Moin Bloch        Modified Fix For Asset Inverntory
+    23   19-Dec-2025  HEMANT SALIYA     Modified for remove corss join
 
-declare @p2 dbo.POPartsToReceive  
-insert into @p2 values(2371,4051,2)  
-  
+declare @p2 dbo.POPartsToReceive  insert into @p2 values(2371,4051,2)    
 exec dbo.USP_CreateStocklineForReceivingPO @PurchaseOrderId=2371,@tbl_POPartsToReceive=@p2,@UpdatedBy=N'ADMIN User',@MasterCompanyId=1  
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_CreateStocklineForReceivingPO]
@@ -110,6 +110,8 @@ BEGIN
                 DECLARE @QtyToReceive INT;
                 DECLARE @MainPOPartBackOrderQty INT;
                 DECLARE @ItemTypeId INT;
+				DECLARE @PurchaseUnitOfMeasureId BIGINT = 0,  @StockUnitOfMeasureId BIGINT = 0,@ConsumeUnitOfMeasureId BIGINT = 0, @QtyToReceiveAfterConversion DECIMAL(18,6) =0, @QtyAfterConversion DECIMAL(18,6)  =0;
+				DECLARE @POUnitOfMeasure VARCHAR(100),  @StockUnitOfMeasure VARCHAR(100),@ConsumeUnitOfMeasure VARCHAR(100), @DraftQty DECIMAL(18,6) =0, @DraftUnitCost DECIMAL(18,6) =0, @UnitCostAfterConversion DECIMAL(18,6) =0;
 
                 SELECT @SelectedPurchaseOrderPartRecordId = [PurchaseOrderPartRecordId],
                        @QtyToReceive = [QtyToReceive]
@@ -122,7 +124,10 @@ BEGIN
                 FROM DBO.PurchaseOrderPart POP WITH (NOLOCK)
                 WHERE POP.PurchaseOrderPartRecordId = @SelectedPurchaseOrderPartRecordId;
 
-
+				SELECT @PurchaseUnitOfMeasureId = IM.PurchaseUnitOfMeasureId,@StockUnitOfMeasureId =StockUnitOfMeasureId, @ConsumeUnitOfMeasureId = ConsumeUnitOfMeasureId FROM DBO.ItemMaster IM WITH (NOLOCK) WHERE IM.ItemMasterId = @ItemMasterId_Part;
+				SET @POUnitOfMeasure = (SELECT ShortCode FROM DBO.UnitOfMeasure WITH(NOLOCK) WHERE UnitOfMeasureId = @PurchaseUnitOfMeasureId)
+				SET @StockUnitOfMeasure = (SELECT ShortCode FROM DBO.UnitOfMeasure WITH(NOLOCK) WHERE UnitOfMeasureId = @StockUnitOfMeasureId)
+				SET @ConsumeUnitOfMeasure = (SELECT ShortCode FROM DBO.UnitOfMeasure WITH(NOLOCK) WHERE UnitOfMeasureId = @ConsumeUnitOfMeasureId)
                 IF (@ItemTypeId = 1)
                 BEGIN
                     SELECT @IsSerializedPart = IM.isSerialized FROM DBO.ItemMaster IM WITH (NOLOCK) WHERE IM.ItemMasterId = @ItemMasterId_Part;
@@ -166,15 +171,15 @@ BEGIN
                         [CalibrationMemo] [nvarchar](max) NULL,
                         [OrderDate] [datetime2](7) NULL,
                         [PurchaseOrderId] [bigint] NULL,
-                        [PurchaseOrderUnitCost] [decimal](18, 2) NULL,
-                        [InventoryUnitCost] [decimal](18, 2) NULL,
+                        [PurchaseOrderUnitCost] DECIMAL(18,6) NULL,
+                        [InventoryUnitCost] DECIMAL(18,6) NULL,
                         [RepairOrderId] [bigint] NULL,
-                        [RepairOrderUnitCost] [decimal](18, 2) NULL,
+                        [RepairOrderUnitCost] DECIMAL(18,6) NULL,
                         [ReceivedDate] [datetime2](7) NULL,
                         [ReceiverNumber] [varchar](50) NULL,
                         [ReconciliationNumber] [varchar](50) NULL,
-                        [UnitSalesPrice] [decimal](18, 2) NULL,
-                        [CoreUnitCost] [decimal](18, 2) NULL,
+                        [UnitSalesPrice] DECIMAL(18,6) NULL,
+                        [CoreUnitCost] DECIMAL(18,6) NULL,
                         [GLAccountId] [bigint] NULL,
                         [AssetId] [bigint] NULL,
                         [IsHazardousMaterial] [bit] NULL,
@@ -200,7 +205,7 @@ BEGIN
                         [UnitSalePriceAdjustmentReasonTypeId] [int] NULL,
                         [IdNumber] [varchar](100) NULL,
                         [QuantityToReceive] [int] NOT NULL,
-                        [PurchaseOrderExtendedCost] [decimal](18, 0) NOT NULL,
+                        [PurchaseOrderExtendedCost] DECIMAL(18,6) NOT NULL,
                         [ManufacturingTrace] [nvarchar](200) NULL,
                         [ExpirationDate] [datetime2](7) NULL,
                         [AircraftTailNumber] [nvarchar](200) NULL,
@@ -231,8 +236,8 @@ BEGIN
                         [RepairOrderPartRecordId] [bigint] NULL,
                         [isActive] [bit] NOT NULL,
                         [isDeleted] [bit] NOT NULL,
-                        [WorkOrderExtendedCost] [decimal](20, 2) NOT NULL,
-                        [RepairOrderExtendedCost] [decimal](18, 2) NULL,
+                        [WorkOrderExtendedCost] DECIMAL(18,6) NOT NULL,
+                        [RepairOrderExtendedCost] DECIMAL(18,6) NULL,
                         [NHAItemMasterId] [bigint] NULL,
                         [TLAItemMasterId] [bigint] NULL,
                         [IsParent] [bit] NULL,
@@ -295,15 +300,15 @@ BEGIN
                         [IsLotAssigned] [bit] NULL,
                         [LOTQty] [int] NULL,
                         [LOTQtyReserve] [int] NULL,
-                        [OriginalCost] [decimal](18, 2) NULL,
-                        [POOriginalCost] [decimal](18, 2) NULL,
-                        [ROOriginalCost] [decimal](18, 2) NULL,
+                        [OriginalCost] DECIMAL(18,6) NULL,
+                        [POOriginalCost] DECIMAL(18,6) NULL,
+                        [ROOriginalCost] DECIMAL(18,6) NULL,
                         [VendorRMAId] [bigint] NULL,
                         [VendorRMADetailId] [bigint] NULL,
                         [LotMainStocklineId] [bigint] NULL,
                         [IsFromInitialPO] [bit] NULL,
                         [LotSourceId] [int] NULL,
-                        [Adjustment] [decimal](18, 2) NULL,
+                        [Adjustment] DECIMAL(18,6) NULL,
                         [SerialNumberNotProvided] [bit] NULL,
                         [ShippingReferenceNumberNotProvided] [bit] NULL,
                         [IsStkTimeLife] [bit] NULL,
@@ -372,7 +377,7 @@ BEGIN
                         DECLARE @stockLineCurrentNo AS BIGINT;
                         DECLARE @ItemMasterId AS BIGINT;
                         DECLARE @ConditionId AS BIGINT;
-                        DECLARE @StkPurchaseOrderUnitCost AS DECIMAL(18, 2) = 0;
+                        DECLARE @StkPurchaseOrderUnitCost AS DECIMAL(18,6) = 0;
                         DECLARE @ManufacturerId AS BIGINT;
                         DECLARE @PreviousStockLineNumber VARCHAR(50);
 
@@ -433,10 +438,7 @@ BEGIN
                         SET @ReceiverNumber = (SELECT * FROM dbo.udfGenerateCodeNumberWithOutDash(@CurrentIdNumber, 'RecNo', (SELECT CodeSufix FROM #tmpCodePrefixes WHERE CodeTypeId = @IdCodeTypeId)))
 
                         /* PN Manufacturer Combination Stockline logic */
-                        IF OBJECT_ID(N'tempdb..#tmpPNManufacturer') IS NOT NULL
-                        BEGIN
-                            DROP TABLE #tmpPNManufacturer
-                        END
+                       IF OBJECT_ID('tempdb..#tmpPNManufacturer') IS NOT NULL DROP TABLE #tmpPNManufacturer;
 
                         CREATE TABLE #tmpPNManufacturer
                         (
@@ -447,33 +449,27 @@ BEGIN
                             CurrentStlNo BIGINT NULL,
                             isSerialized BIT NULL
                         );
-                        WITH CTE_Stockline (ItemMasterId, ManufacturerId, StockLineId)
-                        AS (SELECT ac.ItemMasterId, ac.ManufacturerId, MAX(ac.StockLineId) StockLineId 
-							FROM (SELECT DISTINCT ItemMasterId FROM DBO.Stockline WITH (NOLOCK)) ac1
-                                CROSS JOIN (SELECT DISTINCT ManufacturerId FROM DBO.Stockline WITH (NOLOCK)) ac2
-                                LEFT JOIN DBO.Stockline ac WITH (NOLOCK) ON ac.ItemMasterId = ac1.ItemMasterId AND ac.ManufacturerId = ac2.ManufacturerId
-                            WHERE ac.MasterCompanyId = @MasterCompanyId
-                            GROUP BY ac.ItemMasterId, ac.ManufacturerId
-                            HAVING COUNT(ac.ItemMasterId) > 0)
 
-                        INSERT INTO #tmpPNManufacturer
+                        ;WITH LastStockline AS
                         (
-                            ItemMasterId,
-                            ManufacturerId,
-                            StockLineNumber,
-                            CurrentStlNo,
-                            isSerialized
+                          SELECT
+                            s.ItemMasterId,
+                            s.ManufacturerId,
+                            MAX(s.StockLineId) AS StockLineId
+                          FROM dbo.Stockline s WITH (NOLOCK)
+                          WHERE s.MasterCompanyId = @MasterCompanyId
+                          GROUP BY s.ItemMasterId, s.ManufacturerId
                         )
-                        SELECT CSTL.ItemMasterId,
-                               CSTL.ManufacturerId,
-                               StockLineNumber,
-                               ISNULL(IM.CurrentStlNo, 0) AS CurrentStlNo,
-                               IM.isSerialized
-                        FROM CTE_Stockline CSTL
-						INNER JOIN DBO.Stockline STL WITH (NOLOCK)
-						INNER JOIN DBO.ItemMaster IM WITH (NOLOCK) ON STL.ItemMasterId = IM.ItemMasterId AND STL.ManufacturerId = IM.ManufacturerId 
-						ON CSTL.StockLineId = STL.StockLineId
-                        /* PN Manufacturer Combination Stockline logic */
+                        INSERT INTO #tmpPNManufacturer (ItemMasterId, ManufacturerId, StockLineNumber, CurrentStlNo, isSerialized)
+                        SELECT
+                          ls.ItemMasterId,
+                          ls.ManufacturerId,
+                          st.StockLineNumber,
+                          ISNULL(im.CurrentStlNo, 0),
+                          im.isSerialized
+                        FROM LastStockline ls
+                        JOIN dbo.Stockline st WITH (NOLOCK) ON st.StockLineId = ls.StockLineId
+                        JOIN dbo.ItemMaster im WITH (NOLOCK) ON im.ItemMasterId = ls.ItemMasterId AND im.ManufacturerId = ls.ManufacturerId;
 
                         DELETE FROM #tmpCodePrefixes;
 
@@ -549,8 +545,11 @@ BEGIN
 						LEFT JOIN dbo.IntegrationPortal ip WITH(NOLOCK) ON mp.IntegrationPortalId = ip.IntegrationPortalId
 						WHERE iM.ItemMasterId = @ItemMasterId AND iM.MasterCompanyId = @MasterCompanyId AND mp.IntegrationPortalId IS NOT NULL
 						GROUP BY iM.ItemMasterId
-
-
+						
+						SET @QtyToReceiveAfterConversion =  dbo.fn_ConvertUOM(@QtyToReceive, @POUnitOfMeasure, @StockUnitOfMeasure,0)
+						SELECT @DraftQty = Quantity, @DraftUnitCost = PurchaseOrderUnitCost  FROM #tmpStocklineDraft WHERE StockLineDraftId = @SelectedStockLineDraftId
+						SET @QtyAfterConversion = dbo.fn_ConvertUOM(@DraftQty, @POUnitOfMeasure, @StockUnitOfMeasure,0)
+						SET @UnitCostAfterConversion= dbo.fn_ConvertUOM(@DraftUnitCost, @POUnitOfMeasure, @StockUnitOfMeasure,1)
 
                         INSERT INTO DBO.Stockline
                         ([PartNumber],[StockLineNumber],[StocklineMatchKey],[ControlNumber],[ItemMasterId],[Quantity],[ConditionId],[SerialNumber],[ShelfLife],[ShelfLifeExpirationDate],[WarehouseId],
@@ -568,36 +567,39 @@ BEGIN
 						[TLAPartDescription],[NHAPartDescription],[itemType],[CustomerId],[CustomerName],[isCustomerstockType],[PNDescription],[RevicedPNId],[RevicedPNNumber],[OEMPNNumber],[TaggedBy],[TaggedByName],
 						[UnitCost],[TaggedByType],[TaggedByTypeName],[CertifiedById],[CertifiedTypeId],[CertifiedType],[CertTypeId],[CertType],[TagTypeId],[IsFinishGood],[IsTurnIn],[IsCustomerRMA],[RMADeatilsId],
 						[DaysReceived],[ManufacturingDays],[TagDays],[OpenDays],[ExchangeSalesOrderId],[RRQty],[SubWorkOrderNumber],[IsManualEntry],[WorkOrderMaterialsKitId],[LotId],[IsLotAssigned],[LOTQty],[LOTQtyReserve],
-						[OriginalCost],[POOriginalCost],[ROOriginalCost],[VendorRMAId],[VendorRMADetailId],[LotMainStocklineId],[IsFromInitialPO],[LotSourceId],[Adjustment],[IsStkTimeLife], [IntegrationPortal])
+						[OriginalCost],[POOriginalCost],[ROOriginalCost],[VendorRMAId],[VendorRMADetailId],[LotMainStocklineId],[IsFromInitialPO],[LotSourceId],[Adjustment],[IsStkTimeLife], [IntegrationPortal],PoPartUnitCost,
+						StockUnitOfMeasureId,StockUnitOfMeasure,ConsumeUnitOfMeasureId,ConsumeUnitOfMeasure)
 
-                        SELECT [PartNumber],@StockLineNumber,[StocklineMatchKey],@ControlNumber,[ItemMasterId],CASE WHEN @IsSerializedPart = 1 THEN [Quantity] ELSE 
-							CASE WHEN IsSameDetailsForAllParts = 0 THEN [Quantity] ELSE @QtyToReceive END END,[ConditionId],[SerialNumber],[ShelfLife],[ShelfLifeExpirationDate],[WarehouseId],
+                        SELECT [PartNumber],@StockLineNumber,[StocklineMatchKey],@ControlNumber,[ItemMasterId],CASE WHEN @IsSerializedPart = 1 THEN @QtyAfterConversion ELSE 
+							CASE WHEN IsSameDetailsForAllParts = 0 THEN @QtyAfterConversion ELSE @QtyToReceiveAfterConversion END END,[ConditionId],[SerialNumber],[ShelfLife],[ShelfLifeExpirationDate],[WarehouseId],
 						[LocationId],[ObtainFrom],[Owner],[TraceableTo],[ManufacturerId],[Manufacturer],[ManufacturerLotNumber],[ManufacturingDate],[ManufacturingBatchNumber],[PartCertificationNumber],
-						[CertifiedBy],[CertifiedDate],[TagDate],[TagType],[CertifiedDueDate],[CalibrationMemo],[OrderDate],[PurchaseOrderId],[PurchaseOrderUnitCost],[InventoryUnitCost],[RepairOrderId],
+						[CertifiedBy],[CertifiedDate],[TagDate],[TagType],[CertifiedDueDate],[CalibrationMemo],[OrderDate],[PurchaseOrderId],@UnitCostAfterConversion,[InventoryUnitCost],[RepairOrderId],
 						ISNULL([RepairOrderUnitCost], 0),GETUTCDATE(),@ReceiverNumber,[ReconciliationNumber],ISNULL([UnitSalesPrice], 0),ISNULL([CoreUnitCost], 0),[GLAccountId],[AssetId],[IsHazardousMaterial],
 						[IsPMA],[IsDER],[OEM],[Memo],[ManagementStructureEntityId],[LegalEntityId],[MasterCompanyId],@UpdatedBy,@UpdatedBy,GETUTCDATE(),GETUTCDATE(),[isSerialized],[ShelfId],[BinId],[SiteId],
 						CASE WHEN [ObtainFromType] = 0 THEN NULL ELSE [ObtainFromType] END,[OwnerType],[TraceableToType],[UnitCostAdjustmentReasonTypeId],[UnitSalePriceAdjustmentReasonTypeId],[IdNumber],[QuantityToReceive],[PurchaseOrderExtendedCost],[ManufacturingTrace],
 						[ExpirationDate],[AircraftTailNumber],[ShippingViaId],[EngineSerialNumber],[QuantityRejected],[PurchaseOrderPartRecordId],[ShippingAccount],[ShippingReference],[TimeLifeCyclesId],[TimeLifeDetailsNotProvided],
-						[WorkOrderId],CASE WHEN [WorkOrderMaterialsId] = 0 THEN NULL ELSE[WorkOrderMaterialsId]END,ISNULL([QuantityReserved], 0),ISNULL([QuantityTurnIn], 0),ISNULL([QuantityIssued], 0),CASE WHEN @IsSerializedPart = 1 THEN [Quantity] ELSE 
-							CASE WHEN IsSameDetailsForAllParts = 0 THEN [Quantity] ELSE @QtyToReceive END END,
-						CASE WHEN @IsSerializedPart = 1 THEN [Quantity] 
-							ELSE CASE WHEN IsSameDetailsForAllParts = 0 THEN [Quantity] ELSE @QtyToReceive END END,
+						[WorkOrderId],CASE WHEN [WorkOrderMaterialsId] = 0 THEN NULL ELSE[WorkOrderMaterialsId]END,ISNULL([QuantityReserved], 0),ISNULL([QuantityTurnIn], 0),ISNULL([QuantityIssued], 0),CASE WHEN @IsSerializedPart = 1 THEN @QtyAfterConversion ELSE 
+							CASE WHEN IsSameDetailsForAllParts = 0 THEN @QtyAfterConversion ELSE @QtyToReceiveAfterConversion END END,
+						CASE WHEN @IsSerializedPart = 1 THEN @QtyAfterConversion 
+							ELSE CASE WHEN IsSameDetailsForAllParts = 0 THEN @QtyAfterConversion ELSE @QtyToReceiveAfterConversion END END,
 						ISNULL([QuantityOnOrder], 0),ISNULL([QtyReserved], 0),ISNULL([QtyIssued], 0),[BlackListed],[BlackListedReason],[Incident],[IncidentReason],[Accident],[AccidentReason],[RepairOrderPartRecordId],
 						[isActive],[isDeleted],[WorkOrderExtendedCost],ISNULL([RepairOrderExtendedCost], 0),[IsCustomerStock],GETUTCDATE(),0,[NHAItemMasterId],[TLAItemMasterId],NULL,NULL,@PORequestorId,NULL,NULL,
 						NULL,NULL,NULL,@POVendorId,[IsParent],[ParentId],[IsSameDetailsForAllParts],0,[SubWorkOrderId],0,NULL,[UnitOfMeasureId],[ObtainFromName],[OwnerName],[TraceableToName],[Level1],[Level2],
 						[Level3],[Level4],[Condition],NULL,NULL,[Warehouse],[Location],NULL,NULL,[UnitOfMeasure],NULL,NULL,NULL,NULL,NULL,NULL,NULL,[CustomerId],NULL,ISNULL([isCustomerstockType], 0),'',NULL,NULL,
-						NULL,[TaggedBy],[TaggedByName],(ISNULL(PurchaseOrderUnitCost, 0) + ISNULL(RepairOrderUnitCost, 0) + ISNULL(Adjustment, 0)),[TaggedByType],[TaggedByTypeName],[CertifiedById],[CertifiedTypeId],
-						[CertifiedType],[CertTypeId],[CertType],[TagTypeId],0,0,NULL,NULL,NULL,NULL,NULL,NULL,[ExchangeSalesOrderId],CASE WHEN @IsSerializedPart = 1 THEN [Quantity] ELSE CASE WHEN IsSameDetailsForAllParts = 0 THEN [Quantity] ELSE @QtyToReceive END END,NULL,1,NULL,
-						[LotId],[IsLotAssigned],[LOTQty],[LOTQtyReserve],[OriginalCost],[POOriginalCost],[ROOriginalCost],[VendorRMAId],[VendorRMADetailId],[LotMainStocklineId],[IsFromInitialPO],[LotSourceId],ISNULL(Adjustment, 0),[IsStkTimeLife], ISNULL(@IntegrationPortal, '')
+						NULL,[TaggedBy],[TaggedByName],@UnitCostAfterConversion,[TaggedByType],[TaggedByTypeName],[CertifiedById],[CertifiedTypeId],
+						[CertifiedType],[CertTypeId],[CertType],[TagTypeId],0,0,NULL,NULL,NULL,NULL,NULL,NULL,[ExchangeSalesOrderId],CASE WHEN @IsSerializedPart = 1 THEN @QtyAfterConversion ELSE CASE WHEN IsSameDetailsForAllParts = 0 THEN @QtyAfterConversion ELSE @QtyToReceiveAfterConversion END END,NULL,1,NULL,
+						[LotId],[IsLotAssigned],[LOTQty],[LOTQtyReserve],[OriginalCost],[POOriginalCost],[ROOriginalCost],[VendorRMAId],[VendorRMADetailId],[LotMainStocklineId],[IsFromInitialPO],[LotSourceId],ISNULL(Adjustment, 0),[IsStkTimeLife], ISNULL(@IntegrationPortal, ''),@DraftUnitCost,
+						@StockUnitOfMeasureId,@StockUnitOfMeasure,@ConsumeUnitOfMeasureId,@ConsumeUnitOfMeasure
                         FROM #tmpStocklineDraft
                         WHERE StockLineDraftId = @SelectedStockLineDraftId;
 
-                        DECLARE @QtyAdded INT = 0;
-                        DECLARE @PurchaseOrderUnitCostAdded DECIMAL(18, 2) = 0;
+                        DECLARE @QtyAdded DECIMAL(18,6) = 0,@QtyOnAction DECIMAL(18,6) = 0;
+                        DECLARE @PurchaseOrderUnitCostAdded DECIMAL(18,6) = 0;
                         DECLARE @SelectedIsSameDetailsForAllParts BIT = 0;
                         DECLARE @IsTimeLIfe BIT
 
                         SELECT @QtyAdded = CASE WHEN @IsSerializedPart = 1 THEN [Quantity] ELSE CASE WHEN ISNULL(IsSameDetailsForAllParts,0) = 0 THEN [Quantity] ELSE @QtyToReceive END END,
+							 @QtyOnAction = CASE WHEN @IsSerializedPart = 1 THEN @QtyAfterConversion ELSE CASE WHEN ISNULL(IsSameDetailsForAllParts,0) = 0 THEN @QtyAfterConversion ELSE @QtyToReceiveAfterConversion END END,
                                @SelectedIsSameDetailsForAllParts = IsSameDetailsForAllParts,
                                @PurchaseOrderUnitCostAdded = PurchaseOrderUnitCost,
                                @IsTimeLIfe = [IsStkTimeLife]
@@ -680,7 +682,7 @@ BEGIN
 
                         DECLARE @ReceivingPurchaseOrderModule AS BIGINT = 28;
 
-                        EXEC USP_AddUpdateStocklineHistory @NewStocklineId, @ReceivingPurchaseOrderModule, @PurchaseOrderId, NULL, NULL, 11, @QtyAdded, @UpdatedBy;
+                        EXEC USP_AddUpdateStocklineHistory @NewStocklineId, @ReceivingPurchaseOrderModule, @PurchaseOrderId, NULL, NULL, 11, @QtyOnAction, @UpdatedBy;
                         EXEC USP_CreateStocklinePartHistory @NewStocklineId, 1, 0, 0, 0;
 
 						UPDATE [dbo].[PurchaseOrderPart] SET [QuantityReceived] += @QtyAdded WHERE [PurchaseOrderId] = @PurchaseOrderId AND [PurchaseOrderPartRecordId] = @SelectedPurchaseOrderPartRecordId
@@ -802,22 +804,22 @@ BEGIN
                                   AND POP.ConditionId = @ConditionId
                         )
                         BEGIN
-                            DECLARE @POP_UnitCost DECIMAL(18, 2) = 0;
-                            DECLARE @POP_VendorListPrice DECIMAL(18, 2) = 0;
-                            DECLARE @POP_DiscountPerUnit DECIMAL(18, 2) = 0;
+                            DECLARE @POP_UnitCost DECIMAL(18,6) = 0;
+                            DECLARE @POP_VendorListPrice DECIMAL(18,6) = 0;
+                            DECLARE @POP_DiscountPerUnit DECIMAL(18,6) = 0;
                             DECLARE @POP_DiscountPercent BIGINT = 0;
                             DECLARE @POP_DiscountPercentValue BIGINT = 0;
                             DECLARE @POP_ConditionId BIGINT = 0;
 
-                            DECLARE @PP_VendorListPrice DECIMAL(18, 2) = 0;
-                            DECLARE @PP_PurchaseDiscAmount DECIMAL(18, 2) = 0;
-                            DECLARE @PP_UnitPurchasePrice DECIMAL(18, 2) = 0;
-                            DECLARE @PP_PurchaseDiscPerc DECIMAL(18, 2) = 0;
+                            DECLARE @PP_VendorListPrice DECIMAL(18,6) = 0;
+                            DECLARE @PP_PurchaseDiscAmount DECIMAL(18,6) = 0;
+                            DECLARE @PP_UnitPurchasePrice DECIMAL(18,6) = 0;
+                            DECLARE @PP_PurchaseDiscPerc DECIMAL(18,6) = 0;
 
 							DECLARE @PP_MarkUpPerc BIGINT = 0;
-							DECLARE @PP_newUnitSalePrice DECIMAL(18, 2) = 0;
-							DECLARE @PP_newMarkUpAmount DECIMAL(18, 2) = 0;
-							DECLARE @PP_FlatPrice DECIMAL(18, 2) = 0;
+							DECLARE @PP_newUnitSalePrice DECIMAL(18,6) = 0;
+							DECLARE @PP_newMarkUpAmount DECIMAL(18,6) = 0;
+							DECLARE @PP_FlatPrice DECIMAL(18,6) = 0;
 							DECLARE @SalePriceSelectId INT = (SELECT ItemMasterPurchaseSaleMasterId FROM [dbo].ItemMasterPurchaseSaleMaster WHERE [Name] = 'Flat');
 
                             SELECT @POP_UnitCost = POP.UnitCost,
@@ -828,6 +830,7 @@ BEGIN
                                    @POP_ConditionId = POP.ConditionId,
 								   @PP_FlatPrice = IMP.SP_FSP_FlatPriceAmount,
 								   @PP_MarkUpPerc = p.PercentValue
+
 
                             FROM dbo.PurchaseOrderPart POP WITH (NOLOCK)
 							LEFT JOIN dbo.ItemMasterPurchaseSale IMP WITH (NOLOCK) ON POP.ItemMasterId = IMP.ItemMasterId AND POP.ConditionId = IMP.ConditionId
@@ -846,7 +849,7 @@ BEGIN
                             END
                             ELSE
                             BEGIN
-                                DECLARE @disamt AS DECIMAL(18, 2) = 0;
+                                DECLARE @disamt AS DECIMAL(18,6) = 0;
                                 SET @disamt = ((ISNULL(@StkPurchaseOrderUnitCost, 0) * (ISNULL(@POP_DiscountPercentValue, 0))) / 100);
 
                                 SET @PP_VendorListPrice = ISNULL(@StkPurchaseOrderUnitCost, 0) + @disamt;
@@ -1059,7 +1062,7 @@ BEGIN
                         [IsSerialized] [bit] NOT NULL,
                         [UnitOfMeasureId] [bigint] NULL,
                         [CurrencyId] [int] NULL,
-                        [UnitCost] [decimal](18, 2) NULL,
+                        [UnitCost] DECIMAL(18,6) NULL,
                         [ExpirationDate] [datetime2](7) NULL,
                         [Memo] [nvarchar](max) NULL,
                         [AssetParentRecordId] [bigint] NULL,
@@ -1097,18 +1100,18 @@ BEGIN
                         [VerificationDefaultVendorId] [bigint] NULL,
                         [CertificationFrequencyMonths] [int] NOT NULL,
                         [CertificationFrequencyDays] [bigint] NULL,
-                        [CertificationDefaultCost] [decimal](18, 2) NULL,
+                        [CertificationDefaultCost] DECIMAL(18,6) NULL,
                         [CertificationGlAccountId] [bigint] NULL,
                         [CertificationMemo] [nvarchar](max) NULL,
                         [InspectionMemo] [nvarchar](max) NULL,
                         [InspectionGlaAccountId] [bigint] NULL,
-                        [InspectionDefaultCost] [decimal](18, 2) NULL,
+                        [InspectionDefaultCost] DECIMAL(18,6) NULL,
                         [InspectionFrequencyMonths] [int] NOT NULL,
                         [InspectionFrequencyDays] [bigint] NULL,
                         [VerificationFrequencyDays] [bigint] NULL,
                         [VerificationFrequencyMonths] [int] NOT NULL,
-                        [VerificationDefaultCost] [decimal](18, 2) NULL,
-                        [CalibrationDefaultCost] [decimal](18, 2) NULL,
+                        [VerificationDefaultCost] DECIMAL(18,6) NULL,
+                        [CalibrationDefaultCost] DECIMAL(18,6) NULL,
                         [CalibrationFrequencyMonths] [int] NOT NULL,
                         [CalibrationFrequencyDays] [bigint] NULL,
                         [CalibrationGlAccountId] [bigint] NULL,
@@ -1128,11 +1131,11 @@ BEGIN
                         [WarrantyFileExt] [varchar](50) NULL,
                         [MasterPartId] [bigint] NULL,
                         [EntryDate] [datetime2](7) NULL,
-                        [InstallationCost] [decimal](18, 2) NULL,
-                        [Freight] [decimal](18, 2) NULL,
-                        [Insurance] [decimal](18, 2) NULL,
-                        [Taxes] [decimal](18, 2) NULL,
-                        [TotalCost] [decimal](18, 2) NULL,
+                        [InstallationCost] DECIMAL(18,6) NULL,
+                        [Freight] DECIMAL(18,6) NULL,
+                        [Insurance] DECIMAL(18,6) NULL,
+                        [Taxes] DECIMAL(18,6) NULL,
+                        [TotalCost] DECIMAL(18,6) NULL,
                         [WarrantyDefaultVendorId] [bigint] NULL,
                         [WarrantyGLAccountId] [bigint] NULL,
                         [IsDepreciable] [bit] NOT NULL,
@@ -1156,7 +1159,7 @@ BEGIN
                         [Level4] [varchar](200) NULL,
                         [ManufactureName] [varchar](100) NULL,
                         [LocationName] [varchar](100) NULL,
-                        [Qty] [decimal](13, 2) NULL,
+                        [Qty] DECIMAL(18,6) NULL,
                         [StklineNumber] [varchar](100) NULL,
                         [AvailStatus] [varchar](100) NULL,
                         [PartNumber] [varchar](100) NULL,
@@ -1688,7 +1691,7 @@ BEGIN
                     END
                     ELSE
                     BEGIN
-                        SET @LoopID = @QtyToReceive;						
+                        SET @LoopID = @QtyToReceive;
                     END
 
                     WHILE (@LoopID > 0)
@@ -1710,7 +1713,7 @@ BEGIN
                         DECLARE @InventoryNumberCurrentNo_Asset AS BIGINT;
                         DECLARE @ItemMasterId_Asset AS BIGINT;
                         DECLARE @ConditionId_asset AS BIGINT;
-                        DECLARE @StkPurchaseOrderUnitCost_Asset AS DECIMAL(18, 2) = 0;
+                        DECLARE @StkPurchaseOrderUnitCost_Asset AS DECIMAL(18,6) = 0;
                         DECLARE @ManufacturerId_Asset AS BIGINT;
                         DECLARE @PreviousStockLineNumber_Asset VARCHAR(50);
                         DECLARE @IsTangible BIT = 0;
@@ -1886,11 +1889,11 @@ BEGIN
                         WHERE AssetInventoryDraftId = @SelectedStockLineDraftId_Asset;
 
                         DECLARE @QtyAdded_Asset INT = 0;
-                        DECLARE @PurchaseOrderUnitCostAdded_Asset DECIMAL(18, 2) = 0;
+                        DECLARE @PurchaseOrderUnitCostAdded_Asset DECIMAL(18,6) = 0;
                         DECLARE @SelectedIsSameDetailsForAllParts_Asset BIT = 0;
                         DECLARE @IsTimeLIfe_Asset BIT;
 
-                        SELECT @QtyAdded_Asset = CASE WHEN @IsSerializedPart = 1 THEN [Qty] ELSE CASE WHEN ISNULL(IsSameDetailsForAllParts,0) = 0 THEN [Qty] ELSE 1 END END,
+                        SELECT @QtyAdded_Asset = CASE WHEN @IsSerializedPart = 1 THEN [Qty] ELSE CASE WHEN  ISNULL(IsSameDetailsForAllParts,0) = 0 THEN [Qty] ELSE 1 END END,
                                @SelectedIsSameDetailsForAllParts_Asset = IsSameDetailsForAllParts,
                                @PurchaseOrderUnitCostAdded_Asset = UnitCost
                         FROM #tmpAssetInventoryDraft WHERE AssetInventoryDraftId = @SelectedStockLineDraftId_Asset;
@@ -1940,9 +1943,8 @@ BEGIN
 
                         SELECT @ManagementStructureEntityId_Asset = [ManagementStructureId]
                         FROM DBO.AssetInventory WITH (NOLOCK) WHERE [AssetInventoryId] = @NewStocklineId_Asset;
-												
+
                         EXEC dbo.[PROCAddAssetMSData] @NewStocklineId_Asset, @ManagementStructureEntityId_Asset, @MasterCompanyId, @UpdatedBy, @UpdatedBy, @ModuleId_AssetMS, 1;
-											   
 
                         IF (@IsSerializedPart = 0 AND @SelectedIsSameDetailsForAllParts_Asset = 1)
                         BEGIN
@@ -2105,8 +2107,8 @@ BEGIN
                         [ManufacturerId] [bigint] NULL,
                         [Manufacturer] [varchar](50) NULL,
                         [MfgExpirationDate] [datetime2](7) NULL,
-                        [UnitCost] [decimal](18, 2) NULL,
-                        [ExtendedCost] [decimal](18, 2) NULL,
+                        [UnitCost] DECIMAL(18,6) NULL,
+                        [ExtendedCost] DECIMAL(18,6) NULL,
                         [Acquired] [int] NULL,
                         [IsHazardousMaterial] [bit] NULL,
                         [ItemNonStockClassificationId] [bigint] NULL,
@@ -2264,7 +2266,7 @@ BEGIN
 
 							/* Accounting Entry :- Insert Into Table*/
 							DECLARE @QtyAdded_NonStock INT = 0;
-							DECLARE @PurchaseOrderUnitCostAdded_NonStock DECIMAL(18, 2) = 0;
+							DECLARE @PurchaseOrderUnitCostAdded_NonStock DECIMAL(18,6) = 0;
 
 							SELECT @QtyAdded_NonStock = CASE WHEN @IsSerializedPart = 1 THEN [Quantity] ELSE CASE WHEN ISNULL(IsSameDetailsForAllParts,0) = 0 THEN [Quantity] ELSE @QtyToReceive END END,
                                @PurchaseOrderUnitCostAdded_NonStock = UnitCost
@@ -2549,7 +2551,7 @@ BEGIN
 			WHERE P.[PurchaseOrderId] = @PurchaseOrderId AND 
 			    ((P.ParentId IS NOT NULL AND EXISTS (SELECT 1 FROM [dbo].[PurchaseOrderPart] C WITH(NOLOCK) WHERE C.PurchaseOrderId = P.PurchaseOrderId AND C.ParentId IS NOT NULL))
 			  OR (P.ParentId IS NULL AND NOT EXISTS (SELECT 1 FROM [dbo].[PurchaseOrderPart] C WITH(NOLOCK) WHERE C.PurchaseOrderId = P.PurchaseOrderId AND C.ParentId IS NOT NULL)));
-			  			   
+			  	
             SELECT @POPartLoopID = MAX(ID) FROM #POParts;
 
             DECLARE @MainQuantityOrdered BIGINT = 0;

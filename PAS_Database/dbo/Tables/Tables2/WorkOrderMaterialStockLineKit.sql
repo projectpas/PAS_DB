@@ -24,7 +24,7 @@
     [ExtendedPrice]                   DECIMAL (20, 2) CONSTRAINT [DF_WorkOrderMaterialStockLineKit_ExtendedPrice] DEFAULT ((0)) NULL,
     [ProvisionId]                     INT             DEFAULT ((1)) NOT NULL,
     [RepairOrderId]                   BIGINT          NULL,
-    [QuantityTurnIn]                  INT             DEFAULT ((0)) NULL,
+    [QuantityTurnIn]                  DECIMAL (18, 6) CONSTRAINT [DF__WorkOrder__Quant__4EC410B6] DEFAULT ((0)) NULL,
     [Figure]                          NVARCHAR (50)   NULL,
     [Item]                            NVARCHAR (50)   NULL,
     [RepairOrderPartRecordId]         BIGINT          NULL,
@@ -35,6 +35,8 @@
     [IssuedDate]                      DATETIME2 (7)   NULL,
     CONSTRAINT [PK_WorkOrderMaterialStockLineKit] PRIMARY KEY CLUSTERED ([WorkOrderMaterialStockLineKitId] ASC)
 );
+
+
 
 
 

@@ -1,4 +1,6 @@
-﻿/*************************************************************           
+﻿/*******************************************************************************************************************************************/
+
+/*************************************************************           
  ** File:   [SP_AddUpdatePurchaseOrderParts]           
  ** Author:  Rajesh Gami
  ** Description: This stored procedure is used to create and update Purchase order parts
@@ -21,7 +23,7 @@
 	9	 23/09/2025	  Amit Ghediya			Update VendorRFQ refrence
 	9	 05/12/2025	  Ayushi Patel			Added new fields SalesOrderQuoteId,SalesOrderQuoteNumber
 ************************************************************************/
-CREATE     PROCEDURE [dbo].[SP_AddUpdatePurchaseOrderParts]
+CREATE       PROCEDURE [dbo].[SP_AddUpdatePurchaseOrderParts]
 	@userName varchar(50) = NULL,
 	@masterCompanyId bigint = NULL,
 	@tbl_PurchaseOrderPartType PurchaseOrderPartType READONLY,

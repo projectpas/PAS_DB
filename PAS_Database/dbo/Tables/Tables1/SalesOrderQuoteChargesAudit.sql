@@ -5,7 +5,7 @@
     [SalesOrderQuotePartId]         BIGINT          NULL,
     [ChargesTypeId]                 BIGINT          NULL,
     [VendorId]                      BIGINT          NULL,
-    [Quantity]                      INT             NULL,
+    [Quantity]                      DECIMAL (18, 6) NULL,
     [MarkupPercentageId]            BIGINT          NULL,
     [Description]                   VARCHAR (256)   NULL,
     [UnitCost]                      DECIMAL (20, 2) NULL,
@@ -33,10 +33,4 @@
     CONSTRAINT [PK_SalesOrderQuoteChargesAudit] PRIMARY KEY CLUSTERED ([AuditSalesOrderQuoteChargesId] ASC),
     CONSTRAINT [FK_SalesOrderQuoteCharges_SalesOrderQuoteChargesAudit] FOREIGN KEY ([SalesOrderQuoteChargesId]) REFERENCES [dbo].[SalesOrderQuoteCharges] ([SalesOrderQuoteChargesId])
 );
-
-
-
-
-
-
 

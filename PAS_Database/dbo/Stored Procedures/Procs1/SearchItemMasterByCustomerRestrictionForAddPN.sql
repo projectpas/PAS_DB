@@ -18,6 +18,7 @@
 	2    27-July-2023		Hemant Saliya	Allow Customer stockline use in other customer
 	3    05-JAN-2023		Hemant Saliya	Allow Same Customer stockline use in WO
 	4    12-May-2025        Devendra Shekh  checking isActive and isDeleted for Alternate Part Select
+	5    23-Dec-2025        Devendra Shekh  added UOM Changes
      
  EXECUTE [SearchItemMasterByCustomerRestrictionForAddPN] 303, 1, 1,'','0',1
 **************************************************************/ 
@@ -44,8 +45,8 @@ BEGIN
 					,im.PurchaseUnitOfMeasure AS unitOfMeasure
 					,im.IsPma
 					,im.IsDER
-					,SUM(ISNULL(sl.QuantityAvailable, 0)) AS QtyAvailable
-					,SUM(ISNULL(sl.QuantityOnHand, 0)) AS QtyOnHand
+					,SUM(ISNULL(dbo.fn_ConvertUOM(sl.QuantityAvailable, im.StockUnitOfMeasure, im.ConsumeUnitOfMeasure,0), 0)) AS QtyAvailable
+					,SUM(ISNULL(dbo.fn_ConvertUOM(sl.QuantityOnHand, im.StockUnitOfMeasure, im.ConsumeUnitOfMeasure,0), 0)) AS QtyOnHand
 					,ig.Description AS ItemGroup
 					,mf.Name Manufacturer
 					,ISNULL(im.ManufacturerId, -1) AS ManufacturerId
@@ -66,9 +67,11 @@ BEGIN
 						ELSE 'OEM'
 						END AS Oempmader
 					,@MappingType AS MappingType
-					,imps.PP_UnitPurchasePrice AS UnitCost
-					,imps.SP_CalSPByPP_UnitSalePrice AS UnitSalePrice
+					,ISNULL(dbo.fn_ConvertUOM(imps.PP_UnitPurchasePrice, im.StockUnitOfMeasure, im.ConsumeUnitOfMeasure,0), 1) AS UnitCost
+					,ISNULL(dbo.fn_ConvertUOM(imps.SP_CalSPByPP_UnitSalePrice, im.StockUnitOfMeasure, im.ConsumeUnitOfMeasure,0), 1) AS UnitSalePrice
 					,imps.PP_FXRatePerc AS FixRate
+					,im.ConsumeUnitOfMeasure
+					,im.StockUnitOfMeasure
 				FROM DBO.ItemMaster im WITH (NOLOCK)
 				LEFT JOIN DBO.Condition c WITH (NOLOCK) ON c.ConditionId in (SELECT Item FROM DBO.SPLITSTRING(@ConditionIds,','))
 				LEFT JOIN DBO.StockLine sl WITH (NOLOCK) ON im.ItemMasterId = sl.ItemMasterId AND sl.ConditionId = c.ConditionId 
@@ -102,6 +105,8 @@ BEGIN
 					,imps.PP_UnitPurchasePrice
 					,imps.SP_CalSPByPP_UnitSalePrice
 					,imps.PP_FXRatePerc
+					,im.ConsumeUnitOfMeasure
+					,im.StockUnitOfMeasure
 				ORDER BY 7 DESC
 			END
 		COMMIT  TRANSACTION

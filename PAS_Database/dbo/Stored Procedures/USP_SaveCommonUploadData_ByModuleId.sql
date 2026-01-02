@@ -1105,6 +1105,16 @@ BEGIN
 				SET @RefFieldName += ' , IsDeleted,IsActive,CreatedDate,UpdatedDate, MasterCompanyId, CreatedBy, UpdatedBy'
 				SET @FieldValue += '0,1,GETUTCDATE(),GETUTCDATE(), '
 			END
+			ELSE IF(@ModuleId = @ItemGroupModule)
+			BEGIN
+				SET @RefFieldName += ' , Description, MasterCompanyId, CreatedBy, UpdatedBy'
+				SET @FieldValue += ' '' '','  
+			END
+			ELSE IF(@ModuleId = @ItemClassificationModule)
+			BEGIN
+				SET @RefFieldName += ' , Description, MasterCompanyId, CreatedBy, UpdatedBy'
+				SET @FieldValue += ' '' '','  
+			END
 			ELSE IF(@ModuleId = @InventoryGLSettingModule)
 			BEGIN
 				SET @RefFieldName += ' , CreatedDate,UpdatedDate, MasterCompanyId, CreatedBy, UpdatedBy'

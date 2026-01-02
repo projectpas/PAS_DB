@@ -19,8 +19,8 @@
     [ReceivedDate]                       DATETIME2 (7)   NULL,
     [IsSerialized]                       BIT             NOT NULL,
     [SerialNumber]                       VARCHAR (50)    NULL,
-    [Quantity]                           INT             NOT NULL,
-    [QuantityRejected]                   INT             NULL,
+    [Quantity]                           DECIMAL (18, 6) NULL,
+    [QuantityRejected]                   DECIMAL (18, 6) NULL,
     [QuantityOnHand]                     INT             NULL,
     [CurrencyId]                         BIGINT          NULL,
     [Currency]                           VARCHAR (50)    NULL,
@@ -33,8 +33,8 @@
     [ManufacturerId]                     BIGINT          NULL,
     [Manufacturer]                       VARCHAR (50)    NULL,
     [MfgExpirationDate]                  DATETIME2 (7)   NULL,
-    [UnitCost]                           DECIMAL (18, 2) NULL,
-    [ExtendedCost]                       DECIMAL (18, 2) NULL,
+    [UnitCost]                           DECIMAL (18, 6) NULL,
+    [ExtendedCost]                       DECIMAL (18, 6) NULL,
     [Acquired]                           INT             NULL,
     [IsHazardousMaterial]                BIT             NULL,
     [ItemNonStockClassificationId]       BIGINT          NULL,
@@ -78,6 +78,4 @@
     [SerialNumberNotProvided]            BIT             NULL,
     CONSTRAINT [PK_NonStockInventoryDraftAudit] PRIMARY KEY CLUSTERED ([NonStockInventoryDraftAuditId] ASC)
 );
-
-
 

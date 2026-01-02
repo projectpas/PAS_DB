@@ -4,7 +4,7 @@
     [SalesOrderQuotePartId]    BIGINT          NULL,
     [ChargesTypeId]            BIGINT          NOT NULL,
     [VendorId]                 BIGINT          NULL,
-    [Quantity]                 INT             NOT NULL,
+    [Quantity]                 DECIMAL (18, 6) NULL,
     [MarkupPercentageId]       BIGINT          NULL,
     [Description]              VARCHAR (256)   NULL,
     [UnitCost]                 DECIMAL (20, 2) NOT NULL,
@@ -35,6 +35,8 @@
     CONSTRAINT [FK_SalesOrderQuoteCharges_SalesOrderQuote] FOREIGN KEY ([SalesOrderQuoteId]) REFERENCES [dbo].[SalesOrderQuote] ([SalesOrderQuoteId]),
     CONSTRAINT [FK_SalesOrderQuoteCharges_SalesOrderQuoteId] FOREIGN KEY ([SalesOrderQuoteId]) REFERENCES [dbo].[SalesOrderQuote] ([SalesOrderQuoteId])
 );
+
+
 
 
 

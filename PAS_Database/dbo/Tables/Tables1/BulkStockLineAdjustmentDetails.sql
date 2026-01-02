@@ -2,11 +2,11 @@
     [BulkStkLineAdjDetailsId]   INT             IDENTITY (1, 1) NOT NULL,
     [BulkStkLineAdjId]          BIGINT          NOT NULL,
     [StockLineId]               BIGINT          NOT NULL,
-    [Qty]                       INT             NOT NULL,
-    [NewQty]                    INT             NULL,
-    [QtyAdjustment]             INT             NULL,
-    [UnitCost]                  DECIMAL (18, 2) NULL,
-    [AdjustmentAmount]          DECIMAL (18, 2) NULL,
+    [Qty]                       DECIMAL (18, 6) NULL,
+    [NewQty]                    DECIMAL (18, 6) NULL,
+    [QtyAdjustment]             DECIMAL (18, 6) NULL,
+    [UnitCost]                  DECIMAL (18, 6) NULL,
+    [AdjustmentAmount]          DECIMAL (18, 6) NULL,
     [StockLineAdjustmentTypeId] INT             NOT NULL,
     [ManagementStructureId]     BIGINT          NULL,
     [LastMSLevel]               VARCHAR (200)   NULL,
@@ -18,20 +18,16 @@
     [UpdatedDate]               DATETIME        CONSTRAINT [DF_BulkStockLineAdjustmentDetails_UpdatedDate] DEFAULT (getdate()) NULL,
     [IsActive]                  BIT             CONSTRAINT [DF_BulkStockLineAdjustmentDetails_IsActive] DEFAULT ((1)) NOT NULL,
     [IsDeleted]                 BIT             CONSTRAINT [DF_BulkStockLineAdjustmentDetails_IsDeleted] DEFAULT ((0)) NOT NULL,
-    [NewUnitCost]               DECIMAL (18, 2) NULL,
-    [UnitCostAdjustment]        DECIMAL (18, 2) NULL,
-    [FreightAdjustment]         DECIMAL (18, 2) NULL,
-    [TaxAdjustment]             DECIMAL (18, 2) NULL,
+    [NewUnitCost]               DECIMAL (18, 6) NULL,
+    [UnitCostAdjustment]        DECIMAL (18, 6) NULL,
+    [FreightAdjustment]         DECIMAL (18, 6) NULL,
+    [TaxAdjustment]             DECIMAL (18, 6) NULL,
     [FromManagementStructureId] BIGINT          NULL,
     [ToManagementStructureId]   BIGINT          NULL,
-    [NewUnitCostTotransfer]     DECIMAL (18, 2) NULL,
-    [QuantityOnHand]            DECIMAL (18, 2) NULL,
+    [NewUnitCostTotransfer]     DECIMAL (18, 6) NULL,
+    [QuantityOnHand]            DECIMAL (18, 6) NULL,
     [UnitOfMeasure]             VARCHAR (100)   NULL,
     [AdjustmentReasonId]        BIGINT          NULL,
     CONSTRAINT [PK_BulkStockLineAdjustmentDetails] PRIMARY KEY CLUSTERED ([BulkStkLineAdjDetailsId] ASC)
 );
-
-
-
-
 

@@ -17,7 +17,7 @@
 	3   19-12-2025    Ayushi Patel		Return NULL License for 'PAR' MasterCompany
  EXECUTE RPT_GetManagementStructureDetailsForPOReportsHeader 1,1,2621
 **************************************************************/ 
-CREATE   PROCEDURE [dbo].[RPT_GetManagementStructureDetailsForPOReportsHeader]    
+CREATE    PROCEDURE [dbo].[RPT_GetManagementStructureDetailsForPOReportsHeader]    
 (    
 	@ManagementStructId  BIGINT  = NULL,
 	@MasterCompanyId BIGINT  = NULL,
@@ -48,16 +48,6 @@ SET NOCOUNT ON
 					le.CompanyCode,
 					atd.Link,
 					at.ModuleId,
-					--(Upper(ad.Line1) +'<br/>' +
-					--CASE WHEN ISNULL(ad.Line2,'') != '' THEN Upper(ad.Line2 )+'<br/>' ELSE '' END +
-					--CASE WHEN ISNULL(ad.City,'') != '' THEN Upper(ad.City) ELSE ''END +
-					--CASE WHEN ISNULL(ad.StateOrProvince,'') != '' THEN ' '+ Upper(ad.StateOrProvince) ELSE ''END +
-					--CASE WHEN ISNULL(ad.PostalCode,'') != '' THEN ','+ Upper(ad.PostalCode)+'<br/>'ELSE ''END +
-					--CASE WHEN ISNULL(co.countries_name,'') != '' THEN Upper(co.countries_name)+'<br/>'ELSE ''END +
-					--CASE WHEN ISNULL(le.PhoneNumber,'') != '' THEN Upper(le.PhoneNumber)+'<br/>'ELSE ''END + 
-					--CASE WHEN @Email IS NULL THEN UPPER(c.Email) ELSE  UPPER(@Email) END
-					--) MergedAddress
-					--,
 					MergedAddress1 = (SELECT dbo.ValidatePDFAddress(ad.Line1,ad.Line2,NULL,ad.City,ad.StateOrProvince,ad.PostalCode,co.countries_name,le.PhoneNumber,NULL,(CASE WHEN @Email IS NULL THEN UPPER(c.Email) ELSE  UPPER(@Email) END))),
 					Address1 = Upper(ad.Line1),
 					Address2 = Upper(ad.Line2),
@@ -110,11 +100,7 @@ SET NOCOUNT ON
 						WHEN MS.MasterCompanyCode = @MasterCompanyCode
 						THEN NULL
 						ELSE UPPER(le.UKCAALicense)
-					END,
-					--Upper(le.EASALicense) as EASALicense,
-					--Upper(le.CAACLicense) as CAACLicense,
-					--Upper(le.TCCALicense) as TCCALicense,
-					--Upper(le.UKCAALicense) as UKCAALicense,
+					END,					
 					CompanyLogoPath = MS.companylogo
 				FROM EntityStructureSetup est
 					INNER JOIN ManagementStructureLevel msl WITH(NOLOCK) ON est.Level1Id = msl.ID

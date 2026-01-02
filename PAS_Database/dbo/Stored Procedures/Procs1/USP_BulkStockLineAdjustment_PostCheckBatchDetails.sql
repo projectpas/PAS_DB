@@ -31,7 +31,7 @@
 	15   03/Feb/2025  RAJESH GAMI		Added QuantityAdjustment while Increase or Decrease the QTY.
 	16	 02/06/2025	  Abhishek Jirawla  Fixed Name concat read script
 	17   27/11/2025   AMIT GHEDIYA		update for get glaccount from setup.
-
+	18   19/12/2025   RAJESH GAMI		Change the INT to DECIMAL (QTY related fields) & Cost related fields change the decimal places 4 to 6
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_BulkStockLineAdjustment_PostCheckBatchDetails]
 (
@@ -72,16 +72,16 @@ BEGIN
 		DECLARE @StartsFrom varchar(200)='00';
 		DECLARE @GlAccountName varchar(200);
 		DECLARE @GlAccountNumber varchar(200); 
-		DECLARE @ExtAmount DECIMAL(18,2);
+		DECLARE @ExtAmount DECIMAL(18,6);
 		DECLARE @BankId INT =0;
 		DECLARE @ManagementStructureId BIGINT;
 		DECLARE @BlkManagementStructureId BIGINT;
 		DECLARE @LastMSLevel varchar(200);
 		DECLARE @AllMSlevels varchar(max);
 		DECLARE @ModuleId INT;
-		DECLARE @TotalDebit decimal(18, 2) =0;
-		DECLARE @TotalCredit decimal(18, 2) =0;
-		DECLARE @TotalBalance decimal(18, 2) =0;
+		DECLARE @TotalDebit DECIMAL(18,6) =0;
+		DECLARE @TotalCredit DECIMAL(18,6) =0;
+		DECLARE @TotalBalance DECIMAL(18,6) =0;
 		DECLARE @ExtNumber VARCHAR(20);
 		DECLARE @VendorName VARCHAR(50);
 		DECLARE @ExtDate Datetime;
@@ -89,20 +89,20 @@ BEGIN
 		DECLARE @DistributionCodeName VARCHAR(100);
 		DECLARE @CrDrType int=0;
 		DECLARE @CodePrefix VARCHAR(50);
-		DECLARE @qtyAdjustment INT;
-		DECLARE @Amount DECIMAL(18, 2) =0;
+		DECLARE @qtyAdjustment DECIMAL(18,6);
+		DECLARE @Amount DECIMAL(18,6) =0;
 		DECLARE @MasterLoopID INT;
 		DECLARE @BulkStockLineAdjustmentDetailsId BIGINT;
-		DECLARE @AdjustmentAmount DECIMAL(18, 2) =0;
+		DECLARE @AdjustmentAmount DECIMAL(18,6) =0;
 		DECLARE @StockLineId BIGINT;
 		DECLARE @BulkStatusId int;    
 		DECLARE @BulkStatusName varchar(200);  
 		DECLARE @BlkModuleID  BIGINT;
-		DECLARE @DetailQtyAdjustment INT;
-		DECLARE @TransferQtyAdjustment INT;
-		DECLARE @QuantityOnHand INT,@Quantity INT;
-		DECLARE @ChildUpdateQty INT;
-		DECLARE @QuantityAvailable INT;
+		DECLARE @DetailQtyAdjustment DECIMAL(18,6);
+		DECLARE @TransferQtyAdjustment DECIMAL(18,6);
+		DECLARE @QuantityOnHand DECIMAL(18,6),@Quantity DECIMAL(18,6);
+		DECLARE @ChildUpdateQty DECIMAL(18,6);
+		DECLARE @QuantityAvailable DECIMAL(18,6);
 		DECLARE @StockModule BIGINT;
 		DECLARE @Memo VARCHAR(MAX);
 		DECLARE @IsAutoPost INT = 0;
@@ -281,12 +281,12 @@ BEGIN
 					[BulkStockLineAdjustmentDetailsId] [bigint] NULL,
 					[BulkStkLineAdjId] [bigint] NOT NULL,
 					[StockLineId] [bigint] NULL,
-					[Qty] [int] NOT NULL,
-					[NewQty] [int] NOT NULL,
-					[QtyAdjustment] [int] NOT NULL,
-					[UnitCost] [decimal](18,2) NULL,
-					[AdjustmentAmount] [decimal](18,2) NULL,
-					[StockLineAdjustmentTypeId] [int] NOT NULL,
+					[Qty] DECIMAL(18,6) NOT NULL,
+					[NewQty] DECIMAL(18,6) NOT NULL,
+					[QtyAdjustment] DECIMAL(18,6) NOT NULL,
+					[UnitCost] DECIMAL(18,6) NULL,
+					[AdjustmentAmount] DECIMAL(18,6) NULL,
+					[StockLineAdjustmentTypeId] DECIMAL(18,6) NOT NULL,
 					[ManagementStructureId] [bigint] NULL,
 					[LastMSLevel] [varchar](200) NULL,
 					[AllMSlevels] [varchar](MAX) NULL,

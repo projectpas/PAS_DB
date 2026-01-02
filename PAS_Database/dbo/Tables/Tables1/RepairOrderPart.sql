@@ -17,7 +17,7 @@
     [Condition]                  VARCHAR (256)   NULL,
     [QuantityOrdered]            INT             NOT NULL,
     [QuantityBackOrdered]        INT             NULL,
-    [QuantityRejected]           INT             NULL,
+    [QuantityRejected]           DECIMAL (18, 6) NULL,
     [VendorListPrice]            DECIMAL (18, 2) NOT NULL,
     [DiscountPercent]            DECIMAL (20, 2) NULL,
     [DiscountPerUnit]            DECIMAL (20, 2) NULL,
@@ -85,7 +85,7 @@
     [VendorQuoteNo]              VARCHAR (250)   NULL,
     [VendorQuoteDate]            DATETIME2 (7)   NULL,
     [ACTailNum]                  VARCHAR (250)   NULL,
-    [QuantityReserved]           INT             DEFAULT ((0)) NULL,
+    [QuantityReserved]           DECIMAL (18, 6) CONSTRAINT [DF__RepairOrd__Quant__331BF641] DEFAULT ((0)) NULL,
     [IsAsset]                    BIT             DEFAULT ((0)) NULL,
     [SerialNumber]               VARCHAR (30)    NULL,
     [ManufacturerPN]             VARCHAR (150)   NULL,
@@ -105,7 +105,7 @@
     [WorkOrderMaterialsId]       BIGINT          NULL,
     [IsKitType]                  BIT             NULL,
     [ReferenceNumber]            VARCHAR (100)   NULL,
-    [QuantityReceived]           INT             DEFAULT ((0)) NULL,
+    [QuantityReceived]           DECIMAL (18, 6) CONSTRAINT [DF__RepairOrd__Quant__34101A7A] DEFAULT ((0)) NULL,
     [RepairOrderTemplateId]      BIGINT          NULL,
     [RepairOrderTemplateNumber]  VARCHAR (256)   NULL,
     CONSTRAINT [PK_RepairOrderpart] PRIMARY KEY CLUSTERED ([RepairOrderPartRecordId] ASC),
@@ -119,6 +119,8 @@
     CONSTRAINT [FK_RepairOrderPart_SubWorkOrderId] FOREIGN KEY ([SubWorkOrderId]) REFERENCES [dbo].[SubWorkOrder] ([SubWorkOrderId]),
     CONSTRAINT [FK_RepairOrderPart_WorkOrderId] FOREIGN KEY ([WorkOrderId]) REFERENCES [dbo].[WorkOrder] ([WorkOrderId])
 );
+
+
 
 
 

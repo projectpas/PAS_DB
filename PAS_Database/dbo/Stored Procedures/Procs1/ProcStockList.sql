@@ -1,4 +1,6 @@
-﻿/*************************************************************               
+﻿
+
+/*************************************************************               
  ** File:   [ProcStockList]               
  ** Author:   Hemant Saliya    
  ** Description: This stored procedure is used to get stockline list      
@@ -39,6 +41,7 @@
 	22   22/05/2025   Abhishek Jirawala Added new field Repair Management for list
 	23   16/07/2025   Moin Bloch	    Added IsBatchStock And Batch Number
 	24   02/12/2025   Bhargav Saliya	Added Unit Cost
+	25   11/12/2025   Rajesh Gami		Return DecimalPlaces
 	(Do Not add any new join or In Query in Stockline list SP)
 	
 -- exec ProcStockList @PageNumber=1,@PageSize=20,@SortColumn=N'CreatedDate',@SortOrder=-1,@GlobalFilter=N'',@stockTypeId=1,@StocklineNumber=NULL,@MainPartNumber=NULL,
@@ -167,7 +170,10 @@ BEGIN
 	  BEGIN        
 		SET @stockTypeId = NULL;        
 	  END        
-        
+      IF(@UnitCost = 0)        
+	  BEGIN        
+		SET @UnitCost = NULL;        
+	  END
 	  IF @IsCStock = 0        
 	  BEGIN         
 	   SET @ISCS = 0        
@@ -263,17 +269,21 @@ BEGIN
 	   --ISNULL(PO.PurchaseOrderNumber,'') 'PONumber',
 	   --ISNULL(RO.RepairOrderNumber,'') 'RONumber',
 	   ISNULL(stl.ReceiverNumber,'') as 'ReceiverNumber',
-	   CAST(stl.QuantityAdjustment AS varchar) 'QuantityAdjustment',
+	   --CAST(stl.QuantityAdjustment AS varchar) 'QuantityAdjustment',
+	   ROUND(ISNULL(stl.QuantityAdjustment,0),2) 'QuantityAdjustment',
 	   CASE WHEN ISNULL(STL.IsDocument, 0) = 0 THEN 'No' ELSE 'Yes' END AS 'IsDocument',
 		CASE WHEN ISNULL(stl.IsRepairManagement, 0) = 0 THEN 'No' ELSE 'Yes' END AS IsRepairManagement,
 		ISNULL(stl.[IsBatchStock],0) [IsBatchStock],
 		stl.[BatchNumber],
-		stl.[UnitCost]
+		ROUND(stl.[UnitCost],2) as UnitCost,
+		ISNULL(uom.DecimalPlaces,2) DecimalPlaces,
+		ISNULL(uom.Class,'Decimal') Class
 	   --CASE WHEN ISNULL((SELECT COUNT(CommonDocumentDetailId) FROM [DBO].[CommonDocumentDetails] CDD WITH(NOLOCK) WHERE stl.StockLineId = CDD.ReferenceId AND CDD.ModuleId = @AttachmentModuleId AND ISNULL(CDD.IsDeleted, 0) = 0), 0) > 0 THEN 'Yes' ELSE 'No' END AS 'IsDocument'
 		FROM  dbo.StockLine stl WITH (NOLOCK)        
 		  INNER JOIN dbo.StocklineManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @MSModuelId AND MSD.ReferenceID = stl.StockLineId     
 		  INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON stl.ManagementStructureId = RMS.EntityStructureId
 		  INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
+		  LEFT JOIN DBO.UnitOfMeasure uom WITH (NOLOCK) ON stl.StockUnitOfMeasureId = uom.UnitOfMeasureId 
 		  --LEFT JOIN dbo.PurchaseOrder PO WITH(NOLOCK) ON stl.PurchaseOrderId = PO.PurchaseOrderId
 		  --LEFT JOIN dbo.RepairOrder RO WITH(NOLOCK) ON stl.RepairOrderId = RO.RepairOrderId
 		WHERE stl.MasterCompanyId=@MasterCompanyId  AND ISNULL(stl.IsDeleted, 0) = 0  AND ISNULL(stl.QuantityOnHand, 0) > 0 AND (@StockLineIds IS NULL OR stl.StockLineId IN (SELECT Item FROM DBO.SPLITSTRING(@StockLineIds,',')))                
@@ -560,17 +570,22 @@ BEGIN
 		CASE WHEN stl.IsRepairManagement = 1 THEN 'Yes' ELSE 'No' END AS IsRepairManagement,
 		ISNULL(stl.[IsBatchStock],0) [IsBatchStock],
 		stl.[BatchNumber],
-		stl.[UnitCost]
+		ROUND(stl.[UnitCost],2)UnitCost,
+		ISNULL(uom.DecimalPlaces,2) DecimalPlaces,
+		ISNULL(uom.Class,'Decimal') Class
 	    --CASE WHEN ISNULL((SELECT COUNT(CommonDocumentDetailId) FROM [DBO].[CommonDocumentDetails] CDD WITH(NOLOCK) WHERE stl.StockLineId = CDD.ReferenceId AND CDD.ModuleId = @AttachmentModuleId AND ISNULL(CDD.IsDeleted, 0) = 0), 0) > 0 THEN 'Yes' ELSE 'No' END AS 'IsDocument'
 		FROM  DBO.StockLine stl WITH (NOLOCK)    
 		 INNER JOIN  dbo.StocklineManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @MSModuelId AND MSD.ReferenceID = stl.StockLineId        
 		 INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON stl.ManagementStructureId = RMS.EntityStructureId
 		 INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
+		 LEFT JOIN DBO.UnitOfMeasure uom WITH (NOLOCK) ON stl.StockUnitOfMeasureId = uom.UnitOfMeasureId 
 		 --LEFT JOIN dbo.PurchaseOrder PO WITH(NOLOCK) ON stl.PurchaseOrderId = PO.PurchaseOrderId
 		 --LEFT JOIN dbo.RepairOrder RO WITH(NOLOCK) ON stl.RepairOrderId = RO.RepairOrderId
-		WHERE stl.MasterCompanyId = @MasterCompanyId AND ISNULL(stl.IsParent, 0) = 1 AND ISNULL(stl.IsDeleted, 0) = 0 AND (@stockTypeId IS NULL OR stl.ItemTypeId = @stockTypeId) AND (@StockLineIds IS NULL OR stl.StockLineId IN (SELECT Item FROM DBO.SPLITSTRING(@StockLineIds,  
-  
-	   ',')))                
+		WHERE stl.MasterCompanyId = @MasterCompanyId 
+		AND ISNULL(stl.IsParent, 0) = 1 
+		AND ISNULL(stl.IsDeleted, 0) = 0 
+		AND (@stockTypeId IS NULL OR stl.ItemTypeId = @stockTypeId) 
+		AND (@StockLineIds IS NULL OR stl.StockLineId IN (SELECT Item FROM DBO.SPLITSTRING(@StockLineIds,',')))                
 		AND (@ItemMasterId = 0 OR stl.ItemMasterId = @ItemMasterId)        
 		--AND stl.IsCustomerStock = CASE WHEN @ISCS = 1 AND @ISECS = 0 THEN 1 WHEN @ISCS = 0 AND @ISECS = 1 THEN 0 else stl.IsCustomerStock END
 		AND stl.IsCustomerStock = CASE WHEN @isElse = 0 THEN @IsCustomerStockInline else stl.IsCustomerStock END  
@@ -578,7 +593,8 @@ BEGIN
 	  SELECT *,
 	  	(SELECT TOP 1 wos.Status  FROM DBO.WorkOrder wo WITH (NOLOCK) inner join DBO.WorkOrderStatus wos WITH (NOLOCK) on wo.WorkOrderStatusId=wos.Id where wo.WorkOrderId=WorkOrderId) as WorkOrderStatus,        
 		(SELECT TOP 1 isnull(RS.WorkOrderId,0)  FROM DBO.ReceivingCustomerWork RS WITH (NOLOCK)  where RS.StockLineId=r.StockLineId) as rsworkOrderId INTO #TempResult FROM  Result r         
-	   WHERE ((@GlobalFilter <>'' AND ((MainPartNumber LIKE '%' +@GlobalFilter+'%') OR        
+	   WHERE (
+	   (@GlobalFilter <>'' AND ((MainPartNumber LIKE '%' +@GlobalFilter+'%') OR        
 		(PartDescription LIKE '%' +@GlobalFilter+'%') OR         
 		(Manufacturer LIKE '%' +@GlobalFilter+'%') OR             
 		(RevisedPN LIKE '%' +@GlobalFilter+'%') OR              
@@ -670,8 +686,9 @@ BEGIN
 		(ISNULL(@ReceiverNumber,'') ='' OR ReceiverNumber LIKE '%' + @ReceiverNumber + '%') AND
 		(ISNULL(@QuantityAdjustment,'') ='' OR QuantityAdjustment LIKE '%' + @QuantityAdjustment + '%') AND
 		(ISNULL(@BatchNumber,'') ='' OR [BatchNumber] LIKE '%' + @BatchNumber+'%') AND	
-		(ISNULL(@IsDocument,'') ='' OR IsDocument LIKE '%' + @IsDocument + '%') AND
-		(IsNull(@UnitCost,'') ='' OR CAST(UnitCost AS varchar(20)) like '%' + @UnitCost+'%' ))        
+		(ISNULL(@IsDocument,'') ='' OR IsDocument LIKE '%' + @IsDocument + '%') 
+		 AND(IsNull(@UnitCost,'') ='' OR CAST(UnitCost AS varchar(20)) like '%' + @UnitCost+'%' )
+		)        
 	   )        
 	   SELECT @Count = COUNT(StockLineId) FROM #TempResult           
         
@@ -855,7 +872,7 @@ BEGIN
 	   CASE WHEN stl.IsRepairManagement = 1 THEN 'Yes' ELSE 'No' END AS IsRepairManagement,
 	   ISNULL(stl.[IsBatchStock],0) [IsBatchStock],
 	   stl.[BatchNumber],
-	   stl.[UnitCost]
+	   ROUND(stl.[UnitCost],2) UnitCost
 	   --CASE WHEN ISNULL((SELECT COUNT(CommonDocumentDetailId) FROM [DBO].[CommonDocumentDetails] CDD WITH(NOLOCK) WHERE stl.StockLineId = CDD.ReferenceId AND CDD.ModuleId = @AttachmentModuleId AND ISNULL(CDD.IsDeleted, 0) = 0), 0) > 0 THEN 'Yes' ELSE 'No' END AS 'IsDocument'
 	  FROM Nha_Tla_Alt_Equ_ItemMapping ALT    
 	   INNER JOIN DBO.ItemMaster im WITH (NOLOCK) ON ALT.MappingItemMasterId = im.ItemMasterId --ALTPART    
@@ -1148,7 +1165,7 @@ BEGIN
 		CASE WHEN stl.IsRepairManagement = 1 THEN 'Yes' ELSE 'No' END AS IsRepairManagement,
 		ISNULL(stl.[IsBatchStock],0) [IsBatchStock],
 		stl.[BatchNumber],
-		stl.[UnitCost]
+		ROUND(stl.[UnitCost],2) UnitCost
 	    --CASE WHEN ISNULL((SELECT COUNT(CommonDocumentDetailId) FROM [DBO].[CommonDocumentDetails] CDD WITH(NOLOCK) WHERE stl.StockLineId = CDD.ReferenceId AND CDD.ModuleId = @AttachmentModuleId AND ISNULL(CDD.IsDeleted, 0) = 0), 0) > 0 THEN 'Yes' ELSE 'No' END AS 'IsDocument'
 		FROM Nha_Tla_Alt_Equ_ItemMapping ALT    
 	   INNER JOIN DBO.ItemMaster im WITH (NOLOCK) ON ALT.MappingItemMasterId = im.ItemMasterId --ALTPART    

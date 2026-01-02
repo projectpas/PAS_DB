@@ -6,7 +6,7 @@
     [ReferenceId]             BIGINT          NOT NULL,
     [ItemMasterId]            BIGINT          NOT NULL,
     [SerialNumber]            VARCHAR (50)    NULL,
-    [Qty]                     INT             NULL,
+    [Qty]                     DECIMAL (18, 6) NULL,
     [UnitCost]                DECIMAL (18, 2) NULL,
     [ExtendedCost]            DECIMAL (18, 2) NULL,
     [VendorRMAReturnReasonId] BIGINT          NOT NULL,
@@ -20,10 +20,10 @@
     [UpdatedDate]             DATETIME2 (7)   CONSTRAINT [DF_VendorRMADetail_UpdatedDate] DEFAULT (getutcdate()) NOT NULL,
     [IsActive]                BIT             CONSTRAINT [DF_VendorRMADetail_IsActive] DEFAULT ((1)) NOT NULL,
     [IsDeleted]               BIT             CONSTRAINT [DF_VendorRMADetail_IsDeleted] DEFAULT ((0)) NOT NULL,
-    [QuantityBackOrdered]     INT             NULL,
-    [QuantityRejected]        INT             NULL,
+    [QuantityBackOrdered]     DECIMAL (18, 6) NULL,
+    [QuantityRejected]        DECIMAL (18, 6) NULL,
     [ModuleId]                INT             NULL,
-    [QtyShipped]              INT             NULL,
+    [QtyShipped]              DECIMAL (18, 6) NULL,
     [RevisedStocklineId]      BIGINT          NULL,
     [ReferenceNumber]         VARCHAR (100)   NULL,
     CONSTRAINT [PK_VendorRMADetail] PRIMARY KEY CLUSTERED ([VendorRMADetailId] ASC),
@@ -33,8 +33,4 @@
     CONSTRAINT [FK_VendorRMADetail_VendorRMAReturnReason] FOREIGN KEY ([VendorRMAReturnReasonId]) REFERENCES [dbo].[VendorRMAReturnReason] ([VendorRMAReturnReasonId]),
     CONSTRAINT [FK_VendorRMADetail_VendorRMAStatus] FOREIGN KEY ([VendorRMAStatusId]) REFERENCES [dbo].[VendorRMAStatus] ([VendorRMAStatusId])
 );
-
-
-
-
 

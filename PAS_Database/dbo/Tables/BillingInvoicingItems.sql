@@ -10,7 +10,7 @@
     [ConditionId]                 BIGINT          NULL,
     [CostPlusType]                VARCHAR (50)    NULL,
     [UnitPrice]                   DECIMAL (18, 2) NULL,
-    [QtyBilled]                   INT             NULL,
+    [QtyBilled]                   DECIMAL (18, 6) NULL,
     [PartCost]                    DECIMAL (18, 2) NULL,
     [IsTotalCheck]                BIT             NULL,
     [TotalBillingCost]            DECIMAL (18, 2) NULL,
@@ -59,8 +59,4 @@
     CONSTRAINT [PK_BillingInvoicingItems] PRIMARY KEY CLUSTERED ([BillingInvoicingItemId] ASC),
     CONSTRAINT [FK_BillingInvoicingItems_BillingInvoicing] FOREIGN KEY ([BillingInvoicingId]) REFERENCES [dbo].[BillingInvoicing] ([BillingInvoicingId])
 );
-
-
-
-
 

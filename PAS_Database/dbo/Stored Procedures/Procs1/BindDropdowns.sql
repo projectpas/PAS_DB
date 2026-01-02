@@ -30,6 +30,11 @@ AS
         SET @Sql = N'SELECT CAST ( ' + @Parameter1 + ' AS BIGINT) As Value,CAST ( ' + @Parameter2 + ' AS VARCHAR) AS Label FROM dbo.' + @TableName +     
            ' WHERE IsActive=1 AND ISNULL(IsDeleted, 0) = 0 AND MasterCompanyId = ' + @masterCompanyId + ' AND CAST ( ' + @Parameter2 + ' AS VARCHAR) !='''' AND CAST ( '+ @Parameter3 +' AS VARCHAR) = ' + @Parameter4+'  ORDER BY SortOrder';    
        END    
+	    ELSE IF(@TableName = 'UnitOfMeasure')    
+       BEGIN    
+        SET @Sql = N'SELECT CAST ( ' + @Parameter1 + ' AS BIGINT) As Value,CAST ( ' + @Parameter2 + ' AS VARCHAR) AS Label, ISNULL(Class,'''') AS Class , ISNULL(DecimalPlaces,2) AS DecimalPlaces  FROM dbo.' + @TableName +     
+           ' WHERE IsActive=1 AND ISNULL(IsDeleted, 0) = 0 AND MasterCompanyId = ' + @masterCompanyId + ' AND CAST ( ' + @Parameter2 + ' AS VARCHAR) !='''' AND CAST ( '+ @Parameter3 +' AS VARCHAR) = ' + @Parameter4+'  ORDER BY '+@Parameter2;   
+       END    
        ELSE    
        BEGIN    
         SET @Sql = N'SELECT CAST ( ' + @Parameter1 + ' AS BIGINT) As Value,CAST ( ' + @Parameter2 + ' AS VARCHAR) AS Label FROM dbo.' + @TableName +     
@@ -47,7 +52,12 @@ AS
        BEGIN    
         SET @Sql = N'SELECT CAST ( '+ @Parameter1 + ' AS BIGINT)  As Value,  CAST('+@Parameter2+' as VARCHAR) AS Label FROM dbo.' + @TableName+       
          ' WHERE IsActive=1 AND ISNULL(IsDeleted, 0) = 0 AND MasterCompanyId = '+ @masterCompanyId +' AND CAST ( '+ @Parameter2+' AS VARCHAR) !='''' AND CAST(' + @Parameter3 + '  AS VARCHAR)!=''''   ORDER BY ' +@Parameter3;    
-       END    
+       END  
+	   ELSE IF(@TableName = 'UnitOfMeasure')
+       BEGIN     
+        SET @Sql = N'SELECT CAST ( '+ @Parameter1 + ' AS BIGINT)  As Value,  CONCAT(CAST ( '+ @Parameter3 +'  AS VARCHAR), ''-'', CAST('+@Parameter2+' as VARCHAR)) AS Label, ISNULL(Class,'''') AS Class , ISNULL(DecimalPlaces,2) AS DecimalPlaces  FROM dbo.' + @TableName+       
+         ' WHERE IsActive=1 AND ISNULL(IsDeleted, 0) = 0 AND MasterCompanyId = '+ @masterCompanyId +' AND CAST ( '+ @Parameter2+' AS VARCHAR) !='''' AND CAST(' + @Parameter3 + '  AS VARCHAR)!=''''   ORDER BY ' + @Parameter2;      
+       END    	   
        ELSE    
        BEGIN    
         SET @Sql = N'SELECT CAST ( '+ @Parameter1 + ' AS BIGINT)  As Value,  CONCAT(CAST ( '+ @Parameter3 +'  AS VARCHAR), ''-'', CAST('+@Parameter2+' as VARCHAR)) AS Label FROM dbo.' + @TableName+       
@@ -66,6 +76,11 @@ AS
         SET @Sql = N'SELECT CAST ( '+@Parameter1+' AS BIGINT) As Value, CAST ( ' + @Parameter2 + ' AS VARCHAR) AS Label FROM dbo.' + @TableName +     
             ' WHERE IsActive=1 AND ISNULL(IsDeleted,0)=0 AND MasterCompanyId = ' + @masterCompanyId + ' AND CAST ( ' + @Parameter2 + ' AS VARCHAR) !=''''   ORDER BY SortOrder';    
        END
+	    ELSE IF(@TableName = 'UnitOfMeasure')   
+       BEGIN    
+        SET @Sql = N'SELECT CAST ( '+@Parameter1+' AS BIGINT) As Value, CAST ( ' + @Parameter2 + ' AS VARCHAR(50)) AS Label, ISNULL(Class,'''') AS Class , ISNULL(DecimalPlaces,2) AS DecimalPlaces FROM dbo.' + @TableName +     
+            ' WHERE IsActive=1 AND ISNULL(IsDeleted,0)=0 AND MasterCompanyId = ' + @masterCompanyId + ' AND CAST ( ' + @Parameter2 + ' AS VARCHAR) !=''''   ORDER BY ' + @Parameter2;    
+       END   
        ELSE    
        BEGIN    
         SET @Sql = N'SELECT CAST ( '+@Parameter1+' AS BIGINT) As Value, CAST ( ' + @Parameter2 + ' AS VARCHAR(50)) AS Label FROM dbo.' + @TableName +     
@@ -78,7 +93,12 @@ AS
        BEGIN    
         SET @Sql = N'SELECT TOP ' +@Count+ ' CAST ( '+ @Parameter1 + ' AS BIGINT) As Value,CAST ( '+ @Parameter2+  ' AS VARCHAR) AS Label FROM dbo.' + @TableName +     
            ' WHERE IsActive = 1 AND ISNULL(IsDeleted, 0) = 0 AND MasterCompanyId = ' + @masterCompanyId + ' AND CAST ( '+ @Parameter2 + ' AS VARCHAR) != ''''  ORDER BY SortOrder';    
-       END    
+       END 
+	   ELSE IF(@TableName = 'UnitOfMeasure')   
+       BEGIN    
+        SET @Sql = N'SELECT TOP ' +@Count+ ' CAST ( '+ @Parameter1 + ' AS BIGINT) As Value,CAST ( '+ @Parameter2+  ' AS VARCHAR) AS Label,ISNULL(Class,'') AS Class , ISNULL(DecimalPlaces,2) AS DecimalPlaces FROM dbo.' + @TableName +     
+           ' WHERE IsActive = 1 AND ISNULL(IsDeleted, 0) = 0 AND MasterCompanyId = ' + @masterCompanyId + ' AND CAST ( '+ @Parameter2 + ' AS VARCHAR) != ''''  ORDER BY ' + @Parameter2;    
+       END  
        ELSE    
        BEGIN    
         SET @Sql = N'SELECT TOP ' +@Count+ ' CAST ( '+ @Parameter1 + ' AS BIGINT) As Value,CAST ( '+ @Parameter2+  ' AS VARCHAR) AS Label FROM dbo.' + @TableName +     

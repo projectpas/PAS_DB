@@ -4,12 +4,12 @@
     [SalesOrderQuoteId]          BIGINT          NOT NULL,
     [ItemMasterId]               BIGINT          NOT NULL,
     [ConditionId]                BIGINT          NOT NULL,
-    [QtyRequested]               INT             NOT NULL,
-    [QtyQuoted]                  INT             NOT NULL,
+    [QtyRequested]               DECIMAL (18, 6) NOT NULL,
+    [QtyQuoted]                  DECIMAL (18, 6) NOT NULL,
     [CurrencyId]                 INT             NULL,
     [PriorityId]                 BIGINT          NOT NULL,
     [StatusId]                   INT             NOT NULL,
-    [FxRate]                     DECIMAL (18, 4) NULL,
+    [FxRate]                     DECIMAL (18, 6) NULL,
     [CustomerRequestDate]        DATETIME2 (7)   NULL,
     [PromisedDate]               DATETIME2 (7)   NULL,
     [EstimatedShipDate]          DATETIME2 (7)   NULL,
@@ -33,11 +33,7 @@
     [PriorityName]               VARCHAR (100)   NULL,
     [StatusName]                 VARCHAR (100)   NULL,
     [OldSalesOrderQuotePartId]   BIGINT          NULL,
-    [UnitSalesPrice]             DECIMAL (18, 2) NULL,
+    [UnitSalesPrice]             DECIMAL (18, 6) NULL,
     CONSTRAINT [PK_SalesOrderQuotePartV1Audit] PRIMARY KEY CLUSTERED ([AuditSalesOrderQuotePartId] ASC)
 );
-
-
-
-
 

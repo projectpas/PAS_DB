@@ -3,7 +3,7 @@
     [WorkOrderQuoteDetailsId] BIGINT          NOT NULL,
     [ChargesTypeId]           BIGINT          NOT NULL,
     [VendorId]                BIGINT          NULL,
-    [Quantity]                INT             NOT NULL,
+    [Quantity]                DECIMAL (18, 6) NULL,
     [MarkupPercentageId]      BIGINT          NULL,
     [Description]             VARCHAR (256)   NULL,
     [UnitCost]                DECIMAL (20, 2) NOT NULL,
@@ -36,6 +36,8 @@
     CONSTRAINT [FK_WorkOrderQuoteCharges_Vendor] FOREIGN KEY ([VendorId]) REFERENCES [dbo].[Vendor] ([VendorId]),
     CONSTRAINT [FK_WorkOrderQuoteCharges_WorkOrderQuoteDetails] FOREIGN KEY ([WorkOrderQuoteDetailsId]) REFERENCES [dbo].[WorkOrderQuoteDetails] ([WorkOrderQuoteDetailsId])
 );
+
+
 
 
 

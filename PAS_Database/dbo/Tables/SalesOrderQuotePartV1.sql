@@ -3,16 +3,16 @@
     [SalesOrderQuoteId]        BIGINT          NOT NULL,
     [ItemMasterId]             BIGINT          NOT NULL,
     [ConditionId]              BIGINT          NOT NULL,
-    [QtyRequested]             INT             NOT NULL,
-    [QtyQuoted]                INT             NOT NULL,
+    [QtyRequested]             DECIMAL (18, 6) NOT NULL,
+    [QtyQuoted]                DECIMAL (18, 6) NOT NULL,
     [CurrencyId]               INT             NULL,
     [PriorityId]               BIGINT          NOT NULL,
     [StatusId]                 INT             NOT NULL,
-    [FxRate]                   DECIMAL (18, 4) NULL,
+    [FxRate]                   DECIMAL (18, 6) NULL,
     [CustomerRequestDate]      DATETIME2 (7)   NULL,
     [PromisedDate]             DATETIME2 (7)   NULL,
     [EstimatedShipDate]        DATETIME2 (7)   NULL,
-    [IsConvertedToSalesOrder]  BIT             DEFAULT ((0)) NULL,
+    [IsConvertedToSalesOrder]  BIT             CONSTRAINT [DF__SalesOrde__IsCon__4F4C89ED] DEFAULT ((0)) NULL,
     [IsNoQuote]                BIT             NULL,
     [IsLotAssigned]            BIT             NULL,
     [LotId]                    BIGINT          NULL,
@@ -32,11 +32,13 @@
     [PriorityName]             VARCHAR (100)   NULL,
     [StatusName]               VARCHAR (100)   NULL,
     [OldSalesOrderQuotePartId] BIGINT          NULL,
-    [UnitSalesPrice]           DECIMAL (18, 2) NULL,
+    [UnitSalesPrice]           DECIMAL (18, 6) NULL,
     CONSTRAINT [PK_SalesOrderQuotePartV1] PRIMARY KEY CLUSTERED ([SalesOrderQuotePartId] ASC),
     CONSTRAINT [FK_SalesOrderQuotePartV1_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId]),
     CONSTRAINT [FK_SalesOrderQuotePartV1_Priority] FOREIGN KEY ([PriorityId]) REFERENCES [dbo].[Priority] ([PriorityId])
 );
+
+
 
 
 

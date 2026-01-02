@@ -41,60 +41,65 @@ BEGIN
 					,im.ItemMasterId As ItemMasterId
 					,im.PartDescription AS Description
 					,im.PurchaseUnitOfMeasureId  AS unitOfMeasureId
-					,im.PurchaseUnitOfMeasure AS unitOfMeasure
+					--,im.PurchaseUnitOfMeasure AS unitOfMeasure
+					,im.ConsumeUnitOfMeasure AS unitOfMeasure
 					,im.IsPma
 					,im.IsDER
-					,SUM(ISNULL(sl.QuantityAvailable, 0)) AS QtyAvailable
-					,SUM(ISNULL(sl.QuantityOnHand, 0)) AS QtyOnHand
-					,ig.Description AS ItemGroup
-					,mf.Name Manufacturer
+					--,SUM(ISNULL(sl.QuantityAvailable, 0)) AS QtyAvailable
+					,SUM([dbo].[fn_ConvertUOM](ISNULL(sl.[QuantityAvailable], 0),sl.[StockUnitOfMeasure], sl.[ConsumeUnitOfMeasure],0)) AS QtyAvailable 					
+					--,SUM(ISNULL(sl.QuantityOnHand, 0)) AS QtyOnHand
+					,SUM([dbo].[fn_ConvertUOM](ISNULL(sl.[QuantityOnHand], 0),sl.[StockUnitOfMeasure] ,sl.[ConsumeUnitOfMeasure],0)) AS QtyOnHand 
+					,ig.[Description] AS ItemGroup
+					,mf.[Name] Manufacturer
 					,ISNULL(im.ManufacturerId, -1) AS ManufacturerId
 					,ic.ItemClassificationCode
-					,ic.Description AS ItemClassification
+					,ic.[Description] AS ItemClassification
 					,ic.ItemClassificationId
 					,c.ConditionId ConditionId
-					,c.Description ConditionDescription
+					,c.[Description] ConditionDescription
 					,ISNULL(STUFF((
-					SELECT DISTINCT ', '+ I.partnumber FROM DBO.Nha_Tla_Alt_Equ_ItemMapping M INNER JOIN ItemMaster I ON I.ItemMasterId = M.ItemMasterId Where M.MappingItemMasterId = im.ItemMasterId AND M.MappingType = 1
+					SELECT DISTINCT ', '+ I.partnumber FROM [dbo].[Nha_Tla_Alt_Equ_ItemMapping] M WITH(NOLOCK) INNER JOIN [dbo].[ItemMaster] I WITH(NOLOCK) ON I.ItemMasterId = M.ItemMasterId WHERE M.MappingItemMasterId = im.ItemMasterId AND M.MappingType = 1
 					FOR XML PATH('')
 					)
 					,1,1,''), '') AlternateFor
 					,CASE 
-						WHEN im.IsPma = 1 and im.IsDER = 1 THEN OEMPMA.partnumber --'PMA&DER'
-						WHEN im.IsPma = 1 and im.IsDER = 0 THEN OEMPMA.partnumber --'PMA'
-						WHEN im.IsPma = 0 and im.IsDER = 1 THEN 'DER'
+						WHEN im.IsPma = 1 AND im.IsDER = 1 THEN OEMPMA.partnumber --'PMA&DER'
+						WHEN im.IsPma = 1 AND im.IsDER = 0 THEN OEMPMA.partnumber --'PMA'
+						WHEN im.IsPma = 0 AND im.IsDER = 1 THEN 'DER'
 						ELSE 'OEM'
 						END AS Oempmader
 					,@MappingType AS MappingType
-					,imps.PP_UnitPurchasePrice AS UnitCost
-					,imps.SP_CalSPByPP_UnitSalePrice AS UnitSalePrice
-					,imps.PP_FXRatePerc AS FixRate
+				    --,imps.PP_UnitPurchasePrice AS UnitCost
+					,([dbo].[fn_ConvertUOM](ISNULL(imps.PP_UnitPurchasePrice, 0),im.[StockUnitOfMeasure], im.[ConsumeUnitOfMeasure],1)) AS UnitCost
+					--,imps.SP_CalSPByPP_UnitSalePrice AS UnitSalePrice
+					,([dbo].[fn_ConvertUOM](ISNULL(imps.SP_CalSPByPP_UnitSalePrice, 0),im.[StockUnitOfMeasure], im.[ConsumeUnitOfMeasure],1)) AS UnitSalePrice
+					--,imps.PP_FXRatePerc AS FixRate
+					,([dbo].[fn_ConvertUOM](ISNULL(imps.PP_FXRatePerc, 0),im.[StockUnitOfMeasure], im.[ConsumeUnitOfMeasure],1)) AS FixRate
 					,ime.ExportECCN AS ECCN
 					,ime.HSCode AS HSCODE
 					,ime.ExportWeight AS [Weight]
 					,ime.ExportSizeLength AS SizeLength
 					,ime.ExportSizeWidth AS SizeWidth
 					,ime.ExportSizeHeight AS SizeHeight
-				FROM DBO.ItemMaster im WITH (NOLOCK)
-				LEFT JOIN DBO.Condition c WITH (NOLOCK) ON c.ConditionId in (SELECT Item FROM DBO.SPLITSTRING(@ConditionIds,','))
-				LEFT JOIN DBO.StockLine sl WITH (NOLOCK) ON im.ItemMasterId = sl.ItemMasterId AND sl.ConditionId = c.ConditionId 
+				FROM [dbo].[ItemMaster] im WITH (NOLOCK)
+				LEFT JOIN [dbo].[Condition] c WITH (NOLOCK) ON c.ConditionId IN (SELECT Item FROM DBO.SPLITSTRING(@ConditionIds,','))
+				LEFT JOIN [dbo].[StockLine] sl WITH (NOLOCK) ON im.ItemMasterId = sl.ItemMasterId AND sl.ConditionId = c.ConditionId 
 					AND sl.IsDeleted = 0  AND sl.isActive = 1 AND sl.IsParent = 1 
 					AND (
 							(sl.IsRepairManagement = 1) OR 
 							((sl.IsRepairManagement = 0 OR sl.IsRepairManagement IS NULL) AND sl.IsCustomerStock = 0)
 						)
 					--AND (sl.IsCustomerStock = 0 OR (sl.IsCustomerStock = 1 AND sl.CustomerId = @CustomerId))
-				LEFT JOIN DBO.ItemGroup ig WITH (NOLOCK) ON im.ItemGroupId = ig.ItemGroupId
-				LEFT JOIN DBO.Manufacturer mf WITH (NOLOCK) ON im.ManufacturerId = mf.ManufacturerId
-				LEFT JOIN DBO.ItemClassification ic WITH (NOLOCK) ON im.ItemClassificationId = ic.ItemClassificationId
-				LEFT JOIN DBO.ItemMasterExportInfo ime WITH (NOLOCK) ON im.ItemMasterId = ime.ItemMasterId
-				LEFT JOIN (SELECT partnumber, ItemMasterId FROM DBO.ItemMaster WITH (NOLOCK)) OEMPMA ON OEMPMA.ItemMasterId = im.IsOemPNId
-				LEFT JOIN DBO.ItemMasterPurchaseSale imps WITH (NOLOCK) on imps.ItemMasterId = im.ItemMasterId
-							and imps.ConditionId = c.ConditionId
+				LEFT JOIN [dbo].[ItemGroup] ig WITH (NOLOCK) ON im.ItemGroupId = ig.ItemGroupId
+				LEFT JOIN [dbo].[Manufacturer] mf WITH (NOLOCK) ON im.ManufacturerId = mf.ManufacturerId
+				LEFT JOIN [dbo].[ItemClassification] ic WITH (NOLOCK) ON im.ItemClassificationId = ic.ItemClassificationId
+				LEFT JOIN [dbo].[ItemMasterExportInfo] ime WITH (NOLOCK) ON im.ItemMasterId = ime.ItemMasterId
+				LEFT JOIN (SELECT partnumber, ItemMasterId FROM [dbo].[ItemMaster] WITH (NOLOCK)) OEMPMA ON OEMPMA.ItemMasterId = im.IsOemPNId
+				LEFT JOIN [dbo].[ItemMasterPurchaseSale] imps WITH (NOLOCK) ON imps.ItemMasterId = im.ItemMasterId AND imps.ConditionId = c.ConditionId
 				WHERE 
 					im.ItemMasterId IN (SELECT Item FROM DBO.SPLITSTRING(@ItemMasterIdlist,','))
 				GROUP BY
-					im.PartNumber
+					 im.PartNumber
 					,im.PurchaseUnitOfMeasureId
 					,im.PurchaseUnitOfMeasure
 					,im.ItemMasterId 
@@ -120,6 +125,8 @@ BEGIN
 					,ime.ExportSizeLength
 					,ime.ExportSizeWidth
 					,ime.ExportSizeHeight
+					,im.[StockUnitOfMeasure]
+					,im.[ConsumeUnitOfMeasure]
 				ORDER BY 9 DESC
 			END
 		COMMIT  TRANSACTION

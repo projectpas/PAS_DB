@@ -27,7 +27,7 @@ insert into @p1 values(501,1269,264,2,2,NULL,NULL,1,3,0,NULL,NULL,3,1,0,0,0,0,0,
 exec USP_AddUpdateSalesOrderPart @tbl_SalesOrderPartList=@p1
 
 **************************************************************/
-create      PROCEDURE [dbo].[USP_AddUpdateSalesOrderPart]
+CREATE      PROCEDURE [dbo].[USP_AddUpdateSalesOrderPart]
 	@tbl_SalesOrderPartList SOPartListType READONLY
 AS
 BEGIN
@@ -178,6 +178,17 @@ BEGIN
 		SET @POUnitOfMeasure = (SELECT [ShortCode] FROM [dbo].[UnitOfMeasure] WITH(NOLOCK) WHERE [UnitOfMeasureId] = @PurchaseUnitOfMeasureId)
 		SET @StockUnitOfMeasure = (SELECT [ShortCode] FROM [dbo].[UnitOfMeasure] WITH(NOLOCK) WHERE [UnitOfMeasureId] = @StockUnitOfMeasureId)
 		SET @ConsumeUnitOfMeasure = (SELECT [ShortCode] FROM [dbo].[UnitOfMeasure] WITH(NOLOCK) WHERE [UnitOfMeasureId] = @ConsumeUnitOfMeasureId)
+
+		IF (@StockLineId IS NOT NULL AND @StockLineId > 0)
+		BEGIN			
+			SELECT @UnitCost = ISNULL([UnitCost],0) FROM [dbo].[Stockline] WITH(NOLOCK) WHERE [StockLineId] = @StockLineId;
+			--SET @UnitCost = ([dbo].[fn_ConvertUOM](ISNULL(@UnitCost, 0),@ConsumeUnitOfMeasure, @StockUnitOfMeasure,1));	
+		END
+		ELSE
+		BEGIN
+			SELECT @UnitCost = ISNULL([PP_UnitPurchasePrice],0) FROM [dbo].[ItemMasterPurchaseSale] WITH(NOLOCK) WHERE [ItemMasterId] = @ItemMasterId AND [ConditionId] = @ConditionId
+			--SET @UnitCost = ([dbo].[fn_ConvertUOM](ISNULL(@UnitCost, 0),@ConsumeUnitOfMeasure, @StockUnitOfMeasure,1));	
+		END
         
    	    --  UOM Conversion  --
 		SET @QtyRequested = ([dbo].[fn_ConvertUOM](ISNULL(@QtyRequested, 0),@ConsumeUnitOfMeasure, @StockUnitOfMeasure,0));
@@ -186,7 +197,7 @@ BEGIN
 		SET @MarkUpAmount = ([dbo].[fn_ConvertUOM](ISNULL(@MarkUpAmount, 0),@ConsumeUnitOfMeasure, @StockUnitOfMeasure,1));
 		SET @DiscountAmount = ([dbo].[fn_ConvertUOM](ISNULL(@DiscountAmount, 0),@ConsumeUnitOfMeasure, @StockUnitOfMeasure,1));
 		SET @TaxAmount = ([dbo].[fn_ConvertUOM](ISNULL(@TaxAmount, 0),@ConsumeUnitOfMeasure, @StockUnitOfMeasure,1));
-		SET @UnitCost = ([dbo].[fn_ConvertUOM](ISNULL(@UnitCost, 0),@ConsumeUnitOfMeasure, @StockUnitOfMeasure,1));		
+			
 		SET @MarginAmount = ([dbo].[fn_ConvertUOM](ISNULL(@MarginAmount, 0),@ConsumeUnitOfMeasure, @StockUnitOfMeasure,1));
 
 		IF (ISNULL(@SalesOrderPartId, 0) = 0) -- Add New Part

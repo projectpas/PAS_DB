@@ -33,7 +33,7 @@
 	20   19-SEP-2025  RAJESH GAMI	    Added return field: netSalesPricePerUnit
 	21   05-NOV-2025  RAJESH GAMI	    Added return field: TotalPartCost
 	22    20-NOV-2025  RAJESH GAMI	    Fixed TotalPartCost Issue
--- EXEC [DBO].[GetSalesOrderPartView] 10846,0
+-- EXEC [DBO].[GetSalesOrderPartView] 10850,0
 **************************************************************/
 CREATE   PROCEDURE [dbo].[GetSalesOrderPartView]
     @SalesOrderId BIGINT,
@@ -291,10 +291,19 @@ BEGIN
 
 		(CASE WHEN ISNULL(part.ItemMasterId,0) != 0 AND ISNULL(part.ItemMasterId,0) != ISNULL(qs.ItemMasterId,0) THEN qs.PartNumber ELSE '' END) as RevisedPN,
 		(CASE WHEN ISNULL(part.ItemMasterId,0) != 0 AND ISNULL(part.ItemMasterId,0) != ISNULL(qs.ItemMasterId,0) THEN qs.ItemMasterId ELSE 0 END) as RevisedPNItemMasterId,
-		CASE WHEN @LOTNumber = '' THEN '' ELSE (CASE WHEN (SELECT LotId FROM dbo.LotTransInOutDetails LTI WHERE LTI.LotId = SO.LotId AND LTI.StockLineId = Stk.StockLineId ) >0 THEN @LOTNumber ELSE '' END) END  AS LotNumber,
-		CASE WHEN SC.SalesOrderStocklineId IS NOT NULL THEN ISNULL(SC.NetSaleAmountPerUnit, 0) ELSE ISNULL(PS.NetSaleAmountPerUnit, 0) END AS netSalesPricePerUnit,
-		part.UnitSalesPrice MainUnitSalesPrice,
-		ISNULL((CASE WHEN SC.SalesOrderStocklineId IS NOT NULL THEN ISNULL(SC.NetSaleAmount, 0) ELSE ISNULL(PS.NetSaleAmount, 0) END), 0) NetSalePriceExtendedPart
+		CASE WHEN @LOTNumber = '' THEN '' ELSE (CASE WHEN (SELECT LotId FROM dbo.LotTransInOutDetails LTI WHERE LTI.LotId = SO.LotId AND LTI.StockLineId = Stk.StockLineId ) >0 THEN @LOTNumber ELSE '' END) END  AS LotNumber,		
+		--CASE WHEN SC.SalesOrderStocklineId IS NOT NULL THEN ISNULL(SC.NetSaleAmountPerUnit, 0) ELSE ISNULL(PS.NetSaleAmountPerUnit, 0) END AS netSalesPricePerUnit,
+		CASE WHEN SC.SalesOrderStocklineId IS NOT NULL 
+		THEN [dbo].[fn_ConvertUOM](ISNULL(SC.NetSaleAmountPerUnit, 0),qs.[StockUnitOfMeasure], qs.[ConsumeUnitOfMeasure],1)
+		ELSE [dbo].[fn_ConvertUOM](ISNULL(PS.NetSaleAmountPerUnit, 0),itemMaster.[StockUnitOfMeasure], itemMaster.[ConsumeUnitOfMeasure],1)
+		END AS [netSalesPricePerUnit],			   		 		
+		--part.UnitSalesPrice MainUnitSalesPrice,
+		[dbo].[fn_ConvertUOM](ISNULL(part.[UnitSalesPrice],0),itemMaster.[StockUnitOfMeasure], itemMaster.[ConsumeUnitOfMeasure],1) MainUnitSalesPrice,		
+		--ISNULL((CASE WHEN SC.SalesOrderStocklineId IS NOT NULL THEN ISNULL(SC.NetSaleAmount, 0) ELSE ISNULL(PS.NetSaleAmount, 0) END), 0) NetSalePriceExtendedPart
+		CASE WHEN SC.SalesOrderStocklineId IS NOT NULL 
+		THEN [dbo].[fn_ConvertUOM](ISNULL(SC.NetSaleAmount, 0),qs.[StockUnitOfMeasure], qs.[ConsumeUnitOfMeasure],1)
+		ELSE [dbo].[fn_ConvertUOM](ISNULL(PS.NetSaleAmount, 0),itemMaster.[StockUnitOfMeasure], itemMaster.[ConsumeUnitOfMeasure],1)
+		END AS [NetSalePriceExtendedPart]
 
 		INTO #tmpSOPartTblV1 
     FROM DBO.SalesOrderPartV1 part WITH (NOLOCK)

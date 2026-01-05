@@ -32,6 +32,17 @@ BEGIN
         BEGIN TRANSACTION;
         BEGIN 
 		declare @moduleId int = (SELECT ManagementStructureModuleId FROM dbo.ManagementStructureModule WITH (NOLOCK) WHERE ModuleName = 'POHeader')
+		;WITH RFQData AS
+		(
+			SELECT 
+				rfqPart.ReferenceId AS PurchaseOrderId,
+				MIN(rfq.RfqId) AS CustomerRFQNo
+			FROM dbo.VendorRFQPart rfqPart WITH (NOLOCK) 
+			INNER JOIN dbo.ILSRFQPart ilsPart WITH (NOLOCK) ON rfqPart.ILSRFQDetailId = ilsPart.ILSRFQDetailId
+			INNER JOIN dbo.CustomerRfq rfq WITH (NOLOCK) ON ilsPart.CustomerRfqId = rfq.CustomerRfqId
+			WHERE rfqPart.ModuleId = @poModuleId
+			GROUP BY rfqPart.ReferenceId
+		)
             SELECT TOP 1
                 po.PurchaseOrderId,
                 po.PurchaseOrderNumber,
@@ -86,18 +97,14 @@ BEGIN
                 ISNULL(po.SourceBy, '') AS SourceBy,
                 ISNULL(po.MarketplaceRef, '') AS MarketplaceRef,
 				VRFQ.VendorRFQPurchaseOrderNumber,
-				ISNULL(rfqData.CustomerRFQNo,'') AS CustomerRFQNo
+				ISNULL(rfq.CustomerRFQNo, '') AS CustomerRFQNo
             FROM dbo.PurchaseOrder po WITH (NOLOCK)
             LEFT JOIN dbo.PurchaseOrderManagementStructureDetails msd WITH (NOLOCK)
                 ON po.PurchaseOrderId = msd.ReferenceID AND msd.ModuleID = @moduleId
             LEFT JOIN dbo.Vendor Ve WITH (NOLOCK)
                 ON po.VendorId = Ve.VendorId
 			LEFT JOIN dbo.VendorRFQPurchaseOrder VRFQ WITH (NOLOCK) ON po.VendorRFQPurchaseOrderId = VRFQ.VendorRFQPurchaseOrderId
-			OUTER APPLY (SELECT TOP 1 rfq.RfqId CustomerRFQNo FROM DBO.VendorRFQPart rfqPart WITH(NOLOCK) 
-				INNER JOIN DBO.ILSRFQPart ilsPart WITH(NOLOCK) ON rfqPart.ILSRFQDetailId = ilsPart.ILSRFQDetailId 
-				INNER JOIN DBO.CustomerRfq rfq WITH(NOLOCK) ON ilsPart.CustomerRfqId = rfq.CustomerRfqId
-				WHERE rfqPart.ModuleId = @poModuleId AND rfqPart.ReferenceId = po.PurchaseOrderId) rfqData
-
+			LEFT JOIN RFQData rfq ON rfq.PurchaseOrderId = po.PurchaseOrderId
 			WHERE po.PurchaseOrderId = @PurchaseOrderId;
 			
         END

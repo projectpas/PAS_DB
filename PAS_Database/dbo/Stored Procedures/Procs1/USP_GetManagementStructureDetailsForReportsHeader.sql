@@ -23,7 +23,8 @@
 	8    03-11-2025   Rajesh Gami			Added field MasterCompanyCode.
 	9    15-12-2025   Devendra Shekh		Added field CurrencyCode.
 	10   19-12-2025   Ayushi Patel			Return NULL License for 'PAR' MasterCompany
-	11   31-12-2025   Amit Ghediya			Static email for 'PAR' MasterCompany & Remove hide cert in sp
+	11   31-12-2025   Amit Ghediya			Static email for 'PAR' MasterCompany
+	11   05-01-2025   Amit Ghediya			Remove hide cert in sp (Before hide for all.)
  EXECUTE USP_GetManagementStructureDetailsForReportsHeader 1
 **********************/ 
 CREATE   PROCEDURE [dbo].[USP_GetManagementStructureDetailsForReportsHeader]    
@@ -93,7 +94,7 @@ SET NOCOUNT ON
                 @Country = @Country,
                 @PhoneNumber = @PhoneNumber,
                 @PhoneExt = @PhoneExt,
-                @Email = @FinalEmail, --@Email,
+                @Email = @FinalEmail,
                 @AddressOutput = @MergedAddress OUTPUT;
 
 				EXEC [dbo].[SP_ValidatePDFAddress] 
@@ -119,7 +120,6 @@ SET NOCOUNT ON
 					atd.Link,
 					at.ModuleId,
 					MergedAddress = @MergedAddress,
-					--MergedAddress = (SELECT dbo.ValidatePDFAddress(ad.Line1,ad.Line2,NULL,ad.City,ad.StateOrProvince,ad.PostalCode,co.countries_name,le.PhoneNumber,le.PhoneExt,c.Email)),
 					Address1 = Upper(ad.Line1),
 					Address2 = Upper(ad.Line2),
 					City = Upper(ad.City),
@@ -127,7 +127,6 @@ SET NOCOUNT ON
 					PostalCode = Upper(ad.PostalCode),
 					Country = Upper(co.countries_name),
 					PhoneNumber = Upper(le.PhoneNumber),
-					--MergedAddressForCOC = (SELECT dbo.ValidatePDFAddress(ad.Line1,NULL,NULL,ad.City,ad.StateOrProvince,ad.PostalCode,NULL,NULL,NULL,NULL)),
 					MergedAddressForCOC = @MergedAddressForCOC,
 					PhoneExt = Upper(le.PhoneExt),
 					LogoName = atd.FileName,
@@ -142,10 +141,10 @@ SET NOCOUNT ON
 					[dbo].[ConvertUTCtoLocal](GETUTCDATE(),tz.description)  as 'CurrentDateTime',
 					MS.MasterCompanyCode as MasterCompanyCode,
 					cn.Code as CurrencyCode
-				FROM EntityStructureSetup est
-					INNER JOIN ManagementStructureLevel msl WITH(NOLOCK) ON est.Level1Id = msl.ID
-					INNER JOIN LegalEntity le WITH(NOLOCK) ON msl.LegalEntityId = le.LegalEntityId
-					INNER JOIN MasterCompany MS WITH(NOLOCK) ON MS.MasterCompanyId = le.MasterCompanyId
+				FROM dbo.EntityStructureSetup est WITH(NOLOCK)
+					INNER JOIN dbo.ManagementStructureLevel msl WITH(NOLOCK) ON est.Level1Id = msl.ID
+					INNER JOIN dbo.LegalEntity le WITH(NOLOCK) ON msl.LegalEntityId = le.LegalEntityId
+					INNER JOIN dbo.MasterCompany MS WITH(NOLOCK) ON MS.MasterCompanyId = le.MasterCompanyId
 					JOIN dbo.Address ad WITH(NOLOCK) ON le.AddressId = ad.AddressId
 					JOIN dbo.Countries co WITH(NOLOCK) ON ad.CountryId = co.countries_id
 					LEFT JOIN dbo.Attachment at WITH(NOLOCK) ON le.LegalEntityId = at.ReferenceId AND at.ModuleId = @ModuleId
@@ -155,8 +154,6 @@ SET NOCOUNT ON
 					LEFT JOIN dbo.TimeZone tz WITH(NOLOCK) ON tz.TimeZoneId = le.TimeZoneId
 					LEFT JOIN dbo.Currency cn WITH(NOLOCK) ON cn.CurrencyId = le.FunctionalCurrencyId
 				WHERE est.EntityStructureId = @ManagementStructId) AS Result
-
-
 
 				SELECT * FROM #TempDestinationTable
 			END

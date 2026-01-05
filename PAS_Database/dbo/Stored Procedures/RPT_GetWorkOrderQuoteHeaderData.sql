@@ -20,7 +20,7 @@
 	6	 31/05/2024   Moin Bloch        Added Max Length for Notes
 	7	 03/09/2024   Ekta Chandegra    Retrieve merged addres using common function
 	8	 03/31/2025   Vishal Suthar     Added conditional Notes for all the companies except MTI
-	9	 01/05/2025   AMIT GHEDIYA      Get Email & Phone from Contact.
+	9	 01/05/2025   AMIT GHEDIYA      Get Email & Phone from Contact (Before from cust general info.).
 
 -- EXEC [RPT_GetWorkOrderQuoteHeaderData] 7011
 **************************************************************/  
@@ -91,7 +91,6 @@ BEGIN
             woq.QuoteStatusId,
             TaxRate = ISNULL(custtax.TaxRate,0),
             CustomerAttention = sa.Attention,
-            --WONotes = woq.Notes,
 			CASE WHEN woq.MasterCompanyId = 11 THEN '' ELSE 
 				CASE WHEN woq.Notes !='' 
 					 THEN 
@@ -126,7 +125,6 @@ BEGIN
 			 LEFT JOIN dbo.ShippingVia sv WITH(NOLOCK)  ON cs.ShipViaId = sv.ShippingViaId 
 			 LEFT JOIN dbo.CustomerTaxTypeRateMapping custtax WITH(NOLOCK)  ON cust.CustomerId = custtax.CustomerId
 		WHERE woq.IsDeleted = 0 AND woq.WorkOrderQuoteId = @WorkOrderQuoteId
-
    END  
   COMMIT  TRANSACTION  
   

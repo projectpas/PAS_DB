@@ -9,7 +9,7 @@
 ** PR   Date		Author				Change Description  
 ** --   --------	-------				-----------------------------------
 ** 1    15-04-2025  Vishal Suthar	    Created
-
+** 2    02-Jan-2026 Rajesh Gami			UOM Conversion changes INT to DECIMAL
 exec sp_savePickTicketItemInterfaceForRO @SOPickTicketId=0,@SOPickTicketNumber=N'PT(SO)-000742',@SalesOrderId=1570,@CreatedBy=N'Jim Roberts',@UpdatedBy=N'Jim Roberts',@IsActive=1,@IsDeleted=0,@SalesOrderPartId=1973,@SalesOrderStocklineId=2517,@Qty=0,@QtyToShip=1,@MasterCompanyId=1,@Status=1,@PickedById=55,@ConfirmedById=0,@Memo=default,@IsConfirmed=0,@CodePrefixId=17,@CurrentNummber=742
 ********************************************************************************/
 CREATE   PROCEDURE [dbo].[sp_savePickTicketItemInterfaceForRO]      
@@ -23,8 +23,8 @@ CREATE   PROCEDURE [dbo].[sp_savePickTicketItemInterfaceForRO]
   @IsDeleted BIT = 0,
   @RepairOrderPartId BIGINT = 0,
   @StocklineId BIGINT = 0,
-  @Qty INT = 0,
-  @QtyToShip INT = 0,
+  @Qty DECIMAL(18,6) = 0,
+  @QtyToShip DECIMAL(18,6) = 0,
   @MasterCompanyId INT = 0,
   @Status INT = 0,
   @PickedById INT = 0,
@@ -43,7 +43,7 @@ BEGIN
  BEGIN TRANSACTION  
  BEGIN  
   DECLARE @ROPartId BIGINT;  
-  DECLARE @QtyRemaining BIGINT = 0, @TotalRervePart BIGINT = 0; 
+  DECLARE @QtyRemaining DECIMAL(18,6) = 0, @TotalRervePart BIGINT = 0; 
   DECLARE @EnforcePickTicketConfirmation BIT;
 
   IF(@ROPickTicketId = 0)  
@@ -54,7 +54,7 @@ BEGIN
 
 	IF(@TotalRervePart > 1)
 	BEGIN
-	    DECLARE @QtyToReserve INT = 0,@TotalQtyToShip INT = 0;
+	    DECLARE @QtyToReserve DECIMAL(18,6) = 0,@TotalQtyToShip DECIMAL(18,6) = 0;
 
 		SELECT @QtyToReserve = ISNULL(SUM(rop.QuantityReserved), 0) 
      	FROM dbo.RepairOrderPart rop WITH(NOLOCK)

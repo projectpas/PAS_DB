@@ -1,6 +1,4 @@
-﻿
-
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [USP_CreateStockLine]           
  ** Author:   Moin Bloch
  ** Description: This stored procedure is used to Create Stock Line
@@ -14,7 +12,7 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    10/12/2025    Moin Bloch    Created
-
+    2    02/JAN/2026    Rajesh Gami  UOM Conversion related change (INT to DECIMAL) & Added Stock & Consume UnitOfMeasureId
 --   EXEC [USP_CreateStockLine] 
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_CreateStockLine]
@@ -24,7 +22,7 @@ CREATE   PROCEDURE [dbo].[USP_CreateStockLine]
 @StocklineMatchKey VARCHAR(100) = NULL,
 @ControlNumber VARCHAR(50) = NULL,
 @ItemMasterId BIGINT = NULL,
-@Quantity INT = NULL,
+@Quantity DECIMAL(18, 6) = NULL,
 @ConditionId BIGINT,
 @SerialNumber VARCHAR(30) = NULL,
 @ShelfLife BIT = NULL,
@@ -48,15 +46,15 @@ CREATE   PROCEDURE [dbo].[USP_CreateStockLine]
 @CalibrationMemo NVARCHAR(MAX) = NULL,
 @OrderDate DATETIME2(7) = NULL,
 @PurchaseOrderId BIGINT = NULL,
-@PurchaseOrderUnitCost DECIMAL(18, 2) = NULL,
-@InventoryUnitCost DECIMAL(18, 2) = NULL,
+@PurchaseOrderUnitCost DECIMAL(18,6) = NULL,
+@InventoryUnitCost DECIMAL(18,6) = NULL,
 @RepairOrderId BIGINT = NULL,
-@RepairOrderUnitCost DECIMAL(18, 2) = NULL,
+@RepairOrderUnitCost DECIMAL(18,6) = NULL,
 @ReceivedDate DATETIME2(7) = NULL,
 @ReceiverNumber VARCHAR(50) = NULL,
 @ReconciliationNumber VARCHAR(50) = NULL,
-@UnitSalesPrice DECIMAL(18, 2) = NULL,
-@CoreUnitCost DECIMAL(18, 2) = NULL,
+@UnitSalesPrice DECIMAL(18,6) = NULL,
+@CoreUnitCost DECIMAL(18,6) = NULL,
 @GLAccountId BIGINT = NULL,
 @AssetId BIGINT = NULL,
 @IsHazardousMaterial BIT = NULL,
@@ -81,14 +79,14 @@ CREATE   PROCEDURE [dbo].[USP_CreateStockLine]
 @UnitCostAdjustmentReasonTypeId INT = NULL,
 @UnitSalePriceAdjustmentReasonTypeId INT = NULL,
 @IdNumber VARCHAR(100) = NULL,
-@QuantityToReceive INT = NULL,
+@QuantityToReceive DECIMAL(18, 6) = NULL,
 @PurchaseOrderExtendedCost DECIMAL(18,0) = NULL,
 @ManufacturingTrace NVARCHAR(200) = NULL,
 @ExpirationDate DATETIME2(7) = NULL,
 @AircraftTailNumber NVARCHAR(200) = NULL,
 @ShippingViaId BIGINT = NULL,
 @EngineSerialNumber NVARCHAR(200) = NULL,
-@QuantityRejected INT = NULL,
+@QuantityRejected DECIMAL(18, 6) = NULL,
 @PurchaseOrderPartRecordId BIGINT = NULL,
 @ShippingAccount NVARCHAR(200) = NULL,
 @ShippingReference NVARCHAR(200) = NULL,
@@ -96,14 +94,14 @@ CREATE   PROCEDURE [dbo].[USP_CreateStockLine]
 @TimeLifeDetailsNotProvided BIT = NULL,
 @WorkOrderId BIGINT = NULL,
 @WorkOrderMaterialsId BIGINT = NULL,
-@QuantityReserved INT = NULL,
-@QuantityTurnIn INT = NULL,
-@QuantityIssued INT = NULL,
-@QuantityOnHand INT = NULL,
-@QuantityAvailable INT = NULL,
-@QuantityOnOrder INT = NULL,
-@QtyReserved INT = NULL,
-@QtyIssued INT = NULL,
+@QuantityReserved DECIMAL(18, 6) = NULL,
+@QuantityTurnIn DECIMAL(18, 6) = NULL,
+@QuantityIssued DECIMAL(18, 6) = NULL,
+@QuantityOnHand DECIMAL(18, 6) = NULL,
+@QuantityAvailable DECIMAL(18, 6) = NULL,
+@QuantityOnOrder DECIMAL(18, 6) = NULL,
+@QtyReserved DECIMAL(18, 6) = NULL,
+@QtyIssued DECIMAL(18, 6) = NULL,
 @BlackListed BIT = NULL,
 @BlackListedReason VARCHAR(MAX) = NULL,
 @Incident BIT = NULL,
@@ -192,8 +190,8 @@ CREATE   PROCEDURE [dbo].[USP_CreateStockLine]
 @WorkOrderMaterialsKitId BIGINT = NULL,
 @LotId BIGINT = NULL,
 @IsLotAssigned BIT = NULL,
-@LOTQty INT = NULL,
-@LOTQtyReserve INT = NULL,
+@LOTQty DECIMAL(18, 6) = NULL,
+@LOTQtyReserve DECIMAL(18, 6) = NULL,
 @OriginalCost DECIMAL(18,2) = NULL,
 @POOriginalCost DECIMAL(18,2) = NULL,
 @ROOriginalCost DECIMAL(18,2) = NULL,
@@ -249,7 +247,7 @@ CREATE   PROCEDURE [dbo].[USP_CreateStockLine]
 @RevenueExchGLAccName VARCHAR(255) = NULL,
 @COGS_ExchSalesOrderGLAccId BIGINT = NULL,
 @COGS_ExchSalesOrderGLAccName VARCHAR(255) = NULL,
-@QuantityAdjustment INT = NULL,
+@QuantityAdjustment DECIMAL(18, 6) = NULL,
 @IsPiecePart BIT = NULL,
 @IsRepairManagement BIT = NULL,
 @IsDocument BIT = NULL,
@@ -260,6 +258,8 @@ CREATE   PROCEDURE [dbo].[USP_CreateStockLine]
 @ExportECCN VARCHAR(200) = NULL,
 @ITARNumber VARCHAR(200) = NULL,
 @AccountPayableglAccountId BIGINT = NULL,
+@StockUnitOfMeasureId BIGINT = NULL,
+@ConsumeUnitOfMeasureId BIGINT = NULL,
 @tbl_TimeLifeType TimeLifeType READONLY
 AS
 BEGIN
@@ -472,7 +472,7 @@ BEGIN
 			   ,[InventoryExchAgreementGLAccName],[InventoryReserveGLAccId],[InventoryReserveGLAccName],[COGS_WorkOrderGLAccId],[COGS_WorkOrderGLAccName],[COGS_SalesOrderGLAccId]			  
 			   ,[COGS_SalesOrderGLAccName],[COGS_QtyVarianceGLAccId],[COGS_QtyVarianceGLAccName],[COGS_UnitCostVarianceGLAccId],[COGS_UnitCostVarianceGLAccName],[RevenueMroGLAccId]
 			   ,[RevenueMroGLAccName],[RevenueSoGLAccId],[RevenueSoGLAccName],[RevenueExchGLAccId],[RevenueExchGLAccName],[COGS_ExchSalesOrderGLAccId],[COGS_ExchSalesOrderGLAccName]			   
-			   ,[QuantityAdjustment],[IsPiecePart],[IsRepairManagement],[IsDocument],[PurchaseOrderNumber],[IsBatchStock],[BatchNumber])
+			   ,[QuantityAdjustment],[IsPiecePart],[IsRepairManagement],[IsDocument],[PurchaseOrderNumber],[IsBatchStock],[BatchNumber],StockUnitOfMeasureId,ConsumeUnitOfMeasureId)
 	     SELECT @PartNumber,@StockLineNumber,@StocklineMatchKey,@ControlNumber,@ItemMasterId,@QuantityOnHand,@ConditionId,@SerialNumber,@ShelfLife,@ShelfLifeExpirationDate
                ,@WarehouseId,@LocationId,@ObtainFrom,@Owner,@TraceableTo,@ManufacturerId,@Manufacturer,@ManufacturerLotNumber,@ManufacturingDate,@ManufacturingBatchNumber,@PartCertificationNumber
                ,@CertifiedBy,@CertifiedDate,@TagDate,@TagType,@CertifiedDueDate,@CalibrationMemo,@OrderDate,@PurchaseOrderId,@PurchaseOrderUnitCost,@InventoryUnitCost,@RepairOrderId,@RepairOrderUnitCost
@@ -496,7 +496,7 @@ BEGIN
                ,@InventoryExchAgreementGLAccName,@InventoryReserveGLAccId,@InventoryReserveGLAccName,@COGS_WorkOrderGLAccId,@COGS_WorkOrderGLAccName,@COGS_SalesOrderGLAccId
                ,@COGS_SalesOrderGLAccName,@COGS_QtyVarianceGLAccId,@COGS_QtyVarianceGLAccName,@COGS_UnitCostVarianceGLAccId,@COGS_UnitCostVarianceGLAccName,@RevenueMroGLAccId
                ,@RevenueMroGLAccName,@RevenueSoGLAccId,@RevenueSoGLAccName,@RevenueExchGLAccId,@RevenueExchGLAccName,@COGS_ExchSalesOrderGLAccId,@COGS_ExchSalesOrderGLAccName
-               ,@QuantityAdjustment,@IsPiecePart,@IsRepairManagement,@IsDocument,@PurchaseOrderNumber,@IsBatchStock,@BatchNumber
+               ,@QuantityAdjustment,@IsPiecePart,@IsRepairManagement,@IsDocument,@PurchaseOrderNumber,@IsBatchStock,@BatchNumber,@StockUnitOfMeasureId,@ConsumeUnitOfMeasureId
 
 			SELECT @StockLineId = SCOPE_IDENTITY();
 
@@ -708,7 +708,9 @@ BEGIN
                [COGS_ExchSalesOrderGLAccId] = @COGS_ExchSalesOrderGLAccId,
                [COGS_ExchSalesOrderGLAccName] = @COGS_ExchSalesOrderGLAccName,
                [IntegrationPortal] = @IntegrationPortal,
-               [Adjustment] = ISNULL(@UnitCost,0) - (ISNULL(@PurchaseOrderUnitCost,0) + ISNULL(@RepairOrderUnitCost,0)) 
+               [Adjustment] = ISNULL(@UnitCost,0) - (ISNULL(@PurchaseOrderUnitCost,0) + ISNULL(@RepairOrderUnitCost,0)),
+			   ConsumeUnitOfMeasureId = @ConsumeUnitOfMeasureId,
+			   StockUnitOfMeasureId = @StockUnitOfMeasureId
 	     WHERE [MasterCompanyId] = @MasterCompanyId AND [StockLineId] = @StockLineId
 		 
 		EXEC [dbo].[USP_UpdateSLMSDetails] @StkManagementStructureModuleId,@StockLineId,@ManagementStructureId,@UpdatedBy;
@@ -797,6 +799,13 @@ BEGIN
 	BEGIN CATCH      
 		IF @@trancount > 0
         ROLLBACK TRAN;
+		 SELECT
+    ERROR_NUMBER() AS ErrorNumber,
+    ERROR_STATE() AS ErrorState,
+    ERROR_SEVERITY() AS ErrorSeverity,
+    ERROR_PROCEDURE() AS ErrorProcedure,
+    ERROR_LINE() AS ErrorLine,
+    ERROR_MESSAGE() AS ErrorMessage;
               DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name() 
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
               , @AdhocComments     VARCHAR(150)    = 'USP_CreateStockLine' 

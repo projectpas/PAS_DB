@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿
+/*************************************************************           
  ** File:   [ProcGetRoList]           
  ** Author:   Moin Bloch  
  ** Description: Get Data for Repair Order listing
@@ -26,7 +27,7 @@
 	10   25-04-2025     HEMANT SALIYA       Modified Fix Default Order Isuee in RO List Created By
 	11   13-05-2025     Bhargav Saliya      MULTIPLE checking for  WO and SO Number was improper so corrected it
 	12   04-12-2025     Amit Ghediya        Added qtyShipped,qtyRemaining for shipping details
-     
+    13   31-12-2025     Rajesh Gami         UOM Decimal Places Changes
 -- exec ProcGetRoList @PageNumber=1,@PageSize=20,@SortColumn=N'CreatedDate',@SortOrder=-1,@StatusID=6,@GlobalFilter=N'',@RepairOrderNumber=NULL,@OpenDate=NULL,@ClosedDate=NULL,@VendorName=NULL,@VendorCode=NULL,@Status=N'open',@ApprovedBy=NULL,@RequestedBy=NULL,@CreatedDate=NULL,@UpdatedDate=NULL,@CreatedBy=NULL,@UpdatedBy=NULL,@IsDeleted=0,@EmployeeId=223,@MasterCompanyId=1,@VendorId=NULL,@ViewType=N'roview',@PartNumberType=NULL,@PartDescription=NULL,@EstDeliveryType=NULL,@ManufacturerType=NULL,@SalesOrderNumberType=NULL,@WorkOrderNumType=NULL,@IsUpdated=0
 **************************************************************/
 CREATE      PROCEDURE [dbo].[ProcGetRoList]
@@ -170,8 +171,8 @@ BEGIN
 					CASE WHEN ROPA.WorkOrderCount > 1 THEN 'Multiple' ELSE ROPA.MaxWorkOrderNo END AS WorkOrderNumType,
 					CASE WHEN ROPA.SalesOrderCount > 1 THEN 'Multiple' ELSE ROPA.MaxSalesOrderNo END AS SalesOrderNumberType,
 					0 AS isStkLable,
-					0 AS qtyShipped,
-					0 AS qtyRemaining,
+					CAST(0 AS DECIMAL(18,6))  AS qtyShipped,
+					CAST(0 AS DECIMAL(18,6)) AS qtyRemaining,
 					ROPA.QuantityOrdered
 			INTO #tmpReceivingRoviewList
 			FROM DBO.RepairOrder RO WITH (NOLOCK)
@@ -191,26 +192,21 @@ BEGIN
 				   ROPA.MaxWorkOrderNo,
 				   ROPA.MaxSalesOrderNo,ROPA.WorkOrderCount,ROPA.SalesOrderCount,ROPA.QuantityOrdered
 
-		    UPDATE TMP
-				SET TMP.isStkLable = case when result.StkCount > 0 then 1 else 0 end
-				FROM #tmpReceivingRoviewList TMP
-				OUTER APPLY (
-					SELECT COUNT(stk.StockLineId) AS StkCount FROM DBO.Stockline stk WITH (NOLOCK) 
-					WHERE stk.RepairOrderId = TMP.RepairOrderId) 
-				AS result
-
-			UPDATE TMP1
-				SET TMP1.qtyShipped = ISNULL(result.QtyShipped, 0),
-					TMP1.qtyRemaining = ISNULL(result.QuantityOrdered, 0)
+				UPDATE TMP1
+				SET
+					TMP1.qtyShipped = CAST(result.QtyShipped AS DECIMAL(18,6)),
+					TMP1.qtyRemaining = CAST(result.QuantityOrdered AS DECIMAL(18,6))
 				FROM #tmpReceivingRoviewList TMP1
 				OUTER APPLY (
 					SELECT 
-						ISNULL(TMP1.QuantityOrdered,0) - ISNULL(SUM(ROSI.QtyShipped),0)AS QuantityOrdered,
-						ISNULL(SUM(ROSI.QtyShipped),0) AS QtyShipped
-					FROM DBO.RepairOrderPart rop WITH (NOLOCK) 
-					LEFT JOIN DBO.RepairOrderShippingItem ROSI WITH (NOLOCK) ON ROSI.RepairOrderPartId = rop.RepairOrderPartRecordId
-					WHERE rop.RepairOrderId = TMP1.RepairOrderId) 
-				AS result
+						ISNULL(TMP1.QuantityOrdered, 0)
+						- ISNULL(SUM(CAST(ROSI.QtyShipped AS DECIMAL(28,6))), 0) AS QuantityOrdered,
+						ISNULL(SUM(CAST(ROSI.QtyShipped AS DECIMAL(28,6))), 0) AS QtyShipped
+					FROM DBO.RepairOrderPart rop WITH (NOLOCK)
+					LEFT JOIN DBO.RepairOrderShippingItem ROSI WITH (NOLOCK)
+						ON ROSI.RepairOrderPartId = rop.RepairOrderPartRecordId
+					WHERE rop.RepairOrderId = TMP1.RepairOrderId
+				) AS result;
 
 			;WITH ResultData AS(
 				Select M.RepairOrderId,M.RepairOrderNumber,M.RepairOrderNo,M.OpenDate as 'OpenDate',M.ClosedDate as 'ClosedDate',M.CreatedDate,
@@ -347,8 +343,8 @@ BEGIN
 				   CAST(ROP.EstRecordDate AS VARCHAR(MAX)) as EstDeliveryType,
 				   ROP.RepairOrderPartRecordId,
 				   0 AS isStkLable,
-				   0 AS qtyShipped,
-				   0 AS qtyRemaining,
+				   CAST(0 AS DECIMAL(18,6))  AS qtyShipped,
+				   CAST(0 AS DECIMAL(18,6)) AS qtyRemaining,
 				   ROP.QuantityOrdered AS QuantityOrdered
 			INTO #tmpReceivingPnviewList
 			FROM  dbo.RepairOrder RO WITH (NOLOCK)
@@ -369,17 +365,18 @@ BEGIN
 					) AS result
 
 			UPDATE TMP1
-				SET TMP1.qtyShipped = ISNULL(result.QtyShipped, 0),
-					TMP1.qtyRemaining = ISNULL(result.QuantityOrdered, 0)
+				SET TMP1.qtyShipped = CAST(result.QtyShipped AS DECIMAL(18,6)),
+					TMP1.qtyRemaining = CAST(result.QuantityOrdered AS DECIMAL(18,6))
 				FROM #tmpReceivingPnviewList TMP1
 				OUTER APPLY (
 					SELECT 
-						ISNULL(TMP1.QuantityOrdered,0) - ISNULL(SUM(ROSI.QtyShipped),0) AS QuantityOrdered,
-						ISNULL(SUM(ROSI.QtyShipped),0) AS QtyShipped
+						ISNULL(TMP1.QuantityOrdered,0) 
+						- ISNULL(SUM(CAST(ROSI.QtyShipped AS DECIMAL(28,6))), 0) AS QuantityOrdered,
+						ISNULL(SUM(CAST(ROSI.QtyShipped AS DECIMAL(28,6))), 0) AS QtyShipped
 					FROM DBO.RepairOrderShippingItem ROSI WITH (NOLOCK)
 					WHERE ROSI.RepairOrderPartId = TMP1.RepairOrderPartRecordId) 
 				AS result
-
+							   
 					;with ResultCount AS(Select COUNT(RepairOrderId) AS totalItems FROM #tmpReceivingPnviewList)
 			SELECT * INTO #TempResult FROM  #tmpReceivingPnviewList
 			WHERE ((@GlobalFilter <>'' AND ((RepairOrderNumber LIKE '%' +@GlobalFilter+'%') OR	
@@ -459,6 +456,15 @@ BEGIN
 		END
 	END TRY    
 	BEGIN CATCH      
+
+	SELECT
+    ERROR_NUMBER() AS ErrorNumber,
+    ERROR_STATE() AS ErrorState,
+    ERROR_SEVERITY() AS ErrorSeverity,
+    ERROR_PROCEDURE() AS ErrorProcedure,
+    ERROR_LINE() AS ErrorLine,
+    ERROR_MESSAGE() AS ErrorMessage;
+
 		DECLARE @ErrorLogID INT
 		,@DatabaseName VARCHAR(100) = db_name()
 		-----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------

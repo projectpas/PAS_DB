@@ -64,7 +64,7 @@
     [UnitCostAdjustmentReasonTypeId]      INT             NULL,
     [UnitSalePriceAdjustmentReasonTypeId] INT             NULL,
     [IdNumber]                            VARCHAR (100)   NULL,
-    [QuantityToReceive]                   INT             NOT NULL,
+    [QuantityToReceive]                   DECIMAL (18, 6) NULL,
     [PurchaseOrderExtendedCost]           DECIMAL (18, 6) CONSTRAINT [DF_StockLineDraftAudit_PurchaseOrderExtendedCost] DEFAULT ((0)) NULL,
     [ManufacturingTrace]                  NVARCHAR (200)  NULL,
     [ExpirationDate]                      DATETIME2 (7)   NULL,

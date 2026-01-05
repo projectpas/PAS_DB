@@ -23,7 +23,7 @@
 	8    03-11-2025   Rajesh Gami			Added field MasterCompanyCode.
 	9    15-12-2025   Devendra Shekh		Added field CurrencyCode.
 	10   19-12-2025   Ayushi Patel			Return NULL License for 'PAR' MasterCompany
-	11   31-12-2025   Amit Ghediya			Static email for 'PAR' MasterCompany
+	11   31-12-2025   Amit Ghediya			Static email for 'PAR' MasterCompany & Remove hide cert in sp
  EXECUTE USP_GetManagementStructureDetailsForReportsHeader 1
 **********************/ 
 CREATE   PROCEDURE [dbo].[USP_GetManagementStructureDetailsForReportsHeader]    
@@ -132,29 +132,11 @@ SET NOCOUNT ON
 					PhoneExt = Upper(le.PhoneExt),
 					LogoName = atd.FileName,
 					AttachmentDetailId = atd.AttachmentDetailId,
-					--Upper(le.FAALicense) as FAALicense,
-					FAALicense =
-					CASE 
-						WHEN MS.MasterCompanyCode = @MasterCompanyCode
-						THEN NULL
-						ELSE UPPER(le.FAALicense)
-					END,
-					--Upper(le.EASALicense) as EASALicense,
-					EASALicense =
-					CASE 
-						WHEN MS.MasterCompanyCode = @MasterCompanyCode
-						THEN NULL
-						ELSE UPPER(le.EASALicense)
-					END,
+					FAALicense = UPPER(le.FAALicense),
+					EASALicense = UPPER(le.EASALicense),
 					Upper(le.CAACLicense) as CAACLicense,
 					Upper(le.TCCALicense) as TCCALicense,
-					--Upper(le.UKCAALicense) as UKCAALicense,
-					UKCAALicense =
-					CASE 
-						WHEN MS.MasterCompanyCode = @MasterCompanyCode
-						THEN NULL
-						ELSE UPPER(le.UKCAALicense)
-					END,
+					UKCAALicense = UPPER(le.UKCAALicense),
 					Upper(c.Email) as Email,
 					CompanyLogoPath = MS.companylogo,
 					[dbo].[ConvertUTCtoLocal](GETUTCDATE(),tz.description)  as 'CurrentDateTime',

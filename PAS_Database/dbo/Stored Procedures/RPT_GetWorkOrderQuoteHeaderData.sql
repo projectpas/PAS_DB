@@ -20,6 +20,7 @@
 	6	 31/05/2024   Moin Bloch        Added Max Length for Notes
 	7	 03/09/2024   Ekta Chandegra    Retrieve merged addres using common function
 	8	 03/31/2025   Vishal Suthar     Added conditional Notes for all the companies except MTI
+	9	 01/05/2025   AMIT GHEDIYA      Get Email & Phone from Contact.
 
 -- EXEC [RPT_GetWorkOrderQuoteHeaderData] 7011
 **************************************************************/  
@@ -70,7 +71,7 @@ BEGIN
 				(CASE WHEN ISNULL(adr.PostalCode,'') = '' THEN '' ELSE ', ' + UPPER(ISNULL(adr.PostalCode,'')) END),
             Zip = UPPER(ISNULL(adr.PostalCode,'')),
             Country = UPPER(ISNULL(co.countries_name,'')),
-			MergerdQuoteAddress = (SELECT [dbo].ValidatePDFAddress(adr.Line1,adr.Line2,NULL,adr.City,adr.StateOrProvince,adr.PostalCode,co.countries_name,cust.CustomerPhone,NULL,cust.Email)),
+			MergerdQuoteAddress = (SELECT [dbo].ValidatePDFAddress(adr.Line1,adr.Line2,NULL,adr.City,adr.StateOrProvince,adr.PostalCode,co.countries_name,con.WorkPhone,NULL,con.Email)),
             ShipVia = UPPER(ISNULL(cs.ShipVia,'')),
             CustomerEmail = cust.Email,
             cust.CustomerPhone,

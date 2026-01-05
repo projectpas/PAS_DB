@@ -33,10 +33,11 @@
 	17   08/09/2025   Bhargav Saliya		Get ShipDate,IsSubWo Flage From MPN Table and remove the Outer Join
 	18   24/09/2025   Rajesh Gami			Added MPN Notes in return field value (Also added parameter as well)
 	19   03/11/2025   Bhargav Saliya		Added New Field [IsWorkOrderTask]
-	20   10/11/2025  Bhargav Saliya		Added New Filters WoTaskType
-	21   18/11/2025  Bhargav Saliya		Remove Case Condition For [IsWorkOrderTask] Field
-	22   19/11/2025   Amit Ghediya		Added New Field Location
+	20   10/11/2025   Bhargav Saliya		Added New Filters WoTaskType
+	21   18/11/2025   Bhargav Saliya		Remove Case Condition For [IsWorkOrderTask] Field
+	22   19/11/2025   Amit Ghediya			Added New Field Location
 	23   20/11/2025   Sahdev Saliya         Added New Field :- ReceivedCondition, RevisedCondition
+	24   30/12/2025   Vishal Suthar         Fixed WOQ Part Status which affects the approved amount
 
 	exec dbo.GetWorkOrderList @PageNumber=1,@PageSize=100,@SortColumn=default,@SortOrder=-1,@StatusID=1,@GlobalFilter=default,@ViewType=N'mpn',
 	@WorkOrderNum=default,@PartNumber=default,@PartDescription=default,@WorkScope=default,@Priority=default,@CustomerName=default,@CustomerAffiliation=default,@Stage=default,
@@ -153,6 +154,18 @@ BEGIN
     BEGIN   
 		SET @IsActive = NULL  
     END
+
+	DECLARE @WaitingForApprovalStatusId INT, @PendingStatusId INT, @PendingStatusName VARCHAR(20);
+	SELECT @WaitingForApprovalStatusId = [ApprovalStatusId] FROM [dbo].[ApprovalStatus] WITH (NOLOCK) WHERE [Name] = 'Waiting for Approval'
+
+	SELECT @PendingStatusId = [ApprovalStatusId], @PendingStatusName = [Name] FROM [dbo].[ApprovalStatus] WITH (NOLOCK) WHERE [Name] = 'Pending'
+	DECLARE @SubmitInternalApprovalProcessId INT, @SubmitCustomerApprovalProcessId INT, @SentForInternalApprovalProcessId INT, @SentForCustomerApprovalProcessId INT, @ApprovedProcessId INT
+
+	SELECT @SubmitInternalApprovalProcessId = [ApprovalProcessId] FROM [dbo].[ApprovalProcess] WITH (NOLOCK) WHERE  [Name] = 'SubmitInternalApproval'
+	SELECT @SubmitCustomerApprovalProcessId = [ApprovalProcessId] FROM [dbo].[ApprovalProcess] WITH (NOLOCK) WHERE  [Name] = 'SubmitCustomerApproval'
+	SELECT @SentForInternalApprovalProcessId = [ApprovalProcessId] FROM [dbo].[ApprovalProcess] WITH (NOLOCK) WHERE [Name] = 'SentForInternalApproval'
+	SELECT @SentForCustomerApprovalProcessId = [ApprovalProcessId] FROM [dbo].[ApprovalProcess] WITH (NOLOCK) WHERE [Name] = 'SentForCustomerApproval'
+	SELECT @ApprovedProcessId = [ApprovalProcessId] FROM [dbo].[ApprovalProcess] WITH (NOLOCK) WHERE [Name] = 'Approved'
 
 	DECLARE @WOApprovalDesc VARCHAR(200);  
 	SELECT @WOApprovalDesc = [Description] FROM [dbo].[ApprovalStatus] WITH(NOLOCK) WHERE UPPER([Description]) = 'APPROVED';
@@ -309,7 +322,15 @@ BEGIN
 			UPPER(WPN.[CustomerReference]) AS [CustomerReference],
 			UPPER(WPN.[CustomerReference]) AS [CustomerReferenceType],
 			CASE WHEN ISNULL(WPN.[IsSubWorkOrder], 0) = 1 THEN 'Yes' else 'No' end AS [IsSubWorkOrder],
-			UPPER(wqs.[Description]) AS [MPNQuoteStatus],
+			--UPPER(wqs.[Description]) AS [MPNQuoteStatus],
+			CASE
+				WHEN wopp.[ApprovalActionId] = CAST(@SubmitInternalApprovalProcessId AS INT) THEN appsI.[Description]
+				WHEN wopp.[ApprovalActionId] = CAST(@SubmitCustomerApprovalProcessId AS INT) THEN appsC.[Description]
+				WHEN wopp.[ApprovalActionId] = CAST(@ApprovedProcessId AS INT) THEN appsC.[Description]
+				WHEN wopp.[ApprovalActionId] = CAST(@SentForInternalApprovalProcessId AS INT) THEN COALESCE(appsI.[Description], appsA.[Description])
+				WHEN wopp.[ApprovalActionId] = CAST(@SentForCustomerApprovalProcessId AS INT) THEN COALESCE(appsC.[Description], appsA.[Description])
+			ELSE CAST(@PendingStatusName AS VARCHAR(20))
+			END AS [MPNQuoteStatus],
 			CAST(CASE WHEN ISNULL(WOQD.[QuoteMethod], 0) = 1 THEN ISNULL( WOQD.[CommonFlatRate] , 0) ELSE  
 			ISNULL(ISNULL(ISNULL(WOQD.[MaterialFlatBillingAmount], 0) + ISNULL(WOQD.[LaborFlatBillingAmount], 0) + ISNULL(WOQD.[ChargesFlatBillingAmount], 0),0) ,0) END AS VARCHAR) 'ApprovedAmount',
 			WPN.[ID] AS [WOPartId],
@@ -337,6 +358,10 @@ BEGIN
 			LEFT JOIN [dbo].[WorkOrderQuote] woq WITH (NOLOCK) ON woq.[workorderquoteid] = WOQD.[workorderquoteid]
 			LEFT JOIN [dbo].[WorkOrderQuoteStatus] wqs WITH (NOLOCK) ON woq.[QuoteStatusId] = wqs.[WorkOrderQuoteStatusId] 
 			LEFT JOIN dbo.Condition CD WITH(NOLOCK) ON WPN.ConditionId = CD.ConditionId  
+			LEFT JOIN [dbo].[WorkOrderApproval] wopp WITH (NOLOCK) ON WPN.[ID] = wopp.[WorkOrderPartNoId]
+			LEFT JOIN [dbo].[ApprovalStatus] appsI WITH (NOLOCK) ON wopp.[InternalStatusId] = appsI.[ApprovalStatusId]
+			LEFT JOIN [dbo].[ApprovalStatus] appsA WITH (NOLOCK) ON CAST(@WaitingForApprovalStatusId AS INT) = appsA.[ApprovalStatusId]
+			LEFT JOIN [dbo].[ApprovalStatus] appsC WITH (NOLOCK) ON wopp.[CustomerStatusId] = appsC.[ApprovalStatusId]
 			LEFT JOIN dbo.Condition RCD WITH(NOLOCK) ON WPN.RevisedConditionId = RCD.ConditionId  
 		WHERE ((WO.[MasterCompanyId] = @MasterCompanyId) AND (WO.[IsDeleted] = @IsDeleted) AND (@IsActive IS NULL OR WO.[IsActive] = @IsActive) AND (@WorkOrderStatus = 0 OR WPN.[WorkOrderStatusId] = @WorkOrderStatus)
 		AND (@WoTaskType IS NULL OR WO.[WorkOrderFormTypeId] = @WoTaskType))  

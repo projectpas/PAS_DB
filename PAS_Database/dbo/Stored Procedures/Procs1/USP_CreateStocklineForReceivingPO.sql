@@ -820,6 +820,7 @@ BEGIN
 							DECLARE @PP_newUnitSalePrice DECIMAL(18,6) = 0;
 							DECLARE @PP_newMarkUpAmount DECIMAL(18,6) = 0;
 							DECLARE @PP_FlatPrice DECIMAL(18,6) = 0;
+							DECLARE @SalePriceSelectId INT = (SELECT ItemMasterPurchaseSaleMasterId FROM [dbo].ItemMasterPurchaseSaleMaster WHERE [Name] = 'Flat');
 
                             SELECT @POP_UnitCost = POP.UnitCost,
                                    @POP_VendorListPrice = POP.VendorListPrice,
@@ -957,7 +958,7 @@ BEGIN
                                     1,
                                     0,
                                     @POP_ConditionId,
-                                    NULL,
+                                    @SalePriceSelectId,
                                     NULL,
                                     NULL,
                                     NULL,

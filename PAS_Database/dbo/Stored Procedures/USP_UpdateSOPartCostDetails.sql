@@ -128,7 +128,7 @@ SET NOCOUNT ON
 					SELECT [SalesOrderId], [SalesOrderPartId], [SalesOrderStocklineId], [UnitSalesPrice], [UnitSalesPriceExtended], [MarkUpPercentage], [MarkUpAmount], [DiscountPercentage], [DiscountAmount], [UnitCost],[UnitCostExtended],[MarginAmount],[MarginPercentage]
 					FROM [DBO].[SalesOrderStockLineCost] WITH (NOLOCK) WHERE SalesOrderPartId = @SalesOrderPartId;
 
-					IF EXISTS (SELECT TOP 1 * FROM [DBO].[SalesOrderStockLineCost] WITH (NOLOCK) WHERE SalesOrderPartId = @SalesOrderPartId)
+					IF EXISTS (SELECT TOP 1 [SalesOrderStockLineCostId] FROM [DBO].[SalesOrderStockLineCost] WITH (NOLOCK) WHERE SalesOrderPartId = @SalesOrderPartId)
 					BEGIN
 						SELECT @MasterLoopID = MAX(ID) FROM #SOStocklineDetails;
 						WHILE (@MasterLoopID > 0)

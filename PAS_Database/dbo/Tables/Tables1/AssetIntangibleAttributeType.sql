@@ -1,7 +1,7 @@
 ﻿CREATE TABLE [dbo].[AssetIntangibleAttributeType] (
     [AssetIntangibleAttributeTypeId] BIGINT         IDENTITY (1, 1) NOT NULL,
     [AssetIntangibleTypeId]          BIGINT         NOT NULL,
-    [IntangibleLifeYears]            INT            CONSTRAINT [DF_AssetIntangibleAttributeType_IntangibleLifeYears] DEFAULT ((0)) NOT NULL,
+    [IntangibleLifeYears]            INT            NOT NULL,
     [AssetAmortizationIntervalId]    BIGINT         NOT NULL,
     [IntangibleGLAccountId]          BIGINT         NOT NULL,
     [AmortExpenseGLAccountId]        BIGINT         NOT NULL,
@@ -11,14 +11,15 @@
     [MasterCompanyId]                INT            NOT NULL,
     [CreatedBy]                      VARCHAR (256)  NOT NULL,
     [UpdatedBy]                      VARCHAR (256)  NOT NULL,
-    [CreatedDate]                    DATETIME2 (7)  CONSTRAINT [AssetIntangibleAttributeType_DC_CDate] DEFAULT (getdate()) NOT NULL,
-    [UpdatedDate]                    DATETIME2 (7)  CONSTRAINT [AssetIntangibleAttributeType_DC_UDate] DEFAULT (getdate()) NOT NULL,
-    [IsActive]                       BIT            CONSTRAINT [DF_AssetIntangibleAttributeType_IsActive] DEFAULT ((1)) NOT NULL,
-    [IsDeleted]                      BIT            CONSTRAINT [DF_AssetIntangibleAttributeType_IsDeleted] DEFAULT ((0)) NOT NULL,
+    [CreatedDate]                    DATETIME2 (7)  NOT NULL,
+    [UpdatedDate]                    DATETIME2 (7)  NOT NULL,
+    [IsActive]                       BIT            NOT NULL,
+    [IsDeleted]                      BIT            NOT NULL,
     [SelectedCompanyIds]             VARCHAR (1000) NOT NULL,
     [AssetDepreciationMethodId]      BIGINT         NULL,
     CONSTRAINT [PK_AssetIntangibleType] PRIMARY KEY CLUSTERED ([AssetIntangibleAttributeTypeId] ASC),
     CONSTRAINT [FK_AssetIntangibleAttributeType_AssetAmortizationInterval] FOREIGN KEY ([AssetAmortizationIntervalId]) REFERENCES [dbo].[AssetAmortizationInterval] ([AssetAmortizationIntervalId]),
+    CONSTRAINT [FK_AssetIntangibleAttributeType_AssetDepreciationMethod] FOREIGN KEY ([AssetDepreciationMethodId]) REFERENCES [dbo].[AssetDepreciationMethod] ([AssetDepreciationMethodId]),
     CONSTRAINT [FK_AssetIntangibleAttributeType_AssetIntangibleType] FOREIGN KEY ([AssetIntangibleTypeId]) REFERENCES [dbo].[AssetIntangibleType] ([AssetIntangibleTypeId]),
     CONSTRAINT [FK_AssetIntangibleAttributeType_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId]),
     CONSTRAINT [FK_AssetIntangibleAttributeTypeAccAmort_GLAccount] FOREIGN KEY ([AccAmortDeprGLAccountId]) REFERENCES [dbo].[GLAccount] ([GLAccountId]),
@@ -27,6 +28,8 @@
     CONSTRAINT [FK_AssetIntangibleAttributeTypeIntgWriteDown_GLAccount] FOREIGN KEY ([IntangibleWriteDownGLAccountId]) REFERENCES [dbo].[GLAccount] ([GLAccountId]),
     CONSTRAINT [FK_AssetIntangibleAttributeTypeWriteOff_GLAccount] FOREIGN KEY ([IntangibleWriteOffGLAccountId]) REFERENCES [dbo].[GLAccount] ([GLAccountId])
 );
+
+
 
 
 

@@ -15,8 +15,8 @@
     [NeedByDate]                 DATETIME2 (7)   NOT NULL,
     [ConditionId]                BIGINT          NULL,
     [Condition]                  VARCHAR (256)   NULL,
-    [QuantityOrdered]            INT             NOT NULL,
-    [QuantityBackOrdered]        INT             NULL,
+    [QuantityOrdered]            DECIMAL (18, 6) NULL,
+    [QuantityBackOrdered]        DECIMAL (18, 6) NULL,
     [QuantityRejected]           DECIMAL (18, 6) NULL,
     [VendorListPrice]            DECIMAL (18, 2) NOT NULL,
     [DiscountPercent]            DECIMAL (20, 2) NULL,
@@ -119,6 +119,8 @@
     CONSTRAINT [FK_RepairOrderPart_SubWorkOrderId] FOREIGN KEY ([SubWorkOrderId]) REFERENCES [dbo].[SubWorkOrder] ([SubWorkOrderId]),
     CONSTRAINT [FK_RepairOrderPart_WorkOrderId] FOREIGN KEY ([WorkOrderId]) REFERENCES [dbo].[WorkOrder] ([WorkOrderId])
 );
+
+
 
 
 

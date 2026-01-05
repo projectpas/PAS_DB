@@ -21,6 +21,7 @@
 	5    13 DEC 2024  AMIT GHEDIYA		Add RefrenceNumber in stocktable.
 	6    17 DEC 2024   Shrey Chandegara  Add condition while execute USP_UpdateSOPartCostDetails this procedure 
 	7    08 JAN 2025   AMIT GHEDIYA		 Added one parameter to identify if it's been called from shipping or not
+	8    02 JAN 2026   Moin Bloch		 UOM Related Changes
 
 declare @p1 dbo.SalesOrderReserveIssueParts
 insert into @p1 values(NULL,1357,1629,161088,119,N'3100454',N'SENSOR',NULL,NULL,0,NULL,NULL,0,5,2,2,N'OH',0,NULL,50,3,NULL,0,NULL,2,NULL,NULL,NULL,NULL,0,NULL,2,'2024-11-18 13:51:53.2864044',NULL,N'OEM',0,NULL,1,NULL,0,0,0,0,0,NULL,N'STL-000004',N'CNTL--001282',47,N'CASCO CIRCUITS INC',NULL,NULL,1,N'ADMIN User',N'ADMIN User','2024-11-18 13:51:53.2864029','2024-11-18 13:51:53.2864029',1,0)
@@ -52,9 +53,9 @@ BEGIN
 				@ConditionId BIGINT = 0,
 				@StockLineId BIGINT = 0,
 				@StocklineUnitCost DECIMAL(18,2) = 0,
-				@Quantity INT = 0,
-				@QtyToReserve INT = 0,
-				@QtyToUnReserve INT = 0,
+				@Quantity DECIMAL(18,6) = 0,
+				@QtyToReserve DECIMAL(18,6) = 0,
+				@QtyToUnReserve DECIMAL(18,6) = 0,
 				@PartStatusId INT = 0,
 				@CreatedBy VARCHAR(100),
 				@MasterCompanyId BIGINT = 0,
@@ -67,17 +68,17 @@ BEGIN
 				@ReserveAndIssueStatusId INT = 3,
 				@UnIssueStatusId INT = 4,
 				@UnReserveStatusId INT = 5,
-				@ReservePartQtyToReserve INT = 0,
-				@ReservePartTotalReserved INT = 0,
-				@ReservePartQtyReserved INT = 0,
+				@ReservePartQtyToReserve DECIMAL(18,6) = 0,
+				@ReservePartTotalReserved DECIMAL(18,6) = 0,
+				@ReservePartQtyReserved DECIMAL(18,6) = 0,
 				@SalesOrderNumber VARCHAR(50) = NULL,
 				@StkAutoReserveRefNumber VARCHAR(100) = 'Auto Reserve Stock - ',
 				@StkReserveRefNumber VARCHAR(100) = 'Reserve Stock - ',
 				@StkUnReserveRefNumber VARCHAR(100) = 'UnReserve - ',
 				@RefNumber VARCHAR(100) = '';
 
-		DECLARE @AlreadyQtyOrder INT = 0;
-		DECLARE @AlreadyReservedQty INT = 0;
+		DECLARE @AlreadyQtyOrder DECIMAL(18,6) = 0;
+		DECLARE @AlreadyReservedQty DECIMAL(18,6) = 0;
 
 		SELECT @SOPartStatus = SOPartStatusId FROM [DBO].[SOPartStatus] WITH(NOLOCK) WHERE [PartStatus] = 'Open';
 		SELECT @SOPartStatusFulFill = SOPartStatusId FROM [DBO].[SOPartStatus] WITH(NOLOCK) WHERE [PartStatus] = 'Fulfilled';
@@ -103,22 +104,22 @@ BEGIN
 			[EquPartNumber] [varchar](500) NULL,
 			[AltPartNumber] [varchar](500) NULL,
 			[AltPartId] [bigint] NULL,
-			[QuantityOnHand] [int] NULL,
-			[QuantityAvailable] [int] NULL,
+			[QuantityOnHand] [decimal](18, 6) NULL,
+			[QuantityAvailable] [decimal](18, 6) NULL,
 			[ConditionId] [bigint] NULL,
 			[Condition] [varchar](200) NULL,
 			[IsAltPart] [bit] NULL,
 			[AltPartMasterPartId] [bigint] NULL,
-			[Quantity] [int] NULL,
-			[QuantityReserved] [int] NULL,
-			[QuantityIssued] [int] NULL,
-			[QuantityOnOrder] [int] NULL,
-			[QuantityToReceive] [int] NULL,
-			[QtyToReserve] [int] NULL,
-			[QtyToIssued] [int] NULL,
-			[QtyToUnReserve] [int] NULL,
-			[QtyToUnIssued] [int] NULL,
-			[QtyToReserveAndIssue] [int] NULL,
+			[Quantity] [decimal](18, 6) NULL,
+			[QuantityReserved] [decimal](18, 6) NULL,
+			[QuantityIssued] [decimal](18, 6) NULL,
+			[QuantityOnOrder] [decimal](18, 6) NULL,
+			[QuantityToReceive] [decimal](18, 6) NULL,
+			[QtyToReserve] [decimal](18, 6) NULL,
+			[QtyToIssued] [decimal](18, 6) NULL,
+			[QtyToUnReserve] [decimal](18, 6) NULL,
+			[QtyToUnIssued] [decimal](18, 6) NULL,
+			[QtyToReserveAndIssue] [decimal](18, 6) NULL,
 			[IssuedById] [bigint] NULL,
 			[IssuedDate] [datetime2](7) NULL,
 			[ReservedById] [bigint] NULL,
@@ -128,16 +129,16 @@ BEGIN
 			[IsEquPart] [bit] NULL,
 			[EquPartMasterPartId] [bigint] NULL,
 			[PartStatusId] [int] NULL,
-			[TotalReserved] [int] NULL,
-			[TotalIssued] [int] NULL,
-			[UnitCost] [decimal](18, 4) NULL,
-			[ExtendedCost] [decimal](18, 4) NULL,
-			[UnitPrice] [decimal](18, 4) NULL,
-			[ExtendedPrice] [decimal](18, 4) NULL,
+			[TotalReserved] [decimal](18, 6) NULL,
+			[TotalIssued] [decimal](18, 6) NULL,
+			[UnitCost] [decimal](18, 6) NULL,
+			[ExtendedCost] [decimal](18, 6) NULL,
+			[UnitPrice] [decimal](18, 6) NULL,
+			[ExtendedPrice] [decimal](18, 6) NULL,
 			[AlternateFor] [varchar](200) NULL,
 			[StockLineNumber] [varchar](200) NULL,
 			[ControlNumber] [varchar](200) NULL,
-			[QtyToBeReserved] [int] NULL,
+			[QtyToBeReserved] [decimal](18, 6) NULL,
 			[ManufacturerName] [varchar](200) NULL,
 			[LotId] [bigint] NULL,
 			[IsLotQty] [bit] NULL,
@@ -174,7 +175,10 @@ BEGIN
 		SELECT  @MasterLoopID = MAX(ID) FROM #SalesOrderReserveIssueParts;
 		
 		WHILE(@MasterLoopID > 0)
-		BEGIN
+		BEGIN		
+			DECLARE @PurchaseUnitOfMeasureId BIGINT = 0,  @StockUnitOfMeasureId BIGINT = 0,@ConsumeUnitOfMeasureId BIGINT = 0
+			DECLARE @POUnitOfMeasure VARCHAR(100), @StockUnitOfMeasure VARCHAR(100),@ConsumeUnitOfMeasure VARCHAR(100)
+
 			SELECT @SalesOrderReservePartId = [SalesOrderReservePartId],
 						   @SalesOrderPartId = [SalesOrderPartId],
 						   @SalesOrderId = [SalesOrderId],
@@ -191,8 +195,17 @@ BEGIN
 						   @MasterCompanyId = [MasterCompanyId]
 					FROM #SalesOrderReserveIssueParts WITH(NOLOCK) WHERE [ID] = @MasterLoopID;
 
-			DECLARE @PartQty INT = 0,
-					@PartQtyRequested INT = 0,
+			SELECT @PurchaseUnitOfMeasureId = [PurchaseUnitOfMeasureId],@StockUnitOfMeasureId =[StockUnitOfMeasureId], @ConsumeUnitOfMeasureId = [ConsumeUnitOfMeasureId] FROM [dbo].[ItemMaster] WITH(NOLOCK) WHERE [ItemMasterId] = @ItemMasterId;
+			SET @POUnitOfMeasure = (SELECT [ShortCode] FROM [dbo].[UnitOfMeasure] WITH(NOLOCK) WHERE [UnitOfMeasureId] = @PurchaseUnitOfMeasureId)
+			SET @StockUnitOfMeasure = (SELECT [ShortCode] FROM [dbo].[UnitOfMeasure] WITH(NOLOCK) WHERE [UnitOfMeasureId] = @StockUnitOfMeasureId)
+			SET @ConsumeUnitOfMeasure = (SELECT [ShortCode] FROM [dbo].[UnitOfMeasure] WITH(NOLOCK) WHERE [UnitOfMeasureId] = @ConsumeUnitOfMeasureId)
+
+			SET @Quantity = ([dbo].[fn_ConvertUOM](ISNULL(@Quantity, 0),@ConsumeUnitOfMeasure, @StockUnitOfMeasure,0));
+			SET @QtyToReserve = ([dbo].[fn_ConvertUOM](ISNULL(@QtyToReserve, 0),@ConsumeUnitOfMeasure, @StockUnitOfMeasure,0));
+			SET @QtyToUnReserve = ([dbo].[fn_ConvertUOM](ISNULL(@QtyToUnReserve, 0),@ConsumeUnitOfMeasure, @StockUnitOfMeasure,0));
+
+			DECLARE @PartQty DECIMAL(18,6) = 0,
+					@PartQtyRequested DECIMAL(18,6) = 0,
 					@PartCurrencyId INT = 0,
 					@PartFxRate DECIMAL(18,2) = 0,
 					@PartPriorityId BIGINT = 0,

@@ -54,9 +54,9 @@
     [POId]                          BIGINT          NULL,
     [PONum]                         VARCHAR (50)    NULL,
     [PONextDlvrDate]                DATETIME2 (7)   NULL,
-    [QtyOnOrder]                    INT             NULL,
-    [QtyOnBkOrder]                  INT             NULL,
-    [QtyToTurnIn]                   INT             NULL,
+    [QtyOnOrder]                    DECIMAL (18, 6) NULL,
+    [QtyOnBkOrder]                  DECIMAL (18, 6) NULL,
+    [QtyToTurnIn]                   DECIMAL (18, 6) NULL,
     [Figure]                        NVARCHAR (50)   NULL,
     [Item]                          NVARCHAR (50)   NULL,
     [EquPartMasterPartId]           BIGINT          NULL,
@@ -76,6 +76,8 @@
     CONSTRAINT [FK_SubWorkOrderMaterials_UnitOfMeasure] FOREIGN KEY ([UnitOfMeasureId]) REFERENCES [dbo].[UnitOfMeasure] ([UnitOfMeasureId]),
     CONSTRAINT [FK_SubWorkOrderMaterials_WorkOrder] FOREIGN KEY ([WorkOrderId]) REFERENCES [dbo].[WorkOrder] ([WorkOrderId])
 );
+
+
 
 
 

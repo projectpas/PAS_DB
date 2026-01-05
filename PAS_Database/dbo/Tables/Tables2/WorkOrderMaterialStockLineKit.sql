@@ -4,9 +4,9 @@
     [StockLineId]                     BIGINT          NOT NULL,
     [ItemMasterId]                    BIGINT          NOT NULL,
     [ConditionId]                     BIGINT          NOT NULL,
-    [Quantity]                        INT             CONSTRAINT [DF_WorkOrderMaterialStockLineKit_Quantity] DEFAULT ((0)) NULL,
-    [QtyReserved]                     INT             CONSTRAINT [DF_WorkOrderMaterialStockLineKit_QtyReserved] DEFAULT ((0)) NULL,
-    [QtyIssued]                       INT             CONSTRAINT [DF_WorkOrderMaterialStockLineKit_QtyIssued] DEFAULT ((0)) NULL,
+    [Quantity]                        DECIMAL (18, 6) CONSTRAINT [DF_WorkOrderMaterialStockLineKit_Quantity] DEFAULT ((0)) NULL,
+    [QtyReserved]                     DECIMAL (18, 6) CONSTRAINT [DF_WorkOrderMaterialStockLineKit_QtyReserved] DEFAULT ((0)) NULL,
+    [QtyIssued]                       DECIMAL (18, 6) CONSTRAINT [DF_WorkOrderMaterialStockLineKit_QtyIssued] DEFAULT ((0)) NULL,
     [MasterCompanyId]                 INT             NOT NULL,
     [CreatedBy]                       VARCHAR (256)   NOT NULL,
     [UpdatedBy]                       VARCHAR (256)   NOT NULL,
@@ -35,6 +35,8 @@
     [IssuedDate]                      DATETIME2 (7)   NULL,
     CONSTRAINT [PK_WorkOrderMaterialStockLineKit] PRIMARY KEY CLUSTERED ([WorkOrderMaterialStockLineKitId] ASC)
 );
+
+
 
 
 

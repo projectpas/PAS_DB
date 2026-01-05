@@ -12,12 +12,17 @@
     [IsDeleted]       BIT            DEFAULT ((0)) NOT NULL,
     [StandardId]      INT            DEFAULT ((0)) NOT NULL,
     [SequenceNo]      INT            NULL,
+    [ShortCode]       VARCHAR (20)   NULL,
+    [Class]           VARCHAR (100)  NULL,
+    [DecimalPlaces]   INT            NULL,
     CONSTRAINT [PK_UnitOfMeasure] PRIMARY KEY CLUSTERED ([UnitOfMeasureId] ASC),
     CONSTRAINT [FK_UnitOfMeasure_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId]),
     CONSTRAINT [FK_UnitOfMeasure_Standard] FOREIGN KEY ([StandardId]) REFERENCES [dbo].[Standard] ([StandardId]),
     CONSTRAINT [Unique_UnitOfMeasure_Description] UNIQUE NONCLUSTERED ([Description] ASC, [MasterCompanyId] ASC),
     CONSTRAINT [Unique_UnitOfMeasure_ShortName] UNIQUE NONCLUSTERED ([ShortName] ASC, [MasterCompanyId] ASC)
 );
+
+
 
 
 

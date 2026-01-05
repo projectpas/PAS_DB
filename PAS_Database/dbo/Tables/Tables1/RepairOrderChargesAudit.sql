@@ -5,16 +5,16 @@
     [RepairOrderPartRecordId]   BIGINT          NULL,
     [ChargesTypeId]             BIGINT          NOT NULL,
     [VendorId]                  BIGINT          NULL,
-    [Quantity]                  INT             NOT NULL,
+    [Quantity]                  DECIMAL (18, 6) NULL,
     [MarkupPercentageId]        BIGINT          NULL,
     [Description]               VARCHAR (256)   NULL,
-    [UnitCost]                  DECIMAL (20, 2) NOT NULL,
-    [ExtendedCost]              DECIMAL (20, 2) NOT NULL,
+    [UnitCost]                  DECIMAL (18, 6) NULL,
+    [ExtendedCost]              DECIMAL (18, 6) NULL,
     [MasterCompanyId]           INT             NOT NULL,
-    [MarkupFixedPrice]          DECIMAL (20, 2) NULL,
+    [MarkupFixedPrice]          DECIMAL (18, 6) NULL,
     [BillingMethodId]           INT             NULL,
-    [BillingAmount]             DECIMAL (20, 2) NULL,
-    [BillingRate]               DECIMAL (20, 2) NULL,
+    [BillingAmount]             DECIMAL (18, 6) NULL,
+    [BillingRate]               DECIMAL (18, 6) NULL,
     [HeaderMarkupId]            BIGINT          NULL,
     [RefNum]                    VARCHAR (20)    NULL,
     [CreatedBy]                 VARCHAR (256)   NOT NULL,
@@ -36,6 +36,4 @@
     [UOMId]                     BIGINT          NULL,
     CONSTRAINT [PK_RepairOrderChargesAudit] PRIMARY KEY CLUSTERED ([RepairOrderChargesAuditId] ASC)
 );
-
-
 

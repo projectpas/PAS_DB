@@ -10,10 +10,10 @@
     [CustomerContactId]             BIGINT          NOT NULL,
     [CustomerReference]             VARCHAR (100)   NOT NULL,
     [CurrencyId]                    INT             NULL,
-    [TotalSalesAmount]              NUMERIC (9, 2)  CONSTRAINT [DF__SalesOrde__Total__06F9842E] DEFAULT ((0)) NOT NULL,
-    [CustomerHold]                  NUMERIC (9, 2)  CONSTRAINT [DF__SalesOrde__Custo__07EDA867] DEFAULT ((0)) NOT NULL,
-    [DepositAmount]                 NUMERIC (9, 2)  CONSTRAINT [DF__SalesOrde__Depos__08E1CCA0] DEFAULT ((0)) NOT NULL,
-    [BalanceDue]                    DECIMAL (18, 2) NULL,
+    [TotalSalesAmount]              DECIMAL (18, 6) CONSTRAINT [DF__SalesOrde__Total__06F9842E] DEFAULT ((0)) NOT NULL,
+    [CustomerHold]                  DECIMAL (18, 6) CONSTRAINT [DF__SalesOrde__Custo__07EDA867] DEFAULT ((0)) NOT NULL,
+    [DepositAmount]                 DECIMAL (18, 6) CONSTRAINT [DF__SalesOrde__Depos__08E1CCA0] DEFAULT ((0)) NOT NULL,
+    [BalanceDue]                    DECIMAL (18, 6) NULL,
     [SalesPersonId]                 BIGINT          NULL,
     [AgentId]                       BIGINT          NULL,
     [CustomerSeviceRepId]           BIGINT          NULL,
@@ -35,8 +35,8 @@
     [MasterCompanyId]               INT             NOT NULL,
     [IsDeleted]                     BIT             CONSTRAINT [DF__SalesOrde__IsDel__0CB25D84] DEFAULT ((0)) NOT NULL,
     [SalesOrderQuoteId]             BIGINT          NULL,
-    [QtyRequested]                  INT             CONSTRAINT [DF__SalesOrde__QtyRe__70C02A4C] DEFAULT ((0)) NULL,
-    [QtyToBeQuoted]                 INT             CONSTRAINT [DF__SalesOrde__QtyTo__767903A2] DEFAULT ((0)) NULL,
+    [QtyRequested]                  DECIMAL (18, 6) CONSTRAINT [DF__SalesOrde__QtyRe__70C02A4C] DEFAULT ((0)) NULL,
+    [QtyToBeQuoted]                 DECIMAL (18, 6) CONSTRAINT [DF__SalesOrde__QtyTo__767903A2] DEFAULT ((0)) NULL,
     [SalesOrderNumber]              VARCHAR (50)    NOT NULL,
     [IsActive]                      BIT             CONSTRAINT [SalesOrder_DC_IsActive] DEFAULT ((1)) NOT NULL,
     [ContractReference]             VARCHAR (100)   NULL,
@@ -49,13 +49,13 @@
     [CurrencyName]                  VARCHAR (50)    NULL,
     [CustomerWarningName]           VARCHAR (300)   NULL,
     [ManagementStructureName]       VARCHAR (286)   NULL,
-    [CreditLimit]                   DECIMAL (18, 2) NULL,
+    [CreditLimit]                   DECIMAL (18, 6) NULL,
     [CreditTermId]                  INT             NULL,
     [CreditLimitName]               VARCHAR (50)    NULL,
     [CreditTermName]                VARCHAR (50)    NULL,
     [VersionNumber]                 VARCHAR (50)    NULL,
-    [TotalFreight]                  DECIMAL (20, 2) NULL,
-    [TotalCharges]                  DECIMAL (20, 2) NULL,
+    [TotalFreight]                  DECIMAL (18, 6) NULL,
+    [TotalCharges]                  DECIMAL (18, 6) NULL,
     [FreightBilingMethodId]         INT             NULL,
     [ChargesBilingMethodId]         INT             NULL,
     [EnforceEffectiveDate]          DATETIME2 (7)   NULL,
@@ -74,7 +74,7 @@
     [COCManufacturingPDFPath]       VARCHAR (MAX)   NULL,
     [FunctionalCurrencyId]          INT             NULL,
     [ReportCurrencyId]              INT             NULL,
-    [ForeignExchangeRate]           DECIMAL (18, 2) NULL,
+    [ForeignExchangeRate]           DECIMAL (18, 6) NULL,
     [EnforcePickTicketConfirmation] BIT             NULL,
     [ApprovalCode]                  VARCHAR (200)   NULL,
     [SecondarySalesPersonId]        BIGINT          NULL,
@@ -102,6 +102,8 @@
     CONSTRAINT [FK_SalesOrder_SalesPersonId] FOREIGN KEY ([SalesPersonId]) REFERENCES [dbo].[Employee] ([EmployeeId]),
     CONSTRAINT [FK_SalesOrder_StatusId] FOREIGN KEY ([StatusId]) REFERENCES [dbo].[MasterSalesOrderQuoteStatus] ([Id])
 );
+
+
 
 
 

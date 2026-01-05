@@ -63,7 +63,7 @@
     [UnitCostAdjustmentReasonTypeId]      INT             NULL,
     [UnitSalePriceAdjustmentReasonTypeId] INT             NULL,
     [IdNumber]                            VARCHAR (100)   NULL,
-    [QuantityToReceive]                   INT             NOT NULL,
+    [QuantityToReceive]                   DECIMAL (18, 6) NULL,
     [PurchaseOrderExtendedCost]           DECIMAL (18, 6) CONSTRAINT [DF__StocklineDraft__Purch__53E4BFD3] DEFAULT ((0)) NULL,
     [ManufacturingTrace]                  NVARCHAR (200)  NULL,
     [ExpirationDate]                      DATETIME2 (7)   NULL,
@@ -192,6 +192,8 @@
     CONSTRAINT [FK_StocklineDraft_SiteId] FOREIGN KEY ([SiteId]) REFERENCES [dbo].[Site] ([SiteId]),
     CONSTRAINT [FK_StocklineDraft_WarehouseId] FOREIGN KEY ([WarehouseId]) REFERENCES [dbo].[Warehouse] ([WarehouseId])
 );
+
+
 
 
 

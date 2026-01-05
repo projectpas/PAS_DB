@@ -7,7 +7,7 @@
     [PromisedDate]               DATETIME2 (7)   NULL,
     [EstimatedCompletionDate]    DATETIME2 (7)   NULL,
     [NTE]                        VARCHAR (30)    NULL,
-    [Quantity]                   INT             NOT NULL,
+    [Quantity]                   DECIMAL (18, 6) NULL,
     [StockLineId]                BIGINT          NOT NULL,
     [CMMIds]                     VARCHAR (256)   NULL,
     [WorkflowId]                 BIGINT          NULL,
@@ -93,6 +93,8 @@
     CONSTRAINT [FK_WorkOrderPartNumber_WorkOrderStatus] FOREIGN KEY ([WorkOrderStatusId]) REFERENCES [dbo].[WorkOrderStatus] ([Id]),
     CONSTRAINT [FK_WorkOrderPartNumber_WorkScope] FOREIGN KEY ([WorkOrderScopeId]) REFERENCES [dbo].[WorkScope] ([WorkScopeId])
 );
+
+
 
 
 

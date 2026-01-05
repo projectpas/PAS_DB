@@ -21,8 +21,9 @@
 	8	 02/01/2024  RAJESH GAMI     Vendor Proforma Approval: Return the extended cost
 	9	 8/JAN/2024  RAJESH GAMI     Non PO Approval: Return the extended cost 
 	10   01/07/2025  Abhishek Jirawla Added sum of common flat rate
+	11   05/01/2026  Moin Bloch		  UOM Related Changes
 
--- exec [dbo].[usp_GetApprovalListByTaskId] 12, 12
+-- exec [dbo].[usp_GetApprovalListByTaskId] 5, 10852
 ************************************************************************/
 CREATE   Procedure [dbo].[usp_GetApprovalListByTaskId]
 	@TaskId  BIGINT,
@@ -136,36 +137,39 @@ BEGIN TRY
 	END
 	ELSE IF @TaskType = 'SO Approval'
 	BEGIN
-	SET @TotalCostText = 'Total SO Cost'
+		SET @TotalCostText = 'Total SO Cost'
 
-	DECLARE @TotalCharges_SO AS DECIMAL(18, 2) = 0;
-	DECLARE @FlatCharges_SO AS DECIMAL(18, 2) = 0;
+		DECLARE @TotalCharges_SO AS DECIMAL(18, 2) = 0;
+		DECLARE @FlatCharges_SO AS DECIMAL(18, 2) = 0;
 
-	SELECT @TotalCharges = ISNULL(SUM(soc.BillingAmount), 0) FROM DBO.SalesOrderCharges soc WITH (NOLOCK) WHERE soc.SalesOrderId = @ID 
-					AND soc.IsActive = 1 AND soc.IsDeleted = 0
-	DECLARE @BillingMethod_SO INT;
+		SELECT @TotalCharges = ISNULL(SUM(soc.BillingAmount), 0) FROM DBO.SalesOrderCharges soc WITH (NOLOCK) WHERE soc.SalesOrderId = @ID 
+						AND soc.IsActive = 1 AND soc.IsDeleted = 0
+		DECLARE @BillingMethod_SO INT;
 
-	SELECT @BillingMethod_SO = so.ChargesBilingMethodId, @FlatCharges_SO = so.TotalCharges FROM dbo.SalesOrder so WITH(NOLOCK) WHERE so.SalesOrderId = @ID
+		SELECT @BillingMethod_SO = so.ChargesBilingMethodId, @FlatCharges_SO = so.TotalCharges FROM dbo.SalesOrder so WITH(NOLOCK) WHERE so.SalesOrderId = @ID
 
-	SELECT @TotalCost = sum(SOC.NetSaleAmount)
-		  FROM dbo.SalesOrderPartV1 sop WITH(NOLOCK)
-		  INNER JOIN DBO.SalesOrderPartCost SOC WITH(NOLOCK) ON sop.SalesOrderPartId = SOC.SalesOrderPartId
-		  WHERE sop.SalesOrderId = @ID
+		SELECT --@TotalCost = sum(SOC.NetSaleAmount) 
+		      @TotalCost = ISNULL([dbo].[fn_ConvertUOM](SUM(SOC.NetSaleAmount),itemMaster.[StockUnitOfMeasure], itemMaster.[ConsumeUnitOfMeasure],1),0)
+			  FROM dbo.SalesOrderPartV1 sop WITH(NOLOCK)
+			  INNER JOIN DBO.SalesOrderPartCost SOC WITH(NOLOCK) ON sop.SalesOrderPartId = SOC.SalesOrderPartId
+			  LEFT JOIN DBO.ItemMaster itemMaster WITH (NOLOCK) ON sop.ItemMasterId = itemMaster.ItemMasterId
+			  WHERE sop.SalesOrderId = @ID
+			  GROUP BY itemMaster.[StockUnitOfMeasure], itemMaster.[ConsumeUnitOfMeasure]
 
-	IF @BillingMethod_SO = 3
-	BEGIN
-		SET @TotalCost = @TotalCost + @FlatCharges_SO;
-	END
-	ELSE
-	BEGIN
-		SET @TotalCost = @TotalCost + @TotalCharges_SO
-	END
-	PRINT @TotalCost
-	SELECT @MSID = ManagementStructureId,
-			@EID = so.EmployeeId,
-			@MasterCompanyID = so.MasterCompanyId
-		  FROM dbo.SalesOrder so  WITH(NOLOCK)
-		   WHERE so.SalesOrderId = @ID
+		IF @BillingMethod_SO = 3
+		BEGIN
+			SET @TotalCost = @TotalCost + @FlatCharges_SO;
+		END
+		ELSE
+		BEGIN
+			SET @TotalCost = @TotalCost + @TotalCharges_SO
+		END
+		PRINT @TotalCost
+		SELECT @MSID = ManagementStructureId,
+				@EID = so.EmployeeId,
+				@MasterCompanyID = so.MasterCompanyId
+			  FROM dbo.SalesOrder so  WITH(NOLOCK)
+			   WHERE so.SalesOrderId = @ID
 	END
 
 	ELSE IF @TaskType = 'WO Quote Approval'

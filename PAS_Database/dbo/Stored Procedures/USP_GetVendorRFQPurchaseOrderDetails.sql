@@ -30,6 +30,17 @@ BEGIN
 		DECLARE @poModuleId INT = (SELECT TOP 1 ModuleId FROM dbo.Module WITH(NOLOCK) Where ModuleName = 'PurchaseOrder' AND ISNULL(IsActive,0) = 1 AND ISNULL(IsDeleted,0) = 0 )
 		DECLARE @MSModuleId BIGINT = (SELECT ManagementStructureModuleId FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE ModuleName = 'VendorRFQPOHeader');
 
+		;WITH RFQData AS
+		(
+			SELECT 
+			    vpop.VendorRFQPurchaseOrderId,
+				MIN(rfq.RfqId) AS CustomerRFQNo
+			FROM dbo.VendorRFQPurchaseOrderPart vpop WITH (NOLOCK)
+			INNER JOIN dbo.VendorRFQPart rfqPart WITH (NOLOCK) ON rfqPart.ReferenceId = vpop.PurchaseOrderId AND rfqPart.ModuleId = @poModuleId
+			INNER JOIN dbo.ILSRFQPart ilsPart WITH (NOLOCK) ON rfqPart.ILSRFQDetailId = ilsPart.ILSRFQDetailId INNER JOIN dbo.CustomerRfq rfq WITH (NOLOCK) ON ilsPart.CustomerRfqId = rfq.CustomerRfqId
+			GROUP BY vpop.VendorRFQPurchaseOrderId
+		)
+
 		SELECT TOP 1
 			po.VendorRFQPurchaseOrderId,
 			po.VendorRFQPurchaseOrderNumber,
@@ -82,14 +93,10 @@ BEGIN
 			CASE WHEN po.ForeignExchangeRate > 0 THEN po.ForeignExchangeRate ELSE 0 END AS ForeignExchangeRate,
 			ISNULL(po.SourceBy, '') AS SourceBy,
 			ISNULL(po.MarketplaceRef, '') AS MarketplaceRef,
-			ISNULL(rfqData.RfqId,'') CustomerRFQNo
+			ISNULL(rfq.CustomerRFQNo, '') AS CustomerRFQNo
 		FROM [dbo].[VendorRFQPurchaseOrder] po WITH(NOLOCK)
 		LEFT JOIN [dbo].[PurchaseOrderManagementStructureDetails] msd WITH(NOLOCK) ON po.VendorRFQPurchaseOrderId = msd.ReferenceID AND msd.ModuleID = @MSModuleId 
-		LEFT OUTER JOIN DBO.VendorRFQPurchaseOrderPart VPOP WITH (NOLOCK) ON VPOP.VendorRFQPurchaseOrderId=PO.VendorRFQPurchaseOrderId
-		OUTER APPLY (SELECT TOP 1 rfq.RfqId FROM DBO.VendorRFQPart rfqPart WITH(NOLOCK) 
-					INNER JOIN DBO.ILSRFQPart ilsPart WITH(NOLOCK) ON rfqPart.ILSRFQDetailId = ilsPart.ILSRFQDetailId 
-					INNER JOIN DBO.CustomerRfq rfq WITH(NOLOCK) ON ilsPart.CustomerRfqId = rfq.CustomerRfqId
-					WHERE VPOP.VendorRFQPurchaseOrderId =po.VendorRFQPurchaseOrderId AND rfqPart.ModuleId = @poModuleId AND rfqPart.ReferenceId = VPOP.PurchaseOrderId) rfqData
+		LEFT JOIN RFQData rfq ON rfq.VendorRFQPurchaseOrderId = po.VendorRFQPurchaseOrderId
 		WHERE po.VendorRFQPurchaseOrderId = @VendorRFQPurchaseOrderId
 	END TRY
 	BEGIN CATCH      

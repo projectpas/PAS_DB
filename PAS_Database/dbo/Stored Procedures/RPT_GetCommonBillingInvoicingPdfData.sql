@@ -15,6 +15,7 @@
 	3    23/05/2025   Moin Bloch        Added UPEERCASE And NoOfItems
 	4    03 JUL 2025   RAJESH GAMI		Change CustomerDomensticShippingShipViaId to ShipViaId 
 	5    17 JUL 2025   Moin Bloch       Notes Replace <p> Tag
+	6	 01/05/2025    AMIT GHEDIYA     Get Email & Phone from Contact (Before from cust general info.).
 	
 --   EXEC [dbo].[RPT_GetCommonBillingInvoicingPdfData] 68,15,2
 **************************************************************/
@@ -100,7 +101,7 @@ BEGIN
 					BILLTOADDRESS.[StateOrProvince] [BillToState],
 					BILLTOADDRESS.[PostalCode] [BillToPostalCode],
 					ISNULL(BILLTOCOUNTRY.[countries_name], '') [BillToCountry],						
-  				    BILLTOFULLADDRESS = (SELECT dbo.FN_ValidatePDFAddress(BILLTOADDRESS.[Line1],BILLTOADDRESS.[Line2],NULL,BILLTOADDRESS.[City],BILLTOADDRESS.[StateOrProvince],BILLTOADDRESS.[PostalCode],BILLTOCOUNTRY.[countries_name],CUST.[CustomerPhone],NULL,CUST.[Email])),					
+  				    BILLTOFULLADDRESS = (SELECT dbo.FN_ValidatePDFAddress(BILLTOADDRESS.[Line1],BILLTOADDRESS.[Line2],NULL,BILLTOADDRESS.[City],BILLTOADDRESS.[StateOrProvince],BILLTOADDRESS.[PostalCode],BILLTOCOUNTRY.[countries_name],CONTACT.[WorkPhone],NULL,CONTACT.[Email])),					
 					-- BILL TO ADDRESS END 
 					BILLTOCUSTOMER.[Name] [BillToNameOfCustomer],
 					BI.[InvoiceNo] [InvoiceNumber],

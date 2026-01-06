@@ -65,11 +65,12 @@ BEGIN
 		SELECT @InvoiceStatusId = [InvoiceStatusId] FROM [dbo].[InvoiceStatus] WHERE [Status]='Invoiced'
 		SELECT @WorkOrderQuoteStatusId = [WorkOrderQuoteStatusId] FROM [dbo].[WorkOrderQuoteStatus] WITH(NOLOCK) WHERE [Description] = 'Approved'
 
-		IF(@SubReferenceIds = '')
+		IF (@SubReferenceIds = '')
 		BEGIN
 			SET @SubReferenceIds = NULL;
 		END
-		IF(@IsProformaInvoice = NULL)
+
+		IF (@IsProformaInvoice = NULL)
 		BEGIN
 			SET @IsProformaInvoice = 0;
 		END
@@ -84,53 +85,53 @@ BEGIN
 			DROP TABLE #TempCommonPartNumberDetailsForBilling
 		END
 
-			CREATE TABLE #TempCommonPartNumberDetailsForBilling
-			(		
-				[PKID] BIGINT NOT NULL IDENTITY, 
-				[ReferenceId] BIGINT NULL,
-				[SubReferenceId] BIGINT NULL,
-				[WorkOrderWorkflowId] BIGINT NULL, 
-				[BillingInvoicingId] BIGINT NULL, 
-				[BillingInvoicingItemId] BIGINT NULL, 
-				[WorkOrderShippingId]  BIGINT NULL, 
-				[ItemMasterId] BIGINT NULL,	
-				[StockLineId] BIGINT NULL,
-				[ConditionId] BIGINT NULL,
-				[ConditionName] NVARCHAR(200) NULL,
-				[UnitSalePrice] DECIMAL(18,2) NULL,	 
-				[MarkUpPercentage] DECIMAL(18,2) NULL, 
-				[DiscountPercentage] DECIMAL(18,2) NULL, 
-				[MarkUpAmount] DECIMAL(18,2) NULL, 
-				[DiscountAmount] DECIMAL(18,2) NULL, 			
-				[UnitPrice] DECIMAL(18,2) NULL,	 
-				[QtyBilled] INT NULL, 
-				[PartCost] DECIMAL(18,2) NULL,	 
-				[PartNumber] VARCHAR(200) NULL,
-				[PartDescription] NVARCHAR(max) NULL,				
-				[ManufacturerName] VARCHAR(250) NULL,				
-				[SerialNumber] VARCHAR(100) NULL,
-				[MaterialCost] DECIMAL(18,2) NULL,
-				[LabourCost] DECIMAL(18,2) NULL,
-				[MiscCharges] DECIMAL(18,2) NULL,
-				[FreightCost] DECIMAL(18,2) NULL,
-				[TotalCost] DECIMAL(18,2) NULL, 
-				[SalesTaxPercent] BIGINT NULL,				
-				[SalesTax] DECIMAL(18,2) NULL, 
-				[SalesTaxAmount] DECIMAL(18,2) NULL, 
-				[OtherTaxPercent] BIGINT NULL,
-				[OtherTax] DECIMAL(18,2) NULL, 
-				[OtherTaxAmount] DECIMAL(18,2) NULL,
-				[GrandTotal] DECIMAL(18,2) NULL,
-				[SOStockLineId] BIGINT NULL,
-				[StockLineNumber] VARCHAR(200) NULL,
-				[QuoteMethod] BIT NULL,
-				[ShippingId]  BIGINT NULL, 
-				[InvoiceStatusName] VARCHAR(50),
-				[IsFlatChargeUsed] BIT DEFAULT 0,
-				[IsFlatFreightUsed] BIT DEFAULT 0,
-				[FlatChargeStkId] BIGINT NULL,
-				[FlatFreightStkId] BIGINT NULL,
-				[ApprovalActionId] BIGINT NULL,
+		CREATE TABLE #TempCommonPartNumberDetailsForBilling
+		(		
+			[PKID] BIGINT NOT NULL IDENTITY, 
+			[ReferenceId] BIGINT NULL,
+			[SubReferenceId] BIGINT NULL,
+			[WorkOrderWorkflowId] BIGINT NULL, 
+			[BillingInvoicingId] BIGINT NULL, 
+			[BillingInvoicingItemId] BIGINT NULL, 
+			[WorkOrderShippingId]  BIGINT NULL, 
+			[ItemMasterId] BIGINT NULL,	
+			[StockLineId] BIGINT NULL,
+			[ConditionId] BIGINT NULL,
+			[ConditionName] NVARCHAR(200) NULL,
+			[UnitSalePrice] DECIMAL(18,2) NULL,	 
+			[MarkUpPercentage] DECIMAL(18,2) NULL, 
+			[DiscountPercentage] DECIMAL(18,2) NULL, 
+			[MarkUpAmount] DECIMAL(18,2) NULL, 
+			[DiscountAmount] DECIMAL(18,2) NULL, 			
+			[UnitPrice] DECIMAL(18,2) NULL,	 
+			[QtyBilled] INT NULL, 
+			[PartCost] DECIMAL(18,2) NULL,	 
+			[PartNumber] VARCHAR(200) NULL,
+			[PartDescription] NVARCHAR(max) NULL,				
+			[ManufacturerName] VARCHAR(250) NULL,				
+			[SerialNumber] VARCHAR(100) NULL,
+			[MaterialCost] DECIMAL(18,2) NULL,
+			[LabourCost] DECIMAL(18,2) NULL,
+			[MiscCharges] DECIMAL(18,2) NULL,
+			[FreightCost] DECIMAL(18,2) NULL,
+			[TotalCost] DECIMAL(18,2) NULL, 
+			[SalesTaxPercent] BIGINT NULL,				
+			[SalesTax] DECIMAL(18,2) NULL, 
+			[SalesTaxAmount] DECIMAL(18,2) NULL, 
+			[OtherTaxPercent] BIGINT NULL,
+			[OtherTax] DECIMAL(18,2) NULL, 
+			[OtherTaxAmount] DECIMAL(18,2) NULL,
+			[GrandTotal] DECIMAL(18,2) NULL,
+			[SOStockLineId] BIGINT NULL,
+			[StockLineNumber] VARCHAR(200) NULL,
+			[QuoteMethod] BIT NULL,
+			[ShippingId]  BIGINT NULL, 
+			[InvoiceStatusName] VARCHAR(50),
+			[IsFlatChargeUsed] BIT DEFAULT 0,
+			[IsFlatFreightUsed] BIT DEFAULT 0,
+			[FlatChargeStkId] BIGINT NULL,
+			[FlatFreightStkId] BIGINT NULL,
+			[ApprovalActionId] BIGINT NULL,
 		)
 			
 		IF(@ModuleId = @WOModuleId) /*START: WORK ORDER ********/
@@ -727,7 +728,11 @@ BEGIN
 			Update #TempWithRowNum SET SalesTaxAmount = CASE WHEN SalesTax > 0 THEN (SalesTax / 100.00) * TotalCost ELSE 0 END, OtherTaxAmount = CASE WHEN OtherTax > 0 THEN (OtherTax / 100.00) * TotalCost ELSE 0 END WHERE RowNum > 1
 
 			UPDATE #TempWithRowNum SET GrandTotal = TotalCost + SalesTaxAmount + OtherTaxAmount  WHERE RowNum > 1
-			DELETE FROM #TempWithRowNum WHERE InvoiceStatusName = 'INVOICED'
+
+			IF (@MasterCompanyId <> 12) -- For Safety Aero
+			BEGIN
+				DELETE FROM #TempWithRowNum WHERE InvoiceStatusName = 'INVOICED'
+			END
 		END
 		SELECT * FROM #TempWithRowNum
 	  --SELECT *  FROM #TempCommonPartNumberDetailsForBilling

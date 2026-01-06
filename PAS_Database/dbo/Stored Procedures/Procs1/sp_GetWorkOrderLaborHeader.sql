@@ -19,10 +19,11 @@
 	2    06/25/2020   Hemant  Saliya Added Transation & Content Management
 	3    01/03/2025   Moin Bloch     Removed Un-Used Table Join
 	4	 04/14/2025	  Devendra Shekh Added IsLaborTrackingTurnedOff to select
+	5    06/01/2026   Moin Bloch       Added LaborHoursId in WorkOrderLaborHeader
      
  EXECUTE [dbo].[sp_GetWorkOrderLaborHeader] 4284, 4737
 **************************************************************/
-CREATE     Procedure [dbo].[sp_GetWorkOrderLaborHeader]
+CREATE       Procedure [dbo].[sp_GetWorkOrderLaborHeader]
 @wfwoId  bigint,
 @workOrderId bigint
 AS
@@ -57,7 +58,8 @@ BEGIN
 									 deby.FirstName + ' ' + deby.LastName AS DataEnteredByName,			
 									 emp.FirstName + ' '+ emp.LastName AS EmployeeName,
 									 expr.[Description] AS ExpertiseType,
-									 ISNULL(lh.IsLaborTrackingTurnedOff, 0) AS IsLaborTrackingTurnedOff
+									 ISNULL(lh.IsLaborTrackingTurnedOff, 0) AS IsLaborTrackingTurnedOff,
+									 lh.LaborHoursId
 				FROM DBO.WorkOrderLaborHeader lh WITH(NOLOCK)
 					--LEFT JOIN DBO.WorkOrderLabor WL  WITH(NOLOCK) on lh.WorkOrderLaborHeaderId = WL.WorkOrderLaborHeaderId
 					LEFT JOIN DBO.Employee deby WITH(NOLOCK) ON deby.EmployeeId = lh.DataEnteredBy

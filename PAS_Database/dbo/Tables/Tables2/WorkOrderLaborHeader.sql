@@ -19,6 +19,7 @@
     [TotalWorkHours]           DECIMAL (20, 2) NULL,
     [WOPartNoId]               BIGINT          DEFAULT ((0)) NOT NULL,
     [IsLaborTrackingTurnedOff] BIT             NULL,
+    [LaborHoursId]             INT             NULL,
     CONSTRAINT [PK_WorkOrderLaborHeader] PRIMARY KEY CLUSTERED ([WorkOrderLaborHeaderId] ASC),
     CONSTRAINT [FK_WorkOrderLaborHeader_DataEnteredBy] FOREIGN KEY ([DataEnteredBy]) REFERENCES [dbo].[Employee] ([EmployeeId]),
     CONSTRAINT [FK_WorkOrderLaborHeader_EmployeeExpertise] FOREIGN KEY ([ExpertiseId]) REFERENCES [dbo].[EmployeeExpertise] ([EmployeeExpertiseId]),
@@ -27,6 +28,8 @@
     CONSTRAINT [FK_WorkOrderLaborHeader_WorkFlowWorkOrderId] FOREIGN KEY ([WorkFlowWorkOrderId]) REFERENCES [dbo].[WorkOrderWorkFlow] ([WorkFlowWorkOrderId]),
     CONSTRAINT [FK_WorkOrderLaborHeader_WorkOrder] FOREIGN KEY ([WorkOrderId]) REFERENCES [dbo].[WorkOrder] ([WorkOrderId])
 );
+
+
 
 
 
@@ -90,7 +93,7 @@ BEGIN
 
     SELECT	[WorkOrderLaborHeaderId], [WorkOrderId], [WorkFlowWorkOrderId], [DataEnteredBy], [HoursorClockorScan], [IsTaskCompletedByOne], [WorkOrderHoursType], [LabourMemo],
 			[MasterCompanyId] , [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted], [ExpertiseId], [EmployeeId], [TotalWorkHours], [WOPartNoId], 
-			@Expertise, @Employee, @DataEnteredByName, @HoursType, @TaskCompletedBy, @TaskType, IsLaborTrackingTurnedOff
+			@Expertise, @Employee, @DataEnteredByName, @HoursType, @TaskCompletedBy, @TaskType, IsLaborTrackingTurnedOff, [LaborHoursId]
 
 	FROM INSERTED 
 

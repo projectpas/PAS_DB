@@ -26,6 +26,7 @@
     [TaskCompletedBy]          VARCHAR (10)    NULL,
     [TaskType]                 VARCHAR (256)   NOT NULL,
     [IsLaborTrackingTurnedOff] BIT             NULL,
+    [LaborHoursId]             INT             NULL,
     CONSTRAINT [PK_WorkOrderLaborHeaderAudit] PRIMARY KEY CLUSTERED ([WorkOrderLaborAuditId] ASC)
 );
 

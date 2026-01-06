@@ -19,6 +19,7 @@
     3    09/27/2024   Vishal Suthar Modified the query to use new so part tables
 	4    21/jul/2025  Bhargav Saliya  Select UOM
 	5    28/Aug/2025  Amit Ghediya		Select Condition
+	6    05/01/2026   Moin Bloch		UOM Related Changes
 
 EXEC [dbo].[USP_GetSOApprovalList]  1266
 **************************************************************/
@@ -238,27 +239,42 @@ BEGIN
 			sp.InternalStatusId AS InternalStatusId,
 			CASE WHEN sp.CustomerStatusId IS null THEN 1 ELSE sp.CustomerStatusId END AS CustomerStatusId,
 			1 AS IsInternalApprove,
-			sop.QtyOrder Qty,
-			sopc.UnitSalesPrice UnitSalePrice,
+			--sop.QtyOrder Qty,
+			ISNULL([dbo].[fn_ConvertUOM](ISNULL(sop.[QtyOrder],0),im.[StockUnitOfMeasure], im.[ConsumeUnitOfMeasure],0),0) Qty,
+			--sopc.UnitSalesPrice UnitSalePrice,
+			ISNULL([dbo].[fn_ConvertUOM](ISNULL(sopc.[UnitSalesPrice], 0),im.[StockUnitOfMeasure], im.[ConsumeUnitOfMeasure],1),0) UnitSalePrice,
 			sopc.MarkUpPercentage,
 			0 SalesBeforeDiscount,
 			sopc.DiscountPercentage Discount,
-			sopc.DiscountAmount,
-			sopc.NetSaleAmount NetSales,
-			sopc.UnitCost,
-			sopc.UnitSalesPriceExtended SalesPriceExtended,
-			sopc.MarkUpAmount MarkupExtended,
-			sopc.DiscountAmount SalesDiscountExtended,
-			sopc.NetSaleAmount NetSalePriceExtended,
-			sopc.UnitCostExtended,
-			sopc.MarginAmount,
-			sopc.MarginAmount AS MarginAmountExtended,
+			--sopc.DiscountAmount,
+			ISNULL([dbo].[fn_ConvertUOM](ISNULL(sopc.DiscountAmount, 0),im.[StockUnitOfMeasure], im.[ConsumeUnitOfMeasure],1),0) DiscountAmount,
+			--sopc.NetSaleAmount NetSales,
+			ISNULL([dbo].[fn_ConvertUOM](ISNULL(sopc.NetSaleAmount, 0),im.[StockUnitOfMeasure], im.[ConsumeUnitOfMeasure],1),0) NetSales,
+			--sopc.UnitCost,
+			ISNULL([dbo].[fn_ConvertUOM](ISNULL(sopc.UnitCost, 0),im.[StockUnitOfMeasure], im.[ConsumeUnitOfMeasure],1),0) UnitCost,
+			--sopc.UnitSalesPriceExtended SalesPriceExtended,
+			ISNULL([dbo].[fn_ConvertUOM](ISNULL(sopc.UnitSalesPriceExtended, 0),im.[StockUnitOfMeasure], im.[ConsumeUnitOfMeasure],1),0) SalesPriceExtended,
+			--sopc.MarkUpAmount MarkupExtended,
+			ISNULL([dbo].[fn_ConvertUOM](ISNULL(sopc.MarkUpAmount, 0),im.[StockUnitOfMeasure], im.[ConsumeUnitOfMeasure],1),0) MarkupExtended,
+			--sopc.DiscountAmount SalesDiscountExtended,
+			ISNULL([dbo].[fn_ConvertUOM](ISNULL(sopc.DiscountAmount, 0),im.[StockUnitOfMeasure], im.[ConsumeUnitOfMeasure],1),0) SalesDiscountExtended,
+			--sopc.NetSaleAmount NetSalePriceExtended,
+			ISNULL([dbo].[fn_ConvertUOM](ISNULL(sopc.NetSaleAmount, 0),im.[StockUnitOfMeasure], im.[ConsumeUnitOfMeasure],1),0) NetSalePriceExtended,
+			--sopc.UnitCostExtended,
+			ISNULL([dbo].[fn_ConvertUOM](ISNULL(sopc.UnitCostExtended, 0),im.[StockUnitOfMeasure], im.[ConsumeUnitOfMeasure],1),0) UnitCostExtended,
+			--sopc.MarginAmount,
+			ISNULL([dbo].[fn_ConvertUOM](ISNULL(sopc.MarginAmount, 0),im.[StockUnitOfMeasure], im.[ConsumeUnitOfMeasure],1),0) MarginAmount,
+			--sopc.MarginAmount AS MarginAmountExtended,
+			ISNULL([dbo].[fn_ConvertUOM](ISNULL(sopc.MarginAmount, 0),im.[StockUnitOfMeasure], im.[ConsumeUnitOfMeasure],1),0) MarginAmountExtended,
 			sopc.MarginPercentage,
-			sopc.TaxAmount,
+			--sopc.TaxAmount,
+			ISNULL([dbo].[fn_ConvertUOM](ISNULL(sopc.TaxAmount, 0),im.[StockUnitOfMeasure], im.[ConsumeUnitOfMeasure],1),0) TaxAmount,
 			sopc.TaxPercentage,
 			--sop.TaxType,
 			'' AS TaxType,
-			sopc.NetSaleAmount + sopc.TaxAmount + 
+			--sopc.NetSaleAmount + sopc.TaxAmount + 
+			ISNULL([dbo].[fn_ConvertUOM](ISNULL(sopc.NetSaleAmount, 0),im.[StockUnitOfMeasure], im.[ConsumeUnitOfMeasure],1),0) +
+			ISNULL([dbo].[fn_ConvertUOM](ISNULL(sopc.TaxAmount, 0),im.[StockUnitOfMeasure], im.[ConsumeUnitOfMeasure],1),0) +
 			(CASE WHEN
 			(SELECT SUM(BillingAmount) FROM DBO.SalesOrderCharges WITH (NOLOCK) WHERE SalesOrderId = so.SalesOrderId AND IsActive = 1 AND IsDeleted = 0 AND SalesOrderPartId = sop.SalesOrderPartId) IS NULL THEN 
 			0 ELSE 
@@ -267,15 +283,15 @@ BEGIN
 			so.EnforceEffectiveDate,
 			ISNULL(um.ShortName, '') AS UomName,
 			ISNULL(UPPER(cond.[Description]),'') AS Condition
-		FROM DBO.SalesOrder so WITH (NOLOCK)
-		INNER JOIN DBO.SalesOrderPartV1 sop ON so.SalesOrderId = sop.SalesOrderId
-		INNER JOIN DBO.SalesOrderPartCost sopc ON sopc.SalesOrderPartId = sop.SalesOrderPartId
-		LEFT JOIN DBO.SalesOrderApproval sp WITH (NOLOCK) ON sop.SalesOrderPartId = sp.SalesOrderPartId AND sp.SalesOrderId = @SalesOrderId
-		LEFT JOIN DBO.ItemMaster im WITH (NOLOCK) ON sop.ItemMasterId = im.ItemMasterId
-		LEFT JOIN DBO.UnitOfMeasure um WITH (NOLOCK) ON im.PurchaseUnitOfMeasureId = um.UnitOfMeasureId
-		LEFT JOIN DBO.Employee app WITH (NOLOCK) ON sp.InternalApprovedById = app.EmployeeId
-		LEFT JOIN DBO.Contact con WITH (NOLOCK) ON sp.CustomerApprovedById = con.ContactId
-		LEFT JOIN DBO.Condition cond WITH (NOLOCK) ON sop.ConditionId = cond.ConditionId
+		FROM [dbo].[SalesOrder] so WITH(NOLOCK)
+		INNER JOIN [dbo].[SalesOrderPartV1] sop WITH(NOLOCK) ON so.SalesOrderId = sop.SalesOrderId
+		INNER JOIN [dbo].[SalesOrderPartCost] sopc WITH(NOLOCK) ON sopc.SalesOrderPartId = sop.SalesOrderPartId
+		 LEFT JOIN [dbo].[SalesOrderApproval] sp WITH(NOLOCK) ON sop.SalesOrderPartId = sp.SalesOrderPartId AND sp.SalesOrderId = @SalesOrderId
+		 LEFT JOIN [dbo].[ItemMaster] im WITH(NOLOCK) ON sop.ItemMasterId = im.ItemMasterId
+		 LEFT JOIN [dbo].[UnitOfMeasure] um WITH(NOLOCK) ON im.PurchaseUnitOfMeasureId = um.UnitOfMeasureId
+		 LEFT JOIN [dbo].[Employee] app WITH(NOLOCK) ON sp.InternalApprovedById = app.EmployeeId
+		 LEFT JOIN [dbo].[Contact] con WITH(NOLOCK) ON sp.CustomerApprovedById = con.ContactId
+		 LEFT JOIN [dbo].[Condition] cond WITH(NOLOCK) ON sop.ConditionId = cond.ConditionId
 		WHERE so.IsDeleted = 0 AND sop.IsDeleted = 0 AND so.SalesOrderId = @SalesOrderId;
 
 	  END
@@ -288,8 +304,8 @@ BEGIN
 		DECLARE @ErrorLogID int
 		,@DatabaseName varchar(100) = DB_NAME()
         -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE---------------------------------------
-		,@AdhocComments varchar(150) = 'USP_GetSOApprovalList'
-		,@ProcedureParameters varchar(3000) = '@Parameter1 = ' + ISNULL(@SalesOrderId, '') + ''
+		,@AdhocComments varchar(150) = 'USP_GetSOApprovalList'		
+		,@ProcedureParameters VARCHAR(3000) = '@Parameter1 = ''' + CAST(ISNULL(@SalesOrderId, '') AS VARCHAR(100)) 
 		,@ApplicationName varchar(100) = 'PAS'
 		-----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------
 		EXEC spLogException @DatabaseName = @DatabaseName,

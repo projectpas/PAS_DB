@@ -15,8 +15,9 @@
  ** --   --------		-------			--------------------------------          
     1    07/13/2021		Vishal Suthar	Created
     2	 11/04/2024		Vishal Suthar	Modified to make use of new SO Part tables
+	3	 01/05/2026	  Moin Bloch	Modified Added UOM changes
 
---EXEC [SalesOrderSummarizedHistoryByCustomer] 125, 1
+--EXEC [SalesOrderSummarizedHistoryByCustomer] 115640, 1
 **************************************************************/
 
 CREATE      PROCEDURE [dbo].[SalesOrderSummarizedHistoryByCustomer]
@@ -48,8 +49,10 @@ BEGIN
 						Cond.Description AS Condition,
 						0 AS CustApproved,
 						C.Code AS CurrencyName,
-						((ISNULL(SOPC.NetSaleAmount, 0)) + ISNULL(Charges.BillingAmount, 0)) AS Revenue,
-						((ISNULL(SOPC.UnitCost, 0) * ISNULL(SOP.QtyOrder, 0)) + ISNULL(Charges.BillingAmount, 0)) AS DirectCost,
+						--((ISNULL(SOPC.NetSaleAmount, 0)) + ISNULL(Charges.BillingAmount, 0)) AS Revenue,
+						ISNULL([dbo].[fn_ConvertUOM](ISNULL(SOPC.NetSaleAmount, 0),IM.[StockUnitOfMeasure], IM.[ConsumeUnitOfMeasure],1)  + ISNULL(Charges.BillingAmount, 0),0) AS Revenue,
+						--((ISNULL(SOPC.UnitCost, 0) * ISNULL(SOP.QtyOrder, 0)) + ISNULL(Charges.BillingAmount, 0)) AS DirectCost,
+						ISNULL([dbo].[fn_ConvertUOM](ISNULL(SOPC.UnitCost, 0),IM.[StockUnitOfMeasure], IM.[ConsumeUnitOfMeasure],1) * [dbo].[fn_ConvertUOM](ISNULL(SOP.[QtyOrder],0),IM.[StockUnitOfMeasure], IM.[ConsumeUnitOfMeasure],0),0) + ISNULL(Charges.BillingAmount, 0) AS DirectCost,										
 						SO.SalesOrderNumber,
 						SOQ.SalesOrderQuoteNumber,
 						SO.VersionNumber,
@@ -97,8 +100,8 @@ BEGIN
 
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
               , @AdhocComments     VARCHAR(150)    = 'SalesOrderSummarizedHistoryByCustomer' 
-              , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = '''+ ISNULL(@ItemMasterId, '') + ''',
-													   @Parameter2 = ' + ISNULL(CAST(@IsTwelveMonth AS VARCHAR(10)) ,'') +''
+              , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = ' + ISNULL(CAST(@ItemMasterId AS VARCHAR(100)) ,'') +''',
+													   @Parameter2 = ' + ISNULL(CAST(@IsTwelveMonth AS VARCHAR(100)) ,'') +''
               , @ApplicationName VARCHAR(100) = 'PAS'
 -----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------
 

@@ -175,6 +175,11 @@ BEGIN
 
 		EXEC [dbo].[USP_CheckWOInvoiceExistByWOBillId] @BillingInvoicingIdI,@SubReferenceIds,@StocklineIds,@IsPerformaInvoiceI,@ModuleId,@Result = @isNewInvoice OUTPUT
 
+		IF (@MasterCompanyId = 12)
+		BEGIN
+			SET @isNewInvoice = 1;
+		END
+
 		IF(ISNULL(@isNewInvoice,0) = 0)
 		BEGIN
 			SET @InvoiceNo = (SELECT [InvoiceNo] FROM dbo.BillingInvoicing WHERE [BillingInvoicingId] = @BillingInvoicingIdI)
@@ -472,20 +477,27 @@ BEGIN
 					  --AND CD.[BillingInvoicingItemId] = @BillingInvoicingItemId
 					  AND CM.[StatusId] = @StatusId
 
+				
 				IF(@CreditMemoHeaderId = 0)
 				BEGIN
-					UPDATE [dbo].[BillingInvoicing] SET [IsVersionIncrease] = 1, [InvoiceStatusId] = @BilledInvoiceStatusId, [InvoiceStatus] = @BilledInvoiceStatus WHERE [BillingInvoicingId] = @BillingInvoicingId; 
+					IF (@MasterCompanyId <> 12)
+					BEGIN
+						UPDATE [dbo].[BillingInvoicing] SET [IsVersionIncrease] = 1, [InvoiceStatusId] = @BilledInvoiceStatusId, [InvoiceStatus] = @BilledInvoiceStatus WHERE [BillingInvoicingId] = @BillingInvoicingId; 
+					END
 				END
 				ELSE
 				BEGIN
 					UPDATE [dbo].[BillingInvoicing] SET [CreditMemoHeaderId] = @CreditMemoHeaderId,[InvoiceStatusId] = @InvoicedStatusId,[InvoiceStatus] = @InvoicedStatus,[UpdatedDate] = @UpdatedDate WHERE [BillingInvoicingId] = @BillingInvoicingId; 
 				END
-							
+						
 				IF(@CreditMemoHeaderId = 0)
 				BEGIN
 					IF(@ModuleId = @SOModuleId)
 					BEGIN
-						UPDATE [dbo].[BillingInvoicingItems] SET [IsVersionIncrease] = 1, [PDFPath] = NULL  WHERE [SubReferenceId] = @SubReferenceId AND [BillingInvoicingId] = @BillingInvoicingId AND BillingInvoicingItemId = @BillingInvoicingItemId; 
+						IF (@MasterCompanyId <> 12)
+						BEGIN
+							UPDATE [dbo].[BillingInvoicingItems] SET [IsVersionIncrease] = 1, [PDFPath] = NULL  WHERE [SubReferenceId] = @SubReferenceId AND [BillingInvoicingId] = @BillingInvoicingId AND BillingInvoicingItemId = @BillingInvoicingItemId; 
+						END
 					END
 					ELSE IF(@ModuleId = @WOModuleId)
 					BEGIN

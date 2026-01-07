@@ -127,7 +127,8 @@ BEGIN
 			LEFT JOIN  [dbo].[Shelf] sf WITH(NOLOCK) ON sf.ShelfId = sl.ShelfId
 			LEFT JOIN  [dbo].[Location] lc WITH(NOLOCK) ON lc.LocationId = sl.LocationId
 			WHERE sl.PurchaseOrderId = @PurchaseOrderId AND (@PurchaseOrderPartId = 0 OR sl.PurchaseOrderPartRecordId = @PurchaseOrderPartId)
-			AND sl.ReceiverNumber = @ReceiverNumber AND CAST(sl.ReceivedDate AS DATE) = CAST(@ReceiverDate AS DATE) AND sl.IsParent=1 and sl.isSerialized = 1
+			--AND sl.ReceiverNumber = @ReceiverNumber AND CAST(sl.ReceivedDate AS DATE) = CAST(@ReceiverDate AS DATE) AND sl.IsParent=1 and sl.isSerialized = 1
+			AND sl.ReceiverNumber = @ReceiverNumber AND CAST(DBO.ConvertUTCtoLocal(sl.ReceivedDate, @CurrntEmpTimeZoneDesc) AS DATE) = CAST(@ReceiverDate AS DATE) AND sl.IsParent=1 AND sl.isSerialized = 1
 
 			UNION
 
@@ -167,7 +168,8 @@ BEGIN
 			LEFT JOIN  [dbo].[Shelf] sf WITH(NOLOCK) ON sf.ShelfId = sl.ShelfId
 			LEFT JOIN  [dbo].[Location] lc WITH(NOLOCK) ON lc.LocationId = sl.LocationId
 			WHERE sl.PurchaseOrderId = @PurchaseOrderId AND (@PurchaseOrderPartId = 0 OR sl.PurchaseOrderPartRecordId = @PurchaseOrderPartId)
-			AND sl.ReceiverNumber = @ReceiverNumber AND CAST(sl.ReceivedDate AS DATE) = CAST(@ReceiverDate AS DATE) AND sl.IsParent=1 and sl.isSerialized = 0 
+			--AND sl.ReceiverNumber = @ReceiverNumber AND CAST(sl.ReceivedDate AS DATE) = CAST(@ReceiverDate AS DATE) AND sl.IsParent=1 and sl.isSerialized = 0 
+			AND sl.ReceiverNumber = @ReceiverNumber AND CAST(DBO.ConvertUTCtoLocal(sl.ReceivedDate, @CurrntEmpTimeZoneDesc) AS DATE) = CAST(@ReceiverDate AS DATE) AND sl.IsParent=1 AND sl.isSerialized = 0 
 
 			UNION
 
@@ -206,7 +208,8 @@ BEGIN
 			LEFT JOIN  [dbo].[Shelf] sf WITH(NOLOCK) ON sf.ShelfId = sl.ShelfId
 			LEFT JOIN  [dbo].[Location] lc WITH(NOLOCK) ON lc.LocationId = sl.LocationId
 			WHERE sl.PurchaseOrderId = @PurchaseOrderId AND (@PurchaseOrderPartId = 0 OR sl.PurchaseOrderPartRecordId = @PurchaseOrderPartId)
-			AND sl.ReceiverNumber = @ReceiverNumber AND CAST(sl.ReceivedDate AS DATE) = CAST(@ReceiverDate AS DATE) AND sl.IsParent=1 AND sl.isSerialized = 0 AND sd.ForStockQty > 0
+			--AND sl.ReceiverNumber = @ReceiverNumber AND CAST(sl.ReceivedDate AS DATE) = CAST(@ReceiverDate AS DATE) AND sl.IsParent=1 AND sl.isSerialized = 0 AND sd.ForStockQty > 0
+			AND sl.ReceiverNumber = @ReceiverNumber AND CAST(DBO.ConvertUTCtoLocal(sl.ReceivedDate, @CurrntEmpTimeZoneDesc) AS DATE) = CAST(@ReceiverDate AS DATE) AND sl.IsParent=1 AND sl.isSerialized = 0 AND sd.ForStockQty > 0
 					   
 			UNION
 

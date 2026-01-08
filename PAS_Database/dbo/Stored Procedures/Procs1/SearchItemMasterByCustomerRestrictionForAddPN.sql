@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿
+/*************************************************************           
  ** File:   [SearchItemMasterAutoCompleteDropdownsByRestriction]           
  ** Author		:   Hemant Saliya
  ** Description	:	Get Item Master Details By Customer Restriction    
@@ -19,7 +20,7 @@
 	3    05-JAN-2023		Hemant Saliya	Allow Same Customer stockline use in WO
 	4    12-May-2025        Devendra Shekh  checking isActive and isDeleted for Alternate Part Select
 	5    23-Dec-2025        Devendra Shekh  added UOM Changes
-     
+	6    07/01/2026   Rajesh Gami		Added MasterCompanyId Parameter While Calling UOM Conversion Function     
  EXECUTE [SearchItemMasterByCustomerRestrictionForAddPN] 303, 1, 1,'','0',1
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[SearchItemMasterByCustomerRestrictionForAddPN]
@@ -45,8 +46,8 @@ BEGIN
 					,im.PurchaseUnitOfMeasure AS unitOfMeasure
 					,im.IsPma
 					,im.IsDER
-					,SUM(ISNULL(dbo.fn_ConvertUOM(sl.QuantityAvailable, im.StockUnitOfMeasure, im.ConsumeUnitOfMeasure,0), 0)) AS QtyAvailable
-					,SUM(ISNULL(dbo.fn_ConvertUOM(sl.QuantityOnHand, im.StockUnitOfMeasure, im.ConsumeUnitOfMeasure,0), 0)) AS QtyOnHand
+					,SUM(ISNULL(dbo.fn_ConvertUOM(sl.QuantityAvailable, im.StockUnitOfMeasure, im.ConsumeUnitOfMeasure,0,im.MasterCompanyId), 0)) AS QtyAvailable
+					,SUM(ISNULL(dbo.fn_ConvertUOM(sl.QuantityOnHand, im.StockUnitOfMeasure, im.ConsumeUnitOfMeasure,0,im.MasterCompanyId), 0)) AS QtyOnHand
 					,ig.Description AS ItemGroup
 					,mf.Name Manufacturer
 					,ISNULL(im.ManufacturerId, -1) AS ManufacturerId
@@ -67,8 +68,8 @@ BEGIN
 						ELSE 'OEM'
 						END AS Oempmader
 					,@MappingType AS MappingType
-					,ISNULL(dbo.fn_ConvertUOM(imps.PP_UnitPurchasePrice, im.StockUnitOfMeasure, im.ConsumeUnitOfMeasure,1), 0) AS UnitCost
-					,ISNULL(dbo.fn_ConvertUOM(imps.SP_CalSPByPP_UnitSalePrice, im.StockUnitOfMeasure, im.ConsumeUnitOfMeasure,1), 0) AS UnitSalePrice
+					,ISNULL(dbo.fn_ConvertUOM(imps.PP_UnitPurchasePrice, im.StockUnitOfMeasure, im.ConsumeUnitOfMeasure,1,im.MasterCompanyId), 0) AS UnitCost
+					,ISNULL(dbo.fn_ConvertUOM(imps.SP_CalSPByPP_UnitSalePrice, im.StockUnitOfMeasure, im.ConsumeUnitOfMeasure,1,im.MasterCompanyId), 0) AS UnitSalePrice
 					,imps.PP_FXRatePerc AS FixRate
 					,im.ConsumeUnitOfMeasure
 					,im.StockUnitOfMeasure
@@ -106,7 +107,7 @@ BEGIN
 					,imps.SP_CalSPByPP_UnitSalePrice
 					,imps.PP_FXRatePerc
 					,im.ConsumeUnitOfMeasure
-					,im.StockUnitOfMeasure
+					,im.StockUnitOfMeasure,im.MasterCompanyId
 				ORDER BY 7 DESC
 			END
 		COMMIT  TRANSACTION

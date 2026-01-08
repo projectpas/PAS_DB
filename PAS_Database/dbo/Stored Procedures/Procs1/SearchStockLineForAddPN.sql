@@ -1,4 +1,5 @@
-﻿/*************************************************************             
+﻿
+/*************************************************************             
  ** File:   [SearchStockLineForAddPN]             
  ** Author:   Hemant Saliya  
  ** Description: Search Data for Add PN WO Materilas      
@@ -19,7 +20,7 @@
  ** 5    08/29/2024	  Devendra Shekh  Duplicate StockLine Issue Resolved
  ** 6    05/12/2025	  Devendra Shekh  checking isActive and isDeleted for Alternate Part Select
  ** 7    23/12/2025	  Devendra Shekh  added UOM Changes
-       
+	8    07/01/2026   Rajesh Gami	  Added MasterCompanyId Parameter While Calling UOM Conversion Function       
 -- EXEC [dbo].[SearchStockLineForAddPN] '2', 33, 10,-1,NULL  
 **************************************************************/   
   
@@ -157,10 +158,10 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 			,sl.ControlNumber  
 			,sl.IdNumber  
 			,uom.ShortName AS UomDescription  
-			,ISNULL(dbo.fn_ConvertUOM(sl.QuantityAvailable, sl.StockUnitOfMeasure, sl.ConsumeUnitOfMeasure,0), 0) AS QtyAvailable
-			,ISNULL(dbo.fn_ConvertUOM(sl.QuantityOnHand, sl.StockUnitOfMeasure, sl.ConsumeUnitOfMeasure,0), 0) AS QtyOnHand
-			,ISNULL(dbo.fn_ConvertUOM(sl.UnitCost, sl.StockUnitOfMeasure, sl.ConsumeUnitOfMeasure,0), 1) AS unitCost
-			,ISNULL(dbo.fn_ConvertUOM(sl.UnitSalesPrice, sl.StockUnitOfMeasure, sl.ConsumeUnitOfMeasure,0), 1) AS unitSalePrice
+			,ISNULL(dbo.fn_ConvertUOM(sl.QuantityAvailable, sl.StockUnitOfMeasure, sl.ConsumeUnitOfMeasure,0,im.MasterCompanyId), 0) AS QtyAvailable
+			,ISNULL(dbo.fn_ConvertUOM(sl.QuantityOnHand, sl.StockUnitOfMeasure, sl.ConsumeUnitOfMeasure,0,im.MasterCompanyId), 0) AS QtyOnHand
+			,ISNULL(dbo.fn_ConvertUOM(sl.UnitCost, sl.StockUnitOfMeasure, sl.ConsumeUnitOfMeasure,1,im.MasterCompanyId), 0) AS unitCost
+			,ISNULL(dbo.fn_ConvertUOM(sl.UnitSalesPrice, sl.StockUnitOfMeasure, sl.ConsumeUnitOfMeasure,1,im.MasterCompanyId), 0) AS unitSalePrice
 			--,CASE WHEN sl.TraceableToType = 1 THEN sl.TraceableToName  
 			--  WHEN sl.TraceableToType = 2 THEN sl.TraceableToName
 			--  WHEN sl.TraceableToType = 9 THEN sl.TraceableToName
@@ -272,10 +273,10 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 			,sl.ControlNumber  
 			,sl.IdNumber  
 			,uom.ShortName AS UomDescription  
-			,ISNULL(dbo.fn_ConvertUOM(sl.QuantityAvailable, sl.StockUnitOfMeasure, sl.ConsumeUnitOfMeasure,0), 0) AS QtyAvailable
-			,ISNULL(dbo.fn_ConvertUOM(sl.QuantityOnHand, sl.StockUnitOfMeasure, sl.ConsumeUnitOfMeasure,0), 0) AS QtyOnHand
-			,ISNULL(dbo.fn_ConvertUOM(sl.UnitCost, sl.StockUnitOfMeasure, sl.ConsumeUnitOfMeasure,0), 1) AS unitCost
-			,ISNULL(dbo.fn_ConvertUOM(sl.UnitSalesPrice, sl.StockUnitOfMeasure, sl.ConsumeUnitOfMeasure,0), 1) AS unitSalePrice
+			,ISNULL(dbo.fn_ConvertUOM(sl.QuantityAvailable, sl.StockUnitOfMeasure, sl.ConsumeUnitOfMeasure,0,im.MasterCompanyId), 0) AS QtyAvailable
+			,ISNULL(dbo.fn_ConvertUOM(sl.QuantityOnHand, sl.StockUnitOfMeasure, sl.ConsumeUnitOfMeasure,0,im.MasterCompanyId), 0) AS QtyOnHand
+			,ISNULL(dbo.fn_ConvertUOM(sl.UnitCost, sl.StockUnitOfMeasure, sl.ConsumeUnitOfMeasure,1,im.MasterCompanyId), 0) AS unitCost
+			,ISNULL(dbo.fn_ConvertUOM(sl.UnitSalesPrice, sl.StockUnitOfMeasure, sl.ConsumeUnitOfMeasure,1,im.MasterCompanyId), 0) AS unitSalePrice
 			,CASE WHEN sl.TraceableToType = 1 THEN cusTraceble.Name  
 			  WHEN sl.TraceableToType = 2 THEN vTraceble.VendorName  
 			  WHEN sl.TraceableToType = 9 THEN leTraceble.Name  

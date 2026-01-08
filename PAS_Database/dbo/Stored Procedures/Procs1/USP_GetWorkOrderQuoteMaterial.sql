@@ -24,6 +24,7 @@
 	6	 02/10/2025	  Moin Bloch		 Modified (Added condition @WorkOrderQuoteDetailsId in [WorkOrderQuoteDetails] from duplicate WO Kit)
 	7	 02/10/2025	  Abhishek Jirawla	 Added Billing Name
 	8	 07/01/2026	  Rajesh Gami    	 Getting QTY and COST based on ItemMaster ConsumeUOM
+	9    08/01/2026   Rajesh Gami		Added MasterCompanyId Parameter While Calling UOM Conversion Function
 -- EXEC [USP_GetWorkOrderQuoteMaterial] 1575,4,0,0
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_GetWorkOrderQuoteMaterial]
@@ -61,7 +62,7 @@ BEGIN
                         im.ManufacturerName,
 						'' as AltPartNumber,
 						CASE WHEN wq.BuildMethodId = 1 THEN 'WF' WHEN wq.BuildMethodId = 2  THEN 'WO'  WHEN wq.BuildMethodId = 3  THEN 'WF' ELSE 'Third Party' END Source,
-						ROUND(dbo.fn_ConvertUOM(wom.Quantity, uomStock.ShortName, uomConsume.ShortName,0),2) as Quantity,
+						ROUND(dbo.fn_ConvertUOM(wom.Quantity, uomStock.ShortName, uomConsume.ShortName,0,wom.MasterCompanyId),2) as Quantity,
 						1 as Partqty,
                         --wom.UnitOfMeasureId,
                         --uom.ShortName as UOM,
@@ -74,7 +75,7 @@ BEGIN
 					                     WHEN im.IsPma = 0 AND im.IsDER = 1  THEN 'DER' 
 										 ELSE 'OEM'
 									END)  as StockType,
-						ROUND(dbo.fn_ConvertUOM(wom.UnitCost, uomStock.ShortName, uomConsume.ShortName,0),2) as UnitCost,
+						ROUND(dbo.fn_ConvertUOM(wom.UnitCost, uomStock.ShortName, uomConsume.ShortName,0,wom.MasterCompanyId),2) as UnitCost,
                         wom.MarkupPercentageId,
                         wom.WorkOrderQuoteDetailsId,
                         wom.WorkOrderQuoteMaterialId,
@@ -134,14 +135,14 @@ BEGIN
                         '' as ManufacturerName,
 						'' as AltPartNumber,
 						case when wq.BuildMethodId = 1 then 'WF' when wq.BuildMethodId = 2  then 'WO'  when wq.BuildMethodId = 3  then 'WF' else 'Third Party' end Source,
-						ROUND(dbo.fn_ConvertUOM(wom.Quantity, uomStock.ShortName, uomConsume.ShortName,0),2) as Quantity,
-						ROUND(dbo.fn_ConvertUOM(wom.Quantity, uomStock.ShortName, uomConsume.ShortName,0),2) as Partqty,
+						ROUND(dbo.fn_ConvertUOM(wom.Quantity, uomStock.ShortName, uomConsume.ShortName,0,wom.MasterCompanyId),2) as Quantity,
+						ROUND(dbo.fn_ConvertUOM(wom.Quantity, uomStock.ShortName, uomConsume.ShortName,0,wom.MasterCompanyId),2) as Partqty,
                         im.ConsumeUnitOfMeasureId as UnitOfMeasureId,
                         '' as UOM,
                         0 as ConditionCodeId,
                         '' as Condition,
 					    ''  as StockType,
-						ROUND(dbo.fn_ConvertUOM(wom.UnitCost, uomStock.ShortName, uomConsume.ShortName,0),2)  AS UnitCost,
+						ROUND(dbo.fn_ConvertUOM(wom.UnitCost, uomStock.ShortName, uomConsume.ShortName,0,wom.MasterCompanyId),2)  AS UnitCost,
                         wom.MarkupPercentageId,
                         wq.WorkOrderQuoteDetailsId as WorkOrderQuoteDetailsId,
                         0 as WorkOrderQuoteMaterialId,

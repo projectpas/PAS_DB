@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿
+/*************************************************************           
  ** File:   [usp_GetApprovalListByTaskId]           
  ** Author:  Amit Ghediya
  ** Description: 
@@ -22,7 +23,7 @@
 	9	 8/JAN/2024  RAJESH GAMI     Non PO Approval: Return the extended cost 
 	10   01/07/2025  Abhishek Jirawla Added sum of common flat rate
 	11   05/01/2026  Moin Bloch		  UOM Related Changes
-
+	12   07/01/2026   Rajesh Gami		Added MasterCompanyId Parameter While Calling UOM Conversion Function
 -- exec [dbo].[usp_GetApprovalListByTaskId] 5, 10852
 ************************************************************************/
 CREATE   Procedure [dbo].[usp_GetApprovalListByTaskId]
@@ -149,12 +150,12 @@ BEGIN TRY
 		SELECT @BillingMethod_SO = so.ChargesBilingMethodId, @FlatCharges_SO = so.TotalCharges FROM dbo.SalesOrder so WITH(NOLOCK) WHERE so.SalesOrderId = @ID
 
 		SELECT --@TotalCost = sum(SOC.NetSaleAmount) 
-		      @TotalCost = ISNULL([dbo].[fn_ConvertUOM](SUM(SOC.NetSaleAmount),itemMaster.[StockUnitOfMeasure], itemMaster.[ConsumeUnitOfMeasure],1),0)
+		      @TotalCost = ISNULL([dbo].[fn_ConvertUOM](SUM(SOC.NetSaleAmount),itemMaster.[StockUnitOfMeasure], itemMaster.[ConsumeUnitOfMeasure],1,sop.MasterCompanyId),0)
 			  FROM dbo.SalesOrderPartV1 sop WITH(NOLOCK)
 			  INNER JOIN DBO.SalesOrderPartCost SOC WITH(NOLOCK) ON sop.SalesOrderPartId = SOC.SalesOrderPartId
 			  LEFT JOIN DBO.ItemMaster itemMaster WITH (NOLOCK) ON sop.ItemMasterId = itemMaster.ItemMasterId
 			  WHERE sop.SalesOrderId = @ID
-			  GROUP BY itemMaster.[StockUnitOfMeasure], itemMaster.[ConsumeUnitOfMeasure]
+			  GROUP BY itemMaster.[StockUnitOfMeasure], itemMaster.[ConsumeUnitOfMeasure],sop.MasterCompanyId
 
 		IF @BillingMethod_SO = 3
 		BEGIN

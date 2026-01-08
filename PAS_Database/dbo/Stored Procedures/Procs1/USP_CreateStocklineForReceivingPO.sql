@@ -39,7 +39,7 @@
 	21   03-Dec-2025  Moin Bloch        Modified Fix Status Closed For Split Part
 	22   04-Dec-2025  Moin Bloch        Modified Fix For Asset Inverntory
     23   19-Dec-2025  HEMANT SALIYA     Modified for remove corss join
-
+	24   07/01/2026   Rajesh Gami		Added MasterCompanyId Parameter While Calling UOM Conversion Function
 declare @p2 dbo.POPartsToReceive  insert into @p2 values(2371,4051,2)    
 exec dbo.USP_CreateStocklineForReceivingPO @PurchaseOrderId=2371,@tbl_POPartsToReceive=@p2,@UpdatedBy=N'ADMIN User',@MasterCompanyId=1  
 **************************************************************/
@@ -546,10 +546,10 @@ BEGIN
 						WHERE iM.ItemMasterId = @ItemMasterId AND iM.MasterCompanyId = @MasterCompanyId AND mp.IntegrationPortalId IS NOT NULL
 						GROUP BY iM.ItemMasterId
 						
-						SET @QtyToReceiveAfterConversion =  dbo.fn_ConvertUOM(@QtyToReceive, @POUnitOfMeasure, @StockUnitOfMeasure,0)
+						SET @QtyToReceiveAfterConversion =  dbo.fn_ConvertUOM(@QtyToReceive, @POUnitOfMeasure, @StockUnitOfMeasure,0,@MasterCompanyId)
 						SELECT @DraftQty = Quantity, @DraftUnitCost = PurchaseOrderUnitCost  FROM #tmpStocklineDraft WHERE StockLineDraftId = @SelectedStockLineDraftId
-						SET @QtyAfterConversion = dbo.fn_ConvertUOM(@DraftQty, @POUnitOfMeasure, @StockUnitOfMeasure,0)
-						SET @UnitCostAfterConversion= dbo.fn_ConvertUOM(@DraftUnitCost, @POUnitOfMeasure, @StockUnitOfMeasure,1)
+						SET @QtyAfterConversion = dbo.fn_ConvertUOM(@DraftQty, @POUnitOfMeasure, @StockUnitOfMeasure,0,@MasterCompanyId)
+						SET @UnitCostAfterConversion= dbo.fn_ConvertUOM(@DraftUnitCost, @POUnitOfMeasure, @StockUnitOfMeasure,1,@MasterCompanyId)
 
                         INSERT INTO DBO.Stockline
                         ([PartNumber],[StockLineNumber],[StocklineMatchKey],[ControlNumber],[ItemMasterId],[Quantity],[ConditionId],[SerialNumber],[ShelfLife],[ShelfLifeExpirationDate],[WarehouseId],

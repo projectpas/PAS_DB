@@ -18,6 +18,7 @@
  7      31/01/2024   Hemant Saliya	        Updated for Handle Balance Issues
  8      09/05/2024   Hemant Saliya	        Updated for Handle Static Income Statement ReportingStructureId 
  9		23/05/2024   Moin Bloch			    Set IncomeStatement Default ReportingStructureId 
+ 10     08/01/2026   Hemant Saliya	        Updated for Income Statement Balance Correction 
 
 
 **************************************************************/
@@ -136,7 +137,8 @@ BEGIN
 		SELECT @YTDLeafNodeId = LeafNodeId FROM dbo.LeafNode LF WITH(NOLOCK) WHERE ReportingStructureId = @ReportingStructureId AND UPPER([Name]) = 'YTD INCOME'
 		SELECT @RELeafNodeId = LeafNodeId FROM dbo.LeafNode LF WITH(NOLOCK) WHERE ReportingStructureId = @ReportingStructureId AND UPPER([Name]) = 'BEGINNING RETAIL EARNINGS'
 		
-		SET @BatchMSModuleId = 72 -- BATCH MS MODULE ID
+		
+		SET @BatchMSModuleId = 72-- BATCH MS MODULE ID
 		--SET @ManualBatchMSModuleId = 73 -- MANUAL BATCH MS MODULE ID
 	
 		IF OBJECT_ID(N'tempdb..#AccPeriodTable') IS NOT NULL
@@ -368,16 +370,18 @@ BEGIN
 			INSERT INTO #TempTableYTDBalabce(GlAccountId,GLAccountCode,GLAccountName,ManagementStructureId,DebitAmount,CreditAmount, PeriodNameDistinct, LeafNodeId)
 			SELECT DISTINCT CB.GlAccountId,GL.AccountCode,GL.AccountName,
 				CB.ManagementStructureId, 
-				CASE WHEN ISNULL(GLM.IsPositive, 0) = 1 THEN SUM(ISNULL(CB.DebitAmount, 0)) ELSE ISNULL(SUM(ISNULL(CB.DebitAmount, 0)), 0) * -1 END 'DebitAmount',
-				CASE WHEN ISNULL(GLM.IsPositive, 0) = 1 THEN SUM(ISNULL(CB.CreditAmount, 0)) ELSE ISNULL(SUM(ISNULL(CB.CreditAmount, 0)), 0) * -1 END 'CreditAmount',				
+				SUM(ISNULL(CB.DebitAmount, 0)) 'DebitAmount',
+				SUM(ISNULL(CB.CreditAmount, 0)) 'CreditAmount',
+				--CASE WHEN ISNULL(GLM.IsPositive, 0) = 1 THEN SUM(ISNULL(CB.DebitAmount, 0)) ELSE ISNULL(SUM(ISNULL(CB.DebitAmount, 0)), 0) * -1 END 'DebitAmount',
+				--CASE WHEN ISNULL(GLM.IsPositive, 0) = 1 THEN SUM(ISNULL(CB.CreditAmount, 0)) ELSE ISNULL(SUM(ISNULL(CB.CreditAmount, 0)), 0) * -1 END 'CreditAmount',				
 				@periodNameDistinct,
 				@YTDLeafNodeId
 			FROM dbo.CommonBatchDetails CB WITH(NOLOCK)
 				INNER JOIN dbo.BatchDetails BD WITH(NOLOCK) ON BD.JournalBatchDetailId = CB.JournalBatchDetailId AND BD.StatusId = @PostedBatchStatusId
 				INNER JOIN dbo.GLAccount GL WITH(NOLOCK) ON CB.GlAccountId = GL.GLAccountId AND  GL.GLAccountTypeId IN (@RevenueGLAccountTypeId, @ExpenseGLAccountTypeId)
 				INNER JOIN dbo.AccountingBatchManagementStructureDetails MSD WITH(NOLOCK) ON CB.CommonJournalBatchDetailId = MSD.ReferenceId AND ModuleId = @BatchMSModuleId
-				LEFT JOIN dbo.GLAccountLeafNodeMapping GLM WITH (NOLOCK) ON CB.GlAccountId = GLM.GLAccountId
-				INNER JOIN dbo.LeafNode LF ON LF.LeafNodeId = GLM.LeafNodeId AND LF.IsDeleted = 0 AND ISNULL(ReportingStructureId, 0) = @IncomeStatementReportingStructureId 
+				--LEFT JOIN dbo.GLAccountLeafNodeMapping GLM WITH (NOLOCK) ON CB.GlAccountId = GLM.GLAccountId
+				--INNER JOIN dbo.LeafNode LF ON LF.LeafNodeId = GLM.LeafNodeId AND LF.IsDeleted = 0 AND ISNULL(ReportingStructureId, 0) = @IncomeStatementReportingStructureId 
 			WHERE CB.IsDeleted = 0 AND CB.MasterCompanyId = @MasterCompanyId AND BD.IsDeleted = 0
 				AND BD.AccountingPeriodId IN (SELECT [AccountcalID] FROM #AccPeriodTable_All WHERE [FiscalYear] = @FiscalYear)
 				AND MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,','))  
@@ -391,7 +395,7 @@ BEGIN
 				AND (ISNULL(@Level8,'') ='' OR MSD.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,',')))  
 				AND (ISNULL(@Level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))  
 				AND  (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))
-			GROUP BY CB.GlAccountId,GL.AccountCode,GL.AccountName,CB.ManagementStructureId ,GLM.IsPositive
+			GROUP BY CB.GlAccountId,GL.AccountCode,GL.AccountName,CB.ManagementStructureId --,GLM.IsPositive
 
 			--SELECT * FROM #GLBalance
 			--SELECT * FROM #TempTableYTDBalabce
@@ -399,17 +403,19 @@ BEGIN
 
 			INSERT INTO #TempTableBeginingRetailEarnings(GlAccountId,GLAccountCode,GLAccountName,ManagementStructureId,DebitAmount,CreditAmount, PeriodNameDistinct, LeafNodeId)
 			SELECT DISTINCT CB.GlAccountId,GL.AccountCode,GL.AccountName,
-				CB.ManagementStructureId, 				
-				CASE WHEN ISNULL(GLM.IsPositive, 0) = 1 THEN SUM(ISNULL(CB.DebitAmount, 0)) ELSE ISNULL(SUM(ISNULL(CB.DebitAmount, 0)), 0) * -1 END 'DebitAmount',
-				CASE WHEN ISNULL(GLM.IsPositive, 0) = 1 THEN SUM(ISNULL(CB.CreditAmount, 0)) ELSE ISNULL(SUM(ISNULL(CB.CreditAmount, 0)), 0) * -1 END 'CreditAmount',				
+				CB.ManagementStructureId, 		
+				SUM(ISNULL(CB.DebitAmount, 0)) 'DebitAmount',
+				SUM(ISNULL(CB.CreditAmount, 0)) 'CreditAmount',
+				--CASE WHEN ISNULL(GLM.IsPositive, 0) = 1 THEN SUM(ISNULL(CB.DebitAmount, 0)) ELSE ISNULL(SUM(ISNULL(CB.DebitAmount, 0)), 0) * -1 END 'DebitAmount',
+				--CASE WHEN ISNULL(GLM.IsPositive, 0) = 1 THEN SUM(ISNULL(CB.CreditAmount, 0)) ELSE ISNULL(SUM(ISNULL(CB.CreditAmount, 0)), 0) * -1 END 'CreditAmount',				
 				@periodNameDistinct,
 				@RELeafNodeId
 			FROM dbo.CommonBatchDetails CB WITH(NOLOCK)
 				INNER JOIN dbo.BatchDetails BD WITH(NOLOCK) ON BD.JournalBatchDetailId = CB.JournalBatchDetailId AND BD.StatusId = @PostedBatchStatusId
 				INNER JOIN dbo.GLAccount GL WITH(NOLOCK) ON CB.GlAccountId = GL.GLAccountId AND  GL.GLAccountTypeId IN (@RevenueGLAccountTypeId, @ExpenseGLAccountTypeId)
 				INNER JOIN dbo.AccountingBatchManagementStructureDetails MSD WITH(NOLOCK) ON CB.CommonJournalBatchDetailId = MSD.ReferenceId AND ModuleId = @BatchMSModuleId
-				 LEFT JOIN dbo.GLAccountLeafNodeMapping GLM WITH (NOLOCK) ON CB.GlAccountId = GLM.GLAccountId
-				INNER JOIN dbo.LeafNode LF ON LF.LeafNodeId = GLM.LeafNodeId AND LF.IsDeleted = 0 AND ISNULL(ReportingStructureId, 0) = @IncomeStatementReportingStructureId 
+				--LEFT JOIN dbo.GLAccountLeafNodeMapping GLM WITH (NOLOCK) ON CB.GlAccountId = GLM.GLAccountId
+				--INNER JOIN dbo.LeafNode LF ON LF.LeafNodeId = GLM.LeafNodeId AND LF.IsDeleted = 0 AND ISNULL(ReportingStructureId, 0) = @IncomeStatementReportingStructureId 
 			WHERE CB.IsDeleted = 0 AND CB.MasterCompanyId = @MasterCompanyId AND BD.IsDeleted = 0
 				AND BD.AccountingPeriodId IN (SELECT [AccountcalID] FROM #AccPeriodTable_All WHERE [FiscalYear] < @FiscalYear)
 				AND MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,','))  
@@ -423,7 +429,7 @@ BEGIN
 				AND (ISNULL(@Level8,'') ='' OR MSD.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,',')))  
 				AND (ISNULL(@Level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))  
 				AND  (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))
-			GROUP BY CB.GlAccountId,GL.AccountCode,GL.AccountName,CB.ManagementStructureId ,GLM.IsPositive
+			GROUP BY CB.GlAccountId,GL.AccountCode,GL.AccountName,CB.ManagementStructureId --,GLM.IsPositive
 
 			--Select '#TempTableBeginingRetailEarnings'			
 			--Select * FROM #TempTableBeginingRetailEarnings

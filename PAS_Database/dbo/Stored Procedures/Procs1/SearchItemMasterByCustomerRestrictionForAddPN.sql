@@ -67,8 +67,8 @@ BEGIN
 						ELSE 'OEM'
 						END AS Oempmader
 					,@MappingType AS MappingType
-					,ISNULL(dbo.fn_ConvertUOM(imps.PP_UnitPurchasePrice, im.StockUnitOfMeasure, im.ConsumeUnitOfMeasure,0), 1) AS UnitCost
-					,ISNULL(dbo.fn_ConvertUOM(imps.SP_CalSPByPP_UnitSalePrice, im.StockUnitOfMeasure, im.ConsumeUnitOfMeasure,0), 1) AS UnitSalePrice
+					,ISNULL(dbo.fn_ConvertUOM(imps.PP_UnitPurchasePrice, im.StockUnitOfMeasure, im.ConsumeUnitOfMeasure,1), 0) AS UnitCost
+					,ISNULL(dbo.fn_ConvertUOM(imps.SP_CalSPByPP_UnitSalePrice, im.StockUnitOfMeasure, im.ConsumeUnitOfMeasure,1), 0) AS UnitSalePrice
 					,imps.PP_FXRatePerc AS FixRate
 					,im.ConsumeUnitOfMeasure
 					,im.StockUnitOfMeasure

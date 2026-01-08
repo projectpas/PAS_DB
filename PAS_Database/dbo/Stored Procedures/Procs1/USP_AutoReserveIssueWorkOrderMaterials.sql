@@ -184,8 +184,8 @@ BEGIN
 							DECLARE @ReservePartStatus INT;
 							DECLARE @WorkOrderMaterialsId BIGINT;
 							DECLARE @IsSerialised BIT;
-							DECLARE @stockLineQty INT;
-							DECLARE @stockLineQtyAvailable INT;
+							DECLARE @stockLineQty DECIMAL(18,6);
+							DECLARE @stockLineQtyAvailable DECIMAL(18,6);
 
 							DECLARE @RC int;
 							DECLARE @DistributionMasterId bigint;
@@ -233,9 +233,9 @@ BEGIN
 								[Condition] VARCHAR(500) NULL,
 								[PartNumber] VARCHAR(500) NULL,
 								[PartDescription] VARCHAR(max) NULL,
-								[Quantity] INT NULL,
-								[QtyToBeReserved] INT NULL,
-								[QuantityActReserved] INT NULL,
+								[Quantity] DECIMAL(18,6) NULL,
+								[QtyToBeReserved] DECIMAL(18,6) NULL,
+								[QuantityActReserved] DECIMAL(18,6) NULL,
 								[ControlNo] VARCHAR(500) NULL,
 								[ControlId] VARCHAR(500) NULL,
 								[StockLineNumber] VARCHAR(500) NULL,

@@ -15,8 +15,8 @@
     [ItemClassificationId]       BIGINT          NOT NULL,
     [Quantity]                   DECIMAL (18, 6) CONSTRAINT [DF__WorkOrder__Quant__453AA67C] DEFAULT ((0)) NULL,
     [UnitOfMeasureId]            BIGINT          NOT NULL,
-    [UnitCost]                   DECIMAL (20, 2) DEFAULT ((0)) NOT NULL,
-    [ExtendedCost]               DECIMAL (20, 2) DEFAULT ((0)) NOT NULL,
+    [UnitCost]                   DECIMAL (18, 6) DEFAULT ((0)) NOT NULL,
+    [ExtendedCost]               DECIMAL (18, 6) DEFAULT ((0)) NOT NULL,
     [Memo]                       NVARCHAR (MAX)  NULL,
     [IsDeferred]                 BIT             DEFAULT ((0)) NULL,
     [QuantityReserved]           DECIMAL (18, 6) NULL,
@@ -66,6 +66,8 @@
     CONSTRAINT [FK_WorkOrderMaterials_WorkFlowWorkOrderId] FOREIGN KEY ([WorkFlowWorkOrderId]) REFERENCES [dbo].[WorkOrderWorkFlow] ([WorkFlowWorkOrderId]),
     CONSTRAINT [FK_WorkOrderMaterials_WorkOrder] FOREIGN KEY ([WorkOrderId]) REFERENCES [dbo].[WorkOrder] ([WorkOrderId])
 );
+
+
 
 
 

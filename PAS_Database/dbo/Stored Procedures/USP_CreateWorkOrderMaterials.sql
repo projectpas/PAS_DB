@@ -28,7 +28,7 @@ BEGIN
 		DECLARE @isExistingMaterilas BIT = 0;
 		DECLARE @workOrderId BIGINT = 0, @IsAutoIssue BIT = 0;
 		DECLARE @TotalMaterialCount INT, @CurrentRowId INT, @InitialRowId INT = 1;		
-		DECLARE @Quantity INT, @WorkOrderPartNoId BIGINT, @WorkOrderMaterialsId BIGINT, @WorkFlowWorkOrderId BIGINT, @ItemMasterId BIGINT, @CreatedBy VARCHAR(200), @MasterCompanyId INT, @WorkOrderTypeId BIGINT, @EmployeeId BIGINT, @WOMStockLineId BIGINT;
+		DECLARE @Quantity DECIMAL(18,6), @WorkOrderPartNoId BIGINT, @WorkOrderMaterialsId BIGINT, @WorkFlowWorkOrderId BIGINT, @ItemMasterId BIGINT, @CreatedBy VARCHAR(200), @MasterCompanyId INT, @WorkOrderTypeId BIGINT, @EmployeeId BIGINT, @WOMStockLineId BIGINT;
 		DECLARE @ProvisionId INT, @SUB_WORK_ORDER_ProvisionId INT = 3;
 		DECLARE @tmpWOMaterial [WorkOrderMaterialsType];
 		DECLARE @tmpStkWOMaterial [WorkOrderMaterialsType];
@@ -74,7 +74,7 @@ BEGIN
 		IF(ISNULL(@Quantity, 0) > 0) AND ISNULL(@isExistingMaterilas, 0) = 0
 		BEGIN
 
-			DECLARE @historyModuleId BIGINT, @historySubModuleId BIGINT, @TemplateBody NVARCHAR(MAX), @WOMQuantity INT, @OldValue VARCHAR(MAX)='', @NewValue VARCHAR(MAX) ='', @partnumber VARCHAR(50), @AddPNPart VARCHAR(20) = 'AddPN';
+			DECLARE @historyModuleId BIGINT, @historySubModuleId BIGINT, @TemplateBody NVARCHAR(MAX), @WOMQuantity DECIMAL(18,6), @OldValue VARCHAR(MAX)='', @NewValue VARCHAR(MAX) ='', @partnumber VARCHAR(50), @AddPNPart VARCHAR(20) = 'AddPN';
 			
 			SELECT @WOMQuantity = [Quantity] FROM [dbo].[WorkOrderMaterials] WITH(NOLOCK) WHERE [WorkOrderMaterialsId] = @WorkOrderMaterialsId
 			SELECT @WorkOrderPartNoId = [WorkOrderPartNoId] FROM [dbo].[WorkOrderWorkFlow] WITH(NOLOCK) WHERE [WorkFlowWorkOrderId] = @WorkFlowWorkOrderId;
@@ -287,7 +287,7 @@ BEGIN
 							IF(ISNULL(@TotalPickItems, 0) > 0)
 							BEGIN
 								
-								DECLARE @WOPickTicketId BIGINT, @WOPickTicketNumber NVARCHAR(MAX), @IsActive BIT, @IsDeleted BIT, @Qty INT, @QtyToShip INT, @Status INT, @PickedById BIGINT, @ConfirmedById INT, @Memo NVARCHAR(MAX),
+								DECLARE @WOPickTicketId BIGINT, @WOPickTicketNumber NVARCHAR(MAX), @IsActive BIT, @IsDeleted BIT, @Qty DECIMAL(18,6), @QtyToShip DECIMAL(18,6), @Status INT, @PickedById BIGINT, @ConfirmedById INT, @Memo NVARCHAR(MAX),
 										@IsConfirmed BIT, @CodePrefixId BIGINT, @CurrentNummber BIGINT, @IsMPN BIT, @StocklineId BIGINT, @IsKitType BIT;
 
 								WHILE(@TotalPickItems >= @CurrentPicktItemId)

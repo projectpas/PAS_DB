@@ -54,7 +54,7 @@ SET NOCOUNT ON
 					UnitCost DECIMAL(18,2) NULL,
 					ExtendedCost DECIMAL(18,2) NULL,
 					StlCount INT NULL,
-					StlReqQty INT NULL,
+					StlReqQty DECIMAL(18,6) NULL,
 					IsKit BIT NULL
 				)
 
@@ -170,9 +170,9 @@ SET NOCOUNT ON
 					 WorkOrderMaterialsId BIGINT NULL,
 					 WorkordermaterialstocklineId BIGINT NULL,
 					 StocklineId BIGINT NULL,
-					 QtyToReserve INT NULL,
-					 QtyToShip INT NULL,
-					 QtyPtickTicketRemove INT NULL,
+					 QtyToReserve DECIMAL(18,6) NULL,
+					 QtyToShip DECIMAL(18,6) NULL,
+					 QtyPtickTicketRemove DECIMAL(18,6) NULL,
 				)
 
 				INSERT INTO #tmpMaterilasPickTicket (WorkOrderMaterialsId, WorkordermaterialstocklineId,StocklineId,  QtyToReserve, QtyToShip)
@@ -204,11 +204,11 @@ SET NOCOUNT ON
 						WorkOrderMaterialsId BIGINT NULL,
 						WorkordermaterialstocklineId BIGINT NULL,
 						StocklineId BIGINT NULL,
-						QtyToReserve INT NULL,
-						QtyToShip INT NULL,
-						QtyPtickTicketRemove INT NULL,
+						QtyToReserve DECIMAL(18,6) NULL,
+						QtyToShip DECIMAL(18,6) NULL,
+						QtyPtickTicketRemove DECIMAL(18,6) NULL,
 						PickTicketId BIGINT NULL,
-						PickTicketQtyToShip INT NULL,
+						PickTicketQtyToShip DECIMAL(18,6) NULL,
 				)
 					
 				INSERT INTO #tmpremovePT  SELECT  TMP.WorkOrderMaterialsId,TMP.WorkOrderMaterialsId,TMP.StocklineId,TMP.QtyToReserve,TMP.QtyToShip,TMP.QtyPtickTicketRemove,WOP.PickTicketId,WOP.QtyToShip FROM  dbo.WorkorderPickTicket WOP WITH(NOLOCK) INNER JOIN  #tmpMaterilasPickTicket TMP 

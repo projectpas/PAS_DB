@@ -56,7 +56,7 @@ BEGIN
 			SELECT 
 			L.LeafNodeId,L.Name,L.ParentId,LP.Name 'ParentNodeName',
 			l.IsLeafNode,
-			GL.AccountCode + '-' + GL.AccountName 'GLAccount', -- + '-' + GLT.GLAccountClassName  
+			GL.AccountCode + '-' + GL.AccountName 'GLAccount', 
 			L.MasterCompanyId,
 			L.CreatedBy,
 			CASE WHEN @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN 
@@ -73,7 +73,6 @@ BEGIN
 			ISNULL(GLM.SequenceNumber,0) GLSequenceNumber,
 			GLM.IsPositive 'GlIsPositive',
 			ROW_NUMBER() OVER(PARTITION BY L.Name ORDER BY(SELECT 1)) rownum,
-			--ROW_NUMBER() OVER(PARTITION BY L.Name ORDER BY ISNULL(GL.AccountCode, 0)) rowSeq,
 			ROW_NUMBER() OVER(PARTITION BY L.Name ORDER BY			
 				CASE WHEN ISNUMERIC(GL.AccountCode) = 1 THEN CONVERT(NUMERIC,GL.AccountCode) END,               
 				CASE WHEN ISNUMERIC(GL.AccountCode) = 0 THEN GL.AccountCode END )
@@ -104,12 +103,10 @@ BEGIN
 			LEFT JOIN dbo.LeafNode LP WITH(NOLOCK) ON L.ParentId = LP.LeafNodeId
 			WHERE L.MasterCompanyId = @masterCompanyId AND L.IsDeleted = 0 AND
 			L.ReportingStructureId = @ReportingStructureId AND L.IsActive = 1 
-			--AND (l.LeafNodeId = 156)
 		)
 		SELECT * INTO #LeafTempTbl FROM CTE
 
 		UPDATE #LeafTempTbl SET IsMainLeafNode = 1 WHERE IsLeafNode = 1 AND rowSeqGl = 1
-		--Select * from #LeafTempTbl
 		SELECT * INTO #LeafTempTblMainLeaf FROM #LeafTempTbl WHERE IsMainLeafNode = 1
 
 		UPDATE #LeafTempTblMainLeaf SET IsMainLeafNode = 0 WHERE IsMainLeafNode = 1 
@@ -117,9 +114,6 @@ BEGIN
 		WHERE IsMainLeafNode = 1 AND IsLeafNode = 1 AND rowSeqGl = 1 
 
 		SELECT * INTO #FinalTempTable FROM (SELECT * FROM #LeafTempTbl UNION ALL SELECT * FROM #LeafTempTblMainLeaf) as FinalTemp
-		--Select * from #FinalTempTable			
-		--SELECT * FROM #LeafTempTbl
-		--SELECT * FROM #LeafTempTblMainLeaf
 
 		SELECT
 			L.LeafNodeId,
@@ -130,19 +124,6 @@ BEGIN
 							ELSE ''
 						END 
 			ELSE L.Name END AS 'Name',
-			--CASE WHEN l.IsLeafNode = 1 THEN
-			--		CASE rowSeqGl
-			--			WHEN 1 THEN L.Name
-			--			ELSE ''
-			--		END 
-			--	ELSE L.Name END AS 'Name',
-			--	CASE WHEN l.IsLeafNode = 1 THEN
-			--	CASE rowSeq
-			--	WHEN 1 THEN L.Name
-			--	ELSE ''
-			--	END 
-			--ELSE L.Name END
-			--AS 'Old_Name',
 			L.ParentId,
 			L.ParentNodeName,
 			l.IsLeafNode,

@@ -11,6 +11,8 @@
     1    18-04-2025		Hemnat Saliya			Created
 	2    23-04-2025		Moin Bloch			    Fix For Analysis Revenue Amount
 	3    03-07-2025     Moin Bloch              Changed Old To New Billing Table
+	4    09-01-2026		Hemnat Saliya			FIxed for Act Vs Quote Summary Labor Flat Amount wa not get
+
 		
 	exec dbo.usp_GetWorkOrderAndQuoteCostDetails 8374,8688
 **************************************************************/
@@ -116,6 +118,30 @@ BEGIN
 			FROM [dbo].WorkOrderQuoteLaborHeader  WITH(NOLOCK)
 			WHERE WorkOrderQuoteDetailsId = @QuoteDetailsId AND IsDeleted = 0;
 
+			-- costDetails.QuoteLabourCost logic
+			DECLARE @QuoteLabourCost DECIMAL(18,2) = NULL;
+
+			IF (ISNULL(@QuoteLabourHeaderId, 0) > 0)
+			BEGIN
+				-- if ((QuoteMethod == true) OR (LaborBuildMethod == 3))
+				IF (@QuoteMethod = 1) OR (@LaborBuildMethod = 3)
+				BEGIN
+					SET @QuoteLabourCost = 0;
+
+					-- if (QuoteMethod != true && LaborBuildMethod == FlatRate)
+					IF (ISNULL(@QuoteMethod, 0) <> 1) AND (@LaborBuildMethod = 3)
+					BEGIN
+						SET @QuoteLabourCost = ISNULL(@LaborFlatBillingAmount, 0);
+					END
+				END
+				ELSE
+				BEGIN
+					-- In your C# you load WorkOrderQuoteLabor.ToList() here but don't use it.
+					-- Keeping the effective assignment:
+					SET @QuoteLabourCost = ISNULL(@LaborCost, 0);
+				END
+			END
+
 			-- Step 4: Calculate LabourAmountPrice
 			SET @LabourAmountPrice = @LaborFlatBillingAmount;
 			IF @MarkupFixedPrice IS NOT NULL AND @MarkupFixedPrice != '3'
@@ -148,7 +174,7 @@ BEGIN
 		
 		SELECT 
 			QuoteMethod = @QuoteMethod,
-			QuoteLabourCost = CASE WHEN @QuoteMethod = 1 THEN 0 ELSE @LaborCost END,
+			QuoteLabourCost = CASE WHEN @QuoteMethod = 1 THEN 0 ELSE @QuoteLabourCost END,
 
 			QuoteMaterialCost = CASE WHEN @QuoteMethod = 1 THEN 0 ELSE  @MaterialCost END,
 			QuoteMiscCharges = CASE WHEN @QuoteMethod = 1 THEN 0 ELSE @ChargesCost END,

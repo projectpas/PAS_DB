@@ -1,5 +1,4 @@
-﻿
- /*************************************************************           
+﻿ /*************************************************************           
  ** File:   [UpdateToPostFullBatch]           
  ** Author: Satish Gohil
  ** Description: This stored procedure is used update Batch Details Record
@@ -18,6 +17,7 @@
 	1    02/08/2023		Satish Gohil		Account CalenderId and Period Update in BatchDetails
 	2	 18/10/2023		Nainshi Joshi		Update PostedBy and PostedDate in BatchDetails and BatchHeader
 	3	 11/06/2024		HEMANT SALIYA		Added AP Posted Date
+	4	 09/01/2025		Moin Bloch		    POST ONLY MATCHED CREDITAMOUNT AND DEBITAMOUNT 
      
 --EXEC UpdateToPostFullBatch 535,'Admin User'
 **************************************************************/
@@ -61,24 +61,24 @@ BEGIN
 			WHERE GETUTCDATE() BETWEEN CAST(FromDate AS date) AND CAST(ToDate AS date) AND AccountingCalendarId = @AccountingPeriodId
 		END
 
-	   UPDATE BatchDetails SET StatusId = @StatusId,
-		   UpdatedDate=GETUTCDATE(),
-		   UpdatedBy = @updateBy,
-		   AccountingPeriodId = @AccountingPeriodId,
-		   AccountingPeriod = @AccountingPeriod,
-		   PostedDate = GETUTCDATE(),
-		   APPostedDate = @APPostedDate,  
-		   PostedBy = @updateBy
-	   WHERE JournalBatchDetailId IN (SELECT Item FROM DBO.SPLITSTRING(@ids,','))  
+	   UPDATE  dbo.BatchDetails SET StatusId = @StatusId,
+			   UpdatedDate=GETUTCDATE(),
+			   UpdatedBy = @updateBy,
+			   AccountingPeriodId = @AccountingPeriodId,
+			   AccountingPeriod = @AccountingPeriod,
+			   PostedDate = GETUTCDATE(),
+			   APPostedDate = @APPostedDate,  
+			   PostedBy = @updateBy
+	   WHERE JournalBatchDetailId IN (SELECT Item FROM DBO.SPLITSTRING(@ids,','))  AND ISNULL([DebitAmount],0) = ISNULL([CreditAmount],0)
 
-	   UPDATE BatchHeader SET StatusId= @StatusId,
-			PostDate = GETUTCDATE(),
-			APPostedDate = @APPostedDate,  
-			PostedBy = @updateBy,
-			StatusName = @StatusName,
-			UpdatedDate = GETUTCDATE(),
-			UpdatedBy = @updateBy 
-	   where JournalBatchHeaderId = @JournalBatchHeaderId;
+	     UPDATE dbo.BatchHeader SET StatusId= @StatusId,
+				PostDate = GETUTCDATE(),
+				APPostedDate = @APPostedDate,  
+				PostedBy = @updateBy,
+				StatusName = @StatusName,
+				UpdatedDate = GETUTCDATE(),
+				UpdatedBy = @updateBy 
+	      WHERE JournalBatchHeaderId = @JournalBatchHeaderId AND ISNULL([TotalDebit],0) = ISNULL([TotalCredit],0) 
   END  
   
  END TRY      

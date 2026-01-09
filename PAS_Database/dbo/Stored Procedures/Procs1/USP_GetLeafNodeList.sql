@@ -16,6 +16,7 @@
 	5   01Mar2023		Rajesh Gami			GLMapping Sequence related change
 	6   05-Mar-2025     Divyesh Kathiriya	Update CreatedDate and UpdateDate based on Employee time zone 
 	7   11-JUL-2025		Moin Bloch		    Added GLAccountType in GLAccount
+	8   09-JAN-2026		HEMNAT SALIYA	    Removed GL Account Class from GLAccount Name
 
     USP_GetLeafNodeList 1,1,226
 **************************************************************/ 
@@ -55,7 +56,7 @@ BEGIN
 			SELECT 
 			L.LeafNodeId,L.Name,L.ParentId,LP.Name 'ParentNodeName',
 			l.IsLeafNode,
-			GL.AccountCode + '-' + GL.AccountName + '-' + GLT.GLAccountClassName  'GLAccount',
+			GL.AccountCode + '-' + GL.AccountName 'GLAccount', -- + '-' + GLT.GLAccountClassName  
 			L.MasterCompanyId,
 			L.CreatedBy,
 			CASE WHEN @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN 

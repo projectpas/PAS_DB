@@ -1,6 +1,4 @@
-﻿
-
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [USP_CreateWorkOrderQuoteMaterial]           
  ** Author:   Devendra Shekh
  ** Description: This stored procedure is used to Create work Order Quote Materials
@@ -14,6 +12,7 @@
     1    20-May-2025   Devendra Shekh		Created
 	2    16-Oct-2025   Rajesh Gami			Resovle issue for FlatMaterialAmount doesn't save (Update the WOQDetailsId in the temptable)
 	3    07-JAN-2025   Rajesh Gami			UOM Conversion Related Change (Make Cost and QTY from Consume to Purchase UOM)
+	4    07/01/2026	   Rajesh Gami			Added MasterCompanyId Parameter While Calling UOM Conversion Function
 **************************************************************/
 CREATE     PROCEDURE [dbo].[USP_CreateWorkOrderQuoteMaterial]
 @tbl_WorkOrderQuoteDetailsType [WorkOrderQuoteDetailsType] READONLY,
@@ -51,7 +50,7 @@ BEGIN
 				[CommonFlatRate], [EvalFees]
 		INTO #tmpWorkOrderQuoteDetails
 		FROM @tbl_WorkOrderQuoteDetailsType;
-
+			SELECT TOP 1 @MasterCompanyId = [MasterCompanyId] FROM #tmpWorkOrderQuoteDetails 
 		-- Material List Data
 		SELECT * INTO #tmpWorkOrderQuoteMaterialIntial FROM @tbl_WorkOrderQuoteMaterialType	
 				UPDATE tb
@@ -74,8 +73,8 @@ BEGIN
 						LEFT JOIN dbo.[Percent] p WITH(NOLOCK) ON p.PercentId = tb.MarkupPercentageId
 						CROSS APPLY (
 							SELECT 
-								dbo.fn_ConvertUOM(tb.UnitCost, uomConsume.ShortName, uom.ShortName, 1) AS ConvUnitCost,
-								dbo.fn_ConvertUOM(tb.Quantity, uomConsume.ShortName, uom.ShortName, 0) AS ConvQty
+								dbo.fn_ConvertUOM(tb.UnitCost, uomConsume.ShortName, uom.ShortName, 1,@MasterCompanyId) AS ConvUnitCost,
+								dbo.fn_ConvertUOM(tb.Quantity, uomConsume.ShortName, uom.ShortName, 0,@MasterCompanyId) AS ConvQty
 						) calc;
 
 		SELECT	ROW_NUMBER() OVER (ORDER BY (SELECT NULL)) AS RowId, [WorkOrderQuoteMaterialId], [WorkOrderQuoteDetailsId], [ItemMasterId], [ConditionCodeId], [ItemClassificationId], [Quantity], [UnitOfMeasureId], [UnitCost], [ExtendedCost], [Memo], [IsDefered],

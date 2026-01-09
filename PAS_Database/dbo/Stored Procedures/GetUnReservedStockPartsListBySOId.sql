@@ -19,7 +19,7 @@
 	 3    17/01/2025	AMIT GHEDIYA		Handle mutiple invoiced data with laytest invoiced.
 	 4    07-07-2025    Moin Bloch          Changed Old To New Billing Table
 	 5    02/01/2026    Moin Bloch		    UOM Related Changes
-
+	 6    07/01/2026    Rajesh Gami			Added MasterCompanyId Parameter While Calling UOM Conversion Function
 EXEC [dbo].[GetUnReservedStockPartsListBySOId]  10851,0,0
 **************************************************************/
 CREATE    PROCEDURE [dbo].[GetUnReservedStockPartsListBySOId]
@@ -51,7 +51,7 @@ BEGIN
 			   im.PartNumber,
 			   im.PartDescription,
 			   --sop.QtyOrder,
-			   [dbo].[fn_ConvertUOM](ISNULL(sop.[QtyOrder], 0),stl.[StockUnitOfMeasure] ,stl.[ConsumeUnitOfMeasure],0) AS QtyOrder,
+			   [dbo].[fn_ConvertUOM](ISNULL(sop.[QtyOrder], 0),stl.[StockUnitOfMeasure] ,stl.[ConsumeUnitOfMeasure],0,so.MasterCompanyId) AS QtyOrder,
 			   sopi.ReservedById,
 			   sopi.IssuedById,
 			   sopi.ReservedDate,
@@ -61,11 +61,11 @@ BEGIN
 			   sopi.AltPartMasterPartId,
 			   sopi.EquPartMasterPartId,
 			   --sopi.QtyToReserve AS 'QtyToUnReserve',
-			   [dbo].[fn_ConvertUOM](ISNULL(sopi.[QtyToReserve], 0),stl.[StockUnitOfMeasure] ,stl.[ConsumeUnitOfMeasure],0) AS 'QtyToUnReserve',
+			   [dbo].[fn_ConvertUOM](ISNULL(sopi.[QtyToReserve], 0),stl.[StockUnitOfMeasure] ,stl.[ConsumeUnitOfMeasure],0,so.MasterCompanyId) AS 'QtyToUnReserve',
 			   --sopi.QtyToReserve,
-			   [dbo].[fn_ConvertUOM](ISNULL(sopi.[QtyToReserve], 0),stl.[StockUnitOfMeasure] ,stl.[ConsumeUnitOfMeasure],0) AS QtyToReserve,
+			   [dbo].[fn_ConvertUOM](ISNULL(sopi.[QtyToReserve], 0),stl.[StockUnitOfMeasure] ,stl.[ConsumeUnitOfMeasure],0,so.MasterCompanyId) AS QtyToReserve,
 			   --sopi.TotalReserved,
-			   [dbo].[fn_ConvertUOM](ISNULL(sopi.[TotalReserved], 0),stl.[StockUnitOfMeasure] ,stl.[ConsumeUnitOfMeasure],0) AS TotalReserved,
+			   [dbo].[fn_ConvertUOM](ISNULL(sopi.[TotalReserved], 0),stl.[StockUnitOfMeasure] ,stl.[ConsumeUnitOfMeasure],0,so.MasterCompanyId) AS TotalReserved,
 			   @PartStatus As 'PartStatusId',
 			   CASE 
 			       WHEN im.IsPma = 1 AND im.IsDER = 1 THEN 'PMADER' 
@@ -74,18 +74,18 @@ BEGIN
 			       ELSE 'OEM'
 			   END AS StockType,
 			   --stl.QuantityAvailable,
-			   [dbo].[fn_ConvertUOM](ISNULL(stl.[QuantityAvailable], 0),stl.[StockUnitOfMeasure], stl.[ConsumeUnitOfMeasure],0) AS QuantityAvailable, 
+			   [dbo].[fn_ConvertUOM](ISNULL(stl.[QuantityAvailable], 0),stl.[StockUnitOfMeasure], stl.[ConsumeUnitOfMeasure],0,so.MasterCompanyId) AS QuantityAvailable, 
 			   --stl.QuantityOnHand,
-			   [dbo].[fn_ConvertUOM](ISNULL(stl.[QuantityOnHand], 0),stl.[StockUnitOfMeasure], stl.[ConsumeUnitOfMeasure],0) AS QuantityOnHand, 
+			   [dbo].[fn_ConvertUOM](ISNULL(stl.[QuantityOnHand], 0),stl.[StockUnitOfMeasure], stl.[ConsumeUnitOfMeasure],0,so.MasterCompanyId) AS QuantityOnHand, 
 			   --stl.QuantityOnOrder,
-			   [dbo].[fn_ConvertUOM](ISNULL(stl.[QuantityOnOrder], 0),stl.[StockUnitOfMeasure], stl.[ConsumeUnitOfMeasure],0) AS QuantityOnOrder, 
+			   [dbo].[fn_ConvertUOM](ISNULL(stl.[QuantityOnOrder], 0),stl.[StockUnitOfMeasure], stl.[ConsumeUnitOfMeasure],0,so.MasterCompanyId) AS QuantityOnOrder, 
 			   stl.StockLineId,
 			   --stl.QuantityIssued,
-			   [dbo].[fn_ConvertUOM](ISNULL(stl.[QuantityIssued], 0),stl.[StockUnitOfMeasure], stl.[ConsumeUnitOfMeasure],0) AS QuantityIssued, 
+			   [dbo].[fn_ConvertUOM](ISNULL(stl.[QuantityIssued], 0),stl.[StockUnitOfMeasure], stl.[ConsumeUnitOfMeasure],0,so.MasterCompanyId) AS QuantityIssued, 
 			   --stl.QuantityReserved,
-			   [dbo].[fn_ConvertUOM](ISNULL(stl.[QuantityReserved], 0),stl.[StockUnitOfMeasure], stl.[ConsumeUnitOfMeasure],0) AS QuantityReserved, 
+			   [dbo].[fn_ConvertUOM](ISNULL(stl.[QuantityReserved], 0),stl.[StockUnitOfMeasure], stl.[ConsumeUnitOfMeasure],0,so.MasterCompanyId) AS QuantityReserved, 
 			   --stl.QuantityToReceive,
-			   [dbo].[fn_ConvertUOM](ISNULL(stl.[QuantityToReceive], 0),stl.[StockUnitOfMeasure], stl.[ConsumeUnitOfMeasure],0) AS QuantityToReceive, 
+			   [dbo].[fn_ConvertUOM](ISNULL(stl.[QuantityToReceive], 0),stl.[StockUnitOfMeasure], stl.[ConsumeUnitOfMeasure],0,so.MasterCompanyId) AS QuantityToReceive, 
 			   stl.StockLineNumber,
 			   stl.ControlNumber,
 			   stl.MasterCompanyId,
@@ -94,7 +94,7 @@ BEGIN
 				   @isFromShipping = 0
 			   THEN 
 				   ISNULL((SELECT --ISNULL(sobii.QtyBilled, 0) 
-				   ISNULL([dbo].[fn_ConvertUOM](ISNULL(sobii.[QtyBilled], 0),stl.[StockUnitOfMeasure], stl.[ConsumeUnitOfMeasure],0),0)
+				   ISNULL([dbo].[fn_ConvertUOM](ISNULL(sobii.[QtyBilled], 0),stl.[StockUnitOfMeasure], stl.[ConsumeUnitOfMeasure],0,so.MasterCompanyId),0)
 				   FROM [DBO].[BillingInvoicing] sobi WITH(NOLOCK)
 				   LEFT JOIN [DBO].[BillingInvoicingItems] sobii WITH(NOLOCK) ON sobii.BillingInvoicingId = sobi.BillingInvoicingId				   
 				   WHERE sobi.ReferenceId = @SalesOrderId AND ISNULL(sobi.IsPerformaInvoice, 0) = 0 AND sobi.[ModuleId] = @SOModuleId

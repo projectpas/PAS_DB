@@ -19,7 +19,7 @@
 	3    02-19-2024		Vishal Suthar	Changed to always exclude customer stocks, and sorting based on availability
 	4    11-21-2024		Amit Ghediya	Get ECCN,HSCODE,Weight,LWH for billing.
 	5    05-01-2025		ABHISHEK JIRAWLA Allow Repair Management Customer Stock Stockline
-     
+	9    07/01/2026   Rajesh Gami		Added MasterCompanyId Parameter While Calling UOM Conversion Function     
  EXECUTE [SearchItemMasterByCustomerRestriction] 11, 7, 77,-1
 **************************************************************/ 
 CREATE PROCEDURE [dbo].[SearchItemMasterByCustomerRestriction]
@@ -46,9 +46,9 @@ BEGIN
 					,im.IsPma
 					,im.IsDER
 					--,SUM(ISNULL(sl.QuantityAvailable, 0)) AS QtyAvailable
-					,SUM([dbo].[fn_ConvertUOM](ISNULL(sl.[QuantityAvailable], 0),sl.[StockUnitOfMeasure], sl.[ConsumeUnitOfMeasure],0)) AS QtyAvailable 					
+					,SUM([dbo].[fn_ConvertUOM](ISNULL(sl.[QuantityAvailable], 0),sl.[StockUnitOfMeasure], sl.[ConsumeUnitOfMeasure],0,im.MasterCompanyId)) AS QtyAvailable 					
 					--,SUM(ISNULL(sl.QuantityOnHand, 0)) AS QtyOnHand
-					,SUM([dbo].[fn_ConvertUOM](ISNULL(sl.[QuantityOnHand], 0),sl.[StockUnitOfMeasure] ,sl.[ConsumeUnitOfMeasure],0)) AS QtyOnHand 
+					,SUM([dbo].[fn_ConvertUOM](ISNULL(sl.[QuantityOnHand], 0),sl.[StockUnitOfMeasure] ,sl.[ConsumeUnitOfMeasure],0,im.MasterCompanyId)) AS QtyOnHand 
 					,ig.[Description] AS ItemGroup
 					,mf.[Name] Manufacturer
 					,ISNULL(im.ManufacturerId, -1) AS ManufacturerId
@@ -70,11 +70,11 @@ BEGIN
 						END AS Oempmader
 					,@MappingType AS MappingType
 				    --,imps.PP_UnitPurchasePrice AS UnitCost
-					,([dbo].[fn_ConvertUOM](ISNULL(imps.PP_UnitPurchasePrice, 0),im.[StockUnitOfMeasure], im.[ConsumeUnitOfMeasure],1)) AS UnitCost
+					,([dbo].[fn_ConvertUOM](ISNULL(imps.PP_UnitPurchasePrice, 0),im.[StockUnitOfMeasure], im.[ConsumeUnitOfMeasure],1,im.MasterCompanyId)) AS UnitCost
 					--,imps.SP_CalSPByPP_UnitSalePrice AS UnitSalePrice
-					,([dbo].[fn_ConvertUOM](ISNULL(imps.SP_CalSPByPP_UnitSalePrice, 0),im.[StockUnitOfMeasure], im.[ConsumeUnitOfMeasure],1)) AS UnitSalePrice
+					,([dbo].[fn_ConvertUOM](ISNULL(imps.SP_CalSPByPP_UnitSalePrice, 0),im.[StockUnitOfMeasure], im.[ConsumeUnitOfMeasure],1,im.MasterCompanyId)) AS UnitSalePrice
 					--,imps.PP_FXRatePerc AS FixRate
-					,([dbo].[fn_ConvertUOM](ISNULL(imps.PP_FXRatePerc, 0),im.[StockUnitOfMeasure], im.[ConsumeUnitOfMeasure],1)) AS FixRate
+					,([dbo].[fn_ConvertUOM](ISNULL(imps.PP_FXRatePerc, 0),im.[StockUnitOfMeasure], im.[ConsumeUnitOfMeasure],1,im.MasterCompanyId)) AS FixRate
 					,ime.ExportECCN AS ECCN
 					,ime.HSCode AS HSCODE
 					,ime.ExportWeight AS [Weight]
@@ -126,7 +126,7 @@ BEGIN
 					,ime.ExportSizeWidth
 					,ime.ExportSizeHeight
 					,im.[StockUnitOfMeasure]
-					,im.[ConsumeUnitOfMeasure]
+					,im.[ConsumeUnitOfMeasure],im.MasterCompanyId
 				ORDER BY 9 DESC
 			END
 		COMMIT  TRANSACTION

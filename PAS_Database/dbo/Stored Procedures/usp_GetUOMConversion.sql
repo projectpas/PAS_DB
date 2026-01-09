@@ -10,10 +10,11 @@
  ** PR   Date				Author				Change Description            
  ** --   --------			-------				--------------------------------          
     1    21-Nov-2025		Devendra Shekh		Created
-
+    2    08-JAN-2025		RAJESH GAMI			Added Parameter @MasterCompanyId
 EXEC [dbo].[usp_GetUOMConversion]
 **************************************************************/
 CREATE     PROCEDURE [dbo].[usp_GetUOMConversion]
+@MasterCompanyId int 
 AS
 BEGIN
 	SET NOCOUNT ON;
@@ -26,7 +27,7 @@ BEGIN
 			[Factor],
 			[IsMultiply],
 			[DecimalPlaces]
-		FROM [dbo].[UOMConversion] WITH(NOLOCK)
+		FROM [dbo].[UOMConversion] WITH(NOLOCK) WHERE MasterCompanyId = @MasterCompanyId
 			
 	END TRY    
 	BEGIN CATCH      

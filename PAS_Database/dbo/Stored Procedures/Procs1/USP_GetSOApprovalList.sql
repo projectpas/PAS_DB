@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿
+/*************************************************************           
  ** File:   [USP_GetSOApprovalList]          
  ** Author:   Vishal Suthar
  ** Description: This stored procedure is used to get SO approval list
@@ -20,7 +21,7 @@
 	4    21/jul/2025  Bhargav Saliya  Select UOM
 	5    28/Aug/2025  Amit Ghediya		Select Condition
 	6    05/01/2026   Moin Bloch		UOM Related Changes
-
+	7    07/01/2026   Rajesh Gami		Added MasterCompanyId Parameter While Calling UOM Conversion Function
 EXEC [dbo].[USP_GetSOApprovalList]  1266
 **************************************************************/
 CREATE PROCEDURE [dbo].[USP_GetSOApprovalList] 
@@ -240,41 +241,41 @@ BEGIN
 			CASE WHEN sp.CustomerStatusId IS null THEN 1 ELSE sp.CustomerStatusId END AS CustomerStatusId,
 			1 AS IsInternalApprove,
 			--sop.QtyOrder Qty,
-			ISNULL([dbo].[fn_ConvertUOM](ISNULL(sop.[QtyOrder],0),im.[StockUnitOfMeasure], im.[ConsumeUnitOfMeasure],0),0) Qty,
+			ISNULL([dbo].[fn_ConvertUOM](ISNULL(sop.[QtyOrder],0),im.[StockUnitOfMeasure], im.[ConsumeUnitOfMeasure],0,so.MasterCompanyId),0) Qty,
 			--sopc.UnitSalesPrice UnitSalePrice,
-			ISNULL([dbo].[fn_ConvertUOM](ISNULL(sopc.[UnitSalesPrice], 0),im.[StockUnitOfMeasure], im.[ConsumeUnitOfMeasure],1),0) UnitSalePrice,
+			ISNULL([dbo].[fn_ConvertUOM](ISNULL(sopc.[UnitSalesPrice], 0),im.[StockUnitOfMeasure], im.[ConsumeUnitOfMeasure],1,so.MasterCompanyId),0) UnitSalePrice,
 			sopc.MarkUpPercentage,
 			0 SalesBeforeDiscount,
 			sopc.DiscountPercentage Discount,
 			--sopc.DiscountAmount,
-			ISNULL([dbo].[fn_ConvertUOM](ISNULL(sopc.DiscountAmount, 0),im.[StockUnitOfMeasure], im.[ConsumeUnitOfMeasure],1),0) DiscountAmount,
+			ISNULL([dbo].[fn_ConvertUOM](ISNULL(sopc.DiscountAmount, 0),im.[StockUnitOfMeasure], im.[ConsumeUnitOfMeasure],1,so.MasterCompanyId),0) DiscountAmount,
 			--sopc.NetSaleAmount NetSales,
-			ISNULL([dbo].[fn_ConvertUOM](ISNULL(sopc.NetSaleAmount, 0),im.[StockUnitOfMeasure], im.[ConsumeUnitOfMeasure],1),0) NetSales,
+			ISNULL([dbo].[fn_ConvertUOM](ISNULL(sopc.NetSaleAmount, 0),im.[StockUnitOfMeasure], im.[ConsumeUnitOfMeasure],1,so.MasterCompanyId),0) NetSales,
 			--sopc.UnitCost,
-			ISNULL([dbo].[fn_ConvertUOM](ISNULL(sopc.UnitCost, 0),im.[StockUnitOfMeasure], im.[ConsumeUnitOfMeasure],1),0) UnitCost,
+			ISNULL([dbo].[fn_ConvertUOM](ISNULL(sopc.UnitCost, 0),im.[StockUnitOfMeasure], im.[ConsumeUnitOfMeasure],1,so.MasterCompanyId),0) UnitCost,
 			--sopc.UnitSalesPriceExtended SalesPriceExtended,
-			ISNULL([dbo].[fn_ConvertUOM](ISNULL(sopc.UnitSalesPriceExtended, 0),im.[StockUnitOfMeasure], im.[ConsumeUnitOfMeasure],1),0) SalesPriceExtended,
+			ISNULL([dbo].[fn_ConvertUOM](ISNULL(sopc.UnitSalesPriceExtended, 0),im.[StockUnitOfMeasure], im.[ConsumeUnitOfMeasure],1,so.MasterCompanyId),0) SalesPriceExtended,
 			--sopc.MarkUpAmount MarkupExtended,
-			ISNULL([dbo].[fn_ConvertUOM](ISNULL(sopc.MarkUpAmount, 0),im.[StockUnitOfMeasure], im.[ConsumeUnitOfMeasure],1),0) MarkupExtended,
+			ISNULL([dbo].[fn_ConvertUOM](ISNULL(sopc.MarkUpAmount, 0),im.[StockUnitOfMeasure], im.[ConsumeUnitOfMeasure],1,so.MasterCompanyId),0) MarkupExtended,
 			--sopc.DiscountAmount SalesDiscountExtended,
-			ISNULL([dbo].[fn_ConvertUOM](ISNULL(sopc.DiscountAmount, 0),im.[StockUnitOfMeasure], im.[ConsumeUnitOfMeasure],1),0) SalesDiscountExtended,
+			ISNULL([dbo].[fn_ConvertUOM](ISNULL(sopc.DiscountAmount, 0),im.[StockUnitOfMeasure], im.[ConsumeUnitOfMeasure],1,so.MasterCompanyId),0) SalesDiscountExtended,
 			--sopc.NetSaleAmount NetSalePriceExtended,
-			ISNULL([dbo].[fn_ConvertUOM](ISNULL(sopc.NetSaleAmount, 0),im.[StockUnitOfMeasure], im.[ConsumeUnitOfMeasure],1),0) NetSalePriceExtended,
+			ISNULL([dbo].[fn_ConvertUOM](ISNULL(sopc.NetSaleAmount, 0),im.[StockUnitOfMeasure], im.[ConsumeUnitOfMeasure],1,so.MasterCompanyId),0) NetSalePriceExtended,
 			--sopc.UnitCostExtended,
-			ISNULL([dbo].[fn_ConvertUOM](ISNULL(sopc.UnitCostExtended, 0),im.[StockUnitOfMeasure], im.[ConsumeUnitOfMeasure],1),0) UnitCostExtended,
+			ISNULL([dbo].[fn_ConvertUOM](ISNULL(sopc.UnitCostExtended, 0),im.[StockUnitOfMeasure], im.[ConsumeUnitOfMeasure],1,so.MasterCompanyId),0) UnitCostExtended,
 			--sopc.MarginAmount,
-			ISNULL([dbo].[fn_ConvertUOM](ISNULL(sopc.MarginAmount, 0),im.[StockUnitOfMeasure], im.[ConsumeUnitOfMeasure],1),0) MarginAmount,
+			ISNULL([dbo].[fn_ConvertUOM](ISNULL(sopc.MarginAmount, 0),im.[StockUnitOfMeasure], im.[ConsumeUnitOfMeasure],1,so.MasterCompanyId),0) MarginAmount,
 			--sopc.MarginAmount AS MarginAmountExtended,
-			ISNULL([dbo].[fn_ConvertUOM](ISNULL(sopc.MarginAmount, 0),im.[StockUnitOfMeasure], im.[ConsumeUnitOfMeasure],1),0) MarginAmountExtended,
+			ISNULL([dbo].[fn_ConvertUOM](ISNULL(sopc.MarginAmount, 0),im.[StockUnitOfMeasure], im.[ConsumeUnitOfMeasure],1,so.MasterCompanyId),0) MarginAmountExtended,
 			sopc.MarginPercentage,
 			--sopc.TaxAmount,
-			ISNULL([dbo].[fn_ConvertUOM](ISNULL(sopc.TaxAmount, 0),im.[StockUnitOfMeasure], im.[ConsumeUnitOfMeasure],1),0) TaxAmount,
+			ISNULL([dbo].[fn_ConvertUOM](ISNULL(sopc.TaxAmount, 0),im.[StockUnitOfMeasure], im.[ConsumeUnitOfMeasure],1,so.MasterCompanyId),0) TaxAmount,
 			sopc.TaxPercentage,
 			--sop.TaxType,
 			'' AS TaxType,
 			--sopc.NetSaleAmount + sopc.TaxAmount + 
-			ISNULL([dbo].[fn_ConvertUOM](ISNULL(sopc.NetSaleAmount, 0),im.[StockUnitOfMeasure], im.[ConsumeUnitOfMeasure],1),0) +
-			ISNULL([dbo].[fn_ConvertUOM](ISNULL(sopc.TaxAmount, 0),im.[StockUnitOfMeasure], im.[ConsumeUnitOfMeasure],1),0) +
+			ISNULL([dbo].[fn_ConvertUOM](ISNULL(sopc.NetSaleAmount, 0),im.[StockUnitOfMeasure], im.[ConsumeUnitOfMeasure],1,so.MasterCompanyId),0) +
+			ISNULL([dbo].[fn_ConvertUOM](ISNULL(sopc.TaxAmount, 0),im.[StockUnitOfMeasure], im.[ConsumeUnitOfMeasure],1,so.MasterCompanyId),0) +
 			(CASE WHEN
 			(SELECT SUM(BillingAmount) FROM DBO.SalesOrderCharges WITH (NOLOCK) WHERE SalesOrderId = so.SalesOrderId AND IsActive = 1 AND IsDeleted = 0 AND SalesOrderPartId = sop.SalesOrderPartId) IS NULL THEN 
 			0 ELSE 

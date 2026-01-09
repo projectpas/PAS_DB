@@ -61,6 +61,10 @@
     [ManufacturingMarginPercentageId]    BIGINT          NULL,
     [IsUploadEmployee]                   BIT             NULL,
     [UserName]                           NVARCHAR (256)  NULL,
+    [WarehouseId]                        BIGINT          NULL,
+    [LocationId]                         BIGINT          NULL,
+    [ShelfId]                            BIGINT          NULL,
+    [BinId]                              BIGINT          NULL,
     CONSTRAINT [PK_EmployeeAudit] PRIMARY KEY CLUSTERED ([AuditEmployeeId] ASC)
 );
 

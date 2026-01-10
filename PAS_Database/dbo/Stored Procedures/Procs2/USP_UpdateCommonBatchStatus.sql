@@ -16,6 +16,7 @@
     1    07/13/2023		Satish Gohil		Created   
 	2	 18/10/2023		Nainshi Joshi		Update PostedBy in BatchDetails
 	3	 11/06/2024		HEMANT SALIYA		Added AP Posted Date
+	4	 09/01/2025		Moin Bloch		    POST ONLY MATCHED CREDITAMOUNT AND DEBITAMOUNT  
   
 ************************************************************************/  
 CREATE     PROCEDURE [dbo].[USP_UpdateCommonBatchStatus]  
@@ -50,30 +51,30 @@ BEGIN
   END
   
   UPDATE dbo.BatchDetails SET   
-   PostedDate = GETUTCDATE(),
-   APPostedDate = @APPostedDate,  
-   PostedBy = @updatedBy,
-   StatusId = @StatusId,  
-   UpdatedBy = @updatedBy,  
-   UpdatedDate = GETUTCDATE(),  
-   AccountingPeriodId = @AccountingPeriodId,  
-   AccountingPeriod = @AccountingPeriod  
-   WHERE JournalBatchDetailId = @journalBatchDetailId  
+		   PostedDate = GETUTCDATE(),
+		   APPostedDate = @APPostedDate,  
+		   PostedBy = @updatedBy,
+		   StatusId = @StatusId,  
+		   UpdatedBy = @updatedBy,  
+		   UpdatedDate = GETUTCDATE(),  
+		   AccountingPeriodId = @AccountingPeriodId,  
+		   AccountingPeriod = @AccountingPeriod  
+	 WHERE JournalBatchDetailId = @journalBatchDetailId AND ISNULL([DebitAmount],0) = ISNULL([CreditAmount],0)
   
   SELECT @BatchCount = COUNT(*) FROM dbo.BatchDetails WITH(NOLOCK) WHERE JournalBatchHeaderId = @JournalBatchHeaderId  
   SELECT @PostBatchCount = COUNT(*) FROM dbo.BatchDetails WITH(NOLOCK) WHERE JournalBatchHeaderId = @JournalBatchHeaderId AND StatusId = @StatusId  
   
   IF(@BatchCount = @PostBatchCount)  
   BEGIN  
-   UPDATE dbo.BatchHeader SET  
-   PostDate = GETUTCDATE(),  
-   APPostedDate = @APPostedDate,  
-   PostedBy = @updatedBy,  
-   StatusId = @StatusId,  
-   StatusName = @StatusName,  
-   UpdatedBy = @updatedBy,  
-   UpdatedDate= GETUTCDATE()  
-   WHERE JournalBatchHeaderId = @JournalBatchHeaderId  
+    UPDATE dbo.BatchHeader SET  
+		   PostDate = GETUTCDATE(),  
+		   APPostedDate = @APPostedDate,  
+		   PostedBy = @updatedBy,  
+		   StatusId = @StatusId,  
+		   StatusName = @StatusName,  
+		   UpdatedBy = @updatedBy,  
+		   UpdatedDate= GETUTCDATE()  
+		   WHERE JournalBatchHeaderId = @JournalBatchHeaderId AND ISNULL([TotalDebit],0) = ISNULL([TotalCredit],0) 
   END  
   
  END TRY  

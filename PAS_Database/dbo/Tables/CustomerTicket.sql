@@ -23,8 +23,10 @@
     [TicketTypeId]     BIGINT         NULL
 );
 
+
+
 GO
-CREATE     TRIGGER [dbo].[trg_Audit_dbo_CustomerTicket]
+CREATE TRIGGER [dbo].[trg_Audit_dbo_CustomerTicket]
         ON [dbo].[CustomerTicket]
         AFTER INSERT, UPDATE, DELETE
         AS
@@ -116,12 +118,39 @@ CREATE     TRIGGER [dbo].[trg_Audit_dbo_CustomerTicket]
                 N'dbo' AS SchemaName,
                 N'CustomerTicket' AS TableName,
                 m.PKJson,
-                m.ColumnName,
+                CASE 
+					WHEN m.ColumnName = 'DepartmentId' THEN 'Department'
+					WHEN m.ColumnName = 'PriorityId' THEN 'Priority'
+					WHEN m.ColumnName = 'StatusId' THEN 'Status'
+					ELSE m.ColumnName
+				END AS ColumnName,
                 m.Action,
-                m.OldValue,
-                m.NewValue
+                CASE 
+					WHEN m.ColumnName = 'DepartmentId' THEN sd_old.Description
+					WHEN m.ColumnName = 'PriorityId' THEN tp_old.Description
+					WHEN m.ColumnName = 'StatusId' THEN s_old.Description
+					WHEN m.ColumnName = 'AssignTo' THEN ISNULL(e_old.FirstName,'') + ' ' + ISNULL(e_old.LastName,'')
+					ELSE m.OldValue
+				END AS OldValue,
+
+                CASE 
+					WHEN m.ColumnName = 'DepartmentId' THEN sd_new.Description
+					WHEN m.ColumnName = 'PriorityId' THEN tp_new.Description
+					WHEN m.ColumnName = 'StatusId' THEN s_new.Description
+					WHEN m.ColumnName = 'AssignTo' THEN ISNULL(e_new.FirstName,'') + ' ' + ISNULL(e_new.LastName,'')
+					ELSE m.NewValue
+				END AS NewValue
             FROM merged m
+			LEFT JOIN dbo.[SupportDepartment] sd_old ON m.ColumnName = 'DepartmentId' AND TRY_CAST(m.OldValue AS INT) = sd_old.DepartmentId
+			LEFT JOIN dbo.[SupportDepartment] sd_new ON m.ColumnName = 'DepartmentId' AND TRY_CAST(m.NewValue AS INT) = sd_new.DepartmentId
+			LEFT JOIN dbo.[TicketPriority] tp_old ON m.ColumnName = 'PriorityId' AND TRY_CAST(m.OldValue AS INT) = tp_old.PriorityId
+			LEFT JOIN dbo.[TicketPriority] tp_new ON m.ColumnName = 'PriorityId' AND TRY_CAST(m.NewValue AS INT) = tp_new.PriorityId
+			LEFT JOIN dbo.[TicketStatus] s_old ON m.ColumnName = 'StatusId' AND TRY_CAST(m.OldValue AS INT) = s_old.TicketStatusId
+			LEFT JOIN dbo.[TicketStatus] s_new ON m.ColumnName = 'StatusId' AND TRY_CAST(m.NewValue AS INT) = s_new.TicketStatusId
+			LEFT JOIN dbo.[Employee] e_old ON m.ColumnName = 'AssignTo' AND TRY_CAST(m.OldValue AS INT) = e_old.EmployeeId
+			LEFT JOIN dbo.[Employee] e_new ON m.ColumnName = 'AssignTo' AND TRY_CAST(m.NewValue AS INT) = e_new.EmployeeId
             WHERE
+				m.ColumnName <> 'CustomerTicketId' and (
                 (m.Action = 'U' AND (
                      (m.OldValue IS NULL AND m.NewValue IS NOT NULL)
                   OR (m.OldValue IS NOT NULL AND m.NewValue IS NULL)
@@ -130,5 +159,5 @@ CREATE     TRIGGER [dbo].[trg_Audit_dbo_CustomerTicket]
                 OR
                 (m.Action = 'I' AND m.NewValue IS NOT NULL)
                 OR
-                (m.Action = 'D' AND m.OldValue IS NOT NULL);
+                (m.Action = 'D' AND m.OldValue IS NOT NULL));
         END;

@@ -22,6 +22,7 @@
 	11	 27 Oct 2025	Devendra Shekh		Modified (Create Item and Customer if Not Exists in System)
 	12	 04 Nov 2025	Devendra Shekh		Modified (Duplicate Customer Issue Resolved)
 	13	 10 Dec 2025	Devendra Shekh		Modified (Duplicate RFQ Issue Resolved)
+	14	 07 JAN 2026	Amit Ghediya		Modified for add contact details for existing customer diffrent email & phone.
 
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[usp_SaveEmailRFQ]
@@ -36,7 +37,9 @@ BEGIN
 	--BEGIN TRANSACTION;
 	BEGIN TRY
 	BEGIN
-		DECLARE @CustomerRfqId BIGINT;
+		DECLARE @CustomerRfqId BIGINT,
+				@QuoteReferenceId BIGINT = 0,
+				@NewCustomerContactId BIGINT;
 
 		IF NOT EXISTS(SELECT 1 FROM [dbo].[CustomerRfq] CRQ WITH(NOLOCK) INNER JOIN [dbo].[IntegrationEmail] IE WITH(NOLOCK) ON IE.CustomerRfqId = CRQ.CustomerRfqId WHERE IE.IntegrationEmailID = @IntegrationEmailID)
 		BEGIN
@@ -272,7 +275,7 @@ BEGIN
 					UPDATE TMP
 					SET	TMP.ItemMasterId = @NewItemMasterId
 					FROM #tmpQuote TMP WHERE RowId = @CurrentQuoteRow; 
-				END
+				END				
 
 				IF(ISNULL(@CustomerId, 0) = 0) AND @CurrentQuoteRow = 1
 				BEGIN
@@ -282,6 +285,49 @@ BEGIN
 					UPDATE TMP
 					SET	TMP.CustomerId = @NewCustomerId
 					FROM #tmpQuote TMP --WHERE RowId = @CurrentQuoteRow;
+
+					--Get CustomerContactId
+					SET @NewCustomerContactId = (SELECT [CustomerContactId] FROM [DBO].[CustomerContact] WITH(NOLOCK) WHERE [CustomerId] = @NewCustomerId);
+
+					UPDATE [DBO].[CustomerRfq] SET [CustomerContactId] = @NewCustomerContactId WHERE CustomerRfqId = @CustomerRfqId;
+				END
+
+				--Update Existing Customer contact if diffrent from added
+				IF(ISNULL(@CustomerId, 0) > 0) AND @CurrentQuoteRow = 1
+				BEGIN
+					DECLARE 
+						@CustomerName NVARCHAR(100),
+						@CustomerEmail NVARCHAR(100),
+						@CustomerPhone NVARCHAR(50),
+						@CustomerPhoneExt NVARCHAR(50),
+						@IsActive BIT,
+						@ContactId BIGINT = 0;
+
+					SELECT
+						@CustomerName = CASE WHEN ISNULL([BuyerName],'') != '' THEN [BuyerName] ELSE [CompanyName] END,
+						@CustomerEmail = Email,
+						@CustomerPhone = [Phone],
+						@CustomerPhoneExt = '',
+						@IsActive = 1
+					FROM @tbl_RfqCustomerType;
+
+					IF NOT EXISTS(SELECT TOP 1 CNT.ContactId FROM [dbo].[CustomerContact] CCNT JOIN [dbo].[Contact] CNT ON CNT.ContactId = CCNT.ContactId WHERE CustomerId = @CustomerId
+						   AND ISNULL(CNT.WorkPhone,'') = @CustomerPhone AND ISNULL(CNT.Email,'') = @CustomerEmail)
+					BEGIN
+						 EXEC DBO.USP_AddCustomerContact
+							  @CustomerId,
+							  @CustomerName,
+							  @CustomerEmail,
+							  @CustomerPhone,
+							  @CustomerPhoneExt,
+							  @MasterCompanyId,
+							  @IsActive,
+							  @CreatedBy,
+							  @CreatedBy,
+							  @NewCustomerContactId OUTPUT;
+					END
+
+					UPDATE [DBO].[CustomerRfq] SET [CustomerContactId] = @NewCustomerContactId WHERE CustomerRfqId = @CustomerRfqId;
 				END
 
 				SET @CurrentQuoteRow += 1;
@@ -303,6 +349,13 @@ BEGIN
 				FROM #tmpQuote;
 
 				EXEC [dbo].[usp_SaveEmailQuote] @EmailRfqQuoteDetailsType, 0, @CustomerRfqId, @RFQNumber, 0, @MasterCompanyId, @CreatedBy, @QuoteSendReviewId, @EmployeeId;
+
+				--Update Latest ContactId in SOQ
+				SET @QuoteReferenceId = (SELECT [ReferenceId] FROM [dbo].[CustomerRfq] WITH(NOLOCK) WHERE [CustomerRfqId] = @CustomerRfqId);
+				IF(ISNULL(@QuoteReferenceId,0) > 0)
+				BEGIN
+					 UPDATE [dbo].[SalesOrderQuote] SET [CustomerContactId] = @NewCustomerContactId WHERE [SalesOrderQuoteId] = @QuoteReferenceId;
+				END
 			END
 		END
 

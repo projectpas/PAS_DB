@@ -4411,6 +4411,7 @@
     <Build Include="Security\RoleMemberships_8.sql" />
     <Build Include="Security\RoleMemberships_5.sql" />
     <Build Include="Security\RoleMemberships_6.sql" />
+    <Build Include="dbo\Stored Procedures\USP_AddCustomerContact.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

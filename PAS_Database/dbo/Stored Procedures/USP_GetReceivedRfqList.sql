@@ -296,7 +296,13 @@ BEGIN
 				LEFT JOIN ItemResult IM WITH(NOLOCK) ON LOWER(TRIM(RFQ.[LinePartNumber])) = LOWER(TRIM(IM.[partnumber])) AND RFQ.[MasterCompanyId] = IM.[MasterCompanyId]
 				LEFT JOIN StkResult STK WITH(NOLOCK) ON STK.ItemMasterId = IM.ItemMasterId AND RFQ.[MasterCompanyId] = IM.[MasterCompanyId]
 				LEFT JOIN dbo.Customer CU WITH(NOLOCK) ON (LOWER(TRIM(RFQ.[BuyerCompanyName])) = LOWER(TRIM(CU.[Name])) AND RFQ.[MasterCompanyId] = CU.[MasterCompanyId]) OR (RFQ.CustomerId = CU.CustomerId AND RFQ.[MasterCompanyId] = CU.[MasterCompanyId]) AND CU.IsActive = 1 AND CU.IsDeleted = 0
-				LEFT JOIN  dbo.CustomerContact CC  WITH (NOLOCK) ON RFQ.CustomerContactId = CC.CustomerContactId--CC.CustomerId=CU.CustomerId AND CC.IsDefaultContact=1
+				LEFT JOIN  dbo.CustomerContact CC  WITH (NOLOCK) 
+					ON (
+						   (RFQ.CustomerContactId > 0 AND CC.CustomerContactId = RFQ.CustomerContactId)
+						OR (ISNULL(RFQ.CustomerContactId, 0) <= 0 
+							AND CC.CustomerId = CU.CustomerId
+							AND CC.IsDefaultContact = 1)
+					   )
 				LEFT JOIN  dbo.Contact  WITH (NOLOCK) ON CC.ContactId=Contact.ContactId
 				LEFT JOIN dbo.Employee EM WITH(NOLOCK) ON RFQ.[EmployeeId] = EM.[EmployeeId] AND RFQ.[MasterCompanyId] = EM.[MasterCompanyId]
 				LEFT JOIN dbo.SalesOrderQuote SOQ WITH(NOLOCK) ON RFQ.[ReferenceId] = SOQ.[SalesOrderQuoteId] AND RFQ.[MasterCompanyId] = SOQ.[MasterCompanyId]
@@ -399,7 +405,13 @@ BEGIN
 					,CONVERT(DATETIME2, DATEADD(SECOND, @BaseUtcOffsetSec, RFQ.[FollowUpDate])) AS 'FollowUpDate'
 				FROM dbo.CustomerRfq RFQ WITH (NOLOCK)
 				LEFT JOIN dbo.Customer CU WITH(NOLOCK) ON (LOWER(TRIM(RFQ.[BuyerCompanyName])) = LOWER(TRIM(CU.[Name])) AND RFQ.[MasterCompanyId] = CU.[MasterCompanyId]) OR (RFQ.CustomerId = CU.CustomerId AND RFQ.[MasterCompanyId] = CU.[MasterCompanyId]) AND CU.IsActive = 1 AND CU.IsDeleted = 0
-				LEFT JOIN  dbo.CustomerContact CC  WITH (NOLOCK) ON RFQ.CustomerContactId = CC.CustomerContactId--CC.CustomerId=CU.CustomerId AND CC.IsDefaultContact=1
+				LEFT JOIN  dbo.CustomerContact CC  WITH (NOLOCK) 
+					ON (
+						   (RFQ.CustomerContactId > 0 AND CC.CustomerContactId = RFQ.CustomerContactId)
+						OR (ISNULL(RFQ.CustomerContactId, 0) <= 0 
+							AND CC.CustomerId = CU.CustomerId
+							AND CC.IsDefaultContact = 1)
+					   )
 				LEFT JOIN  dbo.Contact  WITH (NOLOCK) ON CC.ContactId=Contact.ContactId
 				LEFT JOIN dbo.Employee EM WITH(NOLOCK) ON RFQ.[EmployeeId] = EM.[EmployeeId] AND RFQ.[MasterCompanyId] = EM.[MasterCompanyId]
 				LEFT JOIN dbo.SalesOrderQuote SOQ WITH(NOLOCK) ON RFQ.[ReferenceId] = SOQ.[SalesOrderQuoteId] AND RFQ.[MasterCompanyId] = SOQ.[MasterCompanyId]

@@ -17,7 +17,7 @@
 	5    08/11/2023   Hemant Saliya  Resolved Balance MissMatch Issue
 	6    12/08/2023   Moin Bloch     Resolved Balance MissMatch Issue
 	7    25/01/2024   Hemant Saliya	 Remove Manual Journal from Reports
-	7    09/01/2026   Hemant Saliya	 Corrected Income Statement Reports Balance Missmatch
+	7    12/01/2026   Hemant Saliya	 Corrected Income Statement Reports Balance Missmatch
 ************************************************************************
 EXEC [RPT_GetIncomeStatementTrendReportsExportData] 264,264,43,41,14,0, @strFilter=N'63!64!!'
 exec RPT_GetIncomeStatementTrendReportsExportData @StartAccountingPeriodId=264,@EndAccountingPeriodId=264,@ReportingStructureId=43,@ManagementStructureId=N'41',@MasterCompanyId=N'14',@LeafNodeId=0,@strFilter=N'63!64!!'
@@ -537,7 +537,23 @@ BEGIN
 			FROM #ReportingStructureExportData D
 			JOIN R ON R.ID = D.ID;
 
-		 SELECT * FROM #ReportingStructureExportData ORDER BY SequenceNumber ASC
+		 --SELECT * FROM #ReportingStructureExportData Where  Group By leafNodeId, AccountingPeriodId,  ORDER BY SequenceNumber ASC
+
+		 ;WITH x AS
+		(
+			SELECT  t.*,
+					rn = ROW_NUMBER() OVER
+						 (
+						   PARTITION BY t.leafNodeId, t.AccountingPeriodId
+						   ORDER BY t.IsTotlaLine DESC, t.SequenceNumber ASC, t.ID ASC
+						 )
+			FROM #ReportingStructureExportData t
+		)
+		SELECT *
+		FROM x
+		WHERE rn = 1 ORDER BY SequenceNumber ASC;
+
+
 		 --SELECT * FROM #ReportingStructureExportData ORDER BY SequenceNumber DESC, LevelId ASC
  END TRY  
  BEGIN CATCH  

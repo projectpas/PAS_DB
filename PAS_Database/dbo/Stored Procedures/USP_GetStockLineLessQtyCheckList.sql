@@ -12,8 +12,8 @@
  ** PR   	Date			Author					Change Description            
  ** --   	--------		-------				--------------------------------     
 	1		05/29/2024		Devendra Shekh			CREATED
-	1		06/05/2024		HEMANT SALIYA			Updated for Add Provision Condition
-	
+	2		06/05/2024		HEMANT SALIYA			Updated for Add Provision Condition
+	3		12/Jan/2026		Rajesh Gami			    UOM Conversion Changes 
 	EXEC [USP_GetStockLineLessQtyCheckList] 3993, 3510, 1
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[USP_GetStockLineLessQtyCheckList]
@@ -40,12 +40,12 @@ BEGIN
 					StockLineNumber	VARCHAR(50) NULL,
 					ControlNumber VARCHAR(50) NULL,
 					SerialNumber VARCHAR(30) NULL,
-					Quantity INT NULL,
-					QuantityAvailable INT NULL,
-					QuantityOnHand INT NULL,
-					QuantityIssued INT NULL,
-					QuantityReserved INT NULL,
-					QuantityRequested INT NULL,
+					Quantity DECIMAL(18,6) NULL,
+					QuantityAvailable DECIMAL(18,6) NULL,
+					QuantityOnHand DECIMAL(18,6) NULL,
+					QuantityIssued DECIMAL(18,6) NULL,
+					QuantityReserved DECIMAL(18,6) NULL,
+					QuantityRequested DECIMAL(18,6) NULL,
 				)
 
 				SELECT @ReplaceProvisionId = ProvisionId FROM dbo.Provision WHERE StatusCode = 'REPLACE'

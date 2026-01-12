@@ -1,4 +1,7 @@
-﻿/*************************************************************             
+﻿--DROP PROCEDURE usp_SavePostKitforWOQ
+--/****** Object:  UserDefinedTableType [dbo].[WorkOrderQuoteMaterialType]    Script Date: 1/12/2026 4:09:19 PM ******/
+
+/*************************************************************             
  ** File:   [GetWorkOrderPrintPdfData]             
  ** Author:   Subhash Saliya  
  ** Description: This stored procedure is used Work order Print  Details      
@@ -20,11 +23,11 @@
     3	 26 FEB 2025	RAJESH GAMI			Update the WorkOrderQuoteDetails COST
 	4	 21 APR 2025	HEMANT SALIYA		Update For WOM Kit Cost is not updating
 	5	 01 Jul 2025	Moin Bloch			Modified (Fixed For Billing Amount in WOQ Kit)
-
+	6	 12 Jan 2026	Rajesh Gami			Modified: UOM Conversion related change
 --EXEC [GetWorkOrderPrintPdfData] 274,258  
 **************************************************************/ 
 
-CREATE PROCEDURE [dbo].[usp_SavePostKitforWOQ]
+CREATE   PROCEDURE [dbo].[usp_SavePostKitforWOQ]
 	@tbl_KITPartType WOQMaterialKitMappingType READONLY
 AS
 BEGIN
@@ -47,9 +50,9 @@ BEGIN
                 [KitId] [bigint] NULL,
 				[KitNumber] [varchar](100) NULL,
 				[ItemMasterId] [bigint] NULL,
-				[Quantity] [int] NULL,
-				[UnitCost] [decimal](18, 2) NULL,
-				[ExtendedCost] [decimal](18, 2) NULL,
+				[Quantity] DECIMAL(18,6) NULL,
+				[UnitCost] DECIMAL(18,6) NULL,
+				[ExtendedCost] DECIMAL(18,6) NULL,
 				[MasterCompanyId] [int] NULL,
 				[CreatedBy] [varchar](256) NULL,
 				[UpdatedBy] [varchar](256) NULL,
@@ -125,10 +128,10 @@ BEGIN
 			/********************** Update the WorkOrderQuoteDetails COST **************************/ 			
 			IF((SELECT TOP 1 IsUpdateQuoteDetail FROM @tbl_KITPartType) =1)
 			BEGIN			
-					DECLARE @TotalMaterialCost decimal(18,2)=0, @TotalKitCost decimal(18,2)=0,@WorkOrderWorkflowId BIGINT = (SELECT TOP 1 WorkflowWorkOrderId FROM @tbl_KITPartType), @WorkOrderQuoteDetailsId BIGINT =0,@TotalAmount decimal(18,2)=0 ;
+					DECLARE @TotalMaterialCost DECIMAL(18,6)=0, @TotalKitCost DECIMAL(18,6)=0,@WorkOrderWorkflowId BIGINT = (SELECT TOP 1 WorkflowWorkOrderId FROM @tbl_KITPartType), @WorkOrderQuoteDetailsId BIGINT =0,@TotalAmount DECIMAL(18,6)=0 ;
 					DECLARE @WorkOrderQuoteId BIGINT = (SELECT TOP 1 WorkOrderQuoteId FROM @tbl_KITPartType), @MasterCompanyId BIGINT = (SELECT TOP 1 MasterCompanyId FROM @tbl_KITPartType)
 					DECLARE @IsUpdateQuoteDetail BIGINT = (SELECT TOP 1 IsUpdateQuoteDetail FROM @tbl_KITPartType);
-					DECLARE @TotalMaterialBilling decimal(18,2)=0, @TotalKitBilling decimal(18,2)=0, @TotalBilling decimal(18,2)=0
+					DECLARE @TotalMaterialBilling DECIMAL(18,6)=0, @TotalKitBilling DECIMAL(18,6)=0, @TotalBilling DECIMAL(18,6)=0
 
 					SET @WorkOrderQuoteDetailsId = (SELECT TOP 1  WOQD.WorkOrderQuoteDetailsId
 					FROM dbo.WorkOrderQuoteDetails WOQD WITH(NOLOCK) 

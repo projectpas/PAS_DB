@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿
+/*************************************************************           
  ** File:   [GetStocklineDetailsByPartAndConditionId]           
  ** Author:  MOIN BLOCH
  ** Description: This stored procedure is used GET Stockline Details By Part And ConditionId   
@@ -15,10 +16,10 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    08/05/2023  MOIN BLOCH 		Created
-     
+    2    12/01/2026  Rajesh Gami 		Return StockUnitOfMeasureId 
 -- EXEC GetStocklineDetailsByPartAndConditionId 25319,182
 **************************************************************/
-CREATE    PROCEDURE [dbo].[GetStocklineDetailsByPartAndConditionId]
+CREATE   PROCEDURE [dbo].[GetStocklineDetailsByPartAndConditionId]
 @ItemMasterId BIGINT = 0,
 @ConditionId  BIGINT = 0
 AS
@@ -50,8 +51,8 @@ BEGIN
 		       I.PartDescription,
 			   I.ManufacturerId,
 			   M.[Name],
-			   I.PurchaseUnitOfMeasureId,
-			   I.PurchaseUnitOfMeasure,
+			   I.StockUnitOfMeasureId PurchaseUnitOfMeasureId,
+			   I.StockUnitOfMeasure PurchaseUnitOfMeasure,
 			   ISNULL(S.UnitCost,0) AS UnitCost
 		FROM [dbo].[ItemMaster] I WITH(NOLOCK)
 		LEFT JOIN [dbo].[Manufacturer] M WITH(NOLOCK) ON I.[ManufacturerId] = M.[ManufacturerId]
@@ -93,8 +94,8 @@ BEGIN
 			        I.PartDescription,
 					I.ManufacturerId,
 			        M.[Name],
-					I.PurchaseUnitOfMeasureId,
-					I.PurchaseUnitOfMeasure,
+					I.StockUnitOfMeasureId PurchaseUnitOfMeasureId,
+					 I.StockUnitOfMeasure PurchaseUnitOfMeasure,
 					0 AS UnitCost
 			  FROM [dbo].[ItemMaster] I WITH(NOLOCK)
 		 LEFT JOIN [dbo].[Manufacturer] M WITH(NOLOCK) ON I.[ManufacturerId] = M.[ManufacturerId]		 

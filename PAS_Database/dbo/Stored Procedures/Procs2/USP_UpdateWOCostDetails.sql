@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿
+/*************************************************************           
  ** File:   [USP_UpdateWOCostDetails]           
  ** Author:   Hemant Saliya
  ** Description: This stored procedure is used to Recalculate WO Total Cost    
@@ -20,7 +21,7 @@
     2    03/29/2023   Vishal Suthar		Modified to handle WO Material KIT changes
 	3    01/31/2024	  Devendra Shekh	added isperforma Flage for WOInvoice
     4    06/12/2025   Moin Bloch	    Changed Old Billing Table To New one
-     
+    5    09/01/2026   Rajesh Gami	    UOM Conversion Changes
  EXECUTE USP_UpdateWOTotalCostDetails 281,195, 10576
 
  exec sp_executesql N'exec USP_UpdateWOCostDetails @WorkOrderId, @WorkOrderWorkflowId, @UpdatedBy, @MasterCompanyId ',N'@WorkOrderId bigint,
@@ -41,13 +42,13 @@ SET NOCOUNT ON
 	BEGIN TRY
 		BEGIN TRANSACTION
 			BEGIN
-				DECLARE @PartCost DECIMAL(18,2);
+				DECLARE @PartCost DECIMAL(18,6);
 				DECLARE @WOWorkScopeId BIGINT;
 				DECLARE @WOPartNoId BIGINT;
 				DECLARE @RepairWorkScopeId BIGINT;
-				DECLARE @WOQLaborCost DECIMAL(18,2);
-				DECLARE @Revenue DECIMAL(18,2);
-				DECLARE @KitCost DECIMAL(18,2);
+				DECLARE @WOQLaborCost DECIMAL(18,6);
+				DECLARE @Revenue DECIMAL(18,6);
+				DECLARE @KitCost DECIMAL(18,6);
 				declare @WorkOrderQuoteId bigint
 				DECLARE @WOModuleId INT
 
@@ -68,26 +69,26 @@ SET NOCOUNT ON
 					 WorkOrderPartNumberId BIGINT NULL,
 					 WorkFlowWorkOrderId BIGINT NULL,
 					 WorkOrderQuoteId BIGINT NULL,
-					 BurdenRateAmount DECIMAL(18,2) NULL,
-					 DirectLaborOHCost DECIMAL(18,2) NULL,
-					 TotalCostPerHour DECIMAL(18,2) NULL,
-					 TotalLaborCost DECIMAL(18,2) NULL,
-					 MaterialCost DECIMAL(18,2) NULL,
-					 ChargesCost DECIMAL(18,2) NULL,
-					 FreightCost DECIMAL(18,2) NULL,
-					 ExclusionCost DECIMAL(18,2) NULL,
-					 Revenue DECIMAL(18,2) NULL,
-					 ActRevenue DECIMAL(18,2) NULL,
-					 Margin DECIMAL(18,2) NULL,
-					 ActMargin DECIMAL(18,2) NULL,
-					 MarginPer DECIMAL(18,2) NULL,
-					 ActMarginPer DECIMAL(18,2) NULL,
-					 PartsRevePer DECIMAL(18,2) NULL,
-					 LaborRevePer DECIMAL(18,2) NULL,
-					 OverHeadPer DECIMAL(18,2) NULL,
-					 TotalCost DECIMAL(18,2) NULL,
-					 DirectCost DECIMAL(18,2) NULL,
-					 DirectCostPer DECIMAL(18,2) NULL,
+					 BurdenRateAmount DECIMAL(18,6) NULL,
+					 DirectLaborOHCost DECIMAL(18,6) NULL,
+					 TotalCostPerHour DECIMAL(18,6) NULL,
+					 TotalLaborCost DECIMAL(18,6) NULL,
+					 MaterialCost DECIMAL(18,6) NULL,
+					 ChargesCost DECIMAL(18,6) NULL,
+					 FreightCost DECIMAL(18,6) NULL,
+					 ExclusionCost DECIMAL(18,6) NULL,
+					 Revenue DECIMAL(18,6) NULL,
+					 ActRevenue DECIMAL(18,6) NULL,
+					 Margin DECIMAL(18,6) NULL,
+					 ActMargin DECIMAL(18,6) NULL,
+					 MarginPer DECIMAL(18,6) NULL,
+					 ActMarginPer DECIMAL(18,6) NULL,
+					 PartsRevePer DECIMAL(18,6) NULL,
+					 LaborRevePer DECIMAL(18,6) NULL,
+					 OverHeadPer DECIMAL(18,6) NULL,
+					 TotalCost DECIMAL(18,6) NULL,
+					 DirectCost DECIMAL(18,6) NULL,
+					 DirectCostPer DECIMAL(18,6) NULL,
 				)
 
 				IF OBJECT_ID(N'tempdb..#WOMaterials') IS NOT NULL
@@ -101,10 +102,10 @@ SET NOCOUNT ON
 					 WorkOrderId BIGINT NULL,
 					 WorkOrderMaterialsId BIGINT NULL,
 					 WorkFlowWorkOrderId BIGINT NULL,
-					 UnitCost DECIMAL(18,2) NULL,
-					 QtyIssued DECIMAL(18,2) NULL,
-					 QtyReserved DECIMAL(18,2) NULL,
-					 MaterialCost DECIMAL(18,2) NULL
+					 UnitCost DECIMAL(18,6) NULL,
+					 QtyIssued DECIMAL(18,6) NULL,
+					 QtyReserved DECIMAL(18,6) NULL,
+					 MaterialCost DECIMAL(18,6) NULL
 				)
 
 				IF OBJECT_ID(N'tempdb..#WOQuoteDetails') IS NOT NULL
@@ -119,10 +120,10 @@ SET NOCOUNT ON
 					 WorkFlowWorkOrderId BIGINT NULL,
 					 WorkOrderQuoteId BIGINT NULL,
 					 WorkOrderQuoteDetailsId BIGINT NULL,
-					 LaborFlatBillingAmount DECIMAL(18,2) NULL,
-					 MaterialFlatBillingAmount DECIMAL(18,2) NULL,
-					 ChargesFlatBillingAmount DECIMAL(18,2) NULL,
-					 FreightFlatBillingAmount DECIMAL(18,2) NULL
+					 LaborFlatBillingAmount DECIMAL(18,6) NULL,
+					 MaterialFlatBillingAmount DECIMAL(18,6) NULL,
+					 ChargesFlatBillingAmount DECIMAL(18,6) NULL,
+					 FreightFlatBillingAmount DECIMAL(18,6) NULL
 				)
 
 				IF OBJECT_ID(N'tempdb..#WOQuoteLaborHeader') IS NOT NULL

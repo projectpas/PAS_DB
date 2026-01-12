@@ -18,6 +18,7 @@
 	3    03/27/2024   Hemant Saliya   Updated for -Ve CM Cost
     4    11/05/2024	  Vishal Suthar	  Modified to make use of new SO Part tables 
 	5    19/06/2025   AMIT GHEDIYA    Get WO/SO Billing data from new table.  
+	6    12/01/2026   Vishal Suthar   Fixed ambiguous column SerialNumber issue
 
 -- EXEC GetRMADetailsById 36
 ************************************************************************/
@@ -42,7 +43,7 @@ BEGIN
 			  ,CRD.[PartDescription]
 			  ,[AltPartNumber]
 			  ,[CustPartNumber]
-			  ,[SerialNumber]
+			  ,CRD.[SerialNumber]
 			  ,CRD.[StocklineId]
 			  ,[StocklineNumber]
 			  ,CRD.[ControlNumber]
@@ -96,7 +97,7 @@ BEGIN
 			  ,CRD.[PartDescription]
 			  ,[AltPartNumber]
 			  ,[CustPartNumber]
-			  ,[SerialNumber]
+			  ,CRD.[SerialNumber]
 			  ,CRD.[StocklineId]
 			  ,[StocklineNumber]
 			  ,[ControlNumber]

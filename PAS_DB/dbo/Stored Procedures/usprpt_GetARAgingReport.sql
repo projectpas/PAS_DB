@@ -33,7 +33,7 @@
 	17   01-DEC-2023   Moin Bloch          Modify(Added 6 decimal IN FixRateAmount)
 
 ***************************************************************************************************/        
-CREATE OR ALTER PROCEDURE [dbo].[usprpt_GetARAgingReport]       
+CREATE PROCEDURE [dbo].[usprpt_GetARAgingReport]       
 @PageNumber int = 1,      
 @PageSize int = NULL,      
 @mastercompanyid int,      

@@ -23,6 +23,7 @@
    11    21-Aug-2025    Devendra Shekh		Checking customerId in CustomerRFQ for @CustomerId
    12	 22-Aug-2025    Devendra Shekh		Modified (set @QuoteReviewRequiredId based on Review Required)
    13    26 Aug 2025	Devendra Shekh		Modified (added @EmployeeId Param)
+   14	 09-Jan-2026    Amit Ghediya	    Modified (Update custoemrcontactid when manual create soq)
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[usp_SaveEmailQuote]
 	@tbl_EmailRfqQuoteDetailsType EmailRfqQuoteDetailsType READONLY,
@@ -40,7 +41,9 @@ BEGIN
 	SET NOCOUNT ON;
 	BEGIN TRY
 	BEGIN
-	    DECLARE @SalesOrderQuoteId BIGINT = 0;
+	    DECLARE @SalesOrderQuoteId BIGINT = 0,
+				@QuoteReferenceId BIGINT = 0,
+				@NewCustomerContactId BIGINT;
 		DECLARE @GetCustomerRfqId BIGINT, @PercentId BIGINT, @PercentValue DECIMAL(18,2),@SourceBy Varchar(30),@MarketplaceRef Varchar(50);
 		DECLARE @QuoteReviewRequiredId BIGINT = 0, @Code VARCHAR(50) = 'Review Required', @CreateSOQ BIT = 1;
 
@@ -204,6 +207,13 @@ BEGIN
 				IF(ISNULL(@CreateSOQ,0) > 0 AND ISNULL(@CustomerId,0) > 0)
 				BEGIN
 					EXEC [dbo].[USP_CreateSalesOrderQuoteFromAI] @EmailRfqQuoteDetails,@CustomerId,@MasterCompanyId,@CreatedBy,@EmployeeId,@CustomerRfqId,@ItemMasterId,0,@SourceBy,@MarketplaceRef,@QuoteSendReviewId,@SalesOrderQuoteId OUTPUT
+
+					--Update Latest ContactId in SOQ
+					SELECT @QuoteReferenceId = [ReferenceId],@NewCustomerContactId = [CustomerContactId] FROM [dbo].[CustomerRfq] WITH(NOLOCK) WHERE [CustomerRfqId] = @CustomerRfqId;
+					IF(ISNULL(@QuoteReferenceId,0) > 0)
+					BEGIN
+					     UPDATE [dbo].[SalesOrderQuote] SET [CustomerContactId] = @NewCustomerContactId WHERE [SalesOrderQuoteId] = @QuoteReferenceId;
+					END
 				END
 			END
 		END

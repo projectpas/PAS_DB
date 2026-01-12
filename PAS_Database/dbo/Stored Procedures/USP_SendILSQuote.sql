@@ -23,6 +23,7 @@
 	10   18-Aug-2025   Amit Ghediya      Update RFQ SOQ Price.
 	11	 21-Aug-2025   Devendra Shekh	 Checking customerId in CustomerRFQ for @CustomerId
 	12	 25-Aug-2025   Devendra Shekh	 Modified (Changes for @QuoteSendReviewId)
+	13	 09-Jan-2026   Amit Ghediya	     Modified (Update custoemrcontactid when manual create soq)
 
 -- EXEC USP_SendILSQuote
 ************************************************************************/
@@ -47,7 +48,9 @@ BEGIN
 							@SourceBy Varchar(30),
 							@MarketplaceRef Varchar(50),
 							@QuoteSendReviewId INT = 0,
-							@PercentValue DECIMAL(18,2);
+							@PercentValue DECIMAL(18,2),
+							@QuoteReferenceId BIGINT = 0,
+							@NewCustomerContactId BIGINT;
 
 					DECLARE @QuoteReviewRequiredId BIGINT = 0, @Code VARCHAR(50) = 'Review Required';
 
@@ -178,6 +181,13 @@ BEGIN
 							IF(ISNULL(@ItemMasterId,0) > 0 AND  ISNULL(@CustomerId,0) > 0)
 							BEGIN
 								 EXEC [dbo].[USP_CreateSalesOrderQuoteFromAI] @tbl_IlsRfqQuoteDetailsType,@CustomerId,@MasterCompanyId,@CreatedBy,2,@CustomerRfqId,@ItemMasterId,0,@SourceBy,@MarketplaceRef,@QuoteSendReviewId,@SalesOrderQuoteId OUTPUT
+
+								 --Update Latest ContactId in SOQ
+								 SELECT @QuoteReferenceId = [ReferenceId],@NewCustomerContactId = [CustomerContactId] FROM [dbo].[CustomerRfq] WITH(NOLOCK) WHERE [CustomerRfqId] = @CustomerRfqId;
+								 IF(ISNULL(@QuoteReferenceId,0) > 0)
+								 BEGIN
+									  UPDATE [dbo].[SalesOrderQuote] SET [CustomerContactId] = @NewCustomerContactId WHERE [SalesOrderQuoteId] = @QuoteReferenceId;
+								 END
 							END					
 						---------END Create SOQ With part---------------------------------------------
 					END

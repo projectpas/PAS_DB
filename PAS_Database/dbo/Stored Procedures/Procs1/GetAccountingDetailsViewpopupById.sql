@@ -26,8 +26,9 @@
 	10   25/07/2024  Sahdev Saliya          Set JournalTypeNumber Order by desc
 	11   25/07/2024  Moin Bloch             Added IsReversedJE
 	12   20/08/2024  Moin Bloch             Getting Part Wise Records
+	13   12/01/2026  Bhargav Saliya         Change Order By (Debit entry displayed first)
 	
---EXEC [GetAccountingDetailsViewpopupById] 3949,3472
+--EXEC [GetAccountingDetailsViewpopupById] 10206,10413
 
 *************************************************************************************************/
 
@@ -293,7 +294,7 @@ BEGIN
 				 [LotNumber],
 				 [IsUpdated],
 				 [IsReversedJE]
-		FROM #MyTempTableWO ORDER BY [JournalTypeNumber] DESC
+		FROM #MyTempTableWO ORDER BY [JournalTypeNumber] DESC,[IsDebit] DESC
   END    
   END TRY    
  BEGIN CATCH          

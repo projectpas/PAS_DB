@@ -6,9 +6,9 @@
     [KitNumber]               VARCHAR (256)   NULL,
     [ItemMasterId]            BIGINT          NOT NULL,
     [TaskId]                  BIGINT          NULL,
-    [Quantity]                INT             NOT NULL,
-    [UnitCost]                DECIMAL (20, 2) NOT NULL,
-    [ExtendedCost]            DECIMAL (20, 2) NOT NULL,
+    [Quantity]                DECIMAL (18, 6) NULL,
+    [UnitCost]                DECIMAL (18, 6) NULL,
+    [ExtendedCost]            DECIMAL (18, 6) NULL,
     [MasterCompanyId]         INT             NOT NULL,
     [CreatedBy]               VARCHAR (256)   NOT NULL,
     [UpdatedBy]               VARCHAR (256)   NOT NULL,
@@ -19,8 +19,8 @@
     [Memo]                    NVARCHAR (MAX)  NULL,
     [MarkupPercentageId]      BIGINT          NULL,
     [MarkupFixedPrice]        VARCHAR (15)    NULL,
-    [BillingAmount]           DECIMAL (20, 2) NULL,
-    [BillingRate]             DECIMAL (20, 2) NULL,
+    [BillingAmount]           DECIMAL (18, 6) NULL,
+    [BillingRate]             DECIMAL (18, 6) NULL,
     [HeaderMarkupId]          BIGINT          NULL,
     [BillingMethodId]         INT             NULL,
     [BillingName]             VARCHAR (50)    NULL,
@@ -29,6 +29,4 @@
     CONSTRAINT [FK_WorkOrderQuoteMaterialKitMapping_ItemMaster] FOREIGN KEY ([ItemMasterId]) REFERENCES [dbo].[ItemMaster] ([ItemMasterId]),
     CONSTRAINT [FK_WorkOrderQuoteMaterialKitMapping_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId])
 );
-
-
 

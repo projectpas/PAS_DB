@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿
+/*************************************************************           
  ** File:   [USP_BatchTriggerBasedonDistributionForWO]
  ** Author:  Subhash Saliya
  ** Description: This stored procedure is used for BatchTrigger Based on Distribution For WO
@@ -19,9 +20,9 @@
 	8	 22/01/2025		Devendra Shekh		Modify (Changes for WIP GL for WOSETTLEMENTTAB)
 	9	 28/01/2025		Devendra Shekh		Modify (Reverse Entry Issue Resolved)
 	10	 24/04/2025		Devendra Shekh		Modify (Added [IsManualText] check for DistributionSetup)
-
+	11	 12/JAN/2026	Rajesh Gami			UOM Conversion Changes
 ************************************************************************/
-CREATE   PROCEDURE [dbo].[USP_BatchTriggerBasedonDistributionForWO]
+CREATE     PROCEDURE [dbo].[USP_BatchTriggerBasedonDistributionForWO]
 (
 	@tbl_BatchTriggerWorkOrderType BatchTriggerWorkOrderType READONLY
 )
@@ -47,10 +48,10 @@ BEGIN
 			[ReferencePieceId] BIGINT NULL,
 			[InvoiceId] BIGINT NULL,
 			[StocklineId] BIGINT NULL,
-			[Qty] INT NULL,
+			[Qty] DECIMAL(18,6) NULL,
 			[laborType] VARCHAR(200) NULL,
 			[Issued]  BIT NULL,
-			[Amount] DECIMAL(18,2) NULL,
+			[Amount] DECIMAL(18,6) NULL,
 			[ModuleName] VARCHAR(200) NULL,
 			[MasterCompanyId] INT NULL,
 			[UpdateBy] VARCHAR(200) NULL
@@ -62,16 +63,16 @@ BEGIN
 		@ReferencePieceId BIGINT=NULL,
 		@InvoiceId BIGINT=NULL,
 		@StocklineId BIGINT=NULL,
-		@Qty INT=0,
+		@Qty DECIMAL(18,6)=0,
 		@laborType VARCHAR(200)=NULL,
 		@issued  BIT=0,
-		@Amount DECIMAL(18,2)=0,
+		@Amount DECIMAL(18,6)=0,
 		@ModuleName VARCHAR(200)=NULL,
 		@MasterCompanyId INT=0,
 		@UpdateBy VARCHAR(200)=NULL;
 		DECLARE @TotalRecords BIGINT = 0;
 		DECLARE @StartCount BIGINT = 1;
-		DECLARE @TotalAmount decimal(18,2)=0
+		DECLARE @TotalAmount DECIMAL(18,6)=0
 
 		INSERT INTO #BatchTriggerWorkOrderType
 		( [DistributionMasterId], [ReferenceId], [ReferencePartId], [ReferencePieceId], [InvoiceId], [StocklineId], [Qty], [laborType], [Issued], [Amount], [ModuleName], [MasterCompanyId], [UpdateBy] )
@@ -103,13 +104,13 @@ BEGIN
 	    DECLARE @PieceItemmasterId BIGINT
 	    DECLARE @CustRefNumber VARCHAR(200)
 	    DECLARE @LineNumber INT=1
-	    DECLARE @TotalDebit DECIMAL(18,2)=0
-	    DECLARE @TotalCredit DECIMAL(18,2)=0
-	    DECLARE @TotalBalance DECIMAL(18,2)=0
-	    DECLARE @UnitPrice DECIMAL(18,2)=0
-	    DECLARE @LaborHrs DECIMAL(18,2)=0
-	    DECLARE @DirectLaborCost DECIMAL(18,2)=0
-	    DECLARE @OverheadCost DECIMAL(18,2)=0
+	    DECLARE @TotalDebit DECIMAL(18,6)=0
+	    DECLARE @TotalCredit DECIMAL(18,6)=0
+	    DECLARE @TotalBalance DECIMAL(18,6)=0
+	    DECLARE @UnitPrice DECIMAL(18,6)=0
+	    DECLARE @LaborHrs DECIMAL(18,6)=0
+	    DECLARE @DirectLaborCost DECIMAL(18,6)=0
+	    DECLARE @OverheadCost DECIMAL(18,6)=0
 	    DECLARE @partId BIGINT=0
 		DECLARE @Batchtype INT=1
 		DECLARE @batch VARCHAR(100)
@@ -122,23 +123,23 @@ BEGIN
 		DECLARE @DistributionSetupId INT=0
 		DECLARE @IsAccountByPass BIT=0
 		DECLARE @DistributionCode VARCHAR(200)
-		DECLARE @InvoiceTotalCost DECIMAL(18,2)=0
-	    DECLARE @MaterialCost DECIMAL(18,2)=0
-	    DECLARE @LaborOverHeadCost DECIMAL(18,2)=0
-	    DECLARE @FreightCost DECIMAL(18,2)=0
-		DECLARE @SalesTax DECIMAL(18,2)=0
-		DECLARE @OtherTax DECIMAL(18,2)=0
+		DECLARE @InvoiceTotalCost DECIMAL(18,6)=0
+	    DECLARE @MaterialCost DECIMAL(18,6)=0
+	    DECLARE @LaborOverHeadCost DECIMAL(18,6)=0
+	    DECLARE @FreightCost DECIMAL(18,6)=0
+		DECLARE @SalesTax DECIMAL(18,6)=0
+		DECLARE @OtherTax DECIMAL(18,6)=0
 		DECLARE @InvoiceNo VARCHAR(100)
-		DECLARE @MiscChargesCost DECIMAL(18,2)=0
-		DECLARE @LaborCost DECIMAL(18,2)=0
-		DECLARE @InvoiceLaborCost DECIMAL(18,2)=0
-		DECLARE @RevenuWO DECIMAL(18,2)=0
-		DECLARE @FinishGoodAmount DECIMAL(18,2)=0
+		DECLARE @MiscChargesCost DECIMAL(18,6)=0
+		DECLARE @LaborCost DECIMAL(18,6)=0
+		DECLARE @InvoiceLaborCost DECIMAL(18,6)=0
+		DECLARE @RevenuWO DECIMAL(18,6)=0
+		DECLARE @FinishGoodAmount DECIMAL(18,6)=0
 		DECLARE @JournalBatchDetailId BIGINT=0
 		DECLARE @CommonJournalBatchDetailId BIGINT=0;
 		DECLARE @WopJounralTypeid BIGINT=0;
 		DECLARE @StocklineNumber VARCHAR(100)
-		DECLARE @UnEarnedAmount DECIMAL(18,2)=0
+		DECLARE @UnEarnedAmount DECIMAL(18,6)=0
 		DECLARE @AccountMSModuleId INT = 0		
 		
 		DECLARE @currentNo AS BIGINT = 0;
@@ -150,15 +151,15 @@ BEGIN
 		DECLARE @LotNumber VARCHAR(50) = '';
 		DECLARE @InvoiceDate DATETIME2(7) = NULL
 		DECLARE @MasterLoopID AS INT;
-		DECLARE @temptotaldebitcount DECIMAL(18,2)= 0 ;
-		DECLARE @temptotalcreditcount DECIMAL(18,2)= 0;
+		DECLARE @temptotaldebitcount DECIMAL(18,6)= 0 ;
+		DECLARE @temptotalcreditcount DECIMAL(18,6)= 0;
 		DECLARE @CreateNewBatch BIT = 0;
 		DECLARE @LaborNewBatchCount INT = 0;
 		DECLARE @isNewJENum BIT = 0;
 		DECLARE @IsAutoPost INT = 0;
 		DECLARE @IsBatchGenerated INT = 0;
 		DECLARE @CurrencyCode VARCHAR(20) = '';
-		DECLARE @FXRate  DECIMAL(18,2) = 1;	--Default Value set to : 1
+		DECLARE @FXRate  DECIMAL(18,6) = 1;	--Default Value set to : 1
 		DECLARE @ReferenceModule VARCHAR(100) = 'WO';
 
 		WHILE(@TotalRecords >= @StartCount AND @TotalAmount <> 0)
@@ -663,8 +664,8 @@ BEGIN
 				IF(UPPER(@DistributionCode) = UPPER('WOLABORTAB'))
 				BEGIN
 					SET @Batchtype = 2
-					DECLARE @Hours DECIMAL(18,2)
-					DECLARE @Hourspay DECIMAL(18,2)
+					DECLARE @Hours DECIMAL(18,6)
+					DECLARE @Hourspay DECIMAL(18,6)
 					DECLARE @LaborRate MONEY
 					DECLARE @burdentRate MONEY
 					
@@ -1346,7 +1347,7 @@ BEGIN
 					CREATE TABLE #tmpStockLineResult
 					(
 						RecId BIGINT NOT NULL IDENTITY, 
-						ExtendedCost DECIMAL(18, 2) NULL,
+						ExtendedCost DECIMAL(18,6) NULL,
 						WOPartNoId BIGINT NULL,
 						WorkInProgressGLAccId BIGINT NULL,
 					)
@@ -1354,7 +1355,7 @@ BEGIN
 					CREATE TABLE #tmpFinalStockLineResult
 					(
 						RecId BIGINT NOT NULL IDENTITY, 
-						ExtendedCost DECIMAL(18, 2) NULL,
+						ExtendedCost DECIMAL(18,6) NULL,
 						WOPartNoId BIGINT NULL,
 						WorkInProgressGLAccId BIGINT NULL,
 					)
@@ -2631,8 +2632,8 @@ BEGIN
 							JournalTypeId	BIGINT NULL,
 							JournalTypeName	VARCHAR(MAX) NULL,
 							IsDebit	BIT NULL,
-							DebitAmount	DECIMAL(18,2) NULL,
-							CreditAmount	DECIMAL(18,2) NULL,
+							DebitAmount	DECIMAL(18,6) NULL,
+							CreditAmount	DECIMAL(18,6) NULL,
 							ManagementStructureId	BIGINT NULL,
 							ModuleName	VARCHAR(MAX) NULL,
 							MasterCompanyId	INT NULL,
@@ -2674,8 +2675,8 @@ BEGIN
 						IF(@temptotaldebitcount > 0 OR @temptotalcreditcount > 0)
 						BEGIN
 							DECLARE @CommonBatchDetailsId BIGINT;
-							DECLARE @DebitAmount DECIMAL(18,2);
-							DECLARE @CreditAmount DECIMAL(18,2);
+							DECLARE @DebitAmount DECIMAL(18,6);
+							DECLARE @CreditAmount DECIMAL(18,6);
 
 							SELECT TOP 1 @DistributionSetupId=ID,
 									 @DistributionName=Name,

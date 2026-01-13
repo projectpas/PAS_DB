@@ -1,5 +1,4 @@
-﻿
-/*************************************************************             
+﻿/*************************************************************             
  ** File:   [SearchStockLineForAddPN]             
  ** Author:   Hemant Saliya  
  ** Description: Search Data for Add PN WO Materilas      
@@ -20,7 +19,8 @@
  ** 5    08/29/2024	  Devendra Shekh  Duplicate StockLine Issue Resolved
  ** 6    05/12/2025	  Devendra Shekh  checking isActive and isDeleted for Alternate Part Select
  ** 7    23/12/2025	  Devendra Shekh  added UOM Changes
-	8    07/01/2026   Rajesh Gami	  Added MasterCompanyId Parameter While Calling UOM Conversion Function       
+	8    07/01/2026   Rajesh Gami	  Added MasterCompanyId Parameter While Calling UOM Conversion Function  
+	9    09/01/2026   Rajesh Gami	  Resolved Issue For Stock and Consume related (Qty and Cost)
 -- EXEC [dbo].[SearchStockLineForAddPN] '2', 33, 10,-1,NULL  
 **************************************************************/   
   
@@ -158,10 +158,10 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 			,sl.ControlNumber  
 			,sl.IdNumber  
 			,uom.ShortName AS UomDescription  
-			,ISNULL(dbo.fn_ConvertUOM(sl.QuantityAvailable, sl.StockUnitOfMeasure, sl.ConsumeUnitOfMeasure,0,im.MasterCompanyId), 0) AS QtyAvailable
-			,ISNULL(dbo.fn_ConvertUOM(sl.QuantityOnHand, sl.StockUnitOfMeasure, sl.ConsumeUnitOfMeasure,0,im.MasterCompanyId), 0) AS QtyOnHand
-			,ISNULL(dbo.fn_ConvertUOM(sl.UnitCost, sl.StockUnitOfMeasure, sl.ConsumeUnitOfMeasure,1,im.MasterCompanyId), 0) AS unitCost
-			,ISNULL(dbo.fn_ConvertUOM(sl.UnitSalesPrice, sl.StockUnitOfMeasure, sl.ConsumeUnitOfMeasure,1,im.MasterCompanyId), 0) AS unitSalePrice
+			,ISNULL(dbo.fn_ConvertUOM(sl.QuantityAvailable, uomStock.ShortName, uomConsume.ShortName,0,im.MasterCompanyId), 0) AS QtyAvailable
+			,ISNULL(dbo.fn_ConvertUOM(sl.QuantityOnHand, uomStock.ShortName, uomConsume.ShortName,0,im.MasterCompanyId), 0) AS QtyOnHand
+			,ISNULL(dbo.fn_ConvertUOM(sl.UnitCost, uomStock.ShortName,uomConsume.ShortName,1,im.MasterCompanyId), 0) AS unitCost
+			,ISNULL(dbo.fn_ConvertUOM(sl.UnitSalesPrice, uomStock.ShortName, uomConsume.ShortName,1,im.MasterCompanyId), 0) AS unitSalePrice
 			--,CASE WHEN sl.TraceableToType = 1 THEN sl.TraceableToName  
 			--  WHEN sl.TraceableToType = 2 THEN sl.TraceableToName
 			--  WHEN sl.TraceableToType = 9 THEN sl.TraceableToName
@@ -196,8 +196,8 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 			sl.CustomerId,
 			sl.IsCustomerStock,
 			cus.Name As CustomerName
-			,sl.ConsumeUnitOfMeasure
-			,sl.StockUnitOfMeasure
+			,uomConsume.ShortName AS ConsumeUnitOfMeasure
+			,uomStock.ShortName AS StockUnitOfMeasure
 	   FROM DBO.ItemMaster im WITH(NOLOCK)  
 			JOIN DBO.StockLine sl WITH(NOLOCK) ON im.ItemMasterId = sl.ItemMasterId   
 				AND sl.isActive = 1 AND sl.IsDeleted = 0   
@@ -228,7 +228,9 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 		   LEFT JOIN DBO.LegalEntity leOwner WITH(NOLOCK) ON sl.Owner = leOwner.LegalEntityId  
 		   LEFT JOIN DBO.Customer cus WITH(NOLOCK) ON sl.CustomerId = cus.CustomerId  
 		   LEFT JOIN DBO.ItemMasterPurchaseSale imps WITH (NOLOCK) on imps.ItemMasterId = im.ItemMasterId  
-				AND imps.ConditionId = c.ConditionId  
+				AND imps.ConditionId = c.ConditionId
+		   LEFT JOIN DBO.UnitOfMeasure uomStock WITH(NOLOCK) ON sl.StockUnitOfMeasureId = uomStock.UnitOfMeasureId
+		   LEFT JOIN DBO.UnitOfMeasure uomConsume WITH(NOLOCK) ON sl.ConsumeUnitOfMeasureId = uomConsume.UnitOfMeasureId  
 		WHERE   
 			im.ItemMasterId IN (SELECT Item FROM DBO.SPLITSTRING(@ItemMasterIdlist,','))    
 			AND ISNULL(sl.QuantityAvailable, 0) > 0   
@@ -273,10 +275,10 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 			,sl.ControlNumber  
 			,sl.IdNumber  
 			,uom.ShortName AS UomDescription  
-			,ISNULL(dbo.fn_ConvertUOM(sl.QuantityAvailable, sl.StockUnitOfMeasure, sl.ConsumeUnitOfMeasure,0,im.MasterCompanyId), 0) AS QtyAvailable
-			,ISNULL(dbo.fn_ConvertUOM(sl.QuantityOnHand, sl.StockUnitOfMeasure, sl.ConsumeUnitOfMeasure,0,im.MasterCompanyId), 0) AS QtyOnHand
-			,ISNULL(dbo.fn_ConvertUOM(sl.UnitCost, sl.StockUnitOfMeasure, sl.ConsumeUnitOfMeasure,1,im.MasterCompanyId), 0) AS unitCost
-			,ISNULL(dbo.fn_ConvertUOM(sl.UnitSalesPrice, sl.StockUnitOfMeasure, sl.ConsumeUnitOfMeasure,1,im.MasterCompanyId), 0) AS unitSalePrice
+			,ISNULL(dbo.fn_ConvertUOM(sl.QuantityAvailable, uomStock.ShortName, uomConsume.ShortName,0,im.MasterCompanyId), 0) AS QtyAvailable
+			,ISNULL(dbo.fn_ConvertUOM(sl.QuantityOnHand, uomStock.ShortName, uomConsume.ShortName,0,im.MasterCompanyId), 0) AS QtyOnHand
+			,ISNULL(dbo.fn_ConvertUOM(sl.UnitCost, uomStock.ShortName,uomConsume.ShortName,1,im.MasterCompanyId), 0) AS unitCost
+			,ISNULL(dbo.fn_ConvertUOM(sl.UnitSalesPrice, uomStock.ShortName, uomConsume.ShortName,1,im.MasterCompanyId), 0) AS unitSalePrice
 			,CASE WHEN sl.TraceableToType = 1 THEN cusTraceble.Name  
 			  WHEN sl.TraceableToType = 2 THEN vTraceble.VendorName  
 			  WHEN sl.TraceableToType = 9 THEN leTraceble.Name  
@@ -308,8 +310,8 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 			sl.CustomerId,
 			sl.IsCustomerStock,
 			cus.Name As CustomerName
-			,sl.ConsumeUnitOfMeasure
-			,sl.StockUnitOfMeasure
+			,uomConsume.ShortName AS ConsumeUnitOfMeasure
+			,uomStock.ShortName AS StockUnitOfMeasure
 	   FROM DBO.ItemMaster im WITH(NOLOCK)  
 		   JOIN DBO.StockLine sl WITH(NOLOCK) ON im.ItemMasterId = sl.ItemMasterId   
 			   AND sl.isActive = 1 AND sl.IsDeleted = 0   
@@ -340,7 +342,9 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 		   LEFT JOIN DBO.LegalEntity leOwner WITH(NOLOCK) ON sl.Owner = leOwner.LegalEntityId  
 		   LEFT JOIN DBO.Customer cus WITH(NOLOCK) ON sl.CustomerId = cus.CustomerId  
 		   LEFT JOIN DBO.ItemMasterPurchaseSale imps WITH (NOLOCK) on imps.ItemMasterId = im.ItemMasterId  
-				AND imps.ConditionId = c.ConditionId  
+				AND imps.ConditionId = c.ConditionId
+			LEFT JOIN DBO.UnitOfMeasure uomStock WITH(NOLOCK) ON sl.StockUnitOfMeasureId = uomStock.UnitOfMeasureId
+		   LEFT JOIN DBO.UnitOfMeasure uomConsume WITH(NOLOCK) ON sl.ConsumeUnitOfMeasureId = uomConsume.UnitOfMeasureId  
 		WHERE SL.StockLineId IN (SELECT Item FROM DBO.SPLITSTRING(@StocklineIdlist,','))  
 		AND SL.StockLineId NOT IN (SELECT StockLineId FROM #StockLineResult);
 

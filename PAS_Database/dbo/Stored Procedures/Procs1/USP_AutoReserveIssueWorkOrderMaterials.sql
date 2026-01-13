@@ -1,4 +1,5 @@
-﻿/*************************************************************   
+﻿
+/*************************************************************   
 ** Author:  <Hemant Saliya>  
 ** Create date: <01/23/2023>  
 ** Description: <Save Work Order Materials reserve & Issue Stockline Details>  
@@ -22,7 +23,7 @@ EXEC [USP_AutoReserveIssueWorkOrderMaterials]
 ** 11   10/03/2024  RAJESH GAMI 	 Implement the ReferenceNumber column data into WOMaterial | Kit Stockline table.
 ** 12	03/19/2025	Devendra Shekh	 Updated For Checking PMA/DER Restrict Parts
 ** 15   04/14/2025  HEMANT SALIYA    Added Work Order Work Flow Id for UpdateWOMaterialsCost
-
+** 16   09/JAN/2026  Rajesh Gami	 UOM decimal places changes
 EXEC USP_AutoReserveIssueWorkOrderMaterials 4933,'ADMIN ADMIN'
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[USP_AutoReserveIssueWorkOrderMaterials]
@@ -195,7 +196,7 @@ BEGIN
 							DECLARE @IssueQty bigint=0;
 							DECLARE @laborType varchar(200)='';
 							DECLARE @issued bit=1;
-							DECLARE @Amount decimal(18,2);
+							DECLARE @Amount decimal(18,6);
 							DECLARE @ModuleName varchar(200)='WOP-PartsIssued';
 							DECLARE @UpdateBy varchar(200);
 
@@ -244,7 +245,7 @@ BEGIN
 								[IsStocklineAdded] BIT NULL,
 								[MasterCompanyId] BIGINT NULL,
 								[UpdatedBy] VARCHAR(500) NULL,
-								[UnitCost] DECIMAL(18,2),
+								[UnitCost] DECIMAL(18,6),
 								[IsSerialized] BIT
 							)
 

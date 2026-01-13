@@ -93,6 +93,7 @@ CREATE     PROCEDURE [dbo].[USP_AddBillingInvoicingDetails]
 @SignEmpDate DATETIME2(7) = NULL,
 @ShippingTermsName VARCHAR(256) = NULL,
 @SerialNumber VARCHAR(256) = NULL,
+@IsNewVersion bit = NULL,
 -------------------------------------------BillingInvoicingItems-------------------------------------------
 @tbl_BillingInvoicingItemsType BillingInvoicingItemsType READONLY
 AS  
@@ -180,7 +181,10 @@ BEGIN
 
 		IF (@MasterCompanyId = 12)
 		BEGIN
-			SET @isNewInvoice = 1;
+			IF (ISNULL(@IsNewVersion, 0) = 0)
+			BEGIN
+				SET @isNewInvoice = 1;
+			END
 		END
 
 		IF(ISNULL(@isNewInvoice,0) = 0)

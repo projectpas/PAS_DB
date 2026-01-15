@@ -12,6 +12,7 @@
 	2    18-04-2025		Hemnat Saliya			Added DB Standards  	
 	3    03-07-2025     Moin Bloch              Changed Old To New Billing Table
 	4    21-07-2025		Hemnat Saliya			Added IsVersionIncrease	
+	5    15-01-2026     Sahdev Saliya           Added IsInvoicePosted
 		
 	exec dbo.USP_WorkOrderAnalysis 9950,10104
 **************************************************************/
@@ -64,7 +65,8 @@ BEGIN
 				wo.WorkOrderNum,
 				s.Stage,
 				st.Description AS Status,
-				CAST(0 AS BIT) AS IsQuoteRevenue
+				CAST(0 AS BIT) AS IsQuoteRevenue,
+				ISNULL(wb.IsInvoicePosted, 0) AS IsInvoicePosted
 			FROM [dbo].[WorkOrderMPNCostDetails] woc WITH(NOLOCK)
 				INNER JOIN [dbo].[WorkOrder] wo WITH(NOLOCK) ON woc.WorkOrderId = wo.WorkOrderId
 				INNER JOIN [dbo].[WorkOrderPartNumber] wop WITH(NOLOCK) ON woc.WOPartNoId = wop.ID
@@ -130,7 +132,8 @@ BEGIN
 				wo.WorkOrderNum,
 				s.Stage,
 				st.Description AS Status,
-				CAST(1 AS BIT) AS IsQuoteRevenue
+				CAST(1 AS BIT) AS IsQuoteRevenue,
+				0 AS IsInvoicePosted
 			FROM [dbo].[WorkOrderMPNCostDetails] woc WITH(NOLOCK)
 				INNER JOIN [dbo].[WorkOrder] wo WITH(NOLOCK) ON woc.WorkOrderId = wo.WorkOrderId
 				INNER JOIN [dbo].[WorkOrderPartNumber] wop WITH(NOLOCK) ON woc.WOPartNoId = wop.ID

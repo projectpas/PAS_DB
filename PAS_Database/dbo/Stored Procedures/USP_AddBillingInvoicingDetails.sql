@@ -29,6 +29,7 @@
 	16   30/07/2025   BHARGAV SALIYA  Adde new [ShippingTermsName] field in [BillingInvoicingDetails] table and get it here
 	17   05/11/2025   MOIN BLOCH      Added Credit Memo Logic   
 	18   09/01/2026   Vishal Suthar  Added SerialNumber column in BillingInvoicingDetails for SA
+	19   15/01/2026   Vishal Suthar  Issue with new version created for SA
 
 -- EXEC USP_AddBillingInvoicingDetails 
 ************************************************************************/  
@@ -184,6 +185,10 @@ BEGIN
 			IF (ISNULL(@IsNewVersion, 0) = 0)
 			BEGIN
 				SET @isNewInvoice = 1;
+			END
+			ELSE
+			BEGIN
+				SET @IsVersionIncrease = 1;
 			END
 		END
 

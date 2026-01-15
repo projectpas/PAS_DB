@@ -22,6 +22,7 @@
  	6    20 MAR 2025  RAJESH GAMI		Change the JOIN from INNER to LEFT for the StocklineDraft
 	7    26 SEP 2025  RAJESH GAMI		Added EmployeeId
 	8    29 DEC 2025  Hemant Saliya		Handle Duplicate PN Label issue for MTI
+	9    15 JAN 2026  Bhargav Saliya	Get Inspector and Inspected Date For Receiving Stock
 -- EXEC GetReceiverStockPO 2014, '1', 1, 1, 'RecNo000047', 3683
 exec dbo.GetReceiverStockPO @PurchaseOrderId=9818,@isParentData=N'0',@ItemMasterId=1,@ConditionId=1,@ReceiverNumber=N'RecNo000001',@PurchaseOrderPartId=0
 
@@ -114,7 +115,9 @@ BEGIN
 				  CASE WHEN sd.WOQty > 0 THEN wo.WorkOrderNum WHEN sd.SOQty > 0 THEN so.SalesOrderNumber ELSE '' END AS ReferenceNumber,
 				  sl.Manufacturer,				  
 				  CAST(sl.ExpirationDate AS DATE) AS ExpirationDate,
-				  sl.TraceableToName
+				  sl.TraceableToName,
+				  ISNULL(e.FirstName,'') + ISNULL(e.LastName,'') as Inspector,
+				  sl.InspectionDate
 			FROM [dbo].[Stockline] sl WITH(NOLOCK)
 			INNER JOIN [dbo].[ItemMaster] i WITH(NOLOCK) ON i.ItemMasterId = sl.ItemMasterId
 			LEFT JOIN  [dbo].[StocklineDraft] sd WITH(NOLOCK) ON sl.StockLineId = sd.StockLineId 
@@ -126,6 +129,7 @@ BEGIN
 			LEFT JOIN  [dbo].[Bin] bn WITH(NOLOCK) ON bn.BinId = sl.BinId
 			LEFT JOIN  [dbo].[Shelf] sf WITH(NOLOCK) ON sf.ShelfId = sl.ShelfId
 			LEFT JOIN  [dbo].[Location] lc WITH(NOLOCK) ON lc.LocationId = sl.LocationId
+			LEFT JOIN  [dbo].[Employee] e WITH(NOLOCK) ON sl.InspectionBy = e.EmployeeId
 			WHERE sl.PurchaseOrderId = @PurchaseOrderId AND (@PurchaseOrderPartId = 0 OR sl.PurchaseOrderPartRecordId = @PurchaseOrderPartId)
 			--AND sl.ReceiverNumber = @ReceiverNumber AND CAST(sl.ReceivedDate AS DATE) = CAST(@ReceiverDate AS DATE) AND sl.IsParent=1 and sl.isSerialized = 1
 			AND sl.ReceiverNumber = @ReceiverNumber AND CAST(DBO.ConvertUTCtoLocal(sl.ReceivedDate, @CurrntEmpTimeZoneDesc) AS DATE) = CAST(@ReceiverDate AS DATE) AND sl.IsParent=1 AND sl.isSerialized = 1
@@ -155,7 +159,9 @@ BEGIN
 				  CASE WHEN sd.WOQty > 0 THEN wo.WorkOrderNum WHEN sd.SOQty > 0 THEN so.SalesOrderNumber ELSE '' END AS ReferenceNumber,
 				  sl.Manufacturer,
 				  CAST(sl.ExpirationDate AS DATE) AS ExpirationDate,
-				  sl.TraceableToName
+				  sl.TraceableToName,
+				  ISNULL(e.FirstName,'') + ISNULL(e.LastName,'') as Inspector,
+				  sl.InspectionDate
 			FROM [dbo].[Stockline] sl WITH(NOLOCK)
 			INNER JOIN [dbo].[ItemMaster] i WITH(NOLOCK) ON i.ItemMasterId = sl.ItemMasterId
 			LEFT JOIN  [dbo].[StocklineDraft] sd WITH(NOLOCK) ON sl.StockLineId = sd.StockLineId 
@@ -167,6 +173,7 @@ BEGIN
 			LEFT JOIN  [dbo].[Bin] bn WITH(NOLOCK) ON bn.BinId = sl.BinId
 			LEFT JOIN  [dbo].[Shelf] sf WITH(NOLOCK) ON sf.ShelfId = sl.ShelfId
 			LEFT JOIN  [dbo].[Location] lc WITH(NOLOCK) ON lc.LocationId = sl.LocationId
+			LEFT JOIN  [dbo].[Employee] e WITH(NOLOCK) ON sl.InspectionBy = e.EmployeeId
 			WHERE sl.PurchaseOrderId = @PurchaseOrderId AND (@PurchaseOrderPartId = 0 OR sl.PurchaseOrderPartRecordId = @PurchaseOrderPartId)
 			--AND sl.ReceiverNumber = @ReceiverNumber AND CAST(sl.ReceivedDate AS DATE) = CAST(@ReceiverDate AS DATE) AND sl.IsParent=1 and sl.isSerialized = 0 
 			AND sl.ReceiverNumber = @ReceiverNumber AND CAST(DBO.ConvertUTCtoLocal(sl.ReceivedDate, @CurrntEmpTimeZoneDesc) AS DATE) = CAST(@ReceiverDate AS DATE) AND sl.IsParent=1 AND sl.isSerialized = 0 
@@ -196,7 +203,9 @@ BEGIN
 				  '' AS ReferenceNumber,
 				  sl.Manufacturer,
 				  CAST(sl.ExpirationDate AS DATE) AS ExpirationDate,
-				  sl.TraceableToName
+				  sl.TraceableToName,
+				  ISNULL(e.FirstName,'') + ISNULL(e.LastName,'') as Inspector,
+				  sl.InspectionDate
 			FROM [dbo].[Stockline] sl WITH(NOLOCK)
 			INNER JOIN [dbo].[ItemMaster] i WITH(NOLOCK) ON i.ItemMasterId = sl.ItemMasterId
 			LEFT JOIN  [dbo].[StocklineDraft] sd WITH(NOLOCK) ON sl.StockLineId = sd.StockLineId 
@@ -207,6 +216,7 @@ BEGIN
 			LEFT JOIN  [dbo].[Bin] bn WITH(NOLOCK) ON bn.BinId = sl.BinId
 			LEFT JOIN  [dbo].[Shelf] sf WITH(NOLOCK) ON sf.ShelfId = sl.ShelfId
 			LEFT JOIN  [dbo].[Location] lc WITH(NOLOCK) ON lc.LocationId = sl.LocationId
+			LEFT JOIN  [dbo].[Employee] e WITH(NOLOCK) ON sl.InspectionBy = e.EmployeeId
 			WHERE sl.PurchaseOrderId = @PurchaseOrderId AND (@PurchaseOrderPartId = 0 OR sl.PurchaseOrderPartRecordId = @PurchaseOrderPartId)
 			--AND sl.ReceiverNumber = @ReceiverNumber AND CAST(sl.ReceivedDate AS DATE) = CAST(@ReceiverDate AS DATE) AND sl.IsParent=1 AND sl.isSerialized = 0 AND sd.ForStockQty > 0
 			AND sl.ReceiverNumber = @ReceiverNumber AND CAST(DBO.ConvertUTCtoLocal(sl.ReceivedDate, @CurrntEmpTimeZoneDesc) AS DATE) = CAST(@ReceiverDate AS DATE) AND sl.IsParent=1 AND sl.isSerialized = 0 AND sd.ForStockQty > 0
@@ -238,7 +248,9 @@ BEGIN
 				  CASE WHEN POP.WorkOrderId >1 THEN POP.WorkOrderNo when POP.SalesOrderId >1 then POP.SalesOrderNo ELSE '' END as ReferenceNumber,
 				  sl.Manufacturer,
 				  CAST(sl.MfgExpirationDate AS DATE) AS ExpirationDate,
-				   '' AS TraceableToName
+				   '' AS TraceableToName,
+				   '' as Inspector,
+				   NULL InspectionDate
 			FROM [dbo].[NonStockInventory] sl WITH(NOLOCK)
 			LEFT JOIN [dbo].[PurchaseOrderPart] POP WITH(NOLOCK) on POP.PurchaseOrderId = sl.PurchaseOrderId and POP.ItemMasterId=sl.MasterPartId and POP.PurchaseOrderPartRecordId=sl.PurchaseOrderPartRecordId
 			WHERE sl.PurchaseOrderId = @PurchaseOrderId AND (@PurchaseOrderPartId = 0 OR sl.PurchaseOrderPartRecordId = @PurchaseOrderPartId)
@@ -269,7 +281,9 @@ BEGIN
 				   ''  as ReferenceNumber,
 				   sl.ManufactureName AS Manufacturer,
 				   CAST(sl.ExpirationDate AS DATE) AS ExpirationDate,
-				    '' AS TraceableToName
+				    '' AS TraceableToName,
+					'' as Inspector,
+					NULL InspectionDate
 			FROM [dbo].[AssetInventory] sl WITH(NOLOCK) 
 			LEFT JOIN [dbo].[UnitOfMeasure]  UM WITH (NOLOCK) ON UM.unitOfMeasureId = sl.UnitOfMeasureId		
 			WHERE PurchaseOrderId = @PurchaseOrderId AND (@PurchaseOrderPartId = 0 OR sl.PurchaseOrderPartRecordId = @PurchaseOrderPartId)

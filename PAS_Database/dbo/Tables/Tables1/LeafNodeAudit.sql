@@ -15,6 +15,7 @@
     [ReportingStructureId] BIGINT        NULL,
     [IsPositive]           BIT           NULL,
     [SequenceNumber]       BIGINT        NULL,
+    [PrintSequenceNumber]  INT           NULL,
     CONSTRAINT [PK_LeafNodeAudit] PRIMARY KEY CLUSTERED ([AuditLeafNodeId] ASC)
 );
 

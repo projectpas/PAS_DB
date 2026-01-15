@@ -40,6 +40,7 @@
 	30	 17-DEC-2025        Nakul Chandigara  		Added New SingleScreen Modules
 	31	 18-DEC-2025        Nakul Chandigara  		Added New SingleScreen Modules
 	32   22-Dec-2025		Divyesh Kathiriya  		Added validation for Site,Warehouse,Location,Shelf,Bin
+	33   13-Jan-2026		Divyesh Kathiriya  		Added validation for "ItemMaster" of Dropdown value.
 
 declare @p4 dbo.UploadModuleDataTableType
 insert into @p4 values(4,N'VICTOR ADMAS',1,N'{
@@ -619,7 +620,12 @@ BEGIN
 												WHEN (@ModuleId = @ItemMasterModule) AND ISNULL(IMF.IsRequired, 0) = 0 AND ISNULL(IMF.DropdownListType, '') != '' AND ISNULL(IMF.FieldValue, '') = '' THEN ''
 												WHEN (@ModuleId = @ItemMasterModule)
 												THEN LTRIM(RTRIM(
-															CASE 
+															CASE
+																WHEN ISNULL(IMF.DropdownListType, '') != ''  AND ISNULL(IMF.DropdownListValueId, '') = '' 
+																THEN 'Please Enter Correct  ' + IMF.HeaderName
+																ELSE ''
+															END
+														+	CASE 
 																WHEN (@SiteError = 1 AND [IMF].[FieldName] = 'SiteId')
 																THEN 'Entered Site Not Exists. '
 																ELSE ''

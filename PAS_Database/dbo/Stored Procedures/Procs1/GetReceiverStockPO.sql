@@ -116,7 +116,7 @@ BEGIN
 				  sl.Manufacturer,				  
 				  CAST(sl.ExpirationDate AS DATE) AS ExpirationDate,
 				  sl.TraceableToName,
-				  ISNULL(e.FirstName,'') + ISNULL(e.LastName,'') as Inspector,
+				  ISNULL(e.FirstName,'') + ' ' + ISNULL(e.LastName,'') as Inspector,
 				  sl.InspectionDate
 			FROM [dbo].[Stockline] sl WITH(NOLOCK)
 			INNER JOIN [dbo].[ItemMaster] i WITH(NOLOCK) ON i.ItemMasterId = sl.ItemMasterId
@@ -160,7 +160,7 @@ BEGIN
 				  sl.Manufacturer,
 				  CAST(sl.ExpirationDate AS DATE) AS ExpirationDate,
 				  sl.TraceableToName,
-				  ISNULL(e.FirstName,'') + ISNULL(e.LastName,'') as Inspector,
+				  ISNULL(e.FirstName,'') + ' ' + ISNULL(e.LastName,'') as Inspector,
 				  sl.InspectionDate
 			FROM [dbo].[Stockline] sl WITH(NOLOCK)
 			INNER JOIN [dbo].[ItemMaster] i WITH(NOLOCK) ON i.ItemMasterId = sl.ItemMasterId
@@ -204,7 +204,7 @@ BEGIN
 				  sl.Manufacturer,
 				  CAST(sl.ExpirationDate AS DATE) AS ExpirationDate,
 				  sl.TraceableToName,
-				  ISNULL(e.FirstName,'') + ISNULL(e.LastName,'') as Inspector,
+				  ISNULL(e.FirstName,'') + ' ' + ISNULL(e.LastName,'') as Inspector,
 				  sl.InspectionDate
 			FROM [dbo].[Stockline] sl WITH(NOLOCK)
 			INNER JOIN [dbo].[ItemMaster] i WITH(NOLOCK) ON i.ItemMasterId = sl.ItemMasterId

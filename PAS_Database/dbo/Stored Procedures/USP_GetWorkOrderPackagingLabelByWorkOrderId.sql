@@ -16,6 +16,7 @@
  ** --    --------			-----------				--------------------------------          
 	 1    4-30-2025			Amit Ghediya			Created
 	 2    6-12-2025         MOIN BLOCH              Updated BillingInvoice Old To New Table
+	 3    13/01/2025		Amit Ghediya			Get ShippingAccountInfo field
 
 	 EXEC [dbo].[USP_GetWorkOrderPackagingLabelByWorkOrderId] 8936,8731
 ****************************************************************************************/
@@ -96,7 +97,8 @@ BEGIN
 					sos.SoldToState AS BillToState,
 					sos.SoldToZip AS BillToPostalCode,
 					sos.SoldToCountryName AS BillToCountry,
-					sos.SoldToName
+					sos.SoldToName,
+					sos.ShippingAccountInfo
 				FROM [DBO].[WOPickTicket] wopkt WITH(NOLOCK)
 				JOIN [DBO].[WorkOrder] wo WITH(NOLOCK) ON wopkt.WorkOrderId = wo.WorkOrderId
 				JOIN [DBO].[WorkOrderPartNumber] part WITH(NOLOCK) ON wo.WorkOrderId = part.WorkOrderId

@@ -46,6 +46,7 @@
 	30   11-03-2025   ABHISHEK JIRAWLA	IsVendorOnHold check for payment hold
 	31   10-04-2025   AMIT GHEDIYA		Get le from perticular module
 	32	 11-04-2025	  Ekta Chandegra	Convert date using dbo.ConvertUTCtoLocal
+	33   15-01-2026   AMIT GHEDIYA		Update condition for get LE (LegalEntityId) Before ManagementStructureLevel ID
 
  --EXEC VendorPaymentList 10,1,'ReceivingReconciliationId',1,'','',0,0,0,'ALL','',NULL,NULL,1,73   
 **************************************************************/
@@ -443,7 +444,7 @@ BEGIN
 			   LEFT JOIN  [dbo].[CreditTerms] ctm WITH(NOLOCK) ON ctm.CreditTermsId = VN.CreditTermsId
 			   LEFT JOIN [dbo].[EntityStructureSetup] ESS WITH (NOLOCK) ON NPH.ManagementStructureId = ESS.[EntityStructureId]
 			   LEFT JOIN dbo.ManagementStructureLevel MSL1 WITH (NOLOCK) ON ESS.Level1Id = MSL1.ID
-			   LEFT JOIN [dbo].[LegalEntity] le WITH(NOLOCK) ON le.LegalEntityId = MSL1.ID
+			   LEFT JOIN [dbo].[LegalEntity] le WITH(NOLOCK) ON le.LegalEntityId = MSL1.LegalEntityId
 			   INNER JOIN [dbo].[NonPOInvoiceHeaderStatus] NPHS WITH(NOLOCK) ON NPHS.[NonPOInvoiceHeaderStatusId] = NPH.[StatusId]
 			   OUTER APPLY (SELECT TOP 1 VD.VendorPaymentDetailsId,ReadyToPayDetailsId,
 								   SUM(ISNULL(VD.PaymentMade,0)) ReadyToPaymentMade,
@@ -515,7 +516,7 @@ BEGIN
 			   LEFT JOIN  [dbo].[CreditTerms] ctm WITH(NOLOCK) ON ctm.CreditTermsId = VN.CreditTermsId
 			   LEFT JOIN [dbo].[EntityStructureSetup] ESS WITH (NOLOCK) ON NPH.ManagementStructureId = ESS.[EntityStructureId]
 			   LEFT JOIN dbo.ManagementStructureLevel MSL1 WITH (NOLOCK) ON ESS.Level1Id = MSL1.ID
-			   LEFT JOIN [dbo].[LegalEntity] le WITH(NOLOCK) ON le.LegalEntityId = MSL1.ID
+			   LEFT JOIN [dbo].[LegalEntity] le WITH(NOLOCK) ON le.LegalEntityId = MSL1.LegalEntityId
 			   OUTER APPLY (SELECT TOP 1 VD.VendorPaymentDetailsId,ReadyToPayDetailsId,
 								   SUM(ISNULL(VD.PaymentMade,0)) ReadyToPaymentMade,
 								   SUM(ISNULL(VD.CreditMemoAmount,0)) AS CreditMemoAmount,
@@ -996,7 +997,7 @@ BEGIN
 				LEFT JOIN  [dbo].[CreditTerms] ctm WITH(NOLOCK) ON ctm.CreditTermsId = VN.CreditTermsId
 				LEFT JOIN [dbo].[EntityStructureSetup] ESS WITH (NOLOCK) ON NPH.ManagementStructureId = ESS.[EntityStructureId]
 			    LEFT JOIN dbo.ManagementStructureLevel MSL1 WITH (NOLOCK) ON ESS.Level1Id = MSL1.ID
-			    LEFT JOIN [dbo].[LegalEntity] le WITH(NOLOCK) ON le.LegalEntityId = MSL1.ID
+			    LEFT JOIN [dbo].[LegalEntity] le WITH(NOLOCK) ON le.LegalEntityId = MSL1.LegalEntityId
 				OUTER APPLY (SELECT VD.VendorPaymentDetailsId,SUM(ISNULL(VD.PaymentMade,0) + ISNULL(VD.CreditMemoAmount,0)) ReadyToPaymentMade,
 							 SUM(ISNULL(VD.DiscountToken,0)) DiscountToken,MAX(PM.Description) AS PaymentMethod,
 							 SUM(ISNULL(VD.CreditMemoAmount,0)) AS CreditMemoAmount,
@@ -1611,7 +1612,7 @@ BEGIN
 			   LEFT JOIN  [dbo].[CreditTerms] ctm WITH(NOLOCK) ON ctm.CreditTermsId = VN.CreditTermsId
 				LEFT JOIN [dbo].[EntityStructureSetup] ESS WITH (NOLOCK) ON NPH.ManagementStructureId = ESS.[EntityStructureId]
 			    LEFT JOIN dbo.ManagementStructureLevel MSL1 WITH (NOLOCK) ON ESS.Level1Id = MSL1.ID
-			    LEFT JOIN [dbo].[LegalEntity] le WITH(NOLOCK) ON le.LegalEntityId = MSL1.ID
+			    LEFT JOIN [dbo].[LegalEntity] le WITH(NOLOCK) ON le.LegalEntityId = MSL1.LegalEntityId
 			   OUTER APPLY (SELECT TOP 1 VD.VendorPaymentDetailsId,ReadyToPayDetailsId,SUM(ISNULL(VD.PaymentMade,0)) ReadyToPaymentMade,
 							SUM(ISNULL(VD.DiscountToken,0)) DiscountToken,
 							SUM(ISNULL(VD.CreditMemoAmount,0)) AS CreditMemoAmount,

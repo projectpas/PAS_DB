@@ -38,6 +38,7 @@
 	22   19/11/2025   Amit Ghediya			Added New Field Location
 	23   20/11/2025   Sahdev Saliya         Added New Field :- ReceivedCondition, RevisedCondition
 	24   30/12/2025   Vishal Suthar         Fixed WOQ Part Status which affects the approved amount
+	25   17/01/2025   Bhargav Saliya        Added IsMigrated Condition
 
 	exec dbo.GetWorkOrderList @PageNumber=1,@PageSize=100,@SortColumn=default,@SortOrder=-1,@StatusID=1,@GlobalFilter=default,@ViewType=N'mpn',
 	@WorkOrderNum=default,@PartNumber=default,@PartDescription=default,@WorkScope=default,@Priority=default,@CustomerName=default,@CustomerAffiliation=default,@Stage=default,
@@ -363,7 +364,8 @@ BEGIN
 			LEFT JOIN [dbo].[ApprovalStatus] appsA WITH (NOLOCK) ON CAST(@WaitingForApprovalStatusId AS INT) = appsA.[ApprovalStatusId]
 			LEFT JOIN [dbo].[ApprovalStatus] appsC WITH (NOLOCK) ON wopp.[CustomerStatusId] = appsC.[ApprovalStatusId]
 			LEFT JOIN dbo.Condition RCD WITH(NOLOCK) ON WPN.RevisedConditionId = RCD.ConditionId  
-		WHERE ((WO.[MasterCompanyId] = @MasterCompanyId) AND (WO.[IsDeleted] = @IsDeleted) AND (@IsActive IS NULL OR WO.[IsActive] = @IsActive) AND (@WorkOrderStatus = 0 OR WPN.[WorkOrderStatusId] = @WorkOrderStatus)
+		WHERE (@IsDeleted = 1 OR ISNULL(WO.IsMigrated, 0) <> 1) AND
+		((WO.[MasterCompanyId] = @MasterCompanyId) AND (WO.[IsDeleted] = @IsDeleted) AND (@IsActive IS NULL OR WO.[IsActive] = @IsActive) AND (@WorkOrderStatus = 0 OR WPN.[WorkOrderStatusId] = @WorkOrderStatus)
 		AND (@WoTaskType IS NULL OR WO.[WorkOrderFormTypeId] = @WoTaskType))  
         ),
 		QuoteResult AS (
@@ -580,7 +582,7 @@ BEGIN
 			--JOIN dbo.WorkOrderType WT WITH (NOLOCK) ON WO.WorkOrderTypeId = WT.Id  
 			JOIN [dbo].[WorkOrderPartNumber] WPN WITH(NOLOCK) ON WO.[WorkOrderId] = WPN.[WorkOrderId]			
 			--LEFT JOIN #SubWOResult SWO ON WO.WorkOrderId = SWO.WorkOrderId
-			WHERE ((WO.[MasterCompanyId] = @MasterCompanyId) AND (WO.[IsDeleted]=@IsDeleted) AND (@IsActive IS NULL OR WO.[IsActive]=@IsActive)   
+			WHERE (@IsDeleted = 1 OR ISNULL(WO.IsMigrated, 0) <> 1) AND ((WO.[MasterCompanyId] = @MasterCompanyId) AND (WO.[IsDeleted]=@IsDeleted) AND (@IsActive IS NULL OR WO.[IsActive]=@IsActive)   
 			))
 			, WorkOrderPartCount AS (
 			SELECT [WorkOrderId], COUNT([WorkOrderId]) AS PartCount

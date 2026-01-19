@@ -15,8 +15,7 @@
 	3    25/01/2024   Hemant Saliya	 Remove Manual Journal from Reports
 	4    31/01/2024   Hemant Saliya	 Updated for Handle Balance Issues
 	5	 23/05/2024   Moin Bloch	 Set IncomeStatement Default ReportingStructureId 
-	6    09/01/2026   Hemant Saliya	 Updated for Handle YTD Balance Issues
-
+	6    12/01/2026   Hemant Saliya	 Updated for Handle YTD Balance Issues
 
 ************************************************************************
 EXEC [RPT_GetBalanceSheetReportsExportData] 264,264,44,41,14,0, @strFilter=N'63!64!!'
@@ -717,7 +716,7 @@ BEGIN
 				UPPER(LEFT(AccountingPeriod, 3)) + ' ' + RIGHT(AccountingPeriod, 4)
 			WHERE AccountingPeriod LIKE '[A-Za-z][A-Za-z][A-Za-z][0-9][0-9][0-9][0-9]';
 
-		  SELECT * FROM #ReportingStructureExportData WHERE ParentId != 0 ORDER BY SequenceNumber ASC
+		  SELECT * FROM #ReportingStructureExportData WHERE ParentId != 0 AND AccountingPeriodId != 999999 and (LevelId != 1 OR IsTotlaLine != 0) ORDER BY SequenceNumber ASC
  END TRY  
  BEGIN CATCH  
      DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name() 

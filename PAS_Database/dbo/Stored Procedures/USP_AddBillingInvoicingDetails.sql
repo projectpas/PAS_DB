@@ -29,6 +29,7 @@
 	16   30/07/2025   BHARGAV SALIYA  Adde new [ShippingTermsName] field in [BillingInvoicingDetails] table and get it here
 	17   05/11/2025   MOIN BLOCH      Added Credit Memo Logic   
 	18   09/01/2026   Vishal Suthar  Added SerialNumber column in BillingInvoicingDetails for SA
+	19   15/01/2026   Vishal Suthar  Issue with new version created for SA
 
 -- EXEC USP_AddBillingInvoicingDetails 
 ************************************************************************/  
@@ -179,11 +180,32 @@ BEGIN
 
 		EXEC [dbo].[USP_CheckWOInvoiceExistByWOBillId] @BillingInvoicingIdI,@SubReferenceIds,@StocklineIds,@IsPerformaInvoiceI,@ModuleId,@Result = @isNewInvoice OUTPUT
 
+		--IF (@MasterCompanyId = 12)
+		--BEGIN
+		--	IF (ISNULL(@IsNewVersion, 0) = 0)
+		--	BEGIN
+		--		SET @isNewInvoice = 1;
+		--	END
+		--	ELSE
+		--	BEGIN
+		--		SET @IsVersionIncrease = 1;
+		--	END
+		--END
 		IF (@MasterCompanyId = 12)
 		BEGIN
-			IF (ISNULL(@IsNewVersion, 0) = 0)
+			IF (ISNULL(@IsNewVersion, 0) = 1)
 			BEGIN
+				-- NEW VERSION
+				SET @isNewInvoice = 0;
+				SET @IsVersionIncrease = 1;
+			END
+			ELSE
+			BEGIN
+				-- NEW INVOICE
 				SET @isNewInvoice = 1;
+				SET @IsVersionIncrease = 0;
+				SET @VersionNo = NULL;
+				SET @InvoiceNo = '';
 			END
 		END
 
@@ -245,28 +267,46 @@ BEGIN
 		END
 
         DECLARE @VersionNum INT= 0;
-		IF (@VersionNo IS NOT NULL AND LEN(@VersionNo) > 0)
+
+		IF (@isNewInvoice = 0) -- NEW VERSION
 		BEGIN
-			IF (LEN(@VersionNo) > 6)
+			IF (@VersionNo IS NOT NULL AND LEN(@VersionNo) > 0)
 			BEGIN
-				DECLARE @Part2 NVARCHAR(20) = PARSENAME(REPLACE(@VersionNo, '-', '.'), 1);
-				IF (@Part2 IS NOT NULL AND ISNUMERIC(@Part2) = 1)
+				IF (LEN(@VersionNo) > 6)
 				BEGIN
-					SET @VersionNum = CAST(@Part2 AS INT) + 1;
+					DECLARE @Part2 NVARCHAR(20) = PARSENAME(REPLACE(@VersionNo, '-', '.'), 1);
+					IF (@Part2 IS NOT NULL AND ISNUMERIC(@Part2) = 1)
+					BEGIN
+						SET @VersionNum = CAST(@Part2 AS INT) + 1;
+					END
 				END
+				ELSE
+				BEGIN
+					SET @VersionNum = CAST(SUBSTRING(@VersionNo, 3, LEN(@VersionNo)) AS INT) + 1;
+				END
+
+				SET @VersionNo = (SELECT * FROM [dbo].[udfGenerateCodeNumber](@VersionNum, ISNULL(@VerCodePrefix,''),''));
 			END
 			ELSE
-			BEGIN
-				SET @VersionNum = CAST(SUBSTRING(@VersionNo, 3, LEN(@VersionNo)) AS INT) + 1;
+			BEGIN			
+				SET @VersionNo = (SELECT * FROM [dbo].[udfGenerateCodeNumber](1, ISNULL(@VerCodePrefix,''),''));
 			END
-
-			SET @VersionNo = (SELECT * FROM [dbo].[udfGenerateCodeNumber](@VersionNum, ISNULL(@VerCodePrefix,''),''));
 		END
-		ELSE
-		BEGIN			
-			SET @VersionNo = (SELECT * FROM [dbo].[udfGenerateCodeNumber](1, ISNULL(@VerCodePrefix,''),''));
-		END			
+		BEGIN
+			-- BRAND NEW INVOICE → NO VERSION
+			SET @VersionNo = NULL;
+		END
 		
+
+		IF (@MasterCompanyId = 12 AND ISNULL(@IsNewVersion, 0) = 1 AND @BillingInvoicingIdI > 0)
+		BEGIN
+			UPDATE dbo.BillingInvoicing
+			SET IsVersionIncrease = 1,
+				UpdatedBy = @UpdatedBy,
+				UpdatedDate = @UpdatedDate
+			WHERE BillingInvoicingId = @BillingInvoicingIdI;
+		END
+
 		IF OBJECT_ID(N'tempdb..#tmprAddBillingInvoicingDetailsTemp') IS NOT NULL
 		BEGIN
 			DROP TABLE #tmprAddBillingInvoicingDetailsTemp
@@ -355,7 +395,13 @@ BEGIN
 				   ,[IsCreatedFromQuote],[IsQuickBookGeneratedInvoice],[RemainingAmount],[WorkOrderShippingId],OriginCountryId,ShipToCountryId,SignEmpId,SignEmpDate)		 
 			 VALUES (@ModuleId, @ReferenceId, @CustomerId, @InvoiceTypeId, @InvoiceNo, @CreatedDate, @InvoiceTime, @PrintDate, @EmployeeId,
 					 @CurrencyId, @RevisionTypeId, @InvoiceStatusId, @InvoiceStatus, @InvoiceFilePath, @RevType, @VersionNo, @CostPlusType,
-					 @IsPerformaInvoice, @IsVersionIncrease, @PostedDate, @SubTotal, @OtherTax, @SalesTax, @DepositAmount, @GrandTotal,
+					 @IsPerformaInvoice, 
+					 --@IsVersionIncrease, 
+					 CASE 
+						WHEN @MasterCompanyId = 12 AND ISNULL(@IsNewVersion,0) = 1 THEN 0
+						ELSE @IsVersionIncrease
+					 END,
+					 @PostedDate, @SubTotal, @OtherTax, @SalesTax, @DepositAmount, @GrandTotal,
 					 @Notes, @ManagementStructureId, @MasterCompanyId, @CreatedBy, @CreatedBy, @CreatedDate, @CreatedDate,
 					 @IsActive, @IsDeleted, @IsReversedJE, @QuickBooksReferenceId, @IsUpdated, @LastSyncDate, @SyncToken,
 					 @IsCreatedFromQuote, @IsQuickBookGeneratedInvoice,@RemainingAmount,@WorkOrderShippingId,@OriginCountryId,@DestinationCountryId,@SignEmpId,@SignEmpDate);

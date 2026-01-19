@@ -1,6 +1,4 @@
-﻿
-
-/*************************************************************               
+﻿/*************************************************************               
  ** File:   [ProcStockList]               
  ** Author:   Hemant Saliya    
  ** Description: This stored procedure is used to get stockline list      
@@ -389,7 +387,7 @@ BEGIN
 		  (ISNULL(@QuantityAdjustment,'') ='' OR QuantityAdjustment LIKE '%' + @QuantityAdjustment + '%') AND
 		  (ISNULL(@BatchNumber,'') ='' OR [BatchNumber] LIKE '%' + @BatchNumber+'%') AND			
 		  (ISNULL(@IsDocument,'') ='' OR IsDocument LIKE '%' + @IsDocument + '%') and 
-		  (IsNull(@UnitCost,'') ='' OR CAST(UnitCost AS varchar(20)) like '%' + @UnitCost+'%' ))        
+		  (IsNull(@UnitCost,'') ='' OR IsNull(@UnitCost,0) =0 OR CAST(UnitCost AS varchar(20)) like '%' + @UnitCost+'%' ))        
 		 )        
 		SELECT @Count = COUNT(StockLineId) FROM #TempResults       		
 		
@@ -687,7 +685,7 @@ BEGIN
 		(ISNULL(@QuantityAdjustment,'') ='' OR QuantityAdjustment LIKE '%' + @QuantityAdjustment + '%') AND
 		(ISNULL(@BatchNumber,'') ='' OR [BatchNumber] LIKE '%' + @BatchNumber+'%') AND	
 		(ISNULL(@IsDocument,'') ='' OR IsDocument LIKE '%' + @IsDocument + '%') 
-		 AND(IsNull(@UnitCost,'') ='' OR CAST(UnitCost AS varchar(20)) like '%' + @UnitCost+'%' )
+		 AND(IsNull(@UnitCost,'') ='' OR IsNull(@UnitCost,0) =0 OR CAST(UnitCost AS varchar(20)) like '%' + @UnitCost+'%' )
 		)        
 	   )        
 	   SELECT @Count = COUNT(StockLineId) FROM #TempResult           
@@ -985,7 +983,7 @@ BEGIN
 		  (ISNULL(@QuantityAdjustment,'') ='' OR QuantityAdjustment LIKE '%' + @QuantityAdjustment + '%') AND
 		  (ISNULL(@BatchNumber,'') ='' OR [BatchNumber] LIKE '%' + @BatchNumber+'%') AND		
 		  (ISNULL(@IsDocument,'') ='' OR IsDocument LIKE '%' + @IsDocument + '%') AND
-		  (IsNull(@UnitCost,'') ='' OR CAST(UnitCost AS varchar(20)) like '%' + @UnitCost+'%' ))        
+		  (IsNull(@UnitCost,'') ='' OR IsNull(@UnitCost,0) =0 OR CAST(UnitCost AS varchar(20)) like '%' + @UnitCost+'%' ))        
 		 )        
 	   SELECT @Count = COUNT(StockLineId) FROM #TempALTResults           
         
@@ -1281,7 +1279,7 @@ BEGIN
 		(ISNULL(@QuantityAdjustment,'') ='' OR QuantityAdjustment LIKE '%' + @QuantityAdjustment + '%') AND
 		(ISNULL(@BatchNumber,'') ='' OR [BatchNumber] LIKE '%' + @BatchNumber+'%') AND	
 		(ISNULL(@IsDocument,'') ='' OR IsDocument LIKE '%' + @IsDocument + '%') and 
-		(IsNull(@UnitCost,'') ='' OR CAST(UnitCost AS varchar(20)) like '%' + @UnitCost+'%' ))        
+		(IsNull(@UnitCost,'') ='' OR IsNull(@UnitCost,0) =0 OR CAST(UnitCost AS varchar(20)) like '%' + @UnitCost+'%' ))        
 	   )        
 	   SELECT @Count = COUNT(StockLineId) FROM #TempALTResult           
         

@@ -66,7 +66,7 @@ BEGIN
 				s.Stage,
 				st.Description AS Status,
 				CAST(0 AS BIT) AS IsQuoteRevenue,
-				ISNULL(wb.IsInvoicePosted, 0) AS IsInvoicePosted
+				wb.IsInvoicePosted AS IsInvoicePosted
 			FROM [dbo].[WorkOrderMPNCostDetails] woc WITH(NOLOCK)
 				INNER JOIN [dbo].[WorkOrder] wo WITH(NOLOCK) ON woc.WorkOrderId = wo.WorkOrderId
 				INNER JOIN [dbo].[WorkOrderPartNumber] wop WITH(NOLOCK) ON woc.WOPartNoId = wop.ID
@@ -132,8 +132,7 @@ BEGIN
 				wo.WorkOrderNum,
 				s.Stage,
 				st.Description AS Status,
-				CAST(1 AS BIT) AS IsQuoteRevenue,
-				0 AS IsInvoicePosted
+				CAST(1 AS BIT) AS IsQuoteRevenue
 			FROM [dbo].[WorkOrderMPNCostDetails] woc WITH(NOLOCK)
 				INNER JOIN [dbo].[WorkOrder] wo WITH(NOLOCK) ON woc.WorkOrderId = wo.WorkOrderId
 				INNER JOIN [dbo].[WorkOrderPartNumber] wop WITH(NOLOCK) ON woc.WOPartNoId = wop.ID

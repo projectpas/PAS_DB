@@ -364,7 +364,7 @@ BEGIN
 			LEFT JOIN [dbo].[ApprovalStatus] appsA WITH (NOLOCK) ON CAST(@WaitingForApprovalStatusId AS INT) = appsA.[ApprovalStatusId]
 			LEFT JOIN [dbo].[ApprovalStatus] appsC WITH (NOLOCK) ON wopp.[CustomerStatusId] = appsC.[ApprovalStatusId]
 			LEFT JOIN dbo.Condition RCD WITH(NOLOCK) ON WPN.RevisedConditionId = RCD.ConditionId  
-		WHERE ((@IsDeleted = 0 AND ISNULL(WO.IsMigrated, 0) <> 1) OR (@IsDeleted = 1 AND WO.IsMigrated = 1)) AND
+		WHERE ((@IsDeleted = 0 AND WO.IsDeleted = 0 AND ISNULL(WO.IsMigrated, 0) <> 1) OR (@IsDeleted = 1 AND (WO.IsDeleted = 1 OR WO.IsMigrated = 1))) AND
 		((WO.[MasterCompanyId] = @MasterCompanyId) AND (@IsActive IS NULL OR WO.[IsActive] = @IsActive) AND (@WorkOrderStatus = 0 OR WPN.[WorkOrderStatusId] = @WorkOrderStatus)
 		AND (@WoTaskType IS NULL OR WO.[WorkOrderFormTypeId] = @WoTaskType))  
         ),
@@ -583,7 +583,7 @@ BEGIN
 			--JOIN dbo.WorkOrderType WT WITH (NOLOCK) ON WO.WorkOrderTypeId = WT.Id  
 			JOIN [dbo].[WorkOrderPartNumber] WPN WITH(NOLOCK) ON WO.[WorkOrderId] = WPN.[WorkOrderId]			
 			--LEFT JOIN #SubWOResult SWO ON WO.WorkOrderId = SWO.WorkOrderId
-			WHERE ((@IsDeleted = 0 AND ISNULL(WO.IsMigrated, 0) <> 1) OR (@IsDeleted = 1 AND WO.IsMigrated = 1)) AND ((WO.[MasterCompanyId] = @MasterCompanyId) AND (@IsActive IS NULL OR WO.[IsActive]=@IsActive)   
+			WHERE ((@IsDeleted = 0 AND WO.IsDeleted = 0 AND ISNULL(WO.IsMigrated, 0) <> 1) OR (@IsDeleted = 1 AND (WO.IsDeleted = 1 OR WO.IsMigrated = 1))) AND ((WO.[MasterCompanyId] = @MasterCompanyId) AND (@IsActive IS NULL OR WO.[IsActive]=@IsActive)   
 			))
 			, WorkOrderPartCount AS (
 			SELECT [WorkOrderId], COUNT([WorkOrderId]) AS PartCount
@@ -653,7 +653,7 @@ BEGIN
 				LEFT JOIN [dbo].[WorkOrderQuoteStatus] wqs WITH (NOLOCK) ON woq.[QuoteStatusId] = wqs.[WorkOrderQuoteStatusId] 
 				LEFT JOIN dbo.Condition CD WITH(NOLOCK) ON WPN.ConditionId = CD.ConditionId  
 			    LEFT JOIN dbo.Condition RCD WITH(NOLOCK) ON WPN.RevisedConditionId = RCD.ConditionId  
-          WHERE ((@IsDeleted = 0 AND ISNULL(WO.IsMigrated, 0) <> 1) OR (@IsDeleted = 1 AND WO.IsMigrated = 1)) AND ((WO.[MasterCompanyId] = @MasterCompanyId) AND (@IsActive IS NULL OR WO.[IsActive] = @IsActive)   
+          WHERE ((@IsDeleted = 0 AND WO.IsDeleted = 0 AND ISNULL(WO.IsMigrated, 0) <> 1) OR (@IsDeleted = 1 AND (WO.IsDeleted = 1 OR WO.IsMigrated = 1))) AND ((WO.[MasterCompanyId] = @MasterCompanyId) AND (@IsActive IS NULL OR WO.[IsActive] = @IsActive)   
 				AND (@WorkOrderStatus = 0 OR WPN.[WorkOrderStatusId] = @WorkOrderStatus) AND (@WoTaskType IS NULL OR WO.[WorkOrderFormTypeId] = @WoTaskType))
 		  GROUP BY	WO.[WorkOrderNum],WO.[WorkOrderId],WO.[CustomerId],WO.[CustomerName],WO.[CustomerType], WO.[OpenDate], WO.[CreatedDate], WO.[UpdatedDate],WO.[CreatedBy], WO.[UpdatedBy],
 					WO.[IsActive],WO.[IsDeleted],WO.[WorkOrderType], WO.[EstimatedCompletionDateType],  WO.[EstimatedCompletionDate], WO.[IsSubWorkOrder],WOPC.[PartCount],WO.[IsWorkOrderTask],WO.[IsMigrated]

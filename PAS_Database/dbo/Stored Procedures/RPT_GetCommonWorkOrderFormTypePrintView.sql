@@ -21,9 +21,10 @@
 	4    21 JAN 2025  RAJESH GAMI			Added workOrderPartNoId in the parameter and functional
 	5    03-MAR-2025   RAJESH GAMI			Sequence Number Change
 	6	 29-Aug-2025   Moin Bloch		    Added IsPrintAdmin flag
+	7	 20-JAN-2026   Rajesh Gami		Fixed the sequence number issue 
 -- EXEC  [dbo].[RPT_GetCommonWorkOrderFormTypePrintView] 4769
 **************************************************************/
-CREATE     PROCEDURE [dbo].[RPT_GetCommonWorkOrderFormTypePrintView]
+CREATE       PROCEDURE [dbo].[RPT_GetCommonWorkOrderFormTypePrintView]
 	@WorkorderId bigint = 0,
 	@workOrderPartNoId bigint = 0
 AS
@@ -75,58 +76,77 @@ BEGIN
 						ISNULL(WOTI.PrintInWO, 0) AS PrintInWO,
 						ISNULL(WOTI.PrintInWOQ, 0) AS PrintInWOQ,
 						ISNULL(WOTD.IsPrintTechnician,0) IsPrintTechnician,
-						ISNULL(WOTD.IsPrintAdmin,0) IsPrintAdmin
+						ISNULL(WOTD.IsPrintAdmin,0) IsPrintAdmin,
+						TRY_CAST(WOT.SequenceNumber AS INT) AS SequenceNumberSort
 					FROM dbo.WorkOrderTask WOT WITH (NOLOCK)
 					INNER JOIN dbo.WorkOrderTaskDetails WOTD WITH (NOLOCK) ON WOT.WorkOrderTaskId = WOTD.WorkOrderTaskId
 					LEFT JOIN dbo.WorkOrderTaskInstruction WOTI WITH (NOLOCK) ON WOT.WorkOrderTaskId = WOTI.WorkOrderTaskId AND ISNULL(WOTI.PrintInWO,0) = 1
 					WHERE WOT.WorkOrderId = @WorkOrderId AND WOT.IsActive = 1 AND WOT.IsDeleted = 0 AND ISNULL(WOTD.PrintInWO,0) = 1 AND ISNULL(WOT.WorkOrderPartNumberId,0) = @workOrderPartNoId
 				),
-				RecursiveCTE AS (				
-					--SELECT 
-					--	c.*,
-					--	CAST(ROW_NUMBER() OVER (ORDER BY c.SequenceNumber) AS NVARCHAR(MAX)) AS SrNo
-					--FROM CTE c
-					--WHERE c.ParentId = 0
-					--UNION ALL
+				--RecursiveCTE AS (				
+				--	--SELECT 
+				--	--	c.*,
+				--	--	CAST(ROW_NUMBER() OVER (ORDER BY c.SequenceNumber) AS NVARCHAR(MAX)) AS SrNo
+				--	--FROM CTE c
+				--	--WHERE c.ParentId = 0
+				--	--UNION ALL
 				
-					--SELECT 
-					--	c.*,
-					--	CAST(r.SrNo + '.' + CAST(ROW_NUMBER() OVER (PARTITION BY c.ParentId ORDER BY c.SequenceNumber) AS NVARCHAR(MAX)) AS NVARCHAR(MAX)) AS SrNo
-					--FROM CTE c
-					--INNER JOIN RecursiveCTE r ON c.ParentId = r.WorkOrderTaskInstructionId
-					--SELECT 
-					--	c.*
-					--	,CAST(ROW_NUMBER() OVER (ORDER BY c.SequenceNumber) AS NVARCHAR(MAX)) AS SrNo
-					--	--,CAST(c.SequenceNumber AS NVARCHAR(MAX)) AS SrNo
-					--FROM CTE c
-					--WHERE c.ParentId = 0
-					--UNION ALL
+				--	--SELECT 
+				--	--	c.*,
+				--	--	CAST(r.SrNo + '.' + CAST(ROW_NUMBER() OVER (PARTITION BY c.ParentId ORDER BY c.SequenceNumber) AS NVARCHAR(MAX)) AS NVARCHAR(MAX)) AS SrNo
+				--	--FROM CTE c
+				--	--INNER JOIN RecursiveCTE r ON c.ParentId = r.WorkOrderTaskInstructionId
+				--	--SELECT 
+				--	--	c.*
+				--	--	,CAST(ROW_NUMBER() OVER (ORDER BY c.SequenceNumber) AS NVARCHAR(MAX)) AS SrNo
+				--	--	--,CAST(c.SequenceNumber AS NVARCHAR(MAX)) AS SrNo
+				--	--FROM CTE c
+				--	--WHERE c.ParentId = 0
+				--	--UNION ALL
 				
-					--SELECT 
-					--	c.*,
-					--	CAST(r.SrNo + '.' + CAST(ROW_NUMBER() OVER (PARTITION BY c.ParentId ORDER BY c.SequenceNumber) AS NVARCHAR(MAX)) AS NVARCHAR(MAX)) AS SrNo
-					--FROM CTE c
-					--INNER JOIN RecursiveCTE r ON c.ParentId = r.WorkOrderTaskInstructionId
+				--	--SELECT 
+				--	--	c.*,
+				--	--	CAST(r.SrNo + '.' + CAST(ROW_NUMBER() OVER (PARTITION BY c.ParentId ORDER BY c.SequenceNumber) AS NVARCHAR(MAX)) AS NVARCHAR(MAX)) AS SrNo
+				--	--FROM CTE c
+				--	--INNER JOIN RecursiveCTE r ON c.ParentId = r.WorkOrderTaskInstructionId
 
+				--	SELECT 
+				--		c.*
+				--		--,CAST(ROW_NUMBER() OVER (ORDER BY c.SequenceNumber) AS NVARCHAR(MAX)) AS SrNo
+				--		,CAST(c.SequenceNumber AS NVARCHAR(MAX)) + '.' + CAST(ROW_NUMBER() OVER (PARTITION BY c.SequenceNumber ORDER BY c.ChildSequenceNumber) AS NVARCHAR(MAX)) AS SrNo
+				--		 --,CAST(ROW_NUMBER() OVER (ORDER BY c.SequenceNumber) AS NVARCHAR(MAX)) AS SrNo
+				--		 --,CAST(ROW_NUMBER() OVER (ORDER BY c.SequenceNumber) AS NVARCHAR(MAX)) AS SrNo
+				--	FROM CTE c
+				--	WHERE c.ParentId = 0
+				--	UNION ALL
+				
+				--	SELECT 
+				--		c.*,
+				--		--CAST(r.SrNo + '.' + CAST(ROW_NUMBER() OVER (PARTITION BY c.ParentId ORDER BY c.SequenceNumber) AS NVARCHAR(MAX)) AS NVARCHAR(MAX)) AS SrNo
+				--		--,CAST(c.SequenceNumber AS NVARCHAR(MAX)) AS Seq
+				--		 CAST(r.SrNo + '.' + 
+				--			 --CAST(ROW_NUMBER() OVER (PARTITION BY c.ParentId ORDER BY c.SequenceNumber) AS NVARCHAR(MAX)) AS NVARCHAR(MAX)
+				--			 CAST(c.ChildSequenceNumber AS NVARCHAR(MAX)) AS NVARCHAR(MAX)
+				--			 )
+				--			 AS SrNo
+				--	FROM CTE c
+				--	INNER JOIN RecursiveCTE r ON c.ParentId = r.WorkOrderTaskInstructionId
+				--)
+				RecursiveCTE AS (				
 					SELECT 
 						c.*
-						--,CAST(ROW_NUMBER() OVER (ORDER BY c.SequenceNumber) AS NVARCHAR(MAX)) AS SrNo
-						,CAST(c.SequenceNumber AS NVARCHAR(MAX)) + '.' + CAST(ROW_NUMBER() OVER (PARTITION BY c.SequenceNumber ORDER BY c.ChildSequenceNumber) AS NVARCHAR(MAX)) AS SrNo
-						 --,CAST(ROW_NUMBER() OVER (ORDER BY c.SequenceNumber) AS NVARCHAR(MAX)) AS SrNo
-						 --,CAST(ROW_NUMBER() OVER (ORDER BY c.SequenceNumber) AS NVARCHAR(MAX)) AS SrNo
+						,CAST(c.SequenceNumberSort AS NVARCHAR(MAX)) + '.' + CAST(ROW_NUMBER() OVER (PARTITION BY c.SequenceNumberSort ORDER BY c.WorkOrderTaskInstructionId) AS NVARCHAR(MAX)) AS SrNo
 					FROM CTE c
 					WHERE c.ParentId = 0
 					UNION ALL
 				
 					SELECT 
 						c.*,
-						--CAST(r.SrNo + '.' + CAST(ROW_NUMBER() OVER (PARTITION BY c.ParentId ORDER BY c.SequenceNumber) AS NVARCHAR(MAX)) AS NVARCHAR(MAX)) AS SrNo
-						--,CAST(c.SequenceNumber AS NVARCHAR(MAX)) AS Seq
-						 CAST(r.SrNo + '.' + 
-							 --CAST(ROW_NUMBER() OVER (PARTITION BY c.ParentId ORDER BY c.SequenceNumber) AS NVARCHAR(MAX)) AS NVARCHAR(MAX)
-							 CAST(c.ChildSequenceNumber AS NVARCHAR(MAX)) AS NVARCHAR(MAX)
-							 )
-							 AS SrNo
+						CAST(r.SrNo + '.' + 
+						CAST(ROW_NUMBER() OVER (
+							PARTITION BY c.WorkOrderTaskInstructionId 
+							ORDER BY c.WorkOrderTaskInstructionId ASC
+						) AS NVARCHAR(MAX)) AS NVARCHAR(MAX)) AS SrNo
 					FROM CTE c
 					INNER JOIN RecursiveCTE r ON c.ParentId = r.WorkOrderTaskInstructionId
 				)
@@ -173,7 +193,7 @@ BEGIN
 					IsPrintAdmin,
 					SrNo
 				FROM RecursiveCTE
-				ORDER BY SequenceNumber;
+				ORDER BY SequenceNumberSort;
 			END
 		COMMIT  TRANSACTION
 

@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿
+/*************************************************************           
  ** File:   [sp_GetWorkOrderLaborTaskList]           
  ** Author:   Subhash Saliya
  ** Description: Get  for Work order Labor List
@@ -20,7 +21,7 @@
 	3    01/03/2025   Moin Bloch     Added StandardHours,StandardMinute,VarianceHours,VarianceMinute
 	4    21/01/2025   Moin Bloch     Added [WorkOrderFormTypeId]
 	5    18/06/2025   Devendra Shekh Hours Calculation Issue Resolved after new Changes for Labor Rename
-	
+	6    20/01/2025   Rajesh Gami    Added one more Order By Workorder task SequenceNumber
  EXECUTE [sp_GetWorkOrderLaborTaskList] 3814
 **************************************************************/
 CREATE PROCEDURE [dbo].[sp_GetWorkOrderLaborTaskList]
@@ -83,7 +84,8 @@ BEGIN
 					INNER JOIN [dbo].[WorkOrderLaborHeader] woh WITH(NOLOCK) ON woh.WorkOrderLaborHeaderId = wol.WorkOrderLaborHeaderId
 					INNER JOIN [dbo].[WorkOrderWorkFlow] wfwo WITH(NOLOCK) ON wfwo.WorkFlowWorkOrderId = woh.WorkFlowWorkOrderId 
 					INNER JOIN [dbo].[WorkOrderPartNumber] wop WITH(NOLOCK) ON wfwo.WorkOrderPartNoId = wop.ID 
-				WHERE wol.WorkOrderLaborHeaderId = @WorkOrderLaborHeaderId AND wol.IsDeleted = 0  ORDER BY IsBeginTemp DESC
+				WHERE wol.WorkOrderLaborHeaderId = @WorkOrderLaborHeaderId AND wol.IsDeleted = 0 
+					ORDER BY IsBeginTemp DESC,  TRY_CAST(WOT.SequenceNumber AS INT) 
 
 		END TRY    
 		BEGIN CATCH      

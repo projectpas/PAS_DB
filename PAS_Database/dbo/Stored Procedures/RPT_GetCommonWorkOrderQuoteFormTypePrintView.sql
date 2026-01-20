@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [RPT_GetCommonWorkOrderQuoteFormTypePrintView]       
  ** Author: RAJESH GAMI
  ** Description: This stored procedure is used retrieve Common Work Order Quote Fomr Type for SSRS report
@@ -21,9 +20,10 @@
 	3    21 JAN 2025  RAJESH GAMI			Updated to print only Task which has PrintInWO is enabled
 	4    21 JAN 2025  RAJESH GAMI			Added workOrderPartNoId in the parameter and functional
 	6    05-MAR-2025   RAJESH GAMI			Sequence Number Change
-RPT_GetCommonWorkOrderQuoteFormTypePrintView 4769, 4028, 4316
+	7	 20-JAN-2026   Rajesh Gami			Fixed the sequence number issue 
+RPT_GetCommonWorkOrderQuoteFormTypePrintView 12211, 10124, 12684
 **************************************************************/
-CREATE     PROCEDURE [dbo].[RPT_GetCommonWorkOrderQuoteFormTypePrintView]
+CREATE       PROCEDURE [dbo].[RPT_GetCommonWorkOrderQuoteFormTypePrintView]
 	@WorkorderId BIGINT = 0,
 	@WorkOrderQuoteId BIGINT = 0,
 	@workOrderPartNoId bigint = 0
@@ -75,7 +75,8 @@ BEGIN
 						ISNULL(WOTI.InspectorName, '') AS ChildInspectorName,
 						WOTI.InspectorUpdatedDate AS ChildInspectorUpdatedDate,
 						ISNULL(WOTI.PrintInWO, 0) AS PrintInWO,
-						ISNULL(WOTI.PrintInWOQ, 0) AS PrintInWOQ
+						ISNULL(WOTI.PrintInWOQ, 0) AS PrintInWOQ,
+						TRY_CAST(WOT.SequenceNumber AS INT) AS SequenceNumberSort
 					FROM dbo.WorkOrderTask WOT WITH (NOLOCK)
 					INNER JOIN dbo.WorkOrderTaskDetails WOTD WITH (NOLOCK) ON WOT.WorkOrderTaskId = WOTD.WorkOrderTaskId
 					LEFT JOIN dbo.WorkOrderTaskInstruction WOTI WITH (NOLOCK) ON WOT.WorkOrderTaskId = WOTI.WorkOrderTaskId AND ISNULL(WOTI.PrintInWOQ, 0) = 1
@@ -85,7 +86,7 @@ BEGIN
 					SELECT 
 						c.*,
 						--CAST(ROW_NUMBER() OVER (ORDER BY c.SequenceNumber) AS NVARCHAR(MAX)) AS SrNo
-						CAST(c.SequenceNumber AS NVARCHAR(MAX)) + '.' + CAST(ROW_NUMBER() OVER (PARTITION BY c.SequenceNumber ORDER BY c.ChildSequenceNumber) AS NVARCHAR(MAX)) AS SrNo
+						CAST(c.SequenceNumberSort AS NVARCHAR(MAX)) + '.' + CAST(ROW_NUMBER() OVER (PARTITION BY c.SequenceNumberSort ORDER BY c.WorkOrderTaskInstructionId) AS NVARCHAR(MAX)) AS SrNo
 					FROM CTE c
 					WHERE c.ParentId = 0
 					UNION ALL
@@ -93,11 +94,11 @@ BEGIN
 					SELECT 
 						c.*,
 						--CAST(r.SrNo + '.' + CAST(ROW_NUMBER() OVER (PARTITION BY c.ParentId ORDER BY c.SequenceNumber) AS NVARCHAR(MAX)) AS NVARCHAR(MAX)) AS SrNo
-						 CAST(r.SrNo + '.' + 
-							 --CAST(ROW_NUMBER() OVER (PARTITION BY c.ParentId ORDER BY c.SequenceNumber) AS NVARCHAR(MAX)) AS NVARCHAR(MAX)
-							 CAST(c.ChildSequenceNumber AS NVARCHAR(MAX)) AS NVARCHAR(MAX)
-							 )
-							 AS SrNo
+						CAST(r.SrNo + '.' + 
+						CAST(ROW_NUMBER() OVER (
+							PARTITION BY c.WorkOrderTaskInstructionId 
+							ORDER BY c.WorkOrderTaskInstructionId ASC
+						) AS NVARCHAR(MAX)) AS NVARCHAR(MAX)) AS SrNo
 					FROM CTE c
 					INNER JOIN RecursiveCTE r ON c.ParentId = r.WorkOrderTaskInstructionId
 				)
@@ -142,7 +143,7 @@ BEGIN
 					PrintInWOQ,
 					SrNo
 				FROM RecursiveCTE
-				ORDER BY SequenceNumber;
+				ORDER BY SequenceNumberSort;
 			END
 		COMMIT  TRANSACTION
 

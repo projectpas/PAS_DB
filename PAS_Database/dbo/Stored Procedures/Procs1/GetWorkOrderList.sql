@@ -47,7 +47,7 @@
 	@MSModuleID=12,@ManufacturerName=default,@WorkOrderType=default,@IsSubWorkOrder=default,@MPNQuoteStatus=default,@ApprovedAmount=default
      
 **************************************************************/
-CREATE OR ALTER  PROCEDURE [dbo].[GetWorkOrderList]
+CREATE PROCEDURE [dbo].[GetWorkOrderList]
  -- Add the parameters for the stored procedure here  
 	 @PageNumber INT,  
 	 @PageSize INT,  

@@ -23,11 +23,11 @@
 	6    03-MAR-2025   RAJESH GAMI		Sequence Number Change
 	7    03-MAR-2025   Vishal Suthar	Fixed an issue with sequence number
 	8	 27-Aug-2025   Moin Bloch		Added IsPrintAdmin flag
-
+	9	 20-JAN-2026   Rajesh Gami		Fixed the sequence number issue (PN-15220)
 -- EXEC [USP_GetLaborMainTaskList] 9805,9807
 **************************************************************/
 
-CREATE   PROCEDURE [dbo].[USP_GetLaborMainTaskList]
+CREATE     PROCEDURE [dbo].[USP_GetLaborMainTaskList]
  @WorkFlowWorkOrderId BIGINT,
  @WorkOrderId BIGINT
 AS
@@ -62,11 +62,14 @@ BEGIN
 
 					SELECT TOP 1 @highestSequence= [Sequence] FROM [dbo].[Traveler_Setup_Task] WITH(NOLOCK) WHERE Traveler_setupid =@Traveler_setupid ORDER BY [Sequence] DESC
 				 END
-				 IF OBJECT_ID(N'tempdb..#TMPFinalData') IS NOT NULL    
+				 IF OBJECT_ID(N'tempdb..#TempTable') IS NOT NULL    
+				 BEGIN    
+					DROP TABLE #TempTable
+				 END
+				 	 IF OBJECT_ID(N'tempdb..#TMPFinalData') IS NOT NULL    
 				 BEGIN    
 					DROP TABLE #TMPFinalData
 				 END
-
 				 IF(@IsWorkOrderFormType = 1)
 				 BEGIN
 				--	;WITH CTE AS (
@@ -129,6 +132,7 @@ BEGIN
 						ISNULL(WOT.WorkOrderPartNumberId, 0) AS WorkOrderPartNumberId,
 						ISNULL(WOT.WorkFlowWorkOrderId, 0) AS WorkFlowWorkOrderId,
 						ISNULL(WOT.SequenceNumber, 0) AS SequenceNumber,
+						TRY_CAST(WOT.SequenceNumber AS INT) AS SequenceNumberSort,
 						WOT.OpenDate AS OpenDate,
 						ISNULL(WOT.OpenBy, '') AS OpenBy,
 						ISNULL(WOT.IsIncludeInPrint, 0) AS IsIncludeInPrint,
@@ -173,12 +177,12 @@ BEGIN
 					INNER JOIN [dbo].[WorkOrderTaskDetails] WOTD WITH (NOLOCK) ON WOT.WorkOrderTaskId = WOTD.WorkOrderTaskId
 					 LEFT JOIN [dbo].[WorkOrderTaskInstruction] WOTI WITH (NOLOCK) ON WOT.WorkOrderTaskId = WOTI.WorkOrderTaskId
 					WHERE wlh.WorkFlowWorkOrderId=@WorkFlowWorkOrderId AND wlh.WorkOrderId =@WorkOrderId  AND WOT.IsActive = 1 AND WOT.IsDeleted = 0
-					ORDER BY SequenceNumber, WorkOrderTaskInstructionId
+					ORDER BY SequenceNumberSort,	WorkOrderTaskInstructionId
 
 				;WITH RecursiveCTE AS (				
 					SELECT 
 						c.*
-						,CAST(c.SequenceNumber AS NVARCHAR(MAX)) + '.' + CAST(ROW_NUMBER() OVER (PARTITION BY c.SequenceNumber ORDER BY c.WorkOrderTaskInstructionId ASC) AS NVARCHAR(MAX)) AS SrNo
+						,CAST(c.SequenceNumberSort AS NVARCHAR(MAX)) + '.' + CAST(ROW_NUMBER() OVER (PARTITION BY c.SequenceNumberSort ORDER BY c.WorkOrderTaskInstructionId ASC) AS NVARCHAR(MAX)) AS SrNo
 					FROM #TempTable c
 					WHERE c.ParentId = 0
 					UNION ALL
@@ -228,11 +232,11 @@ BEGIN
 					SrNo,
 					1 as IsWorkOrderFormType,
 					IsIncludeInPrint,
-					IsPrintInspector,IsPrintTechnician,IsPrintAdmin
+					IsPrintInspector,IsPrintTechnician,IsPrintAdmin,SequenceNumberSort
 					 INTO #TMPFinalData 
 				FROM RecursiveCTE
-				ORDER BY SequenceNumber, WorkOrderTaskInstructionId;
-					SELECT * FROM #TMPFinalData ORDER BY SequenceNumber, WorkOrderTaskInstructionId ASC
+				ORDER BY SequenceNumberSort, WorkOrderTaskInstructionId;
+					SELECT * FROM #TMPFinalData ORDER BY SequenceNumberSort, WorkOrderTaskInstructionId ASC
 				 END
 				 ELSE
 				 BEGIN
@@ -270,10 +274,11 @@ BEGIN
 					'' AS ChildInspectorUpdatedDate,
 					0 AS SrNo,
 					0 as IsWorkOrderFormType,
-					0 as IsIncludeInPrint,
+					0 as IsIncludeInPrint,					
 					CASE WHEN MAX(CAST(ISNULL(T.IsPrintInspector,0) AS INT)) = 1 THEN 1 ELSE 0 END IsPrintInspector,
 					CASE WHEN MAX(CAST(ISNULL(T.IsPrintTechnician,0) AS INT)) = 1 THEN 1 ELSE 0 END IsPrintTechnician,
 					CASE WHEN MAX(CAST(ISNULL(T.IsPrintAdmin,0) AS INT)) = 1 THEN 1 ELSE 0 END IsPrintAdmin
+					,0 as SequenceNumberSort
 					FROM [dbo].[WorkOrderLabor] wl  WITH(NOLOCK) 
 					INNER JOIN [dbo].[WorkOrderLaborHeader] wlh WITH(NOLOCK)  ON wlh.WorkOrderLaborHeaderId=wl.WorkOrderLaborHeaderId
 					LEFT JOIN [dbo].[Task] T WITH(NOLOCK) ON T.TaskId= wl.TaskId

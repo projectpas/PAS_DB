@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [GetWorkOrderList]           
  ** Author:   Hemant Saliya
  ** Description: This stored procedure is used to get work order List for both MPN and WO View
@@ -47,7 +47,7 @@
 	@MSModuleID=12,@ManufacturerName=default,@WorkOrderType=default,@IsSubWorkOrder=default,@MPNQuoteStatus=default,@ApprovedAmount=default
      
 **************************************************************/
-CREATE   PROCEDURE [dbo].[GetWorkOrderList]
+CREATE PROCEDURE [dbo].[GetWorkOrderList]
  -- Add the parameters for the stored procedure here  
 	 @PageNumber INT,  
 	 @PageSize INT,  
@@ -101,8 +101,6 @@ BEGIN
  SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED  
  SET NOCOUNT ON;  
  BEGIN TRY  
-  --BEGIN TRANSACTION  
-  -- BEGIN   
     DECLARE @RecordFrom INT;  
     DECLARE @IsActive BIT=1  
     DECLARE @Count INT;  
@@ -185,24 +183,6 @@ BEGIN
 	FROM dbo.TimeZone WITH(NOLOCK)  
 	WHERE [Description] = @CurrntEmpTimeZoneDesc
 
-	--IF OBJECT_ID('tempdb..#SubWOResult') IS NOT NULL
-	--	DROP TABLE #SubWOResult
-
-	--CREATE TABLE #SubWOResult
-	--(
-	--	[Id] BIGINT IDENTITY(1,1),
-	--	[WorkOrderId] BIGINT NULL,
-	--	[IsSubWorkOrder] varchar(50) NULL,
-	--	[WorkOrderPartNumberId] BIGINT NULL
-	--)
-
-	--INSERT INTO #SubWOResult([WorkOrderId], [IsSubWorkOrder], [WorkOrderPartNumberId])
-	--SELECT WO.WorkOrderId, 'Yes', SWO.WorkOrderPartNumberId FROM
-	--[dbo].[SubWorkOrder] SWO WITH(NOLOCK)
-	--JOIN [dbo].[WorkOrder] WO WITH(NOLOCK) ON SWO.WorkOrderId = WO.WorkOrderId
-	--WHERE ISNULL(SWO.IsDeleted,0) = 0
-	--GROUP BY WO.WorkOrderId,SWO.WorkOrderPartNumberId
-
     IF LOWER(@ViewType) = 'mpn'  
      BEGIN  
 		CREATE TABLE #TempResult (
@@ -263,25 +243,14 @@ BEGIN
 		CREATE NONCLUSTERED INDEX IX_TempResult_WorkOrderId ON #TempResult (WorkOrderId);
 
       ;WITH 
-	 --   LatestShipping AS (
-		--SELECT	WorkOrderId,
-		--		FORMAT(MAX(ShipDate), 'yyyy-MM-ddTHH:mm:ss') AS EstimatedCompletionDate
-		--		FROM [dbo].[WorkOrderShipping] WITH (NOLOCK)
-		--		GROUP BY WorkOrderId
-	 --  )
-	 --  ,
 	   Result AS(  
        SELECT   
 			UPPER(WO.[WorkOrderNum]) AS [WorkOrderNum],
 			UPPER(WO.[WorkOrderId]) AS [WorkOrderId],
 			UPPER(WO.[CustomerId]) AS [CustomerId],
-			--CASE WHEN ISNULL(WPN.RevisedPartNumber, '') != '' THEN UPPER(WPN.RevisedPartNumber) ELSE UPPER(WPN.PartNumber) END AS PartNos,
 			UPPER(ISNULL(NULLIF(WPN.[RevisedPartNumber], ''), WPN.[PartNumber])) AS [PartNos],
-			--CASE WHEN ISNULL(WPN.RevisedPartNumber, '') != '' THEN UPPER(WPN.RevisedPartNumber) ELSE UPPER(WPN.PartNumber) END AS PartNoType,
 			UPPER(ISNULL(NULLIF(WPN.[RevisedPartNumber], ''), WPN.[PartNumber])) AS [PartNoType],
-			--CASE WHEN ISNULL(WPN.RevisedPartDescription, '') != '' THEN UPPER(WPN.RevisedPartDescription) ELSE UPPER(WPN.PartDescription) END AS PNDescription,
 			UPPER(ISNULL(NULLIF(WPN.[RevisedPartDescription], ''), WPN.[PartDescription])) AS [PNDescription],
-			--CASE WHEN ISNULL(WPN.RevisedPartDescription, '') != '' THEN UPPER(WPN.RevisedPartDescription) ELSE UPPER(WPN.PartDescription) END AS PNDescriptionType,
 			UPPER(ISNULL(NULLIF(WPN.[RevisedPartDescription], ''), WPN.[PartDescription])) AS [PNDescriptionType],
 			UPPER(WPN.[ManufacturerName]) AS [ManufacturerName],  
 			UPPER(WPN.[ManufacturerName]) AS [ManufacturerNameType],  
@@ -296,7 +265,6 @@ BEGIN
 			UPPER(WPN.[WorkOrderStatus]) AS [WorkOrderStatus],  
 			UPPER(WPN.[WorkOrderStatus]) AS [WorkOrderStatusType],  
 			CASE WHEN CAST(WO.[OpenDate] AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE CAST(DATEADD(SECOND, @BaseUtcOffsetSec, WO.[OpenDate]) AS DATE) END [OpenDate], 
-			--CASE WHEN CAST(WO.OpenDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (Cast(DBO.ConvertUTCtoLocal(WO.OpenDate, @CurrntEmpTimeZoneDesc) AS DATE)) END OpenDate, 
 			WPN.[CustomerRequestDate],  
 			WPN.[CustomerRequestDate] AS [CustomerRequestDateType],  
 			WPN.[PromisedDate],  
@@ -305,11 +273,8 @@ BEGIN
 			WPN.[EstimatedShipDate] AS [EstimatedShipDateType],  
 			FORMAT(WPN.[ShipDate], 'yyyy-MM-ddTHH:mm:ss') AS [EstimatedCompletionDateType],
 			FORMAT(WPN.[ShipDate], 'yyyy-MM-ddTHH:mm:ss') AS [EstimatedCompletionDate],
-			--((SELECT top 1 ShipDate FROM dbo.WorkOrderShipping wosp WITH(NOLOCK) WHERE WorkOrderId = WO.WorkOrderId ORDER BY WorkOrderShippingId desc))as EstimatedCompletionDate,  
-			--((SELECT top 1 ShipDate FROM dbo.WorkOrderShipping wosp WITH(NOLOCK) WHERE WorkOrderId = WO.WorkOrderId ORDER BY WorkOrderShippingId desc))as EstimatedCompletionDateType,  
 			WO.[CreatedDate],
 			CASE WHEN CAST(WO.[UpdatedDate] AS DATE) = CAST('0001-01-01 00:00:00' AS DATE)THEN NULL ELSE CAST(DATEADD(SECOND, @BaseUtcOffsetSec, WO.[UpdatedDate]) AS DATE) END [UpdatedDate],
-			--CASE WHEN CAST(WO.UpdatedDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE)THEN NULL ELSE (Cast(DBO.ConvertUTCtoLocal(WO.UpdatedDate, @CurrntEmpTimeZoneDesc) AS DATE))END UpdatedDate,
 			UPPER(WO.[CreatedBy]) AS [CreatedBy],
 			UPPER(WO.[UpdatedBy]) AS [UpdatedBy],
 			WO.[IsActive],  
@@ -323,7 +288,6 @@ BEGIN
 			UPPER(WPN.[CustomerReference]) AS [CustomerReference],
 			UPPER(WPN.[CustomerReference]) AS [CustomerReferenceType],
 			CASE WHEN ISNULL(WPN.[IsSubWorkOrder], 0) = 1 THEN 'Yes' else 'No' end AS [IsSubWorkOrder],
-			--UPPER(wqs.[Description]) AS [MPNQuoteStatus],
 			CASE
 				WHEN wopp.[ApprovalActionId] = CAST(@SubmitInternalApprovalProcessId AS INT) THEN appsI.[Description]
 				WHEN wopp.[ApprovalActionId] = CAST(@SubmitCustomerApprovalProcessId AS INT) THEN appsC.[Description]
@@ -343,18 +307,6 @@ BEGIN
 			FROM [dbo].[WorkOrder] WO WITH(NOLOCK)  
 			JOIN [dbo].[WorkOrderPartNumber] WPN WITH(NOLOCK) ON WO.[WorkOrderId] = WPN.[WorkOrderId]  
 			LEFT JOIN [dbo].[Stockline] STK WITH(NOLOCK) ON WPN.StockLineId = STK.StockLineId
-			--LEFT JOIN #SubWOResult SWO ON WO.WorkOrderId = SWO.WorkOrderId AND WPN.ID = SWO.WorkOrderPartNumberId
-			--JOIN dbo.WorkOrderType WT WITH(NOLOCK) ON WO.WorkOrderTypeId = WT.Id  
-			--JOIN dbo.WorkOrderWorkFlow WOWF WITH(NOLOCK) ON WPN.ID = WOWF.WorkOrderPartNoId  
-			--JOIN dbo.WorkOrderStatus WOS WITH(NOLOCK) ON WOS.Id = WPN.WorkOrderStatusId  
-			--JOIN dbo.ItemMaster IM WITH(NOLOCK) ON IM.ItemMasterId = WPN.ItemMasterId         
-			--JOIN dbo.Priority PR WITH(NOLOCK) ON WPN.WorkOrderPriorityId = PR.PriorityId  
-			--JOIN dbo.WorkOrderStage WOSG WITH(NOLOCK) ON WPN.WorkOrderStageId = WOSG.WorkOrderStageId  
-			--LEFT JOIN dbo.Stockline STL WITH(NOLOCK) ON WPN.StockLineId = STL.StockLineId  
-			--LEFT JOIN dbo.Employee EMP WITH(NOLOCK) ON EMP.EmployeeId = WPN.TechnicianId  
-			--LEFT JOIN dbo.EmployeeStation EMPS WITH(NOLOCK) ON WPN.TechStationId = EMPS.EmployeeStationId
-			--LEFT JOIN dbo.WorkOrderShipping wosp  WITH(NOLOCK) on WO.WorkOrderId = wosp.WorkOrderId  
-			--LEFT JOIN dbo.WorkOrderQuote woq WITH (NOLOCK) on woq.WorkOrderId = WPN.WorkOrderId
 			LEFT JOIN [dbo].[WorkOrderQuoteDetails] WOQD WITH (NOLOCK) ON WPN.[ID] = WOQD.[WOPartNoId] AND WOQD.[IsActive] = 1 AND WOQD.[IsVersionIncrease] = 0 
 			LEFT JOIN [dbo].[WorkOrderQuote] woq WITH (NOLOCK) ON woq.[workorderquoteid] = WOQD.[workorderquoteid]
 			LEFT JOIN [dbo].[WorkOrderQuoteStatus] wqs WITH (NOLOCK) ON woq.[QuoteStatusId] = wqs.[WorkOrderQuoteStatusId] 
@@ -364,7 +316,7 @@ BEGIN
 			LEFT JOIN [dbo].[ApprovalStatus] appsA WITH (NOLOCK) ON CAST(@WaitingForApprovalStatusId AS INT) = appsA.[ApprovalStatusId]
 			LEFT JOIN [dbo].[ApprovalStatus] appsC WITH (NOLOCK) ON wopp.[CustomerStatusId] = appsC.[ApprovalStatusId]
 			LEFT JOIN dbo.Condition RCD WITH(NOLOCK) ON WPN.RevisedConditionId = RCD.ConditionId  
-		WHERE ((@IsDeleted = 0 AND ISNULL(WO.IsMigrated, 0) <> 1) OR (@IsDeleted = 1 AND WO.IsMigrated = 1)) AND
+		WHERE ((@IsDeleted = 0 AND ISNULL(WO.IsDeleted, 0) = 0 AND ISNULL(WO.IsMigrated, 0) <> 1) OR (@IsDeleted = 1 AND (ISNULL(WO.IsDeleted, 0) = 1 OR ISNULL(WO.IsMigrated,0) = 1))) AND
 		((WO.[MasterCompanyId] = @MasterCompanyId) AND (@IsActive IS NULL OR WO.[IsActive] = @IsActive) AND (@WorkOrderStatus = 0 OR WPN.[WorkOrderStatusId] = @WorkOrderStatus)
 		AND (@WoTaskType IS NULL OR WO.[WorkOrderFormTypeId] = @WoTaskType))  
         ),
@@ -561,8 +513,6 @@ BEGIN
 				UPPER(WO.[CustomerName]) AS [CustomerName],
 				UPPER(WO.[CustomerType]) AS [CustomerType],
 				CASE WHEN CAST(WO.[OpenDate] AS DATE) = CAST('0001-01-01 00:00:00' AS DATE)THEN NULL ELSE  CAST(DATEADD(SECOND, @BaseUtcOffsetSec, WO.[OpenDate]) AS DATE) END [OpenDate],
-				--CASE WHEN CAST(WO.OpenDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE)THEN NULL ELSE (Cast(DBO.ConvertUTCtoLocal(WO.OpenDate, @CurrntEmpTimeZoneDesc) AS DATE))END OpenDate,
-
 				WO.[CreatedDate],
 				CASE WHEN CAST(WO.[UpdatedDate] AS DATE) = CAST('0001-01-01 00:00:00' AS DATE)THEN NULL ELSE  CAST(DATEADD(SECOND, @BaseUtcOffsetSec, WO.[UpdatedDate]) AS DATE) END [UpdatedDate],
 				UPPER(WO.[CreatedBy]) AS [CreatedBy],
@@ -577,13 +527,9 @@ BEGIN
 				ISNULL(WO.[WorkOrderFormTypeId], 0) as WorkOrderFormTypeId,
 				'' AS [location],
 				WO.[IsMigrated]
-				--(FORMAT((SELECT top 1 ShipDate from dbo.WorkOrderShipping wosp  WITH(NOLOCK) WHERE WorkOrderId = WO.WorkOrderId order by WorkOrderShippingId desc), 'yyyy-MM-ddTHH:mm:ss'))  as 'EstimatedCompletionDateType',
-				--(FORMAT((SELECT top 1 ShipDate from dbo.WorkOrderShipping wosp  WITH(NOLOCK) WHERE WorkOrderId = WO.WorkOrderId order by WorkOrderShippingId desc), 'yyyy-MM-ddTHH:mm:ss'))  as 'EstimatedCompletionDate'
 			FROM [dbo].[WorkOrder] WO WITH (NOLOCK)   
-			--JOIN dbo.WorkOrderType WT WITH (NOLOCK) ON WO.WorkOrderTypeId = WT.Id  
 			JOIN [dbo].[WorkOrderPartNumber] WPN WITH(NOLOCK) ON WO.[WorkOrderId] = WPN.[WorkOrderId]			
-			--LEFT JOIN #SubWOResult SWO ON WO.WorkOrderId = SWO.WorkOrderId
-			WHERE ((@IsDeleted = 0 AND ISNULL(WO.IsMigrated, 0) <> 1) OR (@IsDeleted = 1 AND WO.IsMigrated = 1)) AND ((WO.[MasterCompanyId] = @MasterCompanyId) AND (@IsActive IS NULL OR WO.[IsActive]=@IsActive)   
+			WHERE ((@IsDeleted = 0 AND ISNULL(WO.IsDeleted, 0) = 0 AND ISNULL(WO.IsMigrated, 0) <> 1) OR (@IsDeleted = 1 AND (ISNULL(WO.IsDeleted, 0) = 1 OR ISNULL(WO.IsMigrated, 0) = 1))) AND ((WO.[MasterCompanyId] = @MasterCompanyId) AND (@IsActive IS NULL OR WO.[IsActive]=@IsActive)   
 			))
 			, WorkOrderPartCount AS (
 			SELECT [WorkOrderId], COUNT([WorkOrderId]) AS PartCount
@@ -593,7 +539,6 @@ BEGIN
 
 			SELECT DISTINCT   
 			  [WorkOrderNum], WO.[WorkOrderId], WO.[CustomerId], WO.[CustomerName], [CustomerType], WO.[OpenDate], WO.[CreatedDate], WO.[UpdatedDate], WO.[CreatedBy], WO.[UpdatedBy], WO.[IsActive], WO.[IsDeleted], [WorkOrderType],
-			  --(CASE WHEN ((SELECT COUNT(WOPN.WorkOrderId) FROM dbo.WorkOrderPartNumber WOPN WHERE WOPN.WorkOrderId = WO.WorkOrderId) > 1 ) Then 'Multiple' ELse  'Single' End) AS 'RowStatus',
 			  CASE WHEN WOPC.[PartCount] > 1 THEN 'Multiple' ELSE 'Single' END AS 'RowStatus',
 			  MAX(WPN.[PartNumber])  AS 'PartNumberType',
 			  MAX(WPN.[PartNumber])  AS 'PartNumber',
@@ -629,8 +574,6 @@ BEGIN
 			  MAX(UPPER(wqs.[Description])) AS [MPNQuoteStatus],
 			  MAX(CAST(CASE WHEN ISNULL(WOQD.[QuoteMethod], 0) = 1 THEN ISNULL( WOQD.[CommonFlatRate], 0) ELSE  
 					ISNULL(ISNULL(ISNULL(WOQD.[MaterialFlatBillingAmount], 0) + ISNULL(WOQD.[LaborFlatBillingAmount], 0) + ISNULL(WOQD.[ChargesFlatBillingAmount], 0),0) ,0) END AS VARCHAR) ) 'ApprovedAmount',
-					--ISNULL(ISNULL(WOQD.MaterialFlatBillingAmount + WOQD.LaborFlatBillingAmount + WOQD.ChargesFlatBillingAmount,0) ,0) END AS VARCHAR)) 'ApprovedAmount'
-
 				 MAX(WPN.Notes)  AS 'Notes',
 				 WO.[IsWorkOrderTask],
 				 '' AS [location],
@@ -641,19 +584,12 @@ BEGIN
           FROM Main WO WITH (NOLOCK)   
 			  JOIN [dbo].[WorkOrderPartNumber] WPN WITH (NOLOCK) ON WO.[WorkOrderId] = WPN.[WorkOrderId]
 			  JOIN WorkOrderPartCount WOPC WITH (NOLOCK) ON WO.[WorkOrderId] = WOPC.[WorkOrderId]
-			  --LEFT JOIN dbo.ItemMaster I WITH (NOLOCK) On WPN.ItemMasterId=I.ItemMasterId  
-			  --LEFT JOIN dbo.WorkScope SC WITH(NOLOCK) On WPN.WorkOrderScopeId  = SC.WorkScopeId
-			  --LEFT JOIN dbo.Priority P WITH(NOLOCK) On WPN.WorkOrderPriorityId  = P.PriorityId
-			  --LEFT JOIN dbo.WorkOrderStage WOS WITH(NOLOCK) On WPN.WorkOrderStageId  = WOS.WorkOrderStageId
-			  --LEFT JOIN dbo.WorkOrderStatus WOST WITH(NOLOCK) On WPN.WorkOrderStatusId  = WOST.Id
-			  --LEFT JOIN dbo.Employee emp WITH(NOLOCK) On WPN.TechnicianId  = emp.EmployeeId  
-			  --LEFT JOIN dbo.EmployeeStation emps WITH(NOLOCK) On WPN.TechStationId  = emps.EmployeeStationId  
 				LEFT JOIN [dbo].[WorkOrderQuoteDetails] WOQD WITH (NOLOCK) ON WPN.[ID] = WOQD.[WOPartNoId] AND WOQD.[IsActive] = 1 AND WOQD.[IsVersionIncrease] = 0 
 				LEFT JOIN [dbo].[WorkOrderQuote] woq WITH (NOLOCK) ON woq.[workorderquoteid] = WOQD.[workorderquoteid]
 				LEFT JOIN [dbo].[WorkOrderQuoteStatus] wqs WITH (NOLOCK) ON woq.[QuoteStatusId] = wqs.[WorkOrderQuoteStatusId] 
 				LEFT JOIN dbo.Condition CD WITH(NOLOCK) ON WPN.ConditionId = CD.ConditionId  
 			    LEFT JOIN dbo.Condition RCD WITH(NOLOCK) ON WPN.RevisedConditionId = RCD.ConditionId  
-          WHERE ((@IsDeleted = 0 AND ISNULL(WO.IsMigrated, 0) <> 1) OR (@IsDeleted = 1 AND WO.IsMigrated = 1)) AND ((WO.[MasterCompanyId] = @MasterCompanyId) AND (@IsActive IS NULL OR WO.[IsActive] = @IsActive)   
+          WHERE ((@IsDeleted = 0 AND WO.IsDeleted = 0 AND ISNULL(WO.IsMigrated, 0) <> 1) OR (@IsDeleted = 1 AND (WO.IsDeleted = 1 OR WO.IsMigrated = 1))) AND ((WO.[MasterCompanyId] = @MasterCompanyId) AND (@IsActive IS NULL OR WO.[IsActive] = @IsActive)   
 				AND (@WorkOrderStatus = 0 OR WPN.[WorkOrderStatusId] = @WorkOrderStatus) AND (@WoTaskType IS NULL OR WO.[WorkOrderFormTypeId] = @WoTaskType))
 		  GROUP BY	WO.[WorkOrderNum],WO.[WorkOrderId],WO.[CustomerId],WO.[CustomerName],WO.[CustomerType], WO.[OpenDate], WO.[CreatedDate], WO.[UpdatedDate],WO.[CreatedBy], WO.[UpdatedBy],
 					WO.[IsActive],WO.[IsDeleted],WO.[WorkOrderType], WO.[EstimatedCompletionDateType],  WO.[EstimatedCompletionDate], WO.[IsSubWorkOrder],WOPC.[PartCount],WO.[IsWorkOrderTask],WO.[IsMigrated]
@@ -758,7 +694,6 @@ BEGIN
            (ISNULL(@TechStation,'') ='' OR [TechStation] LIKE '%' + @TechStation+'%') AND  
            (ISNULL(@CreatedBy,'') ='' OR [CreatedBy] LIKE '%' + @CreatedBy+'%') AND  
            (ISNULL(@UpdatedBy,'') ='' OR [UpdatedBy] LIKE '%' + @UpdatedBy+'%') AND  
-           --(ISNULL(@OpenDate,'') ='' OR Cast(DBO.ConvertUTCtoLocal(OpenDate, @CurrntEmpTimeZoneDesc) as Date)=Cast(@OpenDate as date)) AND 
 		   (ISNULL(@OpenDate,'') ='' OR CAST([OpenDate] AS DATE)=CAST(@OpenDate AS DATE)) AND
            (ISNULL(@CustReqDate,'') ='' OR CAST([CustomerRequestDate] AS DATE)=CAST(@CustReqDate AS DATE)) AND  
            (ISNULL(@PromiseDate,'') ='' OR CAST([PromisedDate] AS DATE)=CAST(@PromiseDate AS DATE)) AND  

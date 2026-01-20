@@ -204,7 +204,7 @@ BEGIN
 				-- NEW INVOICE
 				SET @isNewInvoice = 1;
 				SET @IsVersionIncrease = 0;
-				SET @VersionNo = NULL;
+				--SET @VersionNo = NULL;
 				SET @InvoiceNo = '';
 			END
 		END
@@ -305,6 +305,8 @@ BEGIN
 				UpdatedBy = @UpdatedBy,
 				UpdatedDate = @UpdatedDate
 			WHERE BillingInvoicingId = @BillingInvoicingIdI;
+
+			UPDATE [dbo].[BillingInvoicingItems] SET [IsVersionIncrease] = 1 WHERE BillingInvoicingId = @BillingInvoicingIdI;
 		END
 
 		IF OBJECT_ID(N'tempdb..#tmprAddBillingInvoicingDetailsTemp') IS NOT NULL

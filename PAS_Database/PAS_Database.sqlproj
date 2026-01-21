@@ -4414,6 +4414,8 @@
     <Build Include="dbo\Stored Procedures\USP_AddCustomerContact.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdateWorkOrderMaterialCondition.sql" />
     <Build Include="dbo\Stored Procedures\RPT_GetWorkOrderScrapCertificatePrintPdfData.sql" />
+    <Build Include="dbo\Views\vw_CurrencyConversion_Audit.sql" />
+    <Build Include="dbo\Views\vw_CurrencyConversion.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

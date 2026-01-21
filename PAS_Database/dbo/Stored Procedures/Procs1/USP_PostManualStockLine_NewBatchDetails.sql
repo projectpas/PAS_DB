@@ -24,6 +24,7 @@
 	7	 09/10/2024			 Devendra Shekh			Added new fields for [CommonBatchDetails]
 	8	 11/04/2024			 Devendra Shekh			Added ReferenceId, ReferenceModule For [CommonBatchDetails]
 	9	 02/06/2025			 Abhishek Jirawla		Fixed Name concat read script
+	10   21/01/2026          Moin Bloch             Modify(Added AccountPayableglAccountId)
 
 	EXEC USP_PostManualStockLine_NewBatchDetails 177281,'Admin user',280
 
@@ -33,7 +34,8 @@ CREATE   PROCEDURE [dbo].[USP_PostManualStockLine_NewBatchDetails]
 (
 	@StocklineId BIGINT,
 	@UpdatedBy VARCHAR(50),
-	@OldUnitCost decimal(18,2)
+	@OldUnitCost DECIMAL(18,2),
+	@AccountPayableglAccountId BIGINT = NULL
 )
 AS
 BEGIN 
@@ -112,6 +114,7 @@ BEGIN
 		DECLARE @CurrencyCode VARCHAR(20) = '';
 		DECLARE @FXRate DECIMAL(9,2) = 1;	--Default Value set to : 1
 		DECLARE @ReferenceModule VARCHAR(100) = 'STOCKLINE';
+		DECLARE @ReserveInventoryAccId BIGINT = 0;
 
 		SELECT @AccountMSModuleId = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] ='Accounting';
 
@@ -260,9 +263,19 @@ BEGIN
 
 			 SELECT top 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId, @CRDRType =CRDRType,
 			 @GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName,@IsAutoPost = ISNULL(IsAutoPost,0) 
-			 from dbo.DistributionSetup WITH(NOLOCK)  where UPPER(DistributionSetupCode) = UPPER('MSTK-ACCPAYABLE') 
+			 FROM dbo.DistributionSetup WITH(NOLOCK)  
+			 WHERE UPPER(DistributionSetupCode) = UPPER('MSTK-ACCPAYABLE') 
 			 AND DistributionMasterId = (SELECT TOP 1 ID FROM dbo.DistributionMaster WITH(NOLOCK) WHERE DistributionCode = 'ManualStockLine')
 
+			 IF(@AccountPayableglAccountId > 0)
+			 BEGIN					
+				 SELECT @GlAccountId = [GLAccountId],
+			 			@GlAccountNumber = [AccountCode],
+			 			@GlAccountName = [AccountName]
+				 FROM [dbo].[GLAccount] WITH(NOLOCK)
+				 WHERE [GLAccountId] = @AccountPayableglAccountId
+				 AND [MasterCompanyId] = @MasterCompanyId;
+			 END
 
 			 INSERT INTO [dbo].[CommonBatchDetails]
 				(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],

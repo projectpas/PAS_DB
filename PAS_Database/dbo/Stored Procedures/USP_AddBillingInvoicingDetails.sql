@@ -191,6 +191,17 @@ BEGIN
 		--		SET @IsVersionIncrease = 1;
 		--	END
 		--END
+
+		SET @IsNewVersion = ISNULL(@IsNewVersion, 0);
+
+		IF (@MasterCompanyId = 12)
+		BEGIN
+			IF (@IsNewVersion = 0)
+			BEGIN
+				SET @isNewInvoice = 1;
+			END
+		END
+
 		IF (@MasterCompanyId = 12)
 		BEGIN
 			IF (ISNULL(@IsNewVersion, 0) = 1)
@@ -268,35 +279,27 @@ BEGIN
 
         DECLARE @VersionNum INT= 0;
 
-		IF (@isNewInvoice = 0) -- NEW VERSION
+		IF (@VersionNo IS NOT NULL AND LEN(@VersionNo) > 0)
 		BEGIN
-			IF (@VersionNo IS NOT NULL AND LEN(@VersionNo) > 0)
+			IF (LEN(@VersionNo) > 6)
 			BEGIN
-				IF (LEN(@VersionNo) > 6)
+				DECLARE @Part2 NVARCHAR(20) = PARSENAME(REPLACE(@VersionNo, '-', '.'), 1);
+				IF (@Part2 IS NOT NULL AND ISNUMERIC(@Part2) = 1)
 				BEGIN
-					DECLARE @Part2 NVARCHAR(20) = PARSENAME(REPLACE(@VersionNo, '-', '.'), 1);
-					IF (@Part2 IS NOT NULL AND ISNUMERIC(@Part2) = 1)
-					BEGIN
-						SET @VersionNum = CAST(@Part2 AS INT) + 1;
-					END
+					SET @VersionNum = CAST(@Part2 AS INT) + 1;
 				END
-				ELSE
-				BEGIN
-					SET @VersionNum = CAST(SUBSTRING(@VersionNo, 3, LEN(@VersionNo)) AS INT) + 1;
-				END
-
-				SET @VersionNo = (SELECT * FROM [dbo].[udfGenerateCodeNumber](@VersionNum, ISNULL(@VerCodePrefix,''),''));
 			END
 			ELSE
-			BEGIN			
-				SET @VersionNo = (SELECT * FROM [dbo].[udfGenerateCodeNumber](1, ISNULL(@VerCodePrefix,''),''));
+			BEGIN
+				SET @VersionNum = CAST(SUBSTRING(@VersionNo, 3, LEN(@VersionNo)) AS INT) + 1;
 			END
+
+			SET @VersionNo = (SELECT * FROM [dbo].[udfGenerateCodeNumber](@VersionNum, ISNULL(@VerCodePrefix,''),''));
 		END
-		BEGIN
-			-- BRAND NEW INVOICE → NO VERSION
-			SET @VersionNo = NULL;
-		END
-		
+		ELSE
+		BEGIN			
+			SET @VersionNo = (SELECT * FROM [dbo].[udfGenerateCodeNumber](1, ISNULL(@VerCodePrefix,''),''));
+		END		
 
 		IF (@MasterCompanyId = 12 AND ISNULL(@IsNewVersion, 0) = 1 AND @BillingInvoicingIdI > 0)
 		BEGIN

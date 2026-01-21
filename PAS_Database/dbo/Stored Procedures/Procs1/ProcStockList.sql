@@ -40,6 +40,7 @@
 	23   16/07/2025   Moin Bloch	    Added IsBatchStock And Batch Number
 	24   02/12/2025   Bhargav Saliya	Added Unit Cost
 	25   11/12/2025   Rajesh Gami		Return DecimalPlaces
+	26   01/20/2026   Amit Ghediya		Update for filter allow unitcost to decimal like (18.25)
 	(Do Not add any new join or In Query in Stockline list SP)
 	
 -- exec ProcStockList @PageNumber=1,@PageSize=20,@SortColumn=N'CreatedDate',@SortOrder=-1,@GlobalFilter=N'',@stockTypeId=1,@StocklineNumber=NULL,@MainPartNumber=NULL,
@@ -168,10 +169,10 @@ BEGIN
 	  BEGIN        
 		SET @stockTypeId = NULL;        
 	  END        
-      IF(@UnitCost = 0)        
-	  BEGIN        
-		SET @UnitCost = NULL;        
-	  END
+  --    IF(@UnitCost = 0)        
+	 -- BEGIN        
+		--SET @UnitCost = NULL;        
+	 -- END
 	  IF @IsCStock = 0        
 	  BEGIN         
 	   SET @ISCS = 0        
@@ -387,7 +388,7 @@ BEGIN
 		  (ISNULL(@QuantityAdjustment,'') ='' OR QuantityAdjustment LIKE '%' + @QuantityAdjustment + '%') AND
 		  (ISNULL(@BatchNumber,'') ='' OR [BatchNumber] LIKE '%' + @BatchNumber+'%') AND			
 		  (ISNULL(@IsDocument,'') ='' OR IsDocument LIKE '%' + @IsDocument + '%') and 
-		  (IsNull(@UnitCost,'') ='' OR IsNull(@UnitCost,0) =0 OR CAST(UnitCost AS varchar(20)) like '%' + @UnitCost+'%' ))        
+		  (IsNull(@UnitCost,'') ='' OR CAST(UnitCost AS varchar(20)) like '%' + @UnitCost+'%' ))        
 		 )        
 		SELECT @Count = COUNT(StockLineId) FROM #TempResults       		
 		
@@ -685,7 +686,7 @@ BEGIN
 		(ISNULL(@QuantityAdjustment,'') ='' OR QuantityAdjustment LIKE '%' + @QuantityAdjustment + '%') AND
 		(ISNULL(@BatchNumber,'') ='' OR [BatchNumber] LIKE '%' + @BatchNumber+'%') AND	
 		(ISNULL(@IsDocument,'') ='' OR IsDocument LIKE '%' + @IsDocument + '%') 
-		 AND(IsNull(@UnitCost,'') ='' OR IsNull(@UnitCost,0) =0 OR CAST(UnitCost AS varchar(20)) like '%' + @UnitCost+'%' )
+		 AND(IsNull(@UnitCost,'') ='' OR CAST(UnitCost AS varchar(20)) like '%' + @UnitCost+'%' )
 		)        
 	   )        
 	   SELECT @Count = COUNT(StockLineId) FROM #TempResult           
@@ -983,7 +984,7 @@ BEGIN
 		  (ISNULL(@QuantityAdjustment,'') ='' OR QuantityAdjustment LIKE '%' + @QuantityAdjustment + '%') AND
 		  (ISNULL(@BatchNumber,'') ='' OR [BatchNumber] LIKE '%' + @BatchNumber+'%') AND		
 		  (ISNULL(@IsDocument,'') ='' OR IsDocument LIKE '%' + @IsDocument + '%') AND
-		  (IsNull(@UnitCost,'') ='' OR IsNull(@UnitCost,0) =0 OR CAST(UnitCost AS varchar(20)) like '%' + @UnitCost+'%' ))        
+		  (IsNull(@UnitCost,'') ='' OR CAST(UnitCost AS varchar(20)) like '%' + @UnitCost+'%' ))        
 		 )        
 	   SELECT @Count = COUNT(StockLineId) FROM #TempALTResults           
         
@@ -1279,7 +1280,7 @@ BEGIN
 		(ISNULL(@QuantityAdjustment,'') ='' OR QuantityAdjustment LIKE '%' + @QuantityAdjustment + '%') AND
 		(ISNULL(@BatchNumber,'') ='' OR [BatchNumber] LIKE '%' + @BatchNumber+'%') AND	
 		(ISNULL(@IsDocument,'') ='' OR IsDocument LIKE '%' + @IsDocument + '%') and 
-		(IsNull(@UnitCost,'') ='' OR IsNull(@UnitCost,0) =0 OR CAST(UnitCost AS varchar(20)) like '%' + @UnitCost+'%' ))        
+		(IsNull(@UnitCost,'') ='' OR CAST(UnitCost AS varchar(20)) like '%' + @UnitCost+'%' ))        
 	   )        
 	   SELECT @Count = COUNT(StockLineId) FROM #TempALTResult           
         

@@ -1935,9 +1935,6 @@
     <Build Include="dbo\Tables\BatchDetails.sql" />
     <Build Include="dbo\Tables\AccountingPeriodStatus.sql" />
     <Build Include="dbo\Tables\AccountingFiscalYear.sql" />
-    <Build Include="Security\poweraerosuites_admin.sql" />
-    <Build Include="Security\pasadmin_1.sql" />
-    <Build Include="Security\Donald.sql" />
     <Build Include="dbo\Stored Procedures\usprpt_GetSalesOrderQuoteConversion.sql" />
     <Build Include="dbo\Stored Procedures\usp_SaveJournalBatchDetails.sql" />
     <Build Include="dbo\Stored Procedures\USP_Open_close_ledgerbyId.sql" />
@@ -2075,8 +2072,6 @@
     <Build Include="dbo\Views\vw_countryList.sql" />
     <Build Include="dbo\Views\View_Employee_Cert.sql" />
     <Build Include="dbo\Views\View_Employee.sql" />
-    <Build Include="Security\pasadmin_2.sql" />
-    <Build Include="Security\Donald_1.sql" />
     <Build Include="dbo\Functions\InitCap.sql" />
     <Build Include="dbo\Functions\FN_GetTatStandardDays.sql" />
     <Build Include="dbo\Functions\FN_GetTatCurrentDays.sql" />

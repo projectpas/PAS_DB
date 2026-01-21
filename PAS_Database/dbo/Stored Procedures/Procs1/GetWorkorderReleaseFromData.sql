@@ -27,11 +27,13 @@ EXEC [GetSubWorkorderReleaseFromData]
 ** 16   10/10/2025  Moin Bloch       Updated For Get VersionNo & IsVersionIncrease Flag
 ** 17   13/10/2025  Moin Bloch       Updated to Dynamic VersionNo
 ** 18   19/12/2025  Vishal Suthar    Fixed the logic to populate dynamic templates instead of hard coded 2 templates for multiple CMMs for NEO
+** 19   20/01/2026  Moin Bloch       Updated For PAR Added CorrectiveAction For PAR
 
- EXEC [dbo].[GetWorkorderReleaseFromData] 10082,10264,1,0,2
+
+ EXEC [dbo].[GetWorkorderReleaseFromData] 4105,3622,0,0,1
 **************************************************************/ 
 
-CREATE   PROC [dbo].[GetWorkorderReleaseFromData]  
+CREATE   PROC [dbo].[GetWorkorderReleaseFromData]
 @WorkorderId bigint,  
 @workOrderPartNumberId bigint,  
 @IsEasaLicense bit = 0 ,
@@ -56,8 +58,21 @@ BEGIN
 		DECLARE @EmailBody NVARCHAR(MAX)=''		
 		DECLARE @ECMasterCompanyId INT = 19
 		DECLARE @NeoMasterCompanyId INT = 20
+		DECLARE @WorkFlowWorkOrderId BIGINT = 0;			
+		DECLARE @MasterCompanyCode VARCHAR(20) = 'PAR'
+		DECLARE @ParCommonTeardownTypeId BIGINT = 0;
+		DECLARE @CorrectiveAction NVARCHAR(MAX)=''
+
 		
 		SELECT @MasterCompanyId = [MasterCompanyId] FROM [DBO].[WorkOrder] CTT WITH(NOLOCK) WHERE [WorkorderId] = @WorkorderId;
+
+		IF(@MasterCompanyCode = (SELECT [MasterCompanyCode] FROM [dbo].[MasterCompany] WITH(NOLOCK) WHERE [MasterCompanyId] = @MasterCompanyId))
+		BEGIN
+			SELECT @ParCommonTeardownTypeId = [CommonTeardownTypeId] FROM [dbo].[CommonTeardownType] WITH(NOLOCK) WHERE [MasterCompanyId] = @MasterCompanyId AND [TearDownCode] = 'CRA';
+			
+			SELECT @WorkFlowWorkOrderId = [WorkFlowWorkOrderId] FROM [DBO].[WorkOrderWorkFlow] WITH(NOLOCK) WHERE [WorkorderId]=@WorkorderId AND [WorkOrderPartNoId]=@workOrderPartNumberId				
+			SELECT @CorrectiveAction = [Memo] FROM [DBO].[CommonWorkOrderTearDown] WITH(NOLOCK) WHERE [CommonTeardownTypeId]=@ParCommonTeardownTypeId AND [WorkorderId]=@WorkorderId AND [WorkFlowWorkOrderId]=@WorkFlowWorkOrderId
+		END
 
 		DECLARE @VerCodePrefix NVARCHAR(50),@VerCode INT
 
@@ -254,6 +269,7 @@ BEGIN
 							@EmailBody AS EmailBody
 							,@VersionNo VersionNo
 					        ,0 AS IsVersionIncrease
+							,@CorrectiveAction CorrectiveAction
 				FROM [dbo].[WorkOrderPartNumber] wop WITH(NOLOCK)   
 					  LEFT JOIN [dbo].[WorkOrder] wo  WITH(NOLOCK) ON wo.WorkOrderId = wop.WorkOrderId  
 					  LEFT JOIN [dbo].[WorkOrderDualReleaseSettings] wods  WITH(NOLOCK) ON wods.MasterCompanyId = wop.MasterCompanyId AND wo.WorkOrderTypeId = wods.WorkOrderTypeId AND wods.CountriesId = @CountryId
@@ -421,7 +437,7 @@ BEGIN
 
 				@VersionNo AS VersionNo,  
 				0 AS IsVersionIncrease  
-
+				,@CorrectiveAction CorrectiveAction
 			FROM WorkOrderPartNumber wop WITH (NOLOCK)
 			LEFT JOIN WorkOrder wo WITH (NOLOCK) ON wo.WorkOrderId = wop.WorkOrderId  
 			LEFT JOIN WorkOrderDualReleaseSettings wods WITH (NOLOCK) ON wods.MasterCompanyId = wop.MasterCompanyId AND wods.WorkOrderTypeId = wo.WorkOrderTypeId 
@@ -517,6 +533,7 @@ BEGIN
 					   @EmailBody AS EmailBody
 					   ,@VersionNo VersionNo
 					   ,0 AS IsVersionIncrease
+					   ,@CorrectiveAction CorrectiveAction
 				FROM [dbo].[WorkOrderPartNumber] wop WITH(NOLOCK)   
 					  LEFT JOIN [dbo].[WorkOrder] wo  WITH(NOLOCK) ON wo.WorkOrderId = wop.WorkOrderId  
 					  LEFT JOIN [dbo].[WorkOrderDualReleaseSettings] wods  WITH(NOLOCK) ON wods.MasterCompanyId = wop.MasterCompanyId AND wo.WorkOrderTypeId = wods.WorkOrderTypeId AND wods.CountriesId = @CountryId

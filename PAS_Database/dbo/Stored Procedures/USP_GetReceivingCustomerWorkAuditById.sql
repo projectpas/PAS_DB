@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿
+/*************************************************************           
  ** File:   [USP_GetReceivingCustomerWorkAuditById]           
  ** Author:   [Ayushi Patel]
  ** Description: This stored procedure retrieves the history data for Receiving Customer Work Audit.
@@ -11,7 +12,8 @@
  **************************************************************           
  ** PR   Date             Author		         Change Description            
  ** --   --------         -------		     ----------------------------       
-    1    20-03-2025     Ayushi Patel          Created
+    1    20-03-2025       Ayushi Patel          Created
+    2	 20-01-2026       Priyansh Patel  	    Added CSN, TSN, CSO, TSO fields
 
 	USP_GetReceivingCustomerWorkAuditById 4203,229
 **************************************************************/
@@ -114,7 +116,11 @@ BEGIN
                 stl.Level3,
                 stl.Level4,
                 stl.CustReqTagType,
-                stl.CustReqCertType
+                stl.CustReqCertType,
+                stl.CSN,
+                stl.TSN,
+                stl.CSO,
+                stl.TSO
             FROM dbo.ReceivingCustomerWorkAudit stl WITH (NOLOCK)
             INNER JOIN dbo.ItemMaster im WITH (NOLOCK) ON stl.ItemMasterId = im.ItemMasterId
             LEFT JOIN dbo.CustomerContact cc WITH (NOLOCK) ON stl.CustomerContactId = cc.CustomerContactId

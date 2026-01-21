@@ -124,9 +124,9 @@
     [LastSinceInspection]        VARCHAR (20)    NULL,
     [IsSkipShippingReference]    BIT             NULL,
     [IsBatchStock]               BIT             NULL,
-    [BatchNumber]                VARCHAR (50)    NULL);
-
-
-
-
+    [BatchNumber]                VARCHAR (50)    NULL,
+    [CSN]                        VARCHAR (50)    NULL,
+    [TSN]                        VARCHAR (50)    NULL,
+    [CSO]                        VARCHAR (50)    NULL,
+    [TSO]                        VARCHAR (50)    NULL);
 

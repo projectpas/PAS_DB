@@ -27,6 +27,7 @@
 	10	 12/23/2025	  Bhargav Saliya  Added case For Dynamic Wo Labour Entry
 	11	 12/26/2025	  Bhargav Saliya  Add  Default Entry In [WorkOrderTaskDetails] fro 'All Task'
 	12   06/01/2026   Moin Bloch       Added LaborHoursId in WorkOrderLaborHeader
+	13   13/01/2026   Amit Ghediya    Get employee TBD for NEO only other company null (Before TBD for all company).
        
 -- EXEC [USP_CreateTravelerLabourTask] 10181,10386,10248,1,'JONAS  KAHNWALD'
 **************************************************************/  
@@ -51,7 +52,7 @@ BEGIN
     DECLARE @WorkOrderHoursType int =1  
     DECLARE @IsTaskCompletedByOne bit =0  
     DECLARE @ExpertiseId AS BIGINT = 0;  
-    DECLARE @EmployeeId AS BIGINT = 0;  
+    DECLARE @EmployeeId AS BIGINT = NULL;  
     DECLARE @TotalWorkHours AS BIGINT = 0.00;  
     DECLARE @Traveler_setupid AS BIGINT = 0;  
     DECLARE @WorkScopeId AS BIGINT = 0;  
@@ -69,7 +70,9 @@ BEGIN
 	DECLARE @FlatAmount DECIMAL(18,2) = 0
 	DECLARE @BurdenRateAmount DECIMAL(18,2) = 0
 	DECLARE @TotalCostPerHour DECIMAL(18,2) = 0
-	 DECLARE @WorkOrderTaskId bigint =0
+	DECLARE @WorkOrderTaskId bigint =0;
+	DECLARE @ParMasterCompanyId BIGINT = 0;
+	DECLARE @MasterCompanyCode VARCHAR(50) = 'NEO';
 
 	DECLARE @AssignTotalHourstoWork INT = 2
 				
@@ -83,7 +86,11 @@ BEGIN
     
 	SELECT @DataEnteredBy = ISNULL(EmployeeId,0) FROM [dbo].[Employee] WITH(NOLOCK)  WHERE CONCAT(TRIM(REPLACE([FirstName], ' ', '')),'',TRIM(REPLACE([LastName], ' ', ''))) IN (REPLACE(@CreatedBy, ' ', '')) AND MasterCompanyId=@MasterCompanyId  
     
-	SELECT @EmployeeId = ISNULL(EmployeeId,0) FROM [dbo].[Employee] WITH(NOLOCK)  WHERE FirstName='TBD' AND MasterCompanyId=@MasterCompanyId  
+	SET @ParMasterCompanyId  = (SELECT [MasterCompanyId] FROM [dbo].[Mastercompany] WITH(NOLOCK) WHERE MasterCompanyCode = @MasterCompanyCode)
+	IF(@ParMasterCompanyId = @MasterCompanyId)
+	BEGIN
+		SET @EmployeeId = (SELECT [EmployeeId] FROM [dbo].[Employee] WITH(NOLOCK)  WHERE [FirstName]='TBD' AND [MasterCompanyId] = @MasterCompanyId);
+	END
    
     SELECT @ExpertiseId=EmployeeExpertiseId FROM [dbo].[EmployeeExpertise] WITH(NOLOCK) WHERE MasterCompanyId=@MasterCompanyId AND EmpExpCode='TECHNICIAN'  
    

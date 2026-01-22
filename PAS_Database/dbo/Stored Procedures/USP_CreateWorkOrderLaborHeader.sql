@@ -14,6 +14,7 @@
 	1    18/04/2025   Moin Bloch       Created
 	2	 13/05/2025	  Abhishek Jirawla DataEnteredBy space correction
 	3    06/01/2026   Moin Bloch       Added LaborHoursId in WorkOrderLaborHeader
+	4    13/01/2026   Amit Ghediya     Get employee TBD for NEO only other company null (Before TBD for all company).
 
 --   EXEC [USP_CreateWorkOrderLaborHeader] 
 **************************************************************/
@@ -34,8 +35,10 @@ BEGIN
 	DECLARE @TotalRecord INT = 0,@MinId BIGINT = 1,@DataEnteredBy BIGINT = 0 	  
 	DECLARE @HoursorClockorScan INT = 2,@WorkOrderHoursType INT =1,@LaborHoursId INT = 1 
 	DECLARE @IsLaborTrackingTurnedOff BIT = 0,@IsTaskCompletedByOne BIT = 0;   
-	DECLARE @ExpertiseId AS BIGINT = 0,@EmployeeId AS BIGINT = 0;  
+	DECLARE @ExpertiseId AS BIGINT = 0,@EmployeeId AS BIGINT = NULL;  
 	DECLARE @TotalWorkHours AS BIGINT = 0.00;  
+	DECLARE @ParMasterCompanyId BIGINT = 0;
+	DECLARE @MasterCompanyCode VARCHAR(50) = 'NEO';
 	 			
 	IF OBJECT_ID(N'tempdb..#tempCreateTravelerLabourHeaderForCreateWO') IS NOT NULL
 	BEGIN
@@ -48,8 +51,13 @@ BEGIN
 		[ID] [BIGINT] NULL,		
 		[ManagementStructureId] [BIGINT] NULL
 	)
-
-	SELECT @EmployeeId = ISNULL([EmployeeId],0) FROM [dbo].[Employee] WITH(NOLOCK)  WHERE [FirstName]='TBD' AND [MasterCompanyId]=@MasterCompanyId;  
+	
+	SET @ParMasterCompanyId  = (SELECT [MasterCompanyId] FROM [dbo].[Mastercompany] WITH(NOLOCK) WHERE MasterCompanyCode = @MasterCompanyCode)
+	IF(@ParMasterCompanyId = @MasterCompanyId)
+	BEGIN
+		SET @EmployeeId = (SELECT [EmployeeId] FROM [dbo].[Employee] WITH(NOLOCK)  WHERE [FirstName]='TBD' AND [MasterCompanyId] = @MasterCompanyId);
+	END
+	
 	SELECT @ExpertiseId= [EmployeeExpertiseId]  FROM [dbo].[EmployeeExpertise] WITH(NOLOCK) WHERE [MasterCompanyId] = @MasterCompanyId AND [EmpExpCode]='TECHNICIAN' 
 	SELECT @DataEnteredBy = ISNULL(EmployeeId,0) FROM [dbo].[Employee] WITH(NOLOCK) WHERE CONCAT(TRIM(REPLACE([FirstName], ' ', '')),'',TRIM(REPLACE([LastName], ' ', ''))) IN (REPLACE(@CreatedBy, ' ', '')) AND [MasterCompanyId]=@MasterCompanyId  
 

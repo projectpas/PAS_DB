@@ -1,0 +1,21 @@
+﻿CREATE TYPE [dbo].[ILSRFQPartType] AS TABLE (
+    [ILSRFQPartId]   BIGINT        NULL,
+    [ILSRFQDetailId] BIGINT        NULL,
+    [PartNumber]     VARCHAR (70)  NULL,
+    [AltPartNumber]  VARCHAR (70)  NULL,
+    [Exchange]       VARCHAR (70)  NULL,
+    [Description]    VARCHAR (MAX) NULL,
+    [Qty]            INT           NULL,
+    [RequestedQty]   INT           NULL,
+    [Condition]      VARCHAR (20)  NULL,
+    [IsEmail]        BIT           NULL,
+    [IsFax]          BIT           NULL,
+    [VendorName]     VARCHAR (150) NULL,
+    [CustomerRfqId]  BIGINT        NULL,
+    [Address1]       VARCHAR (250) NULL,
+    [Address2]       VARCHAR (250) NULL,
+    [City]           VARCHAR (50)  NULL,
+    [StateProvince]  VARCHAR (50)  NULL,
+    [PostalCode]     VARCHAR (50)  NULL,
+    [Country]        VARCHAR (50)  NULL);
+

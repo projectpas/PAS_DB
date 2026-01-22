@@ -1,0 +1,667 @@
+﻿/*************************************************************           
+ ** File:   [AutoCompleteDropdowns]           
+ ** Author:   Vishal Suthar
+ ** Description: This stored procedure is used to search part
+ ** Purpose:         
+ ** Date:   06/14/2024       
+          
+ ** PARAMETERS:           
+ @UserType varchar(60)   
+         
+ ** RETURN VALUE:           
+  
+ **************************************************************           
+  ** Change History           
+ **************************************************************           
+ ** PR   Date         Author		        Change Description            
+ ** --   --------     -------		        --------------------------------          
+    1    06/14/2024   Vishal Suthar		    Added History
+    2    06/14/2024   Vishal Suthar		    Increased Limit of records from 20 to 50 for Item Master Module
+    3    10/03/2024   Devendra Shekh	    Added case for BatchDetails
+	4    21/03/2024   BHARGAV SALIYA	    Added case for Stockline
+	5    31/12/2024   Devendra Shekh	    Added field IsSerialized for ItemMaster Table
+	6    03/01/2025   Moin Bloch  	        Added field IsTravelerTask, StandardHours, StandardMinute for Task Table
+	7    10/01/2025   Sahdev Saliya         Added Defult site as per setting while add new item 
+	8    24/01/2025   Sahdev Saliya         Added According To The Default Site Management Structure When Adding New items  
+    9    10/Feb/2025  RAJESH GAMI  	        Return fields: IsPrintInspector, IsPrintTechnician for Task Table
+	10   14/Feb/2025  RAJESH GAMI  	        Return fields: PublicationTemplate  for PublicationType Table
+	11   19/Feb/2025  AMIT GHEDIYA  	    Added case for TaxType table.
+	12   11/Mar/2025  AMIT GHEDIYA          Added case for VendorOrderType table.
+	13   31/Mar/2025  Sahdev Saliya         Added case for EmployeeCertifyingStaff table.
+	14	 01/Mar/2025  Devendra Shekh	    Modified (For Task Table - Order By Description ASC)
+	15   14/Apr/2025  Moin Bloch	        Modified (Added field IsOEM for ItemMaster Table)
+	16   28/04/2025   Moin Bloch	        Modified (Order By [Sequence] ASC)
+	17   26/08/2025   Moin Bloch	        Modified (Added field IsPrintAdmin for Task Table)	
+    18   25/11/2025   Ayushi Patel          Escaped table name in dynamic SQL (added [] around @TableName) to support reserved names like Percent.
+    19   03/12/2025   Ayushi Patel          Removed brackets from @TableName to avoid double [[TableName]] in dynamic SQL.
+    20   16/12/2025   Ayushi Patel  	    Return fields: SalesOrderQuote for SalesOrderQuote Table
+    21   20-Dec-2025  Divyesh Kathiriya  	Added case for Warehouse,Location,Shelf,Bin
+
+--select * from dbo.Employee      
+--EXEC AutoCompleteDropdowns 'Employee','EmployeeId','FirstName','sur',1,20,'108,109,11',1       
+**************************************************************/
+CREATE   PROCEDURE [dbo].[AutoCompleteDropdowns] 
+	@TableName VARCHAR(50) = NULL, 
+	@Parameter1 VARCHAR(50) = NULL, 
+	@Parameter2 VARCHAR(100) = NULL, 
+	@Parameter3 VARCHAR(50) = NULL, 
+	@Parameter4 BIT = TRUE, 
+	@Count VARCHAR(10) = 0, 
+	@Idlist VARCHAR(MAX) = '0', 
+	@MasterCompanyId INT,
+	@IsFromUpload BIT = 0
+AS BEGIN
+    SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
+    SET NOCOUNT ON
+    BEGIN TRY
+        DECLARE @Sql NVARCHAR(MAX);
+
+        SET @TableName = LTRIM(RTRIM(@TableName));
+        SET @TableName = REPLACE(REPLACE(@TableName, '[', ''), ']', '');
+
+        CREATE TABLE #TempTable (
+			Value BIGINT,
+			Label VARCHAR(MAX),
+			MasterCompanyId int
+		)
+        
+		IF(@Count='0')BEGIN
+            print '00'
+            IF(@TableName='Employee')BEGIN
+                IF(@Parameter4=1)BEGIN
+                    SELECT DISTINCT EmployeeId AS Value, FirstName+' '+LastName AS Label
+                    FROM dbo.Employee WITH(NOLOCK)
+                    WHERE MasterCompanyId=@MasterCompanyId AND(IsActive=1 AND ISNULL(IsDeleted, 0)=0 AND(FirstName LIKE '%'+@Parameter3+'%' OR LastName LIKE '%'+@Parameter3+'%'))
+                    UNION
+                    SELECT DISTINCT EmployeeId AS Value, FirstName+' '+LastName AS Label
+                    FROM dbo.Employee WITH(NOLOCK)
+                    WHERE MasterCompanyId=@MasterCompanyId AND EmployeeId IN(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') )
+                    ORDER BY FirstName+' '+LastName
+                END
+                ELSE BEGIN
+                    SELECT DISTINCT EmployeeId AS Value, FirstName+' '+LastName AS Label
+                    FROM dbo.Employee WITH(NOLOCK)
+                    WHERE MasterCompanyId=@MasterCompanyId AND IsActive=1 AND ISNULL(IsDeleted, 0)=0 AND FirstName LIKE '%'+@Parameter3+'%' OR LastName LIKE '%'+@Parameter3+'%'
+                    UNION
+                    SELECT DISTINCT EmployeeId AS Value, FirstName+' '+LastName AS Label
+                    FROM dbo.Employee WITH(NOLOCK)
+                    WHERE MasterCompanyId=@MasterCompanyId AND EmployeeId IN(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') )
+                END
+            END
+			 ELSE IF(@TableName='PublicationType')BEGIN
+                     IF(@Parameter4=1)BEGIN
+                         SELECT DISTINCT PublicationTypeId as Value, [Name] as Label, (SELECT TOP 1 EmailBody FROM DBO.PublicationTemplate PT WITH(NOLOCK) WHERE PT.PublicationTypeId = P.PublicationTypeId AND Pt.MasterCompanyId = P.MasterCompanyId ) as PublicationTemplate
+                         FROM dbo.PublicationType P WITH(NOLOCK)
+                         WHERE MasterCompanyId=@MasterCompanyId AND(IsActive=1 AND ISNULL(IsDeleted, 0)=0 AND(Description LIKE '%'+@Parameter3+'%'))
+                         UNION
+                         SELECT DISTINCT PublicationTypeId as Value, [Name] as Label, (SELECT TOP 1 EmailBody FROM DBO.PublicationTemplate PT WITH(NOLOCK) WHERE PT.PublicationTypeId = P.PublicationTypeId AND Pt.MasterCompanyId = P.MasterCompanyId ) as PublicationTemplate
+                         FROM dbo.PublicationType P WITH(NOLOCK)
+                         WHERE MasterCompanyId=@MasterCompanyId AND PublicationTypeId IN(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') )
+                         ORDER BY Name asc
+                     END
+                     ELSE 
+					 BEGIN
+                         SELECT DISTINCT PublicationTypeId as Value, [Name] as Label, (SELECT TOP 1 EmailBody FROM DBO.PublicationTemplate PT WITH(NOLOCK) WHERE PT.PublicationTypeId = P.PublicationTypeId AND Pt.MasterCompanyId = P.MasterCompanyId ) as PublicationTemplate
+                         FROM dbo.PublicationType P WITH(NOLOCK)
+                         WHERE MasterCompanyId=@MasterCompanyId AND IsActive=1 AND ISNULL(IsDeleted, 0)=0 AND Description LIKE '%'+@Parameter3+'%'
+                         UNION
+                         SELECT DISTINCT PublicationTypeId as Value, [Name] as Label, (SELECT TOP 1 EmailBody FROM DBO.PublicationTemplate PT WITH(NOLOCK) WHERE PT.PublicationTypeId = P.PublicationTypeId AND Pt.MasterCompanyId = P.MasterCompanyId ) as PublicationTemplate
+                         FROM dbo.PublicationType P WITH(NOLOCK)
+                         WHERE MasterCompanyId=@MasterCompanyId AND PublicationTypeId IN(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') )
+                         ORDER BY Name asc
+                     END
+            END
+            ELSE IF(@TableName='Task')BEGIN
+                     IF(@Parameter4=1)BEGIN
+                         SELECT DISTINCT TaskId AS Value, Description AS Label, Sequence, IsTravelerTask, StandardHours, StandardMinute, Resolution, Descrepancy, IsPrintInWO, IsPrintInWOQ,IsPrintInspector,IsPrintTechnician,IsPrintAdmin
+                         FROM dbo.Task WITH(NOLOCK)
+                         WHERE MasterCompanyId=@MasterCompanyId AND(IsActive=1 AND ISNULL(IsDeleted, 0)=0 AND(Description LIKE '%'+@Parameter3+'%'))
+                         UNION
+                         SELECT DISTINCT TaskId AS Value, Description AS Label, Sequence , IsTravelerTask, StandardHours, StandardMinute, Resolution, Descrepancy, IsPrintInWO, IsPrintInWOQ,IsPrintInspector,IsPrintTechnician,IsPrintAdmin
+                         FROM dbo.Task WITH(NOLOCK)
+                         WHERE MasterCompanyId=@MasterCompanyId AND TaskId IN(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') )
+                         ORDER BY [Sequence] ASC
+                     END
+                     ELSE 
+					 BEGIN
+                         SELECT DISTINCT TaskId AS Value, Description AS Label, Sequence, IsTravelerTask, StandardHours, StandardMinute
+                         FROM dbo.Task WITH(NOLOCK)
+                         WHERE MasterCompanyId=@MasterCompanyId AND IsActive=1 AND ISNULL(IsDeleted, 0)=0 AND Description LIKE '%'+@Parameter3+'%'
+                         UNION
+                         SELECT DISTINCT TaskId AS Value, Description AS Label, Sequence, IsTravelerTask, StandardHours, StandardMinute
+                         FROM dbo.Task WITH(NOLOCK)
+                         WHERE MasterCompanyId=@MasterCompanyId AND TaskId IN(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') )
+                         ORDER BY [Sequence] ASC
+                     END
+            END
+            ELSE IF(@TableName='ConsigneeLot')BEGIN
+                     IF(@Parameter4=1)BEGIN
+                         SELECT DISTINCT LotId AS Value, LotNumber AS Label
+                         FROM dbo.LOT WITH(NOLOCK)
+                         WHERE MasterCompanyId=@MasterCompanyId AND(IsActive=1 AND ISNULL(IsDeleted, 0)=0 AND(LotNumber LIKE '%'+@Parameter3+'%'))AND LotId NOT IN(SELECT ISNULL(LotId, 0)FROM LotConsignment)
+                         UNION
+                         SELECT DISTINCT LotId AS Value, LotNumber AS Label
+                         FROM dbo.Lot WITH(NOLOCK)
+                         WHERE MasterCompanyId=@MasterCompanyId AND LotId IN(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') )AND LotId NOT IN(SELECT ISNULL(LotId, 0)FROM LotConsignment)
+                         ORDER BY LotId DESC
+                     END
+                     ELSE BEGIN
+                         SELECT DISTINCT LotId AS Value, LotNumber AS Label
+                         FROM dbo.LOT WITH(NOLOCK)
+                         WHERE MasterCompanyId=@MasterCompanyId AND(IsActive=1 AND ISNULL(IsDeleted, 0)=0 AND(LotNumber LIKE '%'+@Parameter3+'%'))AND LotId NOT IN(SELECT ISNULL(LotId, 0)FROM LotConsignment)
+                         UNION
+                         SELECT DISTINCT LotId AS Value, LotNumber AS Label
+                         FROM dbo.Lot WITH(NOLOCK)
+                         WHERE MasterCompanyId=@MasterCompanyId AND LotId IN(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') )AND LotId NOT IN(SELECT ISNULL(LotId, 0)FROM LotConsignment)
+                         ORDER BY LotId DESC
+                     END
+            END
+            ELSE IF(@TableName='LotLatest')BEGIN
+                     IF(@Parameter4=1)BEGIN
+                         SELECT DISTINCT LotId AS Value, LotNumber AS Label
+                         FROM dbo.LOT WITH(NOLOCK)
+                         WHERE MasterCompanyId=@MasterCompanyId AND(IsActive=1 AND ISNULL(IsDeleted, 0)=0 AND(LotNumber LIKE '%'+@Parameter3+'%'))
+                         UNION
+                         SELECT DISTINCT LotId AS Value, LotNumber AS Label
+                         FROM dbo.Lot WITH(NOLOCK)
+                         WHERE MasterCompanyId=@MasterCompanyId AND LotId IN(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') )
+                         ORDER BY LotId DESC
+                     END
+                     ELSE BEGIN
+                         SELECT DISTINCT LotId AS Value, LotNumber AS Label
+                         FROM dbo.LOT WITH(NOLOCK)
+                         WHERE MasterCompanyId=@MasterCompanyId AND(IsActive=1 AND ISNULL(IsDeleted, 0)=0 AND(LotNumber LIKE '%'+@Parameter3+'%'))
+                         UNION
+                         SELECT DISTINCT LotId AS Value, LotNumber AS Label
+                         FROM dbo.Lot WITH(NOLOCK)
+                         WHERE MasterCompanyId=@MasterCompanyId AND LotId IN(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') )
+                         ORDER BY LotId DESC
+                     END
+            END
+			ELSE IF(@TableName='EmployeeCertifyingStaff')BEGIN
+                     IF(@Parameter4=1)BEGIN
+                         SELECT DISTINCT IsCertifyingStaff AS Value, Description AS Label
+                         FROM dbo.EmployeeCertifyingStaff WITH(NOLOCK)
+                         WHERE (IsActive=1 AND ISNULL(IsDeleted, 0)=0 AND(Description LIKE '%'+@Parameter3+'%'))
+                         UNION
+                         SELECT DISTINCT IsCertifyingStaff AS Value, Description AS Label
+                         FROM dbo.EmployeeCertifyingStaff WITH(NOLOCK)
+                         WHERE IsCertifyingStaff IN(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') )
+                         ORDER BY IsCertifyingStaff DESC
+                     END
+                     ELSE BEGIN
+                         SELECT DISTINCT IsCertifyingStaff AS Value, Description AS Label
+                         FROM dbo.EmployeeCertifyingStaff WITH(NOLOCK)
+                         WHERE (IsActive=1 AND ISNULL(IsDeleted, 0)=0 AND(Description LIKE '%'+@Parameter3+'%'))
+                         UNION
+                         SELECT DISTINCT IsCertifyingStaff AS Value, Description AS Label
+                         FROM dbo.EmployeeCertifyingStaff WITH(NOLOCK)
+                         WHERE IsCertifyingStaff IN(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') )
+                         ORDER BY IsCertifyingStaff DESC
+                     END
+            END
+            ELSE IF(@TableName='SalesOrderQuote')BEGIN
+                        IF(@Parameter4=1)BEGIN
+                                 SELECT DISTINCT SalesOrderQuoteId AS Value, SalesOrderQuoteNumber AS Label
+                                 FROM dbo.SalesOrderQuote WITH(NOLOCK)
+                                 WHERE MasterCompanyId=@MasterCompanyId AND(IsActive=1 AND ISNULL(IsDeleted, 0)=0 AND IsNewVersionCreated = 0 AND(SalesOrderQuoteNumber LIKE '%'+@Parameter3+'%'))
+                                 UNION
+                                 SELECT DISTINCT SalesOrderQuoteId AS Value, SalesOrderQuoteNumber AS Label
+                                 FROM dbo.SalesOrderQuote WITH(NOLOCK)
+                                 WHERE MasterCompanyId=@MasterCompanyId AND IsNewVersionCreated = 0 AND SalesOrderQuoteId IN(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') )
+                                 ORDER BY SalesOrderQuoteId DESC
+                        END
+                        ELSE BEGIN
+                                 SELECT DISTINCT SalesOrderQuoteId AS Value, SalesOrderQuoteNumber AS Label
+                                 FROM dbo.SalesOrderQuote WITH(NOLOCK)
+                                 WHERE MasterCompanyId=@MasterCompanyId AND(IsActive=1 AND ISNULL(IsDeleted, 0)=0 
+                                 AND IsNewVersionCreated = 0 AND(SalesOrderQuoteNumber LIKE '%'+@Parameter3+'%'))
+                                 UNION
+                                 SELECT DISTINCT SalesOrderQuoteId AS Value, SalesOrderQuoteNumber AS Label
+                                 FROM dbo.SalesOrderQuote WITH(NOLOCK)
+                                 WHERE MasterCompanyId=@MasterCompanyId AND IsNewVersionCreated = 0 
+                                 AND SalesOrderQuoteId IN(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') )
+                                 ORDER BY SalesOrderQuoteId DESC
+                            END
+                        END
+            ELSE IF(@TableName='Warehouse')
+            BEGIN
+                SELECT DISTINCT [WarehouseId] AS Value, [Name] AS Label
+                FROM [DBO].[Warehouse] WITH(NOLOCK)
+                WHERE [MasterCompanyId] = @MasterCompanyId AND [SiteId] IN(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ','))
+                ORDER BY [WarehouseId] ASC
+            END
+            ELSE IF(@TableName='Location')
+            BEGIN  
+                SELECT DISTINCT [LocationId] AS Value, [Name] AS Label
+                FROM [DBO].[Location] WITH(NOLOCK)
+                WHERE [MasterCompanyId] = @MasterCompanyId AND [WarehouseId] IN(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ','))
+                ORDER BY [LocationId] ASC
+            END
+            ELSE IF(@TableName='Shelf')
+            BEGIN 
+                SELECT DISTINCT [ShelfId] AS Value, [Name] AS Label
+                FROM [DBO].[Shelf] WITH(NOLOCK)
+                WHERE [MasterCompanyId] = @MasterCompanyId AND [LocationId] IN(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ','))
+                ORDER BY [ShelfId] ASC 
+            END
+            ELSE IF(@TableName='Bin')
+            BEGIN 
+                SELECT DISTINCT [Binid] AS Value, [Name] AS Label
+                FROM [DBO].[Bin] WITH(NOLOCK)
+                WHERE [MasterCompanyId] = @MasterCompanyId AND [ShelfId] IN(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ','))
+                ORDER BY [Binid] ASC 
+            END           
+            ELSE BEGIN
+                     IF(@Parameter4=1)BEGIN
+                         IF(@TableName='ItemMaster' AND ISNULL(@IsFromUpload,0) = 0)BEGIN
+                             SELECT TOP 50 IM.ItemMasterId as Value, Im.partnumber as PartNumber, im.partnumber+(CASE WHEN(SELECT COUNT(ISNULL(SD.[ManufacturerId], 0))
+                                                                                                                           FROM [dbo].[ItemMaster] SD WITH(NOLOCK)
+                                                                                                                           WHERE im.partnumber=SD.partnumber AND SD.MasterCompanyId=@MasterCompanyId)>1 then ' - '+IM.ManufacturerName ELSE '' END) AS Label, IM.MasterCompanyId, im.ManufacturerName As ManufacturerName ,IM.IsOEM
+                             FROM dbo.ItemMaster IM
+                             WHERE Im.MasterCompanyId=@MasterCompanyId AND ISNULL(IsActive, 1)=1 AND ISNULL(IsDeleted, 0)=0 AND Im.PartNumber like '%'+@Parameter3+'%'
+                             UNION
+                             SELECT IM.ItemMasterId as Value, Im.partnumber as PartNumber, im.partnumber+(CASE WHEN(SELECT COUNT(ISNULL(SD.[ManufacturerId], 0))
+                                                                                                                    FROM [dbo].[ItemMaster] SD WITH(NOLOCK)
+                                                                                                                    WHERE im.partnumber=SD.partnumber AND SD.MasterCompanyId=@MasterCompanyId)>1 then ' - '+IM.ManufacturerName ELSE '' END) AS Label, IM.MasterCompanyId, im.ManufacturerName As ManufacturerName ,IM.IsOEM
+                             FROM dbo.ItemMaster IM
+                             WHERE Im.MasterCompanyId=@MasterCompanyId AND IM.ItemMasterId in(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') )
+                         END
+						 ELSE IF(@TableName='ItemMaster' AND ISNULL(@IsFromUpload,0) = 1)
+							BEGIN
+								SELECT TOP 50 IM.ItemMasterId as Value, Im.partnumber as PartNumber, im.partnumber AS Label, IM.MasterCompanyId, im.ManufacturerName As ManufacturerName, im.IsSerialized ,IM.IsOEM
+								 FROM dbo.ItemMaster IM
+								 WHERE Im.MasterCompanyId=@MasterCompanyId AND ISNULL(IsActive, 1)=1 AND ISNULL(IsDeleted, 0)=0 AND Im.PartNumber like '%'+@Parameter3+'%'
+								 UNION
+								 SELECT IM.ItemMasterId as Value, Im.partnumber as PartNumber, im.partnumber AS Label, IM.MasterCompanyId, im.ManufacturerName As ManufacturerName, im.IsSerialized ,IM.IsOEM
+								 FROM dbo.ItemMaster IM
+								 WHERE Im.MasterCompanyId=@MasterCompanyId AND IM.ItemMasterId in(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') )
+							END
+                         ELSE IF(@TableName='ItemMasterALL')BEGIN
+                                  SELECT IM.ItemMasterId as Value, Im.partnumber as PartNumber, im.partnumber+(CASE WHEN(SELECT COUNT(ISNULL(SD.[ManufacturerId], 0))
+                                                                                                                         FROM [dbo].[ItemMaster] SD WITH(NOLOCK)
+                                                                                                                         WHERE im.partnumber=SD.partnumber AND SD.MasterCompanyId=@MasterCompanyId)>1 then ' - '+IM.ManufacturerName ELSE '' END) AS Label, IM.MasterCompanyId, im.ManufacturerName As ManufacturerName
+                                  FROM dbo.ItemMaster IM
+                                  WHERE Im.MasterCompanyId=@MasterCompanyId AND ISNULL(IsActive, 1)=1 AND ISNULL(IsDeleted, 0)=0 AND Im.PartNumber like '%'+@Parameter3+'%'
+                                  UNION
+                                  SELECT IM.ItemMasterId as Value, Im.partnumber as PartNumber, im.partnumber+(CASE WHEN(SELECT COUNT(ISNULL(SD.[ManufacturerId], 0))
+                                                                                                                         FROM [dbo].[ItemMaster] SD WITH(NOLOCK)
+                                                                                                                         WHERE im.partnumber=SD.partnumber AND SD.MasterCompanyId=@MasterCompanyId)>1 then ' - '+IM.ManufacturerName ELSE '' END) AS Label, IM.MasterCompanyId, im.ManufacturerName As ManufacturerName
+                                  FROM dbo.ItemMaster IM
+                                  WHERE Im.MasterCompanyId=@MasterCompanyId AND IM.ItemMasterId in(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') )
+                         END
+                         ELSE IF(@TableName='ConsigneeLot')BEGIN
+                                  SELECT DISTINCT LotId AS Value, LotNumber AS Label
+                                  FROM dbo.LOT WITH(NOLOCK)
+                                  WHERE MasterCompanyId=@MasterCompanyId AND(IsActive=1 AND ISNULL(IsDeleted, 0)=0 AND(LotNumber LIKE '%'+@Parameter3+'%'))AND LotId NOT IN(SELECT ISNULL(LotId, 0)FROM LotConsignment)
+                                  UNION
+                                  SELECT DISTINCT LotId AS Value, LotNumber AS Label
+                                  FROM dbo.Lot WITH(NOLOCK)
+                                  WHERE MasterCompanyId=@MasterCompanyId AND LotId IN(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') )AND LotId NOT IN(SELECT ISNULL(LotId, 0)FROM LotConsignment)
+                                  ORDER BY LotId DESC
+                         END
+                         ELSE IF(@TableName='LotLatest')BEGIN
+                                  SELECT DISTINCT LotId AS Value, LotNumber AS Label
+                                  FROM dbo.LOT WITH(NOLOCK)
+                                  WHERE MasterCompanyId=@MasterCompanyId AND(IsActive=1 AND ISNULL(IsDeleted, 0)=0 AND(LotNumber LIKE '%'+@Parameter3+'%'))
+                                  UNION
+                                  SELECT DISTINCT LotId AS Value, LotNumber AS Label
+                                  FROM dbo.Lot WITH(NOLOCK)
+                                  WHERE MasterCompanyId=@MasterCompanyId AND LotId IN(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') )
+                                  ORDER BY LotId DESC
+                         END
+                         ELSE IF(@TableName='ItemMasterNonStock')BEGIN
+                                  SELECT IMN.MasterPartId as Value, IMN.partnumber as PartNumber, IMN.partnumber+(CASE WHEN(SELECT COUNT(ISNULL(SD.[ManufacturerId], 0))
+                                                                                                                            FROM [dbo].[ItemMasterNonStock] SD WITH(NOLOCK)
+                                                                                                                            WHERE IMN.partnumber=SD.partnumber AND SD.MasterCompanyId=@MasterCompanyId)>1 then ' - '+IMN.Manufacturer ELSE '' END) AS Label, IMN.MasterCompanyId, IMN.Manufacturer As ManufacturerName
+                                  FROM dbo.ItemMasterNonStock IMN
+                                  WHERE IMN.MasterCompanyId=@MasterCompanyId AND ISNULL(IsActive, 1)=1 AND ISNULL(IsDeleted, 0)=0 AND IMN.PartNumber like '%'+@Parameter3+'%'
+                         END
+                         ELSE IF(@TableName='LotConsignment')BEGIN
+                                  SELECT LC.ConsignmentId AS Value, LC.ConsignmentNumber AS Label, LC.MasterCompanyId AS MasterCompanyId, LC.ConsigneeName AS ConsigneeName
+                                  FROM dbo.LotConsignment LC
+                                  WHERE LC.MasterCompanyId=@MasterCompanyId AND ISNULL(IsActive, 1)=1 AND ISNULL(IsDeleted, 0)=0 AND LC.ConsignmentNumber like '%'+@Parameter3+'%'
+                         END
+						 ELSE IF(@TableName='Site')BEGIN
+                             SELECT IM.SiteId as Value, Im.Name as Label, IM.MasterCompanyId, IM.IsDefault IsSerialized,
+							 STUFF((SELECT ', ' + CAST(ManagementStructureId AS VARCHAR(100)) [text()]
+							 FROM ManagementSite WITH(NOLOCK)
+							 WHERE SiteId = IM.SiteId FOR XML PATH(''), TYPE).value('.','NVARCHAR(MAX)'),1,2,' ') List_Output
+                             FROM dbo.Site IM WITH(NOLOCK)
+                             WHERE Im.MasterCompanyId=@MasterCompanyId AND ISNULL(im.IsActive, 1)=1 AND ISNULL(im.IsDeleted, 0)=0 AND Im.Name like '%'+@Parameter3+'%'
+                             UNION
+                             SELECT IM.SiteId as Value, Im.Name as Label, IM.MasterCompanyId, IM.IsDefault IsSerialized,
+							 STUFF((SELECT ', ' + CAST(ManagementStructureId AS VARCHAR(100)) [text()]
+							 FROM ManagementSite WITH(NOLOCK)
+							 WHERE SiteId = IM.SiteId FOR XML PATH(''), TYPE).value('.','NVARCHAR(MAX)'),1,2,' ') List_Output
+                             FROM dbo.Site IM WITH(NOLOCK)
+                             WHERE Im.MasterCompanyId=@MasterCompanyId AND IM.SiteId in(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') )
+                         END
+						  ELSE IF(@TableName='PublicationType')BEGIN
+                                  SELECT DISTINCT PublicationTypeId as Value, [Name] as Label, (SELECT TOP 1 EmailBody FROM DBO.PublicationTemplate PT WITH(NOLOCK) WHERE PT.PublicationTypeId = P.PublicationTypeId AND Pt.MasterCompanyId = P.MasterCompanyId ) as PublicationTemplate
+                         FROM dbo.PublicationType P WITH(NOLOCK)
+                                  WHERE MasterCompanyId=@MasterCompanyId AND(IsActive=1 AND ISNULL(IsDeleted, 0)=0 AND([NAME] LIKE '%'+@Parameter3+'%'))
+                                  UNION
+                                  SELECT DISTINCT PublicationTypeId as Value, [Name] as Label, (SELECT TOP 1 EmailBody FROM DBO.PublicationTemplate PT WITH(NOLOCK) WHERE PT.PublicationTypeId = P.PublicationTypeId AND Pt.MasterCompanyId = P.MasterCompanyId ) as PublicationTemplate
+                         FROM dbo.PublicationType P WITH(NOLOCK)
+                                  WHERE MasterCompanyId=@MasterCompanyId AND PublicationTypeId IN(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') )
+                                  ORDER BY PublicationTypeId DESC
+                         END
+						  ELSE IF(@TableName = 'TaxType') BEGIN
+							  SELECT TY.TaxTypeId as Value, TY.Description as Label, TY.Code
+								 FROM dbo.TaxType TY WITH(NOLOCK)
+							  WHERE TY.MasterCompanyId=@MasterCompanyId AND TY.IsActive = 1 AND TY.IsDeleted = 0;
+						 END
+						 ELSE IF(@TableName = 'VendorOrderType') BEGIN
+							  SELECT VT.VendorOrderTypeId as Value, VT.OrderTypeName as Label
+								 FROM dbo.VendorOrderType VT WITH(NOLOCK)
+							  WHERE VT.IsActive = 1 AND VT.IsDeleted = 0;
+						 END
+						 ELSE IF(@TableName = 'VendorAuditType') BEGIN
+							  SELECT VAT.VendorAuditTypeId as Value, VAT.VendorAuditType as Label
+								 FROM dbo.VendorAuditType VAT WITH(NOLOCK)
+							  WHERE VAT.MasterCompanyId=@MasterCompanyId AND VAT.IsActive = 1 AND VAT.IsDeleted = 0;
+						 END
+                         ELSE IF(@TableName='SalesOrderQuote')BEGIN
+                                 SELECT DISTINCT TOP 20 SalesOrderQuoteId AS Value, SalesOrderQuoteNumber AS Label
+                                 FROM dbo.SalesOrderQuote WITH(NOLOCK)
+                                 WHERE MasterCompanyId=@MasterCompanyId AND(IsActive=1 AND ISNULL(IsDeleted, 0)=0 AND IsNewVersionCreated = 0 AND(SalesOrderQuoteNumber LIKE '%'+@Parameter3+'%'))
+                                 UNION
+                                 SELECT DISTINCT SalesOrderQuoteId AS Value, SalesOrderQuoteNumber AS Label
+                                 FROM dbo.SalesOrderQuote WITH(NOLOCK)
+                                 WHERE MasterCompanyId=@MasterCompanyId AND IsNewVersionCreated = 0 AND SalesOrderQuoteId IN(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') )
+                                 ORDER BY SalesOrderQuoteId DESC
+                        END
+                         ELSE BEGIN
+                                  SET @Sql=N'INSERT INTO #TempTable (Value, Label, MasterCompanyId)   
+           SELECT DISTINCT  CAST ( '+@Parameter1+' AS BIGINT) As Value,  
+                   CAST ( '+      @Parameter2+' AS VARCHAR(MAX)) AS Label,   
+             MasterCompanyId FROM dbo.['+@TableName+'] WITH(NOLOCK) WHERE MasterCompanyId = '+CAST(@MasterCompanyId AS nvarchar(50))+' AND CAST ( '+@Parameter1+' AS VARCHAR(MAX) ) IN (SELECT Item FROM DBO.SPLITSTRING('''+@Idlist+''','',''))      
+              
+            INSERT INTO #TempTable (Value, Label, MasterCompanyId)   
+            SELECT DISTINCT  CAST ( '+@Parameter1+' AS BIGINT) As Value,  
+                CAST('+           @Parameter2+' AS VARCHAR(MAX)) AS Label,  
+       MasterCompanyId FROM dbo.['+@TableName+'] WITH(NOLOCK) WHERE MasterCompanyId = '+CAST(@MasterCompanyId AS nvarchar(50))+' AND IsActive=1 AND ISNULL(IsDeleted,0)=0 AND CAST ( '+@Parameter2+' AS VARCHAR(MAX)) !='''' AND '+@Parameter2+'  LIKE ''%'+@Parameter3+'%'''
+                         END
+                     END
+                     ELSE BEGIN
+                         SET @Sql=N'INSERT INTO #TempTable (Value, Label, MasterCompanyId)   
+                          SELECT DISTINCT  CAST ( '+@Parameter1+' AS BIGINT) As Value,  
+        CAST('+          @Parameter2+' AS VARCHAR(MAX)) AS Label,  
+        MasterCompanyId FROM  dbo.['+@TableName+'] WITH(NOLOCK) WHERE MasterCompanyId = '+CAST(@MasterCompanyId AS nvarchar(50))+' AND CAST ( '+@Parameter1+' AS VARCHAR(MAX) ) IN (SELECT Item FROM DBO.SPLITSTRING('''+@Idlist+''','',''))      
+               
+   INSERT INTO #TempTable (Value, Label, MasterCompanyId)   
+            SELECT DISTINCT  CAST ( '+@Parameter1+' AS BIGINT) As Value,  
+      CAST('+            @Parameter2+' AS VARCHAR(MAX)) AS Label,  
+      MasterCompanyId FROM dbo.['+@TableName+'] WITH(NOLOCK) WHERE MasterCompanyId = '+CAST(@MasterCompanyId AS nvarchar(50))+' AND IsActive=1 AND ISNULL(IsDeleted,0)=0 AND CAST ( '+@Parameter2+' AS VARCHAR(MAX)) !='''' AND '+@Parameter2+'  LIKE ''%'+@Parameter3+'%''';
+                     END
+            END
+        END
+        ELSE BEGIN
+            IF(@TableName='Employee')BEGIN
+                IF(@Parameter4=1)BEGIN
+                    SELECT DISTINCT top 20 EmployeeId AS Value, FirstName+' '+LastName AS Label
+                    FROM dbo.Employee WITH(NOLOCK)
+                    WHERE MasterCompanyId=@MasterCompanyId AND(IsActive=1 AND ISNULL(IsDeleted, 0)=0 AND(FirstName LIKE '%'+@Parameter3+'%' OR LastName LIKE '%'+@Parameter3+'%'))
+                    UNION
+                    SELECT DISTINCT EmployeeId AS Value, FirstName+' '+LastName AS Label
+                    FROM dbo.Employee WITH(NOLOCK)
+                    WHERE MasterCompanyId=@MasterCompanyId AND EmployeeId in(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') )
+                END
+                ELSE BEGIN
+                    SELECT DISTINCT top 20 EmployeeId AS Value, FirstName+' '+LastName AS Label
+                    FROM dbo.Employee WITH(NOLOCK)
+                    WHERE MasterCompanyId=@MasterCompanyId AND IsActive=1 AND ISNULL(IsDeleted, 0)=0 AND(FirstName LIKE '%'+@Parameter3+'%' OR LastName LIKE '%'+@Parameter3+'%')
+                    UNION
+                    SELECT DISTINCT EmployeeId AS Value, FirstName+' '+LastName AS Label
+                    FROM dbo.Employee WITH(NOLOCK)
+                    WHERE MasterCompanyId=@MasterCompanyId AND EmployeeId in(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') )
+                END
+            END
+			ELSE IF(@TableName='PublicationType')BEGIN
+                     IF(@Parameter4=1)BEGIN
+                         SELECT DISTINCT PublicationTypeId as Value, [Name] as Label, (SELECT TOP 1 EmailBody FROM DBO.PublicationTemplate PT WITH(NOLOCK) WHERE PT.PublicationTypeId = P.PublicationTypeId AND Pt.MasterCompanyId = P.MasterCompanyId ) as PublicationTemplate
+                         FROM dbo.PublicationType P WITH(NOLOCK)
+                         WHERE MasterCompanyId=@MasterCompanyId AND(IsActive=1 AND ISNULL(IsDeleted, 0)=0 AND(Description LIKE '%'+@Parameter3+'%'))
+                         UNION
+                         SELECT DISTINCT PublicationTypeId as Value, [Name] as Label, (SELECT TOP 1 EmailBody FROM DBO.PublicationTemplate PT WITH(NOLOCK) WHERE PT.PublicationTypeId = P.PublicationTypeId AND Pt.MasterCompanyId = P.MasterCompanyId ) as PublicationTemplate
+                         FROM dbo.PublicationType P WITH(NOLOCK)
+                         WHERE MasterCompanyId=@MasterCompanyId AND PublicationTypeId IN(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') )
+                         ORDER BY Name asc
+                     END
+                     ELSE 
+					 BEGIN
+                         SELECT DISTINCT PublicationTypeId as Value, [Name] as Label, (SELECT TOP 1 EmailBody FROM DBO.PublicationTemplate PT WITH(NOLOCK) WHERE PT.PublicationTypeId = P.PublicationTypeId AND Pt.MasterCompanyId = P.MasterCompanyId ) as PublicationTemplate
+                         FROM dbo.PublicationType P WITH(NOLOCK)
+                         WHERE MasterCompanyId=@MasterCompanyId AND IsActive=1 AND ISNULL(IsDeleted, 0)=0 AND Description LIKE '%'+@Parameter3+'%'
+                         UNION
+                         SELECT DISTINCT PublicationTypeId as Value, [Name] as Label, (SELECT TOP 1 EmailBody FROM DBO.PublicationTemplate PT WITH(NOLOCK) WHERE PT.PublicationTypeId = P.PublicationTypeId AND Pt.MasterCompanyId = P.MasterCompanyId ) as PublicationTemplate
+                         FROM dbo.PublicationType P WITH(NOLOCK)
+                         WHERE MasterCompanyId=@MasterCompanyId AND PublicationTypeId IN(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') )
+                         ORDER BY Name asc
+                     END
+            END
+            ELSE IF(@TableName='Task')BEGIN
+                     IF(@Parameter4=1)BEGIN
+                         SELECT DISTINCT TaskId AS Value, Description AS Label, Sequence , IsTravelerTask, StandardHours, StandardMinute, Descrepancy, Resolution, IsPrintInWO, IsPrintInWOQ,IsPrintInspector,IsPrintTechnician,IsPrintAdmin
+                         FROM dbo.Task WITH(NOLOCK)
+                         WHERE MasterCompanyId=@MasterCompanyId AND(IsActive=1 AND ISNULL(IsDeleted, 0)=0 AND(Description LIKE '%'+@Parameter3+'%'))
+                         UNION
+                         SELECT DISTINCT TaskId AS Value, Description AS Label, Sequence, IsTravelerTask, StandardHours, StandardMinute, Descrepancy, Resolution, IsPrintInWO, IsPrintInWOQ,IsPrintInspector,IsPrintTechnician,IsPrintAdmin
+                         FROM dbo.Task WITH(NOLOCK)
+                         WHERE MasterCompanyId=@MasterCompanyId AND TaskId IN(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') )
+                         ORDER BY [Sequence] ASC
+                     END
+                     ELSE BEGIN
+                         SELECT DISTINCT TaskId AS Value, Description AS Label, Sequence , IsTravelerTask, StandardHours, StandardMinute, Descrepancy, Resolution
+                         FROM dbo.Task WITH(NOLOCK)
+                         WHERE MasterCompanyId=@MasterCompanyId AND IsActive=1 AND ISNULL(IsDeleted, 0)=0 AND Description LIKE '%'+@Parameter3+'%'
+                         UNION
+                         SELECT DISTINCT TaskId AS Value, Description AS Label, Sequence , IsTravelerTask, StandardHours, StandardMinute, Descrepancy, Resolution
+                         FROM dbo.Task WITH(NOLOCK)
+                         WHERE MasterCompanyId=@MasterCompanyId AND TaskId IN(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') )
+                         ORDER BY [Sequence] ASC
+                     END
+            END
+            ELSE IF(@TableName='ConsigneeLot')BEGIN
+                     SELECT DISTINCT TOP 20 LotId AS Value, LotNumber AS Label
+                     FROM dbo.LOT WITH(NOLOCK)
+                     WHERE MasterCompanyId=@MasterCompanyId AND(IsActive=1 AND ISNULL(IsDeleted, 0)=0 AND(LotNumber LIKE '%'+@Parameter3+'%'))AND LotId NOT IN(SELECT ISNULL(LotId, 0)FROM LotConsignment)
+                     UNION
+                     SELECT DISTINCT LotId AS Value, LotNumber AS Label
+                     FROM dbo.Lot WITH(NOLOCK)
+                     WHERE MasterCompanyId=@MasterCompanyId AND LotId IN(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') )AND LotId NOT IN(SELECT ISNULL(LotId, 0)FROM LotConsignment)
+                     ORDER BY LotId DESC
+            END
+            ELSE IF(@TableName='LotLatest')BEGIN
+                     SELECT DISTINCT TOP 20 LotId AS Value, LotNumber AS Label
+                     FROM dbo.LOT WITH(NOLOCK)
+                     WHERE MasterCompanyId=@MasterCompanyId AND(IsActive=1 AND ISNULL(IsDeleted, 0)=0 AND(LotNumber LIKE '%'+@Parameter3+'%'))
+                     UNION
+                     SELECT DISTINCT LotId AS Value, LotNumber AS Label
+                     FROM dbo.Lot WITH(NOLOCK)
+                     WHERE MasterCompanyId=@MasterCompanyId AND LotId IN(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') )
+                     ORDER BY LotId DESC
+            END
+            ELSE IF(@TableName='ItemMasterNonStock')BEGIN
+                     SELECT IMN.MasterPartId as Value, IMN.partnumber as PartNumber, IMN.partnumber+(CASE WHEN(SELECT COUNT(ISNULL(SD.[ManufacturerId], 0))
+                                                                                                               FROM [dbo].[ItemMasterNonStock] SD WITH(NOLOCK)
+                                                                                                               WHERE IMN.partnumber=SD.partnumber AND SD.MasterCompanyId=@MasterCompanyId)>1 then ' - '+IMN.Manufacturer ELSE '' END) AS Label, IMN.MasterCompanyId, IMN.Manufacturer As ManufacturerName
+                     FROM dbo.ItemMasterNonStock IMN
+                     WHERE IMN.MasterCompanyId=@MasterCompanyId AND ISNULL(IsActive, 1)=1 AND ISNULL(IsDeleted, 0)=0 AND IMN.PartNumber like '%'+@Parameter3+'%'
+            END
+			 ELSE IF(@TableName='BatchDetails')BEGIN
+                     SELECT DISTINCT TOP 20 MAX(JournalBatchDetailId) AS Value, JournalTypeNumber AS Label
+                     FROM dbo.BatchDetails WITH(NOLOCK)
+                     WHERE MasterCompanyId=@MasterCompanyId AND(IsActive=1 AND ISNULL(IsDeleted, 0)=0 AND(JournalTypeNumber LIKE '%'+@Parameter3+'%')) GROUP BY JournalTypeNumber
+                     UNION
+                     SELECT DISTINCT MAX(JournalBatchDetailId) AS Value, JournalTypeNumber AS Label
+                     FROM dbo.BatchDetails WITH(NOLOCK)
+                     WHERE MasterCompanyId=@MasterCompanyId AND JournalBatchDetailId IN(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') ) GROUP BY JournalTypeNumber
+            END
+			ELSE IF(@TableName='Stockline')BEGIN
+                     SELECT DISTINCT TOP 20 MAX(StocklineId) AS Value, StockLineNumber AS Label
+                     FROM dbo.Stockline WITH(NOLOCK)
+                     WHERE MasterCompanyId=@MasterCompanyId AND(IsActive=1 AND ISNULL(IsDeleted, 0)=0 AND(StockLineNumber LIKE '%'+@Parameter3+'%')) GROUP BY StockLineNumber
+                     UNION
+                     SELECT DISTINCT MAX(StocklineId) AS Value, StockLineNumber AS Label
+                     FROM dbo.Stockline WITH(NOLOCK)
+                     WHERE MasterCompanyId=@MasterCompanyId AND StocklineId IN(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') ) GROUP BY StockLineNumber
+            END
+            ELSE IF(@TableName='SalesOrderQuote')BEGIN
+                     SELECT DISTINCT TOP 20 SalesOrderQuoteId AS Value, SalesOrderQuoteNumber AS Label
+                     FROM dbo.SalesOrderQuote WITH(NOLOCK)
+                     WHERE MasterCompanyId=@MasterCompanyId AND(IsActive=1 AND ISNULL(IsDeleted, 0)=0 AND IsNewVersionCreated = 0 AND(SalesOrderQuoteNumber LIKE '%'+@Parameter3+'%'))
+                     UNION
+                     SELECT DISTINCT SalesOrderQuoteId AS Value, SalesOrderQuoteNumber AS Label
+                     FROM dbo.SalesOrderQuote WITH(NOLOCK)
+                     WHERE MasterCompanyId=@MasterCompanyId AND IsNewVersionCreated = 0 AND SalesOrderQuoteId IN(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') )
+                     ORDER BY SalesOrderQuoteId DESC
+            END
+            ELSE BEGIN
+                     IF(@Parameter4=1)BEGIN
+                         IF(@TableName='ItemMaster' AND ISNULL(@IsFromUpload,0) = 0)BEGIN
+                             SELECT TOP 50 IM.ItemMasterId as Value, Im.partnumber as PartNumber, im.partnumber+(CASE WHEN(SELECT COUNT(ISNULL(SD.[ManufacturerId], 0))
+                                                                                                                           FROM [dbo].[ItemMaster] SD WITH(NOLOCK)
+                                                                                                                           WHERE im.partnumber=SD.partnumber AND SD.MasterCompanyId=@MasterCompanyId)>1 then ' - '+IM.ManufacturerName ELSE '' END) AS Label, IM.MasterCompanyId, im.ManufacturerName AS ManufacturerName, im.IsSerialized ,IM.IsOEM
+                             FROM dbo.ItemMaster IM
+                             WHERE Im.MasterCompanyId=@MasterCompanyId AND ISNULL(IsActive, 1)=1 AND ISNULL(IsDeleted, 0)=0 AND Im.PartNumber like '%'+@Parameter3+'%'
+                             UNION
+                             SELECT IM.ItemMasterId as Value, Im.partnumber as PartNumber, im.partnumber+(CASE WHEN(SELECT COUNT(ISNULL(SD.[ManufacturerId], 0))
+                                                                                                                    FROM [dbo].[ItemMaster] SD WITH(NOLOCK)
+                                                                                                                    WHERE im.partnumber=SD.partnumber AND SD.MasterCompanyId=@MasterCompanyId)>1 then ' - '+IM.ManufacturerName ELSE '' END) AS Label, IM.MasterCompanyId, im.ManufacturerName AS ManufacturerName, im.IsSerialized ,IM.IsOEM
+                             FROM dbo.ItemMaster IM
+                             WHERE Im.MasterCompanyId=@MasterCompanyId AND IM.ItemMasterId in(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') )
+                         END
+						 ELSE IF(@TableName='ItemMaster' AND ISNULL(@IsFromUpload,0) = 1)
+							BEGIN
+								SELECT TOP 50 IM.ItemMasterId as Value, Im.partnumber as PartNumber, im.partnumber AS Label, IM.MasterCompanyId, im.ManufacturerName As ManufacturerName, im.IsSerialized ,IM.IsOEM
+								 FROM dbo.ItemMaster IM
+								 WHERE Im.MasterCompanyId=@MasterCompanyId AND ISNULL(IsActive, 1)=1 AND ISNULL(IsDeleted, 0)=0 AND Im.PartNumber like '%'+@Parameter3+'%'
+								 UNION
+								 SELECT IM.ItemMasterId as Value, Im.partnumber as PartNumber, im.partnumber AS Label, IM.MasterCompanyId, im.ManufacturerName As ManufacturerName, im.IsSerialized ,IM.IsOEM
+								 FROM dbo.ItemMaster IM
+								 WHERE Im.MasterCompanyId=@MasterCompanyId AND IM.ItemMasterId in(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') )
+							END
+                         ELSE IF(@TableName='ItemMasterALL')BEGIN
+                                  SELECT IM.ItemMasterId as Value, Im.partnumber as PartNumber, im.partnumber+(CASE WHEN(SELECT COUNT(ISNULL(SD.[ManufacturerId], 0))
+                                                                                                                         FROM [dbo].[ItemMaster] SD WITH(NOLOCK)
+                                                                                                                         WHERE im.partnumber=SD.partnumber AND SD.MasterCompanyId=@MasterCompanyId)>1 then ' - '+IM.ManufacturerName ELSE '' END) AS Label, IM.MasterCompanyId, im.ManufacturerName As ManufacturerName
+                                  FROM dbo.ItemMaster IM
+                                  WHERE Im.MasterCompanyId=@MasterCompanyId AND ISNULL(IsActive, 1)=1 AND ISNULL(IsDeleted, 0)=0 AND Im.PartNumber like '%'+@Parameter3+'%'
+                                  UNION
+                                  SELECT IM.ItemMasterId as Value, Im.partnumber as PartNumber, im.partnumber+(CASE WHEN(SELECT COUNT(ISNULL(SD.[ManufacturerId], 0))
+                                                                                                                         FROM [dbo].[ItemMaster] SD WITH(NOLOCK)
+                                                                                                                         WHERE im.partnumber=SD.partnumber AND SD.MasterCompanyId=@MasterCompanyId)>1 then ' - '+IM.ManufacturerName ELSE '' END) AS Label, IM.MasterCompanyId, im.ManufacturerName As ManufacturerName
+                                  FROM dbo.ItemMaster IM
+                                  WHERE Im.MasterCompanyId=@MasterCompanyId AND IM.ItemMasterId in(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') )
+                         END
+                         ELSE IF(@TableName='ItemMasterNonStock')BEGIN
+                                  SELECT TOP 50 IMN.MasterPartId as Value, IMN.partnumber as PartNumber, IMN.partnumber+(CASE WHEN(SELECT COUNT(ISNULL(SD.[ManufacturerId], 0))
+                                                                                                                                   FROM [dbo].[ItemMasterNonStock] SD WITH(NOLOCK)
+                                                                                                                                   WHERE IMN.partnumber=SD.partnumber AND SD.MasterCompanyId=@MasterCompanyId)>1 then ' - '+IMN.Manufacturer ELSE '' END) AS Label, IMN.MasterCompanyId, IMN.Manufacturer As ManufacturerName
+                                  FROM dbo.ItemMasterNonStock IMN
+                                  WHERE IMN.MasterCompanyId=@MasterCompanyId AND ISNULL(IsActive, 1)=1 AND ISNULL(IsDeleted, 0)=0 AND IMN.PartNumber like '%'+@Parameter3+'%'
+                         END
+                         ELSE IF(@TableName='ConsigneeLot')BEGIN
+                                  SELECT TOP 20 LotId AS Value, LotNumber AS Label
+                                  FROM dbo.LOT WITH(NOLOCK)
+                                  WHERE MasterCompanyId=@MasterCompanyId AND(IsActive=1 AND ISNULL(IsDeleted, 0)=0 AND(LotNumber LIKE '%'+@Parameter3+'%'))AND LotId NOT IN(SELECT ISNULL(LotId, 0)FROM LotConsignment)
+                                  UNION
+                                  SELECT DISTINCT LotId AS Value, LotNumber AS Label
+                                  FROM dbo.Lot WITH(NOLOCK)
+                                  WHERE MasterCompanyId=@MasterCompanyId AND LotId IN(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') )AND LotId NOT IN(SELECT ISNULL(LotId, 0)FROM LotConsignment)
+                                  ORDER BY LotId DESC
+                         END
+                         ELSE IF(@TableName='LotLatest')BEGIN
+                                  SELECT TOP 20 LotId AS Value, LotNumber AS Label
+                                  FROM dbo.LOT WITH(NOLOCK)
+                                  WHERE MasterCompanyId=@MasterCompanyId AND(IsActive=1 AND ISNULL(IsDeleted, 0)=0 AND(LotNumber LIKE '%'+@Parameter3+'%'))
+                                  UNION
+                                  SELECT DISTINCT LotId AS Value, LotNumber AS Label
+                                  FROM dbo.Lot WITH(NOLOCK)
+                                  WHERE MasterCompanyId=@MasterCompanyId AND LotId IN(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') )
+                                  ORDER BY LotId DESC
+                         END
+						  ELSE IF(@TableName='PublicationType')BEGIN
+                                  SELECT TOP 20 PublicationTypeId as Value, [Name] as Label, (SELECT TOP 1 EmailBody FROM DBO.PublicationTemplate PT WITH(NOLOCK) WHERE PT.PublicationTypeId = P.PublicationTypeId AND Pt.MasterCompanyId = P.MasterCompanyId ) as PublicationTemplate
+										FROM dbo.PublicationType P WITH(NOLOCK)
+                                  WHERE MasterCompanyId=@MasterCompanyId AND(IsActive=1 AND ISNULL(IsDeleted, 0)=0 AND([Name] LIKE '%'+@Parameter3+'%'))
+                                  UNION
+                                  SELECT DISTINCT PublicationTypeId as Value, [Name] as Label, (SELECT TOP 1 EmailBody FROM DBO.PublicationTemplate PT WITH(NOLOCK) WHERE PT.PublicationTypeId = P.PublicationTypeId AND Pt.MasterCompanyId = P.MasterCompanyId ) as PublicationTemplate
+									FROM dbo.PublicationType P WITH(NOLOCK)
+                                  WHERE MasterCompanyId=@MasterCompanyId AND PublicationTypeId IN(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') )
+                                  ORDER BY PublicationTypeId DESC
+                         END
+						 ELSE IF(@TableName = 'VendorOrderType') BEGIN
+							  SELECT VT.VendorOrderTypeId as Value, VT.OrderTypeName as Label
+								 FROM dbo.VendorOrderType VT WITH(NOLOCK)
+							  WHERE VT.IsActive = 1 AND VT.IsDeleted = 0;
+						 END
+						 ELSE IF(@TableName = 'VendorAuditType') BEGIN
+							  SELECT VAT.VendorAuditTypeId as Value, VAT.VendorAuditType as Label
+								 FROM dbo.VendorAuditType VAT WITH(NOLOCK)
+							  WHERE VAT.MasterCompanyId=@MasterCompanyId AND VAT.IsActive = 1 AND VAT.IsDeleted = 0;
+						 END
+                         ELSE IF(@TableName='SalesOrderQuote')BEGIN
+                                 SELECT DISTINCT TOP 20 SalesOrderQuoteId AS Value, SalesOrderQuoteNumber AS Label
+                                 FROM dbo.SalesOrderQuote WITH(NOLOCK)
+                                 WHERE MasterCompanyId=@MasterCompanyId AND(IsActive=1 AND ISNULL(IsDeleted, 0)=0 AND IsNewVersionCreated = 0 AND(SalesOrderQuoteNumber LIKE '%'+@Parameter3+'%'))
+                                 UNION
+                                 SELECT DISTINCT SalesOrderQuoteId AS Value, SalesOrderQuoteNumber AS Label
+                                 FROM dbo.SalesOrderQuote WITH(NOLOCK)
+                                 WHERE MasterCompanyId=@MasterCompanyId AND IsNewVersionCreated = 0 AND SalesOrderQuoteId IN(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') )
+                                 ORDER BY SalesOrderQuoteId DESC
+                        END
+                         ELSE BEGIN
+                                  SET @Sql=N'INSERT INTO #TempTable (Value, Label, MasterCompanyId)   
+             SELECT DISTINCT TOP '+@Count+' CAST ( '+@Parameter1+' AS BIGINT) As Value,  
+               CAST ( '+          @Parameter2+' AS VARCHAR(MAX)) AS Label,   
+               MasterCompanyId FROM  dbo.['+@TableName+'] WHERE MasterCompanyId =  '+CAST(@MasterCompanyId AS nvarchar(50))+'  AND CAST ( '+@Parameter1+' AS VARCHAR(MAX) ) IN (SELECT Item FROM DBO.SPLITSTRING('''+@Idlist+''','',''))      
+              
+    INSERT INTO #TempTable (Value, Label, MasterCompanyId)   
+        SELECT DISTINCT TOP '+    @Count+' CAST ( '+@Parameter1+' AS BIGINT) As Value,  
+         CAST('+                  @Parameter2+' AS VARCHAR(MAX)) AS Label,  
+         MasterCompanyId FROM  dbo.['+@TableName+'] WHERE MasterCompanyId =  '+CAST(@MasterCompanyId AS nvarchar(50))+'  AND IsActive=1 AND ISNULL(IsDeleted,0)=0 AND CAST ( '+@Parameter2+' AS VARCHAR(MAX)) !='''' AND '+@Parameter2+'  LIKE ''%'+@Parameter3+'%'''
+                         END
+                     END
+                     ELSE BEGIN
+                         SET @Sql=N'INSERT INTO #TempTable (Value, Label, MasterCompanyId)   
+                          SELECT DISTINCT TOP '+@Count+' CAST ( '+@Parameter1+' AS BIGINT) As Value,  
+        CAST ( '+        @Parameter2+' AS VARCHAR(MAX)) AS Label,  
+        MasterCompanyId FROM  dbo.['+@TableName+'] WHERE MasterCompanyId =  '+CAST(@MasterCompanyId AS nvarchar(50))+'  AND CAST ( '+@Parameter1+' AS VARCHAR(MAX) ) IN (SELECT Item FROM DBO.SPLITSTRING('''+@Idlist+''','',''))      
+               
+          INSERT INTO #TempTable (Value, Label, MasterCompanyId)   
+            SELECT DISTINCT TOP '+@Count+' CAST ( '+@Parameter1+' AS BIGINT) As Value,  
+      CAST('+            @Parameter2+' AS VARCHAR(MAX)) AS Label,  
+      MasterCompanyId FROM  dbo.['+@TableName+'] WHERE MasterCompanyId =  '+CAST(@MasterCompanyId AS nvarchar(50))+'  AND IsActive=1 AND ISNULL(IsDeleted,0)=0 AND CAST ( '+@Parameter2+' AS VARCHAR(MAX)) !='''' AND '+@Parameter2+'  LIKE ''%'+@Parameter3+'%''';
+                     END
+            END
+        END
+        PRINT @Sql
+        EXEC sp_executesql @Sql;
+        SELECT DISTINCT *
+        FROM #TempTable
+        WHERE MasterCompanyId=@MasterCompanyId
+        ORDER BY Label
+        DROP Table #TempTable
+    END TRY
+    BEGIN CATCH
+        DECLARE @ErrorLogID INT, @DatabaseName VARCHAR(100) =db_name(),
+            -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------  
+            @AdhocComments VARCHAR(150) ='AutoCompleteDropdowns', @ProcedureParameters VARCHAR(3000) = 
+			'@Parameter1 = '''+CAST(ISNULL(@TableName, '') as varchar(100))+ 
+			'@Parameter2 = '''+CAST(ISNULL(@Parameter1, '') as varchar(100))+
+			'@Parameter3 = '''+CAST(ISNULL(@Parameter2, '') as varchar(100))+
+			'@Parameter4 = '''+CAST(ISNULL(@Parameter3, '') as varchar(100))+
+			'@Parameter5 = '''+CAST(ISNULL(@Parameter4, '') as varchar(100))+
+			'@Parameter6 = '''+CAST(ISNULL(@Count, '') as varchar(100))+
+			'@Parameter7 = '''+CAST(ISNULL(@Idlist, '') as varchar(100))+
+			'@Parameter8 = '''+CAST(ISNULL(@MasterCompanyId, '') as varchar(100)), 
+			@ApplicationName VARCHAR(100) = 'PAS'
+        -----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------  
+        EXEC spLogException @DatabaseName=@DatabaseName, @AdhocComments=@AdhocComments, @ProcedureParameters=@ProcedureParameters, @ApplicationName=@ApplicationName, @ErrorLogID=@ErrorLogID OUTPUT;
+        RAISERROR('Unexpected Error Occured in the database. Please let the support team know of the error number : %d', 16, 1, @ErrorLogID)
+        RETURN (1);
+    END CATCH
+END

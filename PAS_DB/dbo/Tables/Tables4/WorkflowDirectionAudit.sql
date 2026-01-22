@@ -1,0 +1,26 @@
+﻿CREATE TABLE [dbo].[WorkflowDirectionAudit] (
+    [WorkflowDirectionAuditId] BIGINT         IDENTITY (1, 1) NOT NULL,
+    [WorkflowDirectionId]      BIGINT         NOT NULL,
+    [WorkflowId]               BIGINT         NOT NULL,
+    [Action]                   NVARCHAR (MAX) NULL,
+    [Description]              NVARCHAR (MAX) NULL,
+    [Sequence]                 VARCHAR (100)  NULL,
+    [Memo]                     NVARCHAR (MAX) NULL,
+    [TaskId]                   BIGINT         NULL,
+    [MasterCompanyId]          INT            NOT NULL,
+    [CreatedBy]                VARCHAR (256)  NULL,
+    [UpdatedBy]                VARCHAR (256)  NULL,
+    [CreatedDate]              DATETIME2 (7)  NULL,
+    [UpdatedDate]              DATETIME2 (7)  NULL,
+    [IsActive]                 BIT            NULL,
+    [IsDeleted]                BIT            NOT NULL,
+    [Order]                    INT            NULL,
+    [WFParentId]               BIGINT         NULL,
+    [IsVersionIncrease]        BIT            NULL,
+    [TaskName]                 VARCHAR (200)  NULL,
+    [ParentId]                 BIGINT         NULL,
+    [IsParent]                 BIT            NULL,
+    [IsTaskDetails]            BIT            NULL,
+    CONSTRAINT [PK_WorkflowDirectionAudit] PRIMARY KEY CLUSTERED ([WorkflowDirectionAuditId] ASC)
+);
+

@@ -1,0 +1,23 @@
+﻿CREATE TYPE [dbo].[WorkflowDirectionType] AS TABLE (
+    [WorkflowDirectionId] BIGINT         NULL,
+    [WorkflowId]          BIGINT         NULL,
+    [Action]              NVARCHAR (MAX) NULL,
+    [Description]         NVARCHAR (MAX) NULL,
+    [Sequence]            VARCHAR (100)  NULL,
+    [Memo]                NVARCHAR (MAX) NULL,
+    [TaskId]              BIGINT         NULL,
+    [MasterCompanyId]     INT            NULL,
+    [CreatedBy]           VARCHAR (256)  NULL,
+    [UpdatedBy]           VARCHAR (256)  NULL,
+    [CreatedDate]         DATETIME2 (7)  NULL,
+    [UpdatedDate]         DATETIME2 (7)  NULL,
+    [IsActive]            BIT            NULL,
+    [IsDeleted]           BIT            NULL,
+    [Order]               INT            NULL,
+    [WFParentId]          BIGINT         NULL,
+    [IsVersionIncrease]   BIT            NULL,
+    [TaskName]            VARCHAR (200)  NULL,
+    [ParentId]            BIGINT         NULL,
+    [IsParent]            BIT            NULL,
+    [IsTaskDetails]       BIT            NULL);
+

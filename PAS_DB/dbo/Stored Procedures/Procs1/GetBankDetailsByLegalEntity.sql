@@ -1,0 +1,58 @@
+﻿/*************************************************************             
+** File:   [GetBankDetailsByLegalEntity]       
+** Author:   Moin Bloch
+** Description: This procedre is used to display LE banking detail 
+** Purpose:           
+** Date:   
+**************************************************************             
+** Change History             
+**************************************************************             
+** PR   Date         Author			Change Description              
+** --   --------     -------		--------------------------------            
+	1   08/08/2022   Moin Bloch	    created 
+	2   14/03/2022   Moin Bloch	    modified removed Wire Transfers and ACH bank account types PN-7338
+  	3   11/09/2022   Rajesh Gami	Added the IsDeleted condition and remove BOTH accountTypeId
+  EXEC [dbo].[GetBankDetailsByLegalEntity] 1 
+**************************************************************/
+CREATE     PROCEDURE [dbo].[GetBankDetailsByLegalEntity]
+@LegalEntityId BIGINT
+AS
+BEGIN
+	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
+	SET NOCOUNT ON
+	BEGIN TRY
+			SELECT [LegalEntityBankingLockBoxId] AS 'BankingId',
+			       [BankName],
+				   [BankAccountNumber] AS 'BankAccountNumber',
+				   'Operating Account' AS 'Type',
+				   [GLAccountId],
+				   CASE WHEN [IsPrimay] = 1 THEN 1 ELSE 0 END AS [IsPrimay],
+				   [LegalEntityId]
+			  FROM [dbo].[LegalEntityBankingLockBox] WITH(NOLOCK)
+			 WHERE [LegalEntityId] = @LegalEntityId 
+			  AND [AccountTypeId] = 1 AND ISNULL(IsDeleted,0) = 0 AND ISNULL(IsActive,0) = 1
+			--UNION ALL
+			--SELECT iwp.InternationalWirePaymentId AS 'BankingId',BankName,iwp.BeneficiaryBankAccount AS 'BankAccountNumber','WirePayment' AS 'Type',iwp.GLAccountId,CASE WHEN IsPrimay = 1 THEN 1 ELSE 0 END AS IsPrimay,LegalEntityId FROM dbo.InternationalWirePayment iwp WITH(NOLOCK)
+			--INNER JOIN dbo.LegalEntityInternationalWireBanking leiwp WITH(NOLOCK) ON iwp.InternationalWirePaymentId = leiwp.InternationalWirePaymentId
+			--WHERE leiwp.LegalEntityId=@LegalEntityId
+			--UNION
+			--SELECT ACHId AS 'BankingId',BankName,AccountNumber AS 'BankAccountNumber','ACH' AS 'Type',GLAccountId,CASE WHEN IsPrimay = 1 THEN 1 ELSE 0 END AS IsPrimay,LegalEntityId FROM dbo.ACH WITH(NOLOCK)
+			--WHERE LegalEntityId=@LegalEntityId
+	END TRY    
+		BEGIN CATCH
+				DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name() 
+-----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
+              , @AdhocComments     VARCHAR(150)    = 'GetBankDetailsByLegalEntity' 
+              , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = '''+ ISNULL(@LegalEntityId, '') + ''
+              , @ApplicationName VARCHAR(100) = 'PAS'
+-----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------
+              exec spLogException 
+                       @DatabaseName           = @DatabaseName
+                     , @AdhocComments          = @AdhocComments
+                     , @ProcedureParameters = @ProcedureParameters
+                     , @ApplicationName        =  @ApplicationName
+                     , @ErrorLogID             = @ErrorLogID OUTPUT;
+              RAISERROR ('Unexpected Error Occured in the database. Please let the support team know of the error number : %d', 16, 1,@ErrorLogID)
+              RETURN(1);
+	END CATCH
+END

@@ -1,0 +1,151 @@
+﻿-- =============================================
+-- Author:		<Ayesha Sultana>
+-- Create date: <16-10-2023>
+-- Description:	<This stored procedure is used Get JournalBatchDetailsById for Exchange Sales Order List>
+-- =============================================
+/**************************************************************             
+ ** Change History             
+ **************************************************************             
+ ** PR   Date			 Author				Change Description              
+ ** --   --------		 -------			--------------------------------            
+    1    16-10-2023		Ayesha Sultana		Created  
+	2    31/10/2023     Bhargav Saliya      Export Data Convert In To Upper Case
+	3    01/11/2023     Bhargav Saliya      ADD ORDER BY DESC because Last accounting entry is not coming first
+	4    10/11/2023     HEMANT SALIYA       Resolved Time out Issue
+	5    01/12/2023     Moin Bloch          Added Lot Number 
+	6    10/05/2023     Moin Bloch          Added IsUpdated
+	7    07-Apr-2025	Divyesh Kathiriya	Update EntryDate, TransactionDate based on Employee time zone
+	8    06/24/2025	    Ekta Chandegra	    Optimized UDF usage (ConvertUTCtoLocal)
+
+	EXEC GetExchangeSOAccountingDetailsViewById 187,223
+************************************************************************/   
+
+CREATE   PROCEDURE  [dbo].[GetExchangeSOAccountingDetailsViewById]  
+@ReferenceId BIGINT,
+@EmployeeId BIGINT
+AS
+BEGIN
+ SET NOCOUNT ON;    
+ BEGIN TRY        
+   DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
+				
+	SELECT 
+		@CurrntEmpTimeZoneDesc = COALESCE(
+			ETZ.[Description],  -- Prefer Employee's TimeZone description if available
+			LTZ.[Description]   -- Fallback to LegalEntity's TimeZone description
+		)
+	FROM 
+		dbo.Employee E WITH (NOLOCK) 
+	LEFT JOIN 
+		dbo.TimeZone ETZ WITH (NOLOCK) 
+		ON E.TimeZoneId = ETZ.TimeZoneId
+	LEFT JOIN 
+		dbo.LegalEntity LE WITH (NOLOCK) 
+		ON E.LegalEntityId = LE.LegalEntityId
+	LEFT JOIN 
+		dbo.TimeZone LTZ WITH (NOLOCK) 
+		ON LE.TimeZoneId = LTZ.TimeZoneId
+	WHERE 
+		E.EmployeeId = @EmployeeId; -- Use appropriate filter for the specific employee
+
+	DECLARE @POMSModuleId INT = 0
+	SELECT @POMSModuleId = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] ='Accounting';
+
+     SELECT CBD.CommonJournalBatchDetailId
+			,CBD.[JournalBatchDetailId] 
+			,CBD.[LineNumber]  
+			,CBD.[GlAccountId]  
+			,CBD.[GlAccountNumber]  
+			,UPPER(CBD.[GlAccountName])  AS [GlAccountName]
+			--,CBD.[TransactionDate]  
+			--,CBD.[EntryDate]
+			,(CAST(DBO.ConvertUTCtoLocal(CBD.[TransactionDate], @CurrntEmpTimeZoneDesc) AS DATETIME)) TransactionDate
+			,(CAST(DBO.ConvertUTCtoLocal(CBD.[EntryDate], @CurrntEmpTimeZoneDesc) AS DATETIME)) EntryDate
+			,CBD.[JournalTypeId]  
+            ,(UPPER(CBD.[JournalTypeName]) +' - '+ UPPER(EBD.ExchangeSalesOrderNumber)) as JournalTypeName  
+            ,CBD.[IsDebit]  
+            ,CBD.[DebitAmount]  
+            ,CBD.[CreditAmount]
+			,CBD.[ManagementStructureId]  
+            ,CBD.[ModuleName]  
+            ,CBD.[MasterCompanyId]  
+            ,CBD.[CreatedBy]  
+            ,CBD.[UpdatedBy]  
+            ,CBD.[CreatedDate]  
+            ,CBD.[UpdatedDate]  
+            ,CBD.[IsActive]  
+            ,CBD.[IsDeleted]
+			,CBD.LastMSLevel  
+            ,CBD.AllMSlevels  
+            ,CBD.IsManualEntry  
+            ,CBD.DistributionSetupId  
+            ,CBD.DistributionName
+			,BH.[JournalBatchHeaderId]  
+            ,BH.[BatchName]     			
+		    ,EBD.ExchangeBatchDetailId
+            ,EBD.ExchangeSalesOrderId AS [ReferenceId]  
+            ,UPPER(EBD.ExchangeSalesOrderNumber) AS [ReferenceNumber]  
+            ,EBD.StocklineId   
+            ,EBD.StocklineNumber 
+            ,EBD.ExchangeSalesOrderPartId 		  
+            -- ,EBD.ExchangeSalesOrderNumber  
+            ,EBD.CustomerId  
+            ,EBD.CustomerReference 
+            ,EBD.ItemMasterId 
+			,EBD.InvoiceNo 			
+            ,GL.AllowManualJE              
+            ,LE.CompanyName AS LegalEntityName  
+            ,BD.JournalTypeNumber
+			,BD.CurrentNumber  
+		    ,BS.[Name] AS 'Status'
+            ,CAST(MSL1.Code AS VARCHAR(250)) + ' - ' + MSL1.[Description] AS level1
+		    ,CAST(MSL2.Code AS VARCHAR(250)) + ' - ' + MSL2.[Description] AS level2
+		    ,CAST(MSL3.Code AS VARCHAR(250)) + ' - ' + MSL3.[Description] AS level3
+		    ,CAST(MSL4.Code AS VARCHAR(250)) + ' - ' + MSL4.[Description] AS level4
+		    ,CAST(MSL5.Code AS VARCHAR(250)) + ' - ' + MSL5.[Description] AS level5
+		    ,CAST(MSL6.Code AS VARCHAR(250)) + ' - ' + MSL6.[Description] AS level6
+		    ,CAST(MSL7.Code AS VARCHAR(250)) + ' - ' + MSL7.[Description] AS level7
+		    ,CAST(MSL8.Code AS VARCHAR(250)) + ' - ' + MSL8.[Description] AS level8
+		    ,CAST(MSL9.Code AS VARCHAR(250)) + ' - ' + MSL9.[Description] AS level9
+		    ,CAST(MSL10.Code AS VARCHAR(250)) + ' - ' + MSL10.[Description] AS level10
+			,CBD.[LotNumber]
+			,CASE WHEN CBD.IsUpdated = 1 THEN 1 ELSE 0 END AS IsUpdated
+   FROM [dbo].[CommonBatchDetails] CBD WITH(NOLOCK)    
+		INNER JOIN [dbo].[BatchDetails] BD WITH(NOLOCK) ON CBD.JournalBatchDetailId = BD.JournalBatchDetailId  		
+		INNER JOIN [dbo].[BatchHeader] BH WITH(NOLOCK) ON BD.JournalBatchHeaderId = BH.JournalBatchHeaderId
+		INNER JOIN [dbo].[ExchangeBatchDetails] EBD WITH(NOLOCK) ON CBD.CommonJournalBatchDetailId = EBD.CommonJournalBatchDetailId  
+		INNER JOIN [dbo].[GLAccount] GL WITH(NOLOCK) ON GL.GLAccountId = CBD.GLAccountId
+		INNER JOIN [dbo].[AccountingBatchManagementStructureDetails] MSD WITH(NOLOCK) ON CBD.CommonJournalBatchDetailId = MSD.ReferenceId AND CBD.ManagementStructureId = MSD.EntityMSID AND MSD.ModuleId = @POMSModuleId
+		 LEFT JOIN [dbo].[BatchStatus] BS WITH(NOLOCK) ON BD.StatusId = BS.Id  
+		 LEFT JOIN [dbo].[ManagementStructureLevel] MSL1 WITH (NOLOCK) ON MSD.Level1Id = MSL1.ID
+		 LEFT JOIN [dbo].[ManagementStructureLevel] MSL2 WITH (NOLOCK) ON MSD.Level2Id = MSL2.ID
+		 LEFT JOIN [dbo].[ManagementStructureLevel] MSL3 WITH (NOLOCK) ON MSD.Level3Id = MSL3.ID
+		 LEFT JOIN [dbo].[ManagementStructureLevel] MSL4 WITH (NOLOCK) ON MSD.Level4Id = MSL4.ID
+		 LEFT JOIN [dbo].[ManagementStructureLevel] MSL5 WITH (NOLOCK) ON MSD.Level5Id = MSL5.ID
+		 LEFT JOIN [dbo].[ManagementStructureLevel] MSL6 WITH (NOLOCK) ON MSD.Level6Id = MSL6.ID
+		 LEFT JOIN [dbo].[ManagementStructureLevel] MSL7 WITH (NOLOCK) ON MSD.Level7Id = MSL7.ID
+		 LEFT JOIN [dbo].[ManagementStructureLevel] MSL8 WITH (NOLOCK) ON MSD.Level8Id = MSL8.ID
+		 LEFT JOIN [dbo].[ManagementStructureLevel] MSL9 WITH (NOLOCK) ON MSD.Level9Id = MSL9.ID
+		 LEFT JOIN [dbo].[ManagementStructureLevel] MSL10 WITH (NOLOCK) ON MSD.Level10Id = MSL10.ID
+		 LEFT JOIN [dbo].[LegalEntity] le WITH(NOLOCK) ON MSL1.LegalEntityId = le.LegalEntityId  
+     WHERE EBD.ExchangeSalesOrderId = @ReferenceId  
+	 ORDER BY  CBD.CommonJournalBatchDetailId DESC
+  END TRY    
+ BEGIN CATCH          
+   DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name()     
+-----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------    
+            , @AdhocComments     VARCHAR(150)    = 'GetExchangeSOAccountingDetailsViewById'     
+            , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = '''+ ISNULL(CAST(@ReferenceId AS VARCHAR), '') + '''    
+												     @Parameter2 = '''+ ISNULL(CAST(@EmployeeId AS VARCHAR), '')
+            , @ApplicationName VARCHAR(100) = 'PAS'    
+-----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------    
+            exec spLogException     
+                    @DatabaseName           = @DatabaseName    
+                    , @AdhocComments          = @AdhocComments    
+                    , @ProcedureParameters = @ProcedureParameters    
+                    , @ApplicationName        =  @ApplicationName    
+                    , @ErrorLogID                    = @ErrorLogID OUTPUT ;    
+            RAISERROR ('Unexpected Error Occured in the database. Please let the support team know of the error number : %d', 16, 1,@ErrorLogID)    
+            RETURN(1);    
+ END CATCH    
+END

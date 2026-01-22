@@ -1,0 +1,27 @@
+﻿CREATE TABLE [dbo].[ROPickTicketAudit] (
+    [ROPickTicketAuditId] BIGINT         IDENTITY (1, 1) NOT NULL,
+    [ROPickTicketId]      BIGINT         NULL,
+    [ROPickTicketNumber]  VARCHAR (50)   NULL,
+    [RepairOrderId]       BIGINT         NULL,
+    [CreatedBy]           VARCHAR (256)  NULL,
+    [CreatedDate]         DATETIME2 (7)  NULL,
+    [UpdatedBy]           VARCHAR (256)  NULL,
+    [UpdatedDate]         DATETIME2 (7)  NULL,
+    [IsActive]            BIT            NULL,
+    [IsDeleted]           BIT            NULL,
+    [RepairOrderPartId]   BIGINT         NULL,
+    [StocklineId]         BIGINT         NULL,
+    [Qty]                 INT            NULL,
+    [QtyToShip]           INT            NULL,
+    [MasterCompanyId]     INT            NOT NULL,
+    [Status]              INT            NULL,
+    [PickedById]          BIGINT         NULL,
+    [ConfirmedById]       INT            NULL,
+    [Memo]                NVARCHAR (MAX) NULL,
+    [IsConfirmed]         BIT            NULL,
+    [ConfirmedDate]       DATETIME2 (7)  NULL,
+    [PDFPath]             NVARCHAR (MAX) NULL,
+    [QtyRemaining]        INT            NULL,
+    CONSTRAINT [PK_ROPickTicketAudit] PRIMARY KEY CLUSTERED ([ROPickTicketAuditId] ASC)
+);
+

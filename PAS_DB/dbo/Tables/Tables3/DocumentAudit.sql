@@ -1,0 +1,26 @@
+﻿CREATE TABLE [dbo].[DocumentAudit] (
+    [DocumentAuditId] BIGINT         IDENTITY (1, 1) NOT NULL,
+    [DocumentId]      BIGINT         NULL,
+    [DocumentCode]    VARCHAR (50)   NOT NULL,
+    [Description]     VARCHAR (100)  NULL,
+    [MasterCompanyId] INT            NOT NULL,
+    [CreatedBy]       VARCHAR (256)  NOT NULL,
+    [UpdatedBy]       VARCHAR (256)  NOT NULL,
+    [CreatedDate]     DATETIME2 (7)  NOT NULL,
+    [UpdatedDate]     DATETIME2 (7)  NOT NULL,
+    [IsActive]        BIT            NOT NULL,
+    [IsDeleted]       BIT            NOT NULL,
+    [Customer]        BIT            NOT NULL,
+    [ItemMaster]      BIT            NOT NULL,
+    [PO]              BIT            NOT NULL,
+    [RO]              BIT            NOT NULL,
+    [SL]              BIT            NOT NULL,
+    [SO]              BIT            NOT NULL,
+    [WO]              BIT            NOT NULL,
+    [Vendor]          BIT            NOT NULL,
+    [AttachmentId]    BIGINT         NULL,
+    [Memo]            NVARCHAR (MAX) NULL,
+    [DocumentTypeId]  BIGINT         NULL,
+    CONSTRAINT [PK_DocumentAudit_1] PRIMARY KEY CLUSTERED ([DocumentAuditId] ASC)
+);
+

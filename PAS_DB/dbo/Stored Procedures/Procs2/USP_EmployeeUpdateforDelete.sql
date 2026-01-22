@@ -1,0 +1,152 @@
+﻿/*************************************************************           
+ ** File:   [USP_EmployeeUpdateforDelete]           
+ ** Author:   Sahdev Saliya
+ ** Description: This stored procedure is used to Update Employeedelete
+ ** Purpose:         
+ ** Date:   25-11-2025     
+          
+ ** RETURN VALUE:           
+  
+ **************************************************************             
+  ** Change History             
+ **************************************************************             
+ ** S NO   Date            Author          Change Description              
+ ** --   --------         -------          --------------------------------            
+    1    25-11-2025    Amit Ghediya       Created  
+
+   EXEC [USP_EmployeeUpdateforDelete] 234,1,1;
+**************************************************************/ 
+CREATE     PROCEDURE [dbo].[USP_EmployeeUpdateforDelete]
+	@id  BIGINT=NULL,
+	@MasterCompanyId INT = NULL,
+	@IsSuperAdmin bit = NULL
+AS
+BEGIN
+    SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
+    SET NOCOUNT ON;
+
+		IF(@IsSuperAdmin = 1)
+        BEGIN	
+			DECLARE @ConnectionString NVARCHAR(MAX) = NULL;
+			DECLARE @TargetDBName SYSNAME = NULL;
+
+			IF @MasterCompanyId IS NOT NULL
+			BEGIN
+				SELECT @ConnectionString = [ConnectionString]
+				FROM dbo.MasterCompany WITH (NOLOCK)
+				WHERE MasterCompanyId = @MasterCompanyId;
+			END
+
+			SET @TargetDBName = (SELECT REPLACE(value, 'Initial Catalog=', '') AS InitialCatalogm FROM STRING_SPLIT(@ConnectionString, ';') WHERE value LIKE 'Initial Catalog=%');
+
+			DECLARE @sql NVARCHAR(MAX);
+			DECLARE @paramDefs NVARCHAR(MAX);
+
+            SET @sql = '
+				UPDATE [' + @TargetDBName + '].dbo.Employee
+				SET IsDeleted = 1,
+					UpdatedDate = GETUTCDATE()
+				WHERE EmployeeId = @id;
+
+				SELECT *
+				FROM [' + @TargetDBName + '].dbo.Employee WITH (NOLOCK)
+				WHERE EmployeeId = @id;
+			';
+
+			SET @paramDefs = N'
+				@id BIGINT
+			';
+
+			-- Execute dynamic SQL
+			EXEC sp_executesql 
+				@sql, 
+				@paramDefs,
+				@id = @id;
+
+        END
+        ELSE
+        BEGIN
+            UPDATE dbo.Employee
+            SET IsDeleted = 1,
+                UpdatedDate = GETUTCDATE()
+            WHERE EmployeeId = @id;
+        END
+		
+		 BEGIN TRY
+			SELECT [EmployeeId]
+			  ,[EmployeeCode]
+			  ,[EmployeeIdAsPerPayroll]
+			  ,[FirstName]
+			  ,[LastName]
+			  ,[MiddleName]
+			  ,[JobTitleId]
+			  ,[EmployeeExpertiseId]
+			  ,[DateOfBirth]
+			  ,[StartDate]
+			  ,[MobilePhone]
+			  ,[WorkPhone]
+			  ,[Fax]
+			  ,[Email]
+			  ,[SSN]
+			  ,[InMultipleShifts]
+			  ,[AllowOvertime]
+			  ,[AllowDoubleTime]
+			  ,[IsHourly]
+			  ,[HourlyPay]
+			  ,[EmployeeCertifyingStaff]
+			  ,[SupervisorId]
+			  ,[MasterCompanyId]
+			  ,[CreatedBy]
+			  ,[UpdatedBy]
+			  ,[CreatedDate]
+			  ,[UpdatedDate]
+			  ,[IsActive]
+			  ,[IsDeleted]
+			  ,[ManagementStructureId]
+			  ,[LegalEntityId]
+			  ,[Memo]
+			  ,[CurrencyId]
+			  ,[StationId]
+			  ,[AttachmentId]
+			  ,[EmployeeExpIds]
+			  ,[EmailSignature]
+			  ,[EmailSignatureLogo]
+			  ,[UserSignature]
+			  ,[TimeZoneId]
+			  ,[CurrencyFormatId]
+			  ,[DecimalPrecisionId]
+			  ,[ShortDateTimeFormatId]
+			  ,[LongDateTimeFormatId]
+			  ,[TextTransformId]
+			  ,[IsIncludeInCC]
+			  ,[IsAllowToChangeManagementStructure]
+			  ,[SiteId]
+			  ,[TwoFactorAuthentication]
+			  ,[TwoFactorAuthenticationType]
+			  ,[TwoFactorAuthenticatorKey]
+		  FROM [dbo].[Employee] WITH(NOLOCK) 
+		 WHERE [EmployeeId] = @id;
+
+	  END TRY
+	  BEGIN CATCH      
+				IF @@trancount > 0
+					PRINT 'ROLLBACK'
+					DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name() 
+
+	-----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
+				  , @AdhocComments     VARCHAR(150)    = 'USP_EmployeeUpdateforDelete' 
+				  , @ProcedureParameters VARCHAR(3000) = '@Parameter1 = ''' + CAST(ISNULL(@id, '') as varchar(100))   
+				  , @ApplicationName VARCHAR(100) = 'PAS'
+	-----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------
+
+				  exec spLogException 
+						   @DatabaseName			= @DatabaseName
+						 , @AdhocComments			= @AdhocComments
+						 , @ProcedureParameters		= @ProcedureParameters
+						 , @ApplicationName			= @ApplicationName
+						 , @ErrorLogID              = @ErrorLogID OUTPUT ;
+				  RAISERROR ('Unexpected Error Occured in the database. Please let the support team know of the error number : %d', 16, 1,@ErrorLogID)
+				  RETURN
+	END CATCH
+ 
+END

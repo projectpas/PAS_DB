@@ -1,0 +1,546 @@
+﻿/*************************************************************           
+ ** File:   [ProceEmployeeList]           
+ ** Author:  
+ ** Description: This stored procedure is used to Get Employee
+ ** Purpose:         
+ ** Date:      
+          
+ ** PARAMETERS: 
+         
+ ** RETURN VALUE:           
+ **************************************************************           
+ ** Change History           
+ **************************************************************           
+ ** PR   Date         Author		Change Description            
+ ** --   --------     -------		--------------------------------          
+    2    23/07/2024   Bhargav Saliya     Get UserName
+	3    11/03/2025   Sahdev Saliya      Added a case to get timeZone
+	4    12/03/2025   Sahdev Saliya      Change the Date format to Datetime
+	5    29/05/2025   Amit Ghediya       Get user has role or not.
+	6	 17/06/2025   Bhargav Saliya     select the  Employee Roles
+	7    10/03/2025   Sahdev Saliya      Added New Field CommissionEligible
+	8    19/11/2025   Devendra Shekh     Added MasterCompanyId for AspNetUsers
+	9    24/11/2025   Amit Ghediya       Get Employee data from company db if ther eis role for SuperAdmin.
+     
+************************************************************************/
+CREATE PROCEDURE [dbo].[ProceEmployeeList]
+@PageNumber int = NULL,
+@PageSize int = NULL,
+@SortColumn varchar(50)=NULL,
+@SortOrder int = NULL,
+@GlobalFilter varchar(50) = NULL,
+@StatusId int = NULL,
+@EmployeeCode varchar(50) = NULL,
+@FirstName varchar(50) = NULL,
+@LastName varchar(50) = NULL,
+@Jobtitle varchar(50) = NULL,
+@EmployeeExpertise varchar(50) = NULL,
+@Company varchar(50) = NULL,
+@Paytype varchar(50) = NULL,
+@ShopEmployee varchar(50) = NULL,
+@StartDate datetime = NULL,
+@CreatedBy  varchar(50) = NULL,
+@CreatedDate datetime = NULL,
+@UpdatedBy  varchar(50) = NULL,
+@UpdatedDate  datetime = NULL,
+@IsDeleted bit = NULL,
+@EmployeeId bigint = NULL,
+@MasterCompanyId bigint = NULL,
+@IsSuperAdmin bit = NULL,
+@UserName  varchar(50) = NULL,
+@IsRoleAssign  bit = NULL,
+@EmpRoles varchar(200) = NULL,
+@CommissionEligible varchar(50) = NULL
+AS
+BEGIN
+	SET NOCOUNT ON;
+	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED	
+	BEGIN TRY
+	    DECLARE @MSModuleID INT = 47; -- Employee Management Structure Module ID
+		DECLARE @RecordFrom int;		
+		DECLARE @Count Int;
+		DECLARE @IsActive bit;
+		DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
+		SELECT 
+			@CurrntEmpTimeZoneDesc = COALESCE(
+				ETZ.[Description],  -- Prefer Employee's TimeZone description if available
+				LTZ.[Description]   -- Fallback to LegalEntity's TimeZone description
+			)
+		FROM 
+			dbo.Employee E WITH (NOLOCK) 
+		LEFT JOIN 
+			dbo.TimeZone ETZ WITH (NOLOCK) 
+			ON E.TimeZoneId = ETZ.TimeZoneId
+		LEFT JOIN 
+			dbo.LegalEntity LE WITH (NOLOCK) 
+			ON E.LegalEntityId = LE.LegalEntityId
+		LEFT JOIN 
+			dbo.TimeZone LTZ WITH (NOLOCK) 
+			ON LE.TimeZoneId = LTZ.TimeZoneId
+		WHERE 
+			E.EmployeeId = @EmployeeId; -- Use appropriate filter for the specific employee
+		SET @RecordFrom = (@PageNumber-1)*@PageSize;
+		IF @IsDeleted IS NULL
+		BEGIN
+			SET @IsDeleted=0
+		END
+		IF @SortColumn IS NULL
+		BEGIN
+			SET @SortColumn=UPPER('CreatedDate')
+		END 
+		ELSE
+		BEGIN 
+			Set @SortColumn=UPPER(@SortColumn)
+		END	
+		IF(@StatusId=0)
+		BEGIN
+			SET @IsActive=0;
+		END
+		ELSE IF(@StatusId=1)
+		BEGIN
+			SET @IsActive=1;
+		END
+		ELSE
+		BEGIN
+			SET @IsActive=NULL;
+		END
+		
+		IF(@IsSuperAdmin = 1)
+		BEGIN
+				DECLARE @ConnectionString NVARCHAR(MAX) = NULL;
+				DECLARE @TargetDBName SYSNAME = NULL;
+
+				IF @MasterCompanyId IS NOT NULL
+				BEGIN
+					SELECT @ConnectionString = [ConnectionString]
+					FROM dbo.MasterCompany WITH (NOLOCK)
+					WHERE MasterCompanyId = @MasterCompanyId;
+				END
+
+				SET @TargetDBName = (SELECT REPLACE(value, 'Initial Catalog=', '') AS InitialCatalogm FROM STRING_SPLIT(@ConnectionString, ';') WHERE value LIKE 'Initial Catalog=%');
+
+				DECLARE @sql NVARCHAR(MAX);
+				DECLARE @paramDefs NVARCHAR(MAX);
+
+				--select 'start';
+				--select 'db name'
+				--select @TargetDBName
+				SET @sql = N'
+				;WITH EmpRoleAgg AS (
+					SELECT 
+						ER.EmployeeId,
+						STRING_AGG(UR.Name, '','') AS EmpRoles
+					FROM ' + QUOTENAME(@TargetDBName) + N'.dbo.EmployeeUserRole ER WITH (NOLOCK)
+					INNER JOIN ' + QUOTENAME(@TargetDBName) + N'.dbo.UserRole UR WITH (NOLOCK) ON ER.RoleId = UR.Id
+					WHERE ER.IsDeleted = 0 AND ER.IsActive = 1
+					GROUP BY ER.EmployeeId
+				),
+
+				Result AS (
+					SELECT DISTINCT 
+						t.EmployeeId, 
+						t.EmployeeCode,
+						t.FirstName,
+						t.LastName,
+						ISNULL(jot.[Description],'''') AS Jobtitle,
+						CASE WHEN t.EmployeeCertifyingStaff = 1 THEN ''Yes'' ELSE ''No'' END AS ShopEmployee,
+						ISNULL(t.StartDate,'''') AS StartDate,					
+						t.IsActive,
+						t.IsDeleted,
+						CASE WHEN CAST(t.CreatedDate AS DATE) = ''0001-01-01'' THEN NULL ELSE CAST(' + QUOTENAME(@TargetDBName) + N'.dbo.ConvertUTCtoLocal(t.CreatedDate, @CurrntEmpTimeZoneDesc) AS DATETIME) END AS CreatedDate,
+						CASE WHEN CAST(t.UpdatedDate AS DATE) = ''0001-01-01'' THEN NULL ELSE CAST(' + QUOTENAME(@TargetDBName) + N'.dbo.ConvertUTCtoLocal(t.UpdatedDate, @CurrntEmpTimeZoneDesc) AS DATETIME) END AS UpdatedDate,
+						t.CreatedBy,
+						t.UpdatedBy,					
+						le.[Name] AS Company,
+						CASE WHEN t.IsHourly = 1 THEN ''Hourly'' ELSE ''Monthly'' END AS Paytype,
+						ASP.UserName,
+						(SELECT CASE WHEN COUNT(EmployeeUserRoleId) > 0 THEN 1 ELSE 0 END FROM ' + QUOTENAME(@TargetDBName) + N'.dbo.EmployeeUserRole ER2 WITH(NOLOCK) WHERE ER2.EmployeeId = t.EmployeeId) AS IsRoleAssign,
+						ERA.EmpRoles,
+						CASE WHEN t.IsCommission = 1 THEN ''Yes'' ELSE ''No'' END AS CommissionEligible,
+						t.MasterCompanyId
+					FROM ' + QUOTENAME(@TargetDBName) + N'.dbo.Employee t WITH (NOLOCK)
+					INNER JOIN ' + QUOTENAME(@TargetDBName) + N'.dbo.EmployeeManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @MSModuleID AND MSD.ReferenceID = t.EmployeeId
+					INNER JOIN ' + QUOTENAME(@TargetDBName) + N'.dbo.RoleManagementStructure RMS WITH (NOLOCK) ON t.ManagementStructureId = RMS.EntityStructureId
+					INNER JOIN ' + QUOTENAME(@TargetDBName) + N'.dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND (EUR.EmployeeId = @EmployeeId OR @IsSuperAdmin = 1)
+					LEFT JOIN ' + QUOTENAME(@TargetDBName) + N'.dbo.EmployeeExpertise ee WITH (NOLOCK) ON t.EmployeeExpertiseId = ee.EmployeeExpertiseId							   
+					LEFT JOIN ' + QUOTENAME(@TargetDBName) + N'.dbo.JobTitle jot WITH (NOLOCK) ON t.JobTitleId = jot.JobTitleId							   
+					LEFT JOIN ' + QUOTENAME(@TargetDBName) + N'.dbo.LegalEntity le WITH (NOLOCK) ON t.LegalEntityId  = le.LegalEntityId	
+					LEFT JOIN ' + QUOTENAME(@TargetDBName) + N'.dbo.AspNetUsers ASP WITH (NOLOCK) ON t.EmployeeId = ASP.EmployeeId AND t.MasterCompanyId = ASP.MasterCompanyId
+					LEFT JOIN EmpRoleAgg ERA WITH (NOLOCK) ON ERA.EmployeeId = t.EmployeeId
+					WHERE ((t.IsDeleted = @IsDeleted) AND (@IsActive IS NULL OR t.IsActive = @IsActive))
+					  AND t.MasterCompanyId = @MasterCompanyId
+					  AND t.FirstName <> ''TBD''
+				),
+
+				EMPEXPERCTE AS (
+					SELECT SO.EmployeeId AS EmpId,
+						   A.EmployeeExpertise
+					FROM ' + QUOTENAME(@TargetDBName) + N'.dbo.Employee SO WITH (NOLOCK)
+					LEFT JOIN ' + QUOTENAME(@TargetDBName) + N'.dbo.EmployeeExpertiseMapping SP WITH (NOLOCK) ON SO.EmployeeId = SP.EmployeeId
+					OUTER APPLY (
+						SELECT STUFF((
+							SELECT '','' + I.Description
+							FROM ' + QUOTENAME(@TargetDBName) + N'.dbo.EmployeeExpertiseMapping S WITH (NOLOCK)
+							LEFT JOIN ' + QUOTENAME(@TargetDBName) + N'.dbo.EmployeeExpertise I WITH (NOLOCK) ON S.EmployeeExpertiseIds = I.EmployeeExpertiseId
+							WHERE S.EmployeeId = SP.EmployeeId AND S.IsActive = 1 AND S.IsDeleted = 0
+							FOR XML PATH('''')
+						), 1, 1, '''') AS EmployeeExpertise
+					) A
+					WHERE SP.IsActive = 1 AND SP.IsDeleted = 0
+					GROUP BY SO.EmployeeId, A.EmployeeExpertise
+				)
+
+				SELECT *
+				INTO #TempResults
+				FROM Result r
+				LEFT JOIN EMPEXPERCTE p ON p.EmpId = r.EmployeeId
+				WHERE (
+					(
+						@GlobalFilter <> '''' AND (
+							r.EmployeeCode LIKE ''%'' + @GlobalFilter + ''%'' OR
+							r.FirstName LIKE ''%'' + @GlobalFilter + ''%'' OR
+							r.LastName LIKE ''%'' + @GlobalFilter + ''%'' OR
+							r.Jobtitle LIKE ''%'' + @GlobalFilter + ''%'' OR
+							p.EmployeeExpertise LIKE ''%'' + @GlobalFilter + ''%'' OR
+							r.ShopEmployee LIKE ''%'' + @GlobalFilter + ''%'' OR
+							r.Company LIKE ''%'' + @GlobalFilter + ''%'' OR
+							r.Paytype LIKE ''%'' + @GlobalFilter + ''%'' OR
+							r.CreatedBy LIKE ''%'' + @GlobalFilter + ''%'' OR
+							r.UpdatedBy LIKE ''%'' + @GlobalFilter + ''%'' OR
+							r.UserName LIKE ''%'' + @GlobalFilter + ''%'' OR
+							r.EmpRoles LIKE ''%'' + @GlobalFilter + ''%'' OR
+							r.CommissionEligible LIKE ''%'' + @GlobalFilter + ''%''
+						)
+					)
+					OR
+					(
+						@GlobalFilter = '''' AND
+						(ISNULL(@EmployeeCode,'''') = '''' OR r.EmployeeCode LIKE ''%'' + @EmployeeCode + ''%'') AND
+						(ISNULL(@FirstName,'''') = '''' OR r.FirstName LIKE ''%'' + @FirstName + ''%'') AND
+						(ISNULL(@LastName,'''') = '''' OR r.LastName LIKE ''%'' + @LastName + ''%'') AND
+						(ISNULL(@Jobtitle,'''') = '''' OR r.Jobtitle LIKE ''%'' + @Jobtitle + ''%'') AND
+						(ISNULL(@EmployeeExpertise,'''') = '''' OR p.EmployeeExpertise LIKE ''%'' + @EmployeeExpertise + ''%'') AND
+						(ISNULL(@ShopEmployee,'''') = '''' OR r.ShopEmployee LIKE ''%'' + @ShopEmployee + ''%'') AND
+						(ISNULL(@Company,'''') = '''' OR r.Company LIKE ''%'' + @Company + ''%'') AND
+						(ISNULL(@Paytype,'''') = '''' OR r.Paytype LIKE ''%'' + @Paytype + ''%'') AND
+						(ISNULL(@StartDate,'''') = '''' OR CAST(r.StartDate AS DATE) = CAST(@StartDate AS DATE)) AND
+						(ISNULL(@CreatedBy,'''') = '''' OR r.CreatedBy LIKE ''%'' + @CreatedBy + ''%'') AND
+						(ISNULL(@UpdatedBy,'''') = '''' OR r.UpdatedBy LIKE ''%'' + @UpdatedBy + ''%'') AND
+						(ISNULL(@CreatedDate,'''') = '''' OR CAST(r.CreatedDate AS DATE) = CAST(@CreatedDate AS DATE)) AND
+						(ISNULL(@UpdatedDate,'''') = '''' OR CAST(r.UpdatedDate AS DATE) = CAST(@UpdatedDate AS DATE)) AND
+						(ISNULL(@UserName,'''') = '''' OR r.UserName LIKE ''%'' + @UserName + ''%'')
+					)
+				)
+				AND (ISNULL(@EmpRoles,'''') = '''' OR r.EmpRoles LIKE ''%'' + @EmpRoles + ''%'')
+				AND (ISNULL(@CommissionEligible,'''') = '''' OR r.CommissionEligible LIKE ''%'' + @CommissionEligible + ''%'');
+
+				SELECT @Count = COUNT(EmployeeId) FROM #TempResults;
+
+				SELECT *, @Count AS NumberOfItems
+				FROM #TempResults
+				ORDER BY
+					CASE WHEN (@SortOrder = 1 AND @SortColumn = ''EmployeeCode'') THEN EmployeeCode END ASC,
+					CASE WHEN (@SortOrder = -1 AND @SortColumn = ''EmployeeCode'') THEN EmployeeCode END DESC,
+					CASE WHEN (@SortOrder = 1 AND @SortColumn = ''FirstName'') THEN FirstName END ASC,
+					CASE WHEN (@SortOrder = -1 AND @SortColumn = ''FirstName'') THEN FirstName END DESC,
+					CASE WHEN (@SortOrder = 1 AND @SortColumn = ''LastName'') THEN LastName END ASC,
+					CASE WHEN (@SortOrder = -1 AND @SortColumn = ''LastName'') THEN LastName END DESC,
+					CASE WHEN (@SortOrder = 1 AND @SortColumn = ''Jobtitle'') THEN Jobtitle END ASC,
+					CASE WHEN (@SortOrder = -1 AND @SortColumn = ''Jobtitle'') THEN Jobtitle END DESC,
+					CASE WHEN (@SortOrder = 1 AND @SortColumn = ''EmployeeExpertise'') THEN EmployeeExpertise END ASC,
+					CASE WHEN (@SortOrder = -1 AND @SortColumn = ''EmployeeExpertise'') THEN EmployeeExpertise END DESC,
+					CASE WHEN (@SortOrder = 1 AND @SortColumn = ''ShopEmployee'') THEN ShopEmployee END ASC,
+					CASE WHEN (@SortOrder = -1 AND @SortColumn = ''ShopEmployee'') THEN ShopEmployee END DESC,
+					CASE WHEN (@SortOrder = 1 AND @SortColumn = ''Company'') THEN Company END ASC,
+					CASE WHEN (@SortOrder = -1 AND @SortColumn = ''Company'') THEN Company END DESC,
+					CASE WHEN (@SortOrder = 1 AND @SortColumn = ''Paytype'') THEN Paytype END ASC,
+					CASE WHEN (@SortOrder = -1 AND @SortColumn = ''Paytype'') THEN Paytype END DESC,
+					CASE WHEN (@SortOrder = 1 AND @SortColumn = ''StartDate'') THEN StartDate END ASC,
+					CASE WHEN (@SortOrder = -1 AND @SortColumn = ''StartDate'') THEN StartDate END DESC,
+					CASE WHEN (@SortOrder = 1 AND @SortColumn = ''UpdatedDate'') THEN UpdatedDate END ASC,
+					CASE WHEN (@SortOrder = -1 AND @SortColumn = ''UpdatedDate'') THEN UpdatedDate END DESC,
+					CASE WHEN (@SortOrder = 1 AND @SortColumn = ''CreatedBy'') THEN CreatedBy END ASC,
+					CASE WHEN (@SortOrder = -1 AND @SortColumn = ''CreatedBy'') THEN CreatedBy END DESC,
+					CASE WHEN (@SortOrder = 1 AND @SortColumn = ''UpdatedBy'') THEN UpdatedBy END ASC,
+					CASE WHEN (@SortOrder = -1 AND @SortColumn = ''UpdatedBy'') THEN UpdatedBy END DESC,
+					CASE WHEN (@SortOrder = 1 AND @SortColumn = ''CreatedDate'') THEN CreatedDate END ASC,
+					CASE WHEN (@SortOrder = -1 AND @SortColumn = ''CreatedDate'') THEN CreatedDate END DESC,
+					CASE WHEN (@SortOrder = 1 AND @SortColumn = ''UserName'') THEN UserName END ASC,
+					CASE WHEN (@SortOrder = -1 AND @SortColumn = ''UserName'') THEN UserName END DESC,
+					CASE WHEN (@SortOrder = 1 AND @SortColumn = ''EmpRoles'') THEN EmpRoles END ASC,
+					CASE WHEN (@SortOrder = -1 AND @SortColumn = ''EmpRoles'') THEN EmpRoles END DESC,
+					CASE WHEN (@SortOrder = 1 AND @SortColumn = ''CommissionEligible'') THEN CommissionEligible END ASC,
+					CASE WHEN (@SortOrder = -1 AND @SortColumn = ''CommissionEligible'') THEN CommissionEligible END DESC
+				OFFSET @RecordFrom ROWS FETCH NEXT @PageSize ROWS ONLY;
+				';
+
+				SET @paramDefs = N'
+					@MSModuleID INT,
+					@EmployeeId BIGINT,
+					@IsSuperAdmin BIT,
+					@IsDeleted BIT,
+					@IsActive BIT,
+					@MasterCompanyId BIGINT,
+					@GlobalFilter VARCHAR(200),
+					@EmployeeCode VARCHAR(50),
+					@FirstName VARCHAR(100),
+					@LastName VARCHAR(100),
+					@Jobtitle VARCHAR(100),
+					@EmployeeExpertise VARCHAR(200),
+					@ShopEmployee VARCHAR(50),
+					@Company VARCHAR(200),
+					@Paytype VARCHAR(50),
+					@StartDate DATETIME,
+					@CreatedBy VARCHAR(100),
+					@CreatedDate DATETIME,
+					@UpdatedBy VARCHAR(100),
+					@UpdatedDate DATETIME,
+					@UserName VARCHAR(100),
+					@EmpRoles VARCHAR(500),
+					@CommissionEligible VARCHAR(50),
+					@SortColumn VARCHAR(50),
+					@SortOrder INT,
+					@RecordFrom INT,
+					@PageSize INT,
+					@CurrntEmpTimeZoneDesc VARCHAR(200),
+					@Count INT OUTPUT
+				';
+
+				EXEC sp_executesql
+					@sql,
+					@paramDefs,
+					@MSModuleID = @MSModuleID,
+					@EmployeeId = @EmployeeId,
+					@IsSuperAdmin = @IsSuperAdmin,
+					@IsDeleted = @IsDeleted,
+					@IsActive = @IsActive,
+					@MasterCompanyId = @MasterCompanyId,
+					@GlobalFilter = @GlobalFilter,
+					@EmployeeCode = @EmployeeCode,
+					@FirstName = @FirstName,
+					@LastName = @LastName,
+					@Jobtitle = @Jobtitle,
+					@EmployeeExpertise = @EmployeeExpertise,
+					@ShopEmployee = @ShopEmployee,
+					@Company = @Company,
+					@Paytype = @Paytype,
+					@StartDate = @StartDate,
+					@CreatedBy = @CreatedBy,
+					@CreatedDate = @CreatedDate,
+					@UpdatedBy = @UpdatedBy,
+					@UpdatedDate = @UpdatedDate,
+					@UserName = @UserName,
+					@EmpRoles = @EmpRoles,
+					@CommissionEligible = @CommissionEligible,
+					@SortColumn = @SortColumn,
+					@SortOrder = @SortOrder,
+					@RecordFrom = @RecordFrom,
+					@PageSize = @PageSize,
+					@CurrntEmpTimeZoneDesc = @CurrntEmpTimeZoneDesc,
+					@Count = @Count OUTPUT;
+
+				IF OBJECT_ID('tempdb..#TempResults') IS NOT NULL
+					DROP TABLE #TempResults;
+		END
+		 ELSE
+		 BEGIN
+			  --BEGIN TRANSACTION
+			 --BEGIN
+			 ;WITH EmpRoleAgg AS (
+				SELECT 
+					ER.EmployeeId,
+					STRING_AGG(UR.Name, ', ') AS EmpRoles
+				FROM dbo.EmployeeUserRole ER WITH (NOLOCK)
+					INNER JOIN dbo.UserRole UR WITH (NOLOCK) ON ER.RoleId = UR.Id
+				WHERE ER.IsDeleted = 0 AND ER.IsActive = 1
+				GROUP BY ER.EmployeeId
+			 ),
+
+			 Result AS(									
+		   		 SELECT DISTINCT t.EmployeeId, 
+						t.EmployeeCode,
+						t.FirstName,
+						t.LastName,
+						(ISNULL(jot.[Description],'')) 'Jobtitle',
+						--(ISNULL(ee.[Description],'')) 'EmployeeExpertise',
+						CASE WHEN t.EmployeeCertifyingStaff = 1 THEN 'Yes' ELSE 'No' END AS ShopEmployee,
+						(ISNULL(t.StartDate,'')) 'StartDate',					
+						t.IsActive,
+						t.IsDeleted,
+						case when CAST(t.CreatedDate as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(t.CreatedDate, @CurrntEmpTimeZoneDesc) as datetime))end CreatedDate,
+						case when CAST(t.UpdatedDate as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(t.UpdatedDate, @CurrntEmpTimeZoneDesc) as datetime))end UpdatedDate,
+						t.CreatedBy,
+						t.UpdatedBy,					
+						le.[Name] AS Company,
+						CASE WHEN t.IsHourly = 1 THEN 'Hourly' ELSE 'Monthly' END AS Paytype,
+						ASP.UserName,
+						IsRoleAssign = (SELECT CASE WHEN COUNT(EmployeeUserRoleId) > 0 THEN 1 ELSE 0 END FROM dbo.EmployeeUserRole ER WITH(NOLOCK) WHERE ER.EmployeeId = t.EmployeeId),
+						ERA.EmpRoles,
+						CASE WHEN t.IsCommission = 1 THEN 'Yes' ELSE 'No' END AS CommissionEligible,
+						t.MasterCompanyId
+				   FROM dbo.Employee t WITH (NOLOCK)
+						INNER JOIN dbo.EmployeeManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @MSModuleID AND MSD.ReferenceID = t.EmployeeId
+						INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON t.ManagementStructureId = RMS.EntityStructureId
+						INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND (EUR.EmployeeId = @EmployeeId OR @IsSuperAdmin = 1)
+						LEFT JOIN  dbo.EmployeeExpertise ee WITH (NOLOCK) ON t.EmployeeExpertiseId = ee.EmployeeExpertiseId							   
+						LEFT JOIN  dbo.JobTitle jot WITH (NOLOCK) ON t.JobTitleId = jot.JobTitleId							   
+						LEFT JOIN  dbo.LegalEntity le WITH (NOLOCK) ON t.LegalEntityId  = le.LegalEntityId	
+						LEFT JOIN  dbo.AspNetUsers ASP WITH (NOLOCK) ON T.EmployeeId = ASP.EmployeeId AND t.MasterCompanyId = ASP.MasterCompanyId
+						LEFT JOIN EmpRoleAgg ERA WITH (NOLOCK) ON ERA.EmployeeId = t.EmployeeId
+
+		 		  WHERE (((t.IsDeleted=@IsDeleted) AND (@IsActive IS NULL OR t.IsActive=@IsActive))
+						AND t.MasterCompanyId=@MasterCompanyId	
+						AND t.EmployeeId Not in (SELECT E.EmployeeId FROM dbo.Employee E WITH(NOLOCK) 
+														   INNER JOIN dbo.EmployeeUserRole EUR WITH(NOLOCK)
+																	   ON E.EmployeeId = EUR.EmployeeId 
+														   INNER JOIN dbo.UserRole RU WITH(NOLOCK)
+																	   ON RU.Id = EUR.RoleId AND RU.Name = 'SUPERADMIN'
+																			AND e.EmployeeId != @EmployeeId)
+						AND t.FirstName <> 'TBD'
+						)
+				),EMPEXPERCTE AS(
+									Select SO.EmployeeId as EmpId,A.EmployeeExpertise 
+									from Employee SO WITH (NOLOCK)
+									Left Join EmployeeExpertiseMapping SP WITH (NOLOCK) On SO.EmployeeId = SP.EmployeeId
+									Outer Apply(
+										SELECT 
+										   STUFF((SELECT ',' + I.Description
+												  FROM EmployeeExpertiseMapping S WITH (NOLOCK)
+												  Left Join EmployeeExpertise I WITH (NOLOCK) On S.EmployeeExpertiseIds=I.EmployeeExpertiseId
+												  Where S.EmployeeId = SP.EmployeeId
+												  AND S.IsActive = 1 AND S.IsDeleted = 0
+												  FOR XML PATH('')), 1, 1, '') EmployeeExpertise
+									) A
+									Where SP.IsActive = 1 AND SP.IsDeleted = 0
+									Group By SO.EmployeeId, A.EmployeeExpertise
+									), ResultCount AS(SELECT COUNT(EmployeeId) AS totalItems FROM Result)
+				SELECT * INTO #TempResult FROM  Result r
+				LEFT JOIN EMPEXPERCTE p on p.EmpId = r.EmployeeId
+				 WHERE ((@GlobalFilter <>'' AND ((EmployeeCode LIKE '%' +@GlobalFilter+'%') OR
+						(FirstName LIKE '%' +@GlobalFilter+'%') OR	
+						(LastName LIKE '%' +@GlobalFilter+'%') OR					
+						(Jobtitle LIKE '%' +@GlobalFilter+'%') OR						
+						(p.EmployeeExpertise LIKE '%' +@GlobalFilter+'%') OR						
+						(ShopEmployee LIKE '%' +@GlobalFilter+'%') OR										
+						(Company LIKE '%' +@GlobalFilter+'%') OR
+						(Paytype LIKE '%' +@GlobalFilter+'%') OR
+						(CreatedBy LIKE '%' +@GlobalFilter+'%') OR
+						(UpdatedBy LIKE '%' +@GlobalFilter+'%') OR 
+						(UserName LIKE '%' +@GlobalFilter+'%') or
+						(EmpRoles LIKE '%' +@GlobalFilter+'%') OR
+						(CommissionEligible LIKE '%' +@GlobalFilter+'%')))	
+						OR   
+						(@GlobalFilter='' AND (ISNULL(@EmployeeCode,'') ='' OR EmployeeCode LIKE '%' + @EmployeeCode+'%') AND
+						(ISNULL(@FirstName,'') ='' OR FirstName LIKE '%' + @FirstName + '%') AND
+						(ISNULL(@LastName,'') ='' OR LastName LIKE '%' + @LastName + '%') AND
+						(ISNULL(@Jobtitle,'') ='' OR Jobtitle LIKE '%' + @Jobtitle + '%') AND
+						(ISNULL(@EmployeeExpertise,'') ='' OR p.EmployeeExpertise LIKE '%' + @EmployeeExpertise + '%') AND
+						(ISNULL(@ShopEmployee,'') ='' OR ShopEmployee LIKE '%' + @ShopEmployee + '%') AND				
+						(ISNULL(@Company,'') ='' OR Company LIKE '%' + @Company + '%') AND
+						(ISNULL(@Paytype,'') ='' OR Paytype LIKE '%' + @Paytype + '%') AND
+						(ISNULL(@StartDate,'') ='' OR CAST(StartDate AS Date)=CAST(@StartDate AS date)) AND
+						(ISNULL(@CreatedBy,'') ='' OR CreatedBy LIKE '%' + @CreatedBy + '%') AND
+						(ISNULL(@UpdatedBy,'') ='' OR UpdatedBy LIKE '%' + @UpdatedBy + '%') AND						
+						(ISNULL(@CreatedDate,'') ='' OR CAST(CreatedDate AS Date)=CAST(@CreatedDate AS date)) AND
+						(ISNULL(@UpdatedDate,'') ='' OR CAST(UpdatedDate AS date)=CAST(@UpdatedDate AS date)) AND
+						(ISNULL(@UserName,'') ='' OR UserName LIKE '%' + @UserName + '%')) AND
+						(ISNULL(@EmpRoles,'') ='' OR EmpRoles LIKE '%' + @EmpRoles + '%') AND
+						(ISNULL(@CommissionEligible,'') ='' OR CommissionEligible LIKE '%' + @CommissionEligible + '%') 				
+					   )
+
+				SELECT @Count = COUNT(EmployeeId) FROM #TempResult		
+
+				SELECT *, @Count AS NumberOfItems FROM #TempResult ORDER BY  
+				CASE WHEN (@SortOrder=1  AND @SortColumn='EmployeeCode')  THEN EmployeeCode END ASC,
+				CASE WHEN (@SortOrder=-1 AND @SortColumn='EmployeeCode')  THEN EmployeeCode END DESC,
+				CASE WHEN (@SortOrder=1  AND @SortColumn='FirstName')  THEN FirstName END ASC,
+				CASE WHEN (@SortOrder=-1 AND @SortColumn='FirstName')  THEN FirstName END DESC,
+				CASE WHEN (@SortOrder=1  AND @SortColumn='LastName')  THEN LastName END ASC,
+				CASE WHEN (@SortOrder=-1 AND @SortColumn='LastName')  THEN LastName END DESC,			
+				CASE WHEN (@SortOrder=1  AND @SortColumn='Jobtitle')  THEN Jobtitle END ASC,
+				CASE WHEN (@SortOrder=-1 AND @SortColumn='Jobtitle')  THEN Jobtitle END DESC,
+				CASE WHEN (@SortOrder=1  AND @SortColumn='EmployeeExpertise')  THEN EmployeeExpertise END ASC,
+				CASE WHEN (@SortOrder=-1 AND @SortColumn='EmployeeExpertise')  THEN EmployeeExpertise END DESC,
+				CASE WHEN (@SortOrder=1  AND @SortColumn='ShopEmployee')  THEN ShopEmployee END ASC,
+				CASE WHEN (@SortOrder=-1 AND @SortColumn='ShopEmployee')  THEN ShopEmployee END DESC, 			
+				CASE WHEN (@SortOrder=1  AND @SortColumn='Company')  THEN Company END ASC,
+				CASE WHEN (@SortOrder=-1 AND @SortColumn='Company')  THEN Company END DESC, 
+				CASE WHEN (@SortOrder=1  AND @SortColumn='Paytype')  THEN Paytype END ASC,
+				CASE WHEN (@SortOrder=-1 AND @SortColumn='Paytype')  THEN Paytype END DESC,	
+				CASE WHEN (@SortOrder=1  AND @SortColumn='StartDate')  THEN StartDate END ASC,
+				CASE WHEN (@SortOrder=-1 AND @SortColumn='StartDate')  THEN StartDate END DESC,
+				CASE WHEN (@SortOrder=1  AND @SortColumn='UpdatedDate')  THEN UpdatedDate END ASC,
+				CASE WHEN (@SortOrder=-1 AND @SortColumn='UpdatedDate')  THEN UpdatedDate END DESC,
+				CASE WHEN (@SortOrder=1  AND @SortColumn='CreatedBy')  THEN CreatedBy END ASC,
+				CASE WHEN (@SortOrder=-1 AND @SortColumn='CreatedBy')  THEN CreatedBy END DESC,
+				CASE WHEN (@SortOrder=1  AND @SortColumn='UpdatedBy')  THEN UpdatedBy END ASC,
+				CASE WHEN (@SortOrder=-1 AND @SortColumn='UpdatedBy')  THEN UpdatedBy END DESC,
+				CASE WHEN (@SortOrder=1  AND @SortColumn='CreatedDate')  THEN CreatedDate END ASC,
+				CASE WHEN (@SortOrder=-1 AND @SortColumn='CreatedDate')  THEN CreatedDate END DESC,
+				CASE WHEN (@SortOrder=1  AND @SortColumn='UserName')  THEN UserName END ASC,
+				CASE WHEN (@SortOrder=-1 AND @SortColumn='UserName')  THEN UserName END DESC,
+				CASE WHEN (@SortOrder=1  AND @SortColumn='EmpRoles')  THEN EmpRoles END ASC,
+				CASE WHEN (@SortOrder=-1 AND @SortColumn='EmpRoles')  THEN EmpRoles END DESC,
+				CASE WHEN (@SortOrder=1  AND @SortColumn='CommissionEligible')  THEN CommissionEligible END ASC,
+				CASE WHEN (@SortOrder=-1 AND @SortColumn='CommissionEligible')  THEN CommissionEligible END DESC	
+				OFFSET @RecordFrom ROWS 
+				FETCH NEXT @PageSize ROWS ONLY
+
+			 --END
+
+			 --COMMIT  TRANSACTION
+		 END
+		
+
+	END TRY    
+	BEGIN CATCH      
+		--IF @@trancount > 0
+			--PRINT 'ROLLBACK'
+            --ROLLBACK TRANSACTION;
+            -- temp table drop
+			DECLARE @ErrorLogID INT
+			,@DatabaseName VARCHAR(100) = db_name()
+			-----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
+			,@AdhocComments VARCHAR(150) = 'ProceEmployeeList'
+			,@ProcedureParameters VARCHAR(3000) = '@Parameter1 = ''' + CAST(ISNULL(@PageNumber, '') AS varchar(100))
+			   + '@Parameter2 = ''' + CAST(ISNULL(@PageSize, '') AS varchar(100)) 
+			   + '@Parameter3 = ''' + CAST(ISNULL(@SortColumn, '') AS varchar(100))
+			   + '@Parameter4 = ''' + CAST(ISNULL(@SortOrder, '') AS varchar(100))
+			   + '@Parameter5 = ''' + CAST(ISNULL(@GlobalFilter, '') AS varchar(100))
+			   + '@Parameter6 = ''' + CAST(ISNULL(@StatusId, '') AS varchar(100))
+			   + '@Parameter7 = ''' + CAST(ISNULL(@EmployeeCode, '') AS varchar(100))
+			   + '@Parameter8 = ''' + CAST(ISNULL(@FirstName, '') AS varchar(100))
+			   + '@Parameter9 = ''' + CAST(ISNULL(@LastName , '') AS varchar(100))
+			   + '@Parameter10 = ''' + CAST(ISNULL(@Jobtitle , '') AS varchar(100))
+			   + '@Parameter11 = ''' + CAST(ISNULL(@EmployeeExpertise, '') AS varchar(100))
+			   + '@Parameter12 = ''' + CAST(ISNULL(@Company, '') AS varchar(100))
+			  + '@Parameter13 = ''' + CAST(ISNULL(@Paytype, '') AS varchar(100))
+			  + '@Parameter14 = ''' + CAST(ISNULL(@ShopEmployee, '') AS varchar(100))
+			  + '@Parameter15 = ''' + CAST(ISNULL(@StartDate , '') AS varchar(100))		  
+			  + '@Parameter16 = ''' + CAST(ISNULL(@CreatedBy , '') AS varchar(100))
+			  + '@Parameter17 = ''' + CAST(ISNULL(@CreatedDate , '') AS varchar(100))
+			  + '@Parameter18 = ''' + CAST(ISNULL(@UpdatedBy , '') AS varchar(100))
+			  + '@Parameter19 = ''' + CAST(ISNULL(@UpdatedDate  , '') AS varchar(100))			
+			  + '@Parameter20 = ''' + CAST(ISNULL(@IsDeleted , '') AS varchar(100))
+			  + '@Parameter21 = ''' + CAST(ISNULL(@EmployeeId , '') AS varchar(100))
+			  + '@Parameter22 = ''' + CAST(ISNULL(@MasterCompanyId, '') AS varchar(100))  			                                           
+			  + '@Parameter23 = ''' + CAST(ISNULL(@EmpRoles, '') AS varchar(100))  			                                           
+			,@ApplicationName VARCHAR(100) = 'PAS'
+
+		-----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------
+		EXEC spLogException @DatabaseName = @DatabaseName
+			,@AdhocComments = @AdhocComments
+			,@ProcedureParameters = @ProcedureParameters
+			,@ApplicationName = @ApplicationName
+			,@ErrorLogID = @ErrorLogID OUTPUT;
+
+		RAISERROR (
+				'Unexpected Error Occured in the database. Please let the support team know of the error number : %d'
+				,16
+				,1
+				,@ErrorLogID
+				)
+
+		RETURN (1);           
+	END CATCH
+END

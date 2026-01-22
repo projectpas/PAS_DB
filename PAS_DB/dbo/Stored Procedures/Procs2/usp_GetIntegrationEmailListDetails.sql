@@ -1,0 +1,58 @@
+﻿/*************************************************************             
+ ** File:   [usp_GetIntegrationEmailListDetails]             
+ ** Author:   Devendra Shekh    
+ ** Description: get Integration Email List with AttachMent Details
+ ** Date:   08-Aug-2025 
+ **************************************************************             
+  ** Change History             
+ **************************************************************             
+ ** S NO	Date			Author				Change Description              
+ ** --		--------		-------				--------------------------------            
+ **	1		08-Aug-2025		Devendra Shekh		Created
+ **	2		15-Aug-2025		Devendra Shekh		filtering out processed emails
+ **	3		18-Aug-2025		Devendra Shekh		filtering out Process failed emails
+ **	4		26-Aug-2025		Devendra Shekh		added @MasterCompanyId Param
+ 
+EXECUTE [dbo].[usp_GetIntegrationEmailListDetails]
+**************************************************************/  
+CREATE   PROCEDURE [dbo].[usp_GetIntegrationEmailListDetails]
+@MasterCompanyId INT = NULL
+AS
+BEGIN
+SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
+SET NOCOUNT ON
+	BEGIN TRY
+		BEGIN
+			DECLARE  @PendingeEmailStatus INT = 1, @InProgressEmailStatus INT = 2, @CompletedEmailStatus INT = 3, @FailedEmailStatus INT = 4;
+			SET @MasterCompanyId = CASE WHEN ISNULL(@MasterCompanyId,0) = 0 THEN NULL ELSE @MasterCompanyId END;
+
+			SELECT	[IntegrationEmailID], [Subject], [EmailBody], [ToEmail], [FromEmail], [CC], [BCC], [EmailReadBy], [ReferenceId], [ModuleId], [EmailStatus], [HasAttachments],
+					[EmailSection], [ReceivedDate], [MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted], [CustomerRfqId], [IsProcessed], [EmailStatusId], [AttemptCount]
+			FROM [dbo].[IntegrationEmail] WITH(NOLOCK) 
+			WHERE [IsActive] = 1 AND [IsDeleted] = 0 AND ISNULL(CustomerRfqId, 0) = 0 AND ISNULL(IsProcessed, 0) = 0 AND ISNULL(EmailStatusId, 0) != @FailedEmailStatus AND (@MasterCompanyId IS NULL OR @MasterCompanyId = MasterCompanyId)
+			ORDER BY [IntegrationEmailID] DESC;
+
+			SELECT [IntegrationEmailAttachmentID], IEA.[IntegrationEmailID], [AttachmentName], [AttachmentPath]
+			FROM [dbo].[IntegrationEmailAttachment] IEA WITH(NOLOCK) 
+			INNER JOIN [dbo].[IntegrationEmail] IE WITH(NOLOCK) ON IE.IntegrationEmailID = IEA.IntegrationEmailID
+			WHERE IE.[IsActive] = 1 AND IE.[IsDeleted] = 0 AND ISNULL(IE.CustomerRfqId, 0) = 0 AND ISNULL(IE.IsProcessed, 0) = 0 AND ISNULL(IE.EmailStatusId, 0) != @FailedEmailStatus AND (@MasterCompanyId IS NULL OR @MasterCompanyId = IE.MasterCompanyId)
+			ORDER BY IEA.[IntegrationEmailID] DESC;
+		END
+	END TRY    
+	BEGIN CATCH      
+		DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name() 
+	-----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
+		, @AdhocComments     VARCHAR(150)		= 'usp_GetIntegrationEmailListDetails' 
+		, @ProcedureParameters VARCHAR(3000)	= ''
+		, @ApplicationName VARCHAR(100) = 'PAS'
+	-----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------
+		EXEC spLogException 
+				@DatabaseName           = @DatabaseName
+				, @AdhocComments          = @AdhocComments
+				, @ProcedureParameters = @ProcedureParameters
+				, @ApplicationName        =  @ApplicationName
+				, @ErrorLogID                    = @ErrorLogID OUTPUT ;
+		RAISERROR ('Unexpected Error Occured in the database. Please let the support team know of the error number : %d', 16, 1,@ErrorLogID)
+		RETURN(1);
+	END CATCH
+END

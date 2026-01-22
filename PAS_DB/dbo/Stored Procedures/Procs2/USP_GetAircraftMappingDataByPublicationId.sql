@@ -1,0 +1,77 @@
+﻿/***************************************************************  
+ ** File:  [USP_GetAircraftMappingDataByPublicationId]            
+ ** Author: Ayushi Patel  
+ ** Description: Get aircraft mapping data by publication ID.
+ ** Purpose:   
+ ** Date:  02-JUN-2025  
+
+ ** Change History             
+ **************************************************************             
+ ** PR   Date				Author  				Change Description              
+ ** --   --------			-------				--------------------------------            
+    1    2025-06-02		  Ayushi Patel				Created
+	
+ ***************************************************************/ 
+CREATE   PROCEDURE [dbo].[USP_GetAircraftMappingDataByPublicationId]
+    @PublicationId BIGINT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    BEGIN TRY
+        SELECT DISTINCT
+            it.DashNumber,
+            it.AircraftType,
+            it.AircraftModel,
+            im.PartNumber,
+            im.PartDescription,
+            ISNULL(ig.ItemGroupCode, '') AS ItemGroup,
+            ISNULL(ma.Name, '') AS ManufacturerName,
+            it.Level1,
+            it.Level2,
+            it.Level3,
+            it.ATAReference,
+            it.ATAReferenceId,
+            ATAChapter = it.Level1
+                        + CASE WHEN ISNULL(it.Level2, '') <> '' THEN '-' + it.Level2 ELSE '' END
+                        + CASE WHEN ISNULL(it.Level3, '') <> '' THEN '-' + it.Level3 ELSE '' END
+        FROM DBO.PublicationItemMasterMapping pim WITH (NOLOCK)
+        INNER JOIN DBO.ItemMasterAircraftMapping it WITH (NOLOCK) ON pim.ItemMasterId = it.ItemMasterId
+        INNER JOIN DBO.ItemMaster im WITH (NOLOCK) ON it.ItemMasterId = im.ItemMasterId
+        LEFT JOIN DBO.ItemGroup ig WITH (NOLOCK) ON im.ItemGroupId = ig.ItemGroupId
+        LEFT JOIN DBO.Manufacturer ma WITH (NOLOCK) ON im.ManufacturerId = ma.ManufacturerId
+        INNER JOIN DBO.Publication pub WITH (NOLOCK) ON pim.PublicationRecordId = pub.PublicationRecordId
+        WHERE ISNULL(pim.IsDeleted,0) = 0
+          AND ISNULL(pim.IsActive,0) = 1
+          AND ISNULL(it.IsActive,0) = 1
+          AND ISNULL(it.IsDeleted,0) = 0
+          AND ISNULL(im.IsActive,0) = 1
+          AND ISNULL(im.IsDeleted,0) = 0
+          AND pim.PublicationRecordId = @PublicationId
+    END TRY
+    BEGIN CATCH
+		SELECT
+		ERROR_NUMBER() AS ErrorNumber,
+		ERROR_STATE() AS ErrorState,
+		ERROR_SEVERITY() AS ErrorSeverity,
+		ERROR_PROCEDURE() AS ErrorProcedure,
+		ERROR_LINE() AS ErrorLine,
+		ERROR_MESSAGE() AS ErrorMessage;
+        DECLARE @ErrorLogID INT, 
+                @DatabaseName VARCHAR(100) = DB_NAME(),
+-----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
+                @AdhocComments VARCHAR(150) = 'USP_GetAircraftMappingDataByPublicationId',
+                @ProcedureParameters VARCHAR(3000) = '',
+                @ApplicationName VARCHAR(100) = 'PAS';
+-----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------
+        EXEC dbo.spLogException 
+            @DatabaseName = @DatabaseName,
+            @AdhocComments = @AdhocComments,
+            @ProcedureParameters = @ProcedureParameters,
+            @ApplicationName = @ApplicationName,
+            @ErrorLogID = @ErrorLogID OUTPUT;
+
+        RAISERROR ('Unexpected Error Occurred. Inform Support with Error Number: %d', 16, 1, @ErrorLogID);
+        RETURN (1);
+    END CATCH  
+END

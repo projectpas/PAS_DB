@@ -1,0 +1,2269 @@
+﻿/*************************************************************             
+ ** File:   [USP_ReserveStocklineForReceivingPO]            
+ ** Author:   Vishal Suthar  
+ ** Description: This stored procedure is used to reserve stocklines for receiving PO
+ ** Purpose:           
+ ** Date:   09/11/2023          
+            
+ ** PARAMETERS:  
+           
+ ** RETURN VALUE:             
+    
+ **************************************************************             
+  ** Change History             
+ **************************************************************             
+ ** PR   Date         Author			Change Description              
+ ** --   --------     -------			--------------------------------            
+    1    09/11/2023   Vishal Suthar		Created
+    2    10/30/2023   Vishal Suthar		Added a fix for reserving the stockline into multiple MPN in WO Module
+    3    12/08/2023   Devendra Shekh	workorderid issue for stockline table resolved
+	4    12/19/2023   Rajesh Gami		Change the SOPart status(Fulfilled) when PO reserve where SO mapped with same PO
+	5    12/21/2023   Devendra Shekh	changes for sub for kit and multiple material
+	6    04/08/2024   Vishal Suthar		Modified the condition to fix the issue with partial qty reservation
+	7    07/30/2024   Vishal Suthar		Modified the SP to allow reserving the alternate or main part of the alternate if either or is available in WO
+	8    08/13/2024   Vishal Suthar		Modified the SP to allow reserving the equavalent or main part of the equavalent if either or is available in WO
+	9    08/27/2024   Vishal Suthar		Fixed issue with reserving higer qty than assigned and also Removed few unwanted code
+    10   10/08/2024   RAJESH GAMI 	    Implement the ReferenceNumber column data into "WO | SubWOMaterial | Kit Stockline" table.
+	11   10/14/2024   Vishal Suthar		Fixed issue with reserving and adding the wrong stockline under different WO material
+	12   10/29/2024   RAJESH GAMI		Restrict the AR condition to reserve
+	13   11/25/2024   RAJESH GAMI		Remove Nha_Tla_Alt_Equ_ItemMapping join (As discussed with Vishall Will implement it again with proper testing)
+	14   11/26/2024   RAJESH GAMI		Change NETSALES PRICE to UNITSALE PRICE and Call SO COST SP 
+	15	 11/27/2024   Amit Ghediya		Update for get Eccn,Hscode & WLH for SoPart.
+	16   11/27/2024   RAJESH GAMI		In SO: SalesOrderStockLineCost table fixed the markup per/amount
+	17   12/06/2024   Vishal Suthar		PN-10575 Fixed issue of reserving and adding more qty than requested
+	18   12/13/2024   AMIT GHEDIYA		Add RefrenceNumber in stocktable for SO.
+	19   03/20/2025   RAJESH GAMI		Fix the issue while partial reserve (In Workorder|SUBWO Material | KIT reserved qty issue)
+	20   03/21/2025   HEMANT SALIYA		Added DB Standards
+	21   03/31/2025   RAJESH GAMI		Resolve the issue for SUBWO (Reserve QTY mismatch)
+	22   01/Apr/2025  RAJESH GAMI		Resolve the issue : WO and SUbWO Auto reserve issue due to wrong goto statement 
+	23   04/14/2025   HEMANT SALIYA	    Added Work Order Work Flow Id for UpdateWOMaterialsCost
+	24   06/09/2025   HEMANT SALIYA	    Updated For Handle WOM reservarion issue fixed.
+	25   10/09/2025   Vishal Suthar		Fixed an issue with reserving more quantity than requested when received more quantity from PO
+	26   12/24/2025   Vishal Suthar		Removed changes of Alt and Equ part which is causing the issue
+	27   12/27/2025   HEMANT SALIYA	    Handle ALT & EQU part reservation issue fix.
+
+exec dbo.USP_ReserveStocklineForReceivingPO @PurchaseOrderId=7671,@SelectedPartsToReserve=N'8963,8964,8965,8969',@UpdatedBy=N'Alex Torres',@AllowAutoIssue=default
+**************************************************************/  
+CREATE PROCEDURE [dbo].[USP_ReserveStocklineForReceivingPO]
+(
+	@PurchaseOrderId BIGINT = NULL,
+	@SelectedPartsToReserve VARCHAR(256) = NULL,
+	@UpdatedBy VARCHAR(100) = NULL,
+	@AllowAutoIssue BIT = 0
+)
+AS
+BEGIN
+  SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
+  SET NOCOUNT ON
+  
+    BEGIN TRY
+    BEGIN TRANSACTION
+    BEGIN
+		DECLARE @StkLoopID AS INT;
+		DECLARE @LoopID AS INT;
+		DECLARE @MasterCompanyId AS INT;
+		DECLARE @AsRemoveConditionId AS BIGINT = 0;
+		DECLARE @MappingTypeIds AS  VARCHAR(100);
+		DECLARE @ReplaceProvisionId AS BIGINT = 0, @MaterialRefNo VARCHAR(100) = 'Receiving PO - ';
+		DECLARE @ActualRemainingMaterialQuantity INT = 0;
+		DECLARE @soPartFulfilledStatusId INT = (SELECT SOPartStatusId FROM DBO.SOPartStatus WITH(NOLOCK) WHERE Description = 'Fulfilled');
+		SELECT @ReplaceProvisionId = PRO.ProvisionId FROM DBO.Provision PRO WITH (NOLOCK) WHERE PRO.StatusCode = 'REPLACE' AND IsActive = 1 AND IsDeleted = 0;
+
+		DECLARE @IsDebugMode AS BIT;
+
+		SET @IsDebugMode = 0;
+		SET @MappingTypeIds = '1,2';
+
+		IF OBJECT_ID(N'tempdb..#tmpPurchaseOrderPartReference') IS NOT NULL
+		BEGIN
+			DROP TABLE #tmpPurchaseOrderPartReference
+		END
+		
+		CREATE TABLE #tmpPurchaseOrderPartReference 
+		(
+			ID BIGINT NOT NULL IDENTITY,
+			[PurchaseOrderPartReferenceId] [bigint] NULL,
+			[PurchaseOrderId] [bigint] NULL,
+			[PurchaseOrderPartId] [bigint] NULL,
+			[ModuleId] [int] NULL,
+			[ReferenceId] [bigint] NULL,
+			[Qty] [int] NULL,
+			[RequestedQty] [int] NULL,
+			[ReservedQty] [int] NULL,
+			[MasterCompanyId] [int] NULL,
+			[CreatedBy] [varchar](256) NULL,
+			[UpdatedBy] [varchar](256) NULL,
+			[CreatedDate] [datetime2](7) NULL,
+			[UpdatedDate] [datetime2](7) NULL,
+			[IsActive] [bit] NULL,
+			[IsDeleted] [bit] NULL
+		)
+
+		INSERT INTO #tmpPurchaseOrderPartReference ([PurchaseOrderPartReferenceId],[PurchaseOrderId],[PurchaseOrderPartId],[ModuleId],[ReferenceId],[Qty],
+		[RequestedQty], [ReservedQty], [MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted])
+		SELECT [PurchaseOrderPartReferenceId],[PurchaseOrderId],[PurchaseOrderPartId],[ModuleId],[ReferenceId],[Qty],
+		[RequestedQty], [ReservedQty], [MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted]
+		FROM DBO.PurchaseOrderPartReference POPR WITH (NOLOCK) 
+		WHERE POPR.PurchaseOrderPartReferenceId IN (SELECT Item FROM DBO.SPLITSTRING(@SelectedPartsToReserve, ','))
+
+		SELECT TOP 1 @MasterCompanyId = MasterCompanyId FROM #tmpPurchaseOrderPartReference
+		SELECT @AsRemoveConditionId = ConditionId FROM dbo.Condition cond WITH (NOLOCK) WHERE Code = 'ASREMOVE' AND cond.MasterCompanyId = @MasterCompanyId
+
+		--Start Loop Based On Porchase Order Part wise
+		SELECT @LoopID = MAX(ID) FROM #tmpPurchaseOrderPartReference;
+		WHILE (@LoopID > 0)
+		BEGIN
+			DECLARE @SelectedPurchaseOrderPartReferenceId BIGINT = 0;
+			DECLARE @SelectedPurchaseOrderPartId BIGINT = 0;
+			DECLARE @ModulId INT = 0;
+			DECLARE @ReferenceId BIGINT;
+			DECLARE @PurchaseOrderPartId BIGINT;
+			DECLARE @POReferenceQty INT;
+			DECLARE @InsertedWorkOrderMaterialsId BIGINT = 0;
+			DECLARE @Quantity INT;
+			DECLARE @QuantityReserved INT;
+			DECLARE @QuantityIssued INT;
+			DECLARE @ItemMasterId BIGINT;
+			DECLARE @ConditionId BIGINT;
+			DECLARE @Requisitioner BIGINT;
+			DECLARE @PONumber VARCHAR(100) = '';
+			DECLARE @InsertedSalesOrderStocklineId BIGINT = 0;
+			DECLARE @QuantityReservedForPoPart INT = 0;
+			DECLARE @QuantityIssuedForPoPart INT = 0;
+
+			DECLARE @ECCN VARCHAR(200) = '';
+			DECLARE @HSCODE VARCHAR(200) = '';
+			DECLARE @Weight DECIMAL(18,2) = 0;
+			DECLARE @SizeLength DECIMAL(18,2) = 0;
+			DECLARE @SizeWidth DECIMAL(18,2) = 0;
+			DECLARE @SizeHeight DECIMAL(18,2) = 0;
+
+			SELECT @SelectedPurchaseOrderPartReferenceId = PurchaseOrderPartReferenceId, @SelectedPurchaseOrderPartId = [PurchaseOrderPartId] FROM #tmpPurchaseOrderPartReference WHERE ID = @LoopID;
+
+			SELECT @ModulId = POPR.ModuleId, @ReferenceId = POPR.ReferenceId, @PurchaseOrderPartId = PurchaseOrderPartId, @POReferenceQty = (ISNULL(POPR.Qty, 0) - ISNULL(POPR.ReservedQty, 0)) FROM DBO.PurchaseOrderPartReference POPR WITH (NOLOCK) 
+			WHERE PurchaseOrderPartReferenceId = @SelectedPurchaseOrderPartReferenceId;
+
+			IF OBJECT_ID(N'tempdb..#tmpStockline') IS NOT NULL
+			BEGIN
+				DROP TABLE #tmpStockline
+			END 
+			
+			CREATE TABLE #tmpStockline 
+			(
+				ID BIGINT NOT NULL IDENTITY,
+				[StocklineId] [bigint] NULL,
+				[PurchaseOrderPartId] [bigint] NULL
+			)
+
+			--Get Stockline List Based on Selected Purchase Order Part
+			INSERT INTO #tmpStockline (StocklineId, PurchaseOrderPartId)
+			SELECT StocklineId, Stk.PurchaseOrderPartRecordId FROM DBO.Stockline Stk WITH (NOLOCK) WHERE Stk.PurchaseOrderId = @PurchaseOrderId AND ((Stk.PurchaseOrderPartRecordId = @SelectedPurchaseOrderPartId) OR
+			Stk.PurchaseOrderPartRecordId IN (SELECT PurchaseOrderPartRecordId FROM DBO.PurchaseOrderPart POP WITH (NOLOCK) WHERE POP.ParentId = @SelectedPurchaseOrderPartId))
+			AND Stk.IsParent = 1 AND Stk.QuantityAvailable > 0 
+			AND STK.ConditionId != @AsRemoveConditionId ORDER BY StocklineId DESC; 
+
+			SELECT @StkLoopID = MAX(ID) FROM #tmpStockline;
+
+			--Start Stockline Loop to Reserve Qty
+			WHILE (@StkLoopID > 0 AND @POReferenceQty > 0)
+			BEGIN
+				DECLARE @StkStocklineId BIGINT = 0;
+				DECLARE @StkPurchaseOrderPartRecordId BIGINT;
+				DECLARE @stkQty INT = 0;
+				DECLARE @stkMasterCompanyId INT = 0;
+				DECLARE @stkQuantityAvailable INT = 0;
+				DECLARE @stkQuantityOnHand INT = 0;
+				DECLARE @stkQuantityReserved INT = 0;
+				DECLARE @stkQuantityIssued INT = 0;
+				DECLARE @stkQuantityOnOrder INT = 0;
+				DECLARE @stkItemMasterId BIGINT = 0;
+				DECLARE @stkConditionId BIGINT = 0;
+				DECLARE @stkWorkOrderMaterialsId BIGINT = 0;
+				DECLARE @stkWorkOrderMaterialsKitId BIGINT = 0;
+				DECLARE @stkSalesOrderPartId BIGINT = 0;
+				DECLARE @stkPurchaseOrderUnitCost DECIMAL(18, 2) = 0;
+				DECLARE @Qty INT = 0;
+				DECLARE @qtyFulfilled AS BIT = 0;
+				DECLARE @flag AS BIT = 0;
+				DECLARE @WOMSQtyReserved BIGINT = 0;
+				DECLARE @WOMSQtyIssued BIGINT = 0, @WOMSQuantity BIGINT = 0;
+				DECLARE @ExchangePOProvisionId BIGINT = 0;
+				DECLARE @StkAutoReserveRefNumber VARCHAR(100) = 'Auto Reserve Stock - ';
+				DECLARE @RefNumber VARCHAR(100) = '';
+				DECLARE @SalesOrderNumber VARCHAR(50) = NULL;
+
+				SELECT @ExchangePOProvisionId = PRO.ProvisionId FROM DBO.Provision PRO WITH (NOLOCK) WHERE PRO.StatusCode = 'EXCHANGE' AND IsActive = 1 AND IsDeleted = 0;
+
+				SELECT @StkStocklineId = [StocklineId], @StkPurchaseOrderPartRecordId = [PurchaseOrderPartId] FROM #tmpStockline WHERE ID = @StkLoopID;
+				
+				--Start Work Order Reservation Process
+				IF (@ModulId = 1) -- Work Order
+				BEGIN
+					SET @ItemMasterId = 0;
+					SET @ConditionId = 0;
+					SET @Requisitioner = 0;
+					SET @PONumber = '';
+					DECLARE @WorkOrderMaterialsIdExchPO BIGINT = 0;
+					DECLARE @IsExchangePO BIT = 0;
+					DECLARE @IsAutoIssue BIT = 0;
+					DECLARE @WorkOrderTypeId BIGINT = 0;
+
+					SELECT @ItemMasterId = POP.ItemMasterId, @ConditionId = POP.ConditionId, @WorkOrderMaterialsIdExchPO = ISNULL(POP.WorkOrderMaterialsId, 0), @MasterCompanyId = POP.MasterCompanyId FROM DBO.PurchaseOrderPart POP WITH (NOLOCK) WHERE PurchaseOrderPartRecordId = @PurchaseOrderPartId;
+					SELECT @Requisitioner = PO.RequestedBy, @PONumber = PO.PurchaseOrderNumber FROM DBO.PurchaseOrder PO WITH (NOLOCK) WHERE PO.PurchaseOrderId = @PurchaseOrderId;
+					
+					SELECT @WorkOrderTypeId = WO.WorkOrderTypeId FROM DBO.WorkOrder WO WITH (NOLOCK) WHERE WO.WorkOrderId = @ReferenceId;
+					
+					--SET if it is a Exchnage PO
+					SELECT @IsAutoIssue = 0;
+					IF EXISTS (SELECT TOP 1 1 FROM DBO.WorkOrderMaterials WOM WITH (NOLOCK) WHERE WOM.WorkOrderId = @ReferenceId AND WOM.ItemMasterId = @ItemMasterId AND WOM.WorkOrderMaterialsId = @WorkOrderMaterialsIdExchPO AND WOM.ProvisionId = @ExchangePOProvisionId)
+					BEGIN
+						SET @IsExchangePO = 1;
+					END
+					
+					DECLARE @ReservedIntoMaterial BIT = 0;
+
+					IF OBJECT_ID(N'tempdb..#WorkOrderMaterialWithWorkOrderWorkFlow') IS NOT NULL
+					BEGIN
+						DROP TABLE #WorkOrderMaterialWithWorkOrderWorkFlow
+					END 
+			
+					CREATE TABLE #WorkOrderMaterialWithWorkOrderWorkFlow 
+					(
+						ID BIGINT NOT NULL IDENTITY,
+						[WorkOrderId] [bigint] NULL,
+						[WorkFlowWorkOrderId] [bigint] NULL
+					)
+
+					--GET WorkOrderId, WorkFlowWorkOrderId From Materials and KIT
+					IF (@IsExchangePO = 0)
+					BEGIN
+						INSERT INTO #WorkOrderMaterialWithWorkOrderWorkFlow (WorkOrderId, WorkFlowWorkOrderId)
+						SELECT DISTINCT WorkOrderId, WorkFlowWorkOrderId FROM DBO.WorkOrderMaterials WOM WITH (NOLOCK) 
+						LEFT JOIN DBO.Nha_Tla_Alt_Equ_ItemMapping Nha WITH (NOLOCK) ON Nha.ItemMasterId = WOM.ItemMasterId AND Nha.MappingType IN(SELECT Item FROM DBO.SPLITSTRING(@MappingTypeIds, ','))
+						WHERE WOM.WorkOrderId = @ReferenceId 
+						AND (
+								WOM.ItemMasterId = @ItemMasterId
+								OR Nha.MappingItemMasterId = @ItemMasterId
+							)						
+						AND WOM.ConditionCodeId = @ConditionId; 
+
+						INSERT INTO #WorkOrderMaterialWithWorkOrderWorkFlow (WorkOrderId, WorkFlowWorkOrderId)
+						SELECT DISTINCT WorkOrderId, WorkFlowWorkOrderId FROM DBO.WorkOrderMaterialsKit WOMK WITH (NOLOCK) 
+						LEFT JOIN DBO.Nha_Tla_Alt_Equ_ItemMapping Nha WITH (NOLOCK) ON Nha.ItemMasterId = WOMK.ItemMasterId AND Nha.MappingType IN(SELECT Item FROM DBO.SPLITSTRING(@MappingTypeIds, ','))
+						WHERE WOMK.WorkOrderId = @ReferenceId 
+						AND (
+								WOMK.ItemMasterId = @ItemMasterId
+								OR Nha.MappingItemMasterId = @ItemMasterId
+							)	
+						AND WOMK.ConditionCodeId = @ConditionId; 
+					END
+					ELSE
+					BEGIN
+						INSERT INTO #WorkOrderMaterialWithWorkOrderWorkFlow (WorkOrderId, WorkFlowWorkOrderId)
+						SELECT DISTINCT WorkOrderId, WorkFlowWorkOrderId FROM DBO.WorkOrderMaterials WOM WITH (NOLOCK) WHERE WOM.WorkOrderMaterialsId = @WorkOrderMaterialsIdExchPO;
+						
+						INSERT INTO #WorkOrderMaterialWithWorkOrderWorkFlow (WorkOrderId, WorkFlowWorkOrderId)
+						SELECT DISTINCT WorkOrderId, WorkFlowWorkOrderId FROM DBO.WorkOrderMaterialsKit WOMK WITH (NOLOCK) WHERE WOMK.WorkOrderMaterialsKitId = @WorkOrderMaterialsIdExchPO;
+					END
+					DECLARE @LoopIDWFWO INT = 0;
+
+					SELECT * FROM #WorkOrderMaterialWithWorkOrderWorkFlow;
+
+					SELECT @LoopIDWFWO = MAX(ID) FROM #WorkOrderMaterialWithWorkOrderWorkFlow;
+					--Start Loop based in Work Order Part wise
+					WHILE (@LoopIDWFWO > 0)
+					BEGIN
+						DECLARE @WorkFlowWorkOrderId BIGINT = 0;
+
+						SELECT @WorkFlowWorkOrderId = [WorkFlowWorkOrderId] FROM #WorkOrderMaterialWithWorkOrderWorkFlow WHERE ID = @LoopIDWFWO;
+
+						IF EXISTS (SELECT TOP 1 1 FROM DBO.WorkOrderMaterials WOM WITH (NOLOCK) LEFT JOIN DBO.Nha_Tla_Alt_Equ_ItemMapping Nha WITH (NOLOCK) ON Nha.ItemMasterId = WOM.ItemMasterId WHERE WOM.WorkOrderId = @ReferenceId AND (WOM.ItemMasterId = @ItemMasterId OR Nha.ItemMasterId = WOM.ItemMasterId) AND WOM.ConditionCodeId = @ConditionId AND WOM.WorkFlowWorkOrderId = @WorkFlowWorkOrderId) OR @IsExchangePO = 1
+						BEGIN
+							DECLARE @SelectedWorkOrderMaterialsId INT = 0;
+							DECLARE @AltPartId BIGINT = 0;
+							DECLARE @EquPartId BIGINT = 0;
+							
+							--Select Work Order Materials Id to Reserve into it.
+							IF (@IsExchangePO = 0)
+							BEGIN
+								SELECT
+									@SelectedWorkOrderMaterialsId = WOM.WorkOrderMaterialsId,
+									@AltPartId = Nha_Alt.MappingItemMasterId,
+									@EquPartId = Nha_Equ.MappingItemMasterId
+								FROM DBO.WorkOrderMaterials WOM WITH (NOLOCK)
+								LEFT JOIN DBO.Nha_Tla_Alt_Equ_ItemMapping Nha_Alt WITH (NOLOCK) ON Nha_Alt.ItemMasterId = WOM.ItemMasterId AND Nha_Alt.MappingType = 1
+								LEFT JOIN DBO.Nha_Tla_Alt_Equ_ItemMapping Nha_Equ WITH (NOLOCK)	ON Nha_Equ.ItemMasterId = WOM.ItemMasterId AND Nha_Equ.MappingType = 2
+								WHERE WOM.WorkOrderId = @ReferenceId
+								  AND WOM.ConditionCodeId = @ConditionId
+								  AND (
+										WOM.ItemMasterId = @ItemMasterId
+										OR Nha_Alt.MappingItemMasterId = @ItemMasterId
+										OR Nha_Equ.MappingItemMasterId = @ItemMasterId
+									  );
+
+							END
+							ELSE
+							BEGIN
+								SELECT @SelectedWorkOrderMaterialsId = WOM.WorkOrderMaterialsId FROM DBO.WorkOrderMaterials WOM WITH (NOLOCK) 
+								WHERE WOM.WorkOrderMaterialsId = @WorkOrderMaterialsIdExchPO;
+							END
+					
+							SET @Quantity = 0;
+							SET @QuantityReserved = 0;
+							SET @QuantityIssued = 0;
+
+							IF(@IsExchangePO = 1)
+							BEGIN
+								SELECT @Quantity = WOM.Quantity, @QuantityReserved = ISNULL(WOM.QuantityReserved, 0), @QuantityIssued = ISNULL(WOM.QuantityIssued, 0), @WorkFlowWorkOrderId = WOM.WorkFlowWorkOrderId 
+								FROM DBO.WorkOrderMaterials WOM WITH (NOLOCK)
+								LEFT JOIN DBO.Nha_Tla_Alt_Equ_ItemMapping Nha_Alt WITH (NOLOCK) ON Nha_Alt.ItemMasterId = WOM.ItemMasterId AND Nha_Alt.MappingType = 1
+								LEFT JOIN DBO.Nha_Tla_Alt_Equ_ItemMapping Nha_Equ WITH (NOLOCK) ON Nha_Equ.ItemMasterId = WOM.ItemMasterId AND Nha_Equ.MappingType = 2
+								WHERE WOM.WorkOrderId = @ReferenceId								  
+								  AND (
+										WOM.ItemMasterId = @ItemMasterId
+										OR Nha_Alt.MappingItemMasterId = @ItemMasterId
+										OR Nha_Equ.MappingItemMasterId = @ItemMasterId
+									  )
+								AND WOM.WorkOrderMaterialsId = @WorkOrderMaterialsIdExchPO AND WOM.ProvisionId = @ExchangePOProvisionId;
+							END
+							ELSE
+							BEGIN
+								SELECT @Quantity = WOM.Quantity, @QuantityReserved = ISNULL(WOM.QuantityReserved, 0), @QuantityIssued = ISNULL(WOM.QuantityIssued, 0) FROM DBO.WorkOrderMaterials WOM WITH (NOLOCK)
+								LEFT JOIN DBO.Nha_Tla_Alt_Equ_ItemMapping Nha_Alt WITH (NOLOCK) ON Nha_Alt.ItemMasterId = WOM.ItemMasterId
+								LEFT JOIN DBO.Nha_Tla_Alt_Equ_ItemMapping Nha_Equ WITH (NOLOCK) ON Nha_Equ.ItemMasterId = WOM.ItemMasterId
+								WHERE WOM.WorkOrderId = @ReferenceId 
+								AND (
+										WOM.ItemMasterId = @ItemMasterId
+										OR Nha_Alt.MappingItemMasterId = @ItemMasterId
+										OR Nha_Equ.MappingItemMasterId = @ItemMasterId
+									  )
+								AND WOM.ConditionCodeId = @ConditionId;-- AND WOM.WorkFlowWorkOrderId = @WorkFlowWorkOrderId;
+							END
+					
+							-- SET Original Requested Material Quantity and Remaining Material Qty
+							DECLARE @RemainingMaterialQty INT = (ISNULL(@Quantity, 0) - (ISNULL(@QuantityReserved, 0) + ISNULL(@QuantityIssued, 0)));
+
+							SET @ActualRemainingMaterialQuantity = @Quantity;
+
+							DECLARE @MainPOReferenceQty INT = 0;
+							SELECT @MainPOReferenceQty = (ISNULL(POPR.Qty, 0) - ISNULL(POPR.ReservedQty, 0)) FROM DBO.PurchaseOrderPartReference POPR WITH (NOLOCK) WHERE PurchaseOrderPartReferenceId = @SelectedPurchaseOrderPartReferenceId;
+
+							SET @ActualRemainingMaterialQuantity  = ISNULL((CASE WHEN @RemainingMaterialQty <= @MainPOReferenceQty THEN @RemainingMaterialQty ELSE @MainPOReferenceQty END),0)
+							SET @Quantity = ISNULL(@ActualRemainingMaterialQuantity, 0);
+
+							--IF (@MainPOReferenceQty < @Quantity)
+							--BEGIN
+							--	SET @Quantity = ISNULL(@MainPOReferenceQty, 0);
+							--END
+						
+							--IF (@MainPOReferenceQty < @OriginalQuantity) /****** Commented due to add above >> SET @OriginalQuantity  = (CASE WHEN @RemainingMaterialQty <= @MainPOReferenceQty THEN @RemainingMaterialQty ELSE @MainPOReferenceQty END) ******/
+							--BEGIN
+							--	SET @OriginalQuantity = ISNULL(@MainPOReferenceQty, 0);
+							--END
+					
+							--IF ((ISNULL(@OriginalQuantity, 0) - (ISNULL(@QuantityReserved, 0) + ISNULL(@QuantityIssued, 0))) > 0)
+							IF (ISNULL(@ActualRemainingMaterialQuantity, 0) > 0)
+							BEGIN
+								IF (@SelectedWorkOrderMaterialsId > 0)
+								BEGIN
+									SET @Qty = 0;
+									SET @stkQty = 0;
+									SET @stkMasterCompanyId = 0;
+									SET @stkQuantityAvailable = 0;
+									SET @stkQuantityOnHand = 0;
+									SET @stkQuantityReserved = 0;
+									SET @stkQuantityIssued = 0;
+									SET @stkQuantityOnOrder = 0;
+									SET @stkItemMasterId = 0;
+									SET @stkConditionId = 0;
+									SET @stkWorkOrderMaterialsId = 0;
+									SET @stkPurchaseOrderUnitCost = 0;
+
+									SELECT @stkMasterCompanyId = Stk.MasterCompanyId, @stkQty = ISNULL(Stk.Quantity, 0), @stkQuantityAvailable = ISNULL(Stk.QuantityAvailable, 0), @stkQuantityOnHand = ISNULL(Stk.QuantityOnHand, 0), @stkQuantityReserved = ISNULL(QuantityReserved, 0),
+									@stkQuantityOnOrder = ISNULL(QuantityOnOrder, 0), @stkItemMasterId = Stk.ItemMasterId, @stkConditionId = Stk.ConditionId,
+									@stkPurchaseOrderUnitCost = Stk.PurchaseOrderUnitCost
+									FROM DBO.Stockline Stk WITH (NOLOCK) WHERE Stk.StockLineId = @StkStocklineId;
+
+									IF (@ActualRemainingMaterialQuantity > 0 AND @stkQty > 0)
+									BEGIN
+										IF (@stkQuantityAvailable >= @ActualRemainingMaterialQuantity)
+											SET @Qty = @ActualRemainingMaterialQuantity; --SET @Qty = @OriginalQuantity - (@QuantityReserved + @QuantityIssued); /****** Commented due to add above >> SET @OriginalQuantity  = (CASE WHEN @RemainingMaterialQty <= @MainPOReferenceQty THEN @RemainingMaterialQty ELSE @MainPOReferenceQty END) ******/
+										ELSE
+											SET @Qty = @stkQuantityAvailable;
+									END
+
+									-- Start Updating Work Order Materials
+									IF (@Qty > 0)
+									BEGIN
+										UPDATE WOM
+										SET WOM.QuantityReserved = ISNULL(WOM.QuantityReserved, 0),
+											WOM.TotalReserved = ISNULL(WOM.TotalReserved, 0),
+											WOM.QuantityIssued = ISNULL(WOM.QuantityIssued, 0),
+											WOM.TotalIssued = ISNULL(WOM.TotalIssued, 0),
+										    WOM.ConditionCodeId = CASE WHEN @IsExchangePO = 1 THEN @ConditionId ELSE WOM.ConditionCodeId END -- Added by Rajesh: Need to change parent condition while we change the condition from the RPO process.
+										FROM DBO.WorkOrderMaterials WOM
+										WHERE WOM.WorkOrderMaterialsId = @SelectedWorkOrderMaterialsId;
+
+										--Commented By Hemant to Handle Production Issue # 09-06-2025
+										--IF (@IsAutoIssue = 0)
+										--BEGIN
+										--	UPDATE WOM
+										--	SET WOM.QuantityReserved = @QuantityReserved + @Qty,
+										--	WOM.TotalReserved = ISNULL(WOM.TotalReserved, 0) + @Qty,
+										--	WOM.ReservedById = @Requisitioner,
+										--	WOM.ReservedDate = GETUTCDATE(),
+										--	WOM.updatedDate = GETUTCDATE(),
+										--	WOM.updatedBy = CAST(@Requisitioner AS VARCHAR(200)) + 'Auto Reserve - PO',
+										--	WOM.PONum = @PONumber,
+										--	WOM.PartStatusId = 1, -- Reserve
+										--	WOM.ExtendedCost = ISNULL(WOM.ExtendedCost, 0) + (ISNULL(WOM.UnitCost, 0) * @Qty),
+										--	WOM.QtyOnBkOrder = CASE WHEN ISNULL(WOM.QtyOnBkOrder,0) - ISNULL(@Qty,0) <0 THEN 0 ELSE ISNULL(WOM.QtyOnBkOrder,0) - ISNULL(@Qty,0) END
+										--	FROM DBO.WorkOrderMaterials WOM
+										--	WHERE WOM.WorkOrderMaterialsId = @SelectedWorkOrderMaterialsId;
+										--END
+										--ELSE IF (@IsAutoIssue = 1)
+										--BEGIN
+										--	UPDATE WOM
+										--	SET WOM.QuantityIssued = @QuantityIssued + @Qty,
+										--	WOM.TotalIssued = ISNULL(WOM.TotalIssued, 0) + @Qty,
+										--	WOM.IssuedById = @Requisitioner,
+										--	WOM.IssuedDate = GETUTCDATE(),
+										--	WOM.PONum = @PONumber,
+										--	WOM.PartStatusId = 2, -- Issued
+										--	WOM.ExtendedCost = ISNULL(WOM.ExtendedCost, 0) + (ISNULL(WOM.UnitCost, 0) * @Qty),
+										--	WOM.QtyOnBkOrder = CASE WHEN ISNULL(WOM.QtyOnBkOrder,0) - ISNULL(@Qty,0) <0 THEN 0 ELSE ISNULL(WOM.QtyOnBkOrder,0) - ISNULL(@Qty,0) END
+										--	FROM DBO.WorkOrderMaterials WOM
+										--	WHERE WOM.WorkOrderMaterialsId = @SelectedWorkOrderMaterialsId;
+										--END
+									END
+
+									SET @qtyFulfilled = 0;
+									SET @flag = 0;
+
+									-- Start Updating Work Order Materials Stockline
+									IF (@StkStocklineId > 0)
+									BEGIN
+										SET @flag = 0;
+
+										IF (@qtyFulfilled = 0)
+										BEGIN
+											SET @WOMSQtyReserved = 0;
+											SET @WOMSQtyIssued = 0;
+											SET @WOMSQuantity = 0;
+
+											IF (@stkQuantityAvailable > 0)
+											BEGIN
+												IF (@stkQuantityAvailable >= @Qty)
+												BEGIN
+													IF (@IsAutoIssue = 0)
+													BEGIN
+														SET @qtyFulfilled = 1;
+														SET @stkQuantityAvailable = @stkQuantityAvailable - @Qty;
+														SET @stkQuantityReserved = @stkQuantityReserved + @Qty;
+														SET @WOMSQtyReserved = @Qty;
+													END
+													ELSE IF (@IsAutoIssue = 1)
+													BEGIN
+														SET @qtyFulfilled = 1;
+														SET @stkQuantityAvailable = @stkQuantityAvailable - @Qty;
+														SET @stkQuantityOnHand = @stkQuantityOnHand - @Qty;
+														SET @stkQuantityIssued = @stkQuantityIssued + @Qty;
+														SET @WOMSQtyIssued = @Qty;
+													END
+												END
+												ELSE
+												BEGIN
+													-- Never Exucute this Code - Hemant Need to Confirm
+													IF (@IsAutoIssue = 0)
+													BEGIN
+														SET @stkQuantityReserved = @stkQuantityReserved + @stkQuantityAvailable;
+														SET @WOMSQtyReserved = @stkQuantityAvailable;
+														SET @stkQuantityAvailable = 0;
+													END
+													ELSE IF (@IsAutoIssue = 1)
+													BEGIN
+														SET @stkQuantityIssued = @stkQuantityIssued + @stkQuantityAvailable;
+														SET @WOMSQtyIssued = @stkQuantityAvailable;
+														SET @stkQuantityAvailable = 0; --Need to confirm required or Not
+														SET @stkQuantityOnHand = 0; --Need to confirm required or Not
+														--SET @stkQuantityIssued = 0;
+													END
+												END
+
+												SET @flag = 1;
+											END
+
+											--Start Updating Work Order Materials Stockline
+											IF (@flag = 1)
+											BEGIN
+												SET @InsertedWorkOrderMaterialsId = 0;
+												IF EXISTS (SELECT TOP 1 1 FROM DBO.WorkOrderMaterialStockLine WOMS WITH (NOLOCK) WHERE WOMS.WorkOrderMaterialsId = @SelectedWorkOrderMaterialsId AND WOMS.StockLineId = @StkStocklineId)
+												BEGIN
+													UPDATE WOMS
+													SET WOMS.Quantity = ISNULL(WOMS.Quantity, 0) + @Qty,
+													WOMS.QtyReserved = ISNULL(WOMS.QtyReserved, 0) + @Qty,
+													WOMS.StockLineId = @StkStocklineId,
+													WOMS.UpdatedDate = GETUTCDATE(),
+													WOMS.UpdatedBy = @UpdatedBy,
+													WOMS.WorkOrderMaterialsId = @SelectedWorkOrderMaterialsId,
+													WOMS.ItemMasterId = @stkItemMasterId,
+													WOMS.ConditionId = @stkConditionId,
+													WOMS.IsAltPart = CASE WHEN @AltPartId = @stkItemMasterId THEN 1 ELSE 0 END,
+													WOMS.IsEquPart = CASE WHEN @EquPartId = @stkItemMasterId THEN 1 ELSE 0 END,
+													WOMS.UnitCost = @stkPurchaseOrderUnitCost,
+													WOMS.ExtendedCost = (@stkPurchaseOrderUnitCost * (ISNULL(WOMS.Quantity, 0) + @Qty)),
+													WOMS.UnitPrice = @stkPurchaseOrderUnitCost,
+													WOMS.ExtendedPrice = (@stkPurchaseOrderUnitCost * (ISNULL(WOMS.Quantity, 0) + @Qty)),
+													WOMS.ReferenceNumber = @MaterialRefNo + @PONumber
+													FROM DBO.WorkOrderMaterialStockLine WOMS
+													WHERE WOMS.WorkOrderMaterialsId = @SelectedWorkOrderMaterialsId AND WOMS.StockLineId = @StkStocklineId;
+
+													--Commented By Hemant to Handle Production Issue # 09-06-2025 MOved Code from Connected line
+													UPDATE WOM
+													SET WOM.QuantityReserved = @QuantityReserved + @Qty,
+													WOM.TotalReserved = ISNULL(WOM.TotalReserved, 0) + @Qty,
+													WOM.ReservedById = @Requisitioner,
+													WOM.ReservedDate = GETUTCDATE(),
+													WOM.updatedDate = GETUTCDATE(),
+													WOM.updatedBy = CAST(@Requisitioner AS VARCHAR(200)) + 'Auto Reserve - PO',
+													WOM.PONum = @PONumber,
+													WOM.PartStatusId = 1, -- Reserve
+													WOM.ExtendedCost = ISNULL(WOM.ExtendedCost, 0) + (ISNULL(WOM.UnitCost, 0) * @Qty),
+													WOM.QtyOnBkOrder = CASE WHEN ISNULL(WOM.QtyOnBkOrder,0) - ISNULL(@Qty,0) <0 THEN 0 ELSE ISNULL(WOM.QtyOnBkOrder,0) - ISNULL(@Qty,0) END
+													FROM DBO.WorkOrderMaterials WOM
+													WHERE WOM.WorkOrderMaterialsId = @SelectedWorkOrderMaterialsId;
+
+													SET @POReferenceQty = @POReferenceQty - @Qty;
+												END
+												ELSE
+												BEGIN
+													DECLARE @ItmMsrId BIGINT = 0;
+													DECLARE @CondId BIGINT = 0;
+
+													SELECT @ItmMsrId = WOM.ItemMasterId, @CondId = WOM.ConditionCodeId FROM DBO.WorkOrderMaterials WOM WITH (NOLOCK) WHERE WOM.WorkOrderMaterialsId = @SelectedWorkOrderMaterialsId;
+
+													IF ((@ItmMsrId = @stkItemMasterId OR @stkItemMasterId = @AltPartId OR @stkItemMasterId = @EquPartId) AND @CondId = (CASE WHEN @IsExchangePO= 1 THEN @ConditionId ELSE @stkConditionId END))
+													BEGIN
+														INSERT INTO DBO.WorkOrderMaterialStockLine ([WorkOrderMaterialsId],[StockLineId],[ItemMasterId],[ConditionId],[Quantity],[QtyReserved],
+														[QtyIssued],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[AltPartMasterPartId],[EquPartMasterPartId],
+														[IsAltPart],[IsEquPart],[UnitCost],[ExtendedCost],[UnitPrice],[ExtendedPrice],[ProvisionId],[RepairOrderId],[QuantityTurnIn],[Figure],[Item],[RepairOrderPartRecordId],ReferenceNumber)
+														SELECT @SelectedWorkOrderMaterialsId, @StkStocklineId, @stkItemMasterId,CASE WHEN @IsExchangePO= 1 THEN @ConditionId ELSE @stkConditionId END, @Qty, ISNULL(@WOMSQtyReserved, 0), 
+														ISNULL(@WOMSQtyIssued, 0), @stkMasterCompanyId, @UpdatedBy, @UpdatedBy, GETUTCDATE(), GETUTCDATE(), 1, 0, NULL, NULL, 
+														CASE WHEN @AltPartId = @stkItemMasterId THEN 1 ELSE 0 END, CASE WHEN @EquPartId = @stkItemMasterId THEN 1 ELSE 0 END, @stkPurchaseOrderUnitCost, (@stkPurchaseOrderUnitCost * @Qty), @stkPurchaseOrderUnitCost, (@stkPurchaseOrderUnitCost * @Qty),
+														@ReplaceProvisionId, NULL, NULL, NULL, NULL, NULL,@MaterialRefNo + @PONumber
+
+														SET @InsertedWorkOrderMaterialsId = SCOPE_IDENTITY();
+
+														--Commented By Hemant to Handle Production Issue # 09-06-2025 MOved Code from Connected line
+														UPDATE WOM
+														SET WOM.QuantityReserved = @QuantityReserved + ISNULL(@WOMSQtyReserved, 0),
+														WOM.TotalReserved = ISNULL(WOM.TotalReserved, 0) + ISNULL(@WOMSQtyReserved, 0),
+														WOM.ReservedById = @Requisitioner,
+														WOM.ReservedDate = GETUTCDATE(),
+														WOM.updatedDate = GETUTCDATE(),
+														WOM.updatedBy = CAST(@Requisitioner AS VARCHAR(200)) + 'Auto Reserve - PO',
+														WOM.PONum = @PONumber,
+														WOM.PartStatusId = 1, -- Reserve
+														WOM.ExtendedCost = ISNULL(WOM.ExtendedCost, 0) + (ISNULL(WOM.UnitCost, 0) * @WOMSQtyReserved),
+														WOM.QtyOnBkOrder = CASE WHEN ISNULL(WOM.QtyOnBkOrder,0) - ISNULL(@WOMSQtyReserved,0) < 0 THEN 0 ELSE ISNULL(WOM.QtyOnBkOrder,0) - ISNULL(@WOMSQtyReserved,0) END
+														FROM DBO.WorkOrderMaterials WOM
+														WHERE WOM.WorkOrderMaterialsId = @SelectedWorkOrderMaterialsId;
+
+														SET @POReferenceQty = @POReferenceQty - @Qty;
+													END
+													ELSE
+													BEGIN
+														GOTO NextStockline_WOMK;
+													END
+												END
+
+												SET @stkWorkOrderMaterialsId = @SelectedWorkOrderMaterialsId;
+												
+												UPDATE TOP (@Qty) StkDraft
+												SET 
+												StkDraft.WOQty = @Qty,
+												StkDraft.WorkOrderId = @ReferenceId,
+												StkDraft.ForStockQty = CASE WHEN StkDraft.Quantity < @Qty THEN 0 ELSE StkDraft.Quantity - @Qty END
+												FROM DBO.StocklineDraft StkDraft
+												WHERE StkDraft.StockLineId = @StkStocklineId AND StkDraft.SOQty IS NULL AND StkDraft.WOQty IS NULL;
+
+												UPDATE StkDraft
+												SET 
+												StkDraft.ForStockQty = StkDraft.ForStockQty - @Qty
+												FROM DBO.StocklineDraft StkDraft
+												WHERE StkDraft.StockLineId = @StkStocklineId AND StkDraft.ForStockQty > 0;
+
+												EXEC USP_UpdateWOMaterialsCost @SelectedWorkOrderMaterialsId, @WorkFlowWorkOrderId;
+												EXEC USP_UpdateWOTotalCostDetails @ReferenceId, @WorkFlowWorkOrderId, @UpdatedBy, @stkMasterCompanyId;
+												EXEC USP_UpdateWOCostDetails @ReferenceId, @WorkFlowWorkOrderId, @UpdatedBy, @stkMasterCompanyId;
+											END
+											ELSE
+											BEGIN
+												--GOTO NextStockline;
+												GOTO NextStockline_WOMK;
+											END
+										END
+									END
+								END
+							END
+							ELSE
+							BEGIN
+								SET @ReservedIntoMaterial = 0;
+								GOTO NextStockline_WOMK;
+							END
+						END
+
+						IF EXISTS (SELECT TOP 1 1 FROM DBO.WorkOrderMaterials WOM WITH (NOLOCK) LEFT JOIN DBO.Nha_Tla_Alt_Equ_ItemMapping Nha WITH (NOLOCK) ON Nha.ItemMasterId = WOM.ItemMasterId WHERE WOM.WorkOrderId = @ReferenceId AND (WOM.ItemMasterId = @ItemMasterId OR Nha.ItemMasterId = WOM.ItemMasterId) AND WOM.ConditionCodeId = @ConditionId AND WOM.WorkFlowWorkOrderId = @WorkFlowWorkOrderId) OR @IsExchangePO = 1
+						BEGIN
+							UPDATE Stk
+							SET Stk.QuantityAvailable = @stkQuantityAvailable,
+							--Stk.QuantityOnHand = @stkQuantityOnHand,
+							Stk.QuantityReserved = @stkQuantityReserved,
+							--Stk.QuantityIssued = @stkQuantityIssued,
+							Stk.QuantityOnOrder = @stkQuantityOnOrder
+							FROM DBO.Stockline Stk 
+							WHERE Stk.StockLineId = @StkStocklineId;
+
+							SET @ReservedIntoMaterial = 1;
+
+							IF (@LoopIDWFWO >= 1)
+								SET @QuantityReservedForPoPart = @QuantityReservedForPoPart + @Qty;
+							ELSE
+								SET @QuantityReservedForPoPart = @Qty;
+
+							EXEC USP_AddUpdateStocklineHistory @StkStocklineId, 28, @PurchaseOrderId, 15, @ReferenceId, 2, @Qty, @UpdatedBy;
+
+							IF (@stkWorkOrderMaterialsId > 0)
+							BEGIN
+								UPDATE Stk
+								SET Stk.WorkOrderMaterialsId = @stkWorkOrderMaterialsId,
+								Stk.WorkOrderId = @ReferenceId
+								FROM DBO.Stockline Stk 
+								WHERE Stk.StockLineId = @StkStocklineId;
+							END
+						END
+						ELSE
+						BEGIN
+							SET @ReservedIntoMaterial = 0;
+						END
+
+						NextStockline_WOMK:
+
+						IF EXISTS (SELECT TOP 1 1 FROM DBO.WorkOrderMaterialsKit WOMK WITH (NOLOCK) LEFT JOIN DBO.Nha_Tla_Alt_Equ_ItemMapping Nha WITH (NOLOCK) ON Nha.ItemMasterId = WOMK.ItemMasterId WHERE WOMK.WorkOrderId = @ReferenceId AND (WOMK.ItemMasterId = @ItemMasterId OR Nha.ItemMasterId = WOMK.ItemMasterId) AND WOMK.ConditionCodeId = @ConditionId AND WOMK.WorkFlowWorkOrderId = @WorkFlowWorkOrderId) -- AND @ReservedIntoMaterial = 0)-- OR @IsExchangePO = 1
+						BEGIN
+							DECLARE @SelectedWorkOrderMaterialsKitId INT = 0;
+							DECLARE @WorkFlowWorkOrderKitId BIGINT = 0;
+							DECLARE @RemainingStkQty INT = 0;
+							DECLARE @AltPartId_WOMKIT BIGINT = 0;
+							DECLARE @EquPartId_WOMKIT BIGINT = 0;
+
+							SELECT @stkMasterCompanyId = Stk.MasterCompanyId, @stkQty = Stk.Quantity, @stkQuantityAvailable = Stk.QuantityAvailable, @stkQuantityReserved = QuantityReserved,
+							@stkQuantityOnOrder = QuantityOnOrder, @stkItemMasterId = Stk.ItemMasterId, @stkConditionId = Stk.ConditionId,
+							@stkPurchaseOrderUnitCost = Stk.PurchaseOrderUnitCost
+							FROM DBO.Stockline Stk WITH (NOLOCK) WHERE Stk.StockLineId = @StkStocklineId;
+
+							SELECT @SelectedWorkOrderMaterialsKitId = WOMK.WorkOrderMaterialsKitId, @AltPartId = Nha_Alt.MappingItemMasterId,
+							@EquPartId = Nha_Equ.MappingItemMasterId 
+							FROM DBO.WorkOrderMaterialsKit WOMK WITH (NOLOCK) 
+							LEFT JOIN DBO.Nha_Tla_Alt_Equ_ItemMapping Nha_Alt WITH (NOLOCK) ON Nha_Alt.ItemMasterId = WOMK.ItemMasterId AND Nha_Alt.MappingType = 1
+							LEFT JOIN DBO.Nha_Tla_Alt_Equ_ItemMapping Nha_Equ WITH (NOLOCK) ON Nha_Equ.ItemMasterId = WOMK.ItemMasterId AND Nha_Equ.MappingType = 2
+							WHERE WOMK.WorkOrderId = @ReferenceId 
+							AND (
+										WOMK.ItemMasterId = @ItemMasterId
+										OR Nha_Alt.MappingItemMasterId = @ItemMasterId
+										OR Nha_Equ.MappingItemMasterId = @ItemMasterId
+									  )
+							AND WOMK.ConditionCodeId = @ConditionId AND WOMK.WorkFlowWorkOrderId = @WorkFlowWorkOrderId;
+
+							SET @Quantity = 0;
+							SET @QuantityReserved = 0;
+							SET @QuantityIssued = 0;
+
+							SELECT @Quantity = WOMK.Quantity, @QuantityReserved = ISNULL(WOMK.QuantityReserved, 0), @QuantityIssued = ISNULL(WOMK.QuantityIssued, 0), @WorkFlowWorkOrderKitId = WOMK.WorkFlowWorkOrderId 
+							FROM DBO.WorkOrderMaterialsKit WOMK WITH (NOLOCK)
+							LEFT JOIN DBO.Nha_Tla_Alt_Equ_ItemMapping Nha_Alt WITH (NOLOCK) ON Nha_Alt.ItemMasterId = WOMK.ItemMasterId
+							LEFT JOIN DBO.Nha_Tla_Alt_Equ_ItemMapping Nha_Equ WITH (NOLOCK) ON Nha_Equ.ItemMasterId = WOMK.ItemMasterId
+							WHERE WOMK.WorkOrderId = @ReferenceId 
+							AND (
+										WOMK.ItemMasterId = @ItemMasterId
+										OR Nha_Alt.MappingItemMasterId = @ItemMasterId
+										OR Nha_Equ.MappingItemMasterId = @ItemMasterId
+									  )
+							AND WOMK.ConditionCodeId = @ConditionId AND WOMK.WorkFlowWorkOrderId = @WorkFlowWorkOrderId;
+
+							SET @ActualRemainingMaterialQuantity = @Quantity;
+
+							DECLARE @MainPOReferenceQty_Kit INT = 0, @RemainingMaterialQty_KIT INT =(ISNULL(@Quantity, 0) - (ISNULL(@QuantityReserved, 0) + ISNULL(@QuantityIssued, 0)));;
+							SELECT @MainPOReferenceQty_Kit = (ISNULL(POPR.Qty, 0) - ISNULL(POPR.ReservedQty, 0)) FROM DBO.PurchaseOrderPartReference POPR WITH (NOLOCK) WHERE PurchaseOrderPartReferenceId = @SelectedPurchaseOrderPartReferenceId;
+
+							SET @ActualRemainingMaterialQuantity  =  ISNULL((CASE WHEN @RemainingMaterialQty_KIT <= @MainPOReferenceQty_Kit THEN @RemainingMaterialQty_KIT ELSE @MainPOReferenceQty_Kit END),0)
+							SET @Quantity = @ActualRemainingMaterialQuantity;
+
+							--IF (@MainPOReferenceQty_Kit < @Quantity)
+							--BEGIN
+							--	SET @Quantity = @MainPOReferenceQty_Kit;
+							--END
+							--IF (@MainPOReferenceQty_Kit < @OriginalQuantity) /****** Commented due to add above >> SET @OriginalQuantity  = (CASE WHEN @RemainingMaterialQty <= @MainPOReferenceQty THEN @RemainingMaterialQty ELSE @MainPOReferenceQty END) ******/
+							--BEGIN
+							--	SET @OriginalQuantity = @MainPOReferenceQty_Kit;
+							--END
+
+							--IF ((@OriginalQuantity - (@QuantityReserved + @QuantityIssued)) > 0)
+							IF (@ActualRemainingMaterialQuantity > 0)
+							BEGIN
+								IF (@SelectedWorkOrderMaterialsKitId > 0)
+								BEGIN
+									SET @Qty = 0;
+									SET @stkQty = 0;
+									SET @stkMasterCompanyId = 0;
+									SET @stkQuantityAvailable = 0;
+									SET @stkQuantityReserved = 0;
+									SET @stkQuantityOnOrder = 0;
+									SET @stkItemMasterId = 0;
+									SET @stkConditionId = 0;
+									SET @stkWorkOrderMaterialsKitId = 0;
+									SET @stkPurchaseOrderUnitCost = 0;
+
+									SELECT @stkMasterCompanyId = Stk.MasterCompanyId, @stkQty = Stk.Quantity, @stkQuantityAvailable = Stk.QuantityAvailable, @stkQuantityOnHand = Stk.QuantityOnHand, @stkQuantityReserved = QuantityReserved,
+									@stkQuantityOnOrder = QuantityOnOrder, @stkItemMasterId = Stk.ItemMasterId, @stkConditionId = Stk.ConditionId,
+									@stkPurchaseOrderUnitCost = Stk.PurchaseOrderUnitCost
+									FROM DBO.Stockline Stk WITH (NOLOCK) WHERE Stk.StockLineId = @StkStocklineId;
+
+									IF (@ActualRemainingMaterialQuantity > 0 AND @stkQty > 0)
+									BEGIN
+										IF (@stkQuantityAvailable > = @ActualRemainingMaterialQuantity)
+											SET @Qty = @ActualRemainingMaterialQuantity; -- @Qty = @OriginalQuantity - (@QuantityReserved + @QuantityIssued);	/****** Commented due to add above >> SET @OriginalQuantity  = (CASE WHEN @RemainingMaterialQty <= @MainPOReferenceQty THEN @RemainingMaterialQty ELSE @MainPOReferenceQty END) ******/
+										ELSE
+											SET @Qty = @stkQuantityAvailable;
+									END
+
+									IF (@Qty > 0)
+									BEGIN
+										UPDATE WOMK
+										SET WOMK.QuantityReserved = ISNULL(WOMK.QuantityReserved, 0),
+										WOMK.TotalReserved = ISNULL(WOMK.TotalReserved, 0),
+										WOMK.QuantityIssued = ISNULL(WOMK.QuantityIssued, 0),
+										WOMK.TotalIssued = ISNULL(WOMK.TotalIssued, 0)
+										FROM DBO.WorkOrderMaterialsKit WOMK
+										WHERE WOMK.WorkOrderMaterialsKitId = @SelectedWorkOrderMaterialsKitId;
+
+										--Commented By Hemant to Handle Production Issue # 09-06-2025
+										--UPDATE WOMK
+										--SET WOMK.QuantityReserved = @QuantityReserved + @Qty,
+										--WOMK.TotalReserved = TotalReserved + @Qty,
+										--WOMK.ReservedById = @Requisitioner,
+										--WOMK.ReservedDate = GETUTCDATE(),
+										--WOMK.IssuedById = @Requisitioner,
+										--WOMK.IssuedDate = GETUTCDATE(),
+										--WOMK.PONum = @PONumber,
+										--WOMK.PartStatusId = 1, -- Reserve
+										--WOMK.ExtendedCost = WOMK.ExtendedCost + (WOMK.UnitCost * @Qty),
+										--WOMK.QtyOnBkOrder = CASE WHEN ISNULL(WOMK.QtyOnBkOrder,0) - ISNULL(@Qty,0) < 0 THEN 0 ELSE ISNULL(WOMK.QtyOnBkOrder,0) - ISNULL(@Qty,0) END
+										--FROM DBO.WorkOrderMaterialsKit WOMK
+										--WHERE WOMK.WorkOrderMaterialsKitId = @SelectedWorkOrderMaterialsKitId;
+									END
+
+									SET @qtyFulfilled = 0;
+									SET @flag = 0;
+
+									IF (@StkStocklineId > 0)
+									BEGIN
+										SET @flag = 0;
+
+										IF (@qtyFulfilled = 0)
+										BEGIN
+											SET @WOMSQtyReserved = 0;
+											SET @WOMSQuantity = 0;
+
+											IF (@stkQuantityAvailable > 0)
+											BEGIN
+												IF (@stkQuantityAvailable >= @Qty)
+												BEGIN
+													SET @qtyFulfilled = 1;
+													SET @stkQuantityAvailable = @stkQuantityAvailable - @Qty;
+													SET @stkQuantityReserved = @stkQuantityReserved + @Qty;
+													SET @WOMSQtyReserved = @Qty;
+												END
+												ELSE
+												BEGIN
+													SET @stkQuantityReserved = @stkQuantityReserved + @stkQuantityAvailable;
+													SET @WOMSQtyReserved = @stkQuantityAvailable;
+													SET @stkQuantityAvailable = 0;
+												END
+
+												SET @flag = 1;
+											END
+
+											IF (@flag = 1)
+											BEGIN
+												SET @InsertedWorkOrderMaterialsId = 0;
+
+												IF EXISTS (SELECT TOP 1 1 FROM DBO.WorkOrderMaterialStockLineKit WOMS WITH (NOLOCK) WHERE WOMS.WorkOrderMaterialsKitId = @SelectedWorkOrderMaterialsKitId AND WOMS.StockLineId = @StkStocklineId)
+												BEGIN
+													UPDATE WOMS
+													SET WOMS.Quantity = ISNULL(WOMS.Quantity, 0) + @Qty,
+													WOMS.QtyReserved = ISNULL(WOMS.QtyReserved, 0) + @Qty,
+													WOMS.StockLineId = @StkStocklineId,
+													WOMS.UpdatedDate = GETUTCDATE(),
+													WOMS.UpdatedBy = @UpdatedBy,
+													WOMS.WorkOrderMaterialsKitId = @SelectedWorkOrderMaterialsKitId,
+													WOMS.ItemMasterId = @stkItemMasterId,
+													WOMS.ConditionId = @stkConditionId,
+													WOMS.IsAltPart = CASE WHEN @AltPartId_WOMKIT = @stkItemMasterId THEN 1 ELSE 0 END,
+													WOMS.IsEquPart = CASE WHEN @EquPartId_WOMKIT = @stkItemMasterId THEN 1 ELSE 0 END,
+													WOMS.UnitCost = @stkPurchaseOrderUnitCost,
+													WOMS.ExtendedCost = (@stkPurchaseOrderUnitCost * (ISNULL(WOMS.Quantity, 0) + @Qty)),
+													WOMS.UnitPrice = @stkPurchaseOrderUnitCost,
+													WOMS.ExtendedPrice = (@stkPurchaseOrderUnitCost * (ISNULL(WOMS.Quantity, 0) + @Qty)),
+													WOMS.ReferenceNumber = @MaterialRefNo + @PONumber
+													FROM DBO.WorkOrderMaterialStockLineKit WOMS
+													WHERE WOMS.WorkOrderMaterialsKitId = @SelectedWorkOrderMaterialsKitId AND WOMS.StockLineId = @StkStocklineId;
+
+													--Commented By Hemant to Handle Production Issue # 09-06-2025 Move Here
+													UPDATE WOMK
+													SET WOMK.QuantityReserved = @QuantityReserved + @Qty,
+													WOMK.TotalReserved = TotalReserved + @Qty,
+													WOMK.ReservedById = @Requisitioner,
+													WOMK.ReservedDate = GETUTCDATE(),
+													WOMK.IssuedById = @Requisitioner,
+													WOMK.IssuedDate = GETUTCDATE(),
+													WOMK.PONum = @PONumber,
+													WOMK.PartStatusId = 1, -- Reserve
+													WOMK.ExtendedCost = WOMK.ExtendedCost + (WOMK.UnitCost * @Qty),
+													WOMK.QtyOnBkOrder = CASE WHEN ISNULL(WOMK.QtyOnBkOrder,0) - ISNULL(@Qty,0) < 0 THEN 0 ELSE ISNULL(WOMK.QtyOnBkOrder,0) - ISNULL(@Qty,0) END
+													FROM DBO.WorkOrderMaterialsKit WOMK
+													WHERE WOMK.WorkOrderMaterialsKitId = @SelectedWorkOrderMaterialsKitId;
+
+													SET @POReferenceQty = @POReferenceQty - @Qty;
+												END
+												ELSE
+												BEGIN
+													DECLARE @ItmMsrId_KIT BIGINT = 0;
+													DECLARE @CondId_KIT BIGINT = 0;
+
+													SELECT @ItmMsrId_KIT = WOM.ItemMasterId, @CondId_KIT = WOM.ConditionCodeId FROM DBO.WorkOrderMaterialsKit WOM WITH (NOLOCK) WHERE WOM.WorkOrderMaterialsKitId = @SelectedWorkOrderMaterialsKitId;
+
+													IF ((@ItmMsrId_KIT = @stkItemMasterId OR @stkItemMasterId = @AltPartId OR @stkItemMasterId = @EquPartId) AND @CondId_KIT = (CASE WHEN @IsExchangePO= 1 THEN @ConditionId ELSE @stkConditionId END))
+													BEGIN
+														INSERT INTO DBO.WorkOrderMaterialStockLineKit ([WorkOrderMaterialsKitId],[StockLineId],[ItemMasterId],[ConditionId],[Quantity],[QtyReserved],
+														[QtyIssued],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[AltPartMasterPartId],[EquPartMasterPartId],
+														[IsAltPart],[IsEquPart],[UnitCost],[ExtendedCost],[UnitPrice],[ExtendedPrice],[ProvisionId],[RepairOrderId],[QuantityTurnIn],[Figure],[Item],[RepairOrderPartRecordId],ReferenceNumber)
+														SELECT @SelectedWorkOrderMaterialsKitId, @StkStocklineId, @stkItemMasterId, @stkConditionId, @Qty, @WOMSQtyReserved, 
+														0, @stkMasterCompanyId, @UpdatedBy, @UpdatedBy, GETUTCDATE(), GETUTCDATE(), 1, 0, NULL, NULL, 
+														CASE WHEN @AltPartId_WOMKIT = @stkItemMasterId THEN 1 ELSE 0 END, CASE WHEN @EquPartId_WOMKIT = @stkItemMasterId THEN 1 ELSE 0 END, @stkPurchaseOrderUnitCost, (@stkPurchaseOrderUnitCost * @Qty), @stkPurchaseOrderUnitCost, (@stkPurchaseOrderUnitCost * @Qty),
+														@ReplaceProvisionId, NULL, NULL, NULL, NULL, NULL,@MaterialRefNo + @PONumber
+
+														SET @InsertedWorkOrderMaterialsId = SCOPE_IDENTITY();
+
+														--Commented By Hemant to Handle Production Issue # 09-06-2025 Move Here
+														UPDATE WOMK
+														SET WOMK.QuantityReserved = @QuantityReserved + @WOMSQtyReserved,
+														WOMK.TotalReserved = TotalReserved + @WOMSQtyReserved,
+														WOMK.ReservedById = @Requisitioner,
+														WOMK.ReservedDate = GETUTCDATE(),
+														WOMK.IssuedById = @Requisitioner,
+														WOMK.IssuedDate = GETUTCDATE(),
+														WOMK.PONum = @PONumber,
+														WOMK.PartStatusId = 1, -- Reserve
+														WOMK.ExtendedCost = WOMK.ExtendedCost + (WOMK.UnitCost * @WOMSQtyReserved),
+														WOMK.QtyOnBkOrder = CASE WHEN ISNULL(WOMK.QtyOnBkOrder,0) - ISNULL(@WOMSQtyReserved,0) < 0 THEN 0 ELSE ISNULL(WOMK.QtyOnBkOrder,0) - ISNULL(@WOMSQtyReserved,0) END
+														FROM DBO.WorkOrderMaterialsKit WOMK
+														WHERE WOMK.WorkOrderMaterialsKitId = @SelectedWorkOrderMaterialsKitId;
+
+														SET @POReferenceQty = @POReferenceQty - @Qty;
+													END
+													ELSE
+													BEGIN
+														GOTO NextWFWO;
+													END
+												END
+
+												SET @stkWorkOrderMaterialsKitId = @SelectedWorkOrderMaterialsKitId;
+
+												UPDATE TOP (@Qty) StkDraft
+												SET 
+												StkDraft.WOQty = @Qty,
+												StkDraft.WorkOrderId = @ReferenceId,
+												StkDraft.ForStockQty = CASE WHEN StkDraft.Quantity < @Qty THEN 0 ELSE StkDraft.Quantity - @Qty END
+												FROM DBO.StocklineDraft StkDraft
+												WHERE StkDraft.StockLineId = @StkStocklineId AND StkDraft.SOQty IS NULL AND StkDraft.WOQty IS NULL;
+
+												UPDATE StkDraft
+												SET 
+												StkDraft.ForStockQty = StkDraft.ForStockQty - @Qty
+												FROM DBO.StocklineDraft StkDraft
+												WHERE StkDraft.StockLineId = @StkStocklineId AND StkDraft.ForStockQty > 0;
+
+												EXEC USP_UpdateWOMaterialsCost @SelectedWorkOrderMaterialsKitId, @WorkFlowWorkOrderKitId;
+												EXEC USP_UpdateWOTotalCostDetails @ReferenceId, @WorkFlowWorkOrderKitId, @UpdatedBy, @stkMasterCompanyId;
+												EXEC USP_UpdateWOCostDetails @ReferenceId, @WorkFlowWorkOrderKitId, @UpdatedBy, @stkMasterCompanyId;
+											END
+											ELSE
+											BEGIN
+												GOTO NextWFWO;
+											END
+										END
+									END
+								END
+							END
+							ELSE
+							BEGIN
+								GOTO NextWFWO;
+							END
+						END
+						ELSE
+						BEGIN
+							GOTO NextWFWO;
+						END
+
+						IF EXISTS (SELECT TOP 1 1 FROM DBO.WorkOrderMaterialsKit WOMK WITH (NOLOCK) LEFT JOIN DBO.Nha_Tla_Alt_Equ_ItemMapping Nha WITH (NOLOCK) ON Nha.ItemMasterId = WOMK.ItemMasterId WHERE WOMK.WorkOrderId = @ReferenceId AND (WOMK.ItemMasterId = @ItemMasterId OR Nha.ItemMasterId = WOMK.ItemMasterId) AND WOMK.ConditionCodeId = @ConditionId AND WOMK.WorkFlowWorkOrderId = @WorkFlowWorkOrderId)-- OR @IsExchangePO = 1
+						BEGIN
+							UPDATE Stk
+							SET Stk.QuantityAvailable = @stkQuantityAvailable,
+							Stk.QuantityReserved = @stkQuantityReserved,
+							Stk.QuantityOnOrder = @stkQuantityOnOrder
+							FROM DBO.Stockline Stk 
+							WHERE Stk.StockLineId = @StkStocklineId;
+
+							IF (@ReservedIntoMaterial = 1)
+							BEGIN
+								SET @QuantityReservedForPoPart = @QuantityReservedForPoPart + @Qty;
+							END
+							ELSE
+							BEGIN
+								IF (@LoopIDWFWO >= 1)
+									SET @QuantityReservedForPoPart = @QuantityReservedForPoPart + @Qty;
+								ELSE
+									SET @QuantityReservedForPoPart = @Qty;
+							END
+
+							EXEC USP_AddUpdateStocklineHistory @StkStocklineId, 28, @PurchaseOrderId, 15, @ReferenceId, 2, @Qty, @UpdatedBy;
+
+							IF (@stkWorkOrderMaterialsKitId > 0)
+							BEGIN
+								UPDATE Stk
+								SET Stk.WorkOrderMaterialsKitId = @stkWorkOrderMaterialsKitId,
+								Stk.WorkOrderId = @ReferenceId
+								FROM DBO.Stockline Stk 
+								WHERE Stk.StockLineId = @StkStocklineId;
+							END
+						END
+
+						NextWFWO: 
+
+						SET @LoopIDWFWO = @LoopIDWFWO - 1;
+					END
+				END
+
+				--Start Sub Work Order Materials Reservation Process
+				IF (@ModulId = 5) -- Sub Work Order
+				BEGIN
+					PRINT 'SUB WORK ORDER'
+					SET @ItemMasterId = 0;
+					SET @ConditionId = 0;
+					SET @Requisitioner = 0;
+					SET @PONumber = '';
+
+					SELECT @ItemMasterId = POP.ItemMasterId, @ConditionId = POP.ConditionId FROM DBO.PurchaseOrderPart POP WITH (NOLOCK) WHERE PurchaseOrderPartRecordId = @PurchaseOrderPartId;
+					SELECT @Requisitioner = PO.RequestedBy, @PONumber = PO.PurchaseOrderNumber FROM DBO.PurchaseOrder PO WITH (NOLOCK) WHERE PO.PurchaseOrderId = @PurchaseOrderId;
+
+					DECLARE @ReservedIntoSubWOMaterial BIT = 0;
+
+					IF OBJECT_ID(N'tempdb..#SubWorkOrderMaterialTemp') IS NOT NULL
+					BEGIN
+						DROP TABLE #SubWorkOrderMaterialTemp
+					END 
+			
+					CREATE TABLE #SubWorkOrderMaterialTemp
+					(
+						ID BIGINT NOT NULL IDENTITY,
+						[WorkOrderId] [bigint] NULL,
+						[SubWorkOrderId] [bigint] NULL,
+						[SubWOPartNoId] [bigint] NULL,
+						[SubWorkOrderMaterialsId] [bigint] NULL,
+						[IsKitType] [bit] NULL,
+					)
+
+					INSERT INTO #SubWorkOrderMaterialTemp ([WorkOrderId], [SubWorkOrderId], [SubWOPartNoId], [SubWorkOrderMaterialsId], [IsKitType])
+					SELECT DISTINCT [WorkOrderId], [SubWorkOrderId], [SubWOPartNoId], [SubWorkOrderMaterialsId], 0 FROM DBO.SubWorkOrderMaterials WOM WITH (NOLOCK) 
+					LEFT JOIN DBO.Nha_Tla_Alt_Equ_ItemMapping Nha WITH (NOLOCK) ON Nha.ItemMasterId = WOM.ItemMasterId
+					WHERE WOM.SubWorkOrderId = @ReferenceId AND (WOM.ItemMasterId = @ItemMasterId OR Nha.ItemMasterId = WOM.ItemMasterId) AND WOM.ConditionCodeId = @ConditionId;
+
+					INSERT INTO #SubWorkOrderMaterialTemp ([WorkOrderId], [SubWorkOrderId], [SubWOPartNoId], [SubWorkOrderMaterialsId], [IsKitType])
+					SELECT DISTINCT [WorkOrderId], [SubWorkOrderId], [SubWOPartNoId], [SubWorkOrderMaterialsKitId], 1 FROM DBO.SubWorkOrderMaterialsKit WOMK WITH (NOLOCK) 
+					LEFT JOIN DBO.Nha_Tla_Alt_Equ_ItemMapping Nha WITH (NOLOCK) ON Nha.ItemMasterId = WOMK.ItemMasterId
+					WHERE WOMK.SubWorkOrderId = @ReferenceId AND (WOMK.ItemMasterId = @ItemMasterId OR Nha.ItemMasterId = WOMK.ItemMasterId) AND WOMK.ConditionCodeId = @ConditionId; 
+
+					DECLARE @LoopIDSUBWO INT = 0;
+					SELECT @LoopIDSUBWO = MAX(ID) FROM #SubWorkOrderMaterialTemp;
+
+					WHILE (@LoopIDSUBWO > 0)
+					BEGIN
+						DECLARE @SubWOMaterialId BIGINT = 0;
+						DECLARE @IsKit BIT = 0;
+						
+						SELECT @SubWOMaterialId = [SubWorkOrderMaterialsId] , @IsKit = [IsKitType] FROM #SubWorkOrderMaterialTemp WHERE ID = @LoopIDSUBWO;
+						
+						IF EXISTS (SELECT TOP 1 1 FROM DBO.SubWorkOrderMaterials SWOM WITH (NOLOCK) LEFT JOIN DBO.Nha_Tla_Alt_Equ_ItemMapping Nha WITH (NOLOCK) ON Nha.ItemMasterId = SWOM.ItemMasterId WHERE SWOM.SubWorkOrderId = @ReferenceId AND (SWOM.ItemMasterId = @ItemMasterId OR Nha.ItemMasterId = SWOM.ItemMasterId) AND SWOM.ConditionCodeId = @ConditionId AND SWOM.SubWorkOrderMaterialsId = @SubWOMaterialId AND @IsKit = 0)
+						BEGIN
+							DECLARE @SelectedWorkOrderMaterialsIdSWO INT = 0;
+							DECLARE @SelectedWorkOrderId_ForSWO INT = 0;
+							DECLARE @AltPartId_SWO BIGINT = 0;
+							DECLARE @EquPartId_SWO BIGINT = 0;
+
+							SELECT @SelectedWorkOrderMaterialsIdSWO = SWOM.SubWorkOrderMaterialsId, @AltPartId_SWO = Nha_Alt.MappingItemMasterId,
+							@EquPartId_SWO = Nha_Euq.MappingItemMasterId, @SelectedWorkOrderId_ForSWO = SWOM.WorkOrderId 
+							FROM DBO.SubWorkOrderMaterials SWOM WITH (NOLOCK) 
+							LEFT JOIN DBO.Nha_Tla_Alt_Equ_ItemMapping Nha_Alt WITH (NOLOCK) ON Nha_Alt.ItemMasterId = SWOM.ItemMasterId AND Nha_Alt.MappingType = 1
+							LEFT JOIN DBO.Nha_Tla_Alt_Equ_ItemMapping Nha_Euq WITH (NOLOCK) ON Nha_Euq.ItemMasterId = SWOM.ItemMasterId AND Nha_Euq.MappingType = 2
+							WHERE SWOM.SubWorkOrderId = @ReferenceId AND (SWOM.ItemMasterId = @ItemMasterId OR Nha_Alt.ItemMasterId = SWOM.ItemMasterId OR Nha_Euq.ItemMasterId = SWOM.ItemMasterId) AND SWOM.ConditionCodeId = @ConditionId AND SWOM.SubWorkOrderMaterialsId = @SubWOMaterialId;
+					
+							SET @Quantity = 0;
+							SET @QuantityReserved = 0;
+							SET @QuantityIssued = 0;
+
+							SELECT @Quantity = SWOM.Quantity, @QuantityReserved = ISNULL(SWOM.QuantityReserved, 0), @QuantityIssued = ISNULL(SWOM.QuantityIssued, 0) 
+							FROM DBO.SubWorkOrderMaterials SWOM WITH (NOLOCK)
+							LEFT JOIN DBO.Nha_Tla_Alt_Equ_ItemMapping Nha_Alt WITH (NOLOCK) ON Nha_Alt.ItemMasterId = SWOM.ItemMasterId AND Nha_Alt.MappingType = 1
+							LEFT JOIN DBO.Nha_Tla_Alt_Equ_ItemMapping Nha_Euq WITH (NOLOCK) ON Nha_Euq.ItemMasterId = SWOM.ItemMasterId AND Nha_Euq.MappingType = 2
+							WHERE SWOM.SubWorkOrderId = @ReferenceId AND (SWOM.ItemMasterId = @ItemMasterId OR Nha_Alt.ItemMasterId = SWOM.ItemMasterId OR Nha_Euq.ItemMasterId = SWOM.ItemMasterId) AND SWOM.ConditionCodeId = @ConditionId AND SWOM.SubWorkOrderMaterialsId = @SubWOMaterialId;
+
+							DECLARE @MainPOReferenceQty_SWO INT = 0,@RemainingMaterialQty_SWO INT =(ISNULL(@Quantity, 0) - (ISNULL(@QuantityReserved, 0) + ISNULL(@QuantityIssued, 0)));;
+							SELECT @MainPOReferenceQty_SWO = (ISNULL(POPR.Qty, 0) - ISNULL(POPR.ReservedQty, 0)) FROM DBO.PurchaseOrderPartReference POPR WITH (NOLOCK) WHERE PurchaseOrderPartReferenceId = @SelectedPurchaseOrderPartReferenceId;
+
+							SET @Quantity  = ISNULL((CASE WHEN @RemainingMaterialQty_SWO <= @MainPOReferenceQty_SWO THEN @RemainingMaterialQty_SWO ELSE @MainPOReferenceQty_SWO END),0)
+							--IF (@MainPOReferenceQty_SWO < @Quantity)
+							--BEGIN
+							--	SET @Quantity = @MainPOReferenceQty_SWO;
+							--END
+
+							IF (@Quantity > 0)
+							BEGIN
+								IF (@SelectedWorkOrderMaterialsIdSWO > 0)
+								BEGIN
+									SET @Qty = 0;
+									SET @stkQty = 0;
+									SET @stkMasterCompanyId = 0;
+									SET @stkQuantityAvailable = 0;
+									SET @stkQuantityReserved = 0;
+									SET @stkQuantityOnOrder = 0;
+									SET @stkItemMasterId = 0;
+									SET @stkConditionId = 0;
+									SET @stkWorkOrderMaterialsId = 0;
+									SET @stkPurchaseOrderUnitCost = 0;
+
+									SELECT @stkMasterCompanyId = Stk.MasterCompanyId, @stkQty = Stk.Quantity, @stkQuantityAvailable = Stk.QuantityAvailable, @stkQuantityReserved = QuantityReserved,
+									@stkQuantityOnOrder = QuantityOnOrder, @stkItemMasterId = Stk.ItemMasterId, @stkConditionId = Stk.ConditionId,
+									@stkPurchaseOrderUnitCost = Stk.PurchaseOrderUnitCost
+									FROM DBO.Stockline Stk WITH (NOLOCK) WHERE Stk.StockLineId = @StkStocklineId;
+
+									IF (@Quantity > 0 AND @stkQty > 0)
+									BEGIN
+										IF (@stkQuantityAvailable > = @Quantity)
+												SET @Qty = @Quantity;
+										ELSE
+											SET @Qty = @stkQuantityAvailable;
+									END
+
+									IF (@Qty > 0)
+									BEGIN
+										UPDATE SWOM
+										SET SWOM.QuantityReserved = ISNULL(SWOM.QuantityReserved, 0),
+										SWOM.TotalReserved = ISNULL(SWOM.TotalReserved, 0),
+										SWOM.QuantityIssued = ISNULL(SWOM.QuantityIssued, 0),
+										SWOM.TotalIssued = ISNULL(SWOM.TotalIssued, 0)
+										FROM DBO.SubWorkOrderMaterials SWOM
+										WHERE SWOM.SubWorkOrderMaterialsId = @SelectedWorkOrderMaterialsIdSWO;
+
+										--Commented By Hemant to Handle Production Issue # 09-06-2025
+										--UPDATE SWOM
+										--SET SWOM.QuantityReserved = @QuantityReserved + @Qty,
+										--SWOM.TotalReserved = TotalReserved + @Qty,
+										--SWOM.ReservedById = @Requisitioner,
+										--SWOM.ReservedDate = GETUTCDATE(),
+										----SWOM.IssuedById = @Requisitioner,
+										----SWOM.IssuedDate = GETUTCDATE(),
+										--SWOM.PONum = @PONumber,
+										--SWOM.PartStatusId = 1, -- Reserve
+										--SWOM.ExtendedCost = SWOM.ExtendedCost + (SWOM.UnitCost * @Qty)
+										--FROM DBO.SubWorkOrderMaterials SWOM
+										--WHERE SWOM.SubWorkOrderMaterialsId = @SelectedWorkOrderMaterialsIdSWO;
+									END
+
+									SET @qtyFulfilled = 0;
+									SET @flag = 0;
+
+									IF (@StkStocklineId > 0)
+									BEGIN
+										SET @flag = 0;
+
+										IF (@qtyFulfilled = 0)
+										BEGIN
+											SET @WOMSQtyReserved = 0;
+											SET @WOMSQuantity = 0;
+
+											IF (@stkQuantityAvailable > 0)
+											BEGIN
+												IF (@stkQuantityAvailable >= @Qty)
+												BEGIN
+													SET @qtyFulfilled = 1;
+													SET @stkQuantityAvailable = @stkQuantityAvailable - @Qty;
+													SET @stkQuantityReserved = @stkQuantityReserved + @Qty;
+													SET @WOMSQtyReserved = @Qty;
+												END
+												ELSE
+												BEGIN
+													SET @stkQuantityReserved = @stkQuantityReserved + @stkQuantityAvailable;
+													SET @WOMSQtyReserved = @stkQuantityAvailable;
+													SET @stkQuantityAvailable = 0;
+												END
+
+												SET @flag = 1;
+											END
+
+											IF (@flag = 1)
+											BEGIN
+												SET @InsertedWorkOrderMaterialsId = 0;
+
+												IF EXISTS (SELECT TOP 1 1 FROM DBO.SubWorkOrderMaterialStockLine SWOMS WITH (NOLOCK) WHERE SWOMS.SubWorkOrderMaterialsId = @SelectedWorkOrderMaterialsIdSWO AND SWOMS.StockLineId = @StkStocklineId)
+												BEGIN
+													UPDATE SWOMS
+													SET SWOMS.Quantity = ISNULL(SWOMS.Quantity, 0) + @Qty,
+													SWOMS.QtyReserved = ISNULL(SWOMS.QtyReserved, 0) + @Qty,
+													SWOMS.StockLineId = @StkStocklineId,
+													SWOMS.UpdatedDate = GETUTCDATE(),
+													SWOMS.UpdatedBy = @UpdatedBy,
+													SWOMS.SubWorkOrderMaterialsId = @SelectedWorkOrderMaterialsIdSWO,
+													SWOMS.ItemMasterId = @stkItemMasterId,
+													SWOMS.ConditionId = @stkConditionId,
+													SWOMS.IsAltPart = CASE WHEN @AltPartId_SWO = @stkItemMasterId THEN 1 ELSE 0 END,
+													SWOMS.IsEquPart = CASE WHEN @EquPartId_SWO = @stkItemMasterId THEN 1 ELSE 0 END,
+													SWOMS.UnitCost = @stkPurchaseOrderUnitCost,
+													SWOMS.ExtendedCost = (@stkPurchaseOrderUnitCost * @Qty),
+													SWOMS.UnitPrice = @stkPurchaseOrderUnitCost,
+													SWOMS.ExtendedPrice = (@stkPurchaseOrderUnitCost * @Qty),
+													SWOMS.ReferenceNumber = @MaterialRefNo + @PONumber
+													FROM DBO.SubWorkOrderMaterialStockLine SWOMS
+													WHERE SWOMS.SubWorkOrderMaterialsId = @SelectedWorkOrderMaterialsIdSWO AND SWOMS.StockLineId = @StkStocklineId;
+
+													--Commented By Hemant to Handle Production Issue # 09-06-2025 Move Here
+													UPDATE SWOM
+													SET SWOM.QuantityReserved = @QuantityReserved + @Qty,
+													SWOM.TotalReserved = TotalReserved + @Qty,
+													SWOM.ReservedById = @Requisitioner,
+													SWOM.ReservedDate = GETUTCDATE(),
+													SWOM.PONum = @PONumber,
+													SWOM.PartStatusId = 1, -- Reserve
+													SWOM.ExtendedCost = SWOM.ExtendedCost + (SWOM.UnitCost * @Qty)
+													FROM DBO.SubWorkOrderMaterials SWOM
+													WHERE SWOM.SubWorkOrderMaterialsId = @SelectedWorkOrderMaterialsIdSWO
+
+													SET @POReferenceQty = @POReferenceQty - @Qty;
+												END
+												ELSE
+												BEGIN
+													DECLARE @ItmMsrId_SWO BIGINT = 0;
+													DECLARE @CondId_SWO BIGINT = 0;
+
+													SELECT @ItmMsrId_SWO = WOM.ItemMasterId, @CondId_SWO = WOM.ConditionCodeId FROM DBO.SubWorkOrderMaterials WOM WITH (NOLOCK) WHERE WOM.SubWorkOrderMaterialsId = @SelectedWorkOrderMaterialsIdSWO;
+
+													IF ((@ItmMsrId_SWO = @stkItemMasterId OR @stkItemMasterId = @AltPartId_SWO OR @stkItemMasterId = @EquPartId_SWO) AND @CondId_SWO = @stkConditionId)
+													BEGIN
+														INSERT INTO DBO.SubWorkOrderMaterialStockLine ([SubWorkOrderMaterialsId],[StockLineId],[ItemMasterId],[ConditionId],[Quantity],[QtyReserved],
+														[QtyIssued],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[AltPartMasterPartId],[EquPartMasterPartId],
+														[IsAltPart],[IsEquPart],[UnitCost],[ExtendedCost],[UnitPrice],[ExtendedPrice],[ProvisionId],[RepairOrderId],[QuantityTurnIn],[Figure],[Item],ReferenceNumber)
+														SELECT @SelectedWorkOrderMaterialsIdSWO, @StkStocklineId, @stkItemMasterId, @stkConditionId, @Qty, @WOMSQtyReserved, 
+														0, @stkMasterCompanyId, @UpdatedBy, @UpdatedBy, GETUTCDATE(), GETUTCDATE(), 1, 0, NULL, NULL, 
+														CASE WHEN @AltPartId_SWO = @stkItemMasterId THEN 1 ELSE 0 END, CASE WHEN @EquPartId_SWO = @stkItemMasterId THEN 1 ELSE 0 END, @stkPurchaseOrderUnitCost, (@stkPurchaseOrderUnitCost * @Qty), @stkPurchaseOrderUnitCost, (@stkPurchaseOrderUnitCost * @Qty),
+														@ReplaceProvisionId, NULL, NULL, NULL, NULL,@MaterialRefNo + @PONumber
+
+														SET @InsertedWorkOrderMaterialsId = SCOPE_IDENTITY();
+
+														--Commented By Hemant to Handle Production Issue # 09-06-2025 Move Here
+														UPDATE SWOM
+														SET SWOM.QuantityReserved = @QuantityReserved + @WOMSQtyReserved,
+														SWOM.TotalReserved = TotalReserved + @WOMSQtyReserved,
+														SWOM.ReservedById = @Requisitioner,
+														SWOM.ReservedDate = GETUTCDATE(),
+														SWOM.PONum = @PONumber,
+														SWOM.PartStatusId = 1, -- Reserve
+														SWOM.ExtendedCost = SWOM.ExtendedCost + (SWOM.UnitCost * @WOMSQtyReserved)
+														FROM DBO.SubWorkOrderMaterials SWOM
+														WHERE SWOM.SubWorkOrderMaterialsId = @SelectedWorkOrderMaterialsIdSWO
+
+														SET @POReferenceQty = @POReferenceQty - @Qty;
+													END
+													ELSE
+													BEGIN
+														GOTO NextStockline_SUBWOMK;
+													END
+
+													
+												END
+
+												SET @stkWorkOrderMaterialsId = @SelectedWorkOrderMaterialsIdSWO;
+
+												UPDATE TOP (@Qty) StkDraft
+												SET 
+												--StkDraft.SOQty = CASE WHEN StkDraft.SOQty IS NULL THEN 0 ELSE StkDraft.SOQty END,
+												StkDraft.WOQty = @Qty,
+												StkDraft.WorkOrderId = @SelectedWorkOrderId_ForSWO,	--@ReferenceId,
+												StkDraft.ForStockQty = CASE WHEN StkDraft.Quantity < @Qty THEN 0 ELSE StkDraft.Quantity - @Qty END
+												FROM DBO.StocklineDraft StkDraft
+												WHERE StkDraft.StockLineId = @StkStocklineId AND StkDraft.SOQty IS NULL AND StkDraft.WOQty IS NULL;
+
+												UPDATE StkDraft
+												SET 
+												StkDraft.ForStockQty = StkDraft.ForStockQty - @Qty
+												FROM DBO.StocklineDraft StkDraft
+												WHERE StkDraft.StockLineId = @StkStocklineId AND StkDraft.ForStockQty > 0;
+
+												--UpdateSubWOTotalCostDetails
+												EXEC dbo.USP_UpdateSubWOMaterialsCost @SelectedWorkOrderMaterialsIdSWO;
+											END
+											ELSE
+											BEGIN
+												--GOTO NextStockline;
+												GOTO NextStockline_SUBWOMK
+											END
+										END
+									END
+								END
+							END
+							ELSE
+							BEGIN
+								--GOTO NextStockline;
+								GOTO NextStockline_SUBWOMK
+							END
+						END
+						ELSE
+						BEGIN
+							--GOTO NextStockline;
+							SET @ReservedIntoSubWOMaterial = 0;
+							GOTO NextStockline_SUBWOMK
+						END
+
+						IF EXISTS (SELECT TOP 1 1 FROM DBO.SubWorkOrderMaterials SWOM WITH (NOLOCK) LEFT JOIN DBO.Nha_Tla_Alt_Equ_ItemMapping Nha WITH (NOLOCK) ON Nha.ItemMasterId = SWOM.ItemMasterId WHERE SWOM.SubWorkOrderId = @ReferenceId AND (SWOM.ItemMasterId = @ItemMasterId OR Nha.ItemMasterId = SWOM.ItemMasterId) AND SWOM.ConditionCodeId = @ConditionId AND SWOM.SubWorkOrderMaterialsId = @SubWOMaterialId AND @IsKit = 0)
+						BEGIN
+							UPDATE Stk
+							SET Stk.Quantity = @stkQty,
+							Stk.QuantityAvailable = @stkQuantityAvailable,
+							Stk.QuantityReserved = @stkQuantityReserved,
+							Stk.QuantityOnOrder = @stkQuantityOnOrder
+							FROM DBO.Stockline Stk 
+							WHERE Stk.StockLineId = @StkStocklineId;
+
+							SET @ReservedIntoSubWOMaterial = 1;
+
+							IF (@LoopIDSUBWO >= 1)
+								SET @QuantityReservedForPoPart = @QuantityReservedForPoPart + @Qty;
+							ELSE
+								SET @QuantityReservedForPoPart = @Qty;
+
+							EXEC USP_AddUpdateStocklineHistory @StkStocklineId, 28, @PurchaseOrderId, 16, @ReferenceId, 2, @Qty, @UpdatedBy;
+						END
+						BEGIN
+							SET @ReservedIntoSubWOMaterial = 0;
+						END
+
+						NextStockline_SUBWOMK:
+
+						IF EXISTS (SELECT TOP 1 1 FROM DBO.SubWorkOrderMaterialsKit SWOM WITH (NOLOCK) LEFT JOIN DBO.Nha_Tla_Alt_Equ_ItemMapping Nha WITH (NOLOCK) ON Nha.ItemMasterId = SWOM.ItemMasterId WHERE SWOM.SubWorkOrderId = @ReferenceId AND (SWOM.ItemMasterId = @ItemMasterId OR Nha.ItemMasterId = SWOM.ItemMasterId) AND SWOM.ConditionCodeId = @ConditionId AND SWOM.SubWorkOrderMaterialsKitId = @SubWOMaterialId AND @IsKit = 1)
+						BEGIN
+							DECLARE @SelectedWorkOrderMaterialsKitIdSWO INT = 0;
+							DECLARE @SelectedWorkOrderId_ForSWOKit INT = 0;
+							DECLARE @AltPartId_SWOKIT BIGINT = 0;
+							DECLARE @EquPartId_SWOKIT BIGINT = 0;
+
+							SELECT @SelectedWorkOrderMaterialsKitIdSWO = SWOM.SubWorkOrderMaterialsKitId, @SelectedWorkOrderId_ForSWOKit = SWOM.WorkOrderId,
+							@AltPartId_SWOKIT = Nha_Alt.MappingItemMasterId, @EquPartId_SWOKIT = Nha_Euq.MappingItemMasterId
+							FROM DBO.SubWorkOrderMaterialsKit SWOM WITH (NOLOCK) 
+							LEFT JOIN DBO.Nha_Tla_Alt_Equ_ItemMapping Nha_Alt WITH (NOLOCK) ON Nha_Alt.ItemMasterId = SWOM.ItemMasterId AND Nha_Alt.MappingType = 1
+							LEFT JOIN DBO.Nha_Tla_Alt_Equ_ItemMapping Nha_Euq WITH (NOLOCK) ON Nha_Euq.ItemMasterId = SWOM.ItemMasterId AND Nha_Euq.MappingType = 2
+							WHERE SWOM.SubWorkOrderId = @ReferenceId AND (SWOM.ItemMasterId = @ItemMasterId OR Nha_Alt.ItemMasterId = SWOM.ItemMasterId OR Nha_Euq.ItemMasterId = SWOM.ItemMasterId) AND SWOM.ConditionCodeId = @ConditionId AND SWOM.SubWorkOrderMaterialsKitId = @SubWOMaterialId;
+					
+							SET @Quantity = 0;
+							SET @QuantityReserved = 0;
+							SET @QuantityIssued = 0;
+
+							SELECT @Quantity = SWOM.Quantity, @QuantityReserved = ISNULL(SWOM.QuantityReserved, 0), @QuantityIssued = ISNULL(SWOM.QuantityIssued, 0) 
+							FROM DBO.SubWorkOrderMaterialsKit SWOM WITH (NOLOCK)
+							LEFT JOIN DBO.Nha_Tla_Alt_Equ_ItemMapping Nha_Alt WITH (NOLOCK) ON Nha_Alt.ItemMasterId = SWOM.ItemMasterId
+							LEFT JOIN DBO.Nha_Tla_Alt_Equ_ItemMapping Nha_Equ WITH (NOLOCK) ON Nha_Equ.ItemMasterId = SWOM.ItemMasterId
+							WHERE SWOM.SubWorkOrderId = @ReferenceId AND (SWOM.ItemMasterId = @ItemMasterId OR Nha_Alt.ItemMasterId = SWOM.ItemMasterId OR Nha_Equ.ItemMasterId = SWOM.ItemMasterId) AND SWOM.ConditionCodeId = @ConditionId AND SWOM.SubWorkOrderMaterialsKitId = @SubWOMaterialId;
+
+							DECLARE @MainPOReferenceQty_SWOKit INT = 0, @RemainingMaterialQty_SWOKit INT =(ISNULL(@Quantity, 0) - (ISNULL(@QuantityReserved, 0) + ISNULL(@QuantityIssued, 0)));;
+							SELECT @MainPOReferenceQty_SWOKit = (ISNULL(POPR.Qty, 0) - ISNULL(POPR.ReservedQty, 0)) FROM DBO.PurchaseOrderPartReference POPR WITH (NOLOCK) WHERE PurchaseOrderPartReferenceId = @SelectedPurchaseOrderPartReferenceId;
+
+							SET @Quantity  = ISNULL((CASE WHEN @RemainingMaterialQty_SWOKit <= @MainPOReferenceQty_SWOKit THEN @RemainingMaterialQty_SWOKit ELSE @MainPOReferenceQty_SWOKit END),0)
+							--IF (@MainPOReferenceQty_SWOKit < @Quantity)
+							--BEGIN
+							--	SET @Quantity = @MainPOReferenceQty_SWOKit;
+							--END
+
+							IF (@Quantity > 0)
+							BEGIN
+								IF (@SelectedWorkOrderMaterialsKitIdSWO > 0)
+								BEGIN
+									SET @Qty = 0;
+									SET @stkQty = 0;
+									SET @stkMasterCompanyId = 0;
+									SET @stkQuantityAvailable = 0;
+									SET @stkQuantityReserved = 0;
+									SET @stkQuantityOnOrder = 0;
+									SET @stkItemMasterId = 0;
+									SET @stkConditionId = 0;
+									SET @stkWorkOrderMaterialsKitId = 0;
+									SET @stkPurchaseOrderUnitCost = 0;
+
+									SELECT @stkMasterCompanyId = Stk.MasterCompanyId, @stkQty = Stk.Quantity, @stkQuantityAvailable = Stk.QuantityAvailable, @stkQuantityReserved = QuantityReserved,
+									@stkQuantityOnOrder = QuantityOnOrder, @stkItemMasterId = Stk.ItemMasterId, @stkConditionId = Stk.ConditionId,
+									@stkPurchaseOrderUnitCost = Stk.PurchaseOrderUnitCost
+									FROM DBO.Stockline Stk WITH (NOLOCK) WHERE Stk.StockLineId = @StkStocklineId;
+
+									IF (@Quantity > 0 AND @stkQty > 0)
+									BEGIN
+										--IF (@stkQuantityAvailable > = @Quantity AND (@QuantityReserved + @QuantityIssued) > @Quantity)
+										--	SET @Qty = @Quantity - (@QuantityReserved + @QuantityIssued);
+										IF (@stkQuantityAvailable > = @Quantity)
+												SET @Qty = @Quantity;
+										ELSE
+											SET @Qty = @stkQuantityAvailable;
+									END
+
+									IF (@Qty > 0)
+									BEGIN
+										UPDATE SWOM
+										SET SWOM.QuantityReserved = ISNULL(SWOM.QuantityReserved, 0),
+										SWOM.TotalReserved = ISNULL(SWOM.TotalReserved, 0),
+										SWOM.QuantityIssued = ISNULL(SWOM.QuantityIssued, 0),
+										SWOM.TotalIssued = ISNULL(SWOM.TotalIssued, 0)
+										FROM DBO.SubWorkOrderMaterialsKit SWOM
+										WHERE SWOM.SubWorkOrderMaterialsKitId = @SelectedWorkOrderMaterialsKitIdSWO;
+
+										--Commented By Hemant to Handle Production Issue # 09-06-2025 Move Here
+										--UPDATE SWOM
+										--SET SWOM.QuantityReserved = @QuantityReserved + @Qty,
+										--SWOM.TotalReserved = TotalReserved + @Qty,
+										--SWOM.ReservedById = @Requisitioner,
+										--SWOM.ReservedDate = GETUTCDATE(),										
+										--SWOM.PONum = @PONumber,
+										--SWOM.PartStatusId = 1, -- Reserve
+										--SWOM.ExtendedCost = SWOM.ExtendedCost + (SWOM.UnitCost * @Qty)
+										--FROM DBO.SubWorkOrderMaterialsKit SWOM
+										--WHERE SWOM.SubWorkOrderMaterialsKitId = @SelectedWorkOrderMaterialsKitIdSWO;
+									END
+
+									SET @qtyFulfilled = 0;
+									SET @flag = 0;
+
+									IF (@StkStocklineId > 0)
+									BEGIN
+										SET @flag = 0;
+
+										IF (@qtyFulfilled = 0)
+										BEGIN
+											SET @WOMSQtyReserved = 0;
+											SET @WOMSQuantity = 0;
+
+											IF (@stkQuantityAvailable > 0)
+											BEGIN
+												IF (@stkQuantityAvailable >= @Qty)
+												BEGIN
+													SET @qtyFulfilled = 1;
+													SET @stkQuantityAvailable = @stkQuantityAvailable - @Qty;
+													SET @stkQuantityReserved = @stkQuantityReserved + @Qty;
+													SET @WOMSQtyReserved = @Qty;
+												END
+												ELSE
+												BEGIN
+													SET @stkQuantityReserved = @stkQuantityReserved + @stkQuantityAvailable;
+													SET @WOMSQtyReserved = @stkQuantityAvailable;
+													SET @stkQuantityAvailable = 0;
+												END
+
+												SET @flag = 1;
+											END
+
+											IF (@flag = 1)
+											BEGIN
+												SET @InsertedWorkOrderMaterialsId = 0;
+
+												IF EXISTS (SELECT TOP 1 1 FROM DBO.SubWorkOrderMaterialStockLineKit SWOMS WITH (NOLOCK) WHERE SWOMS.SubWorkOrderMaterialsKitId = @SelectedWorkOrderMaterialsKitIdSWO AND SWOMS.StockLineId = @StkStocklineId)
+												BEGIN
+													UPDATE SWOMS
+													SET SWOMS.Quantity = ISNULL(SWOMS.Quantity, 0) + @Qty,
+													SWOMS.QtyReserved = ISNULL(SWOMS.QtyReserved, 0) + @Qty,
+													SWOMS.StockLineId = @StkStocklineId,
+													SWOMS.UpdatedDate = GETUTCDATE(),
+													SWOMS.UpdatedBy = @UpdatedBy,
+													SWOMS.SubWorkOrderMaterialsKitId = @SelectedWorkOrderMaterialsKitIdSWO,
+													SWOMS.ItemMasterId = @stkItemMasterId,
+													SWOMS.ConditionId = @stkConditionId,
+													SWOMS.IsAltPart = CASE WHEN @AltPartId_SWOKIT = @stkItemMasterId THEN 1 ELSE 0 END,
+													SWOMS.IsEquPart = CASE WHEN @EquPartId_SWOKIT = @stkItemMasterId THEN 1 ELSE 0 END,
+													SWOMS.UnitCost = @stkPurchaseOrderUnitCost,
+													SWOMS.ExtendedCost = (@stkPurchaseOrderUnitCost * @Qty),
+													SWOMS.UnitPrice = @stkPurchaseOrderUnitCost,
+													SWOMS.ExtendedPrice = (@stkPurchaseOrderUnitCost * @Qty),
+													SWOMS.ReferenceNumber = @MaterialRefNo + @PONumber
+													FROM DBO.SubWorkOrderMaterialStockLineKit SWOMS
+													WHERE SWOMS.SubWorkOrderMaterialsKitId = @SelectedWorkOrderMaterialsKitIdSWO AND SWOMS.StockLineId = @StkStocklineId;
+
+													--Commented By Hemant to Handle Production Issue # 09-06-2025 Move Here
+													UPDATE SWOM
+													SET SWOM.QuantityReserved = @QuantityReserved + @Qty,
+													SWOM.TotalReserved = TotalReserved + @Qty,
+													SWOM.ReservedById = @Requisitioner,
+													SWOM.ReservedDate = GETUTCDATE(),										
+													SWOM.PONum = @PONumber,
+													SWOM.PartStatusId = 1, -- Reserve
+													SWOM.ExtendedCost = SWOM.ExtendedCost + (SWOM.UnitCost * @Qty)
+													FROM DBO.SubWorkOrderMaterialsKit SWOM
+													WHERE SWOM.SubWorkOrderMaterialsKitId = @SelectedWorkOrderMaterialsKitIdSWO;
+
+													SET @POReferenceQty = @POReferenceQty - @Qty;
+												END
+												ELSE
+												BEGIN
+													DECLARE @ItmMsrId_KIT_Sub BIGINT = 0;
+													DECLARE @CondId_KIT_Sub BIGINT = 0;
+													SELECT @ItmMsrId_KIT_Sub = WOM.ItemMasterId, @CondId_KIT_Sub = WOM.ConditionCodeId FROM DBO.SubWorkOrderMaterialsKit WOM WITH (NOLOCK) WHERE WOM.SubWorkOrderMaterialsKitId = @SelectedWorkOrderMaterialsKitIdSWO;
+													
+													IF((@ItmMsrId_KIT_Sub = @stkItemMasterId OR @stkItemMasterId = @AltPartId_SWOKIT OR @stkItemMasterId = @EquPartId_SWOKIT) AND @CondId_KIT_Sub = @stkConditionId)
+													BEGIN
+														INSERT INTO DBO.SubWorkOrderMaterialStockLinekit ([SubWorkOrderMaterialsKitId],[StockLineId],[ItemMasterId],[ConditionId],[Quantity],[QtyReserved],
+														[QtyIssued],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[AltPartMasterPartId],[EquPartMasterPartId],
+														[IsAltPart],[IsEquPart],[UnitCost],[ExtendedCost],[UnitPrice],[ExtendedPrice],[ProvisionId],[RepairOrderId],[QuantityTurnIn],[Figure],[Item],ReferenceNumber)
+														SELECT @SelectedWorkOrderMaterialsKitIdSWO, @StkStocklineId, @stkItemMasterId, @stkConditionId, @Qty, @WOMSQtyReserved, 
+														0, @stkMasterCompanyId, @UpdatedBy, @UpdatedBy, GETUTCDATE(), GETUTCDATE(), 1, 0, NULL, NULL, 
+														CASE WHEN @AltPartId_SWOKIT = @stkItemMasterId THEN 1 ELSE 0 END, CASE WHEN @EquPartId_SWOKIT = @stkItemMasterId THEN 1 ELSE 0 END, @stkPurchaseOrderUnitCost, (@stkPurchaseOrderUnitCost * @Qty), @stkPurchaseOrderUnitCost, (@stkPurchaseOrderUnitCost * @Qty),
+														@ReplaceProvisionId, NULL, NULL, NULL, NULL,@MaterialRefNo + @PONumber
+
+														SET @InsertedWorkOrderMaterialsId = SCOPE_IDENTITY();
+
+														--Commented By Hemant to Handle Production Issue # 09-06-2025 Move Here
+														UPDATE SWOM
+														SET SWOM.QuantityReserved = @QuantityReserved + @WOMSQtyReserved,
+														SWOM.TotalReserved = TotalReserved + @WOMSQtyReserved,
+														SWOM.ReservedById = @Requisitioner,
+														SWOM.ReservedDate = GETUTCDATE(),										
+														SWOM.PONum = @PONumber,
+														SWOM.PartStatusId = 1, -- Reserve
+														SWOM.ExtendedCost = SWOM.ExtendedCost + (SWOM.UnitCost * @WOMSQtyReserved)
+														FROM DBO.SubWorkOrderMaterialsKit SWOM
+														WHERE SWOM.SubWorkOrderMaterialsKitId = @SelectedWorkOrderMaterialsKitIdSWO;
+
+														SET @POReferenceQty = @POReferenceQty - @Qty;
+													END
+													ELSE
+													BEGIN
+														GOTO NextSUBWOM;
+													END
+												
+												END
+
+												SET @stkWorkOrderMaterialsKitId = @SelectedWorkOrderMaterialsKitIdSWO;
+
+												UPDATE TOP (@Qty) StkDraft
+												SET 
+												--StkDraft.SOQty = CASE WHEN StkDraft.SOQty IS NULL THEN 0 ELSE StkDraft.SOQty END,
+												StkDraft.WOQty = @Qty,
+												StkDraft.WorkOrderId = @SelectedWorkOrderId_ForSWOKit,	--@ReferenceId,
+												StkDraft.ForStockQty = CASE WHEN StkDraft.Quantity < @Qty THEN 0 ELSE StkDraft.Quantity - @Qty END
+												FROM DBO.StocklineDraft StkDraft
+												WHERE StkDraft.StockLineId = @StkStocklineId AND StkDraft.SOQty IS NULL AND StkDraft.WOQty IS NULL;
+
+												UPDATE StkDraft
+												SET 
+												StkDraft.ForStockQty = StkDraft.ForStockQty - @Qty
+												FROM DBO.StocklineDraft StkDraft
+												WHERE StkDraft.StockLineId = @StkStocklineId AND StkDraft.ForStockQty > 0;
+
+												--UpdateSubWOTotalCostDetails
+												EXEC dbo.USP_UpdateSubWOMaterialsCost @SelectedWorkOrderMaterialsKitIdSWO;
+											END
+											ELSE
+											BEGIN
+												GOTO NextSUBWOM;
+												--GOTO NextStockline_SUBWOMK
+											END
+										END
+									END
+								END
+							END
+							ELSE
+							BEGIN
+								GOTO NextSUBWOM; -- GOTO NextStockline; to  NextSUBWOM (When we use the NextStockline it means drop the current loop and goto the main loop)
+								--GOTO NextStockline_SUBWOMK
+							END
+						END
+						ELSE
+						BEGIN
+							GOTO NextSUBWOM;
+							--GOTO NextStockline_SUBWOMK
+						END
+
+						IF EXISTS (SELECT TOP 1 1 FROM DBO.SubWorkOrderMaterialsKit SWOM WITH (NOLOCK) LEFT JOIN DBO.Nha_Tla_Alt_Equ_ItemMapping Nha ON Nha.ItemMasterId = SWOM.ItemMasterId WHERE SWOM.SubWorkOrderId = @ReferenceId AND (SWOM.ItemMasterId = @ItemMasterId  OR Nha.ItemMasterId = SWOM.ItemMasterId) AND SWOM.ConditionCodeId = @ConditionId  AND SWOM.SubWorkOrderMaterialsKitId = @SubWOMaterialId AND @IsKit = 1)
+						BEGIN
+							UPDATE Stk
+							SET Stk.Quantity = @stkQty,
+							Stk.QuantityAvailable = @stkQuantityAvailable,
+							Stk.QuantityReserved = @stkQuantityReserved,
+							Stk.QuantityOnOrder = @stkQuantityOnOrder
+							FROM DBO.Stockline Stk 
+							WHERE Stk.StockLineId = @StkStocklineId;
+
+							--IF (@AllowAutoIssue = 0)
+							--BEGIN
+							IF (@ReservedIntoSubWOMaterial = 1)
+							BEGIN
+								SET @QuantityReservedForPoPart = @QuantityReservedForPoPart + @Qty;
+							END
+							ELSE
+							BEGIN
+								IF (@LoopIDSUBWO >= 1)
+									SET @QuantityReservedForPoPart = @QuantityReservedForPoPart + @Qty;
+								ELSE
+									SET @QuantityReservedForPoPart = @Qty;
+							END
+
+							EXEC USP_AddUpdateStocklineHistory @StkStocklineId, 28, @PurchaseOrderId, 16, @ReferenceId, 2, @Qty, @UpdatedBy;
+
+							IF (@stkWorkOrderMaterialsKitId > 0)
+							BEGIN
+								UPDATE Stk
+								SET Stk.WorkOrderMaterialsKitId = @stkWorkOrderMaterialsKitId,
+								Stk.WorkOrderId = @SelectedWorkOrderId_ForSWOKit --@ReferenceId
+								FROM DBO.Stockline Stk 
+								WHERE Stk.StockLineId = @StkStocklineId;
+							END
+						END
+
+						NextSUBWOM:
+
+						SET @LoopIDSUBWO = @LoopIDSUBWO - 1
+
+					END					
+				END
+				
+				--Start LOT Reservation Process
+				IF(@ModulId = 6) /** LOT MODULE **/
+				BEGIN
+					PRINT 'LOT'
+					SET @ItemMasterId = 0;
+					SET @ConditionId = 0;
+					SET @Requisitioner = 0;
+					SET @PONumber = '';
+
+					SELECT @ItemMasterId = POP.ItemMasterId, @ConditionId = POP.ConditionId FROM DBO.PurchaseOrderPart POP WITH (NOLOCK) WHERE PurchaseOrderPartRecordId = @PurchaseOrderPartId;
+					SELECT @Requisitioner = PO.RequestedBy, @PONumber = PO.PurchaseOrderNumber FROM DBO.PurchaseOrder PO WITH (NOLOCK) WHERE PO.PurchaseOrderId = @PurchaseOrderId;
+
+					SET @Qty = 0;
+						SET @stkQty = 0;
+						SET @stkMasterCompanyId = 0;
+						SET @stkQuantityAvailable = 0;
+						SET @stkQuantityReserved = 0;
+						SET @stkQuantityOnOrder = 0;
+						SET @stkItemMasterId = 0;
+						SET @stkConditionId = 0;
+						SET @stkConditionId = 0;
+						SET @stkPurchaseOrderUnitCost = 0;
+
+						/******* DO NOT DELETE BELOW CODE *********/
+
+						--SELECT @stkMasterCompanyId = Stk.MasterCompanyId, @stkQty = Stk.Quantity, @stkQuantityAvailable = Stk.QuantityAvailable, @stkQuantityReserved = QuantityReserved,
+						--@stkQuantityOnOrder = QuantityOnOrder, @stkItemMasterId = Stk.ItemMasterId, @stkConditionId = Stk.ConditionId,
+						--@stkPurchaseOrderUnitCost = Stk.UnitCost
+						--FROM DBO.Stockline Stk WITH (NOLOCK) WHERE Stk.StockLineId = @StkStocklineId;
+
+						--	UPDATE Stk
+						--			SET Stk.Quantity = @stkQty,
+						--			Stk.QuantityAvailable = CASE WHEN @stkQuantityAvailable - @POReferenceQty >= 0 THEN @stkQuantityAvailable - @POReferenceQty ELSE 0 END,
+						--			Stk.QuantityReserved = @stkQuantityReserved + @POReferenceQty,
+						--			Stk.QuantityOnOrder = @stkQuantityOnOrder
+						--			FROM DBO.Stockline Stk 
+						--			WHERE Stk.StockLineId = @StkStocklineId;
+
+						--  EXEC USP_AddUpdateStocklineHistory @StkStocklineId, 28, @PurchaseOrderId, 10, @ReferenceId, 2, @Qty, @UpdatedBy;
+
+				END /*** LOT MODULE END ***/
+				
+				--Start Sales Order Reservation Process
+				IF (@ModulId = 3) -- Sales Order
+				BEGIN
+					SET @ItemMasterId = 0;
+					SET @ConditionId = 0;
+					SET @Requisitioner = 0;
+					SET @PONumber = '';
+					SET @RefNumber = '';
+
+					SELECT @ItemMasterId = POP.ItemMasterId, @ConditionId = POP.ConditionId FROM DBO.PurchaseOrderPart POP WITH (NOLOCK) WHERE PurchaseOrderPartRecordId = @PurchaseOrderPartId;
+					SELECT @Requisitioner = PO.RequestedBy, @PONumber = PO.PurchaseOrderNumber FROM DBO.PurchaseOrder PO WITH (NOLOCK) WHERE PO.PurchaseOrderId = @PurchaseOrderId;
+
+					SELECT @ECCN = ime.[HSCODE],
+						   @HSCODE = ime.[ExportECCN],
+						   @Weight = ime.[ExportWeight],
+						   @SizeLength = ime.[ExportSizeLength],
+						   @SizeWidth = ime.[ExportSizeWidth],
+					       @SizeHeight = ime.[ExportSizeHeight]
+					  FROM DBO.ItemMasterExportInfo ime WITH (NOLOCK) WHERE ime.ItemMasterId = @ItemMasterId;
+
+					--Get SalesOrderNumber for RefrenceNumber
+					SELECT @SalesOrderNumber = [SalesOrderNumber] FROM [DBO].[SalesOrder] WITH(NOLOCK) WHERE [SalesOrderId] = @ReferenceId;
+
+					--Set RefrenceNumber
+					SET @RefNumber = @StkAutoReserveRefNumber + @PONumber +' To ' + @SalesOrderNumber;
+					
+					/*********DO NOT DELETE Commented code: As discussed with Vishal for now need to remove Nha_Tla_Alt_Equ_ItemMapping join, Due to reserve mismatch in SO side *********/
+					
+					IF EXISTS (SELECT TOP 1 1 FROM DBO.SalesOrderPartV1 SOP WITH (NOLOCK) WHERE SOP.SalesOrderId = @ReferenceId AND (SOP.ItemMasterId = @ItemMasterId) AND SOP.ConditionId = @ConditionId)
+					--IF EXISTS (SELECT TOP 1 1 FROM DBO.SalesOrderPartV1 SOP WITH (NOLOCK) LEFT JOIN DBO.Nha_Tla_Alt_Equ_ItemMapping Nha ON Nha.ItemMasterId = SOP.ItemMasterId WHERE SOP.SalesOrderId = @ReferenceId AND (SOP.ItemMasterId = @ItemMasterId OR Nha.ItemMasterId = SOP.ItemMasterId) AND SOP.ConditionId = @ConditionId)
+					BEGIN
+						SET @Qty = 0;
+						SET @stkQty = 0;
+						SET @stkMasterCompanyId = 0;
+						SET @stkQuantityAvailable = 0;
+						SET @stkQuantityReserved = 0;
+						SET @stkQuantityOnOrder = 0;
+						SET @stkItemMasterId = 0;
+						SET @stkConditionId = 0;
+						SET @stkConditionId = 0;
+						SET @stkPurchaseOrderUnitCost = 0;
+						DECLARE @StkUnitSalePrice AS DECIMAL(18, 2) = 0;
+
+						SELECT @stkMasterCompanyId = Stk.MasterCompanyId, @stkQty = Stk.Quantity, @stkQuantityAvailable = Stk.QuantityAvailable, @stkQuantityReserved = QuantityReserved,
+						@stkQuantityOnOrder = QuantityOnOrder, @stkItemMasterId = Stk.ItemMasterId, @stkConditionId = Stk.ConditionId,
+						@stkPurchaseOrderUnitCost = Stk.UnitCost, @StkUnitSalePrice = Stk.UnitSalesPrice
+						FROM DBO.Stockline Stk WITH (NOLOCK) WHERE Stk.StockLineId = @StkStocklineId;
+
+						IF OBJECT_ID(N'tempdb..#tmpSalesOrderPart') IS NOT NULL
+						BEGIN
+							DROP TABLE #tmpSalesOrderPart
+						END
+			
+						CREATE TABLE #tmpSalesOrderPart 
+						(
+							ID BIGINT NOT NULL IDENTITY,
+							[SalesOrderPartId] [bigint] NULL
+						)
+						
+						INSERT INTO #tmpSalesOrderPart ([SalesOrderPartId])
+						SELECT [SalesOrderPartId] FROM DBO.SalesOrderPartV1 SOP WITH (NOLOCK) 
+						--LEFT JOIN DBO.Nha_Tla_Alt_Equ_ItemMapping Nha ON Nha.ItemMasterId = SOP.ItemMasterId
+						--WHERE SOP.SalesOrderId = @ReferenceId AND (SOP.ItemMasterId = @ItemMasterId OR Nha.ItemMasterId = SOP.ItemMasterId) AND SOP.ConditionId = @ConditionId;
+						WHERE SOP.SalesOrderId = @ReferenceId AND (SOP.ItemMasterId = @ItemMasterId) AND SOP.ConditionId = @ConditionId;
+
+						DECLARE @SOPLoopID BIGINT;
+
+						SELECT @SOPLoopID = MAX(ID) FROM #tmpSalesOrderPart;
+
+						WHILE (@SOPLoopID > 0)
+						BEGIN
+							DECLARE @SelectedSalesOrderPartId BIGINT = 0;
+							DECLARE @QtyRequested INT = 0;
+							DECLARE @SOPQty INT = 0;
+							
+							SET @QuantityReserved = 0;
+
+							SELECT @SelectedSalesOrderPartId = [SalesOrderPartId] FROM #tmpSalesOrderPart WHERE ID = @SOPLoopID;
+							
+							DECLARE @OriginalReqQuantity INT = 0;
+
+							SELECT @QtyRequested = SOP.QtyRequested, @QuantityReserved = SOP.QtyReserved FROM DBO.SalesOrderPartV1 SOP WITH (NOLOCK) WHERE SOP.SalesOrderPartId = @SelectedSalesOrderPartId;
+
+							SET @OriginalReqQuantity = @QtyRequested;
+
+							IF (@POReferenceQty < @OriginalReqQuantity)
+							BEGIN
+								SET @QtyRequested = @POReferenceQty;
+							END
+
+							IF ((@OriginalReqQuantity - @QuantityReserved) > 0)
+							BEGIN
+								IF EXISTS (SELECT TOP 1 1 FROM DBO.SalesOrderPartV1 SOP WITH (NOLOCK) WHERE SOP.SalesOrderId = @ReferenceId AND (SOP.ItemMasterId = @ItemMasterId) AND SOP.ConditionId = @ConditionId)
+								--IF EXISTS (SELECT TOP 1 1 FROM DBO.SalesOrderPartV1 SOP WITH (NOLOCK) LEFT JOIN DBO.Nha_Tla_Alt_Equ_ItemMapping Nha ON Nha.ItemMasterId = SOP.ItemMasterId WHERE SOP.SalesOrderId = @ReferenceId AND (SOP.ItemMasterId = @ItemMasterId OR Nha.ItemMasterId = SOP.ItemMasterId) AND SOP.ConditionId = @ConditionId) /****** DO NOT REMOVE BELOW CODE : As discussed with Vishal for now remove  Nha_Tla_Alt_Equ_ItemMapping due to multiple records issue :*******/
+								BEGIN
+									DECLARE @SalesOrderPartIdToUpdate BIGINT = 0;
+									/****** DO NOT REMOVE BELOW CODE : As discussed with Vishal for now remove  Nha_Tla_Alt_Equ_ItemMapping due to multiple records issue :*******/
+									--SELECT @SalesOrderPartIdToUpdate = SOP.[SalesOrderPartId] FROM DBO.SalesOrderPartV1 SOP WITH (NOLOCK) LEFT JOIN DBO.Nha_Tla_Alt_Equ_ItemMapping Nha ON Nha.ItemMasterId = SOP.ItemMasterId WHERE SOP.SalesOrderId = @ReferenceId AND (SOP.ItemMasterId = @ItemMasterId OR Nha.ItemMasterId = SOP.ItemMasterId) AND SOP.ConditionId = @ConditionId;
+									SELECT @SalesOrderPartIdToUpdate = SOP.[SalesOrderPartId] FROM DBO.SalesOrderPartV1 SOP WITH (NOLOCK)  WHERE SOP.SalesOrderId = @ReferenceId AND (SOP.ItemMasterId = @ItemMasterId) AND SOP.ConditionId = @ConditionId;
+
+									SET @Qty = 0;
+									SET @SOPQty = 0;
+
+									IF (@stkQuantityAvailable > 0)
+									BEGIN
+										IF (@stkQuantityAvailable >= @QtyRequested)
+											SET @Qty = (@QtyRequested - @QuantityReserved);
+										ELSE IF (@QtyRequested >= @stkQuantityAvailable)
+											SET @Qty = @stkQuantityAvailable;
+									END
+
+									IF (@Qty > 0)
+									BEGIN
+										--UPDATE SOP
+										--SET SOP.StockLineId = @StkStocklineId,
+										--SOP.Qty = @Qty,
+										--SOP.UnitCost = @stkPurchaseOrderUnitCost,
+										--SOP.UnitCostExtended = (@stkPurchaseOrderUnitCost * @Qty),
+										--SOP.MarginAmount = @StkUnitSalePrice - @stkPurchaseOrderUnitCost,
+										--SOP.MarginAmountExtended = (@StkUnitSalePrice - @stkPurchaseOrderUnitCost) * @Qty,
+										--SOP.MarginPercentage = CASE WHEN SOP.UnitSalePrice > 0 THEN (((@StkUnitSalePrice - @stkPurchaseOrderUnitCost) / SOP.UnitSalePrice) * 100) ELSE 0 END,
+										--SOP.UnitSalesPricePerUnit = SOP.GrossSalePricePerUnit - SOP.DiscountAmount,
+										--SOP.NetSales = ISNULL(SOP.UnitSalesPricePerUnit, 0) * SOP.Qty
+										--,SOP.StatusId = @soPartFulfilledStatusId
+										--FROM DBO.SalesOrderPartV1 SOP
+										--WHERE SOP.SalesOrderPartId = @SalesOrderPartIdToUpdate;
+
+										--UPDATE SOPC
+										--SET 
+										--SOPC.UnitCost = @stkPurchaseOrderUnitCost,
+										--SOPC.UnitCostExtended = (@stkPurchaseOrderUnitCost * @Qty),
+										--SOPC.MarginAmount = @StkUnitSalePrice - @stkPurchaseOrderUnitCost,
+										--SOPC.MarginPercentage = CASE WHEN SOPC.UnitSalesPrice > 0 THEN (((@StkUnitSalePrice - @stkPurchaseOrderUnitCost) / SOPC.UnitSalesPrice) * 100) ELSE 0 END,
+										--SOPC.UnitSalesPrice = SOPC.NetSaleAmount,
+										--SOPC.NetSaleAmount = ISNULL(SOPC.NetSaleAmount, 0)
+										--FROM DBO.SalesOrderPartV1 SOP
+										--INNER JOIN DBO.SalesOrderPartCost SOPC ON SOPC.SalesOrderPartId = SOP.SalesOrderPartId
+										--WHERE SOP.SalesOrderPartId = @SalesOrderPartIdToUpdate;
+
+										UPDATE SOP
+										SET 
+										--SOP.QtyOrder = @Qty,
+										SOP.StatusId = @soPartFulfilledStatusId
+										FROM DBO.SalesOrderPartV1 SOP
+										WHERE SOP.SalesOrderPartId = @SalesOrderPartIdToUpdate;
+
+										--UPDATE STK
+										--SET 
+										--STK.StockLineId = @StkStocklineId,
+										--STK.StatusId = CASE WHEN STK.QTyOrder = STK.QtyReserved AND ISNULL(STK.QtyReserved,0)  > 0 THEN @soPartFulfilledStatusId ELSE STK.StatusId END
+										--FROM DBO.SalesOrderPartV1 SOP
+										--LEFT JOIN DBO.SalesOrderStocklineV1 STK ON STK.SalesOrderPartId = SOP.SalesOrderPartId
+										--WHERE SOP.SalesOrderPartId = @SalesOrderPartIdToUpdate;
+
+										SET @POReferenceQty = @POReferenceQty - @Qty;
+
+										INSERT INTO DBO.SalesOrderReserveParts ([SalesOrderId],[StockLineId],[ItemMasterId],[PartStatusId],[IsEquPart],[EquPartMasterPartId],[IsAltPart],[AltPartMasterPartId],
+										[QtyToReserve],[QtyToIssued],[ReservedById],[ReservedDate],[IssuedById],[IssuedDate],[CreatedBy],[CreatedDate],[UpdatedBy],[UpdatedDate],[IsActive],[IsDeleted],
+										[SalesOrderPartId],[TotalReserved],[TotalIssued],[MasterCompanyId])
+										SELECT @ReferenceId, @StkStocklineId, @ItemMasterId, 1, 0, 0, 0, 0,
+										@Qty, 0, @Requisitioner, GETUTCDATE(), @Requisitioner, GETUTCDATE(), @UpdatedBy, GETUTCDATE(), @UpdatedBy, GETUTCDATE(), 1, 0,
+										@SalesOrderPartIdToUpdate, @Qty, NULL, @stkMasterCompanyId;
+
+										INSERT INTO DBO.SalesOrderStockLineV1 ([SalesOrderPartId],[StockLIneId],[ConditionId],[QtyOrder],[QtyReserved],[QtyAvailable],[QtyOH],
+										[CustomerRequestDate],[PromisedDate],[EstimatedShipDate],[StatusId],[MasterCompanyId],[CreatedBy],
+										[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],
+										[ECCN],[HSCODE],[Weight],[SizeLength],[SizeWidth],[SizeHeight],
+										[ReferenceNumber])
+										SELECT @SalesOrderPartIdToUpdate, @StkStocklineId, @ConditionId, @Qty, @Qty, 0, 0,
+										NULL, NULL, NULL, @soPartFulfilledStatusId, @stkMasterCompanyId, @UpdatedBy,
+										@UpdatedBy, GETUTCDATE(), GETUTCDATE(), 1, 0,
+										@ECCN,@HSCODE,@Weight,@SizeLength,@SizeWidth,@SizeHeight,
+										@RefNumber;
+									
+										SET @InsertedSalesOrderStocklineId = SCOPE_IDENTITY();
+
+										SET @stkQuantityReserved = @stkQuantityReserved + @Qty;
+										SET @stkQuantityAvailable = @stkQuantityAvailable - @Qty;
+
+										SET @stkSalesOrderPartId = @SalesOrderPartIdToUpdate;
+										INSERT INTO [dbo].[SalesOrderStockLineCost]
+									   ([SalesOrderId]  ,[SalesOrderPartId],[SalesOrderStocklineId] ,[UnitSalesPrice],[UnitSalesPriceExtended] ,[UnitCost],[UnitCostExtended]
+									   ,[MarkUpPercentage],[MarkUpAmount],[DiscountPercentage],[DiscountAmount],[MarginAmount],[MarginPercentage],[NetSaleAmount],[MasterCompanyId]
+									   ,[CreatedBy],[CreatedDate] ,[UpdatedBy],[UpdatedDate],[IsActive] ,[IsDeleted])
+									   SELECT TOP 1 @ReferenceId,
+													@SalesOrderPartIdToUpdate,
+													@InsertedSalesOrderStocklineId,
+													SOPC.UnitSalesPrice,
+													(ISNULL(SOPC.UnitSalesPrice,0) * ISNULL(@Qty,0)),
+													@stkPurchaseOrderUnitCost,
+													(ISNULL(@stkPurchaseOrderUnitCost,0) * ISNULL(@Qty,0)),
+													SOPC.MarkUpPercentage,
+													(((ISNULL(SOPC.UnitSalesPrice,0) * ISNULL(SOPC.MarkUpPercentage,0))/100.00)* CONVERT(DECIMAL(18,2),ISNULL(@Qty,0))),
+													SOPC.DiscountPercentage,											
+													((ISNULL(SOPC.UnitSalesPrice,0) + ISNULL((((ISNULL(SOPC.UnitSalesPrice,0) * ISNULL(SOPC.MarkUpPercentage,0))/100.00)* CONVERT(DECIMAL(18,2),ISNULL(@Qty,0))),0)) * ISNULL(SOPC.DiscountPercentage,0) ) / 100.00,
+													(ISNULL(@StkUnitSalePrice,0) - ISNULL(@stkPurchaseOrderUnitCost,0)),
+													(CASE WHEN ISNULL(SOPC.UnitSalesPrice,0) > 0 THEN (((@StkUnitSalePrice - @stkPurchaseOrderUnitCost) / SOPC.UnitSalesPrice) * 100) ELSE 0 END),
+													ISNULL(SOPC.NetSaleAmount, 0),@stkMasterCompanyId,@UpdatedBy,GETUTCDATE(),@UpdatedBy,GETUTCDATE(),1,0
+													FROM dbo.SalesOrderStockLineV1 stk WITH (NOLOCK) LEFT JOIN dbo.SalesOrderPartCost SOPC WITH (NOLOCK) on stk.SalesOrderPartId =  SOPC.SalesOrderPartId
+									   WHERE stk.SalesOrderStocklineId = @InsertedSalesOrderStocklineId AND stk.SalesOrderPartId = @SalesOrderPartIdToUpdate AND ISNULL(stk.IsDeleted,0) = 0												 
+
+										UPDATE TOP (@Qty) StkDraft
+										SET StkDraft.SOQty = @Qty,
+										StkDraft.SalesOrderId = @ReferenceId,
+										--StkDraft.WOQty = CASE WHEN StkDraft.WOQty IS NULL THEN 0 ELSE StkDraft.WOQty END,
+										StkDraft.ForStockQty = CASE WHEN StkDraft.Quantity < @Qty THEN 0 ELSE StkDraft.Quantity - @Qty END
+										FROM DBO.StocklineDraft StkDraft
+										WHERE StkDraft.StockLineId = @StkStocklineId AND StkDraft.SOQty IS NULL AND StkDraft.WOQty IS NULL;
+
+										UPDATE StkDraft
+										SET 
+										StkDraft.ForStockQty = StkDraft.ForStockQty - @Qty
+										FROM DBO.StocklineDraft StkDraft
+										WHERE StkDraft.StockLineId = @StkStocklineId AND StkDraft.ForStockQty > 0;
+
+										UPDATE Stk
+										SET Stk.Quantity = @stkQty,
+										Stk.QuantityAvailable = @stkQuantityAvailable,
+										Stk.QuantityReserved = @stkQuantityReserved,
+										Stk.QuantityOnOrder = @stkQuantityOnOrder
+										FROM DBO.Stockline Stk 
+										WHERE Stk.StockLineId = @StkStocklineId;
+
+										SET @QuantityReservedForPoPart = @Qty; 
+
+										EXEC USP_AddUpdateStocklineHistory @StkStocklineId, 28, @PurchaseOrderId, 10, @ReferenceId, 2, @Qty, @UpdatedBy;
+
+										IF (@stkSalesOrderPartId > 0)
+										BEGIN
+											UPDATE Stk
+											SET Stk.SalesOrderPartId = @stkSalesOrderPartId
+											FROM DBO.Stockline Stk 
+											WHERE Stk.StockLineId = @StkStocklineId;
+										END
+										EXEC [dbo].[USP_UpdateSOPartCostDetails] @ReferenceId, @SalesOrderPartIdToUpdate, @UpdatedBy, @MasterCompanyId;
+									END
+									ELSE
+									BEGIN
+										GOTO NextStockline;
+									END
+								END
+								ELSE
+								BEGIN
+								IF EXISTS (SELECT TOP 1 1 FROM DBO.SalesOrderPartV1 SOP WITH (NOLOCK) WHERE SOP.SalesOrderId = @ReferenceId AND (SOP.ItemMasterId = @ItemMasterId) AND SOP.ConditionId = @ConditionId)
+								--IF EXISTS (SELECT TOP 1 1 FROM DBO.SalesOrderPartV1 SOP WITH (NOLOCK) LEFT JOIN DBO.Nha_Tla_Alt_Equ_ItemMapping Nha ON Nha.ItemMasterId = SOP.ItemMasterId WHERE SOP.SalesOrderId = @ReferenceId AND (SOP.ItemMasterId = @ItemMasterId OR Nha.ItemMasterId = SOP.ItemMasterId) AND SOP.ConditionId = @ConditionId)
+								BEGIN
+									SET @Qty = 0;
+									SET @SOPQty = 0;
+
+									DECLARE @qtySumAlreadyAdded AS INT = 0;
+									DECLARE @SOPQtyRequested AS INT = 0;
+										
+									SELECT @SOPQtyRequested = SOP.QtyRequested FROM DBO.SalesOrderPartV1 SOP WITH (NOLOCK) 
+									--LEFT JOIN DBO.Nha_Tla_Alt_Equ_ItemMapping Nha ON Nha.ItemMasterId = SOP.ItemMasterId
+									--WHERE SOP.SalesOrderId = @ReferenceId AND (SOP.ItemMasterId = @ItemMasterId OR Nha.ItemMasterId = SOP.ItemMasterId) AND SOP.ConditionId = @ConditionId
+									WHERE SOP.SalesOrderId = @ReferenceId AND (SOP.ItemMasterId = @ItemMasterId) AND SOP.ConditionId = @ConditionId
+
+									SELECT @qtySumAlreadyAdded = SUM(SOP.QtyOrder) FROM DBO.SalesOrderPartV1 SOP WITH (NOLOCK) 
+									--LEFT JOIN DBO.Nha_Tla_Alt_Equ_ItemMapping Nha ON Nha.ItemMasterId = SOP.ItemMasterId
+									--Where SOP.SalesOrderId = @ReferenceId AND (SOP.ItemMasterId = @ItemMasterId OR Nha.ItemMasterId = SOP.ItemMasterId) AND SOP.ConditionId = @ConditionId;
+									Where SOP.SalesOrderId = @ReferenceId AND (SOP.ItemMasterId = @ItemMasterId) AND SOP.ConditionId = @ConditionId;
+
+									SET @QtyRequested = @SOPQtyRequested - @qtySumAlreadyAdded;
+
+									IF (@stkQuantityAvailable > 0)
+									BEGIN
+										IF (@stkQuantityAvailable >= @QtyRequested)
+											SET @Qty = @QtyRequested;
+										ELSE IF (@QtyRequested >= @stkQuantityAvailable)
+											SET @Qty = @stkQuantityAvailable;
+									END
+
+									IF (@Qty > 0)
+									BEGIN
+										DECLARE @InsertedSalesOrderPartId BIGINT = 0;
+
+										--INSERT INTO DBO.SalesOrderPart ([SalesOrderId],[ItemMasterId],[StockLineId],[FxRate],[Qty],[UnitSalePrice],[MarkUpPercentage],[SalesBeforeDiscount],
+										--[Discount],[DiscountAmount],[NetSales],[MasterCompanyId],[CreatedBy],[CreatedDate],[UpdatedBy],[UpdatedDate],[IsDeleted],[UnitCost],[MethodType],[SalesPriceExtended],
+										--[MarkupExtended],[SalesDiscountExtended],[NetSalePriceExtended],[UnitCostExtended],[MarginAmount],[MarginAmountExtended],[MarginPercentage],[ConditionId],[SalesOrderQuoteId],
+										--[SalesOrderQuotePartId],[IsActive],[CustomerRequestDate],[PromisedDate],[EstimatedShipDate],[PriorityId],[StatusId],[CustomerReference],[QtyRequested],[Notes],[CurrencyId],
+										--[MarkupPerUnit],[GrossSalePricePerUnit],[GrossSalePrice],[TaxType],[TaxPercentage],[TaxAmount],[AltOrEqType],[ControlNumber],[IdNumber],[ItemNo],[POId],[PONumber],
+										--[PONextDlvrDate],[UnitSalesPricePerUnit],[LotId],[IsLotAssigned])
+										--SELECT TOP 1 [SalesOrderId],[ItemMasterId],@StkStocklineId,[FxRate],@Qty,[UnitSalePrice],[MarkUpPercentage],[SalesBeforeDiscount],
+										--[Discount],[DiscountAmount],(ISNULL((SOP.UnitSalePrice + SOP.MarkupPerUnit - SOP.DiscountAmount), 0) * @Qty),[MasterCompanyId],@UpdatedBy,GETUTCDATE(),[UpdatedBy],GETUTCDATE(),[IsDeleted],@stkPurchaseOrderUnitCost,[MethodType],[SalesPriceExtended],
+										--[MarkupExtended],[SalesDiscountExtended],[NetSalePriceExtended],(@stkPurchaseOrderUnitCost * @Qty),(SOP.UnitSalePrice - @stkPurchaseOrderUnitCost),((SOP.UnitSalePrice - @stkPurchaseOrderUnitCost) * @Qty),CASE WHEN SOP.UnitSalePrice > 0 THEN (((SOP.UnitSalePrice - @stkPurchaseOrderUnitCost) / SOP.UnitSalePrice) * 100) ELSE 0 END,[ConditionId],[SalesOrderQuoteId],
+										--[SalesOrderQuotePartId],[IsActive],[CustomerRequestDate],[PromisedDate],[EstimatedShipDate],[PriorityId],@soPartFulfilledStatusId,[CustomerReference],[QtyRequested],[Notes],[CurrencyId],
+										--[MarkupPerUnit],[GrossSalePricePerUnit],[GrossSalePrice],[TaxType],[TaxPercentage],[TaxAmount],[AltOrEqType],[ControlNumber],[IdNumber],[ItemNo],[POId],[PONumber],
+										--[PONextDlvrDate], (SOP.UnitSalePrice + SOP.MarkupPerUnit - SOP.DiscountAmount),[LotId],[IsLotAssigned]
+										--FROM DBO.SalesOrderPart SOP WITH (NOLOCK) WHERE SOP.SalesOrderId = @ReferenceId AND SOP.ItemMasterId = @ItemMasterId AND SOP.ConditionId = @ConditionId;
+
+										INSERT INTO DBO.SalesOrderPartV1 ([SalesOrderId],[ItemMasterId],[ConditionId],[QtyRequested],[QtyOrder],[QtyReserved],[CurrencyId],
+										[PriorityId],[StatusId],[FxRate],[CustomerRequestDate],[PromisedDate],[EstimatedShipDate],[POId],[PONumber],[PONextDlvrDate],[Notes],
+										[MasterCompanyId],[CreatedBy],[CreatedDate],[UpdatedBy],[UpdatedDate],[IsActive],[IsDeleted],[OldSalesOrderPartId],[PartNumber],
+										[PartDescription],[ConditionName],[CurrencyName],[PriorityName],[StatusName],[SalesOrderQuotePartId],
+										[ECCN],[HSCODE],[Weight],[SizeLength],[SizeWidth],[SizeHeight])
+										SELECT TOP 1 [SalesOrderId],[ItemMasterId],[ConditionId],[QtyRequested],@Qty,0,[CurrencyId],
+										[PriorityId],@soPartFulfilledStatusId,[FxRate],[CustomerRequestDate],[PromisedDate],[EstimatedShipDate],[POId],[PONumber],[PONextDlvrDate],[Notes],
+										[MasterCompanyId],@UpdatedBy,GETUTCDATE(),[UpdatedBy],GETUTCDATE(),[IsActive],[IsDeleted],NULL,NULL,
+										NULL,NULL,NULL,NULL,NULL,NULL,
+										@ECCN,@HSCODE,@Weight,@SizeLength,@SizeWidth,@SizeHeight
+										FROM DBO.SalesOrderPartV1 SOP WITH (NOLOCK) WHERE SOP.SalesOrderId = @ReferenceId AND SOP.ItemMasterId = @ItemMasterId AND SOP.ConditionId = @ConditionId;
+
+										SELECT @InsertedSalesOrderPartId = SCOPE_IDENTITY();
+
+										SET @POReferenceQty = @POReferenceQty - @Qty;
+
+										SET @stkSalesOrderPartId = @InsertedSalesOrderPartId;
+
+										INSERT INTO DBO.SalesOrderReserveParts ([SalesOrderId],[StockLineId],[ItemMasterId],[PartStatusId],[IsEquPart],[EquPartMasterPartId],[IsAltPart],[AltPartMasterPartId],
+										[QtyToReserve],[QtyToIssued],[ReservedById],[ReservedDate],[IssuedById],[IssuedDate],[CreatedBy],[CreatedDate],[UpdatedBy],[UpdatedDate],[IsActive],[IsDeleted],
+										[SalesOrderPartId],[TotalReserved],[TotalIssued],[MasterCompanyId])
+										SELECT @ReferenceId, @StkStocklineId, @ItemMasterId, 1, 0, 0, 0, 0,
+										@Qty, 0, @Requisitioner, GETUTCDATE(), @Requisitioner, GETUTCDATE(), @UpdatedBy, GETUTCDATE(), @UpdatedBy, GETUTCDATE(), 1, 0,
+										@InsertedSalesOrderPartId, @Qty, NULL, @stkMasterCompanyId;
+
+										INSERT INTO DBO.SalesOrderStockLineV1 ([SalesOrderPartId],[StockLIneId],[ConditionId],[QtyOrder],[QtyReserved],[QtyAvailable],[QtyOH],
+										[CustomerRequestDate],[PromisedDate],[EstimatedShipDate],[StatusId],[MasterCompanyId],[CreatedBy],
+										[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],
+										[ECCN],[HSCODE],[Weight],[SizeLength],[SizeWidth],[SizeHeight],
+										[ReferenceNumber])
+										SELECT @InsertedSalesOrderPartId, @StkStocklineId, @ConditionId, @Qty, @Qty, 0, 0,
+										NULL, NULL, NULL, @soPartFulfilledStatusId, @stkMasterCompanyId, @UpdatedBy,
+										@UpdatedBy, GETUTCDATE(), GETUTCDATE(), 1, 0,
+										@ECCN,@HSCODE,@Weight,@SizeLength,@SizeWidth,@SizeHeight,
+										@RefNumber;
+
+										SET @InsertedSalesOrderStocklineId = SCOPE_IDENTITY();
+
+										SET @stkQuantityReserved = @stkQuantityReserved + @Qty;
+										SET @stkQuantityAvailable = @stkQuantityAvailable - @Qty;
+
+										INSERT INTO [dbo].[SalesOrderStockLineCost]
+										([SalesOrderId]  ,[SalesOrderPartId],[SalesOrderStocklineId] ,[UnitSalesPrice],[UnitSalesPriceExtended] ,[UnitCost],[UnitCostExtended]
+										,[MarkUpPercentage],[MarkUpAmount],[DiscountPercentage],[DiscountAmount],[MarginAmount],[MarginPercentage],[NetSaleAmount],[MasterCompanyId]
+										,[CreatedBy],[CreatedDate] ,[UpdatedBy],[UpdatedDate],[IsActive] ,[IsDeleted])
+										SELECT TOP 1 @ReferenceId,
+													@InsertedSalesOrderPartId,
+													@InsertedSalesOrderStocklineId,
+													SOPC.UnitSalesPrice,
+													(ISNULL(SOPC.UnitSalesPrice,0) * ISNULL(@Qty,0)),
+													@stkPurchaseOrderUnitCost,
+													(ISNULL(@stkPurchaseOrderUnitCost,0) * ISNULL(@Qty,0)),
+													SOPC.MarkUpPercentage,
+													(((ISNULL(SOPC.UnitSalesPrice,0) * ISNULL(SOPC.MarkUpPercentage,0))/100.00)* CONVERT(DECIMAL(18,2),ISNULL(@Qty,0))),
+													SOPC.DiscountPercentage,											
+													((ISNULL(SOPC.UnitSalesPrice,0) + ISNULL((((ISNULL(SOPC.UnitSalesPrice,0) * ISNULL(SOPC.MarkUpPercentage,0))/100.00)* CONVERT(DECIMAL(18,2),ISNULL(@Qty,0))),0)) * ISNULL(SOPC.DiscountPercentage,0) ) / 100.00,
+													(ISNULL(@StkUnitSalePrice,0) - ISNULL(@stkPurchaseOrderUnitCost,0)),
+													(CASE WHEN ISNULL(SOPC.UnitSalesPrice,0) > 0 THEN (((@StkUnitSalePrice - @stkPurchaseOrderUnitCost) / SOPC.UnitSalesPrice) * 100) ELSE 0 END),
+													ISNULL(SOPC.NetSaleAmount, 0),@stkMasterCompanyId,@UpdatedBy,GETUTCDATE(),@UpdatedBy,GETUTCDATE(),1,0
+													FROM dbo.SalesOrderStockLineV1 stk WITH (NOLOCK) LEFT JOIN dbo.SalesOrderPartCost SOPC WITH (NOLOCK) on stk.SalesOrderPartId =  SOPC.SalesOrderPartId
+										WHERE stk.SalesOrderStocklineId = @InsertedSalesOrderStocklineId AND stk.SalesOrderPartId = @InsertedSalesOrderPartId AND ISNULL(stk.IsDeleted,0) = 0												 
+
+										UPDATE TOP (@Qty) StkDraft
+										SET StkDraft.SOQty = @Qty,
+										StkDraft.SalesOrderId = @ReferenceId,
+										--StkDraft.WOQty = CASE WHEN StkDraft.WOQty IS NULL THEN 0 ELSE StkDraft.WOQty END,
+										StkDraft.ForStockQty = CASE WHEN StkDraft.Quantity < @Qty THEN 0 ELSE StkDraft.Quantity - @Qty END
+										FROM DBO.StocklineDraft StkDraft
+										WHERE StkDraft.StockLineId = @StkStocklineId AND StkDraft.SOQty IS NULL AND StkDraft.WOQty IS NULL;
+
+										UPDATE Stk
+										SET Stk.Quantity = @stkQty,
+										Stk.QuantityAvailable = @stkQuantityAvailable,
+										Stk.QuantityReserved = @stkQuantityReserved,
+										Stk.QuantityOnOrder = @stkQuantityOnOrder
+										FROM DBO.Stockline Stk 
+										WHERE Stk.StockLineId = @StkStocklineId;
+
+										SET @QuantityReservedForPoPart = @Qty; 
+
+										EXEC USP_AddUpdateStocklineHistory @StkStocklineId, 28, @PurchaseOrderId, 10, @ReferenceId, 2, @Qty, @UpdatedBy;
+
+										IF (@stkSalesOrderPartId > 0)
+										BEGIN
+											UPDATE Stk
+											SET Stk.SalesOrderPartId = @stkSalesOrderPartId
+											FROM DBO.Stockline Stk 
+											WHERE Stk.StockLineId = @StkStocklineId;
+										END
+										EXEC [dbo].[USP_UpdateSOPartCostDetails] @ReferenceId, @InsertedSalesOrderStocklineId, @UpdatedBy, @MasterCompanyId;
+									END
+								END
+								ELSE
+								BEGIN
+									GOTO NextStockline;
+								END
+							END
+							END
+
+							SET @SOPLoopID = @SOPLoopID - 1;
+						END
+					END
+				END
+
+				--Start Exchange Sales Order Reservation Process
+				IF (@ModulId = 4) -- Exchange Sales Order
+				BEGIN
+					SET @ItemMasterId = 0;
+					SET @ConditionId = 0;
+					SET @Requisitioner = 0;
+					SET @PONumber = '';
+					SET @RefNumber = '';
+
+					SELECT @ItemMasterId = POP.ItemMasterId, @ConditionId = POP.ConditionId FROM DBO.PurchaseOrderPart POP WITH (NOLOCK) WHERE PurchaseOrderPartRecordId = @PurchaseOrderPartId;
+					SELECT @Requisitioner = PO.RequestedBy, @PONumber = PO.PurchaseOrderNumber FROM DBO.PurchaseOrder PO WITH (NOLOCK) WHERE PO.PurchaseOrderId = @PurchaseOrderId;
+
+					--Get ExchangeSalesOrderNumber for RefrenceNumber
+					SELECT @SalesOrderNumber = [ExchangeSalesOrderNumber] FROM [DBO].[ExchangeSalesOrder] WITH(NOLOCK) WHERE [ExchangeSalesOrderId] = @ReferenceId;
+
+					--Set RefrenceNumber
+					SET @RefNumber = @StkAutoReserveRefNumber + @PONumber +' To ' + @SalesOrderNumber;
+
+					IF EXISTS (SELECT TOP 1 1 FROM DBO.ExchangeSalesOrderPart ESOP WITH (NOLOCK) WHERE ESOP.ExchangeSalesOrderId = @ReferenceId AND ESOP.ItemMasterId = @ItemMasterId AND ESOP.ConditionId = @ConditionId)
+					BEGIN
+						SET @Qty = 0;
+						SET @stkQty = 0;
+						SET @stkMasterCompanyId = 0;
+						SET @stkQuantityAvailable = 0;
+						SET @stkQuantityReserved = 0;
+						SET @stkQuantityOnOrder = 0;
+						SET @stkItemMasterId = 0;
+						SET @stkConditionId = 0;
+						SET @stkConditionId = 0;
+						SET @stkPurchaseOrderUnitCost = 0;
+						SET @StkUnitSalePrice = 0;
+
+						SELECT @stkMasterCompanyId = Stk.MasterCompanyId, @stkQty = Stk.Quantity, @stkQuantityAvailable = Stk.QuantityAvailable, @stkQuantityReserved = QuantityReserved,
+						@stkQuantityOnOrder = QuantityOnOrder, @stkItemMasterId = Stk.ItemMasterId, @stkConditionId = Stk.ConditionId,
+						@stkPurchaseOrderUnitCost = Stk.UnitCost, @StkUnitSalePrice = Stk.UnitSalesPrice
+						FROM DBO.Stockline Stk WITH (NOLOCK) WHERE Stk.StockLineId = @StkStocklineId;
+
+						IF OBJECT_ID(N'tempdb..#tmpExchangeSalesOrderPart') IS NOT NULL
+						BEGIN
+							DROP TABLE #tmpExchangeSalesOrderPart
+						END
+			
+						CREATE TABLE #tmpExchangeSalesOrderPart 
+						(
+							ID BIGINT NOT NULL IDENTITY,
+							[ExchangeSalesOrderPartId] [bigint] NULL
+						)
+
+						INSERT INTO #tmpExchangeSalesOrderPart ([ExchangeSalesOrderPartId])
+						SELECT [ExchangeSalesOrderPartId] FROM DBO.ExchangeSalesOrderPart ESOP WITH (NOLOCK) WHERE ESOP.ExchangeSalesOrderId = @ReferenceId AND ESOP.ItemMasterId = @ItemMasterId AND ESOP.ConditionId = @ConditionId;
+
+						DECLARE @ESOPLoopID BIGINT;
+
+						SELECT @ESOPLoopID = MAX(ID) FROM #tmpExchangeSalesOrderPart;
+
+						WHILE (@ESOPLoopID > 0)
+						BEGIN
+							DECLARE @SelectedExchangeSalesOrderPartId BIGINT = 0;
+							SET @QtyRequested = 0;
+							DECLARE @ESOPQty INT = 0;
+
+							SELECT @SelectedExchangeSalesOrderPartId = [ExchangeSalesOrderPartId] FROM #tmpExchangeSalesOrderPart WHERE ID = @ESOPLoopID;
+							
+							SELECT @QtyRequested = ESOP.QtyRequested FROM DBO.ExchangeSalesOrderPart ESOP WITH (NOLOCK) WHERE ESOP.ExchangeSalesOrderPartId = @SelectedExchangeSalesOrderPartId;
+
+							IF (@POReferenceQty < @QtyRequested)
+							BEGIN
+								SET @QtyRequested = @POReferenceQty;
+							END
+
+							IF EXISTS (SELECT TOP 1 1 FROM DBO.ExchangeSalesOrderPart ESOP WITH (NOLOCK) WHERE ESOP.ExchangeSalesOrderId = @ReferenceId AND ESOP.ItemMasterId = @ItemMasterId AND ESOP.ConditionId = @ConditionId AND ESOP.StockLineId IS NULL)
+							BEGIN
+								DECLARE @ExchangeSalesOrderPartIdToUpdate BIGINT = 0;
+								SELECT @ExchangeSalesOrderPartIdToUpdate = ESOP.[ExchangeSalesOrderPartId] FROM DBO.ExchangeSalesOrderPart ESOP WITH (NOLOCK) WHERE ESOP.ExchangeSalesOrderId = @ReferenceId AND ESOP.ItemMasterId = @ItemMasterId AND ESOP.ConditionId = @ConditionId AND ESOP.StockLineId IS NULL;
+
+								SET @Qty = 0;
+								SET @ESOPQty = 0;
+
+								IF (@stkQuantityAvailable > 0)
+								BEGIN
+									IF (@stkQuantityAvailable >= @QtyRequested)
+										SET @Qty = @QtyRequested;
+									ELSE IF (@QtyRequested >= @stkQuantityAvailable)
+										SET @Qty = @stkQuantityAvailable;
+								END
+
+								IF (@Qty > 0)
+								BEGIN
+									UPDATE ESOP
+									SET ESOP.StockLineId = @StkStocklineId,
+									ESOP.Qty = @Qty,
+									ESOP.UnitCost = @stkPurchaseOrderUnitCost
+									FROM DBO.ExchangeSalesOrderPart ESOP
+									WHERE ESOP.ExchangeSalesOrderPartId = @ExchangeSalesOrderPartIdToUpdate;
+
+									SET @POReferenceQty = @POReferenceQty - @Qty;
+
+									INSERT INTO DBO.ExchangeSalesOrderReserveParts ([ExchangeSalesOrderId],[StockLineId],[ItemMasterId],[PartStatusId],[IsEquPart],[EquPartMasterPartId],[IsAltPart],[AltPartMasterPartId],
+									[QtyToReserve],[QtyToIssued],[ReservedById],[ReservedDate],[IssuedById],[IssuedDate],[CreatedBy],[CreatedDate],[UpdatedBy],[UpdatedDate],[IsActive],[IsDeleted],
+									[ExchangeSalesOrderPartId],[TotalReserved],[TotalIssued],[MasterCompanyId])
+									SELECT @ReferenceId, @StkStocklineId, @ItemMasterId, 1, 0, 0, 0, 0,
+									@Qty, 0, @Requisitioner, GETUTCDATE(), @Requisitioner, GETUTCDATE(), @UpdatedBy, GETUTCDATE(), @UpdatedBy, GETUTCDATE(), 1, 0,
+									@ExchangeSalesOrderPartIdToUpdate, @Qty, NULL, @stkMasterCompanyId;
+
+									INSERT INTO DBO.ExchangeSalesOrderStockLine ([ExchangeSalesOrderId],[ExchangeSalesOrderPartId],[StockLIneId],[ItemMasterId],[ConditionId],[Quantity],[QtyReserved],[QtyIssued],
+									[AltPartMasterPartId],[EquPartMasterPartId],[IsAltPart],[IsEquPart],[UnitCost],[ExtendedCost],[UnitPrice],[ExtendedPrice],[MasterCompanyId],[CreatedBy],
+									[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[ReferenceNumber])
+									SELECT @ReferenceId, @ExchangeSalesOrderPartIdToUpdate, @StkStocklineId, @ItemMasterId, @ConditionId, @Qty, @Qty, 0,
+									NULL, NULL, NULL, NULL, 0, 0, 0, 0, @stkMasterCompanyId, @UpdatedBy,
+									@UpdatedBy, GETUTCDATE(), GETUTCDATE(), 1, 0,@RefNumber;
+
+									SET @stkQuantityReserved = @stkQuantityReserved + @Qty;
+									SET @stkQuantityAvailable = @stkQuantityAvailable - @Qty;
+
+									SET @stkSalesOrderPartId = @ExchangeSalesOrderPartIdToUpdate;
+
+									UPDATE TOP (@Qty) StkDraft
+									SET StkDraft.ForStockQty = CASE WHEN StkDraft.Quantity < @Qty THEN 0 ELSE StkDraft.Quantity - @Qty END
+									FROM DBO.StocklineDraft StkDraft
+									WHERE StkDraft.StockLineId = @StkStocklineId;
+
+									UPDATE StkDraft
+									SET 
+									StkDraft.ForStockQty = StkDraft.ForStockQty - @Qty
+									FROM DBO.StocklineDraft StkDraft
+									WHERE StkDraft.StockLineId = @StkStocklineId AND StkDraft.ForStockQty > 0;
+
+									UPDATE Stk
+									SET Stk.Quantity = @stkQty,
+									Stk.QuantityAvailable = @stkQuantityAvailable,
+									Stk.QuantityReserved = @stkQuantityReserved,
+									Stk.QuantityOnOrder = @stkQuantityOnOrder
+									FROM DBO.Stockline Stk 
+									WHERE Stk.StockLineId = @StkStocklineId;
+
+									SET @QuantityReservedForPoPart = @Qty; 
+
+									EXEC USP_AddUpdateStocklineHistory @StkStocklineId, 28, @PurchaseOrderId, 18, @ReferenceId, 2, @Qty, @UpdatedBy;
+								END
+								ELSE
+								BEGIN
+									GOTO NextStockline;
+								END
+							END
+							ELSE
+							BEGIN
+								IF NOT EXISTS (SELECT TOP 1 1 FROM DBO.ExchangeSalesOrderPart ESOP WITH (NOLOCK) WHERE ESOP.ExchangeSalesOrderId = @ReferenceId AND ESOP.ItemMasterId = @ItemMasterId AND ESOP.ConditionId = @ConditionId AND ESOP.StockLineId = @StkStocklineId)
+								BEGIN
+									IF EXISTS (SELECT TOP 1 1 FROM DBO.ExchangeSalesOrderPart ESOP WITH (NOLOCK) WHERE ESOP.ExchangeSalesOrderId = @ReferenceId AND ESOP.ItemMasterId = @ItemMasterId AND ESOP.ConditionId = @ConditionId)
+									BEGIN
+										SET @Qty = 0;
+										SET @ESOPQty = 0;
+
+										DECLARE @qtySumAlreadyAdded_EXCH AS INT = 0;
+										DECLARE @SOPQtyRequested_EXCH AS INT = 0;
+										
+										SELECT @SOPQtyRequested_EXCH = ESOP.QtyRequested FROM DBO.ExchangeSalesOrderPart ESOP WITH (NOLOCK) WHERE ESOP.ExchangeSalesOrderId = @ReferenceId AND ESOP.ItemMasterId = @ItemMasterId AND ESOP.ConditionId = @ConditionId
+
+										SELECT @qtySumAlreadyAdded_EXCH = SUM(ESOP.Qty) FROM DBO.ExchangeSalesOrderPart ESOP WITH (NOLOCK) Where ESOP.ExchangeSalesOrderId = @ReferenceId AND ESOP.ItemMasterId = @ItemMasterId AND ESOP.ConditionId = @ConditionId;
+
+										SET @QtyRequested = @SOPQtyRequested_EXCH - @qtySumAlreadyAdded_EXCH;
+
+										IF (@stkQuantityAvailable > 0)
+										BEGIN
+											IF (@stkQuantityAvailable >= @QtyRequested)
+												SET @Qty = @QtyRequested;
+											ELSE IF (@QtyRequested >= @stkQuantityAvailable)
+												SET @Qty = @stkQuantityAvailable;
+										END
+
+										IF (@Qty > 0)
+										BEGIN
+											DECLARE @InsertedExchangeSalesOrderPartId BIGINT = 0;
+
+											INSERT INTO DBO.ExchangeSalesOrderPart ([ExchangeSalesOrderId],[ExchangeQuotePartId],[ExchangeQuoteId],[ItemMasterId],[StockLineId],[ExchangeCurrencyId],[LoanCurrencyId],[ExchangeListPrice],
+											[EntryDate],[ExchangeOverhaulPrice],[ExchangeCorePrice],[EstOfFeeBilling],[BillingStartDate],[ExchangeOutrightPrice],[DaysForCoreReturn],[BillingIntervalDays],[CurrencyId],[Currency],[DepositeAmount],
+											[CoreDueDate],[MasterCompanyId],[CreatedBy],[CreatedDate],[UpdatedBy],[UpdatedDate],[IsDeleted],[IsActive],[ConditionId],[StockLineName],[PartNumber],[PartDescription],[ConditionName],[IsRemark],[RemarkText],
+											[ExchangeOverhaulCost],[QtyQuoted],[MethodType],[IsConvertedToSalesOrder],[CustomerRequestDate],[PromisedDate],[EstimatedShipDate],[ExpectedCoreSN],[StatusId],[StatusName],[FxRate],[UnitCost],[PriorityId],
+											[Qty],[QtyRequested],[ControlNumber],[IdNumber],[Notes],[ExpecedCoreCond],[ExpectedCoreRetDate],[CoreRetDate],[CoreRetNum],[CoreStatusId],[LetterSentDate],[LetterTypeId],[Memo],[ExpdCoreSN],[POId],[PONumber],
+											[PONextDlvrDate],[IsExpCoreSN],[CoreAccepted],[ReceivedDate])
+											SELECT TOP 1 [ExchangeSalesOrderId],[ExchangeQuotePartId],[ExchangeQuoteId],[ItemMasterId],@StkStocklineId,[ExchangeCurrencyId],[LoanCurrencyId],[ExchangeListPrice],
+											[EntryDate],[ExchangeOverhaulPrice],[ExchangeCorePrice],[EstOfFeeBilling],[BillingStartDate],[ExchangeOutrightPrice],[DaysForCoreReturn],[BillingIntervalDays],[CurrencyId],[Currency],[DepositeAmount],
+											[CoreDueDate],[MasterCompanyId],@UpdatedBy,GETUTCDATE(),[UpdatedBy],[UpdatedDate],[IsDeleted],[IsActive],[ConditionId],[StockLineName],[PartNumber],[PartDescription],[ConditionName],[IsRemark],[RemarkText],
+											[ExchangeOverhaulCost],[QtyQuoted],[MethodType],[IsConvertedToSalesOrder],[CustomerRequestDate],[PromisedDate],[EstimatedShipDate],[ExpectedCoreSN],[StatusId],[StatusName],[FxRate],@stkPurchaseOrderUnitCost,[PriorityId],
+											@Qty,[QtyRequested],[ControlNumber],[IdNumber],[Notes],[ExpecedCoreCond],[ExpectedCoreRetDate],[CoreRetDate],[CoreRetNum],[CoreStatusId],[LetterSentDate],[LetterTypeId],[Memo],[ExpdCoreSN],[POId],[PONumber],
+											[PONextDlvrDate],[IsExpCoreSN],[CoreAccepted],[ReceivedDate]
+											FROM DBO.ExchangeSalesOrderPart ESOP WITH (NOLOCK) WHERE ESOP.ExchangeSalesOrderId = @ReferenceId AND ESOP.ItemMasterId = @ItemMasterId AND ESOP.ConditionId = @ConditionId;
+
+											SELECT @InsertedExchangeSalesOrderPartId = SCOPE_IDENTITY();
+
+											SET @POReferenceQty = @POReferenceQty - @Qty;
+
+											SET @stkSalesOrderPartId = @InsertedExchangeSalesOrderPartId;
+
+											INSERT INTO DBO.ExchangeSalesOrderReserveParts ([ExchangeSalesOrderId],[StockLineId],[ItemMasterId],[PartStatusId],[IsEquPart],[EquPartMasterPartId],[IsAltPart],[AltPartMasterPartId],
+											[QtyToReserve],[QtyToIssued],[ReservedById],[ReservedDate],[IssuedById],[IssuedDate],[CreatedBy],[CreatedDate],[UpdatedBy],[UpdatedDate],[IsActive],[IsDeleted],
+											[ExchangeSalesOrderPartId],[TotalReserved],[TotalIssued],[MasterCompanyId])
+											SELECT @ReferenceId, @StkStocklineId, @ItemMasterId, 1, 0, 0, 0, 0,
+											@Qty, 0, @Requisitioner, GETUTCDATE(), @Requisitioner, GETUTCDATE(), @UpdatedBy, GETUTCDATE(), @UpdatedBy, GETUTCDATE(), 1, 0,
+											@InsertedExchangeSalesOrderPartId, @Qty, NULL, @stkMasterCompanyId;
+
+											INSERT INTO DBO.ExchangeSalesOrderStockLine ([ExchangeSalesOrderId],[ExchangeSalesOrderPartId],[StockLIneId],[ItemMasterId],[ConditionId],[Quantity],[QtyReserved],[QtyIssued],
+											[AltPartMasterPartId],[EquPartMasterPartId],[IsAltPart],[IsEquPart],[UnitCost],[ExtendedCost],[UnitPrice],[ExtendedPrice],[MasterCompanyId],[CreatedBy],
+											[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted])
+											SELECT @ReferenceId, @InsertedExchangeSalesOrderPartId, @StkStocklineId, @ItemMasterId, @ConditionId, @Qty, @Qty, 0,
+											NULL, NULL, NULL, NULL, 0, 0, 0, 0, @stkMasterCompanyId, @UpdatedBy,
+											@UpdatedBy, GETUTCDATE(), GETUTCDATE(), 1, 0;
+
+											SET @stkQuantityReserved = @stkQuantityReserved + @Qty;
+											SET @stkQuantityAvailable = @stkQuantityAvailable - @Qty;
+
+											UPDATE TOP (@Qty) StkDraft
+											SET StkDraft.ForStockQty = CASE WHEN StkDraft.Quantity < @Qty THEN 0 ELSE StkDraft.Quantity - @Qty END
+											FROM DBO.StocklineDraft StkDraft
+											WHERE StkDraft.StockLineId = @StkStocklineId;
+
+											UPDATE Stk
+											SET Stk.Quantity = @stkQty,
+											Stk.QuantityAvailable = @stkQuantityAvailable,
+											Stk.QuantityReserved = @stkQuantityReserved,
+											Stk.QuantityOnOrder = @stkQuantityOnOrder
+											FROM DBO.Stockline Stk 
+											WHERE Stk.StockLineId = @StkStocklineId;
+
+											SET @QuantityReservedForPoPart = @Qty; 
+
+											EXEC USP_AddUpdateStocklineHistory @StkStocklineId, 28, @PurchaseOrderId, 18, @ReferenceId, 2, @Qty, @UpdatedBy;
+										END
+									END
+									ELSE
+									BEGIN
+										GOTO NextStockline;
+									END
+								END
+								ELSE
+								BEGIN
+									GOTO NextStockline;
+								END
+							END
+
+							SET @ESOPLoopID = @ESOPLoopID - 1;
+						END
+					END
+				END
+
+				NextStockline:
+
+				EXEC UpdateStocklineColumnsWithId @StkStocklineId;
+
+				SET @StkLoopID = @StkLoopID - 1;
+
+				UPDATE DBO.PurchaseOrderPartReference 
+				SET ReservedQty = ISNULL(ReservedQty, 0) + ISNULL(@QuantityReservedForPoPart, 0)
+				WHERE PurchaseOrderPartReferenceId = @SelectedPurchaseOrderPartReferenceId;
+
+				SET @QuantityReservedForPoPart = 0;
+			END
+
+			SET @LoopID = @LoopID - 1;
+		END
+	END
+    
+	COMMIT TRANSACTION
+
+  END TRY
+  BEGIN CATCH
+    IF @@trancount > 0
+	  ROLLBACK TRAN;
+	  DECLARE @ErrorLogID INT
+	  ,@DatabaseName VARCHAR(100) = DB_NAME()
+			-----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE---------------------------------------  
+	  ,@AdhocComments VARCHAR(150) = 'USP_ReserveStocklineForReceivingPO'  
+	  ,@ProcedureParameters VARCHAR(3000) = '@Parameter1 = ' + ISNULL(@PurchaseOrderId, '') + ''  
+	  ,@ApplicationName VARCHAR(100) = 'PAS'  
+	  -----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------  
+	  EXEC spLogException @DatabaseName = @DatabaseName,  
+		@AdhocComments = @AdhocComments,  
+		@ProcedureParameters = @ProcedureParameters,  
+		@ApplicationName = @ApplicationName,  
+		@ErrorLogID = @ErrorLogID OUTPUT;  
+	  RAISERROR ('Unexpected Error Occured in the database. Please let the support team know of the error number : %d', 16, 1, @ErrorLogID)  
+	  RETURN (1);  
+	 END CATCH  
+END

@@ -1,0 +1,25 @@
+﻿CREATE TABLE [dbo].[AssetInventoryBillingInvoicingItem] (
+    [ASBillingInvoicingItemId] BIGINT          IDENTITY (1, 1) NOT NULL,
+    [ASBillingInvoicingId]     BIGINT          NOT NULL,
+    [NoofPieces]               INT             NOT NULL,
+    [AssetRecordId]            BIGINT          NOT NULL,
+    [MasterCompanyId]          INT             NOT NULL,
+    [CreatedBy]                VARCHAR (256)   NOT NULL,
+    [UpdatedBy]                VARCHAR (256)   NOT NULL,
+    [CreatedDate]              DATETIME2 (7)   CONSTRAINT [DF_AssetInventoryBillingInvoicingItem_CreatedDate] DEFAULT (getdate()) NOT NULL,
+    [UpdatedDate]              DATETIME2 (7)   CONSTRAINT [DF_AssetInventoryBillingInvoicingItem_UpdatedDate] DEFAULT (getdate()) NOT NULL,
+    [IsActive]                 BIT             CONSTRAINT [AssetInventoryBillingInvoicingItem_DC_Active] DEFAULT ((1)) NOT NULL,
+    [IsDeleted]                BIT             CONSTRAINT [AssetInventoryBillingInvoicingItem_DC_Deleted] DEFAULT ((0)) NOT NULL,
+    [UnitPrice]                DECIMAL (20, 2) NULL,
+    [AssetSaleShippingId]      BIGINT          NULL,
+    [PDFPath]                  NVARCHAR (MAX)  NULL,
+    [StockLineId]              BIGINT          NULL,
+    [VersionNo]                VARCHAR (100)   NULL,
+    [IsVersionIncrease]        BIT             NULL,
+    [IsProforma]               BIT             NULL,
+    [IsBilling]                BIT             NULL,
+    CONSTRAINT [PK_AssetInventoryBillingInvoicingItem] PRIMARY KEY CLUSTERED ([ASBillingInvoicingItemId] ASC),
+    CONSTRAINT [FK_AssetInventoryBillingInvoicingItem_AssetInventoryBillingInvoicing] FOREIGN KEY ([ASBillingInvoicingId]) REFERENCES [dbo].[AssetInventoryBillingInvoicing] ([ASBillingInvoicingId]),
+    CONSTRAINT [FK_AssetInventoryBillingInvoicingItem_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId])
+);
+

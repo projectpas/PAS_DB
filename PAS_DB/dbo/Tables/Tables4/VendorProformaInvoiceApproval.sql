@@ -1,0 +1,28 @@
+﻿CREATE TABLE [dbo].[VendorProformaInvoiceApproval] (
+    [VendorProformaInvoiceApprovalId]    BIGINT         IDENTITY (1, 1) NOT NULL,
+    [VendorProformaInvoiceId]            BIGINT         NOT NULL,
+    [VendorProformaInvoicePartDetailsId] BIGINT         NOT NULL,
+    [Memo]                               NVARCHAR (MAX) NULL,
+    [SentDate]                           DATETIME2 (7)  NULL,
+    [ApprovedDate]                       DATETIME2 (7)  NULL,
+    [ApprovedById]                       BIGINT         NULL,
+    [ApprovedByName]                     VARCHAR (250)  NULL,
+    [RejectedDate]                       DATETIME2 (7)  NULL,
+    [RejectedBy]                         BIGINT         NULL,
+    [RejectedByName]                     VARCHAR (250)  NULL,
+    [StatusId]                           INT            NULL,
+    [StatusName]                         VARCHAR (50)   NULL,
+    [ActionId]                           INT            NULL,
+    [InternalSentToId]                   BIGINT         NULL,
+    [InternalSentToName]                 VARCHAR (100)  NULL,
+    [InternalSentById]                   BIGINT         NULL,
+    [MasterCompanyId]                    INT            NOT NULL,
+    [CreatedBy]                          VARCHAR (50)   NOT NULL,
+    [CreatedDate]                        DATETIME2 (7)  CONSTRAINT [DF_VendorProformaInvoiceApproval_CreatedDate] DEFAULT (getutcdate()) NOT NULL,
+    [UpdatedBy]                          VARCHAR (50)   NOT NULL,
+    [UpdatedDate]                        DATETIME2 (7)  CONSTRAINT [DF_VendorProformaInvoiceApproval_UpdatedDate] DEFAULT (getutcdate()) NOT NULL,
+    [IsActive]                           BIT            CONSTRAINT [DF__VendorProformaInvoiceApproval__IsActive] DEFAULT ((1)) NOT NULL,
+    [IsDeleted]                          BIT            CONSTRAINT [DF__VendorProformaInvoiceApproval__IsDeleted] DEFAULT ((0)) NOT NULL,
+    CONSTRAINT [PK_VendorProformaInvoiceApproval] PRIMARY KEY CLUSTERED ([VendorProformaInvoiceApprovalId] ASC)
+);
+

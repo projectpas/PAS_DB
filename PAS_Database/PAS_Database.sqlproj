@@ -4416,6 +4416,9 @@
     <Build Include="dbo\Stored Procedures\RPT_GetWorkOrderScrapCertificatePrintPdfData.sql" />
     <Build Include="dbo\Views\vw_CurrencyConversion_Audit.sql" />
     <Build Include="dbo\Views\vw_CurrencyConversion.sql" />
+    <Build Include="dbo\Stored Procedures\USP_UpdateLeafNodePrintSequence.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetPrintSequenceLeafData.sql" />
+    <Build Include="dbo\User Defined Types\LeafNodeSequenceType.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

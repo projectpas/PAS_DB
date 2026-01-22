@@ -22,6 +22,7 @@ EXEC [USP_GetReleaseFromDataByStockLineId]
 ** 11   10/10/2025      Moin Bloch          Updated For Get VersionNo & IsVersionIncrease Flag
 ** 12   13/10/2025      Moin Bloch          Updated to Dynamic VersionNo
 ** 19   20/01/2026      Moin Bloch          Updated For PAR Added CorrectiveAction For PAR
+** 20   21/01/2026      Vishal Suthar       Move CorrectiveAction data with "*" only and remove "*" after moving to release form For PAR
 	
 
  EXEC [dbo].[USP_GetReleaseFromDataByStockLineId] 3553,1,0
@@ -71,7 +72,21 @@ BEGIN
 		BEGIN
 			SELECT @ParCommonTeardownTypeId = [CommonTeardownTypeId] FROM [dbo].[CommonTeardownType] WITH(NOLOCK) WHERE [MasterCompanyId] = @MasterCompanyId AND [TearDownCode] = 'CRA';			
 			SELECT @WorkFlowWorkOrderId = [WorkFlowWorkOrderId] FROM [DBO].[WorkOrderWorkFlow] WITH(NOLOCK) WHERE [WorkorderId]=@WorkorderId AND [WorkOrderPartNoId]=@workOrderPartNumberId				
-			SELECT @CorrectiveAction = [Memo] FROM [DBO].[CommonWorkOrderTearDown] WITH(NOLOCK) WHERE [CommonTeardownTypeId]=@ParCommonTeardownTypeId AND [WorkorderId]=@WorkorderId AND [WorkFlowWorkOrderId]=@WorkFlowWorkOrderId
+			--SELECT @CorrectiveAction = [Memo] FROM [DBO].[CommonWorkOrderTearDown] WITH(NOLOCK) WHERE [CommonTeardownTypeId]=@ParCommonTeardownTypeId AND [WorkorderId]=@WorkorderId AND [WorkFlowWorkOrderId]=@WorkFlowWorkOrderId
+			SELECT @CorrectiveAction =
+				STRING_AGG(
+					CASE
+						WHEN s.value LIKE '<p>*%' THEN
+							REPLACE(s.value, '<p>*', '<p>') + '</p>'
+						WHEN LTRIM(s.value) LIKE '*%' THEN
+							STUFF(LTRIM(s.value), 1, 1, '')
+						ELSE NULL END, '')
+			FROM [DBO].[CommonWorkOrderTearDown] t WITH (NOLOCK)
+			CROSS APPLY STRING_SPLIT(REPLACE(REPLACE(t.[Memo], '</p>', CHAR(10)), CHAR(13), ''), CHAR(10)) s
+			WHERE t.[CommonTeardownTypeId] = @ParCommonTeardownTypeId
+				AND t.[WorkorderId] = @WorkorderId
+				AND t.[WorkFlowWorkOrderId] = @WorkFlowWorkOrderId
+				AND (s.value LIKE '<p>*%' OR LTRIM(s.value) LIKE '*%');
 		END
 
 		DECLARE @VerCodePrefix NVARCHAR(50),@VerCode INT

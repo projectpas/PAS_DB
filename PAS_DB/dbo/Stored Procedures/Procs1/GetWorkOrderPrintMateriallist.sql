@@ -1,4 +1,5 @@
-﻿/*******           
+﻿
+/*******           
  ** File:   [GetWorkOrderPrintPdfData]           
  ** Author:   Subhash Saliya
  ** Description: This stored procedure is used Work order Print  Details    
@@ -19,10 +20,11 @@
     2    03/27/2023   Vishal Suthar  Modified to include KIT material data
     3    12/04/2023   Bhargav Saliya Added Case For material data(>Dont get Sub WO material)
 	4    19/01/2026   Moin Bloch     Added PONum
+	5    21/01/2026   Moin Bloch     Added StockLineNumber,ControlNumber
      
 --EXEC [GetWorkOrderPrintMateriallist] 10148,10350,10212
 ********/
-CREATE     PROCEDURE [dbo].[GetWorkOrderPrintMateriallist]
+CREATE   PROCEDURE [dbo].[GetWorkOrderPrintMateriallist]
 	@WorkorderId bigint,
 	@workOrderPartNoId bigint,
 	@workFlowWorkOrderId bigint
@@ -40,13 +42,15 @@ BEGIN
 				        SUM(WOMS.QtyIssued) AS QuantityIssued,
 						imt.partnumber AS partnumber,
 						imt.PartDescription AS PartDescription,
-						STK.PurchaseOrderNumber AS PONum
+						STK.PurchaseOrderNumber AS PONum,
+						STK.StockLineNumber,
+						STK.ControlNumber
 				FROM [dbo].[WorkOrderMaterialStockLine] WOMS WITH(NOLOCK)
 				INNER JOIN [dbo].[WorkOrderMaterials] WOM WITH(NOLOCK) ON WOM.WorkOrderMaterialsId = WOMS.WorkOrderMaterialsId
 				INNER JOIN [dbo].[Stockline] STK WITH(NOLOCK) ON STk.StockLineId = WOMS.StockLineId
 				LEFT JOIN  [dbo].[ItemMaster] imt WITH(NOLOCK) ON imt.ItemMasterId = WOMS.ItemMasterId
 				WHERE WOM.WorkFlowWorkOrderId = @workFlowWorkOrderId AND WOMS.IsDeleted = 0 AND WOMS.ProvisionId <> @ProvisionId
-				GROUP BY STK.PurchaseOrderNumber,imt.partnumber,imt.PartDescription 
+				GROUP BY STK.PurchaseOrderNumber,imt.partnumber,imt.PartDescription,STK.StockLineNumber,STK.ControlNumber
 
 				UNION ALL
 
@@ -54,13 +58,15 @@ BEGIN
 				        SUM(WOMS.QtyIssued) AS QuantityIssued,
 						imt.partnumber AS partnumber,
 						imt.PartDescription AS PartDescription,
-						STK.PurchaseOrderNumber AS PONum
+						STK.PurchaseOrderNumber AS PONum,
+						STK.StockLineNumber,
+						STK.ControlNumber
 				FROM [dbo].[WorkOrderMaterialStockLineKit] WOMS WITH(NOLOCK)
 				INNER JOIN [dbo].[WorkOrderMaterialsKit] WOM WITH(NOLOCK) ON WOM.WorkOrderMaterialsKitId= WOMS.WorkOrderMaterialsKitId
 				INNER JOIN [dbo].[Stockline] STK WITH(NOLOCK) ON STk.StockLineId = WOMS.StockLineId
 				LEFT JOIN [dbo].[ItemMaster] imt WITH(NOLOCK) ON imt.ItemMasterId = WOMS.ItemMasterId
 				WHERE WOM.WorkFlowWorkOrderId = @workFlowWorkOrderId AND WOMS.IsDeleted = 0
-				GROUP BY STK.PurchaseOrderNumber,imt.partnumber,imt.PartDescription
+				GROUP BY STK.PurchaseOrderNumber,imt.partnumber,imt.PartDescription,STK.StockLineNumber,STK.ControlNumber
 			END
 		COMMIT  TRANSACTION
 

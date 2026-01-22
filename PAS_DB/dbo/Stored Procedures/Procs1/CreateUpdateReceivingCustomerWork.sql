@@ -1,6 +1,4 @@
 ﻿
---DROP PROCEDURE [dbo].[CreateUpdateReceivingCustomerWork]
-
 /*************************************************************           
  ** File:   [CreateUpdateReceivingCustomerWork]        
  ** Author:   Abhishek Jirawla
@@ -23,7 +21,7 @@
 
  EXECUTE [USP_GetWorkOrderPartsView] 1
 **************************************************************/ 
-CREATE   PROCEDURE [dbo].[CreateUpdateReceivingCustomerWork]  
+CREATE     PROCEDURE [dbo].[CreateUpdateReceivingCustomerWork]  
 @ReceivingCustomerWorkId [bigint] NULL,
 @MasterCompanyId [int] NULL,
 @IsRepairManagement [bit] NULL,

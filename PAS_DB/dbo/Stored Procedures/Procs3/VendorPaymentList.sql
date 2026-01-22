@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿
+/*************************************************************           
  ** File:   [VendorPaymentList]           
  ** Author:   Subhash Saliya
  ** Description: This stored procedure is used VendorPaymentList
@@ -209,7 +210,7 @@ BEGIN
 			   --ISNULL(VN.IsVendorOnHold,0) AS 'PaymentHold',
 			   CASE WHEN ISNULL(RRC.IsInvoiceOnHold, 0) = 1 OR ISNULL(VN.IsVendorOnHold, 0) = 1 THEN 'YES' ELSE 'NO' END AS 'PaymentHold',
 			   (Cast(DBO.ConvertUTCtoLocal(RRC.InvoiceDate,@CurrntEmpTimeZoneDesc)AS DATETIME)) AS 'InvociedDate',
-			   (Cast(DBO.ConvertUTCtoLocal(RRH.DueDate,@CurrntEmpTimeZoneDesc)AS DATETIME)) AS 'EntryDate',			   			  
+			   (Cast(DBO.ConvertUTCtoLocal(RRC.UpdatedDate,@CurrntEmpTimeZoneDesc)AS DATETIME)) AS 'EntryDate',			   			  
 			   --DATEADD(DAY, ctm.NetDays,RRC.InvoiceDate) AS 'DueDate',   
 			   --CASE WHEN DATEDIFF(DAY, (CAST(RRC.InvoiceDate AS DATETIME) + ISNULL(ctm.NetDays,0)), GETUTCDATE()) <= 0 THEN 0 ELSE DATEDIFF(DAY, (CAST(RRC.InvoiceDate AS DATETIME) + ISNULL(ctm.NetDays,0)), GETUTCDATE()) END AS DaysPastDue,  			   
 			   CASE WHEN IIF(TRY_CAST(RRC.InvoiceDate AS DATETIME) IS NULL, 0, 1 ) = 1
@@ -280,7 +281,7 @@ BEGIN
 			   --ISNULL(RRH.IsInvoiceOnHold,0) AS 'PaymentHold',
 			   CASE WHEN ISNULL(RRH.IsInvoiceOnHold, 0) = 1 OR ISNULL(VN.IsVendorOnHold, 0) = 1 THEN 'YES' ELSE 'NO' END AS 'PaymentHold',
 			   (Cast(DBO.ConvertUTCtoLocal(RRH.InvoiceDate,@CurrntEmpTimeZoneDesc)AS DATETIME)) AS 'InvociedDate',
-			   (Cast(DBO.ConvertUTCtoLocal(RRH.InvoiceDate,@CurrntEmpTimeZoneDesc)AS DATETIME)) AS 'EntryDate',
+			   (Cast(DBO.ConvertUTCtoLocal(RRH.UpdatedDate,@CurrntEmpTimeZoneDesc)AS DATETIME)) AS 'EntryDate',
 			   --DATEADD(DAY, ctm.NetDays,RRH.InvoiceDate) AS 'DueDate',  
 			   --CASE WHEN DATEDIFF(DAY, (CAST(RRH.InvoiceDate AS DATETIME) + ISNULL(ctm.NetDays,0)), GETUTCDATE()) <= 0 THEN 0 ELSE DATEDIFF(DAY, (CAST(RRH.InvoiceDate AS DATETIME) + ISNULL(ctm.NetDays,0)), GETUTCDATE()) END AS DaysPastDue,  
 			   CASE WHEN IIF(TRY_CAST(RRH.InvoiceDate AS DATETIME) IS NULL, 0, 1 ) = 1
@@ -343,7 +344,7 @@ BEGIN
 			  -- 0 AS 'PaymentHold',
 			  CASE WHEN ISNULL(VN.IsVendorOnHold, 0) = 1 THEN 'YES' ELSE 'NO' END AS 'PaymentHold',
 			   (Cast(DBO.ConvertUTCtoLocal(CM.InvoiceDate,@CurrntEmpTimeZoneDesc)AS DATETIME)) AS 'InvociedDate',
-			   (Cast(DBO.ConvertUTCtoLocal(RRH.DueDate,@CurrntEmpTimeZoneDesc)AS DATETIME)) AS 'EntryDate',
+			   (Cast(DBO.ConvertUTCtoLocal(CM.UpdatedDate,@CurrntEmpTimeZoneDesc)AS DATETIME)) AS 'EntryDate',
 			   CASE WHEN IIF(TRY_CAST(CM.InvoiceDate AS DATETIME) IS NULL, 0, 1 ) = 1
 				     THEN DATEADD(DAY,ISNULL(CTM.NetDays,0),(Cast(DBO.ConvertUTCtoLocal(CM.InvoiceDate,@CurrntEmpTimeZoneDesc)AS DATETIME)))
 					  ELSE NULL END	AS 'DueDate',
@@ -417,9 +418,14 @@ BEGIN
 				(Cast(DBO.ConvertUTCtoLocal(NPH.UpdatedDate,@CurrntEmpTimeZoneDesc)AS DATETIME)) AS 'EntryDate',
 				--DATEADD(DAY, ctm.NetDays,NPH.InvoiceDate) AS 'DueDate', 
 				--CASE WHEN DATEDIFF(DAY, (CAST(NPH.InvoiceDate AS DATETIME) + ISNULL(ctm.NetDays,0)), GETUTCDATE()) <= 0 THEN 0 ELSE DATEDIFF(DAY, (CAST(NPH.InvoiceDate AS DATETIME) + ISNULL(ctm.NetDays,0)), GETUTCDATE()) END AS DaysPastDue,  				
-				CASE WHEN IIF(TRY_CAST(NPH.InvoiceDate AS DATETIME) IS NULL, 0, 1 ) = 1
-				     THEN DATEADD(DAY,ISNULL(CTM.NetDays,0),(Cast(DBO.ConvertUTCtoLocal(NPH.InvoiceDate,@CurrntEmpTimeZoneDesc)AS DATETIME)))
-					  ELSE NULL END	AS 'DueDate',
+				 CASE WHEN IIF(TRY_CAST(VPD.DueDate AS DATETIME) IS NULL, 0, 1 ) = 1 
+						THEN VPD.DueDate 
+				 ELSE
+					CASE WHEN IIF(TRY_CAST(NPH.InvoiceDate AS DATETIME) IS NULL, 0, 1 ) = 1
+						THEN DATEADD(DAY,ISNULL(CTM.NetDays,0),(Cast(DBO.ConvertUTCtoLocal(NPH.InvoiceDate,@CurrntEmpTimeZoneDesc)AS DATETIME)))
+					ELSE NULL END
+				END AS 'DueDate',
+
 			    CASE WHEN IIF(TRY_CAST(NPH.InvoiceDate AS DATETIME) IS NULL, 0, 1 ) = 1
 				     THEN CASE WHEN DATEDIFF(DAY, (CAST(NPH.InvoiceDate AS DATETIME) + ISNULL(ctm.NetDays,0)), GETUTCDATE()) <= 0 THEN 0 ELSE DATEDIFF(DAY, (CAST(NPH.InvoiceDate AS DATETIME) + ISNULL(ctm.NetDays,0)), GETUTCDATE()) END
 					 ELSE NULL END	AS 'DaysPastDue',
@@ -486,12 +492,16 @@ BEGIN
 			   --0 AS 'PaymentHold',
 				CASE WHEN ISNULL(VN.IsVendorOnHold, 0) = 1 THEN 'YES' ELSE 'NO' END AS 'PaymentHold',
 			   (Cast(DBO.ConvertUTCtoLocal(NPH.InvoiceDate,@CurrntEmpTimeZoneDesc)AS DATETIME)) AS 'InvociedDate',
-			   (Cast(DBO.ConvertUTCtoLocal(RRH.DueDate,@CurrntEmpTimeZoneDesc)AS DATETIME)) AS 'EntryDate',
+			   (Cast(DBO.ConvertUTCtoLocal(NPH.UpdatedDate,@CurrntEmpTimeZoneDesc)AS DATETIME)) AS 'EntryDate',
 			  --DATEADD(DAY, ctm.NetDays,NPH.InvoiceDate) AS 'DueDate',  
 			  -- CASE WHEN DATEDIFF(DAY, (CAST(NPH.InvoiceDate AS DATETIME) + ISNULL(ctm.NetDays,0)), GETUTCDATE()) <= 0 THEN 0 ELSE DATEDIFF(DAY, (CAST(NPH.InvoiceDate AS DATETIME) + ISNULL(ctm.NetDays,0)), GETUTCDATE()) END AS DaysPastDue,  
-			   CASE WHEN IIF(TRY_CAST(NPH.InvoiceDate AS DATETIME) IS NULL, 0, 1 ) = 1
-				     THEN DATEADD(DAY,ISNULL(CTM.NetDays,0),(Cast(DBO.ConvertUTCtoLocal(NPH.InvoiceDate,@CurrntEmpTimeZoneDesc)AS DATETIME)))
-					  ELSE NULL END	AS 'DueDate',
+			   CASE WHEN IIF(TRY_CAST(RRH.DueDate AS DATETIME) IS NULL, 0, 1 ) = 1 
+						THEN RRH.DueDate 
+					ELSE 
+					   CASE WHEN IIF(TRY_CAST(NPH.InvoiceDate AS DATETIME) IS NULL, 0, 1 ) = 1
+							 THEN DATEADD(DAY,ISNULL(CTM.NetDays,0),(Cast(DBO.ConvertUTCtoLocal(NPH.InvoiceDate,@CurrntEmpTimeZoneDesc)AS DATETIME)))
+							  ELSE NULL END	
+					END AS 'DueDate',
 			    CASE WHEN IIF(TRY_CAST(NPH.InvoiceDate AS DATETIME) IS NULL, 0, 1 ) = 1
 				     THEN CASE WHEN DATEDIFF(DAY, (CAST(NPH.InvoiceDate AS DATETIME) + ISNULL(ctm.NetDays,0)), GETUTCDATE()) <= 0 THEN 0 ELSE DATEDIFF(DAY, (CAST(NPH.InvoiceDate AS DATETIME) + ISNULL(ctm.NetDays,0)), GETUTCDATE()) END
 					 ELSE NULL END	AS 'DaysPastDue',
@@ -553,10 +563,15 @@ BEGIN
 			   --0 AS 'PaymentHold',
 				CASE WHEN ISNULL(VN.IsVendorOnHold, 0) = 1 THEN 'YES' ELSE 'NO' END AS 'PaymentHold',
 			   (Cast(DBO.ConvertUTCtoLocal(CCPD.ProcessedDate,@CurrntEmpTimeZoneDesc)AS DATETIME)) AS 'InvociedDate',
-			   (Cast(DBO.ConvertUTCtoLocal(RRH.DueDate,@CurrntEmpTimeZoneDesc)AS DATETIME)) AS 'EntryDate',
-			   CASE WHEN IIF(TRY_CAST(CCPD.ProcessedDate AS DATETIME) IS NULL, 0, 1 ) = 1
-				     THEN DATEADD(DAY,ISNULL(CTM.NetDays,0),(Cast(DBO.ConvertUTCtoLocal(CCPD.ProcessedDate,@CurrntEmpTimeZoneDesc)AS DATETIME)))
-					  ELSE NULL END	AS 'DueDate',
+			   (Cast(DBO.ConvertUTCtoLocal(CCPD.UpdatedDate,@CurrntEmpTimeZoneDesc)AS DATETIME)) AS 'EntryDate',
+			   
+			   CASE WHEN IIF(TRY_CAST(RRH.DueDate AS DATETIME) IS NULL, 0, 1 ) = 1 
+						THEN RRH.DueDate 
+			   ELSE
+				     CASE WHEN IIF(TRY_CAST(CCPD.ProcessedDate AS DATETIME) IS NULL, 0, 1 ) = 1
+							THEN DATEADD(DAY,ISNULL(CTM.NetDays,0),(Cast(DBO.ConvertUTCtoLocal(CCPD.ProcessedDate,@CurrntEmpTimeZoneDesc)AS DATETIME)))
+					 ELSE NULL END
+			   END AS 'DueDate',
 			    CASE WHEN IIF(TRY_CAST(CCPD.ProcessedDate AS DATETIME) IS NULL, 0, 1 ) = 1
 				     THEN CASE WHEN DATEDIFF(DAY, (CAST(CCPD.ProcessedDate AS DATETIME) + ISNULL(ctm.NetDays,0)), GETUTCDATE()) <= 0 THEN 0 ELSE DATEDIFF(DAY, (CAST(CCPD.ProcessedDate AS DATETIME) + ISNULL(ctm.NetDays,0)), GETUTCDATE()) END
 					 ELSE NULL END	AS 'DaysPastDue',
@@ -665,10 +680,15 @@ BEGIN
 			   VN.VendorName,
 				CASE WHEN ISNULL(VN.IsVendorOnHold, 0) = 1 THEN 'YES' ELSE 'NO' END AS 'PaymentHold',
 			   (Cast(DBO.ConvertUTCtoLocal(NPH.InvoiceDate,@CurrntEmpTimeZoneDesc)AS DATETIME)) AS 'InvociedDate',
-			   (Cast(DBO.ConvertUTCtoLocal(RRH.DueDate,@CurrntEmpTimeZoneDesc)AS DATETIME)) AS 'EntryDate',
-			   CASE WHEN IIF(TRY_CAST(NPH.InvoiceDate AS DATETIME) IS NULL, 0, 1 ) = 1
-				     THEN DATEADD(DAY,ISNULL(CTM.NetDays,0),(Cast(DBO.ConvertUTCtoLocal(NPH.InvoiceDate,@CurrntEmpTimeZoneDesc)AS DATETIME)))
-					  ELSE NULL END	AS 'DueDate',
+			   (Cast(DBO.ConvertUTCtoLocal(NPH.UpdatedDate,@CurrntEmpTimeZoneDesc)AS DATETIME)) AS 'EntryDate',
+			   
+			   CASE WHEN IIF(TRY_CAST(RRH.DueDate AS DATETIME) IS NULL, 0, 1 ) = 1 
+						THEN RRH.DueDate 
+			   ELSE
+					CASE WHEN IIF(TRY_CAST(NPH.InvoiceDate AS DATETIME) IS NULL, 0, 1 ) = 1
+						THEN DATEADD(DAY,ISNULL(CTM.NetDays,0),(Cast(DBO.ConvertUTCtoLocal(NPH.InvoiceDate,@CurrntEmpTimeZoneDesc)AS DATETIME)))
+					ELSE NULL END
+			   END AS 'DueDate',
 			    CASE WHEN IIF(TRY_CAST(NPH.InvoiceDate AS DATETIME) IS NULL, 0, 1 ) = 1
 				     THEN CASE WHEN DATEDIFF(DAY, (CAST(NPH.InvoiceDate AS DATETIME) + ISNULL(ctm.NetDays,0)), GETUTCDATE()) <= 0 THEN 0 ELSE DATEDIFF(DAY, (CAST(NPH.InvoiceDate AS DATETIME) + ISNULL(ctm.NetDays,0)), GETUTCDATE()) END
 					 ELSE NULL END	AS 'DaysPastDue',
@@ -843,12 +863,17 @@ BEGIN
 				--ISNULL(RRC.IsInvoiceOnHold,0) AS 'PaymentHold',
 				CASE WHEN ISNULL(RRC.IsInvoiceOnHold, 0) = 1 THEN 'YES' ELSE 'NO' END AS 'PaymentHold',
 				(Cast(DBO.ConvertUTCtoLocal(RRC.InvoiceDate,@CurrntEmpTimeZoneDesc)AS DATETIME)) AS 'InvociedDate',
-				(Cast(DBO.ConvertUTCtoLocal(RRH.DueDate,@CurrntEmpTimeZoneDesc)AS DATETIME)) AS 'EntryDate',
+				(Cast(DBO.ConvertUTCtoLocal(RRC.UpdatedDate,@CurrntEmpTimeZoneDesc)AS DATETIME)) AS 'EntryDate',
 				--DATEADD(DAY, ctm.NetDays,RRC.InvoiceDate) AS 'DueDate',  
 			    --CASE WHEN DATEDIFF(DAY, (CAST(RRC.InvoiceDate AS DATETIME) + ISNULL(ctm.NetDays,0)), GETUTCDATE()) <= 0 THEN 0 ELSE DATEDIFF(DAY, (CAST(RRC.InvoiceDate AS DATETIME) + ISNULL(ctm.NetDays,0)), GETUTCDATE()) END AS DaysPastDue,  				
-				CASE WHEN IIF(TRY_CAST(RRC.InvoiceDate AS DATETIME) IS NULL, 0, 1 ) = 1
-				     THEN DATEADD(DAY,ISNULL(CTM.NetDays,0),(Cast(DBO.ConvertUTCtoLocal(RRC.InvoiceDate,@CurrntEmpTimeZoneDesc)AS DATETIME)))
-					  ELSE NULL END	AS 'DueDate',
+				
+				CASE WHEN IIF(TRY_CAST(RRH.DueDate AS DATETIME) IS NULL, 0, 1 ) = 1 
+						THEN RRH.DueDate 
+				ELSE 
+					CASE WHEN IIF(TRY_CAST(RRC.InvoiceDate AS DATETIME) IS NULL, 0, 1 ) = 1
+						 THEN DATEADD(DAY,ISNULL(CTM.NetDays,0),(Cast(DBO.ConvertUTCtoLocal(RRC.InvoiceDate,@CurrntEmpTimeZoneDesc)AS DATETIME)))
+					ELSE NULL END
+				END AS 'DueDate',
 			    CASE WHEN IIF(TRY_CAST(RRC.InvoiceDate AS DATETIME) IS NULL, 0, 1 ) = 1
 				     THEN CASE WHEN DATEDIFF(DAY, (CAST(RRC.InvoiceDate AS DATETIME) + ISNULL(ctm.NetDays,0)), GETUTCDATE()) <= 0 THEN 0 ELSE DATEDIFF(DAY, (CAST(RRC.InvoiceDate AS DATETIME) + ISNULL(ctm.NetDays,0)), GETUTCDATE()) END
 					 ELSE NULL END	AS 'DaysPastDue',
@@ -905,10 +930,15 @@ BEGIN
 				--0 AS 'PaymentHold',
 				'NO' AS 'PaymentHold',
 				(Cast(DBO.ConvertUTCtoLocal(CM.InvoiceDate,@CurrntEmpTimeZoneDesc)AS DATETIME)) AS 'InvociedDate',
-				(Cast(DBO.ConvertUTCtoLocal(RRH.DueDate,@CurrntEmpTimeZoneDesc)AS DATETIME)) AS 'EntryDate',
-				CASE WHEN IIF(TRY_CAST(CM.InvoiceDate AS DATETIME) IS NULL, 0, 1 ) = 1
-				     THEN DATEADD(DAY,ISNULL(CTM.NetDays,0),(Cast(DBO.ConvertUTCtoLocal(CM.InvoiceDate,@CurrntEmpTimeZoneDesc)AS DATETIME)))
-					  ELSE NULL END	AS 'DueDate',
+				(Cast(DBO.ConvertUTCtoLocal(CM.UpdatedDate,@CurrntEmpTimeZoneDesc)AS DATETIME)) AS 'EntryDate',
+				
+				CASE WHEN IIF(TRY_CAST(RRH.DueDate AS DATETIME) IS NULL, 0, 1 ) = 1 
+						THEN RRH.DueDate 
+				ELSE
+					CASE WHEN IIF(TRY_CAST(CM.InvoiceDate AS DATETIME) IS NULL, 0, 1 ) = 1
+						THEN DATEADD(DAY,ISNULL(CTM.NetDays,0),(Cast(DBO.ConvertUTCtoLocal(CM.InvoiceDate,@CurrntEmpTimeZoneDesc)AS DATETIME)))
+					ELSE NULL END
+				END AS 'DueDate',
 			    CASE WHEN IIF(TRY_CAST(CM.InvoiceDate AS DATETIME) IS NULL, 0, 1 ) = 1
 				     THEN CASE WHEN DATEDIFF(DAY, (CAST(CM.InvoiceDate AS DATETIME) + ISNULL(ctm.NetDays,0)), GETUTCDATE()) <= 0 THEN 0 ELSE DATEDIFF(DAY, (CAST(CM.InvoiceDate AS DATETIME) + ISNULL(ctm.NetDays,0)), GETUTCDATE()) END
 					 ELSE NULL END	AS 'DaysPastDue',
@@ -968,12 +998,16 @@ BEGIN
 				--0 AS 'PaymentHold',
 				'NO' AS 'PaymentHold',
 				(Cast(DBO.ConvertUTCtoLocal(NPH.InvoiceDate,@CurrntEmpTimeZoneDesc)AS DATETIME)) AS 'InvociedDate',
-				(Cast(DBO.ConvertUTCtoLocal(RRH.DueDate,@CurrntEmpTimeZoneDesc)AS DATETIME)) AS 'EntryDate',
+				(Cast(DBO.ConvertUTCtoLocal(NPH.UpdatedDate,@CurrntEmpTimeZoneDesc)AS DATETIME)) AS 'EntryDate',
 				--DATEADD(DAY, ctm.NetDays,NPH.InvoiceDate) AS 'DueDate',  
 			    --CASE WHEN DATEDIFF(DAY, (CAST(NPH.InvoiceDate AS DATETIME) + ISNULL(ctm.NetDays,0)), GETUTCDATE()) <= 0 THEN 0 ELSE DATEDIFF(DAY, (CAST(NPH.InvoiceDate AS DATETIME) + ISNULL(ctm.NetDays,0)), GETUTCDATE()) END AS DaysPastDue,  
-				CASE WHEN IIF(TRY_CAST(NPH.InvoiceDate AS DATETIME) IS NULL, 0, 1 ) = 1
-				     THEN DATEADD(DAY,ISNULL(CTM.NetDays,0),(Cast(DBO.ConvertUTCtoLocal(NPH.InvoiceDate,@CurrntEmpTimeZoneDesc)AS DATETIME)))
-					  ELSE NULL END	AS 'DueDate',
+				 CASE WHEN IIF(TRY_CAST(RRH.DueDate AS DATETIME) IS NULL, 0, 1 ) = 1 
+						THEN RRH.DueDate 
+					ELSE 
+						CASE WHEN IIF(TRY_CAST(NPH.InvoiceDate AS DATETIME) IS NULL, 0, 1 ) = 1
+							THEN DATEADD(DAY,ISNULL(CTM.NetDays,0),(Cast(DBO.ConvertUTCtoLocal(NPH.InvoiceDate,@CurrntEmpTimeZoneDesc)AS DATETIME)))
+						ELSE NULL END	
+					 END AS 'DueDate',
 			    CASE WHEN IIF(TRY_CAST(NPH.InvoiceDate AS DATETIME) IS NULL, 0, 1 ) = 1
 				     THEN CASE WHEN DATEDIFF(DAY, (CAST(NPH.InvoiceDate AS DATETIME) + ISNULL(ctm.NetDays,0)), GETUTCDATE()) <= 0 THEN 0 ELSE DATEDIFF(DAY, (CAST(NPH.InvoiceDate AS DATETIME) + ISNULL(ctm.NetDays,0)), GETUTCDATE()) END
 					 ELSE NULL END	AS 'DaysPastDue',
@@ -1031,10 +1065,15 @@ BEGIN
 				VN.VendorName,
 				'NO' AS 'PaymentHold',
 				(Cast(DBO.ConvertUTCtoLocal(NPH.InvoiceDate,@CurrntEmpTimeZoneDesc)AS DATETIME)) AS 'InvociedDate',
-				(Cast(DBO.ConvertUTCtoLocal(RRH.DueDate,@CurrntEmpTimeZoneDesc)AS DATETIME)) AS 'EntryDate',
-				CASE WHEN IIF(TRY_CAST(NPH.InvoiceDate AS DATETIME) IS NULL, 0, 1 ) = 1
-				     THEN DATEADD(DAY,ISNULL(CTM.NetDays,0),(Cast(DBO.ConvertUTCtoLocal(NPH.InvoiceDate,@CurrntEmpTimeZoneDesc)AS DATETIME)))
-					  ELSE NULL END	AS 'DueDate',
+				(Cast(DBO.ConvertUTCtoLocal(NPH.UpdatedDate,@CurrntEmpTimeZoneDesc)AS DATETIME)) AS 'EntryDate',
+				
+				CASE WHEN IIF(TRY_CAST(RRH.DueDate AS DATETIME) IS NULL, 0, 1 ) = 1 
+						THEN RRH.DueDate 
+				ELSE
+					CASE WHEN IIF(TRY_CAST(NPH.InvoiceDate AS DATETIME) IS NULL, 0, 1 ) = 1
+						THEN DATEADD(DAY,ISNULL(CTM.NetDays,0),(Cast(DBO.ConvertUTCtoLocal(NPH.InvoiceDate,@CurrntEmpTimeZoneDesc)AS DATETIME)))
+					ELSE NULL END
+				END AS 'DueDate',
 			    CASE WHEN IIF(TRY_CAST(NPH.InvoiceDate AS DATETIME) IS NULL, 0, 1 ) = 1
 				     THEN CASE WHEN DATEDIFF(DAY, (CAST(NPH.InvoiceDate AS DATETIME) + ISNULL(ctm.NetDays,0)), GETUTCDATE()) <= 0 THEN 0 ELSE DATEDIFF(DAY, (CAST(NPH.InvoiceDate AS DATETIME) + ISNULL(ctm.NetDays,0)), GETUTCDATE()) END
 					 ELSE NULL END	AS 'DaysPastDue',
@@ -1092,9 +1131,14 @@ BEGIN
 				'NO' AS 'PaymentHold',
 				(Cast(DBO.ConvertUTCtoLocal(CCPD.ProcessedDate,@CurrntEmpTimeZoneDesc)AS DATETIME)) AS 'InvociedDate',
 				(Cast(DBO.ConvertUTCtoLocal(CCPD.ProcessedDate,@CurrntEmpTimeZoneDesc)AS DATETIME)) AS 'EntryDate',				
-				CASE WHEN IIF(TRY_CAST(CCPD.ProcessedDate AS DATETIME) IS NULL, 0, 1 ) = 1
-				     THEN DATEADD(DAY,ISNULL(CTM.NetDays,0),(Cast(DBO.ConvertUTCtoLocal(CCPD.ProcessedDate,@CurrntEmpTimeZoneDesc)AS DATETIME)))
-					  ELSE NULL END	AS 'DueDate',
+				
+				CASE WHEN IIF(TRY_CAST(VPD.DueDate AS DATETIME) IS NULL, 0, 1 ) = 1 
+						THEN VPD.DueDate 
+				ELSE
+					CASE WHEN IIF(TRY_CAST(CCPD.ProcessedDate AS DATETIME) IS NULL, 0, 1 ) = 1
+						THEN DATEADD(DAY,ISNULL(CTM.NetDays,0),(Cast(DBO.ConvertUTCtoLocal(CCPD.ProcessedDate,@CurrntEmpTimeZoneDesc)AS DATETIME)))
+					ELSE NULL END
+				END AS 'DueDate',
 				CASE WHEN IIF(TRY_CAST(CCPD.ProcessedDate AS DATETIME) IS NULL, 0, 1 ) = 1
 				     THEN CASE WHEN DATEDIFF(DAY, (CAST(CCPD.ProcessedDate AS DATETIME) + ISNULL(CTM.NetDays,0)), GETUTCDATE()) <= 0 THEN 0 ELSE DATEDIFF(DAY, (CAST(CCPD.ProcessedDate AS DATETIME) + ISNULL(CTM.NetDays,0)), GETUTCDATE()) END
 					 ELSE NULL END	AS 'DaysPastDue',				
@@ -1516,10 +1560,15 @@ BEGIN
 			   --ISNULL(RRC.IsInvoiceOnHold,0) AS 'PaymentHold',
 			   CASE WHEN ISNULL(RRC.IsInvoiceOnHold, 0) = 1 THEN 'YES' ELSE 'NO' END AS 'PaymentHold',
 			   (Cast(DBO.ConvertUTCtoLocal(RRC.InvoiceDate,@CurrntEmpTimeZoneDesc)AS DATETIME)) AS 'InvociedDate',
-			   (Cast(DBO.ConvertUTCtoLocal(RRH.DueDate,@CurrntEmpTimeZoneDesc)AS DATETIME)) AS 'EntryDate',
-			   CASE WHEN IIF(TRY_CAST(RRC.InvoiceDate AS DATETIME) IS NULL, 0, 1 ) = 1
-				     THEN DATEADD(DAY,ISNULL(CTM.NetDays,0),(Cast(DBO.ConvertUTCtoLocal(RRC.InvoiceDate,@CurrntEmpTimeZoneDesc)AS DATETIME)))
-					  ELSE NULL END	AS 'DueDate',
+			   (Cast(DBO.ConvertUTCtoLocal(RRC.UpdatedDate,@CurrntEmpTimeZoneDesc)AS DATETIME)) AS 'EntryDate',
+			   
+			   CASE WHEN IIF(TRY_CAST(RRH.DueDate AS DATETIME) IS NULL, 0, 1 ) = 1 
+						THEN RRH.DueDate 
+			   ELSE
+					CASE WHEN IIF(TRY_CAST(RRC.InvoiceDate AS DATETIME) IS NULL, 0, 1 ) = 1
+						THEN DATEADD(DAY,ISNULL(CTM.NetDays,0),(Cast(DBO.ConvertUTCtoLocal(RRC.InvoiceDate,@CurrntEmpTimeZoneDesc)AS DATETIME)))
+					ELSE NULL END
+			   END AS 'DueDate',
 			   CASE WHEN IIF(TRY_CAST(RRC.InvoiceDate AS DATETIME) IS NULL, 0, 1 ) = 1
 				     THEN CASE WHEN DATEDIFF(DAY, (CAST(RRC.InvoiceDate AS DATETIME) + ISNULL(ctm.NetDays,0)), GETUTCDATE()) <= 0 THEN 0 ELSE DATEDIFF(DAY, (CAST(RRC.InvoiceDate AS DATETIME) + ISNULL(ctm.NetDays,0)), GETUTCDATE()) END
 					 ELSE NULL END	AS 'DaysPastDue',
@@ -1582,10 +1631,14 @@ BEGIN
 			   --0 AS 'PaymentHold',
 			   'NO' AS 'PaymentHold',
 			   (Cast(DBO.ConvertUTCtoLocal(NPH.InvoiceDate,@CurrntEmpTimeZoneDesc)AS DATETIME)) AS 'InvociedDate',
-			   (Cast(DBO.ConvertUTCtoLocal(RRH.DueDate,@CurrntEmpTimeZoneDesc)AS DATETIME)) AS 'EntryDate',
-			   CASE WHEN IIF(TRY_CAST(NPH.InvoiceDate AS DATETIME) IS NULL, 0, 1 ) = 1
-				     THEN DATEADD(DAY,ISNULL(CTM.NetDays,0),(Cast(DBO.ConvertUTCtoLocal(NPH.InvoiceDate,@CurrntEmpTimeZoneDesc)AS DATETIME)))
-					  ELSE NULL END	AS 'DueDate',
+			   (Cast(DBO.ConvertUTCtoLocal(NPH.UpdatedDate,@CurrntEmpTimeZoneDesc)AS DATETIME)) AS 'EntryDate',
+			    CASE WHEN IIF(TRY_CAST(RRH.DueDate AS DATETIME) IS NULL, 0, 1 ) = 1 
+						THEN RRH.DueDate 
+					ELSE 
+					   CASE WHEN IIF(TRY_CAST(NPH.InvoiceDate AS DATETIME) IS NULL, 0, 1 ) = 1
+							 THEN DATEADD(DAY,ISNULL(CTM.NetDays,0),(Cast(DBO.ConvertUTCtoLocal(NPH.InvoiceDate,@CurrntEmpTimeZoneDesc)AS DATETIME)))
+							  ELSE NULL END	
+				END AS 'DueDate',
 			    CASE WHEN IIF(TRY_CAST(NPH.InvoiceDate AS DATETIME) IS NULL, 0, 1 ) = 1
 				     THEN CASE WHEN DATEDIFF(DAY, (CAST(NPH.InvoiceDate AS DATETIME) + ISNULL(ctm.NetDays,0)), GETUTCDATE()) <= 0 THEN 0 ELSE DATEDIFF(DAY, (CAST(NPH.InvoiceDate AS DATETIME) + ISNULL(ctm.NetDays,0)), GETUTCDATE()) END
 					 ELSE NULL END	AS 'DaysPastDue',
@@ -1650,10 +1703,15 @@ BEGIN
 			   --0 AS 'PaymentHold',
 			   'NO' AS 'PaymentHold',
 			   (Cast(DBO.ConvertUTCtoLocal(NPH.InvoiceDate,@CurrntEmpTimeZoneDesc)AS DATETIME)) AS 'InvociedDate',
-			   (Cast(DBO.ConvertUTCtoLocal(RRH.DueDate,@CurrntEmpTimeZoneDesc)AS DATETIME)) AS 'EntryDate',
-			   CASE WHEN IIF(TRY_CAST(NPH.InvoiceDate AS DATETIME) IS NULL, 0, 1 ) = 1
-				     THEN DATEADD(DAY,ISNULL(CTM.NetDays,0),(Cast(DBO.ConvertUTCtoLocal(NPH.InvoiceDate,@CurrntEmpTimeZoneDesc)AS DATETIME)))
-					  ELSE NULL END	AS 'DueDate',
+			   (Cast(DBO.ConvertUTCtoLocal(NPH.UpdatedDate,@CurrntEmpTimeZoneDesc)AS DATETIME)) AS 'EntryDate',
+			   
+			   CASE WHEN IIF(TRY_CAST(RRH.DueDate AS DATETIME) IS NULL, 0, 1 ) = 1 
+						THEN RRH.DueDate 
+			   ELSE 
+					CASE WHEN IIF(TRY_CAST(NPH.InvoiceDate AS DATETIME) IS NULL, 0, 1 ) = 1
+						THEN DATEADD(DAY,ISNULL(CTM.NetDays,0),(Cast(DBO.ConvertUTCtoLocal(NPH.InvoiceDate,@CurrntEmpTimeZoneDesc)AS DATETIME)))
+					ELSE NULL END
+			   END AS 'DueDate',
 			    CASE WHEN IIF(TRY_CAST(NPH.InvoiceDate AS DATETIME) IS NULL, 0, 1 ) = 1
 				     THEN CASE WHEN DATEDIFF(DAY, (CAST(NPH.InvoiceDate AS DATETIME) + ISNULL(ctm.NetDays,0)), GETUTCDATE()) <= 0 THEN 0 ELSE DATEDIFF(DAY, (CAST(NPH.InvoiceDate AS DATETIME) + ISNULL(ctm.NetDays,0)), GETUTCDATE()) END
 					 ELSE NULL END	AS 'DaysPastDue',
@@ -1722,10 +1780,15 @@ BEGIN
 			   --0 AS 'PaymentHold',
 			   'NO' AS 'PaymentHold',
 			   (Cast(DBO.ConvertUTCtoLocal(CCPD.ProcessedDate,@CurrntEmpTimeZoneDesc)AS DATETIME)) AS 'InvociedDate',
-			   (Cast(DBO.ConvertUTCtoLocal(VPD.DueDate,@CurrntEmpTimeZoneDesc)AS DATETIME)) AS 'EntryDate',
-			   CASE WHEN IIF(TRY_CAST(CCPD.ProcessedDate AS DATETIME) IS NULL, 0, 1 ) = 1
-				     THEN DATEADD(DAY,ISNULL(CTM.NetDays,0),(Cast(DBO.ConvertUTCtoLocal(CCPD.ProcessedDate,@CurrntEmpTimeZoneDesc)AS DATETIME)))
-					  ELSE NULL END	AS 'DueDate',
+			   (Cast(DBO.ConvertUTCtoLocal(CCPD.UpdatedDate,@CurrntEmpTimeZoneDesc)AS DATETIME)) AS 'EntryDate',
+			   
+			   CASE WHEN IIF(TRY_CAST(VPD.DueDate AS DATETIME) IS NULL, 0, 1 ) = 1 
+						THEN VPD.DueDate 
+			   ELSE
+					CASE WHEN IIF(TRY_CAST(CCPD.ProcessedDate AS DATETIME) IS NULL, 0, 1 ) = 1
+						THEN DATEADD(DAY,ISNULL(CTM.NetDays,0),(Cast(DBO.ConvertUTCtoLocal(CCPD.ProcessedDate,@CurrntEmpTimeZoneDesc)AS DATETIME)))
+					ELSE NULL END
+			   END AS 'DueDate',
 			    CASE WHEN IIF(TRY_CAST(CCPD.ProcessedDate AS DATETIME) IS NULL, 0, 1 ) = 1
 				     THEN CASE WHEN DATEDIFF(DAY, (CAST(CCPD.ProcessedDate AS DATETIME) + ISNULL(ctm.NetDays,0)), GETUTCDATE()) <= 0 THEN 0 ELSE DATEDIFF(DAY, (CAST(CCPD.ProcessedDate AS DATETIME) + ISNULL(ctm.NetDays,0)), GETUTCDATE()) END
 					 ELSE NULL END	AS 'DaysPastDue',
@@ -2309,7 +2372,7 @@ BEGIN
 	  WHERE RRH.MasterCompanyId = @MasterCompanyId 
 				 --AND (RemainingAmount <= 0  OR IsVoidedCheck = 1) 
 					-- AND (RemainingAmount <= 0  OR IsVoidedCheck = 1) 
-		AND (RRH.PaymentMade > 0  OR IsVoidedCheck = 1)
+		AND (RRH.PaymentMade > 0  OR IsVoidedCheck = 1)
 			--AND ISNULL(VRTPD.CreditMemoHeaderId, 0) = 0	
 		 AND ISNULL(VRTPD.IsGenerated,0) = 1
 				-- AND ISNULL(RRH.NonPOInvoiceId, 0) = 0	

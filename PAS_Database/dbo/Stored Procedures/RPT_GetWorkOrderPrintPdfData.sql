@@ -1,4 +1,5 @@
-﻿/*************************************************************  
+﻿
+/*************************************************************  
 ** Author:  <AMIT GHEDIYA>  
 ** Create date: <01/01/2024>  
 ** Description: <Get Work order Release Form Data>  
@@ -21,10 +22,12 @@ EXEC [RPT_GetWorkOrderPrintPdfData]
 ** 10	15/Aug/2025 Vishal Suthar	    Changed the condition to populate current serial number
 ** 11	13/Nov/2025 Rajesh Gami			Added CustReqCertType
 ** 12   23/12/2025  Ayushi Patel		return wty(warranty) based on IsWarranty and IsAccepted field
+** 13	22/JAN/2026 Priyansh Patel      Added CSN and TSN values
+
 EXEC RPT_GetWorkOrderPrintPdfData 9747,9850
 
 **************************************************************/
-CREATE     PROCEDURE [dbo].[RPT_GetWorkOrderPrintPdfData]              
+CREATE      PROCEDURE [dbo].[RPT_GetWorkOrderPrintPdfData]              
 	@WorkorderId BIGINT,              
 	@workOrderPartNoId BIGINT              
 AS              
@@ -95,8 +98,8 @@ BEGIN
 			CASE WHEN WOP.CurrentSerialNumber IS NOT NULL THEN WOP.CurrentSerialNumber ELSE UPPER(sl.SerialNumber) END as SerialNum,
 			CASE WHEN ISNULL(wop.RevisedItemmasterid, 0) > 0 THEN UPPER(imtr.ItemGroup) ELSE  UPPER(imt.ItemGroup) END as 'itemGroup',            
 			UPPER(wop.ACTailNum) as ACTailNum,              
-			'' as TSN,              
-			'' as CSN,    
+			wop.TSN as TSN,              
+			wop.CSN as CSN,    
 			FORMAT(wop.ReceivedDate, 'MM/dd/yyyy') AS Recd_Date,
 			wop.ReceivedDate,
 			woq.CreatedDate as Qte_Date,              

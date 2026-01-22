@@ -120,7 +120,7 @@
     [PurchaseUnitOfMeasureId]             BIGINT          NOT NULL,
     [ObtainFromName]                      VARCHAR (100)   NULL,
     [OwnerName]                           VARCHAR (100)   NULL,
-    [TraceableToName]                     VARCHAR (50)    NULL,
+    [TraceableToName]                     VARCHAR (250)   NULL,
     [Level1]                              VARCHAR (100)   NULL,
     [Level2]                              VARCHAR (100)   NULL,
     [Level3]                              VARCHAR (100)   NULL,
@@ -258,6 +258,8 @@
     CONSTRAINT [FK_StockLine_Warehouse] FOREIGN KEY ([WarehouseId]) REFERENCES [dbo].[Warehouse] ([WarehouseId]),
     CONSTRAINT [FK_StockLine_WorkOrder] FOREIGN KEY ([WorkOrderId]) REFERENCES [dbo].[WorkOrder] ([WorkOrderId])
 );
+
+
 
 
 

@@ -912,6 +912,7 @@ BEGIN
 						  ,RC.[TSN] = TR.[TSN]
 						  ,RC.[CSO] = TR.[CSO]
 						  ,RC.[TSO] = TR.[TSO]
+						  ,RC.RemovalReasonsMemo = TR.RemovalReasonsMemo
 						 FROM [dbo].[ReceivingCustomerWork] RC WITH(NOLOCK) INNER JOIN #tmprReceiveCustomer TR ON RC.[ReceivingCustomerWorkId] = TR.[ReceivingCustomerWorkId]
 					 WHERE RC.[ReceivingCustomerWorkId] = @ReceivingCustomerWorkId;
 

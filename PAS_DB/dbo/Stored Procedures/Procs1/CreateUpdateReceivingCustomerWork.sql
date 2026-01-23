@@ -1,4 +1,5 @@
-﻿
+﻿--DROP PROCEDURE [dbo].[CreateUpdateReceivingCustomerWork]
+
 /*************************************************************           
  ** File:   [CreateUpdateReceivingCustomerWork]        
  ** Author:   Abhishek Jirawla
@@ -18,10 +19,11 @@
     4	 15-MAY-2025   AYUSHI PATEL 		Inserted CustReq Date into table by removing UTCDATE 
 	5	 16-JUL-2025   Moin Bloch   		Added IsBatchStock,BatchNumber Flag for Stockline Batch 
 	6	 20-JAN-2026   Priyansh Patel  		Added CSN, TSN, CSO, TSO fields
+	7	 21-JAN-2026   Vishal Suthar  		Added RemovalReasonsMemo in Update ReceivingCustomerWork table
 
  EXECUTE [USP_GetWorkOrderPartsView] 1
 **************************************************************/ 
-CREATE     PROCEDURE [dbo].[CreateUpdateReceivingCustomerWork]  
+CREATE   PROCEDURE [dbo].[CreateUpdateReceivingCustomerWork]  
 @ReceivingCustomerWorkId [bigint] NULL,
 @MasterCompanyId [int] NULL,
 @IsRepairManagement [bit] NULL,
@@ -912,6 +914,7 @@ BEGIN
 						,RC.[TSN] = TR.[TSN]
 						,RC.[CSO] = TR.[CSO]
 						,RC.[TSO] = TR.[TSO]
+						,RC.RemovalReasonsMemo = TR.RemovalReasonsMemo
 						 FROM [dbo].[ReceivingCustomerWork] RC WITH(NOLOCK) INNER JOIN #tmprReceiveCustomer TR ON RC.[ReceivingCustomerWorkId] = TR.[ReceivingCustomerWorkId]
 					 WHERE RC.[ReceivingCustomerWorkId] = @ReceivingCustomerWorkId;
 

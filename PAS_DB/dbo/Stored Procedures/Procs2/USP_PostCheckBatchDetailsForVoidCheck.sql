@@ -12,17 +12,18 @@
  **************************************************************           
   ** Change History           
  **************************************************************           
- ** PR   Date         Author		Change Description            
- ** --   --------     -------		--------------------------------          
-    1    06/30/2023   Satish Gohil		Created	
-	2    08/09/2023	  Satish Gohil		Modify(Dynamic distribution set and discount taken distribution added)
-	3    22/01/2024	  Moin Bloch		Modify(Added PdfPath Null when IsVoidedCheck Is True)
-	4	 25/10/2024	  Devendra Shekh	Added new fields for [CommonBatchDetails]
-	5	 11/04/2024   Devendra Shekh	Added ReferenceId, ReferenceModule For [CommonBatchDetails]
-	6	 10/01/2025	  AMIT GHEDIYA		Added for AutoPost Batch
-	7	 24/04/2025	  Devendra Shekh	Modify (Added [IsManualText] check for DistributionSetup)
-	8	 02/06/2025	  Abhishek Jirawla  Fixed Name concat read script
-	9	 27/10/2025   AMIT GHEDIYA		update for get glaccount from LE.
+ ** PR   Date         Author				Change Description            
+ ** --   --------     -------				--------------------------------          
+    1    06/30/2023   Satish Gohil			Created	
+	2    08/09/2023	  Satish Gohil			Modify(Dynamic distribution set and discount taken distribution added)
+	3    22/01/2024	  Moin Bloch			Modify(Added PdfPath Null when IsVoidedCheck Is True)
+	4	 25/10/2024	  Devendra Shekh		Added new fields for [CommonBatchDetails]
+	5	 11/04/2024   Devendra Shekh		Added ReferenceId, ReferenceModule For [CommonBatchDetails]
+	6	 10/01/2025	  AMIT GHEDIYA			Added for AutoPost Batch
+	7	 24/04/2025	  Devendra Shekh		Modify (Added [IsManualText] check for DistributionSetup)
+	8	 02/06/2025	  Abhishek Jirawla		Fixed Name concat read script
+	9	 27/10/2025   AMIT GHEDIYA			update for get glaccount from LE.
+	10	 19/01/2026   Divyesh Kathiriya		Update "check" spelling in @ReferenceModule.
      
 **************************************************************/
 
@@ -85,7 +86,7 @@ BEGIN
 		DECLARE @LocalCurrencyCode VARCHAR(20) = '';
 		DECLARE @ForeignCurrencyCode VARCHAR(20) = '';
 		DECLARE @FXRate DECIMAL(9,2) = 1;	--Default Value set to : 1
-		DECLARE @ReferenceModule VARCHAR(100) = 'CHEQUE';
+		DECLARE @ReferenceModule VARCHAR(100) = 'CHECK';
 		DECLARE @IsAutoPost INT = 0;
 		DECLARE @IsBatchGenerated INT = 0;
 		DECLARE @VendorProformaInvoiceId BIGINT = 0,

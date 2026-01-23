@@ -12,21 +12,22 @@
  **************************************************************           
   ** Change History           
  **************************************************************           
- ** PR   Date         Author		Change Description            
- ** --   --------     -------		--------------------------------          
-    1    06/30/2023   Satish Gohil	Created	
-	2    07/06/2023   Satish Gohil  Batch detail table insert value added
-	3    08/09/2023	  Satish Gohil	Modify(Dynamic distribution set and discount taken distribution added)
-	4    08/14/2023   Moin Bloch    Added Check Payment Method to check only check payments
-	5    11/22/2023   Moin Bloch    Modify(Added Accounting MS Entry) 
-	6    04/04/2024   AMIT GHEDIYA	Entry With Details data id.
-	7	 27/09/2024	  AMIT GHEDIYA	Added for AutoPost Batch
-	8	 25/10/2024	  Devendra Shekh	Added new fields for [CommonBatchDetails]
-	9	 11/04/2024   Devendra Shekh    Added ReferenceId, ReferenceModule For [CommonBatchDetails]
-	10	 10/01/2025   AMIT GHEDIYA		Get accounting period based on selection.
-	11	 24/04/2025	  Devendra Shekh	Modify (Added [IsManualText] check for DistributionSetup)
-	12	 02/06/2025	  Abhishek Jirawla  Fixed Name concat read script
-	13	 27/10/2025   AMIT GHEDIYA		update for get glaccount from LE.
+ ** PR   Date         Author				Change Description            
+ ** --   --------     -------				--------------------------------          
+    1    06/30/2023   Satish Gohil			Created	
+	2    07/06/2023   Satish Gohil			Batch detail table insert value added
+	3    08/09/2023	  Satish Gohil			Modify(Dynamic distribution set and discount taken distribution added)
+	4    08/14/2023   Moin Bloch			Added Check Payment Method to check only check payments
+	5    11/22/2023   Moin Bloch			Modify(Added Accounting MS Entry) 
+	6    04/04/2024   AMIT GHEDIYA			Entry With Details data id.
+	7	 27/09/2024	  AMIT GHEDIYA			Added for AutoPost Batch
+	8	 25/10/2024	  Devendra Shekh		Added new fields for [CommonBatchDetails]
+	9	 11/04/2024   Devendra Shekh		Added ReferenceId, ReferenceModule For [CommonBatchDetails]
+	10	 10/01/2025   AMIT GHEDIYA			Get accounting period based on selection.
+	11	 24/04/2025	  Devendra Shekh		Modify (Added [IsManualText] check for DistributionSetup)
+	12	 02/06/2025	  Abhishek Jirawla		Fixed Name concat read script
+	13	 27/10/2025   AMIT GHEDIYA			update for get glaccount from LE.
+	14	 19/01/2026   Divyesh Kathiriya		Update "check" spelling in @ReferenceModule.
 
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_PostCheckBatchDetails]
@@ -91,7 +92,7 @@ BEGIN
 		DECLARE @LocalCurrencyCode VARCHAR(20) = '';
 		DECLARE @ForeignCurrencyCode VARCHAR(20) = '';
 		DECLARE @FXRate DECIMAL(9,2) = 1;	--Default Value set to : 1
-		DECLARE @ReferenceModule VARCHAR(100) = 'CHEQUE';
+		DECLARE @ReferenceModule VARCHAR(100) = 'CHECK';
 		DECLARE @legalEntityId BIGINT = NULL;
 
 		DECLARE @LEGLAccountId BIGINT = 0;

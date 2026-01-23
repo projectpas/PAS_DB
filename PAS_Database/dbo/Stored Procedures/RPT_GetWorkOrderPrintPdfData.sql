@@ -1,5 +1,4 @@
-﻿
-/*************************************************************  
+﻿/*************************************************************  
 ** Author:  <AMIT GHEDIYA>  
 ** Create date: <01/01/2024>  
 ** Description: <Get Work order Release Form Data>  
@@ -22,12 +21,13 @@ EXEC [RPT_GetWorkOrderPrintPdfData]
 ** 10	15/Aug/2025 Vishal Suthar	    Changed the condition to populate current serial number
 ** 11	13/Nov/2025 Rajesh Gami			Added CustReqCertType
 ** 12   23/12/2025  Ayushi Patel		return wty(warranty) based on IsWarranty and IsAccepted field
-** 13	22/JAN/2026 Priyansh Patel      Added CSN and TSN values
+** 13   19/01/2026  Moin Bloch          Updated (Added NamePrinted )
+** 14	22/JAN/2026 Priyansh Patel      Added CSN and TSN values
 
-EXEC RPT_GetWorkOrderPrintPdfData 9747,9850
+EXEC RPT_GetWorkOrderPrintPdfData 4108,3625
 
 **************************************************************/
-CREATE      PROCEDURE [dbo].[RPT_GetWorkOrderPrintPdfData]              
+CREATE PROCEDURE [dbo].[RPT_GetWorkOrderPrintPdfData]              
 	@WorkorderId BIGINT,              
 	@workOrderPartNoId BIGINT              
 AS              
@@ -40,7 +40,8 @@ BEGIN
   -- BEGIN            
 		DECLARE @WorkScopeId AS BIGINT = 0;            
 		DECLARE @ItemMasterId AS BIGINT = 0;            
-		DECLARE @TravelerName AS varchar(250) = '';            
+		DECLARE @TravelerName AS varchar(250) = '';   
+		DECLARE @MasterCompanyId AS INT = 0;    
 		DECLARE @WOFPrintDate AS DATETIME, @MergedBillToAddress AS varchar(max),@MergedShipToAddress AS varchar(max), @MergedShipAddress AS varchar(max);           
 		DECLARE @Address1 NVARCHAR(255),@Address2 NVARCHAR(255),@City NVARCHAR(100),@StateOrProvince NVARCHAR(100),@PostalCode NVARCHAR(20);
 		DECLARE @Country NVARCHAR(100),@PhoneNumber NVARCHAR(50),@PhoneExt NVARCHAR(10),@Email NVARCHAR(255);
@@ -52,7 +53,7 @@ BEGIN
 		DECLARE @SCountry NVARCHAR(100),@SPhoneNumber NVARCHAR(50),@SPhoneExt NVARCHAR(10),@SEmail NVARCHAR(255);
 
    
-		SELECT TOP 1 @ItemMasterId=ItemMasterId,@WorkScopeId=WorkOrderScopeId, @WOFPrintDate = WOFPrintDate FROM dbo.WorkOrderPartNumber WITH(NOLOCK) WHERE ID=@WorkOrderPartNoId            
+		SELECT TOP 1 @ItemMasterId=ItemMasterId,@WorkScopeId=WorkOrderScopeId, @WOFPrintDate = WOFPrintDate,@MasterCompanyId=[MasterCompanyId] FROM dbo.WorkOrderPartNumber WITH(NOLOCK) WHERE ID=@WorkOrderPartNoId            
                  
 		IF(EXISTS (SELECT 1 FROM dbo.Traveler_Setup WITH(NOLOCK) WHERE WorkScopeId = @WorkScopeId and ItemMasterId=ItemMasterId and IsVersionIncrease=0))            
 		BEGIN            
@@ -77,7 +78,13 @@ BEGIN
 			'1' as NoofItem,              
 			UPPER(wo.CreatedBy) as Preparedby,              
 			UPPER(wop.CustomerReference) as ronum,            
-			@WOFPrintDate as DatePrinted,              
+			@WOFPrintDate as DatePrinted,     
+			ISNULL((SELECT CASE WHEN [Is813013aeOr14ae]=1 THEN ISNULL(MAX([PrintedName2]),'')
+            WHEN [Is813013aeOr14ae]=2 THEN ISNULL(MAX([PrintedName]),'')
+			ELSE '' END 
+			FROM [dbo].[Work_ReleaseFrom_8130] WITH(NOLOCK) 
+			WHERE [WorkOrderId] = @WorkorderId AND [workOrderPartNoId]= @workOrderPartNoId AND [MasterCompanyId]=@MasterCompanyId
+			GROUP BY [Is813013aeOr14ae]),'') AS NamePrinted,
 			wo.CreatedDate as workreqDate,      
 			CASE WHEN LEN(wo.notes) > 1370 THEN LEFT(wo.notes,1370) + '...' ELSE wo.notes END AS notes,    
 			p.Description as Priority,              
@@ -99,7 +106,9 @@ BEGIN
 			CASE WHEN ISNULL(wop.RevisedItemmasterid, 0) > 0 THEN UPPER(imtr.ItemGroup) ELSE  UPPER(imt.ItemGroup) END as 'itemGroup',            
 			UPPER(wop.ACTailNum) as ACTailNum,              
 			wop.TSN as TSN,              
-			wop.CSN as CSN,    
+			wop.CSN as CSN,
+			wop.TSO as TSO,              
+			wop.CSO as CSO,
 			FORMAT(wop.ReceivedDate, 'MM/dd/yyyy') AS Recd_Date,
 			wop.ReceivedDate,
 			woq.CreatedDate as Qte_Date,              
@@ -291,5 +300,5 @@ BEGIN
                      , @ErrorLogID                    = @ErrorLogID OUTPUT ;              
               RAISERROR ('Unexpected Error Occured in the database. Please let the support team know of the error number : %d', 16, 1,@ErrorLogID)              
               RETURN(1);              
-  END CATCH              
+  END CATCH              
 END

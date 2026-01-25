@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [USP_GetNonPOInvoiceList]
  ** Author:   Devendra Shekh
  ** Description: This stored procedure is used to Get NOnpoinvoice list
@@ -24,16 +23,13 @@
 	8    07-03-2025     Shrey Chandegara				Modified due to add view in Accouting Integration List's PendingSync(Add @IsUpdated parameter)
     9	 10/04/2025	    Ekta Chandegra	                Convert date using dbo.ConvertUTCtoLocal
 	10   07/01/2025     Sahdev Saliya                   Changed The DataType in Column CreatedDate To Datetime
-	11   21/01/2026     AMIT GHEDIYA                    Added InvoiceDate
+	11   25/01/2026     Hemant Saliya                   Change default Sort order by PK NonPOInvoiceId to show latest records first.
 
 --EXEC [USP_GetNonPOInvoiceList] 3577,3047
 
-exec USP_GetNonPOInvoiceList 
-@PageNumber=1,@PageSize=10,@SortColumn=N'CreatedDate',@SortOrder=-1,@GlobalFilter=N'',@StatusId=1,@HeaderStatusId=1,@ViewType=N'pnview',@VendorName=NULL,@VendorCode=NULL,
-@NonPoInvoiceStatus=NULL,@PaymentTerms=NULL,@CreatedBy=NULL,@CreatedDate='2023-09-13 11:31:09.640',@UpdatedBy=NULL,@UpdatedDate='2023-09-13 11:31:09.640',@IsDeleted=0,@MasterCompanyId=1
-
+exec USP_GetNonPOInvoiceList @PageNumber=1,@PageSize=10,@SortColumn=N'NonPOInvoiceId',@SortOrder=-1,@GlobalFilter=N'',@StatusId=1,@HeaderStatusId=8,@ViewType=N'npoview',@VendorName=NULL,@VendorCode=NULL,@NonPoInvoiceStatus=NULL,@PaymentTerms=NULL,@CreatedBy=NULL,@CreatedDate=NULL,@UpdatedBy=NULL,@UpdatedDate=NULL,@IsDeleted=0,@MasterCompanyId=21,@Amount=NULL,@GLAccount=NULL,@InvoiceNum=NULL,@NPONumber=NULL,@ControlNumber=NULL,@IsUpdated=0,@EmployeeId=249,@InvoiceDate=NULL
 ************************************************************************/
-CREATE   PROCEDURE [dbo].[USP_GetNonPOInvoiceList]
+CREATE PROCEDURE [dbo].[USP_GetNonPOInvoiceList]
 @PageNumber int = NULL,
 @PageSize int = NULL,
 @SortColumn varchar(50)=NULL,
@@ -90,7 +86,7 @@ BEGIN
 		END
 		IF @SortColumn IS NULL
 		BEGIN
-			SET @SortColumn=UPPER('NPONumber')
+			SET @SortColumn=UPPER('NonPOInvoiceId')
 		END 
 		ELSE
 		BEGIN 
@@ -222,6 +218,8 @@ BEGIN
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='InvoiceNum')  THEN InvoiceNum END DESC,
 			CASE WHEN (@SortOrder=1  AND @SortColumn='NPONumber')  THEN NPONumber END ASC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='NPONumber')  THEN NPONumber END DESC,
+			CASE WHEN (@SortOrder=1  AND @SortColumn='NonPOInvoiceId')  THEN NonPOInvoiceId END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='NonPOInvoiceId')  THEN NonPOInvoiceId END DESC,
 			CASE WHEN (@SortOrder=1  AND @SortColumn='CreatedBy')  THEN CreatedBy END ASC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='CreatedBy')  THEN CreatedBy END DESC,
 			CASE WHEN (@SortOrder=1  AND @SortColumn='CreatedDate')  THEN CreatedDate END ASC,
@@ -324,6 +322,8 @@ BEGIN
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='GLAccount')  THEN GLAccount END DESC,
 			CASE WHEN (@SortOrder=1  AND @SortColumn='InvoiceNum')  THEN InvoiceNum END ASC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='InvoiceNum')  THEN InvoiceNum END DESC,
+			CASE WHEN (@SortOrder=1  AND @SortColumn='NonPOInvoiceId')  THEN NonPOInvoiceId END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='NonPOInvoiceId')  THEN NonPOInvoiceId END DESC,
 			CASE WHEN (@SortOrder=1  AND @SortColumn='NPONumber')  THEN NPONumber END ASC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='NPONumber')  THEN NPONumber END DESC,
 			CASE WHEN (@SortOrder=1  AND @SortColumn='CreatedBy')  THEN CreatedBy END ASC,

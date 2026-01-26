@@ -36,6 +36,7 @@
     [IsUpdated]                 BIT           NULL,
     [LastSyncDate]              DATETIME2 (7) NULL,
     [SyncToken]                 VARCHAR (200) NULL,
+    [DueDate]                   DATETIME2 (7) NULL,
     CONSTRAINT [PK_NonPOInvoiceHeaderAudit] PRIMARY KEY CLUSTERED ([NonPOInvoiceHeaderAuditId] ASC)
 );
 

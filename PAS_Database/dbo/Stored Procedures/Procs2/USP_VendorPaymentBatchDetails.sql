@@ -25,6 +25,7 @@
 	9	 24/04/2025	  Devendra Shekh    Modify (Added [IsManualText] check for DistributionSetup)
 	10	 02/06/2025	  Abhishek Jirawla  Fixed Name concat read script
 	11	 27/10/2025   AMIT GHEDIYA		update for get glaccount from LE.
+	12	 26/01/2026   AMIT GHEDIYA		update for get glaccount details.
 	
 	EXEC USP_VendorPaymentBatchDetails 122
 	
@@ -115,7 +116,8 @@ BEGIN
 
 		DECLARE @legalEntityId BIGINT = NULL;
 		DECLARE @LEGLAccountId BIGINT = 0;
-		DECLARE	@LEGlAccountName VARCHAR(200) = NULL;
+		DECLARE	@LEGlAccountName VARCHAR(200) = NULL,
+				@LEGlAccountCode VARCHAR(50) = NULL;
 
 		SELECT @Check = [VendorPaymentMethodId] FROM [VendorPaymentMethod] WITH(NOLOCK) WHERE Description = 'Check'; 
 		SELECT @DomesticWire = [VendorPaymentMethodId] FROM [VendorPaymentMethod] WITH(NOLOCK) WHERE Description = 'Domestic Wire';
@@ -358,7 +360,7 @@ BEGIN
 			 
 						 IF(ISNULL(@LEGLAccountId,0) > 0)
 						 BEGIN
-							  SELECT @LEGlAccountName = [AccountName] FROM [DBO].[GLAccount] WITH(NOLOCK) WHERE [GLAccountId] = @LEGLAccountId;
+							  SELECT @LEGlAccountName = [AccountName],@LEGlAccountCode = [AccountCode] FROM [DBO].[GLAccount] WITH(NOLOCK) WHERE [GLAccountId] = @LEGLAccountId;
 							  SET @ValidDistribution = 1;
 						 END
 					END
@@ -587,14 +589,15 @@ BEGIN
 			 
 						 IF(ISNULL(@LEGLAccountId,0) > 0)
 						 BEGIN
-							  SELECT @LEGlAccountName = [AccountName] FROM [DBO].[GLAccount] WITH(NOLOCK) WHERE [GLAccountId] = @LEGLAccountId;
+							  SELECT @LEGlAccountName = [AccountName],@LEGlAccountCode = [AccountCode] FROM [DBO].[GLAccount] WITH(NOLOCK) WHERE [GLAccountId] = @LEGLAccountId;
 						 END
 					END
 					
 					IF(ISNULL(@GlAccountId,0) = 0)
 					BEGIN
 						  SET @GlAccountId = @LEGLAccountId;
-						  SET @LEGlAccountName = @LEGlAccountName;
+						  SET @GlAccountName = @LEGlAccountName;
+						  SET @GlAccountNumber = @LEGlAccountCode;
 					END
 
 					INSERT INTO [dbo].[CommonBatchDetails]
@@ -709,7 +712,8 @@ BEGIN
 						IF(ISNULL(@GlAccountId,0) = 0)
 						BEGIN
 							  SET @GlAccountId = @LEGLAccountId;
-							  SET @LEGlAccountName = @LEGlAccountName;
+							  SET @GlAccountName = @LEGlAccountName;
+							  SET @GlAccountNumber = @LEGlAccountCode;
 						END
 
 						INSERT INTO [dbo].[CommonBatchDetails]
@@ -821,7 +825,8 @@ BEGIN
 						IF(ISNULL(@GlAccountId,0) = 0)
 						BEGIN
 							  SET @GlAccountId = @LEGLAccountId;
-							  SET @LEGlAccountName = @LEGlAccountName;
+							  SET @GlAccountName = @LEGlAccountName;
+							  SET @GlAccountNumber = @LEGlAccountCode;
 						END
 
 						INSERT INTO [dbo].[CommonBatchDetails]

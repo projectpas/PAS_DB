@@ -4,7 +4,7 @@
     [VendorId]                  BIGINT        NOT NULL,
     [VendorName]                VARCHAR (256) NOT NULL,
     [VendorCode]                VARCHAR (256) NOT NULL,
-    [PaymentTermsId]            BIGINT        NOT NULL,
+    [PaymentTermsId]            BIGINT        NULL,
     [StatusId]                  INT           NOT NULL,
     [ManagementStructureId]     INT           NOT NULL,
     [MasterCompanyId]           INT           NOT NULL,
@@ -36,6 +36,7 @@
     [IsUpdated]                 BIT           NULL,
     [LastSyncDate]              DATETIME2 (7) NULL,
     [SyncToken]                 VARCHAR (200) NULL,
+    [DueDate]                   DATETIME2 (7) NULL,
     CONSTRAINT [PK_NonPOInvoiceHeaderAudit] PRIMARY KEY CLUSTERED ([NonPOInvoiceHeaderAuditId] ASC)
 );
 

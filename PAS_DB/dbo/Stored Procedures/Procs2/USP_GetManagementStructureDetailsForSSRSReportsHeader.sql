@@ -17,7 +17,7 @@
     2    08/29/2024   Devendra Shekh	added new field TimeZoneDateTime
 	3	 10/29/2024	  Bhargav Saliya    Added Merge Address
 	4	 06/11/2025	  Vishal Suthar     Modified parameter data type to varchar from bigint
-
+	5	 27/01/2026	  Rajesh Gami		Get the MasterCompany's CompanyCode instead of LE
  EXECUTE USP_GetManagementStructureDetailsForReportsHeader 49
 **************************************************************/ 
 CREATE    PROCEDURE [dbo].[USP_GetManagementStructureDetailsForSSRSReportsHeader]    
@@ -38,7 +38,7 @@ SET NOCOUNT ON
 
 				SELECT DISTINCT TOP 1
 					CompanyName = Upper(le.CompanyName),
-					le.CompanyCode,
+					MS.MasterCompanyCode CompanyCode,
 					atd.Link,
 					at.ModuleId,
 					Address1 = Upper(ad.Line1),

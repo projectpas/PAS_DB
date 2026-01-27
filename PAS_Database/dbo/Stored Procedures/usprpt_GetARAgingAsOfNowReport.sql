@@ -22,6 +22,7 @@
 	6    11/05/2024		Vishal Suthar		Modified to make use of new SO Part tables
 	7	 07-05-2025		HEMANT SALIYA  		Updated for Customer Ref Data length
 	8	 26-Jun-2025	Rajesh Gami			Modified as per new billing table changes (WO, SO)
+	9	 27-JAN-2026	Rajesh Gami			Added InvoiceNumber
 EXEC usprpt_GetARAgingAsOfNowReport @PageNumber=1,@PageSize=20,@SortColumn=N'InvoiceDate',@SortOrder=-1,@GlobalFilter=N'',@ViewType=N'Details',@AsOfDate='2025-05-05 00:00:00',@CustomerId=NULL,@IsInvoice=1,@IsCredits=1,@IsDeposit=0,@IsUnappliedAmounts=1,@strFilter=N'!!!!!!!!!',@CustomerName=NULL,@CustomerCode=NULL,@CurrencyCode=NULL,@InvoiceNo=NULL,@InvoiceDate=NULL,@DSI=0,@DSO=0,@DSS=0,@DocType=NULL,@CustomerRef=NULL,@Salesperson=NULL,@CreditTerms=NULL,@DueDate=NULL,@FxRateAmount=NULL,@InvoiceAmount=NULL,@BalanceAmount=NULL,@CurrentAmount=NULL,@PaymentAmount=NULL,@Amountlessthan0days=NULL,@Amountlessthan30days=NULL,@Amountlessthan60days=NULL,@Amountlessthan90days=NULL,@Amountlessthan120days=NULL,@Amountmorethan120days=NULL,@level1Str=NULL,@level2Str=NULL,@level3Str=NULL,@level4Str=NULL,@level5Str=NULL,@level6Str=NULL,@level7Str=NULL,@level8Str=NULL,@level9Str=NULL,@level10Str=NULL,@LegalEntityName=NULL,@EmployeeId=180,@MasterCompanyId=20
 **************************************************************/
 CREATE    PROCEDURE [dbo].[usprpt_GetARAgingAsOfNowReport]
@@ -75,7 +76,8 @@ CREATE    PROCEDURE [dbo].[usprpt_GetARAgingAsOfNowReport]
 @level10Str VARCHAR(500) = NULL,
 @LegalEntityName VARCHAR(500) = NULL,
 @EmployeeId BIGINT = NULL,
-@masterCompanyid INT = NULL
+@masterCompanyid INT = NULL,
+@InvoiceNumber VARCHAR(80) = NULL
 AS
 BEGIN
   SET NOCOUNT ON;
@@ -1028,6 +1030,7 @@ BEGIN
 				[CurrencyCode] VARCHAR(50) NULL,
 				[DocType] VARCHAR(50) NULL,
 				[InvoiceNo] VARCHAR(50) NULL,
+				[InvoiceNumber] VARCHAR(80) NULL,
 		        [InvoiceDate] DATETIME2 NULL,
 				[DSI] INT NULL,
 				[DSO] INT NULL,
@@ -1082,7 +1085,7 @@ BEGIN
 			-- WO IONVOICE DETAILS
 
 			INSERT INTO #TEMPInvoiceRecordsDetailsView([BillingInvoicingId],[CustomerId],[CustomerName],[CustomerCode],
-											[CurrencyCode],[DocType],[InvoiceNo],[InvoiceDate],[DSI],[DSO],[DSS],[DueDate],
+											[CurrencyCode],[DocType],[InvoiceNo],InvoiceNumber,[InvoiceDate],[DSI],[DSO],[DSS],[DueDate],
 											[CustomerRef],[Salesperson],[CreditTerms],
 											[BalanceAmount],[CurrentAmount],[PaymentAmount],
 											[Amountlessthan0days],[Amountlessthan30days],[Amountlessthan60days],
@@ -1098,7 +1101,8 @@ BEGIN
 							UPPER(ISNULL(C.[CustomerCode],'')),
 							UPPER(CR.[Code]), 
 							UPPER('AR-INV'),
-							UPPER(WOBI.[InvoiceNo]),     
+							UPPER(WO.WorkOrderNum) InvoiceNo, 
+							UPPER(WOBI.[InvoiceNo]) InvoiceNumber,     
 							WOBI.[InvoiceDate], 
 							DATEDIFF(DAY, WOBI.[InvoiceDate], GETUTCDATE()),  --  'DSI' 
 			                CASE WHEN (DATEDIFF(DAY, WOBI.[InvoiceDate], GETUTCDATE()) - ISNULL(WO.NetDays,0)) > 0 
@@ -1218,7 +1222,7 @@ BEGIN
 			-- SO INVOICE DETAILS
 
 			INSERT INTO #TEMPInvoiceRecordsDetailsView([BillingInvoicingId],[CustomerId],[CustomerName],[CustomerCode],
-											[CurrencyCode],[DocType],[InvoiceNo],[InvoiceDate],[DSI],[DSO],[DSS],[DueDate],
+											[CurrencyCode],[DocType],[InvoiceNo],[InvoiceNumber],[InvoiceDate],[DSI],[DSO],[DSS],[DueDate],
 											[CustomerRef],[Salesperson],[CreditTerms],
 											[BalanceAmount],[CurrentAmount],[PaymentAmount],
 											[Amountlessthan0days],[Amountlessthan30days],[Amountlessthan60days],
@@ -1234,7 +1238,8 @@ BEGIN
                                 UPPER(ISNULL(C.[CustomerCode],'')),  
 								UPPER(CR.[Code]), 
 								UPPER('AR-INV'),
-								UPPER(SOBI.[InvoiceNo]),      
+								UPPER(SO.SalesOrderNumber) InvoiceNo, 
+								UPPER(SOBI.[InvoiceNo]) InvoiceNumber,  
 					            SOBI.[InvoiceDate],   
 								DATEDIFF(DAY, SOBI.[InvoiceDate], GETUTCDATE()), --'DSI',        
 			                    CASE WHEN (DATEDIFF(DAY, SOBI.[InvoiceDate], GETUTCDATE()) - ISNULL(SO.[NetDays],0)) > 0 
@@ -1354,7 +1359,7 @@ BEGIN
 			-- EXCHANGE SO INVOICE DETAILS --
 
 			INSERT INTO #TEMPInvoiceRecordsDetailsView([BillingInvoicingId],[CustomerId],[CustomerName],[CustomerCode],
-														[CurrencyCode],[DocType],[InvoiceNo],[InvoiceDate],[DSI],[DSO],[DSS],[DueDate],
+														[CurrencyCode],[DocType],[InvoiceNo],InvoiceNumber,[InvoiceDate],[DSI],[DSO],[DSS],[DueDate],
 														[CustomerRef],[Salesperson],[CreditTerms],
 														[BalanceAmount],[CurrentAmount],[PaymentAmount],
 														[Amountlessthan0days],[Amountlessthan30days],[Amountlessthan60days],
@@ -1370,6 +1375,7 @@ BEGIN
                                 UPPER(ISNULL(C.[CustomerCode],'')),  
 								UPPER(CR.[Code]), 
 								UPPER('Exchange Invoice'),
+								UPPER(ESO.ExchangeSalesOrderNumber),  
 								UPPER(ESOBI.[InvoiceNo]),  
 								(ESOBI.[InvoiceDate]),
 								DATEDIFF(DAY, ESOBI.[InvoiceDate], GETUTCDATE()),  --  'DSI'                    
@@ -1484,7 +1490,7 @@ BEGIN
 			-- CREDIT MEMO --
 
 			INSERT INTO #TEMPInvoiceRecordsDetailsView([BillingInvoicingId],[CustomerId],[CustomerName],[CustomerCode],
-											[CurrencyCode],[DocType],[InvoiceNo],[InvoiceDate],[DSI],[DSO],[DSS],[DueDate],
+											[CurrencyCode],[DocType],[InvoiceNo],InvoiceNumber,[InvoiceDate],[DSI],[DSO],[DSS],[DueDate],
 											[CustomerRef],[Salesperson],[CreditTerms],
 											[BalanceAmount],[CurrentAmount],[PaymentAmount],
 											[Amountlessthan0days],[Amountlessthan30days],[Amountlessthan60days],
@@ -1501,6 +1507,7 @@ BEGIN
 							UPPER(CR.[Code]),
 							UPPER('Credit-Memo'),
 							UPPER(CM.[CreditMemoNumber]), 
+							'',
 					        CM.[CreatedDate],
 							0,
 							0,
@@ -1571,7 +1578,7 @@ BEGIN
 			-- STAND ALONE CREDIT MEMO --
 				
 			INSERT INTO #TEMPInvoiceRecordsDetailsView([BillingInvoicingId],[CustomerId],[CustomerName],[CustomerCode],
-														[CurrencyCode],[DocType],[InvoiceNo],[InvoiceDate],[DSI],[DSO],[DSS],[DueDate],
+														[CurrencyCode],[DocType],[InvoiceNo],InvoiceNumber,[InvoiceDate],[DSI],[DSO],[DSS],[DueDate],
 														[CustomerRef],[Salesperson],[CreditTerms],
 														[BalanceAmount],[CurrentAmount],[PaymentAmount],
 														[Amountlessthan0days],[Amountlessthan30days],[Amountlessthan60days],
@@ -1588,6 +1595,7 @@ BEGIN
 							UPPER(CR.[Code]),
 							UPPER('Stand Alone Credit Memo'),
 							UPPER(CM.[CreditMemoNumber]), 
+							'',
 					        CM.[InvoiceDate],
 							0,
 							0,
@@ -1658,7 +1666,7 @@ BEGIN
 			-- MANUAL JOURNAL --
 				
 			INSERT INTO #TEMPInvoiceRecordsDetailsView([BillingInvoicingId],[CustomerId],[CustomerName],[CustomerCode],
-														[CurrencyCode],[DocType],[InvoiceNo],[InvoiceDate],[DSI],[DSO],[DSS],[DueDate],
+														[CurrencyCode],[DocType],[InvoiceNo],InvoiceNumber,[InvoiceDate],[DSI],[DSO],[DSS],[DueDate],
 														[CustomerRef],[Salesperson],[CreditTerms],
 														[BalanceAmount],[CurrentAmount],[PaymentAmount],
 														[Amountlessthan0days],[Amountlessthan30days],[Amountlessthan60days],
@@ -1675,6 +1683,7 @@ BEGIN
 						    UPPER(CR.[Code]),
 							UPPER('Manual Journal'),
 							UPPER(MJH.[JournalNumber]), 
+							'',
 							MJH.[PostedDate],
 							0,
 							0,
@@ -1786,7 +1795,7 @@ BEGIN
 			-- SUSPENSE AND UNAPPLIED CASH   --
 
 			INSERT INTO #TEMPInvoiceRecordsDetailsView([BillingInvoicingId],[CustomerId],[CustomerName],[CustomerCode],
-											[CurrencyCode],[DocType],[InvoiceNo],[InvoiceDate],[DSI],[DSO],[DSS],[DueDate],
+											[CurrencyCode],[DocType],[InvoiceNo],InvoiceNumber,[InvoiceDate],[DSI],[DSO],[DSS],[DueDate],
 											[CustomerRef],[Salesperson],[CreditTerms],
 											[BalanceAmount],[CurrentAmount],[PaymentAmount],
 											[Amountlessthan0days],[Amountlessthan30days],[Amountlessthan60days],
@@ -1803,6 +1812,7 @@ BEGIN
 							'', --Currency,
 							UPPER('Suspense and Unapplied Cash'),
 							UPPER(CCP.[SuspenseUnappliedNumber]), 
+							'',
 					        CCP.[ReceiveDate],
 							0,
 							0,
@@ -1865,7 +1875,7 @@ BEGIN
 				AND @IsUnappliedAmounts = 1	
 
    		    SELECT [BillingInvoicingId],[CustomerId],[CustomerName],[CustomerCode],
-				   [CurrencyCode],[DocType],[InvoiceNo],[InvoiceDate],[DSI],[DSO],[DSS],[DueDate],
+				   [CurrencyCode],[DocType],[InvoiceNo],InvoiceNumber,[InvoiceDate],[DSI],[DSO],[DSS],[DueDate],
 				   [CustomerRef],[Salesperson],[CreditTerms],											
 				   ISNULL((InvoiceAmount - ISNULL(InvoicePaidAmount,0)),0) AS [BalanceAmount],											
 				   CASE WHEN IsCreditMemo = 0 THEN ISNULL(([Amountlessthan0days] + ISNULL([Amountlessthan30days],0) + ISNULL([Amountlessthan60days],0) + ISNULL([Amountlessthan90days],0) + ISNULL([Amountlessthan120days],0) + ISNULL([Amountmorethan120days],0) + ISNULL([CreditMemoAmount],0)),0) ELSE CASE WHEN [StatusId] = @ClosedCreditMemoStatus THEN 0 ELSE ISNULL([CreditMemoAmount],0) END END AS [CurrentAmount], 
@@ -1884,6 +1894,7 @@ BEGIN
 				  (ISNULL(@CurrencyCode,'') ='' OR [CurrencyCode] LIKE '%' + @CurrencyCode + '%') AND
 				  (ISNULL(@DocType,'') ='' OR [DocType] LIKE '%' + @DocType + '%') AND
 				  (ISNULL(@InvoiceNo,'') ='' OR [InvoiceNo] LIKE '%' + @InvoiceNo + '%') AND
+				  	  (ISNULL(@InvoiceNumber,'') ='' OR [InvoiceNumber] LIKE '%' + @InvoiceNumber + '%') AND
 				  (ISNULL(@InvoiceDate,'') ='' OR CAST([InvoiceDate] AS DATE) = CAST(@InvoiceDate AS DATE)) AND
 				  (ISNULL(@DSI,0) = 0 OR [DSI] = @DSI) AND				  
 				  (ISNULL(@DSO,0) = 0 OR [DSO] = @DSO) AND	
@@ -2015,7 +2026,9 @@ BEGIN
 			CASE WHEN (@SortOrder=1  AND @SortColumn='LEVEL10') THEN [level10] END ASC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='LEVEL10') THEN [level10] END DESC,
 			CASE WHEN (@SortOrder=1  AND @SortColumn='LegalEntityName') THEN [LegalEntityName] END ASC,
-			CASE WHEN (@SortOrder=-1 AND @SortColumn='LegalEntityName') THEN [LegalEntityName] END DESC
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='LegalEntityName') THEN [LegalEntityName] END DESC,
+			CASE WHEN (@SortOrder=1  AND @SortColumn='InvoiceNumber') THEN InvoiceNumber END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='InvoiceNumber') THEN InvoiceNumber END DESC
 			
 			OFFSET @RecordFrom ROWS FETCH NEXT @PageSize ROWS ONLY
 

@@ -1,4 +1,5 @@
-﻿/*************************************************************                   
+﻿
+/*************************************************************                   
  ** File:  [usprpt_GetAPAgingReport]                   
  ** Author: Rajesh Gami         
  ** Description: Get Data for AP Aging Report        
@@ -24,7 +25,7 @@
 	8    07-NOV-2023    Devendra Shekh     issure for 0 balance data resolved
 	9    09-NOV-2023    Moin Bloch         Modify(Issue Resolved Credit Memo Export Data)
 	10   15-NOV-2023    Moin Bloch         Modify(Added Invoice Paid Amount For Calculaton)
-	 
+	11   27-JAN-2026    RAJESH GAMI        Add InvoiceNumber 
 ***************************************************************************************************/        
 CREATE   PROCEDURE [dbo].[usprpt_GetAPAgingReport]       
 @PageNumber int = 1,      
@@ -260,7 +261,8 @@ BEGIN
                     ISNULL(vpd.OriginalAmount,0) AS 'BalanceAmount',      
                     ISNULL(vpd.RemainingAmount,0)  AS 'CurrentlAmount',      
                     ISNULL(vpd.PaymentMade,0)  AS 'PaymentAmount',      
-                    (rrh.InvoiceNum) AS 'InvoiceNo',      
+                    (rrh.ReceivingReconciliationNumber) AS 'InvoiceNo',      
+					rrh.InvoiceNum as 'invoiceNumber',
                     rrh.InvoiceDate AS InvoiceDate,      
                     ISNULL(ctm.NetDays,0) AS NetDays, 
 					(CASE WHEN DATEDIFF(DAY, CAST(CAST(rrh.InvoiceDate AS DATETIME) + (CASE WHEN ctm.Code = 'COD' THEN -1
@@ -347,7 +349,8 @@ BEGIN
 					ISNULL(VCD.OriginalAmt,0) AS 'BalanceAmount', 
 					ISNULL(VCD.OriginalAmt,0)  AS 'CurrentlAmount',   
 					ISNULL(VCD.OriginalAmt,0)  AS 'PaymentAmount',  
-					(VCM.VendorCreditMemoNumber) AS 'InvoiceNo', 					
+					(VCM.VendorCreditMemoNumber) AS 'InvoiceNo', 		
+					'' as 'invoiceNumber',
 					 VCM.CreatedDate AS InvoiceDate,      
                     ISNULL(CTM.NetDays,0) AS NetDays,  
 					(CASE WHEN DATEDIFF(DAY, CAST(CAST(VCM.CreatedDate AS DATETIME) + (CASE WHEN CTM.Code = 'COD' THEN -1
@@ -433,6 +436,7 @@ BEGIN
 					 0 AS 'CurrentlAmount',      -- need to discuss
 			         0 AS 'PaymentAmount',      
 					 UPPER(MJH.JournalNumber) AS 'InvoiceNo',  
+					 '' as 'invoiceNumber',
 					 MJH.[PostedDate] AS InvoiceDate,      
 			         ISNULL(CTM.NetDays,0) AS NetDays,
 			   (CASE WHEN DATEDIFF(DAY, CAST(CAST(MJH.[PostedDate] AS DATETIME) + (CASE WHEN ctm.Code = 'COD' THEN -1      
@@ -544,6 +548,7 @@ BEGIN
                     ISNULL(vpd.RemainingAmount,0)  AS 'CurrentlAmount',      
                     ISNULL(vpd.PaymentMade,0)  AS 'PaymentAmount',      
                     (NPH.NPONumber) AS 'InvoiceNo',      
+					NPH.InvoiceNumber as 'invoiceNumber',
                     NPH.PostedDate AS InvoiceDate,      
                     ISNULL(ctm.NetDays,0) AS NetDays, 
 					(CASE WHEN DATEDIFF(DAY, CAST(CAST(NPH.PostedDate AS DATETIME) + (CASE WHEN ctm.Code = 'COD' THEN -1
@@ -761,7 +766,8 @@ BEGIN
                     ISNULL(vpd.OriginalAmount,0) AS 'BalanceAmount',      
                     ISNULL(vpd.RemainingAmount,0)  AS 'CurrentlAmount',      
                     ISNULL(vpd.PaymentMade,0)  AS 'PaymentAmount',      
-                    (rrh.InvoiceNum) AS 'InvoiceNo',      
+                    (rrh.ReceivingReconciliationNumber) AS 'InvoiceNo',    
+					rrh.InvoiceNum as 'invoiceNumber',
                     rrh.InvoiceDate AS InvoiceDate,      
                     ISNULL(ctm.NetDays,0) AS NetDays,      						
 					(CASE WHEN DATEDIFF(DAY, CAST(CAST(rrh.InvoiceDate AS DATETIME) + (CASE WHEN ctm.Code = 'COD' THEN -1
@@ -848,7 +854,8 @@ BEGIN
 					ISNULL(VCD.OriginalAmt,0) AS 'BalanceAmount', 
 					ISNULL(VCD.OriginalAmt,0)  AS 'CurrentlAmount',   
 					ISNULL(VCD.OriginalAmt,0)  AS 'PaymentAmount',  
-					(VCM.VendorCreditMemoNumber) AS 'InvoiceNo', 					
+					(VCM.VendorCreditMemoNumber) AS 'InvoiceNo', 	
+					 '' as 'invoiceNumber',
 					 VCM.CreatedDate AS InvoiceDate,      
                     ISNULL(CTM.NetDays,0) AS NetDays,  
 					(CASE WHEN DATEDIFF(DAY, CAST(CAST(VCM.CreatedDate AS DATETIME) + (CASE WHEN CTM.Code = 'COD' THEN -1
@@ -934,6 +941,7 @@ BEGIN
 					 0 AS 'CurrentlAmount',      -- need to discuss
 			         0 AS 'PaymentAmount',      
 					 UPPER(MJH.JournalNumber) AS 'InvoiceNo',  
+					  '' as 'invoiceNumber',
 					 MJH.[PostedDate] AS InvoiceDate,      
 			         ISNULL(CTM.NetDays,0) AS NetDays,
 			   (CASE WHEN DATEDIFF(DAY, CAST(CAST(MJH.[PostedDate] AS DATETIME) + (CASE WHEN ctm.Code = 'COD' THEN -1      
@@ -1044,7 +1052,8 @@ BEGIN
 						ISNULL(vpd.OriginalAmount,0) AS 'BalanceAmount',      
 						ISNULL(vpd.RemainingAmount,0)  AS 'CurrentlAmount',      
 						ISNULL(vpd.PaymentMade,0)  AS 'PaymentAmount',      
-						(NPH.NPONumber) AS 'InvoiceNo',      
+						(NPH.NPONumber) AS 'InvoiceNo',   
+						NPH.InvoiceNumber as 'invoiceNumber',
 						NPH.PostedDate AS InvoiceDate,      
 						ISNULL(ctm.NetDays,0) AS NetDays,      						
 						(CASE WHEN DATEDIFF(DAY, CAST(CAST(NPH.PostedDate AS DATETIME) + (CASE WHEN ctm.Code = 'COD' THEN -1
@@ -1130,7 +1139,8 @@ BEGIN
                    ISNULL(CTE.vendorCode,'') 'vendorCode',
 				   UPPER(CTE.currencyCode) AS  'currencyCode',   
    		   		   CASE WHEN CTE.IsCreditMemo = 0 THEN (ISNULL(CTE.InvoiceAmount,0) - ISNULL(CTE.InvoicePaidAmount,0)) ELSE ISNULL(CTE.CreditMemoAmount,0) END AS 'BalanceAmount', 
-				   UPPER(CTE.InvoiceNo) AS 'InvoiceNo',      
+				   UPPER(CTE.InvoiceNo) AS 'InvoiceNo', 
+				   UPPER(ISNULL(CTE.invoiceNumber,'')) as invoiceNumber,
 				   CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(CTE.InvoiceDate, 'MM/dd/yyyy') ELSE CONVERT(VARCHAR(50), CTE.InvoiceDate, 107) END 'InvoiceDate',       				  				   
 				   CASE WHEN CTE.IsCreditMemo = 0 THEN ISNULL(CASE WHEN CTE.Amountpaidbylessthen0days > 0 THEN CTE.Amountpaidbylessthen0days ELSE CTE.Amountpaidbylessthen0days END,0) ELSE ISNULL(CASE WHEN CTE.Amountpaidbylessthen0days > 0 THEN ISNULL(CTE.CreditMemoAmount,0) ELSE (CTE.Amountpaidbylessthen0days) END,0) END AS 'Amountpaidbylessthen0days',   							
 				  
@@ -1188,6 +1198,7 @@ BEGIN
 		         vendorName, 
 		         vendorCode, 
 				 InvoiceNo,
+				 invoiceNumber,
 				 InvoiceDate,
 				 InvoiceAmount,
 				 BalanceAmount,				
@@ -1220,6 +1231,7 @@ BEGIN
 		         vendorName, 
 		         vendorCode, 
 				 InvoiceNo,
+				 invoiceNumber,
 				 InvoiceDate,
    	             FORMAT(ISNULL(InvoiceAmount,0), 'N', 'en-us') AS 'InvoiceAmount',
 	             FORMAT(ISNULL(BalanceAmount,0), 'N', 'en-us') AS 'BalanceAmount',	

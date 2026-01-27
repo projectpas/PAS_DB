@@ -1,4 +1,5 @@
-﻿/*************************************************************                   
+﻿
+/*************************************************************                   
  ** File:  [usprpt_GetAPAgingReport_SSRS]                   
  ** Author: Rajesh Gami         
  ** Description: Get Data for AP Aging Report        
@@ -16,9 +17,10 @@
  ** --   --------         -------          --------------------------------                  
     1    15 APR 2024    Rajesh Gami		   Created  
 	2    03 OCT 2025    Rajesh Gami		   Fixed the Remaining Amount related issue
-  --[dbo].[usprpt_GetAPAgingReport_SSRS] 1,'2024-04-24',3654,1,null,null
+	3    27-JAN-2026    RAJESH GAMI        Add InvoiceNumber
+  --[dbo].[usprpt_GetAPAgingReport_SSRS] 1,'2026-01-27',3654,2,null,null
 ***************************************************************************************************/        
-create       PROCEDURE [dbo].[usprpt_GetAPAgingReport_SSRS]       
+CREATE       PROCEDURE [dbo].[usprpt_GetAPAgingReport_SSRS]       
 @mastercompanyid INT,
 @id DATETIME2,
 @id2 VARCHAR(100) = null,
@@ -217,7 +219,7 @@ BEGIN
 	--	Receiving Reconciliation  --
 		SELECT * INTO #tempReceivingReconciliation FROM 
 		(SELECT DISTINCT (V.VendorId) AS VendorId, ISNULL(V.[VendorName],'') 'vendorName' ,  ISNULL(V.VendorCode,'') 'vendorCode' ,  (rrh.CurrencyName) AS  'currencyCode', ISNULL(vpd.OriginalAmount,0) AS 'BalanceAmount',      
-                    ISNULL(vpd.RemainingAmount,0)  AS 'CurrentlAmount',  ISNULL(vpd.PaymentMade,0)  AS 'PaymentAmount', (rrh.InvoiceNum) AS 'InvoiceNo',  rrh.InvoiceDate AS InvoiceDate,ISNULL(ctm.NetDays,0) AS NetDays, 
+                    ISNULL(vpd.RemainingAmount,0)  AS 'CurrentlAmount',  ISNULL(vpd.PaymentMade,0)  AS 'PaymentAmount', (rrh.ReceivingReconciliationNumber) AS 'InvoiceNo',rrh.InvoiceNum as 'invoiceNumber',  rrh.InvoiceDate AS InvoiceDate,ISNULL(ctm.NetDays,0) AS NetDays, 
 					(CASE WHEN DATEDIFF(DAY, CAST(rrh.InvoiceDate AS DATETIME) + (CASE WHEN ctm.Code = 'COD' THEN -1
 																	WHEN ctm.Code='CIA' THEN -1
 																	WHEN ctm.Code='CreditCard' THEN -1
@@ -277,7 +279,7 @@ BEGIN
 	-- Credit Memo --
 		SELECT * INTO #tempCreditMemo FROM 
 		 (SELECT DISTINCT (VCM.[VendorId]) AS VendorId,ISNULL(VEN.[VendorName],'') 'vendorName' ,  ISNULL(VEN.[VendorCode],'') 'vendorCode' ,(CR.[Code]) AS  'currencyCode',   
-					ISNULL(VCD.ApplierdAmt,0) AS 'BalanceAmount',ISNULL(VCD.ApplierdAmt,0)  AS 'CurrentlAmount',ISNULL(VCD.ApplierdAmt,0)  AS 'PaymentAmount',(VCM.VendorCreditMemoNumber) AS 'InvoiceNo', 					
+					ISNULL(VCD.ApplierdAmt,0) AS 'BalanceAmount',ISNULL(VCD.ApplierdAmt,0)  AS 'CurrentlAmount',ISNULL(VCD.ApplierdAmt,0)  AS 'PaymentAmount',(VCM.VendorCreditMemoNumber) AS 'InvoiceNo','' as 'invoiceNumber', 					
 					 VCM.CreatedDate AS InvoiceDate,ISNULL(CTM.NetDays,0) AS NetDays,  
 					(CASE WHEN DATEDIFF(DAY, CAST(VCM.CreatedDate AS DATETIME) + (CASE WHEN CTM.Code = 'COD' THEN -1
 																	WHEN CTM.Code='CIA' THEN -1
@@ -337,7 +339,7 @@ BEGIN
 			(SELECT DISTINCT (MJD.ReferenceId) AS VendorId, ISNULL(V.[VendorName],'') 'vendorName' ,ISNULL(V.VendorCode,'') 'vendorCode' , (CR.Code) AS  'currencyCode',  
 					 0 AS 'BalanceAmount',       -- need to discuss
 					 0 AS 'CurrentlAmount',      -- need to discuss
-			         0 AS 'PaymentAmount', UPPER(MJH.JournalNumber) AS 'InvoiceNo', MJH.[PostedDate] AS InvoiceDate, ISNULL(CTM.NetDays,0) AS NetDays,
+			         0 AS 'PaymentAmount', UPPER(MJH.JournalNumber) AS 'InvoiceNo','' as 'invoiceNumber', MJH.[PostedDate] AS InvoiceDate, ISNULL(CTM.NetDays,0) AS NetDays,
 			   (CASE WHEN DATEDIFF(DAY, CAST(MJH.[PostedDate] AS DATETIME) + (CASE WHEN ctm.Code = 'COD' THEN -1      
 					 WHEN ctm.Code='CIA' THEN -1      
 					 WHEN ctm.Code='CreditCard' THEN -1      
@@ -424,7 +426,7 @@ BEGIN
 	--	NonPO Details  --
 		SELECT * INTO #tempNonPODetails FROM 
 		(SELECT DISTINCT (V.VendorId) AS VendorId, ISNULL(V.[VendorName],'') 'vendorName' , ISNULL(V.VendorCode,'') 'vendorCode' ,(CR.Code) AS  'currencyCode',ISNULL(vpd.RemainingAmount,0) AS 'BalanceAmount',      
-                    ISNULL(vpd.RemainingAmount,0)  AS 'CurrentlAmount',ISNULL(vpd.PaymentMade,0)  AS 'PaymentAmount', (NPH.NPONumber) AS 'InvoiceNo',  NPH.PostedDate AS InvoiceDate, ISNULL(ctm.NetDays,0) AS NetDays, 
+                    ISNULL(vpd.RemainingAmount,0)  AS 'CurrentlAmount',ISNULL(vpd.PaymentMade,0)  AS 'PaymentAmount', (NPH.NPONumber) AS 'InvoiceNo',NPH.InvoiceNumber as 'invoiceNumber',  NPH.PostedDate AS InvoiceDate, ISNULL(ctm.NetDays,0) AS NetDays, 
 					(CASE WHEN DATEDIFF(DAY, CAST(NPH.PostedDate AS DATETIME) + (CASE WHEN ctm.Code = 'COD' THEN -1
 																	WHEN ctm.Code='CIA' THEN -1
 																	WHEN ctm.Code='CreditCard' THEN -1
@@ -609,11 +611,12 @@ BEGIN
 	END
 	ELSE
 	BEGIN
+		print '222'
 		--	Receiving Reconciliation  --
 		SELECT * INTO #tempReceivingReconciliationElse FROM 
 		(SELECT DISTINCT (V.VendorId) AS VendorId,  ISNULL(V.[VendorName],'') 'vendorName' , ISNULL(V.VendorCode,'') 'vendorCode' , (rrh.CurrencyName) AS  'currencyCode',      
                     ISNULL(vpd.OriginalAmount,0) AS 'BalanceAmount',  ISNULL(vpd.RemainingAmount,0)  AS 'CurrentlAmount',  ISNULL(vpd.PaymentMade,0)  AS 'PaymentAmount',      
-                    (rrh.InvoiceNum) AS 'InvoiceNo', rrh.InvoiceDate AS InvoiceDate, ISNULL(ctm.NetDays,0) AS NetDays,      						
+                    (rrh.ReceivingReconciliationNumber) AS 'InvoiceNo',rrh.InvoiceNum as 'invoiceNumber', rrh.InvoiceDate AS InvoiceDate, ISNULL(ctm.NetDays,0) AS NetDays,      						
 					(CASE WHEN DATEDIFF(DAY, CAST(CAST(rrh.InvoiceDate AS DATETIME) + (CASE WHEN ctm.Code = 'COD' THEN -1
 																	WHEN ctm.Code='CIA' THEN -1
 																	WHEN ctm.Code='CreditCard' THEN -1
@@ -674,7 +677,7 @@ BEGIN
 		(SELECT DISTINCT (VCM.[VendorId]) AS VendorId,
 					ISNULL(VEN.[VendorName],'') 'vendorName' , ISNULL(VEN.[VendorCode],'') 'vendorCode' ,(CR.[Code]) AS  'currencyCode',   
 					ISNULL(VCD.ApplierdAmt,0) AS 'BalanceAmount', ISNULL(VCD.ApplierdAmt,0)  AS 'CurrentlAmount',ISNULL(VCD.ApplierdAmt,0)  AS 'PaymentAmount',  
-					(VCM.VendorCreditMemoNumber) AS 'InvoiceNo', VCM.CreatedDate AS InvoiceDate,ISNULL(CTM.NetDays,0) AS NetDays,  
+					(VCM.VendorCreditMemoNumber) AS 'InvoiceNo','' as 'invoiceNumber', VCM.CreatedDate AS InvoiceDate,ISNULL(CTM.NetDays,0) AS NetDays,  
 					(CASE WHEN DATEDIFF(DAY, CAST(CAST(VCM.CreatedDate AS DATETIME) + (CASE WHEN CTM.Code = 'COD' THEN -1
 																	WHEN CTM.Code='CIA' THEN -1
 																	WHEN CTM.Code='CreditCard' THEN -1
@@ -733,7 +736,7 @@ BEGIN
 		(SELECT DISTINCT (MJD.ReferenceId) AS VendorId, ISNULL(V.[VendorName],'') 'vendorName' , ISNULL(V.VendorCode,'') 'vendorCode' ,   (CR.Code) AS  'currencyCode',  
 					 0 AS 'BalanceAmount',       -- need to discuss
 					 0 AS 'CurrentlAmount',      -- need to discuss
-			         0 AS 'PaymentAmount', UPPER(MJH.JournalNumber) AS 'InvoiceNo', MJH.[PostedDate] AS InvoiceDate,      
+			         0 AS 'PaymentAmount', UPPER(MJH.JournalNumber) AS 'InvoiceNo','' as 'invoiceNumber', MJH.[PostedDate] AS InvoiceDate,      
 			         ISNULL(CTM.NetDays,0) AS NetDays,
 			   (CASE WHEN DATEDIFF(DAY, CAST(CAST(MJH.[PostedDate] AS DATETIME) + (CASE WHEN ctm.Code = 'COD' THEN -1      
 					 WHEN ctm.Code='CIA' THEN -1      
@@ -813,7 +816,7 @@ BEGIN
 		SELECT * INTO #tempNonPODetailsElse FROM 
 		(SELECT DISTINCT (V.VendorId) AS VendorId,ISNULL(V.[VendorName],'') 'vendorName' , ISNULL(V.VendorCode,'') 'vendorCode' ,      
 						(CR.Code) AS  'currencyCode',  ISNULL(vpd.RemainingAmount,0) AS 'BalanceAmount',ISNULL(vpd.RemainingAmount,0)  AS 'CurrentlAmount',      
-						ISNULL(vpd.PaymentMade,0)  AS 'PaymentAmount',(NPH.NPONumber) AS 'InvoiceNo', NPH.PostedDate AS InvoiceDate,ISNULL(ctm.NetDays,0) AS NetDays,      						
+						ISNULL(vpd.PaymentMade,0)  AS 'PaymentAmount',(NPH.NPONumber) AS 'InvoiceNo',NPH.InvoiceNumber as 'invoiceNumber', NPH.PostedDate AS InvoiceDate,ISNULL(ctm.NetDays,0) AS NetDays,      						
 						(CASE WHEN DATEDIFF(DAY, CAST(CAST(NPH.PostedDate AS DATETIME) + (CASE WHEN ctm.Code = 'COD' THEN -1
 																		WHEN ctm.Code='CIA' THEN -1
 																		WHEN ctm.Code='CreditCard' THEN -1
@@ -879,7 +882,8 @@ BEGIN
 			SELECT DISTINCT      
 			       (CTE.VendorId) AS VendorId ,UPPER(ISNULL(CTE.vendorName,'')) 'vendorName',UPPER(ISNULL(CTE.vendorCode,'')) 'vendorCode', UPPER(CTE.currencyCode) AS  'currencyCode',   
    		   		   CASE WHEN CTE.IsCreditMemo = 0 THEN (ISNULL(CTE.InvoiceAmount,0) - ISNULL(CTE.InvoicePaidAmount,0)) ELSE ISNULL(CTE.CreditMemoAmount,0) END AS 'BalanceAmount', 
-				   UPPER(CTE.InvoiceNo) AS 'InvoiceNo',      
+				   UPPER(CTE.InvoiceNo) AS 'InvoiceNo',  
+				   UPPER(ISNULL(CTE.invoiceNumber,'')) as invoiceNumber,
 				   CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(CTE.InvoiceDate, 'MM/dd/yyyy') ELSE CONVERT(VARCHAR(50), CTE.InvoiceDate, 107) END 'InvoiceDate',       				  				   
 				   CASE WHEN CTE.IsCreditMemo = 0 THEN ISNULL(CASE WHEN CTE.Amountpaidbylessthen0days > 0 THEN CTE.Amountpaidbylessthen0days ELSE CTE.Amountpaidbylessthen0days END,0) ELSE ISNULL(CASE WHEN CTE.Amountpaidbylessthen0days > 0 THEN ISNULL(CTE.CreditMemoAmount,0) ELSE (CTE.Amountpaidbylessthen0days) END,0) END AS 'Amountpaidbylessthen0days',   							
 				   CASE WHEN CTE.IsCreditMemo = 0 THEN ISNULL(CASE WHEN CTE.Amountpaidby30days > 0 THEN CTE.Amountpaidby30days ELSE (CTE.Amountpaidby30days) END,0) ELSE ISNULL(CASE WHEN CTE.Amountpaidby30days > 0 THEN ISNULL(CTE.CreditMemoAmount,0) ELSE (CTE.Amountpaidby30days) END,0) END AS 'Amountpaidby30days',   							
@@ -922,6 +926,7 @@ BEGIN
 		         UPPER(vendorName) vendorName, 
 		         UPPER(vendorCode) vendorCode, 
 				 UPPER(InvoiceNo) InvoiceNo,
+				 UPPER(invoiceNumber) invoiceNumber,
 				 InvoiceDate,
 				 InvoiceAmount,
 				 BalanceAmount,				
@@ -953,6 +958,7 @@ BEGIN
 		         vendorName, 
 		         vendorCode, 
 				 InvoiceNo,
+				 invoiceNumber,
 				 InvoiceDate,
    	             FORMAT(ISNULL(InvoiceAmount,0), 'N', 'en-us') AS 'InvoiceAmount',
 	             FORMAT(ISNULL(BalanceAmount,0), 'N', 'en-us') AS 'BalanceAmount',	

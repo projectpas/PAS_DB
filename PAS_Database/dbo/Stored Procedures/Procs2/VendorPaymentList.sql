@@ -47,7 +47,7 @@
 	31   10-04-2025   AMIT GHEDIYA		Get le from perticular module
 	32	 11-04-2025	  Ekta Chandegra	Convert date using dbo.ConvertUTCtoLocal
 	33   15-01-2026   AMIT GHEDIYA		Update condition for get LE (LegalEntityId) Before ManagementStructureLevel ID
-
+	34   26-01-2025   RAJESH GAMI     Get payment method for PaidinFull
  --EXEC VendorPaymentList 10,1,'ReceivingReconciliationId',1,'','',0,0,0,'ALL','',NULL,NULL,1,73   
 **************************************************************/
 CREATE    PROCEDURE [dbo].[VendorPaymentList]  
@@ -2328,7 +2328,7 @@ BEGIN
 		CASE WHEN ISNULL(VN.IsVendorOnHold, 0) = 1 THEN 'YES' ELSE 'NO' END AS 'PaymentHold',
 		(Cast(DBO.ConvertUTCtoLocal(CheckDate,@CurrntEmpTimeZoneDesc)AS DATETIME)) AS 'InvociedDate',
 		(Cast(DBO.ConvertUTCtoLocal(CheckDate,@CurrntEmpTimeZoneDesc)AS DATETIME)) AS 'EntryDate',		
-		'' AS 'PaymentMethod',
+		pm.Description AS 'PaymentMethod',
 		CASE WHEN VRTPD.IsVoidedCheck = 1 THEN VRTPD.CheckNumber + ' (V)' ELSE VRTPD.CheckNumber END AS 'PaymentRef',
 		'' AS 'DateProcessed',
 		'' AS 'CheckCrashed',
@@ -2367,11 +2367,12 @@ BEGIN
 		 LEFT JOIN [dbo].[InternationalWirePayment] IWPL WITH(NOLOCK) ON IWPL.InternationalWirePaymentId = VIWP.InternationalWirePaymentId
 		 LEFT JOIN [dbo].[Address] addr WITH(NOLOCK) ON addr.AddressId = lebl.AddressId
 		 LEFT JOIN [dbo].[LegalEntity] le WITH(NOLOCK) ON le.LegalEntityId = VRTPDH.LegalEntityId
+		 LEFT JOIN dbo.PaymentMethod pm WITH(NOLOCK) ON VRTPD.PaymentMethodId = pm.PaymentMethodId
 		 OUTER APPLY (SELECT TOP 1 SS.CreatedDate FROM [VendorReadyToPayDetails] SS WITH(NOLOCK) WHERE VRTPD.ReadyToPayId =  SS.ReadyToPayId AND VRTPD.VendorPaymentDetailsId = SS.VendorPaymentDetailsId AND  VRTPD.VendorId = SS.VendorId AND  VRTPD.PaymentMethodId = SS.PaymentMethodId) AS SRT
 	  WHERE RRH.MasterCompanyId = @MasterCompanyId 
 				 --AND (RemainingAmount <= 0  OR IsVoidedCheck = 1) 
 					-- AND (RemainingAmount <= 0  OR IsVoidedCheck = 1) 
-		AND (RRH.PaymentMade > 0  OR IsVoidedCheck = 1)
+		AND (RRH.PaymentMade > 0  OR IsVoidedCheck = 1)
 			--AND ISNULL(VRTPD.CreditMemoHeaderId, 0) = 0	
 		 AND ISNULL(VRTPD.IsGenerated,0) = 1
 				-- AND ISNULL(RRH.NonPOInvoiceId, 0) = 0	
@@ -2381,7 +2382,7 @@ BEGIN
 		 GROUP BY VRTPD.CheckNumber,lebl.BankName,lebl.BankAccountNumber,DWPL.AccountNumber,
 		          IWPL.BeneficiaryBankAccount, VRTPDH.ReadyToPayId,VRTPD.AmountDue,VN.IsVendorOnHold,
 		          CheckDate,VN.VendorName,IsVoidedCheck,VRTPD.VendorId,VRTPD.PaymentMethodId,SRT.CreatedDate,
-				  DWPL.BankName,IWPL.BeneficiaryBank,VRTPD.ReadyToPayDetailsId,VRTPD.ControlNumber, le.[Name],RRH.[LastMSLevel]
+				  DWPL.BankName,IWPL.BeneficiaryBank,VRTPD.ReadyToPayDetailsId,VRTPD.ControlNumber, le.[Name],RRH.[LastMSLevel],pm.Description
 
 		-- UNION ALL
 		--VendorPayment -CreditMemo DETAILS

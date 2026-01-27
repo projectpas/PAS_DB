@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿
+/*************************************************************           
  ** File:   [usprpt_GetARAgingAsOfNowReport_SSRS]           
  ** Author:   Moin Bloch 
  ** Description: Get Data for AR Agging Report For SSRS
@@ -18,6 +19,7 @@
 	2    09-05-2024		Moin Bloch 		    Modified Added SUSPENSE AND UNAPPLIED CASH
     3    11/05/2024		Vishal Suthar		Modified to make use of new SO Part tables 
 	4    07-07-2025     Moin Bloch          Changed Old To New Billing Table
+	5	 27-JAN-2026	Rajesh Gami			Added InvoiceNumber
 EXEC usprpt_GetARAgingAsOfNowReport_SSRS 
 **************************************************************/
 CREATE      PROCEDURE [dbo].[usprpt_GetARAgingAsOfNowReport_SSRS]
@@ -81,6 +83,7 @@ BEGIN
     @CustomerCode VARCHAR(50) = NULL,
     @CurrencyCode VARCHAR(50) = NULL,
     @InvoiceNo VARCHAR(50) = NULL,
+	@InvoiceNumber VARCHAR(50) = NULL,
     @InvoiceDate DATETIME = NULL,
     @DSI INT = NULL,
     @DSO INT = NULL,
@@ -1036,6 +1039,7 @@ BEGIN
 				[CurrencyCode] VARCHAR(50) NULL,
 				[DocType] VARCHAR(50) NULL,
 				[InvoiceNo] VARCHAR(50) NULL,
+				[InvoiceNumber] VARCHAR(50) NULL,
 		        [InvoiceDate] DATETIME2 NULL,
 				[DSI] INT NULL,
 				[DSO] INT NULL,
@@ -1089,7 +1093,7 @@ BEGIN
 			-- WO IONVOICE DETAILS
 
 			INSERT INTO #TEMPInvoiceRecordsDetailsViewSSRS([BillingInvoicingId],[CustomerId],[CustomerName],[CustomerCode],
-											[CurrencyCode],[DocType],[InvoiceNo],[InvoiceDate],[DSI],[DSO],[DSS],[DueDate],
+											[CurrencyCode],[DocType],[InvoiceNo],InvoiceNumber,[InvoiceDate],[DSI],[DSO],[DSS],[DueDate],
 											[CustomerRef],[Salesperson],[CreditTerms],
 											[BalanceAmount],[CurrentAmount],[PaymentAmount],
 											[Amountlessthan0days],[Amountlessthan30days],[Amountlessthan60days],
@@ -1105,6 +1109,7 @@ BEGIN
 							UPPER(ISNULL(C.[CustomerCode],'')),
 							UPPER(CR.[Code]), 
 							UPPER('AR-INV'),
+							UPPER(WO.WorkOrderNum), 
 							UPPER(WOBI.[InvoiceNo]),     
 							WOBI.[InvoiceDate], 
 							DATEDIFF(DAY, WOBI.[InvoiceDate], GETUTCDATE()),  --  'DSI' 
@@ -1223,7 +1228,7 @@ BEGIN
 			-- SO INVOICE DETAILS
 
 			INSERT INTO #TEMPInvoiceRecordsDetailsViewSSRS([BillingInvoicingId],[CustomerId],[CustomerName],[CustomerCode],
-											[CurrencyCode],[DocType],[InvoiceNo],[InvoiceDate],[DSI],[DSO],[DSS],[DueDate],
+											[CurrencyCode],[DocType],[InvoiceNo],InvoiceNumber,[InvoiceDate],[DSI],[DSO],[DSS],[DueDate],
 											[CustomerRef],[Salesperson],[CreditTerms],
 											[BalanceAmount],[CurrentAmount],[PaymentAmount],
 											[Amountlessthan0days],[Amountlessthan30days],[Amountlessthan60days],
@@ -1239,6 +1244,7 @@ BEGIN
                                 UPPER(ISNULL(C.[CustomerCode],'')),  
 								UPPER(CR.[Code]), 
 								UPPER('AR-INV'),
+								UPPER(SO.SalesOrderNumber), 
 								UPPER(SOBI.[InvoiceNo]),      
 					            SOBI.[InvoiceDate],   
 								DATEDIFF(DAY, SOBI.[InvoiceDate], GETUTCDATE()), --'DSI',        
@@ -1357,7 +1363,7 @@ BEGIN
 			-- EXCHANGE SO INVOICE DETAILS --
 
 			INSERT INTO #TEMPInvoiceRecordsDetailsViewSSRS([BillingInvoicingId],[CustomerId],[CustomerName],[CustomerCode],
-														[CurrencyCode],[DocType],[InvoiceNo],[InvoiceDate],[DSI],[DSO],[DSS],[DueDate],
+														[CurrencyCode],[DocType],[InvoiceNo],InvoiceNumber,[InvoiceDate],[DSI],[DSO],[DSS],[DueDate],
 														[CustomerRef],[Salesperson],[CreditTerms],
 														[BalanceAmount],[CurrentAmount],[PaymentAmount],
 														[Amountlessthan0days],[Amountlessthan30days],[Amountlessthan60days],
@@ -1373,6 +1379,7 @@ BEGIN
                                 UPPER(ISNULL(C.[CustomerCode],'')),  
 								UPPER(CR.[Code]), 
 								UPPER('Exchange Invoice'),
+								UPPER(ESO.ExchangeSalesOrderNumber),  
 								UPPER(ESOBI.[InvoiceNo]),  
 								(ESOBI.[InvoiceDate]),
 								DATEDIFF(DAY, ESOBI.[InvoiceDate], GETUTCDATE()),  --  'DSI'                    
@@ -1486,7 +1493,7 @@ BEGIN
 			-- CREDIT MEMO --
 
 			INSERT INTO #TEMPInvoiceRecordsDetailsViewSSRS([BillingInvoicingId],[CustomerId],[CustomerName],[CustomerCode],
-											[CurrencyCode],[DocType],[InvoiceNo],[InvoiceDate],[DSI],[DSO],[DSS],[DueDate],
+											[CurrencyCode],[DocType],[InvoiceNo],InvoiceNumber,[InvoiceDate],[DSI],[DSO],[DSS],[DueDate],
 											[CustomerRef],[Salesperson],[CreditTerms],
 											[BalanceAmount],[CurrentAmount],[PaymentAmount],
 											[Amountlessthan0days],[Amountlessthan30days],[Amountlessthan60days],
@@ -1503,6 +1510,7 @@ BEGIN
 							UPPER(CR.[Code]),
 							UPPER('Credit-Memo'),
 							UPPER(CM.[CreditMemoNumber]), 
+							'',
 					        CM.[CreatedDate],
 							0,
 							0,
@@ -1572,7 +1580,7 @@ BEGIN
 			-- STAND ALONE CREDIT MEMO --
 				
 			INSERT INTO #TEMPInvoiceRecordsDetailsViewSSRS([BillingInvoicingId],[CustomerId],[CustomerName],[CustomerCode],
-														[CurrencyCode],[DocType],[InvoiceNo],[InvoiceDate],[DSI],[DSO],[DSS],[DueDate],
+														[CurrencyCode],[DocType],[InvoiceNo],InvoiceNumber,[InvoiceDate],[DSI],[DSO],[DSS],[DueDate],
 														[CustomerRef],[Salesperson],[CreditTerms],
 														[BalanceAmount],[CurrentAmount],[PaymentAmount],
 														[Amountlessthan0days],[Amountlessthan30days],[Amountlessthan60days],
@@ -1589,6 +1597,7 @@ BEGIN
 							UPPER(CR.[Code]),
 							UPPER('Stand Alone Credit Memo'),
 							UPPER(CM.[CreditMemoNumber]), 
+							'',
 					        CM.[InvoiceDate],
 							0,
 							0,
@@ -1658,7 +1667,7 @@ BEGIN
 			-- MANUAL JOURNAL --
 				
 			INSERT INTO #TEMPInvoiceRecordsDetailsViewSSRS([BillingInvoicingId],[CustomerId],[CustomerName],[CustomerCode],
-														[CurrencyCode],[DocType],[InvoiceNo],[InvoiceDate],[DSI],[DSO],[DSS],[DueDate],
+														[CurrencyCode],[DocType],[InvoiceNo],InvoiceNumber,[InvoiceDate],[DSI],[DSO],[DSS],[DueDate],
 														[CustomerRef],[Salesperson],[CreditTerms],
 														[BalanceAmount],[CurrentAmount],[PaymentAmount],
 														[Amountlessthan0days],[Amountlessthan30days],[Amountlessthan60days],
@@ -1675,6 +1684,7 @@ BEGIN
 						    UPPER(CR.[Code]),
 							UPPER('Manual Journal'),
 							UPPER(MJH.[JournalNumber]), 
+							'',
 							MJH.[PostedDate],
 							0,
 							0,
@@ -1785,7 +1795,7 @@ BEGIN
 		    -- SUSPENSE AND UNAPPLIED CASH   --
 
 			INSERT INTO #TEMPInvoiceRecordsDetailsViewSSRS([BillingInvoicingId],[CustomerId],[CustomerName],[CustomerCode],
-											[CurrencyCode],[DocType],[InvoiceNo],[InvoiceDate],[DSI],[DSO],[DSS],[DueDate],
+											[CurrencyCode],[DocType],[InvoiceNo],InvoiceNumber,[InvoiceDate],[DSI],[DSO],[DSS],[DueDate],
 											[CustomerRef],[Salesperson],[CreditTerms],
 											[BalanceAmount],[CurrentAmount],[PaymentAmount],
 											[Amountlessthan0days],[Amountlessthan30days],[Amountlessthan60days],
@@ -1802,6 +1812,7 @@ BEGIN
 							'', --Currency,
 							UPPER('Suspense and Unapplied Cash'),
 							UPPER(CCP.[SuspenseUnappliedNumber]), 
+							'',
 					        CCP.[ReceiveDate],
 							0,
 							0,
@@ -1868,6 +1879,7 @@ BEGIN
 				  (ISNULL(@CurrencyCode,'') ='' OR [CurrencyCode] LIKE '%' + @CurrencyCode + '%') AND
 				  (ISNULL(@DocType,'') ='' OR [DocType] LIKE '%' + @DocType + '%') AND
 				  (ISNULL(@InvoiceNo,'') ='' OR [InvoiceNo] LIKE '%' + @InvoiceNo + '%') AND
+				   (ISNULL(@InvoiceNumber,'') ='' OR InvoiceNumber LIKE '%' + @InvoiceNumber + '%') AND
 				  (ISNULL(@InvoiceDate,'') ='' OR CAST([InvoiceDate] AS DATE) = CAST(@InvoiceDate AS DATE)) AND
 				  (ISNULL(@DSI,0) = 0 OR [DSI] = @DSI) AND				  
 				  (ISNULL(@DSO,0) = 0 OR [DSO] = @DSO) AND	
@@ -1923,6 +1935,8 @@ BEGIN
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='INVOICENO') THEN [InvoiceNo] END DESC, 
 			CASE WHEN (@SortOrder=1  AND @SortColumn='INVOICEDATE') THEN [InvoiceDate] END ASC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='INVOICEDATE') THEN [InvoiceDate] END DESC,
+			CASE WHEN (@SortOrder=1  AND @SortColumn='InvoiceNumber') THEN InvoiceNumber END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='InvoiceNumber') THEN InvoiceNumber END DESC,
 			CASE WHEN (@SortOrder=1  AND @SortColumn='DSI') THEN [DSI] END ASC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='DSI') THEN [DSI] END DESC,
 			CASE WHEN (@SortOrder=1  AND @SortColumn='DSO') THEN [DSO] END ASC,

@@ -15,6 +15,7 @@
  ** PR   Date         Author		        Change Description            
  ** --   --------     -------		    --------------------------------          
     1    12/05/2025  Ayushi Patel	    Created
+	2    27/01/2025  Sahdev Saliya      Added NetDays
      
 -- EXEC [USP_GetVendorCreditTermsByVendorId] 132
 ********************************************************************************************/
@@ -28,7 +29,8 @@ BEGIN
         SELECT 
             v.CreditTermsId,
             v.CreditLimit,
-            ISNULL(ct.Name, '') AS CreditTerms
+            ISNULL(ct.Name, '') AS CreditTerms,
+			ct.NetDays
         FROM dbo.Vendor v WITH (NOLOCK)
         LEFT JOIN dbo.CreditTerms ct WITH (NOLOCK) ON v.CreditTermsId = ct.CreditTermsId
         WHERE v.VendorId = @VendorId

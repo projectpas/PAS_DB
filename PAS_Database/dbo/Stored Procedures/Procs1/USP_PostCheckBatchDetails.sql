@@ -12,22 +12,23 @@
  **************************************************************           
   ** Change History           
  **************************************************************           
- ** PR   Date         Author				Change Description            
- ** --   --------     -------				--------------------------------          
-    1    06/30/2023   Satish Gohil			Created	
-	2    07/06/2023   Satish Gohil			Batch detail table insert value added
-	3    08/09/2023	  Satish Gohil			Modify(Dynamic distribution set and discount taken distribution added)
-	4    08/14/2023   Moin Bloch			Added Check Payment Method to check only check payments
-	5    11/22/2023   Moin Bloch			Modify(Added Accounting MS Entry) 
-	6    04/04/2024   AMIT GHEDIYA			Entry With Details data id.
-	7	 27/09/2024	  AMIT GHEDIYA			Added for AutoPost Batch
-	8	 25/10/2024	  Devendra Shekh		Added new fields for [CommonBatchDetails]
-	9	 11/04/2024   Devendra Shekh		Added ReferenceId, ReferenceModule For [CommonBatchDetails]
-	10	 10/01/2025   AMIT GHEDIYA			Get accounting period based on selection.
-	11	 24/04/2025	  Devendra Shekh		Modify (Added [IsManualText] check for DistributionSetup)
-	12	 02/06/2025	  Abhishek Jirawla		Fixed Name concat read script
-	13	 27/10/2025   AMIT GHEDIYA			update for get glaccount from LE.
+ ** PR   Date         Author		Change Description            
+ ** --   --------     -------		--------------------------------          
+    1    06/30/2023   Satish Gohil	Created	
+	2    07/06/2023   Satish Gohil  Batch detail table insert value added
+	3    08/09/2023	  Satish Gohil	Modify(Dynamic distribution set and discount taken distribution added)
+	4    08/14/2023   Moin Bloch    Added Check Payment Method to check only check payments
+	5    11/22/2023   Moin Bloch    Modify(Added Accounting MS Entry) 
+	6    04/04/2024   AMIT GHEDIYA	Entry With Details data id.
+	7	 27/09/2024	  AMIT GHEDIYA	Added for AutoPost Batch
+	8	 25/10/2024	  Devendra Shekh	Added new fields for [CommonBatchDetails]
+	9	 11/04/2024   Devendra Shekh    Added ReferenceId, ReferenceModule For [CommonBatchDetails]
+	10	 10/01/2025   AMIT GHEDIYA		Get accounting period based on selection.
+	11	 24/04/2025	  Devendra Shekh	Modify (Added [IsManualText] check for DistributionSetup)
+	12	 02/06/2025	  Abhishek Jirawla  Fixed Name concat read script
+	13	 27/10/2025   AMIT GHEDIYA		update for get glaccount from LE.
 	14	 19/01/2026   Divyesh Kathiriya		Update "check" spelling in @ReferenceModule.
+	15	 26/01/2026   AMIT GHEDIYA		update for get glaccount details.
 
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_PostCheckBatchDetails]
@@ -96,7 +97,8 @@ BEGIN
 		DECLARE @legalEntityId BIGINT = NULL;
 
 		DECLARE @LEGLAccountId BIGINT = 0;
-		DECLARE	@LEGlAccountName VARCHAR(200) = NULL;
+		DECLARE	@LEGlAccountName VARCHAR(200) = NULL,
+				@LEGlAccountCode VARCHAR(50) = NULL;
 
 		SELECT @Check = [VendorPaymentMethodId] FROM [VendorPaymentMethod] WITH(NOLOCK) WHERE Description = 'Check'; 
 		SELECT @AccountMSModuleId = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] ='Accounting';
@@ -166,7 +168,7 @@ BEGIN
 			 
 				 IF(ISNULL(@LEGLAccountId,0) > 0)
 				 BEGIN
-					  SELECT @LEGlAccountName = [AccountName] FROM [DBO].[GLAccount] WITH(NOLOCK) WHERE [GLAccountId] = @LEGLAccountId;
+					  SELECT @LEGlAccountName = [AccountName],@LEGlAccountCode = [AccountCode] FROM [DBO].[GLAccount] WITH(NOLOCK) WHERE [GLAccountId] = @LEGLAccountId;
 					  SET @ValidDistribution = 1;
 				 END
 			END
@@ -282,7 +284,8 @@ BEGIN
 			 IF(ISNULL(@GlAccountId,0) = 0)
 			 BEGIN
 				  SET @GlAccountId = @LEGLAccountId;
-				  SET @LEGlAccountName = @LEGlAccountName;
+				  SET @GlAccountName = @LEGlAccountName;
+				  SET @GlAccountNumber = @LEGlAccountCode;
 			 END
 
 			 INSERT INTO [dbo].[CommonBatchDetails]
@@ -339,7 +342,8 @@ BEGIN
 					IF(ISNULL(@GlAccountId,0) = 0)
 					BEGIN
 						  SET @GlAccountId = @LEGLAccountId;
-						  SET @LEGlAccountName = @LEGlAccountName;
+						  SET @GlAccountName = @LEGlAccountName;
+						  SET @GlAccountNumber = @LEGlAccountCode;
 					END
 
 					INSERT INTO [dbo].[CommonBatchDetails]
@@ -378,7 +382,8 @@ BEGIN
 					IF(ISNULL(@GlAccountId,0) = 0)
 					BEGIN 
 						  SET @GlAccountId = @LEGLAccountId;
-						  SET @LEGlAccountName = @LEGlAccountName;
+						  SET @GlAccountName = @LEGlAccountName;
+						  SET @GlAccountNumber = @LEGlAccountCode;
 					END
 
 					INSERT INTO [dbo].[CommonBatchDetails]

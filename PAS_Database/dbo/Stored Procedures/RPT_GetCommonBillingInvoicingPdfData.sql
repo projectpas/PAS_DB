@@ -16,10 +16,11 @@
 	4    03 JUL 2025   RAJESH GAMI		Change CustomerDomensticShippingShipViaId to ShipViaId 
 	5    17 JUL 2025   Moin Bloch       Notes Replace <p> Tag
 	6	 01/05/2025    AMIT GHEDIYA     Get Email & Phone from Contact (Before from cust general info.).
+	7    27/01/2026    Moin Bloch       Fix For Ship To Country
 	
---   EXEC [dbo].[RPT_GetCommonBillingInvoicingPdfData] 68,15,2
+--   EXEC [dbo].[RPT_GetCommonBillingInvoicingPdfData] 6749,15,249
 **************************************************************/
-CREATE    PROCEDURE [dbo].[RPT_GetCommonBillingInvoicingPdfData]
+CREATE     PROCEDURE [dbo].[RPT_GetCommonBillingInvoicingPdfData]
 @BillingInvoicingId BIGINT = NULL,
 @ModuleId INT = NULL,
 @EmployeeId BIGINT = NULL
@@ -68,7 +69,7 @@ BEGIN
 				SELECT TOP 1 
 					1 AS [ItemNo],
 					WO.[IsSinglePN],
-					BI.[ReferenceId],   -- BI.[WorkOrderId],
+					BI.[ReferenceId],   
 					WO.[CustomerId],
 					CUST.[Name]  [ClientName],
 					CUST.[Email] [CustEmail],
@@ -91,7 +92,10 @@ BEGIN
 					SHIPTOADDRESS.[PostalCode] [ShipToPostalCode],
 					ISNULL(SHIPTOCOUNTRY.[countries_name], '') [ShipToCountry],
 					SHIPTOSITE.[Attention] [ShipToAttention],
-					SHIPTOFULLADDRESS = (SELECT dbo.FN_ValidatePDFAddress(SHIPTOADDRESS.[Line1],SHIPTOADDRESS.[Line2],NULL,SHIPTOADDRESS.[City],SHIPTOADDRESS.[StateOrProvince],SHIPTOADDRESS.[PostalCode],(CASE WHEN ISNULL(SHIPPINGINFO.WorkOrderShippingId,0) > 0  THEN BILLTOCOUNTRY.[countries_name] ELSE CUSHIPTOCOUNTRY.[countries_name] END),NULL,NULL,NULL)),
+					SHIPTOFULLADDRESS = (SELECT dbo.FN_ValidatePDFAddress(SHIPTOADDRESS.[Line1],SHIPTOADDRESS.[Line2],NULL,SHIPTOADDRESS.[City],SHIPTOADDRESS.[StateOrProvince],SHIPTOADDRESS.[PostalCode],
+					(CASE WHEN ISNULL(SHIPPINGINFO.WorkOrderShippingId,0) > 0  THEN ISNULL(SHIPTOCOUNTRY.[countries_name], '')
+					--BILLTOCOUNTRY.[countries_name] 
+					ELSE CUSHIPTOCOUNTRY.[countries_name] END),NULL,NULL,NULL)),
 					-- SHIP TO ADDRESS END
 					-- BILL TO ADDRESS START 
 					BILLTOSITE.[SiteName] [BillToSiteName],
@@ -101,7 +105,8 @@ BEGIN
 					BILLTOADDRESS.[StateOrProvince] [BillToState],
 					BILLTOADDRESS.[PostalCode] [BillToPostalCode],
 					ISNULL(BILLTOCOUNTRY.[countries_name], '') [BillToCountry],						
-  				    BILLTOFULLADDRESS = (SELECT dbo.FN_ValidatePDFAddress(BILLTOADDRESS.[Line1],BILLTOADDRESS.[Line2],NULL,BILLTOADDRESS.[City],BILLTOADDRESS.[StateOrProvince],BILLTOADDRESS.[PostalCode],BILLTOCOUNTRY.[countries_name],CONTACT.[WorkPhone],NULL,CONTACT.[Email])),					
+  				    BILLTOFULLADDRESS = (SELECT dbo.FN_ValidatePDFAddress(BILLTOADDRESS.[Line1],BILLTOADDRESS.[Line2],NULL,BILLTOADDRESS.[City],BILLTOADDRESS.[StateOrProvince],BILLTOADDRESS.[PostalCode],
+					BILLTOCOUNTRY.[countries_name],CONTACT.[WorkPhone],NULL,CONTACT.[Email])),					
 					-- BILL TO ADDRESS END 
 					BILLTOCUSTOMER.[Name] [BillToNameOfCustomer],
 					BI.[InvoiceNo] [InvoiceNumber],
@@ -115,7 +120,6 @@ BEGIN
 					ISNULL(UPPER(cur.[Code]), '') [Currency],
 					FORMAT(WO.[OpenDate], 'MM/dd/yyyy') [OrderDate],
 					FORMAT(SHIPPINGINFO.[ShipDate], 'MM/dd/yyyy') [ShipDate],
-					--(CASE WHEN ISNULL(BI.IsCustomerShipping,0) = 1 THEN ISNULL(SHIPVIACust.[Name], '') ELSE  ISNULL(SHIPINFOVIA.[Name], '') END) AS [ShipVia],
 					UPPER(ISNULL(SHIPINFOVIA.[Name], ''))  AS [ShipVia],
 					UPPER(BID.[ShipAccountInfo]) [ShipAccNumber],
 					UPPER(SHIPPINGINFO.[WOShippingNum]) [ShippingOrderNumber],
@@ -139,15 +143,12 @@ BEGIN
 					ISNULL(BI.[SalesTax], 0) [Tax],
 					ISNULL(BI.[OtherTax], 0) [OtherTax],
 					BI.InvoiceTypeId,
-					--BI.[Notes] [Notes],
 					REPLACE(REPLACE(ISNULL(BI.[Notes],''), '<p>', ''),'</p>','<br />') AS [Notes],
 					WO.[WorkOrderNum] AS [ReferenceNo],
 					ISNULL(BI.[SubTotal],0) [SubTotal],
 					CASE WHEN ISNULL(BI.[DepositAmount],0) >= @ProformaDepositAmount AND ISNULL(IsPerformaInvoice, 0) = 0 THEN @ProformaDepositAmount ELSE ISNULL(BI.[DepositAmount],0) END [DepositAmount],
-					--ISNULL(BI.[DepositAmount],0) [DepositAmount],
 					ISNULL(BI.[GrandTotal],0) [GrandTotal],
 					CASE WHEN ISNULL(BI.[DepositAmount],0) >= @ProformaDepositAmount AND ISNULL(IsPerformaInvoice, 0) = 0 THEN ISNULL(BI.[GrandTotal],0) - @ProformaDepositAmount ELSE ISNULL(BI.[GrandTotal],0) - ISNULL(BI.[DepositAmount],0) END [RemainingAmount],
-					--ISNULL(BI.[RemainingAmount],0) [RemainingAmount],
 					ISNULL(CAST(@NoOfItems AS NVARCHAR), '0') [NoOfItems]					 
 				FROM [dbo].[BillingInvoicing] BI WITH(NOLOCK)		
 				INNER JOIN [dbo].[BillingInvoicingDetails] BID WITH(NOLOCK) ON BI.[BillingInvoicingId] = BID.[BillingInvoicingId]

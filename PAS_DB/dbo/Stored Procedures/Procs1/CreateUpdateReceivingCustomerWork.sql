@@ -910,11 +910,11 @@ BEGIN
 						  ,RC.[CertTypeId] = TR.[CertTypeId]
 						  ,RC.[CertType] = TR.[CertType]
 						  ,RC.[IsExchangeBatchEntry] = 0
-						,RC.[CSN] = TR.[CSN]
-						,RC.[TSN] = TR.[TSN]
-						,RC.[CSO] = TR.[CSO]
-						,RC.[TSO] = TR.[TSO]
-						,RC.RemovalReasonsMemo = TR.RemovalReasonsMemo
+						  ,RC.[CSN] = TR.[CSN]
+						  ,RC.[TSN] = TR.[TSN]
+						  ,RC.[CSO] = TR.[CSO]
+						  ,RC.[TSO] = TR.[TSO]
+						  ,RC.RemovalReasonsMemo = TR.RemovalReasonsMemo
 						 FROM [dbo].[ReceivingCustomerWork] RC WITH(NOLOCK) INNER JOIN #tmprReceiveCustomer TR ON RC.[ReceivingCustomerWorkId] = TR.[ReceivingCustomerWorkId]
 					 WHERE RC.[ReceivingCustomerWorkId] = @ReceivingCustomerWorkId;
 
@@ -939,6 +939,10 @@ BEGIN
 							WOMPN.WorkOrderScopeId = TR.WorkScopeId,
 							WOMPN.CustomerReference = TR.Reference,
 							WOMPN.ACTailNum = TR.ACTailNum,
+							WOMPN.CSN = TR.CSN,
+							WOMPN.TSN = TR.TSN,
+							WOMPN.CSO = TR.CSO,
+							WOMPN.TSO = TR.TSO,
 							WOMPN.CurrentSerialNumber = TR.SerialNumber,
 							WOMPN.ManagementStructureId = @ManagementStructureId
 							FROM  WorkOrderPartNumber WOMPN  INNER JOIN #tmprReceiveCustomer TR ON WOMPN.[ReceivingCustomerWorkId] = TR.[ReceivingCustomerWorkId]

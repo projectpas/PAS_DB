@@ -4407,10 +4407,6 @@
     <Build Include="dbo\Stored Procedures\GetReceivingRepairOrderForView.sql" />
     <Build Include="dbo\User Defined Types\TimeLifeType.sql" />
     <Build Include="dbo\Stored Procedures\USP_ConvertUOM.sql" />
-    <Build Include="Security\RoleMemberships_7.sql" />
-    <Build Include="Security\RoleMemberships_8.sql" />
-    <Build Include="Security\RoleMemberships_5.sql" />
-    <Build Include="Security\RoleMemberships_6.sql" />
     <Build Include="dbo\Stored Procedures\USP_AddCustomerContact.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdateWorkOrderMaterialCondition.sql" />
     <Build Include="dbo\Stored Procedures\RPT_GetWorkOrderScrapCertificatePrintPdfData.sql" />

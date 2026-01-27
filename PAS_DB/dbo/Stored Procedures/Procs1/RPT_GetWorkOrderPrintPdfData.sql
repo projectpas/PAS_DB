@@ -1,4 +1,6 @@
-﻿/*************************************************************  
+﻿
+
+/*************************************************************  
 ** Author:  <AMIT GHEDIYA>  
 ** Create date: <01/01/2024>  
 ** Description: <Get Work order Release Form Data>  
@@ -22,14 +24,14 @@ EXEC [RPT_GetWorkOrderPrintPdfData]
 ** 11	13/Nov/2025 Rajesh Gami			Added CustReqCertType
 ** 12   23/12/2025  Ayushi Patel		return wty(warranty) based on IsWarranty and IsAccepted field
 ** 13   19/01/2026  Moin Bloch          Updated (Added NamePrinted )
+** 14	22/JAN/2026 Priyansh Patel      Added CSN and TSN values
 
-
-EXEC RPT_GetWorkOrderPrintPdfData 4104,3621
+EXEC RPT_GetWorkOrderPrintPdfData 4108,3625
 
 **************************************************************/
-CREATE     PROCEDURE [dbo].[RPT_GetWorkOrderPrintPdfData]              
-@WorkorderId BIGINT,              
-@workOrderPartNoId BIGINT              
+CREATE   PROCEDURE [dbo].[RPT_GetWorkOrderPrintPdfData]              
+	@WorkorderId BIGINT,              
+	@workOrderPartNoId BIGINT              
 AS              
 BEGIN              
  SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED              
@@ -40,8 +42,8 @@ BEGIN
   -- BEGIN            
 		DECLARE @WorkScopeId AS BIGINT = 0;            
 		DECLARE @ItemMasterId AS BIGINT = 0;            
-		DECLARE @TravelerName AS varchar(250) = '';    
-		DECLARE @MasterCompanyId AS INT = 0;            
+		DECLARE @TravelerName AS varchar(250) = '';   
+		DECLARE @MasterCompanyId AS INT = 0;    
 		DECLARE @WOFPrintDate AS DATETIME, @MergedBillToAddress AS varchar(max),@MergedShipToAddress AS varchar(max), @MergedShipAddress AS varchar(max);           
 		DECLARE @Address1 NVARCHAR(255),@Address2 NVARCHAR(255),@City NVARCHAR(100),@StateOrProvince NVARCHAR(100),@PostalCode NVARCHAR(20);
 		DECLARE @Country NVARCHAR(100),@PhoneNumber NVARCHAR(50),@PhoneExt NVARCHAR(10),@Email NVARCHAR(255);
@@ -78,9 +80,9 @@ BEGIN
 			'1' as NoofItem,              
 			UPPER(wo.CreatedBy) as Preparedby,              
 			UPPER(wop.CustomerReference) as ronum,            
-			@WOFPrintDate as DatePrinted,    
-			ISNULL((SELECT CASE WHEN [Is813013aeOr14ae]=1 THEN ISNULL(MAX([PrintedName2]),'') 
-            WHEN [Is813013aeOr14ae]=2 THEN ISNULL(MAX([PrintedName]),'') 
+			@WOFPrintDate as DatePrinted,     
+			ISNULL((SELECT CASE WHEN [Is813013aeOr14ae]=1 THEN ISNULL(MAX([PrintedName2]),'')
+            WHEN [Is813013aeOr14ae]=2 THEN ISNULL(MAX([PrintedName]),'')
 			ELSE '' END 
 			FROM [dbo].[Work_ReleaseFrom_8130] WITH(NOLOCK) 
 			WHERE [WorkOrderId] = @WorkorderId AND [workOrderPartNoId]= @workOrderPartNoId AND [MasterCompanyId]=@MasterCompanyId
@@ -105,8 +107,10 @@ BEGIN
 			CASE WHEN WOP.CurrentSerialNumber IS NOT NULL THEN WOP.CurrentSerialNumber ELSE UPPER(sl.SerialNumber) END as SerialNum,
 			CASE WHEN ISNULL(wop.RevisedItemmasterid, 0) > 0 THEN UPPER(imtr.ItemGroup) ELSE  UPPER(imt.ItemGroup) END as 'itemGroup',            
 			UPPER(wop.ACTailNum) as ACTailNum,              
-			'' as TSN,              
-			'' as CSN,    
+			wop.TSN as TSN,              
+			wop.CSN as CSN,
+			wop.TSO as TSO,              
+			wop.CSO as CSO,
 			FORMAT(wop.ReceivedDate, 'MM/dd/yyyy') AS Recd_Date,
 			wop.ReceivedDate,
 			woq.CreatedDate as Qte_Date,              
@@ -298,5 +302,5 @@ BEGIN
                      , @ErrorLogID                    = @ErrorLogID OUTPUT ;              
               RAISERROR ('Unexpected Error Occured in the database. Please let the support team know of the error number : %d', 16, 1,@ErrorLogID)              
               RETURN(1);              
-  END CATCH              
+  END CATCH              
 END

@@ -178,9 +178,9 @@ BEGIN
                     ON bsadj.StockLineAdjustmentTypeId = stadt.StockLineAdjustmentTypeId
                 INNER JOIN dbo.BulkStockLineAdjustmentDetails BSAD WITH (NOLOCK)
                     ON bsadj.BulkStkLineAdjId = BSAD.BulkStkLineAdjId
-                LEFT JOIN dbo.StockLine STL WITH (NOLOCK)
+                INNER JOIN dbo.StockLine STL WITH (NOLOCK)
                     ON BSAD.StockLineId = STL.StockLineId
-                LEFT JOIN dbo.ItemMaster IM WITH (NOLOCK)
+                INNER JOIN dbo.ItemMaster IM WITH (NOLOCK)
                     ON STL.ItemMasterId = IM.ItemMasterId
                 WHERE
                     bsadj.MasterCompanyId = @MasterCompanyId

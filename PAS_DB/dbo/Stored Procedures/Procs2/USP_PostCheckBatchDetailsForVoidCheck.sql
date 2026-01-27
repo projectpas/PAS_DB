@@ -12,18 +12,19 @@
  **************************************************************           
   ** Change History           
  **************************************************************           
- ** PR   Date         Author				Change Description            
- ** --   --------     -------				--------------------------------          
-    1    06/30/2023   Satish Gohil			Created	
-	2    08/09/2023	  Satish Gohil			Modify(Dynamic distribution set and discount taken distribution added)
-	3    22/01/2024	  Moin Bloch			Modify(Added PdfPath Null when IsVoidedCheck Is True)
-	4	 25/10/2024	  Devendra Shekh		Added new fields for [CommonBatchDetails]
-	5	 11/04/2024   Devendra Shekh		Added ReferenceId, ReferenceModule For [CommonBatchDetails]
-	6	 10/01/2025	  AMIT GHEDIYA			Added for AutoPost Batch
-	7	 24/04/2025	  Devendra Shekh		Modify (Added [IsManualText] check for DistributionSetup)
-	8	 02/06/2025	  Abhishek Jirawla		Fixed Name concat read script
-	9	 27/10/2025   AMIT GHEDIYA			update for get glaccount from LE.
+ ** PR   Date         Author		Change Description            
+ ** --   --------     -------		--------------------------------          
+    1    06/30/2023   Satish Gohil		Created	
+	2    08/09/2023	  Satish Gohil		Modify(Dynamic distribution set and discount taken distribution added)
+	3    22/01/2024	  Moin Bloch		Modify(Added PdfPath Null when IsVoidedCheck Is True)
+	4	 25/10/2024	  Devendra Shekh	Added new fields for [CommonBatchDetails]
+	5	 11/04/2024   Devendra Shekh	Added ReferenceId, ReferenceModule For [CommonBatchDetails]
+	6	 10/01/2025	  AMIT GHEDIYA		Added for AutoPost Batch
+	7	 24/04/2025	  Devendra Shekh	Modify (Added [IsManualText] check for DistributionSetup)
+	8	 02/06/2025	  Abhishek Jirawla  Fixed Name concat read script
+	9	 27/10/2025   AMIT GHEDIYA		update for get glaccount from LE.
 	10	 19/01/2026   Divyesh Kathiriya		Update "check" spelling in @ReferenceModule.
+	11	 26/01/2026   AMIT GHEDIYA		update for get glaccount details.
      
 **************************************************************/
 
@@ -95,7 +96,8 @@ BEGIN
 					@IsPurchaseOrder BIT = 0;
 		DECLARE @legalEntityId BIGINT = NULL;
 		DECLARE @LEGLAccountId BIGINT = 0;
-		DECLARE	@LEGlAccountName VARCHAR(200) = NULL;
+		DECLARE	@LEGlAccountName VARCHAR(200) = NULL,
+				@LEGlAccountCode VARCHAR(50) = NULL;
 
 		IF OBJECT_ID(N'tempdb..#temptable') IS NOT NULL          
 		BEGIN          
@@ -216,7 +218,7 @@ BEGIN
 			 
 				 IF(ISNULL(@LEGLAccountId,0) > 0)
 				 BEGIN
-					  SELECT @LEGlAccountName = [AccountName] FROM [DBO].[GLAccount] WITH(NOLOCK) WHERE [GLAccountId] = @LEGLAccountId;
+					  SELECT @LEGlAccountName = [AccountName], @LEGlAccountCode = [AccountCode] FROM [DBO].[GLAccount] WITH(NOLOCK) WHERE [GLAccountId] = @LEGLAccountId;
 				 END
 			END
 
@@ -251,7 +253,7 @@ BEGIN
 			END
 
 
-			IF(ISNULL(@TotalAmount,0) > 0 AND @ValidDistribution = 1)
+			IF(ISNULL(@TotalAmount,0) > 0)
 			BEGIN
 
 				IF NOT EXISTS(select JournalBatchHeaderId from dbo.BatchHeader WITH(NOLOCK)  where JournalTypeId= @JournalTypeId and MasterCompanyId=@MasterCompanyId and CAST(EntryDate AS DATE) = CAST(GETUTCDATE() AS DATE)and StatusId=@StatusId)
@@ -334,7 +336,8 @@ BEGIN
 				IF(ISNULL(@GlAccountId,0) = 0)
 				BEGIN
 					SET @GlAccountId = @LEGLAccountId;
-					SET @LEGlAccountName = @LEGlAccountName;
+					SET @GlAccountName = @LEGlAccountName;
+					SET @GlAccountNumber = @LEGlAccountCode;
 				END
 
 				INSERT INTO [dbo].[CommonBatchDetails]
@@ -376,7 +379,8 @@ BEGIN
 					IF(ISNULL(@GlAccountId,0) = 0)
 					BEGIN
 						SET @GlAccountId = @LEGLAccountId;
-						SET @LEGlAccountName = @LEGlAccountName;
+						SET @GlAccountName = @LEGlAccountName;
+						SET @GlAccountNumber = @LEGlAccountCode;
 					END
 
 					INSERT INTO [dbo].[CommonBatchDetails]
@@ -411,7 +415,8 @@ BEGIN
 					IF(ISNULL(@GlAccountId,0) = 0)
 					BEGIN
 						SET @GlAccountId = @LEGLAccountId;
-						SET @LEGlAccountName = @LEGlAccountName;
+						SET @GlAccountName = @LEGlAccountName;
+						SET @GlAccountNumber = @LEGlAccountCode;
 					END
 
 					INSERT INTO [dbo].[CommonBatchDetails]

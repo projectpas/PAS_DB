@@ -4,7 +4,7 @@
     [VendorId]                  BIGINT        NOT NULL,
     [VendorName]                VARCHAR (256) NOT NULL,
     [VendorCode]                VARCHAR (256) NOT NULL,
-    [PaymentTermsId]            BIGINT        NULL,
+    [PaymentTermsId]            BIGINT        NOT NULL,
     [StatusId]                  INT           NOT NULL,
     [ManagementStructureId]     INT           NOT NULL,
     [MasterCompanyId]           INT           NOT NULL,

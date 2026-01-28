@@ -39,7 +39,7 @@ BEGIN
 			--LEFT JOIN #ItemMasterCapesMSDATA PMS ON PMS.MSID = IMC.ManagementStructureId
 		WHERE IMC.ItemMasterId  = @ItemMasterId;
 		
-		SELECT partnumber AS value FROM dbo.ItemMaster IM WITH (NOLOCK) WHERE IM.ItemMasterId  = @ItemMasterId ;
+		--SELECT partnumber AS value FROM dbo.ItemMaster IM WITH (NOLOCK) WHERE IM.ItemMasterId  = @ItemMasterId ;
 		
 		END
 		COMMIT TRANSACTION

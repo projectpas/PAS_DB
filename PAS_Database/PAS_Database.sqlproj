@@ -4415,6 +4415,7 @@
     <Build Include="dbo\Stored Procedures\USP_UpdateLeafNodePrintSequence.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetPrintSequenceLeafData.sql" />
     <Build Include="dbo\User Defined Types\LeafNodeSequenceType.sql" />
+    <Build Include="dbo\Stored Procedures\GetPrintCheckInvoiceData.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

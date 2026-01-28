@@ -7016,6 +7016,7 @@
     <Build Include="dbo\User Defined Types\AuditFields.sql" />
     <Build Include="dbo\User Defined Types\AddexchangeloanType.sql" />
     <Build Include="dbo\User Defined Types\AccountPeriodType.sql" />
+    <Build Include="dbo\Stored Procedures\GetPrintCheckInvoiceData.sql" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Snapshots\PAS_DB_20220518_07-53-10.dacpac" />

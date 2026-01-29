@@ -53,6 +53,7 @@
 	37  16 Jul 2025	  Devendra Shekh	added Condition for IsActive/IsDeleted check
 	38  05 Aug 2025   RAJESH GAMI       Implemented: Added new filter for creditmemo ('OPEN', 'POSTED', 'FULFILLING', 'CLOSED' status consider under the INVOICED filter) 
 	39  15 Jan 2025   Moin Bloch        Modify No need to check RemainingAmount when Invoice Status Is ALL PBI  PN-15177
+	40  28 Jan 2025   Bhargav Saliya    Get RemainingAmount From The [BillingInvoicing] table instead of [BillingInvoicingItems]
 exec dbo.USP_SearchCustomerInvoices
 @PageSize=10,@PageNumber=1,@SortColumn=NULL,@SortOrder=-1,@StatusID=0,@GlobalFilter=N'',@InvoiceNo=NULL,@InvoiceStatus=NULL,@InvoiceDate=NULL,
 @OrderNumber=NULL,@CustomerName=NULL,@CustomerType=NULL,@InvoiceAmt=NULL,@PN=NULL,@PNDescription=NULL,@VersionNo=NULL,@QuoteNumber=NULL,
@@ -628,8 +629,8 @@ BEGIN
 				CT.CustomerTypeName [CustomerType],
 				WOBII.GrandTotal [InvoiceAmt], 
 				--CASE WHEN WOBI.CostPlusType = 'Flat Rate' AND ISNULL(WOBII.GrandTotal,0) > 0 THEN ISNULL(WOBII.GrandTotal,0) ELSE CASE WHEN ISNULL(WOBII.GrandTotal,0) > 0 THEN ISNULL(WOBII.GrandTotal,0) WHEN ISNULL(WOBII.SubTotal,0) > 0 THEN ISNULL(WOBII.SubTotal,0) ELSE ISNULL(WOBII.UnitPrice,0) END END [InvoiceAmt],
-				ISNULL(WOBII.RemainingAmount, 0)  RemainingAmount,
-				ISNULL(ISNULL(WOBII.GrandTotal,0) - ISNULL(WOBII.RemainingAmount,0),0) AmountPaid,				
+				ISNULL(WOBI.RemainingAmount, 0)  RemainingAmount,
+				ISNULL(ISNULL(WOBII.GrandTotal,0) - ISNULL(WOBI.RemainingAmount,0),0) AmountPaid,				
 				IM.partnumber [PN], 
 				IM.PartDescription [PNDescription],
 				WQ.VersionNo [VersionNo],
@@ -688,8 +689,8 @@ BEGIN
 				   C.CustomerId,
 				   CT.CustomerTypeName [CustomerType],
 				   SUM(ISNULL(SOBII.GrandTotal,0)) [InvoiceAmt], 
-				   ISNULL(SOBII.RemainingAmount, 0) RemainingAmount,
-				   ISNULL(ISNULL(SOBII.GrandTotal,0) - ISNULL(SOBII.RemainingAmount,0),0) AmountPaid,						
+				   ISNULL(SOBI.RemainingAmount, 0) RemainingAmount,
+				   ISNULL(ISNULL(SOBII.GrandTotal,0) - ISNULL(SOBI.RemainingAmount,0),0) AmountPaid,						
 				   IM.partnumber [PN], 
 				   IM.PartDescription [PNDescription],
 				   SQ.VersionNumber [VersionNo],
@@ -732,7 +733,7 @@ BEGIN
 			 --AND SOBI.[BillingInvoicingId] NOT IN (SELECT ISNULL(CM.[InvoiceId], 0) FROM [dbo].[CreditMemo] CM WITH (NOLOCK) WHERE CM.[StatusId] IN(@CMPostedStatusId,@ClosedCreditMemoStatus,@RefundedCreditMemoStatus,@RefundRequestedCreditMemoStatus) AND CM.[InvoiceTypeId] = @SOInvoiceTypeId)
 				GROUP BY SOBI.BillingInvoicingId,SOBI.InvoiceNo,
 					SOBI.InvoiceStatus ,SOBI.InvoiceDate,SO.SalesOrderNumber,
-					C.Name ,C.CustomerCode,CT.CustomerTypeName , SOBII.RemainingAmount,
+					C.Name ,C.CustomerCode,CT.CustomerTypeName , SOBI.RemainingAmount,
 					SOBI.GrandTotal ,IM.partnumber , IM.PartDescription ,
 					SQ.VersionNumber,SQ.SalesOrderQuoteNumber ,SO.CustomerReference ,ST.SerialNumber,ST.stocklineid ,
 					IM.IsPma,IM.IsDER,SMS.LastMSLevel,SMS.AllMSlevels, SOBI.ReferenceId, SOBI.IsPerformaInvoice,SMS.EntityMSID,IM.ItemMasterId ,SOBII.GrandTotal,C.CustomerId

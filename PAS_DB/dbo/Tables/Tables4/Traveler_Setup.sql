@@ -12,7 +12,7 @@
     [IsActive]          BIT           DEFAULT ((1)) NOT NULL,
     [IsDeleted]         BIT           CONSTRAINT [DF_Traveler_Setup_IsDeleted] DEFAULT ((0)) NOT NULL,
     [ItemMasterId]      BIGINT        NULL,
-    [PartNumber ]       VARCHAR (256) NOT NULL,
+    [PartNumber]       VARCHAR (256) NOT NULL,
     [IsVersionIncrease] BIT           NULL,
     [CurrentNummber]    BIGINT        NULL,
     PRIMARY KEY CLUSTERED ([Traveler_SetupId] ASC)

@@ -38,7 +38,7 @@ BEGIN
                       ,[WorkScope]
                       ,[Version]
 					  ,ItemMasterId
-					  ,PartNumber
+					  ,[PartNumber]
                       ,[MasterCompanyId]
                       ,[CreatedBy]
                       ,[UpdatedBy]

@@ -16,7 +16,9 @@ EXEC [USP_GetNonPOInvoiceEditData_ById]
 ** 5    10/26/2023		Devendra Shekh		 ADDED new columns
 ** 6    11/01/2024	    Moin Bloch 			 ADDED new columns ReferenceId,ReferenceModuleId
 ** 7    12/27/2024		AMIT GHEDIYA		 Modify(Added ControlNumber Field)
-** 3    01-Jan-2025		AYUSHI PATEL		 Get TotalPartCount
+** 8    01-Jan-2025		AYUSHI PATEL		 Get TotalPartCount
+** 9    28-Jan-2026		SAHDEV SALIYA		 Added DueDate
+
 exec dbo.USP_GetNonPOInvoiceEditData_ById 1,1
 *****************************************************************************************/   
 
@@ -62,6 +64,7 @@ BEGIN
 						NPH.[ReferenceId],
 						NPH.[ReferenceModuleId],
 						NPH.[ControlNumber],
+						NPH.[DueDate],
 						@totalPartCount as TotalPartCount
 				FROM [dbo].[NonPOInvoiceHeader] NPH WITH (NOLOCK)
 				INNER JOIN [dbo].[NonPOInvoiceHeaderStatus] NPHS WITH (NOLOCK) ON NPHS.NonPOInvoiceHeaderStatusId = NPH.StatusId

@@ -1,9 +1,9 @@
 ﻿/*************************************************************           
- ** File:   [usprpt_GetInventoryUnitCostAdjustmentReport]
+ ** File:   [usprpt_GetInventoryUnitCostAdjustmentReport_SSRS]
  ** Author:   
- ** Description: Get Data for Stock Report for Unit Cost AdjustMent
+ ** Description: Get Data for Stock Report for Unit Cost AdjustMent For SSRS
  ** Purpose:          
- ** Date:   29-Jan-2026
+ ** Date:   30-Jan-2026
  ** PARAMETERS:
  ** RETURN VALUE:
  **************************************************************           
@@ -11,56 +11,23 @@
  **************************************************************           
   ** S NO   Date            Author				Change Description              
  ** --   --------			-------				--------------------------------            
-    1    29-Jan-2026		Devendra Shekh        created
+    1    30-Jan-2026		Devendra Shekh        created
 
 **************************************************************/
-CREATE   PROCEDURE [dbo].[usprpt_GetInventoryUnitCostAdjustmentReport]     
-@PageNumber INT = NULL,
-@PageSize INT = NULL,
-@SortColumn VARCHAR(50) = NULL,
-@SortOrder INT = NULL,
-@GlobalFilter VARCHAR(50) = NULL,
-@Pn VARCHAR(100) = NULL,
-@PnDescription VARCHAR(MAX) = NULL,
-@Cond VARCHAR(100) = NULL,
-@SerNum VARCHAR(100) = NULL,
-@SlNum VARCHAR(100) = NULL,
-@CtrlNum VARCHAR(100) = NULL,
-@QtyOh VARCHAR(50) = NULL,
-@OrigUnitCost VARCHAR(50) = NULL,
-@NewUnitCost VARCHAR(50) = NULL,
-@UnitCostChange VARCHAR(50) = NULL,
-@UnitCostAdjustmentAmount VARCHAR(50) = NULL,
-@ReasonCode VARCHAR(200) = NULL,
-@Uom VARCHAR(50) = NULL,
-@PoNum VARCHAR(100) = NULL,
-@RoNum VARCHAR(100) = NULL,
-@Location VARCHAR(100) = NULL,
-@AdjBy VARCHAR(256) = NULL,
-@AdjDate DATETIME2 = NULL,
-@Level1 VARCHAR(500) = NULL,
-@Level2 VARCHAR(500) = NULL,
-@Level3 VARCHAR(500) = NULL,
-@Level4 VARCHAR(500) = NULL,
-@Level5 VARCHAR(500) = NULL,
-@Level6 VARCHAR(500) = NULL,
-@Level7 VARCHAR(500) = NULL,
-@Level8 VARCHAR(500) = NULL,
-@Level9 VARCHAR(500) = NULL,
-@Level10 VARCHAR(500) = NULL,
-@MasterCompanyId INT,
-@UserEmployeeId BIGINT,
-@strFilter VARCHAR(MAX) = NULL,
-@xmlFilter XML
+CREATE   PROCEDURE [dbo].[usprpt_GetInventoryUnitCostAdjustmentReport_SSRS]     
+@mastercompanyid INT,
+@id DATETIME2,
+@id2 DATETIME2,
+@id3 VARCHAR(100) = NULL,
+@id4 VARCHAR(100) = NULL,
+@strFilter VARCHAR(MAX) = NULL 
 AS    
 BEGIN    
   SET NOCOUNT ON;    
   SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED    
   BEGIN TRY    
     	   
-	DECLARE	@FromDate DATETIME2 = NULL,
-			@ToDate DATETIME2 = NULL,
-			@level1Ids VARCHAR(MAX) = NULL,    
+	DECLARE	@level1Ids VARCHAR(MAX) = NULL,    
 			@level2Ids VARCHAR(MAX) = NULL,    
 			@level3Ids VARCHAR(MAX) = NULL,    
 			@level4Ids VARCHAR(MAX) = NULL,    
@@ -89,7 +56,7 @@ BEGIN
 	LEFT JOIN dbo.TimeZone ETZ WITH (NOLOCK) ON E.TimeZoneId = ETZ.TimeZoneId
 	LEFT JOIN dbo.LegalEntity LE WITH (NOLOCK) ON E.LegalEntityId = LE.LegalEntityId
 	LEFT JOIN dbo.TimeZone LTZ WITH (NOLOCK) ON LE.TimeZoneId = LTZ.TimeZoneId
-	WHERE E.EmployeeId = @UserEmployeeId;		
+	WHERE E.EmployeeId = @id4;		
 				
 	SELECT TOP 1 @BaseUtcOffsetSec = BaseUtcOffsetSec FROM dbo.TimeZone WITH(NOLOCK) WHERE [Description] = @CurrntEmpTimeZoneDesc
 	/* -------------- END: Get the timzone and UTC offset -------------- */
@@ -112,31 +79,12 @@ BEGIN
 	SELECT @level7Ids = LevelIds FROM #TEMPMSFilter WHERE ID = 7 
 	SELECT @level8Ids = LevelIds FROM #TEMPMSFilter WHERE ID = 8 
 	SELECT @level9Ids = LevelIds FROM #TEMPMSFilter WHERE ID = 9 
-	SELECT @level10Ids = LevelIds FROM #TEMPMSFilter WHERE ID = 10 
-
-	SELECT 
-    @Fromdate = CASE 
-        WHEN filterby.value('(FieldName/text())[1]', 'VARCHAR(100)') = 'From Date' 
-        THEN CONVERT(DATE, filterby.value('(FieldValue/text())[1]', 'VARCHAR(100)')) 
-        ELSE @Fromdate 
-    END,
-    @Todate = CASE 
-        WHEN filterby.value('(FieldName/text())[1]', 'VARCHAR(100)') = 'To Date' 
-        THEN CONVERT(DATE, filterby.value('(FieldValue/text())[1]', 'VARCHAR(100)')) 
-        ELSE @Todate 
-    END,    
-	@PartNumber = CASE 
-		WHEN filterby.value('(FieldName/text())[1]','VARCHAR(100)')='PN(Optional)' 
-		THEN filterby.value('(FieldValue/text())[1]','VARCHAR(100)') 
-		ELSE @PartNumber END
-    FROM @xmlFilter.nodes('/ArrayOfFilter/Filter') AS TEMPTABLE(filterby)    
+	SELECT @level10Ids = LevelIds FROM #TEMPMSFilter WHERE ID = 10	 
   
 	DECLARE @ModuleID INT = 2; -- MS Module ID     
 	SELECT @ModuleID = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] = 'Stockline';
 
-	SET @PageSize = CASE WHEN NULLIF(@PageSize,0) IS NULL THEN 10 ELSE @PageSize END    
-	SET @PageNumber = CASE WHEN NULLIF(@PageNumber,0) IS NULL THEN 1 ELSE @PageNumber END    
-	SET @PartNumber = CASE WHEN ISNULL(@PartNumber, '') <> '' AND CAST(@PartNumber AS BIGINT) > 0 THEN @PartNumber ELSE NULL END;
+	SET @PartNumber = CASE WHEN ISNULL(@id3, '') <> '' AND CAST(@id3 AS BIGINT) > 0 THEN @id3 ELSE NULL END;
 
 	;WITH rptCTE(	[pn], [pndescription], [cond], [sernum], [slnum], [ctrlnum], [qtyoh], [origunitcost], [newunitcost], [unitcostchange], [unitcostadjustmentamount], [reasoncode], [uom], [ponum], [ronum], [location],
 					[adjby], [adjdate], [adjustedfrom], [level1], [level2], [level3], [level4], [level5], [level6], [level7], [level8], [level9], [level10], [masterCompanyId]
@@ -187,7 +135,7 @@ BEGIN
 	AND stl.[IsDeleted] = 0 
 	AND (@PartNumber IS NULL OR im.ItemMasterId = @PartNumber)
 	AND stladj.[StocklineAdjustmentDataTypeId] IN(@CostType)
-	AND CONVERT(DATE, DATEADD(SECOND, @BaseUtcOffsetSec, stladj.[CreatedDate])) BETWEEN CAST(@Fromdate AS DATE) AND CAST(@Todate AS DATE)  
+	AND CONVERT(DATE, DATEADD(SECOND, @BaseUtcOffsetSec, stladj.[CreatedDate])) BETWEEN CAST(@id AS DATE) AND CAST(@id2 AS DATE)  
 	AND (ISNULL(@level1Ids,'') =''  OR MSD.[Level1Id]  IN (SELECT Item FROM DBO.SPLITSTRING(@level1Ids,',')))    
 	AND (ISNULL(@level2Ids,'') =''  OR MSD.[Level2Id]  IN (SELECT Item FROM DBO.SPLITSTRING(@level2Ids,',')))    
 	AND (ISNULL(@level3Ids,'') =''  OR MSD.[Level3Id]  IN (SELECT Item FROM DBO.SPLITSTRING(@level3Ids,',')))    
@@ -248,7 +196,7 @@ BEGIN
 	AND bsaj.StockLineAdjustmentTypeId = @StockLineAdjustmentTypeId
 	AND bsaj.StatusId = @BulkStocklineAdjustmentStatusId
 	AND (@PartNumber IS NULL OR im.ItemMasterId = @PartNumber)
-	AND CONVERT(DATE, DATEADD(SECOND, @BaseUtcOffsetSec, bsaj.[CreatedDate])) BETWEEN CAST(@Fromdate AS DATE) AND CAST(@Todate AS DATE) 
+	AND CONVERT(DATE, DATEADD(SECOND, @BaseUtcOffsetSec, bsaj.[CreatedDate])) BETWEEN CAST(@id AS DATE) AND CAST(@id2 AS DATE) 
 	AND (ISNULL(@level1Ids,'') =''  OR MSD.[Level1Id]  IN (SELECT Item FROM DBO.SPLITSTRING(@level1Ids,',')))    
 	AND (ISNULL(@level2Ids,'') =''  OR MSD.[Level2Id]  IN (SELECT Item FROM DBO.SPLITSTRING(@level2Ids,',')))    
 	AND (ISNULL(@level3Ids,'') =''  OR MSD.[Level3Id]  IN (SELECT Item FROM DBO.SPLITSTRING(@level3Ids,',')))    
@@ -260,6 +208,7 @@ BEGIN
 	AND (ISNULL(@level9Ids,'') =''  OR MSD.[Level9Id]  IN (SELECT Item FROM DBO.SPLITSTRING(@level9Ids,',')))    
 	AND (ISNULL(@level10Ids,'') ='' OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level10Ids,',')))
    )
+
 	,FinalCTE([pn], [pndescription], [cond], [sernum], [slnum], [ctrlnum], [qtyoh], [origunitcost], [newunitcost], [unitcostchange], [unitcostadjustmentamount],
 			[reasoncode], [uom], [ponum], [ronum], [location], [adjby], [adjdate], [adjustedfrom],
 			[level1],[level2],[level3],[level4],[level5],[level6],[level7],[level8],[level9],[level10],[masterCompanyId]) 
@@ -267,30 +216,8 @@ BEGIN
 	AS (SELECT DISTINCT [pn], [pndescription], [cond], [sernum], [slnum], [ctrlnum], [qtyoh], [origunitcost], [newunitcost], [unitcostchange], [unitcostadjustmentamount],
 			[reasoncode], [uom], [ponum], [ronum], [location], [adjby], [adjdate], [adjustedfrom],
 			[level1],[level2],[level3],[level4],[level5],[level6],[level7],[level8],[level9],[level10],[masterCompanyId]
-	   FROM rptCTE
-	   WHERE	(ISNULL(@Pn,'') = '' OR pn LIKE '%' + @Pn + '%')
-		AND (ISNULL(@PnDescription,'') = '' OR pndescription LIKE '%' + @PnDescription + '%')
-		AND (ISNULL(@Cond,'') = '' OR cond LIKE '%' + @Cond + '%')
-		AND (ISNULL(@SerNum,'') = '' OR sernum LIKE '%' + @SerNum + '%')
-		AND (ISNULL(@SlNum,'') = '' OR slnum LIKE '%' + @SlNum + '%')
-		AND (ISNULL(@CtrlNum,'') = '' OR ctrlnum LIKE '%' + @CtrlNum + '%')
-		AND (ISNULL(@QtyOh,'') = '' OR qtyoh LIKE '%' + @QtyOh + '%')
-		AND (ISNULL(@OrigUnitCost,'') = '' OR origunitcost LIKE '%' + @OrigUnitCost + '%')
-		AND (ISNULL(@NewUnitCost,'') = '' OR newunitcost LIKE '%' + @NewUnitCost + '%')
-		AND (ISNULL(@UnitCostChange,'') = '' OR unitcostchange LIKE '%' + @UnitCostChange + '%')
-		AND (ISNULL(@UnitCostAdjustmentAmount,'') = '' OR unitcostadjustmentamount LIKE '%' + @UnitCostAdjustmentAmount + '%')
-		AND (ISNULL(@ReasonCode,'') = '' OR reasoncode LIKE '%' + @ReasonCode + '%')
-		AND (ISNULL(@Uom,'') = '' OR uom LIKE '%' + @Uom + '%')
-		AND (ISNULL(@PoNum,'') = '' OR ponum LIKE '%' + @PoNum + '%')
-		AND (ISNULL(@RoNum,'') = '' OR ronum LIKE '%' + @RoNum + '%')
-		AND (ISNULL(@Location,'') = '' OR location LIKE '%' + @Location + '%')
-		AND (ISNULL(@AdjBy,'') = '' OR adjby LIKE '%' + @AdjBy + '%')
-		AND (@AdjDate IS NULL OR CAST(adjdate AS DATE) = CAST(@AdjDate AS DATE))
-	   )
-	,WithTotal ([masterCompanyId], [TotalUnitPrice]) 
-	        AS (SELECT [masterCompanyId], 				
-				FORMAT(SUM([unitcostadjustmentamount]), 'N', 'en-us') TotalUnitPrice				
-				FROM FinalCTE GROUP BY [masterCompanyId])
+	   FROM rptCTE)
+
 	SELECT COUNT(1) OVER () AS [NumberOfItems], 
 	                FC.[pn],
 					FC.[pndescription], 
@@ -298,11 +225,11 @@ BEGIN
 					FC.[sernum],
 					FC.[slnum],
 					FC.[ctrlnum],
-			        FORMAT(FC.[qtyoh], 'N2') [qtyoh],
-					FORMAT(FC.[origunitcost] , 'N2') [origunitcost],
-					FORMAT(FC.[newunitcost] , 'N2') [newunitcost],
-					CASE WHEN FC.[unitcostchange] < 0 THEN CAST(FORMAT((FC.[unitcostchange]), 'N2') AS VARCHAR) ELSE CAST(FORMAT(FC.[unitcostchange], 'N2') AS VARCHAR) END [unitcostchange],
-					CASE WHEN FC.[unitcostadjustmentamount] < 0 THEN CAST(FORMAT((FC.[unitcostadjustmentamount]), 'N2') AS VARCHAR(100)) ELSE CAST(FORMAT(FC.[unitcostadjustmentamount], 'N2') AS VARCHAR(100)) END [unitcostadjustmentamount],
+			        FC.[qtyoh],
+					FC.[origunitcost],
+					FC.[newunitcost],
+					FC.[unitcostchange],
+					FC.[unitcostadjustmentamount],
 					FC.[reasoncode],
 					FC.[uom],
 					FC.[ponum],
@@ -321,49 +248,9 @@ BEGIN
 					FC.[level8],
 					FC.[level9],
 					FC.[level10],	
-					FC.[masterCompanyId],					
-				    WC.[TotalUnitPrice]
+					FC.[masterCompanyId]			   
 				FROM FinalCTE FC
-				INNER JOIN WithTotal WC ON FC.masterCompanyId = WC.masterCompanyId
-				ORDER BY
-				CASE WHEN (@SortOrder = 1  AND @SortColumn = 'pn') THEN pn END ASC,
-				CASE WHEN (@SortOrder = -1 AND @SortColumn = 'pn') THEN pn END DESC,
-				CASE WHEN (@SortOrder = 1  AND @SortColumn = 'pndescription') THEN pndescription END ASC,
-				CASE WHEN (@SortOrder = -1 AND @SortColumn = 'pndescription') THEN pndescription END DESC,
-				CASE WHEN (@SortOrder = 1  AND @SortColumn = 'cond') THEN cond END ASC,
-				CASE WHEN (@SortOrder = -1 AND @SortColumn = 'cond') THEN cond END DESC,
-				CASE WHEN (@SortOrder = 1  AND @SortColumn = 'sernum') THEN sernum END ASC,
-				CASE WHEN (@SortOrder = -1 AND @SortColumn = 'sernum') THEN sernum END DESC,
-				CASE WHEN (@SortOrder = 1  AND @SortColumn = 'slnum') THEN slnum END ASC,
-				CASE WHEN (@SortOrder = -1 AND @SortColumn = 'slnum') THEN slnum END DESC,
-				CASE WHEN (@SortOrder = 1  AND @SortColumn = 'ctrlnum') THEN ctrlnum END ASC,
-				CASE WHEN (@SortOrder = -1 AND @SortColumn = 'ctrlnum') THEN ctrlnum END DESC,
-				CASE WHEN (@SortOrder = 1  AND @SortColumn = 'qtyoh') THEN qtyoh END ASC,
-				CASE WHEN (@SortOrder = -1 AND @SortColumn = 'qtyoh') THEN qtyoh END DESC,
-				CASE WHEN (@SortOrder = 1  AND @SortColumn = 'origunitcost') THEN origunitcost END ASC,
-				CASE WHEN (@SortOrder = -1 AND @SortColumn = 'origunitcost') THEN origunitcost END DESC,
-				CASE WHEN (@SortOrder = 1  AND @SortColumn = 'newunitcost') THEN newunitcost END ASC,
-				CASE WHEN (@SortOrder = -1 AND @SortColumn = 'newunitcost') THEN newunitcost END DESC,
-				CASE WHEN (@SortOrder = 1  AND @SortColumn = 'unitcostchange') THEN unitcostchange END ASC,
-				CASE WHEN (@SortOrder = -1 AND @SortColumn = 'unitcostchange') THEN unitcostchange END DESC,
-				CASE WHEN (@SortOrder = 1  AND @SortColumn = 'unitcostadjustmentamount') THEN unitcostadjustmentamount END ASC,
-				CASE WHEN (@SortOrder = -1 AND @SortColumn = 'unitcostadjustmentamount') THEN unitcostadjustmentamount END DESC,
-				CASE WHEN (@SortOrder = 1  AND @SortColumn = 'reasoncode') THEN reasoncode END ASC,
-				CASE WHEN (@SortOrder = -1 AND @SortColumn = 'reasoncode') THEN reasoncode END DESC,
-				CASE WHEN (@SortOrder = 1  AND @SortColumn = 'uom') THEN uom END ASC,
-				CASE WHEN (@SortOrder = -1 AND @SortColumn = 'uom') THEN uom END DESC,
-				CASE WHEN (@SortOrder = 1  AND @SortColumn = 'ponum') THEN ponum END ASC,
-				CASE WHEN (@SortOrder = -1 AND @SortColumn = 'ponum') THEN ponum END DESC,
-				CASE WHEN (@SortOrder = 1  AND @SortColumn = 'ronum') THEN ronum END ASC,
-				CASE WHEN (@SortOrder = -1 AND @SortColumn = 'ronum') THEN ronum END DESC,
-				CASE WHEN (@SortOrder = 1  AND @SortColumn = 'location') THEN location END ASC,
-				CASE WHEN (@SortOrder = -1 AND @SortColumn = 'location') THEN location END DESC,
-				CASE WHEN (@SortOrder = 1  AND @SortColumn = 'adjby') THEN adjby END ASC,
-				CASE WHEN (@SortOrder = -1 AND @SortColumn = 'adjby') THEN adjby END DESC,
-				CASE WHEN (@SortOrder = 1  AND @SortColumn = 'adjdate') THEN adjdate END ASC,
-				CASE WHEN (@SortOrder = -1 AND @SortColumn = 'adjdate') THEN adjdate END DESC
-				
-				OFFSET((@PageNumber-1) * @pageSize) ROWS FETCH NEXT @pageSize ROWS ONLY; 
+				ORDER BY adjdate DESC 
     
 	END TRY
 	BEGIN CATCH    
@@ -371,11 +258,13 @@ BEGIN
             @DatabaseName varchar(100) = DB_NAME()    
 	-----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------    
             ,    
-            @AdhocComments varchar(150) = '[usprpt_GetInventoryUnitCostAdjustmentReport]',    
-            @ProcedureParameters varchar(3000) = '@Parameter1 = ''' + CAST(ISNULL(@PageNumber, '') AS VARCHAR(100)) +      
-            '@Parameter2 = ''' + CAST(ISNULL(@PageSize, '') AS VARCHAR(100)) +      
-            '@Parameter3 = ''' + CAST(ISNULL(@mastercompanyid, '') AS VARCHAR(100)) +      
-            '@Parameter4 = ''' + CAST(ISNULL(@xmlFilter, '') AS VARCHAR(MAX)),    
+            @AdhocComments varchar(150) = '[usprpt_GetInventoryUnitCostAdjustmentReport_SSRS]',    
+            @ProcedureParameters varchar(3000) = '@Parameter1 = ''' + CAST(ISNULL(@mastercompanyid, '') AS VARCHAR(100)) +      
+            '@Parameter2 = ''' + CAST(ISNULL(@id, '') AS VARCHAR(100)) +      
+            '@Parameter3 = ''' + CAST(ISNULL(@id2, '') AS VARCHAR(100)) +      
+            '@Parameter4 = ''' + CAST(ISNULL(@id3, '') AS VARCHAR(100)) +      
+            '@Parameter5 = ''' + CAST(ISNULL(@id4, '') AS VARCHAR(100)) +      
+            '@Parameter6 = ''' + CAST(ISNULL(@strFilter, '') AS VARCHAR(MAX)),  
             @ApplicationName VARCHAR(100) = 'PAS'     
     
     -----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------    

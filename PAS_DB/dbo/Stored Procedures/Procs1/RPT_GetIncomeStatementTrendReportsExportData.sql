@@ -206,7 +206,7 @@ BEGIN
 	      INSERT INTO #AccPeriodTable (PeriodName,[FiscalYear],[OrderNum])
 		  SELECT DISTINCT REPLACE(PeriodName,' - ',''), [FiscalYear],[Period]
 		  FROM dbo.AccountingCalendar WITH(NOLOCK)
-		  WHERE LegalEntityId IN (SELECT MSL.LegalEntityId FROM dbo.ManagementStructureLevel MSL WITH (NOLOCK) WHERE MSL.ID IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,','))) AND IsDeleted = 0 AND  
+		  WHERE LegalEntityId = @LegalEntityId AND LegalEntityId IN (SELECT MSL.LegalEntityId FROM dbo.ManagementStructureLevel MSL WITH (NOLOCK) WHERE MSL.ID IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,','))) AND IsDeleted = 0 AND  
 		  	 CAST(Fromdate AS DATE) >= CAST(@FROMDATE AS DATE) AND CAST(ToDate AS DATE) <= CAST(@TODATE AS DATE) 
 		  
 		  INSERT INTO #AccPeriodTable (PeriodName) 
@@ -430,6 +430,7 @@ BEGIN
 		  SELECT @LCOUNT = MAX(ID) fROM #AccPeriodTable WHERE PeriodName <> 'Total'
 
 		  --SELECT * FROM #ReportingStructureExport
+		  --SELECT * FROM #AccPeriodTable
 		  WHILE(@LCOUNT > 0)
 		  BEGIN
 			 SELECT @AccountcalMonth = ISNULL(PeriodName, ''), @AccountPeriods = PeriodName, @SequenceNumber = OrderNum FROM #AccPeriodTable where ID = @LCOUNT
@@ -452,7 +453,7 @@ BEGIN
 		  END 
 
 		  --SELECT * FROM #ReportingStructureExport
-		  --SELECT * FROM #ReportingStructureExportData where leafNodeId IN (92, 128)
+		  --SELECT * FROM #ReportingStructureExportData where leafNodeId IN (98, 95)
 
 		  UPDATE #ReportingStructureExportData
 				SET Amount = CASE WHEN T1.IsPositive = 1 THEN Amount ELSE ISNULL(Amount, 0) * -1 END
@@ -492,6 +493,8 @@ BEGIN
 		  
 		  	SET @LevelCOUNT = @LevelCOUNT - 1
 		  END
+
+		  --SELECT * FROM #ReportingStructureExportData
 
 		  INSERT INTO #ReportingStructureExportData(leafNodeId, NodeName, Amount, AccountingPeriodId, AccountcalMonth, AccountingPeriod, IsPositive, IsLeafNode, ParentId, IsTotlaLine,LevelId, SequenceNumber)
 					  SELECT LeafNodeId,UPPER(NodeName), 0,999999, 'Total', 'Total', IsPositive, IsLeafNode, ParentId, IsTotlaLine,LevelId, (SELECT ISNULL(MAX(OrderNum), 0) + 1 FROM #AccPeriodTable)
@@ -551,7 +554,7 @@ BEGIN
 			--FROM x
 			--WHERE rn = 1 ORDER BY SequenceNumber ASC;
 
-			--SELECT * FROM #ReportingStructureExportData WHERE AccountingPeriodId != 999999  Order BY PrintSequenceNumber
+			--SELECT * FROM #ReportingStructureExportData Order BY PrintSequenceNumber
 
 			------------------------------------------------------------------------------------
 
@@ -569,7 +572,7 @@ BEGIN
 							   PARTITION BY t.leafNodeId, t.AccountingPeriodId
 							   ORDER BY ISNULL(t.IsTotlaLine, 0) DESC, t.ID DESC
 							 )
-				FROM #ReportingStructureExportData t 				
+				FROM #ReportingStructureExportData t --WHERE AccountingPeriodId != 999999				
 			)
 			SELECT * INTO #ReportingStructureExportDataFinal
 			FROM x
@@ -683,7 +686,8 @@ BEGIN
 				JOIN Tree t
 					ON t.AccountingPeriodId = e.AccountingPeriodId
 				   AND t.EffPrintSeq        = e.EffPrintSeq
-				   AND t.leafNodeId         = e.leafNodeId				
+				   AND t.leafNodeId         = e.leafNodeId	
+				 --WHERE e.AccountingPeriodId != 999999
 				ORDER BY
 					e.EffPrintSeq ASC,
 					t.Path + '~' ASC,      -- '~' makes parent sort AFTER children

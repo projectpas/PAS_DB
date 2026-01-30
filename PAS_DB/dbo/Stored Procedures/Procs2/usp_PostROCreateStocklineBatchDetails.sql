@@ -465,8 +465,8 @@ BEGIN
 											-----Goods Received Not Invoiced (GRNI)--------
 								  
 											 SELECT top 1 @DistributionSetupId=ID, @DistributionName=Name, @JournalTypeId =JournalTypeId,
-											 --@GlAccountId=GlAccountId,
-												--@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName,
+												@GlAccountId=GlAccountId,
+												@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName,
 												@CrDrType = CRDRType  
 											 FROM [DBO].DistributionSetup WITH(NOLOCK)  
 											 WHERE UPPER(DistributionSetupCode) = UPPER('RROGRNI') AND MasterCompanyId = @MasterCompanyId

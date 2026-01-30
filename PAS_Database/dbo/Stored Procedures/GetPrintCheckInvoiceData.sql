@@ -27,19 +27,21 @@ BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 	SET NOCOUNT ON
 		BEGIN TRY
-		DECLARE @BankGlAccount VARCHAR(100) = NULL;
+		DECLARE @BankGlAccount VARCHAR(100) = NULL,
+				@LEName VARCHAR(100) = NULL;
 
-		SET @BankGlAccount = (SELECT DISTINCT 
+			SET @BankGlAccount = (SELECT DISTINCT 
 				   CONCAT(G.[AccountCode],' - ',G.[AccountName]) AS GLAccount
 			FROM [dbo].[LegalEntityBankingLockBox] lebl WITH (NOLOCK)
-			INNER JOIN [dbo].GLAccount G WITH(NOLOCK) ON lebl.GLAccountId = G.GLAccountId
+			INNER JOIN [dbo].[GLAccount] G WITH(NOLOCK) ON lebl.GLAccountId = G.GLAccountId
 			 LEFT JOIN [dbo].[Address] addr WITH(NOLOCK) ON addr.AddressId = lebl.AddressId
 			WHERE lebl.[LegalEntityId] = @LegalEntityId 
 			AND lebl.[AccountTypeId] = 2 
-			AND ISNULL(lebl.IsDeleted,0) = 0 AND ISNULL(lebl.IsActive,0) = 1)
+			AND ISNULL(lebl.IsDeleted,0) = 0 AND ISNULL(lebl.IsActive,0) = 1);
+
+			SET @LEName = (SELECT TOP 1 [Name] FROM [dbo].[LegalEntity] WITH(NOLOCK) WHERE [LegalEntityId] = @LegalEntityId);
 
 			SELECT VPD.[VendorId] AS 'vendorId',
-				   --VPD.[invoiceNum] AS 'invoiceNum',
 				   CASE 
 						WHEN ISNULL(VPD.ReceivingReconciliationId,0) > 0 THEN RRC.InvoiceNum
 						WHEN ISNULL(VPD.CreditMemoHeaderId,0) > 0 THEN CM.InvoiceNumber
@@ -67,6 +69,7 @@ BEGIN
 					VPD.[DiscountAvailable] AS 'discouunt',
 					0.0 AS 'adjAmt',
 					@BankGlAccount AS 'GLAccount',
+					@LEName AS 'LEName',
 					VD.[VendorCode] AS 'vendorCode',
 					VD.[VendorName] AS 'vendorName',
 					dbo.ValidatePDFAddress(CASE WHEN AD.Line1 = 'N/A' OR AD.Line1 = 'NA' THEN '' ELSE AD.Line1 END,CASE WHEN AD.Line2 = 'N/A' OR AD.Line2 = 'NA' THEN '' ELSE AD.Line2 END,'',CASE WHEN AD.City = 'N/A' OR AD.City = 'NA' THEN '' ELSE AD.City END,AD.StateOrProvince, AD.PostalCode,'','','','') AS MergedAddress

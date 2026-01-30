@@ -1,4 +1,22 @@
-﻿CREATE PROCEDURE [dbo].[USP_GetStocklinePrintDataByStockLineId]
+﻿/*************************************************************           
+ ** File:   [USP_GetStocklinePrintDataByStockLineId]           
+ ** Author:   Hemant Saliya
+ ** Description: This SP is used Get PickTicket Print Lable
+ ** Purpose:         
+ ** Date:   09/24/2021               
+ ** PARAMETERS: 
+ ** RETURN VALUE:      
+ **************************************************************           
+ ** Change History           
+ **************************************************************           
+ ** PR   Date         Author		Change Description            
+ ** --   --------     -------		--------------------------------          
+    1    09/24/2021   Hemant Saliya Created
+	2    29/01/2026   Moin Bloch    Getting Quantity From PickTicket Insted of Stockline PN-15111
+     
+--EXEC [USP_GetStocklinePrintDataByStockLineId] 
+**************************************************************/
+CREATE PROCEDURE [dbo].[USP_GetStocklinePrintDataByStockLineId]
 	@StocklineId BIGINT,
 	@WorkOrderMaterialsId BIGINT,
 	@PickTicketId BIGINT,
@@ -130,7 +148,8 @@ BEGIN
 				stl.Shelf AS shelfName,
 				stl.Bin AS binName,
 				ISNULL(ve.VendorName, '') AS VendorName,
-				ISNULL(stl.QuantityOnHand, 0) AS Quantity,
+				--ISNULL(stl.QuantityOnHand, 0) AS Quantity,
+				ISNULL(wopt.QtyToShip,0) Quantity,
 				stl.IdNumber AS ControlId,
 				ISNULL(po.PurchaseOrderNumber, '') AS PurchaseOrderNumber,
 				stl.ExpirationDate,
@@ -182,7 +201,8 @@ BEGIN
 				stl.Shelf AS shelfName,
 				stl.Bin AS binName,
 				ISNULL(ve.VendorName, '') AS VendorName,
-				CASE WHEN stl.QuantityOnHand > 0 THEN CAST(stl.QuantityOnHand AS INT) ELSE 0 END AS Quantity,
+				--CASE WHEN stl.QuantityOnHand > 0 THEN CAST(stl.QuantityOnHand AS INT) ELSE 0 END AS Quantity,
+				ISNULL(wopt.QtyToShip,0) Quantity,
 				stl.IdNumber AS ControlId,
 				ISNULL(po.PurchaseOrderNumber, '') AS PurchaseOrderNumber,
 				stl.ExpirationDate,

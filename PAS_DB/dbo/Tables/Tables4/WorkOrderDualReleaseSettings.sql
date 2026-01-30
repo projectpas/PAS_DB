@@ -10,6 +10,7 @@
     [UpdatedDate]                   DATETIME2 (7) NOT NULL,
     [IsActive]                      BIT           NOT NULL,
     [IsDeleted]                     BIT           NOT NULL,
+    [WOReleaseFormId]               BIGINT        NULL,
     CONSTRAINT [PK_WorkOrderDualReleaseSettings] PRIMARY KEY CLUSTERED ([WorkOrderDualReleaseSettingId] ASC)
 );
 

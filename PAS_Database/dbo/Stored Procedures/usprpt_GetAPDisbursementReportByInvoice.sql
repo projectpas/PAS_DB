@@ -1,4 +1,4 @@
-﻿
+
 /*************************************************************                   
  ** File:  [usprpt_GetAPDisbursementReportByInvoice]                   
  ** Author: Priyansh Patel     
@@ -66,7 +66,7 @@ BEGIN
 
   DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
 	
-	SELECT 
+	            SELECT 
 					@CurrntEmpTimeZoneDesc = COALESCE(
 						ETZ.[Description],  -- Prefer Employee's TimeZone description if available
 						LTZ.[Description]   -- Fallback to LegalEntity's TimeZone description

@@ -4418,6 +4418,8 @@
     <Build Include="dbo\Stored Procedures\GetPrintCheckInvoiceData.sql" />
     <Build Include="dbo\Tables\WOReleaseForm.sql" />
     <Build Include="dbo\Stored Procedures\usprpt_GetInventoryUnitCostAdjustmentReport.sql" />
+    <Build Include="dbo\Stored Procedures\usprpt_GetAPDisbursementReportByPayee.sql" />
+    <Build Include="dbo\Stored Procedures\usprpt_GetAPDisbursementReportByInvoice.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

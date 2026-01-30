@@ -19,14 +19,15 @@
 	8    02/20/2024	  HEMANT SALIYA	Updated for Restrict Accounting Entry by Master Company
 	9    07/24/2024	  AMIT GHEDIYA	Updated new Destribution.
 	10   19/09/2024	  AMIT GHEDIYA   Added for AutoPost Batch
-	11	 09/10/2024	 Devendra Shekh	Added new fields for [CommonBatchDetails]
+	11	 09/10/2024	  Devendra Shekh	Added new fields for [CommonBatchDetails]
 	12   10/10/2023   Moin Bloch    Modify(Fixed combination Asset & Part Issue)
 	13	 11/04/2024   Devendra Shekh Added ReferenceId, ReferenceModule For [CommonBatchDetails]
 	14	 11/02/2025   AMIT GHEDIYA   Update for batch gl account basd on stockline
 	15	 02/06/2025	  Abhishek Jirawla  Fixed Name concat read script
 	16	 01/12/2025   AMIT GHEDIYA   Update for batch gl account basd on stockline (Goods Received Not Invoiced (GRNI))
+	17   01/29/2026   Hemant Saliya	 Corrected to get Goods Received Not Invoiced (GRNI) from Stockline
 **************************************************************/  
-CREATE   PROCEDURE [dbo].[usp_PostROCreateStocklineBatchDetails]
+CREATE    PROCEDURE [dbo].[usp_PostROCreateStocklineBatchDetails]
 @tbl_PostStocklineBatchType PostStocklineBatchType READONLY,
 @MstCompanyId int,
 @updatedByName varchar(256)
@@ -67,6 +68,7 @@ BEGIN
 					DECLARE @ASSETReferenceModule VARCHAR(100) = 'ASSET';
 
 					DECLARE @InventoryGLAccId BIGINT = 0;
+					DECLARE @GRNIGLAccId BIGINT = 0;
 					DECLARE @RepairOrderPartRecordId BIGINT = 0;
 					DECLARE @GlStocklineId BIGINT = 0;
 
@@ -419,7 +421,7 @@ BEGIN
 										WHERE ROP.[RepairOrderPartRecordId] = @RepairOrderPartRecordId;
 
 										--GET STOCKLINE GLACCOUNT.
-										SELECT @InventoryGLAccId = SL.GLAccountId -- For PARTS INVENTORY Distribution.
+										SELECT @InventoryGLAccId = SL.GLAccountId, @GRNIGLAccId = SL.GoodsReceivedNotInvoicesGLAccId -- For PARTS INVENTORY Distribution.
 										FROM [dbo].[Stockline] SL WITH(NOLOCK)					 
 										WHERE SL.[StockLineId] = @GlStocklineId;
 										
@@ -463,10 +465,18 @@ BEGIN
 												@StocklineNumber,'',@Desc,@SiteId,@Site,@WarehouseId,@Warehouse,@LocationId,@Location,@BinId,@Bin,@ShelfId,@Shelf,@StockType,@CommonJournalBatchDetailId)
 
 											-----Goods Received Not Invoiced (GRNI)--------
+
+											--GET GL Accounting Data from GLAccout based on stockline
+											SELECT @GRNIGLAccId = [GLAccountId],
+												   @GlAccountNumber = [AccountCode],
+												   @GlAccountName = [AccountName]
+											FROM [dbo].[GLAccount] WITH(NOLOCK)
+											WHERE [GLAccountId] = @GRNIGLAccId
+											AND [MasterCompanyId] = @MasterCompanyId;
 								  
 											 SELECT top 1 @DistributionSetupId=ID, @DistributionName=Name, @JournalTypeId =JournalTypeId,
-												@GlAccountId=GlAccountId,
-												@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName,
+											 --@GlAccountId=GlAccountId,
+												--@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName,
 												@CrDrType = CRDRType  
 											 FROM [DBO].DistributionSetup WITH(NOLOCK)  
 											 WHERE UPPER(DistributionSetupCode) = UPPER('RROGRNI') AND MasterCompanyId = @MasterCompanyId
@@ -476,7 +486,7 @@ BEGIN
 												(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
 												[IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId],[ModuleName],LastMSLevel,AllMSlevels,[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[LotId],[LotNumber],[ReferenceNumber],[ReferenceName],[LocalCurrency],[FXRate],[ForeignCurrency],[ReferenceId],[ReferenceModule])
 											 VALUES
-												(@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,@JournalBatchHeaderId,1 ,@GlAccountId ,@GlAccountNumber ,@GlAccountName,GETUTCDATE(),GETUTCDATE(),@JournalTypeId ,@JournalTypename ,
+												(@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,@JournalBatchHeaderId,1 ,@GRNIGLAccId ,@GlAccountNumber ,@GlAccountName,GETUTCDATE(),GETUTCDATE(),@JournalTypeId ,@JournalTypename ,
 												CASE WHEN @CrDrType = 1 THEN 1 ELSE 0 END,
 												CASE WHEN @CrDrType = 1 THEN @Amount ELSE 0 END,
 												CASE WHEN @CrDrType = 1 THEN 0 ELSE @Amount END,

@@ -27,6 +27,7 @@ Exec [usp_SaveTurnInWorkOrderMaterils]
    16   04/14/2025  HEMANT SALIYA		Added Work Order Work Flow Id for UpdateWOMaterialsCost
    16   18/04/2025  ABHISHEK JIRAWLA	Added Integration Portal in Stockline
    17	08/10/2025  Moin Bloch			Added MPN Tendor 
+   18	30/01/2026  Moin Bloch			Fix For Getting FK Conflict Error In Bin
   
 exec dbo.usp_SaveTurnInWorkOrderMaterils @IsMaterialStocklineCreate=1,@IsCustomerStock=1,@IsCustomerstockType=0,@ItemMasterId=291,@UnitOfMeasureId=5,  
 @ConditionId=10,@Quantity=2,@IsSerialized=0,@SerialNumber=NULL,@CustomerId=80,@ObtainFromTypeId=1,@ObtainFrom=80,@ObtainFromName=N'anil gill ',  
@@ -132,6 +133,13 @@ BEGIN
 	 DECLARE @WorkOrderFormTypeId BIT = 0; 
 	 DECLARE @isExchange BIT = (CASE WHEN UPPER((SELECT [StatusCode] FROM [dbo].[Provision] WITH(NOLOCK) WHERE [ProvisionId] = @ProvisionId)) = 'EXCHANGE' THEN 1 ELSE 0 END); 
 
+	 
+	 SET @TraceableTo = CASE WHEN @TraceableTo = 0 THEN NULL ELSE @TraceableTo END	 
+	 SET @InspectedById = CASE WHEN @InspectedById = 0 THEN NULL ELSE @InspectedById END	 
+	 SET @WarehouseId = CASE WHEN @WarehouseId = 0 THEN NULL ELSE @WarehouseId END
+	 SET @LocationId = CASE WHEN @LocationId = 0 THEN NULL ELSE @LocationId END
+	 SET @ShelfId = CASE WHEN @ShelfId = 0 THEN NULL ELSE @ShelfId END
+	 SET @BinId = CASE WHEN @BinId = 0 THEN NULL ELSE @BinId END	
 	 
      SET @count = @Quantity;  
      SET @slcount = @Quantity;  

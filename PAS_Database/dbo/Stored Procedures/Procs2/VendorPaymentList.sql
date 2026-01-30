@@ -47,10 +47,11 @@
 	31   10-04-2025   AMIT GHEDIYA		Get le from perticular module
 	32	 11-04-2025	  Ekta Chandegra	Convert date using dbo.ConvertUTCtoLocal
 	33   15-01-2026   AMIT GHEDIYA		Update condition for get LE (LegalEntityId) Before ManagementStructureLevel ID
-	34   26-01-2025   RAJESH GAMI     Get payment method for PaidinFull
+	34   26-01-2026   RAJESH GAMI       Get payment method for PaidinFull
+	35   30-01-2026   AMIT GHEDIYA		Update for PaidinFull get all partially & full payment data.
  --EXEC VendorPaymentList 10,1,'ReceivingReconciliationId',1,'','',0,0,0,'ALL','',NULL,NULL,1,73   
 **************************************************************/
-CREATE    PROCEDURE [dbo].[VendorPaymentList]  
+CREATE      PROCEDURE [dbo].[VendorPaymentList]  
  -- Add the parameters for the stored procedure here  
 @PageSize int,  
 @PageNumber int,  
@@ -2377,7 +2378,7 @@ BEGIN
 		 AND ISNULL(VRTPD.IsGenerated,0) = 1
 				-- AND ISNULL(RRH.NonPOInvoiceId, 0) = 0	
 				-- AND ISNULL(RRH.CustomerCreditPaymentDetailId, 0) = 0
-		 AND (CASE WHEN VRTPD.PaymentMethodId = @Check THEN CASE WHEN VRTPD.IsCheckPrinted = 1 THEN VRTPD.IsCheckPrinted END END = 1 OR  VRTPD.PaymentMethodId <> @Check )
+		 --AND (CASE WHEN VRTPD.PaymentMethodId = @Check THEN CASE WHEN VRTPD.IsCheckPrinted = 1 THEN VRTPD.IsCheckPrinted END END = 1 OR  VRTPD.PaymentMethodId <> @Check )
 
 		 GROUP BY VRTPD.CheckNumber,lebl.BankName,lebl.BankAccountNumber,DWPL.AccountNumber,
 		          IWPL.BeneficiaryBankAccount, VRTPDH.ReadyToPayId,VRTPD.AmountDue,VN.IsVendorOnHold,

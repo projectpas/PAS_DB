@@ -19,7 +19,7 @@
     1    28-Jan-2026    Priyansh Patel		   Created    
     
  EXEC dbo.usprpt_GetAPDisbursementReportByInvoice
-    @MasterCompanyId = 14 , @PageNumber =1 , @PageSize = 10, @EmployeeId = 175
+    @MasterCompanyId = 1 , @PageNumber =1 , @PageSize = 10, @EmployeeId = 2
 
 ***************************************************************************************************/   
 
@@ -85,9 +85,55 @@ BEGIN
 				WHERE 
 					E.EmployeeId = @EmployeeId;	
 
+  IF OBJECT_ID(N'tempdb..#tmprAPDisbursementReportInvoice') IS NOT NULL
+       BEGIN
+			DROP TABLE #tmprAPDisbursementReportInvoice
+	   END
+
+
+ CREATE TABLE #tmprAPDisbursementReportInvoice
+(
+    Payee NVARCHAR(200),
+    VendorCode NVARCHAR(50),
+    InvoiceNum NVARCHAR(100) NULL,
+    InvoiceDate DATE NULL,
+    PaymentMethod NVARCHAR(100) NULL,
+    PaymentReference NVARCHAR(100) NULL,
+    PaymentDate DATE NULL,
+    InvoiceDueDate DATE NULL,
+    TotalBaseCurrencyAmount DECIMAL(18,2) NULL,
+    BaseCurrency NVARCHAR(50),
+    BaseCurrencyAmount DECIMAL(18,2),
+    BaseCurrencyAmounts1 NVARCHAR(MAX),
+    BankAccount NVARCHAR(200),
+    GLAccountNum NVARCHAR(200),
+    Level1Id NVARCHAR(200),
+    Level2Id NVARCHAR(200),
+    Level3Id NVARCHAR(200),
+    Level4Id NVARCHAR(200),
+    Level5Id NVARCHAR(200),
+    Level6Id NVARCHAR(200),
+    Level7Id NVARCHAR(200),
+    Level8Id NVARCHAR(200),
+    Level9Id NVARCHAR(200),
+    Level10Id NVARCHAR(200)
+);
+
+
+  INSERT INTO #tmprAPDisbursementReportInvoice
+    (
+         Payee, VendorCode,
+        InvoiceNum, InvoiceDate, PaymentMethod, PaymentReference,
+        PaymentDate, InvoiceDueDate, TotalBaseCurrencyAmount,
+        BaseCurrency, BaseCurrencyAmount,
+        BankAccount, GLAccountNum,
+        Level1Id, Level2Id, Level3Id, Level4Id, Level5Id,
+        Level6Id, Level7Id, Level8Id, Level9Id, Level10Id
+    )
 
     SELECT
-
+             MAX(rtp.VendorName)  AS 'Payee',
+              MAX(VND.VendorCode)  AS 'VendorCode',
          CASE 
             	WHEN ISNULL(VPD.ReceivingReconciliationId,0) > 0 THEN RRC.InvoiceNum
             	WHEN ISNULL(VPD.CreditMemoHeaderId,0) > 0 THEN CM.InvoiceNumber
@@ -104,31 +150,20 @@ BEGIN
             	WHEN ISNULL(VPD.CustomerCreditPaymentDetailId,0) > 0 THEN CAST(CCPD.ProcessedDate AS DATE)
             	WHEN ISNULL(VPD.VendorProformaInvoiceId,0) > 0 THEN CAST(VNPH.InvoiceDate AS DATE)
 
-            END AS 'InvoiceDate',
-              MAX(rtp.VendorName)  AS 'Payee',
-              MAX(VND.VendorCode)  AS 'VendorCode',
-            --NULL AS 'Payee',
-            --NULL AS 'PaymentMethod',
-            --NULL AS 'PaymentReference',
-           -- NULL AS 'PaymentDate',
+                END AS 'InvoiceDate',
+            
+             MAX(vpym.Description)                                AS 'PaymentMethod',
+            MAX(rtp.CheckNumber)                                AS 'PaymentReference',
+            MAX( (Cast(DBO.ConvertUTCtoLocal(rtp.CheckDate,@CurrntEmpTimeZoneDesc)AS DATETIME)))  AS 'PaymentDate',
             NULL AS 'InvoiceDueDate',
             NULL AS 'TotalBaseCurrencyAmount',
-
-          
-
             MAX(rtp.CurrencyName)                             AS 'BaseCurrency',
             SUM(rtp.OriginalAmount)                     AS 'BaseCurrencyAmount',
-            STRING_AGG(CAST(rtp.OriginalAmount AS VARCHAR(20)), ',') AS BaseCurrencyAmounts1,
-
-            MAX(vpym.Description)                                AS 'PaymentMethod',
-            MAX(rtp.CheckNumber)                                AS 'PaymentReference',
                                           
-           MAX( (Cast(DBO.ConvertUTCtoLocal(rtp.CheckDate,@CurrntEmpTimeZoneDesc)AS DATETIME)))  AS 'PaymentDate',
             -- (Cast(DBO.ConvertUTCtoLocal(rtp.DueDate,@CurrntEmpTimeZoneDesc)AS DATETIME)) AS 'InvoiceDueDate',
             MAX(CONCAT(lebl.BankName, ' - ', lebl.BankAccountNumber)) 
                                                     AS 'BankAccount',
             MAX( CONCAT(g.AccountCode, ' - ', g.AccountName))      AS 'GLAccountNum',
-            NULL                                            AS 'Employee',
 
             MAX(L1.Description)  AS [Level1Id],
             MAX(L2.Description)  AS [Level2Id],
@@ -204,10 +239,9 @@ BEGIN
             AND rtp.IsDeleted     = 0
             AND rtp.MasterCompanyId = @MasterCompanyId
 
-            AND (@FromPaymentDate IS NULL OR rtp.CheckDate >= @FromPaymentDate)
-            AND (@ToPaymentDate   IS NULL OR rtp.CheckDate < DATEADD(DAY, 1, @ToPaymentDate))
+           AND (@FromPaymentDate IS NULL OR CAST(rtp.CheckDate AS DATE) >= CAST(@FromPaymentDate AS DATE))
+            AND (@ToPaymentDate IS NULL OR CAST(rtp.CheckDate AS DATE) <= CAST(@ToPaymentDate AS DATE))
             AND (@Payee       IS NULL OR rtp.VendorName LIKE '%' + @Payee + '%')
-            AND (@Payee IS NULL OR rtp.VendorName LIKE '%' + @Payee + '%')
 
             AND (
                     @InvoiceNum IS NULL 
@@ -236,16 +270,16 @@ BEGIN
             AND (
                 @InvoiceDate IS NULL OR
                 (
-                        (ISNULL(VPD.ReceivingReconciliationId,0) > 0 AND CAST(RRC.InvoiceDate AS DATE) = @InvoiceDate)
-                    OR (ISNULL(VPD.CreditMemoHeaderId,0) > 0 AND CAST(CM.InvoiceDate AS DATE) = @InvoiceDate)
-                    OR (ISNULL(VPD.NonPOInvoiceId,0) > 0 AND CAST(NPH.InvoiceDate AS DATE) = @InvoiceDate)
-                    OR (ISNULL(VPD.CustomerCreditPaymentDetailId,0) > 0 AND CAST(CCPD.ProcessedDate AS DATE) = @InvoiceDate)
-                    OR (ISNULL(VPD.VendorProformaInvoiceId,0) > 0 AND CAST(VNPH.InvoiceDate AS DATE) = @InvoiceDate)
+                        (ISNULL(VPD.ReceivingReconciliationId,0) > 0 AND CAST(RRC.InvoiceDate AS DATE) = CAST(@InvoiceDate AS DATE))
+                    OR (ISNULL(VPD.CreditMemoHeaderId,0) > 0 AND CAST(CM.InvoiceDate AS DATE) = CAST(@InvoiceDate AS DATE))
+                    OR (ISNULL(VPD.NonPOInvoiceId,0) > 0 AND CAST(NPH.InvoiceDate AS DATE) = CAST(@InvoiceDate AS DATE))
+                    OR (ISNULL(VPD.CustomerCreditPaymentDetailId,0) > 0 AND CAST(CCPD.ProcessedDate AS DATE) = CAST(@InvoiceDate AS DATE))
+                    OR (ISNULL(VPD.VendorProformaInvoiceId,0) > 0 AND CAST(VNPH.InvoiceDate AS DATE) = CAST(@InvoiceDate AS DATE))
                 )
             )
 
-            AND (@InvoiceDueDate IS NULL OR CAST(rtp.DueDate AS DATE) = @InvoiceDueDate)
-            AND (@PaymentDate IS NULL OR CAST(rtp.CheckDate AS DATE) = @PaymentDate)
+            AND (@InvoiceDueDate IS NULL OR CAST(rtp.DueDate AS DATE) = CAST(@InvoiceDueDate AS DATE))
+            AND (@PaymentDate IS NULL OR CAST(rtp.CheckDate AS DATE) = CAST(@PaymentDate AS DATE))
 
 
 
@@ -277,25 +311,36 @@ BEGIN
                 WHEN ISNULL(VPD.VendorProformaInvoiceId,0) > 0 THEN CAST(VNPH.InvoiceDate AS DATE)
             END
 
-    -- Pagination
-    --OFFSET ((ISNULL(@PageNumber, 1) - 1) * ISNULL(@PageSize, 1000000)) ROWS
-    --FETCH NEXT ISNULL(@PageSize, 1000000) ROWS ONLY;
+        ORDER BY
+    CASE
+        WHEN ISNULL(VPD.ReceivingReconciliationId,0) > 0 THEN RRC.InvoiceNum
+        WHEN ISNULL(VPD.CreditMemoHeaderId,0) > 0 THEN CM.InvoiceNumber
+        WHEN ISNULL(VPD.NonPOInvoiceId,0) > 0 THEN NPH.InvoiceNumber
+        WHEN ISNULL(VPD.CustomerCreditPaymentDetailId,0) > 0 THEN CCPD.ReferenceNumber
+        WHEN ISNULL(VPD.VendorProformaInvoiceId,0) > 0 THEN VNPH.InvoiceNumber
+    END
 
 
-                SELECT COUNT(1) AS TotalRecords
-            FROM [dbo].[VendorReadyToPayDetails] rtp WITH(NOLOCK)
-            INNER JOIN [dbo].[VendorPaymentDetails] vpd WITH(NOLOCK)
-                ON vpd.VendorPaymentDetailsId = rtp.VendorPaymentDetailsId
-            WHERE rtp.IsVoidedCheck = 0
-              AND rtp.IsGenerated   = 1
-              AND rtp.IsActive      = 1
-              AND rtp.IsDeleted     = 0
-              AND rtp.MasterCompanyId = @MasterCompanyId
-              AND (@FromPaymentDate IS NULL OR rtp.CheckDate >= @FromPaymentDate)
-              AND (@ToPaymentDate   IS NULL OR rtp.CheckDate < DATEADD(DAY, 1, @ToPaymentDate))
-              AND (@Payee       IS NULL OR rtp.VendorName LIKE '%' + @Payee + '%')
-              AND (@PaymentRef  IS NULL OR rtp.CheckNumber LIKE '%' + @PaymentRef + '%')
-              AND (@InvoiceNum  IS NULL OR rtp.InvoiceNum LIKE '%' + @InvoiceNum + '%');
+    -- Pagination 
+
+     SELECT *
+        FROM #tmprAPDisbursementReportInvoice
+        ORDER BY InvoiceNum
+    OFFSET 
+    CASE 
+        WHEN @PageSize IS NULL THEN 0
+        ELSE (@PageNumber - 1) * @PageSize
+    END ROWS
+FETCH NEXT 
+    CASE 
+        WHEN @PageSize IS NULL THEN NULL
+        ELSE @PageSize
+    END ROWS ONLY;
+     
+     -- Total Records Count
+        SELECT COUNT(*) AS TotalRecords
+        FROM #tmprAPDisbursementReportInvoice;
+ 
 
 
 

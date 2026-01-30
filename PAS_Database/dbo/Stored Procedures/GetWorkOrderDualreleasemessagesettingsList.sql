@@ -16,8 +16,9 @@
  ** PR   Date         Author			Change Description                
  ** --   --------     ------------			--------------------------------              
     1    10/01/2024   AMIT GHEDIYA		Created    
-         
---EXEC [GetWorkOrderDualreleasemessagesettingsList] 1  
+    2    29/01/2026   Ayushi Patel      Added WOReleaseFormId and FormName
+     
+--EXEC [GetWorkOrderDualreleasemessagesettingsList] 14  
 **************************************************************/    
 CREATE      PROCEDURE [dbo].[GetWorkOrderDualreleasemessagesettingsList]    
  @MasterCompanyId  BIGINT = 0,
@@ -36,10 +37,13 @@ BEGIN
 				  COU.countries_name AS 'CountriesName',
 				  COU.countries_id AS 'CountriesId',
 				  WOS.Dualreleaselanguage,
-				  'EASA' AS 'FormType'
+				  'EASA' AS 'FormType',
+				  WOS.WOReleaseFormId,
+				  WRF.FormName
 		    FROM [dbo].[WorkOrderDualReleaseSettings] WOS WITH(NOLOCK)
 		    JOIN [dbo].[WorkOrderType] WOT WITH(NOLOCK) ON WOT.Id = WOS.WorkOrderTypeId
 		    JOIN [dbo].[Countries] COU WITH(NOLOCK) ON COU.countries_id = WOS.CountriesId
+			LEFT JOIN [dbo].[WOReleaseForm] WRF WITH (NOLOCK)ON WRF.WOReleaseFormId = WOS.WOReleaseFormId
 		    WHERE WOS.MasterCompanyId = @MasterCompanyId AND WOS.WorkOrderDualReleaseSettingId = @WorkOrderDualReleaseSettingId;
 		END
 		ELSE
@@ -51,10 +55,13 @@ BEGIN
 				  COU.countries_name AS 'CountriesName',
 				  COU.countries_id AS 'CountriesId',
 				  WOS.Dualreleaselanguage,
-				  'EASA' AS 'FormType'
+				  'EASA' AS 'FormType',
+				  WOS.WOReleaseFormId,
+				  WRF.FormName
 		    FROM [dbo].[WorkOrderDualReleaseSettings] WOS WITH(NOLOCK)
 		    JOIN [dbo].[WorkOrderType] WOT WITH(NOLOCK) ON WOT.Id = WOS.WorkOrderTypeId
 		    JOIN [dbo].[Countries] COU WITH(NOLOCK) ON COU.countries_id = WOS.CountriesId
+			LEFT JOIN [dbo].[WOReleaseForm] WRF WITH (NOLOCK)ON WRF.WOReleaseFormId = WOS.WOReleaseFormId
 		    WHERE WOS.MasterCompanyId = @MasterCompanyId;
 		END
    END    

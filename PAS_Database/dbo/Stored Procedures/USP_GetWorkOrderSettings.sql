@@ -19,6 +19,7 @@
 	 3	  13-MAY-2025		Bhargav Saliya			Added IsDisplayFooter to select 
 	 4	  23-MAY-2025		Devendra Shekh			Added isPNSNWarning, isPNSNRestriction to select 
 	 5	  28-Aug-2025		Moin Bloch			    Added IsAllowEmployeeToMoreTask
+	 6    22-Jan-2026       Sahdev Saliya           Added IsRegulationSpecifiedInBlock12
 
 	 EXEC [dbo].[USP_GetWorkOrderSettings] 1,1
 ****************************************************************************************/
@@ -110,7 +111,8 @@ BEGIN
 					Isnull(wos.isDisplayFooter,0) as isDisplayFooter,
 					ISNULL(wos.IsPNSNWarning, 0) AS isPNSNWarning,
 					ISNULL(wos.IsPNSNRestriction, 0) AS isPNSNRestriction,
-					ISNULL(wos.IsAllowEmployeeToMoreTask, 0) AS isAllowEmployeeToMoreTask
+					ISNULL(wos.IsAllowEmployeeToMoreTask, 0) AS isAllowEmployeeToMoreTask,
+					wos.isRegulationSpecifiedInBlock12 
 				FROM [DBO].[WorkOrderSettings] wos WITH(NOLOCK)
 				LEFT JOIN [DBO].[WorkOrderType] wot WITH(NOLOCK) ON wos.WorkOrderTypeId = wot.Id
 				LEFT JOIN [DBO].[Condition] c WITH(NOLOCK) ON wos.DefaultConditionId = c.ConditionId

@@ -577,7 +577,7 @@ BEGIN
 					sop.ConditionId,
 					imt.PartDescription, 
 					sl.StockLineNumber,  
-					sl.SerialNumber, 
+					CASE WHEN sobii.SerialNumber IS NOT NULL THEN sobii.SerialNumber ELSE sl.SerialNumber END SerialNumber, 
 					cr.[Name] as CustomerName,   
 					stk.StockLineId,  
 					(SELECT TOP 1 b.QtyBilled FROM dbo.BillingInvoicing a WITH (NOLOCK) 
@@ -660,7 +660,7 @@ BEGIN
 					LEFT JOIN DBO.Currency currb WITH (NOLOCK) on currb.CurrencyId = sobi.CurrencyId
 					WHERE sos.SalesOrderId = @ReferenceId AND sop.ItemMasterId = @ItemMasterId AND sop.ConditionId = @ConditionId  
 					GROUP BY sosi.SalesOrderShippingId, sosi.SalesOrderShippingItemId, sos.SOShippingNum, so.SalesOrderNumber, imt.ItemMasterId, imt.partnumber,imt.ItemMasterId,sop.ConditionId, imt.PartDescription, sl.StockLineNumber,  
-					sl.SerialNumber, cr.[Name], sop.SalesOrderId, sop.SalesOrderPartId, stk.SalesOrderStocklineId, cond.Description, curr.Code, currb.Code, stk.StockLineId,  
+					sl.SerialNumber, sobii.SerialNumber, cr.[Name], sop.SalesOrderId, sop.SalesOrderPartId, stk.SalesOrderStocklineId, cond.Description, curr.Code, currb.Code, stk.StockLineId,  
 					sobi.InvoiceStatus, sosi.QtyShipped, sop.ItemMasterId, sobi.InvoiceStatus,SOSC.NetSaleAmount, sobi.InvoiceNo, sobi.InvoiceTypeId,
 					SOPC.TaxAmount, SOPC.TaxPercentage, sos.SmentNum, sobii.VersionNo,sobi.IsVersionIncrease,sobii.IsVersionIncrease, sobi.BillingInvoicingId, sobii.BillingInvoicingId,sobi.GrandTotal,sobi.[IsInvoicePosted],
 					sop.ECCN ,sop.HSCODE ,sop.[Weight] ,sop.SizeLength ,sop.SizeWidth ,sop.SizeHeight, stk.QtyOrder,imt.isSerialized,sobi.CreditMemoHeaderId)
@@ -726,7 +726,9 @@ BEGIN
 							AND SOSI.SOPickTicketId = SOPPick.SOPickTicketId) end  as QtyToBill,
 				
 							so.SalesOrderNumber, imt.partnumber, imt.ItemMasterId, sop.ConditionId, imt.PartDescription, sl.StockLineNumber,  
-							sl.SerialNumber, cr.[Name] as CustomerName,   
+							--sl.SerialNumber, 
+							CASE WHEN sobii.SerialNumber IS NOT NULL THEN sobii.SerialNumber ELSE sl.SerialNumber END SerialNumber,
+							cr.[Name] as CustomerName,   
 							stk.StockLineId,  
 							ISNULL((SELECT ISNULL(b.QtyBilled, 0) FROM dbo.BillingInvoicing a WITH (NOLOCK) 
 								INNER JOIN dbo.BillingInvoicingItems b WITH (NOLOCK) ON a.BillingInvoicingId = b.BillingInvoicingId 
@@ -835,7 +837,7 @@ BEGIN
 								sop.ConditionId, 
 								imt.PartDescription, 
 								sl.StockLineNumber,  
-								sl.SerialNumber, 
+								CASE WHEN sobii.SerialNumber IS NOT NULL THEN sobii.SerialNumber ELSE sl.SerialNumber END AS SerialNumber, 
 								cr.[Name] as CustomerName,   
 								stk.StockLineId,
 								ISNULL(sobii.QtyBilled, 0) AS QtyBilled,
@@ -1051,7 +1053,8 @@ BEGIN
 							sop.ConditionId, 
 							imt.PartDescription, 
 							sl.StockLineNumber,  
-							sl.SerialNumber, 
+							--sl.SerialNumber, 
+							CASE WHEN sobii.SerialNumber IS NOT NULL THEN sobii.SerialNumber ELSE sl.SerialNumber END AS SerialNumber,
 							cr.[Name] as CustomerName,   
 							ISNULL(stk.StockLineId, 0) StockLineId,
 							0 AS ItemNo,  
@@ -1226,7 +1229,9 @@ BEGIN
 						'' AS SOShippingNum, 
 						ISNULL(stk.QtyOrder, 0) AS QtyToBill, 
 						so.SalesOrderNumber, imt.partnumber, imt.ItemMasterId, sop.ConditionId, imt.PartDescription, sl.StockLineNumber,  
-						sl.SerialNumber, cr.[Name] AS CustomerName,   
+						--sl.SerialNumber, 
+						CASE WHEN sobii.SerialNumber IS NOT NULL THEN sobii.SerialNumber ELSE sl.SerialNumber END AS SerialNumber,
+						cr.[Name] AS CustomerName,   
 						stk.StockLineId,  
 						ISNULL((SELECT ISNULL(b.QtyBilled, 0)
 							FROM dbo.BillingInvoicing a WITH (NOLOCK) 

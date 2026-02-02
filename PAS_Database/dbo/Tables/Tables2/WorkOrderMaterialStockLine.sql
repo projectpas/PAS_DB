@@ -18,10 +18,10 @@
     [EquPartMasterPartId]     BIGINT          NULL,
     [IsAltPart]               BIT             NULL,
     [IsEquPart]               BIT             NULL,
-    [UnitCost]                DECIMAL (20, 2) CONSTRAINT [DF_WorkOrderMaterialStockLine_UnitCost] DEFAULT ((0)) NULL,
-    [ExtendedCost]            DECIMAL (20, 2) CONSTRAINT [DF_WorkOrderMaterialStockLine_ExtendedCost] DEFAULT ((0)) NULL,
-    [UnitPrice]               DECIMAL (20, 2) CONSTRAINT [DF_WorkOrderMaterialStockLine_UnitPrice] DEFAULT ((0)) NULL,
-    [ExtendedPrice]           DECIMAL (20, 2) CONSTRAINT [DF_WorkOrderMaterialStockLine_ExtendedPrice] DEFAULT ((0)) NULL,
+    [UnitCost]                DECIMAL (18, 6) CONSTRAINT [DF_WorkOrderMaterialStockLine_UnitCost] DEFAULT ((0)) NULL,
+    [ExtendedCost]            DECIMAL (18, 6) CONSTRAINT [DF_WorkOrderMaterialStockLine_ExtendedCost] DEFAULT ((0)) NULL,
+    [UnitPrice]               DECIMAL (18, 6) CONSTRAINT [DF_WorkOrderMaterialStockLine_UnitPrice] DEFAULT ((0)) NULL,
+    [ExtendedPrice]           DECIMAL (18, 6) CONSTRAINT [DF_WorkOrderMaterialStockLine_ExtendedPrice] DEFAULT ((0)) NULL,
     [ProvisionId]             INT             DEFAULT ((1)) NOT NULL,
     [RepairOrderId]           BIGINT          NULL,
     [QuantityTurnIn]          DECIMAL (18, 6) CONSTRAINT [DF__WorkOrder__Quant__4CDBC844] DEFAULT ((0)) NULL,
@@ -42,6 +42,8 @@
     CONSTRAINT [FK_WorkOrderMaterialStockLine_StockLine] FOREIGN KEY ([StockLineId]) REFERENCES [dbo].[Stockline] ([StockLineId]),
     CONSTRAINT [FK_WorkOrderMaterialStockLine_WorkOrderMaterials] FOREIGN KEY ([WorkOrderMaterialsId]) REFERENCES [dbo].[WorkOrderMaterials] ([WorkOrderMaterialsId])
 );
+
+
 
 
 

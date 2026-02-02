@@ -28,6 +28,9 @@
 	15   29/07/2025   RAJESH GAMI     Added stocklineIds while checking InvoiceNumber exist or not.(Only for SO)
 	16   30/07/2025   BHARGAV SALIYA  Adde new [ShippingTermsName] field in [BillingInvoicingDetails] table and get it here
 	17   05/11/2025   MOIN BLOCH      Added Credit Memo Logic   
+	18   09/01/2026   Vishal Suthar  Added SerialNumber column in BillingInvoicingDetails for SA
+	19   15/01/2026   Vishal Suthar  Issue with new version created for SA
+
 -- EXEC USP_AddBillingInvoicingDetails 
 ************************************************************************/  
   
@@ -90,6 +93,8 @@ CREATE     PROCEDURE [dbo].[USP_AddBillingInvoicingDetails]
 @SignEmpId BIGINT = NULL,
 @SignEmpDate DATETIME2(7) = NULL,
 @ShippingTermsName VARCHAR(256) = NULL,
+@SerialNumber VARCHAR(256) = NULL,
+@IsNewVersion bit = NULL,
 -------------------------------------------BillingInvoicingItems-------------------------------------------
 @tbl_BillingInvoicingItemsType BillingInvoicingItemsType READONLY
 AS  
@@ -175,6 +180,46 @@ BEGIN
 
 		EXEC [dbo].[USP_CheckWOInvoiceExistByWOBillId] @BillingInvoicingIdI,@SubReferenceIds,@StocklineIds,@IsPerformaInvoiceI,@ModuleId,@Result = @isNewInvoice OUTPUT
 
+		--IF (@MasterCompanyId = 12)
+		--BEGIN
+		--	IF (ISNULL(@IsNewVersion, 0) = 0)
+		--	BEGIN
+		--		SET @isNewInvoice = 1;
+		--	END
+		--	ELSE
+		--	BEGIN
+		--		SET @IsVersionIncrease = 1;
+		--	END
+		--END
+
+		SET @IsNewVersion = ISNULL(@IsNewVersion, 0);
+
+		IF (@MasterCompanyId = 12)
+		BEGIN
+			IF (@IsNewVersion = 0)
+			BEGIN
+				SET @isNewInvoice = 1;
+			END
+		END
+
+		IF (@MasterCompanyId = 12)
+		BEGIN
+			IF (ISNULL(@IsNewVersion, 0) = 1)
+			BEGIN
+				-- NEW VERSION
+				SET @isNewInvoice = 0;
+				SET @IsVersionIncrease = 1;
+			END
+			ELSE
+			BEGIN
+				-- NEW INVOICE
+				SET @isNewInvoice = 1;
+				SET @IsVersionIncrease = 0;
+				--SET @VersionNo = NULL;
+				SET @InvoiceNo = '';
+			END
+		END
+
 		IF(ISNULL(@isNewInvoice,0) = 0)
 		BEGIN
 			SET @InvoiceNo = (SELECT [InvoiceNo] FROM dbo.BillingInvoicing WHERE [BillingInvoicingId] = @BillingInvoicingIdI)
@@ -233,6 +278,7 @@ BEGIN
 		END
 
         DECLARE @VersionNum INT= 0;
+
 		IF (@VersionNo IS NOT NULL AND LEN(@VersionNo) > 0)
 		BEGIN
 			IF (LEN(@VersionNo) > 6)
@@ -253,8 +299,19 @@ BEGIN
 		ELSE
 		BEGIN			
 			SET @VersionNo = (SELECT * FROM [dbo].[udfGenerateCodeNumber](1, ISNULL(@VerCodePrefix,''),''));
-		END			
-		
+		END		
+
+		IF (@MasterCompanyId = 12 AND ISNULL(@IsNewVersion, 0) = 1 AND @BillingInvoicingIdI > 0)
+		BEGIN
+			UPDATE dbo.BillingInvoicing
+			SET IsVersionIncrease = 1,
+				UpdatedBy = @UpdatedBy,
+				UpdatedDate = @UpdatedDate
+			WHERE BillingInvoicingId = @BillingInvoicingIdI;
+
+			UPDATE [dbo].[BillingInvoicingItems] SET [IsVersionIncrease] = 1 WHERE BillingInvoicingId = @BillingInvoicingIdI;
+		END
+
 		IF OBJECT_ID(N'tempdb..#tmprAddBillingInvoicingDetailsTemp') IS NOT NULL
 		BEGIN
 			DROP TABLE #tmprAddBillingInvoicingDetailsTemp
@@ -343,7 +400,13 @@ BEGIN
 				   ,[IsCreatedFromQuote],[IsQuickBookGeneratedInvoice],[RemainingAmount],[WorkOrderShippingId],OriginCountryId,ShipToCountryId,SignEmpId,SignEmpDate)		 
 			 VALUES (@ModuleId, @ReferenceId, @CustomerId, @InvoiceTypeId, @InvoiceNo, @CreatedDate, @InvoiceTime, @PrintDate, @EmployeeId,
 					 @CurrencyId, @RevisionTypeId, @InvoiceStatusId, @InvoiceStatus, @InvoiceFilePath, @RevType, @VersionNo, @CostPlusType,
-					 @IsPerformaInvoice, @IsVersionIncrease, @PostedDate, @SubTotal, @OtherTax, @SalesTax, @DepositAmount, @GrandTotal,
+					 @IsPerformaInvoice, 
+					 --@IsVersionIncrease, 
+					 CASE 
+						WHEN @MasterCompanyId = 12 AND ISNULL(@IsNewVersion,0) = 1 THEN 0
+						ELSE @IsVersionIncrease
+					 END,
+					 @PostedDate, @SubTotal, @OtherTax, @SalesTax, @DepositAmount, @GrandTotal,
 					 @Notes, @ManagementStructureId, @MasterCompanyId, @CreatedBy, @CreatedBy, @CreatedDate, @CreatedDate,
 					 @IsActive, @IsDeleted, @IsReversedJE, @QuickBooksReferenceId, @IsUpdated, @LastSyncDate, @SyncToken,
 					 @IsCreatedFromQuote, @IsQuickBookGeneratedInvoice,@RemainingAmount,@WorkOrderShippingId,@OriginCountryId,@DestinationCountryId,@SignEmpId,@SignEmpDate);
@@ -422,13 +485,13 @@ BEGIN
 						   ,[IsMaterialCheck],[MaterialCost],[MaterialCostPercent],[MaterialCostPlus],[IsLaborCheck],[LaborCost],[LaborCostPercent],[LaborCostPlus]
 						   ,[IsFreightCheck],[Freight],[FreightCostPercent],[FreightCostPlus],[IsMiscChargesCheck],[MiscCharges],[MiscChargesCostPercent],[MiscChargesCostPlus],[SubTotal],[SalesTaxPercent]
 						   ,[SalesTax],[OtherTaxPercent],[OtherTax],[GrandTotal],[RemainingAmount],[PDFPath],[VersionNo],[IsVersionIncrease],[IsPerformaInvoice],[MasterCompanyId]
-						   ,[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[PartCost],[WorkFlowWorkOrderId],[ShippingId],[ShipDate],[DepositAmount])
+						   ,[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[PartCost],[WorkFlowWorkOrderId],[ShippingId],[ShipDate],[DepositAmount],[SerialNumber])
 					SELECT  @BillingInvoicingIdNew,[ModuleId],[ReferenceId],[SubModuleId],[SubReferenceId],[ItemMasterId],[StocklineId],
 							[ConditionId],[CostPlusType],[UnitPrice],[QtyBilled],[IsTotalCheck],[TotalBillingCost],[TotalBillingCostPercent],[TotalBillingCostPlus],
 							[IsMaterialCheck],[MaterialCost],[MaterialCostPercent],[MaterialCostPlus],[IsLaborCheck],[LaborCost],[LaborCostPercent],[LaborCostPlus],
 							[IsFreightCheck],[Freight],[FreightCostPercent],[FreightCostPlus],[IsMiscChargesCheck],[MiscCharges],[MiscChargesCostPercent],[MiscChargesCostPlus],[SubTotal],[SalesTaxPercent],
 							[SalesTax],	[OtherTaxPercent],[OtherTax],[GrandTotal],[GrandTotal],[PDFPath],[VersionNo],[IsVersionIncrease],[IsPerformaInvoice],[MasterCompanyId],
-							@CreatedBy,@CreatedBy,@CreatedDate,@CreatedDate,1,0,[PartCost],@WorkFlowWorkOrderId,[ShippingId],@ShipDate,0
+							@CreatedBy,@CreatedBy,@CreatedDate,@CreatedDate,1,0,[PartCost],@WorkFlowWorkOrderId,[ShippingId],@ShipDate,0,@SerialNumber
 					  FROM #tmprAddBillingInvoicingDetailsTemp WHERE [PKID] = @MinId
 			END
 			ELSE
@@ -472,20 +535,27 @@ BEGIN
 					  --AND CD.[BillingInvoicingItemId] = @BillingInvoicingItemId
 					  AND CM.[StatusId] = @StatusId
 
+				
 				IF(@CreditMemoHeaderId = 0)
 				BEGIN
-					UPDATE [dbo].[BillingInvoicing] SET [IsVersionIncrease] = 1, [InvoiceStatusId] = @BilledInvoiceStatusId, [InvoiceStatus] = @BilledInvoiceStatus WHERE [BillingInvoicingId] = @BillingInvoicingId; 
+					IF (@MasterCompanyId <> 12)
+					BEGIN
+						UPDATE [dbo].[BillingInvoicing] SET [IsVersionIncrease] = 1, [InvoiceStatusId] = @BilledInvoiceStatusId, [InvoiceStatus] = @BilledInvoiceStatus WHERE [BillingInvoicingId] = @BillingInvoicingId; 
+					END
 				END
 				ELSE
 				BEGIN
 					UPDATE [dbo].[BillingInvoicing] SET [CreditMemoHeaderId] = @CreditMemoHeaderId,[InvoiceStatusId] = @InvoicedStatusId,[InvoiceStatus] = @InvoicedStatus,[UpdatedDate] = @UpdatedDate WHERE [BillingInvoicingId] = @BillingInvoicingId; 
 				END
-							
+						
 				IF(@CreditMemoHeaderId = 0)
 				BEGIN
 					IF(@ModuleId = @SOModuleId)
 					BEGIN
-						UPDATE [dbo].[BillingInvoicingItems] SET [IsVersionIncrease] = 1, [PDFPath] = NULL  WHERE [SubReferenceId] = @SubReferenceId AND [BillingInvoicingId] = @BillingInvoicingId AND BillingInvoicingItemId = @BillingInvoicingItemId; 
+						IF (@MasterCompanyId <> 12)
+						BEGIN
+							UPDATE [dbo].[BillingInvoicingItems] SET [IsVersionIncrease] = 1, [PDFPath] = NULL  WHERE [SubReferenceId] = @SubReferenceId AND [BillingInvoicingId] = @BillingInvoicingId AND BillingInvoicingItemId = @BillingInvoicingItemId; 
+						END
 					END
 					ELSE IF(@ModuleId = @WOModuleId)
 					BEGIN
@@ -500,7 +570,7 @@ BEGIN
 						   ,[IsFreightCheck],[Freight],[FreightCostPercent],[FreightCostPlus]
 						   ,[IsMiscChargesCheck],[MiscCharges],[MiscChargesCostPercent],[MiscChargesCostPlus],[SubTotal],[SalesTaxPercent]
 						   ,[SalesTax],[OtherTaxPercent],[OtherTax],[GrandTotal],[RemainingAmount],[PDFPath],[VersionNo],[IsVersionIncrease],[IsPerformaInvoice],[MasterCompanyId]
-						   ,[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[PartCost],[WorkFlowWorkOrderId],[ShippingId],[ShipDate],[DepositAmount])
+						   ,[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[PartCost],[WorkFlowWorkOrderId],[ShippingId],[ShipDate],[DepositAmount],[SerialNumber])
 					SELECT  @BillingInvoicingIdNew,[ModuleId],[ReferenceId],[SubModuleId],[SubReferenceId],[ItemMasterId],[StocklineId],
 							[ConditionId],[CostPlusType],[UnitPrice],[QtyBilled],[IsTotalCheck],[TotalBillingCost],[TotalBillingCostPercent],[TotalBillingCostPlus],
 							[IsMaterialCheck],[MaterialCost],[MaterialCostPercent],[MaterialCostPlus],
@@ -508,7 +578,7 @@ BEGIN
 							[IsFreightCheck],[Freight],[FreightCostPercent],[FreightCostPlus],
 							[IsMiscChargesCheck],[MiscCharges],[MiscChargesCostPercent],[MiscChargesCostPlus],[SubTotal],[SalesTaxPercent],
 							[SalesTax],	[OtherTaxPercent],[OtherTax],[GrandTotal],[GrandTotal],[PDFPath],@VersionNo,[IsVersionIncrease],[IsPerformaInvoice],[MasterCompanyId],
-							@CreatedBy,@CreatedBy,@CreatedDate,@CreatedDate,1,0,[PartCost],@WorkFlowWorkOrderId,[ShippingId],@ShipDate,0
+							@CreatedBy,@CreatedBy,@CreatedDate,@CreatedDate,1,0,[PartCost],@WorkFlowWorkOrderId,[ShippingId],@ShipDate,0,@SerialNumber
 					   FROM #tmprAddBillingInvoicingDetailsTemp WHERE [PKID] = @MinId
 			   
 			    UPDATE [dbo].[BillingInvoicing] SET [VersionNo] = @VersionNo WHERE [BillingInvoicingId] = @BillingInvoicingIdNew; 

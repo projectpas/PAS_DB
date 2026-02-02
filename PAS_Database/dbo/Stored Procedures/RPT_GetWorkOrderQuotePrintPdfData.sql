@@ -24,6 +24,7 @@
 	10	 23-JUL-2025    Devendra Shekh      Added Case for Memo     
 	11	 14-OCT-2025    RAJESH GAMI		    Return Estimated Ship Date
 	12   10-Nov-2025    Moin Bloch          Updated Removed MEMO For MTI Company
+	13   06-Jan-2025    AMIT GHEDIYA        Previously, the memo was hidden only for the MTI company; it is now hidden for all other companies except NEO. 
 --EXEC [RPT_GetWorkOrderQuotePrintPdfData] 2358,4357  
 **************************************************************/  
 CREATE PROCEDURE [dbo].[RPT_GetWorkOrderQuotePrintPdfData]  
@@ -38,7 +39,7 @@ BEGIN
    BEGIN   
 		DECLARE @CorrectiveActionCode VARCHAR(100) = 'CRA';
 
-		DECLARE @MasterCompanyCode VARCHAR(100)='', @MTIMasterCompanyCode VARCHAR(100)='',@MasterCompanyId INT;
+		DECLARE @MasterCompanyCode VARCHAR(100)='', @MTIMasterCompanyCode VARCHAR(100)='',@NEOMasterCompanyCode VARCHAR(100)='',@MasterCompanyId INT;
 
 		DECLARE @VendorModuleId INT, @ManufacturerModuleId INT, @OtherModuleId INT;
 		SELECT @VendorModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'Vendor';
@@ -50,6 +51,8 @@ BEGIN
 		SELECT @MasterCompanyCode = [MasterCompanyCode] FROM [dbo].[MasterCompany] WITH(NOLOCK) WHERE [MasterCompanyId] = @MasterCompanyId;
 		-- MTI COMPANY
 		SELECT  @MTIMasterCompanyCode = [MasterCompanyCode] FROM [dbo].[MasterCompany] WITH(NOLOCK) WHERE [MasterCompanyCode] = 'MTI';	
+		-- NEO COMPANY
+		SELECT  @NEOMasterCompanyCode = [MasterCompanyCode] FROM [dbo].[MasterCompany] WITH(NOLOCK) WHERE [MasterCompanyCode] = 'NEO';	
 
 		DECLARE @WorkOrderId BIGINT;
 		DECLARE @EmailContent NVARCHAR(MAX);
@@ -245,7 +248,7 @@ BEGIN
 		--				LEFT JOIN dbo.CommonTeardownType ctt WITH(NOLOCK) ON ctd.CommonTeardownTypeId = ctt.CommonTeardownTypeId 
 		--			WHERE ctd.WorkFlowWorkOrderId = wf.WorkFlowWorkOrderId AND UPPER(ctt.Code) = UPPER(@CorrectiveActionCode))
 
-		,CASE WHEN @MasterCompanyCode = @MTIMasterCompanyCode THEN '' ELSE CASE WHEN ISNULL(wop.PublicationNotes, '') <> '' THEN
+		,CASE WHEN @MasterCompanyCode != @NEOMasterCompanyCode THEN '' ELSE CASE WHEN ISNULL(wop.PublicationNotes, '') <> '' THEN
 				(SELECT CAST('<x>' + 
 					REPLACE(
 						REPLACE(

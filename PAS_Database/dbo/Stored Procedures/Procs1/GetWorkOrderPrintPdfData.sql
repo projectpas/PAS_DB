@@ -1,4 +1,7 @@
-﻿/*************************************************************  
+﻿
+
+
+/*************************************************************  
 ** Author:  <Hemant Saliya>  
 ** Create date: <01/23/2023>  
 ** Description: <Get Work order Release Form Data>  
@@ -16,6 +19,8 @@ EXEC [GetSubWorkorderReleaseFromData]
 ** 5    03/APR/2025 RAJESH GAMI      Return @TravelerName blank if there is '0' or NULL
 ** 6	04/APR/2025 Devendra Shekh	 Added IsLaborTrackingTurnedOff to select
 ** 7	14/APR/2025 RAJESH GAMI	     Change the traveler number logic: Get from the WO Partnumber table if available else get from the traveler_setup
+** 8	22/JAN/2026 Priyansh Patel   Added CSN and TSN values
+
 EXEC GetWorkOrderPrintPdfData 8560,8227
 
 **************************************************************/
@@ -67,8 +72,8 @@ BEGIN
 		UPPER(sl.SerialNumber) as SerialNum,              
 		CASE WHEN ISNULL(wop.RevisedItemmasterid, 0) > 0 THEN UPPER(imtr.ItemGroup) ELSE  UPPER(imt.ItemGroup) END as 'itemGroup',            
 		wop.ACTailNum as ACTailNum,              
-		'' as TSN,              
-		'' as CSN,    
+		wop.TSN as TSN,              
+		wop.CSN as CSN,
 		FORMAT(wop.ReceivedDate, 'MM/dd/yyyy') AS Recd_Date,
 		wop.ReceivedDate,
 		woq.CreatedDate as Qte_Date,              

@@ -10,8 +10,8 @@
  ** PR   Date         Author			Change Description              
  ** --   --------     -------			------------------------------ 
 	1    02/11/2023   Devendra Shekh		created
-	1    07/05/2025   Amit Ghediya		add LegalEntityId
-
+	2    07/05/2025   Amit Ghediya		add LegalEntityId
+	3    26/01/2026   Rajesh Gami		Fixed [DueDate] issue. 
 EXEC [dbo].[USP_AddVendorPaymentDetailsForNonPOById] 5
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[USP_AddVendorPaymentDetailsForNonPOById]
@@ -39,7 +39,7 @@ BEGIN
 						[FXRate], [OriginalAmount], [PaymentMade], [AmountDue], [DaysPastDue], [DiscountDate], [DiscountAvailable], [DiscountToken], [OriginalTotal], [RRTotal], [InvoiceTotal],
 						[DIfferenceAmount], [TotalAdjustAmount], [StatusId], [Status], [MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[RemainingAmount],
 						[NonPOInvoiceId],[LegalEntityId])
-			     SELECT 0, GETUTCDATE(),  [VendorId], [VendorName], 0, NULL, 0, NPH.[NPONumber], NPH.[CurrencyId], CU.[Code],
+			     SELECT 0, NPH.DueDate, [VendorId], [VendorName], 0, NULL, 0, NPH.[NPONumber], NPH.[CurrencyId], CU.[Code],
 						0, part.ExtendedPrice, 0, 0, 0, NULL, 0, 0, part.ExtendedPrice, 0, part.ExtendedPrice,
 						0, 0,  [StatusId], NPHS.[Description], NPH.[MasterCompanyId], NPH.[CreatedBy], NPH.[UpdatedBy], GETUTCDATE(), GETUTCDATE(), NPH.[IsActive], NPH.[IsDeleted], part.ExtendedPrice,
 						@NonPOInvoiceId,@LEId

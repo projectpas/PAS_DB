@@ -21,12 +21,14 @@ EXEC [USP_GetReleaseFromDataByStockLineId]
 ** 10   25/02/2025      Moin Bloch          Updated (changed Condition Table)
 ** 11   10/10/2025      Moin Bloch          Updated For Get VersionNo & IsVersionIncrease Flag
 ** 12   13/10/2025      Moin Bloch          Updated to Dynamic VersionNo
+** 19   20/01/2026      Moin Bloch          Updated For PAR Added CorrectiveAction For PAR
+** 20   21/01/2026      Vishal Suthar       Move CorrectiveAction data with "*" only and remove "*" after moving to release form For PAR
 	
 
  EXEC [dbo].[USP_GetReleaseFromDataByStockLineId] 3553,1,0
 **************************************************************/ 
 
-CREATE   PROC [dbo].[USP_GetReleaseFromDataByStockLineId]  
+CREATE   PROC [dbo].[USP_GetReleaseFromDataByStockLineId]
 @StockLineId BIGINT,  
 @WorkOrderPartNumberId BIGINT,
 @IsEasaLicense BIT = 0 ,
@@ -53,11 +55,39 @@ BEGIN
 		DECLARE @EmailBody NVARCHAR(MAX)=''		
 		DECLARE @ECMasterCompanyId INT = 19
 		DECLARE @NeoMasterCompanyId INT = 20
+		DECLARE @MasterCompanyCode VARCHAR(20) = 'PAR'
+		DECLARE @ParCommonTeardownTypeId BIGINT = 0;
+		DECLARE @CorrectiveAction NVARCHAR(MAX)=''
+		DECLARE @WorkorderId BIGINT = 0;
+		DECLARE @WorkFlowWorkOrderId  BIGINT = 0;
 
 		SET @MSModuleId = 2 ; -- For WO PART NUMBER  
 		SET @MTIMasterCompanyId = 11; -- For MTI
 	  	  
 		SELECT @MasterCompanyId = [MasterCompanyId] FROM [DBO].[Stockline] CTT WITH(NOLOCK) WHERE [StockLineId] = @StockLineId;
+
+		SELECT @WorkorderId = [WorkorderId] FROM [DBO].[WorkOrderPartNumber] WITH(NOLOCK) WHERE [ID]=@workOrderPartNumberId
+
+		IF(@MasterCompanyCode = (SELECT [MasterCompanyCode] FROM [dbo].[MasterCompany] WITH(NOLOCK) WHERE [MasterCompanyId] = @MasterCompanyId))
+		BEGIN
+			SELECT @ParCommonTeardownTypeId = [CommonTeardownTypeId] FROM [dbo].[CommonTeardownType] WITH(NOLOCK) WHERE [MasterCompanyId] = @MasterCompanyId AND [TearDownCode] = 'CRA';			
+			SELECT @WorkFlowWorkOrderId = [WorkFlowWorkOrderId] FROM [DBO].[WorkOrderWorkFlow] WITH(NOLOCK) WHERE [WorkorderId]=@WorkorderId AND [WorkOrderPartNoId]=@workOrderPartNumberId				
+			--SELECT @CorrectiveAction = [Memo] FROM [DBO].[CommonWorkOrderTearDown] WITH(NOLOCK) WHERE [CommonTeardownTypeId]=@ParCommonTeardownTypeId AND [WorkorderId]=@WorkorderId AND [WorkFlowWorkOrderId]=@WorkFlowWorkOrderId
+			SELECT @CorrectiveAction =
+				STRING_AGG(
+					CASE
+						WHEN s.value LIKE '<p>*%' THEN
+							REPLACE(s.value, '<p>*', '<p>') + '</p>'
+						WHEN LTRIM(s.value) LIKE '*%' THEN
+							STUFF(LTRIM(s.value), 1, 1, '')
+						ELSE NULL END, '')
+			FROM [DBO].[CommonWorkOrderTearDown] t WITH (NOLOCK)
+			CROSS APPLY STRING_SPLIT(REPLACE(REPLACE(t.[Memo], '</p>', CHAR(10)), CHAR(13), ''), CHAR(10)) s
+			WHERE t.[CommonTeardownTypeId] = @ParCommonTeardownTypeId
+				AND t.[WorkorderId] = @WorkorderId
+				AND t.[WorkFlowWorkOrderId] = @WorkFlowWorkOrderId
+				AND (s.value LIKE '<p>*%' OR LTRIM(s.value) LIKE '*%');
+		END
 
 		DECLARE @VerCodePrefix NVARCHAR(50),@VerCode INT
 
@@ -241,6 +271,7 @@ BEGIN
 			   wop.IsFinishGood
 			   ,@VersionNo VersionNo
 			   ,0 AS IsVersionIncrease
+			   ,@CorrectiveAction CorrectiveAction
 		FROM [dbo].[Stockline] sl WITH(NOLOCK)   
 			  LEFT JOIN [dbo].[WorkOrder] wo  WITH(NOLOCK) ON wo.WorkOrderId = sl.WorkOrderId 
 			  LEFT JOIN [dbo].[WorkOrderPartNumber] wop  WITH(NOLOCK) ON wo.WorkOrderId = wop.WorkOrderId AND wop.ID = @WorkOrderPartNumberId
@@ -326,6 +357,7 @@ BEGIN
 			   wop.IsFinishGood
 			   ,@VersionNo VersionNo
 			   ,0 AS IsVersionIncrease
+			   ,@CorrectiveAction CorrectiveAction
 		FROM [dbo].[Stockline] sl WITH(NOLOCK)   
 			  LEFT JOIN [dbo].[WorkOrder] wo  WITH(NOLOCK) ON wo.WorkOrderId = sl.WorkOrderId 
 			  LEFT JOIN [dbo].[WorkOrderPartNumber] wop  WITH(NOLOCK) ON wo.WorkOrderId = wop.WorkOrderId AND wop.ID = @WorkOrderPartNumberId
@@ -409,6 +441,7 @@ BEGIN
 			   wop.IsFinishGood
 			   ,@VersionNo VersionNo
 			   ,0 AS IsVersionIncrease
+			   ,@CorrectiveAction CorrectiveAction
 		FROM [dbo].[Stockline] sl WITH(NOLOCK)   
 			  LEFT JOIN [dbo].[WorkOrder] wo  WITH(NOLOCK) ON wo.WorkOrderId = sl.WorkOrderId 
 			  LEFT JOIN [dbo].[WorkOrderPartNumber] wop  WITH(NOLOCK) ON wo.WorkOrderId = wop.WorkOrderId AND wop.ID = @WorkOrderPartNumberId

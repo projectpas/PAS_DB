@@ -20,6 +20,8 @@
 	3    01/03/2025   Moin Bloch     Added StandardHours,StandardMinute,VarianceHours,VarianceMinute
 	4    21/01/2025   Moin Bloch     Added [WorkOrderFormTypeId]
 	5    18/06/2025   Devendra Shekh Hours Calculation Issue Resolved after new Changes for Labor Rename
+	6    20/01/2025   Rajesh Gami    Added one more Order By Workorder task SequenceNumber
+	7    27/01/2026   Moin Bloch     Added [IsAdjustmentTask]
 	
  EXECUTE [sp_GetWorkOrderLaborTaskList] 3814
 **************************************************************/
@@ -74,7 +76,8 @@ BEGIN
 					   wol.[StandardHours],
 					   wol.[StandardMinute],
 					   wol.[VarianceHours],
-					   wol.[VarianceMinute]
+					   wol.[VarianceMinute],
+					   wol.[IsAdjustmentTask]
 				FROM [dbo].[WorkOrderLabor] wol WITH(NOLOCK)
 					LEFT JOIN [dbo].[Task] task  WITH(NOLOCK) ON task.TaskId = wol.TaskId
 					LEFT JOIN [dbo].[WorkOrderTask] WOT  WITH(NOLOCK) ON WOT.WorkOrderTaskId = wol.TaskId
@@ -83,7 +86,8 @@ BEGIN
 					INNER JOIN [dbo].[WorkOrderLaborHeader] woh WITH(NOLOCK) ON woh.WorkOrderLaborHeaderId = wol.WorkOrderLaborHeaderId
 					INNER JOIN [dbo].[WorkOrderWorkFlow] wfwo WITH(NOLOCK) ON wfwo.WorkFlowWorkOrderId = woh.WorkFlowWorkOrderId 
 					INNER JOIN [dbo].[WorkOrderPartNumber] wop WITH(NOLOCK) ON wfwo.WorkOrderPartNoId = wop.ID 
-				WHERE wol.WorkOrderLaborHeaderId = @WorkOrderLaborHeaderId AND wol.IsDeleted = 0  ORDER BY IsBeginTemp DESC
+				WHERE wol.WorkOrderLaborHeaderId = @WorkOrderLaborHeaderId AND wol.IsDeleted = 0 
+					ORDER BY IsBeginTemp DESC,  TRY_CAST(WOT.SequenceNumber AS INT) 
 
 		END TRY    
 		BEGIN CATCH      

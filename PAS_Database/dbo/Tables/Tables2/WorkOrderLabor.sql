@@ -32,6 +32,7 @@
     [StatusChangedDate]       DATETIME2 (7)   NULL,
     [TaskInstruction]         VARCHAR (MAX)   NULL,
     [IsBegin]                 BIT             NULL,
+    [IsAdjustmentTask]        BIT             NULL,
     CONSTRAINT [PK_WorkOrderLabor] PRIMARY KEY CLUSTERED ([WorkOrderLaborId] ASC),
     CONSTRAINT [FK_WorkOrderLabor_BurdaenRatePercentageId] FOREIGN KEY ([BurdaenRatePercentageId]) REFERENCES [dbo].[Percent] ([PercentId]),
     CONSTRAINT [FK_WorkOrderLabor_EmployeeId] FOREIGN KEY ([EmployeeId]) REFERENCES [dbo].[Employee] ([EmployeeId]),
@@ -40,6 +41,8 @@
     CONSTRAINT [FK_WorkOrderLabor_TaskStatusId] FOREIGN KEY ([TaskStatusId]) REFERENCES [dbo].[TaskStatus] ([TaskStatusId]),
     CONSTRAINT [FK_WorkOrderLabor_WorkOrderLaborHeader] FOREIGN KEY ([WorkOrderLaborHeaderId]) REFERENCES [dbo].[WorkOrderLaborHeader] ([WorkOrderLaborHeaderId])
 );
+
+
 
 
 

@@ -18,6 +18,7 @@
     2    11/07/2023   Satish Gohil		CRDRType Column added
 	3    17/09/2024   AMIT GHEDIYA		added AutoPost.
 	4    27/10/2025   AMIT GHEDIYA		update for get glaccount from LE.
+	5	 26/01/2026   AMIT GHEDIYA		update for get glaccount details.
        
  EXECUTE [GetDistributionSetupData] 1,9 ,1
 **************************************************************/  
@@ -40,7 +41,9 @@ BEGIN
 				@ACHCode VARCHAR(50) = 'ACHT',
 				@DistributionSetupCode VARCHAR(50) = NULL,
 				@GLAccountId BIGINT = 0,
-				@GlAccountName VARCHAR(200) = NULL;
+				@DefaultGLAccountId BIGINT = 0,
+				@GlAccountName VARCHAR(200) = NULL,
+				@GlAccountCode VARCHAR(50) = NULL;
 
 		SELECT @JournalTypeCode = [JournalTypeCode] FROM [DBO].[JournalType] WITH(NOLOCK) WHERE [ID] = @JournalTypeID;
 
@@ -53,14 +56,24 @@ BEGIN
 			 
 			 IF(ISNULL(@GLAccountId,0) > 0)
 			 BEGIN
-				  SELECT @GlAccountName = [AccountName] FROM [DBO].[GLAccount] WITH(NOLOCK) WHERE [GLAccountId] = @GLAccountId;
+				  SELECT @GlAccountName = [AccountName], @GlAccountCode = [AccountCode] FROM [DBO].[GLAccount] WITH(NOLOCK) WHERE [GLAccountId] = @GLAccountId;
 			 END
 
-			 SELECT @DistributionSetupCode = [DistributionSetupCode] FROM [DBO].[DistributionSetup] WITH(NOLOCK) 
+			 SELECT @DistributionSetupCode = [DistributionSetupCode], @DefaultGLAccountId = [GlAccountId] FROM [DBO].[DistributionSetup] WITH(NOLOCK) 
 			 WHERE DistributionMasterId = (SELECT [ID] FROM [DBO].[DistributionMaster] WITH(NOLOCK) WHERE [DistributionCode] = 'CheckPayment')
 			 AND [JournalTypeId] = (SELECT [ID] FROM [DBO].[JournalType] WHERE JournalTypeCode = 'CKS')
 			 AND MasterCompanyId = @masterCompanyId
 			 AND DistributionSetupCode = 'CKSBANKACCOUNT';
+
+			 --Update GL Account
+			 IF(ISNULL(@GLAccountId,0) > 0 AND ISNULL(@DefaultGLAccountId,0) = 0)
+			 BEGIN
+				 UPDATE [DBO].[DistributionSetup] SET [GlAccountId] = @GLAccountId, [GlAccountName] = @GlAccountName, [GlAccountNumber] = @GlAccountCode
+					 WHERE DistributionMasterId = (SELECT [ID] FROM [DBO].[DistributionMaster] WITH(NOLOCK) WHERE [DistributionCode] = 'CheckPayment')
+					 AND [JournalTypeId] = (SELECT [ID] FROM [DBO].[JournalType] WHERE JournalTypeCode = 'CKS')
+					 AND MasterCompanyId = @masterCompanyId
+					 AND DistributionSetupCode = 'CKSBANKACCOUNT';
+			 END
 
 			 SELECT  
 					[ID]
@@ -100,14 +113,24 @@ BEGIN
 			 
 			 IF(ISNULL(@GLAccountId,0) > 0)
 			 BEGIN
-				  SELECT @GlAccountName = [AccountName] FROM [DBO].[GLAccount] WITH(NOLOCK) WHERE [GLAccountId] = @GLAccountId;
+				  SELECT @GlAccountName = [AccountName], @GlAccountCode = [AccountCode] FROM [DBO].[GLAccount] WITH(NOLOCK) WHERE [GLAccountId] = @GLAccountId;
 			 END
 
-			 SELECT @DistributionSetupCode = [DistributionSetupCode] FROM [DBO].[DistributionSetup] WITH(NOLOCK) 
+			 SELECT @DistributionSetupCode = [DistributionSetupCode], @DefaultGLAccountId = [GlAccountId] FROM [DBO].[DistributionSetup] WITH(NOLOCK) 
 			 WHERE DistributionMasterId = (SELECT [ID] FROM [DBO].[DistributionMaster] WITH(NOLOCK) WHERE [DistributionCode] = 'CREDITCARDPAYMENT')
 			 AND [JournalTypeId] = (SELECT [ID] FROM [DBO].[JournalType] WHERE JournalTypeCode = 'CCP')
 			 AND MasterCompanyId = @masterCompanyId
 			 AND DistributionSetupCode = 'CCP-BANKACCOUNT';
+
+			 --Update GL Account
+			 IF(ISNULL(@GLAccountId,0) > 0 AND ISNULL(@DefaultGLAccountId,0) = 0)
+			 BEGIN
+				  UPDATE [DBO].[DistributionSetup] SET [GlAccountId] = @GLAccountId, [GlAccountName] = @GlAccountName, [GlAccountNumber] = @GlAccountCode
+				  WHERE DistributionMasterId = (SELECT [ID] FROM [DBO].[DistributionMaster] WITH(NOLOCK) WHERE [DistributionCode] = 'CREDITCARDPAYMENT')
+				  AND [JournalTypeId] = (SELECT [ID] FROM [DBO].[JournalType] WHERE JournalTypeCode = 'CCP')
+				  AND MasterCompanyId = @masterCompanyId
+				  AND DistributionSetupCode = 'CCP-BANKACCOUNT';
+			 END
 
 			 SELECT  
 					[ID]
@@ -151,14 +174,24 @@ BEGIN
 			 
 			 IF(ISNULL(@GLAccountId,0) > 0)
 			 BEGIN
-				  SELECT @GlAccountName = [AccountName] FROM [DBO].[GLAccount] WITH(NOLOCK) WHERE [GLAccountId] = @GLAccountId;
+				  SELECT @GlAccountName = [AccountName], @GlAccountCode = [AccountCode] FROM [DBO].[GLAccount] WITH(NOLOCK) WHERE [GLAccountId] = @GLAccountId;
 			 END
 
-			 SELECT @DistributionSetupCode = [DistributionSetupCode] FROM [DBO].[DistributionSetup] WITH(NOLOCK) 
+			 SELECT @DistributionSetupCode = [DistributionSetupCode], @DefaultGLAccountId = [GlAccountId] FROM [DBO].[DistributionSetup] WITH(NOLOCK) 
 			 WHERE DistributionMasterId = (SELECT [ID] FROM [DBO].[DistributionMaster] WITH(NOLOCK) WHERE [DistributionCode] = 'ACHTRANSFER')
 			 AND [JournalTypeId] = (SELECT [ID] FROM [DBO].[JournalType] WHERE JournalTypeCode = 'ACHT')
 			 AND MasterCompanyId = @masterCompanyId
 			 AND DistributionSetupCode = 'ACHT-BANKACCOUNT';
+
+			 --Update GL Account
+			 IF(ISNULL(@GLAccountId,0) > 0 AND ISNULL(@DefaultGLAccountId,0) = 0)
+			 BEGIN
+				  UPDATE [DBO].[DistributionSetup] SET [GlAccountId] = @GLAccountId, [GlAccountName] = @GlAccountName, [GlAccountNumber] = @GlAccountCode
+				  WHERE DistributionMasterId = (SELECT [ID] FROM [DBO].[DistributionMaster] WITH(NOLOCK) WHERE [DistributionCode] = 'ACHTRANSFER')
+				  AND [JournalTypeId] = (SELECT [ID] FROM [DBO].[JournalType] WHERE JournalTypeCode = 'ACHT')
+				  AND MasterCompanyId = @masterCompanyId
+				  AND DistributionSetupCode = 'ACHT-BANKACCOUNT';
+			 END
 
 			 SELECT  
 					[ID]
@@ -197,22 +230,32 @@ BEGIN
 		IF(@JournalTypeCode = @WireCode)
 		BEGIN
 			 --SELECT @GLAccountId = [GLAccountId] FROM [DBO].[InternationalWirePayment] WITH(NOLOCK) WHERE [LegalEntityId] = @legalEntityId AND [IsPrimary] = 1;
-			SELECT @GLAccountId = glac.[GLAccountId] FROM
+			 SELECT @GLAccountId = glac.[GLAccountId] FROM
 				[DBO].[InternationalWirePayment] t WITH(NOLOCK)
-			INNER JOIN [DBO].[LegalEntityInternationalWireBanking] ad WITH(NOLOCK) ON t.[InternationalWirePaymentId] = ad.[InternationalWirePaymentId]
-			LEFT JOIN [DBO].[GLAccount] glac WITH(NOLOCK) ON t.[GLAccountId] = glac.[GLAccountId]
-			WHERE ad.[LegalEntityId] = @LegalEntityId AND t.MasterCompanyId = @masterCompanyId;
+			 INNER JOIN [DBO].[LegalEntityInternationalWireBanking] ad WITH(NOLOCK) ON t.[InternationalWirePaymentId] = ad.[InternationalWirePaymentId]
+			 LEFT JOIN [DBO].[GLAccount] glac WITH(NOLOCK) ON t.[GLAccountId] = glac.[GLAccountId]
+			 WHERE ad.[LegalEntityId] = @LegalEntityId AND t.MasterCompanyId = @masterCompanyId;
 			 
 			 IF(ISNULL(@GLAccountId,0) > 0)
 			 BEGIN
-				  SELECT @GlAccountName = [AccountName] FROM [DBO].[GLAccount] WITH(NOLOCK) WHERE [GLAccountId] = @GLAccountId;
+				  SELECT @GlAccountName = [AccountName], @GlAccountCode = [AccountCode] FROM [DBO].[GLAccount] WITH(NOLOCK) WHERE [GLAccountId] = @GLAccountId;
 			 END
 
-			 SELECT @DistributionSetupCode = [DistributionSetupCode] FROM [DBO].[DistributionSetup] WITH(NOLOCK) 
+			 SELECT @DistributionSetupCode = [DistributionSetupCode], @DefaultGLAccountId = [GlAccountId] FROM [DBO].[DistributionSetup] WITH(NOLOCK) 
 			 WHERE DistributionMasterId = (SELECT [ID] FROM [DBO].[DistributionMaster] WITH(NOLOCK) WHERE [DistributionCode] = 'WIRETRANSFER')
 			 AND [JournalTypeId] = (SELECT [ID] FROM [DBO].[JournalType] WHERE JournalTypeCode = 'WRT')
 			 AND MasterCompanyId = @masterCompanyId
 			 AND DistributionSetupCode = 'WRT-BANKACCOUNT';
+
+			 --Update GL Account
+			 IF(ISNULL(@GLAccountId,0) > 0 AND ISNULL(@DefaultGLAccountId,0) = 0)
+			 BEGIN
+				  UPDATE [DBO].[DistributionSetup] SET [GlAccountId] = @GLAccountId, [GlAccountName] = @GlAccountName, [GlAccountNumber] = @GlAccountCode
+				  WHERE DistributionMasterId = (SELECT [ID] FROM [DBO].[DistributionMaster] WITH(NOLOCK) WHERE [DistributionCode] = 'WIRETRANSFER')
+				  AND [JournalTypeId] = (SELECT [ID] FROM [DBO].[JournalType] WHERE JournalTypeCode = 'WRT')
+				  AND MasterCompanyId = @masterCompanyId
+				  AND DistributionSetupCode = 'WRT-BANKACCOUNT';
+			 END
 
 			 SELECT  
 					[ID]

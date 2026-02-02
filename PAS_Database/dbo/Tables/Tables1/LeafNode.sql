@@ -14,9 +14,12 @@
     [ReportingStructureId] BIGINT        NULL,
     [IsPositive]           BIT           NULL,
     [SequenceNumber]       BIGINT        NULL,
+    [PrintSequenceNumber]  INT           NULL,
     CONSTRAINT [PK_LeafNode] PRIMARY KEY CLUSTERED ([LeafNodeId] ASC),
     CONSTRAINT [FK_LeafNode_ReportingStructure] FOREIGN KEY ([ReportingStructureId]) REFERENCES [dbo].[ReportingStructure] ([ReportingStructureId])
 );
+
+
 
 
 GO

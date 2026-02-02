@@ -5,10 +5,10 @@
     [ReferencePieceId]     BIGINT          NULL,
     [InvoiceId]            BIGINT          NULL,
     [StocklineId]          BIGINT          NULL,
-    [Qty]                  INT             NULL,
+    [Qty]                  DECIMAL (18, 6) NULL,
     [LaborType]            VARCHAR (200)   NULL,
     [Issued]               BIT             NULL,
-    [Amount]               DECIMAL (18, 2) NULL,
+    [Amount]               DECIMAL (18, 6) NULL,
     [ModuleName]           VARCHAR (200)   NULL,
     [MasterCompanyId]      INT             NULL,
     [UpdateBy]             VARCHAR (200)   NULL);

@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [sp_GetSOShippingChildList]           
  ** Author:   
  ** Description: 
@@ -22,6 +21,8 @@
  	4	16 Jun 2025	    RAJESH GAMI			Change the new billing invoicing table with old one (SO)    
 	5	11 July 2025	RAJESH GAMI			Get SOShipping ID from the BIlling Invoicing If it's posted  
 	6   10 Nov 2025		Rajesh Gami			Added [UPSPdfPath]	
+	7   12 Jan 2026		VISHAL SUTHAR		Fixed issue populating duplicate shipping records for same stockline (specifically for SA to allow multiple invoice for posted one)
+
  EXEC [dbo].[sp_GetSOShippingChildList] 1272, 318, 7  
 **************************************************************/
 CREATE   Procedure [dbo].[sp_GetSOShippingChildList]  
@@ -44,7 +45,8 @@ BEGIN
 			 sos.SalesOrderId, (CASE WHEN sosi.SalesOrderPartId IS NOT NULL THEN sosi.SalesOrderPartId ELSE sop.SalesOrderPartId END) SalesOrderPartId,  
 			 sos.AirwayBill, SPB.PackagingSlipNo, SPB.PackagingSlipId,   
 			 CASE WHEN sos.SalesOrderShippingId IS NOT NULL THEN sos.SmentNum ELSE 0 END AS 'SmentNo',  
-			 (CASE WHEN ISNULL(BI.IsInvoicePosted,0) = 1 THEN SOBI.ShippingId ELSE 0 END) AS  SOShippingId,
+			 --(CASE WHEN ISNULL(BI.IsInvoicePosted,0) = 1 THEN SOBI.ShippingId ELSE 0 END) AS  SOShippingId,
+			 (CASE WHEN ISNULL(InvoiceData.IsInvoicePosted,0) = 1 THEN InvoiceData.ShippingId ELSE 0 END) AS SOShippingId,
 			 sosi.FedexPdfPath,
 			 Stk.ECCN AS ECCN,
 			 Stk.HSCODE AS HSCODE,
@@ -68,8 +70,14 @@ BEGIN
 	  LEFT JOIN DBO.SalesOrderPackaginSlipItems SPI WITH (NOLOCK) ON sopt.SOPickTicketId = SPI.SOPickTicketId   
 		 AND SPI.SalesOrderPartId = sop.SalesOrderPartId  
 	  LEFT JOIN DBO.SalesOrderPackaginSlipHeader SPB WITH (NOLOCK) ON SPB.PackagingSlipId = SPI.PackagingSlipId  
-	  LEFT JOIN DBO.BillingInvoicingItems SOBI  WITH (NOLOCK) ON sosi.SalesOrderShippingId = SOBI.ShippingId AND ISNULL(SOBI.IsPerformaInvoice,0) = 0 AND SOBI.ModuleId = @soModuleId AND ISNULL(SOBI.IsVersionIncrease,0) = 0
-	  LEFT JOIN DBO.BillingInvoicing BI  WITH (NOLOCK) ON SOBI.BillingInvoicingId = BI.BillingInvoicingId AND BI.ModuleId = @soModuleId AND ISNULL(BI.IsVersionIncrease,0) = 0 
+	  --LEFT JOIN DBO.BillingInvoicingItems SOBI  WITH (NOLOCK) ON sosi.SalesOrderShippingId = SOBI.ShippingId AND ISNULL(SOBI.IsPerformaInvoice,0) = 0 AND SOBI.ModuleId = @soModuleId AND ISNULL(SOBI.IsVersionIncrease,0) = 0
+	  --LEFT JOIN DBO.BillingInvoicing BI  WITH (NOLOCK) ON SOBI.BillingInvoicingId = BI.BillingInvoicingId AND BI.ModuleId = @soModuleId AND ISNULL(BI.IsVersionIncrease,0) = 0 
+	  OUTER APPLY
+	  ( SELECT TOP 1 SOBI.ShippingId, BI.IsInvoicePosted
+		FROM DBO.BillingInvoicingItems SOBI WITH (NOLOCK) INNER JOIN DBO.BillingInvoicing BI WITH (NOLOCK) ON BI.BillingInvoicingId = SOBI.BillingInvoicingId
+		WHERE SOBI.ShippingId = sosi.SalesOrderShippingId AND ISNULL(SOBI.IsPerformaInvoice,0) = 0 AND SOBI.ModuleId = @soModuleId AND ISNULL(SOBI.IsVersionIncrease,0) = 0 AND BI.ModuleId = @soModuleId AND ISNULL(BI.IsVersionIncrease,0) = 0
+		ORDER BY BI.BillingInvoicingId DESC
+	  ) InvoiceData
 	  WHERE sopt.SalesOrderId = @SalesOrderId  
 	  AND sop.ItemMasterId = @SalesOrderPartId  
 	  AND sop.ConditionId = @ConditionId  

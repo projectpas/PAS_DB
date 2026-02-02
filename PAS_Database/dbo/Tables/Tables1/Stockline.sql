@@ -120,7 +120,7 @@
     [PurchaseUnitOfMeasureId]             BIGINT          NOT NULL,
     [ObtainFromName]                      VARCHAR (100)   NULL,
     [OwnerName]                           VARCHAR (100)   NULL,
-    [TraceableToName]                     VARCHAR (50)    NULL,
+    [TraceableToName]                     VARCHAR (250)   NULL,
     [Level1]                              VARCHAR (100)   NULL,
     [Level2]                              VARCHAR (100)   NULL,
     [Level3]                              VARCHAR (100)   NULL,
@@ -306,6 +306,14 @@
 
 
 
+
+
+
+
+
+
+
+
 GO
 
 
@@ -335,3 +343,115 @@ BEGIN
 
 
 END
+
+GO
+CREATE     TRIGGER [dbo].[trg_Audit_dbo_Stockline]
+        ON [dbo].[Stockline]
+        AFTER INSERT, UPDATE, DELETE
+        AS
+        BEGIN
+            SET NOCOUNT ON;
+            ;WITH
+            d AS (SELECT d.[StockLineId],d.[PartNumber],d.[PNDescription],d.[Manufacturer],d.[RevicedPNNumber],d.[UnitOfMeasure],d.[Condition],d.[Location],d.[QuantityOnHand],d.[QtyReserved],d.[QuantityAvailable],d.[QuantityAdjustment],d.[UnitCost],d.[IsCustomerStock],d.[IsRepairManagement],d.[IsStkTimeLife],d.[IsDocument],d.[StockLineNumber],d.[ControlNumber],d.[ReceivedDate],d.[ExpirationDate],d.[PurchaseOrderNumber],d.[RepairOrderNumber],d.[ReceiverNumber],d.[TraceableTo],d.[ObtainFrom],d.[TagType],d.[TaggedBy],d.[TagDate],d.[PartCertificationNumber],d.[CertifiedBy],d.[CertifiedDate],d.[UpdatedBy],d.[UpdatedDate],d.[WorkOrderNumber],d.[LotNumber],d.[CustomerName],d.[BatchNumber],d.[SerialNumber],d.[QtyIssued],d.[itemGroup],d.[PurchaseOrderUnitCost],d.[RepairOrderUnitCost],d.[Adjustment],d.[CreatedBy],d.[CreatedDate],d.[IsActive],d.[IsDeleted] FROM deleted d),
+            i AS (SELECT i.[StockLineId],i.[PartNumber],i.[PNDescription],i.[Manufacturer],i.[RevicedPNNumber],i.[UnitOfMeasure],i.[Condition],i.[Location],i.[QuantityOnHand],i.[QtyReserved],i.[QuantityAvailable],i.[QuantityAdjustment],i.[UnitCost],i.[IsCustomerStock],i.[IsRepairManagement],i.[IsStkTimeLife],i.[IsDocument],i.[StockLineNumber],i.[ControlNumber],i.[ReceivedDate],i.[ExpirationDate],i.[PurchaseOrderNumber],i.[RepairOrderNumber],i.[ReceiverNumber],i.[TraceableTo],i.[ObtainFrom],i.[TagType],i.[TaggedBy],i.[TagDate],i.[PartCertificationNumber],i.[CertifiedBy],i.[CertifiedDate],i.[UpdatedBy],i.[UpdatedDate],i.[WorkOrderNumber],i.[LotNumber],i.[CustomerName],i.[BatchNumber],i.[SerialNumber],i.[QtyIssued],i.[itemGroup],i.[PurchaseOrderUnitCost],i.[RepairOrderUnitCost],i.[Adjustment],i.[CreatedBy],i.[CreatedDate],i.[IsActive],i.[IsDeleted] FROM inserted i),
+
+            paired AS (
+                SELECT
+                    COALESCE(i.StockLineId, d.StockLineId ) AS StockLineId,
+                    (SELECT d.* FOR JSON PATH, WITHOUT_ARRAY_WRAPPER) AS old_row_json,
+                    (SELECT i.* FOR JSON PATH, WITHOUT_ARRAY_WRAPPER) AS new_row_json, 
+                    CASE
+                        WHEN i.StockLineId IS NOT NULL AND d.StockLineId IS NOT NULL THEN 'U'
+                        WHEN i.StockLineId IS NOT NULL AND d.StockLineId IS NULL     THEN 'I'
+                        WHEN i.StockLineId IS NULL     AND d.StockLineId IS NOT NULL THEN 'D'
+                    END AS Action,
+
+                    (SELECT COALESCE(i.StockLineId, d.StockLineId) AS StockLineId
+                     FOR JSON PATH, WITHOUT_ARRAY_WRAPPER) AS PKJson
+                FROM d
+                FULL OUTER JOIN i
+                    ON i.StockLineId = d.StockLineId
+            ),
+
+            oldv AS (
+                SELECT
+                    p.PKJson,
+                    p.StockLineId,
+                    v.[key]  AS ColumnName,
+                    v.value  AS OldValue
+                FROM paired p
+                CROSS APPLY OPENJSON(p.old_row_json) v
+                WHERE NOT EXISTS (
+                    SELECT 1
+                    FROM dbo.IgnoreColumn ign
+                    WHERE ign.SchemaName = N'dbo'
+                      AND ign.TableName  = N'Stockline'
+                      AND ign.ColumnName = N'StockLineId'
+                )),
+            newv AS (
+                SELECT
+                    p.PKJson,
+                    p.StockLineId ,
+                    v.[key]  AS ColumnName,
+                    v.value  AS NewValue
+                FROM paired p
+                CROSS APPLY OPENJSON(p.new_row_json) v
+                WHERE NOT EXISTS (
+                    SELECT 1
+                    FROM dbo.IgnoreColumn ign
+                    WHERE ign.SchemaName = N'dbo'
+                      AND ign.TableName  = N'Stockline'
+                      AND ign.ColumnName = N'StockLineId'
+                )),
+            merged AS (
+                SELECT
+                    COALESCE(n.PKJson, o.PKJson)                AS PKJson,
+                    COALESCE(n.ColumnName, o.ColumnName)        AS ColumnName,
+                    o.OldValue,
+                    n.NewValue,
+                    p.Action
+                FROM paired p
+                LEFT JOIN oldv o
+                    ON o.StockLineId = p.StockLineId
+                LEFT JOIN newv n
+                    ON n.StockLineId = p.StockLineId
+                   AND n.ColumnName = o.ColumnName
+                UNION ALL
+                SELECT
+                    n.PKJson,
+                    n.ColumnName,
+                    NULL AS OldValue,
+                    n.NewValue,
+                    p.Action
+                FROM paired p
+                LEFT JOIN newv n
+                    ON n.StockLineId = p.StockLineId
+                WHERE NOT EXISTS (
+                    SELECT 1
+                    FROM oldv o2
+                    WHERE o2.StockLineId = p.StockLineId
+                      AND o2.ColumnName    = n.ColumnName
+                )
+            )
+            INSERT dbo.AuditLog (SchemaName, TableName, PKJson, ColumnName, Action, OldValue, NewValue)
+            SELECT
+                N'dbo' AS SchemaName,
+                N'Stockline' AS TableName,
+                m.PKJson,
+                m.ColumnName,
+                m.Action,
+                m.OldValue,
+                m.NewValue
+            FROM merged m
+            WHERE
+            m.ColumnName <> 'StockLineId' and (
+                (m.Action = 'U' AND (
+                     (m.OldValue IS NULL AND m.NewValue IS NOT NULL)
+                  OR (m.OldValue IS NOT NULL AND m.NewValue IS NULL)
+                  OR (m.OldValue <> m.NewValue)
+                ))
+                OR
+                (m.Action = 'I' AND m.NewValue IS NOT NULL)
+                OR
+                (m.Action = 'D' AND m.OldValue IS NOT NULL));
+        END;

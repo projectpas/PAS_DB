@@ -4,10 +4,10 @@
     [ItemMasterId]             BIGINT          NULL,
     [ConditionCodeId]          BIGINT          NULL,
     [ItemClassificationId]     BIGINT          NULL,
-    [Quantity]                 INT             NULL,
+    [Quantity]                 DECIMAL (18, 6) NULL,
     [UnitOfMeasureId]          BIGINT          NULL,
-    [UnitCost]                 DECIMAL (20, 2) NULL,
-    [ExtendedCost]             DECIMAL (20, 2) NULL,
+    [UnitCost]                 DECIMAL (18, 6) NULL,
+    [ExtendedCost]             DECIMAL (18, 6) NULL,
     [Memo]                     NVARCHAR (MAX)  NULL,
     [IsDefered]                BIT             NULL,
     [MasterCompanyId]          INT             NULL,
@@ -20,8 +20,8 @@
     [MarkupPercentageId]       BIGINT          NULL,
     [TaskId]                   BIGINT          NULL,
     [MarkupFixedPrice]         VARCHAR (15)    NULL,
-    [BillingAmount]            DECIMAL (20, 2) NULL,
-    [BillingRate]              DECIMAL (20, 2) NULL,
+    [BillingAmount]            DECIMAL (18, 6) NULL,
+    [BillingRate]              DECIMAL (18, 6) NULL,
     [HeaderMarkupId]           BIGINT          NULL,
     [ProvisionId]              INT             NULL,
     [MaterialMandatoriesId]    INT             NULL,
@@ -43,5 +43,5 @@
     [Item]                     VARCHAR (50)    NULL,
     [WOQMaterialKitMappingId]  BIGINT          NULL,
     [KitId]                    BIGINT          NULL,
-    [Partqty]                  BIGINT          NULL);
+    [Partqty]                  DECIMAL (18, 6) NULL);
 

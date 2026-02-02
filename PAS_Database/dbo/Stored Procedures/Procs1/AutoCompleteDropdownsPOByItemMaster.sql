@@ -12,9 +12,10 @@
  **************************************************************           
  ** Change History           
  **************************************************************           
- ** PR   Date         Author		Change Description            
- ** --   --------     -------		--------------------------------          
-    1    12/29/2020   Hemant Saliya Created
+ ** PR   Date         Author			Change Description            
+ ** --   --------     -------			--------------------------------          
+    1    12/29/2020   Hemant Saliya		Created
+    2    01/20/2026   Vishal Suthar		Fixed join for PAR
      
 --EXEC [AutoCompleteDropdownsAsset] '',1,200,'108,109,11',1
 **************************************************************/
@@ -45,10 +46,10 @@ BEGIN
 						AND (po.PurchaseOrderNumber LIKE @StartWith + '%'))
 			   UNION     
 					SELECT DISTINCT  
-						 po.PurchaseOrderId as value,
-                         po.PurchaseOrderNumber as label
+						po.PurchaseOrderId as value,
+                        po.PurchaseOrderNumber as label
 					FROM  dbo.PurchaseOrder po WITH(NOLOCK) 
-                    JOIN  dbo.PurchaseOrderPart pop WITH(NOLOCK) ON po.PurchaseOrderId = pop.PurchaseOrderId AND pop.ItemTypeId = @StockType
+                    LEFT JOIN  dbo.PurchaseOrderPart pop WITH(NOLOCK) ON po.PurchaseOrderId = pop.PurchaseOrderId AND pop.ItemTypeId = @StockType
 					WHERE po.PurchaseOrderId IN (SELECT Item FROM DBO.SPLITSTRING(@Idlist, ','))    
 				ORDER BY PurchaseOrderNumber
 

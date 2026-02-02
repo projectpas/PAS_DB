@@ -16,8 +16,9 @@
  ** --   --------     -------		--------------------------------          
     1    07/13/2021   Vishal Suthar Created
     2	 11/04/2024	  Vishal Suthar	Modified to make use of new SO Part tables
-
---EXEC [SalesOrderSummarizedHistoryByPN] 246,0
+	3	 01/05/2026	  Moin Bloch	Modified Added UOM changes
+	4    07/01/2026   Rajesh Gami		Added MasterCompanyId Parameter While Calling UOM Conversion Function
+--  EXEC [SalesOrderSummarizedHistoryByPN] 115640,1
 **************************************************************/
 CREATE      PROCEDURE [dbo].[SalesOrderSummarizedHistoryByPN]
 @ItemMasterId BIGINT=3,
@@ -48,8 +49,10 @@ BEGIN
 						Cond.Description AS Condition,
 						Cond.ConditionId,
 						C.Code AS CurrencyName,
-						((ISNULL(SOPC.NetSaleAmount, 0)) + ISNULL(Charges.BillingAmount, 0)) AS Revenue,
-						((ISNULL(SOPC.UnitCost, 0) * ISNULL(SOP.QtyOrder, 0)) + ISNULL(Charges.BillingAmount, 0)) AS DirectCost
+						--((ISNULL(SOPC.NetSaleAmount, 0)) + ISNULL(Charges.BillingAmount, 0)) AS Revenue,
+						ISNULL([dbo].[fn_ConvertUOM](ISNULL(SOPC.NetSaleAmount, 0),IM.[StockUnitOfMeasure], IM.[ConsumeUnitOfMeasure],1,SOP.MasterCompanyId)  + ISNULL(Charges.BillingAmount, 0),0) AS Revenue,
+						--((ISNULL(SOPC.UnitCost, 0) * ISNULL(SOP.QtyOrder, 0)) + ISNULL(Charges.BillingAmount, 0)) AS DirectCost					   
+						ISNULL([dbo].[fn_ConvertUOM](ISNULL(SOPC.UnitCost, 0),IM.[StockUnitOfMeasure], IM.[ConsumeUnitOfMeasure],1,SOP.MasterCompanyId) * [dbo].[fn_ConvertUOM](ISNULL(SOP.[QtyOrder],0),IM.[StockUnitOfMeasure], IM.[ConsumeUnitOfMeasure],0,SOP.MasterCompanyId),0) + ISNULL(Charges.BillingAmount, 0) AS DirectCost										
 					FROM dbo.SalesOrderPartV1 SOP WITH(NOLOCK)
 						JOIN dbo.SalesOrderPartCost SOPC WITH(NOLOCK) ON SOPC.SalesOrderPartId = SOP.SalesOrderPartId
 						JOIN dbo.ItemMaster IM WITH(NOLOCK) ON SOP.ItemMasterId = IM.ItemMasterId

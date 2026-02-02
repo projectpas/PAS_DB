@@ -23,6 +23,8 @@
 	7	 24/04/2025	  Devendra Shekh	Modify (Added [IsManualText] check for DistributionSetup)
 	8	 02/06/2025	  Abhishek Jirawla  Fixed Name concat read script
 	9	 27/10/2025   AMIT GHEDIYA		update for get glaccount from LE.
+	10	 19/01/2026   Divyesh Kathiriya		Update "check" spelling in @ReferenceModule.
+	11	 26/01/2026   AMIT GHEDIYA		update for get glaccount details.
      
 **************************************************************/
 
@@ -85,7 +87,7 @@ BEGIN
 		DECLARE @LocalCurrencyCode VARCHAR(20) = '';
 		DECLARE @ForeignCurrencyCode VARCHAR(20) = '';
 		DECLARE @FXRate DECIMAL(9,2) = 1;	--Default Value set to : 1
-		DECLARE @ReferenceModule VARCHAR(100) = 'CHEQUE';
+		DECLARE @ReferenceModule VARCHAR(100) = 'CHECK';
 		DECLARE @IsAutoPost INT = 0;
 		DECLARE @IsBatchGenerated INT = 0;
 		DECLARE @VendorProformaInvoiceId BIGINT = 0,
@@ -94,7 +96,8 @@ BEGIN
 					@IsPurchaseOrder BIT = 0;
 		DECLARE @legalEntityId BIGINT = NULL;
 		DECLARE @LEGLAccountId BIGINT = 0;
-		DECLARE	@LEGlAccountName VARCHAR(200) = NULL;
+		DECLARE	@LEGlAccountName VARCHAR(200) = NULL,
+				@LEGlAccountCode VARCHAR(50) = NULL;
 
 		IF OBJECT_ID(N'tempdb..#temptable') IS NOT NULL          
 		BEGIN          
@@ -215,7 +218,7 @@ BEGIN
 			 
 				 IF(ISNULL(@LEGLAccountId,0) > 0)
 				 BEGIN
-					  SELECT @LEGlAccountName = [AccountName] FROM [DBO].[GLAccount] WITH(NOLOCK) WHERE [GLAccountId] = @LEGLAccountId;
+					  SELECT @LEGlAccountName = [AccountName], @LEGlAccountCode = [AccountCode] FROM [DBO].[GLAccount] WITH(NOLOCK) WHERE [GLAccountId] = @LEGLAccountId;
 				 END
 			END
 
@@ -250,7 +253,7 @@ BEGIN
 			END
 
 
-			IF(ISNULL(@TotalAmount,0) > 0 AND @ValidDistribution = 1)
+			IF(ISNULL(@TotalAmount,0) > 0)
 			BEGIN
 
 				IF NOT EXISTS(select JournalBatchHeaderId from dbo.BatchHeader WITH(NOLOCK)  where JournalTypeId= @JournalTypeId and MasterCompanyId=@MasterCompanyId and CAST(EntryDate AS DATE) = CAST(GETUTCDATE() AS DATE)and StatusId=@StatusId)
@@ -333,7 +336,8 @@ BEGIN
 				IF(ISNULL(@GlAccountId,0) = 0)
 				BEGIN
 					SET @GlAccountId = @LEGLAccountId;
-					SET @LEGlAccountName = @LEGlAccountName;
+					SET @GlAccountName = @LEGlAccountName;
+					SET @GlAccountNumber = @LEGlAccountCode;
 				END
 
 				INSERT INTO [dbo].[CommonBatchDetails]
@@ -375,7 +379,8 @@ BEGIN
 					IF(ISNULL(@GlAccountId,0) = 0)
 					BEGIN
 						SET @GlAccountId = @LEGLAccountId;
-						SET @LEGlAccountName = @LEGlAccountName;
+						SET @GlAccountName = @LEGlAccountName;
+						SET @GlAccountNumber = @LEGlAccountCode;
 					END
 
 					INSERT INTO [dbo].[CommonBatchDetails]
@@ -410,7 +415,8 @@ BEGIN
 					IF(ISNULL(@GlAccountId,0) = 0)
 					BEGIN
 						SET @GlAccountId = @LEGLAccountId;
-						SET @LEGlAccountName = @LEGlAccountName;
+						SET @GlAccountName = @LEGlAccountName;
+						SET @GlAccountNumber = @LEGlAccountCode;
 					END
 
 					INSERT INTO [dbo].[CommonBatchDetails]

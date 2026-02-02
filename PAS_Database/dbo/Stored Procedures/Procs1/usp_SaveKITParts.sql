@@ -1,5 +1,4 @@
-﻿
-/*********************           
+﻿/*********************           
  ** File:  [usp_SaveKITParts]           
  ** Author:  
  ** Description: This stored procedure is used to Update Kit Item Master Mapping 
@@ -15,12 +14,12 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
      
-	 2   05-Sep-2023  Bhargav Saliya  Convert Date In UTC
+	 2   05-Sep-2023  Bhargav Saliya	Convert Date In UTC
 	 3   28-02-2024   Shrey Chandegara  Update Procedure for HIstory.
-     
+ 	 4   12-01-2026   Rajesh Gami		UOM Conversion Related Changes
 -- EXEC RPT_PrintPurchaseOrderDataById 629
 ************************/
-CREATE      PROCEDURE [dbo].[usp_SaveKITParts]  
+CREATE        PROCEDURE [dbo].[usp_SaveKITParts]  
 @tbl_KITPartType KITPartType READONLY  
 AS  
 BEGIN  
@@ -30,10 +29,10 @@ BEGIN
   BEGIN TRANSACTION  
   DECLARE @TotalRecord BIGINT;
   DECLARE @StartCount BIGINT = 1;
-  DECLARE @OldCost [decimal](18, 2) ;
+  DECLARE @OldCost DECIMAL(18,6) ;
   DECLARE @OldConditionId [bigint] ;
   DECLARE @OldCondition [varchar](100) ;
-  DECLARE @OldQty [int] ;
+  DECLARE @OldQty DECIMAL(18,6) ;
   DECLARE @IsEditable [bit]=0 ;
   DECLARE @NewGeneratedId [bigint];
   DECLARE @IsNewPartAdd [bit] = 0;
@@ -42,13 +41,13 @@ BEGIN
   DECLARE @UpdatedBy [varchar](256) ;
   DECLARE @UpdatedDate [datetime2](7);
   DECLARE @PartNumber [varchar](100) ;
-  DECLARE @NewCost [decimal](18, 2) ;
+  DECLARE @NewCost DECIMAL(18,6) ;
   DECLARE @NewItemId [bigint] ;
   DECLARE @OldItemId [bigint] ;
   DECLARE @OldPartNumber [varchar](100) ;
   DECLARE @NewConditionId [bigint] ;
   DECLARE @NewCondition [varchar](100) ;
-  DECLARE @NewQty [int] ;
+  DECLARE @NewQty DECIMAL(18,6) ;
   DECLARE @TempRecId BIGINT = 0;
   DECLARE @ModuleId BIGINT;
   DECLARE @ItemMasterModuleId BIGINT;
@@ -66,10 +65,10 @@ BEGIN
     [ManufacturerId] [bigint] NULL,  
     [ConditionId] [bigint] NULL,  
     [UOMId] [bigint] NULL,  
-    [Qty] [int] NULL,  
-    [UnitCost] [decimal](18, 2) NULL,  
-    [ExtendedCost] [decimal](18, 2) NULL,  
-    [StocklineUnitCost] [decimal](18, 2) NULL,  
+    [Qty] DECIMAL(18,6) NULL,  
+    [UnitCost] DECIMAL(18,6) NULL,  
+    [ExtendedCost] DECIMAL(18,6) NULL,  
+    [StocklineUnitCost] DECIMAL(18,6) NULL,  
     [MasterCompanyId] [int] NULL,  
     [CreatedBy] [varchar](256) NULL,  
     [UpdatedBy] [varchar](256) NULL,  
@@ -276,9 +275,9 @@ BEGIN
 		   BEGIN
 		     
 				  DECLARE @ReplaceContentForADD NVARCHAR(MAX);
-				  DECLARE @AddCost [decimal](18, 2) ;
+				  DECLARE @AddCost DECIMAL(18,6) ;
 				  DECLARE @AddCondition [varchar](100) ;
-				  DECLARE @AddQty [int] ;
+				  DECLARE @AddQty DECIMAL(18,6) ;
 				  DECLARE @AddPartNumber [varchar](100) ;
 				  DECLARE @AddUpdatedBy [varchar](256) ;
 				  DECLARE @AddUpdatedDate [datetime2](7);

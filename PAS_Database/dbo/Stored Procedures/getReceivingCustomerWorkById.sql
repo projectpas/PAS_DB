@@ -1,4 +1,5 @@
-﻿/*************************************************************                 
+﻿
+/*************************************************************                 
  ** File:  [getReceivingCustomerWorkById]      
  ** Author:    Shrey Chandegara   
  ** Description: Receiving CustomerWork By Id    
@@ -16,6 +17,7 @@
 	1    20-Mar-2025		Shrey Chandegara		Created  	
 	2    16-Apr-2025		Abhishek Jirawla		Added Is Repair Management
 	3	 16-JUL-2025        Moin Bloch   		    Added IsBatchStock And Batch Number
+	4	 20-JAN-2026        Priyansh Patel  		Added CSN, TSN, CSO, TSO fields
  --exec dbo.getReceivingCustomerWorkById 5837
       
 **************************************************************/    
@@ -189,7 +191,11 @@ AS BEGIN
 				rc.IsPiecePart,
 				rc.IsRepairManagement,
 				ISNULL(stk.IsBatchStock,0) IsBatchStock,
-				stk.BatchNumber
+				stk.BatchNumber,
+				rc.CSN,
+				rc.TSN,
+				rc.CSO,
+				rc.TSO
 			FROM [dbo].[ReceivingCustomerWork] rc WITH(NOLOCK)
 			INNER JOIN [dbo].[ItemMaster] im WITH(NOLOCK) ON rc.ItemMasterId = im.ItemMasterId
 			INNER JOIN [dbo].[CustomerContact] cc WITH(NOLOCK) ON rc.CustomerContactId = cc.CustomerContactId

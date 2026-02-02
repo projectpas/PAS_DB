@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿
+/*************************************************************           
  ** File:   [GetPNTileSalesOrderList]           
  ** Author:  
  ** Description: This stored procedure is used get list of sales order history date for dashboard
@@ -18,7 +19,8 @@
 	3    08/12/2023   Jevik Raiyani			add @statusValue
 	4    06/18/2024   Vishal Suthar         Added @UnitSalesPrice column
 	5    11/05/2024	  Vishal Suthar			Modified to make use of new SO Part tables
-
+    6	 01/05/2026	  Moin Bloch	        Modified Added UOM changes
+	7    07/01/2026   Rajesh Gami			Added MasterCompanyId Parameter While Calling UOM Conversion Function
 exec GetPNTileSalesOrderList @PageNumber=1,@PageSize=5,@SortColumn=NULL,@SortOrder=-1,@StatusID=0,@Status=N'All',@GlobalFilter=N'',@PartNumber=NULL,@PartDescription=NULL,@ManufacturerName=NULL,@SalesOrderNumber=NULL,@OpenDate=NULL,@CustomerReference=NULL,@UnitSalesPrice=112.5,@UnitCost=NULL,@Qty=NULL,@UnitCostExtended=NULL,@ConditionName=NULL,@SalesPersonName=NULL,@ShipDate=NULL,@CustomerName=NULL,@IsDeleted=0,@EmployeeId=2,@ItemMasterId=318,@MasterCompanyId=1,@ConditionId=N'9,1,111,10,7,8,2,11,101,3,12,14,13,15',@SerialNumber=NULL,@StatusValue=NULL
 
 **************************************************************/
@@ -89,10 +91,14 @@ BEGIN
 				SO.[OpenDate],
 				SO.[CustomerReference],
 				STL.[SerialNumber],
-				CAST(ISNULL(SPC.[UnitSalesPrice], 0) AS VARCHAR(50)) AS [UnitSalesPrice],
-				ISNULL(SPC.[UnitCost], 0) AS [UnitCost],
-				ISNULL(SP.[QtyOrder], 0) AS [Qty],
-				ISNULL(SPC.[UnitCostExtended], 0) AS [UnitCostExtended],
+				--CAST(ISNULL(SPC.[UnitSalesPrice], 0) AS VARCHAR(50)) AS [UnitSalesPrice],
+				CAST(ISNULL([dbo].[fn_ConvertUOM](ISNULL(SPC.[UnitSalesPrice], 0),IM.[StockUnitOfMeasure], IM.[ConsumeUnitOfMeasure],1,@MasterCompanyId),0) AS VARCHAR(50)) AS [UnitSalesPrice],
+				--ISNULL(SPC.[UnitCost], 0) AS [UnitCost],
+				ISNULL([dbo].[fn_ConvertUOM](ISNULL(SPC.[UnitCost], 0),IM.[StockUnitOfMeasure], IM.[ConsumeUnitOfMeasure],1,@MasterCompanyId),0) AS [UnitCost],				
+				--ISNULL(SP.[QtyOrder], 0) AS [Qty],
+				ISNULL([dbo].[fn_ConvertUOM](ISNULL(SP.[QtyOrder],0),IM.[StockUnitOfMeasure], IM.[ConsumeUnitOfMeasure],0,@MasterCompanyId),0) AS [Qty],
+				--ISNULL(SPC.[UnitCostExtended], 0) AS [UnitCostExtended],
+				ISNULL([dbo].[fn_ConvertUOM](ISNULL(SPC.[UnitCostExtended], 0),IM.[StockUnitOfMeasure], IM.[ConsumeUnitOfMeasure],1,@MasterCompanyId),0) AS [UnitCostExtended],
 				CO.[Description] AS [ConditionName],
 				SO.[SalesPersonName],
 				CAST(SOS.[ShipDate] AS Date) AS ShipDate,

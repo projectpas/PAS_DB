@@ -11,8 +11,10 @@
  ** --   --------		-------				--------------------------------          
     1    20-May-2025   Devendra Shekh		Created
 	2    16-Oct-2025   Rajesh Gami			Resovle issue for FlatMaterialAmount doesn't save (Update the WOQDetailsId in the temptable)
+	3    07-JAN-2025   Rajesh Gami			UOM Conversion Related Change (Make Cost and QTY from Consume to Purchase UOM)
+	4    07/01/2026	   Rajesh Gami			Added MasterCompanyId Parameter While Calling UOM Conversion Function
 **************************************************************/
-CREATE   PROCEDURE [dbo].[USP_CreateWorkOrderQuoteMaterial]
+CREATE     PROCEDURE [dbo].[USP_CreateWorkOrderQuoteMaterial]
 @tbl_WorkOrderQuoteDetailsType [WorkOrderQuoteDetailsType] READONLY,
 @tbl_WorkOrderQuoteMaterialType [WorkOrderQuoteMaterialType] READONLY,
 @tbl_WorkOrderQuoteTaskType [WorkOrderQuoteTaskType] READONLY
@@ -35,6 +37,8 @@ BEGIN
 
 		IF OBJECT_ID('tempdb..#tmpWorkOrderQuoteMaterial') IS NOT NULL
 			DROP TABLE #tmpWorkOrderQuoteMaterial;
+		IF OBJECT_ID('tempdb..#tmpWorkOrderQuoteMaterialIntial') IS NOT NULL
+			DROP TABLE #tmpWorkOrderQuoteMaterialIntial;
 
 		SELECT	ROW_NUMBER() OVER (ORDER BY (SELECT NULL)) AS RowId, [WorkOrderQuoteDetailsId], [WorkOrderQuoteId], [ItemMasterId], [BuildMethodId], [MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted],
 				[WorkflowWorkOrderId], [WOPartNoId], [MaterialCost], [MaterialBilling], [MaterialRevenuePercentage], [MaterialMargin], [LaborHours], [LaborCost], [LaborBilling], [LaborRevenuePercentage],
@@ -46,14 +50,39 @@ BEGIN
 				[CommonFlatRate], [EvalFees]
 		INTO #tmpWorkOrderQuoteDetails
 		FROM @tbl_WorkOrderQuoteDetailsType;
-
+			SELECT TOP 1 @MasterCompanyId = [MasterCompanyId] FROM #tmpWorkOrderQuoteDetails 
 		-- Material List Data
+		SELECT * INTO #tmpWorkOrderQuoteMaterialIntial FROM @tbl_WorkOrderQuoteMaterialType	
+				UPDATE tb
+						SET 
+							tb.UnitCost = ISNULL(calc.ConvUnitCost,0),
+							tb.Quantity = ISNULL(calc.ConvQty,0),
+							tb.UnitOfMeasureId = uomStock.UnitOfMeasureId,
+							tb.UOM = uomStock.ShortName,
+							tb.UomName = uomStock.ShortName,
+							tb.MarkUp = p.PercentValue,
+							tb.ExtendedCost = ISNULL(calc.ConvUnitCost,0) * ISNULL(calc.ConvQty,0),
+							tb.BillingAmount = ((ISNULL(calc.ConvUnitCost,0) * ISNULL(calc.ConvQty,0)) * ISNULL(p.PercentValue,0)) / 100
+												+ (ISNULL(calc.ConvUnitCost,0) * ISNULL(calc.ConvQty,0)),
+							tb.BillingRate = ((ISNULL(calc.ConvUnitCost,0) * ISNULL(p.PercentValue,0)) / 100) + ISNULL(calc.ConvUnitCost,0)
+						FROM #tmpWorkOrderQuoteMaterialIntial tb
+						INNER JOIN dbo.ItemMaster im WITH(NOLOCK) ON tb.ItemMasterId = im.ItemMasterId
+						LEFT JOIN dbo.UnitOfMeasure uom WITH(NOLOCK) ON im.StockUnitOfMeasureId = uom.UnitOfMeasureId
+						LEFT JOIN dbo.UnitOfMeasure uomConsume WITH(NOLOCK) ON im.ConsumeUnitOfMeasureId = uomConsume.UnitOfMeasureId
+						LEFT JOIN dbo.UnitOfMeasure uomStock WITH(NOLOCK) ON im.StockUnitOfMeasureId = uomStock.UnitOfMeasureId
+						LEFT JOIN dbo.[Percent] p WITH(NOLOCK) ON p.PercentId = tb.MarkupPercentageId
+						CROSS APPLY (
+							SELECT 
+								dbo.fn_ConvertUOM(tb.UnitCost, uomConsume.ShortName, uom.ShortName, 1,@MasterCompanyId) AS ConvUnitCost,
+								dbo.fn_ConvertUOM(tb.Quantity, uomConsume.ShortName, uom.ShortName, 0,@MasterCompanyId) AS ConvQty
+						) calc;
+
 		SELECT	ROW_NUMBER() OVER (ORDER BY (SELECT NULL)) AS RowId, [WorkOrderQuoteMaterialId], [WorkOrderQuoteDetailsId], [ItemMasterId], [ConditionCodeId], [ItemClassificationId], [Quantity], [UnitOfMeasureId], [UnitCost], [ExtendedCost], [Memo], [IsDefered],
 				[MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted], [MarkupPercentageId], [TaskId], [MarkupFixedPrice], [BillingAmount], [BillingRate],
 				[HeaderMarkupId], [ProvisionId], [MaterialMandatoriesId], [BillingMethodId], [TaskName], [PartNumber], [PartDescription], [Provision], [UomName], [Conditiontype], [Stocktype], [BillingName],
 				[MarkUp], [ManufacturerName], [UOM], [MandatoryOrSupplemental], [ItemClassification], [Figure], [Item], [WOQMaterialKitMappingId], [KitId], [Partqty]
 		INTO #tmpWorkOrderQuoteMaterial
-		FROM @tbl_WorkOrderQuoteMaterialType WHERE ISNULL(KitId, 0) = 0;
+		FROM #tmpWorkOrderQuoteMaterialIntial WHERE ISNULL(KitId, 0) = 0;
 
 		-- Kit Material List Data
 		SELECT	ROW_NUMBER() OVER (ORDER BY (SELECT NULL)) AS RowId, [WorkOrderQuoteMaterialId], [WorkOrderQuoteDetailsId], [ItemMasterId], [ConditionCodeId], [ItemClassificationId], [Quantity], [UnitOfMeasureId], [UnitCost], [ExtendedCost], [Memo], [IsDefered],
@@ -61,7 +90,7 @@ BEGIN
 				[HeaderMarkupId], [ProvisionId], [MaterialMandatoriesId], [BillingMethodId], [TaskName], [PartNumber], [PartDescription], [Provision], [UomName], [Conditiontype], [Stocktype], [BillingName],
 				[MarkUp], [ManufacturerName], [UOM], [MandatoryOrSupplemental], [ItemClassification], [Figure], [Item], [WOQMaterialKitMappingId], [KitId], [Partqty]
 		INTO #workOrderQuoteMaterialKitMappingList
-		FROM @tbl_WorkOrderQuoteMaterialType WHERE ISNULL(KitId, 0) > 0;
+		FROM #tmpWorkOrderQuoteMaterialIntial WHERE ISNULL(KitId, 0) > 0;
 
 		UPDATE #tmpWorkOrderQuoteDetails SET [UpdatedDate] = GETUTCDATE();
 

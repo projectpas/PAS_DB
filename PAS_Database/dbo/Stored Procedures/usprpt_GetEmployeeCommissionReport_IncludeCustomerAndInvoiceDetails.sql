@@ -13,9 +13,11 @@
  ** --   --------		-------				--------------------------------              
     1    18-SEP-2025	Vishal Suthar		Created
 	2	 10-OCT-2025	Vishal Suthar		PN-14385 Modifled to include Enhancement to Commission Report Calculation using Employee Default
-    3    16-OCT-2025    RAJESH GAMI			handle Null value     
+    3    16-OCT-2025    RAJESH GAMI			handle Null value
+	4    13-JAN-2025    Vishal Suthar		Fixed an issue with doubling the amount so added DISTINCT to fix it
+
 ************************************************************************/ 
-CREATE      PROCEDURE [dbo].[usprpt_GetEmployeeCommissionReport_IncludeCustomerAndInvoiceDetails]
+CREATE        PROCEDURE [dbo].[usprpt_GetEmployeeCommissionReport_IncludeCustomerAndInvoiceDetails]
 	@PageNumber int = 1,  
 	@PageSize int = NULL,  
 	@mastercompanyid int,  
@@ -84,7 +86,7 @@ BEGIN
 		@xmlFilter.nodes('/ArrayOfFilter/Filter')AS TEMPTABLE(filterby)
   
 	   ;WITH InvoicesSOWO AS (
-			SELECT
+			SELECT DISTINCT 
 				BI.BillingInvoicingId,
 				BI.ReferenceId AS ReferenceId,
 				SOBII.SubReferenceId AS SubReferenceId,
@@ -114,7 +116,7 @@ BEGIN
 			AND CAST(BI.InvoiceDate AS DATE) BETWEEN CAST(@FromDate AS DATE) AND CAST(@ToDate AS DATE)
 		),
 		InvoiceWithPercentageValue AS (
-			SELECT
+			SELECT DISTINCT
 				IWS.*,
 				CASE IWS.ModuleId
 					WHEN @SalesOrderModuleId THEN SO.SalesPersonId
@@ -140,7 +142,7 @@ BEGIN
 
 			 UNION ALL
 
-			 SELECT
+			 SELECT DISTINCT
 				IWS.*,
 				CASE IWS.ModuleId
 					WHEN @SalesOrderModuleId THEN SO.SecondarySalesPersonId
@@ -166,7 +168,7 @@ BEGIN
 
 			UNION ALL
 
-			SELECT
+			SELECT DISTINCT
 				IWS.*,
 				CASE IWS.ModuleId
 					WHEN @SalesOrderModuleId THEN SO.SalesAgentId
@@ -192,7 +194,7 @@ BEGIN
 
 			UNION ALL
 
-			SELECT
+			SELECT DISTINCT
 				IWS.*,
 				CASE IWS.ModuleId
 					WHEN @SalesOrderModuleId THEN SO.CustomerSeviceRepId
@@ -217,7 +219,7 @@ BEGIN
 								  WHEN @WorkOrderModuleId THEN ISNULL(WO.CSRSalesMargin,0) END) IS NOT NULL
 	  ),
 	  InvoiceWithEffectivePercent AS (
-			SELECT
+			SELECT DISTINCT
 				IWS.*
 			FROM InvoiceWithPercentageValue IWS
 			LEFT JOIN Employee E WITH (NOLOCK) ON E.EmployeeId = IWS.EmployeeId
@@ -225,7 +227,7 @@ BEGIN
 		MarginAmount, MarginRate, MarginCommission, TotalCommission, 
 		level1, level2, level3, level4, level5, level6, level7, level8,level9, level10) 
 		AS (
-      SELECT 0 AS TotalRecordsCount,
+      SELECT DISTINCT 0 AS TotalRecordsCount,
 		E.MasterCompanyId,
 		BI.ActivityTypeId,
 		BI.InvoiceDate,
@@ -280,7 +282,7 @@ BEGIN
 
 			UNION ALL
 
-			SELECT 0 AS TotalRecordsCount,
+			SELECT DISTINCT 0 AS TotalRecordsCount,
 			E.MasterCompanyId,
 			BI.ActivityTypeId,
 			BI.InvoiceDate,

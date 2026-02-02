@@ -25,13 +25,14 @@
 	09  23-Jan-2025		Bhargav Saliya		Resolved Shorting issue
 	10	31-Jan-2025		Hemant Saliya		Resolved WO number Display issue
 	11  26-02-2025      Shrey Chandegara    Modified due to datetime issue.
-	12  06-03-2025     Shrey Chandegara     Modified due to add view in Accouting Integration List's PendingSync(Add @IsUpdated parameter)
-	13  18-03-2025     Ekta Chandegara     Add @PartDescription parameter and retrieve PartDescription column value
-	14   07-04-2025    Shrey Chandegara    Modified due to PN-12013
-	15  10-04-2025     Moin Bloch          Modified change logic for QuantityReceived
+	12  06-03-2025      Shrey Chandegara     Modified due to add view in Accouting Integration List's PendingSync(Add @IsUpdated parameter)
+	13  18-03-2025      Ekta Chandegara     Add @PartDescription parameter and retrieve PartDescription column value
+	14   07-04-2025     Shrey Chandegara    Modified due to PN-12013
+	15  10-04-2025      Moin Bloch          Modified change logic for QuantityReceived
 	16  02-12-2025      Sahdev Saliya       Added New Field :- Priority
 	17  04/12/2025		RAJESH GAMI			ADDED: @CustomerRFQNo and functionality while getting the list
 	18  08-12-2025      Sahdev Saliya       Added New Field :- VendorRFQPurchaseOrderNumber
+	19  01-20-2026      Vishal Suthar       Added filter to skip migrated PO from the listing for PAR
 
 **************************************************************/      
 CREATE    PROCEDURE [dbo].[GetPurchaseOrderList]
@@ -231,6 +232,7 @@ BEGIN
 				WHERE ((PO.IsDeleted = @IsDeleted) AND (@StatusID IS NULL OR PO.StatusId = @StatusID))      
 				AND PO.MasterCompanyId = @MasterCompanyId AND (ISNULL(@IsUpdated,0) <> 1 OR ISNULL(PO.IsUpdated,0) = ISNULL(@IsUpdated,0))   
 				AND (@VendorId IS NULL OR PO.VendorId = @VendorId)
+				AND (PO.Notes <> 'PARMigrate' AND PO.CreatedBy <> 'TBD')
 				GROUP BY PO.PurchaseOrderId, 				   
 					PO.PurchaseOrderNumber,
 					PO.OpenDate,

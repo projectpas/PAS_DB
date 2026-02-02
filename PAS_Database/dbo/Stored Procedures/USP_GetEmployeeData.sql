@@ -14,6 +14,7 @@
  ** --   --------         -------          --------------------------------            
     1    13-06-2025    Sahdev Saliya       Created  
 	2    18-06-2025    Abhishek Jirawla    Added retrieve of TwoFactorAuthentication details
+	3    09-01-2026    Sahdev Saliya       Added New Dropdowns for Warehouse, Location, Shelf, and Bin
 
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[USP_GetEmployeeData]
@@ -40,7 +41,11 @@ BEGIN
                   emp.IsAllowToChangeManagementStructure,
                   emp.SiteId,
                   emp.TwoFactorAuthentication,
-                  emp.TwoFactorAuthenticationType
+                  emp.TwoFactorAuthenticationType,
+				  emp.WarehouseId,
+				  emp.LocationId,
+				  emp.ShelfId,
+				  emp.BinId
 			FROM [DBO].employee emp WITH(NOLOCK)
 			WHERE emp.EmployeeId = @EmployeeId
 		END TRY    

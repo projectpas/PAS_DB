@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [USP_GetMultiplePickTicket_ById]           
  ** Author:   Vishal Suthar
  ** Description: This stored procedure is used get data for multiple pick tickets   
@@ -16,8 +15,9 @@
  PR   Date         Author			Change Description            
  --   --------     -------			--------------------------------          
   1   06/29/2023   Vishal Suthar	Modified to fix the issue of duplicate pick tickets in case of KIT and Non-kit Parts are there
+  2   01/20/2026   Vishal Suthar	Increased size of ShipToSiteName
 
---  EXEC [USP_GetMultiplePickTicket_ById] 3109
+--  EXEC [USP_GetMultiplePickTicket_ById] 12571
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_GetMultiplePickTicket_ById]
 	@WorkFlowWorkOrderId bigint
@@ -53,7 +53,7 @@ BEGIN
 					[CustToPostalCode] VARCHAR(50) NULL,
 					[CustToCountry] VARCHAR(100) NULL,
 					[CustomerContactName] VARCHAR(100) NULL,
-					[ShipToSiteName] VARCHAR(50) NULL,
+					[ShipToSiteName] VARCHAR(100) NULL,
 					[ShipToAddress1] VARCHAR(100) NULL,
 					[ShipToAddress2] VARCHAR(100) NULL,
 					[ShipToCity] VARCHAR(50) NULL,

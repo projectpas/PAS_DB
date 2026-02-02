@@ -13,6 +13,7 @@
  ** --   --------     -------		--------------------------------              
 	1    18/04/2025   Moin Bloch       Created
 	2	 13/05/2025	  Abhishek Jirawla DataEnteredBy space correction
+	3    06/01/2026   Moin Bloch       Added LaborHoursId in WorkOrderLaborHeader
 
 --   EXEC [USP_CreateWorkOrderLaborHeader] 
 **************************************************************/
@@ -31,7 +32,7 @@ BEGIN
 	BEGIN
 	
 	DECLARE @TotalRecord INT = 0,@MinId BIGINT = 1,@DataEnteredBy BIGINT = 0 	  
-	DECLARE @HoursorClockorScan INT = 2,@WorkOrderHoursType INT =1    
+	DECLARE @HoursorClockorScan INT = 2,@WorkOrderHoursType INT =1,@LaborHoursId INT = 1 
 	DECLARE @IsLaborTrackingTurnedOff BIT = 0,@IsTaskCompletedByOne BIT = 0;   
 	DECLARE @ExpertiseId AS BIGINT = 0,@EmployeeId AS BIGINT = 0;  
 	DECLARE @TotalWorkHours AS BIGINT = 0.00;  
@@ -67,7 +68,7 @@ BEGIN
 				
 		SELECT @WorkFlowWorkOrderId=ISNULL([WorkFlowWorkOrderId],0) FROM [dbo].[WorkOrderWorkFlow] WITH(NOLOCK) WHERE [WorkOrderPartNoId]=@ID;
 
-		SELECT TOP 1 @HoursorClockorScan=[laborHoursMedthodId], @IsLaborTrackingTurnedOff = ISNULL([IsLaborTrackingTurnedOff], 0) FROM [dbo].[LaborOHSettings] WITH(NOLOCK) WHERE [MasterCompanyId]=@MasterCompanyId AND [ManagementStructureId]=@ManagementStructureId  
+		SELECT TOP 1 @LaborHoursId = [LaborHoursId], @HoursorClockorScan=[laborHoursMedthodId], @IsLaborTrackingTurnedOff = ISNULL([IsLaborTrackingTurnedOff], 0) FROM [dbo].[LaborOHSettings] WITH(NOLOCK) WHERE [MasterCompanyId]=@MasterCompanyId AND [ManagementStructureId]=@ManagementStructureId  
 		
 		IF NOT EXISTS (SELECT 1 FROM [dbo].[WorkOrderLaborHeader] WITH(NOLOCK) WHERE [WorkFlowWorkOrderId] = @WorkFlowWorkOrderId AND [WorkOrderId] = @WorkOrderId AND [MasterCompanyId]=@MasterCompanyId)  
         BEGIN		
@@ -90,7 +91,9 @@ BEGIN
 						,[EmployeeId]  
 						,[TotalWorkHours]  
 						,[WOPartNoId]
-						,[IsLaborTrackingTurnedOff])  
+						,[IsLaborTrackingTurnedOff]
+						,[LaborHoursId]
+						)  
 				 VALUES  
 						(@WorkOrderId  
 						,@WorkFlowWorkOrderId  
@@ -110,7 +113,8 @@ BEGIN
 						,@EmployeeId  
 						,@TotalWorkHours  
 						,0
-						,@IsLaborTrackingTurnedOff)  							
+						,@IsLaborTrackingTurnedOff
+						,@LaborHoursId)  							
 		END		
 			
 		SET @MinId = @MinId + 1

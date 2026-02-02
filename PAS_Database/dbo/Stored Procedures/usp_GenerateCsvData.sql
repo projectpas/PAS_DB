@@ -12,12 +12,13 @@
  **************************************************************
   ** Change History
  **************************************************************
- ** PR   Date         Author			Change Description
- ** --   --------     -------			--------------------------------
-    1    11/25/2025   Vishal Suthar		Created
-	2    26/12/2025   Nakul Chandigra   changed the condition to get @SelectList and @JoinList , used IsUseJoinCondition insted of ParentTableRereneceTypeId 
+ ** PR   Date         Author				Change Description
+ ** --   ----------   -------				--------------------------------
+    1    11/25/2025   Vishal Suthar			Created
+	2    26/12/2025   Nakul Chandigra		changed the condition to get @SelectList and @JoinList , used IsUseJoinCondition insted of ParentTableRereneceTypeId 
+	3    28/01/2026   Divyesh Kathiriya		Added New Module "Employee"
 	
- EXEC usp_GenerateCsvData 1, 1
+ EXEC usp_GenerateCsvData 12, 1
 **************************************************************/
 CREATE   PROCEDURE [dbo].[usp_GenerateCsvData]
 (
@@ -33,6 +34,14 @@ BEGIN
 		DECLARE @SelectList NVARCHAR(MAX) = '';
 		DECLARE @JoinList NVARCHAR(MAX) = '';
 		DECLARE @BaseTable NVARCHAR(200);
+		DECLARE @SQL NVARCHAR(MAX);
+		DECLARE @WhereCondition NVARCHAR(MAX);
+
+		DECLARE @EmployeeModule AS BIGINT;
+
+
+		SET @EmployeeModule = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'Employee');
+
 
 		SELECT TOP 1 @BaseTable = SourceTableName
 		FROM DBO.ImportModuleFieldMaster WITH (NOLOCK)
@@ -64,7 +73,32 @@ BEGIN
 			FROM DBO.ImportModuleFieldMaster WITH (NOLOCK)
 			WHERE ModuleId = @ModuleId AND (ISNULL(IsUseJoinCondition ,0)= 1 )  AND ISNULL(JoinCondition,'') <> ''
 		) AS J;
-		DECLARE @SQL NVARCHAR(MAX) = '
+
+		IF(@ModuleId = @EmployeeModule)
+		BEGIN
+			SET @WhereCondition  = 'AND AspNetUsers.MasterCompanyId = @MasterCompanyId
+									AND Employee.FirstName <> ''TBD''
+									AND Employee.EmployeeId Not in  (SELECT E.EmployeeId FROM dbo.Employee E WITH(NOLOCK) 
+																			INNER JOIN dbo.EmployeeUserRole EUR WITH(NOLOCK) ON E.EmployeeId = EUR.EmployeeId 
+																			INNER JOIN dbo.UserRole RU WITH(NOLOCK)  ON RU.Id = EUR.RoleId AND RU.Name = ''SUPERADMIN'')'									
+		END
+
+--------------Final SQL Query Start--------------
+		IF(@ModuleId = @EmployeeModule)
+		BEGIN
+			SET @SQL = '
+			SELECT ' + @SelectList + '
+			FROM ' + @BaseTable + ' WITH(NOLOCK)
+			' + ISNULL(@JoinList, '') + '
+			WHERE ' + @BaseTable + '.MasterCompanyId = @MasterCompanyId
+			AND ' + @BaseTable + '.IsActive = 1
+			AND ' + @BaseTable + '.IsDeleted = 0
+			' + @WhereCondition + '
+			ORDER BY ' + @BaseTable + '.CreatedDate DESC;';
+		END
+		ELSE
+		BEGIN
+			SET @SQL ='
 			SELECT ' + @SelectList + '
 			FROM ' + @BaseTable + ' WITH(NOLOCK)
 			' + ISNULL(@JoinList, '') + '
@@ -72,6 +106,9 @@ BEGIN
 			AND ' + @BaseTable + '.IsActive = 1
 			AND ' + @BaseTable + '.IsDeleted = 0
 			ORDER BY ' + @BaseTable + '.CreatedDate DESC;';
+		END
+--------------Final SQL Query END--------------
+
 		EXEC sp_executesql @SQL, N'@MasterCompanyId INT', @MasterCompanyId;
 
 	END TRY

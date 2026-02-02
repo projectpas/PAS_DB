@@ -11,10 +11,13 @@
 **************************************************************             
 ** PR   Date         Author  Change Description              
 ** --   --------     -------  --------------------------------            
-1    05/22/2023  Satish Gohil   Gl Account Link issue fixed
-2    06/05/2023  Satish Gohil   Modify(IsParent Column Added)
-3    21/08/2023  Satish Gohil   Modify(ispositive flag add at gl level)
-4    27Feb2024   Rajesh Gami    Add sequence number related chane for [GLAccountLeafNodeMapping]
+1    05/22/2023		Satish Gohil   Gl Account Link issue fixed
+2    06/05/2023		Satish Gohil   Modify(IsParent Column Added)
+3    21/08/2023		Satish Gohil   Modify(ispositive flag add at gl level)
+4    27/Feb/2024	Rajesh Gami    Add sequence number related chane for [GLAccountLeafNodeMapping]
+5    13/JAN/2026	Hemant Saliya  Handle Sequence Number Updates
+
+exec dbo.SaveLeafNodeData @LeafNodeId=602,@Name=N'COST OF GOODS SOLD - OTHER',@ParentId=NULL,@IsLeafNode=1,@GlAccountId=N'3438',@MasterCompanyId=14,@CreatedBy=N'ADMIN ADMIN',@ReportingStructureId=43,@GlMappingId=0,@IsPositive=1
 ************************************************************************/ 
 CREATE     PROCEDURE [dbo].[SaveLeafNodeData]    
 (    
@@ -69,7 +72,11 @@ BEGIN
 		SELECT @MaxSequenceNumber = ISNULL(MAX(SequenceNumber), 0)
 		FROM dbo.GLAccountLeafNodeMapping WITH(NOLOCK)
 		WHERE LeafNodeId = @LeafNodeId AND MasterCompanyId = @MasterCompanyId;
-
+		--@ParentId
+		IF(ISNULL(@ParentId, 0) <= 0)
+		BEGIN
+			SELECT @ParentId = ParentId FROM dbo.LeafNode WITH(NOLOCK) WHERE LeafNodeId = @LeafNodeId 
+		END
 
 		IF(ISNULL(@LeafNodeId,0) > 0 )    
 		BEGIN    
@@ -313,5 +320,5 @@ BEGIN
 		, @ErrorLogID             = @ErrorLogID OUTPUT ;        
 		RAISERROR ('Unexpected Error Occured in the database. Please let the support team know of the error number : %d', 16, 1, @ErrorLogID)        
 		RETURN(1);       
-	END CATCH    
+	END CATCH    
 END

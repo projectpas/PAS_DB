@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿
+/*************************************************************           
  ** File:   [GetReserveStockPartsListBySOId]          
  ** Author:   Vishal Suthar
  ** Description: This stored procedure is used to get the stocklines to be reserved from SO Parts
@@ -23,7 +24,7 @@
 	7    01/27/2025   Vishal Suthar		Fixed for issue when Qty is adjusted.
 	8    05-01-2025	  ABHISHEK JIRAWLA  Allow Repair Management Customer Stock Stockline
 	9    12/31/2025   Moin Bloch		UOM Related Changes
-     
+   	10    07/01/2026   Rajesh Gami		Added MasterCompanyId Parameter While Calling UOM Conversion Function  
  exec DBO.GetReserveStockPartsListBySOId @SalesOrderId=10851
 **************************************************************/
 CREATE     PROC [dbo].[GetReserveStockPartsListBySOId]
@@ -48,15 +49,15 @@ BEGIN
 				SOP.ItemMasterId,
 				SOP.ConditionId,
 				--SOP.QtyRequested,
-				[dbo].[fn_ConvertUOM](ISNULL(SOP.[QtyRequested],0),itm.[StockUnitOfMeasure], itm.[ConsumeUnitOfMeasure],0) [QtyRequested],
+				[dbo].[fn_ConvertUOM](ISNULL(SOP.[QtyRequested],0),itm.[StockUnitOfMeasure], itm.[ConsumeUnitOfMeasure],0,SOP.MasterCompanyId) [QtyRequested],
 				--SOP.QtyReserved,
-				[dbo].[fn_ConvertUOM](ISNULL(SOP.[QtyReserved],0),itm.[StockUnitOfMeasure], itm.[ConsumeUnitOfMeasure],0) [QtyReserved],
+				[dbo].[fn_ConvertUOM](ISNULL(SOP.[QtyReserved],0),itm.[StockUnitOfMeasure], itm.[ConsumeUnitOfMeasure],0,SOP.MasterCompanyId) [QtyReserved],
 				SOP.LotId,
 				SOP.IsLotAssigned,
 				--(SELECT ISNULL(SUM(Stk.QtyOrder), 0) 
 				-- FROM DBO.SalesOrderStocklineV1 Stk WITH (NOLOCK) 
 				-- WHERE Stk.SalesOrderPartId = SOP.SalesOrderPartId) AS TotalQtyOrder
-				 (SELECT SUM([dbo].[fn_ConvertUOM](ISNULL(Stk.[QtyOrder],0),qs.[StockUnitOfMeasure], qs.[ConsumeUnitOfMeasure],0)) 
+				 (SELECT SUM([dbo].[fn_ConvertUOM](ISNULL(Stk.[QtyOrder],0),qs.[StockUnitOfMeasure], qs.[ConsumeUnitOfMeasure],0,Stk.MasterCompanyId)) 
 				 FROM dbo.SalesOrderStocklineV1 Stk WITH (NOLOCK) 
 				 LEFT JOIN dbo.StockLine qs WITH (NOLOCK) ON Stk.StockLineId = qs.StockLineId
 				 WHERE Stk.SalesOrderPartId = SOP.SalesOrderPartId) AS TotalQtyOrder
@@ -87,7 +88,7 @@ BEGIN
 		-- (SELECT ISNULL(SUM(SOSI.QtyShipped), 0) FROM DBO.SalesOrderShipping SOS WITH (NOLOCK) INNER JOIN DBO.SalesOrderShippingItem SOSI ON SOS.SalesOrderShippingId = SOSI.SalesOrderShippingId 
 		--  WHERE SOSI.SalesOrderPartId = SOP.SalesOrderPartId AND SOS.SalesOrderId = @SalesOrderId)) AS QtyToBeReserved,
 		 (ISNULL(sop.QtyRequested, 0) - ISNULL(sop.QtyReserved, 0) - 		 
-		 (SELECT ISNULL([dbo].[fn_ConvertUOM](SUM(ISNULL(SOSI.QtyShipped, 0)),MAX(itm.StockUnitOfMeasure),MAX(itm.ConsumeUnitOfMeasure),0),0)
+		 (SELECT ISNULL([dbo].[fn_ConvertUOM](SUM(ISNULL(SOSI.QtyShipped, 0)),MAX(itm.StockUnitOfMeasure),MAX(itm.ConsumeUnitOfMeasure),0,MAX(SOS.MasterCompanyId)),0)
 		 FROM DBO.SalesOrderShipping SOS WITH (NOLOCK) 
 		  INNER JOIN dbo.SalesOrderShippingItem SOSI WITH (NOLOCK) ON SOS.SalesOrderShippingId = SOSI.SalesOrderShippingId 
 		   LEFT JOIN dbo.SalesOrderPartV1 SOP WITH (NOLOCK) ON SOP.SalesOrderPartId = SOSI.SalesOrderPartId 
@@ -95,7 +96,7 @@ BEGIN
 		  WHERE SOSI.SalesOrderPartId = SOP.SalesOrderPartId AND SOS.SalesOrderId = @SalesOrderId)) AS QtyToBeReserved,
 		  (ISNULL(sop.QtyRequested, 0) - ISNULL(sop.QtyReserved, 0) - 
 		 --(SELECT ISNULL(SUM(SOSI.QtyShipped), 0) 
-		 (SELECT ISNULL([dbo].[fn_ConvertUOM](SUM(ISNULL(SOSI.QtyShipped, 0)),MAX(itm.StockUnitOfMeasure),MAX(itm.ConsumeUnitOfMeasure),0),0)		 
+		 (SELECT ISNULL([dbo].[fn_ConvertUOM](SUM(ISNULL(SOSI.QtyShipped, 0)),MAX(itm.StockUnitOfMeasure),MAX(itm.ConsumeUnitOfMeasure),0,MAX(SOS.MasterCompanyId)),0)		 
 		 FROM DBO.SalesOrderShipping SOS WITH (NOLOCK) 
 		 INNER JOIN DBO.SalesOrderShippingItem SOSI ON SOS.SalesOrderShippingId = SOSI.SalesOrderShippingId 
 		 INNER JOIN DBO.SOPickTicket SOPick ON SOPick.SOPickTicketId = SOSI.SOPickTicketId
@@ -104,19 +105,19 @@ BEGIN
 		  WHERE SOPick.SalesOrderPartStocklineId = Stk.SalesOrderStocklineId AND SOS.SalesOrderId = @SalesOrderId)) AS StkQtyToBeReserved,
 		ISNULL(sop.QtyReserved, 0) AS QuantityReserved,
 		--ISNULL(sl.QuantityAvailable, 0)  AS QuantityAvailable, 
-		[dbo].[fn_ConvertUOM](ISNULL(sl.[QuantityAvailable], 0),sl.[StockUnitOfMeasure], sl.[ConsumeUnitOfMeasure],0) AS QuantityAvailable,
+		[dbo].[fn_ConvertUOM](ISNULL(sl.[QuantityAvailable], 0),sl.[StockUnitOfMeasure], sl.[ConsumeUnitOfMeasure],0,SO.MasterCompanyId) AS QuantityAvailable,
 		--ISNULL(sl.QuantityOnHand, 0) AS QuantityOnHand, 
-		[dbo].[fn_ConvertUOM](ISNULL(sl.[QuantityOnHand], 0),sl.[StockUnitOfMeasure] ,sl.[ConsumeUnitOfMeasure],0) AS QuantityOnHand,
+		[dbo].[fn_ConvertUOM](ISNULL(sl.[QuantityOnHand], 0),sl.[StockUnitOfMeasure] ,sl.[ConsumeUnitOfMeasure],0,SO.MasterCompanyId) AS QuantityOnHand,
 		--ISNULL((SELECT ISNULL(Part.QtyRequested, 0)		
 		--FROM DBO.SalesOrderPartV1 Part WITH (NOLOCK) 
 		-- LEFT JOIN dbo.ItemMaster itm WITH (NOLOCK) ON Part.ItemMasterId = itm.ItemMasterId
 		--WHERE Part.SalesOrderPartId = SOP.SalesOrderPartId), 0) PartQuantityOnOrder, 
-		ISNULL((SELECT [dbo].[fn_ConvertUOM](ISNULL(Part.QtyRequested, 0),itm.[StockUnitOfMeasure] ,itm.[ConsumeUnitOfMeasure],0)		
+		ISNULL((SELECT [dbo].[fn_ConvertUOM](ISNULL(Part.QtyRequested, 0),itm.[StockUnitOfMeasure] ,itm.[ConsumeUnitOfMeasure],0,SO.MasterCompanyId)		
 		FROM DBO.SalesOrderPartV1 Part WITH (NOLOCK) 
 		 LEFT JOIN dbo.ItemMaster itm WITH (NOLOCK) ON Part.ItemMasterId = itm.ItemMasterId
 		WHERE Part.SalesOrderPartId = SOP.SalesOrderPartId), 0) PartQuantityOnOrder,
 		--ISNULL((SELECT ISNULL(SUM(StkV1.QtyOrder), 0) FROM DBO.SalesOrderStocklineV1 StkV1 WITH (NOLOCK) WHERE StkV1.SalesOrderPartId = SOP.SalesOrderPartId ), 0) QuantityOnOrder, --AND StkV1.StockLineId = SL.StockLineId), 0) QuantityOnOrder, 		
-		ISNULL((SELECT ISNULL([dbo].[fn_ConvertUOM](SUM(ISNULL(StkV1.QtyOrder, 0)),MAX(qs.[StockUnitOfMeasure]), MAX(qs.[ConsumeUnitOfMeasure]),0),0) 
+		ISNULL((SELECT ISNULL([dbo].[fn_ConvertUOM](SUM(ISNULL(StkV1.QtyOrder, 0)),MAX(qs.[StockUnitOfMeasure]), MAX(qs.[ConsumeUnitOfMeasure]),0,MAX(StkV1.MasterCompanyId)),0) 
 		FROM dbo.SalesOrderStocklineV1 StkV1 WITH (NOLOCK) 
 		LEFT JOIN dbo.StockLine qs WITH (NOLOCK) ON StkV1.StockLineId = qs.StockLineId
 		WHERE StkV1.SalesOrderPartId = SOP.SalesOrderPartId ), 0) QuantityOnOrder,		
@@ -202,7 +203,7 @@ BEGIN
 		ISNULL(SOP.EquPartMasterPartId, 0) EquPartMasterPartId,
 		SOP.QtyToReserve,
 		CASE WHEN (SOP.QuantityOnOrder IS NOT NULL AND ISNULL(SOP.QuantityOnOrder, 0) > 0 AND ISNULL(SOP.QuantityOnOrder, 0) < SOP.QtyToBeReserved) 
-		THEN (ISNULL(SOP.QuantityOnOrder, 0) - ISNULL([dbo].[fn_ConvertUOM](ISNULL(Stk.QtyReserved, 0),qs.[StockUnitOfMeasure], qs.[ConsumeUnitOfMeasure],0),0))
+		THEN (ISNULL(SOP.QuantityOnOrder, 0) - ISNULL([dbo].[fn_ConvertUOM](ISNULL(Stk.QtyReserved, 0),qs.[StockUnitOfMeasure], qs.[ConsumeUnitOfMeasure],0,SOP.MasterCompanyId),0))
 		ELSE SOP.QtyToBeReserved END QtyToBeReserved,		
 		SOP.PartQuantityOnOrder,
 		SOP.StkQtyToBeReserved,
@@ -261,7 +262,7 @@ BEGIN
 		WHERE 
 		((CASE WHEN ISNULL(QuantityOnOrder, 0) = 0 THEN QtyToBeReserved ELSE
 			CASE WHEN (QuantityReserved - PartQuantityOnOrder) > 0 THEN QtyToBeReserved 
-			ELSE (PartQuantityOnOrder - QuantityReserved - (SELECT ISNULL([dbo].[fn_ConvertUOM](SUM(ISNULL(SOSI.QtyShipped, 0)),MAX(qs.[StockUnitOfMeasure]),MAX(qs.[ConsumeUnitOfMeasure]),0),0) 
+			ELSE (PartQuantityOnOrder - QuantityReserved - (SELECT ISNULL([dbo].[fn_ConvertUOM](SUM(ISNULL(SOSI.QtyShipped, 0)),MAX(qs.[StockUnitOfMeasure]),MAX(qs.[ConsumeUnitOfMeasure]),0,MAX(SOS.MasterCompanyId)),0) 
 			--ISNULL(SUM(SOSI.QtyShipped), 0) 
 			FROM [dbo].[SalesOrderShipping] SOS WITH (NOLOCK) 
 			INNER JOIN [dbo].[SalesOrderShippingItem] SOSI ON SOS.SalesOrderShippingId = SOSI.SalesOrderShippingId 

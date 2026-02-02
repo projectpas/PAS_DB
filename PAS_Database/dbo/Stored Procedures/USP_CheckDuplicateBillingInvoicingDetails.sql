@@ -75,6 +75,8 @@ CREATE   PROCEDURE [dbo].[USP_CheckDuplicateBillingInvoicingDetails]
 @SignEmpId BIGINT = NULL,
 @SignEmpDate DATETIME2(7) = NULL,
 @ShippingTermsName VARCHAR(256) = NULL,
+@SerialNumber VARCHAR(256) = NULL,
+@IsNewVersion bit = NULL,
 -------------------------------------------BillingInvoicingItems-------------------------------------------
 @tbl_BillingInvoicingItemsType BillingInvoicingItemsType READONLY
 AS  

@@ -4413,6 +4413,22 @@
     <Build Include="dbo\Stored Procedures\USP_GetWIPGLAccountSetup.sql" />
     <Build Include="dbo\Stored Procedures\USP_AddWIPGLAccountSetup.sql" />
     <Build Include="dbo\User Defined Types\WIPGLAccountSetupType.sql" />
+    <Build Include="dbo\Stored Procedures\USP_ConvertUOM.sql" />
+    <Build Include="dbo\Stored Procedures\USP_AddCustomerContact.sql" />
+    <Build Include="dbo\Stored Procedures\USP_UpdateWorkOrderMaterialCondition.sql" />
+    <Build Include="dbo\Stored Procedures\RPT_GetWorkOrderScrapCertificatePrintPdfData.sql" />
+    <Build Include="dbo\Views\vw_CurrencyConversion_Audit.sql" />
+    <Build Include="dbo\Views\vw_CurrencyConversion.sql" />
+    <Build Include="dbo\Stored Procedures\USP_UpdateLeafNodePrintSequence.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetPrintSequenceLeafData.sql" />
+    <Build Include="dbo\User Defined Types\LeafNodeSequenceType.sql" />
+    <Build Include="dbo\Stored Procedures\GetPrintCheckInvoiceData.sql" />
+    <Build Include="dbo\Tables\WOReleaseForm.sql" />
+    <Build Include="dbo\Stored Procedures\usprpt_GetInventoryUnitCostAdjustmentReport.sql" />
+    <Build Include="dbo\Stored Procedures\usprpt_GetAPDisbursementReportByPayee.sql" />
+    <Build Include="dbo\Stored Procedures\usprpt_GetAPDisbursementReportByInvoice.sql" />
+    <Build Include="dbo\Stored Procedures\usprpt_GetInventoryUnitCostAdjustmentReport_SSRS.sql" />
+    <Build Include="dbo\Stored Procedures\usprpt_GetInventoryQuantityAdjustmentReport_SSRS.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

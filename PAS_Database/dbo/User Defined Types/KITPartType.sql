@@ -5,9 +5,9 @@
     [ManufacturerId]         BIGINT          NULL,
     [ConditionId]            BIGINT          NULL,
     [UOMId]                  BIGINT          NULL,
-    [Qty]                    INT             NULL,
-    [UnitCost]               DECIMAL (18, 2) NULL,
-    [StocklineUnitCost]      DECIMAL (18, 2) NULL,
+    [Qty]                    DECIMAL (18, 6) NULL,
+    [UnitCost]               DECIMAL (18, 6) NULL,
+    [StocklineUnitCost]      DECIMAL (18, 6) NULL,
     [MasterCompanyId]        INT             NULL,
     [CreatedBy]              VARCHAR (256)   NULL,
     [UpdatedBy]              VARCHAR (256)   NULL,
@@ -23,8 +23,4 @@
     [IsEditable]             BIT             NULL,
     [IsNewItem]              BIT             NULL,
     [TaskId]                 BIGINT          NULL);
-
-
-
-
 

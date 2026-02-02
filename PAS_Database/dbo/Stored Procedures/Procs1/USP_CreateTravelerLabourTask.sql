@@ -26,11 +26,12 @@
 	9	 11/11/2025	  Moin Bloch	  Modified (Add Default Entry Of [DirectLaborOHCost],[BurdaenRatePercentageId],[TotalCostPerHour],[BurdenRateAmount] for Assign Total Hours to Work Add All Task )
 	10	 12/23/2025	  Bhargav Saliya  Added case For Dynamic Wo Labour Entry
 	11	 12/26/2025	  Bhargav Saliya  Add  Default Entry In [WorkOrderTaskDetails] fro 'All Task'
+	12   06/01/2026   Moin Bloch       Added LaborHoursId in WorkOrderLaborHeader
        
 -- EXEC [USP_CreateTravelerLabourTask] 10181,10386,10248,1,'JONAS  KAHNWALD'
 **************************************************************/  
   
-CREATE     PROCEDURE [dbo].[USP_CreateTravelerLabourTask]  
+CREATE      PROCEDURE [dbo].[USP_CreateTravelerLabourTask]  
  @WorkOrderId bigint,    
  @WorkOrderPartNoId bigint,    
  @WorkFlowWorkOrderId bigint ,  
@@ -76,7 +77,9 @@ BEGIN
                  
     SELECT TOP 1 @ManagementStructureId = [ManagementStructureId],@ItemMasterId = [ItemMasterId],@WorkScopeId = [WorkOrderScopeId],@IstravelerTask = [IsTraveler],@TechnicianId = [TechnicianId] FROM [dbo].[WorkOrderPartNumber] WITH(NOLOCK) WHERE [ID] = @WorkOrderPartNoId  
     
-	SELECT TOP 1 @LaborHoursId = [LaborHoursId], @HoursorClockorScan=laborHoursMedthodId, @IsLaborTrackingTurnedOff = ISNULL(IsLaborTrackingTurnedOff, 0) FROM [dbo].[LaborOHSettings] WITH(NOLOCK) WHERE MasterCompanyId=@MasterCompanyId AND ManagementStructureId=@ManagementStructureId  
+	SELECT TOP 1 @LaborHoursId = [LaborHoursId], 
+	             @HoursorClockorScan=laborHoursMedthodId, 
+				 @IsLaborTrackingTurnedOff = ISNULL(IsLaborTrackingTurnedOff, 0) FROM [dbo].[LaborOHSettings] WITH(NOLOCK) WHERE MasterCompanyId=@MasterCompanyId AND ManagementStructureId=@ManagementStructureId  
     
 	SELECT @DataEnteredBy = ISNULL(EmployeeId,0) FROM [dbo].[Employee] WITH(NOLOCK)  WHERE CONCAT(TRIM(REPLACE([FirstName], ' ', '')),'',TRIM(REPLACE([LastName], ' ', ''))) IN (REPLACE(@CreatedBy, ' ', '')) AND MasterCompanyId=@MasterCompanyId  
     
@@ -159,7 +162,8 @@ BEGIN
 										,[EmployeeId]  
 										,[TotalWorkHours]  
 										,[WOPartNoId]
-										,[IsLaborTrackingTurnedOff])  
+										,[IsLaborTrackingTurnedOff]
+										,[LaborHoursId])  
 								  VALUES  
 										(@WorkOrderId  
 										,@WorkFlowWorkOrderId  
@@ -179,7 +183,8 @@ BEGIN
 										,@EmployeeId  
 										,@TotalWorkHours  
 										,0
-										,@IsLaborTrackingTurnedOff)  
+										,@IsLaborTrackingTurnedOff
+										,@LaborHoursId)  
                 
 				SELECT @WorkOrderLaborHeaderId = SCOPE_IDENTITY()  
 			END 
@@ -314,7 +319,8 @@ BEGIN
 										,[EmployeeId]  
 										,[TotalWorkHours]  
 										,[WOPartNoId]
-										,[IsLaborTrackingTurnedOff])  
+										,[IsLaborTrackingTurnedOff]
+										,[LaborHoursId])  
 								  VALUES  
 										(@WorkOrderId  
 										,@WorkFlowWorkOrderId  
@@ -334,7 +340,8 @@ BEGIN
 										,@EmployeeId  
 										,@TotalWorkHours  
 										,0
-										,@IsLaborTrackingTurnedOff)  
+										,@IsLaborTrackingTurnedOff
+										,@LaborHoursId)  
                 
 						SELECT @WorkOrderLaborHeaderId = SCOPE_IDENTITY()  
 					END 
@@ -428,7 +435,8 @@ BEGIN
 										,[EmployeeId]  
 										,[TotalWorkHours]  
 										,[WOPartNoId]
-										,[IsLaborTrackingTurnedOff])  
+										,[IsLaborTrackingTurnedOff]
+										,[LaborHoursId])  
 								  VALUES  
 										(@WorkOrderId  
 										,@WorkFlowWorkOrderId  
@@ -448,7 +456,8 @@ BEGIN
 										,@EmployeeId  
 										,@TotalWorkHours  
 										,0
-										,@IsLaborTrackingTurnedOff)  
+										,@IsLaborTrackingTurnedOff
+										,@LaborHoursId)  
                 
 				SELECT @WorkOrderLaborHeaderId = SCOPE_IDENTITY()  
 			END 
@@ -606,7 +615,8 @@ BEGIN
 										,[EmployeeId]  
 										,[TotalWorkHours]  
 										,[WOPartNoId]
-										,[IsLaborTrackingTurnedOff])  
+										,[IsLaborTrackingTurnedOff]
+										,[LaborHoursId])  
 								  VALUES  
 										(@WorkOrderId  
 										,@WorkFlowWorkOrderId  
@@ -626,7 +636,8 @@ BEGIN
 										,@EmployeeId  
 										,@TotalWorkHours  
 										,0
-										,@IsLaborTrackingTurnedOff)  
+										,@IsLaborTrackingTurnedOff
+										,@LaborHoursId)  
                 
 						SELECT @WorkOrderLaborHeaderId = SCOPE_IDENTITY()  
 					END 

@@ -23,15 +23,15 @@
 	8    07-03-2025     Shrey Chandegara				Modified due to add view in Accouting Integration List's PendingSync(Add @IsUpdated parameter)
     9	 10/04/2025	    Ekta Chandegra	                Convert date using dbo.ConvertUTCtoLocal
 	10   07/01/2025     Sahdev Saliya                   Changed The DataType in Column CreatedDate To Datetime
+	11   25/01/2026     Hemant Saliya                   Change default Sort order by PK NonPOInvoiceId to show latest records first.
+	12   21/01/2026     AMIT GHEDIYA                    Added InvoiceDate
+    13   28/01/2026     Sahdev Saliya                   Added DueDate
 
 --EXEC [USP_GetNonPOInvoiceList] 3577,3047
 
-exec USP_GetNonPOInvoiceList 
-@PageNumber=1,@PageSize=10,@SortColumn=N'CreatedDate',@SortOrder=-1,@GlobalFilter=N'',@StatusId=1,@HeaderStatusId=1,@ViewType=N'pnview',@VendorName=NULL,@VendorCode=NULL,
-@NonPoInvoiceStatus=NULL,@PaymentTerms=NULL,@CreatedBy=NULL,@CreatedDate='2023-09-13 11:31:09.640',@UpdatedBy=NULL,@UpdatedDate='2023-09-13 11:31:09.640',@IsDeleted=0,@MasterCompanyId=1
-
+exec USP_GetNonPOInvoiceList @PageNumber=1,@PageSize=10,@SortColumn=N'NonPOInvoiceId',@SortOrder=-1,@GlobalFilter=N'',@StatusId=1,@HeaderStatusId=8,@ViewType=N'npoview',@VendorName=NULL,@VendorCode=NULL,@NonPoInvoiceStatus=NULL,@PaymentTerms=NULL,@CreatedBy=NULL,@CreatedDate=NULL,@UpdatedBy=NULL,@UpdatedDate=NULL,@IsDeleted=0,@MasterCompanyId=21,@Amount=NULL,@GLAccount=NULL,@InvoiceNum=NULL,@NPONumber=NULL,@ControlNumber=NULL,@IsUpdated=0,@EmployeeId=249,@InvoiceDate=NULL
 ************************************************************************/
-CREATE   PROCEDURE [dbo].[USP_GetNonPOInvoiceList]
+CREATE PROCEDURE [dbo].[USP_GetNonPOInvoiceList]
 @PageNumber int = NULL,
 @PageSize int = NULL,
 @SortColumn varchar(50)=NULL,
@@ -56,7 +56,9 @@ CREATE   PROCEDURE [dbo].[USP_GetNonPOInvoiceList]
 @InvoiceNum  varchar(100) = NULL,
 @ControlNumber varchar(50)=null,
 @IsUpdated BIT = NULL,
-@EmployeeId bigint = NULL
+@EmployeeId bigint = NULL,
+@InvoiceDate datetime = NULL,
+@DueDate datetime = NULL
 AS
 BEGIN	
 	    SET NOCOUNT ON;
@@ -87,7 +89,7 @@ BEGIN
 		END
 		IF @SortColumn IS NULL
 		BEGIN
-			SET @SortColumn=UPPER('CreatedDate')
+			SET @SortColumn=UPPER('NonPOInvoiceId')
 		END 
 		ELSE
 		BEGIN 
@@ -128,6 +130,8 @@ BEGIN
 						NPH.IsDeleted,
 						CONVERT(DATETIME, DATEADD(SECOND, @BaseUtcOffsetSec, NPH.[CreatedDate])) [CreatedDate],
 						CONVERT(DATETIME, DATEADD(SECOND, @BaseUtcOffsetSec, NPH.[UpdatedDate])) [UpdatedDate],
+						NPH.[InvoiceDate],
+					    NPH.[DueDate],
 						--(Cast(DBO.ConvertUTCtoLocal(NPH.[CreatedDate]  , @CurrntEmpTimeZoneDesc) as DateTime)) CreatedDate,
 						--(Cast(DBO.ConvertUTCtoLocal(NPH.[UpdatedDate]  , @CurrntEmpTimeZoneDesc) as DateTime)) UpdatedDate,
 						Upper(NPH.CreatedBy) CreatedBy,
@@ -161,6 +165,8 @@ BEGIN
 					NPH.IsDeleted,
 					NPH.CreatedDate,
 					NPH.UpdatedDate,
+					NPH.InvoiceDate,
+				    NPH.DueDate,
 					NPH.CreatedBy,
 					NPH.UpdatedBy,
 					NPH.MasterCompanyId,	
@@ -194,6 +200,8 @@ BEGIN
 					(ISNULL(@NPONumber,'') ='' OR NPONumber LIKE '%' + @NPONumber + '%') AND						
 					(ISNULL(@CreatedDate,'') ='' OR CAST(CreatedDate AS Date)=CAST(@CreatedDate AS date)) AND
 					(ISNULL(@UpdatedDate,'') ='' OR CAST(UpdatedDate AS date)=CAST(@UpdatedDate AS date)) AND
+					(ISNULL(@InvoiceDate,'') ='' OR CAST(InvoiceDate AS date)=CAST(@InvoiceDate AS date)) AND
+					(ISNULL(@DueDate,'') ='' OR CAST(DueDate AS date)=CAST(@DueDate AS date)) AND
 					(ISNULL(@ControlNumber,'') ='' OR ControlNumber LIKE '%' + @ControlNumber + '%'))
 					)
 
@@ -216,6 +224,8 @@ BEGIN
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='InvoiceNum')  THEN InvoiceNum END DESC,
 			CASE WHEN (@SortOrder=1  AND @SortColumn='NPONumber')  THEN NPONumber END ASC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='NPONumber')  THEN NPONumber END DESC,
+			CASE WHEN (@SortOrder=1  AND @SortColumn='NonPOInvoiceId')  THEN NonPOInvoiceId END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='NonPOInvoiceId')  THEN NonPOInvoiceId END DESC,
 			CASE WHEN (@SortOrder=1  AND @SortColumn='CreatedBy')  THEN CreatedBy END ASC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='CreatedBy')  THEN CreatedBy END DESC,
 			CASE WHEN (@SortOrder=1  AND @SortColumn='CreatedDate')  THEN CreatedDate END ASC,
@@ -225,7 +235,11 @@ BEGIN
 			CASE WHEN (@SortOrder=1  AND @SortColumn='UpdatedDate')  THEN UpdatedDate END ASC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='UpdatedDate')  THEN UpdatedDate END DESC,
 			CASE WHEN (@SortOrder=1 AND @SortColumn='CONTROLNUMBER')  THEN ControlNumber END ASC,
-			CASE WHEN (@SortOrder=-1 AND @SortColumn='CONTROLNUMBER')  THEN ControlNumber END DESC
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='CONTROLNUMBER')  THEN ControlNumber END DESC,
+			CASE WHEN (@SortOrder=1  AND @SortColumn='InvoiceDate')  THEN InvoiceDate END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='InvoiceDate')  THEN InvoiceDate END DESC,
+			CASE WHEN (@SortOrder=1  AND @SortColumn='DueDate')  THEN DueDate END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='DueDate')  THEN DueDate END DESC
 			OFFSET @RecordFrom ROWS 
    			FETCH NEXT @PageSize ROWS ONLY
 		END
@@ -246,6 +260,8 @@ BEGIN
 						NPH.IsDeleted,
 						CONVERT(DATETIME, DATEADD(SECOND, @BaseUtcOffsetSec, NPH.[CreatedDate])) [CreatedDate],
 						CONVERT(DATETIME, DATEADD(SECOND, @BaseUtcOffsetSec, NPH.[UpdatedDate])) [UpdatedDate],
+						NPH.[InvoiceDate],
+						NPH.[DueDate],
 						--(Cast(DBO.ConvertUTCtoLocal(NPH.[CreatedDate]  , @CurrntEmpTimeZoneDesc) as DateTime)) CreatedDate,
 						--(Cast(DBO.ConvertUTCtoLocal(NPH.[UpdatedDate]  , @CurrntEmpTimeZoneDesc) as DateTime)) UpdatedDate,
 						Upper(NPH.CreatedBy) CreatedBy,
@@ -267,7 +283,7 @@ BEGIN
 		 	  WHERE ((NPH.IsDeleted=@IsDeleted) AND (@IsActive IS NULL OR NPH.IsActive=@IsActive)) AND (@HeaderStatusId IS NULL OR NPH.StatusId = @HeaderStatusId)		     
 					AND NPH.MasterCompanyId=@MasterCompanyId	
 			),ResultData AS( Select NonPOInvoiceId, VendorId, VendorName, VendorCode, PaymentTermsId, StatusId, ManagementStructureId, NonPoInvoiceStatus, PaymentTerms,
-						IsActive, IsDeleted, CreatedDate, UpdatedDate, CreatedBy, UpdatedBy, MasterCompanyId, PaymentMethodId, NPONumber, Amount, GLAccount, InvoiceNum, ControlNumber
+						IsActive, IsDeleted, CreatedDate, UpdatedDate, InvoiceDate, DueDate, CreatedBy, UpdatedBy, MasterCompanyId, PaymentMethodId, NPONumber, Amount, GLAccount, InvoiceNum, ControlNumber
 						FROM Result
 			WHERE ((@GlobalFilter <>'' AND ((VendorName LIKE '%' +@GlobalFilter+'%') OR
 			        (VendorCode LIKE '%' +@GlobalFilter+'%') OR	
@@ -292,12 +308,14 @@ BEGIN
 					(ISNULL(@NPONumber,'') ='' OR NPONumber LIKE '%' + @NPONumber + '%') AND							
 					(ISNULL(@CreatedDate,'') ='' OR CAST(CreatedDate AS Date)=CAST(@CreatedDate AS date)) AND
 					(ISNULL(@UpdatedDate,'') ='' OR CAST(UpdatedDate AS date)=CAST(@UpdatedDate AS date)) AND
+					(ISNULL(@InvoiceDate,'') ='' OR CAST(InvoiceDate AS date)=CAST(@InvoiceDate AS date)) AND
+					(ISNULL(@DueDate,'') ='' OR CAST(DueDate AS date)=CAST(@DueDate AS date)) AND
 					(ISNULL(@ControlNumber,'') ='' OR ControlNumber LIKE '%' + @ControlNumber + '%'))
 					)
 			), ResultCount AS (Select COUNT(NonPOInvoiceId) AS NumberOfItems FROM ResultData)
 
 			SELECT	NonPOInvoiceId, VendorId, VendorName, VendorCode, PaymentTermsId, StatusId, ManagementStructureId, NonPoInvoiceStatus, PaymentTerms,
-				IsActive, IsDeleted, CreatedDate, UpdatedDate, CreatedBy, UpdatedBy, MasterCompanyId, PaymentMethodId,
+				IsActive, IsDeleted, CreatedDate, UpdatedDate, InvoiceDate, DueDate, CreatedBy, UpdatedBy, MasterCompanyId, PaymentMethodId,
 				NPONumber, Amount, GLAccount, InvoiceNum, ControlNumber, NumberOfItems FROM ResultData,ResultCount
 			ORDER BY		
 			CASE WHEN (@SortOrder=1  AND @SortColumn='VendorName')  THEN VendorName END ASC,
@@ -314,6 +332,8 @@ BEGIN
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='GLAccount')  THEN GLAccount END DESC,
 			CASE WHEN (@SortOrder=1  AND @SortColumn='InvoiceNum')  THEN InvoiceNum END ASC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='InvoiceNum')  THEN InvoiceNum END DESC,
+			CASE WHEN (@SortOrder=1  AND @SortColumn='NonPOInvoiceId')  THEN NonPOInvoiceId END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='NonPOInvoiceId')  THEN NonPOInvoiceId END DESC,
 			CASE WHEN (@SortOrder=1  AND @SortColumn='NPONumber')  THEN NPONumber END ASC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='NPONumber')  THEN NPONumber END DESC,
 			CASE WHEN (@SortOrder=1  AND @SortColumn='CreatedBy')  THEN CreatedBy END ASC,
@@ -325,7 +345,11 @@ BEGIN
 			CASE WHEN (@SortOrder=1  AND @SortColumn='UpdatedDate')  THEN UpdatedDate END ASC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='UpdatedDate')  THEN UpdatedDate END DESC,
 			CASE WHEN (@SortOrder=1 AND @SortColumn='CONTROLNUMBER')  THEN ControlNumber END ASC,
-			CASE WHEN (@SortOrder=-1 AND @SortColumn='CONTROLNUMBER')  THEN ControlNumber END DESC
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='CONTROLNUMBER')  THEN ControlNumber END DESC,
+			CASE WHEN (@SortOrder=1  AND @SortColumn='InvoiceDate')  THEN InvoiceDate END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='InvoiceDate')  THEN InvoiceDate END DESC,
+			CASE WHEN (@SortOrder=1  AND @SortColumn='DueDate')  THEN DueDate END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='DueDate')  THEN DueDate END DESC
 			OFFSET @RecordFrom ROWS 
    			FETCH NEXT @PageSize ROWS ONLY
 		END	

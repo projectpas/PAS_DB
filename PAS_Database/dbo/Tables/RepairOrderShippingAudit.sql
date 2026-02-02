@@ -61,7 +61,7 @@
     [ShippingAccountNo]                VARCHAR (50)    NULL,
     [SmentNum]                         INT             NULL,
     [VendorDomensticShippingShipViaId] BIGINT          NULL,
-    [NoOfItems]                        INT             NULL,
+    [NoOfItems]                        DECIMAL (18, 6) NULL,
     [IsVendorShipping]                 BIT             NULL,
     [IsManualShipping]                 BIT             NULL,
     [ManufactureCountryId]             INT             NULL,

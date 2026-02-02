@@ -1,4 +1,16 @@
-﻿/* EXEC [dbo].[GetKitPartsById] 2379 */
+﻿/*************************************************************             
+ ** File:   [GetKitPartsById]             
+ ** Author:   
+ ** Description: This stored procedure is used Create work order materials
+ ** Date:            
+ **************************************************************             
+ ** Change History             
+ **************************************************************             
+ ** PR    Date					  Author			Change Description              
+ ** --    --------				  -------			--------------------------------            
+ ** 1     -			               --			      Created         
+**************************************************************/  
+/* EXEC [dbo].[GetKitPartsById] 2379 */
 CREATE   PROCEDURE [dbo].[GetKitPartsById]
 	@KitId BIGINT = 0
 AS

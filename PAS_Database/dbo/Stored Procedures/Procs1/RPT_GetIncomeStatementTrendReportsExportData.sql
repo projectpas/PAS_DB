@@ -17,8 +17,10 @@
 	5    08/11/2023   Hemant Saliya  Resolved Balance MissMatch Issue
 	6    12/08/2023   Moin Bloch     Resolved Balance MissMatch Issue
 	7    25/01/2024   Hemant Saliya	 Remove Manual Journal from Reports
+	8    13/01/2026   Hemant Saliya	 Corrected Income Statement Reports Balance Missmatch
 ************************************************************************
-EXEC [RPT_GetIncomeStatementTrendReportsExportData] 137,137,8,1,1,64, @strFilter=N'1,5,6,52!2,7,8,9!3,11,10!4,12,13'
+EXEC [RPT_GetIncomeStatementTrendReportsExportData] 264,264,43,41,14,0, @strFilter=N'63!64!!'
+exec RPT_GetIncomeStatementTrendReportsExportData @StartAccountingPeriodId=264,@EndAccountingPeriodId=264,@ReportingStructureId=43,@ManagementStructureId=N'41',@MasterCompanyId=N'14',@LeafNodeId=0,@strFilter=N'63!64!!'
 ************************************************************************/
   
 CREATE   PROCEDURE [dbo].[RPT_GetIncomeStatementTrendReportsExportData]  
@@ -418,7 +420,8 @@ BEGIN
 			  LevelId INT NULL,
 			  IsProcess bit DEFAULT 0,
 			  ChildCount INT NULL,
-			  SequenceNumber INT NULL
+			  SequenceNumber INT NULL,
+			  PRINTSequenceNumber INT NULL
 		  )
 
 		  DECLARE @LID AS int = 0;
@@ -513,12 +516,187 @@ BEGIN
 			FROM #ReportingStructureExportData RS JOIN dbo.AccountingCalendar AP WITH(NOLOCK) ON RS.AccountcalMonth = REPLACE(AP.PeriodName,' - ','')
 			WHERE AP.LegalEntityId = @LegalEntityId
 
-		 SELECT * FROM #ReportingStructureExportData ORDER BY SequenceNumber ASC
+			UPDATE #ReportingStructureExportData
+			SET AccountingPeriod =
+				UPPER(LEFT(AccountingPeriod, 3)) + ' ' + RIGHT(AccountingPeriod, 4)
+			WHERE AccountingPeriod LIKE '[A-Za-z][A-Za-z][A-Za-z][0-9][0-9][0-9][0-9]';
+
+			;WITH R AS
+			(
+				SELECT
+					ID,  -- your unique row key
+					NewSeq = ROW_NUMBER() OVER (
+								ORDER BY SequenceNumber DESC,
+										 LevelId ASC,
+										 ID ASC        -- tie-breaker to make it deterministic
+							)
+				FROM #ReportingStructureExportData
+			)
+			UPDATE D
+			SET D.SequenceNumber = R.NewSeq
+			FROM #ReportingStructureExportData D
+			JOIN R ON R.ID = D.ID;
+
+			--;WITH x AS
+			--(
+			--	SELECT  t.*,
+			--			rn = ROW_NUMBER() OVER
+			--				 (
+			--				   PARTITION BY t.leafNodeId, t.AccountingPeriodId
+			--				   ORDER BY t.IsTotlaLine DESC, t.SequenceNumber ASC, t.ID ASC
+			--				 )
+			--	FROM #ReportingStructureExportData t
+			--)
+			--SELECT *
+			--FROM x
+			--WHERE rn = 1 ORDER BY SequenceNumber ASC;
+
+			--SELECT * FROM #ReportingStructureExportData WHERE AccountingPeriodId != 999999  Order BY PrintSequenceNumber
+
+			------------------------------------------------------------------------------------
+
+			UPDATE  #ReportingStructureExportData SET PRINTSequenceNumber = LF.PrintSequenceNumber
+			FROM #ReportingStructureExportData RPS JOIN dbo.LeafNode LF ON RPS.leafNodeId =  LF.LeafNodeId
+
+			UPDATE  #ReportingStructureExportData SET IsTotlaLine = 1
+			FROM #ReportingStructureExportData RPS WHERE UPPER(RPS.NodeName) = 'REVENUE'
+
+			;WITH x AS
+			(
+				SELECT  t.*,
+						rn = ROW_NUMBER() OVER
+							 (
+							   PARTITION BY t.leafNodeId, t.AccountingPeriodId
+							   ORDER BY ISNULL(t.IsTotlaLine, 0) DESC, t.ID DESC
+							 )
+				FROM #ReportingStructureExportData t 				
+			)
+			SELECT * INTO #ReportingStructureExportDataFinal
+			FROM x
+			WHERE rn = 1 
+
+			/* 1) Inherit PRINTSequenceNumber down the tree */
+				;WITH Seed AS
+				(
+					SELECT DISTINCT
+						t.AccountingPeriodId,
+						t.leafNodeId,
+						t.PRINTSequenceNumber AS EffPrintSeq
+					FROM #ReportingStructureExportDataFinal t
+					WHERE t.PRINTSequenceNumber IS NOT NULL
+				),
+				DownTree AS
+				(
+					SELECT
+						s.AccountingPeriodId,
+						s.leafNodeId,
+						s.EffPrintSeq
+					FROM Seed s
+
+					UNION ALL
+
+					SELECT
+						c.AccountingPeriodId,
+						c.leafNodeId,
+						dt.EffPrintSeq
+					FROM #ReportingStructureExportDataFinal c
+					JOIN DownTree dt
+						ON dt.AccountingPeriodId = c.AccountingPeriodId
+					   AND dt.leafNodeId        = c.ParentId
+					WHERE c.PRINTSequenceNumber IS NULL
+				),
+				Eff AS
+				(
+					SELECT
+						t.*,
+						EffPrintSeq = COALESCE(t.PRINTSequenceNumber, dt.EffPrintSeq)
+					FROM #ReportingStructureExportDataFinal t
+					LEFT JOIN DownTree dt
+						ON dt.AccountingPeriodId = t.AccountingPeriodId
+					   AND dt.leafNodeId        = t.leafNodeId
+				),
+				/* 2) One row per node for hierarchy traversal */
+				Nodes AS
+				(
+					SELECT
+						AccountingPeriodId,
+						leafNodeId,
+						ParentId    = MAX(ParentId),
+						EffPrintSeq = MAX(EffPrintSeq),
+						NodeSeq     = MIN(SequenceNumber)
+					FROM Eff
+					GROUP BY AccountingPeriodId, leafNodeId
+				),
+				/* 3) Precompute sibling order (NO window funcs in recursion later) */
+				NodeOrder AS
+				(
+					SELECT
+						n.*,
+						ChildOrder = ROW_NUMBER() OVER
+						(
+							PARTITION BY n.AccountingPeriodId, n.EffPrintSeq, n.ParentId
+							ORDER BY n.NodeSeq, n.leafNodeId
+						)
+					FROM Nodes n
+				),
+				/* 4) Roots for each print group (ParentId = 0 OR missing parent in same print group) */
+				Roots AS
+				(
+					SELECT
+						n.*
+					FROM NodeOrder n
+					LEFT JOIN NodeOrder p
+						ON p.AccountingPeriodId = n.AccountingPeriodId
+					   AND p.EffPrintSeq        = n.EffPrintSeq
+					   AND p.leafNodeId         = n.ParentId
+					WHERE n.ParentId = 0 OR p.leafNodeId IS NULL
+				),
+				/* 5) Build Path using precomputed ChildOrder */
+				Tree AS
+				(
+					SELECT
+						r.AccountingPeriodId,
+						r.EffPrintSeq,
+						r.leafNodeId,
+						r.ParentId,
+						Path = CAST(RIGHT('000000' + CAST(r.ChildOrder AS varchar(6)), 6) AS varchar(max))
+					FROM Roots r
+
+					UNION ALL
+
+					SELECT
+						c.AccountingPeriodId,
+						c.EffPrintSeq,
+						c.leafNodeId,
+						c.ParentId,
+						Path = CAST(t.Path + '.' + RIGHT('000000' + CAST(c.ChildOrder AS varchar(6)), 6) AS varchar(max))
+					FROM NodeOrder c
+					JOIN Tree t
+						ON t.AccountingPeriodId = c.AccountingPeriodId
+					   AND t.EffPrintSeq        = c.EffPrintSeq
+					   AND t.leafNodeId         = c.ParentId
+				)
+				/* 6) Final: child-first (post-order) + totals last */
+				SELECT
+					e.*
+				FROM Eff e
+				JOIN Tree t
+					ON t.AccountingPeriodId = e.AccountingPeriodId
+				   AND t.EffPrintSeq        = e.EffPrintSeq
+				   AND t.leafNodeId         = e.leafNodeId				
+				ORDER BY
+					e.EffPrintSeq ASC,
+					t.Path + '~' ASC,      -- '~' makes parent sort AFTER children
+					e.IsTotlaLine ASC,     -- 0 first, then 1
+					e.SequenceNumber ASC,
+					e.ID ASC
+				OPTION (MAXRECURSION 32767);
+
  END TRY  
  BEGIN CATCH  
      DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name() 
 		-----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
-					  , @AdhocComments     VARCHAR(150)    = 'USP_GetJournalEntriesDetailsByLeafNodeId' 
+					  , @AdhocComments     VARCHAR(150)    = 'RPT_GetIncomeStatementTrendReportsExportData' 
 					  , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = '''
 					  , @ApplicationName VARCHAR(100) = 'PAS'
 		-----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------

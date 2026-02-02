@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿
+/*************************************************************           
  ** File:   [AutoCompleteDropdownsForTask]           
  ** Author:   Moin Bloch
  ** Description: This stored procedure is used to search Task
@@ -15,7 +16,7 @@
 	2    28/01/2025   Moin Bloch  		Added field IsTravelerTask, StandardHours, StandardMinute for Task Table 
 	3    01/04/2025   Devendra Shekh	Modified (Order By [TaskName] ASC)
 	4    28/04/2025   Moin Bloch	    Modified (Order By [Sequence] ASC)
-
+	5    20/01/2026   Rajesh Gami	    Sequence issue fixed
     EXEC AutoCompleteDropdownsForTask 'Task','TaskId','Description','',1,0,'0',1,4740,4305 
 	EXEC AutoCompleteDropdownsForTask 'WorkOrderTask','TaskId','TaskName','',1,0,'11',1,4739,4304 
 	exec dbo.AutoCompleteDropdownsForTask @TableName=N'WorkOrderTask',@Parameter1=N'TaskId',@Parameter2=N'TaskName',@Parameter3=N'',@Parameter4=1,@Count=0,@Idlist=N'0',@MasterCompanyId=1,@WorkOrderId=4742,@WorkOrderPartNumberId=606,@IsSubWorkOrder=0
@@ -51,7 +52,7 @@ AS BEGIN
 				BEGIN                      
 					SELECT DISTINCT WOT.[WorkOrderTaskId] AS [Value], 
 									WOT.[TaskName] AS [Label], 
-									WOT.[SequenceNumber] AS [Sequence], 										
+									TRY_CAST(WOT.[SequenceNumber] AS INT) AS [Sequence], 										
 									CASE WHEN TSK.[TaskId] > 0 THEN ISNULL(TSK.[IsTravelerTask],0) ELSE 1 END [IsTravelerTask],
 									CASE WHEN TSK.[StandardHours] > 0 THEN TSK.[StandardHours] ELSE 0 END [StandardHours], 
 									CASE WHEN TSK.[StandardMinute]  > 0 THEN TSK.[StandardMinute] ELSE 0 END [StandardMinute]
@@ -66,7 +67,7 @@ AS BEGIN
 
 					SELECT DISTINCT WOT.[WorkOrderTaskId] AS [Value], 
 									WOT.[TaskName] AS [Label], 
-									WOT.[SequenceNumber] AS [Sequence],										 
+									TRY_CAST(WOT.[SequenceNumber] AS INT) AS [Sequence], 									 
 									CASE WHEN TSK.[TaskId] > 0 THEN ISNULL(TSK.[IsTravelerTask],0) ELSE 1 END [IsTravelerTask],
 									CASE WHEN TSK.[StandardHours] > 0 THEN TSK.[StandardHours] ELSE 0 END [StandardHours], 
 									CASE WHEN TSK.[StandardMinute]  > 0 THEN TSK.[StandardMinute] ELSE 0 END [StandardMinute]										
@@ -76,13 +77,13 @@ AS BEGIN
 					AND WOT.[WorkOrderId] = @WorkOrderId 
 					AND WOT.[WorkOrderPartNumberId] = @WorkOrderPartNumberId
 					AND WOT.[TaskId] IN(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') )
-					ORDER BY [Sequence] ASC
+					ORDER BY [Sequence]  ASC
 					END
 					ELSE 
 					BEGIN                        
 					SELECT DISTINCT WOT.[WorkOrderTaskId] AS [Value],
 									WOT.[TaskName] AS [Label],
-									WOT.[SequenceNumber] AS [Sequence],										 
+									TRY_CAST(WOT.[SequenceNumber] AS INT) AS [Sequence], 										 
 									CASE WHEN TSK.[TaskId] > 0 THEN ISNULL(TSK.[IsTravelerTask],0) ELSE 1 END [IsTravelerTask],
 									CASE WHEN TSK.[StandardHours] > 0 THEN TSK.[StandardHours] ELSE 0 END [StandardHours], 
 									CASE WHEN TSK.[StandardMinute]  > 0 THEN TSK.[StandardMinute] ELSE 0 END [StandardMinute]
@@ -97,7 +98,7 @@ AS BEGIN
                          
 					SELECT DISTINCT WOT.[WorkOrderTaskId] AS [Value],
 									WOT.[TaskName] AS [Label],
-									WOT.[SequenceNumber] AS [Sequence],
+									TRY_CAST(WOT.[SequenceNumber] AS INT) AS [Sequence], 
 									CASE WHEN TSK.[TaskId] > 0 THEN ISNULL(TSK.[IsTravelerTask],0) ELSE 1 END [IsTravelerTask],
 									CASE WHEN TSK.[StandardHours] > 0 THEN TSK.[StandardHours] ELSE 0 END [StandardHours], 
 									CASE WHEN TSK.[StandardMinute]  > 0 THEN TSK.[StandardMinute] ELSE 0 END [StandardMinute]
@@ -107,7 +108,7 @@ AS BEGIN
 					AND WOT.[WorkOrderId] = @WorkOrderId 
 					AND WOT.[WorkOrderPartNumberId] = @WorkOrderPartNumberId
 					AND WOT.[WorkOrderTaskId] IN(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') )
-					ORDER BY [Sequence] ASC
+					ORDER BY [Sequence]  ASC
 				END
             END
 			ELSE IF(@TableName='SubWorkOrderTask')
@@ -116,7 +117,7 @@ AS BEGIN
 				BEGIN                      
 					SELECT DISTINCT WOT.[SubWorkOrderTaskId] AS [Value], 
 									WOT.[TaskName] AS [Label], 
-									WOT.[SequenceNumber] AS [Sequence], 										
+									TRY_CAST(WOT.[SequenceNumber] AS INT) AS [Sequence],  										
 									CASE WHEN TSK.[TaskId] > 0 THEN ISNULL(TSK.[IsTravelerTask],0) ELSE 1 END [IsTravelerTask],
 									CASE WHEN TSK.[StandardHours] > 0 THEN TSK.[StandardHours] ELSE 0 END [StandardHours], 
 									CASE WHEN TSK.[StandardMinute]  > 0 THEN TSK.[StandardMinute] ELSE 0 END [StandardMinute]
@@ -131,7 +132,7 @@ AS BEGIN
 
 					SELECT DISTINCT WOT.[SubWorkOrderTaskId] AS [Value], 
 									WOT.[TaskName] AS [Label], 
-									WOT.[SequenceNumber] AS [Sequence],										 
+									TRY_CAST(WOT.[SequenceNumber] AS INT) AS [Sequence], 									 
 									CASE WHEN TSK.[TaskId] > 0 THEN ISNULL(TSK.[IsTravelerTask],0) ELSE 1 END [IsTravelerTask],
 									CASE WHEN TSK.[StandardHours] > 0 THEN TSK.[StandardHours] ELSE 0 END [StandardHours], 
 									CASE WHEN TSK.[StandardMinute]  > 0 THEN TSK.[StandardMinute] ELSE 0 END [StandardMinute]										
@@ -141,13 +142,13 @@ AS BEGIN
 					AND WOT.[WorkOrderId] = @WorkOrderId 
 					AND WOT.SubWOPartNoId = @WorkOrderPartNumberId
 					AND WOT.[TaskId] IN(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') )
-					ORDER BY [Sequence] ASC
+					ORDER BY [Sequence]  ASC
 					END
 					ELSE 
 					BEGIN                        
 					SELECT DISTINCT WOT.[SubWorkOrderTaskId] AS [Value],
 									WOT.[TaskName] AS [Label],
-									WOT.[SequenceNumber] AS [Sequence],										 
+									TRY_CAST(WOT.[SequenceNumber] AS INT) AS [Sequence], 										 
 									CASE WHEN TSK.[TaskId] > 0 THEN ISNULL(TSK.[IsTravelerTask],0) ELSE 1 END [IsTravelerTask],
 									CASE WHEN TSK.[StandardHours] > 0 THEN TSK.[StandardHours] ELSE 0 END [StandardHours], 
 									CASE WHEN TSK.[StandardMinute]  > 0 THEN TSK.[StandardMinute] ELSE 0 END [StandardMinute]
@@ -162,7 +163,7 @@ AS BEGIN
                          
 					SELECT DISTINCT WOT.[SubWorkOrderTaskId] AS [Value],
 									WOT.[TaskName] AS [Label],
-									WOT.[SequenceNumber] AS [Sequence],
+									TRY_CAST(WOT.[SequenceNumber] AS INT) AS [Sequence], 
 									CASE WHEN TSK.[TaskId] > 0 THEN ISNULL(TSK.[IsTravelerTask],0) ELSE 1 END [IsTravelerTask],
 									CASE WHEN TSK.[StandardHours] > 0 THEN TSK.[StandardHours] ELSE 0 END [StandardHours], 
 									CASE WHEN TSK.[StandardMinute]  > 0 THEN TSK.[StandardMinute] ELSE 0 END [StandardMinute]
@@ -172,7 +173,7 @@ AS BEGIN
 					AND WOT.[WorkOrderId] = @WorkOrderId 
 					AND WOT.SubWOPartNoId = @WorkOrderPartNumberId
 					AND WOT.[SubWorkOrderTaskId] IN(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') )
-					ORDER BY [Sequence] ASC
+					ORDER BY [Sequence]  ASC
 				END
 			END
         END
@@ -184,7 +185,7 @@ AS BEGIN
 				BEGIN				
 					SELECT DISTINCT WOT.[WorkOrderTaskId] AS [Value], 
 					                WOT.[TaskName] AS [Label], 
-									WOT.[SequenceNumber] AS [Sequence],
+									TRY_CAST(WOT.[SequenceNumber] AS INT) AS [Sequence], 
 									CASE WHEN TSK.[TaskId] > 0 THEN ISNULL(TSK.[IsTravelerTask],0) ELSE 1 END [IsTravelerTask],
 								    CASE WHEN TSK.[StandardHours] > 0 THEN TSK.[StandardHours] ELSE 0 END [StandardHours], 
 									CASE WHEN TSK.[StandardMinute]  > 0 THEN TSK.[StandardMinute] ELSE 0 END [StandardMinute],
@@ -201,7 +202,7 @@ AS BEGIN
                     
 					SELECT DISTINCT WOT.[WorkOrderTaskId] AS [Value], 
 					                WOT.[TaskName] AS [Label], 
-									WOT.[SequenceNumber] AS [Sequence], 
+									TRY_CAST(WOT.[SequenceNumber] AS INT) AS [Sequence],  
 									CASE WHEN TSK.[TaskId] > 0 THEN ISNULL(TSK.[IsTravelerTask],0) ELSE 1 END [IsTravelerTask],
 								    CASE WHEN TSK.[StandardHours] > 0 THEN TSK.[StandardHours] ELSE 0 END [StandardHours], 
 									CASE WHEN TSK.[StandardMinute]  > 0 THEN TSK.[StandardMinute] ELSE 0 END [StandardMinute],
@@ -213,13 +214,13 @@ AS BEGIN
 					  AND  WOT.[WorkOrderId] = @WorkOrderId 
 				      AND  WOT.[WorkOrderPartNumberId] = @WorkOrderPartNumberId 
 					  AND  WOT.[WorkOrderTaskId] IN(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') )
-                      ORDER BY [Sequence] ASC
+                      ORDER BY [Sequence]  ASC
                 END
                 ELSE
 				BEGIN
 						 SELECT DISTINCT WOT.[WorkOrderTaskId] AS [Value], 
 						                 WOT.[TaskName] AS [Label], 
-										 WOT.[SequenceNumber] AS [Sequence], 
+									TRY_CAST(WOT.[SequenceNumber] AS INT) AS [Sequence], 
 										 CASE WHEN TSK.[TaskId] > 0 THEN ISNULL(TSK.[IsTravelerTask],0) ELSE 1 END [IsTravelerTask],
 										 CASE WHEN TSK.[StandardHours] > 0 THEN TSK.[StandardHours] ELSE 0 END [StandardHours], 
 										 CASE WHEN TSK.[StandardMinute]  > 0 THEN TSK.[StandardMinute] ELSE 0 END [StandardMinute],
@@ -236,7 +237,7 @@ AS BEGIN
                          
 						 SELECT DISTINCT WOT.[WorkOrderTaskId] AS [Value], 
 						                 WOT.[TaskName] AS [Label], 
-										 WOT.[SequenceNumber] AS [Sequence],
+									TRY_CAST(WOT.[SequenceNumber] AS INT) AS [Sequence], 
 										 CASE WHEN TSK.[TaskId] > 0 THEN ISNULL(TSK.[IsTravelerTask],0) ELSE 1 END [IsTravelerTask],
 										 CASE WHEN TSK.[StandardHours] > 0 THEN TSK.[StandardHours] ELSE 0 END [StandardHours], 
 										 CASE WHEN TSK.[StandardMinute]  > 0 THEN TSK.[StandardMinute] ELSE 0 END [StandardMinute],
@@ -248,7 +249,7 @@ AS BEGIN
 						 AND WOT.[WorkOrderId] = @WorkOrderId 
 				         AND WOT.[WorkOrderPartNumberId] = @WorkOrderPartNumberId 
 					     AND WOT.[WorkOrderTaskId] IN(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') )
-                         ORDER BY [Sequence] ASC
+                         ORDER BY [Sequence]  ASC
                 END
             END
 			ELSE IF (@TableName='WorkOrderTask')
@@ -257,7 +258,7 @@ AS BEGIN
 				BEGIN				
 					SELECT DISTINCT WOT.[SubWorkOrderTaskId] AS [Value], 
 					                WOT.[TaskName] AS [Label], 
-									WOT.[SequenceNumber] AS [Sequence],
+									TRY_CAST(WOT.[SequenceNumber] AS INT) AS [Sequence], 
 									CASE WHEN TSK.[TaskId] > 0 THEN ISNULL(TSK.[IsTravelerTask],0) ELSE 1 END [IsTravelerTask],
 								    CASE WHEN TSK.[StandardHours] > 0 THEN TSK.[StandardHours] ELSE 0 END [StandardHours], 
 									CASE WHEN TSK.[StandardMinute]  > 0 THEN TSK.[StandardMinute] ELSE 0 END [StandardMinute],
@@ -274,7 +275,7 @@ AS BEGIN
                     
 					SELECT DISTINCT WOT.[SubWorkOrderTaskId] AS [Value], 
 					                WOT.[TaskName] AS [Label], 
-									WOT.[SequenceNumber] AS [Sequence], 
+									TRY_CAST(WOT.[SequenceNumber] AS INT) AS [Sequence], 
 									CASE WHEN TSK.[TaskId] > 0 THEN ISNULL(TSK.[IsTravelerTask],0) ELSE 1 END [IsTravelerTask],
 								    CASE WHEN TSK.[StandardHours] > 0 THEN TSK.[StandardHours] ELSE 0 END [StandardHours], 
 									CASE WHEN TSK.[StandardMinute]  > 0 THEN TSK.[StandardMinute] ELSE 0 END [StandardMinute],
@@ -286,13 +287,13 @@ AS BEGIN
 					  AND  WOT.[WorkOrderId] = @WorkOrderId 
 				      AND  WOT.SubWOPartNoId = @WorkOrderPartNumberId 
 					  AND  WOT.[SubWorkOrderTaskId] IN(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') )
-                      ORDER BY [Sequence] ASC
+                      ORDER BY [Sequence]  ASC
                 END
                 ELSE
 				BEGIN
 						 SELECT DISTINCT WOT.[SubWorkOrderTaskId] AS [Value], 
 						                 WOT.[TaskName] AS [Label], 
-										 WOT.[SequenceNumber] AS [Sequence], 
+									TRY_CAST(WOT.[SequenceNumber] AS INT) AS [Sequence],  
 										 CASE WHEN TSK.[TaskId] > 0 THEN ISNULL(TSK.[IsTravelerTask],0) ELSE 1 END [IsTravelerTask],
 										 CASE WHEN TSK.[StandardHours] > 0 THEN TSK.[StandardHours] ELSE 0 END [StandardHours], 
 										 CASE WHEN TSK.[StandardMinute]  > 0 THEN TSK.[StandardMinute] ELSE 0 END [StandardMinute],
@@ -309,7 +310,7 @@ AS BEGIN
                          
 						 SELECT DISTINCT WOT.[SubWorkOrderTaskId] AS [Value], 
 						                 WOT.[TaskName] AS [Label], 
-										 WOT.[SequenceNumber] AS [Sequence],
+									TRY_CAST(WOT.[SequenceNumber] AS INT) AS [Sequence], 
 										 CASE WHEN TSK.[TaskId] > 0 THEN ISNULL(TSK.[IsTravelerTask],0) ELSE 1 END [IsTravelerTask],
 										 CASE WHEN TSK.[StandardHours] > 0 THEN TSK.[StandardHours] ELSE 0 END [StandardHours], 
 										 CASE WHEN TSK.[StandardMinute]  > 0 THEN TSK.[StandardMinute] ELSE 0 END [StandardMinute],
@@ -321,7 +322,7 @@ AS BEGIN
 						 AND WOT.[WorkOrderId] = @WorkOrderId 
 				         AND WOT.SubWOPartNoId = @WorkOrderPartNumberId 
 					     AND WOT.[SubWorkOrderTaskId] IN(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') )
-                         ORDER BY [Sequence] ASC
+                         ORDER BY [Sequence]  ASC
                 END
 			END
         END

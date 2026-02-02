@@ -18,7 +18,7 @@
 	2    11-25-2024			Amit Ghediya	Get ECCN,HSCODE,Weight,LWH for billing.
 	3    05-01-2025			ABHISHEK JIRAWLA Allow Repair Management Customer Stock Stockline
 	4    05-30-2025			ABHISHEK JIRAWLA Adding Traceability Changes
-     
+	5    07/01/2026			Rajesh Gami		 Added MasterCompanyId Parameter While Calling UOM Conversion Function     
  EXEC [dbo].[SearchStockLineSOQPop] '115640', 2, 90,-1,NULL
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[SearchStockLineSOQPop]
@@ -76,15 +76,15 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 			,sl.IdNumber
 			,uom.ShortName AS UomDescription
 			--,ISNULL(sl.QuantityAvailable,0) AS QtyAvailable
-			,([dbo].[fn_ConvertUOM](ISNULL(sl.[QuantityAvailable], 0),sl.[StockUnitOfMeasure], sl.[ConsumeUnitOfMeasure],0)) AS QtyAvailable 
+			,([dbo].[fn_ConvertUOM](ISNULL(sl.[QuantityAvailable], 0),sl.[StockUnitOfMeasure], sl.[ConsumeUnitOfMeasure],0,im.MasterCompanyId)) AS QtyAvailable 
 			--,ISNULL(sl.QuantityOnHand, 0) AS QtyOnHand
-			,([dbo].[fn_ConvertUOM](ISNULL(sl.[QuantityOnHand], 0),sl.[StockUnitOfMeasure], sl.[ConsumeUnitOfMeasure],0)) AS QtyOnHand 
+			,([dbo].[fn_ConvertUOM](ISNULL(sl.[QuantityOnHand], 0),sl.[StockUnitOfMeasure], sl.[ConsumeUnitOfMeasure],0,im.MasterCompanyId)) AS QtyOnHand 
 			--,ISNULL(sl.PurchaseOrderUnitCost, 0) AS unitCost			
 			--,(CASE WHEN ISNULL(lsm.IsUseMargin,0) = 1 THEN CONVERT(DECIMAL(18,2),((ISNULL(sl.UnitCost, 0) * ISNULL(per.PercentValue,0.00))/100 ))  
 			--ELSE  CONVERT(DECIMAL(18,2), ISNULL(sl.UnitCost, 0))  END)   AS unitCost
-			,([dbo].[fn_ConvertUOM](ISNULL(sl.UnitCost, 0),sl.[StockUnitOfMeasure], sl.[ConsumeUnitOfMeasure],1)) AS unitCost			
+			,([dbo].[fn_ConvertUOM](ISNULL(sl.UnitCost, 0),sl.[StockUnitOfMeasure], sl.[ConsumeUnitOfMeasure],1,im.MasterCompanyId)) AS unitCost			
 			--,ISNULL(sl.UnitSalesPrice, 0) AS unitSalePrice
-			,([dbo].[fn_ConvertUOM](ISNULL(sl.UnitSalesPrice, 0),sl.[StockUnitOfMeasure], sl.[ConsumeUnitOfMeasure],1)) AS unitSalePrice
+			,([dbo].[fn_ConvertUOM](ISNULL(sl.UnitSalesPrice, 0),sl.[StockUnitOfMeasure], sl.[ConsumeUnitOfMeasure],1,im.MasterCompanyId)) AS unitSalePrice
 			,sl.TraceableToName AS TracableToName
 			,sl.OwnerName AS OwnerName
 			,sl.ObtainFromName AS ObtainFromName			
@@ -182,13 +182,13 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 			,sl.IdNumber
 			,uom.ShortName AS UomDescription
 			--,ISNULL(sl.QuantityAvailable,0) AS QtyAvailable
-			,([dbo].[fn_ConvertUOM](ISNULL(sl.[QuantityAvailable], 0),sl.[StockUnitOfMeasure], sl.[ConsumeUnitOfMeasure],0)) AS QtyAvailable 
+			,([dbo].[fn_ConvertUOM](ISNULL(sl.[QuantityAvailable], 0),sl.[StockUnitOfMeasure], sl.[ConsumeUnitOfMeasure],0,im.MasterCompanyId)) AS QtyAvailable 
 			--,ISNULL(sl.QuantityOnHand, 0) AS QtyOnHand
-			,([dbo].[fn_ConvertUOM](ISNULL(sl.[QuantityOnHand], 0),sl.[StockUnitOfMeasure], sl.[ConsumeUnitOfMeasure],0)) AS QtyOnHand 			
+			,([dbo].[fn_ConvertUOM](ISNULL(sl.[QuantityOnHand], 0),sl.[StockUnitOfMeasure], sl.[ConsumeUnitOfMeasure],0,im.MasterCompanyId)) AS QtyOnHand 			
 			--,ISNULL(sl.UnitCost, 0) AS unitCost
-			,([dbo].[fn_ConvertUOM](ISNULL(sl.UnitCost, 0),sl.[StockUnitOfMeasure], sl.[ConsumeUnitOfMeasure],1)) AS unitCost
+			,([dbo].[fn_ConvertUOM](ISNULL(sl.UnitCost, 0),sl.[StockUnitOfMeasure], sl.[ConsumeUnitOfMeasure],1,im.MasterCompanyId)) AS unitCost
 			--,ISNULL(sl.UnitSalesPrice, 0) AS unitSalePrice
-			,([dbo].[fn_ConvertUOM](ISNULL(sl.UnitSalesPrice, 0),sl.[StockUnitOfMeasure], sl.[ConsumeUnitOfMeasure],1)) AS unitSalePrice
+			,([dbo].[fn_ConvertUOM](ISNULL(sl.UnitSalesPrice, 0),sl.[StockUnitOfMeasure], sl.[ConsumeUnitOfMeasure],1,im.MasterCompanyId)) AS unitSalePrice
 			,CASE WHEN sl.TraceableToType = 1 THEN cusTraceble.Name
 					WHEN sl.TraceableToType = 2 THEN vTraceble.VendorName
 					WHEN sl.TraceableToType = 9 THEN leTraceble.Name

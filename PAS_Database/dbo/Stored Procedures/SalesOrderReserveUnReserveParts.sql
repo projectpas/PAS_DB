@@ -22,7 +22,7 @@
 	6    17 DEC 2024   Shrey Chandegara  Add condition while execute USP_UpdateSOPartCostDetails this procedure 
 	7    08 JAN 2025   AMIT GHEDIYA		 Added one parameter to identify if it's been called from shipping or not
 	8    02 JAN 2026   Moin Bloch		 UOM Related Changes
-
+	9    07/01/2026   Rajesh Gami		Added MasterCompanyId Parameter While Calling UOM Conversion Function
 declare @p1 dbo.SalesOrderReserveIssueParts
 insert into @p1 values(NULL,1357,1629,161088,119,N'3100454',N'SENSOR',NULL,NULL,0,NULL,NULL,0,5,2,2,N'OH',0,NULL,50,3,NULL,0,NULL,2,NULL,NULL,NULL,NULL,0,NULL,2,'2024-11-18 13:51:53.2864044',NULL,N'OEM',0,NULL,1,NULL,0,0,0,0,0,NULL,N'STL-000004',N'CNTL--001282',47,N'CASCO CIRCUITS INC',NULL,NULL,1,N'ADMIN User',N'ADMIN User','2024-11-18 13:51:53.2864029','2024-11-18 13:51:53.2864029',1,0)
 insert into @p1 values(NULL,1357,1629,161083,119,N'3100454',N'SENSOR',NULL,NULL,0,NULL,NULL,0,39,33,2,N'OH',0,NULL,50,3,NULL,0,NULL,33,NULL,NULL,NULL,NULL,0,NULL,2,'2024-11-18 13:51:53.2864063',NULL,N'OEM',0,NULL,1,NULL,0,0,0,0,0,NULL,N'STL000003',N'CNTL-001277',47,N'CASCO CIRCUITS INC',NULL,NULL,1,N'ADMIN User',N'ADMIN User','2024-11-18 13:51:53.2864060','2024-11-18 13:51:53.2864060',1,0)
@@ -200,9 +200,9 @@ BEGIN
 			SET @StockUnitOfMeasure = (SELECT [ShortCode] FROM [dbo].[UnitOfMeasure] WITH(NOLOCK) WHERE [UnitOfMeasureId] = @StockUnitOfMeasureId)
 			SET @ConsumeUnitOfMeasure = (SELECT [ShortCode] FROM [dbo].[UnitOfMeasure] WITH(NOLOCK) WHERE [UnitOfMeasureId] = @ConsumeUnitOfMeasureId)
 
-			SET @Quantity = ([dbo].[fn_ConvertUOM](ISNULL(@Quantity, 0),@ConsumeUnitOfMeasure, @StockUnitOfMeasure,0));
-			SET @QtyToReserve = ([dbo].[fn_ConvertUOM](ISNULL(@QtyToReserve, 0),@ConsumeUnitOfMeasure, @StockUnitOfMeasure,0));
-			SET @QtyToUnReserve = ([dbo].[fn_ConvertUOM](ISNULL(@QtyToUnReserve, 0),@ConsumeUnitOfMeasure, @StockUnitOfMeasure,0));
+			SET @Quantity = ([dbo].[fn_ConvertUOM](ISNULL(@Quantity, 0),@ConsumeUnitOfMeasure, @StockUnitOfMeasure,0,@MasterCompanyId));
+			SET @QtyToReserve = ([dbo].[fn_ConvertUOM](ISNULL(@QtyToReserve, 0),@ConsumeUnitOfMeasure, @StockUnitOfMeasure,0,@MasterCompanyId));
+			SET @QtyToUnReserve = ([dbo].[fn_ConvertUOM](ISNULL(@QtyToUnReserve, 0),@ConsumeUnitOfMeasure, @StockUnitOfMeasure,0,@MasterCompanyId));
 
 			DECLARE @PartQty DECIMAL(18,6) = 0,
 					@PartQtyRequested DECIMAL(18,6) = 0,

@@ -4429,6 +4429,8 @@
     <Build Include="dbo\Stored Procedures\usprpt_GetAPDisbursementReportByInvoice.sql" />
     <Build Include="dbo\Stored Procedures\usprpt_GetInventoryUnitCostAdjustmentReport_SSRS.sql" />
     <Build Include="dbo\Stored Procedures\usprpt_GetInventoryQuantityAdjustmentReport_SSRS.sql" />
+    <Build Include="dbo\Stored Procedures\usprpt_CashReceiptReportList_SSRS.sql" />
+    <Build Include="dbo\Stored Procedures\usprpt_CashReceiptReportList.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

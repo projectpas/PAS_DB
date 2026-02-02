@@ -22,6 +22,7 @@ EXEC [usp_IssueWorkOrderMaterialsStockline]
 ** 11	11/22/2024		Devendra Shekh	  Modified (added fiels  IssuedById, IssuedDate for WorkOrderMaterialStockLine and WorkOrderMaterialStockLineKit)
 ** 12	12/20/2024		Devendra Shekh	  ExtendedCost Calculation issue Resolved
 ** 13	04/24/2025		Devendra Shekh    Modify (Added [IsManualText] check for DistributionSetup)
+** 14	02/02/2026		HEMANT SALIYA     Modify to Get Stockline unit cost from stockline insted of Work Order materials stockline so, latest cost will reflacts
 
 DECLARE @p1 dbo.ReserveWOMaterialsStocklineType
 
@@ -308,8 +309,9 @@ BEGIN
 							THEN UPDATE 						
 							SET TARGET.QtyIssued = ISNULL(TARGET.QtyIssued, 0) + ISNULL(SOURCE.QuantityActIssued, 0),
 								TARGET.QtyReserved = ISNULL(TARGET.QtyReserved, 0) - ISNULL(SOURCE.QuantityActIssued, 0),
-								TARGET.ExtendedCost = ISNULL(TARGET.Quantity, 0) * TARGET.UnitCost,
-								TARGET.ExtendedPrice = ISNULL(TARGET.Quantity, 0) * TARGET.UnitCost,
+								TARGET.UnitCost = SOURCE.UnitCost,
+								TARGET.ExtendedCost = ISNULL(TARGET.Quantity, 0) * SOURCE.UnitCost,
+								TARGET.ExtendedPrice = ISNULL(TARGET.Quantity, 0) * SOURCE.UnitCost,
 								TARGET.UpdatedDate = GETUTCDATE(),
 								TARGET.IssuedById = SOURCE.UpdatedById,
 								TARGET.IssuedDate = GETUTCDATE(),
@@ -327,7 +329,7 @@ BEGIN
 
 					--FOR UPDATED WORKORDER MATERIALS STOCKLINE EXTENDEDCOST
 					UPDATE dbo.WorkOrderMaterialStockLineKit 
-					SET ExtendedCost = ISNULL(WOMS.Quantity, 0) * ISNULL(WOMS.UnitCost,0), ExtendedPrice = ISNULL(WOMS.Quantity, 0) * ISNULL(WOMS.UnitCost,0)
+					SET ExtendedCost = ISNULL(WOMS.Quantity, 0) * ISNULL(tmpRSL.UnitCost,0), ExtendedPrice = ISNULL(WOMS.Quantity, 0) * ISNULL(tmpRSL.UnitCost,0)
 					FROM dbo.WorkOrderMaterialStockLineKit WOMS JOIN #tmpIssueWOMaterialsStocklineKit tmpRSL ON WOMS.StockLineId = tmpRSL.StockLineId AND WOMS.WorkOrderMaterialsKitId = tmpRSL.WorkOrderMaterialsKitId AND ISNULL(tmpRSL.KitId, 0) > 0
 
 					--FOR UPDATED STOCKLINE QTY
@@ -368,8 +370,9 @@ BEGIN
 							THEN UPDATE 						
 							SET TARGET.QtyIssued = ISNULL(TARGET.QtyIssued, 0) + ISNULL(SOURCE.QuantityActIssued, 0),
 								TARGET.QtyReserved = ISNULL(TARGET.QtyReserved, 0) - ISNULL(SOURCE.QuantityActIssued, 0),
-								TARGET.ExtendedCost = ISNULL(TARGET.Quantity, 0) * TARGET.UnitCost,
-								TARGET.ExtendedPrice = ISNULL(TARGET.Quantity, 0) * TARGET.UnitCost,
+								TARGET.UnitCost = SOURCE.UnitCost,
+								TARGET.ExtendedCost = ISNULL(TARGET.Quantity, 0) * SOURCE.UnitCost,
+								TARGET.ExtendedPrice = ISNULL(TARGET.Quantity, 0) * SOURCE.UnitCost,
 								TARGET.UpdatedDate = GETUTCDATE(),
 								TARGET.IssuedById = SOURCE.UpdatedById,
 								TARGET.IssuedDate = GETUTCDATE(),
@@ -389,7 +392,7 @@ BEGIN
 
 					--FOR UPDATED WORKORDER MATERIALS STOCKLINE EXTENDEDCOST
 					UPDATE dbo.WorkOrderMaterialStockLine 
-					SET ExtendedCost = ISNULL(WOMS.Quantity, 0) * ISNULL(WOMS.UnitCost,0), ExtendedPrice = ISNULL(WOMS.Quantity, 0) * ISNULL(WOMS.UnitCost,0)
+					SET ExtendedCost = ISNULL(WOMS.Quantity, 0) * ISNULL(tmpRSL.UnitCost,0), ExtendedPrice = ISNULL(WOMS.Quantity, 0) * ISNULL(tmpRSL.UnitCost,0)
 					FROM dbo.WorkOrderMaterialStockLine WOMS JOIN #tmpIssueWOMaterialsStocklineWithoutKit tmpRSL ON WOMS.StockLineId = tmpRSL.StockLineId AND WOMS.WorkOrderMaterialsId = tmpRSL.WorkOrderMaterialsId
 
 					PRINT 'Hem-4.1'
@@ -414,31 +417,6 @@ BEGIN
 						GROUP BY WOM.WorkOrderMaterialsId
 					) GropWOM WHERE GropWOM.WorkOrderMaterialsId = dbo.WorkOrderMaterials.WorkOrderMaterialsId AND 
 					(ISNULL(GropWOM.QtyReserved,0) <> ISNULL(dbo.WorkOrderMaterials.QuantityReserved,0)	OR ISNULL(GropWOM.QtyIssued,0) <> ISNULL(dbo.WorkOrderMaterials.QuantityIssued,0))
-
-
-					--;WITH WOM_CTE AS(
-					--	SELECT ISNULL(SUM(WOMS.QtyReserved), 0) QtyReserved, ISNULL(SUM(WOMS.QtyIssued), 0) QtyIssued, WOMS.WorkOrderMaterialsId
-					--	FROM dbo.WorkOrderMaterialStockLine WOMS 
-					--	JOIN #tmpIssueWOMaterialsStocklineWithoutKit tmpRSL ON WOMS.StockLineId = tmpRSL.StockLineId 
-					--		AND WOMS.WorkOrderMaterialsId = tmpRSL.WorkOrderMaterialsId
-					--	GROUP BY WOMS.WorkOrderMaterialsId
-					--) UPDATE  WorkOrderMaterialS SET QuantityReserved = WOM_CTE.QtyReserved, QuantityIssued = WOM_CTE.QtyIssued					
-					--  FROM dbo.WorkOrderMaterials WOM JOIN WOM_CTE ON WOM.WorkOrderMaterialsId = WOM_CTE.WorkOrderMaterialsId
-					--  WHERE ISNULL(WOM.QuantityReserved, 0) != ISNULL(WOM_CTE.QtyReserved, 0) OR ISNULL(WOM.QuantityIssued, 0) != ISNULL(WOM_CTE.QtyIssued, 0)
-
-					
-					PRINT 'Hem-4.2'
-					-- Commented BY Hemnat to Handle Time out Issue
-					--DECLARE @countBoth INT = 1;
-					----FOR UPDATE TOTAL WORK ORDER COST
-					--WHILE @countBoth <= @TotalCountsBoth
-					--BEGIN
-					--	SELECT	@WorkOrderMaterialsId = tmpWOM.WorkOrderMaterialsId
-					--	FROM #tmpIssueWOMaterialsStockline tmpWOM 
-					--	WHERE tmpWOM.ID = @countBoth
-					--	EXEC [dbo].[USP_UpdateWOMaterialsCost]  @WorkOrderMaterialsId = @WorkOrderMaterialsId
-					--	SET @countBoth = @countBoth + 1;
-					--END;
 
 					PRINT 'Hem-5'
 
@@ -513,8 +491,6 @@ BEGIN
 							IF NOT EXISTS(SELECT 1 FROM dbo.DistributionSetup WITH(NOLOCK) WHERE DistributionMasterId =@DistributionMasterId AND MasterCompanyId=@MasterCompanyId AND ISNULL(GlAccountId,0) = 0 AND ISNULL([IsManualText],0) = 0)
 							BEGIN
 								PRINT '7.1.1'
-								 --EXEC [dbo].[USP_BatchTriggerBasedonDistribution] 
-								 --@DistributionMasterId,@ReferenceId,@ReferencePartId,@ReferencePieceId,@InvoiceId,@StocklineId,@IssueQty,@laborType,@issued,@Amount,@ModuleName,@MasterCompanyId,@UpdateBy
 								 INSERT INTO @WOBatchTriggerType VALUES
 								(@DistributionMasterId,@ReferenceId,@ReferencePartId,@ReferencePieceId,@InvoiceId,@StocklineId,@IssueQty,@laborType,@issued,@Amount,@ModuleName,@MasterCompanyId,@UpdateBy)
 							END
@@ -526,8 +502,6 @@ BEGIN
 							PRINT '8'
 							IF NOT EXISTS(SELECT 1 FROM dbo.DistributionSetup WITH(NOLOCK) WHERE DistributionMasterId =@DistributionMasterId AND MasterCompanyId=@MasterCompanyId AND ISNULL(GlAccountId,0) = 0 AND ISNULL([IsManualText],0) = 0)
 							BEGIN
-								--EXEC [dbo].[USP_BatchTriggerBasedonDistributionForInternalWO] 
-								--@DistributionMasterId,@ReferenceId,@ReferencePartId,@ReferencePieceId,@InvoiceId,@StocklineId,@IssueQty,@laborType,@issued,@Amount,@ModuleName,@MasterCompanyId,@UpdateBy
 								INSERT INTO @IWOBatchTriggerType VALUES
 								(@DistributionMasterId,@ReferenceId,@ReferencePartId,@ReferencePieceId,@InvoiceId,@StocklineId,@IssueQty,@laborType,@issued,@Amount,@ModuleName,@MasterCompanyId,@UpdateBy)
 							END

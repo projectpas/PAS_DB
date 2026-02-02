@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [sp_GetWorkOrderLaborTaskList]           
  ** Author:   Subhash Saliya
  ** Description: Get  for Work order Labor List
@@ -22,6 +21,8 @@
 	4    21/01/2025   Moin Bloch     Added [WorkOrderFormTypeId]
 	5    18/06/2025   Devendra Shekh Hours Calculation Issue Resolved after new Changes for Labor Rename
 	6    20/01/2025   Rajesh Gami    Added one more Order By Workorder task SequenceNumber
+	7    27/01/2026   Moin Bloch     Added [IsAdjustmentTask]
+	
  EXECUTE [sp_GetWorkOrderLaborTaskList] 3814
 **************************************************************/
 CREATE PROCEDURE [dbo].[sp_GetWorkOrderLaborTaskList]
@@ -75,7 +76,8 @@ BEGIN
 					   wol.[StandardHours],
 					   wol.[StandardMinute],
 					   wol.[VarianceHours],
-					   wol.[VarianceMinute]
+					   wol.[VarianceMinute],
+					   wol.[IsAdjustmentTask]
 				FROM [dbo].[WorkOrderLabor] wol WITH(NOLOCK)
 					LEFT JOIN [dbo].[Task] task  WITH(NOLOCK) ON task.TaskId = wol.TaskId
 					LEFT JOIN [dbo].[WorkOrderTask] WOT  WITH(NOLOCK) ON WOT.WorkOrderTaskId = wol.TaskId

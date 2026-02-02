@@ -21,6 +21,7 @@
 	5    29/03/2024   AMIT GHEDIYA		Update to get desc order list.
 	6    02/01/2025   RAJESH GAMI		Modified to get the VendorProformaInvoiceID from the [VendorReadyToPayDetails].     
 	7    02/01/2025   ABHISHEK JIRAWLA	Added IsVendorOnHold to return from SP
+	8    30/01/2026   AMIT GHEDIYA		Added StatusId for approve to return from SP
 -- EXEC GetVendorReadyToPayDetailsByLEId 1
 **************************************************************/
 CREATE   PROCEDURE [dbo].[GetVendorReadyToPayDetailsByLEId]  
@@ -73,7 +74,9 @@ BEGIN
 				  (SELECT CASE WHEN ISNULL(VRPA.VendorReadyToPayApprovalId,0) > 0 THEN 1 ELSE 0 END 
 					FROM [dbo].[VendorReadyToPayApproval] VRPA WITH(NOLOCK)
 				  WHERE VRPA.ReadyToPayDetailsId = VRTPD.ReadyToPayDetailsId AND VRPA.StatusId = @ApproveStatus) AS 'IsApproved',
-				 
+				 (SELECT [StatusId]
+					FROM [dbo].[VendorReadyToPayApproval] VRPA WITH(NOLOCK)
+				  WHERE VRPA.ReadyToPayDetailsId = VRTPD.ReadyToPayDetailsId) AS 'StatusId',
 				 (SELECT TOP 1 CASE WHEN ISNULL(VRPA.VendorReadyToPayApprovalId,0) > 0 THEN 1 ELSE 0 END 
 					FROM [dbo].[VendorReadyToPayApproval] VRPA WITH(NOLOCK)
 				  WHERE VRPA.ReadyToPayDetailsId = VRTPD.ReadyToPayDetailsId) AS 'IsAllowDelete',
@@ -129,6 +132,9 @@ BEGIN
 				  (SELECT CASE WHEN ISNULL(VRPA.VendorReadyToPayApprovalId,0) > 0 THEN 1 ELSE 0 END 
 					FROM [dbo].[VendorReadyToPayApproval] VRPA WITH(NOLOCK)
 				  WHERE VRPA.ReadyToPayDetailsId = VRTPD.ReadyToPayDetailsId AND VRPA.StatusId = @ApproveStatus) AS 'IsApproved',
+				  (SELECT [StatusId]
+					FROM [dbo].[VendorReadyToPayApproval] VRPA WITH(NOLOCK)
+				  WHERE VRPA.ReadyToPayDetailsId = VRTPD.ReadyToPayDetailsId) AS 'StatusId',
 				  (SELECT TOP 1 CASE WHEN ISNULL(VRPA.VendorReadyToPayApprovalId,0) > 0 THEN 1 ELSE 0 END 
 					FROM [dbo].[VendorReadyToPayApproval] VRPA WITH(NOLOCK)
 				  WHERE VRPA.ReadyToPayDetailsId = VRTPD.ReadyToPayDetailsId) AS 'IsAllowDelete',
@@ -182,6 +188,9 @@ BEGIN
 				  (SELECT CASE WHEN ISNULL(VRPA.VendorReadyToPayApprovalId,0) > 0 THEN 1 ELSE 0 END 
 					FROM [dbo].[VendorReadyToPayApproval] VRPA WITH(NOLOCK)
 				  WHERE VRPA.ReadyToPayDetailsId = VRTPD.ReadyToPayDetailsId AND VRPA.StatusId = @ApproveStatus) AS 'IsApproved',
+				  (SELECT [StatusId]
+					FROM [dbo].[VendorReadyToPayApproval] VRPA WITH(NOLOCK)
+				  WHERE VRPA.ReadyToPayDetailsId = VRTPD.ReadyToPayDetailsId) AS 'StatusId',
 				  (SELECT TOP 1 CASE WHEN ISNULL(VRPA.VendorReadyToPayApprovalId,0) > 0 THEN 1 ELSE 0 END 
 					FROM [dbo].[VendorReadyToPayApproval] VRPA WITH(NOLOCK)
 				  WHERE VRPA.ReadyToPayDetailsId = VRTPD.ReadyToPayDetailsId) AS 'IsAllowDelete',

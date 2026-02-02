@@ -51,6 +51,7 @@
     [CertificationProvider]             VARCHAR (10)    NULL,
     [InspectionProvider]                VARCHAR (10)    NULL,
     [VerificationProvider]              VARCHAR (10)    NULL,
+    [CalibrationCertificateNumber]      NVARCHAR (500)  NULL,
     CONSTRAINT [PK_AssetCalibration] PRIMARY KEY CLUSTERED ([AssetCalibrationId] ASC),
     CONSTRAINT [FK_AssetCalibration_AssetRecordId] FOREIGN KEY ([AssetRecordId]) REFERENCES [dbo].[Asset] ([AssetRecordId]),
     CONSTRAINT [FK_AssetCalibration_CalibrationCurrencyId] FOREIGN KEY ([CalibrationCurrencyId]) REFERENCES [dbo].[Currency] ([CurrencyId]),
@@ -69,12 +70,10 @@
 );
 
 
+
+
 GO
-
-
-
-
-Create Trigger [dbo].[trg_AssetCalibration]
+CREATE Trigger [dbo].[trg_AssetCalibration]
 
 on [dbo].[AssetCalibration] 
 
@@ -100,7 +99,7 @@ InspectionFrequencyMonths,InspectionFrequencyDays,VerificationFrequencyDays,Veri
 
 CalibrationDefaultCost,CalibrationFrequencyMonths,CalibrationFrequencyDays,CalibrationGlAccountId,CalibrationMemo,VerificationMemo,VerificationGlAccountId,
 
-CalibrationCurrencyId,CertificationCurrencyId,InspectionCurrencyId,VerificationCurrencyId,CreatedBy,UpdatedBy,CreatedDate,UpdatedDate)
+CalibrationCurrencyId,CertificationCurrencyId,InspectionCurrencyId,VerificationCurrencyId,CreatedBy,UpdatedBy,CreatedDate,UpdatedDate, CalibrationCertificateNumber)
 
 SELECT AssetCalibrationId, AssetRecordId,CalibrationRequired,CertificationRequired,InspectionRequired,
 
@@ -116,8 +115,7 @@ InspectionFrequencyMonths,InspectionFrequencyDays,VerificationFrequencyDays,Veri
 
 CalibrationDefaultCost,CalibrationFrequencyMonths,CalibrationFrequencyDays,CalibrationGlAccountId,CalibrationMemo,VerificationMemo,VerificationGlAccountId,
 
-CalibrationCurrencyId,CertificationCurrencyId,InspectionCurrencyId,VerificationCurrencyId,CreatedBy,UpdatedBy,CreatedDate,UpdatedDate FROM INSERTED
-
+CalibrationCurrencyId,CertificationCurrencyId,InspectionCurrencyId,VerificationCurrencyId,CreatedBy,UpdatedBy,CreatedDate,UpdatedDate, CalibrationCertificateNumber FROM INSERTED
 
 
 End

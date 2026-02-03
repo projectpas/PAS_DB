@@ -7,13 +7,13 @@ Exec [ReverseWorkOrder]
 ************************************************************** 
 ** Change History 
 **************************************************************   
-** PR   Date           Author          Change Description  
-** --   --------       -------         --------------------------------
-** 1    07/04/2022     Hemant Saliya    GetAssetMaintenance
-   2	26 March 2024  Bhargav Saliya   Resolved Default Vendor Binding Issue
+** PR   Date				Author				Change Description  
+** --   --------			-------				--------------------------------
+** 1    07/04/2022			Hemant Saliya		GetAssetMaintenance
+   2	26 March 2024		Bhargav Saliya		Resolved Default Vendor Binding Issue
+   3	30 January 2026		Divyesh Kathiriya	Add "CalibrationCertificateNumber"
 
-EXEC GetAssetMaintenance 128
-
+EXEC GetAssetMaintenance 342
 **************************************************************/ 
 
 CREATE PROCEDURE [dbo].[GetAssetMaintenance]
@@ -96,7 +96,8 @@ AS
 			CASE WHEN ISNULL(ascal.CalibrationProvider,'') = '' THEN 'Vendor' ELSE ascal.CalibrationProvider END as CalibrationProvider,
 			CASE WHEN ISNULL(ascal.CertificationProvider,'') = '' THEN 'Vendor' ELSE ascal.CertificationProvider END as CertificationProvider,
 			CASE WHEN ISNULL(ascal.InspectionProvider,'') = '' THEN 'Vendor' ELSE ascal.InspectionProvider END as InspectionProvider,
-			CASE WHEN ISNULL(ascal.VerificationProvider,'') = '' THEN 'Vendor' ELSE ascal.VerificationProvider END as VerificationProvider
+			CASE WHEN ISNULL(ascal.VerificationProvider,'') = '' THEN 'Vendor' ELSE ascal.VerificationProvider END as VerificationProvider,
+			ISNULL(ascal.CalibrationCertificateNumber,'') AS CalibrationCertificateNumber
 		FROM dbo.[Asset] AS [asset] WITH(NOLOCK)
 			LEFT JOIN dbo.[AssetCalibration]  AS [ascal] WITH(NOLOCK) ON [asset].[AssetRecordId] = [ascal].[AssetRecordId]
 			LEFT JOIN dbo.[AssetMaintenance] AS [asmai] WITH(NOLOCK) ON [asset].[AssetRecordId] = [asmai].[AssetRecordId]

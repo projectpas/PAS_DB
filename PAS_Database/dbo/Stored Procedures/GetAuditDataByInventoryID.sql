@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [GetAuditDataByInventoryID]           
  ** Author:   Abhishek Jirawla
  ** Description: This stored procedure is used retrieve Asset Inventory Audit details
@@ -12,12 +11,13 @@
  **************************************************************           
  ** Change History           
  **************************************************************           
- ** PR   Date         Author		Change Description            
- ** --   --------     -------		--------------------------------          
-    1    05/13/2024   Abhishek Jirawla Created
-	2	 12/11/2024   Abhishek Jirawla Change made for Asset Inventory Status and Asset Available Status
+ ** PR   Date         Author				Change Description            
+ ** --   --------     -------				--------------------------------          
+    1    05/13/2024   Abhishek Jirawla		Created
+	2	 12/11/2024   Abhishek Jirawla		Change made for Asset Inventory Status and Asset Available Status
+	3	 02/02/2026   Divyesh Kathiriya		Add "CalibrationCertificateNumber"
      
---EXEC [GetAuditDataByInventoryID] 521
+--EXEC [GetAuditDataByInventoryID] 621
 **************************************************************/
 CREATE   PROCEDURE [dbo].[GetAuditDataByInventoryID]
     @AssetInventoryId BIGINT
@@ -134,6 +134,7 @@ BEGIN
 			a.CalibrationDefaultCost,
 			a.CalibrationDefaultVendorId,
 			a.CalibrationFrequencyDays,
+			a.CalibrationCertificateNumber,
 			a.CalibrationFrequencyMonths,
 			a.CalibrationGlAccountId,
 			(CASE WHEN caGL.GLAccountId IS NULL THEN '' ELSE CONCAT(caGL.AccountCode, '-', caGL.AccountName) END) AS CalibrationGlAccountName,

@@ -23,6 +23,7 @@ EXEC [RPT_GetWorkOrderPrintPdfData]
 ** 12   23/12/2025  Ayushi Patel		return wty(warranty) based on IsWarranty and IsAccepted field
 ** 13   19/01/2026  Moin Bloch          Updated (Added NamePrinted )
 ** 14	22/JAN/2026 Priyansh Patel      Added CSN and TSN values
+** 15	03/Feb/2026 Bhargav Saliya      Get Ship To Site From WOQ if Exists
 
 EXEC RPT_GetWorkOrderPrintPdfData 4108,3625
 
@@ -52,6 +53,7 @@ BEGIN
 		DECLARE @SAddress1 NVARCHAR(255),@SAddress2 NVARCHAR(255),@SCity NVARCHAR(100),@SStateOrProvince NVARCHAR(100),@SPostalCode NVARCHAR(20);
 		DECLARE @SCountry NVARCHAR(100),@SPhoneNumber NVARCHAR(50),@SPhoneExt NVARCHAR(10),@SEmail NVARCHAR(255);
 
+		DECLARE @woqShipToSiteId BIGINT = 0;
    
 		SELECT TOP 1 @ItemMasterId=ItemMasterId,@WorkScopeId=WorkOrderScopeId, @WOFPrintDate = WOFPrintDate,@MasterCompanyId=[MasterCompanyId] FROM dbo.WorkOrderPartNumber WITH(NOLOCK) WHERE ID=@WorkOrderPartNoId            
                  
@@ -63,6 +65,12 @@ BEGIN
 		BEGIN            
 			SELECT top 1 @TravelerName= TravelerId FROM dbo.Traveler_Setup WITH(NOLOCK) WHERE WorkScopeId = @WorkScopeId and ItemMasterId is null and IsVersionIncrease=0            
 		END 
+
+		SELECT  @woqShipToSiteId = ISNULL(woqT.ShipToSiteId,0)
+		FROM Dbo.WorkOrder work WITH(NOLOCK)              
+		INNER JOIN Dbo.WorkOrderQuote woqT WITH(NOLOCK) on work.WorkOrderId = woqT.WorkOrderId and woqT.IsVersionIncrease=0 AND woqT.IsActive = 1 AND woqT.IsDeleted = 0 
+		WHERE work.WorkOrderId = @WorkorderId 
+
 		IF OBJECT_ID(N'tempdb..#TempTableData') IS NOT NULL
 			BEGIN
 				DROP TABLE #TempTableData
@@ -144,7 +152,8 @@ BEGIN
 			--														CASE WHEN shippingInfo.WorkOrderId > 0  THEN UPPER(shippingInfo.SoldToCountryName) else UPPER(billToCountry.countries_name) END,
 			--														NULL,NULL,NULL)),
 
-			shipSiteName = CASE WHEN shippingInfo.WorkOrderId > 0  THEN UPPER(shippingInfo.ShipToSiteName) else UPPER(shipToSite.SiteName) END,              
+			shipSiteName = CASE WHEN ISNULL(woq.ShipToSiteId,0) > 0 THEN woq.ShipToSiteName
+								WHEN shippingInfo.WorkOrderId > 0  THEN UPPER(shippingInfo.ShipToSiteName) else UPPER(shipToSite.SiteName) END,              
 			shipAttention = CASE WHEN shippingInfo.WorkOrderId > 0  THEN 'ATTN: ' + UPPER(shipToSiteatt.Attention) else 'ATTN: ' + UPPER(shipToSite.Attention) END,              
 			shipAddressLine1 = CASE WHEN shippingInfo.WorkOrderId > 0  THEN  UPPER(shippingInfo.ShipToAddress1) else UPPER(shipToAddress.Line1) END,              
 			shipAddressLine2 = CASE WHEN shippingInfo.WorkOrderId > 0  THEN UPPER(shippingInfo.ShipToAddress2) else UPPER(shipToAddress.Line2) END, 
@@ -230,13 +239,24 @@ BEGIN
 			LEFT JOIN Dbo.WorkOrderSettings wost WITH(NOLOCK) on wost.MasterCompanyId = wop.MasterCompanyId AND wo.WorkOrderTypeId = wost.WorkOrderTypeId    
 			WHERE wo.WorkOrderId = @WorkorderId AND wop.ID = @workOrderPartNoId) Result  
 			
-
 			SELECT 	@Address1 = shipToAddressLine1, @Address2 = shipToAddressLine2, @City = shipToAddressCity, @StateOrProvince = shipToAddressStateOrProvince, @PostalCode = shipToAddressPostalCode,
 					@Country = shipToCountrycountries_name,
 					@BAddress1 = billAddressLine1, @BAddress2 = billAddressLine2, @BCity = billCity, @BStateOrProvince = billState, @BPostalCode = billPostalCode,
 					@BCountry = billCountry,
 					@SAddress1 = shipAddressLine1, @SAddress2 = shipAddressLine2, @SCity = shipCity, @SStateOrProvince = shipState, @SPostalCode = shipPostalCode,
 					@SCountry = shipCountry FROM #TempTableData
+
+			--If Ship To Site Data are available in work order quote then Overwrite that Address Data 
+			IF(@woqShipToSiteId > 0)
+			BEGIN
+				SELECT 
+					@Address1 = WQ.Line1, @Address2 = WQ.Line2, @City = WQ.City, @StateOrProvince = WQ.StateOrProvince, @PostalCode = WQ.PostalCode,
+					@Country = ctr.countries_name
+				FROM dbo.WorkOrder  W WITH(NOLOCK) 
+				INNER JOIN Dbo.WorkOrderQuote WQ WITH(NOLOCK) on W.WorkOrderId = WQ.WorkOrderId and WQ.IsVersionIncrease=0 AND WQ.IsActive = 1 AND WQ.IsDeleted = 0 
+				LEFT JOIN dbo.Countries ctr WITH(NOLOCK) on WQ.CountryId = ctr.countries_id
+				WHERE W.WorkOrderId = @WorkorderId 
+			END
 
 			EXEC [dbo].[SP_ValidatePDFAddress] 
                 @Address1 = @Address1,

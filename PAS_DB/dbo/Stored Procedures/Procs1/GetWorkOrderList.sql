@@ -39,6 +39,7 @@
 	23   20/11/2025   Sahdev Saliya         Added New Field :- ReceivedCondition, RevisedCondition
 	24   30/12/2025   Vishal Suthar         Fixed WOQ Part Status which affects the approved amount
 	25   17/01/2025   Bhargav Saliya        Added IsMigrated Condition
+	26   02/02/2026   Moin Bloch		    added IncomingPartNumber  PN-15319
 
 	exec dbo.GetWorkOrderList @PageNumber=1,@PageSize=100,@SortColumn=default,@SortOrder=-1,@StatusID=1,@GlobalFilter=default,@ViewType=N'mpn',
 	@WorkOrderNum=default,@PartNumber=default,@PartDescription=default,@WorkScope=default,@Priority=default,@CustomerName=default,@CustomerAffiliation=default,@Stage=default,
@@ -57,7 +58,7 @@ CREATE    PROCEDURE [dbo].[GetWorkOrderList]
 	 @GlobalFilter VARCHAR(50) = '',  
 	 @ViewType VARCHAR(50) = NULL,  
 	 @WorkOrderNum VARCHAR(50)=NULL,  
-	 @PartNumber VARCHAR(50)=NULL,  
+	 @PartNumber VARCHAR(50)=NULL,  	 
 	 @PartDescription VARCHAR(50)=NULL,  
 	 @WorkScope VARCHAR(50)=NULL,  
 	 @Priority VARCHAR(50)=NULL,  
@@ -94,7 +95,8 @@ CREATE    PROCEDURE [dbo].[GetWorkOrderList]
 	 @location VARCHAR(100) = NULL,
 	 @WoTaskType BIT = NULL, 
 	 @ReceivedCondition VARCHAR(100) = NULL,
-	 @RevisedCondition VARCHAR(100) = NULL
+	 @RevisedCondition VARCHAR(100) = NULL,
+	 @IncomingPartNumber VARCHAR(50)=NULL  
 
 AS  
 BEGIN  
@@ -239,6 +241,7 @@ BEGIN
 			[location] VARCHAR(100),
 			[ReceivedCondition] VARCHAR(100),
 			[RevisedCondition] VARCHAR(100),
+			[IncomingPartNumber] VARCHAR(50),
 		);
 
 		-- 2. Create the index for faster filtering/sorting
@@ -305,7 +308,8 @@ BEGIN
 			CASE WHEN ISNULL(WO.[WorkOrderFormTypeId], 0) = 1 THEN 'Dynamic' else 'Static' end AS [IsWorkOrderTask],
 			ISNULL(STK.[Location],'') AS [location],
 			CD.[Description] AS 'ReceivedCondition',
-			RCD.[Description] AS 'RevisedCondition'
+			RCD.[Description] AS 'RevisedCondition',
+			UPPER(WPN.[IncomingPartNumber]) AS [IncomingPartNumber]
 			FROM [dbo].[WorkOrder] WO WITH(NOLOCK)  
 			JOIN [dbo].[WorkOrderPartNumber] WPN WITH(NOLOCK) ON WO.[WorkOrderId] = WPN.[WorkOrderId]  
 			LEFT JOIN [dbo].[Stockline] STK WITH(NOLOCK) ON WPN.StockLineId = STK.StockLineId
@@ -323,7 +327,8 @@ BEGIN
 		AND (@WoTaskType IS NULL OR WO.[WorkOrderFormTypeId] = @WoTaskType))  
         ),
 		QuoteResult AS (
-			SELECT [WorkOrderNum], [WorkOrderId], [CustomerId], [PartNos], [PartNoType], [PNDescription], [PNDescriptionType], [ManufacturerName], [ManufacturerNameType], [WorkScope], [WorkScopeType], [Priority], [PriorityType], [CustomerName], [CustomerType], [Stage], [StageType], [WorkOrderStatus], [WorkOrderStatusType], [OpenDate], [CustomerRequestDate], [CustomerRequestDateType],
+			SELECT [WorkOrderNum], [WorkOrderId], [CustomerId], [PartNos], [PartNoType], [IncomingPartNumber], 
+			 [PNDescription], [PNDescriptionType], [ManufacturerName], [ManufacturerNameType], [WorkScope], [WorkScopeType], [Priority], [PriorityType], [CustomerName], [CustomerType], [Stage], [StageType], [WorkOrderStatus], [WorkOrderStatusType], [OpenDate], [CustomerRequestDate], [CustomerRequestDateType],
 				[PromisedDate], [PromisedDateType], [EstimatedShipDate], [EstimatedShipDateType], [EstimatedCompletionDateType], [EstimatedCompletionDate], [CreatedDate], [UpdatedDate], [CreatedBy], [UpdatedBy], [IsActive], [IsDeleted], [WorkOrderStatusId], [WorkOrderType], [TechName], [TechStation], [SerialNumber],[RevisedSerialNumber],
 				[CustomerReference], [CustomerReferenceType], [IsSubWorkOrder], [MPNQuoteStatus],
 				CASE WHEN [MPNQuoteStatus] = @WOApprovalDesc THEN [ApprovedAmount] ELSE '' END AS [ApprovedAmount], [WOPartId],Notes,[IsWorkOrderTask],[location],[ReceivedCondition], [RevisedCondition]
@@ -332,13 +337,13 @@ BEGIN
 		ResultCount AS(SELECT COUNT(WorkOrderId) AS totalItems FROM QuoteResult)  
         --SELECT * INTO #TempResult from  QuoteResult
 		INSERT INTO #TempResult
-		SELECT DISTINCT [WorkOrderNum], [WorkOrderId], [CustomerId], [PartNos], [PartNoType], [PNDescription], [PNDescriptionType],
+		SELECT DISTINCT [WorkOrderNum], [WorkOrderId], [CustomerId], [PartNos], [PartNoType],[PNDescription], [PNDescriptionType],
 			   [ManufacturerName], [ManufacturerNameType], [WorkScope], [WorkScopeType], [Priority], [PriorityType], [CustomerName],
 			   [CustomerType], [Stage], [StageType], [WorkOrderStatus], [WorkOrderStatusType], [OpenDate], [CustomerRequestDate],
 			   [CustomerRequestDateType], [PromisedDate], [PromisedDateType], [EstimatedShipDate], [EstimatedShipDateType],
 			   [EstimatedCompletionDateType], [EstimatedCompletionDate], [CreatedDate], [UpdatedDate], [CreatedBy], [UpdatedBy],
 			   [IsActive], [IsDeleted], [WorkOrderStatusId], [WorkOrderType], [TechName], [TechStation], [SerialNumber],[RevisedSerialNumber],
-			   [CustomerReference], [CustomerReferenceType], [IsSubWorkOrder], [MPNQuoteStatus], [ApprovedAmount], [WOPartId],Notes,[IsWorkOrderTask],[location],[ReceivedCondition],[RevisedCondition]
+			   [CustomerReference], [CustomerReferenceType], [IsSubWorkOrder], [MPNQuoteStatus], [ApprovedAmount], [WOPartId],Notes,[IsWorkOrderTask],[location],[ReceivedCondition],[RevisedCondition],[IncomingPartNumber] 
 		FROM QuoteResult
         WHERE (  
         (@GlobalFilter <>'' AND 
@@ -346,6 +351,7 @@ BEGIN
 			([WorkOrderNum] LIKE '%' +@GlobalFilter+'%') OR  
 			([WorkOrderType] LIKE '%' +@GlobalFilter+'%') OR  
 			([PartNos] LIKE '%' +@GlobalFilter+'%') OR  
+			([IncomingPartNumber] LIKE '%' +@GlobalFilter+'%') OR  			
 			([PNDescription] LIKE '%' +@GlobalFilter+'%') OR
 			([ManufacturerName] LIKE '%' +@GlobalFilter+'%') OR  
 			([WorkScope] LIKE '%' +@GlobalFilter+'%') OR  
@@ -375,6 +381,7 @@ BEGIN
         OR     
         (@GlobalFilter='' AND (ISNULL(@WorkOrderNum,'') ='' OR [WorkOrderNum] LIKE '%' + @WorkOrderNum+'%') AND  
         (ISNULL(@PartNumber,'') ='' OR [PartNos] LIKE '%' + @PartNumber+'%') AND  
+		(ISNULL(@IncomingPartNumber,'') ='' OR [IncomingPartNumber] LIKE '%' + @IncomingPartNumber+'%') AND  		
         (ISNULL(@PartDescription,'') ='' OR [PNDescription] LIKE '%' + @PartDescription+'%') AND 
 		(ISNULL(@ManufacturerName,'') ='' OR [ManufacturerName] LIKE '%' + @ManufacturerName+'%') AND  
         (ISNULL(@WorkScope,'') ='' OR [WorkScope] LIKE '%' + @WorkScope+'%') AND  
@@ -416,6 +423,7 @@ BEGIN
         CASE WHEN (@SortOrder=1 AND @SortColumn='CREATEDDATE')  THEN [CreatedDate] END ASC,  
         CASE WHEN (@SortOrder=1 AND @SortColumn='PARTNUMBER')  THEN [PartNos] END ASC,  
         CASE WHEN (@SortOrder=1 AND @SortColumn='partNoType')  THEN [partNoType] END ASC,  
+		CASE WHEN (@SortOrder=1 AND @SortColumn='IncomingPartNumber')  THEN [IncomingPartNumber] END ASC,  
         CASE WHEN (@SortOrder=1 AND @SortColumn='pnDescriptionType')  THEN [pnDescriptionType] END ASC,  
         CASE WHEN (@SortOrder=1 AND @SortColumn='workScopeType')  THEN [workScopeType] END ASC,  
         CASE WHEN (@SortOrder=1 AND @SortColumn='customerRequestDateType')  THEN [customerRequestDateType] END ASC,  
@@ -454,7 +462,9 @@ BEGIN
   
         CASE WHEN (@SortOrder=-1 AND @SortColumn='CREATEDDATE')  THEN [CreatedDate] END DESC,  
         CASE WHEN (@SortOrder=-1 AND @SortColumn='PARTNUMBER')  THEN [PartNos] END DESC,  
-        CASE WHEN (@SortOrder=-1 AND @SortColumn='partNoType')  THEN [partNoType] END DESC,  
+        CASE WHEN (@SortOrder=-1 AND @SortColumn='partNoType')  THEN [partNoType] END DESC, 
+		CASE WHEN (@SortOrder=-1 AND @SortColumn='IncomingPartNumber')  THEN [IncomingPartNumber] END DESC,  
+
         CASE WHEN (@SortOrder=-1 AND @SortColumn='pnDescriptionType')  THEN [pnDescriptionType] END DESC,  
         CASE WHEN (@SortOrder=-1 AND @SortColumn='workScopeType')  THEN [workScopeType] END DESC,  
         CASE WHEN (@SortOrder=-1 AND @SortColumn='customerRequestDateType')  THEN [customerRequestDateType] END DESC,  
@@ -544,6 +554,7 @@ BEGIN
 			  CASE WHEN WOPC.[PartCount] > 1 THEN 'Multiple' ELSE 'Single' END AS 'RowStatus',
 			  MAX(WPN.[PartNumber])  AS 'PartNumberType',
 			  MAX(WPN.[PartNumber])  AS 'PartNumber',
+			  MAX(WPN.[IncomingPartNumber])  AS 'IncomingPartNumber',
 			  MAX(WPN.[PartDescription])  AS 'PartDescriptionType',
 			  MAX(WPN.[PartDescription])  AS 'PartDescription',
 			  MAX(WPN.[ManufacturerName])  AS 'ManufacturerNameType',
@@ -599,6 +610,8 @@ BEGIN
          SELECT DISTINCT [WorkOrderNum], [WorkOrderId], [CustomerId], [CustomerName], [CustomerType], [OpenDate], [CreatedDate], [UpdatedDate], [CreatedBy], [UpdatedBy], [IsActive], [IsDeleted], [WorkOrderType],
 			  (CASE WHEN RowStatus = 'Multiple' THEN 'Multiple' ELSE MAX([PartNumberType]) END)  AS 'PartNumberType',
 			  (CASE WHEN RowStatus = 'Multiple' THEN 'Multiple' ELSE MAX([PartNumber]) END)  AS 'PartNumber',
+			  (CASE WHEN RowStatus = 'Multiple' THEN 'Multiple' ELSE MAX([IncomingPartNumber]) END)  AS 'IncomingPartNumber',
+			  
 			  (CASE WHEN RowStatus = 'Multiple' THEN 'Multiple' ELSE MAX([PartDescriptionType]) END)  AS 'PartDescriptionType',
 			  (CASE WHEN RowStatus = 'Multiple' THEN 'Multiple' ELSE MAX([PartDescription]) END)  AS 'PartDescription',
 			  (CASE WHEN RowStatus = 'Multiple' THEN 'Multiple' ELSE MAX([ManufacturerNameType]) END)  AS 'ManufacturerNameType',
@@ -639,7 +652,7 @@ BEGIN
 		  GROUP BY	 [WorkOrderNum], [WorkOrderId], [CustomerId], [CustomerName], [CustomerType], [OpenDate], [CreatedDate], [UpdatedDate], [CreatedBy], [UpdatedBy],[IsActive], [IsDeleted]
 					,[WorkOrderType], [WorkOrderType], [EstimatedCompletionDateType],  [EstimatedCompletionDate], [IsSubWorkOrder], [RowStatus], [IsWorkOrderTask],[location]
   																																			  
-          ;WITH Result AS( SELECT DISTINCT M.[WorkOrderId], UPPER([WorkOrderNum]) AS [WorkOrderNum], UPPER([WorkOrderType]) AS [WorkOrderType], UPPER([PartNumber]) AS [PartNos], UPPER([PartNumberType]) AS [PartNoType], UPPER([PartNumberType]) AS [PartNumberType], UPPER([PartDescription]) AS [PNDescription], UPPER([PartDescriptionType]) AS [PNDescriptionType], UPPER([ManufacturerName]) AS [ManufacturerName], UPPER([ManufacturerNameType]) AS [ManufacturerNameType],
+          ;WITH Result AS( SELECT DISTINCT M.[WorkOrderId], UPPER([WorkOrderNum]) AS [WorkOrderNum], UPPER([WorkOrderType]) AS [WorkOrderType], UPPER([PartNumber]) AS [PartNos], UPPER([PartNumberType]) AS [PartNoType], UPPER([PartNumberType]) AS [PartNumberType], UPPER([IncomingPartNumber]) AS [IncomingPartNumber], UPPER([PartDescription]) AS [PNDescription], UPPER([PartDescriptionType]) AS [PNDescriptionType], UPPER([ManufacturerName]) AS [ManufacturerName], UPPER([ManufacturerNameType]) AS [ManufacturerNameType],
               [CustomerId], UPPER([CustomerName]) AS [CustomerName], UPPER([CustomerType]) AS [CustomerType], UPPER([WorkScopeDescription]) AS [WorkScope], UPPER([WorkScopeType]) AS [WorkScopeType],
               UPPER([PriorityDescription]) AS [Priority], UPPER([PriorityType]) [PriorityType], UPPER([WOStageDescription]) AS [Stage], UPPER([StageType]) [StageType], UPPER([WorkOrderStatus]) [WorkOrderStatus],
               UPPER([WorkOrderStatusType]) [WorkOrderStatusType], [OpenDate], UPPER([CreatedBy]) [CreatedBy], UPPER([UpdatedBy]) [UpdatedBy], [CreatedDate], [UpdatedDate], [CustomerRequestDate],   
@@ -657,6 +670,8 @@ BEGIN
            ([WorkOrderNum] LIKE '%' +@GlobalFilter+'%') OR  
            ([WorkOrderType] LIKE '%' +@GlobalFilter+'%') OR  
            ([PartNos] LIKE '%' +@GlobalFilter+'%') OR  
+		   ([IncomingPartNumber] LIKE '%' +@GlobalFilter+'%') OR  
+
            ([PNDescription] LIKE '%' +@GlobalFilter+'%') OR
 		   ([ManufacturerName] LIKE '%' +@GlobalFilter+'%') OR 
            ([WorkScope] LIKE '%' +@GlobalFilter+'%') OR  
@@ -684,6 +699,7 @@ BEGIN
            OR     
            (@GlobalFilter='' AND (ISNULL(@WorkOrderNum,'') ='' OR [WorkOrderNum] LIKE '%' + @WorkOrderNum+'%') AND  
            (ISNULL(@PartNumber,'') ='' OR [PartNos] LIKE '%' + @PartNumber+'%') AND  
+		   (ISNULL(@IncomingPartNumber,'') ='' OR [IncomingPartNumber] LIKE '%' + @IncomingPartNumber+'%') AND  
            (ISNULL(@WorkOrderType,'') ='' OR [WorkOrderType] LIKE '%' + @WorkOrderType+'%') AND  
            (ISNULL(@PartDescription,'') ='' OR [PNDescription] LIKE '%' + @PartDescription+'%') AND
 		   (ISNULL(@ManufacturerName,'') ='' OR [ManufacturerName] LIKE '%' + @ManufacturerName+'%') AND  
@@ -725,6 +741,8 @@ BEGIN
          CASE WHEN (@SortOrder=1 AND @SortColumn='CREATEDDATE')  THEN [CreatedDate] END ASC,  
          CASE WHEN (@SortOrder=1 AND @SortColumn='PARTNUMBER')  THEN [PartNos] END ASC,  
          CASE WHEN (@SortOrder=1 AND @SortColumn='partNoType')  THEN [partNoType] END ASC,  
+		 CASE WHEN (@SortOrder=1 AND @SortColumn='IncomingPartNumber')  THEN [IncomingPartNumber] END ASC,  
+
          CASE WHEN (@SortOrder=1 AND @SortColumn='pnDescriptionType')  THEN [pnDescriptionType] END ASC,  
          CASE WHEN (@SortOrder=1 AND @SortColumn='workScopeType')  THEN [workScopeType] END ASC,  
          CASE WHEN (@SortOrder=1 AND @SortColumn='customerRequestDateType')  THEN [customerRequestDateType] END ASC,  
@@ -764,6 +782,7 @@ BEGIN
          CASE WHEN (@SortOrder=-1 AND @SortColumn='CREATEDDATE')  THEN [CreatedDate] END DESC,  
          CASE WHEN (@SortOrder=-1 AND @SortColumn='PARTNUMBER')  THEN [PartNos] END DESC,  
          CASE WHEN (@SortOrder=-1 AND @SortColumn='partNoType')  THEN [partNoType] END DESC,  
+		 CASE WHEN (@SortOrder=-1 AND @SortColumn='IncomingPartNumber')  THEN [IncomingPartNumber] END DESC,  
          CASE WHEN (@SortOrder=-1 AND @SortColumn='pnDescriptionType')  THEN [pnDescriptionType] END DESC,  
          CASE WHEN (@SortOrder=-1 AND @SortColumn='workScopeType')  THEN [workScopeType] END DESC,  
          CASE WHEN (@SortOrder=-1 AND @SortColumn='customerRequestDateType')  THEN [customerRequestDateType] END DESC,  
@@ -837,37 +856,9 @@ BEGIN
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------  
               , @AdhocComments     VARCHAR(150)    = 'GetWorkOrderList'   
               , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = '''+ ISNULL(CAST(@PageNumber AS VARCHAR(50)) ,'') + ''',  
-                @Parameter2 = ' + ISNULL(CAST(@PageSize AS VARCHAR(50)) ,'') + ',   
-                @Parameter3 = ' + ISNULL(CAST(@SortColumn AS VARCHAR(50)) ,'') + ',   
-                @Parameter4 = ' + ISNULL(CAST(@SortOrder AS VARCHAR(50)) ,'') + ',   
-                @Parameter5 = ' + ISNULL(CAST(@GlobalFilter AS VARCHAR(50)) ,'') + ',   
-                @Parameter6 = ' + ISNULL(CAST(@ViewType AS VARCHAR(50)) ,'') + ',    
-                @Parameter7 = ' + ISNULL(CAST(@WorkOrderNum AS VARCHAR(50)) ,'') + ',   
-                @Parameter8 = ' + ISNULL(CAST(@PartNumber AS VARCHAR(50)) ,'') + ',   
-                @Parameter9 = ' + ISNULL(CAST(@PartDescription AS VARCHAR(50)) ,'') + ',   
-                @Parameter10 = ' + ISNULL(CAST(@WorkScope AS VARCHAR(50)) ,'') + ',   
-                @Parameter11 = ' + ISNULL(CAST(@Priority AS VARCHAR(50)) ,'') + ',   
-                @Parameter12 = ' + ISNULL(CAST(@CustomerName AS VARCHAR(50)) ,'') + ',   
-                @Parameter13 = ' + ISNULL(CAST(@CustomerAffiliation AS VARCHAR(50)) ,'') + ',   
-                @Parameter14 = ' + ISNULL(CAST(@Stage AS VARCHAR(50)) ,'') + ',   
-                @Parameter15 = ' + ISNULL(CAST(@WorkOrderStatus AS VARCHAR(50)) ,'') + ',   
-                @Parameter16 = ' + ISNULL(CAST(@OpenDate AS VARCHAR(50)) ,'') + ',   
-                @Parameter17 = ' + ISNULL(CAST(@CustReqDate AS VARCHAR(50)) ,'') + ',   
-                @Parameter18 = ' + ISNULL(CAST(@PromiseDate AS VARCHAR(50)) ,'') + ',   
-                @Parameter19 = ' + ISNULL(CAST(@EstShipDate AS VARCHAR(50)) ,'') + ',   
-                @Parameter20 = ' + ISNULL(CAST(@ShipDate AS VARCHAR(50)) ,'') + ',   
-                @Parameter21 = ' + ISNULL(CAST(@CreatedDate AS VARCHAR(50)) ,'') + ',   
-                @Parameter22 = ' + ISNULL(CAST(@UpdatedDate AS VARCHAR(50)) ,'') + ',   
-                @Parameter23 = ' + ISNULL(@CreatedBy,'') + ',   
-                @Parameter24 = ' + ISNULL(@UpdatedBy,'') + ',   
-                @Parameter25 = ' + ISNULL(CAST(@IsDeleted AS VARCHAR(50)) ,'') + ',   
-                @Parameter26 = ' + ISNULL(@masterCompanyId,'') + ',   
-                @Parameter27 = ' + ISNULL(@EmployeeId,'') + ',   
-                @Parameter28 = ' + ISNULL(@WorkOrderStatusType,'') + ',   
-                @Parameter29 = ' + ISNULL(@WorkOrderType,'') + ',   
-                @Parameter30 = ' + ISNULL(@TechName,'') + ',   
-                @Parameter31 = ' + ISNULL(CAST(@TechStation AS VARCHAR(10)) ,'') + ',
-				@Parameter32 = ' + ISNULL(CAST(@IsSubWorkOrder AS VARCHAR(50)) ,'') + ',
+               
+                  
+              
 				@Parameter33 = ' + ISNULL(CAST(@WoTaskType AS VARCHAR(50)) ,'') + ''    
 
               , @ApplicationName VARCHAR(100) = 'PAS'  

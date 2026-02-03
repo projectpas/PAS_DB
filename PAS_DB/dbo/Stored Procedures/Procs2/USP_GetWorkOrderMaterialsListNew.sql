@@ -27,6 +27,7 @@
 	16  11-08-2025		Rajesh Gami			    Fixed: Order related issue while copy materials from the Template
 	17  24-12-2025		Amit Ghediya			Get WorkorderNum from wo.
 	18  30-12-2025		Devendra Shekh			CostDate Issue Resolved 
+	19  02-02-2026		Hemant Saliiya			Modify to handle StocklineQtytobeReserved and StocklineQtyRemaining For For Stock Provision
 	
  EXECUTE [dbo].[USP_GetWorkOrderMaterialsList] 4257,3782, 0
 exec dbo.USP_GetWorkOrderMaterialsListNew @PageNumber=1,@PageSize=10,@SortColumn=default,@SortOrder=1,@WorkOrderId=5960,@WFWOId=5553,@ShowPendingToIssue=1
@@ -678,8 +679,8 @@ SET NOCOUNT ON
 											WHERE womsl.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId AND womsl.isActive = 1 AND womsl.isDeleted = 0),0),0)  AS QtytobeReserved,
 						ISNULL(MSTL.QtyIssued,0) AS StocklineQtyIssued,
 						ISNULL(MSTL.QuantityTurnIn, 0) as StocklineQuantityTurnIn,
-						ISNULL(MSTL.Quantity, 0) - ISNULL(MSTL.QtyIssued,0) AS StocklineQtyRemaining,
-						ISNULL(MSTL.Quantity, 0) - (ISNULL(MSTL.QtyIssued,0) + ISNULL(MSTL.QtyReserved,0)) AS StocklineQtytobeReserved,
+						CASE WHEN MSTL.ProvisionId = @SubProvisionId OR MSTL.ProvisionId = @ForStockProvisionId THEN 0 ELSE ISNULL(MSTL.Quantity, 0) - ISNULL(MSTL.QtyIssued,0) END AS StocklineQtyRemaining,
+						CASE WHEN MSTL.ProvisionId = @SubProvisionId OR MSTL.ProvisionId = @ForStockProvisionId THEN 0 ELSE ISNULL(MSTL.Quantity, 0) - (ISNULL(MSTL.QtyIssued,0) + ISNULL(MSTL.QtyReserved,0)) END AS StocklineQtytobeReserved,
 						ISNULL(WOM.QtyOnOrder, 0) as QtyOnOrder, 
 						ISNULL(WOM.QtyOnBkOrder, 0) as QtyOnBkOrder,
 						WOM.PONum,
@@ -921,8 +922,10 @@ SET NOCOUNT ON
 											WHERE womsl.WorkOrderMaterialsId = WOM.WorkOrderMaterialsKitId AND womsl.isActive = 1 AND womsl.isDeleted = 0),0),0) AS QtytobeReserved,
 						ISNULL(MSTL.QtyIssued,0) AS StocklineQtyIssued,
 						ISNULL(MSTL.QuantityTurnIn, 0) as StocklineQuantityTurnIn,
-						ISNULL(MSTL.Quantity, 0) - ISNULL(MSTL.QtyIssued,0) AS StocklineQtyRemaining,
-						ISNULL(MSTL.Quantity, 0) - (ISNULL(MSTL.QtyIssued,0) + ISNULL(MSTL.QtyReserved,0)) AS StocklineQtytobeReserved,
+						--ISNULL(MSTL.Quantity, 0) - ISNULL(MSTL.QtyIssued,0) AS StocklineQtyRemaining,
+						--ISNULL(MSTL.Quantity, 0) - (ISNULL(MSTL.QtyIssued,0) + ISNULL(MSTL.QtyReserved,0)) AS StocklineQtytobeReserved,
+						CASE WHEN MSTL.ProvisionId = @SubProvisionId OR MSTL.ProvisionId = @ForStockProvisionId THEN 0 ELSE ISNULL(MSTL.Quantity, 0) - ISNULL(MSTL.QtyIssued,0) END AS StocklineQtyRemaining,
+						CASE WHEN MSTL.ProvisionId = @SubProvisionId OR MSTL.ProvisionId = @ForStockProvisionId THEN 0 ELSE ISNULL(MSTL.Quantity, 0) - (ISNULL(MSTL.QtyIssued,0) + ISNULL(MSTL.QtyReserved,0)) END AS StocklineQtytobeReserved,
 						ISNULL(WOM.QtyOnOrder, 0) as QtyOnOrder, 
 						ISNULL(WOM.QtyOnBkOrder, 0) as QtyOnBkOrder,
 						WOM.PONum,
@@ -1168,8 +1171,10 @@ SET NOCOUNT ON
 											WHERE womsl.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId AND womsl.isActive = 1 AND womsl.isDeleted = 0),0),0) AS QtytobeReserved,
 						ISNULL(MSTL.QtyIssued,0) AS StocklineQtyIssued,
 						ISNULL(MSTL.QuantityTurnIn, 0) as StocklineQuantityTurnIn,
-						ISNULL(MSTL.Quantity, 0) - ISNULL(MSTL.QtyIssued,0) AS StocklineQtyRemaining,
-						ISNULL(MSTL.Quantity, 0) - (ISNULL(MSTL.QtyIssued,0) + ISNULL(MSTL.QtyReserved,0)) AS StocklineQtytobeReserved,
+						--ISNULL(MSTL.Quantity, 0) - ISNULL(MSTL.QtyIssued,0) AS StocklineQtyRemaining,
+						--ISNULL(MSTL.Quantity, 0) - (ISNULL(MSTL.QtyIssued,0) + ISNULL(MSTL.QtyReserved,0)) AS StocklineQtytobeReserved,
+						CASE WHEN MSTL.ProvisionId = @SubProvisionId OR MSTL.ProvisionId = @ForStockProvisionId THEN 0 ELSE ISNULL(MSTL.Quantity, 0) - ISNULL(MSTL.QtyIssued,0) END AS StocklineQtyRemaining,
+						CASE WHEN MSTL.ProvisionId = @SubProvisionId OR MSTL.ProvisionId = @ForStockProvisionId THEN 0 ELSE ISNULL(MSTL.Quantity, 0) - (ISNULL(MSTL.QtyIssued,0) + ISNULL(MSTL.QtyReserved,0)) END AS StocklineQtytobeReserved,
 						ISNULL(WOM.QtyOnOrder, 0) as QtyOnOrder, 
 						ISNULL(WOM.QtyOnBkOrder, 0) as QtyOnBkOrder,
 						WOM.PONum,
@@ -1411,8 +1416,10 @@ SET NOCOUNT ON
 											WHERE womsl.WorkOrderMaterialsId = WOM.WorkOrderMaterialsKitId AND womsl.isActive = 1 AND womsl.isDeleted = 0),0), 0) AS QtytobeReserved,
 						ISNULL(MSTL.QtyIssued, 0) AS StocklineQtyIssued,
 						ISNULL(MSTL.QuantityTurnIn, 0) as StocklineQuantityTurnIn,
-						ISNULL(MSTL.Quantity, 0) - ISNULL(MSTL.QtyIssued,0) AS StocklineQtyRemaining,
-						ISNULL(MSTL.Quantity, 0) - (ISNULL(MSTL.QtyIssued,0) + ISNULL(MSTL.QtyReserved,0)) AS StocklineQtytobeReserved,
+						--ISNULL(MSTL.Quantity, 0) - ISNULL(MSTL.QtyIssued,0) AS StocklineQtyRemaining,
+						--ISNULL(MSTL.Quantity, 0) - (ISNULL(MSTL.QtyIssued,0) + ISNULL(MSTL.QtyReserved,0)) AS StocklineQtytobeReserved,
+						CASE WHEN MSTL.ProvisionId = @SubProvisionId OR MSTL.ProvisionId = @ForStockProvisionId THEN 0 ELSE ISNULL(MSTL.Quantity, 0) - ISNULL(MSTL.QtyIssued,0) END AS StocklineQtyRemaining,
+						CASE WHEN MSTL.ProvisionId = @SubProvisionId OR MSTL.ProvisionId = @ForStockProvisionId THEN 0 ELSE ISNULL(MSTL.Quantity, 0) - (ISNULL(MSTL.QtyIssued,0) + ISNULL(MSTL.QtyReserved,0)) END AS StocklineQtytobeReserved,
 						ISNULL(WOM.QtyOnOrder, 0) as QtyOnOrder, 
 						ISNULL(WOM.QtyOnBkOrder, 0) as QtyOnBkOrder,
 						WOM.PONum,

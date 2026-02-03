@@ -4548,11 +4548,15 @@
     <Build Include="dbo\Stored Procedures\USP_UpdateLeafNodePrintSequence.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetPrintSequenceLeafData.sql" />
     <Build Include="dbo\User Defined Types\LeafNodeSequenceType.sql" />
+    <Build Include="dbo\Stored Procedures\usprpt_GetAPDisbursementReportByPayee.sql" />
+    <Build Include="dbo\Stored Procedures\usprpt_GetAPDisbursementReportByInvoice.sql" />
     <Build Include="dbo\Stored Procedures\usprpt_CashReceiptReportList_SSRS.sql" />
     <Build Include="dbo\Stored Procedures\usprpt_CashReceiptReportList.sql" />
     <Build Include="dbo\Stored Procedures\usprpt_GetInventoryUnitCostAdjustmentReport_SSRS.sql" />
     <Build Include="dbo\Stored Procedures\usprpt_GetInventoryUnitCostAdjustmentReport.sql" />
     <Build Include="dbo\Stored Procedures\usprpt_GetInventoryQuantityAdjustmentReport_SSRS.sql" />
+    <Build Include="dbo\Stored Procedures\USP_UpdateShipToSiteInfo.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetCurrentShipToSiteInfo.sql" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Snapshots\PAS_DB_20220518_07-53-10.dacpac" />

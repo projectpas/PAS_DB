@@ -14,6 +14,7 @@
  ** --   --------         -------          --------------------------------            
     1    08-05-2025    Sahdev Saliya       Created  
     2    15-05-2025    Devendra Shekh	   Added IsPrintCorrectiveAction to select
+    3    02-02-2026    BHARGAV SALIYA      Get Sipping Info Detail
 
 -- EXEX USP_GetWorkFlowWorkOrderQuoteList 8543, 8806
 **************************************************************/  
@@ -76,7 +77,12 @@ BEGIN
 					wq.CurrencyId,
 					wq.ReportCurrencyId,
 					wq.ForeignExchangeRate,
-					ISNULL(wq.IsPrintCorrectiveAction, 0) IsPrintCorrectiveAction
+					ISNULL(wq.IsPrintCorrectiveAction, 0) IsPrintCorrectiveAction,
+					CASE WHEN ISNULL(wq.ShipToSiteId,0) > 0 
+					THEN '<p>Site Name: ' + wq.ShipToSiteName + '</p>' + '<p>Address: ' + wq.Line1 + '' + wq.Line2 + '</p>' + '<p>City: ' + wq.City + '</p>' + '<p>State/Prov :' + wq.StateOrProvince + '</p>' + '<p>Zip Code: ' + wq.PostalCode + '</p>' + '<p>Country: ' + c.countries_name + '</p>'
+					ELSE '<p>Site Name: ' + shipToSite.SiteName + '</p>' + '<p>Address: ' + shipToAddress.Line1 + '' + shipToAddress.Line2 + '</p>' + '<p>City: ' + shipToAddress.City + '</p>' + '<p>State/Prov :' + shipToAddress.StateOrProvince + '</p>' + '<p>Zip Code: ' + shipToAddress.PostalCode + '</p>' + '<p>Country: ' + shipToCountry.countries_name + '</p>'
+					END
+					AS ShiptoSiteInfo
 				FROM [dbo].WorkOrderQuote wq WITH(NOLOCK)
 				INNER JOIN [dbo].WorkOrder wo WITH(NOLOCK) ON wq.WorkOrderId = wo.WorkOrderId
 				INNER JOIN [dbo].Customer cust WITH(NOLOCK) ON wq.CustomerId = cust.CustomerId
@@ -85,6 +91,10 @@ BEGIN
 				LEFT JOIN [dbo].Employee sp WITH(NOLOCK) ON wq.SalesPersonId = sp.EmployeeId
 				LEFT JOIN [dbo].Employee csr WITH(NOLOCK) ON wo.CSRId = csr.EmployeeId
 				LEFT JOIN [dbo].WorkOrderQuoteDetails qd WITH(NOLOCK) ON wq.WorkOrderQuoteId = qd.WorkOrderQuoteId AND qd.IsVersionIncrease = 0
+				LEFT JOIN Dbo.Countries c WITH(NOLOCK) on wq.CountryId = c.countries_id 
+				LEFT JOIN Dbo.CustomerDomensticShipping shipToSite WITH(NOLOCK) on wq.CustomerId = shipToSite.CustomerId and shipToSite.IsPrimary=1              
+				LEFT JOIN Dbo.Address shipToAddress WITH(NOLOCK) on shipToSite.AddressId = shipToAddress.AddressId
+				LEFT JOIN Dbo.Countries shipToCountry WITH(NOLOCK) on shipToAddress.CountryId = shipToCountry.countries_id
 				WHERE wq.WorkOrderId = @workOrderId
 				  AND ISNULL(wq.IsDeleted,0) = 0
 				  AND ISNULL(wq.IsVersionIncrease,0) = 0;

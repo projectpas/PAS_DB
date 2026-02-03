@@ -4550,12 +4550,12 @@
     <Build Include="dbo\User Defined Types\LeafNodeSequenceType.sql" />
     <Build Include="dbo\Stored Procedures\usprpt_CashReceiptReportList_SSRS.sql" />
     <Build Include="dbo\Stored Procedures\usprpt_CashReceiptReportList.sql" />
+    <Build Include="dbo\Stored Procedures\usprpt_GetInventoryUnitCostAdjustmentReport_SSRS.sql" />
+    <Build Include="dbo\Stored Procedures\usprpt_GetInventoryUnitCostAdjustmentReport.sql" />
+    <Build Include="dbo\Stored Procedures\usprpt_GetInventoryQuantityAdjustmentReport_SSRS.sql" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Snapshots\PAS_DB_20220518_07-53-10.dacpac" />
     <None Include="Snapshots\PAS_DB_20220629_03-47-03.dacpac" />
-  </ItemGroup>
-  <ItemGroup>
-    <RefactorLog Include="PAS_DB.refactorlog" />
   </ItemGroup>
 </Project>

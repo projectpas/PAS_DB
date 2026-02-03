@@ -37,7 +37,8 @@
 	29	 02-DEC-2025        Ayushi Patel			Added New SingleScreen Modules
 	30	 04-Dec-2025        Divyesh Kathiriya		Handle new line "/r/n" in All Filed
 	31	 08-Dec-2025        Divyesh Kathiriya		Handle new tab "\", "\t" in All Filed
-	32	 17-DEC-2025        Nakul Chandigara  		Added New SingleScreen Modules
+	32	 17-DEC-2025        Nakul Chandigra  		Added New SingleScreen Modules
+	34	 02-Feb-2026        Nakul Chandigra  		Added New SingleScreen Modules
 exec USP_SaveCommonUploadData_ByModuleId @ModuleId=4,@UserName=N'VICTOR ADMAS',@MasterCompanyId=1, @EmployeeId = 236;
 **************************************************************/
 CREATE PROCEDURE [dbo].[USP_SaveCommonUploadData_ByModuleId]
@@ -138,6 +139,8 @@ BEGIN
 		DECLARE @WorkOrderStageModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'WorkOrderStage');
 		DECLARE @CommonTeardownTypeModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'CommonTeardownType');
 		DECLARE @LocationModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'Location');
+		DECLARE @ShelfModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'Shelf');
+		DECLARE @BinModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'Bin');
 
 		SET @EmployeeMSId = (SELECT [ManagementStructureId] FROM [DBO].[Employee] WITH(NOLOCK) WHERE [EmployeeId] = @EmployeeId);
 		SET @PublicationMSId = (SELECT [ManagementStructureId] FROM DBO.[Employee] WITH(NOLOCK) WHERE [EmployeeId] = @EmployeeId);
@@ -505,31 +508,30 @@ BEGIN
 					END
 				WHERE FieldName IN ('IsPo', 'IsRo');
 			END
-		--	DECLARE @IsDefault VARCHAR(50);
+			DECLARE @IsDefault VARCHAR(50);
+			declare @FieldModuleID bigint;
+		SELECT @IsDefault = FieldValue 	FROM #ImportFields 	WHERE FieldName = 'IsDefault';
+		SET @FieldModuleID = (select FieldValue from #ImportFields  where FieldName = 'ModuleID')
 
-		--SELECT @IsDefault = FieldValue 
-		--FROM #ImportFields 
-		--WHERE FieldName = 'IsDefault';
+			IF(@ModuleId = @DefaultMessageModule)
+			BEGIN
+			
+			    IF (LOWER(LTRIM(RTRIM(ISNULL(@IsDefault, '')))) = 'yes')
+			    BEGIN  
+			        UPDATE DefaultMessage
+			        SET IsDefault = 0
+			        WHERE IsDefault = 1
+			          AND ModuleID = @FieldModuleID
+			          AND MasterCompanyId = @MasterCompanyId;
+			    END 
 
-		--	IF(@ModuleId = @DefaultMessageModule)
-		--	BEGIN
-		--	select 'defaultmsg'
-		--	    IF (LOWER(LTRIM(RTRIM(ISNULL(@IsDefault, '')))) = 'yes')
-		--	    BEGIN  
-		--	        UPDATE DefaultMessage
-		--	        SET IsDefault = 0
-		--	        WHERE IsDefault = 1
-		--	          AND ModuleID = @ModuleId
-		--	          AND MasterCompanyId = @MasterCompanyId;
-		--	    END 
-
-		--		UPDATE #ImportFields
-		--		SET FieldValue = CASE 
-		--							WHEN LOWER(LTRIM(RTRIM(ISNULL(FieldValue, '')))) = 'yes' THEN '1'
-		--							ELSE '0'
-		--						 END
-		--		WHERE FieldName = 'IsDefault';
-		--	END
+				UPDATE #ImportFields
+				SET FieldValue = CASE 
+									WHEN LOWER(LTRIM(RTRIM(ISNULL(FieldValue, '')))) = 'yes' THEN '1'
+									ELSE '0'
+								 END
+				WHERE FieldName = 'IsDefault';
+			END
 
 			IF(@ModuleId = @EmployeeExpertiseModule)
 			BEGIN
@@ -561,19 +563,41 @@ BEGIN
 					END
 				WHERE FieldName in ( 'IsDocument', 'IsInspectorDate', 'IsInspector', 'IsDate', 'IsTechnician' )
 			END
-		 --   IF (@ModuleId = @LocationModule)
-			--BEGIN
-			--	SELECT @SiteName = FieldValue FROM #DynamicKeyValue WHERE FieldName = 'SiteId';
-			--	SELECT @WarehouseName = FieldValue FROM #DynamicKeyValue WHERE FieldName = 'WarehouseId';
-			--	SELECT @WarehouseId = WarehouseId FROM Warehouse WHERE [Name] = @WarehouseName AND SiteId = @SiteName AND MasterCompanyId = @MasterCompanyId;
-			
-			--	UPDATE #ImportFields
-			--	SET FieldValue = @WarehouseId 
-			--	WHERE FieldName = 'WarehouseId'
+		    IF (@ModuleId = @LocationModule)
+			BEGIN
+				SELECT @SiteName = FieldValue FROM #DynamicKeyValue WHERE FieldName = 'SiteId';
+				SELECT @WarehouseId = FieldValue FROM #DynamicKeyValue WHERE FieldName = 'WarehouseId';
 				
-			--	delete #ImportFields where FieldName = 'SiteId'
-			--	delete #DynamicKeyValue where FieldName = 'SiteId'
-			--END
+				UPDATE #ImportFields
+				SET FieldValue = @WarehouseId 
+				WHERE FieldName = 'WarehouseId'
+				
+				delete #ImportFields where FieldName = 'SiteId'
+				delete #DynamicKeyValue where FieldName = 'SiteId'
+
+			END
+			IF (@ModuleId = @ShelfModule)
+			BEGIN
+
+				delete #ImportFields where FieldName = 'SiteId'
+				delete #ImportFields where FieldName ='WarehouseId'
+
+				delete #DynamicKeyValue where FieldName = 'WarehouseId'
+				delete #DynamicKeyValue where FieldName = 'SiteId'
+
+			END
+			IF (@ModuleId = @BinModule)
+			BEGIN
+
+				delete #ImportFields where FieldName = 'SiteId'
+				delete #ImportFields where FieldName ='WarehouseId'
+				delete #ImportFields where FieldName = 'LocationId'
+
+				delete #DynamicKeyValue where FieldName = 'SiteId'
+				delete #DynamicKeyValue where FieldName ='WarehouseId'
+				delete #DynamicKeyValue where FieldName = 'LocationId'
+
+			END
 			SELECT @TotalRow = MAX(ImportModuleFieldMasterId), @CurrentRow = MIN(ImportModuleFieldMasterId) FROM #ImportFields;
 
 			WHILE(@TotalRow >= @CurrentRow)

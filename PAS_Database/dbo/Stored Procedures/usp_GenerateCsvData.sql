@@ -12,13 +12,14 @@
  **************************************************************
   ** Change History
  **************************************************************
- ** PR   Date         Author				Change Description
- ** --   ----------   -------				--------------------------------
-    1    11/25/2025   Vishal Suthar			Created
-	2    26/12/2025   Nakul Chandigra		changed the condition to get @SelectList and @JoinList , used IsUseJoinCondition insted of ParentTableRereneceTypeId 
+ ** PR   Date         Author			Change Description
+ ** --   --------     -------			--------------------------------
+    1    11/25/2025   Vishal Suthar		Created
+	2    26/12/2025   Nakul Chandigra   changed the condition to get @SelectList and @JoinList , used IsUseJoinCondition insted of ParentTableRereneceTypeId 
 	3    28/01/2026   Divyesh Kathiriya		Added New Module "Employee"
-	
- EXEC usp_GenerateCsvData 12, 1
+	4	 02/02/2026   Nakul Chandigra   Added New condition to get @BaseTable AND ADDED ORDER BY FieldSortOrder TO Get @JoinList 
+
+ EXEC usp_GenerateCsvData  97 , 1
 **************************************************************/
 CREATE   PROCEDURE [dbo].[usp_GenerateCsvData]
 (
@@ -34,18 +35,43 @@ BEGIN
 		DECLARE @SelectList NVARCHAR(MAX) = '';
 		DECLARE @JoinList NVARCHAR(MAX) = '';
 		DECLARE @BaseTable NVARCHAR(200);
+		DECLARE @ModuleName VARCHAR(100);
+		DECLARE @LocationModuleId BIGINT;
+		DECLARE @ShelfModuleId BIGINT;
+		DECLARE @BinModuleId BIGINT;
 		DECLARE @SQL NVARCHAR(MAX);
 		DECLARE @WhereCondition NVARCHAR(MAX);
-
 		DECLARE @EmployeeModule AS BIGINT;
 
-
+		SELECT @ModuleName = [ModuleName] FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ImportModuleId] = @ModuleId;
+		SET @LocationModuleId = (SELECT [ImportModuleId] FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName]='Location')
+		SET @ShelfModuleId = (SELECT [ImportModuleId] FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName]='Shelf')
+		SET @BinModuleId = (SELECT [ImportModuleId] FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName]='Bin')
 		SET @EmployeeModule = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'Employee');
 
+		IF OBJECT_ID('tempdb..#ColumnData') IS NOT NULL
+			DROP TABLE #ColumnData
 
-		SELECT TOP 1 @BaseTable = SourceTableName
-		FROM DBO.ImportModuleFieldMaster WITH (NOLOCK)
-		WHERE ModuleId = @ModuleId AND ParentTableRereneceTypeId = 0 AND IsActive = 1 AND IsDeleted = 0 AND  ISNULL(IsUseJoinCondition ,0)= 0 ;
+		CREATE TABLE #ColumnData
+		(
+			[IsUseJoinCondition] BIT,
+		);		
+		
+		INSERT INTO #ColumnData (IsUseJoinCondition)
+		SELECT ISNULL(IsUseJoinCondition ,0)
+		FROM [dbo].[ImportModuleFieldMaster] WITH(NOLOCK)
+		WHERE ModuleId = @ModuleId 
+		
+		IF EXISTS (SELECT 1	FROM #ColumnData WHERE IsUseJoinCondition = 0)
+		BEGIN
+			SELECT TOP 1 @BaseTable = SourceTableName
+			FROM DBO.ImportModuleFieldMaster WITH (NOLOCK)
+			WHERE ModuleId = @ModuleId AND ParentTableRereneceTypeId = 0 AND IsActive = 1 AND IsDeleted = 0 AND ISNULL(IsUseJoinCondition,0) = 0 ;
+		END
+		ELSE
+		BEGIN
+			SET @BaseTable = @ModuleName
+		END
 
 		SELECT @SelectList = STRING_AGG(
 			CASE 
@@ -66,14 +92,25 @@ BEGIN
 		) WITHIN GROUP (ORDER BY DisplaySortOrder)
 		FROM DBO.ImportModuleFieldMaster WITH (NOLOCK)
 		WHERE ModuleId = @ModuleId AND IsActive = 1 AND IsDeleted = 0;
-
-		SELECT @JoinList = STRING_AGG(JoinCondition, CHAR(10))
-		FROM (
-			SELECT DISTINCT JoinCondition
-			FROM DBO.ImportModuleFieldMaster WITH (NOLOCK)
-			WHERE ModuleId = @ModuleId AND (ISNULL(IsUseJoinCondition ,0)= 1 )  AND ISNULL(JoinCondition,'') <> ''
-		) AS J;
-
+		IF (@ModuleId = @LocationModuleId OR @ModuleId = @ShelfModuleId OR @ModuleId = @BinModuleId)
+		BEGIN
+			SELECT @JoinList = STRING_AGG(JoinCondition, CHAR(10))
+			WITHIN GROUP (ORDER BY FieldSortOrder)
+			FROM (
+				SELECT DISTINCT JoinCondition,FieldSortOrder
+				FROM DBO.ImportModuleFieldMaster WITH (NOLOCK)
+				WHERE ModuleId = @ModuleId AND (ISNULL(IsUseJoinCondition ,0) = 1) AND ISNULL(JoinCondition,'') <> ''
+			) AS J;
+		END 
+		ELSE
+		BEGIN 
+			SELECT @JoinList = STRING_AGG(JoinCondition, CHAR(10))
+			FROM (
+				SELECT DISTINCT JoinCondition
+				FROM DBO.ImportModuleFieldMaster WITH (NOLOCK)
+				WHERE ModuleId = @ModuleId AND (ISNULL(IsUseJoinCondition ,0) = 1) AND ISNULL(JoinCondition,'') <> ''
+			) AS J;
+		END 
 		IF(@ModuleId = @EmployeeModule)
 		BEGIN
 			SET @WhereCondition  = 'AND AspNetUsers.MasterCompanyId = @MasterCompanyId
@@ -98,19 +135,19 @@ BEGIN
 		END
 		ELSE
 		BEGIN
-			SET @SQL ='
-			SELECT ' + @SelectList + '
-			FROM ' + @BaseTable + ' WITH(NOLOCK)
-			' + ISNULL(@JoinList, '') + '
-			WHERE ' + @BaseTable + '.MasterCompanyId = @MasterCompanyId
-			AND ' + @BaseTable + '.IsActive = 1
-			AND ' + @BaseTable + '.IsDeleted = 0
-			ORDER BY ' + @BaseTable + '.CreatedDate DESC;';
+			SET @SQL  = '
+				SELECT ' + @SelectList + '
+				FROM ' + @BaseTable + '  WITH(NOLOCK)
+				' + ISNULL(@JoinList, '') + '
+				WHERE ' + @BaseTable + '.MasterCompanyId = @MasterCompanyId
+				AND ' + @BaseTable + '.IsActive = 1
+				AND ' + @BaseTable + '.IsDeleted = 0
+				ORDER BY ' + @BaseTable + '.CreatedDate DESC;';
+
 		END
 --------------Final SQL Query END--------------
 
-		EXEC sp_executesql @SQL, N'@MasterCompanyId INT', @MasterCompanyId;
-
+			EXEC sp_executesql @SQL, N'@MasterCompanyId INT', @MasterCompanyId;
 	END TRY
 	BEGIN CATCH
 		DECLARE @ErrorLogID INT

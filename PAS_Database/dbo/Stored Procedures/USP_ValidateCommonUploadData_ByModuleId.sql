@@ -37,10 +37,11 @@
 	27   26-Nov-2025        Ayushi Patel            Added common validation for FieldType = 'number' to allow only whole numeric values (no decimals, no alphabets), and return appropriate RecordStatus message.
 	28   26-Nov-2025        Ayushi Patel            Added condition to skip duplicate validation SP when any RecordStatus contains error.
 	29	 02-DEC-2025        Ayushi Patel			Added New SingleScreen Modules
-	30	 17-DEC-2025        Nakul Chandigara  		Added New SingleScreen Modules
-	31	 18-DEC-2025        Nakul Chandigara  		Added New SingleScreen Modules
+	30	 17-DEC-2025        Nakul Chandigra  		Added New SingleScreen Modules
+	31	 18-DEC-2025        Nakul Chandigra  		Added New SingleScreen Modules
 	32   22-Dec-2025		Divyesh Kathiriya  		Added validation for Site,Warehouse,Location,Shelf,Bin
 	33   13-Jan-2026		Divyesh Kathiriya  		Added validation for "ItemMaster" of Dropdown value.
+	34	 02-Feb-2026        Nakul Chandigra  		Added New SingleScreen Modules
 
 declare @p4 dbo.UploadModuleDataTableType
 insert into @p4 values(4,N'VICTOR ADMAS',1,N'{
@@ -105,7 +106,7 @@ BEGIN
 		DECLARE @AlterModule AS BIGINT, @GLModule AS BIGINT, @ItemMasterModule AS BIGINT, @CustomerModule AS BIGINT,@StocklineModule AS BIGINT, @EmployeeModule AS BIGINT, @DiscountModule AS BIGINT;
 		DECLARE @DefaultMessageModule AS BIGINT, @CertificationTypeModule AS BIGINT, @LeadSource AS BIGINT, @UnitOfMeasureModule AS BIGINT, @AssetAcquisitionTypeModule AS BIGINT, @DocumentTypeModule AS BIGINT , @ShippingViaModule AS BIGINT;
 		DECLARE @AssetAttributeType AS BIGINT
-
+	
 		DECLARE @POROCategory AS BIGINT , @CapabilityTypeModule AS BIGINT , @VendorClassificationModule AS BIGINT , @chargeModule AS BIGINT;;
 		DECLARE @PriceMasterModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'PriceMaster');
 		DECLARE @PurchaseSalesModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'PurchaseSales');
@@ -207,7 +208,9 @@ BEGIN
 		DECLARE @EvidenceModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'Evidence');
 		DECLARE @LocationModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'Location');
 		DECLARE @PublicationTypeModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'PublicationType');
-		
+		DECLARE @ShelfModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'Shelf');
+		DECLARE @BinModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'Bin');
+
 		DECLARE @DropdownListTable VARCHAR(100) = NULL, 
 		@DropdownListId VARCHAR(100) = NULL, 
 		@DropdownListValue VARCHAR(100) = NULL, 
@@ -324,9 +327,8 @@ BEGIN
 			FROM [DBO].[ImportModuleFieldMaster] IMF WITH(NOLOCK)
 			LEFT JOIN #DynamicKeyValue TMP ON TMP.FieldName = IMF.FieldName
 			WHERE IMF.[ModuleId] = @ModuleId
-			
 			--ORDER BY IMF.DisplaySortOrder ASC
-			--SELECT * FROM #ImportFields ----R
+			--SELECT * FROM #ImportFields 
 			SELECT @TotalRow = MAX(ImportModuleFieldMasterId), @CurrentRow = MIN(ImportModuleFieldMasterId) FROM #ImportFields;
 			
 			WHILE(@TotalRow >= @CurrentRow)
@@ -613,15 +615,14 @@ BEGIN
 					SET @BinError = 0
 				END	
 			END			
-			
 			UPDATE TMP
 			SET TMP.[RecordStatus] =	CASE	WHEN ISNULL(IMF.IsRequired, 0) = 1 AND ISNULL(TMP.FieldValue, '') = '' THEN IMF.HeaderName + ' is Required'
 												WHEN ISNULL(IMF.IsRequired, 0) = 1 AND ISNULL(IMF.DropdownListType, '') != ''  AND ISNULL(IMF.FieldValue, '') = '' THEN IMF.HeaderName + ' is Required'
 												WHEN (@ModuleId = @ItemMasterModule) AND ISNULL(IMF.IsRequired, 0) = 0 AND ISNULL(IMF.DropdownListType, '') != '' AND ISNULL(IMF.FieldValue, '') = '' THEN ''
 												WHEN (@ModuleId = @ItemMasterModule)
 												THEN LTRIM(RTRIM(
-															CASE
-																WHEN ISNULL(IMF.DropdownListType, '') != ''  AND ISNULL(IMF.DropdownListValueId, '') = '' 
+															CASE 
+															WHEN ISNULL(IMF.DropdownListType, '') != ''  AND ISNULL(IMF.DropdownListValueId, '') = '' 
 																THEN 'Please Enter Correct  ' + IMF.HeaderName
 																ELSE ''
 															END
@@ -816,19 +817,6 @@ BEGIN
 				SET @CurrentRow += 1;
 			END
 
-			--IF(@ModuleId = @LocationModule)
-			--BEGIN 
-			--	DECLARE @WarehouseId BIGINT
-			--	SELECT @SiteName = FieldValue FROM #DynamicKeyValue WHERE FieldName = 'SiteId';
-			--	SELECT @WarehouseName = FieldValue FROM #DynamicKeyValue WHERE FieldName = 'WarehouseId';
-			--	SELECT @siteId = siteId FROM [Site] WHERE [Name] = @SiteName AND MasterCompanyId = @MasterCompanyId;
-			--	SELECT @WarehouseId = WarehouseId FROM Warehouse WHERE @WarehouseName = [Name] AND MasterCompanyId = @MasterCompanyId;
-
-			--	UPDATE #ImportFields
-			--	SET FieldValue = @WarehouseId 
-			--	WHERE FieldName = 'WarehouseId'
-			--END 
-
 			SELECT @TotalRow = MAX(ImportModuleFieldMasterId), @CurrentRow = MIN(ImportModuleFieldMasterId) FROM #ImportFields;
 			WHILE(@TotalRow >= @CurrentRow)
 			BEGIN
@@ -858,7 +846,6 @@ BEGIN
 							EXEC [dbo].[USP_ChekDuplicateValueForUpload] @ChekDuplticateRef1, @ChekDuplticateRef2, @DuplicateRefeValue1, @DuplicateRefeValue2, @ReferenceTable, @MasterCompanyId, @ModuleId, @UploadData, @UploadRecord, @IsDuplicate = @IsDuplicate OUTPUT;
 						END
 					END
-			
 					IF(ISNULL(@IsDuplicate, 0) = 1)
 					BEGIN
 						UPDATE #ImportFields 
@@ -990,7 +977,7 @@ BEGIN
 														WHEN @ModuleId = @AssetAttributeTypeModule THEN 'Entered Name Already Exits!'
 														WHEN @ModuleId = @SiteModule THEN 'Entered Name Already Exits!'
 														WHEN @ModuleId = @WarehouseModule THEN 'Entered Name Already Exits!'
-														WHEN @ModuleId = @LocationModule THEN 'Entered Name Already Exits!'
+														--WHEN @ModuleId = @LocationModule THEN 'Entered Name Already Exits!'
 														WHEN @ModuleId = @FindingModule AND @ChekDuplticateRef1 = 'FindingCode'
 															THEN 'Entered Code Already Exists!'
 														WHEN @ModuleId = @FindingModule AND @ChekDuplticateRef1 = 'Description'
@@ -1067,14 +1054,16 @@ BEGIN
 															THEN 'Entered Reason Already Exists!'
 														WHEN @ModuleId = @EvidenceModule AND @ChekDuplticateRef1 = 'EvidenceName'  
 															THEN 'Entered Evidence Already Exists!'
-														--WHEN @ModuleId = @LocationModule    
-														--	THEN 'Entered Location Name And Warehouse Already Exists!'
+														WHEN @ModuleId = @LocationModule 
+															THEN 'Entered Location Name Already Exists In This Warehouse !'
 														WHEN @ModuleId = @PublicationTypeModule AND @ChekDuplticateRef1 = 'Name'  
 															THEN 'Entered Pub Name Already Exists!'
 														WHEN @ModuleId = @PublicationTypeModule AND @ChekDuplticateRef1 = 'Description'  
 															THEN 'Entered Description Already Exists!'
-
-		
+														WHEN @ModuleId = @ShelfModule 
+															THEN 'Entered Shelf Name Already Exists In This Location !'
+														WHEN @ModuleId = @BinModule 
+															THEN 'Entered Bin Name Already Exists In This Shelf !'
 														ELSE '' END
 						WHERE ImportModuleFieldMasterId = @CurrentRow;
 					END

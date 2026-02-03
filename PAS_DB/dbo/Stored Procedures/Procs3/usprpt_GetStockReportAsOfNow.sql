@@ -21,7 +21,7 @@
 	5    05-05-2025     VISHAL SUTHAR		Added one more parameter for (excluded locations)
 	6	 23-09-2025		Moin Bloch		    Added more fields
 	7	 28-11-2025		Devendra Shekh		Modified: managed '0' value for @id2
-     
+  	8	 02-02-2026		RAJESH GAMI			Modified: [Traceableto] modify size  
 exec usprpt_GetStockReportAsOfNow 
 @mastercompanyid=11, 
 @id=N'2025-09-25',
@@ -153,7 +153,7 @@ BEGIN
 		[ROExtCost] DECIMAL(18, 2) NULL,
 		[ObtainedFrom] VARCHAR(100) NULL,
 		[Owner] VARCHAR(50) NULL,
-		[Traceableto] VARCHAR(50) NULL,
+		[Traceableto] VARCHAR(MAX) NULL,
 		[Mfg] VARCHAR(50) NULL,
 		[UnitCost] DECIMAL(18, 2) NULL,
 		[UnitPrice] DECIMAL(18, 2) NULL,

@@ -1,5 +1,4 @@
-﻿
-/*************************************************************                   
+﻿/*************************************************************                   
  ** File:  [usprpt_GetAPAgingReport]                   
  ** Author: Rajesh Gami         
  ** Description: Get Data for AP Aging Report        
@@ -25,13 +24,17 @@
 	8    07-NOV-2023    Devendra Shekh     issure for 0 balance data resolved
 	9    09-NOV-2023    Moin Bloch         Modify(Issue Resolved Credit Memo Export Data)
 	10   15-NOV-2023    Moin Bloch         Modify(Added Invoice Paid Amount For Calculaton)
-	11   27-JAN-2026    RAJESH GAMI        Add InvoiceNumber 
+	11   27-JAN-2026    RAJESH GAMI        Add InvoiceNumber
+	12   03-FEB-2026    Amit Ghediya       Add filter & shorting (PN-15332)
+	 
 ***************************************************************************************************/        
 CREATE   PROCEDURE [dbo].[usprpt_GetAPAgingReport]       
 @PageNumber int = 1,      
 @PageSize int = NULL,      
 @mastercompanyid int,      
-@xmlFilter XML   
+@xmlFilter XML,
+@SortColumn VARCHAR(50)=NULL,
+@SortOrder INT = NULL
 AS        
 BEGIN        
   SET NOCOUNT ON;        
@@ -50,7 +53,23 @@ BEGIN
   @Level8 VARCHAR(MAX) = NULL,      
   @Level9 VARCHAR(MAX) = NULL,      
   @Level10 VARCHAR(MAX) = NULL,      
-  @IsDownload BIT = NULL            
+  @IsDownload BIT = NULL,
+  @VendorName VARCHAR(MAX) = NULL,
+  @VendorCode VARCHAR(MAX) = NULL,
+  @InvoiceAmount VARCHAR(MAX) = NULL,
+
+  @BalanceAmount VARCHAR(MAX) = NULL,
+  @Amountpaidbylessthen0days VARCHAR(MAX) = NULL,
+  @Amountpaidby30days VARCHAR(MAX) = NULL,
+  @Amountpaidby60days VARCHAR(MAX) = NULL,
+  @Amountpaidby90days VARCHAR(MAX) = NULL,
+  @Amountpaidby120days VARCHAR(MAX) = NULL,
+  @Amountpaidbymorethan120days VARCHAR(MAX) = NULL,
+  @DaysPastDue VARCHAR(MAX) = NULL,
+  @InvoiceDate datetime = NULL,
+  @InvoiceNo VARCHAR(MAX) = NULL,
+  @Terms VARCHAR(MAX) = NULL,
+  @DueDate datetime = NULL
         
   BEGIN TRY        
     --BEGIN TRANSACTION        
@@ -103,7 +122,39 @@ BEGIN
 	  @level9=CASE WHEN filterby.value('(FieldName/text())[1]','VARCHAR(100)')='Level9'       
 	  THEN filterby.value('(FieldValue/text())[1]','VARCHAR(100)') ELSE @level9 END,      
 	  @level10=CASE WHEN filterby.value('(FieldName/text())[1]','VARCHAR(100)')='Level10'       
-	  THEN filterby.value('(FieldValue/text())[1]','VARCHAR(100)') ELSE @level10 END      
+	  THEN filterby.value('(FieldValue/text())[1]','VARCHAR(100)') ELSE @level10 END,
+	  
+	  @VendorName=case when filterby.value('(FieldName/text())[1]','VARCHAR(100)')='vendorName' 
+		then filterby.value('(FieldValue/text())[1]','VARCHAR(100)') else @VendorName end,
+	  @VendorCode=case when filterby.value('(FieldName/text())[1]','VARCHAR(100)')='vendorCode' 
+		then filterby.value('(FieldValue/text())[1]','VARCHAR(100)') else @VendorCode end,
+	  @InvoiceAmount=case when filterby.value('(FieldName/text())[1]','VARCHAR(100)')='invoiceAmount' 
+		then filterby.value('(FieldValue/text())[1]','VARCHAR(100)') else @InvoiceAmount end,
+	 @BalanceAmount=case when filterby.value('(FieldName/text())[1]','VARCHAR(100)')='balanceAmount' 
+		then filterby.value('(FieldValue/text())[1]','VARCHAR(100)') else @BalanceAmount end,
+		@Amountpaidbylessthen0days=case when filterby.value('(FieldName/text())[1]','VARCHAR(100)')='amountpaidbylessthen0days' 
+		then filterby.value('(FieldValue/text())[1]','VARCHAR(100)') else @Amountpaidbylessthen0days end,
+		@Amountpaidby30days=case when filterby.value('(FieldName/text())[1]','VARCHAR(100)')='amountpaidby30days' 
+		then filterby.value('(FieldValue/text())[1]','VARCHAR(100)') else @Amountpaidby30days end,
+		@Amountpaidby60days=case when filterby.value('(FieldName/text())[1]','VARCHAR(100)')='amountpaidby60days' 
+		then filterby.value('(FieldValue/text())[1]','VARCHAR(100)') else @Amountpaidby60days end,
+		@Amountpaidby90days=case when filterby.value('(FieldName/text())[1]','VARCHAR(100)')='amountpaidby90days' 
+		then filterby.value('(FieldValue/text())[1]','VARCHAR(100)') else @Amountpaidby90days end,
+		@Amountpaidby120days=case when filterby.value('(FieldName/text())[1]','VARCHAR(100)')='amountpaidby120days' 
+		then filterby.value('(FieldValue/text())[1]','VARCHAR(100)') else @Amountpaidby120days end,
+		@Amountpaidbymorethan120days=case when filterby.value('(FieldName/text())[1]','VARCHAR(100)')='amountpaidbymorethan120days' 
+		then filterby.value('(FieldValue/text())[1]','VARCHAR(100)') else @Amountpaidbymorethan120days end,
+		@DaysPastDue=case when filterby.value('(FieldName/text())[1]','VARCHAR(100)')='daysPastDue' 
+		then filterby.value('(FieldValue/text())[1]','VARCHAR(100)') else @DaysPastDue end,
+		@InvoiceDate=case when filterby.value('(FieldName/text())[1]','VARCHAR(100)')='invoiceDate' 
+		then filterby.value('(FieldValue/text())[1]','VARCHAR(100)') else @InvoiceDate end,
+		@InvoiceNo =case when filterby.value('(FieldName/text())[1]','VARCHAR(100)')='invoiceNo' 
+		then filterby.value('(FieldValue/text())[1]','VARCHAR(100)') else @InvoiceNo end,
+		@Terms =case when filterby.value('(FieldName/text())[1]','VARCHAR(100)')='terms' 
+		then filterby.value('(FieldValue/text())[1]','VARCHAR(100)') else @Terms end,
+		@DueDate =case when filterby.value('(FieldName/text())[1]','VARCHAR(100)')='dueDate' 
+		then filterby.value('(FieldValue/text())[1]','VARCHAR(100)') else @DueDate end
+
    FROM      
     @xmlFilter.nodes('/ArrayOfFilter/Filter')AS TEMPTABLE(filterby)    
 		      
@@ -261,8 +312,8 @@ BEGIN
                     ISNULL(vpd.OriginalAmount,0) AS 'BalanceAmount',      
                     ISNULL(vpd.RemainingAmount,0)  AS 'CurrentlAmount',      
                     ISNULL(vpd.PaymentMade,0)  AS 'PaymentAmount',      
-                    (rrh.ReceivingReconciliationNumber) AS 'InvoiceNo',      
-					rrh.InvoiceNum as 'invoiceNumber',
+                    (rrh.ReceivingReconciliationNumber) AS 'InvoiceNo',
+					rrh.InvoiceNum as 'invoiceNumber',      
                     rrh.InvoiceDate AS InvoiceDate,      
                     ISNULL(ctm.NetDays,0) AS NetDays, 
 					(CASE WHEN DATEDIFF(DAY, CAST(CAST(rrh.InvoiceDate AS DATETIME) + (CASE WHEN ctm.Code = 'COD' THEN -1
@@ -349,7 +400,7 @@ BEGIN
 					ISNULL(VCD.OriginalAmt,0) AS 'BalanceAmount', 
 					ISNULL(VCD.OriginalAmt,0)  AS 'CurrentlAmount',   
 					ISNULL(VCD.OriginalAmt,0)  AS 'PaymentAmount',  
-					(VCM.VendorCreditMemoNumber) AS 'InvoiceNo', 		
+					(VCM.VendorCreditMemoNumber) AS 'InvoiceNo',
 					'' as 'invoiceNumber',
 					 VCM.CreatedDate AS InvoiceDate,      
                     ISNULL(CTM.NetDays,0) AS NetDays,  
@@ -435,7 +486,7 @@ BEGIN
 					 0 AS 'BalanceAmount',       -- need to discuss
 					 0 AS 'CurrentlAmount',      -- need to discuss
 			         0 AS 'PaymentAmount',      
-					 UPPER(MJH.JournalNumber) AS 'InvoiceNo',  
+					 UPPER(MJH.JournalNumber) AS 'InvoiceNo',
 					 '' as 'invoiceNumber',
 					 MJH.[PostedDate] AS InvoiceDate,      
 			         ISNULL(CTM.NetDays,0) AS NetDays,
@@ -547,7 +598,7 @@ BEGIN
                     ISNULL(vpd.OriginalAmount,0) AS 'BalanceAmount',      
                     ISNULL(vpd.RemainingAmount,0)  AS 'CurrentlAmount',      
                     ISNULL(vpd.PaymentMade,0)  AS 'PaymentAmount',      
-                    (NPH.NPONumber) AS 'InvoiceNo',      
+                    (NPH.NPONumber) AS 'InvoiceNo', 
 					NPH.InvoiceNumber as 'invoiceNumber',
                     NPH.PostedDate AS InvoiceDate,      
                     ISNULL(ctm.NetDays,0) AS NetDays, 
@@ -631,7 +682,9 @@ BEGIN
     SELECT DISTINCT       
         (CTE.VendorId) AS VendorId ,      
         ((ISNULL(CTE.vendorName,''))) 'vendorName' ,      
-        ((ISNULL(CTE.vendorCode,''))) 'vendorCode' ,      
+        ((ISNULL(CTE.vendorCode,''))) 'vendorCode' ,  
+		CTE.invoiceNumber AS 'invoiceNumber',
+		0 AS 'daysPastDue',
 		--(ISNULL(CTE.InvoiceAmount,0) - ISNULL(CTE.InvoicePaidAmount,0)) AS 'BalanceAmount',
 	    --ISNULL(CASE WHEN CTE.Amountpaidbylessthen0days > 0 THEN CTE.Amountpaidbylessthen0days ELSE CTE.Amountpaidbylessthen0days END,0) AS 'Amountpaidbylessthen0days',   											
 	    --ISNULL(CASE WHEN CTE.Amountpaidby30days > 0 THEN CTE.Amountpaidby30days ELSE (CTE.Amountpaidby30days) END,0) AS 'Amountpaidby30days',                            					  
@@ -674,6 +727,16 @@ BEGIN
 	  --LEFT JOIN dbo.VendorCreditMemo vcm WITH (NOLOCK) ON CTE.VendorId = ISNULL(vcm.VendorRMAId,vcm.VendorId)    
 	  --LEFT JOIN dbo.VendorCreditMemoDetail crm WITH (NOLOCK) ON vcm.VendorCreditMemoId = crm.VendorCreditMemoId
       WHERE V.MasterCompanyId = @MasterCompanyId 
+	  and (ISNULL(@VendorName,'') ='' OR CTE.vendorName LIKE '%' + @VendorName + '%')
+			AND (ISNULL(@VendorCode,'') ='' OR CTE.vendorCode LIKE '%' + @VendorCode + '%')
+			AND (ISNULL(@InvoiceAmount,'') ='' OR CTE.InvoiceAmount LIKE '%' + @InvoiceAmount + '%')		    
+			AND (ISNULL(@BalanceAmount,'') ='' OR BalanceAmount LIKE '%' + @BalanceAmount + '%')
+			AND (ISNULL(@Amountpaidbylessthen0days,'') ='' OR Amountpaidbylessthen0days LIKE '%' + @Amountpaidbylessthen0days + '%')
+			AND (ISNULL(@Amountpaidby30days,'') ='' OR Amountpaidby30days LIKE '%' + @Amountpaidby30days + '%')
+			AND (ISNULL(@Amountpaidby60days,'') ='' OR Amountpaidby60days LIKE '%' + @Amountpaidby60days + '%')
+			AND (ISNULL(@Amountpaidby90days,'') ='' OR Amountpaidby90days LIKE '%' + @Amountpaidby90days + '%')
+			AND (ISNULL(@Amountpaidby120days,'') ='' OR Amountpaidby120days LIKE '%' + @Amountpaidby120days + '%')
+			AND (ISNULL(@Amountpaidbymorethan120days,'') ='' OR Amountpaidbymorethan120days LIKE '%' + @Amountpaidbymorethan120days + '%')
       
    ) , ResultCount AS(SELECT COUNT(VendorId) AS totalItems FROM Result)      
    ,WithTotal (MastercompanyId, 
@@ -695,11 +758,14 @@ BEGIN
 				SUM(Amountpaidby120days) TotalAmountpaidby120days,
 				SUM(Amountpaidbymorethan120days) TotalAmountpaidbymorethan120days,
 				SUM(cmAmount) cmAmount
-		   FROM Result GROUP BY MastercompanyId)
+		   FROM Result 
+		   GROUP BY MastercompanyId)
 
    SELECT	VendorId, 
             vendorName, 
 		    vendorCode, 
+			invoiceNumber,
+			daysPastDue,
 			SUM(InvoiceAmount) AS InvoiceAmount, 
 			SUM(BalanceAmount) AS BalanceAmount, 
 			SUM(Amountpaidbylessthen0days) AS Amountpaidbylessthen0days, 
@@ -721,7 +787,7 @@ BEGIN
 			
    INTO #TempResult1 FROM  Result FC
    INNER JOIN WithTotal WC ON FC.MastercompanyId = WC.MastercompanyId
-   GROUP BY VendorId,vendorName,vendorCode,level1, level2, level3, level4, level5, level6, level7, level8, level9, level10
+   GROUP BY VendorId,vendorName,vendorCode,invoiceNumber,daysPastDue,level1, level2, level3, level4, level5, level6, level7, level8, level9, level10
             ,TotalInvoiceAmount,TotalBalanceAmount,TotalAmountpaidbylessthen0days,TotalAmountpaidby30days, TotalAmountpaidby60days,
 			TotalAmountpaidby90days, TotalAmountpaidby120days, TotalAmountpaidbymorethan120days,WC.cmAmount
       
@@ -730,7 +796,9 @@ BEGIN
     SELECT @Count AS TotalRecordsCount,
 	VendorId, 
 	vendorName, 
-	vendorCode, 
+	vendorCode,
+	invoiceNumber,
+	daysPastDue,
 	FORMAT(ISNULL(InvoiceAmount,0), 'N', 'en-us') AS 'InvoiceAmount',
 	FORMAT(ISNULL(BalanceAmount,0), 'N', 'en-us') AS 'BalanceAmount',	
 	FORMAT(ISNULL(Amountpaidbylessthen0days,0), 'N', 'en-us') AS 'Amountpaidbylessthen0days',
@@ -745,11 +813,32 @@ BEGIN
 	--TotalCurrentlAmount, 
 	TotalAmountpaidbylessthen0days, 
 	TotalAmountpaidby30days, TotalAmountpaidby60days, TotalAmountpaidby90days, TotalAmountpaidby120days, TotalAmountpaidbymorethan120days,cmAmount
-	FROM #TempResult1      
+	FROM #TempResult1   
 
-    ORDER BY CASE WHEN ISNULL(@IsDownload,0) = 0 THEN 1 ELSE 1       
+    --ORDER BY CASE WHEN ISNULL(@IsDownload,0) = 0 THEN 1 ELSE 1       
         
-    END      
+    --END      
+	ORDER BY  					 
+			CASE WHEN (@SortOrder=1  AND @SortColumn='vendorName') THEN vendorName END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='vendorName') THEN vendorName END DESC,
+			CASE WHEN (@SortOrder=1  AND @SortColumn='vendorCode') THEN vendorCode END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='vendorCode') THEN vendorCode END DESC,
+			CASE WHEN (@SortOrder=1  AND @SortColumn='InvoiceAmount') THEN InvoiceAmount END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='InvoiceAmount') THEN InvoiceAmount END DESC,
+			CASE WHEN (@SortOrder=1  AND @SortColumn='BalanceAmount') THEN BalanceAmount END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='BalanceAmount') THEN BalanceAmount END DESC,
+			CASE WHEN (@SortOrder=1  AND @SortColumn='Amountpaidbylessthen0days') THEN Amountpaidbylessthen0days END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='Amountpaidbylessthen0days') THEN Amountpaidbylessthen0days END DESC,
+			CASE WHEN (@SortOrder=1  AND @SortColumn='Amountpaidby30days') THEN Amountpaidby30days END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='Amountpaidby30days') THEN Amountpaidby30days END DESC,
+			CASE WHEN (@SortOrder=1  AND @SortColumn='Amountpaidby60days') THEN Amountpaidby60days END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='Amountpaidby60days') THEN Amountpaidby60days END DESC,
+			CASE WHEN (@SortOrder=1  AND @SortColumn='Amountpaidby90days') THEN Amountpaidby90days END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='Amountpaidby90days') THEN Amountpaidby90days END DESC,
+			CASE WHEN (@SortOrder=1  AND @SortColumn='Amountpaidby120days') THEN Amountpaidby120days END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='Amountpaidby120days') THEN Amountpaidby120days END DESC,
+			CASE WHEN (@SortOrder=1  AND @SortColumn='Amountpaidbymorethan120days') THEN Amountpaidbymorethan120days END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='Amountpaidbymorethan120days') THEN Amountpaidbymorethan120days END DESC
         
 	OFFSET((@PageNumber-1) * @pageSize) ROWS FETCH NEXT @pageSize ROWS ONLY;
   
@@ -767,7 +856,7 @@ BEGIN
                     ISNULL(vpd.RemainingAmount,0)  AS 'CurrentlAmount',      
                     ISNULL(vpd.PaymentMade,0)  AS 'PaymentAmount',      
                     (rrh.ReceivingReconciliationNumber) AS 'InvoiceNo',    
-					rrh.InvoiceNum as 'invoiceNumber',
+					rrh.InvoiceNum as 'invoiceNumber',      
                     rrh.InvoiceDate AS InvoiceDate,      
                     ISNULL(ctm.NetDays,0) AS NetDays,      						
 					(CASE WHEN DATEDIFF(DAY, CAST(CAST(rrh.InvoiceDate AS DATETIME) + (CASE WHEN ctm.Code = 'COD' THEN -1
@@ -854,8 +943,8 @@ BEGIN
 					ISNULL(VCD.OriginalAmt,0) AS 'BalanceAmount', 
 					ISNULL(VCD.OriginalAmt,0)  AS 'CurrentlAmount',   
 					ISNULL(VCD.OriginalAmt,0)  AS 'PaymentAmount',  
-					(VCM.VendorCreditMemoNumber) AS 'InvoiceNo', 	
-					 '' as 'invoiceNumber',
+					(VCM.VendorCreditMemoNumber) AS 'InvoiceNo', 
+					'' as 'invoiceNumber',
 					 VCM.CreatedDate AS InvoiceDate,      
                     ISNULL(CTM.NetDays,0) AS NetDays,  
 					(CASE WHEN DATEDIFF(DAY, CAST(CAST(VCM.CreatedDate AS DATETIME) + (CASE WHEN CTM.Code = 'COD' THEN -1
@@ -941,7 +1030,7 @@ BEGIN
 					 0 AS 'CurrentlAmount',      -- need to discuss
 			         0 AS 'PaymentAmount',      
 					 UPPER(MJH.JournalNumber) AS 'InvoiceNo',  
-					  '' as 'invoiceNumber',
+					 '' as 'invoiceNumber',
 					 MJH.[PostedDate] AS InvoiceDate,      
 			         ISNULL(CTM.NetDays,0) AS NetDays,
 			   (CASE WHEN DATEDIFF(DAY, CAST(CAST(MJH.[PostedDate] AS DATETIME) + (CASE WHEN ctm.Code = 'COD' THEN -1      
@@ -1052,7 +1141,7 @@ BEGIN
 						ISNULL(vpd.OriginalAmount,0) AS 'BalanceAmount',      
 						ISNULL(vpd.RemainingAmount,0)  AS 'CurrentlAmount',      
 						ISNULL(vpd.PaymentMade,0)  AS 'PaymentAmount',      
-						(NPH.NPONumber) AS 'InvoiceNo',   
+						(NPH.NPONumber) AS 'InvoiceNo', 
 						NPH.InvoiceNumber as 'invoiceNumber',
 						NPH.PostedDate AS InvoiceDate,      
 						ISNULL(ctm.NetDays,0) AS NetDays,      						
@@ -1139,8 +1228,9 @@ BEGIN
                    ISNULL(CTE.vendorCode,'') 'vendorCode',
 				   UPPER(CTE.currencyCode) AS  'currencyCode',   
    		   		   CASE WHEN CTE.IsCreditMemo = 0 THEN (ISNULL(CTE.InvoiceAmount,0) - ISNULL(CTE.InvoicePaidAmount,0)) ELSE ISNULL(CTE.CreditMemoAmount,0) END AS 'BalanceAmount', 
-				   UPPER(CTE.InvoiceNo) AS 'InvoiceNo', 
+				   UPPER(CTE.InvoiceNo) AS 'InvoiceNo',   
 				   UPPER(ISNULL(CTE.invoiceNumber,'')) as invoiceNumber,
+				   0 AS 'daysPastDue',
 				   CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(CTE.InvoiceDate, 'MM/dd/yyyy') ELSE CONVERT(VARCHAR(50), CTE.InvoiceDate, 107) END 'InvoiceDate',       				  				   
 				   CASE WHEN CTE.IsCreditMemo = 0 THEN ISNULL(CASE WHEN CTE.Amountpaidbylessthen0days > 0 THEN CTE.Amountpaidbylessthen0days ELSE CTE.Amountpaidbylessthen0days END,0) ELSE ISNULL(CASE WHEN CTE.Amountpaidbylessthen0days > 0 THEN ISNULL(CTE.CreditMemoAmount,0) ELSE (CTE.Amountpaidbylessthen0days) END,0) END AS 'Amountpaidbylessthen0days',   							
 				  
@@ -1177,7 +1267,21 @@ BEGIN
 				   CTE.MasterCompanyId						 	   
 			FROM CTE AS CTE WITH (NOLOCK)   			
 			INNER JOIN dbo.Vendor AS V WITH (NOLOCK) ON V.VendorId = CTE.VendorId    	  
-			WHERE V.MasterCompanyId = @MasterCompanyId       
+			WHERE V.MasterCompanyId = @MasterCompanyId    
+			AND (ISNULL(@VendorName,'') ='' OR CTE.vendorName LIKE '%' + @VendorName + '%')
+			AND (ISNULL(@VendorCode,'') ='' OR CTE.vendorCode LIKE '%' + @VendorCode + '%')
+			AND (ISNULL(@InvoiceAmount,'') ='' OR CTE.InvoiceAmount LIKE '%' + @InvoiceAmount + '%')
+			AND (ISNULL(@BalanceAmount,'') ='' OR BalanceAmount LIKE '%' + @BalanceAmount + '%')
+			AND (ISNULL(@InvoiceNo,'') ='' OR InvoiceNo LIKE '%' + @InvoiceNo + '%')
+			AND (ISNULL(@InvoiceDate, '') = '' OR CAST(InvoiceDate AS Date) = CAST(@InvoiceDate AS date))
+			AND (ISNULL(@Terms,'') ='' OR CTE.Terms LIKE '%' + @Terms + '%')
+			AND (ISNULL(@DueDate, '') = '' OR CAST(dueDate AS Date) = CAST(@DueDate AS date))
+			AND (ISNULL(@Amountpaidbylessthen0days,'') ='' OR Amountpaidbylessthen0days LIKE '%' + @Amountpaidbylessthen0days + '%')
+			AND (ISNULL(@Amountpaidby30days,'') ='' OR Amountpaidby30days LIKE '%' + @Amountpaidby30days + '%')
+			AND (ISNULL(@Amountpaidby60days,'') ='' OR Amountpaidby60days LIKE '%' + @Amountpaidby60days + '%')
+			AND (ISNULL(@Amountpaidby90days,'') ='' OR Amountpaidby90days LIKE '%' + @Amountpaidby90days + '%')
+			AND (ISNULL(@Amountpaidby120days,'') ='' OR Amountpaidby120days LIKE '%' + @Amountpaidby120days + '%')
+			AND (ISNULL(@Amountpaidbymorethan120days,'') ='' OR Amountpaidbymorethan120days LIKE '%' + @Amountpaidbymorethan120days + '%')
 		),
 		ResultCount AS (SELECT COUNT(VendorId) AS totalItems FROM Result)  
 
@@ -1192,6 +1296,7 @@ BEGIN
 				FORMAT(SUM(Amountpaidby120days), 'N', 'en-us') TotalAmountpaidby120days,
 				FORMAT(SUM(Amountpaidbymorethan120days), 'N', 'en-us') TotalAmountpaidbymorethan120days				
 				FROM Result
+		
 				GROUP BY MastercompanyId)
 
 		  SELECT VendorId, 
@@ -1199,6 +1304,7 @@ BEGIN
 		         vendorCode, 
 				 InvoiceNo,
 				 invoiceNumber,
+				 daysPastDue,
 				 InvoiceDate,
 				 InvoiceAmount,
 				 BalanceAmount,				
@@ -1230,8 +1336,9 @@ BEGIN
 		  SELECT @Count AS TotalRecordsCount,
 		         vendorName, 
 		         vendorCode, 
-				 InvoiceNo,
 				 invoiceNumber,
+				 daysPastDue,
+				 InvoiceNo,
 				 InvoiceDate,
    	             FORMAT(ISNULL(InvoiceAmount,0), 'N', 'en-us') AS 'InvoiceAmount',
 	             FORMAT(ISNULL(BalanceAmount,0), 'N', 'en-us') AS 'BalanceAmount',	
@@ -1255,10 +1362,53 @@ BEGIN
 				 TotalAmountpaidby90days, 
 				 TotalAmountpaidby120days, 
 				 TotalAmountpaidbymorethan120days
-			FROM #TempResult2      
-
-			ORDER BY CASE WHEN ISNULL(@IsDownload,0) = 0 THEN InvoiceDate ELSE InvoiceDate  
-		END
+			FROM #TempResult2     
+			--WHERE
+			--(ISNULL(@VendorName,'') ='' OR vendorName LIKE '%' + @VendorName + '%')
+			--AND (ISNULL(@VendorCode,'') ='' OR vendorCode LIKE '%' + @VendorCode + '%')
+			--AND (ISNULL(@InvoiceAmount,'') ='' OR InvoiceAmount LIKE '%' + @InvoiceAmount + '%')
+			--AND (ISNULL(@BalanceAmount,'') ='' OR BalanceAmount LIKE '%' + @BalanceAmount + '%')
+			--AND (ISNULL(@Amountpaidbylessthen0days,'') ='' OR Amountpaidbylessthen0days LIKE '%' + @Amountpaidbylessthen0days + '%')
+			--AND (ISNULL(@Amountpaidby30days,'') ='' OR Amountpaidby30days LIKE '%' + @Amountpaidby30days + '%')
+			--AND (ISNULL(@Amountpaidby60days,'') ='' OR Amountpaidby60days LIKE '%' + @Amountpaidby60days + '%')
+			--AND (ISNULL(@Amountpaidby90days,'') ='' OR Amountpaidby90days LIKE '%' + @Amountpaidby90days + '%')
+			--AND (ISNULL(@Amountpaidby120days,'') ='' OR Amountpaidby120days LIKE '%' + @Amountpaidby120days + '%')
+			--AND (ISNULL(@Amountpaidbymorethan120days,'') ='' OR Amountpaidbymorethan120days LIKE '%' + @Amountpaidbymorethan120days + '%')
+		--	ORDER BY CASE WHEN ISNULL(@IsDownload,0) = 0 THEN InvoiceDate ELSE InvoiceDate  
+		--END
+		ORDER BY  					 
+			CASE WHEN (@SortOrder=1  AND @SortColumn='vendorName') THEN vendorName END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='vendorName') THEN vendorName END DESC,
+			CASE WHEN (@SortOrder=1  AND @SortColumn='vendorCode') THEN vendorCode END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='vendorCode') THEN vendorCode END DESC,
+			CASE WHEN (@SortOrder=1  AND @SortColumn='InvoiceAmount') THEN InvoiceAmount END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='InvoiceAmount') THEN InvoiceAmount END DESC,			
+			CASE WHEN (@SortOrder=1  AND @SortColumn='BalanceAmount') THEN BalanceAmount END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='BalanceAmount') THEN BalanceAmount END DESC,
+			CASE WHEN (@SortOrder=1  AND @SortColumn='InvoiceDate') THEN InvoiceDate END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='InvoiceDate') THEN InvoiceDate END DESC,
+			CASE WHEN (@SortOrder=1  AND @SortColumn='invoiceNo') THEN invoiceNo END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='invoiceNo') THEN invoiceNo END DESC,
+			CASE WHEN (@SortOrder=1  AND @SortColumn='terms') THEN terms END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='terms') THEN terms END DESC,
+			CASE WHEN (@SortOrder=1  AND @SortColumn='dueDate') THEN dueDate END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='dueDate') THEN dueDate END DESC,
+			CASE WHEN (@SortOrder=1  AND @SortColumn='currencyCode') THEN currencyCode END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='currencyCode') THEN currencyCode END DESC,
+			CASE WHEN (@SortOrder=1  AND @SortColumn='fixRateAmount') THEN fixRateAmount END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='fixRateAmount') THEN fixRateAmount END DESC,
+			CASE WHEN (@SortOrder=1  AND @SortColumn='Amountpaidbylessthen0days') THEN Amountpaidbylessthen0days END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='Amountpaidbylessthen0days') THEN Amountpaidbylessthen0days END DESC,
+			CASE WHEN (@SortOrder=1  AND @SortColumn='Amountpaidby30days') THEN Amountpaidby30days END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='Amountpaidby30days') THEN Amountpaidby30days END DESC,
+			CASE WHEN (@SortOrder=1  AND @SortColumn='Amountpaidby60days') THEN Amountpaidby60days END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='Amountpaidby60days') THEN Amountpaidby60days END DESC,
+			CASE WHEN (@SortOrder=1  AND @SortColumn='Amountpaidby90days') THEN Amountpaidby90days END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='Amountpaidby90days') THEN Amountpaidby90days END DESC,
+			CASE WHEN (@SortOrder=1  AND @SortColumn='Amountpaidby120days') THEN Amountpaidby120days END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='Amountpaidby120days') THEN Amountpaidby120days END DESC,
+			CASE WHEN (@SortOrder=1  AND @SortColumn='Amountpaidbymorethan120days') THEN Amountpaidbymorethan120days END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='Amountpaidbymorethan120days') THEN Amountpaidbymorethan120days END DESC
 
 		OFFSET((@PageNumber-1) * @pageSize) ROWS FETCH NEXT @pageSize ROWS ONLY;  
 		

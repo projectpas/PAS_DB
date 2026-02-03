@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [VendorReadyToPayList]           
  ** Author:   Subhash Saliya
  ** Description: This stored procedure is used VendorReadyToPayList 
@@ -44,6 +43,7 @@
 	26   11-03-2025   AMIT GHEDIYA      Update LegalEntityId condition to get from VendorPaymentDetailst table
 	27   27-11-2025   Moin Bloch	    added Manual Journal
 	28   03-12-2025   AMIT GHEDIYA	    update Manual Journal code type to (4 to 6)
+	29   03-02-2026   AMIT GHEDIYA	    update to get vendor which is not Payment Hold (PN-15337)
      
 -- EXEC VendorReadyToPayList 1,NULL,NULL,1  
 --EXEC dbo.VendorReadyToPayList @MasterCompanyId=1,@StartDate=default,@EndDate=default,@LegalEntityId=1
@@ -765,7 +765,7 @@ BEGIN
 				--			JOIN [dbo].[ManualJournalHeader] MJH WITH(NOLOCK) ON MJD.ManualJournalHeaderId = MJH.ManualJournalHeaderId
 				--			LEFT JOIN [dbo].[VendorCreditMemoMapping] VCMM WITH(NOLOCK) ON VCMM.VendorCreditMemoId = MJD.ManualJournalHeaderId AND VCMM.VendorId = MJD.ReferenceId --AND ISNULL(VCMM.IsPosted,0) = 0 
 				--	 WHERE ReferenceTypeId = @ManualJRefrenceTypeId AND MJH.ManualJournalStatusId = @ManualJStatusId AND VCMM.IsPosted IS NULL AND ISNULL(MJD.IsVendorPayment,0) = 0
-				--) mjNewData WHERE #TempVendorReadyToPayList.VendorId = mjNewData.VendorId AND ISNULL(#TempVendorReadyToPayList.SelectedforPayment, 0) = 0 AND #TempVendorReadyToPayList.[ManualJournalHeaderId] IS NULL
+				--) mjNewData WHERE #TempVendorReadyToPayList.VendorId = mjNewData.VendorId AND ISNULL(#TempVendorReadyToPayList.SelectedforPayment, 0) = 0 AND #TempVendorReadyToPayList.[ManualJournalHeaderId] IS NULL
 
 
 		SELECT [ID] ,      
@@ -812,7 +812,9 @@ BEGIN
 			[CreatedDate] ,
 			[VendorProformaInvoiceId], 
 			[IsVendorOnHold] 
-		FROM #TempVendorReadyToPayList ORDER BY CreatedDate DESC;
+		FROM #TempVendorReadyToPayList 
+		WHERE ISNULL(IsVendorOnHold,0) = 0
+		ORDER BY CreatedDate DESC;
 
   END TRY      
   BEGIN CATCH        

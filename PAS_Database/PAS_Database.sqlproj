@@ -4406,6 +4406,13 @@
     <Build Include="dbo\Stored Procedures\UOMSearchAutoCompleteDropdowns.sql" />
     <Build Include="dbo\Stored Procedures\GetReceivingRepairOrderForView.sql" />
     <Build Include="dbo\User Defined Types\TimeLifeType.sql" />
+    <Build Include="dbo\Tables\WIPGLAccountSetupAudit.sql" />
+    <Build Include="dbo\Tables\WIPGLAccountSetup.sql" />
+    <Build Include="dbo\Tables\WIPCategory.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetWIPGLAccountSetupHistoryByMasterCompanyId.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetWIPGLAccountSetup.sql" />
+    <Build Include="dbo\Stored Procedures\USP_AddWIPGLAccountSetup.sql" />
+    <Build Include="dbo\User Defined Types\WIPGLAccountSetupType.sql" />
     <Build Include="dbo\Stored Procedures\USP_ConvertUOM.sql" />
     <Build Include="dbo\Stored Procedures\USP_AddCustomerContact.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdateWorkOrderMaterialCondition.sql" />
@@ -4420,6 +4427,10 @@
     <Build Include="dbo\Stored Procedures\usprpt_GetInventoryUnitCostAdjustmentReport.sql" />
     <Build Include="dbo\Stored Procedures\usprpt_GetAPDisbursementReportByPayee.sql" />
     <Build Include="dbo\Stored Procedures\usprpt_GetAPDisbursementReportByInvoice.sql" />
+    <Build Include="dbo\Stored Procedures\usprpt_GetInventoryUnitCostAdjustmentReport_SSRS.sql" />
+    <Build Include="dbo\Stored Procedures\usprpt_GetInventoryQuantityAdjustmentReport_SSRS.sql" />
+    <Build Include="dbo\Stored Procedures\usprpt_CashReceiptReportList_SSRS.sql" />
+    <Build Include="dbo\Stored Procedures\usprpt_CashReceiptReportList.sql" />
     <Build Include="dbo\Stored Procedures\usprpt_GetAPDisbursementReportByPayeeSSRS.sql" />
     <Build Include="dbo\Stored Procedures\usprpt_GetAPDisbursementReportByInvoiceSSRS.sql" />
   </ItemGroup>

@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [GetAssetDetailsByInventoryID]           
  ** Author:   Abhishek Jirawla
  ** Description: This stored procedure is used to get AssetData By InventoryId
@@ -13,12 +12,13 @@
  **************************************************************           
   ** Change History           
  **************************************************************           
- ** PR   Date         Author		Change Description            
- ** --   --------     -------		--------------------------------          
-    1    09/12/2024   Abhishek Jirawla Created
-	2    12-12-2024   ABHISHEK JIRAWLA Change made for Asset Inventory Status and Asset Available Status
+ ** PR   Date         Author				Change Description            
+ ** --   --------     -------				--------------------------------          
+    1    09/12/2024   Abhishek Jirawla		Created
+	2    12-12-2024   ABHISHEK JIRAWLA		Change made for Asset Inventory Status and Asset Available Status
+	3	 30-01-2026	  Divyesh Kathiriya		Add "CalibrationCertificateNumber"
      
---  EXEC [GetAssetDetailsByInventoryID] 658
+--  EXEC [GetAssetDetailsByInventoryID] 614
 **************************************************************/
 CREATE     PROCEDURE [dbo].[GetAssetDetailsByInventoryID]
     @AssetInventoryId BIGINT
@@ -103,7 +103,7 @@ BEGIN
 			ISNULL(asset.ReceivedDate, GETDATE()) AS ReceivedDate,
 			ISNULL(asset.StatusNote, '') AS StatusNote,
 			ISNULL(wo.WorkOrderNum, '') AS WorkOrderNum,
-			ISNULL(asset.DepreciationStartDate, GETDATE()) AS DepreciationStartDate
+			ISNULL(asset.DepreciationStartDate, GETDATE()) AS DepreciationStartDate			
 		FROM DBO.AssetInventory asset WITH (NOLOCK)
 		LEFT JOIN DBO.TangibleClass at WITH (NOLOCK) ON asset.TangibleClassId = at.TangibleClassId
 		LEFT JOIN DBO.AssetIntangibleType aity WITH (NOLOCK) ON asset.AssetIntangibleTypeId = aity.AssetIntangibleTypeId
@@ -329,7 +329,8 @@ BEGIN
 			asset.ReceivedDate,
 			ISNULL(asset.StatusNote, '') AS StatusNote,
 			ISNULL(wo.WorkOrderNum, '') AS WorkOrderNum,
-			asset.DepreciationStartDate
+			asset.DepreciationStartDate,
+			ISNULL(asset.CalibrationCertificateNumber,'') AS CalibrationCertificateNumber
 		FROM DBO.AssetInventory asset WITH (NOLOCK)
 		LEFT JOIN DBO.Manufacturer manu WITH (NOLOCK) ON asset.ManufacturerId = manu.ManufacturerId
 		LEFT JOIN DBO.CalibrationManagment cal WITH (NOLOCK) ON asset.AssetInventoryId = cal.AssetInventoryId AND cal.CalibrationTypeId = 1

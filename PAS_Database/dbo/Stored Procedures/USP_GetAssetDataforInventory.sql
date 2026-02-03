@@ -7,12 +7,14 @@
             
  ** Change History             
  **************************************************************             
- ** PR   Date				Author  				Change Description              
+ ** PR   Date				Author  			Change Description              
  ** --   --------			-------				--------------------------------            
-    1    2025-06-12		    Ayushi Patel			Created
-	exec [USP_GetAssetDataforInventory] 3
+    1    2025-06-12		    Ayushi Patel		Created
+    2	 02-FEB-2026	    Divyesh Kathiriya	Add "CalibrationCertificateNumber"
+
+	exec [USP_GetAssetDataforInventory] 211
 ***************************************************************/
-CREATE   PROCEDURE dbo.USP_GetAssetDataforInventory
+CREATE   PROCEDURE [dbo].[USP_GetAssetDataforInventory]
     @assetRecordId BIGINT
 AS
 BEGIN
@@ -214,7 +216,8 @@ BEGIN
                 ISNULL(asmai.IsWarrantyRequired, 0) AS IsWarrantyRequired,
                 ISNULL(asmai.MaintenanceFrequencyDays, 0) AS MaintenanceFrequencyDays,
                 ISNULL(asmai.MaintenanceFrequencyMonths, 0) AS MaintenanceFrequencyMonths,
-                ISNULL(asmai.MaintenanceMemo, '') AS MaintenanceMemo
+                ISNULL(asmai.MaintenanceMemo, '') AS MaintenanceMemo,
+                ISNULL(ascal.CalibrationCertificateNumber, '') AS CalibrationCertificateNumber
             FROM dbo.Asset asset WITH (NOLOCK)
             LEFT JOIN dbo.Asset altAsset WITH (NOLOCK) ON altAsset.AssetRecordId = asset.AlternateAssetRecordId
 			LEFT JOIN dbo.Asset parentAsset WITH (NOLOCK) ON parentAsset.AssetRecordId = asset.AssetParentRecordId

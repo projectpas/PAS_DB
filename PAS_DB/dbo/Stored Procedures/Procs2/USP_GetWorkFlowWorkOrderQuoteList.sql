@@ -82,7 +82,8 @@ BEGIN
 					THEN '<p>Site Name: ' + wq.ShipToSiteName + '</p>' + '<p>Address: ' + wq.Line1 + '' + wq.Line2 + '</p>' + '<p>City: ' + wq.City + '</p>' + '<p>State/Prov :' + wq.StateOrProvince + '</p>' + '<p>Zip Code: ' + wq.PostalCode + '</p>' + '<p>Country: ' + c.countries_name + '</p>'
 					ELSE '<p>Site Name: ' + shipToSite.SiteName + '</p>' + '<p>Address: ' + shipToAddress.Line1 + '' + shipToAddress.Line2 + '</p>' + '<p>City: ' + shipToAddress.City + '</p>' + '<p>State/Prov :' + shipToAddress.StateOrProvince + '</p>' + '<p>Zip Code: ' + shipToAddress.PostalCode + '</p>' + '<p>Country: ' + shipToCountry.countries_name + '</p>'
 					END
-					AS ShiptoSiteInfo
+					AS ShiptoSiteInfo,
+					CASE WHEN ISNULL(wq.ShipToSiteId,0) > 0 THEN wq.ShipToSiteName ELSE shipToSite.SiteName END AS ShipToSiteName
 				FROM [dbo].WorkOrderQuote wq WITH(NOLOCK)
 				INNER JOIN [dbo].WorkOrder wo WITH(NOLOCK) ON wq.WorkOrderId = wo.WorkOrderId
 				INNER JOIN [dbo].Customer cust WITH(NOLOCK) ON wq.CustomerId = cust.CustomerId

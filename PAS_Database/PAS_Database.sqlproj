@@ -4420,6 +4420,8 @@
     <Build Include="dbo\Stored Procedures\usprpt_GetInventoryUnitCostAdjustmentReport.sql" />
     <Build Include="dbo\Stored Procedures\usprpt_GetAPDisbursementReportByPayee.sql" />
     <Build Include="dbo\Stored Procedures\usprpt_GetAPDisbursementReportByInvoice.sql" />
+    <Build Include="dbo\Stored Procedures\usprpt_GetAPDisbursementReportByPayeeSSRS.sql" />
+    <Build Include="dbo\Stored Procedures\usprpt_GetAPDisbursementReportByInvoiceSSRS.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

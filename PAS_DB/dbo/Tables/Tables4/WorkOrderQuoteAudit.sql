@@ -37,6 +37,14 @@
     [ReportCurrencyId]          INT             NULL,
     [ForeignExchangeRate]       DECIMAL (18, 2) NULL,
     [IsPrintCorrectiveAction]   BIT             NULL,
+    [ShipToSiteName]            VARCHAR (100)   NULL,
+    [Line1]                     VARCHAR (50)    NULL,
+    [Line2]                     VARCHAR (50)    NULL,
+    [City]                      VARCHAR (50)    NULL,
+    [StateOrProvince]           VARCHAR (50)    NULL,
+    [PostalCode]                VARCHAR (50)    NULL,
+    [CountryId]                 BIGINT          NULL,
+    [ShipToSiteId]              BIGINT          NULL,
     CONSTRAINT [PK_WorkOrderQuoteAudit] PRIMARY KEY CLUSTERED ([WorkOrderQuoteAuditId] ASC)
 );
 

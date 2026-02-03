@@ -4548,6 +4548,8 @@
     <Build Include="dbo\Stored Procedures\USP_UpdateLeafNodePrintSequence.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetPrintSequenceLeafData.sql" />
     <Build Include="dbo\User Defined Types\LeafNodeSequenceType.sql" />
+    <Build Include="dbo\Stored Procedures\usprpt_GetAPDisbursementReportByPayee.sql" />
+    <Build Include="dbo\Stored Procedures\usprpt_GetAPDisbursementReportByInvoice.sql" />
     <Build Include="dbo\Stored Procedures\usprpt_CashReceiptReportList_SSRS.sql" />
     <Build Include="dbo\Stored Procedures\usprpt_CashReceiptReportList.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdateShipToSiteInfo.sql" />

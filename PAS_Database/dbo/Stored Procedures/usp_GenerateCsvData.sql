@@ -10,21 +10,23 @@
  ** RETURN VALUE:
 
  **************************************************************
-  ** Change History
+ ** Change History
  **************************************************************
- ** PR   Date         Author			Change Description
- ** --   --------     -------			--------------------------------
-    1    11/25/2025   Vishal Suthar		Created
-	2    26/12/2025   Nakul Chandigra   changed the condition to get @SelectList and @JoinList , used IsUseJoinCondition insted of ParentTableRereneceTypeId 
+ ** PR   Date         Author				Change Description
+ ** --   ----------   -------				--------------------------------
+    1    11/25/2025   Vishal Suthar			Created
+	2    26/12/2025   Nakul Chandigra		changed the condition to get @SelectList and @JoinList , used IsUseJoinCondition insted of ParentTableRereneceTypeId 
 	3    28/01/2026   Divyesh Kathiriya		Added New Module "Employee"
-	4	 02/02/2026   Nakul Chandigra   Added New condition to get @BaseTable AND ADDED ORDER BY FieldSortOrder TO Get @JoinList 
+	4	 02/02/2026   Nakul Chandigra		Added New condition to get @BaseTable AND ADDED ORDER BY FieldSortOrder TO Get @JoinList
+	5    04/02/2026   Divyesh Kathiriya		Added New Module "Stockline"
 
- EXEC usp_GenerateCsvData  97 , 1
+ EXEC usp_GenerateCsvData 5, 1, 236
 **************************************************************/
-CREATE   PROCEDURE [dbo].[usp_GenerateCsvData]
+CREATE PROCEDURE [dbo].[usp_GenerateCsvData]
 (
     @ModuleId INT,
-    @MasterCompanyId INT
+    @MasterCompanyId INT,
+	@EmployeeId BIGINT 
 )
 AS
 BEGIN
@@ -41,13 +43,22 @@ BEGIN
 		DECLARE @BinModuleId BIGINT;
 		DECLARE @SQL NVARCHAR(MAX);
 		DECLARE @WhereCondition NVARCHAR(MAX);
-		DECLARE @EmployeeModule AS BIGINT;
+		DECLARE @MSModuelId INT; 
+
+
+		DECLARE @EmployeeModule AS INT;
+		DECLARE @StocklineModule AS INT;
 
 		SELECT @ModuleName = [ModuleName] FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ImportModuleId] = @ModuleId;
+
+		SET @StocklineModule = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'Stockline');
+		SET @EmployeeModule = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'Employee');
 		SET @LocationModuleId = (SELECT [ImportModuleId] FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName]='Location')
 		SET @ShelfModuleId = (SELECT [ImportModuleId] FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName]='Shelf')
 		SET @BinModuleId = (SELECT [ImportModuleId] FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName]='Bin')
-		SET @EmployeeModule = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'Employee');
+
+		SET @MSModuelId = (SELECT [ManagementStructureModuleId] FROM [DBO].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] = 'Stockline');
+		
 
 		IF OBJECT_ID('tempdb..#ColumnData') IS NOT NULL
 			DROP TABLE #ColumnData
@@ -110,7 +121,20 @@ BEGIN
 				FROM DBO.ImportModuleFieldMaster WITH (NOLOCK)
 				WHERE ModuleId = @ModuleId AND (ISNULL(IsUseJoinCondition ,0) = 1) AND ISNULL(JoinCondition,'') <> ''
 			) AS J;
-		END 
+		END
+		
+		IF(@ModuleId = @StocklineModule)
+		BEGIN
+
+			SET @JoinList  +=  ' INNER JOIN dbo.StocklineManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @MSModuelId AND MSD.ReferenceID = Stockline.StockLineId     
+								 INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON Stockline.ManagementStructureId = RMS.EntityStructureId
+								 INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
+								 LEFT JOIN DBO.UnitOfMeasure uom WITH (NOLOCK) ON Stockline.StockUnitOfMeasureId = uom.UnitOfMeasureId'
+
+			SET @WhereCondition  = 'AND ISNULL(Stockline.QuantityOnHand, 0) > 0 
+									AND ISNULL(Stockline.IsParent, 0) = 1 
+									AND ISNULL(Stockline.IsCustomerStock,0) = 0'									
+		END
 		IF(@ModuleId = @EmployeeModule)
 		BEGIN
 			SET @WhereCondition  = 'AND AspNetUsers.MasterCompanyId = @MasterCompanyId
@@ -121,7 +145,18 @@ BEGIN
 		END
 
 --------------Final SQL Query Start--------------
-		IF(@ModuleId = @EmployeeModule)
+		IF(@ModuleId = @StocklineModule)
+		BEGIN
+			SET @SQL = '
+			SELECT ' + @SelectList + '
+			FROM ' + @BaseTable + ' WITH(NOLOCK)
+			' + ISNULL(@JoinList, '') + '
+			WHERE ' + @BaseTable + '.MasterCompanyId = @MasterCompanyId			
+			AND ' + @BaseTable + '.IsDeleted = 0
+			' + @WhereCondition + '
+			ORDER BY ' + @BaseTable + '.CreatedDate DESC;';
+		END
+		ELSE IF(@ModuleId = @EmployeeModule)
 		BEGIN
 			SET @SQL = '
 			SELECT ' + @SelectList + '
@@ -147,7 +182,15 @@ BEGIN
 		END
 --------------Final SQL Query END--------------
 
+		IF(@ModuleId = @StocklineModule)
+		BEGIN		 
+			EXEC sp_executesql @SQL, N'@MasterCompanyId INT, @MSModuelId INT, @EmployeeId BIGINT', @MasterCompanyId, @MSModuelId , @EmployeeId;
+		END
+		ELSE
+		BEGIN
 			EXEC sp_executesql @SQL, N'@MasterCompanyId INT', @MasterCompanyId;
+		END
+
 	END TRY
 	BEGIN CATCH
 		DECLARE @ErrorLogID INT

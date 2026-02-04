@@ -185,7 +185,7 @@ BEGIN
             NULL AS 'InvoiceDueDate',
             NULL AS 'TotalBaseCurrencyAmount',
             MAX(rtp.CurrencyName)                             AS 'BaseCurrency',
-            SUM(rtp.OriginalAmount)                     AS 'BaseCurrencyAmount',
+            SUM(rtp.PaymentMade)                     AS 'BaseCurrencyAmount',
                                           
             -- (Cast(DBO.ConvertUTCtoLocal(rtp.DueDate,@CurrntEmpTimeZoneDesc)AS DATETIME)) AS 'InvoiceDueDate',
             MAX(CONCAT(lebl.BankName, ' - ', lebl.BankAccountNumber)) 
@@ -334,6 +334,8 @@ BEGIN
                 WHEN ISNULL(VPD.CustomerCreditPaymentDetailId,0) > 0 THEN CAST(CCPD.ProcessedDate AS DATE)
                 WHEN ISNULL(VPD.VendorProformaInvoiceId,0) > 0 THEN CAST(VNPH.InvoiceDate AS DATE)
             END
+            ,rtp.CheckNumber
+
 
         ORDER BY
     CASE
@@ -343,7 +345,6 @@ BEGIN
         WHEN ISNULL(VPD.CustomerCreditPaymentDetailId,0) > 0 THEN CCPD.ReferenceNumber
         WHEN ISNULL(VPD.VendorProformaInvoiceId,0) > 0 THEN VNPH.InvoiceNumber
     END
-
 
     -- Pagination 
 

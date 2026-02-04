@@ -169,7 +169,7 @@ CREATE TABLE #tmprAPDisbursementReport
             NULL AS 'TotalBaseCurrencyAmount',
 
             MAX(rtp.CurrencyName) AS 'BaseCurrency',
-            SUM(rtp.OriginalAmount) AS 'BaseCurrencyAmount',
+            SUM(rtp.PaymentMade) AS 'BaseCurrencyAmount',
             --vpym.Description                                AS 'PaymentMethod',
             --rtp.CheckNumber                                 AS 'PaymentReference',
                                           

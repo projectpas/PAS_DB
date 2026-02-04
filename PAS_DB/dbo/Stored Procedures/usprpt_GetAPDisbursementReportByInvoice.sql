@@ -323,6 +323,7 @@ BEGIN
 
      SELECT *
         FROM #tmprAPDisbursementReportInvoice
+        WHERE InvoiceNum is not null
         ORDER BY InvoiceNum
     OFFSET 
     CASE 
@@ -337,7 +338,8 @@ FETCH NEXT
      
      -- Total Records Count
         SELECT COUNT(*) AS TotalRecords
-        FROM #tmprAPDisbursementReportInvoice;
+        FROM #tmprAPDisbursementReportInvoice
+        WHERE InvoiceNum is not null;
  
 
 

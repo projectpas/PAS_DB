@@ -169,7 +169,7 @@ CREATE TABLE #tmprAPDisbursementReport
             NULL AS 'TotalBaseCurrencyAmount',
 
             MAX(rtp.CurrencyName) AS 'BaseCurrency',
-            SUM(rtp.OriginalAmount) AS 'BaseCurrencyAmount',
+            SUM(rtp.PaymentMade) AS 'BaseCurrencyAmount',
             --vpym.Description                                AS 'PaymentMethod',
             --rtp.CheckNumber                                 AS 'PaymentReference',
                                           
@@ -179,18 +179,16 @@ CREATE TABLE #tmprAPDisbursementReport
                                                     AS 'BankAccount',
             MAX( CONCAT(g.AccountCode, ' - ', g.AccountName))      AS 'GLAccountNum',
 
-            MAX(L1.Description)  AS [Level1Id],
-            MAX(L2.Description)  AS [Level2Id],
-            MAX(L3.Description)  AS [Level3Id],
-            MAX(L4.Description)  AS [Level4Id],
-            MAX(L5.Description)  AS [Level5Id],
-            MAX(L6.Description)  AS [Level6Id],
-            MAX(L7.Description)  AS [Level7Id],
-            MAX(L8.Description)  AS [Level8Id],
-            MAX(L9.Description)  AS [Level9Id],
-            MAX(L10.Description) AS [Level10Id]
-
-            --SUM(rtp.OriginalAmount) OVER ()       AS [TotalBaseCurrencyAmount]
+             MAX(CONCAT(L1.Code, ' - ', L1.Description))  AS [Level1Id],
+              MAX(CONCAT(L2.Code, ' - ', L2.Description))  AS [Level2Id],
+              MAX(CONCAT(L3.Code, ' - ', L3.Description))  AS [Level3Id],
+              MAX(CONCAT(L4.Code, ' - ', L4.Description))  AS [Level4Id],
+              MAX(CONCAT(L5.Code, ' - ', L5.Description))  AS [Level5Id],
+              MAX(CONCAT(L6.Code, ' - ', L6.Description))  AS [Level6Id],
+              MAX(CONCAT(L7.Code, ' - ', L7.Description))  AS [Level7Id],
+              MAX(CONCAT(L8.Code, ' - ', L8.Description))  AS [Level8Id],
+              MAX(CONCAT(L9.Code, ' - ', L9.Description))  AS [Level9Id],
+              MAX(CONCAT(L10.Code, ' - ', L10.Description))  AS [Level10Id]
 
             FROM [dbo].[VendorReadyToPayDetails] rtp WITH(NOLOCK)
 

@@ -1,4 +1,24 @@
-﻿CREATE PROCEDURE [dbo].[GetCalibarationMgmtAuditList]
+﻿/*************************************************************           
+ ** File:   [GetCalibarationMgmtAuditList]           
+ ** Author:   N/A
+ ** Description: This stored procedure is used retrieve Asset Inventory Audit details
+ ** Purpose:         
+ ** Date:   N/A
+          
+ ** PARAMETERS: @CalibrationId BIGINT
+         
+ ** RETURN VALUE:           
+ **************************************************************           
+ ** Change History           
+ **************************************************************           
+ ** PR   Date         Author				Change Description            
+ ** --   --------     -------				--------------------------------          
+    1    N/A		  N/A					Created	
+	2	 02-Feb-2026  Divyesh Kathiriya		Add "CalibrationCertificateNumber"
+     
+--EXEC [GetCalibarationMgmtAuditList] 621
+**************************************************************/
+CREATE PROCEDURE [dbo].[GetCalibarationMgmtAuditList]
 	@CalibrationId bigint = 0
 AS
 BEGIN
@@ -50,10 +70,11 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 				asm.CreatedBy AS CreatedBy,
 				asm.UpdatedBy AS UpdatedBy ,
 				asm.IsActive AS IsActive,
-				asm.IsDeleted AS IsDeleted
+				asm.IsDeleted AS IsDeleted,
+				AsI.CalibrationCertificateNumber
 			FROM dbo.CalibrationManagmentAudit CM WITH(NOLOCK)
 			left join dbo.Asset As asm WITH(NOLOCK) on asm.AssetRecordId=cm.AssetRecordId
-			left join dbo.AssetInventory As AsI  WITH(NOLOCK) on asm.AssetRecordId=AsI.AssetRecordId and asi.AssetInventoryId=cm.AssetInventoryId
+			left join dbo.AssetInventory As AsI WITH(NOLOCK) on asm.AssetRecordId=AsI.AssetRecordId and asi.AssetInventoryId=cm.AssetInventoryId
 			LEFT JOIN dbo.Site as st WITH(NOLOCK) on st.SiteId=asm.SiteId
 			--left join dbo.AssetLocation As Asl WITH(NOLOCK) on asm.AssetLocationId=Asl.AssetLocationId
 			left join dbo.AssetCalibration As Assc WITH(NOLOCK) on Assc.AssetRecordId=asm.AssetRecordId

@@ -1,4 +1,5 @@
-﻿/*************************************************************               
+﻿
+/*************************************************************               
  ** File:   [USP_AddUpdate_NonPOInvoiceHeader]               
  ** Author:   Shrey Chandegara      
  ** Description: to add / update the vendor credit memo     
@@ -23,7 +24,8 @@
 	7    11-JAN-2024	Moin Bloch   			added new columns ReferenceId,ReferenceModuleId
 	8    16-JAN-2024	Moin Bloch   			added Updated by on Update Header
 	9    27-DEC-2024    AMIT GHEDIYA			Modify(Added ControlNumber Field)
-  
+  	10   26-JAN-2026    RAJESH GAMI				Added DueDate based on vendor's credit netDays
+  	11   28-JAN-2026    SAHDEV SALIYA		    Added DueDate 
 **************************************************************/    
 CREATE   PROCEDURE [dbo].[USP_AddUpdate_NonPOInvoiceHeader]  
 @NonPOInvoiceId BIGINT,  
@@ -47,7 +49,8 @@ CREATE   PROCEDURE [dbo].[USP_AddUpdate_NonPOInvoiceHeader]
 @AccountingCalendarId BIGINT,
 @CurrencyId BIGINT,
 @ReferenceId BIGINT = NULL,
-@ReferenceModuleId INT NULL
+@ReferenceModuleId INT NULL,
+@DueDate DATETIME2 NULL
 AS
 BEGIN  
  SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED  
@@ -64,7 +67,8 @@ BEGIN
 	DECLARE @CurrentNPOCTRLNumber AS BIGINT;
 	DECLARE @NPONumber AS VARCHAR(50);
 	DECLARE @NPOCTRLNumber AS VARCHAR(50);
-
+	--DECLARE @NetDays INT = (SELECT TOP 1 ISNULL(CTM.NetDays,0) FROM [dbo].[Vendor] VN WITH(NOLOCK) LEFT JOIN  [dbo].[CreditTerms] ctm WITH(NOLOCK) ON ctm.CreditTermsId = VN.CreditTermsId WHERE VN.VendorId = @VendorId)
+	--DECLARE @DueDate DATETIME = (DATEADD(DAY,ISNULL(@NetDays,0),@InvoiceDate))
 	SET @ModuleID = (SELECT [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH (NOLOCK) WHERE [ModuleName] = 'NonPOInvoiceHeader')
 	SELECT @IdCodeTypeId = [CodeTypeId] FROM [dbo].[CodeTypes] WITH (NOLOCK) WHERE [CodeType] = 'NonPOInvoice';
 	SELECT @IdCNCodeTypeId = [CodeTypeId] FROM [dbo].[CodeTypes] WITH (NOLOCK) WHERE [CodeType] = 'NonPOInvoiceCTRL';
@@ -153,10 +157,10 @@ BEGIN
 		BEGIN
 			INSERT INTO [dbo].[NonPOInvoiceHeader]([VendorId] ,[VendorName] ,[VendorCode] ,[PaymentTermsId] ,[StatusId] ,[ManagementStructureId], [MasterCompanyId],  
 								[CreatedBy], [CreatedDate],[UpdatedBy] ,[UpdatedDate] ,[IsActive] ,[IsDeleted], [PaymentMethodId], [EmployeeId], [IsEnforceNonPoApproval], [NPONumber]
-								,[EntryDate], [InvoiceNumber], [InvoiceDate], [PONumber], [AccountingCalendarId], [CurrencyId],[ReferenceId],[ReferenceModuleId],[ControlNumber] )  
+								,[EntryDate], [InvoiceNumber], [InvoiceDate], [PONumber], [AccountingCalendarId], [CurrencyId],[ReferenceId],[ReferenceModuleId],[ControlNumber],[DueDate])  
 			VALUES	(@VendorId , @VendorName, @VendorCode, @PaymentTermsId, @StatusId, @ManagementStructureId, @MasterCompanyId,  
 					 @CreatedBy ,GETUTCDATE() , @CreatedBy ,GETUTCDATE() ,1 ,0, @PaymentMethodId, @EmployeeId, @IsEnforceNonPoApproval, @NPONumber,
-					 @EntryDate, @InvoiceNumber, @InvoiceDate, @PONumber, @AccountingCalendarId, @CurrencyId,@ReferenceId,@ReferenceModuleId,@NPOCTRLNumber)  
+					 @EntryDate, @InvoiceNumber, @InvoiceDate, @PONumber, @AccountingCalendarId, @CurrencyId,@ReferenceId,@ReferenceModuleId,@NPOCTRLNumber, @DueDate)  
 
 			UPDATE dbo.CodePrefixes SET CurrentNummber = CAST(@CurrentNPONumber AS BIGINT) + 1 WHERE CodeTypeId = @IdCodeTypeId AND MasterCompanyId = @MasterCompanyId;
 
@@ -192,6 +196,7 @@ BEGIN
 				   ,[PONumber] = @PONumber
 				   ,[ReferenceId] = @ReferenceId
 				   ,[ReferenceModuleId] = @ReferenceModuleId
+				   ,[DueDate] = @DueDate
 
               WHERE [NonPOInvoiceId] = @NonPOInvoiceId;  
 

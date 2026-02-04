@@ -1,5 +1,4 @@
-﻿
-/*************************************************************  
+﻿/*************************************************************  
 ** Author:  <AMIT GHEDIYA>  
 ** Create date: <01/01/2024>  
 ** Description: <Get Work order Release Form Data>  
@@ -22,12 +21,14 @@ EXEC [RPT_GetWorkOrderPrintPdfData]
 ** 10	15/Aug/2025 Vishal Suthar	    Changed the condition to populate current serial number
 ** 11	13/Nov/2025 Rajesh Gami			Added CustReqCertType
 ** 12   23/12/2025  Ayushi Patel		return wty(warranty) based on IsWarranty and IsAccepted field
-** 13	22/JAN/2026 Priyansh Patel      Added CSN and TSN values
+** 13   19/01/2026  Moin Bloch          Updated (Added NamePrinted )
+** 14	22/JAN/2026 Priyansh Patel      Added CSN and TSN values
+** 15	03/Feb/2026 Bhargav Saliya      Get Ship To Site From WOQ if Exists
 
-EXEC RPT_GetWorkOrderPrintPdfData 9747,9850
+EXEC RPT_GetWorkOrderPrintPdfData 4108,3625
 
 **************************************************************/
-CREATE      PROCEDURE [dbo].[RPT_GetWorkOrderPrintPdfData]              
+CREATE PROCEDURE [dbo].[RPT_GetWorkOrderPrintPdfData]              
 	@WorkorderId BIGINT,              
 	@workOrderPartNoId BIGINT              
 AS              
@@ -40,7 +41,8 @@ BEGIN
   -- BEGIN            
 		DECLARE @WorkScopeId AS BIGINT = 0;            
 		DECLARE @ItemMasterId AS BIGINT = 0;            
-		DECLARE @TravelerName AS varchar(250) = '';            
+		DECLARE @TravelerName AS varchar(250) = '';   
+		DECLARE @MasterCompanyId AS INT = 0;    
 		DECLARE @WOFPrintDate AS DATETIME, @MergedBillToAddress AS varchar(max),@MergedShipToAddress AS varchar(max), @MergedShipAddress AS varchar(max);           
 		DECLARE @Address1 NVARCHAR(255),@Address2 NVARCHAR(255),@City NVARCHAR(100),@StateOrProvince NVARCHAR(100),@PostalCode NVARCHAR(20);
 		DECLARE @Country NVARCHAR(100),@PhoneNumber NVARCHAR(50),@PhoneExt NVARCHAR(10),@Email NVARCHAR(255);
@@ -51,8 +53,9 @@ BEGIN
 		DECLARE @SAddress1 NVARCHAR(255),@SAddress2 NVARCHAR(255),@SCity NVARCHAR(100),@SStateOrProvince NVARCHAR(100),@SPostalCode NVARCHAR(20);
 		DECLARE @SCountry NVARCHAR(100),@SPhoneNumber NVARCHAR(50),@SPhoneExt NVARCHAR(10),@SEmail NVARCHAR(255);
 
+		DECLARE @woqShipToSiteId BIGINT = 0;
    
-		SELECT TOP 1 @ItemMasterId=ItemMasterId,@WorkScopeId=WorkOrderScopeId, @WOFPrintDate = WOFPrintDate FROM dbo.WorkOrderPartNumber WITH(NOLOCK) WHERE ID=@WorkOrderPartNoId            
+		SELECT TOP 1 @ItemMasterId=ItemMasterId,@WorkScopeId=WorkOrderScopeId, @WOFPrintDate = WOFPrintDate,@MasterCompanyId=[MasterCompanyId] FROM dbo.WorkOrderPartNumber WITH(NOLOCK) WHERE ID=@WorkOrderPartNoId            
                  
 		IF(EXISTS (SELECT 1 FROM dbo.Traveler_Setup WITH(NOLOCK) WHERE WorkScopeId = @WorkScopeId and ItemMasterId=ItemMasterId and IsVersionIncrease=0))            
 		BEGIN            
@@ -62,6 +65,12 @@ BEGIN
 		BEGIN            
 			SELECT top 1 @TravelerName= TravelerId FROM dbo.Traveler_Setup WITH(NOLOCK) WHERE WorkScopeId = @WorkScopeId and ItemMasterId is null and IsVersionIncrease=0            
 		END 
+
+		SELECT  @woqShipToSiteId = ISNULL(woqT.ShipToSiteId,0)
+		FROM Dbo.WorkOrder work WITH(NOLOCK)              
+		INNER JOIN Dbo.WorkOrderQuote woqT WITH(NOLOCK) on work.WorkOrderId = woqT.WorkOrderId and woqT.IsVersionIncrease=0 AND woqT.IsActive = 1 AND woqT.IsDeleted = 0 
+		WHERE work.WorkOrderId = @WorkorderId 
+
 		IF OBJECT_ID(N'tempdb..#TempTableData') IS NOT NULL
 			BEGIN
 				DROP TABLE #TempTableData
@@ -77,7 +86,13 @@ BEGIN
 			'1' as NoofItem,              
 			UPPER(wo.CreatedBy) as Preparedby,              
 			UPPER(wop.CustomerReference) as ronum,            
-			@WOFPrintDate as DatePrinted,              
+			@WOFPrintDate as DatePrinted,     
+			ISNULL((SELECT CASE WHEN [Is813013aeOr14ae]=1 THEN ISNULL(MAX([PrintedName2]),'')
+            WHEN [Is813013aeOr14ae]=2 THEN ISNULL(MAX([PrintedName]),'')
+			ELSE '' END 
+			FROM [dbo].[Work_ReleaseFrom_8130] WITH(NOLOCK) 
+			WHERE [WorkOrderId] = @WorkorderId AND [workOrderPartNoId]= @workOrderPartNoId AND [MasterCompanyId]=@MasterCompanyId
+			GROUP BY [Is813013aeOr14ae]),'') AS NamePrinted,
 			wo.CreatedDate as workreqDate,      
 			CASE WHEN LEN(wo.notes) > 1370 THEN LEFT(wo.notes,1370) + '...' ELSE wo.notes END AS notes,    
 			p.Description as Priority,              
@@ -99,7 +114,9 @@ BEGIN
 			CASE WHEN ISNULL(wop.RevisedItemmasterid, 0) > 0 THEN UPPER(imtr.ItemGroup) ELSE  UPPER(imt.ItemGroup) END as 'itemGroup',            
 			UPPER(wop.ACTailNum) as ACTailNum,              
 			wop.TSN as TSN,              
-			wop.CSN as CSN,    
+			wop.CSN as CSN,
+			wop.TSO as TSO,              
+			wop.CSO as CSO,
 			FORMAT(wop.ReceivedDate, 'MM/dd/yyyy') AS Recd_Date,
 			wop.ReceivedDate,
 			woq.CreatedDate as Qte_Date,              
@@ -135,7 +152,8 @@ BEGIN
 			--														CASE WHEN shippingInfo.WorkOrderId > 0  THEN UPPER(shippingInfo.SoldToCountryName) else UPPER(billToCountry.countries_name) END,
 			--														NULL,NULL,NULL)),
 
-			shipSiteName = CASE WHEN shippingInfo.WorkOrderId > 0  THEN UPPER(shippingInfo.ShipToSiteName) else UPPER(shipToSite.SiteName) END,              
+			shipSiteName = CASE WHEN ISNULL(woq.ShipToSiteId,0) > 0 THEN woq.ShipToSiteName
+								WHEN shippingInfo.WorkOrderId > 0  THEN UPPER(shippingInfo.ShipToSiteName) else UPPER(shipToSite.SiteName) END,              
 			shipAttention = CASE WHEN shippingInfo.WorkOrderId > 0  THEN 'ATTN: ' + UPPER(shipToSiteatt.Attention) else 'ATTN: ' + UPPER(shipToSite.Attention) END,              
 			shipAddressLine1 = CASE WHEN shippingInfo.WorkOrderId > 0  THEN  UPPER(shippingInfo.ShipToAddress1) else UPPER(shipToAddress.Line1) END,              
 			shipAddressLine2 = CASE WHEN shippingInfo.WorkOrderId > 0  THEN UPPER(shippingInfo.ShipToAddress2) else UPPER(shipToAddress.Line2) END, 
@@ -221,13 +239,24 @@ BEGIN
 			LEFT JOIN Dbo.WorkOrderSettings wost WITH(NOLOCK) on wost.MasterCompanyId = wop.MasterCompanyId AND wo.WorkOrderTypeId = wost.WorkOrderTypeId    
 			WHERE wo.WorkOrderId = @WorkorderId AND wop.ID = @workOrderPartNoId) Result  
 			
-
 			SELECT 	@Address1 = shipToAddressLine1, @Address2 = shipToAddressLine2, @City = shipToAddressCity, @StateOrProvince = shipToAddressStateOrProvince, @PostalCode = shipToAddressPostalCode,
 					@Country = shipToCountrycountries_name,
 					@BAddress1 = billAddressLine1, @BAddress2 = billAddressLine2, @BCity = billCity, @BStateOrProvince = billState, @BPostalCode = billPostalCode,
 					@BCountry = billCountry,
 					@SAddress1 = shipAddressLine1, @SAddress2 = shipAddressLine2, @SCity = shipCity, @SStateOrProvince = shipState, @SPostalCode = shipPostalCode,
 					@SCountry = shipCountry FROM #TempTableData
+
+			--If Ship To Site Data are available in work order quote then Overwrite that Address Data 
+			IF(@woqShipToSiteId > 0)
+			BEGIN
+				SELECT 
+					@Address1 = WQ.Line1, @Address2 = WQ.Line2, @City = WQ.City, @StateOrProvince = WQ.StateOrProvince, @PostalCode = WQ.PostalCode,
+					@Country = ctr.countries_name
+				FROM dbo.WorkOrder  W WITH(NOLOCK) 
+				INNER JOIN Dbo.WorkOrderQuote WQ WITH(NOLOCK) on W.WorkOrderId = WQ.WorkOrderId and WQ.IsVersionIncrease=0 AND WQ.IsActive = 1 AND WQ.IsDeleted = 0 
+				LEFT JOIN dbo.Countries ctr WITH(NOLOCK) on WQ.CountryId = ctr.countries_id
+				WHERE W.WorkOrderId = @WorkorderId 
+			END
 
 			EXEC [dbo].[SP_ValidatePDFAddress] 
                 @Address1 = @Address1,
@@ -291,5 +320,5 @@ BEGIN
                      , @ErrorLogID                    = @ErrorLogID OUTPUT ;              
               RAISERROR ('Unexpected Error Occured in the database. Please let the support team know of the error number : %d', 16, 1,@ErrorLogID)              
               RETURN(1);              
-  END CATCH              
+  END CATCH              
 END

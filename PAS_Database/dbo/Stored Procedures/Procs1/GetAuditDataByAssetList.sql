@@ -1,4 +1,20 @@
-﻿CREATE   PROCEDURE [dbo].[GetAuditDataByAssetList]
+﻿/***************************************************************  
+ ** File:  [GetAuditDataByAssetList]             
+ ** Author: N/A
+ ** Description: Get Asset Audit Data by Id.
+ ** Purpose:   
+ ** Date:  N/A
+            
+ ** Change History             
+ **************************************************************             
+ ** PR   Date				Author  			Change Description              
+ ** --   --------			-------				--------------------------------            
+    1    N/A				N/A					N/A
+    2	 02-FEB-2026	    Divyesh Kathiriya	Add "CalibrationCertificateNumber"
+
+	exec [GetAuditDataByAssetList] 214
+***************************************************************/
+CREATE   PROCEDURE [dbo].[GetAuditDataByAssetList]
 	@Id bigint = null
 AS
 BEGIN
@@ -19,6 +35,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 				maf.Name AS ManufacturerName,
 				case when asm.IsSerialized = 1 then 'Yes'else 'No' end  as IsSerializedNew,
 				case when ascal.CalibrationRequired = 1 then 'Yes'else 'No' end  as CalibrationRequiredNew,
+				ascal.CalibrationCertificateNumber,
 				case when asm.IsTangible = 1 then 'Tangible'else 'Intangible' end  as AssetClass,
 				isnull((case when isnull(asm.IsTangible,0) = 1 and isnull(asm.IsDepreciable,0)=1 then 'Yes' when  isnull(asm.IsTangible,0) = 0 and isnull(asm.IsAmortizable,0)=1  then  'Yes'  else 'No'  end),'No') as deprAmort,
 					AssetType= case when isnull(asty.AssetAttributeTypeName,'') !='' then asty.AssetAttributeTypeName else isnull(asti.AssetIntangibleName,'') end, --case  when (select top 1 AssetIntangibleName from AssetIntangibleType asp where asp.AssetIntangibleTypeId = asm.AssetIntangibleTypeId),
@@ -45,11 +62,11 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 				asm.IsActive AS IsActive,
 				asm.IsDeleted AS IsDeleted
 			FROM dbo.AssetAudit asm WITH(NOLOCK)
-			left join dbo.AssetCalibration   As ascal  WITH(NOLOCK) on asm.AssetRecordId = ascal.AssetRecordId
+			left join dbo.AssetCalibration As ascal  WITH(NOLOCK) on asm.AssetRecordId = ascal.AssetRecordId	
 			left join dbo.AssetAttributeType  As asty WITH(NOLOCK) on asm.AssetAttributeTypeId = asty.AssetAttributeTypeId
 			left join dbo.AssetIntangibleType  As astI WITH(NOLOCK) on asm.AssetIntangibleTypeId = astI.AssetIntangibleTypeId
 			left join dbo.Manufacturer  As maf WITH(NOLOCK) on asm.ManufacturerId = maf.ManufacturerId
-			inner JOIN dbo. ManagementStructure  level4 WITH(NOLOCK) ON asm.ManagementStructureId = level4.ManagementStructureId
+			inner JOIN dbo.ManagementStructure  level4 WITH(NOLOCK) ON asm.ManagementStructureId = level4.ManagementStructureId
 			LEFT JOIN dbo.ManagementStructure  level3 WITH(NOLOCK) ON level4.ParentId = level3.ManagementStructureId
 			LEFT JOIN dbo.ManagementStructure  level2 WITH(NOLOCK) ON level3.ParentId = level2.ManagementStructureId
 			LEFT JOIN dbo.ManagementStructure  level1 WITH(NOLOCK) ON level2.ParentId = level1.ManagementStructureId

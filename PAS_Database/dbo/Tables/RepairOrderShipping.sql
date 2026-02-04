@@ -60,7 +60,7 @@
     [ShippingAccountNo]                VARCHAR (50)    NULL,
     [SmentNum]                         INT             NULL,
     [VendorDomensticShippingShipViaId] BIGINT          NULL,
-    [NoOfItems]                        INT             NULL,
+    [NoOfItems]                        DECIMAL (18, 6) NULL,
     [IsVendorShipping]                 BIT             NULL,
     [IsManualShipping]                 BIT             NULL,
     [ManufactureCountryId]             INT             NULL,
@@ -79,6 +79,8 @@
     CONSTRAINT [FK_RepairOrderShipping_ShipToCountry] FOREIGN KEY ([ShipToCountryId]) REFERENCES [dbo].[Countries] ([countries_id]),
     CONSTRAINT [FK_RepairOrderShipping_SoldToCountry] FOREIGN KEY ([SoldToCountryId]) REFERENCES [dbo].[Countries] ([countries_id])
 );
+
+
 
 
 

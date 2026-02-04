@@ -52,6 +52,7 @@
     [CertificationProvider]             VARCHAR (10)    NULL,
     [InspectionProvider]                VARCHAR (10)    NULL,
     [VerificationProvider]              VARCHAR (10)    NULL,
+    [CalibrationCertificateNumber]      NVARCHAR (500)  NULL,
     CONSTRAINT [PK__AssetCalibrationAud__88889B1E86626B25] PRIMARY KEY CLUSTERED ([AssetCalibrationAuditId] ASC),
     CONSTRAINT [FK_AssetCalibrationAudit_Asset] FOREIGN KEY ([AssetRecordId]) REFERENCES [dbo].[Asset] ([AssetRecordId]),
     CONSTRAINT [FK_AssetCalibrationAudit_AssetCalibration] FOREIGN KEY ([AssetCalibrationId]) REFERENCES [dbo].[AssetCalibration] ([AssetCalibrationId])

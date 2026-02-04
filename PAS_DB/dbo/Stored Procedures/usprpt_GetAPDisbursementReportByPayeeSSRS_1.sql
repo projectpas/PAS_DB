@@ -1,7 +1,9 @@
 ﻿
 
+
+
 /*************************************************************                   
- ** File:  [usprpt_GetAPDisbursementReportByPayee]                   
+ ** File:  [usprpt_GetAPDisbursementReportByPayeeSSRS]                   
  ** Author: Priyansh Patel     
  ** Description: Get Data for AP Disbursement Report        
  ** Purpose:                 
@@ -19,12 +21,12 @@
  ** --   --------         -------          --------------------------------                  
     1    28-Jan-2026    Priyansh Patel		   Created    
     
- EXEC dbo.usprpt_GetAPDisbursementReportByPayee
+ EXEC dbo.usprpt_GetAPDisbursementReportByPayeeSSRS
     @MasterCompanyId = 1 , @PageNumber =1 , @PageSize = 10, @EmployeeId = 2
 
 ***************************************************************************************************/   
 
-CREATE         PROCEDURE [dbo].[usprpt_GetAPDisbursementReportByPayee]
+CREATE              PROCEDURE [dbo].[usprpt_GetAPDisbursementReportByPayeeSSRS]
 @FromPaymentDate DATE = NULL,
 @ToPaymentDate DATE = NULL,
 @Payee VARCHAR(200) = NULL,
@@ -43,16 +45,7 @@ CREATE         PROCEDURE [dbo].[usprpt_GetAPDisbursementReportByPayee]
 @PaymentMethod      VARCHAR(50) = NULL,
 @BaseCurrencyAmount DECIMAL(18,2) = NULL,
 
-@Level1  VARCHAR(MAX) = NULL,
-@Level2  VARCHAR(MAX) = NULL,
-@Level3  VARCHAR(MAX) = NULL,
-@Level4  VARCHAR(MAX) = NULL,
-@Level5  VARCHAR(MAX) = NULL,
-@Level6  VARCHAR(MAX) = NULL,
-@Level7  VARCHAR(MAX) = NULL,
-@Level8  VARCHAR(MAX) = NULL,
-@Level9  VARCHAR(MAX) = NULL,
-@Level10 VARCHAR(MAX) = NULL,
+@StrFilter VARCHAR(MAX) = NULL , 
 
 
 @PageNumber INT = 1,
@@ -65,6 +58,37 @@ BEGIN
     DECLARE @IsMultiCurrency BIT = 0;
 
   BEGIN TRY
+
+   DECLARE	@level1Ids VARCHAR(MAX) = NULL,    
+			@level2Ids VARCHAR(MAX) = NULL,    
+			@level3Ids VARCHAR(MAX) = NULL,    
+			@level4Ids VARCHAR(MAX) = NULL,    
+			@level5Ids VARCHAR(MAX) = NULL,    
+			@level6Ids VARCHAR(MAX) = NULL,    
+			@level7Ids VARCHAR(MAX) = NULL,    
+			@level8Ids VARCHAR(MAX) = NULL,    
+			@level9Ids VARCHAR(MAX) = NULL,    
+			@level10Ids VARCHAR(MAX) = NULL 
+
+     IF OBJECT_ID(N'tempdb..#TEMPMSFilter') IS NOT NULL    
+	BEGIN    
+		DROP TABLE #TEMPMSFilter
+	END
+
+	CREATE TABLE #TEMPMSFilter([ID] BIGINT  IDENTITY(1,1),[LevelIds] VARCHAR(MAX)); 
+
+	INSERT INTO #TEMPMSFilter(LevelIds)	SELECT Item FROM DBO.SPLITSTRING(@strFilter,'!');
+
+	SELECT @level1Ids = LevelIds FROM #TEMPMSFilter WHERE ID = 1 
+	SELECT @level2Ids = LevelIds FROM #TEMPMSFilter WHERE ID = 2 
+	SELECT @level3Ids = LevelIds FROM #TEMPMSFilter WHERE ID = 3 
+	SELECT @level4Ids = LevelIds FROM #TEMPMSFilter WHERE ID = 4 
+	SELECT @level5Ids = LevelIds FROM #TEMPMSFilter WHERE ID = 5 
+	SELECT @level6Ids = LevelIds FROM #TEMPMSFilter WHERE ID = 6 
+	SELECT @level7Ids = LevelIds FROM #TEMPMSFilter WHERE ID = 7 
+	SELECT @level8Ids = LevelIds FROM #TEMPMSFilter WHERE ID = 8 
+	SELECT @level9Ids = LevelIds FROM #TEMPMSFilter WHERE ID = 9 
+	SELECT @level10Ids = LevelIds FROM #TEMPMSFilter WHERE ID = 10	 
 
   DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
 	
@@ -263,16 +287,19 @@ CREATE TABLE #tmprAPDisbursementReport
 
             AND (@InvoiceDueDate IS NULL OR CAST(rtp.DueDate AS DATE) = CAST( @InvoiceDueDate AS DATE))
             AND (@PaymentDate IS NULL OR CAST(rtp.CheckDate AS DATE) = CAST( @PaymentDate AS DATE) )
-            AND ( @Level1 IS NULL  OR ess.Level1Id IN (SELECT CAST(value AS INT) FROM STRING_SPLIT(@Level1, ',')))
-            AND ( @Level2 IS NULL OR ess.Level2Id IN (SELECT CAST(value AS INT) FROM STRING_SPLIT(@Level2, ',')))
-            AND ( @Level3 IS NULL  OR ess.Level3Id IN (SELECT CAST(value AS INT) FROM STRING_SPLIT(@Level3, ',')))
-            AND ( @Level4 IS NULL OR ess.Level4Id IN (SELECT CAST(value AS INT) FROM STRING_SPLIT(@Level4, ',')))
-            AND ( @Level5 IS NULL  OR ess.Level5Id IN (SELECT CAST(value AS INT) FROM STRING_SPLIT(@Level5, ',')))
-            AND ( @Level6 IS NULL  OR ess.Level6Id IN (SELECT CAST(value AS INT) FROM STRING_SPLIT(@Level6, ',')))
-            AND ( @Level7 IS NULL OR ess.Level7Id IN (SELECT CAST(value AS INT) FROM STRING_SPLIT(@Level7, ',')))
-            AND ( @Level8 IS NULL OR ess.Level8Id IN (SELECT CAST(value AS INT) FROM STRING_SPLIT(@Level8, ',')))
-            AND ( @Level9 IS NULL OR ess.Level9Id IN (SELECT CAST(value AS INT) FROM STRING_SPLIT(@Level9, ',')))
-            AND ( @Level10 IS NULL OR ess.Level10Id IN (SELECT CAST(value AS INT) FROM STRING_SPLIT(@Level10, ',')))
+        
+
+            AND (ISNULL(@level1Ids,'') =''  OR ess.Level1Id  IN (SELECT Item FROM DBO.SPLITSTRING(@level1Ids,',')))    
+	        AND (ISNULL(@level2Ids,'') =''  OR ess.Level2Id  IN (SELECT Item FROM DBO.SPLITSTRING(@level2Ids,',')))    
+	        AND (ISNULL(@level3Ids,'') =''  OR ess.Level3Id  IN (SELECT Item FROM DBO.SPLITSTRING(@level3Ids,',')))    
+	        AND (ISNULL(@level4Ids,'') =''  OR ess.Level4Id  IN (SELECT Item FROM DBO.SPLITSTRING(@level4Ids,',')))    
+	        AND (ISNULL(@level5Ids,'') =''  OR ess.Level5Id  IN (SELECT Item FROM DBO.SPLITSTRING(@level5Ids,',')))    
+	        AND (ISNULL(@level6Ids,'') =''  OR ess.Level6Id  IN (SELECT Item FROM DBO.SPLITSTRING(@level6Ids,',')))    
+	        AND (ISNULL(@level7Ids,'') =''  OR ess.Level7Id  IN (SELECT Item FROM DBO.SPLITSTRING(@level7Ids,',')))    
+	        AND (ISNULL(@level8Ids,'') =''  OR ess.Level8Id  IN (SELECT Item FROM DBO.SPLITSTRING(@level8Ids,',')))    
+	        AND (ISNULL(@level9Ids,'') =''  OR ess.Level9Id  IN (SELECT Item FROM DBO.SPLITSTRING(@level9Ids,',')))    
+	        AND (ISNULL(@level10Ids,'') ='' OR ess.Level10Id IN (SELECT Item FROM DBO.SPLITSTRING(@level10Ids,',')))
+
 
             GROUP BY rtp.VendorId
             
@@ -302,7 +329,7 @@ BEGIN CATCH
                 @DatabaseName VARCHAR(100) = DB_NAME(),
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
 
-                @AdhocComments VARCHAR(150) = '[usprpt_GetAPDisbursementReportByPayee]',
+                @AdhocComments VARCHAR(150) = '[usprpt_GetAPDisbursementReportByPayeeSSRS]',
                 @ProcedureParameters VARCHAR(3000) =
                     '@PageNumber = ''' + CAST(ISNULL(@PageNumber, '') AS VARCHAR(100)) +
                     '@PageSize = ''' + CAST(ISNULL(@PageSize, '') AS VARCHAR(100)) +

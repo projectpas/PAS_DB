@@ -1,4 +1,23 @@
-﻿-- exec [sp_GetManagmentStrcture] 86,32,86
+﻿/*************************************************************           
+ ** File:   [sp_GetManagmentStrcture]           
+ ** Author:   N/A
+ ** Description: This stored procedure is used retrieve Managment Strcture details.
+ ** Purpose:         
+ ** Date:   N/A
+          
+ ** PARAMETERS: 
+         
+ ** RETURN VALUE:           
+ **************************************************************           
+ ** Change History           
+ **************************************************************           
+ ** PR   Date         Author				Change Description            
+ ** --   --------     -------				--------------------------------          
+    1    N/A		  N/A					Created	
+	2	 04-Feb-2026  Divyesh Kathiriya	    Handle Self Reference To stop Endless loop.  
+	
+	EXEC [sp_GetManagmentStrcture] 49,210,0,14	
+**************************************************************/
 
 CREATE  Procedure [dbo].[sp_GetManagmentStrcture]
 @ManagementStructureId  bigint,
@@ -20,11 +39,11 @@ CREATE TABLE #EMSID
  ManagementStructureId BIGINT NULL
 )
 
-INSERT INTO #EMSID (ManagementStructureId) SELECT ManagementStructureId FROM dbo.EmployeeManagementStructure WITH (NOLOCK)
+INSERT INTO #EMSID (ManagementStructureId) SELECT ISNULL(ManagementStructureId,0) FROM dbo.EmployeeManagementStructure WITH (NOLOCK)
                                                       WHERE IsActive = 1 AND IsDeleted = 0 AND  EmployeeId  = @EmployeeID
 IF @EditManagementStructureId  > 0
 BEGIN
-INSERT INTO #EMSID (ManagementStructureId) SELECT @EditManagementStructureId
+	INSERT INTO #EMSID (ManagementStructureId) SELECT @EditManagementStructureId
 END 
 
 IF OBJECT_ID(N'tempdb..#ManagmetnStrcture') IS NOT NULL
@@ -41,14 +60,14 @@ CREATE TABLE #ManagmetnStrcture
 DECLARE @ParentId as int
 DECLARE @I as int = 1
 INSERT INTO #ManagmetnStrcture(ManagementStructureId,ManagementStrctureLevel) SELECT @ManagementStructureId , 'Level' 
-SELECT  @ParentId = ISNULL(ParentID,0) from dbo.ManagementStructure WITH (NOLOCK) where ManagementStructureId = @ManagementStructureId
+SET @ParentId = (select ISNULL(ParentID,0) from dbo.ManagementStructure WITH (NOLOCK) where ManagementStructureId = @ManagementStructureId)
 
 SET @ParentId = @ManagementStructureId
 Parent:
-SELECT  @ParentId = ISNULL(ParentID,0) from dbo.ManagementStructure WITH (NOLOCK) where ManagementStructureId = @ParentId
+	SET  @ParentId = (select ISNULL(ParentID,0) from dbo.ManagementStructure WITH (NOLOCK) where ManagementStructureId = @ParentId)
 IF(@ParentId > 0)
 BEGIN
-INSERT INTO #ManagmetnStrcture(ManagementStructureId, ManagementStrctureLevel) SELECT @ParentId , 'Level'
+	INSERT INTO #ManagmetnStrcture(ManagementStructureId, ManagementStrctureLevel) SELECT @ParentId , 'Level'
 GOTO Parent 
 END
 

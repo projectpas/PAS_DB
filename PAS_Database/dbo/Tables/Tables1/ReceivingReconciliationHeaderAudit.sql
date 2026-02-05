@@ -29,12 +29,7 @@
     [LegalEntityId]                  BIGINT          NULL,
     [ControlNumber]                  VARCHAR (150)   NULL,
     [VendorProformaAmount]           DECIMAL (18, 2) NULL,
+    [DueDate]                        DATETIME        NULL,
     CONSTRAINT [PK_ReceivingReconciliationHeaderAudit] PRIMARY KEY CLUSTERED ([AuditReceivingReconciliationId] ASC)
 );
-
-
-
-
-
-
 

@@ -43,6 +43,7 @@
 	26   11-03-2025   AMIT GHEDIYA      Update LegalEntityId condition to get from VendorPaymentDetailst table
 	27   27-11-2025   Moin Bloch	    added Manual Journal
 	28   03-12-2025   AMIT GHEDIYA	    update Manual Journal code type to (4 to 6)
+	29   03-02-2026   AMIT GHEDIYA	    update to get vendor which is not Payment Hold (PN-15337)
      
 -- EXEC VendorReadyToPayList 1,NULL,NULL,1  
 --EXEC dbo.VendorReadyToPayList @MasterCompanyId=1,@StartDate=default,@EndDate=default,@LegalEntityId=1
@@ -811,7 +812,9 @@ BEGIN
 			[CreatedDate] ,
 			[VendorProformaInvoiceId], 
 			[IsVendorOnHold] 
-		FROM #TempVendorReadyToPayList ORDER BY CreatedDate DESC;
+		FROM #TempVendorReadyToPayList 
+		WHERE ISNULL(IsVendorOnHold,0) = 0
+		ORDER BY CreatedDate DESC;
 
   END TRY      
   BEGIN CATCH        

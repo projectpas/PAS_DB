@@ -15,6 +15,7 @@
     2    18/02/2025   Devendra Shekh    Added Memo to Filter/Sorting
     3    16/04/2025   Devendra Shekh    Added IsLaborTrackingTurnedOff to select
 	4    04/02/2026   Moin Bloch		Added IsAdjustmentTask to Filter/Sorting
+	5    04/02/2026   Moin Bloch		Fix Nagetive Adjustment Value
 	
 
 	EXEC dbo.GetTravelerTaskList 10,1,'CreatedDate',-1,'','','','','',0,1,2
@@ -91,9 +92,11 @@ BEGIN
 					   expr.[Description] AS Expertise,
 					   ISNULL(CAST(FLOOR(wol.[Hours]) AS VARCHAR),0) AS LaborHours,  
 					   ISNULL(CAST(RIGHT(wol.[Hours], 2) AS VARCHAR),0) AS LaborMinutes,
-					   ISNULL(CAST(FLOOR(wol.[Adjustments]) AS VARCHAR),0) AS AdjustmentsHours,  
-					   ISNULL(CAST(RIGHT(wol.[Adjustments], 2) AS VARCHAR),0) AS AdjustmentsMinutes,
-					   ISNULL(CAST(FLOOR(wol.[AdjustedHours]) AS VARCHAR),0) AS AdjustedHour,  
+					   --ISNULL(CAST(FLOOR(wol.[Adjustments]) AS VARCHAR),0) AS AdjustmentsHours,  
+					   ISNULL(CAST([Adjustments] AS INT),0) AS AdjustmentsHours,  
+					   CASE WHEN wol.[Adjustments] < 0 THEN -ABS(ISNULL(CAST(RIGHT(wol.[Adjustments], 2) AS INT),0)) ELSE ISNULL(CAST(RIGHT(wol.[Adjustments], 2) AS VARCHAR),0) END AS AdjustmentsMinutes,
+					   ---ISNULL(CAST(FLOOR(wol.[AdjustedHours]) AS VARCHAR),0) AS AdjustedHour, 
+					   ISNULL(CAST([AdjustedHours] AS INT),0) AS AdjustedHour,  
 					   ISNULL(CAST(RIGHT(wol.[AdjustedHours], 2) AS VARCHAR),0) AS AdjustedMinute,
 					   wol.[StandardHours],
 					   wol.[StandardMinute],

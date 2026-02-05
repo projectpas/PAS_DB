@@ -136,7 +136,17 @@ CREATE TABLE #tmprAPDisbursementReport
   SELECT
             MAX(rtp.VendorName)  AS 'Payee',
             MAX(VND.VendorCode)  AS 'VendorCode',
-            NULL AS 'InvoiceNum',
+            
+             MAX(
+    CASE 
+        WHEN ISNULL(VPD.ReceivingReconciliationId,0) > 0 THEN RRC.InvoiceNum
+        WHEN ISNULL(VPD.CreditMemoHeaderId,0) > 0 THEN CM.InvoiceNumber
+        WHEN ISNULL(VPD.NonPOInvoiceId,0) > 0 THEN NPH.InvoiceNumber
+        WHEN ISNULL(VPD.CustomerCreditPaymentDetailId,0) > 0 THEN CCPD.ReferenceNumber
+        WHEN ISNULL(VPD.VendorProformaInvoiceId,0) > 0 THEN VNPH.InvoiceNumber
+    END
+) AS InvoiceNum,
+
             NULL AS 'InvoiceDate',
             NULL AS 'PaymentMethod',
             NULL AS 'PaymentReference',
@@ -277,6 +287,7 @@ CREATE TABLE #tmprAPDisbursementReport
     -- Pagination
         SELECT *
         FROM #tmprAPDisbursementReport
+         WHERE InvoiceNum is not null
         ORDER BY Payee
         OFFSET 
             CASE 
@@ -291,7 +302,8 @@ CREATE TABLE #tmprAPDisbursementReport
 
         -- Total Records Count
         SELECT COUNT(*) AS TotalRecords
-        FROM #tmprAPDisbursementReport;
+        FROM #tmprAPDisbursementReport
+        WHERE InvoiceNum is not null;
 
 
 END TRY

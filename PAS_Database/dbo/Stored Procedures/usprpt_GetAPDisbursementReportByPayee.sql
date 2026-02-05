@@ -56,13 +56,13 @@ CREATE         PROCEDURE [dbo].[usprpt_GetAPDisbursementReportByPayee]
 
 
 @PageNumber INT = 1,
-@PageSize INT = NULL
+@PageSize INT = NULL,
+@SortColumn VARCHAR(50)=NULL,
+@SortOrder INT = NULL
 AS
 BEGIN
     SET NOCOUNT ON;
     SET TRANSACTION ISOLATION LEVEL READ COMMITTED;
-
-    DECLARE @IsMultiCurrency BIT = 0;
 
   BEGIN TRY
 
@@ -88,6 +88,15 @@ BEGIN
 					E.EmployeeId = @EmployeeId;	
 
 
+        -- Set sort column
+        IF @SortColumn IS NULL
+        BEGIN
+            SET @SortColumn = UPPER('InvoiceNum');
+        END
+        ELSE
+        BEGIN
+            SET @SortColumn = UPPER(@SortColumn);
+        END
                     
        IF OBJECT_ID(N'tempdb..#tmprAPDisbursementReport') IS NOT NULL
        BEGIN
@@ -288,7 +297,32 @@ CREATE TABLE #tmprAPDisbursementReport
         SELECT *
         FROM #tmprAPDisbursementReport
          WHERE InvoiceNum is not null
-        ORDER BY Payee
+        ORDER BY
+            CASE WHEN (@SortOrder = 1  AND @SortColumn = 'payee')              THEN Payee END ASC,
+            CASE WHEN (@SortOrder = -1 AND @SortColumn = 'payee')              THEN Payee END DESC,
+            CASE WHEN (@SortOrder = 1  AND @SortColumn = 'vendorCode')         THEN VendorCode END ASC,
+            CASE WHEN (@SortOrder = -1 AND @SortColumn = 'vendorCode')         THEN VendorCode END DESC,
+            CASE WHEN (@SortOrder = 1  AND @SortColumn = 'invoiceNum')         THEN InvoiceNum END ASC,
+            CASE WHEN (@SortOrder = -1 AND @SortColumn = 'invoiceNum')         THEN InvoiceNum END DESC,
+            CASE WHEN (@SortOrder = 1  AND @SortColumn = 'invoiceDate')        THEN InvoiceDate END ASC,
+            CASE WHEN (@SortOrder = -1 AND @SortColumn = 'invoiceDate')        THEN InvoiceDate END DESC,
+            CASE WHEN (@SortOrder = 1  AND @SortColumn = 'paymentMethod')      THEN PaymentMethod END ASC,
+            CASE WHEN (@SortOrder = -1 AND @SortColumn = 'paymentMethod')      THEN PaymentMethod END DESC,
+            CASE WHEN (@SortOrder = 1  AND @SortColumn = 'paymentReference')   THEN PaymentReference END ASC,
+            CASE WHEN (@SortOrder = -1 AND @SortColumn = 'paymentReference')   THEN PaymentReference END DESC,
+            CASE WHEN (@SortOrder = 1  AND @SortColumn = 'paymentDate')        THEN PaymentDate END ASC,
+            CASE WHEN (@SortOrder = -1 AND @SortColumn = 'paymentDate')        THEN PaymentDate END DESC,
+            CASE WHEN (@SortOrder = 1  AND @SortColumn = 'baseCurrencyAmount') THEN BaseCurrencyAmount END ASC,
+            CASE WHEN (@SortOrder = -1 AND @SortColumn = 'baseCurrencyAmount') THEN BaseCurrencyAmount END DESC,
+            CASE WHEN (@SortOrder = 1  AND @SortColumn = 'baseCurrency')       THEN BaseCurrency END ASC,
+            CASE WHEN (@SortOrder = -1 AND @SortColumn = 'baseCurrency')       THEN BaseCurrency END DESC,
+            CASE WHEN (@SortOrder = 1  AND @SortColumn = 'invoiceDueDate')     THEN InvoiceDueDate END ASC,
+            CASE WHEN (@SortOrder = -1 AND @SortColumn = 'invoiceDueDate')     THEN InvoiceDueDate END DESC,
+            CASE WHEN (@SortOrder = 1  AND @SortColumn = 'bankAccount')        THEN BankAccount END ASC,
+            CASE WHEN (@SortOrder = -1 AND @SortColumn = 'bankAccount')        THEN BankAccount END DESC,
+            CASE WHEN (@SortOrder = 1  AND @SortColumn = 'glAccountNum')       THEN GLAccountNum END ASC,
+            CASE WHEN (@SortOrder = -1 AND @SortColumn = 'glAccountNum')       THEN GLAccountNum END DESC
+
         OFFSET 
             CASE 
                 WHEN @PageSize IS NULL THEN 0

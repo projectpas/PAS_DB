@@ -1,5 +1,4 @@
-﻿
-/*************************************************************                   
+﻿/*************************************************************                   
  ** File:  [usprpt_GetAPAgingReport_SSRS]                   
  ** Author: Rajesh Gami         
  ** Description: Get Data for AP Aging Report        
@@ -18,9 +17,11 @@
     1    15 APR 2024    Rajesh Gami		   Created  
 	2    03 OCT 2025    Rajesh Gami		   Fixed the Remaining Amount related issue
 	3    27-JAN-2026    RAJESH GAMI        Add InvoiceNumber
+	4    05-FEB-2026    Amit Ghediya       update for group by to pagesize reduce issue
   --[dbo].[usprpt_GetAPAgingReport_SSRS] 1,'2026-01-27',3654,2,null,null
+  exec [dbo].[usprpt_GetAPAgingReport_SSRS] 1,'2/5/2026',0,2,null,null,'1,5,6,20,22,52,53!2,7,8,9!3,11,10!4,12,13!!!!!!'
 ***************************************************************************************************/        
-CREATE       PROCEDURE [dbo].[usprpt_GetAPAgingReport_SSRS]       
+CREATE         PROCEDURE [dbo].[usprpt_GetAPAgingReport_SSRS]       
 @mastercompanyid INT,
 @id DATETIME2,
 @id2 VARCHAR(100) = null,
@@ -110,7 +111,8 @@ BEGIN
 			  AND (ISNULL(@Level8,'') ='' OR MSD.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,',')))      
 			  AND (ISNULL(@Level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))      
 			  AND (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))       
-			GROUP BY rrh.ReceivingReconciliationId )R
+			--GROUP BY rrh.ReceivingReconciliationId 
+			)R
 
 			SELECT * INTO #tempCreditMemoCount FROM 
 			(SELECT DISTINCT (VCD.[VendorCreditMemoId]) AS VendorCreditMemoId		
@@ -199,7 +201,9 @@ BEGIN
 			  AND (ISNULL(@Level8,'') ='' OR MSD.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,',')))      
 			  AND (ISNULL(@Level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))      
 			  AND (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))        
-			GROUP BY NPH.NonPOInvoiceId )U
+			--GROUP BY NPH.NonPOInvoiceId 
+			)U
+
 
        SELECT @PageSize=COUNT(*)       
 			FROM (
@@ -212,6 +216,7 @@ BEGIN
 					Select * from #tempNonPODetailsCount		
 		) TEMP 
    END    
+  
    SET @PageSize = CASE WHEN NULLIF(@PageSize,0) IS NULL THEN 10 ELSE @PageSize END      
    SET @PageNumber = CASE WHEN NULLIF(@PageNumber,0) IS NULL THEN 1 ELSE @PageNumber END      
     IF(@Typeid = 1)
@@ -584,6 +589,8 @@ BEGIN
 			TotalAmountpaidby90days, TotalAmountpaidby120days, TotalAmountpaidbymorethan120days,cmAmount
 			--,DaysPastDue
 
+			
+
     SELECT @Count = COUNT(VendorId) FROM #TempResult1Final     
     SELECT @Count AS TotalRecordsCount
 	,rNo
@@ -672,6 +679,7 @@ BEGIN
 			  AND (ISNULL(@Level8,'') ='' OR MSD.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,',')))      
 			  AND (ISNULL(@Level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))      
 			  AND (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))) F
+			 -- select * from #tempReceivingReconciliationElse
 		-- Credit Memo --
 		SELECT * INTO #tempCreditMemoElse FROM 
 		(SELECT DISTINCT (VCM.[VendorId]) AS VendorId,
@@ -952,8 +960,9 @@ BEGIN
 			     TotalAmountpaidbymorethan120days,DaysPastDue				 
 		  INTO #TempResult2 FROM  Result FC
 		  INNER JOIN WithTotal WC ON FC.MastercompanyId = WC.MastercompanyId
-
+		 
 		  SELECT @Count = COUNT(VendorId) FROM #TempResult2  
+		 
 		  SELECT @Count AS TotalRecordsCount,
 		         vendorName, 
 		         vendorCode, 
@@ -986,6 +995,7 @@ BEGIN
 
 			ORDER BY CASE WHEN ISNULL(@IsDownload,0) = 0 THEN InvoiceDate ELSE InvoiceDate  
 		END
+		
 		OFFSET((@PageNumber-1) * @pageSize) ROWS FETCH NEXT @pageSize ROWS ONLY;  
 		
 	END

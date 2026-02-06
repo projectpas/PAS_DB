@@ -1,8 +1,4 @@
-﻿
-
-
-
-/*************************************************************                   
+﻿/*************************************************************                   
  ** File:  [usprpt_GetAPDisbursementReportByPayeeSSRS]                   
  ** Author: Priyansh Patel     
  ** Description: Get Data for AP Disbursement Report        
@@ -26,7 +22,7 @@
 
 ***************************************************************************************************/   
 
-CREATE              PROCEDURE [dbo].[usprpt_GetAPDisbursementReportByPayeeSSRS]
+CREATE                PROCEDURE [dbo].[usprpt_GetAPDisbursementReportByPayeeSSRS]
 @FromPaymentDate DATE = NULL,
 @ToPaymentDate DATE = NULL,
 @Payee VARCHAR(200) = NULL,
@@ -38,7 +34,6 @@ CREATE              PROCEDURE [dbo].[usprpt_GetAPDisbursementReportByPayeeSSRS]
 @InvoiceDate        DATE = NULL,
 @InvoiceDueDate     DATE = NULL,
 @PaymentDate        DATE = NULL,
-@PaymentReference   VARCHAR(100) = NULL,
 @BankAccount        VARCHAR(200) = NULL,
 @BaseCurrency       VARCHAR(50) = NULL,
 @GlAccountNum       VARCHAR(200) = NULL,
@@ -273,7 +268,6 @@ CREATE TABLE #tmprAPDisbursementReport
                         OR (ISNULL(VPD.VendorProformaInvoiceId,0) > 0 AND VNPH.InvoiceNumber LIKE '%' + @InvoiceNum + '%')
                     ))
             AND (@PaymentRef IS NULL OR rtp.CheckNumber LIKE '%' + @PaymentRef + '%')
-            AND (@PaymentReference IS NULL OR rtp.CheckNumber LIKE '%' + @PaymentReference + '%')
 
             AND (@BankAccount IS NULL OR CONCAT(lebl.BankName,' - ',lebl.BankAccountNumber) LIKE '%' + @BankAccount + '%')
             AND (@BaseCurrency IS NULL OR rtp.CurrencyName LIKE '%' + @BaseCurrency + '%')

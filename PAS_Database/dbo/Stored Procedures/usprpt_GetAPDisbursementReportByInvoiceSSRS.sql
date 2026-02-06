@@ -351,17 +351,7 @@ BEGIN
      SELECT *
         FROM #tmprAPDisbursementReportInvoice
          WHERE InvoiceNum is not null
-        ORDER BY InvoiceNum
-    OFFSET 
-    CASE 
-        WHEN @PageSize IS NULL THEN 0
-        ELSE (@PageNumber - 1) * @PageSize
-    END ROWS
-FETCH NEXT 
-    CASE 
-        WHEN @PageSize IS NULL THEN NULL
-        ELSE @PageSize
-    END ROWS ONLY;
+        ORDER BY InvoiceNum;
      
      -- Total Records Count
         SELECT COUNT(*) AS TotalRecords

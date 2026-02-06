@@ -4557,8 +4557,8 @@
     <Build Include="dbo\Stored Procedures\usprpt_GetInventoryQuantityAdjustmentReport_SSRS.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdateShipToSiteInfo.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetCurrentShipToSiteInfo.sql" />
-    <Build Include="dbo\Stored Procedures\usprpt_GetAPDisbursementReportByPayeeSSRS_1.sql" />
-    <Build Include="dbo\Stored Procedures\usprpt_GetAPDisbursementReportByInvoiceSSRS_1.sql" />
+    <Build Include="dbo\Stored Procedures\usprpt_GetAPDisbursementReportByPayeeSSRS.sql" />
+    <Build Include="dbo\Stored Procedures\usprpt_GetAPDisbursementReportByInvoiceSSRS.sql" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Snapshots\PAS_DB_20220518_07-53-10.dacpac" />

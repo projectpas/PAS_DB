@@ -39,8 +39,8 @@ CREATE    PROCEDURE [dbo].[USP_SearchBulkStockData]
     @Condition         VARCHAR(50) = NULL,
     @StockLineNumber   VARCHAR(50) = NULL,
     @ControlNumber     VARCHAR(50) = NULL,
-    @NewQty        VARCHAR(50) = NULL,
-    @UnitCost      VARCHAR(50) = NULL,
+    @QtyAdjustment     VARCHAR(50) = NULL,
+    @NewUnitCost      VARCHAR(50) = NULL,
     @LastMSLevel   VARCHAR(200) = NULL,
     @AllMSLevels   VARCHAR(500) = NULL
 
@@ -164,8 +164,8 @@ BEGIN
                     IM.PartNumber,
                     IM.PartDescription,
 
-                    BSAD.NewQty,
-                    BSAD.UnitCost,
+                    BSAD.QtyAdjustment,
+                    BSAD.NewUnitCost,
                     BSAD.LastMSLevel,
                     BSAD.AllMSLevels,
 
@@ -196,8 +196,8 @@ BEGIN
                     CreatedDate,
                     PartNumber,
                     PartDescription,
-                    NewQty,
-                    UnitCost,
+                    QtyAdjustment,
+                    NewUnitCost,
                     LastMSLevel,
                     AllMSLevels,
                     [Condition],
@@ -217,8 +217,8 @@ BEGIN
                         OR LOWER(AdjustmentType) LIKE '%' + LOWER(@GlobalFilter) + '%'
                         OR LOWER(LastMSLevel) LIKE '%' + LOWER(@GlobalFilter) + '%'
                         OR LOWER(AllMSLevels) LIKE '%' + LOWER(@GlobalFilter) + '%'
-                        OR CAST(NewQty AS VARCHAR(50)) LIKE '%' + @GlobalFilter + '%'
-                        OR CAST(UnitCost AS VARCHAR(50)) LIKE '%' + @GlobalFilter + '%'
+                        OR CAST(QtyAdjustment AS VARCHAR(50)) LIKE '%' + @GlobalFilter + '%'
+                        OR CAST(NewUnitCost AS VARCHAR(50)) LIKE '%' + @GlobalFilter + '%'
                     )
                 )
                 OR
@@ -233,8 +233,8 @@ BEGIN
                     AND (ISNULL(@ControlNumber, '') = '' OR ControlNumber LIKE '%' + @ControlNumber + '%')
                     AND (ISNULL(@LastMSLevel, '') = '' OR LastMSLevel LIKE '%' + @LastMSLevel + '%')
                     AND (ISNULL(@AllMSLevels, '') = '' OR AllMSLevels LIKE '%' + @AllMSLevels + '%')
-                    AND (ISNULL(@NewQty, '') = '' OR CAST(NewQty AS VARCHAR(50)) LIKE '%' + @NewQty + '%')
-                    AND (ISNULL(@UnitCost, '') = '' OR CAST(UnitCost AS VARCHAR(50)) LIKE '%' + @UnitCost + '%')
+                    AND (ISNULL(@QtyAdjustment, '') = '' OR CAST(QtyAdjustment AS VARCHAR(50)) LIKE '%' + @QtyAdjustment + '%')
+                    AND (ISNULL(@NewUnitCost, '') = '' OR CAST(NewUnitCost AS VARCHAR(50)) LIKE '%' + @NewUnitCost + '%')
                 )
             ),
             ResultCount AS
@@ -248,8 +248,8 @@ BEGIN
                 CreatedDate,
                 PartNumber,
                 PartDescription,
-                NewQty,
-                UnitCost,
+                QtyAdjustment,
+                NewUnitCost,
                 LastMSLevel,
                 AllMSLevels,
                 [Condition],
@@ -283,11 +283,11 @@ BEGIN
                 CASE WHEN (@SortOrder = 1 AND @SortColumn = 'CONTROLNUMBER') THEN ControlNumber END ASC,
                 CASE WHEN (@SortOrder = -1 AND @SortColumn = 'CONTROLNUMBER') THEN ControlNumber END DESC,
 
-                CASE WHEN (@SortOrder = 1 AND @SortColumn = 'NEWQTY') THEN NewQty END ASC,
-                CASE WHEN (@SortOrder = -1 AND @SortColumn = 'NEWQTY') THEN NewQty END DESC,
+                CASE WHEN (@SortOrder = 1 AND @SortColumn = 'QTYADJUSTMENT') THEN QtyAdjustment END ASC,
+                CASE WHEN (@SortOrder = -1 AND @SortColumn = 'QTYADJUSTMENT') THEN QtyAdjustment END DESC,
 
-                CASE WHEN (@SortOrder = 1 AND @SortColumn = 'UNITCOST') THEN UnitCost END ASC,
-                CASE WHEN (@SortOrder = -1 AND @SortColumn = 'UNITCOST') THEN UnitCost END DESC,
+                CASE WHEN (@SortOrder = 1 AND @SortColumn = 'NEWUNITCOST') THEN NewUnitCost END ASC,
+                CASE WHEN (@SortOrder = -1 AND @SortColumn = 'NEWUNITCOST') THEN NewUnitCost END DESC,
 
                 CASE WHEN (@SortOrder = 1 AND @SortColumn = 'LASTMSLEVEL') THEN LastMSLevel END ASC,
                 CASE WHEN (@SortOrder = -1 AND @SortColumn = 'LASTMSLEVEL') THEN LastMSLevel END DESC,

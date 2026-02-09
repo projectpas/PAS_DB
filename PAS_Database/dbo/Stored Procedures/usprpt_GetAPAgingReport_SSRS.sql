@@ -1,5 +1,4 @@
-﻿
-/*************************************************************                   
+﻿/*************************************************************                   
  ** File:  [usprpt_GetAPAgingReport_SSRS]                   
  ** Author: Rajesh Gami         
  ** Description: Get Data for AP Aging Report        
@@ -18,9 +17,12 @@
     1    15 APR 2024    Rajesh Gami		   Created  
 	2    03 OCT 2025    Rajesh Gami		   Fixed the Remaining Amount related issue
 	3    27-JAN-2026    RAJESH GAMI        Add InvoiceNumber
+	4    05-FEB-2026    Amit Ghediya       update for group by to pagesize reduce issue
+	5    09-FEB-2026    Rajesh Gami       Added NONSTOCK, ASSET Management Structure JOIN in Receiving Reconciliation
   --[dbo].[usprpt_GetAPAgingReport_SSRS] 1,'2026-01-27',3654,2,null,null
+  exec [dbo].[usprpt_GetAPAgingReport_SSRS] 1,'2/5/2026',0,2,null,null,'1,5,6,20,22,52,53!2,7,8,9!3,11,10!4,12,13!!!!!!'
 ***************************************************************************************************/        
-CREATE       PROCEDURE [dbo].[usprpt_GetAPAgingReport_SSRS]       
+CREATE         PROCEDURE [dbo].[usprpt_GetAPAgingReport_SSRS]       
 @mastercompanyid INT,
 @id DATETIME2,
 @id2 VARCHAR(100) = null,
@@ -50,7 +52,7 @@ BEGIN
         
   BEGIN TRY        
     --BEGIN TRANSACTION                     
-      DECLARE @ModuleID INT = 2; -- MS Module ID      
+      DECLARE @ModuleID INT = 2, @NonStockModuleID INT = 11 , @AssetModuleID INT =42; -- MS Module ID      
       DECLARE @Count BIGINT =0,@PostStatusId INT, @CMPostedStatusId INT,@MSModuleId INT = 0,@CMMSModuleID BIGINT = 61,@invoiceNum varchar(30) = '',@PageSize int = 0,@PageNumber int = 1;
 	  SELECT @PostStatusId = [ManualJournalStatusId] FROM [dbo].[ManualJournalStatus] WHERE [Name] = 'Posted';
 	  SELECT @CMPostedStatusId = [Id] FROM [dbo].[CreditMemoStatus] WHERE [Name] = 'Posted';
@@ -94,23 +96,86 @@ BEGIN
 			  INNER JOIN [dbo].[Vendor] v  WITH (NOLOCK) ON v.VendorId=rrh.VendorId      
 			  LEFT JOIN  [dbo].[CreditTerms] ctm WITH(NOLOCK) ON ctm.CreditTermsId = v.CreditTermsId      
 			  LEFT JOIN dbo.StocklineManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = rrd.StocklineId and UPPER(rrd.StockType)= 'STOCK'
+			  LEFT JOIN dbo.NonStocklineManagementStructureDetails NMSD WITH (NOLOCK) ON NMSD.ModuleID = @NonStockModuleID AND NMSD.ReferenceID = rrd.StocklineId and UPPER(rrd.StockType)= 'NONSTOCK'
+			  LEFT JOIN dbo.AssetManagementStructureDetails AMSD WITH (NOLOCK) ON AMSD.ModuleID = @AssetModuleID AND AMSD.ReferenceID = rrd.StocklineId and UPPER(rrd.StockType)= 'ASSET' 
 			  LEFT JOIN [dbo].[EntityStructureSetup] ES ON ES.EntityStructureId = MSD.EntityMSID                  
 			  WHERE rrh.VendorId = ISNULL(@vendorId,rrh.VendorId)        
 			  AND CAST(rrh.InvoiceDate AS DATE) <= CAST(@ToDate AS DATE) 
-			  AND vpd.RemainingAmount > 0 AND rrh.InvoiceNum = ISNULL(@invoiceNum,rrh.InvoiceNum)
+			  AND vpd.RemainingAmount > 0 --AND rrh.InvoiceNum = ISNULL(@invoiceNum,rrh.InvoiceNum)
 			  AND rrh.MasterCompanyId = @mastercompanyid			  
 			  AND (ISNULL(@tagtype,'')='' OR ES.OrganizationTagTypeId IN(SELECT value FROM String_split(ISNULL(@tagtype,''), ',')))      
-			  AND (ISNULL(@Level1,'') ='' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))      
-			  AND (ISNULL(@Level2,'') ='' OR MSD.[Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,',')))      
-			  AND (ISNULL(@Level3,'') ='' OR MSD.[Level3Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level3,',')))      
-			  AND (ISNULL(@Level4,'') ='' OR MSD.[Level4Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level4,',')))      
-			  AND (ISNULL(@Level5,'') ='' OR MSD.[Level5Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level5,',')))      
-			  AND (ISNULL(@Level6,'') ='' OR MSD.[Level6Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level6,',')))      
-			  AND (ISNULL(@Level7,'') ='' OR MSD.[Level7Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level7,',')))      
-			  AND (ISNULL(@Level8,'') ='' OR MSD.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,',')))      
-			  AND (ISNULL(@Level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))      
-			  AND (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))       
-			GROUP BY rrh.ReceivingReconciliationId )R
+			  AND (	ISNULL(@Level1,'') = ''
+					OR (
+						(UPPER(rrd.StockType) = 'STOCK'    AND MSD.Level1Id IN (SELECT Item FROM dbo.SplitString(@Level1, ',')))
+					 OR (UPPER(rrd.StockType) = 'NONSTOCK' AND NMSD.Level1Id IN (SELECT Item FROM dbo.SplitString(@Level1, ',')))
+					 OR (UPPER(rrd.StockType) = 'ASSET'    AND AMSD.Level1Id IN (SELECT Item FROM dbo.SplitString(@Level1, ',')))
+					)
+				)
+				AND (	ISNULL(@Level2,'') = ''
+					OR (
+						(UPPER(rrd.StockType) = 'STOCK'    AND MSD.Level2Id IN (SELECT Item FROM dbo.SplitString(@Level2, ',')))
+					 OR (UPPER(rrd.StockType) = 'NONSTOCK' AND NMSD.Level2Id IN (SELECT Item FROM dbo.SplitString(@Level2, ',')))
+					 OR (UPPER(rrd.StockType) = 'ASSET'    AND AMSD.Level2Id IN (SELECT Item FROM dbo.SplitString(@Level2, ',')))
+					)
+				)
+				AND (	ISNULL(@Level3,'') = ''
+					OR (
+						(UPPER(rrd.StockType) = 'STOCK'    AND MSD.Level3Id IN (SELECT Item FROM dbo.SplitString(@Level3, ',')))
+					 OR (UPPER(rrd.StockType) = 'NONSTOCK' AND NMSD.Level3Id IN (SELECT Item FROM dbo.SplitString(@Level3, ',')))
+					 OR (UPPER(rrd.StockType) = 'ASSET'    AND AMSD.Level3Id IN (SELECT Item FROM dbo.SplitString(@Level3, ',')))
+					)
+				)
+				AND (	ISNULL(@Level4,'') = ''
+					OR (
+						(UPPER(rrd.StockType) = 'STOCK'    AND MSD.Level4Id IN (SELECT Item FROM dbo.SplitString(@Level4, ',')))
+					 OR (UPPER(rrd.StockType) = 'NONSTOCK' AND NMSD.Level4Id IN (SELECT Item FROM dbo.SplitString(@Level4, ',')))
+					 OR (UPPER(rrd.StockType) = 'ASSET'    AND AMSD.Level4Id IN (SELECT Item FROM dbo.SplitString(@Level4, ',')))
+					)
+				)
+				AND (	ISNULL(@Level5,'') = ''
+					OR (
+						(UPPER(rrd.StockType) = 'STOCK'    AND MSD.Level5Id IN (SELECT Item FROM dbo.SplitString(@Level5, ',')))
+					 OR (UPPER(rrd.StockType) = 'NONSTOCK' AND NMSD.Level5Id IN (SELECT Item FROM dbo.SplitString(@Level5, ',')))
+					 OR (UPPER(rrd.StockType) = 'ASSET'    AND AMSD.Level5Id IN (SELECT Item FROM dbo.SplitString(@Level5, ',')))
+					)
+				)
+				AND (	ISNULL(@Level6,'') = ''
+					OR (
+						(UPPER(rrd.StockType) = 'STOCK'    AND MSD.Level6Id IN (SELECT Item FROM dbo.SplitString(@Level6, ',')))
+					 OR (UPPER(rrd.StockType) = 'NONSTOCK' AND NMSD.Level6Id IN (SELECT Item FROM dbo.SplitString(@Level6, ',')))
+					 OR (UPPER(rrd.StockType) = 'ASSET'    AND AMSD.Level6Id IN (SELECT Item FROM dbo.SplitString(@Level6, ',')))
+					)
+				)
+				AND (	ISNULL(@Level7,'') = ''
+					OR (
+						(UPPER(rrd.StockType) = 'STOCK'    AND MSD.Level7Id IN (SELECT Item FROM dbo.SplitString(@Level7, ',')))
+					 OR (UPPER(rrd.StockType) = 'NONSTOCK' AND NMSD.Level7Id IN (SELECT Item FROM dbo.SplitString(@Level7, ',')))
+					 OR (UPPER(rrd.StockType) = 'ASSET'    AND AMSD.Level7Id IN (SELECT Item FROM dbo.SplitString(@Level7, ',')))
+					)
+				)
+				AND (	ISNULL(@Level8,'') = ''
+					OR (
+						(UPPER(rrd.StockType) = 'STOCK'    AND MSD.Level8Id IN (SELECT Item FROM dbo.SplitString(@Level8, ',')))
+					 OR (UPPER(rrd.StockType) = 'NONSTOCK' AND NMSD.Level8Id IN (SELECT Item FROM dbo.SplitString(@Level8, ',')))
+					 OR (UPPER(rrd.StockType) = 'ASSET'    AND AMSD.Level8Id IN (SELECT Item FROM dbo.SplitString(@Level8, ',')))
+					)
+				)
+				AND (	ISNULL(@Level9,'') = ''
+					OR (
+						(UPPER(rrd.StockType) = 'STOCK'    AND MSD.Level9Id IN (SELECT Item FROM dbo.SplitString(@Level9, ',')))
+					 OR (UPPER(rrd.StockType) = 'NONSTOCK' AND NMSD.Level9Id IN (SELECT Item FROM dbo.SplitString(@Level9, ',')))
+					 OR (UPPER(rrd.StockType) = 'ASSET'    AND AMSD.Level9Id IN (SELECT Item FROM dbo.SplitString(@Level9, ',')))
+					)
+				)
+				AND (	ISNULL(@Level10,'') = ''
+					OR (
+						(UPPER(rrd.StockType) = 'STOCK'    AND MSD.Level10Id IN (SELECT Item FROM dbo.SplitString(@Level10, ',')))
+					 OR (UPPER(rrd.StockType) = 'NONSTOCK' AND NMSD.Level10Id IN (SELECT Item FROM dbo.SplitString(@Level10, ',')))
+					 OR (UPPER(rrd.StockType) = 'ASSET'    AND AMSD.Level10Id IN (SELECT Item FROM dbo.SplitString(@Level10, ',')))
+					)
+				)      
+			--GROUP BY rrh.ReceivingReconciliationId 
+			)R
 
 			SELECT * INTO #tempCreditMemoCount FROM 
 			(SELECT DISTINCT (VCD.[VendorCreditMemoId]) AS VendorCreditMemoId		
@@ -199,7 +264,9 @@ BEGIN
 			  AND (ISNULL(@Level8,'') ='' OR MSD.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,',')))      
 			  AND (ISNULL(@Level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))      
 			  AND (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))        
-			GROUP BY NPH.NonPOInvoiceId )U
+			--GROUP BY NPH.NonPOInvoiceId 
+			)U
+
 
        SELECT @PageSize=COUNT(*)       
 			FROM (
@@ -212,6 +279,7 @@ BEGIN
 					Select * from #tempNonPODetailsCount		
 		) TEMP 
    END    
+  
    SET @PageSize = CASE WHEN NULLIF(@PageSize,0) IS NULL THEN 10 ELSE @PageSize END      
    SET @PageNumber = CASE WHEN NULLIF(@PageNumber,0) IS NULL THEN 1 ELSE @PageNumber END      
     IF(@Typeid = 1)
@@ -246,9 +314,21 @@ BEGIN
 																	WHEN ctm.Code='CreditCard' THEN -1
 																	WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END), GETUTCDATE()) > 120 THEN vpd.RemainingAmount	ELSE 0 END) AS Amountpaidbymorethan120days,
 					(rrh.ManagementStructureId) AS ManagementStructureId, 'AP-Inv' AS 'DocType','' AS 'vendorRef', '' AS 'Salesperson',ctm.Name AS 'Terms', '0' AS 'FixRateAmount', rrh.InvoiceTotal AS 'InvoiceAmount',
-					0 AS 'cmAmount',0 AS CreditMemoAmount,	DATEADD(DAY, ctm.NetDays,rrh.InvoiceDate) AS 'DueDate', UPPER(MSD.Level1Name) AS level1,UPPER(MSD.Level2Name) AS level2,       
-					UPPER(MSD.Level3Name) AS level3,UPPER(MSD.Level4Name) AS level4, UPPER(MSD.Level5Name) AS level5, UPPER(MSD.Level6Name) AS level6, UPPER(MSD.Level7Name) AS level7,       
-					UPPER(MSD.Level8Name) AS level8,UPPER(MSD.Level9Name) AS level9,UPPER(MSD.Level10Name) AS level10,rrh.MasterCompanyId,0 AS IsCreditMemo,0 AS StatusId
+					0 AS 'cmAmount',0 AS CreditMemoAmount,	DATEADD(DAY, ctm.NetDays,rrh.InvoiceDate) AS 'DueDate', 
+					--UPPER(MSD.Level1Name) AS level1,UPPER(MSD.Level2Name) AS level2,       
+					--UPPER(MSD.Level3Name) AS level3,UPPER(MSD.Level4Name) AS level4, UPPER(MSD.Level5Name) AS level5, UPPER(MSD.Level6Name) AS level6, UPPER(MSD.Level7Name) AS level7,       
+					--UPPER(MSD.Level8Name) AS level8,UPPER(MSD.Level9Name) AS level9,UPPER(MSD.Level10Name) AS level10
+					UPPER(COALESCE(MSD.Level1Name, NMSD.Level1Name, AMSD.Level1Name)) AS Level1,
+					UPPER(COALESCE(MSD.Level2Name, NMSD.Level2Name, AMSD.Level2Name)) AS Level2,
+					UPPER(COALESCE(MSD.Level3Name, NMSD.Level3Name, AMSD.Level3Name)) AS Level3,
+					UPPER(COALESCE(MSD.Level4Name, NMSD.Level4Name, AMSD.Level4Name)) AS Level4,
+					UPPER(COALESCE(MSD.Level5Name, NMSD.Level5Name, AMSD.Level5Name)) AS Level5,
+					UPPER(COALESCE(MSD.Level6Name, NMSD.Level6Name, AMSD.Level6Name)) AS Level6,
+					UPPER(COALESCE(MSD.Level7Name, NMSD.Level7Name, AMSD.Level7Name)) AS Level7,
+					UPPER(COALESCE(MSD.Level8Name, NMSD.Level8Name, AMSD.Level8Name)) AS Level8,
+					UPPER(COALESCE(MSD.Level9Name, NMSD.Level9Name, AMSD.Level9Name)) AS Level9,
+					UPPER(COALESCE(MSD.Level10Name, NMSD.Level10Name, AMSD.Level10Name)) AS Level10
+					,rrh.MasterCompanyId,0 AS IsCreditMemo,0 AS StatusId
 				   ,vpd.PaymentMade AS InvoicePaidAmount
 				   ,CASE WHEN (DATEDIFF(DAY, CAST(rrh.InvoiceDate AS DATETIME) + ISNULL(ctm.NetDays,0), GETUTCDATE())) > 0 THEN (DATEDIFF(DAY, CAST(rrh.InvoiceDate AS DATETIME) + ISNULL(ctm.NetDays,0), GETUTCDATE())) ELSE 0 END AS 'DaysPastDue'
          FROM [dbo].[ReceivingReconciliationHeader] rrh WITH (NOLOCK)       
@@ -259,22 +339,85 @@ BEGIN
 			  --LEFT JOIN [dbo].[VendorReadyToPayDetails] vrp WITH (NOLOCK) ON rrh.ReceivingReconciliationId = vrp.ReceivingReconciliationId
 			  --LEFT JOIN [dbo].[VendorReadyToPayHeader] rtp WITH (NOLOCK) ON  vrp.ReadyToPayId = rtp.ReadyToPayId
 			  LEFT JOIN  [dbo].[CreditTerms] ctm WITH(NOLOCK) ON ctm.CreditTermsId = v.CreditTermsId			  
-			  LEFT JOIN [dbo].[StocklineManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = rrd.StocklineId and UPPER(rrd.StockType)= 'STOCK'
+			  LEFT JOIN dbo.StocklineManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = rrd.StocklineId and UPPER(rrd.StockType)= 'STOCK'
+			  LEFT JOIN dbo.NonStocklineManagementStructureDetails NMSD WITH (NOLOCK) ON NMSD.ModuleID = @NonStockModuleID AND NMSD.ReferenceID = rrd.StocklineId and UPPER(rrd.StockType)= 'NONSTOCK'
+			  LEFT JOIN dbo.AssetManagementStructureDetails AMSD WITH (NOLOCK) ON AMSD.ModuleID = @AssetModuleID AND AMSD.ReferenceID = rrd.StocklineId and UPPER(rrd.StockType)= 'ASSET' 
 			  LEFT JOIN [dbo].[EntityStructureSetup] ES WITH (NOLOCK)ON ES.EntityStructureId = MSD.EntityMSID                
 			  WHERE rrh.[VendorId] = ISNULL(@vendorId,rrh.VendorId)        
 			  AND CAST(rrh.[InvoiceDate] AS DATE) <= CAST(@ToDate AS DATE) AND rrh.[MasterCompanyId] = @mastercompanyid   
 			  AND vpd.RemainingAmount > 0
 			  AND (ISNULL(@tagtype,'')='' OR ES.OrganizationTagTypeId IN(SELECT value FROM String_split(ISNULL(@tagtype,''), ',')))      
-			  AND (ISNULL(@Level1,'') ='' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))      
-			  AND (ISNULL(@Level2,'') ='' OR MSD.[Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,',')))      
-			  AND (ISNULL(@Level3,'') ='' OR MSD.[Level3Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level3,',')))      
-			  AND (ISNULL(@Level4,'') ='' OR MSD.[Level4Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level4,',')))      
-			  AND (ISNULL(@Level5,'') ='' OR MSD.[Level5Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level5,',')))      
-			  AND (ISNULL(@Level6,'') ='' OR MSD.[Level6Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level6,',')))      
-			  AND (ISNULL(@Level7,'') ='' OR MSD.[Level7Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level7,',')))      
-			  AND (ISNULL(@Level8,'') ='' OR MSD.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,',')))      
-			  AND (ISNULL(@Level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))      
-			  AND (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))) A
+			 AND (	ISNULL(@Level1,'') = ''
+					OR (
+						(UPPER(rrd.StockType) = 'STOCK'    AND MSD.Level1Id IN (SELECT Item FROM dbo.SplitString(@Level1, ',')))
+					 OR (UPPER(rrd.StockType) = 'NONSTOCK' AND NMSD.Level1Id IN (SELECT Item FROM dbo.SplitString(@Level1, ',')))
+					 OR (UPPER(rrd.StockType) = 'ASSET'    AND AMSD.Level1Id IN (SELECT Item FROM dbo.SplitString(@Level1, ',')))
+					)
+				)
+				AND (	ISNULL(@Level2,'') = ''
+					OR (
+						(UPPER(rrd.StockType) = 'STOCK'    AND MSD.Level2Id IN (SELECT Item FROM dbo.SplitString(@Level2, ',')))
+					 OR (UPPER(rrd.StockType) = 'NONSTOCK' AND NMSD.Level2Id IN (SELECT Item FROM dbo.SplitString(@Level2, ',')))
+					 OR (UPPER(rrd.StockType) = 'ASSET'    AND AMSD.Level2Id IN (SELECT Item FROM dbo.SplitString(@Level2, ',')))
+					)
+				)
+				AND (	ISNULL(@Level3,'') = ''
+					OR (
+						(UPPER(rrd.StockType) = 'STOCK'    AND MSD.Level3Id IN (SELECT Item FROM dbo.SplitString(@Level3, ',')))
+					 OR (UPPER(rrd.StockType) = 'NONSTOCK' AND NMSD.Level3Id IN (SELECT Item FROM dbo.SplitString(@Level3, ',')))
+					 OR (UPPER(rrd.StockType) = 'ASSET'    AND AMSD.Level3Id IN (SELECT Item FROM dbo.SplitString(@Level3, ',')))
+					)
+				)
+				AND (	ISNULL(@Level4,'') = ''
+					OR (
+						(UPPER(rrd.StockType) = 'STOCK'    AND MSD.Level4Id IN (SELECT Item FROM dbo.SplitString(@Level4, ',')))
+					 OR (UPPER(rrd.StockType) = 'NONSTOCK' AND NMSD.Level4Id IN (SELECT Item FROM dbo.SplitString(@Level4, ',')))
+					 OR (UPPER(rrd.StockType) = 'ASSET'    AND AMSD.Level4Id IN (SELECT Item FROM dbo.SplitString(@Level4, ',')))
+					)
+				)
+				AND (	ISNULL(@Level5,'') = ''
+					OR (
+						(UPPER(rrd.StockType) = 'STOCK'    AND MSD.Level5Id IN (SELECT Item FROM dbo.SplitString(@Level5, ',')))
+					 OR (UPPER(rrd.StockType) = 'NONSTOCK' AND NMSD.Level5Id IN (SELECT Item FROM dbo.SplitString(@Level5, ',')))
+					 OR (UPPER(rrd.StockType) = 'ASSET'    AND AMSD.Level5Id IN (SELECT Item FROM dbo.SplitString(@Level5, ',')))
+					)
+				)
+				AND (	ISNULL(@Level6,'') = ''
+					OR (
+						(UPPER(rrd.StockType) = 'STOCK'    AND MSD.Level6Id IN (SELECT Item FROM dbo.SplitString(@Level6, ',')))
+					 OR (UPPER(rrd.StockType) = 'NONSTOCK' AND NMSD.Level6Id IN (SELECT Item FROM dbo.SplitString(@Level6, ',')))
+					 OR (UPPER(rrd.StockType) = 'ASSET'    AND AMSD.Level6Id IN (SELECT Item FROM dbo.SplitString(@Level6, ',')))
+					)
+				)
+				AND (	ISNULL(@Level7,'') = ''
+					OR (
+						(UPPER(rrd.StockType) = 'STOCK'    AND MSD.Level7Id IN (SELECT Item FROM dbo.SplitString(@Level7, ',')))
+					 OR (UPPER(rrd.StockType) = 'NONSTOCK' AND NMSD.Level7Id IN (SELECT Item FROM dbo.SplitString(@Level7, ',')))
+					 OR (UPPER(rrd.StockType) = 'ASSET'    AND AMSD.Level7Id IN (SELECT Item FROM dbo.SplitString(@Level7, ',')))
+					)
+				)
+				AND (	ISNULL(@Level8,'') = ''
+					OR (
+						(UPPER(rrd.StockType) = 'STOCK'    AND MSD.Level8Id IN (SELECT Item FROM dbo.SplitString(@Level8, ',')))
+					 OR (UPPER(rrd.StockType) = 'NONSTOCK' AND NMSD.Level8Id IN (SELECT Item FROM dbo.SplitString(@Level8, ',')))
+					 OR (UPPER(rrd.StockType) = 'ASSET'    AND AMSD.Level8Id IN (SELECT Item FROM dbo.SplitString(@Level8, ',')))
+					)
+				)
+				AND (	ISNULL(@Level9,'') = ''
+					OR (
+						(UPPER(rrd.StockType) = 'STOCK'    AND MSD.Level9Id IN (SELECT Item FROM dbo.SplitString(@Level9, ',')))
+					 OR (UPPER(rrd.StockType) = 'NONSTOCK' AND NMSD.Level9Id IN (SELECT Item FROM dbo.SplitString(@Level9, ',')))
+					 OR (UPPER(rrd.StockType) = 'ASSET'    AND AMSD.Level9Id IN (SELECT Item FROM dbo.SplitString(@Level9, ',')))
+					)
+				)
+				AND (	ISNULL(@Level10,'') = ''
+					OR (
+						(UPPER(rrd.StockType) = 'STOCK'    AND MSD.Level10Id IN (SELECT Item FROM dbo.SplitString(@Level10, ',')))
+					 OR (UPPER(rrd.StockType) = 'NONSTOCK' AND NMSD.Level10Id IN (SELECT Item FROM dbo.SplitString(@Level10, ',')))
+					 OR (UPPER(rrd.StockType) = 'ASSET'    AND AMSD.Level10Id IN (SELECT Item FROM dbo.SplitString(@Level10, ',')))
+					)
+				)
+			  ) A
 
 	-- Credit Memo --
 		SELECT * INTO #tempCreditMemo FROM 
@@ -584,6 +727,8 @@ BEGIN
 			TotalAmountpaidby90days, TotalAmountpaidby120days, TotalAmountpaidbymorethan120days,cmAmount
 			--,DaysPastDue
 
+			
+
     SELECT @Count = COUNT(VendorId) FROM #TempResult1Final     
     SELECT @Count AS TotalRecordsCount
 	,rNo
@@ -644,9 +789,19 @@ BEGIN
 					(rrh.ManagementStructureId) AS ManagementStructureId, (CASE WHEN rrd.[Type] = 1 THEN 'PO-Inv' WHEN rrd.[Type] = 2 THEN 'RO-Inv' END) AS 'DocType',
 					'' AS 'vendorRef', '' AS 'Salesperson', ctm.Name AS 'Terms', '0' AS 'FixRateAmount',rrh.InvoiceTotal AS 'InvoiceAmount',      
 					0 AS 'cmAmount',0 AS CreditMemoAmount,DATEADD(DAY, ctm.NetDays,rrh.InvoiceDate) AS 'DueDate',     
-					UPPER(MSD.Level1Name) AS level1,UPPER(MSD.Level2Name) AS level2, UPPER(MSD.Level3Name) AS level3,UPPER(MSD.Level4Name) AS level4,UPPER(MSD.Level5Name) AS level5,       
-					UPPER(MSD.Level6Name) AS level6,UPPER(MSD.Level7Name) AS level7, UPPER(MSD.Level8Name) AS level8,UPPER(MSD.Level9Name) AS level9, UPPER(MSD.Level10Name) AS level10,
-					rrh.MasterCompanyId,0 AS IsCreditMemo,0 AS StatusId ,vpd.PaymentMade AS InvoicePaidAmount
+					--UPPER(MSD.Level1Name) AS level1,UPPER(MSD.Level2Name) AS level2, UPPER(MSD.Level3Name) AS level3,UPPER(MSD.Level4Name) AS level4,UPPER(MSD.Level5Name) AS level5,       
+					--UPPER(MSD.Level6Name) AS level6,UPPER(MSD.Level7Name) AS level7, UPPER(MSD.Level8Name) AS level8,UPPER(MSD.Level9Name) AS level9, UPPER(MSD.Level10Name) AS level10
+					UPPER(COALESCE(MSD.Level1Name, NMSD.Level1Name, AMSD.Level1Name)) AS Level1,
+					UPPER(COALESCE(MSD.Level2Name, NMSD.Level2Name, AMSD.Level2Name)) AS Level2,
+					UPPER(COALESCE(MSD.Level3Name, NMSD.Level3Name, AMSD.Level3Name)) AS Level3,
+					UPPER(COALESCE(MSD.Level4Name, NMSD.Level4Name, AMSD.Level4Name)) AS Level4,
+					UPPER(COALESCE(MSD.Level5Name, NMSD.Level5Name, AMSD.Level5Name)) AS Level5,
+					UPPER(COALESCE(MSD.Level6Name, NMSD.Level6Name, AMSD.Level6Name)) AS Level6,
+					UPPER(COALESCE(MSD.Level7Name, NMSD.Level7Name, AMSD.Level7Name)) AS Level7,
+					UPPER(COALESCE(MSD.Level8Name, NMSD.Level8Name, AMSD.Level8Name)) AS Level8,
+					UPPER(COALESCE(MSD.Level9Name, NMSD.Level9Name, AMSD.Level9Name)) AS Level9,
+					UPPER(COALESCE(MSD.Level10Name, NMSD.Level10Name, AMSD.Level10Name)) AS Level10
+					,rrh.MasterCompanyId,0 AS IsCreditMemo,0 AS StatusId ,vpd.PaymentMade AS InvoicePaidAmount
 					,CASE WHEN (DATEDIFF(DAY, CAST(rrh.InvoiceDate AS DATETIME) + ISNULL(ctm.NetDays,0), GETUTCDATE())) > 0 THEN (DATEDIFF(DAY, CAST(rrh.InvoiceDate AS DATETIME) + ISNULL(ctm.NetDays,0), GETUTCDATE())) ELSE 0 END AS 'DaysPastDue'
          FROM [dbo].[ReceivingReconciliationHeader] rrh WITH (NOLOCK)       
 			  INNER JOIN [dbo].[ReceivingReconciliationDetails] rrd WITH (NOLOCK) on rrh.ReceivingReconciliationId  = rrd.ReceivingReconciliationId AND rrd.[Type] > 0       
@@ -657,21 +812,85 @@ BEGIN
 			   LEFT JOIN [dbo].[CreditTerms] ctm WITH(NOLOCK) ON ctm.CreditTermsId = v.CreditTermsId
 			  --INNER JOIN [dbo].[Currency] CR WITH(NOLOCK) ON CR.CurrencyId = rrh.CurrencyId      
 			   LEFT JOIN [dbo].[StocklineManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = rrd.StocklineId and UPPER(rrd.StockType)= 'STOCK'
+			  LEFT JOIN dbo.NonStocklineManagementStructureDetails NMSD WITH (NOLOCK) ON NMSD.ModuleID = @NonStockModuleID AND NMSD.ReferenceID = rrd.StocklineId and UPPER(rrd.StockType)= 'NONSTOCK'
+			  LEFT JOIN dbo.AssetManagementStructureDetails AMSD WITH (NOLOCK) ON AMSD.ModuleID = @AssetModuleID AND AMSD.ReferenceID = rrd.StocklineId and UPPER(rrd.StockType)= 'ASSET' 
 			   LEFT JOIN [dbo].[EntityStructureSetup] ES WITH (NOLOCK) ON ES.EntityStructureId = MSD.EntityMSID			    
 			  WHERE rrh.[VendorId] = ISNULL(@vendorId,rrh.VendorId)  			  
 			  AND CAST(rrh.[InvoiceDate] AS DATE) <= CAST(@ToDate AS DATE) AND rrh.[MasterCompanyId] = @mastercompanyid      
 			  AND vpd.RemainingAmount > 0  AND rrh.InvoiceNum = ISNULL(@invoiceNum,rrh.InvoiceNum)
 			  AND (ISNULL(@tagtype,'')='' OR ES.OrganizationTagTypeId IN(SELECT value FROM String_split(ISNULL(@tagtype,''), ',')))      
-			  AND (ISNULL(@Level1,'') ='' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))      
-			  AND (ISNULL(@Level2,'') ='' OR MSD.[Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,',')))      
-			  AND (ISNULL(@Level3,'') ='' OR MSD.[Level3Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level3,',')))      
-			  AND (ISNULL(@Level4,'') ='' OR MSD.[Level4Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level4,',')))      
-			  AND (ISNULL(@Level5,'') ='' OR MSD.[Level5Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level5,',')))      
-			  AND (ISNULL(@Level6,'') ='' OR MSD.[Level6Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level6,',')))      
-			  AND (ISNULL(@Level7,'') ='' OR MSD.[Level7Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level7,',')))      
-			  AND (ISNULL(@Level8,'') ='' OR MSD.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,',')))      
-			  AND (ISNULL(@Level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))      
-			  AND (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))) F
+			  AND (	ISNULL(@Level1,'') = ''
+					OR (
+						(UPPER(rrd.StockType) = 'STOCK'    AND MSD.Level1Id IN (SELECT Item FROM dbo.SplitString(@Level1, ',')))
+					 OR (UPPER(rrd.StockType) = 'NONSTOCK' AND NMSD.Level1Id IN (SELECT Item FROM dbo.SplitString(@Level1, ',')))
+					 OR (UPPER(rrd.StockType) = 'ASSET'    AND AMSD.Level1Id IN (SELECT Item FROM dbo.SplitString(@Level1, ',')))
+					)
+				)
+				AND (	ISNULL(@Level2,'') = ''
+					OR (
+						(UPPER(rrd.StockType) = 'STOCK'    AND MSD.Level2Id IN (SELECT Item FROM dbo.SplitString(@Level2, ',')))
+					 OR (UPPER(rrd.StockType) = 'NONSTOCK' AND NMSD.Level2Id IN (SELECT Item FROM dbo.SplitString(@Level2, ',')))
+					 OR (UPPER(rrd.StockType) = 'ASSET'    AND AMSD.Level2Id IN (SELECT Item FROM dbo.SplitString(@Level2, ',')))
+					)
+				)
+				AND (	ISNULL(@Level3,'') = ''
+					OR (
+						(UPPER(rrd.StockType) = 'STOCK'    AND MSD.Level3Id IN (SELECT Item FROM dbo.SplitString(@Level3, ',')))
+					 OR (UPPER(rrd.StockType) = 'NONSTOCK' AND NMSD.Level3Id IN (SELECT Item FROM dbo.SplitString(@Level3, ',')))
+					 OR (UPPER(rrd.StockType) = 'ASSET'    AND AMSD.Level3Id IN (SELECT Item FROM dbo.SplitString(@Level3, ',')))
+					)
+				)
+				AND (	ISNULL(@Level4,'') = ''
+					OR (
+						(UPPER(rrd.StockType) = 'STOCK'    AND MSD.Level4Id IN (SELECT Item FROM dbo.SplitString(@Level4, ',')))
+					 OR (UPPER(rrd.StockType) = 'NONSTOCK' AND NMSD.Level4Id IN (SELECT Item FROM dbo.SplitString(@Level4, ',')))
+					 OR (UPPER(rrd.StockType) = 'ASSET'    AND AMSD.Level4Id IN (SELECT Item FROM dbo.SplitString(@Level4, ',')))
+					)
+				)
+				AND (	ISNULL(@Level5,'') = ''
+					OR (
+						(UPPER(rrd.StockType) = 'STOCK'    AND MSD.Level5Id IN (SELECT Item FROM dbo.SplitString(@Level5, ',')))
+					 OR (UPPER(rrd.StockType) = 'NONSTOCK' AND NMSD.Level5Id IN (SELECT Item FROM dbo.SplitString(@Level5, ',')))
+					 OR (UPPER(rrd.StockType) = 'ASSET'    AND AMSD.Level5Id IN (SELECT Item FROM dbo.SplitString(@Level5, ',')))
+					)
+				)
+				AND (	ISNULL(@Level6,'') = ''
+					OR (
+						(UPPER(rrd.StockType) = 'STOCK'    AND MSD.Level6Id IN (SELECT Item FROM dbo.SplitString(@Level6, ',')))
+					 OR (UPPER(rrd.StockType) = 'NONSTOCK' AND NMSD.Level6Id IN (SELECT Item FROM dbo.SplitString(@Level6, ',')))
+					 OR (UPPER(rrd.StockType) = 'ASSET'    AND AMSD.Level6Id IN (SELECT Item FROM dbo.SplitString(@Level6, ',')))
+					)
+				)
+				AND (	ISNULL(@Level7,'') = ''
+					OR (
+						(UPPER(rrd.StockType) = 'STOCK'    AND MSD.Level7Id IN (SELECT Item FROM dbo.SplitString(@Level7, ',')))
+					 OR (UPPER(rrd.StockType) = 'NONSTOCK' AND NMSD.Level7Id IN (SELECT Item FROM dbo.SplitString(@Level7, ',')))
+					 OR (UPPER(rrd.StockType) = 'ASSET'    AND AMSD.Level7Id IN (SELECT Item FROM dbo.SplitString(@Level7, ',')))
+					)
+				)
+				AND (	ISNULL(@Level8,'') = ''
+					OR (
+						(UPPER(rrd.StockType) = 'STOCK'    AND MSD.Level8Id IN (SELECT Item FROM dbo.SplitString(@Level8, ',')))
+					 OR (UPPER(rrd.StockType) = 'NONSTOCK' AND NMSD.Level8Id IN (SELECT Item FROM dbo.SplitString(@Level8, ',')))
+					 OR (UPPER(rrd.StockType) = 'ASSET'    AND AMSD.Level8Id IN (SELECT Item FROM dbo.SplitString(@Level8, ',')))
+					)
+				)
+				AND (	ISNULL(@Level9,'') = ''
+					OR (
+						(UPPER(rrd.StockType) = 'STOCK'    AND MSD.Level9Id IN (SELECT Item FROM dbo.SplitString(@Level9, ',')))
+					 OR (UPPER(rrd.StockType) = 'NONSTOCK' AND NMSD.Level9Id IN (SELECT Item FROM dbo.SplitString(@Level9, ',')))
+					 OR (UPPER(rrd.StockType) = 'ASSET'    AND AMSD.Level9Id IN (SELECT Item FROM dbo.SplitString(@Level9, ',')))
+					)
+				)
+				AND (	ISNULL(@Level10,'') = ''
+					OR (
+						(UPPER(rrd.StockType) = 'STOCK'    AND MSD.Level10Id IN (SELECT Item FROM dbo.SplitString(@Level10, ',')))
+					 OR (UPPER(rrd.StockType) = 'NONSTOCK' AND NMSD.Level10Id IN (SELECT Item FROM dbo.SplitString(@Level10, ',')))
+					 OR (UPPER(rrd.StockType) = 'ASSET'    AND AMSD.Level10Id IN (SELECT Item FROM dbo.SplitString(@Level10, ',')))
+					)
+				)
+			  ) F
+			 -- select * from #tempReceivingReconciliationElse
 		-- Credit Memo --
 		SELECT * INTO #tempCreditMemoElse FROM 
 		(SELECT DISTINCT (VCM.[VendorId]) AS VendorId,
@@ -952,8 +1171,9 @@ BEGIN
 			     TotalAmountpaidbymorethan120days,DaysPastDue				 
 		  INTO #TempResult2 FROM  Result FC
 		  INNER JOIN WithTotal WC ON FC.MastercompanyId = WC.MastercompanyId
-
+		 
 		  SELECT @Count = COUNT(VendorId) FROM #TempResult2  
+		 
 		  SELECT @Count AS TotalRecordsCount,
 		         vendorName, 
 		         vendorCode, 
@@ -986,6 +1206,7 @@ BEGIN
 
 			ORDER BY CASE WHEN ISNULL(@IsDownload,0) = 0 THEN InvoiceDate ELSE InvoiceDate  
 		END
+		
 		OFFSET((@PageNumber-1) * @pageSize) ROWS FETCH NEXT @pageSize ROWS ONLY;  
 		
 	END

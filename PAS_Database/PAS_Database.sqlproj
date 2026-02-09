@@ -4435,6 +4435,7 @@
     <Build Include="dbo\Stored Procedures\usprpt_GetAPDisbursementReportByInvoiceSSRS.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdateShipToSiteInfo.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetCurrentShipToSiteInfo.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetVarcharLength.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

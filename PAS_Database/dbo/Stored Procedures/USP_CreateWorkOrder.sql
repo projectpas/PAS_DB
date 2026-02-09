@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [USP_CreateWorkOrder]           
  ** Author:   HEMANT SALIYA
  ** Description: This stored procedure is used to Create Work Order Quote
@@ -25,9 +24,10 @@
 	11   29/11/2025   Moin Bloch        Added TearDownTypes Removeal Reason If Not Exists
 	12   13/11/2025   Moin Bloch        Removed TearDownTypes Condition For Removeal Reason If Not Exists 
 	13	 20/01/2026   Priyansh Patel  	Added CSN, TSN, CSO, TSO fields from receiving customer
+	14	 30/01/2026   Moin Bloch l  	Added IncomingPartNumber
 --   EXEC [USP_CreateWorkOrder] 
 **************************************************************/
-CREATE    PROCEDURE [dbo].[USP_CreateWorkOrder]
+CREATE     PROCEDURE [dbo].[USP_CreateWorkOrder]
 @WorkOrderId BIGINT = NULL,
 @WorkOrderNum VARCHAR(30) = NULL,
 @IsSinglePN BIT = NULL,
@@ -95,13 +95,12 @@ BEGIN
 	DECLARE @CurrentNumber AS BIGINT,@TravelerCodeTypeId BIGINT = (SELECT  [CodeTypeId] FROM [dbo].[CodeTypes] WITH (NOLOCK) WHERE [CodeType] = 'TravelerId')
 	DECLARE @TravelerName AS varchar(100) = 0,@WorkOrderScopeId BIGINT = NULL, @EnforceMpnPickTicketConfirmation BIT; 
 	DECLARE @SecondarySalesPersonId BIGINT = NULL,@SalesAgentID BIGINT = NULL,@CommonTeardownTypeId BIGINT = NULL
-	
+
 	DECLARE @CSN VARCHAR(50) = NULL,@TSN VARCHAR(50) = NULL,@CSO VARCHAR(50) = NULL, @TSO VARCHAR(50) = NULL;
 
 	-- From Receiving Customer 
 	SELECT @CSN = [CSN], @TSN = [TSN], @CSO = [CSO], @TSO = [TSO] FROM [dbo].[ReceivingCustomerWork] WITH (NOLOCK) WHERE [ReceivingCustomerWorkId] = @ReceivingCustomerWorkId;
 	
-
 	-- Work Order Type
 	SELECT @Customer = [Id] FROM [dbo].[WorkOrderType] WITH(NOLOCK) WHERE [Description]='Customer';
 	SELECT @Internal = [Id] FROM [dbo].[WorkOrderType] WITH(NOLOCK) WHERE [Description]='Internal';
@@ -500,7 +499,7 @@ BEGIN
 		   [Level4],[AssignDate],[ReceivingCustomerWorkId],[ExpertiseId],[RevisedItemmasterid],[RevisedPartNumber],[RevisedPartDescription],[IsTraveler],[AllowInvoiceBeforeShipping],
 		   [WOFPrintDate],[CurrentSerialNumber],[StocklineCost],[TendorStocklineCost],[RepairOrderId],[RONumber],[RevisedSerialNumber],[IsROCreated],[PartNumber],[PartDescription],
 		   [WorkOrderStatus],[Priority],[WorkOrderStage],[ManufacturerName],[TechName],[EmployeeStation],[PublicationNo],[SerialNumber],[MasterPartId],Notes,
-		   @CSN,@TSN,@CSO,@TSO FROM @tbl_WorkOrderPartNumberType 
+		   @CSN,@TSN,@CSO,@TSO FROM @tbl_WorkOrderPartNumberType
 
 	SELECT @TotalRecord = COUNT(*), @MinId = MIN([PKID]) FROM #tmprCreateWorkOrderPartNumber    
 
@@ -608,7 +607,7 @@ BEGIN
 				[Level1],[Level2],[Level3],[Level4],[AssignDate],[ReceivingCustomerWorkId],[ExpertiseId],[RevisedItemmasterid],[RevisedPartNumber],[RevisedPartDescription],[IsTraveler],
 				[AllowInvoiceBeforeShipping],[WOFPrintDate],[CurrentSerialNumber],[StocklineCost],[TendorStocklineCost],[RepairOrderId],[RONumber],[RevisedSerialNumber],[IsROCreated],
 				[PartNumber],[PartDescription],[WorkOrderStatus],[Priority],[WorkOrderStage],[ManufacturerName],[TechName],[EmployeeStation],[PublicationNo],TravelerNumber,Notes,
-				[CSN],[TSN],[CSO],[TSO])
+				[CSN],[TSN],[CSO],[TSO],[IncomingPartNumber])
 		 SELECT [WorkOrderId],[WorkOrderScopeId],[EstimatedShipDate],[CustomerRequestDate],[PromisedDate],[EstimatedCompletionDate],[NTE],[Quantity],
 	            [StockLineId],[CMMIds],[WorkflowId],[WorkOrderStageId],[WorkOrderStatusId],[WorkOrderPriorityId],[IsPMA],[IsDER],[TechStationId],[TATDaysStandard],[MasterCompanyId],
 				[CreatedBy],[UpdatedBy],@CreatedDate,@UpdatedDate,[IsActive],[IsDeleted],[ItemMasterId],[TechnicianId],[ConditionId],[TATDaysCurrent],[RevisedPartId],[ManagementStructureId],
@@ -616,7 +615,7 @@ BEGIN
 				[Level1],[Level2],[Level3],[Level4],[AssignDate],[ReceivingCustomerWorkId],[ExpertiseId],[RevisedItemmasterid],[RevisedPartNumber],[RevisedPartDescription],[IsTraveler],
 				[AllowInvoiceBeforeShipping],[WOFPrintDate],[CurrentSerialNumber],[StocklineCost],[TendorStocklineCost],[RepairOrderId],[RONumber],[RevisedSerialNumber],[IsROCreated],
 				[PartNumber],[PartDescription],[WorkOrderStatus],[Priority],[WorkOrderStage],[ManufacturerName],[TechName],[EmployeeStation],[PublicationNo],@TravelerName,Notes,
-				[CSN],[TSN],[CSO],[TSO]
+				[CSN],[TSN],[CSO],[TSO],[PartNumber]
 		   FROM #tmprCreateWorkOrderPartNumber 
 		  WHERE [PKID] = @MinId
 

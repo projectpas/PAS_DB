@@ -49,6 +49,7 @@
 	33   15-01-2026   AMIT GHEDIYA		Update condition for get LE (LegalEntityId) Before ManagementStructureLevel ID
 	34   26-01-2026   RAJESH GAMI       Get payment method for PaidinFull
 	35   30-01-2026   AMIT GHEDIYA		Update for PaidinFull get all partially & full payment data.
+	36   02-02-2026   AMIT GHEDIYA		Update for Void check status to Voided. (PN-15360)
  --EXEC VendorPaymentList 10,1,'ReceivingReconciliationId',1,'','',0,0,0,'ALL','',NULL,NULL,1,73   
 **************************************************************/
 CREATE      PROCEDURE [dbo].[VendorPaymentList]  
@@ -2317,8 +2318,7 @@ BEGIN
 		[InvociedDate], [EntryDate], [PaymentMethod], [PaymentRef], [DateProcessed], [CheckCrashed], [DiscountToken], [BankName], [BankAccountNumber], [ReadyToPayId], [IsVoidedCheck], [PaymentMethodId], [CreatedDate], [ReadyToPayDetailsId],[ControlNumber], [LegalEntity])
 		SELECT 0 AS ReceivingReconciliationId,
 		CASE WHEN VRTPD.IsVoidedCheck = 1 THEN VRTPD.CheckNumber + ' (V)' ELSE VRTPD.CheckNumber END AS InvoiceNum,
-		CASE WHEN ISNULL(VRTPD.AmountDue,0) > 0 THEN 'Partially Paid' 
-			   ELSE 'Full Payment' END AS [Status],
+		CASE WHEN VRTPD.IsVoidedCheck = 1 THEN 'Voided' ELSE CASE WHEN ISNULL(VRTPD.AmountDue,0) > 0 THEN 'Partially Paid' ELSE 'Full Payment' END END AS [Status],
 		0 AS OriginalTotal,
 		0 AS RRTotal,
 		SUM(ISNULL(VRTPD.PaymentMade,0)) AS InvoiceTotal,

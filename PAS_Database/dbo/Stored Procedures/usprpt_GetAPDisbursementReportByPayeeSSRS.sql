@@ -1,9 +1,11 @@
 ﻿
 
+
+
 /*************************************************************                   
  ** File:  [usprpt_GetAPDisbursementReportByPayeeSSRS]                   
  ** Author: Priyansh Patel     
- ** Description: Get Data for AP Disbursement Report SSRS        
+ ** Description: Get Data for AP Disbursement Report        
  ** Purpose:                 
  ** Date:   28-Jan-2026              
                   
@@ -24,7 +26,7 @@
 
 ***************************************************************************************************/   
 
-CREATE          PROCEDURE [dbo].[usprpt_GetAPDisbursementReportByPayeeSSRS]
+CREATE   PROCEDURE [dbo].[usprpt_GetAPDisbursementReportByPayeeSSRS]
 @FromPaymentDate DATE = NULL,
 @ToPaymentDate DATE = NULL,
 @Payee VARCHAR(200) = NULL,
@@ -36,7 +38,6 @@ CREATE          PROCEDURE [dbo].[usprpt_GetAPDisbursementReportByPayeeSSRS]
 @InvoiceDate        DATE = NULL,
 @InvoiceDueDate     DATE = NULL,
 @PaymentDate        DATE = NULL,
-@PaymentReference   VARCHAR(100) = NULL,
 @BankAccount        VARCHAR(200) = NULL,
 @BaseCurrency       VARCHAR(50) = NULL,
 @GlAccountNum       VARCHAR(200) = NULL,
@@ -158,7 +159,17 @@ CREATE TABLE #tmprAPDisbursementReport
   SELECT
             MAX(rtp.VendorName)  AS 'Payee',
             MAX(VND.VendorCode)  AS 'VendorCode',
-            NULL AS 'InvoiceNum',
+                     MAX(
+    CASE 
+        WHEN ISNULL(VPD.ReceivingReconciliationId,0) > 0 THEN RRC.InvoiceNum
+        WHEN ISNULL(VPD.CreditMemoHeaderId,0) > 0 THEN CM.InvoiceNumber
+        WHEN ISNULL(VPD.NonPOInvoiceId,0) > 0 THEN NPH.InvoiceNumber
+        WHEN ISNULL(VPD.CustomerCreditPaymentDetailId,0) > 0 THEN CCPD.ReferenceNumber
+        WHEN ISNULL(VPD.VendorProformaInvoiceId,0) > 0 THEN VNPH.InvoiceNumber
+    END
+) AS InvoiceNum,
+
+           
             NULL AS 'InvoiceDate',
             NULL AS 'PaymentMethod',
             NULL AS 'PaymentReference',
@@ -167,7 +178,7 @@ CREATE TABLE #tmprAPDisbursementReport
             NULL AS 'TotalBaseCurrencyAmount',
 
             MAX(rtp.CurrencyName) AS 'BaseCurrency',
-            SUM(rtp.OriginalAmount) AS 'BaseCurrencyAmount',
+            SUM(rtp.PaymentMade) AS 'BaseCurrencyAmount',
             --vpym.Description                                AS 'PaymentMethod',
             --rtp.CheckNumber                                 AS 'PaymentReference',
                                           
@@ -177,18 +188,16 @@ CREATE TABLE #tmprAPDisbursementReport
                                                     AS 'BankAccount',
             MAX( CONCAT(g.AccountCode, ' - ', g.AccountName))      AS 'GLAccountNum',
 
-            MAX(L1.Description)  AS [Level1Id],
-            MAX(L2.Description)  AS [Level2Id],
-            MAX(L3.Description)  AS [Level3Id],
-            MAX(L4.Description)  AS [Level4Id],
-            MAX(L5.Description)  AS [Level5Id],
-            MAX(L6.Description)  AS [Level6Id],
-            MAX(L7.Description)  AS [Level7Id],
-            MAX(L8.Description)  AS [Level8Id],
-            MAX(L9.Description)  AS [Level9Id],
-            MAX(L10.Description) AS [Level10Id]
-
-            --SUM(rtp.OriginalAmount) OVER ()       AS [TotalBaseCurrencyAmount]
+             MAX(CONCAT(L1.Code, ' - ', L1.Description))  AS [Level1Id],
+              MAX(CONCAT(L2.Code, ' - ', L2.Description))  AS [Level2Id],
+              MAX(CONCAT(L3.Code, ' - ', L3.Description))  AS [Level3Id],
+              MAX(CONCAT(L4.Code, ' - ', L4.Description))  AS [Level4Id],
+              MAX(CONCAT(L5.Code, ' - ', L5.Description))  AS [Level5Id],
+              MAX(CONCAT(L6.Code, ' - ', L6.Description))  AS [Level6Id],
+              MAX(CONCAT(L7.Code, ' - ', L7.Description))  AS [Level7Id],
+              MAX(CONCAT(L8.Code, ' - ', L8.Description))  AS [Level8Id],
+              MAX(CONCAT(L9.Code, ' - ', L9.Description))  AS [Level9Id],
+              MAX(CONCAT(L10.Code, ' - ', L10.Description))  AS [Level10Id]
 
             FROM [dbo].[VendorReadyToPayDetails] rtp WITH(NOLOCK)
 
@@ -263,7 +272,6 @@ CREATE TABLE #tmprAPDisbursementReport
                         OR (ISNULL(VPD.VendorProformaInvoiceId,0) > 0 AND VNPH.InvoiceNumber LIKE '%' + @InvoiceNum + '%')
                     ))
             AND (@PaymentRef IS NULL OR rtp.CheckNumber LIKE '%' + @PaymentRef + '%')
-            AND (@PaymentReference IS NULL OR rtp.CheckNumber LIKE '%' + @PaymentReference + '%')
 
             AND (@BankAccount IS NULL OR CONCAT(lebl.BankName,' - ',lebl.BankAccountNumber) LIKE '%' + @BankAccount + '%')
             AND (@BaseCurrency IS NULL OR rtp.CurrencyName LIKE '%' + @BaseCurrency + '%')
@@ -304,21 +312,14 @@ CREATE TABLE #tmprAPDisbursementReport
     -- Pagination
         SELECT *
         FROM #tmprAPDisbursementReport
-        ORDER BY Payee
-        OFFSET 
-            CASE 
-                WHEN @PageSize IS NULL THEN 0
-                ELSE (@PageNumber - 1) * @PageSize
-            END ROWS
-        FETCH NEXT 
-            CASE 
-                WHEN @PageSize IS NULL THEN NULL
-                ELSE @PageSize
-            END ROWS ONLY;
+         WHERE InvoiceNum is not null
+        ORDER BY Payee;
+    
 
         -- Total Records Count
         SELECT COUNT(*) AS TotalRecords
-        FROM #tmprAPDisbursementReport;
+        FROM #tmprAPDisbursementReport
+        WHERE InvoiceNum is not null;
 
 
 END TRY

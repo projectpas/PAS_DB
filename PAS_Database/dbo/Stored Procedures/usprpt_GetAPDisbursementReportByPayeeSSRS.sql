@@ -26,7 +26,7 @@
 
 ***************************************************************************************************/   
 
-CREATE              PROCEDURE [dbo].[usprpt_GetAPDisbursementReportByPayeeSSRS]
+CREATE   PROCEDURE [dbo].[usprpt_GetAPDisbursementReportByPayeeSSRS]
 @FromPaymentDate DATE = NULL,
 @ToPaymentDate DATE = NULL,
 @Payee VARCHAR(200) = NULL,
@@ -38,7 +38,6 @@ CREATE              PROCEDURE [dbo].[usprpt_GetAPDisbursementReportByPayeeSSRS]
 @InvoiceDate        DATE = NULL,
 @InvoiceDueDate     DATE = NULL,
 @PaymentDate        DATE = NULL,
-@PaymentReference   VARCHAR(100) = NULL,
 @BankAccount        VARCHAR(200) = NULL,
 @BaseCurrency       VARCHAR(50) = NULL,
 @GlAccountNum       VARCHAR(200) = NULL,
@@ -273,7 +272,6 @@ CREATE TABLE #tmprAPDisbursementReport
                         OR (ISNULL(VPD.VendorProformaInvoiceId,0) > 0 AND VNPH.InvoiceNumber LIKE '%' + @InvoiceNum + '%')
                     ))
             AND (@PaymentRef IS NULL OR rtp.CheckNumber LIKE '%' + @PaymentRef + '%')
-            AND (@PaymentReference IS NULL OR rtp.CheckNumber LIKE '%' + @PaymentReference + '%')
 
             AND (@BankAccount IS NULL OR CONCAT(lebl.BankName,' - ',lebl.BankAccountNumber) LIKE '%' + @BankAccount + '%')
             AND (@BaseCurrency IS NULL OR rtp.CurrencyName LIKE '%' + @BaseCurrency + '%')
@@ -315,17 +313,8 @@ CREATE TABLE #tmprAPDisbursementReport
         SELECT *
         FROM #tmprAPDisbursementReport
          WHERE InvoiceNum is not null
-        ORDER BY Payee
-        OFFSET 
-            CASE 
-                WHEN @PageSize IS NULL THEN 0
-                ELSE (@PageNumber - 1) * @PageSize
-            END ROWS
-        FETCH NEXT 
-            CASE 
-                WHEN @PageSize IS NULL THEN NULL
-                ELSE @PageSize
-            END ROWS ONLY;
+        ORDER BY Payee;
+    
 
         -- Total Records Count
         SELECT COUNT(*) AS TotalRecords

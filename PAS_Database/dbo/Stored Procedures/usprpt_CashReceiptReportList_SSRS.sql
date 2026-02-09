@@ -17,6 +17,7 @@
  ** --   --------		-------				--------------------------------          
 	1	 29 JAN 2026		RAJESH GAMI  		CREATED
 	2	 04 FEB 2026		RAJESH GAMI  		Resolved Issue
+	3	 06 FEB 2026		RAJESH GAMI  		Record Mismatch issue
 **************************************************************/
 CREATE          PROCEDURE [dbo].[usprpt_CashReceiptReportList_SSRS]
 @id VARCHAR(MAX) = NULL,
@@ -664,6 +665,13 @@ BEGIN
 					MSD.[Level8Id], 
 					MSD.[Level9Id], 
 					MSD.[Level10Id],
+					tmpInv.InvoiceNum as 'InvoiceNum',
+					CASE WHEN @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN 
+						CASE WHEN CAST(tmpInv.InvoiceDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(tmpInv.InvoiceDate, @CurrntEmpTimeZoneDesc) AS DATETIME)) END 
+				    ELSE (CAST(tmpInv.InvoiceDate AS DATETIME)) END InvoiceDate,
+					DATEADD(DAY, ctm.NetDays,CASE WHEN @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN 
+						CASE WHEN CAST(tmpInv.InvoiceDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(tmpInv.InvoiceDate, @CurrntEmpTimeZoneDesc) AS DATETIME)) END 
+				    ELSE (CAST(tmpInv.InvoiceDate AS DATETIME)) END) as DueDate,
 					tmpVal.CustomerId
 				FROM #invoiceTmpTable tmpInv 
 				INNER JOIN dbo.InvoicePayments INV ON tmpInv.InvoicePaymentId = INV.PaymentId
@@ -676,6 +684,8 @@ BEGIN
 				LEFT JOIN [dbo].[LegalEntityBankingLockBox] LEB WITH(NOLOCK) ON LEB.LegalEntityBankingLockBoxId = CP.BankName
 				LEFT JOIN #CustomerPaymentDetailsTmp tmpVal ON  CPD.CustomerPaymentDetailsId = tmpVal.CustomerPaymentDetailsId  AND tmpVal.PaymentType = tmpInv.PaymentType
 				LEFT JOIN #CreditMemoTmp tmpCM ON CPD.CustomerPaymentDetailsId = tmpCM.CustomerPaymentDetailsId
+						LEFT JOIN  [dbo].[CustomerFinancial] cf WITH(NOLOCK) ON CPD.CustomerId = cf.CustomerId AND ISNULL(cf.IsDeleted,0) = 0
+				LEFT JOIN  [dbo].[CreditTerms] ctm WITH(NOLOCK) ON cf.CreditTermsId = ctm.CreditTermsId
 				LEFT JOIN (
 					SELECT ReceiptId, MAX(CurrencyId) AS 'CurrencyId'
 					FROM [dbo].[InvoiceCheckPayment] iv WITH(NOLOCK)   

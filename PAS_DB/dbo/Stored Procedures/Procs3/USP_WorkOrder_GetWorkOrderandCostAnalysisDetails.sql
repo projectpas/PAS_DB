@@ -328,7 +328,7 @@ BEGIN
 			FROM #tmpWorkOrderLabor tmpWOL WHERE tmpWOL.ID = @count; 
 
 			--SET @tmpBurdonLaborCost = ISNULL(@tmpBurdonLaborCost, 0) + ISNULL((@tmpBurdenRateAmount * PARSENAME(@tmpAdjustedHours,2)), 0);
-			SET @tmpDirectLaborCost = ISNULL(@tmpDirectLaborCost, 0) + ISNULL((@tmpDirectLaborOHCost * PARSENAME(@tmpAdjustedHours,2)), 0);
+			--SET @tmpDirectLaborCost = ISNULL(@tmpDirectLaborCost, 0) + ISNULL((@tmpDirectLaborOHCost * PARSENAME(@tmpAdjustedHours,2)), 0);
 
 			SET @tmpBurdonLaborCost = ISNULL(@tmpBurdonLaborCost, 0) +
 			@tmpBurdenRateAmount *

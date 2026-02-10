@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [usprpt_CashReceiptReportList_SSRS]           
  ** Author:   RAJESH GAMI  
  ** Description: Get Data for Cash receipt report data fro the SSRS
@@ -318,9 +317,9 @@ BEGIN
 				 --UPPER([IP].[WOSONum]) AS WOSONum,  
 				 [IP].[PaymentAmount] As Amount   
 				 ,Ip.PaymentId as InvoicePaymentId,
-				 CASE WHEN CPD.IsCheckPayment = 1 THEN 'Check' WHEN CPD.IsWireTransfer = 1 THEN 'Wire Transfer' WHEN CPD.IsCCDCPayment = 1 THEN 'Credit Card/Debit Card' END AS PaymentType
+				 --CASE WHEN CPD.IsCheckPayment = 1 THEN 'Check' WHEN CPD.IsWireTransfer = 1 THEN 'Wire Transfer' WHEN CPD.IsCCDCPayment = 1 THEN 'Credit Card/Debit Card' END AS PaymentType
 				 --,[IP].[Status]
-				  --CASE WHEN [IP].IsCheckPayment = 1 THEN 'Check' WHEN [IP].IsWireTransfer = 1 THEN 'Wire Transfer' WHEN [IP].IsCCDCPayment = 1 THEN 'Credit Card/Debit Card' END AS PaymentType
+				  CASE WHEN [IP].IsCheckPayment = 1 THEN 'Check' WHEN [IP].IsWireTransfer = 1 THEN 'Wire Transfer' WHEN [IP].IsCCDCPayment = 1 THEN 'Credit Card/Debit Card' END AS PaymentType
 			FROM  [dbo].[InvoicePayments] [IP] WITH(NOLOCK)
 				  INNER JOIN dbo.[CustomerPaymentDetails]  CPD WITH(NOLOCK) ON [IP].ReceiptId = CPD.ReceiptId AND CPD.CustomerPaymentDetailsId = [IP].CustomerPaymentDetailsId
 				  INNER JOIN [dbo].[CustomerPayments] CP WITH(NOLOCK) ON CPD.ReceiptId = CP.ReceiptId
@@ -344,8 +343,8 @@ BEGIN
 						CASE WHEN CAST(CP.PostedDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(CP.PostedDate, @CurrntEmpTimeZoneDesc) AS DATETIME)) END 
 				    ELSE (CAST(CP.PostedDate AS DATETIME)) END) < DATEADD(DAY, 1, @ToDate)))
 				  GROUP BY [IP].[ReceiptId],[IP].[DocNum],[IP].[InvoiceDate],[IP].PaymentAmount,Ip.PaymentId,
-				  --[IP].IsCheckPayment,[IP].IsWireTransfer,[IP].IsCCDCPayment
-				  CPD.IsCheckPayment,CPD.IsWireTransfer,CPD.IsCCDCPayment
+				  [IP].IsCheckPayment,[IP].IsWireTransfer,[IP].IsCCDCPayment
+				  --CPD.IsCheckPayment,CPD.IsWireTransfer,CPD.IsCCDCPayment
 				  
 			PRINT 'Details Data'
 			;WITH Result AS (
@@ -588,9 +587,9 @@ BEGIN
 				 --UPPER([IP].[WOSONum]) AS WOSONum,  
 				 [IP].[PaymentAmount] As Amount   
 				 ,Ip.PaymentId as InvoicePaymentId,
-				 CASE WHEN CPD.IsCheckPayment = 1 THEN 'Check' WHEN CPD.IsWireTransfer = 1 THEN 'Wire Transfer' WHEN CPD.IsCCDCPayment = 1 THEN 'Credit Card/Debit Card' END AS PaymentType
+				 --CASE WHEN CPD.IsCheckPayment = 1 THEN 'Check' WHEN CPD.IsWireTransfer = 1 THEN 'Wire Transfer' WHEN CPD.IsCCDCPayment = 1 THEN 'Credit Card/Debit Card' END AS PaymentType
 				 --,[IP].[Status]
-				  --CASE WHEN [IP].IsCheckPayment = 1 THEN 'Check' WHEN [IP].IsWireTransfer = 1 THEN 'Wire Transfer' WHEN [IP].IsCCDCPayment = 1 THEN 'Credit Card/Debit Card' END AS PaymentType
+				  CASE WHEN [IP].IsCheckPayment = 1 THEN 'Check' WHEN [IP].IsWireTransfer = 1 THEN 'Wire Transfer' WHEN [IP].IsCCDCPayment = 1 THEN 'Credit Card/Debit Card' END AS PaymentType
 			FROM  [dbo].[InvoicePayments] [IP] WITH(NOLOCK)
 				  INNER JOIN dbo.[CustomerPaymentDetails]  CPD WITH(NOLOCK) ON [IP].ReceiptId = CPD.ReceiptId AND CPD.CustomerPaymentDetailsId = [IP].CustomerPaymentDetailsId
 				  INNER JOIN [dbo].[CustomerPayments] CP WITH(NOLOCK) ON CPD.ReceiptId = CP.ReceiptId
@@ -614,8 +613,8 @@ BEGIN
 						CASE WHEN CAST(CP.PostedDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(CP.PostedDate, @CurrntEmpTimeZoneDesc) AS DATETIME)) END 
 				    ELSE (CAST(CP.PostedDate AS DATETIME)) END) < DATEADD(DAY, 1, @ToDate)))
 				  GROUP BY [IP].[ReceiptId],[IP].[DocNum],[IP].[InvoiceDate],[IP].PaymentAmount,Ip.PaymentId,
-				  --[IP].IsCheckPayment,[IP].IsWireTransfer,[IP].IsCCDCPayment
-				  CPD.IsCheckPayment,CPD.IsWireTransfer,CPD.IsCCDCPayment
+				  [IP].IsCheckPayment,[IP].IsWireTransfer,[IP].IsCCDCPayment
+				  --CPD.IsCheckPayment,CPD.IsWireTransfer,CPD.IsCCDCPayment
 
 
 				PRINT 'Summary Data'

@@ -1,7 +1,4 @@
-﻿
-
-
-/*************************************************************                   
+﻿/*************************************************************                   
  ** File:  [usprpt_GetAPDisbursementReportByInvoiceSSRS]                   
  ** Author: Priyansh Patel     
  ** Description: Get Data for AP Disbursement Report        
@@ -25,7 +22,7 @@
 
 ***************************************************************************************************/   
 
-CREATE           PROCEDURE [dbo].[usprpt_GetAPDisbursementReportByInvoiceSSRS]
+CREATE             PROCEDURE [dbo].[usprpt_GetAPDisbursementReportByInvoiceSSRS]
 @FromPaymentDate DATE = NULL,
 @ToPaymentDate DATE = NULL,
 @Payee VARCHAR(200) = NULL,
@@ -192,16 +189,16 @@ BEGIN
                                                     AS 'BankAccount',
             MAX( CONCAT(g.AccountCode, ' - ', g.AccountName))      AS 'GLAccountNum',
 
-            MAX(CONCAT(L1.Code, ' - ', L1.Description))  AS [Level1Id],
-            MAX(CONCAT(L2.Code, ' - ', L2.Description))  AS [Level2Id],
-            MAX(CONCAT(L3.Code, ' - ', L3.Description))  AS [Level3Id],
-            MAX(CONCAT(L4.Code, ' - ', L4.Description))  AS [Level4Id],
-            MAX(CONCAT(L5.Code, ' - ', L5.Description))  AS [Level5Id],
-            MAX(CONCAT(L6.Code, ' - ', L6.Description))  AS [Level6Id],
-            MAX(CONCAT(L7.Code, ' - ', L7.Description))  AS [Level7Id],
-            MAX(CONCAT(L8.Code, ' - ', L8.Description))  AS [Level8Id],
-            MAX(CONCAT(L9.Code, ' - ', L9.Description))  AS [Level9Id],
-            MAX(CONCAT(L10.Code, ' - ', L10.Description))  AS [Level10Id]
+            MAX(CASE WHEN L1.Code IS NULL AND L1.Description IS NULL THEN NULL ELSE CONCAT(L1.Code, ' - ', L1.Description) END) AS [Level1Id],
+            MAX(CASE WHEN L2.Code IS NULL AND L2.Description IS NULL THEN NULL ELSE CONCAT(L2.Code, ' - ', L2.Description) END) AS [Level2Id],
+            MAX(CASE WHEN L3.Code IS NULL AND L3.Description IS NULL THEN NULL ELSE CONCAT(L3.Code, ' - ', L3.Description) END) AS [Level3Id],
+            MAX(CASE WHEN L4.Code IS NULL AND L4.Description IS NULL THEN NULL ELSE CONCAT(L4.Code, ' - ', L4.Description) END) AS [Level4Id],
+            MAX(CASE WHEN L5.Code IS NULL AND L5.Description IS NULL THEN NULL ELSE CONCAT(L5.Code, ' - ', L5.Description) END) AS [Level5Id],
+            MAX(CASE WHEN L6.Code IS NULL AND L6.Description IS NULL THEN NULL ELSE CONCAT(L6.Code, ' - ', L6.Description) END) AS [Level6Id],
+            MAX(CASE WHEN L7.Code IS NULL AND L7.Description IS NULL THEN NULL ELSE CONCAT(L7.Code, ' - ', L7.Description) END) AS [Level7Id],
+            MAX(CASE WHEN L8.Code IS NULL AND L8.Description IS NULL THEN NULL ELSE CONCAT(L8.Code, ' - ', L8.Description) END) AS [Level8Id],
+            MAX(CASE WHEN L9.Code IS NULL AND L9.Description IS NULL THEN NULL ELSE CONCAT(L9.Code, ' - ', L9.Description) END) AS [Level9Id],
+            MAX(CASE WHEN L10.Code IS NULL AND L10.Description IS NULL THEN NULL ELSE CONCAT(L10.Code, ' - ', L10.Description) END) AS [Level10Id]
 
             FROM [dbo].[VendorReadyToPayDetails] rtp WITH(NOLOCK)
 

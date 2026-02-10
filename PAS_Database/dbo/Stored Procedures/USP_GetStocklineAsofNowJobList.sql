@@ -1,5 +1,5 @@
 ﻿/*************************************************************                 
- ** File:   [USP_GetIntegrationEmailList]                 
+ ** File:   [USP_GetStocklineAsofNowJobList]                 
  ** Author:   Moin Bloch
  ** Description: Get Stockline As of Now Job List
  ** Purpose:               
@@ -9,7 +9,8 @@
  **************************************************************                 
  ** PR   Date         Author  Change	Description                  
  ** --   --------     -------  ------	--------------------------                
-    1    10/09/2025   Moin Bloch   	    Created      
+    1    10/09/2025   Moin Bloch   	    Created    
+	2    10/02/2026   Devendra Shekh	Added IsRunDaily 
 
 -- EXEC USP_GetStocklineAsofNowJobList 
 **************************************************************/                   
@@ -27,7 +28,8 @@ CREATE   PROCEDURE [dbo].[USP_GetStocklineAsofNowJobList]
 @MasterCompanyId INT = NULL, 
 @ReportType INT = NULL,
 @EmployeeId BIGINT = NULL,      
-@IsDeleted BIT = NULL      
+@IsDeleted BIT = NULL,
+@IsRunDaily VARCHAR(20) = NULL
 AS      
 BEGIN      
  SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED      
@@ -67,42 +69,50 @@ BEGIN
 		SET @SortColumn = UPPER(@SortColumn)        
 	END    	
 
-	SELECT COUNT(1) OVER () AS [NumberOfItems]	  
-		  ,IE.[StocklineAsofNowJobId]	
+	;WITH Result AS (
+	SELECT  
+		   IE.[StocklineAsofNowJobId]	
 		  ,IE.[Name] [FileName]
 		  ,IE.[Path]	
 		  ,IE.[JobDate]	
 		  ,IE.[NextRunDate]
 		  ,IE.[MasterCompanyId]	
 		  ,ISNULL(IE.[TotalInventory],0) [TotalInventory]
-		  ,(CAST(DBO.ConvertUTCtoLocal(IE.[CreatedDate], @CurrntEmpTimeZoneDesc) AS DATETIME)) [CreatedDate]		  
-  FROM [dbo].[StocklineAsofNowJobDetails] IE WITH(NOLOCK)	    
-   WHERE (IE.MasterCompanyId = @MasterCompanyId) AND (IE.[ReportType] = @ReportType)	
-    AND ((@GlobalFilter <>'' 
-	AND ((IE.[Name] LIKE '%' + @GlobalFilter+'%') OR 
+		  ,(CAST(DBO.ConvertUTCtoLocal(IE.[CreatedDate], @CurrntEmpTimeZoneDesc) AS DATETIME)) [CreatedDate]
+		  ,CASE WHEN IE.IsRunDaily = 1 THEN 'Yes' ELSE 'No' END AS IsRunDaily
+	FROM [dbo].[StocklineAsofNowJobDetails] IE WITH(NOLOCK)	    
+	WHERE (IE.MasterCompanyId = @MasterCompanyId) AND (IE.[ReportType] = @ReportType)
+   )
+   SELECT COUNT(1) OVER () AS [NumberOfItems], * FROM Result WHERE
+    ((@GlobalFilter <>'' 
+	AND (([FileName] LIKE '%' + @GlobalFilter+'%') OR 
+		 (IsRunDaily LIKE '%' + @GlobalFilter+'%') OR
 	     (CAST([TotalInventory] AS VARCHAR(50)) LIKE '%' + @GlobalFilter + '%') 	
 	)) OR           
 	(@GlobalFilter='' AND 	
-	(ISNULL(@FileName,'') ='' OR [Name] LIKE '%' + @FileName +'%') AND
+	(ISNULL(@FileName,'') ='' OR [FileName] LIKE '%' + @FileName +'%') AND
 	(@JobDate IS NULL OR CAST([JobDate] AS DATE) = CAST(@JobDate AS DATE)) AND    
 	(@NextRunDate IS NULL OR CAST([NextRunDate] AS DATE) = CAST(@NextRunDate AS DATE)) AND    
 	(@CreatedDate IS NULL OR CAST([CreatedDate] AS DATE) = CAST(@CreatedDate AS DATE)) AND 	
+	(ISNULL(@IsRunDaily,'') ='' OR [IsRunDaily] LIKE '%' + @IsRunDaily +'%') AND
 	(ISNULL(@TotalInventory, '') = '' OR CAST([TotalInventory] AS VARCHAR(50)) LIKE '%' + @TotalInventory + '%') 	
 	))   
 	ORDER BY          
 	CASE WHEN (@SortOrder=1  AND @SortColumn='STOCKLINEASOFNOWJOBID') THEN [StocklineAsofNowJobId] END ASC,        
-	CASE WHEN (@SortOrder=1  AND @SortColumn='NAME')  THEN [Name] END ASC,   
+	CASE WHEN (@SortOrder=1  AND @SortColumn='FILENAME')  THEN [FileName] END ASC,   
 	CASE WHEN (@SortOrder=1  AND @SortColumn='JOBDATE')  THEN [JobDate] END ASC,	
 	CASE WHEN (@SortOrder=1  AND @SortColumn='NEXTRUNDATE')  THEN [NextRunDate] END ASC,	
-	CASE WHEN (@SortOrder=1  AND @SortColumn='CREATEDDATE')  THEN IE.[CreatedDate] END ASC,	
+	CASE WHEN (@SortOrder=1  AND @SortColumn='CREATEDDATE')  THEN [CreatedDate] END ASC,	
 	CASE WHEN (@SortOrder=1  AND @SortColumn='TOTALINVENTORY')  THEN [TotalInventory] END ASC,	
+	CASE WHEN (@SortOrder=1  AND @SortColumn='ISRUNDAILY')  THEN [IsRunDaily] END ASC,	
 
 	CASE WHEN (@SortOrder=-1 AND @SortColumn='STOCKLINEASOFNOWJOBID') THEN [StocklineAsofNowJobId] END DESC, 
-	CASE WHEN (@SortOrder=-1 AND @SortColumn='NAME')  THEN [Name] END DESC,   
+	CASE WHEN (@SortOrder=-1 AND @SortColumn='FILENAME')  THEN [FileName] END DESC,   
 	CASE WHEN (@SortOrder=-1 AND @SortColumn='JOBDATE')  THEN [JobDate] END DESC,	
 	CASE WHEN (@SortOrder=-1 AND @SortColumn='NEXTRUNDATE')  THEN [NextRunDate] END DESC,	
-	CASE WHEN (@SortOrder=-1 AND @SortColumn='CREATEDDATE')  THEN IE.[CreatedDate] END DESC,
-	CASE WHEN (@SortOrder=-1  AND @SortColumn='TOTALINVENTORY')  THEN [TotalInventory] END DESC	
+	CASE WHEN (@SortOrder=-1 AND @SortColumn='CREATEDDATE')  THEN [CreatedDate] END DESC,
+	CASE WHEN (@SortOrder=-1  AND @SortColumn='TOTALINVENTORY')  THEN [TotalInventory] END DESC,
+	CASE WHEN (@SortOrder=-1  AND @SortColumn='ISRUNDAILY')  THEN [IsRunDaily] END DESC
 	OFFSET @RecordFrom ROWS         
 	FETCH NEXT @PageSize ROWS ONLY   
 	    

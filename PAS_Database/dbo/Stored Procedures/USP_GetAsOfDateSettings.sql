@@ -14,9 +14,10 @@
     1    22/09/2025   MOIN BLOCH		Created  
 	2    25/09/2025   Devendra Shekh	Added GroupById 
 	3    03/10/2025   MOIN BLOCH		Aded New Fields  
+	4    10/02/2026   Devendra Shekh	Added IsRunDaily 
 --  EXEC [dbo].[USP_GetAsOfDateSettings] 1,1
 ************************************************************************/  
-CREATE     PROCEDURE [dbo].[USP_GetAsOfDateSettings]
+CREATE   PROCEDURE [dbo].[USP_GetAsOfDateSettings]
 @MasterCompanyId INT=NULL,
 @ReportType INT=NULL
 AS
@@ -59,8 +60,9 @@ BEGIN
            [UpdatedDate],
            [IsActive],
            [IsDeleted],
-           [GroupById]
-      FROM [dbo].[AsOfDateSettings]
+           [GroupById],
+           [IsRunDaily]
+      FROM [dbo].[AsOfDateSettings] WITH(NOLOCK)
      WHERE [MasterCompanyId] = @MasterCompanyId  
 	   AND [ReportType] = @ReportType  
 

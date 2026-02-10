@@ -34,6 +34,7 @@
     [IsActive]              BIT            CONSTRAINT [DF_AsOfDateSettings_IsActive] DEFAULT ((1)) NOT NULL,
     [IsDeleted]             BIT            CONSTRAINT [DF_AsOfDateSettings_IsDeleted] DEFAULT ((0)) NOT NULL,
     [GroupById]             INT            NULL,
+    [IsRunDaily]            BIT            NULL,
     CONSTRAINT [PK_AsOfDateSettings] PRIMARY KEY CLUSTERED ([Id] ASC)
 );
 

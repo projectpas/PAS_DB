@@ -8,6 +8,7 @@
     [ReportType]            INT             NULL,
     [MasterCompanyId]       INT             NOT NULL,
     [CreatedDate]           DATETIME2 (7)   CONSTRAINT [DF_StocklineAsofNowJobDetails_CreatedDate] DEFAULT (getutcdate()) NOT NULL,
+    [IsRunDaily]            BIT             NULL,
     CONSTRAINT [PK_StocklineAsofNowJobDetails] PRIMARY KEY CLUSTERED ([StocklineAsofNowJobId] ASC)
 );
 

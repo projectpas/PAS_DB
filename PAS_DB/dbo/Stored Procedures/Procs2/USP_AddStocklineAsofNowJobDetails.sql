@@ -1,5 +1,5 @@
 ﻿/*************************************************************             
- ** File:  [USP_AddBillingInvoicingDetails]
+ ** File:  [USP_AddStocklineAsofNowJobDetails]
  ** Author:  Moin Bloch  
  ** Description: This stored procedure is used to store Billing Details
  ** Purpose:           
@@ -11,7 +11,8 @@
  **************************************************************             
  ** PR   Date         Author		Change Description              
  ** --   --------     -------		--------------------------------            
-    1    10/09/2025   MOIN BLOCH     Created  
+    1    10/09/2025   MOIN BLOCH        Created  
+    2    10/02/2026   Devendra Shekh	Added IsRunDaily 
 
 --  EXEC [dbo].[USP_AddStocklineAsofNowJobDetails] 'Job1','C:\Jobs\Job1.csv','2025-09-10',1
 ************************************************************************/    
@@ -22,7 +23,8 @@ CREATE      PROCEDURE [dbo].[USP_AddStocklineAsofNowJobDetails]
 @JobDate DATETIME2(7),
 @NextRunDate DATETIME2(7),
 @ReportType INT,
-@MasterCompanyId INT
+@MasterCompanyId INT,
+@IsRunDaily BIT
 AS
 BEGIN  
  SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED  
@@ -31,8 +33,8 @@ BEGIN
  BEGIN TRANSACTION  
  BEGIN    
 	
-	INSERT INTO [dbo].[StocklineAsofNowJobDetails]([Name],[Path],[TotalInventory],[JobDate],[NextRunDate],[ReportType],[MasterCompanyId],[CreatedDate])
-                                            VALUES(@Name,@Path,@TotalInventory,@JobDate,@NextRunDate,@ReportType,@MasterCompanyId,GETUTCDATE());
+	INSERT INTO [dbo].[StocklineAsofNowJobDetails]([Name],[Path],[TotalInventory],[JobDate],[NextRunDate],[ReportType],[MasterCompanyId],[CreatedDate],[IsRunDaily])
+                                            VALUES(@Name,@Path,@TotalInventory,@JobDate,@NextRunDate,@ReportType,@MasterCompanyId,GETUTCDATE(),@IsRunDaily);
 	   	
  END   
  COMMIT  TRANSACTION  

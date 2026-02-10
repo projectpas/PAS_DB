@@ -7,16 +7,17 @@ EXEC [[GetWorkorderQuoteCurrectiveAction]]
 ************************************************************** 
 ** Change History 
 **************************************************************   
-** PR   Date        Author          Change Description  
+** PR   Date        Author          Change Description
 ** --   --------    -------         --------------------------------
 ** 01   10/07/2025  Moin Bloch		Created
 ** 02   10/07/2025  Devendra Shekh  Added Changes for Other Company to Hanldle 2 CMM
 ** 03   09/23/2025  Vishal Suthar	Fixed the issue with populating publication details correctly
+** 04   09-FEB-2026 AMIT GHEDIYA    Changes for Neo Company only to bind condition from workscope.(PN-15347)
 
  EXEC [dbo].[GetWorkorderReleaseFromData] 9737,9847
  EXEC [dbo].[GetWorkorderQuoteCurrectiveAction] 9737,9847
 **************************************************************/ 
-CREATE   PROC [dbo].[GetWorkorderQuoteCurrectiveAction]
+CREATE     PROC [dbo].[GetWorkorderQuoteCurrectiveAction]
 @WorkorderId BIGINT = NULL,  
 @workOrderPartNumberId BIGINT = NULL
 AS  
@@ -35,9 +36,16 @@ BEGIN
 		DECLARE @NeoMasterCompanyId INT = 20
 		DECLARE @CMMID1 BIGINT = 0 
 		DECLARE @CMMID2 BIGINT = 0 
+
+		DECLARE @MasterCompanyCode VARCHAR(100)='', @NEOMasterCompanyCode VARCHAR(100)='',@WorkScopeCode VARCHAR(50) = NULL;
 		
 		SELECT @MasterCompanyId = [MasterCompanyId] FROM [DBO].[WorkOrder] CTT WITH(NOLOCK) WHERE [WorkorderId] = @WorkorderId;
-				
+		
+		SELECT @MasterCompanyCode = [MasterCompanyCode] FROM [dbo].[MasterCompany] WITH(NOLOCK) WHERE [MasterCompanyId] = @MasterCompanyId;
+		
+		-- NEO COMPANY
+		SELECT  @NEOMasterCompanyCode = [MasterCompanyCode] FROM [dbo].[MasterCompany] WITH(NOLOCK) WHERE [MasterCompanyCode] = 'NEO';	
+
 		IF OBJECT_ID(N'tempdb..#tmprCMMIDsDetails') IS NOT NULL
 		BEGIN
 			DROP TABLE #tmprCMMIDsDetails
@@ -48,7 +56,7 @@ BEGIN
 			[ID] BIGINT NOT NULL IDENTITY, 
 			[CMMId] BIGINT NULL
 	    )
-
+		
 		SELECT @CMMIds = wop.[CMMIds]
 		FROM [dbo].[WorkOrderPartNumber] wop WITH(NOLOCK) 
 		WHERE wop.[WorkOrderId] = @WorkOrderId AND wop.[ID]=@workOrderPartNumberId AND [MasterCompanyId] = @MasterCompanyId
@@ -115,7 +123,11 @@ BEGIN
 			IF(@IsMultiple IS NULL OR @IsMultiple = 0 )
 			BEGIN
 				SELECT ISNULL(UPPER(pub.PublicationId),0) AS PublicationId,
-				       CASE WHEN ISNULL(wop.[RevisedConditionId],0) > 0 THEN UPPER(C.[Memo]) ELSE UPPER(wosc.[conditionName]) END AS ConditionName,
+					   CASE WHEN @MasterCompanyCode = @NEOMasterCompanyCode 
+					   		THEN UPPER(wop.[WorkScope])
+					   ELSE
+					   		CASE WHEN ISNULL(wop.[RevisedConditionId],0) > 0 THEN UPPER(C.[Memo]) ELSE UPPER(wosc.[conditionName]) END 
+					   END AS ConditionName,
 					   ISNULL(CONVERT(VARCHAR(20),UPPER(pub.RevisionNum)),'-') RevisionNum,
 					   UPPER(ISNULL(REPLACE(CONVERT(VARCHAR(100),pub.revisionDate,106),' ','/'),'-')) RevisionDate,
 					   '' SecondPublicationId,
@@ -145,7 +157,11 @@ BEGIN
 				  SELECT @CMMID2 = CMMId FROM #tmprCMMIDsDetails WHERE [ID] = 2;
 		  				  
 				  SELECT ISNULL(UPPER(pub.PublicationId),0) AS PublicationId,
-			             CASE WHEN ISNULL(wop.[RevisedConditionId],0) > 0 THEN UPPER(C.[Memo]) ELSE UPPER(wosc.[conditionName]) END AS ConditionName,
+			             CASE WHEN @MasterCompanyCode = @NEOMasterCompanyCode 
+							THEN UPPER(wop.[WorkScope])
+						 ELSE
+							 CASE WHEN ISNULL(wop.[RevisedConditionId],0) > 0 THEN UPPER(C.[Memo]) ELSE UPPER(wosc.[conditionName]) END 
+						 END AS ConditionName,
 				 		 ISNULL(CONVERT(VARCHAR(20),UPPER(pub.RevisionNum)),'-') RevisionNum,
 						 UPPER(ISNULL(REPLACE(CONVERT(VARCHAR(100),pub.revisionDate,106),' ','/'),'-')) RevisionDate,
 						 ISNULL(UPPER(pub2.PublicationId),0) AS SecondPublicationId,
@@ -175,7 +191,11 @@ BEGIN
 			IF(@IsMultiple IS NULL OR @IsMultiple = 0 )
 			BEGIN
 			   SELECT ISNULL(UPPER(pub.PublicationId),0) AS PublicationId,
-			          CASE WHEN ISNULL(wop.[RevisedConditionId],0) > 0 THEN UPPER(C.[Memo]) ELSE UPPER(wosc.[conditionName]) END AS ConditionName,
+			          CASE WHEN @MasterCompanyCode = @NEOMasterCompanyCode 
+							THEN UPPER(wop.[WorkScope])
+					  ELSE
+						    CASE WHEN ISNULL(wop.[RevisedConditionId],0) > 0 THEN UPPER(C.[Memo]) ELSE UPPER(wosc.[conditionName]) END 
+					  END AS ConditionName,
 					  ISNULL(CONVERT(VARCHAR(20),UPPER(pub.RevisionNum)),'-') RevisionNum,
 					  UPPER(ISNULL(REPLACE(CONVERT(VARCHAR(100),pub.revisionDate,106),' ','/'),'-')) RevisionDate,	
 					  '' SecondPublicationId,
@@ -204,7 +224,11 @@ BEGIN
 				SELECT @CMMID2 = CMMId FROM #tmprCMMIDsDetails WHERE [ID] = 2;
 
 				SELECT ISNULL(UPPER(pub.PublicationId),0) AS PublicationId,
-			          CASE WHEN ISNULL(wop.[RevisedConditionId],0) > 0 THEN UPPER(C.[Memo]) ELSE UPPER(wosc.[conditionName]) END AS ConditionName,
+			          CASE WHEN @MasterCompanyCode = @NEOMasterCompanyCode 
+							THEN UPPER(wop.[WorkScope])
+					  ELSE
+							CASE WHEN ISNULL(wop.[RevisedConditionId],0) > 0 THEN UPPER(C.[Memo]) ELSE UPPER(wosc.[conditionName]) END
+					  END AS ConditionName,
 					  ISNULL(CONVERT(VARCHAR(20),UPPER(pub.RevisionNum)),'-') RevisionNum,
 					  UPPER(ISNULL(REPLACE(CONVERT(VARCHAR(100),pub.revisionDate,106),' ','/'),'-')) RevisionDate,	
 					  ISNULL(UPPER(pub2.PublicationId),0) AS SecondPublicationId,

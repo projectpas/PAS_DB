@@ -1,5 +1,4 @@
 ﻿
-
 /*************************************************************           
  ** File:   [UpdateStocklineColumnsWithId]           
  ** Author:   MOIN BLOCH
@@ -26,6 +25,8 @@
 	8    11/02/2025   Bhargav Saliya  Update GL Account
 	9    16/05/2025   Devendra Shekh  Updatting RepairOrderNumber, PurchaseOrderNumber, IsDocument
 	10   11/12/2025   Rajesh Gami	  UPDATE: StockUnitOfMeasure,ConsumeUnitOfMeasure
+	11   09/02/2026   Sahdev Saliya   UPDATED: ItemGroup
+
 -- EXEC [dbo].[UpdateStocklineColumnsWithId] 1
 **************************************************************/
 
@@ -74,7 +75,7 @@ BEGIN
 					SL.Bin = ISNULL(B.[Name],''),
 					SL.WorkOrderNumber = ISNULL(WO.WorkOrderNum,''),
 					SL.SubWorkOrderNumber = ISNULL(SWO.SubWorkOrderNo,''),
-					SL.itemGroup = ISNULL(IG.[Description],''),
+					SL.itemGroup = ISNULL(IG.[ItemGroupCode],''),
 					SL.TLAPartNumber = ISNULL(IMTLA.partnumber,''),
 					SL.NHAPartNumber = ISNULL(IMNHA.partnumber,''),
 					SL.TLAPartDescription = ISNULL(IMTLA.PartDescription,''),
@@ -112,7 +113,7 @@ BEGIN
 					 LEFT JOIN [dbo].[Location] L WITH(NOLOCK) ON L.LocationId = SL.LocationId
 					 LEFT JOIN [dbo].[Shelf] SF WITH(NOLOCK) ON SF.ShelfId = SL.ShelfId
 					 LEFT JOIN [dbo].[Bin] B WITH(NOLOCK) ON B.BinId = SL.BinId
-					 LEFT JOIN [dbo].[UnitOfMeasure] um WITH(NOLOCK) ON SL.PurchaseUnitOfMeasureId = um.UnitOfMeasureId
+					 LEFT JOIN [dbo].[UnitOfMeasure] um WITH(NOLOCK) ON SL.PurchaseUnitOfMeasureId = um.UnitOfMeasureId 
 					 LEFT JOIN [dbo].[UnitOfMeasure] umStock WITH(NOLOCK) ON SL.StockUnitOfMeasureId = umStock.UnitOfMeasureId 
 					 LEFT JOIN [dbo].[UnitOfMeasure] umConsume WITH(NOLOCK) ON SL.ConsumeUnitOfMeasureId = umConsume.UnitOfMeasureId 
 					 LEFT JOIN [dbo].[PurchaseOrder] po WITH(NOLOCK) ON SL.PurchaseOrderId = po.PurchaseOrderId

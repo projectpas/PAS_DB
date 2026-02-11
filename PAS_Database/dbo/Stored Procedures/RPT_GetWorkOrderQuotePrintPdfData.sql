@@ -25,6 +25,7 @@
 	11	 14-OCT-2025    RAJESH GAMI		    Return Estimated Ship Date
 	12   10-Nov-2025    Moin Bloch          Updated Removed MEMO For MTI Company
 	13   06-Jan-2025    AMIT GHEDIYA        Previously, the memo was hidden only for the MTI company; it is now hidden for all other companies except NEO. 
+	14   05-FEB-2026    AMIT GHEDIYA        Changes for Neo Company only to bind condition from workscope.(PN-15347)
 --EXEC [RPT_GetWorkOrderQuotePrintPdfData] 2358,4357  
 **************************************************************/  
 CREATE PROCEDURE [dbo].[RPT_GetWorkOrderQuotePrintPdfData]  
@@ -39,7 +40,7 @@ BEGIN
    BEGIN   
 		DECLARE @CorrectiveActionCode VARCHAR(100) = 'CRA';
 
-		DECLARE @MasterCompanyCode VARCHAR(100)='', @MTIMasterCompanyCode VARCHAR(100)='',@NEOMasterCompanyCode VARCHAR(100)='',@MasterCompanyId INT;
+		DECLARE @MasterCompanyCode VARCHAR(100)='', @MTIMasterCompanyCode VARCHAR(100)='',@NEOMasterCompanyCode VARCHAR(100)='',@MasterCompanyId INT,@WorkScopeCode VARCHAR(50) = NULL;
 
 		DECLARE @VendorModuleId INT, @ManufacturerModuleId INT, @OtherModuleId INT;
 		SELECT @VendorModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'Vendor';
@@ -53,6 +54,11 @@ BEGIN
 		SELECT  @MTIMasterCompanyCode = [MasterCompanyCode] FROM [dbo].[MasterCompany] WITH(NOLOCK) WHERE [MasterCompanyCode] = 'MTI';	
 		-- NEO COMPANY
 		SELECT  @NEOMasterCompanyCode = [MasterCompanyCode] FROM [dbo].[MasterCompany] WITH(NOLOCK) WHERE [MasterCompanyCode] = 'NEO';	
+
+		IF(@MasterCompanyCode = @NEOMasterCompanyCode)
+		BEGIN
+			 SELECT @WorkScopeCode = s.[WorkScopeCode] FROM [dbo].[WorkOrderPartNumber] wop WITH(NOLOCK) INNER JOIN [dbo].[WorkScope] s WITH(NOLOCK) ON wop.[WorkOrderScopeId] = s.[WorkScopeId] WHERE [ID] = @workOrderPartNoId;
+		END
 
 		DECLARE @WorkOrderId BIGINT;
 		DECLARE @EmailContent NVARCHAR(MAX);
@@ -125,9 +131,18 @@ BEGIN
 			BEGIN
 				SET @EmailContent = @EmailBody;
 			END
-
+			
 			-- Apply replacements
-			SET @EmailContent = REPLACE(@EmailContent, '#Condition', ISNULL(NULLIF(@ConditionName,''), '-'));
+
+			--Changes for Neo Company only to bind condition from workscope.(PN-15347)
+			IF(@MasterCompanyCode = @NEOMasterCompanyCode)
+			BEGIN
+				 SET @EmailContent = REPLACE(@EmailContent, '#Condition', UPPER(ISNULL(NULLIF(@WorkScopeCode,''), '-')));
+			END
+			ELSE
+			BEGIN
+				  SET @EmailContent = REPLACE(@EmailContent, '#Condition', ISNULL(NULLIF(@ConditionName,''), '-'));
+			END
 			SET @EmailContent = REPLACE(@EmailContent, '#PublicationName', ISNULL(@PublicationId, '-'));
 			SET @EmailContent = REPLACE(@EmailContent, '#RevisionNumber', ISNULL(NULLIF(@RevisionNum,''), '-'));
 			SET @EmailContent = REPLACE(@EmailContent, '#RevisionDate', ISNULL(NULLIF(@RevisionDate,''), '-'));

@@ -35,16 +35,19 @@ BEGIN
     BEGIN
         SELECT TOP 0 
             ColumnName,
-            DisplayName
+            DisplayName,
+            SeqNo
         FROM dbo.AuditLogDisplayColumns;
         RETURN;
     END
 
     SELECT 
         ColumnName,
-        DisplayName
+        DisplayName,
+        SeqNo
     FROM dbo.AuditLogDisplayColumns WITH (NOLOCK)
     WHERE TableName = @TableName 
+    ORDER BY SeqNo;
 
 END TRY      
   BEGIN CATCH        

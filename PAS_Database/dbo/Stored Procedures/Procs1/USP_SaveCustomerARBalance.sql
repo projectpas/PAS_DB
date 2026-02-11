@@ -1,4 +1,5 @@
-﻿/*************************************************************             
+﻿
+/*************************************************************             
  ** File:   [USP_SaveCustomerARBalance]             
  ** Author: Moin Bloch
  ** Description: This stored procedure is used to calculate Customer AR Balance
@@ -14,7 +15,7 @@
  3      08/10/2024	   Moin Bloch       Modified (Added credit memo for ar balance)
  4      11/10/2024	   Moin Bloch       Modified (commented credit memo for ar balance)
  5      10/06/2025	   Moin Bloch       Format SP
-
+ 6      10 Feb 2026	   Rajesh Gami      Stop Customer Financial Credit Limit Update (PN-15325)
  --EXEC USP_SaveCustomerARBalance 1,10079,10079,100,150,'deep',1,'deep','deep',-1; 
 **************************************************************/ 
 CREATE     PROCEDURE [dbo].[USP_SaveCustomerARBalance]  
@@ -133,15 +134,15 @@ SET NOCOUNT ON
       END  
      END  
 
-	 IF(UPPER(@ModuleName) = 'SOINVOICE' OR UPPER(@ModuleName) = 'WOINVOICE'  OR UPPER(@ModuleName) = 'EXCHANGESOINVOICE')
-	 BEGIN	
-		IF EXISTS(SELECT [CreditLimit] FROM [dbo].[CustomerFinancial] WITH(NOLOCK) WHERE [CustomerId] = @CustomerId)
-		BEGIN
-			UPDATE [dbo].[CustomerFinancial] 
-			   SET [CreditLimit] = [CreditLimit] - (ISNULL(@Amount,0)) 
-			 WHERE [CustomerId] = @CustomerId;
-		END
-	 END
+	 --IF(UPPER(@ModuleName) = 'SOINVOICE' OR UPPER(@ModuleName) = 'WOINVOICE'  OR UPPER(@ModuleName) = 'EXCHANGESOINVOICE')
+	 --BEGIN	
+		--IF EXISTS(SELECT [CreditLimit] FROM [dbo].[CustomerFinancial] WITH(NOLOCK) WHERE [CustomerId] = @CustomerId)
+		--BEGIN
+		--	UPDATE [dbo].[CustomerFinancial] 
+		--	   SET [CreditLimit] = [CreditLimit] - (ISNULL(@Amount,0)) 
+		--	 WHERE [CustomerId] = @CustomerId;
+		--END
+	 --END
 
         
      SELECT @CustomerCreditTermsHistoryId = IDENT_CURRENT('CustomerCreditTermsHistory');  

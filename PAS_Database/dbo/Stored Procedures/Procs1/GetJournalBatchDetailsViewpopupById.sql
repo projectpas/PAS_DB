@@ -56,6 +56,7 @@
  40	  04/08/2024  AMIT GHEDIYA		     Updated MJ Module MJE to MJB.
  41	  19/08/2025  BHARGAV SALIYA	     Added Case for [JournalTypeName].
  42	  25/08/2025  Moin Bloch		     added Some Remaining Fields For Common API
+ 43	  10/02/2026  Moin Bloch		     added TWO
 
  EXEC [GetJournalBatchDetailsViewpopupById] 1045,0,'ManualJournal'  
  exec dbo.GetJournalBatchDetailsViewpopupById @JournalBatchDetailId=5944,@IsDeleted=0,@Module=N'CKS'
@@ -69,7 +70,7 @@ BEGIN
 	 --SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED  
 	 --SET NOCOUNT ON;  
 		 BEGIN TRY  
-			IF(UPPER(@Module) = UPPER('WO') OR UPPER(@Module) = UPPER('WOP-PARTSISSUED') OR UPPER(@Module) = UPPER('SWOP-PARTSISSUED') OR UPPER(@Module) = UPPER('IWOT'))     
+			IF(UPPER(@Module) = UPPER('WO') OR UPPER(@Module) = UPPER('WOP-PARTSISSUED') OR UPPER(@Module) = UPPER('SWOP-PARTSISSUED') OR UPPER(@Module) = UPPER('IWOT') OR UPPER(@Module) = UPPER('TWO'))     
 			BEGIN  
 				DECLARE @WOModuleID INT = 12;
 				DECLARE @STKLModuleID INT = 2; 

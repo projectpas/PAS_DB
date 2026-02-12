@@ -11,11 +11,17 @@
  **************************************************************           
  ** Change History           
  **************************************************************           
- ** PR   Date         Author		Change Description            
- ** --   --------     -------		--------------------------------          
-    1    05/03/2022   Vishal Suthar Added Inventory Status
-	2    08/01/2022   Subhash saliya add pdf download coloum
+ ** PR   Date         Author			Change Description            
+ ** --   --------     -------			--------------------------------          
+    1    05/03/2022   Vishal Suthar		Added Inventory Status
+	2    08/01/2022   Subhash saliya	add pdf download coloum
 	3	 12/12/2024	  Abhishek Jirawla	Change made for Asset Inventory Status and Asset Available Status
+	4	 02/02/2026	  Divyesh Kathiriya	Add "CalibrationCertificateNumber"
+
+	exec USP_GetToolDashboardList @PageSize=200,@PageNumber=1,@SortColumn=N'lastCalDate',@SortOrder=1,@GlobalFilter=N'',@AssetId=NULL,
+	@AssetName=NULL,@AltAssetId=NULL,@AltAssetName=NULL,@SerialNum=NULL,@ToolId=NULL,@PartNumber=NULL,@Name=NULL,@Manufacturer=NULL,@AltIdNum=NULL,
+	@LastCalibrationDate=NULL,@NextCalibrationDate=NULL,@LastCalibrationBy=NULL,@StklineNum=NULL,@Calibrated=NULL,@Certifytype=N'Calibration',@CalCertNum=NULL,
+	@DayTillNextCal=NULL,@Status=N'Active',@ManufacturerPN=NULL,@Model=NULL,@ControlNumber=NULL,@AssetAttributeTypeName=NULL,@MasterCompanyId=1,@InventoryStatus=NULL
      
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_GetToolDashboardList]
@@ -276,8 +282,7 @@ BEGIN
 					ELSE
 					BEGIN
 						if(lower(@Certifytype) =lower('calibration'))			
-							begin
-										print 'Calibration'
+							begin										
 								;With Result AS(
 								Select 	    
 											CalibrationId  = (SELECT top 1 ISNULL(CalibrationId, 0) FROM CalibrationManagment WITH (NOLOCK) WHERE AssetRecordId = asm.AssetRecordId AND CalibrationTypeId = 1 ORDER BY  CalibrationId desc),							
@@ -348,7 +353,8 @@ BEGIN
 										asts.YellowIndicator as YellowIndicator, 
 										asts.GreenIndicator as GreenIndicator,
 										AsI.InventoryStatusId,
-										InventoryStatus = COALESCE((SELECT top 1 Status from AssetInventoryStatus WHERE AssetInventoryStatusId = AsI.InventoryStatusId), (SELECT top 1 Status from AssetAvailableStatus WHERE AssetAvailableStatusId = AsI.InventoryStatusId), '')
+										InventoryStatus = COALESCE((SELECT top 1 Status from AssetInventoryStatus WHERE AssetInventoryStatusId = AsI.InventoryStatusId), (SELECT top 1 Status from AssetAvailableStatus WHERE AssetAvailableStatusId = AsI.InventoryStatusId), ''),
+										ISNULL(AsI.CalibrationCertificateNumber,'') AS CalCertNum
 										FROM dbo.Asset asm WITH(NOLOCK)
 										INNER JOIN dbo.AssetInventory   As AsI WITH(NOLOCK) on asm.AssetRecordId=AsI.AssetRecordId
 										LEFT JOIN dbo.CalibrationManagment  As clm WITH(NOLOCK) on AsI.AssetInventoryId= clm.AssetInventoryId and asm.AssetRecordId=clm.AssetRecordId AND clm.CalibrationTypeId = 1									
@@ -384,7 +390,8 @@ BEGIN
 											(ControlName like '%' +@GlobalFilter+'%') OR
 											(NextCalDate like '%' +@GlobalFilter+'%') OR
 											(LastCalBy like '%' +@GlobalFilter+'%') OR										
-											(CertifyType like '%' +@GlobalFilter+'%') 
+											(CertifyType like '%' +@GlobalFilter+'%') OR
+											(CalCertNum like '%' +@GlobalFilter+'%')
 											))
 										OR   
 										(@GlobalFilter = '' AND (IsNull(@AssetId, '') = '' OR AssetId like '%' + @AssetId +'%') AND
@@ -404,7 +411,8 @@ BEGIN
 											(IsNull(@AssetAttributeTypeName, '') = '' OR AssetClass like '%' + @AssetAttributeTypeName +'%') AND
 											(IsNull(@InventoryStatus, '') = '' OR InventoryStatus like '%' + @InventoryStatus +'%') AND
 											(IsNull(@LastCalibrationDate, '') = '' OR Cast(ISNULL(LastCalDate, GETDATE()) as Date) = Cast(@LastCalibrationDate as date)) AND
-											(IsNull(@NextCalibrationDate, '') = '' OR Cast(NextCalDate as Date) = Cast(@NextCalibrationDate as date)) 
+											(IsNull(@NextCalibrationDate, '') = '' OR Cast(NextCalDate as Date) = Cast(@NextCalibrationDate as date)) AND
+											(IsNull(@CalCertNum, '') = '' OR CalCertNum like '%' + @CalCertNum +'%')
 											))						
 								Select @Count = COUNT(AssetId) from #TempResult
 								SELECT *, @Count As NumberOfItems FROM #TempResult
@@ -431,6 +439,7 @@ BEGIN
 								CASE WHEN (@SortOrder=1 and @SortColumn='assetModel')  THEN assetModel END ASC,
 								CASE WHEN (@SortOrder=1 and @SortColumn='controlId')  THEN controlId END ASC,
 								CASE WHEN (@SortOrder=1 and @SortColumn='inventoryStatus')  THEN InventoryStatus END ASC,
+								CASE WHEN (@SortOrder=1 and @SortColumn='CalCertNum')  THEN CalCertNum END ASC,
 
 								CASE WHEN (@SortOrder=-1 and @SortColumn='ASSETID')  THEN AssetId END Desc,
 								CASE WHEN (@SortOrder=-1 and @SortColumn='ASSETNAME')  THEN AssetName END Desc,
@@ -453,7 +462,8 @@ BEGIN
 								CASE WHEN (@SortOrder=-1 and @SortColumn='assetClass')  THEN assetClass END DESC,
 								CASE WHEN (@SortOrder=-1 and @SortColumn='assetModel')  THEN assetModel END DESC,
 								CASE WHEN (@SortOrder=-1 and @SortColumn='controlId')  THEN controlId END DESC,
-								CASE WHEN (@SortOrder=-1 and @SortColumn='inventoryStatus')  THEN InventoryStatus END DESC
+								CASE WHEN (@SortOrder=-1 and @SortColumn='inventoryStatus')  THEN InventoryStatus END DESC,
+								CASE WHEN (@SortOrder=-1 and @SortColumn='CalCertNum') THEN CalCertNum END DESC
 								OFFSET @RecordFrom ROWS 
 								FETCH NEXT @PageSize ROWS ONLY
 							end

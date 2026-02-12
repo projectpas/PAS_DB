@@ -171,6 +171,7 @@
     [AssetAttributeTypeId]              BIGINT          NULL,
     [ReceivablesAmount]                 DECIMAL (18, 2) NULL,
     [DepreciationStartDate]             DATETIME        NULL,
+    [CalibrationCertificateNumber]      NVARCHAR (500)  NULL,
     CONSTRAINT [PK_AssetInventoryAudit] PRIMARY KEY CLUSTERED ([AssetInventoryAuditId] ASC),
     CONSTRAINT [FK_AssetInventoryAudit_AssetInventory] FOREIGN KEY ([AssetInventoryId]) REFERENCES [dbo].[AssetInventory] ([AssetInventoryId])
 );

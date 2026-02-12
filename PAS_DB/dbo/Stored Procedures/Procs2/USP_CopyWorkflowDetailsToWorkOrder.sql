@@ -1,4 +1,5 @@
-﻿/*************************************************************
+﻿
+/*************************************************************
  ** File:   [USP_CopyWorkflowDetailsToWorkOrder]
  ** Author: HEMANT SALIYA
  ** Description: This stored procedure is used to Copy Work flow to Work Order
@@ -645,12 +646,13 @@ SET NOCOUNT ON;
 								SET @PartIgnored = 'Customer has resticted PMA or DER Part. So, Following Part Number are ignored while Transfer : ' + LEFT(@PartIgnored, LEN(@PartIgnored) - 1)
 							END
 
-							DECLARE @ProvisionId BIGINT;
+							DECLARE @TemplateProvisionId BIGINT;
+							DECLARE @DefaultProvisionId BIGINT;
 							DECLARE @ProvisionEnum_REPLACE VARCHAR(100) = 'REPLACE';
 							DECLARE @MaterialsWorkOrderTaskId BIGINT;
 
-							--SELECT TOP 1 @ProvisionId = ProvisionId FROM DBO.Provision WITH (NOLOCK)
-							--WHERE StatusCode = @ProvisionEnum_REPLACE AND ISNULL(IsActive, 0) = 1 AND ISNULL(isDeleted, 0) = 0 ;
+							SELECT TOP 1 @DefaultProvisionId = ProvisionId FROM DBO.Provision WITH (NOLOCK)
+							WHERE StatusCode = @ProvisionEnum_REPLACE AND ISNULL(IsActive, 0) = 1 AND ISNULL(isDeleted, 0) = 0 ;
 
 							-- Fetch MaterialMandatories
 							DECLARE @MaterialMandatories TABLE (Id BIGINT, Name NVARCHAR(MAX))
@@ -675,7 +677,7 @@ SET NOCOUNT ON;
 
 							OPEN newmaterial_cursors
 							FETCH NEXT FROM newmaterial_cursors INTO @ItemMasterId, @ConditionCodeId,
-							@ProvisionId, 
+							@TemplateProvisionId, 
 							@Item, @Figure, @TaskId, @Quantity, @UnitCost, @ExtendedCost, @MaterialMandatoriesName, @Memo, @IsDeferred, @WorkflowMaterialListId
 
 							WHILE @@FETCH_STATUS = 0
@@ -800,7 +802,7 @@ SET NOCOUNT ON;
 											   @ConditionCodeId, 
 											   (SELECT Id FROM @MaterialMandatories WHERE UPPER([Name]) = UPPER(@MaterialMandatoriesName)), 
 											   wfm.ItemClassificationId, @Quantity, wfm.UnitOfMeasureId, @UnitCost, @ExtendedCost, 
-											   @Memo, @IsDeferred, @ProvisionId, @Figure, @Item, 1
+											   @Memo, @IsDeferred, CASE WHEN @TemplateProvisionId > 0 THEN @TemplateProvisionId ELSE @DefaultProvisionId END, @Figure, @Item, 1
 										FROM DBO.WorkflowMaterial wfm WITH (NOLOCK) WHERE WorkflowId = @WorkflowId AND TaskId = @TaskId AND wfm.WorkflowMaterialListId = @WorkflowMaterialListId  AND ISNULL(WFM.IsDeleted, 0) = 0
 										order by [Order]
 									END
@@ -808,7 +810,7 @@ SET NOCOUNT ON;
 
 								UPDATE DBO.WorkOrderMaterials SET IsFromWorkFlow = 1 WHERE WorkOrderMaterialsId = @WorkOrderMaterialsId;
 
-								FETCH NEXT FROM newmaterial_cursors INTO @ItemMasterId, @ConditionCodeId,@ProvisionId, @Item, @Figure, @TaskId, @Quantity, @UnitCost, @ExtendedCost, @MaterialMandatoriesName, @Memo, @IsDeferred, @WorkflowMaterialListId
+								FETCH NEXT FROM newmaterial_cursors INTO @ItemMasterId, @ConditionCodeId,@TemplateProvisionId, @Item, @Figure, @TaskId, @Quantity, @UnitCost, @ExtendedCost, @MaterialMandatoriesName, @Memo, @IsDeferred, @WorkflowMaterialListId
 							END
 
 							CLOSE newmaterial_cursors

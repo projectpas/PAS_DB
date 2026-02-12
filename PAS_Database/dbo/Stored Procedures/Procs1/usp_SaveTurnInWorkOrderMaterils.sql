@@ -28,6 +28,7 @@ Exec [usp_SaveTurnInWorkOrderMaterils]
    16   18/04/2025  ABHISHEK JIRAWLA	Added Integration Portal in Stockline
    17	08/10/2025  Moin Bloch			Added MPN Tendor 
    18	30/01/2026  Moin Bloch			Fix For Getting FK Conflict Error In Bin
+   19   10/02/2026  Moin Bloch          No need to remove cost from stockline while tendor WO materials PN-15331 & Added Accounting Entry For Teardown Stockline
   
 exec dbo.usp_SaveTurnInWorkOrderMaterils @IsMaterialStocklineCreate=1,@IsCustomerStock=1,@IsCustomerstockType=0,@ItemMasterId=291,@UnitOfMeasureId=5,  
 @ConditionId=10,@Quantity=2,@IsSerialized=0,@SerialNumber=NULL,@CustomerId=80,@ObtainFromTypeId=1,@ObtainFrom=80,@ObtainFromName=N'anil gill ',  
@@ -326,9 +327,18 @@ BEGIN
 		DECLARE @OLDStockLineId BIGINT = 0;        
 		SET @OLDStockLineId = (SELECT [StockLineId] FROM [dbo].[WorkOrderPartNumber] WITH(NOLOCK) WHERE [ID] = @WorkOrderPartNoId);  
   
-		UPDATE [dbo].[Stockline] SET [Memo] = 'This Stockline cost is updated using turn-in to work order number ' + @WorkOrderNumber + ' new stockline is ' + @StockLineNumber,  
-			[UnitCost] -= @Unitcost, [PurchaseOrderUnitCost] -= @Unitcost  
+		UPDATE [dbo].[Stockline] SET [Memo] = 'This Stockline cost is updated using turn-in to work order number ' + @WorkOrderNumber + ' new stockline is ' + @StockLineNumber--,  
+			--[UnitCost] -= @Unitcost, 
+			--[PurchaseOrderUnitCost] -= @Unitcost  			
 		WHERE [StockLineId] = @OLDStockLineId;  
+
+		-- TENDERING STOCKLINE ACCOUNTING ENTRY
+
+		DECLARE @DistributionMasterId BIGINT=NULL
+
+		SELECT @DistributionMasterId = [ID] FROM [dbo].[DistributionMaster] WITH(NOLOCK) WHERE [DistributionCode] = 'TENDERINGSTOCKLINETWO'
+	
+		EXEC [dbo].[USP_TearDownWOBatchTriggerBasedonDistribution] @DistributionMasterId,@WorkOrderId,@WorkOrderPartNoId,@StocklineId,@MasterCompanyId,@UpdatedBy
      END  
   
   --   IF(@IsSerialized =1 AND @SerialNumber IS NOT NULL AND @SerialNumber != '')  

@@ -44,12 +44,14 @@
 	27   27-11-2025   Moin Bloch	    added Manual Journal
 	28   03-12-2025   AMIT GHEDIYA	    update Manual Journal code type to (4 to 6)
 	29   03-02-2026   AMIT GHEDIYA	    update to get vendor which is not Payment Hold (PN-15337)
+	30   12-02-2026   AMIT GHEDIYA	    date filter issue (PN-15442)
      
 -- EXEC VendorReadyToPayList 1,NULL,NULL,1  
 --EXEC dbo.VendorReadyToPayList @MasterCompanyId=1,@StartDate=default,@EndDate=default,@LegalEntityId=1
 **************************************************************/
 CREATE   PROCEDURE [dbo].[VendorReadyToPayList]  
 @MasterCompanyId INT = NULL,  
+@EmployeeId BIGINT  = NULL ,
 @StartDate DATETIME = NULL,  
 @EndDate DATETIME = NULL,
 @LegalEntityId BIGINT = NULL
@@ -67,7 +69,26 @@ BEGIN
 			@VendorCreditMemoStatusId INT,
 			@ManualJRefrenceTypeId INT = 2,
 			@ManualJStatusId INT,
-			@IsVendorPaymentMJ BIT; 
+			@IsVendorPaymentMJ BIT,
+			@CurrntEmpTimeZoneDesc VARCHAR(100) = '';
+
+			SELECT	@CurrntEmpTimeZoneDesc = COALESCE(
+						ETZ.[Description],  -- Prefer Employee's TimeZone description if available
+						LTZ.[Description]   -- Fallback to LegalEntity's TimeZone description
+					)
+				FROM 
+					dbo.Employee E WITH (NOLOCK) 
+				LEFT JOIN 
+					dbo.TimeZone ETZ WITH (NOLOCK) 
+					ON E.TimeZoneId = ETZ.TimeZoneId
+				LEFT JOIN 
+					dbo.LegalEntity LE WITH (NOLOCK) 
+					ON E.LegalEntityId = LE.LegalEntityId
+				LEFT JOIN 
+					dbo.TimeZone LTZ WITH (NOLOCK) 
+					ON LE.TimeZoneId = LTZ.TimeZoneId
+				WHERE 
+					E.EmployeeId = @EmployeeId;
 
 	SELECT @VendorCreditMemoStatusId = [Id] FROM [dbo].[CreditMemoStatus] WITH(NOLOCK) WHERE [Name] = 'Posted';
 
@@ -201,14 +222,9 @@ BEGIN
     SELECT DISTINCT VPD.VendorPaymentDetailsId,
 			        VPD.ReadyToPayId,  
 					--DATEADD(RRC.InvoiceDate, ISNULL(ctm.NetDays,0), VPD.DueDate) AS [DueDate],  
-					
-					CASE WHEN IIF(TRY_CAST(VPD.DueDate AS DATETIME) IS NULL, 0, 1 ) = 1 
-						THEN VPD.DueDate 
-					ELSE
-						CASE WHEN IIF(TRY_CAST(RRC.InvoiceDate AS DATETIME) IS NULL, 0, 1 ) = 1
-							THEN DATEADD(DAY,ISNULL(CTM.NetDays,0),RRC.InvoiceDate)
-						ELSE NULL END
-					END AS 'DueDate',
+					 CASE WHEN IIF(TRY_CAST(RRC.InvoiceDate AS DATETIME) IS NULL, 0, 1 ) = 1
+						THEN DATEADD(DAY,ISNULL(CTM.NetDays,0),(Cast(DBO.ConvertUTCtoLocal(RRC.InvoiceDate,@CurrntEmpTimeZoneDesc)AS DATETIME)))
+					 ELSE NULL END	AS 'DueDate',
                     --(VPD.DueDate + ISNULL(ctm.NetDays,0)) AS DueDate,  
 					VPD.VendorId,
 					VPD.VendorName,
@@ -305,7 +321,7 @@ BEGIN
 						THEN VPD.DueDate 
 					ELSE
 						CASE WHEN IIF(TRY_CAST(CM.InvoiceDate AS DATETIME) IS NULL, 0, 1 ) = 1
-							THEN DATEADD(DAY,ISNULL(CTM.NetDays,0),CM.InvoiceDate)
+							THEN DATEADD(DAY,ISNULL(CTM.NetDays,0),(Cast(DBO.ConvertUTCtoLocal(CM.InvoiceDate,@CurrntEmpTimeZoneDesc)AS DATETIME)))
 						ELSE NULL END
 					END AS 'DueDate',
 					--DATEADD(Day, ISNULL(ctm.NetDays,0), VPD.DueDate) AS DueDate,
@@ -398,13 +414,12 @@ BEGIN
 			        VPD.ReadyToPayId,  
 					--DATEADD(Day, ISNULL(ctm.NetDays,0), VPD.DueDate) AS DueDate,
 					CASE WHEN IIF(TRY_CAST(VPD.DueDate AS DATETIME) IS NULL, 0, 1 ) = 1 
-							THEN VPD.DueDate 
-					ELSE 
-							CASE 
-								WHEN IIF(TRY_CAST(NPH.InvoiceDate AS DATETIME) IS NULL, 0, 1 ) = 1
-									THEN DATEADD(DAY,ISNULL(CTM.NetDays,0),NPH.InvoiceDate)
-							ELSE NULL END
-						END AS 'DueDate',
+						THEN VPD.DueDate 
+					 ELSE
+						CASE WHEN IIF(TRY_CAST(NPH.InvoiceDate AS DATETIME) IS NULL, 0, 1 ) = 1
+							THEN DATEADD(DAY,ISNULL(CTM.NetDays,0),(Cast(DBO.ConvertUTCtoLocal(NPH.InvoiceDate,@CurrntEmpTimeZoneDesc)AS DATETIME)))
+						ELSE NULL END
+					END AS 'DueDate',
 					VPD.VendorId,
 					VPD.VendorName,
 					VPD.PaymentMethodId,
@@ -498,7 +513,7 @@ BEGIN
 							THEN VPD.DueDate 
 						ELSE
 							CASE WHEN IIF(TRY_CAST(MJH.[EntryDate] AS DATETIME) IS NULL, 0, 1 ) = 1
-								THEN DATEADD(DAY,ISNULL(CTM.[NetDays],0),MJH.[EntryDate]) 
+								THEN DATEADD(DAY,ISNULL(CTM.NetDays,0),(Cast(DBO.ConvertUTCtoLocal(MJH.[EntryDate],@CurrntEmpTimeZoneDesc)AS DATETIME)))
 							ELSE NULL END
 						END,  
 					    VPD.[VendorId],
@@ -664,7 +679,7 @@ BEGIN
 							THEN VPD.DueDate 
 					ELSE
 						CASE WHEN IIF(TRY_CAST(NPH.InvoiceDate AS DATETIME) IS NULL, 0, 1 ) = 1
-							THEN DATEADD(DAY,ISNULL(CTM.NetDays,0),NPH.InvoiceDate)
+							THEN DATEADD(DAY,ISNULL(CTM.NetDays,0),(Cast(DBO.ConvertUTCtoLocal(NPH.InvoiceDate,@CurrntEmpTimeZoneDesc)AS DATETIME)))
 						ELSE NULL END
 					END AS 'DueDate',
 					VPD.VendorId,

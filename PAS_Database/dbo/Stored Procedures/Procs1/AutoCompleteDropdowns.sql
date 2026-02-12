@@ -377,12 +377,12 @@ AS BEGIN
                         ELSE IF(@TableName='Vendor' AND ISNULL(@IsFromUpload,0)=0)BEGIN
                                 SELECT TOP 50 V.VendorId AS Value,V.VendorName,V.VendorName+(CASE WHEN(SELECT COUNT(1)
                                                                                              FROM dbo.Vendor VD WITH(NOLOCK)
-                                                                                             WHERE VD.VendorName=V.VendorName AND VD.MasterCompanyId=@MasterCompanyId)>1 THEN '_'+V.VendorCode ELSE '' END) AS Label,V.MasterCompanyId,V.VendorCode 
+                                                                                             WHERE VD.VendorName=V.VendorName AND VD.MasterCompanyId=@MasterCompanyId)>1 THEN ' - '+V.VendorCode ELSE '' END) AS Label,V.MasterCompanyId,V.VendorCode 
                                 FROM dbo.Vendor V WITH(NOLOCK) WHERE V.MasterCompanyId=@MasterCompanyId AND ISNULL(V.IsActive,1)=1 AND ISNULL(V.IsDeleted,0)=0 AND V.VendorName LIKE '%'+@Parameter3+'%' 
                                 UNION 
                                 SELECT V.VendorId AS Value,V.VendorName,V.VendorName+(CASE WHEN(SELECT COUNT(1) 
                                                                                       FROM dbo.Vendor VD WITH(NOLOCK)
-                                                                                      WHERE VD.VendorName=V.VendorName AND VD.MasterCompanyId=@MasterCompanyId)>1 THEN '_'+V.VendorCode ELSE '' END) AS Label,V.MasterCompanyId,V.VendorCode 
+                                                                                      WHERE VD.VendorName=V.VendorName AND VD.MasterCompanyId=@MasterCompanyId)>1 THEN ' - '+V.VendorCode ELSE '' END) AS Label,V.MasterCompanyId,V.VendorCode 
                                 FROM dbo.Vendor V WITH(NOLOCK) WHERE V.MasterCompanyId=@MasterCompanyId AND V.VendorId IN(SELECT Item FROM dbo.SPLITSTRING(@Idlist,','))
                         END
                         ELSE IF(@TableName='Vendor' AND ISNULL(@IsFromUpload,0)=1)BEGIN
@@ -639,13 +639,13 @@ AS BEGIN
                         ELSE IF(@TableName='Vendor' AND ISNULL(@IsFromUpload,0) = 0)BEGIN
                                 SELECT TOP 50 V.VendorId AS Value,V.VendorName,V.VendorName +(CASE WHEN (SELECT COUNT(1) 
                                                                                                             FROM dbo.Vendor VD WITH (NOLOCK)
-                                                                                                            WHERE VD.VendorName = V.VendorName AND VD.MasterCompanyId = @MasterCompanyId AND ISNULL(VD.IsDeleted, 0) = 0 ) > 1 THEN '_' + ISNULL(V.VendorCode, '') ELSE ''END ) AS Label,V.MasterCompanyId,V.VendorCode
+                                                                                                            WHERE VD.VendorName = V.VendorName AND VD.MasterCompanyId = @MasterCompanyId AND ISNULL(VD.IsDeleted, 0) = 0 ) > 1 THEN ' - ' + ISNULL(V.VendorCode, '') ELSE ''END ) AS Label,V.MasterCompanyId,V.VendorCode
                                 FROM dbo.Vendor V WITH (NOLOCK)
                                 WHERE V.MasterCompanyId = @MasterCompanyId AND ISNULL(V.IsActive, 1) = 1 AND ISNULL(V.IsDeleted, 0) = 0 AND V.VendorName LIKE '%' + @Parameter3 + '%'
                                 UNION
                                 SELECT V.VendorId AS Value,V.VendorName,V.VendorName +(CASE WHEN (SELECT COUNT(1)
                                                                                                     FROM dbo.Vendor VD WITH (NOLOCK)
-                                                                                                    WHERE VD.VendorName = V.VendorName AND VD.MasterCompanyId = @MasterCompanyId AND ISNULL(VD.IsDeleted, 0) = 0) > 1THEN '_' + ISNULL(V.VendorCode, '') ELSE '' END) AS Label,V.MasterCompanyId,V.VendorCode
+                                                                                                    WHERE VD.VendorName = V.VendorName AND VD.MasterCompanyId = @MasterCompanyId AND ISNULL(VD.IsDeleted, 0) = 0) > 1THEN ' - ' + ISNULL(V.VendorCode, '') ELSE '' END) AS Label,V.MasterCompanyId,V.VendorCode
                                 FROM dbo.Vendor V WITH (NOLOCK)
                                 WHERE V.MasterCompanyId = @MasterCompanyId AND V.VendorId IN (SELECT Item FROM dbo.SPLITSTRING(@Idlist, ','))
                         END

@@ -11,6 +11,7 @@
  ** PR   Date				Author					Change Description              
  ** --   --------			-------					-------------------------------            
 	1    18-Nov-2025		Devendra Shekh			Created
+	2    02-Feb-2026	    Bhargav Saliya			Added JournalTypeName Field
 	 
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[usp_GetJournalEntriesDetailsByLeafNodeId_WithFilter]  
@@ -40,7 +41,8 @@ CREATE   PROCEDURE [dbo].[usp_GetJournalEntriesDetailsByLeafNodeId_WithFilter]
 	@GLAccountId BIGINT = NULL,
 	@ReferenceNumber VARCHAR(150) = NULL,
 	@strFilter VARCHAR(MAX) = NULL,
-	@EmployeeId BIGINT = NULL
+	@EmployeeId BIGINT = NULL,
+	@JournalTypeName VARCHAR(150) = NULL
 )  
 AS  
 BEGIN   
@@ -419,6 +421,7 @@ BEGIN
 		IsManualJournal BIT NULL,
 		IsStandAloneCM BIT NULL,
 		ReferenceNumber VARCHAR(150) null,
+		JournalTypeName VARCHAR(150) null
 	)
 
 	DECLARE @COUNT AS INT;
@@ -454,7 +457,8 @@ BEGIN
 			LastMSLevel = CB.LastMSLevel,
 			AllMSlevels = CB.AllMSlevels,
 			IsStandAloneCM = CM.IsStandAloneCM,
-			ReferenceNumber = ISNULL(CB.ReferenceNumber, '')
+			ReferenceNumber = ISNULL(CB.ReferenceNumber, ''),
+			JournalTypeName = ISNULL(CB.JournalTypeName, '')
 	FROM #AccTrendTable tmp 
 		JOIN [dbo].[CommonBatchDetails] CB WITH (NOLOCK) ON tmp.JournalBatchDetailId = cb.JournalBatchDetailId 
 		JOIN [dbo].[DistributionSetup] DS WITH (NOLOCK) ON DS.ID = CB.DistributionSetupId
@@ -485,7 +489,7 @@ BEGIN
 
 	SELECT LeafNodeId, NodeName, OrderNum, GLAccountId, GLAccountCode , GLAccountName , JournalNumber, JournalBatchDetailId, LastMSLevel, AllMSlevels,
 	CAST(CreditAmount as varchar) CreditAmount, CAST(DebitAmount as varchar) DebitAmount, AccountingPeriodId, AccountingPeriod, PeriodName , ReferenceModule, ReferenceName, ReferenceId, CustomerId, DistributionSetupCode, EntryDate, 
-	SUM(ISNULL(CreditAmount, 0) - ISNULL(DebitAmount, 0)) Amount , IsManualJournal ,IsStandAloneCM,ReferenceNumber
+	SUM(ISNULL(CreditAmount, 0) - ISNULL(DebitAmount, 0)) Amount , IsManualJournal ,IsStandAloneCM,ReferenceNumber,JournalTypeName
 	INTO #TempResults
 	FROM #AccTrendTable
 	WHERE	((@GlobalFilter='' AND (ISNULL(@NodeName,'') ='' OR NodeName LIKE '%' + @NodeName+'%') AND
@@ -498,10 +502,11 @@ BEGIN
 			(ISNULL(@ReferenceModule,'') ='' OR ReferenceModule LIKE '%' + @ReferenceModule+'%') AND
 			(ISNULL(@LastMSLevel,'') ='' OR LastMSLevel LIKE '%' + @LastMSLevel+'%') AND 
 			(ISNULL(@EntryDate,'') ='' OR CAST(EntryDate AS date)=CAST(@EntryDate AS date)) AND
-			(ISNULL(@ReferenceNumber,'') ='' OR ReferenceNumber LIKE '%' + @ReferenceNumber+'%'))
+			(ISNULL(@ReferenceNumber,'') ='' OR ReferenceNumber LIKE '%' + @ReferenceNumber+'%') and
+			(ISNULL(@JournalTypeName,'') ='' OR JournalTypeName LIKE '%' + @JournalTypeName+'%'))
 			)
 	GROUP BY LeafNodeId, NodeName, OrderNum, GLAccountId, GLAccountCode , GLAccountName , JournalNumber, JournalBatchDetailId, LastMSLevel,  AllMSlevels,
-	CreditAmount, DebitAmount, AccountingPeriodId, AccountingPeriod, PeriodName , ReferenceModule, ReferenceName, ReferenceId, CustomerId, DistributionSetupCode, EntryDate, IsManualJournal,IsStandAloneCM,ReferenceNumber 
+	CreditAmount, DebitAmount, AccountingPeriodId, AccountingPeriod, PeriodName , ReferenceModule, ReferenceName, ReferenceId, CustomerId, DistributionSetupCode, EntryDate, IsManualJournal,IsStandAloneCM,ReferenceNumber,JournalTypeName 
 
 	SELECT * INTO #GLRecordsResult 
 	FROM #TempResults
@@ -516,13 +521,13 @@ BEGIN
 		SELECT Amount, LeafNodeId, OrderNum, NodeName, GLAccountId, GLAccountCode , GLAccountName , JournalNumber, JournalBatchDetailId, LastMSLevel,  AllMSlevels,
 		CreditAmount, DebitAmount,  AccountingPeriod, PeriodName , ReferenceModule, ReferenceName, ReferenceId, CustomerId, DistributionSetupCode, EntryDate, 
 		ROW_NUMBER() OVER(ORDER BY LeafNodeId, NodeName, GLAccountId, GLAccountCode , GLAccountName , JournalNumber, LastMSLevel,  AllMSlevels,
-		CreditAmount, DebitAmount, AccountingPeriod, PeriodName , ReferenceModule, ReferenceName, ReferenceId, CustomerId, DistributionSetupCode, EntryDate) rownum, IsManualJournal,IsStandAloneCM, ReferenceNumber
+		CreditAmount, DebitAmount, AccountingPeriod, PeriodName , ReferenceModule, ReferenceName, ReferenceId, CustomerId, DistributionSetupCode, EntryDate) rownum, IsManualJournal,IsStandAloneCM, ReferenceNumber,JournalTypeName
 		FROM #GLRecordsResult
 	) 
 	SELECT (SELECT SUM(Amount) FROM cteRanked c2 WHERE c2.rownum <= c1.rownum) AS Amount, 0 AS AccountingPeriodId, OrderNum,
 		c1.LeafNodeId, UPPER(c1.NodeName) AS NodeName, c1.GLAccountId, (UPPER(c1.GLAccountCode) + '-' + UPPER(c1.GLAccountName)) AS GLAccount, UPPER(c1.JournalNumber) AS JournalNumber, c1.JournalBatchDetailId, c1.LastMSLevel,  c1.AllMSlevels,
 		c1.CreditAmount, c1.DebitAmount, UPPER(c1.AccountingPeriod) AS AccountingPeriod, UPPER(c1.PeriodName) AS PeriodName, c1.ReferenceModule, c1.ReferenceName, c1.ReferenceId, c1.CustomerId, c1.DistributionSetupCode, 
-		Cast(DBO.ConvertUTCtoLocal(c1.EntryDate, @CurrntEmpTimeZoneDesc) as datetime) AS EntryDate, IsManualJournal	,IsStandAloneCM, ReferenceNumber, @TotalRecordsCount as NumberOfItems		
+		Cast(DBO.ConvertUTCtoLocal(c1.EntryDate, @CurrntEmpTimeZoneDesc) as datetime) AS EntryDate, IsManualJournal	,IsStandAloneCM, ReferenceNumber,JournalTypeName, @TotalRecordsCount as NumberOfItems		
 	FROM cteRanked c1 
 	WHERE c1.GLAccountId IS NOT NULL
 	ORDER BY OrderNum, JournalNumber;

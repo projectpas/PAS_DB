@@ -22,6 +22,7 @@
 	5    01/25/2024   Hemant Saliya				Remove Manual Journal from Reports
 	6    04/08/2024   Hemant Saliya				Added Management Structure Filters & Also Get AC Based on LE
 	7    10-07-2025	  Bhargav Saliya			Added ReferenceNumber Field
+	8    09-02-2026   Bhargav Saliya			Added JournalTypeName Field
      
 --EXEC [USP_GetTrailBalanceJournalBatchData] '1','1','134',2,@xmlFilter=N'
 <?xml version="1.0" encoding="utf-16"?>
@@ -167,7 +168,7 @@ BEGIN
 
 		SELECT cbd.GlAccountId, (GL.AccountCode + ' - ' +	GL.AccountName) AS 'GlAccount',
 			ISNULL(SUM(cbd.CreditAmount),0) AS 'Credit' ,ISNULL(SUM(cbd.DebitAmount),0) AS 'Debit',bd.AccountingPeriod AS 'PeriodName',
-			bd.JournalTypeNumber AS 'JournalNumber',ISNULL(cbd.ReferenceNumber,'') AS 'ReferenceNumber'
+			bd.JournalTypeNumber AS 'JournalNumber',ISNULL(cbd.ReferenceNumber,'') AS 'ReferenceNumber',cbd.JournalTypeName 
 		FROM dbo.CommonBatchDetails cbd  WITH(NOLOCK)
 			INNER JOIN dbo.BatchDetails bd WITH(NOLOCK) ON cbd.JournalBatchDetailId = bd.JournalBatchDetailId AND bd.StatusId = @PostedBatchStatusId
 			INNER JOIN dbo.AccountingBatchManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ReferenceId = cbd.CommonJournalBatchDetailId AND ModuleId = @BatchMSModuleId
@@ -186,7 +187,7 @@ BEGIN
 			AND (ISNULL(@Level8,'') ='' OR MSD.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,',')))  
 			AND (ISNULL(@Level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))  
 			AND  (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))
-		GROUP BY cbd.GlAccountId, bd.AccountingPeriod,bd.JournalTypeNumber,GL.AccountCode,GL.AccountName,cbd.ReferenceNumber
+		GROUP BY cbd.GlAccountId, bd.AccountingPeriod,bd.JournalTypeNumber,GL.AccountCode,GL.AccountName,cbd.ReferenceNumber,cbd.JournalTypeName 
 	END
 	END TRY
 	BEGIN CATCH

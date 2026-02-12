@@ -23,6 +23,7 @@
 	7	 11/08/2025	  RAJESH GAMI		Fixed: Save same order as in the template & handle the delete value
 	8	 12/15/2025	  VISHAL SUTHAR		Fixed: Sequence number to copy same as what we have in workflow
 	9	 12/24/2025	  VISHAL SUTHAR		Converting sequence while sorting and adding into workordertask table
+	10   12-Feb-2026  Amit Ghediya      Added New Field Provision (PN-15390)
 
 exec sp_executesql N'EXEC USP_CopyWorkflowDetailsToWorkOrder @WorkOrderId,@WorkflowId,@WorkOrderPartNumberId,@MasterCompanyId,@CreatedBy, @CreatedById, 
 @ListItem ',N'@WorkOrderId bigint,@WorkflowId bigint,@WorkOrderPartNumberId bigint,@MasterCompanyId int,@CreatedBy nvarchar(16),@CreatedById bigint,@listItem nvarchar(28)',
@@ -648,8 +649,8 @@ SET NOCOUNT ON;
 							DECLARE @ProvisionEnum_REPLACE VARCHAR(100) = 'REPLACE';
 							DECLARE @MaterialsWorkOrderTaskId BIGINT;
 
-							SELECT TOP 1 @ProvisionId = ProvisionId FROM DBO.Provision WITH (NOLOCK)
-							WHERE StatusCode = @ProvisionEnum_REPLACE AND ISNULL(IsActive, 0) = 1 AND ISNULL(isDeleted, 0) = 0 ;
+							--SELECT TOP 1 @ProvisionId = ProvisionId FROM DBO.Provision WITH (NOLOCK)
+							--WHERE StatusCode = @ProvisionEnum_REPLACE AND ISNULL(IsActive, 0) = 1 AND ISNULL(isDeleted, 0) = 0 ;
 
 							-- Fetch MaterialMandatories
 							DECLARE @MaterialMandatories TABLE (Id BIGINT, Name NVARCHAR(MAX))
@@ -664,14 +665,18 @@ SET NOCOUNT ON;
 									@IsDeferred BIT, @WorkflowMaterialListId BIGINT
 
 							DECLARE newmaterial_cursors CURSOR FOR
-							SELECT WM.ItemMasterId, WM.ConditionCodeId, WM.Item, WM.Figure, WM.TaskId, WM.Quantity, WM.UnitCost, WM.ExtendedCost, WM.MaterialMandatoriesName, Memo, IsDeferred, WorkflowMaterialListId
+							SELECT WM.ItemMasterId, WM.ConditionCodeId,
+							WM.ProvisionId, 
+							WM.Item, WM.Figure, WM.TaskId, WM.Quantity, WM.UnitCost, WM.ExtendedCost, WM.MaterialMandatoriesName, Memo, IsDeferred, WorkflowMaterialListId
 							FROM DBO.WorkflowMaterial WM WITH (NOLOCK) 
 							LEFT JOIN DBO.WorkFlowTask WT WITH (NOLOCK)  ON WM.WorkflowId = WT.WorkFlowId  AND WM.TaskId = WT.TaskId
 							WHERE WM.WorkflowId = @WorkflowId AND ISNULL(WM.IsDeleted, 0) = 0
 							ORDER BY WT.[SequenceNumber] ASC
 
 							OPEN newmaterial_cursors
-							FETCH NEXT FROM newmaterial_cursors INTO @ItemMasterId, @ConditionCodeId, @Item, @Figure, @TaskId, @Quantity, @UnitCost, @ExtendedCost, @MaterialMandatoriesName, @Memo, @IsDeferred, @WorkflowMaterialListId
+							FETCH NEXT FROM newmaterial_cursors INTO @ItemMasterId, @ConditionCodeId,
+							@ProvisionId, 
+							@Item, @Figure, @TaskId, @Quantity, @UnitCost, @ExtendedCost, @MaterialMandatoriesName, @Memo, @IsDeferred, @WorkflowMaterialListId
 
 							WHILE @@FETCH_STATUS = 0
 							BEGIN
@@ -803,7 +808,7 @@ SET NOCOUNT ON;
 
 								UPDATE DBO.WorkOrderMaterials SET IsFromWorkFlow = 1 WHERE WorkOrderMaterialsId = @WorkOrderMaterialsId;
 
-								FETCH NEXT FROM newmaterial_cursors INTO @ItemMasterId, @ConditionCodeId, @Item, @Figure, @TaskId, @Quantity, @UnitCost, @ExtendedCost, @MaterialMandatoriesName, @Memo, @IsDeferred, @WorkflowMaterialListId
+								FETCH NEXT FROM newmaterial_cursors INTO @ItemMasterId, @ConditionCodeId,@ProvisionId, @Item, @Figure, @TaskId, @Quantity, @UnitCost, @ExtendedCost, @MaterialMandatoriesName, @Memo, @IsDeferred, @WorkflowMaterialListId
 							END
 
 							CLOSE newmaterial_cursors

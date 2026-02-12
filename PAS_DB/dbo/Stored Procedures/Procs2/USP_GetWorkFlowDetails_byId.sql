@@ -10,6 +10,7 @@
  ** --   --------			-------				--------------------------------          
     1    23-April-2025		Devendra Shekh			Created
 	2    02-Sep-2025        Sahdev Saliya           Added New Field Verified, VerifiedBy And VerifiedDate
+	3    12-Feb-2026        Amit Ghediya            Added New Field Provision (PN-15390)
 
 EXEC [USP_GetWorkFlowDetails_byId] 5242, 2
 **************************************************************/
@@ -28,7 +29,7 @@ BEGIN
 			DECLARE @PublicationAttachmentModuleId INT = (SELECT [AttachmentModuleId] FROM [dbo].[AttachmentModule] WITH(NOLOCK) WHERE [Name] = 'Publication');
 
 			DECLARE @IGDescription VARCHAR(256), @Symbol VARCHAR(10), @Code VARCHAR(10), @chargesTypeName VARCHAR(256), @AssetName VARCHAR(50), @AssetId VARCHAR(30), @AssetTypeName VARCHAR(50), @stockType VARCHAR(30), @ItemClassification VARCHAR(30),
-					@Condition VARCHAR(256), @ManufacturerName VARCHAR(250), @ExpetiseTypeName VARCHAR(30), @UnitOfMeasure VARCHAR(100), @PublicationTypeName VARCHAR(100), @ModelName VARCHAR(50), @PublicationId VARCHAR(100);
+					@Condition VARCHAR(256), @Provision VARCHAR(256), @ManufacturerName VARCHAR(250), @ExpetiseTypeName VARCHAR(30), @UnitOfMeasure VARCHAR(100), @PublicationTypeName VARCHAR(100), @ModelName VARCHAR(50), @PublicationId VARCHAR(100);
 
 			SELECT	@CurrntEmpTimeZoneDesc = COALESCE(ETZ.[Description],LTZ.[Description])
 			FROM [dbo].[Employee] E WITH(NOLOCK) 
@@ -150,13 +151,14 @@ BEGIN
 			-- Getting WorkflowMaterial Details
 			SELECT	[WorkflowMaterialListId], [WorkflowId], [ItemMasterId], [TaskId], [Quantity], [UnitOfMeasureId], [ConditionCodeId], [UnitCost], [ExtendedCost], [Price], [ProvisionId], [IsDeferred], [WorkflowActionId], [Memo], [MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate],
 					[IsActive], [IsDeleted], [MaterialMandatoriesName], [PartNumber], [PartDescription], [ItemClassificationId], [ExtendedPrice], [Order], [MaterialMandatoriesId], [WFParentId], [IsVersionIncrease], [Figure], [Item], @stockType AS [StockType], @ManufacturerName AS [ManufacturerName], @ItemClassification AS [ItemClassification],
-					@UnitOfMeasure AS [UnitOfMeasure], @Condition AS [ConditionName]
+					@UnitOfMeasure AS [UnitOfMeasure], @Condition AS [ConditionName], @Provision AS Provision
 			INTO #tmpWorkflowMaterial FROM [dbo].[WorkflowMaterial] WITH(NOLOCK) WHERE [WorkflowId] = @WorkflowId AND ISNULL(IsDeleted, 0) = 0 ORDER BY [Order]
 			
 			UPDATE	TMP
 			SET	TMP.ItemClassification = ICC.ItemClassificationCode,
 				TMP.UnitOfMeasure = UM.ShortName,
 				TMP.ConditionName = CD.[Description],
+				TMP.Provision = PV.[Description],
 				TMP.ManufacturerName = IM.ManufacturerName,
 				TMP.StockType =  CASE 
 									WHEN ISNULL(IM.IsPma, 0) = 1 AND ISNULL(IM.IsDER, 0) = 1 THEN 'PMA&DER'
@@ -169,6 +171,7 @@ BEGIN
 			LEFT JOIN [dbo].[ItemClassification] ICC WITH(NOLOCK) ON TMP.ItemClassificationId = ICC.ItemClassificationId
 			LEFT JOIN [dbo].[UnitOfMeasure] UM WITH(NOLOCK) ON TMP.UnitOfMeasureId = UM.UnitOfMeasureId
 			LEFT JOIN [dbo].[Condition] CD WITH(NOLOCK) ON TMP.ConditionCodeId = CD.ConditionId
+			LEFT JOIN [dbo].[Provision] PV WITH(NOLOCK) ON TMP.ProvisionId = PV.ProvisionId
 
 			-- Getting WorkflowMeasurement Details
 			SELECT	[WorkflowMeasurementId], [WorkflowId], [Sequence], [Stage], [Min], [Max], [Expected], [DiagramURL], [Memo], [TaskId], [MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted], [ItemMasterId], [PartNumber], [Order], [PartDescription], [WFParentId],

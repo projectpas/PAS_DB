@@ -26,6 +26,7 @@
 	13	 20/01/2026   Priyansh Patel  	Added CSN, TSN, CSO, TSO fields from receiving customer
 	14	 30/01/2026   Moin Bloch     	Added IncomingPartNumber
 	15   10/02/2026   Moin Bloch        Added Accounting Entry For TearDown Work Order PN-15331
+	16   12/02/2026   Moin Bloch        Added Stockline Issue Entry For TearDown Work Order PN-15435
 	
 --   EXEC [USP_CreateWorkOrder] 
 **************************************************************/
@@ -96,7 +97,7 @@ BEGIN
 	DECLARE @CustomerRMAHeaderManagementStructureModule INT,@OpenRMAStatus INT,@CustomerRMAItemReturnedStatus INT
 	DECLARE @CurrentNumber AS BIGINT,@TravelerCodeTypeId BIGINT = (SELECT  [CodeTypeId] FROM [dbo].[CodeTypes] WITH (NOLOCK) WHERE [CodeType] = 'TravelerId')
 	DECLARE @TravelerName AS varchar(100) = 0,@WorkOrderScopeId BIGINT = NULL, @EnforceMpnPickTicketConfirmation BIT; 
-	DECLARE @SecondarySalesPersonId BIGINT = NULL,@SalesAgentID BIGINT = NULL,@CommonTeardownTypeId BIGINT = NULL
+	DECLARE @SecondarySalesPersonId BIGINT = NULL,@SalesAgentID BIGINT = NULL,@CommonTeardownTypeId BIGINT = NULL, @StocklineHistoryReserveActionEnum INT = 0, @StocklineHistoryIssueActionEnum INT = 0
 
 	DECLARE @CSN VARCHAR(50) = NULL,@TSN VARCHAR(50) = NULL,@CSO VARCHAR(50) = NULL, @TSO VARCHAR(50) = NULL;
 
@@ -117,7 +118,13 @@ BEGIN
 	SELECT @RMANumberCodePrefix = [CodeTypeId] FROM [dbo].[CodeTypes] WITH(NOLOCK) WHERE [CodeType]='RMANumber';
 	
 	-- Modules
-	SELECT @WorkOrderModuleID = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName]='WorkOrder';
+	SELECT @WorkOrderModuleID = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName]='WorkOrder';	
+
+	-- STOCKLINE RESERVE ENUM			
+	SELECT @StocklineHistoryReserveActionEnum = [ActionId] FROM [dbo].[StklineHistory_Action] WITH(NOLOCK) WHERE [Type]='Reserve';
+					
+	-- STOCKLINE ISSUE ENUM						
+	SELECT @StocklineHistoryIssueActionEnum = [ActionId] FROM [dbo].[StklineHistory_Action] WITH(NOLOCK) WHERE [Type]='Issue';
 
 	-- Management Structure Module
 	SELECT @StocklineManagementStructureModule = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName]='Stockline';
@@ -703,8 +710,11 @@ BEGIN
 				   [QuantityReserved] = @QuantityReserved + @NPMStockQTY 
 			 WHERE [StockLineId] = @PartStockLineId;
 
+			-- -- STOCKLINE RESERVE HISTORY
+			EXEC [dbo].[USP_AddUpdateStocklineHistory] @PartStockLineId,@WorkOrderModuleID,@WorkOrderId,NULL,NULL,@StocklineHistoryReserveActionEnum,@NPMStockQTY,@CreatedBy;
+
 			-- TEARDOWN WORK ORDER ACCOUNTING ENTRY
-			IF @WorkOrderTypeId = @TearDown -- TearDown
+			IF @WorkOrderTypeId = @TearDown -- TEARDOWN
 			BEGIN
 				SELECT @QuantityReserved = [QuantityReserved] FROM [dbo].[StockLine] WITH(NOLOCK) WHERE [StockLineId] = @PartStockLineId;
 
@@ -712,7 +722,10 @@ BEGIN
 				   SET [QuantityReserved] = @QuantityReserved - @NPMStockQTY,
 				       [QuantityOnHand] = @QuantityOnHand - @NPMStockQTY,
 					   [QuantityIssued] = @QuantityIssued + @NPMStockQTY
-				 WHERE [StockLineId] = @PartStockLineId;
+				 WHERE [StockLineId] = @PartStockLineId;				
+
+				 -- STOCKLINE ISSUE HISTORY
+				 EXEC [dbo].[USP_AddUpdateStocklineHistory] @PartStockLineId,@WorkOrderModuleID,@WorkOrderId,NULL,NULL,@StocklineHistoryIssueActionEnum,@NPMStockQTY,@CreatedBy;
 			END
 
 			EXEC [dbo].[UpdateStocklineColumnsWithId] @PartStockLineId;
@@ -742,8 +755,11 @@ BEGIN
 				   [QuantityReserved] = @QuantityReserved + @NPMStockQTY
 			 WHERE [StockLineId] = @PartStockLineId;
 
+		    -- STOCKLINE RESERVE HISTORY
+			EXEC [dbo].[USP_AddUpdateStocklineHistory] @PartStockLineId,@WorkOrderModuleID,@WorkOrderId,NULL,NULL,@StocklineHistoryReserveActionEnum,@NPMStockQTY,@CreatedBy;
+
 			-- TEARDOWN WORK ORDER ACCOUNTING ENTRY
-			IF @WorkOrderTypeId = @TearDown -- TearDown
+			IF @WorkOrderTypeId = @TearDown -- TEARDOWN
 			BEGIN
 				SELECT @QuantityReserved = [QuantityReserved] FROM [dbo].[StockLine] WITH(NOLOCK) WHERE [StockLineId] = @PartStockLineId;
 
@@ -752,6 +768,9 @@ BEGIN
 				       [QuantityOnHand] = @QuantityOnHand - @NPMStockQTY,
 					   [QuantityIssued] = @QuantityIssued + @NPMStockQTY
 				 WHERE [StockLineId] = @PartStockLineId;
+				 
+				 -- STOCKLINE ISSUE HISTORY
+				 EXEC [dbo].[USP_AddUpdateStocklineHistory] @PartStockLineId,@WorkOrderModuleID,@WorkOrderId,NULL,NULL,@StocklineHistoryIssueActionEnum,@NPMStockQTY,@CreatedBy;
 			END
 
 			EXEC [dbo].[UpdateStocklineColumnsWithId] @PartStockLineId;
@@ -1033,7 +1052,7 @@ BEGIN
 	EXEC [dbo].[CreateWorkOrderTasks] @WorkOrderParts,@WorkOrderId,@WorkOrderTypeId,@CreatedBy,@CreatedDate,@MasterCompanyId;
 
 	-- CREATING STOCK LINE HISTORY TO RESERVE STOCKLINE 
-	EXEC [dbo].[CreateStockLineHistory] @WorkOrderParts,@WorkOrderId,@CreatedBy,@CreatedDate,@MasterCompanyId;
+	-- EXEC [dbo].[CreateStockLineHistory] @WorkOrderParts,@WorkOrderId,@CreatedBy,@CreatedDate,@MasterCompanyId;
 
 	--*************** CREATE A WORK ORDER MATERIALS FOR SUB ASSY : BY RAJESH ***************
 	EXEC [dbo].[CreateWorkOrderMaterialsforSubAssy] @WorkOrderParts,@WorkOrderId,@WorkOrderTypeId,@CreatedBy,@CreatedDate,@MasterCompanyId,@WorkOrderFormTypeId

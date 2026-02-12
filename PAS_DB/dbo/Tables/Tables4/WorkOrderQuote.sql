@@ -36,6 +36,14 @@
     [ReportCurrencyId]          INT             NULL,
     [ForeignExchangeRate]       DECIMAL (18, 2) NULL,
     [IsPrintCorrectiveAction]   BIT             NULL,
+    [ShipToSiteName]            VARCHAR (100)   NULL,
+    [Line1]                     VARCHAR (50)    NULL,
+    [Line2]                     VARCHAR (50)    NULL,
+    [City]                      VARCHAR (50)    NULL,
+    [StateOrProvince]           VARCHAR (50)    NULL,
+    [PostalCode]                VARCHAR (50)    NULL,
+    [CountryId]                 BIGINT          NULL,
+    [ShipToSiteId]              BIGINT          NULL,
     CONSTRAINT [PK_WorkOrderQuote] PRIMARY KEY CLUSTERED ([WorkOrderQuoteId] ASC),
     CONSTRAINT [FK_WorkOrderQuote_Currency] FOREIGN KEY ([CurrencyId]) REFERENCES [dbo].[Currency] ([CurrencyId]),
     CONSTRAINT [FK_WorkOrderQuote_Customer] FOREIGN KEY ([CustomerId]) REFERENCES [dbo].[Customer] ([CustomerId]),
@@ -46,6 +54,8 @@
     CONSTRAINT [FK_WorkOrderQuote_WorkOrder] FOREIGN KEY ([WorkOrderId]) REFERENCES [dbo].[WorkOrder] ([WorkOrderId]),
     CONSTRAINT [FK_WorkOrderQuote_WorkOrderQuoteStatus] FOREIGN KEY ([QuoteStatusId]) REFERENCES [dbo].[WorkOrderQuoteStatus] ([WorkOrderQuoteStatusId])
 );
+
+
 
 
 GO

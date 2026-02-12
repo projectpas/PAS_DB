@@ -6,11 +6,12 @@
 
  ** Change History
  **************************************************************
- ** PR   Date				Author  					Change Description
+ ** PR   Date				Author  				Change Description
  ** --   --------			-------					--------------------------------
-    1    09-April-2025	   Devendra Shekh				Created
-	2    02-Sep-2025       Sahdev Saliya                Added New Field Verified, VerifiedBy And VerifiedDate
-	3    04-Nov-2025       Moin Bloch                   Changed Logic For Version Increase
+    1    09-April-2025	   Devendra Shekh			Created
+	2    02-Sep-2025       Sahdev Saliya            Added New Field Verified, VerifiedBy And VerifiedDate
+	3    04-Nov-2025       Moin Bloch               Changed Logic For Version Increase
+	4    04-Feb-2026       Vishal Suthar            Added a logic to copy WorkFlowTask into new version as well
 
 **************************************************************/
 CREATE     PROCEDURE [dbo].[USP_AddUpdateTemplateDetails]
@@ -972,7 +973,90 @@ BEGIN
 					[IsVersionIncrease] = @IsVersionIncrease
 				WHERE ISNULL([IsDeleted], 0) = 0 AND [WorkflowId] = @workFlowMainId
 			END
-		END		
+		END
+
+		IF ((SELECT COUNT(*) FROM @tbl_WorkFlowTaskType) > 0)
+		BEGIN
+			IF (ISNULL(@IsVersionIncrease,0) = 0)
+			BEGIN
+				IF EXISTS(SELECT 1 FROM [dbo].[WorkFlowTask] WITH(NOLOCK) WHERE [WorkflowId] = @workFlowMainId AND ISNULL([IsVersionIncrease],0) = 0)
+				BEGIN
+					MERGE INTO [dbo].[WorkFlowTask] AS [Target]
+					USING @tbl_WorkFlowTaskType AS [Source]
+					ON ([Target].[WorkflowId] = [Source].[WorkflowId] AND [Target].WorkFlowTaskId = [Source].WorkFlowTaskId)
+
+					WHEN MATCHED THEN
+						UPDATE SET
+							[Target].WorkFlowId = [Source].WorkFlowId,
+							[Target].WorkFlowNumber = [Source].WorkFlowNumber,
+							[Target].TaskId = [Source].TaskId,
+							[Target].TaskDescription = [Source].TaskDescription,
+							[Target].SequenceNumber = [Source].SequenceNumber,
+							[Target].Descrepancy = [Source].Descrepancy,
+							[Target].Resolution = [Source].Resolution,
+							[Target].[IsVersionIncrease] = ISNULL(@IsVersionIncrease,0),
+							[Target].WFParentId = [Source].WFParentId,
+							[Target].[MasterCompanyId] = @MasterCompanyId,
+							[Target].[UpdatedBy] = @UpdatedBy,
+							[Target].[UpdatedDate] = GETUTCDATE(),
+							[Target].[IsDeleted] = [Source].[IsDeleted]
+
+					WHEN NOT MATCHED THEN
+					INSERT (
+						[WorkFlowId], [WorkFlowNumber], [TaskId], [TaskDescription], [SequenceNumber], [Descrepancy], [IsVersionIncrease], [Resolution], [MasterCompanyId],
+						[CreatedBy], [CreatedDate], [UpdatedBy], [UpdatedDate]
+					)
+					VALUES (
+						@workFlowMainId, [Source].[WorkFlowNumber], [Source].[TaskId], [Source].[TaskDescription], [Source].[SequenceNumber], [Source].[Descrepancy], 0, [Source].[Resolution], @MasterCompanyId,
+						@CreatedBy, GETUTCDATE(), @UpdatedBy, GETUTCDATE()
+					);
+				END
+				ELSE
+				BEGIN
+					IF(ISNULL(@workFlowMainId, 0) > 0)
+					BEGIN
+						UPDATE [dbo].[WorkFlowTask]
+							SET [IsVersionIncrease] = 1
+						WHERE [WorkflowId] = @workFlowMainId
+					END
+
+					INSERT INTO [dbo].[WorkFlowTask](
+						[WorkFlowId], [WorkFlowNumber], [TaskId], [TaskDescription], [SequenceNumber], [Descrepancy], [IsVersionIncrease], [Resolution], [MasterCompanyId],
+						[CreatedBy], [CreatedDate], [UpdatedBy], [UpdatedDate])
+					SELECT	@workFlowMainId, [Source].[WorkFlowNumber], [Source].[TaskId], [Source].[TaskDescription], [Source].[SequenceNumber], [Source].[Descrepancy], 0, [Source].[Resolution], @MasterCompanyId,
+						@CreatedBy, GETUTCDATE(), @UpdatedBy, GETUTCDATE()
+					FROM @tbl_WorkFlowTaskType AS [Source];
+				END
+			END
+			ELSE
+			BEGIN
+				IF(ISNULL(@workFlowMainId, 0) > 0)
+				BEGIN
+					UPDATE [dbo].[WorkFlowTask]
+					   SET [IsVersionIncrease] = 1
+					WHERE [WorkflowId] = @workFlowMainId
+				END
+
+				INSERT INTO [dbo].[WorkFlowTask](
+					[WorkFlowId], [WorkFlowNumber], [TaskId], [TaskDescription], [SequenceNumber], [Descrepancy], [IsVersionIncrease], [Resolution], [MasterCompanyId],
+					[CreatedBy], [CreatedDate], [UpdatedBy], [UpdatedDate])
+				SELECT	@NewWorkFlowMainId, [Source].[WorkFlowNumber], [Source].[TaskId], [Source].[TaskDescription], [Source].[SequenceNumber], [Source].[Descrepancy], 0, [Source].[Resolution], @MasterCompanyId,
+					@CreatedBy, GETUTCDATE(), @UpdatedBy, GETUTCDATE()
+				FROM @tbl_WorkFlowTaskType AS [Source]
+			END
+		END
+		ELSE
+		BEGIN
+			IF(ISNULL(@workFlowMainId, 0) > 0)
+			BEGIN
+				UPDATE [dbo].[WorkFlowTask]
+				SET [IsDeleted] = 1,
+					[UpdatedBy] = @UpdatedBy,
+					[UpdatedDate] = GETUTCDATE(),
+					[IsVersionIncrease] = @IsVersionIncrease
+				WHERE ISNULL([IsDeleted], 0) = 0 AND [WorkflowId] = @workFlowMainId
+			END
+		END
 	COMMIT  TRANSACTION
 
 	--To Save The Template Task Mapping Details
@@ -992,12 +1076,6 @@ BEGIN
 
 		EXEC [dbo].[USP_SaveWorkFlowMappingDetails] @WorkFlowTask, @WorkFlowTaskIds, 0
 	END
-
-	--IF(ISNULL(@IsVersionIncrease, 0) = 1)
-	--BEGIN
-	--	--Creating Version Increase Template
-	--	EXEC [dbo].[USP_SaveNewVersionTemplateDetails] @workFlowMainId, @versionNo, @WorkFlowNumber, @CreatedBy, @MasterCompanyId;
-	--END
 
 	END TRY
 	BEGIN CATCH

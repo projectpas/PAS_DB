@@ -14,9 +14,10 @@
     1    22/09/2025   MOIN BLOCH		Created  
     2    25/09/2025   Devendra Shekh	Added GroupById for Insert/Update  
 	3    03/10/2025   MOIN BLOCH		Aded New Fields  
+	4    10/02/2026   Devendra Shekh	Added IsRunDaily
 --  EXEC [dbo].[USP_SaveAsOfDateSettings] 
 ************************************************************************/  
-CREATE      PROCEDURE [dbo].[USP_SaveAsOfDateSettings]
+CREATE   PROCEDURE [dbo].[USP_SaveAsOfDateSettings]
 @Id BIGINT = NULL, 
 @ReportType INT = NULL,
 @ExecutionDate INT = NULL,
@@ -47,7 +48,8 @@ CREATE      PROCEDURE [dbo].[USP_SaveAsOfDateSettings]
 @MasterCompanyId INT = NULL,
 @CreatedBy VARCHAR(256) = NULL,
 @UpdatedBy VARCHAR(256) = NULL,
-@GroupById INT = NULL
+@GroupById INT = NULL,
+@IsRunDaily BIT = NULL
 AS
 BEGIN  
  SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED  
@@ -110,7 +112,8 @@ BEGIN
 		    [IsInvoice],
 		    [IsCredits],
 		    [IsDeposit],
-		    [IsUnappliedAmounts]
+		    [IsUnappliedAmounts],
+		    [IsRunDaily]
         )
         VALUES
         (   @ReportType,
@@ -146,7 +149,8 @@ BEGIN
 		    @IsInvoice,
 		    @IsCredits,
 		    @IsDeposit,
-		    @IsUnappliedAmounts
+		    @IsUnappliedAmounts,
+			@IsRunDaily
         );
     END
     ELSE
@@ -175,7 +179,8 @@ BEGIN
 				[ExcludedLocations] = @ExcludedLocations,            
 				[UpdatedBy] = @UpdatedBy,
 				[UpdatedDate] = GETUTCDATE(),
-				[GroupById] = @GroupById
+				[GroupById] = @GroupById,
+				[IsRunDaily] = @IsRunDaily
 		  WHERE [MasterCompanyId] = @MasterCompanyId 
 			AND [ReportType] = @ReportType  
 		END
@@ -201,7 +206,8 @@ BEGIN
 				[ExecutionDate] = @ExecutionDate,
 				[WeeklyName] = @WeeklyName,				
 				[UpdatedBy] = @UpdatedBy,
-				[UpdatedDate] = GETUTCDATE()				
+				[UpdatedDate] = GETUTCDATE(),
+				[IsRunDaily] = @IsRunDaily
 		  WHERE [MasterCompanyId] = @MasterCompanyId 
 			AND [ReportType] = @ReportType  
 		END
@@ -223,7 +229,8 @@ BEGIN
 				[ExecutionDate] = @ExecutionDate,
 				[WeeklyName] = @WeeklyName,				
 				[UpdatedBy] = @UpdatedBy,
-				[UpdatedDate] = GETUTCDATE()				
+				[UpdatedDate] = GETUTCDATE(),
+				[IsRunDaily] = @IsRunDaily
 		  WHERE [MasterCompanyId] = @MasterCompanyId 
 			AND [ReportType] = @ReportType  
 		END

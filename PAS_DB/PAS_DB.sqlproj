@@ -4562,6 +4562,7 @@
     <Build Include="dbo\Stored Procedures\USP_GetManagementStructureTypeByMasterCompanyId.sql" />
     <Build Include="dbo\Stored Procedures\USP_TearDownWOBatchTriggerBasedonDistribution.sql" />
     <Build Include="dbo\Tables\PersistedGrants.sql" />
+    <Build Include="dbo\Stored Procedures\USP_WIPReportsReconciliation.sql" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Snapshots\PAS_DB_20220518_07-53-10.dacpac" />

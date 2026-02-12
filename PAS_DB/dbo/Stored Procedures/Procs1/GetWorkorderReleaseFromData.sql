@@ -30,9 +30,11 @@ EXEC [GetSubWorkorderReleaseFromData]
 ** 19   20/01/2026  Moin Bloch       Updated For PAR Added CorrectiveAction For PAR
 ** 20   21/01/2026  Vishal Suthar    Move CorrectiveAction data with "*" only and remove "*" after moving to release form For PAR
 ** 21   23/01/2026  Moin Bloch       Fix For **
+** 22   11/02/2026  Moin Bloch       Updated Added WOReleaseFormId insted of Country PN-15388
 
 
- EXEC [dbo].[GetWorkorderReleaseFromData] 4125,3643,1,0,3
+
+ EXEC [dbo].[GetWorkorderReleaseFromData] 13013,13487,0,1,2
 **************************************************************/ 
 
 CREATE   PROC [dbo].[GetWorkorderReleaseFromData]
@@ -54,7 +56,7 @@ BEGIN
 		DECLARE @MTIMasterCompanyId INT; 
 		DECLARE @UkCountryISOCode VARCHAR(100) = 'GB';
 		DECLARE @USCountryISOCode VARCHAR(100) = 'US';
-		DECLARE @CountryId BIGINT = 0;			
+		--DECLARE @CountryId BIGINT = 0;			
 		DECLARE @CMMIds VARCHAR(200) = NULL;			
 		DECLARE @IsMultiple BIT = NULL;
 		DECLARE @EmailBody NVARCHAR(MAX)=''		
@@ -245,15 +247,15 @@ BEGIN
 		END
 
 	    --GET Country code id
-		IF(ISNULL(@IsEasaUKLicense, 0) = 1 AND @formTypeId = @FAAEASAUK)
-		BEGIN
-			SELECT @CountryId = countries_id FROM [DBO].[Countries] WITH(NOLOCK) WHERE countries_iso_code = @UkCountryISOCode AND MasterCompanyId = @MasterCompanyId;	  
-		END
+		--IF(ISNULL(@IsEasaUKLicense, 0) = 1 AND @formTypeId = @FAAEASAUK)
+		--BEGIN
+		--	SELECT @CountryId = countries_id FROM [DBO].[Countries] WITH(NOLOCK) WHERE countries_iso_code = @UkCountryISOCode AND MasterCompanyId = @MasterCompanyId;	  
+		--END
 
-		IF(ISNULL(@IsEasaLicense, 0) = 1 AND @formTypeId = @FAAEASA)
-		BEGIN
-			SELECT @CountryId = countries_id FROM [DBO].[Countries] WITH(NOLOCK) WHERE countries_iso_code = @USCountryISOCode AND MasterCompanyId = @MasterCompanyId;	
-		END
+		--IF(ISNULL(@IsEasaLicense, 0) = 1 AND @formTypeId = @FAAEASA)
+		--BEGIN
+		--	SELECT @CountryId = countries_id FROM [DBO].[Countries] WITH(NOLOCK) WHERE countries_iso_code = @USCountryISOCode AND MasterCompanyId = @MasterCompanyId;	
+		--END
 
 		IF(@MasterCompanyId = @ECMasterCompanyId OR @MasterCompanyId = @NeoMasterCompanyId)
 		BEGIN
@@ -315,7 +317,8 @@ BEGIN
 						--				+'<p>No FAA or '+ CASE WHEN @IsEasaUKLicense = 1 AND @formTypeId = @FAAEASAUK THEN 'UK' ELSE 'EASA' END +' S/B and AD`s complied with at this shop visit.</p>'   
 						--				+ '<p>' +'Full details of work carried out held on Work Order: ' + ISNULL(CONVERT(VARCHAR(20),UPPER(wo.WorkOrderNum)),'-') + '</p>  <br/>'  
 						--		END ELSE '' END)   	  
-							 (CASE WHEN @IsEasaLicense = 1 AND @formTypeId = @FAAEASA THEN '<div style='+ '"bottom : 0px; position:absolute;font-size: 10px !important;line-height: 12px;"'+'>' + (REPLACE(REPLACE(ISNULL(wods.Dualreleaselanguage,'-'),'<p>',''),'</p>','') +' '+ le.EASALicense +'</div>') ELSE ''  END)        
+							(CASE WHEN @IsEasaLicense = 0 AND @IsEasaUKLicense = 0 THEN '<div style='+ '"bottom : 0px; position:absolute;font-size: 10px !important;line-height: 12px;"'+'>' + (REPLACE(REPLACE(ISNULL(wods.Dualreleaselanguage,'-'),'<p>',''),'</p>','') +' '+ +'</div>') ELSE ''  END)        
+							+ (CASE WHEN @IsEasaLicense = 1 AND @formTypeId = @FAAEASA THEN '<div style='+ '"bottom : 0px; position:absolute;font-size: 10px !important;line-height: 12px;"'+'>' + (REPLACE(REPLACE(ISNULL(wods.Dualreleaselanguage,'-'),'<p>',''),'</p>','') +' '+ le.EASALicense +'</div>') ELSE ''  END)        
 							+ (CASE WHEN @IsEasaUKLicense = 1 AND @formTypeId = @FAAEASAUK THEN '<div style='+ '"bottom : 0px; position:absolute;font-size: 10px !important;line-height: 12px;"'+'>' + (REPLACE(REPLACE(ISNULL(wods.Dualreleaselanguage,'-'),'<p>',''),'</p>','') +' '+ le.UKCAALicense +'</div>') ELSE ''  END)        
 							+ '</div>' FooterRemarks,  
 							UPPER(le.EASALicense) AS EASALicense,  
@@ -325,7 +328,8 @@ BEGIN
 							,@CorrectiveAction CorrectiveAction
 				FROM [dbo].[WorkOrderPartNumber] wop WITH(NOLOCK)   
 					  LEFT JOIN [dbo].[WorkOrder] wo  WITH(NOLOCK) ON wo.WorkOrderId = wop.WorkOrderId  
-					  LEFT JOIN [dbo].[WorkOrderDualReleaseSettings] wods  WITH(NOLOCK) ON wods.MasterCompanyId = wop.MasterCompanyId AND wo.WorkOrderTypeId = wods.WorkOrderTypeId AND wods.CountriesId = @CountryId
+					  --LEFT JOIN [dbo].[WorkOrderDualReleaseSettings] wods  WITH(NOLOCK) ON wods.MasterCompanyId = wop.MasterCompanyId AND wo.WorkOrderTypeId = wods.WorkOrderTypeId AND wods.CountriesId = @CountryId
+					  LEFT JOIN [dbo].[WorkOrderDualReleaseSettings] wods  WITH(NOLOCK) ON wods.MasterCompanyId = wop.MasterCompanyId AND wo.WorkOrderTypeId = wods.WorkOrderTypeId AND wods.WOReleaseFormId = @formTypeId					  
 					  LEFT JOIN [dbo].[ItemMaster] im  WITH(NOLOCK) ON im.ItemMasterId = wop.ItemMasterId  
 					  LEFT JOIN [dbo].[Stockline] sl  WITH(NOLOCK) ON sl.StockLineId = wop.StockLineId  
 					  LEFT JOIN [dbo].[ReceivingCustomerWork] rc  WITH(NOLOCK) ON rc.StockLineId = wop.StockLineId  
@@ -447,6 +451,14 @@ BEGIN
 
 				(
 					CASE 
+						WHEN @IsEasaLicense = 0 AND @IsEasaUKLicense = 0 
+						THEN '<div style="bottom:0; position:absolute; font-size:10px; line-height:12px;">'
+							 + REPLACE(REPLACE(ISNULL(wods.DualReleaseLanguage,'-'),'<p>',''),'</p>','')
+							 + ' ' + + '</div>'
+						ELSE ''
+					END
+					+
+					CASE 
 						WHEN @IsEasaLicense = 1 AND @FormTypeId = @FAAEASA 
 						THEN '<div style="bottom:0; position:absolute; font-size:10px; line-height:12px;">'
 							 + REPLACE(REPLACE(ISNULL(wods.DualReleaseLanguage,'-'),'<p>',''),'</p>','')
@@ -493,8 +505,9 @@ BEGIN
 				,@CorrectiveAction CorrectiveAction
 			FROM WorkOrderPartNumber wop WITH (NOLOCK)
 			LEFT JOIN WorkOrder wo WITH (NOLOCK) ON wo.WorkOrderId = wop.WorkOrderId  
-			LEFT JOIN WorkOrderDualReleaseSettings wods WITH (NOLOCK) ON wods.MasterCompanyId = wop.MasterCompanyId AND wods.WorkOrderTypeId = wo.WorkOrderTypeId 
-						AND wods.CountriesId = @CountryId  
+			--LEFT JOIN WorkOrderDualReleaseSettings wods WITH (NOLOCK) ON wods.MasterCompanyId = wop.MasterCompanyId AND wods.WorkOrderTypeId = wo.WorkOrderTypeId 
+			--			AND wods.CountriesId = @CountryId  
+			LEFT JOIN [dbo].[WorkOrderDualReleaseSettings] wods  WITH(NOLOCK) ON wods.MasterCompanyId = wop.MasterCompanyId AND wo.WorkOrderTypeId = wods.WorkOrderTypeId AND wods.WOReleaseFormId = @formTypeId					  
 			LEFT JOIN Stockline sl WITH (NOLOCK) ON sl.StockLineId = wop.StockLineId  
 			LEFT JOIN WorkOrderSettlementDetails wosc WITH (NOLOCK) ON wop.WorkOrderId = wosc.WorkOrderId AND wop.ID = wosc.WorkOrderPartNoId AND wosc.WorkOrderSettlementId = 9  
 			LEFT JOIN WorkOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @MSModuleId AND MSD.ReferenceID = wop.Id
@@ -579,7 +592,8 @@ BEGIN
 					  wo.[MasterCompanyId],
 					  CASE WHEN @IsEasaUKLicense = 1 AND @formTypeId = @FAAEASAUK THEN 'UK' ELSE 'EASA' END AS IsEasaUKLicenseType,
 					  ('<div style = "position:relative; min-height:140px;max-height:150px;  font-family: Arial, Helvetica, sans-serif!important; letter-spacing: 1px!important; font-size:10px">') AS HeaderRemarks,   				
-					  (CASE WHEN @IsEasaLicense = 1 AND @formTypeId = @FAAEASA THEN '<div style='+ '"bottom : 0px; position:absolute;font-size: 10px !important;line-height: 12px;"'+'>' + (REPLACE(REPLACE(ISNULL(wods.Dualreleaselanguage,'-'),'<p>',''),'</p>','') +' '+ le.EASALicense +'</div>') ELSE ''  END)        
+					  (CASE WHEN @IsEasaLicense = 0 AND @IsEasaUKLicense = 0 THEN '<div style='+ '"bottom : 0px; position:absolute;font-size: 10px !important;line-height: 12px;"'+'>' + (REPLACE(REPLACE(ISNULL(wods.Dualreleaselanguage,'-'),'<p>',''),'</p>','') +' '++'</div>') ELSE ''  END)        
+					+ (CASE WHEN @IsEasaLicense = 1 AND @formTypeId = @FAAEASA THEN '<div style='+ '"bottom : 0px; position:absolute;font-size: 10px !important;line-height: 12px;"'+'>' + (REPLACE(REPLACE(ISNULL(wods.Dualreleaselanguage,'-'),'<p>',''),'</p>','') +' '+ le.EASALicense +'</div>') ELSE ''  END)        
 					+ (CASE WHEN @IsEasaUKLicense = 1 AND @formTypeId = @FAAEASAUK THEN '<div style='+ '"bottom : 0px; position:absolute;font-size: 10px !important;line-height: 12px;"'+'>' + (REPLACE(REPLACE(ISNULL(wods.Dualreleaselanguage,'-'),'<p>',''),'</p>','') +' '+ le.UKCAALicense +'</div>') ELSE ''  END)        
 					+ '</div>' FooterRemarks,  
 					   UPPER(le.EASALicense) AS EASALicense,  
@@ -589,7 +603,8 @@ BEGIN
 					   ,@CorrectiveAction CorrectiveAction
 				FROM [dbo].[WorkOrderPartNumber] wop WITH(NOLOCK)   
 					  LEFT JOIN [dbo].[WorkOrder] wo  WITH(NOLOCK) ON wo.WorkOrderId = wop.WorkOrderId  
-					  LEFT JOIN [dbo].[WorkOrderDualReleaseSettings] wods  WITH(NOLOCK) ON wods.MasterCompanyId = wop.MasterCompanyId AND wo.WorkOrderTypeId = wods.WorkOrderTypeId AND wods.CountriesId = @CountryId
+					  --LEFT JOIN [dbo].[WorkOrderDualReleaseSettings] wods  WITH(NOLOCK) ON wods.MasterCompanyId = wop.MasterCompanyId AND wo.WorkOrderTypeId = wods.WorkOrderTypeId AND wods.CountriesId = @CountryId
+					  LEFT JOIN [dbo].[WorkOrderDualReleaseSettings] wods  WITH(NOLOCK) ON wods.MasterCompanyId = wop.MasterCompanyId AND wo.WorkOrderTypeId = wods.WorkOrderTypeId AND wods.WOReleaseFormId = @formTypeId					  
 					  LEFT JOIN [dbo].[ItemMaster] im  WITH(NOLOCK) ON im.ItemMasterId = wop.ItemMasterId  
 					  LEFT JOIN [dbo].[Stockline] sl  WITH(NOLOCK) ON sl.StockLineId = wop.StockLineId  
 					  LEFT JOIN [dbo].[ReceivingCustomerWork] rc  WITH(NOLOCK) ON rc.StockLineId = wop.StockLineId  

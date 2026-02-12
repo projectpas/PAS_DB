@@ -4437,6 +4437,7 @@
     <Build Include="dbo\Stored Procedures\USP_GetCurrentShipToSiteInfo.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetVarcharLength.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetManagementStructureTypeByMasterCompanyId.sql" />
+    <Build Include="dbo\Stored Procedures\USP_WIPReportsReconciliation.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

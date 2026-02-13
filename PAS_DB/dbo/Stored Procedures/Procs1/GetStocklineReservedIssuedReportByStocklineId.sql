@@ -20,7 +20,10 @@
 	7    18-12-2024    RAJESH GAMI		Skip the record if WO,RO,SO,Exch deleted
 	8    19-12-2024    RAJESH GAMI		Add MastercompanyId in the managementstructure JOIN
 	9    26-12-2024    RAJESH GAMI		Modified WPN to check RO is closed or not
-  10   13/02/2025    Ayushi Patel   converted the date into utc (RESERVED,ISSUED,RESERVEISSUE) , Added a case to get timeZone
+    10   13-02-2025    Ayushi Patel     converted the date into utc (RESERVED,ISSUED,RESERVEISSUE) , Added a case to get timeZone
+    11   12-02-2026    Moin Bloch		Modified Added TearDown Work Order Issue Operation PN-15435
+
+
 	EXEC [dbo].[GetStocklineReservedIssuedReportByStocklineId] 183296,1,1
 
 **************************************************************/    
@@ -49,6 +52,7 @@ BEGIN
 	  DECLARE @RMARefunded INT;
 	  DECLARE @RMACancel INT, @AdjPostedStatusId INT;
 	  DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
+	  DECLARE @TearDown INT
 		
 				SELECT 
 						@CurrntEmpTimeZoneDesc = COALESCE(
@@ -78,6 +82,7 @@ BEGIN
 	  SET @RMARefunded = (SELECT VendorRMAStatusId FROM dbo.VendorRMAStatus WITH(NOLOCK) WHERE VendorRMAStatus = 'Refunded')
 	  SET @RMACancel = (SELECT VendorRMAStatusId FROM dbo.VendorRMAStatus WITH(NOLOCK) WHERE VendorRMAStatus = 'Canceled')
 	  SET @AdjPostedStatusId =(SELECT TOP 1 Id FROM StocklineAdjustmentstatus where [Name]='Posted')
+	  SET @TearDown = (SELECT [Id] FROM [dbo].[WorkOrderType] WITH(NOLOCK) WHERE [Description]='Teardown');
 	BEGIN TRY 
 	BEGIN
 	 IF OBJECT_ID(N'tempdb..#tmpStockline') IS NOT NULL      
@@ -881,6 +886,59 @@ BEGIN
 					AND ISNULL(SWO.IsDeleted,0) = 0  AND (ISNULL(SWOP.IsFinishGood,0) != 1 OR ISNULL(SWOP.IsClosed,0) != 1 OR ISNULL(SWOP.SubWorkOrderStatusId,0) != @WOCloseStatusId OR ISNULL(SWO.SubWorkOrderStatusId,0) != @WOCloseStatusId)
 
 				--* END: SUBWorkOrderMaterialStockline For Issued *--
+
+
+				--* START: TearDown WorkOrder For Issued *--
+
+				 INSERT INTO #tmptmpStockline (PartNumber,PartDescription,Condition,StocklineNumber,ControlNumber,IdNumber,QuantityReserved,QuantityIssued,Module,ReferenceNumber,
+												  level1,level2,level3,level4,level5,level6,level7,level8,level9,level10,ReservationDate,ReservedBy,IssuedDate,IssuedBy,Quantity,
+											  QuantityOnHand,QuantityAvailable,[Location],SerialNumber,Comments,ReferenceId,Manufacturer,ReservedIssuedDate,ReservedIssuedBy,StlQtyReserved,StlQtyIssued)
+				SELECT	SL.PartNumber,
+						SL.PNDescription,
+						SL.Condition,
+						SL.StockLineNumber,
+						SL.ControlNumber,
+						SL.IdNumber,
+						SL.QtyReserved,
+						SL.QuantityIssued,
+						@WOModule AS Module,
+						WO.WorkOrderNum ,
+						UPPER(SLM.Level1Name) AS level1,  
+						UPPER(SLM.Level2Name) AS level2, 
+						UPPER(SLM.Level3Name) AS level3, 
+						UPPER(SLM.Level4Name) AS level4, 
+						UPPER(SLM.Level5Name) AS level5, 
+						UPPER(SLM.Level6Name) AS level6, 
+						UPPER(SLM.Level7Name) AS level7, 
+						UPPER(SLM.Level8Name) AS level8, 
+						UPPER(SLM.Level9Name) AS level9, 
+						UPPER(SLM.Level10Name) AS level10,
+						SL.UpdatedDate  ReservationDate,
+						SL.UpdatedBy ReservedBy,
+						SL.UpdatedDate  IssuedDate,
+						SL.UpdatedBy IssuedBy,
+						ISNULL(SL.Quantity,0) AS Quantity,
+						ISNULL(SL.QuantityOnHand,0) AS QuantityOnHand,
+						ISNULL(SL.QuantityAvailable,0) AS QuantityAvailable,
+						SL.[Location] AS [Location],
+						SL.SerialNumber SerialNumber,
+						'' AS Comments,
+						WO.WorkOrderId AS ReferenceId,
+						SL.Manufacturer,
+						WOP.UpdatedDate  ReservedIssuedDate,
+						WOP.UpdatedBy ReservedIssuedBy,
+						SL.QuantityReserved,
+						SL.QuantityIssued
+					FROM [dbo].[WorkOrderPartNumber] WOP WITH(NOLOCK)
+						INNER JOIN [dbo].[Stockline] SL  WITH(NOLOCK) ON SL.StockLineId = WOP.StockLineId
+						INNER JOIN [dbo].[StocklineManagementStructureDetails] SLM  WITH(NOLOCK) ON SLM.ReferenceID = SL.StockLineId AND WOP.MasterCompanyId = SLM.MasterCompanyId
+						INNER JOIN [dbo].[WorkOrder] WO WITH(NOLOCK) ON WO.WorkOrderId = WOP.WorkOrderId AND WO.[WorkOrderTypeId] = @TearDown
+					WHERE WOP.MasterCompanyId = @MasterCompanyId AND WOP.StockLineId = @StocklineId
+						AND ISNULL(WO.IsActive,0) = 1 AND ISNULL(WOP.IsActive,0) = 1 AND ISNULL(WOP.IsDeleted,0) = 0 AND ISNULL(WO.IsDeleted,0) = 0 
+						AND ISNULL(SL.[QuantityIssued],0) > 0 
+
+				--* END: TearDown WorkOrder For Issued *--
+
 		 END		 
 		 ELSE IF(@DisplayType = 3)
 		 BEGIN
@@ -1101,13 +1159,64 @@ BEGIN
 					
 				--* END: SubWorkOrderMaterialStockline For ALL *--
 
+				--* START: TearDown WorkOrder For Issued *--
+
+				INSERT INTO #tmptmpStockline (PartNumber,PartDescription,Condition,StocklineNumber,ControlNumber,IdNumber,QuantityReserved,QuantityIssued,Module,ReferenceNumber,
+												  level1,level2,level3,level4,level5,level6,level7,level8,level9,level10,ReservationDate,ReservedBy,IssuedDate,IssuedBy,Quantity,
+											  QuantityOnHand,QuantityAvailable,[Location],SerialNumber,Comments,ReferenceId,Manufacturer,ReservedIssuedDate,ReservedIssuedBy,StlQtyReserved,StlQtyIssued)
+				SELECT	SL.PartNumber,
+						SL.PNDescription,
+						SL.Condition,
+						SL.StockLineNumber,
+						SL.ControlNumber,
+						SL.IdNumber,
+						SL.QtyReserved,
+						SL.QuantityIssued,
+						@WOModule AS Module,
+						WO.WorkOrderNum ,
+						UPPER(SLM.Level1Name) AS level1,  
+						UPPER(SLM.Level2Name) AS level2, 
+						UPPER(SLM.Level3Name) AS level3, 
+						UPPER(SLM.Level4Name) AS level4, 
+						UPPER(SLM.Level5Name) AS level5, 
+						UPPER(SLM.Level6Name) AS level6, 
+						UPPER(SLM.Level7Name) AS level7, 
+						UPPER(SLM.Level8Name) AS level8, 
+						UPPER(SLM.Level9Name) AS level9, 
+						UPPER(SLM.Level10Name) AS level10,
+						SL.UpdatedDate  ReservationDate,
+						SL.UpdatedBy ReservedBy,
+						SL.UpdatedDate  IssuedDate,
+						SL.UpdatedBy IssuedBy,
+						ISNULL(SL.Quantity,0) AS Quantity,
+						ISNULL(SL.QuantityOnHand,0) AS QuantityOnHand,
+						ISNULL(SL.QuantityAvailable,0) AS QuantityAvailable,
+						SL.[Location] AS [Location],
+						SL.SerialNumber SerialNumber,
+						'' AS Comments,
+						WO.WorkOrderId AS ReferenceId,
+						SL.Manufacturer,
+						WOP.UpdatedDate  ReservedIssuedDate,
+						WOP.UpdatedBy ReservedIssuedBy,
+						SL.QuantityReserved,
+						SL.QuantityIssued
+					FROM [dbo].[WorkOrderPartNumber] WOP WITH(NOLOCK)
+						INNER JOIN [dbo].[Stockline] SL  WITH(NOLOCK) ON SL.StockLineId = WOP.StockLineId
+						INNER JOIN [dbo].[StocklineManagementStructureDetails] SLM  WITH(NOLOCK) ON SLM.ReferenceID = SL.StockLineId AND WOP.MasterCompanyId = SLM.MasterCompanyId
+						INNER JOIN [dbo].[WorkOrder] WO WITH(NOLOCK) ON WO.WorkOrderId = WOP.WorkOrderId AND WO.[WorkOrderTypeId] = @TearDown
+					WHERE WOP.MasterCompanyId = @MasterCompanyId AND WOP.StockLineId = @StocklineId
+						AND ISNULL(WO.IsActive,0) = 1 AND ISNULL(WOP.IsActive,0) = 1 AND ISNULL(WOP.IsDeleted,0) = 0 AND ISNULL(WO.IsDeleted,0) = 0 
+						AND ISNULL(SL.[QuantityIssued],0) > 0 
+
+				--* END: TearDown WorkOrder For Issued *--
+
 		 END
-		 select * into #finalResult
+		 SELECT * INTO #finalResult
 		 FROM #tmptmpStockline
 		
 		 SET @Total = (SELECT TOP 1 COUNT(1) OVER () AS TotalRecordsCount FROM #finalResult); 
 		  
-		 select @Total as NumberOfItems, * from #finalResult
+		 SELECT @Total AS NumberOfItems, * FROM #finalResult
 			
 	END
 	END TRY

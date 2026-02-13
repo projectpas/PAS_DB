@@ -17,6 +17,7 @@
  ** --   --------     ------------			--------------------------------              
     1    10/01/2024   AMIT GHEDIYA		Created    
     2    29/01/2026   Ayushi Patel      Added WOReleaseFormId and FormName
+	3    11/02/2026   Moin Bloch        Updated Countries Nullable PN-15388
      
 --EXEC [GetWorkOrderDualreleasemessagesettingsList] 14  
 **************************************************************/    
@@ -42,7 +43,7 @@ BEGIN
 				  WRF.FormName
 		    FROM [dbo].[WorkOrderDualReleaseSettings] WOS WITH(NOLOCK)
 		    JOIN [dbo].[WorkOrderType] WOT WITH(NOLOCK) ON WOT.Id = WOS.WorkOrderTypeId
-		    JOIN [dbo].[Countries] COU WITH(NOLOCK) ON COU.countries_id = WOS.CountriesId
+		    LEFT JOIN [dbo].[Countries] COU WITH(NOLOCK) ON COU.countries_id = WOS.CountriesId
 			LEFT JOIN [dbo].[WOReleaseForm] WRF WITH (NOLOCK)ON WRF.WOReleaseFormId = WOS.WOReleaseFormId
 		    WHERE WOS.MasterCompanyId = @MasterCompanyId AND WOS.WorkOrderDualReleaseSettingId = @WorkOrderDualReleaseSettingId;
 		END
@@ -60,7 +61,7 @@ BEGIN
 				  WRF.FormName
 		    FROM [dbo].[WorkOrderDualReleaseSettings] WOS WITH(NOLOCK)
 		    JOIN [dbo].[WorkOrderType] WOT WITH(NOLOCK) ON WOT.Id = WOS.WorkOrderTypeId
-		    JOIN [dbo].[Countries] COU WITH(NOLOCK) ON COU.countries_id = WOS.CountriesId
+		    LEFT JOIN [dbo].[Countries] COU WITH(NOLOCK) ON COU.countries_id = WOS.CountriesId
 			LEFT JOIN [dbo].[WOReleaseForm] WRF WITH (NOLOCK)ON WRF.WOReleaseFormId = WOS.WOReleaseFormId
 		    WHERE WOS.MasterCompanyId = @MasterCompanyId;
 		END

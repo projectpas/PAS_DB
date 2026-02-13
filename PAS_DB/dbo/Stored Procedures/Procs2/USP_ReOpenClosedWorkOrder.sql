@@ -17,6 +17,7 @@ Exec [USP_ReOpenClosedWorkOrder]
 ** 6    03-07-2025  Moin Bloch           Changed Old To New Billing Table
 ** 7    28-07-2025  Moin Bloch           Modify Fix For After Reopen CLOSED WO not able to create billing
 ** 8    26-08-2025  Bhargav Saliya       Fix WorkOrderStatus isues For After Reopen CLOSED WO
+** 9	12/02/2026  Moin Bloch			 Added Condition For TearDown Work Order We have change the logic for TearDown Work Order PN-15437
 
 exec sp_executesql N'EXEC dbo.USP_ReOpenClosedWorkOrder @workOrderPartNoId, @UpdatedBy',N'@WorkOrderPartNoId bigint,@UpdatedBy nvarchar(10)',@WorkOrderPartNoId=3474,@UpdatedBy=N'ADMIN User'
 
@@ -51,6 +52,7 @@ AS
 	DECLARE @WOTypeId INT= 0;
 	DECLARE @CustomerWOTypeId INT= 0;
 	DECLARE @InternalWOTypeId INT= 0;
+	DECLARE @TearDownWOTypeId INT= 0;
 	DECLARE @IsPaymentReceived BIT = NULL;
 	DECLARE @WorkOrderSettlementId BIGINT = 9; --Fixed for Final Condition Changed
 	DECLARE @8130WorkOrderSettlementId BIGINT; --Fixed for Final Condition Changed
@@ -76,6 +78,8 @@ AS
 			
 			SELECT TOP 1 @CustomerWOTypeId =Id FROM dbo.WorkOrderType WITH (NOLOCK) WHERE [Description] = 'Customer'
 			SELECT TOP 1 @InternalWOTypeId =Id FROM dbo.WorkOrderType WITH (NOLOCK) WHERE [Description] = 'Internal'
+			SELECT TOP 1 @TearDownWOTypeId =Id FROM dbo.WorkOrderType WITH (NOLOCK) WHERE [Description] = 'Teardown'
+
 			SELECT @8130WorkOrderSettlementId = WorkOrderSettlementId FROM WorkOrderSettlement WHERE UPPER(WorkOrderSettlementName) = 'RELEASE CERTS (E.G. 8130) REVIEWED'
 			SELECT @ModuleId = ModuleId FROM dbo.Module WITH(NOLOCK) WHERE ModuleId = 15; -- For WORK ORDER Module
 			SELECT @SubModuleId = ModuleId FROM dbo.Module WITH(NOLOCK) WHERE [ModuleName] = 'WorkOrderMPN';
@@ -151,7 +155,7 @@ AS
 					--DELETE FROM WOPickTicket WHERE OrderPartId =  @workOrderPartNoId
 				END
 
-				IF(ISNULL(@IsShippingDone,0) > 0 AND ISNULL(@WOTypeId,0) != @CustomerWOTypeId)
+				IF(ISNULL(@IsShippingDone,0) > 0 AND ISNULL(@WOTypeId,0) != @CustomerWOTypeId AND ISNULL(@WOTypeId,0) != @TearDownWOTypeId)
 				BEGIN
 					/* Update Stock Line Qty If Shipping is Done And not Customer Stock */
 					UPDATE Stockline SET 
@@ -240,7 +244,7 @@ AS
 					END
 				END
 
-				IF(ISNULL(@WOTypeId,0) <> @CustomerWOTypeId AND ISNULL(@IsAccountByPass, 0) = 0)
+				IF(ISNULL(@WOTypeId,0) <> @CustomerWOTypeId AND ISNULL(@WOTypeId,0) <> @TearDownWOTypeId AND ISNULL(@IsAccountByPass, 0) = 0)
 				BEGIN
 					IF NOT EXISTS(SELECT 1 FROM dbo.DistributionSetup WITH(NOLOCK) WHERE DistributionMasterId = @DistributionMasterId AND MasterCompanyId=@MasterCompanyId AND ISNULL(GlAccountId,0) = 0 AND ISNULL([IsManualText],0) = 0)  
 					BEGIN  
@@ -281,7 +285,7 @@ AS
 				END
 				
 				--REVERSE BILLING ENTRY FOR INTERNAL WO
-				IF(ISNULL(@WOTypeId,0) <> @CustomerWOTypeId AND ISNULL(@IsAccountByPass, 0) = 0 AND ISNULL(@IsInvoiceEntry, 0) > 0)
+				IF(ISNULL(@WOTypeId,0) <> @CustomerWOTypeId AND ISNULL(@WOTypeId,0) <> @TearDownWOTypeId AND ISNULL(@IsAccountByPass, 0) = 0 AND ISNULL(@IsInvoiceEntry, 0) > 0)
 				BEGIN
 					PRINT 'REVERSE BILLING ENTRY FOR INTERNAL WO'
 					IF NOT EXISTS(SELECT 1 FROM dbo.DistributionSetup WITH(NOLOCK) WHERE DistributionMasterId = @DistributionMasterId AND MasterCompanyId = @MasterCompanyId AND ISNULL(GlAccountId,0) = 0 AND ISNULL([IsManualText],0) = 0)  

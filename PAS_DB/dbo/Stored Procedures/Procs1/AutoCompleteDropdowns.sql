@@ -36,9 +36,11 @@
     19   03/12/2025   Ayushi Patel          Removed brackets from @TableName to avoid double [[TableName]] in dynamic SQL.
     20   16/12/2025   Ayushi Patel  	    Return fields: SalesOrderQuote for SalesOrderQuote Table
     21   20-Dec-2025  Divyesh Kathiriya  	Added case for Warehouse,Location,Shelf,Bin
+    22   30/01/2026   Ayushi Patel          Added Vendor auto-suggestion logic with duplicate VendorName handling (append VendorCode when duplicates exist)
 
 --select * from dbo.Employee      
---EXEC AutoCompleteDropdowns 'Employee','EmployeeId','FirstName','sur',1,20,'108,109,11',1       
+--EXEC AutoCompleteDropdowns 'ItemMaster','ItemMasterId','PartNumber','',1,20,'0',1       
+--EXEC AutoCompleteDropdowns 'Vendor','VendorId','VendorName','',1,20,'0',1  
 **************************************************************/
 CREATE   PROCEDURE [dbo].[AutoCompleteDropdowns] 
 	@TableName VARCHAR(50) = NULL, 
@@ -372,6 +374,27 @@ AS BEGIN
                                  WHERE MasterCompanyId=@MasterCompanyId AND IsNewVersionCreated = 0 AND SalesOrderQuoteId IN(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') )
                                  ORDER BY SalesOrderQuoteId DESC
                         END
+                        ELSE IF(@TableName='Vendor' AND ISNULL(@IsFromUpload,0)=0)BEGIN
+                                SELECT TOP 50 V.VendorId AS Value,V.VendorName,V.VendorName+(CASE WHEN(SELECT COUNT(1)
+                                                                                             FROM dbo.Vendor VD WITH(NOLOCK)
+                                                                                             WHERE VD.VendorName=V.VendorName AND VD.MasterCompanyId=@MasterCompanyId)>1 THEN ' - '+V.VendorCode ELSE '' END) AS Label,V.MasterCompanyId,V.VendorCode 
+                                FROM dbo.Vendor V WITH(NOLOCK) WHERE V.MasterCompanyId=@MasterCompanyId AND ISNULL(V.IsActive,1)=1 AND ISNULL(V.IsDeleted,0)=0 AND V.VendorName LIKE '%'+@Parameter3+'%' 
+                                UNION 
+                                SELECT V.VendorId AS Value,V.VendorName,V.VendorName+(CASE WHEN(SELECT COUNT(1) 
+                                                                                      FROM dbo.Vendor VD WITH(NOLOCK)
+                                                                                      WHERE VD.VendorName=V.VendorName AND VD.MasterCompanyId=@MasterCompanyId)>1 THEN ' - '+V.VendorCode ELSE '' END) AS Label,V.MasterCompanyId,V.VendorCode 
+                                FROM dbo.Vendor V WITH(NOLOCK) WHERE V.MasterCompanyId=@MasterCompanyId AND V.VendorId IN(SELECT Item FROM dbo.SPLITSTRING(@Idlist,','))
+                        END
+                        ELSE IF(@TableName='Vendor' AND ISNULL(@IsFromUpload,0)=1)BEGIN
+                                SELECT TOP 50 V.VendorId AS Value,V.VendorName,V.VendorName AS Label,V.MasterCompanyId,V.VendorCode 
+                                FROM dbo.Vendor V WITH(NOLOCK)
+                                WHERE V.MasterCompanyId=@MasterCompanyId AND ISNULL(V.IsActive,1)=1 AND ISNULL(V.IsDeleted,0)=0 AND V.VendorName LIKE '%'+@Parameter3+'%' 
+                                UNION
+                                SELECT V.VendorId AS Value,V.VendorName,V.VendorName AS Label,V.MasterCompanyId,V.VendorCode 
+                                FROM dbo.Vendor V WITH(NOLOCK) 
+                                WHERE V.MasterCompanyId=@MasterCompanyId AND V.VendorId IN(SELECT Item FROM dbo.SPLITSTRING(@Idlist,',')) 
+                        END
+
                          ELSE BEGIN
                                   SET @Sql=N'INSERT INTO #TempTable (Value, Label, MasterCompanyId)   
            SELECT DISTINCT  CAST ( '+@Parameter1+' AS BIGINT) As Value,  
@@ -613,6 +636,29 @@ AS BEGIN
                                  WHERE MasterCompanyId=@MasterCompanyId AND IsNewVersionCreated = 0 AND SalesOrderQuoteId IN(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') )
                                  ORDER BY SalesOrderQuoteId DESC
                         END
+                        ELSE IF(@TableName='Vendor' AND ISNULL(@IsFromUpload,0) = 0)BEGIN
+                                SELECT TOP 50 V.VendorId AS Value,V.VendorName,V.VendorName +(CASE WHEN (SELECT COUNT(1) 
+                                                                                                            FROM dbo.Vendor VD WITH (NOLOCK)
+                                                                                                            WHERE VD.VendorName = V.VendorName AND VD.MasterCompanyId = @MasterCompanyId AND ISNULL(VD.IsDeleted, 0) = 0 ) > 1 THEN ' - ' + ISNULL(V.VendorCode, '') ELSE ''END ) AS Label,V.MasterCompanyId,V.VendorCode
+                                FROM dbo.Vendor V WITH (NOLOCK)
+                                WHERE V.MasterCompanyId = @MasterCompanyId AND ISNULL(V.IsActive, 1) = 1 AND ISNULL(V.IsDeleted, 0) = 0 AND V.VendorName LIKE '%' + @Parameter3 + '%'
+                                UNION
+                                SELECT V.VendorId AS Value,V.VendorName,V.VendorName +(CASE WHEN (SELECT COUNT(1)
+                                                                                                    FROM dbo.Vendor VD WITH (NOLOCK)
+                                                                                                    WHERE VD.VendorName = V.VendorName AND VD.MasterCompanyId = @MasterCompanyId AND ISNULL(VD.IsDeleted, 0) = 0) > 1THEN ' - ' + ISNULL(V.VendorCode, '') ELSE '' END) AS Label,V.MasterCompanyId,V.VendorCode
+                                FROM dbo.Vendor V WITH (NOLOCK)
+                                WHERE V.MasterCompanyId = @MasterCompanyId AND V.VendorId IN (SELECT Item FROM dbo.SPLITSTRING(@Idlist, ','))
+                        END
+                        ELSE IF (@TableName = 'Vendor' AND ISNULL(@IsFromUpload, 0) = 1)BEGIN
+                                SELECT TOP 50 V.VendorId AS Value,V.VendorName,V.VendorName AS Label,V.MasterCompanyId,V.VendorCode
+                                FROM dbo.Vendor V WITH (NOLOCK)
+                                WHERE V.MasterCompanyId = @MasterCompanyId AND ISNULL(V.IsActive, 1) = 1 AND ISNULL(V.IsDeleted, 0) = 0 AND V.VendorName LIKE '%' + @Parameter3 + '%'
+                                UNION
+                                SELECT V.VendorId AS Value,V.VendorName,V.VendorName AS Label,V.MasterCompanyId,V.VendorCode
+                                FROM dbo.Vendor V WITH (NOLOCK)
+                                WHERE V.MasterCompanyId = @MasterCompanyId AND V.VendorId IN (SELECT Item FROM dbo.SPLITSTRING(@Idlist, ','))
+                        END
+
                          ELSE BEGIN
                                   SET @Sql=N'INSERT INTO #TempTable (Value, Label, MasterCompanyId)   
              SELECT DISTINCT TOP '+@Count+' CAST ( '+@Parameter1+' AS BIGINT) As Value,  

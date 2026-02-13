@@ -37,7 +37,7 @@ BEGIN
 		DECLARE @FromDate DATETIME; 
 		DECLARE @ToDate DATETIME; 
 		DECLARE @ProvisionId INT;
-
+		DECLARE @TaskStatus VARCHAR(20) = 'COMPLETED';
 		--SET Tempararly Records 
 		--SET @mastercompanyid = 1;
 		--SET @FromDate = CASE WHEN ISNULL(@id, '') != '' THEN CAST(@id AS DATETIME) ELSE GETUTCDATE() - 30 END;
@@ -159,8 +159,8 @@ BEGIN
 			JOIN dbo.Condition C WITH(NOLOCK) ON WOP.RevisedConditionId = C.ConditionId
 			JOIN dbo.WorkOrderType WT WITH(NOLOCK) ON WO.WorkOrderTypeId = WT.Id
 			LEFT JOIN dbo.[Priority] P WITH(NOLOCK) ON WOP.WorkOrderPriorityId = P.PriorityId
-			LEFT JOIN dbo.ManagementStructureLevel MSL ON MSL.ID = MSD.Level1Id
-			LEFT JOIN dbo.LegalEntity LE ON MSL.LegalEntityId = LE.LegalEntityId
+			LEFT JOIN dbo.ManagementStructureLevel MSL WITH(NOLOCK)  ON MSL.ID = MSD.Level1Id
+			LEFT JOIN dbo.LegalEntity LE  WITH(NOLOCK)  ON MSL.LegalEntityId = LE.LegalEntityId
 
 		WHERE WO.MasterCompanyId = @mastercompanyid AND CAST(WO.OpenDate AS DATE) BETWEEN CAST(@FromDate AS DATE) AND CAST(@ToDate AS DATE)
 			 AND  ISNULL(WO.IsDeleted, 0) = 0 AND ISNULL(WO.IsActive, 0) = 1 AND ISNULL(WOP.IsDeleted, 0) = 0 AND ISNULL(WOP.IsActive, 0) = 1
@@ -207,13 +207,13 @@ BEGIN
 			ISNULL(WOL.DirectLaborOHCost,0),
 			ISNULL(WOL.BurdenRateAmount,0),
 			ISNULL(WOL.AdjustedHours,0)
-		FROM dbo.WorkOrderPartNumber WOP
-		JOIN dbo.WorkOrder WO ON WO.WorkOrderId = WOP.WorkOrderId
-		JOIN dbo.WorkOrderWorkFlow WOWF ON WOWF.WorkOrderPartNoId = WOP.ID
+		FROM dbo.WorkOrderPartNumber WOP WITH(NOLOCK)
+		JOIN dbo.WorkOrder WO WITH(NOLOCK) ON WO.WorkOrderId = WOP.WorkOrderId
+		JOIN dbo.WorkOrderWorkFlow WOWF WITH(NOLOCK) ON WOWF.WorkOrderPartNoId = WOP.ID
 		JOIN dbo.WorkOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = WOP.ID 
-		JOIN dbo.WorkOrderLaborHeader WOLH ON WOLH.WorkFlowWorkOrderId = WOWF.WorkFlowWorkOrderId
-		JOIN dbo.WorkOrderLabor WOL ON WOL.WorkOrderLaborHeaderId = WOLH.WorkOrderLaborHeaderId
-		JOIN dbo.TaskStatus TS ON TS.TaskStatusId = WOL.TaskStatusId AND (TS.StatusCode IS NULL OR TS.StatusCode <> 'COMPLETED') AND TS.IsActive = 1 AND TS.IsDeleted = 0
+		JOIN dbo.WorkOrderLaborHeader WOLH WITH(NOLOCK) ON WOLH.WorkFlowWorkOrderId = WOWF.WorkFlowWorkOrderId
+		JOIN dbo.WorkOrderLabor WOL WITH(NOLOCK) ON WOL.WorkOrderLaborHeaderId = WOLH.WorkOrderLaborHeaderId
+		JOIN dbo.TaskStatus TS WITH(NOLOCK) ON TS.TaskStatusId = WOL.TaskStatusId AND (TS.StatusCode IS NULL OR TS.StatusCode <> @TaskStatus) AND TS.IsActive = 1 AND TS.IsDeleted = 0
 	  
 		WHERE WO.MasterCompanyId = @mastercompanyid AND CAST(WO.OpenDate AS DATE) BETWEEN CAST(@FromDate AS DATE) AND CAST(@ToDate AS DATE)
 			 AND  ISNULL(WO.IsDeleted, 0) = 0 AND ISNULL(WO.IsActive, 0) = 1 AND ISNULL(WOP.IsDeleted, 0) = 0 AND ISNULL(WOP.IsActive, 0) = 1

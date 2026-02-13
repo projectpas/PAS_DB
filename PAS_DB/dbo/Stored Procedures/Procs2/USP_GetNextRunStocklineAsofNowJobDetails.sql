@@ -15,9 +15,10 @@
 	2    25/09/2025   MOIN BLOCH		added GroupById
 	3    03/10/2025   MOIN BLOCH		Updated Datatype of ExecutionDate & Added New Fields
 	4    28/11/2025   Devendra Shekh	Passed '0' as [TagType]
+	5    13/02/2026   Devendra Shekh	Added IsRunDaily
 --  EXEC [dbo].[USP_GetNextRunStocklineAsofNowJobDetails] 1
 ************************************************************************/    
-CREATE     PROCEDURE [dbo].[USP_GetNextRunStocklineAsofNowJobDetails]
+CREATE   PROCEDURE [dbo].[USP_GetNextRunStocklineAsofNowJobDetails]
 @MasterCompanyId INT=NULL,
 @ReportType INT=NULL
 AS
@@ -44,7 +45,7 @@ BEGIN
 		DECLARE @ManagementStructureId BIGINT = NULL
 		DECLARE @GroupById INT = 0 
 		DECLARE @ViewType VARCHAR(20) = NULL
-		DECLARE @IsInvoice BIT = 0,@IsCredits BIT = 0,@IsDeposit BIT = 0,@IsUnappliedAmounts BIT = 0
+		DECLARE @IsInvoice BIT = 0,@IsCredits BIT = 0,@IsDeposit BIT = 0,@IsUnappliedAmounts BIT = 0,@IsRunDaily BIT = 0;
 
 		SELECT @Id = [Id],
 		  	   @IsWeeklyOrMonthly = ISNULL([IsWeeklyOrMonthly],0),
@@ -72,7 +73,8 @@ BEGIN
 			  @IsInvoice =  ISNULL([IsInvoice],0), 
 			  @IsCredits =  ISNULL([IsCredits],0), 
 			  @IsDeposit =  ISNULL([IsDeposit],0), 
-			  @IsUnappliedAmounts =  ISNULL([IsUnappliedAmounts],0)
+			  @IsUnappliedAmounts =  ISNULL([IsUnappliedAmounts],0),
+			  @IsRunDaily =  ISNULL([IsRunDaily],0)
 		FROM [dbo].[AsOfDateSettings] WITH(NOLOCK)
 	   WHERE [MasterCompanyId] = @MasterCompanyId
 		 AND [ReportType] = @ReportType  
@@ -126,7 +128,8 @@ BEGIN
 			   @IsInvoice [IsInvoice], 
 			   @IsCredits [IsCredits], 
 			   @IsDeposit [IsDeposit], 
-			   @IsUnappliedAmounts [IsUnappliedAmounts]
+			   @IsUnappliedAmounts [IsUnappliedAmounts],
+			   @IsRunDaily [IsRunDaily]
  END TRY   
  BEGIN CATCH        
   IF @@trancount > 0  

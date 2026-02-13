@@ -22,15 +22,17 @@
 	6	 23-09-2025		Moin Bloch		    Added more fields
 	7	 28-11-2025		Devendra Shekh		Modified: managed '0' value for @id2
   	8	 02-02-2026		RAJESH GAMI			Modified: [Traceableto] modify size  
+  	9	 13-02-2026		Devendra Shekh		Added New param @id9  
 exec usprpt_GetStockReportAsOfNow 
-@mastercompanyid=11, 
-@id=N'2025-09-25',
+@mastercompanyid=1, 
+@id=N'2026-02-13',
 @id2=N'',
 @id3=1, 
-@id5='18!!!!', 
+@id5='!!!!', 
 @id6=0,
-@id8='448,453', 
-@strFilter=N'49!50,51!!!!!!!!'
+@id8='', 
+@strFilter=N'1,5,6,20,22,52,53!2,7,8,9!3,11,10!4,12,13!!!!!!',
+@id9=1
 **************************************************************/
 CREATE   PROCEDURE [dbo].[usprpt_GetStockReportAsOfNow]
 	@mastercompanyid INT,
@@ -40,7 +42,8 @@ CREATE   PROCEDURE [dbo].[usprpt_GetStockReportAsOfNow]
 	@id5 VARCHAR(MAX),
 	@id6 BIGINT,
 	@id8 VARCHAR(MAX) = NULL,
-	@strFilter VARCHAR(MAX) = NULL
+	@strFilter VARCHAR(MAX) = NULL,
+	@id9 BIT = NULL
 AS
 BEGIN
   SET NOCOUNT ON;
@@ -308,7 +311,7 @@ BEGIN
      WHERE stl.[MasterCompanyId] = @mastercompanyid 
 	 AND stl.[IsParent] = 1 
 	 AND stl.[IsDeleted] = 0
-	 AND CAST(stl.[CreatedDate] AS DATE) <= CAST(GETUTCDATE()-1 AS DATE)
+	 AND CAST(stl.[CreatedDate] AS DATE) <= CASE WHEN ISNULL(@id9, 0) = 1 THEN CAST(GETUTCDATE() AS DATE) ELSE CAST(GETUTCDATE()-1 AS DATE) END
 	 AND stl.[IsCustomerStock] = CASE WHEN @id3 = 1 THEN 0 ELSE stl.[IsCustomerStock] END 	 
 	 AND (ISNULL(@id2,'')='' OR ES.OrganizationTagTypeId IN(SELECT value FROM STRING_SPLIT(ISNULL(@id2,''), ',')))
 	 AND (ISNULL(@level1,'') =''  OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level1,',')))    

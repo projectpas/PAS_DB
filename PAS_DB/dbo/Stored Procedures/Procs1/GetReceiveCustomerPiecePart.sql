@@ -13,6 +13,7 @@
  ** -----------------------------------------------------------          
     1    02/09/2024   Moin Bloch    Created
 	2    27/09/2024   Moin Bloch    Added WOInspectionId   
+	3    06/02/2026   Amit Ghediya  Update to add condition for remove record from list after stk QuantityOnHand = 0 (PN-15162)
 	     
     EXEC GetReceiveCustomerPiecePart 1831,109,1
 ************************************************************************/    
@@ -74,7 +75,10 @@ BEGIN
 		  INNER JOIN [dbo].[Stockline] SL  WITH(NOLOCK) ON RC.[StockLineId] = SL.[StockLineId] AND [IsParent] = 1
 		   LEFT JOIN [dbo].[TimeLife] TL  WITH(NOLOCK) ON TL.[StockLineId] = SL.[StockLineId] 
 		   LEFT JOIN [dbo].[WOInspectionChecklist] WI WITH(NOLOCK) ON RC.[ReceivingCustomerWorkId] = WI.[ReceivingCustomerWorkId]
-		  WHERE RC.[MasterCompanyId] = @MasterCompanyId AND RC.[CustomerId] = @CustomerId AND RC.[ReceivingNumber] IN (@FinalReceivingNumber);		   			    
+		  WHERE RC.[MasterCompanyId] = @MasterCompanyId 
+		  AND RC.[CustomerId] = @CustomerId 
+		  AND RC.[ReceivingNumber] IN (@FinalReceivingNumber)
+		  AND ISNULL(SL.[QuantityOnHand],0) > 0;		   			    
  END TRY        
  BEGIN CATCH  
   IF @@trancount > 0    

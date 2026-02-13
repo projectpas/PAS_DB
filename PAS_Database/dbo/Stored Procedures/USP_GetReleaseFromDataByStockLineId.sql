@@ -23,6 +23,7 @@ EXEC [USP_GetReleaseFromDataByStockLineId]
 ** 12   13/10/2025      Moin Bloch          Updated to Dynamic VersionNo
 ** 19   20/01/2026      Moin Bloch          Updated For PAR Added CorrectiveAction For PAR
 ** 20   21/01/2026      Vishal Suthar       Move CorrectiveAction data with "*" only and remove "*" after moving to release form For PAR
+** 21   12/02/2026      Moin Bloch          Updated Added WOReleaseFormId insted of Country PN-15388
 	
 
  EXEC [dbo].[USP_GetReleaseFromDataByStockLineId] 3553,1,0
@@ -46,7 +47,7 @@ BEGIN
 		DECLARE @MTIMasterCompanyId INT; 
 		DECLARE @UkCountryISOCode VARCHAR(100) = 'GB';
 		DECLARE @USCountryISOCode VARCHAR(100) = 'US';
-		DECLARE @CountryId BIGINT = 0;	
+		--DECLARE @CountryId BIGINT = 0;	
 		DECLARE @FAA INT= 1
 		DECLARE @FAAEASA INT= 2
 		DECLARE @FAAEASAUK INT= 3
@@ -73,20 +74,45 @@ BEGIN
 			SELECT @ParCommonTeardownTypeId = [CommonTeardownTypeId] FROM [dbo].[CommonTeardownType] WITH(NOLOCK) WHERE [MasterCompanyId] = @MasterCompanyId AND [TearDownCode] = 'CRA';			
 			SELECT @WorkFlowWorkOrderId = [WorkFlowWorkOrderId] FROM [DBO].[WorkOrderWorkFlow] WITH(NOLOCK) WHERE [WorkorderId]=@WorkorderId AND [WorkOrderPartNoId]=@workOrderPartNumberId				
 			--SELECT @CorrectiveAction = [Memo] FROM [DBO].[CommonWorkOrderTearDown] WITH(NOLOCK) WHERE [CommonTeardownTypeId]=@ParCommonTeardownTypeId AND [WorkorderId]=@WorkorderId AND [WorkFlowWorkOrderId]=@WorkFlowWorkOrderId
-			SELECT @CorrectiveAction =
-				STRING_AGG(
-					CASE
-						WHEN s.value LIKE '<p>*%' THEN
-							REPLACE(s.value, '<p>*', '<p>') + '</p>'
-						WHEN LTRIM(s.value) LIKE '*%' THEN
-							STUFF(LTRIM(s.value), 1, 1, '')
-						ELSE NULL END, '')
-			FROM [DBO].[CommonWorkOrderTearDown] t WITH (NOLOCK)
-			CROSS APPLY STRING_SPLIT(REPLACE(REPLACE(t.[Memo], '</p>', CHAR(10)), CHAR(13), ''), CHAR(10)) s
-			WHERE t.[CommonTeardownTypeId] = @ParCommonTeardownTypeId
-				AND t.[WorkorderId] = @WorkorderId
-				AND t.[WorkFlowWorkOrderId] = @WorkFlowWorkOrderId
-				AND (s.value LIKE '<p>*%' OR LTRIM(s.value) LIKE '*%');
+			--SELECT @CorrectiveAction =
+			--	STRING_AGG(
+			--		CASE
+			--			WHEN s.value LIKE '<p>*%' THEN
+			--				REPLACE(s.value, '<p>*', '<p>') + '</p>'
+			--			WHEN LTRIM(s.value) LIKE '*%' THEN
+			--				STUFF(LTRIM(s.value), 1, 1, '')
+			--			ELSE NULL END, '')
+			--FROM [DBO].[CommonWorkOrderTearDown] t WITH (NOLOCK)
+			--CROSS APPLY STRING_SPLIT(REPLACE(REPLACE(t.[Memo], '</p>', CHAR(10)), CHAR(13), ''), CHAR(10)) s
+			--WHERE t.[CommonTeardownTypeId] = @ParCommonTeardownTypeId
+			--	AND t.[WorkorderId] = @WorkorderId
+			--	AND t.[WorkFlowWorkOrderId] = @WorkFlowWorkOrderId
+			--	AND (s.value LIKE '<p>*%' OR LTRIM(s.value) LIKE '*%');
+
+			DECLARE @Start INT, @End INT;
+
+			WHILE PATINDEX('%<ul%', @CorrectiveAction) > 0
+			BEGIN
+				SET @Start = PATINDEX('%<ul%', @CorrectiveAction);
+				SET @End = CHARINDEX('</ul>', @CorrectiveAction, @Start);
+				SET @CorrectiveAction = STUFF(@CorrectiveAction, @Start, (@End - @Start) + 5, '');
+			END
+			WHILE PATINDEX('%<ol%', @CorrectiveAction) > 0
+			BEGIN
+				SET @Start = PATINDEX('%<ol%', @CorrectiveAction);
+				SET @End = CHARINDEX('</ol>', @CorrectiveAction, @Start);
+				SET @CorrectiveAction = STUFF(@CorrectiveAction, @Start, (@End - @Start) + 5, '');
+			END			
+			DECLARE @FinalResult NVARCHAR(MAX) = '';
+			SELECT @FinalResult = @FinalResult + '<p>' + LTRIM(SUBSTRING(CleanedItem, CHARINDEX('*', CleanedItem) + 1, LEN(CleanedItem))) + '</p>'
+			FROM (				
+				SELECT value as RawItem,					  
+					   SUBSTRING(value, CHARINDEX('>', value) + 1, LEN(value)) as CleanedItem
+				FROM STRING_SPLIT(REPLACE(@CorrectiveAction, '</p>', '|'), '|')
+			) AS T
+			WHERE CleanedItem LIKE '%*%';
+									
+			SET	@CorrectiveAction = @FinalResult
 		END
 
 		DECLARE @VerCodePrefix NVARCHAR(50),@VerCode INT
@@ -130,15 +156,15 @@ BEGIN
 		WHERE CTT.[MasterCompanyId] = @MasterCompanyId AND UPPER(CTT.[TearDownCode]) = UPPER('MODIFICATIONSERVICE');
 	   
 	   --GET Country code id
-	    IF(ISNULL(@IsEasaUKLicense, 0) = 1 AND @formTypeId = @FAAEASAUK)
-		BEGIN
-			SELECT @CountryId = countries_id FROM [DBO].[Countries] WITH(NOLOCK) WHERE countries_iso_code = @UkCountryISOCode AND MasterCompanyId = @MasterCompanyId;	  
-		END
+	 --   IF(ISNULL(@IsEasaUKLicense, 0) = 1 AND @formTypeId = @FAAEASAUK)
+		--BEGIN
+		--	SELECT @CountryId = countries_id FROM [DBO].[Countries] WITH(NOLOCK) WHERE countries_iso_code = @UkCountryISOCode AND MasterCompanyId = @MasterCompanyId;	  
+		--END
 
-		IF(ISNULL(@IsEasaLicense, 0) = 1 AND @formTypeId = @FAAEASA)
-		BEGIN
-			SELECT @CountryId = countries_id FROM [DBO].[Countries] WITH(NOLOCK) WHERE countries_iso_code = @USCountryISOCode AND MasterCompanyId = @MasterCompanyId;	
-		END
+		--IF(ISNULL(@IsEasaLicense, 0) = 1 AND @formTypeId = @FAAEASA)
+		--BEGIN
+		--	SELECT @CountryId = countries_id FROM [DBO].[Countries] WITH(NOLOCK) WHERE countries_iso_code = @USCountryISOCode AND MasterCompanyId = @MasterCompanyId;	
+		--END
 
 		IF(@CMMIds IS NOT NULL)
 		BEGIN			
@@ -254,6 +280,7 @@ BEGIN
 			  @EmailBody AS EmailBody,
 			  ('<div style = "position:relative; min-height:90px;max-height:100px;  font-family: Arial, Helvetica, sans-serif!important; letter-spacing: 1px!important; font-size:10px">') AS HeaderRemarks,  
 			  (CASE WHEN cwt.Memo IS NOT NULL THEN (CASE WHEN ISNULL(cwt.Memo,'') = '' THEN '' ELSE ISNULL(cwt.Memo,'') END) + '<p>&nbsp;</p>' ELSE '' END) 	
+			  + (CASE WHEN @IsEasaLicense = 0 AND @IsEasaUKLicense = 0 THEN '<div style='+ '"bottom : 0px; position:absolute;font-size: 10px !important;line-height: 12px;"'+'>' + (REPLACE(REPLACE(ISNULL(wods.Dualreleaselanguage,'-'),'<p>',''),'</p>','') +' '+ +'</div>') ELSE ''  END)        
 			  + (CASE WHEN @IsEasaLicense = 1 AND @formTypeId = @FAAEASA THEN '<div style='+ '"bottom : 0px; position:absolute;font-size: 10px !important;line-height: 12px;"'+'>' + (REPLACE(REPLACE(ISNULL(wods.Dualreleaselanguage,'-'),'<p>',''),'</p>','') +' '+ le.EASALicense +'</div>') ELSE ''  END)        
 			  + (CASE WHEN @IsEasaUKLicense = 1 AND @formTypeId = @FAAEASAUK THEN '<div style='+ '"bottom : 0px; position:absolute;font-size: 10px !important;line-height: 12px;"'+'>' + (REPLACE(REPLACE(ISNULL(wods.Dualreleaselanguage,'-'),'<p>',''),'</p>','') +' '+ le.UKCAALicense +'</div>') ELSE ''  END)         
 			  + '</div>' AS FooterRemarks,   
@@ -275,8 +302,8 @@ BEGIN
 		FROM [dbo].[Stockline] sl WITH(NOLOCK)   
 			  LEFT JOIN [dbo].[WorkOrder] wo  WITH(NOLOCK) ON wo.WorkOrderId = sl.WorkOrderId 
 			  LEFT JOIN [dbo].[WorkOrderPartNumber] wop  WITH(NOLOCK) ON wo.WorkOrderId = wop.WorkOrderId AND wop.ID = @WorkOrderPartNumberId
-			  LEFT JOIN [dbo].[WorkOrderDualReleaseSettings] wods  WITH(NOLOCK) ON wods.MasterCompanyId = wop.MasterCompanyId AND wo.WorkOrderTypeId = wods.WorkOrderTypeId AND wods.CountriesId = @CountryId
-			  --LEFT JOIN [dbo].[WorkOrderSettlementDetails] wosc WITH(NOLOCK) ON wop.WorkOrderId = wosc.WorkOrderId AND wop.ID = wosc.workOrderPartNoId AND wosc.WorkOrderSettlementId = 9 
+			  LEFT JOIN [dbo].[WorkOrderDualReleaseSettings] wods  WITH(NOLOCK) ON wods.MasterCompanyId = wop.MasterCompanyId AND wo.WorkOrderTypeId = wods.WorkOrderTypeId AND wods.WOReleaseFormId = @formTypeId	
+			 --LEFT JOIN [dbo].[WorkOrderSettlementDetails] wosc WITH(NOLOCK) ON wop.WorkOrderId = wosc.WorkOrderId AND wop.ID = wosc.workOrderPartNoId AND wosc.WorkOrderSettlementId = 9 
 			  LEFT JOIN [dbo].[ItemMaster] im  WITH(NOLOCK) ON im.ItemMasterId = sl.ItemMasterId  
 			  LEFT JOIN [dbo].[StocklineManagementStructureDetails] MSD  WITH(NOLOCK) ON MSD.ModuleID = @MSModuleId AND MSD.ReferenceID = sl.StockLineId  
 			  LEFT JOIN [dbo].[ManagementStructurelevel] MSL WITH(NOLOCK) ON MSL.ID = MSD.Level1Id  
@@ -340,6 +367,7 @@ BEGIN
 			  @EmailBody AS EmailBody,
 			  ('<div style = "position:relative; min-height:90px;max-height:100px;  font-family: Arial, Helvetica, sans-serif!important; letter-spacing: 1px!important; font-size:10px">') AS HeaderRemarks,  
   		      (CASE WHEN cwt.Memo IS NOT NULL THEN (CASE WHEN ISNULL(cwt.Memo,'') = '' THEN '' ELSE ISNULL(cwt.Memo,'') END) + '<p>&nbsp;</p>' ELSE '' END) 	
+			  + (CASE WHEN @IsEasaLicense = 0 AND @IsEasaUKLicense = 0 THEN '<div style='+ '"bottom : 0px; position:absolute;font-size: 10px !important;line-height: 12px;"'+'>' + (REPLACE(REPLACE(ISNULL(wods.Dualreleaselanguage,'-'),'<p>',''),'</p>','') +' '+ +'</div>') ELSE ''  END)        
 			  + (CASE WHEN @IsEasaLicense = 1 AND @formTypeId = @FAAEASA THEN '<div style='+ '"bottom : 0px; position:absolute;font-size: 10px !important;line-height: 12px;"'+'>' + (REPLACE(REPLACE(ISNULL(wods.Dualreleaselanguage,'-'),'<p>',''),'</p>','') +' '+ le.EASALicense +'</div>') ELSE ''  END)        
 			  + (CASE WHEN @IsEasaUKLicense = 1 AND @formTypeId = @FAAEASAUK THEN '<div style='+ '"bottom : 0px; position:absolute;font-size: 10px !important;line-height: 12px;"'+'>' + (REPLACE(REPLACE(ISNULL(wods.Dualreleaselanguage,'-'),'<p>',''),'</p>','') +' '+ le.UKCAALicense +'</div>') ELSE ''  END)         
 			  + '</div>' AS FooterRemarks, 
@@ -361,8 +389,7 @@ BEGIN
 		FROM [dbo].[Stockline] sl WITH(NOLOCK)   
 			  LEFT JOIN [dbo].[WorkOrder] wo  WITH(NOLOCK) ON wo.WorkOrderId = sl.WorkOrderId 
 			  LEFT JOIN [dbo].[WorkOrderPartNumber] wop  WITH(NOLOCK) ON wo.WorkOrderId = wop.WorkOrderId AND wop.ID = @WorkOrderPartNumberId
-			  LEFT JOIN [dbo].[WorkOrderDualReleaseSettings] wods  WITH(NOLOCK) ON wods.MasterCompanyId = wop.MasterCompanyId AND wo.WorkOrderTypeId = wods.WorkOrderTypeId AND wods.CountriesId = @CountryId
-			  --LEFT JOIN [dbo].[WorkOrderSettlementDetails] wosc WITH(NOLOCK) ON wop.WorkOrderId = wosc.WorkOrderId AND wop.ID = wosc.workOrderPartNoId AND wosc.WorkOrderSettlementId = 9 
+			  LEFT JOIN [dbo].[WorkOrderDualReleaseSettings] wods  WITH(NOLOCK) ON wods.MasterCompanyId = wop.MasterCompanyId AND wo.WorkOrderTypeId = wods.WorkOrderTypeId AND wods.WOReleaseFormId = @formTypeId	
 			  LEFT JOIN [dbo].[ItemMaster] im  WITH(NOLOCK) ON im.ItemMasterId = sl.ItemMasterId  
 			  LEFT JOIN [dbo].[StocklineManagementStructureDetails] MSD  WITH(NOLOCK) ON MSD.ModuleID = @MSModuleId AND MSD.ReferenceID = sl.StockLineId  
 			  LEFT JOIN [dbo].[ManagementStructurelevel] MSL WITH(NOLOCK) ON MSL.ID = MSD.Level1Id  
@@ -423,7 +450,8 @@ BEGIN
 			  CASE WHEN @IsEasaUKLicense = 1 AND @formTypeId = @FAAEASAUK THEN 'UK' ELSE 'EASA' END AS IsEasaUKLicenseType,
 			  @EmailBody AS EmailBody,
 			  ('<div style = "position:relative; min-height:90px;max-height:100px;  font-family: Arial, Helvetica, sans-serif!important; letter-spacing: 1px!important; font-size:10px">') AS HeaderRemarks,  
-			  (CASE WHEN cwt.Memo IS NOT NULL THEN (CASE WHEN ISNULL(cwt.Memo,'') = '' THEN '' ELSE ISNULL(cwt.Memo,'') END) + '<p>&nbsp;</p>' ELSE '' END) 	
+			  (CASE WHEN cwt.Memo IS NOT NULL THEN (CASE WHEN ISNULL(cwt.Memo,'') = '' THEN '' ELSE ISNULL(cwt.Memo,'') END) + '<p>&nbsp;</p>' ELSE '' END) 
+			  + (CASE WHEN @IsEasaLicense = 0 AND @IsEasaUKLicense = 0 THEN '<div style='+ '"bottom : 0px; position:absolute;font-size: 10px !important;line-height: 12px;"'+'>' + (REPLACE(REPLACE(ISNULL(wods.Dualreleaselanguage,'-'),'<p>',''),'</p>','') +' '+ +'</div>') ELSE ''  END)        
 			  + (CASE WHEN @IsEasaLicense = 1 AND @formTypeId = @FAAEASA THEN '<div style='+ '"bottom : 0px; position:absolute;font-size: 10px !important;line-height: 12px;"'+'>' + (REPLACE(REPLACE(ISNULL(wods.Dualreleaselanguage,'-'),'<p>',''),'</p>','') +' '+ le.EASALicense +'</div>') ELSE ''  END)        
 			  + (CASE WHEN @IsEasaUKLicense = 1 AND @formTypeId = @FAAEASAUK THEN '<div style='+ '"bottom : 0px; position:absolute;font-size: 10px !important;line-height: 12px;"'+'>' + (REPLACE(REPLACE(ISNULL(wods.Dualreleaselanguage,'-'),'<p>',''),'</p>','') +' '+ le.UKCAALicense +'</div>') ELSE ''  END)         
 			  + '</div>' AS FooterRemarks,   
@@ -445,8 +473,7 @@ BEGIN
 		FROM [dbo].[Stockline] sl WITH(NOLOCK)   
 			  LEFT JOIN [dbo].[WorkOrder] wo  WITH(NOLOCK) ON wo.WorkOrderId = sl.WorkOrderId 
 			  LEFT JOIN [dbo].[WorkOrderPartNumber] wop  WITH(NOLOCK) ON wo.WorkOrderId = wop.WorkOrderId AND wop.ID = @WorkOrderPartNumberId
-			  LEFT JOIN [dbo].[WorkOrderDualReleaseSettings] wods  WITH(NOLOCK) ON wods.MasterCompanyId = wop.MasterCompanyId AND wo.WorkOrderTypeId = wods.WorkOrderTypeId AND wods.CountriesId = @CountryId
-			  --LEFT JOIN [dbo].[WorkOrderSettlementDetails] wosc WITH(NOLOCK) ON wop.WorkOrderId = wosc.WorkOrderId AND wop.ID = wosc.workOrderPartNoId AND wosc.WorkOrderSettlementId = 9 
+			  LEFT JOIN [dbo].[WorkOrderDualReleaseSettings] wods  WITH(NOLOCK) ON wods.MasterCompanyId = wop.MasterCompanyId AND wo.WorkOrderTypeId = wods.WorkOrderTypeId AND wods.WOReleaseFormId = @formTypeId	
 			  LEFT JOIN [dbo].[ItemMaster] im  WITH(NOLOCK) ON im.ItemMasterId = sl.ItemMasterId  
 			  LEFT JOIN [dbo].[StocklineManagementStructureDetails] MSD  WITH(NOLOCK) ON MSD.ModuleID = @MSModuleId AND MSD.ReferenceID = sl.StockLineId  
 			  LEFT JOIN [dbo].[ManagementStructurelevel] MSL WITH(NOLOCK) ON MSL.ID = MSD.Level1Id  

@@ -1,4 +1,4 @@
-CREATE TABLE [dbo].[ReceivingCustomerWork] (
+﻿CREATE TABLE [dbo].[ReceivingCustomerWork] (
     [ReceivingCustomerWorkId] BIGINT          IDENTITY (1, 1) NOT NULL,
     [EmployeeId]              BIGINT          NOT NULL,
     [CustomerId]              BIGINT          NOT NULL,
@@ -137,6 +137,8 @@ CREATE TABLE [dbo].[ReceivingCustomerWork] (
 
 
 
+
+
 GO
 CREATE   TRIGGER [dbo].[trg_Audit_dbo_ReceivingCustomerWork]
 ON [dbo].[ReceivingCustomerWork]
@@ -175,7 +177,7 @@ BEGIN
         CROSS APPLY OPENJSON(p.old_row_json) v
         WHERE NOT EXISTS (
             SELECT 1
-            FROM dbo.IgnoreColumn ign
+            FROM dbo.IgnoreColumn ign WITH(NOLOCK)
             WHERE ign.SchemaName = N'dbo'
                 AND ign.TableName  = N'ReceivingCustomerWork'
                 AND ign.ColumnName = N'ReceivingCustomerWorkId'
@@ -190,7 +192,7 @@ BEGIN
         CROSS APPLY OPENJSON(p.new_row_json) v
         WHERE NOT EXISTS (
             SELECT 1
-            FROM dbo.IgnoreColumn ign
+            FROM dbo.IgnoreColumn ign WITH(NOLOCK)
             WHERE ign.SchemaName = N'dbo'
                 AND ign.TableName  = N'ReceivingCustomerWork'
                 AND ign.ColumnName = N'ReceivingCustomerWorkId'
@@ -243,12 +245,12 @@ BEGIN
             ELSE m.NewValue
         END AS NewValue
     FROM merged m    
-    LEFT JOIN dbo.ItemMaster rpOld ON m.ColumnName = 'RevisePartId' AND TRY_CAST(m.OldValue AS BIGINT) = rpOld.ItemMasterId 
-    LEFT JOIN dbo.ItemMaster rpNew ON m.ColumnName = 'RevisePartId' AND TRY_CAST(m.NewValue AS BIGINT) = rpNew.ItemMasterId
-    LEFT JOIN dbo.CustomerContact ccOld ON m.ColumnName = 'CustomerContactId' AND TRY_CAST(m.OldValue AS INT) = ccOld.CustomerContactId
-    LEFT JOIN dbo.Contact cOld ON ccOld.ContactId = cOld.ContactId
-    LEFT JOIN dbo.CustomerContact ccNew ON m.ColumnName = 'CustomerContactId' AND TRY_CAST(m.NewValue AS INT) = ccNew.CustomerContactId
-    LEFT JOIN dbo.Contact cNew ON ccNew.ContactId = cNew.ContactId
+    LEFT JOIN dbo.ItemMaster rpOld WITH(NOLOCK) ON m.ColumnName = 'RevisePartId' AND TRY_CAST(m.OldValue AS BIGINT) = rpOld.ItemMasterId 
+    LEFT JOIN dbo.ItemMaster rpNew WITH(NOLOCK) ON m.ColumnName = 'RevisePartId' AND TRY_CAST(m.NewValue AS BIGINT) = rpNew.ItemMasterId
+    LEFT JOIN dbo.CustomerContact ccOld WITH(NOLOCK) ON m.ColumnName = 'CustomerContactId' AND TRY_CAST(m.OldValue AS INT) = ccOld.CustomerContactId
+    LEFT JOIN dbo.Contact cOld WITH(NOLOCK) ON ccOld.ContactId = cOld.ContactId
+    LEFT JOIN dbo.CustomerContact ccNew WITH(NOLOCK) ON m.ColumnName = 'CustomerContactId' AND TRY_CAST(m.NewValue AS INT) = ccNew.CustomerContactId
+    LEFT JOIN dbo.Contact cNew WITH(NOLOCK) ON ccNew.ContactId = cNew.ContactId
     WHERE 
         m.ColumnName <> 'ReceivingCustomerWorkId' and (
         (m.Action = 'U' AND (

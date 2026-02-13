@@ -11,7 +11,7 @@
  ** PR   Date         Author			Change Description              
  ** --   --------     -------			--------------------------------            
     1    05/08/2024   HEMANT SALIYA      Created  for Initial Requirements	
-
+	2    11/02/2026   Priyansh Patel     Added UnpostedDirectLaborCost and UnpostedOverheadCost Columns
      
 exec USP_WIPReports @mastercompanyid=1,@id='2024-01-25 00:00:00',@id2='2024-05-24 00:00:00',@id3='',@strFilter='1,5,6,20,22,52,53!2,7,8,9!3,11,10!4,13,12!!!!!!'
 EXEC USP_WIPReports @mastercompanyid=1,@id='2024-02-01 00:00:00',@id2='2024-11-05 00:00:00',@id3='',@strFilter='1,5,6,20,22,52,53!2,7,8,9!3,11,10!4,13,12!!!!!!'
@@ -22,7 +22,7 @@ exec USP_WIPReports @mastercompanyid=1,@id='2024-01-05 00:00:00',@id2='2024-05-1
 
 *************************************************************/   
   
-CREATE   PROCEDURE [dbo].[USP_WIPReports] 	
+CREATE     PROCEDURE [dbo].[USP_WIPReports] 	
 @mastercompanyid INT,
 @id VARCHAR(MAX),
 @id2 VARCHAR(MAX),
@@ -37,7 +37,7 @@ BEGIN
 		DECLARE @FromDate DATETIME; 
 		DECLARE @ToDate DATETIME; 
 		DECLARE @ProvisionId INT;
-
+		DECLARE @TaskStatus VARCHAR(20) = 'COMPLETED';
 		--SET Tempararly Records 
 		--SET @mastercompanyid = 1;
 		--SET @FromDate = CASE WHEN ISNULL(@id, '') != '' THEN CAST(@id AS DATETIME) ELSE GETUTCDATE() - 30 END;
@@ -97,6 +97,8 @@ BEGIN
 			MiscCost DECIMAL(18,2) NULL,
 			OtherCost DECIMAL(18,2) NULL,
 			TotalWIPCost DECIMAL(18,2) NULL,
+			UnpostedDirectLaborCost DECIMAL(18,2) NULL,
+			UnpostedOverheadCost DECIMAL(18,2) NULL,
 			legalEntity VARCHAR(100) NULL,
 			level1 VARCHAR(500) NULL,
 			level2 VARCHAR(500) NULL,
@@ -138,7 +140,8 @@ BEGIN
 
 		INSERT INTO #TEMPOriginalStocklineRecords(WorkOrderId, WorkOrderPartNoId, StockLineId, CustomerId, MasterCompanyId,
 			PartNumber, PartDescription, SerialNumber, CustomerName, WorkOrderType, WorkOrderNum, OpenDate, WorkScope, StockLineNumber,Manufacturer,
-			[Priority], ControlNumber, Condition, ItemGroup, IsCustomerStock, WOAge, level1, level2, level3, level4, level5, level6, level7, level8, level9, level10,
+			[Priority], ControlNumber, Condition, ItemGroup, IsCustomerStock, WOAge, 
+			level1, level2, level3, level4, level5, level6, level7, level8, level9, level10,
 			legalEntity, Qty)
 		SELECT WO.WorkOrderId, WOP.ID, WOP.StockLineId, WO.CustomerId, WO.MasterCompanyId, SL.PartNumber,  SL.PNDescription AS PartDescription, 
 			CASE WHEN ISNULL(RevisedSerialNumber, '') != '' THEN RevisedSerialNumber ELSE SL.SerialNumber END AS SerialNumber,			
@@ -156,8 +159,9 @@ BEGIN
 			JOIN dbo.Condition C WITH(NOLOCK) ON WOP.RevisedConditionId = C.ConditionId
 			JOIN dbo.WorkOrderType WT WITH(NOLOCK) ON WO.WorkOrderTypeId = WT.Id
 			LEFT JOIN dbo.[Priority] P WITH(NOLOCK) ON WOP.WorkOrderPriorityId = P.PriorityId
-			LEFT JOIN dbo.ManagementStructureLevel MSL ON MSL.ID = MSD.Level1Id
-			LEFT JOIN dbo.LegalEntity LE ON MSL.LegalEntityId = LE.LegalEntityId
+			LEFT JOIN dbo.ManagementStructureLevel MSL WITH(NOLOCK)  ON MSL.ID = MSD.Level1Id
+			LEFT JOIN dbo.LegalEntity LE  WITH(NOLOCK)  ON MSL.LegalEntityId = LE.LegalEntityId
+
 		WHERE WO.MasterCompanyId = @mastercompanyid AND CAST(WO.OpenDate AS DATE) BETWEEN CAST(@FromDate AS DATE) AND CAST(@ToDate AS DATE)
 			 AND  ISNULL(WO.IsDeleted, 0) = 0 AND ISNULL(WO.IsActive, 0) = 1 AND ISNULL(WOP.IsDeleted, 0) = 0 AND ISNULL(WOP.IsActive, 0) = 1
 			 AND  (ISNULL(@level1,'') = '' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level1,',')))    
@@ -184,16 +188,87 @@ BEGIN
 		--		 AND ISNULL(WOMS.QtyIssued, 0) > 0 AND WOMS.ProvisionId = @ProvisionId AND ISNULL(WOP.IsFinishGood, 0) = 0
 		--	GROUP BY WO.WorkOrderId, WOP.ID, WOP.StockLineId, WO.CustomerId, WO.MasterCompanyId
 		--) results WHERE results.StockLineId = #TEMPOriginalStocklineRecords.StockLineId AND results.WorkOrderPartNoId = #TEMPOriginalStocklineRecords.WorkOrderPartNoId
+		
+		IF OBJECT_ID(N'tempdb..#tmpWorkOrderLabor') IS NOT NULL
+		BEGIN
+			DROP TABLE #tmpWorkOrderLabor
+		END
 
+		CREATE TABLE #tmpWorkOrderLabor
+		(
+			WorkOrderId BIGINT,
+			DirectLaborOHCost DECIMAL(18,2),
+			BurdenRateAmount DECIMAL(18,2),
+			AdjustedHours DECIMAL(18,2)
+		);
+		INSERT INTO #tmpWorkOrderLabor
+		SELECT
+			WO.WorkOrderId,
+			ISNULL(WOL.DirectLaborOHCost,0),
+			ISNULL(WOL.BurdenRateAmount,0),
+			ISNULL(WOL.AdjustedHours,0)
+		FROM dbo.WorkOrderPartNumber WOP WITH(NOLOCK)
+		JOIN dbo.WorkOrder WO WITH(NOLOCK) ON WO.WorkOrderId = WOP.WorkOrderId
+		JOIN dbo.WorkOrderWorkFlow WOWF WITH(NOLOCK) ON WOWF.WorkOrderPartNoId = WOP.ID
+		JOIN dbo.WorkOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = WOP.ID 
+		JOIN dbo.WorkOrderLaborHeader WOLH WITH(NOLOCK) ON WOLH.WorkFlowWorkOrderId = WOWF.WorkFlowWorkOrderId
+		JOIN dbo.WorkOrderLabor WOL WITH(NOLOCK) ON WOL.WorkOrderLaborHeaderId = WOLH.WorkOrderLaborHeaderId
+		JOIN dbo.TaskStatus TS WITH(NOLOCK) ON TS.TaskStatusId = WOL.TaskStatusId AND (TS.StatusCode IS NULL OR TS.StatusCode <> @TaskStatus) AND TS.IsActive = 1 AND TS.IsDeleted = 0
+	  
+		WHERE WO.MasterCompanyId = @mastercompanyid AND CAST(WO.OpenDate AS DATE) BETWEEN CAST(@FromDate AS DATE) AND CAST(@ToDate AS DATE)
+			 AND  ISNULL(WO.IsDeleted, 0) = 0 AND ISNULL(WO.IsActive, 0) = 1 AND ISNULL(WOP.IsDeleted, 0) = 0 AND ISNULL(WOP.IsActive, 0) = 1
+			 AND  (ISNULL(@level1,'') = '' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level1,',')))    
+			 AND  (ISNULL(@level2,'') = '' OR MSD.[Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level2,',')))    
+			 AND  (ISNULL(@level3,'') = '' OR MSD.[Level3Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level3,',')))    
+			 AND  (ISNULL(@level4,'') = '' OR MSD.[Level4Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level4,',')))
+			 AND  (ISNULL(@level5,'') = '' OR MSD.[Level5Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level5,',')))
+			 AND  (ISNULL(@level6,'') = '' OR MSD.[Level6Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level6,',')))
+			 AND  (ISNULL(@level7,'') = '' OR MSD.[Level7Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level7,',')))
+			 AND  (ISNULL(@level8,'') = '' OR MSD.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level8,',')))
+			 AND  (ISNULL(@level9,'') = '' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level9,',')))
+			 AND  (ISNULL(@level10,'') ='' OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level10,',')))
+
+		IF OBJECT_ID('tempdb..#tmpWorkOrderLaborCalc') IS NOT NULL
+		BEGIN
+			DROP TABLE #tmpWorkOrderLaborCalc;
+		END
+
+		SELECT WorkOrderId,BurdenRateAmount, DirectLaborOHCost,
+			(
+				(
+					CASE WHEN AdjustedHours < 0 THEN -1 ELSE 1 END
+					*
+					(
+						FLOOR(ABS(AdjustedHours)) * 60
+						+ CONVERT(INT, ROUND((ABS(AdjustedHours) - FLOOR(ABS(AdjustedHours))) * 100.0,0))
+					)
+				) / 60.0
+			) AS ConvertedHours
+		INTO #tmpWorkOrderLaborCalc
+		FROM #tmpWorkOrderLabor;
+
+		IF OBJECT_ID('tempdb..#tmpWorkOrderCosts') IS NOT NULL
+		BEGIN
+			DROP TABLE #tmpWorkOrderCosts;
+		END
+
+		SELECT WorkOrderId,SUM(BurdenRateAmount  * ConvertedHours) AS UnpostedDirectLabor,SUM(DirectLaborOHCost * ConvertedHours) AS UnpostedOverhead INTO #tmpWorkOrderCosts FROM #tmpWorkOrderLaborCalc
+		GROUP BY WorkOrderId;
+		
 		UPDATE tmporg SET PartCost = ISNULL(WCD.PartsCost, 0), DirectLabor = ISNULL(WCD.LaborCost, 0) - ISNULL(WCD.OverHeadCost, 0), OHCost = ISNULL(WCD.OverHeadCost, 0),
 				MiscCost = ISNULL(WCD.FreightCost, 0), OtherCost = ISNULL(WCD.OtherCost, 0), 
-				TotalWIPCost = ISNULL(WCD.PartsCost, 0) + ISNULL(WCD.LaborCost, 0) + ISNULL(WCD.FreightCost, 0) + ISNULL(WCD.OtherCost, 0)
+				TotalWIPCost = ISNULL(WCD.PartsCost, 0) + ISNULL(WCD.LaborCost, 0) + ISNULL(WCD.FreightCost, 0) + ISNULL(WCD.OtherCost, 0),
+				 UnpostedDirectLaborCost = ISNULL(C.UnpostedDirectLabor,0),
+				UnpostedOverheadCost     = ISNULL(C.UnpostedOverhead,0)
 		FROM #TEMPOriginalStocklineRecords tmporg 
 			JOIN dbo.WorkOrderPartNumber WOP WITH(NOLOCK) ON tmporg.WorkOrderPartNoId = WOP.ID
 			JOIN dbo.WorkOrderMPNCostDetails WCD WITH(NOLOCK) ON tmporg.WorkOrderPartNoId = WCD.WOPartNoId
+			LEFT JOIN #tmpWorkOrderCosts C ON C.WorkOrderId = tmporg.WorkOrderId
 		WHERE ISNULL(WOP.IsFinishGood, 0) = 0 AND ISNULL(WOP.IsDeleted, 0) = 0 AND ISNULL(WOP.IsActive, 0) = 1
 
+
 		SELECT * FROM #TEMPOriginalStocklineRecords WHERE ISNULL(TotalWIPCost, 0) > 0 ORDER BY OpenDate DESC
+
 
  END TRY      
  BEGIN CATCH  
@@ -206,7 +281,7 @@ BEGIN
  --   ERROR_MESSAGE() AS ErrorMessage;
   DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name()   
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------  
-        , @AdhocComments     VARCHAR(150)    = 'USP_CheckAllowReopenWorkOrder'   
+        , @AdhocComments     VARCHAR(150)    = 'USP_WIPReports'   
         ,@ProcedureParameters VARCHAR(3000) = '@Parameter1 = ''' + CAST(ISNULL(@mastercompanyid, '') AS varchar(100))   
         , @ApplicationName VARCHAR(100) = 'PAS'  
 -----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------  

@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿
+/*************************************************************           
  ** File:   [UpdateStocklineColumnsWithId]           
  ** Author:   MOIN BLOCH
  ** Description: This stored procedure is used Update Stockline Details
@@ -23,6 +24,8 @@
 	7    09/01/2025   BHAVESH RAVAL   For the add new column in COGS_ExchSalesOrderGLAcc 
 	8    11/02/2025   Bhargav Saliya  Update GL Account
 	9    16/05/2025   Devendra Shekh  Updatting RepairOrderNumber, PurchaseOrderNumber, IsDocument
+	10   09/02/2026   Sahdev Saliya   UPDATED ItemGroup
+
 -- EXEC [dbo].[UpdateStocklineColumnsWithId] 1
 **************************************************************/
 
@@ -69,7 +72,7 @@ BEGIN
 					SL.Bin = ISNULL(B.[Name],''),
 					SL.WorkOrderNumber = ISNULL(WO.WorkOrderNum,''),
 					SL.SubWorkOrderNumber = ISNULL(SWO.SubWorkOrderNo,''),
-					SL.itemGroup = ISNULL(IG.[Description],''),
+					SL.itemGroup = ISNULL(IG.[ItemGroupCode],''),
 					SL.TLAPartNumber = ISNULL(IMTLA.partnumber,''),
 					SL.NHAPartNumber = ISNULL(IMNHA.partnumber,''),
 					SL.TLAPartDescription = ISNULL(IMTLA.PartDescription,''),

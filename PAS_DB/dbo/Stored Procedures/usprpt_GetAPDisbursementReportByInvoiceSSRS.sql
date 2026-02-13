@@ -179,7 +179,7 @@ BEGIN
              MAX(vpym.Description)                                AS 'PaymentMethod',
             MAX(rtp.CheckNumber)                                AS 'PaymentReference',
             MAX( (Cast(DBO.ConvertUTCtoLocal(rtp.CheckDate,@CurrntEmpTimeZoneDesc)AS DATETIME)))  AS 'PaymentDate',
-            NULL AS 'InvoiceDueDate',
+            MAX((Cast(DBO.ConvertUTCtoLocal(rtp.DueDate,@CurrntEmpTimeZoneDesc)AS DATETIME))) AS 'InvoiceDueDate',
             NULL AS 'TotalBaseCurrencyAmount',
             MAX(rtp.CurrencyName)                             AS 'BaseCurrency',
             SUM(rtp.PaymentMade)                     AS 'BaseCurrencyAmount',
@@ -187,9 +187,9 @@ BEGIN
             -- (Cast(DBO.ConvertUTCtoLocal(rtp.DueDate,@CurrntEmpTimeZoneDesc)AS DATETIME)) AS 'InvoiceDueDate',
             MAX(CONCAT(lebl.BankName, ' - ', lebl.BankAccountNumber)) 
                                                     AS 'BankAccount',
-            MAX( CONCAT(g.AccountCode, ' - ', g.AccountName))      AS 'GLAccountNum',
+            MAX(g.AccountCode)      AS 'GLAccountNum',
 
-            MAX(CASE WHEN L1.Code IS NULL AND L1.Description IS NULL THEN NULL ELSE CONCAT(L1.Code, ' - ', L1.Description) END) AS [Level1Id],
+            MAX(CASE WHEN L1.Code IS NULL AND L1.Description IS NULL THEN NULL ELSE L1.Code END) AS [Level1Id],
             MAX(CASE WHEN L2.Code IS NULL AND L2.Description IS NULL THEN NULL ELSE CONCAT(L2.Code, ' - ', L2.Description) END) AS [Level2Id],
             MAX(CASE WHEN L3.Code IS NULL AND L3.Description IS NULL THEN NULL ELSE CONCAT(L3.Code, ' - ', L3.Description) END) AS [Level3Id],
             MAX(CASE WHEN L4.Code IS NULL AND L4.Description IS NULL THEN NULL ELSE CONCAT(L4.Code, ' - ', L4.Description) END) AS [Level4Id],

@@ -14,6 +14,7 @@
 	1		08/04/2024		Moin Bloch			CREATED
 	2		09/04/2024		Moin Bloch			Added Stockline History
 	3		15/04/2024		Moin Bloch			Added Scrap Entry Operatin
+	4		12/02/2026		Moin Bloch			Added Condition For TearDown Work Order We have change the logic for TearDown Work Order PN-15437
 
 	EXEC [USP_UpdateMPNTenderStocklineDetail] 1,1,'dsdsd'
 **************************************************************/ 
@@ -40,6 +41,15 @@ BEGIN
 				DECLARE @SubModuleId BIGINT;  
 				DECLARE @SubReferenceId BIGINT;  
 				DECLARE @HistoryModuleId INT = 0;
+				DECLARE @TearDown INT;
+				DECLARE @WorkOrderTypeId BIGINT;  
+
+				SET @TearDown = (SELECT [Id] FROM [dbo].[WorkOrderType] WITH(NOLOCK) WHERE [Description]='Teardown');
+
+				SELECT @WorkOrderTypeId = [WorkOrderTypeId] FROM  [dbo].[WorkOrder] WITH(NOLOCK)  WHERE [WorkOrderId] = @WorkOrderId
+
+				IF(@TearDown <> @WorkOrderTypeId)
+				BEGIN
 
 				SELECT @UnReserveActionId = [ActionId] FROM [dbo].[StklineHistory_Action] WITH(NOLOCK) WHERE [Type] = 'UnReserve'
 				SELECT @IssueActionId = [ActionId] FROM [dbo].[StklineHistory_Action] WITH(NOLOCK) WHERE [Type] = 'Issue'
@@ -87,6 +97,8 @@ BEGIN
 					
 					-- Quantity Un-Reserve History
 					EXEC [dbo].[USP_AddUpdateStocklineHistory] @StocklineId = @StocklineId, @ModuleId = @HistoryModuleId, @ReferenceId = @WorkOrderId, @SubModuleId = @SubModuleId, @SubRefferenceId = @SubReferenceId, @ActionId = @UnReserveActionId, @Qty = 1, @UpdatedBy = @UpdatedBy;
+				END
+
 				END
 			END
 		COMMIT  TRANSACTION

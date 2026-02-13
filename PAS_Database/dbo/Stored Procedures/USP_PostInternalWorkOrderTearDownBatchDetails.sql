@@ -19,6 +19,7 @@
 	3    12/04/2024          Devendra Shekh      added case to set @ManagementStructureId  
 	4    04/11/2024			 Devendra Shekh		 Added new fields for [CommonBatchDetails]
 	5	 13/01/2025			 Devendra Shekh		 Modify (StockLine GL selection Changes)
+	6    12/02/2026          Moin Bloch          Only Tear Down Entry Condition Check 
      
     EXEC USP_PostInternalWorkOrderTearDownBatchDetails 3731,3222
 **************************************************************/
@@ -626,8 +627,7 @@ BEGIN
 				   [UpdatedBy] = @UpdateBy
 		     WHERE [JournalBatchDetailId] = @JournalBatchDetailId;
 		  END
-		END
-		
+				
 		SELECT @TotalDebit = SUM([DebitAmount]),
 		       @TotalCredit = SUM([CreditAmount]) 
 		  FROM [dbo].[BatchDetails] WITH(NOLOCK) 
@@ -647,6 +647,8 @@ BEGIN
 			   [UpdatedDate] = GETUTCDATE(),
 			   [UpdatedBy] = @UpdateBy 
 		 WHERE [JournalBatchHeaderId] = @JournalBatchHeaderId;
+
+		 END
 
 	END TRY
 	BEGIN CATCH

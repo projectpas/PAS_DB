@@ -50,6 +50,7 @@
 	34   26-01-2026   RAJESH GAMI       Get payment method for PaidinFull
 	35   30-01-2026   AMIT GHEDIYA		Update for PaidinFull get all partially & full payment data.
 	36   02-02-2026   AMIT GHEDIYA		Update for Void check status to Voided. (PN-15360)
+	37   12-02-2026   AMIT GHEDIYA	    date filter issue (PN-15442)
  --EXEC VendorPaymentList 10,1,'ReceivingReconciliationId',1,'','',0,0,0,'ALL','',NULL,NULL,1,73   
 **************************************************************/
 CREATE      PROCEDURE [dbo].[VendorPaymentList]  
@@ -415,7 +416,8 @@ BEGIN
 				NPH.VendorName,
 				--0 AS 'PaymentHold',
 				CASE WHEN ISNULL(VN.IsVendorOnHold, 0) = 1 THEN 'YES' ELSE 'NO' END AS 'PaymentHold',
-				(Cast(DBO.ConvertUTCtoLocal(NPH.InvoiceDate,@CurrntEmpTimeZoneDesc)AS DATETIME)) AS 'InvociedDate',
+				--(Cast(DBO.ConvertUTCtoLocal(NPH.InvoiceDate,@CurrntEmpTimeZoneDesc)AS DATETIME)) AS 'InvociedDate',
+				NPH.InvoiceDate AS 'InvociedDate',
 				(Cast(DBO.ConvertUTCtoLocal(NPH.UpdatedDate,@CurrntEmpTimeZoneDesc)AS DATETIME)) AS 'EntryDate',
 				--DATEADD(DAY, ctm.NetDays,NPH.InvoiceDate) AS 'DueDate', 
 				--CASE WHEN DATEDIFF(DAY, (CAST(NPH.InvoiceDate AS DATETIME) + ISNULL(ctm.NetDays,0)), GETUTCDATE()) <= 0 THEN 0 ELSE DATEDIFF(DAY, (CAST(NPH.InvoiceDate AS DATETIME) + ISNULL(ctm.NetDays,0)), GETUTCDATE()) END AS DaysPastDue,  				
@@ -492,7 +494,8 @@ BEGIN
 			   VN.VendorName,
 			   --0 AS 'PaymentHold',
 				CASE WHEN ISNULL(VN.IsVendorOnHold, 0) = 1 THEN 'YES' ELSE 'NO' END AS 'PaymentHold',
-			   (Cast(DBO.ConvertUTCtoLocal(NPH.InvoiceDate,@CurrntEmpTimeZoneDesc)AS DATETIME)) AS 'InvociedDate',
+			   --(Cast(DBO.ConvertUTCtoLocal(NPH.InvoiceDate,@CurrntEmpTimeZoneDesc)AS DATETIME)) AS 'InvociedDate',
+			   NPH.InvoiceDate AS 'InvociedDate',
 			   (Cast(DBO.ConvertUTCtoLocal(NPH.UpdatedDate,@CurrntEmpTimeZoneDesc)AS DATETIME)) AS 'EntryDate',
 			  --DATEADD(DAY, ctm.NetDays,NPH.InvoiceDate) AS 'DueDate',  
 			  -- CASE WHEN DATEDIFF(DAY, (CAST(NPH.InvoiceDate AS DATETIME) + ISNULL(ctm.NetDays,0)), GETUTCDATE()) <= 0 THEN 0 ELSE DATEDIFF(DAY, (CAST(NPH.InvoiceDate AS DATETIME) + ISNULL(ctm.NetDays,0)), GETUTCDATE()) END AS DaysPastDue,  

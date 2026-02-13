@@ -17,7 +17,7 @@ exec USP_WIPReportsReconciliation @mastercompanyid=1,@id='2024-01-25 00:00:00',@
 
 *************************************************************/   
   
-CREATE         PROCEDURE [dbo].[USP_WIPReportsReconciliation] 	
+CREATE       PROCEDURE [dbo].[USP_WIPReportsReconciliation] 	
 @mastercompanyid INT,
 @id VARCHAR(MAX),
 @id2 VARCHAR(MAX)
@@ -34,6 +34,9 @@ BEGIN
         DECLARE @TotalOtherCost DECIMAL(18,2)  = NULL;
         DECLARE @TotalDirectLaborCost DECIMAL(18,2)  = NULL;
         DECLARE @TotalOHCost DECIMAL(18,2)  = NULL;
+        DECLARE @TaskStatus VARCHAR(20) = 'COMPLETED';
+        DECLARE @TotalUnpostedDirectLaborCost DECIMAL(18,2)  = NULL;
+        DECLARE @TotalUnpostedOverheadCost DECIMAL(18,2)  = NULL;
 
         IF OBJECT_ID(N'tempdb..#tmpWO') IS NOT NULL    
 		BEGIN    
@@ -42,7 +45,7 @@ BEGIN
 
         SELECT WO.WorkOrderId
         INTO #tmpWO
-        FROM dbo.WorkOrder WO
+        FROM dbo.WorkOrder WO WITH (NOLOCK)
         WHERE WO.MasterCompanyId = @MasterCompanyId AND WO.IsDeleted = 0 AND WO.IsActive = 1
         AND CAST(WO.OpenDate AS DATE) BETWEEN CAST(@FromDate AS DATE) AND CAST(@ToDate AS DATE);
 
@@ -84,10 +87,10 @@ BEGIN
         FROM
         (
             SELECT WO.WorkOrderId,(WOMS.QtyIssued * WOMS.UnitCost) AS PartsCost
-            FROM WorkOrderMaterialstockline WOMS JOIN WorkOrderMaterials WOM ON WOM.WorkOrderMaterialsId = WOMS.WorkOrderMaterialsId 
+            FROM WorkOrderMaterialstockline WOMS WITH (NOLOCK) 
+            JOIN WorkOrderMaterials WOM WITH (NOLOCK) ON WOM.WorkOrderMaterialsId = WOMS.WorkOrderMaterialsId 
             JOIN dbo.WorkOrderWorkFlow WOWF WITH (NOLOCK) ON WOWF.WorkFlowWorkOrderId = WOM.WorkFlowWorkOrderId
-            JOIN WorkOrderPartNumber WOP ON WOP.ID = WOWF.WorkOrderPartNoId
-            --JOIN dbo.WorkOrder WO WITH (NOLOCK) ON WO.WorkOrderId = WOP.WorkOrderId
+            JOIN WorkOrderPartNumber WOP WITH (NOLOCK) ON WOP.ID = WOWF.WorkOrderPartNoId
             JOIN #tmpWO WO ON WO.WorkOrderId = WOP.WorkOrderId
             WHERE WOP.MasterCompanyId = @MasterCompanyId 
              AND ISNULL(WOP.IsDeleted, 0) = 0 AND ISNULL(WOP.IsActive, 0) = 1 
@@ -95,11 +98,10 @@ BEGIN
             UNION ALL
 
             SELECT WO.WorkOrderId,(WOMS.QtyIssued * WOMS.UnitCost) AS PartsCost 
-            FROM WorkORderMaterialStocklineKit WOMS
-                JOIN WorkOrderMaterialsKit WOM ON WOM.WorkOrderMaterialsKitId = WOMS.WorkOrderMaterialsKitId
+            FROM WorkORderMaterialStocklineKit WOMS WITH (NOLOCK)
+                JOIN WorkOrderMaterialsKit WOM WITH (NOLOCK) ON WOM.WorkOrderMaterialsKitId = WOMS.WorkOrderMaterialsKitId
                 JOIN dbo.WorkOrderWorkFlow WOWF WITH (NOLOCK) ON WOWF.WorkFlowWorkOrderId = WOM.WorkFlowWorkOrderId
-                JOIN WorkOrderPartNumber WOP ON WOP.ID = WOWF.WorkOrderPartNoId
-                --JOIN dbo.WorkOrder WO WITH (NOLOCK) ON WO.WorkOrderId = WOP.WorkOrderId
+                JOIN WorkOrderPartNumber WOP WITH (NOLOCK) ON WOP.ID = WOWF.WorkOrderPartNoId
                 JOIN #tmpWO WO ON WO.WorkOrderId = WOP.WorkOrderId
             WHERE WOP.MasterCompanyId = @MasterCompanyId AND ISNULL(WOP.IsDeleted, 0) = 0 AND ISNULL(WOP.IsActive, 0) = 1 
         ) A
@@ -109,21 +111,34 @@ BEGIN
         SELECT @TotalMiscCost = ISNULL(SUM(WOC.Quantity * WOC.UnitCost), 0)
             FROM WorkOrderCharges WOC  WITH (NOLOCK) 
             JOIN dbo.WorkOrderWorkFlow WOWF WITH (NOLOCK) ON WOWF.WorkFlowWorkOrderId = WOC.WorkFlowWorkOrderId
-            --JOIN dbo.WorkOrder WO WITH (NOLOCK) ON WO.WorkOrderId = WOWF.WorkOrderId
             JOIN #tmpWO WO ON WO.WorkOrderId = WOWF.WorkOrderId
             WHERE WOC.MasterCompanyId = @MasterCompanyId  AND ISNULL(WOC.IsDeleted, 0) = 0 AND ISNULL(WOC.IsActive, 0) = 1 
 
         SELECT @TotalOtherCost = ISNULL(SUM(WOF.Amount), 0) FROM WorkOrderFreight WOF WITH (NOLOCK) 
             JOIN dbo.WorkOrderWorkFlow WOWF WITH (NOLOCK) ON WOWF.WorkFlowWorkOrderId = WOF.WorkFlowWorkOrderId
-            --JOIN dbo.WorkOrder WO WITH (NOLOCK) ON WO.WorkOrderId = WOWF.WorkOrderId
             JOIN #tmpWO WO ON WO.WorkOrderId = WOWF.WorkOrderId
             WHERE WOF.MasterCompanyId = @MasterCompanyId  AND ISNULL(WOF.IsDeleted, 0) = 0 AND ISNULL(WOF.IsActive, 0) = 1 
 
         SELECT @TotalDirectLaborCost = ISNULL(SUM(WCD.LaborCost), 0),@TotalOHCost = ISNULL(SUM(WCD.OverHeadCost), 0) 
-               FROM WorkOrderCostDetails WCD WITH (NOLOCK)
-               JOIN #tmpWO WO ON WO.WorkOrderId = WCD.WorkOrderId
-               --JOIN dbo.WorkOrder WO WITH (NOLOCK) ON WO.WorkOrderId = WCD.WorkOrderId
-                WHERE WCD.MasterCompanyId = @MasterCompanyId AND ISNULL(WCD.IsDeleted, 0) = 0 AND ISNULL(WCD.IsActive, 0) = 1 
+        FROM WorkOrderCostDetails WCD WITH (NOLOCK) JOIN #tmpWO WO ON WO.WorkOrderId = WCD.WorkOrderId
+        WHERE WCD.MasterCompanyId = @MasterCompanyId AND ISNULL(WCD.IsDeleted, 0) = 0 AND ISNULL(WCD.IsActive, 0) = 1 
+
+        IF OBJECT_ID('tempdb..#tmpWorkOrderCosts') IS NOT NULL
+        BEGIN   
+            DROP TABLE #tmpWorkOrderCosts;
+        END
+
+        SELECT @TotalUnpostedDirectLaborCost = SUM(WOL.BurdenRateAmount*((CASE WHEN WOL.AdjustedHours<0 THEN -1 ELSE 1 END * 
+        (FLOOR(ABS(WOL.AdjustedHours))*60 + CONVERT(INT,ROUND((ABS(WOL.AdjustedHours)-FLOOR(ABS(WOL.AdjustedHours)))*100.0,0))))/60.0)),
+        @TotalUnpostedOverheadCost = SUM(WOL.DirectLaborOHCost*((CASE WHEN WOL.AdjustedHours<0 THEN -1 ELSE 1 END * 
+        (FLOOR(ABS(WOL.AdjustedHours))*60 + CONVERT(INT,ROUND((ABS(WOL.AdjustedHours)-FLOOR(ABS(WOL.AdjustedHours)))*100.0,0))))/60.0))
+        FROM dbo.WorkOrderPartNumber WOP WITH (NOLOCK)
+        JOIN #tmpWO WO ON WO.WorkOrderId=WOP.WorkOrderId
+        JOIN dbo.WorkOrderWorkFlow WOWF WITH (NOLOCK) ON WOWF.WorkOrderPartNoId=WOP.ID
+        JOIN dbo.WorkOrderLaborHeader WOLH WITH (NOLOCK) ON WOLH.WorkFlowWorkOrderId=WOWF.WorkFlowWorkOrderId
+        JOIN dbo.WorkOrderLabor WOL WITH (NOLOCK) ON WOL.WorkOrderLaborHeaderId=WOLH.WorkOrderLaborHeaderId
+        JOIN dbo.TaskStatus TS WITH (NOLOCK) ON TS.TaskStatusId=WOL.TaskStatusId AND (TS.StatusCode IS NULL OR TS.StatusCode<>@TaskStatus) AND TS.IsActive=1 AND TS.IsDeleted=0
+        WHERE ISNULL(WOL.IsDeleted, 0) = 0 AND ISNULL(WOL.IsActive, 0) = 1 
 
 
         INSERT INTO #tmpWorkOrderTotalCost (TotalPartsCost,TotalDirectLaborCost, TotalOHCost,TotalMiscCost,TotalOtherCost,TotalWIPCost,TotalUnpostedDirectLaborCost,TotalUnpostedOverheadCost)
@@ -133,7 +148,7 @@ BEGIN
           + ISNULL(@TotalOHCost,0)
           + ISNULL(@TotalMiscCost,0)
           + ISNULL(@TotalOtherCost,0) AS TotalWIPCost,
-          0, 0 FROM #tmpWorkOrderPartsCost;
+          @TotalUnpostedDirectLaborCost, @TotalUnpostedOverheadCost FROM #tmpWorkOrderPartsCost;
 
         SELECT * FROM #tmpWorkOrderTotalCost;
 
@@ -143,7 +158,7 @@ BEGIN
 	
   DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name()   
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------  
-        , @AdhocComments     VARCHAR(150)    = 'USP_CheckAllowReopenWorkOrder'   
+        , @AdhocComments     VARCHAR(150)    = 'USP_WIPReportsReconciliation'   
         ,@ProcedureParameters VARCHAR(3000) = '@Parameter1 = ''' + CAST(ISNULL(@mastercompanyid, '') AS varchar(100))   
         , @ApplicationName VARCHAR(100) = 'PAS'  
 -----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------  

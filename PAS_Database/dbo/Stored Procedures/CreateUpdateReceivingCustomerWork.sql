@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [CreateUpdateReceivingCustomerWork]        
  ** Author:   Abhishek Jirawla
  ** Description: Get work order parts view
@@ -18,6 +17,7 @@
     4	 15-MAY-2025   AYUSHI PATEL 		Inserted CustReq Date into table by removing UTCDATE 
 	5	 16-JUL-2025   Moin Bloch   		Added IsBatchStock,BatchNumber Flag for Stockline Batch 
 	6	 20-JAN-2026   Priyansh Patel  		Added CSN, TSN, CSO, TSO fields
+	7	 13-FEB-2026   BHARGAV SALIYA  		Added [CustReqCertTypeId], [CustReqCertType] fields
 
  EXECUTE [USP_GetWorkOrderPartsView] 1
 **************************************************************/ 
@@ -533,6 +533,8 @@ BEGIN
 							0,0,ISNULL([IsTimeLife],0),NULL,NULL,NULL,NULL,
 						    0,NULL,Reference,'','',0,GETUTCDATE(), @IntegrationPortal, 0, ISNULL(@IsRepairManagement, 0),@IsBatchStock,@CSBReceiverNumber FROM #tmprReceiveCustomer WHERE ID = @MinId
 
+							select * from #tmprReceiveCustomer
+
 					SELECT @NewStocklineId = SCOPE_IDENTITY();                                                 
 					
 					EXEC [dbo].[UpdateStocklineColumnsWithId] @NewStocklineId;
@@ -912,6 +914,8 @@ BEGIN
 						  ,RC.[TSN] = TR.[TSN]
 						  ,RC.[CSO] = TR.[CSO]
 						  ,RC.[TSO] = TR.[TSO]
+						  ,RC.[CustReqCertTypeId] = TR.[CustReqCertTypeId]
+						  ,RC.[CustReqCertType] = TR.[CustReqCertType]
 						 FROM [dbo].[ReceivingCustomerWork] RC WITH(NOLOCK) INNER JOIN #tmprReceiveCustomer TR ON RC.[ReceivingCustomerWorkId] = TR.[ReceivingCustomerWorkId]
 					 WHERE RC.[ReceivingCustomerWorkId] = @ReceivingCustomerWorkId;
 

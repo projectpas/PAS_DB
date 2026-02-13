@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [usprpt_GetARAgingAsOfNowReport_SSRS]           
  ** Author:   Moin Bloch 
  ** Description: Get Data for AR Agging Report For SSRS
@@ -20,15 +19,17 @@
     3    11/05/2024		Vishal Suthar		Modified to make use of new SO Part tables 
 	4    07-07-2025     Moin Bloch          Changed Old To New Billing Table
 	5	 27-JAN-2026	Rajesh Gami			Added InvoiceNumber
+	6	 13-Feb-2026	Devendra Shekh		Added New param @id5 
 EXEC usprpt_GetARAgingAsOfNowReport_SSRS 
 **************************************************************/
-CREATE      PROCEDURE [dbo].[usprpt_GetARAgingAsOfNowReport_SSRS]
+CREATE   PROCEDURE [dbo].[usprpt_GetARAgingAsOfNowReport_SSRS]
 @id VARCHAR(MAX) = NULL,
 @id2 VARCHAR(MAX) = NULL,
 @id3 VARCHAR(MAX) = NULL,
 @id4 VARCHAR(MAX) = NULL,
 @strFilter VARCHAR(MAX) = NULL,
-@mastercompanyid INT = NULL
+@mastercompanyid INT = NULL,
+@id5 BIT = NULL
 AS
 BEGIN
   SET NOCOUNT ON;
@@ -73,7 +74,7 @@ BEGIN
     @SortOrder INT = NULL,
     @GlobalFilter varchar(50) = NULL,
     @ViewType varchar(50) = @id,
-    @AsOfDate DATETIME2 = NULL, 
+    @AsOfDate DATETIME = NULL, 
     @CustomerId BIGINT = NULL,
     @IsInvoice BIT = NULL,
     @IsCredits BIT = NULL,
@@ -362,7 +363,7 @@ BEGIN
 				LEFT JOIN  [dbo].[CreditTerms] CTM WITH(NOLOCK) ON CTM.CreditTermsId = WO.CreditTermId      
 			WHERE WO.[CustomerId] = ISNULL(@CustomerId, WO.CustomerId) AND ISNULL(WOBI.[IsVersionIncrease],0) = 0 AND ISNULL(WOBI.[IsPerformaInvoice],0) = 0
 				AND ISNULL(WOBI.[RemainingAmount],0) > 0 AND WOBI.[InvoiceStatus] = @InvoiceStatus
-				AND CAST(WOBI.[InvoiceDate] AS DATE) <= CAST(@AsOfDate AS DATE) 
+				AND CAST(WOBI.[InvoiceDate] AS DATE) <= CASE WHEN ISNULL(@id5, 0) = 1 THEN CAST(@AsOfDate AS DATE) ELSE CAST(@AsOfDate-1 AS DATE) END 
 				AND WO.[MasterCompanyId] = @MasterCompanyid 
 				AND @IsInvoice = 1
 				AND (CASE WHEN @IsDeposit = 1 THEN ((ISNULL(WOBI.[GrandTotal], 0) - ISNULL(WOBI.[RemainingAmount], 0)) + ISNULL(WOBI.[CreditMemoUsed], 0)) END > 0 OR CASE WHEN @IsDeposit = 0 THEN 1 END = 1) 
@@ -473,7 +474,7 @@ BEGIN
 					 LEFT JOIN [dbo].[CreditTerms] ctm WITH(NOLOCK) ON CTM.CreditTermsId = SO.CreditTermId      
 				WHERE SO.CustomerId = ISNULL(@customerid, SO.[CustomerId])
 					AND ISNULL(SOBI.[RemainingAmount],0) > 0 AND SOBI.[InvoiceStatus] = @InvoiceStatus AND ISNULL(SOBI.[IsPerformaInvoice],0) = 0 
-					AND CAST(SOBI.[InvoiceDate] AS DATE) <= CAST(@AsOfDate AS DATE) 
+					AND CAST(SOBI.[InvoiceDate] AS DATE) <= CASE WHEN ISNULL(@id5, 0) = 1 THEN CAST(@AsOfDate AS DATE) ELSE CAST(@AsOfDate-1 AS DATE) END
 					AND SO.[MasterCompanyId] = @Mastercompanyid  
 					AND @IsInvoice = 1	
 					AND (CASE WHEN @IsDeposit = 1 THEN ((ISNULL(SOBI.[GrandTotal], 0) - ISNULL(SOBI.[RemainingAmount], 0)) + ISNULL(SOBI.[CreditMemoUsed], 0)) END > 0 OR CASE WHEN @IsDeposit = 0 THEN 1 END = 1) 
@@ -583,7 +584,7 @@ BEGIN
 				WHERE ESO.[CustomerId] = ISNULL(@CustomerId,ESO.[CustomerId])
 					AND ISNULL(ESOBI.[RemainingAmount],0) > 0 
 					AND ESOBI.[InvoiceStatus] = @InvoiceStatus
-					AND CAST(ESOBI.[InvoiceDate] AS DATE) <= CAST(@AsOfDate AS DATE) 
+					AND CAST(ESOBI.[InvoiceDate] AS DATE) <= CASE WHEN ISNULL(@id5, 0) = 1 THEN CAST(@AsOfDate AS DATE) ELSE CAST(@AsOfDate-1 AS DATE) END
 					AND ESO.[MasterCompanyId] = @Mastercompanyid 
 					AND @IsInvoice = 1
 				    AND (CASE WHEN @IsDeposit = 1 THEN ((ISNULL(ESOBI.[GrandTotal], 0) - ISNULL(ESOBI.[RemainingAmount], 0)) + ISNULL(ESOBI.[CreditMemoUsed], 0)) END > 0 OR CASE WHEN @IsDeposit = 0 THEN 1 END = 1) 
@@ -671,7 +672,7 @@ BEGIN
 				INNER JOIN [dbo].[LegalEntity] LE ON MSL.LegalEntityId = LE.LegalEntityId  
 			WHERE CM.CustomerId = ISNULL(@CustomerId, CM.CustomerId)
 				AND CM.StatusId = @CMPostedStatusId		 				
-				AND CAST(CM.InvoiceDate AS DATE) <= CAST(@AsOfDate AS DATE) 
+				AND CAST(CM.InvoiceDate AS DATE) <= CASE WHEN ISNULL(@id5, 0) = 1 THEN CAST(@AsOfDate AS DATE) ELSE CAST(@AsOfDate-1 AS DATE) END
 				AND CM.MasterCompanyId = @MasterCompanyid  
 				AND @IsCredits = 1
 
@@ -740,7 +741,7 @@ BEGIN
 		    AND CM.[IsStandAloneCM] = 1           
 		    AND CM.[StatusId] = @CMPostedStatusId
 		    AND CM.[MasterCompanyId] = @Mastercompanyid      
-		    AND CAST(CM.[InvoiceDate] AS DATE) <= CAST(@AsOfDate AS DATE) 
+		    AND CAST(CM.[InvoiceDate] AS DATE) <= CASE WHEN ISNULL(@id5, 0) = 1 THEN CAST(@AsOfDate AS DATE) ELSE CAST(@AsOfDate-1 AS DATE) END
 			AND @IsCredits = 1
 
 			-- MANUAL JOURNAL --
@@ -835,7 +836,7 @@ BEGIN
 		   WHERE MJD.[ReferenceId] = ISNULL(@CustomerId,MJD.ReferenceId)  
 			AND MJH.[ManualJournalStatusId] = @MJEPostStatusId
 			AND MJD.[ReferenceTypeId] = 1  
-			AND CAST(MJH.[PostedDate] AS DATE) <= CAST(@AsOfDate AS DATE) 
+			AND CAST(MJH.[PostedDate] AS DATE) <= CASE WHEN ISNULL(@id5, 0) = 1 THEN CAST(@AsOfDate AS DATE) ELSE CAST(@AsOfDate-1 AS DATE) END
 			AND MJH.[MasterCompanyId] = @Mastercompanyid  
 			AND @IsCredits = 1
 			GROUP BY MJH.[ManualJournalHeaderId],MJD.[ReferenceId],CST.[Name],CST.[CustomerCode],MJH.[JournalNumber], 
@@ -913,7 +914,7 @@ BEGIN
 				INNER JOIN [dbo].[LegalEntity] LE WITH (NOLOCK)ON MSL.LegalEntityId = LE.LegalEntityId  
 			WHERE CCP.[CustomerId] = ISNULL(@CustomerId, CCP.[CustomerId])
 				AND CCP.[StatusId] = @CustomerCreditPaymentOpenStatus		 				
-				AND CAST(CCP.[ReceiveDate] AS DATE) <= CAST(@AsOfDate AS DATE) 
+				AND CAST(CCP.[ReceiveDate] AS DATE) <= CASE WHEN ISNULL(@id5, 0) = 1 THEN CAST(@AsOfDate AS DATE) ELSE CAST(@AsOfDate-1 AS DATE) END
 				AND CCP.[MasterCompanyId] = @MasterCompanyid  
 				AND @IsUnappliedAmounts = 1		
 
@@ -1199,7 +1200,7 @@ BEGIN
 				LEFT JOIN  [dbo].[Employee] EMP WITH(NOLOCK) ON EMP.EmployeeId = WO.SalesPersonId      
 			WHERE WO.[CustomerId] = ISNULL(@CustomerId, WO.CustomerId) AND ISNULL(WOBI.[IsVersionIncrease],0) = 0 AND ISNULL(WOBI.[IsPerformaInvoice],0) = 0
 				AND ISNULL(WOBI.[RemainingAmount],0) > 0 AND WOBI.[InvoiceStatus] = @InvoiceStatus
-				AND CAST(WOBI.[InvoiceDate] AS DATE) <= CAST(@AsOfDate AS DATE) 
+				AND CAST(WOBI.[InvoiceDate] AS DATE) <= CASE WHEN ISNULL(@id5, 0) = 1 THEN CAST(@AsOfDate AS DATE) ELSE CAST(@AsOfDate-1 AS DATE) END
 				AND WO.[MasterCompanyId] = @masterCompanyid 
 				AND @IsInvoice = 1
 				AND (CASE WHEN @IsDeposit = 1 THEN ((ISNULL(WOBI.[GrandTotal], 0) - ISNULL(WOBI.[RemainingAmount], 0)) + ISNULL(WOBI.[CreditMemoUsed], 0)) END > 0 OR CASE WHEN @IsDeposit = 0 THEN 1 END = 1) 
@@ -1335,7 +1336,7 @@ BEGIN
 					 LEFT JOIN [dbo].[CreditTerms] ctm WITH(NOLOCK) ON CTM.CreditTermsId = SO.CreditTermId      
 				WHERE SO.CustomerId = ISNULL(@customerid, SO.[CustomerId])
 					AND ISNULL(SOBI.[RemainingAmount],0) > 0 AND SOBI.[InvoiceStatus] = @InvoiceStatus AND ISNULL(SOBI.[IsPerformaInvoice],0) = 0 
-					AND CAST(SOBI.[InvoiceDate] AS DATE) <= CAST(@AsOfDate AS DATE) 
+					AND CAST(SOBI.[InvoiceDate] AS DATE) <= CASE WHEN ISNULL(@id5, 0) = 1 THEN CAST(@AsOfDate AS DATE) ELSE CAST(@AsOfDate-1 AS DATE) END
 					AND SO.[MasterCompanyId] = @Mastercompanyid  
 					AND @IsInvoice = 1
 					AND (CASE WHEN @IsDeposit = 1 THEN ((ISNULL(SOBI.[GrandTotal], 0) - ISNULL(SOBI.[RemainingAmount], 0)) + ISNULL(SOBI.[CreditMemoUsed], 0)) END > 0 OR CASE WHEN @IsDeposit = 0 THEN 1 END = 1) 
@@ -1465,7 +1466,7 @@ BEGIN
 				WHERE ESO.[CustomerId] = ISNULL(@CustomerId,ESO.[CustomerId])
 					AND ISNULL(ESOBI.[RemainingAmount],0) > 0 
 					AND ESOBI.[InvoiceStatus] = @InvoiceStatus
-					AND CAST(ESOBI.[InvoiceDate] AS DATE) <= CAST(@AsOfDate AS DATE) 
+					AND CAST(ESOBI.[InvoiceDate] AS DATE) <= CASE WHEN ISNULL(@id5, 0) = 1 THEN CAST(@AsOfDate AS DATE) ELSE CAST(@AsOfDate-1 AS DATE) END
 					AND ESO.[MasterCompanyId] = @Mastercompanyid 
 					AND @IsInvoice = 1
 					AND (CASE WHEN @IsDeposit = 1 THEN ((ISNULL(ESOBI.[GrandTotal], 0) - ISNULL(ESOBI.[RemainingAmount], 0)) + ISNULL(ESOBI.[CreditMemoUsed], 0)) END > 0 OR CASE WHEN @IsDeposit = 0 THEN 1 END = 1) 
@@ -1573,7 +1574,7 @@ BEGIN
 				INNER JOIN [dbo].[LegalEntity] LE ON MSL.LegalEntityId = LE.LegalEntityId  
 			WHERE CM.CustomerId = ISNULL(@CustomerId, CM.CustomerId)
 				AND CM.StatusId = @CMPostedStatusId		 				
-				AND CAST(CM.InvoiceDate AS DATE) <= CAST(@AsOfDate AS DATE) 
+				AND CAST(CM.InvoiceDate AS DATE) <= CASE WHEN ISNULL(@id5, 0) = 1 THEN CAST(@AsOfDate AS DATE) ELSE CAST(@AsOfDate-1 AS DATE) END
 				AND CM.MasterCompanyId = @MasterCompanyid  
 				AND @IsCredits = 1
 							   
@@ -1661,7 +1662,7 @@ BEGIN
 		    AND CM.[IsStandAloneCM] = 1           
 		    AND CM.[StatusId] = @CMPostedStatusId
 		    AND CM.[MasterCompanyId] = @Mastercompanyid      
-		    AND CAST(CM.[InvoiceDate] AS DATE) <= CAST(@AsOfDate AS DATE) 
+		    AND CAST(CM.[InvoiceDate] AS DATE) <= CASE WHEN ISNULL(@id5, 0) = 1 THEN CAST(@AsOfDate AS DATE) ELSE CAST(@AsOfDate-1 AS DATE) END
 			AND @IsCredits = 1
 
 			-- MANUAL JOURNAL --
@@ -1774,7 +1775,7 @@ BEGIN
 		   WHERE MJD.[ReferenceId] = ISNULL(@CustomerId,MJD.ReferenceId)  
 			AND MJH.[ManualJournalStatusId] = @MJEPostStatusId
 			AND MJD.[ReferenceTypeId] = 1  
-			AND CAST(MJH.[PostedDate] AS DATE) <= CAST(@AsOfDate AS DATE) 
+			AND CAST(MJH.[PostedDate] AS DATE) <= CASE WHEN ISNULL(@id5, 0) = 1 THEN CAST(@AsOfDate AS DATE) ELSE CAST(@AsOfDate-1 AS DATE) END
 			AND MJH.[MasterCompanyId] = @Mastercompanyid  
 			AND @IsCredits = 1
 			GROUP BY MJH.[ManualJournalHeaderId],MJD.[ReferenceId],CST.[Name],CST.[CustomerCode],CR.[Code],MJH.[JournalNumber], 
@@ -1869,7 +1870,7 @@ BEGIN
 				INNER JOIN [dbo].[LegalEntity] LE WITH(NOLOCK) ON MSL.LegalEntityId = LE.LegalEntityId  
 			WHERE CCP.[CustomerId] = ISNULL(@CustomerId, CCP.CustomerId)
 				AND CCP.[StatusId] = @CustomerCreditPaymentOpenStatus		 				
-				AND CAST(CCP.[ReceiveDate] AS DATE) <= CAST(@AsOfDate AS DATE) 
+				AND CAST(CCP.[ReceiveDate] AS DATE) <= CASE WHEN ISNULL(@id5, 0) = 1 THEN CAST(@AsOfDate AS DATE) ELSE CAST(@AsOfDate-1 AS DATE) END
 				AND CCP.[MasterCompanyId] = @MasterCompanyid  
 				AND @IsUnappliedAmounts = 1	
 

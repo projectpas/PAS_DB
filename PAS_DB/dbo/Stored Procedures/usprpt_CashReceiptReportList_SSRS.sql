@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿
+/*************************************************************           
  ** File:   [usprpt_CashReceiptReportList_SSRS]           
  ** Author:   RAJESH GAMI  
  ** Description: Get Data for Cash receipt report data fro the SSRS
@@ -17,6 +18,8 @@
 	1	 29 JAN 2026		RAJESH GAMI  		CREATED
 	2	 04 FEB 2026		RAJESH GAMI  		Resolved Issue
 	3	 06 FEB 2026		RAJESH GAMI  		Record Mismatch issue
+	4	 11 FEB 2026		RAJESH GAMI  		Display only GL Account Num
+	5	 16 FEB 2026		RAJESH GAMI  		Display only code (Management Structure Level)
 **************************************************************/
 CREATE          PROCEDURE [dbo].[usprpt_CashReceiptReportList_SSRS]
 @id VARCHAR(MAX) = NULL,
@@ -35,7 +38,6 @@ BEGIN
 		BEGIN    
 			DROP TABLE #TempDataFilter
 		END
-
 		CREATE TABLE #TempDataFilter([ID] BIGINT  IDENTITY(1,1),[Field] VARCHAR(MAX));
 
 		INSERT INTO #TempDataFilter(Field) SELECT Item FROM DBO.SPLITSTRING(@id2,'!');
@@ -73,8 +75,8 @@ BEGIN
 				@level9Str VARCHAR(500) = NULL,
 				@level10Str VARCHAR(500) = NULL,
 				@LegalEntityName VARCHAR(500) = NULL,
-				@EmployeeId BIGINT = NULL;
-
+				@EmployeeId BIGINT = NULL,
+				@CreditTermName VARCHAR(100) = NULL;
 	
 		SELECT @WOModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'WorkOrder';
 		SELECT @SOModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'SalesOrder';
@@ -162,6 +164,8 @@ BEGIN
 			 [Amount] [decimal](18,2) NULL,
 			 InvoicePaymentId [bigint] NULL,
 			 [PaymentType] [varchar](100) NULL,
+			 [CreditTermName] [varchar](100) NULL,
+			 WoSoNum [varchar](100) NULL,
 		)
 		SELECT @FromDate = ISNULL(TRY_CAST([Field] AS DATETIME2), NULL) FROM #TempDataFilter WHERE ID = 1;
 
@@ -197,6 +201,7 @@ BEGIN
 
 		SELECT @EmployeeId = ISNULL(TRY_CAST([Field] AS BIGINT), NULL)	FROM #TempDataFilter WHERE ID = 17;
 		
+		SELECT @CreditTermName = CASE WHEN [Field] = 'null' THEN NULL ELSE [Field] END	FROM #TempDataFilter WHERE ID = 18;
 
 		DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
 				
@@ -309,7 +314,7 @@ BEGIN
 			WHERE IVP.InvoiceType IN (3, 4, 5, 7) AND ISNULL(CPD.IsDeleted, 0) = 0 AND ISNULL(CPD.IsDeleted, 0) = 0 AND Cp.MasterCompanyId =@mastercompanyid
 			GROUP BY CP.ReceiptId, CPD.CustomerPaymentDetailsId
 
-			INSERT INTO #invoiceTmpTable([ReceiptId], InvoiceNum, InvoiceDate,Amount,InvoicePaymentId,[PaymentType])
+			INSERT INTO #invoiceTmpTable([ReceiptId], InvoiceNum, InvoiceDate,Amount,InvoicePaymentId,[PaymentType],CreditTermName,WoSoNum)
 			SELECT DISTINCT
 				[IP].[ReceiptId],
 				 UPPER([IP].[DocNum]) AS InvoiceNum,   
@@ -320,6 +325,8 @@ BEGIN
 				 --CASE WHEN CPD.IsCheckPayment = 1 THEN 'Check' WHEN CPD.IsWireTransfer = 1 THEN 'Wire Transfer' WHEN CPD.IsCCDCPayment = 1 THEN 'Credit Card/Debit Card' END AS PaymentType
 				 --,[IP].[Status]
 				  CASE WHEN [IP].IsCheckPayment = 1 THEN 'Check' WHEN [IP].IsWireTransfer = 1 THEN 'Wire Transfer' WHEN [IP].IsCCDCPayment = 1 THEN 'Credit Card/Debit Card' END AS PaymentType
+				  ,IP.CreditTermName
+				  ,IP.WoSoNum
 			FROM  [dbo].[InvoicePayments] [IP] WITH(NOLOCK)
 				  INNER JOIN dbo.[CustomerPaymentDetails]  CPD WITH(NOLOCK) ON [IP].ReceiptId = CPD.ReceiptId AND CPD.CustomerPaymentDetailsId = [IP].CustomerPaymentDetailsId
 				  INNER JOIN [dbo].[CustomerPayments] CP WITH(NOLOCK) ON CPD.ReceiptId = CP.ReceiptId
@@ -343,7 +350,7 @@ BEGIN
 						CASE WHEN CAST(CP.PostedDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(CP.PostedDate, @CurrntEmpTimeZoneDesc) AS DATETIME)) END 
 				    ELSE (CAST(CP.PostedDate AS DATETIME)) END) < DATEADD(DAY, 1, @ToDate)))
 				  GROUP BY [IP].[ReceiptId],[IP].[DocNum],[IP].[InvoiceDate],[IP].PaymentAmount,Ip.PaymentId,
-				  [IP].IsCheckPayment,[IP].IsWireTransfer,[IP].IsCCDCPayment
+				  [IP].IsCheckPayment,[IP].IsWireTransfer,[IP].IsCCDCPayment,IP.CreditTermName,IP.WoSoNum
 				  --CPD.IsCheckPayment,CPD.IsWireTransfer,CPD.IsCCDCPayment
 				  
 			PRINT 'Details Data'
@@ -357,7 +364,7 @@ BEGIN
 					CASE WHEN @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN 
 						CASE WHEN CAST(CP.PostedDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(CP.PostedDate, @CurrntEmpTimeZoneDesc) AS DATETIME)) END 
 				    ELSE (CAST(CP.PostedDate AS DATETIME)) END PostedDate,
-					tmpVal.CustomerName,
+					CUST.[Name] CustomerName,
 					CASE WHEN @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN 
 						CASE WHEN CAST(CP.OpenDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(CP.OpenDate, @CurrntEmpTimeZoneDesc) AS DATETIME)) END 
 				    ELSE (CAST(CP.OpenDate AS DATETIME)) END OpenDate,
@@ -373,16 +380,16 @@ BEGIN
 					END AS 'CurrencyId',
 					Cp.GLAccountId,
 					Cp.EmployeeId,
-					UPPER(MSD.[Level1Name]) as level1,
-					UPPER(MSD.[Level2Name]) as level2,       
-					UPPER(MSD.[Level3Name]) as level3,       
-					UPPER(MSD.[Level4Name]) as level4,       
-					UPPER(MSD.[Level5Name]) as level5,       
-					UPPER(MSD.[Level6Name]) as level6,       
-					UPPER(MSD.[Level7Name]) as level7,       
-					UPPER(MSD.[Level8Name]) as level8,       
-					UPPER(MSD.[Level9Name]) as level9,       
-					UPPER(MSD.[Level10Name])as level10,
+					UPPER(MSL1.Code) as level1,
+					UPPER(MSL2.Code) as level2,       
+					UPPER(MSL3.Code) as level3,       
+					UPPER(MSL4.Code) as level4,       
+					UPPER(MSL5.Code) as level5,       
+					UPPER(MSL6.Code) as level6,       
+					UPPER(MSL7.Code) as level7,       
+					UPPER(MSL8.Code) as level8,       
+					UPPER(MSL9.Code) as level9,       
+					UPPER(MSL10.Code) as level10,
 					MSD.[Level1Id], 
 					MSD.[Level2Id], 
 					MSD.[Level3Id], 
@@ -403,11 +410,14 @@ BEGIN
 				  --'' as 'InvoiceNum',
 				  --	  GETUTCDATE() as InvoiceDate,
 				  --GETUTCDATE() as DueDate,
-					tmpVal.CustomerId
+					CUST.CustomerId,
+					tmpInv.CreditTermName
+					,tmpInv.WoSoNum
 				FROM #invoiceTmpTable tmpInv 
 				INNER JOIN dbo.InvoicePayments INV ON tmpInv.InvoicePaymentId = INV.PaymentId
 				INNER JOIN [dbo].[CustomerPayments] CP WITH(NOLOCK) ON CP.ReceiptId = tmpInv.ReceiptId
 				INNER JOIN [dbo].[CustomerPaymentDetails] CPD WITH(NOLOCK) ON CPD.CustomerPaymentDetailsId = INV.CustomerPaymentDetailsId --AND ISNULL(CPD.IsDeleted, 0) = 0
+				INNER JOIN [dbo].[Customer] CUST WITH(NOLOCK) ON CPD.CustomerId = CUST.CustomerId
 				INNER JOIN [dbo].[CustomerManagementStructureDetails] MSD WITH(NOLOCK) ON MSD.ModuleID = @MSModuleID AND MSD.ReferenceID = CP.ReceiptId
 				INNER JOIN [dbo].[RoleManagementStructure] RMS WITH(NOLOCK) ON CP.ManagementStructureId = RMS.EntityStructureId
 				INNER JOIN [dbo].[EmployeeUserRole] EUR WITH(NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
@@ -419,6 +429,16 @@ BEGIN
 				--INNER JOIN dbo.[InvoicePayments] INV ON  tmpInv.InvoicePaymentId = INV.PaymentId
 				LEFT JOIN  [dbo].[CustomerFinancial] cf WITH(NOLOCK) ON CPD.CustomerId = cf.CustomerId AND ISNULL(cf.IsDeleted,0) = 0
 				LEFT JOIN  [dbo].[CreditTerms] ctm WITH(NOLOCK) ON cf.CreditTermsId = ctm.CreditTermsId
+				LEFT JOIN [dbo].ManagementStructureLevel MSL1 WITH(NOLOCK)   ON MSD.[Level1Id] = MSL1.ID
+				LEFT JOIN [dbo].ManagementStructureLevel MSL2 WITH(NOLOCK)  ON MSD.[Level2Id] = MSL2.ID
+				LEFT JOIN [dbo].ManagementStructureLevel MSL3 WITH(NOLOCK)  ON MSD.[Level3Id] = MSL3.ID
+				LEFT JOIN [dbo].ManagementStructureLevel MSL4 WITH(NOLOCK)  ON MSD.[Level4Id] = MSL4.ID
+				LEFT JOIN [dbo].ManagementStructureLevel MSL5 WITH(NOLOCK)  ON MSD.[Level5Id] = MSL5.ID
+				LEFT JOIN [dbo].ManagementStructureLevel MSL6 WITH(NOLOCK)  ON MSD.[Level6Id] = MSL6.ID
+				LEFT JOIN [dbo].ManagementStructureLevel MSL7 WITH(NOLOCK)  ON MSD.[Level7Id] = MSL7.ID
+				LEFT JOIN [dbo].ManagementStructureLevel MSL8 WITH(NOLOCK)  ON MSD.[Level8Id] = MSL8.ID
+				LEFT JOIN [dbo].ManagementStructureLevel MSL9 WITH(NOLOCK)  ON MSD.[Level9Id] = MSL9.ID
+				LEFT JOIN [dbo].ManagementStructureLevel MSL10 WITH(NOLOCK) ON MSD.[Level10Id] = MSL10.ID
 				LEFT JOIN (
 					SELECT ReceiptId, MAX(CurrencyId) AS 'CurrencyId'
 					FROM [dbo].[InvoiceCheckPayment] iv WITH(NOLOCK)   
@@ -437,7 +457,7 @@ BEGIN
 				WHERE  (ISNULL(@IsUpdated,0) <> 1 OR ISNULL(CPD.IsUpdated,0) = ISNULL(@IsUpdated,0)) AND Cp.MasterCompanyId =@mastercompanyid
 			),
 			FinalResult AS (
-				SELECT C.Code AS 'BaseCurrency',(G.AccountCode +'-'+G.AccountName) AS 'GlAccountNum' ,
+				SELECT C.Code AS 'BaseCurrency',(G.AccountCode) AS 'GlAccountNum' ,
 				(E.FirstName +' '+E.LastName) AS 'Employee',
 				R.* 
 				FROM Result R  
@@ -451,6 +471,7 @@ BEGIN
 						(ISNULL(@PaymentReference, '') = '' OR PaymentReference LIKE '%' + @PaymentReference + '%') AND    
 						(ISNULL(@baseCurrency, '') = '' OR C.Code LIKE '%' + @baseCurrency + '%') AND  
 						(ISNULL(@InvoiceNum, '') = '' OR InvoiceNum LIKE '%' + @InvoiceNum + '%') AND 
+						(ISNULL(@CreditTermName, '') = '' OR CreditTermName LIKE '%' + @CreditTermName + '%') AND 
 						(ISNULL(@CustomerName, '') = '' OR CustomerName LIKE '%' + @CustomerName + '%') AND  
 						(ISNULL(@CustomerId, 0) = 0 OR CustomerId =@CustomerId) AND
 						(ISNULL(@PaymentMethod, '') = '' OR PaymentMethod LIKE '%' + @PaymentMethod + '%') AND     
@@ -579,7 +600,7 @@ BEGIN
 			WHERE IVP.InvoiceType IN (3, 4, 5, 7) AND ISNULL(CPD.IsDeleted, 0) = 0 AND ISNULL(CPD.IsDeleted, 0) = 0 AND Cp.MasterCompanyId =@mastercompanyid
 			GROUP BY CP.ReceiptId, CPD.CustomerPaymentDetailsId
 
-			INSERT INTO #invoiceTmpTable([ReceiptId], InvoiceNum, InvoiceDate,Amount,InvoicePaymentId,[PaymentType])
+			INSERT INTO #invoiceTmpTable([ReceiptId], InvoiceNum, InvoiceDate,Amount,InvoicePaymentId,[PaymentType],CreditTermName,WoSoNum)
 			SELECT DISTINCT
 				[IP].[ReceiptId],
 				 UPPER([IP].[DocNum]) AS InvoiceNum,   
@@ -590,6 +611,8 @@ BEGIN
 				 --CASE WHEN CPD.IsCheckPayment = 1 THEN 'Check' WHEN CPD.IsWireTransfer = 1 THEN 'Wire Transfer' WHEN CPD.IsCCDCPayment = 1 THEN 'Credit Card/Debit Card' END AS PaymentType
 				 --,[IP].[Status]
 				  CASE WHEN [IP].IsCheckPayment = 1 THEN 'Check' WHEN [IP].IsWireTransfer = 1 THEN 'Wire Transfer' WHEN [IP].IsCCDCPayment = 1 THEN 'Credit Card/Debit Card' END AS PaymentType
+				  ,IP.CreditTermName
+				  ,IP.WoSoNum
 			FROM  [dbo].[InvoicePayments] [IP] WITH(NOLOCK)
 				  INNER JOIN dbo.[CustomerPaymentDetails]  CPD WITH(NOLOCK) ON [IP].ReceiptId = CPD.ReceiptId AND CPD.CustomerPaymentDetailsId = [IP].CustomerPaymentDetailsId
 				  INNER JOIN [dbo].[CustomerPayments] CP WITH(NOLOCK) ON CPD.ReceiptId = CP.ReceiptId
@@ -613,7 +636,7 @@ BEGIN
 						CASE WHEN CAST(CP.PostedDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(CP.PostedDate, @CurrntEmpTimeZoneDesc) AS DATETIME)) END 
 				    ELSE (CAST(CP.PostedDate AS DATETIME)) END) < DATEADD(DAY, 1, @ToDate)))
 				  GROUP BY [IP].[ReceiptId],[IP].[DocNum],[IP].[InvoiceDate],[IP].PaymentAmount,Ip.PaymentId,
-				  [IP].IsCheckPayment,[IP].IsWireTransfer,[IP].IsCCDCPayment
+				  [IP].IsCheckPayment,[IP].IsWireTransfer,[IP].IsCCDCPayment,IP.CreditTermName,IP.WoSoNum
 				  --CPD.IsCheckPayment,CPD.IsWireTransfer,CPD.IsCCDCPayment
 
 
@@ -628,7 +651,7 @@ BEGIN
 					CASE WHEN @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN 
 						CASE WHEN CAST(CP.PostedDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(CP.PostedDate, @CurrntEmpTimeZoneDesc) AS DATETIME)) END 
 				    ELSE (CAST(CP.PostedDate AS DATETIME)) END PostedDate,
-					tmpVal.CustomerName,
+					CUST.[Name] as CustomerName,
 					CASE WHEN @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN 
 						CASE WHEN CAST(CP.OpenDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(CP.OpenDate, @CurrntEmpTimeZoneDesc) AS DATETIME)) END 
 				    ELSE (CAST(CP.OpenDate AS DATETIME)) END OpenDate,
@@ -644,16 +667,16 @@ BEGIN
 					END AS 'CurrencyId',
 					Cp.GLAccountId,
 					Cp.EmployeeId,
-					UPPER(MSD.[Level1Name]) as level1,
-					UPPER(MSD.[Level2Name]) as level2,       
-					UPPER(MSD.[Level3Name]) as level3,       
-					UPPER(MSD.[Level4Name]) as level4,       
-					UPPER(MSD.[Level5Name]) as level5,       
-					UPPER(MSD.[Level6Name]) as level6,       
-					UPPER(MSD.[Level7Name]) as level7,       
-					UPPER(MSD.[Level8Name]) as level8,       
-					UPPER(MSD.[Level9Name]) as level9,       
-					UPPER(MSD.[Level10Name])as level10,
+					UPPER(MSL1.Code) as level1,
+					UPPER(MSL2.Code) as level2,       
+					UPPER(MSL3.Code) as level3,       
+					UPPER(MSL4.Code) as level4,       
+					UPPER(MSL5.Code) as level5,       
+					UPPER(MSL6.Code) as level6,       
+					UPPER(MSL7.Code) as level7,       
+					UPPER(MSL8.Code) as level8,       
+					UPPER(MSL9.Code) as level9,       
+					UPPER(MSL10.Code) as level10,
 					MSD.[Level1Id], 
 					MSD.[Level2Id], 
 					MSD.[Level3Id], 
@@ -671,11 +694,14 @@ BEGIN
 					DATEADD(DAY, ctm.NetDays,CASE WHEN @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN 
 						CASE WHEN CAST(tmpInv.InvoiceDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(tmpInv.InvoiceDate, @CurrntEmpTimeZoneDesc) AS DATETIME)) END 
 				    ELSE (CAST(tmpInv.InvoiceDate AS DATETIME)) END) as DueDate,
-					tmpVal.CustomerId
+					CUST.CustomerId
+					,tmpInv.CreditTermName
+					,tmpInv.WoSoNum
 				FROM #invoiceTmpTable tmpInv 
 				INNER JOIN dbo.InvoicePayments INV ON tmpInv.InvoicePaymentId = INV.PaymentId
 				INNER JOIN [dbo].[CustomerPayments] CP WITH(NOLOCK) ON CP.ReceiptId = tmpInv.ReceiptId
 				INNER JOIN [dbo].[CustomerPaymentDetails] CPD WITH(NOLOCK) ON CPD.CustomerPaymentDetailsId = INV.CustomerPaymentDetailsId --AND ISNULL(CPD.IsDeleted, 0) = 0
+				INNER JOIN [dbo].[Customer] CUST WITH(NOLOCK) ON CPD.CustomerId = CUST.CustomerId
 				INNER JOIN [dbo].[CustomerManagementStructureDetails] MSD WITH(NOLOCK) ON MSD.ModuleID = @MSModuleID AND MSD.ReferenceID = CP.ReceiptId
 				INNER JOIN [dbo].[RoleManagementStructure] RMS WITH(NOLOCK) ON CP.ManagementStructureId = RMS.EntityStructureId
 				INNER JOIN [dbo].[EmployeeUserRole] EUR WITH(NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
@@ -685,6 +711,16 @@ BEGIN
 				LEFT JOIN #CreditMemoTmp tmpCM ON CPD.CustomerPaymentDetailsId = tmpCM.CustomerPaymentDetailsId
 						LEFT JOIN  [dbo].[CustomerFinancial] cf WITH(NOLOCK) ON CPD.CustomerId = cf.CustomerId AND ISNULL(cf.IsDeleted,0) = 0
 				LEFT JOIN  [dbo].[CreditTerms] ctm WITH(NOLOCK) ON cf.CreditTermsId = ctm.CreditTermsId
+				LEFT JOIN [dbo].ManagementStructureLevel MSL1 WITH(NOLOCK)   ON MSD.[Level1Id] = MSL1.ID
+				LEFT JOIN [dbo].ManagementStructureLevel MSL2 WITH(NOLOCK)  ON MSD.[Level2Id] = MSL2.ID
+				LEFT JOIN [dbo].ManagementStructureLevel MSL3 WITH(NOLOCK)  ON MSD.[Level3Id] = MSL3.ID
+				LEFT JOIN [dbo].ManagementStructureLevel MSL4 WITH(NOLOCK)  ON MSD.[Level4Id] = MSL4.ID
+				LEFT JOIN [dbo].ManagementStructureLevel MSL5 WITH(NOLOCK)  ON MSD.[Level5Id] = MSL5.ID
+				LEFT JOIN [dbo].ManagementStructureLevel MSL6 WITH(NOLOCK)  ON MSD.[Level6Id] = MSL6.ID
+				LEFT JOIN [dbo].ManagementStructureLevel MSL7 WITH(NOLOCK)  ON MSD.[Level7Id] = MSL7.ID
+				LEFT JOIN [dbo].ManagementStructureLevel MSL8 WITH(NOLOCK)  ON MSD.[Level8Id] = MSL8.ID
+				LEFT JOIN [dbo].ManagementStructureLevel MSL9 WITH(NOLOCK)  ON MSD.[Level9Id] = MSL9.ID
+				LEFT JOIN [dbo].ManagementStructureLevel MSL10 WITH(NOLOCK) ON MSD.[Level10Id] = MSL10.ID
 				LEFT JOIN (
 					SELECT ReceiptId, MAX(CurrencyId) AS 'CurrencyId'
 					FROM [dbo].[InvoiceCheckPayment] iv WITH(NOLOCK)   
@@ -703,7 +739,7 @@ BEGIN
 				WHERE  (ISNULL(@IsUpdated,0) <> 1 OR ISNULL(CPD.IsUpdated,0) = ISNULL(@IsUpdated,0)) AND Cp.MasterCompanyId =@mastercompanyid
 			),
 			FinalResult AS (
-				SELECT C.Code AS 'BaseCurrency',(G.AccountCode +'-'+G.AccountName) AS 'GlAccountNum' ,
+				SELECT C.Code AS 'BaseCurrency',(G.AccountCode) AS 'GlAccountNum' ,
 				(E.FirstName +' '+E.LastName) AS 'Employee',
 				R.* 
 				FROM Result R  
@@ -816,7 +852,9 @@ BEGIN
 						MAX(level10) AS level10,
 						'' as 'InvoiceNum',
 						GETUTCDATE() InvoiceDate,
-						GETUTCDATE() as DueDate
+						GETUTCDATE() as DueDate,
+							'' as CreditTermName
+					,''as WoSoNum
 					FROM FinalResult
 					WHERE CustomerId IS NOT NULL
 					GROUP BY
@@ -827,7 +865,7 @@ BEGIN
 				SELECT COUNT(CustomerId) AS NumberOfItems FROM CustomerWiseResult
 			)
 			SELECT * 
-			FROM CustomerWiseResult, ResultCount    
+			FROM FinalResult, ResultCount    
 			ORDER BY    
 				CASE WHEN (@SortOrder=1 and @SortColumn='CUSTOMERNAME') THEN CustomerName END ASC,
 				CASE WHEN (@SortOrder=-1 and @SortColumn='CUSTOMERNAME') THEN CustomerName END DESC,

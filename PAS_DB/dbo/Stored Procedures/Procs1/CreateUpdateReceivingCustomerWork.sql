@@ -535,6 +535,7 @@ BEGIN
 							0,0,ISNULL([IsTimeLife],0),NULL,NULL,NULL,NULL,
 						    0,NULL,Reference,'','',0,GETUTCDATE(), @IntegrationPortal, 0, ISNULL(@IsRepairManagement, 0),@IsBatchStock,@CSBReceiverNumber FROM #tmprReceiveCustomer WHERE ID = @MinId
 
+
 					SELECT @NewStocklineId = SCOPE_IDENTITY();                                                 
 					
 					EXEC [dbo].[UpdateStocklineColumnsWithId] @NewStocklineId;

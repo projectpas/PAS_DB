@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿
+/*************************************************************           
  ** File:   [usprpt_CashReceiptReportList_SSRS]           
  ** Author:   RAJESH GAMI  
  ** Description: Get Data for Cash receipt report data fro the SSRS
@@ -18,6 +19,7 @@
 	2	 04 FEB 2026		RAJESH GAMI  		Resolved Issue
 	3	 06 FEB 2026		RAJESH GAMI  		Record Mismatch issue
 	4	 11 FEB 2026		RAJESH GAMI  		Display only GL Account Num
+	5	 16 FEB 2026		RAJESH GAMI  		Display only code (Management Structure Level)
 **************************************************************/
 CREATE          PROCEDURE [dbo].[usprpt_CashReceiptReportList_SSRS]
 @id VARCHAR(MAX) = NULL,
@@ -25,8 +27,7 @@ CREATE          PROCEDURE [dbo].[usprpt_CashReceiptReportList_SSRS]
 @id3 VARCHAR(MAX) = NULL,
 @id4 VARCHAR(MAX) = NULL,
 @strFilter VARCHAR(MAX) = NULL,
-@mastercompanyid INT = NULL,
-@parentCustomerId BIGINT = NULL
+@mastercompanyid INT = NULL
 AS
 BEGIN
   SET NOCOUNT ON;
@@ -36,16 +37,6 @@ BEGIN
 		IF OBJECT_ID(N'tempdb..#TempDataFilter') IS NOT NULL    
 		BEGIN    
 			DROP TABLE #TempDataFilter
-		END
-		IF(@parentCustomerId > 0)
-		BEGIN
-			PRINT '@parentCustomerId'
-			PRINT @parentCustomerId
-		END
-		ELSE
-		BEGIN
-			PRINT '@parentCustomerId ELSE'
-			PRINT @parentCustomerId
 		END
 		CREATE TABLE #TempDataFilter([ID] BIGINT  IDENTITY(1,1),[Field] VARCHAR(MAX));
 
@@ -389,16 +380,16 @@ BEGIN
 					END AS 'CurrencyId',
 					Cp.GLAccountId,
 					Cp.EmployeeId,
-					UPPER(MSL.Code) as level1,
-					UPPER(MSD.[Level2Name]) as level2,       
-					UPPER(MSD.[Level3Name]) as level3,       
-					UPPER(MSD.[Level4Name]) as level4,       
-					UPPER(MSD.[Level5Name]) as level5,       
-					UPPER(MSD.[Level6Name]) as level6,       
-					UPPER(MSD.[Level7Name]) as level7,       
-					UPPER(MSD.[Level8Name]) as level8,       
-					UPPER(MSD.[Level9Name]) as level9,       
-					UPPER(MSD.[Level10Name])as level10,
+					UPPER(MSL1.Code) as level1,
+					UPPER(MSL2.Code) as level2,       
+					UPPER(MSL3.Code) as level3,       
+					UPPER(MSL4.Code) as level4,       
+					UPPER(MSL5.Code) as level5,       
+					UPPER(MSL6.Code) as level6,       
+					UPPER(MSL7.Code) as level7,       
+					UPPER(MSL8.Code) as level8,       
+					UPPER(MSL9.Code) as level9,       
+					UPPER(MSL10.Code) as level10,
 					MSD.[Level1Id], 
 					MSD.[Level2Id], 
 					MSD.[Level3Id], 
@@ -428,7 +419,6 @@ BEGIN
 				INNER JOIN [dbo].[CustomerPaymentDetails] CPD WITH(NOLOCK) ON CPD.CustomerPaymentDetailsId = INV.CustomerPaymentDetailsId --AND ISNULL(CPD.IsDeleted, 0) = 0
 				INNER JOIN [dbo].[Customer] CUST WITH(NOLOCK) ON CPD.CustomerId = CUST.CustomerId
 				INNER JOIN [dbo].[CustomerManagementStructureDetails] MSD WITH(NOLOCK) ON MSD.ModuleID = @MSModuleID AND MSD.ReferenceID = CP.ReceiptId
-				LEFT JOIN [dbo].ManagementStructureLevel MSL WITH(NOLOCK) ON MSD.[Level1Id] = MSL.ID
 				INNER JOIN [dbo].[RoleManagementStructure] RMS WITH(NOLOCK) ON CP.ManagementStructureId = RMS.EntityStructureId
 				INNER JOIN [dbo].[EmployeeUserRole] EUR WITH(NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
 				LEFT JOIN [dbo].[MasterCustomerPaymentStatus] S WITH(NOLOCK) ON S.Id = CP.StatusId
@@ -439,6 +429,16 @@ BEGIN
 				--INNER JOIN dbo.[InvoicePayments] INV ON  tmpInv.InvoicePaymentId = INV.PaymentId
 				LEFT JOIN  [dbo].[CustomerFinancial] cf WITH(NOLOCK) ON CPD.CustomerId = cf.CustomerId AND ISNULL(cf.IsDeleted,0) = 0
 				LEFT JOIN  [dbo].[CreditTerms] ctm WITH(NOLOCK) ON cf.CreditTermsId = ctm.CreditTermsId
+				LEFT JOIN [dbo].ManagementStructureLevel MSL1 WITH(NOLOCK)   ON MSD.[Level1Id] = MSL1.ID
+				LEFT JOIN [dbo].ManagementStructureLevel MSL2 WITH(NOLOCK)  ON MSD.[Level2Id] = MSL2.ID
+				LEFT JOIN [dbo].ManagementStructureLevel MSL3 WITH(NOLOCK)  ON MSD.[Level3Id] = MSL3.ID
+				LEFT JOIN [dbo].ManagementStructureLevel MSL4 WITH(NOLOCK)  ON MSD.[Level4Id] = MSL4.ID
+				LEFT JOIN [dbo].ManagementStructureLevel MSL5 WITH(NOLOCK)  ON MSD.[Level5Id] = MSL5.ID
+				LEFT JOIN [dbo].ManagementStructureLevel MSL6 WITH(NOLOCK)  ON MSD.[Level6Id] = MSL6.ID
+				LEFT JOIN [dbo].ManagementStructureLevel MSL7 WITH(NOLOCK)  ON MSD.[Level7Id] = MSL7.ID
+				LEFT JOIN [dbo].ManagementStructureLevel MSL8 WITH(NOLOCK)  ON MSD.[Level8Id] = MSL8.ID
+				LEFT JOIN [dbo].ManagementStructureLevel MSL9 WITH(NOLOCK)  ON MSD.[Level9Id] = MSL9.ID
+				LEFT JOIN [dbo].ManagementStructureLevel MSL10 WITH(NOLOCK) ON MSD.[Level10Id] = MSL10.ID
 				LEFT JOIN (
 					SELECT ReceiptId, MAX(CurrencyId) AS 'CurrencyId'
 					FROM [dbo].[InvoiceCheckPayment] iv WITH(NOLOCK)   
@@ -667,16 +667,16 @@ BEGIN
 					END AS 'CurrencyId',
 					Cp.GLAccountId,
 					Cp.EmployeeId,
-					UPPER(MSL.Code) as level1,
-					UPPER(MSD.[Level2Name]) as level2,       
-					UPPER(MSD.[Level3Name]) as level3,       
-					UPPER(MSD.[Level4Name]) as level4,       
-					UPPER(MSD.[Level5Name]) as level5,       
-					UPPER(MSD.[Level6Name]) as level6,       
-					UPPER(MSD.[Level7Name]) as level7,       
-					UPPER(MSD.[Level8Name]) as level8,       
-					UPPER(MSD.[Level9Name]) as level9,       
-					UPPER(MSD.[Level10Name])as level10,
+					UPPER(MSL1.Code) as level1,
+					UPPER(MSL2.Code) as level2,       
+					UPPER(MSL3.Code) as level3,       
+					UPPER(MSL4.Code) as level4,       
+					UPPER(MSL5.Code) as level5,       
+					UPPER(MSL6.Code) as level6,       
+					UPPER(MSL7.Code) as level7,       
+					UPPER(MSL8.Code) as level8,       
+					UPPER(MSL9.Code) as level9,       
+					UPPER(MSL10.Code) as level10,
 					MSD.[Level1Id], 
 					MSD.[Level2Id], 
 					MSD.[Level3Id], 
@@ -703,7 +703,6 @@ BEGIN
 				INNER JOIN [dbo].[CustomerPaymentDetails] CPD WITH(NOLOCK) ON CPD.CustomerPaymentDetailsId = INV.CustomerPaymentDetailsId --AND ISNULL(CPD.IsDeleted, 0) = 0
 				INNER JOIN [dbo].[Customer] CUST WITH(NOLOCK) ON CPD.CustomerId = CUST.CustomerId
 				INNER JOIN [dbo].[CustomerManagementStructureDetails] MSD WITH(NOLOCK) ON MSD.ModuleID = @MSModuleID AND MSD.ReferenceID = CP.ReceiptId
-				LEFT JOIN [dbo].ManagementStructureLevel MSL WITH(NOLOCK) ON MSD.[Level1Id] = MSL.ID
 				INNER JOIN [dbo].[RoleManagementStructure] RMS WITH(NOLOCK) ON CP.ManagementStructureId = RMS.EntityStructureId
 				INNER JOIN [dbo].[EmployeeUserRole] EUR WITH(NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
 				LEFT JOIN [dbo].[MasterCustomerPaymentStatus] S WITH(NOLOCK) ON S.Id = CP.StatusId
@@ -712,6 +711,16 @@ BEGIN
 				LEFT JOIN #CreditMemoTmp tmpCM ON CPD.CustomerPaymentDetailsId = tmpCM.CustomerPaymentDetailsId
 						LEFT JOIN  [dbo].[CustomerFinancial] cf WITH(NOLOCK) ON CPD.CustomerId = cf.CustomerId AND ISNULL(cf.IsDeleted,0) = 0
 				LEFT JOIN  [dbo].[CreditTerms] ctm WITH(NOLOCK) ON cf.CreditTermsId = ctm.CreditTermsId
+				LEFT JOIN [dbo].ManagementStructureLevel MSL1 WITH(NOLOCK)   ON MSD.[Level1Id] = MSL1.ID
+				LEFT JOIN [dbo].ManagementStructureLevel MSL2 WITH(NOLOCK)  ON MSD.[Level2Id] = MSL2.ID
+				LEFT JOIN [dbo].ManagementStructureLevel MSL3 WITH(NOLOCK)  ON MSD.[Level3Id] = MSL3.ID
+				LEFT JOIN [dbo].ManagementStructureLevel MSL4 WITH(NOLOCK)  ON MSD.[Level4Id] = MSL4.ID
+				LEFT JOIN [dbo].ManagementStructureLevel MSL5 WITH(NOLOCK)  ON MSD.[Level5Id] = MSL5.ID
+				LEFT JOIN [dbo].ManagementStructureLevel MSL6 WITH(NOLOCK)  ON MSD.[Level6Id] = MSL6.ID
+				LEFT JOIN [dbo].ManagementStructureLevel MSL7 WITH(NOLOCK)  ON MSD.[Level7Id] = MSL7.ID
+				LEFT JOIN [dbo].ManagementStructureLevel MSL8 WITH(NOLOCK)  ON MSD.[Level8Id] = MSL8.ID
+				LEFT JOIN [dbo].ManagementStructureLevel MSL9 WITH(NOLOCK)  ON MSD.[Level9Id] = MSL9.ID
+				LEFT JOIN [dbo].ManagementStructureLevel MSL10 WITH(NOLOCK) ON MSD.[Level10Id] = MSL10.ID
 				LEFT JOIN (
 					SELECT ReceiptId, MAX(CurrencyId) AS 'CurrencyId'
 					FROM [dbo].[InvoiceCheckPayment] iv WITH(NOLOCK)   

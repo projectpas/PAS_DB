@@ -20,7 +20,7 @@
 	4    05-FEB-2026    Amit Ghediya		update for group by to pagesize reduce issue
 	5    09-FEB-2026    Rajesh Gami			Added NONSTOCK, ASSET Management Structure JOIN in Receiving Reconciliation
 	6	 13-Feb-2026	Devendra Shekh		Added New param @id5
-	7    16-FEB-2026    Amit Ghediya        Update NPO invocied date from postedate to invoiced date.
+	7    16-FEB-2026    Amit Ghediya        Update NPO Invoiced date from postedate to invoiced date.
   --[dbo].[usprpt_GetAPAgingReport_SSRS] 1,'2026-01-27',3654,2,null,null
   exec [dbo].[usprpt_GetAPAgingReport_SSRS] 1,'2/5/2026',0,2,null,null,'1,5,6,20,22,52,53!2,7,8,9!3,11,10!4,12,13!!!!!!'
 ***************************************************************************************************/        

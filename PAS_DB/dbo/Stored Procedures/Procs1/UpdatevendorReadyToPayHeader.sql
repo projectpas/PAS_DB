@@ -16,6 +16,7 @@
  ** --   --------     -------		-------------------------------- 
 	1    21/03/2024   AMIT GHEDIYA		Created
 	2    20/12/2024   AMIT GHEDIYA		Update for set @StartNums to start with 0.
+	3    16/02/2026   AMIT GHEDIYA		Update for check number duplicate issue
      
 -- EXEC UpdatevendorReadyToPayHeader 120,115
 **************************************************************/
@@ -29,24 +30,10 @@ BEGIN
  SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED  
  SET NOCOUNT ON;  
  BEGIN TRY  
-	
-	DECLARE @PrintingIds BIGINT,
-			@StartNums BIGINT,
-			@UpdateNums BIGINT;
-
-	IF(@PrintingId > 0)
-	BEGIN
-		 SET @StartNums = 0;
-		 SELECT @StartNums = StartNum FROM [DBO].[PrintCheckSetup] WITH(NOLOCK) WHERE PrintingId = @PrintingId;
-	END
 
 	--Update PrintCheckSetup
-	UPDATE [dbo].[PrintCheckSetup] SET StartNum = @StartNums 
+	UPDATE [dbo].[PrintCheckSetup] SET StartNum = @StartNum
 	WHERE PrintingId = @PrintingId;
-
-	--update checknumber in VendorReadyToPayHeader table
-	UPDATE [dbo].[VendorReadyToPayHeader] SET PrintCheck_Wire_Num = @StartNums 
-	WHERE ReadyToPayId = @ReadyToPayId;
   
  END TRY  
  BEGIN CATCH        

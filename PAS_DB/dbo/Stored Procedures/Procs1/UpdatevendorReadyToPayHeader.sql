@@ -16,7 +16,7 @@
  ** --   --------     -------		-------------------------------- 
 	1    21/03/2024   AMIT GHEDIYA		Created
 	2    20/12/2024   AMIT GHEDIYA		Update for set @StartNums to start with 0.
-	3    16/02/2026   AMIT GHEDIYA		Update for check number duplicate issue
+	3    16/02/2026   AMIT GHEDIYA		Update for check number duplicate issue (PN-15479)
      
 -- EXEC UpdatevendorReadyToPayHeader 120,115
 **************************************************************/

@@ -4439,6 +4439,7 @@
     <Build Include="dbo\Stored Procedures\USP_GetManagementStructureTypeByMasterCompanyId.sql" />
     <Build Include="dbo\Stored Procedures\USP_WIPReportsReconciliation.sql" />
     <Build Include="dbo\Stored Procedures\USP_TearDownWOBatchTriggerBasedonDistribution.sql" />
+    <Build Include="dbo\Stored Procedures\USP_UpdateNonPOInvoicePartMemo.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

@@ -21,11 +21,13 @@
 	7	 03/09/2024   Ekta Chandegra    Retrieve merged addres using common function
 	8	 03/31/2025   Vishal Suthar     Added conditional Notes for all the companies except MTI
 	9	 01/05/2025   AMIT GHEDIYA      Get Email & Phone from Contact (Before from cust general info.).
+	10	 02/12/2025   AMIT GHEDIYA      Get All Added charge type in notes (PN-15364)
 
 -- EXEC [RPT_GetWorkOrderQuoteHeaderData] 7011
 **************************************************************/  
-CREATE         PROCEDURE [dbo].[RPT_GetWorkOrderQuoteHeaderData]  
- @WorkOrderQuoteId bigint 
+CREATE   PROCEDURE [dbo].[RPT_GetWorkOrderQuoteHeaderData]  
+ @WorkOrderQuoteId bigint,
+ @workOrderPartNoId BIGINT = NULL
 AS  
 BEGIN  
  SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED  
@@ -33,6 +35,26 @@ BEGIN
   BEGIN TRY  
   BEGIN TRANSACTION  
    BEGIN    
+
+		--Get All Added charge type in WOQ notes.
+		DECLARE @ChargeType VARCHAR(MAX) = NULL,
+				@MasterCompanyId INT,
+				@NeoMasterCompanyId INT;
+
+		SELECT @NeoMasterCompanyId = [MasterCompanyId] FROM [dbo].[MasterCompany] WITH(NOLOCK) WHERE [MasterCompanyCode] = 'NEO';
+
+		SELECT @MasterCompanyId = [MasterCompanyId] FROM [dbo].[WorkOrderQuoteDetails] WQD WITH(NOLOCK) WHERE WQD.[WorkOrderQuoteId] = @WorkOrderQuoteId;
+
+		IF(@MasterCompanyId = @NeoMasterCompanyId)
+		BEGIN
+			 SELECT @ChargeType = STRING_AGG(UPPER(CH.[ChargeType]), ', ') 
+				FROM [dbo].[WorkOrderQuoteDetails] WQD WITH(NOLOCK)
+				INNER JOIN [dbo].[WorkOrderQuoteCharges] WQC WITH(NOLOCK) ON WQC.[WorkOrderQuoteDetailsId] = WQD.[WorkOrderQuoteDetailsId] AND WQC.[IsDeleted] = 0
+				INNER JOIN [dbo].[Charge] CH WITH(NOLOCK) ON CH.[ChargeId] = WQC.[ChargesTypeId]
+				WHERE WQD.[WorkOrderQuoteId] = @WorkOrderQuoteId AND WQD.[WOPartNoId] = @workOrderPartNoId
+		END
+
+
 		SELECT TOP 1  
 			woq.WorkOrderQuoteId,
             wo.WorkOrderId,
@@ -91,16 +113,24 @@ BEGIN
             woq.QuoteStatusId,
             TaxRate = ISNULL(custtax.TaxRate,0),
             CustomerAttention = sa.Attention,
-			CASE WHEN woq.MasterCompanyId = 11 THEN '' ELSE 
-				CASE WHEN woq.Notes !='' 
-					 THEN 
-						CASE WHEN LEN(ISNULL(woq.Notes,'')) < 750
-							 THEN ISNULL(woq.Notes,'')
-						ELSE
-							LEFT(ISNULL(woq.Notes,''),750) + '...'
-						END
-				   ELSE ''
-				END
+			--CASE WHEN woq.MasterCompanyId = 11 THEN '' ELSE 
+			--	CASE WHEN woq.Notes IS NULL THEN ISNULL(@ChargeType,'') ELSE
+			--		CASE WHEN woq.Notes !='' 
+			--			 THEN 
+			--				CASE WHEN LEN(ISNULL(woq.Notes,'')) < 750
+			--					 THEN ISNULL(woq.Notes,'') + '  ' + ISNULL(@ChargeType,'')
+			--				ELSE
+			--					LEFT(ISNULL(woq.Notes,''),750) + '...'
+			--				END
+			--		   ELSE ''
+			--		END
+			--	END
+			--END AS 'WONotes',
+			CASE
+				WHEN woq.MasterCompanyId = 11 THEN ''
+				WHEN woq.Notes IS NULL OR woq.Notes = '' THEN ISNULL(@ChargeType, '')
+				WHEN LEN(woq.Notes) < 750 THEN woq.Notes + '  ' + ISNULL(@ChargeType, '')
+				ELSE LEFT(woq.Notes, 750) + '...'
 			END AS 'WONotes',
             WOCustomerRef = UPPER(wop.CustomerReference),
 			WorkScope = UPPER(wop.WorkScope)

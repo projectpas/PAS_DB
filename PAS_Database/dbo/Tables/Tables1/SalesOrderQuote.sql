@@ -111,27 +111,125 @@
 
 GO
 
-
-CREATE TRIGGER [dbo].[Trg_SalesOrderQuoteAudit]
-
-   ON  [dbo].[SalesOrderQuote]
-
-   AFTER INSERT,DELETE,UPDATE
-
-AS 
-
+   
+CREATE TRIGGER [dbo].[trg_Audit_dbo_SalesOrderQuote]
+ON  [dbo].[SalesOrderQuote]
+AFTER INSERT, UPDATE, DELETE
+AS
 BEGIN
+    SET NOCOUNT ON;
+    ;WITH
+    d AS (SELECT d.[SalesOrderQuoteId],d.[QuoteTypeId],d.[OpenDate],d.[ValidForDays],d.[QuoteExpireDate],d.[AccountTypeId],d.[CustomerId],d.[CustomerContactId],d.[CustomerReference],d.[ContractReference],d.[SalesPersonId],d.[AgentName],d.[CustomerSeviceRepId],d.[ProbabilityId],d.[LeadSourceId],d.[CreditLimit],d.[CreditTermId],d.[EmployeeId],d.[RestrictPMA],d.[RestrictDER],d.[ApprovedDate],d.[CurrencyId],d.[CustomerWarningId],d.[Memo],d.[Notes],d.[MasterCompanyId],d.[CreatedBy],d.[CreatedDate],d.[UpdatedBy],d.[UpdatedDate],d.[IsDeleted],d.[StatusId],d.[StatusChangeDate],d.[ManagementStructureId],d.[Version],d.[AgentId],d.[QtyRequested],d.[QtyToBeQuoted],d.[SalesOrderQuoteNumber],d.[QuoteSentDate],d.[IsNewVersionCreated],d.[IsActive],d.[QuoteParentId],d.[QuoteTypeName],d.[AccountTypeName],d.[CustomerName],d.[SalesPersonName],d.[CustomerServiceRepName],d.[ProbabilityName],d.[LeadSourceName],d.[CreditTermName],d.[EmployeeName],d.[CurrencyName],d.[CustomerWarningName],d.[ManagementStructureName],d.[CustomerContactName],d.[VersionNumber],d.[CustomerCode],d.[CustomerContactEmail],d.[CreditLimitName],d.[StatusName],d.[ManagementStructureName1],d.[ManagementStructureName2],d.[ManagementStructureName3],d.[ManagementStructureName4],d.[EnforceEffectiveDate],d.[IsEnforceApproval],d.[TotalFreight],d.[TotalCharges],d.[FreightBilingMethodId],d.[ChargesBilingMethodId],d.[FunctionalCurrencyId],d.[ReportCurrencyId],d.[ForeignExchangeRate],d.[LotId],d.[IsLotAssigned],d.[SourceBy],d.[MarketplaceRef],d.[ApprovalCode] FROM deleted d),
+    i AS (SELECT i.[SalesOrderQuoteId],i.[QuoteTypeId],i.[OpenDate],i.[ValidForDays],i.[QuoteExpireDate],i.[AccountTypeId],i.[CustomerId],i.[CustomerContactId],i.[CustomerReference],i.[ContractReference],i.[SalesPersonId],i.[AgentName],i.[CustomerSeviceRepId],i.[ProbabilityId],i.[LeadSourceId],i.[CreditLimit],i.[CreditTermId],i.[EmployeeId],i.[RestrictPMA],i.[RestrictDER],i.[ApprovedDate],i.[CurrencyId],i.[CustomerWarningId],i.[Memo],i.[Notes],i.[MasterCompanyId],i.[CreatedBy],i.[CreatedDate],i.[UpdatedBy],i.[UpdatedDate],i.[IsDeleted],i.[StatusId],i.[StatusChangeDate],i.[ManagementStructureId],i.[Version],i.[AgentId],i.[QtyRequested],i.[QtyToBeQuoted],i.[SalesOrderQuoteNumber],i.[QuoteSentDate],i.[IsNewVersionCreated],i.[IsActive],i.[QuoteParentId],i.[QuoteTypeName],i.[AccountTypeName],i.[CustomerName],i.[SalesPersonName],i.[CustomerServiceRepName],i.[ProbabilityName],i.[LeadSourceName],i.[CreditTermName],i.[EmployeeName],i.[CurrencyName],i.[CustomerWarningName],i.[ManagementStructureName],i.[CustomerContactName],i.[VersionNumber],i.[CustomerCode],i.[CustomerContactEmail],i.[CreditLimitName],i.[StatusName],i.[ManagementStructureName1],i.[ManagementStructureName2],i.[ManagementStructureName3],i.[ManagementStructureName4],i.[EnforceEffectiveDate],i.[IsEnforceApproval],i.[TotalFreight],i.[TotalCharges],i.[FreightBilingMethodId],i.[ChargesBilingMethodId],i.[FunctionalCurrencyId],i.[ReportCurrencyId],i.[ForeignExchangeRate],i.[LotId],i.[IsLotAssigned],i.[SourceBy],i.[MarketplaceRef],i.[ApprovalCode] FROM inserted i),
+    paired AS (
+        SELECT
+            COALESCE(i.SalesOrderQuoteId, d.SalesOrderQuoteId ) AS SalesOrderQuoteId,
+            (SELECT d.* FOR JSON PATH, WITHOUT_ARRAY_WRAPPER) AS old_row_json,
+            (SELECT i.* FOR JSON PATH, WITHOUT_ARRAY_WRAPPER) AS new_row_json, 
+            CASE
+                WHEN i.SalesOrderQuoteId IS NOT NULL AND d.SalesOrderQuoteId IS NOT NULL THEN 'U'
+                WHEN i.SalesOrderQuoteId IS NOT NULL AND d.SalesOrderQuoteId IS NULL     THEN 'I'
+                WHEN i.SalesOrderQuoteId IS NULL     AND d.SalesOrderQuoteId IS NOT NULL THEN 'D'
+            END AS Action,
 
+            (SELECT COALESCE(i.SalesOrderQuoteId, d.SalesOrderQuoteId) AS SalesOrderQuoteId
+                FOR JSON PATH, WITHOUT_ARRAY_WRAPPER) AS PKJson
+        FROM d
+        FULL OUTER JOIN i
+            ON i.SalesOrderQuoteId = d.SalesOrderQuoteId
+    ),
 
-
-	INSERT INTO SalesOrderQuoteAudit
-
-	SELECT * FROM INSERTED
-
-
-
-	SET NOCOUNT ON;
-
-
-
-END
+    oldv AS (
+        SELECT
+            p.PKJson,
+            p.SalesOrderQuoteId,
+            v.[key]  AS ColumnName,
+            v.value  AS OldValue
+        FROM paired p
+        CROSS APPLY OPENJSON(p.old_row_json) v
+        WHERE NOT EXISTS (
+            SELECT 1
+            FROM dbo.IgnoreColumn ign WITH(NOLOCK)
+            WHERE ign.SchemaName = N'dbo'
+                AND ign.TableName  = N'SalesOrderQuote'
+                AND ign.ColumnName = N'SalesOrderQuoteId'
+        )),
+    newv AS (
+        SELECT
+            p.PKJson,
+            p.SalesOrderQuoteId ,
+            v.[key]  AS ColumnName,
+            v.value  AS NewValue
+        FROM paired p
+        CROSS APPLY OPENJSON(p.new_row_json) v
+        WHERE NOT EXISTS (
+            SELECT 1
+            FROM dbo.IgnoreColumn ign WITH(NOLOCK)
+            WHERE ign.SchemaName = N'dbo'
+                AND ign.TableName  = N'SalesOrderQuote'
+                AND ign.ColumnName = N'SalesOrderQuoteId'
+        )),
+    merged AS (
+        SELECT
+            COALESCE(n.PKJson, o.PKJson)                AS PKJson,
+            COALESCE(n.ColumnName, o.ColumnName)        AS ColumnName,
+            o.OldValue,
+            n.NewValue,
+            p.Action
+        FROM paired p
+        LEFT JOIN oldv o
+            ON o.SalesOrderQuoteId = p.SalesOrderQuoteId
+        LEFT JOIN newv n
+            ON n.SalesOrderQuoteId = p.SalesOrderQuoteId
+            AND n.ColumnName = o.ColumnName
+        UNION ALL
+        SELECT
+            n.PKJson,
+            n.ColumnName,
+            NULL AS OldValue,
+            n.NewValue,
+            p.Action
+        FROM paired p
+        LEFT JOIN newv n
+            ON n.SalesOrderQuoteId = p.SalesOrderQuoteId
+        WHERE NOT EXISTS (
+            SELECT 1
+            FROM oldv o2
+            WHERE o2.SalesOrderQuoteId = p.SalesOrderQuoteId
+                AND o2.ColumnName    = n.ColumnName
+        )
+    )
+    INSERT dbo.AuditLog (SchemaName, TableName, PKJson, ColumnName, Action, OldValue, NewValue)
+    SELECT
+        N'dbo' AS SchemaName,
+        N'SalesOrderQuote' AS TableName,
+        m.PKJson,
+        m.ColumnName,
+        m.Action,
+        CASE             
+            WHEN m.ColumnName = 'StatusId' THEN msoqOld.[Description]            
+            WHEN m.ColumnName = 'AccountTypeId' THEN ctOld.CustomerTypeName                     
+            ELSE m.OldValue
+        END AS OldValue,        
+        CASE            
+            WHEN m.ColumnName = 'StatusId' THEN msoqNew.[Description]           
+            WHEN m.ColumnName = 'AccountTypeId' THEN ctNew.CustomerTypeName                      
+            ELSE m.NewValue
+        END AS NewValue
+    FROM merged m
+    LEFT JOIN [dbo].[MasterSalesOrderQuoteStatus] msoqOld WITH(NOLOCK) ON m.ColumnName = 'StatusId' AND TRY_CAST(m.OldValue AS INT) = msoqOld.Id 
+    LEFT JOIN [dbo].[MasterSalesOrderQuoteStatus] msoqNew WITH(NOLOCK) ON m.ColumnName = 'StatusId' AND TRY_CAST(m.NewValue AS INT) = msoqNew.Id    
+    LEFT JOIN [dbo].[CustomerType] ctOld WITH(NOLOCK) ON m.ColumnName = 'AccountTypeId' AND TRY_CAST(m.OldValue AS BIGINT) = ctOld.CustomerTypeId 
+    LEFT JOIN [dbo].[CustomerType] ctNew WITH(NOLOCK) ON m.ColumnName = 'AccountTypeId' AND TRY_CAST(m.NewValue AS BIGINT) = ctNew.CustomerTypeId 
+    WHERE
+         m.ColumnName <> 'SalesOrderQuoteId' and (
+        (m.Action = 'U' AND (
+                (m.OldValue IS NULL AND m.NewValue IS NOT NULL)
+            OR (m.OldValue IS NOT NULL AND m.NewValue IS NULL)
+            OR (m.OldValue <> m.NewValue)
+        ))
+        OR
+        (m.Action = 'I' AND m.NewValue IS NOT NULL)
+        OR
+        (m.Action = 'D' AND m.OldValue IS NOT NULL));
+END;

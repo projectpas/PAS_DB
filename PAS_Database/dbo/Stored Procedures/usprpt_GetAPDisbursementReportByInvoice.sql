@@ -32,7 +32,6 @@ CREATE   PROCEDURE [dbo].[usprpt_GetAPDisbursementReportByInvoice]
 @InvoiceNum VARCHAR(100) = NULL,
 @MasterCompanyId INT,
 @EmployeeId bigint,
-
 @InvoiceDate        DATE = NULL,
 @InvoiceDueDate     DATE = NULL,
 @PaymentDate        DATE = NULL,
@@ -41,7 +40,7 @@ CREATE   PROCEDURE [dbo].[usprpt_GetAPDisbursementReportByInvoice]
 @GlAccountNum       VARCHAR(200) = NULL,
 @PaymentMethod      VARCHAR(50) = NULL,
 @BaseCurrencyAmount DECIMAL(18,2) = NULL,
-
+@CreditTermsName    VARCHAR(50) = NULL,
 @Level1  VARCHAR(MAX) = NULL,
 @Level2  VARCHAR(MAX) = NULL,
 @Level3  VARCHAR(MAX) = NULL,
@@ -56,7 +55,8 @@ CREATE   PROCEDURE [dbo].[usprpt_GetAPDisbursementReportByInvoice]
 @PageNumber INT = 1,
 @PageSize INT = NULL,
 @SortColumn VARCHAR(50)=NULL,
-@SortOrder INT = NULL
+@SortOrder INT = NULL,
+@ViewType  VARCHAR(50) = NULL
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -68,9 +68,9 @@ BEGIN
 	
     SELECT @CurrntEmpTimeZoneDesc = COALESCE(ETZ.[Description], -- Prefer Employee's TimeZone description if available 
     LTZ.[Description] )  -- Fallback to LegalEntity's TimeZone description
-    FROM dbo.Employee E WITH (NOLOCK) LEFT JOIN dbo.TimeZone ETZ WITH (NOLOCK) ON E.TimeZoneId = ETZ.TimeZoneId
-    LEFT JOIN dbo.LegalEntity LE WITH (NOLOCK) ON E.LegalEntityId = LE.LegalEntityId
-    LEFT JOIN dbo.TimeZone LTZ WITH (NOLOCK) ON LE.TimeZoneId = LTZ.TimeZoneId
+    FROM [dbo].[Employee] E WITH (NOLOCK) LEFT JOIN dbo.TimeZone ETZ WITH (NOLOCK) ON E.TimeZoneId = ETZ.TimeZoneId
+    LEFT JOIN [dbo].[LegalEntity] LE WITH (NOLOCK) ON E.LegalEntityId = LE.LegalEntityId
+    LEFT JOIN [dbo].[TimeZone] LTZ WITH (NOLOCK) ON LE.TimeZoneId = LTZ.TimeZoneId
     WHERE E.EmployeeId = @EmployeeId;	
 
 
@@ -91,7 +91,7 @@ BEGIN
 
 
  CREATE TABLE #tmprAPDisbursementReportInvoice
-(
+(   VendorId INT NULL,
     Payee NVARCHAR(200),
     VendorCode NVARCHAR(50),
     InvoiceNum NVARCHAR(100) NULL,
@@ -121,7 +121,7 @@ BEGIN
 
   INSERT INTO #tmprAPDisbursementReportInvoice
     (
-        Payee, VendorCode,
+        VendorId,Payee, VendorCode,
         InvoiceNum, InvoiceDate, PaymentMethod, PaymentReference,
         PaymentDate, InvoiceDueDate, TotalBaseCurrencyAmount,
         BaseCurrency, BaseCurrencyAmount,
@@ -131,7 +131,8 @@ BEGIN
         Level6Id, Level7Id, Level8Id, Level9Id, Level10Id
     )
 
-    SELECT MAX(rtp.VendorName)  AS 'Payee',MAX(VND.VendorCode)  AS 'VendorCode',
+    SELECT   MAX(rtp.VendorId)  AS 'VendorId',
+    MAX(rtp.VendorName)  AS 'Payee',MAX(VND.VendorCode)  AS 'VendorCode',
          CASE 
             	WHEN ISNULL(VPD.ReceivingReconciliationId,0) > 0 THEN RRC.InvoiceNum
             	WHEN ISNULL(VPD.CreditMemoHeaderId,0) > 0 THEN CM.InvoiceNumber
@@ -156,9 +157,8 @@ BEGIN
             SUM(rtp.PaymentMade)                     AS 'BaseCurrencyAmount',
              
             MAX(CONCAT(lebl.BankName, ' - ', lebl.BankAccountNumber))  AS 'BankAccount',
-            MAX( CONCAT(g.AccountCode, ' - ', g.AccountName))      AS 'GLAccountNum',
+            MAX( g.AccountCode)      AS 'GLAccountNum',
             MAX(CT.Name) AS 'CreditTermsName',
-
             MAX(CASE WHEN L1.Code IS NULL AND L1.Description IS NULL THEN NULL ELSE L1.Code END) AS [Level1Id],
             MAX(CASE WHEN L2.Code IS NULL AND L2.Description IS NULL THEN NULL ELSE CONCAT(L2.Code, ' - ', L2.Description) END) AS [Level2Id],
             MAX(CASE WHEN L3.Code IS NULL AND L3.Description IS NULL THEN NULL ELSE CONCAT(L3.Code, ' - ', L3.Description) END) AS [Level3Id],
@@ -172,10 +172,7 @@ BEGIN
 
 
             FROM [dbo].[VendorReadyToPayDetails] rtp WITH(NOLOCK)
-
-            INNER JOIN [dbo].[VendorPaymentDetails] vpd WITH(NOLOCK)
-            ON vpd.VendorPaymentDetailsId = rtp.VendorPaymentDetailsId
-
+            INNER JOIN [dbo].[VendorPaymentDetails] vpd WITH(NOLOCK)  ON vpd.VendorPaymentDetailsId = rtp.VendorPaymentDetailsId
             LEFT JOIN [dbo].[ReceivingReconciliationHeader] RRC WITH(NOLOCK) ON VPD.[ReceivingReconciliationId] = RRC.[ReceivingReconciliationId]	
 			LEFT JOIN [dbo].[CreditMemo] CM WITH(NOLOCK) ON VPD.CreditMemoHeaderId = CM.CreditMemoHeaderId
 			LEFT JOIN [dbo].[NonPOInvoiceHeader] NPH  WITH(NOLOCK) ON VPD.NonPOInvoiceId = NPH.NonPOInvoiceId
@@ -234,7 +231,7 @@ BEGIN
             )
             AND (@InvoiceDueDate IS NULL OR CAST(rtp.DueDate AS DATE) = CAST(@InvoiceDueDate AS DATE))
             AND (@PaymentDate IS NULL OR CAST(rtp.CheckDate AS DATE) = CAST(@PaymentDate AS DATE))
-
+            AND (@CreditTermsName IS NULL OR CT.Name LIKE '%' + @CreditTermsName + '%')
             AND ( @Level1 IS NULL  OR ess.Level1Id IN (SELECT CAST(value AS INT) FROM STRING_SPLIT(@Level1, ',')))
             AND ( @Level2 IS NULL OR ess.Level2Id IN (SELECT CAST(value AS INT) FROM STRING_SPLIT(@Level2, ',')))
             AND ( @Level3 IS NULL  OR ess.Level3Id IN (SELECT CAST(value AS INT) FROM STRING_SPLIT(@Level3, ',')))
@@ -293,7 +290,9 @@ BEGIN
             CASE WHEN (@SortOrder = 1  AND @SortColumn = 'bankAccount')        THEN BankAccount END ASC,
             CASE WHEN (@SortOrder = -1 AND @SortColumn = 'bankAccount')        THEN BankAccount END DESC,
             CASE WHEN (@SortOrder = 1  AND @SortColumn = 'glAccountNum')       THEN GLAccountNum END ASC,
-            CASE WHEN (@SortOrder = -1 AND @SortColumn = 'glAccountNum')       THEN GLAccountNum END DESC
+            CASE WHEN (@SortOrder = -1 AND @SortColumn = 'glAccountNum')       THEN GLAccountNum END DESC,
+            CASE WHEN (@SortOrder = 1  AND @SortColumn = 'creditTermsName')    THEN CreditTermsName END ASC,
+            CASE WHEN (@SortOrder = -1 AND @SortColumn = 'creditTermsName')    THEN CreditTermsName END DESC
 
     OFFSET 
     CASE 

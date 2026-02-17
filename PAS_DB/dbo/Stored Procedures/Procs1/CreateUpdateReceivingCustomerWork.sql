@@ -20,6 +20,7 @@
 	5	 16-JUL-2025   Moin Bloch   		Added IsBatchStock,BatchNumber Flag for Stockline Batch 
 	6	 20-JAN-2026   Priyansh Patel  		Added CSN, TSN, CSO, TSO fields
 	7	 21-JAN-2026   Vishal Suthar  		Added RemovalReasonsMemo in Update ReceivingCustomerWork table
+	8	 13-FEB-2026   BHARGAV SALIYA  		Added [CustReqCertTypeId], [CustReqCertType] fields IN update ReceivingCustomerWork table
 
  EXECUTE [USP_GetWorkOrderPartsView] 1
 **************************************************************/ 
@@ -915,6 +916,8 @@ BEGIN
 						  ,RC.[CSO] = TR.[CSO]
 						  ,RC.[TSO] = TR.[TSO]
 						  ,RC.RemovalReasonsMemo = TR.RemovalReasonsMemo
+						  ,RC.[CustReqCertTypeId] = TR.[CustReqCertTypeId]
+						  ,RC.[CustReqCertType] = TR.[CustReqCertType]
 						 FROM [dbo].[ReceivingCustomerWork] RC WITH(NOLOCK) INNER JOIN #tmprReceiveCustomer TR ON RC.[ReceivingCustomerWorkId] = TR.[ReceivingCustomerWorkId]
 					 WHERE RC.[ReceivingCustomerWorkId] = @ReceivingCustomerWorkId;
 

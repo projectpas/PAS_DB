@@ -4564,6 +4564,8 @@
     <Build Include="dbo\Tables\PersistedGrants.sql" />
     <Build Include="dbo\Stored Procedures\USP_WIPReportsReconciliation.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdateNonPOInvoicePartMemo.sql" />
+    <Build Include="dbo\Stored Procedures\usprpt_GetGoodsReceiptNotInvoicedReport_SSRS.sql" />
+    <Build Include="dbo\Stored Procedures\usprpt_GetGoodsReceiptNotInvoicedReport.sql" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Snapshots\PAS_DB_20220518_07-53-10.dacpac" />

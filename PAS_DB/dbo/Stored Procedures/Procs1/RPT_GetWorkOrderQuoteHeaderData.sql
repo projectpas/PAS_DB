@@ -22,6 +22,7 @@
 	8	 03/31/2025   Vishal Suthar     Added conditional Notes for all the companies except MTI
 	9	 01/05/2025   AMIT GHEDIYA      Get Email & Phone from Contact (Before from cust general info.).
 	10	 02/12/2025   AMIT GHEDIYA      Get All Added charge type in notes (PN-15364)
+	11	 02/18/2025   AMIT GHEDIYA      Remove MTI static value
 
 -- EXEC [RPT_GetWorkOrderQuoteHeaderData] 7011
 **************************************************************/  
@@ -39,9 +40,11 @@ BEGIN
 		--Get All Added charge type in WOQ notes.
 		DECLARE @ChargeType VARCHAR(MAX) = NULL,
 				@MasterCompanyId INT,
-				@NeoMasterCompanyId INT;
+				@NeoMasterCompanyId INT,
+				@MTIMasterCompanyId INT;
 
 		SELECT @NeoMasterCompanyId = [MasterCompanyId] FROM [dbo].[MasterCompany] WITH(NOLOCK) WHERE [MasterCompanyCode] = 'NEO';
+		SELECT @MTIMasterCompanyId = [MasterCompanyId] FROM [dbo].[MasterCompany] WITH(NOLOCK) WHERE [MasterCompanyCode] = 'MTI';
 
 		SELECT @MasterCompanyId = [MasterCompanyId] FROM [dbo].[WorkOrderQuoteDetails] WQD WITH(NOLOCK) WHERE WQD.[WorkOrderQuoteId] = @WorkOrderQuoteId;
 
@@ -127,7 +130,7 @@ BEGIN
 			--	END
 			--END AS 'WONotes',
 			CASE
-				WHEN woq.MasterCompanyId = 11 THEN ''
+				WHEN woq.MasterCompanyId = @MTIMasterCompanyId THEN ''
 				WHEN woq.Notes IS NULL OR woq.Notes = '' THEN ISNULL(@ChargeType, '')
 				WHEN LEN(woq.Notes) < 750 THEN woq.Notes + '  ' + ISNULL(@ChargeType, '')
 				ELSE LEFT(woq.Notes, 750) + '...'

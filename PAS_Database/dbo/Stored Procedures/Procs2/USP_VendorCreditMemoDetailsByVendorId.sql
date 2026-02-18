@@ -19,6 +19,7 @@
 	5    08/04/2023   Devendra Shekh	added result temp table and conditon for amount
 	6    08/04/2023   AMIT GHEDIYA		modify for get MJ is not payed in vendor payment.
 	7    26/11/2025   Moin Bloch		Removed Manual Journal List
+	8    18/02/2026   AMIT GHEDIYA		Removed CM from list when used (PN-15510)
      
 -- EXEC USP_VendorCreditMemoDetailsByVendorId 1,1287,0 
 **************************************************************/
@@ -106,7 +107,7 @@ BEGIN
 		--	   MJH.ManualJournalStatusId,MJS.[Name],MJH.MasterCompanyId,MJD.ReferenceId, 
 		--	   VCMM.VendorPaymentDetailsId,VCMM.VendorCreditMemoMappingId
 			   )
-			   SELECT * FROM Result WHERE Amount <> 0
+			   SELECT * FROM Result WHERE Amount <> 0 AND IsAlreadyUsed = 0
 	
  END TRY      
   BEGIN CATCH        

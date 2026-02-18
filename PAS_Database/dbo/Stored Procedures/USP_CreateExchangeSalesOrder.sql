@@ -19,12 +19,14 @@
  ** --    --------         -------              --------------------------------            
     1     08/04/2025      Ekta Chandegra        Created  
 	2     09/10/2025      Amit Ghediya			Update Balance due condition to nullable  
-
+	3    16/02/2026       Ayushi Patel          Added IsVendor flag to support Vendor-based Exchange Sales Order creation.
 exec [dbo].[USP_CreateExchangeSalesOrder] @TypeId=1,@OpenDate='2025-08-04 00:00:00',@CustomerId=44,
 @CustomerReference=N'test',@SalesPersonId=0,@CustomerSeviceRepId=0,@EmployeeId=237,@Memo=N'',@StatusId=1,
 @StatusChangeDate='2025-08-04 14:06:11.010',@Notes=N'',@ManagementStructureId=1,@CreatedBy=N'roza diaz',
 @MasterCompanyId=1,@ContractReference=N'',@PercentId=0,@Days=0,@NetDays=0,@FunctionalCurrencyId=1,
 @ReportCurrencyId=1,@ForeignExchangeRate=1.000000
+
+exec [dbo].[USP_CreateExchangeSalesOrder] @TypeId=1,@OpenDate='2026-02-16 00:00:00',@CustomerId=5477,@CustomerReference=N'czech',@SalesPersonId=0,@CustomerSeviceRepId=0,@EmployeeId=2,@Memo=N'',@StatusId=1,@StatusChangeDate='2026-02-16 11:49:16.330',@Notes=N'',@ManagementStructureId=1,@CreatedBy=N'ADMIN User',@MasterCompanyId=1,@ContractReference=N'ANIYAH VEUM',@FunctionalCurrencyId=3,@ReportCurrencyId=3,@ForeignExchangeRate=1.000000,@IsVendor=1
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[USP_CreateExchangeSalesOrder]
 @TypeId INT,
@@ -44,7 +46,8 @@ CREATE   PROCEDURE [dbo].[USP_CreateExchangeSalesOrder]
 @ContractReference VARCHAR(100),
 @FunctionalCurrencyId INT,
 @ReportCurrencyId INT,
-@ForeignExchangeRate DECIMAL(18, 2)
+@ForeignExchangeRate DECIMAL(18, 2),
+@IsVendor BIT
 AS
 BEGIN 
 	SET NOCOUNT ON;
@@ -98,35 +101,52 @@ BEGIN
 				DECLARE @ExchangeSalesOrderNumber NVARCHAR(50);
 				SET @ExchangeSalesOrderNumber = (SELECT * FROM [dbo].[udfGenerateCodeNumber](@CurrentNumber, (SELECT CodePrefix FROM #esoCodeData), (SELECT CodeSufix FROM #esoCodeData)));
 				PRINT @ExchangeSalesOrderNumber;
+				
 			END
 			ELSE
 			BEGIN
 				-- Generate ExchangeSalesOrderNumber without prefix/suffix
 					SET @ExchangeSalesOrderNumber = (SELECT * FROM [dbo].[udfGenerateCodeNumberWithOutDash](0, '', ''));
 					PRINT @ExchangeSalesOrderNumber;
+					
 			END
 
 			DECLARE @AccountTypeId INT,@RestrictPMA BIT, @RestrictDER BIT, @CustomerName varchar(100), @CustomerCode varchar(100), @AccountTypeName varchar(256);
-			SELECT @AccountTypeId = C.[CustomerTypeId],
-			@RestrictPMA = C.[RestrictPMA],
-			@RestrictDER = C.[RestrictDER],
-			@CustomerName = C.[Name],
-			@CustomerCode = C.[CustomerCode],
-			@AccountTypeName = CT.[CustomerTypeName]
-			FROM [dbo].[Customer] C WITH(NOLOCK) 
-			LEFT JOIN [dbo].[CustomerType] CT WITH(NOLOCK) ON CT.CustomerTypeId = C.CustomerTypeId
-			WHERE CustomerId = @CustomerId;
-			PRINT @AccountTypeId;			
-			PRINT @RestrictPMA;			
-			PRINT @RestrictDER;			
-			PRINT @CustomerName;			
-			PRINT @CustomerCode;			
-			PRINT @AccountTypeName;
+			IF (@IsVendor=1)
+				Begin 
+				SELECT @AccountTypeId = null,
+				@RestrictPMA = 0,
+				@RestrictDER = 0,
+				@CustomerName = V.[VendorName],
+				@CustomerCode = V.[VendorCode],
+				@AccountTypeName = null
+				FROM [dbo].[Vendor] V WITH(NOLOCK) 
+				WHERE VendorId = @CustomerId;
+			END
+			ELSE
+			BEGIN
+				SELECT @AccountTypeId = C.[CustomerTypeId],
+				@RestrictPMA = C.[RestrictPMA],
+				@RestrictDER = C.[RestrictDER],
+				@CustomerName = C.[Name],
+				@CustomerCode = C.[CustomerCode],
+				@AccountTypeName = CT.[CustomerTypeName]
+				FROM [dbo].[Customer] C WITH(NOLOCK) 
+				LEFT JOIN [dbo].[CustomerType] CT WITH(NOLOCK) ON CT.CustomerTypeId = C.CustomerTypeId
+				WHERE CustomerId = @CustomerId;
+			END
 
 			DECLARE @CustomerContactId BIGINT;
-			SELECT TOP 1 @CustomerContactId = CustomerContactId FROM [dbo].[CustomerContact] WITH(NOLOCK) 
-			WHERE CustomerId = @CustomerId AND IsDefaultContact = 1;
-
+			IF (@IsVendor=1)
+				Begin 
+				SELECT TOP 1 @CustomerContactId = VendorContactId FROM [dbo].[VendorContact] WITH(NOLOCK) 
+				WHERE VendorId = @CustomerId AND IsDefaultContact = 1;
+				end
+			ELSE
+				Begin
+				SELECT TOP 1 @CustomerContactId = CustomerContactId FROM [dbo].[CustomerContact] WITH(NOLOCK) 
+				WHERE CustomerId = @CustomerId AND IsDefaultContact = 1;
+				end
 			DECLARE @TypeName varchar(50);
 			SELECT TOP 1 @TypeName = [Name]
 			FROM [dbo].[ExchangeType] WITH(NOLOCK) WHERE [Id] = @TypeId; 
@@ -157,7 +177,7 @@ BEGIN
 			LEFT JOIN [dbo].[CreditTerms] CT WITH(NOLOCK) ON CT.CreditTermsId = CF.CreditTermsId
 			WHERE CF.CustomerId = @CustomerId
 			ORDER BY CCTH.UpdatedDate DESC;
-
+			
 		INSERT INTO [dbo].[ExchangeSalesOrder]
 		(
 			   [Version]
@@ -292,7 +312,7 @@ BEGIN
 			,NULL
 			,0
 			,0
-			,NULL
+			,@IsVendor
 			,NULL
 			,NULL
 			,NULL
@@ -306,7 +326,7 @@ BEGIN
 			,@ReportCurrencyId
 			,@ForeignExchangeRate
 		);
-
+		
 		SET @ExchangeSalesOrderId = SCOPE_IDENTITY();
 
 		DECLARE @ModuleID INT;
@@ -316,14 +336,21 @@ BEGIN
 		PRINT @ModuleID;
 
 		SET @ReferenceID = @ExchangeSalesOrderId;
-
+		
         EXEC [dbo].[PROCAddExchangeMSData] @ReferenceId,@ManagementStructureId,@MasterCompanyId, @CreatedBy, @CreatedBy, @ModuleID, 1;
-
+		
 		SELECT @ExchangeSalesOrderId AS ExchangeSalesOrderId;
 
 	COMMIT TRANSACTION	
 	END TRY
     BEGIN CATCH
+	SELECT
+    ERROR_NUMBER() AS ErrorNumber,
+    ERROR_STATE() AS ErrorState,
+    ERROR_SEVERITY() AS ErrorSeverity,
+    ERROR_PROCEDURE() AS ErrorProcedure,
+    ERROR_LINE() AS ErrorLine,
+    ERROR_MESSAGE() AS ErrorMessage;
 	 DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name() 
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------    
             , @AdhocComments     VARCHAR(150)    = 'USP_CreateExchangeSalesOrder'     

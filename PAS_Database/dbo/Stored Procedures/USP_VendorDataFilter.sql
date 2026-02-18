@@ -18,7 +18,7 @@
  ** PR   Date         Author		        Change Description            
  ** --   --------     -------		    --------------------------------          
     1    09/05/2025  Ayushi Patel	    Created
-     
+    2    13/02/2026  Ayushi Patel       Added duplicate VendorName logic to check across full table and return DisplayName with VendorCode when duplicates exist.
 -- EXEC [USP_VendorDataFilter] null , 0 , '0' , 1
 ********************************************************************************************/
 CREATE   PROCEDURE [dbo].[USP_VendorDataFilter]
@@ -60,13 +60,38 @@ BEGIN
               AND CAST(VendorId AS NVARCHAR) IN (
                   SELECT value FROM STRING_SPLIT(@IdList, ',')
               )
-        )
-        SELECT * FROM (
+        ),
+        Combined AS (
             SELECT * FROM FilteredVendors
             UNION
             SELECT * FROM IdBasedVendors
-        ) AS Combined
-        ORDER BY VendorName;
+        ),
+
+        NameCounts AS (
+            SELECT 
+                VendorName,
+                COUNT(*) AS NameCount
+            FROM dbo.Vendor WITH (NOLOCK)
+            WHERE ISNULL(IsActive,0) = 1 
+              AND ISNULL(IsDeleted,0) = 0
+              AND MasterCompanyId = @MasterCompanyId
+            GROUP BY VendorName
+        )
+
+        SELECT 
+            C.VendorId,
+            C.VendorName,
+            C.VendorCode,
+            C.IsVendorOnHold,
+            CASE 
+                WHEN NC.NameCount > 1 
+                    THEN C.VendorName + ' - ' + C.VendorCode
+                ELSE C.VendorName
+            END AS DisplayName
+        FROM Combined C
+        LEFT JOIN NameCounts NC 
+            ON C.VendorName = NC.VendorName
+        ORDER BY C.VendorName;
     END TRY
     BEGIN CATCH
    DECLARE @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name()
@@ -77,6 +102,7 @@ BEGIN
 -----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------  
             exec spLogException   
                     @DatabaseName   = @DatabaseName  
+
                     , @AdhocComments   = @AdhocComments  
                     , @ProcedureParameters  = @ProcedureParameters  
                     , @ApplicationName   =  @ApplicationName  

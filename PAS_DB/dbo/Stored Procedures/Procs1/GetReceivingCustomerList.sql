@@ -224,7 +224,7 @@ BEGIN
 								)
 								OR (
 									-- PiecePart
-									@PiecePart = 1 AND ISNULL(RC.IsPiecePart, 0) = 1 and ISNULL(SL.QuantityOnHand,0) <> 0
+									@PiecePart = 1 AND ISNULL(RC.IsPiecePart, 0) = 1 and ISNULL(SL.QuantityOnHand,0) > 0
 								)
 								OR (
 									-- RepairManagement

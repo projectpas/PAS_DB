@@ -141,7 +141,7 @@ CREATE TABLE #tmprAPDisbursementReport
         Level6Id, Level7Id, Level8Id, Level9Id, Level10Id
     )
   SELECT
-            MAX(rtp.VendorName)  AS 'Payee',
+            MAX(VND.VendorName)  AS 'Payee',
             MAX(VND.VendorCode)  AS 'VendorCode',
                      MAX(
     CASE 
@@ -168,24 +168,25 @@ CREATE TABLE #tmprAPDisbursementReport
             MAX(CONCAT(lebl.BankName, ' - ', lebl.BankAccountNumber)) AS 'BankAccount',
             MAX(g.AccountCode)      AS 'GLAccountNum',
              MAX(CT.Name) AS 'CreditTermsName',
-           MAX(CASE WHEN L1.Code IS NULL AND L1.Description IS NULL THEN NULL ELSE L1.Code END) AS [Level1Id],
-            MAX(CASE WHEN L2.Code IS NULL AND L2.Description IS NULL THEN NULL ELSE CONCAT(L2.Code, ' - ', L2.Description) END) AS [Level2Id],
-            MAX(CASE WHEN L3.Code IS NULL AND L3.Description IS NULL THEN NULL ELSE CONCAT(L3.Code, ' - ', L3.Description) END) AS [Level3Id],
-            MAX(CASE WHEN L4.Code IS NULL AND L4.Description IS NULL THEN NULL ELSE CONCAT(L4.Code, ' - ', L4.Description) END) AS [Level4Id],
-            MAX(CASE WHEN L5.Code IS NULL AND L5.Description IS NULL THEN NULL ELSE CONCAT(L5.Code, ' - ', L5.Description) END) AS [Level5Id],
-            MAX(CASE WHEN L6.Code IS NULL AND L6.Description IS NULL THEN NULL ELSE CONCAT(L6.Code, ' - ', L6.Description) END) AS [Level6Id],
-            MAX(CASE WHEN L7.Code IS NULL AND L7.Description IS NULL THEN NULL ELSE CONCAT(L7.Code, ' - ', L7.Description) END) AS [Level7Id],
-            MAX(CASE WHEN L8.Code IS NULL AND L8.Description IS NULL THEN NULL ELSE CONCAT(L8.Code, ' - ', L8.Description) END) AS [Level8Id],
-            MAX(CASE WHEN L9.Code IS NULL AND L9.Description IS NULL THEN NULL ELSE CONCAT(L9.Code, ' - ', L9.Description) END) AS [Level9Id],
-            MAX(CASE WHEN L10.Code IS NULL AND L10.Description IS NULL THEN NULL ELSE CONCAT(L10.Code, ' - ', L10.Description) END) AS [Level10Id]
+            MAX(L1.Code)  AS [Level1Id],
+            MAX(L2.Code)  AS [Level2Id],
+            MAX(L3.Code)  AS [Level3Id],
+            MAX(L4.Code)  AS [Level4Id],
+            MAX(L5.Code)  AS [Level5Id],
+            MAX(L6.Code)  AS [Level6Id],
+            MAX(L7.Code)  AS [Level7Id],
+            MAX(L8.Code)  AS [Level8Id],
+            MAX(L9.Code)  AS [Level9Id],
+            MAX(L10.Code) AS [Level10Id]
             FROM [dbo].[VendorReadyToPayDetails] rtp WITH(NOLOCK)
             INNER JOIN [dbo].[VendorPaymentDetails] vpd WITH(NOLOCK) ON vpd.VendorPaymentDetailsId = rtp.VendorPaymentDetailsId
+             JOIN [dbo].[Vendor] VND WITH(NOLOCK) ON VND.VendorId = rtp.VendorId 
             LEFT JOIN [dbo].[ReceivingReconciliationHeader] RRC WITH(NOLOCK) ON VPD.[ReceivingReconciliationId] = RRC.[ReceivingReconciliationId]	
 			LEFT JOIN [dbo].[CreditMemo] CM WITH(NOLOCK) ON VPD.CreditMemoHeaderId = CM.CreditMemoHeaderId
 			LEFT JOIN [dbo].[NonPOInvoiceHeader] NPH  WITH(NOLOCK) ON VPD.NonPOInvoiceId = NPH.NonPOInvoiceId
 			LEFT JOIN [dbo].[CustomerCreditPaymentDetail] CCPD WITH(NOLOCK) ON VPD.CustomerCreditPaymentDetailId = CCPD.CustomerCreditPaymentDetailId	
 			LEFT JOIN [dbo].[VendorProformaInvoiceHeader] VNPH WITH(NOLOCK) ON VPD.VendorProformaInvoiceId = VNPH.VendorProformaInvoiceId 
-            LEFT JOIN [dbo].[Vendor] VND WITH(NOLOCK) ON VND.VendorId = rtp.VendorId 
+            
             LEFT JOIN [dbo].[VendorPaymentMethod] vpym WITH(NOLOCK) ON vpym.VendorPaymentMethodId = rtp.PaymentMethodId
             LEFT JOIN [dbo].[VendorReadyToPayHeader] vrtph WITH(NOLOCK) ON vrtph.ReadyToPayId = rtp.ReadyToPayId AND vrtph.MasterCompanyId = rtp.MasterCompanyId
             LEFT JOIN [dbo].[EntityStructureSetup] ess WITH(NOLOCK) ON ess.EntityStructureId = vrtph.ManagementStructureId AND ess.MasterCompanyId = rtp.MasterCompanyId

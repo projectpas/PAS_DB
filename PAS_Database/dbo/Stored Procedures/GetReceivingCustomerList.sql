@@ -32,6 +32,7 @@
 	15   16/04/2025   ABHISHEK JIRAWLA  Updated (Added Repair Management Filter)
 	16   13/05/2025   Hemant Saliya		Resolved Performance issue for Production
   	17   16/07/2025   Moin Bloch	    Added IsBatchStock And Batch Number
+  	18   17/02/2026   Bhargav Saliya	Added a condition to ensure that Piece Parts do not display records when the [QuantityOnHand] is 0.
  EXECUTE [GetRecevingCustomerList] 100, 1, null, -1, 1, '', null,null,null,null,null,null,null,null,null,null,null,null,null,null,1,null,null,null,null,0,1,1 
 **************************************************************/ 
 
@@ -223,7 +224,7 @@ BEGIN
 								)
 								OR (
 									-- PiecePart
-									@PiecePart = 1 AND ISNULL(RC.IsPiecePart, 0) = 1
+									@PiecePart = 1 AND ISNULL(RC.IsPiecePart, 0) = 1 and ISNULL(SL.QuantityOnHand,0) > 0
 								)
 								OR (
 									-- RepairManagement

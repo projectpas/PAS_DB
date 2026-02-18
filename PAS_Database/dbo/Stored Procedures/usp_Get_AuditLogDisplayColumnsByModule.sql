@@ -1,5 +1,4 @@
-﻿
-/*********************             
+﻿/*********************             
  ** File:        [dbo].[usp_Get_AuditLogDisplayColumnsByModule]        
  ** Author:      AYUSHI PATEL    
  ** Description: Returns ColumnName + DisplayName for a ModuleId  
@@ -17,6 +16,9 @@
  ** S NO   Date           Author              Change Description              
  ** --     --------       -------------       --------------------------------            
     1      18-DEC-2025    AYUSHI PATEL        Created  
+    2      16-FEB-2026    DIVYESH KATHIRIYA   Set Table Name for SalesOrderQuote.
+
+    EXEC usp_Get_AuditLogDisplayColumnsByModule @ModuleId=7
 **********************/
 
 CREATE PROC [dbo].[usp_Get_AuditLogDisplayColumnsByModule]
@@ -29,22 +31,30 @@ BEGIN
 
     SELECT @TableName = ModuleName 
     FROM dbo.Module WITH (NOLOCK)
-    WHERE ModuleId = @ModuleId;
+    WHERE ModuleId = @ModuleId;  
+
+    IF(@TableName = 'SalesQuote')
+    BEGIN
+        SET @TableName = 'SalesOrderQuote';
+    END 
 
     IF @TableName IS NULL
     BEGIN
         SELECT TOP 0 
             ColumnName,
-            DisplayName
+            DisplayName,
+            SeqNo
         FROM dbo.AuditLogDisplayColumns;
         RETURN;
     END
 
     SELECT 
         ColumnName,
-        DisplayName
+        DisplayName,
+        SeqNo
     FROM dbo.AuditLogDisplayColumns WITH (NOLOCK)
     WHERE TableName = @TableName 
+    ORDER BY SeqNo;
 
 END TRY      
   BEGIN CATCH        

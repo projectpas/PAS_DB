@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [USP_CreateWorkOrder]           
  ** Author:   HEMANT SALIYA
  ** Description: This stored procedure is used to Create Work Order Quote
@@ -25,9 +24,13 @@
 	11   29/11/2025   Moin Bloch        Added TearDownTypes Removeal Reason If Not Exists
 	12   13/11/2025   Moin Bloch        Removed TearDownTypes Condition For Removeal Reason If Not Exists 
 	13	 20/01/2026   Priyansh Patel  	Added CSN, TSN, CSO, TSO fields from receiving customer
+	14	 30/01/2026   Moin Bloch     	Added IncomingPartNumber
+	15   10/02/2026   Moin Bloch        Added Accounting Entry For TearDown Work Order PN-15331
+	16   12/02/2026   Moin Bloch        Added Stockline Issue Entry For TearDown Work Order PN-15435
+	
 --   EXEC [USP_CreateWorkOrder] 
 **************************************************************/
-CREATE    PROCEDURE [dbo].[USP_CreateWorkOrder]
+CREATE     PROCEDURE [dbo].[USP_CreateWorkOrder]
 @WorkOrderId BIGINT = NULL,
 @WorkOrderNum VARCHAR(30) = NULL,
 @IsSinglePN BIT = NULL,
@@ -94,14 +97,13 @@ BEGIN
 	DECLARE @CustomerRMAHeaderManagementStructureModule INT,@OpenRMAStatus INT,@CustomerRMAItemReturnedStatus INT
 	DECLARE @CurrentNumber AS BIGINT,@TravelerCodeTypeId BIGINT = (SELECT  [CodeTypeId] FROM [dbo].[CodeTypes] WITH (NOLOCK) WHERE [CodeType] = 'TravelerId')
 	DECLARE @TravelerName AS varchar(100) = 0,@WorkOrderScopeId BIGINT = NULL, @EnforceMpnPickTicketConfirmation BIT; 
-	DECLARE @SecondarySalesPersonId BIGINT = NULL,@SalesAgentID BIGINT = NULL,@CommonTeardownTypeId BIGINT = NULL
-	
+	DECLARE @SecondarySalesPersonId BIGINT = NULL,@SalesAgentID BIGINT = NULL,@CommonTeardownTypeId BIGINT = NULL, @StocklineHistoryReserveActionEnum INT = 0, @StocklineHistoryIssueActionEnum INT = 0
+
 	DECLARE @CSN VARCHAR(50) = NULL,@TSN VARCHAR(50) = NULL,@CSO VARCHAR(50) = NULL, @TSO VARCHAR(50) = NULL;
 
 	-- From Receiving Customer 
 	SELECT @CSN = [CSN], @TSN = [TSN], @CSO = [CSO], @TSO = [TSO] FROM [dbo].[ReceivingCustomerWork] WITH (NOLOCK) WHERE [ReceivingCustomerWorkId] = @ReceivingCustomerWorkId;
 	
-
 	-- Work Order Type
 	SELECT @Customer = [Id] FROM [dbo].[WorkOrderType] WITH(NOLOCK) WHERE [Description]='Customer';
 	SELECT @Internal = [Id] FROM [dbo].[WorkOrderType] WITH(NOLOCK) WHERE [Description]='Internal';
@@ -116,7 +118,13 @@ BEGIN
 	SELECT @RMANumberCodePrefix = [CodeTypeId] FROM [dbo].[CodeTypes] WITH(NOLOCK) WHERE [CodeType]='RMANumber';
 	
 	-- Modules
-	SELECT @WorkOrderModuleID = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName]='WorkOrder';
+	SELECT @WorkOrderModuleID = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName]='WorkOrder';	
+
+	-- STOCKLINE RESERVE ENUM			
+	SELECT @StocklineHistoryReserveActionEnum = [ActionId] FROM [dbo].[StklineHistory_Action] WITH(NOLOCK) WHERE [Type]='Reserve';
+					
+	-- STOCKLINE ISSUE ENUM						
+	SELECT @StocklineHistoryIssueActionEnum = [ActionId] FROM [dbo].[StklineHistory_Action] WITH(NOLOCK) WHERE [Type]='Issue';
 
 	-- Management Structure Module
 	SELECT @StocklineManagementStructureModule = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName]='Stockline';
@@ -500,7 +508,7 @@ BEGIN
 		   [Level4],[AssignDate],[ReceivingCustomerWorkId],[ExpertiseId],[RevisedItemmasterid],[RevisedPartNumber],[RevisedPartDescription],[IsTraveler],[AllowInvoiceBeforeShipping],
 		   [WOFPrintDate],[CurrentSerialNumber],[StocklineCost],[TendorStocklineCost],[RepairOrderId],[RONumber],[RevisedSerialNumber],[IsROCreated],[PartNumber],[PartDescription],
 		   [WorkOrderStatus],[Priority],[WorkOrderStage],[ManufacturerName],[TechName],[EmployeeStation],[PublicationNo],[SerialNumber],[MasterPartId],Notes,
-		   @CSN,@TSN,@CSO,@TSO FROM @tbl_WorkOrderPartNumberType 
+		   @CSN,@TSN,@CSO,@TSO FROM @tbl_WorkOrderPartNumberType
 
 	SELECT @TotalRecord = COUNT(*), @MinId = MIN([PKID]) FROM #tmprCreateWorkOrderPartNumber    
 
@@ -608,7 +616,7 @@ BEGIN
 				[Level1],[Level2],[Level3],[Level4],[AssignDate],[ReceivingCustomerWorkId],[ExpertiseId],[RevisedItemmasterid],[RevisedPartNumber],[RevisedPartDescription],[IsTraveler],
 				[AllowInvoiceBeforeShipping],[WOFPrintDate],[CurrentSerialNumber],[StocklineCost],[TendorStocklineCost],[RepairOrderId],[RONumber],[RevisedSerialNumber],[IsROCreated],
 				[PartNumber],[PartDescription],[WorkOrderStatus],[Priority],[WorkOrderStage],[ManufacturerName],[TechName],[EmployeeStation],[PublicationNo],TravelerNumber,Notes,
-				[CSN],[TSN],[CSO],[TSO])
+				[CSN],[TSN],[CSO],[TSO],[IncomingPartNumber])
 		 SELECT [WorkOrderId],[WorkOrderScopeId],[EstimatedShipDate],[CustomerRequestDate],[PromisedDate],[EstimatedCompletionDate],[NTE],[Quantity],
 	            [StockLineId],[CMMIds],[WorkflowId],[WorkOrderStageId],[WorkOrderStatusId],[WorkOrderPriorityId],[IsPMA],[IsDER],[TechStationId],[TATDaysStandard],[MasterCompanyId],
 				[CreatedBy],[UpdatedBy],@CreatedDate,@UpdatedDate,[IsActive],[IsDeleted],[ItemMasterId],[TechnicianId],[ConditionId],[TATDaysCurrent],[RevisedPartId],[ManagementStructureId],
@@ -616,7 +624,7 @@ BEGIN
 				[Level1],[Level2],[Level3],[Level4],[AssignDate],[ReceivingCustomerWorkId],[ExpertiseId],[RevisedItemmasterid],[RevisedPartNumber],[RevisedPartDescription],[IsTraveler],
 				[AllowInvoiceBeforeShipping],[WOFPrintDate],[CurrentSerialNumber],[StocklineCost],[TendorStocklineCost],[RepairOrderId],[RONumber],[RevisedSerialNumber],[IsROCreated],
 				[PartNumber],[PartDescription],[WorkOrderStatus],[Priority],[WorkOrderStage],[ManufacturerName],[TechName],[EmployeeStation],[PublicationNo],@TravelerName,Notes,
-				[CSN],[TSN],[CSO],[TSO]
+				[CSN],[TSN],[CSO],[TSO],[PartNumber]
 		   FROM #tmprCreateWorkOrderPartNumber 
 		  WHERE [PKID] = @MinId
 
@@ -662,7 +670,7 @@ BEGIN
 		DECLARE @MasterPartId BIGINT = NULL,@QuantityAvailable INT=0,@QuantityReserved INT=0,@InvoiceId INT=0,@ValidDate DATETIME2(7)=NULL,@ValidDays INT=0,@WorkOrderStageId BIGINT=NULL
 		DECLARE @PartStockLineId BIGINT = NULL,@WorkOrderPartNumberId BIGINT = NULL,@RMANumber VARCHAR(50)=NULL,@MSDetailsId BIGINT=NULL
 		DECLARE @WorkScopeDescription VARCHAR(500)=NULL,@ReceiverNumber VARCHAR(50),@PartSerialNumber VARCHAR(100)=''
-		DECLARE @PartReceivingCustomerWorkId BIGINT = NULL,@PartRMAHeaderId BIGINT = NULL
+		DECLARE @PartReceivingCustomerWorkId BIGINT = NULL,@PartRMAHeaderId BIGINT = NULL,@QuantityOnHand INT=0,@QuantityIssued INT=0
 		DECLARE @InvoiceNo VARCHAR(256) = NULL,@InvoiceDate DATETIME2(7)=NULL,@RMACustomerId BIGINT = NULL,@RMACustomerName VARCHAR(100)=NULL,@RMACustomerCode VARCHAR(100)=NULL
 		DECLARE @ContactInfo VARCHAR(150)=NULL,@RMACustomerContactId BIGINT=NULL,@RequestedId BIGINT = NULL,@Requestedby VARCHAR(50)=NULL,@ApprovedbyId BIGINT=NULL
 		DECLARE @Approvedby VARCHAR(50)=NULL,@ApprovedDate DATETIME2(7)=NULL,@ReturnDate DATETIME2(7)=NULL,@ManagementStructureId BIGINT=NULL,@ReferenceId BIGINT=NULL,@Result BIGINT=0
@@ -691,7 +699,7 @@ BEGIN
 		BEGIN
 			-- Updating Work Order Id in Stockline Table
 			
-			SELECT @QuantityAvailable = ISNULL([QuantityAvailable],0),@QuantityReserved = [QuantityReserved] FROM [dbo].[StockLine] WITH(NOLOCK) WHERE [StockLineId] = @PartStockLineId;
+			SELECT @QuantityAvailable = ISNULL([QuantityAvailable],0),@QuantityReserved = [QuantityReserved],@QuantityOnHand=[QuantityOnHand],@QuantityIssued=[QuantityIssued] FROM [dbo].[StockLine] WITH(NOLOCK) WHERE [StockLineId] = @PartStockLineId;
 			
 			UPDATE [dbo].[StockLine]
 			   SET [WorkOrderId] = @WorkOrderId,
@@ -699,8 +707,26 @@ BEGIN
 				   [UpdatedBy] = @UpdatedBy,
 				   [WorkOrderPartNoId] = @WorkOrderPartNumberId,
 				   [QuantityAvailable] = @QuantityAvailable - @NPMStockQTY,
-				   [QuantityReserved] = @QuantityReserved + @NPMStockQTY
+				   [QuantityReserved] = @QuantityReserved + @NPMStockQTY 
 			 WHERE [StockLineId] = @PartStockLineId;
+
+			-- -- STOCKLINE RESERVE HISTORY
+			EXEC [dbo].[USP_AddUpdateStocklineHistory] @PartStockLineId,@WorkOrderModuleID,@WorkOrderId,NULL,NULL,@StocklineHistoryReserveActionEnum,@NPMStockQTY,@CreatedBy;
+
+			-- TEARDOWN WORK ORDER ACCOUNTING ENTRY
+			IF @WorkOrderTypeId = @TearDown -- TEARDOWN
+			BEGIN
+				SELECT @QuantityReserved = [QuantityReserved] FROM [dbo].[StockLine] WITH(NOLOCK) WHERE [StockLineId] = @PartStockLineId;
+
+				UPDATE [dbo].[StockLine]
+				   SET [QuantityReserved] = @QuantityReserved - @NPMStockQTY,
+				       [QuantityOnHand] = @QuantityOnHand - @NPMStockQTY,
+					   [QuantityIssued] = @QuantityIssued + @NPMStockQTY
+				 WHERE [StockLineId] = @PartStockLineId;				
+
+				 -- STOCKLINE ISSUE HISTORY
+				 EXEC [dbo].[USP_AddUpdateStocklineHistory] @PartStockLineId,@WorkOrderModuleID,@WorkOrderId,NULL,NULL,@StocklineHistoryIssueActionEnum,@NPMStockQTY,@CreatedBy;
+			END
 
 			EXEC [dbo].[UpdateStocklineColumnsWithId] @PartStockLineId;
 
@@ -710,14 +736,15 @@ BEGIN
 			   SET [WorkOrderId] = @WorkOrderId,
 			       [UpdatedDate] = @UpdatedDate,
 				   [UpdatedBy] = @UpdatedBy
-             WHERE [ReceivingCustomerWorkId] = @PartReceivingCustomerWorkId
+             WHERE [ReceivingCustomerWorkId] = @PartReceivingCustomerWorkId		 			 
+			
 		END
 		ELSE IF(@PartStockLineId > 0)
 		BEGIN
 		 -- Updating Work Order Id in Stockline Table
 			DECLARE @TotalRecordRMA INT = 0,@MinIdRMA BIGINT = 1,@RMADeatilsId BIGINT = NULL
 
-			SELECT @QuantityAvailable = ISNULL([QuantityAvailable],0),@QuantityReserved = [QuantityReserved],@ReceiverNumber = [ReceiverNumber] FROM [dbo].[StockLine] WITH(NOLOCK) WHERE [StockLineId] = @PartStockLineId;
+			SELECT @QuantityAvailable = ISNULL([QuantityAvailable],0),@QuantityReserved = [QuantityReserved],@QuantityOnHand=[QuantityOnHand],@QuantityIssued=[QuantityIssued],@ReceiverNumber = [ReceiverNumber] FROM [dbo].[StockLine] WITH(NOLOCK) WHERE [StockLineId] = @PartStockLineId;
 			
 			UPDATE [dbo].[StockLine]
 			   SET [WorkOrderId] = @WorkOrderId,
@@ -727,6 +754,24 @@ BEGIN
 				   [QuantityAvailable] = @QuantityAvailable - @NPMStockQTY,
 				   [QuantityReserved] = @QuantityReserved + @NPMStockQTY
 			 WHERE [StockLineId] = @PartStockLineId;
+
+		    -- STOCKLINE RESERVE HISTORY
+			EXEC [dbo].[USP_AddUpdateStocklineHistory] @PartStockLineId,@WorkOrderModuleID,@WorkOrderId,NULL,NULL,@StocklineHistoryReserveActionEnum,@NPMStockQTY,@CreatedBy;
+
+			-- TEARDOWN WORK ORDER ACCOUNTING ENTRY
+			IF @WorkOrderTypeId = @TearDown -- TEARDOWN
+			BEGIN
+				SELECT @QuantityReserved = [QuantityReserved] FROM [dbo].[StockLine] WITH(NOLOCK) WHERE [StockLineId] = @PartStockLineId;
+
+				UPDATE [dbo].[StockLine]
+				   SET [QuantityReserved] = @QuantityReserved - @NPMStockQTY,
+				       [QuantityOnHand] = @QuantityOnHand - @NPMStockQTY,
+					   [QuantityIssued] = @QuantityIssued + @NPMStockQTY
+				 WHERE [StockLineId] = @PartStockLineId;
+				 
+				 -- STOCKLINE ISSUE HISTORY
+				 EXEC [dbo].[USP_AddUpdateStocklineHistory] @PartStockLineId,@WorkOrderModuleID,@WorkOrderId,NULL,NULL,@StocklineHistoryIssueActionEnum,@NPMStockQTY,@CreatedBy;
+			END
 
 			EXEC [dbo].[UpdateStocklineColumnsWithId] @PartStockLineId;
 
@@ -1007,10 +1052,52 @@ BEGIN
 	EXEC [dbo].[CreateWorkOrderTasks] @WorkOrderParts,@WorkOrderId,@WorkOrderTypeId,@CreatedBy,@CreatedDate,@MasterCompanyId;
 
 	-- CREATING STOCK LINE HISTORY TO RESERVE STOCKLINE 
-	EXEC [dbo].[CreateStockLineHistory] @WorkOrderParts,@WorkOrderId,@CreatedBy,@CreatedDate,@MasterCompanyId;
+	-- EXEC [dbo].[CreateStockLineHistory] @WorkOrderParts,@WorkOrderId,@CreatedBy,@CreatedDate,@MasterCompanyId;
 
 	--*************** CREATE A WORK ORDER MATERIALS FOR SUB ASSY : BY RAJESH ***************
 	EXEC [dbo].[CreateWorkOrderMaterialsforSubAssy] @WorkOrderParts,@WorkOrderId,@WorkOrderTypeId,@CreatedBy,@CreatedDate,@MasterCompanyId,@WorkOrderFormTypeId
+
+	-- TEARDOWN WORK ORDER ACCOUNTING ENTRY
+	IF @WorkOrderTypeId = @TearDown -- TearDown
+    BEGIN
+		DECLARE @DistributionMasterId BIGINT=NULL,@TotalParts INT = 0,@MinPartId BIGINT = 1
+
+		SELECT TOP 1 @DistributionMasterId = [ID] FROM [dbo].[DistributionMaster] WITH(NOLOCK) WHERE [DistributionCode] = 'CREATETEARDOWNWO'
+
+		IF(@DistributionMasterId > 0)
+		BEGIN	
+			IF OBJECT_ID(N'tempdb..#tmprTearDownWorkOrderAccounting') IS NOT NULL
+			BEGIN
+				DROP TABLE #tmprTearDownWorkOrderAccounting
+			END
+
+			CREATE TABLE #tmprTearDownWorkOrderAccounting
+			(
+				[PKID] [BIGINT] NOT NULL IDENTITY, 			
+				[ID] [BIGINT] NULL,
+				[StocklineId] [BIGINT] NULL			
+			)
+
+			INSERT INTO #tmprTearDownWorkOrderAccounting([ID],[StocklineId])
+			SELECT [ID],[StocklineId] FROM @WorkOrderParts
+
+			SELECT @TotalParts = COUNT(*), @MinPartId = MIN([PKID]) FROM #tmprTearDownWorkOrderAccounting  
+
+			WHILE @MinPartId <= @TotalParts 
+			BEGIN			
+				SELECT @ID=[ID],@StocklineId=[StocklineId] FROM #tmprTearDownWorkOrderAccounting WHERE [PKID] = @MinPartId
+
+				EXEC [dbo].[USP_TearDownWOBatchTriggerBasedonDistribution] @DistributionMasterId,@WorkOrderId,@ID,@StocklineId,@MasterCompanyId,@CreatedBy
+
+				SET @MinPartId = @MinPartId + 1
+			END
+
+			IF OBJECT_ID(N'tempdb..#tmprTearDownWorkOrderAccounting') IS NOT NULL
+			BEGIN
+				DROP TABLE #tmprTearDownWorkOrderAccounting
+			END
+		END
+    END
 
 	SELECT @WorkOrderId AS [WorkOrderId]
 

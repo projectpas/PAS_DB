@@ -23,10 +23,12 @@
 	7    01/27/2025   Hemant Saliya		Update OH Cost analysis Summary
 	8    04/22/2025   Hemant Saliya		Repair Cost at Part wise from Srockline
 	9    04/25/2025   Hemant Saliya		Handle OutSide Service Cost Calculation
+	10   02/05/2026   Hemant Saliya		Handle -ve Adjustment cost issue
 
-EXEC [dbo].[USP_WorkOrder_GetWorkOrderandCostAnalysisDetails] 8472, 8767     
+EXEC [dbo].[USP_WorkOrder_GetWorkOrderandCostAnalysisDetails_Hem] 3679 ,4165    
+EXEC [dbo].[USP_WorkOrder_GetWorkOrderandCostAnalysisDetails] 3679 ,4165  
 **************************************************************/
-CREATE    PROCEDURE [dbo].[USP_WorkOrder_GetWorkOrderandCostAnalysisDetails]
+CREATE      PROCEDURE [dbo].[USP_WorkOrder_GetWorkOrderandCostAnalysisDetails]
 (
 	@WorkOrderWorkflowId BIGINT,
 	@WorkOrderId BIGINT
@@ -325,16 +327,40 @@ BEGIN
 				   @tmpAdjustedHoursdata = PARSENAME(tmpWOL.AdjustedHours,1)
 			FROM #tmpWorkOrderLabor tmpWOL WHERE tmpWOL.ID = @count; 
 
-			SET @tmpBurdonLaborCost = ISNULL(@tmpBurdonLaborCost, 0) + ISNULL((@tmpBurdenRateAmount * PARSENAME(@tmpAdjustedHours,2)), 0);
-			SET @tmpDirectLaborCost = ISNULL(@tmpDirectLaborCost, 0) + ISNULL((@tmpDirectLaborOHCost * PARSENAME(@tmpAdjustedHours,2)), 0);
+			--SET @tmpBurdonLaborCost = ISNULL(@tmpBurdonLaborCost, 0) + ISNULL((@tmpBurdenRateAmount * PARSENAME(@tmpAdjustedHours,2)), 0);
+			--SET @tmpDirectLaborCost = ISNULL(@tmpDirectLaborCost, 0) + ISNULL((@tmpDirectLaborOHCost * PARSENAME(@tmpAdjustedHours,2)), 0);
 
-			SET @tmpAdjustedHoursdata1 = CAST((CAST(@tmpAdjustedHoursdata AS DECIMAL(18,2))/ 100 )AS DECIMAL(18,2));
+			SET @tmpBurdonLaborCost = ISNULL(@tmpBurdonLaborCost, 0) +
+			@tmpBurdenRateAmount *
+			(
+				(
+					CASE WHEN @tmpAdjustedHours < 0 THEN -1 ELSE 1 END *
+					(
+						FLOOR(ABS(@tmpAdjustedHours)) * 60
+						+ CONVERT(int, ROUND((ABS(@tmpAdjustedHours) - FLOOR(ABS(@tmpAdjustedHours))) * 100.0, 0))
+					)
+				) / 60.0
+			)
 
-			IF(@tmpAdjustedHoursdata > 0)
-			BEGIN
-				SET @tmpBurdonLaborCost = ISNULL(@tmpBurdonLaborCost, 0) + ((@tmpAdjustedHoursdata1 * 100 /60) * @tmpBurdenRateAmount);
-				SET @tmpDirectLaborCost = ISNULL(@tmpDirectLaborCost, 0) + ((@tmpAdjustedHoursdata1 * 100 /60) * @tmpDirectLaborOHCost);
-			END
+			SET @tmpDirectLaborCost = ISNULL(@tmpDirectLaborCost, 0) +
+			@tmpDirectLaborOHCost *
+			(
+				(
+					CASE WHEN @tmpAdjustedHours < 0 THEN -1 ELSE 1 END *
+					(
+						FLOOR(ABS(@tmpAdjustedHours)) * 60
+						+ CONVERT(int, ROUND((ABS(@tmpAdjustedHours) - FLOOR(ABS(@tmpAdjustedHours))) * 100.0, 0))
+					)
+				) / 60.0
+			)
+
+			--SET @tmpAdjustedHoursdata1 = CAST((CAST(@tmpAdjustedHoursdata AS DECIMAL(18,2))/ 100 )AS DECIMAL(18,2));
+
+			--IF(@tmpAdjustedHoursdata > 0)
+			--BEGIN
+			--	SET @tmpBurdonLaborCost = ISNULL(@tmpBurdonLaborCost, 0) + ((@tmpAdjustedHoursdata1 * 100 /60) * @tmpBurdenRateAmount);
+			--	SET @tmpDirectLaborCost = ISNULL(@tmpDirectLaborCost, 0) + ((@tmpAdjustedHoursdata1 * 100 /60) * @tmpDirectLaborOHCost);
+			--END
 
 			SET @tmpBurdenRateAmount =0.0;
 			SET @tmpDirectLaborOHCost =0.0;

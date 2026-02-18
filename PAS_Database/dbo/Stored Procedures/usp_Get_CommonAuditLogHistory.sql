@@ -17,11 +17,10 @@
     1		07-NOV-2025		HEMANT SALIYA			Created  
     2       11-NOV-2025     AYUSHI PATEL            Mapped ModuleId to Module 
     3       12-NOV-2025     AYUSHI PATEL            Removed TableName, PKJson, ChangedBy, Actions from output; added UpdatedDate fallback to ChangedAt; excluded columns via IgnoreColumn.
-    4       20-NOV-2025     AYUSHI PATEL            Converted UpdatedDate/CreatedDate to employee timezone .
---EXEC dbo.usp_Get_CommonAuditLogHistory @Module='WorkOrder', @PK_Key='WorkOrderId', @PK_Value=4482
---EXEC dbo.usp_Get_CommonAuditLogHistory @ModuleId=1, @PK_Key='CustomerId', @PK_Value=4493
---EXEC dbo.usp_Get_CommonAuditLogHistory @ModuleId=2, @PK_Key='VendorId', @PK_Value=5418 
---exec usp_Get_CommonAuditLogHistory @ModuleId=1,@PK_Key=N'CustomerId',@PK_Value=4495,@EmployeeId=234
+    4       20-NOV-2025     AYUSHI PATEL            Converted UpdatedDate/CreatedDate to employee timezone.
+    5       16-FEB-2026     DIVYESH KATHIRIYA       Set Table Name for SalesOrderQuote.
+
+EXEC usp_Get_CommonAuditLogHistory @ModuleId=7,@PK_Key=N'SalesOrderQuoteId',@PK_Value=1514,@EmployeeId=236
 **********************/ 
 
 CREATE   PROC [dbo].[usp_Get_CommonAuditLogHistory]
@@ -42,6 +41,11 @@ BEGIN
     IF @SortDir NOT IN (N'ASC', N'DESC') SET @SortDir = N'DESC';
     DECLARE @Module VARCHAR(100) = (SELECT ModuleName FROM dbo.Module WITH (NOLOCK) WHERE ModuleId = @ModuleId);
     
+    IF(@Module = 'SalesQuote')
+    BEGIN
+        SET @Module = 'SalesOrderQuote';
+    END 
+    
     DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
     SELECT @CurrntEmpTimeZoneDesc = COALESCE(ETZ.[Description], LTZ.[Description])
     FROM dbo.Employee E WITH (NOLOCK)
@@ -50,7 +54,7 @@ BEGIN
     LEFT JOIN dbo.TimeZone LTZ WITH (NOLOCK) ON LE.TimeZoneId = LTZ.TimeZoneId
     WHERE E.EmployeeId = @EmployeeId;
 
-    ----------------------------------------------------------------
+----------------------------------------------------------------
     -- Build dynamic column list from ColumnName in the filtered scope
     -- (ensures only relevant fields appear as pivoted columns)
     ----------------------------------------------------------------
@@ -201,8 +205,6 @@ BEGIN
          AND a.PKJson    = p.PKJson
          AND a.ChangedAt = p.ChangedAt
         ORDER BY p.ChangedAt ' + @SortDir + N', p.TableName, p.PKJson;';
-
-    --PRINT @sql;
 
     EXEC sp_executesql
         @sql,

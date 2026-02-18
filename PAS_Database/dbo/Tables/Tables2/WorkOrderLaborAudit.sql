@@ -36,10 +36,7 @@
     [TaskStatusId]                BIGINT          NULL,
     [StatusChangedDate]           DATETIME2 (7)   NULL,
     [IsBegin]                     BIT             NULL,
+    [IsAdjustmentTask]            BIT             NULL,
     CONSTRAINT [PK_WorkOrderLaborAudit] PRIMARY KEY CLUSTERED ([WorkOrderLaborAuditId] ASC)
 );
-
-
-
-
 

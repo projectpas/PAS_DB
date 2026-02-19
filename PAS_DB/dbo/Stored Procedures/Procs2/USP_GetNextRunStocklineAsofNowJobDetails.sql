@@ -89,7 +89,7 @@ BEGIN
 				SET @RunDate = DATEFROMPARTS(YEAR(GETUTCDATE()), MONTH(GETUTCDATE()), @DayOfMonth);
 				SET @StartDate = DATEADD(MONTH, -1, @RunDate);
 				SET @NextMonthDate = DATEADD(MONTH, 1, @RunDate);
-				SET @NextDayDate = DATEADD(DAY, 1, @RunDate);
+				SET @NextDayDate = DATEADD(DAY, 1, GETUTCDATE());
 				SET @HasJobSetting = 1
 			END
 			IF(@IsWeeklyOrMonthly = @Weekly)
@@ -104,7 +104,7 @@ BEGIN
 
 				SET @StartDate = DATEADD(WEEK, -1, @RunDate);
 				SET @NextMonthDate = DATEADD(WEEK, 1, @RunDate);				
-				SET @NextDayDate = DATEADD(DAY, 1, @RunDate);				
+				SET @NextDayDate = DATEADD(DAY, 1, GETUTCDATE());				
 				SET @HasJobSetting = 1;
 			END
 			IF(@IsWeeklyOrMonthly = @None)

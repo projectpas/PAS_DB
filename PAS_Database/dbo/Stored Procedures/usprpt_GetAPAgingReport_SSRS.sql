@@ -23,7 +23,7 @@
   --[dbo].[usprpt_GetAPAgingReport_SSRS] 1,'2026-01-27',3654,2,null,null
   exec [dbo].[usprpt_GetAPAgingReport_SSRS] 1,'2/5/2026',0,2,null,null,'1,5,6,20,22,52,53!2,7,8,9!3,11,10!4,12,13!!!!!!'
 ***************************************************************************************************/        
-CREATE   PROCEDURE [dbo].[usprpt_GetAPAgingReport_SSRS]       
+CREATE    PROCEDURE [dbo].[usprpt_GetAPAgingReport_SSRS]       
 @mastercompanyid INT,
 @id DATETIME2,
 @id2 VARCHAR(100) = null,
@@ -72,7 +72,7 @@ BEGIN
 		) 
 	INSERT INTO #TEMPMSFilter(LevelIds)
 	SELECT Item FROM DBO.SPLITSTRING(@strFilter,'!')
-	 SET @todate = @id;
+	 SET @todate = GETUTCDATE();
 	 SET @vendorId = case when @id2 = '' OR @id2 = '0' then null else @id2 end;
 	 SET @Typeid = @id3;
 	 SET @invoiceNum = CASE WHEN @id5 = '' THEN NULL else @id5 end;

@@ -11,8 +11,9 @@
  ** PR   Date         Author			Change Description
  ** --   --------     -------			-----------------------------
     1    28/04/2025   Vishal Suthar		Added History
+	2    18/02/2026   Hemant Saliya		Updated for add WOQ delete
      
-EXEC [DeleteMPN] 8803,8765,6543,202397,'ADMIN ADMIN'
+EXEC [DeleteMPN] 12884,12742,10380,220049,'ADMIN ADMIN'
 ********************************************************************/
 CREATE   PROCEDURE [dbo].[DeleteMPN]
 	@WOPartNoId BIGINT,
@@ -47,6 +48,15 @@ AS
 			DELETE FROM WorkOrderBulletinsModification WHERE WorkOrderTeardownId = @TeardownId
 			DELETE FROM WorkOrderAdditionalComments WHERE WorkOrderTeardownId = @TeardownId
 			DELETE FROM WorkOrderTeardown WHERE WorkFlowWorkOrderId = @WorkFlowWorkOrderId
+
+			/* Work Order Task */
+			--Select * from  dbo.WorkOrderApproval @WOPartNoId
+
+			DELETE FROM WorkOrderApproval WHERE WorkOrderPartNoId = @WOPartNoId
+			DELETE FROM WorkOrderQuoteDetails WHERE WorkFlowWorkOrderId = @WorkFlowWorkOrderId
+
+			DELETE FROM WorkOrderQuoteDetails WHERE WorkFlowWorkOrderId = @WorkFlowWorkOrderId
+			--Select * from WorkOrderQuoteDetails
 
 			/* Work Order Task */
 			SELECT @WorkOrderTaskId=WorkOrderTaskId FROM WorkOrderTask WITH (NOLOCK) WHERE WorkFlowWorkOrderId = @WorkFlowWorkOrderId
@@ -125,7 +135,7 @@ AS
 			DELETE FROM WorkOrderPartNumber WHERE ID = @WOPartNoId
 
 			/* Stock Line*/
-			UPDATE Stockline SET WorkOrderId = NULL, UpdatedBy = @UpdatedBy, UpdatedDate = GETDATE() 
+			UPDATE Stockline SET WorkOrderId = NULL, QuantityReserved = QuantityReserved - 1, QuantityAvailable = QuantityAvailable + 1,  UpdatedBy = @UpdatedBy, UpdatedDate = GETDATE() 
 			WHERE StockLineId=@StockLineId
 
 			/*Receiving*/

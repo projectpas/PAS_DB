@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [usprpt_CashReceiptReportList_SSRS]           
  ** Author:   RAJESH GAMI  
  ** Description: Get Data for Cash receipt report data fro the SSRS
@@ -20,6 +19,7 @@
 	3	 06 FEB 2026		RAJESH GAMI  		Record Mismatch issue
 	4	 11 FEB 2026		RAJESH GAMI  		Display only GL Account Num
 	5	 16 FEB 2026		RAJESH GAMI  		Display only code (Management Structure Level)
+	6	 19 FEB 2026		RAJESH GAMI  		Resolve PaymentMethod issue
 **************************************************************/
 CREATE          PROCEDURE [dbo].[usprpt_CashReceiptReportList_SSRS]
 @id VARCHAR(MAX) = NULL,
@@ -324,7 +324,11 @@ BEGIN
 				 ,Ip.PaymentId as InvoicePaymentId,
 				 --CASE WHEN CPD.IsCheckPayment = 1 THEN 'Check' WHEN CPD.IsWireTransfer = 1 THEN 'Wire Transfer' WHEN CPD.IsCCDCPayment = 1 THEN 'Credit Card/Debit Card' END AS PaymentType
 				 --,[IP].[Status]
-				  CASE WHEN [IP].IsCheckPayment = 1 THEN 'Check' WHEN [IP].IsWireTransfer = 1 THEN 'Wire Transfer' WHEN [IP].IsCCDCPayment = 1 THEN 'Credit Card/Debit Card' END AS PaymentType
+				  CASE WHEN CPD.IsMultiplePaymentMethod = 1 THEN  
+						(CASE WHEN [IP].IsCheckPayment = 1 THEN 'Check' WHEN [IP].IsWireTransfer = 1 THEN 'Wire Transfer' WHEN [IP].IsCCDCPayment = 1 THEN 'Credit Card/Debit Card' END) 
+				       ELSE 
+						(CASE WHEN CPD.IsCheckPayment = 1 THEN 'Check' WHEN CPD.IsWireTransfer = 1 THEN 'Wire Transfer' WHEN CPD.IsCCDCPayment = 1 THEN 'Credit Card/Debit Card' END)
+				  END AS PaymentType
 				  ,IP.CreditTermName
 				  ,IP.WoSoNum
 			FROM  [dbo].[InvoicePayments] [IP] WITH(NOLOCK)
@@ -351,7 +355,7 @@ BEGIN
 				    ELSE (CAST(CP.PostedDate AS DATETIME)) END) < DATEADD(DAY, 1, @ToDate)))
 				  GROUP BY [IP].[ReceiptId],[IP].[DocNum],[IP].[InvoiceDate],[IP].PaymentAmount,Ip.PaymentId,
 				  [IP].IsCheckPayment,[IP].IsWireTransfer,[IP].IsCCDCPayment,IP.CreditTermName,IP.WoSoNum
-				  --CPD.IsCheckPayment,CPD.IsWireTransfer,CPD.IsCCDCPayment
+				  ,CPD.IsCheckPayment,CPD.IsWireTransfer,CPD.IsCCDCPayment,CPD.IsMultiplePaymentMethod
 				  
 			PRINT 'Details Data'
 			;WITH Result AS (
@@ -610,7 +614,11 @@ BEGIN
 				 ,Ip.PaymentId as InvoicePaymentId,
 				 --CASE WHEN CPD.IsCheckPayment = 1 THEN 'Check' WHEN CPD.IsWireTransfer = 1 THEN 'Wire Transfer' WHEN CPD.IsCCDCPayment = 1 THEN 'Credit Card/Debit Card' END AS PaymentType
 				 --,[IP].[Status]
-				  CASE WHEN [IP].IsCheckPayment = 1 THEN 'Check' WHEN [IP].IsWireTransfer = 1 THEN 'Wire Transfer' WHEN [IP].IsCCDCPayment = 1 THEN 'Credit Card/Debit Card' END AS PaymentType
+				  	   CASE WHEN CPD.IsMultiplePaymentMethod = 1 THEN  
+						(CASE WHEN [IP].IsCheckPayment = 1 THEN 'Check' WHEN [IP].IsWireTransfer = 1 THEN 'Wire Transfer' WHEN [IP].IsCCDCPayment = 1 THEN 'Credit Card/Debit Card' END) 
+				       ELSE 
+						(CASE WHEN CPD.IsCheckPayment = 1 THEN 'Check' WHEN CPD.IsWireTransfer = 1 THEN 'Wire Transfer' WHEN CPD.IsCCDCPayment = 1 THEN 'Credit Card/Debit Card' END)
+				  END AS PaymentType
 				  ,IP.CreditTermName
 				  ,IP.WoSoNum
 			FROM  [dbo].[InvoicePayments] [IP] WITH(NOLOCK)
@@ -637,7 +645,7 @@ BEGIN
 				    ELSE (CAST(CP.PostedDate AS DATETIME)) END) < DATEADD(DAY, 1, @ToDate)))
 				  GROUP BY [IP].[ReceiptId],[IP].[DocNum],[IP].[InvoiceDate],[IP].PaymentAmount,Ip.PaymentId,
 				  [IP].IsCheckPayment,[IP].IsWireTransfer,[IP].IsCCDCPayment,IP.CreditTermName,IP.WoSoNum
-				  --CPD.IsCheckPayment,CPD.IsWireTransfer,CPD.IsCCDCPayment
+			  		  ,CPD.IsCheckPayment,CPD.IsWireTransfer,CPD.IsCCDCPayment,CPD.IsMultiplePaymentMethod
 
 
 				PRINT 'Summary Data'

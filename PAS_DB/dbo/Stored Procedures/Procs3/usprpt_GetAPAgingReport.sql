@@ -1,5 +1,5 @@
 ﻿/*************************************************************                   
- ** File:  [usprpt_GetAPAgingReport_SSRS]                   
+ ** File:  [usprpt_GetAPAgingReport]                   
  ** Author: Rajesh Gami         
  ** Description: Get Data for AP Aging Report        
  ** Purpose:                 
@@ -20,9 +20,9 @@
 	4    05-FEB-2026    Amit Ghediya       Add filter
 	5    09-FEB-2026    Rajesh Gami        Added NONSTOCK, ASSET Management Structure JOIN in Receiving Reconciliation
 	6    16-FEB-2026    Amit Ghediya       Update NPO Invoice date from postedate to invoiced date.
-  --[dbo].[usprpt_GetAPAgingReport_SSRS] 1,'2026-01-27',3654,2,null,null
+  --[dbo].[usprpt_GetAPAgingReport] 1,'2026-01-27',3654,2,null,null
 ***************************************************************************************************/        
-CREATE     PROCEDURE [dbo].[usprpt_GetAPAgingReport]       
+CREATE   PROCEDURE [dbo].[usprpt_GetAPAgingReport]       
 	@PageNumber int = 1,      
 	@PageSize int = NULL,      
 	@mastercompanyid int,      
@@ -76,8 +76,7 @@ BEGIN
 			  @Terms VARCHAR(MAX) = NULL,
 			  @DueDate datetime = NULL;
 
-			  SELECT @todate = CASE WHEN filterby.value('(FieldName/text())[1]','VARCHAR(100)')='AS of Date'       
-	  THEN CONVERT(DATE,filterby.value('(FieldValue/text())[1]','VARCHAR(100)')) ELSE @todate END,      
+			  SELECT @todate = GETUTCDATE(),      
 	  @vendorId = CASE WHEN filterby.value('(FieldName/text())[1]','VARCHAR(100)')='Vendor Name(Optional)'       
 	  THEN filterby.value('(FieldValue/text())[1]','VARCHAR(100)') ELSE @vendorId END, 
 	  @Typeid = CASE WHEN filterby.value('(FieldName/text())[1]','VARCHAR(100)')='viewType'       

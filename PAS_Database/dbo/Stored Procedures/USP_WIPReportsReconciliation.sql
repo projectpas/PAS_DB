@@ -30,13 +30,13 @@ BEGIN
 		DECLARE @FromDate DATETIME = ISNULL(TRY_CAST(@id AS DATETIME),NULL) 
 		DECLARE @ToDate DATETIME = ISNULL(TRY_CAST(@id2 AS DATETIME),NULL) 
 		
-        DECLARE @TotalMiscCost DECIMAL(18,2)  = NULL;
-        DECLARE @TotalOtherCost DECIMAL(18,2)  = NULL;
-        DECLARE @TotalDirectLaborCost DECIMAL(18,2)  = NULL;
-        DECLARE @TotalOHCost DECIMAL(18,2)  = NULL;
+        DECLARE @TotalMiscCost DECIMAL(18,2)  = 0;
+        DECLARE @TotalOtherCost DECIMAL(18,2)  = 0;
+        DECLARE @TotalDirectLaborCost DECIMAL(18,2)  = 0;
+        DECLARE @TotalOHCost DECIMAL(18,2)  = 0;
         DECLARE @TaskStatus VARCHAR(20) = 'COMPLETED';
-        DECLARE @TotalUnpostedDirectLaborCost DECIMAL(18,2)  = NULL;
-        DECLARE @TotalUnpostedOverheadCost DECIMAL(18,2)  = NULL;
+        DECLARE @TotalUnpostedDirectLaborCost DECIMAL(18,2)  = 0;
+        DECLARE @TotalUnpostedOverheadCost DECIMAL(18,2)  = 0;
 
         IF OBJECT_ID(N'tempdb..#tmpWO') IS NOT NULL    
 		BEGIN    
@@ -93,7 +93,7 @@ BEGIN
             JOIN WorkOrderPartNumber WOP WITH (NOLOCK) ON WOP.ID = WOWF.WorkOrderPartNoId
             JOIN #tmpWO WO ON WO.WorkOrderId = WOP.WorkOrderId
             WHERE WOP.MasterCompanyId = @MasterCompanyId 
-             AND ISNULL(WOP.IsDeleted, 0) = 0 AND ISNULL(WOP.IsActive, 0) = 1 
+             AND ISNULL(WOP.IsDeleted, 0) = 0 AND ISNULL(WOP.IsActive, 0) = 1 AND ISNULL(WOP.IsFinishGood, 0) = 0 
 
             UNION ALL
 
@@ -103,7 +103,7 @@ BEGIN
                 JOIN dbo.WorkOrderWorkFlow WOWF WITH (NOLOCK) ON WOWF.WorkFlowWorkOrderId = WOM.WorkFlowWorkOrderId
                 JOIN WorkOrderPartNumber WOP WITH (NOLOCK) ON WOP.ID = WOWF.WorkOrderPartNoId
                 JOIN #tmpWO WO ON WO.WorkOrderId = WOP.WorkOrderId
-            WHERE WOP.MasterCompanyId = @MasterCompanyId AND ISNULL(WOP.IsDeleted, 0) = 0 AND ISNULL(WOP.IsActive, 0) = 1 
+            WHERE WOP.MasterCompanyId = @MasterCompanyId AND ISNULL(WOP.IsDeleted, 0) = 0 AND ISNULL(WOP.IsActive, 0) = 1 AND ISNULL(WOP.IsFinishGood, 0) = 0
         ) A
         GROUP BY WorkOrderId;
  
@@ -117,7 +117,7 @@ BEGIN
         SELECT @TotalOtherCost = ISNULL(SUM(WOF.Amount), 0) FROM WorkOrderFreight WOF WITH (NOLOCK) 
             JOIN dbo.WorkOrderWorkFlow WOWF WITH (NOLOCK) ON WOWF.WorkFlowWorkOrderId = WOF.WorkFlowWorkOrderId
             JOIN #tmpWO WO ON WO.WorkOrderId = WOWF.WorkOrderId
-            WHERE WOF.MasterCompanyId = @MasterCompanyId  AND ISNULL(WOF.IsDeleted, 0) = 0 AND ISNULL(WOF.IsActive, 0) = 1 
+            WHERE WOF.MasterCompanyId = @MasterCompanyId  AND ISNULL(WOF.IsDeleted, 0) = 0 AND ISNULL(WOF.IsActive, 0) = 1  
 
         SELECT @TotalDirectLaborCost = ISNULL(SUM(WCD.LaborCost), 0),@TotalOHCost = ISNULL(SUM(WCD.OverHeadCost), 0) 
         FROM WorkOrderCostDetails WCD WITH (NOLOCK) JOIN #tmpWO WO ON WO.WorkOrderId = WCD.WorkOrderId

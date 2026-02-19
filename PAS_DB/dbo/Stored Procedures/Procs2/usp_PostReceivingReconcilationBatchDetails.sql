@@ -979,6 +979,10 @@ BEGIN
 									PRINT GETUTCDATE();
 									------- Stock - Inventory ---
 									SET @Amount = (ISNULL(@RRUnitPrice, 0) - ISNULL(@POROUnitPrice, 0)) * ISNULL(@StocklineQtyAvail, 0);
+									IF(@Amount = 0)
+									BEGIN 
+										SET @Amount = ((@RRUnitPrice - @POROUnitPrice) * ISNULL(@ReceivedQty, 0));
+									END
 									SET @APTotalPrice = ISNULL(@APTotalPrice, 0) + ISNULL(@Amount, 0)
 									IF(UPPER(@StockType) = 'STOCK')
 									BEGIN

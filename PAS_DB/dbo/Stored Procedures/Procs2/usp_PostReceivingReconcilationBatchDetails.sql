@@ -1,4 +1,5 @@
-﻿/*************************************************************             
+﻿
+/*************************************************************             
  ** File:   [usp_PostReceivingReconcilationBatchDetails]             
  ** Author:   
  ** Description: This stored procedure is used to Posting Reconsilation to Batch
@@ -34,9 +35,10 @@
 	22	 08/01/2025   HEMANT SALIYA		  Updated for Reduce Vendor Proforma Amoinut
 	23	 20/01/2025   RAJESH GAMI		  Commented the [UpdateStocklineBatchDetailsColumnsWithId] execution due to performance
 	24	 20/01/2025   RAJESH GAMI		  UnCommented the [UpdateStocklineBatchDetailsColumnsWithId] SP
-	25	 30/01/2025   HEMANT SALIYA		  Resolved Performa Accounting Entry in PO adn RO Partial Payment Handle
+	25	 30/01/2026   HEMANT SALIYA		  Resolved Performa Accounting Entry in PO adn RO Partial Payment Handle
+	25	 19/02/2026   HEMANT SALIYA		  Resolved RO Batch Post when Stl Qty is 0 and RO cost is 0
 **************************************************************/  
-CREATE   PROCEDURE [dbo].[usp_PostReceivingReconcilationBatchDetails]
+CREATE  PROCEDURE [dbo].[usp_PostReceivingReconcilationBatchDetails]
 @tbl_PostRRBatchType PostRRBatchType READONLY,
 @MasterCompanyId int
 AS
@@ -1904,6 +1906,10 @@ BEGIN
 							BEGIN
 									------- Stock - Inventory -----
 									SET @Amount = ((@RRUnitPrice - @POROUnitPrice)* ISNULL(@StocklineQtyAvail, 0));
+									IF(@Amount = 0)
+									BEGIN 
+										SET @Amount = ((@RRUnitPrice - @POROUnitPrice) * ISNULL(@ReceivedQty, 0));
+									END
 									SET @APTotalPrice = @APTotalPrice + @Amount
 
 									IF(UPPER(@StockType) = 'STOCK')

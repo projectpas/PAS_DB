@@ -105,7 +105,7 @@ BEGIN
         CROSS APPLY OPENJSON(p.old_row_json) v
         WHERE NOT EXISTS (
             SELECT 1
-            FROM dbo.IgnoreColumn ign
+            FROM dbo.IgnoreColumn ign WITH(NOLOCK)
             WHERE ign.SchemaName = N'dbo'
                 AND ign.TableName  = N'Customer'
                 AND ign.ColumnName = N'CustomerId'
@@ -120,7 +120,7 @@ BEGIN
         CROSS APPLY OPENJSON(p.new_row_json) v
         WHERE NOT EXISTS (
             SELECT 1
-            FROM dbo.IgnoreColumn ign
+            FROM dbo.IgnoreColumn ign WITH(NOLOCK)
             WHERE ign.SchemaName = N'dbo'
                 AND ign.TableName  = N'Customer'
                 AND ign.ColumnName = N'CustomerId'

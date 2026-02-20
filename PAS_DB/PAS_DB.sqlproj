@@ -4575,6 +4575,7 @@
     <Build Include="dbo\Stored Procedures\usprpt_GetGoodsReceiptNotInvoicedReport.sql" />
     <Build Include="dbo\Stored Procedures\usprpt_CustomerInvoiceReportList_SSRS.sql" />
     <Build Include="dbo\Stored Procedures\usprpt_CustomerInvoiceReportList.sql" />
+    <Build Include="dbo\Stored Procedures\USP_DeleteRestoreWIPGLAccountSetup.sql" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Snapshots\PAS_DB_20220518_07-53-10.dacpac" />

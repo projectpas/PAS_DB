@@ -40,6 +40,8 @@
 	24   30/12/2025   Vishal Suthar         Fixed WOQ Part Status which affects the approved amount
 	25   17/01/2025   Bhargav Saliya        Added IsMigrated Condition
 	26   02/02/2026   Moin Bloch		    added IncomingPartNumber  PN-15319
+	27   18/02/2026   Moin Bloch		    added WorkOrderStages Filter  PN-15501
+	28   19/02/2026   Moin Bloch		    added WorkOrderStatus Filter MultiSelect PN-15516
 
 	exec dbo.GetWorkOrderList @PageNumber=1,@PageSize=100,@SortColumn=default,@SortOrder=-1,@StatusID=1,@GlobalFilter=default,@ViewType=N'mpn',
 	@WorkOrderNum=default,@PartNumber=default,@PartDescription=default,@WorkScope=default,@Priority=default,@CustomerName=default,@CustomerAffiliation=default,@Stage=default,
@@ -65,7 +67,7 @@ CREATE    PROCEDURE [dbo].[GetWorkOrderList]
 	 @CustomerName VARCHAR(50)=NULL,  
 	 @CustomerAffiliation VARCHAR(50)=NULL,  
 	 @Stage VARCHAR(200)=NULL,  
-	 @WorkOrderStatus BIGINT=NULL,      
+	 @WorkOrderStatus VARCHAR(500) = NULL,
 	 @OpenDate DATETIME=NULL,  
 	 @CustReqDate DATETIME=NULL,  
 	 @PromiseDate DATETIME=NULL,  
@@ -96,8 +98,8 @@ CREATE    PROCEDURE [dbo].[GetWorkOrderList]
 	 @WoTaskType BIT = NULL, 
 	 @ReceivedCondition VARCHAR(100) = NULL,
 	 @RevisedCondition VARCHAR(100) = NULL,
-	 @IncomingPartNumber VARCHAR(50)=NULL  
-
+	 @IncomingPartNumber VARCHAR(50)=NULL,  
+	 @WorkOrderStagesType VARCHAR(500) = NULL
 AS  
 BEGIN  
  SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED  
@@ -157,6 +159,15 @@ BEGIN
     BEGIN   
 		SET @IsActive = NULL  
     END
+
+	IF(@WorkOrderStagesType = '')
+	BEGIN
+		SET @WorkOrderStagesType = NULL
+	END
+	IF(@WorkOrderStatus = '' OR @WorkOrderStatus = '0' OR @WorkOrderStatus IS NULL)
+	BEGIN
+		SET @WorkOrderStatus = NULL
+	END	
 
 	DECLARE @WaitingForApprovalStatusId INT, @PendingStatusId INT, @PendingStatusName VARCHAR(20);
 	SELECT @WaitingForApprovalStatusId = [ApprovalStatusId] FROM [dbo].[ApprovalStatus] WITH (NOLOCK) WHERE [Name] = 'Waiting for Approval'
@@ -323,8 +334,8 @@ BEGIN
 			LEFT JOIN [dbo].[ApprovalStatus] appsC WITH (NOLOCK) ON wopp.[CustomerStatusId] = appsC.[ApprovalStatusId]
 			LEFT JOIN dbo.Condition RCD WITH(NOLOCK) ON WPN.RevisedConditionId = RCD.ConditionId  
 		WHERE ((@IsDeleted = 0 AND WO.IsDeleted = 0 AND ISNULL(WO.IsMigrated, 0) <> 1) OR (@IsDeleted = 1 AND (WO.IsDeleted = 1 OR WO.IsMigrated = 1))) AND
-		((WO.[MasterCompanyId] = @MasterCompanyId) AND (@IsActive IS NULL OR WO.[IsActive] = @IsActive) AND (@WorkOrderStatus = 0 OR WPN.[WorkOrderStatusId] = @WorkOrderStatus)
-		AND (@WoTaskType IS NULL OR WO.[WorkOrderFormTypeId] = @WoTaskType))  
+		((WO.[MasterCompanyId] = @MasterCompanyId) AND (@IsActive IS NULL OR WO.[IsActive] = @IsActive) AND (@WorkOrderStatus IS NULL OR WPN.[WorkOrderStatusId] IN (SELECT Item FROM dbo.SplitString(@WorkOrderStatus, ',')) )
+		AND (@WoTaskType IS NULL OR WO.[WorkOrderFormTypeId] = @WoTaskType ) AND (@WorkOrderStagesType IS NULL OR WPN.[WorkOrderStageId] IN (SELECT Item FROM dbo.SplitString(@WorkOrderStagesType, ',')) ))  
         ),
 		QuoteResult AS (
 			SELECT [WorkOrderNum], [WorkOrderId], [CustomerId], [PartNos], [PartNoType], [IncomingPartNumber], 
@@ -603,7 +614,8 @@ BEGIN
 				LEFT JOIN dbo.Condition CD WITH(NOLOCK) ON WPN.ConditionId = CD.ConditionId  
 			    LEFT JOIN dbo.Condition RCD WITH(NOLOCK) ON WPN.RevisedConditionId = RCD.ConditionId  
           WHERE ((@IsDeleted = 0 AND WO.IsDeleted = 0 AND ISNULL(WO.IsMigrated, 0) <> 1) OR (@IsDeleted = 1 AND (WO.IsDeleted = 1 OR WO.IsMigrated = 1))) AND ((WO.[MasterCompanyId] = @MasterCompanyId) AND (@IsActive IS NULL OR WO.[IsActive] = @IsActive)   
-				AND (@WorkOrderStatus = 0 OR WPN.[WorkOrderStatusId] = @WorkOrderStatus) AND (@WoTaskType IS NULL OR WO.[WorkOrderFormTypeId] = @WoTaskType))
+				AND (@WorkOrderStatus IS NULL OR WPN.[WorkOrderStatusId] IN (SELECT Item FROM dbo.SplitString(@WorkOrderStatus, ',')))				
+				AND (@WoTaskType IS NULL OR WO.[WorkOrderFormTypeId] = @WoTaskType) AND (@WorkOrderStagesType IS NULL OR WPN.[WorkOrderStageId] IN (SELECT Item FROM dbo.SplitString(@WorkOrderStagesType, ','))))
 		  GROUP BY	WO.[WorkOrderNum],WO.[WorkOrderId],WO.[CustomerId],WO.[CustomerName],WO.[CustomerType], WO.[OpenDate], WO.[CreatedDate], WO.[UpdatedDate],WO.[CreatedBy], WO.[UpdatedBy],
 					WO.[IsActive],WO.[IsDeleted],WO.[WorkOrderType], WO.[EstimatedCompletionDateType],  WO.[EstimatedCompletionDate], WO.[IsSubWorkOrder],WOPC.[PartCount],WO.[IsWorkOrderTask],WO.[IsMigrated]
 

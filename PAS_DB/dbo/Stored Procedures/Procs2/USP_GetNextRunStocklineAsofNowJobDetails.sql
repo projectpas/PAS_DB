@@ -16,6 +16,7 @@
 	3    03/10/2025   MOIN BLOCH		Updated Datatype of ExecutionDate & Added New Fields
 	4    28/11/2025   Devendra Shekh	Passed '0' as [TagType]
 	5    13/02/2026   Devendra Shekh	Added IsRunDaily
+	6    18/02/2026   Devendra Shekh	Added NextDayDate
 --  EXEC [dbo].[USP_GetNextRunStocklineAsofNowJobDetails] 1
 ************************************************************************/    
 CREATE   PROCEDURE [dbo].[USP_GetNextRunStocklineAsofNowJobDetails]
@@ -35,6 +36,7 @@ BEGIN
 		DECLARE @StartDate DATE = NULL;	
 		DECLARE @NextRunDate DATE = NULL;
 		DECLARE @NextMonthDate DATE = NULL;
+		DECLARE @NextDayDate DATE = NULL;
 		DECLARE @WeeklyName VARCHAR(10) = NULL;
 		DECLARE @Id BIGINT= NULL;
 		DECLARE @DayOfMonth INT = 0;
@@ -87,6 +89,7 @@ BEGIN
 				SET @RunDate = DATEFROMPARTS(YEAR(GETUTCDATE()), MONTH(GETUTCDATE()), @DayOfMonth);
 				SET @StartDate = DATEADD(MONTH, -1, @RunDate);
 				SET @NextMonthDate = DATEADD(MONTH, 1, @RunDate);
+				SET @NextDayDate = DATEADD(DAY, 1, GETUTCDATE());
 				SET @HasJobSetting = 1
 			END
 			IF(@IsWeeklyOrMonthly = @Weekly)
@@ -101,6 +104,7 @@ BEGIN
 
 				SET @StartDate = DATEADD(WEEK, -1, @RunDate);
 				SET @NextMonthDate = DATEADD(WEEK, 1, @RunDate);				
+				SET @NextDayDate = DATEADD(DAY, 1, GETUTCDATE());				
 				SET @HasJobSetting = 1;
 			END
 			IF(@IsWeeklyOrMonthly = @None)
@@ -108,6 +112,7 @@ BEGIN
 			    SET @StartDate = NULL;
 				SET @RunDate = NULL;
 				SET @NextMonthDate = NULL;
+				SET @NextDayDate = NULL;
 				SET @HasJobSetting = 0;
 			END
 		END
@@ -129,7 +134,8 @@ BEGIN
 			   @IsCredits [IsCredits], 
 			   @IsDeposit [IsDeposit], 
 			   @IsUnappliedAmounts [IsUnappliedAmounts],
-			   @IsRunDaily [IsRunDaily]
+			   @IsRunDaily [IsRunDaily],
+			   @NextDayDate [NextDayDate]
  END TRY   
  BEGIN CATCH        
   IF @@trancount > 0  

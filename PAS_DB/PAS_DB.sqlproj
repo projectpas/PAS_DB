@@ -4564,6 +4564,18 @@
     <Build Include="dbo\Tables\PersistedGrants.sql" />
     <Build Include="dbo\Stored Procedures\USP_WIPReportsReconciliation.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdateNonPOInvoicePartMemo.sql" />
+    <Build Include="dbo\Tables\WIPGLAccountSetupAudit.sql" />
+    <Build Include="dbo\Tables\WIPGLAccountSetup.sql" />
+    <Build Include="dbo\Tables\WIPCategory.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetWIPGLAccountSetupHistoryByMasterCompanyId.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetWIPGLAccountSetup.sql" />
+    <Build Include="dbo\Stored Procedures\USP_AddWIPGLAccountSetup.sql" />
+    <Build Include="dbo\User Defined Types\WIPGLAccountSetupType.sql" />
+    <Build Include="dbo\Stored Procedures\usprpt_GetGoodsReceiptNotInvoicedReport_SSRS.sql" />
+    <Build Include="dbo\Stored Procedures\usprpt_GetGoodsReceiptNotInvoicedReport.sql" />
+    <Build Include="dbo\Stored Procedures\usprpt_CustomerInvoiceReportList_SSRS.sql" />
+    <Build Include="dbo\Stored Procedures\usprpt_CustomerInvoiceReportList.sql" />
+    <Build Include="dbo\Stored Procedures\USP_DeleteRestoreWIPGLAccountSetup.sql" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Snapshots\PAS_DB_20220518_07-53-10.dacpac" />

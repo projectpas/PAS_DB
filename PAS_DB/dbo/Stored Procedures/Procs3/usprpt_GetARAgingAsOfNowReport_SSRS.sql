@@ -151,7 +151,7 @@ BEGIN
 		SET @SortColumn = UPPER(@SortColumn)		
 	END		
 	
-	SELECT @AsOfDate = ISNULL(TRY_CAST([Field] AS DATETIME),NULL) FROM #TempARAgingAsOfNowDataFilter WHERE ID = 1; 
+	SELECT @AsOfDate = GETUTCDATE(); 
 	SELECT @CustomerId = ISNULL(TRY_CAST([Field] AS BIGINT),NULL) FROM #TempARAgingAsOfNowDataFilter WHERE ID = 2; 
 	SELECT @IsInvoice = [Field] FROM #TempARAgingAsOfNowDataFilter WHERE ID = 3; 
 	SELECT @IsCredits = [Field] FROM #TempARAgingAsOfNowDataFilter WHERE ID = 4; 

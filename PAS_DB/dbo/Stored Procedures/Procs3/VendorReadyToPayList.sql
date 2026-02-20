@@ -46,6 +46,7 @@
 	29   03-02-2026   AMIT GHEDIYA	    update to get vendor which is not Payment Hold (PN-15337)
 	30   12-02-2026   AMIT GHEDIYA	    date filter issue (PN-15442)
 	31   16/02/2026   Amit Ghediya		update to get due date from ReceivingReconciliation duedate (PN-15444)
+	32   19/02/2026   Amit Ghediya		update for cm is full used or not (PN-15510)
      
 -- EXEC VendorReadyToPayList 1,NULL,NULL,1  
 --EXEC dbo.VendorReadyToPayList @MasterCompanyId=1,@StartDate=default,@EndDate=default,@LegalEntityId=1
@@ -265,13 +266,14 @@ BEGIN
 				   IsACHTransferPayment = 1,--(SELECT CASE WHEN COUNT(VP.VendorDomesticWirePaymentId) > 0 THEN 1 ELSE 0 END  FROM [dbo].[VendorDomesticWirePayment] VP WITH(NOLOCK) WHERE VP.VendorId = V.VendorId AND vp.IsDeleted = 0),
 	               IsCreditCardPayment = 1,--(SELECT TOP 1 CASE WHEN VP.DefaultPaymentMethod = @CreditCardPaymentMethodId THEN 1 ELSE 0 END FROM [dbo].[VendorPayment] VP WITH(NOLOCK) WHERE VP.VendorId = V.VendorId AND vp.IsDeleted = 0),
 				   IsCreditMemo = 0,
-				   SelectedforPayment = 
-				   (SELECT CASE WHEN COUNT(ISNULL(VCMD.VendorCreditMemoId,0)) > 0 THEN 1 ELSE 0 END
-					FROM [dbo].[VendorCreditMemo] VCM 
-						LEFT JOIN [dbo].[VendorCreditMemoDetail] VCMD WITH (NOLOCK) ON VCM.VendorCreditMemoId = VCMD.VendorCreditMemoId
-						LEFT JOIN [dbo].[VendorRMA] VR WITH (NOLOCK) ON VR.VendorRMAId = VCM.VendorRMAId
-						LEFT JOIN [dbo].[Vendor] VD WITH(NOLOCK) ON VCM.VendorId = VD.VendorId
-						LEFT JOIN [dbo].[Vendor] VE WITH(NOLOCK) ON VR.VendorId = VE.VendorId
+					SelectedforPayment = 
+				   (SELECT 
+				   CASE WHEN COUNT(ISNULL(VCM.VendorCreditMemoId,0)) > COUNT(VCMM.VendorCreditMemoId) THEN 1 ELSE 0 END
+					FROM 
+					[dbo].[VendorCreditMemo] VCM WITH (NOLOCK)
+					LEFT JOIN [dbo].[VendorCreditMemoMapping] VCMM WITH (NOLOCK) ON  VCM.VendorCreditMemoId = VCMM.VendorCreditMemoId
+				LEFT JOIN [dbo].[VendorCreditMemoDetail] VCMD WITH (NOLOCK) ON VCMM.VendorCreditMemoId = VCMD.VendorCreditMemoId
+						LEFT JOIN [dbo].[Vendor] VE WITH(NOLOCK) ON VCM.VendorId = VE.VendorId
 					WHERE VCM.VendorCreditMemoStatusId = @VendorCreditMemoStatusId AND VCM.IsVendorPayment IS NULL AND CASE WHEN VCM.VendorId IS NOT NULL THEN VCM.VendorId ELSE VE.VendorId END = V.VendorId
 					HAVING SUM(ISNULL(VCMD.ApplierdAmt,0)) > 0),
 					IsEnable = (SELECT CASE WHEN COUNT(VRTPD.[ReadyToPayDetailsId]) > 0 THEN 0 ELSE 1 END  FROM [dbo].[VendorReadyToPayDetails] VRTPD WITH(NOLOCK)
@@ -362,13 +364,14 @@ BEGIN
 				   IsACHTransferPayment = 1,--(SELECT CASE WHEN COUNT(VP.VendorDomesticWirePaymentId) > 0 THEN 1 ELSE 0 END  FROM [dbo].[VendorDomesticWirePayment] VP WITH(NOLOCK) WHERE VP.VendorId = V.VendorId AND vp.IsDeleted = 0),
 	               IsCreditCardPayment = 1,--(SELECT TOP 1 CASE WHEN VP.DefaultPaymentMethod = @CreditCardPaymentMethodId THEN 1 ELSE 0 END FROM [dbo].[VendorPayment] VP WITH(NOLOCK) WHERE VP.VendorId = V.VendorId AND vp.IsDeleted = 0),
 				   IsCreditMemo = 0,
-				   SelectedforPayment = 
-				   (SELECT CASE WHEN COUNT(ISNULL(VCMD.VendorCreditMemoId,0)) > 0 THEN 1 ELSE 0 END
-					FROM [dbo].[VendorCreditMemo] VCM 
-						LEFT JOIN [dbo].[VendorCreditMemoDetail] VCMD WITH (NOLOCK) ON VCM.VendorCreditMemoId = VCMD.VendorCreditMemoId
-						LEFT JOIN [dbo].[VendorRMA] VR WITH (NOLOCK) ON VR.VendorRMAId = VCM.VendorRMAId
-						LEFT JOIN [dbo].[Vendor] VD WITH(NOLOCK) ON VCM.VendorId = VD.VendorId
-						LEFT JOIN [dbo].[Vendor] VE WITH(NOLOCK) ON VR.VendorId = VE.VendorId
+					SelectedforPayment = 
+				   (SELECT 
+				   CASE WHEN COUNT(ISNULL(VCM.VendorCreditMemoId,0)) > COUNT(VCMM.VendorCreditMemoId) THEN 1 ELSE 0 END
+					FROM 
+					[dbo].[VendorCreditMemo] VCM WITH (NOLOCK)
+					LEFT JOIN [dbo].[VendorCreditMemoMapping] VCMM WITH (NOLOCK) ON  VCM.VendorCreditMemoId = VCMM.VendorCreditMemoId
+				LEFT JOIN [dbo].[VendorCreditMemoDetail] VCMD WITH (NOLOCK) ON VCMM.VendorCreditMemoId = VCMD.VendorCreditMemoId
+						LEFT JOIN [dbo].[Vendor] VE WITH(NOLOCK) ON VCM.VendorId = VE.VendorId
 					WHERE VCM.VendorCreditMemoStatusId = @VendorCreditMemoStatusId AND VCM.IsVendorPayment IS NULL AND CASE WHEN VCM.VendorId IS NOT NULL THEN VCM.VendorId ELSE VE.VendorId END = V.VendorId
 					HAVING SUM(ISNULL(VCMD.ApplierdAmt,0)) > 0),
 					IsEnable = (SELECT CASE WHEN COUNT(VRTPD.[ReadyToPayDetailsId]) > 0 THEN 0 ELSE 1 END  FROM [dbo].[VendorReadyToPayDetails] VRTPD WITH(NOLOCK)
@@ -455,13 +458,14 @@ BEGIN
 				   IsACHTransferPayment = 1,--(SELECT CASE WHEN COUNT(VP.VendorDomesticWirePaymentId) > 0 THEN 1 ELSE 0 END  FROM [dbo].[VendorDomesticWirePayment] VP WITH(NOLOCK) WHERE VP.VendorId = V.VendorId AND vp.IsDeleted = 0),
 	               IsCreditCardPayment = 1,--(SELECT TOP 1 CASE WHEN VP.DefaultPaymentMethod = @CreditCardPaymentMethodId THEN 1 ELSE 0 END FROM [dbo].[VendorPayment] VP WITH(NOLOCK) WHERE VP.VendorId = V.VendorId AND vp.IsDeleted = 0),
 				   IsCreditMemo = 0,
-				   SelectedforPayment = 
-				   (SELECT CASE WHEN COUNT(ISNULL(VCMD.VendorCreditMemoId,0)) > 0 THEN 1 ELSE 0 END
-					FROM [dbo].[VendorCreditMemo] VCM 
-						LEFT JOIN [dbo].[VendorCreditMemoDetail] VCMD WITH (NOLOCK) ON VCM.VendorCreditMemoId = VCMD.VendorCreditMemoId
-						LEFT JOIN [dbo].[VendorRMA] VR WITH (NOLOCK) ON VR.VendorRMAId = VCM.VendorRMAId
-						LEFT JOIN [dbo].[Vendor] VD WITH(NOLOCK) ON VCM.VendorId = VD.VendorId
-						LEFT JOIN [dbo].[Vendor] VE WITH(NOLOCK) ON VR.VendorId = VE.VendorId
+					SelectedforPayment = 
+				   (SELECT 
+				   CASE WHEN COUNT(ISNULL(VCM.VendorCreditMemoId,0)) > COUNT(VCMM.VendorCreditMemoId) THEN 1 ELSE 0 END
+					FROM 
+					[dbo].[VendorCreditMemo] VCM WITH (NOLOCK)
+					LEFT JOIN [dbo].[VendorCreditMemoMapping] VCMM WITH (NOLOCK) ON  VCM.VendorCreditMemoId = VCMM.VendorCreditMemoId
+				LEFT JOIN [dbo].[VendorCreditMemoDetail] VCMD WITH (NOLOCK) ON VCMM.VendorCreditMemoId = VCMD.VendorCreditMemoId
+						LEFT JOIN [dbo].[Vendor] VE WITH(NOLOCK) ON VCM.VendorId = VE.VendorId
 					WHERE VCM.VendorCreditMemoStatusId = @VendorCreditMemoStatusId AND VCM.IsVendorPayment IS NULL AND CASE WHEN VCM.VendorId IS NOT NULL THEN VCM.VendorId ELSE VE.VendorId END = V.VendorId
 					HAVING SUM(ISNULL(VCMD.ApplierdAmt,0)) > 0),
 					IsEnable = (SELECT CASE WHEN COUNT(VRTPD.[ReadyToPayDetailsId]) > 0 THEN 0 ELSE 1 END  FROM [dbo].[VendorReadyToPayDetails] VRTPD WITH(NOLOCK)
@@ -636,12 +640,13 @@ BEGIN
 	            IsCreditCardPayment = 1,--(SELECT TOP 1 CASE WHEN VP.DefaultPaymentMethod = @CreditCardPaymentMethodId THEN 1 ELSE 0 END FROM [dbo].[VendorPayment] VP WITH(NOLOCK) WHERE VP.VendorId = V.VendorId AND vp.IsDeleted = 0),
 				IsCreditMemo = 0,
 				SelectedforPayment = 
-				(SELECT CASE WHEN COUNT(ISNULL(VCMD.VendorCreditMemoId,0)) > 0 THEN 1 ELSE 0 END
-					FROM [dbo].[VendorCreditMemo] VCM 
-						LEFT JOIN [dbo].[VendorCreditMemoDetail] VCMD WITH (NOLOCK) ON VCM.VendorCreditMemoId = VCMD.VendorCreditMemoId
-						LEFT JOIN [dbo].[VendorRMA] VR WITH (NOLOCK) ON VR.VendorRMAId = VCM.VendorRMAId
-						LEFT JOIN [dbo].[Vendor] VD WITH(NOLOCK) ON VCM.VendorId = VD.VendorId
-						LEFT JOIN [dbo].[Vendor] VE WITH(NOLOCK) ON VR.VendorId = VE.VendorId
+				   (SELECT 
+				  CASE WHEN COUNT(ISNULL(VCM.VendorCreditMemoId,0)) > COUNT(VCMM.VendorCreditMemoId) THEN 1 ELSE 0 END
+					FROM 
+					[dbo].[VendorCreditMemo] VCM WITH (NOLOCK)
+					LEFT JOIN [dbo].[VendorCreditMemoMapping] VCMM WITH (NOLOCK) ON  VCM.VendorCreditMemoId = VCMM.VendorCreditMemoId
+				LEFT JOIN [dbo].[VendorCreditMemoDetail] VCMD WITH (NOLOCK) ON VCMM.VendorCreditMemoId = VCMD.VendorCreditMemoId
+						LEFT JOIN [dbo].[Vendor] VE WITH(NOLOCK) ON VCM.VendorId = VE.VendorId
 					WHERE VCM.VendorCreditMemoStatusId = @VendorCreditMemoStatusId AND VCM.IsVendorPayment IS NULL AND CASE WHEN VCM.VendorId IS NOT NULL THEN VCM.VendorId ELSE VE.VendorId END = V.VendorId
 					HAVING SUM(ISNULL(VCMD.ApplierdAmt,0)) > 0),
 				IsEnable = (SELECT CASE WHEN COUNT(VRTPD.[ReadyToPayDetailsId]) > 0 THEN 0 ELSE 1 END  FROM [dbo].[VendorReadyToPayDetails] VRTPD WITH(NOLOCK)
@@ -719,13 +724,14 @@ BEGIN
 				   IsACHTransferPayment = 1,--(SELECT CASE WHEN COUNT(VP.VendorDomesticWirePaymentId) > 0 THEN 1 ELSE 0 END  FROM [dbo].[VendorDomesticWirePayment] VP WITH(NOLOCK) WHERE VP.VendorId = V.VendorId AND vp.IsDeleted = 0),
 	               IsCreditCardPayment = 1,--(SELECT TOP 1 CASE WHEN VP.DefaultPaymentMethod = @CreditCardPaymentMethodId THEN 1 ELSE 0 END FROM [dbo].[VendorPayment] VP WITH(NOLOCK) WHERE VP.VendorId = V.VendorId AND vp.IsDeleted = 0),
 				   IsCreditMemo = 0,
-				   SelectedforPayment = 
-				   (SELECT CASE WHEN COUNT(ISNULL(VCMD.VendorCreditMemoId,0)) > 0 THEN 1 ELSE 0 END
-					FROM [dbo].[VendorCreditMemo] VCM 
-						LEFT JOIN [dbo].[VendorCreditMemoDetail] VCMD WITH (NOLOCK) ON VCM.VendorCreditMemoId = VCMD.VendorCreditMemoId
-						LEFT JOIN [dbo].[VendorRMA] VR WITH (NOLOCK) ON VR.VendorRMAId = VCM.VendorRMAId
-						LEFT JOIN [dbo].[Vendor] VD WITH(NOLOCK) ON VCM.VendorId = VD.VendorId
-						LEFT JOIN [dbo].[Vendor] VE WITH(NOLOCK) ON VR.VendorId = VE.VendorId
+					SelectedforPayment = 
+				   (SELECT 
+				   CASE WHEN COUNT(ISNULL(VCM.VendorCreditMemoId,0)) > COUNT(VCMM.VendorCreditMemoId) THEN 1 ELSE 0 END
+					FROM 
+					[dbo].[VendorCreditMemo] VCM WITH (NOLOCK)
+					LEFT JOIN [dbo].[VendorCreditMemoMapping] VCMM WITH (NOLOCK) ON  VCM.VendorCreditMemoId = VCMM.VendorCreditMemoId
+				LEFT JOIN [dbo].[VendorCreditMemoDetail] VCMD WITH (NOLOCK) ON VCMM.VendorCreditMemoId = VCMD.VendorCreditMemoId
+						LEFT JOIN [dbo].[Vendor] VE WITH(NOLOCK) ON VCM.VendorId = VE.VendorId
 					WHERE VCM.VendorCreditMemoStatusId = @VendorCreditMemoStatusId AND VCM.IsVendorPayment IS NULL AND CASE WHEN VCM.VendorId IS NOT NULL THEN VCM.VendorId ELSE VE.VendorId END = V.VendorId
 					HAVING SUM(ISNULL(VCMD.ApplierdAmt,0)) > 0),
 					IsEnable = (SELECT CASE WHEN COUNT(VRTPD.[ReadyToPayDetailsId]) > 0 THEN 0 ELSE 1 END  FROM [dbo].[VendorReadyToPayDetails] VRTPD WITH(NOLOCK)

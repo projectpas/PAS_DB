@@ -9,9 +9,9 @@
   ** S NO   Date            Author				Change Description              
  ** --   --------         -------			--------------------------------            
     1    11-Feb-2025     Devendra Shekh				Created
-
+    2    20-Feb-2025     Rajesh Gami				Modify as per requirement
 **************************************************************/
-CREATE   PROCEDURE [dbo].[usprpt_GetGoodsReceiptNotInvoicedReport]     
+CREATE     PROCEDURE [dbo].[usprpt_GetGoodsReceiptNotInvoicedReport]     
 @PageNumber INT = 1,    
 @PageSize INT = NULL,    
 @mastercompanyid INT,    
@@ -21,7 +21,7 @@ BEGIN
 	SET NOCOUNT ON;    
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED    
 	BEGIN TRY
-    	   
+    	 DECLARE @postedStatusId INT = (select ID FROM BatchStatus WHERE [Name] = 'Posted')
 		DECLARE @Fromdate DATETIME2,    
 				@Todate  DATETIME2,    
 				@level1 VARCHAR(MAX) = NULL,    
@@ -98,8 +98,11 @@ BEGIN
 		SET @PageNumber = CASE WHEN NULLIF(@PageNumber,0) IS NULL THEN 1 ELSE @PageNumber END
 
 		;WITH rptCTE ([vendor],[vendorCode],[poRoNum],[poStatus],
-		[pn],[pnDescription],[stockType],[cond],
-			[qtyOrdered],[qtyReceived],[qtyReconciled],[qtyRemaining],[receivingReconNum],[unitCost],[extCost],[baseCurrency],[receivedBy],
+		[pn],[pnDescription],[stockType],
+		--[cond],
+			[qtyOrdered],[qtyReceived],[qtyReconciled],[qtyRemaining],[receivingReconNum],
+			[unitCost],
+			[extCost],[baseCurrency],[receivedBy],
 			[level1], [level2], [level3], [level4], [level5], [level6], [level7], [level8], [level9], [level10], [masterCompanyId],CreatedDate,Id,IsPO,PartID) 
 		AS (
 			SELECT
@@ -110,14 +113,14 @@ BEGIN
 			STK.PartNumber AS 'pn',
 			STK.PNDescription AS 'pnDescription',
 			POP.StockType AS 'stockType',
-			STK.Condition AS 'cond',
+			--STK.Condition AS 'cond',
 			ISNULL(POP.QuantityOrdered,0) AS 'qtyOrdered',
 			ISNULL(POP.QuantityReceived,0) AS 'qtyReceived',
 			ISNULL(RRCD.InvoicedQty,0) AS 'qtyReconciled',
-			CASE WHEN (ISNULL(POP.QuantityReceived,0) - ISNULL(RRCD.InvoicedQty,0)) <0 THEN 0 ELSE (ISNULL(POP.QuantityReceived,0) - ISNULL(RRCD.InvoicedQty,0)) END AS 'qtyRemaining',
+			 0 AS 'qtyRemaining',
 			RRCH.ReceivingReconciliationNumber AS 'receivingReconNum',
 			ISNULL(POP.UnitCost,0) AS 'unitCost',
-			ISNULL(POP.ExtendedCost,0) AS 'extCost',
+			ISNULL(ISNULL(POP.UnitCost,0),0) AS 'extCost',
 			POP.FunctionalCurrency AS 'baseCurrency',
 			STK.CreatedBy AS 'receivedBy',
 			UPPER(MSL1.Code)  AS 'level1',      
@@ -138,9 +141,10 @@ BEGIN
 		FROM [dbo].[PurchaseOrder] PO WITH(NOLOCK)
 		INNER JOIN [dbo].[PurchaseOrderPart] POP WITH(NOLOCK) ON PO.PurchaseOrderId = POP.PurchaseOrderId
 		INNER JOIN DBO.Stockline STK WITH(NOLOCK) ON POP.PurchaseOrderPartRecordId = STK.PurchaseOrderPartRecordId
+		--INNER JOIN DBO.StocklineDraft STD WITH(NOLOCK) ON STK.StockLineId = STD.StockLineId AND POP.PurchaseOrderPartRecordId = STD.RepairOrderPartRecordId
 		INNER JOIN [dbo].[PurchaseOrderManagementStructureDetails] MSD WITH(NOLOCK) ON MSD.[ModuleID] = @POModuleID AND MSD.[ReferenceID] = PO.PurchaseOrderId    
-		LEFT JOIN [dbo].[ReceivingReconciliationDetails] RRCD WITH(NOLOCK) ON RRCD.PurchaseOrderId = POP.PurchaseOrderId AND RRCD.PurchaseOrderPartRecordId = POP.PurchaseOrderPartRecordId AND RRCD.[Type] = 1
-		LEFT JOIN [dbo].[ReceivingReconciliationHeader] RRCH WITH(NOLOCK) ON RRCD.ReceivingReconciliationId = RRCH.ReceivingReconciliationId
+		LEFT JOIN [dbo].[ReceivingReconciliationDetails] RRCD WITH(NOLOCK) ON RRCD.PurchaseOrderId = POP.PurchaseOrderId AND RRCD.PurchaseOrderPartRecordId = POP.PurchaseOrderPartRecordId AND RRCD.[Type] = 1 --AND ((ISNULL(POP.QuantityReceived,0) - ISNULL(RRCD.InvoicedQty,0)) > 0 )
+		LEFT JOIN [dbo].[ReceivingReconciliationHeader] RRCH WITH(NOLOCK) ON RRCD.ReceivingReconciliationId = RRCH.ReceivingReconciliationId AND RRCH.StatusId =  @postedStatusId
 		LEFT JOIN [dbo].ManagementStructureLevel MSL1 WITH(NOLOCK)   ON MSD.[Level1Id] = MSL1.ID
 		LEFT JOIN [dbo].ManagementStructureLevel MSL2 WITH(NOLOCK)  ON MSD.[Level2Id] = MSL2.ID
 		LEFT JOIN [dbo].ManagementStructureLevel MSL3 WITH(NOLOCK)  ON MSD.[Level3Id] = MSL3.ID
@@ -153,8 +157,8 @@ BEGIN
 		LEFT JOIN [dbo].ManagementStructureLevel MSL10 WITH(NOLOCK) ON MSD.[Level10Id] = MSL10.ID
 		WHERE PO.[MasterCompanyId] = @mastercompanyid 
 			AND PO.[IsDeleted] = 0 
-			AND ISNULL(POP.QuantityReceived,0) > 0
-			AND (RRCH.ReceivingReconciliationId IS NULL OR (ISNULL(POP.QuantityReceived,0) - ISNULL(RRCD.InvoicedQty,0)) > 0 )
+			--AND ISNULL(POP.QuantityReceived,0) > 0
+			--AND (RRCH.ReceivingReconciliationId IS NULL OR (ISNULL(POP.QuantityReceived,0) - ISNULL(RRCD.InvoicedQty,0)) > 0 )
 			AND CAST(STK.[CreatedDate] AS DATE) BETWEEN CAST(@Fromdate AS DATE) AND CAST(@Todate AS DATE)  
 			AND (ISNULL(@level1,'') =''  OR MSD.[Level1Id]  IN (SELECT Item FROM DBO.SPLITSTRING(@level1,',')))    
 			AND (ISNULL(@level2,'') =''  OR MSD.[Level2Id]  IN (SELECT Item FROM DBO.SPLITSTRING(@level2,',')))    
@@ -177,14 +181,15 @@ BEGIN
 			STK.PartNumber AS 'pn',
 			STK.PNDescription AS 'pnDescription',
 			ROP.StockType AS 'stockType',
-			STK.Condition AS 'cond',
+			--STK.Condition AS 'cond',
 			ISNULL(ROP.QuantityOrdered,0) AS 'qtyOrdered',
 			ISNULL(ROP.QuantityReceived,0) AS 'qtyReceived',
 			ISNULL(RRCD.InvoicedQty,0) AS 'qtyReconciled',
-			CASE WHEN (ISNULL(ROP.QuantityReceived,0) - ISNULL(RRCD.InvoicedQty,0)) <0 THEN 0 ELSE (ISNULL(ROP.QuantityReceived,0) - ISNULL(RRCD.InvoicedQty,0)) END AS 'qtyRemaining',
+			 0 AS 'qtyRemaining',
 			RRCH.ReceivingReconciliationNumber AS 'receivingReconNum',
-			ISNULL(ROP.UnitCost,0) AS 'unitCost',
-			ISNULL(ROP.ExtendedCost,0) AS 'extCost',
+			(ISNULL(STK.RepairOrderUnitCost,0) * ISNULL(ROP.QuantityReceived,0))  AS 'unitCost',
+			ISNULL(ROP.UnitCost,0) AS 'extCost',
+			--0 AS 'extCost',
 			ROP.FunctionalCurrency AS 'baseCurrency',
 			STK.CreatedBy AS 'receivedBy',
 			UPPER(MSL1.Code)  AS 'level1',      
@@ -206,8 +211,8 @@ BEGIN
 		INNER JOIN [dbo].[RepairOrderPart] ROP WITH(NOLOCK) ON RO.RepairOrderId = ROP.RepairOrderId
 		INNER JOIN DBO.Stockline STK WITH(NOLOCK) ON ROP.RepairOrderPartRecordId = STK.RepairOrderPartRecordId
 		INNER JOIN [dbo].[RepairOrderManagementStructureDetails] MSD WITH(NOLOCK) ON MSD.[ModuleID] = @ROModuleID AND MSD.[ReferenceID] = RO.RepairOrderId    
-		LEFT JOIN [dbo].[ReceivingReconciliationDetails] RRCD WITH(NOLOCK) ON RRCD.PurchaseOrderId = ROP.RepairOrderId AND RRCD.PurchaseOrderPartRecordId = ROP.RepairOrderPartRecordId AND RRCD.[Type] = 2
-		LEFT JOIN [dbo].[ReceivingReconciliationHeader] RRCH WITH(NOLOCK) ON RRCD.ReceivingReconciliationId = RRCH.ReceivingReconciliationId
+		LEFT JOIN [dbo].[ReceivingReconciliationDetails] RRCD WITH(NOLOCK) ON RRCD.PurchaseOrderId = ROP.RepairOrderId AND RRCD.PurchaseOrderPartRecordId = ROP.RepairOrderPartRecordId AND RRCD.[Type] = 2 --AND ((ISNULL(ROP.QuantityReceived,0) - ISNULL(RRCD.InvoicedQty,0)) > 0 )
+		LEFT JOIN [dbo].[ReceivingReconciliationHeader] RRCH WITH(NOLOCK) ON RRCD.ReceivingReconciliationId = RRCH.ReceivingReconciliationId AND RRCH.StatusId =  @postedStatusId
 		LEFT JOIN [dbo].ManagementStructureLevel MSL1 WITH(NOLOCK)   ON MSD.[Level1Id] = MSL1.ID
 		LEFT JOIN [dbo].ManagementStructureLevel MSL2 WITH(NOLOCK)  ON MSD.[Level2Id] = MSL2.ID
 		LEFT JOIN [dbo].ManagementStructureLevel MSL3 WITH(NOLOCK)  ON MSD.[Level3Id] = MSL3.ID
@@ -220,8 +225,8 @@ BEGIN
 		LEFT JOIN [dbo].ManagementStructureLevel MSL10 WITH(NOLOCK) ON MSD.[Level10Id] = MSL10.ID
 		WHERE RO.[MasterCompanyId] = @mastercompanyid 
 			AND RO.[IsDeleted] = 0 
-			AND ISNULL(ROP.QuantityReceived,0) > 0
-			AND (RRCH.ReceivingReconciliationId IS NULL OR (ISNULL(ROP.QuantityReceived,0) - ISNULL(RRCD.InvoicedQty,0)) > 0 )
+			--AND ISNULL(ROP.QuantityReceived,0) > 0
+			--AND (RRCH.ReceivingReconciliationId IS NULL OR (ISNULL(ROP.QuantityReceived,0) - ISNULL(RRCD.InvoicedQty,0)) > 0 )
 			AND CAST(STK.[CreatedDate] AS DATE) BETWEEN CAST(@Fromdate AS DATE) AND CAST(@Todate AS DATE)  
 			AND (ISNULL(@level1,'') =''  OR MSD.[Level1Id]  IN (SELECT Item FROM DBO.SPLITSTRING(@level1,',')))    
 			AND (ISNULL(@level2,'') =''  OR MSD.[Level2Id]  IN (SELECT Item FROM DBO.SPLITSTRING(@level2,',')))    
@@ -239,7 +244,8 @@ BEGIN
 				(
 					SELECT
 						vendor, vendorCode, poRoNum, poStatus,
-						pn, pnDescription, stockType, cond,
+						pn, pnDescription, stockType, 
+						--cond,
 						Id, IsPO, PartID,
 
 						MAX(qtyOrdered)     AS qtyOrdered,
@@ -258,14 +264,18 @@ BEGIN
 						MAX(level7) level7, MAX(level8) level8, MAX(level9) level9,
 						MAX(level10) level10,
 
-						MAX(masterCompanyId) masterCompanyId,
-						MAX(CreatedDate) CreatedDate,
-						MAX(receivingReconNum) receivingReconNum
-
+						 MAX(masterCompanyId)masterCompanyId,
+						 MAX(CreatedDate)CreatedDate,
+						 CASE 
+							WHEN COUNT(DISTINCT receivingReconNum) > 1 
+								THEN 'MULTIPLE'
+							ELSE MAX(receivingReconNum)
+						END AS receivingReconNum
 					FROM rptCTE
 					GROUP BY
 						vendor, vendorCode, poRoNum, poStatus,
-						pn, pnDescription, stockType, cond,
+						pn, pnDescription, stockType, 
+						--cond,
 						Id, IsPO, PartID
 				),
 
@@ -273,15 +283,15 @@ BEGIN
 				(
 					SELECT
 						vendor, vendorCode, poRoNum, poStatus,
-						pn, pnDescription, stockType, cond,
+						pn, pnDescription, stockType, 
+						--cond,
 
 						SUM(qtyOrdered)     AS qtyOrdered,
 						SUM(qtyReceived)    AS qtyReceived,
 						SUM(qtyReconciled)  AS qtyReconciled,
 						(SUM(ISNULL(qtyReceived,0)) - SUM(ISNULL(qtyReconciled,0)))    AS qtyRemaining,
-						SUM(extCost)        AS extCost,
-
-						MAX(unitCost)       AS unitCost,
+						--MAX(UNITCost) as UNITCost,
+						(CASE WHEN MAX(isPO) =  1 THEN ((SUM(ISNULL(qtyReceived,0)) - SUM(ISNULL(qtyReconciled,0))) * MAX(UNITCost)) ELSE  SUM(UNITCost) END)AS   extCost,
 						MAX(baseCurrency)   AS baseCurrency,
 						MAX(receivedBy)     AS receivedBy,
 
@@ -293,11 +303,18 @@ BEGIN
 						MAX(masterCompanyId) masterCompanyId,
 						MAX(CreatedDate) CreatedDate,
 						MAX(Id) Id,
-						MAX(IsPO) IsPO
+						MAX(IsPO) IsPO,
+						--MAX(UPPER(receivingReconNum)) receivingReconNum
+						CASE 
+							WHEN COUNT(DISTINCT receivingReconNum) > 1 
+								THEN 'MULTIPLE'
+							ELSE MAX(receivingReconNum)
+						END AS receivingReconNum
 					FROM PartLevel
 					GROUP BY
 						vendor, vendorCode, poRoNum, poStatus,
-						pn, pnDescription, stockType, cond
+						pn, pnDescription, stockType
+						--, cond
 				),
 				WithTotal ([masterCompanyId], [TotalExtCost]) 
 						AS (SELECT [masterCompanyId], 				
@@ -310,40 +327,8 @@ BEGIN
 					,WC.TotalExtCost
 				FROM OrderLevel FC
 				INNER JOIN WithTotal WC ON FC.masterCompanyId = WC.masterCompanyId
+				WHERE qtyRemaining > 0
 				ORDER BY CreatedDate DESC
-
-		--,FinalCTE([vendor], [vendorCode], [poRoNum], [poStatus], [receiverNum], [receiverDate], [invoiceNum], [invoiceDate], [pn], [pnDescription], [stockType], [cond],
-		--	[qtyOrdered], [qtyReceived], [qtyReconciled], [qtyRemaining], [receivingReconNum], [unitCost], [extCost], [baseCurrency], [receivedBy],
-		--	[level1], [level2], [level3], [level4], [level5], [level6], [level7], [level8], [level9], [level10], [masterCompanyId]
-		--) 
-
-		--AS (SELECT DISTINCT [vendor], [vendorCode], [poRoNum], [poStatus], [receiverNum], [receiverDate], [invoiceNum], [invoiceDate], [pn], [pnDescription], [stockType], [cond],
-		--	[qtyOrdered], [qtyReceived], [qtyReconciled], [qtyRemaining], [receivingReconNum], [unitCost], [extCost], [baseCurrency], [receivedBy],
-		--	[level1], [level2], [level3], [level4], [level5], [level6], [level7], [level8], [level9], [level10], [masterCompanyId]
-		--FROM rptCTE)
-
-		--,WithTotal ([masterCompanyId], [TotalExtCost]) 
-		--	AS (SELECT [masterCompanyId], 				
-		--	FORMAT(SUM([extCost]), 'N', 'en-us') [TotalExtCost]				
-		--FROM FinalCTE GROUP BY [masterCompanyId])
-
-		--SELECT	COUNT(1) OVER () AS [totalRecordsCount], 
-		--		[vendor], [vendorCode], [poRoNum], [poStatus], [receiverNum], [receiverDate], [invoiceNum], [invoiceDate], [pn], [pnDescription], [stockType], [cond],
-		--		FORMAT([qtyOrdered], 'N2') AS [qtyOrdered], 
-		--		FORMAT([qtyReceived], 'N2') AS [qtyReceived], 
-		--		FORMAT([qtyReconciled], 'N2') AS [qtyReconciled], 
-		--		FORMAT([qtyRemaining], 'N2') AS [qtyRemaining],
-		--		[receivingReconNum],
-		--		FORMAT([unitCost], 'N2') AS [unitCost],
-		--		FORMAT([extCost], 'N2') AS [extCost],
-		--		[baseCurrency], [receivedBy],
-		--		[level1], [level2], [level3], [level4], [level5], [level6], [level7], [level8], [level9], [level10], FC.[masterCompanyId],
-		--		SUM([extCost]) OVER (PARTITION BY [vendor]) AS vendorTotalExtCost,
-		--		WC.[TotalExtCost]
-		--FROM FinalCTE FC
-		--INNER JOIN WithTotal WC ON FC.masterCompanyId = WC.masterCompanyId
-		--ORDER BY [vendor] ASC, [receiverDate] DESC
-				 
 		OFFSET((@PageNumber-1) * @pageSize) ROWS FETCH NEXT @pageSize ROWS ONLY; 
     
 	END TRY

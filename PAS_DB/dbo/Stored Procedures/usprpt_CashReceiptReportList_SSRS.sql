@@ -20,6 +20,7 @@
 	4	 11 FEB 2026		RAJESH GAMI  		Display only GL Account Num
 	5	 16 FEB 2026		RAJESH GAMI  		Display only code (Management Structure Level)
 	6	 19 FEB 2026		RAJESH GAMI  		Resolve PaymentMethod issue
+	7	 20 FEB 2026		RAJESH GAMI  		Return UPPERCASE value
 **************************************************************/
 CREATE          PROCEDURE [dbo].[usprpt_CashReceiptReportList_SSRS]
 @id VARCHAR(MAX) = NULL,
@@ -361,21 +362,21 @@ BEGIN
 			;WITH Result AS (
 				SELECT DISTINCT
 					CP.ReceiptID,
-					CP.ReceiptNo AS 'ReceiptNo',
-					LEB.BankName AS 'BankAccount',
-					tmpVal.PaymentType as 'PaymentMethod',
-					tmpVal.Reference as 'PaymentReference',
+					UPPER(CP.ReceiptNo) AS 'ReceiptNo',
+					UPPER(LEB.BankName) AS 'BankAccount',
+					UPPER(tmpVal.PaymentType) as 'PaymentMethod',
+					UPPER(tmpVal.Reference) as 'PaymentReference',
 					CASE WHEN @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN 
 						CASE WHEN CAST(CP.PostedDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(CP.PostedDate, @CurrntEmpTimeZoneDesc) AS DATETIME)) END 
 				    ELSE (CAST(CP.PostedDate AS DATETIME)) END PostedDate,
-					CUST.[Name] CustomerName,
+					UPPER(CUST.[Name]) CustomerName,
 					CASE WHEN @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN 
 						CASE WHEN CAST(CP.OpenDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(CP.OpenDate, @CurrntEmpTimeZoneDesc) AS DATETIME)) END 
 				    ELSE (CAST(CP.OpenDate AS DATETIME)) END OpenDate,
 					
 					tmpInv.Amount AS 'baseCurrencyAmount',
 					CP.CreatedDate,				
-					S.Name AS 'Status',
+					UPPER(S.Name) AS 'Status',
 					CASE 
 						WHEN ISNULL(ic.CurrencyId, 0) > 0 THEN ic.CurrencyId
 						WHEN ISNULL(iw.CurrencyId, 0) > 0 THEN iw.CurrencyId
@@ -404,7 +405,7 @@ BEGIN
 					MSD.[Level8Id], 
 					MSD.[Level9Id], 
 					MSD.[Level10Id],
-					tmpInv.InvoiceNum as 'InvoiceNum',
+					UPPER(tmpInv.InvoiceNum) as 'InvoiceNum',
 					CASE WHEN @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN 
 						CASE WHEN CAST(tmpInv.InvoiceDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(tmpInv.InvoiceDate, @CurrntEmpTimeZoneDesc) AS DATETIME)) END 
 				    ELSE (CAST(tmpInv.InvoiceDate AS DATETIME)) END InvoiceDate,
@@ -415,8 +416,8 @@ BEGIN
 				  --	  GETUTCDATE() as InvoiceDate,
 				  --GETUTCDATE() as DueDate,
 					CUST.CustomerId,
-					tmpInv.CreditTermName
-					,tmpInv.WoSoNum
+					UPPER(tmpInv.CreditTermName)CreditTermName
+					,UPPER(tmpInv.WoSoNum)WoSoNum
 				FROM #invoiceTmpTable tmpInv 
 				INNER JOIN dbo.InvoicePayments INV ON tmpInv.InvoicePaymentId = INV.PaymentId
 				INNER JOIN [dbo].[CustomerPayments] CP WITH(NOLOCK) ON CP.ReceiptId = tmpInv.ReceiptId
@@ -461,8 +462,8 @@ BEGIN
 				WHERE  (ISNULL(@IsUpdated,0) <> 1 OR ISNULL(CPD.IsUpdated,0) = ISNULL(@IsUpdated,0)) AND Cp.MasterCompanyId =@mastercompanyid
 			),
 			FinalResult AS (
-				SELECT C.Code AS 'BaseCurrency',(G.AccountCode) AS 'GlAccountNum' ,
-				(E.FirstName +' '+E.LastName) AS 'Employee',
+				SELECT UPPER(C.Code) AS 'BaseCurrency',UPPER(G.AccountCode) AS 'GlAccountNum' ,
+				UPPER(E.FirstName +' '+E.LastName) AS 'Employee',
 				R.* 
 				FROM Result R  
 				LEFT JOIN [dbo].[Currency] C WITH(NOLOCK) ON R.CurrencyId = C.CurrencyId  
@@ -652,21 +653,21 @@ BEGIN
 			;WITH Result AS (
 				SELECT DISTINCT
 					CP.ReceiptID,
-					CP.ReceiptNo AS 'ReceiptNo',
-					LEB.BankName AS 'BankAccount',
-					tmpVal.PaymentType as 'PaymentMethod',
-					tmpVal.Reference as 'PaymentReference',
+					UPPER(CP.ReceiptNo) AS 'ReceiptNo',
+					UPPER(LEB.BankName) AS 'BankAccount',
+					UPPER(tmpVal.PaymentType) as 'PaymentMethod',
+					UPPER(tmpVal.Reference) as 'PaymentReference',
 					CASE WHEN @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN 
 						CASE WHEN CAST(CP.PostedDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(CP.PostedDate, @CurrntEmpTimeZoneDesc) AS DATETIME)) END 
 				    ELSE (CAST(CP.PostedDate AS DATETIME)) END PostedDate,
-					CUST.[Name] as CustomerName,
+					UPPER(CUST.[Name]) as CustomerName,
 					CASE WHEN @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN 
 						CASE WHEN CAST(CP.OpenDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(CP.OpenDate, @CurrntEmpTimeZoneDesc) AS DATETIME)) END 
 				    ELSE (CAST(CP.OpenDate AS DATETIME)) END OpenDate,
 					
 					tmpInv.Amount AS 'baseCurrencyAmount',
 					CP.CreatedDate,				
-					S.Name AS 'Status',
+					UPPER(S.Name) AS 'Status',
 					CASE 
 						WHEN ISNULL(ic.CurrencyId, 0) > 0 THEN ic.CurrencyId
 						WHEN ISNULL(iw.CurrencyId, 0) > 0 THEN iw.CurrencyId
@@ -695,7 +696,7 @@ BEGIN
 					MSD.[Level8Id], 
 					MSD.[Level9Id], 
 					MSD.[Level10Id],
-					tmpInv.InvoiceNum as 'InvoiceNum',
+					UPPER(tmpInv.InvoiceNum) as 'InvoiceNum',
 					CASE WHEN @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN 
 						CASE WHEN CAST(tmpInv.InvoiceDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(tmpInv.InvoiceDate, @CurrntEmpTimeZoneDesc) AS DATETIME)) END 
 				    ELSE (CAST(tmpInv.InvoiceDate AS DATETIME)) END InvoiceDate,
@@ -703,8 +704,8 @@ BEGIN
 						CASE WHEN CAST(tmpInv.InvoiceDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(tmpInv.InvoiceDate, @CurrntEmpTimeZoneDesc) AS DATETIME)) END 
 				    ELSE (CAST(tmpInv.InvoiceDate AS DATETIME)) END) as DueDate,
 					CUST.CustomerId
-					,tmpInv.CreditTermName
-					,tmpInv.WoSoNum
+					,UPPER(tmpInv.CreditTermName)CreditTermName
+					,UPPER(tmpInv.WoSoNum)WoSoNum
 				FROM #invoiceTmpTable tmpInv 
 				INNER JOIN dbo.InvoicePayments INV ON tmpInv.InvoicePaymentId = INV.PaymentId
 				INNER JOIN [dbo].[CustomerPayments] CP WITH(NOLOCK) ON CP.ReceiptId = tmpInv.ReceiptId
@@ -747,8 +748,8 @@ BEGIN
 				WHERE  (ISNULL(@IsUpdated,0) <> 1 OR ISNULL(CPD.IsUpdated,0) = ISNULL(@IsUpdated,0)) AND Cp.MasterCompanyId =@mastercompanyid
 			),
 			FinalResult AS (
-				SELECT C.Code AS 'BaseCurrency',(G.AccountCode) AS 'GlAccountNum' ,
-				(E.FirstName +' '+E.LastName) AS 'Employee',
+				SELECT UPPER(C.Code) AS 'BaseCurrency',UPPER(G.AccountCode) AS 'GlAccountNum' ,
+				UPPER(E.FirstName +' '+E.LastName) AS 'Employee',
 				R.* 
 				FROM Result R  
 				LEFT JOIN [dbo].[Currency] C WITH(NOLOCK) ON R.CurrencyId = C.CurrencyId  
@@ -799,13 +800,13 @@ BEGIN
 
 						CASE 
 							WHEN COUNT(DISTINCT PaymentReference) > 1 
-								THEN 'Multiple'
+								THEN 'MULTIPLE'
 							ELSE MAX(PaymentReference)
 						END AS PaymentReference,
 
 						CASE 
 							WHEN COUNT(DISTINCT ReceiptNo) > 1 
-								THEN 'Multiple'
+								THEN 'MULTIPLE'
 							ELSE MAX(ReceiptNo)
 						END AS ReceiptNo,
 						MAX(PostedDate) PostedDate,
@@ -817,19 +818,19 @@ BEGIN
 
 						CASE 
 							WHEN COUNT(DISTINCT PaymentMethod) > 1 
-								THEN 'Multiple'
+								THEN 'MULTIPLE'
 							ELSE MAX(PaymentMethod)
 						END AS PaymentMethod,
 						CASE 
 							WHEN COUNT(DISTINCT BankAccount) > 1 
-								THEN 'Multiple'
+								THEN 'MULTIPLE'
 							ELSE MAX(BankAccount)
 						END AS BankAccount,
 
 						--MAX(BaseCurrency) AS BaseCurrency,
 						CASE 
 							WHEN COUNT(DISTINCT BaseCurrency) > 1 
-								THEN 'Multiple'
+								THEN 'MULTIPLE'
 							ELSE MAX(BaseCurrency)
 						END AS BaseCurrency,
 						--MAX(PaymentMethod) AS PaymentMethod,
@@ -838,13 +839,13 @@ BEGIN
 						--MAX(GlAccountNum) AS GlAccountNum,
 						CASE 
 							WHEN COUNT(DISTINCT GlAccountNum) > 1 
-								THEN 'Multiple'
+								THEN 'MULTIPLE'
 							ELSE MAX(GlAccountNum)
 						END AS GlAccountNum,
 						--MAX(Employee) AS Employee,
 						CASE 
 							WHEN COUNT(DISTINCT Employee) > 1 
-								THEN 'Multiple'
+								THEN 'MULTIPLE'
 							ELSE MAX(Employee)
 						END AS Employee,
 

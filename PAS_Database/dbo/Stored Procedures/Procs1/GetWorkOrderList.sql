@@ -42,6 +42,7 @@
 	26   02/02/2026   Moin Bloch		    added IncomingPartNumber  PN-15319
 	27   18/02/2026   Moin Bloch		    added WorkOrderStages Filter  PN-15501
 	28   19/02/2026   Moin Bloch		    added WorkOrderStatus Filter MultiSelect PN-15516
+	29   20/02/2026   Moin Bloch		    added WorkOrderStatus Filter MultiSelect PN-15536
 
 	exec dbo.GetWorkOrderList @PageNumber=1,@PageSize=100,@SortColumn=default,@SortOrder=-1,@StatusID=1,@GlobalFilter=default,@ViewType=N'mpn',
 	@WorkOrderNum=default,@PartNumber=default,@PartDescription=default,@WorkScope=default,@Priority=default,@CustomerName=default,@CustomerAffiliation=default,@Stage=default,
@@ -164,7 +165,7 @@ BEGIN
 	BEGIN
 		SET @WorkOrderStagesType = NULL
 	END
-	IF(@WorkOrderStatus = '' OR @WorkOrderStatus = '0' OR @WorkOrderStatus IS NULL)
+	IF(@WorkOrderStatus = '' OR @WorkOrderStatus IS NULL)
 	BEGIN
 		SET @WorkOrderStatus = NULL
 	END	

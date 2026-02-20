@@ -4442,6 +4442,7 @@
     <Build Include="dbo\Stored Procedures\USP_UpdateNonPOInvoicePartMemo.sql" />
     <Build Include="dbo\Stored Procedures\usprpt_CustomerInvoiceReportList_SSRS.sql" />
     <Build Include="dbo\Stored Procedures\usprpt_CustomerInvoiceReportList.sql" />
+    <Build Include="dbo\Stored Procedures\USP_DeleteRestoreWIPGLAccountSetup.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

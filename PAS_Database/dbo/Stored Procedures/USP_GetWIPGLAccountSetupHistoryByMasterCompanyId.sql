@@ -10,8 +10,9 @@
  ** PR   Date				Author				Change Description            
  ** --   -------------		----------------	--------------------------------          
 	1	 02/02/2026          Nakul Chandigra     Created 
+	2	 19-02-2026		     Nakul Chandigra     ADDED ORDER BY WIPGLAccountSetupAuditId 
 
-EXEC [dbo].[USP_GetWIPGLAccountSetupHistoryByMasterCompanyId] 7,1
+EXEC [dbo].[USP_GetWIPGLAccountSetupHistoryByMasterCompanyId] 3,1
 **************************************************************/
 
 CREATE   PROCEDURE [dbo].[USP_GetWIPGLAccountSetupHistoryByMasterCompanyId]
@@ -40,6 +41,7 @@ BEGIN TRY
 	LEFT JOIN View_GLAccount VGL WITH (NOLOCK) ON WIP.GLAccountId = VGL.GLAccountId
 	LEFT JOIN WIPCategory WC WITH (NOLOCK) ON WIP.WIPCategoryId = WC.WIPCategoryId
 	WHERE WIP.MasterCompanyId = @MasterCompanyId AND WIP.WIPGLAccountId = @WIPGLAccountId
+	ORDER BY WIPGLAccountSetupAuditId DESC 
 
 END TRY    
 BEGIN CATCH      

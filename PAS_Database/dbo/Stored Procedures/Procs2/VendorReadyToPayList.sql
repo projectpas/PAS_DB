@@ -271,8 +271,8 @@ BEGIN
 				   CASE WHEN COUNT(ISNULL(VCM.VendorCreditMemoId,0)) > COUNT(VCMM.VendorCreditMemoId) THEN 1 ELSE 0 END
 					FROM 
 					[dbo].[VendorCreditMemo] VCM WITH (NOLOCK)
-					LEFT JOIN [dbo].[VendorCreditMemoMapping] VCMM WITH (NOLOCK) ON  VCM.VendorCreditMemoId = VCMM.VendorCreditMemoId
-				LEFT JOIN [dbo].[VendorCreditMemoDetail] VCMD WITH (NOLOCK) ON VCMM.VendorCreditMemoId = VCMD.VendorCreditMemoId
+						LEFT JOIN [dbo].[VendorCreditMemoDetail] VCMD WITH (NOLOCK) ON VCM.VendorCreditMemoId = VCMD.VendorCreditMemoId
+						LEFT JOIN [dbo].[VendorCreditMemoMapping] VCMM WITH (NOLOCK) ON  VCMD.VendorCreditMemoId = VCMM.VendorCreditMemoId
 						LEFT JOIN [dbo].[Vendor] VE WITH(NOLOCK) ON VCM.VendorId = VE.VendorId
 					WHERE VCM.VendorCreditMemoStatusId = @VendorCreditMemoStatusId AND VCM.IsVendorPayment IS NULL AND CASE WHEN VCM.VendorId IS NOT NULL THEN VCM.VendorId ELSE VE.VendorId END = V.VendorId
 					HAVING SUM(ISNULL(VCMD.ApplierdAmt,0)) > 0),
@@ -369,8 +369,8 @@ BEGIN
 				   CASE WHEN COUNT(ISNULL(VCM.VendorCreditMemoId,0)) > COUNT(VCMM.VendorCreditMemoId) THEN 1 ELSE 0 END
 					FROM 
 					[dbo].[VendorCreditMemo] VCM WITH (NOLOCK)
-					LEFT JOIN [dbo].[VendorCreditMemoMapping] VCMM WITH (NOLOCK) ON  VCM.VendorCreditMemoId = VCMM.VendorCreditMemoId
-				LEFT JOIN [dbo].[VendorCreditMemoDetail] VCMD WITH (NOLOCK) ON VCMM.VendorCreditMemoId = VCMD.VendorCreditMemoId
+						LEFT JOIN [dbo].[VendorCreditMemoDetail] VCMD WITH (NOLOCK) ON VCM.VendorCreditMemoId = VCMD.VendorCreditMemoId
+						LEFT JOIN [dbo].[VendorCreditMemoMapping] VCMM WITH (NOLOCK) ON  VCMD.VendorCreditMemoId = VCMM.VendorCreditMemoId
 						LEFT JOIN [dbo].[Vendor] VE WITH(NOLOCK) ON VCM.VendorId = VE.VendorId
 					WHERE VCM.VendorCreditMemoStatusId = @VendorCreditMemoStatusId AND VCM.IsVendorPayment IS NULL AND CASE WHEN VCM.VendorId IS NOT NULL THEN VCM.VendorId ELSE VE.VendorId END = V.VendorId
 					HAVING SUM(ISNULL(VCMD.ApplierdAmt,0)) > 0),
@@ -463,8 +463,8 @@ BEGIN
 				   CASE WHEN COUNT(ISNULL(VCM.VendorCreditMemoId,0)) > COUNT(VCMM.VendorCreditMemoId) THEN 1 ELSE 0 END
 					FROM 
 					[dbo].[VendorCreditMemo] VCM WITH (NOLOCK)
-					LEFT JOIN [dbo].[VendorCreditMemoMapping] VCMM WITH (NOLOCK) ON  VCM.VendorCreditMemoId = VCMM.VendorCreditMemoId
-				LEFT JOIN [dbo].[VendorCreditMemoDetail] VCMD WITH (NOLOCK) ON VCMM.VendorCreditMemoId = VCMD.VendorCreditMemoId
+						LEFT JOIN [dbo].[VendorCreditMemoDetail] VCMD WITH (NOLOCK) ON VCM.VendorCreditMemoId = VCMD.VendorCreditMemoId
+						LEFT JOIN [dbo].[VendorCreditMemoMapping] VCMM WITH (NOLOCK) ON  VCMD.VendorCreditMemoId = VCMM.VendorCreditMemoId
 						LEFT JOIN [dbo].[Vendor] VE WITH(NOLOCK) ON VCM.VendorId = VE.VendorId
 					WHERE VCM.VendorCreditMemoStatusId = @VendorCreditMemoStatusId AND VCM.IsVendorPayment IS NULL AND CASE WHEN VCM.VendorId IS NOT NULL THEN VCM.VendorId ELSE VE.VendorId END = V.VendorId
 					HAVING SUM(ISNULL(VCMD.ApplierdAmt,0)) > 0),
@@ -644,8 +644,8 @@ BEGIN
 				  CASE WHEN COUNT(ISNULL(VCM.VendorCreditMemoId,0)) > COUNT(VCMM.VendorCreditMemoId) THEN 1 ELSE 0 END
 					FROM 
 					[dbo].[VendorCreditMemo] VCM WITH (NOLOCK)
-					LEFT JOIN [dbo].[VendorCreditMemoMapping] VCMM WITH (NOLOCK) ON  VCM.VendorCreditMemoId = VCMM.VendorCreditMemoId
-				LEFT JOIN [dbo].[VendorCreditMemoDetail] VCMD WITH (NOLOCK) ON VCMM.VendorCreditMemoId = VCMD.VendorCreditMemoId
+						LEFT JOIN [dbo].[VendorCreditMemoDetail] VCMD WITH (NOLOCK) ON VCM.VendorCreditMemoId = VCMD.VendorCreditMemoId
+						LEFT JOIN [dbo].[VendorCreditMemoMapping] VCMM WITH (NOLOCK) ON  VCMD.VendorCreditMemoId = VCMM.VendorCreditMemoId
 						LEFT JOIN [dbo].[Vendor] VE WITH(NOLOCK) ON VCM.VendorId = VE.VendorId
 					WHERE VCM.VendorCreditMemoStatusId = @VendorCreditMemoStatusId AND VCM.IsVendorPayment IS NULL AND CASE WHEN VCM.VendorId IS NOT NULL THEN VCM.VendorId ELSE VE.VendorId END = V.VendorId
 					HAVING SUM(ISNULL(VCMD.ApplierdAmt,0)) > 0),
@@ -729,8 +729,8 @@ BEGIN
 				   CASE WHEN COUNT(ISNULL(VCM.VendorCreditMemoId,0)) > COUNT(VCMM.VendorCreditMemoId) THEN 1 ELSE 0 END
 					FROM 
 					[dbo].[VendorCreditMemo] VCM WITH (NOLOCK)
-					LEFT JOIN [dbo].[VendorCreditMemoMapping] VCMM WITH (NOLOCK) ON  VCM.VendorCreditMemoId = VCMM.VendorCreditMemoId
-				LEFT JOIN [dbo].[VendorCreditMemoDetail] VCMD WITH (NOLOCK) ON VCMM.VendorCreditMemoId = VCMD.VendorCreditMemoId
+						LEFT JOIN [dbo].[VendorCreditMemoDetail] VCMD WITH (NOLOCK) ON VCM.VendorCreditMemoId = VCMD.VendorCreditMemoId
+						LEFT JOIN [dbo].[VendorCreditMemoMapping] VCMM WITH (NOLOCK) ON  VCMD.VendorCreditMemoId = VCMM.VendorCreditMemoId
 						LEFT JOIN [dbo].[Vendor] VE WITH(NOLOCK) ON VCM.VendorId = VE.VendorId
 					WHERE VCM.VendorCreditMemoStatusId = @VendorCreditMemoStatusId AND VCM.IsVendorPayment IS NULL AND CASE WHEN VCM.VendorId IS NOT NULL THEN VCM.VendorId ELSE VE.VendorId END = V.VendorId
 					HAVING SUM(ISNULL(VCMD.ApplierdAmt,0)) > 0),

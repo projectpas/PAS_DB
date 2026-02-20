@@ -16,7 +16,7 @@
  ** PR   Date			 Author			Change Description            
  ** --   --------		 -------		--------------------------------          
     1    06-May-2025   Bhargav Saliya		Created
-
+	2    19-Feb-2026   Moin Bloch 		    Getting Issue when Internal Work Order PN-15513
 **************************************************************/
 --EXEC [USP_GetWorkOrderTeardownDetails] @IsSubWorkOrder = 0,@WorkOrderId = 8808,@WorkFlowWorkOrderId = 8547,@MasterCompanyId =1,@SubWOPartNoId = 0
 CREATE   PROCEDURE [dbo].[USP_GetWorkOrderTeardownDetails]
@@ -96,10 +96,6 @@ BEGIN
 			WHERE ty.MasterCompanyId = @MasterCompanyId
 			  AND ty.CommonTeardownTypeId IN (SELECT TRY_CAST(TearDownTypeId AS BIGINT) FROM SplitTearDownTypes)
 			ORDER BY ty.Sequence;
-		END
-		ELSE
-		BEGIN
-			SELECT NULL;
 		END
 	END TRY
 	BEGIN CATCH  

@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [USP_CreateExchangeFromPO]           
  ** Author: Rajesh Gami
  ** Description: This stored procedure is used to Create Exchange from the PO(Where we have used EXCHANGE provision material)
@@ -11,7 +10,8 @@
  **************************************************************           
  ** PR   Date         Author  		Change Description            
  ** --   --------     -------		---------------------------     
-    1    13/10/2023   Rajesh Gami     Created
+    1    13/10/2023   Rajesh Gami		Created
+    2    20/02/2026   Devendra Shekh	PO Part Add Issue Resolved(From WO)
 **************************************************************
 --EXEC  [dbo].[USP_CreateExchangeFromPO] 0,1936,15539
 **************************************************************/
@@ -93,7 +93,7 @@ BEGIN
 
 		END -- END @POId >0
 
-		Select @ExchangeId AS ExchangeId 
+		--Select @ExchangeId AS ExchangeId 
 	END
 	COMMIT  TRANSACTION
   END TRY

@@ -143,10 +143,10 @@ BEGIN
 			[Priority], ControlNumber, Condition, ItemGroup, IsCustomerStock, WOAge, 
 			level1, level2, level3, level4, level5, level6, level7, level8, level9, level10,
 			legalEntity, Qty)
-		SELECT WO.WorkOrderId, WOP.ID, WOP.StockLineId, WO.CustomerId, WO.MasterCompanyId, SL.PartNumber,  SL.PNDescription AS PartDescription, 
+		SELECT WO.WorkOrderId, WOP.ID, WOP.StockLineId, WO.CustomerId, WO.MasterCompanyId, SL.PartNumber,  UPPER(SL.PNDescription) AS PartDescription, 
 			CASE WHEN ISNULL(RevisedSerialNumber, '') != '' THEN RevisedSerialNumber ELSE SL.SerialNumber END AS SerialNumber,			
-			WO.CustomerName, WT.[Description] AS WorkOrderType, WO.WorkOrderNum, WO.OpenDate, WOP.WorkScope, SL.StockLineNumber,
-			SL.Manufacturer, P.[Description] As [Priority], SL.ControlNumber, C.[Description] As Condition, SL.ItemGroup, SL.IsCustomerStock,
+			UPPER(WO.CustomerName), UPPER(WT.[Description]) AS WorkOrderType, WO.WorkOrderNum, WO.OpenDate, UPPER(WOP.WorkScope), SL.StockLineNumber,
+			UPPER(SL.Manufacturer), P.[Description] As [Priority], SL.ControlNumber, C.[Description] As Condition, UPPER(SL.ItemGroup), SL.IsCustomerStock,
 			DATEDIFF(day, WO.OpenDate, GETUTCDATE()),
 			UPPER(MSD.Level1Name) AS level1, UPPER(MSD.Level2Name) AS level2, UPPER(MSD.Level3Name) AS level3, UPPER(MSD.Level4Name) AS level4,    
 			UPPER(MSD.Level5Name) AS level5, UPPER(MSD.Level6Name) AS level6, UPPER(MSD.Level7Name) AS level7, UPPER(MSD.Level8Name) AS level8,    

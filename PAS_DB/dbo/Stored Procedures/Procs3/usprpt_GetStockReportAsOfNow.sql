@@ -869,6 +869,37 @@ BEGIN
 	--FROM #TEMPOriginalStocklineRecords StkOriginal
 	--INNER JOIN #TEMPStocklineUnitCostAdjustedBulk StkSold ON StkOriginal.[StockLineId] = StkSold.[StocklineId]
 
+	DECLARE @PostedStatusId INT, @OpenStatusId INT;
+
+	SELECT TOP (1) @PostedStatusId = Id FROM [dbo].[BatchStatus]  WITH (NOLOCK) WHERE [Name] = 'POSTED' AND ISNULL(IsDeleted, 0) = 0  AND ISNULL(IsActive, 0) = 1 ORDER BY Id;
+
+    SELECT TOP (1) @OpenStatusId = Id FROM [dbo].[BatchStatus]  WITH (NOLOCK) WHERE [Name] = 'OPEN' AND ISNULL(IsDeleted, 0) = 0  AND ISNULL(IsActive, 0) = 1 ORDER BY Id;
+
+	DECLARE @TotalPostedGL DECIMAL(18,2) = 0 
+	DECLARE @TotalUnPostedGL DECIMAL(18,2) = 0 
+
+	SELECT @TotalPostedGL = SUM(CBD.DebitAmount - CBD.CreditAmount)
+	FROM [dbo].[CommonBatchDetails] CBD WITH (NOLOCK)
+	JOIN [dbo].[BatchDetails] BD WITH (NOLOCK) ON BD.JournalBatchDetailId = CBD.JournalBatchDetailId
+	WHERE  EXISTS (SELECT 1 FROM [dbo].[Stockline] stl WHERE stl.GLAccountId = CBD.GLAccountId 
+	AND stl.[MasterCompanyId] = @mastercompanyid
+	AND stl.[IsParent] = 1 
+	AND stl.[IsDeleted] = 0 AND CAST(stl.[CreatedDate] AS DATE) <= CASE WHEN ISNULL(@id9, 0) = 1 THEN CAST(GETUTCDATE() AS DATE) ELSE CAST(GETUTCDATE()-1 AS DATE) END
+	AND stl.[IsCustomerStock] = CASE WHEN @id3 = 1 THEN 0 ELSE stl.[IsCustomerStock] END 
+	 AND (ISNULL(@id8,'') = '' OR ISNULL(LTRIM(RTRIM(stl.[LocationId])), '') = '' OR stl.[LocationId] NOT IN (SELECT LTRIM(RTRIM(Item)) FROM DBO.SPLITSTRING(@id8, ',') WHERE ISNULL(LTRIM(RTRIM(Item)), '') <> ''))
+	) AND BD.StatusId = @PostedStatusId
+
+	SELECT @TotalUnPostedGL = SUM(CBD.DebitAmount - CBD.CreditAmount)
+	FROM [dbo].[CommonBatchDetails] CBD WITH (NOLOCK)
+	JOIN [dbo].[BatchDetails] BD WITH (NOLOCK) ON BD.JournalBatchDetailId = CBD.JournalBatchDetailId
+	WHERE  EXISTS (SELECT 1 FROM [dbo].[Stockline] stl WHERE stl.GLAccountId = CBD.GLAccountId 
+	AND stl.[MasterCompanyId] = @mastercompanyid 
+	AND stl.[IsParent] = 1
+	AND stl.[IsDeleted] = 0 AND CAST(stl.[CreatedDate] AS DATE) <= CASE WHEN ISNULL(@id9, 0) = 1 THEN CAST(GETUTCDATE() AS DATE) ELSE CAST(GETUTCDATE()-1 AS DATE) END
+	 AND stl.[IsCustomerStock] = CASE WHEN @id3 = 1 THEN 0 ELSE stl.[IsCustomerStock] END 
+	 AND (ISNULL(@id8,'') = '' OR ISNULL(LTRIM(RTRIM(stl.[LocationId])), '') = '' OR stl.[LocationId] NOT IN (SELECT LTRIM(RTRIM(Item)) FROM DBO.SPLITSTRING(@id8, ',') WHERE ISNULL(LTRIM(RTRIM(Item)), '') <> ''))
+	) AND BD.StatusId = @OpenStatusId
+
 	DECLARE @TotalInventory DECIMAL(18,2) = 0 
 	SELECT @TotalInventory = SUM(ISNULL(ISNULL(stl.[UnitCost],0) * ISNULL(stl.[QTY_on_Hand],0) , 0))
 		FROM #TEMPOriginalStocklineRecords stl WHERE [QTY_on_Hand] > 0
@@ -946,7 +977,8 @@ BEGIN
 			stl.TaggedBy,
 			stl.TagDate,
 			stl.ReconciliationNum,
-			@TotalInventory [TotalInventory]
+			@TotalInventory [TotalInventory],
+			@TotalPostedGL [TotalPostedGL] ,@TotalUnPostedGL [TotalUnPostedGL]
 			FROM #TEMPOriginalStocklineRecords stl WHERE QTY_on_Hand > 0 
 			ORDER BY PN;
   END TRY

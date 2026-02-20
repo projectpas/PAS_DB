@@ -21,6 +21,7 @@
 	4    19/01/2026   Moin Bloch     Added PONum
 	5    21/01/2026   Moin Bloch     Added StockLineNumber,ControlNumber
 	6    10/02/2026   Amit Ghediya   Added WorkOrderNumber for Stockline lines where the part line is associated to a WO (PN-15419)
+	7    20/02/2026   Amit Ghediya   Added RO NUM,SerialNumber , TenderedQTY (PN-15533)
      
 --EXEC [GetWorkOrderPrintMateriallist] 10148,10350,10212
 ********/
@@ -42,16 +43,20 @@ BEGIN
 				        SUM(WOMS.QtyIssued) AS QuantityIssued,
 						imt.partnumber AS partnumber,
 						imt.PartDescription AS PartDescription,
-						STK.PurchaseOrderNumber AS PONum,
+						CASE WHEN ISNULL(WOMS.RepairOrderId,0) > 0 THEN RO.RepairOrderNumber ELSE STK.PurchaseOrderNumber END AS PONum,
 						STK.StockLineNumber,
 						STK.ControlNumber,
-						CASE WHEN ISNULL(STK.[IsTurnIn],0) = 1 THEN ISNULL(STK.[WorkOrderNumber],'') ELSE '' END AS WorkOrderNumber
+						CASE WHEN ISNULL(STK.[IsTurnIn],0) = 1 THEN ISNULL(STK.[WorkOrderNumber],'') ELSE '' END AS WorkOrderNumber,
+						STK.SerialNumber,
+						WOMS.QuantityTurnIn AS TenderedQTY
 				FROM [dbo].[WorkOrderMaterialStockLine] WOMS WITH(NOLOCK)
 				INNER JOIN [dbo].[WorkOrderMaterials] WOM WITH(NOLOCK) ON WOM.WorkOrderMaterialsId = WOMS.WorkOrderMaterialsId
 				INNER JOIN [dbo].[Stockline] STK WITH(NOLOCK) ON STk.StockLineId = WOMS.StockLineId
 				LEFT JOIN  [dbo].[ItemMaster] imt WITH(NOLOCK) ON imt.ItemMasterId = WOMS.ItemMasterId
+				LEFT JOIN  [dbo].[RepairOrder] RO WITH(NOLOCK) ON RO.RepairOrderId = WOMS.RepairOrderId
 				WHERE WOM.WorkFlowWorkOrderId = @workFlowWorkOrderId AND WOMS.IsDeleted = 0 AND WOMS.ProvisionId <> @ProvisionId
-				GROUP BY STK.PurchaseOrderNumber,imt.partnumber,imt.PartDescription,STK.StockLineNumber,STK.ControlNumber,STK.IsTurnIn,STK.WorkOrderNumber
+				GROUP BY WOMS.RepairOrderId,STK.PurchaseOrderNumber,imt.partnumber,imt.PartDescription,STK.StockLineNumber,
+						 STK.ControlNumber,STK.IsTurnIn,STK.WorkOrderNumber,STK.SerialNumber,RO.RepairOrderNumber,WOMS.QuantityTurnIn
 
 				UNION ALL
 
@@ -59,16 +64,21 @@ BEGIN
 				        SUM(WOMS.QtyIssued) AS QuantityIssued,
 						imt.partnumber AS partnumber,
 						imt.PartDescription AS PartDescription,
-						STK.PurchaseOrderNumber AS PONum,
+						--STK.PurchaseOrderNumber AS PONum,
+						CASE WHEN ISNULL(WOMS.RepairOrderId,0) > 0 THEN RO.RepairOrderNumber ELSE STK.PurchaseOrderNumber END AS PONum,
 						STK.StockLineNumber,
 						STK.ControlNumber,
-						CASE WHEN ISNULL(STK.[IsTurnIn],0) = 1 THEN ISNULL(STK.[WorkOrderNumber],'') ELSE '' END AS WorkOrderNumber
+						CASE WHEN ISNULL(STK.[IsTurnIn],0) = 1 THEN ISNULL(STK.[WorkOrderNumber],'') ELSE '' END AS WorkOrderNumber,
+						STK.SerialNumber,
+						WOMS.QuantityTurnIn AS TenderedQTY
 				FROM [dbo].[WorkOrderMaterialStockLineKit] WOMS WITH(NOLOCK)
 				INNER JOIN [dbo].[WorkOrderMaterialsKit] WOM WITH(NOLOCK) ON WOM.WorkOrderMaterialsKitId= WOMS.WorkOrderMaterialsKitId
 				INNER JOIN [dbo].[Stockline] STK WITH(NOLOCK) ON STk.StockLineId = WOMS.StockLineId
 				LEFT JOIN [dbo].[ItemMaster] imt WITH(NOLOCK) ON imt.ItemMasterId = WOMS.ItemMasterId
+				LEFT JOIN  [dbo].[RepairOrder] RO WITH(NOLOCK) ON RO.RepairOrderId = WOMS.RepairOrderId
 				WHERE WOM.WorkFlowWorkOrderId = @workFlowWorkOrderId AND WOMS.IsDeleted = 0
-				GROUP BY STK.PurchaseOrderNumber,imt.partnumber,imt.PartDescription,STK.StockLineNumber,STK.ControlNumber,STK.IsTurnIn,STK.WorkOrderNumber
+				GROUP BY WOMS.RepairOrderId,STK.PurchaseOrderNumber,imt.partnumber,imt.PartDescription,STK.StockLineNumber,
+						 STK.ControlNumber,STK.IsTurnIn,STK.WorkOrderNumber,STK.SerialNumber,RO.RepairOrderNumber,WOMS.QuantityTurnIn
 			END
 		COMMIT  TRANSACTION
 

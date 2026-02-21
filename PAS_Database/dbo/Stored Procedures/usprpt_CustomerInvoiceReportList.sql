@@ -481,7 +481,7 @@ BEGIN
 			WHERE SOBI.MasterCompanyId=@MasterCompanyId	AND SOBII.IsDeleted=0 
 			--AND ISNULL(SOBI.GrandTotal,0) > 0	
 			AND SOBI.IsActive = 1 AND SOBI.IsDeleted = 0
-			--AND SOBI.[SOBillingInvoicingId] NOT IN (SELECT ISNULL(CM.[InvoiceId], 0) FROM [dbo].[CreditMemo] CM WITH (NOLOCK) WHERE CM.[StatusId] IN(@CMPostedStatusId,@ClosedCreditMemoStatus,@RefundedCreditMemoStatus,@RefundRequestedCreditMemoStatus) AND CM.[InvoiceTypeId] = @EXInvoiceTypeId)
+			AND ISNULL(SOBI.GrandTotal, 0) > 0
 			GROUP BY	SOBI.SOBillingInvoicingId, SOBI.InvoiceNo, SOBI.InvoiceStatus, SOBI.InvoiceDate, SO.ExchangeSalesOrderNumber, C.[Name],C.CustomerCode, CT.CustomerTypeName, SOBI.GrandTotal, SOBI.RemainingAmount
 						, SO.CustomerReference, SMS.LastMSLevel, SMS.AllMSlevels, SOBI.ExchangeSalesOrderId, C.CustomerId, SMS.EntityMSID,I.ItemMasterId, CR.Code, MSL.Code,
 						SMS.[Level2Name], SMS.[Level3Name], SMS.[Level4Name], SMS.[Level5Name], SMS.[Level6Name], SMS.[Level7Name], SMS.[Level8Name], SMS.[Level9Name], SMS.[Level10Name],
@@ -1047,7 +1047,7 @@ BEGIN
 			WHERE SOBI.MasterCompanyId=@MasterCompanyId	AND SOBII.IsDeleted=0 
 			--AND ISNULL(SOBI.GrandTotal,0) > 0	
 			AND SOBI.IsActive = 1 AND SOBI.IsDeleted = 0
-			--AND SOBI.[SOBillingInvoicingId] NOT IN (SELECT ISNULL(CM.[InvoiceId], 0) FROM [dbo].[CreditMemo] CM WITH (NOLOCK) WHERE CM.[StatusId] IN(@CMPostedStatusId,@ClosedCreditMemoStatus,@RefundedCreditMemoStatus,@RefundRequestedCreditMemoStatus) AND CM.[InvoiceTypeId] = @EXInvoiceTypeId)
+			AND ISNULL(SOBI.GrandTotal, 0) > 0
 			GROUP BY	SOBI.SOBillingInvoicingId, SOBI.InvoiceNo, SOBI.InvoiceStatus, SOBI.InvoiceDate, SO.ExchangeSalesOrderNumber, C.[Name],C.CustomerCode, CT.CustomerTypeName, SOBI.GrandTotal, SOBI.RemainingAmount
 						, SO.CustomerReference, SMS.LastMSLevel, SMS.AllMSlevels, SOBI.ExchangeSalesOrderId, C.CustomerId, SMS.EntityMSID,I.ItemMasterId, CR.Code, MSL.Code,
 						SMS.[Level2Name], SMS.[Level3Name], SMS.[Level4Name], SMS.[Level5Name], SMS.[Level6Name], SMS.[Level7Name], SMS.[Level8Name], SMS.[Level9Name], SMS.[Level10Name],
@@ -1356,12 +1356,6 @@ BEGIN
 				ResultCount AS (
 					SELECT COUNT(InvoiceDate) AS NumberOfItems FROM InvoiceDateWiseResult
 				) 
-				   --SELECT * INTO #TempResult from  FinalResult
-   
-				   --SELECT @Count = COUNT(InvoicingId), @InvoiceTotalAmount = SUM(ISNULL(Amount, 0)), @RemainingTotalAmount = SUM(ISNULL(RemainingAmount, 0)) FROM #TempResult   
-  
-				   --SELECT *, @Count As NumberOfItems, @InvoiceTotalAmount AS InvoiceTotalAmount, @RemainingTotalAmount AS RemainingTotalAmount
-				   --FROM #TempResult
 				   SELECT * FROM InvoiceDateWiseResult, ResultCount
 				   ORDER BY       
 				   CASE WHEN (@SortOrder=1 and @SortColumn='InvoiceNum')  THEN InvoiceNum END ASC,  
@@ -1371,7 +1365,7 @@ BEGIN
 				   CASE WHEN (@SortOrder=1 and @SortColumn='CustomerName')  THEN CustomerName END ASC,  
 				   CASE WHEN (@SortOrder=1 and @SortColumn='CustomerType')  THEN CustomerType END ASC,  
 				   CASE WHEN (@SortOrder=1 and @SortColumn='Amount')  THEN Amount END ASC,  
-				   --CASE WHEN (@SortOrder=1 and @SortColumn='AmountPaid')  THEN AmountPaid END ASC,  				   
+				   
 				   CASE WHEN (@SortOrder=1 and @SortColumn='PN')  THEN PN END ASC,  
 				   CASE WHEN (@SortOrder=1 and @SortColumn='PNDescription')  THEN PNDescription END ASC,  
 				   CASE WHEN (@SortOrder=1 and @SortColumn='VersionNo')  THEN VersionNo END ASC, 
@@ -1388,7 +1382,7 @@ BEGIN
 				   CASE WHEN (@SortOrder=-1 and @SortColumn='CustomerName')  THEN CustomerName END DESC,  
 				   CASE WHEN (@SortOrder=-1 and @SortColumn='CustomerType')  THEN CustomerType END DESC,  
 				   CASE WHEN (@SortOrder=-1 and @SortColumn='Amount')  THEN Amount END DESC,  
-				   --CASE WHEN (@SortOrder=-1 and @SortColumn='AmountPaid')  THEN AmountPaid END DESC, 
+				   
 				   CASE WHEN (@SortOrder=-1 and @SortColumn='PN')  THEN PN END DESC,  
 				   CASE WHEN (@SortOrder=-1 and @SortColumn='PNDescription')  THEN PNDescription END DESC,  
 				   CASE WHEN (@SortOrder=-1 and @SortColumn='VersionNo')  THEN VersionNo END DESC, 
@@ -1408,7 +1402,6 @@ BEGIN
 				1 AS RowNum,
 				WOBI.InvoiceNo [InvoiceNum],
 				WOBI.InvoiceStatus [InvoiceStatus],
-				--WOBI.InvoiceDate [InvoiceDate],
 				CASE WHEN @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN 
 					 CASE WHEN CAST(WOBI.InvoiceDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(WOBI.InvoiceDate, @CurrntEmpTimeZoneDesc) AS DATETIME)) END 
 				ELSE (CAST(WOBI.InvoiceDate AS DATETIME)) END InvoiceDate,
@@ -1421,7 +1414,6 @@ BEGIN
 				C.CustomerId,
 				CT.CustomerTypeName [CustomerType],
 				WOBII.GrandTotal [Amount], 
-				--CASE WHEN WOBI.CostPlusType = 'Flat Rate' AND ISNULL(WOBII.GrandTotal,0) > 0 THEN ISNULL(WOBII.GrandTotal,0) ELSE CASE WHEN ISNULL(WOBII.GrandTotal,0) > 0 THEN ISNULL(WOBII.GrandTotal,0) WHEN ISNULL(WOBII.SubTotal,0) > 0 THEN ISNULL(WOBII.SubTotal,0) ELSE ISNULL(WOBII.UnitPrice,0) END END [InvoiceAmt],
 				ISNULL(WOBI.RemainingAmount, 0)  RemainingAmount,
 				ISNULL(ISNULL(WOBII.GrandTotal,0) - ISNULL(WOBI.RemainingAmount,0),0) AmountPaid,				
 				IM.partnumber [PN], 
@@ -1467,8 +1459,7 @@ BEGIN
 				MSD.[Level10Id]
 				FROM dbo.BillingInvoicing WOBI WITH (NOLOCK)
 				LEFT JOIN dbo.BillingInvoicingItems WOBII WITH (NOLOCK) ON WOBII.BillingInvoicingId = WOBI.BillingInvoicingId 
-				--AND ISNULL(WOBII.[IsInvoicePosted], 0) != 1 
-				AND ISNULL(WOBII.IsVersionIncrease, 0) = 0 --AND ISNULL(WOBII.IsPerformaInvoice, 0) = 0
+				AND ISNULL(WOBII.IsVersionIncrease, 0) = 0
 				LEFT JOIN dbo.WorkOrderPartNumber WOPN WITH (NOLOCK) ON WOPN.WorkOrderId =WOBI.ReferenceId AND WOPN.ID = WOBII.SubReferenceId
 				LEFT JOIN dbo.WorkOrderWorkFlow WOWF WITH (NOLOCK) ON WOPN.ID =WOWF.WorkOrderPartNoId
 				LEFT JOIN dbo.WorkOrder WO WITH (NOLOCK) ON WOBI.ReferenceId = WO.WorkOrderId
@@ -1486,16 +1477,14 @@ BEGIN
 			    LEFT JOIN [dbo].[CreditTerms] CTM WITH(NOLOCK) ON CTM.CreditTermsId = CF.CreditTermsId  
 			WHERE WOBI.MasterCompanyId=@MasterCompanyId AND ISNULL(WOBI.IsVersionIncrease, 0) = 0 AND WOBI.ModuleId =@workOrderModuleId 
 			AND ISNULL(WOBI.[IsStandardInvoicePosted], 0) != 1 
-			--AND ISNULL(WOBI.RemainingAmount,0) > 0
 			AND WOBI.IsActive = 1 AND WOBI.IsDeleted = 0
-			--AND WOBI.[BillingInvoicingId] NOT IN (SELECT ISNULL(CM.[InvoiceId], 0) FROM [dbo].[CreditMemo] CM WITH (NOLOCK) WHERE CM.[StatusId] IN(@CMPostedStatusId,@ClosedCreditMemoStatus,@RefundedCreditMemoStatus,@RefundRequestedCreditMemoStatus) AND CM.[InvoiceTypeId] = @WOInvoiceTypeId)      
+			AND (ISNULL(WOBI.IsPerformaInvoice,0) = 0)
 
 			UNION ALL
 
 			SELECT DISTINCT SOBI.BillingInvoicingId [InvoicingId],
 				   1 AS RowNum,
-				   --ROW_NUMBER() OVER (PARTITION BY SOBI.InvoiceNo,IM.ItemMasterId ORDER BY SOBI.SOBillingInvoicingId) AS RowNum,
-			       SOBI.InvoiceNo [InvoiceNum],
+				   SOBI.InvoiceNo [InvoiceNum],
 				   SOBI.InvoiceStatus [InvoiceStatus],
 				   CASE WHEN @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN 
 						CASE WHEN CAST(SOBI.InvoiceDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(SOBI.InvoiceDate, @CurrntEmpTimeZoneDesc) AS DATETIME)) END 
@@ -1572,9 +1561,8 @@ BEGIN
 			    LEFT JOIN [dbo].[CreditTerms] CTM WITH(NOLOCK) ON CTM.CreditTermsId = CF.CreditTermsId  
 			WHERE SOBI.MasterCompanyId=@MasterCompanyId AND ISNULL(SOBII.IsVersionIncrease,0)=0 AND SOBI.ModuleId = @salesOrderModuleId
 			AND ISNULL(SOBI.[IsStandardInvoicePosted], 0) != 1 
-			--AND ISNULL(SOBI.RemainingAmount,0) > 0
 			AND SOBI.IsActive = 1 AND SOBI.IsDeleted = 0
-			 --AND SOBI.[BillingInvoicingId] NOT IN (SELECT ISNULL(CM.[InvoiceId], 0) FROM [dbo].[CreditMemo] CM WITH (NOLOCK) WHERE CM.[StatusId] IN(@CMPostedStatusId,@ClosedCreditMemoStatus,@RefundedCreditMemoStatus,@RefundRequestedCreditMemoStatus) AND CM.[InvoiceTypeId] = @SOInvoiceTypeId)
+			AND ISNULL(SOBI.IsPerformaInvoice,0) = 0
 				GROUP BY SOBI.BillingInvoicingId,SOBI.InvoiceNo,
 					SOBI.InvoiceStatus ,SOBI.InvoiceDate,SO.SalesOrderNumber,
 					C.Name ,C.CustomerCode,CT.CustomerTypeName , SOBI.RemainingAmount,
@@ -1589,7 +1577,6 @@ BEGIN
 					   ROW_NUMBER() OVER (PARTITION BY SOBI.InvoiceNo,IM.ItemMasterId ORDER BY SOBI.SOBillingInvoicingId) AS RowNum,
 					   SOBI.InvoiceNo [InvoiceNum],
 					   SOBI.InvoiceStatus [InvoiceStatus],
-					   --SOBI.InvoiceDate [InvoiceDate],
 					   CASE WHEN @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' THEN 
 							CASE WHEN CAST(SOBI.InvoiceDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(SOBI.InvoiceDate, @CurrntEmpTimeZoneDesc) AS DATETIME)) END 
 					   ELSE (CAST(SOBI.InvoiceDate AS DATETIME)) END InvoiceDate,
@@ -1604,7 +1591,6 @@ BEGIN
 					   SOBI.GrandTotal [Amount],
 					   ISNULL(SOBII.GrandTotal,0) RemainingAmount,
 					   0 as AmountPaid,
-					   --ISNULL(ISNULL(SOBI.GrandTotal,0) - ISNULL(SOBI.RemainingAmount,0),0) AmountPaid,		
 					   IM.partnumber [PN], 
 					   IM.PartDescription [PNDescription],
 					   SO.VersionNumber [VersionNo],
@@ -1664,9 +1650,8 @@ BEGIN
 			    LEFT JOIN [dbo].[CreditTerms] CTM WITH(NOLOCK) ON CTM.CreditTermsId = CF.CreditTermsId  
 				WHERE SOBI.MasterCompanyId=@MasterCompanyId	
 				 AND SOBII.[IsDeleted] = 0 
-				 --AND ISNULL(SOBI.[GrandTotal],0) > 0	
 				 AND SOBI.IsActive = 1 AND SOBI.IsDeleted = 0
-			     --AND SOBI.[SOBillingInvoicingId] NOT IN (SELECT ISNULL(CM.[InvoiceId], 0) FROM [dbo].[CreditMemo] CM WITH (NOLOCK) WHERE CM.[StatusId] IN(@CMPostedStatusId,@ClosedCreditMemoStatus,@RefundedCreditMemoStatus,@RefundRequestedCreditMemoStatus) AND CM.[InvoiceTypeId] = @EXInvoiceTypeId)
+				 AND ISNULL(SOBI.GrandTotal, 0) > 0
 			
 				UNION ALL
 
@@ -1747,13 +1732,9 @@ BEGIN
 			),
 			FinalResult AS (
 				SELECT 
-				--(E.FirstName +' '+E.LastName) AS 'Employee',
 				0 as totalAmount,
 				R.* 
 				FROM Result R  
-				--LEFT JOIN [dbo].[Currency] C WITH(NOLOCK) ON R.CurrencyId = C.CurrencyId  
-				--LEFT JOIN [dbo].[GLAccount] G WITH(NOLOCK) ON R.GLAccountId = G.GLAccountId
-				--LEFT JOIN [dbo].[Employee] E WITH(NOLOCK) ON R.EmployeeId = E.EmployeeId
 				WHERE (  
 			  
 				(@GlobalFilter <> '' AND (  
@@ -1773,25 +1754,18 @@ BEGIN
 				  (StockType like '%' +@GlobalFilter+'%')))  
 				 OR     
 				 (@GlobalFilter='' AND (IsNull(@InvoiceNum,'') ='' OR InvoiceNum like '%' + @InvoiceNum+'%') AND  
-				  --(IsNull(@InvoiceStatus,'') ='' OR InvoiceStatus like '%' + @InvoiceStatus+'%') AND 
 				  (IsNull(@InvoiceDate,'') ='' OR Cast(InvoiceDate as date)=Cast(@InvoiceDate as date)) and 
 				  (IsNull(@WOSONum,'') ='' OR WOSONum like '%' + @WOSONum+'%') AND  
 				  (IsNull(@CustomerName,'') ='' OR CustomerName like '%' + @CustomerName+'%') AND  
-				  --(IsNull(@CustomerType,'') ='' OR CustomerType like '%' + @CustomerType+'%') AND  
 				  (IsNull(CAST( @Amount as varchar),'') ='' OR Cast(Amount as varchar) like '%' + CAST(@Amount as varchar)+'%') AND  
-				  --(IsNull(CAST( @AmountPaid as varchar),'') ='' OR Cast(AmountPaid as varchar) like '%' + CAST(@AmountPaid as varchar)+'%') AND 
-				  --(IsNull(CAST( @RemainingAmount as varchar),'') ='' OR Cast(RemainingAmount as varchar) like '%' + CAST(@RemainingAmount as varchar)+'%') AND 
 				  (IsNull(@PN,'') ='' OR PN like '%' + @PN+'%') AND  
 				  (IsNull(@PNDescription,'') ='' OR PNDescription like '%' + @PNDescription+'%') AND  
-				  --(IsNull(@VersionNo,'') ='' OR VersionNo like '%' + @VersionNo+'%') AND   
 				  (IsNull(@QuoteNumber,'') ='' OR QuoteNumber like '%' + @QuoteNumber+'%') AND   
 				  (IsNull(@CustReference,'') ='' OR CustReference like '%' + @CustReference+'%') AND  
 				  (IsNull(@SerialNumber,'') ='' OR SerialNumber like '%' + @SerialNumber+'%') AND
 				  (ISNULL(@LastMSLevel,'') ='' OR AllMSlevels like '%' + @LastMSLevel+'%') and
-				  --(IsNull(@StockType,'') ='' OR StockType like '%' + @StockType+'%')   AND
 				 (@FromDate IS NULL OR CAST(InvoiceDate AS DATE) >= CAST(@FromDate AS DATE)) AND
 				 (@ToDate IS NULL OR CAST(InvoiceDate AS DATE) <= CAST(@ToDate AS DATE)) AND
-				  --(IsNull(@Status,'') ='' OR InvoiceStatus like '%' + @Status+'%')
 				  (1=1)
 				  ))
 			), 

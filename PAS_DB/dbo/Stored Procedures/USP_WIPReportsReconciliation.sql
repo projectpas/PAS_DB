@@ -11,6 +11,7 @@
  ** PR   Date         Author			Change Description              
  ** --   --------     -------			--------------------------------            
     1    11/02/2026   Priyansh Patel      Created  for Initial Requirements	
+	2    11/02/2026   Hemant Saliya       Corrected balance missmatch
 
      
 exec USP_WIPReportsReconciliation @mastercompanyid=1,@id='2026-01-01 00:00:00',@id2='2026-01-30 00:00:00'
@@ -55,9 +56,9 @@ BEGIN
 
         SELECT TOP (1) @OpenStatusId = Id FROM [dbo].[BatchStatus]  WITH (NOLOCK) WHERE [Name] = 'OPEN' AND ISNULL(IsDeleted, 0) = 0  AND ISNULL(IsActive, 0) = 1 ORDER BY Id;
 
-        SELECT @WIPMaterialCategoryId = WIPCategoryId FROM [dbo].[WIPCategory] WC  WITH (NOLOCK) WHERE WIPCategory = 'WIP Material' AND ISNULL(WC.IsDeleted, 0) = 0 AND ISNULL(WC.IsActive, 0) = 1 ;
-        SELECT @WIPDirectLaborCategoryId = WIPCategoryId FROM [dbo].[WIPCategory] WC  WITH (NOLOCK) WHERE WIPCategory = 'WIP Direct Labor' AND ISNULL(WC.IsDeleted, 0) = 0 AND ISNULL(WC.IsActive, 0) = 1;
-        SELECT @WIPOverheadCategoryId = WIPCategoryId FROM [dbo].[WIPCategory] WC  WITH (NOLOCK) WHERE WIPCategory = 'WIP Overhead' AND ISNULL(WC.IsDeleted, 0) = 0 AND ISNULL(WC.IsActive, 0) = 1;
+        SELECT @WIPMaterialCategoryId = WIPCategoryId FROM [dbo].[WIPCategory] WC  WITH (NOLOCK) WHERE WIPCategory = 'WIP Material' AND ISNULL(WC.IsDeleted, 0) = 0 AND ISNULL(WC.IsActive, 0) = 1 AND WC.MasterCompanyId = @MasterCompanyId ;
+        SELECT @WIPDirectLaborCategoryId = WIPCategoryId FROM [dbo].[WIPCategory] WC  WITH (NOLOCK) WHERE WIPCategory = 'WIP Direct Labor' AND ISNULL(WC.IsDeleted, 0) = 0 AND ISNULL(WC.IsActive, 0) = 1 AND WC.MasterCompanyId = @MasterCompanyId;
+        SELECT @WIPOverheadCategoryId = WIPCategoryId FROM [dbo].[WIPCategory] WC  WITH (NOLOCK) WHERE WIPCategory = 'WIP Overhead' AND ISNULL(WC.IsDeleted, 0) = 0 AND ISNULL(WC.IsActive, 0) = 1 AND WC.MasterCompanyId = @MasterCompanyId;
 
         IF OBJECT_ID(N'tempdb..#tmpWO') IS NOT NULL    
 		BEGIN    

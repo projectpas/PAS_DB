@@ -878,26 +878,27 @@ BEGIN
 	DECLARE @TotalPostedGL DECIMAL(18,2) = 0 
 	DECLARE @TotalUnPostedGL DECIMAL(18,2) = 0 
 
-	SELECT @TotalPostedGL = SUM(CBD.DebitAmount - CBD.CreditAmount)
+	SELECT @TotalPostedGL = SUM(ISNULL(CBD.DebitAmount, 0) - ISNULL(CBD.CreditAmount, 0))
 	FROM [dbo].[CommonBatchDetails] CBD WITH (NOLOCK)
-	JOIN [dbo].[BatchDetails] BD WITH (NOLOCK) ON BD.JournalBatchDetailId = CBD.JournalBatchDetailId
+		JOIN [dbo].[BatchDetails] BD WITH (NOLOCK) ON BD.JournalBatchDetailId = CBD.JournalBatchDetailId
 	WHERE  EXISTS (SELECT 1 FROM [dbo].[Stockline] stl WHERE stl.GLAccountId = CBD.GLAccountId 
-	AND stl.[MasterCompanyId] = @mastercompanyid
-	AND stl.[IsParent] = 1 
-	AND stl.[IsDeleted] = 0 AND CAST(stl.[CreatedDate] AS DATE) <= CASE WHEN ISNULL(@id9, 0) = 1 THEN CAST(GETUTCDATE() AS DATE) ELSE CAST(GETUTCDATE()-1 AS DATE) END
-	AND stl.[IsCustomerStock] = CASE WHEN @id3 = 1 THEN 0 ELSE stl.[IsCustomerStock] END 
-	 AND (ISNULL(@id8,'') = '' OR ISNULL(LTRIM(RTRIM(stl.[LocationId])), '') = '' OR stl.[LocationId] NOT IN (SELECT LTRIM(RTRIM(Item)) FROM DBO.SPLITSTRING(@id8, ',') WHERE ISNULL(LTRIM(RTRIM(Item)), '') <> ''))
+		AND stl.[MasterCompanyId] = @mastercompanyid
+		AND stl.[IsParent] = 1 
+		AND stl.[IsDeleted] = 0 AND CAST(stl.[CreatedDate] AS DATE) <= CASE WHEN ISNULL(@id9, 0) = 1 THEN CAST(GETUTCDATE() AS DATE) ELSE CAST(GETUTCDATE()-1 AS DATE) END
+		AND stl.[IsCustomerStock] = CASE WHEN @id3 = 1 THEN 0 ELSE stl.[IsCustomerStock] END 
+		AND (ISNULL(@id8,'') = '' OR ISNULL(LTRIM(RTRIM(stl.[LocationId])), '') = '' OR stl.[LocationId] NOT IN (SELECT LTRIM(RTRIM(Item)) FROM DBO.SPLITSTRING(@id8, ',') WHERE ISNULL(LTRIM(RTRIM(Item)), '') <> ''))
 	) AND BD.StatusId = @PostedStatusId
 
-	SELECT @TotalUnPostedGL = SUM(CBD.DebitAmount - CBD.CreditAmount)
+
+	SELECT @TotalUnPostedGL = SUM(ISNULL(CBD.DebitAmount, 0) - ISNULL(CBD.CreditAmount, 0))
 	FROM [dbo].[CommonBatchDetails] CBD WITH (NOLOCK)
-	JOIN [dbo].[BatchDetails] BD WITH (NOLOCK) ON BD.JournalBatchDetailId = CBD.JournalBatchDetailId
-	WHERE  EXISTS (SELECT 1 FROM [dbo].[Stockline] stl WHERE stl.GLAccountId = CBD.GLAccountId 
-	AND stl.[MasterCompanyId] = @mastercompanyid 
-	AND stl.[IsParent] = 1
-	AND stl.[IsDeleted] = 0 AND CAST(stl.[CreatedDate] AS DATE) <= CASE WHEN ISNULL(@id9, 0) = 1 THEN CAST(GETUTCDATE() AS DATE) ELSE CAST(GETUTCDATE()-1 AS DATE) END
-	 AND stl.[IsCustomerStock] = CASE WHEN @id3 = 1 THEN 0 ELSE stl.[IsCustomerStock] END 
-	 AND (ISNULL(@id8,'') = '' OR ISNULL(LTRIM(RTRIM(stl.[LocationId])), '') = '' OR stl.[LocationId] NOT IN (SELECT LTRIM(RTRIM(Item)) FROM DBO.SPLITSTRING(@id8, ',') WHERE ISNULL(LTRIM(RTRIM(Item)), '') <> ''))
+		JOIN [dbo].[BatchDetails] BD WITH (NOLOCK) ON BD.JournalBatchDetailId = CBD.JournalBatchDetailId
+	WHERE  EXISTS (SELECT 1 FROM [dbo].[Stockline] stl WITH (NOLOCK) WHERE stl.GLAccountId = CBD.GLAccountId 
+		AND stl.[MasterCompanyId] = @mastercompanyid 
+		AND stl.[IsParent] = 1
+		AND stl.[IsDeleted] = 0 AND CAST(stl.[CreatedDate] AS DATE) <= CASE WHEN ISNULL(@id9, 0) = 1 THEN CAST(GETUTCDATE() AS DATE) ELSE CAST(GETUTCDATE()-1 AS DATE) END
+		AND stl.[IsCustomerStock] = CASE WHEN @id3 = 1 THEN 0 ELSE stl.[IsCustomerStock] END 
+		AND (ISNULL(@id8,'') = '' OR ISNULL(LTRIM(RTRIM(stl.[LocationId])), '') = '' OR stl.[LocationId] NOT IN (SELECT LTRIM(RTRIM(Item)) FROM DBO.SPLITSTRING(@id8, ',') WHERE ISNULL(LTRIM(RTRIM(Item)), '') <> ''))
 	) AND BD.StatusId = @OpenStatusId
 
 	DECLARE @TotalInventory DECIMAL(18,2) = 0 

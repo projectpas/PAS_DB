@@ -17,7 +17,7 @@
 **************************************************************/  
 CREATE    PROCEDURE [dbo].[USP_UpdateNonPOInvoicePartMemo]
     @NonPOInvoicePartDetailsId BIGINT,
-    @Memo VARCHAR(max),
+    @Memo VARCHAR(max) = NULL,
     @UpdatedBy VARCHAR(50),
 	@MasterCompanyId INT
 AS

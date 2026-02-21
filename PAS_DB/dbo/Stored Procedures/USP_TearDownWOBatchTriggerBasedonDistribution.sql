@@ -14,6 +14,7 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    10/02/2026  Moin Bloch     CREATED
+	2    20/02/2026  Moin Bloch     Tender Stockline Multiply by Tendered Quantity PN-15505
 
    EXEC [dbo].[USP_TearDownWOBatchTriggerBasedonDistribution] 4,3915,0,0,459,0,0,'',0,0.00,'WO',1,'ADMIN User'
 
@@ -195,7 +196,7 @@ BEGIN
 
 			IF(UPPER(@DistributionCode) = UPPER('CREATETEARDOWNWO'))
 			BEGIN				
-				SELECT @Amount = ISNULL(STL.[UnitCost],0),					   
+				SELECT @Amount = ISNULL(STL.[UnitCost],0),		   
 					   @LotId = STL.[LotId],
 				       @LotNumber = LO.[LotNumber]					   
 				  FROM [dbo].[Stockline] STL WITH(NOLOCK)
@@ -387,7 +388,7 @@ BEGIN
 			END
 			IF(UPPER(@DistributionCode) = UPPER('TENDERINGSTOCKLINETWO'))
 			BEGIN				
-				SELECT @Amount = ISNULL(STL.[UnitCost],0),					   
+				SELECT @Amount = (ISNULL(STL.[UnitCost],0) * ISNULL(STL.[QuantityAvailable],0)),					   
 					   @LotId = STL.[LotId],
 				       @LotNumber = LO.[LotNumber]					   
 				  FROM [dbo].[Stockline] STL WITH(NOLOCK)

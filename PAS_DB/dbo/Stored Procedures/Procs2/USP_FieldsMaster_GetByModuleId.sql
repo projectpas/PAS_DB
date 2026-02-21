@@ -4,7 +4,7 @@
  ** S NO   Date				Author  			Change Description            
  ** --   --------		-------				--------------------------------          
 	1   22-Oct-2024     Sahdev Saliya       fixed error in cursor added local
-
+	2   20-Feb-2025     Rajesh Gami         Added ISACTIVE condition for FieldsMaster
 	EXEC [dbo].[USP_FieldsMaster_GetByModuleId] 1,1
 **************************************************************/
 
@@ -35,7 +35,7 @@ SET NOCOUNT ON;
 	INSERT INTO #TEMPFieldMaster  
 	
 	SELECT FieldName,HeaderName,FieldGridWidth,FieldPDFWidth,FieldExcelWidth,FieldSortOrder,ISNULL(IsNumString,0),ISNULL(IsRightAlign,0),ISNULL(IsDateField,0)
-	FROM dbo.FieldsMaster WITH (NOLOCK) WHERE ModuleId=@ModuleId AND FieldName != 'ms'
+	FROM dbo.FieldsMaster WITH (NOLOCK) WHERE ModuleId=@ModuleId AND FieldName != 'ms' AND IsActive = 1
 	--AND IsActive=1
 	ORDER BY FieldSortOrder
 	DECLARE @PDFpre decimal(10,2)

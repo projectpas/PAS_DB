@@ -41,7 +41,9 @@ BEGIN
 		DECLARE @ChargeType VARCHAR(MAX) = NULL,
 				@MasterCompanyId INT,
 				@NeoMasterCompanyId INT,
-				@MTIMasterCompanyId INT;
+				@MTIMasterCompanyId INT,
+				@TextName VARCHAR(20) = 'INCLUDED IN TOTAL';
+
 
 		SELECT @NeoMasterCompanyId = [MasterCompanyId] FROM [dbo].[MasterCompany] WITH(NOLOCK) WHERE [MasterCompanyCode] = 'NEO';
 		SELECT @MTIMasterCompanyId = [MasterCompanyId] FROM [dbo].[MasterCompany] WITH(NOLOCK) WHERE [MasterCompanyCode] = 'MTI';
@@ -50,7 +52,7 @@ BEGIN
 
 		IF(@MasterCompanyId = @NeoMasterCompanyId)
 		BEGIN
-			 SELECT @ChargeType = STRING_AGG(UPPER(CH.[ChargeType]), ', ') 
+			 SELECT @ChargeType = STRING_AGG(UPPER(CH.ChargeType) + '  $' + CAST(WQC.ExtendedCost AS VARCHAR(20)), ', ') + ' ' + UPPER(@TextName)
 				FROM [dbo].[WorkOrderQuoteDetails] WQD WITH(NOLOCK)
 				INNER JOIN [dbo].[WorkOrderQuoteCharges] WQC WITH(NOLOCK) ON WQC.[WorkOrderQuoteDetailsId] = WQD.[WorkOrderQuoteDetailsId] AND WQC.[IsDeleted] = 0
 				INNER JOIN [dbo].[Charge] CH WITH(NOLOCK) ON CH.[ChargeId] = WQC.[ChargesTypeId]

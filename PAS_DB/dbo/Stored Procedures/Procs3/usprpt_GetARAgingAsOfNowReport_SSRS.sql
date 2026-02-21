@@ -20,6 +20,7 @@
 	4    07-07-2025     Moin Bloch          Changed Old To New Billing Table
 	5	 27-JAN-2026	Rajesh Gami			Added InvoiceNumber
 	6	 13-Feb-2026	Devendra Shekh		Added New param @id5 
+	7	 20-Feb-2026	Devendra Shekh		Added Missing Report Changes
 EXEC usprpt_GetARAgingAsOfNowReport_SSRS 
 **************************************************************/
 CREATE   PROCEDURE [dbo].[usprpt_GetARAgingAsOfNowReport_SSRS]
@@ -98,6 +99,7 @@ BEGIN
     @InvoiceAmount DECIMAL(18, 2) = NULL,
     @BalanceAmount DECIMAL(18, 2) = NULL,
     @CurrentAmount DECIMAL(18, 2) = NULL,
+    @ReceivedAmount DECIMAL(18, 2) = NULL,
     @PaymentAmount DECIMAL(18, 2) = NULL,
     @Amountlessthan0days DECIMAL(18,2) = NULL,
     @Amountlessthan30days DECIMAL(18,2) = NULL,
@@ -277,7 +279,8 @@ BEGIN
 				[IsCreditMemo] BIT NULL,
 				[InvoicePaidAmount] DECIMAL(18, 2) NULL,
 				[ModuleTypeId] INT NULL,
-				[LegalEntityName] VARCHAR(MAX) NULL		
+				[LegalEntityName] VARCHAR(MAX) NULL,
+				[ReceivedAmount] DECIMAL(18, 2) NULL,
 			) 
 		
 			-- WO INVOICE DETAILS
@@ -288,7 +291,7 @@ BEGIN
 				   [InvoiceAmount],[CMAmount],[CreditMemoAmount],[CreditMemoUsed],
 				   [Level1Id],[Level2Id],[Level3Id],[Level4Id],[Level5Id],[Level6Id],[Level7Id],[Level8Id],[Level9Id],[Level10Id],
 				   [level1],[level2],[level3],[level4],[level5],[level6],[level7],[level8],[level9],[level10],
-				   [MasterCompanyId],[StatusId],[IsCreditMemo],[InvoicePaidAmount],[ModuleTypeId],[LegalEntityName])
+				   [MasterCompanyId],[StatusId],[IsCreditMemo],[InvoicePaidAmount],[ModuleTypeId],[LegalEntityName],[ReceivedAmount])
 			SELECT DISTINCT WOBI.[BillingInvoicingId],			               
 							C.[CustomerId],
 							UPPER(ISNULL(C.[Name],'')),      
@@ -356,7 +359,8 @@ BEGIN
 									JOIN [dbo].[ManagementStructureLevel] MSL ON ES.Level1Id = MSL.ID
 									JOIN [dbo].[LegalEntity] LE ON MSL.LegalEntityId = LE.LegalEntityId  
 								WHERE WOP.WorkOrderId = WO.WorkOrderId
-								FOR XML PATH('')), 1, 1, ''))
+								FOR XML PATH('')), 1, 1, '')),
+							0
 			FROM [dbo].[BillingInvoicing] WOBI WITH (NOLOCK) 
 				INNER JOIN [dbo].[WorkOrder] WO WITH (NOLOCK) ON WO.WorkOrderId = WOBI.ReferenceId      
 				INNER JOIN [dbo].[Customer] C  WITH (NOLOCK) ON C.CustomerId = WO.CustomerId
@@ -365,7 +369,7 @@ BEGIN
 				AND ISNULL(WOBI.[RemainingAmount],0) > 0 AND WOBI.[InvoiceStatus] = @InvoiceStatus
 				AND CAST(WOBI.[InvoiceDate] AS DATE) <= CASE WHEN ISNULL(@id5, 0) = 1 THEN CAST(@AsOfDate AS DATE) ELSE CAST(@AsOfDate-1 AS DATE) END 
 				AND WO.[MasterCompanyId] = @MasterCompanyid 
-				AND @IsInvoice = 1
+				AND @IsInvoice = 1  AND WOBI.ModuleId = @WOModuleId
 				AND (CASE WHEN @IsDeposit = 1 THEN ((ISNULL(WOBI.[GrandTotal], 0) - ISNULL(WOBI.[RemainingAmount], 0)) + ISNULL(WOBI.[CreditMemoUsed], 0)) END > 0 OR CASE WHEN @IsDeposit = 0 THEN 1 END = 1) 
 							
 			UPDATE #TEMPInvoiceRecordsSSRS SET InvoicePaidAmount = ISNULL(tmpcash.InvoicePaidAmount,0)
@@ -397,7 +401,7 @@ BEGIN
 				   [InvoiceAmount],[CMAmount],[CreditMemoAmount],[CreditMemoUsed],
 				   [Level1Id],[Level2Id],[Level3Id],[Level4Id],[Level5Id],[Level6Id],[Level7Id],[Level8Id],[Level9Id],[Level10Id],
 				   [level1],[level2],[level3],[level4],[level5],[level6],[level7],[level8],[level9],[level10],
-				   [MasterCompanyId],[StatusId],[IsCreditMemo],[InvoicePaidAmount],[ModuleTypeId],[LegalEntityName])
+				   [MasterCompanyId],[StatusId],[IsCreditMemo],[InvoicePaidAmount],[ModuleTypeId],[LegalEntityName],[ReceivedAmount])
 			SELECT DISTINCT SOBI.[BillingInvoicingId],
 				                C.[CustomerId],  					
                                 UPPER(ISNULL(C.[Name],'')),      
@@ -467,7 +471,8 @@ BEGIN
 										JOIN [dbo].[ManagementStructureLevel] MSL ON ES.Level1Id = MSL.ID
 										JOIN [dbo].[LegalEntity] LE ON MSL.LegalEntityId = LE.LegalEntityId  
 									WHERE SOP.SalesOrderId = SO.SalesOrderId
-									FOR XML PATH('')), 1, 1, ''))
+									FOR XML PATH('')), 1, 1, '')),
+								0
 				FROM [dbo].[BillingInvoicing] SOBI WITH (NOLOCK)       
 					INNER JOIN [dbo].[SalesOrder] SO WITH (NOLOCK) ON SO.SalesOrderId = SOBI.ReferenceId      
 					INNER JOIN [dbo].[Customer] c  WITH (NOLOCK) ON C.CustomerId = SO.CustomerId      
@@ -476,7 +481,7 @@ BEGIN
 					AND ISNULL(SOBI.[RemainingAmount],0) > 0 AND SOBI.[InvoiceStatus] = @InvoiceStatus AND ISNULL(SOBI.[IsPerformaInvoice],0) = 0 
 					AND CAST(SOBI.[InvoiceDate] AS DATE) <= CASE WHEN ISNULL(@id5, 0) = 1 THEN CAST(@AsOfDate AS DATE) ELSE CAST(@AsOfDate-1 AS DATE) END
 					AND SO.[MasterCompanyId] = @Mastercompanyid  
-					AND @IsInvoice = 1	
+					AND @IsInvoice = 1	AND SOBI.ModuleId = @SOModuleId
 					AND (CASE WHEN @IsDeposit = 1 THEN ((ISNULL(SOBI.[GrandTotal], 0) - ISNULL(SOBI.[RemainingAmount], 0)) + ISNULL(SOBI.[CreditMemoUsed], 0)) END > 0 OR CASE WHEN @IsDeposit = 0 THEN 1 END = 1) 
 										
 			UPDATE #TEMPInvoiceRecordsSSRS SET [InvoicePaidAmount] = ISNULL(tmpcash.[InvoicePaidAmount],0)
@@ -507,7 +512,7 @@ BEGIN
 				   [InvoiceAmount],[CMAmount],[CreditMemoAmount],[CreditMemoUsed],
 				   [Level1Id],[Level2Id],[Level3Id],[Level4Id],[Level5Id],[Level6Id],[Level7Id],[Level8Id],[Level9Id],[Level10Id],
 				   [level1],[level2],[level3],[level4],[level5],[level6],[level7],[level8],[level9],[level10],
-				   [MasterCompanyId],[StatusId],[IsCreditMemo],[InvoicePaidAmount],[ModuleTypeId],[LegalEntityName])			
+				   [MasterCompanyId],[StatusId],[IsCreditMemo],[InvoicePaidAmount],[ModuleTypeId],[LegalEntityName],[ReceivedAmount])			
 		    SELECT DISTINCT ESOBI.SOBillingInvoicingId,
 				            C.[CustomerId],  					
                             UPPER(ISNULL(C.[Name],'')),      
@@ -576,7 +581,8 @@ BEGIN
 										JOIN [dbo].[ManagementStructureLevel] MSL ON ES.Level1Id = MSL.ID
 										JOIN [dbo].[LegalEntity] LE ON MSL.LegalEntityId = LE.LegalEntityId  
 									WHERE ESOP.ExchangeSalesOrderId = ESO.ExchangeSalesOrderId
-									FOR XML PATH('')), 1, 1, ''))
+									FOR XML PATH('')), 1, 1, '')),
+							0
 				FROM [dbo].[ExchangeSalesOrderBillingInvoicing] ESOBI WITH (NOLOCK)    
 							INNER JOIN [dbo].[ExchangeSalesOrder] ESO WITH (NOLOCK) ON ESO.ExchangeSalesOrderId = ESOBI.ExchangeSalesOrderId      
 							INNER JOIN [dbo].[Customer] C WITH (NOLOCK) ON C.CustomerId = ESO.CustomerId 
@@ -617,7 +623,7 @@ BEGIN
 				   [InvoiceAmount],[CMAmount],[CreditMemoAmount],[CreditMemoUsed],
 				   [Level1Id],[Level2Id],[Level3Id],[Level4Id],[Level5Id],[Level6Id],[Level7Id],[Level8Id],[Level9Id],[Level10Id],
 				   [level1],[level2],[level3],[level4],[level5],[level6],[level7],[level8],[level9],[level10],
-				   [MasterCompanyId],[StatusId],[IsCreditMemo],[InvoicePaidAmount],[ModuleTypeId],[LegalEntityName])	
+				   [MasterCompanyId],[StatusId],[IsCreditMemo],[InvoicePaidAmount],[ModuleTypeId],[LegalEntityName],[ReceivedAmount])	
 			SELECT DISTINCT CM.[CreditMemoHeaderId],
 			                C.[CustomerId],     
 							UPPER(C.[Name]),
@@ -660,7 +666,8 @@ BEGIN
 							1,
 							0,  -- 'InvoicePaidAmount',
 							@CMModuleTypeId,  -- 'Credit Memo',
-					        LE.[Name]
+					        LE.[Name],
+							0
 			 FROM [dbo].[CreditMemo] CM WITH (NOLOCK)   
 				INNER JOIN [dbo].[CreditMemoDetails] CMD WITH (NOLOCK) ON CM.CreditMemoHeaderId = CMD.CreditMemoHeaderId
 				LEFT JOIN [dbo].[Customer] C WITH (NOLOCK) ON CM.CustomerId = C.CustomerId   
@@ -684,7 +691,7 @@ BEGIN
 				   [InvoiceAmount],[CMAmount],[CreditMemoAmount],[CreditMemoUsed],
 				   [Level1Id],[Level2Id],[Level3Id],[Level4Id],[Level5Id],[Level6Id],[Level7Id],[Level8Id],[Level9Id],[Level10Id],
 				   [level1],[level2],[level3],[level4],[level5],[level6],[level7],[level8],[level9],[level10],
-				   [MasterCompanyId],[StatusId],[IsCreditMemo],[InvoicePaidAmount],[ModuleTypeId],[LegalEntityName])	
+				   [MasterCompanyId],[StatusId],[IsCreditMemo],[InvoicePaidAmount],[ModuleTypeId],[LegalEntityName],[ReceivedAmount])	
 			SELECT DISTINCT CM.[CreditMemoHeaderId],
 			                C.[CustomerId],     
 							UPPER(C.[Name]),
@@ -727,7 +734,8 @@ BEGIN
 							1,  -- 'IsCreditMemo'
 							0,  -- 'InvoicePaidAmount',
 							@STLCMModuleTypeId,  -- 'SalesOrderCreditMemo',
-					        LE.[Name]
+					        LE.[Name],
+							0
 			 FROM [dbo].[CreditMemo] CM WITH (NOLOCK)   
 			LEFT JOIN [dbo].[StandAloneCreditMemoDetails] SACMD WITH (NOLOCK) ON CM.CreditMemoHeaderId = SACMD.CreditMemoHeaderId AND SACMD.IsDeleted = 0    
 			LEFT JOIN [dbo].[Customer] C WITH (NOLOCK) ON CM.CustomerId = C.CustomerId   
@@ -752,7 +760,7 @@ BEGIN
 				   [InvoiceAmount],[CMAmount],[CreditMemoAmount],[CreditMemoUsed],
 				   [Level1Id],[Level2Id],[Level3Id],[Level4Id],[Level5Id],[Level6Id],[Level7Id],[Level8Id],[Level9Id],[Level10Id],
 				   [level1],[level2],[level3],[level4],[level5],[level6],[level7],[level8],[level9],[level10],
-				   [MasterCompanyId],[StatusId],[IsCreditMemo],[InvoicePaidAmount],[ModuleTypeId],[LegalEntityName])	
+				   [MasterCompanyId],[StatusId],[IsCreditMemo],[InvoicePaidAmount],[ModuleTypeId],[LegalEntityName],[ReceivedAmount])	
 			SELECT DISTINCT MJH.[ManualJournalHeaderId],
 	                        MJD.[ReferenceId],
 							UPPER(ISNULL(CST.[Name],'')),
@@ -813,7 +821,8 @@ BEGIN
 							0,  -- 'IsCreditMemo'
 							0,  -- 'InvoicePaidAmount',
 							@MJEModuleTypeId,  -- 'SalesOrderCreditMemo',
-					        LE.[Name]
+					        LE.[Name],
+							0
 		  FROM [dbo].[ManualJournalHeader] MJH WITH(NOLOCK)   
 		  INNER JOIN [dbo].[ManualJournalDetails] MJD WITH(NOLOCK) ON MJH.[ManualJournalHeaderId] = MJD.[ManualJournalHeaderId]
 		  INNER JOIN [dbo].[Customer] CST WITH(NOLOCK) ON CST.[CustomerId] = MJD.[ReferenceId]
@@ -862,7 +871,7 @@ BEGIN
 				   [InvoiceAmount],[CMAmount],[CreditMemoAmount],[CreditMemoUsed],
 				   [Level1Id],[Level2Id],[Level3Id],[Level4Id],[Level5Id],[Level6Id],[Level7Id],[Level8Id],[Level9Id],[Level10Id],
 				   [level1],[level2],[level3],[level4],[level5],[level6],[level7],[level8],[level9],[level10],
-				   [MasterCompanyId],[StatusId],[IsCreditMemo],[InvoicePaidAmount],[ModuleTypeId],[LegalEntityName])	
+				   [MasterCompanyId],[StatusId],[IsCreditMemo],[InvoicePaidAmount],[ModuleTypeId],[LegalEntityName],[ReceivedAmount])	
 			SELECT DISTINCT CCP.[CustomerCreditPaymentDetailId],
 			                C.[CustomerId],     
 							UPPER(C.[Name]),
@@ -905,7 +914,8 @@ BEGIN
 							1,
 							0,  -- 'InvoicePaidAmount',
 							@UAModuleTypeId,  -- 'SUSPENSE AND UNAPPLIED CASH',
-					        LE.[Name]
+					        LE.[Name],
+							0
 			  FROM [dbo].[CustomerCreditPaymentDetail] CCP WITH (NOLOCK)   
 				LEFT JOIN [dbo].[Customer] C WITH (NOLOCK) ON CCP.CustomerId = C.CustomerId   
 				INNER JOIN [dbo].[SuspenseAndUnAppliedPaymentMSDetails] MSD WITH (NOLOCK) ON MSD.ModuleID = @SuspenseModuleID AND MSD.ReferenceID = CCP.CustomerCreditPaymentDetailId
@@ -920,7 +930,7 @@ BEGIN
 
 			SELECT  [CustomerId],[CustomerName],[CustomerCode],
 					ISNULL(SUM([BalanceAmount]),0) BalanceAmount,
-					ISNULL(SUM([CurrentAmount]),0) CurrentAmount,
+					CASE WHEN [IsCreditMemo] = 0 THEN ISNULL((ISNULL(SUM([Amountlessthan0days]),0) + ISNULL(SUM([Amountlessthan30days]),0) + ISNULL(SUM([Amountlessthan60days]),0) + ISNULL(SUM([Amountlessthan90days]),0) + ISNULL(SUM([Amountlessthan120days]),0) + ISNULL(SUM([Amountmorethan120days]),0) + ISNULL(SUM([CreditMemoAmount]),0)),0) ELSE CASE WHEN [StatusId] = @ClosedCreditMemoStatus THEN 0 ELSE ISNULL(SUM([CreditMemoAmount]),0) END END AS [CurrentAmount], 
 					ISNULL(SUM([PaymentAmount]),0) PaymentAmount,
 					ISNULL(SUM([Amountlessthan0days]),0) Amountlessthan0days,
 					ISNULL(SUM([Amountlessthan30days]),0) Amountlessthan30days,
@@ -933,12 +943,14 @@ BEGIN
 					ISNULL(SUM([CreditMemoAmount]),0) CreditMemoAmount,
 					ISNULL(SUM([CreditMemoUsed]),0) CreditMemoUsed,	        
 					[level1],[level2],[level3],[level4],[level5],[level6],[level7],[level8],[level9],[level10],
-					[LegalEntityName]
+					[LegalEntityName],
+					ISNULL(SUM([CurrentAmount]),0) AS [ReceivedAmount]
 			 INTO #TempResultSSRS1 FROM #TEMPInvoiceRecordsSSRS		
 			 WHERE((ISNULL(@CustomerName,'') ='' OR [CustomerName] LIKE '%' + @CustomerName+'%') AND
 				  (ISNULL(@CustomerCode,'') ='' OR [CustomerCode] LIKE '%' + @CustomerCode + '%') AND					
 				  (ISNULL(@BalanceAmount,0) = 0 OR [BalanceAmount] = @BalanceAmount) AND	
 				  (ISNULL(@CurrentAmount,0) = 0 OR [CurrentAmount] = @CurrentAmount) AND	
+				  (ISNULL(@ReceivedAmount,0) = 0 OR [ReceivedAmount] = @ReceivedAmount) AND	
 				  (ISNULL(@PaymentAmount,0) = 0 OR [PaymentAmount] = @PaymentAmount) AND
 				  (ISNULL(@Amountlessthan0days,0) = 0 OR [Amountlessthan0days] = @Amountlessthan0days) AND
 				  (ISNULL(@Amountlessthan30days,0) =0 OR [Amountlessthan30days] = @Amountlessthan30days) AND
@@ -969,7 +981,8 @@ BEGIN
 				  (ISNULL(@Level10,'') =''  OR [Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,','))) AND
 				  (ISNULL(@LegalEntityName,'') ='' OR [LegalEntityName] LIKE '%' + @LegalEntityName + '%')) 
 			GROUP BY [CustomerId],[CustomerName],[CustomerCode],[LegalEntityName],
-					 [level1],[level2],[level3],[level4],[level5],[level6],[level7],[level8],[level9],[level10]	
+					 [level1],[level2],[level3],[level4],[level5],[level6],[level7],[level8],[level9],[level10],
+					 [IsCreditMemo],[StatusId]
 				 			
 			SELECT @Count = COUNT(CustomerId) FROM #TempResultSSRS1
 
@@ -981,7 +994,9 @@ BEGIN
 			CASE WHEN (@SortOrder=1  AND @SortColumn='BALANCEAMOUNT') THEN [BalanceAmount] END ASC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='BALANCEAMOUNT') THEN [BalanceAmount] END DESC,
 			CASE WHEN (@SortOrder=1  AND @SortColumn='CURRENTAMOUNT') THEN [CurrentAmount] END ASC,
-			CASE WHEN (@SortOrder=-1 AND @SortColumn='CURRENTAMOUNT') THEN [CurrentAmount] END DESC, 			
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='CURRENTAMOUNT') THEN [CurrentAmount] END DESC, 
+			CASE WHEN (@SortOrder=1  AND @SortColumn='RECEIVEDAMOUNT') THEN [ReceivedAmount] END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='RECEIVEDAMOUNT') THEN [ReceivedAmount] END DESC, 
 			CASE WHEN (@SortOrder=1  AND @SortColumn='PAYMENTAMOUNT') THEN [PaymentAmount] END ASC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='PAYMENTAMOUNT') THEN [PaymentAmount] END DESC, 
 			CASE WHEN (@SortOrder=1  AND @SortColumn='AMOUNTLESSTHAN0DAYS') THEN [Amountlessthan0days] END ASC,
@@ -1039,13 +1054,13 @@ BEGIN
 				[CustomerCode] VARCHAR(50) NULL,
 				[CurrencyCode] VARCHAR(50) NULL,
 				[DocType] VARCHAR(50) NULL,
-				[InvoiceNo] VARCHAR(50) NULL,
+				[InvoiceNo] VARCHAR(80) NULL,
 				[InvoiceNumber] VARCHAR(50) NULL,
 		        [InvoiceDate] DATETIME2 NULL,
 				[DSI] INT NULL,
 				[DSO] INT NULL,
 				[DSS] INT NULL,
-				[CustomerRef] VARCHAR(100),
+				[CustomerRef] VARCHAR(2000),
 		 		[Salesperson] VARCHAR(100),
 		        [CreditTerms] VARCHAR(100),
 				[BalanceAmount] DECIMAL(18, 2) NULL,
@@ -1088,7 +1103,8 @@ BEGIN
 				[IsCreditMemo] BIT NULL,
 				[InvoicePaidAmount] DECIMAL(18, 2) NULL,
 				[ModuleTypeId] INT NULL,
-				[LegalEntityName] VARCHAR(MAX) NULL					
+				[LegalEntityName] VARCHAR(MAX) NULL,
+				[ReceivedAmount] DECIMAL(18, 2) NULL,
 			)
 			
 			-- WO IONVOICE DETAILS
@@ -1103,7 +1119,7 @@ BEGIN
 											[Level1Id],[Level2Id],[Level3Id],[Level4Id],[Level5Id],[Level6Id],[Level7Id],[Level8Id],[Level9Id],[Level10Id],
 											[level1],[level2],[level3],[level4],[level5],[level6],[level7],[level8],[level9],[level10],
 											[MasterCompanyId],[StatusId],[IsCreditMemo],[InvoicePaidAmount],
-											[ModuleTypeId],[LegalEntityName])
+											[ModuleTypeId],[LegalEntityName],[ReceivedAmount])
 			SELECT DISTINCT WOBI.[BillingInvoicingId],			               
 							C.[CustomerId],
 							UPPER(ISNULL(C.[Name],'')),      
@@ -1117,8 +1133,7 @@ BEGIN
 			                CASE WHEN (DATEDIFF(DAY, WOBI.[InvoiceDate], GETUTCDATE()) - ISNULL(WO.NetDays,0)) > 0 
 								 THEN (DATEDIFF(DAY, WOBI.[InvoiceDate], GETUTCDATE()) - ISNULL(WO.NetDays,0))
 							     ELSE 0 END,  -- 'DSO' 		
-							--CASE WHEN WOBI.[ShipDate] IS NOT NULL THEN DATEDIFF(DAY, WOBI.[ShipDate], GETUTCDATE()) ELSE 0 END,  --  'DSS'
-							NULL,
+							CASE WHEN BillItemData.[ShipDate] IS NOT NULL THEN DATEDIFF(DAY, BillItemData.[ShipDate], GETUTCDATE()) ELSE 0 END,  --  'DSS'
 							DATEADD(DAY, WO.NetDays,WOBI.[InvoiceDate]), -- 'DueDate',    
 							STUFF((SELECT DISTINCT ',' + UPPER(WOP.[CustomerReference]) 
 								FROM [dbo].[WorkOrderPartNumber] WOP WITH (NOLOCK)									 
@@ -1190,7 +1205,8 @@ BEGIN
 									JOIN [dbo].[ManagementStructureLevel] MSL ON ES.Level1Id = MSL.ID
 									JOIN [dbo].[LegalEntity] LE ON MSL.LegalEntityId = LE.LegalEntityId  
 								WHERE WOP.WorkOrderId = WO.WorkOrderId
-								FOR XML PATH('')), 1, 1, ''))
+								FOR XML PATH('')), 1, 1, '')),
+							0
 			FROM [dbo].[BillingInvoicing] WOBI WITH (NOLOCK) 
 				INNER JOIN [dbo].[WorkOrder] WO WITH (NOLOCK) ON WO.WorkOrderId = WOBI.ReferenceId      
 				INNER JOIN [dbo].[Customer] C  WITH (NOLOCK) ON C.CustomerId = WO.CustomerId
@@ -1198,10 +1214,12 @@ BEGIN
 				INNER JOIN [dbo].[Currency] CR WITH(NOLOCK) ON CR.CurrencyId = WOBI.CurrencyId      
 				LEFT JOIN  [dbo].[CreditTerms] CTM WITH(NOLOCK) ON CTM.CreditTermsId = WO.CreditTermId      
 				LEFT JOIN  [dbo].[Employee] EMP WITH(NOLOCK) ON EMP.EmployeeId = WO.SalesPersonId      
+				OUTER APPLY
+					( SELECT MAX(ShipDate)ShipDate FROM dbo.BillingInvoicingItems bii WITH (NOLOCK) WHERE bii.BillingInvoicingId = WOBI.BillingInvoicingId) BillItemData
 			WHERE WO.[CustomerId] = ISNULL(@CustomerId, WO.CustomerId) AND ISNULL(WOBI.[IsVersionIncrease],0) = 0 AND ISNULL(WOBI.[IsPerformaInvoice],0) = 0
 				AND ISNULL(WOBI.[RemainingAmount],0) > 0 AND WOBI.[InvoiceStatus] = @InvoiceStatus
 				AND CAST(WOBI.[InvoiceDate] AS DATE) <= CASE WHEN ISNULL(@id5, 0) = 1 THEN CAST(@AsOfDate AS DATE) ELSE CAST(@AsOfDate-1 AS DATE) END
-				AND WO.[MasterCompanyId] = @masterCompanyid 
+				AND WO.[MasterCompanyId] = @masterCompanyid AND WOBI.ModuleId = @WOModuleId
 				AND @IsInvoice = 1
 				AND (CASE WHEN @IsDeposit = 1 THEN ((ISNULL(WOBI.[GrandTotal], 0) - ISNULL(WOBI.[RemainingAmount], 0)) + ISNULL(WOBI.[CreditMemoUsed], 0)) END > 0 OR CASE WHEN @IsDeposit = 0 THEN 1 END = 1) 
 			
@@ -1238,7 +1256,7 @@ BEGIN
 											[Level1Id],[Level2Id],[Level3Id],[Level4Id],[Level5Id],[Level6Id],[Level7Id],[Level8Id],[Level9Id],[Level10Id],
 											[level1],[level2],[level3],[level4],[level5],[level6],[level7],[level8],[level9],[level10],
 											[MasterCompanyId],[StatusId],[IsCreditMemo],[InvoicePaidAmount],
-											[ModuleTypeId],[LegalEntityName])
+											[ModuleTypeId],[LegalEntityName],[ReceivedAmount])
 				SELECT DISTINCT SOBI.[BillingInvoicingId],
 				                C.[CustomerId],  					
                                 UPPER(ISNULL(C.[Name],'')),      
@@ -1252,8 +1270,7 @@ BEGIN
 			                    CASE WHEN (DATEDIFF(DAY, SOBI.[InvoiceDate], GETUTCDATE()) - ISNULL(SO.[NetDays],0)) > 0 
 									 THEN (DATEDIFF(DAY, SOBI.[InvoiceDate], GETUTCDATE()) - ISNULL(SO.[NetDays],0))
 									 ELSE 0 END, -- 'DSO', 										
-								--CASE WHEN SOBI.[ShipDate] IS NOT NULL THEN DATEDIFF(DAY, SOBI.[ShipDate], GETUTCDATE()) ELSE 0 END,  --  'DSS'
-								NULL,
+								CASE WHEN BillItemData.[ShipDate] IS NOT NULL THEN DATEDIFF(DAY, BillItemData.[ShipDate], GETUTCDATE()) ELSE 0 END,  --  'DSS'
 								DATEADD(DAY, SO.[NetDays],SOBI.[InvoiceDate]), -- 'DueDate',     
 								STUFF((SELECT DISTINCT ',' + UPPER(SOP.[CustomerReference]) 
 									FROM [dbo].[SalesOrder] SOP WITH (NOLOCK)									 
@@ -1327,17 +1344,20 @@ BEGIN
 										JOIN [dbo].[ManagementStructureLevel] MSL ON ES.Level1Id = MSL.ID
 										JOIN [dbo].[LegalEntity] LE ON MSL.LegalEntityId = LE.LegalEntityId  
 									WHERE SOP.SalesOrderId = SO.SalesOrderId
-									FOR XML PATH('')), 1, 1, ''))
+									FOR XML PATH('')), 1, 1, '')),
+								0
 				FROM [dbo].[BillingInvoicing] SOBI WITH (NOLOCK)       
 					INNER JOIN [dbo].[SalesOrder] SO WITH (NOLOCK) ON SO.SalesOrderId = SOBI.ReferenceId      
 					INNER JOIN [dbo].[Customer] c  WITH (NOLOCK) ON C.CustomerId = SO.CustomerId      
 					INNER JOIN [dbo].[CustomerType] CT  WITH (NOLOCK) ON C.CustomerTypeId = CT.CustomerTypeId      
 					INNER JOIN [dbo].[Currency] CR WITH(NOLOCK) ON CR.CurrencyId = SOBI.CurrencyId      
-					 LEFT JOIN [dbo].[CreditTerms] ctm WITH(NOLOCK) ON CTM.CreditTermsId = SO.CreditTermId      
+					LEFT JOIN [dbo].[CreditTerms] ctm WITH(NOLOCK) ON CTM.CreditTermsId = SO.CreditTermId      
+					OUTER APPLY
+					( SELECT MAX(ShipDate)ShipDate FROM dbo.BillingInvoicingItems bii WITH (NOLOCK) WHERE bii.BillingInvoicingId = SOBI.BillingInvoicingId) BillItemData
 				WHERE SO.CustomerId = ISNULL(@customerid, SO.[CustomerId])
 					AND ISNULL(SOBI.[RemainingAmount],0) > 0 AND SOBI.[InvoiceStatus] = @InvoiceStatus AND ISNULL(SOBI.[IsPerformaInvoice],0) = 0 
 					AND CAST(SOBI.[InvoiceDate] AS DATE) <= CASE WHEN ISNULL(@id5, 0) = 1 THEN CAST(@AsOfDate AS DATE) ELSE CAST(@AsOfDate-1 AS DATE) END
-					AND SO.[MasterCompanyId] = @Mastercompanyid  
+					AND SO.[MasterCompanyId] = @Mastercompanyid AND SOBI.ModuleId = @SOModuleId
 					AND @IsInvoice = 1
 					AND (CASE WHEN @IsDeposit = 1 THEN ((ISNULL(SOBI.[GrandTotal], 0) - ISNULL(SOBI.[RemainingAmount], 0)) + ISNULL(SOBI.[CreditMemoUsed], 0)) END > 0 OR CASE WHEN @IsDeposit = 0 THEN 1 END = 1) 
 										
@@ -1373,7 +1393,7 @@ BEGIN
 														[Level1Id],[Level2Id],[Level3Id],[Level4Id],[Level5Id],[Level6Id],[Level7Id],[Level8Id],[Level9Id],[Level10Id],
 														[level1],[level2],[level3],[level4],[level5],[level6],[level7],[level8],[level9],[level10],
 														[MasterCompanyId],[StatusId],[IsCreditMemo],[InvoicePaidAmount],
-														[ModuleTypeId],[LegalEntityName])
+														[ModuleTypeId],[LegalEntityName],[ReceivedAmount])
 				SELECT DISTINCT ESOBI.SOBillingInvoicingId,
 				                C.[CustomerId],  					
                                 UPPER(ISNULL(C.[Name],'')),      
@@ -1457,7 +1477,8 @@ BEGIN
 											JOIN [dbo].[ManagementStructureLevel] MSL ON ES.Level1Id = MSL.ID
 											JOIN [dbo].[LegalEntity] LE ON MSL.LegalEntityId = LE.LegalEntityId  
 										WHERE ESOP.ExchangeSalesOrderId = ESO.ExchangeSalesOrderId
-										FOR XML PATH('')), 1, 1, ''))
+										FOR XML PATH('')), 1, 1, '')),
+									0
 				FROM [dbo].[ExchangeSalesOrderBillingInvoicing] ESOBI WITH (NOLOCK)    
 							INNER JOIN [dbo].[ExchangeSalesOrder] ESO WITH (NOLOCK) ON ESO.ExchangeSalesOrderId = ESOBI.ExchangeSalesOrderId      
 							INNER JOIN [dbo].[Customer] C WITH (NOLOCK) ON C.CustomerId = ESO.CustomerId 
@@ -1503,7 +1524,7 @@ BEGIN
 											[Level1Id],[Level2Id],[Level3Id],[Level4Id],[Level5Id],[Level6Id],[Level7Id],[Level8Id],[Level9Id],[Level10Id],
 											[level1],[level2],[level3],[level4],[level5],[level6],[level7],[level8],[level9],[level10],
 											[MasterCompanyId],[StatusId],[IsCreditMemo],[InvoicePaidAmount],
-											[ModuleTypeId],[LegalEntityName])
+											[ModuleTypeId],[LegalEntityName],[ReceivedAmount])
 			SELECT DISTINCT CM.[CreditMemoHeaderId],
 			                C.[CustomerId],     
 							UPPER(C.[Name]),
@@ -1559,7 +1580,8 @@ BEGIN
 							1,
 							0,  -- 'InvoicePaidAmount',
 							@CMModuleTypeId,  -- 'WorkOrderCreditMemo',
-					        LE.[Name]
+					        LE.[Name],
+							0
 			 FROM [dbo].[CreditMemo] CM WITH (NOLOCK)   
 				INNER JOIN [dbo].[CreditMemoDetails] CMD WITH (NOLOCK) ON CM.CreditMemoHeaderId = CMD.CreditMemoHeaderId
 				LEFT JOIN [dbo].[Customer] C WITH (NOLOCK) ON CM.CustomerId = C.CustomerId   
@@ -1590,7 +1612,7 @@ BEGIN
 														[Level1Id],[Level2Id],[Level3Id],[Level4Id],[Level5Id],[Level6Id],[Level7Id],[Level8Id],[Level9Id],[Level10Id],
 														[level1],[level2],[level3],[level4],[level5],[level6],[level7],[level8],[level9],[level10],
 														[MasterCompanyId],[StatusId],[IsCreditMemo],[InvoicePaidAmount],
-														[ModuleTypeId],[LegalEntityName])
+														[ModuleTypeId],[LegalEntityName],[ReceivedAmount])
 			SELECT DISTINCT CM.[CreditMemoHeaderId],
 			                C.[CustomerId],     
 							UPPER(C.[Name]),
@@ -1646,7 +1668,8 @@ BEGIN
 							1,  -- 'IsCreditMemo'
 							0,  -- 'InvoicePaidAmount',
 							@STLCMModuleTypeId,  -- 'SalesOrderCreditMemo',
-					        LE.[Name]
+					        LE.[Name],
+							0
 			 FROM [dbo].[CreditMemo] CM WITH (NOLOCK)   
 			LEFT JOIN [dbo].[StandAloneCreditMemoDetails] SACMD WITH (NOLOCK) ON CM.CreditMemoHeaderId = SACMD.CreditMemoHeaderId AND SACMD.IsDeleted = 0    
 			LEFT JOIN [dbo].[Customer] C WITH (NOLOCK) ON CM.CustomerId = C.CustomerId   
@@ -1677,7 +1700,7 @@ BEGIN
 													    [Level1Id],[Level2Id],[Level3Id],[Level4Id],[Level5Id],[Level6Id],[Level7Id],[Level8Id],[Level9Id],[Level10Id],
 														[level1],[level2],[level3],[level4],[level5],[level6],[level7],[level8],[level9],[level10],
 														[MasterCompanyId],[StatusId],[IsCreditMemo],[InvoicePaidAmount],
-														[ModuleTypeId],[LegalEntityName])
+														[ModuleTypeId],[LegalEntityName],[ReceivedAmount])
 			SELECT DISTINCT MJH.[ManualJournalHeaderId],
 	                        MJD.[ReferenceId],
 							UPPER(ISNULL(CST.[Name],'')),
@@ -1751,7 +1774,8 @@ BEGIN
 							0,  -- 'IsCreditMemo'
 							0,  -- 'InvoicePaidAmount',
 							@MJEModuleTypeId,  -- 'SalesOrderCreditMemo',
-					        LE.[Name]
+					        LE.[Name],
+							0
 		  FROM [dbo].[ManualJournalHeader] MJH WITH(NOLOCK)   
 		  INNER JOIN [dbo].[ManualJournalDetails] MJD WITH(NOLOCK) ON MJH.[ManualJournalHeaderId] = MJD.[ManualJournalHeaderId]
 		  INNER JOIN [dbo].[Customer] CST WITH(NOLOCK) ON CST.[CustomerId] = MJD.[ReferenceId]
@@ -1805,7 +1829,7 @@ BEGIN
 											[Level1Id],[Level2Id],[Level3Id],[Level4Id],[Level5Id],[Level6Id],[Level7Id],[Level8Id],[Level9Id],[Level10Id],
 											[level1],[level2],[level3],[level4],[level5],[level6],[level7],[level8],[level9],[level10],
 											[MasterCompanyId],[StatusId],[IsCreditMemo],[InvoicePaidAmount],
-											[ModuleTypeId],[LegalEntityName])
+											[ModuleTypeId],[LegalEntityName],[ReceivedAmount])
 			SELECT DISTINCT CCP.[CustomerCreditPaymentDetailId],
 			                C.[CustomerId],     
 							UPPER(C.[Name]),
@@ -1861,7 +1885,8 @@ BEGIN
 							1,
 							0,  -- 'InvoicePaidAmount',
 							@UAModuleTypeId, 
-					        LE.[Name]
+					        LE.[Name],
+							0
 			 FROM [dbo].[CustomerCreditPaymentDetail] CCP WITH (NOLOCK)   
 				LEFT JOIN [dbo].[Customer] C WITH(NOLOCK) ON CCP.CustomerId = C.CustomerId   
 				INNER JOIN [dbo].[SuspenseAndUnAppliedPaymentMSDetails] MSD WITH(NOLOCK) ON MSD.ModuleID = @SuspenseModuleID AND MSD.ReferenceID = CCP.CustomerCreditPaymentDetailId
@@ -1874,7 +1899,20 @@ BEGIN
 				AND CCP.[MasterCompanyId] = @MasterCompanyid  
 				AND @IsUnappliedAmounts = 1	
 
-			SELECT * INTO #TempResultSSRS FROM #TEMPInvoiceRecordsDetailsViewSSRS
+			SELECT [ID],[BillingInvoicingId],[CustomerId],[CustomerName],[CustomerCode],
+				   [CurrencyCode],[DocType],[InvoiceNo],InvoiceNumber,[InvoiceDate],[DSI],[DSO],[DSS],[DueDate],
+				   [CustomerRef],[Salesperson],[CreditTerms],											
+				   ISNULL((InvoiceAmount - ISNULL(InvoicePaidAmount,0)),0) AS [BalanceAmount],											
+				   CASE WHEN IsCreditMemo = 0 THEN ISNULL(([Amountlessthan0days] + ISNULL([Amountlessthan30days],0) + ISNULL([Amountlessthan60days],0) + ISNULL([Amountlessthan90days],0) + ISNULL([Amountlessthan120days],0) + ISNULL([Amountmorethan120days],0) + ISNULL([CreditMemoAmount],0)),0) ELSE CASE WHEN [StatusId] = @ClosedCreditMemoStatus THEN 0 ELSE ISNULL([CreditMemoAmount],0) END END AS [CurrentAmount], 
+				   [PaymentAmount],
+				   [Amountlessthan0days],[Amountlessthan30days],[Amountlessthan60days],
+				   [Amountlessthan90days],[Amountlessthan120days],[Amountmorethan120days],
+				   [InvoiceAmount],[CMAmount],[CreditMemoAmount],[CreditMemoUsed],[fxRateAmount],
+				   [Level1Id],[Level2Id],[Level3Id],[Level4Id],[Level5Id],[Level6Id],[Level7Id],[Level8Id],[Level9Id],[Level10Id],
+				   [level1],[level2],[level3],[level4],[level5],[level6],[level7],[level8],[level9],[level10],
+				   [MasterCompanyId],[StatusId],[IsCreditMemo],[InvoicePaidAmount],
+				   [ModuleTypeId],[LegalEntityName],[CurrentAmount] AS [ReceivedAmount]			
+			INTO #TempResultSSRS FROM #TEMPInvoiceRecordsDetailsViewSSRS
 			WHERE ((ISNULL(@CustomerName,'') ='' OR [CustomerName] LIKE '%' + @CustomerName+'%') AND
 				  (ISNULL(@CustomerCode,'') ='' OR [CustomerCode] LIKE '%' + @CustomerCode + '%') AND					
 				  (ISNULL(@CurrencyCode,'') ='' OR [CurrencyCode] LIKE '%' + @CurrencyCode + '%') AND
@@ -1891,6 +1929,7 @@ BEGIN
 				  (ISNULL(@CreditTerms,'') ='' OR [CreditTerms] LIKE '%' + @CreditTerms + '%') AND
 				  (ISNULL(@BalanceAmount,0) = 0 OR [BalanceAmount] = @BalanceAmount) AND	
 				  (ISNULL(@CurrentAmount,0) = 0 OR [CurrentAmount] = @CurrentAmount) AND	
+				  (ISNULL(@ReceivedAmount,0) = 0 OR [ReceivedAmount] = @ReceivedAmount) AND	
 				  (ISNULL(@PaymentAmount,0) = 0 OR [PaymentAmount] = @PaymentAmount) AND
 				  (ISNULL(@Amountlessthan0days,0) = 0 OR [Amountlessthan0days] = @Amountlessthan0days) AND
 				  (ISNULL(@Amountlessthan30days,0) =0 OR [Amountlessthan30days] = @Amountlessthan30days) AND
@@ -1955,7 +1994,9 @@ BEGIN
 			CASE WHEN (@SortOrder=1  AND @SortColumn='BALANCEAMOUNT') THEN [BalanceAmount] END ASC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='BALANCEAMOUNT') THEN [BalanceAmount] END DESC,
 			CASE WHEN (@SortOrder=1  AND @SortColumn='CURRENTAMOUNT') THEN [CurrentAmount] END ASC,
-			CASE WHEN (@SortOrder=-1 AND @SortColumn='CURRENTAMOUNT') THEN [CurrentAmount] END DESC, 			
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='CURRENTAMOUNT') THEN [CurrentAmount] END DESC,
+			CASE WHEN (@SortOrder=1  AND @SortColumn='RECEIVEDAMOUNT') THEN [ReceivedAmount] END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='RECEIVEDAMOUNT') THEN [ReceivedAmount] END DESC, 
 			CASE WHEN (@SortOrder=1  AND @SortColumn='PAYMENTAMOUNT') THEN [PaymentAmount] END ASC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='PAYMENTAMOUNT') THEN [PaymentAmount] END DESC, 
 			CASE WHEN (@SortOrder=1  AND @SortColumn='AMOUNTLESSTHAN0DAYS') THEN [Amountlessthan0days] END ASC,

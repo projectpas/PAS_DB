@@ -20,6 +20,7 @@
 	4    05-FEB-2026    Amit Ghediya       Add filter
 	5    09-FEB-2026    Rajesh Gami        Added NONSTOCK, ASSET Management Structure JOIN in Receiving Reconciliation
 	6    16-FEB-2026    Amit Ghediya       Update NPO Invoice date from postedate to invoiced date.
+	7    23-FEB-2026    Moin Bloch         Update Due date Getting From Direct Table.
   --[dbo].[usprpt_GetAPAgingReport] 1,'2026-01-27',3654,2,null,null
 ***************************************************************************************************/        
 CREATE   PROCEDURE [dbo].[usprpt_GetAPAgingReport]       
@@ -379,12 +380,8 @@ BEGIN
 																	WHEN ctm.Code='CreditCard' THEN -1
 																	WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END), GETUTCDATE()) > 120 THEN vpd.RemainingAmount	ELSE 0 END) AS Amountpaidbymorethan120days,
 					(rrh.ManagementStructureId) AS ManagementStructureId, 'AP-Inv' AS 'DocType','' AS 'vendorRef', '' AS 'Salesperson',ctm.Name AS 'Terms', '0' AS 'FixRateAmount', rrh.InvoiceTotal AS 'InvoiceAmount',
-					0 AS 'cmAmount',0 AS CreditMemoAmount,	DATEADD(DAY, ctm.NetDays,rrh.InvoiceDate) AS 'DueDate', 
-					
-					--UPPER(MSD.Level1Name) AS level1,UPPER(MSD.Level2Name) AS level2,       
-					--UPPER(MSD.Level3Name) AS level3,UPPER(MSD.Level4Name) AS level4, UPPER(MSD.Level5Name) AS level5, UPPER(MSD.Level6Name) AS level6, UPPER(MSD.Level7Name) AS level7,       
-					--UPPER(MSD.Level8Name) AS level8,UPPER(MSD.Level9Name) AS level9,UPPER(MSD.Level10Name) AS level10
-					
+					0 AS 'cmAmount',0 AS CreditMemoAmount,	--DATEADD(DAY, ctm.NetDays,rrh.InvoiceDate) AS 'DueDate', 
+					rrh.DueDate AS 'DueDate', 										
 					UPPER(COALESCE(MSD.Level1Name, NMSD.Level1Name, AMSD.Level1Name)) AS Level1,
 					UPPER(COALESCE(MSD.Level2Name, NMSD.Level2Name, AMSD.Level2Name)) AS Level2,
 					UPPER(COALESCE(MSD.Level3Name, NMSD.Level3Name, AMSD.Level3Name)) AS Level3,
@@ -888,9 +885,8 @@ BEGIN
 																	WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) AS DATE), GETUTCDATE()) > 120 THEN vpd.RemainingAmount	ELSE 0 END) AS Amountpaidbymorethan120days,
 					(rrh.ManagementStructureId) AS ManagementStructureId, (CASE WHEN rrd.[Type] = 1 THEN 'PO-Inv' WHEN rrd.[Type] = 2 THEN 'RO-Inv' END) AS 'DocType',
 					'' AS 'vendorRef', '' AS 'Salesperson', ctm.Name AS 'Terms', '0' AS 'FixRateAmount',rrh.InvoiceTotal AS 'InvoiceAmount',      
-					0 AS 'cmAmount',0 AS CreditMemoAmount,DATEADD(DAY, ctm.NetDays,rrh.InvoiceDate) AS 'DueDate',     
-					--UPPER(MSD.Level1Name) AS level1,UPPER(MSD.Level2Name) AS level2, UPPER(MSD.Level3Name) AS level3,UPPER(MSD.Level4Name) AS level4,UPPER(MSD.Level5Name) AS level5,       
-					--UPPER(MSD.Level6Name) AS level6,UPPER(MSD.Level7Name) AS level7, UPPER(MSD.Level8Name) AS level8,UPPER(MSD.Level9Name) AS level9, UPPER(MSD.Level10Name) AS level10
+					0 AS 'cmAmount',0 AS CreditMemoAmount,--DATEADD(DAY, ctm.NetDays,rrh.InvoiceDate) AS 'DueDate',     
+					rrh.DueDate AS 'DueDate',    
 					UPPER(COALESCE(MSD.Level1Name, NMSD.Level1Name, AMSD.Level1Name)) AS Level1,
 					UPPER(COALESCE(MSD.Level2Name, NMSD.Level2Name, AMSD.Level2Name)) AS Level2,
 					UPPER(COALESCE(MSD.Level3Name, NMSD.Level3Name, AMSD.Level3Name)) AS Level3,
@@ -1227,7 +1223,8 @@ BEGIN
 				   ISNULL(CTE.InvoiceAmount,0) AS 'InvoiceAmount', 
 				   UPPER(CTE.DocType) AS DocType,
 				   UPPER(CTE.Terms) AS Terms,  
-				   CASE WHEN CTE.IsCreditMemo = 0 THEN CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(DATEADD(DAY, CTE.NetDays,CTE.InvoiceDate), 'MM/dd/yyyy') ELSE CONVERT(VARCHAR(50), DATEADD(day, CTE.NetDays,CTE.InvoiceDate), 107) END ELSE NULL END 'DueDate',
+				   --CASE WHEN CTE.IsCreditMemo = 0 THEN CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(DATEADD(DAY, CTE.NetDays,CTE.InvoiceDate), 'MM/dd/yyyy') ELSE CONVERT(VARCHAR(50), DATEADD(day, CTE.NetDays,CTE.InvoiceDate), 107) END ELSE NULL END 'DueDate',
+				   CASE WHEN CTE.IsCreditMemo = 0 THEN CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(CTE.DueDate, 'MM/dd/yyyy') ELSE CONVERT(VARCHAR(50), DATEADD(day, CTE.NetDays,CTE.InvoiceDate), 107) END ELSE NULL END 'DueDate',
 				   ISNULL(CTE.FixRateAmount,0) AS 'FixRateAmount',    
 				   UPPER(CTE.level1) AS level1, UPPER(CTE.level2) AS level2,       
 				   UPPER(CTE.level3) AS level3, UPPER(CTE.level4) AS level4,       

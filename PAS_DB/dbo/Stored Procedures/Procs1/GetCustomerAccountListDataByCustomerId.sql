@@ -1,4 +1,5 @@
-﻿/*************************************************************                   
+﻿
+/*************************************************************                   
  ** File:   [GetCustomerAccountListDataByCustomerId]                   
  ** Author:  unknown   
  ** Description: Get Data For Customer Account List
@@ -34,7 +35,7 @@
 	21	 09/07/2025		   Devendra Shekh	Modified (returning 0 values data if no records)
 	22   10/07/2025	       Devendra Shekh	Modified (Balance Amount Changes)
 	23   19/01/2026	       Moin Bloch	    Modified (Added InvoiceNo FOR grouping)
-
+	24   23/02/2026	       Rajesh Gami	    Added upapplied cash in CM
 exec dbo.GetCustomerAccountListDataByCustomerId @customerId=3389,@StartDate='2024-04-12 09:12:23',@EndDate='2024-06-21 09:12:23',@OpenTransactionsOnly=1,
 @IncludeCredits=1,@SiteId=4527,@LegalEntityId=1
 
@@ -302,7 +303,7 @@ BEGIN
 					   MAX((ISNULL(C.CustomerCode,''))) 'CustomerCode' ,
                        MAX(CT.CustomerTypeName) 'CustomertType' ,
 					   MAX(CTE.currencyCode) AS  'currencyCode',
-					   (ISNULL(MAX(Creditmemo.CreditMemoAmount),0)) + (ISNULL(MAX(SCM.CreditMemoAmount),0))  AS 'CreditMemoAmount',
+					   (ISNULL(MAX(Creditmemo.CreditMemoAmount),0)) + (ISNULL(MAX(SCM.CreditMemoAmount),0)) + (ISNULL(MAX(UAC.UnAppliedCash),0))  AS 'CreditMemoAmount',
 					   (ISNULL(MAX(ManualJE.ManualJEAmount),0)) AS 'ManualJEAmount',
 					   (ISNULL(MAX(UAC.UnAppliedCash),0)) AS 'UnAppliedCashAmount',
 					   (ISNULL(SUM(CTE.PaymentAmount),0) - (ISNULL(MAX(Creditmemo.CreditMemoAmount),0)) + (ISNULL(MAX(SCM.CreditMemoAmount),0)) + (ISNULL(MAX(ManualJE.ManualJEAmount),0)) - (ISNULL(MAX(UAC.UnAppliedCash),0))) AS 'BalanceAmount',
@@ -588,10 +589,10 @@ BEGIN
 					   MAX((ISNULL(C.CustomerCode,''))) 'CustomerCode' ,
                        MAX(CT.CustomerTypeName) 'CustomertType',
 					   MAX(CTE.currencyCode) AS  'currencyCode',
-					   (ISNULL(MAX(Creditmemo.CreditMemoAmount),0)) + (ISNULL(MAX(SCM.CreditMemoAmount),0))  AS 'CreditMemoAmount', 
+					   (ISNULL(MAX(Creditmemo.CreditMemoAmount),0)) + (ISNULL(MAX(SCM.CreditMemoAmount),0)) +  (ISNULL(SUM(UAC.UnAppliedCash),0)) AS 'CreditMemoAmount', 
 					   (ISNULL(SUM(ManualJE.ManualJEAmount),0)) AS 'ManualJEAmount',
 					   (ISNULL(SUM(UAC.UnAppliedCash),0)) AS 'UnAppliedCashAmount',
-					   (ISNULL(SUM(CTE.PaymentAmount),0) - (ISNULL(MAX(Creditmemo.CreditMemoAmount),0)) + (ISNULL(MAX(SCM.CreditMemoAmount),0)) - (ISNULL(MAX(ManualJE.ManualJEAmount),0))) AS 'BalanceAmount',
+					   (ISNULL(SUM(CTE.PaymentAmount),0) - (ISNULL(MAX(Creditmemo.CreditMemoAmount),0)) + (ISNULL(MAX(SCM.CreditMemoAmount),0)) - (ISNULL(MAX(ManualJE.ManualJEAmount),0)) -  (ISNULL(SUM(UAC.UnAppliedCash),0))) AS 'BalanceAmount',
 					   ISNULL(SUM(CTE.BalanceAmount - CTE.PaymentAmount),0) AS 'CurrentlAmount',                    
 					   ISNULL(SUM(CTE.PaymentAmount),0) AS 'PaymentAmount',
 					   MAX(CTECalculation.paidbylessthen0days) AS 'Amountpaidbylessthen0days',      

@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿
+/*************************************************************           
  ** File:   [usprpt_GetGoodsReceiptNotInvoicedReport]
  ** Author:   Devendra Shekh
  ** Description: Get Goods Receipt which are not Invoiced
@@ -10,8 +11,9 @@
  ** --   --------         -------			--------------------------------            
     1    11-Feb-2025     Devendra Shekh				Created
     2    20-Feb-2025     Rajesh Gami				Modify as per requirement
+	3    23-Feb-2025     Rajesh Gami				Resolved Getting records issue
 **************************************************************/
-CREATE     PROCEDURE [dbo].[usprpt_GetGoodsReceiptNotInvoicedReport]     
+CREATE       PROCEDURE [dbo].[usprpt_GetGoodsReceiptNotInvoicedReport]     
 @PageNumber INT = 1,    
 @PageSize INT = NULL,    
 @mastercompanyid INT,    
@@ -142,9 +144,9 @@ BEGIN
 		INNER JOIN [dbo].[PurchaseOrderPart] POP WITH(NOLOCK) ON PO.PurchaseOrderId = POP.PurchaseOrderId
 		INNER JOIN DBO.Stockline STK WITH(NOLOCK) ON POP.PurchaseOrderPartRecordId = STK.PurchaseOrderPartRecordId
 		--INNER JOIN DBO.StocklineDraft STD WITH(NOLOCK) ON STK.StockLineId = STD.StockLineId AND POP.PurchaseOrderPartRecordId = STD.RepairOrderPartRecordId
-		INNER JOIN [dbo].[PurchaseOrderManagementStructureDetails] MSD WITH(NOLOCK) ON MSD.[ModuleID] = @POModuleID AND MSD.[ReferenceID] = PO.PurchaseOrderId    
-		LEFT JOIN [dbo].[ReceivingReconciliationDetails] RRCD WITH(NOLOCK) ON RRCD.PurchaseOrderId = POP.PurchaseOrderId AND RRCD.PurchaseOrderPartRecordId = POP.PurchaseOrderPartRecordId AND RRCD.[Type] = 1 --AND ((ISNULL(POP.QuantityReceived,0) - ISNULL(RRCD.InvoicedQty,0)) > 0 )
-		LEFT JOIN [dbo].[ReceivingReconciliationHeader] RRCH WITH(NOLOCK) ON RRCD.ReceivingReconciliationId = RRCH.ReceivingReconciliationId AND RRCH.StatusId =  @postedStatusId
+		INNER JOIN [dbo].[PurchaseOrderManagementStructureDetails] MSD WITH(NOLOCK) ON MSD.[ModuleID] = @POModuleID AND MSD.[ReferenceID] = PO.PurchaseOrderId  
+		LEFT JOIN [dbo].[ReceivingReconciliationHeader] RRCH WITH(NOLOCK) ON PO.VendorId = RRCH.VendorId AND RRCH.StatusId =  @postedStatusId
+		LEFT JOIN [dbo].[ReceivingReconciliationDetails] RRCD WITH(NOLOCK) ON RRCH.ReceivingReconciliationId = RRCD.ReceivingReconciliationId AND RRCD.PurchaseOrderId = POP.PurchaseOrderId AND RRCD.PurchaseOrderPartRecordId = POP.PurchaseOrderPartRecordId AND RRCD.[Type] = 1 --AND ((ISNULL(POP.QuantityReceived,0) - ISNULL(RRCD.InvoicedQty,0)) > 0 )
 		LEFT JOIN [dbo].ManagementStructureLevel MSL1 WITH(NOLOCK)   ON MSD.[Level1Id] = MSL1.ID
 		LEFT JOIN [dbo].ManagementStructureLevel MSL2 WITH(NOLOCK)  ON MSD.[Level2Id] = MSL2.ID
 		LEFT JOIN [dbo].ManagementStructureLevel MSL3 WITH(NOLOCK)  ON MSD.[Level3Id] = MSL3.ID
@@ -210,9 +212,11 @@ BEGIN
 		FROM [dbo].[RepairOrder] RO WITH(NOLOCK)
 		INNER JOIN [dbo].[RepairOrderPart] ROP WITH(NOLOCK) ON RO.RepairOrderId = ROP.RepairOrderId
 		INNER JOIN DBO.Stockline STK WITH(NOLOCK) ON ROP.RepairOrderPartRecordId = STK.RepairOrderPartRecordId
-		INNER JOIN [dbo].[RepairOrderManagementStructureDetails] MSD WITH(NOLOCK) ON MSD.[ModuleID] = @ROModuleID AND MSD.[ReferenceID] = RO.RepairOrderId    
-		LEFT JOIN [dbo].[ReceivingReconciliationDetails] RRCD WITH(NOLOCK) ON RRCD.PurchaseOrderId = ROP.RepairOrderId AND RRCD.PurchaseOrderPartRecordId = ROP.RepairOrderPartRecordId AND RRCD.[Type] = 2 --AND ((ISNULL(ROP.QuantityReceived,0) - ISNULL(RRCD.InvoicedQty,0)) > 0 )
-		LEFT JOIN [dbo].[ReceivingReconciliationHeader] RRCH WITH(NOLOCK) ON RRCD.ReceivingReconciliationId = RRCH.ReceivingReconciliationId AND RRCH.StatusId =  @postedStatusId
+		INNER JOIN [dbo].[RepairOrderManagementStructureDetails] MSD WITH(NOLOCK) ON MSD.[ModuleID] = @ROModuleID AND MSD.[ReferenceID] = RO.RepairOrderId 
+		
+		LEFT JOIN [dbo].[ReceivingReconciliationHeader] RRCH WITH(NOLOCK) ON RO.VendorId = RRCH.VendorId AND RRCH.StatusId =  @postedStatusId
+		LEFT JOIN [dbo].[ReceivingReconciliationDetails] RRCD WITH(NOLOCK) ON RRCH.ReceivingReconciliationId = RRCD.ReceivingReconciliationId AND  RRCD.PurchaseOrderId = ROP.RepairOrderId AND RRCD.PurchaseOrderPartRecordId = ROP.RepairOrderPartRecordId AND RRCD.[Type] = 2 --AND ((ISNULL(ROP.QuantityReceived,0) - ISNULL(RRCD.InvoicedQty,0)) > 0 )
+
 		LEFT JOIN [dbo].ManagementStructureLevel MSL1 WITH(NOLOCK)   ON MSD.[Level1Id] = MSL1.ID
 		LEFT JOIN [dbo].ManagementStructureLevel MSL2 WITH(NOLOCK)  ON MSD.[Level2Id] = MSL2.ID
 		LEFT JOIN [dbo].ManagementStructureLevel MSL3 WITH(NOLOCK)  ON MSD.[Level3Id] = MSL3.ID
@@ -239,7 +243,44 @@ BEGIN
 			AND (ISNULL(@level9,'') =''  OR MSD.[Level9Id]  IN (SELECT Item FROM DBO.SPLITSTRING(@level9,',')))    
 			AND (ISNULL(@level10,'') ='' OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level10,',')))
 		)
+		,GroupData AS
+				(
+					SELECT
+						vendor, vendorCode, poRoNum, poStatus,
+						pn, pnDescription, stockType, 
+						--cond,
+						Id, IsPO, PartID,
 
+						MAX(qtyOrdered)     AS qtyOrdered,
+						MAX(qtyReceived)    AS qtyReceived,
+						qtyReconciled  AS qtyReconciled,
+						SUM(qtyRemaining)   AS qtyRemaining,
+
+						MAX(unitCost)       AS unitCost,
+						SUM(extCost)        AS extCost,
+
+						MAX(baseCurrency)   AS baseCurrency,
+						MAX(receivedBy)     AS receivedBy,
+
+						MAX(level1) level1, MAX(level2) level2, MAX(level3) level3,
+						MAX(level4) level4, MAX(level5) level5, MAX(level6) level6,
+						MAX(level7) level7, MAX(level8) level8, MAX(level9) level9,
+						MAX(level10) level10,
+
+						 MAX(masterCompanyId)masterCompanyId,
+						 MAX(CreatedDate)CreatedDate,
+						 CASE 
+							WHEN COUNT(DISTINCT receivingReconNum) > 1 
+								THEN 'MULTIPLE'
+							ELSE MAX(receivingReconNum)
+						END AS receivingReconNum
+					FROM rptCTE
+					GROUP BY
+						vendor, vendorCode, poRoNum, poStatus,
+						pn, pnDescription, stockType, 
+						--cond,
+						Id, IsPO, PartID,qtyReconciled
+				)
 		,PartLevel AS
 				(
 					SELECT
@@ -271,7 +312,7 @@ BEGIN
 								THEN 'MULTIPLE'
 							ELSE MAX(receivingReconNum)
 						END AS receivingReconNum
-					FROM rptCTE
+					FROM GroupData
 					GROUP BY
 						vendor, vendorCode, poRoNum, poStatus,
 						pn, pnDescription, stockType, 

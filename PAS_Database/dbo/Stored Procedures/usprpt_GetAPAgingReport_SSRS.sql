@@ -20,6 +20,9 @@
 	4    05-FEB-2026    Amit Ghediya		update for group by to pagesize reduce issue
 	5    09-FEB-2026    Rajesh Gami			Added NONSTOCK, ASSET Management Structure JOIN in Receiving Reconciliation
 	6	 13-Feb-2026	Devendra Shekh		Added New param @id5
+	7    16-FEB-2026    Amit Ghediya        Update NPO Invoiced date from postedate to invoiced date.
+	8    23-FEB-2026    Moin Bloch          Update Due date Getting From Direct Table.
+
   --[dbo].[usprpt_GetAPAgingReport_SSRS] 1,'2026-01-27',3654,2,null,null
   exec [dbo].[usprpt_GetAPAgingReport_SSRS] 1,'2/5/2026',0,2,null,null,'1,5,6,20,22,52,53!2,7,8,9!3,11,10!4,12,13!!!!!!'
 ***************************************************************************************************/        
@@ -318,10 +321,8 @@ BEGIN
 																	WHEN ctm.Code='CreditCard' THEN -1
 																	WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END), GETUTCDATE()) > 120 THEN vpd.RemainingAmount	ELSE 0 END) AS Amountpaidbymorethan120days,
 					(rrh.ManagementStructureId) AS ManagementStructureId, 'AP-Inv' AS 'DocType','' AS 'vendorRef', '' AS 'Salesperson',ctm.Name AS 'Terms', '0' AS 'FixRateAmount', rrh.InvoiceTotal AS 'InvoiceAmount',
-					0 AS 'cmAmount',0 AS CreditMemoAmount,	DATEADD(DAY, ctm.NetDays,rrh.InvoiceDate) AS 'DueDate', 
-					--UPPER(MSD.Level1Name) AS level1,UPPER(MSD.Level2Name) AS level2,       
-					--UPPER(MSD.Level3Name) AS level3,UPPER(MSD.Level4Name) AS level4, UPPER(MSD.Level5Name) AS level5, UPPER(MSD.Level6Name) AS level6, UPPER(MSD.Level7Name) AS level7,       
-					--UPPER(MSD.Level8Name) AS level8,UPPER(MSD.Level9Name) AS level9,UPPER(MSD.Level10Name) AS level10
+					0 AS 'cmAmount',0 AS CreditMemoAmount,--	DATEADD(DAY, ctm.NetDays,rrh.InvoiceDate) AS 'DueDate', 
+					rrh.DueDate AS 'DueDate', 
 					UPPER(COALESCE(MSD.Level1Name, NMSD.Level1Name, AMSD.Level1Name)) AS Level1,
 					UPPER(COALESCE(MSD.Level2Name, NMSD.Level2Name, AMSD.Level2Name)) AS Level2,
 					UPPER(COALESCE(MSD.Level3Name, NMSD.Level3Name, AMSD.Level3Name)) AS Level3,
@@ -576,37 +577,37 @@ BEGIN
 	--	NonPO Details  --
 		SELECT * INTO #tempNonPODetails FROM 
 		(SELECT DISTINCT (V.VendorId) AS VendorId, ISNULL(V.[VendorName],'') 'vendorName' , ISNULL(V.VendorCode,'') 'vendorCode' ,(CR.Code) AS  'currencyCode',ISNULL(vpd.RemainingAmount,0) AS 'BalanceAmount',      
-                    ISNULL(vpd.RemainingAmount,0)  AS 'CurrentlAmount',ISNULL(vpd.PaymentMade,0)  AS 'PaymentAmount', (NPH.NPONumber) AS 'InvoiceNo',NPH.InvoiceNumber as 'invoiceNumber',  NPH.PostedDate AS InvoiceDate, ISNULL(ctm.NetDays,0) AS NetDays, 
-					(CASE WHEN DATEDIFF(DAY, CAST(NPH.PostedDate AS DATETIME) + (CASE WHEN ctm.Code = 'COD' THEN -1
+                    ISNULL(vpd.RemainingAmount,0)  AS 'CurrentlAmount',ISNULL(vpd.PaymentMade,0)  AS 'PaymentAmount', (NPH.NPONumber) AS 'InvoiceNo',NPH.InvoiceNumber as 'invoiceNumber',  NPH.InvoiceDate AS InvoiceDate, ISNULL(ctm.NetDays,0) AS NetDays, 
+					(CASE WHEN DATEDIFF(DAY, CAST(NPH.InvoiceDate AS DATETIME) + (CASE WHEN ctm.Code = 'COD' THEN -1
 																	WHEN ctm.Code='CIA' THEN -1
 																	WHEN ctm.Code='CreditCard' THEN -1
 																	WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END), GETUTCDATE()) <= 0 THEN vpd.RemainingAmount ELSE 0 END) AS Amountpaidbylessthen0days,
-					(CASE WHEN DATEDIFF(DAY, CAST( NPH.PostedDate AS DATETIME) + (CASE WHEN ctm.Code = 'COD' THEN -1
+					(CASE WHEN DATEDIFF(DAY, CAST( NPH.InvoiceDate AS DATETIME) + (CASE WHEN ctm.Code = 'COD' THEN -1
 																	WHEN ctm.Code='CIA' THEN -1
 																	WHEN ctm.Code='CreditCard' THEN -1
-																	WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END), GETUTCDATE()) > 0 AND DATEDIFF(DAY, CAST(NPH.PostedDate AS DATETIME) + ISNULL(ctm.NetDays,0), GETUTCDATE())<= 30 THEN vpd.RemainingAmount ELSE 0 END) AS Amountpaidby30days,
-					(CASE WHEN DATEDIFF(DAY, CAST( NPH.PostedDate AS DATETIME) + (CASE WHEN ctm.Code = 'COD' THEN -1
+																	WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END), GETUTCDATE()) > 0 AND DATEDIFF(DAY, CAST(NPH.InvoiceDate AS DATETIME) + ISNULL(ctm.NetDays,0), GETUTCDATE())<= 30 THEN vpd.RemainingAmount ELSE 0 END) AS Amountpaidby30days,
+					(CASE WHEN DATEDIFF(DAY, CAST( NPH.InvoiceDate AS DATETIME) + (CASE WHEN ctm.Code = 'COD' THEN -1
 																	WHEN ctm.Code='CIA' THEN -1
 																	WHEN ctm.Code='CreditCard' THEN -1
-																	WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END), GETUTCDATE()) > 30 AND DATEDIFF(DAY, CAST(NPH.PostedDate AS DATETIME) + ISNULL(ctm.NetDays,0), GETUTCDATE())<= 60 THEN vpd.RemainingAmount ELSE 0 END) AS Amountpaidby60days,
-					(CASE WHEN DATEDIFF(DAY, CAST( NPH.PostedDate AS DATETIME) + (CASE WHEN ctm.Code = 'COD' THEN -1
+																	WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END), GETUTCDATE()) > 30 AND DATEDIFF(DAY, CAST(NPH.InvoiceDate AS DATETIME) + ISNULL(ctm.NetDays,0), GETUTCDATE())<= 60 THEN vpd.RemainingAmount ELSE 0 END) AS Amountpaidby60days,
+					(CASE WHEN DATEDIFF(DAY, CAST( NPH.InvoiceDate AS DATETIME) + (CASE WHEN ctm.Code = 'COD' THEN -1
 																	WHEN ctm.Code='CIA' THEN -1
 																	WHEN ctm.Code='CreditCard' THEN -1
-																	WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END), GETUTCDATE()) > 60 AND DATEDIFF(DAY, CAST(NPH.PostedDate AS DATETIME) + ISNULL(ctm.NetDays,0), GETUTCDATE()) <= 90 THEN vpd.RemainingAmount ELSE 0 END) AS Amountpaidby90days,
-					(CASE WHEN DATEDIFF(DAY, CAST( NPH.PostedDate AS DATETIME) + (CASE WHEN ctm.Code = 'COD' THEN -1
+																	WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END), GETUTCDATE()) > 60 AND DATEDIFF(DAY, CAST(NPH.InvoiceDate AS DATETIME) + ISNULL(ctm.NetDays,0), GETUTCDATE()) <= 90 THEN vpd.RemainingAmount ELSE 0 END) AS Amountpaidby90days,
+					(CASE WHEN DATEDIFF(DAY, CAST( NPH.InvoiceDate AS DATETIME) + (CASE WHEN ctm.Code = 'COD' THEN -1
 																	WHEN ctm.Code='CIA' THEN -1
 																	WHEN ctm.Code='CreditCard' THEN -1
-																	WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END), GETUTCDATE()) > 90 AND DATEDIFF(DAY, CAST(NPH.PostedDate AS DATETIME) + ISNULL(ctm.NetDays,0), GETUTCDATE()) <= 120 THEN vpd.RemainingAmount ELSE 0 END) AS Amountpaidby120days,
-					(CASE WHEN DATEDIFF(DAY, CAST( NPH.PostedDate AS DATETIME) + (CASE WHEN ctm.Code = 'COD' THEN -1
+																	WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END), GETUTCDATE()) > 90 AND DATEDIFF(DAY, CAST(NPH.InvoiceDate AS DATETIME) + ISNULL(ctm.NetDays,0), GETUTCDATE()) <= 120 THEN vpd.RemainingAmount ELSE 0 END) AS Amountpaidby120days,
+					(CASE WHEN DATEDIFF(DAY, CAST( NPH.InvoiceDate AS DATETIME) + (CASE WHEN ctm.Code = 'COD' THEN -1
 																	WHEN ctm.Code='CIA' THEN -1
 																	WHEN ctm.Code='CreditCard' THEN -1
 																	WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END), GETUTCDATE()) > 120 THEN vpd.RemainingAmount	ELSE 0 END) AS Amountpaidbymorethan120days,
 					(NPH.ManagementStructureId) AS ManagementStructureId, 'NPO-Inv' AS 'DocType','' AS 'vendorRef','' AS 'Salesperson',ctm.Name AS 'Terms','0' AS 'FixRateAmount',      
-					vpd.RemainingAmount AS 'InvoiceAmount',0 AS 'cmAmount',0 AS CreditMemoAmount,DATEADD(DAY, ctm.NetDays,NPH.PostedDate) AS 'DueDate',UPPER(MSD.Level1Name) AS level1,        
+					vpd.RemainingAmount AS 'InvoiceAmount',0 AS 'cmAmount',0 AS CreditMemoAmount,NPH.DueDate AS 'DueDate',UPPER(MSD.Level1Name) AS level1,        
 					UPPER(MSD.Level2Name) AS level2,UPPER(MSD.Level3Name) AS level3, UPPER(MSD.Level4Name) AS level4,UPPER(MSD.Level5Name) AS level5,UPPER(MSD.Level6Name) AS level6,       
 					UPPER(MSD.Level7Name) AS level7, UPPER(MSD.Level8Name) AS level8,UPPER(MSD.Level9Name) AS level9,UPPER(MSD.Level10Name) AS level10,NPH.MasterCompanyId,
 					0 AS IsCreditMemo,0 AS StatusId ,0 AS InvoicePaidAmount
-					,CASE WHEN (DATEDIFF(DAY, CAST(NPH.PostedDate AS DATETIME) + ISNULL(ctm.NetDays,0), GETUTCDATE())) > 0 THEN (DATEDIFF(DAY, CAST(NPH.PostedDate AS DATETIME) + ISNULL(ctm.NetDays,0), GETUTCDATE())) ELSE 0 END AS 'DaysPastDue'
+					,CASE WHEN (DATEDIFF(DAY, CAST(NPH.DueDate AS DATETIME), GETUTCDATE())) > 0 THEN (DATEDIFF(DAY, CAST(NPH.DueDate AS DATETIME), GETUTCDATE())) ELSE 0 END AS 'DaysPastDue'
          FROM [dbo].[NonPOInvoiceHeader] NPH WITH (NOLOCK)    
 			   INNER JOIN [dbo].[Vendor] v  WITH (NOLOCK) ON v.VendorId=NPH.VendorId      
 			   INNER JOIN [dbo].[VendorPaymentDetails] vpd WITH (NOLOCK) ON NPH.NonPOInvoiceId = vpd.NonPOInvoiceId
@@ -796,7 +797,8 @@ BEGIN
 																	WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) AS DATE), GETUTCDATE()) > 120 THEN vpd.RemainingAmount	ELSE 0 END) AS Amountpaidbymorethan120days,
 					(rrh.ManagementStructureId) AS ManagementStructureId, (CASE WHEN rrd.[Type] = 1 THEN 'PO-Inv' WHEN rrd.[Type] = 2 THEN 'RO-Inv' END) AS 'DocType',
 					'' AS 'vendorRef', '' AS 'Salesperson', ctm.Name AS 'Terms', '0' AS 'FixRateAmount',rrh.InvoiceTotal AS 'InvoiceAmount',      
-					0 AS 'cmAmount',0 AS CreditMemoAmount,DATEADD(DAY, ctm.NetDays,rrh.InvoiceDate) AS 'DueDate',     
+					0 AS 'cmAmount',0 AS CreditMemoAmount,--DATEADD(DAY, ctm.NetDays,rrh.InvoiceDate) AS 'DueDate',  
+					rrh.DueDate AS 'DueDate',  
 					--UPPER(MSD.Level1Name) AS level1,UPPER(MSD.Level2Name) AS level2, UPPER(MSD.Level3Name) AS level3,UPPER(MSD.Level4Name) AS level4,UPPER(MSD.Level5Name) AS level5,       
 					--UPPER(MSD.Level6Name) AS level6,UPPER(MSD.Level7Name) AS level7, UPPER(MSD.Level8Name) AS level8,UPPER(MSD.Level9Name) AS level9, UPPER(MSD.Level10Name) AS level10
 					UPPER(COALESCE(MSD.Level1Name, NMSD.Level1Name, AMSD.Level1Name)) AS Level1,
@@ -1046,38 +1048,38 @@ BEGIN
 		SELECT * INTO #tempNonPODetailsElse FROM 
 		(SELECT DISTINCT (V.VendorId) AS VendorId,ISNULL(V.[VendorName],'') 'vendorName' , ISNULL(V.VendorCode,'') 'vendorCode' ,      
 						(CR.Code) AS  'currencyCode',  ISNULL(vpd.RemainingAmount,0) AS 'BalanceAmount',ISNULL(vpd.RemainingAmount,0)  AS 'CurrentlAmount',      
-						ISNULL(vpd.PaymentMade,0)  AS 'PaymentAmount',(NPH.NPONumber) AS 'InvoiceNo',NPH.InvoiceNumber as 'invoiceNumber', NPH.PostedDate AS InvoiceDate,ISNULL(ctm.NetDays,0) AS NetDays,      						
-						(CASE WHEN DATEDIFF(DAY, CAST(CAST(NPH.PostedDate AS DATETIME) + (CASE WHEN ctm.Code = 'COD' THEN -1
+						ISNULL(vpd.PaymentMade,0)  AS 'PaymentAmount',(NPH.NPONumber) AS 'InvoiceNo',NPH.InvoiceNumber as 'invoiceNumber', NPH.InvoiceDate AS InvoiceDate,ISNULL(ctm.NetDays,0) AS NetDays,      						
+						(CASE WHEN DATEDIFF(DAY, CAST(CAST(NPH.InvoiceDate AS DATETIME) + (CASE WHEN ctm.Code = 'COD' THEN -1
 																		WHEN ctm.Code='CIA' THEN -1
 																		WHEN ctm.Code='CreditCard' THEN -1
 																		WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) AS DATE), GETUTCDATE()) <= 0 THEN vpd.RemainingAmount ELSE 0 END) AS Amountpaidbylessthen0days,
-						(CASE WHEN DATEDIFF(DAY, CAST(CAST( NPH.PostedDate AS DATETIME) + (CASE WHEN ctm.Code = 'COD' THEN -1
+						(CASE WHEN DATEDIFF(DAY, CAST(CAST( NPH.InvoiceDate AS DATETIME) + (CASE WHEN ctm.Code = 'COD' THEN -1
 																		WHEN ctm.Code='CIA' THEN -1
 																		WHEN ctm.Code='CreditCard' THEN -1
-																		WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) AS DATE), GETUTCDATE()) > 0 AND DATEDIFF(DAY, CAST(CAST(NPH.PostedDate AS DATETIME) + ISNULL(ctm.NetDays,0)  AS DATE), GETUTCDATE())<= 30 THEN vpd.RemainingAmount ELSE 0 END) AS Amountpaidby30days,
-						(CASE WHEN DATEDIFF(DAY, CAST(CAST( NPH.PostedDate AS DATETIME) + (CASE WHEN ctm.Code = 'COD' THEN -1
+																		WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) AS DATE), GETUTCDATE()) > 0 AND DATEDIFF(DAY, CAST(CAST(NPH.InvoiceDate AS DATETIME) + ISNULL(ctm.NetDays,0)  AS DATE), GETUTCDATE())<= 30 THEN vpd.RemainingAmount ELSE 0 END) AS Amountpaidby30days,
+						(CASE WHEN DATEDIFF(DAY, CAST(CAST( NPH.InvoiceDate AS DATETIME) + (CASE WHEN ctm.Code = 'COD' THEN -1
 																		WHEN ctm.Code='CIA' THEN -1
 																		WHEN ctm.Code='CreditCard' THEN -1
-																		WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) AS DATE), GETUTCDATE()) > 30 AND DATEDIFF(DAY, CAST(CAST(NPH.PostedDate AS DATETIME) + ISNULL(ctm.NetDays,0)  AS DATE), GETUTCDATE())<= 60 THEN vpd.RemainingAmount ELSE 0 END) AS Amountpaidby60days,
-						(CASE WHEN DATEDIFF(DAY, CAST(CAST( NPH.PostedDate AS DATETIME) + (CASE WHEN ctm.Code = 'COD' THEN -1
+																		WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) AS DATE), GETUTCDATE()) > 30 AND DATEDIFF(DAY, CAST(CAST(NPH.InvoiceDate AS DATETIME) + ISNULL(ctm.NetDays,0)  AS DATE), GETUTCDATE())<= 60 THEN vpd.RemainingAmount ELSE 0 END) AS Amountpaidby60days,
+						(CASE WHEN DATEDIFF(DAY, CAST(CAST( NPH.InvoiceDate AS DATETIME) + (CASE WHEN ctm.Code = 'COD' THEN -1
 																		WHEN ctm.Code='CIA' THEN -1
 																		WHEN ctm.Code='CreditCard' THEN -1
-																		WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) AS DATE), GETUTCDATE()) > 60 AND DATEDIFF(DAY, CAST(CAST(NPH.PostedDate AS DATETIME) + ISNULL(ctm.NetDays,0)  AS DATE), GETUTCDATE()) <= 90 THEN vpd.RemainingAmount ELSE 0 END) AS Amountpaidby90days,
-						(CASE WHEN DATEDIFF(DAY, CAST(CAST( NPH.PostedDate AS DATETIME) + (CASE WHEN ctm.Code = 'COD' THEN -1
+																		WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) AS DATE), GETUTCDATE()) > 60 AND DATEDIFF(DAY, CAST(CAST(NPH.InvoiceDate AS DATETIME) + ISNULL(ctm.NetDays,0)  AS DATE), GETUTCDATE()) <= 90 THEN vpd.RemainingAmount ELSE 0 END) AS Amountpaidby90days,
+						(CASE WHEN DATEDIFF(DAY, CAST(CAST( NPH.InvoiceDate AS DATETIME) + (CASE WHEN ctm.Code = 'COD' THEN -1
 																		WHEN ctm.Code='CIA' THEN -1
 																		WHEN ctm.Code='CreditCard' THEN -1
-																		WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) AS DATE), GETUTCDATE()) > 90 AND DATEDIFF(DAY, CAST(CAST(NPH.PostedDate AS DATETIME) + ISNULL(ctm.NetDays,0)  AS DATE), GETUTCDATE()) <= 120 THEN vpd.RemainingAmount ELSE 0 END) AS Amountpaidby120days,
-						(CASE WHEN DATEDIFF(DAY, CAST(CAST( NPH.PostedDate AS DATETIME) + (CASE WHEN ctm.Code = 'COD' THEN -1
+																		WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) AS DATE), GETUTCDATE()) > 90 AND DATEDIFF(DAY, CAST(CAST(NPH.InvoiceDate AS DATETIME) + ISNULL(ctm.NetDays,0)  AS DATE), GETUTCDATE()) <= 120 THEN vpd.RemainingAmount ELSE 0 END) AS Amountpaidby120days,
+						(CASE WHEN DATEDIFF(DAY, CAST(CAST( NPH.InvoiceDate AS DATETIME) + (CASE WHEN ctm.Code = 'COD' THEN -1
 																		WHEN ctm.Code='CIA' THEN -1
 																		WHEN ctm.Code='CreditCard' THEN -1
 																		WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) AS DATE), GETUTCDATE()) > 120 THEN vpd.RemainingAmount	ELSE 0 END) AS Amountpaidbymorethan120days,
 						(NPH.ManagementStructureId) AS ManagementStructureId, 'NPO-Inv' AS 'DocType','' AS 'vendorRef', '' AS 'Salesperson',ctm.Name AS 'Terms',      
 						'0' AS 'FixRateAmount', vpd.RemainingAmount AS 'InvoiceAmount', 0 AS 'cmAmount',0 AS CreditMemoAmount,
-						DATEADD(DAY, ctm.NetDays,NPH.PostedDate) AS 'DueDate',     
+						NPH.DueDate AS 'DueDate',     
 						UPPER(MSD.Level1Name) AS level1,UPPER(MSD.Level2Name) AS level2,UPPER(MSD.Level3Name) AS level3,UPPER(MSD.Level4Name) AS level4,       
 						UPPER(MSD.Level5Name) AS level5,UPPER(MSD.Level6Name) AS level6, UPPER(MSD.Level7Name) AS level7,UPPER(MSD.Level8Name) AS level8,UPPER(MSD.Level9Name) AS level9,UPPER(MSD.Level10Name) AS level10,
 						NPH.MasterCompanyId,0 AS IsCreditMemo,0 AS StatusId,0 AS InvoicePaidAmount
-						,CASE WHEN (DATEDIFF(DAY, CAST(NPH.PostedDate AS DATETIME) + ISNULL(ctm.NetDays,0), GETUTCDATE())) > 0 THEN (DATEDIFF(DAY, CAST(NPH.PostedDate AS DATETIME) + ISNULL(ctm.NetDays,0), GETUTCDATE())) ELSE 0 END AS 'DaysPastDue'
+						,CASE WHEN (DATEDIFF(DAY, CAST(NPH.DueDate AS DATETIME), GETUTCDATE())) > 0 THEN (DATEDIFF(DAY, CAST(NPH.DueDate AS DATETIME), GETUTCDATE())) ELSE 0 END AS 'DaysPastDue'
 			 FROM [dbo].[NonPOInvoiceHeader] NPH WITH (NOLOCK)       
 				   INNER JOIN [dbo].[VendorPaymentDetails] vpd WITH (NOLOCK) ON NPH.NonPOInvoiceId = vpd.NonPOInvoiceId      
 				   --LEFT JOIN [dbo].[VendorReadyToPayDetails] vrp WITH (NOLOCK) ON NPH.NonPOInvoiceId = vrp.NonPOInvoiceId
@@ -1125,7 +1127,8 @@ BEGIN
 				   ISNULL(CTE.InvoiceAmount,0) AS 'InvoiceAmount', 
 				   UPPER(CTE.DocType) AS DocType,
 				   UPPER(CTE.Terms) AS Terms,  
-				   CASE WHEN CTE.IsCreditMemo = 0 THEN CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(DATEADD(DAY, CTE.NetDays,CTE.InvoiceDate), 'MM/dd/yyyy') ELSE CONVERT(VARCHAR(50), DATEADD(day, CTE.NetDays,CTE.InvoiceDate), 107) END ELSE NULL END 'DueDate',
+				 --CASE WHEN CTE.IsCreditMemo = 0 THEN CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(DATEADD(DAY, CTE.NetDays,CTE.InvoiceDate), 'MM/dd/yyyy') ELSE CONVERT(VARCHAR(50), DATEADD(day, CTE.NetDays,CTE.InvoiceDate), 107) END ELSE NULL END 'DueDate',
+				   CASE WHEN CTE.IsCreditMemo = 0 THEN CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(CTE.DueDate, 'MM/dd/yyyy') ELSE CONVERT(VARCHAR(50), DATEADD(day, CTE.NetDays,CTE.InvoiceDate), 107) END ELSE NULL END 'DueDate',
 				   ISNULL(CTE.FixRateAmount,0) AS 'FixRateAmount',    
 				   UPPER(CTE.level1) AS level1, UPPER(CTE.level2) AS level2,       
 				   UPPER(CTE.level3) AS level3, UPPER(CTE.level4) AS level4,       

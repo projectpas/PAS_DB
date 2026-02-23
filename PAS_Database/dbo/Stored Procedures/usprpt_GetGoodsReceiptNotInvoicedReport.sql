@@ -105,7 +105,7 @@ BEGIN
 			[qtyOrdered],[qtyReceived],[qtyReconciled],[qtyRemaining],[receivingReconNum],
 			[unitCost],
 			[extCost],[baseCurrency],[receivedBy],
-			[level1], [level2], [level3], [level4], [level5], [level6], [level7], [level8], [level9], [level10], [masterCompanyId],CreatedDate,Id,IsPO,PartID) 
+			[level1], [level2], [level3], [level4], [level5], [level6], [level7], [level8], [level9], [level10], [masterCompanyId],CreatedDate,Id,IsPO,PartID,ReceivingReconciliationDetailId) 
 		AS (
 			SELECT
 			PO.VendorName AS 'vendor',
@@ -140,6 +140,7 @@ BEGIN
 			PO.PurchaseOrderId as Id,
 			1 as IsPO,
 			POP.PurchaseOrderPartRecordId PartID
+			,RRCD.ReceivingReconciliationDetailId
 		FROM [dbo].[PurchaseOrder] PO WITH(NOLOCK)
 		INNER JOIN [dbo].[PurchaseOrderPart] POP WITH(NOLOCK) ON PO.PurchaseOrderId = POP.PurchaseOrderId
 		INNER JOIN DBO.Stockline STK WITH(NOLOCK) ON POP.PurchaseOrderPartRecordId = STK.PurchaseOrderPartRecordId
@@ -209,6 +210,7 @@ BEGIN
 			RO.RepairOrderId as Id,
 			0 as IsPO,
 			ROP.RepairOrderPartRecordId PartID
+			,RRCD.ReceivingReconciliationDetailId
 		FROM [dbo].[RepairOrder] RO WITH(NOLOCK)
 		INNER JOIN [dbo].[RepairOrderPart] ROP WITH(NOLOCK) ON RO.RepairOrderId = ROP.RepairOrderId
 		INNER JOIN DBO.Stockline STK WITH(NOLOCK) ON ROP.RepairOrderPartRecordId = STK.RepairOrderPartRecordId
@@ -279,7 +281,7 @@ BEGIN
 						vendor, vendorCode, poRoNum, poStatus,
 						pn, pnDescription, stockType, 
 						--cond,
-						Id, IsPO, PartID,qtyReconciled
+						Id, IsPO, PartID,qtyReconciled,ReceivingReconciliationDetailId
 				)
 		,PartLevel AS
 				(

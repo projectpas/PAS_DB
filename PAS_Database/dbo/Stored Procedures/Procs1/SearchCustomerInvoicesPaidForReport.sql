@@ -14,10 +14,11 @@
 	2	02/1/2024		AMIT GHEDIYA	added isperforma Flage for SO
 	3	07/03/2024		Moin Bloch  	added Document Type
 	4   13/03/2024      Moin Bloch      Modify(makes Exchange Invoice to Invoice)
-	5   30/06/20245     Moin Bloch      Modify(Old To New Table)
+	5   30/06/2025      Moin Bloch      Modify(Old To New Table)
+	6   23/02/2026      Hemant Patel    Modify(Added Ismiscellaneous Entry)
 
 ************************************************************************/
--- EXEC SearchCustomerInvoicesPaidForReport 10156
+-- EXEC SearchCustomerInvoicesPaidForReport 196
 CREATE     PROCEDURE [dbo].[SearchCustomerInvoicesPaidForReport]
 @ReceiptId bigint = null
 AS
@@ -139,16 +140,19 @@ BEGIN
 					 CASE WHEN ICP.CustomerId IS NOT NULL THEN ICP.CustomerId 
 						  WHEN IWP.CustomerId IS NOT NULL THEN IWP.CustomerId 
 						  WHEN ICCP.CustomerId IS NOT NULL THEN ICCP.CustomerId 
+						  WHEN CCPD.CustomerId IS NOT NULL THEN CCPD.CustomerId 
 						  ELSE 0 END AS CustomerId,
 					 CASE WHEN ICP.CustomerId IS NOT NULL THEN CCP.[Name] 
 						  WHEN IWP.CustomerId IS NOT NULL THEN CWP.[Name] 
 						  WHEN ICCP.CustomerId IS NOT NULL THEN CCDP.[Name] 
+						  WHEN CCPD.CustomerId IS NOT NULL THEN CCPDC.[Name] 
 						  ELSE '' END AS 'CustName',
 					CASE WHEN ICP.CustomerId IS NOT NULL THEN CCP.CustomerCode 
 						 WHEN IWP.CustomerId IS NOT NULL THEN CWP.CustomerCode 
 						 WHEN ICCP.CustomerId IS NOT NULL THEN CCDP.CustomerCode 
+						 WHEN CCPD.CustomerId IS NOT NULL THEN CCPDC.CustomerCode 
 						 ELSE '' END AS CustomerCode,
-				    (ISNULL(ICP.Amount, 0) + ISNULL(IWP.Amount, 0) + ISNULL(ICCP.Amount, 0)) AS AppliedAmount,
+				    (ISNULL(ICP.Amount, 0) + ISNULL(IWP.Amount, 0) + ISNULL(ICCP.Amount, 0) + ISNULL(CCPD.TotalAmount, 0)) AS AppliedAmount,
 					0.00 AppliedRemainingAmount,			  
 					'' AS [DocNum], 					
 					'' AS InvoiceDate,					
@@ -161,14 +165,17 @@ BEGIN
 					0.00 AS 'NewRemainingBal',					
 					''  AS 'DocumentType',
 					1 AS Ismiscellaneous 
-				 FROM [dbo].[CustomerPayments] CP WITH (NOLOCK) 
+		  FROM [dbo].[CustomerPayments] CP WITH (NOLOCK) 
 		  LEFT JOIN [dbo].[InvoiceCheckPayment] ICP WITH (NOLOCK)  ON ICP.ReceiptId = CP.ReceiptId AND ICP.Ismiscellaneous = 1   
 		  LEFT JOIN [dbo].[InvoiceWireTransferPayment] IWP WITH (NOLOCK) ON IWP.ReceiptId = CP.ReceiptId AND IWP.Ismiscellaneous = 1   
-		  LEFT JOIN [dbo].[InvoiceCreditDebitCardPayment] ICCP WITH (NOLOCK) ON ICCP.ReceiptId = CP.ReceiptId AND ICCP.Ismiscellaneous = 1   
+		  LEFT JOIN [dbo].[InvoiceCreditDebitCardPayment] ICCP WITH (NOLOCK) ON ICCP.ReceiptId = CP.ReceiptId AND ICCP.Ismiscellaneous = 1  
+		  LEFT JOIN [dbo].[CustomerCreditPaymentDetail] CCPD WITH (NOLOCK)  ON CCPD.ReceiptId = CP.ReceiptId 
 		  LEFT JOIN [dbo].[Customer] CCP WITH (NOLOCK) ON CCP.CustomerId = ICP.CustomerId  
 		  LEFT JOIN [dbo].[Customer] CWP WITH (NOLOCK) ON CWP.CustomerId = IWP.CustomerId  
 		  LEFT JOIN [dbo].[Customer] CCDP WITH (NOLOCK) ON CCDP.CustomerId = ICCP.CustomerId  
-		 WHERE CP.[ReceiptId] = @ReceiptId AND (ICP.CustomerId > 0 OR IWP.CustomerId > 0 OR ICCP.CustomerId > 0)
+		  LEFT JOIN [dbo].[Customer] CCPDC WITH (NOLOCK) ON CCPDC.CustomerId = CCPD.CustomerId  
+		 WHERE CP.[ReceiptId] = @ReceiptId AND (ICP.CustomerId > 0 OR IWP.CustomerId > 0 OR ICCP.CustomerId > 0 OR CCPD.CustomerId > 0)
+
 
 
 	END TRY    

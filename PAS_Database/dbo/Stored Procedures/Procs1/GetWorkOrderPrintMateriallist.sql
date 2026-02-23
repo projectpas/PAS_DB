@@ -43,7 +43,15 @@ BEGIN
 				        SUM(WOMS.QtyIssued) AS QuantityIssued,
 						imt.partnumber AS partnumber,
 						imt.PartDescription AS PartDescription,
-						CASE WHEN ISNULL(WOMS.RepairOrderId,0) > 0 THEN RO.RepairOrderNumber ELSE STK.PurchaseOrderNumber END AS PONum,
+						CASE WHEN 
+							ISNULL(WOMS.RepairOrderId,0) > 0 THEN RO.RepairOrderNumber 
+						ELSE 
+							CASE WHEN 
+								 ISNULL(STK.RepairOrderId,0) > 0 THEN STK.RepairOrderNumber 
+							ELSE 
+								STK.PurchaseOrderNumber 
+							END
+						END AS PONum,
 						STK.StockLineNumber,
 						STK.ControlNumber,
 						CASE WHEN ISNULL(STK.[IsTurnIn],0) = 1 THEN ISNULL(STK.[WorkOrderNumber],'') ELSE '' END AS WorkOrderNumber,
@@ -56,7 +64,7 @@ BEGIN
 				LEFT JOIN  [dbo].[RepairOrder] RO WITH(NOLOCK) ON RO.RepairOrderId = WOMS.RepairOrderId
 				WHERE WOM.WorkFlowWorkOrderId = @workFlowWorkOrderId AND WOMS.IsDeleted = 0 AND WOMS.ProvisionId <> @ProvisionId
 				GROUP BY WOMS.RepairOrderId,STK.PurchaseOrderNumber,imt.partnumber,imt.PartDescription,STK.StockLineNumber,
-						 STK.ControlNumber,STK.IsTurnIn,STK.WorkOrderNumber,STK.SerialNumber,RO.RepairOrderNumber,WOMS.QuantityTurnIn
+						 STK.ControlNumber,STK.IsTurnIn,STK.WorkOrderNumber,STK.SerialNumber,STK.RepairOrderId,STK.RepairOrderNumber,RO.RepairOrderNumber,WOMS.QuantityTurnIn
 
 				UNION ALL
 
@@ -64,8 +72,15 @@ BEGIN
 				        SUM(WOMS.QtyIssued) AS QuantityIssued,
 						imt.partnumber AS partnumber,
 						imt.PartDescription AS PartDescription,
-						--STK.PurchaseOrderNumber AS PONum,
-						CASE WHEN ISNULL(WOMS.RepairOrderId,0) > 0 THEN RO.RepairOrderNumber ELSE STK.PurchaseOrderNumber END AS PONum,
+						CASE WHEN 
+							ISNULL(WOMS.RepairOrderId,0) > 0 THEN RO.RepairOrderNumber 
+						ELSE 
+							CASE WHEN 
+								ISNULL(STK.RepairOrderId,0) > 0 THEN STK.RepairOrderNumber 
+							ELSE 
+								STK.PurchaseOrderNumber 
+							END
+						END AS PONum,
 						STK.StockLineNumber,
 						STK.ControlNumber,
 						CASE WHEN ISNULL(STK.[IsTurnIn],0) = 1 THEN ISNULL(STK.[WorkOrderNumber],'') ELSE '' END AS WorkOrderNumber,
@@ -78,7 +93,7 @@ BEGIN
 				LEFT JOIN  [dbo].[RepairOrder] RO WITH(NOLOCK) ON RO.RepairOrderId = WOMS.RepairOrderId
 				WHERE WOM.WorkFlowWorkOrderId = @workFlowWorkOrderId AND WOMS.IsDeleted = 0
 				GROUP BY WOMS.RepairOrderId,STK.PurchaseOrderNumber,imt.partnumber,imt.PartDescription,STK.StockLineNumber,
-						 STK.ControlNumber,STK.IsTurnIn,STK.WorkOrderNumber,STK.SerialNumber,RO.RepairOrderNumber,WOMS.QuantityTurnIn
+						 STK.ControlNumber,STK.IsTurnIn,STK.WorkOrderNumber,STK.SerialNumber,STK.RepairOrderId,STK.RepairOrderNumber,RO.RepairOrderNumber,WOMS.QuantityTurnIn
 			END
 		COMMIT  TRANSACTION
 

@@ -21,7 +21,8 @@ exec USP_WIPReportsReconciliation @mastercompanyid=1,@id='2026-01-01 00:00:00',@
 CREATE       PROCEDURE [dbo].[USP_WIPReportsReconciliation] 	
 @mastercompanyid INT,
 @id VARCHAR(MAX),
-@id2 VARCHAR(MAX)
+@id2 VARCHAR(MAX),
+@id3 BIGINT = NULL
 AS  
 BEGIN  
  SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED  
@@ -65,8 +66,11 @@ BEGIN
 			DROP TABLE #tmpWO
 		END
 
-        SELECT WO.WorkOrderId INTO #tmpWO FROM [dbo].[WorkOrder] WO WITH (NOLOCK) WHERE WO.MasterCompanyId = @MasterCompanyId AND  ISNULL(WO.IsDeleted, 0) = 0 AND ISNULL(WO.IsActive, 0) = 1
-        AND CAST(WO.OpenDate AS DATE) BETWEEN CAST(@FromDate AS DATE) AND CAST(@ToDate AS DATE);
+        SELECT WO.WorkOrderId INTO #tmpWO FROM [dbo].[WorkOrder] WO WITH (NOLOCK)
+        JOIN dbo.WorkOrderPartNumber WOP WITH(NOLOCK) ON WO.WorkOrderId = WOP.WorkOrderId
+        WHERE WO.MasterCompanyId = @MasterCompanyId AND  ISNULL(WO.IsDeleted, 0) = 0 AND ISNULL(WO.IsActive, 0) = 1 
+        AND CAST(WO.OpenDate AS DATE) BETWEEN CAST(@FromDate AS DATE) AND CAST(@ToDate AS DATE)
+        AND (@id3 IS NULL OR WOP.ItemMasterId = @id3);
 
 		IF OBJECT_ID(N'tempdb..#tmpWorkOrderPartsCost') IS NOT NULL    
 		BEGIN    

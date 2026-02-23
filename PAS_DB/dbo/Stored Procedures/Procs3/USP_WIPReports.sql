@@ -26,7 +26,7 @@ CREATE     PROCEDURE [dbo].[USP_WIPReports]
 @mastercompanyid INT,
 @id VARCHAR(MAX),
 @id2 VARCHAR(MAX),
-@id3 BIGINT,
+@id3 BIGINT = NULL,
 @strFilter VARCHAR(MAX) = NULL
 AS  
 BEGIN  
@@ -174,6 +174,7 @@ BEGIN
 			 AND  (ISNULL(@level8,'') = '' OR MSD.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level8,',')))
 			 AND  (ISNULL(@level9,'') = '' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level9,',')))
 			 AND  (ISNULL(@level10,'') ='' OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level10,',')))
+			 AND (@id3 IS NULL OR WOP.ItemMasterId = @id3)
 
 		--UPDATE #TEMPOriginalStocklineRecords SET PartCost = 0 FROM(
 		--	SELECT WO.WorkOrderId, WOP.ID AS WorkOrderPartNoId, WOP.StockLineId, WO.CustomerId, WO.MasterCompanyId, 
@@ -227,6 +228,7 @@ BEGIN
 			 AND  (ISNULL(@level8,'') = '' OR MSD.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level8,',')))
 			 AND  (ISNULL(@level9,'') = '' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level9,',')))
 			 AND  (ISNULL(@level10,'') ='' OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level10,',')))
+			 AND (@id3 IS NULL OR WOP.ItemMasterId = @id3)
 
 		IF OBJECT_ID('tempdb..#tmpWorkOrderLaborCalc') IS NOT NULL
 		BEGIN
@@ -265,7 +267,6 @@ BEGIN
 			JOIN dbo.WorkOrderMPNCostDetails WCD WITH(NOLOCK) ON tmporg.WorkOrderPartNoId = WCD.WOPartNoId
 			LEFT JOIN #tmpWorkOrderCosts C ON C.WorkOrderId = tmporg.WorkOrderId
 		WHERE ISNULL(WOP.IsFinishGood, 0) = 0 AND ISNULL(WOP.IsDeleted, 0) = 0 AND ISNULL(WOP.IsActive, 0) = 1
-
 
 		SELECT * FROM #TEMPOriginalStocklineRecords WHERE ISNULL(TotalWIPCost, 0) > 0 ORDER BY OpenDate DESC
 

@@ -14,7 +14,7 @@
 	2    11/02/2026   Hemant Saliya       Corrected balance missmatch
 
      
-exec USP_WIPReportsReconciliation @mastercompanyid=1,@id='2026-01-01 00:00:00',@id2='2026-01-30 00:00:00'
+exec USP_WIPReportsReconciliation @mastercompanyid=1,@id='2026-01-01 00:00:00',@id2='2026-01-30 00:00:00',@id3='96867'
 
 *************************************************************/   
   
@@ -31,6 +31,11 @@ BEGIN
 		
 		DECLARE @FromDate DATETIME = ISNULL(TRY_CAST(@id AS DATETIME),NULL) 
 		DECLARE @ToDate DATETIME = ISNULL(TRY_CAST(@id2 AS DATETIME),NULL) 
+
+        IF @id3 = 0
+		BEGIN
+			SET @id3 = NULL
+		END
 
         DECLARE @WIPMaterialCategoryId INT ;
         DECLARE @WIPDirectLaborCategoryId INT;

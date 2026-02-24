@@ -49,6 +49,12 @@ BEGIN
 		PRINT @FromDate
 		PRINT @ToDate
 
+		IF @id3 = 0
+		BEGIN
+			SET @id3 = NULL
+		END
+
+
 		SELECT @ProvisionId = ProvisionId FROM dbo.Provision  WHERE StatusCode = 'REPLACE'		
 
 		IF OBJECT_ID(N'tempdb..#TEMPMSFilter') IS NOT NULL    

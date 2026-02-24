@@ -28,7 +28,7 @@
 	17  24-12-2025		Amit Ghediya			Get WorkorderNum from wo.
 	18  30-12-2025		Devendra Shekh			CostDate Issue Resolved 
 	19  30-12-2025		Devendra Shekh			Added UOM Changes
-	
+	20  24-02-2026		Rajesh Gami				UOM Changes
  EXECUTE [dbo].[USP_GetWorkOrderMaterialsList] 4257,3782, 0
 exec dbo.USP_GetWorkOrderMaterialsListNew @PageNumber=1,@PageSize=10,@SortColumn=default,@SortOrder=1,@WorkOrderId=5960,@WFWOId=5553,@ShowPendingToIssue=1
 **************************************************************/
@@ -69,7 +69,7 @@ SET NOCOUNT ON
 				DECLARE @CustomerID BIGINT, @IsTeardownWO bit = 0, @WoTypeId int = 0;
 				DECLARE @Count Int, @TotalQty DECIMAL(18,6) =0, @TotalReserved DECIMAL(18,6) =0, @TotalIssued DECIMAL(18,6) =0,@IsFullyReserved BIT =0, @IsFullyIssued BIT =0; 
 				DECLARE @WOPartNoId BIGINT;
-				DECLARE @TotalExtendedCost DECIMAL(13,2);
+				DECLARE @TotalExtendedCost DECIMAL(18,6);
 				DECLARE @WorkOrderFormTypeId BIT = 0; 
 				DECLARE @TotalMaterialParts INT = 0, @TotalStkParts INT = 0;
 				DECLARE @TotalIssuedStkExtendedCost DECIMAL(18,6);
@@ -186,7 +186,7 @@ SET NOCOUNT ON
 					[StocklinePartDescription] [varchar](MAX)  NULL,
 					[KitNumber] [varchar](256) NULL,
 					[KitDescription] [varchar](1000) NULL,
-					[KitCost] [decimal](18, 2) NULL,
+					[KitCost] [decimal](18, 6) NULL,
 					[WOQMaterialKitMappingId] [bigint] NULL, 	
 					[KitId] [bigint] NULL,
 					[ItemGroup] [varchar](250) NULL,
@@ -302,8 +302,8 @@ SET NOCOUNT ON
 					[ExpectedSerialNumber] [varchar](250) NULL,
 					[IsExchangeTender] [bit] NULL,
 					[IsKitItem] [varchar](10) NULL,
-					[IssuedStkExtendedCost] [decimal](18, 2) NULL,
-					[ReservedStkExtendedCost] [decimal](18, 2) NULL,		
+					[IssuedStkExtendedCost] [decimal](18, 6) NULL,
+					[ReservedStkExtendedCost] [decimal](18, 6) NULL,		
 					[StkPONum] [varchar](150) NULL,
 					[StkPONextDlvrDate] [datetime2] NULL,
 					[ConsumeUnitOfMeasure] VARCHAR(250) NULL,
@@ -1568,11 +1568,14 @@ SET NOCOUNT ON
 				--	SELECT @Count = COUNT(1) from #finalMaterialListResult;
 				--ELSE
 					SELECT @Count = COUNT(ParentID) from #TMPWOMaterialParentListData;
-					SET @TotalQty = (SELECT SUM(CAST(ISNULL(Quantity, 0) AS decimal)) from  #TMPWOMaterialParentQtySum);
-					SELECT @TotalIssued = SUM(CAST(ISNULL(QuantityIssued, 0) AS decimal)) from  #TMPWOMaterialParentQtySum;
-					SELECT @TotalReserved = SUM(CAST(ISNULL(QuantityReserved, 0) AS decimal)) from  #TMPWOMaterialParentQtySum;
-					SET @IsFullyReserved = (CASE WHEN (CAST(ISNULL(@TotalQty, 0) AS decimal) - (CAST(ISNULL(@TotalIssued, 0) AS decimal) + CAST(ISNULL(@TotalReserved, 0) AS decimal))) = 0  THEN 1 ELSE 0 END)
-					SET @IsFullyIssued = (CASE WHEN (CAST(ISNULL(@TotalQty, 0) AS decimal) - (CAST(ISNULL(@TotalIssued, 0) AS decimal))) = 0 THEN 1 ELSE 0 END) 
+					SET @TotalQty = (SELECT SUM(CAST(ISNULL(Quantity, 0) AS decimal(18,6))) from  #TMPWOMaterialParentQtySum);
+					SELECT @TotalIssued = SUM(CAST(ISNULL(QuantityIssued, 0) AS decimal(18,6))) from  #TMPWOMaterialParentQtySum;
+					SELECT @TotalReserved = SUM(CAST(ISNULL(QuantityReserved, 0) AS decimal(18,6))) from  #TMPWOMaterialParentQtySum;
+					SET @IsFullyReserved = (CASE WHEN (CAST(ISNULL(@TotalQty, 0) AS decimal(18,6)) - (CAST(ISNULL(@TotalIssued, 0) AS decimal(18,6)) + CAST(ISNULL(@TotalReserved, 0) AS decimal(18,6)))) = 0  THEN 1 ELSE 0 END)
+					SET @IsFullyIssued = (CASE WHEN (CAST(ISNULL(@TotalQty, 0) AS decimal(18,6)) - (CAST(ISNULL(@TotalIssued, 0) AS decimal(18,6)))) = 0 THEN 1 ELSE 0 END) 
+				PRINT @TotalQty PRINT '@TotalQty'
+				PRINT @TotalIssued PRINT '@@TotalIssued'
+				PRINT @TotalReserved PRINT '@@TotalReserved'
 				SELECT *, @Count As NumberOfItems,
 				@IsFullyReserved AS IsFullyReserved,
 				@IsFullyIssued AS IsFullyIssued,

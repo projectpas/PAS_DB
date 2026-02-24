@@ -32,6 +32,11 @@ BEGIN
 		DECLARE @FromDate DATETIME = ISNULL(TRY_CAST(@id AS DATETIME),NULL) 
 		DECLARE @ToDate DATETIME = ISNULL(TRY_CAST(@id2 AS DATETIME),NULL) 
 
+        IF @id3 = 0
+		BEGIN
+			SET @id3 = NULL
+		END
+
         DECLARE @WIPMaterialCategoryId INT ;
         DECLARE @WIPDirectLaborCategoryId INT;
         DECLARE @WIPOverheadCategoryId INT;
@@ -153,9 +158,9 @@ BEGIN
             DROP TABLE #tmpWorkOrderCosts;
         END
 
-        SELECT @TotalUnpostedDirectLaborCost = SUM(WOL.BurdenRateAmount*((CASE WHEN WOL.AdjustedHours<0 THEN -1 ELSE 1 END * 
+        SELECT @TotalUnpostedDirectLaborCost = SUM(WOL.DirectLaborOHCost*((CASE WHEN WOL.AdjustedHours<0 THEN -1 ELSE 1 END * 
         (FLOOR(ABS(WOL.AdjustedHours))*60 + CONVERT(INT,ROUND((ABS(WOL.AdjustedHours)-FLOOR(ABS(WOL.AdjustedHours)))*100.0,0))))/60.0)),
-        @TotalUnpostedOverheadCost = SUM(WOL.DirectLaborOHCost*((CASE WHEN WOL.AdjustedHours<0 THEN -1 ELSE 1 END * 
+        @TotalUnpostedOverheadCost = SUM(WOL.BurdenRateAmount*((CASE WHEN WOL.AdjustedHours<0 THEN -1 ELSE 1 END * 
         (FLOOR(ABS(WOL.AdjustedHours))*60 + CONVERT(INT,ROUND((ABS(WOL.AdjustedHours)-FLOOR(ABS(WOL.AdjustedHours)))*100.0,0))))/60.0))
         FROM [dbo].[WorkOrderPartNumber] WOP WITH (NOLOCK)
         JOIN #tmpWO WO ON WO.WorkOrderId=WOP.WorkOrderId

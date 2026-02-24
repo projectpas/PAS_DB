@@ -358,7 +358,7 @@ BEGIN
 					   SOBI.GrandTotal [Amount],
 					   ISNULL(SOBI.RemainingAmount,0) RemainingAmount,
 					   ISNULL(ISNULL(SOBI.GrandTotal,0) - ISNULL(SOBI.RemainingAmount,0),0) AmountPaid,
-					   SQ.SalesOrderQuoteNumber [QuoteNumber],
+					   (CASE WHEN COUNT(DISTINCT SQP.SalesOrderQuoteNumber) > 1 Then 'Multiple' ELse MAX(SQP.SalesOrderQuoteNumber) END) AS 'QuoteNumber',
 					   IsWorkOrder=0,
 					   IsExchange=0,
 					   SMS.LastMSLevel,
@@ -368,16 +368,16 @@ BEGIN
 					   CASE WHEN CRM.RMAHeaderId > 1 then 1 else  0 end isRMACreate
 					   ,ISNULL(SOBI.IsPerformaInvoice, 0) AS IsPerformaInvoice,
 					   SMS.EntityMSID AS ManagementStructureId
-					   ,(CASE WHEN COUNT(SOBII.BillingInvoicingId) > 1 Then 'Multiple' ELse MAX(SQ.VersionNumber) END) AS 'VersionNo'
-					   ,(CASE WHEN COUNT(SOBII.BillingInvoicingId) > 1 Then 'Multiple' ELse MAX(SQ.VersionNumber) END) AS 'VersionNoType'
-					   ,(CASE WHEN COUNT(SOBII.BillingInvoicingId) > 1 Then 'Multiple' ELse MAX(SO.CustomerReference) END) AS 'CustReference'
-					   ,(CASE WHEN COUNT(SOBII.BillingInvoicingId) > 1 Then 'Multiple' ELse MAX(SO.CustomerReference) END) AS 'CustomerReferenceType'
-					   ,(CASE WHEN COUNT(SOBII.BillingInvoicingId) > 1 Then 'Multiple' ELse MAX(ST.SerialNumber) END) AS 'SerialNumber'
-					   ,(CASE WHEN COUNT(SOBII.BillingInvoicingId) > 1 Then 'Multiple' ELse MAX(ST.SerialNumber) END) AS 'SerialNumberType'
-					   ,(CASE WHEN COUNT(SOBII.BillingInvoicingId) > 1 Then 'Multiple' ELse MAX(I.partnumber) END) AS 'PN'
-					   ,(CASE WHEN COUNT(SOBII.BillingInvoicingId) > 1 Then 'Multiple' ELse MAX(I.partnumber) END) AS 'PartNumberType'
-					   ,(CASE WHEN COUNT(SOBII.BillingInvoicingId) > 1 Then 'Multiple' ELse MAX(I.PartDescription) END) AS 'PNDescription'
-					   ,(CASE WHEN COUNT(SOBII.BillingInvoicingId) > 1 Then 'Multiple' ELse MAX(I.PartDescription) END) AS 'PartDescriptionType'
+					   ,(CASE WHEN COUNT(DISTINCT SQP.SalesOrderQuoteNumber) > 1 Then 'Multiple' ELse MAX(SQP.VersionNumber) END) AS 'VersionNo'
+					   ,(CASE WHEN COUNT(DISTINCT SQP.SalesOrderQuoteNumber) > 1 Then 'Multiple' ELse MAX(SQP.VersionNumber) END) AS 'VersionNoType'
+					   ,(CASE WHEN COUNT(DISTINCT SO.CustomerReference) > 1 Then 'Multiple' ELse MAX(SO.CustomerReference) END) AS 'CustReference'
+					   ,(CASE WHEN COUNT(DISTINCT SO.CustomerReference) > 1 Then 'Multiple' ELse MAX(SO.CustomerReference) END) AS 'CustomerReferenceType'
+					   ,(CASE WHEN COUNT(DISTINCT ST.SerialNumber) > 1 Then 'Multiple' ELse MAX(ST.SerialNumber) END) AS 'SerialNumber'
+					   ,(CASE WHEN COUNT(DISTINCT ST.SerialNumber) > 1 Then 'Multiple' ELse MAX(ST.SerialNumber) END) AS 'SerialNumberType'
+					   ,(CASE WHEN COUNT(DISTINCT I.partnumber) > 1 Then 'Multiple' ELse MAX(I.partnumber) END) AS 'PN'
+					   ,(CASE WHEN COUNT(DISTINCT I.partnumber) > 1 Then 'Multiple' ELse MAX(I.partnumber) END) AS 'PartNumberType'
+					   ,(CASE WHEN COUNT(DISTINCT I.PartDescription) > 1 Then 'Multiple' ELse MAX(I.PartDescription) END) AS 'PNDescription'
+					   ,(CASE WHEN COUNT(DISTINCT I.PartDescription) > 1 Then 'Multiple' ELse MAX(I.PartDescription) END) AS 'PartDescriptionType'
 					   ,(CASE WHEN COUNT(SOBII.BillingInvoicingId) > 1 Then 'Multiple' ELse MAX(CASE WHEN I.IsPma = 1 and I.IsDER = 1 THEN 'PMA&DER'
 						 WHEN I.IsPma = 1 and I.IsDER = 0 THEN 'PMA'
 						 WHEN I.IsPma = 0 and I.IsDER = 1 THEN 'DER'
@@ -417,7 +417,9 @@ BEGIN
 				LEFT JOIN dbo.SalesOrderStocklineV1 SOPS WITH (NOLOCK) ON SOPS.SalesOrderPartId = SOPN.SalesOrderPartId			
 				LEFT JOIN dbo.SalesOrder SO WITH (NOLOCK) ON SOBI.ReferenceId = SO.SalesOrderId
 				LEFT JOIN dbo.Customer C WITH (NOLOCK) ON SO.CustomerId = C.CustomerId
-				LEFT JOIN dbo.SalesOrderQuote SQ WITH (NOLOCK) ON SQ.SalesOrderQuoteId=SO.SalesOrderQuoteId
+				--LEFT JOIN dbo.SalesOrderQuote SQ WITH (NOLOCK) ON SQ.SalesOrderQuoteId=SO.SalesOrderQuoteId
+				LEFT JOIN dbo.SalesOrderQuotePartV1 SQPart WITH (NOLOCK) ON SQPart.SalesOrderQuotePartId = SOPN.SalesOrderQuotePartId
+				LEFT JOIN dbo.SalesOrderQuote SQP WITH (NOLOCK) ON SQP.SalesOrderQuoteId = SQPart.SalesOrderQuoteId
 				LEFT JOIN dbo.CustomerType CT WITH (NOLOCK) ON C.CustomerTypeId=CT.CustomerTypeId
 				LEFT JOIN dbo.Stockline ST WITH (NOLOCK) ON ST.StockLineId=SOPS.StockLineId
 				LEFT JOIN dbo.CustomerRMAHeader CRM WITH (NOLOCK) ON CRM.InvoiceId=SOBI.BillingInvoicingId and CRM.isWorkOrder=0
@@ -431,7 +433,7 @@ BEGIN
 			AND ISNULL(SOBI.[IsStandardInvoicePosted], 0) != 1 
 			AND SOBI.IsActive = 1 AND SOBI.IsDeleted = 0
 				AND (ISNULL(SOBI.IsPerformaInvoice,0) = 0)
-				GROUP BY	SOBI.BillingInvoicingId, SOBI.InvoiceNo, SOBI.InvoiceStatus, SOBI.InvoiceDate, SO.SalesOrderNumber, C.[Name],C.CustomerCode, CT.CustomerTypeName, SOBI.GrandTotal, SOBI.RemainingAmount, SQ.SalesOrderQuoteNumber
+				GROUP BY	SOBI.BillingInvoicingId, SOBI.InvoiceNo, SOBI.InvoiceStatus, SOBI.InvoiceDate, SO.SalesOrderNumber, C.[Name],C.CustomerCode, CT.CustomerTypeName, SOBI.GrandTotal, SOBI.RemainingAmount--, SQ.SalesOrderQuoteNumber
 							, SMS.LastMSLevel, SMS.AllMSlevels, SOBI.ReferenceId, C.CustomerId, CRM.RMAHeaderId, SOBI.IsPerformaInvoice, SMS.EntityMSID, CR.Code, MSL.Code,
 							SMS.[Level2Name], SMS.[Level3Name], SMS.[Level4Name], SMS.[Level5Name], SMS.[Level6Name], SMS.[Level7Name], SMS.[Level8Name], SMS.[Level9Name], SMS.[Level10Name],
 							SMS.[Level1Id], SMS.[Level2Id], SMS.[Level3Id], SMS.[Level4Id], SMS.[Level5Id], SMS.[Level6Id], SMS.[Level7Id], SMS.[Level8Id], SMS.[Level9Id], SMS.[Level10Id], ctm.NetDays,ctm.Name
@@ -907,7 +909,7 @@ BEGIN
 					   SOBI.GrandTotal [Amount],
 					   ISNULL(SOBI.RemainingAmount,0) RemainingAmount,
 					   ISNULL(ISNULL(SOBI.GrandTotal,0) - ISNULL(SOBI.RemainingAmount,0),0) AmountPaid,
-					   SQ.SalesOrderQuoteNumber [QuoteNumber],
+					   (CASE WHEN COUNT(DISTINCT SQP.SalesOrderQuoteNumber) > 1 Then 'Multiple' ELse MAX(SQP.SalesOrderQuoteNumber) END) AS 'QuoteNumber',
 					   IsWorkOrder=0,
 					   IsExchange=0,
 					   SMS.LastMSLevel,
@@ -917,8 +919,8 @@ BEGIN
 					   CASE WHEN CRM.RMAHeaderId > 1 then 1 else  0 end isRMACreate
 					   ,ISNULL(SOBI.IsPerformaInvoice, 0) AS IsPerformaInvoice,
 					   SMS.EntityMSID AS ManagementStructureId
-					   ,MAX(SQ.VersionNumber) AS 'VersionNo'
-					   ,MAX(SQ.VersionNumber) AS 'VersionNoType'
+					   ,MAX(SQP.VersionNumber) AS 'VersionNo'
+					   ,MAX(SQP.VersionNumber) AS 'VersionNoType'
 					   ,MAX(SO.CustomerReference) AS 'CustReference'
 					   ,MAX(SO.CustomerReference) AS 'CustomerReferenceType'
 					   ,MAX(ST.SerialNumber) AS 'SerialNumber'
@@ -966,7 +968,9 @@ BEGIN
 				LEFT JOIN dbo.SalesOrderStocklineV1 SOPS WITH (NOLOCK) ON SOPS.SalesOrderPartId = SOPN.SalesOrderPartId			
 				LEFT JOIN dbo.SalesOrder SO WITH (NOLOCK) ON SOBI.ReferenceId = SO.SalesOrderId
 				LEFT JOIN dbo.Customer C WITH (NOLOCK) ON SO.CustomerId = C.CustomerId
-				LEFT JOIN dbo.SalesOrderQuote SQ WITH (NOLOCK) ON SQ.SalesOrderQuoteId=SO.SalesOrderQuoteId
+				--LEFT JOIN dbo.SalesOrderQuote SQ WITH (NOLOCK) ON SQ.SalesOrderQuoteId=SO.SalesOrderQuoteId
+				LEFT JOIN dbo.SalesOrderQuotePartV1 SQPart WITH (NOLOCK) ON SQPart.SalesOrderQuotePartId = SOPN.SalesOrderQuotePartId
+				LEFT JOIN dbo.SalesOrderQuote SQP WITH (NOLOCK) ON SQP.SalesOrderQuoteId = SQPart.SalesOrderQuoteId
 				LEFT JOIN dbo.CustomerType CT WITH (NOLOCK) ON C.CustomerTypeId=CT.CustomerTypeId
 				LEFT JOIN dbo.Stockline ST WITH (NOLOCK) ON ST.StockLineId=SOPS.StockLineId
 				LEFT JOIN dbo.CustomerRMAHeader CRM WITH (NOLOCK) ON CRM.InvoiceId=SOBI.BillingInvoicingId and CRM.isWorkOrder=0
@@ -980,7 +984,7 @@ BEGIN
 			AND ISNULL(SOBI.[IsStandardInvoicePosted], 0) != 1 
 			AND SOBI.IsActive = 1 AND SOBI.IsDeleted = 0
 				AND (ISNULL(SOBI.IsPerformaInvoice,0) = 0)
-				GROUP BY	SOBI.BillingInvoicingId, SOBI.InvoiceNo, SOBI.InvoiceStatus, SOBI.InvoiceDate, SO.SalesOrderNumber, C.[Name],C.CustomerCode, CT.CustomerTypeName, SOBI.GrandTotal, SOBI.RemainingAmount, SQ.SalesOrderQuoteNumber
+				GROUP BY	SOBI.BillingInvoicingId, SOBI.InvoiceNo, SOBI.InvoiceStatus, SOBI.InvoiceDate, SO.SalesOrderNumber, C.[Name],C.CustomerCode, CT.CustomerTypeName, SOBI.GrandTotal, SOBI.RemainingAmount--, SQ.SalesOrderQuoteNumber
 							, SMS.LastMSLevel, SMS.AllMSlevels, SOBI.ReferenceId, C.CustomerId, CRM.RMAHeaderId, SOBI.IsPerformaInvoice, SMS.EntityMSID, CR.Code, MSL.Code,
 							SMS.[Level2Name], SMS.[Level3Name], SMS.[Level4Name], SMS.[Level5Name], SMS.[Level6Name], SMS.[Level7Name], SMS.[Level8Name], SMS.[Level9Name], SMS.[Level10Name],
 							SMS.[Level1Id], SMS.[Level2Id], SMS.[Level3Id], SMS.[Level4Id], SMS.[Level5Id], SMS.[Level6Id], SMS.[Level7Id], SMS.[Level8Id], SMS.[Level9Id], SMS.[Level10Id], ctm.NetDays, ctm.Name
@@ -1553,8 +1557,9 @@ BEGIN
 				   ISNULL(ISNULL(SOBII.GrandTotal,0) - ISNULL(SOBI.RemainingAmount,0),0) AmountPaid,						
 				   IM.partnumber [PN], 
 				   IM.PartDescription [PNDescription],
-				   SQ.VersionNumber [VersionNo],
-				   SQ.SalesOrderQuoteNumber [QuoteNumber],
+				   --SQP.VersionNumber [VersionNo],
+				   (CASE WHEN COUNT(DISTINCT SQP.VersionNumber) > 1 Then 'Multiple' ELse MAX(SQP.VersionNumber) END) AS 'VersionNo',
+				   (CASE WHEN COUNT(DISTINCT SQP.SalesOrderQuoteNumber) > 1 Then 'Multiple' ELse MAX(SQP.SalesOrderQuoteNumber) END) AS 'QuoteNumber',
 				   SO.CustomerReference [CustReference],
 				   ST.SerialNumber [SerialNumber],
 				   ST.stocklineid,
@@ -1601,7 +1606,9 @@ BEGIN
 				LEFT JOIN dbo.SalesOrderStocklineV1 SOPS WITH (NOLOCK) ON SOPS.SalesOrderPartId = SOPN.SalesOrderPartId AND SOPS.StocklineId = SOBII.StocklineId
 				LEFT JOIN dbo.SalesOrder SO WITH (NOLOCK) ON SOBI.ReferenceId = SO.SalesOrderId
 				LEFT JOIN dbo.Customer C WITH (NOLOCK) ON SO.CustomerId = C.CustomerId
-				LEFT JOIN dbo.SalesOrderQuote SQ WITH (NOLOCK) ON SQ.SalesOrderQuoteId = SO.SalesOrderQuoteId
+				--LEFT JOIN dbo.SalesOrderQuote SQ WITH (NOLOCK) ON SQ.SalesOrderQuoteId=SO.SalesOrderQuoteId
+				LEFT JOIN dbo.SalesOrderQuotePartV1 SQPart WITH (NOLOCK) ON SQPart.SalesOrderQuotePartId = SOPN.SalesOrderQuotePartId
+				LEFT JOIN dbo.SalesOrderQuote SQP WITH (NOLOCK) ON SQP.SalesOrderQuoteId = SQPart.SalesOrderQuoteId
 				LEFT JOIN dbo.CustomerType CT WITH (NOLOCK) ON C.CustomerTypeId=CT.CustomerTypeId
 				LEFT JOIN dbo.ItemMaster IM WITH (NOLOCK) ON SOBII.ItemMasterId=IM.ItemMasterId
 				LEFT JOIN dbo.Stockline ST WITH (NOLOCK) ON ST.StockLineId=SOPS.StockLineId
@@ -1619,7 +1626,8 @@ BEGIN
 					SOBI.InvoiceStatus ,SOBI.InvoiceDate,SO.SalesOrderNumber,
 					C.Name ,C.CustomerCode,CT.CustomerTypeName , SOBI.RemainingAmount,
 					SOBI.GrandTotal ,IM.partnumber , IM.PartDescription ,
-					SQ.VersionNumber,SQ.SalesOrderQuoteNumber ,SO.CustomerReference ,ST.SerialNumber,ST.stocklineid ,
+					--SQ.VersionNumber,SQ.SalesOrderQuoteNumber ,
+					SO.CustomerReference ,ST.SerialNumber,ST.stocklineid ,
 					IM.IsPma,IM.IsDER,SMS.LastMSLevel,SMS.AllMSlevels, SOBI.ReferenceId, SOBI.IsPerformaInvoice,SMS.EntityMSID,IM.ItemMasterId ,SOBII.GrandTotal,C.CustomerId,
 					CR.Code, MNSL.Code, SMS.[Level2Name], SMS.[Level3Name], SMS.[Level4Name], SMS.[Level5Name], SMS.[Level6Name], SMS.[Level7Name], SMS.[Level8Name], SMS.[Level9Name], SMS.[Level10Name],
 					SMS.[Level1Id], SMS.[Level2Id], SMS.[Level3Id], SMS.[Level4Id], SMS.[Level5Id], SMS.[Level6Id], SMS.[Level7Id], SMS.[Level8Id], SMS.[Level9Id], SMS.[Level10Id],CTM.NetDays, Ctm.Name

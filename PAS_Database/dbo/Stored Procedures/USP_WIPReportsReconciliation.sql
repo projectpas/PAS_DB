@@ -32,6 +32,11 @@ BEGIN
 		DECLARE @FromDate DATETIME = ISNULL(TRY_CAST(@id AS DATETIME),NULL) 
 		DECLARE @ToDate DATETIME = ISNULL(TRY_CAST(@id2 AS DATETIME),NULL) 
 
+        IF @id3 = 0
+		BEGIN
+			SET @id3 = NULL
+		END
+
         DECLARE @WIPMaterialCategoryId INT ;
         DECLARE @WIPDirectLaborCategoryId INT;
         DECLARE @WIPOverheadCategoryId INT;

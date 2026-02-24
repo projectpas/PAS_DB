@@ -260,7 +260,7 @@ BEGIN
 			DROP TABLE #tmpWorkOrderCosts;
 		END
 
-		SELECT WorkOrderId,SUM(BurdenRateAmount  * ConvertedHours) AS UnpostedDirectLabor,SUM(DirectLaborOHCost * ConvertedHours) AS UnpostedOverhead INTO #tmpWorkOrderCosts FROM #tmpWorkOrderLaborCalc
+		SELECT WorkOrderId,SUM(BurdenRateAmount  * ConvertedHours) AS UnpostedOverhead,SUM(DirectLaborOHCost * ConvertedHours) AS UnpostedDirectLabor INTO #tmpWorkOrderCosts FROM #tmpWorkOrderLaborCalc
 		GROUP BY WorkOrderId;
 		
 		UPDATE tmporg SET PartCost = ISNULL(WCD.PartsCost, 0), DirectLabor = ISNULL(WCD.LaborCost, 0) - ISNULL(WCD.OverHeadCost, 0), OHCost = ISNULL(WCD.OverHeadCost, 0),

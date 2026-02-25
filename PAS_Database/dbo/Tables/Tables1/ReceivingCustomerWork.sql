@@ -139,6 +139,8 @@
 
 
 
+
+
 GO
 CREATE   TRIGGER [dbo].[trg_Audit_dbo_ReceivingCustomerWork]
 ON [dbo].[ReceivingCustomerWork]
@@ -236,17 +238,35 @@ BEGIN
         m.Action,        
         CASE             
             WHEN m.ColumnName = 'RevisePartId' THEN rpOld.PartNumber
-            WHEN m.ColumnName = 'CustomerContactId' THEN LTRIM(RTRIM(ISNULL(cOld.FirstName,'') + ' ' + ISNULL(cOld.LastName,'')))            
+            WHEN m.ColumnName = 'CustomerContactId' THEN LTRIM(RTRIM(ISNULL(cOld.FirstName,'') + ' ' + ISNULL(cOld.LastName,''))) 
+            WHEN m.ColumnName IN ('IsCustomerStock', 'IsPiecePart', 'IsRepairManagement') THEN
+                CASE 
+                    WHEN m.ColumnName = 'IsCustomerStock' AND m.OldValue = 'true' THEN 'Customer Repair'
+                    WHEN m.ColumnName = 'IsPiecePart' AND m.OldValue = 'true' THEN 'Customer Supplied Materials'
+                    WHEN m.ColumnName = 'IsRepairManagement' AND m.OldValue = 'true' THEN 'Manage Repair'
+                    ELSE NULL
+                END
+            WHEN m.ColumnName = 'WorkOrderId' THEN woOld.WorkOrderNum
             ELSE m.OldValue
         END AS OldValue,        
         CASE            
             WHEN m.ColumnName = 'RevisePartId' THEN rpNew.PartNumber
-            WHEN m.ColumnName = 'CustomerContactId' THEN LTRIM(RTRIM(ISNULL(cNew.FirstName,'') + ' ' + ISNULL(cNew.LastName,'')))           
+            WHEN m.ColumnName = 'CustomerContactId' THEN LTRIM(RTRIM(ISNULL(cNew.FirstName,'') + ' ' + ISNULL(cNew.LastName,''))) 
+            WHEN m.ColumnName IN ('IsCustomerStock', 'IsPiecePart', 'IsRepairManagement') THEN
+                CASE 
+                    WHEN m.ColumnName = 'IsCustomerStock' AND m.NewValue = 'true' THEN 'Customer Repair'
+                    WHEN m.ColumnName = 'IsPiecePart' AND m.NewValue = 'true' THEN 'Customer Supplied Materials'
+                    WHEN m.ColumnName = 'IsRepairManagement' AND m.NewValue = 'true' THEN 'Manage Repair'
+                    ELSE NULL
+                END
+            WHEN m.ColumnName = 'WorkOrderId' THEN woNew.WorkOrderNum
             ELSE m.NewValue
         END AS NewValue
     FROM merged m    
     LEFT JOIN dbo.ItemMaster rpOld WITH(NOLOCK) ON m.ColumnName = 'RevisePartId' AND TRY_CAST(m.OldValue AS BIGINT) = rpOld.ItemMasterId 
     LEFT JOIN dbo.ItemMaster rpNew WITH(NOLOCK) ON m.ColumnName = 'RevisePartId' AND TRY_CAST(m.NewValue AS BIGINT) = rpNew.ItemMasterId
+    LEFT JOIN dbo.WorkOrder woOld WITH(NOLOCK) ON m.ColumnName = 'WorkOrderId' AND TRY_CAST(m.OldValue AS BIGINT) = woOld.WorkOrderId 
+    LEFT JOIN dbo.WorkOrder woNew WITH(NOLOCK) ON m.ColumnName = 'WorkOrderId' AND TRY_CAST(m.NewValue AS BIGINT) = woNew.WorkOrderId
     LEFT JOIN dbo.CustomerContact ccOld WITH(NOLOCK) ON m.ColumnName = 'CustomerContactId' AND TRY_CAST(m.OldValue AS INT) = ccOld.CustomerContactId
     LEFT JOIN dbo.Contact cOld WITH(NOLOCK) ON ccOld.ContactId = cOld.ContactId
     LEFT JOIN dbo.CustomerContact ccNew WITH(NOLOCK) ON m.ColumnName = 'CustomerContactId' AND TRY_CAST(m.NewValue AS INT) = ccNew.CustomerContactId

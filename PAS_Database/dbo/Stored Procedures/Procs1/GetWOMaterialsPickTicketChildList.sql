@@ -13,11 +13,11 @@
  **************************************************************           
   ** Change History           
  **************************************************************           
- ** PR   Date         Author		Change Description            
- ** --   --------     -------		--------------------------------          
-    1    05/10/2021   Vishal Suthar Created
-	1    05/24/2021   Hemant Saliya Updated Stockline Condition and Add Content Managment
-     
+ ** PR   Date			Author				Change Description            
+ ** --   --------		 -------			--------------------------------          
+    1    05/10/2021		Vishal Suthar		Created
+	2    05/24/2021		Hemant Saliya		Updated Stockline Condition and Add Content Managment
+   	3    25/Feb/2026	Rajesh Gami			Added UOM Changes 
 --EXEC [GetWOMaterialsPickTicketChildList] 343,768
 **************************************************************/
 CREATE   PROCEDURE [dbo].[GetWOMaterialsPickTicketChildList]
@@ -31,7 +31,7 @@ BEGIN
 	BEGIN TRY
 		BEGIN TRANSACTION
 			SELECT DISTINCT wopt.PickTicketNumber as PickTicketNumber,
-					wopt.QtyToShip,
+					CASE WHEN SL.StockLineId > 0 THEN  dbo.fn_ConvertUOM(wopt.QtyToShip, uomStock.ShortName, uomConsume.ShortName,0,SL.MasterCompanyId) ELSE wopt.QtyToShip END  AS  QtyToShip,
 					sl.SerialNumber,
 					sl.StockLineNumber,
 					wopt.CreatedDate as PickedDate,
@@ -50,13 +50,15 @@ BEGIN
 				INNER JOIN dbo.Employee emp WITH(NOLOCK) on emp.EmployeeId = wopt.PickedById
 				INNER JOIN dbo.WorkOrderMaterials wop WITH(NOLOCK) ON wop.WorkOrderId = wopt.WorkorderId AND wop.WorkOrderMaterialsId = wopt.WorkOrderMaterialsId
 				LEFT JOIN dbo.StockLine sl WITH(NOLOCK) on sl.StockLineId = wopt.StocklineId
+				LEFT JOIN [dbo].[UnitOfMeasure] uomStock WITH(NOLOCK) ON uomStock.UnitOfMeasureId = SL.StockUnitOfMeasureId
+				LEFT JOIN [dbo].[UnitOfMeasure] uomConsume WITH(NOLOCK) ON uomConsume.UnitOfMeasureId = SL.ConsumeUnitOfMeasureId
 				LEFT JOIN dbo.Employee empy WITH(NOLOCK) on empy.EmployeeId = wopt.ConfirmedById
 			WHERE wopt.WorkorderId=@WorkOrderId AND wopt.WorkOrderMaterialsId=@OrderPartId AND wopt.QtyToShip > 0 
 
 			UNION ALL
 
 			SELECT DISTINCT wopt.PickTicketNumber as PickTicketNumber,
-					wopt.QtyToShip,
+					CASE WHEN SL.StockLineId > 0 THEN  dbo.fn_ConvertUOM(wopt.QtyToShip, uomStock.ShortName, uomConsume.ShortName,0,SL.MasterCompanyId) ELSE wopt.QtyToShip END  AS  QtyToShip,
 					sl.SerialNumber,
 					sl.StockLineNumber,
 					wopt.CreatedDate as PickedDate,
@@ -75,6 +77,8 @@ BEGIN
 				INNER JOIN dbo.Employee emp WITH(NOLOCK) on emp.EmployeeId = wopt.PickedById
 				INNER JOIN dbo.WorkOrderMaterialsKit wop WITH(NOLOCK) ON wop.WorkOrderId = wopt.WorkorderId AND wop.WorkOrderMaterialsKitId = wopt.WorkOrderMaterialsId
 				LEFT JOIN dbo.StockLine sl WITH(NOLOCK) on sl.StockLineId = wopt.StocklineId
+				LEFT JOIN [dbo].[UnitOfMeasure] uomStock WITH(NOLOCK) ON uomStock.UnitOfMeasureId = SL.StockUnitOfMeasureId
+				LEFT JOIN [dbo].[UnitOfMeasure] uomConsume WITH(NOLOCK) ON uomConsume.UnitOfMeasureId = SL.ConsumeUnitOfMeasureId
 				LEFT JOIN dbo.Employee empy WITH(NOLOCK) on empy.EmployeeId = wopt.ConfirmedById
 			WHERE wopt.WorkorderId=@WorkOrderId AND wopt.WorkOrderMaterialsId=@OrderPartId AND wopt.QtyToShip > 0 
 		COMMIT  TRANSACTION

@@ -27,7 +27,7 @@ EXEC [USP_AutoReserveAllWorkOrderMaterials]
 ** 16   03/06/2025		 HEMANT SALIYA	        UPDATE THE EXISTING STOCKLINE QUANTITY REQUESTED IF QUANTITY IS NOT AVAILABLE
 ** 17   03/19/2025		 Devendra Shekh			Updated For Checking PMA/DER Restrict Parts
 ** 18   04/14/2025		 HEMANT SALIYA	        Added Work Order Work Flow Id for UpdateWOMaterialsCost
-
+   19   25/Feb/2026		 Rajesh Gami			UOM Changes   
 EXEC USP_AutoReserveAllWorkOrderMaterials 4761,0,0,98,0
 exec sp_executesql N'exec USP_AutoReserveAllWorkOrderMaterials @WorkFlowWorkOrderId, @IncludeAlternate, @IncludeEquiv, @EmployeeId, @IncludeCustomerStk',N'@WorkFlowWorkOrderId bigint,@IncludeAlternate bit,@IncludeEquiv bit,@EmployeeId bigint,@IncludeCustomerStk bit',@WorkFlowWorkOrderId=4761,@IncludeAlternate=0,@IncludeEquiv=0,@EmployeeId=98,@IncludeCustomerStk=0
 **************************************************************/ 
@@ -57,8 +57,8 @@ BEGIN
 
 					DECLARE @ARcount INT = 1;
 					DECLARE @ARTotalCounts INT = 0;
-					DECLARE @tmpActQuantity INT = 0;
-					DECLARE @QtytToRes INT = 0;
+					DECLARE @tmpActQuantity DECIMAL(18,6) = 0;
+					DECLARE @QtytToRes DECIMAL(18,6) = 0;
 					DECLARE @NewWorkOrderMaterialsId BIGINT;
 					DECLARE @NewStockline BIGINT;
 					DECLARE @ModuleId INT;
@@ -77,7 +77,7 @@ BEGIN
 									@historyWorkOrderId BIGINT,@HistoryQtyReserved VARCHAR(MAX),@HistoryQuantityActReserved VARCHAR(MAX),@historyReservedById BIGINT,
 									@historyEmployeeName VARCHAR(100),@historyMasterCompanyId BIGINT,@historytotalReserved VARCHAR(MAX),@TemplateBody NVARCHAR(MAX),
 									@WorkOrderNum VARCHAR(MAX),@ConditionId BIGINT,@ConditionCode VARCHAR(MAX),@HistoryStockLineId BIGINT,@HistoryStockLineNum VARCHAR(MAX),
-									@WorkOrderPartNoId BIGINT,@historyQuantity BIGINT,@historyQtyToBeReserved BIGINT, @KITID BIGINT;
+									@WorkOrderPartNoId BIGINT,@historyQuantity DECIMAL(18,6),@historyQtyToBeReserved DECIMAL(18,6), @KITID BIGINT;
 
 
 					SELECT @ProvisionId = ProvisionId, @Provision = [Description], @ProvisionCode = StatusCode FROM dbo.Provision WITH(NOLOCK) WHERE StatusCode = 'REPLACE' AND IsActive = 1 AND IsDeleted = 0;
@@ -261,8 +261,8 @@ BEGIN
 						DECLARE @ReservePartStatus INT;
 						DECLARE @WorkOrderMaterialsId BIGINT;
 						DECLARE @IsSerialised BIT;
-						DECLARE @stockLineQty INT;
-						DECLARE @stockLineQtyAvailable INT;
+						DECLARE @stockLineQty DECIMAL(18,6);
+						DECLARE @stockLineQtyAvailable DECIMAL(18,6);
 						DECLARE @UpdateBy varchar(200);
 
 						SET @ReservePartStatus = 1; -- FOR RESERTVE
@@ -295,9 +295,9 @@ BEGIN
 							[Condition] VARCHAR(500) NULL,
 							[PartNumber] VARCHAR(500) NULL,
 							[PartDescription] VARCHAR(max) NULL,
-							[Quantity] INT NULL,
-							[QtyToBeReserved] INT NULL,
-							[QuantityActReserved] INT NULL,
+							[Quantity] DECIMAL(18,6) NULL,
+							[QtyToBeReserved] DECIMAL(18,6) NULL,
+							[QuantityActReserved] DECIMAL(18,6) NULL,
 							[ControlNo] VARCHAR(500) NULL,
 							[ControlId] VARCHAR(500) NULL,
 							[StockLineNumber] VARCHAR(500) NULL,
@@ -306,7 +306,7 @@ BEGIN
 							[IsStocklineAdded] BIT NULL,
 							[MasterCompanyId] BIGINT NULL,
 							[UpdatedBy] VARCHAR(500) NULL,
-							[UnitCost] DECIMAL(18,2),
+							[UnitCost] [decimal](18,6),
 							[IsSerialized] BIT
 						)
 
@@ -390,6 +390,7 @@ BEGIN
 						PRINT '--UPDATE/INSERT WORK ORDER MATERIALS STOCKLINE DETAILS'
 
 						--UPDATE/INSERT WORK ORDER MATERIALS STOCKLINE DETAILS
+
 						IF(@TotalCounts > 0 )
 						BEGIN
 							MERGE dbo.WorkOrderMaterialStockLine AS TARGET
@@ -452,6 +453,7 @@ BEGIN
 						DECLARE @countKitStockline INT = 1;
 
 						--FOR FOR UPDATED STOCKLINE QTY
+						PRINT '******** STEP 1 ********'
 						WHILE @countKitStockline <= @TotalCountsBoth
 						BEGIN
 							DECLARE @tmpKitStockLineId BIGINT = 0;
@@ -485,7 +487,7 @@ BEGIN
 						--FOR STOCK LINE HISTORY
 						WHILE @slcount<= @TotalCounts
 						BEGIN
-							DECLARE @ReservedQty bigint = 0;
+							DECLARE @ReservedQty [decimal](18,6) = 0;
 
 							SELECT	@StocklineId = tmpWOM.StockLineId,
 									@MasterCompanyId = tmpWOM.MasterCompanyId,
@@ -606,12 +608,12 @@ BEGIN
 							[Condition] VARCHAR(500) NULL,
 							[PartNumber] VARCHAR(500) NULL,
 							[PartDescription] VARCHAR(max) NULL,
-							[Quantity] INT NULL,
-							[QuantityAvailable] INT NULL,
-							[QuantityOnHand] INT NULL,
-							[ActQuantity] INT NULL,
-							[QtyToBeReserved] INT NULL,
-							[QuantityActReserved] INT NULL,
+							[Quantity] DECIMAL(18,6) NULL,
+							[QuantityAvailable] DECIMAL(18,6) NULL,
+							[QuantityOnHand] DECIMAL(18,6) NULL,
+							[ActQuantity] DECIMAL(18,6) NULL,
+							[QtyToBeReserved] DECIMAL(18,6) NULL,
+							[QuantityActReserved] DECIMAL(18,6) NULL,
 							[ControlNo] VARCHAR(500) NULL,
 							[ControlId] VARCHAR(500) NULL,
 							[StockLineNumber] VARCHAR(500) NULL,
@@ -620,7 +622,7 @@ BEGIN
 							[IsStocklineAdded] BIT NULL,
 							[MasterCompanyId] BIGINT NULL,
 							[UpdatedBy] VARCHAR(500) NULL,
-							[UnitCost] DECIMAL(18,2),
+							[UnitCost] [decimal](18,6),
 							[IsSerialized] BIT,
 							[IsAltPart] BIT,
 							[IsActive] BIT,
@@ -756,6 +758,7 @@ BEGIN
 							SELECT @TotalCountsBothKITAlt = MAX(ID) FROM #tmpAutoReserveWOMKITAlt;
 
 							--FOR FOR UPDATED STOCKLINE QTY
+								PRINT '******** STEP 2 ********'
 							WHILE @countStockline <= @TotalCountsBothKITAlt
 							BEGIN
 								DECLARE @RowNum1 INT = 0;
@@ -895,12 +898,12 @@ BEGIN
 							[Condition] VARCHAR(500) NULL,
 							[PartNumber] VARCHAR(500) NULL,
 							[PartDescription] VARCHAR(max) NULL,
-							[Quantity] INT NULL,
-							[QuantityAvailable] INT NULL,
-							[QuantityOnHand] INT NULL,
-							[ActQuantity] INT NULL,
-							[QtyToBeReserved] INT NULL,
-							[QuantityActReserved] INT NULL,
+							[Quantity] DECIMAL(18,6) NULL,
+							[QuantityAvailable] DECIMAL(18,6) NULL,
+							[QuantityOnHand] DECIMAL(18,6) NULL,
+							[ActQuantity] DECIMAL(18,6) NULL,
+							[QtyToBeReserved] DECIMAL(18,6) NULL,
+							[QuantityActReserved] DECIMAL(18,6) NULL,
 							[ControlNo] VARCHAR(500) NULL,
 							[ControlId] VARCHAR(500) NULL,
 							[StockLineNumber] VARCHAR(500) NULL,
@@ -909,7 +912,7 @@ BEGIN
 							[IsStocklineAdded] BIT NULL,
 							[MasterCompanyId] BIGINT NULL,
 							[UpdatedBy] VARCHAR(500) NULL,
-							[UnitCost] DECIMAL(18,2),
+							[UnitCost] [decimal](18,6),
 							[IsSerialized] BIT,
 							[IsAltPart] BIT,
 							[IsActive] BIT,
@@ -1056,6 +1059,7 @@ BEGIN
 							SELECT @TotalCountsBothAlt = MAX(ID) FROM #tmpAutoReserveWOMMaterialsAlt;
 
 							--FOR FOR UPDATED STOCKLINE QTY
+								PRINT '******** STEP 3 ********'
 							WHILE @countStockline <= @TotalCountsBothAlt
 							BEGIN
 								DECLARE @RowNum2 INT = 0;
@@ -1199,12 +1203,12 @@ BEGIN
 							[Condition] VARCHAR(500) NULL,
 							[PartNumber] VARCHAR(500) NULL,
 							[PartDescription] VARCHAR(max) NULL,
-							[Quantity] INT NULL,
-							[QuantityAvailable] INT NULL,
-							[QuantityOnHand] INT NULL,
-							[ActQuantity] INT NULL,
-							[QtyToBeReserved] INT NULL,
-							[QuantityActReserved] INT NULL,
+							[Quantity] DECIMAL(18,6) NULL,
+							[QuantityAvailable] DECIMAL(18,6) NULL,
+							[QuantityOnHand] DECIMAL(18,6) NULL,
+							[ActQuantity] DECIMAL(18,6) NULL,
+							[QtyToBeReserved] DECIMAL(18,6) NULL,
+							[QuantityActReserved] DECIMAL(18,6) NULL,
 							[ControlNo] VARCHAR(500) NULL,
 							[ControlId] VARCHAR(500) NULL,
 							[StockLineNumber] VARCHAR(500) NULL,
@@ -1213,7 +1217,7 @@ BEGIN
 							[IsStocklineAdded] BIT NULL,
 							[MasterCompanyId] BIGINT NULL,
 							[UpdatedBy] VARCHAR(500) NULL,
-							[UnitCost] DECIMAL(18,2),
+							[UnitCost] [decimal](18,6),
 							[IsSerialized] BIT,
 							[IsEquPart] BIT,
 							[IsActive] BIT,
@@ -1349,6 +1353,7 @@ BEGIN
 							SELECT @TotalCountsBothKITEqu = MAX(ID) FROM #tmpAutoReserveWOMKITEqu;
 
 							--FOR FOR UPDATED STOCKLINE QTY
+								PRINT '******** STEP 4 ********'
 							WHILE @countStockline <= @TotalCountsBothKITEqu
 							BEGIN
 								DECLARE @RowNum3 INT = 0;
@@ -1490,12 +1495,12 @@ BEGIN
 							[Condition] VARCHAR(500) NULL,
 							[PartNumber] VARCHAR(500) NULL,
 							[PartDescription] VARCHAR(max) NULL,
-							[Quantity] INT NULL,
-							[QuantityAvailable] INT NULL,
-							[QuantityOnHand] INT NULL,
-							[ActQuantity] INT NULL,
-							[QtyToBeReserved] INT NULL,
-							[QuantityActReserved] INT NULL,
+							[Quantity] DECIMAL(18,6) NULL,
+							[QuantityAvailable] DECIMAL(18,6) NULL,
+							[QuantityOnHand] DECIMAL(18,6) NULL,
+							[ActQuantity] DECIMAL(18,6) NULL,
+							[QtyToBeReserved] DECIMAL(18,6) NULL,
+							[QuantityActReserved] DECIMAL(18,6) NULL,
 							[ControlNo] VARCHAR(500) NULL,
 							[ControlId] VARCHAR(500) NULL,
 							[StockLineNumber] VARCHAR(500) NULL,
@@ -1504,7 +1509,7 @@ BEGIN
 							[IsStocklineAdded] BIT NULL,
 							[MasterCompanyId] BIGINT NULL,
 							[UpdatedBy] VARCHAR(500) NULL,
-							[UnitCost] DECIMAL(18,2),
+							[UnitCost] [decimal](18,6),
 							[IsSerialized] BIT,
 							[IsEquPart] BIT,
 							[IsActive] BIT,
@@ -1649,6 +1654,7 @@ BEGIN
 							SELECT @TotalCountsBothEqu = MAX(ID) FROM #tmpAutoReserveWOMMaterialsEqu;
 
 							--FOR FOR UPDATED STOCKLINE QTY
+							PRINT '******** STEP 5 ********'
 							WHILE @countStockline <= @TotalCountsBothEqu
 							BEGIN
 								DECLARE @RowNum4 INT = 0;
@@ -1762,12 +1768,12 @@ BEGIN
 						[Condition] VARCHAR(500) NULL,
 						[PartNumber] VARCHAR(500) NULL,
 						[PartDescription] VARCHAR(max) NULL,
-						[Quantity] INT NULL,
-						[QuantityAvailable] INT NULL,
-						[QuantityOnHand] INT NULL,
-						[ActQuantity] INT NULL,
-						[QtyToBeReserved] INT NULL,
-						[QuantityActReserved] INT NULL,
+						[Quantity] DECIMAL(18,6) NULL,
+						[QuantityAvailable] DECIMAL(18,6) NULL,
+						[QuantityOnHand] DECIMAL(18,6) NULL,
+						[ActQuantity] DECIMAL(18,6) NULL,
+						[QtyToBeReserved] DECIMAL(18,6) NULL,
+						[QuantityActReserved] DECIMAL(18,6) NULL,
 						[ControlNo] VARCHAR(500) NULL,
 						[ControlId] VARCHAR(500) NULL,
 						[StockLineNumber] VARCHAR(500) NULL,
@@ -1776,7 +1782,7 @@ BEGIN
 						[IsStocklineAdded] BIT NULL,
 						[MasterCompanyId] BIGINT NULL,
 						[UpdatedBy] VARCHAR(500) NULL,
-						[UnitCost] DECIMAL(18,2),
+						[UnitCost] [decimal](18,6),
 						[IsSerialized] BIT,
 						[IsActive] BIT,
 						[IsDeleted] BIT,
@@ -1953,6 +1959,7 @@ BEGIN
 						SELECT @TotalCountsBothWOM = MAX(ID) FROM #tmpAutoReserveWOM;
 
 						--FOR FOR UPDATED STOCKLINE QTY
+						PRINT '******** STEP 6 ********'
 						WHILE @countStockline <= @TotalCountsBothWOM
 						BEGIN
 							DECLARE @RowNum5 INT = 0;
@@ -2066,12 +2073,12 @@ BEGIN
 						[Condition] VARCHAR(500) NULL,
 						[PartNumber] VARCHAR(500) NULL,
 						[PartDescription] VARCHAR(max) NULL,
-						[Quantity] INT NULL,
-						[QuantityAvailable] INT NULL,
-						[QuantityOnHand] INT NULL,
-						[ActQuantity] INT NULL,
-						[QtyToBeReserved] INT NULL,
-						[QuantityActReserved] INT NULL,
+						[Quantity] DECIMAL(18,6) NULL,
+						[QuantityAvailable] DECIMAL(18,6) NULL,
+						[QuantityOnHand] DECIMAL(18,6) NULL,
+						[ActQuantity] DECIMAL(18,6) NULL,
+						[QtyToBeReserved] DECIMAL(18,6) NULL,
+						[QuantityActReserved] DECIMAL(18,6) NULL,
 						[ControlNo] VARCHAR(500) NULL,
 						[ControlId] VARCHAR(500) NULL,
 						[StockLineNumber] VARCHAR(500) NULL,
@@ -2080,7 +2087,7 @@ BEGIN
 						[IsStocklineAdded] BIT NULL,
 						[MasterCompanyId] BIGINT NULL,
 						[UpdatedBy] VARCHAR(500) NULL,
-						[UnitCost] DECIMAL(18,2),
+						[UnitCost] [decimal](18,6),
 						[IsSerialized] BIT,
 						[IsActive] BIT,
 						[IsDeleted] BIT,
@@ -2251,6 +2258,7 @@ BEGIN
 						SELECT @TotalCountsBothWOMKIT = MAX(ID) FROM #tmpAutoReserveWOMKIT;
 
 						--FOR FOR UPDATED STOCKLINE QTY
+							PRINT '******** STEP 9 ********'
 						WHILE @countStockline <= @TotalCountsBothWOMKIT
 						BEGIN
 							DECLARE @RowNum6 INT = 0;

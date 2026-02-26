@@ -19,6 +19,7 @@
     3       12-NOV-2025     AYUSHI PATEL            Removed TableName, PKJson, ChangedBy, Actions from output; added UpdatedDate fallback to ChangedAt; excluded columns via IgnoreColumn.
     4       20-NOV-2025     AYUSHI PATEL            Converted UpdatedDate/CreatedDate to employee timezone.
     5       16-FEB-2026     DIVYESH KATHIRIYA       Set Table Name for SalesOrderQuote.
+    6       25-FEB-2026     DIVYESH KATHIRIYA       Set New HistoryModule Table and Remove Table Name for SalesOrderQuote.
 
 EXEC usp_Get_CommonAuditLogHistory @ModuleId=7,@PK_Key=N'SalesOrderQuoteId',@PK_Value=1514,@EmployeeId=236
 **********************/ 
@@ -36,16 +37,14 @@ AS
 BEGIN
     SET NOCOUNT ON;
     SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED  
-    BEGIN TRY  
+    BEGIN TRY
+    
     -- Validate sort dir
     IF @SortDir NOT IN (N'ASC', N'DESC') SET @SortDir = N'DESC';
-    DECLARE @Module VARCHAR(100) = (SELECT ModuleName FROM dbo.Module WITH (NOLOCK) WHERE ModuleId = @ModuleId);
     
-    IF(@Module = 'SalesQuote')
-    BEGIN
-        SET @Module = 'SalesOrderQuote';
-    END 
+    DECLARE @Module VARCHAR(100) = (SELECT [HistoryModuleName] FROM [dbo].[HistoryModule] WITH (NOLOCK) WHERE [HistoryModuleId] = @ModuleId);
     
+        
     DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
     SELECT @CurrntEmpTimeZoneDesc = COALESCE(ETZ.[Description], LTZ.[Description])
     FROM dbo.Employee E WITH (NOLOCK)

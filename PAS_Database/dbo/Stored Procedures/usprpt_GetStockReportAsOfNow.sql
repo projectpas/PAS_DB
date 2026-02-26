@@ -23,6 +23,8 @@
 	7	 28-11-2025		Devendra Shekh		Modified: managed '0' value for @id2
   	8	 02-02-2026		RAJESH GAMI			Modified: [Traceableto] modify size  
   	9	 13-02-2026		Devendra Shekh		Added New param @id9  
+	10   26-02-2026		Priyansh Patel      Added Total Posted,Unposted and reconcile values
+
 exec usprpt_GetStockReportAsOfNow 
 @mastercompanyid=1, 
 @id=N'2026-02-13',
@@ -882,27 +884,33 @@ BEGIN
 	FROM [dbo].[CommonBatchDetails] CBD WITH (NOLOCK)
 	JOIN [dbo].[BatchDetails] BD WITH (NOLOCK) ON BD.JournalBatchDetailId = CBD.JournalBatchDetailId
 	WHERE  EXISTS (SELECT 1 FROM [dbo].[Stockline] stl WHERE stl.GLAccountId = CBD.GLAccountId 
-	AND stl.[MasterCompanyId] = @mastercompanyid
-	AND stl.[IsParent] = 1 
-	AND stl.[IsDeleted] = 0 AND CAST(stl.[CreatedDate] AS DATE) <= CASE WHEN ISNULL(@id9, 0) = 1 THEN CAST(GETUTCDATE() AS DATE) ELSE CAST(GETUTCDATE()-1 AS DATE) END
-	AND stl.[IsCustomerStock] = CASE WHEN @id3 = 1 THEN 0 ELSE stl.[IsCustomerStock] END 
-	 AND (ISNULL(@id8,'') = '' OR ISNULL(LTRIM(RTRIM(stl.[LocationId])), '') = '' OR stl.[LocationId] NOT IN (SELECT LTRIM(RTRIM(Item)) FROM DBO.SPLITSTRING(@id8, ',') WHERE ISNULL(LTRIM(RTRIM(Item)), '') <> ''))
-	) AND BD.StatusId = @PostedStatusId
+		AND stl.[MasterCompanyId] = @mastercompanyid
+		AND stl.[IsParent] = 1 
+		AND stl.[IsDeleted] = 0 AND CAST(stl.[CreatedDate] AS DATE) <= CASE WHEN ISNULL(@id9, 0) = 1 THEN CAST(GETUTCDATE() AS DATE) ELSE CAST(GETUTCDATE()-1 AS DATE) END
+		--AND stl.[IsCustomerStock] = CASE WHEN @id3 = 1 THEN 0 ELSE stl.[IsCustomerStock] END 
+		--AND (ISNULL(@id8,'') = '' OR ISNULL(LTRIM(RTRIM(stl.[LocationId])), '') = '' OR stl.[LocationId] NOT IN (SELECT LTRIM(RTRIM(Item)) FROM DBO.SPLITSTRING(@id8, ',') WHERE ISNULL(LTRIM(RTRIM(Item)), '') <> ''))
+	) AND BD.StatusId = @PostedStatusId  AND CBD.[MasterCompanyId] = @mastercompanyid 
 
 	SELECT @TotalUnPostedGL = SUM(CBD.DebitAmount - CBD.CreditAmount)
 	FROM [dbo].[CommonBatchDetails] CBD WITH (NOLOCK)
-	JOIN [dbo].[BatchDetails] BD WITH (NOLOCK) ON BD.JournalBatchDetailId = CBD.JournalBatchDetailId
-	WHERE  EXISTS (SELECT 1 FROM [dbo].[Stockline] stl WHERE stl.GLAccountId = CBD.GLAccountId 
-	AND stl.[MasterCompanyId] = @mastercompanyid 
-	AND stl.[IsParent] = 1
-	AND stl.[IsDeleted] = 0 AND CAST(stl.[CreatedDate] AS DATE) <= CASE WHEN ISNULL(@id9, 0) = 1 THEN CAST(GETUTCDATE() AS DATE) ELSE CAST(GETUTCDATE()-1 AS DATE) END
-	 AND stl.[IsCustomerStock] = CASE WHEN @id3 = 1 THEN 0 ELSE stl.[IsCustomerStock] END 
-	 AND (ISNULL(@id8,'') = '' OR ISNULL(LTRIM(RTRIM(stl.[LocationId])), '') = '' OR stl.[LocationId] NOT IN (SELECT LTRIM(RTRIM(Item)) FROM DBO.SPLITSTRING(@id8, ',') WHERE ISNULL(LTRIM(RTRIM(Item)), '') <> ''))
-	) AND BD.StatusId = @OpenStatusId
+		JOIN [dbo].[BatchDetails] BD WITH (NOLOCK) ON BD.JournalBatchDetailId = CBD.JournalBatchDetailId
+	WHERE  EXISTS (SELECT 1 FROM [dbo].[Stockline] stl WITH (NOLOCK) WHERE stl.GLAccountId = CBD.GLAccountId 
+		AND stl.[MasterCompanyId] = @mastercompanyid 
+		AND stl.[IsParent] = 1
+		AND stl.[IsDeleted] = 0 AND CAST(stl.[CreatedDate] AS DATE) <= CASE WHEN ISNULL(@id9, 0) = 1 THEN CAST(GETUTCDATE() AS DATE) ELSE CAST(GETUTCDATE()-1 AS DATE) END
+		--AND stl.[IsCustomerStock] = CASE WHEN @id3 = 1 THEN 0 ELSE stl.[IsCustomerStock] END 
+		--AND (ISNULL(@id8,'') = '' OR ISNULL(LTRIM(RTRIM(stl.[LocationId])), '') = '' OR stl.[LocationId] NOT IN (SELECT LTRIM(RTRIM(Item)) FROM DBO.SPLITSTRING(@id8, ',') WHERE ISNULL(LTRIM(RTRIM(Item)), '') <> ''))
+	) AND BD.StatusId = @OpenStatusId  AND CBD.[MasterCompanyId] = @mastercompanyid 
 
 	DECLARE @TotalInventory DECIMAL(18,2) = 0 
 	SELECT @TotalInventory = SUM(ISNULL(ISNULL(stl.[UnitCost],0) * ISNULL(stl.[QTY_on_Hand],0) , 0))
 		FROM #TEMPOriginalStocklineRecords stl WHERE [QTY_on_Hand] > 0
+
+	DECLARE @IsShowReconcile BIT = 0;
+
+	 SELECT @IsShowReconcile = CASE WHEN ISNULL(IsAccountByPass, 0) = 0 THEN 1 ELSE 0 END
+	 FROM [dbo].[MasterCompany] WITH (NOLOCK)
+	 WHERE MasterCompanyId = @mastercompanyid AND ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0;
 
 	/* Final Result Set */
 	SELECT DISTINCT TotalRecordsCount,    
@@ -978,7 +986,8 @@ BEGIN
 			stl.TagDate,
 			stl.ReconciliationNum,
 			@TotalInventory [TotalInventory],
-			@TotalPostedGL [TotalPostedGL] ,@TotalUnPostedGL [TotalUnPostedGL]
+			@TotalPostedGL [TotalPostedGL] ,@TotalUnPostedGL [TotalUnPostedGL],
+			@IsShowReconcile [IsShowReconcile]
 			FROM #TEMPOriginalStocklineRecords stl WHERE QTY_on_Hand > 0 
 			ORDER BY PN;
   END TRY

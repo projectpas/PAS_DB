@@ -23,6 +23,7 @@
 	11   25/09/2025   Vishal Suthar	   Fixed populating WorkFlowId based on customerId as well
 	12   14/11/2025   Sahdev Saliya    Added New Field : RevisedCondition
 	13	 30/01/2026   Moin Bloch       Added IncomingPartNumber
+	14	 24-FEB-2026  Moin Bloch 	   Added OutGoingItemMasterId And OutGoingPartNumber PN-15427
 
 --    EXEC [dbo].[GetWorkOrderById] 0,5714,0,0,1
 --    EXEC [dbo].[GetWorkOrderById] 0,0,29,0,2  
@@ -98,7 +99,7 @@ BEGIN
 		[IsRepairManagement] BIT NULL,
 		[StockLineUnitCost] DECIMAL(18, 2) NULL,
 		[MPNPartNumber] VARCHAR(400) NULL,
-				[Notes] NVARCHAR(MAX) NULL,
+		[Notes] NVARCHAR(MAX) NULL,
 	)
 
     DECLARE @CustomerId BIGINT=0,@CustomerContactId BIGINT=0,@ReceivingCustomerWorkId BIGINT=0,@ItemMasterId BIGINT=0,@ConditionId BIGINT=0,@RecStockLineId BIGINT=0,@WorkScopeId BIGINT=0,@CsrId BIGINT=0,@EmployeeId BIGINT=0
@@ -115,7 +116,7 @@ BEGIN
 	DECLARE @IsSinglePN BIT = 1,@WorkOrderMPNMSModuleEnum INT=12 
 	DECLARE @IsRepairManagement BIT = 0
 	DECLARE @WOModuleId INT,@SOModuleId INT,@EXModuleId INT
-
+	DECLARE @OutGoingPartNumber VARCHAR(50)='',@OutGoingItemMasterId BIGINT=0,@IncomingPartNumber VARCHAR(50)=''
 	SELECT @WOModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'WorkOrder';
 	SELECT @SOModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'SalesOrder';
 	SELECT @EXModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'ExchangeSalesOrder';
@@ -124,9 +125,11 @@ BEGIN
 	IF(@Opr=1)
 	BEGIN	
 		SELECT @CustomerId = [CustomerId],@MasterCompanyId = [MasterCompanyId],@Reference = [Reference],@Memo = [Memo],@CustomerContactId = [CustomerContactId],
-		       @ReceivingCustomerWorkId = [ReceivingCustomerWorkId],@ItemMasterId = [ItemMasterId],@ConditionId = [ConditionId],@RecStockLineId = [StockLineId],
-			   @ReceivingNumber = [ReceivingNumber],@WorkScopeId = [WorkScopeId]
-		  FROM [dbo].[ReceivingCustomerWork] WITH(NOLOCK) WHERE [ReceivingCustomerWorkId] = @ReceivingCustomerId;
+		       @ReceivingCustomerWorkId = [ReceivingCustomerWorkId],@ItemMasterId = [ItemMasterId],
+			   @ConditionId = [ConditionId],@RecStockLineId = [StockLineId],@ReceivingNumber = [ReceivingNumber],@WorkScopeId = [WorkScopeId],
+			   @OutGoingItemMasterId = [OutGoingItemMasterId],@OutGoingPartNumber = [OutGoingPartNumber],@IncomingPartNumber = [PartNumber]
+		  FROM [dbo].[ReceivingCustomerWork] WITH(NOLOCK)
+		  WHERE [ReceivingCustomerWorkId] = @ReceivingCustomerId;
 		
 		SELECT @CustName=[Name],@CustomerAffiliationId=[CustomerAffiliationId],@ContractReference=[ContractReference],@Email=[Email],@CustomerPhone=[CustomerPhone] FROM [dbo].[Customer] WITH(NOLOCK) WHERE [CustomerId] = @CustomerId;
 
@@ -210,7 +213,7 @@ BEGIN
 			   @AllMSlevels = COALESCE(msd.[AllMSlevels], ''),
 			   @IsRepairManagement = ISNULL(sl.IsRepairManagement, 0),
 			   @StockLineUnitCost = ISNULL(sl.UnitCost, 0),
-			   @MPNPartNumber = CONCAT(@PartNumber, CASE	WHEN COALESCE(@SerialNumber, '') <> '' THEN ' - ' + @SerialNumber
+			   @MPNPartNumber = CONCAT(@OutGoingPartNumber, CASE	WHEN COALESCE(@SerialNumber, '') <> '' THEN ' - ' + @SerialNumber
 															WHEN COALESCE(sl.ControlNumber, '') <> '' THEN ' - ' + sl.ControlNumber
 															ELSE '' END)
 		  FROM [dbo].[ReceivingCustomerWork] rc WITH(NOLOCK)
@@ -298,7 +301,9 @@ BEGIN
                @WorkflowExpirationDate [WorkflowExpirationDate],
 			   @IsRepairManagement [IsRepairManagement],
 			   @StockLineUnitCost [StockLineUnitCost],
-			   @MPNPartNumber [MPNPartNumber]
+			   @MPNPartNumber [MPNPartNumber],
+			   @IncomingPartNumber [IncomingPartNumber],
+			   @OutGoingItemMasterId [RevisedItemmasterid]
 	END
 	-- For Customer RMA
 	IF(@Opr=2)

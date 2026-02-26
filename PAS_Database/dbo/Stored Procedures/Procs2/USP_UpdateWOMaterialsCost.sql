@@ -23,7 +23,7 @@
 	6    01/18/2024   Hemant Saliya     Updated for Update Materilas Qty
  ** 7    11/28/2024	  HEMANT SALIYA		Re-Calculate WOM Qty Res & Qty Issue
 	8    11/28/2024	  HEMANT SALIYA		Added Work Order Work Flow Id
-     
+  	9    25/Feb/2026  Rajesh Gami		UOM Changes   
  EXECUTE USP_UpdateWOMaterialsCost 7351
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_UpdateWOMaterialsCost]
@@ -51,8 +51,8 @@ SET NOCOUNT ON
 					WorkOrderId BIGINT NULL,
 					WorkFlowWorkOrderId BIGINT NULL,
 					WorkOrderMaterialsId BIGINT NULL,
-					UnitCost DECIMAL(18,2) NULL,
-					ExtendedCost DECIMAL(18,2) NULL,
+					UnitCost [decimal](18,6) NULL,
+					ExtendedCost [decimal](18,6) NULL,
 					StlCount INT NULL,
 					StlReqQty DECIMAL(18,6) NULL,
 					IsKit BIT NULL
@@ -218,9 +218,9 @@ SET NOCOUNT ON
 				SELECT  @LoopID = MAX(ID) FROM #tmpremovePT;
 
 				DECLARE @PickTicketId BIGINT = 0;
-				DECLARE @QtyRemove BIGINT = 0;
-				DECLARE @QtyAvilable BIGINT = 0;
-				DECLARE @PTQtytoShip BIGINT = 0;
+				DECLARE @QtyRemove [decimal](18,6) = 0;
+				DECLARE @QtyAvilable [decimal](18,6) = 0;
+				DECLARE @PTQtytoShip [decimal](18,6) = 0;
 
 				WHILE (@LoopID > 0)
 				BEGIN

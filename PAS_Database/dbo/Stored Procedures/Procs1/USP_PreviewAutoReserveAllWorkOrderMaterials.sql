@@ -2172,7 +2172,7 @@ BEGIN
 						CASE WHEN LEN(UPPER([StkPartDesc])) > 40 THEN LEFT(UPPER([StkPartDesc]), 40) + '...' ELSE  UPPER([StkPartDesc]) END AS [StkPartDesc],
 						UPPER(wom.[Condition]) AS [Condition], UPPER([stkCondition]) AS [stkCondition],
 						UPPER([SerialNo]) AS [SerialNo],UPPER([StocklineNo]) AS [StocklineNo],UPPER([ControlNo]) AS [ControlNo],
-						UPPER([ControlId]) AS [ControlId],UPPER([UOM]) AS [UOM],UPPER([Priority]) AS [Priority],
+						UPPER([ControlId]) AS [ControlId],UPPER(uomConsume.ShortCode) AS [UOM],UPPER([Priority]) AS [Priority],
 						dbo.fn_ConvertUOM([QtyAvail], uomStock.ShortName, uomConsume.ShortName,0,@MasterCompanyId) as [QtyAvail],
 						dbo.fn_ConvertUOM([QtyOH] , uomStock.ShortName, uomConsume.ShortName,0,@MasterCompanyId)as[QtyOH],	
 						UPPER(wom.[Location]) AS [Location],UPPER([Wherehouse]) AS [Wherehouse], UPPER(wom.[Shelf]) AS [Shelf], UPPER(wom.[Bin]) AS [Bin], [IsMaterials]

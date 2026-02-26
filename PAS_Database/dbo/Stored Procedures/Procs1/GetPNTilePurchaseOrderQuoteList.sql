@@ -9,7 +9,8 @@
  ** PR   Date         Author				Change Description            
  ** --   --------     -------				--------------------------------          
 	1    05/12/2023   Amit Ghediya          Modify(Added Traceable & Tagged fields)
-	2    08/12/2023   Jevik Raiyani          added @statusValue
+	2    08/12/2023   Jevik Raiyani         added @statusValue
+	3    26/02/2026   Priyansh Patel    	changed NVARCHAR(10) to NVARCHAR(20) for quatity and cost
 
 --   EXEC [GetPNTilePurchaseOrderQuoteList]
 **************************************************************/ 
@@ -138,9 +139,9 @@ BEGIN
 					(ISNULL(@PurchaseOrderNumber,'') ='' OR PurchaseOrderNumber LIKE '%' + @PurchaseOrderNumber + '%') AND
 					(ISNULL(@OpenDate,'') ='' OR CAST(OpenDate AS DATE) = CAST(@OpenDate AS DATE)) AND	
 					(ISNULL(@ConditionName,'') ='' OR ConditionName LIKE '%' + @ConditionName + '%') AND
-					(ISNULL(@UnitCost,'') ='' OR CAST(UnitCost AS NVARCHAR(10)) LIKE '%'+ @UnitCost+'%') AND 
-					(ISNULL(@QuantityOrdered,'') ='' OR CAST(QuantityOrdered AS NVARCHAR(10)) LIKE '%'+ @QuantityOrdered+'%') AND 
-					(ISNULL(@ExtendedCost,'') ='' OR CAST(ExtendedCost AS NVARCHAR(10)) LIKE '%'+ @ExtendedCost+'%') AND 
+					(ISNULL(@UnitCost,'') ='' OR CAST(UnitCost AS NVARCHAR(20)) LIKE '%'+ @UnitCost+'%') AND 
+					(ISNULL(@QuantityOrdered,'') ='' OR CAST(QuantityOrdered AS NVARCHAR(20)) LIKE '%'+ @QuantityOrdered+'%') AND 
+					(ISNULL(@ExtendedCost,'') ='' OR CAST(ExtendedCost AS NVARCHAR(20)) LIKE '%'+ @ExtendedCost+'%') AND 
 					(ISNULL(@ReceivedDate,'') ='' OR CAST(ReceivedDate AS DATE) = CAST(@ReceivedDate AS DATE)) AND	
 					(ISNULL(@ReceiverNumber,'') ='' OR ReceiverNumber LIKE '%' + @ReceiverNumber + '%') AND
 					(ISNULL(@VendorName,'') ='' OR VendorName LIKE '%' + @VendorName + '%') AND

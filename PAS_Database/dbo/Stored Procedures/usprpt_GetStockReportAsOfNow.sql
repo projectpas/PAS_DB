@@ -883,7 +883,7 @@ BEGIN
 	SELECT @TotalPostedGL = SUM(CBD.DebitAmount - CBD.CreditAmount)
 	FROM [dbo].[CommonBatchDetails] CBD WITH (NOLOCK)
 	JOIN [dbo].[BatchDetails] BD WITH (NOLOCK) ON BD.JournalBatchDetailId = CBD.JournalBatchDetailId
-	WHERE  EXISTS (SELECT 1 FROM [dbo].[Stockline] stl WHERE stl.GLAccountId = CBD.GLAccountId 
+	WHERE  EXISTS (SELECT 1 FROM [dbo].[Stockline] stl WITH (NOLOCK) WHERE stl.GLAccountId = CBD.GLAccountId 
 		AND stl.[MasterCompanyId] = @mastercompanyid
 		AND stl.[IsParent] = 1 
 		AND stl.[IsDeleted] = 0 AND CAST(stl.[CreatedDate] AS DATE) <= CASE WHEN ISNULL(@id9, 0) = 1 THEN CAST(GETUTCDATE() AS DATE) ELSE CAST(GETUTCDATE()-1 AS DATE) END

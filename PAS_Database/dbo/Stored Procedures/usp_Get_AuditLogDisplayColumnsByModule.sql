@@ -6,7 +6,7 @@
  ** Date:        18-DEC-2025  
             
  ** PARAMETERS:             
- **   @ModuleId - maps to Module.ModuleId           
+ **   @ModuleId - maps to HistoryModule.ModuleId           
            
  ** RETURN VALUE:             
  **   ColumnName, DisplayName  
@@ -17,6 +17,7 @@
  ** --     --------       -------------       --------------------------------            
     1      18-DEC-2025    AYUSHI PATEL        Created  
     2      16-FEB-2026    DIVYESH KATHIRIYA   Set Table Name for SalesOrderQuote.
+    3      25-FEB-2026    DIVYESH KATHIRIYA   Set New HistoryModule Table and Remove Table Name for SalesOrderQuote.
 
     EXEC usp_Get_AuditLogDisplayColumnsByModule @ModuleId=7
 **********************/
@@ -27,17 +28,14 @@ AS
 BEGIN
     SET NOCOUNT ON;
     BEGIN TRY 
+
     DECLARE @TableName VARCHAR(128);
 
-    SELECT @TableName = ModuleName 
-    FROM dbo.Module WITH (NOLOCK)
-    WHERE ModuleId = @ModuleId;  
+    SELECT @TableName = [HistoryModuleName] 
+    FROM [dbo].[HistoryModule] WITH (NOLOCK)
+    WHERE [HistoryModuleId] = @ModuleId;  
 
-    IF(@TableName = 'SalesQuote')
-    BEGIN
-        SET @TableName = 'SalesOrderQuote';
-    END 
-
+   
     IF @TableName IS NULL
     BEGIN
         SELECT TOP 0 

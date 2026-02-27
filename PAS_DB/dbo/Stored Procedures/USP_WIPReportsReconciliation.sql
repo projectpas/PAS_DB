@@ -12,9 +12,11 @@
  ** --   --------     -------			--------------------------------            
     1    11/02/2026   Priyansh Patel      Created  for Initial Requirements	
 	2    24/02/2026   Hemant Saliya       Corrected balance missmatch for WIP
+	3    26/02/2026   Priyansh Patel      Added IsAccountByPass condition
+
 
      
-exec USP_WIPReportsReconciliation @mastercompanyid=21,@id='2026-01-01 00:00:00',@id2='2026-02-24 00:00:00',@id3=''
+exec USP_WIPReportsReconciliation @mastercompanyid=2,@id='2026-01-01 00:00:00',@id2='2026-02-24 00:00:00',@id3=''
 
 *************************************************************/   
   
@@ -109,7 +111,8 @@ BEGIN
             TotalDirectLaborUnpostedGL DECIMAL(18,2)  NULL,
             TotalDirectLaborPostedGL DECIMAL(18,2)  NULL,
             TotalWIPOverheadPostedGL   DECIMAL(18,2) NULL,
-            TotalWIPOverheadUnpostedGL DECIMAL(18,2) NULL
+            TotalWIPOverheadUnpostedGL DECIMAL(18,2) NULL,
+            IsShowReconcile BIT NULL
         );
     
         INSERT INTO #tmpWorkOrderPartsCost (WorkOrderId, PartsCost, TotalPartsCost)
@@ -241,7 +244,14 @@ BEGIN
         WHERE WIP.MasterCompanyId = @mastercompanyid AND BD.StatusId = @OpenStatusId  AND WIP.WIPCategoryId = @WIPOverheadCategoryId AND BD.IsDeleted = 0 AND CBD.IsDeleted = 0 AND CAST(CBD.EntryDate AS DATE) BETWEEN CAST(@FromDate AS DATE) AND CAST(@ToDate AS DATE)
           AND (@id3 IS NULL OR WOP.ItemMasterId = @id3);
 
-        INSERT INTO #tmpWorkOrderTotalCost (TotalPartsCost,TotalDirectLaborCost, TotalOHCost,TotalMiscCost,TotalOtherCost,TotalWIPCost,TotalUnpostedDirectLaborCost,TotalUnpostedOverheadCost,TotalWIPMaterialWIPPostedGL,TotalWIPMaterialWIPUnpostedGL,TotalDirectLaborPostedGL,TotalDirectLaborUnpostedGL,TotalWIPOverheadPostedGL,TotalWIPOverheadUnpostedGL )
+            DECLARE @IsShowReconcile BIT = 0;
+
+	        SELECT @IsShowReconcile = CASE WHEN ISNULL(IsAccountByPass, 0) = 0 THEN 1 ELSE 0 END
+	        FROM [dbo].[MasterCompany] WITH (NOLOCK)
+	        WHERE MasterCompanyId = @mastercompanyid AND ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0;
+
+
+        INSERT INTO #tmpWorkOrderTotalCost (TotalPartsCost,TotalDirectLaborCost, TotalOHCost,TotalMiscCost,TotalOtherCost,TotalWIPCost,TotalUnpostedDirectLaborCost,TotalUnpostedOverheadCost,TotalWIPMaterialWIPPostedGL,TotalWIPMaterialWIPUnpostedGL,TotalDirectLaborPostedGL,TotalDirectLaborUnpostedGL,TotalWIPOverheadPostedGL,TotalWIPOverheadUnpostedGL,IsShowReconcile )
         SELECT ISNULL(MAX(TotalPartsCost),0) AS TotalPartsCost, ISNULL(@TotalDirectLaborCost,0), ISNULL(@TotalOHCost,0), ISNULL(@TotalMiscCost,0) AS TotalMiscCost,  ISNULL(@TotalOtherCost,0) AS TotalOtherCost,
             ISNULL(MAX(TotalPartsCost),0)
           + ISNULL(@TotalDirectLaborCost,0)
@@ -249,7 +259,8 @@ BEGIN
           + ISNULL(@TotalMiscCost,0)
           + ISNULL(@TotalOtherCost,0) AS TotalWIPCost,
           ISNULL(@TotalUnpostedDirectLaborCost,0), ISNULL(@TotalUnpostedOverheadCost,0),
-          ISNULL(@TotalWIPMaterialWIPPostedGL,0),ISNULL(@TotalWIPMaterialWIPUnpostedGL,0),ISNULL(@TotalDirectLaborPostedGL,0), ISNULL(@TotalDirectLaborUnpostedGL,0),ISNULL(@TotalWIPOverheadPostedGL,0),ISNULL(@TotalWIPOverheadUnPostedGL,0)
+          ISNULL(@TotalWIPMaterialWIPPostedGL,0),ISNULL(@TotalWIPMaterialWIPUnpostedGL,0),ISNULL(@TotalDirectLaborPostedGL,0), ISNULL(@TotalDirectLaborUnpostedGL,0),ISNULL(@TotalWIPOverheadPostedGL,0),ISNULL(@TotalWIPOverheadUnPostedGL,0),
+          @IsShowReconcile AS IsShowReconcile
           FROM #tmpWorkOrderPartsCost;
             
         SELECT * FROM #tmpWorkOrderTotalCost;

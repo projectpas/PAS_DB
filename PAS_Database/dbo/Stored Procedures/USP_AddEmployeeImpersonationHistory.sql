@@ -1,4 +1,24 @@
-﻿CREATE     PROCEDURE [dbo].[USP_AddEmployeeImpersonationHistory]  
+﻿/*************************************************************             
+ ** File:   [USP_AddEmployeeImpersonationHistory]           
+ ** Author:   Bhargav Saliya 
+ ** Description: This stored procedure is used to add a record when we perform impersonation.
+ ** Jira Id: PN-15456
+ ** Purpose:           
+ ** Date:   
+            
+ ** PARAMETERS:             
+ @UserType varchar(60)     
+           
+ ** RETURN VALUE:             
+    
+ **************************************************************             
+  ** Change History             
+ **************************************************************             
+ ** PR   Date         Author              Change Description              
+ ** --   --------     -------          --------------------------------     
+    1    26/02/2026   Bhargav Saliya       Created
+**************************************************************/
+CREATE     PROCEDURE [dbo].[USP_AddEmployeeImpersonationHistory]  
 @ImpersonatedEmployeeId BIGINT,  
 @MasterCompanyId INT,
 @ImpersonatedByEmployeeId BIGINT,

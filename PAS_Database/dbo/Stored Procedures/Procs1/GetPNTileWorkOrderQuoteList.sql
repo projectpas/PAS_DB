@@ -1,4 +1,23 @@
-﻿CREATE         PROCEDURE [dbo].[GetPNTileWorkOrderQuoteList]
+﻿/*************************************************************             
+ ** File:   [GetPNTileWorkOrderQuoteList]             
+ ** Author:   
+ ** Description: This stored procedure is used Get PN Tile Work Order Quote List
+ ** Purpose:           
+ ** Date:   
+            
+ ** PARAMETERS:             
+ @UserType varchar(60)     
+           
+ ** RETURN VALUE:             
+    
+ **************************************************************             
+  ** Change History             
+ **************************************************************             
+ ** PR   Date         Author              Change Description              
+ ** --   --------     -------          --------------------------------     
+    1    27/02/2026   Bhargav Saliya       PN-15581: Added New Fields [QuoteAmount],[Qty],[Notes]
+**************************************************************/  
+CREATE PROCEDURE [dbo].[GetPNTileWorkOrderQuoteList]
 @PageNumber int = 1,
 @PageSize int = 10,
 @SortColumn varchar(50)=NULL,

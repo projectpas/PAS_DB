@@ -22,6 +22,7 @@
 	5    21/01/2026   Moin Bloch     Added StockLineNumber,ControlNumber
 	6    10/02/2026   Amit Ghediya   Added WorkOrderNumber for Stockline lines where the part line is associated to a WO (PN-15419)
 	7    20/02/2026   Amit Ghediya   Added RO NUM,SerialNumber , TenderedQTY (PN-15533)
+	8    23/02/2026   Amit Ghediya   Added RO NUM,SerialNumber , TenderedQTY (PN-15533)
      
 --EXEC [GetWorkOrderPrintMateriallist] 10148,10350,10212
 ********/

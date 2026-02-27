@@ -18,9 +18,10 @@
 	3    11/05/2024	  Vishal Suthar			Modified to make use of new SO Part tables
 	4    12/12/2024	  Vishal Suthar			Fixed an issue with SOQ History Unit Price and Unit Price Extended
 	5    31/12/2025	  Bhargav Saliya		Fixed an issue (PN-15053)
+	6    26/02/2026   Priyansh Patel		changed NVARCHAR(10) to NVARCHAR(20) for quatity and cost
 
 **************************************************************/
-CREATE      PROCEDURE [dbo].[GetPNTileSalesOrderQuoteList]
+CREATE       PROCEDURE [dbo].[GetPNTileSalesOrderQuoteList]
 	@PageNumber int = 1,
 	@PageSize int = 10,
 	@SortColumn varchar(50)=NULL,
@@ -143,10 +144,10 @@ BEGIN
 					(ISNULL(@SalesOrderNumber,'') ='' OR SalesOrderNumber LIKE '%' + @SalesOrderNumber + '%') AND
 					(ISNULL(@OpenDate,'') ='' OR CAST(OpenDate AS DATE) = CAST(@OpenDate AS DATE)) AND	
 					(ISNULL(@CustomerReference,'') ='' OR CustomerReference LIKE '%' + @CustomerReference + '%') AND
-					(ISNULL(@UnitSalesPrice,'') ='' OR CAST(UnitSalesPrice AS NVARCHAR(10)) LIKE '%'+ @UnitSalesPrice+'%') AND 
-					(ISNULL(@UnitCost,'') ='' OR CAST(UnitCost AS NVARCHAR(10)) LIKE '%'+ @UnitCost+'%') AND 
+					(ISNULL(@UnitSalesPrice,'') ='' OR CAST(UnitSalesPrice AS NVARCHAR(20)) LIKE '%'+ @UnitSalesPrice+'%') AND 
+					(ISNULL(@UnitCost,'') ='' OR CAST(UnitCost AS NVARCHAR(20)) LIKE '%'+ @UnitCost+'%') AND 
 					(ISNULL(@Qty,'') ='' OR CAST(Qty AS NVARCHAR(50)) LIKE '%'+ @Qty+'%') AND 
-					(ISNULL(@UnitCostExtended,'') ='' OR CAST(UnitCostExtended AS NVARCHAR(10)) LIKE '%'+ @UnitCostExtended+'%') AND 
+					(ISNULL(@UnitCostExtended,'') ='' OR CAST(UnitCostExtended AS NVARCHAR(20)) LIKE '%'+ @UnitCostExtended+'%') AND 
 					(ISNULL(@ConditionName,'') ='' OR ConditionName LIKE '%' + @ConditionName + '%') AND
 					(ISNULL(@SalesPersonName,'') ='' OR SalesPersonName LIKE '%' + @SalesPersonName + '%') AND
 					(ISNULL(@ShipDate,'') ='' OR CAST(ShipDate AS DATE) = CAST(@ShipDate AS DATE)) AND	

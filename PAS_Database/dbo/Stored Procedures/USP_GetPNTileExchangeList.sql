@@ -16,7 +16,7 @@
 	1    16/01/2024   Devendra Shekh		Created
 	2    15/02/2024   Ekta Chandegra        @IsVendor parameter is added
 	3    16/02/2024   Ekta Chandegra        Filter is added on @IsVendor 
-
+	4    26/02/2026   Priyansh Patel	    Changed NVARCHAR(10) to NVARCHAR(20) for quatity and cost
 
 **************************************************************/
 CREATE    PROCEDURE [dbo].[USP_GetPNTileExchangeList]
@@ -146,9 +146,9 @@ BEGIN
 				(ISNULL(@ExchangeSalesOrderNumber,'') ='' OR ExchangeSalesOrderNumber LIKE '%' + @ExchangeSalesOrderNumber + '%') AND
 				(ISNULL(@OpenDate,'') ='' OR CAST(OpenDate AS DATE) = CAST(@OpenDate AS DATE)) AND	
 				(ISNULL(@CustomerReference,'') ='' OR CustomerReference LIKE '%' + @CustomerReference + '%') AND
-				(ISNULL(@UnitCost,'') ='' OR CAST(UnitCost AS NVARCHAR(10)) LIKE '%'+ @UnitCost+'%') AND 
-				(ISNULL(@Qty,'') ='' OR CAST(Qty AS NVARCHAR(10)) LIKE '%'+ @Qty+'%') AND 
-				(ISNULL(@UnitCostExtended,'') ='' OR CAST(UnitCostExtended AS NVARCHAR(10)) LIKE '%'+ @UnitCostExtended+'%') AND 
+				(ISNULL(@UnitCost,'') ='' OR CAST(UnitCost AS NVARCHAR(20)) LIKE '%'+ @UnitCost+'%') AND 
+				(ISNULL(@Qty,'') ='' OR CAST(Qty AS NVARCHAR(20)) LIKE '%'+ @Qty+'%') AND 
+				(ISNULL(@UnitCostExtended,'') ='' OR CAST(UnitCostExtended AS NVARCHAR(20)) LIKE '%'+ @UnitCostExtended+'%') AND 
 				(ISNULL(@ConditionName,'') ='' OR ConditionName LIKE '%' + @ConditionName + '%') AND
 				(ISNULL(@SalesPersonName,'') ='' OR SalesPersonName LIKE '%' + @SalesPersonName + '%') AND
 				(ISNULL(@ShipDate,'') ='' OR CAST(ShipDate AS DATE) = CAST(@ShipDate AS DATE)) AND	

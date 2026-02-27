@@ -19,7 +19,7 @@
  3    08/18/2023    Devendra 			 Added QtyRemaining for wopickticket insert and update   
  4    08/21/2023    Amit Ghediya          Updated HitoryText content 
  5    09/18/2023    Devendra Shekh        pick ticket qty issue resovled 
- 6    26/Feb/2026   Rajesh Gami			Added UOM Changes   
+ 6    26/Feb/2026   Rajesh Gami			Added UOM Changes - PN-14832      
  EXECUTE sp_savePickTicketItemInterface_WO 828,0  
 **************************************************************/   
 CREATE   PROCEDURE [dbo].[sp_savePickTicketItemInterface_WO]  

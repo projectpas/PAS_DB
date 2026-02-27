@@ -13,9 +13,10 @@
  ** --   ----------  -----------	--------------------------------          
     1    11/02/2024  Vishal Suthar	Created
 	2    09/07/2025  Amit Ghediya	Update for TotalRecords & status.
+	3    01/08/2026  Vishal Suthar	Added PortalName column
      
 ************************************************************************/
-CREATE   PROCEDURE [dbo].[USP_GetAllInventoryUploadList]
+CREATE     PROCEDURE [dbo].[USP_GetAllInventoryUploadList]
 	@MasterCompanyId int
 AS
 BEGIN
@@ -36,7 +37,8 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 			InvUpload.MasterCompanyId,
 			InvUpload.IsDeleted,
 			InvUpload.TotalRecords,
-			STS.IntegrationStatus AS [Status]
+			STS.IntegrationStatus AS [Status],
+			InvUpload.PortalName
 		FROM DBO.[ILSInventoryUpload] InvUpload WITH (NOLOCK)
 		JOIN DBO.[IntegrationStatus] STS WITH(NOLOCK) ON InvUpload.StatusId = STS.IntegrationStatusId
 		WHERE InvUpload.MasterCompanyId = @MasterCompanyId

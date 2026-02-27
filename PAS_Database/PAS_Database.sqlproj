@@ -4445,6 +4445,7 @@
     <Build Include="dbo\Stored Procedures\USP_DeleteRestoreWIPGLAccountSetup.sql" />
     <Build Include="dbo\Stored Procedures\usprpt_GetGoodsReceiptNotInvoicedReport_1.sql" />
     <Build Include="dbo\Tables\HistoryModule.sql" />
+    <Build Include="dbo\Tables\PartsBaseChildPartDetail.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

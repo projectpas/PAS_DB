@@ -1,0 +1,26 @@
+﻿CREATE TABLE [dbo].[PartsBaseChildPartDetail] (
+    [PartsBaseChildPartId] BIGINT          IDENTITY (1, 1) NOT NULL,
+    [IntegrationMasterId]  BIGINT          NULL,
+    [Index]                BIGINT          NULL,
+    [InventoryId]          VARCHAR (200)   NULL,
+    [AltPartNumber]        VARCHAR (200)   NULL,
+    [Cage]                 VARCHAR (200)   NULL,
+    [Condition]            VARCHAR (50)    NULL,
+    [Currency]             VARCHAR (50)    NULL,
+    [Manufacturer]         VARCHAR (50)    NULL,
+    [PartDescription]      VARCHAR (MAX)   NULL,
+    [PartNumber]           VARCHAR (200)   NULL,
+    [Quantity]             INT             NULL,
+    [UnitPrice]            DECIMAL (18, 2) NULL,
+    [UoM]                  VARCHAR (50)    NULL,
+    [MasterCompanyId]      INT             NOT NULL,
+    [CreatedBy]            VARCHAR (256)   NOT NULL,
+    [UpdatedBy]            VARCHAR (256)   NULL,
+    [CreatedDate]          DATETIME2 (7)   CONSTRAINT [DF_PartsBaseChildPartDetail_CreatedDate] DEFAULT (getdate()) NOT NULL,
+    [UpdatedDate]          DATETIME2 (7)   CONSTRAINT [DF_PartsBaseChildPartDetail_UpdatedDate] DEFAULT (getdate()) NOT NULL,
+    [IsDeleted]            BIT             CONSTRAINT [DF_PartsBaseChildPartDetail_IsDeleted] DEFAULT ((0)) NULL,
+    [IsActive]             BIT             CONSTRAINT [DF_PartsBaseChildPartDetail_IsActive] DEFAULT ((0)) NULL,
+    CONSTRAINT [PK_PartsBaseChildPartDetail] PRIMARY KEY CLUSTERED ([PartsBaseChildPartId] ASC),
+    CONSTRAINT [FK_PartsBaseChildPartDetail_IntegrationMaster] FOREIGN KEY ([IntegrationMasterId]) REFERENCES [dbo].[IntegrationMaster] ([IntegrationMasterId])
+);
+

@@ -36,6 +36,8 @@
 	23   17-12-2025  Devendra Shekh		 Modified (added AllowAssign, FollowUpDate)
 	24   22-12-2025  Devendra Shekh		 Modified (set Default @SortColumn to CustomerRfqId)
 	25   09-01-2026  Amit Ghediya		 Modified (get added contact)
+	26   10-02-2026  Vishal Suthar		 PN-11778 Added option for PartsBase
+
 -- EXEC USP_GetReceivedRfqList 
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[USP_GetReceivedRfqList]
@@ -141,7 +143,7 @@ BEGIN
 
 				SELECT Id INTO #tmpSalesOrderStatus FROM [dbo].[MasterSalesOrderStatus] WITH(NOLOCK) WHERE [Name] IN ('Closed', 'Cancelled');
 
-				DECLARE @ILSPortalId INT = 1, @OneFortyFivePortalId INT = 2, @EmailPortalId INT = 3;
+				DECLARE @ILSPortalId INT = 1, @OneFortyFivePortalId INT = 2, @EmailPortalId INT = 3, @PartsBasePortalId INT = 54;
 
 				SELECT DISTINCT tmpVRFQResult.CustomerRfqId, tmpVRFQResult.MasterCompanyId, tmpVRFQResult.VendorRFQId, tmpVRFQResult.ILSRFQDetailId, tmpVRFQResult.PartNumber, tmpVRFQResult.Condition
 				INTO #VendorsRFQResult
@@ -152,7 +154,7 @@ BEGIN
 					INNER JOIN [dbo].[ILSRFQDetail] DT WITH(NOLOCK) ON PT.ILSRFQDetailId = DT.ILSRFQDetailId
 					INNER JOIN [dbo].[ILSRFQPart] ILSP WITH(NOLOCK) ON ILSP.ILSRFQDetailId = DT.ILSRFQDetailId AND LOWER(TRIM(ILSP.PartNumber)) = LOWER(TRIM(RFQ.LinePartNumber)) AND LOWER(TRIM(ILSP.Condition)) = LOWER(TRIM(RFQ.Condition)) AND ILSP.CustomerRfqId = RFQ.CustomerRfqId
 					INNER JOIN [dbo].[ThirdPartyRFQ] TP WITH(NOLOCK) ON DT.ThirdPartyRFQId = TP.ThirdPartyRFQId
-					WHERE PT.IsActive = 1 AND PT.IsDeleted = 0 AND PT.MasterCompanyId = @MasterCompanyId AND RFQ.IntegrationPortalId IN (@ILSPortalId, @OneFortyFivePortalId)
+					WHERE PT.IsActive = 1 AND PT.IsDeleted = 0 AND PT.MasterCompanyId = @MasterCompanyId AND RFQ.IntegrationPortalId IN (@ILSPortalId, @OneFortyFivePortalId, @PartsBasePortalId)
 
 					UNION ALL
 
@@ -318,7 +320,7 @@ BEGIN
 				--) IM
 				WHERE RFQ.MasterCompanyId = @MasterCompanyId 
 				AND (@IntegrationPortalId IS NULL OR RFQ.IntegrationPortalId = @IntegrationPortalId)
-				AND RFQ.IntegrationPortalId IN (@ILSPortalId, @OneFortyFivePortalId)
+				AND RFQ.IntegrationPortalId IN (@ILSPortalId, @OneFortyFivePortalId, @PartsBasePortalId)
 				AND RFQ.IsActive = 1 AND RFQ.IsDeleted = 0
 
 				UNION ALL

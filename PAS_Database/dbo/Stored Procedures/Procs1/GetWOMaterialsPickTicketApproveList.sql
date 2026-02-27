@@ -21,7 +21,7 @@
 	3    06/07/2021   Hemant Saliya			Updated For Update WO Work Flow ID
 	4    08/11/2023	  Devendra Shekh		changes for ReadyToPick
 	5    10/05/2023   Hemant Saliya			Condition Group Changes
-  	6    25/Feb/2026  Rajesh Gami			Modify the SP for UOM Changes (Added CTE and accordingly change)      
+  	6    25/Feb/2026  Rajesh Gami			Modify the SP for UOM Changes (Added CTE and accordingly change)-  PN-14832     
  EXECUTE GetWOMaterialsPickTicketApproveList 3555, 3019
 
 **************************************************************/ 

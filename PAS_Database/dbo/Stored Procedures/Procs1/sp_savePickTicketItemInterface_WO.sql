@@ -14,12 +14,12 @@
  **************************************************************             
  ** PR   Date         Author			Change Description              
  ** --   --------     -------			--------------------------------  
- 1    03/29/2023   Vishal Suthar		Added IsKitType for KIT Changes  
- 2    04/02/2023   Amit Ghediya			 Added WO History   
- 3    08/18/2023   Devendra 			 Added QtyRemaining for wopickticket insert and update   
- 4    08/21/2023   Amit Ghediya          Updated HitoryText content 
- 4    09/18/2023   Devendra Shekh        pick ticket qty issue resovled 
-  
+ 1    03/29/2023    Vishal Suthar		Added IsKitType for KIT Changes  
+ 2    04/02/2023    Amit Ghediya			 Added WO History   
+ 3    08/18/2023    Devendra 			 Added QtyRemaining for wopickticket insert and update   
+ 4    08/21/2023    Amit Ghediya          Updated HitoryText content 
+ 5    09/18/2023    Devendra Shekh        pick ticket qty issue resovled 
+ 6    26/Feb/2026   Rajesh Gami			Added UOM Changes   
  EXECUTE sp_savePickTicketItemInterface_WO 828,0  
 **************************************************************/   
 CREATE   PROCEDURE [dbo].[sp_savePickTicketItemInterface_WO]  
@@ -55,12 +55,33 @@ BEGIN
  BEGIN TRANSACTION  
  BEGIN  
 
-		DECLARE @QtyRemaining BIGINT,@WOMPN VARCHAR(150),@WOMitemmasterid BIGINT
+		DECLARE @QtyRemaining decimal(18,6),@WOMPN VARCHAR(150),@WOMitemmasterid BIGINT
 			,@HistoryWorkOrderMaterialsId BIGINT,@historyModuleId BIGINT,@historySubModuleId BIGINT  
 			,@TemplateBody NVARCHAR(MAX),@WorkOrderNum VARCHAR(MAX),@StockLineNum VARCHAR(MAX),@WorkFlowWorkOrderId BIGINT
 			,@WorkOrderPartNoId BIGINT,@ItemMasterId BIGINT,@partnumber VARCHAR(200),@PNItemMasterId BIGINT,@RevisedItemmasterid BIGINT, @TotalWMSTK BIGINT
-			,@TotalShipQty BIGINT, @WOWorkFlowId BIGINT,@WOPartNoId BIGINT;
-		DECLARE @EnforcePickTicketConfirmation BIT;
+			,@TotalShipQty decimal(18,6), @WOWorkFlowId BIGINT,@WOPartNoId BIGINT, @EnforcePickTicketConfirmation BIT;
+			
+			/************ START: UOM Changes Logic : Rajesh Gami *************/
+			IF(ISNULL(@IsMPN,0) = 0)
+			BEGIN
+				DECLARE	@StockUnitOfMeasure VARCHAR(100), @ConsumeUnitOfMeasure VARCHAR(100);
+				SELECT @StockUnitOfMeasure  = su.ShortCode,
+					   @ConsumeUnitOfMeasure = cu.ShortCode
+				FROM DBO.Stockline sl WITH (NOLOCK)
+					LEFT JOIN DBO.UnitOfMeasure su WITH (NOLOCK) ON sl.StockUnitOfMeasureId = su.UnitOfMeasureId
+					LEFT JOIN DBO.UnitOfMeasure cu WITH (NOLOCK) ON sl.ConsumeUnitOfMeasureId = cu.UnitOfMeasureId
+				WHERE sl.StockLineId = @StocklineId;
+
+				IF (@ConsumeUnitOfMeasure IS NOT NULL AND @StockUnitOfMeasure IS NOT NULL)
+				BEGIN
+					IF (@Qty > 0)
+						SET @Qty = dbo.fn_ConvertUOM(@Qty, @ConsumeUnitOfMeasure, @StockUnitOfMeasure, 0, @MasterCompanyId);
+
+					IF (@QtyToShip > 0)
+						SET @QtyToShip = dbo.fn_ConvertUOM(@QtyToShip, @ConsumeUnitOfMeasure, @StockUnitOfMeasure,0, @MasterCompanyId);
+				END
+			END			
+			/************ END: UOM Changes Logic *************/
 
 		SET @WOWorkFlowId = (SELECT WorkFlowWorkOrderId FROM [dbo].[WorkOrderMaterials] WITH(NOLOCK) WHERE WorkOrderMaterialsId = @WorkOrderMaterialsId);
 		SET @WOPartNoId = (SELECT WorkOrderPartNoId FROM [dbo].[WorkOrderWorkFlow] WITH(NOLOCK) WHERE WorkFlowWorkOrderId = @WOWorkFlowId);

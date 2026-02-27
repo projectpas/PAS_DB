@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿
+/*************************************************************           
  ** File:   [USP_GetStocklinePrintDataByStockLineId]           
  ** Author:   Hemant Saliya
  ** Description: This SP is used Get PickTicket Print Lable
@@ -9,11 +10,11 @@
  **************************************************************           
  ** Change History           
  **************************************************************           
- ** PR   Date         Author		Change Description            
- ** --   --------     -------		--------------------------------          
-    1    09/24/2021   Hemant Saliya Created
-	2    29/01/2026   Moin Bloch    Getting Quantity From PickTicket Insted of Stockline PN-15111
-     
+ ** PR   Date			Author			Change Description            
+ ** --   --------		-------			--------------------------------          
+    1    09/24/2021     Hemant Saliya	Created
+	2    29/01/2026     Moin Bloch		Getting Quantity From PickTicket Insted of Stockline PN-15111
+	3    27/Feb/2026    Rajesh Gami		Added UOM Changes - PN-14832      
 --EXEC [USP_GetStocklinePrintDataByStockLineId] 
 **************************************************************/
 CREATE PROCEDURE [dbo].[USP_GetStocklinePrintDataByStockLineId]
@@ -48,7 +49,7 @@ BEGIN
 			stl.Bin AS binName,
 			ISNULL(ve.VendorName, '') AS VendorName,
 			CASE 
-				WHEN ISNULL(stl.QuantityOnHand, 0) > 0 THEN CAST(stl.QuantityOnHand AS INT)
+				WHEN ISNULL(stl.QuantityOnHand, 0) > 0 THEN dbo.fn_ConvertUOM(stl.QuantityOnHand, uomStock.ShortName, uomConsume.ShortName,0,stl.MasterCompanyId)
 				ELSE 0
 			END AS Quantity,
 			stl.IdNumber AS ControlId,
@@ -76,6 +77,8 @@ BEGIN
 			LEFT JOIN [dbo].[Vendor] ve WITH(NOLOCK) ON stl.VendorId = ve.VendorId
 			LEFT JOIN [dbo].[WorkOrderMaterials] womst WITH(NOLOCK) ON stl.WorkOrderMaterialsId = womst.WorkOrderMaterialsId
 			LEFT JOIN [dbo].[WorkOrder] wo WITH(NOLOCK) ON womst.WorkOrderId = wo.WorkOrderId
+			LEFT JOIN [dbo].[UnitOfMeasure] uomStock WITH(NOLOCK) ON uomStock.UnitOfMeasureId = stl.StockUnitOfMeasureId
+			LEFT JOIN [dbo].[UnitOfMeasure] uomConsume WITH(NOLOCK) ON uomConsume.UnitOfMeasureId = stl.ConsumeUnitOfMeasureId
 		WHERE ISNULL(stl.IsDeleted, 0) = 0 AND stl.StockLineId = @StocklineId;
 	END
 	ELSE IF(@SubWorkOrderMaterialId > 0)
@@ -97,7 +100,7 @@ BEGIN
             stl.Shelf AS shelfName,
             stl.Bin AS binName,
             ISNULL(ve.VendorName, '') AS VendorName,
-            ISNULL(stl.QuantityOnHand, 0) AS Quantity,
+            dbo.fn_ConvertUOM(ISNULL(stl.QuantityOnHand, 0), uomStock.ShortName, uomConsume.ShortName,0,stl.MasterCompanyId)  AS Quantity,
             stl.IdNumber AS ControlId,
             ISNULL(po.PurchaseOrderNumber, '') AS PurchaseOrderNumber,
             stl.ExpirationDate,
@@ -125,6 +128,8 @@ BEGIN
 			LEFT JOIN [dbo].[SubWorkOrderMaterialStockLine] mst WITH(NOLOCK) ON stl.StockLineId = mst.StockLIneId AND mst.SubWorkOrderMaterialsId = @SubWorkOrderMaterialId
 			LEFT JOIN [dbo].[SubWorkOrderMaterials] womst WITH(NOLOCK) ON mst.SubWorkOrderMaterialsId = womst.SubWorkOrderMaterialsId
 			LEFT JOIN [dbo].[SubWorkOrder] wo WITH(NOLOCK) ON womst.SubWorkOrderId = wo.SubWorkOrderId
+			LEFT JOIN [dbo].[UnitOfMeasure] uomStock WITH(NOLOCK) ON uomStock.UnitOfMeasureId = stl.StockUnitOfMeasureId
+			LEFT JOIN [dbo].[UnitOfMeasure] uomConsume WITH(NOLOCK) ON uomConsume.UnitOfMeasureId = stl.ConsumeUnitOfMeasureId
         WHERE ISNULL(stl.IsDeleted, 0) = 0 AND stl.StockLineId = @StocklineId
 	END
 	ELSE IF(@PickTicketId > 0)
@@ -149,7 +154,7 @@ BEGIN
 				stl.Bin AS binName,
 				ISNULL(ve.VendorName, '') AS VendorName,
 				--ISNULL(stl.QuantityOnHand, 0) AS Quantity,
-				ISNULL(wopt.QtyToShip,0) Quantity,
+				dbo.fn_ConvertUOM(ISNULL(wopt.QtyToShip,0), uomStock.ShortName, uomConsume.ShortName,0,stl.MasterCompanyId) AS Quantity,
 				stl.IdNumber AS ControlId,
 				ISNULL(po.PurchaseOrderNumber, '') AS PurchaseOrderNumber,
 				stl.ExpirationDate,
@@ -180,6 +185,8 @@ BEGIN
 				LEFT JOIN [dbo].[ItemMaster] itm WITH(NOLOCK) ON wp.ItemMasterId = itm.ItemMasterId
 				LEFT JOIN [dbo].[WorkOrder] wo WITH(NOLOCK) ON womst.WorkOrderId = wo.WorkOrderId
 				LEFT JOIN [dbo].[WorkorderPickTicket] wopt WITH(NOLOCK) ON stl.StockLineId = wopt.StocklineId AND wopt.PickTicketId = @PickTicketId
+				LEFT JOIN [dbo].[UnitOfMeasure] uomStock WITH(NOLOCK) ON uomStock.UnitOfMeasureId = stl.StockUnitOfMeasureId
+				LEFT JOIN [dbo].[UnitOfMeasure] uomConsume WITH(NOLOCK) ON uomConsume.UnitOfMeasureId = stl.ConsumeUnitOfMeasureId
 			WHERE ISNULL(stl.IsDeleted, 0) = 0 AND stl.StockLineId = @StockLineId
 		END 
 		ELSE
@@ -202,7 +209,7 @@ BEGIN
 				stl.Bin AS binName,
 				ISNULL(ve.VendorName, '') AS VendorName,
 				--CASE WHEN stl.QuantityOnHand > 0 THEN CAST(stl.QuantityOnHand AS INT) ELSE 0 END AS Quantity,
-				ISNULL(wopt.QtyToShip,0) Quantity,
+				dbo.fn_ConvertUOM(ISNULL(wopt.QtyToShip,0), uomStock.ShortName, uomConsume.ShortName,0,stl.MasterCompanyId) AS Quantity,
 				stl.IdNumber AS ControlId,
 				ISNULL(po.PurchaseOrderNumber, '') AS PurchaseOrderNumber,
 				stl.ExpirationDate,
@@ -233,6 +240,8 @@ BEGIN
 				LEFT JOIN [dbo].[ItemMaster] itm WITH(NOLOCK) ON wp.ItemMasterId = itm.ItemMasterId
 				LEFT JOIN [dbo].[WorkOrder] wo WITH(NOLOCK) ON womst.WorkOrderId = wo.WorkOrderId
 				LEFT JOIN [dbo].[WorkorderPickTicket] wopt WITH(NOLOCK) ON stl.StockLineId = wopt.StocklineId AND wopt.PickTicketId = @PickTicketId
+				LEFT JOIN [dbo].[UnitOfMeasure] uomStock WITH(NOLOCK) ON uomStock.UnitOfMeasureId = stl.StockUnitOfMeasureId
+				LEFT JOIN [dbo].[UnitOfMeasure] uomConsume WITH(NOLOCK) ON uomConsume.UnitOfMeasureId = stl.ConsumeUnitOfMeasureId
 			WHERE ISNULL(stl.IsDeleted, 0) = 0
 			  AND stl.StockLineId = @StockLineId;
 		END
@@ -258,7 +267,7 @@ BEGIN
 				stl.Shelf AS shelfName,
 				stl.Bin AS binName,
 				ISNULL(ve.VendorName, '') AS VendorName,
-				ISNULL(stl.QuantityOnHand, 0) AS Quantity,
+				dbo.fn_ConvertUOM(ISNULL(stl.QuantityOnHand, 0) , uomStock.ShortName, uomConsume.ShortName,0,stl.MasterCompanyId) AS Quantity,
 				stl.IdNumber AS ControlId,
 				ISNULL(po.PurchaseOrderNumber, '') AS PurchaseOrderNumber,
 				stl.ExpirationDate,
@@ -289,6 +298,8 @@ BEGIN
 				LEFT JOIN [dbo].[WorkOrderPartNumber] wp WITH(NOLOCK) ON wowf.WorkOrderPartNoId = wp.ID
 				LEFT JOIN [dbo].[ItemMaster] itm WITH(NOLOCK) ON wp.ItemMasterId = itm.ItemMasterId
 				LEFT JOIN [dbo].[WorkOrder] wo WITH(NOLOCK) ON womst.WorkOrderId = wo.WorkOrderId
+				LEFT JOIN [dbo].[UnitOfMeasure] uomStock WITH(NOLOCK) ON uomStock.UnitOfMeasureId = stl.StockUnitOfMeasureId
+				LEFT JOIN [dbo].[UnitOfMeasure] uomConsume WITH(NOLOCK) ON uomConsume.UnitOfMeasureId = stl.ConsumeUnitOfMeasureId
 			WHERE ISNULL(stl.IsDeleted, 0) = 0 AND stl.StockLineId = @StocklineId
 		END
 		ELSE
@@ -310,7 +321,7 @@ BEGIN
 				stl.Shelf AS shelfName,
 				stl.Bin AS binName,
 				ISNULL(ve.VendorName, '') AS VendorName,
-				ISNULL(stl.QuantityOnHand, 0) AS Quantity,
+				dbo.fn_ConvertUOM(ISNULL(stl.QuantityOnHand, 0) , uomStock.ShortName, uomConsume.ShortName,0,stl.MasterCompanyId) AS Quantity,
 				stl.IdNumber AS ControlId,
 				ISNULL(po.PurchaseOrderNumber, '') AS PurchaseOrderNumber,
 				stl.ExpirationDate,
@@ -340,6 +351,8 @@ BEGIN
 				LEFT JOIN [dbo].[WorkOrderPartNumber] wp WITH(NOLOCK) ON wowf.WorkOrderPartNoId = wp.ID
 				LEFT JOIN [dbo].[ItemMaster] itm WITH(NOLOCK) ON wp.ItemMasterId = itm.ItemMasterId
 				LEFT JOIN [dbo].[WorkOrder] wo WITH(NOLOCK) ON womst.WorkOrderId = wo.WorkOrderId
+				LEFT JOIN [dbo].[UnitOfMeasure] uomStock WITH(NOLOCK) ON uomStock.UnitOfMeasureId = stl.StockUnitOfMeasureId
+				LEFT JOIN [dbo].[UnitOfMeasure] uomConsume WITH(NOLOCK) ON uomConsume.UnitOfMeasureId = stl.ConsumeUnitOfMeasureId
 			WHERE ISNULL(stl.IsDeleted, 0) = 0 AND stl.StockLineId = @StocklineId
 		END
 	END

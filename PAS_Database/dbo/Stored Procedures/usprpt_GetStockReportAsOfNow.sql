@@ -36,7 +36,7 @@ exec usprpt_GetStockReportAsOfNow
 @strFilter=N'1,5,6,20,22,52,53!2,7,8,9!3,11,10!4,12,13!!!!!!',
 @id9=1
 **************************************************************/
-CREATE   PROCEDURE [dbo].[usprpt_GetStockReportAsOfNow]
+CREATE     PROCEDURE [dbo].[usprpt_GetStockReportAsOfNow]
 	@mastercompanyid INT,
 	@id VARCHAR(100),
 	@id2 VARCHAR(100),
@@ -148,11 +148,11 @@ BEGIN
 		[Item_Type] VARCHAR(100) NULL,
 		[stocktype] VARCHAR(50) NULL,
 		[Vendor_Name] VARCHAR(100) NULL,
-		[Qty] INT NULL,
-		[QTY_on_Hand] INT NULL,
-		[Qty_Reserved] INT NULL,
-		[Qty_Available] INT NULL,
-		[Qty_Adjusted] INT NULL,
+		[Qty]  DECIMAL(18, 2) NULL,
+		[QTY_on_Hand]  DECIMAL(18, 2) NULL,
+		[Qty_Reserved]  DECIMAL(18, 2) NULL,
+		[Qty_Available]  DECIMAL(18, 2) NULL,
+		[Qty_Adjusted] DECIMAL(18, 2) NULL,
 		[PO_UnitCost] DECIMAL(18, 2) NULL,
 		[POExtCost] DECIMAL(18, 2) NULL,
 		[ROExtCost] DECIMAL(18, 2) NULL,
@@ -234,7 +234,7 @@ BEGIN
         stl.[QuantityOnHand] 'QTY_on_Hand',    
         stl.[QuantityReserved] 'Qty_Reserved',    
         UPPER(stl.[QuantityAvailable]) 'Qty_Available',    
-        (SELECT SUM(CAST(stladj.[ChangedTo] AS INT) - CAST(stladj.[ChangedFrom] AS INT)) FROM [dbo].[StocklineAdjustment] stladj WITH(NOLOCK) LEFT JOIN [dbo].[StocklineAdjustmentDataType] stladjtype WITH (NOLOCK) ON stladj.StocklineAdjustmentDataTypeId = stladjtype.StocklineAdjustmentDataTypeId
+        (SELECT SUM(CAST(stladj.[ChangedTo] AS DECIMAL(18, 2)) - CAST(stladj.[ChangedFrom] AS DECIMAL(18, 2))) FROM [dbo].[StocklineAdjustment] stladj WITH(NOLOCK) LEFT JOIN [dbo].[StocklineAdjustmentDataType] stladjtype WITH (NOLOCK) ON stladj.StocklineAdjustmentDataTypeId = stladjtype.StocklineAdjustmentDataTypeId
 		WHERE stladj.[StocklineAdjustmentDataTypeId] IN (10, 15) AND
 		stladj.[StocklineId] = stl.[StockLineId]) AS 'Qty_Adjusted',
 		ISNULL(stl.[PurchaseOrderUnitCost] , 0) 'PO_UnitCost',    

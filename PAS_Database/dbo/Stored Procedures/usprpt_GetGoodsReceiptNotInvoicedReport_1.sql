@@ -1,6 +1,4 @@
-﻿
-
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [usprpt_GetGoodsReceiptNotInvoicedReport]
  ** Author:   Devendra Shekh
  ** Description: Get Goods Receipt which are not Invoiced
@@ -11,8 +9,8 @@
   ** S NO   Date            Author				Change Description              
  ** --   --------         -------			--------------------------------            
     1    11-Feb-2025     Devendra Shekh				Created
-    2    20-Feb-2025     Rajesh Gami				Modify as per requirement
-	3    23-Feb-2025     Rajesh Gami				Resolved Getting records issue
+    2    20-Feb-2025     Rajesh Gami				Modify as per requirement  (PN-15420)
+	3    23-Feb-2025     Rajesh Gami				Resolved Getting records issue (Parent Jira ID: PN-15420) -> (PN-15547)
 **************************************************************/
 CREATE       PROCEDURE [dbo].[usprpt_GetGoodsReceiptNotInvoicedReport]     
 @PageNumber INT = 1,    

@@ -107,6 +107,7 @@
     [ApplicationURLWithoutAuth]       NVARCHAR (100)  NULL,
     [IsUPSImplement]                  BIT             CONSTRAINT [DF_AppSettings_IsUPSImplement] DEFAULT ((0)) NULL,
     [AsOfNowHistoryCleanUpDays]       INT             DEFAULT ((-31)) NOT NULL,
+    [DisableHangfireCron]             BIT             NULL,
     CONSTRAINT [PK_AppSettings] PRIMARY KEY CLUSTERED ([AppSettingsId] ASC)
 );
 

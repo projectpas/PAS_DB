@@ -414,7 +414,7 @@ BEGIN
 		[InvociedDate], [EntryDate], [DueDate], [DaysPastDue], [PaymentMethod], [PaymentRef], [DateProcessed], [CheckCrashed], [DiscountToken], [ReadyToPaymentMade], [ReadyToPayId], [BankName],
 		[BankAccountNumber], [VendorId], [ControlNumber], [LegalEntity], [NonPOInvoiceId])
 		SELECT 0 AS ReceivingReconciliationId,
-				NPH.NPONumber AS [InvoiceNum],
+				NPH.InvoiceNumber AS [InvoiceNum],
 				NPHS.[Description] AS [Status],
 				(ISNULL(part.ExtendedPrice,0)) AS OriginalTotal,
 				0 AS RRTotal,
@@ -490,7 +490,7 @@ BEGIN
 		[InvociedDate], [EntryDate], [DueDate], [DaysPastDue], [PaymentMethod], [PaymentRef], [DateProcessed], [CheckCrashed], [DiscountToken], [ReadyToPaymentMade], [ReadyToPayId], [BankName],
 		[BankAccountNumber], [VendorId], [ControlNumber], [LegalEntity], [NonPOInvoiceId])
 		SELECT RRH.ReceivingReconciliationId,
-		       RRH.InvoiceNum,
+		       NPH.InvoiceNumber,
 			   CASE WHEN RRH.PaymentMade > 0 THEN 'Partially Paid' 
 			        WHEN RRH.PaymentMade = 0 THEN 'Ready to Pay'
 			   ELSE 'Pending Payment' END AS [Status],

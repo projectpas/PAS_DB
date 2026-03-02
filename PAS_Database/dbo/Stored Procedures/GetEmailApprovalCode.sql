@@ -14,6 +14,7 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    27/08/2025   Amit Ghediya     Created
+	2    26/02/2026   Amit Ghediya     Update fro WOQ Approval code (PN-15575)
      
 -- EXEC [GetEmailApprovalCode] 
 ************************************************************************/
@@ -31,10 +32,12 @@ BEGIN
 	BEGIN
 		DECLARE @return BIT = 0,
 				@SOQModuleId BIGINT = 0,
-				@SOModuleId BIGINT = 0;
+				@SOModuleId BIGINT = 0,
+				@WOQModuleId BIGINT = 0;
 
 		SELECT @SOQModuleId = [ModuleId] FROM [DBO].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'SalesQuote';
 		SELECT @SOModuleId = [ModuleId] FROM [DBO].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'SalesOrder';
+		SELECT @WOQModuleId = [ModuleId] FROM [DBO].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'WOQuote';
 
 		IF(@RefrenceId > 0)
 		BEGIN
@@ -49,6 +52,14 @@ BEGIN
 			 IF(@SOModuleId = @ModuleId)
 			 BEGIN
 				  IF EXISTS (SELECT [SalesOrderId] FROM [DBO].[Salesorder] WITH(NOLOCK) WHERE [SalesOrderId]  = @RefrenceId AND [ApprovalCode] = @ApprovalCode)
+				  BEGIN
+				 	   SET @return = 1;
+				  END
+			 END
+
+			 IF(@WOQModuleId = @ModuleId)
+			 BEGIN
+				  IF EXISTS (SELECT [WorkOrderQuoteId] FROM [DBO].[WorkOrderQuote] WITH(NOLOCK) WHERE [WorkOrderQuoteId]  = @RefrenceId AND [ApprovalCode] = @ApprovalCode)
 				  BEGIN
 				 	   SET @return = 1;
 				  END

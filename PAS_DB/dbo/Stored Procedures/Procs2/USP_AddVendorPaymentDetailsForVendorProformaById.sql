@@ -12,6 +12,7 @@
 	1    23-Dec-2024   Rajesh Gami		CREATED
 	2    24-Dec-2024   Rajesh Gami		Added VendorProformaInvoiceId into the VendorPaymentDetails
 	3    28/05/2025    Amit Ghediya		add LegalEntityId
+	4    02/03/2026    Amit Ghediya		Updated Due date (PN-15622)
 
 EXEC [dbo].[USP_AddVendorPaymentDetailsForVendorProformaById] 5
 ************************************************************************/
@@ -42,13 +43,15 @@ BEGIN
 						[FXRate], [OriginalAmount], [PaymentMade], [AmountDue], [DaysPastDue], [DiscountDate], [DiscountAvailable], [DiscountToken], [OriginalTotal], [RRTotal], [InvoiceTotal],
 						[DIfferenceAmount], [TotalAdjustAmount], [StatusId], [Status], [MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[RemainingAmount],
 						[VendorProformaInvoiceId],[LegalEntityId])
-			     SELECT 0, GETUTCDATE(),  [VendorId], [VendorName], 0, NULL, 0, VPH.VendorProformaInvoiceNo, VPH.[CurrencyId], CU.[Code],
+			     SELECT 0, DATEADD(DAY,ISNULL(CTM.NetDays,0),CAST([InvoiceDate] AS DATE)), VE.[VendorId] , VE.[VendorName], 0, NULL, 0, VPH.VendorProformaInvoiceNo, VPH.[CurrencyId], CU.[Code],
 						0, part.ExtendedPrice, 0, 0, 0, NULL, 0, 0, part.ExtendedPrice, 0, part.ExtendedPrice,
 						0, 0,  [StatusId], NPHS.[Description], VPH.[MasterCompanyId], VPH.[CreatedBy], VPH.[UpdatedBy], GETUTCDATE(), GETUTCDATE(), VPH.[IsActive], VPH.[IsDeleted], part.ExtendedPrice,
 						@VendorProformaInvoiceId,@LEId
 				   FROM [dbo].[VendorProformaInvoiceHeader] VPH WITH(NOLOCK) 
 				   INNER JOIN [dbo].[VendorProformaInvoiceHeaderStatus] NPHS WITH(NOLOCK) ON NPHS.[VendorProformaInvoiceHeaderStatusId] = VPH.[StatusId]
 				   INNER JOIN [dbo].[Currency] CU WITH(NOLOCK) ON CU.[CurrencyId] = VPH.[CurrencyId]
+				   INNER JOIN [dbo].[Vendor] VE WITH(NOLOCK) ON VPH.[VendorId] = VE.[VendorId] 	
+				   LEFT JOIN [dbo].[CreditTerms] CTM WITH(NOLOCK) ON CTM.[CreditTermsId] = VE.[CreditTermsId]
 				   OUTER APPLY (SELECT VD.VendorProformaInvoiceId,
 									   SUM(ISNULL(VD.ExtendedPrice,0)) ExtendedPrice
 								FROM [dbo].VendorProformaInvoicePartDetails VD WITH(NOLOCK) 

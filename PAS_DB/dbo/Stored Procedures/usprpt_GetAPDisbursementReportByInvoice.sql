@@ -1,5 +1,4 @@
 ﻿
-
 /*************************************************************                   
  ** File:  [usprpt_GetAPDisbursementReportByInvoice]                   
  ** Author: Priyansh Patel     
@@ -18,7 +17,7 @@
  ** S NO   Date            Author          Change Description                    
  ** --   --------         -------          --------------------------------                  
     1    28-Jan-2026    Priyansh Patel		   Created    
-    
+	2    02-Feb-2026    Rajesh Gami			 InvoiceDueDate : Remove Timezone conversion [PN-15621]         
  EXEC dbo.usprpt_GetAPDisbursementReportByInvoice
     @MasterCompanyId = 1 , @PageNumber =1 , @EmployeeId = 2 @PageSize = 50, , @SortColumn = "glAccountNum"
 
@@ -150,7 +149,8 @@ BEGIN
             MAX(vpym.Description)                                AS 'PaymentMethod',
             MAX(rtp.CheckNumber)                                AS 'PaymentReference',
             MAX( (Cast(DBO.ConvertUTCtoLocal(rtp.CheckDate,@CurrntEmpTimeZoneDesc)AS DATETIME)))  AS 'PaymentDate',
-            MAX((Cast(DBO.ConvertUTCtoLocal(rtp.DueDate,@CurrntEmpTimeZoneDesc)AS DATETIME))) AS 'InvoiceDueDate',
+            --MAX((Cast(DBO.ConvertUTCtoLocal(rtp.DueDate,@CurrntEmpTimeZoneDesc)AS DATETIME))) AS 'InvoiceDueDate',
+			MAX(rtp.DueDate) AS 'InvoiceDueDate',
           --  NULL AS 'InvoiceDueDate',
             NULL AS 'TotalBaseCurrencyAmount',
             MAX(rtp.CurrencyName)                             AS 'BaseCurrency',

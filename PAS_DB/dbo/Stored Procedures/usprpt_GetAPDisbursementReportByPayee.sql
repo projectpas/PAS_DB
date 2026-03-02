@@ -1,4 +1,5 @@
-﻿/*************************************************************                   
+﻿
+/*************************************************************                   
  ** File:  [usprpt_GetAPDisbursementReportByPayee]                   
  ** Author: Priyansh Patel     
  ** Description: Get Data for AP Disbursement Report        
@@ -11,7 +12,7 @@
  ** S NO   Date            Author          Change Description                    
  ** --   --------         -------          --------------------------------                  
     1    28-Jan-2026    Priyansh Patel		   Created    
-    
+    2    02-Feb-2026    Rajesh Gami			 InvoiceDueDate : Remove Timezone conversion [PN-15621]           
  EXEC dbo.usprpt_GetAPDisbursementReportByPayee
     @MasterCompanyId = 1 , @PageNumber =1 , @PageSize = 10, @EmployeeId = 2
 
@@ -170,7 +171,9 @@ BEGIN
             	WHEN ISNULL(VPD.VendorProformaInvoiceId,0) > 0 THEN CAST(VNPH.InvoiceDate AS DATE)
                 END AS 'InvoiceDate', vpym.Description  AS 'PaymentMethod', rtp.CheckNumber AS 'PaymentReference',
                 (Cast(DBO.ConvertUTCtoLocal(rtp.CheckDate,@CurrntEmpTimeZoneDesc)AS DATETIME))  AS 'PaymentDate',
-                (Cast(DBO.ConvertUTCtoLocal(rtp.DueDate,@CurrntEmpTimeZoneDesc)AS DATETIME)) AS 'InvoiceDueDate',NULL AS 'TotalBaseCurrencyAmount', rtp.CurrencyName AS 'BaseCurrency',rtp.PaymentMade AS 'BaseCurrencyAmount',CONCAT(lebl.BankName, ' - ', lebl.BankAccountNumber) AS 'BankAccount',g.AccountCode  AS 'GLAccountNum', CT.Name AS 'CreditTermsName'
+                --(Cast(DBO.ConvertUTCtoLocal(rtp.DueDate,@CurrntEmpTimeZoneDesc)AS DATETIME)) AS 'InvoiceDueDate',
+				rtp.DueDate AS 'InvoiceDueDate',
+				NULL AS 'TotalBaseCurrencyAmount', rtp.CurrencyName AS 'BaseCurrency',rtp.PaymentMade AS 'BaseCurrencyAmount',CONCAT(lebl.BankName, ' - ', lebl.BankAccountNumber) AS 'BankAccount',g.AccountCode  AS 'GLAccountNum', CT.Name AS 'CreditTermsName'
                 FROM [dbo].[VendorReadyToPayDetails] rtp WITH(NOLOCK) 
                 INNER JOIN [dbo].[VendorPaymentDetails] vpd WITH(NOLOCK) ON vpd.VendorPaymentDetailsId = rtp.VendorPaymentDetailsId 
                    JOIN [dbo].[Vendor] VND WITH(NOLOCK) ON VND.VendorId = rtp.VendorId 

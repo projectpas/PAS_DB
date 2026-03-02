@@ -37,6 +37,7 @@
 	24   22-12-2025  Devendra Shekh		 Modified (set Default @SortColumn to CustomerRfqId)
 	25   09-01-2026  Amit Ghediya		 Modified (get added contact)
 	26   10-02-2026  Vishal Suthar		 PN-11778 Added option for PartsBase
+	27   02-03-2026  Vishal Suthar		 Fixed binding PartDescription from Response itself
 
 -- EXEC USP_GetReceivedRfqList 
 ************************************************************************/
@@ -235,7 +236,7 @@ BEGIN
 					ISNULL(RFQ.[ModuleId],0) AS ModuleId,
 					ISNULL(RFQ.[ReferenceId],0) AS ReferenceId,
 					(CASE WHEN LOWER(TRIM(RFQ.[LinePartNumber])) = LOWER(TRIM(IM.[partnumber])) THEN IM.[ItemMasterId] ELSE 0 END) ItemMasterId,
-					IM.PartDescription AS 'PnDescription',
+					(CASE WHEN ISNULL(IM.PartDescription, '') != '' THEN IM.PartDescription ELSE RFQ.LineDescription END) AS 'PnDescription',
 					(CASE WHEN ISNULL(RFQ.CustomerId ,0) > 0 THEN RFQ.CustomerId WHEN LOWER(TRIM(CU.[Name])) = LOWER(TRIM(RFQ.BuyerCompanyName)) THEN CU.[CustomerId] ELSE 0 END) CustomerId,
 					(ISNULL(Contact.FirstName,'')+' '+ISNULL(Contact.LastName,'')) AS 'Contact',
 					CASE WHEN ISNULL(STk.StockLineId,0) > 0 THEN 1 ELSE 0 END StockLineId,
@@ -247,10 +248,6 @@ BEGIN
 					CONVERT(DATE, DATEADD(SECOND, @BaseUtcOffsetSec, RFQ.[DateAssigned])) AS 'DateAssigned',
 					RFQ.[QuotedBy],
 					CASE WHEN  RFQ.ModuleId = @SoqModuleId THEN CONVERT(DATE, DATEADD(SECOND, @BaseUtcOffsetSec, SOQ.[CreatedDate])) ELSE CONVERT(DATE, DATEADD(SECOND, @BaseUtcOffsetSec, RFQ.[QuotedDate])) END AS 'QuotedDate',
-					--CASE WHEN  RFQ.ModuleId = @SoqModuleId 
-					--	 THEN 
-					--		CASE WHEN (Select MAX(SOQA.CustomerSentDate) From DBO.SalesOrderQuoteApproval SOQA WITH(NOLOCK)  where SOQA.SalesOrderQuoteId =SOQ.SalesOrderQuoteId) IS NOT NULL THEN CONVERT(DATE, DATEADD(SECOND, @BaseUtcOffsetSec, (Select MAX(SOQA.CustomerSentDate) From DBO.SalesOrderQuoteApproval SOQA WITH(NOLOCK)  where SOQA.SalesOrderQuoteId  =SOQ.SalesOrderQuoteId))) ELSE NULL END
-					--	 ELSE NULL END AS 'quoteSentDate',
 					CASE WHEN  RFQ.ModuleId = @SoqModuleId 
 						 THEN 
 							CASE WHEN (Select TOP 1 SOQA.CustomerSentDate From dbo.SalesOrderQuotePartV1 SOQP WITH(NOLOCK)

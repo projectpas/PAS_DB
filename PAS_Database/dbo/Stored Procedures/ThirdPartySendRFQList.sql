@@ -18,6 +18,8 @@
 	6    14-10-2025   Devendra Shekh  Added VendorRFQPurchaseOrderNumber, RFQReferenceId, RFQModuleId
 	7    04-11-2025   Devendra Shekh  Getting VendorRFQPurchaseOrderNumber, RFQReferenceId, RFQModuleId Based On [PurChaseOrder]-[VendorRFQPurchaseOrderPart]
 	8    04-12-2025   Devendra Shekh  Modified to DateTime For rfqSentDate, vendorResponseDate
+	9    03-02-2026   Vishal Suthar   Fixed ItemMaster duplicate issue with same partnumber with different description we have in PAS
+
 **************************************************************
 **************************************************************/
 CREATE   PROCEDURE [dbo].[ThirdPartySendRFQList]
@@ -256,7 +258,7 @@ BEGIN
 			   FROM Dbo.ILSRFQPart part WITH(NOLOCK)
 					INNER JOIN Dbo.ILSRFQDetail ird WITH(NOLOCK) on part.ILSRFQDetailId = ird.ILSRFQDetailId
 					INNER JOIN Dbo.ThirdPartyRFQ tr WITH(NOLOCK)  on ird.ThirdPartyRFQId = tr.ThirdPartyRFQId
-					LEFT JOIN dbo.ItemMaster IM WITH(NOLOCK) ON part.[PartNumber] = IM.[partnumber] AND part.[MasterCompanyId] = IM.[MasterCompanyId]
+					LEFT JOIN dbo.ItemMaster IM WITH(NOLOCK) ON part.[PartNumber] = IM.[partnumber] AND part.Description = IM.PartDescription AND part.[MasterCompanyId] = IM.[MasterCompanyId]
 					LEFT JOIN dbo.ItemMaster IMSC WITH(NOLOCK) ON part.[AltPartNumber] = IMSC.[partnumber] AND IMSC.[IsActive] = 1 AND IMSC.[IsDeleted] = 0 AND part.[MasterCompanyId] = IMSC.[MasterCompanyId]
 					LEFT JOIN VendorRFQPartResult VRFQ ON VRFQ.ILSRFQDetailId = ird.ILSRFQDetailId AND VRFQ.[MasterCompanyId] = ird.[MasterCompanyId] 
 					LEFT JOIN VendorRFQReferenceResult RR ON RR.ILSRFQDetailId = ird.ILSRFQDetailId AND RR.[MasterCompanyId] = ird.[MasterCompanyId] 

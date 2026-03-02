@@ -144,7 +144,9 @@ BEGIN
 
 				SELECT Id INTO #tmpSalesOrderStatus FROM [dbo].[MasterSalesOrderStatus] WITH(NOLOCK) WHERE [Name] IN ('Closed', 'Cancelled');
 
-				DECLARE @ILSPortalId INT = 1, @OneFortyFivePortalId INT = 2, @EmailPortalId INT = 3, @PartsBasePortalId INT = 54;
+				DECLARE @ILSPortalId INT = 1, @OneFortyFivePortalId INT = 2, @EmailPortalId INT = 3, @PartsBasePortalId INT;
+
+				SELECT TOP 1 @PartsBasePortalId = IntegrationPortalId FROM DBO.IntegrationPortal WITH (NOLOCK) WHERE [Description] = 'PartsBase' AND MasterCompanyId = @MasterCompanyId;
 
 				SELECT DISTINCT tmpVRFQResult.CustomerRfqId, tmpVRFQResult.MasterCompanyId, tmpVRFQResult.VendorRFQId, tmpVRFQResult.ILSRFQDetailId, tmpVRFQResult.PartNumber, tmpVRFQResult.Condition
 				INTO #VendorsRFQResult

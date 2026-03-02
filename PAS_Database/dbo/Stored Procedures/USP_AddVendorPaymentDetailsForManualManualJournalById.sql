@@ -10,6 +10,7 @@
  ** PR   Date         Author			Change Description              
  ** --   --------     -------			------------------------------ 
 	1    26/11/2025   Moin Bloch		CREATED
+	2    02/03/2026   Amit Ghediya		Updated Due date
 
 EXEC [dbo].[USP_AddVendorPaymentDetailsForManualManualJournalById] 18
 ************************************************************************/
@@ -70,7 +71,7 @@ BEGIN
 						[ManualJournalDetailsId]
 						)
 			     SELECT 0,
-				        GETUTCDATE(),  
+						DATEADD(DAY,ISNULL(CTM.NetDays,0),CAST(GETUTCDATE() AS DATE)),
 						MGD.[ReferenceId], 
 						VE.[VendorName], 
 						0, 
@@ -106,9 +107,10 @@ BEGIN
 						@ManualJournalHeaderId,
 						MGD.[ManualJournalDetailsId]
 				   FROM [dbo].[ManualJournalHeader] MG WITH(NOLOCK) 
-				  INNER JOIN [dbo].[ManualJournalDetails] MGD WITH(NOLOCK) ON MG.[ManualJournalHeaderId] = MGD.[ManualJournalHeaderId]
+				  INNER JOIN [dbo].[ManualJournalDetails] MGD WITH(NOLOCK) ON MG.[ManualJournalHeaderId] = MGD.[ManualJournalHeaderId] AND MGD.ReferenceTypeId = 2 --For Vendor selected type
 				  INNER JOIN [dbo].[Currency] CU WITH(NOLOCK) ON CU.[CurrencyId] = MG.[FunctionalCurrencyId]
-				  INNER JOIN [dbo].[Vendor] VE WITH(NOLOCK) ON MGD.[ReferenceId] = VE.[VendorId]	
+				  INNER JOIN [dbo].[Vendor] VE WITH(NOLOCK) ON MGD.[ReferenceId] = VE.[VendorId] 	
+				  LEFT JOIN [dbo].[CreditTerms] CTM WITH(NOLOCK) ON CTM.[CreditTermsId] = VE.[CreditTermsId]
 				  INNER JOIN [dbo].[ManualJournalStatus] MGS WITH(NOLOCK) ON MG.[ManualJournalStatusId] = MGS.[ManualJournalStatusId]				   
 				  WHERE MG.[ManualJournalHeaderId] = @ManualJournalHeaderId AND MGD.[ReferenceTypeId] = 2
     END

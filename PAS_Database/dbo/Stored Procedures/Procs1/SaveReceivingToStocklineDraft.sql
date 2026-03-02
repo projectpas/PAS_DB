@@ -1,5 +1,4 @@
-﻿
-/*************************************************************               
+﻿/*************************************************************               
  ** File:   [SaveReceivingToStocklineDraft]               
  ** Author: Vishal Suthar    
  ** Description: This stored procedure is save receiving PO data into stockline draft    
@@ -30,6 +29,7 @@
 	13   12-12-2024   ABHISHEK JIRAWLA  Change made for Asset Inventory Status and Asset Available Status
 	14   16-01-2025   ABHISHEK JIRAWLA  If Part is non serialized and Quantity is greater then 200 then only 1 entry should be made (PN-10836)
 	15   09-Dec-2025  Rajesh Gami		Added logic : INT to DECIMAL (QTY related Fields)
+	16   24-02-2026   Amit Ghediya		IF TraceableTo is blank then take from vendor (PN-15560)
  EXEC [SaveReceivingToStocklineDraft] 2281, 'ADMIN User'    
 **************************************************************/    
 CREATE    PROCEDURE [dbo].[SaveReceivingToStocklineDraft]
@@ -68,6 +68,9 @@ BEGIN
 	DECLARE @LotId BIGINT = NULL;
 	DECLARE @TraceableToName VARCHAR(250) = NULL;
 	DECLARE @TraceableTo BIGINT = NULL;
+	DECLARE @VendorId BIGINT = NULL;
+	DECLARE @VendorName VARCHAR(250) = NULL;
+	DECLARE @VendorTraceableToType INT = 2;
 	DECLARE @TraceableToType INT = NULL;
 	DECLARE @TagTypeId BIGINT = NULL;
 	DECLARE @TaggedByType INT = NULL;
@@ -126,10 +129,17 @@ BEGIN
 	 FROM DBO.PurchaseOrderPart POP WITH (NOLOCK) WHERE PurchaseOrderPartRecordId = @PurchaseOrderPartRecordId;    
      PRINT '@PurchaseOrderPartRecordId'
 	 PRINT @PurchaseOrderPartRecordId
-	 SELECT @OrderDate = PO.CreatedDate, @ManagementStructureId = PO.ManagementStructureId, @LotId = PO.LotId FROM DBO.PurchaseOrder PO WITH (NOLOCK) WHERE PurchaseOrderId = @PurchaseOrderId;    
+	 SELECT @OrderDate = PO.CreatedDate, @ManagementStructureId = PO.ManagementStructureId, @LotId = PO.LotId, @VendorId = PO.VendorId, @VendorName = PO.VendorName FROM DBO.PurchaseOrder PO WITH (NOLOCK) WHERE PurchaseOrderId = @PurchaseOrderId;    
      SELECT @POUnitCost = IMS.PP_VendorListPrice FROM DBO.ItemMasterPurchaseSale IMS WITH (NOLOCK) WHERE ItemMasterId = @ItemMasterId AND ConditionId = @ConditionId;    
      SELECT @ShipViaId = ShipViaId, @ShipViaName = ShipVia, @ShippingAccountNo = ShippingAccountNo FROM AllShipVia WHERE ReferenceId = @PurchaseOrderId AND ModuleId = 13;    
 
+	 --IF traceble is blank then take from vendor (PN-15560)
+	 IF(ISNULL(@TraceableTo,0) = 0)
+	 BEGIN
+		  SET @TraceableTo = @VendorId;
+		  SET @TraceableToName = @VendorName;
+		  SET @TraceableToType = @VendorTraceableToType;
+	 END
 
      INSERT INTO #tmpCodePrefixes (CodePrefixId,CodeTypeId,CurrentNumber, CodePrefix, CodeSufix, StartsFrom)    
      SELECT CodePrefixId, CP.CodeTypeId, CurrentNummber, CodePrefix, CodeSufix, StartsFrom    

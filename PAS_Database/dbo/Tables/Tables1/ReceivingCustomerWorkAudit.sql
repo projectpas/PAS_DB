@@ -105,6 +105,8 @@
     [TSN]                          VARCHAR (50)    NULL,
     [CSO]                          VARCHAR (50)    NULL,
     [TSO]                          VARCHAR (50)    NULL,
+    [OutGoingItemMasterId]         BIGINT          NULL,
+    [OutGoingPartNumber]           VARCHAR (50)    NULL,
     CONSTRAINT [PK_ReceivingCustomerWorkAudit] PRIMARY KEY CLUSTERED ([AuditReceivingCustomerWorkId] ASC)
 );
 

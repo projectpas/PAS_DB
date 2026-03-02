@@ -14,6 +14,7 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    16/07/2025   Amit Ghediya     Created
+	2    26/02/2026   Amit Ghediya     Update fro WOQ Approval code (PN-15575)
      
 -- EXEC [InsertEmailApproval] 
 ************************************************************************/
@@ -29,12 +30,15 @@ BEGIN
 	BEGIN TRANSACTION
 	BEGIN
 		DECLARE @RefrenceId BIGINT = 0,
+				@SubRefrenceId BIGINT = 0,
 				@ModuleId BIGINT = 0,
 				@SOQModuleId BIGINT = 0,
-				@SOModuleId BIGINT = 0;
+				@SOModuleId BIGINT = 0,
+				@WOQModuleId BIGINT = 0;
 
 		SELECT @SOQModuleId = [ModuleId] FROM [DBO].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'SalesQuote';
 		SELECT @SOModuleId = [ModuleId] FROM [DBO].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'SalesOrder';
+		SELECT @WOQModuleId = [ModuleId] FROM [DBO].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'WOQuote';
 
 		INSERT INTO [DBO].[EmailApproval] ([PartNumber],[PartDescription],[Qty],[TotalSales],[RefrenceId],[SubRefrenceId],[ModuleId],[CustomerApprovedById],[CustomerId],[InternalStatusId],
 										   [IsActive],[IsDeleted],[MasterCompanyId],[UpdatedBy],[ApprovalActionId],[Email],[ContactId])
@@ -42,7 +46,7 @@ BEGIN
 										   [IsActive],[IsDeleted],[MasterCompanyId],[UpdatedBy],[ApprovalActionId],[Email],[ContactId] 
 		FROM @EmailApproval;
 
-		SELECT TOP 1 @RefrenceId = [RefrenceId], @ModuleId = [ModuleId] FROM @EmailApproval;
+		SELECT TOP 1 @RefrenceId = [RefrenceId], @SubRefrenceId = [SubRefrenceId], @ModuleId = [ModuleId] FROM @EmailApproval;
 
 		--Add ApprovalCode for Email Authentication
 		IF(@RefrenceId > 0)
@@ -55,7 +59,12 @@ BEGIN
 			IF(@SOModuleId = @ModuleId)
 			BEGIN
 				 UPDATE [DBO].[Salesorder] SET [ApprovalCode] = @ApprovalCode WHERE [SalesOrderId]  = @RefrenceId;
-			END			 
+			END		
+			
+			IF(@WOQModuleId = @ModuleId)
+			BEGIN
+				 UPDATE [DBO].[WorkOrderQuote] SET [ApprovalCode] = @ApprovalCode WHERE [WorkOrderQuoteId]  = @RefrenceId;
+			END
 		END
 	END
 	COMMIT  TRANSACTION

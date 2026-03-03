@@ -22,6 +22,7 @@
 	5    18/06/2025   Devendra Shekh Hours Calculation Issue Resolved after new Changes for Labor Rename
 	6    20/01/2025   Rajesh Gami    Added one more Order By Workorder task SequenceNumber
 	7    27/01/2026   Moin Bloch     Added [IsAdjustmentTask]
+	8    02/03/2026   Moin Bloch     Added [IsAdjustmentTask] ORDER BY PN-15613
 	
  EXECUTE [sp_GetWorkOrderLaborTaskList] 3814
 **************************************************************/
@@ -87,7 +88,8 @@ BEGIN
 					INNER JOIN [dbo].[WorkOrderWorkFlow] wfwo WITH(NOLOCK) ON wfwo.WorkFlowWorkOrderId = woh.WorkFlowWorkOrderId 
 					INNER JOIN [dbo].[WorkOrderPartNumber] wop WITH(NOLOCK) ON wfwo.WorkOrderPartNoId = wop.ID 
 				WHERE wol.WorkOrderLaborHeaderId = @WorkOrderLaborHeaderId AND wol.IsDeleted = 0 
-					ORDER BY IsBeginTemp DESC,  TRY_CAST(WOT.SequenceNumber AS INT) 
+					--ORDER BY IsBeginTemp DESC,  TRY_CAST(WOT.SequenceNumber AS INT) 
+					ORDER BY IsBeginTemp DESC,CASE WHEN wol.IsAdjustmentTask = 1 THEN 1 ELSE 0 END,TRY_CAST(WOT.SequenceNumber AS INT) 
 
 		END TRY    
 		BEGIN CATCH      

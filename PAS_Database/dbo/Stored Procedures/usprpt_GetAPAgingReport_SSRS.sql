@@ -23,6 +23,7 @@
 	7    16-FEB-2026    Amit Ghediya        Update NPO Invoiced date from postedate to invoiced date.
 	8    23-FEB-2026    Moin Bloch          Update Due date Getting From Direct Table.
 	9    01-MAR-2026    Hemant Saliya       Corrected Due date for Export file.
+	10   02-MAR-2026    Moin Bloch          Updated Due date For Manual JE 
 
   --[dbo].[usprpt_GetAPAgingReport_SSRS] 21,'2026-01-28',3654,2,null,null
 exec usprpt_GetAPAgingReport_SSRS @mastercompanyid=21,@id='2026-01-03 00:00:00.176883244',@id2='5192',@id3='2',@id5='',@id6='',@strFilter='70!71!!!!!!!!',@id7=1
@@ -516,7 +517,7 @@ BEGIN
 	   				 WHEN ctm.Code='CreditCard' THEN -1      
 	   				 WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END), GETUTCDATE()) > 120 THEN ISNULL(SUM(MJD.Credit),0) - ISNULL(SUM(MJD.Debit),0) ELSE 0 END) AS Amountpaidbymorethan120days,
                MJD.ManagementStructureId AS ManagementStructureId,UPPER('Manual Journal Adjustment') AS 'DocType','' AS 'vendorRef', ''AS 'Salesperson',ctm.Name AS 'Terms', '0' AS 'FixRateAmount', 			        
-			   ISNULL(SUM(MJD.Credit),0) - ISNULL(SUM(MJD.Debit),0) AS 'InvoiceAmount', 0 AS 'cmAmount',0 AS CreditMemoAmount, DATEADD(DAY, ctm.NetDays,NULL) AS 'DueDate', 
+			   ISNULL(SUM(MJD.Credit),0) - ISNULL(SUM(MJD.Debit),0) AS 'InvoiceAmount', 0 AS 'cmAmount',0 AS CreditMemoAmount, DATEADD(DAY, ctm.NetDays,MJH.[PostedDate]) AS 'DueDate', 
 			   UPPER(CAST(MSL1.Code AS VARCHAR(250)) + ' - ' + MSL1.[Description]) AS level1, UPPER(CAST(MSL2.Code AS VARCHAR(250)) + ' - ' + MSL2.[Description]) AS level2,       
 			   UPPER(CAST(MSL3.Code AS VARCHAR(250)) + ' - ' + MSL3.[Description]) AS level3, UPPER(CAST(MSL4.Code AS VARCHAR(250)) + ' - ' + MSL4.[Description]) AS level4,       
 			   UPPER(CAST(MSL5.Code AS VARCHAR(250)) + ' - ' + MSL5.[Description]) AS level5, UPPER(CAST(MSL6.Code AS VARCHAR(250)) + ' - ' + MSL6.[Description]) AS level6,       
@@ -996,7 +997,7 @@ BEGIN
 	   				 WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) AS DATE), GETUTCDATE()) > 120 THEN ISNULL(SUM(MJD.Credit),0) - ISNULL(SUM(MJD.Debit),0) ELSE 0 END) AS Amountpaidbymorethan120days,
                MJD.ManagementStructureId AS ManagementStructureId, 
 			   UPPER('Manual Journal Adjustment') AS 'DocType', '' AS 'vendorRef',''AS 'Salesperson',ctm.Name AS 'Terms', '0' AS 'FixRateAmount', 			        			   			   
-			   ISNULL(SUM(MJD.Credit),0) - ISNULL(SUM(MJD.Debit),0) AS 'InvoiceAmount',0 AS 'cmAmount', 0 AS CreditMemoAmount, DATEADD(DAY, ctm.NetDays,NULL) AS 'DueDate', 
+			   ISNULL(SUM(MJD.Credit),0) - ISNULL(SUM(MJD.Debit),0) AS 'InvoiceAmount',0 AS 'cmAmount', 0 AS CreditMemoAmount, DATEADD(DAY, ctm.NetDays,MJH.[PostedDate]) AS 'DueDate', 
 			   UPPER(CAST(MSL1.Code AS VARCHAR(250)) + ' - ' + MSL1.[Description]) AS level1,UPPER(CAST(MSL2.Code AS VARCHAR(250)) + ' - ' + MSL2.[Description]) AS level2,       
 			   UPPER(CAST(MSL3.Code AS VARCHAR(250)) + ' - ' + MSL3.[Description]) AS level3,  UPPER(CAST(MSL4.Code AS VARCHAR(250)) + ' - ' + MSL4.[Description]) AS level4,       
 			   UPPER(CAST(MSL5.Code AS VARCHAR(250)) + ' - ' + MSL5.[Description]) AS level5, UPPER(CAST(MSL6.Code AS VARCHAR(250)) + ' - ' + MSL6.[Description]) AS level6,       

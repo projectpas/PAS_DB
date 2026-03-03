@@ -24,6 +24,7 @@ EXEC [RPT_GetWorkOrderPrintPdfData]
 ** 13   19/01/2026  Moin Bloch          Updated (Added NamePrinted )
 ** 14	22/JAN/2026 Priyansh Patel      Added CSN and TSN values
 ** 15	03/Feb/2026 Bhargav Saliya      Get Ship To Site From WOQ if Exists
+** 16   02/Mar/2026 Moin Bloch          Updated (Added Outgoing PN condition)
 
 EXEC RPT_GetWorkOrderPrintPdfData 4108,3625
 
@@ -108,7 +109,8 @@ BEGIN
 			END AS wty,
 			'' as wtyCode,            
 			UPPER(imt.partnumber) as IncomingPN,              
-			CASE WHEN isnull(wosc.RevisedPartId,0) >0 THEN  UPPER(rimt.partnumber) ELSE UPPER(imt.partnumber) END as RevisedPN,        
+			--CASE WHEN isnull(wosc.RevisedPartId,0) >0 THEN  UPPER(rimt.partnumber) ELSE UPPER(imt.partnumber) END as RevisedPN,     
+			CASE WHEN wop.[RevisedPartNumber] IS NOT NULL AND wop.[RevisedPartNumber] <> '' THEN UPPER(wop.[RevisedPartNumber]) ELSE UPPER(imt.[PartNumber]) END AS RevisedPN,
 			CASE WHEN LEN(UPPER(imt.PartDescription)) > 15 then LEFT(UPPER(imt.PartDescription), 15) + '...' else  UPPER(imt.PartDescription) end as PNDesc,              
 			CASE WHEN WOP.CurrentSerialNumber IS NOT NULL THEN WOP.CurrentSerialNumber ELSE UPPER(sl.SerialNumber) END as SerialNum,
 			CASE WHEN ISNULL(wop.RevisedItemmasterid, 0) > 0 THEN UPPER(imtr.ItemGroup) ELSE  UPPER(imt.ItemGroup) END as 'itemGroup',            

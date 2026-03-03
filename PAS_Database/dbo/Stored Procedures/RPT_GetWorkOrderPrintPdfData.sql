@@ -24,7 +24,7 @@ EXEC [RPT_GetWorkOrderPrintPdfData]
 ** 13   19/01/2026  Moin Bloch          Updated (Added NamePrinted )
 ** 14	22/JAN/2026 Priyansh Patel      Added CSN and TSN values
 ** 15	03/Feb/2026 Bhargav Saliya      Get Ship To Site From WOQ if Exists
-** 16   02/Mar/2026 Moin Bloch          Updated (Added Outgoing PN condition)
+** 16   02/Mar/2026 Moin Bloch          Updated (Added Outgoing PN condition) PN-15623
 
 EXEC RPT_GetWorkOrderPrintPdfData 4108,3625
 

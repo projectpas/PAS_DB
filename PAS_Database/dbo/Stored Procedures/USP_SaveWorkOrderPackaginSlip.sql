@@ -9,6 +9,7 @@
  ** PR   Date					Author					Change Description            
  ** --   --------				-------					--------------------------------          
     1    16-April-2025		 	Devendra Shekh			Created
+	2    04-March-2026		 	Amit Ghediya			Update for allow new slip (PN-15580)
 ***********************************************************************************************/
 CREATE   PROCEDURE [dbo].[USP_SaveWorkOrderPackaginSlip]
 @tbl_WorkOrderPackaginSlipItemsType WorkOrderPackaginSlipItemsType READONLY,
@@ -29,6 +30,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 		DECLARE @TotalWOParts INT, @CurrentPartIndex INT, @WOPartNoId BIGINT;
 		DECLARE @TotalWOShip INT, @CurrentShipIndex INT, @WorkOrderShippingId BIGINT, @AirwayBill VARCHAR(50);
 		DECLARE @Parts_Shipped VARCHAR(200) = 'UNIT SHIPPED';
+		DECLARE @PackagingSlipIds BIGINT = 0;
 
 		IF OBJECT_ID(N'tempdb..#tmpWOPartNumber') IS NOT NULL
 		BEGIN
@@ -82,17 +84,6 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 			SET @PackagingSlipNo = (SELECT * FROM dbo.udfGenerateCodeNumberWithOutDash(@CurrentNo, '',''))
 		END
 
-		-- Saving Packaging Slip Header
-		INSERT INTO [dbo].[WorkOrderPackaginSlipHeader] ([PackagingSlipNo], [WorkOrderId], [MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted])
-		VALUES (@PackagingSlipNo, @WorkOrderId, @MasterCompanyId, @CreatedBy, @CreatedBy, GETUTCDATE(), GETUTCDATE(), 1, 0)
-
-		SET @PackagingSlipId = SCOPE_IDENTITY();
-
-		-- Saving Packaging Slip Items
-		INSERT INTO [dbo].[WorkOrderPackaginSlipItems]([PackagingSlipId], [WOPickTicketId], [WOPartNoId], [MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted], [PDFPath])
-		SELECT @PackagingSlipId, [WOPickTicketId], [WOPartNoId], [MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted], [PDFPath]
-		FROM @tbl_WorkOrderPackaginSlipItemsType
-
 		-- update Parts_Shipped flag of settlment tab : Start
 		INSERT INTO #tmpWOPartNumber ([WOPartNoId]) SELECT [WOPartNoId] FROM @tbl_WorkOrderPackaginSlipItemsType
 
@@ -102,11 +93,44 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 		SELECT @TotalWOShip = COUNT([RecId]) FROM #tmpWorkOrderShipping;
 
 		SET @CurrentPartIndex = 1;
-
+		
 		WHILE(ISNULL(@TotalWOParts, 0) >= ISNULL(@CurrentPartIndex, 0)) AND ((SELECT COUNT(RecId) FROM #tmpWorkOrderShipping) > 0)
 		BEGIN
-
+			
 			SELECT @WOPartNoId = [WOPartNoId], @CurrentShipIndex = 1 FROM #tmpWOPartNumber WHERE [Id] = @CurrentPartIndex;
+
+			IF EXISTS(SELECT 1 FROM [dbo].[WorkOrderPackaginSlipItems] WITH(NOLOCK) WHERE [IsActive] = 1 AND [IsDeleted] = 0 AND [WOPartNoId] = @WOPartNoId)
+			BEGIN
+				 SELECT TOP 1 @PackagingSlipIds = PackagingSlipId FROM [dbo].[WorkOrderPackaginSlipItems] WITH(NOLOCK) WHERE [IsActive] = 1 AND [IsDeleted] = 0 AND [WOPartNoId] = @WOPartNoId;
+
+				 IF EXISTS(SELECT 1 FROM [dbo].[WorkOrderPackaginSlipHeader] WITH(NOLOCK) WHERE [IsActive] = 1 AND [IsDeleted] = 0 AND [PackagingSlipId] = @PackagingSlipIds)
+				 BEGIN
+					  DELETE [dbo].[WorkOrderPackaginSlipItems] WHERE [WOPartNoId] = @WOPartNoId;
+
+					  IF NOT EXISTS(SELECT TOP 1 PackagingSlipId FROM [dbo].[WorkOrderPackaginSlipItems] WITH(NOLOCK) WHERE [IsActive] = 1 AND [IsDeleted] = 0 AND [PackagingSlipId] = @PackagingSlipIds)
+					  BEGIN
+						   DELETE [dbo].[WorkOrderPackaginSlipHeader] WHERE [PackagingSlipId] = @PackagingSlipIds;
+					  END
+				 END
+			END
+
+			-- Saving Packaging Slip Header
+			IF NOT EXISTS(SELECT 1 FROM [dbo].[WorkOrderPackaginSlipHeader] WITH(NOLOCK) WHERE PackagingSlipNo = @PackagingSlipNo)
+			BEGIN
+				 INSERT INTO [dbo].[WorkOrderPackaginSlipHeader] ([PackagingSlipNo], [WorkOrderId], [MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted])
+				 VALUES (@PackagingSlipNo, @WorkOrderId, @MasterCompanyId, @CreatedBy, @CreatedBy, GETUTCDATE(), GETUTCDATE(), 1, 0)
+
+				 SET @PackagingSlipId = SCOPE_IDENTITY();
+			END
+			ELSE
+			BEGIN
+				 SELECT @PackagingSlipId = [PackagingSlipId] FROM [dbo].[WorkOrderPackaginSlipHeader] WITH(NOLOCK) WHERE [PackagingSlipNo] = @PackagingSlipNo;
+			END
+
+			-- Saving Packaging Slip Items
+			INSERT INTO [dbo].[WorkOrderPackaginSlipItems]([PackagingSlipId], [WOPickTicketId], [WOPartNoId], [MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted], [PDFPath])
+			SELECT @PackagingSlipId, [WOPickTicketId], [WOPartNoId], [MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted], [PDFPath]
+			FROM @tbl_WorkOrderPackaginSlipItemsType WHERE [WOPartNoId] = @WOPartNoId;
 
 			WHILE(ISNULL(@TotalWOShip, 0) >= ISNULL(@CurrentShipIndex, 0))
 			BEGIN
@@ -128,6 +152,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 				SET @CurrentShipIndex += 1;
 			END
 			
+			SET @PackagingSlipIds = 0;
 			SET @CurrentPartIndex += 1;
 		END
 		-- update Parts_Shipped flag of settlment tab : End

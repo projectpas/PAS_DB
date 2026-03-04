@@ -4450,6 +4450,7 @@
     <Build Include="dbo\Stored Procedures\USP_AddEmployeeImpersonationHistory.sql" />
     <Build Include="dbo\Stored Procedures\USP_AddUpdateCustomerRfq_PartsBase.sql" />
     <Build Include="dbo\User Defined Types\CustomerRfqPartsBaseType.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetPriceDetailsByCondId.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

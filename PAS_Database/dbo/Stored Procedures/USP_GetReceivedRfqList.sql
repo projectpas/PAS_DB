@@ -38,6 +38,7 @@
 	25   09-01-2026  Amit Ghediya		 Modified (get added contact)
 	26   10-02-2026  Vishal Suthar		 PN-11778 Added option for PartsBase
 	27   02-03-2026  Vishal Suthar		 Fixed binding PartDescription from Response itself
+	28   04-03-2026  Vishal Suthar		 Added new columns for PartsBase
 
 -- EXEC USP_GetReceivedRfqList 
 ************************************************************************/
@@ -217,6 +218,8 @@ BEGIN
 			Result AS(
 				SELECT RFQ.[CustomerRfqId],
 					RFQ.[RfqId], 
+					RFQ.[RfqItemId], 
+					RFQ.[StatusId], 
 					CONVERT(DATE, DATEADD(SECOND, @BaseUtcOffsetSec, RFQ.[RfqCreatedDate])) AS 'RfqcreatedDate',
 					RFQ.[BuyerName] AS 'rfqFrom',
 					RFQ.[BuyerCompanyName] AS 'companyName',
@@ -326,6 +329,8 @@ BEGIN
 
 				SELECT RFQ.[CustomerRfqId],
 					RFQ.[RfqId], 
+					RFQ.[RfqItemId], 
+					RFQ.[StatusId], 
 					CONVERT(DATE, DATEADD(SECOND, @BaseUtcOffsetSec, RFQ.[RfqCreatedDate])) AS 'RfqcreatedDate',
 					RFQ.[BuyerName] AS 'rfqFrom',
 					RFQ.[BuyerCompanyName] AS 'companyName',
@@ -563,6 +568,8 @@ BEGIN
 							crq.[CustomerRfqQuoteId],
 							crq.[CustomerRfqId],
 							crq.[RfqId],
+							res.[RfqItemId], 
+							res.[StatusId], 
 							crq.[AddComment],
 							crq.[IsAddCommentQuote],
 							crq.[FaaEasaRelease],

@@ -53,7 +53,7 @@
 	37   12-02-2026   AMIT GHEDIYA	    date filter issue (PN-15442)
 	38   16/02/2026   Amit Ghediya		update to get due date from ReceivingReconciliation duedate (PN-15444)
 	39   19/02/2026   Amit Ghediya		update le name from le company code (PN-15520)
-	40   02/03/2026   Amit Ghediya		Updated for Add MJE in Partially payment & Pending payment.
+	40   02/03/2026   Amit Ghediya		Updated for Add MJE in Partially payment & Pending payment for get update (PN-15622).
  --EXEC VendorPaymentList 10,1,'ReceivingReconciliationId',1,'','',0,0,0,'ALL','',NULL,NULL,1,73   
 **************************************************************/
 CREATE      PROCEDURE [dbo].[VendorPaymentList]  
@@ -563,9 +563,11 @@ BEGIN
 			INSERT INTO #TEMPVendorPaymentListRecords([ReceivingReconciliationId], [InvoiceNum], [Status], [OriginalTotal], [RRTotal], [InvoiceTotal], [CreditMemoUsed], [DifferenceAmount], [VendorName], [PaymentHold],
 		[InvociedDate], [EntryDate], [DueDate], [DaysPastDue], [PaymentMethod], [PaymentRef], [DateProcessed], [CheckCrashed], [DiscountToken], [ReadyToPaymentMade], [ReadyToPayId], [BankName],
 		[BankAccountNumber], [VendorId], [ControlNumber], [LegalEntity], [NonPOInvoiceId])
-				SELECT DISTINCT VPD.VendorPaymentDetailsId,
+				SELECT DISTINCT 0 AS ReceivingReconciliationId,
 						VPD.[InvoiceNum],
-						VPD.[Status],
+						CASE WHEN VPD.PaymentMade > 0 THEN 'Partially Paid' 
+							WHEN VPD.PaymentMade = 0 THEN 'Ready to Pay'
+						ELSE 'Pending Payment' END AS [Status],
 						ISNULL(VPD.[InvoiceTotal],0) AS OriginalAmount,
 						ISNULL(VPD.RRTotal,0) AS RRTotal,
 						ISNULL(VPD.PaymentMade,0) AS InvoiceTotal,
@@ -591,7 +593,7 @@ BEGIN
 					    VPD.[VendorId],
 						 ISNULL(TAB.ControlNumber,'') AS 'ControlNumber',
 						 ISNULL(le.[CompanyCode], '') AS 'LegalEntity',
-						VPD.[ManualJournalHeaderId]
+						0
 			      FROM [dbo].[VendorPaymentDetails] VPD WITH(NOLOCK)  
 			INNER JOIN [dbo].[ManualJournalHeader] MJH WITH(NOLOCK) ON VPD.[ManualJournalHeaderId] = MJH.[ManualJournalHeaderId]	
 			INNER JOIN [dbo].[Vendor] V WITH(NOLOCK) ON VPD.[VendorId] = V.[VendorId]  

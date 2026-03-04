@@ -12,7 +12,8 @@
  ** S NO   Date            Author          Change Description                    
  ** --   --------         -------          --------------------------------                  
     1    28-Jan-2026    Priyansh Patel		   Created    
-    2    02-Feb-2026    Rajesh Gami			 InvoiceDueDate : Remove Timezone conversion [PN-15621]           
+    2    02-Feb-2026    Rajesh Gami			 InvoiceDueDate : Remove Timezone conversion [PN-15621]      
+	  3    03-March-2026  Amit Ghediya	     Update for get MJE data [PN-15631]
  EXEC dbo.usprpt_GetAPDisbursementReportByPayee
     @MasterCompanyId = 1 , @PageNumber =1 , @PageSize = 10, @EmployeeId = 2
 
@@ -161,6 +162,7 @@ BEGIN
                         WHEN ISNULL(VPD.NonPOInvoiceId,0) > 0 THEN NPH.InvoiceNumber
                         WHEN ISNULL(VPD.CustomerCreditPaymentDetailId,0) > 0 THEN CCPD.ReferenceNumber
                         WHEN ISNULL(VPD.VendorProformaInvoiceId,0) > 0 THEN VNPH.InvoiceNumber
+						WHEN ISNULL(VPD.ManualJournalHeaderId,0) > 0 THEN VPD.[InvoiceNum]
                     END
          AS InvoiceNum,
             CASE 
@@ -169,6 +171,7 @@ BEGIN
             	WHEN ISNULL(VPD.NonPOInvoiceId,0) > 0  THEN CAST(NPH.InvoiceDate AS DATE)
             	WHEN ISNULL(VPD.CustomerCreditPaymentDetailId,0) > 0 THEN CAST(CCPD.ProcessedDate AS DATE)
             	WHEN ISNULL(VPD.VendorProformaInvoiceId,0) > 0 THEN CAST(VNPH.InvoiceDate AS DATE)
+				WHEN ISNULL(VPD.ManualJournalHeaderId,0) > 0 THEN CAST(MJH.PostedDate AS DATE)
                 END AS 'InvoiceDate', vpym.Description  AS 'PaymentMethod', rtp.CheckNumber AS 'PaymentReference',
                 (Cast(DBO.ConvertUTCtoLocal(rtp.CheckDate,@CurrntEmpTimeZoneDesc)AS DATETIME))  AS 'PaymentDate',
                 --(Cast(DBO.ConvertUTCtoLocal(rtp.DueDate,@CurrntEmpTimeZoneDesc)AS DATETIME)) AS 'InvoiceDueDate',
@@ -182,6 +185,7 @@ BEGIN
                 LEFT JOIN [dbo].[NonPOInvoiceHeader] NPH  WITH(NOLOCK) ON VPD.NonPOInvoiceId = NPH.NonPOInvoiceId 
                 LEFT JOIN [dbo].[CustomerCreditPaymentDetail] CCPD WITH(NOLOCK) ON VPD.CustomerCreditPaymentDetailId = CCPD.CustomerCreditPaymentDetailId 
                 LEFT JOIN [dbo].[VendorProformaInvoiceHeader] VNPH WITH(NOLOCK) ON VPD.VendorProformaInvoiceId = VNPH.VendorProformaInvoiceId 
+				LEFT JOIN [dbo].[ManualJournalHeader] MJH WITH(NOLOCK) ON VPD.[ManualJournalHeaderId] = MJH.[ManualJournalHeaderId]	
               
                 LEFT JOIN [dbo].[VendorPaymentMethod] vpym WITH(NOLOCK) ON vpym.VendorPaymentMethodId = rtp.PaymentMethodId 
                 LEFT JOIN [dbo].[VendorReadyToPayHeader] vrtph WITH(NOLOCK) ON vrtph.ReadyToPayId = rtp.ReadyToPayId
@@ -201,6 +205,7 @@ BEGIN
                             OR (ISNULL(VPD.NonPOInvoiceId,0) > 0 AND NPH.InvoiceNumber LIKE '%' + @InvoiceNum + '%')
                             OR (ISNULL(VPD.CustomerCreditPaymentDetailId,0) > 0 AND CCPD.ReferenceNumber LIKE '%' + @InvoiceNum + '%')
                             OR (ISNULL(VPD.VendorProformaInvoiceId,0) > 0 AND VNPH.InvoiceNumber LIKE '%' + @InvoiceNum + '%')
+							OR (ISNULL(VPD.ManualJournalHeaderId,0) > 0 AND  VPD.[InvoiceNum] LIKE '%' + @InvoiceNum + '%')
                         ))
                 AND (@PaymentRef IS NULL OR rtp.CheckNumber LIKE '%' + @PaymentRef + '%')
                 AND (@PaymentReference IS NULL OR rtp.CheckNumber LIKE '%' + @PaymentReference + '%')
@@ -220,6 +225,7 @@ BEGIN
                     OR (ISNULL(VPD.NonPOInvoiceId,0) > 0 AND CAST(NPH.InvoiceDate AS DATE) = CAST(@InvoiceDate AS DATE) )
                     OR (ISNULL(VPD.CustomerCreditPaymentDetailId,0) > 0 AND CAST(CCPD.ProcessedDate AS DATE) = CAST(@InvoiceDate AS DATE) )
                     OR (ISNULL(VPD.VendorProformaInvoiceId,0) > 0 AND CAST(VNPH.InvoiceDate AS DATE) = CAST(@InvoiceDate AS DATE) )
+					OR (ISNULL(VPD.ManualJournalHeaderId,0) > 0 AND CAST(MJH.PostedDate AS DATE) = CAST(@InvoiceDate AS DATE) )
                 )
             )
             AND (@InvoiceDueDate IS NULL OR CAST(rtp.DueDate AS DATE) = CAST( @InvoiceDueDate AS DATE))
@@ -249,6 +255,7 @@ BEGIN
                         WHEN ISNULL(VPD.NonPOInvoiceId,0) > 0 THEN NPH.InvoiceNumber
                         WHEN ISNULL(VPD.CustomerCreditPaymentDetailId,0) > 0 THEN CCPD.ReferenceNumber
                         WHEN ISNULL(VPD.VendorProformaInvoiceId,0) > 0 THEN VNPH.InvoiceNumber
+						WHEN ISNULL(VPD.ManualJournalHeaderId,0) > 0 THEN VPD.[InvoiceNum]
                     END
         ) AS InvoiceNum,
         NULL AS 'InvoiceDate',
@@ -286,6 +293,7 @@ BEGIN
             LEFT JOIN [dbo].[VendorPaymentMethod] vpym WITH(NOLOCK) ON vpym.VendorPaymentMethodId = rtp.PaymentMethodId 
             LEFT JOIN [dbo].[VendorReadyToPayHeader] vrtph WITH(NOLOCK) ON vrtph.ReadyToPayId = rtp.ReadyToPayId
             AND vrtph.MasterCompanyId = rtp.MasterCompanyId
+			LEFT JOIN [dbo].[ManualJournalHeader] MJH WITH(NOLOCK) ON VPD.[ManualJournalHeaderId] = MJH.[ManualJournalHeaderId]	
             LEFT JOIN [dbo].[EntityStructureSetup] ess WITH(NOLOCK) ON ess.EntityStructureId = vrtph.ManagementStructureId AND ess.MasterCompanyId = rtp.MasterCompanyId
             LEFT JOIN [dbo].[LegalEntityBankingLockBox] lebl WITH(NOLOCK) ON lebl.LegalEntityId = vpd.LegalEntityId AND lebl.AccountTypeId = 2 AND lebl.IsPrimay = 1 AND lebl.IsActive = 1 AND lebl.IsDeleted = 0
             LEFT JOIN [dbo].[GLAccount] g WITH(NOLOCK) ON g.GLAccountId = lebl.GLAccountId
@@ -313,6 +321,7 @@ BEGIN
                         OR (ISNULL(VPD.NonPOInvoiceId,0) > 0 AND NPH.InvoiceNumber LIKE '%' + @InvoiceNum + '%')
                         OR (ISNULL(VPD.CustomerCreditPaymentDetailId,0) > 0 AND CCPD.ReferenceNumber LIKE '%' + @InvoiceNum + '%')
                         OR (ISNULL(VPD.VendorProformaInvoiceId,0) > 0 AND VNPH.InvoiceNumber LIKE '%' + @InvoiceNum + '%')
+						OR (ISNULL(VPD.ManualJournalHeaderId,0) > 0 AND VPD.[InvoiceNum] LIKE '%' + @InvoiceNum + '%')
                     ))
             AND (@PaymentRef IS NULL OR rtp.CheckNumber LIKE '%' + @PaymentRef + '%')
             AND (@PaymentReference IS NULL OR rtp.CheckNumber LIKE '%' + @PaymentReference + '%')
@@ -331,7 +340,8 @@ BEGIN
                     OR (ISNULL(VPD.CreditMemoHeaderId,0) > 0 AND CAST(CM.InvoiceDate AS DATE) = CAST(@InvoiceDate AS DATE) )
                     OR (ISNULL(VPD.NonPOInvoiceId,0) > 0 AND CAST(NPH.InvoiceDate AS DATE) = CAST(@InvoiceDate AS DATE) )
                     OR (ISNULL(VPD.CustomerCreditPaymentDetailId,0) > 0 AND CAST(CCPD.ProcessedDate AS DATE) = CAST(@InvoiceDate AS DATE) )
-                    OR (ISNULL(VPD.VendorProformaInvoiceId,0) > 0 AND CAST(VNPH.InvoiceDate AS DATE) = CAST(@InvoiceDate AS DATE) )
+                    OR (ISNULL(VPD.VendorProformaInvoiceId,0) > 0 AND CAST(VNPH.InvoiceDate AS DATE) = CAST(@InvoiceDate AS DATE))
+					OR (ISNULL(VPD.ManualJournalHeaderId,0) > 0 AND CAST(MJH.PostedDate AS DATE) = CAST(@InvoiceDate AS DATE))
                 )
             )
 

@@ -1,4 +1,5 @@
-﻿/*************************************************************   
+﻿
+/*************************************************************   
 ** Author:  <Hemant Saliya>  
 ** Create date: <12/30/2021>  
 ** Description: <Save Work Order Materials reserve Stockline Details>  
@@ -19,7 +20,7 @@ EXEC [usp_ReserveWorkOrderMaterialsStockline]
 ** 8    11/22/2024	Devendra Shekh	 Modified (added fiels  ReservedById, ReservedDate for WorkOrderMaterialStockLine and WorkOrderMaterialStockLineKit)
 ** 9    12/20/2024	Devendra Shekh	 ExtendedCost Calculation issue Resolved
 ** 10   04/14/2025  HEMANT SALIYA	 Added Work Order Work Flow Id for UpdateWOMaterialsCost
-
+   11   04-March-2026	Rajesh Gami		   Implemented UOM Changes [PN-14832]
 DECLARE @p1 dbo.ReserveWOMaterialsStocklineType
 
 INSERT INTO @p1 values(65,72,87,1073,4,6,1,14,6,N'REPAIR',N'FLYSKY CT6B FS-CT6B',N'USED FOR WING REPAIR',5,3,1,N'CNTL-000463',N'ID_NUM-000001',N'STL-000123',N'',N'ADMIN ADMIN',1)
@@ -32,7 +33,7 @@ insert into @p1 values(803,808,1,76773,20364,7,1,1,2,N'NEW',N'10011',N'10011DES'
 
 exec dbo.usp_ReserveWorkOrderMaterialsStockline @tbl_MaterialsStocklineType=@p1
 **************************************************************/ 
-CREATE      PROCEDURE [dbo].[usp_ReserveWorkOrderMaterialsStockline]
+CREATE        PROCEDURE [dbo].[usp_ReserveWorkOrderMaterialsStockline]
 	@tbl_MaterialsStocklineType ReserveWOMaterialsStocklineType READONLY
 AS
 BEGIN
@@ -63,8 +64,8 @@ BEGIN
 					DECLARE @WorkOrderMaterialsId BIGINT;
 					DECLARE @ProvisionId BIGINT;
 					DECLARE @IsSerialised BIT;
-					DECLARE @stockLineQty INT;
-					DECLARE @stockLineQtyAvailable INT;
+					DECLARE @stockLineQty [decimal](18,6);
+					DECLARE @stockLineQtyAvailable [decimal](18,6);
 					DECLARE @IsKit BIGINT = 0;
 					DECLARE @TotalCountsBoth INT;
 
@@ -73,7 +74,7 @@ BEGIN
 							@historyWorkOrderId BIGINT,@HistoryQtyReserved VARCHAR(MAX),@HistoryQuantityActReserved VARCHAR(MAX),@historyReservedById BIGINT,
 							@historyEmployeeName VARCHAR(100),@historyMasterCompanyId BIGINT,@historytotalReserved VARCHAR(MAX),@TemplateBody NVARCHAR(MAX),
 							@WorkOrderNum VARCHAR(MAX),@ConditionId BIGINT,@ConditionCode VARCHAR(MAX),@HistoryStockLineId BIGINT,@HistoryStockLineNum VARCHAR(MAX),
-							@WorkFlowWorkOrderId BIGINT,@WorkOrderPartNoId BIGINT,@historyQuantity BIGINT,@historyQtyToBeReserved BIGINT,@historyPartNumber VARCHAR(150);
+							@WorkFlowWorkOrderId BIGINT,@WorkOrderPartNoId BIGINT,@historyQuantity [decimal](18,6),@historyQtyToBeReserved [decimal](18,6),@historyPartNumber VARCHAR(150);
 
 					SELECT @ProvisionId = ProvisionId FROM dbo.Provision WITH(NOLOCK) WHERE StatusCode = 'REPLACE' AND IsActive = 1 AND IsDeleted = 0;
 					SELECT @historyModuleId = moduleId FROM dbo.Module WITH(NOLOCK) WHERE UPPER(ModuleName) = 'WORKORDER';
@@ -113,9 +114,9 @@ BEGIN
 						[Condition] VARCHAR(500) NULL,
 						[PartNumber] VARCHAR(500) NULL,
 						[PartDescription] VARCHAR(max) NULL,
-						[Quantity] INT NULL,
-						[QtyToBeReserved] INT NULL,
-						[QuantityActReserved] INT NULL,
+						[Quantity] [decimal](18,6) NULL,
+						[QtyToBeReserved] [decimal](18,6) NULL,
+						[QuantityActReserved] [decimal](18,6) NULL,
 						[ControlNo] VARCHAR(500) NULL,
 						[ControlId] VARCHAR(500) NULL,
 						[StockLineNumber] VARCHAR(500) NULL,
@@ -124,7 +125,7 @@ BEGIN
 						[IsStocklineAdded] BIT NULL,
 						[MasterCompanyId] BIGINT NULL,
 						[UpdatedBy] VARCHAR(500) NULL,
-						[UnitCost] DECIMAL(18,2),
+						[UnitCost] [decimal](18,6),
 						[IsSerialized] BIT,
 						[KitId] BIGINT NULL,
 						[IsAltPart] [BIT] NULL,
@@ -295,7 +296,7 @@ BEGIN
 						BEGIN
 
 							SELECT @WorkFlowWorkOrderId = WorkFlowWorkOrderId,
-								   @historyWorkOrderId = WorkOrderId,@HistoryQuantityActReserved = CAST(QuantityActReserved AS VARCHAR),
+								   @historyWorkOrderId = WorkOrderId,@HistoryQuantityActReserved = CAST(QuantityActReserved AS VARCHAR(30)),
 								   @historyReservedById = ReservedById,
 								   @historyMasterCompanyId = MasterCompanyId,@ConditionId = ConditionId,@HistoryStockLineId = StockLineId,
 								   @historyQuantity = Quantity,@historyQtyToBeReserved = QuantityActReserved, @UpdateBy = UpdatedBy,
@@ -309,10 +310,10 @@ BEGIN
 
 							SET @TemplateBody = REPLACE(@TemplateBody, '##PN##', ISNULL(@historyPartNumber,''));
 							
-							SELECT @HistoryQtyReserved = CAST(QuantityReserved AS VARCHAR) FROM dbo.WorkOrderMaterials WOM WITH(NOLOCK) JOIN #tmpReserveWOMaterialsStockline tmpWOM ON tmpWOM.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId AND tmpWOM.ID = @count;
+							SELECT @HistoryQtyReserved = CAST(QuantityReserved AS VARCHAR(30)) FROM dbo.WorkOrderMaterials WOM WITH(NOLOCK) JOIN #tmpReserveWOMaterialsStockline tmpWOM ON tmpWOM.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId AND tmpWOM.ID = @count;
 							SELECT @HistoryWorkOrderMaterialsId = WorkOrderPartNoId FROM dbo.WorkOrderWorkFlow WITH(NOLOCK);
 							
-							SET @historytotalReserved = (CAST(@HistoryQtyReserved AS BIGINT) + CAST(@HistoryQuantityActReserved AS BIGINT));
+							SET @historytotalReserved = (CAST(@HistoryQtyReserved AS [decimal](18,6)) + CAST(@HistoryQuantityActReserved AS [decimal](18,6)));
 							EXEC [dbo].[USP_History] @historyModuleId,@historyWorkOrderId,@historySubModuleId,@WorkOrderPartNoId,0,@historyQtyToBeReserved,@TemplateBody,'RESERVEPARTS',@historyMasterCompanyId,@UpdateBy,NULL,@UpdateBy,NULL;
 							
 							UPDATE WorkOrderMaterials 

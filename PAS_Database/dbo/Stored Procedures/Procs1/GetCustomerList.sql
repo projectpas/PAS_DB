@@ -1,4 +1,5 @@
-﻿/*************************************************************
+﻿
+/*************************************************************
  ** File:   [GetCustomerList]
  ** Author:   Ameet Prajapati
  ** Description: Get Search Data for Customer List
@@ -21,7 +22,7 @@
 	5    15/01/2025   Ayushi Patel   converted the date into utc (created , updated) , Added a case to get timeZone
 	6    06-03-2025   Shrey Chandegara     Modified due to add view in Accouting Integration List's PendingSync(Add @IsUpdated parameter)
 	7	 17-06-2025   Bhargav Saliya      Select Is Customer also a vendor flag and vendor Name
-	8    03-03-2026   Sahdev Saliya   Added Memo
+	8    03-03-2026   Sahdev Saliya   Added Memo (PN-15567)
 
  EXECUTE [GetCustomerList] 1, 10, null, -1, 1, '', 'uday', 'CUS-00','','HYD'
 **************************************************************/

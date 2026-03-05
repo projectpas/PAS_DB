@@ -44,8 +44,11 @@
     [IsUpdated]                     BIT             NULL,
     [LastSyncDate]                  DATETIME2 (7)   NULL,
     [SyncToken]                     VARCHAR (200)   NULL,
+    [ManualJournalHeaderId]         BIGINT          NULL,
     CONSTRAINT [PK_ReadyToPayDetails] PRIMARY KEY CLUSTERED ([ReadyToPayDetailsId] ASC)
 );
+
+
 
 
 

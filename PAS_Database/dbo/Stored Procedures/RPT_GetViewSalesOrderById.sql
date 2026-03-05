@@ -12,9 +12,8 @@ EXEC [RPT_GetViewSalesOrderById]
 ** --   --------    -------         --------------------------------
 ** 1    01/09/2024  AMIT GHEDIYA    Created
    2	07/23/2024  Bhargav Saiya	Addes ShippingTerms
-   3    05/03/2026  Ayushi Patel    return email through customerContactId insted of cutomer table
+   3    05/03/2026  Ayushi Patel    PN-15661 return email through customerContactId insted of cutomer table
 EXEC RPT_GetViewSalesOrderById 782
-
 **************************************************************/
 CREATE    PROCEDURE [dbo].[RPT_GetViewSalesOrderById]              
 	@salesOrderId BIGINT            

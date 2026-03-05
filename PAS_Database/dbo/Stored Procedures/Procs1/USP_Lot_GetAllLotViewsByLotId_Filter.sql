@@ -23,6 +23,7 @@
 	10   31-07-2025   RAJESH GAMI       Fixed the IsCustomerStock related issue for OtherCost tab
 	11   07-Aug-2025  RAJESH GAMI       New SO Shipping and Invoiced status related change(PN-8302) 
 	12   27-Aug-2025  RAJESH GAMI       Remove Duplicate Stockline from the 'ViewAllPN' (PN-14039)
+	13   03-Mar-2026  RAJESH GAMI       Resolved Error While Getting Part (PN-15635)
 -- EXEC USP_Lot_GetAllLotViewsByLotId_Filter 7,'ViewAllPN',1
 -- EXEC USP_Lot_GetAllLotViewsByLotId 67,'ViewAllPN',1
 ************************************************************************/
@@ -338,11 +339,11 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 					(ItemGroup like '%' + @GlobalFilter + '%') OR
 					(Condition LIKE '%' + @GlobalFilter + '%') OR
 					(Uom LIKE '%' + @GlobalFilter + '%') OR
-					(CAST(Qty AS NVARCHAR(10)) LIKE '%' + @GlobalFilter + '%') OR
-					(CAST(QtyOnHand AS NVARCHAR(10)) LIKE '%' + @GlobalFilter + '%') OR
-					(CAST(QtyRes AS NVARCHAR(10)) LIKE '%' + @GlobalFilter + '%') OR
-					(CAST(QtyIss AS NVARCHAR(10)) LIKE '%' + @GlobalFilter + '%') OR
-					(CAST(QtyAvailable AS NVARCHAR(10)) LIKE '%' + @GlobalFilter + '%') OR
+					(CAST(Qty AS NVARCHAR(50)) LIKE '%' + @GlobalFilter + '%') OR
+					(CAST(QtyOnHand AS NVARCHAR(50)) LIKE '%' + @GlobalFilter + '%') OR
+					(CAST(QtyRes AS NVARCHAR(50)) LIKE '%' + @GlobalFilter + '%') OR
+					(CAST(QtyIss AS NVARCHAR(50)) LIKE '%' + @GlobalFilter + '%') OR
+					(CAST(QtyAvailable AS NVARCHAR(50)) LIKE '%' + @GlobalFilter + '%') OR
 					(TransUnitCost LIKE '%' + @GlobalFilter + '%') OR
 					(UnitCost LIKE '%' + @GlobalFilter + '%') OR
 					(ExtCost like '%' + @GlobalFilter + '%') OR
@@ -389,21 +390,21 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 					(ISNULL(@SerialNum, '') = '' OR SerialNum LIKE '%' + @SerialNum + '%') AND
 					(ISNULL(@Condition, '') = '' OR Condition LIKE '%' + @Condition + '%') AND
 					(ISNULL(@Uom,'') ='' OR Uom LIKE '%' + @Uom + '%') AND
-					(IsNull(@QtyOnHand, 0) = 0 OR CAST(QtyOnHand as VARCHAR(10)) like @QtyOnHand) AND
-					(IsNull(@QtyRes, 0) = 0 OR CAST(QtyRes as VARCHAR(10)) like @QtyRes) AND
-					(IsNull(@QtyIss, 0) = 0 OR CAST(QtyIss as VARCHAR(10)) like @QtyIss) AND
-					(IsNull(@QtyAvailable, 0) = 0 OR CAST(QtyAvailable as VARCHAR(10)) like @QtyAvailable) AND
+					(IsNull(@QtyOnHand, 0) = 0 OR CAST(QtyOnHand as VARCHAR(50)) like @QtyOnHand) AND
+					(IsNull(@QtyRes, 0) = 0 OR CAST(QtyRes as VARCHAR(50)) like @QtyRes) AND
+					(IsNull(@QtyIss, 0) = 0 OR CAST(QtyIss as VARCHAR(50)) like @QtyIss) AND
+					(IsNull(@QtyAvailable, 0) = 0 OR CAST(QtyAvailable as VARCHAR(50)) like @QtyAvailable) AND
 
-					(ISNULL(@TransUnitCost, 0) = 0 OR CAST(TransUnitCost as VARCHAR(10)) LIKE @TransUnitCost) AND
-					(ISNULL(@UnitCost, 0) = 0 OR CAST(UnitCost as VARCHAR(10)) LIKE @UnitCost) AND
-					(ISNULL(@ExtCost, 0) = 0 OR CAST(ExtCost as VARCHAR(10)) = @ExtCost) AND
-					(ISNULL(@RepairCost, 0) = 0 OR CAST(RepairCost as VARCHAR(10)) = @RepairCost) AND
-					(ISNULL(@TotalCost, 0) = 0 OR CAST(TotalCost as VARCHAR(10)) = @TotalCost) AND
+					(ISNULL(@TransUnitCost, 0) = 0 OR CAST(TransUnitCost as VARCHAR(50)) LIKE @TransUnitCost) AND
+					(ISNULL(@UnitCost, 0) = 0 OR CAST(UnitCost as VARCHAR(50)) LIKE @UnitCost) AND
+					(ISNULL(@ExtCost, 0) = 0 OR CAST(ExtCost as VARCHAR(50)) = @ExtCost) AND
+					(ISNULL(@RepairCost, 0) = 0 OR CAST(RepairCost as VARCHAR(50)) = @RepairCost) AND
+					(ISNULL(@TotalCost, 0) = 0 OR CAST(TotalCost as VARCHAR(50)) = @TotalCost) AND
 					(ISNULL(@WONum, '') = '' OR WONum  like '%'+ @WONum + '%') AND
 					--(ISNULL(@LastPODate,'') ='' OR CAST(LastPODate AS Date) = CAST(@LastPODate AS date)) AND
-					(ISNULL(@ExtPrice, 0) = 0 OR CAST(ExtPrice as VARCHAR(10)) LIKE @ExtPrice) AND
-					(ISNULL(@MarginAmt, 0) = 0 OR CAST(MarginAmt as VARCHAR(10)) LIKE @MarginAmt) AND
-					(ISNULL(@Margin, 0) = 0 OR CAST(Margin as VARCHAR(10)) LIKE @Margin) AND
+					(ISNULL(@ExtPrice, 0) = 0 OR CAST(ExtPrice as VARCHAR(50)) LIKE @ExtPrice) AND
+					(ISNULL(@MarginAmt, 0) = 0 OR CAST(MarginAmt as VARCHAR(50)) LIKE @MarginAmt) AND
+					(ISNULL(@Margin, 0) = 0 OR CAST(Margin as VARCHAR(50)) LIKE @Margin) AND
 
 					(ISNULL(@HowAcquired,'') ='' OR HowAcquired LIKE '%' + @HowAcquired + '%') AND
 					(ISNULL(@AcquiredRef,'') ='' OR AcquiredRef LIKE '%' + @AcquiredRef + '%') AND
@@ -419,26 +420,26 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 					(ISNULL(@ItemClassfication,'') ='' OR ItemClassfication LIKE '%' + @ItemClassfication + '%') AND
 					(ISNULL(@ItemGroup,'') ='' OR ItemGroup LIKE '%' + @ItemGroup + '%') AND
 					(ISNULL(@Memo,'') ='' OR Memo LIKE '%' + @Memo + '%') AND
-					(IsNull(@Qty, 0) = 0 OR CAST(Qty as VARCHAR(10)) like @Qty) AND
+					(IsNull(@Qty, 0) = 0 OR CAST(Qty as VARCHAR(50)) like @Qty) AND
 					(IsNull(@VendorCode, '') = '' OR VendorCode like '%' + @VendorCode + '%') AND
 					
 					(ISNULL(@LotNumber, '') = '' OR LotNumber LIKE '%' + @LotNumber + '%') AND
 					(ISNULL(@ReferenceNumber, '') = '' OR ReferenceNumber LIKE '%' + @ReferenceNumber + '%') AND
 					(ISNULL(@LotName, '') = '' OR LotName LIKE '%' + @LotName + '%') AND
-					(ISNULL(@TransUnitCost, 0) = 0 OR CAST(TransUnitCost as VARCHAR(10)) = @TransUnitCost) AND
+					(ISNULL(@TransUnitCost, 0) = 0 OR CAST(TransUnitCost as VARCHAR(50)) = @TransUnitCost) AND
 					(ISNULL(@ReferenceNum,'') ='' OR ReferenceNum LIKE '%' + @ReferenceNum + '%') AND
 					(ISNULL(@ControlNumber,'') ='' OR ControlNumber LIKE '%' + @ControlNumber + '%') AND
 					(ISNULL(@IdNumber,'') ='' OR IdNumber LIKE '%' + @IdNumber + '%') AND		
 					(ISNULL(@TraceableToName,'') ='' OR TraceableToName LIKE '%' + @TraceableToName + '%') AND		
 					(ISNULL(@TaggedByName,'') ='' OR TaggedByName LIKE '%' + @TaggedByName + '%') AND
 					(ISNULL(@TagDate,'') ='' OR CAST(TagDate AS Date) = CAST(@TagDate AS date)) AND
-					(ISNULL(@InitialPOCost, 0) = 0 OR CAST(InitialPOCost as VARCHAR(10)) LIKE @InitialPOCost) AND
-					(ISNULL(@StocklineTotalCost, 0) = 0 OR CAST(StocklineTotalCost as VARCHAR(10)) LIKE @StocklineTotalCost) AND
-					(ISNULL(@RemainStocklineCost, 0) = 0 OR CAST(RemainStocklineCost as VARCHAR(10)) LIKE @RemainStocklineCost) AND
-					(ISNULL(@Adjustment, 0) = 0 OR CAST(Adjustment as VARCHAR(10)) LIKE @Adjustment) AND
+					(ISNULL(@InitialPOCost, 0) = 0 OR CAST(InitialPOCost as VARCHAR(50)) LIKE @InitialPOCost) AND
+					(ISNULL(@StocklineTotalCost, 0) = 0 OR CAST(StocklineTotalCost as VARCHAR(50)) LIKE @StocklineTotalCost) AND
+					(ISNULL(@RemainStocklineCost, 0) = 0 OR CAST(RemainStocklineCost as VARCHAR(50)) LIKE @RemainStocklineCost) AND
+					(ISNULL(@Adjustment, 0) = 0 OR CAST(Adjustment as VARCHAR(50)) LIKE @Adjustment) AND
 					(ISNULL(@ManufacturerName,'') ='' OR ManufacturerName LIKE '%' + @ManufacturerName + '%') AND
 					(ISNULL(@InvoiceDate,'') ='' OR CAST(InvoiceDate AS Date) = CAST(@InvoiceDate AS date)) AND
-					(ISNULL(@UnitSalePrice, 0) = 0 OR CAST(UnitSalesPrice as VARCHAR(10)) LIKE @UnitSalePrice) 
+					(ISNULL(@UnitSalePrice, 0) = 0 OR CAST(UnitSalesPrice as VARCHAR(50)) LIKE @UnitSalePrice) 
 					AND (IsNull(@Status, '') = '' OR [Status] like '%' + @Status + '%')					
 					)
 				  )
@@ -459,11 +460,11 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 				--	(ItemGroup like '%' + @GlobalFilter + '%') OR
 				--	(Condition LIKE '%' + @GlobalFilter + '%') OR
 				--	(Uom LIKE '%' + @GlobalFilter + '%') OR
-				--	(CAST(Qty AS NVARCHAR(10)) LIKE '%' + @GlobalFilter + '%') OR
-				--	(CAST(QtyOnHand AS NVARCHAR(10)) LIKE '%' + @GlobalFilter + '%') OR
-				--	(CAST(QtyRes AS NVARCHAR(10)) LIKE '%' + @GlobalFilter + '%') OR
-				--	(CAST(QtyIss AS NVARCHAR(10)) LIKE '%' + @GlobalFilter + '%') OR
-				--	(CAST(QtyAvailable AS NVARCHAR(10)) LIKE '%' + @GlobalFilter + '%') OR
+				--	(CAST(Qty AS NVARCHAR(50)) LIKE '%' + @GlobalFilter + '%') OR
+				--	(CAST(QtyOnHand AS NVARCHAR(50)) LIKE '%' + @GlobalFilter + '%') OR
+				--	(CAST(QtyRes AS NVARCHAR(50)) LIKE '%' + @GlobalFilter + '%') OR
+				--	(CAST(QtyIss AS NVARCHAR(50)) LIKE '%' + @GlobalFilter + '%') OR
+				--	(CAST(QtyAvailable AS NVARCHAR(50)) LIKE '%' + @GlobalFilter + '%') OR
 				--	(TransUnitCost LIKE '%' + @GlobalFilter + '%') OR
 				--	(UnitCost LIKE '%' + @GlobalFilter + '%') OR
 				--	(ExtCost like '%' + @GlobalFilter + '%') OR
@@ -510,21 +511,21 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 				--	(ISNULL(@SerialNum, '') = '' OR SerialNum LIKE '%' + @SerialNum + '%') AND
 				--	(ISNULL(@Condition, '') = '' OR Condition LIKE '%' + @Condition + '%') AND
 				--	(ISNULL(@Uom,'') ='' OR Uom LIKE '%' + @Uom + '%') AND
-				--	(IsNull(@QtyOnHand, 0) = 0 OR CAST(QtyOnHand as VARCHAR(10)) like @QtyOnHand) AND
-				--	(IsNull(@QtyRes, 0) = 0 OR CAST(QtyRes as VARCHAR(10)) like @QtyRes) AND
-				--	(IsNull(@QtyIss, 0) = 0 OR CAST(QtyIss as VARCHAR(10)) like @QtyIss) AND
-				--	(IsNull(@QtyAvailable, 0) = 0 OR CAST(QtyAvailable as VARCHAR(10)) like @QtyAvailable) AND
+				--	(IsNull(@QtyOnHand, 0) = 0 OR CAST(QtyOnHand as VARCHAR(50)) like @QtyOnHand) AND
+				--	(IsNull(@QtyRes, 0) = 0 OR CAST(QtyRes as VARCHAR(50)) like @QtyRes) AND
+				--	(IsNull(@QtyIss, 0) = 0 OR CAST(QtyIss as VARCHAR(50)) like @QtyIss) AND
+				--	(IsNull(@QtyAvailable, 0) = 0 OR CAST(QtyAvailable as VARCHAR(50)) like @QtyAvailable) AND
 
-				--	(ISNULL(@TransUnitCost, 0) = 0 OR CAST(TransUnitCost as VARCHAR(10)) LIKE @TransUnitCost) AND
-				--	(ISNULL(@UnitCost, 0) = 0 OR CAST(UnitCost as VARCHAR(10)) LIKE @UnitCost) AND
-				--	(ISNULL(@ExtCost, 0) = 0 OR CAST(ExtCost as VARCHAR(10)) = @ExtCost) AND
-				--	(ISNULL(@RepairCost, 0) = 0 OR CAST(RepairCost as VARCHAR(10)) = @RepairCost) AND
-				--	(ISNULL(@TotalCost, 0) = 0 OR CAST(TotalCost as VARCHAR(10)) = @TotalCost) AND
+				--	(ISNULL(@TransUnitCost, 0) = 0 OR CAST(TransUnitCost as VARCHAR(50)) LIKE @TransUnitCost) AND
+				--	(ISNULL(@UnitCost, 0) = 0 OR CAST(UnitCost as VARCHAR(50)) LIKE @UnitCost) AND
+				--	(ISNULL(@ExtCost, 0) = 0 OR CAST(ExtCost as VARCHAR(50)) = @ExtCost) AND
+				--	(ISNULL(@RepairCost, 0) = 0 OR CAST(RepairCost as VARCHAR(50)) = @RepairCost) AND
+				--	(ISNULL(@TotalCost, 0) = 0 OR CAST(TotalCost as VARCHAR(50)) = @TotalCost) AND
 				--	(ISNULL(@WONum, '') = '' OR WONum  like '%'+ @WONum + '%') AND
 				--	--(ISNULL(@LastPODate,'') ='' OR CAST(LastPODate AS Date) = CAST(@LastPODate AS date)) AND
-				--	(ISNULL(@ExtPrice, 0) = 0 OR CAST(ExtPrice as VARCHAR(10)) LIKE @ExtPrice) AND
-				--	(ISNULL(@MarginAmt, 0) = 0 OR CAST(MarginAmt as VARCHAR(10)) LIKE @MarginAmt) AND
-				--	(ISNULL(@Margin, 0) = 0 OR CAST(Margin as VARCHAR(10)) LIKE @Margin) AND
+				--	(ISNULL(@ExtPrice, 0) = 0 OR CAST(ExtPrice as VARCHAR(50)) LIKE @ExtPrice) AND
+				--	(ISNULL(@MarginAmt, 0) = 0 OR CAST(MarginAmt as VARCHAR(50)) LIKE @MarginAmt) AND
+				--	(ISNULL(@Margin, 0) = 0 OR CAST(Margin as VARCHAR(50)) LIKE @Margin) AND
 
 				--	(ISNULL(@HowAcquired,'') ='' OR HowAcquired LIKE '%' + @HowAcquired + '%') AND
 				--	(ISNULL(@AcquiredRef,'') ='' OR AcquiredRef LIKE '%' + @AcquiredRef + '%') AND
@@ -540,26 +541,26 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 				--	(ISNULL(@ItemClassfication,'') ='' OR ItemClassfication LIKE '%' + @ItemClassfication + '%') AND
 				--	(ISNULL(@ItemGroup,'') ='' OR ItemGroup LIKE '%' + @ItemGroup + '%') AND
 				--	(ISNULL(@Memo,'') ='' OR Memo LIKE '%' + @Memo + '%') AND
-				--	(IsNull(@Qty, 0) = 0 OR CAST(Qty as VARCHAR(10)) like @Qty) AND
+				--	(IsNull(@Qty, 0) = 0 OR CAST(Qty as VARCHAR(50)) like @Qty) AND
 				--	(IsNull(@VendorCode, '') = '' OR VendorCode like '%' + @VendorCode + '%') AND
 					
 				--	(ISNULL(@LotNumber, '') = '' OR LotNumber LIKE '%' + @LotNumber + '%') AND
 				--	(ISNULL(@ReferenceNumber, '') = '' OR ReferenceNumber LIKE '%' + @ReferenceNumber + '%') AND
 				--	(ISNULL(@LotName, '') = '' OR LotName LIKE '%' + @LotName + '%') AND
-				--	(ISNULL(@TransUnitCost, 0) = 0 OR CAST(TransUnitCost as VARCHAR(10)) = @TransUnitCost) AND
+				--	(ISNULL(@TransUnitCost, 0) = 0 OR CAST(TransUnitCost as VARCHAR(50)) = @TransUnitCost) AND
 				--	(ISNULL(@ReferenceNum,'') ='' OR ReferenceNum LIKE '%' + @ReferenceNum + '%') AND
 				--	(ISNULL(@ControlNumber,'') ='' OR ControlNumber LIKE '%' + @ControlNumber + '%') AND
 				--	(ISNULL(@IdNumber,'') ='' OR IdNumber LIKE '%' + @IdNumber + '%') AND		
 				--	(ISNULL(@TraceableToName,'') ='' OR TraceableToName LIKE '%' + @TraceableToName + '%') AND		
 				--	(ISNULL(@TaggedByName,'') ='' OR TaggedByName LIKE '%' + @TaggedByName + '%') AND
 				--	(ISNULL(@TagDate,'') ='' OR CAST(TagDate AS Date) = CAST(@TagDate AS date)) AND
-				--	(ISNULL(@InitialPOCost, 0) = 0 OR CAST(InitialPOCost as VARCHAR(10)) LIKE @InitialPOCost) AND
-				--	(ISNULL(@StocklineTotalCost, 0) = 0 OR CAST(StocklineTotalCost as VARCHAR(10)) LIKE @StocklineTotalCost) AND
-				--	(ISNULL(@RemainStocklineCost, 0) = 0 OR CAST(RemainStocklineCost as VARCHAR(10)) LIKE @RemainStocklineCost) AND
-				--	(ISNULL(@Adjustment, 0) = 0 OR CAST(Adjustment as VARCHAR(10)) LIKE @Adjustment) AND
+				--	(ISNULL(@InitialPOCost, 0) = 0 OR CAST(InitialPOCost as VARCHAR(50)) LIKE @InitialPOCost) AND
+				--	(ISNULL(@StocklineTotalCost, 0) = 0 OR CAST(StocklineTotalCost as VARCHAR(50)) LIKE @StocklineTotalCost) AND
+				--	(ISNULL(@RemainStocklineCost, 0) = 0 OR CAST(RemainStocklineCost as VARCHAR(50)) LIKE @RemainStocklineCost) AND
+				--	(ISNULL(@Adjustment, 0) = 0 OR CAST(Adjustment as VARCHAR(50)) LIKE @Adjustment) AND
 				--	(ISNULL(@ManufacturerName,'') ='' OR ManufacturerName LIKE '%' + @ManufacturerName + '%') AND
 				--	(ISNULL(@InvoiceDate,'') ='' OR CAST(InvoiceDate AS Date) = CAST(@InvoiceDate AS date)) AND
-				--	(ISNULL(@UnitSalePrice, 0) = 0 OR CAST(UnitSalesPrice as VARCHAR(10)) LIKE @UnitSalePrice) 
+				--	(ISNULL(@UnitSalePrice, 0) = 0 OR CAST(UnitSalesPrice as VARCHAR(50)) LIKE @UnitSalePrice) 
 				--	AND (IsNull(@Status, '') = '' OR [Status] like '%' + @Status + '%')					
 				--	)
 				--  )
@@ -788,10 +789,10 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 					(StkLineNum LIKE '%' + @GlobalFilter + '%') OR
 					(SerialNum LIKE '%' + @GlobalFilter + '%') OR
 					(Condition LIKE '%' + @GlobalFilter + '%') OR
-					(CAST(QtyOnHand AS NVARCHAR(10)) LIKE '%' + @GlobalFilter + '%') OR
-					(CAST(QtyRes AS NVARCHAR(10)) LIKE '%' + @GlobalFilter + '%') OR
-					(CAST(QtyIss AS NVARCHAR(10)) LIKE '%' + @GlobalFilter + '%') OR
-					(CAST(QtyAvailable AS NVARCHAR(10)) LIKE '%' + @GlobalFilter + '%') OR
+					(CAST(QtyOnHand AS NVARCHAR(50)) LIKE '%' + @GlobalFilter + '%') OR
+					(CAST(QtyRes AS NVARCHAR(50)) LIKE '%' + @GlobalFilter + '%') OR
+					(CAST(QtyIss AS NVARCHAR(50)) LIKE '%' + @GlobalFilter + '%') OR
+					(CAST(QtyAvailable AS NVARCHAR(50)) LIKE '%' + @GlobalFilter + '%') OR
 					(UnitCost LIKE '%' + @GlobalFilter + '%') OR
 					(ExtCost like '%' + @GlobalFilter + '%') OR
 					(RepairCost like '%' + @GlobalFilter + '%') OR
@@ -836,14 +837,14 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 					(ISNULL(@StkLineNum, '') = '' OR StkLineNum LIKE '%' + @StkLineNum + '%') AND
 					(ISNULL(@SerialNum, '') = '' OR SerialNum LIKE '%' + @SerialNum + '%') AND
 					(ISNULL(@Condition, '') = '' OR Condition LIKE '%' + @Condition + '%') AND
-					(IsNull(@QtyOnHand, 0) = 0 OR CAST(QtyOnHand as VARCHAR(10)) like @QtyOnHand) AND
-					(IsNull(@QtyRes, 0) = 0 OR CAST(QtyRes as VARCHAR(10)) like @QtyRes) AND
-					(IsNull(@QtyIss, 0) = 0 OR CAST(QtyIss as VARCHAR(10)) like @QtyIss) AND
-					(IsNull(@QtyAvailable, 0) = 0 OR CAST(QtyAvailable as VARCHAR(10)) like @QtyAvailable) AND
-					(ISNULL(@UnitCost, 0) = 0 OR CAST(UnitCost as VARCHAR(10)) LIKE @UnitCost) AND
-					(ISNULL(@ExtCost, 0) = 0 OR CAST(ExtCost as VARCHAR(10)) = @ExtCost) AND
-					(ISNULL(@RepairCost, 0) = 0 OR CAST(RepairCost as VARCHAR(10)) = @RepairCost) AND
-					(ISNULL(@TotalCost, 0) = 0 OR CAST(TotalCost as VARCHAR(10)) = @TotalCost) AND
+					(IsNull(@QtyOnHand, 0) = 0 OR CAST(QtyOnHand as VARCHAR(50)) like @QtyOnHand) AND
+					(IsNull(@QtyRes, 0) = 0 OR CAST(QtyRes as VARCHAR(50)) like @QtyRes) AND
+					(IsNull(@QtyIss, 0) = 0 OR CAST(QtyIss as VARCHAR(50)) like @QtyIss) AND
+					(IsNull(@QtyAvailable, 0) = 0 OR CAST(QtyAvailable as VARCHAR(50)) like @QtyAvailable) AND
+					(ISNULL(@UnitCost, 0) = 0 OR CAST(UnitCost as VARCHAR(50)) LIKE @UnitCost) AND
+					(ISNULL(@ExtCost, 0) = 0 OR CAST(ExtCost as VARCHAR(50)) = @ExtCost) AND
+					(ISNULL(@RepairCost, 0) = 0 OR CAST(RepairCost as VARCHAR(50)) = @RepairCost) AND
+					(ISNULL(@TotalCost, 0) = 0 OR CAST(TotalCost as VARCHAR(50)) = @TotalCost) AND
 					(ISNULL(@WONum, '') = '' OR WONum  like '%'+ @WONum + '%') AND
 					--(ISNULL(@LastPODate,'') ='' OR CAST(LastPODate AS Date) = CAST(@LastPODate AS date)) AND
 					(ISNULL(@RoNum,'') ='' OR RoNum LIKE '%' + @RoNum + '%') AND
@@ -854,7 +855,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 					(ISNULL(@LastMSLevel,'') ='' OR LastMSLevel LIKE '%' + @LastMSLevel + '%') AND
 					(ISNULL(@ItemClassfication,'') ='' OR ItemClassfication LIKE '%' + @ItemClassfication + '%') AND
 					(ISNULL(@ItemGroup,'') ='' OR ItemGroup LIKE '%' + @ItemGroup + '%') AND
-					(IsNull(@Qty, 0) = 0 OR CAST(Qty as VARCHAR(10)) like @Qty) AND
+					(IsNull(@Qty, 0) = 0 OR CAST(Qty as VARCHAR(50)) like @Qty) AND
 					(ISNULL(@Site,'') ='' OR Site LIKE '%' + @Site + '%') AND
 					(ISNULL(@Warehouse,'') ='' OR Warehouse LIKE '%' + @Warehouse + '%') AND
 					(ISNULL(@Location,'') ='' OR Location LIKE '%' + @Location + '%') AND
@@ -864,19 +865,19 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 					(ISNULL(@LotNumber, '') = '' OR LotNumber LIKE '%' + @LotNumber + '%') AND
 					(ISNULL(@ReferenceNumber, '') = '' OR ReferenceNumber LIKE '%' + @ReferenceNumber + '%') AND
 					(ISNULL(@LotName, '') = '' OR LotName LIKE '%' + @LotName + '%') AND
-					--(ISNULL(@TransUnitCost, 0) = 0 OR CAST(TransUnitCost as VARCHAR(10)) = @TransUnitCost) AND
+					--(ISNULL(@TransUnitCost, 0) = 0 OR CAST(TransUnitCost as VARCHAR(50)) = @TransUnitCost) AND
 					--(ISNULL(@ReferenceNum,'') ='' OR ReferenceNum LIKE '%' + @ReferenceNum + '%') AND
 					(ISNULL(@ControlNumber,'') ='' OR ControlNumber LIKE '%' + @ControlNumber + '%') AND
 					(ISNULL(@IdNumber,'') ='' OR IdNumber LIKE '%' + @IdNumber + '%') AND		
 					(ISNULL(@TraceableToName,'') ='' OR TraceableToName LIKE '%' + @TraceableToName + '%') AND		
 					(ISNULL(@TaggedByName,'') ='' OR TaggedByName LIKE '%' + @TaggedByName + '%') AND
 					(ISNULL(@TagDate,'') ='' OR CAST(TagDate AS Date) = CAST(@TagDate AS date)) AND
-					(ISNULL(@InitialPOCost, 0) = 0 OR CAST(InitialPOCost as VARCHAR(10)) LIKE @InitialPOCost) AND
-					(ISNULL(@StocklineTotalCost, 0) = 0 OR CAST(StocklineTotalCost as VARCHAR(10)) LIKE @StocklineTotalCost) AND
-					(ISNULL(@RemainStocklineCost, 0) = 0 OR CAST(RemainStocklineCost as VARCHAR(10)) LIKE @RemainStocklineCost) AND
-					(ISNULL(@Adjustment, 0) = 0 OR CAST(Adjustment as VARCHAR(10)) LIKE @Adjustment) AND
+					(ISNULL(@InitialPOCost, 0) = 0 OR CAST(InitialPOCost as VARCHAR(50)) LIKE @InitialPOCost) AND
+					(ISNULL(@StocklineTotalCost, 0) = 0 OR CAST(StocklineTotalCost as VARCHAR(50)) LIKE @StocklineTotalCost) AND
+					(ISNULL(@RemainStocklineCost, 0) = 0 OR CAST(RemainStocklineCost as VARCHAR(50)) LIKE @RemainStocklineCost) AND
+					(ISNULL(@Adjustment, 0) = 0 OR CAST(Adjustment as VARCHAR(50)) LIKE @Adjustment) AND
 					(ISNULL(@Uom,'') ='' OR Uom LIKE '%' + @Uom + '%') AND
-					--(ISNULL(@PercentValue, 0) = 0 OR CAST(PercentValue as VARCHAR(10)) LIKE @PercentValue) AND
+					--(ISNULL(@PercentValue, 0) = 0 OR CAST(PercentValue as VARCHAR(50)) LIKE @PercentValue) AND
 					(ISNULL(@ManufacturerName,'') ='' OR ManufacturerName LIKE '%' + @ManufacturerName + '%') AND
 					(IsNull(@VendorCode, '') = '' OR VendorCode like '%' + @VendorCode + '%')
 					)
@@ -1078,10 +1079,10 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 					(StkLineNum LIKE '%' + @GlobalFilter + '%') OR
 					(SerialNum LIKE '%' + @GlobalFilter + '%') OR
 					(Condition LIKE '%' + @GlobalFilter + '%') OR
-					(CAST(QtyOnHand AS NVARCHAR(10)) LIKE '%' + @GlobalFilter + '%') OR
-					(CAST(QtyRes AS NVARCHAR(10)) LIKE '%' + @GlobalFilter + '%') OR
-					(CAST(QtyIss AS NVARCHAR(10)) LIKE '%' + @GlobalFilter + '%') OR
-					(CAST(QtyAvailable AS NVARCHAR(10)) LIKE '%' + @GlobalFilter + '%') OR
+					(CAST(QtyOnHand AS NVARCHAR(50)) LIKE '%' + @GlobalFilter + '%') OR
+					(CAST(QtyRes AS NVARCHAR(50)) LIKE '%' + @GlobalFilter + '%') OR
+					(CAST(QtyIss AS NVARCHAR(50)) LIKE '%' + @GlobalFilter + '%') OR
+					(CAST(QtyAvailable AS NVARCHAR(50)) LIKE '%' + @GlobalFilter + '%') OR
 					(WONum like '%' + @GlobalFilter + '%') OR
 					(RoNum like '%' + @GlobalFilter + '%') OR
 					(WoNum like '%' + @GlobalFilter + '%') OR
@@ -1120,10 +1121,10 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 					(ISNULL(@StkLineNum, '') = '' OR StkLineNum LIKE '%' + @StkLineNum + '%') AND
 					(ISNULL(@SerialNum, '') = '' OR SerialNum LIKE '%' + @SerialNum + '%') AND
 					(ISNULL(@Condition, '') = '' OR Condition LIKE '%' + @Condition + '%') AND
-					(IsNull(@QtyOnHand, 0) = 0 OR CAST(QtyOnHand as VARCHAR(10)) like @QtyOnHand) AND
-					(IsNull(@QtyRes, 0) = 0 OR CAST(QtyRes as VARCHAR(10)) like @QtyRes) AND
-					(IsNull(@QtyIss, 0) = 0 OR CAST(QtyIss as VARCHAR(10)) like @QtyIss) AND
-					(IsNull(@QtyAvailable, 0) = 0 OR CAST(QtyAvailable as VARCHAR(10)) like @QtyAvailable) AND
+					(IsNull(@QtyOnHand, 0) = 0 OR CAST(QtyOnHand as VARCHAR(50)) like @QtyOnHand) AND
+					(IsNull(@QtyRes, 0) = 0 OR CAST(QtyRes as VARCHAR(50)) like @QtyRes) AND
+					(IsNull(@QtyIss, 0) = 0 OR CAST(QtyIss as VARCHAR(50)) like @QtyIss) AND
+					(IsNull(@QtyAvailable, 0) = 0 OR CAST(QtyAvailable as VARCHAR(50)) like @QtyAvailable) AND
 					(ISNULL(@WONum, '') = '' OR WONum  like '%'+ @WONum + '%') AND
 					(ISNULL(@RoNum,'') ='' OR RoNum LIKE '%' + @RoNum + '%') AND
 					(ISNULL(@WoNum,'') ='' OR WoNum LIKE '%' + @WoNum + '%') AND
@@ -1133,14 +1134,14 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 					(ISNULL(@LastMSLevel,'') ='' OR LastMSLevel LIKE '%' + @LastMSLevel + '%') AND
 					(ISNULL(@ItemClassfication,'') ='' OR ItemClassfication LIKE '%' + @ItemClassfication + '%') AND
 					(ISNULL(@ItemGroup,'') ='' OR ItemGroup LIKE '%' + @ItemGroup + '%') AND
-					(IsNull(@Qty, 0) = 0 OR CAST(Qty as VARCHAR(10)) like @Qty) AND
+					(IsNull(@Qty, 0) = 0 OR CAST(Qty as VARCHAR(50)) like @Qty) AND
 					(IsNull(@VendorCode, '') = '' OR VendorCode like '%' + @VendorCode + '%') AND
 					(ISNULL(@Site,'') ='' OR Site LIKE '%' + @Site + '%') AND
 					(ISNULL(@Warehouse,'') ='' OR Warehouse LIKE '%' + @Warehouse + '%') AND
 					(ISNULL(@Location,'') ='' OR Location LIKE '%' + @Location + '%') AND
 					(ISNULL(@Shelf,'') ='' OR Shelf LIKE '%' + @Shelf + '%') AND
 					(ISNULL(@Bin,'') ='' OR Bin LIKE '%' + @Bin + '%') AND
-					(ISNULL(@UnitPrice, 0) = 0 OR CAST(UnitPrice as VARCHAR(10)) = @UnitPrice) AND
+					(ISNULL(@UnitPrice, 0) = 0 OR CAST(UnitPrice as VARCHAR(50)) = @UnitPrice) AND
 					(ISNULL(@LotNumber, '') = '' OR LotNumber LIKE '%' + @LotNumber + '%') AND
 					(ISNULL(@LotName, '') = '' OR LotName LIKE '%' + @LotName + '%') AND
 					(ISNULL(@ControlNumber,'') ='' OR ControlNumber LIKE '%' + @ControlNumber + '%') AND
@@ -1148,10 +1149,10 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 					(ISNULL(@TraceableToName,'') ='' OR TraceableToName LIKE '%' + @TraceableToName + '%') AND		
 					(ISNULL(@TaggedByName,'') ='' OR TaggedByName LIKE '%' + @TaggedByName + '%') AND
 					(ISNULL(@TagDate,'') ='' OR CAST(TagDate AS Date) = CAST(@TagDate AS date)) AND
-					(ISNULL(@InitialPOCost, 0) = 0 OR CAST(InitialPOCost as VARCHAR(10)) LIKE @InitialPOCost) AND
-					(ISNULL(@StocklineTotalCost, 0) = 0 OR CAST(StocklineTotalCost as VARCHAR(10)) LIKE @StocklineTotalCost) AND
-					(ISNULL(@RemainStocklineCost, 0) = 0 OR CAST(RemainStocklineCost as VARCHAR(10)) LIKE @RemainStocklineCost) AND
-					(ISNULL(@Adjustment, 0) = 0 OR CAST(Adjustment as VARCHAR(10)) LIKE @Adjustment) AND
+					(ISNULL(@InitialPOCost, 0) = 0 OR CAST(InitialPOCost as VARCHAR(50)) LIKE @InitialPOCost) AND
+					(ISNULL(@StocklineTotalCost, 0) = 0 OR CAST(StocklineTotalCost as VARCHAR(50)) LIKE @StocklineTotalCost) AND
+					(ISNULL(@RemainStocklineCost, 0) = 0 OR CAST(RemainStocklineCost as VARCHAR(50)) LIKE @RemainStocklineCost) AND
+					(ISNULL(@Adjustment, 0) = 0 OR CAST(Adjustment as VARCHAR(50)) LIKE @Adjustment) AND
 					(ISNULL(@ManufacturerName,'') ='' OR ManufacturerName LIKE '%' + @ManufacturerName + '%') AND
 					(IsNull(@Status, '') = '' OR [Status] like '%' + @Status + '%')	
 					)
@@ -1356,10 +1357,10 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 					(StkLineNum LIKE '%' + @GlobalFilter + '%') OR
 					(SerialNum LIKE '%' + @GlobalFilter + '%') OR
 					(Condition LIKE '%' + @GlobalFilter + '%') OR
-					(CAST(QtyOnHand AS NVARCHAR(10)) LIKE '%' + @GlobalFilter + '%') OR
-					(CAST(QtyRes AS NVARCHAR(10)) LIKE '%' + @GlobalFilter + '%') OR
-					(CAST(QtyIss AS NVARCHAR(10)) LIKE '%' + @GlobalFilter + '%') OR
-					(CAST(QtyAvailable AS NVARCHAR(10)) LIKE '%' + @GlobalFilter + '%') OR
+					(CAST(QtyOnHand AS NVARCHAR(50)) LIKE '%' + @GlobalFilter + '%') OR
+					(CAST(QtyRes AS NVARCHAR(50)) LIKE '%' + @GlobalFilter + '%') OR
+					(CAST(QtyIss AS NVARCHAR(50)) LIKE '%' + @GlobalFilter + '%') OR
+					(CAST(QtyAvailable AS NVARCHAR(50)) LIKE '%' + @GlobalFilter + '%') OR
 					(ExtCost like '%' + @GlobalFilter + '%') OR
 					(RepairCost like '%' + @GlobalFilter + '%') OR
 					(WONum like '%' + @GlobalFilter + '%') OR
@@ -1408,15 +1409,15 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 					(ISNULL(@StkLineNum, '') = '' OR StkLineNum LIKE '%' + @StkLineNum + '%') AND
 					(ISNULL(@SerialNum, '') = '' OR SerialNum LIKE '%' + @SerialNum + '%') AND
 					(ISNULL(@Condition, '') = '' OR Condition LIKE '%' + @Condition + '%') AND
-					(IsNull(@QtyOnHand, 0) = 0 OR CAST(QtyOnHand as VARCHAR(10)) like @QtyOnHand) AND
-					(IsNull(@QtyRes, 0) = 0 OR CAST(QtyRes as VARCHAR(10)) like @QtyRes) AND
-					(IsNull(@QtyIss, 0) = 0 OR CAST(QtyIss as VARCHAR(10)) like @QtyIss) AND
-					(IsNull(@QtyAvailable, 0) = 0 OR CAST(QtyAvailable as VARCHAR(10)) like @QtyAvailable) AND
-					(ISNULL(@ExtCost, 0) = 0 OR CAST(ExtCost as VARCHAR(10)) = @ExtCost) AND
-					(ISNULL(@RepairCost, 0) = 0 OR CAST(RepairCost as VARCHAR(10)) = @RepairCost) AND
+					(IsNull(@QtyOnHand, 0) = 0 OR CAST(QtyOnHand as VARCHAR(50)) like @QtyOnHand) AND
+					(IsNull(@QtyRes, 0) = 0 OR CAST(QtyRes as VARCHAR(50)) like @QtyRes) AND
+					(IsNull(@QtyIss, 0) = 0 OR CAST(QtyIss as VARCHAR(50)) like @QtyIss) AND
+					(IsNull(@QtyAvailable, 0) = 0 OR CAST(QtyAvailable as VARCHAR(50)) like @QtyAvailable) AND
+					(ISNULL(@ExtCost, 0) = 0 OR CAST(ExtCost as VARCHAR(50)) = @ExtCost) AND
+					(ISNULL(@RepairCost, 0) = 0 OR CAST(RepairCost as VARCHAR(50)) = @RepairCost) AND
 					(ISNULL(@WONum, '') = '' OR WONum  like '%'+ @WONum + '%') AND
-					(ISNULL(@MarginAmt, 0) = 0 OR CAST(MarginAmt as VARCHAR(10)) LIKE @MarginAmt) AND
-					(ISNULL(@Margin, 0) = 0 OR CAST(Margin as VARCHAR(10)) LIKE @Margin) AND
+					(ISNULL(@MarginAmt, 0) = 0 OR CAST(MarginAmt as VARCHAR(50)) LIKE @MarginAmt) AND
+					(ISNULL(@Margin, 0) = 0 OR CAST(Margin as VARCHAR(50)) LIKE @Margin) AND
 					(ISNULL(@RoNum,'') ='' OR RoNum LIKE '%' + @RoNum + '%') AND
 					(ISNULL(@WoNum,'') ='' OR WoNum LIKE '%' + @WoNum + '%') AND
 					(ISNULL(@SoNum,'') ='' OR SoNum LIKE '%' + @SoNum + '%') AND
@@ -1426,7 +1427,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 					(ISNULL(@LastMSLevel,'') ='' OR LastMSLevel LIKE '%' + @LastMSLevel + '%') AND
 					(ISNULL(@ItemClassfication,'') ='' OR ItemClassfication LIKE '%' + @ItemClassfication + '%') AND
 					(ISNULL(@ItemGroup,'') ='' OR ItemGroup LIKE '%' + @ItemGroup + '%') AND
-					(IsNull(@Qty, 0) = 0 OR CAST(Qty as VARCHAR(10)) like @Qty) AND
+					(IsNull(@Qty, 0) = 0 OR CAST(Qty as VARCHAR(50)) like @Qty) AND
 					(IsNull(@VendorCode, '') = '' OR VendorCode like '%' + @VendorCode + '%') AND
 					(ISNULL(@Site,'') ='' OR Site LIKE '%' + @Site + '%') AND
 					(ISNULL(@Warehouse,'') ='' OR Warehouse LIKE '%' + @Warehouse + '%') AND
@@ -1434,25 +1435,25 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 					(ISNULL(@Shelf,'') ='' OR Shelf LIKE '%' + @Shelf + '%') AND
 					(ISNULL(@Bin,'') ='' OR Bin LIKE '%' + @Bin + '%') AND
 					(ISNULL(@InvoiceDate,'') ='' OR CAST(InvoiceDate AS Date) = CAST(@InvoiceDate AS date)) AND
-					(ISNULL(@Cost, 0) = 0 OR CAST(Cost as VARCHAR(10)) = @Cost) AND
-					(ISNULL(@UnitPrice, 0) = 0 OR CAST(UnitPrice as VARCHAR(10)) = @UnitPrice) AND
-					(ISNULL(@ExtendedPrice, 0) = 0 OR CAST(RepairCost as VARCHAR(10)) = @ExtendedPrice) AND
-					(ISNULL(@TotalDirectCost, 0) = 0 OR CAST(TotalDirectCost as VARCHAR(10)) = @TotalDirectCost) AND
+					(ISNULL(@Cost, 0) = 0 OR CAST(Cost as VARCHAR(50)) = @Cost) AND
+					(ISNULL(@UnitPrice, 0) = 0 OR CAST(UnitPrice as VARCHAR(50)) = @UnitPrice) AND
+					(ISNULL(@ExtendedPrice, 0) = 0 OR CAST(RepairCost as VARCHAR(50)) = @ExtendedPrice) AND
+					(ISNULL(@TotalDirectCost, 0) = 0 OR CAST(TotalDirectCost as VARCHAR(50)) = @TotalDirectCost) AND
 			
 					(ISNULL(@LotNumber, '') = '' OR LotNumber LIKE '%' + @LotNumber + '%') AND
 					(ISNULL(@ReferenceNumber, '') = '' OR ReferenceNumber LIKE '%' + @ReferenceNumber + '%') AND
 					(ISNULL(@LotName, '') = '' OR LotName LIKE '%' + @LotName + '%') AND
-					--(ISNULL(@TransUnitCost, 0) = 0 OR CAST(TransUnitCost as VARCHAR(10)) = @TransUnitCost) AND
+					--(ISNULL(@TransUnitCost, 0) = 0 OR CAST(TransUnitCost as VARCHAR(50)) = @TransUnitCost) AND
 					--(ISNULL(@ReferenceNum,'') ='' OR ReferenceNum LIKE '%' + @ReferenceNum + '%') AND
 					(ISNULL(@ControlNumber,'') ='' OR ControlNumber LIKE '%' + @ControlNumber + '%') AND
 					(ISNULL(@IdNumber,'') ='' OR IdNumber LIKE '%' + @IdNumber + '%') AND		
 					(ISNULL(@TraceableToName,'') ='' OR TraceableToName LIKE '%' + @TraceableToName + '%') AND		
 					(ISNULL(@TaggedByName,'') ='' OR TaggedByName LIKE '%' + @TaggedByName + '%') AND
 					(ISNULL(@TagDate,'') ='' OR CAST(TagDate AS Date) = CAST(@TagDate AS date)) AND
-					(ISNULL(@InitialPOCost, 0) = 0 OR CAST(InitialPOCost as VARCHAR(10)) LIKE @InitialPOCost) AND
-					(ISNULL(@StocklineTotalCost, 0) = 0 OR CAST(StocklineTotalCost as VARCHAR(10)) LIKE @StocklineTotalCost) AND
-					(ISNULL(@RemainStocklineCost, 0) = 0 OR CAST(RemainStocklineCost as VARCHAR(10)) LIKE @RemainStocklineCost) AND
-					(ISNULL(@Adjustment, 0) = 0 OR CAST(Adjustment as VARCHAR(10)) LIKE @Adjustment) AND
+					(ISNULL(@InitialPOCost, 0) = 0 OR CAST(InitialPOCost as VARCHAR(50)) LIKE @InitialPOCost) AND
+					(ISNULL(@StocklineTotalCost, 0) = 0 OR CAST(StocklineTotalCost as VARCHAR(50)) LIKE @StocklineTotalCost) AND
+					(ISNULL(@RemainStocklineCost, 0) = 0 OR CAST(RemainStocklineCost as VARCHAR(50)) LIKE @RemainStocklineCost) AND
+					(ISNULL(@Adjustment, 0) = 0 OR CAST(Adjustment as VARCHAR(50)) LIKE @Adjustment) AND
 					(ISNULL(@ManufacturerName,'') ='' OR ManufacturerName LIKE '%' + @ManufacturerName + '%') AND
 					(IsNull(@Status, '') = '' OR [Status] like '%' + @Status + '%')	
 					)
@@ -1677,10 +1678,10 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 					(SerialNum LIKE '%' + @GlobalFilter + '%') OR
 					(Condition LIKE '%' + @GlobalFilter + '%') OR
 					(Uom LIKE '%' + @GlobalFilter + '%') OR
-					(CAST(QtyOnHand AS NVARCHAR(10)) LIKE '%' + @GlobalFilter + '%') OR
-					(CAST(QtyRes AS NVARCHAR(10)) LIKE '%' + @GlobalFilter + '%') OR
-					(CAST(QtyIss AS NVARCHAR(10)) LIKE '%' + @GlobalFilter + '%') OR
-					(CAST(QtyAvailable AS NVARCHAR(10)) LIKE '%' + @GlobalFilter + '%') OR
+					(CAST(QtyOnHand AS NVARCHAR(50)) LIKE '%' + @GlobalFilter + '%') OR
+					(CAST(QtyRes AS NVARCHAR(50)) LIKE '%' + @GlobalFilter + '%') OR
+					(CAST(QtyIss AS NVARCHAR(50)) LIKE '%' + @GlobalFilter + '%') OR
+					(CAST(QtyAvailable AS NVARCHAR(50)) LIKE '%' + @GlobalFilter + '%') OR
 					(ExtCost like '%' + @GlobalFilter + '%') OR
 					(RepairCost like '%' + @GlobalFilter + '%') OR
 					(TotalCost like '%' + @GlobalFilter + '%') OR
@@ -1726,14 +1727,14 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 					(ISNULL(@SerialNum, '') = '' OR SerialNum LIKE '%' + @SerialNum + '%') AND
 					(ISNULL(@Condition, '') = '' OR Condition LIKE '%' + @Condition + '%') AND
 					(ISNULL(@Uom,'') ='' OR Uom LIKE '%' + @Uom + '%') AND
-					(IsNull(@QtyOnHand, 0) = 0 OR CAST(QtyOnHand as VARCHAR(10)) like @QtyOnHand) AND
-					(IsNull(@QtyRes, 0) = 0 OR CAST(QtyRes as VARCHAR(10)) like @QtyRes) AND
-					(IsNull(@QtyIss, 0) = 0 OR CAST(QtyIss as VARCHAR(10)) like @QtyIss) AND
-					(IsNull(@QtyAvailable, 0) = 0 OR CAST(QtyAvailable as VARCHAR(10)) like @QtyAvailable) AND
+					(IsNull(@QtyOnHand, 0) = 0 OR CAST(QtyOnHand as VARCHAR(50)) like @QtyOnHand) AND
+					(IsNull(@QtyRes, 0) = 0 OR CAST(QtyRes as VARCHAR(50)) like @QtyRes) AND
+					(IsNull(@QtyIss, 0) = 0 OR CAST(QtyIss as VARCHAR(50)) like @QtyIss) AND
+					(IsNull(@QtyAvailable, 0) = 0 OR CAST(QtyAvailable as VARCHAR(50)) like @QtyAvailable) AND
 
-					(ISNULL(@ExtCost, 0) = 0 OR CAST(ExtCost as VARCHAR(10)) = @ExtCost) AND
-					(ISNULL(@RepairCost, 0) = 0 OR CAST(RepairCost as VARCHAR(10)) = @RepairCost) AND
-					(ISNULL(@TotalCost, 0) = 0 OR CAST(TotalCost as VARCHAR(10)) = @TotalCost) AND
+					(ISNULL(@ExtCost, 0) = 0 OR CAST(ExtCost as VARCHAR(50)) = @ExtCost) AND
+					(ISNULL(@RepairCost, 0) = 0 OR CAST(RepairCost as VARCHAR(50)) = @RepairCost) AND
+					(ISNULL(@TotalCost, 0) = 0 OR CAST(TotalCost as VARCHAR(50)) = @TotalCost) AND
 					(ISNULL(@WONum, '') = '' OR WONum  like '%'+ @WONum + '%') AND
 					--(ISNULL(@LastPODate,'') ='' OR CAST(LastPODate AS Date) = CAST(@LastPODate AS date)) AND
 					(ISNULL(@RoNum,'') ='' OR RoNum LIKE '%' + @RoNum + '%') AND
@@ -1744,15 +1745,15 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 					(ISNULL(@LastMSLevel,'') ='' OR LastMSLevel LIKE '%' + @LastMSLevel + '%') AND
 					(ISNULL(@ItemClassfication,'') ='' OR ItemClassfication LIKE '%' + @ItemClassfication + '%') AND
 					(ISNULL(@ItemGroup,'') ='' OR ItemGroup LIKE '%' + @ItemGroup + '%') AND
-					(IsNull(@Qty, 0) = 0 OR CAST(Qty as VARCHAR(10)) like @Qty) AND
+					(IsNull(@Qty, 0) = 0 OR CAST(Qty as VARCHAR(50)) like @Qty) AND
 					(ISNULL(@Site,'') ='' OR Site LIKE '%' + @Site + '%') AND
 					(ISNULL(@Warehouse,'') ='' OR Warehouse LIKE '%' + @Warehouse + '%') AND
 					(ISNULL(@Location,'') ='' OR Location LIKE '%' + @Location + '%') AND
 					(ISNULL(@Shelf,'') ='' OR Shelf LIKE '%' + @Shelf + '%') AND
 					(ISNULL(@Bin,'') ='' OR Bin LIKE '%' + @Bin + '%') AND
-					(ISNULL(@Cost, 0) = 0 OR CAST(Cost as VARCHAR(10)) = @Cost) AND
-					(ISNULL(@UnitPrice, 0) = 0 OR CAST(UnitPrice as VARCHAR(10)) = @UnitPrice) AND
-					(ISNULL(@ExtendedPrice, 0) = 0 OR CAST(RepairCost as VARCHAR(10)) = @ExtendedPrice) AND
+					(ISNULL(@Cost, 0) = 0 OR CAST(Cost as VARCHAR(50)) = @Cost) AND
+					(ISNULL(@UnitPrice, 0) = 0 OR CAST(UnitPrice as VARCHAR(50)) = @UnitPrice) AND
+					(ISNULL(@ExtendedPrice, 0) = 0 OR CAST(RepairCost as VARCHAR(50)) = @ExtendedPrice) AND
 					(IsNull(@VendorCode, '') = '' OR VendorCode like '%' + @VendorCode + '%')AND
 					
 					(ISNULL(@LotNumber, '') = '' OR LotNumber LIKE '%' + @LotNumber + '%') AND
@@ -1763,10 +1764,10 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 					(ISNULL(@TraceableToName,'') ='' OR TraceableToName LIKE '%' + @TraceableToName + '%') AND		
 					(ISNULL(@TaggedByName,'') ='' OR TaggedByName LIKE '%' + @TaggedByName + '%') AND
 					(ISNULL(@TagDate,'') ='' OR CAST(TagDate AS Date) = CAST(@TagDate AS date)) AND
-					(ISNULL(@InitialPOCost, 0) = 0 OR CAST(InitialPOCost as VARCHAR(10)) LIKE @InitialPOCost) AND
-					(ISNULL(@StocklineTotalCost, 0) = 0 OR CAST(StocklineTotalCost as VARCHAR(10)) LIKE @StocklineTotalCost) AND
-					(ISNULL(@RemainStocklineCost, 0) = 0 OR CAST(RemainStocklineCost as VARCHAR(10)) LIKE @RemainStocklineCost) AND
-					(ISNULL(@Adjustment, 0) = 0 OR CAST(Adjustment as VARCHAR(10)) LIKE @Adjustment) AND
+					(ISNULL(@InitialPOCost, 0) = 0 OR CAST(InitialPOCost as VARCHAR(50)) LIKE @InitialPOCost) AND
+					(ISNULL(@StocklineTotalCost, 0) = 0 OR CAST(StocklineTotalCost as VARCHAR(50)) LIKE @StocklineTotalCost) AND
+					(ISNULL(@RemainStocklineCost, 0) = 0 OR CAST(RemainStocklineCost as VARCHAR(50)) LIKE @RemainStocklineCost) AND
+					(ISNULL(@Adjustment, 0) = 0 OR CAST(Adjustment as VARCHAR(50)) LIKE @Adjustment) AND
 					(ISNULL(@ManufacturerName,'') ='' OR ManufacturerName LIKE '%' + @ManufacturerName + '%') AND
 					(ISNULL(@Uom,'') ='' OR Uom LIKE '%' + @Uom + '%') 
 					)
@@ -1960,8 +1961,8 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 					(IsNull(@ManufacturerName, '') = '' OR Manufacturer like '%' + @ManufacturerName + '%') AND
 					--(ISNULL(@ReferenceNumber, '') = '' OR ReferenceNumber LIKE '%' + @ReferenceNumber + '%') AND
 					
-					(ISNULL(@FreightCost, 0) = 0 OR CAST(FreightCost as VARCHAR(10)) = @FreightCost) AND
-					(ISNULL(@ChargesCost, 0) = 0 OR CAST(ChargesCost as VARCHAR(10)) = @ChargesCost) AND
+					(ISNULL(@FreightCost, 0) = 0 OR CAST(FreightCost as VARCHAR(50)) = @FreightCost) AND
+					(ISNULL(@ChargesCost, 0) = 0 OR CAST(ChargesCost as VARCHAR(50)) = @ChargesCost) AND
 					(ISNULL(@PoDate,'') ='' OR CAST(PoDate AS Date) = CAST(@PoDate AS date))
 					)
 				  )
@@ -2105,9 +2106,9 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 					(ISNULL(@Description, '') = '' OR [Description] LIKE '%' + @Description + '%') AND
 					(ISNULL(@StkLineNum, '') = '' OR StkLineNum LIKE '%' + @StkLineNum + '%') AND
 					(ISNULL(@SerialNum, '') = '' OR SerialNum LIKE '%' + @SerialNum + '%') AND
-					(ISNULL(@ExtPrice, 0) = 0 OR CAST(ExtPrice as VARCHAR(10)) LIKE @ExtPrice) AND
-					(ISNULL(@MarginAmt, 0) = 0 OR CAST(MarginAmt as VARCHAR(10)) LIKE @MarginAmt) AND
-					(ISNULL(@Margin, 0) = 0 OR CAST(Margin as VARCHAR(10)) LIKE @Margin) AND
+					(ISNULL(@ExtPrice, 0) = 0 OR CAST(ExtPrice as VARCHAR(50)) LIKE @ExtPrice) AND
+					(ISNULL(@MarginAmt, 0) = 0 OR CAST(MarginAmt as VARCHAR(50)) LIKE @MarginAmt) AND
+					(ISNULL(@Margin, 0) = 0 OR CAST(Margin as VARCHAR(50)) LIKE @Margin) AND
 					(ISNULL(@SoNum,'') ='' OR SoNum LIKE '%' + @SoNum + '%') AND
 					(ISNULL(@InvoiceNum,'') ='' OR InvoiceNum LIKE '%' + @InvoiceNum + '%') AND
 					(ISNULL(@LastMSLevel,'') ='' OR LastMSLevel LIKE '%' + @LastMSLevel + '%') AND
@@ -2120,11 +2121,11 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 					(ISNULL(@TraceableToName,'') ='' OR TraceableToName LIKE '%' + @TraceableToName + '%') AND		
 					(ISNULL(@TaggedByName,'') ='' OR TaggedByName LIKE '%' + @TaggedByName + '%') AND
 					(ISNULL(@TagDate,'') ='' OR CAST(TagDate AS Date) = CAST(@TagDate AS date)) AND
-					(ISNULL(@Adjustment, 0) = 0 OR CAST(Adjustment as VARCHAR(10)) LIKE @Adjustment) AND
-					(ISNULL(@CommissionExpense, 0) = 0 OR CAST(CommissionExpense as VARCHAR(10)) LIKE @CommissionExpense) AND	
+					(ISNULL(@Adjustment, 0) = 0 OR CAST(Adjustment as VARCHAR(50)) LIKE @Adjustment) AND
+					(ISNULL(@CommissionExpense, 0) = 0 OR CAST(CommissionExpense as VARCHAR(50)) LIKE @CommissionExpense) AND	
 					(ISNULL(@ManufacturerName,'') ='' OR ManufacturerName LIKE '%' + @ManufacturerName + '%') AND
 					(ISNULL(@HowCalculate, '') = '' OR HowCalculate LIKE '%' + @HowCalculate + '%') AND
-					(ISNULL(@UnitSalePrice, 0) = 0 OR CAST(UnitSalesPrice as VARCHAR(10)) LIKE @UnitSalePrice)))
+					(ISNULL(@UnitSalePrice, 0) = 0 OR CAST(UnitSalesPrice as VARCHAR(50)) LIKE @UnitSalePrice)))
 
 				SELECT @Count = COUNT(*) FROM #CommisionResult
 			

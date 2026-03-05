@@ -12,6 +12,7 @@
  ** PR   Date        Author			Change Description            
  ** --   --------    -------		--------------------------------          
     1    03/02/2026  Vishal Suthar  Created
+    2    03/03/2026  Vishal Suthar  Fixed issue with Merge statement
      
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[USP_AddUpdateCustomerRfq_PartsBase]
@@ -30,11 +31,25 @@ BEGIN
 
     BEGIN TRY
 
-        MERGE INTO [dbo].[CustomerRfq] AS target
-        USING @tbl_CustomerRfqType AS source
-            ON target.RfqId = source.RfqId
-            AND target.IntegrationPortalId = source.IntegrationPortalId
-            AND target.MasterCompanyId = @MasterCompanyId
+        ;WITH SourceDedup AS
+		(
+			SELECT *,
+				   ROW_NUMBER() OVER (
+					   PARTITION BY 
+						   RfqId, 
+						   RfqItemId, 
+						   IntegrationPortalId
+					   ORDER BY RfqCreatedDate DESC
+				   ) AS rn
+			FROM @tbl_CustomerRfqType
+		)
+
+		MERGE INTO [dbo].[CustomerRfq] AS target
+		USING (SELECT * FROM SourceDedup WHERE rn = 1) AS source
+			ON target.RfqId = source.RfqId
+			AND target.RfqItemId = source.RfqItemId
+			AND target.IntegrationPortalId = source.IntegrationPortalId
+			AND target.MasterCompanyId = @MasterCompanyId
 
         WHEN MATCHED THEN
             UPDATE SET

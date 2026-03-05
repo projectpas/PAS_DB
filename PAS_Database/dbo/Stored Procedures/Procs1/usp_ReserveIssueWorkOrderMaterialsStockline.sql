@@ -20,14 +20,14 @@ EXEC [usp_ReserveIssueWorkOrderMaterialsStockline]
 ** 9	11/22/2024	Devendra Shekh	 Modified (added fiels  IssuedById, IssuedDate for WorkOrderMaterialStockLine and WorkOrderMaterialStockLineKit)
 ** 10	12/20/2024	Devendra Shekh	 ExtendedCost Calculation issue Resolved
 ** 11   04/14/2025   HEMANT SALIYA	 Added Work Order Work Flow Id for UpdateWOMaterialsCost
-
+   12   04-March-2026	Rajesh Gami		   Implemented UOM Changes [PN-14832]
 DECLARE @p1 dbo.ReserveWOMaterialsStocklineType
 
 INSERT INTO @p1 values(65,72,87,1073,4,6,1,14,6,N'REPAIR',N'FLYSKY CT6B FS-CT6B',N'USED FOR WING REPAIR',5,3,1,N'CNTL-000463',N'ID_NUM-000001',N'STL-000123',N'',N'ADMIN ADMIN',1)
 
 EXEC dbo.usp_ReserveIssueWorkOrderMaterialsStockline @tbl_MaterialsStocklineType=@p1
 **************************************************************/ 
-CREATE   PROCEDURE [dbo].[usp_ReserveIssueWorkOrderMaterialsStockline]
+CREATE     PROCEDURE [dbo].[usp_ReserveIssueWorkOrderMaterialsStockline]
 	@tbl_MaterialsStocklineType ReserveWOMaterialsStocklineType READONLY
 AS
 BEGIN
@@ -58,8 +58,8 @@ BEGIN
 					DECLARE @WorkOrderMaterialsId BIGINT;
 					DECLARE @ProvisionId BIGINT;
 					DECLARE @IsSerialised BIT;
-					DECLARE @stockLineQty INT;
-					DECLARE @stockLineQtyAvailable INT;
+					DECLARE @stockLineQty [decimal](18,6);
+					DECLARE @stockLineQtyAvailable [decimal](18,6);
 					DECLARE @TotalCountsBoth INT;
 					DECLARE @MaterialRefNo VARCHAR(100) = 'Reserve Issue', @WONumber VARCHAR(100);
 					DECLARE @RC int;
@@ -67,10 +67,10 @@ BEGIN
                     DECLARE @ReferencePartId bigint;
                     DECLARE @ReferencePieceId bigint;
                     DECLARE @InvoiceId bigint=0;
-					DECLARE @IssueQty bigint=0;
+					DECLARE @IssueQty [decimal](18,6)=0;
                     DECLARE @laborType varchar(200)='';
                     DECLARE @issued bit=1;
-                    DECLARE @Amount decimal(18,2);
+                    DECLARE @Amount [decimal](18,6);
                     DECLARE @ModuleName varchar(200)='WO';
                     DECLARE @UpdateBy varchar(200);
 					DECLARE @IsKit BIGINT = 0;
@@ -110,9 +110,9 @@ BEGIN
 						[Condition] VARCHAR(500) NULL,
 						[PartNumber] VARCHAR(500) NULL,
 						[PartDescription] VARCHAR(max) NULL,
-						[Quantity] INT NULL,
-						[QtyToBeReserved] INT NULL,
-						[QuantityActReserved] INT NULL,
+						[Quantity] [decimal](18,6) NULL,
+						[QtyToBeReserved] [decimal](18,6) NULL,
+						[QuantityActReserved] [decimal](18,6) NULL,
 						[ControlNo] VARCHAR(500) NULL,
 						[ControlId] VARCHAR(500) NULL,
 						[StockLineNumber] VARCHAR(500) NULL,
@@ -121,7 +121,7 @@ BEGIN
 						[IsStocklineAdded] BIT NULL,
 						[MasterCompanyId] BIGINT NULL,
 						[UpdatedBy] VARCHAR(500) NULL,
-						[UnitCost] DECIMAL(18,2),
+						[UnitCost] [decimal](18,6),
 						[IsSerialized] BIT,
 						[KitId] BIGINT NULL
 					)

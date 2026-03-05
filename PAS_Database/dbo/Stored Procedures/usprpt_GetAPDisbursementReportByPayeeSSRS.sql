@@ -65,7 +65,7 @@ BEGIN
 			@level9Ids VARCHAR(MAX) = NULL,    
 			@level10Ids VARCHAR(MAX) = NULL 
 
-     IF OBJECT_ID(N'tempdb..#TEMPMSFilter') IS NOT NULL    
+    IF OBJECT_ID(N'tempdb..#TEMPMSFilter') IS NOT NULL    
 	BEGIN    
 		DROP TABLE #TEMPMSFilter
 	END
@@ -85,25 +85,23 @@ BEGIN
 	SELECT @level9Ids = LevelIds FROM #TEMPMSFilter WHERE ID = 9 
 	SELECT @level10Ids = LevelIds FROM #TEMPMSFilter WHERE ID = 10	 
 
-  DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
-	
-	SELECT 
-					@CurrntEmpTimeZoneDesc = COALESCE(
+    DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
+	SELECT @CurrntEmpTimeZoneDesc = COALESCE(
 						ETZ.[Description],  -- Prefer Employee's TimeZone description if available
 						LTZ.[Description]   -- Fallback to LegalEntity's TimeZone description
 					)
-				FROM [dbo].[Employee] E WITH (NOLOCK) 
-                LEFT JOIN [dbo].[TimeZone] ETZ WITH (NOLOCK) ON E.TimeZoneId = ETZ.TimeZoneId
-				LEFT JOIN [dbo].[LegalEntity] LE WITH (NOLOCK) ON E.LegalEntityId = LE.LegalEntityId
-				LEFT JOIN [dbo].[TimeZone] LTZ WITH (NOLOCK) ON LE.TimeZoneId = LTZ.TimeZoneId
-				WHERE E.EmployeeId = @EmployeeId;	
+			FROM [dbo].[Employee] E WITH (NOLOCK) 
+            LEFT JOIN [dbo].[TimeZone] ETZ WITH (NOLOCK) ON E.TimeZoneId = ETZ.TimeZoneId
+			LEFT JOIN [dbo].[LegalEntity] LE WITH (NOLOCK) ON E.LegalEntityId = LE.LegalEntityId
+			LEFT JOIN [dbo].[TimeZone] LTZ WITH (NOLOCK) ON LE.TimeZoneId = LTZ.TimeZoneId
+			WHERE E.EmployeeId = @EmployeeId;	
                     
-       IF OBJECT_ID(N'tempdb..#tmprAPDisbursementReport') IS NOT NULL
-       BEGIN
-			DROP TABLE #tmprAPDisbursementReport
-	   END
+    IF OBJECT_ID(N'tempdb..#tmprAPDisbursementReport') IS NOT NULL
+    BEGIN
+		DROP TABLE #tmprAPDisbursementReport
+	END
 
-  CREATE TABLE #tmprAPDisbursementReport
+    CREATE TABLE #tmprAPDisbursementReport
     (   
         VendorId INT,
         Payee NVARCHAR(200),
@@ -134,17 +132,9 @@ BEGIN
 
         INSERT INTO #tmprAPDisbursementReport
         (
-            VendorId,Payee, VendorCode,
-            InvoiceNum, InvoiceDate, PaymentMethod, PaymentReference,
-            PaymentDate, InvoiceDueDate, TotalBaseCurrencyAmount,
-            BaseCurrency, BaseCurrencyAmount,
-            BankAccount, GLAccountNum,
-            CreditTermsName
-             ,Level1Id, Level2Id, Level3Id, Level4Id, Level5Id,
-             Level6Id, Level7Id, Level8Id, Level9Id, Level10Id
+            VendorId,Payee, VendorCode, InvoiceNum, InvoiceDate, PaymentMethod, PaymentReference, PaymentDate, InvoiceDueDate, TotalBaseCurrencyAmount, BaseCurrency, BaseCurrencyAmount, BankAccount, GLAccountNum, CreditTermsName ,Level1Id, Level2Id, Level3Id, Level4Id, Level5Id, Level6Id, Level7Id, Level8Id, Level9Id, Level10Id
         )
-        SELECT
-                rtp.VendorId  AS 'VendorId',
+        SELECT  rtp.VendorId  AS 'VendorId',
                 VND.VendorName  AS 'Payee',
                 VND.VendorCode  AS 'VendorCode',
                 CASE WHEN ISNULL(VPD.ReceivingReconciliationId,0) > 0 THEN RRC.InvoiceNum
@@ -187,11 +177,9 @@ BEGIN
                 LEFT JOIN [dbo].[GLAccount] g WITH(NOLOCK) ON g.GLAccountId = lebl.GLAccountId
                 LEFT JOIN [dbo].[CreditTerms] CT WITH(NOLOCK) ON CT.CreditTermsId = VND.CreditTermsId AND CT.IsActive = 1
 
-                WHERE   rtp.IsVoidedCheck = 0
-                    AND rtp.IsGenerated   = 1 AND rtp.IsActive = 1 AND rtp.IsDeleted     = 0 AND rtp.MasterCompanyId = @MasterCompanyId AND (@FromPaymentDate IS NULL OR CAST(rtp.CheckDate AS DATE) >= CAST(@FromPaymentDate AS DATE))
+                WHERE  rtp.IsVoidedCheck = 0 AND rtp.IsGenerated = 1 AND rtp.IsActive = 1 AND rtp.IsDeleted = 0 AND rtp.MasterCompanyId = @MasterCompanyId AND (@FromPaymentDate IS NULL OR CAST(rtp.CheckDate AS DATE) >= CAST(@FromPaymentDate AS DATE))
                 AND (@ToPaymentDate IS NULL OR CAST(rtp.CheckDate AS DATE) <= CAST(@ToPaymentDate AS DATE))
                 AND (@Payee IS NULL OR rtp.VendorName LIKE '%' + @Payee + '%')
-
                 AND (@InvoiceNum IS NULL OR 
                         ((ISNULL(VPD.ReceivingReconciliationId,0) > 0 AND RRC.InvoiceNum LIKE '%' + @InvoiceNum + '%')
                             OR (ISNULL(VPD.CreditMemoHeaderId,0) > 0 AND CM.InvoiceNumber LIKE '%' + @InvoiceNum + '%')
@@ -201,69 +189,45 @@ BEGIN
 							OR (ISNULL(VPD.ManualJournalHeaderId,0) > 0 AND  VPD.[InvoiceNum] LIKE '%' + @InvoiceNum + '%')
                         ))
                 AND (@PaymentRef IS NULL OR rtp.CheckNumber LIKE '%' + @PaymentRef + '%')
-
                 AND (@BankAccount IS NULL OR CONCAT(lebl.BankName,' - ',lebl.BankAccountNumber) LIKE '%' + @BankAccount + '%')
                 AND (@BaseCurrency IS NULL OR rtp.CurrencyName LIKE '%' + @BaseCurrency + '%')
                 AND (@GlAccountNum IS NULL OR CONCAT(g.AccountCode,' - ',g.AccountName) LIKE '%' + @GlAccountNum + '%')
                 AND (@PaymentMethod IS NULL OR vpym.Description LIKE '%' + @PaymentMethod + '%')
-
-            AND (@BaseCurrencyAmount IS NULL OR rtp.OriginalAmount = @BaseCurrencyAmount)
-            -- Column date filters
-            AND (
-                @InvoiceDate IS NULL OR
-                (
-                    (ISNULL(VPD.ReceivingReconciliationId,0) > 0 AND CAST(RRC.InvoiceDate AS DATE) = CAST(@InvoiceDate AS DATE))
-                    OR (ISNULL(VPD.CreditMemoHeaderId,0) > 0 AND CAST(CM.InvoiceDate AS DATE) = CAST(@InvoiceDate AS DATE) )
-                    OR (ISNULL(VPD.NonPOInvoiceId,0) > 0 AND CAST(NPH.InvoiceDate AS DATE) = CAST(@InvoiceDate AS DATE) )
-                    OR (ISNULL(VPD.CustomerCreditPaymentDetailId,0) > 0 AND CAST(CCPD.ProcessedDate AS DATE) = CAST(@InvoiceDate AS DATE) )
-                    OR (ISNULL(VPD.VendorProformaInvoiceId,0) > 0 AND CAST(VNPH.InvoiceDate AS DATE) = CAST(@InvoiceDate AS DATE) )
-					OR (ISNULL(VPD.ManualJournalHeaderId,0) > 0 AND CAST(MJH.PostedDate AS DATE) = CAST(@InvoiceDate AS DATE) )
+                AND (@BaseCurrencyAmount IS NULL OR rtp.OriginalAmount = @BaseCurrencyAmount)
+                -- Column date filters
+                AND (
+                    @InvoiceDate IS NULL OR
+                    (
+                        (ISNULL(VPD.ReceivingReconciliationId,0) > 0 AND CAST(RRC.InvoiceDate AS DATE) = CAST(@InvoiceDate AS DATE))
+                        OR (ISNULL(VPD.CreditMemoHeaderId,0) > 0 AND CAST(CM.InvoiceDate AS DATE) = CAST(@InvoiceDate AS DATE) )
+                        OR (ISNULL(VPD.NonPOInvoiceId,0) > 0 AND CAST(NPH.InvoiceDate AS DATE) = CAST(@InvoiceDate AS DATE) )
+                        OR (ISNULL(VPD.CustomerCreditPaymentDetailId,0) > 0 AND CAST(CCPD.ProcessedDate AS DATE) = CAST(@InvoiceDate AS DATE) )
+                        OR (ISNULL(VPD.VendorProformaInvoiceId,0) > 0 AND CAST(VNPH.InvoiceDate AS DATE) = CAST(@InvoiceDate AS DATE) )
+					    OR (ISNULL(VPD.ManualJournalHeaderId,0) > 0 AND CAST(MJH.PostedDate AS DATE) = CAST(@InvoiceDate AS DATE) )
+                    )
                 )
-            )
-            AND (@InvoiceDueDate IS NULL OR CAST(rtp.DueDate AS DATE) = CAST( @InvoiceDueDate AS DATE))
-            AND (@PaymentDate IS NULL OR CAST(rtp.CheckDate AS DATE) = CAST( @PaymentDate AS DATE) )
+                AND (@InvoiceDueDate IS NULL OR CAST(rtp.DueDate AS DATE) = CAST( @InvoiceDueDate AS DATE))
+                AND (@PaymentDate IS NULL OR CAST(rtp.CheckDate AS DATE) = CAST( @PaymentDate AS DATE) )
 
-
-            UPDATE T
-                SET 
-                    Level1Id = L1.Code,
-                    Level2Id = L2.Code,
-                    Level3Id = L3.Code,
-                    Level4Id = L4.Code,
-                    Level5Id = L5.Code,
-                    Level6Id = L6.Code,
-                    Level7Id = L7.Code,
-                    Level8Id = L8.Code,
-                    Level9Id = L9.Code,
-                    Level10Id = L10.Code
-                FROM #tmprAPDisbursementReport T
-                JOIN VendorReadyToPayDetails rtp WITH(NOLOCK)
-                    ON rtp.VendorId = T.VendorId
-                JOIN VendorReadyToPayHeader vrtph WITH(NOLOCK)
-                    ON vrtph.ReadyToPayId = rtp.ReadyToPayId
-                JOIN EntityStructureSetup ES WITH(NOLOCK)
-                    ON ES.EntityStructureId = vrtph.ManagementStructureId
-                LEFT JOIN ManagementStructureLevel L1 WITH(NOLOCK) ON L1.ID = ES.Level1Id AND L1.IsActive = 1 AND L1.IsDeleted = 0
-                LEFT JOIN ManagementStructureLevel L2 WITH(NOLOCK) ON L2.ID = ES.Level2Id AND L2.IsActive = 1 AND L2.IsDeleted = 0
-                LEFT JOIN ManagementStructureLevel L3 WITH(NOLOCK) ON L3.ID = ES.Level3Id AND L3.IsActive = 1 AND L3.IsDeleted = 0
-                LEFT JOIN ManagementStructureLevel L4 WITH(NOLOCK) ON L4.ID = ES.Level4Id AND L4.IsActive = 1 AND L4.IsDeleted = 0
-                LEFT JOIN ManagementStructureLevel L5 WITH(NOLOCK) ON L5.ID = ES.Level5Id AND L5.IsActive = 1 AND L5.IsDeleted = 0
-                LEFT JOIN ManagementStructureLevel L6 WITH(NOLOCK) ON L6.ID = ES.Level6Id AND L6.IsActive = 1 AND L6.IsDeleted = 0
-                LEFT JOIN ManagementStructureLevel L7 WITH(NOLOCK) ON L7.ID = ES.Level7Id AND L7.IsActive = 1 AND L7.IsDeleted = 0
-                LEFT JOIN ManagementStructureLevel L8 WITH(NOLOCK) ON L8.ID = ES.Level8Id AND L8.IsActive = 1 AND L8.IsDeleted = 0
-                LEFT JOIN ManagementStructureLevel L9 ON L9.ID = ES.Level9Id AND L9.IsActive = 1 AND L9.IsDeleted = 0
-                LEFT JOIN ManagementStructureLevel L10 ON L10.ID = ES.Level10Id AND L10.IsActive = 1 AND L10.IsDeleted = 0;
+            UPDATE T SET Level1Id = L1.Code,Level2Id = L2.Code,Level3Id = L3.Code, Level4Id = L4.Code, Level5Id = L5.Code,
+                    Level6Id = L6.Code, Level7Id = L7.Code, Level8Id = L8.Code, Level9Id = L9.Code, Level10Id = L10.Code
+                FROM #tmprAPDisbursementReport T JOIN [dbo].[VendorReadyToPayDetails] rtp WITH(NOLOCK) ON rtp.VendorId = T.VendorId
+                JOIN [dbo].[VendorReadyToPayHeader] vrtph WITH(NOLOCK) ON vrtph.ReadyToPayId = rtp.ReadyToPayId
+                JOIN [dbo].[EntityStructureSetup] ES WITH(NOLOCK) ON ES.EntityStructureId = vrtph.ManagementStructureId
+                LEFT JOIN [dbo].[ManagementStructureLevel] L1 WITH(NOLOCK) ON L1.ID = ES.Level1Id AND L1.IsActive = 1 AND L1.IsDeleted = 0
+                LEFT JOIN [dbo].[ManagementStructureLevel] L2 WITH(NOLOCK) ON L2.ID = ES.Level2Id AND L2.IsActive = 1 AND L2.IsDeleted = 0
+                LEFT JOIN [dbo].[ManagementStructureLevel] L3 WITH(NOLOCK) ON L3.ID = ES.Level3Id AND L3.IsActive = 1 AND L3.IsDeleted = 0
+                LEFT JOIN [dbo].[ManagementStructureLevel] L4 WITH(NOLOCK) ON L4.ID = ES.Level4Id AND L4.IsActive = 1 AND L4.IsDeleted = 0
+                LEFT JOIN [dbo].[ManagementStructureLevel] L5 WITH(NOLOCK) ON L5.ID = ES.Level5Id AND L5.IsActive = 1 AND L5.IsDeleted = 0
+                LEFT JOIN [dbo].[ManagementStructureLevel] L6 WITH(NOLOCK) ON L6.ID = ES.Level6Id AND L6.IsActive = 1 AND L6.IsDeleted = 0
+                LEFT JOIN [dbo].[ManagementStructureLevel] L7 WITH(NOLOCK) ON L7.ID = ES.Level7Id AND L7.IsActive = 1 AND L7.IsDeleted = 0
+                LEFT JOIN [dbo].[ManagementStructureLevel] L8 WITH(NOLOCK) ON L8.ID = ES.Level8Id AND L8.IsActive = 1 AND L8.IsDeleted = 0
+                LEFT JOIN [dbo].[ManagementStructureLevel] L9 WITH(NOLOCK) ON L9.ID = ES.Level9Id AND L9.IsActive = 1 AND L9.IsDeleted = 0
+                LEFT JOIN [dbo].[ManagementStructureLevel] L10 WITH(NOLOCK) ON L10.ID = ES.Level10Id AND L10.IsActive = 1 AND L10.IsDeleted = 0;
          
-        SELECT *
-        FROM #tmprAPDisbursementReport
-         WHERE InvoiceNum is not null
-        ORDER BY Payee;
-    
-
+        SELECT * FROM #tmprAPDisbursementReport WHERE InvoiceNum is not null ORDER BY Payee;
         -- Total Records Count
-        SELECT COUNT(*) AS TotalRecords
-        FROM #tmprAPDisbursementReport
-        WHERE InvoiceNum is not null;
+       SELECT COUNT(*) AS TotalRecords FROM #tmprAPDisbursementReport WHERE InvoiceNum is not null;
 
 
 END TRY

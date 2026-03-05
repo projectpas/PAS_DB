@@ -12,7 +12,7 @@ EXEC [RPT_GetViewSalesOrderById]
 ** --   --------    -------         --------------------------------
 ** 1    01/09/2024  AMIT GHEDIYA    Created
    2	07/23/2024  Bhargav Saiya	Addes ShippingTerms
-
+   3    05/03/2026  Ayushi Patel    return email through customerContactId insted of cutomer table
 EXEC RPT_GetViewSalesOrderById 782
 
 **************************************************************/
@@ -51,7 +51,7 @@ BEGIN
 			UPPER(ISNULL(cuad.StateOrProvince, '')) AS CustToState,
 			UPPER(ISNULL(cuad.PostalCode, '')) AS CustToPostalCode,
 			UPPER(ISNULL(ccnty.countries_name, '')) AS CustToCountry,
-			MergedCustAddress = (SELECT dbo.ValidatePDFAddress(cuad.Line1,cuad.Line2,NULL,cuad.City,cuad.StateOrProvince,cuad.PostalCode,ccnty.countries_name,cust.CustomerPhone,NULL,cust.Email)),
+			MergedCustAddress = (SELECT dbo.ValidatePDFAddress(cuad.Line1,cuad.Line2,NULL,cuad.City,cuad.StateOrProvince,cuad.PostalCode,ccnty.countries_name,cust.CustomerPhone,NULL,c.Email)),
 					
 			UPPER(ISNULL(cont.FirstName + ' ' + cont.LastName, '')) AS CustomerContactName,
 			soq.CustomerReference,
@@ -169,6 +169,8 @@ BEGIN
 		LEFT JOIN dbo.MasterSalesOrderQuoteStatus qst WITH(NOLOCK) ON soq.StatusId = qst.Id
 		LEFT JOIN dbo.CustomerWarning cuwa WITH(NOLOCK) ON soq.CustomerWarningId = cuwa.CustomerWarningId
 		LEFT JOIN dbo.SalesOrderManagementStructureDetails msd WITH(NOLOCK) ON soq.SalesOrderId = msd.ReferenceID
+		LEFT JOIN dbo.CustomerContact cc WITH(NOLOCK) ON soq.CustomerContactId = cc.CustomerContactId
+		LEFT JOIN dbo.Contact c WITH(NOLOCK) ON cc.ContactId = c.ContactId
 		WHERE soq.SalesOrderId = @salesOrderId;
    END              
              

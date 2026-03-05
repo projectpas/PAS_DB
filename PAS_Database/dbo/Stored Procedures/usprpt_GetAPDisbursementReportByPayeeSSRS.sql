@@ -17,7 +17,7 @@
  ** --   --------         -------          --------------------------------                  
     1    28/01/2026     Priyansh Patel	   Created   
 	2    03/03/2026     Amit Ghediya	   Update for get MJE data [PN-15631]
-    3    04/03/2026     Priyansh Patel     removed the group by to get the detailed records
+    3    04/03/2026     Priyansh Patel     removed the group by to get the detailed records [PN-15619]
     
  EXEC dbo.usprpt_GetAPDisbursementReportByPayeeSSRS 
     @MasterCompanyId = 1 , @PageNumber =1 , @PageSize = 10, @EmployeeId = 2

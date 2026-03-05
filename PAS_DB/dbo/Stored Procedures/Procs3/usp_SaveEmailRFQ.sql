@@ -311,7 +311,7 @@ BEGIN
 						@IsActive = 1
 					FROM @tbl_RfqCustomerType;
 
-					IF NOT EXISTS(SELECT TOP 1 CNT.ContactId FROM [dbo].[CustomerContact] CCNT JOIN [dbo].[Contact] CNT ON CNT.ContactId = CCNT.ContactId WHERE CustomerId = @CustomerId
+					IF NOT EXISTS(SELECT TOP 1 CNT.ContactId FROM [dbo].[CustomerContact] CCNT WITH(NOLOCK) JOIN [dbo].[Contact] CNT WITH(NOLOCK) ON CNT.ContactId = CCNT.ContactId WHERE CustomerId = @CustomerId
 						   AND ISNULL(CNT.WorkPhone,'') = @CustomerPhone AND ISNULL(CNT.Email,'') = @CustomerEmail)
 					BEGIN
 						 EXEC DBO.USP_AddCustomerContact

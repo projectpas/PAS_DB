@@ -4579,6 +4579,7 @@
     <Build Include="dbo\Tables\HangfireJobSettings.sql" />
     <Build Include="dbo\Stored Procedures\usp_GetStocklineAsofNowJobDetailsForCleanUp.sql" />
     <Build Include="dbo\Stored Procedures\USP_CleanUpAsOfNowReportsHistoryData.sql" />
+    <Build Include="dbo\Stored Procedures\USP_AddCustomerContact.sql" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Snapshots\PAS_DB_20220518_07-53-10.dacpac" />

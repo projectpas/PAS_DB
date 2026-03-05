@@ -1,4 +1,5 @@
-﻿/*************************************************************                   
+﻿
+/*************************************************************                   
  ** File:  [usprpt_GetAPDisbursementReportByPayee]                   
  ** Author: Priyansh Patel     
  ** Description: Get Data for AP Disbursement Report        
@@ -12,7 +13,7 @@
  ** --   --------         -------          --------------------------------                  
     1    28-Jan-2026    Priyansh Patel		   Created    
     2    02-Feb-2026    Rajesh Gami			 InvoiceDueDate : Remove Timezone conversion [PN-15621]      
-	3    03-March-2026  Amit Ghediya	     Update for get MJE data [PN-15631]
+	  3    03-March-2026  Amit Ghediya	     Update for get MJE data [PN-15631]
  EXEC dbo.usprpt_GetAPDisbursementReportByPayee
     @MasterCompanyId = 1 , @PageNumber =1 , @PageSize = 10, @EmployeeId = 2
 

@@ -1,4 +1,5 @@
-﻿/*************************************************************   
+﻿
+/*************************************************************   
 ** Author:  <Hemant Saliya>  
 ** Create date: <12/30/2021>  
 ** Description: <Save Work Order Materials Issue Stockline Details>  
@@ -23,7 +24,7 @@ EXEC [usp_IssueWorkOrderMaterialsStockline]
 ** 12	12/20/2024		Devendra Shekh	  ExtendedCost Calculation issue Resolved
 ** 13	04/24/2025		Devendra Shekh    Modify (Added [IsManualText] check for DistributionSetup)
 ** 14	02/02/2026		HEMANT SALIYA     Modify to Get Stockline unit cost from stockline insted of Work Order materials stockline so, latest cost will reflacts
-
+   15   04-March-2026	Rajesh Gami		   Implemented UOM Changes [PN-14832]
 DECLARE @p1 dbo.ReserveWOMaterialsStocklineType
 
 insert into @p1 values(924,945,1458,79728,3,7,1,1,2,N'NEW',N'0856AE15',N'PITOT STATIC TUBE',1,0,0,1,0,0,N'CNTL-001062',N'ID_NUM-000001',N'STL-000087',N'',N'ADMIN User',1,0,0,0,0,0)
@@ -34,7 +35,7 @@ declare @p1 dbo.ReserveWOMaterialsStocklineType
 insert into @p1 values(4226,3748,16233,179044,318,7,1,10,2,N'NE',N'100865',N'BATTERY POWER SUPPLY',1,0,0,1,0,0,N'CNTL-000614',N'ID_NUM-000001',N'STL000073',N'',N'ADMIN User',1,0,0,0,0,0)
 exec dbo.usp_IssueWorkOrderMaterialsStockline @tbl_MaterialsStocklineType=@p1
 **************************************************************/ 
-CREATE   PROCEDURE [dbo].[usp_IssueWorkOrderMaterialsStockline]
+CREATE     PROCEDURE [dbo].[usp_IssueWorkOrderMaterialsStockline]
 	@tbl_MaterialsStocklineType ReserveWOMaterialsStocklineType READONLY
 AS
 BEGIN
@@ -67,8 +68,8 @@ BEGIN
 					DECLARE @PartStatus INT;
 					DECLARE @WorkOrderMaterialsId BIGINT;
 					DECLARE @IsSerialised BIT;
-					DECLARE @stockLineQty INT;
-					DECLARE @stockLineQtyAvailable INT;
+					DECLARE @stockLineQty [decimal](18,6);
+					DECLARE @stockLineQtyAvailable [decimal](18,6);
 					DECLARE @IsKit BIGINT = 0;
 					DECLARE @MaterialRefNo VARCHAR(100) = 'Issue Stock', @WONumber VARCHAR(100);
 
@@ -78,18 +79,18 @@ BEGIN
                     DECLARE @ReferencePartId BIGINT
                     DECLARE @ReferencePieceId BIGINT
                     DECLARE @InvoiceId BIGINT=0
-					DECLARE @IssueQty BIGINT=0
+					DECLARE @IssueQty [decimal](18,6)=0
                     DECLARE @laborType VARCHAR(200)='434'
                     DECLARE @issued bit=1
-                    DECLARE @Amount decimal(18,2)
+                    DECLARE @Amount [decimal](18,6)
                     DECLARE @ModuleName VARCHAR(200)='WOP-PartsIssued'
                     DECLARE @UpdateBy VARCHAR(200)
 					DECLARE @HistoryWorkOrderMaterialsId BIGINT,@historyModuleId BIGINT,@historySubModuleId BIGINT,
 							@historyWorkOrderId BIGINT,@HistoryQtyReserved VARCHAR(MAX),@HistoryQuantityActReserved VARCHAR(MAX),@historyReservedById BIGINT,
 							@historyEmployeeName VARCHAR(100),@historyMasterCompanyId BIGINT,@historytotalReserved VARCHAR(MAX),@TemplateBody NVARCHAR(MAX),
 							@WorkOrderNum VARCHAR(MAX),@ConditionId BIGINT,@ConditionCode VARCHAR(MAX),@HistoryStockLineId BIGINT,@HistoryStockLineNum VARCHAR(MAX),
-							@WorkFlowWorkOrderId BIGINT,@WorkOrderPartNoId BIGINT,@historyQuantity BIGINT,@historyQtyToBeReserved BIGINT, @KITID BIGINT,
-							@ItemMasterId BIGINT,@Partnumber VARCHAR(200),@MPNPartnumber VARCHAR(200),@historyQuantityActIssued BIGINT,
+							@WorkFlowWorkOrderId BIGINT,@WorkOrderPartNoId BIGINT,@historyQuantity [decimal](18,6),@historyQtyToBeReserved [decimal](18,6), @KITID BIGINT,
+							@ItemMasterId BIGINT,@Partnumber VARCHAR(200),@MPNPartnumber VARCHAR(200),@historyQuantityActIssued [decimal](18,6),
 							@OldValue VARCHAR(MAX)='' ,@NewValue VARCHAR(MAX) ='' 
 
 					DECLARE @WOBatchTriggerType BatchTriggerWorkOrderType;
@@ -110,7 +111,7 @@ BEGIN
 					SET @slcount = 1;
 					SET @count = 1;
 					SET @countKIT = 1;
-					DECLARE @Qty BIGINT = 0;
+					DECLARE @Qty [decimal](18,6) = 0;
 					DECLARE @ActionId INT = 0;
 					DECLARE @WOTypeId INT= 0;
 					DECLARE @CustomerWOTypeId INT= 0;
@@ -135,9 +136,9 @@ BEGIN
 						[Condition] VARCHAR(500) NULL,
 						[PartNumber] VARCHAR(500) NULL,
 						[PartDescription] VARCHAR(max) NULL,
-						[Quantity] INT NULL,
-						[QtyToBeReserved] INT NULL,
-						[QuantityActIssued] INT NULL,
+						[Quantity] [decimal](18,6) NULL,
+						[QtyToBeReserved] [decimal](18,6) NULL,
+						[QuantityActIssued] [decimal](18,6) NULL,
 						[ControlNo] VARCHAR(500) NULL,
 						[ControlId] VARCHAR(500) NULL,
 						[StockLineNumber] VARCHAR(500) NULL,
@@ -147,9 +148,11 @@ BEGIN
 						[MasterCompanyId] BIGINT NULL,
 						[UpdatedBy] VARCHAR(500) NULL,
 						[UpdatedById] BIGINT NULL,
-						[UnitCost] DECIMAL(18,2),
+						[UnitCost] [decimal](18,6),
 						[IsSerialized] BIT,
-						[KitId] BIGINT NULL
+						[KitId] BIGINT NULL,
+						[StockUOM]  [varchar](50)  NULL, 
+						[ConsumeUOM] [varchar](50)  NULL
 					)
 
 					IF OBJECT_ID(N'tempdb..#tmpIssueWOMaterialsStocklineWithoutKit') IS NOT NULL
@@ -171,9 +174,9 @@ BEGIN
 						[Condition] VARCHAR(500) NULL,
 						[PartNumber] VARCHAR(500) NULL,
 						[PartDescription] VARCHAR(max) NULL,
-						[Quantity] INT NULL,
-						[QtyToBeReserved] INT NULL,
-						[QuantityActIssued] INT NULL,
+						[Quantity] [decimal](18,6) NULL,
+						[QtyToBeReserved] [decimal](18,6) NULL,
+						[QuantityActIssued] [decimal](18,6) NULL,
 						[ControlNo] VARCHAR(500) NULL,
 						[ControlId] VARCHAR(500) NULL,
 						[StockLineNumber] VARCHAR(500) NULL,
@@ -183,9 +186,11 @@ BEGIN
 						[MasterCompanyId] BIGINT NULL,
 						[UpdatedBy] VARCHAR(500) NULL,
 						[UpdatedById] BIGINT NULL,
-						[UnitCost] DECIMAL(18,2),
+						[UnitCost] [decimal](18,6),
 						[IsSerialized] BIT,
-						[KitId] BIGINT NULL
+						[KitId] BIGINT NULL,
+						[StockUOM]  [varchar](50)  NULL, 
+						[ConsumeUOM] [varchar](50)  NULL
 					)
 
 					IF OBJECT_ID(N'tempdb..#tmpIssueWOMaterialsStocklineKit') IS NOT NULL
@@ -207,9 +212,9 @@ BEGIN
 						[Condition] VARCHAR(500) NULL,
 						[PartNumber] VARCHAR(500) NULL,
 						[PartDescription] VARCHAR(max) NULL,
-						[Quantity] INT NULL,
-						[QtyToBeReserved] INT NULL,
-						[QuantityActIssued] INT NULL,
+						[Quantity] [decimal](18,6) NULL,
+						[QtyToBeReserved] [decimal](18,6) NULL,
+						[QuantityActIssued] [decimal](18,6) NULL,
 						[ControlNo] VARCHAR(500) NULL,
 						[ControlId] VARCHAR(500) NULL,
 						[StockLineNumber] VARCHAR(500) NULL,
@@ -219,9 +224,11 @@ BEGIN
 						[MasterCompanyId] BIGINT NULL,
 						[UpdatedBy] VARCHAR(500) NULL,
 						[UpdatedById] BIGINT NULL,
-						[UnitCost] DECIMAL(18,2),
+						[UnitCost] [decimal](18,6),
 						[IsSerialized] BIT,
-						[KitId] BIGINT NULL
+						[KitId] BIGINT NULL,
+						[StockUOM]  [varchar](50)  NULL, 
+						[ConsumeUOM] [varchar](50)  NULL
 					)
 
 					IF OBJECT_ID(N'tempdb..#tmpIgnoredStockline') IS NOT NULL
@@ -246,30 +253,54 @@ BEGIN
 
 					INSERT INTO #tmpIssueWOMaterialsStockline ([WorkOrderId],[WorkFlowWorkOrderId], [WorkOrderMaterialsId], [StockLineId],[ItemMasterId],[ConditionId], [ProvisionId], 
 							[TaskId], [Condition], [PartNumber], [PartDescription], [Quantity], [QtyToBeReserved], [QuantityActIssued], [ControlNo], [ControlId],
-							[StockLineNumber], [SerialNumber], [ReservedBy], [IsStocklineAdded], [MasterCompanyId], [UpdatedBy], [UpdatedById],  [UnitCost], [IsSerialized], [KitId])
+							[StockLineNumber], [SerialNumber], [ReservedBy], [IsStocklineAdded], [MasterCompanyId], [UpdatedBy], [UpdatedById],  [UnitCost], [IsSerialized], [KitId],[StockUOM],[ConsumeUOM])
 					SELECT tblMS.[WorkOrderId],[WorkFlowWorkOrderId], tblMS.[WorkOrderMaterialsId], tblMS.[StockLineId], tblMS.[ItemMasterId], tblMS.[ConditionId], [ProvisionId], 
-							[TaskId], tblMS.[Condition], tblMS.[PartNumber], [PartDescription], tblMS.[Quantity], [QtyToBeReserved], [QuantityActIssued], [ControlNo], [ControlId],
-							tblMS.[StockLineNumber], tblMS.[SerialNumber], [ReservedBy], [IsStocklineAdded], SL.MasterCompanyId, [ReservedBy], [ReservedById], SL.UnitCost, SL.isSerialized, tblMS.[KitId]
+							[TaskId], tblMS.[Condition], tblMS.[PartNumber], [PartDescription], 
+							tblMS.[Quantity], --dbo.fn_ConvertUOM(tblMS.[Quantity], uomConsume.ShortName, uomStock.ShortName,0,SL.[MasterCompanyId]), 
+							[QtyToBeReserved], --dbo.fn_ConvertUOM([QtyToBeReserved], uomConsume.ShortName, uomStock.ShortName,0,SL.[MasterCompanyId]), 
+							[QuantityActIssued], --dbo.fn_ConvertUOM([QuantityActIssued], uomConsume.ShortName, uomStock.ShortName,0,SL.[MasterCompanyId]), 
+							[ControlNo], [ControlId],
+							tblMS.[StockLineNumber], tblMS.[SerialNumber], [ReservedBy], [IsStocklineAdded], SL.MasterCompanyId, [ReservedBy], [ReservedById], 	
+							SL.UnitCost , 
+							SL.isSerialized, tblMS.[KitId],uomStock.ShortName AS StockUOM,uomConsume.ShortName AS ConsumeUOM
 					FROM @tbl_MaterialsStocklineType tblMS  JOIN dbo.Stockline SL ON SL.StockLineId = tblMS.StockLineId 
+									LEFT JOIN [dbo].[UnitOfMeasure] uomStock WITH(NOLOCK) ON uomStock.UnitOfMeasureId = SL.StockUnitOfMeasureId
+									LEFT JOIN [dbo].[UnitOfMeasure] uomConsume WITH(NOLOCK) ON uomConsume.UnitOfMeasureId = SL.ConsumeUnitOfMeasureId
 					WHERE SL.QuantityOnHand > 0 AND SL.QuantityOnHand >= tblMS.QuantityActIssued
 
 					INSERT INTO #tmpIssueWOMaterialsStocklineWithoutKit ([WorkOrderId],[WorkFlowWorkOrderId], [WorkOrderMaterialsId], [StockLineId],[ItemMasterId],[ConditionId], [ProvisionId], 
 							[TaskId], [Condition], [PartNumber], [PartDescription], [Quantity], [QtyToBeReserved], [QuantityActIssued], [ControlNo], [ControlId],
-							[StockLineNumber], [SerialNumber], [ReservedBy], [IsStocklineAdded], [MasterCompanyId], [UpdatedBy], [UpdatedById],  [UnitCost], [IsSerialized], [KitId])
+							[StockLineNumber], [SerialNumber], [ReservedBy], [IsStocklineAdded], [MasterCompanyId], [UpdatedBy], [UpdatedById],  [UnitCost], [IsSerialized], [KitId],[StockUOM],[ConsumeUOM])
 					SELECT tblMS.[WorkOrderId],[WorkFlowWorkOrderId], tblMS.[WorkOrderMaterialsId], tblMS.[StockLineId], tblMS.[ItemMasterId], tblMS.[ConditionId], [ProvisionId], 
-							[TaskId], tblMS.[Condition], tblMS.[PartNumber], [PartDescription], tblMS.[Quantity], [QtyToBeReserved], [QuantityActIssued], [ControlNo], [ControlId],
-							tblMS.[StockLineNumber], tblMS.[SerialNumber], [ReservedBy], [IsStocklineAdded], SL.MasterCompanyId, [ReservedBy], [ReservedById], SL.UnitCost, SL.isSerialized, tblMS.[KitId]
+							[TaskId], tblMS.[Condition], tblMS.[PartNumber], [PartDescription], 
+							tblMS.[Quantity], --dbo.fn_ConvertUOM(tblMS.[Quantity], uomConsume.ShortName, uomStock.ShortName,0,SL.[MasterCompanyId]), 
+							[QtyToBeReserved], --dbo.fn_ConvertUOM([QtyToBeReserved], uomConsume.ShortName, uomStock.ShortName,0,SL.[MasterCompanyId]), 
+							[QuantityActIssued], --dbo.fn_ConvertUOM([QuantityActIssued], uomConsume.ShortName, uomStock.ShortName,0,SL.[MasterCompanyId]), 
+							[ControlNo], [ControlId],
+							tblMS.[StockLineNumber], tblMS.[SerialNumber], [ReservedBy], [IsStocklineAdded], SL.MasterCompanyId, [ReservedBy], [ReservedById], 
+							SL.UnitCost , 
+							SL.isSerialized, tblMS.[KitId],uomStock.ShortName AS StockUOM,uomConsume.ShortName AS ConsumeUOM
 					FROM @tbl_MaterialsStocklineType tblMS  JOIN dbo.Stockline SL ON SL.StockLineId = tblMS.StockLineId 
+									LEFT JOIN [dbo].[UnitOfMeasure] uomStock WITH(NOLOCK) ON uomStock.UnitOfMeasureId = SL.StockUnitOfMeasureId
+									LEFT JOIN [dbo].[UnitOfMeasure] uomConsume WITH(NOLOCK) ON uomConsume.UnitOfMeasureId = SL.ConsumeUnitOfMeasureId
 					WHERE SL.QuantityOnHand > 0 AND SL.QuantityOnHand >= tblMS.QuantityActIssued
 					AND ISNULL(tblMS.KitId, 0) = 0
 
 					INSERT INTO #tmpIssueWOMaterialsStocklineKit ([WorkOrderId],[WorkFlowWorkOrderId], [WorkOrderMaterialsKitId], [StockLineId],[ItemMasterId],[ConditionId], [ProvisionId], 
 							[TaskId], [Condition], [PartNumber], [PartDescription], [Quantity], [QtyToBeReserved], [QuantityActIssued], [ControlNo], [ControlId],
-							[StockLineNumber], [SerialNumber], [ReservedBy], [IsStocklineAdded], [MasterCompanyId], [UpdatedBy], [UpdatedById],  [UnitCost], [IsSerialized], [KitId])
+							[StockLineNumber], [SerialNumber], [ReservedBy], [IsStocklineAdded], [MasterCompanyId], [UpdatedBy], [UpdatedById],  [UnitCost], [IsSerialized], [KitId],[StockUOM],[ConsumeUOM])
 					SELECT tblMS.[WorkOrderId],[WorkFlowWorkOrderId], tblMS.[WorkOrderMaterialsId], tblMS.[StockLineId], tblMS.[ItemMasterId], tblMS.[ConditionId], [ProvisionId], 
-							[TaskId], tblMS.[Condition], tblMS.[PartNumber], [PartDescription], tblMS.[Quantity], [QtyToBeReserved], [QuantityActIssued], [ControlNo], [ControlId],
-							tblMS.[StockLineNumber], tblMS.[SerialNumber], [ReservedBy], [IsStocklineAdded], SL.MasterCompanyId, [ReservedBy], [ReservedById], SL.UnitCost, SL.isSerialized, tblMS.[KitId]
+							[TaskId], tblMS.[Condition], tblMS.[PartNumber], [PartDescription], 
+							tblMS.[Quantity], --dbo.fn_ConvertUOM(tblMS.[Quantity], uomConsume.ShortName, uomStock.ShortName,0,SL.[MasterCompanyId]), 
+							[QtyToBeReserved], --dbo.fn_ConvertUOM([QtyToBeReserved], uomConsume.ShortName, uomStock.ShortName,0,SL.[MasterCompanyId]), 
+							[QuantityActIssued], --dbo.fn_ConvertUOM([QuantityActIssued], uomConsume.ShortName, uomStock.ShortName,0,SL.[MasterCompanyId]), 
+							[ControlNo], [ControlId],
+							tblMS.[StockLineNumber], tblMS.[SerialNumber], [ReservedBy], [IsStocklineAdded], SL.MasterCompanyId, [ReservedBy], [ReservedById], 
+							SL.UnitCost,
+							SL.isSerialized, tblMS.[KitId],uomStock.ShortName AS StockUOM,uomConsume.ShortName AS ConsumeUOM
 					FROM @tbl_MaterialsStocklineType tblMS  JOIN dbo.Stockline SL ON SL.StockLineId = tblMS.StockLineId 
+									LEFT JOIN [dbo].[UnitOfMeasure] uomStock WITH(NOLOCK) ON uomStock.UnitOfMeasureId = SL.StockUnitOfMeasureId
+									LEFT JOIN [dbo].[UnitOfMeasure] uomConsume WITH(NOLOCK) ON uomConsume.UnitOfMeasureId = SL.ConsumeUnitOfMeasureId
 					WHERE SL.QuantityOnHand > 0 AND SL.QuantityOnHand >= tblMS.QuantityActIssued
 					AND ISNULL(tblMS.KitId, 0) > 0
 
@@ -463,9 +494,9 @@ BEGIN
 						SELECT @HistoryStockLineNum = StockLineNumber FROM dbo.Stockline WITH(NOLOCK) WHERE StockLineId = @HistoryStockLineId;
 
 						SELECT @historyEmployeeName = (FirstName +' '+ LastName) FROM dbo.Employee WITH(NOLOCK) WHERE EmployeeId = @historyReservedById;
-						SELECT @HistoryQtyReserved = CAST(QuantityReserved AS VARCHAR) FROM dbo.WorkOrderMaterials WOM WITH(NOLOCK) JOIN #tmpIssueWOMaterialsStocklineWithoutKit tmpWOM ON tmpWOM.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId AND tmpWOM.ID = @count;
+						SELECT @HistoryQtyReserved = CAST(QuantityReserved AS VARCHAR(30)) FROM dbo.WorkOrderMaterials WOM WITH(NOLOCK) JOIN #tmpIssueWOMaterialsStocklineWithoutKit tmpWOM ON tmpWOM.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId AND tmpWOM.ID = @count;
 						
-						SET @historytotalReserved = (CAST(@HistoryQtyReserved AS BIGINT) + CAST(@HistoryQuantityActReserved AS BIGINT));
+						SET @historytotalReserved = (CAST(@HistoryQtyReserved AS [decimal](18,6)) + CAST(@HistoryQuantityActReserved AS [decimal](18,6)));
 						
 						SET @TemplateBody = REPLACE(@TemplateBody, '##PN##', ISNULL(@Partnumber,''));
 						SET @TemplateBody = REPLACE(@TemplateBody, '##MPN##', ISNULL(@MPNPartnumber,''));

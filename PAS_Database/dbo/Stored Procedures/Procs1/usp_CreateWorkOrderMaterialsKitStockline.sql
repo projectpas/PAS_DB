@@ -1,4 +1,5 @@
-﻿/*************************************************************   
+﻿
+/*************************************************************   
 ** Author:  <Vishal Suthar>  
 ** Create date: <04/06/2023>  
 ** Description: <Save Work Order Materials KIT Stockline Details>  
@@ -10,10 +11,10 @@ EXEC [usp_CreateWorkOrderMaterialsKitStockline]
 ** PR   Date        Author          Change Description  
 ** --   --------    -------         --------------------------------
 ** 1    04/06/2023  Vishal Suthar    CREATED
-
+   2   04-March-2026	Rajesh Gami		   Implemented UOM Changes [PN-14832]
 exec dbo.usp_ReserveWorkOrderMaterialsStockline @tbl_MaterialsStocklineType=@p1
 **************************************************************/ 
-CREATE   PROCEDURE [dbo].[usp_CreateWorkOrderMaterialsKitStockline]
+CREATE     PROCEDURE [dbo].[usp_CreateWorkOrderMaterialsKitStockline]
 	@tbl_MaterialsStocklineType ReserveWOMaterialsStocklineType READONLY
 AS
 BEGIN
@@ -50,9 +51,9 @@ BEGIN
 						[Condition] VARCHAR(500) NULL,
 						[PartNumber] VARCHAR(500) NULL,
 						[PartDescription] VARCHAR(max) NULL,
-						[Quantity] INT NULL,
-						[QtyToBeReserved] INT NULL,
-						[QuantityActReserved] INT NULL,
+						[Quantity] [decimal](18,6) NULL,
+						[QtyToBeReserved] [decimal](18,6) NULL,
+						[QuantityActReserved] [decimal](18,6) NULL,
 						[ControlNo] VARCHAR(500) NULL,
 						[ControlId] VARCHAR(500) NULL,
 						[StockLineNumber] VARCHAR(500) NULL,
@@ -61,7 +62,7 @@ BEGIN
 						[IsStocklineAdded] BIT NULL,
 						[MasterCompanyId] BIGINT NULL,
 						[UpdatedBy] VARCHAR(500) NULL,
-						[UnitCost] DECIMAL(18,2),
+						[UnitCost] [decimal](18,6),
 						[IsSerialized] BIT,
 						[KitId] BIGINT NULL,
 						[IsAltPart] [BIT] NULL,

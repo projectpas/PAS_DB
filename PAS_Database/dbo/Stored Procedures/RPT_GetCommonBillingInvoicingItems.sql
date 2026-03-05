@@ -1,4 +1,5 @@
-﻿/*****************************************************************************************           
+﻿
+/*****************************************************************************************           
  ** File:   [RPT_GetCommonBillingInvoicingItems]           
  ** Author:   Moin Bloch 
  ** Description: This stored procedure is used to Get Common Billing Invoicing Items
@@ -14,7 +15,7 @@
 	2    18/06/2025   Moin Bloch    Fix For Condition in pdf
 	3    18/06/2025   Moin Bloch    Added WorkFlowWorkOrderId
 	4    24/06/2025   Moin Bloch    Fix For Duplicate Part
-     
+    5	 27/02/2026   Ayushi Patel  return ItemNo for WoInvoice Report
 --   EXEC [dbo].[RPT_GetCommonBillingInvoicingItems] 89,15
 ********************************************************************************************/
 CREATE PROCEDURE [dbo].[RPT_GetCommonBillingInvoicingItems]
@@ -98,6 +99,7 @@ BEGIN
 				    ELSE ISNULL(BII.[MiscChargesCostPlus],0)
 			   END [IsCharges]			
 			  ,ISNULL(BI.[IsCreatedFromQuote],0) [IsCreatedFromQuote]
+			  ,ROW_NUMBER() OVER (ORDER BY BII.[BillingInvoicingId]) AS ItemNo
 		   FROM [dbo].[BillingInvoicingItems] BII WITH(NOLOCK) 
 		  INNER JOIN [dbo].[BillingInvoicing] BI WITH(NOLOCK) ON BII.[BillingInvoicingId] = BI.[BillingInvoicingId] AND BI.ModuleId = @WOModuleId
 		  INNER JOIN [dbo].[WorkOrder] WO WITH(NOLOCK) ON BII.[ReferenceId] = WO.[WorkOrderId] AND BII.ModuleId = @WOModuleId

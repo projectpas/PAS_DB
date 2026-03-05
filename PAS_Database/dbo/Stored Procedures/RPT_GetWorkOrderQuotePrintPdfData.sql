@@ -1,4 +1,5 @@
-﻿/*************************************************************             
+﻿
+/*************************************************************             
  ** File:   [RPT_GetWorkOrderQuotePrintPdfData]             
  ** Author:   AMIT GHEDIYA  
  ** Description: This stored procedure is used to get work order quote pdf details  
@@ -26,6 +27,7 @@
 	12   10-Nov-2025    Moin Bloch          Updated Removed MEMO For MTI Company
 	13   06-Jan-2025    AMIT GHEDIYA        Previously, the memo was hidden only for the MTI company; it is now hidden for all other companies except NEO. 
 	14   05-FEB-2026    AMIT GHEDIYA        Changes for Neo Company only to bind condition from workscope.(PN-15347)
+	15	 03-March-2026  Ayushi Patel		Retuen ItemNo 
 --EXEC [RPT_GetWorkOrderQuotePrintPdfData] 2358,4357  
 **************************************************************/  
 CREATE PROCEDURE [dbo].[RPT_GetWorkOrderQuotePrintPdfData]  
@@ -317,7 +319,7 @@ BEGIN
 		 ,wop.RevisedSerialNumber,wop.CurrentSerialNumber, wf.WorkFlowWorkOrderId,woq.IsPrintCorrectiveAction,wop.EstimatedShipDate),
 	AfterTax AS (SELECT *, CAST(((Ct.subtotalfortax * Ct.TAXRates) / 100) AS DECIMAL(18, 2)) AS SalesTaxAmount, CAST(((Ct.subtotalfortax * Ct.Othertax) / 100) AS DECIMAL(18, 2)) AS OtherTaxAmount FROM WOQPartCte Ct)
 	
-	SELECT *, (ISNULL(FinalQuote.SalesTaxAmount, 0) + ISNULL(FinalQuote.OtherTaxAmount, 0) + ISNULL(FinalQuote.subtotalfortax, 0)) FinalTotal FROM AfterTax FinalQuote;
+	SELECT *, (ISNULL(FinalQuote.SalesTaxAmount, 0) + ISNULL(FinalQuote.OtherTaxAmount, 0) + ISNULL(FinalQuote.subtotalfortax, 0)) FinalTotal,ROW_NUMBER() OVER (ORDER BY FinalQuote.PartNumber) AS ItemNo FROM AfterTax FinalQuote;
 
    END  
   COMMIT  TRANSACTION  

@@ -17,7 +17,7 @@ EXEC [RPT_GetSalesOrderPartsView]
    6	11/27/2024	Vishal Suthar	Fixed Qty Reserved issue
    7	12/04/2024	Vishal Suthar	Fixed an issue with fetching Notes from stockline
    8	06/03/2025	Vishal Suthar	Removed truncation for PN Description Field
-
+   9	04/03/2026  Ayushi Patel	Return ItemNo for print
 EXEC RPT_GetSalesOrderPartsView 1472
 
 **************************************************************/
@@ -182,7 +182,7 @@ BEGIN
 				WHEN im.IsPma = 0 AND im.IsDER = 1 THEN 'DER'
 				ELSE 'OEM'
 			END AS StockType,
-			0 AS ItemNo,
+			ROW_NUMBER() OVER (ORDER BY sp.SalesOrderPartId) AS ItemNo,
 			ISNULL(sp.POId, 0) AS POId,
 			ISNULL(sp.PONumber, '') AS PONumber,
 			ISNULL(sp.PONextDlvrDate, NULL) AS PONextDlvrDate,

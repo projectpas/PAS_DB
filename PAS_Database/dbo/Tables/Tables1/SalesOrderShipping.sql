@@ -71,6 +71,7 @@
     [SoldToUserType]                     INT             NULL,
     [ShipToUserType]                     INT             NULL,
     [SoldToCustomerId]                   BIGINT          NULL,
+    [IsBypassShipping]                   BIT             NULL,
     CONSTRAINT [PK_SalesOrderShipping] PRIMARY KEY CLUSTERED ([SalesOrderShippingId] ASC),
     CONSTRAINT [FK_SalesOrderShipping_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId]),
     CONSTRAINT [FK_SalesOrderShipping_OriginCountry] FOREIGN KEY ([OriginCountryId]) REFERENCES [dbo].[Countries] ([countries_id]),
@@ -79,6 +80,8 @@
     CONSTRAINT [FK_SalesOrderShipping_ShipToCountry] FOREIGN KEY ([ShipToCountryId]) REFERENCES [dbo].[Countries] ([countries_id]),
     CONSTRAINT [FK_SalesOrderShipping_SoldToCountry] FOREIGN KEY ([SoldToCountryId]) REFERENCES [dbo].[Countries] ([countries_id])
 );
+
+
 
 
 

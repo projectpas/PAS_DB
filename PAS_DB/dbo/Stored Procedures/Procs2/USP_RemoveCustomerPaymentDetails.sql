@@ -2,14 +2,15 @@
 -- Author:		<Subhash Saliya>
 -- Create date: <21/04/2023>
 -- Description:	<Delete Case Reciept data>
--- 1   27/06/2025   Moin Bloch	Format SP
+-- 1   27/06/2025   Moin Bloch			Format SP
+-- 2   27/06/2025   HEMANT SALIYA		RESOLVED UPDATE IS DELETED ISSUE TO INCREASE VARCHAR(MAX)
 -- =============================================
 CREATE   PROCEDURE [dbo].[USP_RemoveCustomerPaymentDetails]
-    @CustomerPaymentDetailsId varchar(200) = null,
-	@PaymentId varchar(200) = null,
-	@CheckPaymentId varchar(200) = null,
-	@WireTransferId varchar(200) = null,
-	@CreditDebitPaymentId varchar(200)= null ,
+    @CustomerPaymentDetailsId VARCHAR(MAX) = NULL,
+	@PaymentId VARCHAR(MAX) = NULL,
+	@CheckPaymentId VARCHAR(MAX) = NULL,
+	@WireTransferId VARCHAR(MAX) = NULL,
+	@CreditDebitPaymentId VARCHAR(MAX)= NULL ,
 	@ReceiptId BIGINT = NULL
 AS
 BEGIN
@@ -44,7 +45,7 @@ BEGIN
 			DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name() 
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
             , @AdhocComments     VARCHAR(150)    = 'USP_RemoveCustomerPaymentDetails'            
-			, @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = '''+ ISNULL(CAST(@ReceiptId AS VARCHAR(10)), '') + ''      
+			, @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = '''+ ISNULL(CAST(@ReceiptId AS VARCHAR(MAX)), '') + ''      
             , @ApplicationName VARCHAR(100) = 'PAS'
 -----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------
             exec spLogException 

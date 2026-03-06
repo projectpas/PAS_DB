@@ -1,6 +1,4 @@
-﻿/*******************************************************************************************************************************************/
-
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [SP_AddUpdatePurchaseOrderParts]           
  ** Author:  Rajesh Gami
  ** Description: This stored procedure is used to create and update Purchase order parts
@@ -22,8 +20,9 @@
 	8	 23/07/2025	  RAJESH GAMI			Fixed: Get @OrderPartStatusId from the SOPartStatus table
 	9	 23/09/2025	  Amit Ghediya			Update VendorRFQ refrence
 	9	 05/12/2025	  Ayushi Patel			Added new fields SalesOrderQuoteId,SalesOrderQuoteNumber
+	10	 06/03/2026	  Amit Ghediya			Remove PurchaseOrder open status (PN-15673)
 ************************************************************************/
-CREATE       PROCEDURE [dbo].[SP_AddUpdatePurchaseOrderParts]
+CREATE     PROCEDURE [dbo].[SP_AddUpdatePurchaseOrderParts]
 	@userName varchar(50) = NULL,
 	@masterCompanyId bigint = NULL,
 	@tbl_PurchaseOrderPartType PurchaseOrderPartType READONLY,
@@ -103,10 +102,10 @@ BEGIN
 								BEGIN
 									DELETE DBO.PurchaseOrderApproval WHERE PurchaseOrderPartId = @PurchaseOrderPartRecordId;
 								END
-								if exists (select PurchaseOrderId from DBO.PurchaseOrder WITH (NOLOCK) WHERE StatusId = @FulfillStatusId AND PurchaseOrderId = @PurchaseOrderId)
-								BEGIN
-									UPDATE DBO.PurchaseOrder SET Status = @OpenStatus , StatusId = @OpenStatusId where PurchaseOrderId = @PurchaseOrderId
-								END
+								--if exists (select PurchaseOrderId from DBO.PurchaseOrder WITH (NOLOCK) WHERE StatusId = @FulfillStatusId AND PurchaseOrderId = @PurchaseOrderId)
+								--BEGIN
+								--	UPDATE DBO.PurchaseOrder SET Status = @OpenStatus , StatusId = @OpenStatusId where PurchaseOrderId = @PurchaseOrderId
+								--END
 							END
 
 							UPDATE SL							

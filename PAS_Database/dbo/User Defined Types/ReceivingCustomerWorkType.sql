@@ -130,5 +130,5 @@
     [CSO]                        VARCHAR (50)    NULL,
     [TSO]                        VARCHAR (50)    NULL,
     [OutGoingItemMasterId]       BIGINT          NULL,
-    [OutGoingPartNumber]         VARCHAR (50)    NULL);
+    [OutGoingPartNumber]         VARCHAR (250)   NULL);   
 

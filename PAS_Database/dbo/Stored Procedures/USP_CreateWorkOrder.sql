@@ -27,6 +27,7 @@
 	14	 30/01/2026   Moin Bloch     	Added IncomingPartNumber
 	15   10/02/2026   Moin Bloch        Added Accounting Entry For TearDown Work Order PN-15331
 	16   12/02/2026   Moin Bloch        Added Stockline Issue Entry For TearDown Work Order PN-15435
+	17   24/02/2026   Moin Bloch        Added Logic for IncomingPartNumber PN-15427
 	
 --   EXEC [USP_CreateWorkOrder] 
 **************************************************************/
@@ -517,6 +518,7 @@ BEGIN
 		DECLARE @WorkflowId BIGINT = NULL,@TechnicianId BIGINT = NULL,@TechStationId BIGINT = NULL,@RevisedPartId BIGINT = NULL,@RevisedConditionId BIGINT = NULL,@ConditionId BIGINT = NULL
 		DECLARE @RevisedItemmasterid BIGINT = NULL,@RevisedSerialNumber VARCHAR(50)=NULL,@SerialNumber VARCHAR(50)=NULL,@CurrentSerialNumber VARCHAR(100) = NULL
 		DECLARE @RevisedPartNumber VARCHAR(50)=NULL,@PartNumber VARCHAR(200) = NULL,@PartAllowInvoiceBeforeShipping BIT = NULL,@StocklineCost DECIMAL(18,2) = 0
+		DECLARE @IncomingPartNumber VARCHAR(50)=NULL,@OutGoingItemMasterId BIGINT = NULL,@OutGoingPartNumber VARCHAR(50)=NULL
 		
 		SELECT @WorkflowId = [WorkflowId],
 			   @TechnicianId = [TechnicianId],
@@ -533,21 +535,27 @@ BEGIN
 			   @PartNumber = [PartNumber],			 			  
 			   @PartAllowInvoiceBeforeShipping = [AllowInvoiceBeforeShipping],
 			   @StockLineId = [StockLineId],
-			   @WorkOrderScopeId = WorkOrderScopeId
+			   @WorkOrderScopeId = [WorkOrderScopeId],
+			   @ReceivingCustomerWorkId = [ReceivingCustomerWorkId]
 		FROM #tmprCreateWorkOrderPartNumber WHERE [PKID] = @MinId
 			   		
 		SELECT @StocklineCost = [UnitCost] FROM [dbo].[StockLine] WITH(NOLOCK) WHERE [StockLineId] = @StockLineId;
 
+		IF(@ReceivingCustomerWorkId > 0)
+		BEGIN
+			SELECT @IncomingPartNumber = [PartNumber],@OutGoingItemMasterId = [OutGoingItemMasterId],@OutGoingPartNumber = [OutGoingPartNumber] FROM [dbo].[ReceivingCustomerWork] WITH(NOLOCK) WHERE [ReceivingCustomerWorkId] = @ReceivingCustomerWorkId;
+		END
+		
 		UPDATE #tmprCreateWorkOrderPartNumber 
 		   SET [WorkflowId] =  CASE WHEN @WorkflowId = 0 THEN NULL ELSE @WorkflowId END,
 			   [TechnicianId] = CASE WHEN @TechnicianId = 0 THEN NULL ELSE @TechnicianId END,
 			   [TechStationId] = CASE WHEN @TechStationId = 0 THEN NULL ELSE @TechStationId END,
 			   [RevisedPartId] = CASE WHEN @RevisedPartId = 0 THEN NULL ELSE @RevisedPartId END,
 			   [RevisedConditionId] = CASE WHEN @RevisedConditionId > 0 THEN @RevisedConditionId ELSE @ConditionId END,
-			   [RevisedItemmasterid] = CASE WHEN @RevisedItemmasterid > 0 THEN @RevisedItemmasterid ELSE @ItemMasterId END,
+			   [RevisedItemmasterid] = CASE WHEN @RevisedItemmasterid > 0 THEN @RevisedItemmasterid ELSE CASE WHEN @ReceivingCustomerWorkId > 0 THEN @OutGoingItemMasterId ELSE @ItemMasterId END END,
 			   [RevisedSerialNumber] = CASE WHEN  COALESCE(@RevisedSerialNumber, '') != '' THEN @RevisedSerialNumber ELSE @SerialNumber END,
 			   [CurrentSerialNumber] = CASE WHEN COALESCE(@CurrentSerialNumber, '') != '' THEN @CurrentSerialNumber ELSE @SerialNumber END,
-			   [RevisedPartNumber] = CASE WHEN COALESCE(@RevisedPartNumber, '') != '' THEN @RevisedPartNumber ELSE @PartNumber END,
+			   [RevisedPartNumber] = CASE WHEN COALESCE(@RevisedPartNumber, '') != '' THEN @RevisedPartNumber ELSE CASE WHEN @ReceivingCustomerWorkId > 0 THEN @OutGoingPartNumber ELSE @PartNumber END END,
 			   [CreatedBy] = @CreatedBy,
 			   [UpdatedBy] = @CreatedBy,
 			   [CreatedDate] = @CreatedDate,
@@ -624,7 +632,7 @@ BEGIN
 				[Level1],[Level2],[Level3],[Level4],[AssignDate],[ReceivingCustomerWorkId],[ExpertiseId],[RevisedItemmasterid],[RevisedPartNumber],[RevisedPartDescription],[IsTraveler],
 				[AllowInvoiceBeforeShipping],[WOFPrintDate],[CurrentSerialNumber],[StocklineCost],[TendorStocklineCost],[RepairOrderId],[RONumber],[RevisedSerialNumber],[IsROCreated],
 				[PartNumber],[PartDescription],[WorkOrderStatus],[Priority],[WorkOrderStage],[ManufacturerName],[TechName],[EmployeeStation],[PublicationNo],@TravelerName,Notes,
-				[CSN],[TSN],[CSO],[TSO],[PartNumber]
+				[CSN],[TSN],[CSO],[TSO],CASE WHEN @IncomingPartNumber IS NOT NULL THEN @IncomingPartNumber ELSE [PartNumber] END
 		   FROM #tmprCreateWorkOrderPartNumber 
 		  WHERE [PKID] = @MinId
 

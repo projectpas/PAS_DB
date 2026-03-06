@@ -13,7 +13,7 @@ EXEC [RPT_GetWorkOrderScrapCertificatePrintPdfData]
 
 	EXEC RPT_GetWorkOrderScrapCertificatePrintPdfData 4103,3620
 ***************************************************************************************************/
-CREATE   PROCEDURE [dbo].[RPT_GetWorkOrderScrapCertificatePrintPdfData]              
+CREATE     PROCEDURE [dbo].[RPT_GetWorkOrderScrapCertificatePrintPdfData]              
 @WorkorderId BIGINT,              
 @workOrderPartNoId BIGINT              
 AS              
@@ -31,15 +31,19 @@ BEGIN
 			   @BStateOrProvince = CASE WHEN shippingInfo.WorkOrderId > 0  THEN UPPER(shippingInfo.SoldToState) else UPPER(billToAddress.StateOrProvince) END,              
 			   @BPostalCode = CASE WHEN shippingInfo.WorkOrderId > 0  THEN UPPER(shippingInfo.SoldToZip) else UPPER(billToAddress.PostalCode) END,					  
 			   @BCountry = CASE WHEN shippingInfo.WorkOrderId > 0  THEN UPPER(shippingInfo.SoldToCountryName) else UPPER(billToCountry.countries_name) END,              
-			   @billAttention = CASE WHEN shippingInfo.WorkOrderId > 0  THEN 'ATTN: ' + UPPER(billToSiteatt.Attention) else 'ATTN: ' + UPPER(billToSite.Attention) END
+			   @billAttention = CASE WHEN shippingInfo.WorkOrderId > 0  THEN 'ATTN: ' + UPPER(billToSiteatt.Attention) else 'ATTN: ' + UPPER(billToSite.Attention) END,			   
+			   @BPhoneNumber = UPPER(ISNULL(cont.WorkPhone, '')),
+			   @BEmail = UPPER(ISNULL(cont.Email, ''))
 		  FROM [dbo].[WorkOrder] WO WITH (NOLOCK)
 		 INNER JOIN [dbo].[WorkOrderPartNumber] WOPN WITH (NOLOCK) ON WOPN.WorkOrderId =WO.WorkOrderId AND WOPN.ID = @workOrderPartNoId				
-		  LEFT JOIN Dbo.WorkOrderShipping shippingInfo WITH(NOLOCK) on shippingInfo.WorkOrderId = wo.WorkOrderId and shippingInfo.WorkOrderPartNoId=WOPN.ID  
-		  LEFT JOIN Dbo.CustomerBillingAddress  billToSiteatt WITH(NOLOCK) on shippingInfo.SoldToSiteId = billToSiteatt.CustomerBillingAddressId        
-		  LEFT JOIN Dbo.Customer billToCustomer WITH(NOLOCK) ON wo.CustomerId = billToCustomer.CustomerId              
-		  LEFT JOIN Dbo.CustomerBillingAddress  billToSite WITH(NOLOCK) ON wo.CustomerId = billToSite.CustomerId and billToSite.IsPrimary=1              
-		  LEFT JOIN Dbo.Address billToAddress WITH(NOLOCK) ON billToSite.AddressId = billToAddress.AddressId              
-		  LEFT JOIN Dbo.Countries billToCountry WITH(NOLOCK) ON billToCountry.countries_id = billToAddress.CountryId    
+		  LEFT JOIN [dbo].[WorkOrderShipping] shippingInfo WITH(NOLOCK) on shippingInfo.WorkOrderId = wo.WorkOrderId and shippingInfo.WorkOrderPartNoId=WOPN.ID  
+		  LEFT JOIN [dbo].[CustomerBillingAddress]  billToSiteatt WITH(NOLOCK) on shippingInfo.SoldToSiteId = billToSiteatt.CustomerBillingAddressId        
+		  LEFT JOIN [dbo].[Customer] billToCustomer WITH(NOLOCK) ON wo.CustomerId = billToCustomer.CustomerId              
+		  LEFT JOIN [dbo].[CustomerBillingAddress]  billToSite WITH(NOLOCK) ON wo.CustomerId = billToSite.CustomerId and billToSite.IsPrimary=1              
+		  LEFT JOIN [dbo].[Address] billToAddress WITH(NOLOCK) ON billToSite.AddressId = billToAddress.AddressId              
+		  LEFT JOIN [dbo].[Countries] billToCountry WITH(NOLOCK) ON billToCountry.countries_id = billToAddress.CountryId   
+		  LEFT JOIN [dbo].[CustomerContact] custcont WITH(NOLOCK) ON WO.CustomerContactId = custcont.CustomerContactId AND custcont.IsDefaultContact = 1
+		  LEFT JOIN [dbo].[Contact] cont WITH(NOLOCK) ON custcont.ContactId = cont.ContactId
 		 WHERE WOPN.ID=@workOrderPartNoId AND WO.WorkOrderId=@workOrderId
   
 		EXEC [dbo].[SP_ValidatePDFAddress] 

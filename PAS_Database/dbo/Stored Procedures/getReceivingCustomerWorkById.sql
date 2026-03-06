@@ -1,5 +1,4 @@
-﻿
-/*************************************************************                 
+﻿/*************************************************************                 
  ** File:  [getReceivingCustomerWorkById]      
  ** Author:    Shrey Chandegara   
  ** Description: Receiving CustomerWork By Id    
@@ -18,6 +17,7 @@
 	2    16-Apr-2025		Abhishek Jirawla		Added Is Repair Management
 	3	 16-JUL-2025        Moin Bloch   		    Added IsBatchStock And Batch Number
 	4	 20-JAN-2026        Priyansh Patel  		Added CSN, TSN, CSO, TSO fields
+	5	 24-FEB-2026        Moin Bloch   		    Added OutGoingItemMasterId And OutGoingPartNumber
  --exec dbo.getReceivingCustomerWorkById 5837
       
 **************************************************************/    
@@ -195,7 +195,9 @@ AS BEGIN
 				rc.CSN,
 				rc.TSN,
 				rc.CSO,
-				rc.TSO
+				rc.TSO,
+				rc.OutGoingItemMasterId,
+				rc.OutGoingPartNumber
 			FROM [dbo].[ReceivingCustomerWork] rc WITH(NOLOCK)
 			INNER JOIN [dbo].[ItemMaster] im WITH(NOLOCK) ON rc.ItemMasterId = im.ItemMasterId
 			INNER JOIN [dbo].[CustomerContact] cc WITH(NOLOCK) ON rc.CustomerContactId = cc.CustomerContactId
@@ -222,7 +224,7 @@ AS BEGIN
 
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
               , @AdhocComments     VARCHAR(150)    = 'getReceivingCustomerWorkById' 
-              , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = '''+ ISNULL(@ReceivingCustomerWorkId, '')
+			  , @ProcedureParameters VARCHAR(3000) = '@ReceivingCustomerWorkId = ''' + CAST(ISNULL(@ReceivingCustomerWorkId, '') AS VARCHAR(100))  
               , @ApplicationName VARCHAR(100) = 'PAS'
 -----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------
 

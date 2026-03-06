@@ -57,6 +57,7 @@
  41	  19/08/2025  BHARGAV SALIYA	     Added Case for [JournalTypeName].
  42	  25/08/2025  Moin Bloch		     added Some Remaining Fields For Common API
  43	  10/02/2026  Moin Bloch		     added TWO
+ 44	  06/03/2026  AMIT GHEDIYA		     added added IsReversedJE Flag for NPO (PN-15580)
 
  EXEC [GetJournalBatchDetailsViewpopupById] 1045,0,'ManualJournal'  
  exec dbo.GetJournalBatchDetailsViewpopupById @JournalBatchDetailId=5944,@IsDeleted=0,@Module=N'CKS'
@@ -1185,7 +1186,7 @@ BEGIN
 					  ,JBD.[EntryDate]  
 					  ,NPD.[NonPOInvoiceId] AS 'ReferenceId'
 					  ,JBD.[JournalTypeId]  
-					  ,JBD.[JournalTypeName]  
+					  ,CASE WHEN ISNULL(BD.IsReversedJE, 0) = 1 THEN UPPER(JBD.[JournalTypeName]) + ' (REVERSED)' ELSE UPPER(JBD.[JournalTypeName]) END  AS [JournalTypeName]
 					  ,JBD.[IsDebit]  
 					  ,JBD.[DebitAmount]  
 					  ,JBD.[CreditAmount]  
@@ -1221,6 +1222,7 @@ BEGIN
 					  ,UPPER(NPOMSD.Level10Name) AS level10   
 					  ,CU.[Code] AS 'Currency'
 					  ,CASE WHEN JBD.[IsUpdated] = 1 THEN 1 ELSE 0 END AS IsUpdated
+					  ,CASE WHEN BD.[IsReversedJE] = 1 THEN 1 ELSE 0 END AS IsReversedJE	
 				 FROM [dbo].[CommonBatchDetails] JBD WITH(NOLOCK)  
 					INNER JOIN [dbo].[DistributionSetup] DS WITH(NOLOCK) ON JBD.DistributionSetupId=DS.ID  
 					INNER JOIN [dbo].[BatchDetails] BD WITH(NOLOCK) ON JBD.JournalBatchDetailId=BD.JournalBatchDetailId  

@@ -36,6 +36,10 @@
 	23   17-12-2025  Devendra Shekh		 Modified (added AllowAssign, FollowUpDate)
 	24   22-12-2025  Devendra Shekh		 Modified (set Default @SortColumn to CustomerRfqId)
 	25   09-01-2026  Amit Ghediya		 Modified (get added contact)
+	26   10-02-2026  Vishal Suthar		 PN-11778 Added option for PartsBase
+	27   02-03-2026  Vishal Suthar		 Fixed binding PartDescription from Response itself
+	28   04-03-2026  Vishal Suthar		 Added new columns for PartsBase
+
 -- EXEC USP_GetReceivedRfqList 
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[USP_GetReceivedRfqList]
@@ -141,7 +145,9 @@ BEGIN
 
 				SELECT Id INTO #tmpSalesOrderStatus FROM [dbo].[MasterSalesOrderStatus] WITH(NOLOCK) WHERE [Name] IN ('Closed', 'Cancelled');
 
-				DECLARE @ILSPortalId INT = 1, @OneFortyFivePortalId INT = 2, @EmailPortalId INT = 3;
+				DECLARE @ILSPortalId INT = 1, @OneFortyFivePortalId INT = 2, @EmailPortalId INT = 3, @PartsBasePortalId INT;
+
+				SELECT TOP 1 @PartsBasePortalId = IntegrationPortalId FROM DBO.IntegrationPortal WITH (NOLOCK) WHERE [Description] = 'PartsBase' AND MasterCompanyId = @MasterCompanyId;
 
 				SELECT DISTINCT tmpVRFQResult.CustomerRfqId, tmpVRFQResult.MasterCompanyId, tmpVRFQResult.VendorRFQId, tmpVRFQResult.ILSRFQDetailId, tmpVRFQResult.PartNumber, tmpVRFQResult.Condition
 				INTO #VendorsRFQResult
@@ -152,7 +158,7 @@ BEGIN
 					INNER JOIN [dbo].[ILSRFQDetail] DT WITH(NOLOCK) ON PT.ILSRFQDetailId = DT.ILSRFQDetailId
 					INNER JOIN [dbo].[ILSRFQPart] ILSP WITH(NOLOCK) ON ILSP.ILSRFQDetailId = DT.ILSRFQDetailId AND LOWER(TRIM(ILSP.PartNumber)) = LOWER(TRIM(RFQ.LinePartNumber)) AND LOWER(TRIM(ILSP.Condition)) = LOWER(TRIM(RFQ.Condition)) AND ILSP.CustomerRfqId = RFQ.CustomerRfqId
 					INNER JOIN [dbo].[ThirdPartyRFQ] TP WITH(NOLOCK) ON DT.ThirdPartyRFQId = TP.ThirdPartyRFQId
-					WHERE PT.IsActive = 1 AND PT.IsDeleted = 0 AND PT.MasterCompanyId = @MasterCompanyId AND RFQ.IntegrationPortalId IN (@ILSPortalId, @OneFortyFivePortalId)
+					WHERE PT.IsActive = 1 AND PT.IsDeleted = 0 AND PT.MasterCompanyId = @MasterCompanyId AND RFQ.IntegrationPortalId IN (@ILSPortalId, @OneFortyFivePortalId, @PartsBasePortalId)
 
 					UNION ALL
 
@@ -212,6 +218,8 @@ BEGIN
 			Result AS(
 				SELECT RFQ.[CustomerRfqId],
 					RFQ.[RfqId], 
+					RFQ.[RfqItemId], 
+					RFQ.[StatusId], 
 					CONVERT(DATE, DATEADD(SECOND, @BaseUtcOffsetSec, RFQ.[RfqCreatedDate])) AS 'RfqcreatedDate',
 					RFQ.[BuyerName] AS 'rfqFrom',
 					RFQ.[BuyerCompanyName] AS 'companyName',
@@ -233,7 +241,7 @@ BEGIN
 					ISNULL(RFQ.[ModuleId],0) AS ModuleId,
 					ISNULL(RFQ.[ReferenceId],0) AS ReferenceId,
 					(CASE WHEN LOWER(TRIM(RFQ.[LinePartNumber])) = LOWER(TRIM(IM.[partnumber])) THEN IM.[ItemMasterId] ELSE 0 END) ItemMasterId,
-					IM.PartDescription AS 'PnDescription',
+					(CASE WHEN ISNULL(IM.PartDescription, '') != '' THEN IM.PartDescription ELSE RFQ.LineDescription END) AS 'PnDescription',
 					(CASE WHEN ISNULL(RFQ.CustomerId ,0) > 0 THEN RFQ.CustomerId WHEN LOWER(TRIM(CU.[Name])) = LOWER(TRIM(RFQ.BuyerCompanyName)) THEN CU.[CustomerId] ELSE 0 END) CustomerId,
 					(ISNULL(Contact.FirstName,'')+' '+ISNULL(Contact.LastName,'')) AS 'Contact',
 					CASE WHEN ISNULL(STk.StockLineId,0) > 0 THEN 1 ELSE 0 END StockLineId,
@@ -245,10 +253,6 @@ BEGIN
 					CONVERT(DATE, DATEADD(SECOND, @BaseUtcOffsetSec, RFQ.[DateAssigned])) AS 'DateAssigned',
 					RFQ.[QuotedBy],
 					CASE WHEN  RFQ.ModuleId = @SoqModuleId THEN CONVERT(DATE, DATEADD(SECOND, @BaseUtcOffsetSec, SOQ.[CreatedDate])) ELSE CONVERT(DATE, DATEADD(SECOND, @BaseUtcOffsetSec, RFQ.[QuotedDate])) END AS 'QuotedDate',
-					--CASE WHEN  RFQ.ModuleId = @SoqModuleId 
-					--	 THEN 
-					--		CASE WHEN (Select MAX(SOQA.CustomerSentDate) From DBO.SalesOrderQuoteApproval SOQA WITH(NOLOCK)  where SOQA.SalesOrderQuoteId =SOQ.SalesOrderQuoteId) IS NOT NULL THEN CONVERT(DATE, DATEADD(SECOND, @BaseUtcOffsetSec, (Select MAX(SOQA.CustomerSentDate) From DBO.SalesOrderQuoteApproval SOQA WITH(NOLOCK)  where SOQA.SalesOrderQuoteId  =SOQ.SalesOrderQuoteId))) ELSE NULL END
-					--	 ELSE NULL END AS 'quoteSentDate',
 					CASE WHEN  RFQ.ModuleId = @SoqModuleId 
 						 THEN 
 							CASE WHEN (Select TOP 1 SOQA.CustomerSentDate From dbo.SalesOrderQuotePartV1 SOQP WITH(NOLOCK)
@@ -318,13 +322,15 @@ BEGIN
 				--) IM
 				WHERE RFQ.MasterCompanyId = @MasterCompanyId 
 				AND (@IntegrationPortalId IS NULL OR RFQ.IntegrationPortalId = @IntegrationPortalId)
-				AND RFQ.IntegrationPortalId IN (@ILSPortalId, @OneFortyFivePortalId)
+				AND RFQ.IntegrationPortalId IN (@ILSPortalId, @OneFortyFivePortalId, @PartsBasePortalId)
 				AND RFQ.IsActive = 1 AND RFQ.IsDeleted = 0
 
 				UNION ALL
 
 				SELECT RFQ.[CustomerRfqId],
 					RFQ.[RfqId], 
+					RFQ.[RfqItemId], 
+					RFQ.[StatusId], 
 					CONVERT(DATE, DATEADD(SECOND, @BaseUtcOffsetSec, RFQ.[RfqCreatedDate])) AS 'RfqcreatedDate',
 					RFQ.[BuyerName] AS 'rfqFrom',
 					RFQ.[BuyerCompanyName] AS 'companyName',
@@ -562,6 +568,8 @@ BEGIN
 							crq.[CustomerRfqQuoteId],
 							crq.[CustomerRfqId],
 							crq.[RfqId],
+							res.[RfqItemId], 
+							res.[StatusId], 
 							crq.[AddComment],
 							crq.[IsAddCommentQuote],
 							crq.[FaaEasaRelease],

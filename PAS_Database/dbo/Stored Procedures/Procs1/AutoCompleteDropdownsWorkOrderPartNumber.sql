@@ -17,6 +17,7 @@
 	3    03/25/2025	  Devendra Shekh	added new field: WorkOrderFormTypeId
 	4	 05/06/2025	  Abhishek Jirawla  Returning IsRepairManagement
 	5    01/07/2025	  Devendra Shekh    added New Field : MPNPartNumber
+	6    03/09/2026   Moin Bloch		added OutGoingPartNumber PN-15681 
      
 EXEC dbo.AutoCompleteDropdownsWorkOrderPartNumber @StartWith=default,@Idlist=N'160489',@customerId=2450,@WorkOrderId=0,@WorkOrderTypeId=2,@MasterCompanyId=1
 exec dbo.AutoCompleteDropdownsWorkOrderPartNumber @StartWith=default,@Idlist=N'1',@customerId=92,@WorkOrderId=0,@WorkOrderTypeId=1,@MasterCompanyId=1
@@ -104,7 +105,7 @@ BEGIN
 						RCW.ACTailNum AS AircraftTailNumber,
 						IM.WorkOrderFormTypeId,
 						ISNULL(RCW.IsRepairManagement, 0) AS IsRepairManagement,
-						CONCAT(IM.partnumber, CASE	WHEN COALESCE(RCW.SerialNumber, '') <> '' THEN ' - ' + RCW.SerialNumber
+						CONCAT(RCW.[OutGoingPartNumber], CASE	WHEN COALESCE(RCW.SerialNumber, '') <> '' THEN ' - ' + RCW.SerialNumber
 													WHEN COALESCE(SL.ControlNumber, '') <> '' THEN ' - ' + SL.ControlNumber
 													ELSE '' END ) AS MPNPartNumber
 					FROM dbo.ReceivingCustomerWork RCW WITH(NOLOCK) 

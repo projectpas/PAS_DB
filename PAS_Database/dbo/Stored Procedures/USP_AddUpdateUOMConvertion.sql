@@ -9,8 +9,7 @@
  **************************************************************           
  ** PR   Date				Author				Change Description            
  ** --   -------------		----------------	--------------------------------          
-	1	09-03-2026           Nakul Chandigra     Created 
-
+	1	09-03-2026           Nakul Chandigra     Created (PN-15597)
 	
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_AddUpdateUOMConvertion]

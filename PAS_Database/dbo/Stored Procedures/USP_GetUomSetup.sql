@@ -9,7 +9,7 @@
  **************************************************************           
  ** PR   Date				Author				Change Description            
  ** --   -------------		----------------	--------------------------------          
-	1	09-03-2026           Nakul Chandigra     Created 
+	1	09-03-2026           Nakul Chandigra     Created (PN-15597)
 
 exec dbo.USP_GetUomSetup @PageNumber=1,@PageSize=10,@SortColumn=N'CreatedDate',@SortOrder=-1,@GlobalFilter=N'',@FromUOM=NULL,@ToUOM=NULL,@Factor=0,@CreatedBy=NULL,@UpdatedBy=NULL,@CreatedDate=NULL,@UpdatedDate=NULL,@IsDeleted=0,@MasterCompanyId=1,@EmployeeId=2
 **************************************************************/

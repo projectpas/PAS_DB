@@ -9,7 +9,7 @@
  **************************************************************           
  ** PR   Date				Author				Change Description            
  ** --   -------------		----------------	--------------------------------          
-	1	09-03-2026           Nakul Chandigra     Created 
+	1	09-03-2026           Nakul Chandigra     Created (PN-15597)
 
 exec dbo.USP_DeleteRestoreUOMConversion @UOMConversionId=154,@masterCompanyId=1,@updatedBy=N'ADMIN User'
 **************************************************************/

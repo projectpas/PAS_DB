@@ -21,6 +21,7 @@
     5       16-FEB-2026     DIVYESH KATHIRIYA       Set Table Name for SalesOrderQuote.
     6       25-FEB-2026     DIVYESH KATHIRIYA       Set New HistoryModule Table and Remove Table Name for SalesOrderQuote.
     7       27-FEB-2026     DIVYESH KATHIRIYA       Set @SubModuleId, @SubPK_Key, @SubPK_Value.
+    8       10-MAR-2026     NAKUL CHANDIGRA         Add a condition of IgnoreColumn In '@sql = N';WITH S AS' to prevent Getting dublicate value
 
 EXEC usp_Get_CommonAuditLogHistory @ModuleId=68, @PK_Key=N'CustomerContactId', @PK_Value=6678, @EmployeeId=236, @SubModuleId=69, @SubPK_Key=N'ContactId', @SubPK_Value=14040
 **********************/ 
@@ -232,7 +233,7 @@ BEGIN
                                 NewValue,
                                 ChangedBy,
                                 ChangedAt
-                            FROM [dbo].[AuditLog] WITH (NOLOCK)
+                            FROM [dbo].[AuditLog] AL WITH (NOLOCK)
                             WHERE 1=1
                               AND (@Module  IS NULL OR TableName = @Module)
                               AND (@StartAt IS NULL OR ChangedAt >= @StartAt)
@@ -241,6 +242,7 @@ BEGIN
                                     @PK_Key IS NULL OR @PK_Value IS NULL
                                     OR TRY_CONVERT(nvarchar(128), JSON_VALUE(PKJson, CONCAT(''$.'' , @PK_Key))) = @PK_Value
                                   )
+                              AND NOT EXISTS ( SELECT 1 FROM dbo.IgnoreColumn ic WITH (NOLOCK) WHERE ic.TableName = @Module AND ic.ColumnName = AL.ColumnName )
                         ),'
         END   
 

@@ -14,6 +14,7 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    22/08/2025   AMIT GHEDIYA      Created
+	2    10/03/2026   Bhargav Saliya    [PN-15717]Added MasterCompanyId in where clause
 
 -- EXEC GetApproveRejectDetailsById 769,5898,1
 ************************************************************************/
@@ -21,7 +22,8 @@ CREATE     PROCEDURE [dbo].[GetApproveRejectDetailsById]
 	@RefrenceId BIGINT,
 	@SubRefrenceId BIGINT,
 	@Mode INT = 0,
-	@ModuleId BIGINT
+	@ModuleId BIGINT,
+	@MasterCompanyId BIGINT
 AS
 BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
@@ -49,7 +51,7 @@ BEGIN
 		  FROM  [DBO].[EmailApproval] WITH (NOLOCK) 
 		  WHERE RefrenceId = @RefrenceId
 		  AND SubRefrenceId = @SubRefrenceId
-		  AND ModuleId = @ModuleId;
+		  AND ModuleId = @ModuleId AND MasterCompanyId = @MasterCompanyId;
 	END
 	IF(@Mode = 1) --For Delete
 	BEGIN
@@ -57,7 +59,7 @@ BEGIN
 			FROM  [DBO].[EmailApproval] 
 		 WHERE RefrenceId = @RefrenceId
 		 AND SubRefrenceId = @SubRefrenceId
-		 AND ModuleId = @ModuleId;
+		 AND ModuleId = @ModuleId AND MasterCompanyId = @MasterCompanyId;
 	END
 
 END TRY    

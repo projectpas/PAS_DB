@@ -24,6 +24,7 @@
 	12   14/11/2025   Sahdev Saliya    Added New Field : RevisedCondition
 	13	 30/01/2026   Moin Bloch       Added IncomingPartNumber
 	14	 24-FEB-2026  Moin Bloch 	   Added OutGoingItemMasterId And OutGoingPartNumber PN-15427
+	15   09/03/2026   Moin Bloch	   Added OutGoingPartDescription PN-15681
 
 --    EXEC [dbo].[GetWorkOrderById] 0,5714,0,0,1
 --    EXEC [dbo].[GetWorkOrderById] 0,0,29,0,2  
@@ -116,7 +117,7 @@ BEGIN
 	DECLARE @IsSinglePN BIT = 1,@WorkOrderMPNMSModuleEnum INT=12 
 	DECLARE @IsRepairManagement BIT = 0
 	DECLARE @WOModuleId INT,@SOModuleId INT,@EXModuleId INT
-	DECLARE @OutGoingPartNumber VARCHAR(50)='',@OutGoingItemMasterId BIGINT=0,@IncomingPartNumber VARCHAR(50)=''
+	DECLARE @OutGoingPartNumber VARCHAR(50)='',@OutGoingItemMasterId BIGINT=0,@IncomingPartNumber VARCHAR(50)='',@OutGoingPartDescription NVARCHAR(MAX)=''
 	SELECT @WOModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'WorkOrder';
 	SELECT @SOModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'SalesOrder';
 	SELECT @EXModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'ExchangeSalesOrder';
@@ -124,12 +125,13 @@ BEGIN
 	-- For ReceivingCustomer
 	IF(@Opr=1)
 	BEGIN	
-		SELECT @CustomerId = [CustomerId],@MasterCompanyId = [MasterCompanyId],@Reference = [Reference],@Memo = [Memo],@CustomerContactId = [CustomerContactId],
-		       @ReceivingCustomerWorkId = [ReceivingCustomerWorkId],@ItemMasterId = [ItemMasterId],
-			   @ConditionId = [ConditionId],@RecStockLineId = [StockLineId],@ReceivingNumber = [ReceivingNumber],@WorkScopeId = [WorkScopeId],
-			   @OutGoingItemMasterId = [OutGoingItemMasterId],@OutGoingPartNumber = [OutGoingPartNumber],@IncomingPartNumber = [PartNumber]
-		  FROM [dbo].[ReceivingCustomerWork] WITH(NOLOCK)
-		  WHERE [ReceivingCustomerWorkId] = @ReceivingCustomerId;
+		SELECT @CustomerId = RC.[CustomerId],@MasterCompanyId = RC.[MasterCompanyId],@Reference = RC.[Reference],@Memo = RC.[Memo],@CustomerContactId = RC.[CustomerContactId],
+		       @ReceivingCustomerWorkId = RC.[ReceivingCustomerWorkId],@ItemMasterId = RC.[ItemMasterId],
+			   @ConditionId = RC.[ConditionId],@RecStockLineId = RC.[StockLineId],@ReceivingNumber = RC.[ReceivingNumber],@WorkScopeId = RC.[WorkScopeId],
+			   @OutGoingItemMasterId = RC.[OutGoingItemMasterId],@OutGoingPartNumber = RC.[OutGoingPartNumber],@IncomingPartNumber = RC.[PartNumber],@OutGoingPartDescription = IM.[PartDescription]
+		  FROM [dbo].[ReceivingCustomerWork] RC WITH(NOLOCK)
+		  LEFT JOIN [dbo].[ItemMaster] IM WITH(NOLOCK) ON RC.[OutGoingItemMasterId] = IM.[ItemMasterId]
+		  WHERE RC.[ReceivingCustomerWorkId] = @ReceivingCustomerId;
 		
 		SELECT @CustName=[Name],@CustomerAffiliationId=[CustomerAffiliationId],@ContractReference=[ContractReference],@Email=[Email],@CustomerPhone=[CustomerPhone] FROM [dbo].[Customer] WITH(NOLOCK) WHERE [CustomerId] = @CustomerId;
 
@@ -186,7 +188,7 @@ BEGIN
 							   			 
 		SELECT @Partnumber = im.[PartNumber],
 			   @ManufacturerName = im.[ManufacturerName],
-			   @PartDescription = im.[PartDescription],	
+			   @PartDescription = CASE WHEN @OutGoingPartDescription IS NULL OR @OutGoingPartDescription = '' THEN im.[PartDescription] ELSE @OutGoingPartDescription END,
 			   @RevisedPartNo = im.[RevisedPart],
 			   @Condition = cn.[Description], 
 			   @StockLineNumber = sl.[StockLineNumber],

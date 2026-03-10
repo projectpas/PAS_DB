@@ -94,7 +94,7 @@ BEGIN
 			   INNER JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON WPN.ItemMasterId = IM.ItemMasterId  
                INNER JOIN [dbo].[WorkOrderQuoteStatus] WQS WITH (NOLOCK) ON WOQ.QuoteStatusId = WQS.WorkOrderQuoteStatusId  
                INNER JOIN [dbo].[Customer] CUST WITH (NOLOCK) ON WOQ.CustomerId = CUST.CustomerId 				
-			   LEFT JOIN DBO.WorkOrderQuoteDetails WOQD WITH (NOLOCK) ON WOQ.workorderquoteid = WOQD.workorderquoteid AND WPN.ID = WOQD.WOPartNoId and ISNULL(WOQD.IsActive,1)=1  
+			   LEFT JOIN DBO.WorkOrderQuoteDetails WOQD WITH (NOLOCK) ON WOQ.workorderquoteid = WOQD.workorderquoteid AND WPN.ID = WOQD.WOPartNoId and ISNULL(WOQD.IsActive,0)=1  
 			WHERE WOQ.MasterCompanyId = @MasterCompanyId	
 			      AND WOQ.IsDeleted = 0
 				  AND WOQ.IsActive = 1				  

@@ -19,6 +19,7 @@
  4    31/10/2023  Bhargav Saliya		Export Data Convert In To Upper Case 
  5    01/11/2023  Devendra Shekh		added referenceName
  6    29/07/2024  Sahdev Saliya         Added (AccountingPeriod) AND  Set JournalTypeNumber Order by desc
+ 7	  06/03/2026  AMIT GHEDIYA		     added added IsReversedJE Flag for NPO (PN-15580)
 
   exec [GetNonPOAccountintDetailsById] 1
 ************************/  
@@ -48,7 +49,7 @@ BEGIN
           ,JBD.[EntryDate]  
 		  ,NPD.[NonPOInvoiceId] AS 'ReferenceId'
           ,JBD.[JournalTypeId]  
-          ,UPPER(JBD.[JournalTypeName]) AS [JournalTypeName]  
+		  ,CASE WHEN ISNULL(BD.IsReversedJE, 0) = 1 THEN UPPER(JBD.[JournalTypeName]) + ' (REVERSED)' ELSE UPPER(JBD.[JournalTypeName]) END  AS [JournalTypeName]
           ,JBD.[IsDebit]  
           ,JBD.[DebitAmount]  
           ,JBD.[CreditAmount]  

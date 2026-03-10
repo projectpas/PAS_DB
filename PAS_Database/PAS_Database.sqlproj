@@ -4452,6 +4452,10 @@
     <Build Include="dbo\Stored Procedures\USP_AddUpdateCustomerRfq_PartsBase.sql" />
     <Build Include="dbo\User Defined Types\CustomerRfqPartsBaseType.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetPriceDetailsByCondId.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetUomSetup.sql" />
+    <Build Include="dbo\Stored Procedures\USP_DeleteRestoreUOMConversion.sql" />
+    <Build Include="dbo\Stored Procedures\USP_AddUpdateUOMConvertion.sql" />
+    <Build Include="dbo\User Defined Types\UOMConvertionType.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

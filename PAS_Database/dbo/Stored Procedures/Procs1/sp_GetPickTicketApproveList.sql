@@ -22,10 +22,11 @@
 	6    05/20/2025   Vishal Suthar		Fixed issue with readytopick which is populating wrong when qdjusted the qty
 	7    08/07/2025   Vishal Suthar		Added a check for approval of the part before generating pick ticket
 	8    26/12/2025   Amit Ghediya		Update condition for ReadyToPick
+	9    06/03/2026   Moin Bloch		Update (Added UOM Changes) PN-15067
      
--- EXEC [dbo].[sp_GetPickTicketApproveList] 851
+-- EXEC [dbo].[sp_GetPickTicketApproveList] 10851
 **************************************************************/
-CREATE   Procedure [dbo].[sp_GetPickTicketApproveList]
+CREATE    Procedure [dbo].[sp_GetPickTicketApproveList]
 	@SalesOrderId  bigint
 AS
 BEGIN
@@ -35,18 +36,41 @@ BEGIN
 	BEGIN TRY
 	BEGIN TRANSACTION
 	BEGIN
-		;WITH CTE AS (select DISTINCT 0 AS SalesOrderPartId, sop.ItemMasterId, sop.SalesOrderId,imt.PartNumber,imt.PartDescription,
-		(SELECT TOP 1 QtyRequested FROM DBO.SalesOrderPartV1 WITH(NOLOCK) 
-			Where SalesOrderId = @SalesOrderId AND ItemMasterId = sop.ItemMasterId AND ConditionId = sop.ConditionId) AS Qty,
+		;WITH CTE AS 
+		(SELECT DISTINCT 0 AS SalesOrderPartId, 
+		        sop.ItemMasterId, 
+				sop.SalesOrderId,
+				imt.PartNumber,
+				imt.PartDescription,
+		--(SELECT TOP 1 QtyRequested FROM DBO.SalesOrderPartV1 WITH(NOLOCK) 
+		(SELECT TOP 1 [dbo].[fn_ConvertUOM](ISNULL([QtyRequested],0),IM.[StockUnitOfMeasure], IM.[ConsumeUnitOfMeasure],0,IM.[MasterCompanyId])
+		    FROM [dbo].[SalesOrderPartV1] SP WITH(NOLOCK) 
+			INNER JOIN [dbo].[ItemMaster] IM WITH(NOLOCK) ON IM.ItemMasterId = SP.ItemMasterId
+			WHERE SP.[SalesOrderId] = @SalesOrderId AND SP.ItemMasterId = sop.ItemMasterId AND SP.ConditionId = sop.ConditionId) AS Qty,
+
 		'' AS SerialNumber, 
-		(SELECT SUM(QuantityAvailable) FROM DBO.StockLine sll WITH(NOLOCK) 
-		Where sll.ItemMasterId = sop.ItemMasterId AND sll.ConditionId = sop.ConditionId) AS QuantityAvailable,
-		so.SalesOrderNumber,soq.SalesOrderQuoteNumber,
-		(SELECT SUM(SP.QtyToShip) FROM DBO.SOPickTicket SP WITH(NOLOCK)
-		INNER JOIN DBO.SalesOrder S_O WITH(NOLOCK) ON S_O.SalesOrderId = SP.SalesOrderId
-		INNER JOIN DBO.SalesOrderPartV1 SO_P WITH(NOLOCK) ON SP.SalesOrderPartId = SO_P.SalesOrderPartId
-		Where SP.SalesOrderId = @SalesOrderId AND ItemMasterId = sop.ItemMasterId AND ConditionId = sop.ConditionId) AS QtyToShip,
-		((SELECT TOP 1 QtyRequested FROM DBO.SalesOrderPartV1 WITH(NOLOCK) Where SalesOrderId = @SalesOrderId AND ItemMasterId = sop.ItemMasterId AND ConditionId = sop.ConditionId) - SUM(ISNULL(sopt.QtyToShip,0))) as QtyToPick,
+		--(SELECT SUM(QuantityAvailable)  
+		(SELECT [dbo].[fn_ConvertUOM](SUM(sll.[QuantityAvailable]),sll.[StockUnitOfMeasure], sll.[ConsumeUnitOfMeasure],0,sll.[MasterCompanyId])
+			FROM dbo.StockLine sll WITH(NOLOCK) 
+			WHERE sll.ItemMasterId = sop.ItemMasterId AND sll.ConditionId = sop.ConditionId
+			GROUP BY sll.[StockUnitOfMeasure], sll.[ConsumeUnitOfMeasure],sll.[MasterCompanyId]) AS QuantityAvailable,
+		so.SalesOrderNumber,
+		soq.SalesOrderQuoteNumber,
+		--(SELECT SUM(SP.QtyToShip) 
+	    (SELECT [dbo].[fn_ConvertUOM](SUM(SP.[QtyToShip]),IM.[StockUnitOfMeasure], IM.[ConsumeUnitOfMeasure],0,IM.[MasterCompanyId])
+		FROM [dbo].[SOPickTicket] SP WITH(NOLOCK)
+		INNER JOIN [dbo].[SalesOrder] S_O WITH(NOLOCK) ON S_O.SalesOrderId = SP.SalesOrderId
+		INNER JOIN [dbo].[SalesOrderPartV1] SO_P WITH(NOLOCK) ON SP.SalesOrderPartId = SO_P.SalesOrderPartId
+		INNER JOIN [dbo].[ItemMaster] IM WITH(NOLOCK) ON IM.ItemMasterId = SO_P.ItemMasterId
+		WHERE SP.SalesOrderId = @SalesOrderId AND SO_P.ItemMasterId = sop.ItemMasterId AND ConditionId = sop.ConditionId
+		GROUP BY IM.[StockUnitOfMeasure], IM.[ConsumeUnitOfMeasure],IM.[MasterCompanyId]) AS QtyToShip,
+		--((SELECT TOP 1 QtyRequested FROM DBO.SalesOrderPartV1 WITH(NOLOCK) Where SalesOrderId = @SalesOrderId AND ItemMasterId = sop.ItemMasterId AND ConditionId = sop.ConditionId) - SUM(ISNULL(sopt.QtyToShip,0))) as QtyToPick,
+		((SELECT TOP 1 ISNULL([dbo].[fn_ConvertUOM](ISNULL(SPV1.[QtyRequested],0),IM.[StockUnitOfMeasure], IM.[ConsumeUnitOfMeasure],0,IM.[MasterCompanyId]),0)
+			FROM DBO.SalesOrderPartV1 SPV1 WITH(NOLOCK) 
+			INNER JOIN [dbo].[ItemMaster] IM WITH(NOLOCK) ON IM.ItemMasterId = SPV1.ItemMasterId
+			Where SPV1.SalesOrderId = @SalesOrderId AND SPV1.ItemMasterId = sop.ItemMasterId AND SPV1.ConditionId = sop.ConditionId) - 
+			--SUM(ISNULL(sopt.QtyToShip,0)))
+			ISNULL([dbo].[fn_ConvertUOM](SUM(ISNULL(sopt.QtyToShip,0)),imt.[StockUnitOfMeasure], imt.[ConsumeUnitOfMeasure],0,imt.[MasterCompanyId]),0)) AS QtyToPick,
 		'' as [Status], 
 		sop.ConditionId, 
 		(SELECT ((ISNULL(SUM(agg.QtyReserved), 0) 
@@ -56,25 +80,32 @@ BEGIN
 		) AS ReadyToPick
 		FROM 
 		(
-			SELECT sopp.SalesOrderPartId, SUM(sos.QtyReserved) AS QtyReserved
-			FROM DBO.SalesOrderPartV1 sopp WITH(NOLOCK) 
-			INNER JOIN DBO.SalesOrderStocklineV1 sos WITH(NOLOCK) ON sos.SalesOrderPartId = sopp.SalesOrderPartId
+			SELECT sopp.SalesOrderPartId, 
+			--SUM(sos.QtyReserved) AS QtyReserved
+			ISNULL([dbo].[fn_ConvertUOM](SUM(ISNULL(sos.QtyReserved,0)),sl.[StockUnitOfMeasure], sl.[ConsumeUnitOfMeasure],0,sl.[MasterCompanyId]),0) AS QtyReserved
+			FROM [dbo].[SalesOrderPartV1] sopp WITH(NOLOCK) 
+			INNER JOIN [dbo].[SalesOrderStocklineV1] sos WITH(NOLOCK) ON sos.SalesOrderPartId = sopp.SalesOrderPartId
+			 LEFT JOIN [dbo].[StockLine] sl WITH(NOLOCK) ON sl.StockLineId = sos.StockLineId
 			WHERE sopp.SalesOrderId = @SalesOrderId AND sopp.ItemMasterId = sop.ItemMasterId AND sopp.ConditionId = sop.ConditionId
-			GROUP BY sopp.SalesOrderPartId
+			GROUP BY sopp.SalesOrderPartId,sl.[StockUnitOfMeasure], sl.[ConsumeUnitOfMeasure],sl.[MasterCompanyId]
 		) agg
 		LEFT JOIN 
 		(
-			SELECT ship_item.SalesOrderPartId, SUM(ship_item.QtyShipped) AS QtyShipped
-			FROM DBO.SalesOrderShippingItem ship_item WITH(NOLOCK) 
-			INNER JOIN DBO.SalesOrderShipping ship WITH(NOLOCK) ON ship.SalesOrderShippingId = ship_item.SalesOrderShippingId
+			SELECT ship_item.SalesOrderPartId, 
+			--SUM(ship_item.QtyShipped) AS QtyShipped
+			ISNULL([dbo].[fn_ConvertUOM](SUM(ISNULL(ship_item.QtyShipped,0)),sl.[StockUnitOfMeasure], sl.[ConsumeUnitOfMeasure],0,sl.[MasterCompanyId]),0) AS QtyShipped
+			FROM [dbo].[SalesOrderShippingItem] ship_item WITH(NOLOCK) 
+			INNER JOIN [dbo].[SalesOrderShipping] ship WITH(NOLOCK) ON ship.SalesOrderShippingId = ship_item.SalesOrderShippingId
 			WHERE ship.SalesOrderId = @SalesOrderId
 			GROUP BY ship_item.SalesOrderPartId
 		) ship ON ship.SalesOrderPartId = agg.SalesOrderPartId
 		LEFT JOIN 
 		(
-			SELECT sopps.SalesOrderPartId, SUM(sopt.QtyToShip) AS QtyToShip
-			FROM DBO.SOPickTicket sopt WITH(NOLOCK)
-			INNER JOIN DBO.SalesOrderStocklineV1 sopps WITH(NOLOCK) ON sopps.SalesOrderStocklineId = sopt.SalesOrderPartStocklineId
+			SELECT sopps.SalesOrderPartId, 
+			--SUM(sopt.QtyToShip) AS QtyToShip
+			ISNULL([dbo].[fn_ConvertUOM](SUM(ISNULL(sopt.QtyToShip,0)),sl.[StockUnitOfMeasure], sl.[ConsumeUnitOfMeasure],0,sl.[MasterCompanyId]),0) AS QtyToShip
+			FROM [dbo].[SOPickTicket] sopt WITH(NOLOCK)
+			INNER JOIN [dbo].[SalesOrderStocklineV1] sopps WITH(NOLOCK) ON sopps.SalesOrderStocklineId = sopt.SalesOrderPartStocklineId
 			WHERE sopt.SalesOrderId = @SalesOrderId
 			GROUP BY sopps.SalesOrderPartId
 		) sopt ON sopt.SalesOrderPartId = agg.SalesOrderPartId)
@@ -82,17 +113,21 @@ BEGIN
 		cr.[Name] as CustomerName,cr.CustomerCode,
 		ISNULL((
 		SELECT ((SUM(agg.QtyReserved) + SUM(ISNULL(ship.QtyShipped, 0))) - SUM(ISNULL(sopt.QtyToShip, 0))) AS TotalReadyToPick
-			FROM 
+		 FROM 
 			(
-				SELECT sopp.SalesOrderPartId, SUM(sos.QtyReserved) AS QtyReserved
+				SELECT sopp.SalesOrderPartId, 
+				--SUM(sos.QtyReserved) AS QtyReserved
+				ISNULL([dbo].[fn_ConvertUOM](SUM(ISNULL(sos.QtyReserved,0)),sl.[StockUnitOfMeasure], sl.[ConsumeUnitOfMeasure],0,sl.[MasterCompanyId]),0) AS QtyReserved
 				FROM DBO.SalesOrderPartV1 sopp WITH(NOLOCK)
-				LEFT JOIN DBO.SalesOrderStocklineV1 sos WITH(NOLOCK) ON sos.SalesOrderPartId = sopp.SalesOrderPartId
+				LEFT JOIN DBO.SalesOrderStocklineV1 sos WITH(NOLOCK) ON sos.SalesOrderPartId = sopp.SalesOrderPartId				
 				WHERE sopp.SalesOrderId = @SalesOrderId AND sopp.ItemMasterId = sop.ItemMasterId AND sopp.ConditionId = sop.ConditionId
 				GROUP BY sopp.SalesOrderPartId
 			) agg
 			LEFT JOIN 
 			(
-				SELECT ship_item.SalesOrderPartId, SUM(ship_item.QtyShipped) AS QtyShipped
+				SELECT ship_item.SalesOrderPartId, 
+				--SUM(ship_item.QtyShipped) AS QtyShipped
+				ISNULL([dbo].[fn_ConvertUOM](SUM(ISNULL(ship_item.QtyShipped,0)),sl.[StockUnitOfMeasure], sl.[ConsumeUnitOfMeasure],0,sl.[MasterCompanyId]),0) AS QtyShipped
 				FROM DBO.SalesOrderShippingItem ship_item WITH(NOLOCK) 
 				INNER JOIN DBO.SalesOrderShipping ship WITH(NOLOCK) ON ship.SalesOrderShippingId = ship_item.SalesOrderShippingId
 				WHERE ship.SalesOrderId = @SalesOrderId
@@ -100,33 +135,36 @@ BEGIN
 			) ship ON ship.SalesOrderPartId = agg.SalesOrderPartId
 			LEFT JOIN 
 			(
-				SELECT sopt.SalesOrderPartStocklineId, SUM(sopt.QtyToShip) AS QtyToShip
+				SELECT sopt.SalesOrderPartStocklineId, 
+				--SUM(sopt.QtyToShip) AS QtyToShip
+				ISNULL([dbo].[fn_ConvertUOM](SUM(ISNULL(sopt.QtyToShip,0)),sl.[StockUnitOfMeasure], sl.[ConsumeUnitOfMeasure],0,sl.[MasterCompanyId]),0) AS QtyToShip
 				FROM DBO.SOPickTicket sopt WITH(NOLOCK)
 				WHERE sopt.SalesOrderId = @SalesOrderId
 				GROUP BY sopt.SalesOrderPartStocklineId
 			) sopt ON sopt.SalesOrderPartStocklineId = agg.SalesOrderPartId
 		), 0) AS TotalReadyToPick
 
-		from dbo.SalesOrderPartV1 sop WITH(NOLOCK)
-		LEFT JOIN DBO.SalesOrderStockLineV1 stk WITH(NOLOCK) on stk.SalesOrderPartId = sop.SalesOrderPartId
-		INNER JOIN DBO.ItemMaster imt WITH(NOLOCK) on imt.ItemMasterId = sop.ItemMasterId
-		LEFT JOIN DBO.StockLine sl WITH(NOLOCK) on sl.StockLineId = stk.StockLineId
-		LEFT JOIN DBO.SalesOrder so WITH(NOLOCK) on so.SalesOrderId = sop.SalesOrderId
-		LEFT JOIN DBO.SalesOrderQuote soq WITH(NOLOCK) on soq.SalesOrderQuoteId = so.SalesOrderQuoteId
-		LEFT JOIN DBO.SOPickTicket sopt WITH(NOLOCK) on sopt.SalesOrderId = sop.SalesOrderId
-		LEFT JOIN DBO.Customer cr WITH(NOLOCK) on cr.CustomerId = so.CustomerId
+		FROM [dbo].SalesOrderPartV1 sop WITH(NOLOCK)
+		 LEFT JOIN [dbo].SalesOrderStockLineV1 stk WITH(NOLOCK) ON stk.SalesOrderPartId = sop.SalesOrderPartId
+		INNER JOIN [dbo].ItemMaster imt WITH(NOLOCK) ON imt.ItemMasterId = sop.ItemMasterId
+		 LEFT JOIN [dbo].StockLine sl WITH(NOLOCK) ON sl.StockLineId = stk.StockLineId
+		 LEFT JOIN [dbo].SalesOrder so WITH(NOLOCK) ON so.SalesOrderId = sop.SalesOrderId
+		 LEFT JOIN [dbo].SalesOrderQuote soq WITH(NOLOCK) ON soq.SalesOrderQuoteId = so.SalesOrderQuoteId
+		 LEFT JOIN [dbo].SOPickTicket sopt WITH(NOLOCK) ON sopt.SalesOrderId = sop.SalesOrderId
+		 LEFT JOIN [dbo].Customer cr WITH(NOLOCK) ON cr.CustomerId = so.CustomerId
 		where sop.SalesOrderId=@SalesOrderId AND ((sopt.SOPickTicketId IS NULL AND sop.QtyReserved > 0) OR sopt.SOPickTicketId IS NOT NULL)
 		AND EXISTS (
-        SELECT 1
-        FROM DBO.SalesOrderApproval sao WITH(NOLOCK)
-        WHERE sao.SalesOrderId = sop.SalesOrderId
-          AND sao.SalesOrderPartId = sop.SalesOrderPartId
-          AND sao.ApprovalActionId = 5
+			SELECT 1
+			FROM DBO.SalesOrderApproval sao WITH(NOLOCK)
+			WHERE sao.SalesOrderId = sop.SalesOrderId
+			  AND sao.SalesOrderPartId = sop.SalesOrderPartId
+			  AND sao.ApprovalActionId = 5
         )
-		group by sop.SalesOrderId,imt.PartNumber,imt.PartDescription,
+		GROUP BY sop.SalesOrderId,imt.PartNumber,imt.PartDescription,
 		so.SalesOrderNumber,soq.SalesOrderQuoteNumber,sop.ItemMasterId,
 		sl.ConditionId, cr.[Name],cr.CustomerCode, sop.ConditionId
-		,sl.isSerialized, imt.ItemMasterId)
+		,sl.isSerialized, imt.ItemMasterId,sl.[StockUnitOfMeasure], sl.[ConsumeUnitOfMeasure],sl.[MasterCompanyId],
+		imt.[StockUnitOfMeasure], imt.[ConsumeUnitOfMeasure],imt.[MasterCompanyId])
 
 		SELECT DISTINCT cte.SalesOrderPartId, CTE.ItemMasterId, cte.SalesOrderId, PartNumber, PartDescription, cte.Qty,
 		SerialNumber, QuantityAvailable,
@@ -150,8 +188,8 @@ BEGIN
 			ROLLBACK TRAN;
 			DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name() 
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
-            , @AdhocComments     VARCHAR(150)    = 'sp_GetPickTicketApproveList' 
-            , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = '''+ ISNULL(@SalesOrderId, '') + ''
+            , @AdhocComments     VARCHAR(150)    = 'sp_GetPickTicketApproveList'            
+			, @ProcedureParameters VARCHAR(3000) = '@Parameter1 = ''' + CAST(ISNULL(@SalesOrderId, '') AS VARCHAR(100)) 
             , @ApplicationName VARCHAR(100) = 'PAS'
 -----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------
             exec spLogException 

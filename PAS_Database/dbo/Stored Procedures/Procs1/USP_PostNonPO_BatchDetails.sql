@@ -32,6 +32,7 @@
 	16   07-JAN-2025		 Rajesh Gami			Modified DistributionSetup for the DEPOSIT from itemGLAccount to DistributionSetup GL and Amount logic change to SUM of extended cost instead of Item Level
 	17	 02/JUN/2025	     Abhishek Jirawla		Fixed Name concat read script
 	18	 25/JUN/2025	     Devendra Shekh			Modified DistributionSetup for the DEPOSIT from DistributionSetup to itemGLAccount
+	19	 06/March/2026	     AMIT GHEDIYA			Modified for revert accounting entry whle click on unpost (PN-15580)
 
 	 exec USP_PostNonPO_BatchDetails 6,'admin'
 **********************/
@@ -39,7 +40,8 @@
 CREATE   PROCEDURE [dbo].[USP_PostNonPO_BatchDetails]
 (
 	@NonPOInvoiceId BIGINT,
-	@UserName VARCHAR(50)
+	@UserName VARCHAR(50),
+	@IsRevert BIT = 0
 )
 AS
 BEGIN 
@@ -101,6 +103,9 @@ BEGIN
 		DECLARE @FXRate DECIMAL(9,2) = 1;	--Default Value set to : 1
 		DECLARE @ReferenceModule VARCHAR(100) = 'NONPO';
 		DECLARE @isItemLevelCalculation BIT = 1;
+		DECLARE @NPOOpenStausId INT = 0;
+
+		SELECT @NPOOpenStausId = [NonPOInvoiceHeaderStatusId] from [dbo].[NonPOInvoiceHeaderStatus] WITH(NOLOCK) WHERE [Description] = 'Open';
 		SELECT @AccountMSModuleId = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] ='Accounting';
 
 		SELECT @ReferenceNum = NPONumber, @LocalCurrencyCode = ISNULL(CU.Code,''), @ForeignCurrencyCode = ISNULL(CU.Code,'') FROM [dbo].[NonPOInvoiceHeader] NPO WITH(NOLOCK)
@@ -278,10 +283,10 @@ BEGIN
 				BEGIN
 					INSERT INTO [dbo].[BatchDetails](JournalTypeNumber,CurrentNumber,DistributionSetupId, DistributionName, [JournalBatchHeaderId], [LineNumber], [GlAccountId], [GlAccountNumber], [GlAccountName], 
 					[TransactionDate], [EntryDate], [JournalTypeId], [JournalTypeName], [IsDebit], [DebitAmount], [CreditAmount], [ManagementStructureId], [ModuleName], LastMSLevel, AllMSlevels, [MasterCompanyId], 
-					[CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted],[AccountingPeriodId], [AccountingPeriod])
+					[CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted],[AccountingPeriodId], [AccountingPeriod], [IsReversedJE])
 					VALUES(@JournalTypeNumber,@currentNo,0, NULL, @JournalBatchHeaderId, 1, 0, NULL, NULL, @InvoiceDate, GETUTCDATE(), 
 					@JournalTypeId, @JournalTypename, 1, 0, 0, @ManagementStructureId, 'Non PO Invoice', 
-					NULL, NULL, @MasterCompanyId, @UpdateBy, @UpdateBy, GETUTCDATE(), GETUTCDATE(), 1, 0,@AccountingPeriodId,@AccountingPeriod)
+					NULL, NULL, @MasterCompanyId, @UpdateBy, @UpdateBy, GETUTCDATE(), GETUTCDATE(), 1, 0,@AccountingPeriodId,@AccountingPeriod, CASE WHEN @IsRevert > 0 THEN 1 ELSE NULL END)
 
 					SET @BatchDetailCount = @BatchDetailCount + 1
 					SET @JournalBatchDetailId = SCOPE_IDENTITY()
@@ -306,8 +311,10 @@ BEGIN
 					(@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,@JournalBatchHeaderId,1 
 					,@GlAccountId ,@GlAccountNumber ,@GlAccountName,@InvoiceDate,GETUTCDATE(),@JournalTypeId ,@JournalTypename,
 					CASE WHEN @CRDRType = 1 THEN 1 ELSE 0 END,
-					CASE WHEN @CRDRType = 1 THEN @CheckAmount ELSE 0 END,
-					CASE WHEN @CRDRType = 1 THEN 0 ELSE ABS(@CheckAmount) END,
+					--CASE WHEN @CRDRType = 1 THEN @CheckAmount ELSE 0 END,
+					--CASE WHEN @CRDRType = 1 THEN 0 ELSE ABS(@CheckAmount) END,
+					CASE WHEN @CrDrType = 1 THEN CASE WHEN @IsRevert = 1 THEN 0 ELSE ABS(@CheckAmount) END ELSE CASE WHEN @IsRevert = 1 THEN ABS(@CheckAmount) ELSE 0 END END,
+					CASE WHEN @CrDrType = 1 THEN CASE WHEN @IsRevert = 1 THEN ABS(@CheckAmount) ELSE 0 END ELSE CASE WHEN @IsRevert = 1 THEN 0 ELSE ABS(@CheckAmount) END END,
 					@ManagementStructureId ,'NonPOInvoice',@LastMSLevel,@AllMSlevels ,@MasterCompanyId,
 					@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@ReferenceNum,@VendorName,@LocalCurrencyCode,@FXRate,@ForeignCurrencyCode,@NonPOInvoiceId,@ReferenceModule)
 
@@ -341,8 +348,10 @@ BEGIN
 							(@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,@JournalBatchHeaderId,1 
 							,@GlAccountId ,@GlAccountNumber ,@GlAccountName,@InvoiceDate,GETUTCDATE(),@JournalTypeId ,@JournalTypename,
 							CASE WHEN @CRDRType = 1 THEN 1 ELSE 0 END,
-							CASE WHEN @CRDRType = 1 THEN @PartAmtSum ELSE 0 END,
-							CASE WHEN @CRDRType = 1 THEN 0 ELSE @PartAmtSum END,
+							--CASE WHEN @CRDRType = 1 THEN @PartAmtSum ELSE 0 END,
+							--CASE WHEN @CRDRType = 1 THEN 0 ELSE @PartAmtSum END,
+							CASE WHEN @CrDrType = 1 THEN CASE WHEN @IsRevert = 1 THEN 0 ELSE ABS(@PartAmtSum) END ELSE CASE WHEN @IsRevert = 1 THEN ABS(@PartAmtSum) ELSE 0 END END,
+							CASE WHEN @CrDrType = 1 THEN CASE WHEN @IsRevert = 1 THEN ABS(@PartAmtSum) ELSE 0 END ELSE CASE WHEN @IsRevert = 1 THEN 0 ELSE ABS(@PartAmtSum) END END,
 							@ManagementStructureId ,'NonPOInvoice',@LastMSLevel,@AllMSlevels ,@MasterCompanyId,
 							@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@ReferenceNum,@VendorName,@LocalCurrencyCode,@FXRate,@ForeignCurrencyCode,@NonPOInvoiceId,@ReferenceModule)
 
@@ -380,7 +389,7 @@ BEGIN
 				IF(@IsAutoPost = 1 AND @IsBatchGenerated = 1)
 				BEGIN
 					EXEC [dbo].[USP_UpdateCommonBatchStatus] @JournalBatchDetailId,@UpdateBy,@AccountingPeriodId,@AccountingPeriod;
-				END
+				END				
 			END
 
 			SET @NonPOPartStart = @NonPOPartStart + 1
@@ -393,6 +402,12 @@ BEGIN
 
 		EXEC [USP_AddVendorPaymentDetailsForNonPOById] @NonPOInvoiceId
 
+		--Update status to open when unpost action click
+		IF(@IsRevert = 1)
+		BEGIN
+			 UPDATE [dbo].[NonPOInvoiceHeader] SET StatusId = @NPOOpenStausId
+			 WHERE [NonPOInvoiceId] = @NonPOInvoiceId
+		END
 	END TRY
 	BEGIN CATCH
 		DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name() 

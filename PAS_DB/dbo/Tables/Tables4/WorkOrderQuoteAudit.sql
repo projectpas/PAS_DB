@@ -45,6 +45,7 @@
     [PostalCode]                VARCHAR (50)    NULL,
     [CountryId]                 BIGINT          NULL,
     [ShipToSiteId]              BIGINT          NULL,
+    [ApprovalCode]              VARCHAR (200)   NULL,
     CONSTRAINT [PK_WorkOrderQuoteAudit] PRIMARY KEY CLUSTERED ([WorkOrderQuoteAuditId] ASC)
 );
 

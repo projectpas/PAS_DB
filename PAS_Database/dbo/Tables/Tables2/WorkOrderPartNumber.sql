@@ -57,8 +57,8 @@
     [AllowInvoiceBeforeShipping] BIT             NULL,
     [WOFPrintDate]               DATETIME2 (7)   NULL,
     [CurrentSerialNumber]        VARCHAR (100)   NULL,
-    [StocklineCost]              DECIMAL (18, 2) NULL,
-    [TendorStocklineCost]        DECIMAL (18, 2) NULL,
+    [StocklineCost]              DECIMAL (18, 6) NULL,
+    [TendorStocklineCost]        DECIMAL (18, 6) NULL,
     [RepairOrderId]              BIGINT          NULL,
     [RONumber]                   VARCHAR (50)    NULL,
     [RevisedSerialNumber]        VARCHAR (50)    NULL,
@@ -98,6 +98,8 @@
     CONSTRAINT [FK_WorkOrderPartNumber_WorkOrderStatus] FOREIGN KEY ([WorkOrderStatusId]) REFERENCES [dbo].[WorkOrderStatus] ([Id]),
     CONSTRAINT [FK_WorkOrderPartNumber_WorkScope] FOREIGN KEY ([WorkOrderScopeId]) REFERENCES [dbo].[WorkScope] ([WorkScopeId])
 );
+
+
 
 
 

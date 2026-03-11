@@ -46,8 +46,7 @@ SET NOCOUNT ON
 				DECLARE @RepairWorkScopeId BIGINT;
 				DECLARE @WOQLaborCost [decimal](18,6);
 				DECLARE @Revenue [decimal](18,6);
-				DECLARE @KitCost [decimal](18,6);
-				DECLARE @WOModuleId INT
+				DECLARE @KitCost [decimal](18,6),@WOModuleId INT
 
 				IF (@MasterCompanyId IS NULL OR @MasterCompanyId = 0)
 				BEGIN
@@ -322,7 +321,8 @@ SET NOCOUNT ON
 						JOIN [dbo].[WorkOrderWorkFlow] WOWF WITH(NOLOCK) ON WOB.[SubReferenceId] = WOWF.[WorkOrderPartNoId] AND WOCD.WorkFlowWorkOrderId = WOWF.WorkFlowWorkOrderId
 					WHERE ISNULL(WOB.[IsVersionIncrease],0) = 0 AND ISNULL(WOB.[IsPerformaInvoice], 0) = 0 AND WOB.[ModuleId] = @WOModuleId
 				END
-				
+
+
 				IF((SELECT COUNT(1) FROM dbo.WorkOrderMPNCostDetails WOC WITH(NOLOCK) 
 					WHERE WOC.WorkOrderId = @WorkOrderId AND WOC.WOPartNoId = @WOPartNoId) > 0)
 				BEGIN

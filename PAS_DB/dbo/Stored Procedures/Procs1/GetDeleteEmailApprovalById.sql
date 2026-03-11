@@ -22,7 +22,7 @@ CREATE   PROCEDURE [dbo].[GetDeleteEmailApprovalById]
 	@RefrenceId BIGINT,
 	@Mode INT = 0,
 	@ModuleId BIGINT,
-	@MasterCompanyId BIGINT
+	@MasterCompanyId int
 AS
 BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED

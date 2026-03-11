@@ -15,6 +15,7 @@
     [IsDeleted]                  BIT           CONSTRAINT [DF_ThirdPartInegrationAuditIsDele_5AEE82B9] DEFAULT ((0)) NULL,
     [IntegrationIds]             BIGINT        NOT NULL,
     [IsEmail]                    BIT           NULL,
+    [ClientId]                   VARCHAR (50)  NULL,
     CONSTRAINT [PK_ThirdPartInegrationAudit] PRIMARY KEY CLUSTERED ([ThirdPartInegrationAuditId] ASC)
 );
 

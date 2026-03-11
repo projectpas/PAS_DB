@@ -11,7 +11,8 @@
  **************************************************************           
  ** PR   Date         Author			Change Description            
  ** --   --------    ---------			--------------------------------          
-    1   22/07/2025    Amit Ghediya     Added Email field
+    1   22/07/2025    Amit Ghediya		Added Email field
+	2   09/03/2026    Vishal Suthar     Added ClientId field
 ************************************************************************/
 CREATE     PROCEDURE [dbo].[USP_AddEdit_ThirdPartIntegration]
 	@ThirdPartInegrationId bigint,
@@ -21,6 +22,7 @@ CREATE     PROCEDURE [dbo].[USP_AddEdit_ThirdPartIntegration]
 	@APIURL varchar(50),
 	@SecretKey varchar(50),
 	@AccessKey varchar(50),
+	@ClientId varchar(50),
 	@IsEmail bit,
 	@CreatedBy varchar(50),
 	@UpdatedBy  varchar(50),
@@ -45,6 +47,7 @@ BEGIN
 				  ,[APIURL]
                   ,[SecretKey]
 				  ,[AccessKey]
+				  ,[ClientId]
 				  ,[IsEmail]
                   ,[MasterCompanyId]
                   ,[CreatedBy]
@@ -61,6 +64,7 @@ BEGIN
 				  ,@APIURL
                   ,@SecretKey
 				  ,@AccessKey
+				  ,@ClientId
 				  ,@IsEmail
                   ,@MasterCompanyId
                   ,@CreatedBy
@@ -81,6 +85,7 @@ BEGIN
 				   ,[APIURL] = @APIURL
                    ,[SecretKey] = @SecretKey
                    ,[AccessKey] = @AccessKey
+				   ,[ClientId] = @ClientId
 				   ,[IsEmail] = @IsEmail
                    ,[UpdatedBy] = @CreatedBy
                    ,[UpdatedDate] = GETUTCDATE()

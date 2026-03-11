@@ -27,10 +27,6 @@ BEGIN
 	SET NOCOUNT ON;
 	BEGIN TRY	
 
-	DECLARE @WOQModuleId BIGINT = 0;
-
-	SELECT @WOQModuleId = [ModuleId] FROM [DBO].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'WOQuote';
-
 	IF(@Mode = 0) --For Select
 	BEGIN
 		  SELECT [PartNumber],
@@ -50,7 +46,7 @@ BEGIN
 				 [Email],
 				 [ContactId]		  
 		  FROM  [DBO].[EmailApproval] WITH (NOLOCK) 
-		  WHERE  RefrenceId = @RefrenceId
+		  WHERE RefrenceId = @RefrenceId
 		  AND ModuleId = @ModuleId;
 	END
 	IF(@Mode = 1) --For Delete

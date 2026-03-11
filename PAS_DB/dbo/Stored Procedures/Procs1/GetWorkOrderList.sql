@@ -46,8 +46,9 @@
 	27   18/02/2026   Moin Bloch		    added WorkOrderStages Filter  PN-15501
 	28   19/02/2026   Moin Bloch		    added WorkOrderStatus Filter MultiSelect PN-15516
 	29   20/02/2026   Moin Bloch		    added WorkOrderStatus Filter MultiSelect PN-15536
-	30	 03/06/2026   Priyash Patel		    added Memo column for CALDATA teardown type PN-15567
-			
+	30	 06/03/2026   Priyash Patel		    added Memo column for CALDATA teardown type PN-15567
+	31	 10/03/2026   Priyash Patel		    changed the column to cal data PN-15709
+	
 	exec dbo.GetWorkOrderList @PageNumber=1,@PageSize=100,@SortColumn=default,@SortOrder=-1,@StatusID=1,@GlobalFilter=default,@ViewType=N'mpn',
 	@WorkOrderNum=default,@PartNumber=default,@PartDescription=default,@WorkScope=default,@Priority=default,@CustomerName=default,@CustomerAffiliation=default,@Stage=default,
 	@WorkOrderStatus=1,@OpenDate=default,@CustReqDate=default,@PromiseDate=default,@EstShipDate=default,@ShipDate=default,@CreatedDate=default,@UpdatedDate=default,@CreatedBy=default,
@@ -105,7 +106,7 @@ CREATE     PROCEDURE [dbo].[GetWorkOrderList]
 	 @RevisedCondition VARCHAR(100) = NULL,
 	 @IncomingPartNumber VARCHAR(50)=NULL,  
 	 @WorkOrderStagesType VARCHAR(500) = NULL,
-	 @Memo NVARCHAR(MAX) = NULL
+	 @CalData NVARCHAR(MAX) = NULL
 AS  
 BEGIN  
  SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED  
@@ -269,7 +270,7 @@ BEGIN
 			[ReceivedCondition] VARCHAR(100),
 			[RevisedCondition] VARCHAR(100),
 			[IncomingPartNumber] VARCHAR(50),
-			[Memo] NVARCHAR(MAX)
+			[CalData] NVARCHAR(MAX)
 		);
 
 		-- 2. Create the index for faster filtering/sorting
@@ -338,7 +339,7 @@ BEGIN
 			CD.[Description] AS 'ReceivedCondition',
 			RCD.[Description] AS 'RevisedCondition',
 			UPPER(WPN.[IncomingPartNumber]) AS [IncomingPartNumber],
-			ISNULL(CWTD.Memo,'') AS Memo
+			ISNULL(CWTD.Memo,'') AS CalData
 			FROM [dbo].[WorkOrder] WO WITH(NOLOCK)  
 			JOIN [dbo].[WorkOrderPartNumber] WPN WITH(NOLOCK) ON WO.[WorkOrderId] = WPN.[WorkOrderId]  
 			LEFT JOIN [dbo].[Stockline] STK WITH(NOLOCK) ON WPN.StockLineId = STK.StockLineId
@@ -363,7 +364,7 @@ BEGIN
 			 [PNDescription], [PNDescriptionType], [ManufacturerName], [ManufacturerNameType], [WorkScope], [WorkScopeType], [Priority], [PriorityType], [CustomerName], [CustomerType], [Stage], [StageType], [WorkOrderStatus], [WorkOrderStatusType], [OpenDate], [CustomerRequestDate], [CustomerRequestDateType],
 				[PromisedDate], [PromisedDateType], [EstimatedShipDate], [EstimatedShipDateType], [EstimatedCompletionDateType], [EstimatedCompletionDate], [CreatedDate], [UpdatedDate], [CreatedBy], [UpdatedBy], [IsActive], [IsDeleted], [WorkOrderStatusId], [WorkOrderType], [TechName], [TechStation], [SerialNumber],[RevisedSerialNumber],
 				[CustomerReference], [CustomerReferenceType], [IsSubWorkOrder], [MPNQuoteStatus],
-				CASE WHEN [MPNQuoteStatus] = @WOApprovalDesc THEN [ApprovedAmount] ELSE '' END AS [ApprovedAmount], [WOPartId],Notes,[IsWorkOrderTask],[location],[ReceivedCondition], [RevisedCondition],[Memo]
+				CASE WHEN [MPNQuoteStatus] = @WOApprovalDesc THEN [ApprovedAmount] ELSE '' END AS [ApprovedAmount], [WOPartId],Notes,[IsWorkOrderTask],[location],[ReceivedCondition], [RevisedCondition],[CalData]
 			FROM Result
 		),
 		ResultCount AS(SELECT COUNT(WorkOrderId) AS totalItems FROM QuoteResult)  
@@ -375,7 +376,7 @@ BEGIN
 			   [CustomerRequestDateType], [PromisedDate], [PromisedDateType], [EstimatedShipDate], [EstimatedShipDateType],
 			   [EstimatedCompletionDateType], [EstimatedCompletionDate], [CreatedDate], [UpdatedDate], [CreatedBy], [UpdatedBy],
 			   [IsActive], [IsDeleted], [WorkOrderStatusId], [WorkOrderType], [TechName], [TechStation], [SerialNumber],[RevisedSerialNumber],
-			   [CustomerReference], [CustomerReferenceType], [IsSubWorkOrder], [MPNQuoteStatus], [ApprovedAmount], [WOPartId],Notes,[IsWorkOrderTask],[location],[ReceivedCondition],[RevisedCondition],[IncomingPartNumber],[Memo] 
+			   [CustomerReference], [CustomerReferenceType], [IsSubWorkOrder], [MPNQuoteStatus], [ApprovedAmount], [WOPartId],Notes,[IsWorkOrderTask],[location],[ReceivedCondition],[RevisedCondition],[IncomingPartNumber],[CalData] 
 		FROM QuoteResult
         WHERE (  
         (@GlobalFilter <>'' AND 
@@ -445,7 +446,7 @@ BEGIN
 		(ISNULL(@location,'') ='' OR [location] LIKE '%' + @location + '%') AND
 		(ISNULL(@ReceivedCondition,'') ='' OR [ReceivedCondition] LIKE '%' + @ReceivedCondition + '%') AND
 	    (ISNULL(@RevisedCondition,'') ='' OR [RevisedCondition] LIKE '%' + @RevisedCondition + '%')  AND
-		(ISNULL(@Memo,'') ='' OR Memo LIKE '%' + @Memo+'%')   
+		(ISNULL(@CalData,'') ='' OR CalData LIKE '%' + @CalData+'%')   
 
         ))  
   
@@ -542,7 +543,9 @@ BEGIN
 	    CASE WHEN (@SortOrder=-1 AND @SortColumn='RECEIVEDCONDITION')  THEN [ReceivedCondition] END DESC,
 		CASE WHEN (@SortOrder=1 AND @SortColumn='RECEIVEDCONDITION')  THEN [ReceivedCondition] END ASC,
 		CASE WHEN (@SortOrder=-1 AND @SortColumn='REVISEDCONDITION')  THEN [RevisedCondition] END DESC,
-		CASE WHEN (@SortOrder=1 AND @SortColumn='REVISEDCONDITION')  THEN [RevisedCondition] END ASC
+		CASE WHEN (@SortOrder=1 AND @SortColumn='REVISEDCONDITION')  THEN [RevisedCondition] END ASC,
+		CASE WHEN (@SortOrder=1 AND @SortColumn='caldata')  THEN [CalData] END ASC,  
+		 CASE WHEN (@SortOrder=-1 AND @SortColumn='caldata')  THEN [CalData] END DESC
   
         OFFSET @RecordFrom ROWS   
         FETCH NEXT @PageSize ROWS ONLY  
@@ -626,7 +629,7 @@ BEGIN
 				MAX(CD.[Description])  AS 'ReceivedCondition',
 				MAX(RCD.[Description])  AS 'RevisedCondition',
 				WO.[IsMigrated],
-				MAX(CWTD.Memo)  AS 'Memo'
+				MAX(CWTD.Memo)  AS 'CalData'
 		  INTO #TempWOPartResult
           FROM Main WO WITH (NOLOCK)   
 			  JOIN [dbo].[WorkOrderPartNumber] WPN WITH (NOLOCK) ON WO.[WorkOrderId] = WPN.[WorkOrderId]
@@ -684,7 +687,7 @@ BEGIN
 			  (CASE WHEN RowStatus = 'Multiple' THEN 'Multiple' ELSE MAX([RevisedCondition]) END)  AS 'RevisedCondition',
 			  [IsWorkOrderTask],
 			  [location],
-			  (CASE WHEN RowStatus = 'Multiple' THEN 'Multiple' ELSE MAX([Memo]) END)  AS 'Memo'
+			  (CASE WHEN RowStatus = 'Multiple' THEN 'Multiple' ELSE MAX([CalData]) END)  AS 'CalData'
 		  INTO #finalTemp FROM #TempWOPartResult 
 		  GROUP BY	 [WorkOrderNum], [WorkOrderId], [CustomerId], [CustomerName], [CustomerType], [OpenDate], [CreatedDate], [UpdatedDate], [CreatedBy], [UpdatedBy],[IsActive], [IsDeleted]
 					,[WorkOrderType], [WorkOrderType], [EstimatedCompletionDateType],  [EstimatedCompletionDate], [IsSubWorkOrder], [RowStatus], [IsWorkOrderTask],[location]
@@ -698,7 +701,7 @@ BEGIN
 			  UPPER([CustomerReference]) [CustomerReference], UPPER([CustomerReferenceType]) [CustomerReferenceType], [SerialNumber],[RevisedSerialNumber], [MPNQuoteStatus], 
 			  CASE WHEN [MPNQuoteStatus] = 'Multiple' THEN [ApprovedAmount] WHEN [MPNQuoteStatus] = @WOApprovalDesc THEN [ApprovedAmount] ELSE '' END AS [ApprovedAmount],
 			  CASE WHEN UPPER([Notes]) ='MULTIPLE' THEN UPPER([Notes]) ELSE [Notes] END AS [Notes],[IsWorkOrderTask],[location],[ReceivedCondition],[RevisedCondition],
-			  CASE WHEN UPPER([Memo]) ='MULTIPLE' THEN UPPER([Memo]) ELSE [Memo] END AS [Memo]
+			  CASE WHEN UPPER([CalData]) ='MULTIPLE' THEN UPPER([CalData]) ELSE [CalData] END AS [CalData]
           FROM #finalTemp M   
           ),  
          ResultCount AS(SELECT COUNT([WorkOrderId]) AS totalItems FROM Result)  
@@ -769,7 +772,7 @@ BEGIN
 		   (ISNULL(@location,'') ='' OR [location] LIKE '%' + @location + '%') AND
 		   (ISNULL(@ReceivedCondition,'') ='' OR [ReceivedCondition] LIKE '%' + @ReceivedCondition + '%') AND
 		   (ISNULL(@RevisedCondition,'') ='' OR [RevisedCondition] LIKE '%' + @RevisedCondition + '%')  AND
-		   (ISNULL(@Memo,'') ='' OR Memo LIKE '%' + @Memo+'%')   
+		   (ISNULL(@CalData,'') ='' OR CalData LIKE '%' + @CalData+'%')   
            ))  
   
          SELECT @Count = COUNT(CustomerId) from #TempResult1     
@@ -866,8 +869,8 @@ BEGIN
 		 CASE WHEN (@SortOrder=1 AND @SortColumn='RECEIVEDCONDITION')  THEN [ReceivedCondition] END ASC,
 		 CASE WHEN (@SortOrder=-1 AND @SortColumn='REVISEDCONDITION')  THEN [RevisedCondition] END DESC,
 		 CASE WHEN (@SortOrder=1 AND @SortColumn='REVISEDCONDITION')  THEN [RevisedCondition] END ASC,
-		 CASE WHEN (@SortOrder=1 AND @SortColumn='Memo')  THEN [Memo] END ASC,  
-		 CASE WHEN (@SortOrder=-1 AND @SortColumn='Memo')  THEN [Memo] END DESC
+		 CASE WHEN (@SortOrder=1 AND @SortColumn='caldata')  THEN [CalData] END ASC,  
+		 CASE WHEN (@SortOrder=-1 AND @SortColumn='caldata')  THEN [CalData] END DESC
   
          OFFSET @RecordFrom ROWS   
          FETCH NEXT @PageSize ROWS ONLY  

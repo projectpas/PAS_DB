@@ -16,8 +16,8 @@
     [ItemClassificationId]           BIGINT          NOT NULL,
     [Quantity]                       DECIMAL (18, 6) CONSTRAINT [DF__WorkOrder__Quant__490B3760] DEFAULT ((0)) NULL,
     [UnitOfMeasureId]                BIGINT          NOT NULL,
-    [UnitCost]                       DECIMAL (20, 2) DEFAULT ((0)) NOT NULL,
-    [ExtendedCost]                   DECIMAL (20, 2) DEFAULT ((0)) NOT NULL,
+    [UnitCost]                       DECIMAL (18, 6) CONSTRAINT [DF__WorkOrder__UnitC__2B6363DB] DEFAULT ((0)) NULL,
+    [ExtendedCost]                   DECIMAL (18, 6) CONSTRAINT [DF__WorkOrder__Exten__2A6F3FA2] DEFAULT ((0)) NULL,
     [Memo]                           NVARCHAR (MAX)  NULL,
     [IsDeferred]                     BIT             DEFAULT ((0)) NULL,
     [QuantityReserved]               DECIMAL (18, 6) NULL,
@@ -53,6 +53,8 @@
     [Item]                           NVARCHAR (50)   NULL,
     CONSTRAINT [PK_WorkOrderMaterialsKit] PRIMARY KEY CLUSTERED ([WorkOrderMaterialsKitId] ASC)
 );
+
+
 
 
 

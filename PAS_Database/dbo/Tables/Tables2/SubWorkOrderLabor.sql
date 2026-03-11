@@ -4,13 +4,13 @@
     [TaskId]                    BIGINT          NOT NULL,
     [ExpertiseId]               SMALLINT        NULL,
     [EmployeeId]                BIGINT          NULL,
-    [Hours]                     DECIMAL (10, 2) CONSTRAINT [DF_SubWorkOrderLabor_Hours] DEFAULT ((0)) NULL,
-    [Adjustments]               DECIMAL (10, 2) CONSTRAINT [DF_SubWorkOrderLabor_Adjustments] DEFAULT ((0)) NULL,
-    [AdjustedHours]             DECIMAL (10, 2) CONSTRAINT [DF_SubWorkOrderLabor_AdjustedHours] DEFAULT ((0)) NULL,
-    [StandardHours]             INT             CONSTRAINT [DF_SubWorkOrderLabor_StandardHours] DEFAULT ((0)) NULL,
-    [StandardMinute]            INT             CONSTRAINT [DF_SubWorkOrderLabor_StandardMinute] DEFAULT ((0)) NULL,
-    [VarianceHours]             DECIMAL (10, 2) CONSTRAINT [DF_SubWorkOrderLabor_VarianceHours] DEFAULT ((0)) NULL,
-    [VarianceMinute]            DECIMAL (10, 2) CONSTRAINT [DF_SubWorkOrderLabor_VarianceMinute] DEFAULT ((0)) NULL,
+    [Hours]                     DECIMAL (18, 6) CONSTRAINT [DF_SubWorkOrderLabor_Hours] DEFAULT ((0)) NULL,
+    [Adjustments]               DECIMAL (18, 6) CONSTRAINT [DF_SubWorkOrderLabor_Adjustments] DEFAULT ((0)) NULL,
+    [AdjustedHours]             DECIMAL (18, 6) CONSTRAINT [DF_SubWorkOrderLabor_AdjustedHours] DEFAULT ((0)) NULL,
+    [StandardHours]             DECIMAL (18, 6) CONSTRAINT [DF_SubWorkOrderLabor_StandardHours] DEFAULT ((0)) NULL,
+    [StandardMinute]            DECIMAL (18, 6) CONSTRAINT [DF_SubWorkOrderLabor_StandardMinute] DEFAULT ((0)) NULL,
+    [VarianceHours]             DECIMAL (18, 6) CONSTRAINT [DF_SubWorkOrderLabor_VarianceHours] DEFAULT ((0)) NULL,
+    [VarianceMinute]            DECIMAL (18, 6) CONSTRAINT [DF_SubWorkOrderLabor_VarianceMinute] DEFAULT ((0)) NULL,
     [Memo]                      NVARCHAR (MAX)  NULL,
     [StartDate]                 DATETIME2 (7)   NULL,
     [EndDate]                   DATETIME2 (7)   NULL,
@@ -23,11 +23,11 @@
     [IsActive]                  BIT             CONSTRAINT [SubWorkOrderLabor_DC_Active] DEFAULT ((1)) NOT NULL,
     [IsDeleted]                 BIT             CONSTRAINT [SubWorkOrderLabor_DC_Delete] DEFAULT ((0)) NOT NULL,
     [MasterCompanyId]           INT             NULL,
-    [DirectLaborOHCost]         DECIMAL (18, 2) DEFAULT ((0)) NOT NULL,
+    [DirectLaborOHCost]         DECIMAL (18, 6) CONSTRAINT [DF__tmp_ms_xx__Direc__2D4C77A4] DEFAULT ((0)) NULL,
     [BurdaenRatePercentageId]   BIGINT          NULL,
-    [BurdenRateAmount]          DECIMAL (18, 2) DEFAULT ((0)) NOT NULL,
-    [TotalCostPerHour]          DECIMAL (18, 2) DEFAULT ((0)) NOT NULL,
-    [TotalCost]                 DECIMAL (18, 2) DEFAULT ((0)) NOT NULL,
+    [BurdenRateAmount]          DECIMAL (18, 6) CONSTRAINT [DF__tmp_ms_xx__Burde__2E409BDD] DEFAULT ((0)) NULL,
+    [TotalCostPerHour]          DECIMAL (18, 6) CONSTRAINT [DF__tmp_ms_xx__Total__2F34C016] DEFAULT ((0)) NULL,
+    [TotalCost]                 DECIMAL (18, 6) CONSTRAINT [DF__tmp_ms_xx__Total__3028E44F] DEFAULT ((0)) NULL,
     [TaskStatusId]              BIGINT          NULL,
     [StatusChangedDate]         DATETIME2 (7)   NULL,
     [TaskInstruction]           VARCHAR (MAX)   NULL,
@@ -40,6 +40,8 @@
     CONSTRAINT [FK_SubWorkOrderLabor_SubWorkOrderLaborHeader] FOREIGN KEY ([SubWorkOrderLaborHeaderId]) REFERENCES [dbo].[SubWorkOrderLaborHeader] ([SubWorkOrderLaborHeaderId]),
     CONSTRAINT [FK_SubWorkOrderLabor_TaskStatusId] FOREIGN KEY ([TaskStatusId]) REFERENCES [dbo].[TaskStatus] ([TaskStatusId])
 );
+
+
 
 
 

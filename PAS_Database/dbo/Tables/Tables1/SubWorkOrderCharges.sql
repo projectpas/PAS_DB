@@ -5,11 +5,11 @@
     [SubWOPartNoId]         BIGINT          NOT NULL,
     [ChargesTypeId]         BIGINT          NOT NULL,
     [VendorId]              BIGINT          NULL,
-    [Quantity]              INT             NOT NULL,
+    [Quantity]              DECIMAL (18, 6) NULL,
     [TaskId]                BIGINT          NOT NULL,
     [Description]           VARCHAR (256)   NULL,
-    [UnitCost]              DECIMAL (20, 2) NOT NULL,
-    [ExtendedCost]          DECIMAL (20, 2) NULL,
+    [UnitCost]              DECIMAL (18, 6) NULL,
+    [ExtendedCost]          DECIMAL (18, 6) NULL,
     [IsFromWorkFlow]        BIT             DEFAULT ((0)) NULL,
     [ReferenceNo]           VARCHAR (20)    NULL,
     [MasterCompanyId]       INT             NOT NULL,
@@ -28,6 +28,8 @@
     CONSTRAINT [FK_SubWorkOrderCharges_Vendor] FOREIGN KEY ([VendorId]) REFERENCES [dbo].[Vendor] ([VendorId]),
     CONSTRAINT [FK_SubWorkOrderCharges_WorkOrder] FOREIGN KEY ([WorkOrderId]) REFERENCES [dbo].[WorkOrder] ([WorkOrderId])
 );
+
+
 
 
 

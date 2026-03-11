@@ -14,8 +14,8 @@
     [IsDeleted]           BIT             CONSTRAINT [WorkOrderCharges_DC_Delete] DEFAULT ((0)) NOT NULL,
     [TaskId]              BIGINT          NOT NULL,
     [Description]         VARCHAR (256)   NULL,
-    [UnitCost]            DECIMAL (20, 2) NOT NULL,
-    [ExtendedCost]        DECIMAL (20, 2) NULL,
+    [UnitCost]            DECIMAL (18, 6) NULL,
+    [ExtendedCost]        DECIMAL (18, 6) NULL,
     [IsFromWorkFlow]      BIT             DEFAULT ((0)) NULL,
     [ReferenceNo]         VARCHAR (20)    NULL,
     [WOPartNoId]          BIGINT          DEFAULT ((0)) NOT NULL,
@@ -27,6 +27,8 @@
     CONSTRAINT [FK_WorkOrderCharges_WorkFlowWorkOrderId] FOREIGN KEY ([WorkFlowWorkOrderId]) REFERENCES [dbo].[WorkOrderWorkFlow] ([WorkFlowWorkOrderId]),
     CONSTRAINT [FK_WorkOrderCharges_WorkOrder] FOREIGN KEY ([WorkOrderId]) REFERENCES [dbo].[WorkOrder] ([WorkOrderId])
 );
+
+
 
 
 

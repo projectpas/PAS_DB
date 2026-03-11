@@ -4,9 +4,9 @@
     [ItemMasterId]               BIGINT          NULL,
     [ExstimtPercentOccuranceId]  INT             NULL,
     [Memo]                       NVARCHAR (MAX)  NULL,
-    [Quantity]                   INT             CONSTRAINT [DF_WorkOrderQuoteExclusions_Quantity] DEFAULT ((0)) NULL,
-    [UnitCost]                   DECIMAL (20, 3) CONSTRAINT [DF_WorkOrderQuoteExclusions_UnitCost] DEFAULT ((0)) NULL,
-    [ExtendedCost]               DECIMAL (20, 3) CONSTRAINT [DF_WorkOrderQuoteExclusions_ExtendedCost] DEFAULT ((0)) NULL,
+    [Quantity]                   DECIMAL (18, 6) CONSTRAINT [DF_WorkOrderQuoteExclusions_Quantity] DEFAULT ((0)) NULL,
+    [UnitCost]                   DECIMAL (18, 6) CONSTRAINT [DF_WorkOrderQuoteExclusions_UnitCost] DEFAULT ((0)) NULL,
+    [ExtendedCost]               DECIMAL (18, 6) CONSTRAINT [DF_WorkOrderQuoteExclusions_ExtendedCost] DEFAULT ((0)) NULL,
     [MarkUpPercentageId]         BIGINT          NULL,
     [MasterCompanyId]            INT             NOT NULL,
     [CreatedBy]                  VARCHAR (256)   NOT NULL,
@@ -19,8 +19,8 @@
     [MarkupFixedPrice]           VARCHAR (15)    NULL,
     [HeaderMarkupId]             BIGINT          NULL,
     [BillingMethodId]            INT             NULL,
-    [BillingRate]                DECIMAL (20, 2) CONSTRAINT [DF_WorkOrderQuoteExclusions_BillingRate] DEFAULT ((0)) NULL,
-    [BillingAmount]              DECIMAL (20, 2) CONSTRAINT [DF_WorkOrderQuoteExclusions_BillingAmount] DEFAULT ((0)) NULL,
+    [BillingRate]                DECIMAL (18, 6) CONSTRAINT [DF_WorkOrderQuoteExclusions_BillingRate] DEFAULT ((0)) NULL,
+    [BillingAmount]              DECIMAL (18, 6) CONSTRAINT [DF_WorkOrderQuoteExclusions_BillingAmount] DEFAULT ((0)) NULL,
     [ConditionId]                BIGINT          NULL,
     CONSTRAINT [PK_WorkOrderQuoteExclusions] PRIMARY KEY CLUSTERED ([WorkOrderQuoteExclusionsId] ASC),
     CONSTRAINT [FK_WorkOrderQuoteExclusions_ConditionId] FOREIGN KEY ([ConditionId]) REFERENCES [dbo].[Condition] ([ConditionId]),
@@ -28,6 +28,8 @@
     CONSTRAINT [FK_WorkOrderQuoteExclusions_MasterCompanyId] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId]),
     CONSTRAINT [FK_WorkOrderQuoteExclusions_WorkOrderQuoteDetails] FOREIGN KEY ([WorkOrderQuoteDetailsId]) REFERENCES [dbo].[WorkOrderQuoteDetails] ([WorkOrderQuoteDetailsId])
 );
+
+
 
 
 

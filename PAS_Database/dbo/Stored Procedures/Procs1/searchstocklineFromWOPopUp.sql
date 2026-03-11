@@ -8,12 +8,12 @@
  **************************************************************             
   ** Change History             
  **************************************************************             
- ** PR   Date         Author		Change Description              
- ** --   --------     -------		-------------------------------            
-	1    20/09/2023   Hemnat Saliya  Created
-	2    06/11/2023   Hemnat Saliya  Updated For Allow all customer stock.
-	3	 25/11/2024	  Divyesh Kathiriya Add New Field "IsCustomerStock" 
-
+ ** PR   Date         Author			 Change Description              
+ ** --   --------     -------			-------------------------------            
+	1    20/09/2023   Hemnat Saliya			Created
+	2    06/11/2023   Hemnat Saliya			Updated For Allow all customer stock.
+	3	 25/11/2024	  Divyesh Kathiriya		Add New Field "IsCustomerStock" 
+	4    11-Mar-2026  RAJESH GAMI			Get Stock Unit Od Measure [PN-14832]
 ************************************************************************
 EXEC [searchstocklineFromWOPopUp] '12',8,108,1,'0'
 ************************************************************************/
@@ -66,8 +66,8 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 				,im.ItemMasterId As PartId
 				,im.ItemMasterId As ItemMasterId
 				,im.PartDescription AS Description
-				,sl.PurchaseUnitOfMeasureId  AS unitOfMeasureId
-				,suom.Description AS unitOfMeasure
+				,sl.StockUnitOfMeasureId  AS unitOfMeasureId
+				,uomStock.ShortName AS unitOfMeasure
 				,ig.Description AS ItemGroup
 				,mf.Name AS Manufacturer
 				,ISNULL(im.ManufacturerId, -1) AS ManufacturerId
@@ -88,7 +88,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 				,sl.SerialNumber
 				,sl.ControlNumber
 				,sl.IdNumber
-				,uom.ShortName AS UomDescription
+				,uomStock.ShortName AS UomDescription
 				,ISNULL(sl.QuantityAvailable,0) AS QtyAvailable
 				,ISNULL(sl.QuantityOnHand, 0) AS QtyOnHand
 				,ISNULL(sl.UnitCost, 0) AS unitCost
@@ -137,6 +137,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 				LEFT JOIN DBO.ItemClassification ic WITH(NOLOCK) ON im.ItemClassificationId = ic.ItemClassificationId
 				LEFT JOIN DBO.UnitOfMeasure uom WITH(NOLOCK) ON im.PurchaseUnitOfMeasureId = uom.UnitOfMeasureId
 				LEFT JOIN DBO.UnitOfMeasure suom  WITH(NOLOCK) ON sl.PurchaseUnitOfMeasureId = suom.UnitOfMeasureId
+				LEFT JOIN DBO.UnitOfMeasure uomStock  WITH(NOLOCK) ON sl.StockUnitOfMeasureId = uomStock.UnitOfMeasureId
 				LEFT JOIN DBO.Customer cusTraceble WITH(NOLOCK) ON sl.TraceableTo = cusTraceble.CustomerId
 				LEFT JOIN DBO.Vendor vTraceble WITH(NOLOCK) ON sl.TraceableTo = vTraceble.VendorId
 				LEFT JOIN DBO.LegalEntity leTraceble WITH(NOLOCK) ON sl.TraceableTo = leTraceble.LegalEntityId
@@ -170,7 +171,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 				,im.ItemMasterId As ItemMasterId
 				,im.PartDescription AS Description
 				,sl.PurchaseUnitOfMeasureId  AS unitOfMeasureId
-				,suom.Description AS unitOfMeasure
+				,uomStock.ShortName AS unitOfMeasure
 				,ig.Description AS ItemGroup
 				,mf.Name AS Manufacturer
 				,ISNULL(im.ManufacturerId, -1) AS ManufacturerId
@@ -191,7 +192,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 				,sl.SerialNumber
 				,sl.ControlNumber
 				,sl.IdNumber
-				,uom.ShortName AS UomDescription
+				,uomStock.ShortName AS UomDescription
 				,ISNULL(sl.QuantityAvailable,0) AS QtyAvailable
 				,ISNULL(sl.QuantityOnHand, 0) AS QtyOnHand
 				,ISNULL(sl.UnitCost, 0) AS unitCost
@@ -242,6 +243,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 				LEFT JOIN DBO.ItemClassification ic WITH(NOLOCK) ON im.ItemClassificationId = ic.ItemClassificationId
 				LEFT JOIN DBO.UnitOfMeasure uom WITH(NOLOCK) ON im.PurchaseUnitOfMeasureId = uom.UnitOfMeasureId
 				LEFT JOIN DBO.UnitOfMeasure suom  WITH(NOLOCK) ON sl.PurchaseUnitOfMeasureId = suom.UnitOfMeasureId
+				LEFT JOIN DBO.UnitOfMeasure uomStock  WITH(NOLOCK) ON sl.StockUnitOfMeasureId = uomStock.UnitOfMeasureId
 				LEFT JOIN DBO.Customer cusTraceble WITH(NOLOCK) ON sl.TraceableTo = cusTraceble.CustomerId
 				LEFT JOIN DBO.Vendor vTraceble WITH(NOLOCK) ON sl.TraceableTo = vTraceble.VendorId
 				LEFT JOIN DBO.LegalEntity leTraceble WITH(NOLOCK) ON sl.TraceableTo = leTraceble.LegalEntityId

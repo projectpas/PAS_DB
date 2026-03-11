@@ -6,11 +6,11 @@
     [ShipViaId]             BIGINT          NOT NULL,
     [Weight]                VARCHAR (50)    NULL,
     [Memo]                  NVARCHAR (MAX)  NULL,
-    [Amount]                DECIMAL (20, 3) NOT NULL,
+    [Amount]                DECIMAL (18, 6) NULL,
     [TaskId]                BIGINT          NOT NULL,
-    [Length]                DECIMAL (10, 2) NULL,
-    [Width]                 DECIMAL (10, 2) NULL,
-    [Height]                DECIMAL (10, 2) NULL,
+    [Length]                DECIMAL (18, 6) NULL,
+    [Width]                 DECIMAL (18, 6) NULL,
+    [Height]                DECIMAL (18, 6) NULL,
     [UOMId]                 BIGINT          NULL,
     [DimensionUOMId]        BIGINT          NULL,
     [CurrencyId]            INT             NULL,
@@ -31,6 +31,8 @@
     CONSTRAINT [FK_SubWorkOrderFreight_UOM] FOREIGN KEY ([UOMId]) REFERENCES [dbo].[UnitOfMeasure] ([UnitOfMeasureId]),
     CONSTRAINT [FK_SubWorkOrderFreight_WorkOrder] FOREIGN KEY ([WorkOrderId]) REFERENCES [dbo].[WorkOrder] ([WorkOrderId])
 );
+
+
 
 
 

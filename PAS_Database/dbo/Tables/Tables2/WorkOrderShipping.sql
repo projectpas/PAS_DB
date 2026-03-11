@@ -67,8 +67,8 @@
     [IsCustomerShipping]                 BIT             NULL,
     [IsManualShipping]                   BIT             NULL,
     [ManufactureCountryId]               INT             NULL,
-    [QtyUOM]                             BIGINT          NULL,
-    [UnitPrice]                          DECIMAL (20, 2) NULL,
+    [QtyUOM]                             DECIMAL (18, 6) NULL,
+    [UnitPrice]                          DECIMAL (18, 6) NULL,
     [UnitPriceCurrencyId]                INT             NULL,
     [Notes]                              VARCHAR (MAX)   NULL,
     [isIgnoreAWB]                        BIT             NULL,
@@ -88,6 +88,8 @@
     CONSTRAINT [FK_WorkOrderShipping_WorkOrder] FOREIGN KEY ([WorkOrderId]) REFERENCES [dbo].[WorkOrder] ([WorkOrderId]),
     CONSTRAINT [FK_WorkOrderShipping_WorkOrderPartNo] FOREIGN KEY ([WorkOrderPartNoId]) REFERENCES [dbo].[WorkOrderPartNumber] ([ID])
 );
+
+
 
 
 

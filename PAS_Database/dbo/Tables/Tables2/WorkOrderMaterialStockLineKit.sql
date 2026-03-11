@@ -18,10 +18,10 @@
     [EquPartMasterPartId]             BIGINT          NULL,
     [IsAltPart]                       BIT             NULL,
     [IsEquPart]                       BIT             NULL,
-    [UnitCost]                        DECIMAL (20, 2) CONSTRAINT [DF_WorkOrderMaterialStockLineKit_UnitCost] DEFAULT ((0)) NULL,
-    [ExtendedCost]                    DECIMAL (20, 2) CONSTRAINT [DF_WorkOrderMaterialStockLineKit_ExtendedCost] DEFAULT ((0)) NULL,
-    [UnitPrice]                       DECIMAL (20, 2) CONSTRAINT [DF_WorkOrderMaterialStockLineKit_UnitPrice] DEFAULT ((0)) NULL,
-    [ExtendedPrice]                   DECIMAL (20, 2) CONSTRAINT [DF_WorkOrderMaterialStockLineKit_ExtendedPrice] DEFAULT ((0)) NULL,
+    [UnitCost]                        DECIMAL (18, 6) CONSTRAINT [DF_WorkOrderMaterialStockLineKit_UnitCost] DEFAULT ((0)) NULL,
+    [ExtendedCost]                    DECIMAL (18, 6) CONSTRAINT [DF_WorkOrderMaterialStockLineKit_ExtendedCost] DEFAULT ((0)) NULL,
+    [UnitPrice]                       DECIMAL (18, 6) CONSTRAINT [DF_WorkOrderMaterialStockLineKit_UnitPrice] DEFAULT ((0)) NULL,
+    [ExtendedPrice]                   DECIMAL (18, 6) CONSTRAINT [DF_WorkOrderMaterialStockLineKit_ExtendedPrice] DEFAULT ((0)) NULL,
     [ProvisionId]                     INT             DEFAULT ((1)) NOT NULL,
     [RepairOrderId]                   BIGINT          NULL,
     [QuantityTurnIn]                  DECIMAL (18, 6) CONSTRAINT [DF__WorkOrder__Quant__4EC410B6] DEFAULT ((0)) NULL,
@@ -35,6 +35,8 @@
     [IssuedDate]                      DATETIME2 (7)   NULL,
     CONSTRAINT [PK_WorkOrderMaterialStockLineKit] PRIMARY KEY CLUSTERED ([WorkOrderMaterialStockLineKitId] ASC)
 );
+
+
 
 
 

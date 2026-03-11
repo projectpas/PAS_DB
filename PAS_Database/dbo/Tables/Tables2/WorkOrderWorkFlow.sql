@@ -10,17 +10,17 @@
     [WorkflowExpirationDate]    DATETIME2 (7)   NULL,
     [IsCalculatedBERThreshold]  BIT             NULL,
     [IsFixedAmount]             BIT             NULL,
-    [FixedAmount]               NUMERIC (18, 2) NULL,
+    [FixedAmount]               DECIMAL (18, 6) NULL,
     [IsPercentageOfNew]         BIT             NULL,
-    [CostOfNew]                 NUMERIC (18, 2) NULL,
+    [CostOfNew]                 DECIMAL (18, 6) NULL,
     [PercentageOfNew]           INT             NULL,
     [IsPercentageOfReplacement] BIT             NULL,
-    [CostOfReplacement]         NUMERIC (18, 2) NULL,
+    [CostOfReplacement]         DECIMAL (18, 6) NULL,
     [PercentageOfReplacement]   INT             NULL,
     [Memo]                      NVARCHAR (MAX)  NULL,
-    [BERThresholdAmount]        NUMERIC (18, 2) NULL,
+    [BERThresholdAmount]        DECIMAL (18, 6) NULL,
     [WorkOrderNumber]           VARCHAR (256)   NULL,
-    [OtherCost]                 NUMERIC (18, 2) NULL,
+    [OtherCost]                 DECIMAL (18, 6) NULL,
     [MasterCompanyId]           INT             NOT NULL,
     [CreatedBy]                 VARCHAR (256)   NOT NULL,
     [UpdatedBy]                 VARCHAR (256)   NOT NULL,
@@ -32,14 +32,16 @@
     [WorkflowId]                BIGINT          NULL,
     [WorkFlowWorkOrderNo]       VARCHAR (30)    NULL,
     [ChangedPartNumberId]       BIGINT          NULL,
-    [MaterilaCost]              DECIMAL (20, 2) NULL,
-    [ExpertiseCost]             DECIMAL (20, 2) NULL,
-    [ChargesCost]               DECIMAL (20, 2) NULL,
-    [Total]                     DECIMAL (20, 2) NULL,
+    [MaterilaCost]              DECIMAL (18, 6) NULL,
+    [ExpertiseCost]             DECIMAL (18, 6) NULL,
+    [ChargesCost]               DECIMAL (18, 6) NULL,
+    [Total]                     DECIMAL (18, 6) NULL,
     [PerOfBerThreshold]         INT             NULL,
     [WorkOrderPartNoId]         BIGINT          DEFAULT ((0)) NOT NULL,
     CONSTRAINT [PK_WorkFlowWorkOrder] PRIMARY KEY CLUSTERED ([WorkFlowWorkOrderId] ASC)
 );
+
+
 
 
 GO

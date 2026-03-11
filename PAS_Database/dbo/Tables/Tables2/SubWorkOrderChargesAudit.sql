@@ -6,11 +6,11 @@
     [SubWOPartNoId]              BIGINT          NOT NULL,
     [ChargesTypeId]              BIGINT          NOT NULL,
     [VendorId]                   BIGINT          NULL,
-    [Quantity]                   INT             NOT NULL,
+    [Quantity]                   DECIMAL (18, 6) NULL,
     [TaskId]                     BIGINT          NOT NULL,
     [Description]                VARCHAR (256)   NULL,
-    [UnitCost]                   DECIMAL (20, 2) NOT NULL,
-    [ExtendedCost]               DECIMAL (20, 2) NULL,
+    [UnitCost]                   DECIMAL (18, 6) NULL,
+    [ExtendedCost]               DECIMAL (18, 6) NULL,
     [IsFromWorkFlow]             BIT             NULL,
     [ReferenceNo]                VARCHAR (20)    NULL,
     [MasterCompanyId]            INT             NOT NULL,
@@ -23,6 +23,4 @@
     [UOMId]                      BIGINT          NULL,
     CONSTRAINT [PK_SubWorkOrderChargesAudit] PRIMARY KEY CLUSTERED ([SubWorkOrderChargesAuditId] ASC)
 );
-
-
 

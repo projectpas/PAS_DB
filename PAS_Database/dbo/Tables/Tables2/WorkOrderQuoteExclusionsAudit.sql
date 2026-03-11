@@ -5,9 +5,9 @@
     [ItemMasterId]                    BIGINT          NULL,
     [ExstimtPercentOccuranceId]       INT             NULL,
     [Memo]                            NVARCHAR (MAX)  NULL,
-    [Quantity]                        INT             NULL,
-    [UnitCost]                        DECIMAL (20, 3) NULL,
-    [ExtendedCost]                    DECIMAL (20, 3) NULL,
+    [Quantity]                        DECIMAL (18, 6) NULL,
+    [UnitCost]                        DECIMAL (18, 6) NULL,
+    [ExtendedCost]                    DECIMAL (18, 6) NULL,
     [MarkUpPercentageId]              BIGINT          NULL,
     [MasterCompanyId]                 INT             NOT NULL,
     [CreatedBy]                       VARCHAR (256)   NOT NULL,
@@ -20,8 +20,8 @@
     [MarkupFixedPrice]                VARCHAR (15)    NULL,
     [HeaderMarkupId]                  BIGINT          NULL,
     [BillingMethodId]                 INT             NULL,
-    [BillingRate]                     DECIMAL (20, 2) NULL,
-    [BillingAmount]                   DECIMAL (20, 2) NULL,
+    [BillingRate]                     DECIMAL (18, 6) NULL,
+    [BillingAmount]                   DECIMAL (18, 6) NULL,
     [ConditionId]                     BIGINT          NULL,
     CONSTRAINT [PK_WorkOrderQuoteExclusionsAudit] PRIMARY KEY CLUSTERED ([WorkOrderQuoteExclusionsAuditId] ASC)
 );

@@ -14,7 +14,6 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    16/07/2025   AMIT GHEDIYA      Created
-	2    26/02/2026   Amit Ghediya     Update fro WOQ Approval code (PN-15575)
 
 -- EXEC GetDeleteEmailApprovalById 769,1
 ************************************************************************/
@@ -52,7 +51,6 @@ BEGIN
 				 [ContactId]		  
 		  FROM  [DBO].[EmailApproval] WITH (NOLOCK) 
 		  WHERE  RefrenceId = @RefrenceId
-		  --(@ModuleId = @WOQModuleId AND SubRefrenceId = @RefrenceId) OR (@ModuleId <> @WOQModuleId AND RefrenceId = @RefrenceId)
 		  AND ModuleId = @ModuleId;
 	END
 	IF(@Mode = 1) --For Delete
@@ -60,7 +58,6 @@ BEGIN
 		DELETE 
 			FROM  [DBO].[EmailApproval] 
 		 WHERE RefrenceId = @RefrenceId
-		 --(@ModuleId = @WOQModuleId AND SubRefrenceId = @RefrenceId) OR (@ModuleId <> @WOQModuleId AND RefrenceId = @RefrenceId)
 		 AND ModuleId = @ModuleId;
 	END
 

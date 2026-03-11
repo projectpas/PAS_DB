@@ -11,13 +11,13 @@
     [IsActive]                    BIT             DEFAULT ((1)) NOT NULL,
     [IsDeleted]                   BIT             DEFAULT ((0)) NOT NULL,
     [TaskId]                      BIGINT          NOT NULL,
-    [DirectLaborOHCost]           DECIMAL (20, 2) NOT NULL,
+    [DirectLaborOHCost]           DECIMAL (18, 6) NULL,
     [MarkupPercentageId]          BIGINT          NULL,
-    [BurdenRateAmount]            DECIMAL (20, 2) CONSTRAINT [DF_WorkOrderQuoteLabor_BurdenRateAmount] DEFAULT ((0)) NULL,
-    [TotalCostPerHour]            DECIMAL (20, 2) CONSTRAINT [DF_WorkOrderQuoteLabor_TotalCostPerHour] DEFAULT ((0)) NULL,
-    [TotalCost]                   DECIMAL (20, 2) CONSTRAINT [DF_WorkOrderQuoteLabor_TotalCost] DEFAULT ((0)) NULL,
-    [BillingRate]                 DECIMAL (20, 2) CONSTRAINT [DF_WorkOrderQuoteLabor_BillingRate] DEFAULT ((0)) NULL,
-    [BillingAmount]               DECIMAL (20, 2) CONSTRAINT [DF_WorkOrderQuoteLabor_BillingAmount] DEFAULT ((0)) NULL,
+    [BurdenRateAmount]            DECIMAL (18, 6) CONSTRAINT [DF_WorkOrderQuoteLabor_BurdenRateAmount] DEFAULT ((0)) NULL,
+    [TotalCostPerHour]            DECIMAL (18, 6) CONSTRAINT [DF_WorkOrderQuoteLabor_TotalCostPerHour] DEFAULT ((0)) NULL,
+    [TotalCost]                   DECIMAL (18, 6) CONSTRAINT [DF_WorkOrderQuoteLabor_TotalCost] DEFAULT ((0)) NULL,
+    [BillingRate]                 DECIMAL (18, 6) CONSTRAINT [DF_WorkOrderQuoteLabor_BillingRate] DEFAULT ((0)) NULL,
+    [BillingAmount]               DECIMAL (18, 6) CONSTRAINT [DF_WorkOrderQuoteLabor_BillingAmount] DEFAULT ((0)) NULL,
     [BurdaenRatePercentageId]     BIGINT          NULL,
     [BillingMethodId]             INT             NULL,
     [MasterCompanyId]             INT             NULL,
@@ -36,6 +36,8 @@
     CONSTRAINT [FK_WorkOrderQuoteLabor_MasterCompanyId] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId]),
     CONSTRAINT [FK_WorkOrderQuoteLabor_WorkOrderQuoteLaborHeader] FOREIGN KEY ([WorkOrderQuoteLaborHeaderId]) REFERENCES [dbo].[WorkOrderQuoteLaborHeader] ([WorkOrderQuoteLaborHeaderId])
 );
+
+
 
 
 

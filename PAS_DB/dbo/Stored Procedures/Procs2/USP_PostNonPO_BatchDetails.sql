@@ -32,7 +32,7 @@
 	16   07-JAN-2025		 Rajesh Gami			Modified DistributionSetup for the DEPOSIT from itemGLAccount to DistributionSetup GL and Amount logic change to SUM of extended cost instead of Item Level
 	17	 02/JUN/2025	     Abhishek Jirawla		Fixed Name concat read script
 	18	 25/JUN/2025	     Devendra Shekh			Modified DistributionSetup for the DEPOSIT from DistributionSetup to itemGLAccount
-	19	 06/March/2026	     AMIT GHEDIYA			Modified for revert accounting entry whle click on unpost Also not allow to add in vendorPayment (PN-15580)
+	19	 06/March/2026	     AMIT GHEDIYA			Modified for revert accounting entry whle click on unpost Also not allow to add in vendorPayment & after revert sodt delete vendorpayment table (PN-15580)
 
 	 exec USP_PostNonPO_BatchDetails 6,'admin'
 **********************/
@@ -404,7 +404,11 @@ BEGIN
 		IF(@IsRevert = 1)
 		BEGIN
 			 UPDATE [dbo].[NonPOInvoiceHeader] SET StatusId = @NPOOpenStausId
-			 WHERE [NonPOInvoiceId] = @NonPOInvoiceId
+			 WHERE [NonPOInvoiceId] = @NonPOInvoiceId;
+
+			 --Soft delete after revert payment for vendorPayment.
+			 UPDATE [dbo].[VendorPaymentDetails] SET [IsDeleted] = 1 , IsActive = 0
+			 WHERE [NonPOInvoiceId] = @NonPOInvoiceId;
 		END
 		ELSE
 		BEGIN

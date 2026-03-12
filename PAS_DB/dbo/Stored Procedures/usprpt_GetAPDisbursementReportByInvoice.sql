@@ -18,6 +18,7 @@
     1    28-Jan-2026    Priyansh Patel		   Created    
 	2    02-Feb-2026    Rajesh Gami			 InvoiceDueDate : Remove Timezone conversion [PN-15621]  
 	3    03-March-2026  Amit Ghediya	     Update for get MJE data [PN-15631]
+	4    12-MAR-2026    Amit Ghediya         Updated for get isactive records (PN-15588)
  EXEC dbo.usprpt_GetAPDisbursementReportByInvoice
     @MasterCompanyId = 1 , @PageNumber =1 , @EmployeeId = 2 @PageSize = 50, , @SortColumn = "glAccountNum"
 
@@ -205,6 +206,7 @@ BEGIN
             AND rtp.IsGenerated   = 1
             AND rtp.IsActive      = 1
             AND rtp.IsDeleted     = 0
+			AND vpd.[IsActive] = 1 AND vpd.[IsDeleted] = 0
             AND rtp.MasterCompanyId = @MasterCompanyId
             AND (@FromPaymentDate IS NULL OR CAST(rtp.CheckDate AS DATE) >= CAST(@FromPaymentDate AS DATE))
             AND (@ToPaymentDate IS NULL OR CAST(rtp.CheckDate AS DATE) <= CAST(@ToPaymentDate AS DATE))

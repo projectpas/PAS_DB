@@ -54,6 +54,7 @@
 	38   16/02/2026   Amit Ghediya		update to get due date from ReceivingReconciliation duedate (PN-15444)
 	39   19/02/2026   Amit Ghediya		update le name from le company code (PN-15520)
 	40   02/03/2026   Amit Ghediya		Updated for Add MJE in Partially payment & Pending payment for get update (PN-15622).
+	41   11/03/2026   Amit Ghediya		Updated for get isactive records (PN-15588).
  --EXEC VendorPaymentList 10,1,'ReceivingReconciliationId',1,'','',0,0,0,'ALL','',NULL,NULL,1,73   
 **************************************************************/
 CREATE      PROCEDURE [dbo].[VendorPaymentList]  
@@ -270,7 +271,7 @@ BEGIN
 							WHERE ISNULL(VD.VendorPaymentDetailsId,0) = RRH.VendorPaymentDetailsId AND VD.IsVoidedCheck = 0 AND VD.IsGenerated = 1 --AND VD.CheckNumber IS NULL
 			    GROUP BY VD.VendorPaymentDetailsId,VRTPDH.ReadyToPayId,VD.ControlNumber, VD.ReadyToPayDetailsId
 				ORDER BY VD.ReadyToPayDetailsId DESC) AS Tab
-	      WHERE RRH.MasterCompanyId = @MasterCompanyId AND RemainingAmount > 0 AND ISNULL(RRH.NonPOInvoiceId, 0) = 0
+	      WHERE RRH.MasterCompanyId = @MasterCompanyId AND RemainingAmount > 0 AND ISNULL(RRH.NonPOInvoiceId, 0) = 0 AND RRH.[IsActive] = 1 AND RRH.[IsDeleted] = 0
 
 	--UNION ALL
 	-- -ReceivingReconciliation DETAILS
@@ -407,6 +408,7 @@ BEGIN
 	      WHERE RRH.MasterCompanyId = @MasterCompanyId AND RRH.RemainingAmount > 0 AND ISNULL(RRH.NonPOInvoiceId, 0) = 0 
 		  AND ISNULL(RRH.CustomerCreditPaymentDetailId, 0) = 0
 		  AND ISNULL(RRH.CreditMemoHeaderId, 0) <> 0
+		  AND RRH.[IsActive] = 1 AND RRH.[IsDeleted] = 0
 
 	--UNION ALL
 	-- VendorPayment NonPOInvoice DETAILS
@@ -557,6 +559,7 @@ BEGIN
 			ORDER BY VD.ReadyToPayDetailsId DESC) AS Tab
 	      WHERE RRH.MasterCompanyId = @MasterCompanyId AND RemainingAmount > 0 AND ISNULL(RRH.NonPOInvoiceId, 0) <> 0
 		        AND NPH.StatusId = @NonPOInvoiceHeaderStatusId
+				AND RRH.[IsActive] = 1 AND RRH.[IsDeleted] = 0
 
 
 				---MJE 
@@ -619,6 +622,7 @@ BEGIN
 			ORDER BY VD.ReadyToPayDetailsId DESC) AS Tab
 			     WHERE VPD.MasterCompanyId = @MasterCompanyId AND RemainingAmount > 0 AND ISNULL(VPD.ManualJournalHeaderId, 0) <> 0
 		        AND MJH.ManualJournalStatusId = @MJEHeaderStatusId
+				AND VPD.[IsActive] = 1 AND VPD.[IsDeleted] = 0
 
 	    --CustomerCreditPayment DETAILS
 		INSERT INTO #TEMPVendorPaymentListRecords([ReceivingReconciliationId], [InvoiceNum], [Status], [OriginalTotal], [RRTotal], [InvoiceTotal], [CreditMemoUsed], [DifferenceAmount], [VendorName], [PaymentHold],
@@ -685,6 +689,7 @@ BEGIN
 			    GROUP BY VD.VendorPaymentDetailsId,VRTPDH.ReadyToPayId,VD.ControlNumber, VD.ReadyToPayDetailsId 
 			ORDER BY VD.ReadyToPayDetailsId DESC) AS Tab
 	      WHERE RRH.MasterCompanyId = @MasterCompanyId AND RRH.RemainingAmount > 0 AND ISNULL(RRH.NonPOInvoiceId, 0) = 0 AND ISNULL(RRH.CustomerCreditPaymentDetailId, 0) <> 0
+		  AND RRH.[IsActive] = 1 AND RRH.[IsDeleted] = 0
 
 	/***********************START: Vendor Proforma Invoice Details **************************/
 		INSERT INTO #TEMPVendorPaymentListRecords([ReceivingReconciliationId], [InvoiceNum], [Status], [OriginalTotal], [RRTotal], [InvoiceTotal], [CreditMemoUsed], [DifferenceAmount], [VendorName], [PaymentHold],
@@ -803,7 +808,7 @@ BEGIN
 				WHERE ISNULL(VD.VendorPaymentDetailsId,0) = RRH.VendorPaymentDetailsId   AND IsVoidedCheck = 0 AND  RRH.VendorProformaInvoiceId = VD.VendorProformaInvoiceId 
 				ORDER BY VD.ReadyToPayDetailsId DESC) AS Tab
 	      WHERE RRH.MasterCompanyId = @MasterCompanyId AND RemainingAmount > 0 AND ISNULL(RRH.VendorProformaInvoiceId, 0) <> 0
-		        AND NPH.StatusId = @ProformaInvoicePostedStatusId
+		        AND NPH.StatusId = @ProformaInvoicePostedStatusId AND RRH.[IsActive] = 1 AND RRH.[IsDeleted] = 0
 
 	/***********************END: Vendor Proforma Invoice Details **************************/
     --),  
@@ -1660,6 +1665,7 @@ BEGIN
 		  AND RRH.PaymentMade > 0 
 		  AND RRH.RemainingAmount > 0 
 		  AND ISNULL(RRH.NonPOInvoiceId, 0) = 0
+		  AND RRH.[IsActive] = 1 AND RRH.[IsDeleted] = 0
 
 	--UNION ALL
 	--VendorPayment -NonPOInvoice DETAILS
@@ -1726,6 +1732,7 @@ BEGIN
 		  AND RRH.RemainingAmount > 0 
 		  AND ISNULL(RRH.NonPOInvoiceId, 0) <> 0
 		  AND NPH.StatusId = @NonPOInvoiceHeaderStatusId
+		  AND RRH.[IsActive] = 1 AND RRH.[IsDeleted] = 0
 
 	---MJE 
 			INSERT INTO #TEMPVendorPaymentListRecords([ReceivingReconciliationId], [InvoiceNum], [Status], [OriginalTotal], [RRTotal], [InvoiceTotal], [CreditMemoUsed], [DifferenceAmount], [VendorName], [PaymentHold],
@@ -1790,6 +1797,7 @@ BEGIN
 		  AND VPD.RemainingAmount > 0 
 		  AND ISNULL(VPD.ManualJournalHeaderId, 0) <> 0
 		  AND MJH.ManualJournalStatusId = @MJEHeaderStatusId
+		  AND VPD.[IsActive] = 1 AND VPD.[IsDeleted] = 0
 
 	/********************START: Vendor Proforma Invoice *************************/
 		  INSERT INTO #TEMPVendorPaymentListRecords([ReceivingReconciliationId], [InvoiceNum], [Status], [OriginalTotal], [RRTotal], [InvoiceTotal], [CreditMemoUsed], [DifferenceAmount], [VendorName], [PaymentHold],
@@ -1865,6 +1873,7 @@ BEGIN
 		  AND RRH.RemainingAmount > 0 
 		  AND ISNULL(RRH.VendorProformaInvoiceId, 0) <> 0
 		  AND NPH.StatusId = @ProformaInvoicePostedStatusId
+		  AND RRH.[IsActive] = 1 AND RRH.[IsDeleted] = 0
 		/********************END: Vendor Proforma Invoice *************************/
 
 		--VendorPayment -CustomerCreditPayment DETAILS
@@ -1938,6 +1947,7 @@ BEGIN
 		  AND VPD.RemainingAmount > 0 
 		  AND ISNULL(VPD.NonPOInvoiceId, 0) = 0
 		  AND ISNULL(VPD.CustomerCreditPaymentDetailId, 0) <> 0
+		  AND VPD.[IsActive] = 1 AND VPD.[IsDeleted] = 0
 
     --),  
     ;WITH FinalResult AS (  
@@ -2097,6 +2107,7 @@ BEGIN
 		 AND ISNULL(VRTPD.ReceivingReconciliationId,0) >0 
 		 AND RRH.StatusId IN(SELECT Item FROM dbo.SplitString(@PrintFullStatusId, ','))
 		 AND ISNULL(VRTPD.CreditMemoHeaderId, 0) = 0 AND ISNULL(RRH.NonPOInvoiceId, 0) = 0	AND ISNULL(RRH.CustomerCreditPaymentDetailId, 0) = 0	
+		 AND RRH.[IsActive] = 1 AND RRH.[IsDeleted] = 0
 		GROUP BY VRTPD.CheckNumber,lebl.BankName,lebl.BankAccountNumber,VRTPDH.ReadyToPayId,
 				 RRH.[Status],VN.IsVendorOnHold,CheckDate,VN.VendorName,IsVoidedCheck,
 				 VRTPD.VendorId,VRTPD.PaymentMethodId,SRT.CreatedDate,VRTPD.ReadyToPayDetailsId,VRTPD.AmountDue,VRTPD.ControlNumber,le.[CompanyCode],RRH.[LastMSLevel]
@@ -2150,6 +2161,7 @@ BEGIN
 		  AND RRH.StatusId IN(SELECT Item FROM dbo.SplitString(@PrintFullStatusId, ','))
 		 AND ISNULL(VRTPD.CreditMemoHeaderId, 0) <> 0 AND ISNULL(RRH.CreditMemoHeaderId, 0) <> 0 
 		 AND ISNULL(RRH.NonPOInvoiceId, 0) = 0 AND ISNULL(RRH.CustomerCreditPaymentDetailId, 0) = 0		
+		 AND RRH.[IsActive] = 1 AND RRH.[IsDeleted] = 0
 		GROUP BY VRTPD.CheckNumber,lebl.BankName,lebl.BankAccountNumber,VRTPDH.ReadyToPayId,
 				 RRH.[Status],VN.IsVendorOnHold,CheckDate,VN.VendorName,IsVoidedCheck,
 				 VRTPD.VendorId,VRTPD.PaymentMethodId,SRT.CreatedDate,VRTPD.ReadyToPayDetailsId,VRTPD.AmountDue,VRTPD.ControlNumber,le.[CompanyCode]
@@ -2202,7 +2214,8 @@ BEGIN
 		 AND ISNULL(VRTPD.IsCheckPrinted,0) = 0
 		 AND ISNULL(VRTPD.IsGenerated,0) = 1
 		AND RRH.StatusId IN(SELECT Item FROM dbo.SplitString(@StatusId, ','))
-		 AND ISNULL(VRTPD.CreditMemoHeaderId, 0) = 0 AND ISNULL(RRH.NonPOInvoiceId, 0) <> 0 AND ISNULL(RRH.CustomerCreditPaymentDetailId, 0) = 0		
+		 AND ISNULL(VRTPD.CreditMemoHeaderId, 0) = 0 AND ISNULL(RRH.NonPOInvoiceId, 0) <> 0 AND ISNULL(RRH.CustomerCreditPaymentDetailId, 0) = 0	
+		 AND RRH.[IsActive] = 1 AND RRH.[IsDeleted] = 0
 		GROUP BY VRTPD.CheckNumber,lebl.BankName,lebl.BankAccountNumber,VRTPDH.ReadyToPayId,
 				 RRH.[Status],VN.IsVendorOnHold,CheckDate,VN.VendorName,IsVoidedCheck,
 				 VRTPD.VendorId,VRTPD.PaymentMethodId,SRT.CreatedDate,VRTPD.ReadyToPayDetailsId,VRTPD.AmountDue,VRTPD.ControlNumber,le.[CompanyCode],RRH.NonPOInvoiceId
@@ -2254,7 +2267,8 @@ BEGIN
 		 AND ISNULL(VRTPD.IsCheckPrinted,0) = 0
 		 AND ISNULL(VRTPD.IsGenerated,0) = 1
 		 AND RRH.StatusId IN(SELECT Item FROM dbo.SplitString(@StatusId, ','))
-		 AND ISNULL(VRTPD.CreditMemoHeaderId, 0) = 0 AND ISNULL(RRH.NonPOInvoiceId, 0) = 0 AND ISNULL(RRH.CustomerCreditPaymentDetailId, 0) <> 0			
+		 AND ISNULL(VRTPD.CreditMemoHeaderId, 0) = 0 AND ISNULL(RRH.NonPOInvoiceId, 0) = 0 AND ISNULL(RRH.CustomerCreditPaymentDetailId, 0) <> 0	
+		 AND RRH.[IsActive] = 1 AND RRH.[IsDeleted] = 0
 		GROUP BY VRTPD.CheckNumber,lebl.BankName,lebl.BankAccountNumber,VRTPDH.ReadyToPayId,
 				 RRH.[Status],VN.IsVendorOnHold,CheckDate,VN.VendorName,IsVoidedCheck,
 				 VRTPD.VendorId,VRTPD.PaymentMethodId,SRT.CreatedDate,VRTPD.ReadyToPayDetailsId,VRTPD.AmountDue,VRTPD.ControlNumber,le.[CompanyCode],RRH.CustomerCreditPaymentDetailId
@@ -2307,6 +2321,7 @@ BEGIN
 		 AND ISNULL(VRTPD.IsGenerated,0) = 1
 		AND RRH.StatusId IN(SELECT Item FROM dbo.SplitString(@StatusId, ','))
 		 AND ISNULL(VRTPD.CreditMemoHeaderId, 0) = 0 AND ISNULL(RRH.VendorProformaInvoiceId, 0) <> 0 AND ISNULL(RRH.CustomerCreditPaymentDetailId, 0) = 0		
+		 AND RRH.[IsActive] = 1 AND RRH.[IsDeleted] = 0
 		GROUP BY VRTPD.CheckNumber,lebl.BankName,lebl.BankAccountNumber,VRTPDH.ReadyToPayId,
 				 RRH.[Status],VN.IsVendorOnHold,CheckDate,VN.VendorName,IsVoidedCheck,
 				 VRTPD.VendorId,VRTPD.PaymentMethodId,SRT.CreatedDate,VRTPD.ReadyToPayDetailsId,VRTPD.AmountDue,VRTPD.ControlNumber,le.[CompanyCode],RRH.VendorProformaInvoiceId
@@ -2463,6 +2478,7 @@ BEGIN
 	  WHERE RRH.MasterCompanyId = @MasterCompanyId 
 		AND (RRH.PaymentMade > 0  OR IsVoidedCheck = 1)
 		 AND ISNULL(VRTPD.IsGenerated,0) = 1
+		 AND RRH.[IsActive] = 1 AND RRH.[IsDeleted] = 0
 		 GROUP BY VRTPD.CheckNumber,lebl.BankName,lebl.BankAccountNumber,DWPL.AccountNumber,
 		          IWPL.BeneficiaryBankAccount, VRTPDH.ReadyToPayId,VRTPD.AmountDue,VN.IsVendorOnHold,
 		          CheckDate,VN.VendorName,IsVoidedCheck,VRTPD.VendorId,VRTPD.PaymentMethodId,SRT.CreatedDate,

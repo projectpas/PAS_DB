@@ -16,7 +16,8 @@
  **************************************************************             
  ** PR   Date         Author              Change Description              
  ** --   --------     -------          --------------------------------     
-    1    26/02/2026   Bhargav Saliya       Created
+    1    26/02/2026   Bhargav Saliya       PN-15456: Created
+    2    12/03/2026   Bhargav Saliya       PN-15747: Modified
 **************************************************************/
 CREATE     PROCEDURE [dbo].[USP_AddEmployeeImpersonationHistory]  
 @ImpersonatedEmployeeId BIGINT,  
@@ -33,8 +34,8 @@ BEGIN
 	DECLARE @Impersonated VARCHAR(256);
 	SET @Impersonated = (SELECT ISNULL(FirstName,'') + ' ' + ISNULL(LastName,'') as [Name] FROM dbo.[Employee] WITH(NOLOCK) WHERE EmployeeId = @ImpersonatedEmployeeId and MasterCompanyId =  @MasterCompanyId);
 
-	DECLARE @CompanyName varchar(500) = (SELECT [CompanyName] FROM dbo.[MasterCompany] WITH(NOLOCK) WHERE MasterCompanyId = @MasterCompanyId);
-	DECLARE @CompanyCode varchar(100) = (SELECT [MasterCompanyCode] FROM dbo.[MasterCompany] WITH(NOLOCK) WHERE MasterCompanyId = @MasterCompanyId);
+	DECLARE @CompanyName varchar(500) = (SELECT [CompanyName] FROM dbo.[MasterCompany] WITH(NOLOCK) WHERE MasterCompanyId = @CurrentUserMasterCompanyId);
+	DECLARE @CompanyCode varchar(100) = (SELECT [MasterCompanyCode] FROM dbo.[MasterCompany] WITH(NOLOCK) WHERE MasterCompanyId = @CurrentUserMasterCompanyId);
 
 	IF(@ImpersonatedEmployeeId > 0 AND @ImpersonatedByEmployeeId > 0)
 	BEGIN

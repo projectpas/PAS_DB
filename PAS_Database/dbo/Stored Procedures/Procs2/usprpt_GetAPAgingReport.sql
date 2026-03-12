@@ -23,6 +23,7 @@
 	7    23-FEB-2026    Moin Bloch         Update Due date Getting From Direct Table.
 	8    02-MAR-2026    Moin Bloch         Updated Due date For Manual JE
 	9    11-MAR-2026    Amit Ghediya       Updated for remove MJE after full payment (PN-15631)
+	10    12-MAR-2026    Amit Ghediya       Updated for get isactive records (PN-15588)
   --[dbo].[usprpt_GetAPAgingReport] 1,'2026-01-27',3654,2,null,null
 ***************************************************************************************************/        
 CREATE   PROCEDURE [dbo].[usprpt_GetAPAgingReport]       
@@ -160,6 +161,7 @@ BEGIN
 			  WHERE rrh.VendorId = ISNULL(@vendorId,rrh.VendorId)        
 			  AND CAST(rrh.InvoiceDate AS DATE) <= CAST(@ToDate AS DATE) 
 			  AND vpd.RemainingAmount > 0 
+			  AND vpd.[IsActive] = 1 AND vpd.[IsDeleted] = 0
 			  --AND rrh.InvoiceNum = ISNULL(@invoiceNum,rrh.InvoiceNum)
 			  AND rrh.MasterCompanyId = @mastercompanyid			  
 			  AND (ISNULL(@tagtype,'')='' OR ES.OrganizationTagTypeId IN(SELECT value FROM String_split(ISNULL(@tagtype,''), ',')))      
@@ -297,6 +299,7 @@ BEGIN
 			AND CAST(MJH.[PostedDate] AS DATE) <= CAST(@ToDate AS DATE) AND MJH.JournalNumber  = ISNULL(@invoiceNum,MJH.JournalNumber)
 			AND MJH.mastercompanyid = @mastercompanyid      
 			AND vpd.RemainingAmount > 0  
+			AND vpd.[IsActive] = 1 AND vpd.[IsDeleted] = 0
 			AND (ISNULL(@tagtype,'')='' OR ES.OrganizationTagTypeId IN(SELECT value FROM STRING_SPLIT(ISNULL(@tagtype,''), ',')))      
 			AND (ISNULL(@Level1,'') ='' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))      
 			AND (ISNULL(@Level2,'') ='' OR MSD.[Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,',')))      
@@ -324,6 +327,7 @@ BEGIN
 			  WHERE NPH.VendorId = ISNULL(@vendorId,NPH.VendorId)        
 			  AND CAST(NPH.InvoiceDate AS DATE) <= CAST(@ToDate AS DATE) 
 			  AND vpd.RemainingAmount > 0  
+			  AND vpd.[IsActive] = 1 AND vpd.[IsDeleted] = 0
 			  --AND NPH.NPONumber  = ISNULL(@invoiceNum,NPH.NPONumber)
 			  AND NPH.MasterCompanyId = @mastercompanyid			  
 			  AND (ISNULL(@tagtype,'')='' OR ES.OrganizationTagTypeId IN(SELECT value FROM String_split(ISNULL(@tagtype,''), ',')))      
@@ -415,6 +419,7 @@ BEGIN
 			  WHERE rrh.[VendorId] = ISNULL(@vendorId,rrh.VendorId)        
 			  AND CAST(rrh.[InvoiceDate] AS DATE) <= CAST(@ToDate AS DATE) AND rrh.[MasterCompanyId] = @mastercompanyid   
 			  AND vpd.RemainingAmount > 0
+			  AND vpd.[IsActive] = 1 AND vpd.[IsDeleted] = 0
 			  AND (ISNULL(@tagtype,'')='' OR ES.OrganizationTagTypeId IN(SELECT value FROM String_split(ISNULL(@tagtype,''), ',')))      
 			  AND (	ISNULL(@Level1,'') = ''
 					OR (
@@ -608,6 +613,7 @@ BEGIN
 			AND MJH.[ManualJournalStatusId] = @PostStatusId
 			AND MJD.[ReferenceTypeId] = 2 
 			AND vpd.RemainingAmount > 0
+			AND vpd.[IsActive] = 1 AND vpd.[IsDeleted] = 0
 			--AND ISNULL(MJD.Credit,0) - ISNULL(MJD.Debit,0) <> 0
 			AND CAST(MJH.[PostedDate] AS DATE) <= CAST(@ToDate AS DATE) AND MJH.MasterCompanyId = @mastercompanyid    
 			AND (ISNULL(@tagtype,'')='' OR ES.OrganizationTagTypeId IN(SELECT value FROM String_split(ISNULL(@tagtype,''), ',')))      
@@ -685,6 +691,7 @@ BEGIN
 			  WHERE NPH.[VendorId] = ISNULL(@vendorId,NPH.VendorId)        
 			  AND CAST(NPH.PostedDate AS DATE) <= CAST(@ToDate AS DATE) AND NPH.[MasterCompanyId] = @mastercompanyid   
 			  AND vpd.RemainingAmount > 0
+			  AND vpd.[IsActive] = 1 AND vpd.[IsDeleted] = 0
 			  AND (ISNULL(@tagtype,'')='' OR ES.OrganizationTagTypeId IN(SELECT value FROM String_split(ISNULL(@tagtype,''), ',')))      
 			  AND (ISNULL(@Level1,'') ='' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))      
 			  AND (ISNULL(@Level2,'') ='' OR MSD.[Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,',')))      
@@ -920,7 +927,8 @@ BEGIN
 			  --AND vpd.RemainingAmount > 0  --AND rrh.InvoiceNum = ISNULL(@invoiceNum,rrh.InvoiceNum)
 			  WHERE rrh.[VendorId] = ISNULL(@vendorId,rrh.VendorId)        
 			  AND CAST(rrh.[InvoiceDate] AS DATE) <= CAST(@ToDate AS DATE) AND rrh.[MasterCompanyId] = @mastercompanyid   
-			  AND vpd.RemainingAmount > 0 --AND rrh.InvoiceNum = rrh.InvoiceNum
+			  AND vpd.RemainingAmount > 0
+			  AND vpd.[IsActive] = 1 AND vpd.[IsDeleted] = 0 --AND rrh.InvoiceNum = rrh.InvoiceNum
 			  AND (ISNULL(@tagtype,'')='' OR ES.OrganizationTagTypeId IN(SELECT value FROM String_split(ISNULL(@tagtype,''), ',')))      
 			  AND (	ISNULL(@Level1,'') = ''
 					OR (
@@ -1123,6 +1131,7 @@ BEGIN
 			AND MJH.[ManualJournalStatusId] = @PostStatusId
 			AND MJD.[ReferenceTypeId] = 2  
 			AND vpd.RemainingAmount > 0 
+			AND vpd.[IsActive] = 1 AND vpd.[IsDeleted] = 0
 			--AND MJH.JournalNumber  = ISNULL(@invoiceNum,MJH.JournalNumber)
 			AND CAST(MJH.[PostedDate] AS DATE) <= CAST(@ToDate AS DATE) AND MJH.MasterCompanyId = @mastercompanyid    
 			AND (ISNULL(@tagtype,'')='' OR ES.OrganizationTagTypeId IN(SELECT value FROM String_split(ISNULL(@tagtype,''), ',')))      
@@ -1193,6 +1202,7 @@ BEGIN
 				  WHERE NPH.[VendorId] = ISNULL(@vendorId,NPH.VendorId)  			  
 				  AND CAST(NPH.PostedDate AS DATE) <= CAST(@ToDate AS DATE) AND NPH.[MasterCompanyId] = @mastercompanyid      
 				  AND vpd.RemainingAmount > 0  
+				  AND vpd.[IsActive] = 1 AND vpd.[IsDeleted] = 0
 				  --AND NPH.NPONumber  = ISNULL(@invoiceNum,NPH.NPONumber)
 				  AND (ISNULL(@tagtype,'')='' OR ES.OrganizationTagTypeId IN(SELECT value FROM String_split(ISNULL(@tagtype,''), ',')))      
 				  AND (ISNULL(@Level1,'') ='' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,','))) AND (ISNULL(@Level2,'') ='' OR MSD.[Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,',')))      

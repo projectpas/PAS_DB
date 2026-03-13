@@ -408,7 +408,10 @@ BEGIN
 			 WHERE [NonPOInvoiceId] = @NonPOInvoiceId;
 
 			 --Hard delete after revert payment for vendorPayment.
-			 DELETE [dbo].[VendorPaymentDetails] WHERE [NonPOInvoiceId] = @NonPOInvoiceId;
+			 IF NOT EXISTS(SELECT [ReadyToPayDetailsId] FROM [dbo].[VendorReadyToPayDetails] WITH(NOLOCK) WHERE [NonPOInvoiceId] = @NonPOInvoiceId)
+			 BEGIN
+				  DELETE [dbo].[VendorPaymentDetails] WHERE [NonPOInvoiceId] = @NonPOInvoiceId;
+			 END
 		END
 		ELSE
 		BEGIN

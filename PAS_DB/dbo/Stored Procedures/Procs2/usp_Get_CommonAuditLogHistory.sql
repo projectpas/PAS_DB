@@ -17,11 +17,10 @@
     1		07-NOV-2025		HEMANT SALIYA			Created  
     2       11-NOV-2025     AYUSHI PATEL            Mapped ModuleId to Module 
     3       12-NOV-2025     AYUSHI PATEL            Removed TableName, PKJson, ChangedBy, Actions from output; added UpdatedDate fallback to ChangedAt; excluded columns via IgnoreColumn.
-    4       20-NOV-2025     AYUSHI PATEL            Converted UpdatedDate/CreatedDate to employee timezone .
---EXEC dbo.usp_Get_CommonAuditLogHistory @Module='WorkOrder', @PK_Key='WorkOrderId', @PK_Value=4482
---EXEC dbo.usp_Get_CommonAuditLogHistory @ModuleId=1, @PK_Key='CustomerId', @PK_Value=4493
---EXEC dbo.usp_Get_CommonAuditLogHistory @ModuleId=2, @PK_Key='VendorId', @PK_Value=5418 
---exec usp_Get_CommonAuditLogHistory @ModuleId=1,@PK_Key=N'CustomerId',@PK_Value=4495,@EmployeeId=234
+    4       20-NOV-2025     AYUSHI PATEL            Converted UpdatedDate/CreatedDate to employee timezone.
+    5       13-MAR-2026     DIVYESH KATHIRIYA       Set New HistoryModule Table.[PN-15761]
+
+    EXEC usp_Get_CommonAuditLogHistory @ModuleId=7,@PK_Key=N'SalesOrderQuoteId',@PK_Value=1514,@EmployeeId=236
 **********************/ 
 
 CREATE   PROC [dbo].[usp_Get_CommonAuditLogHistory]
@@ -40,7 +39,7 @@ BEGIN
     BEGIN TRY  
     -- Validate sort dir
     IF @SortDir NOT IN (N'ASC', N'DESC') SET @SortDir = N'DESC';
-    DECLARE @Module VARCHAR(100) = (SELECT ModuleName FROM dbo.Module WITH (NOLOCK) WHERE ModuleId = @ModuleId);
+    DECLARE @Module VARCHAR(100) = (SELECT [HistoryModuleName] FROM [dbo].[HistoryModule] WITH (NOLOCK) WHERE [HistoryModuleId] = @ModuleId);
     
     DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
     SELECT @CurrntEmpTimeZoneDesc = COALESCE(ETZ.[Description], LTZ.[Description])

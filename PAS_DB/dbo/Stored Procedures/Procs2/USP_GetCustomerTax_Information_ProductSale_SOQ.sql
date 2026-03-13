@@ -19,10 +19,11 @@
 	4    03/19/2025   RAJESH GAMI		Modified for SaleTax and OtherTax Multyply by part count and fix the other issue
 	5    06/26/2025   HEMANT SALIYA		Reslved Duplicate billing issue DCA
 	6    07/09/2025   Vishal Suthar		Fixed SubTotal field which already includes Charges in the TotalRevenue field
+	7    12-03-2026   Hemant Saliya		Corrected Charges Calucation
           
--- EXEC [USP_GetCustomerTax_Information_ProductSale_SOQ] 1148
+-- EXEC [USP_GetCustomerTax_Information_ProductSale_SOQ] 745
 **************************************************************/
-CREATE     PROCEDURE [dbo].[USP_GetCustomerTax_Information_ProductSale_SOQ]
+CREATE    PROCEDURE [dbo].[USP_GetCustomerTax_Information_ProductSale_SOQ]
 	@SalesOrderQuoteId bigint
 AS
 BEGIN
@@ -43,6 +44,7 @@ BEGIN
 	DECLARE @Total DECIMAL(18,2) = 0;
 	DECLARE @FreightBilingMethodId INT = 3
 	DECLARE @ChargesBilingMethodId INT = 3	
+	DECLARE @SOQChargesBilingMethodId INT = 0;	
 	DECLARE @TotalFreight DECIMAL(18,2) = 0;
 	DECLARE @TotalCharges DECIMAL(18,2) = 0;	
 	DECLARE @SubTotal DECIMAL(18,2) = 0;	
@@ -130,6 +132,11 @@ BEGIN
    	WHERE SOQ.[SalesOrderQuoteId] = @SalesOrderQuoteId AND SOQ.IsDeleted = 0
 	GROUP BY SOQ.[FreightBilingMethodId],SOQ.[TotalFreight]
 
+	SELECT @SOQChargesBilingMethodId = SOQ.ChargesBilingMethodId FROM [dbo].[SalesOrderQuote] SOQ WITH(NOLOCK) 
+	LEFT JOIN [dbo].[SalesOrderQuoteCharges] SOQC WITH(NOLOCK) ON SOQ.[SalesOrderQuoteId] = SOQC.[SalesOrderQuoteId] AND SOQC.IsActive = 1 AND SOQC.IsDeleted = 0  
+   	WHERE SOQ.[SalesOrderQuoteId] = @SalesOrderQuoteId 
+	GROUP BY SOQ.ChargesBilingMethodId,SOQ.TotalCharges
+
 	SELECT @TotalCharges = CASE WHEN SOQ.ChargesBilingMethodId = @ChargesBilingMethodId
 	                            THEN ISNULL(SOQ.TotalCharges,0)
 								ELSE								
@@ -196,8 +203,8 @@ BEGIN
 			FROM [dbo].[SalesOrderQuotePartCost] SOQC WITH(NOLOCK)
 			WHERE [SOQC].[SalesOrderQuoteId] = @SalesOrderQuoteId AND [SOQC].[SalesOrderQuotePartId] = @SalesOrderQuotePartId;
 
+		SET @SubTotal =  @SubTotal+ ISNULL(@Total,0);
 
-		SET @SubTotal = @SubTotal+ ISNULL(@Total,0);
 	    SET @SalesTax = (ISNULL(@Total,0)  * ISNULL(@TotalSalesTax,0) / 100)
 	    SET @OtherTax = (ISNULL(@Total,0)  * ISNULL(@TotalOtherTax,0) / 100)
 		IF(@FreighFlag = 0 AND @ChargeFlag = 0)
@@ -293,11 +300,16 @@ BEGIN
 
 		SET @MinId2 = @MinId2 + 1
 	END
+
+	SELECT @SubTotal
+	SELECT @TotalCharges
+
+	SET @SubTotal =  CASE WHEN @SOQChargesBilingMethodId = @ChargesBilingMethodId  THEN ISNULL((@SubTotal + @TotalCharges),0) ELSE @SubTotal END ;
 					
 	SELECT @FinalSalesTaxes = SUM([SalesTax]), @FinalOtherTaxes = SUM([OtherTax]) FROM #tmprShipDetails	
 	SELECT  ISNULL(@TotalFreight,0) AS TotalFreight,
 	          ISNULL(@TotalCharges,0) AS TotalCharges,	
-	          ISNULL((@SubTotal + @TotalFreight),0) AS SubTotal,
+			  ISNULL((@SubTotal + @TotalFreight),0) AS SubTotal,
 	          ISNULL((@SubTotal + @TotalFreight + @FinalSalesTaxes +  @FinalOtherTaxes),0) AS GrandTotal,
 			  ISNULL(@FinalSalesTaxes,0) AS SalesTax,
 			  ISNULL(@FinalOtherTaxes,0) AS OtherTax

@@ -14,6 +14,7 @@
  ** PR   Date			 Author			Change Description              
  ** --   --------		-------			--------------------------------            
     1    04/03/2025		EKTA CHANDEGRA	 Created  
+	2    12-03-2026     Hemant Saliya	 Corrected Charges Calucation
 
 declare @p1 dbo.SalesOrderQuoteChargesType
 insert into @p1 values(204,914,3371,2,NULL,1,0,N'AIRCRAFT ON THE GOUND',123.00,123.00,1,29851,2,123.00,123.00,2,N'',N'EKTA CHANDEGRA',N'EKTA CHANDEGRA','2025-03-04 12:01:53.1910000','2025-03-04 12:01:53.1920000',1,0,0,N'',NULL,NULL,7,7,3)
@@ -140,19 +141,41 @@ BEGIN
 							);
 						END
 
-						SELECT TOP 1 @SalesOrderQuoteId =  SalesOrderQuoteId,
-						@SalesOrderQuotePartId = SalesOrderQuotePartId,
-						@CreatedBy = CreatedBy,
-						@MasterCompanyId = MasterCompanyId
+						DECLARE part_cursor CURSOR FOR
+						SELECT DISTINCT
+							   SalesOrderQuoteId,
+							   SalesOrderQuotePartId,
+							   CreatedBy,
+							   MasterCompanyId
 						FROM @tbl_SalesOrderQuoteChargesType
+						WHERE SalesOrderQuoteId IS NOT NULL
+						AND SalesOrderQuotePartId IS NOT NULL
 
-						IF(@SalesOrderQuoteId > 0 AND @SalesOrderQuotePartId > 0)
+						OPEN part_cursor
+
+						FETCH NEXT FROM part_cursor
+						INTO @SalesOrderQuoteId, @SalesOrderQuotePartId, @CreatedBy, @MasterCompanyId
+
+						WHILE @@FETCH_STATUS = 0
 						BEGIN
-							EXEC usp_UpdateSOQPartCostDetails @SalesOrderQuoteId, @SalesOrderQuotePartId, @CreatedBy, @MasterCompanyId;
+							EXEC usp_UpdateSOQPartCostDetails 
+								@SalesOrderQuoteId,
+								@SalesOrderQuotePartId,
+								@CreatedBy,
+								@MasterCompanyId
+
+							FETCH NEXT FROM part_cursor
+							INTO @SalesOrderQuoteId, @SalesOrderQuotePartId, @CreatedBy, @MasterCompanyId
 						END
 
-					    SELECT TOP 1 @SalesOrderQuoteId = SalesOrderQuoteId FROM @tbl_SalesOrderQuoteChargesType WHERE SalesOrderQuoteId IS NOT NULL;
-					    EXEC UpdateSOQChargeNameColumnsWithId @SalesOrderQuoteId;
+						CLOSE part_cursor
+						DEALLOCATE part_cursor
+
+						SELECT TOP 1 @SalesOrderQuoteId = SalesOrderQuoteId
+						FROM @tbl_SalesOrderQuoteChargesType
+						WHERE SalesOrderQuoteId IS NOT NULL;
+
+						EXEC UpdateSOQChargeNameColumnsWithId @SalesOrderQuoteId;
 
 				END
 			COMMIT TRANSACTION

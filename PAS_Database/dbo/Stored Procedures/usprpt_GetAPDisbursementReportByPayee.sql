@@ -1,5 +1,4 @@
-﻿
-/*************************************************************                   
+﻿/*************************************************************                   
  ** File:  [usprpt_GetAPDisbursementReportByPayee]                   
  ** Author: Priyansh Patel     
  ** Description: Get Data for AP Disbursement Report        
@@ -13,7 +12,8 @@
  ** --   --------         -------          --------------------------------                  
     1    28-Jan-2026    Priyansh Patel		   Created    
     2    02-Feb-2026    Rajesh Gami			 InvoiceDueDate : Remove Timezone conversion [PN-15621]      
-	  3    03-March-2026  Amit Ghediya	     Update for get MJE data [PN-15631]
+	3    03-March-2026  Amit Ghediya	     Update for get MJE data [PN-15631]
+	4    12-MAR-2026    Amit Ghediya         Updated for get isactive records (PN-15588)
  EXEC dbo.usprpt_GetAPDisbursementReportByPayee
     @MasterCompanyId = 1 , @PageNumber =1 , @PageSize = 10, @EmployeeId = 2
 
@@ -90,7 +90,8 @@ BEGIN
             INTO #tmprPayeeList
             FROM [dbo].[VendorReadyToPayDetails] rtp WITH (NOLOCK)
             JOIN [dbo].[VendorPaymentDetails] vpd WITH (NOLOCK) ON vpd.VendorPaymentDetailsId = rtp.VendorPaymentDetailsId
-            WHERE rtp.IsVoidedCheck = 0 AND rtp.IsGenerated = 1 AND rtp.IsActive = 1 AND rtp.IsDeleted = 0 AND rtp.MasterCompanyId = @MasterCompanyId AND (@FromPaymentDate IS NULL OR CAST(rtp.CheckDate AS DATE) >= @FromPaymentDate) AND (@ToPaymentDate IS NULL OR CAST(rtp.CheckDate AS DATE) <= @ToPaymentDate)
+            WHERE rtp.IsVoidedCheck = 0 AND rtp.IsGenerated = 1 AND rtp.IsActive = 1 AND rtp.IsDeleted = 0 
+			AND vpd.[IsActive] = 1 AND vpd.[IsDeleted] = 0 AND rtp.MasterCompanyId = @MasterCompanyId AND (@FromPaymentDate IS NULL OR CAST(rtp.CheckDate AS DATE) >= @FromPaymentDate) AND (@ToPaymentDate IS NULL OR CAST(rtp.CheckDate AS DATE) <= @ToPaymentDate)
             GROUP BY rtp.VendorId;
             END
       
@@ -195,6 +196,7 @@ BEGIN
                 LEFT JOIN [dbo].[GLAccount] g WITH(NOLOCK) ON g.GLAccountId = lebl.GLAccountId
                 LEFT JOIN [dbo].[CreditTerms] CT WITH(NOLOCK) ON CT.CreditTermsId = VND.CreditTermsId AND CT.IsActive = 1
                 WHERE   rtp.IsVoidedCheck = 0
+					AND vpd.[IsActive] = 1 AND vpd.[IsDeleted] = 0
                     AND rtp.IsGenerated   = 1 AND rtp.IsActive = 1 AND rtp.IsDeleted     = 0 AND rtp.MasterCompanyId = @MasterCompanyId AND (@FromPaymentDate IS NULL OR CAST(rtp.CheckDate AS DATE) >= CAST(@FromPaymentDate AS DATE))
                 AND (@ToPaymentDate IS NULL OR CAST(rtp.CheckDate AS DATE) <= CAST(@ToPaymentDate AS DATE))
                 AND (@Payee IS NULL OR rtp.VendorName LIKE '%' + @Payee + '%')
@@ -311,6 +313,7 @@ BEGIN
             LEFT JOIN [dbo].[ManagementStructureLevel] L10 WITH(NOLOCK) ON L10.ID = ess.Level10Id AND L10.IsActive = 1 AND L10.IsDeleted = 0
 
           WHERE rtp.IsVoidedCheck = 0
+				AND vpd.[IsActive] = 1 AND vpd.[IsDeleted] = 0
                 AND rtp.IsGenerated   = 1 AND rtp.IsActive = 1 AND rtp.IsDeleted     = 0 AND rtp.MasterCompanyId = @MasterCompanyId AND (@FromPaymentDate IS NULL OR CAST(rtp.CheckDate AS DATE) >= CAST(@FromPaymentDate AS DATE))
             AND (@ToPaymentDate IS NULL OR CAST(rtp.CheckDate AS DATE) <= CAST(@ToPaymentDate AS DATE))
             AND (@Payee       IS NULL OR rtp.VendorName LIKE '%' + @Payee + '%')

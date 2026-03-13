@@ -31,8 +31,54 @@ BEGIN
 	BEGIN TRY  
 	DECLARE @ImpersonatedBy VARCHAR(256) ;
 	SET @ImpersonatedBy = (SELECT ISNULL(FirstName,'') + ' ' + ISNULL(LastName,'') as [Name] FROM dbo.[Employee] WITH(NOLOCK) WHERE EmployeeId = @ImpersonatedByEmployeeId and MasterCompanyId =  @CurrentUserMasterCompanyId);
+
 	DECLARE @Impersonated VARCHAR(256);
-	SET @Impersonated = (SELECT ISNULL(FirstName,'') + ' ' + ISNULL(LastName,'') as [Name] FROM dbo.[Employee] WITH(NOLOCK) WHERE EmployeeId = @ImpersonatedEmployeeId and MasterCompanyId =  @MasterCompanyId);
+
+	IF(@MasterCompanyId > 0)
+	BEGIN
+		DECLARE @ConnectionString NVARCHAR(MAX) = NULL;
+		DECLARE @TargetDBName SYSNAME = NULL;
+
+		IF @MasterCompanyId IS NOT NULL
+		BEGIN
+			SELECT @ConnectionString = [ConnectionString]
+			FROM dbo.MasterCompany WITH (NOLOCK)
+			WHERE MasterCompanyId = @MasterCompanyId;
+		END
+
+		SET @TargetDBName = (SELECT REPLACE(value, 'Initial Catalog=', '') AS InitialCatalogm FROM STRING_SPLIT(@ConnectionString, ';') WHERE value LIKE 'Initial Catalog=%');
+
+		DECLARE @sql NVARCHAR(MAX);
+		DECLARE @paramDefs NVARCHAR(MAX);
+
+		SET @sql = N'
+		SELECT @Impersonated = ISNULL(FirstName, '''') + '' '' + ISNULL(LastName, '''')
+		FROM ' + QUOTENAME(@TargetDBName) + '.dbo.Employee WITH(NOLOCK)
+		WHERE EmployeeId = @ImpersonatedEmployeeId
+		AND MasterCompanyId = @MasterCompanyId;
+		';
+
+		SET @paramDefs = N'
+			@ImpersonatedEmployeeId BIGINT,
+			@MasterCompanyId INT,
+			@Impersonated NVARCHAR(200) OUTPUT
+		';
+
+		EXEC sp_executesql
+		@sql,
+		@paramDefs,
+		@ImpersonatedEmployeeId = @ImpersonatedEmployeeId,
+		@MasterCompanyId = @MasterCompanyId,
+		@Impersonated = @Impersonated OUTPUT;
+
+		EXEC sp_executesql
+		@sql,
+		@paramDefs,
+		@ImpersonatedEmployeeId = @ImpersonatedEmployeeId,
+		@MasterCompanyId = @MasterCompanyId,
+		@Impersonated = @Impersonated OUTPUT;
+		--SET @Impersonated = (SELECT ISNULL(FirstName,'') + ' ' + ISNULL(LastName,'') as [Name] FROM dbo.[Employee] WITH(NOLOCK) WHERE EmployeeId = @ImpersonatedEmployeeId and MasterCompanyId =  @MasterCompanyId);
+	END
 
 	DECLARE @CompanyName varchar(500) = (SELECT [CompanyName] FROM dbo.[MasterCompany] WITH(NOLOCK) WHERE MasterCompanyId = @CurrentUserMasterCompanyId);
 	DECLARE @CompanyCode varchar(100) = (SELECT [MasterCompanyCode] FROM dbo.[MasterCompany] WITH(NOLOCK) WHERE MasterCompanyId = @CurrentUserMasterCompanyId);

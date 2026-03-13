@@ -47,6 +47,8 @@
 	30   12-02-2026   AMIT GHEDIYA	    date filter issue (PN-15442)
 	31   16/02/2026   Amit Ghediya		update to get due date from ReceivingReconciliation duedate (PN-15444)
 	32   19/02/2026   Amit Ghediya		update for cm is full used or not (PN-15510)
+	33   04/03/2026   Amit Ghediya		added manual je header id in VendorReadyToPayDetails (PN-15639)
+	34   11/03/2026   Amit Ghediya		Updated for get isactive records (PN-15588).
      
 -- EXEC VendorReadyToPayList 1,NULL,NULL,1  
 --EXEC dbo.VendorReadyToPayList @MasterCompanyId=1,@StartDate=default,@EndDate=default,@LegalEntityId=1
@@ -300,6 +302,7 @@ BEGIN
 				AND ISNULL(VPD.NonPOInvoiceId,0) = 0
 				AND ((@StartDate IS NULL AND @EndDate IS NULL) OR (DATEADD(Day, ISNULL(ctm.NetDays,0), VPD.DueDate)) BETWEEN @StartDate AND @EndDate)
 				AND VPD.LegalEntityId = @LegalEntityId
+				AND VPD.[IsActive] = 1 AND VPD.[IsDeleted] = 0
 
 				UPDATE  #TempVendorReadyToPayList 
 				SET AmountDue = ISNULL(AmountDue,0) - ISNULL(discNewData.DiscountToken,0), DiscountAvailable = ISNULL(DiscountAvailable,0) - ISNULL(discNewData.DiscountToken,0),
@@ -308,7 +311,8 @@ BEGIN
 							   FROM [dbo].[VendorPaymentDetails] VPD WITH(NOLOCK) 
 							   LEFT JOIN [dbo].[VendorReadyToPayDetails] VD WITH(NOLOCK) ON VPD.[ReceivingReconciliationId] = VD.[ReceivingReconciliationId]	
 							   WHERE ISNULL(VD.VendorPaymentDetailsId,0) = VPD.VendorPaymentDetailsId
-							   AND IsVoidedCheck = 0 AND CheckNumber IS NULL GROUP BY VD.VendorPaymentDetailsId,VD.InvoiceNum
+							   AND IsVoidedCheck = 0 AND CheckNumber IS NULL
+							   AND VPD.[IsActive] = 1 AND VPD.[IsDeleted] = 0 GROUP BY VD.VendorPaymentDetailsId,VD.InvoiceNum
 				) discNewData WHERE #TempVendorReadyToPayList.VendorReadyToPayDetailsTypeId = 1 AND #TempVendorReadyToPayList.InvoiceNum = discNewData.InvoiceNum
 	
 	--UNION ALL
@@ -397,6 +401,7 @@ BEGIN
 				AND ISNULL(VPD.CreditMemoHeaderId,0) <> 0
 				AND ((@StartDate IS NULL AND @EndDate IS NULL) OR (DATEADD(Day, ISNULL(ctm.NetDays,0), VPD.DueDate)) BETWEEN @StartDate AND @EndDate)
 				AND VPD.LegalEntityId = @LegalEntityId
+				AND VPD.[IsActive] = 1 AND VPD.[IsDeleted] = 0
 
 				UPDATE  #TempVendorReadyToPayList 
 				SET AmountDue = ISNULL(AmountDue,0) - ISNULL(discNewData.DiscountToken,0), DiscountAvailable = ISNULL(DiscountAvailable,0) - ISNULL(discNewData.DiscountToken,0),
@@ -405,7 +410,8 @@ BEGIN
 							   FROM [dbo].[VendorPaymentDetails] VPD WITH(NOLOCK) 
 							    LEFT JOIN [dbo].[VendorReadyToPayDetails] VD WITH(NOLOCK) ON VPD.CreditMemoHeaderId = VD.CreditMemoHeaderId	
 							   WHERE ISNULL(VD.VendorPaymentDetailsId,0) = VPD.VendorPaymentDetailsId
-				                 AND IsVoidedCheck = 0 AND CheckNumber IS NULL GROUP BY VD.VendorPaymentDetailsId,VD.InvoiceNum
+				                 AND IsVoidedCheck = 0 AND CheckNumber IS NULL 
+								 AND VPD.[IsActive] = 1 AND VPD.[IsDeleted] = 0 GROUP BY VD.VendorPaymentDetailsId,VD.InvoiceNum
 				) discNewData WHERE #TempVendorReadyToPayList.VendorReadyToPayDetailsTypeId = 2 AND #TempVendorReadyToPayList.InvoiceNum = discNewData.InvoiceNum
 
 		--UNION ALL
@@ -494,6 +500,7 @@ BEGIN
 				AND ISNULL(VPD.NonPOInvoiceId,0) <> 0
 				AND ((@StartDate IS NULL AND @EndDate IS NULL) OR (DATEADD(Day, ISNULL(ctm.NetDays,0), VPD.DueDate)) BETWEEN @StartDate AND @EndDate)
 				AND VPD.LegalEntityId = @LegalEntityId
+				AND VPD.[IsActive] = 1 AND VPD.[IsDeleted] = 0
 
 				UPDATE  #TempVendorReadyToPayList 
 				SET AmountDue = ISNULL(AmountDue,0) - ISNULL(discNewData.DiscountToken,0), DiscountAvailable = ISNULL(DiscountAvailable,0) - ISNULL(discNewData.DiscountToken,0),
@@ -502,7 +509,8 @@ BEGIN
 							   FROM [dbo].[VendorPaymentDetails] VPD WITH(NOLOCK) 
 							    LEFT JOIN [dbo].[VendorReadyToPayDetails] VD WITH(NOLOCK) ON VPD.NonPOInvoiceId = VD.NonPOInvoiceId	
 							   WHERE ISNULL(VD.VendorPaymentDetailsId,0) = VPD.VendorPaymentDetailsId
-				                 AND IsVoidedCheck = 0 AND CheckNumber IS NULL GROUP BY VD.VendorPaymentDetailsId,VD.InvoiceNum
+				                 AND IsVoidedCheck = 0 AND CheckNumber IS NULL
+								 AND VPD.[IsActive] = 1 AND VPD.[IsDeleted] = 0 GROUP BY VD.VendorPaymentDetailsId,VD.InvoiceNum
 				) discNewData WHERE #TempVendorReadyToPayList.VendorReadyToPayDetailsTypeId = 3 AND #TempVendorReadyToPayList.InvoiceNum = discNewData.InvoiceNum
 
 				
@@ -584,17 +592,21 @@ BEGIN
 				   AND ISNULL(VPD.[ManualJournalHeaderId],0) <> 0
 				   AND ((@StartDate IS NULL AND @EndDate IS NULL) OR (DATEADD(Day, ISNULL(ctm.[NetDays],0), VPD.[DueDate])) BETWEEN @StartDate AND @EndDate)
 				   AND VPD.[LegalEntityId] = @LegalEntityId
+				   AND VPD.[IsActive] = 1 AND VPD.[IsDeleted] = 0
 
-				--UPDATE  #TempVendorReadyToPayList 
-				--SET AmountDue = ISNULL(AmountDue,0) - ISNULL(discNewData.DiscountToken,0), DiscountAvailable = ISNULL(DiscountAvailable,0) - ISNULL(discNewData.DiscountToken,0),
-				--	DiscountToken = ISNULL(discNewData.DiscountToken,0), ReadyToPaymentMade = ISNULL(discNewData.ReadyToPaymentMade,0)
-				--FROM(SELECT VD.VendorPaymentDetailsId,SUM(ISNULL(VD.PaymentMade,0) + ISNULL(VD.CreditMemoAmount,0)) ReadyToPaymentMade,SUM(ISNULL(VD.DiscountToken,0)) DiscountToken, VD.InvoiceNum
-				--			   FROM [dbo].[VendorPaymentDetails] VPD WITH(NOLOCK) 
-				--			    LEFT JOIN [dbo].[VendorReadyToPayDetails] VD WITH(NOLOCK) ON VPD.ManualJournalHeaderId = VD.ManualJournalHeaderId	
-				--			   WHERE ISNULL(VD.VendorPaymentDetailsId,0) = VPD.VendorPaymentDetailsId
-				--                 AND IsVoidedCheck = 0 AND CheckNumber IS NULL GROUP BY VD.VendorPaymentDetailsId,VD.InvoiceNum
-				--) discNewData WHERE #TempVendorReadyToPayList.VendorReadyToPayDetailsTypeId = 3 AND #TempVendorReadyToPayList.InvoiceNum = discNewData.InvoiceNum
-							   
+				UPDATE  #TempVendorReadyToPayList 
+				SET AmountDue = ISNULL(AmountDue,0) - ISNULL(discNewData.DiscountToken,0), DiscountAvailable = ISNULL(DiscountAvailable,0) - ISNULL(discNewData.DiscountToken,0),
+					DiscountToken = ISNULL(discNewData.DiscountToken,0), 
+					ReadyToPaymentMade = ISNULL(discNewData.ReadyToPaymentMade,0)
+				FROM(SELECT VD.VendorPaymentDetailsId,
+							SUM(ISNULL(VD.PaymentMade,0) + ISNULL(VD.CreditMemoAmount,0)) ReadyToPaymentMade,
+							SUM(ISNULL(VD.DiscountToken,0)) DiscountToken, VD.InvoiceNum
+							   FROM [dbo].[VendorPaymentDetails] VPD WITH(NOLOCK) 
+							    LEFT JOIN [dbo].[VendorReadyToPayDetails] VD WITH(NOLOCK) ON VPD.ManualJournalHeaderId = VD.ManualJournalHeaderId	
+							   WHERE ISNULL(VD.VendorPaymentDetailsId,0) = VPD.VendorPaymentDetailsId
+				                 AND IsVoidedCheck = 0 AND CheckNumber IS NULL
+								 AND VPD.[IsActive] = 1 AND VPD.[IsDeleted] = 0 GROUP BY VD.VendorPaymentDetailsId,VD.InvoiceNum
+				) discNewData WHERE #TempVendorReadyToPayList.VendorReadyToPayDetailsTypeId = 6 AND #TempVendorReadyToPayList.InvoiceNum = discNewData.InvoiceNum
 							   
 				--CustomerCreditPayment DETAILS
 		INSERT INTO #TempVendorReadyToPayList(VendorPaymentDetailsId, ReadyToPayId, DueDate, VendorId, VendorName, PaymentMethodId, PaymentMethodName, ReceivingReconciliationId
@@ -673,6 +685,7 @@ BEGIN
 				--AND  CCPD.IsMiscellaneous = 1
 				AND ((@StartDate IS NULL AND @EndDate IS NULL) OR (DATEADD(Day, ISNULL(ctm.NetDays,0), VPD.DueDate)) BETWEEN @StartDate AND @EndDate)
 				AND VPD.LegalEntityId = @LegalEntityId
+				AND VPD.[IsActive] = 1 AND VPD.[IsDeleted] = 0
 
 /****************************START  Vendor Proforma Invoice*********************************/
 			INSERT INTO #TempVendorReadyToPayList(VendorPaymentDetailsId, ReadyToPayId, DueDate, VendorId, VendorName, PaymentMethodId, PaymentMethodName, ReceivingReconciliationId
@@ -756,6 +769,7 @@ BEGIN
 				AND ISNULL(VPD.VendorProformaInvoiceId,0) <> 0
 				AND ((@StartDate IS NULL AND @EndDate IS NULL) OR (DATEADD(Day, ISNULL(ctm.NetDays,0), VPD.DueDate)) BETWEEN @StartDate AND @EndDate)
 				AND VPD.LegalEntityId = @LegalEntityId
+				AND VPD.[IsActive] = 1 AND VPD.[IsDeleted] = 0
 
 				UPDATE  #TempVendorReadyToPayList 
 				SET AmountDue = ISNULL(AmountDue,0) - ISNULL(discNewData.DiscountToken,0), DiscountAvailable = ISNULL(DiscountAvailable,0) - ISNULL(discNewData.DiscountToken,0),
@@ -764,7 +778,8 @@ BEGIN
 							   FROM [dbo].[VendorPaymentDetails] VPD WITH(NOLOCK) 
 							    LEFT JOIN [dbo].[VendorReadyToPayDetails] VD WITH(NOLOCK) ON VPD.VendorProformaInvoiceId = VD.VendorProformaInvoiceId	
 							   WHERE ISNULL(VD.VendorPaymentDetailsId,0) = VPD.VendorPaymentDetailsId
-				                 AND IsVoidedCheck = 0 AND CheckNumber IS NULL GROUP BY VD.VendorPaymentDetailsId,VD.InvoiceNum
+				                 AND IsVoidedCheck = 0 AND CheckNumber IS NULL 
+								 AND VPD.[IsActive] = 1 AND VPD.[IsDeleted] = 0 GROUP BY VD.VendorPaymentDetailsId,VD.InvoiceNum
 				) discNewData WHERE #TempVendorReadyToPayList.VendorReadyToPayDetailsTypeId = 3 AND #TempVendorReadyToPayList.InvoiceNum = discNewData.InvoiceNum
 
 
@@ -835,7 +850,8 @@ BEGIN
 			[CustomerCreditPaymentDetailId] ,
 			[CreatedDate] ,
 			[VendorProformaInvoiceId], 
-			[IsVendorOnHold] 
+			[IsVendorOnHold] ,
+			[ManualJournalHeaderId]
 		FROM #TempVendorReadyToPayList 
 		WHERE ISNULL(IsVendorOnHold,0) = 0
 		ORDER BY CreatedDate DESC;

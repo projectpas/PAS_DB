@@ -17,6 +17,7 @@
 	3    03/25/2025	  Devendra Shekh	added new field: WorkOrderFormTypeId
 	4	 05/06/2025	  Abhishek Jirawla  Returning IsRepairManagement
 	5    01/07/2025	  Devendra Shekh    added New Field : MPNPartNumber
+	6    03/09/2026   Moin Bloch		added OutGoingPartNumber,OutGoingPartDescription PN-15681 
      
 EXEC dbo.AutoCompleteDropdownsWorkOrderPartNumber @StartWith=default,@Idlist=N'160489',@customerId=2450,@WorkOrderId=0,@WorkOrderTypeId=2,@MasterCompanyId=1
 exec dbo.AutoCompleteDropdownsWorkOrderPartNumber @StartWith=default,@Idlist=N'1',@customerId=92,@WorkOrderId=0,@WorkOrderTypeId=1,@MasterCompanyId=1
@@ -79,7 +80,8 @@ BEGIN
 						CASE WHEN (SELECT COUNT(1) FROM dbo.ItemMaster IMF WITH(NOLOCK) WHERE IMF.MasterCompanyId = IM.MasterCompanyId AND IM.partnumber = IMF.partnumber) > 1 THEN IM.partnumber + '' + IM.ManufacturerName ELSE IM.partnumber END AS [Label],
 						CASE WHEN (SELECT COUNT(1) FROM #TempPMADER WHERE #TempPMADER.PartType = 'PMA' AND #TempPMADER.ItemMasterId = IM.ItemMasterId) > 0 THEN 0 ELSE C.RestrictPMA END AS PMA,
 						CASE WHEN (SELECT COUNT(1) FROM #TempPMADER WHERE #TempPMADER.PartType = 'DER' AND #TempPMADER.ItemMasterId = IM.ItemMasterId) > 0 THEN 0 ELSE C.RestrictPMA END AS DER,
-						IM.PartDescription,
+						--IM.PartDescription, 
+						CASE WHEN OIM.PartDescription IS NULL OR OIM.PartDescription = '' THEN IM.PartDescription ELSE OIM.PartDescription END PartDescription,
                         IM.ManufacturerName,
 						ISNULL(IM.RevisedPartId, 0) As RevisedPartId,
 						ISNULL(IM.RevisedPart, '') As RevisedPartNo,
@@ -104,7 +106,7 @@ BEGIN
 						RCW.ACTailNum AS AircraftTailNumber,
 						IM.WorkOrderFormTypeId,
 						ISNULL(RCW.IsRepairManagement, 0) AS IsRepairManagement,
-						CONCAT(IM.partnumber, CASE	WHEN COALESCE(RCW.SerialNumber, '') <> '' THEN ' - ' + RCW.SerialNumber
+						CONCAT(RCW.[OutGoingPartNumber], CASE	WHEN COALESCE(RCW.SerialNumber, '') <> '' THEN ' - ' + RCW.SerialNumber
 													WHEN COALESCE(SL.ControlNumber, '') <> '' THEN ' - ' + SL.ControlNumber
 													ELSE '' END ) AS MPNPartNumber
 					FROM dbo.ReceivingCustomerWork RCW WITH(NOLOCK) 
@@ -117,6 +119,7 @@ BEGIN
 						LEFT JOIN dbo.WorkOrderWorkFlow WOWF WITH(NOLOCK) ON WOWF.WorkOrderId = RCW.WorkOrderId
 						LEFT JOIN dbo.Workflow WF WITH(NOLOCK) ON WF.WorkflowId = WOWF.WorkflowId
 						LEFT JOIN dbo.WorkScope WS WITH(NOLOCK) ON WS.WorkScopeId = RCW.WorkScopeId
+						LEFT JOIN dbo.ItemMaster OIM WITH(NOLOCK) ON RCW.OutGoingItemMasterId = OIM.ItemMasterId
 					WHERE RCW.IsActive = 1 AND RCW.IsDeleted = 0 AND ISNULL(RCW.WorkOrderId, 0) = 0 AND SL.CustomerId = @CustomerId AND ISNULL(SL.IsCustomerStock, 0) = 1 AND ISNULL(SL.IsParent, 0) = 1
 					  AND ISNULL(RCW.IsPiecePart,0) = 0 AND RCW.MasterCompanyId = @MasterCompanyId AND (Im.partnumber LIKE @StartWith + '%' OR Im.partnumber  LIKE '%' + @StartWith + '%') 
 
@@ -128,7 +131,8 @@ BEGIN
 						CASE WHEN (SELECT COUNT(1) FROM dbo.ItemMaster IMF WITH(NOLOCK) WHERE IMF.MasterCompanyId = IM.MasterCompanyId AND IM.partnumber = IMF.partnumber) > 1 THEN IM.partnumber + '' + IM.ManufacturerName ELSE IM.partnumber END AS [Label],
 						CASE WHEN (SELECT COUNT(1) FROM #TempPMADER WHERE #TempPMADER.PartType = 'PMA' AND #TempPMADER.ItemMasterId = IM.ItemMasterId) > 0 THEN 0 ELSE C.RestrictPMA END AS PMA,
 						CASE WHEN (SELECT COUNT(1) FROM #TempPMADER WHERE #TempPMADER.PartType = 'DER' AND #TempPMADER.ItemMasterId = IM.ItemMasterId) > 0 THEN 0 ELSE C.RestrictPMA END AS DER,
-						IM.PartDescription,
+						--IM.PartDescription,
+						CASE WHEN OIM.PartDescription IS NULL OR OIM.PartDescription = '' THEN IM.PartDescription ELSE OIM.PartDescription END PartDescription,
                         IM.ManufacturerName,
 						ISNULL(IM.RevisedPartId, 0) As RevisedPartId,
 						ISNULL(IM.RevisedPart, '') As RevisedPartNo,
@@ -153,7 +157,7 @@ BEGIN
 						RCW.ACTailNum AS AircraftTailNumber,
 						IM.WorkOrderFormTypeId,
 						ISNULL(RCW.IsRepairManagement, 0) AS IsRepairManagement,
-						CONCAT(IM.partnumber, CASE	WHEN COALESCE(RCW.SerialNumber, '') <> '' THEN ' - ' + RCW.SerialNumber
+						CONCAT(RCW.[OutGoingPartNumber], CASE	WHEN COALESCE(RCW.SerialNumber, '') <> '' THEN ' - ' + RCW.SerialNumber
 													WHEN COALESCE(SL.ControlNumber, '') <> '' THEN ' - ' + SL.ControlNumber
 													ELSE '' END ) AS MPNPartNumber
 					FROM dbo.ReceivingCustomerWork RCW WITH(NOLOCK) 
@@ -166,6 +170,7 @@ BEGIN
 						LEFT JOIN dbo.WorkOrderWorkFlow WOWF WITH(NOLOCK) ON WOWF.WorkOrderId = RCW.WorkOrderId
 						LEFT JOIN dbo.Workflow WF WITH(NOLOCK) ON WF.WorkflowId = WOWF.WorkflowId
 						LEFT JOIN dbo.WorkScope WS WITH(NOLOCK) ON WS.WorkScopeId = RCW.WorkScopeId
+						LEFT JOIN dbo.ItemMaster OIM WITH(NOLOCK) ON RCW.OutGoingItemMasterId = OIM.ItemMasterId
 					WHERE SL.StockLineId IN (SELECT DISTINCT Item FROM DBO.SPLITSTRING(@Idlist, ',')) AND ISNULL(SL.IsCustomerStock, 0) = 1 AND ISNULL(SL.IsParent, 0) = 1 AND ISNULL(RCW.IsPiecePart,0) = 0
 					ORDER BY [Label]				
 			END

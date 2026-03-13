@@ -34,7 +34,7 @@ EXEC [GetSubWorkorderReleaseFromData]
 
 
 
- EXEC [dbo].[GetWorkorderReleaseFromData] 13013,13487,0,1,2
+ EXEC [dbo].[GetWorkorderReleaseFromData] 12680,13359,0,0,1
 **************************************************************/ 
 
 CREATE   PROC [dbo].[GetWorkorderReleaseFromData]
@@ -317,9 +317,9 @@ BEGIN
 						--				+'<p>No FAA or '+ CASE WHEN @IsEasaUKLicense = 1 AND @formTypeId = @FAAEASAUK THEN 'UK' ELSE 'EASA' END +' S/B and AD`s complied with at this shop visit.</p>'   
 						--				+ '<p>' +'Full details of work carried out held on Work Order: ' + ISNULL(CONVERT(VARCHAR(20),UPPER(wo.WorkOrderNum)),'-') + '</p>  <br/>'  
 						--		END ELSE '' END)   	  
-							(CASE WHEN @IsEasaLicense = 0 AND @IsEasaUKLicense = 0 THEN '<div style='+ '"bottom : 0px; position:absolute;font-size: 10px !important;line-height: 12px;"'+'>' + (REPLACE(REPLACE(ISNULL(wods.Dualreleaselanguage,'-'),'<p>',''),'</p>','') +' '+ +'</div>') ELSE ''  END)        
-							+ (CASE WHEN @IsEasaLicense = 1 AND @formTypeId = @FAAEASA THEN '<div style='+ '"bottom : 0px; position:absolute;font-size: 10px !important;line-height: 12px;"'+'>' + (REPLACE(REPLACE(ISNULL(wods.Dualreleaselanguage,'-'),'<p>',''),'</p>','') +' '+ le.EASALicense +'</div>') ELSE ''  END)        
-							+ (CASE WHEN @IsEasaUKLicense = 1 AND @formTypeId = @FAAEASAUK THEN '<div style='+ '"bottom : 0px; position:absolute;font-size: 10px !important;line-height: 12px;"'+'>' + (REPLACE(REPLACE(ISNULL(wods.Dualreleaselanguage,'-'),'<p>',''),'</p>','') +' '+ le.UKCAALicense +'</div>') ELSE ''  END)        
+							(CASE WHEN @IsEasaLicense = 0 AND @IsEasaUKLicense = 0 THEN '<div style='+ '"bottom : 0px; position:absolute;font-size: 10px !important;line-height: 12px;"'+'>' + (REPLACE(REPLACE(ISNULL(wods.Dualreleaselanguage,''),'<p>',''),'</p>','') +' '+ +'</div>') ELSE ''  END)        
+							+ (CASE WHEN @IsEasaLicense = 1 AND @formTypeId = @FAAEASA THEN '<div style='+ '"bottom : 0px; position:absolute;font-size: 10px !important;line-height: 12px;"'+'>' + (REPLACE(REPLACE(ISNULL(wods.Dualreleaselanguage,''),'<p>',''),'</p>','') +' '+ le.EASALicense +'</div>') ELSE ''  END)        
+							+ (CASE WHEN @IsEasaUKLicense = 1 AND @formTypeId = @FAAEASAUK THEN '<div style='+ '"bottom : 0px; position:absolute;font-size: 10px !important;line-height: 12px;"'+'>' + (REPLACE(REPLACE(ISNULL(wods.Dualreleaselanguage,''),'<p>',''),'</p>','') +' '+ le.UKCAALicense +'</div>') ELSE ''  END)        
 							+ '</div>' FooterRemarks,  
 							UPPER(le.EASALicense) AS EASALicense,  
 							@EmailBody AS EmailBody
@@ -453,7 +453,7 @@ BEGIN
 					CASE 
 						WHEN @IsEasaLicense = 0 AND @IsEasaUKLicense = 0 
 						THEN '<div style="bottom:0; position:absolute; font-size:10px; line-height:12px;">'
-							 + REPLACE(REPLACE(ISNULL(wods.DualReleaseLanguage,'-'),'<p>',''),'</p>','')
+							 + REPLACE(REPLACE(ISNULL(wods.DualReleaseLanguage,''),'<p>',''),'</p>','')
 							 + ' ' + + '</div>'
 						ELSE ''
 					END
@@ -461,7 +461,7 @@ BEGIN
 					CASE 
 						WHEN @IsEasaLicense = 1 AND @FormTypeId = @FAAEASA 
 						THEN '<div style="bottom:0; position:absolute; font-size:10px; line-height:12px;">'
-							 + REPLACE(REPLACE(ISNULL(wods.DualReleaseLanguage,'-'),'<p>',''),'</p>','')
+							 + REPLACE(REPLACE(ISNULL(wods.DualReleaseLanguage,''),'<p>',''),'</p>','')
 							 + ' ' + le.EASALicense + '</div>'
 						ELSE ''
 					END
@@ -469,7 +469,7 @@ BEGIN
 					CASE 
 						WHEN @IsEasaUKLicense = 1 AND @FormTypeId = @FAAEASAUK 
 						THEN '<div style="bottom:0; position:absolute; font-size:10px; line-height:12px;">'
-							 + REPLACE(REPLACE(ISNULL(wods.DualReleaseLanguage,'-'),'<p>',''),'</p>','')
+							 + REPLACE(REPLACE(ISNULL(wods.DualReleaseLanguage,''),'<p>',''),'</p>','')
 							 + ' ' + le.UKCAALicense + '</div>'
 						ELSE ''
 					END
@@ -592,9 +592,9 @@ BEGIN
 					  wo.[MasterCompanyId],
 					  CASE WHEN @IsEasaUKLicense = 1 AND @formTypeId = @FAAEASAUK THEN 'UK' ELSE 'EASA' END AS IsEasaUKLicenseType,
 					  ('<div style = "position:relative; min-height:140px;max-height:150px;  font-family: Arial, Helvetica, sans-serif!important; letter-spacing: 1px!important; font-size:10px">') AS HeaderRemarks,   				
-					  (CASE WHEN @IsEasaLicense = 0 AND @IsEasaUKLicense = 0 THEN '<div style='+ '"bottom : 0px; position:absolute;font-size: 10px !important;line-height: 12px;"'+'>' + (REPLACE(REPLACE(ISNULL(wods.Dualreleaselanguage,'-'),'<p>',''),'</p>','') +' '++'</div>') ELSE ''  END)        
-					+ (CASE WHEN @IsEasaLicense = 1 AND @formTypeId = @FAAEASA THEN '<div style='+ '"bottom : 0px; position:absolute;font-size: 10px !important;line-height: 12px;"'+'>' + (REPLACE(REPLACE(ISNULL(wods.Dualreleaselanguage,'-'),'<p>',''),'</p>','') +' '+ le.EASALicense +'</div>') ELSE ''  END)        
-					+ (CASE WHEN @IsEasaUKLicense = 1 AND @formTypeId = @FAAEASAUK THEN '<div style='+ '"bottom : 0px; position:absolute;font-size: 10px !important;line-height: 12px;"'+'>' + (REPLACE(REPLACE(ISNULL(wods.Dualreleaselanguage,'-'),'<p>',''),'</p>','') +' '+ le.UKCAALicense +'</div>') ELSE ''  END)        
+					  (CASE WHEN @IsEasaLicense = 0 AND @IsEasaUKLicense = 0 THEN '<div style='+ '"bottom : 0px; position:absolute;font-size: 10px !important;line-height: 12px;"'+'>' + (REPLACE(REPLACE(ISNULL(wods.Dualreleaselanguage,''),'<p>',''),'</p>','') +' '++'</div>') ELSE ''  END)        
+					+ (CASE WHEN @IsEasaLicense = 1 AND @formTypeId = @FAAEASA THEN '<div style='+ '"bottom : 0px; position:absolute;font-size: 10px !important;line-height: 12px;"'+'>' + (REPLACE(REPLACE(ISNULL(wods.Dualreleaselanguage,''),'<p>',''),'</p>','') +' '+ le.EASALicense +'</div>') ELSE ''  END)        
+					+ (CASE WHEN @IsEasaUKLicense = 1 AND @formTypeId = @FAAEASAUK THEN '<div style='+ '"bottom : 0px; position:absolute;font-size: 10px !important;line-height: 12px;"'+'>' + (REPLACE(REPLACE(ISNULL(wods.Dualreleaselanguage,''),'<p>',''),'</p>','') +' '+ le.UKCAALicense +'</div>') ELSE ''  END)        
 					+ '</div>' FooterRemarks,  
 					   UPPER(le.EASALicense) AS EASALicense,  
 					   @EmailBody AS EmailBody

@@ -21,6 +21,9 @@
 	5    09-FEB-2026    Rajesh Gami        Added NONSTOCK, ASSET Management Structure JOIN in Receiving Reconciliation
 	6    16-FEB-2026    Amit Ghediya       Update NPO Invoice date from postedate to invoiced date.
 	7    23-FEB-2026    Moin Bloch         Update Due date Getting From Direct Table.
+	8    02-MAR-2026    Moin Bloch         Updated Due date For Manual JE
+	9    11-MAR-2026    Amit Ghediya       Updated for remove MJE after full payment (PN-15631)
+	10    12-MAR-2026    Amit Ghediya       Updated for get isactive records (PN-15588)
   --[dbo].[usprpt_GetAPAgingReport] 1,'2026-01-27',3654,2,null,null
 ***************************************************************************************************/        
 CREATE   PROCEDURE [dbo].[usprpt_GetAPAgingReport]       
@@ -158,6 +161,7 @@ BEGIN
 			  WHERE rrh.VendorId = ISNULL(@vendorId,rrh.VendorId)        
 			  AND CAST(rrh.InvoiceDate AS DATE) <= CAST(@ToDate AS DATE) 
 			  AND vpd.RemainingAmount > 0 
+			  AND vpd.[IsActive] = 1 AND vpd.[IsDeleted] = 0
 			  --AND rrh.InvoiceNum = ISNULL(@invoiceNum,rrh.InvoiceNum)
 			  AND rrh.MasterCompanyId = @mastercompanyid			  
 			  AND (ISNULL(@tagtype,'')='' OR ES.OrganizationTagTypeId IN(SELECT value FROM String_split(ISNULL(@tagtype,''), ',')))      
@@ -274,6 +278,7 @@ BEGIN
 			(SELECT MJD.ReferenceId AS BillingInvoicingId
 			FROM [dbo].[ManualJournalHeader] MJH WITH(NOLOCK)   
 			INNER JOIN [dbo].[ManualJournalDetails] MJD WITH(NOLOCK) ON MJH.ManualJournalHeaderId = MJD.ManualJournalHeaderId AND MJD.ReferenceTypeId = 2 
+			INNER JOIN [dbo].[VendorPaymentDetails] vpd WITH (NOLOCK) ON MJH.ManualJournalHeaderId = vpd.ManualJournalHeaderId
 			INNER JOIN [dbo].[Vendor] V  WITH (NOLOCK) ON V.VendorId = MJD.ReferenceId 
 			INNER JOIN [dbo].[AccountingBatchManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ModuleID = @MSModuleId AND MSD.ReferenceID = MJD.[ManualJournalDetailsId]    
 			 LEFT JOIN [dbo].[EntityStructureSetup] ES  WITH (NOLOCK) ON ES.EntityStructureId = MSD.EntityMSID 		   
@@ -293,6 +298,8 @@ BEGIN
 		    AND MJH.[ManualJournalStatusId] = @PostStatusId
 			AND CAST(MJH.[PostedDate] AS DATE) <= CAST(@ToDate AS DATE) AND MJH.JournalNumber  = ISNULL(@invoiceNum,MJH.JournalNumber)
 			AND MJH.mastercompanyid = @mastercompanyid      
+			AND vpd.RemainingAmount > 0  
+			AND vpd.[IsActive] = 1 AND vpd.[IsDeleted] = 0
 			AND (ISNULL(@tagtype,'')='' OR ES.OrganizationTagTypeId IN(SELECT value FROM STRING_SPLIT(ISNULL(@tagtype,''), ',')))      
 			AND (ISNULL(@Level1,'') ='' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))      
 			AND (ISNULL(@Level2,'') ='' OR MSD.[Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,',')))      
@@ -320,6 +327,7 @@ BEGIN
 			  WHERE NPH.VendorId = ISNULL(@vendorId,NPH.VendorId)        
 			  AND CAST(NPH.InvoiceDate AS DATE) <= CAST(@ToDate AS DATE) 
 			  AND vpd.RemainingAmount > 0  
+			  AND vpd.[IsActive] = 1 AND vpd.[IsDeleted] = 0
 			  --AND NPH.NPONumber  = ISNULL(@invoiceNum,NPH.NPONumber)
 			  AND NPH.MasterCompanyId = @mastercompanyid			  
 			  AND (ISNULL(@tagtype,'')='' OR ES.OrganizationTagTypeId IN(SELECT value FROM String_split(ISNULL(@tagtype,''), ',')))      
@@ -349,7 +357,7 @@ BEGIN
    SET @PageSize = CASE WHEN NULLIF(@PageSize,0) IS NULL THEN 10 ELSE @PageSize END      
    SET @PageNumber = CASE WHEN NULLIF(@PageNumber,0) IS NULL THEN 1 ELSE @PageNumber END      
     IF(@Typeid = 1)
-	BEGIN
+	BEGIN 
 	--	Receiving Reconciliation  --
 		SELECT * INTO #tempReceivingReconciliation FROM 
 		(SELECT DISTINCT (V.VendorId) AS VendorId, ISNULL(V.[VendorName],'') 'vendorName' ,  ISNULL(V.VendorCode,'') 'vendorCode' ,  (rrh.CurrencyName) AS  'currencyCode', ISNULL(vpd.OriginalAmount,0) AS 'BalanceAmount',      
@@ -411,6 +419,7 @@ BEGIN
 			  WHERE rrh.[VendorId] = ISNULL(@vendorId,rrh.VendorId)        
 			  AND CAST(rrh.[InvoiceDate] AS DATE) <= CAST(@ToDate AS DATE) AND rrh.[MasterCompanyId] = @mastercompanyid   
 			  AND vpd.RemainingAmount > 0
+			  AND vpd.[IsActive] = 1 AND vpd.[IsDeleted] = 0
 			  AND (ISNULL(@tagtype,'')='' OR ES.OrganizationTagTypeId IN(SELECT value FROM String_split(ISNULL(@tagtype,''), ',')))      
 			  AND (	ISNULL(@Level1,'') = ''
 					OR (
@@ -542,7 +551,6 @@ BEGIN
 			  AND (ISNULL(@Level9,'') ='' OR SMSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))      
 			  AND (ISNULL(@Level10,'') =''  OR SMSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,','))))B
 		
-	
 	-- Manual JE ---
 		SELECT * INTO #tempManualJE FROM 
 			(SELECT DISTINCT (MJD.ReferenceId) AS VendorId, ISNULL(V.[VendorName],'') 'vendorName' ,ISNULL(V.VendorCode,'') 'vendorCode' , (CR.Code) AS  'currencyCode',  
@@ -574,7 +582,7 @@ BEGIN
 	   				 WHEN ctm.Code='CreditCard' THEN -1      
 	   				 WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END), GETUTCDATE()) > 120 THEN ISNULL(SUM(MJD.Credit),0) - ISNULL(SUM(MJD.Debit),0) ELSE 0 END) AS Amountpaidbymorethan120days,
                MJD.ManagementStructureId AS ManagementStructureId,UPPER('Manual Journal Adjustment') AS 'DocType','' AS 'vendorRef', ''AS 'Salesperson',ctm.Name AS 'Terms', '0' AS 'FixRateAmount', 			        
-			   ISNULL(SUM(MJD.Credit),0) - ISNULL(SUM(MJD.Debit),0) AS 'InvoiceAmount', 0 AS 'cmAmount',0 AS CreditMemoAmount, DATEADD(DAY, ctm.NetDays,NULL) AS 'DueDate', 
+			   ISNULL(SUM(MJD.Credit),0) - ISNULL(SUM(MJD.Debit),0) AS 'InvoiceAmount', 0 AS 'cmAmount',0 AS CreditMemoAmount, DATEADD(DAY, ctm.NetDays,MJH.[PostedDate]) AS 'DueDate', 
 			   UPPER(CAST(MSL1.Code AS VARCHAR(250)) + ' - ' + MSL1.[Description]) AS level1, UPPER(CAST(MSL2.Code AS VARCHAR(250)) + ' - ' + MSL2.[Description]) AS level2,       
 			   UPPER(CAST(MSL3.Code AS VARCHAR(250)) + ' - ' + MSL3.[Description]) AS level3, UPPER(CAST(MSL4.Code AS VARCHAR(250)) + ' - ' + MSL4.[Description]) AS level4,       
 			   UPPER(CAST(MSL5.Code AS VARCHAR(250)) + ' - ' + MSL5.[Description]) AS level5, UPPER(CAST(MSL6.Code AS VARCHAR(250)) + ' - ' + MSL6.[Description]) AS level6,       
@@ -585,6 +593,7 @@ BEGIN
 			   ,CASE WHEN (DATEDIFF(DAY, CAST(MJH.PostedDate AS DATETIME) + ISNULL(ctm.NetDays,0), GETUTCDATE())) > 0 THEN (DATEDIFF(DAY, CAST(MJH.PostedDate AS DATETIME) + ISNULL(ctm.NetDays,0), GETUTCDATE())) ELSE 0 END AS 'DaysPastDue'
 		FROM [dbo].[ManualJournalHeader] MJH WITH(NOLOCK)   
 		  INNER JOIN [dbo].[ManualJournalDetails] MJD WITH(NOLOCK) ON MJH.ManualJournalHeaderId = MJD.ManualJournalHeaderId AND MJD.ReferenceTypeId = 2 
+		  INNER JOIN [dbo].[VendorPaymentDetails] vpd WITH (NOLOCK) ON MJH.ManualJournalHeaderId = vpd.ManualJournalHeaderId
 		  INNER JOIN [dbo].[Vendor] V  WITH (NOLOCK) ON V.VendorId = MJD.ReferenceId 
 		  INNER JOIN [dbo].[AccountingBatchManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ModuleID = @MSModuleId AND MSD.ReferenceID = MJD.[ManualJournalDetailsId]    
 		   LEFT JOIN [dbo].[EntityStructureSetup] ES  WITH (NOLOCK) ON ES.EntityStructureId = MSD.EntityMSID 		   
@@ -603,6 +612,8 @@ BEGIN
 	   WHERE MJD.ReferenceId = ISNULL(@vendorId,MJD.ReferenceId)    
 			AND MJH.[ManualJournalStatusId] = @PostStatusId
 			AND MJD.[ReferenceTypeId] = 2 
+			AND vpd.RemainingAmount > 0
+			AND vpd.[IsActive] = 1 AND vpd.[IsDeleted] = 0
 			--AND ISNULL(MJD.Credit,0) - ISNULL(MJD.Debit,0) <> 0
 			AND CAST(MJH.[PostedDate] AS DATE) <= CAST(@ToDate AS DATE) AND MJH.MasterCompanyId = @mastercompanyid    
 			AND (ISNULL(@tagtype,'')='' OR ES.OrganizationTagTypeId IN(SELECT value FROM String_split(ISNULL(@tagtype,''), ',')))      
@@ -631,7 +642,6 @@ BEGIN
 			MJH.MasterCompanyId
 
 		HAVING SUM(ISNULL(MJD.Credit, 0)) - SUM(ISNULL(MJD.Debit, 0)) <> 0)C
-		
 	
 	--	NonPO Details  --
 		SELECT * INTO #tempNonPODetails FROM 
@@ -681,6 +691,7 @@ BEGIN
 			  WHERE NPH.[VendorId] = ISNULL(@vendorId,NPH.VendorId)        
 			  AND CAST(NPH.PostedDate AS DATE) <= CAST(@ToDate AS DATE) AND NPH.[MasterCompanyId] = @mastercompanyid   
 			  AND vpd.RemainingAmount > 0
+			  AND vpd.[IsActive] = 1 AND vpd.[IsDeleted] = 0
 			  AND (ISNULL(@tagtype,'')='' OR ES.OrganizationTagTypeId IN(SELECT value FROM String_split(ISNULL(@tagtype,''), ',')))      
 			  AND (ISNULL(@Level1,'') ='' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))      
 			  AND (ISNULL(@Level2,'') ='' OR MSD.[Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,',')))      
@@ -916,7 +927,8 @@ BEGIN
 			  --AND vpd.RemainingAmount > 0  --AND rrh.InvoiceNum = ISNULL(@invoiceNum,rrh.InvoiceNum)
 			  WHERE rrh.[VendorId] = ISNULL(@vendorId,rrh.VendorId)        
 			  AND CAST(rrh.[InvoiceDate] AS DATE) <= CAST(@ToDate AS DATE) AND rrh.[MasterCompanyId] = @mastercompanyid   
-			  AND vpd.RemainingAmount > 0 --AND rrh.InvoiceNum = rrh.InvoiceNum
+			  AND vpd.RemainingAmount > 0
+			  AND vpd.[IsActive] = 1 AND vpd.[IsDeleted] = 0 --AND rrh.InvoiceNum = rrh.InvoiceNum
 			  AND (ISNULL(@tagtype,'')='' OR ES.OrganizationTagTypeId IN(SELECT value FROM String_split(ISNULL(@tagtype,''), ',')))      
 			  AND (	ISNULL(@Level1,'') = ''
 					OR (
@@ -1086,7 +1098,7 @@ BEGIN
 	   				 WHEN ctm.Code='PREPAID' THEN -1 ELSE ISNULL(ctm.NetDays,0) END) AS DATE), GETUTCDATE()) > 120 THEN ISNULL(SUM(MJD.Credit),0) - ISNULL(SUM(MJD.Debit),0) ELSE 0 END) AS Amountpaidbymorethan120days,
                MJD.ManagementStructureId AS ManagementStructureId, 
 			   UPPER('Manual Journal Adjustment') AS 'DocType', '' AS 'vendorRef',''AS 'Salesperson',ctm.Name AS 'Terms', '0' AS 'FixRateAmount', 			        			   			   
-			   ISNULL(SUM(MJD.Credit),0) - ISNULL(SUM(MJD.Debit),0) AS 'InvoiceAmount',0 AS 'cmAmount', 0 AS CreditMemoAmount, DATEADD(DAY, ctm.NetDays,NULL) AS 'DueDate', 
+			   ISNULL(SUM(MJD.Credit),0) - ISNULL(SUM(MJD.Debit),0) AS 'InvoiceAmount',0 AS 'cmAmount', 0 AS CreditMemoAmount, DATEADD(DAY, ctm.NetDays, MJH.[PostedDate]) AS 'DueDate', 
 			   UPPER(CAST(MSL1.Code AS VARCHAR(250)) + ' - ' + MSL1.[Description]) AS level1,UPPER(CAST(MSL2.Code AS VARCHAR(250)) + ' - ' + MSL2.[Description]) AS level2,       
 			   UPPER(CAST(MSL3.Code AS VARCHAR(250)) + ' - ' + MSL3.[Description]) AS level3,  UPPER(CAST(MSL4.Code AS VARCHAR(250)) + ' - ' + MSL4.[Description]) AS level4,       
 			   UPPER(CAST(MSL5.Code AS VARCHAR(250)) + ' - ' + MSL5.[Description]) AS level5, UPPER(CAST(MSL6.Code AS VARCHAR(250)) + ' - ' + MSL6.[Description]) AS level6,       
@@ -1099,6 +1111,7 @@ BEGIN
 			  ,CASE WHEN (DATEDIFF(DAY, CAST(MJH.PostedDate AS DATETIME) + ISNULL(ctm.NetDays,0), GETUTCDATE())) > 0 THEN (DATEDIFF(DAY, CAST(MJH.PostedDate AS DATETIME) + ISNULL(ctm.NetDays,0), GETUTCDATE())) ELSE 0 END AS 'DaysPastDue'
 		FROM [dbo].[ManualJournalHeader] MJH WITH(NOLOCK)   
 		  INNER JOIN [dbo].[ManualJournalDetails] MJD WITH(NOLOCK) ON MJH.ManualJournalHeaderId = MJD.ManualJournalHeaderId AND MJD.ReferenceTypeId = 2 
+		  INNER JOIN [dbo].[VendorPaymentDetails] vpd WITH (NOLOCK) ON MJH.ManualJournalHeaderId = vpd.ManualJournalHeaderId
 		  INNER JOIN [dbo].[Vendor] V  WITH (NOLOCK) ON V.VendorId = MJD.ReferenceId 
 		  INNER JOIN [dbo].[AccountingBatchManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ModuleID = @MSModuleId AND MSD.ReferenceID = MJD.[ManualJournalDetailsId]    
 		   LEFT JOIN [dbo].[EntityStructureSetup] ES  WITH (NOLOCK) ON ES.EntityStructureId = MSD.EntityMSID 		   
@@ -1117,6 +1130,8 @@ BEGIN
 	   WHERE MJD.ReferenceId = ISNULL(@vendorId,MJD.ReferenceId)    
 			AND MJH.[ManualJournalStatusId] = @PostStatusId
 			AND MJD.[ReferenceTypeId] = 2  
+			AND vpd.RemainingAmount > 0 
+			AND vpd.[IsActive] = 1 AND vpd.[IsDeleted] = 0
 			--AND MJH.JournalNumber  = ISNULL(@invoiceNum,MJH.JournalNumber)
 			AND CAST(MJH.[PostedDate] AS DATE) <= CAST(@ToDate AS DATE) AND MJH.MasterCompanyId = @mastercompanyid    
 			AND (ISNULL(@tagtype,'')='' OR ES.OrganizationTagTypeId IN(SELECT value FROM String_split(ISNULL(@tagtype,''), ',')))      
@@ -1187,6 +1202,7 @@ BEGIN
 				  WHERE NPH.[VendorId] = ISNULL(@vendorId,NPH.VendorId)  			  
 				  AND CAST(NPH.PostedDate AS DATE) <= CAST(@ToDate AS DATE) AND NPH.[MasterCompanyId] = @mastercompanyid      
 				  AND vpd.RemainingAmount > 0  
+				  AND vpd.[IsActive] = 1 AND vpd.[IsDeleted] = 0
 				  --AND NPH.NPONumber  = ISNULL(@invoiceNum,NPH.NPONumber)
 				  AND (ISNULL(@tagtype,'')='' OR ES.OrganizationTagTypeId IN(SELECT value FROM String_split(ISNULL(@tagtype,''), ',')))      
 				  AND (ISNULL(@Level1,'') ='' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,','))) AND (ISNULL(@Level2,'') ='' OR MSD.[Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,',')))      

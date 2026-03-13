@@ -22,6 +22,7 @@
 	7	 21-JAN-2026   Vishal Suthar  		Added RemovalReasonsMemo in Update ReceivingCustomerWork table
 	8	 13-FEB-2026   BHARGAV SALIYA  		Added [CustReqCertTypeId], [CustReqCertType] fields IN update ReceivingCustomerWork table
 	9	 24-FEB-2026   Moin Bloch 		    Added OutGoingItemMasterId And OutGoingPartNumber PN-15427
+	10	 09-MAR-2026   Moin Bloch 		    Added OutGoingItemMasterId And OutGoingPartNumber ON UPDATE Receiving Customer PN-15681
 
  EXECUTE [USP_GetWorkOrderPartsView] 1
 **************************************************************/ 
@@ -952,8 +953,10 @@ BEGIN
 							WOMPN.CSO = TR.CSO,
 							WOMPN.TSO = TR.TSO,
 							WOMPN.CurrentSerialNumber = TR.SerialNumber,
-							WOMPN.ManagementStructureId = @ManagementStructureId
-							FROM  WorkOrderPartNumber WOMPN  INNER JOIN #tmprReceiveCustomer TR ON WOMPN.[ReceivingCustomerWorkId] = TR.[ReceivingCustomerWorkId]
+							WOMPN.ManagementStructureId = @ManagementStructureId,
+							WOMPN.[RevisedPartId] = TR.[OutGoingItemMasterId],
+						    WOMPN.[RevisedPartNumber] = TR.[OutGoingPartNumber]
+							FROM [dbo].[WorkOrderPartNumber] WOMPN WITH(NOLOCK) INNER JOIN #tmprReceiveCustomer TR ON WOMPN.[ReceivingCustomerWorkId] = TR.[ReceivingCustomerWorkId]
 						WHERE WOMPN.ID = @WorkOrderPartNumberId
 
 						EXEC [dbo].[USP_UpdateWOMSDetails] @WOMPNModuleId, @WorkOrderPartNumberId, @ManagementStructureId, @UpdatedBy

@@ -1,4 +1,23 @@
-﻿CREATE         PROCEDURE [dbo].[GetPNTileWorkOrderQuoteList]
+﻿/*************************************************************             
+ ** File:   [GetPNTileWorkOrderQuoteList]             
+ ** Author:   
+ ** Description: This stored procedure is used Get PN Tile Work Order Quote List
+ ** Purpose:           
+ ** Date:   
+            
+ ** PARAMETERS:             
+ @UserType varchar(60)     
+           
+ ** RETURN VALUE:             
+    
+ **************************************************************             
+  ** Change History             
+ **************************************************************             
+ ** PR   Date         Author              Change Description              
+ ** --   --------     -------          --------------------------------     
+    1    27/02/2026   Bhargav Saliya       PN-15581: Added New Fields [QuoteAmount],[Qty],[Notes]
+**************************************************************/  
+CREATE PROCEDURE [dbo].[GetPNTileWorkOrderQuoteList]
 @PageNumber int = 1,
 @PageSize int = 10,
 @SortColumn varchar(50)=NULL,
@@ -20,7 +39,10 @@
 @EmployeeId bigint=0,
 @ItemMasterId bigint=0,
 @MasterCompanyId bigint=1,
-@ConditionId VARCHAR(250) = NULL
+@ConditionId VARCHAR(250) = NULL,
+@QuoteAmount VARCHAR(50) = NULL,
+@Qty VARCHAR(50) = NULL,
+@Notes VARCHAR(max) = NULL
 AS
 BEGIN
 	SET NOCOUNT ON;
@@ -61,13 +83,18 @@ BEGIN
 					WOQ.[CreatedDate],
 				    WOQ.[CreatedBy],					
 				    WOQ.[IsActive],
-					ISNULL(IM.ManufacturerName,'')ManufacturerName
+					ISNULL(IM.ManufacturerName,'')ManufacturerName,
+					CAST(CASE WHEN ISNULL(WOQD.QuoteMethod, 0) = 1 THEN ISNULL( WOQD.CommonFlatRate , 0) ELSE  
+					ISNULL(ISNULL(WOQD.MaterialFlatBillingAmount + WOQD.LaborFlatBillingAmount + WOQD.ChargesFlatBillingAmount,0) ,0) END AS VARCHAR) 'QuoteAmount',
+					WPN.Quantity AS Qty,
+					WOQ.Notes
 			   FROM [dbo].[WorkOrderQuote] WOQ WITH (NOLOCK)	
 			   INNER JOIN [dbo].[WorkOrder] WO WITH (NOLOCK) ON WOQ.WorkOrderId = wo.WorkOrderId  
                INNER JOIN [dbo].[WorkOrderPartNumber] WPN WITH (NOLOCK) ON WOQ.WorkOrderId = WPN.WorkOrderId
 			   INNER JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON WPN.ItemMasterId = IM.ItemMasterId  
                INNER JOIN [dbo].[WorkOrderQuoteStatus] WQS WITH (NOLOCK) ON WOQ.QuoteStatusId = WQS.WorkOrderQuoteStatusId  
                INNER JOIN [dbo].[Customer] CUST WITH (NOLOCK) ON WOQ.CustomerId = CUST.CustomerId 				
+			   LEFT JOIN DBO.WorkOrderQuoteDetails WOQD WITH (NOLOCK) ON WOQ.workorderquoteid = WOQD.workorderquoteid AND WPN.ID = WOQD.WOPartNoId and ISNULL(WOQD.IsActive,0)=1  
 			WHERE WOQ.MasterCompanyId = @MasterCompanyId	
 			      AND WOQ.IsDeleted = 0
 				  AND WOQ.IsActive = 1				  
@@ -83,7 +110,10 @@ BEGIN
 					(WorkScope LIKE '%' +@GlobalFilter+'%') OR	
 					(CustomerName LIKE '%' +@GlobalFilter+'%') OR						
 					(CustomerReference LIKE '%' +@GlobalFilter+'%') OR
-					(WorkOrderQuoteStatus LIKE '%' +@GlobalFilter+'%'))									
+					(WorkOrderQuoteStatus LIKE '%' +@GlobalFilter+'%') OR
+					(QuoteAmount LIKE '%' +@GlobalFilter+'%') OR
+					(Qty LIKE '%' +@GlobalFilter+'%') OR
+					(Notes LIKE '%' +@GlobalFilter+'%'))									
 					OR   
 					(@GlobalFilter='' AND (ISNULL(@PartNumber,'') ='' OR PartNumber LIKE '%' + @PartNumber+'%') AND 
 					(ISNULL(@PartDescription,'') ='' OR PartDescription LIKE '%' + @PartDescription + '%') AND
@@ -94,7 +124,10 @@ BEGIN
 					(ISNULL(@CustomerName,'') ='' OR CustomerName LIKE '%' + @CustomerName + '%') AND					
 					(ISNULL(@CustomerReference,'') ='' OR CustomerReference LIKE '%' + @CustomerReference + '%') AND
 					(ISNULL(@WorkOrderQuoteStatus,'') ='' OR WorkOrderQuoteStatus LIKE '%' + @WorkOrderQuoteStatus + '%') AND
-					(ISNULL(@OpenDate,'') ='' OR CAST(OpenDate AS DATE) = CAST(@OpenDate AS DATE)))))	 	
+					(ISNULL(@OpenDate,'') ='' OR CAST(OpenDate AS DATE) = CAST(@OpenDate AS DATE)) AND
+					(ISNULL(@QuoteAmount,'') ='' OR QuoteAmount LIKE '%' + @QuoteAmount + '%') AND
+					(ISNULL(@Qty,'') ='' OR Qty LIKE '%' + @Qty + '%') AND
+					(ISNULL(@Notes,'') ='' OR Notes LIKE '%' + @Notes + '%'))))	 	
 			SELECT @Count = COUNT(WorkOrderQuoteId) FROM #TempResult			
 
 			SELECT *, @Count AS NumberOfItems FROM #TempResult ORDER BY 
@@ -120,7 +153,13 @@ BEGIN
 			CASE WHEN (@SortOrder=1  AND @SortColumn='OpenDate')  THEN OpenDate END ASC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='OpenDate')  THEN OpenDate END DESC,
 			CASE WHEN (@SortOrder=1  AND @SortColumn='CreatedDate')  THEN CreatedDate END ASC,
-			CASE WHEN (@SortOrder=-1 AND @SortColumn='CreatedDate')  THEN CreatedDate END DESC
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='CreatedDate')  THEN CreatedDate END DESC,
+			CASE WHEN (@SortOrder=1  AND @SortColumn='QuoteAmount')  THEN QuoteAmount END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='QuoteAmount')  THEN QuoteAmount END DESC,
+			CASE WHEN (@SortOrder=1  AND @SortColumn='Qty')  THEN Qty END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='Qty')  THEN Qty END DESC,
+			CASE WHEN (@SortOrder=1  AND @SortColumn='Notes')  THEN Notes END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='Notes')  THEN Notes END DESC
 			
 			OFFSET @RecordFrom ROWS 
 			FETCH NEXT @PageSize ROWS ONLY

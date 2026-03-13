@@ -72,6 +72,7 @@
     [SoldToUserType]                     INT             NULL,
     [ShipToUserType]                     INT             NULL,
     [SoldToCustomerId]                   BIGINT          NULL,
+    [IsBypassShipping]                   BIT             NULL,
     CONSTRAINT [PK_SalesOrderShippingAudit] PRIMARY KEY CLUSTERED ([AuditSalesOrderShippingId] ASC),
     CONSTRAINT [FK_SalesOrderShippingAudit_SalesOrderShipping] FOREIGN KEY ([SalesOrderShippingId]) REFERENCES [dbo].[SalesOrderShipping] ([SalesOrderShippingId])
 );

@@ -33,7 +33,7 @@
 	17	 02/JUN/2025	     Abhishek Jirawla		Fixed Name concat read script
 	18	 25/JUN/2025	     Devendra Shekh			Modified DistributionSetup for the DEPOSIT from DistributionSetup to itemGLAccount
 	19	 06/March/2026	     AMIT GHEDIYA			Modified for revert accounting entry whle click on unpost Also not allow to add in vendorPayment & after revert sodt delete vendorpayment table (PN-15580)
-	20	 12/March/2026	     AMIT GHEDIYA			Modified for revert after revert Hard delete vendorpayment table (PN-15580)
+	20	 12/March/2026	     AMIT GHEDIYA			Modified for revert after revert Hard delete vendorpayment table & approval process(PN-15580)
 
 	 exec USP_PostNonPO_BatchDetails 6,'admin'
 **********************/
@@ -411,6 +411,12 @@ BEGIN
 			 IF NOT EXISTS(SELECT [ReadyToPayDetailsId] FROM [dbo].[VendorReadyToPayDetails] WITH(NOLOCK) WHERE [NonPOInvoiceId] = @NonPOInvoiceId)
 			 BEGIN
 				  DELETE [dbo].[VendorPaymentDetails] WHERE [NonPOInvoiceId] = @NonPOInvoiceId;
+			 END
+
+			 --Hard delete from approval
+			 IF EXISTS(SELECT [NonPOApprovalId] FROM [dbo].[NonPOApproval] WITH(NOLOCK) WHERE [NonPOInvoiceId] = @NonPOInvoiceId)
+			 BEGIN
+				  DELETE [dbo].[NonPOApproval] WHERE [NonPOInvoiceId] = @NonPOInvoiceId;
 			 END
 		END
 		ELSE

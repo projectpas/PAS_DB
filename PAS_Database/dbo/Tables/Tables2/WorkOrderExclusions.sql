@@ -5,9 +5,9 @@
     [ItemMasterId]              BIGINT          NOT NULL,
     [EstimtPercentOccurranceId] INT             NULL,
     [Memo]                      NVARCHAR (MAX)  NULL,
-    [Quantity]                  INT             NOT NULL,
-    [UnitCost]                  DECIMAL (20, 3) NOT NULL,
-    [ExtendedCost]              DECIMAL (20, 3) NOT NULL,
+    [Quantity]                  DECIMAL (18, 6) NULL,
+    [UnitCost]                  DECIMAL (18, 6) NULL,
+    [ExtendedCost]              DECIMAL (18, 6) NULL,
     [MasterCompanyId]           INT             NOT NULL,
     [CreatedBy]                 VARCHAR (256)   NOT NULL,
     [UpdatedBy]                 VARCHAR (256)   NOT NULL,
@@ -27,6 +27,8 @@
     CONSTRAINT [FK_WorkOrderExclusions_WorkFlowWorkOrder] FOREIGN KEY ([WorkFlowWorkOrderId]) REFERENCES [dbo].[WorkOrderWorkFlow] ([WorkFlowWorkOrderId]),
     CONSTRAINT [FK_WorkOrderExclusions_WorkOrder] FOREIGN KEY ([WorkOrderId]) REFERENCES [dbo].[WorkOrder] ([WorkOrderId])
 );
+
+
 
 
 

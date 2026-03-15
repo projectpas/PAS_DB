@@ -11,7 +11,7 @@
  ** PR   Date         Author			Change Description              
  ** --   --------     -------			--------------------------------            
     1    03/03/2026   Priyansh Patel      Created 
-
+    2    12/03/2026   Priyansh Patel      Changed uom conversion for units sale price PN-15711 
 exec USP_GetPriceDetailsByCondId  97627, 9, 1 
 
 *************************************************************/   
@@ -49,8 +49,9 @@ BEGIN
         --IM.StockUnitOfMeasure,
         --IM.ConsumeUnitOfMeasure,
         [dbo].[fn_ConvertUOM](ISNULL(IPS.PP_UnitPurchasePrice, 0), IM.PurchaseUnitOfMeasure,IM.StockUnitOfMeasure, @IsCost, ISNULL(@MasterCompanyId,1)) AS unitCostUOM,
-        [dbo].[fn_ConvertUOM](ISNULL(IPS.SP_CalSPByPP_UnitSalePrice, 0), IM.StockUnitOfMeasure, IM.ConsumeUnitOfMeasure, @IsCost,ISNULL(@MasterCompanyId,1)
-        ) AS unitSalesPriceUOM
+        --[dbo].[fn_ConvertUOM](ISNULL(IPS.SP_CalSPByPP_UnitSalePrice, 0), IM.StockUnitOfMeasure, IM.ConsumeUnitOfMeasure, @IsCost,ISNULL(@MasterCompanyId,1)
+        --) AS unitSalesPriceUOM,
+        IPS.SP_CalSPByPP_UnitSalePrice AS unitSalesPriceUOM
 
         FROM [dbo].[ItemMasterPurchaseSale] IPS WITH(NOLOCK) 
         INNER JOIN [dbo].[ItemMaster] IM  WITH(NOLOCK) ON IPS.[ItemMasterId] = IM.[ItemMasterId]

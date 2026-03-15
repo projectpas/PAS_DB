@@ -11,7 +11,7 @@
     [LabourMemo]                     NVARCHAR (MAX)  NULL,
     [ExpertiseId]                    SMALLINT        NULL,
     [EmployeeId]                     BIGINT          NULL,
-    [TotalWorkHours]                 DECIMAL (20, 2) NULL,
+    [TotalWorkHours]                 DECIMAL (18, 6) NULL,
     [MasterCompanyId]                INT             NOT NULL,
     [CreatedBy]                      VARCHAR (256)   NOT NULL,
     [UpdatedBy]                      VARCHAR (256)   NOT NULL,

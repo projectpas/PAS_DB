@@ -18,8 +18,9 @@
 	2   11/13/2014    Abhishek Jirawla  Resolved errors of divide by zero
 	3   12/12/2014    Vishal Suthar		Resolved issue with price calculation
 	4   21-01-2025    Shrey Chandegara  Add Charge in total Revenue
+	5   12-03-2026    Hemant Saliya		Corrected Charges Calucation
      
- EXECUTE USP_UpdateSOQPartCostDetails 590, 551, 'ADMIN User', 1
+ EXECUTE USP_UpdateSOQPartCostDetails 745, 551, 'ADMIN User', 1
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[USP_UpdateSOQPartCostDetails]
 (
@@ -97,10 +98,10 @@ SET NOCOUNT ON
 					DECLARE @SalesOrderQuoteModuleId BIGINT;
 
 					SELECT @Freight_S = ISNULL(SUM(F.BillingAmount), 0) FROM [DBO].[SalesOrderQuoteFreight] F WITH (NOLOCK)
-					WHERE F.SalesOrderQuotePartId = @SalesOrderQuotePartId;
+					WHERE F.SalesOrderQuotePartId = @SalesOrderQuotePartId AND ISNULL(IsDeleted, 0) = 0;
 
 					SELECT @Charges_S = ISNULL(SUM(C.BillingAmount), 0) FROM [DBO].[SalesOrderQuoteCharges] C WITH (NOLOCK)
-					WHERE C.SalesOrderQuotePartId = @SalesOrderQuotePartId;
+					WHERE C.SalesOrderQuotePartId = @SalesOrderQuotePartId AND ISNULL(IsDeleted, 0) = 0;
 
 					DECLARE @UnitSalesPrice_S AS [decimal](18, 4) = 0;
 					DECLARE @SalesPriceExtended_S AS [decimal](18, 4) = 0;
@@ -125,7 +126,7 @@ SET NOCOUNT ON
 							SELECT @SOQPartId = [SalesOrderQuotePartId], @SOQStocklineId = [SalesOrderQuoteStocklineId] FROM #SOQStocklineDetails WHERE ID  = @MasterLoopID
 
 							SELECT @PartQty = QtyQuoted FROM [DBO].[SalesOrderQuotePartV1] WITH (NOLOCK) WHERE SalesOrderQuotePartId = @SOQPartId;
-							SELECT @StockLineQty = QtyQuoted FROM [DBO].[SalesOrderQuoteStocklineV1] WITH (NOLOCK) WHERE SalesOrderQuotePartId = @SOQPartId AND SalesOrderQuoteStocklineId = @SOQStocklineId;
+							SELECT @StockLineQty = QtyQuoted FROM [DBO].[SalesOrderQuoteStocklineV1] WITH (NOLOCK) WHERE SalesOrderQuotePartId = @SOQPartId AND SalesOrderQuoteStocklineId = @SOQStocklineId AND ISNULL(IsDeleted, 0) = 0;
 
 							DECLARE @calculatedCharges BIGINT;
 
@@ -141,7 +142,7 @@ SET NOCOUNT ON
 												((((((ISNULL(UnitSalesPrice, 0) * @StockLineQty) + MarkUpAmount) - DiscountAmount) - ISNULL(UnitCostExtended, 0)) * 100) / (((ISNULL(UnitSalesPrice, 0) * @StockLineQty) + MarkUpAmount) - DiscountAmount))
 												ELSE 0 END
 							--((((((ISNULL(UnitSalesPrice, 0) * @StockLineQty) + MarkUpAmount) - DiscountAmount) - ISNULL(UnitCostExtended, 0)) * 100) / (((ISNULL(UnitSalesPrice, 0) * @StockLineQty) + MarkUpAmount) - DiscountAmount))
-							WHERE SalesOrderQuotePartId = @SOQPartId AND SalesOrderQuoteStocklineId = @SOQStocklineId;
+							WHERE SalesOrderQuotePartId = @SOQPartId AND SalesOrderQuoteStocklineId = @SOQStocklineId AND ISNULL(IsDeleted, 0) = 0;
 
 							SET @MasterLoopID = @MasterLoopID - 1;
 						END

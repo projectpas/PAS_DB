@@ -4456,6 +4456,10 @@
     <Build Include="dbo\Stored Procedures\USP_DeleteRestoreUOMConversion.sql" />
     <Build Include="dbo\Stored Procedures\USP_AddUpdateUOMConvertion.sql" />
     <Build Include="dbo\User Defined Types\UOMConvertionType.sql" />
+    <Build Include="dbo\Stored Procedures\GetVendorDetailsByCompanyCode.sql" />
+    <Build Include="dbo\Stored Procedures\GetItemMasterDetailByCompanyCode.sql" />
+    <Build Include="dbo\Stored Procedures\GetIStocklineDetailByCompanyCode.sql" />
+    <Build Include="dbo\Stored Procedures\GetCustomerDetailsByCompanyCode.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

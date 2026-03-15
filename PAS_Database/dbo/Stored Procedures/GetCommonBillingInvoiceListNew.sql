@@ -17,6 +17,7 @@
 	4    21-07-2025   Moin Bloch        Added BillingAmount IN SO PartList
 	5    28-07-2025   Moin Bloch        Modified Fix for performa not comming due to same ItemMasterId
 	6    30-10-2025   Moin Bloch        Added CreditMemoHeaderId
+	4    10/03/2026   Rajesh Gami	    UOM Conversion Changes [PN-14832]  
 **************************************************************/ 
 --   EXEC [dbo].[GetCommonBillingInvoiceListNew] 706, 0,10
 CREATE     PROCEDURE [dbo].[GetCommonBillingInvoiceListNew]
@@ -44,20 +45,20 @@ BEGIN
 			[IsProformaInvoice] [bit] NULL,
 			[PartNumber] [VARCHAR](50) NULL,
 			[PartDescription] [NVARCHAR](MAX) NULL,
-			[QtyToBill] [INT] NULL,
-			[QtyBilled] [INT] NULL,
+			[QtyToBill] [decimal](18,6) NULL,
+			[QtyBilled] [decimal](18,6) NULL,
 			[ReferenceId] [BIGINT] NULL,
 			[ItemMasterId] [BIGINT] NULL,
 			[SubReferenceId] [BIGINT] NULL,
-			[QtyRemaining] [INT] NULL,
+			[QtyRemaining] [decimal](18,6) NULL,
 			[Status] [VARCHAR](50) NULL,
 			[NewStatus] [VARCHAR](50) NULL,
 			[ItemNo] [INT] NULL,
 			[ConditionId] [BIGINT]  NULL,
 			[Condition] [VARCHAR](250)  NULL,
 			[CustomerId] [BIGINT] NULL,
-			[BillingAmount] [decimal](18,2) NULL,
-			[PerformaBillingAmount] [decimal](18,2) NULL,			
+			[BillingAmount] [decimal](18,6) NULL,
+			[PerformaBillingAmount] [decimal](18,6) NULL,			
 		)
 		
 		IF(@ModuleId = @WOModuleId) /*********START: WORK ORDER ********/

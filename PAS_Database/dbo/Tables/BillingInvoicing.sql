@@ -20,15 +20,15 @@
     [IsPerformaInvoice]           BIT             CONSTRAINT [DF_BillingInvoicing_IsPerformaInvoice] DEFAULT ((0)) NULL,
     [IsVersionIncrease]           BIT             CONSTRAINT [DF_BillingInvoicing_IsVersionIncrease] DEFAULT ((0)) NULL,
     [PostedDate]                  DATETIME2 (7)   NULL,
-    [SubTotal]                    DECIMAL (18, 2) CONSTRAINT [DF_BillingInvoicing_SubTotal] DEFAULT ((0)) NULL,
-    [OtherTax]                    DECIMAL (18, 2) CONSTRAINT [DF_BillingInvoicing_OtherTax] DEFAULT ((0)) NULL,
-    [SalesTax]                    DECIMAL (18, 2) CONSTRAINT [DF_BillingInvoicing_SalesTax] DEFAULT ((0)) NULL,
-    [DepositAmount]               DECIMAL (18, 2) NULL,
-    [GrandTotal]                  DECIMAL (18, 2) NULL,
+    [SubTotal]                    DECIMAL (18, 6) CONSTRAINT [DF_BillingInvoicing_SubTotal] DEFAULT ((0)) NULL,
+    [OtherTax]                    DECIMAL (18, 6) CONSTRAINT [DF_BillingInvoicing_OtherTax] DEFAULT ((0)) NULL,
+    [SalesTax]                    DECIMAL (18, 6) CONSTRAINT [DF_BillingInvoicing_SalesTax] DEFAULT ((0)) NULL,
+    [DepositAmount]               DECIMAL (18, 6) NULL,
+    [GrandTotal]                  DECIMAL (18, 6) NULL,
     [IsInvoicePosted]             BIT             CONSTRAINT [DF__BillingIn__IsInv__4FAC7CA0] DEFAULT ((0)) NULL,
-    [UsedDeposit]                 DECIMAL (18, 2) CONSTRAINT [DF__BillingIn__UsedD__50A0A0D9] DEFAULT ((0)) NULL,
-    [ProformaDeposit]             DECIMAL (18, 2) CONSTRAINT [DF__BillingIn__Profo__5194C512] DEFAULT ((0)) NULL,
-    [RemainingAmount]             DECIMAL (18, 2) NULL,
+    [UsedDeposit]                 DECIMAL (18, 6) CONSTRAINT [DF__BillingIn__UsedD__50A0A0D9] DEFAULT ((0)) NULL,
+    [ProformaDeposit]             DECIMAL (18, 6) CONSTRAINT [DF__BillingIn__Profo__5194C512] DEFAULT ((0)) NULL,
+    [RemainingAmount]             DECIMAL (18, 6) NULL,
     [Notes]                       NVARCHAR (MAX)  NULL,
     [WorkOrderShippingId]         BIGINT          NULL,
     [ManagementStructureId]       BIGINT          NOT NULL,
@@ -47,7 +47,7 @@
     [IsCreatedFromQuote]          BIT             CONSTRAINT [DF_BillingInvoicing_IsCreatedFromQuote] DEFAULT ((0)) NULL,
     [IsQuickBookGeneratedInvoice] BIT             NULL,
     [OldBillingInvoicingId]       BIGINT          NULL,
-    [CreditMemoUsed]              DECIMAL (18, 2) DEFAULT ((0)) NULL,
+    [CreditMemoUsed]              DECIMAL (18, 6) CONSTRAINT [DF__BillingIn__Credi__55BA5BB1] DEFAULT ((0)) NULL,
     [OriginCountryId]             INT             NULL,
     [ShipToCountryId]             INT             NULL,
     [SignEmpId]                   BIGINT          NULL,
@@ -56,14 +56,4 @@
     [CreditMemoHeaderId]          BIGINT          NULL,
     CONSTRAINT [PK_BillingInvoicing] PRIMARY KEY CLUSTERED ([BillingInvoicingId] ASC)
 );
-
-
-
-
-
-
-
-
-
-
 

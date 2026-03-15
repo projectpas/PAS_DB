@@ -24,6 +24,8 @@
 	8    23-FEB-2026    Moin Bloch          Update Due date Getting From Direct Table.
 	9    01-MAR-2026    Hemant Saliya       Corrected Due date for Export file.
 	10   02-MAR-2026    Moin Bloch          Updated Due date For Manual JE 
+	11   11-MAR-2026    Amit Ghediya        Updated for remove MJE after full payment (PN-15631)
+	12    12-MAR-2026    Amit Ghediya       Updated for get isactive records (PN-15588)
 
   --[dbo].[usprpt_GetAPAgingReport_SSRS] 21,'2026-01-28',3654,2,null,null
 exec usprpt_GetAPAgingReport_SSRS @mastercompanyid=21,@id='2026-01-03 00:00:00.176883244',@id2='5192',@id3='2',@id5='',@id6='',@strFilter='70!71!!!!!!!!',@id7=1
@@ -109,7 +111,8 @@ BEGIN
 			  WHERE rrh.VendorId = ISNULL(@vendorId,rrh.VendorId)        
 			  AND CAST(rrh.InvoiceDate AS DATE) <= CASE WHEN ISNULL(@id7, 0) = 1 THEN CAST(@ToDate AS DATE) ELSE CAST(@ToDate-1 AS DATE) END
 			  AND vpd.RemainingAmount > 0 --AND rrh.InvoiceNum = ISNULL(@invoiceNum,rrh.InvoiceNum)
-			  AND rrh.MasterCompanyId = @mastercompanyid			  
+			  AND rrh.MasterCompanyId = @mastercompanyid
+			  AND vpd.[IsActive] = 1 AND vpd.[IsDeleted] = 0
 			  AND (ISNULL(@tagtype,'')='' OR ES.OrganizationTagTypeId IN(SELECT value FROM String_split(ISNULL(@tagtype,''), ',')))      
 			  AND (	ISNULL(@Level1,'') = ''
 					OR (
@@ -214,6 +217,7 @@ BEGIN
 			(SELECT MJD.ReferenceId AS BillingInvoicingId
 			FROM [dbo].[ManualJournalHeader] MJH WITH(NOLOCK)   
 			INNER JOIN [dbo].[ManualJournalDetails] MJD WITH(NOLOCK) ON MJH.ManualJournalHeaderId = MJD.ManualJournalHeaderId AND MJD.ReferenceTypeId = 2 
+			INNER JOIN [dbo].[VendorPaymentDetails] vpd WITH (NOLOCK) ON MJH.ManualJournalHeaderId = vpd.ManualJournalHeaderId
 			INNER JOIN [dbo].[Vendor] V  WITH (NOLOCK) ON V.VendorId = MJD.ReferenceId 
 			INNER JOIN [dbo].[AccountingBatchManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ModuleID = @MSModuleId AND MSD.ReferenceID = MJD.[ManualJournalDetailsId]    
 			 LEFT JOIN [dbo].[EntityStructureSetup] ES  WITH (NOLOCK) ON ES.EntityStructureId = MSD.EntityMSID 		   
@@ -233,7 +237,9 @@ BEGIN
 		    AND MJH.[ManualJournalStatusId] = @PostStatusId
 			AND CAST(MJH.[PostedDate] AS DATE) <= CASE WHEN ISNULL(@id7, 0) = 1 THEN CAST(@ToDate AS DATE) ELSE CAST(@ToDate-1 AS DATE) END 
 			AND MJH.JournalNumber  = ISNULL(@invoiceNum,MJH.JournalNumber)
-			AND MJH.mastercompanyid = @mastercompanyid      
+			AND MJH.mastercompanyid = @mastercompanyid    
+			AND vpd.RemainingAmount > 0 
+			AND vpd.[IsActive] = 1 AND vpd.[IsDeleted] = 0
 			AND (ISNULL(@tagtype,'')='' OR ES.OrganizationTagTypeId IN(SELECT value FROM STRING_SPLIT(ISNULL(@tagtype,''), ',')))      
 			AND (ISNULL(@Level1,'') ='' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))      
 			AND (ISNULL(@Level2,'') ='' OR MSD.[Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,',')))      
@@ -261,7 +267,8 @@ BEGIN
 			  WHERE NPH.VendorId = ISNULL(@vendorId,NPH.VendorId)        
 			  AND CAST(NPH.InvoiceDate AS DATE) <= CASE WHEN ISNULL(@id7, 0) = 1 THEN CAST(@ToDate AS DATE) ELSE CAST(@ToDate-1 AS DATE) END 
 			  AND vpd.RemainingAmount > 0  AND NPH.NPONumber  = ISNULL(@invoiceNum,NPH.NPONumber)
-			  AND NPH.MasterCompanyId = @mastercompanyid			  
+			  AND NPH.MasterCompanyId = @mastercompanyid
+			  AND vpd.[IsActive] = 1 AND vpd.[IsDeleted] = 0
 			  AND (ISNULL(@tagtype,'')='' OR ES.OrganizationTagTypeId IN(SELECT value FROM String_split(ISNULL(@tagtype,''), ',')))      
 			  AND (ISNULL(@Level1,'') ='' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))      
 			  AND (ISNULL(@Level2,'') ='' OR MSD.[Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,',')))      
@@ -354,6 +361,7 @@ BEGIN
 			  AND CAST(rrh.[InvoiceDate] AS DATE) <= CASE WHEN ISNULL(@id7, 0) = 1 THEN CAST(@ToDate AS DATE) ELSE CAST(@ToDate-1 AS DATE) END
 			  AND rrh.[MasterCompanyId] = @mastercompanyid   
 			  AND vpd.RemainingAmount > 0
+			  AND vpd.[IsActive] = 1 AND vpd.[IsDeleted] = 0
 			  AND (ISNULL(@tagtype,'')='' OR ES.OrganizationTagTypeId IN(SELECT value FROM String_split(ISNULL(@tagtype,''), ',')))      
 			 AND (	ISNULL(@Level1,'') = ''
 					OR (
@@ -528,6 +536,7 @@ BEGIN
 			   ,CASE WHEN (DATEDIFF(DAY, CAST(MJH.PostedDate AS DATETIME) + ISNULL(ctm.NetDays,0), GETUTCDATE())) > 0 THEN (DATEDIFF(DAY, CAST(MJH.PostedDate AS DATETIME) + ISNULL(ctm.NetDays,0), GETUTCDATE())) ELSE 0 END AS 'DaysPastDue'
 		FROM [dbo].[ManualJournalHeader] MJH WITH(NOLOCK)   
 		  INNER JOIN [dbo].[ManualJournalDetails] MJD WITH(NOLOCK) ON MJH.ManualJournalHeaderId = MJD.ManualJournalHeaderId AND MJD.ReferenceTypeId = 2 
+		  INNER JOIN [dbo].[VendorPaymentDetails] vpd WITH (NOLOCK) ON MJH.ManualJournalHeaderId = vpd.ManualJournalHeaderId
 		  INNER JOIN [dbo].[Vendor] V  WITH (NOLOCK) ON V.VendorId = MJD.ReferenceId 
 		  INNER JOIN [dbo].[AccountingBatchManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ModuleID = @MSModuleId AND MSD.ReferenceID = MJD.[ManualJournalDetailsId]    
 		   LEFT JOIN [dbo].[EntityStructureSetup] ES  WITH (NOLOCK) ON ES.EntityStructureId = MSD.EntityMSID 		   
@@ -546,6 +555,8 @@ BEGIN
 	   WHERE MJD.ReferenceId = ISNULL(@vendorId,MJD.ReferenceId)    
 			AND MJH.[ManualJournalStatusId] = @PostStatusId
 			AND MJD.[ReferenceTypeId] = 2 
+			AND vpd.RemainingAmount > 0 
+			AND vpd.[IsActive] = 1 AND vpd.[IsDeleted] = 0
 			--AND ISNULL(MJD.Credit,0) - ISNULL(MJD.Debit,0) <> 0
 			AND CAST(MJH.[PostedDate] AS DATE) <= CASE WHEN ISNULL(@id7, 0) = 1 THEN CAST(@ToDate AS DATE) ELSE CAST(@ToDate-1 AS DATE) END
 			AND MJH.MasterCompanyId = @mastercompanyid    
@@ -625,6 +636,7 @@ BEGIN
 			  AND CAST(NPH.PostedDate AS DATE) <= CASE WHEN ISNULL(@id7, 0) = 1 THEN CAST(@ToDate AS DATE) ELSE CAST(@ToDate-1 AS DATE) END
 			  AND NPH.[MasterCompanyId] = @mastercompanyid   
 			  AND vpd.RemainingAmount > 0
+			  AND vpd.[IsActive] = 1 AND vpd.[IsDeleted] = 0
 			  AND (ISNULL(@tagtype,'')='' OR ES.OrganizationTagTypeId IN(SELECT value FROM String_split(ISNULL(@tagtype,''), ',')))      
 			  AND (ISNULL(@Level1,'') ='' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))      
 			  AND (ISNULL(@Level2,'') ='' OR MSD.[Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,',')))      
@@ -767,7 +779,6 @@ BEGIN
 	END
 	ELSE
 	BEGIN
-		print '222'
 		--	Receiving Reconciliation  --
 		SELECT * INTO #tempReceivingReconciliationElse FROM 
 		(SELECT DISTINCT (V.VendorId) AS VendorId,  ISNULL(V.[VendorName],'') 'vendorName' , ISNULL(V.VendorCode,'') 'vendorCode' , (rrh.CurrencyName) AS  'currencyCode',      
@@ -829,7 +840,8 @@ BEGIN
 			   LEFT JOIN [dbo].[EntityStructureSetup] ES WITH (NOLOCK) ON ES.EntityStructureId = MSD.EntityMSID			    
 			  WHERE rrh.[VendorId] = ISNULL(@vendorId,rrh.VendorId)  			  
 			  AND CAST(rrh.[InvoiceDate] AS DATE) <= CASE WHEN ISNULL(@id7, 0) = 1 THEN CAST(@ToDate AS DATE) ELSE CAST(@ToDate-1 AS DATE) END 
-			  AND rrh.[MasterCompanyId] = @mastercompanyid      
+			  AND rrh.[MasterCompanyId] = @mastercompanyid   
+			  AND vpd.[IsActive] = 1 AND vpd.[IsDeleted] = 0
 			  AND vpd.RemainingAmount > 0  AND rrh.InvoiceNum = ISNULL(@invoiceNum,rrh.InvoiceNum)
 			  AND (ISNULL(@tagtype,'')='' OR ES.OrganizationTagTypeId IN(SELECT value FROM String_split(ISNULL(@tagtype,''), ',')))      
 			  AND (	ISNULL(@Level1,'') = ''
@@ -1010,6 +1022,7 @@ BEGIN
 			  ,CASE WHEN (DATEDIFF(DAY, CAST(MJH.PostedDate AS DATETIME) + ISNULL(ctm.NetDays,0), GETUTCDATE())) > 0 THEN (DATEDIFF(DAY, CAST(MJH.PostedDate AS DATETIME) + ISNULL(ctm.NetDays,0), GETUTCDATE())) ELSE 0 END AS 'DaysPastDue'
 		FROM [dbo].[ManualJournalHeader] MJH WITH(NOLOCK)   
 		  INNER JOIN [dbo].[ManualJournalDetails] MJD WITH(NOLOCK) ON MJH.ManualJournalHeaderId = MJD.ManualJournalHeaderId AND MJD.ReferenceTypeId = 2 
+		  INNER JOIN [dbo].[VendorPaymentDetails] vpd WITH (NOLOCK) ON MJH.ManualJournalHeaderId = vpd.ManualJournalHeaderId
 		  INNER JOIN [dbo].[Vendor] V  WITH (NOLOCK) ON V.VendorId = MJD.ReferenceId 
 		  INNER JOIN [dbo].[AccountingBatchManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ModuleID = @MSModuleId AND MSD.ReferenceID = MJD.[ManualJournalDetailsId]    
 		   LEFT JOIN [dbo].[EntityStructureSetup] ES  WITH (NOLOCK) ON ES.EntityStructureId = MSD.EntityMSID 		   
@@ -1028,6 +1041,8 @@ BEGIN
 	   WHERE MJD.ReferenceId = ISNULL(@vendorId,MJD.ReferenceId)    
 			AND MJH.[ManualJournalStatusId] = @PostStatusId
 			AND MJD.[ReferenceTypeId] = 2  AND MJH.JournalNumber  = ISNULL(@invoiceNum,MJH.JournalNumber)
+			AND vpd.RemainingAmount > 0
+			AND vpd.[IsActive] = 1 AND vpd.[IsDeleted] = 0
 			AND CAST(MJH.[PostedDate] AS DATE) <= CASE WHEN ISNULL(@id7, 0) = 1 THEN CAST(@ToDate AS DATE) ELSE CAST(@ToDate-1 AS DATE) END 
 			AND MJH.MasterCompanyId = @mastercompanyid    
 			AND (ISNULL(@tagtype,'')='' OR ES.OrganizationTagTypeId IN(SELECT value FROM String_split(ISNULL(@tagtype,''), ',')))      
@@ -1095,7 +1110,8 @@ BEGIN
 							WHERE npdd.[NonPOInvoiceId] = NPH.NonPOInvoiceId GROUP BY npdd.[NonPOInvoiceId]) PartData
 				  WHERE NPH.[VendorId] = ISNULL(@vendorId,NPH.VendorId)  			  
 				  AND CAST(NPH.PostedDate AS DATE) <= CASE WHEN ISNULL(@id7, 0) = 1 THEN CAST(@ToDate AS DATE) ELSE CAST(@ToDate-1 AS DATE) END 
-				  AND NPH.[MasterCompanyId] = @mastercompanyid      
+				  AND NPH.[MasterCompanyId] = @mastercompanyid 
+				  AND vpd.[IsActive] = 1 AND vpd.[IsDeleted] = 0
 				  AND vpd.RemainingAmount > 0  AND NPH.NPONumber  = ISNULL(@invoiceNum,NPH.NPONumber)
 				  AND (ISNULL(@tagtype,'')='' OR ES.OrganizationTagTypeId IN(SELECT value FROM String_split(ISNULL(@tagtype,''), ',')))      
 				  AND (ISNULL(@Level1,'') ='' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,','))) AND (ISNULL(@Level2,'') ='' OR MSD.[Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,',')))      

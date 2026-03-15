@@ -16,7 +16,7 @@
  ** --   --------			-------				-------------------          
     1    12-Oct-2023		HEMANT SALIYA		Created
 	2    15-DEC-2023		Ayesha Sultana		BugFix - View Inventory in add/edit work order
-     
+    3    11-Mar-2026		RAJESH GAMI			Get Stock Unit Od Measure [PN-14832]
  EXECUTE [SearchItemMasterByCustomerRestrictionFromWO] 3, 12, 2461,1
 **************************************************************/ 
 CREATE     PROCEDURE [dbo].[SearchItemMasterByCustomerRestrictionFromWO]
@@ -73,8 +73,8 @@ BEGIN
 					,im.ItemMasterId As PartId
 					,im.ItemMasterId As ItemMasterId
 					,im.PartDescription AS Description
-					,im.PurchaseUnitOfMeasureId  AS unitOfMeasureId
-					,im.PurchaseUnitOfMeasure AS unitOfMeasure
+					,im.StockUnitOfMeasureId  AS unitOfMeasureId
+					,CASE WHEN ISNULL(im.StockUnitOfMeasure,'') = '' THEN im.PurchaseUnitOfMeasure ELSE im.StockUnitOfMeasure END AS unitOfMeasure
 					,im.IsPma
 					,im.IsDER
 					,SUM(ISNULL(sl.QuantityAvailable, 0)) AS QtyAvailable
@@ -116,8 +116,8 @@ BEGIN
 					im.ItemMasterId IN (SELECT Item FROM DBO.SPLITSTRING(@ItemMasterIdlist,','))
 				GROUP BY
 					im.PartNumber
-					,im.PurchaseUnitOfMeasureId
-					,im.PurchaseUnitOfMeasure
+					,im.StockUnitOfMeasureId
+					,im.PurchaseUnitOfMeasure,im.StockUnitOfMeasure
 					,im.ItemMasterId 
 					,im.PartDescription
 					,ig.Description 

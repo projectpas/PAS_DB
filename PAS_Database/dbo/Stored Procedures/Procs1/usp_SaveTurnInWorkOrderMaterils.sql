@@ -29,7 +29,7 @@ Exec [usp_SaveTurnInWorkOrderMaterils]
    17	08/10/2025  Moin Bloch			Added MPN Tendor 
    18	30/01/2026  Moin Bloch			Fix For Getting FK Conflict Error In Bin
    19   10/02/2026  Moin Bloch          No need to remove cost from stockline while tendor WO materials PN-15331 & Added Accounting Entry For Teardown Stockline
-  
+   17	13/Mar/2026 Rajesh Gami			UOM Changes Added [PN-15714]
 exec dbo.usp_SaveTurnInWorkOrderMaterils @IsMaterialStocklineCreate=1,@IsCustomerStock=1,@IsCustomerstockType=0,@ItemMasterId=291,@UnitOfMeasureId=5,  
 @ConditionId=10,@Quantity=2,@IsSerialized=0,@SerialNumber=NULL,@CustomerId=80,@ObtainFromTypeId=1,@ObtainFrom=80,@ObtainFromName=N'anil gill ',  
 @OwnerTypeId=NULL,@Owner=NULL,@OwnerName=N'',@TraceableToTypeId=NULL,@TraceableTo=NULL,@TraceableToName=N'',@Memo=N' ',@WorkOrderId=N'320',  
@@ -43,7 +43,7 @@ CREATE   PROCEDURE [dbo].[usp_SaveTurnInWorkOrderMaterils]
 @ItemMasterId BIGINT,  
 @UnitOfMeasureId BIGINT,  
 @ConditionId BIGINT,  
-@Quantity INT,  
+@Quantity DECIMAL(18,6),  
 @IsSerialized BIT,  
 @SerialNumber VARCHAR(50),  
 @CustomerId BIGINT = NULL,  
@@ -74,7 +74,7 @@ CREATE   PROCEDURE [dbo].[usp_SaveTurnInWorkOrderMaterils]
 @UpdatedBy VARCHAR(100),  
 @WorkOrderMaterialsId BIGINT=0,  
 @IsKitType BIT = 0,  
-@Unitcost DECIMAL(18,2) = 0,
+@Unitcost [decimal](18,6) = 0,
 @ProvisionId INT =0, 
 @EvidenceId INT = NULL,  
 @WorkOrderWorkflowId BIGINT  = NULL,  
@@ -103,8 +103,8 @@ BEGIN
  DECLARE @IsOemPNId BIGINT;  
  DECLARE @IsOEM BIT = 0;  
  DECLARE @OEMPNNumber VARCHAR(500);  
- DECLARE @count INT;  
- DECLARE @slcount INT;  
+ DECLARE @count DECIMAL(18,6);  
+ DECLARE @slcount DECIMAL(18,6);  
  DECLARE @IsAddUpdate BIT;   
  DECLARE @ExecuteParentChild BIT;   
  DECLARE @UpdateQuantities BIT;  
@@ -115,18 +115,19 @@ BEGIN
  DECLARE @IsSerialised BIT;  
  DECLARE @ModuleId BIGINT;  
  DECLARE @SubModuleId BIGINT;  
- DECLARE @stockLineQty INT;  
- DECLARE @stockLineQtyAvailable INT;  
+ DECLARE @stockLineQty DECIMAL(18,6);  
+ DECLARE @stockLineQtyAvailable DECIMAL(18,6);  
  DECLARE @GLAccountId INT;  
  DECLARE @IsTimeLife BIT;  
-    
+ Declare @StockUOMId  BIGINT = @UnitOfMeasureId, @PurchaseUOMId BIGINT, @ConsumeUOMId BIGINT;   
    -- #STEP 1 CREATE STOCKLINE  
    BEGIN TRY 
    BEGIN TRANSACTION  
-    BEGIN  
-     DECLARE @QtyTendered INT = 0;  
-     DECLARE @QtyToTendered INT = 0;  
-     DECLARE @TotalStlQtyReq INT = 0;  
+    BEGIN 
+
+     DECLARE @QtyTendered DECIMAL(18,6) = 0;  
+     DECLARE @QtyToTendered DECIMAL(18,6) = 0;  
+     DECLARE @TotalStlQtyReq DECIMAL(18,6) = 0;  
      DECLARE @WorkOrderTypeId INT = 0;  
      DECLARE @TearDownWorkOrderTypeId INT = 0;  
      DECLARE @WorkOrderPartNoId BIGINT = 0;  
@@ -204,7 +205,7 @@ BEGIN
      ON CSTL.StockLineId = STL.StockLineId  
      /* PN Manufacturer Combination Stockline logic */  
   
-     SELECT @PartNumber = partnumber, @IsPMA = IsPMA, @IsDER = IsDER, @IsOemPNId = IsOemPNId, @IsOEM = IsOEM, @OEMPNNumber = OEMPN,@GLAccountId=GLAccountId, @IsTimeLife = isTimeLife, @ItemClassificationId = [ItemClassificationId]   FROM dbo.ItemMaster WITH(NOLOCK) WHERE ItemMasterId = @ItemMasterId;  
+     SELECT @PurchaseUOMId = PurchaseUnitOfMeasureId, @ConsumeUOMId =ConsumeUnitOfMeasureId ,@PartNumber = partnumber, @IsPMA = IsPMA, @IsDER = IsDER, @IsOemPNId = IsOemPNId, @IsOEM = IsOEM, @OEMPNNumber = OEMPN,@GLAccountId=GLAccountId, @IsTimeLife = isTimeLife, @ItemClassificationId = [ItemClassificationId]   FROM dbo.ItemMaster WITH(NOLOCK) WHERE ItemMasterId = @ItemMasterId;  
      
 	 SELECT @WorkOrderNumber = [WorkOrderNum],@WorkOrderTypeId=[WorkOrderTypeId], @WorkOrderFormTypeId = ISNULL([WorkOrderFormTypeId],0) FROM [dbo].[WorkOrder] WITH(NOLOCK) WHERE [WorkOrderId] = @WorkOrderId  
 
@@ -298,12 +299,12 @@ BEGIN
        TraceableTo, TraceableToName, Memo, WorkOrderId, WorkOrderNumber, ManufacturerId, InspectionBy, InspectionDate, ReceiverNumber, IsParent, LotCost, ParentId,  
        QuantityIssued, QuantityReserved,QuantityToReceive,RepairOrderExtendedCost, SubWOPartNoId,SubWorkOrderId, WorkOrderExtendedCost, WorkOrderPartNoId,  
        ReceivedDate, ManagementStructureId, SiteId, WarehouseId, LocationId, ShelfId, BinId, CreatedBy, UpdatedBy, CreatedDate, UpdatedDate,isActive, isDeleted, MasterCompanyId, IsTurnIn,  
-       [OEM],IsPMA, IsDER,IsOemPNId, OEMPNNumber,GLAccountId,[IsStkTimeLife],[EvidenceId], [IntegrationPortal]
-     ) VALUES(@StockLineNumber, @ControlNumber, @IDNumber, @IsCustomerStock,@IsCustomerstockType,@ItemMasterId,@PartNumber,@UnitOfMeasureId,@ConditionId,@Quantity, @Quantity, @Quantity, @Quantity,  
+       [OEM],IsPMA, IsDER,IsOemPNId, OEMPNNumber,GLAccountId,[IsStkTimeLife],[EvidenceId], [IntegrationPortal], StockUnitOfMeasureId, ConsumeUnitOfMeasureId
+     ) VALUES(@StockLineNumber, @ControlNumber, @IDNumber, @IsCustomerStock,@IsCustomerstockType,@ItemMasterId,@PartNumber,@PurchaseUOMId,@ConditionId,@Quantity, @Quantity, @Quantity, @Quantity,  
        @IsSerialized,@SerialNumber, @CustomerId, @ObtainFromTypeId, @ObtainFrom, @ObtainFromName, @OwnerTypeId, @Owner, @OwnerName, @TraceableToTypeId,   
        @TraceableTo, @TraceableToName, @Memo, @WorkOrderId, @WorkOrderNum, @ManufacturerId, @InspectedById, @InspectedDate, @ReceiverNumber, 1, 0,0,0,0,0,0,0,0,0,@WorkOrderPartNoId,  
        @ReceivedDate, @ManagementStructureId, @SiteId, @WarehouseId, @LocationId, @ShelfId, @BinId, @UpdatedBy, @UpdatedBy, GETUTCDATE(),GETUTCDATE(),1,0, @MasterCompanyId, 1,  
-       @IsOEM,@IsPMA, @IsDER,@IsOemPNId, @OEMPNNumber,@GLAccountId, @IsTimeLife,@EvidenceId, @IntegrationPortal);  
+       @IsOEM,@IsPMA, @IsDER,@IsOemPNId, @OEMPNNumber,@GLAccountId, @IsTimeLife,@EvidenceId, @IntegrationPortal, @StockUOMId, @ConsumeUOMId);  
        
      SELECT @StockLineId = SCOPE_IDENTITY()  
   
@@ -409,7 +410,7 @@ BEGIN
 				INSERT INTO [dbo].[WorkOrderMaterials] ([WorkOrderId], [WorkFlowWorkOrderId], [ItemMasterId], [TaskId], [ConditionCodeId], [ItemClassificationId], [Quantity], [UnitOfMeasureId],  
 				   [UnitCost],[ExtendedCost],[Memo],[IsDeferred], [QuantityReserved], [QuantityIssued], [MaterialMandatoriesId],[ProvisionId],[CreatedDate], [CreatedBy], [UpdatedDate],   
 				   [UpdatedBy], [MasterCompanyId], [IsActive], [IsDeleted])   
-				SELECT @WorkOrderId, WOWF.WorkFlowWorkOrderId, @ItemMasterId, WOM.TaskId, @ConditionId, WOM.ItemClassificationId, @Quantity, @UnitOfMeasureId, 0, 0, @Memo,   
+				SELECT @WorkOrderId, WOWF.WorkFlowWorkOrderId, @ItemMasterId, WOM.TaskId, @ConditionId, WOM.ItemClassificationId, @Quantity, @StockUOMId, 0, 0, @Memo,   
 				   WOM.IsDeferred, 0, 0, WOM.MaterialMandatoriesId,WOM.ProvisionId,GETDATE(), @UpdatedBy, GETDATE(), @UpdatedBy, @MasterCompanyId, 1, 0   
 				FROM [dbo].[WorkOrderMaterials] WOM WITH(NOLOCK)   
 				 JOIN [dbo].[WorkOrderWorkFlow] WOWF WITH(NOLOCK) ON WOM.WorkFlowWorkOrderId = WOWF.WorkFlowWorkOrderId  
@@ -468,7 +469,7 @@ BEGIN
 				   [UnitCost],[ExtendedCost],[Memo],[IsDeferred], [QuantityReserved], [QuantityIssued], [MaterialMandatoriesId],[ProvisionId],[CreatedDate], [CreatedBy], [UpdatedDate],   
 				   [UpdatedBy], [MasterCompanyId], [IsActive], [IsDeleted]) 
 				   
-				SELECT @WorkOrderId, @WorkOrderWorkflowId, @ItemMasterId, @TaskId, @ConditionId, @ItemClassificationId, @Quantity, @UnitOfMeasureId, 0, 0, @Memo,   
+				SELECT @WorkOrderId, @WorkOrderWorkflowId, @ItemMasterId, @TaskId, @ConditionId, @ItemClassificationId, @Quantity, @StockUOMId, 0, 0, @Memo,   
 				   0, 0, 0, 1,@ProvisionId,GETDATE(), @UpdatedBy, GETDATE(), @UpdatedBy, @MasterCompanyId, 1, 0   				
 				
 				SELECT @NewWorkOrderMaterialsId = SCOPE_IDENTITY()  
@@ -561,7 +562,7 @@ BEGIN
         INSERT INTO dbo.WorkOrderMaterialsKit (WorkOrderMaterialsKitMappingId, WorkOrderId, WorkFlowWorkOrderId, ItemMasterId, TaskId, ConditionCodeId, ItemClassificationId, Quantity, UnitOfMeasureId,  
            UnitCost,ExtendedCost,Memo,IsDeferred, QuantityReserved, QuantityIssued, MaterialMandatoriesId,ProvisionId,CreatedDate, CreatedBy, UpdatedDate,   
            UpdatedBy, MasterCompanyId, IsActive, IsDeleted)   
-        SELECT @WorkOrderMaterialsKitMappingId, @WorkOrderId, WOWF.WorkFlowWorkOrderId, @ItemMasterId, WOM.TaskId, @ConditionId, WOM.ItemClassificationId, @Quantity, @UnitOfMeasureId, 0, 0, @Memo,   
+        SELECT @WorkOrderMaterialsKitMappingId, @WorkOrderId, WOWF.WorkFlowWorkOrderId, @ItemMasterId, WOM.TaskId, @ConditionId, WOM.ItemClassificationId, @Quantity, @StockUOMId, 0, 0, @Memo,   
            WOM.IsDeferred, 0, 0, WOM.MaterialMandatoriesId,WOM.ProvisionId,GETDATE(), @UpdatedBy, GETDATE(), @UpdatedBy, @MasterCompanyId, 1, 0   
         FROM dbo.WorkOrderMaterialsKit WOM WITH(NOLOCK)   
          JOIN dbo.WorkOrderWorkFlow WOWF WITH(NOLOCK) ON WOM.WorkFlowWorkOrderId = WOWF.WorkFlowWorkOrderId  

@@ -12,10 +12,10 @@
  ** --   --------     -------		--------------------------------              
 	1    12/03/2026   Moin Bloch       Created PN-15605
 	
---   EXEC [SP_UnReserveWorkOrderMaterialStockLine]  24273,32556,26581,200491,1,0,1,'Admin User'
+--  EXEC PROC [USP_UnReserveWorkOrderMaterialStockLineForRepairOrder]  24273,32556,26581,200491,1,0,1,'Admin User'
 
 **************************************************************/
-CREATE   PROCEDURE [dbo].[USP_UnReserveWorkOrderMaterialStockLine]
+CREATE PROCEDURE [dbo].[USP_UnReserveWorkOrderMaterialStockLineForRepairOrder]
 @WorkOrderId BIGINT = NULL,
 @WOMStockLineId BIGINT = NULL,
 @WorkOrderMaterialsId BIGINT = NULL,

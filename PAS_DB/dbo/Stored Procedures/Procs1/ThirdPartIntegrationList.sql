@@ -11,7 +11,8 @@
  **************************************************************           
  ** PR   Date         Author			Change Description            
  ** --   --------    ---------			--------------------------------          
-    1   22/07/2025    Amit Ghediya     Added Email field
+    1   22/07/2025    Amit Ghediya		Added Email field
+    2   09/03/2026    Vishal Suthar     Added ClientId field
 ************************************************************************/
 CREATE    PROCEDURE [dbo].[ThirdPartIntegrationList]
 @PageNumber int = NULL,
@@ -27,6 +28,7 @@ CREATE    PROCEDURE [dbo].[ThirdPartIntegrationList]
 @APIURL varchar(50) = NULL,
 @SecretKey varchar(50) = NULL,
 @AccessKey varchar(50) = NULL,
+@ClientId varchar(50) = NULL,
 @CreatedBy  varchar(50) = NULL,
 @CreatedDate datetime = NULL,
 @UpdatedBy  varchar(50) = NULL,
@@ -90,7 +92,8 @@ BEGIN
 					   tpi.CreatedDate,
                        tpi.UpdatedDate,
 					   Upper(tpi.CreatedBy) CreatedBy,
-                       Upper(tpi.UpdatedBy) UpdatedBy
+                       Upper(tpi.UpdatedBy) UpdatedBy,
+					   (ISNULL(tpi.ClientId,'')) 'ClientId'
 			   FROM dbo.ThirdPartInegration tpi WITH (NOLOCK)
 									LEFT JOIN dbo.[LegalEntity] l WITH (NOLOCK) ON l.LegalEntityId = tpi.LegalEntityId
 		 	  WHERE ((tpi.IsDeleted=@IsDeleted) AND (@IsActive IS NULL OR tpi.IsActive=@IsActive))			     
@@ -133,6 +136,8 @@ BEGIN
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='SecretKey')  THEN SecretKey END DESC,
 			CASE WHEN (@SortOrder=1  AND @SortColumn='AccessKey')  THEN AccessKey END ASC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='AccessKey')  THEN AccessKey END DESC,
+			CASE WHEN (@SortOrder=1  AND @SortColumn='ClientId')  THEN ClientId END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='ClientId')  THEN ClientId END DESC,
 			CASE WHEN (@SortOrder=1  AND @SortColumn='CreatedBy')  THEN CreatedBy END ASC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='CreatedBy')  THEN CreatedBy END DESC,
 			CASE WHEN (@SortOrder=1  AND @SortColumn='CreatedDate')  THEN CreatedDate END ASC,
@@ -160,28 +165,22 @@ BEGIN
 			   + '@Parameter8 = ''' + CAST(ISNULL(@CageCode, '') AS varchar(100))
 			   + '@Parameter9 = ''' + CAST(ISNULL(@APIURL , '') AS varchar(100))	
 			   + '@Parameter10 = ''' + CAST(ISNULL(@SecretKey , '') AS varchar(100))		  
-			   + '@Parameter11 = ''' + CAST(ISNULL(@AccessKey , '') AS varchar(100))		  
-			  + '@Parameter12 = ''' + CAST(ISNULL(@CreatedBy , '') AS varchar(100))
-			  + '@Parameter13 = ''' + CAST(ISNULL(@CreatedDate , '') AS varchar(100))
-			  + '@Parameter14 = ''' + CAST(ISNULL(@UpdatedBy  , '') AS varchar(100))
-			  + '@Parameter15 = ''' + CAST(ISNULL(@UpdatedDate  , '') AS varchar(100))
-			  + '@Parameter16 = ''' + CAST(ISNULL(@IsDeleted , '') AS varchar(100))
-			  + '@Parameter17 = ''' + CAST(ISNULL(@MasterCompanyId, '') AS varchar(100))  			                                           
+			   + '@Parameter11 = ''' + CAST(ISNULL(@AccessKey , '') AS varchar(100))
+			   + '@Parameter12 = ''' + CAST(ISNULL(@ClientId , '') AS varchar(100))
+			  + '@Parameter13 = ''' + CAST(ISNULL(@CreatedBy , '') AS varchar(100))
+			  + '@Parameter14 = ''' + CAST(ISNULL(@CreatedDate , '') AS varchar(100))
+			  + '@Parameter15 = ''' + CAST(ISNULL(@UpdatedBy  , '') AS varchar(100))
+			  + '@Parameter16 = ''' + CAST(ISNULL(@UpdatedDate  , '') AS varchar(100))
+			  + '@Parameter17 = ''' + CAST(ISNULL(@IsDeleted , '') AS varchar(100))
+			  + '@Parameter18 = ''' + CAST(ISNULL(@MasterCompanyId, '') AS varchar(100))  			                                           
 			,@ApplicationName VARCHAR(100) = 'PAS'
-
 		-----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------
 		EXEC spLogException @DatabaseName = @DatabaseName
 			,@AdhocComments = @AdhocComments
 			,@ProcedureParameters = @ProcedureParameters
 			,@ApplicationName = @ApplicationName
 			,@ErrorLogID = @ErrorLogID OUTPUT;
-
-		RAISERROR (
-				'Unexpected Error Occured in the database. Please let the support team know of the error number : %d'
-				,16
-				,1
-				,@ErrorLogID
-				)
+		RAISERROR ('Unexpected Error Occured in the database. Please let the support team know of the error number : %d',16,1,@ErrorLogID)
 
 		RETURN (1);           
 	END CATCH

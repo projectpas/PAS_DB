@@ -12,25 +12,28 @@
  **************************************************************           
   ** Change History           
  **************************************************************           
- ** PR   Date         Author			Change Description            
- ** --   --------     -------			--------------------------------  
-	1    03/29/2023   Vishal Suthar		Modified SP for WO Materials KIT Changes
-	2    10/04/2023   Hemant Saliya		Condition Group Changes
-	3    11/23/2023   Moin Bloch		Changed QtyReserved + QtyIssued - SUM(QtyToShip) IN IsMPNPickTicket = 0
-	4    01/01/2024   Devendra Shekh	updated for serialnumber for MPN
-	5    02/05/2024   Devendra Shekh	Multiple MPN with Same Part Number issue Resolved
-	6    31/10/2025   Amit Ghediya		added for location
-   	7    25/Feb/2026	Rajesh Gami		Added UOM Changes 
+ ** PR   Date			Author				Change Description            
+ ** --   --------		-------				--------------------------------  
+	1    03/29/2023		Vishal Suthar		Modified SP for WO Materials KIT Changes
+	2    10/04/2023		Hemant Saliya		Condition Group Changes
+	3    11/23/2023		Moin Bloch			Changed QtyReserved + QtyIssued - SUM(QtyToShip) IN IsMPNPickTicket = 0
+	4    01/01/2024		Devendra Shekh		updated for serialnumber for MPN
+	5    02/05/2024		Devendra Shekh		Multiple MPN with Same Part Number issue Resolved
+	6    31/10/2025		Amit Ghediya		added for location
+   	7    25/Feb/2026	Rajesh Gami			Added UOM Changes 
+   	8    12/Mar/2026	Vishal Suthar		added parameter to filter selected MPN part 
+
 EXEC DBO.SearchStockLinePickTicketPop_WO @ItemMasterIdlist=20751,@workOrderMaterialsId =618 ,@ConditionId=10,@WorkOrderId=3555,@WorkFlowWorkOrderId=3019,@IsMPNPickTicket=0,@IsMultiplePickTicket=0
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[SearchStockLinePickTicketPop_WO]
-@ItemMasterIdlist bigint, 
-@workOrderMaterialsId bigint, 
-@ConditionId BIGINT,
-@WorkOrderId bigint,
-@WorkFlowWorkOrderId bigint = 0,
-@IsMPNPickTicket bit = 0,
-@IsMultiplePickTicket bit = 0
+	@ItemMasterIdlist bigint, 
+	@workOrderMaterialsId bigint, 
+	@ConditionId BIGINT,
+	@WorkOrderId bigint,
+	@WorkFlowWorkOrderId bigint = 0,
+	@IsMPNPickTicket bit = 0,
+	@IsMultiplePickTicket bit = 0,
+	@WorkFlowWorkOrderIds VARCHAR(256)
 AS
 BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
@@ -69,7 +72,6 @@ BEGIN
 				BEGIN
 					IF(@IsMPNPickTicket = 0)
 						BEGIN
-							
 							SELECT DISTINCT
 								wom.WorkOrderMaterialsId,
 								im.PartNumber
@@ -116,9 +118,6 @@ BEGIN
 									 ,0 AS IsKitType
 							FROM DBO.ItemMaster im WITH (NOLOCK)
 								JOIN DBO.StockLine sl WITH (NOLOCK) ON im.ItemMasterId = sl.ItemMasterId AND sl.IsDeleted = 0 
-									--AND sl.ConditionId = CASE WHEN @ConditionId  IS NOT NULL 
-									--						THEN @ConditionId ELSE sl.ConditionId 
-									--						END
 								LEFT JOIN DBO.WorkOrderMaterialStockLine wmsl WITH (NOLOCK) on wmsl.StockLineId = sl.StockLineId
 								LEFT JOIN DBO.WorkOrderMaterials wom WITH (NOLOCK) on wom.WorkOrderMaterialsId = wmsl.WorkOrderMaterialsId
 								LEFT JOIN DBO.WorkOrder wo WITH (NOLOCK) on wo.WorkOrderId = wom.WorkOrderId
@@ -214,11 +213,9 @@ BEGIN
 							SELECT DISTINCT
 								CASE WHEN ISNULL(wop.RevisedItemmasterid, 0) > 0 THEN wop.RevisedPartNumber ELSE im.PartNumber END as 'PartNumber',
 				                CASE WHEN ISNULL(wop.RevisedItemmasterid, 0) > 0 THEN wop.RevisedPartDescription ELSE im.PartDescription END as 'Description', 
-								--im.PartNumber
-								 sl.StockLineId
+								sl.StockLineId
 								,CASE WHEN ISNULL(wop.RevisedItemmasterid, 0) > 0 THEN wop.RevisedItemmasterid ELSE im.ItemMasterId END As PartId
 								,CASE WHEN ISNULL(wop.RevisedItemmasterid, 0) > 0 THEN wop.RevisedItemmasterid ELSE im.ItemMasterId END As ItemMasterId
-								--,im.PartDescription AS Description
 								,ig.Description AS ItemGroup
 								,mf.Name AS Manufacturer
 								,ISNULL(im.ManufacturerId, -1) AS ManufacturerId
@@ -233,7 +230,6 @@ BEGIN
 								,sl.StockLineNumber
 								,sl.[location]
 								,CASE WHEN ISNULL(wop.RevisedSerialNumber, '') = '' THEN sl.SerialNumber ELSE wop.RevisedSerialNumber END AS 'SerialNumber'
-								--,sl.SerialNumber
 								,sl.ControlNumber
 								,sl.IdNumber
 								,dbo.fn_ConvertUOM(ISNULL(sl.QuantityAvailable,0), uomStock.ShortName, uomConsume.ShortName,0,SL.MasterCompanyId)  AS QtyAvailable
@@ -254,11 +250,10 @@ BEGIN
 									 ,'S' AS MethodType
 									 ,CONVERT(BIT,0) AS PMA
 									 ,Smf.Name as StkLineManufacturer
+									 ,wop.ID AS WorkOrderMaterialsId
+									 ,wop.Quantity - ISNULL(Pick.QtyToShip,0) as QtyToPick
 								FROM DBO.ItemMaster im  WITH (NOLOCK)
 								JOIN DBO.StockLine sl WITH (NOLOCK) ON im.ItemMasterId = sl.ItemMasterId AND sl.IsDeleted = 0 
-									--AND sl.ConditionId = CASE WHEN @ConditionId  IS NOT NULL 
-									--						THEN @ConditionId ELSE sl.ConditionId 
-									--						END
 								INNER JOIN DBO.WorkOrderPartNumber wop WITH (NOLOCK) on wop.StockLineId = sl.StockLineId
 								INNER JOIN DBO.WorkOrderWorkFlow wowf WITH (NOLOCK) on wop.ID = wowf.WorkOrderPartNoId
 								INNER JOIN DBO.WorkOrder so WITH (NOLOCK) on so.WorkOrderId = wop.WorkOrderId
@@ -275,8 +270,8 @@ BEGIN
 								LEFT JOIN [dbo].[UnitOfMeasure] uomStock WITH(NOLOCK) ON uomStock.UnitOfMeasureId = SL.StockUnitOfMeasureId
 								LEFT JOIN [dbo].[UnitOfMeasure] uomConsume WITH(NOLOCK) ON uomConsume.UnitOfMeasureId = SL.ConsumeUnitOfMeasureId
 								WHERE 
-								--im.ItemMasterId = @ItemMasterIdlist AND 
 								so.WorkOrderId = @WorkOrderId
+								AND wop.ID IN (SELECT Item FROM DBO.SPLITSTRING(@WorkFlowWorkOrderIds,','))
 							END
 				END
 				ELSE

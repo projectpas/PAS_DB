@@ -11,9 +11,10 @@
  **************************************************************           
   ** Change History           
  **************************************************************           
- ** PR   Date         Author		   Change Description            
- ** --   --------     -------		   -------------------------------          
-    1    26/06/2025   Amit Ghediya     Created
+ ** PR   Date         Author			Change Description            
+ ** --   --------     -------			-------------------------------          
+    1    26/06/2025   Amit Ghediya		Created
+    2    10/03/2026   Vishal Suthar     Modified to include both ILS and PartsBase
     
  EXEC GetIntegrationPortalDataById 1 
 
@@ -27,6 +28,7 @@ BEGIN
 	SET NOCOUNT ON  
 	BEGIN TRY
 			DECLARE @ILSCode VARCHAR(100) = 'ILS';
+			DECLARE @PartsBaseCode VARCHAR(100) = 'PartsBase';
 
 			SELECT 
 				MasterCompanyId,
@@ -35,7 +37,7 @@ BEGIN
 				IsActive,
 				IsDeleted
 			FROM [dbo].[IntegrationPortal] WITH(NOLOCK)
-			WHERE [MasterCompanyId] = @MasterCompanyId AND [Description] = @ILSCode
+			WHERE [MasterCompanyId] = @MasterCompanyId AND ([Description] = @ILSCode OR [Description] = @PartsBaseCode)
 			ORDER BY MasterCompanyId DESC
 	END TRY    
 	BEGIN CATCH      

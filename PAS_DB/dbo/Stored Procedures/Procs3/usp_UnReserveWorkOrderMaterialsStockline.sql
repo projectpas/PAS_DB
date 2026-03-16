@@ -20,6 +20,7 @@ EXEC [usp_UnReserveWorkOrderMaterialsStockline]
 ** 9    11/22/2024	Devendra Shekh	 Modified (added fiels IssuedById, IssuedDate for WorkOrderMaterialStockLine and WorkOrderMaterialStockLineKit)
 ** 10	12/20/2024	Devendra Shekh	 ExtendedCost Calculation issue Resolved
 ** 11   04/14/2025	HEMANT SALIYA	 Added Work Order Work Flow Id for UpdateWOMaterialsCost
+** 12   16/03/2026	Moin Bloch	     Commented Due to Not in Use
 
 declare @p1 dbo.ReserveWOMaterialsStocklineType
 insert into @p1 values(830,835,122,70530,121,7,1,1,2,N'NEW',N'11022022',N'11022022_DESC',2,0,0,0,2,0,N'CNTL-000556',N'ID_NUM-000001',N'STL-000017',N'552233',N'ADMIN User',1,17)
@@ -240,9 +241,9 @@ BEGIN
 						SET @TemplateBody = REPLACE(@TemplateBody, '##PN##', ISNULL(@historyPartNumber,''));
 						SET @TemplateBody = REPLACE(@TemplateBody, '##Quantity##', ISNULL(@historyQtyToBeReserved,''));
 						
-						SELECT @historyEmployeeName = (FirstName +' '+ LastName) FROM Employee WITH(NOLOCK) WHERE EmployeeId = @historyReservedById;
-						SELECT @HistoryQtyReserved = CAST(QuantityReserved AS VARCHAR) FROM dbo.WorkOrderMaterials WOM WITH(NOLOCK) JOIN #tmpUnReserveWOMaterialsStockline tmpWOM ON tmpWOM.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId AND tmpWOM.ID = @count;
-						SELECT @HistoryWorkOrderMaterialsId = WorkOrderPartNoId FROM WorkOrderWorkFlow WITH(NOLOCK);
+						--SELECT @historyEmployeeName = (FirstName +' '+ LastName) FROM Employee WITH(NOLOCK) WHERE EmployeeId = @historyReservedById;
+						--SELECT @HistoryQtyReserved = CAST(QuantityReserved AS VARCHAR) FROM dbo.WorkOrderMaterials WOM WITH(NOLOCK) JOIN #tmpUnReserveWOMaterialsStockline tmpWOM ON tmpWOM.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId AND tmpWOM.ID = @count;
+						--SELECT @HistoryWorkOrderMaterialsId = WorkOrderPartNoId FROM WorkOrderWorkFlow WITH(NOLOCK);
 						
 						IF @KITID = 0
 						BEGIN

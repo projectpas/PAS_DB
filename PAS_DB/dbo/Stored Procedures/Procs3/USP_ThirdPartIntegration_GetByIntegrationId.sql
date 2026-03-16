@@ -10,9 +10,10 @@
  **************************************************************           
  ** Change History           
  **************************************************************           
- ** PR   Date         Author		Change Description            
- ** --   --------     -------		--------------------------------          
-    1    07/02/2023  Amit Ghediya    Created
+ ** PR   Date         Author			Change Description            
+ ** --   --------     -------			--------------------------------          
+    1    07/02/2023  Amit Ghediya		Created
+    2    03/10/2026  Vishal Suthar		Added ClientId column
      
 -- EXEC USP_ThirdPartIntegration_GetByIntegrationId
 ************************************************************************/
@@ -37,7 +38,8 @@ BEGIN
 					t.AccessKey,
 					l.Name,
 					t.MasterCompanyId,
-					ISNULL(t.IsEmail,0) IsEmail
+					ISNULL(t.IsEmail,0) IsEmail,
+					t.ClientId
 				FROM [DBO].[ThirdPartInegration] t WITH (NOLOCK) 
 				LEFT JOIN [DBO].[LegalEntity] l WITH (NOLOCK) ON t.LegalEntityId = l.LegalEntityId
 				LEFT JOIN [DBO].[IntegrationPortal] i WITH (NOLOCK) ON t.IntegrationIds = i.IntegrationPortalId

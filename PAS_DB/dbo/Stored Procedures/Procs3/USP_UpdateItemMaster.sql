@@ -9,7 +9,8 @@
 **************************************************************           
 ** PR     Date         Author           Change Description            
 ** --    --------     -------           -------------------------------          
-** 1     19-Nov-2025   Bhargav Saliya      Created  
+** 1     19-Nov-2025   Bhargav Saliya   Created  
+** 2     09-Mar-2026   Vishal Suthar    Handled UnitOfMeasureId to have NULL instead of 0 which will throw foreignkey constraint
 
 **************************************************************/
 CREATE     PROCEDURE [dbo].[USP_UpdateItemMaster]
@@ -77,9 +78,9 @@ BEGIN
 		,i.TestHours = PST.TestHours
 		,i.RFQTracking = PST.RFQTracking
 		,i.GLAccountId = PST.GLAccountId
-		,i.PurchaseUnitOfMeasureId = PST.PurchaseUnitOfMeasureId
-		,i.StockUnitOfMeasureId = PST.StockUnitOfMeasureId
-		,i.ConsumeUnitOfMeasureId = PST.ConsumeUnitOfMeasureId
+		,i.PurchaseUnitOfMeasureId = CASE WHEN PST.PurchaseUnitOfMeasureId = 0 THEN NULL ELSE PST.PurchaseUnitOfMeasureId END
+		,i.StockUnitOfMeasureId = CASE WHEN PST.StockUnitOfMeasureId = 0 THEN NULL ELSE PST.StockUnitOfMeasureId END
+		,i.ConsumeUnitOfMeasureId = CASE WHEN PST.ConsumeUnitOfMeasureId = 0 THEN NULL ELSE PST.ConsumeUnitOfMeasureId END
 		,i.LeadTimeDays = PST.LeadTimeDays
 		,i.ReorderPoint = PST.ReorderPoint
 		,i.ReorderQuantiy = PST.ReorderQuantiy
@@ -107,7 +108,7 @@ BEGIN
 		,i.turnTimeMfg = PST.turnTimeMfg
 		,i.turnTimeBenchTest = PST.turnTimeBenchTest
 		,i.IsOemPNId = PST.IsOemPNId
-		,i.RepairUnitOfMeasureId = PST.RepairUnitOfMeasureId
+		,i.RepairUnitOfMeasureId = CASE WHEN PST.RepairUnitOfMeasureId = 0 THEN NULL ELSE PST.RepairUnitOfMeasureId END
 		,i.RevisedPartId = PST.RevisedPartId
 		,i.SiteId = PST.SiteId
 		,i.WarehouseId = PST.WarehouseId

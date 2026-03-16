@@ -301,9 +301,6 @@ BEGIN
 		SET @MinId2 = @MinId2 + 1
 	END
 
-	SELECT @SubTotal
-	SELECT @TotalCharges
-
 	SET @SubTotal =  CASE WHEN @SOQChargesBilingMethodId = @ChargesBilingMethodId  THEN ISNULL((@SubTotal + @TotalCharges),0) ELSE @SubTotal END ;
 					
 	SELECT @FinalSalesTaxes = SUM([SalesTax]), @FinalOtherTaxes = SUM([OtherTax]) FROM #tmprShipDetails	

@@ -30,6 +30,7 @@
 	19  02-02-2026		Hemant Saliiya			Modify to handle StocklineQtytobeReserved and StocklineQtyRemaining For For Stock Provision
 	20  27-02-2026	    Moin Bloch			    Modify to handle QtytobeReserved and QtyRemaining  SET 0 For For Stock Provision PN-15338
 	21  27-02-2026	    Moin Bloch			    Modify to Removed QtyRemaining  SET 0 For For Stock Provision PN-15704
+	22  12-03-2026	    Moin Bloch			    Modify to (Added WOMStockLIneId) PN-15605
 	
 	
  EXECUTE [dbo].[USP_GetWorkOrderMaterialsList] 4257,3782, 0
@@ -596,7 +597,7 @@ SET NOCOUNT ON
 						WOM.TotalStocklineQtyReq,
 						ISNULL(MSTL.UnitCost,0) StocklineUnitCost,
 						ISNULL(MSTL.ExtendedCost,0) StocklineExtendedCost,
-						ISNULL(MSTL.StockLIneId, 0) as StockLIneId,
+						ISNULL(MSTL.WOMStockLIneId, 0) as WOMStockLIneId,
 						ISNULL(MSTL.ProvisionId, 0) as StockLineProvisionId,
 						(CASE 
 							WHEN ISNULL(MSTL.IsAltPart, 0) = 0 
@@ -843,7 +844,7 @@ SET NOCOUNT ON
 						ISNULL(WOM.TotalStocklineQtyReq, 0) as TotalStocklineQtyReq,
 						ISNULL(MSTL.UnitCost,0) StocklineUnitCost,
 						ISNULL(MSTL.ExtendedCost,0) StocklineExtendedCost,
-						ISNULL(MSTL.StockLIneId, 0) as StockLIneId,
+						ISNULL(MSTL.WorkOrderMaterialStockLineKitId, 0) as WOMStockLIneId,
 						ISNULL(MSTL.ProvisionId, 0) as StockLineProvisionId,
 						(CASE 
 							WHEN ISNULL(MSTL.IsAltPart, 0) = 0 
@@ -1088,7 +1089,7 @@ SET NOCOUNT ON
 						ISNULL(WOM.TotalStocklineQtyReq, 0) as TotalStocklineQtyReq,
 						ISNULL(MSTL.UnitCost,0) StocklineUnitCost,
 						ISNULL(MSTL.ExtendedCost,0) StocklineExtendedCost,
-						ISNULL(MSTL.StockLIneId, 0) as StockLIneId,
+						ISNULL(MSTL.WOMStockLIneId, 0) as WOMStockLIneId,						
 						ISNULL(MSTL.ProvisionId, 0) as StockLineProvisionId,
 						(CASE 
 							WHEN ISNULL(MSTL.IsAltPart, 0) = 0 
@@ -1338,7 +1339,8 @@ SET NOCOUNT ON
 						ISNULL(WOM.TotalStocklineQtyReq, 0) as TotalStocklineQtyReq,
 						ISNULL(MSTL.UnitCost, 0) StocklineUnitCost,
 						ISNULL(MSTL.ExtendedCost, 0) StocklineExtendedCost,
-						ISNULL(MSTL.StockLIneId, 0) as StockLIneId,
+						--ISNULL(MSTL.StockLIneId, 0) as StockLIneId,
+						ISNULL(MSTL.WorkOrderMaterialStockLineKitId, 0) as WOMStockLIneId,
 						ISNULL(MSTL.ProvisionId, 0) as StockLineProvisionId,
 						(CASE 
 							WHEN ISNULL(MSTL.IsAltPart, 0) = 0 

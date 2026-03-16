@@ -26,6 +26,7 @@
 	11   25/01/2026     Hemant Saliya                   Change default Sort order by PK NonPOInvoiceId to show latest records first.
 	12   21/01/2026     AMIT GHEDIYA                    Added InvoiceDate
     13   27/01/2026     Sahdev Saliya                   Added DueDate
+	14   11/03/2026     AMIT GHEDIYA                    Updated for get isactive records (PN-15588)
 
 --EXEC [USP_GetNonPOInvoiceList] 3577,3047
 
@@ -34,7 +35,7 @@ exec USP_GetNonPOInvoiceList
 @NonPoInvoiceStatus=NULL,@PaymentTerms=NULL,@CreatedBy=NULL,@CreatedDate='2023-09-13 11:31:09.640',@UpdatedBy=NULL,@UpdatedDate='2023-09-13 11:31:09.640',@IsDeleted=0,@MasterCompanyId=1
 
 ************************************************************************/
-CREATE PROCEDURE [dbo].[USP_GetNonPOInvoiceList]
+CREATE   PROCEDURE [dbo].[USP_GetNonPOInvoiceList]
 @PageNumber int = NULL,
 @PageSize int = NULL,
 @SortColumn varchar(50)=NULL,
@@ -146,7 +147,11 @@ BEGIN
 						(CASE WHEN COUNT(NPD.GlAccountId) > 1 Then 'Multiple' ELse MAX(GL.AccountName) + '-' + MAX(GL.AccountCode)  End) as 'GLAccount',
 						--(CASE WHEN COUNT(NPD.InvoiceNum) > 1 Then 'Multiple' ELse MAX(NPD.InvoiceNum) End) as 'InvoiceNum'
 						NPH.InvoiceNumber as 'InvoiceNum',
-						NPH.ControlNumber
+						NPH.ControlNumber,
+						(SELECT ISNULL(COUNT(VRPD.ReadyToPayDetailsId),0) FROM [dbo].[VendorPaymentDetails] VPD WITH(NOLOCK)
+							INNER JOIN [dbo].[VendorReadyToPayDetails] VRPD WITH(NOLOCK) ON VRPD.VendorPaymentDetailsId = VPD.VendorPaymentDetailsId
+							WHERE NPH.NonPOInvoiceId = VPD.NonPOInvoiceId
+						)AS IsAlreadyPayment
 				FROM [dbo].[NonPOInvoiceHeader] NPH WITH (NOLOCK)
 				INNER JOIN [dbo].[NonPOInvoiceHeaderStatus] NPHS WITH (NOLOCK) ON NPHS.NonPOInvoiceHeaderStatusId = NPH.StatusId
 				LEFT JOIN [dbo].[CreditTerms] CT WITH (NOLOCK) ON CT.CreditTermsId = NPH.PaymentTermsId
@@ -276,7 +281,11 @@ BEGIN
 						GL.AccountName + '-' + GL.AccountCode  as 'GLAccount',
 						--NPD.InvoiceNum as 'InvoiceNum'
 						NPH.InvoiceNumber as 'InvoiceNum',
-						NPH.ControlNumber
+						NPH.ControlNumber,
+						(SELECT ISNULL(COUNT(VRPD.ReadyToPayDetailsId),0) FROM [dbo].[VendorPaymentDetails] VPD WITH(NOLOCK)
+							INNER JOIN [dbo].[VendorReadyToPayDetails] VRPD WITH(NOLOCK) ON VRPD.VendorPaymentDetailsId = VPD.VendorPaymentDetailsId
+							WHERE NPH.NonPOInvoiceId = VPD.NonPOInvoiceId
+						)AS IsAlreadyPayment
 				FROM [dbo].[NonPOInvoiceHeader] NPH WITH (NOLOCK)
 				INNER JOIN [dbo].[NonPOInvoiceHeaderStatus] NPHS WITH (NOLOCK) ON NPHS.NonPOInvoiceHeaderStatusId = NPH.StatusId
 				LEFT JOIN [dbo].[CreditTerms] CT WITH (NOLOCK) ON CT.CreditTermsId = NPH.PaymentTermsId
@@ -286,7 +295,7 @@ BEGIN
 		 	  WHERE ((NPH.IsDeleted=@IsDeleted) AND (@IsActive IS NULL OR NPH.IsActive=@IsActive)) AND (@HeaderStatusId IS NULL OR NPH.StatusId = @HeaderStatusId)		     
 					AND NPH.MasterCompanyId=@MasterCompanyId	
 			),ResultData AS( Select NonPOInvoiceId, VendorId, VendorName, VendorCode, PaymentTermsId, StatusId, ManagementStructureId, NonPoInvoiceStatus, PaymentTerms,
-						IsActive, IsDeleted, CreatedDate, UpdatedDate, InvoiceDate, DueDate, CreatedBy, UpdatedBy, MasterCompanyId, PaymentMethodId, NPONumber, Amount, GLAccount, InvoiceNum, ControlNumber
+						IsActive, IsDeleted, CreatedDate, UpdatedDate, InvoiceDate, DueDate, CreatedBy, UpdatedBy, MasterCompanyId, PaymentMethodId, NPONumber, Amount, GLAccount, InvoiceNum, ControlNumber,IsAlreadyPayment
 						FROM Result
 			WHERE ((@GlobalFilter <>'' AND ((VendorName LIKE '%' +@GlobalFilter+'%') OR
 			        (VendorCode LIKE '%' +@GlobalFilter+'%') OR	
@@ -319,7 +328,7 @@ BEGIN
 
 			SELECT	NonPOInvoiceId, VendorId, VendorName, VendorCode, PaymentTermsId, StatusId, ManagementStructureId, NonPoInvoiceStatus, PaymentTerms,
 				IsActive, IsDeleted, CreatedDate, UpdatedDate, InvoiceDate, DueDate, CreatedBy, UpdatedBy, MasterCompanyId, PaymentMethodId,
-				NPONumber, Amount, GLAccount, InvoiceNum, ControlNumber, NumberOfItems FROM ResultData,ResultCount
+				NPONumber, Amount, GLAccount, InvoiceNum, ControlNumber,IsAlreadyPayment, NumberOfItems FROM ResultData,ResultCount
 			ORDER BY		
 			CASE WHEN (@SortOrder=1  AND @SortColumn='VendorName')  THEN VendorName END ASC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='VendorName')  THEN VendorName END DESC,

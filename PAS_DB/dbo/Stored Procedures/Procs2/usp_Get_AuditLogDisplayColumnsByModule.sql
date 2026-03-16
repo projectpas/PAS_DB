@@ -1,5 +1,4 @@
-﻿
-/*********************             
+﻿/*********************             
  ** File:        [dbo].[usp_Get_AuditLogDisplayColumnsByModule]        
  ** Author:      AYUSHI PATEL    
  ** Description: Returns ColumnName + DisplayName for a ModuleId  
@@ -7,7 +6,7 @@
  ** Date:        18-DEC-2025  
             
  ** PARAMETERS:             
- **   @ModuleId - maps to Module.ModuleId           
+ **   @ModuleId - maps to HistoryModule.ModuleId           
            
  ** RETURN VALUE:             
  **   ColumnName, DisplayName  
@@ -16,7 +15,8 @@
  **********************             
  ** S NO   Date           Author              Change Description              
  ** --     --------       -------------       --------------------------------            
-    1      18-DEC-2025    AYUSHI PATEL        Created  
+    1      18-DEC-2025    AYUSHI PATEL        Created
+    2      13-MAR-2026    DIVYESH KATHIRIYA   Set New HistoryModule Table.[PN-15761]
 **********************/
 
 CREATE PROC [dbo].[usp_Get_AuditLogDisplayColumnsByModule]
@@ -27,9 +27,9 @@ BEGIN
     BEGIN TRY 
     DECLARE @TableName VARCHAR(128);
 
-    SELECT @TableName = ModuleName 
-    FROM dbo.Module WITH (NOLOCK)
-    WHERE ModuleId = @ModuleId;
+    SELECT @TableName = [HistoryModuleName] 
+    FROM [dbo].[HistoryModule] WITH (NOLOCK)
+    WHERE [HistoryModuleId] = @ModuleId;  
 
     IF @TableName IS NULL
     BEGIN

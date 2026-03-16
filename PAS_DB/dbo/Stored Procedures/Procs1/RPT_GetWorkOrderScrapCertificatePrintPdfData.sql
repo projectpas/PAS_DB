@@ -1,5 +1,4 @@
-﻿
-/***************************************************************************************************
+﻿/***************************************************************************************************
 ** Author:  <Moin Bloch>  
 ** Create date: 16/01/2026
 ** Description: <Get Work order Scrap Certificate Form Data>  
@@ -11,7 +10,7 @@ EXEC [RPT_GetWorkOrderScrapCertificatePrintPdfData]
 ** PR   Date        Author				Change Description  
 ** --   --------    -------				--------------------------------
 ** 1    16/01/2026   Moin Bloch         CREATED
-
+** 2    11/03/2026   Moin Bloch         Modified PartNumber PN-15719
 	EXEC RPT_GetWorkOrderScrapCertificatePrintPdfData 4103,3620
 ***************************************************************************************************/
 CREATE     PROCEDURE [dbo].[RPT_GetWorkOrderScrapCertificatePrintPdfData]              
@@ -62,7 +61,7 @@ BEGIN
 			
 		  SELECT TOP 1 UPPER(WO.WorkOrderNum) AS WorkOrderNumber
 				,UPPER(WO.CustomerName) AS CustomerName
-				,UPPER(imt.PartNumber)  AS 'PartNumber'
+				,UPPER(WOPN.IncomingPartNumber)  AS 'PartNumber'
 				,UPPER(WOPN.RevisedPartNumber) AS RevisedPartNumber							   
 				,CASE WHEN LEN(UPPER(imt.PartDescription)) > 20 THEN LEFT(UPPER(imt.PartDescription), 20) + '...' ELSE  UPPER(imt.PartDescription) END AS PartDescription
 				,UPPER(WOPN.CustomerReference) AS CustomerReference

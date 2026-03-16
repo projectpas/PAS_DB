@@ -64,6 +64,8 @@
     [IsPNSNRestriction]                BIT            NULL,
     [IsAllowEmployeeToMoreTask]        BIT            DEFAULT ((0)) NULL,
     [IsRegulationSpecifiedInBlock12]   BIT            NULL,
+    [IsAutoConfirmPickTicket]          BIT            NULL,
+    [BypassPopups]                     BIT            NULL,
     CONSTRAINT [PK_WorkOrderSettingsAudit] PRIMARY KEY CLUSTERED ([AuditWorkOrderSettingId] ASC)
 );
 

@@ -65,7 +65,7 @@ BEGIN
 					SET @BinId = NULL;
 				END
 
-				SELECT TOP 2
+				SELECT 
 					1 AS ITEMNUMBER,
 					'' AS 'COMPANYID',
 					IM.Partnumber AS 'PARTNUMBER',
@@ -138,7 +138,7 @@ BEGIN
 					SET @BinId_PartsBase = NULL;
 				END
 
-				SELECT TOP 2
+				SELECT 
 					1 AS ITEMNUMBER,
 					'' AS 'COMPANYID',
 					IM.Partnumber AS 'PartNumber',

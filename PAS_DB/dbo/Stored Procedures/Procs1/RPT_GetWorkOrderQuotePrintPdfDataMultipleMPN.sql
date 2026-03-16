@@ -22,6 +22,7 @@
     8    10-JUL-2025     Moin Bloch         Updated MEMO To PublicationNotes
 	9	 23-JUL-2025     Devendra Shekh		Added Case for Memo
 	10	 14-OCT-2025     RAJESH GAMI		Return Estimated Ship Date
+	11	 02-March-2026   Ayushi Patel		PN-15602 PN-15604 Retuen ItemNo  
 --EXEC [RPT_GetWorkOrderQuotePrintPdfDataMultipleMPN] 7884,'',0  
 **************************************************************/  
 CREATE    PROCEDURE [dbo].[RPT_GetWorkOrderQuotePrintPdfDataMultipleMPN]  
@@ -191,6 +192,7 @@ BEGIN
 			END
 
 			CREATE TABLE #tblTempQuoteMain (
+				ItemNo INT IDENTITY (1, 1) NOT NULL,
 				ID INT,
 				ItemMasterId INT,
 				PartNumber NVARCHAR(255),

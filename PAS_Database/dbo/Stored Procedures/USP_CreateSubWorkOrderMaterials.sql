@@ -1,4 +1,5 @@
-﻿/*************************************************************             
+﻿
+/*************************************************************             
  ** File:   [USP_CreateSubWorkOrderMaterials]             
  ** Author:   Devendra Shekh
  ** Description: This stored procedure is used Create Sub work order materials
@@ -9,10 +10,10 @@
  ** PR   Date					Author						Change Description              
  ** --   --------				-------					--------------------------------            
  ** 1    28-April-2025			Devendra Shekh				Created
-       
+ ** 2    16-Mar-2025			Rajesh Gami					UOM Changes [PN-15714]
 **************************************************************/  
   
-CREATE   PROCEDURE [dbo].[USP_CreateSubWorkOrderMaterials]  
+CREATE     PROCEDURE [dbo].[USP_CreateSubWorkOrderMaterials]  
 	@tbl_SubWorkOrderMaterialsType [SubWorkOrderMaterialsType] READONLY
 AS  
 BEGIN  
@@ -28,7 +29,7 @@ BEGIN
 		DECLARE @isExistingMaterilas BIT = 0;
 		DECLARE @workOrderId BIGINT = 0;
 		DECLARE @TotalMaterialCount INT, @CurrentRowId INT, @InitialRowId INT = 1;		
-		DECLARE @Quantity INT, @WorkOrderPartNoId BIGINT, @SubWorkOrderMaterialsId BIGINT, @SubWorkOrderId BIGINT, @SubWOPartNoId BIGINT, @ItemMasterId BIGINT, @CreatedBy VARCHAR(200), @MasterCompanyId INT, @WorkOrderTypeId BIGINT, @EmployeeId BIGINT, @WOMStockLineId BIGINT;
+		DECLARE @Quantity [decimal](18,6), @WorkOrderPartNoId BIGINT, @SubWorkOrderMaterialsId BIGINT, @SubWorkOrderId BIGINT, @SubWOPartNoId BIGINT, @ItemMasterId BIGINT, @CreatedBy VARCHAR(200), @MasterCompanyId INT, @WorkOrderTypeId BIGINT, @EmployeeId BIGINT, @WOMStockLineId BIGINT;
 		DECLARE @ProvisionId INT, @SUB_WORK_ORDER_ProvisionId INT = 3;
 		DECLARE @tmpSubWOMaterial [SubWorkOrderMaterialsType];
 		DECLARE @tmpStkSubWOMaterial [SubWorkOrderMaterialsType];

@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [USP_UpdateSubWOMaterialsCost]           
  ** Author:   Hemant Saliya
  ** Description: This stored procedure is used retrieve Work Order Materials List    
@@ -21,7 +20,7 @@
 	3    12/18/2023   Hemant Saliya Added Kit Part for Sub WO Cost Calc
 	4    01/18/2024   Hemant Saliya Updated for Update Materilas Qty
  ** 5    11/28/2024	  HEMANT SALIYA	Re-Calculate WOM Qty Res & Qty Issue
-     
+ ** 6    16-Mar-2025	Rajesh Gami		 UOM Changes [PN-15714]      
  EXECUTE USP_UpdateSubWOMaterialsCost 161
 **************************************************************/ 
     
@@ -49,10 +48,10 @@ SET NOCOUNT ON
 					 WorkOrderId BIGINT NULL,
 					 WorkFlowWorkOrderId BIGINT NULL,
 					 SubWorkOrderMaterialsId BIGINT NULL,
-					 UnitCost DECIMAL(18,2) NULL,
-					 ExtendedCost DECIMAL(18,2) NULL,
+					 UnitCost [decimal](18,6) NULL,
+					 ExtendedCost [decimal](18,6) NULL,
 					 StlCount INT NULL,
-					 StlReqQty INT NULL,
+					 StlReqQty [decimal](18,6) NULL,
 					 IsKit BIT NULL
 				)
 
@@ -176,9 +175,9 @@ SET NOCOUNT ON
 					 SubWorkOrderMaterialsId BIGINT NULL,
 					 SWOMStockLineId BIGINT NULL,
 					 StocklineId BIGINT NULL,
-					 QtyToReserve INT NULL,
-					 QtyToShip INT NULL,
-					 QtyPtickTicketRemove INT NULL,
+					 QtyToReserve [decimal](18,6) NULL,
+					 QtyToShip [decimal](18,6) NULL,
+					 QtyPtickTicketRemove [decimal](18,6) NULL,
 				)
 
 				INSERT INTO #tmpMaterilasPickTicket (SubWorkOrderMaterialsId, SWOMStockLineId,StocklineId,  QtyToReserve, QtyToShip)
@@ -200,11 +199,11 @@ SET NOCOUNT ON
 					 SubWorkOrderMaterialsId BIGINT NULL,
 					 SWOMStockLineId BIGINT NULL,
 					 StocklineId BIGINT NULL,
-					 QtyToReserve INT NULL,
-					 QtyToShip INT NULL,
-					 QtyPtickTicketRemove INT NULL,
+					 QtyToReserve [decimal](18,6) NULL,
+					 QtyToShip [decimal](18,6) NULL,
+					 QtyPtickTicketRemove [decimal](18,6) NULL,
 					 PickTicketId bigint null,
-					 PickTicketQtyToShip INT NULL,
+					 PickTicketQtyToShip [decimal](18,6) NULL,
 				)
 
 				INSERT INTO #tmpremovePT  SELECT  TMP.SubWorkOrderMaterialsId,TMP.SubWorkOrderMaterialsId,TMP.StocklineId,TMP.QtyToReserve,TMP.QtyToShip,TMP.QtyPtickTicketRemove,WOP.PickTicketId,WOP.QtyToShip 
@@ -216,9 +215,9 @@ SET NOCOUNT ON
 				DECLARE @LoopID as int
 				SELECT  @LoopID = MAX(ID) FROM #tmpremovePT
 				DECLARE @PickTicketId bigint = 0
-				DECLARE @QtyRemove bigint = 0
-				DECLARE @QtyAvilable bigint = 0
-				DECLARE @PTQtytoShip bigint = 0
+				DECLARE @QtyRemove [decimal](18,6) = 0
+				DECLARE @QtyAvilable [decimal](18,6) = 0
+				DECLARE @PTQtytoShip [decimal](18,6) = 0
 
 				WHILE(@LoopID > 0)
 				BEGIN

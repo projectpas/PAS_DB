@@ -17,7 +17,7 @@ EXEC [USP_AutoReserveAllSubWorkOrderMaterials]
 ** 6    11/22/2024		 Devendra Shekh			Modified (added fiels  ReservedById, ReservedDate for SubWorkOrderMaterialStockLine and SubWorkOrderMaterialStockLineKit)
 ** 7    03/06/2025		 HEMANT SALIYA	        UPDATE THE EXISTING STOCKLINE QUANTITY REQUESTED IF QUANTITY IS NOT AVAILABLE
 ** 8    03/21/2025		 Devendra Shekh			Updated For Checking PMA/DER Restrict Parts
-
+***9    16/Mar/2026		 Rajesh Gami			Added UOM Changes [PN-15714]   
 EXEC USP_AutoReserveAllSubWorkOrderMaterials 161,0,0,2,0
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[USP_AutoReserveAllSubWorkOrderMaterials]
@@ -45,8 +45,8 @@ BEGIN
 
 					DECLARE @ARcount INT = 1;
 					DECLARE @ARTotalCounts INT = 0;
-					DECLARE @tmpActQuantity INT = 0;
-					DECLARE @QtytToRes INT = 0;
+					DECLARE @tmpActQuantity [decimal](18,6) = 0;
+					DECLARE @QtytToRes [decimal](18,6) = 0;
 					DECLARE @NewWorkOrderMaterialsId BIGINT;
 					DECLARE @NewStockline BIGINT;
 					DECLARE @tmpStockLineId BIGINT = 0;
@@ -95,8 +95,8 @@ BEGIN
 					DECLARE @ReservePartStatus INT;
 					DECLARE @SubWorkOrderMaterialsId BIGINT;
 					DECLARE @IsSerialised BIT;
-					DECLARE @stockLineQty INT;
-					DECLARE @stockLineQtyAvailable INT;
+					DECLARE @stockLineQty [decimal](18,6);
+					DECLARE @stockLineQtyAvailable [decimal](18,6);
 					DECLARE @UpdateBy varchar(200);
 
 					SELECT @ModuleId = ModuleId FROM dbo.Module WITH(NOLOCK) WHERE ModuleId = 16; -- For SUB WORK ORDER Module
@@ -290,9 +290,9 @@ BEGIN
 							[Condition] VARCHAR(500) NULL,
 							[PartNumber] VARCHAR(500) NULL,
 							[PartDescription] VARCHAR(max) NULL,
-							[Quantity] INT NULL,
-							[QtyToBeReserved] INT NULL,
-							[QuantityActReserved] INT NULL,
+							[Quantity] [decimal](18,6) NULL,
+							[QtyToBeReserved] [decimal](18,6) NULL,
+							[QuantityActReserved] [decimal](18,6) NULL,
 							[ControlNo] VARCHAR(500) NULL,
 							[ControlId] VARCHAR(500) NULL,
 							[StockLineNumber] VARCHAR(500) NULL,
@@ -301,7 +301,7 @@ BEGIN
 							[IsStocklineAdded] BIT NULL,
 							[MasterCompanyId] BIGINT NULL,
 							[UpdatedBy] VARCHAR(500) NULL,
-							[UnitCost] DECIMAL(18,2),
+							[UnitCost] [decimal](18,6),
 							[IsSerialized] BIT
 						)
 
@@ -584,12 +584,12 @@ BEGIN
 							[Condition] VARCHAR(500) NULL,
 							[PartNumber] VARCHAR(500) NULL,
 							[PartDescription] VARCHAR(max) NULL,
-							[Quantity] INT NULL,
-							[QuantityAvailable] INT NULL,
-							[QuantityOnHand] INT NULL,
-							[ActQuantity] INT NULL,
-							[QtyToBeReserved] INT NULL,
-							[QuantityActReserved] INT NULL,
+							[Quantity] [decimal](18,6) NULL,
+							[QuantityAvailable] [decimal](18,6) NULL,
+							[QuantityOnHand] [decimal](18,6) NULL,
+							[ActQuantity] [decimal](18,6) NULL,
+							[QtyToBeReserved] [decimal](18,6) NULL,
+							[QuantityActReserved] [decimal](18,6) NULL,
 							[ControlNo] VARCHAR(500) NULL,
 							[ControlId] VARCHAR(500) NULL,
 							[StockLineNumber] VARCHAR(500) NULL,
@@ -598,7 +598,7 @@ BEGIN
 							[IsStocklineAdded] BIT NULL,
 							[MasterCompanyId] BIGINT NULL,
 							[UpdatedBy] VARCHAR(500) NULL,
-							[UnitCost] DECIMAL(18,2),
+							[UnitCost] [decimal](18,6),
 							[IsSerialized] BIT,
 							[IsAltPart] BIT,
 							[IsActive] BIT,
@@ -872,12 +872,12 @@ BEGIN
 							[Condition] VARCHAR(500) NULL,
 							[PartNumber] VARCHAR(500) NULL,
 							[PartDescription] VARCHAR(max) NULL,
-							[Quantity] INT NULL,
-							[QuantityAvailable] INT NULL,
-							[QuantityOnHand] INT NULL,
-							[ActQuantity] INT NULL,
-							[QtyToBeReserved] INT NULL,
-							[QuantityActReserved] INT NULL,
+							[Quantity] [decimal](18,6) NULL,
+							[QuantityAvailable] [decimal](18,6) NULL,
+							[QuantityOnHand] [decimal](18,6) NULL,
+							[ActQuantity] [decimal](18,6) NULL,
+							[QtyToBeReserved] [decimal](18,6) NULL,
+							[QuantityActReserved] [decimal](18,6) NULL,
 							[ControlNo] VARCHAR(500) NULL,
 							[ControlId] VARCHAR(500) NULL,
 							[StockLineNumber] VARCHAR(500) NULL,
@@ -886,7 +886,7 @@ BEGIN
 							[IsStocklineAdded] BIT NULL,
 							[MasterCompanyId] BIGINT NULL,
 							[UpdatedBy] VARCHAR(500) NULL,
-							[UnitCost] DECIMAL(18,2),
+							[UnitCost] [decimal](18,6),
 							[IsSerialized] BIT,
 							[IsAltPart] BIT,
 							[IsActive] BIT,
@@ -1156,12 +1156,12 @@ BEGIN
 							[Condition] VARCHAR(500) NULL,
 							[PartNumber] VARCHAR(500) NULL,
 							[PartDescription] VARCHAR(max) NULL,
-							[Quantity] INT NULL,
-							[QuantityAvailable] INT NULL,
-							[QuantityOnHand] INT NULL,
-							[ActQuantity] INT NULL,
-							[QtyToBeReserved] INT NULL,
-							[QuantityActReserved] INT NULL,
+							[Quantity] [decimal](18,6) NULL,
+							[QuantityAvailable] [decimal](18,6) NULL,
+							[QuantityOnHand] [decimal](18,6) NULL,
+							[ActQuantity] [decimal](18,6) NULL,
+							[QtyToBeReserved] [decimal](18,6) NULL,
+							[QuantityActReserved] [decimal](18,6) NULL,
 							[ControlNo] VARCHAR(500) NULL,
 							[ControlId] VARCHAR(500) NULL,
 							[StockLineNumber] VARCHAR(500) NULL,
@@ -1170,7 +1170,7 @@ BEGIN
 							[IsStocklineAdded] BIT NULL,
 							[MasterCompanyId] BIGINT NULL,
 							[UpdatedBy] VARCHAR(500) NULL,
-							[UnitCost] DECIMAL(18,2),
+							[UnitCost] [decimal](18,6),
 							[IsSerialized] BIT,
 							[IsEquPart] BIT,
 							[IsActive] BIT,
@@ -1444,12 +1444,12 @@ BEGIN
 							[Condition] VARCHAR(500) NULL,
 							[PartNumber] VARCHAR(500) NULL,
 							[PartDescription] VARCHAR(max) NULL,
-							[Quantity] INT NULL,
-							[QuantityAvailable] INT NULL,
-							[QuantityOnHand] INT NULL,
-							[ActQuantity] INT NULL,
-							[QtyToBeReserved] INT NULL,
-							[QuantityActReserved] INT NULL,
+							[Quantity] [decimal](18,6) NULL,
+							[QuantityAvailable] [decimal](18,6) NULL,
+							[QuantityOnHand] [decimal](18,6) NULL,
+							[ActQuantity] [decimal](18,6) NULL,
+							[QtyToBeReserved] [decimal](18,6) NULL,
+							[QuantityActReserved] [decimal](18,6) NULL,
 							[ControlNo] VARCHAR(500) NULL,
 							[ControlId] VARCHAR(500) NULL,
 							[StockLineNumber] VARCHAR(500) NULL,
@@ -1458,7 +1458,7 @@ BEGIN
 							[IsStocklineAdded] BIT NULL,
 							[MasterCompanyId] BIGINT NULL,
 							[UpdatedBy] VARCHAR(500) NULL,
-							[UnitCost] DECIMAL(18,2),
+							[UnitCost] [decimal](18,6),
 							[IsSerialized] BIT,
 							[IsEquPart] BIT,
 							[IsActive] BIT,
@@ -1699,12 +1699,12 @@ BEGIN
 						[Condition] VARCHAR(500) NULL,
 						[PartNumber] VARCHAR(500) NULL,
 						[PartDescription] VARCHAR(max) NULL,
-						[Quantity] INT NULL,
-						[QuantityAvailable] INT NULL,
-						[QuantityOnHand] INT NULL,
-						[ActQuantity] INT NULL,
-						[QtyToBeReserved] INT NULL,
-						[QuantityActReserved] INT NULL,
+						[Quantity] [decimal](18,6) NULL,
+						[QuantityAvailable] [decimal](18,6) NULL,
+						[QuantityOnHand] [decimal](18,6) NULL,
+						[ActQuantity] [decimal](18,6) NULL,
+						[QtyToBeReserved] [decimal](18,6) NULL,
+						[QuantityActReserved] [decimal](18,6) NULL,
 						[ControlNo] VARCHAR(500) NULL,
 						[ControlId] VARCHAR(500) NULL,
 						[StockLineNumber] VARCHAR(500) NULL,
@@ -1713,7 +1713,7 @@ BEGIN
 						[IsStocklineAdded] BIT NULL,
 						[MasterCompanyId] BIGINT NULL,
 						[UpdatedBy] VARCHAR(500) NULL,
-						[UnitCost] DECIMAL(18,2),
+						[UnitCost] [decimal](18,6),
 						[IsSerialized] BIT,
 						[IsActive] BIT,
 						[IsDeleted] BIT,
@@ -1985,12 +1985,12 @@ BEGIN
 						[Condition] VARCHAR(500) NULL,
 						[PartNumber] VARCHAR(500) NULL,
 						[PartDescription] VARCHAR(max) NULL,
-						[Quantity] INT NULL,
-						[QuantityAvailable] INT NULL,
-						[QuantityOnHand] INT NULL,
-						[ActQuantity] INT NULL,
-						[QtyToBeReserved] INT NULL,
-						[QuantityActReserved] INT NULL,
+						[Quantity] [decimal](18,6) NULL,
+						[QuantityAvailable] [decimal](18,6) NULL,
+						[QuantityOnHand] [decimal](18,6) NULL,
+						[ActQuantity] [decimal](18,6) NULL,
+						[QtyToBeReserved] [decimal](18,6) NULL,
+						[QuantityActReserved] [decimal](18,6) NULL,
 						[ControlNo] VARCHAR(500) NULL,
 						[ControlId] VARCHAR(500) NULL,
 						[StockLineNumber] VARCHAR(500) NULL,
@@ -1999,7 +1999,7 @@ BEGIN
 						[IsStocklineAdded] BIT NULL,
 						[MasterCompanyId] BIGINT NULL,
 						[UpdatedBy] VARCHAR(500) NULL,
-						[UnitCost] DECIMAL(18,2),
+						[UnitCost] [decimal](18,6),
 						[IsSerialized] BIT,
 						[IsActive] BIT,
 						[IsDeleted] BIT,

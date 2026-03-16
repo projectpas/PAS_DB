@@ -11,6 +11,7 @@ EXEC [usp_IssueSubWorkOrderMaterialsStockline]
 ** --   --------    -------         --------------------------------
 ** 1    02/13/2025  HEMANT SALIYA    Update Sub WO MPN Cost Details
 ** 2    03/28/2025  Moin Bloch       Fixed For Issue Sub WorkOrder And Format SP
+** 3    16-Mar-2025	Rajesh Gami		 UOM Changes [PN-15714]       
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[UpdateSubWorkOrderMPNCostDetail]
     @workOrderId BIGINT,
@@ -26,22 +27,22 @@ BEGIN
 			BEGIN TRANSACTION
 				BEGIN
     
-    DECLARE @overheadCost DECIMAL(18,2) = 0,
-            @labourCost DECIMAL(18,2) = 0,
-            @revenue DECIMAL(18,2) = 0,
-            @partsRevePer DECIMAL(18,2) = 0,
-            @laborRevePer DECIMAL(18,2) = 0,
-            @overHeadPer DECIMAL(18,2) = 0,
-            @otherCost DECIMAL(18,2) = 0,
-            @margin DECIMAL(18,2) = 0,
-            @marginPer DECIMAL(18,2) = 0,
-            @actRevenue DECIMAL(18,2) = 0,
-            @actMargin DECIMAL(18,2) = 0,
-            @actMarginPer DECIMAL(18,2) = 0,
-            @directCostPer DECIMAL(18,2) = 0,
-            @partsCost DECIMAL(18,2) = 0,
-            @chargesCost DECIMAL(18,2) = 0,
-            @freightCost DECIMAL(18,2) = 0;
+    DECLARE @overheadCost [decimal](18,6) = 0,
+            @labourCost [decimal](18,6) = 0,
+            @revenue [decimal](18,6) = 0,
+            @partsRevePer [decimal](18,6) = 0,
+            @laborRevePer [decimal](18,6) = 0,
+            @overHeadPer [decimal](18,6) = 0,
+            @otherCost [decimal](18,6) = 0,
+            @margin [decimal](18,6) = 0,
+            @marginPer [decimal](18,6) = 0,
+            @actRevenue [decimal](18,6) = 0,
+            @actMargin [decimal](18,6) = 0,
+            @actMarginPer [decimal](18,6) = 0,
+            @directCostPer [decimal](18,6) = 0,
+            @partsCost [decimal](18,6) = 0,
+            @chargesCost [decimal](18,6) = 0,
+            @freightCost [decimal](18,6) = 0;
     
     -- Calculate Parts Cost
     SELECT @partsCost = SUM(ISNULL(wms.[UnitCost] * wms.[QtyIssued], 0))
@@ -73,7 +74,7 @@ BEGIN
         WHERE [SubWorkOrderLaborHeaderId] = @labourHeaderId AND [BillableId] = 1 AND [IsActive] = 1 AND [IsDeleted] = 0;
     END   
     -- Calculate Total Cost
-    DECLARE @totalCost DECIMAL(18,2) = 0;
+    DECLARE @totalCost [decimal](18,6) = 0;
     SET @totalCost = @partsCost + @chargesCost + @freightCost + @labourCost;
     SET @revenue = @partsCost + @labourCost + @otherCost;
     SET @margin = @revenue - (@partsCost + @labourCost + @otherCost);

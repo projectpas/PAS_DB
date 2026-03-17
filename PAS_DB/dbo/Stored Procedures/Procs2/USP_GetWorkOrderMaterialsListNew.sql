@@ -31,6 +31,7 @@
 	20  27-02-2026	    Moin Bloch			    Modify to handle QtytobeReserved and QtyRemaining  SET 0 For For Stock Provision PN-15338
 	21  27-02-2026	    Moin Bloch			    Modify to Removed QtyRemaining  SET 0 For For Stock Provision PN-15704
 	22  12-03-2026	    Moin Bloch			    Modify to (Added WOMStockLIneId) PN-15605
+	23  17-03-2026	    Moin Bloch			    Modify to StocklineQtytobeReserved  SET 0 For For Stock Provision PN-15765
 	
 	
  EXECUTE [dbo].[USP_GetWorkOrderMaterialsList] 4257,3782, 0
@@ -89,7 +90,7 @@ SET NOCOUNT ON
 				SELECT @WOPartNoId = WorkOrderPartNoId FROM dbo.WorkOrderWorkFlow WITH (NOLOCK) WHERE WorkFlowWorkOrderId = @Local_WFWOId;
 				SET @IsTeardownWO = (CASE WHEN (Select TOP 1 ID from dbo.WorkOrderType WITH(NOLOCK) WHERE UPPER(Description) = UPPER('Teardown') ) = @WoTypeId THEN 1 ELSE 0 END )
 				SELECT @SubProvisionId = ProvisionId FROM dbo.Provision WITH (NOLOCK) WHERE UPPER(StatusCode) = 'SUB WORK ORDER'
-				SELECT @ForStockProvisionId = ProvisionId FROM dbo.Provision WITH (NOLOCK) WHERE UPPER(StatusCode) = 'FOR STOCK'
+				SELECT @ForStockProvisionId = ProvisionId FROM dbo.Provision WITH (NOLOCK) WHERE UPPER(StatusCode) = 'STOCK'
 				SELECT @CustomerID = WO.CustomerId, @MasterCompanyId = WO.MasterCompanyId, @WorkOrderFormTypeId = ISNULL([WorkOrderFormTypeId],0) FROM dbo.WorkOrder WO WITH(NOLOCK) JOIN dbo.WorkOrderWorkFlow WOWF WITH(NOLOCK) on WO.WorkOrderId = WOWF.WorkOrderId WHERE WOWF.WorkFlowWorkOrderId = @Local_WFWOId;				
 
 				SET @RecordFrom = (@Local_PageNumber-1)*@Local_PageSize;  

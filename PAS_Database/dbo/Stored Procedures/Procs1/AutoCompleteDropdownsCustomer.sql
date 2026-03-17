@@ -36,9 +36,13 @@ BEGIN
 	BEGIN TRY
 		--BEGIN TRANSACTION
 			--BEGIN
-				DECLARE @Sql NVARCHAR(MAX);	
-				DECLARE @ExternalCsutomer INT = 2;
-				DECLARE @InternalAffliteCsutomer VARCHAR(10) = '2,1,3';
+				DECLARE @Sql NVARCHAR(MAX),
+						@ExternalCsutomer INT,
+						@InternalAffliteCsutomer VARCHAR(10);	
+
+				SELECT @ExternalCsutomer = [CustomerAffiliationId] FROM dbo.CustomerAffiliation WITH(NOLOCK) WHERE [AccountType] = 'External';
+				SELECT @InternalAffliteCsutomer = STRING_AGG(CustomerAffiliationId, ',') FROM CustomerAffiliation WHERE AccountType IN ('External','Internal', 'Affiliate');
+
 				IF(@Count = '0') 
 				   BEGIN
 				   set @Count='20';	
@@ -81,7 +85,7 @@ BEGIN
 							WHERE (c.IsActive = 1 AND ISNULL(c.IsDeleted, 0) = 0 AND c.MasterCompanyId = @MasterCompanyId  AND (c.Name LIKE  '%'+ @StartWith + '%'))   
 							AND (
 									(@isIncludeInternalCustomer <> 1 AND c.CustomerAffiliationId = @ExternalCsutomer) -- for external
-								 OR (@isIncludeInternalCustomer = 1 AND c.CustomerAffiliationId IN (SELECT Item FROM dbo.SplitString(@InternalAffliteCsutomer, ','))) -- for internal & Affiliate 
+								 OR (@isIncludeInternalCustomer = 1 AND c.CustomerAffiliationId IN (SELECT Item FROM dbo.SplitString(@InternalAffliteCsutomer, ','))) -- for external, internal & Affiliate 
 								)
 					   UNION     
 							SELECT DISTINCT

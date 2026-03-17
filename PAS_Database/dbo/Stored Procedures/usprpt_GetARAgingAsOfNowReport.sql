@@ -108,7 +108,12 @@ BEGIN
 	DECLARE @CustomerPaymentsPostedStatus INT= 2;
 	DECLARE @MJEPostStatusId INT;
 	DECLARE @MSModuleId INT;	
-	DECLARE @CustomerCreditPaymentOpenStatus INT = 1
+	DECLARE @CustomerCreditPaymentOpenStatus INT = 1;
+	DECLARE @exte_cus VARCHAR(20);
+	DECLARE @exte_cusId INT;
+	DECLARE @inter_cus VARCHAR(20);
+	DECLARE @inter_cusId INT;
+	DECLARE @affi_cus VARCHAR(20);
 
 	DECLARE @WOModuleTypeId INT = 1
 	DECLARE @SOModuleTypeId INT = 2
@@ -128,6 +133,9 @@ BEGIN
     SELECT @MJEPostStatusId = [ManualJournalStatusId] FROM [dbo].[ManualJournalStatus] WHERE [Name] = 'Posted';
     SELECT @MSModuleId = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] ='ManualJournalAccounting';
 	SELECT @AsOfDate = GETUTCDATE();
+	SELECT @exte_cus = [Description], @exte_cusId = [CustomerAffiliationId] FROM [dbo].[CustomerAffiliation] WITH(NOLOCK) WHERE AccountType = 'External';
+	SELECT @inter_cus = [Description], @inter_cusId = [CustomerAffiliationId] FROM [dbo].[CustomerAffiliation] WITH(NOLOCK) WHERE AccountType = 'Internal';
+	SELECT @affi_cus = [Description] FROM [dbo].[CustomerAffiliation] WITH(NOLOCK) WHERE AccountType = 'Affiliate';
 	
 	SET @RecordFrom = (@PageNumber - 1) * @PageSize;
 				
@@ -257,9 +265,9 @@ BEGIN
 							UPPER(ISNULL(C.[Name],'')),      
 							UPPER(ISNULL(C.[CustomerCode],'')),
 							CASE 
-								WHEN CustomerAffiliationId = 2 THEN 'EXTERNAL'
-								WHEN CustomerAffiliationId = 1 THEN 'INTERNAL'
-								ELSE 'AFFILIATE'
+								WHEN CustomerAffiliationId = @exte_cusId THEN UPPER(@exte_cus)
+								WHEN CustomerAffiliationId = @inter_cusId THEN UPPER(@inter_cus)
+								ELSE UPPER(@affi_cus)
 							END AS CustomerAffiliation,
 							WOBI.[GrandTotal], -- BalanceAmount
 							((ISNULL(WOBI.[GrandTotal], 0) - ISNULL(WOBI.[RemainingAmount], 0)) + ISNULL(WOBI.[CreditMemoUsed], 0)),  -- CurrentAmount     
@@ -372,9 +380,9 @@ BEGIN
                                 UPPER(ISNULL(C.[Name],'')),      
                                 UPPER(ISNULL(C.[CustomerCode],'')),
 								CASE 
-									WHEN CustomerAffiliationId = 2 THEN 'EXTERNAL'
-									WHEN CustomerAffiliationId = 1 THEN 'INTERNAL'
-									ELSE 'AFFILIATE'
+									WHEN CustomerAffiliationId = @exte_cusId THEN UPPER(@exte_cus)
+									WHEN CustomerAffiliationId = @inter_cusId THEN UPPER(@inter_cus)
+									ELSE UPPER(@affi_cus)
 								END AS CustomerAffiliation,
 								SOBI.[GrandTotal],  -- [BalanceAmount]
 								(SOBI.[GrandTotal] - SOBI.[RemainingAmount] + ISNULL(SOBI.[CreditMemoUsed],0)), -- 'CurrentlAmount',
@@ -488,9 +496,9 @@ BEGIN
                             UPPER(ISNULL(C.[Name],'')),      
                             UPPER(ISNULL(C.[CustomerCode],'')),  
 							CASE 
-								WHEN CustomerAffiliationId = 2 THEN 'EXTERNAL'
-								WHEN CustomerAffiliationId = 1 THEN 'INTERNAL'
-								ELSE 'AFFILIATE'
+								WHEN CustomerAffiliationId = @exte_cusId THEN UPPER(@exte_cus)
+								WHEN CustomerAffiliationId = @inter_cusId THEN UPPER(@inter_cus)
+								ELSE UPPER(@affi_cus)
 							END AS CustomerAffiliation,
 							(ESOBI.[GrandTotal]), -- 'BalanceAmount',
 			                (ESOBI.[GrandTotal] - ESOBI.[RemainingAmount] + ISNULL(ESOBI.[CreditMemoUsed],0)), -- 'CurrentlAmount',
@@ -604,9 +612,9 @@ BEGIN
 							UPPER(C.[Name]),
 					        UPPER(C.[CustomerCode]),
 							CASE 
-								WHEN CustomerAffiliationId = 2 THEN 'EXTERNAL'
-								WHEN CustomerAffiliationId = 1 THEN 'INTERNAL'
-								ELSE 'AFFILIATE'
+								WHEN CustomerAffiliationId = @exte_cusId THEN UPPER(@exte_cus)
+								WHEN CustomerAffiliationId = @inter_cusId THEN UPPER(@inter_cus)
+								ELSE UPPER(@affi_cus)
 							END AS CustomerAffiliation,
 							CMD.[Amount],
 							0,
@@ -677,9 +685,9 @@ BEGIN
 							UPPER(C.[Name]),
 					        UPPER(C.[CustomerCode]),
 							CASE 
-								WHEN CustomerAffiliationId = 2 THEN 'EXTERNAL'
-								WHEN CustomerAffiliationId = 1 THEN 'INTERNAL'
-								ELSE 'AFFILIATE'
+								WHEN CustomerAffiliationId = @exte_cusId THEN UPPER(@exte_cus)
+								WHEN CustomerAffiliationId = @inter_cusId THEN UPPER(@inter_cus)
+								ELSE UPPER(@affi_cus)
 							END AS CustomerAffiliation,
 							CM.Amount,
 							0,
@@ -751,9 +759,9 @@ BEGIN
 							UPPER(ISNULL(CST.[Name],'')),
 						    UPPER(ISNULL(CST.[CustomerCode],'')),
 							CASE 
-								WHEN CST.CustomerAffiliationId = 2 THEN 'EXTERNAL'
-								WHEN CST.CustomerAffiliationId = 1 THEN 'INTERNAL'
-								ELSE 'AFFILIATE'
+								WHEN CST.CustomerAffiliationId = @exte_cusId THEN UPPER(@exte_cus)
+								WHEN CST.CustomerAffiliationId = @inter_cusId THEN UPPER(@inter_cus)
+								ELSE UPPER(@affi_cus)
 							END AS CustomerAffiliation,
 							ISNULL(SUM(MJD.[Debit]),0) - ISNULL(SUM(MJD.[Credit]),0),
 							0,
@@ -867,9 +875,9 @@ BEGIN
 							UPPER(C.[Name]),
 					        UPPER(C.[CustomerCode]),
 							CASE 
-								WHEN CustomerAffiliationId = 2 THEN 'EXTERNAL'
-								WHEN CustomerAffiliationId = 1 THEN 'INTERNAL'
-								ELSE 'AFFILIATE'
+								WHEN CustomerAffiliationId = @exte_cusId THEN UPPER(@exte_cus)
+								WHEN CustomerAffiliationId = @inter_cusId THEN UPPER(@inter_cus)
+								ELSE UPPER(@affi_cus)
 							END AS CustomerAffiliation,
 							CCP.[RemainingAmount],
 							0,
@@ -1143,9 +1151,9 @@ BEGIN
 							UPPER(ISNULL(C.[Name],'')),      
 							UPPER(ISNULL(C.[CustomerCode],'')),
 							CASE 
-								WHEN CustomerAffiliationId = 2 THEN 'EXTERNAL'
-								WHEN CustomerAffiliationId = 1 THEN 'INTERNAL'
-								ELSE 'AFFILIATE'
+								WHEN CustomerAffiliationId = @exte_cusId THEN UPPER(@exte_cus)
+								WHEN CustomerAffiliationId = @inter_cusId THEN UPPER(@inter_cus)
+								ELSE UPPER(@affi_cus)
 							END AS CustomerAffiliation,
 							UPPER(CR.[Code]), 
 							UPPER('AR-INV'),
@@ -1285,9 +1293,9 @@ BEGIN
                                 UPPER(ISNULL(C.[Name],'')),      
                                 UPPER(ISNULL(C.[CustomerCode],'')), 
 								CASE 
-									WHEN CustomerAffiliationId = 2 THEN 'EXTERNAL'
-									WHEN CustomerAffiliationId = 1 THEN 'INTERNAL'
-									ELSE 'AFFILIATE'
+									WHEN CustomerAffiliationId = @exte_cusId THEN UPPER(@exte_cus)
+									WHEN CustomerAffiliationId = @inter_cusId THEN UPPER(@inter_cus)
+									ELSE UPPER(@affi_cus)
 								END AS CustomerAffiliation,
 								UPPER(CR.[Code]), 
 								UPPER('AR-INV'),
@@ -1427,9 +1435,9 @@ BEGIN
                                 UPPER(ISNULL(C.[Name],'')),      
                                 UPPER(ISNULL(C.[CustomerCode],'')),
 								CASE 
-									WHEN CustomerAffiliationId = 2 THEN 'EXTERNAL'
-									WHEN CustomerAffiliationId = 1 THEN 'INTERNAL'
-									ELSE 'AFFILIATE'
+									WHEN CustomerAffiliationId = @exte_cusId THEN UPPER(@exte_cus)
+									WHEN CustomerAffiliationId = @inter_cusId THEN UPPER(@inter_cus)
+									ELSE UPPER(@affi_cus)
 								END AS CustomerAffiliation,
 								UPPER(CR.[Code]), 
 								UPPER('Exchange Invoice'),
@@ -1563,9 +1571,9 @@ BEGIN
 							UPPER(C.[Name]),
 					        UPPER(C.[CustomerCode]),
 							CASE 
-								WHEN CustomerAffiliationId = 2 THEN 'EXTERNAL'
-								WHEN CustomerAffiliationId = 1 THEN 'INTERNAL'
-								ELSE 'AFFILIATE'
+								WHEN CustomerAffiliationId = @exte_cusId THEN UPPER(@exte_cus)
+								WHEN CustomerAffiliationId = @inter_cusId THEN UPPER(@inter_cus)
+								ELSE UPPER(@affi_cus)
 							END AS CustomerAffiliation,
 							UPPER(CR.[Code]),
 							UPPER('Credit-Memo'),
@@ -1656,9 +1664,9 @@ BEGIN
 							UPPER(C.[Name]),
 					        UPPER(C.[CustomerCode]),
 							CASE 
-								WHEN CustomerAffiliationId = 2 THEN 'EXTERNAL'
-								WHEN CustomerAffiliationId = 1 THEN 'INTERNAL'
-								ELSE 'AFFILIATE'
+								WHEN CustomerAffiliationId = @exte_cusId THEN UPPER(@exte_cus)
+								WHEN CustomerAffiliationId = @inter_cusId THEN UPPER(@inter_cus)
+								ELSE UPPER(@affi_cus)
 							END AS CustomerAffiliation,
 							UPPER(CR.[Code]),
 							UPPER('Stand Alone Credit Memo'),
@@ -1749,9 +1757,9 @@ BEGIN
 							UPPER(ISNULL(CST.[Name],'')),
 						    UPPER(ISNULL(CST.[CustomerCode],'')),
 							CASE 
-								WHEN CST.CustomerAffiliationId = 2 THEN 'EXTERNAL'
-								WHEN CST.CustomerAffiliationId = 1 THEN 'INTERNAL'
-								ELSE 'AFFILIATE'
+								WHEN CST.CustomerAffiliationId = @exte_cusId THEN UPPER(@exte_cus)
+								WHEN CST.CustomerAffiliationId = @inter_cusId THEN UPPER(@inter_cus)
+								ELSE UPPER(@affi_cus)
 							END AS CustomerAffiliation,
 						    UPPER(CR.[Code]),
 							UPPER('Manual Journal'),
@@ -1883,9 +1891,9 @@ BEGIN
 							UPPER(C.[Name]),
 					        UPPER(C.[CustomerCode]),
 							CASE 
-								WHEN CustomerAffiliationId = 2 THEN 'EXTERNAL'
-								WHEN CustomerAffiliationId = 1 THEN 'INTERNAL'
-								ELSE 'AFFILIATE'
+								WHEN CustomerAffiliationId = @exte_cusId THEN UPPER(@exte_cus)
+								WHEN CustomerAffiliationId = @inter_cusId THEN UPPER(@inter_cus)
+								ELSE UPPER(@affi_cus)
 							END AS CustomerAffiliation,
 							'', --Currency,
 							UPPER('Suspense and Unapplied Cash'),

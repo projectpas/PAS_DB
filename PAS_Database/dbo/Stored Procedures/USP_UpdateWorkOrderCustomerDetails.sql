@@ -13,6 +13,7 @@
     1    07/05/2024   HEMANT SALIYA      Created  
 	2    27/07/2024   HEMANT SALIYA      Updated For Serial Number, Cust Reference, and PartNumber  
 	3    11/03/2026   MOIN BLOCH         Updated Logic For Incoming And OutGoing Part PN-15719
+	4    16/03/2026   Moin Bloch         Rename Activity and Description for Incoming and Outgoing MPN updates PN-15736
    
 exec dbo.USP_UpdateWorkOrderCustomerDetails @WorkOrderId=3945,@WorkOrderPartNoId=3468,@CustomerId=default,@ItemMasterId=default,
 @customerReference=default,@SerialNumber=N'SER-745353',@Memo=N'<p>sfcdsfs</p>',@UpdatedBy=N'ADMIN User'
@@ -178,17 +179,6 @@ BEGIN
 			WHERE WO.WorkOrderId = @WorkOrderId
 			PRINT 'UPDATE WORKORDER SHIPPING DETAILS DONE'
 
-			--UPDATE WorkOrderBillingInvoicing SET CustomerId = @CustomerId, InvoiceFilePath = NULL , InvoiceStatus = 'Billed',
-			--	SoldToCustomerId = @CustomerId, ShipToCustomerId = @CustomerId, ShipToSiteId = CDS.CustomerDomensticShippingId,
-			--	SoldToSiteId = CBD.CustomerBillingAddressId
-			--FROM dbo.WorkOrderBillingInvoicing WOBI WITH(NOLOCK) 
-			--	JOIN dbo.WorkOrderBillingInvoicingItem WOBII WITH(NOLOCK) ON WOBI.BillingInvoicingId = WOBII.BillingInvoicingId
-			--	JOIN dbo.WorkOrderPartNumber WOP WITH(NOLOCK) ON WOP.ID = WOBII.WorkOrderPartId
-			--	JOIN dbo.WorkOrder WO WITH(NOLOCK) ON WOP.WorkOrderId = WO.WorkOrderId
-			--	LEFT JOIN dbo.CustomerDomensticShipping CDS ON WO.CustomerId = CDS.CustomerId AND ISNULL(CDS.IsPrimary, 0) = 1
-			--	LEFT JOIN dbo.CustomerBillingAddress CBD ON WO.CustomerId = CBD.CustomerId AND ISNULL(CBD.IsPrimary, 0) = 1
-			--WHERE WO.WorkOrderId = @WorkOrderId AND ISNULL(WOBI.IsVersionIncrease, 0) = 0 AND ISNULL(WOBI.IsPerformaInvoice, 0) = 0
-
 			UPDATE dbo.BillingInvoicing SET CustomerId = @CustomerId, InvoiceFilePath = NULL , InvoiceStatus = 'Billed'				
 			FROM dbo.BillingInvoicing WOBI WITH(NOLOCK) 
 				JOIN dbo.BillingInvoicingItems WOBII WITH(NOLOCK) ON WOBI.BillingInvoicingId = WOBII.BillingInvoicingId
@@ -249,8 +239,7 @@ BEGIN
 			SELECT @NewValue = [partnumber] FROM [dbo].[ItemMaster] WITH(NOLOCK) WHERE [ItemMasterId] = @ItemMasterId
 
 			UPDATE WorkOrderPartNumber 
-			SET [ItemMasterId] = @ItemMasterId, 			    
-				--RevisedItemmasterid = @ItemMasterId, 
+			SET [ItemMasterId] = @ItemMasterId,
 				[UpdatedBy] = @UpdatedBy, 
 				[UpdatedDate] = GETUTCDATE()
 			FROM [dbo].[WorkOrderPartNumber] WOP WITH(NOLOCK)
@@ -259,9 +248,7 @@ BEGIN
 			UPDATE WorkOrderPartNumber 
 			SET [PartNumber] = IM.[PartNumber],		
 			    [PartDescription] = IM.[PartDescription],
-				[IncomingPartNumber] = IM.[PartNumber],
-				--RevisedPartNumber = IM.PartNumber, 
-				--RevisedPartDescription = IM.PartDescription, 				
+				[IncomingPartNumber] = IM.[PartNumber],						
 				[IsPMA] = IM.IsPma, 
 				[IsDER] = IM.IsDER,
 				[IsFinishGood] = CASE WHEN ISNULL([IsFinishGood], 0) > 0 THEN 0 ELSE [IsFinishGood] END,
@@ -348,6 +335,8 @@ BEGIN
 			SET @TemplateBody = REPLACE(@TemplateBody, '##OldValue##', ISNULL(@ExistingValue,''));
 			SET @TemplateBody = REPLACE(@TemplateBody, '##NewValue##', ISNULL(@NewValue,''));
 
+			SET @TemplateBody = REPLACE(@TemplateBody,'MPN Part Number Changed', 'Incoming MPN Changed');
+
 			EXEC USP_History @ModuleId, @WorkOrderId, @SubModuleId, @WorkOrderPartNoId, @ExistingValue, @NewValue, @TemplateBody, @StatusCode, @MasterCompanyId, @UpdatedBy,  NULL, @UpdatedBy, NULL
 
 			PRINT 'END PART NUMBER DETAILS'
@@ -381,13 +370,7 @@ BEGIN
 			
 			UPDATE ReceivingCustomerWork
 			   SET  [OutGoingItemMasterId] = @RevisedItemmasterid, 
-			        [OutGoingPartNumber] = IM.partnumber,
-			      -- ItemMasterId = @RevisedItemmasterid, 
-				  -- IsSerialized = im.isSerialized, 
-				  -- ManufacturerName = IM.ManufacturerName, 
-				  -- PartNumber = IM.partnumber,
-				  -- RevisePartId = IM.RevisedPartId, 
-				  -- IsTimeLife = IM.isTimeLife, 
+			        [OutGoingPartNumber] = IM.partnumber,			      
 				    [UpdatedBy] = @UpdatedBy, 
 				    [UpdatedDate] = GETUTCDATE(),
 				    [Memo] = CASE WHEN ISNULL(RC.Memo,'') = '' THEN '</p>Updated Part Number ' + @ExistingValue + ' to ' + @NewValue + 'From Work Order : ' + WO.WorkOrderNum + ' </p>' ELSE REPLACE(RC.Memo, '</p>','<br>') + 'Updated Part Number ' + @ExistingValue + ' to ' + @NewValue + 'From Work Order : ' + WO.WorkOrderNum + ' </p>' END
@@ -423,6 +406,8 @@ BEGIN
 			SET @TemplateBody = REPLACE(@TemplateBody, '##WONum##', ISNULL(@WorkOrderNum,''));
 			SET @TemplateBody = REPLACE(@TemplateBody, '##OldValue##', ISNULL(@ExistingValue,''));
 			SET @TemplateBody = REPLACE(@TemplateBody, '##NewValue##', ISNULL(@NewValue,''));
+
+			SET @TemplateBody = REPLACE(@TemplateBody,'MPN Part Number Changed', 'Outgoing MPN Changed');
 
 			EXEC USP_History @ModuleId, @WorkOrderId, @SubModuleId, @WorkOrderPartNoId, @ExistingValue, @NewValue, @TemplateBody, @StatusCode, @MasterCompanyId, @UpdatedBy,  NULL, @UpdatedBy, NULL
 			

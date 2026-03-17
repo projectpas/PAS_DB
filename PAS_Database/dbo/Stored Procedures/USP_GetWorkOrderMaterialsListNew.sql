@@ -31,6 +31,7 @@
 	20  27-02-2026	    Moin Bloch			    Modify to handle QtytobeReserved and QtyRemaining  SET 0 For For Stock Provision PN-15338
 	21  10-03-2026		Rajesh Gami				UOM Changes [PN-14832]
 	22  10-03-2026	    Moin Bloch			    Modify to Removed QtyRemaining  SET 0 For For Stock Provision PN-15704
+	23  12-03-2026	    Moin Bloch			    Modify to (Added WOMStockLIneId) PN-15605
  EXECUTE [dbo].[USP_GetWorkOrderMaterialsList] 4257,3782, 0
 exec dbo.USP_GetWorkOrderMaterialsListNew @PageNumber=1,@PageSize=10,@SortColumn=default,@SortOrder=1,@WorkOrderId=5960,@WFWOId=5553,@ShowPendingToIssue=1
 **************************************************************/
@@ -597,8 +598,8 @@ SET NOCOUNT ON
 						WOM.ExtendedCost,
 						WOM.TotalStocklineQtyReq,
 						dbo.fn_ConvertUOM(ISNULL(MSTL.UnitCost,0), uomStock.ShortName, uomConsume.ShortName,1,@MasterCompanyId)  StocklineUnitCost,
-						ISNULL(MSTL.ExtendedCost,0) StocklineExtendedCost,
-						ISNULL(MSTL.StockLIneId, 0) as StockLIneId,
+						ISNULL(MSTL.ExtendedCost,0) StocklineExtendedCost,						
+						ISNULL(MSTL.WOMStockLIneId, 0) as WOMStockLIneId,
 						ISNULL(MSTL.ProvisionId, 0) as StockLineProvisionId,
 						(CASE 
 							WHEN ISNULL(MSTL.IsAltPart, 0) = 0 
@@ -848,8 +849,8 @@ SET NOCOUNT ON
 						WOM.ExtendedCost,
 						ISNULL(WOM.TotalStocklineQtyReq, 0) as TotalStocklineQtyReq,
 						dbo.fn_ConvertUOM(ISNULL(MSTL.UnitCost,0), uomStock.ShortName, uomConsume.ShortName,1,@MasterCompanyId)  StocklineUnitCost,
-						ISNULL(MSTL.ExtendedCost,0) StocklineExtendedCost,
-						ISNULL(MSTL.StockLIneId, 0) as StockLIneId,
+						ISNULL(MSTL.ExtendedCost,0) StocklineExtendedCost,						
+						ISNULL(MSTL.WorkOrderMaterialStockLineKitId, 0) as WOMStockLIneId,
 						ISNULL(MSTL.ProvisionId, 0) as StockLineProvisionId,
 						(CASE 
 							WHEN ISNULL(MSTL.IsAltPart, 0) = 0 
@@ -1096,7 +1097,7 @@ SET NOCOUNT ON
 						ISNULL(WOM.TotalStocklineQtyReq, 0) as TotalStocklineQtyReq,
 						dbo.fn_ConvertUOM(ISNULL(MSTL.UnitCost,0), uomStock.ShortName, uomConsume.ShortName,1,@MasterCompanyId)  StocklineUnitCost,
 						ISNULL(MSTL.ExtendedCost,0) StocklineExtendedCost,
-						ISNULL(MSTL.StockLIneId, 0) as StockLIneId,
+						ISNULL(MSTL.WOMStockLIneId, 0) as WOMStockLIneId,						
 						ISNULL(MSTL.ProvisionId, 0) as StockLineProvisionId,
 						(CASE 
 							WHEN ISNULL(MSTL.IsAltPart, 0) = 0 
@@ -1346,8 +1347,8 @@ SET NOCOUNT ON
 						WOM.ExtendedCost,
 						ISNULL(WOM.TotalStocklineQtyReq, 0) as TotalStocklineQtyReq,
 						dbo.fn_ConvertUOM(ISNULL(MSTL.UnitCost,0), uomStock.ShortName, uomConsume.ShortName,1,@MasterCompanyId)  StocklineUnitCost,
-						ISNULL(MSTL.ExtendedCost, 0) StocklineExtendedCost,
-						ISNULL(MSTL.StockLIneId, 0) as StockLIneId,
+						ISNULL(MSTL.ExtendedCost, 0) StocklineExtendedCost,						
+						ISNULL(MSTL.WorkOrderMaterialStockLineKitId, 0) as WOMStockLIneId,
 						ISNULL(MSTL.ProvisionId, 0) as StockLineProvisionId,
 						(CASE 
 							WHEN ISNULL(MSTL.IsAltPart, 0) = 0 

@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿
+/*************************************************************           
  ** File:   [USP_BatchTriggerBasedonDistribution]
  ** Author:  Subhash Saliya
  ** Description: This stored procedure is used USP_BatchTriggerBasedonDistribution
@@ -20,6 +21,7 @@
 	5	 11/05/2024  Devendra Shekh Added ReferenceId, ReferenceModule For [CommonBatchDetails]
 	6	 13/01/2025  Devendra Shekh Modify (StockLine GL selection Changes)
 	7	 24/04/2025	 Devendra Shekh	Modify (Added [IsManualText] check for DistributionSetup)
+	8    17/Mar/2026  Rajesh Gami	Added UOM Changes [PN-15714]
 ************************************************************************/
 
 CREATE   PROCEDURE [dbo].[USP_BatchTriggerBasedonDistributionForSubWorkOrder]
@@ -29,10 +31,10 @@ CREATE   PROCEDURE [dbo].[USP_BatchTriggerBasedonDistributionForSubWorkOrder]
 @ReferencePieceId BIGINT = NULL,
 @InvoiceId BIGINT = NULL,
 @StocklineId BIGINT = NULL,
-@Qty INT = 0,
+@Qty [decimal](18,6) = 0,
 @laborType VARCHAR(200) = NULL,
 @issued  BIT = 0,
-@Amount DECIMAL(18,2) = 0,
+@Amount [decimal](18,6) = 0,
 @ModuleName VARCHAR(200) = NULL,
 @MasterCompanyId INT = 0,
 @UpdateBy VARCHAR(200) = NULL
@@ -66,13 +68,13 @@ BEGIN
 	    DECLARE @PieceItemmasterId bigint
 	    DECLARE @CustRefNumber varchar(200)
 	    DECLARE @LineNumber int=1
-	    DECLARE @TotalDebit decimal(18,2)=0
-	    DECLARE @TotalCredit decimal(18,2)=0
-	    DECLARE @TotalBalance decimal(18,2)=0
-	    DECLARE @UnitPrice decimal(18,2)=0
-	    DECLARE @LaborHrs decimal(18,2)=0
-	    DECLARE @DirectLaborCost decimal(18,2)=0
-	    DECLARE @OverheadCost decimal(18,2)=0
+	    DECLARE @TotalDebit [decimal](18,6)=0
+	    DECLARE @TotalCredit [decimal](18,6)=0
+	    DECLARE @TotalBalance [decimal](18,6)=0
+	    DECLARE @UnitPrice [decimal](18,6)=0
+	    DECLARE @LaborHrs [decimal](18,6)=0
+	    DECLARE @DirectLaborCost [decimal](18,6)=0
+	    DECLARE @OverheadCost [decimal](18,6)=0
 	    DECLARE @partId bigint=0
 		DECLARE @Batchtype int=1
 		DECLARE @batch varchar(100)
@@ -85,24 +87,24 @@ BEGIN
 		DECLARE @DistributionSetupId int=0
 		DECLARE @IsAccountByPass bit=0
 		DECLARE @DistributionCode varchar(200)
-		DECLARE @InvoiceTotalCost decimal(18,2)=0
-	    DECLARE @MaterialCost decimal(18,2)=0
-	    DECLARE @LaborOverHeadCost decimal(18,2)=0
-	    DECLARE @FreightCost decimal(18,2)=0
-		DECLARE @SalesTax decimal(18,2)=0
-		DECLARE @OtherTax decimal(18,2)=0
+		DECLARE @InvoiceTotalCost [decimal](18,6)=0
+	    DECLARE @MaterialCost [decimal](18,6)=0
+	    DECLARE @LaborOverHeadCost [decimal](18,6)=0
+	    DECLARE @FreightCost [decimal](18,6)=0
+		DECLARE @SalesTax [decimal](18,6)=0
+		DECLARE @OtherTax [decimal](18,6)=0
 		DECLARE @InvoiceNo varchar(100)
-		DECLARE @MiscChargesCost decimal(18,2)=0
-		DECLARE @LaborCost decimal(18,2)=0
-		DECLARE @InvoiceLaborCost decimal(18,2)=0
-		DECLARE @RevenuWO decimal(18,2)=0
-		DECLARE @FinishGoodAmount decimal(18,2)=0
+		DECLARE @MiscChargesCost [decimal](18,6)=0
+		DECLARE @LaborCost [decimal](18,6)=0
+		DECLARE @InvoiceLaborCost [decimal](18,6)=0
+		DECLARE @RevenuWO [decimal](18,6)=0
+		DECLARE @FinishGoodAmount [decimal](18,6)=0
 		DECLARE @CurrentManagementStructureId bigint=0
 		DECLARE @JournalBatchDetailId bigint=0
 		DECLARE @CommonJournalBatchDetailId bigint=0;
 		DECLARE @WopJounralTypeid bigint=0;
 		DECLARE @StocklineNumber varchar(100)
-		DECLARE @UnEarnedAmount decimal(18,2)=0
+		DECLARE @UnEarnedAmount [decimal](18,6)=0
 		DECLARE @AccountMSModuleId INT = 0
 		DECLARE @StockLineMSModuleId INT = 0
 	    DECLARE @SubWorkOrderStatusId BIGINT;  
@@ -129,7 +131,7 @@ BEGIN
 		DECLARE @IsAutoPost INT = 0;
 		DECLARE @IsBatchGenerated INT = 0;
 		DECLARE @CurrencyCode VARCHAR(20) = '';
-		DECLARE @FXRate DECIMAL(18,2) = 1;	--Default Value set to : 1
+		DECLARE @FXRate [decimal](18,6) = 1;	--Default Value set to : 1
 		DECLARE @ReferenceModule VARCHAR(100) = 'WO';
 
 		IF((@JournalTypeCode ='WIP' OR @JournalTypeCode ='WOI' OR @JournalTypeCode ='MRO-WO' OR @JournalTypeCode ='FGI') AND @IsAccountByPass = 0)
@@ -1653,8 +1655,8 @@ BEGIN
 			IF(UPPER(@DistributionCode) = UPPER('WOLABORTAB'))
 			BEGIN
 				SET @Batchtype = 2
-				DECLARE @Hours DECIMAL(18,2)
-                DECLARE @Hourspay DECIMAL(18,2)
+				DECLARE @Hours [decimal](18,6)
+                DECLARE @Hourspay [decimal](18,6)
                 DECLARE @LaborRate MONEY
 				DECLARE @burdentRate MONEY
 
@@ -1670,7 +1672,7 @@ BEGIN
 
 				IF(@laborType='DIRECTLABOR')
 				BEGIN
-					SET @Amount = ISNULL((CAST(@Hours AS INT) + (@Hours - CAST(@Hours AS INT))/.6)*@LaborRate,0)
+					SET @Amount = ISNULL((CAST(@Hours AS [decimal](18,6)) + (@Hours - CAST(@Hours AS [decimal](18,6)))/.6)*@LaborRate,0)
 					SET @DirectLaborCost = @Amount
 					SET @OverheadCost = 0
 					SELECT TOP 1 @DistributionSetupId = [ID],
@@ -2105,7 +2107,7 @@ BEGIN
 									 0)
 
 						-----------------LABOR OVERHEAD --------------------------
-						SET @Amount = ISNULL((CAST(@Hours AS INT) + (@Hours - CAST(@Hours AS INT))/.6)*@burdentRate,0)
+						SET @Amount = ISNULL((CAST(@Hours AS [decimal](18,6)) + (@Hours - CAST(@Hours AS [decimal](18,6)))/.6)*@burdentRate,0)
 						SET @OverheadCost = @Amount
 						SET @DirectLaborCost = 0
 
@@ -2419,7 +2421,7 @@ BEGIN
 								@Qty,@UnitPrice,@LaborHrs,@DirectLaborCost,@OverheadCost,@CommonJournalBatchDetailId,@Batchtype,@DistributionSetupId,@MSStocklineId, 0)
 
 							-----------------LABOROVERHEAD --------------------------
-							SET @Amount=ISNULL((CAST(@Hours AS INT) + (@Hours - CAST(@Hours AS INT))/.6) * @burdentRate,0)
+							SET @Amount=ISNULL((CAST(@Hours AS [decimal](18,6)) + (@Hours - CAST(@Hours AS [decimal](18,6)))/.6) * @burdentRate,0)
 							SET @OverheadCost=@Amount
 							SET @DirectLaborCost=0
 							SELECT TOP 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName,@CrDrType = CRDRType 
@@ -2625,7 +2627,7 @@ BEGIN
 							@Qty,@UnitPrice,@LaborHrs,@DirectLaborCost,@OverheadCost,@CommonJournalBatchDetailId,@Batchtype,@DistributionSetupId,  @MSStocklineId, 0)
 
 						-----------------LABOROVERHEAD --------------------------
-						SET @Amount = ISNULL((CAST(@Hours AS INT) + (@Hours - CAST(@Hours AS INT))/.6)*@burdentRate,0)
+						SET @Amount = ISNULL((CAST(@Hours AS [decimal](18,6)) + (@Hours - CAST(@Hours AS [decimal](18,6)))/.6)*@burdentRate,0)
 						SET @OverheadCost=@Amount
 						SET @DirectLaborCost=0
 						SELECT top 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName,@CrDrType = CRDRType 

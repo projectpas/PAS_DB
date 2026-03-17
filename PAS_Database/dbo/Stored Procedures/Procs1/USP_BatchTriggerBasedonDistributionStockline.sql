@@ -13,14 +13,14 @@
  ** --   --------     -------		--------------------------------          
     1    08/10/2022  Subhash Saliya     Created
     2	 02/06/2025	 Abhishek Jirawla	Fixed Name concat read script
-
+	3	 17/Mar/2026  Rajesh Gami		Added UOM Changes [PN-15714]
 -- EXEC USP_BatchTriggerBasedonDistribution 3
    EXEC [dbo].[USP_BatchTriggerBasedonDistributionStockline] 2,5,'10','ReceivingPO','Deep'
 ************************************************************************/
 CREATE PROCEDURE [dbo].[USP_BatchTriggerBasedonDistributionStockline]
 @StocklineId bigint=NULL,
-@Qty int=0,
-@Amount Decimal(18,2),
+@Qty [decimal](18,6)=0,
+@Amount [decimal](18,6),
 @ModuleName varchar(200),
 @UpdateBy varchar(200),
 @MasterCompanyId bigint,
@@ -54,13 +54,13 @@ BEGIN
 	         Declare @PieceItemmasterId bigint
 	         Declare @CustRefNumber varchar(200)
 	         declare @LineNumber int=1
-	         declare @TotalDebit decimal(18,2)=0
-	         declare @TotalCredit decimal(18,2)=0
-	         declare @TotalBalance decimal(18,2)=0
-	         declare @UnitPrice decimal(18,2)=0
-	         declare @LaborHrs decimal(18,2)=0
-	         declare @DirectLaborCost decimal(18,2)=0
-	         declare @OverheadCost decimal(18,2)=0
+	         declare @TotalDebit [decimal](18,6)=0
+	         declare @TotalCredit [decimal](18,6)=0
+	         declare @TotalBalance [decimal](18,6)=0
+	         declare @UnitPrice [decimal](18,6)=0
+	         declare @LaborHrs [decimal](18,6)=0
+	         declare @DirectLaborCost [decimal](18,6)=0
+	         declare @OverheadCost [decimal](18,6)=0
 	         declare @partId bigint=0
 			 declare @batch varchar(100)
 			 declare @AccountingPeriod varchar(100)
@@ -72,16 +72,16 @@ BEGIN
 			 declare @DistributionSetupId int=0
 			 declare @IsAccountByPass bit=0
 			 declare @DistributionCode varchar(200)
-			 declare @InvoiceTotalCost decimal(18,2)=0
-	         declare @MaterialCost decimal(18,2)=0
-	         declare @LaborOverHeadCost decimal(18,2)=0
-	         declare @FreightCost decimal(18,2)=0
-			 declare @SalesTax decimal(18,2)=0
+			 declare @InvoiceTotalCost [decimal](18,6)=0
+	         declare @MaterialCost [decimal](18,6)=0
+	         declare @LaborOverHeadCost [decimal](18,6)=0
+	         declare @FreightCost [decimal](18,6)=0
+			 declare @SalesTax [decimal](18,6)=0
 			 declare @InvoiceNo varchar(100)
-			 declare @MiscChargesCost decimal(18,2)=0
-			 declare @LaborCost decimal(18,2)=0
-			 declare @InvoiceLaborCost decimal(18,2)=0
-			 declare @RevenuWO decimal(18,2)=0
+			 declare @MiscChargesCost [decimal](18,6)=0
+			 declare @LaborCost [decimal](18,6)=0
+			 declare @InvoiceLaborCost [decimal](18,6)=0
+			 declare @RevenuWO [decimal](18,6)=0
 			 declare @CurrentManagementStructureId bigint=0
 
 			 DECLARE @DistributionMasterId bigint;

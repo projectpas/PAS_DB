@@ -4461,6 +4461,7 @@
     <Build Include="dbo\Stored Procedures\GetIStocklineDetailByCompanyCode.sql" />
     <Build Include="dbo\Stored Procedures\GetCustomerDetailsByCompanyCode.sql" />
     <Build Include="dbo\Stored Procedures\USP_UnReserveWorkOrderMaterialStockLineForRepairOrder.sql" />
+    <Build Include="dbo\Stored Procedures\USP_DeleteSalesOrderQuoteCharge.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

@@ -19,11 +19,12 @@
     3       12-NOV-2025     AYUSHI PATEL            Removed TableName, PKJson, ChangedBy, Actions from output; added UpdatedDate fallback to ChangedAt; excluded columns via IgnoreColumn.
     4       20-NOV-2025     AYUSHI PATEL            Converted UpdatedDate/CreatedDate to employee timezone.
     5       13-MAR-2026     DIVYESH KATHIRIYA       Set New HistoryModule Table.[PN-15761]
+    6       10-MAR-2026     NAKUL CHANDIGRA         Add a condition of IgnoreColumn In '@sql = N';WITH S AS' to prevent Getting dublicate row (PN-15590)
 
     EXEC usp_Get_CommonAuditLogHistory @ModuleId=7,@PK_Key=N'SalesOrderQuoteId',@PK_Value=1514,@EmployeeId=236
 **********************/ 
 
-CREATE   PROC [dbo].[usp_Get_CommonAuditLogHistory]
+CREATE   PROCEDURE [dbo].[usp_Get_CommonAuditLogHistory]
     @ModuleId     BIGINT       = NULL,       -- e.g. '1 => Customer' / 'Vendor' (maps to TableName)
     @PK_Key     nvarchar(128) = NULL,       -- e.g. 'CustomerId'
     @PK_Value   nvarchar(128) = NULL,       -- e.g. '7' (compared as NVARCHAR)
@@ -123,7 +124,7 @@ BEGIN
                 NewValue,
                 ChangedBy,
                 ChangedAt
-            FROM [dbo].[AuditLog] WITH (NOLOCK)
+            FROM [dbo].[AuditLog] AL WITH (NOLOCK)
             WHERE 1=1
               AND (@Module  IS NULL OR TableName = @Module)
               AND (@StartAt IS NULL OR ChangedAt >= @StartAt)
@@ -132,6 +133,7 @@ BEGIN
                     @PK_Key IS NULL OR @PK_Value IS NULL
                     OR TRY_CONVERT(nvarchar(128), JSON_VALUE(PKJson, CONCAT(''$.'' , @PK_Key))) = @PK_Value
                   )
+              AND NOT EXISTS ( SELECT 1 FROM dbo.IgnoreColumn ic WITH (NOLOCK) WHERE ic.TableName = @Module AND ic.ColumnName = AL.ColumnName )
         ),
         Dedup AS
         (

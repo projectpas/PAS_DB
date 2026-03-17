@@ -67,10 +67,10 @@
 );
 
 
-GO
-     
 
-     
+
+GO
+  
      CREATE     TRIGGER [dbo].[trg_Audit_dbo_Vendor]
         ON [dbo].[Vendor]
         AFTER INSERT, UPDATE, DELETE
@@ -165,9 +165,17 @@ GO
                 m.PKJson,
                 m.ColumnName,
                 m.Action,
-                m.OldValue,
-                m.NewValue
+                CASE             
+                    WHEN m.ColumnName = 'VendorTypeId'   THEN VTOld.Description
+                ELSE m.OldValue
+                END AS OldValue,        
+                CASE 
+                    WHEN m.ColumnName = 'VendorTypeId' THEN VTNew.Description
+                    ELSE m.NewValue
+                END AS NewValue
             FROM merged m
+            LEFT JOIN DBO.VendorType VTOld WITH (NOLOCK) ON m.ColumnName = 'VendorTypeId' AND TRY_CAST(m.OldValue AS bigint) = VTOld.VendorTypeId
+            LEFT JOIN DBO.VendorType VTNew WITH (NOLOCK) ON m.ColumnName = 'VendorTypeId' AND TRY_CAST(m.NewValue AS bigint) = VTNew.VendorTypeId
             WHERE
                 (m.Action = 'U' AND (
                      (m.OldValue IS NULL AND m.NewValue IS NOT NULL)

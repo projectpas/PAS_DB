@@ -22,6 +22,7 @@
 	6    31/10/2025		Amit Ghediya		added for location
    	7    25/Feb/2026	Rajesh Gami			Added UOM Changes 
    	8    12/Mar/2026	Vishal Suthar		added parameter to filter selected MPN part 
+   	9    17/Mar/2026	Vishal Suthar		Fixed join for multiple MPN Pickticket
 
 EXEC DBO.SearchStockLinePickTicketPop_WO @ItemMasterIdlist=20751,@workOrderMaterialsId =618 ,@ConditionId=10,@WorkOrderId=3555,@WorkFlowWorkOrderId=3019,@IsMPNPickTicket=0,@IsMultiplePickTicket=0
 **************************************************************/ 
@@ -251,7 +252,7 @@ BEGIN
 									 ,CONVERT(BIT,0) AS PMA
 									 ,Smf.Name as StkLineManufacturer
 									 ,wop.ID AS WorkOrderMaterialsId
-									 ,wop.Quantity - ISNULL(Pick.QtyToShip,0) as QtyToPick
+									 ,wop.Quantity - ISNULL(Pick.QtyToShip, 0) as QtyToPick
 								FROM DBO.ItemMaster im  WITH (NOLOCK)
 								JOIN DBO.StockLine sl WITH (NOLOCK) ON im.ItemMasterId = sl.ItemMasterId AND sl.IsDeleted = 0 
 								INNER JOIN DBO.WorkOrderPartNumber wop WITH (NOLOCK) on wop.StockLineId = sl.StockLineId
@@ -263,7 +264,7 @@ BEGIN
 								LEFT JOIN DBO.Customer cusTraceble WITH (NOLOCK) ON sl.TraceableTo = cusTraceble.CustomerId
 								LEFT JOIN DBO.Vendor vTraceble WITH (NOLOCK) ON sl.TraceableTo = vTraceble.VendorId
 								LEFT JOIN DBO.LegalEntity leTraceble WITH (NOLOCK) ON sl.TraceableTo = leTraceble.LegalEntityId
-								LEFT JOIN DBO.WOPickTicket Pick WITH (NOLOCK) ON Pick.WorkFlowWorkOrderId = wowf.WorkFlowWorkOrderId
+								LEFT JOIN DBO.WOPickTicket Pick WITH (NOLOCK) ON Pick.OrderPartId = wop.ID--Pick.WorkFlowWorkOrderId = wowf.WorkFlowWorkOrderId
 								LEFT JOIN (SELECT ItemMasterId, [Name],StockLineId FROM DBO.Stockline S WITH (NOLOCK) 
 								INNER JOIN DBO.Manufacturer M WITH (NOLOCK) ON M.ManufacturerId = S.ManufacturerId) Smf ON Smf.ItemMasterId = im.ItemMasterId 
 										AND Smf.StockLineId = sl.StockLineId

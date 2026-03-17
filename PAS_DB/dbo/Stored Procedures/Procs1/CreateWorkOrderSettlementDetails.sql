@@ -14,7 +14,8 @@
     1    17/03/2025   Moin Bloch		Created
     2    03/04/2025   Devendra Shekh    Resolved issue for Save Details for Multiple MPN
 	3    30/04/2025   Moin Bloch		Fix For Duplicate Settlement
-     
+	4    16/03/2026   Moin Bloch	    Hide selected checklist rows in Work Order Settlement tab PN-15718
+      
 --   EXEC [dbo].[CreateWorkOrderSettlementDetails]
 **************************************************************/
 CREATE    PROCEDURE [dbo].[CreateWorkOrderSettlementDetails]
@@ -35,7 +36,18 @@ BEGIN
 	DECLARE @TotalRecord INT = 0,@MinId BIGINT = 1
 	DECLARE @SMTotalRecord INT = 0,@SMMinId BIGINT = 1
 	DECLARE @TearDown INT=3
+	DECLARE @PBIC BIGINT = 3,@MGRW BIGINT = 4,@WAWQ BIGINT = 5,@ATCW BIGINT = 6,@RCRW BIGINT = 7
+	DECLARE @MPNL BIGINT = 8,@UNSP BIGINT = 10,@WOIN BIGINT = 11
 	
+	SELECT @PBIC = [WorkOrderSettlementId] FROM [WorkOrderSettlement] WITH(NOLOCK) WHERE [WorkOrderSettlementName] = 'Puts Backs, if any, completed';
+	SELECT @MGRW = [WorkOrderSettlementId] FROM [WorkOrderSettlement] WITH(NOLOCK) WHERE [WorkOrderSettlementName] = 'Margin Reviewed';
+	SELECT @WAWQ = [WorkOrderSettlementId] FROM [WorkOrderSettlement] WITH(NOLOCK) WHERE [WorkOrderSettlementName] = 'WO Actual v/s WO Quote Reviewed';
+	SELECT @ATCW = [WorkOrderSettlementId] FROM [WorkOrderSettlement] WITH(NOLOCK) WHERE [WorkOrderSettlementName] = 'All Tools Checked Out of Work Order';
+	SELECT @RCRW = [WorkOrderSettlementId] FROM [WorkOrderSettlement] WITH(NOLOCK) WHERE [WorkOrderSettlementName] = 'Release Certs (e.g. 8130) Reviewed';
+	SELECT @MPNL = [WorkOrderSettlementId] FROM [WorkOrderSettlement] WITH(NOLOCK) WHERE [WorkOrderSettlementName] = 'MPN Location Changed';
+	SELECT @UNSP = [WorkOrderSettlementId] FROM [WorkOrderSettlement] WITH(NOLOCK) WHERE [WorkOrderSettlementName] = 'Unit Shipped';
+	SELECT @WOIN = [WorkOrderSettlementId] FROM [WorkOrderSettlement] WITH(NOLOCK) WHERE [WorkOrderSettlementName] = 'Work Order Invoiced';
+	   	   
 	SELECT @TearDown = [Id] FROM [dbo].[WorkOrderType] WITH(NOLOCK) WHERE [Description]='Teardown';
 	
 	IF OBJECT_ID(N'tempdb..#tmprCreateWorkOrderSettlementDetails') IS NOT NULL
@@ -87,7 +99,16 @@ BEGIN
 
 				SELECT @WorkOrderSettlementId=[WorkOrderSettlementId] FROM #tmprWorkOrderSettlement WHERE [SMID] = @SMMinId
 				
-				IF(@WorkOrderTypeId = @TearDown AND @WorkOrderSettlementId IN (3, 4, 5, 7, 8,10, 11))
+				IF(@WorkOrderTypeId = @TearDown AND @WorkOrderSettlementId IN (@PBIC, @MGRW, @WAWQ, @RCRW, @MPNL, @UNSP, @WOIN))
+				BEGIN
+					 SET @Isvalue_NA = 1;
+				END
+				ELSE 
+				BEGIN
+					SET @Isvalue_NA = 0;
+				END
+
+				IF(@WorkOrderTypeId <> @TearDown AND @WorkOrderSettlementId IN (@PBIC, @MGRW, @WAWQ))
 				BEGIN
 					 SET @Isvalue_NA = 1;
 				END

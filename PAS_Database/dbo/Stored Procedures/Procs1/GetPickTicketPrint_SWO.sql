@@ -23,7 +23,7 @@
     3    08/21/2021   Devendra Shekh		added QtyRemaining to result replacing ReadyToPick
     4    12/19/2021   Devendra Shekh		changes for kit
     5    12/21/2021   Devendra Shekh		changes for itemmaster join 
-     
+ ***6    16/Mar/2026  Rajesh Gami			Added UOM Changes [PN-15714]       
  EXEC GetPickTicketPrint_SWO 3797,90,97,58
 
 **************************************************************/ 
@@ -92,18 +92,21 @@ BEGIN
 								AND SubWorkorderPartNoId = @SubWorkOrderPartId
 							GROUP BY WOP.WorkOrderId, WOP.SubWorkOrderMaterialsId
 					)
-					SELECT DISTINCT wopt.PickTicketId, wopt.CreatedDate as PickTicketDate, wopt.WorkOrderId, swo.SubWorkOrderId, sl.StockLineNumber, wom.Quantity AS Qty, 
+					SELECT DISTINCT wopt.PickTicketId, wopt.CreatedDate as PickTicketDate, wopt.WorkOrderId, swo.SubWorkOrderId, sl.StockLineNumber, 
+						dbo.fn_ConvertUOM(wom.Quantity , uomStock.ShortName, uomConsume.ShortName,0,@masterCompanyId) AS Qty, 
 						imts.partnumber as PartNumber,imts.PartDescription,wopt.PickTicketNumber,sl.SerialNumber,sl.ControlNumber,sl.IdNumber,
 						co.[Description] as ConditionDescription,sl.[Bin] as BinName,
 						--wopt.QtyToShip as QtyShipped,
 						--cte.TotalQtyToShip as QtyShipped,
-						QtyToShip as QtyShipped,
+						dbo.fn_ConvertUOM(QtyToShip , uomStock.ShortName, uomConsume.ShortName,0,@masterCompanyId) as QtyShipped,
 						sl.[Shelf] as ShelfName, p.Description as PriorityName,
 						wo.WorkOrderNum, swo.SubWorkOrderNo, uom.ShortName as UOM,sl.[Site] as SiteName,sl.[Warehouse] as WarehouseName,sl.[Location] as LocationName,
-						sl.QuantityOnHand,sl.QuantityAvailable as QtyAvailable, wom.Memo AS Notes, 
+						dbo.fn_ConvertUOM(sl.QuantityOnHand , uomStock.ShortName, uomConsume.ShortName,0,@masterCompanyId)  AS QuantityOnHand,
+						dbo.fn_ConvertUOM(sl.QuantityAvailable, uomStock.ShortName, uomConsume.ShortName,0,@masterCompanyId) as QtyAvailable, 
+						wom.Memo AS Notes, 
 						--(wom.Quantity - cte.TotalQtyToShip) as QtyToPick
 						--QtyToShip as QtyToPick,
-						cte.TotalQtyToShip as QtyToPick,
+						dbo.fn_ConvertUOM(cte.TotalQtyToShip, uomStock.ShortName, uomConsume.ShortName,0,@masterCompanyId) as QtyToPick,
 						--(( ISNULL((Select SUM(ISNULL(wmsl.QtyReserved, 0)) FROM #WOMStockline wmsl WHERE wom.SubWorkOrderMaterialsId = wmsl.SubWorkOrderMaterialsId),0) 
 						--+ ISNULL((Select SUM(ISNULL(wmsl.QtyIssued, 0)) FROM #WOMStockline wmsl WHERE wom.SubWorkOrderMaterialsId = wmsl.SubWorkOrderMaterialsId),0)) 
 						--- ISNULL((Select SUM(ISNULL(wopt.QtyToShip,0)) FROM dbo.SubWorkorderPickTicket wopt WITH (NOLOCK) WHERE wopt.SubWorkOrderMaterialsId = wom.SubWorkOrderMaterialsId),0))  
@@ -111,8 +114,9 @@ BEGIN
 						--CASE WHEN MinQty = 0 AND @TotalWMSTK > 1 THEN 0 
 						--WHEN MinQty > 0 THEN MinQty ELSE wopt.QtyRemaining END AS QtyRemaining	
 						CASE WHEN MinQty = 0 AND totakWMSTK.TotalWMSTK > 1 THEN 0 
-						WHEN MinQty > 0 THEN MinQty ELSE wopt.QtyRemaining END AS QtyRemaining,
-						MinQty
+						WHEN MinQty > 0 THEN dbo.fn_ConvertUOM(MinQty, uomStock.ShortName, uomConsume.ShortName,0,@masterCompanyId) ELSE dbo.fn_ConvertUOM(wopt.QtyRemaining, uomStock.ShortName, uomConsume.ShortName,0,@masterCompanyId) END AS QtyRemaining,
+						dbo.fn_ConvertUOM(MinQty, uomStock.ShortName, uomConsume.ShortName,0,@masterCompanyId) as MinQty
+
 					FROM dbo.SubWorkorderPickTicket wopt WITH (NOLOCK)
 						INNER JOIN cte on cte.WorkOrderId = wopt.WorkOrderId AND cte.SubWorkOrderMaterialsId = wopt.SubWorkOrderMaterialsId
 						INNER JOIN dbo.SubWorkOrderMaterials wom WITH (NOLOCK) on wom.WorkOrderId = wopt.WorkOrderId AND wom.SubWorkOrderId = wopt.SubWorkorderId AND wom.SubWorkOrderMaterialsId = wopt.SubWorkOrderMaterialsId
@@ -122,6 +126,8 @@ BEGIN
 						--INNER JOIN dbo.ItemMaster imt WITH (NOLOCK) on imt.ItemMasterId = wom.ItemMasterId
 						LEFT JOIN dbo.SubWorkOrderMaterialStockLine wmsl WITH (NOLOCK) ON wmsl.SubWorkOrderMaterialsId = wom.SubWorkOrderMaterialsId
 						LEFT JOIN dbo.Stockline sl WITH (NOLOCK) on sl.StockLineId = wopt.StockLineId
+						LEFT JOIN [dbo].[UnitOfMeasure] uomStock WITH(NOLOCK) ON uomStock.UnitOfMeasureId = SL.StockUnitOfMeasureId
+						LEFT JOIN [dbo].[UnitOfMeasure] uomConsume WITH(NOLOCK) ON uomConsume.UnitOfMeasureId = SL.ConsumeUnitOfMeasureId
 						LEFT JOIN dbo.ItemMaster imts WITH (NOLOCK) on imts.ItemMasterId = sl.ItemMasterId
 						LEFT JOIN dbo.Condition co WITH (NOLOCK) on co.ConditionId = wom.ConditionCodeId
 						LEFT JOIN dbo.UnitOfMeasure uom WITH (NOLOCK) on uom.UnitOfMeasureId = imts.ConsumeUnitOfMeasureId	
@@ -134,18 +140,21 @@ BEGIN
 
 					UNION ALL
 					
-					SELECT DISTINCT wopt.PickTicketId, wopt.CreatedDate as PickTicketDate, wopt.WorkOrderId, swo.SubWorkOrderId, sl.StockLineNumber, wom.Quantity AS Qty, 
+					SELECT DISTINCT wopt.PickTicketId, wopt.CreatedDate as PickTicketDate, wopt.WorkOrderId, swo.SubWorkOrderId, sl.StockLineNumber, 
+						dbo.fn_ConvertUOM(wom.Quantity , uomStock.ShortName, uomConsume.ShortName,0,@masterCompanyId) AS Qty, 
 						imts.partnumber as PartNumber,imts.PartDescription,wopt.PickTicketNumber,sl.SerialNumber,sl.ControlNumber,sl.IdNumber,
 						co.[Description] as ConditionDescription,sl.[Bin] as BinName,
-						QtyToShip as QtyShipped,
+						dbo.fn_ConvertUOM(QtyToShip , uomStock.ShortName, uomConsume.ShortName,0,@masterCompanyId)  as QtyShipped,
 						sl.[Shelf] as ShelfName, p.Description as PriorityName,
 						wo.WorkOrderNum, swo.SubWorkOrderNo,uom.ShortName as UOM,sl.[Site] as SiteName,sl.[Warehouse] as WarehouseName,sl.[Location] as LocationName,
-						sl.QuantityOnHand,sl.QuantityAvailable as QtyAvailable, wom.Memo AS Notes, 
-						cteKit.TotalQtyToShip as QtyToPick,
+						dbo.fn_ConvertUOM(sl.QuantityOnHand , uomStock.ShortName, uomConsume.ShortName,0,@masterCompanyId)  AS  QuantityOnHand,
+						dbo.fn_ConvertUOM(sl.QuantityAvailable, uomStock.ShortName, uomConsume.ShortName,0,@masterCompanyId) as QtyAvailable,
+						wom.Memo AS Notes, 
+						dbo.fn_ConvertUOM(cteKit.TotalQtyToShip, uomStock.ShortName, uomConsume.ShortName,0,@masterCompanyId) as QtyToPick,
 						--rc.Reference,
 						CASE WHEN MinQty = 0 AND totakWMSTKit.TotalWMSTK > 1 THEN 0 
-						WHEN MinQty > 0 THEN MinQty ELSE wopt.QtyRemaining END AS QtyRemaining,
-						MinQty
+						WHEN MinQty > 0 THEN dbo.fn_ConvertUOM(MinQty, uomStock.ShortName, uomConsume.ShortName,0,@masterCompanyId) ELSE dbo.fn_ConvertUOM(wopt.QtyRemaining, uomStock.ShortName, uomConsume.ShortName,0,@masterCompanyId) END AS QtyRemaining,
+						dbo.fn_ConvertUOM(MinQty, uomStock.ShortName, uomConsume.ShortName,0,@masterCompanyId) as MinQty
 					FROM dbo.SubWorkorderPickTicket wopt WITH (NOLOCK)
 						INNER JOIN cteKit on cteKit.WorkOrderId = wopt.WorkOrderId AND cteKit.SubWorkOrderMaterialsId = wopt.SubWorkOrderMaterialsId
 						INNER JOIN dbo.SubWorkOrderMaterialsKit wom WITH (NOLOCK) on wom.WorkOrderId = wopt.WorkOrderId AND wom.SubWorkOrderId = wopt.SubWorkorderId AND wom.SubWorkOrderMaterialsKitId = wopt.SubWorkOrderMaterialsId
@@ -155,6 +164,8 @@ BEGIN
 						--INNER JOIN dbo.ItemMaster imt WITH (NOLOCK) on imt.ItemMasterId = wom.ItemMasterId
 						LEFT JOIN dbo.SubWorkOrderMaterialStockLineKit wmsl WITH (NOLOCK) ON wmsl.SubWorkOrderMaterialsKitId = wom.SubWorkOrderMaterialsKitId
 						LEFT JOIN dbo.Stockline sl WITH (NOLOCK) on sl.StockLineId = wopt.StockLineId
+						LEFT JOIN [dbo].[UnitOfMeasure] uomStock WITH(NOLOCK) ON uomStock.UnitOfMeasureId = SL.StockUnitOfMeasureId
+						LEFT JOIN [dbo].[UnitOfMeasure] uomConsume WITH(NOLOCK) ON uomConsume.UnitOfMeasureId = SL.ConsumeUnitOfMeasureId
 						LEFT JOIN dbo.ItemMaster imts WITH (NOLOCK) on imts.ItemMasterId = sl.ItemMasterId
 						LEFT JOIN dbo.Condition co WITH (NOLOCK) on co.ConditionId = wom.ConditionCodeId
 						LEFT JOIN dbo.UnitOfMeasure uom WITH (NOLOCK) on uom.UnitOfMeasureId = imts.ConsumeUnitOfMeasureId	

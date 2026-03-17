@@ -17,7 +17,7 @@
  ** --   --------     -------				--------------------------------          
     1    09/20/2021   Hemant Saliya			Created
 	2    12/19/2023   Devendra Shekh        changes for kit part added
-     
+ ***3    16/Mar/2026  Rajesh Gami			Added UOM Changes [PN-15714]        
 --EXEC [GetSubWOMaterialsPickTicketChildList] 343,768
 **************************************************************/
 
@@ -33,7 +33,7 @@ BEGIN
 	BEGIN TRY
 		BEGIN TRANSACTION
 			SELECT DISTINCT wopt.PickTicketNumber as PickTicketNumber,
-					wopt.QtyToShip,
+					CASE WHEN SL.StockLineId > 0 THEN  dbo.fn_ConvertUOM(wopt.QtyToShip, uomStock.ShortName, uomConsume.ShortName,0,SL.MasterCompanyId) ELSE wopt.QtyToShip END  AS QtyToShip,
 					sl.SerialNumber,
 					sl.StockLineNumber,
 					wopt.CreatedDate as PickedDate,
@@ -54,13 +54,15 @@ BEGIN
 				INNER JOIN dbo.Employee emp WITH(NOLOCK) on emp.EmployeeId = wopt.PickedById
 				INNER JOIN dbo.SubWorkOrderMaterials wop WITH(NOLOCK) ON wop.WorkOrderId = wopt.WorkorderId AND wop.SubWorkOrderId = wopt.SubWorkOrderId AND wop.SubWorkOrderMaterialsId = wopt.SubWorkOrderMaterialsId
 				LEFT JOIN dbo.StockLine sl WITH(NOLOCK) on sl.StockLineId = wopt.StocklineId
+				LEFT JOIN [dbo].[UnitOfMeasure] uomStock WITH(NOLOCK) ON uomStock.UnitOfMeasureId = SL.StockUnitOfMeasureId
+				LEFT JOIN [dbo].[UnitOfMeasure] uomConsume WITH(NOLOCK) ON uomConsume.UnitOfMeasureId = SL.ConsumeUnitOfMeasureId
 				LEFT JOIN dbo.Employee empy WITH(NOLOCK) on empy.EmployeeId = wopt.ConfirmedById
 			WHERE wopt.WorkorderId=@WorkOrderId AND wopt.SubWorkOrderId=@SubWorkOrderId AND wopt.SubWorkOrderMaterialsId = @OrderPartId AND wopt.QtyToShip > 0 
 
 			UNION ALL
 
 			SELECT DISTINCT wopt.PickTicketNumber as PickTicketNumber,
-					wopt.QtyToShip,
+					CASE WHEN SL.StockLineId > 0 THEN  dbo.fn_ConvertUOM(wopt.QtyToShip, uomStock.ShortName, uomConsume.ShortName,0,SL.MasterCompanyId) ELSE wopt.QtyToShip END  AS QtyToShip,
 					sl.SerialNumber,
 					sl.StockLineNumber,
 					wopt.CreatedDate as PickedDate,
@@ -81,6 +83,8 @@ BEGIN
 				INNER JOIN dbo.Employee emp WITH(NOLOCK) on emp.EmployeeId = wopt.PickedById
 				INNER JOIN dbo.SubWorkOrderMaterialsKit wop WITH(NOLOCK) ON wop.WorkOrderId = wopt.WorkorderId AND wop.SubWorkOrderId = wopt.SubWorkOrderId AND  wop.SubWorkOrderMaterialsKitId = wopt.SubWorkOrderMaterialsId
 				LEFT JOIN dbo.StockLine sl WITH(NOLOCK) on sl.StockLineId = wopt.StocklineId
+				LEFT JOIN [dbo].[UnitOfMeasure] uomStock WITH(NOLOCK) ON uomStock.UnitOfMeasureId = SL.StockUnitOfMeasureId
+				LEFT JOIN [dbo].[UnitOfMeasure] uomConsume WITH(NOLOCK) ON uomConsume.UnitOfMeasureId = SL.ConsumeUnitOfMeasureId
 				LEFT JOIN dbo.Employee empy WITH(NOLOCK) on empy.EmployeeId = wopt.ConfirmedById
 			WHERE wopt.WorkorderId=@WorkOrderId AND wopt.SubWorkOrderId=@SubWorkOrderId AND wopt.SubWorkOrderMaterialsId=@OrderPartId AND wopt.QtyToShip > 0 
 

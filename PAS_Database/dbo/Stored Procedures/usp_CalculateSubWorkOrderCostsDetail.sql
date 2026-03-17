@@ -11,6 +11,7 @@ EXEC [usp_IssueSubWorkOrderMaterialsStockline]
 ** --   --------    -------         --------------------------------
 ** 1    02/13/2025  HEMANT SALIYA    Update Sub WO MPN Cost Details
 ** 2    03/28/2025  Moin Bloch       Fixed For Issue Sub WorkOrder And Format SP
+** 3    16-Mar-2025	Rajesh Gami		 UOM Changes [PN-15714]  
 **************************************************************/ 
 
 CREATE   PROCEDURE [dbo].[usp_CalculateSubWorkOrderCostsDetail]
@@ -28,24 +29,24 @@ BEGIN
 				BEGIN
 
     DECLARE 
-        @OverheadCost DECIMAL(18,2) = 0,
-        @LabourCost DECIMAL(18,2) = 0,
-        @Revenue DECIMAL(18,2) = 0,
-        @PartsRevePer DECIMAL(18,2) = 0,
-        @LaborRevePer DECIMAL(18,2) = 0,
-        @OverHeadPer DECIMAL(18,2) = 0,
-        @OtherCost DECIMAL(18,2) = 0,
-        @Margin DECIMAL(18,2) = 0,
-        @MarginPer DECIMAL(18,2) = 0,
-        @ActRevenue DECIMAL(18,2) = 0,
-        @ActMargin DECIMAL(18,2) = 0,
-        @ActMarginPer DECIMAL(18,2) = 0,
-        @DirectCostPer DECIMAL(18,2) = 0,
-        @TotalCost DECIMAL(18,2) = 0,
-        @DirectCost DECIMAL(18,2) = 0,
-        @FreightCost DECIMAL(18,2) = 0,
-        @ChargesCost DECIMAL(18,2) = 0,
-        @PartsCost DECIMAL(18,2) = 0,
+        @OverheadCost [decimal](18,6) = 0,
+        @LabourCost [decimal](18,6) = 0,
+        @Revenue [decimal](18,6) = 0,
+        @PartsRevePer [decimal](18,6) = 0,
+        @LaborRevePer [decimal](18,6) = 0,
+        @OverHeadPer [decimal](18,6) = 0,
+        @OtherCost [decimal](18,6) = 0,
+        @Margin [decimal](18,6) = 0,
+        @MarginPer [decimal](18,6) = 0,
+        @ActRevenue [decimal](18,6) = 0,
+        @ActMargin [decimal](18,6) = 0,
+        @ActMarginPer [decimal](18,6) = 0,
+        @DirectCostPer [decimal](18,6) = 0,
+        @TotalCost [decimal](18,6) = 0,
+        @DirectCost [decimal](18,6) = 0,
+        @FreightCost [decimal](18,6) = 0,
+        @ChargesCost [decimal](18,6) = 0,
+        @PartsCost [decimal](18,6) = 0,
         @SubWOCostDetailsId BIGINT = NULL;
 
     -- Get Work Order Cost Details

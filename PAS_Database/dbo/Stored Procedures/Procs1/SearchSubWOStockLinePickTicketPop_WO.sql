@@ -19,7 +19,7 @@
 	3    09/20/2023   Devendra Shekh        changes for partwise data
 	3    01/21/2025   HEMANT SALIYA         Updated for Get Pickticket Data
 	4    01/21/2025   Bhargav SALIYA        Get Location
-
+ ***5    16/Mar/2026  Rajesh Gami			Added UOM Changes [PN-15714]   
 EXEC DBO.SearchSubWOStockLinePickTicketPop_WO @ItemMasterIdlist=102553,@ConditionId=111,@WorkOrderId=4776,@SubWorkOrderId=641,@IsMultiplePickTicket=0,@SubWOPartNoId=627, @SubWorkOrderMaterialsId = 224
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[SearchSubWOStockLinePickTicketPop_WO]
@@ -84,10 +84,10 @@ BEGIN
 						,sl.SerialNumber
 						,sl.ControlNumber
 						,sl.IdNumber
-						,ISNULL(wom.QuantityReserved,0) AS QtyToReserve
-						,(ISNULL(wmsl.QtyReserved,0) + ISNULL(wmsl.QtyIssued,0)) - ISNULL((Select SUM(wopt.QtyToShip) from dbo.SubWorkorderPickTicket wopt WHERE wopt.SubWorkOrderMaterialsId = wom.SubWorkOrderMaterialsId AND wmsl.StockLineId = wopt.StockLineId  ),0) AS QtyToPick
-						,ISNULL(sl.QuantityAvailable,0) AS QtyAvailable
-						,ISNULL(sl.QuantityOnHand, 0) AS QtyOnHand
+						,dbo.fn_ConvertUOM(ISNULL(wom.QuantityReserved,0), uomStock.ShortName, uomConsume.ShortName,0,SL.MasterCompanyId) AS QtyToReserve
+						,dbo.fn_ConvertUOM(((ISNULL(wmsl.QtyReserved,0) + ISNULL(wmsl.QtyIssued,0)) - ISNULL((Select SUM(wopt.QtyToShip) from dbo.SubWorkorderPickTicket wopt WHERE wopt.SubWorkOrderMaterialsId = wom.SubWorkOrderMaterialsId AND wmsl.StockLineId = wopt.StockLineId  ),0)), uomStock.ShortName, uomConsume.ShortName,0,SL.MasterCompanyId)  AS QtyToPick
+						,dbo.fn_ConvertUOM(ISNULL(sl.QuantityAvailable,0), uomStock.ShortName, uomConsume.ShortName,0,SL.MasterCompanyId)  AS QtyAvailable
+						,dbo.fn_ConvertUOM(ISNULL(sl.QuantityOnHand, 0), uomStock.ShortName, uomConsume.ShortName,0,SL.MasterCompanyId)   AS QtyOnHand
 						,ISNULL(sl.UnitCost, 0) AS unitCost
 						,CASE WHEN sl.TraceableToType = 1 THEN cusTraceble.Name
 								WHEN sl.TraceableToType = 2 THEN vTraceble.VendorName
@@ -124,6 +124,8 @@ BEGIN
 					LEFT JOIN (SELECT ItemMasterId, [Name],StockLineId FROM DBO.Stockline S WITH (NOLOCK)
 					INNER JOIN DBO.Manufacturer M WITH (NOLOCK) ON M.ManufacturerId = S.ManufacturerId) Smf ON Smf.ItemMasterId = im.ItemMasterId 
 							AND Smf.StockLineId = sl.StockLineId
+					LEFT JOIN [dbo].[UnitOfMeasure] uomStock WITH(NOLOCK) ON uomStock.UnitOfMeasureId = SL.StockUnitOfMeasureId
+					LEFT JOIN [dbo].[UnitOfMeasure] uomConsume WITH(NOLOCK) ON uomConsume.UnitOfMeasureId = SL.ConsumeUnitOfMeasureId
 					WHERE 
 						--im.ItemMasterId = @ItemMasterIdlist AND 
 						wo.WorkOrderId=@WorkOrderId AND wom.SubWorkOrderId = @SubWorkOrderId AND ISNULL(wom.QuantityReserved,0) > 0
@@ -157,10 +159,10 @@ BEGIN
 						,sl.SerialNumber
 						,sl.ControlNumber
 						,sl.IdNumber
-						,ISNULL(wom.QuantityReserved,0) AS QtyToReserve
-						,(ISNULL(wmsl.QtyReserved,0) + ISNULL(wmsl.QtyIssued,0)) - ISNULL((Select SUM(wopt.QtyToShip) from dbo.SubWorkorderPickTicket wopt WHERE wopt.SubWorkOrderMaterialsId = wom.SubWorkOrderMaterialsKitId AND wmsl.StockLineId = wopt.StockLineId  ),0) AS QtyToPick
-						,ISNULL(sl.QuantityAvailable,0) AS QtyAvailable
-						,ISNULL(sl.QuantityOnHand, 0) AS QtyOnHand
+						,dbo.fn_ConvertUOM(ISNULL(wom.QuantityReserved,0), uomStock.ShortName, uomConsume.ShortName,0,SL.MasterCompanyId) AS QtyToReserve
+						,dbo.fn_ConvertUOM(((ISNULL(wmsl.QtyReserved,0) + ISNULL(wmsl.QtyIssued,0)) - ISNULL((Select SUM(wopt.QtyToShip) from dbo.SubWorkorderPickTicket wopt WHERE wopt.SubWorkOrderMaterialsId = wom.SubWorkOrderMaterialsKitId AND wmsl.StockLineId = wopt.StockLineId  ),0)), uomStock.ShortName, uomConsume.ShortName,0,SL.MasterCompanyId)  AS QtyToPick
+						,dbo.fn_ConvertUOM(ISNULL(sl.QuantityAvailable,0), uomStock.ShortName, uomConsume.ShortName,0,SL.MasterCompanyId)  AS QtyAvailable
+						,dbo.fn_ConvertUOM(ISNULL(sl.QuantityOnHand, 0), uomStock.ShortName, uomConsume.ShortName,0,SL.MasterCompanyId)   AS QtyOnHand
 						,ISNULL(sl.UnitCost, 0) AS unitCost
 						,CASE WHEN sl.TraceableToType = 1 THEN cusTraceble.Name
 								WHEN sl.TraceableToType = 2 THEN vTraceble.VendorName
@@ -193,6 +195,8 @@ BEGIN
 						LEFT JOIN (SELECT ItemMasterId, [Name],StockLineId FROM DBO.Stockline S WITH (NOLOCK)
 						INNER JOIN DBO.Manufacturer M WITH (NOLOCK) ON M.ManufacturerId = S.ManufacturerId) Smf ON Smf.ItemMasterId = im.ItemMasterId 
 								AND Smf.StockLineId = sl.StockLineId
+						LEFT JOIN [dbo].[UnitOfMeasure] uomStock WITH(NOLOCK) ON uomStock.UnitOfMeasureId = SL.StockUnitOfMeasureId
+						LEFT JOIN [dbo].[UnitOfMeasure] uomConsume WITH(NOLOCK) ON uomConsume.UnitOfMeasureId = SL.ConsumeUnitOfMeasureId
 					WHERE 
 						wo.WorkOrderId=@WorkOrderId AND wom.SubWorkOrderId = @SubWorkOrderId AND ISNULL(wom.QuantityReserved,0) > 0
 						AND ((ISNULL(wmsl.QtyReserved,0) + ISNULL(wmsl.QtyIssued,0)) > 0)
@@ -226,10 +230,10 @@ BEGIN
 						,sl.SerialNumber
 						,sl.ControlNumber
 						,sl.IdNumber
-						,ISNULL(wom.QuantityReserved,0) AS QtyToReserve
-						,(ISNULL(wmsl.QtyReserved,0) + ISNULL(wmsl.QtyIssued,0)) - ISNULL((Select SUM(wopt.QtyToShip) from dbo.SubWorkorderPickTicket wopt WHERE wopt.SubWorkOrderMaterialsId = wom.SubWorkOrderMaterialsId AND wmsl.StockLineId = wopt.StockLineId  ),0) AS QtyToPick
-						,ISNULL(sl.QuantityAvailable,0) AS QtyAvailable
-						,ISNULL(sl.QuantityOnHand, 0) AS QtyOnHand
+						,dbo.fn_ConvertUOM(ISNULL(wom.QuantityReserved,0), uomStock.ShortName, uomConsume.ShortName,0,SL.MasterCompanyId) AS QtyToReserve
+						,dbo.fn_ConvertUOM(((ISNULL(wmsl.QtyReserved,0) + ISNULL(wmsl.QtyIssued,0)) - ISNULL((Select SUM(wopt.QtyToShip) from dbo.SubWorkorderPickTicket wopt WHERE wopt.SubWorkOrderMaterialsId = wom.SubWorkOrderMaterialsId AND wmsl.StockLineId = wopt.StockLineId  ),0)), uomStock.ShortName, uomConsume.ShortName,0,SL.MasterCompanyId)  AS QtyToPick
+						,dbo.fn_ConvertUOM(ISNULL(sl.QuantityAvailable,0), uomStock.ShortName, uomConsume.ShortName,0,SL.MasterCompanyId)  AS QtyAvailable
+						,dbo.fn_ConvertUOM(ISNULL(sl.QuantityOnHand, 0), uomStock.ShortName, uomConsume.ShortName,0,SL.MasterCompanyId)   AS QtyOnHand
 						,ISNULL(sl.UnitCost, 0) AS unitCost
 						,CASE WHEN sl.TraceableToType = 1 THEN cusTraceble.Name
 								WHEN sl.TraceableToType = 2 THEN vTraceble.VendorName
@@ -266,6 +270,8 @@ BEGIN
 					LEFT JOIN (SELECT ItemMasterId, [Name],StockLineId FROM DBO.Stockline S WITH (NOLOCK)
 					INNER JOIN DBO.Manufacturer M WITH (NOLOCK) ON M.ManufacturerId = S.ManufacturerId) Smf ON Smf.ItemMasterId = im.ItemMasterId 
 							AND Smf.StockLineId = sl.StockLineId
+					LEFT JOIN [dbo].[UnitOfMeasure] uomStock WITH(NOLOCK) ON uomStock.UnitOfMeasureId = SL.StockUnitOfMeasureId
+					LEFT JOIN [dbo].[UnitOfMeasure] uomConsume WITH(NOLOCK) ON uomConsume.UnitOfMeasureId = SL.ConsumeUnitOfMeasureId
 					WHERE 
 						--im.ItemMasterId = @ItemMasterIdlist AND 
 						wo.WorkOrderId=@WorkOrderId AND wom.SubWorkOrderId = @SubWorkOrderId AND ISNULL(wom.QuantityReserved,0) > 0
@@ -299,10 +305,10 @@ BEGIN
 						,sl.SerialNumber
 						,sl.ControlNumber
 						,sl.IdNumber
-						,ISNULL(wom.QuantityReserved,0) AS QtyToReserve
-						,(ISNULL(wmsl.QtyReserved,0) + ISNULL(wmsl.QtyIssued,0)) - ISNULL((Select SUM(wopt.QtyToShip) from dbo.SubWorkorderPickTicket wopt WHERE wopt.SubWorkOrderMaterialsId = wom.SubWorkOrderMaterialsKitId AND wmsl.StockLineId = wopt.StockLineId  ),0) AS QtyToPick
-						,ISNULL(sl.QuantityAvailable,0) AS QtyAvailable
-						,ISNULL(sl.QuantityOnHand, 0) AS QtyOnHand
+						,dbo.fn_ConvertUOM(ISNULL(wom.QuantityReserved,0), uomStock.ShortName, uomConsume.ShortName,0,SL.MasterCompanyId) AS QtyToReserve
+						,dbo.fn_ConvertUOM(((ISNULL(wmsl.QtyReserved,0) + ISNULL(wmsl.QtyIssued,0)) - ISNULL((Select SUM(wopt.QtyToShip) from dbo.SubWorkorderPickTicket wopt WHERE wopt.SubWorkOrderMaterialsId = wom.SubWorkOrderMaterialsKitId AND wmsl.StockLineId = wopt.StockLineId  ),0)), uomStock.ShortName, uomConsume.ShortName,0,SL.MasterCompanyId)  AS QtyToPick
+						,dbo.fn_ConvertUOM(ISNULL(sl.QuantityAvailable,0), uomStock.ShortName, uomConsume.ShortName,0,SL.MasterCompanyId)  AS QtyAvailable
+						,dbo.fn_ConvertUOM(ISNULL(sl.QuantityOnHand, 0), uomStock.ShortName, uomConsume.ShortName,0,SL.MasterCompanyId)   AS QtyOnHand
 						,ISNULL(sl.UnitCost, 0) AS unitCost
 						,CASE WHEN sl.TraceableToType = 1 THEN cusTraceble.Name
 							  WHEN sl.TraceableToType = 2 THEN vTraceble.VendorName
@@ -338,6 +344,8 @@ BEGIN
 						LEFT JOIN (SELECT ItemMasterId, [Name],StockLineId FROM DBO.Stockline S WITH (NOLOCK)
 						INNER JOIN DBO.Manufacturer M WITH (NOLOCK) ON M.ManufacturerId = S.ManufacturerId) Smf ON Smf.ItemMasterId = im.ItemMasterId 
 								AND Smf.StockLineId = sl.StockLineId
+						LEFT JOIN [dbo].[UnitOfMeasure] uomStock WITH(NOLOCK) ON uomStock.UnitOfMeasureId = SL.StockUnitOfMeasureId
+						LEFT JOIN [dbo].[UnitOfMeasure] uomConsume WITH(NOLOCK) ON uomConsume.UnitOfMeasureId = SL.ConsumeUnitOfMeasureId
 					WHERE 
 						--im.ItemMasterId = @ItemMasterIdlist AND 
 						wo.WorkOrderId=@WorkOrderId AND wom.SubWorkOrderId = @SubWorkOrderId AND ISNULL(wom.QuantityReserved,0) > 0

@@ -21,7 +21,7 @@
 	4    09/20/2023   Devendra Shekh        pick ticket qty issue resovled 
 	5    12/19/2023   Devendra Shekh        changes for kit part added
 	6    12/21/2023   Devendra Shekh        QTY issue resolved
-
+ ***7    16/Mar/2026  Rajesh Gami			Added UOM Changes [PN-15714]   
 -- EXEC [sp_saveSubWOPickTicketItemInterface_WO] 46, 23, 343, 0  
   
 exec sp_saveSubWOPickTicketItemInterface_WO @WOPickTicketId=0,@WOPickTicketNumber=N'PTWO-001038',@WorkOrderId=60,@CreatedBy=N'Admin Admin',@UpdatedBy=N'Admin Admin',  
@@ -39,8 +39,8 @@ CREATE   PROCEDURE [dbo].[sp_saveSubWOPickTicketItemInterface_WO]
   @IsActive BIT =0,  
   @IsDeleted BIT =0,  
   @SubWorkOrderMaterialsId BIGINT=0,  
-  @Qty INT = 0,  
-  @QtyToShip INT=0,  
+  @Qty  decimal(18,6) = 0,  
+  @QtyToShip  decimal(18,6)=0,  
   @MasterCompanyId INT=0,  
   @Status INT=0,  
   @PickedById INT=0,  
@@ -64,7 +64,29 @@ BEGIN
  BEGIN TRANSACTION  
  BEGIN  
 
-  DECLARE @QtyRemaining BIGINT, @TotalWMSTK BIGINT,@TotalShipQty BIGINT;;
+  DECLARE @QtyRemaining  decimal(18,6), @TotalWMSTK  decimal(18,6),@TotalShipQty  decimal(18,6);
+			/************ START: UOM Changes Logic : Rajesh Gami *************/
+			IF(ISNULL(@IsMPN,0) = 0)
+			BEGIN
+				DECLARE	@StockUnitOfMeasure VARCHAR(100), @ConsumeUnitOfMeasure VARCHAR(100);
+				SELECT @StockUnitOfMeasure  = su.ShortCode,
+					   @ConsumeUnitOfMeasure = cu.ShortCode
+				FROM DBO.Stockline sl WITH (NOLOCK)
+					LEFT JOIN DBO.UnitOfMeasure su WITH (NOLOCK) ON sl.StockUnitOfMeasureId = su.UnitOfMeasureId
+					LEFT JOIN DBO.UnitOfMeasure cu WITH (NOLOCK) ON sl.ConsumeUnitOfMeasureId = cu.UnitOfMeasureId
+				WHERE sl.StockLineId = @StocklineId;
+
+				IF (@ConsumeUnitOfMeasure IS NOT NULL AND @StockUnitOfMeasure IS NOT NULL)
+				BEGIN
+					IF (@Qty > 0)
+						SET @Qty = dbo.fn_ConvertUOM(@Qty, @ConsumeUnitOfMeasure, @StockUnitOfMeasure, 0, @MasterCompanyId);
+
+					IF (@QtyToShip > 0)
+						SET @QtyToShip = dbo.fn_ConvertUOM(@QtyToShip, @ConsumeUnitOfMeasure, @StockUnitOfMeasure,0, @MasterCompanyId);
+				END
+			END			
+			/************ END: UOM Changes Logic *************/
+
    IF(@WOPickTicketId = 0)  
    BEGIN  
    PRINT 'Hi'  

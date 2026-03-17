@@ -19,7 +19,7 @@
     9	 01/13/2024		Moin Bloch			    Modified (Added WorkOrderTask Table For conditionally check table for Task)
 	10	 01/13/2024		HEMANT SALIYA		    Resolved repair Order View Issue
 	11   04/25/2025		Devendra Shekh		    Modified (Added New Fields IssuedStkExtendedCost, ReservedStkExtendedCost, StkPONum, StkPONextDlvrDate, TotalIssuedStkExtendedCost, TotalReservedStkExtendedCost)
-
+*** 12   16/Mar/2026	Rajesh Gami				Added UOM Changes [PN-15714]
        
  EXECUTE USP_GetSubWorkOrderMaterialsList 316,0  
 exec dbo.USP_GetSubWorkOrderMaterialsListNew @PageNumber=1,@PageSize=5,@SortColumn=default,@SortOrder=1,@subWOPartNoId=260,@ShowPendingToIssue=0
@@ -47,13 +47,13 @@ SET NOCOUNT ON
 		DECLARE @ForStockProvisionId INT;
 		DECLARE @MasterCompanyId INT;
 		DECLARE @CustomerID BIGINT;
-		DECLARE @Count Int, @TotalQty INT =0, @TotalReserved INT =0, @TotalIssued INT =0,@IsFullyReserved BIT =0, @IsFullyIssued BIT =0;  
+		DECLARE @Count Int, @TotalQty [decimal](18,6) =0, @TotalReserved [decimal](18,6) =0, @TotalIssued [decimal](18,6) =0,@IsFullyReserved BIT =0, @IsFullyIssued BIT =0;  
 		DECLARE @RecordFrom int;  
-		DECLARE @TotalExtendedCost DECIMAL(13,2);
+		DECLARE @TotalExtendedCost [decimal](18,6);
 		DECLARE @WorkOrderPartNumberId BIGINT = 0
 		DECLARE @WorkOrderFormTypeId BIT = 0; 
-		DECLARE @TotalIssuedStkExtendedCost DECIMAL(13,2);
-		DECLARE @TotalReservedStkExtendedCost DECIMAL(13,2);
+		DECLARE @TotalIssuedStkExtendedCost [decimal](18,6);
+		DECLARE @TotalReservedStkExtendedCost [decimal](18,6);
 
 		IF @SortColumn IS NULL
 		BEGIN  
@@ -90,11 +90,11 @@ SET NOCOUNT ON
 		   [StockLineId] [bigint] NOT NULL,  
 		   [ItemMasterId] [bigint] NULL,  
 		   [ConditionId] [bigint] NOT NULL,  
-		   [QuantityOnHand] [int] NOT NULL,  
-		   [QuantityReserved] [int] NULL,  
-		   [QuantityAvailable] [int] NULL,  
-		   [QuantityTurnIn] [int] NULL,  
-		   [QuantityOnOrder] [int] NULL,  
+		   [QuantityOnHand] [decimal](18,6) NOT NULL,  
+		   [QuantityReserved] [decimal](18,6) NULL,  
+		   [QuantityAvailable] [decimal](18,6) NULL,  
+		   [QuantityTurnIn] [decimal](18,6) NULL,  
+		   [QuantityOnOrder] [decimal](18,6) NULL,  
 		   [IsParent] [bit] NULL,  
 		  )  
   
@@ -104,8 +104,8 @@ SET NOCOUNT ON
 		  [StockLineId] [bigint] NOT NULL,  
 		  [SubWorkOrderMaterialsId] [bigint] NULL,  
 		  [ConditionId] [bigint] NOT NULL,  
-		  [QtyIssued] [int] NOT NULL,  
-		  [QtyReserved] [int] NULL,  
+		  [QtyIssued] [decimal](18,6) NOT NULL,  
+		  [QtyReserved] [decimal](18,6) NULL,  
 		  [IsActive] BIT NULL,  
 		  [IsDeleted] BIT NULL,  
 		 )  
@@ -126,9 +126,9 @@ SET NOCOUNT ON
 			[SubWorkOrderMaterialsKitMappingId] [bigint] NULL,
 			[SubWOPartNoId] [bigint] NULL,
 			[IsKit] [bit] NULL,
-			[Quantity] [INT] NULL DEFAULT 0,
-			[QuantityIssued] [INT] NULL DEFAULT 0,
-			[QuantityReserved] [INT] NULL DEFAULT 0,
+			[Quantity] [decimal](18,6) NULL DEFAULT 0,
+			[QuantityIssued] [decimal](18,6) NULL DEFAULT 0,
+			[QuantityReserved] [decimal](18,6) NULL DEFAULT 0,
 		 )
 
 		 
@@ -141,7 +141,7 @@ SET NOCOUNT ON
 		 	[StocklinePartDescription] [varchar](MAX)  NULL,
 		 	[KitNumber] [varchar](256) NULL,
 		 	[KitDescription] [varchar](1000) NULL,
-		 	[KitCost] [decimal](18, 2) NULL,
+		 	[KitCost] [decimal](18,6) NULL,
 		 	[WOQMaterialKitMappingId] [bigint] NULL, 	
 		 	[KitId] [bigint] NULL,
 		 	[ItemGroup] [varchar](250) NULL,
@@ -162,12 +162,12 @@ SET NOCOUNT ON
 		 	[ItemType] [varchar](20) NULL,
 		 	[Condition] [varchar](256) NULL,
 		 	[StocklineCondition] [varchar](256) NULL,
-		 	[UnitCost] [decimal](18, 2) NULL,
-		 	[ExtendedCost] [decimal](18, 2) NULL,
-		 	[TotalStocklineQtyReq] [int] NULL,
+		 	[UnitCost] [decimal](18,6) NULL,
+		 	[ExtendedCost] [decimal](18,6) NULL,
+		 	[TotalStocklineQtyReq] [decimal](18,6) NULL,
 		 	[WOMStockLIneId] [bigint] NULL,
-			[StocklineUnitCost] [decimal](18, 2) NULL,
-			[StocklineExtendedCost] [decimal](18, 2) NULL,
+			[StocklineUnitCost] [decimal](18,6) NULL,
+			[StocklineExtendedCost] [decimal](18,6) NULL,
 		 	[StockLineProvisionId] [bigint] NULL,
 		 	[IsWOMSAltPart] [bit] NULL,
 		 	[IsWOMSEquPart] [bit] NULL,
@@ -179,33 +179,33 @@ SET NOCOUNT ON
 		 	[ControlId] [varchar](150) NULL,
 		 	[ControlNo] [varchar](150) NULL,
 		 	[Receiver] [varchar](150) NULL,
-		 	[StockLineQuantityOnHand] [int] NULL,
-		 	[StockLineQuantityAvailable] [int] NULL,
-		 	[PartQuantityOnHand] [int] NULL,
-		 	[PartQuantityAvailable] [int] NULL,
-		 	[PartQuantityReserved] [int] NULL,
-		 	[PartQuantityTurnIn] [int] NULL,
-		 	[PartQuantityOnOrder] [int] NULL,
+		 	[StockLineQuantityOnHand] [decimal](18,6) NULL,
+		 	[StockLineQuantityAvailable] [decimal](18,6) NULL,
+		 	[PartQuantityOnHand] [decimal](18,6) NULL,
+		 	[PartQuantityAvailable] [decimal](18,6) NULL,
+		 	[PartQuantityReserved] [decimal](18,6) NULL,
+		 	[PartQuantityTurnIn] [decimal](18,6) NULL,
+		 	[PartQuantityOnOrder] [decimal](18,6) NULL,
 		 	[CostDate] [datetime2] NULL,
 		 	[Currency] [varchar](150) NULL,
-		 	[QuantityIssued] [int] NULL,
-		 	[QuantityReserved] [int] NULL,
-		 	[QunatityRemaining] [int] NULL,
-		 	[StocklineQtyReserved] [int] NULL,
-		 	[QtytobeReserved] [int] NULL,
-		 	[StocklineQtyIssued] [int] NULL,
-		 	[StocklineQuantityTurnIn] [int] NULL,
-		 	[StocklineQtyRemaining] [int] NULL,
-		 	[StocklineQtytobeReserved] [int] NULL,
-		 	[QtyOnOrder] [int] NULL,
-		 	[QtyOnBkOrder] [int] NULL,
+		 	[QuantityIssued] [decimal](18,6) NULL,
+		 	[QuantityReserved] [decimal](18,6) NULL,
+		 	[QunatityRemaining] [decimal](18,6) NULL,
+		 	[StocklineQtyReserved] [decimal](18,6) NULL,
+		 	[QtytobeReserved] [decimal](18,6) NULL,
+		 	[StocklineQtyIssued] [decimal](18,6) NULL,
+		 	[StocklineQuantityTurnIn] [decimal](18,6) NULL,
+		 	[StocklineQtyRemaining] [decimal](18,6) NULL,
+		 	[StocklineQtytobeReserved] [decimal](18,6) NULL,
+		 	[QtyOnOrder] [decimal](18,6) NULL,
+		 	[QtyOnBkOrder] [decimal](18,6) NULL,
 		 	[PONum] [varchar](150) NULL,
 		 	[PONextDlvrDate] [datetime2] NULL,
 		 	[POId] [bigint] NULL,
-		 	[Quantity] [int] NULL,
-		 	[StocklineQuantity] [int] NULL,
-		 	[PartQtyToTurnIn] [int] NULL,
-		 	[StocklineQtyToTurnIn] [int] NULL,
+		 	[Quantity] [decimal](18,6) NULL,
+		 	[StocklineQuantity] [decimal](18,6) NULL,
+		 	[PartQtyToTurnIn] [decimal](18,6) NULL,
+		 	[StocklineQtyToTurnIn] [decimal](18,6) NULL,
 		 	[ConditionCodeId] [bigint] NULL,
 		 	[StocklineConditionCodeId] [bigint] NULL,
 		 	[UnitOfMeasureId] [bigint] NULL,
@@ -240,17 +240,19 @@ SET NOCOUNT ON
 		 	[StockLineItem] [nvarchar](250) NULL,
 		 	[StockLineId] [bigint] NULL,
 		 	[IsKitType] [bit] NULL,
-		 	[KitQty] [int] NULL,
+		 	[KitQty] [decimal](18,6) NULL,
 			[VendorId] [bigint] NULL,
 			[VendorName] [varchar](150) NULL,
 			[VendorCode] [varchar](150) NULL,
 			[PoVendorId] [bigint] NULL,
 			[PoVendorName] [varchar](150) NULL,
 			[PoVendorCode] [varchar](150) NULL,
-			[IssuedStkExtendedCost] [decimal](18, 2) NULL,
-			[ReservedStkExtendedCost] [decimal](18, 2) NULL,		
+			[IssuedStkExtendedCost] [decimal](18,6) NULL,
+			[ReservedStkExtendedCost] [decimal](18,6) NULL,		
 			[StkPONum] [varchar](150) NULL,
 			[StkPONextDlvrDate] [datetime2] NULL,
+			[ConsumeUnitOfMeasure] VARCHAR(250) NULL,
+			[StockUnitOfMeasure] VARCHAR(250) NULL
 		 )
   
 		 INSERT INTO #tmpStockline SELECT         
@@ -295,11 +297,11 @@ SET NOCOUNT ON
 			[StockLineId] [bigint] NOT NULL,
 			[ItemMasterId] [bigint] NULL,
 			[ConditionId] [bigint] NOT NULL,
-			[QuantityOnHand] [int] NOT NULL,
-			[QuantityReserved] [int] NULL,
-			[QuantityAvailable] [int] NULL,
-			[QuantityTurnIn] [int] NULL,
-			[QuantityOnOrder] [int] NULL,
+			[QuantityOnHand] [decimal](18,6) NOT NULL,
+			[QuantityReserved] [decimal](18,6) NULL,
+			[QuantityAvailable] [decimal](18,6) NULL,
+			[QuantityTurnIn] [decimal](18,6) NULL,
+			[QuantityOnOrder] [decimal](18,6) NULL,
 			[IsParent] [bit] NULL,
 		)
 
@@ -309,8 +311,8 @@ SET NOCOUNT ON
 			[StockLineId] [bigint] NOT NULL,
 			[SubWorkOrderMaterialsId] [bigint] NULL,
 			[ConditionId] [bigint] NOT NULL,
-			[QtyIssued] [int] NOT NULL,
-			[QtyReserved] [int] NULL,
+			[QtyIssued] [decimal](18,6) NOT NULL,
+			[QtyReserved] [decimal](18,6) NULL,
 			[IsActive] BIT NULL,
 			[IsDeleted] BIT NULL,
 		)
@@ -492,7 +494,7 @@ SET NOCOUNT ON
 								[TaskName], [MandatoryOrSupplemental], [MaterialMandatoriesId], [MasterCompanyId], [IsAltPart], [IsEquPart], [ItemClassification], [UOM], [Defered], [IsRoleUp], [ProvisionId], 
 								[SubWorkOrderMaterialsId], [SubWOPartNoId], [IsFromWorkFlow], [StockLineId], [Employeename], [RONextDlvrDate], [RepairOrderNumber], [RepairOrderId],[Figure], [Item], [StockLineFigure], [StockLineItem],
 								[IsKitType], [KitQty], [IsWOMSAltPart], [IsWOMSEquPart], [AlterPartNumber],[VendorId], [VendorName], [VendorCode],[PoVendorId], [PoVendorName], [PoVendorCode],
-								[IssuedStkExtendedCost], [ReservedStkExtendedCost], [StkPONum], [StkPONextDlvrDate])
+								[IssuedStkExtendedCost], [ReservedStkExtendedCost], [StkPONum], [StkPONextDlvrDate], [ConsumeUnitOfMeasure], [StockUnitOfMeasure])
 				SELECT DISTINCT   
 					IM.PartNumber,  
 					IM.PartDescription,   
@@ -674,6 +676,8 @@ SET NOCOUNT ON
 						,(ISNULL(MSTL.QtyReserved,0) * ISNULL(MSTL.UnitCost,0)) AS [ReservedStkExtendedCost]
 						,CASE WHEN ISNULL(SL.PurchaseOrderId, 0) <> 0 THEN (SELECT TOP 1 po.PurchaseOrderNumber FROM [dbo].[PurchaseOrder] po WITH (NOLOCK) WHERE SL.PurchaseOrderId = po.PurchaseOrderId AND SL.PurchaseOrderId = WOM.POId) ELSE '' END AS [StkPONum]
 						,CASE WHEN ISNULL(SL.PurchaseOrderId, 0) <> 0 THEN (SELECT TOP 1 po.OpenDate FROM [dbo].[PurchaseOrder] po WITH (NOLOCK) WHERE SL.PurchaseOrderId = po.PurchaseOrderId AND SL.PurchaseOrderId = WOM.POId) ELSE NULL END AS [StkPONextDlvrDate]
+						,SL.ConsumeUnitOfMeasure
+						,SL.StockUnitOfMeasure
 				FROM dbo.SubWorkOrderMaterials WOM WITH (NOLOCK)    
 					JOIN dbo.WorkOrder W WITH (NOLOCK) ON W.WorkOrderId = WOM.WorkOrderId  
 					JOIN dbo.ItemMaster IM WITH (NOLOCK) ON IM.ItemMasterId = WOM.ItemMasterId  
@@ -713,7 +717,7 @@ SET NOCOUNT ON
 								[TaskName], [MandatoryOrSupplemental], [MaterialMandatoriesId], [MasterCompanyId], [IsAltPart], [IsEquPart], [ItemClassification], [UOM], [Defered], [IsRoleUp], [ProvisionId], 
 								[SubWorkOrderMaterialsId], [SubWOPartNoId], [IsFromWorkFlow], [StockLineId], [Employeename], [RONextDlvrDate], [RepairOrderNumber], [RepairOrderId], [Figure], [Item], [StockLineFigure], [StockLineItem],
 								[IsKitType], [KitQty], [IsWOMSAltPart], [IsWOMSEquPart], [AlterPartNumber],[VendorId], [VendorName], [VendorCode],[PoVendorId], [PoVendorName], [PoVendorCode],
-								[IssuedStkExtendedCost], [ReservedStkExtendedCost], [StkPONum], [StkPONextDlvrDate])
+								[IssuedStkExtendedCost], [ReservedStkExtendedCost], [StkPONum], [StkPONextDlvrDate], [ConsumeUnitOfMeasure], [StockUnitOfMeasure])
 				SELECT DISTINCT   
 					IM.PartNumber,  
 					IM.PartDescription,   
@@ -892,6 +896,8 @@ SET NOCOUNT ON
 						,(ISNULL(MSTL.QtyReserved,0) * ISNULL(MSTL.UnitCost,0)) AS [ReservedStkExtendedCost]
 						,CASE WHEN ISNULL(SL.PurchaseOrderId, 0) <> 0 THEN (SELECT TOP 1 po.PurchaseOrderNumber FROM [dbo].[PurchaseOrder] po WITH (NOLOCK) WHERE SL.PurchaseOrderId = po.PurchaseOrderId AND SL.PurchaseOrderId = WOM.POId) ELSE '' END AS [StkPONum]
 						,CASE WHEN ISNULL(SL.PurchaseOrderId, 0) <> 0 THEN (SELECT TOP 1 po.OpenDate FROM [dbo].[PurchaseOrder] po WITH (NOLOCK) WHERE SL.PurchaseOrderId = po.PurchaseOrderId AND SL.PurchaseOrderId = WOM.POId) ELSE NULL END AS [StkPONextDlvrDate]
+						,SL.ConsumeUnitOfMeasure
+						,SL.StockUnitOfMeasure
 				FROM dbo.SubWorkOrderMaterialsKit WOM WITH (NOLOCK)    
 					JOIN dbo.WorkOrder W WITH (NOLOCK) ON W.WorkOrderId = WOM.WorkOrderId  
 					JOIN dbo.ItemMaster IM WITH (NOLOCK) ON IM.ItemMasterId = WOM.ItemMasterId  
@@ -932,7 +938,7 @@ SET NOCOUNT ON
 								[TaskName], [MandatoryOrSupplemental], [MaterialMandatoriesId], [MasterCompanyId], [IsAltPart], [IsEquPart], [ItemClassification], [UOM], [Defered], [IsRoleUp], [ProvisionId], 
 								[SubWorkOrderMaterialsId], [SubWOPartNoId], [IsFromWorkFlow], [StockLineId], [Employeename], [RONextDlvrDate], [RepairOrderNumber], [RepairOrderId], [Figure], [Item], [StockLineFigure], [StockLineItem],
 								[IsKitType], [KitQty], [IsWOMSAltPart], [IsWOMSEquPart], [AlterPartNumber],[VendorId], [VendorName], [VendorCode],[PoVendorId], [PoVendorName], [PoVendorCode],
-								[IssuedStkExtendedCost], [ReservedStkExtendedCost], [StkPONum], [StkPONextDlvrDate])
+								[IssuedStkExtendedCost], [ReservedStkExtendedCost], [StkPONum], [StkPONextDlvrDate], [ConsumeUnitOfMeasure], [StockUnitOfMeasure])
 				SELECT DISTINCT   
 				  IM.PartNumber,  
 				  IM.PartDescription,   
@@ -1113,6 +1119,8 @@ SET NOCOUNT ON
 					,(ISNULL(MSTL.QtyReserved,0) * ISNULL(MSTL.UnitCost,0)) AS [ReservedStkExtendedCost]
 					,CASE WHEN ISNULL(SL.PurchaseOrderId, 0) <> 0 THEN (SELECT TOP 1 po.PurchaseOrderNumber FROM [dbo].[PurchaseOrder] po WITH (NOLOCK) WHERE SL.PurchaseOrderId = po.PurchaseOrderId AND SL.PurchaseOrderId = WOM.POId) ELSE '' END AS [StkPONum]
 					,CASE WHEN ISNULL(SL.PurchaseOrderId, 0) <> 0 THEN (SELECT TOP 1 po.OpenDate FROM [dbo].[PurchaseOrder] po WITH (NOLOCK) WHERE SL.PurchaseOrderId = po.PurchaseOrderId AND SL.PurchaseOrderId = WOM.POId) ELSE NULL END AS [StkPONextDlvrDate]
+					,SL.ConsumeUnitOfMeasure
+					,SL.StockUnitOfMeasure
 			 FROM dbo.SubWorkOrderMaterials WOM WITH (NOLOCK)    
 				  JOIN dbo.WorkOrder W WITH (NOLOCK) ON W.WorkOrderId = WOM.WorkOrderId  
 				  JOIN dbo.ItemMaster IM WITH (NOLOCK) ON IM.ItemMasterId = WOM.ItemMasterId  
@@ -1150,7 +1158,7 @@ SET NOCOUNT ON
 							[TaskName], [MandatoryOrSupplemental], [MaterialMandatoriesId], [MasterCompanyId], [IsAltPart], [IsEquPart], [ItemClassification], [UOM], [Defered], [IsRoleUp], [ProvisionId], 
 							[SubWorkOrderMaterialsId], [SubWOPartNoId], [IsFromWorkFlow], [StockLineId], [Employeename], [RONextDlvrDate], [RepairOrderNumber], [RepairOrderId], [Figure], [Item], [StockLineFigure], [StockLineItem],
 							[IsKitType], [KitQty], [IsWOMSAltPart], [IsWOMSEquPart], [AlterPartNumber],[VendorId], [VendorName], [VendorCode],[PoVendorId], [PoVendorName], [PoVendorCode],
-							[IssuedStkExtendedCost], [ReservedStkExtendedCost], [StkPONum], [StkPONextDlvrDate])
+							[IssuedStkExtendedCost], [ReservedStkExtendedCost], [StkPONum], [StkPONextDlvrDate], [ConsumeUnitOfMeasure], [StockUnitOfMeasure])
 			 SELECT DISTINCT   
 				  IM.PartNumber,  
 				  IM.PartDescription,   
@@ -1329,6 +1337,8 @@ SET NOCOUNT ON
 					,(ISNULL(MSTL.QtyReserved,0) * ISNULL(MSTL.UnitCost,0)) AS [ReservedStkExtendedCost]
 					,CASE WHEN ISNULL(SL.PurchaseOrderId, 0) <> 0 THEN (SELECT TOP 1 po.PurchaseOrderNumber FROM [dbo].[PurchaseOrder] po WITH (NOLOCK) WHERE SL.PurchaseOrderId = po.PurchaseOrderId AND SL.PurchaseOrderId = WOM.POId) ELSE '' END AS [StkPONum]
 					,CASE WHEN ISNULL(SL.PurchaseOrderId, 0) <> 0 THEN (SELECT TOP 1 po.OpenDate FROM [dbo].[PurchaseOrder] po WITH (NOLOCK) WHERE SL.PurchaseOrderId = po.PurchaseOrderId AND SL.PurchaseOrderId = WOM.POId) ELSE NULL END AS [StkPONextDlvrDate]
+					,SL.ConsumeUnitOfMeasure
+					,SL.StockUnitOfMeasure
 			 FROM dbo.SubWorkOrderMaterialsKit WOM WITH (NOLOCK)    
 				  JOIN dbo.WorkOrder W WITH (NOLOCK) ON W.WorkOrderId = WOM.WorkOrderId  
 				  JOIN dbo.ItemMaster IM WITH (NOLOCK) ON IM.ItemMasterId = WOM.ItemMasterId  
@@ -1358,11 +1368,11 @@ SET NOCOUNT ON
 		END
 
 		SELECT @Count = COUNT(ParentID) from #TMPWOMaterialParentListData;
-		SET @TotalQty = (SELECT SUM(CAST(Quantity AS INT)) from  #TMPWOMaterialParentQtySum);
-		SELECT @TotalIssued = SUM(CAST(QuantityIssued AS INT)) from  #TMPWOMaterialParentQtySum;
-		SELECT @TotalReserved = SUM(CAST(QuantityReserved AS INT)) from  #TMPWOMaterialParentQtySum;
-		SET @IsFullyReserved = (CASE WHEN (CAST(ISNULL(@TotalQty, 0) AS INT) - (CAST(ISNULL(@TotalIssued, 0) AS INT) + CAST(ISNULL(@TotalReserved, 0) AS INT))) = 0  THEN 1 ELSE 0 END)
-		SET @IsFullyIssued = (CASE WHEN (CAST(ISNULL(@TotalQty, 0) AS INT) - (CAST(ISNULL(@TotalIssued, 0) AS INT))) = 0 THEN 1 ELSE 0 END) 
+		SET @TotalQty = (SELECT SUM(CAST(Quantity AS [decimal](18,6))) from  #TMPWOMaterialParentQtySum);
+		SELECT @TotalIssued = SUM(CAST(QuantityIssued AS [decimal](18,6))) from  #TMPWOMaterialParentQtySum;
+		SELECT @TotalReserved = SUM(CAST(QuantityReserved AS [decimal](18,6))) from  #TMPWOMaterialParentQtySum;
+		SET @IsFullyReserved = (CASE WHEN (CAST(ISNULL(@TotalQty, 0) AS [decimal](18,6)) - (CAST(ISNULL(@TotalIssued, 0) AS [decimal](18,6)) + CAST(ISNULL(@TotalReserved, 0) AS [decimal](18,6)))) = 0  THEN 1 ELSE 0 END)
+		SET @IsFullyIssued = (CASE WHEN (CAST(ISNULL(@TotalQty, 0) AS [decimal](18,6)) - (CAST(ISNULL(@TotalIssued, 0) AS [decimal](18,6)))) = 0 THEN 1 ELSE 0 END) 
 
 		SELECT *, @Count As NumberOfItems,@IsFullyReserved AS IsFullyReserved, ISNULL(@TotalExtendedCost, 0) AS TotalExtendedCost,
 				ISNULL(@TotalIssuedStkExtendedCost, 0) AS TotalIssuedStkExtendedCost,

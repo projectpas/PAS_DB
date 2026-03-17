@@ -30,6 +30,8 @@
 	14   16-01-2025   ABHISHEK JIRAWLA  If Part is non serialized and Quantity is greater then 200 then only 1 entry should be made (PN-10836)
 	15   09-Dec-2025  Rajesh Gami		Added logic : INT to DECIMAL (QTY related Fields)
 	16   24-02-2026   Amit Ghediya		IF TraceableTo is blank then take from vendor (PN-15560)
+	17   16-03-2026   Vishal Suthar		Increased max qty to 500 from 200
+
  EXEC [SaveReceivingToStocklineDraft] 2281, 'ADMIN User'    
 **************************************************************/    
 CREATE    PROCEDURE [dbo].[SaveReceivingToStocklineDraft]
@@ -160,7 +162,7 @@ BEGIN
 	DECLARE @QuantityAvailable DECIMAL(18,6) = 1;    
 	DECLARE @QuantityOnHand DECIMAL(18,6) = 1;  
     
-	IF ISNULL(@IsSerialized, 0) = 0 AND ISNULL(@LoopID_Qty, 0) >=200
+	IF ISNULL(@IsSerialized, 0) = 0 AND ISNULL(@LoopID_Qty, 0) >= 500
 	BEGIN
 	      
 		IF (EXISTS (SELECT 1 FROM #tmpCodePrefixes WHERE CodeTypeId = @IdCodeTypeId))    
@@ -650,7 +652,7 @@ BEGIN
 	 DECLARE @NewNonStocklineDraftId BIGINT;    
 	 DECLARE @IsParent_NonStock BIT = 1;    
 
-	IF ISNULL(@IsSerialized, 0) = 0 AND ISNULL(@LoopID_Qty, 0) >=200
+	IF ISNULL(@IsSerialized, 0) = 0 AND ISNULL(@LoopID_Qty, 0) >= 500
 	BEGIN
 		
           

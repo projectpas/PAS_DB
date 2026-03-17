@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿
+/*************************************************************           
  ** File:   [RPT_GetCommonBillingInvoicingPdfData_SO]           
  ** Author:  RAJESH GAMI 
  ** Description: This stored procedure is used to GET Common Billing Invoicing Pdf Data (SO)
@@ -17,6 +18,7 @@
 	5    17 JUL 2025   Moin Bloch       Notes Replace <p> Tag
 	6    05 Aug 2025   Bhargav Saliya   Get Shipping Terms Name from BillingInvoiceDatails
 	7    29 Aug 2025   RAJESH GAMI		Get date byb employee/legalentity
+	8	 17-03-2026    Ayushi Patel		PN-15689 return email and phone no from customerContact table insted of customer table
 --  EXEC [dbo].[RPT_GetCommonBillingInvoicingPdfData_SO] 9060,10,55
 **************************************************************/
 CREATE       PROCEDURE [dbo].[RPT_GetCommonBillingInvoicingPdfData_SO]
@@ -196,7 +198,7 @@ BEGIN
 					--ISNULL(BI.[RemainingAmount],0) [RemainingAmount],
 					CASE WHEN ISNULL(BI.[DepositAmount],0) >= @ProformaDepositAmount AND ISNULL(IsPerformaInvoice, 0) = 0 THEN ISNULL(BI.[GrandTotal],0) - @ProformaDepositAmount ELSE ISNULL(BI.[GrandTotal],0) - ISNULL(BI.[DepositAmount],0) END [RemainingAmount],
 					SHIPTOFULLADDRESS = (SELECT dbo.FN_ValidatePDFAddress(SHIPTOADDRESS.[Line1],SHIPTOADDRESS.[Line2],NULL,SHIPTOADDRESS.[City],SHIPTOADDRESS.[StateOrProvince],SHIPTOADDRESS.[PostalCode],SHIPTOCOUNTRY.[countries_name],NULL,NULL,NULL)),
-  				    BILLTOFULLADDRESS = (SELECT dbo.FN_ValidatePDFAddress(BILLTOADDRESS.[Line1],BILLTOADDRESS.[Line2],NULL,BILLTOADDRESS.[City],BILLTOADDRESS.[StateOrProvince],BILLTOADDRESS.[PostalCode],BILLTOCOUNTRY.[countries_name],CUST.[CustomerPhone],NULL,CUST.[Email])),
+  				    BILLTOFULLADDRESS = (SELECT dbo.FN_ValidatePDFAddress(BILLTOADDRESS.[Line1],BILLTOADDRESS.[Line2],NULL,BILLTOADDRESS.[City],BILLTOADDRESS.[StateOrProvince],BILLTOADDRESS.[PostalCode],BILLTOCOUNTRY.[countries_name],CONTACT.[WorkPhone],NULL,CONTACT.[Email])),
 					case when CAST(GETUTCDATE() as datetime2) = CAST('0001-01-01 00:00:00' as datetime2)then null else (Cast(DBO.ConvertUTCtoLocal(GETUTCDATE(), @CurrntEmpTimeZoneDesc) as datetime2))end [PrintDate],
 					UPPER(inv.[Description]) InvoiceType,
 					oriCountry.countries_name OriginCountry,

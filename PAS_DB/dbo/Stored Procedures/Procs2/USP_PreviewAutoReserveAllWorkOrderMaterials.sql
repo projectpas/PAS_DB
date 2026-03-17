@@ -17,8 +17,9 @@ EXEC [USP_AutoReserveAllWorkOrderMaterials]
 ** 6    07/26/2023	HEMANT SALIYA	 Updated For Stockline Condition In Null
 ** 7    02/23/2024	VISHAL SUTHAR	 Updated For Showing Condition In case we don't have stockline added
 ** 8    03/19/2025	Devendra Shekh	 Updated For Checking PMA/DER Restrict Parts
+** 9    03/17/2026	Moin Bloch	     Updated For Checking REPLACE Provision For WorkOrderMaterial Level
 
-EXEC USP_PreviewAutoReserveAllWorkOrderMaterials 3909,0,0,2,0
+EXEC USP_PreviewAutoReserveAllWorkOrderMaterials 23794,0,0,2,0
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[USP_PreviewAutoReserveAllWorkOrderMaterials]
 	@WorkFlowWorkOrderId BIGINT,
@@ -308,7 +309,9 @@ BEGIN
 					FROM dbo.WorkOrderMaterials WOM WITH (NOLOCK) 
 					JOIN dbo.Condition C WITH (NOLOCK) ON C.ConditionId = WOM.ConditionCodeId
 					WHERE WOM.WorkFlowWorkOrderId = @WorkFlowWorkOrderId AND (ISNULL(Quantity, 0) != (ISNULL([QuantityReserved], 0) + ISNULL([QuantityIssued], 0)))
-					AND WOM.ItemMasterId IN (SELECT [ItemMasterId] FROM #AllowItemMasterIds)
+					AND WOM.ItemMasterId IN (SELECT [ItemMasterId] FROM #AllowItemMasterIds) 
+					AND (WOM.ProvisionId = @ProvisionId OR 
+					(SELECT COUNT([ProvisionId]) FROM [dbo].[WorkOrderMaterialStockLine] WOMS WITH(NOLOCK) WHERE WOM.[WorkOrderMaterialsId] = WOMS.[WorkOrderMaterialsId] AND WOMS.[ProvisionId] = @ProvisionId) >= 1)
 
 					INSERT INTO #tmpWorkOrderMaterialStockline
 						([WOMStockLineId] ,[WorkOrderMaterialsId] ,[StockLineId] ,[ItemMasterId] ,[ConditionId] ,[Quantity] ,[QtyReserved] ,[QtyIssued] ,		
@@ -334,7 +337,9 @@ BEGIN
 					JOIN dbo.Condition C WITH (NOLOCK) ON C.ConditionId = WOM.ConditionCodeId
 					WHERE WOM.WorkFlowWorkOrderId = @WorkFlowWorkOrderId AND (ISNULL(Quantity, 0) != (ISNULL([QuantityReserved], 0) + ISNULL([QuantityIssued], 0)))
 					AND WOM.ItemMasterId IN (SELECT [ItemMasterId] FROM #AllowItemMasterIds)
-
+					AND (WOM.ProvisionId = @ProvisionId OR 
+					(SELECT COUNT([ProvisionId]) FROM [dbo].[WorkOrderMaterialStockLineKit] WOMS WITH(NOLOCK) WHERE WOM.[WorkOrderMaterialsKitId] = WOMS.[WorkOrderMaterialsKitId] AND WOMS.[ProvisionId] = @ProvisionId) >= 1)
+					
 					INSERT INTO #tmpWorkOrderMaterialStockLineKit
 						([WorkOrderMaterialStockLineKitId] ,[WorkOrderMaterialsKitId] ,[StockLineId] ,[ItemMasterId] ,[ConditionId] ,[Quantity] ,[QtyReserved] ,[QtyIssued] ,		
 						[AltPartMasterPartId] ,[EquPartMasterPartId] ,[IsAltPart] ,[IsEquPart] ,[UnitCost] ,[ExtendedCost] ,[UnitPrice] ,[ExtendedPrice] ,

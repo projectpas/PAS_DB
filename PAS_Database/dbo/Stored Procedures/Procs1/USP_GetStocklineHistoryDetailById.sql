@@ -20,6 +20,8 @@
  4  13/02/2025     Ayushi Patel      converted the date into utc (updated) , Added a case to get timeZone   
  5  14/07/2025     RajeshGami        By default latest record should be on the top
  6  11/12/2025     RajeshGami        Retunr DecimalPlaces
+ 7  17/03/2026     Sahdev Saliya     Added UnitOfMeasure (PN-15729)
+
 exec USP_GetStocklineHistoryDetailById @PageSize=10,@PageNumber=1,@SortColumn=N'StocklineHistoryId',@SortOrder=1,  
 @GlobalFilter=N'',@StocklineId=164065,@QuantityAvailable=0,@QuantityIssued=0,@QuantityOnHand=0,@QuantityReserved=0,  
 @TextMessage=NULL,@RefferenceId=NULL,@ModuleName=NULL,@UpdatedDate=NULL,@UpdatedBy=NULL,@Action=NULL,@SubModuleName=NULL,@SubRefferenceNumber=NULL  
@@ -45,7 +47,8 @@ CREATE    PROCEDURE [dbo].[USP_GetStocklineHistoryDetailById]
  @SubModuleName varchar(50)=null,    
  @SubRefferenceNumber varchar(50)=null,
  @QtyOnAction INT = null,
- @EmployeeId bigint
+ @EmployeeId bigint,
+ @UnitOfMeasure varchar(50) = NULL     
    
 AS  
 BEGIN  
@@ -106,7 +109,8 @@ BEGIN
  ISNULL(StlHist.SubRefferenceNumber, '') AS 'SubRefferenceNumber',  
  --StlHist.MasterCompanyId   
  ISNULL(uom.Class,'Decimal')Class,
- ISNULL(uom.DecimalPlaces,2) DecimalPlaces
+ ISNULL(uom.DecimalPlaces,2) DecimalPlaces,
+ (ISNULL(STL.UnitOfMeasure,'')) 'UnitOfMeasure'       
  FROM DBO.Stkline_History StlHist   
  INNER JOIN DBO.Module M WITH (NOLOCK) ON StlHist.ModuleId = M.ModuleId  
  INNER JOIN DBO.Stockline STL WITH (NOLOCK) ON StlHist.StocklineId = STL.StockLineId  
@@ -121,7 +125,7 @@ BEGIN
 	--		  INNER JOIN DBO.BulkStockLineAdjustmentDetails BSD WITH (NOLOCK) ON BS.BulkStkLineAdjId = BSD.BulkStkLineAdjId 
 	--		  WHERE BSD.StockLineId = rs.StocklineId ORDER BY BS.BulkStkLineAdjId DESC) ELSE rs.RefferenceId END) RefferenceId,  
  rs.StklineHistoryId,  rs.ModuleId, rs.StocklineId,  rs.QuantityAvailable, rs.QuantityOnHand,  rs.QuantityReserved,  rs.QuantityIssued    
-  ,  rs.QtyOnAction,  rs.TextMessage, rs.UpdatedBy, rs.UpdatedDate,  rs.[Action],  rs.SubModuleName,  rs.SubRefferenceNumber,rs.Class,rs.DecimalPlaces  FROM Result  rs
+  ,  rs.QtyOnAction,  rs.TextMessage, rs.UpdatedBy, rs.UpdatedDate,  rs.[Action],  rs.SubModuleName,  rs.SubRefferenceNumber,rs.Class,rs.DecimalPlaces, rs.UnitOfMeasure  FROM Result  rs
  WHERE (    
   (@GlobalFilter <>'' AND ((ModuleName like '%' +@GlobalFilter+'%') OR     
   (RefferenceId like '%' +@GlobalFilter+'%') OR    
@@ -136,7 +140,8 @@ BEGIN
   (TextMessage like '%' +@GlobalFilter+'%') OR   
   (Action like '%' +@GlobalFilter+'%')  OR  
   (SubModuleName like '%' +@GlobalFilter+'%')  OR  
-  (SubRefferenceNumber like '%' +@GlobalFilter+'%')    
+  (SubRefferenceNumber like '%' +@GlobalFilter+'%') OR
+  (UnitOfMeasure like '%' +@GlobalFilter+'%')    
   ))    
   OR       
   (@GlobalFilter='' AND     
@@ -152,11 +157,12 @@ BEGIN
   (IsNull(@UpdatedDate,'') ='' OR Cast(rs.UpdatedDate as date)=Cast(@UpdatedDate as date)) and    
   (IsNull(@TextMessage,'') ='' OR TextMessage like '%'+@TextMessage+'%') and   
   (IsNull(@SubModuleName,'') ='' OR SubModuleName like '%'+@SubModuleName+'%') and   
-  (IsNull(@SubRefferenceNumber,'') ='' OR SubRefferenceNumber like '%'+@SubRefferenceNumber+'%'))    
+  (IsNull(@SubRefferenceNumber,'') ='' OR SubRefferenceNumber like '%'+@SubRefferenceNumber+'%') and
+  (IsNull(@UnitOfMeasure,'') ='' OR UnitOfMeasure like '%'+@UnitOfMeasure+'%'))    
   )),    
   ResultCount AS (Select COUNT(StklineHistoryId) AS NumberOfItems FROM FinalResult)    
   SELECT ModuleName, StockLineNumber, RefferenceId, StklineHistoryId, ModuleId, StocklineId, QuantityAvailable, QuantityOnHand, QuantityReserved, QuantityIssued, QtyOnAction,  
-  TextMessage, UpdatedBy, UpdatedDate, Action, SubModuleName, SubRefferenceNumber, NumberOfItems,Class,DecimalPlaces FROM FinalResult, ResultCount    
+  TextMessage, UpdatedBy, UpdatedDate, Action, SubModuleName, SubRefferenceNumber, NumberOfItems,Class,DecimalPlaces, UnitOfMeasure FROM FinalResult, ResultCount    
   
   ORDER BY      
    CASE WHEN (@SortOrder=1 and @SortColumn='StklineHistoryId')  THEN StklineHistoryId END DESC,    
@@ -173,7 +179,8 @@ BEGIN
    CASE WHEN (@SortOrder=1 and @SortColumn='UpdatedDate')  THEN UpdatedDate END ASC,    
    CASE WHEN (@SortOrder=1 and @SortColumn='Action')  THEN Action END ASC,    
    CASE WHEN (@SortOrder=1 and @SortColumn='SubModuleName')  THEN SubModuleName END ASC,    
-   CASE WHEN (@SortOrder=1 and @SortColumn='SubRefferenceNumber')  THEN SubRefferenceNumber END ASC,    
+   CASE WHEN (@SortOrder=1 and @SortColumn='SubRefferenceNumber')  THEN SubRefferenceNumber END ASC,
+   CASE WHEN (@SortOrder=1 and @SortColumn='UnitOfMeasure')  THEN UnitOfMeasure END ASC,    
     
    CASE WHEN (@SortOrder=-1 and @SortColumn='StklineHistoryId')  THEN StklineHistoryId END DESC,    
    CASE WHEN (@SortOrder=-1 and @SortColumn='ModuleName')  THEN ModuleName END DESC,    
@@ -189,7 +196,8 @@ BEGIN
    CASE WHEN (@SortOrder=-1 and @SortColumn='UpdatedDate')  THEN UpdatedDate END DESC,    
    CASE WHEN (@SortOrder=-1 and @SortColumn='Action')  THEN Action END DESC,  
    CASE WHEN (@SortOrder=-1 and @SortColumn='SubModuleName')  THEN SubModuleName END DESC,  
-   CASE WHEN (@SortOrder=-1 and @SortColumn='SubRefferenceNumber')  THEN SubRefferenceNumber END DESC  
+   CASE WHEN (@SortOrder=-1 and @SortColumn='SubRefferenceNumber')  THEN SubRefferenceNumber END DESC ,
+   CASE WHEN (@SortOrder=-1 and @SortColumn='UnitOfMeasure')  THEN UnitOfMeasure END DESC 
   
    OFFSET @RecordFrom ROWS     
    FETCH NEXT @PageSize ROWS ONLY    

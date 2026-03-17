@@ -1,5 +1,4 @@
-﻿
-/*************************************************************             
+﻿/*************************************************************             
  ** File:   [RPT_GetWorkOrderQuotePrintPdfDataMultipleMPN]             
  ** Author:   RAJESH GAMI  
  ** Description: This stored procedure is used to get work order quote pdf details for multiple MPN 
@@ -23,8 +22,9 @@
     8    10-JUL-2025     Moin Bloch         Updated MEMO To PublicationNotes
 	9	 23-JUL-2025     Devendra Shekh		Added Case for Memo
 	10	 14-OCT-2025     RAJESH GAMI		Return Estimated Ship Date
-	11	 02-March-2026   Ayushi Patel		Retuen ItemNo  
---EXEC [RPT_GetWorkOrderQuotePrintPdfDataMultipleMPN] 7884,'',0  
+	11	 02-March-2026   Ayushi Patel		PN-15745 Retuen ItemNo  , Added OrderBY ID
+--EXEC [RPT_GetWorkOrderQuotePrintPdfDataMultipleMPN] 2297,'',0  
+exec RPT_GetWorkOrderQuotePrintPdfDataMultipleMPN @WorkOrderQuoteId=2300,@workOrderPartNoIds=N'10439',@isByPartIds=0
 **************************************************************/  
 CREATE    PROCEDURE [dbo].[RPT_GetWorkOrderQuotePrintPdfDataMultipleMPN]  
  @WorkOrderQuoteId bigint,  
@@ -365,7 +365,8 @@ BEGIN
 					FinalLaborTotal,
 					RowNumber,
 					Memo, IsPrintCorrectiveAction,EstimatedShipDate
-				FROM #tmpQuoteIds; 
+				FROM #tmpQuoteIds
+				ORDER BY ID;
 
 		END
 		ELSE
@@ -494,7 +495,8 @@ BEGIN
         WHEN LTRIM(RTRIM(CAST(EstimatedShipDate AS VARCHAR))) = '' THEN NULL
         ELSE EstimatedShipDate
     END AS EstimatedShipDate
-				FROM #tmpQuotetblMulti; 
+				FROM #tmpQuotetblMulti
+				ORDER BY ID;
 
 		END
 

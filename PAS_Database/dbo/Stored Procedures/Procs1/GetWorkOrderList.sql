@@ -1,4 +1,61 @@
-﻿CREATE PROCEDURE [dbo].[GetWorkOrderList]
+﻿/*************************************************************           
+ ** File:   [GetWorkOrderList]           
+ ** Author:   Hemant Saliya
+ ** Description: This stored procedure is used to get work order List for both MPN and WO View
+ ** Purpose:         
+ ** Date:   
+          
+ ** PARAMETERS:          
+
+ ** RETURN VALUE:           
+  
+ **************************************************************           
+  ** Change History           
+ **************************************************************           
+ ** PR   Date         Author				Change Description            
+ ** --   --------     -------			--------------------------------          
+    1    06/28/2023   Vishal Suthar			Added history
+    2    08/01/2023   Vishal Suthar			Converting all the data in Upper case which was creating an issue in download
+	3    23 Jul2023   Rajesh Gami			Improve Performance
+	4    05/08/2024   HEMANT SALIYA			Serial Number Changes Updated
+	5    09/20/2024   Devendra Shekh		List WO View Resolved
+	6    10/18/2024   Devendra Shekh		Using @WorkOrderStatus for WorkOrderStatusId comparison
+	7    10/21/2024   Devendra Shekh		Modified (Optimization Changes)
+	8    11/18/2024   Sahdev Saliya         Added New Field IsSubWorkOrder
+	9    11/20/2024   Sahdev Saliya         SubWorkOrder Issue Resolved And Multipal WO Issue Resolved
+	10   12/31/2024   Devendra Shekh        added new Fields :- mpnQuoteStatus, approvedAmount
+	11   02/04/2025   Bhargav Saliya        UTC Date Changes
+	12   25/06/2025   Vishal Suthar			Performance Improvement
+	13   25/06/2025   HEMANT SALIYA			Optimize SP to reduce wating time
+	14   18/07/2025   Vishal Suthar			Added DISTINCT in the final resultset which was populating duplicate entry
+	15   24/07/2025   Devendra Shekh		added WOPartId for MPN View
+	16   26/08/2025   Moin Bloch		    added RevisedSerialNumber 
+	17   08/09/2025   Bhargav Saliya		Get ShipDate,IsSubWo Flage From MPN Table and remove the Outer Join
+	18   24/09/2025   Rajesh Gami			Added MPN Notes in return field value (Also added parameter as well)
+	19   03/11/2025   Bhargav Saliya		Added New Field [IsWorkOrderTask]
+	20   10/11/2025   Bhargav Saliya		Added New Filters WoTaskType
+	21   18/11/2025   Bhargav Saliya		Remove Case Condition For [IsWorkOrderTask] Field
+	22   19/11/2025   Amit Ghediya			Added New Field Location
+	23   20/11/2025   Sahdev Saliya         Added New Field :- ReceivedCondition, RevisedCondition
+	24   30/12/2025   Vishal Suthar         Fixed WOQ Part Status which affects the approved amount
+	25   17/01/2025   Bhargav Saliya        Added IsMigrated Condition
+	26   02/02/2026   Moin Bloch		    added IncomingPartNumber  PN-15319
+	27   18/02/2026   Moin Bloch		    added WorkOrderStages Filter  PN-15501
+	28   19/02/2026   Moin Bloch		    added WorkOrderStatus Filter MultiSelect PN-15516
+	29   20/02/2026   Moin Bloch		    added WorkOrderStatus Filter MultiSelect PN-15536
+	30	 06/03/2026   Priyash Patel		    added Memo column for CALDATA teardown type PN-15567
+	31	 10/03/2026   Priyash Patel		    changed the column to cal data PN-15709
+    32   17/03/2026   HEMANT SALIYA			Optimize SP to Hnadle with .net core upgrade
+	
+	exec dbo.GetWorkOrderList @PageNumber=1,@PageSize=100,@SortColumn=default,@SortOrder=-1,@StatusID=1,@GlobalFilter=default,@ViewType=N'mpn',
+	@WorkOrderNum=default,@PartNumber=default,@PartDescription=default,@WorkScope=default,@Priority=default,@CustomerName=default,@CustomerAffiliation=default,@Stage=default,
+	@WorkOrderStatus=1,@OpenDate=default,@CustReqDate=default,@PromiseDate=default,@EstShipDate=default,@ShipDate=default,@CreatedDate=default,@UpdatedDate=default,@CreatedBy=default,
+	@UpdatedBy=default,@IsDeleted=0,@MasterCompanyId=11,@EmployeeId=98,@WorkOrderStatusType=default,@TechName=default,@TechStation=default,@SerialNumber=default,@CustRef=default,
+	@MSModuleID=12,@ManufacturerName=default,@WorkOrderType=default,@IsSubWorkOrder=default,@MPNQuoteStatus=default,@ApprovedAmount=default
+     
+**************************************************************/
+
+CREATE PROCEDURE [dbo].[GetWorkOrderList]
      @PageNumber INT,
      @PageSize INT,
      @SortColumn VARCHAR(50)=NULL,

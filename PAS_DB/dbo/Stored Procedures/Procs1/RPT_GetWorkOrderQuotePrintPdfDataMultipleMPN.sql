@@ -1,4 +1,5 @@
-﻿/*************************************************************             
+﻿
+/*************************************************************             
  ** File:   [RPT_GetWorkOrderQuotePrintPdfDataMultipleMPN]             
  ** Author:   RAJESH GAMI  
  ** Description: This stored procedure is used to get work order quote pdf details for multiple MPN 
@@ -23,7 +24,8 @@
 	9	 23-JUL-2025     Devendra Shekh		Added Case for Memo
 	10	 14-OCT-2025     RAJESH GAMI		Return Estimated Ship Date
 	11	 02-March-2026   Ayushi Patel		PN-15745 Retuen ItemNo  , Added OrderBY ID
---EXEC [RPT_GetWorkOrderQuotePrintPdfDataMultipleMPN] 2297,'',0  
+	12   17-March-2026	 Ayushi Patel		PN-15746 Return CustomerReference Partwise
+--EXEC [RPT_GetWorkOrderQuotePrintPdfDataMultipleMPN] 2297,'3806',0  
 exec RPT_GetWorkOrderQuotePrintPdfDataMultipleMPN @WorkOrderQuoteId=2300,@workOrderPartNoIds=N'10439',@isByPartIds=0
 **************************************************************/  
 CREATE    PROCEDURE [dbo].[RPT_GetWorkOrderQuotePrintPdfDataMultipleMPN]  
@@ -239,7 +241,8 @@ BEGIN
 				RowNumber INT,
 				Memo VARCHAR(MAX),
 				IsPrintCorrectiveAction BIT,
-				EstimatedShipDate DATETIME2(7)NULL
+				EstimatedShipDate DATETIME2(7)NULL,
+				CustomerReference NVARCHAR(255),
 			);
 
 
@@ -319,7 +322,8 @@ BEGIN
 							 OR LTRIM(RTRIM(CAST(wop.EstimatedShipDate AS VARCHAR))) = '' 
 						THEN '' 
 						ELSE FORMAT(wop.EstimatedShipDate, 'MM/dd/yyyy') 
-					 END AS EstimatedShipDate
+					 END AS EstimatedShipDate,
+					 wop.CustomerReference
 			FROM dbo.WorkOrder wo WITH(NOLOCK)
 				 INNER JOIN dbo.WorkOrderQuote woq WITH(NOLOCK) ON wo.WorkOrderId = woq.WorkOrderId  
 				 INNER JOIN dbo.WorkOrderQuoteDetails wqd WITH(NOLOCK) ON woq.WorkOrderQuoteId = wqd.WorkOrderQuoteId  
@@ -350,7 +354,7 @@ BEGIN
 						ChargesFlatBillingAmount, FreightFlatBillingAmount, LaborFinalAmount, 
 						ChargesFinalAmount, FreightFinalAmount, Quantity, QuoteMethod, CommonFlatRate, 
 						TATDaysStandard, EvalFees, SubtotalForTax, TAXRates, OtherTax, SalesTaxAmount, 
-						OtherTaxAmount, FinalTotal, FinalLaborTotal, RowNumber, Memo, IsPrintCorrectiveAction,EstimatedShipDate)
+						OtherTaxAmount, FinalTotal, FinalLaborTotal, RowNumber, Memo, IsPrintCorrectiveAction,EstimatedShipDate,CustomerReference)
 			SELECT 
 					ID, ItemMasterId, PartNumber, PartDescription, RevisedPartNo, Revenue, MaterialCost, 
 					MaterialRevenuePercentage, LaborCost, LaborRevenuePercentage, OverHeadCost, 
@@ -364,7 +368,7 @@ BEGIN
 					FinalTotal,
 					FinalLaborTotal,
 					RowNumber,
-					Memo, IsPrintCorrectiveAction,EstimatedShipDate
+					Memo, IsPrintCorrectiveAction,EstimatedShipDate,CustomerReference
 				FROM #tmpQuoteIds
 				ORDER BY ID;
 
@@ -446,7 +450,7 @@ BEGIN
 							 OR LTRIM(RTRIM(CAST(wop.EstimatedShipDate AS VARCHAR))) = '' 
 						THEN '' 
 						ELSE FORMAT(wop.EstimatedShipDate, 'MM/dd/yyyy') 
-					 END AS EstimatedShipDate
+					 END AS EstimatedShipDate,wop.CustomerReference
 			FROM dbo.WorkOrder wo WITH(NOLOCK)
 				 INNER JOIN dbo.WorkOrderQuote woq WITH(NOLOCK) ON wo.WorkOrderId = woq.WorkOrderId  
 				 INNER JOIN dbo.WorkOrderQuoteDetails wqd WITH(NOLOCK) ON woq.WorkOrderQuoteId = wqd.WorkOrderQuoteId  
@@ -463,7 +467,7 @@ BEGIN
 				 AND woq.IsActive = 1 AND woq.IsDeleted = 0  
 			GROUP BY im.PartNumber,  wop.ID, wop.RevisedPartNumber, wop.RevisedPartDescription,
 				 im.PartDescription, im1.ItemMasterId, im1.PartNumber, im.ItemMasterId, wop.PublicationNotes, tmp.[Remarks],
-				 sl.StockLineNumber, wop.RevisedSerialNumber, wop.CurrentSerialNumber, wop.Quantity, wqd.QuoteMethod, wqd.CommonFlatRate, TATDaysStandard,wqd.EvalFees, cust.CustomerId,wf.WorkFlowWorkOrderId,woq.IsPrintCorrectiveAction,wop.EstimatedShipDate),
+				 sl.StockLineNumber, wop.RevisedSerialNumber, wop.CurrentSerialNumber, wop.Quantity, wqd.QuoteMethod, wqd.CommonFlatRate, TATDaysStandard,wqd.EvalFees, cust.CustomerId,wf.WorkFlowWorkOrderId,woq.IsPrintCorrectiveAction,wop.EstimatedShipDate,wop.CustomerReference),
 			AfterTax AS (SELECT *, CAST(((Ct.subtotalfortax * Ct.TAXRates) / 100) AS DECIMAL(18, 2)) AS SalesTaxAmount, CAST(((Ct.subtotalfortax * Ct.Othertax) / 100) AS DECIMAL(18, 2)) AS OtherTaxAmount FROM WOQPartCte Ct)
 
 			SELECT *, (ISNULL(FinalQuote.SalesTaxAmount, 0) + ISNULL(FinalQuote.OtherTaxAmount, 0) + ISNULL(FinalQuote.subtotalfortax, 0)) FinalTotal, 
@@ -477,7 +481,7 @@ BEGIN
 						ChargesFlatBillingAmount, FreightFlatBillingAmount, LaborFinalAmount, 
 						ChargesFinalAmount, FreightFinalAmount, Quantity, QuoteMethod, CommonFlatRate, 
 						TATDaysStandard, EvalFees, SubtotalForTax, TAXRates, OtherTax, SalesTaxAmount, 
-						OtherTaxAmount, FinalTotal, FinalLaborTotal, RowNumber, Memo, IsPrintCorrectiveAction,EstimatedShipDate)
+						OtherTaxAmount, FinalTotal, FinalLaborTotal, RowNumber, Memo, IsPrintCorrectiveAction,EstimatedShipDate,CustomerReference)
 				SELECT 
 					ID, ItemMasterId, PartNumber, PartDescription, RevisedPartNo, Revenue, MaterialCost, 
 					MaterialRevenuePercentage, LaborCost, LaborRevenuePercentage, OverHeadCost, 
@@ -494,7 +498,7 @@ BEGIN
 					Memo, IsPrintCorrectiveAction,CASE 
         WHEN LTRIM(RTRIM(CAST(EstimatedShipDate AS VARCHAR))) = '' THEN NULL
         ELSE EstimatedShipDate
-    END AS EstimatedShipDate
+    END AS EstimatedShipDate,CustomerReference
 				FROM #tmpQuotetblMulti
 				ORDER BY ID;
 

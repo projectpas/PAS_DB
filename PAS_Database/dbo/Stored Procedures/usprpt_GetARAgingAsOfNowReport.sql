@@ -23,6 +23,7 @@
 	7	 07-05-2025		HEMANT SALIYA  		Updated for Customer Ref Data length
 	8	 26-Jun-2025	Rajesh Gami			Modified as per new billing table changes (WO, SO)
 	9	 27-JAN-2026	Rajesh Gami			Added InvoiceNumber
+	10   17/March/2026	Amit Ghediya		add IncludeInternalCustomer flag for allow internal & Affiliate customer (PN-15762)
 EXEC usprpt_GetARAgingAsOfNowReport @PageNumber=1,@PageSize=20,@SortColumn=N'InvoiceDate',@SortOrder=-1,@GlobalFilter=N'',@ViewType=N'Details',@AsOfDate='2025-05-05 00:00:00',@CustomerId=NULL,@IsInvoice=1,@IsCredits=1,@IsDeposit=0,@IsUnappliedAmounts=1,@strFilter=N'!!!!!!!!!',@CustomerName=NULL,@CustomerCode=NULL,@CurrencyCode=NULL,@InvoiceNo=NULL,@InvoiceDate=NULL,@DSI=0,@DSO=0,@DSS=0,@DocType=NULL,@CustomerRef=NULL,@Salesperson=NULL,@CreditTerms=NULL,@DueDate=NULL,@FxRateAmount=NULL,@InvoiceAmount=NULL,@BalanceAmount=NULL,@CurrentAmount=NULL,@PaymentAmount=NULL,@Amountlessthan0days=NULL,@Amountlessthan30days=NULL,@Amountlessthan60days=NULL,@Amountlessthan90days=NULL,@Amountlessthan120days=NULL,@Amountmorethan120days=NULL,@level1Str=NULL,@level2Str=NULL,@level3Str=NULL,@level4Str=NULL,@level5Str=NULL,@level6Str=NULL,@level7Str=NULL,@level8Str=NULL,@level9Str=NULL,@level10Str=NULL,@LegalEntityName=NULL,@EmployeeId=180,@MasterCompanyId=20
 **************************************************************/
 CREATE   PROCEDURE [dbo].[usprpt_GetARAgingAsOfNowReport]
@@ -77,7 +78,8 @@ CREATE   PROCEDURE [dbo].[usprpt_GetARAgingAsOfNowReport]
 @LegalEntityName VARCHAR(500) = NULL,
 @EmployeeId BIGINT = NULL,
 @masterCompanyid INT = NULL,
-@InvoiceNumber VARCHAR(80) = NULL
+@InvoiceNumber VARCHAR(80) = NULL,
+@CustomerAffiliation VARCHAR(80) = NULL
 AS
 BEGIN
   SET NOCOUNT ON;
@@ -106,7 +108,12 @@ BEGIN
 	DECLARE @CustomerPaymentsPostedStatus INT= 2;
 	DECLARE @MJEPostStatusId INT;
 	DECLARE @MSModuleId INT;	
-	DECLARE @CustomerCreditPaymentOpenStatus INT = 1
+	DECLARE @CustomerCreditPaymentOpenStatus INT = 1;
+	DECLARE @exte_cus VARCHAR(20);
+	DECLARE @exte_cusId INT;
+	DECLARE @inter_cus VARCHAR(20);
+	DECLARE @inter_cusId INT;
+	DECLARE @affi_cus VARCHAR(20);
 
 	DECLARE @WOModuleTypeId INT = 1
 	DECLARE @SOModuleTypeId INT = 2
@@ -126,6 +133,9 @@ BEGIN
     SELECT @MJEPostStatusId = [ManualJournalStatusId] FROM [dbo].[ManualJournalStatus] WHERE [Name] = 'Posted';
     SELECT @MSModuleId = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] ='ManualJournalAccounting';
 	SELECT @AsOfDate = GETUTCDATE();
+	SELECT @exte_cus = [Description], @exte_cusId = [CustomerAffiliationId] FROM [dbo].[CustomerAffiliation] WITH(NOLOCK) WHERE AccountType = 'External';
+	SELECT @inter_cus = [Description], @inter_cusId = [CustomerAffiliationId] FROM [dbo].[CustomerAffiliation] WITH(NOLOCK) WHERE AccountType = 'Internal';
+	SELECT @affi_cus = [Description] FROM [dbo].[CustomerAffiliation] WITH(NOLOCK) WHERE AccountType = 'Affiliate';
 	
 	SET @RecordFrom = (@PageNumber - 1) * @PageSize;
 				
@@ -197,7 +207,8 @@ BEGIN
 				[BillingInvoicingId] BIGINT NOT NULL,
 				[CustomerId] BIGINT NULL,
 				[CustomerName] VARCHAR(200) NULL,
-				[CustomerCode] VARCHAR(50) NULL,				
+				[CustomerCode] VARCHAR(50) NULL,
+				[CustomerAffiliation] VARCHAR(50) NULL,
 				[BalanceAmount] DECIMAL(18, 2) NULL,
 				[CurrentAmount] DECIMAL(18, 2) NULL,
 				[PaymentAmount] DECIMAL(18, 2) NULL,
@@ -242,7 +253,7 @@ BEGIN
 		
 			-- WO INVOICE DETAILS
 			
-			INSERT INTO #TEMPInvoiceRecords([BillingInvoicingId],[CustomerId],[CustomerName],[CustomerCode],
+			INSERT INTO #TEMPInvoiceRecords([BillingInvoicingId],[CustomerId],[CustomerName],[CustomerCode],[CustomerAffiliation],
 			       [BalanceAmount],[CurrentAmount],[PaymentAmount],[Amountlessthan0days],[Amountlessthan30days],
 				   [Amountlessthan60days],[Amountlessthan90days],[Amountlessthan120days],[Amountmorethan120days],
 				   [InvoiceAmount],[CMAmount],[CreditMemoAmount],[CreditMemoUsed],
@@ -253,6 +264,11 @@ BEGIN
 							C.[CustomerId],
 							UPPER(ISNULL(C.[Name],'')),      
 							UPPER(ISNULL(C.[CustomerCode],'')),
+							CASE 
+								WHEN CustomerAffiliationId = @exte_cusId THEN UPPER(@exte_cus)
+								WHEN CustomerAffiliationId = @inter_cusId THEN UPPER(@inter_cus)
+								ELSE UPPER(@affi_cus)
+							END AS CustomerAffiliation,
 							WOBI.[GrandTotal], -- BalanceAmount
 							((ISNULL(WOBI.[GrandTotal], 0) - ISNULL(WOBI.[RemainingAmount], 0)) + ISNULL(WOBI.[CreditMemoUsed], 0)),  -- CurrentAmount     
 							ISNULL(WOBI.[RemainingAmount], 0) + ISNULL(WOBI.[CreditMemoUsed], 0), --PaymentAmount  		               				
@@ -352,7 +368,7 @@ BEGIN
 		
 			-- SO INVOICE DETAILS
 			
-			INSERT INTO #TEMPInvoiceRecords([BillingInvoicingId],[CustomerId],[CustomerName],[CustomerCode],
+			INSERT INTO #TEMPInvoiceRecords([BillingInvoicingId],[CustomerId],[CustomerName],[CustomerCode],[CustomerAffiliation],
 			       [BalanceAmount],[CurrentAmount],[PaymentAmount],[Amountlessthan0days],[Amountlessthan30days],
 				   [Amountlessthan60days],[Amountlessthan90days],[Amountlessthan120days],[Amountmorethan120days],
 				   [InvoiceAmount],[CMAmount],[CreditMemoAmount],[CreditMemoUsed],
@@ -362,7 +378,12 @@ BEGIN
 			SELECT DISTINCT SOBI.[BillingInvoicingId],
 				                C.[CustomerId],  					
                                 UPPER(ISNULL(C.[Name],'')),      
-                                UPPER(ISNULL(C.[CustomerCode],'')),								   
+                                UPPER(ISNULL(C.[CustomerCode],'')),
+								CASE 
+									WHEN CustomerAffiliationId = @exte_cusId THEN UPPER(@exte_cus)
+									WHEN CustomerAffiliationId = @inter_cusId THEN UPPER(@inter_cus)
+									ELSE UPPER(@affi_cus)
+								END AS CustomerAffiliation,
 								SOBI.[GrandTotal],  -- [BalanceAmount]
 								(SOBI.[GrandTotal] - SOBI.[RemainingAmount] + ISNULL(SOBI.[CreditMemoUsed],0)), -- 'CurrentlAmount',
 								SOBI.[RemainingAmount] + ISNULL(SOBI.[CreditMemoUsed],0), -- 'PaymentAmount', 
@@ -463,7 +484,7 @@ BEGIN
 			
 			-- EXCHANGE SO INVOICE DETAILS --
 
-			INSERT INTO #TEMPInvoiceRecords([BillingInvoicingId],[CustomerId],[CustomerName],[CustomerCode],
+			INSERT INTO #TEMPInvoiceRecords([BillingInvoicingId],[CustomerId],[CustomerName],[CustomerCode],[CustomerAffiliation],
 			       [BalanceAmount],[CurrentAmount],[PaymentAmount],[Amountlessthan0days],[Amountlessthan30days],
 				   [Amountlessthan60days],[Amountlessthan90days],[Amountlessthan120days],[Amountmorethan120days],
 				   [InvoiceAmount],[CMAmount],[CreditMemoAmount],[CreditMemoUsed],
@@ -474,6 +495,11 @@ BEGIN
 				            C.[CustomerId],  					
                             UPPER(ISNULL(C.[Name],'')),      
                             UPPER(ISNULL(C.[CustomerCode],'')),  
+							CASE 
+								WHEN CustomerAffiliationId = @exte_cusId THEN UPPER(@exte_cus)
+								WHEN CustomerAffiliationId = @inter_cusId THEN UPPER(@inter_cus)
+								ELSE UPPER(@affi_cus)
+							END AS CustomerAffiliation,
 							(ESOBI.[GrandTotal]), -- 'BalanceAmount',
 			                (ESOBI.[GrandTotal] - ESOBI.[RemainingAmount] + ISNULL(ESOBI.[CreditMemoUsed],0)), -- 'CurrentlAmount',
 				            (ESOBI.[RemainingAmount] + ISNULL(ESOBI.[CreditMemoUsed],0)), -- 'PaymentAmount', 	
@@ -574,7 +600,7 @@ BEGIN
 			
 			-- CREDIT MEMO --
 
-			INSERT INTO #TEMPInvoiceRecords([BillingInvoicingId],[CustomerId],[CustomerName],[CustomerCode],
+			INSERT INTO #TEMPInvoiceRecords([BillingInvoicingId],[CustomerId],[CustomerName],[CustomerCode],[CustomerAffiliation],
 			       [BalanceAmount],[CurrentAmount],[PaymentAmount],[Amountlessthan0days],[Amountlessthan30days],
 				   [Amountlessthan60days],[Amountlessthan90days],[Amountlessthan120days],[Amountmorethan120days],
 				   [InvoiceAmount],[CMAmount],[CreditMemoAmount],[CreditMemoUsed],
@@ -584,7 +610,12 @@ BEGIN
 			SELECT DISTINCT CM.[CreditMemoHeaderId],
 			                C.[CustomerId],     
 							UPPER(C.[Name]),
-					        UPPER(C.[CustomerCode]),						
+					        UPPER(C.[CustomerCode]),
+							CASE 
+								WHEN CustomerAffiliationId = @exte_cusId THEN UPPER(@exte_cus)
+								WHEN CustomerAffiliationId = @inter_cusId THEN UPPER(@inter_cus)
+								ELSE UPPER(@affi_cus)
+							END AS CustomerAffiliation,
 							CMD.[Amount],
 							0,
 							0,
@@ -642,7 +673,7 @@ BEGIN
 
 			-- STAND ALONE CREDIT MEMO --
 				
-			INSERT INTO #TEMPInvoiceRecords([BillingInvoicingId],[CustomerId],[CustomerName],[CustomerCode],
+			INSERT INTO #TEMPInvoiceRecords([BillingInvoicingId],[CustomerId],[CustomerName],[CustomerCode],[CustomerAffiliation],
 			       [BalanceAmount],[CurrentAmount],[PaymentAmount],[Amountlessthan0days],[Amountlessthan30days],
 				   [Amountlessthan60days],[Amountlessthan90days],[Amountlessthan120days],[Amountmorethan120days],
 				   [InvoiceAmount],[CMAmount],[CreditMemoAmount],[CreditMemoUsed],
@@ -652,7 +683,12 @@ BEGIN
 			SELECT DISTINCT CM.[CreditMemoHeaderId],
 			                C.[CustomerId],     
 							UPPER(C.[Name]),
-					        UPPER(C.[CustomerCode]),							
+					        UPPER(C.[CustomerCode]),
+							CASE 
+								WHEN CustomerAffiliationId = @exte_cusId THEN UPPER(@exte_cus)
+								WHEN CustomerAffiliationId = @inter_cusId THEN UPPER(@inter_cus)
+								ELSE UPPER(@affi_cus)
+							END AS CustomerAffiliation,
 							CM.Amount,
 							0,
 							0,
@@ -711,7 +747,7 @@ BEGIN
 
 			-- MANUAL JOURNAL --
 				
-			INSERT INTO #TEMPInvoiceRecords([BillingInvoicingId],[CustomerId],[CustomerName],[CustomerCode],
+			INSERT INTO #TEMPInvoiceRecords([BillingInvoicingId],[CustomerId],[CustomerName],[CustomerCode],[CustomerAffiliation],
 			       [BalanceAmount],[CurrentAmount],[PaymentAmount],[Amountlessthan0days],[Amountlessthan30days],
 				   [Amountlessthan60days],[Amountlessthan90days],[Amountlessthan120days],[Amountmorethan120days],
 				   [InvoiceAmount],[CMAmount],[CreditMemoAmount],[CreditMemoUsed],
@@ -722,6 +758,11 @@ BEGIN
 	                        MJD.[ReferenceId],
 							UPPER(ISNULL(CST.[Name],'')),
 						    UPPER(ISNULL(CST.[CustomerCode],'')),
+							CASE 
+								WHEN CST.CustomerAffiliationId = @exte_cusId THEN UPPER(@exte_cus)
+								WHEN CST.CustomerAffiliationId = @inter_cusId THEN UPPER(@inter_cus)
+								ELSE UPPER(@affi_cus)
+							END AS CustomerAffiliation,
 							ISNULL(SUM(MJD.[Debit]),0) - ISNULL(SUM(MJD.[Credit]),0),
 							0,
 							0,
@@ -805,7 +846,7 @@ BEGIN
 			AND CAST(MJH.[PostedDate] AS DATE) <= CAST(@AsOfDate AS DATE) 
 			AND MJH.[MasterCompanyId] = @Mastercompanyid  
 			AND @IsCredits = 1
-			GROUP BY MJH.[ManualJournalHeaderId],MJD.[ReferenceId],CST.[Name],CST.[CustomerCode],MJH.[JournalNumber], 
+			GROUP BY MJH.[ManualJournalHeaderId],MJD.[ReferenceId],CST.[Name],CST.[CustomerCode],CST.CustomerAffiliationId,MJH.[JournalNumber], 
 				MJH.[PostedDate],CTM.[Name],ctm.[Code],ctm.[NetDays],
 				MSD.[Level1Id],MSD.[Level2Id],MSD.[Level3Id],MSD.[Level4Id],MSD.[Level5Id],MSD.[Level6Id],MSD.[Level7Id],MSD.[Level8Id],MSD.[Level9Id],MSD.[Level10Id],
 				MSL1.[Code], MSL1.[Description],
@@ -822,7 +863,7 @@ BEGIN
 				
 			-- SUSPENSE AND UNAPPLIED CASH   --
 
-			INSERT INTO #TEMPInvoiceRecords([BillingInvoicingId],[CustomerId],[CustomerName],[CustomerCode],
+			INSERT INTO #TEMPInvoiceRecords([BillingInvoicingId],[CustomerId],[CustomerName],[CustomerCode],[CustomerAffiliation],
 			       [BalanceAmount],[CurrentAmount],[PaymentAmount],[Amountlessthan0days],[Amountlessthan30days],
 				   [Amountlessthan60days],[Amountlessthan90days],[Amountlessthan120days],[Amountmorethan120days],
 				   [InvoiceAmount],[CMAmount],[CreditMemoAmount],[CreditMemoUsed],
@@ -832,7 +873,12 @@ BEGIN
 			SELECT DISTINCT CCP.[CustomerCreditPaymentDetailId],
 			                C.[CustomerId],     
 							UPPER(C.[Name]),
-					        UPPER(C.[CustomerCode]),						
+					        UPPER(C.[CustomerCode]),
+							CASE 
+								WHEN CustomerAffiliationId = @exte_cusId THEN UPPER(@exte_cus)
+								WHEN CustomerAffiliationId = @inter_cusId THEN UPPER(@inter_cus)
+								ELSE UPPER(@affi_cus)
+							END AS CustomerAffiliation,
 							CCP.[RemainingAmount],
 							0,
 							0,
@@ -885,7 +931,7 @@ BEGIN
 				AND CCP.[MasterCompanyId] = @MasterCompanyid  
 				AND @IsUnappliedAmounts = 1		
 
-			SELECT  [CustomerId],[CustomerName],[CustomerCode],
+			SELECT  [CustomerId],[CustomerName],[CustomerCode],[CustomerAffiliation],
 					ISNULL(SUM([BalanceAmount]),0) [BalanceAmount],
 					CASE WHEN [IsCreditMemo] = 0 THEN ISNULL((ISNULL(SUM([Amountlessthan0days]),0) + ISNULL(SUM([Amountlessthan30days]),0) + ISNULL(SUM([Amountlessthan60days]),0) + ISNULL(SUM([Amountlessthan90days]),0) + ISNULL(SUM([Amountlessthan120days]),0) + ISNULL(SUM([Amountmorethan120days]),0) + ISNULL(SUM([CreditMemoAmount]),0)),0) ELSE CASE WHEN [StatusId] = @ClosedCreditMemoStatus THEN 0 ELSE ISNULL(SUM([CreditMemoAmount]),0) END END AS [CurrentAmount], 
 					ISNULL(SUM([PaymentAmount]),0) [PaymentAmount],									   
@@ -905,6 +951,7 @@ BEGIN
 			 INTO #TempResult1 FROM #TEMPInvoiceRecords		
 			 WHERE((ISNULL(@CustomerName,'') ='' OR [CustomerName] LIKE '%' + @CustomerName+'%') AND
 				  (ISNULL(@CustomerCode,'') ='' OR [CustomerCode] LIKE '%' + @CustomerCode + '%') AND					
+				  (ISNULL(@CustomerAffiliation,'') ='' OR [CustomerAffiliation] LIKE '%' + @CustomerAffiliation + '%') AND	
 				  (ISNULL(@BalanceAmount,0) = 0 OR [BalanceAmount] = @BalanceAmount) AND	
 				  (ISNULL(@CurrentAmount,0) = 0 OR [CurrentAmount] = @CurrentAmount) AND	
 				  (ISNULL(@ReceivedAmount,0) = 0 OR [ReceivedAmount] = @ReceivedAmount) AND	
@@ -937,7 +984,7 @@ BEGIN
 				  (ISNULL(@Level9,'') ='' OR [Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,','))) AND     
 				  (ISNULL(@Level10,'') =''  OR [Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,','))) AND
 				  (ISNULL(@LegalEntityName,'') ='' OR [LegalEntityName] LIKE '%' + @LegalEntityName + '%')) 
-			GROUP BY [CustomerId],[CustomerName],[CustomerCode],[LegalEntityName],
+			GROUP BY [CustomerId],[CustomerName],[CustomerCode],[CustomerAffiliation],[LegalEntityName],
 					 [level1],[level2],[level3],[level4],[level5],[level6],[level7],[level8],[level9],[level10],
 					 [IsCreditMemo],[StatusId]	
 				 		
@@ -965,7 +1012,9 @@ BEGIN
 			CASE WHEN (@SortOrder=1  AND @SortColumn='CUSTOMERNAME') THEN [CustomerName] END ASC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='CUSTOMERNAME') THEN [CustomerName] END DESC,
 			CASE WHEN (@SortOrder=1  AND @SortColumn='CUSTOMERCODE') THEN [CustomerCode] END ASC,
-			CASE WHEN (@SortOrder=-1 AND @SortColumn='CUSTOMERCODE') THEN [CustomerCode] END DESC,			
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='CUSTOMERCODE') THEN [CustomerCode] END DESC,	
+			CASE WHEN (@SortOrder=1  AND @SortColumn='CUSTOMERAFFILIATION') THEN [CustomerAffiliation] END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='CUSTOMERAFFILIATION') THEN [CustomerAffiliation] END DESC,
 			CASE WHEN (@SortOrder=1  AND @SortColumn='BALANCEAMOUNT') THEN [BalanceAmount] END ASC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='BALANCEAMOUNT') THEN [BalanceAmount] END DESC,
 			CASE WHEN (@SortOrder=1  AND @SortColumn='CURRENTAMOUNT') THEN [CurrentAmount] END ASC,
@@ -1028,6 +1077,7 @@ BEGIN
 				[CustomerId] BIGINT NULL,
 				[CustomerName] VARCHAR(200) NULL,
 				[CustomerCode] VARCHAR(50) NULL,
+				[CustomerAffiliation] VARCHAR(50) NULL,
 				[CurrencyCode] VARCHAR(50) NULL,
 				[DocType] VARCHAR(50) NULL,
 				[InvoiceNo] VARCHAR(50) NULL,
@@ -1085,7 +1135,7 @@ BEGIN
 			
 			-- WO IONVOICE DETAILS
 
-			INSERT INTO #TEMPInvoiceRecordsDetailsView([BillingInvoicingId],[CustomerId],[CustomerName],[CustomerCode],
+			INSERT INTO #TEMPInvoiceRecordsDetailsView([BillingInvoicingId],[CustomerId],[CustomerName],[CustomerCode],[CustomerAffiliation],
 											[CurrencyCode],[DocType],[InvoiceNo],InvoiceNumber,[InvoiceDate],[DSI],[DSO],[DSS],[DueDate],
 											[CustomerRef],[Salesperson],[CreditTerms],
 											[BalanceAmount],[CurrentAmount],[PaymentAmount],
@@ -1100,6 +1150,11 @@ BEGIN
 							C.[CustomerId],
 							UPPER(ISNULL(C.[Name],'')),      
 							UPPER(ISNULL(C.[CustomerCode],'')),
+							CASE 
+								WHEN CustomerAffiliationId = @exte_cusId THEN UPPER(@exte_cus)
+								WHEN CustomerAffiliationId = @inter_cusId THEN UPPER(@inter_cus)
+								ELSE UPPER(@affi_cus)
+							END AS CustomerAffiliation,
 							UPPER(CR.[Code]), 
 							UPPER('AR-INV'),
 							UPPER(WO.WorkOrderNum) InvoiceNo, 
@@ -1222,7 +1277,7 @@ BEGIN
 
 			-- SO INVOICE DETAILS
 
-			INSERT INTO #TEMPInvoiceRecordsDetailsView([BillingInvoicingId],[CustomerId],[CustomerName],[CustomerCode],
+			INSERT INTO #TEMPInvoiceRecordsDetailsView([BillingInvoicingId],[CustomerId],[CustomerName],[CustomerCode],[CustomerAffiliation],
 											[CurrencyCode],[DocType],[InvoiceNo],[InvoiceNumber],[InvoiceDate],[DSI],[DSO],[DSS],[DueDate],
 											[CustomerRef],[Salesperson],[CreditTerms],
 											[BalanceAmount],[CurrentAmount],[PaymentAmount],
@@ -1236,7 +1291,12 @@ BEGIN
 				SELECT DISTINCT SOBI.[BillingInvoicingId],
 				                C.[CustomerId],  					
                                 UPPER(ISNULL(C.[Name],'')),      
-                                UPPER(ISNULL(C.[CustomerCode],'')),  
+                                UPPER(ISNULL(C.[CustomerCode],'')), 
+								CASE 
+									WHEN CustomerAffiliationId = @exte_cusId THEN UPPER(@exte_cus)
+									WHEN CustomerAffiliationId = @inter_cusId THEN UPPER(@inter_cus)
+									ELSE UPPER(@affi_cus)
+								END AS CustomerAffiliation,
 								UPPER(CR.[Code]), 
 								UPPER('AR-INV'),
 								UPPER(SO.SalesOrderNumber) InvoiceNo, 
@@ -1359,7 +1419,7 @@ BEGIN
 			
 			-- EXCHANGE SO INVOICE DETAILS --
 
-			INSERT INTO #TEMPInvoiceRecordsDetailsView([BillingInvoicingId],[CustomerId],[CustomerName],[CustomerCode],
+			INSERT INTO #TEMPInvoiceRecordsDetailsView([BillingInvoicingId],[CustomerId],[CustomerName],[CustomerCode],[CustomerAffiliation],
 														[CurrencyCode],[DocType],[InvoiceNo],InvoiceNumber,[InvoiceDate],[DSI],[DSO],[DSS],[DueDate],
 														[CustomerRef],[Salesperson],[CreditTerms],
 														[BalanceAmount],[CurrentAmount],[PaymentAmount],
@@ -1373,7 +1433,12 @@ BEGIN
 				SELECT DISTINCT ESOBI.SOBillingInvoicingId,
 				                C.[CustomerId],  					
                                 UPPER(ISNULL(C.[Name],'')),      
-                                UPPER(ISNULL(C.[CustomerCode],'')),  
+                                UPPER(ISNULL(C.[CustomerCode],'')),
+								CASE 
+									WHEN CustomerAffiliationId = @exte_cusId THEN UPPER(@exte_cus)
+									WHEN CustomerAffiliationId = @inter_cusId THEN UPPER(@inter_cus)
+									ELSE UPPER(@affi_cus)
+								END AS CustomerAffiliation,
 								UPPER(CR.[Code]), 
 								UPPER('Exchange Invoice'),
 								UPPER(ESO.ExchangeSalesOrderNumber),  
@@ -1490,7 +1555,7 @@ BEGIN
 				
 			-- CREDIT MEMO --
 
-			INSERT INTO #TEMPInvoiceRecordsDetailsView([BillingInvoicingId],[CustomerId],[CustomerName],[CustomerCode],
+			INSERT INTO #TEMPInvoiceRecordsDetailsView([BillingInvoicingId],[CustomerId],[CustomerName],[CustomerCode],[CustomerAffiliation],
 											[CurrencyCode],[DocType],[InvoiceNo],InvoiceNumber,[InvoiceDate],[DSI],[DSO],[DSS],[DueDate],
 											[CustomerRef],[Salesperson],[CreditTerms],
 											[BalanceAmount],[CurrentAmount],[PaymentAmount],
@@ -1505,6 +1570,11 @@ BEGIN
 			                C.[CustomerId],     
 							UPPER(C.[Name]),
 					        UPPER(C.[CustomerCode]),
+							CASE 
+								WHEN CustomerAffiliationId = @exte_cusId THEN UPPER(@exte_cus)
+								WHEN CustomerAffiliationId = @inter_cusId THEN UPPER(@inter_cus)
+								ELSE UPPER(@affi_cus)
+							END AS CustomerAffiliation,
 							UPPER(CR.[Code]),
 							UPPER('Credit-Memo'),
 							UPPER(CM.[CreditMemoNumber]), 
@@ -1578,7 +1648,7 @@ BEGIN
 							   
 			-- STAND ALONE CREDIT MEMO --
 				
-			INSERT INTO #TEMPInvoiceRecordsDetailsView([BillingInvoicingId],[CustomerId],[CustomerName],[CustomerCode],
+			INSERT INTO #TEMPInvoiceRecordsDetailsView([BillingInvoicingId],[CustomerId],[CustomerName],[CustomerCode],[CustomerAffiliation],
 														[CurrencyCode],[DocType],[InvoiceNo],InvoiceNumber,[InvoiceDate],[DSI],[DSO],[DSS],[DueDate],
 														[CustomerRef],[Salesperson],[CreditTerms],
 														[BalanceAmount],[CurrentAmount],[PaymentAmount],
@@ -1593,6 +1663,11 @@ BEGIN
 			                C.[CustomerId],     
 							UPPER(C.[Name]),
 					        UPPER(C.[CustomerCode]),
+							CASE 
+								WHEN CustomerAffiliationId = @exte_cusId THEN UPPER(@exte_cus)
+								WHEN CustomerAffiliationId = @inter_cusId THEN UPPER(@inter_cus)
+								ELSE UPPER(@affi_cus)
+							END AS CustomerAffiliation,
 							UPPER(CR.[Code]),
 							UPPER('Stand Alone Credit Memo'),
 							UPPER(CM.[CreditMemoNumber]), 
@@ -1666,7 +1741,7 @@ BEGIN
 
 			-- MANUAL JOURNAL --
 				
-			INSERT INTO #TEMPInvoiceRecordsDetailsView([BillingInvoicingId],[CustomerId],[CustomerName],[CustomerCode],
+			INSERT INTO #TEMPInvoiceRecordsDetailsView([BillingInvoicingId],[CustomerId],[CustomerName],[CustomerCode],[CustomerAffiliation],
 														[CurrencyCode],[DocType],[InvoiceNo],InvoiceNumber,[InvoiceDate],[DSI],[DSO],[DSS],[DueDate],
 														[CustomerRef],[Salesperson],[CreditTerms],
 														[BalanceAmount],[CurrentAmount],[PaymentAmount],
@@ -1680,7 +1755,12 @@ BEGIN
 			SELECT DISTINCT MJH.[ManualJournalHeaderId],
 	                        MJD.[ReferenceId],
 							UPPER(ISNULL(CST.[Name],'')),
-						    UPPER(ISNULL(CST.[CustomerCode],'')), 						    
+						    UPPER(ISNULL(CST.[CustomerCode],'')),
+							CASE 
+								WHEN CST.CustomerAffiliationId = @exte_cusId THEN UPPER(@exte_cus)
+								WHEN CST.CustomerAffiliationId = @inter_cusId THEN UPPER(@inter_cus)
+								ELSE UPPER(@affi_cus)
+							END AS CustomerAffiliation,
 						    UPPER(CR.[Code]),
 							UPPER('Manual Journal'),
 							UPPER(MJH.[JournalNumber]), 
@@ -1778,7 +1858,7 @@ BEGIN
 			AND CAST(MJH.[PostedDate] AS DATE) <= CAST(@AsOfDate AS DATE) 
 			AND MJH.[MasterCompanyId] = @Mastercompanyid  
 			AND @IsCredits = 1
-			GROUP BY MJH.[ManualJournalHeaderId],MJD.[ReferenceId],CST.[Name],CST.[CustomerCode],CR.[Code],MJH.[JournalNumber], 
+			GROUP BY MJH.[ManualJournalHeaderId],MJD.[ReferenceId],CST.[Name],CST.[CustomerCode],CST.CustomerAffiliationId,CR.[Code],MJH.[JournalNumber], 
 				MJH.[PostedDate],CTM.[Name],ctm.[Code],ctm.[NetDays],
 				MSD.[Level1Id],MSD.[Level2Id],MSD.[Level3Id],MSD.[Level4Id],MSD.[Level5Id],MSD.[Level6Id],MSD.[Level7Id],MSD.[Level8Id],MSD.[Level9Id],MSD.[Level10Id],
 				MSL1.[Code], MSL1.[Description],
@@ -1795,7 +1875,7 @@ BEGIN
 						
 			-- SUSPENSE AND UNAPPLIED CASH   --
 
-			INSERT INTO #TEMPInvoiceRecordsDetailsView([BillingInvoicingId],[CustomerId],[CustomerName],[CustomerCode],
+			INSERT INTO #TEMPInvoiceRecordsDetailsView([BillingInvoicingId],[CustomerId],[CustomerName],[CustomerCode],[CustomerAffiliation],
 											[CurrencyCode],[DocType],[InvoiceNo],InvoiceNumber,[InvoiceDate],[DSI],[DSO],[DSS],[DueDate],
 											[CustomerRef],[Salesperson],[CreditTerms],
 											[BalanceAmount],[CurrentAmount],[PaymentAmount],
@@ -1810,6 +1890,11 @@ BEGIN
 			                C.[CustomerId],     
 							UPPER(C.[Name]),
 					        UPPER(C.[CustomerCode]),
+							CASE 
+								WHEN CustomerAffiliationId = @exte_cusId THEN UPPER(@exte_cus)
+								WHEN CustomerAffiliationId = @inter_cusId THEN UPPER(@inter_cus)
+								ELSE UPPER(@affi_cus)
+							END AS CustomerAffiliation,
 							'', --Currency,
 							UPPER('Suspense and Unapplied Cash'),
 							UPPER(CCP.[SuspenseUnappliedNumber]), 
@@ -1875,7 +1960,7 @@ BEGIN
 				AND CCP.[MasterCompanyId] = @MasterCompanyid  
 				AND @IsUnappliedAmounts = 1	
 
-   		    SELECT [BillingInvoicingId],[CustomerId],[CustomerName],[CustomerCode],
+   		    SELECT [BillingInvoicingId],[CustomerId],[CustomerName],[CustomerCode],[CustomerAffiliation],
 				   [CurrencyCode],[DocType],[InvoiceNo],InvoiceNumber,[InvoiceDate],[DSI],[DSO],[DSS],[DueDate],
 				   [CustomerRef],[Salesperson],[CreditTerms],											
 				   ISNULL((InvoiceAmount - ISNULL(InvoicePaidAmount,0)),0) AS [BalanceAmount],											
@@ -1892,6 +1977,7 @@ BEGIN
 			WHERE (
 			      (ISNULL(@CustomerName,'') ='' OR [CustomerName] LIKE '%' + @CustomerName+'%') AND
 				  (ISNULL(@CustomerCode,'') ='' OR [CustomerCode] LIKE '%' + @CustomerCode + '%') AND					
+				  (ISNULL(@CustomerAffiliation,'') ='' OR [CustomerAffiliation] LIKE '%' + @CustomerAffiliation + '%') AND	
 				  (ISNULL(@CurrencyCode,'') ='' OR [CurrencyCode] LIKE '%' + @CurrencyCode + '%') AND
 				  (ISNULL(@DocType,'') ='' OR [DocType] LIKE '%' + @DocType + '%') AND
 				  (ISNULL(@InvoiceNo,'') ='' OR [InvoiceNo] LIKE '%' + @InvoiceNo + '%') AND
@@ -1962,6 +2048,8 @@ BEGIN
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='CUSTOMERNAME') THEN [CustomerName] END DESC,
 			CASE WHEN (@SortOrder=1  AND @SortColumn='CUSTOMERCODE') THEN [CustomerCode] END ASC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='CUSTOMERCODE') THEN [CustomerCode] END DESC,
+			CASE WHEN (@SortOrder=1  AND @SortColumn='CUSTOMERAFFILIATION') THEN [CustomerAffiliation] END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='CUSTOMERAFFILIATION') THEN [CustomerAffiliation] END DESC,
 			CASE WHEN (@SortOrder=1  AND @SortColumn='CURRENCYCODE') THEN [CurrencyCode] END ASC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='CURRENCYCODE') THEN [CurrencyCode] END DESC,
 			CASE WHEN (@SortOrder=1  AND @SortColumn='DOCTYPE') THEN [DocType] END ASC,

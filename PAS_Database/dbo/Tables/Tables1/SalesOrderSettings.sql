@@ -21,6 +21,8 @@
     [AutoReserve]                   BIT           NULL,
     [AllowInvoiceBeforeShipping]    BIT           NULL,
     [EnforcePickTicketConfirmation] BIT           NULL,
+    [ATA13BFormTypeId]              INT           NULL,
+    [ATA13CFormTypeId]              INT           NULL,
     CONSTRAINT [PK_SalesOrderSettings] PRIMARY KEY CLUSTERED ([SalesOrderSettingId] ASC),
     CONSTRAINT [FK_SalesOrderSettings_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId]),
     CONSTRAINT [FK_SalesOrderSettings_MasterSalesOrderQuoteStatus_DefaultStatusId] FOREIGN KEY ([DefaultStatusId]) REFERENCES [dbo].[MasterSalesOrderQuoteStatus] ([Id]),

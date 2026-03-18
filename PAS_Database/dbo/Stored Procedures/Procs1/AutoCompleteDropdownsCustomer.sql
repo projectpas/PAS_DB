@@ -10,22 +10,24 @@
  **************************************************************           
  ** Change History           
  **************************************************************           
- ** PR   Date         Author		Change Description            
- ** --   --------     -------		--------------------------------          
-    1    12/23/2020   Hemant Saliya Created
-	1    05/05/2020   Hemant Saliya Added Try-catch & Content Managment
-	3    05/25/2020   Subhash Saliya Get Data From Customer type wise
+ ** PR   Date         Author				Change Description            
+ ** --   --------     -------				--------------------------------          
+    1    12/23/2020   Hemant Saliya			Created
+	1    05/05/2020   Hemant Saliya			Added Try-catch & Content Managment
+	3    05/25/2020   Subhash Saliya		Get Data From Customer type wise
+	4    03/17/2026   Amit Ghediya			add IncludeInternalCustomer flag for allow internal & Affiliate customer (PN-15762)
      
 -- EXEC [AutoCompleteDropdownsCustomer] '',1,25,'0',1,1
 **************************************************************/
 
-Create   PROCEDURE [dbo].[AutoCompleteDropdownsCustomer]
+CREATE   PROCEDURE [dbo].[AutoCompleteDropdownsCustomer]
 @StartWith VARCHAR(50),
 @IsActive bit = true,
 @Count VARCHAR(10) = '0',
 @Idlist VARCHAR(max) = '0',
 @MasterCompanyId int,
-@customerType int
+@customerType int,
+@isIncludeInternalCustomer bit = 0
 AS
 BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
@@ -34,7 +36,13 @@ BEGIN
 	BEGIN TRY
 		--BEGIN TRANSACTION
 			--BEGIN
-				DECLARE @Sql NVARCHAR(MAX);	
+				DECLARE @Sql NVARCHAR(MAX),
+						@ExternalCsutomer INT,
+						@InternalAffliteCsutomer VARCHAR(10);	
+
+				SELECT @ExternalCsutomer = [CustomerAffiliationId] FROM dbo.CustomerAffiliation WITH(NOLOCK) WHERE [AccountType] = 'External';
+				SELECT @InternalAffliteCsutomer = STRING_AGG(CustomerAffiliationId, ',') FROM CustomerAffiliation WHERE AccountType IN ('External','Internal', 'Affiliate');
+
 				IF(@Count = '0') 
 				   BEGIN
 				   set @Count='20';	
@@ -74,7 +82,11 @@ BEGIN
 									SELECT top 1 ARBalance FROM CustomerCreditTermsHistory cch WITH(NOLOCK)
 									WHERE c.CustomerId = cch.CustomerId order by CustomerCreditTermsHistoryId desc
 									) H 
-							WHERE (c.IsActive = 1 AND ISNULL(c.IsDeleted, 0) = 0 AND c.MasterCompanyId = @MasterCompanyId  AND (c.Name LIKE  '%'+ @StartWith + '%'))    AND (c.CustomerAffiliationId = 2)
+							WHERE (c.IsActive = 1 AND ISNULL(c.IsDeleted, 0) = 0 AND c.MasterCompanyId = @MasterCompanyId  AND (c.Name LIKE  '%'+ @StartWith + '%'))   
+							AND (
+									(@isIncludeInternalCustomer <> 1 AND c.CustomerAffiliationId = @ExternalCsutomer) -- for external
+								 OR (@isIncludeInternalCustomer = 1 AND c.CustomerAffiliationId IN (SELECT Item FROM dbo.SplitString(@InternalAffliteCsutomer, ','))) -- for external, internal & Affiliate 
+								)
 					   UNION     
 							SELECT DISTINCT
 								c.CustomerId,

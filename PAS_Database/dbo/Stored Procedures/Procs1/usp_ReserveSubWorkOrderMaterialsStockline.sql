@@ -15,7 +15,7 @@ EXEC [usp_ReserveSubWorkOrderMaterialsStockline]
 ** 4    06/27/2024  HEMANT SALIYA		Update Stockline Qty Issue fox for MTI(Same Stk with multiple Lines)
 ** 5    08/05/2024  HEMANT SALIYA	    Fixed MTI stk Reserve Qty was not updating
 ** 6    11/22/2024	Devendra Shekh		Modified (added fiels  ReservedById, ReservedDate for SubWorkOrderMaterialStockLine and SubWorkOrderMaterialStockLineKit)
-
+ **7    18/Mar/2026	 Rajesh Gami		Added UOM Changes [PN-15714]   
 DECLARE @p1 dbo.SubWOMaterialsStocklineType
 
 INSERT INTO @p1 values(65,72,87,1073,4,6,1,14,6,N'REPAIR',N'FLYSKY CT6B FS-CT6B',N'USED FOR WING REPAIR',5,3,1,N'CNTL-000463',N'ID_NUM-000001',N'STL-000123',N'',N'ADMIN ADMIN',1)
@@ -54,10 +54,10 @@ BEGIN
 					DECLARE @SubWorkOrderMaterialsId BIGINT;
 					DECLARE @ProvisionId BIGINT;
 					DECLARE @IsSerialised BIT;
-					DECLARE @stockLineQty INT;
-					DECLARE @stockLineQtyAvailable INT;
+					DECLARE @stockLineQty [decimal](18,6);
+					DECLARE @stockLineQtyAvailable [decimal](18,6);
 					DECLARE @UpdateBy varchar(200);
-					DECLARE @ReservedQty bigint = 0;
+					DECLARE @ReservedQty [decimal](18,6) = 0;
 					DECLARE @IsKit BIGINT = 0;
 					DECLARE @ActionId INT = 0;
 					DECLARE @TotalCountsBoth INT;
@@ -95,9 +95,9 @@ BEGIN
 						[Condition] VARCHAR(500) NULL,
 						[PartNumber] VARCHAR(500) NULL,
 						[PartDescription] VARCHAR(max) NULL,
-						[Quantity] INT NULL,
-						[QtyToBeReserved] INT NULL,
-						[QuantityActReserved] INT NULL,
+						[Quantity] [decimal](18,6) NULL,
+						[QtyToBeReserved] [decimal](18,6) NULL,
+						[QuantityActReserved] [decimal](18,6) NULL,
 						[ControlNo] VARCHAR(500) NULL,
 						[ControlId] VARCHAR(500) NULL,
 						[StockLineNumber] VARCHAR(500) NULL,
@@ -106,7 +106,7 @@ BEGIN
 						[IsStocklineAdded] BIT NULL,
 						[MasterCompanyId] BIGINT NULL,
 						[UpdatedBy] VARCHAR(500) NULL,
-						[UnitCost] DECIMAL(18,2),
+						[UnitCost] [decimal](18,6),
 						[IsSerialized] BIT,
 						[KitId] BIGINT NULL,
 						[IsAltPart] [BIT] NULL,

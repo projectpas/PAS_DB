@@ -1,4 +1,5 @@
-﻿/*************************************************************   
+﻿
+/*************************************************************   
 ** Author:  <Hemant Saliya>  
 ** Create date: <12/30/2021>  
 ** Description: <Save Work Order Materials Un Reserve Stockline Details>  
@@ -16,7 +17,7 @@ EXEC [usp_UnReserveWorkOrderMaterialsStockline]
 ** 5    08/05/2024  HEMANT SALIYA	 Fixed MTI stk Reserve Qty was not updating
 ** 6    10/08/2024  RAJESH GAMI 	 Implement the ReferenceNumber column data into SubWOMaterial | Kit Stockline table.
 ** 7    11/22/2024	Devendra Shekh	 Modified (added fiels IssuedById, IssuedDate for SubWorkOrderMaterialStockLine AND SubWorkOrderMaterialStockLineKit)
-
+***8    18/Mar/2026	Rajesh Gami		 Added UOM Changes [PN-15714]  
 DECLARE @p1 dbo.SubWOMaterialsStocklineType
 
 INSERT INTO @p1 values(65,72,87,1073,4,6,1,14,6,N'REPAIR',N'FLYSKY CT6B FS-CT6B',N'USED FOR WING REPAIR',5,3,1,N'CNTL-000463',N'ID_NUM-000001',N'STL-000123',N'',N'ADMIN ADMIN',1)
@@ -59,10 +60,10 @@ BEGIN
 					DECLARE @PartStatus INT;
 					DECLARE @SubWorkOrderMaterialsId BIGINT;
 					DECLARE @IsSerialised BIT;
-					DECLARE @stockLineQty INT;
-					DECLARE @stockLineQtyAvailable INT;
+					DECLARE @stockLineQty [decimal](18,6);
+					DECLARE @stockLineQtyAvailable [decimal](18,6);
 					DECLARE @UpdateBy varchar(200);
-					DECLARE @UnReservedQty bigint = 0;
+					DECLARE @UnReservedQty [decimal](18,6) = 0;
 					DECLARE @IsKit BIGINT = 0;
 					DECLARE @historyPartNumber VARCHAR(150);
 					DECLARE @MaterialRefNo VARCHAR(100) = 'UnReserve', @SubWONumber VARCHAR(100);
@@ -102,9 +103,9 @@ BEGIN
 						[Condition] VARCHAR(500) NULL,
 						[PartNumber] VARCHAR(500) NULL,
 						[PartDescription] VARCHAR(max) NULL,
-						[Quantity] INT NULL,
-						[QtyToBeReserved] INT NULL,
-						[QuantityActUnReserved] INT NULL,
+						[Quantity] [decimal](18,6) NULL,
+						[QtyToBeReserved] [decimal](18,6) NULL,
+						[QuantityActUnReserved] [decimal](18,6) NULL,
 						[ControlNo] VARCHAR(500) NULL,
 						[ControlId] VARCHAR(500) NULL,
 						[StockLineNumber] VARCHAR(500) NULL,
@@ -114,7 +115,7 @@ BEGIN
 						[MasterCompanyId] BIGINT NULL,
 						[UpdatedBy] VARCHAR(500) NULL,
 						[UpdatedById] BIGINT NULL,
-						[UnitCost] DECIMAL(18,2),
+						[UnitCost] [decimal](18,6),
 						[IsSerialized] BIT,
 						[KitId] BIGINT NULL
 					)
@@ -215,7 +216,7 @@ BEGIN
 								@historySubWorkOrderId BIGINT,@HistoryQtyReserved VARCHAR(MAX),@HistoryQuantityActReserved VARCHAR(MAX),@historyReservedById BIGINT,
 								@historyEmployeeName VARCHAR(100),@historyMasterCompanyId BIGINT,@historytotalReserved VARCHAR(MAX),@TemplateBody NVARCHAR(MAX),
 								@SubWorkOrderNum VARCHAR(MAX),@ConditionId BIGINT,@ConditionCode VARCHAR(MAX),@HistoryStockLineId BIGINT,@HistoryStockLineNum VARCHAR(MAX),
-								@WorkFlowWorkOrderId BIGINT,@SubWorkOrderPartNoId BIGINT,@historyQuantity BIGINT,@historyQtyToBeReserved BIGINT, @KITID BIGINT;
+								@WorkFlowWorkOrderId BIGINT,@SubWorkOrderPartNoId BIGINT,@historyQuantity [decimal](18,6),@historyQtyToBeReserved [decimal](18,6), @KITID BIGINT;
 
 						SELECT @historyModuleId = moduleId FROM Module WHERE ModuleName = 'SubWorkOrder';
 						SELECT @historySubModuleId = moduleId FROM Module WHERE ModuleName = 'SubWorkOrderMPN';

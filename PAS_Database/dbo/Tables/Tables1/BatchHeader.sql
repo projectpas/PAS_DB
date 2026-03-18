@@ -9,9 +9,9 @@
     [StatusName]           VARCHAR (200)   NULL,
     [JournalTypeId]        BIGINT          NOT NULL,
     [JournalTypeName]      VARCHAR (200)   NULL,
-    [TotalDebit]           DECIMAL (18, 2) NULL,
-    [TotalCredit]          DECIMAL (18, 2) NULL,
-    [TotalBalance]         DECIMAL (18, 2) NULL,
+    [TotalDebit]           DECIMAL (18, 6) NULL,
+    [TotalCredit]          DECIMAL (18, 6) NULL,
+    [TotalBalance]         DECIMAL (18, 6) NULL,
     [MasterCompanyId]      INT             NOT NULL,
     [CreatedBy]            VARCHAR (256)   NOT NULL,
     [UpdatedBy]            VARCHAR (256)   NOT NULL,
@@ -28,6 +28,4 @@
     [APPostedDate]         DATETIME        NULL,
     CONSTRAINT [PK_JournalBatchHeader] PRIMARY KEY CLUSTERED ([JournalBatchHeaderId] ASC)
 );
-
-
 

@@ -1,4 +1,5 @@
-﻿/*************************************************************   
+﻿
+/*************************************************************   
 ** Author:  <Hemant Saliya>  
 ** Create date: <02/07/2022>  
 ** Description: <Save Sub Work Order Materials Issue Stockline Details>  
@@ -15,7 +16,7 @@ EXEC [usp_UnIssueSubWorkOrderMaterialsStockline]
 ** 4    10/08/2024  RAJESH GAMI 	 Implement the ReferenceNumber column data into SubWOMaterial | Kit Stockline table.
 ** 5    11/22/2024	Devendra Shekh	 Modified (added fiels IssuedById, IssuedDate for SubWorkOrderMaterialStockLine and SubWorkOrderMaterialStockLineKit)
 ** 6	24/04/2025  Devendra Shekh   Modify (Added [IsManualText] check for DistributionSetup)
-
+** 7    17/Mar/2026  Rajesh Gami		Added UOM Changes [PN-15714]
 declare @p1 dbo.SubWOMaterialsStocklineType
 insert into @p1 values(3801,187,161,79,161326,20751,7,1,10,2,N'NE',N'PART9',N'A COCKPIT OR FLIGHT DECK IS THE AREA, USUALLY NEAR THE FRONT OF AN AIRCRAFT OR SPACECRAFT, FROM WHICH A PILOT CONTROLS THE AIRCRAFT. THE COCKPIT OF AN AIRCRAFT CONTAINS FLIGHT INSTRUMENTS ON AN INSTRUMENT PANEL, AND THE CONTROLS THAT ENABLE THE PILOT TO FLY THE AIRCRAFT',1,0,0,0,0,1,N'CNTL-001540',N'ID_NUM-000010',N'STL000004',N'',N'ADMIN User',1,0,0,0,0,0)
 
@@ -52,14 +53,14 @@ BEGIN
 					DECLARE @PartStatus INT;
 					DECLARE @SubWorkOrderMaterialsId BIGINT;
 					DECLARE @IsSerialised BIT;
-					DECLARE @stockLineQty INT;
-					DECLARE @stockLineQtyAvailable INT;
+					DECLARE @stockLineQty [decimal](18,6);
+					DECLARE @stockLineQtyAvailable [decimal](18,6);
 					DECLARE @UpdateBy varchar(200);
-					DECLARE @IssueQty bigint = 0;
+					DECLARE @IssueQty [decimal](18,6) = 0;
 					DECLARE @WOTypeId INT= 0;
 					DECLARE @laborType varchar(200)='WOP-PartsIssued';
                     DECLARE @issued bit=0;
-                    DECLARE @Amount decimal(18,2);
+                    DECLARE @Amount [decimal](18,6);
                     DECLARE @ModuleName varchar(200)='WOP-PartsIssued';
 					DECLARE @IsKit BIGINT = 0;
 					DECLARE @DistributionMasterId BIGINT = 0;
@@ -71,8 +72,8 @@ BEGIN
 								@historySubWorkOrderId BIGINT,@HistoryQtyReserved VARCHAR(MAX),@HistoryQuantityActReserved VARCHAR(MAX),@historyReservedById BIGINT,
 								@historyEmployeeName VARCHAR(100),@historyMasterCompanyId BIGINT,@historytotalReserved VARCHAR(MAX),@TemplateBody NVARCHAR(MAX),
 								@SubWorkOrderNum VARCHAR(MAX),@ConditionId BIGINT,@ConditionCode VARCHAR(MAX),@HistoryStockLineId BIGINT,@HistoryStockLineNum VARCHAR(MAX),
-								@SubWorkOrderPartNoId BIGINT,@historyQuantity BIGINT,@historyQtyToBeReserved BIGINT, @KITID BIGINT,
-								@ItemMasterId BIGINT,@Partnumber VARCHAR(200),@MPNPartnumber VARCHAR(200),@historyQuantityActIssued BIGINT
+								@SubWorkOrderPartNoId BIGINT,@historyQuantity BIGINT,@historyQtyToBeReserved [decimal](18,6), @KITID BIGINT,
+								@ItemMasterId BIGINT,@Partnumber VARCHAR(200),@MPNPartnumber VARCHAR(200),@historyQuantityActIssued [decimal](18,6)
 								,@OldValue VARCHAR(MAX)='' ,@NewValue VARCHAR(MAX) ='' 
 					DECLARE @MaterialRefNo VARCHAR(100) = 'UnIssue', @SubWONumber VARCHAR(100);
 
@@ -113,9 +114,9 @@ BEGIN
 						[Condition] VARCHAR(500) NULL,
 						[PartNumber] VARCHAR(500) NULL,
 						[PartDescription] VARCHAR(max) NULL,
-						[Quantity] INT NULL,
-						[QtyToBeReserved] INT NULL,
-						[QuantityActUnIssued] INT NULL,
+						[Quantity] [decimal](18,6) NULL,
+						[QtyToBeReserved] [decimal](18,6) NULL,
+						[QuantityActUnIssued] [decimal](18,6) NULL,
 						[ControlNo] VARCHAR(500) NULL,
 						[ControlId] VARCHAR(500) NULL,
 						[StockLineNumber] VARCHAR(500) NULL,
@@ -125,7 +126,7 @@ BEGIN
 						[MasterCompanyId] BIGINT NULL,
 						[UpdatedBy] VARCHAR(500) NULL,
 						[UpdatedById] BIGINT NULL,
-						[UnitCost] DECIMAL(18,2),
+						[UnitCost] [decimal](18,6),
 						[IsSerialized] BIT,
 						[KitId] BIGINT NULL
 					)
@@ -315,7 +316,7 @@ BEGIN
 						SELECT @historyEmployeeName = (FirstName +' '+ LastName) FROM dbo.Employee WITH(NOLOCK) WHERE EmployeeId = @historyReservedById;
 						SELECT @HistoryQtyReserved = CAST(QuantityReserved AS VARCHAR) FROM dbo.SubWorkOrderMaterials WOM WITH(NOLOCK) JOIN #tmpUnIssueWOMaterialsStockline tmpWOM ON tmpWOM.SubWorkOrderMaterialsId = WOM.SubWorkOrderMaterialsId AND tmpWOM.ID = @count;
 
-						SET @historytotalReserved = (CAST(@HistoryQtyReserved AS BIGINT) + CAST(@HistoryQuantityActReserved AS BIGINT));
+						SET @historytotalReserved = (CAST(@HistoryQtyReserved AS [decimal](18,6)) + CAST(@HistoryQuantityActReserved AS [decimal](18,6)));
 
 						SET @TemplateBody = REPLACE(@TemplateBody, '##PN##', ISNULL(@Partnumber,''));
 						SET @TemplateBody = REPLACE(@TemplateBody, '##MPN##', ISNULL(@MPNPartnumber,''));

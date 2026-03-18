@@ -10,8 +10,8 @@
     [JournalTypeId]         BIGINT          NULL,
     [JournalTypeName]       VARCHAR (200)   NULL,
     [IsDebit]               BIT             NULL,
-    [DebitAmount]           DECIMAL (18, 2) NULL,
-    [CreditAmount]          DECIMAL (18, 2) NULL,
+    [DebitAmount]           DECIMAL (18, 6) NULL,
+    [CreditAmount]          DECIMAL (18, 6) NULL,
     [ManagementStructureId] BIGINT          NULL,
     [ModuleName]            VARCHAR (200)   NULL,
     [MasterCompanyId]       INT             NOT NULL,
@@ -37,8 +37,4 @@
     [APPostedDate]          DATETIME        NULL,
     CONSTRAINT [PK_JournalBatchDetails] PRIMARY KEY CLUSTERED ([JournalBatchDetailId] ASC)
 );
-
-
-
-
 

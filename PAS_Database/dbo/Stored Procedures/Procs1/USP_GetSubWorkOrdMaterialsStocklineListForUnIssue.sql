@@ -13,11 +13,11 @@
  **************************************************************           
   ** Change History           
  **************************************************************           
- ** PR   Date         Author		Change Description            
- ** --   --------     -------		--------------------------------          
-    1    02/07/2022   Hemant Saliya Created
-	2    12/19/2023   Hemant Saliya Updated for Add Kit Items
-
+ ** PR   Date         Author			Change Description            
+ ** --   --------     -------			--------------------------------          
+    1    02/07/2022   Hemant Saliya		Created
+	2    12/19/2023   Hemant Saliya		Updated for Add Kit Items
+*** 3    17/Mar/2026  Rajesh Gami		Added UOM Changes [PN-15714]     
      
  EXECUTE USP_GetSubWorkOrdMaterialsStocklineListForUnIssue 99,15
 
@@ -50,7 +50,7 @@ SET NOCOUNT ON
 				BEGIN
 					SET @ItemMasterId = NULL;
 				END
-
+		;WITH cte AS(
 				SELECT  WOM.WorkOrderId,
 						WOM.SubWorkOrderId,
 						WOM.SubWOPartNoId,
@@ -93,7 +93,7 @@ SET NOCOUNT ON
 						SL.QuantityOnHand AS QuantityOnHand,
 						ISNULL(SL.QuantityOnOrder, 0) AS StocklineQuantityOnOrder,
 						ISNULL(SL.QuantityTurnIn, 0) AS StocklineQuantityTurnIn,
-						SL.UnitOfMeasure,
+						uomConsume.ShortName UnitOfMeasure,
 						P.Description AS Provision,
 						P.StatusCode AS ProvisionStatusCode,
 						CASE 
@@ -116,7 +116,9 @@ SET NOCOUNT ON
 						CASE WHEN WOMS.SWOMStockLineId > 0 THEN 1 ELSE 0 END AS IsStocklineAdded,
 						0 AS KitId,
 						WOMS.IsAltPart,
-						WOMS.IsEquPart
+						WOMS.IsEquPart,
+						uomStock.ShortName AS StockUOM, 
+						uomConsume.ShortName AS ConsumeUOM
 					FROM dbo.SubWorkOrderMaterials WOM WITH (NOLOCK)  
 						JOIN dbo.ItemMaster IM WITH (NOLOCK) ON IM.ItemMasterId = WOM.ItemMasterId
 						JOIN dbo.SubWorkOrderMaterialStockLine WOMS WITH (NOLOCK) ON WOMS.SubWorkOrderMaterialsId = WOM.SubWorkOrderMaterialsId AND WOMS.ProvisionId = @ProvisionId AND WOMS.QtyIssued > 0
@@ -127,6 +129,8 @@ SET NOCOUNT ON
 						LEFT JOIN dbo.Provision P WITH (NOLOCK) ON P.ProvisionId = WOM.ProvisionId
 						LEFT JOIN dbo.Provision SP WITH (NOLOCK) ON SP.ProvisionId = WOMS.ProvisionId 
 						LEFT JOIN dbo.UnitOfMeasure UOM WITH (NOLOCK) ON UOM.UnitOfMeasureId = WOM.UnitOfMeasureId
+						LEFT JOIN [dbo].[UnitOfMeasure] uomStock WITH(NOLOCK) ON uomStock.UnitOfMeasureId = SL.StockUnitOfMeasureId
+						LEFT JOIN [dbo].[UnitOfMeasure] uomConsume WITH(NOLOCK) ON uomConsume.UnitOfMeasureId = SL.ConsumeUnitOfMeasureId
 					WHERE WOM.SubWOPartNoId = @SubWOPartNoId AND SL.IsParent = 1 AND WOM.IsDeleted = 0 
 					AND (@ItemMasterId IS NULL OR im.ItemMasterId = @ItemMasterId OR IM_AltMain.ItemMasterId = @ItemMasterId OR IM_EquMain.ItemMasterId = @ItemMasterId)
 
@@ -175,7 +179,7 @@ SET NOCOUNT ON
 						SL.QuantityOnHand AS QuantityOnHand,
 						ISNULL(SL.QuantityOnOrder, 0) AS StocklineQuantityOnOrder,
 						ISNULL(SL.QuantityTurnIn, 0) AS StocklineQuantityTurnIn,
-						SL.UnitOfMeasure,
+						uomConsume.ShortName UnitOfMeasure,
 						P.Description AS Provision,
 						P.StatusCode AS ProvisionStatusCode,
 						CASE 
@@ -200,7 +204,9 @@ SET NOCOUNT ON
 						dbo.SubWorkOrderMaterialsKit WOMK WITH (NOLOCK) ON WOMK.SubWorkOrderMaterialsKitMappingId = WOMKM.SubWorkOrderMaterialsKitMappingId
 						WHERE WOMK.SubWOPartNoId = @SubWOPartNoId AND WOMK.SubWorkOrderMaterialsKitId = WOM.SubWorkOrderMaterialsKitId) AS KitId,
 						WOMS.IsAltPart,
-						WOMS.IsEquPart
+						WOMS.IsEquPart,
+						uomStock.ShortName AS StockUOM, 
+						uomConsume.ShortName AS ConsumeUOM
 					FROM dbo.SubWorkOrderMaterialsKit WOM WITH (NOLOCK)  
 						JOIN dbo.SubWorkOrderMaterialStockLineKit WOMS WITH (NOLOCK) ON WOMS.SubWorkOrderMaterialsKitId = WOM.SubWorkOrderMaterialsKitId AND WOMS.ProvisionId = @ProvisionId AND WOMS.QtyIssued > 0
 						JOIN dbo.ItemMaster IM WITH (NOLOCK) ON IM.ItemMasterId = WOMS.ItemMasterId
@@ -211,8 +217,66 @@ SET NOCOUNT ON
 						LEFT JOIN dbo.Provision P WITH (NOLOCK) ON P.ProvisionId = WOM.ProvisionId
 						LEFT JOIN dbo.Provision SP WITH (NOLOCK) ON SP.ProvisionId = WOMS.ProvisionId 
 						LEFT JOIN dbo.UnitOfMeasure UOM WITH (NOLOCK) ON UOM.UnitOfMeasureId = WOM.UnitOfMeasureId
+						LEFT JOIN [dbo].[UnitOfMeasure] uomStock WITH(NOLOCK) ON uomStock.UnitOfMeasureId = SL.StockUnitOfMeasureId
+						LEFT JOIN [dbo].[UnitOfMeasure] uomConsume WITH(NOLOCK) ON uomConsume.UnitOfMeasureId = SL.ConsumeUnitOfMeasureId
 					WHERE WOM.SubWOPartNoId = @SubWOPartNoId AND SL.IsParent = 1 AND WOM.IsDeleted = 0 AND (@ItemMasterId IS NULL OR im.ItemMasterId = @ItemMasterId OR IM_AltMain.ItemMasterId = @ItemMasterId OR IM_EquMain.ItemMasterId = @ItemMasterId)
+				) 
+				SELECT  
+					WorkOrderId,
+					SubWorkOrderId,
+					SubWOPartNoId,
+					SubWorkOrderMaterialsId,
+					ItemMasterId,
+					ConditionId,
+					MasterCompanyId,
+					dbo.fn_ConvertUOM(Quantity, StockUOM, ConsumeUOM, 0, MasterCompanyId) AS Quantity,
+					dbo.fn_ConvertUOM(QuantityReserved, StockUOM, ConsumeUOM, 0, MasterCompanyId) AS QuantityReserved,
+					dbo.fn_ConvertUOM(QuantityIssued, StockUOM, ConsumeUOM, 0, MasterCompanyId) AS QuantityIssued,
+					dbo.fn_ConvertUOM(QuantityOnOrder, StockUOM, ConsumeUOM, 0, MasterCompanyId) AS QuantityOnOrder,
+					dbo.fn_ConvertUOM(QtyToBeUnIssued, StockUOM, ConsumeUOM, 0, MasterCompanyId) AS QtyToBeUnIssued,
 
+					dbo.fn_ConvertUOM(UnitCost, StockUOM, ConsumeUOM, 1, MasterCompanyId) AS UnitCost,
+					dbo.fn_ConvertUOM(ExtendedCost, StockUOM, ConsumeUOM, 1, MasterCompanyId) AS ExtendedCost,
+					TaskId,
+					ProvisionId,
+					PartNumber,
+					PartDescription,
+					MainPartNumber,
+					MainPartDescription,
+					MainManufacturer,
+					MainCondition,
+					StocklineId,
+					Condition,
+					StockLineNumber,
+					ControlNumber,
+					IdNumber,
+					Manufacturer,
+					SerialNumber,
+					dbo.fn_ConvertUOM(QuantityAvailable, StockUOM, ConsumeUOM, 0, MasterCompanyId) AS QuantityAvailable,
+					dbo.fn_ConvertUOM(QuantityOnHand, StockUOM, ConsumeUOM, 0, MasterCompanyId) AS QuantityOnHand,
+					dbo.fn_ConvertUOM(StocklineQuantityOnOrder, StockUOM, ConsumeUOM, 0, MasterCompanyId) AS StocklineQuantityOnOrder,
+					dbo.fn_ConvertUOM(StocklineQuantityTurnIn, StockUOM, ConsumeUOM, 0, MasterCompanyId) AS StocklineQuantityTurnIn,
+					UnitOfMeasure,
+					Provision,
+					ProvisionStatusCode,
+					StockType,
+					dbo.fn_ConvertUOM(MSQuantityRequsted, StockUOM, ConsumeUOM, 0, MasterCompanyId) AS MSQuantityRequsted,
+					dbo.fn_ConvertUOM(MSQuantityReserved, StockUOM, ConsumeUOM, 0, MasterCompanyId) AS MSQuantityReserved,
+					dbo.fn_ConvertUOM(MSQuantityIssued, StockUOM, ConsumeUOM, 0, MasterCompanyId) AS MSQuantityIssued,
+					dbo.fn_ConvertUOM(QuantityPicked, StockUOM, ConsumeUOM, 0, MasterCompanyId) AS QuantityPicked,
+					dbo.fn_ConvertUOM(MaterialsQuantityPicked, StockUOM, ConsumeUOM, 0, MasterCompanyId) AS MaterialsQuantityPicked,
+					dbo.fn_ConvertUOM(MSQtyToBeUnIssued, StockUOM, ConsumeUOM, 0, MasterCompanyId) AS MSQtyToBeUnIssued,
+					dbo.fn_ConvertUOM(SLUnitCost, StockUOM, ConsumeUOM, 1, MasterCompanyId) AS SLUnitCost,
+					dbo.fn_ConvertUOM(MSQunatityRemaining, StockUOM, ConsumeUOM, 0, MasterCompanyId) AS MSQunatityRemaining,
+					MatStlProvision,
+					MatStlProvisionCode,
+					IsStocklineAdded,
+					KitId,
+					IsAltPart,
+					IsEquPart,
+					StockUOM,
+					ConsumeUOM
+				FROM CTE;
 			END
 		COMMIT  TRANSACTION
 

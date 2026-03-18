@@ -11,16 +11,16 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------              
 	1    12/03/2026   Moin Bloch       Created PN-15605
-	
+*** 2    17/Mar/2026  Rajesh Gami	    Added UOM Changes [PN-15714]     	
 --  EXEC PROC [USP_UnReserveWorkOrderMaterialStockLineForRepairOrder]  24273,32556,26581,200491,1,0,1,'Admin User'
 
 **************************************************************/
-CREATE PROCEDURE [dbo].[USP_UnReserveWorkOrderMaterialStockLineForRepairOrder]
+CREATE   PROCEDURE [dbo].[USP_UnReserveWorkOrderMaterialStockLineForRepairOrder]
 @WorkOrderId BIGINT = NULL,
 @WOMStockLineId BIGINT = NULL,
 @WorkOrderMaterialsId BIGINT = NULL,
 @StockLineId BIGINT = NULL,
-@Quantity INT = NULL,
+@Quantity [decimal](18,6) = NULL,
 @IsKitType BIT = NULL,
 @MasterCompanyId INT = NULL,
 @UpdatedBy VARCHAR(256)= NULL
@@ -35,8 +35,8 @@ BEGIN
       DECLARE @WorkOrderModuleID INT,@StocklineHistoryUNReserveActionEnum BIGINT,@UpdatedDate DATETIME2(7) = GETUTCDATE()
 	  DECLARE @MaterialRefNo VARCHAR(100) = 'UnReserve', @WONumber VARCHAR(100);
 	  DECLARE @historySubModuleId BIGINT,@TemplateBody NVARCHAR(MAX)
-	  DECLARE @REPAIRProvisionId INT,@ProvisionId INT,@QtyReserved INT=0,@QtyIssued INT=0
-	  DECLARE @QuantityAvailable INT=0,@QuantityReserved INT=0,@WorkFlowWorkOrderId BIGINT,@WorkOrderPartNoId BIGINT
+	  DECLARE @REPAIRProvisionId INT,@ProvisionId INT,@QtyReserved [decimal](18,6)=0,@QtyIssued [decimal](18,6)=0
+	  DECLARE @QuantityAvailable [decimal](18,6)=0,@QuantityReserved [decimal](18,6)=0,@WorkFlowWorkOrderId BIGINT,@WorkOrderPartNoId BIGINT
 	  DECLARE @historyMasterCompanyId BIGINT,@historytotalReserved VARCHAR(MAX),@historyPartNumber VARCHAR(50)
 	-- Modules
 	  SELECT @WorkOrderModuleID = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName]='WorkOrder';	

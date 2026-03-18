@@ -1,5 +1,4 @@
-﻿
-/*************************************************************   
+﻿/*************************************************************   
 ** Author:  <Hemant Saliya>  
 ** Create date: <01/23/2023>  
 ** Description: <Save Work Order Materials reserve & Issue Stockline Details>  
@@ -24,6 +23,7 @@ EXEC [USP_AutoReserveIssueWorkOrderMaterials]
 ** 12	03/19/2025	Devendra Shekh	 Updated For Checking PMA/DER Restrict Parts
 ** 15   04/14/2025  HEMANT SALIYA    Added Work Order Work Flow Id for UpdateWOMaterialsCost
 ** 16   09/JAN/2026  Rajesh Gami	 UOM decimal places changes
+** 17   03/16/2026	 AMIT GHEDIYA	 Allow AR condition to reserve (PN-15562)
 EXEC USP_AutoReserveIssueWorkOrderMaterials 4933,'ADMIN ADMIN'
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[USP_AutoReserveIssueWorkOrderMaterials]
@@ -161,7 +161,7 @@ BEGIN
 						WHERE WOM.WorkFlowWorkOrderId = @WorkFlowWorkOrderId AND ISNULL(SL.QuantityAvailable,0) > 0 AND SL.IsParent = 1 AND WOM.IsDeleted = 0  
 							AND ISNULL((ISNULL(WOM.Quantity, 0) - (ISNULL(WOM.QuantityReserved, 0) + ISNULL(WOM.QuantityIssued, 0))) - (SELECT ISNULL(SUM(WOMSL.Quantity), 0) - (ISNULL(SUM(WOMSL.QtyReserved), 0) + ISNULL(SUM(WOMSL.QtyIssued), 0))  FROM dbo.WorkOrderMaterialStockLine WOMSL WITH(NOLOCK) WHERE WOM.WorkOrderMaterialsId = WOMSL.WorkOrderMaterialsId AND WOMSL.ProvisionId <> @ProvisionId), 0) > 0
 							AND (WOM.ProvisionId = @ProvisionId OR WOM.ProvisionId = @SubWOProvisionId)
-							AND (SELECT TOP 1 Description FROM DBO.Condition cnd WITH(NOLOCK) WHERE cnd.ConditionId = WOM.ConditionCodeId AND ISNULL(cnd.IsDeleted,0) = 0 AND ISNULL(cnd.IsActive,0) = 1) != @ARDesc
+							--AND (SELECT TOP 1 Description FROM DBO.Condition cnd WITH(NOLOCK) WHERE cnd.ConditionId = WOM.ConditionCodeId AND ISNULL(cnd.IsDeleted,0) = 0 AND ISNULL(cnd.IsActive,0) = 1) != @ARDesc
 							AND WOM.ItemMasterId IN (SELECT [ItemMasterId] FROM #AllowItemMasterIds)
 						
 						--PRINT '--Auto Reserve & Issue Stockline'

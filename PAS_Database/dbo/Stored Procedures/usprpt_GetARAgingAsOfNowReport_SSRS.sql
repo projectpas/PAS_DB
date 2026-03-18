@@ -21,7 +21,7 @@
 	5	 27-JAN-2026	Rajesh Gami			Added InvoiceNumber
 	6	 13-Feb-2026	Devendra Shekh		Added New param @id5 
 	7	 20-Feb-2026	Devendra Shekh		Added Missing Report Changes
-	8    17/March/2026	Amit Ghediya		add IncludeInternalCustomer flag for allow internal & Affiliate customer (PN-15762)
+	8    17/March/2026	Amit Ghediya		add IncludeInternalCustomer flag for allow internal & Affiliate customer(PN-15762)
 EXEC usprpt_GetARAgingAsOfNowReport_SSRS 
 **************************************************************/
 CREATE    PROCEDURE [dbo].[usprpt_GetARAgingAsOfNowReport_SSRS]
@@ -1025,7 +1025,7 @@ BEGIN
 				  (ISNULL(@Level9,'') ='' OR [Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,','))) AND     
 				  (ISNULL(@Level10,'') =''  OR [Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,','))) AND
 				  (ISNULL(@LegalEntityName,'') ='' OR [LegalEntityName] LIKE '%' + @LegalEntityName + '%')) 
-			GROUP BY [CustomerId],[CustomerName],[CustomerCode],[LegalEntityName],
+			GROUP BY [CustomerId],[CustomerName],[CustomerCode],[CustomerAffiliation],[LegalEntityName],
 					 [level1],[level2],[level3],[level4],[level5],[level6],[level7],[level8],[level9],[level10],
 					 [IsCreditMemo],[StatusId]
 				 			

@@ -41,6 +41,7 @@
 	25   10/09/2025   Vishal Suthar		Fixed an issue with reserving more quantity than requested when received more quantity from PO
 	26   12/24/2025   Vishal Suthar		Removed changes of Alt and Equ part which is causing the issue
 	27   12/27/2025   HEMANT SALIYA	    Handle ALT & EQU part reservation issue fix.
+	28   03/16/2026   AMIT GHEDIYA		Allow AR condition to reserve (PN-15562)
 
 exec dbo.USP_ReserveStocklineForReceivingPO @PurchaseOrderId=7671,@SelectedPartsToReserve=N'8963,8964,8965,8969',@UpdatedBy=N'Alex Torres',@AllowAutoIssue=default
 **************************************************************/  
@@ -160,7 +161,8 @@ BEGIN
 			SELECT StocklineId, Stk.PurchaseOrderPartRecordId FROM DBO.Stockline Stk WITH (NOLOCK) WHERE Stk.PurchaseOrderId = @PurchaseOrderId AND ((Stk.PurchaseOrderPartRecordId = @SelectedPurchaseOrderPartId) OR
 			Stk.PurchaseOrderPartRecordId IN (SELECT PurchaseOrderPartRecordId FROM DBO.PurchaseOrderPart POP WITH (NOLOCK) WHERE POP.ParentId = @SelectedPurchaseOrderPartId))
 			AND Stk.IsParent = 1 AND Stk.QuantityAvailable > 0 
-			AND STK.ConditionId != @AsRemoveConditionId ORDER BY StocklineId DESC; 
+			--AND STK.ConditionId != @AsRemoveConditionId 
+			ORDER BY StocklineId DESC; 
 
 			SELECT @StkLoopID = MAX(ID) FROM #tmpStockline;
 

@@ -4587,6 +4587,7 @@
     <Build Include="dbo\Tables\EmployeeImpersonationHistory.sql" />
     <Build Include="dbo\Stored Procedures\USP_AddEmployeeImpersonationHistory.sql" />
     <Build Include="dbo\Stored Procedures\USP_UnReserveWorkOrderMaterialStockLineForRepairOrder.sql" />
+    <Build Include="dbo\Stored Procedures\USP_DeleteSalesOrderQuoteCharge.sql" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Snapshots\PAS_DB_20220518_07-53-10.dacpac" />

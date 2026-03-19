@@ -20,6 +20,8 @@
 	4    01/01/2024   Devendra Shekh	updated for serialnumber for MPN
 	5    02/05/2024   Devendra Shekh	Multiple MPN with Same Part Number issue Resolved
 	6    31/10/2025   Amit Ghediya		added for location
+	7    12/Mar/2026  Vishal Suthar		added parameter to filter selected MPN part 
+	8    17/Mar/2026  Vishal Suthar		Fixed join for multiple MPN Pickticket
 
 EXEC DBO.SearchStockLinePickTicketPop_WO @ItemMasterIdlist=20751,@workOrderMaterialsId =618 ,@ConditionId=10,@WorkOrderId=3555,@WorkFlowWorkOrderId=3019,@IsMPNPickTicket=0,@IsMultiplePickTicket=0
 **************************************************************/ 
@@ -30,7 +32,8 @@ CREATE   PROCEDURE [dbo].[SearchStockLinePickTicketPop_WO]
 @WorkOrderId bigint,
 @WorkFlowWorkOrderId bigint = 0,
 @IsMPNPickTicket bit = 0,
-@IsMultiplePickTicket bit = 0
+@IsMultiplePickTicket bit = 0,
+@WorkFlowWorkOrderIds VARCHAR(256)
 AS
 BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
@@ -203,11 +206,9 @@ BEGIN
 							SELECT DISTINCT
 								CASE WHEN ISNULL(wop.RevisedItemmasterid, 0) > 0 THEN wop.RevisedPartNumber ELSE im.PartNumber END as 'PartNumber',
 				                CASE WHEN ISNULL(wop.RevisedItemmasterid, 0) > 0 THEN wop.RevisedPartDescription ELSE im.PartDescription END as 'Description', 
-								--im.PartNumber
 								 sl.StockLineId
 								,CASE WHEN ISNULL(wop.RevisedItemmasterid, 0) > 0 THEN wop.RevisedItemmasterid ELSE im.ItemMasterId END As PartId
 								,CASE WHEN ISNULL(wop.RevisedItemmasterid, 0) > 0 THEN wop.RevisedItemmasterid ELSE im.ItemMasterId END As ItemMasterId
-								--,im.PartDescription AS Description
 								,ig.Description AS ItemGroup
 								,mf.Name AS Manufacturer
 								,ISNULL(im.ManufacturerId, -1) AS ManufacturerId
@@ -243,6 +244,8 @@ BEGIN
 									 ,'S' AS MethodType
 									 ,CONVERT(BIT,0) AS PMA
 									 ,Smf.Name as StkLineManufacturer
+									 ,wop.ID AS WorkOrderMaterialsId
+									 ,wop.Quantity - ISNULL(Pick.QtyToShip,0) as QtyToPick
 								FROM DBO.ItemMaster im  WITH (NOLOCK)
 								JOIN DBO.StockLine sl WITH (NOLOCK) ON im.ItemMasterId = sl.ItemMasterId AND sl.IsDeleted = 0 
 									--AND sl.ConditionId = CASE WHEN @ConditionId  IS NOT NULL 
@@ -257,13 +260,13 @@ BEGIN
 								LEFT JOIN DBO.Customer cusTraceble WITH (NOLOCK) ON sl.TraceableTo = cusTraceble.CustomerId
 								LEFT JOIN DBO.Vendor vTraceble WITH (NOLOCK) ON sl.TraceableTo = vTraceble.VendorId
 								LEFT JOIN DBO.LegalEntity leTraceble WITH (NOLOCK) ON sl.TraceableTo = leTraceble.LegalEntityId
-								LEFT JOIN DBO.WOPickTicket Pick WITH (NOLOCK) ON Pick.WorkFlowWorkOrderId = wowf.WorkFlowWorkOrderId
+								LEFT JOIN DBO.WOPickTicket Pick WITH (NOLOCK) ON Pick.OrderPartId = wop.ID--Pick.WorkFlowWorkOrderId = wowf.WorkFlowWorkOrderId
 								LEFT JOIN (SELECT ItemMasterId, [Name],StockLineId FROM DBO.Stockline S WITH (NOLOCK) 
 								INNER JOIN DBO.Manufacturer M WITH (NOLOCK) ON M.ManufacturerId = S.ManufacturerId) Smf ON Smf.ItemMasterId = im.ItemMasterId 
 										AND Smf.StockLineId = sl.StockLineId
 								WHERE 
-								--im.ItemMasterId = @ItemMasterIdlist AND 
 								so.WorkOrderId = @WorkOrderId
+								AND wop.ID IN (SELECT Item FROM DBO.SPLITSTRING(@WorkFlowWorkOrderIds,','))
 							END
 				END
 				ELSE

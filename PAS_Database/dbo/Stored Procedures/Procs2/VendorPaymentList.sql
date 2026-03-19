@@ -55,6 +55,7 @@
 	39   19/02/2026   Amit Ghediya		update le name from le company code (PN-15520)
 	40   02/03/2026   Amit Ghediya		Updated for Add MJE in Partially payment & Pending payment for get update (PN-15622).
 	41   11/03/2026   Amit Ghediya		Updated for get isactive records (PN-15588).
+	42   19/03/2026   Amit Ghediya		Updated for get Vendor performa invoice number
  --EXEC VendorPaymentList 10,1,'ReceivingReconciliationId',1,'','',0,0,0,'ALL','',NULL,NULL,1,73   
 **************************************************************/
 CREATE      PROCEDURE [dbo].[VendorPaymentList]  
@@ -696,7 +697,7 @@ BEGIN
 		[InvociedDate], [EntryDate], [DueDate], [DaysPastDue], [PaymentMethod], [PaymentRef], [DateProcessed], [CheckCrashed], [DiscountToken], [ReadyToPaymentMade], [ReadyToPayId], [BankName],
 		[BankAccountNumber], [VendorId], [ControlNumber], [LegalEntity], [VendorProformaInvoiceId])
 		SELECT 0 AS ReceivingReconciliationId,
-				NPH.VendorProformaInvoiceNo AS [InvoiceNum],
+				NPH.InvoiceNumber AS [InvoiceNum],
 				NPHS.[Description] AS [Status],
 				(ISNULL(part.ExtendedPrice,0)) AS OriginalTotal,
 				0 AS RRTotal,
@@ -746,7 +747,7 @@ BEGIN
 		[InvociedDate], [EntryDate], [DueDate], [DaysPastDue], [PaymentMethod], [PaymentRef], [DateProcessed], [CheckCrashed], [DiscountToken], [ReadyToPaymentMade], [ReadyToPayId], [BankName],
 		[BankAccountNumber], [VendorId], [ControlNumber], [LegalEntity], VendorProformaInvoiceId)
 		SELECT RRH.ReceivingReconciliationId,
-		       RRH.InvoiceNum,
+		       NPH.InvoiceNumber,
 			   CASE WHEN RRH.PaymentMade > 0 THEN 'Partially Paid' 
 			        WHEN RRH.PaymentMade = 0 THEN 'Ready to Pay'
 			   ELSE 'Pending Payment' END AS [Status],
@@ -1804,7 +1805,7 @@ BEGIN
 		[InvociedDate], [EntryDate], [DueDate], [DaysPastDue], [PaymentMethod], [PaymentRef], [DateProcessed], [CheckCrashed], [DiscountToken], [BankName], [BankAccountNumber], [ReadyToPaymentMade],
 		[ReadyToPayId], [ReadyToPayDetailsId], [IsVoidedCheck], [VendorId], [PaymentMethodId], [CreatedDate],[ControlNumber], [LegalEntity], VendorProformaInvoiceId)
 		SELECT RRH.ReceivingReconciliationId,
-			   RRH.InvoiceNum,
+			   NPH.InvoiceNumber,
 			   'Partially Paid' AS [Status],
 			   ISNULL(RRH.InvoiceTotal,0) AS OriginalTotal,
 			   ISNULL(RRH.RRTotal,0) AS RRTotal,

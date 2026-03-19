@@ -67,8 +67,10 @@ BEGIN
 	DECLARE @LotId BIGINT = NULL;
 	DECLARE @TraceableToName VARCHAR(250) = NULL;
 	DECLARE @TraceableTo BIGINT = NULL;
-	DECLARE @TraceableToType INT = NULL;
+	DECLARE @VendorId BIGINT = NULL;
+	DECLARE @VendorName VARCHAR(250) = NULL;
 	DECLARE @VendorTraceableToType INT = 2;
+	DECLARE @TraceableToType INT = NULL;
 	DECLARE @TagTypeId BIGINT = NULL;
 	DECLARE @TaggedByType INT = NULL;
 	DECLARE @TaggedBy BIGINT = NULL;
@@ -125,14 +127,15 @@ BEGIN
 	 ,@WorkOrderMaterialsId = WorkOrderMaterialsId, @IsKit = IsKit, @IsSubWO = IsSubWO
 	 FROM DBO.PurchaseOrderPart POP WITH (NOLOCK) WHERE PurchaseOrderPartRecordId = @PurchaseOrderPartRecordId;    
      
-	 SELECT @OrderDate = PO.CreatedDate, @ManagementStructureId = PO.ManagementStructureId, @LotId = PO.LotId FROM DBO.PurchaseOrder PO WITH (NOLOCK) WHERE PurchaseOrderId = @PurchaseOrderId;    
+	 SELECT @OrderDate = PO.CreatedDate, @ManagementStructureId = PO.ManagementStructureId, @LotId = PO.LotId, @VendorId = PO.VendorId, @VendorName = PO.VendorName FROM DBO.PurchaseOrder PO WITH (NOLOCK) WHERE PurchaseOrderId = @PurchaseOrderId;    
      SELECT @POUnitCost = IMS.PP_VendorListPrice FROM DBO.ItemMasterPurchaseSale IMS WITH (NOLOCK) WHERE ItemMasterId = @ItemMasterId AND ConditionId = @ConditionId;    
      SELECT @ShipViaId = ShipViaId, @ShipViaName = ShipVia, @ShippingAccountNo = ShippingAccountNo FROM AllShipVia WHERE ReferenceId = @PurchaseOrderId AND ModuleId = 13;    
 
 	 --if blank take from header vendor
 	 IF(ISNULL(@TraceableTo,0) = 0)
 	 BEGIN
-		  SELECT @TraceableTo = [VendorId], @TraceableToName = [VendorName] FROM DBO.PurchaseOrder WITH (NOLOCK) WHERE [PurchaseOrderId] = @PurchaseOrderId;
+		  SET @TraceableTo = @VendorId;
+		  SET @TraceableToName = @VendorName;
 		  SET @TraceableToType = @VendorTraceableToType;
 	 END
 

@@ -128,7 +128,7 @@ BEGIN
 								INNER JOIN [dbo].[RoleManagementStructure] RMS WITH (NOLOCK) ON puo.ManagementStructureId = RMS.EntityStructureId
 								INNER JOIN [dbo].[EmployeeUserRole] EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
 								WHERE ReceivingReconciliationId=RRH.ReceivingReconciliationId
-						)R WHERE (@StatusID IS NULL OR RRH.StatusId = @StatusID) AND RRH.IsActive = 1 AND RRH.IsDeleted = 0)
+						)R WHERE (@StatusID IS NULL OR RRH.StatusId = @StatusID) AND RRH.IsDeleted = 0)
 						,PartCTE AS(
 						SELECT SQ.ReceivingReconciliationId,(CASE WHEN COUNT(DISTINCT po.PurchaseOrderId) > 1 Then 'Multiple' ELse A.PartNumber End)  as 'PartNumberType',A.PartNumber from [dbo].[ReceivingReconciliationHeader] SQ WITH (NOLOCK)
 						LEFT JOIN [dbo].[ReceivingReconciliationDetails] SP WITH (NOLOCK) On SQ.ReceivingReconciliationId=SP.ReceivingReconciliationId

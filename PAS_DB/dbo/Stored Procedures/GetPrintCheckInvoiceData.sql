@@ -15,6 +15,7 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    28-01-2026   AMIT GHEDIYA  Created 
+	2    19-03-2026   AMIT GHEDIYA  Update for MJE
     
  --EXEC GetPrintCheckInvoiceData 10,1,35
 **************************************************************/
@@ -48,6 +49,7 @@ BEGIN
 						WHEN ISNULL(VPD.NonPOInvoiceId,0) > 0  THEN NPH.InvoiceNumber
 						WHEN ISNULL(VPD.CustomerCreditPaymentDetailId,0) > 0 THEN CCPD.ReferenceNumber
 						WHEN ISNULL(VPD.VendorProformaInvoiceId,0) > 0 THEN VNPH.InvoiceNumber
+						WHEN ISNULL(VPD.ManualJournalHeaderId,0) > 0 THEN MJH.JournalNumber
 				   END AS 'invoiceNum',
 				   VPD.[CheckNumber] AS 'checkNumber',
 				   CASE 
@@ -56,6 +58,7 @@ BEGIN
 						WHEN ISNULL(VPD.NonPOInvoiceId,0) > 0  THEN CAST(NPH.InvoiceDate AS DATE)
 						WHEN ISNULL(VPD.CustomerCreditPaymentDetailId,0) > 0 THEN CAST(CCPD.ProcessedDate AS DATE)
 						WHEN ISNULL(VPD.VendorProformaInvoiceId,0) > 0 THEN CAST(VNPH.InvoiceDate AS DATE)
+						WHEN ISNULL(VPD.ManualJournalHeaderId,0) > 0 THEN CAST(MJH.PostedDate AS DATE)
 				   END AS 'invoiceDate',
 				   CASE 
 						WHEN ISNULL(VPD.ReceivingReconciliationId,0) > 0 THEN (SELECT TOP 1 ISNULL(POReference,'') FROM [dbo].[ReceivingReconciliationDetails] WITH(NOLOCK) WHERE ReceivingReconciliationId = VPD.ReceivingReconciliationId)
@@ -63,6 +66,7 @@ BEGIN
 						WHEN ISNULL(VPD.NonPOInvoiceId,0) > 0  THEN ISNULL(NPH.PONumber,'')
 						WHEN ISNULL(VPD.CustomerCreditPaymentDetailId,0) > 0 THEN ''
 						WHEN ISNULL(VPD.VendorProformaInvoiceId,0) > 0 THEN ''
+						WHEN ISNULL(VPD.ManualJournalHeaderId,0) > 0 THEN ''
 					END AS 'refrence',
 					VPD.[OriginalAmount] AS 'invAmt',
 					VPD.[PaymentMade] AS 'amtPaid',
@@ -81,6 +85,7 @@ BEGIN
 			LEFT JOIN [dbo].[NonPOInvoiceHeader] NPH  WITH(NOLOCK) ON VPD.NonPOInvoiceId = NPH.NonPOInvoiceId
 			LEFT JOIN [dbo].[CustomerCreditPaymentDetail] CCPD WITH(NOLOCK) ON VPD.CustomerCreditPaymentDetailId = CCPD.CustomerCreditPaymentDetailId	
 			LEFT JOIN [dbo].[VendorProformaInvoiceHeader] VNPH WITH(NOLOCK) ON VPD.VendorProformaInvoiceId = VNPH.VendorProformaInvoiceId 
+			LEFT JOIN [dbo].[ManualJournalHeader] MJH WITH(NOLOCK) ON VPD.ManualJournalHeaderId = MJH.ManualJournalHeaderId 
 			WHERE [ReadyToPayId] = @ReadyToPayId 
 			AND [ReadyToPayDetailsId] = @ReadyToPayDetailsId
 	END TRY    

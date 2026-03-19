@@ -49,6 +49,7 @@
 	32   19/02/2026   Amit Ghediya		update for cm is full used or not (PN-15510)
 	33   04/03/2026   Amit Ghediya		added manual je header id in VendorReadyToPayDetails (PN-15639)
 	34   11/03/2026   Amit Ghediya		Updated for get isactive records (PN-15588).
+	35   19/03/2026   Amit Ghediya		Updated for get Vendor performa invoice number
      
 -- EXEC VendorReadyToPayList 1,NULL,NULL,1  
 --EXEC dbo.VendorReadyToPayList @MasterCompanyId=1,@StartDate=default,@EndDate=default,@LegalEntityId=1
@@ -708,7 +709,7 @@ BEGIN
 					VPD.PaymentMethodId,
 					VPD.PaymentMethodName,  
                     VPD.ReceivingReconciliationId,
-					VPD.InvoiceNum,
+					NPH.InvoiceNumber,
 					VPD.CurrencyId,
 					VPD.CurrencyName,
 					VPD.FXRate,  

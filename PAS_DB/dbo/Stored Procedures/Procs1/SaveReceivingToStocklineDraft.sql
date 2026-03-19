@@ -28,6 +28,7 @@
 	12   12-11-2024   RAJESH GAMI       Handle the NULL value of WOMaterialsId
 	13   12-12-2024   ABHISHEK JIRAWLA  Change made for Asset Inventory Status and Asset Available Status
 	14   16-01-2025   ABHISHEK JIRAWLA  If Part is non serialized and Quantity is greater then 200 then only 1 entry should be made (PN-10836)
+	15   19-03-2026   Amit Ghediya      update for traceble in rpo for isserialized part. (PN-15560)
  EXEC [SaveReceivingToStocklineDraft] 2281, 'ADMIN User'    
 **************************************************************/    
 CREATE    PROCEDURE [dbo].[SaveReceivingToStocklineDraft]
@@ -45,7 +46,7 @@ BEGIN
     DECLARE @LoopID_Qty AS int;    
     DECLARE @CurrentIndex BIGINT;    
     DECLARE @CurrentIdNumber AS BIGINT;    
-    DECLARE @IdNumber AS VARCHAR(50);    
+    DECLARE @IdNumber AS VARCHAR(50);  
     
     DECLARE @PurchaseOrderPartRecordId BIGINT = 0, @WorkOrderMaterialsId BIGINT =0, @IsKit BIT = 0, @IsSubWO BIT = 0;    
     DECLARE @QtyToTraverse INT = 0;    
@@ -67,6 +68,7 @@ BEGIN
 	DECLARE @TraceableToName VARCHAR(250) = NULL;
 	DECLARE @TraceableTo BIGINT = NULL;
 	DECLARE @TraceableToType INT = NULL;
+	DECLARE @VendorTraceableToType INT = 2;
 	DECLARE @TagTypeId BIGINT = NULL;
 	DECLARE @TaggedByType INT = NULL;
 	DECLARE @TaggedBy BIGINT = NULL;
@@ -122,12 +124,17 @@ BEGIN
 	 @TagDate = (CASE WHEN ISNULL(POP.isParent,0) = 0 THEN (SELECT TOP 1 puo.TagDate FROM DBO.PurchaseOrderPart puo WITH (NOLOCK) WHERE puo.PurchaseOrderPartRecordId = pop.ParentId) ELSE POP.TagDate END)
 	 ,@WorkOrderMaterialsId = WorkOrderMaterialsId, @IsKit = IsKit, @IsSubWO = IsSubWO
 	 FROM DBO.PurchaseOrderPart POP WITH (NOLOCK) WHERE PurchaseOrderPartRecordId = @PurchaseOrderPartRecordId;    
-     PRINT '@PurchaseOrderPartRecordId'
-	 PRINT @PurchaseOrderPartRecordId
+     
 	 SELECT @OrderDate = PO.CreatedDate, @ManagementStructureId = PO.ManagementStructureId, @LotId = PO.LotId FROM DBO.PurchaseOrder PO WITH (NOLOCK) WHERE PurchaseOrderId = @PurchaseOrderId;    
      SELECT @POUnitCost = IMS.PP_VendorListPrice FROM DBO.ItemMasterPurchaseSale IMS WITH (NOLOCK) WHERE ItemMasterId = @ItemMasterId AND ConditionId = @ConditionId;    
      SELECT @ShipViaId = ShipViaId, @ShipViaName = ShipVia, @ShippingAccountNo = ShippingAccountNo FROM AllShipVia WHERE ReferenceId = @PurchaseOrderId AND ModuleId = 13;    
 
+	 --if blank take from header vendor
+	 IF(ISNULL(@TraceableTo,0) = 0)
+	 BEGIN
+		  SELECT @TraceableTo = [VendorId], @TraceableToName = [VendorName] FROM DBO.PurchaseOrder WITH (NOLOCK) WHERE [PurchaseOrderId] = @PurchaseOrderId;
+		  SET @TraceableToType = @VendorTraceableToType;
+	 END
 
      INSERT INTO #tmpCodePrefixes (CodePrefixId,CodeTypeId,CurrentNumber, CodePrefix, CodeSufix, StartsFrom)    
      SELECT CodePrefixId, CP.CodeTypeId, CurrentNummber, CodePrefix, CodeSufix, StartsFrom    

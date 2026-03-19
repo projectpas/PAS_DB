@@ -15,6 +15,7 @@
     2    03/04/2025   Devendra Shekh    Resolved issue for Save Details for Multiple MPN
 	3    30/04/2025   Moin Bloch		Fix For Duplicate Settlement
 	4    16/03/2026   Moin Bloch	    Hide selected checklist rows in Work Order Settlement tab PN-15718
+	5    19/03/2026   Moin Bloch	    Hide selected checklist rows in Work Order Settlement tab Bug Fix PN-15718
       
 --   EXEC [dbo].[CreateWorkOrderSettlementDetails]
 **************************************************************/
@@ -99,22 +100,28 @@ BEGIN
 
 				SELECT @WorkOrderSettlementId=[WorkOrderSettlementId] FROM #tmprWorkOrderSettlement WHERE [SMID] = @SMMinId
 				
-				IF(@WorkOrderTypeId = @TearDown AND @WorkOrderSettlementId IN (@PBIC, @MGRW, @WAWQ, @RCRW, @MPNL, @UNSP, @WOIN))
+				IF(@WorkOrderTypeId = @TearDown)
 				BEGIN
-					 SET @Isvalue_NA = 1;
-				END
-				ELSE 
-				BEGIN
-					SET @Isvalue_NA = 0;
+					IF(@WorkOrderTypeId = @TearDown AND @WorkOrderSettlementId IN (@PBIC, @MGRW, @WAWQ, @RCRW, @MPNL, @UNSP, @WOIN))
+					BEGIN
+						 SET @Isvalue_NA = 1;
+					END
+					ELSE 
+					BEGIN
+						SET @Isvalue_NA = 0;
+					END
 				END
 
-				IF(@WorkOrderTypeId <> @TearDown AND @WorkOrderSettlementId IN (@PBIC, @MGRW, @WAWQ))
+				IF(@WorkOrderTypeId <> @TearDown)
 				BEGIN
-					 SET @Isvalue_NA = 1;
-				END
-				ELSE 
-				BEGIN
-					SET @Isvalue_NA = 0;
+					IF(@WorkOrderTypeId <> @TearDown AND @WorkOrderSettlementId IN (@PBIC, @MGRW, @WAWQ))
+					BEGIN
+						 SET @Isvalue_NA = 1;
+					END
+					ELSE 
+					BEGIN
+						SET @Isvalue_NA = 0;
+					END
 				END
 
 				INSERT INTO [dbo].[WorkOrderSettlementDetails]([WorkOrderId],[WorkFlowWorkOrderId],[workOrderPartNoId],[WorkOrderSettlementId],[MasterCompanyId],

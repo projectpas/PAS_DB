@@ -19,7 +19,7 @@
     9	 01/13/2024		Moin Bloch			    Modified (Added WorkOrderTask Table For conditionally check table for Task)
 	10	 01/13/2024		HEMANT SALIYA		    Resolved repair Order View Issue
 	11   04/25/2025		Devendra Shekh		    Modified (Added New Fields IssuedStkExtendedCost, ReservedStkExtendedCost, StkPONum, StkPONextDlvrDate, TotalIssuedStkExtendedCost, TotalReservedStkExtendedCost)
-*** 12   16/Mar/2026	Rajesh Gami				Added UOM Changes [PN-15714]
+*** 12   16/Mar/2026	Rajesh Gami				Added UOM Changes [PN-15714] (Added Remaing Changes)
        
  EXECUTE USP_GetSubWorkOrderMaterialsList 316,0  
 exec dbo.USP_GetSubWorkOrderMaterialsListNew @PageNumber=1,@PageSize=5,@SortColumn=default,@SortOrder=1,@subWOPartNoId=260,@ShowPendingToIssue=0
@@ -535,11 +535,11 @@ SET NOCOUNT ON
 					END AS ItemType,  
 					C.Description AS Condition,        
 					Stk_C.Description AS StocklineCondition,
-					ISNULL(WOM.UnitCost, 0),  
+					dbo.fn_ConvertUOM(ISNULL(WOM.UnitCost, 0), uomStock.ShortName, uomConsume.ShortName,1,@MasterCompanyId) UnitCost,   
 					ISNULL(WOM.ExtendedCost, 0),  
 					ISNULL(WOM.TotalStocklineQtyReq, 0),  
 					ISNULL(MSTL.StockLIneId,0),         
-					ISNULL(MSTL.UnitCost,0) StocklineUnitCost,  
+					dbo.fn_ConvertUOM(ISNULL(MSTL.UnitCost,0), uomStock.ShortName, uomConsume.ShortName,1,@MasterCompanyId)  StocklineUnitCost,  
 					ISNULL(MSTL.ExtendedCost,0) StocklineExtendedCost,  
 					ISNULL(MSTL.ProvisionId,0) StockLineProvisionId,  
 					SP.Description AS StocklineProvision,  
@@ -689,6 +689,8 @@ SET NOCOUNT ON
 					LEFT JOIN dbo.Stockline SL WITH (NOLOCK) ON SL.StockLineId = MSTL.StockLineId  
 					LEFT JOIN dbo.Condition Stk_C WITH (NOLOCK) ON Stk_C.ConditionId = SL.ConditionId
 					LEFT JOIN dbo.UnitOfMeasure SUOM WITH (NOLOCK) ON SUOM.UnitOfMeasureId = SL.PurchaseUnitOfMeasureId
+					LEFT JOIN dbo.UnitOfMeasure uomStock WITH (NOLOCK) ON uomStock.UnitOfMeasureId = SL.StockUnitOfMeasureId
+					LEFT JOIN dbo.UnitOfMeasure uomConsume WITH (NOLOCK) ON uomConsume.UnitOfMeasureId = SL.ConsumeUnitOfMeasureId
 					LEFT JOIN dbo.ItemClassification ITC WITH (NOLOCK) ON ITC.ItemClassificationId = IM.ItemClassificationId  
 					LEFT JOIN dbo.Provision P WITH (NOLOCK) ON P.ProvisionId = WOM.ProvisionId     
 					LEFT JOIN dbo.Provision SP WITH (NOLOCK) ON SP.ProvisionId = MSTL.ProvisionId  
@@ -758,11 +760,11 @@ SET NOCOUNT ON
 					END AS ItemType,  
 					C.Description AS Condition,        
 					Stk_C.Description AS StocklineCondition,
-					ISNULL(WOM.UnitCost,0),  
+					dbo.fn_ConvertUOM(ISNULL(WOM.UnitCost,0), uomStock.ShortName, uomConsume.ShortName,1,@MasterCompanyId) UnitCost ,  
 					ISNULL(WOM.ExtendedCost,0),  
 					ISNULL(WOM.TotalStocklineQtyReq,0),  
 					ISNULL(MSTL.StockLIneId,0),         
-					ISNULL(MSTL.UnitCost,0) StocklineUnitCost,  
+					dbo.fn_ConvertUOM(ISNULL(MSTL.UnitCost,0), uomStock.ShortName, uomConsume.ShortName,1,@MasterCompanyId)  StocklineUnitCost,  
 					ISNULL(MSTL.ExtendedCost,0) StocklineExtendedCost,  
 					ISNULL(MSTL.ProvisionId,0) AS StockLineProvisionId,  
 					SP.Description AS StocklineProvision,  
@@ -909,6 +911,8 @@ SET NOCOUNT ON
 					LEFT JOIN dbo.Stockline SL WITH (NOLOCK) ON SL.StockLineId = MSTL.StockLineId  
 					LEFT JOIN dbo.Condition Stk_C WITH (NOLOCK) ON Stk_C.ConditionId = SL.ConditionId
 					LEFT JOIN dbo.UnitOfMeasure SUOM WITH (NOLOCK) ON SUOM.UnitOfMeasureId = SL.PurchaseUnitOfMeasureId
+					LEFT JOIN dbo.UnitOfMeasure uomStock WITH (NOLOCK) ON uomStock.UnitOfMeasureId = SL.StockUnitOfMeasureId
+					LEFT JOIN dbo.UnitOfMeasure uomConsume WITH (NOLOCK) ON uomConsume.UnitOfMeasureId = SL.ConsumeUnitOfMeasureId
 					LEFT JOIN dbo.ItemClassification ITC WITH (NOLOCK) ON ITC.ItemClassificationId = IM.ItemClassificationId  
 					LEFT JOIN dbo.Provision P WITH (NOLOCK) ON P.ProvisionId = WOM.ProvisionId     
 					LEFT JOIN dbo.Provision SP WITH (NOLOCK) ON SP.ProvisionId = MSTL.ProvisionId  
@@ -979,11 +983,11 @@ SET NOCOUNT ON
 				  END AS ItemType,  
 				  C.Description AS Condition,        
 				  Stk_C.Description AS StocklineCondition,
-				  ISNULL(WOM.UnitCost,0),  
+				  dbo.fn_ConvertUOM(ISNULL(WOM.UnitCost,0), uomStock.ShortName, uomConsume.ShortName,1,@MasterCompanyId) UnitCost,
 				  ISNULL(WOM.ExtendedCost,0),  
 				  ISNULL(WOM.TotalStocklineQtyReq,0),  
 				  ISNULL(MSTL.StockLIneId,0),         
-				  ISNULL(MSTL.UnitCost,0) StocklineUnitCost,  
+				  dbo.fn_ConvertUOM(ISNULL(MSTL.UnitCost,0), uomStock.ShortName, uomConsume.ShortName,1,@MasterCompanyId)  StocklineUnitCost,  
 				  ISNULL(MSTL.ExtendedCost,0) StocklineExtendedCost,  
 				  ISNULL(MSTL.ProvisionId,0) AS StockLineProvisionId,  
 				  SP.Description AS StocklineProvision,  
@@ -1132,6 +1136,8 @@ SET NOCOUNT ON
 				  LEFT JOIN dbo.Stockline SL WITH (NOLOCK) ON SL.StockLineId = MSTL.StockLineId  
 				  LEFT JOIN dbo.Condition Stk_C WITH (NOLOCK) ON Stk_C.ConditionId = SL.ConditionId
 				  LEFT JOIN dbo.UnitOfMeasure SUOM WITH (NOLOCK) ON SUOM.UnitOfMeasureId = SL.PurchaseUnitOfMeasureId
+				  LEFT JOIN dbo.UnitOfMeasure uomStock WITH (NOLOCK) ON uomStock.UnitOfMeasureId = SL.StockUnitOfMeasureId
+				  LEFT JOIN dbo.UnitOfMeasure uomConsume WITH (NOLOCK) ON uomConsume.UnitOfMeasureId = SL.ConsumeUnitOfMeasureId
 				  LEFT JOIN dbo.ItemClassification ITC WITH (NOLOCK) ON ITC.ItemClassificationId = IM.ItemClassificationId  
 				  LEFT JOIN dbo.Provision P WITH (NOLOCK) ON P.ProvisionId = WOM.ProvisionId     
 				  LEFT JOIN dbo.Provision SP WITH (NOLOCK) ON SP.ProvisionId = MSTL.ProvisionId  
@@ -1199,11 +1205,11 @@ SET NOCOUNT ON
 				  END AS ItemType,  
 				  C.Description AS Condition,        
 				  Stk_C.Description AS StocklineCondition,
-				  ISNULL(WOM.UnitCost,0),  
+				  dbo.fn_ConvertUOM(ISNULL(WOM.UnitCost,0), uomStock.ShortName, uomConsume.ShortName,1,@MasterCompanyId) UnitCost,
 				  ISNULL(WOM.ExtendedCost,0),  
 				  ISNULL(WOM.TotalStocklineQtyReq,0),  
 				  ISNULL(MSTL.StockLIneId,0),         
-				  ISNULL(MSTL.UnitCost,0) StocklineUnitCost,  
+				  dbo.fn_ConvertUOM(ISNULL(MSTL.UnitCost,0), uomStock.ShortName, uomConsume.ShortName,1,@MasterCompanyId)  StocklineUnitCost,  
 				  ISNULL(MSTL.ExtendedCost,0) StocklineExtendedCost,  
 				  ISNULL(MSTL.ProvisionId,0) AS StockLineProvisionId,  
 				  SP.Description AS StocklineProvision,  
@@ -1350,6 +1356,8 @@ SET NOCOUNT ON
 				  LEFT JOIN dbo.Stockline SL WITH (NOLOCK) ON SL.StockLineId = MSTL.StockLineId  
 				  LEFT JOIN dbo.Condition Stk_C WITH (NOLOCK) ON Stk_C.ConditionId = SL.ConditionId
 				  LEFT JOIN dbo.UnitOfMeasure SUOM WITH (NOLOCK) ON SUOM.UnitOfMeasureId = SL.PurchaseUnitOfMeasureId
+				  LEFT JOIN dbo.UnitOfMeasure uomStock WITH (NOLOCK) ON uomStock.UnitOfMeasureId = SL.StockUnitOfMeasureId
+				  LEFT JOIN dbo.UnitOfMeasure uomConsume WITH (NOLOCK) ON uomConsume.UnitOfMeasureId = SL.ConsumeUnitOfMeasureId
 				  LEFT JOIN dbo.ItemClassification ITC WITH (NOLOCK) ON ITC.ItemClassificationId = IM.ItemClassificationId  
 				  LEFT JOIN dbo.Provision P WITH (NOLOCK) ON P.ProvisionId = WOM.ProvisionId     
 				  LEFT JOIN dbo.Provision SP WITH (NOLOCK) ON SP.ProvisionId = MSTL.ProvisionId  

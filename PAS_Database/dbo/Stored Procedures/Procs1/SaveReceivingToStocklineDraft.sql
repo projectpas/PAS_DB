@@ -1,4 +1,4 @@
-﻿/*************************************************************               
+﻿/*********************               
  ** File:   [SaveReceivingToStocklineDraft]               
  ** Author: Vishal Suthar    
  ** Description: This stored procedure is save receiving PO data into stockline draft    
@@ -9,9 +9,9 @@
              
  ** RETURN VALUE:               
       
- **************************************************************               
+ **********************               
   ** Change History               
- **************************************************************               
+ **********************               
  ** PR   Date         Author			Change Description                
  ** --   --------     -------			--------------------------------              
     1    05/13/2022   Vishal Suthar		Created    
@@ -33,7 +33,7 @@
 	17   16-03-2026   Vishal Suthar		Increased max qty to 500 from 200
 
  EXEC [SaveReceivingToStocklineDraft] 2281, 'ADMIN User'    
-**************************************************************/    
+**********************/    
 CREATE    PROCEDURE [dbo].[SaveReceivingToStocklineDraft]
  @PurchaseOrderId bigint = 0,    
  @UserName VARCHAR(100)    
@@ -129,8 +129,7 @@ BEGIN
 	 @TagDate = (CASE WHEN ISNULL(POP.isParent,0) = 0 THEN (SELECT TOP 1 puo.TagDate FROM DBO.PurchaseOrderPart puo WITH (NOLOCK) WHERE puo.PurchaseOrderPartRecordId = pop.ParentId) ELSE POP.TagDate END)
 	 ,@WorkOrderMaterialsId = WorkOrderMaterialsId, @IsKit = IsKit, @IsSubWO = IsSubWO
 	 FROM DBO.PurchaseOrderPart POP WITH (NOLOCK) WHERE PurchaseOrderPartRecordId = @PurchaseOrderPartRecordId;    
-     PRINT '@PurchaseOrderPartRecordId'
-	 PRINT @PurchaseOrderPartRecordId
+     
 	 SELECT @OrderDate = PO.CreatedDate, @ManagementStructureId = PO.ManagementStructureId, @LotId = PO.LotId, @VendorId = PO.VendorId, @VendorName = PO.VendorName FROM DBO.PurchaseOrder PO WITH (NOLOCK) WHERE PurchaseOrderId = @PurchaseOrderId;    
      SELECT @POUnitCost = IMS.PP_VendorListPrice FROM DBO.ItemMasterPurchaseSale IMS WITH (NOLOCK) WHERE ItemMasterId = @ItemMasterId AND ConditionId = @ConditionId;    
      SELECT @ShipViaId = ShipViaId, @ShipViaName = ShipVia, @ShippingAccountNo = ShippingAccountNo FROM AllShipVia WHERE ReferenceId = @PurchaseOrderId AND ModuleId = 13;    

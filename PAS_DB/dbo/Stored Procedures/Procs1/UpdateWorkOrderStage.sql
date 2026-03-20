@@ -17,7 +17,7 @@
     2    27-Mar-2025  Bhargav Saliya		Modified    
 	3    25-APR-2025  Moin Bloch   		    Fixed For WO Part Status    
 	4    27-Jun-2025  Vishal Suthar		    Updating IsClosed flag in WorkOrderPartNumber table when stage is Closed
-         
+   	4    20-Mar-2026  RAJESH GAMI		    Updating IsFinishGood flag in WorkOrderPartNumber table when stage is Closed PN-15819    
 	exec dbo.UpdateWorkOrderStage @WorkOrderId=8412,@WorkOrderStatusId=1,@WorkOrderPartId=8062,@WorkOrderStageId=23,@WorkFlowWorkOrderId=8033,@CreatedBy='BHARGAV S'
 ************************************************************************/   
 
@@ -66,7 +66,7 @@ BEGIN
 		IF (@WorkOrderStageId = @ClosedStageCodeId)
 		BEGIN
 			UPDATE [dbo].[WorkOrderPartNumber]
-			SET IsClosed = 1,
+			SET IsClosed = 1,IsFinishGood = 1,
 			ClosedDate = GETUTCDATE(),
 			UpdatedDate = GETUTCDATE()
 			WHERE ID = @WorkOrderPartId;

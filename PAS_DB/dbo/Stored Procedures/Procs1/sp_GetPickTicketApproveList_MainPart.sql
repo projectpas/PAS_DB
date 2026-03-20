@@ -60,7 +60,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 				LEFT JOIN WorkOrder wo WITH (NOLOCK) on wo.WorkOrderId = wop.WorkOrderId
 				LEFT JOIN WOPickTicket wopt WITH (NOLOCK) on wopt.WorkorderId = wop.WorkOrderId and wopt.OrderPartId = wop.ID
 				LEFT JOIN Customer cr WITH (NOLOCK) on cr.CustomerId = wo.CustomerId
-			WHERE wowf.WorkOrderId = @referenceId AND wop.IsFinishGood = 1 --wowf.WorkFlowWorkOrderId = @wfwoId and wop.isLocked=1 AND 
+			WHERE wowf.WorkOrderId = @referenceId AND wop.IsFinishGood = 1
 				AND (wop.Quantity > 0 OR wopt.WorkFlowWorkOrderId IS NOT NULL)
 			GROUP BY wowf.WorkOrderPartNoId,wop.WorkOrderId,imt.PartNumber,imt.PartDescription, wop.Quantity,sl.SerialNumber,
 				sl.QuantityAvailable,wo.WorkOrderNum,wop.ItemMasterId,sl.ConditionId,cr.[Name],cr.CustomerCode,sl.isSerialized,wop.RevisedItemmasterid,wop.RevisedPartNumber,wop.RevisedPartDescription,wop.RevisedSerialNumber;

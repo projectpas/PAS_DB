@@ -11,6 +11,7 @@
  ** --   --------     -------  ------	--------------------------                
     1    10/09/2025   Moin Bloch   	    Created    
 	2    10/02/2026   Devendra Shekh	Added IsRunDaily 
+	2    20/03/2026   Amit Ghediya		remove utc to local due to already date save in utc (PN-15815)
 
 -- EXEC USP_GetStocklineAsofNowJobList 
 **************************************************************/                   
@@ -78,7 +79,8 @@ BEGIN
 		  ,IE.[NextRunDate]
 		  ,IE.[MasterCompanyId]	
 		  ,ISNULL(IE.[TotalInventory],0) [TotalInventory]
-		  ,(CAST(DBO.ConvertUTCtoLocal(IE.[CreatedDate], @CurrntEmpTimeZoneDesc) AS DATETIME)) [CreatedDate]
+		  ,IE.[CreatedDate]
+		  --,(CAST(DBO.ConvertUTCtoLocal(IE.[CreatedDate], @CurrntEmpTimeZoneDesc) AS DATETIME)) [CreatedDate]
 		  ,CASE WHEN IE.IsRunDaily = 1 THEN 'Yes' ELSE 'No' END AS IsRunDaily
 	FROM [dbo].[StocklineAsofNowJobDetails] IE WITH(NOLOCK)	    
 	WHERE (IE.MasterCompanyId = @MasterCompanyId) AND (IE.[ReportType] = @ReportType)

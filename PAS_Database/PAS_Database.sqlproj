@@ -4442,6 +4442,29 @@
     <Build Include="dbo\Stored Procedures\USP_UpdateNonPOInvoicePartMemo.sql" />
     <Build Include="dbo\Stored Procedures\usprpt_CustomerInvoiceReportList_SSRS.sql" />
     <Build Include="dbo\Stored Procedures\usprpt_CustomerInvoiceReportList.sql" />
+    <Build Include="dbo\Stored Procedures\USP_DeleteRestoreWIPGLAccountSetup.sql" />
+    <Build Include="dbo\Stored Procedures\usprpt_GetGoodsReceiptNotInvoicedReport_1.sql" />
+    <Build Include="dbo\Tables\HistoryModule.sql" />
+    <Build Include="dbo\Tables\PartsBaseChildPartDetail.sql" />
+    <Build Include="dbo\Tables\EmployeeImpersonationHistory.sql" />
+    <Build Include="dbo\Stored Procedures\USP_AddEmployeeImpersonationHistory.sql" />
+    <Build Include="dbo\Stored Procedures\usp_GetStockConsumeUOMByStocklineId.sql" />
+    <Build Include="dbo\Stored Procedures\USP_AddUpdateCustomerRfq_PartsBase.sql" />
+    <Build Include="dbo\User Defined Types\CustomerRfqPartsBaseType.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetPriceDetailsByCondId.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetUomSetup.sql" />
+    <Build Include="dbo\Stored Procedures\USP_DeleteRestoreUOMConversion.sql" />
+    <Build Include="dbo\Stored Procedures\USP_AddUpdateUOMConvertion.sql" />
+    <Build Include="dbo\User Defined Types\UOMConvertionType.sql" />
+    <Build Include="dbo\Stored Procedures\GetVendorDetailsByCompanyCode.sql" />
+    <Build Include="dbo\Stored Procedures\GetItemMasterDetailByCompanyCode.sql" />
+    <Build Include="dbo\Stored Procedures\GetIStocklineDetailByCompanyCode.sql" />
+    <Build Include="dbo\Stored Procedures\GetCustomerDetailsByCompanyCode.sql" />
+    <Build Include="dbo\Stored Procedures\USP_UnReserveWorkOrderMaterialStockLineForRepairOrder.sql" />
+    <Build Include="dbo\Stored Procedures\USP_DeleteSalesOrderQuoteCharge.sql" />
+    <Build Include="dbo\Stored Procedures\DeleteRRHeaderById.sql" />
+    <Build Include="dbo\Stored Procedures\usprpt_GetGoodsReceiptNotInvoicedReport_SSRS_1.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetRepairOrderbasedOnWorkWorkOrderMaterialsId.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

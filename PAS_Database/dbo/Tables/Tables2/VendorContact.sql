@@ -24,6 +24,8 @@
 
 
 
+
+
 GO
 
 
@@ -60,8 +62,8 @@ GO
         BEGIN
             SET NOCOUNT ON;
             ;WITH
-            d AS (SELECT d.[VendorContactId],d.[VendorId],d.[ContactId],d.[Tag],d.[IsDefaultContact],d.[MasterCompanyId],d.[CreatedBy],d.[UpdatedBy],d.[CreatedDate],d.[UpdatedDate],d.[IsActive],d.[IsDeleted],d.[ContactTagId],d.[Attention],d.[IsRestrictedParty] FROM deleted d),
-            i AS (SELECT i.[VendorContactId],i.[VendorId],i.[ContactId],i.[Tag],i.[IsDefaultContact],i.[MasterCompanyId],i.[CreatedBy],i.[UpdatedBy],i.[CreatedDate],i.[UpdatedDate],i.[IsActive],i.[IsDeleted],i.[ContactTagId],i.[Attention],i.[IsRestrictedParty] FROM inserted i),
+            d AS (SELECT d.[VendorContactId],d.[VendorId],d.[ContactId],d.[IsDefaultContact],d.[MasterCompanyId],d.[CreatedBy],d.[UpdatedBy],d.[CreatedDate],d.[UpdatedDate],d.[IsActive],d.[IsDeleted],d.[ContactTagId],d.[Attention],d.[IsRestrictedParty] FROM deleted d),
+            i AS (SELECT i.[VendorContactId],i.[VendorId],i.[ContactId],i.[IsDefaultContact],i.[MasterCompanyId],i.[CreatedBy],i.[UpdatedBy],i.[CreatedDate],i.[UpdatedDate],i.[IsActive],i.[IsDeleted],i.[ContactTagId],i.[Attention],i.[IsRestrictedParty] FROM inserted i),
             paired AS (
                 SELECT
                     COALESCE(i.VendorContactId, d.VendorContactId ) AS VendorContactId,

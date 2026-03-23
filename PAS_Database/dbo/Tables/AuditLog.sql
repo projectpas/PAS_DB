@@ -14,8 +14,11 @@
     [HostName]     [sysname]      DEFAULT (host_name()) NOT NULL,
     [AppName]      NVARCHAR (128) DEFAULT (app_name()) NOT NULL,
     [SessionId]    INT            DEFAULT (@@spid) NOT NULL,
+    [ReferenceId]  BIGINT         NULL,
     PRIMARY KEY CLUSTERED ([AuditId] ASC)
 );
+
+
 
 
 

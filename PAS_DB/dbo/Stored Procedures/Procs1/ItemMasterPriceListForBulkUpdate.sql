@@ -17,6 +17,7 @@
     2    15/09/2025  Rajesh Gami		Getting only selected ItemMaster data if any
 	3    23/09/2025  Rajesh Gami		Added SuggestedPrice (Added New SP)
 	4    17/10/2025  Rajesh Gami		Added PageSize and PageNo
+	5    23/03/2026  Ayushi Patel       PN-15799 Added partDescription
 --exec dbo.ItemMasterPriceListForBulkUpdate @ItemMasterId=0,@MasterCompanyId=1
 
 ************************************************************************/
@@ -167,6 +168,7 @@ BEGIN
 			SELECT
 			IMPS.ItemMasterId,
 			IMPS.PartNumber,
+			IM.PartDescription,
 			IM.ManufacturerName,
 			IMPS.ConditionId,
 			IMPS.ConditionName,
@@ -226,6 +228,7 @@ BEGIN
 				SELECT 
 				IMPS.ItemMasterId,
 				IMPS.PartNumber,
+				IM.PartDescription,
 				IM.ManufacturerName,
 				IMPS.ConditionId,
 				IMPS.ConditionName,
@@ -342,6 +345,7 @@ BEGIN
 				SELECT 
 				IMPS.ItemMasterId,
 				IMPS.PartNumber,
+				IM.PartDescription,
 				IM.ManufacturerName,
 				IMPS.ConditionId,
 				IMPS.ConditionName,

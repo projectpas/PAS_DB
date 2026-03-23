@@ -19,7 +19,7 @@
 	6    18-JUL-2025   Moin Bloch       Removed CorrectiveActionCode From Where clause No Need
 	7    06-JAN-2026   Amit Ghediya     Return MAsterCompanyId for Previously, the memo was hidden only for the MTI company; it is now hidden for all other companies except NEO. 
 	8    11-MAR-2026   Moin Bloch       added IncomingPartNumber For Quote MPN PN-15719
-
+	9    23-MAR-2026   Ayushi Patel     PN-15825 added lineNum
  EXECUTE [GetWorkOrderPartsView] 9756
 **************************************************************/ 
 CREATE      PROCEDURE [dbo].[GetWorkOrderPartsView]
@@ -100,7 +100,8 @@ BEGIN
 			CASE	WHEN ISNULL(wop.[RevisedPartNumber], '') != '' AND ISNULL(wop.[RevisedSerialNumber], '') != '' THEN wop.[RevisedPartNumber] + '-' + wop.[RevisedSerialNumber]
 					WHEN ISNULL(wop.[RevisedPartNumber], '') != '' THEN wop.[RevisedPartNumber] + '-' + sl.[ControlNumber] ELSE wop.[partnumber] + '-' + sl.[ControlNumber] END AS [PartNumberLabel],
 			wop.MasterCompanyId,
-			wop.IncomingPartNumber
+			wop.IncomingPartNumber,
+			ROW_NUMBER() OVER (ORDER BY wop.ID) AS lineNum
 		FROM [dbo].[WorkOrderPartNumber] wop WITH (NOLOCK)
 		INNER JOIN [dbo].[WorkOrderWorkFlow] wowf WITH (NOLOCK) ON wop.[ID] = wowf.[WorkOrderPartNoId]
 		INNER JOIN [dbo].[WorkOrderManagementStructureDetails] msd WITH (NOLOCK) ON wop.[ID] = msd.[ReferenceID] AND msd.[ModuleID] = @WorkOrderMPNModuleId

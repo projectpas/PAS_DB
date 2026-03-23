@@ -1,5 +1,4 @@
-﻿
-/*************************************************************             
+﻿/*************************************************************             
  ** File:   [RPT_GetWorkOrderQuotePrintPdfDataMultipleMPN]             
  ** Author:   RAJESH GAMI  
  ** Description: This stored procedure is used to get work order quote pdf details for multiple MPN 
@@ -25,8 +24,9 @@
 	10	 14-OCT-2025     RAJESH GAMI		Return Estimated Ship Date
 	11	 02-March-2026   Ayushi Patel		PN-15745 Retuen ItemNo  , Added OrderBY ID
 	12   17-March-2026	 Ayushi Patel		PN-15746 Return CustomerReference Partwise
---EXEC [RPT_GetWorkOrderQuotePrintPdfDataMultipleMPN] 2297,'3806',0  
-exec RPT_GetWorkOrderQuotePrintPdfDataMultipleMPN @WorkOrderQuoteId=2300,@workOrderPartNoIds=N'10439',@isByPartIds=0
+	13   23-March-2026	 BHARGAV SALIYA		PN-15822 Added CustomerReference field in Group By clause
+--EXEC [RPT_GetWorkOrderQuotePrintPdfDataMultipleMPN] 2304,'3823,3824,3825',0  
+exec RPT_GetWorkOrderQuotePrintPdfDataMultipleMPN @WorkOrderQuoteId=2303,@workOrderPartNoIds=N'3820,3821,3822',@isByPartIds=1
 **************************************************************/  
 CREATE    PROCEDURE [dbo].[RPT_GetWorkOrderQuotePrintPdfDataMultipleMPN]  
  @WorkOrderQuoteId bigint,  
@@ -339,7 +339,7 @@ BEGIN
 				 AND woq.IsActive = 1 AND woq.IsDeleted = 0  
 			GROUP BY im.PartNumber, wop.ID, wop.RevisedPartNumber, wop.RevisedPartDescription,
 				 im.PartDescription, im1.ItemMasterId, im1.PartNumber,im.ItemMasterId, wop.PublicationNotes, tmp.[Remarks],
-				 sl.StockLineNumber, wop.RevisedSerialNumber, wop.CurrentSerialNumber, wop.Quantity, wqd.QuoteMethod, wqd.CommonFlatRate, TATDaysStandard,wqd.EvalFees, cust.CustomerId,wf.WorkFlowWorkOrderId,woq.IsPrintCorrectiveAction,wop.EstimatedShipDate),
+				 sl.StockLineNumber, wop.RevisedSerialNumber, wop.CurrentSerialNumber, wop.Quantity, wqd.QuoteMethod, wqd.CommonFlatRate, TATDaysStandard,wqd.EvalFees, cust.CustomerId,wf.WorkFlowWorkOrderId,woq.IsPrintCorrectiveAction,wop.EstimatedShipDate,wop.CustomerReference),
 			AfterTax AS (SELECT *, CAST(((Ct.subtotalfortax * Ct.TAXRates) / 100) AS DECIMAL(18, 2)) AS SalesTaxAmount, CAST(((Ct.subtotalfortax * Ct.Othertax) / 100) AS DECIMAL(18, 2)) AS OtherTaxAmount FROM WOQPartCte Ct)
 	       
 

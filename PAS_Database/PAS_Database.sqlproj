@@ -4463,6 +4463,7 @@
     <Build Include="dbo\Stored Procedures\USP_UnReserveWorkOrderMaterialStockLineForRepairOrder.sql" />
     <Build Include="dbo\Stored Procedures\USP_DeleteSalesOrderQuoteCharge.sql" />
     <Build Include="dbo\Stored Procedures\DeleteRRHeaderById.sql" />
+    <Build Include="dbo\Stored Procedures\usprpt_GetGoodsReceiptNotInvoicedReport_SSRS_1.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

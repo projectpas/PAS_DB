@@ -1,5 +1,5 @@
 ﻿/*************************************************************           
- ** File:   [usprpt_GetGoodsReceiptNotInvoicedReport]
+ ** File:   [usprpt_GetGoodsReceiptNotInvoicedReport_SSRS]
  ** Author:   Devendra Shekh
  ** Description: Get Goods Receipt which are not Invoiced
  ** Date:    11-Feb-2025
@@ -9,76 +9,56 @@
   ** S NO   Date            Author				Change Description              
  ** --   --------         -------			--------------------------------            
     1    11-Feb-2025     Devendra Shekh				Created
-    2    20-Feb-2025     Rajesh Gami				Modify as per requirement  (PN-15420)
-	3    23-Feb-2025     Rajesh Gami				Resolved Getting records issue (Parent Jira ID: PN-15420) -> (PN-15547)
+    2    20-Feb-2025     Rajesh Gami				Modify as per requirement
+	3    23-Feb-2025     Rajesh Gami				Resolved Getting records issue
 	4    20-Mar-2026     Vishal Suthar				Fixed total mismatch issue by adding qtyRemaining > 0 condition in "WithTotal" cte
+
+EXEC [dbo].[usprpt_GetGoodsReceiptNotInvoicedReport_SSRS] 1,'1/1/2025','01/02/2025','2','1,5,6!2,7,8,9!3,11,10!4,12,13!!!!!!'
 **************************************************************/
-CREATE       PROCEDURE [dbo].[usprpt_GetGoodsReceiptNotInvoicedReport]     
-@PageNumber INT = 1,    
-@PageSize INT = NULL,    
-@mastercompanyid INT,    
-@xmlFilter XML  
+CREATE   PROCEDURE [dbo].[usprpt_GetGoodsReceiptNotInvoicedReport_SSRS]     
+@mastercompanyid INT,
+@id DATETIME2,
+@id2 DATETIME2,
+@id3 VARCHAR(30),
+@strFilter VARCHAR(MAX) = NULL 
 AS    
 BEGIN    
 	SET NOCOUNT ON;    
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED    
 	BEGIN TRY
     	 DECLARE @postedStatusId INT = (select ID FROM BatchStatus WHERE [Name] = 'Posted')
-		DECLARE @Fromdate DATETIME2,    
-				@Todate  DATETIME2,    
-				@level1 VARCHAR(MAX) = NULL,    
+		DECLARE	@level1 VARCHAR(MAX) = NULL,    
 				@level2 VARCHAR(MAX) = NULL,    
 				@level3 VARCHAR(MAX) = NULL,    
 				@level4 VARCHAR(MAX) = NULL,    
-				@Level5 VARCHAR(MAX) = NULL,    
-				@Level6 VARCHAR(MAX) = NULL,    
-				@Level7 VARCHAR(MAX) = NULL,    
-				@Level8 VARCHAR(MAX) = NULL,    
-				@Level9 VARCHAR(MAX) = NULL,    
-				@Level10 VARCHAR(MAX) = NULL, 
+				@level5 VARCHAR(MAX) = NULL,    
+				@level6 VARCHAR(MAX) = NULL,    
+				@level7 VARCHAR(MAX) = NULL,    
+				@level8 VARCHAR(MAX) = NULL,    
+				@level9 VARCHAR(MAX) = NULL,    
+				@level10 VARCHAR(MAX) = NULL,
 				@UserEmployeeId BIGINT = 0;
-	
-		SELECT @Fromdate=CASE WHEN filterby.value('(FieldName/text())[1]','VARCHAR(100)')='From Received Date'     
-		THEN convert(Date,filterby.value('(FieldValue/text())[1]','VARCHAR(100)')) ELSE @Fromdate END,    
-    
-		@Todate=CASE WHEN filterby.value('(FieldName/text())[1]','VARCHAR(100)')='To Received Date'     
-		THEN convert(Date,filterby.value('(FieldValue/text())[1]','VARCHAR(100)')) ELSE @Todate END,    
-    
-		@level1=CASE WHEN filterby.value('(FieldName/text())[1]','VARCHAR(100)')='Level1'     
-		THEN filterby.value('(FieldValue/text())[1]','VARCHAR(100)') ELSE @level1 END,    
-    
-		@level2=CASE WHEN filterby.value('(FieldName/text())[1]','VARCHAR(100)')='Level2'     
-		THEN filterby.value('(FieldValue/text())[1]','VARCHAR(100)') ELSE @level2 END,    
-    
-		@level3=CASE WHEN filterby.value('(FieldName/text())[1]','VARCHAR(100)')='Level3'     
-		THEN filterby.value('(FieldValue/text())[1]','VARCHAR(100)') ELSE @level3 END,    
-    
-		@level4=CASE WHEN filterby.value('(FieldName/text())[1]','VARCHAR(100)')='Level4'     
-		THEN filterby.value('(FieldValue/text())[1]','VARCHAR(100)') ELSE @level4 END,    
-    
-		@level5=CASE WHEN filterby.value('(FieldName/text())[1]','VARCHAR(100)')='Level5'     
-		THEN filterby.value('(FieldValue/text())[1]','VARCHAR(100)') ELSE @level5 END,    
-    
-		@level6=CASE WHEN filterby.value('(FieldName/text())[1]','VARCHAR(100)')='Level6'     
-		THEN filterby.value('(FieldValue/text())[1]','VARCHAR(100)') ELSE @level6 END,    
-    
-		@level7=CASE WHEN filterby.value('(FieldName/text())[1]','VARCHAR(100)')='Level7'     
-		THEN filterby.value('(FieldValue/text())[1]','VARCHAR(100)') ELSE @level7 END,    
-    
-		@level8=CASE WHEN filterby.value('(FieldName/text())[1]','VARCHAR(100)')='Level8'     
-		THEN filterby.value('(FieldValue/text())[1]','VARCHAR(100)') ELSE @level8 END,    
-    
-		@level9=CASE WHEN filterby.value('(FieldName/text())[1]','VARCHAR(100)')='Level9'     
-		THEN filterby.value('(FieldValue/text())[1]','VARCHAR(100)') ELSE @level9 END,    
-    
-		@level10=CASE WHEN filterby.value('(FieldName/text())[1]','VARCHAR(100)')='Level10'     
-		THEN filterby.value('(FieldValue/text())[1]','VARCHAR(100)') ELSE @level10 end, 
-		
-		@UserEmployeeId=CASE WHEN filterby.value('(FieldName/text())[1]','VARCHAR(100)')='EmployeeId'     
-		THEN filterby.value('(FieldValue/text())[1]','VARCHAR(100)') ELSE @UserEmployeeId end 
-    
-		FROM @xmlFilter.nodes('/ArrayOfFilter/Filter')AS TEMPTABLE(filterby)     
-  
+
+		IF OBJECT_ID(N'tempdb..#TEMPMSFilter') IS NOT NULL    
+		BEGIN    
+			DROP TABLE #TEMPMSFilter
+		END
+
+		CREATE TABLE #TEMPMSFilter([ID] BIGINT  IDENTITY(1,1),[LevelIds] VARCHAR(MAX)); 
+
+		INSERT INTO #TEMPMSFilter(LevelIds)	SELECT Item FROM DBO.SPLITSTRING(@strFilter,'!');
+
+		SELECT @level1 = LevelIds FROM #TEMPMSFilter WHERE ID = 1 
+		SELECT @level2 = LevelIds FROM #TEMPMSFilter WHERE ID = 2 
+		SELECT @level3 = LevelIds FROM #TEMPMSFilter WHERE ID = 3 
+		SELECT @level4 = LevelIds FROM #TEMPMSFilter WHERE ID = 4 
+		SELECT @level5 = LevelIds FROM #TEMPMSFilter WHERE ID = 5 
+		SELECT @level6 = LevelIds FROM #TEMPMSFilter WHERE ID = 6 
+		SELECT @level7 = LevelIds FROM #TEMPMSFilter WHERE ID = 7 
+		SELECT @level8 = LevelIds FROM #TEMPMSFilter WHERE ID = 8 
+		SELECT @level9 = LevelIds FROM #TEMPMSFilter WHERE ID = 9 
+		SELECT @level10 = LevelIds FROM #TEMPMSFilter WHERE ID = 10	 
+
 		DECLARE @POModuleID INT = 4; 
 		DECLARE @ROModuleID INT = 25;
 		SELECT @POModuleID = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] = 'POHeader';
@@ -95,9 +75,6 @@ BEGIN
 				
 		SELECT TOP 1 @BaseUtcOffsetSec = BaseUtcOffsetSec FROM dbo.TimeZone WITH(NOLOCK) WHERE [Description] = @CurrntEmpTimeZoneDesc
 		/* -------------- END: Get the timzone and UTC offset -------------- */
-  
-		SET @PageSize = CASE WHEN NULLIF(@PageSize,0) IS NULL THEN 10 ELSE @PageSize END    
-		SET @PageNumber = CASE WHEN NULLIF(@PageNumber,0) IS NULL THEN 1 ELSE @PageNumber END
 
 		;WITH rptCTE ([vendor],[vendorCode],[poRoNum],[poStatus],
 		[pn],[pnDescription],[stockType],
@@ -105,7 +82,7 @@ BEGIN
 			[qtyOrdered],[qtyReceived],[qtyReconciled],[qtyRemaining],[receivingReconNum],
 			[unitCost],
 			[extCost],[baseCurrency],[receivedBy],
-			[level1], [level2], [level3], [level4], [level5], [level6], [level7], [level8], [level9], [level10], [masterCompanyId],CreatedDate,Id,IsPO,PartID) 
+			[level1], [level2], [level3], [level4], [level5], [level6], [level7], [level8], [level9], [level10], [masterCompanyId],CreatedDate,Id,IsPO,PartID,ReceivingReconciliationDetailId) 
 		AS (
 			SELECT
 			PO.VendorName AS 'vendor',
@@ -140,11 +117,12 @@ BEGIN
 			PO.PurchaseOrderId as Id,
 			1 as IsPO,
 			POP.PurchaseOrderPartRecordId PartID
+			,RRCD.ReceivingReconciliationDetailId
 		FROM [dbo].[PurchaseOrder] PO WITH(NOLOCK)
 		INNER JOIN [dbo].[PurchaseOrderPart] POP WITH(NOLOCK) ON PO.PurchaseOrderId = POP.PurchaseOrderId
 		INNER JOIN DBO.Stockline STK WITH(NOLOCK) ON POP.PurchaseOrderPartRecordId = STK.PurchaseOrderPartRecordId
 		--INNER JOIN DBO.StocklineDraft STD WITH(NOLOCK) ON STK.StockLineId = STD.StockLineId AND POP.PurchaseOrderPartRecordId = STD.RepairOrderPartRecordId
-		INNER JOIN [dbo].[PurchaseOrderManagementStructureDetails] MSD WITH(NOLOCK) ON MSD.[ModuleID] = @POModuleID AND MSD.[ReferenceID] = PO.PurchaseOrderId  
+		INNER JOIN [dbo].[PurchaseOrderManagementStructureDetails] MSD WITH(NOLOCK) ON MSD.[ModuleID] = @POModuleID AND MSD.[ReferenceID] = PO.PurchaseOrderId    
 		LEFT JOIN [dbo].[ReceivingReconciliationHeader] RRCH WITH(NOLOCK) ON PO.VendorId = RRCH.VendorId AND RRCH.StatusId =  @postedStatusId
 		LEFT JOIN [dbo].[ReceivingReconciliationDetails] RRCD WITH(NOLOCK) ON RRCH.ReceivingReconciliationId = RRCD.ReceivingReconciliationId AND RRCD.PurchaseOrderId = POP.PurchaseOrderId AND RRCD.PurchaseOrderPartRecordId = POP.PurchaseOrderPartRecordId AND RRCD.[Type] = 1 --AND ((ISNULL(POP.QuantityReceived,0) - ISNULL(RRCD.InvoicedQty,0)) > 0 )
 		LEFT JOIN [dbo].ManagementStructureLevel MSL1 WITH(NOLOCK)   ON MSD.[Level1Id] = MSL1.ID
@@ -161,7 +139,7 @@ BEGIN
 			AND PO.[IsDeleted] = 0 
 			--AND ISNULL(POP.QuantityReceived,0) > 0
 			--AND (RRCH.ReceivingReconciliationId IS NULL OR (ISNULL(POP.QuantityReceived,0) - ISNULL(RRCD.InvoicedQty,0)) > 0 )
-			AND CAST(STK.[CreatedDate] AS DATE) BETWEEN CAST(@Fromdate AS DATE) AND CAST(@Todate AS DATE)  
+			AND CAST(STK.[CreatedDate] AS DATE) BETWEEN CAST(@id AS DATE) AND CAST(@id2 AS DATE)  
 			AND (ISNULL(@level1,'') =''  OR MSD.[Level1Id]  IN (SELECT Item FROM DBO.SPLITSTRING(@level1,',')))    
 			AND (ISNULL(@level2,'') =''  OR MSD.[Level2Id]  IN (SELECT Item FROM DBO.SPLITSTRING(@level2,',')))    
 			AND (ISNULL(@level3,'') =''  OR MSD.[Level3Id]  IN (SELECT Item FROM DBO.SPLITSTRING(@level3,',')))    
@@ -209,14 +187,13 @@ BEGIN
 			RO.RepairOrderId as Id,
 			0 as IsPO,
 			ROP.RepairOrderPartRecordId PartID
+			,RRCD.ReceivingReconciliationDetailId
 		FROM [dbo].[RepairOrder] RO WITH(NOLOCK)
 		INNER JOIN [dbo].[RepairOrderPart] ROP WITH(NOLOCK) ON RO.RepairOrderId = ROP.RepairOrderId
 		INNER JOIN DBO.Stockline STK WITH(NOLOCK) ON ROP.RepairOrderPartRecordId = STK.RepairOrderPartRecordId
-		INNER JOIN [dbo].[RepairOrderManagementStructureDetails] MSD WITH(NOLOCK) ON MSD.[ModuleID] = @ROModuleID AND MSD.[ReferenceID] = RO.RepairOrderId 
-		
+		INNER JOIN [dbo].[RepairOrderManagementStructureDetails] MSD WITH(NOLOCK) ON MSD.[ModuleID] = @ROModuleID AND MSD.[ReferenceID] = RO.RepairOrderId    
 		LEFT JOIN [dbo].[ReceivingReconciliationHeader] RRCH WITH(NOLOCK) ON RO.VendorId = RRCH.VendorId AND RRCH.StatusId =  @postedStatusId
 		LEFT JOIN [dbo].[ReceivingReconciliationDetails] RRCD WITH(NOLOCK) ON RRCH.ReceivingReconciliationId = RRCD.ReceivingReconciliationId AND  RRCD.PurchaseOrderId = ROP.RepairOrderId AND RRCD.PurchaseOrderPartRecordId = ROP.RepairOrderPartRecordId AND RRCD.[Type] = 2 --AND ((ISNULL(ROP.QuantityReceived,0) - ISNULL(RRCD.InvoicedQty,0)) > 0 )
-
 		LEFT JOIN [dbo].ManagementStructureLevel MSL1 WITH(NOLOCK)   ON MSD.[Level1Id] = MSL1.ID
 		LEFT JOIN [dbo].ManagementStructureLevel MSL2 WITH(NOLOCK)  ON MSD.[Level2Id] = MSL2.ID
 		LEFT JOIN [dbo].ManagementStructureLevel MSL3 WITH(NOLOCK)  ON MSD.[Level3Id] = MSL3.ID
@@ -231,7 +208,7 @@ BEGIN
 			AND RO.[IsDeleted] = 0 
 			--AND ISNULL(ROP.QuantityReceived,0) > 0
 			--AND (RRCH.ReceivingReconciliationId IS NULL OR (ISNULL(ROP.QuantityReceived,0) - ISNULL(RRCD.InvoicedQty,0)) > 0 )
-			AND CAST(STK.[CreatedDate] AS DATE) BETWEEN CAST(@Fromdate AS DATE) AND CAST(@Todate AS DATE)  
+			AND CAST(STK.[CreatedDate] AS DATE) BETWEEN CAST(@id AS DATE) AND CAST(@id2 AS DATE)  
 			AND (ISNULL(@level1,'') =''  OR MSD.[Level1Id]  IN (SELECT Item FROM DBO.SPLITSTRING(@level1,',')))    
 			AND (ISNULL(@level2,'') =''  OR MSD.[Level2Id]  IN (SELECT Item FROM DBO.SPLITSTRING(@level2,',')))    
 			AND (ISNULL(@level3,'') =''  OR MSD.[Level3Id]  IN (SELECT Item FROM DBO.SPLITSTRING(@level3,',')))    
@@ -279,9 +256,8 @@ BEGIN
 						vendor, vendorCode, poRoNum, poStatus,
 						pn, pnDescription, stockType, 
 						--cond,
-						Id, IsPO, PartID,qtyReconciled
-				)
-		,PartLevel AS
+						Id, IsPO, PartID,qtyReconciled,ReceivingReconciliationDetailId
+				),PartLevel AS
 				(
 					SELECT
 						vendor, vendorCode, poRoNum, poStatus,
@@ -371,19 +347,17 @@ BEGIN
 				INNER JOIN WithTotal WC ON FC.masterCompanyId = WC.masterCompanyId
 				WHERE qtyRemaining > 0
 				ORDER BY CreatedDate DESC
-		OFFSET((@PageNumber-1) * @pageSize) ROWS FETCH NEXT @pageSize ROWS ONLY; 
-    
 	END TRY
 	BEGIN CATCH    
 	DECLARE @ErrorLogID int,    
             @DatabaseName varchar(100) = DB_NAME()    
 	-----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------    
             ,    
-            @AdhocComments varchar(150) = '[usprpt_GetGoodsReceiptNotInvoicedReport]',    
-            @ProcedureParameters varchar(3000) = '@Parameter1 = ''' + CAST(ISNULL(@PageNumber, '') AS VARCHAR(100)) +      
-            '@Parameter2 = ''' + CAST(ISNULL(@PageSize, '') AS VARCHAR(100)) +      
-            '@Parameter3 = ''' + CAST(ISNULL(@mastercompanyid, '') AS VARCHAR(100)) +      
-            '@Parameter4 = ''' + CAST(ISNULL(@xmlFilter, '') AS VARCHAR(MAX)),    
+            @AdhocComments varchar(150) = '[usprpt_GetGoodsReceiptNotInvoicedReport_SSRS]',    
+            @ProcedureParameters varchar(3000) = '@Parameter1 = ''' + CAST(ISNULL(@mastercompanyid, '') AS VARCHAR(100)) +      
+            '@Parameter2 = ''' + CAST(ISNULL(@id, '') AS VARCHAR(100)) +      
+            '@Parameter3 = ''' + CAST(ISNULL(@id2, '') AS VARCHAR(100)) +      
+            '@Parameter4 = ''' + CAST(ISNULL(@strFilter, '') AS VARCHAR(MAX)),    
             @ApplicationName VARCHAR(100) = 'PAS'     
     
     -----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------    

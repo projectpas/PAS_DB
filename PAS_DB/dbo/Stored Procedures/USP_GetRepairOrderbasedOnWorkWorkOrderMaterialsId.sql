@@ -37,26 +37,23 @@ BEGIN
 	BEGIN TRY
 		SELECT 
 			RO.RepairOrderNumber, 
-			RO.VendorCode,
-			RO.VendorName,
 			RO.OpenDate,
-			CASE WHEN CAST(SL.ReceivedDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE)THEN NULL ELSE (Cast(DBO.ConvertUTCtoLocal(SL.ReceivedDate, @CurrntEmpTimeZoneDesc) AS DATETIME))END [ReceivedDate],
-			RP.PartNumber, 
-			RP.PartDescription,
-			RP.SerialNumber,
+			CASE WHEN CAST(WMR.RORecDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE)THEN NULL ELSE (Cast(DBO.ConvertUTCtoLocal(WMR.RORecDate, @CurrntEmpTimeZoneDesc) AS DATETIME))END [ReceivedDate],
+			WMR.PartNumber, 
+			WMR.PNDescription PartDescription,
+			WMR.SerialNum SerialNumber,
 			RP.WorkPerformed,
 			RP.StockLineNumber,
-			RP.ControlNumber,
-			0 as UnitCost,
-			--SL.UnitCost,
-			RP.UnitCost AS ROCost,
-			RP.QuantityOrdered,
-			RP.ExtendedCost ExtendedRepairCost,
-			(ISNULL(SL.UnitCost, 0) + ISNULL(RP.UnitCost, 0)) * RP.QuantityOrdered AS TotalCost		
-		FROM [dbo].[RepairOrderPart] RP WITH(NOLOCK) 
-			JOIN [dbo].[RepairOrder] RO WITH(NOLOCK) ON RO.RepairOrderId = RP.RepairOrderId
-			JOIN [dbo].[Stockline] SL WITH(NOLOCK) ON SL.StockLineId = RP.StockLineId
-		WHERE RP.WorkOrderMaterialsId = @WorkOrderMaterialsId AND RP.WorkOrderId = @WorkOrderId
+			RO.VendorName,
+			WMR.Quantity,
+			WMR.POCost,
+			WMR.RepairCost,
+			WMR.UnitCost,
+			WMR.ExtendedCost
+		FROM [dbo].[WorkOrederMaterialsROHistory] WMR WITH(NOLOCK) 
+			JOIN [dbo].[RepairOrder] RO WITH(NOLOCK) ON RO.RepairOrderId = WMR.RepairOrderId
+			JOIN [dbo].[RepairOrderPart] RP WITH(NOLOCK) ON RP.RepairOrderPartRecordId = WMR.RepairOrderPartId
+		WHERE RP.WorkOrderMaterialsId = @WorkOrderMaterialsId AND RP.WorkOrderId = @WorkOrderId 
 	END TRY
 	BEGIN CATCH
 		DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name() 

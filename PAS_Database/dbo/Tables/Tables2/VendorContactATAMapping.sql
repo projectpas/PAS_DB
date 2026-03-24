@@ -1,4 +1,4 @@
-CREATE TABLE [dbo].[VendorContactATAMapping] (
+﻿CREATE TABLE [dbo].[VendorContactATAMapping] (
     [VendorContactATAMappingId] BIGINT        IDENTITY (1, 1) NOT NULL,
     [VendorId]                  BIGINT        NOT NULL,
     [VendorContactId]           BIGINT        NOT NULL,
@@ -20,6 +20,8 @@ CREATE TABLE [dbo].[VendorContactATAMapping] (
     CONSTRAINT [FK_VendorContactATAMapping_Vendor] FOREIGN KEY ([VendorId]) REFERENCES [dbo].[Vendor] ([VendorId]),
     CONSTRAINT [FK_VendorContactATAMapping_VendorContact] FOREIGN KEY ([VendorContactId]) REFERENCES [dbo].[VendorContact] ([VendorContactId])
 );
+
+
 
 
 
@@ -137,7 +139,6 @@ GO
    
 
             WHERE
-                m.ColumnName <> '<Enter your PrimaryKEY>' and (
                 (m.Action = 'U' AND (
                      (m.OldValue IS NULL AND m.NewValue IS NOT NULL)
                   OR (m.OldValue IS NOT NULL AND m.NewValue IS NULL)
@@ -146,7 +147,7 @@ GO
                 OR
                 (m.Action = 'I' AND m.NewValue IS NOT NULL)
                 OR
-                (m.Action = 'D' AND m.OldValue IS NOT NULL))
+                (m.Action = 'D' AND m.OldValue IS NOT NULL)
             
             UNION ALL
 
@@ -159,8 +160,8 @@ GO
                 x.OldValue,
                 x.NewValue
             FROM merged m
-            LEFT JOIN dbo.VendorContactATAMapping VCOld ON TRY_CAST(m.OldValue AS BIGINT) = VCOld.VendorContactATAMappingId
-            LEFT JOIN dbo.VendorContactATAMapping VCNew ON TRY_CAST(m.NewValue AS BIGINT) = VCNew.VendorContactATAMappingId
+            LEFT JOIN dbo.VendorContactATAMapping VCOld WITH (NOLOCK) ON TRY_CAST(m.OldValue AS BIGINT) = VCOld.VendorContactATAMappingId
+            LEFT JOIN dbo.VendorContactATAMapping VCNew WITH (NOLOCK) ON TRY_CAST(m.NewValue AS BIGINT) = VCNew.VendorContactATAMappingId
            
             CROSS APPLY (
                 VALUES

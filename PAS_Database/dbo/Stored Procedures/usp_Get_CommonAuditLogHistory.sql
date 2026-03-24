@@ -55,7 +55,7 @@ BEGIN
         DECLARE @RefId BIGINT;
 
         SELECT @RefId = ContactId
-        FROM VendorContact
+        FROM [dbo].[VendorContact]
         WHERE VendorContactId = TRY_CAST(@PK_Value AS BIGINT);
 
         -- Validate sort dir
@@ -305,7 +305,7 @@ BEGIN
             (
                 SELECT AuditId, TableName, PKJson, ColumnName, [Action],
                        OldValue, NewValue, ChangedBy, ChangedAt, ReferenceId
-                FROM dbo.AuditLog
+                FROM dbo.AuditLog WITH (NOLOCK)
                 WHERE ReferenceId = @RefId
                     AND TableName IN (''VendorContact'',''Contact'')
                     AND (@StartAt IS NULL OR ChangedAt >= @StartAt)

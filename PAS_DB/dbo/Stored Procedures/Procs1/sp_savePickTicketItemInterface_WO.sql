@@ -19,6 +19,7 @@
  3    08/18/2023   Devendra 			 Added QtyRemaining for wopickticket insert and update   
  4    08/21/2023   Amit Ghediya          Updated HitoryText content 
  4    09/18/2023   Devendra Shekh        pick ticket qty issue resovled 
+ 7	  19/03/2026	Priyansh Patel		 Added the @IsAutoConfirmPickTicket logic [PN-15606]
   
  EXECUTE sp_savePickTicketItemInterface_WO 828,0  
 **************************************************************/   
@@ -184,13 +185,26 @@ BEGIN
 					END
 				END
 
+				DECLARE @IsAutoConfirmPickTicket BIT = 0;
+
 				INSERT INTO [dbo].[WorkorderPickTicket]  
 				   ([PickTicketNumber], [WorkorderId], [CreatedBy], [UpdatedBy], [CreatedDate] ,[UpdatedDate],[IsActive],[IsDeleted],[WorkOrderMaterialsId],[OrderPartId],  
 					[Qty],[QtyToShip],[MasterCompanyId],[Status], [StocklineId]  
 				   ,[PickedById],[ConfirmedById],[Memo],[IsConfirmed],[IsKitType], [QtyRemaining])  
 				VALUES(@WOPickTicketNumber, @WorkOrderId,  @CreatedBy, @UpdatedBy, GETUTCDATE(), GETUTCDATE(), @IsActive, @IsDeleted, @WorkOrderMaterialsId,@WorkOrderMaterialsId,  
 				  @Qty, @QtyToShip, @MasterCompanyId, @Status, @StocklineId,  
-				  @PickedById, @ConfirmedById, @Memo, @IsConfirmed,@IsKitType,@QtyRemaining);  
+				  @PickedById, @ConfirmedById, @Memo, @IsConfirmed,@IsKitType,@QtyRemaining);
+				  
+				SET @WOPickTicketId = SCOPE_IDENTITY();
+
+				SELECT @IsAutoConfirmPickTicket = ISNULL(wos.IsAutoConfirmPickTicket, 0) FROM [dbo].[WorkOrder] wo WITH (NOLOCK)
+				LEFT JOIN [dbo].[WorkOrderSettings] wos WITH (NOLOCK) ON wos.WorkOrderTypeId = wo.WorkOrderTypeId AND wos.MasterCompanyId = @MasterCompanyId WHERE wo.WorkOrderId = @WorkOrderId;
+
+				IF (@IsAutoConfirmPickTicket = 1)
+				BEGIN
+					UPDATE [dbo].[WorkorderPickTicket] SET ConfirmedById = @PickedById, IsConfirmed = 1, ConfirmedDate = GETUTCDATE() WHERE PickTicketId = @WOPickTicketId; 
+				END
+
 		   END  
      
 		   IF(@CodePrefixId > 0 AND @CurrentNummber > 0)  

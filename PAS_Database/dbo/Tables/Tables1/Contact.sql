@@ -30,6 +30,8 @@
 );
 
 
+
+
 GO
 CREATE   TRIGGER [dbo].[trg_Audit_dbo_Contact]
 ON [dbo].[Contact]
@@ -94,7 +96,8 @@ BEGIN
             COALESCE(n.ColumnName, o.ColumnName)        AS ColumnName,
             o.OldValue,
             n.NewValue,
-            p.Action
+            p.Action,
+            n.ContactId
         FROM paired p
         LEFT JOIN oldv o
             ON o.ContactId = p.ContactId
@@ -107,7 +110,8 @@ BEGIN
             n.ColumnName,
             NULL AS OldValue,
             n.NewValue,
-            p.Action
+            p.Action,
+            n.ContactId
         FROM paired p
         LEFT JOIN newv n
             ON n.ContactId = p.ContactId
@@ -118,7 +122,7 @@ BEGIN
                 AND o2.ColumnName    = n.ColumnName
         )
     )
-    INSERT dbo.AuditLog (SchemaName, TableName, PKJson, ColumnName, Action, OldValue, NewValue)
+    INSERT dbo.AuditLog (SchemaName, TableName, PKJson, ColumnName, Action, OldValue, NewValue , ReferenceId)
     SELECT
         N'dbo' AS SchemaName,
         N'Contact' AS TableName,
@@ -126,7 +130,8 @@ BEGIN
         m.ColumnName,
         m.Action,
         m.OldValue,
-        m.NewValue        
+        m.NewValue,
+        m.ContactId
     FROM merged m  
     WHERE
         m.ColumnName <> 'ContactId' and (

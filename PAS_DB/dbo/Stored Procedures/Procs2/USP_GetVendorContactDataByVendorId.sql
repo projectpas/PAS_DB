@@ -15,11 +15,13 @@
  ** PR   Date         Author		        Change Description            
  ** --   --------     -------		    --------------------------------          
     1    12/05/2025  Ayushi Patel	    Created
+    2    25/03/2026  Bhargav Saliya	    PN-15807: Added Null able VendorContactId
      
 -- EXEC [USP_GetVendorContactDataByVendorId] NULL , 132 , 20 , 0 ,1
 ********************************************************************************************/
 CREATE PROCEDURE [dbo].[USP_GetVendorContactDataByVendorId]
-    @VendorId BIGINT
+    @VendorId BIGINT,
+	@VendorContactId BIGINT = NULL
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -43,7 +45,7 @@ BEGIN
         FROM dbo.VendorContact vc WITH (NOLOCK)
         INNER JOIN dbo.Contact c WITH (NOLOCK) ON vc.ContactId = c.ContactId
         LEFT JOIN dbo.Vendor v WITH (NOLOCK) ON v.VendorId = vc.VendorId
-        WHERE vc.VendorId = @VendorId AND ISNULL(vc.IsDeleted, 0) = 0
+        WHERE vc.VendorId = @VendorId AND (ISNULL(vc.IsDeleted, 0) = 0 OR vc.VendorContactId = @VendorContactId)
     END TRY
     BEGIN CATCH
    DECLARE @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name()

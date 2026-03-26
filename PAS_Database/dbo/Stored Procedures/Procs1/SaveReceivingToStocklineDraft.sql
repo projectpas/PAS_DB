@@ -29,7 +29,7 @@
 	13   12-12-2024   ABHISHEK JIRAWLA  Change made for Asset Inventory Status and Asset Available Status
 	14   16-01-2025   ABHISHEK JIRAWLA  If Part is non serialized and Quantity is greater then 200 then only 1 entry should be made (PN-10836)
 	15   09-Dec-2025  Rajesh Gami		Added logic : INT to DECIMAL (QTY related Fields)
-	16   24-02-2026   Amit Ghediya		IF TraceableTo is blank then take from vendor (PN-15560)
+	16   24-02-2026   Amit Ghediya		IF TraceableTo is blank then take from vendor & other too (PN-15560)
 	17   16-03-2026   Vishal Suthar		Increased max qty to 500 from 200
 
  EXEC [SaveReceivingToStocklineDraft] 2281, 'ADMIN User'    
@@ -135,7 +135,7 @@ BEGIN
      SELECT @ShipViaId = ShipViaId, @ShipViaName = ShipVia, @ShippingAccountNo = ShippingAccountNo FROM AllShipVia WHERE ReferenceId = @PurchaseOrderId AND ModuleId = 13;    
 
 	 --IF traceble is blank then take from vendor (PN-15560)
-	 IF(ISNULL(@TraceableTo,0) = 0)
+	 IF(ISNULL(@TraceableToType,0) = 0)
 	 BEGIN
 		  SET @TraceableTo = @VendorId;
 		  SET @TraceableToName = @VendorName;

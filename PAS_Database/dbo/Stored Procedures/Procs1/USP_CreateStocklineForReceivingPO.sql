@@ -40,6 +40,7 @@
     23   19-Dec-2025  HEMANT SALIYA     Modified for remove corss join
 	24   07/01/2026   Rajesh Gami		Added MasterCompanyId Parameter While Calling UOM Conversion Function
 	25   06/03/2026   Bhargav Saliya	PN-15667[When we add a flat price, there is no need to Sum @PP_UnitPurchasePrice + @PP_FlatPrice] 
+	26   26-MAr-2026  Moin Bloch        Modified Fix Issue For Close PO When SO Shipped Partial Stockline Qty
 declare @p2 dbo.POPartsToReceive  insert into @p2 values(2371,4051,2)    
 exec dbo.USP_CreateStocklineForReceivingPO @PurchaseOrderId=2371,@tbl_POPartsToReceive=@p2,@UpdatedBy=N'ADMIN User',@MasterCompanyId=1  
 **************************************************************/
@@ -2543,12 +2544,13 @@ BEGIN
                 ID BIGINT NOT NULL IDENTITY,
                 [PurchaseOrderId] [bigint] NULL,
                 [PurchaseOrderPartRecordId] [bigint] NULL,
-                [QuantityOrdered] [int] NULL
+                [QuantityOrdered] [int] NULL,
+				[QuantityReceived] [int] NULL
             )
 
-            INSERT INTO #POParts ([PurchaseOrderId], [PurchaseOrderPartRecordId], [QuantityOrdered])
+            INSERT INTO #POParts ([PurchaseOrderId], [PurchaseOrderPartRecordId], [QuantityOrdered],[QuantityReceived])
             --SELECT [PurchaseOrderId], [PurchaseOrderPartRecordId], [QuantityOrdered] FROM DBO.PurchaseOrderPart WITH (NOLOCK) WHERE PurchaseOrderId = @PurchaseOrderId;
-			SELECT [PurchaseOrderId],[PurchaseOrderPartRecordId],[QuantityOrdered] FROM [dbo].[PurchaseOrderPart] P WITH(NOLOCK)
+			SELECT [PurchaseOrderId],[PurchaseOrderPartRecordId],[QuantityOrdered],ISNULL([QuantityReceived],0) FROM [dbo].[PurchaseOrderPart] P WITH(NOLOCK)
 			WHERE P.[PurchaseOrderId] = @PurchaseOrderId AND 
 			    ((P.ParentId IS NOT NULL AND EXISTS (SELECT 1 FROM [dbo].[PurchaseOrderPart] C WITH(NOLOCK) WHERE C.PurchaseOrderId = P.PurchaseOrderId AND C.ParentId IS NOT NULL))
 			  OR (P.ParentId IS NULL AND NOT EXISTS (SELECT 1 FROM [dbo].[PurchaseOrderPart] C WITH(NOLOCK) WHERE C.PurchaseOrderId = P.PurchaseOrderId AND C.ParentId IS NOT NULL)));
@@ -2568,11 +2570,13 @@ BEGIN
 
                 SELECT @QuantityOrdered = [QuantityOrdered], @PurchaseOrderPartRecordId = [PurchaseOrderPartRecordId] FROM #POParts WHERE ID = @POPartLoopID;
 
-                SELECT @StkQuantity = ISNULL(SUM([Quantity]), 0) FROM DBO.Stockline Stk WITH (NOLOCK) WHERE Stk.PurchaseOrderPartRecordId = @PurchaseOrderPartRecordId AND IsParent = 1;
-                
-				SELECT @StkAssetQuantity = ISNULL(SUM(Qty), 0) FROM DBO.AssetInventory Stk WITH (NOLOCK) WHERE Stk.PurchaseOrderPartRecordId = @PurchaseOrderPartRecordId;
+				SELECT @StkQuantity = [QuantityReceived], @PurchaseOrderPartRecordId = [PurchaseOrderPartRecordId] FROM #POParts WHERE ID = @POPartLoopID;
 
-				SELECT @NonStkInventoryQuantity = ISNULL(SUM(Quantity), 0) FROM DBO.NonStockInventory NonStk WITH (NOLOCK) WHERE NonStk.PurchaseOrderPartRecordId = @PurchaseOrderPartRecordId;
+                --SELECT @StkQuantity = ISNULL(SUM([Quantity]), 0) FROM DBO.Stockline Stk WITH (NOLOCK) WHERE Stk.PurchaseOrderPartRecordId = @PurchaseOrderPartRecordId AND IsParent = 1;
+                
+				--SELECT @StkAssetQuantity = ISNULL(SUM(Qty), 0) FROM DBO.AssetInventory Stk WITH (NOLOCK) WHERE Stk.PurchaseOrderPartRecordId = @PurchaseOrderPartRecordId;
+
+				--SELECT @NonStkInventoryQuantity = ISNULL(SUM(Quantity), 0) FROM DBO.NonStockInventory NonStk WITH (NOLOCK) WHERE NonStk.PurchaseOrderPartRecordId = @PurchaseOrderPartRecordId;
 
                 SET @MainQuantityOrdered = @MainQuantityOrdered + @QuantityOrdered;
                 SET @MainStkQuantity = @MainStkQuantity + @StkQuantity;

@@ -4465,6 +4465,10 @@
     <Build Include="dbo\Stored Procedures\DeleteRRHeaderById.sql" />
     <Build Include="dbo\Stored Procedures\usprpt_GetGoodsReceiptNotInvoicedReport_SSRS_1.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetRepairOrderbasedOnWorkWorkOrderMaterialsId.sql" />
+    <Build Include="dbo\Views\vw_MaintenanceStatus.sql" />
+    <Build Include="dbo\Views\vw_AircraftStatus.sql" />
+    <Build Include="dbo\Tables\MaintenanceStatus.sql" />
+    <Build Include="dbo\Tables\AircraftStatus.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

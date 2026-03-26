@@ -7,12 +7,12 @@
             
 ** Change History             
 **********************             
-** PR   Date         Author  		Change Description              
-** --   --------     -------		--------------------------------            
-   1    05/17/2022   Dipak Karena	Created  
-   2    12/10/2024   Hemant Saliya	Updated For Updated Date 
-   3    12/10/2024   Ayushi Patel	Updated For Updated By 
-       
+** PR   Date         Author  		    Change Description              
+** --   --------     -------		    --------------------------------            
+   1    05/17/2022   Dipak Karena	    Created  
+   2    12/10/2024   Hemant Saliya	    Updated For Updated Date 
+   3    12/10/2024   Ayushi Patel	    Updated For Updated By 
+   4    26/03/2026   Nakul Chandigra    Added Condition For  AircraftStatus And MaintenanceStatus
 **********************/
 --EXEC  USP_SingleScreen_UpdateActiveInActiveStatus 10, 0, 'assetlocation'
 CREATE     PROCEDURE [dbo].[USP_SingleScreen_UpdateActiveInActiveStatus]   
@@ -42,8 +42,11 @@ BEGIN
       RAISERROR (@Erorr, 16, 1)  
       RETURN  
     END  
-  
-	EXEC [DBO].[USP_InsertAuditDataForSingleScreen] @ID,@PageName,@PrimaryKey 
+
+    IF ( UPPER(@PageName) <> 'AIRCRAFTSTATUS' AND UPPER(@PageName) <> 'MAINTENANCESTATUS')
+    BEGIN  
+	    EXEC [DBO].[USP_InsertAuditDataForSingleScreen] @ID,@PageName,@PrimaryKey 
+    END
 
 	SET @Query = 'UPDATE [' + @PageName + '] SET UpdatedDate =  GETUTCDATE(),UpdatedBy = ''' + @CurrentUser + ''', IsActive =' + CAST(@Status AS VARCHAR) + ' WHERE ' + @PrimaryKey + ' = ' + CAST(@ID AS VARCHAR)  
   

@@ -13,6 +13,7 @@
 	2    09/10/2023   Moin Bloch    Formetted SP 
 	3    10/04/2025   Amit Ghediya  Added new field (LastMSLevel,LegalEntityId)
 	4    16/02/2026   Amit Ghediya  update to get due date from ReceivingReconciliation duedate (PN-15444)
+	5    26/02/2026   HEMANT SALIYA UPDATE TO SET IS Active and IS Delete default values
 
 EXEC [dbo].[USP_CreateReceivingReconciliationPostReadyToPay] 10023,0
 ************************************************************************/
@@ -113,10 +114,10 @@ BEGIN
 						[MasterCompanyId],
 						[CreatedBy],
 						[UpdatedBy],
-						[CreatedDate],
-						[UpdatedDate],
-						[IsActive],
-						[IsDeleted],
+						GETUTCDATE(),
+						GETUTCDATE(),
+						1,
+						0,
 						[InvoiceTotal],
 						@LastMSLevel,
 						@LegalEntityId

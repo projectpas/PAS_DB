@@ -132,5 +132,18 @@
     [COGS_ExchSalesOrderGLAccName]      VARCHAR (255)   NULL,
     [IsUpdated]                         BIT             NULL,
     [WorkOrderFormTypeId]               INT             NULL,
-    [ItemMasterRankingIds]              VARCHAR (MAX)   NULL);
+    [ItemMasterRankingIds]              VARCHAR (MAX)   NULL,
+    [LifeLimitedPart]                   BIT             NULL,
+    [IsFlightHoursAvailable]            BIT             NULL,
+    [IsFlightCyclesAvailable]           BIT             NULL,
+    [IsLandingsAvailable]               BIT             NULL,
+    [IsStartsAvailable]                 BIT             NULL,
+    [IsCalendarTimeAvailable]           BIT             NULL,
+    [FlightHours]                       VARCHAR (200)   NULL,
+    [FlightMinutes]                     VARCHAR (200)   NULL,
+    [FlightCycles]                      VARCHAR (200)   NULL,
+    [Landings]                          VARCHAR (200)   NULL,
+    [Starts]                            VARCHAR (200)   NULL,
+    [CalendarHours]                     VARCHAR (200)   NULL,
+    [CalendarMinutes]                   VARCHAR (200)   NULL);
 

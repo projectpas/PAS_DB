@@ -26,8 +26,10 @@ BEGIN
 	SET NOCOUNT ON;  
 	BEGIN TRY  
 
-	DECLARE @AircraftRegistryId BIGINT;
+	DECLARE @AircraftRegistryId BIGINT = (SELECT AircraftRegistryId FROM @tbl_AircraftRegistryHeaderType);
 
+	IF(@AircraftRegistryId > 0)
+	BEGIN
 		UPDATE AR
         SET
             AR.MakeTypeId = T.MakeTypeId,
@@ -59,8 +61,9 @@ BEGIN
         FROM AircraftRegistryHeader AR
         INNER JOIN @tbl_AircraftRegistryHeaderType T ON AR.AircraftRegistryId = T.AircraftRegistryId
         WHERE T.AircraftRegistryId IS NOT NULL;
-
-
+	END
+	ELSE
+	BEGIN
         INSERT INTO [AircraftRegistryHeader]
         (
             MakeTypeId,
@@ -122,11 +125,9 @@ BEGIN
             GETUTCDATE(),
             GETUTCDATE()
         FROM @tbl_AircraftRegistryHeaderType T
-		WHERE T.AircraftRegistryId IS NULL;
-
-		SET @AircraftRegistryId = SCOPE_IDENTITY();
-
-		SELECT * FROM dbo.[AircraftRegistryHeader] WITH(NOLOCK) WHERE AircraftRegistryId = @AircraftRegistryId
+	END
+	SET @AircraftRegistryId = SCOPE_IDENTITY();
+	SELECT * FROM dbo.[AircraftRegistryHeader] WITH(NOLOCK) WHERE AircraftRegistryId = @AircraftRegistryId
 
     END TRY      
 	BEGIN CATCH        

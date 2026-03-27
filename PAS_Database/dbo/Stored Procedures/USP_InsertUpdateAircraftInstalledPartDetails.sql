@@ -31,7 +31,8 @@ CREATE   PROCEDURE [dbo].[USP_InsertUpdateAircraftInstalledPartDetails]
     @Landings BIGINT = NULL,
     @EngineStarts BIGINT = NULL,
     @Memo NVARCHAR(MAX) = NULL,
-    @MasterCompanyId INT
+    @MasterCompanyId INT,
+	@UpdatedBy VARCHAR(50) = NULL
 )
 AS
 BEGIN
@@ -65,7 +66,7 @@ BEGIN
 				EngineStarts = @EngineStarts,
 				Memo = @Memo,
 				MasterCompanyId = @MasterCompanyId,
-				UpdatedBy = 'Admin',
+				UpdatedBy = @UpdatedBy,
 				UpdatedDate = GETUTCDATE()
 			WHERE AircraftInstalledPartDetailsId = @AircraftInstalledPartDetailsId;
 		END
@@ -119,8 +120,8 @@ BEGIN
 				@EngineStarts,
 				@Memo,
 				@MasterCompanyId,
-				'Admin',
-				'Admin',
+				@UpdatedBy,
+				@UpdatedBy,
 				GETUTCDATE(),
 				GETUTCDATE(),
 				1,

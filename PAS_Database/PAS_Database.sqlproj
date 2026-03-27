@@ -4471,6 +4471,9 @@
     <Build Include="dbo\Views\vw_AircraftStatus.sql" />
     <Build Include="dbo\Tables\MaintenanceStatus.sql" />
     <Build Include="dbo\Tables\AircraftStatus.sql" />
+    <Build Include="dbo\Tables\AircraftRegistryHeader.sql" />
+    <Build Include="dbo\Stored Procedures\USP_UpdateAircraftRegistryState.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetAircraftRegistryList.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

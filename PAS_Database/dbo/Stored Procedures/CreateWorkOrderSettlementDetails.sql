@@ -16,6 +16,7 @@
 	3    30/04/2025   Moin Bloch		Fix For Duplicate Settlement
 	4    16/03/2026   Moin Bloch	    Hide selected checklist rows in Work Order Settlement tab PN-15718
 	5    19/03/2026   Moin Bloch	    Hide selected checklist rows in Work Order Settlement tab Bug Fix PN-15718
+	6    26/03/2026   Moin Bloch	    Rename TearDown To Internal Teardown PN-15850
       
 --   EXEC [dbo].[CreateWorkOrderSettlementDetails]
 **************************************************************/
@@ -49,7 +50,7 @@ BEGIN
 	SELECT @UNSP = [WorkOrderSettlementId] FROM [WorkOrderSettlement] WITH(NOLOCK) WHERE [WorkOrderSettlementName] = 'Unit Shipped';
 	SELECT @WOIN = [WorkOrderSettlementId] FROM [WorkOrderSettlement] WITH(NOLOCK) WHERE [WorkOrderSettlementName] = 'Work Order Invoiced';
 	   	   
-	SELECT @TearDown = [Id] FROM [dbo].[WorkOrderType] WITH(NOLOCK) WHERE [Description]='Teardown';
+	SELECT @TearDown = [Id] FROM [dbo].[WorkOrderType] WITH(NOLOCK) WHERE [Description]='Internal Teardown';	
 	
 	IF OBJECT_ID(N'tempdb..#tmprCreateWorkOrderSettlementDetails') IS NOT NULL
 	BEGIN

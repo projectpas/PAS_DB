@@ -18,6 +18,7 @@ Exec [USP_ReOpenClosedWorkOrder]
 ** 7    28-07-2025  Moin Bloch           Modify Fix For After Reopen CLOSED WO not able to create billing
 ** 8    26-08-2025  Bhargav Saliya       Fix WorkOrderStatus isues For After Reopen CLOSED WO
 ** 9	12/02/2026  Moin Bloch			 Added Condition For TearDown Work Order We have change the logic for TearDown Work Order PN-15437
+** 10   26/03/2026  Moin Bloch	         Rename TearDown To Internal Teardown PN-15850
 
 exec sp_executesql N'EXEC dbo.USP_ReOpenClosedWorkOrder @workOrderPartNoId, @UpdatedBy',N'@WorkOrderPartNoId bigint,@UpdatedBy nvarchar(10)',@WorkOrderPartNoId=3474,@UpdatedBy=N'ADMIN User'
 
@@ -77,8 +78,8 @@ AS
 			SELECT @WorkOrderId = WorkOrderId, @ReferencePartId = WorkFlowWorkOrderId FROM dbo.WorkOrderWorkFlow WITH(NOLOCK) WHERE WorkOrderPartNoId = @workOrderPartNoId    
 			
 			SELECT TOP 1 @CustomerWOTypeId =Id FROM dbo.WorkOrderType WITH (NOLOCK) WHERE [Description] = 'Customer'
-			SELECT TOP 1 @InternalWOTypeId =Id FROM dbo.WorkOrderType WITH (NOLOCK) WHERE [Description] = 'Internal'
-			SELECT TOP 1 @TearDownWOTypeId =Id FROM dbo.WorkOrderType WITH (NOLOCK) WHERE [Description] = 'Teardown'
+			SELECT TOP 1 @InternalWOTypeId =Id FROM dbo.WorkOrderType WITH (NOLOCK) WHERE [Description] = 'Internal Repair'
+			SELECT TOP 1 @TearDownWOTypeId =Id FROM dbo.WorkOrderType WITH (NOLOCK) WHERE [Description] = 'Internal Teardown'
 
 			SELECT @8130WorkOrderSettlementId = WorkOrderSettlementId FROM WorkOrderSettlement WHERE UPPER(WorkOrderSettlementName) = 'RELEASE CERTS (E.G. 8130) REVIEWED'
 			SELECT @ModuleId = ModuleId FROM dbo.Module WITH(NOLOCK) WHERE ModuleId = 15; -- For WORK ORDER Module

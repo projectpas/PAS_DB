@@ -16,6 +16,7 @@
  ** --   --------     -------  --------------------------------            
     1    15/03/2021   SUBHASH Saliya Created  
 	2    06/06/2023   HEMANT SALIYA  Updaetd teardown name  
+	3    26/03/2026   Moin Bloch	 Rename TearDown To Internal Teardown PN-15850
   
        
  EXECUTE [GetHistoricalWorkOrderQuotesList] 1, 50, null, -1, 1, '', 'mpn', '','','','','','','','','all'  
@@ -101,7 +102,7 @@ BEGIN
                              woq.UpdatedDate,  
                              wop.ItemMasterId,  
                              wop.WorkOrderScopeId as WorkScopeId,  
-        CASE WHEN wo.WorkOrderTypeId = 1 THEN 'Customer'  ELSE CASE WHEN wo.WorkOrderTypeId = 2 THEN 'Internal'  ELSE CASE WHEN  wo.WorkOrderTypeId = 3 THEN 'Teardown'  ELSE 'Shop Services' END END END as woType  
+        CASE WHEN wo.WorkOrderTypeId = 1 THEN 'Customer'  ELSE CASE WHEN wo.WorkOrderTypeId = 2 THEN 'Internal Repair'  ELSE CASE WHEN  wo.WorkOrderTypeId = 3 THEN 'Internal Teardown'  ELSE 'Shop Services' END END END as woType  
       FROM WorkOrderQuote woq  
                            JOIN WorkOrder wo WITH(NOLOCK) on woq.WorkOrderId = wo.WorkOrderId  
                            JOIN WorkOrderPartNumber wop WITH(NOLOCK) on woq.WorkOrderId = wop.WorkOrderId  
@@ -198,7 +199,7 @@ BEGIN
                              woq.UpdatedDate,  
                              wop.ItemMasterId,  
                              wop.WorkOrderScopeId as WorkScopeId,  
-        case when wo.WorkOrderTypeId = 1 then 'Customer'  else case when    wo.WorkOrderTypeId = 2 then 'Internal'  else case when  wo.WorkOrderTypeId = 3 then 'Teardown'  else 'Shop Services' end end end as woType  
+        case when wo.WorkOrderTypeId = 1 then 'Customer'  else case when    wo.WorkOrderTypeId = 2 then 'Internal Repair'  else case when  wo.WorkOrderTypeId = 3 then 'Internal Teardown'  else 'Shop Services' end end end as woType  
      FROM   WorkOrderQuote woq  
                            join WorkOrder wo on woq.WorkOrderId = wo.WorkOrderId  
                            join WorkOrderPartNumber wop on woq.WorkOrderId = wop.WorkOrderId  

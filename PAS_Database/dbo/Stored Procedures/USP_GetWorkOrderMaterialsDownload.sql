@@ -12,6 +12,7 @@
 	1	05/03/2025		Moin Bloch			    Created
 	2	11/03/2025		Moin Bloch			    Fixed Issue For Duplicate Records
 	3	18/04/2025		Devendra Shekh			Fixed Issue For Duplicate Records for Alt/Equ Part for parent Download
+	4   26/03/2026      Moin Bloch	            Rename TearDown To Internal Teardown PN-15850
 
  EXECUTE [dbo].[USP_GetWorkOrderMaterialsDownload] 4257,3782, 0
  exec dbo.USP_GetWorkOrderMaterialsDownload 8354,7964,1,1
@@ -106,7 +107,7 @@ SET NOCOUNT ON
 			INNER JOIN [dbo].[WorkOrderWorkFlow] WOWF WITH(NOLOCK) ON WO.[WorkOrderId] = WOWF.[WorkOrderId] WHERE WOWF.[WorkFlowWorkOrderId] = @WorkFlowWorkOrderId;				
 			
 			SELECT @WOPartNoId = [WorkOrderPartNoId] FROM [dbo].[WorkOrderWorkFlow] WITH (NOLOCK) WHERE [WorkFlowWorkOrderId] = @WorkFlowWorkOrderId;
-		       SET @IsTeardownWO = (CASE WHEN (SELECT TOP 1 ID FROM [dbo].[WorkOrderType] WITH(NOLOCK) WHERE UPPER([Description]) = UPPER('Teardown') ) = @WoTypeId THEN 1 ELSE 0 END)
+		       SET @IsTeardownWO = (CASE WHEN (SELECT TOP 1 ID FROM [dbo].[WorkOrderType] WITH(NOLOCK) WHERE UPPER([Description]) = UPPER('Internal Teardown') ) = @WoTypeId THEN 1 ELSE 0 END)
 			
 		    INSERT INTO #tmpStockline SELECT DISTINCT						
 					SL.StockLineId, 						

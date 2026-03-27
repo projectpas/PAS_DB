@@ -1,5 +1,4 @@
-﻿
-/*************************************************************   
+﻿/*************************************************************   
 ** Author:  <Hemant Saliya>  
 ** Create date: <12/30/2021>  
 ** Description: <Save Work Order Materials Issue Stockline Details>  
@@ -23,6 +22,7 @@ EXEC [usp_UnIssueWorkOrderMaterialsStockline]
 ** 9    12/20/2024		Devendra Shekh		ExtendedCost Calculation issue Resolved
 ** 10	04/24/2025		Devendra Shekh		Modify (Added [IsManualText] check for DistributionSetup)
    11   04-March-2026	Rajesh Gami		   Implemented UOM Changes [PN-14832]
+** 11   27/03/2026      Moin Bloch	        Rename Internal To Internal Repair   PN-15850
 DECLARE @p1 dbo.ReserveWOMaterialsStocklineType
 
 INSERT INTO @p1 values(65,72,87,1073,4,6,1,14,6,N'REPAIR',N'FLYSKY CT6B FS-CT6B',N'USED FOR WING REPAIR',5,3,1,N'CNTL-000463',N'ID_NUM-000001',N'STL-000123',N'',N'ADMIN ADMIN',1)
@@ -157,7 +157,7 @@ BEGIN
 					)
 
 					SELECT TOP 1 @CustomerWOTypeId =Id FROM dbo.WorkOrderType WITH (NOLOCK) WHERE [Description] = 'Customer'
-					SELECT TOP 1 @InternalWOTypeId =Id FROM dbo.WorkOrderType WITH (NOLOCK) WHERE [Description] = 'Internal'
+					SELECT TOP 1 @InternalWOTypeId =Id FROM dbo.WorkOrderType WITH (NOLOCK) WHERE [Description] = 'Internal Repair'
 
 					INSERT INTO #tmpUnIssueWOMaterialsStockline ([WorkOrderId],[WorkFlowWorkOrderId], [WorkOrderMaterialsId], [StockLineId],[ItemMasterId],[ConditionId], [ProvisionId], 
 							[TaskId], [Condition], [PartNumber], [PartDescription], [Quantity], [QtyToBeReserved], [QuantityActUnIssued], [ControlNo], [ControlId],

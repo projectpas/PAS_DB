@@ -25,6 +25,7 @@ Exec [ReverseWorkOrder]
 ** 14	04/24/2025	Devendra Shekh		 Modify (Added [IsManualText] check for DistributionSetup)
 ** 15   06/25/2025  Moin Bloch		     Change Old To new Table
 ** 16   12/22/2025  Hemant Saliya        Handle Reopen Billing case for Posted Invoice.
+** 17   27/03/2026  Moin Bloch	         Rename Internal To Internal Repair   PN-15850
 
 EXEC dbo.USP_ReOpen_FinishGood_WorkOrder 286,'Admin'
 **************************************************************/ 
@@ -72,7 +73,7 @@ AS
 			SELECT @ReferencePartId = WorkFlowWorkOrderId, @WorkOrderId = WorkOrderId FROM dbo.WorkOrderWorkFlow WITH(NOLOCK) WHERE WorkOrderPartNoId = @workOrderPartNoId    
 			
 			SELECT TOP 1 @CustomerWOTypeId =Id FROM dbo.WorkOrderType WITH (NOLOCK) WHERE [Description] = 'Customer'
-			SELECT TOP 1 @InternalWOTypeId =Id FROM dbo.WorkOrderType WITH (NOLOCK) WHERE [Description] = 'Internal'
+			SELECT TOP 1 @InternalWOTypeId =Id FROM dbo.WorkOrderType WITH (NOLOCK) WHERE [Description] = 'Internal Repair'
 			SELECT @8130WorkOrderSettlementId = WorkOrderSettlementId FROM WorkOrderSettlement WHERE UPPER(WorkOrderSettlementName) = 'RELEASE CERTS (E.G. 8130) REVIEWED'
 			SELECT TOP 1 @WOTypeId = WorkOrderTypeId FROM dbo.WorkOrder WITH (NOLOCK) WHERE WorkOrderId = @WorkOrderId
 			SELECT @ModuleId = ModuleId FROM dbo.Module WITH(NOLOCK) WHERE ModuleId = 15; -- For WORK ORDER Module

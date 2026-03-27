@@ -9,11 +9,12 @@
  **************************************************************           
  ** PR   Date				Author				Change Description            
  ** --   -------------		----------------	--------------------------------          
-    1    11-September-2025		Divyesh Kathiriya	Created	
+    1    11-September-2025  Divyesh Kathiriya	Created
+	2    26-Mar-2026        Sahdev Saliya       Added [LifeLimitedPart] :-([IsFlightHoursAvailable], [IsFlightCyclesAvailable], [IsLandingsAvailable], [IsStartsAvailable], [IsCalendarTimeAvailable], [FlightHours], [FlightMinutes], [FlightCycles], [Landings], [Starts], [CalendarHours], [CalendarMinutes]) (PN-15833)
     
  -- EXEC [USP_AddItemMasterGeneralInfo] 
 **************************************************************/
-Create   PROCEDURE [DBO].[USP_AddItemMasterGeneralInfo]
+create     PROCEDURE [dbo].[USP_AddItemMasterGeneralInfo]
 @tbl_ItemMasterTableType [DBO].[ItemMasterTableType] READONLY
 AS
 BEGIN
@@ -87,7 +88,14 @@ BEGIN
 				[Item], [UNCode], [InventoryGLSettingId], [GoodsReceivedNotInvoicesGLAccId], [WorkInProgressGLAccId], [InventoryToBillGLAccId], [FinishedGoodsGLAccId], [InventoryExchAgreementGLAccId], [InventoryReserveGLAccId], [COGS_WorkOrderGLAccId],
 				[COGS_SalesOrderGLAccId], [COGS_QtyVarianceGLAccId], [COGS_UnitCostVarianceGLAccId], [RevenueMroGLAccId], [RevenueSoGLAccId], [RevenueExchGLAccId], [COGS_ExchSalesOrderGLAccId], [GoodsReceivedNotInvoicesGLAccName], [WorkInProgressGLAccName], [InventoryToBillGLAccName],
 				[FinishedGoodsGLAccName], [InventoryExchAgreementGLAccName], [InventoryReserveGLAccName], [COGS_WorkOrderGLAccName], [COGS_SalesOrderGLAccName], [COGS_QtyVarianceGLAccName], [COGS_UnitCostVarianceGLAccName], [RevenueMroGLAccName], [RevenueSoGLAccName], [RevenueExchGLAccName],
-				[COGS_ExchSalesOrderGLAccName], [IsUpdated], [WorkOrderFormTypeId])
+				[COGS_ExchSalesOrderGLAccName], [IsUpdated], [WorkOrderFormTypeId],
+				[LifeLimitedPart],
+				[IsFlightHoursAvailable],
+				[IsFlightCyclesAvailable],
+				[IsLandingsAvailable],
+				[IsStartsAvailable],
+				[IsCalendarTimeAvailable],
+				[FlightHours], [FlightMinutes], [FlightCycles], [Landings], [Starts], [CalendarHours], [CalendarMinutes])
 			SELECT
 				[ItemTypeId], [PartAlternatePartId], [ItemGroupId], [ItemClassificationId], [IsHazardousMaterial], [IsExpirationDateAvailable], [ExpirationDate], [IsReceivedDateAvailable], [DaysReceived], [IsManufacturingDateAvailable],
 				[ManufacturingDays], [IsTagDateAvailable], [TagDays], [IsOpenDateAvailable], [OpenDays], [IsShippedDateAvailable], [ShippedDays], [IsOtherDateAvailable], [OtherDays], 
@@ -103,7 +111,14 @@ BEGIN
 				[Item], [UNCode], [InventoryGLSettingId], [GoodsReceivedNotInvoicesGLAccId], [WorkInProgressGLAccId], [InventoryToBillGLAccId], [FinishedGoodsGLAccId], [InventoryExchAgreementGLAccId], [InventoryReserveGLAccId], [COGS_WorkOrderGLAccId],
 				[COGS_SalesOrderGLAccId], [COGS_QtyVarianceGLAccId], [COGS_UnitCostVarianceGLAccId], [RevenueMroGLAccId], [RevenueSoGLAccId], [RevenueExchGLAccId], [COGS_ExchSalesOrderGLAccId], [GoodsReceivedNotInvoicesGLAccName], [WorkInProgressGLAccName], [InventoryToBillGLAccName],
 				[FinishedGoodsGLAccName], [InventoryExchAgreementGLAccName], [InventoryReserveGLAccName], [COGS_WorkOrderGLAccName], [COGS_SalesOrderGLAccName], [COGS_QtyVarianceGLAccName], [COGS_UnitCostVarianceGLAccName], [RevenueMroGLAccName], [RevenueSoGLAccName], [RevenueExchGLAccName],
-				[COGS_ExchSalesOrderGLAccName], [IsUpdated], [WorkOrderFormTypeId]
+				[COGS_ExchSalesOrderGLAccName], [IsUpdated], [WorkOrderFormTypeId],
+				[LifeLimitedPart],
+				[IsFlightHoursAvailable],
+				[IsFlightCyclesAvailable],
+				[IsLandingsAvailable],
+				[IsStartsAvailable],
+				[IsCalendarTimeAvailable],
+				[FlightHours], [FlightMinutes], [FlightCycles], [Landings], [Starts], [CalendarHours], [CalendarMinutes]
 			FROM @tbl_ItemMasterTableType;
 
 			SET @ItemMasterId = SCOPE_IDENTITY();

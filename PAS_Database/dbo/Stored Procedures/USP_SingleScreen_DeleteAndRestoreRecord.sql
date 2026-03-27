@@ -7,10 +7,11 @@
             
  ** Change History             
  **************************************************************             
- ** PR   Date         Author  		Change Description              
- ** --   --------     -------		--------------------------------            
-    1    04/04/2024   Vishal Suthar	Created  
-	2    12/11/2024   Ayushi Patel	Updated For Updated By , Updated Date 
+ ** PR   Date         Author  		        Change Description              
+ ** --   --------     -------		        --------------------------------            
+    1    04/04/2024   Vishal Suthar	        Created  
+	2    12/11/2024   Ayushi Patel	        Updated For Updated By , Updated Date 
+	3	 26-MAR-2026  Nakul Chandigra		Added Condition For  AircraftStatus And MaintenanceStatus
 **************************************************************/
 -- EXEC  USP_SingleScreen_DeleteAndRestoreRecord 10, 'assetlocation'
 CREATE   PROCEDURE [dbo].[USP_SingleScreen_DeleteAndRestoreRecord]  
@@ -42,7 +43,10 @@ BEGIN
       RETURN  
     END  
  
-	EXEC [DBO].[USP_InsertAuditDataForSingleScreen] @ID,@PageName,@PrimaryKey 
+    IF ( UPPER(@PageName) <> 'AIRCRAFTSTATUS' AND UPPER(@PageName) <> 'MAINTENANCESTATUS')
+    BEGIN
+	    EXEC [DBO].[USP_InsertAuditDataForSingleScreen] @ID,@PageName,@PrimaryKey 
+    END
 
     SET @Query = 'UPDATE [' + @PageName + '] SET UpdatedDate =  GETUTCDATE(), UpdatedBy = ''' + @CurrentUser + ''', IsDeleted  =' + CAST(@Status AS VARCHAR) + '  WHERE ' + @PrimaryKey + ' = ' + CAST(@ID AS VARCHAR)  
     EXEC (@Query)  

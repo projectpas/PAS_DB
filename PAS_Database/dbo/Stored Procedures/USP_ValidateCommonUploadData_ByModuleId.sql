@@ -42,6 +42,7 @@
 	32   22-Dec-2025		Divyesh Kathiriya  		Added validation for Site,Warehouse,Location,Shelf,Bin
 	33   13-Jan-2026		Divyesh Kathiriya  		Added validation for "ItemMaster" of Dropdown value.
 	34	 02-Feb-2026        Nakul Chandigra  		Added New SingleScreen Modules
+	35	 26-MAR-2026		Nakul Chandigra			Added Valiodation For  AircraftStatus And MaintenanceStatus
 
 declare @p4 dbo.UploadModuleDataTableType
 insert into @p4 values(4,N'VICTOR ADMAS',1,N'{
@@ -210,6 +211,8 @@ BEGIN
 		DECLARE @PublicationTypeModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'PublicationType');
 		DECLARE @ShelfModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'Shelf');
 		DECLARE @BinModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'Bin');
+		DECLARE @AircraftStatusModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'AircraftStatus');
+		DECLARE @MaintenanceStatusModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'MaintenanceStatus');
 
 		DECLARE @DropdownListTable VARCHAR(100) = NULL, 
 		@DropdownListId VARCHAR(100) = NULL, 
@@ -1064,6 +1067,19 @@ BEGIN
 															THEN 'Entered Shelf Name Already Exists In This Location !'
 														WHEN @ModuleId = @BinModule 
 															THEN 'Entered Bin Name Already Exists In This Shelf !'
+														WHEN @ModuleId = @AircraftStatusModule AND @ChekDuplticateRef1 = 'Name'  
+															THEN 'Entered Name Already Exists!'
+														WHEN @ModuleId = @AircraftStatusModule AND @ChekDuplticateRef1 = 'Description'  
+															THEN 'Entered Description Already Exists!'
+														WHEN @ModuleId = @AircraftStatusModule AND @ChekDuplticateRef1 = 'SequenceNo'  
+															THEN 'Entered Sequence No Already Exists!'
+														WHEN @ModuleId = @MaintenanceStatusModule AND @ChekDuplticateRef1 = 'Name'  
+															THEN 'Entered Name Already Exists!'
+														WHEN @ModuleId = @MaintenanceStatusModule AND @ChekDuplticateRef1 = 'Description'  
+															THEN 'Entered Description Already Exists!'
+														WHEN @ModuleId = @MaintenanceStatusModule AND @ChekDuplticateRef1 = 'SequenceNo'  
+															THEN 'Entered Sequence No Already Exists!'
+
 														ELSE '' END
 						WHERE ImportModuleFieldMasterId = @CurrentRow;
 					END

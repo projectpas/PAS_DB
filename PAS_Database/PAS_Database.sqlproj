@@ -4477,6 +4477,9 @@
     <Build Include="dbo\Tables\AircraftInstalledPartDetails.sql" />
     <Build Include="dbo\Stored Procedures\USP_InsertUpdateAircraftInstalledPartDetails.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetAircraftInstalledPartDetails.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetAircraftRegistryHeaderDetails.sql" />
+    <Build Include="dbo\Stored Procedures\USP_CreateAircraftRegistryHeader.sql" />
+    <Build Include="dbo\User Defined Types\AircraftRegistryTableType.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

@@ -20,6 +20,7 @@
 	4    04/11/2024			 Devendra Shekh		 Added new fields for [CommonBatchDetails]
 	5	 13/01/2025			 Devendra Shekh		 Modify (StockLine GL selection Changes)
 	6    12/02/2026          Moin Bloch          Only Tear Down Entry Condition Check 
+	7    26/03/2026          Moin Bloch	         Rename TearDown To Internal Teardown PN-15850
      
     EXEC USP_PostInternalWorkOrderTearDownBatchDetails 3731,3222
 **************************************************************/
@@ -84,7 +85,7 @@ BEGIN
 
 		SELECT @AccountMSModuleId = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] ='Accounting';
 
-		SELECT @TeardownType = [Id] FROM [dbo].[WorkOrderType] WITH(NOLOCK) WHERE [Description] ='Teardown';
+		SELECT @TeardownType = [Id] FROM [dbo].[WorkOrderType] WITH(NOLOCK) WHERE [Description] ='Internal Teardown';
 
 		IF OBJECT_ID(N'tempdb..#tmpCodePrefixes') IS NOT NULL
 		BEGIN

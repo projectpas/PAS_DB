@@ -15,6 +15,7 @@
 	3    June/30/2024	Devendra Shekh	Modified For Same JE Changes
 	4    22-Jan-2025	Devendra Shekh	Modified (allowing Accounting Entry for Teardown WO)
 	5	 24-APR-2025	Devendra Shekh	Modify (Added [IsManualText] check for DistributionSetup)
+	6    26/03/2026     Moin Bloch	    Rename TearDown To Internal Teardown PN-15850
 
 EXEC USP_CompleteAllWorkOrderLabor 3395
 **************************************************************/
@@ -48,8 +49,8 @@ BEGIN
 				DECLARE @IWOBatchCount INT = 0;
 
 				SELECT TOP 1 @CustomerWOTypeId =Id FROM dbo.WorkOrderType WITH (NOLOCK) WHERE [Description] = 'Customer'
-				SELECT TOP 1 @InternalWOTypeId =Id FROM dbo.WorkOrderType WITH (NOLOCK) WHERE [Description] = 'Internal'
-				SELECT TOP 1 @TeardownWOTypeId =Id FROM dbo.WorkOrderType WITH (NOLOCK) WHERE [Description] = 'Teardown'
+				SELECT TOP 1 @InternalWOTypeId =Id FROM dbo.WorkOrderType WITH (NOLOCK) WHERE [Description] = 'Internal Repair'
+				SELECT TOP 1 @TeardownWOTypeId =Id FROM dbo.WorkOrderType WITH (NOLOCK) WHERE [Description] = 'Internal Teardown'
 
 				SELECT @DistributionMasterId = ID, @DistributionCode = DistributionCode FROM dbo.DistributionMaster WITH(NOLOCK) WHERE UPPER(DistributionCode)= UPPER('WOLABORTAB')
 

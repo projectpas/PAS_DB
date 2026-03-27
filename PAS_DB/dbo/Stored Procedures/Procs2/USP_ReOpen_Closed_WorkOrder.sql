@@ -12,6 +12,7 @@ Exec [USP_ReOpen_Closed_WorkOrder]
 ** 1    05/10/2023  Hemant Saliya		 Re-Open Closed WO
 ** 2	04/24/2025  Devendra Shekh		 Modify (Added [IsManualText] check for DistributionSetup)
 ** 3    03-07-2025  Moin Bloch           Changed Old To New Billing Table
+** 4    27/03/2026  Moin Bloch	         Rename Internal To Internal Repair   PN-15850
 
 EXEC dbo.USP_ReOpen_Closed_WorkOrder 286,'Admin'
 **************************************************************/ 
@@ -49,7 +50,7 @@ AS
 			SELECT @ReferencePartId = WorkFlowWorkOrderId FROM dbo.WorkOrderWorkFlow WITH(NOLOCK) WHERE WorkOrderPartNoId = @workOrderPartNoId    
 			
 			SELECT TOP 1 @CustomerWOTypeId =Id FROM dbo.WorkOrderType WITH (NOLOCK) WHERE [Description] = 'Customer'
-			SELECT TOP 1 @InternalWOTypeId =Id FROM dbo.WorkOrderType WITH (NOLOCK) WHERE [Description] = 'Internal'
+			SELECT TOP 1 @InternalWOTypeId =Id FROM dbo.WorkOrderType WITH (NOLOCK) WHERE [Description] = 'Internal Repair'
 
 			DECLARE @WOModuleId INT
 

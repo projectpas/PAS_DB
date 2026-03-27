@@ -10,6 +10,7 @@
 ** 1	09/12/2024		Devendra Shekh			Created
 ** 2    09/24/2024		Devendra Shekh			Added more fiels to Select 
 ** 3    09/24/2025		Bhargav Saliya			Added more fiels to Select [PN-12767]
+** 4    26/03/2026      Moin Bloch	            Rename TearDown To Internal Teardown PN-15850
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[USP_TenderMultipleStockLine]
 	@tbl_TenderMultipleStocklineType [TenderMultipleStocklineType] READONLY,
@@ -121,7 +122,7 @@ BEGIN
 					)
 
 					SET @CodeTypeId = (SELECT [CodeTypeId] FROM [dbo].[CodeTypes] WITH(NOLOCK) WHERE UPPER([CodeType]) = 'RECEIVER NUMBER TENDER STOCKLINE');
-					SET @TearDownWO = (SELECT Id FROM [dbo].[WorkOrderType] WITH(NOLOCK) WHERE UPPER([Description]) = 'TEARDOWN');
+					SET @TearDownWO = (SELECT Id FROM [dbo].[WorkOrderType] WITH(NOLOCK) WHERE UPPER([Description]) = 'INTERNAL TEARDOWN');
 					--SET @ObtainFromTypeId = (SELECT ModuleId FROM [dbo].[Module] WITH(NOLOCK) WHERE UPPER([ModuleName]) = 'CUSTOMER');					
 
 					INSERT INTO #TenderMultipleStkListData(

@@ -1,131 +1,153 @@
-﻿/*************************************************************           
- ** File:   [USP_GetAircraftInstalledPartDetails]           
- ** Author:  
- ** Description: 
- ** Purpose:         
- ** Date:    
-          
- ** RETURN VALUE:           
- **************************************************************           
- ** Change History           
- **************************************************************           
- ** PR   Date         Author			Change Description            
- ** --   --------    ---------			--------------------------------          
-    1	03-27-2026		Amit Ghediya		    Created
-************************************************************************/
-CREATE      PROCEDURE [dbo].[USP_GetAircraftInstalledPartDetails]
-	@PageNumber int,  
-	@PageSize int,  
-	@SortColumn varchar(50)=null,  
-	@SortOrder int,  
-	@AircraftRegistryId BIGINT = NULL,
-	@MasterCompanyId INT
+/*************************************************************
+** File:        [USP_GetAircraftInstalledPartDetails]
+** Description:
+** Purpose:
+** Date:
+**
+** RETURN VALUE:
+**************************************************************
+** Change History
+**************************************************************
+** PR   Date         Author         Change Description
+** --   ----------   -------------  --------------------------------
+** 1    2026-03-27   Amit Ghediya   Created
+*************************************************************/
+CREATE OR ALTER PROCEDURE [dbo].[USP_GetAircraftInstalledPartDetails]
+(
+    @PageNumber         INT,
+    @PageSize           INT,
+    @SortColumn         VARCHAR(50) = NULL,
+    @SortOrder          INT,
+    @AircraftRegistryId BIGINT = NULL,
+    @MasterCompanyId    INT
+)
 AS
-BEGIN	
-	    SET NOCOUNT ON;
-	    SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED	
-		BEGIN TRY
+BEGIN
+    SET NOCOUNT ON;
 
-		DECLARE @RecordFrom int;		
-		DECLARE @Count Int;
-		DECLARE @IsActive bit;
-		SET @RecordFrom = (@PageNumber-1)*@PageSize;
-		
-		IF @SortColumn IS NULL
-		BEGIN
-			SET @SortColumn=UPPER('CreatedDate')
-		END 
-		ELSE
-		BEGIN 
-			Set @SortColumn=UPPER(@SortColumn)
-		END	
+    -- Use only if dirty reads are acceptable for this screen/report
+    SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
 
-		;WITH Result AS
-		(
-			SELECT
-				AIPD.AircraftInstalledPartDetailsId,
-				AIPD.ATAChapterId,
-				ATAC.ATAChapterName AS AtaChapter,
-				AIPD.PartNumber,
-				AIPD.PartDescription,
-				AIPD.IsLLP,
-				CASE WHEN AIPD.IsLLP > 0 THEN 'YES' ELSE 'NO' END AS 'llp',
-				AIPD.IsSerialized,
-				AIPD.DateInstalled,
-				AIPD.PositionCode,
-				AIPD.[Hours],
-				AIPD.[Minutes],
-				AIPD.FlightHours,
-				AIPD.Cycles,
-				AIPD.Landings,
-				AIPD.EngineStarts,
-				AIPD.Memo,
-				AIPD.CreatedDate,
-				AIPD.UpdatedDate,
-				UPPER(AIPD.CreatedBy) AS CreatedBy,
-				UPPER(AIPD.UpdatedBy) AS UpdatedBy
-			FROM dbo.AircraftInstalledPartDetails AIPD WITH (NOLOCK)
-			INNER JOIN dbo.ATAChapter ATAC WITH (NOLOCK) ON AIPD.ATAChapterId = ATAC.ATAChapterId
-			WHERE 
-				AIPD.AircraftRegistryId = @AircraftRegistryId
-				AND AIPD.MasterCompanyId = @MasterCompanyId
-		   
-		)
-		SELECT * INTO #TempResult
-		FROM Result  ORDER BY CreatedDate DESC
+    BEGIN TRY
+        DECLARE @RecordFrom INT = (@PageNumber - 1) * @PageSize;
 
-		SELECT @Count = COUNT(*) FROM #TempResult;
+        SET @SortColumn = UPPER(ISNULL(@SortColumn, 'CREATEDDATE'));
 
-		SELECT *, @Count AS NumberOfItems
-		FROM #TempResult
-		ORDER BY
+        ;WITH Result AS
+        (
+            SELECT
+                AIPD.AircraftInstalledPartDetailsId,
+                AIPD.ATAChapterId,
+                ATAC.ATAChapterName AS AtaChapter,
+                AIPD.PartNumber,
+                AIPD.PartDescription,
+                AIPD.IsLLP,
+                CASE
+                    WHEN AIPD.IsLLP = 1 THEN 'YES'
+                    ELSE 'NO'
+                END AS LLPText,
+                AIPD.IsSerialized,
+                AIPD.DateInstalled,
+                AIPD.PositionCode,
+                AIPD.[Hours],
+                AIPD.[Minutes],
+                AIPD.FlightHours,
+                AIPD.Cycles,
+                AIPD.Landings,
+                AIPD.EngineStarts,
+                AIPD.Memo,
+                AIPD.CreatedDate,
+                AIPD.UpdatedDate,
+                UPPER(AIPD.CreatedBy) AS CreatedBy,
+                UPPER(AIPD.UpdatedBy) AS UpdatedBy,
+                COUNT(*) OVER () AS NumberOfItems
+            FROM dbo.AircraftInstalledPartDetails AS AIPD WITH (NOLOCK)
+            INNER JOIN dbo.ATAChapter AS ATAC WITH (NOLOCK)
+                ON AIPD.ATAChapterId = ATAC.ATAChapterId
+            WHERE AIPD.AircraftRegistryId = @AircraftRegistryId
+              AND AIPD.MasterCompanyId = @MasterCompanyId
+        )
+        SELECT
+            AircraftInstalledPartDetailsId,
+            ATAChapterId,
+            AtaChapter,
+            PartNumber,
+            PartDescription,
+            IsLLP,
+            LLPText,
+            IsSerialized,
+            DateInstalled,
+            PositionCode,
+            [Hours],
+            [Minutes],
+            FlightHours,
+            Cycles,
+            Landings,
+            EngineStarts,
+            Memo,
+            CreatedDate,
+            UpdatedDate,
+            CreatedBy,
+            UpdatedBy,
+            NumberOfItems
+        FROM Result
+        ORDER BY
+            CASE WHEN @SortOrder =  1 AND @SortColumn = 'ATACHAPTER'      THEN AtaChapter      END ASC,
+            CASE WHEN @SortOrder = -1 AND @SortColumn = 'ATACHAPTER'      THEN AtaChapter      END DESC,
 
-			CASE WHEN (@SortOrder = 1 AND @SortColumn = 'AtaChapter') THEN AtaChapter END ASC,
-			CASE WHEN (@SortOrder = -1 AND @SortColumn = 'AtaChapter') THEN AtaChapter END DESC,
+            CASE WHEN @SortOrder =  1 AND @SortColumn = 'LLPTEXT'         THEN LLPText         END ASC,
+            CASE WHEN @SortOrder = -1 AND @SortColumn = 'LLPTEXT'         THEN LLPText         END DESC,
 
-			CASE WHEN (@SortOrder = 1 AND @SortColumn = 'llp') THEN llp END ASC,
-			CASE WHEN (@SortOrder = -1 AND @SortColumn = 'llp') THEN llp END DESC,
+            CASE WHEN @SortOrder =  1 AND @SortColumn = 'PARTNUMBER'      THEN PartNumber      END ASC,
+            CASE WHEN @SortOrder = -1 AND @SortColumn = 'PARTNUMBER'      THEN PartNumber      END DESC,
 
-			CASE WHEN (@SortOrder = 1 AND @SortColumn = 'PartNumber') THEN PartNumber END ASC,
-			CASE WHEN (@SortOrder = -1 AND @SortColumn = 'PartNumber') THEN PartNumber END DESC,
+            CASE WHEN @SortOrder =  1 AND @SortColumn = 'PARTDESCRIPTION' THEN PartDescription END ASC,
+            CASE WHEN @SortOrder = -1 AND @SortColumn = 'PARTDESCRIPTION' THEN PartDescription END DESC,
 
-			CASE WHEN (@SortOrder = 1 AND @SortColumn = 'PartDescription') THEN PartDescription END ASC,
-			CASE WHEN (@SortOrder = -1 AND @SortColumn = 'PartDescription') THEN PartDescription END DESC,
+            CASE WHEN @SortOrder =  1 AND @SortColumn = 'POSITIONCODE'    THEN PositionCode    END ASC,
+            CASE WHEN @SortOrder = -1 AND @SortColumn = 'POSITIONCODE'    THEN PositionCode    END DESC,
 
-			CASE WHEN (@SortOrder = 1 AND @SortColumn = 'PositionCode') THEN PositionCode END ASC,
-			CASE WHEN (@SortOrder = -1 AND @SortColumn = 'PositionCode') THEN PositionCode END DESC,
+            CASE WHEN @SortOrder =  1 AND @SortColumn = 'CREATEDDATE'     THEN CreatedDate     END ASC,
+            CASE WHEN @SortOrder = -1 AND @SortColumn = 'CREATEDDATE'     THEN CreatedDate     END DESC,
 
-			CASE WHEN (@SortOrder = 1 AND @SortColumn = 'CreatedDate') THEN CreatedDate END ASC,
-			CASE WHEN (@SortOrder = -1 AND @SortColumn = 'CreatedDate') THEN CreatedDate END DESC,
+            CASE WHEN @SortOrder =  1 AND @SortColumn = 'UPDATEDDATE'     THEN UpdatedDate     END ASC,
+            CASE WHEN @SortOrder = -1 AND @SortColumn = 'UPDATEDDATE'     THEN UpdatedDate     END DESC,
 
-			CASE WHEN (@SortOrder = 1 AND @SortColumn = 'UpdatedDate') THEN UpdatedDate END ASC,
-			CASE WHEN (@SortOrder = -1 AND @SortColumn = 'UpdatedDate') THEN UpdatedDate END DESC
+            AircraftInstalledPartDetailsId DESC
+        OFFSET @RecordFrom ROWS
+        FETCH NEXT @PageSize ROWS ONLY;
+    END TRY
+    BEGIN CATCH
+        DECLARE
+            @ErrorLogID INT,
+            @DatabaseName VARCHAR(100) = DB_NAME(),
+            @AdhocComments VARCHAR(150) = 'USP_GetAircraftInstalledPartDetails',
+            @ProcedureParameters VARCHAR(3000),
+            @ApplicationName VARCHAR(100) = 'PAS';
 
-		OFFSET @RecordFrom ROWS
-		FETCH NEXT @PageSize ROWS ONLY;
+        SET @ProcedureParameters =
+              '@PageNumber=' + CAST(ISNULL(@PageNumber, 0) AS VARCHAR(20))
+            + ', @PageSize=' + CAST(ISNULL(@PageSize, 0) AS VARCHAR(20))
+            + ', @SortColumn=' + ISNULL(@SortColumn, '')
+            + ', @SortOrder=' + CAST(ISNULL(@SortOrder, 0) AS VARCHAR(20))
+            + ', @AircraftRegistryId=' + CAST(ISNULL(@AircraftRegistryId, 0) AS VARCHAR(20))
+            + ', @MasterCompanyId=' + CAST(ISNULL(@MasterCompanyId, 0) AS VARCHAR(20));
 
-		DROP TABLE #TempResult;
+        EXEC spLogException
+             @DatabaseName        = @DatabaseName,
+             @AdhocComments       = @AdhocComments,
+             @ProcedureParameters = @ProcedureParameters,
+             @ApplicationName     = @ApplicationName,
+             @ErrorLogID          = @ErrorLogID OUTPUT;
 
-	END TRY    
-	BEGIN CATCH      
-	         DECLARE @ErrorLogID INT
-			,@DatabaseName VARCHAR(100) = db_name()
-			-----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
-			,@AdhocComments VARCHAR(150) = 'USP_GetAircraftInstalledPartDetails'
-			,@ProcedureParameters VARCHAR(3000) = '@Parameter1 = ''' + CAST(ISNULL(@PageNumber, '') AS varchar(100))
-			   + '@Parameter2 = ''' + CAST(ISNULL(@PageSize, '') AS varchar(100)) 
-			   + '@Parameter3 = ''' + CAST(ISNULL(@SortColumn, '') AS varchar(100))
-			   + '@Parameter4 = ''' + CAST(ISNULL(@SortOrder, '') AS varchar(100))
-			  + '@Parameter18 = ''' + CAST(ISNULL(@MasterCompanyId, '') AS varchar(100))  			                                           
-			,@ApplicationName VARCHAR(100) = 'PAS'
-		-----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------
-		EXEC spLogException @DatabaseName = @DatabaseName
-			,@AdhocComments = @AdhocComments
-			,@ProcedureParameters = @ProcedureParameters
-			,@ApplicationName = @ApplicationName
-			,@ErrorLogID = @ErrorLogID OUTPUT;
-		RAISERROR ('Unexpected Error Occured in the database. Please let the support team know of the error number : %d',16,1,@ErrorLogID)
+        RAISERROR
+        (
+            'Unexpected error occurred in the database. Please let the support team know the error number: %d',
+            16,
+            1,
+            @ErrorLogID
+        );
 
-		RETURN (1);           
-	END CATCH
-END
+        RETURN 1;
+    END CATCH
+END;

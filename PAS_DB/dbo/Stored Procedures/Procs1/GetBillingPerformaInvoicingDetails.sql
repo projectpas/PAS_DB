@@ -15,6 +15,7 @@
  ** PR   Date         Author			Change Description              
  ** --   --------     -------			--------------------------------            
 	1    03/05/2025   AMIT GHEDIYA	    Created
+	2    26/03/2026   Moin Bloch	    Rename TearDown To Internal Teardown PN-15850
   
 exec dbo.GetBillingPerformaInvoicingDetails @WorkOrderId=8400,@workOrderPartNoId=8050
 **************************************************************/
@@ -53,8 +54,8 @@ BEGIN
 				wo.workOrderTypeId,
 				CASE 
 					WHEN wo.WorkOrderTypeId = 1 THEN 'Customer' 
-					WHEN wo.WorkOrderTypeId = 2 THEN 'Internal' 
-					WHEN wo.WorkOrderTypeId = 3 THEN 'Tear Down' 
+					WHEN wo.WorkOrderTypeId = 2 THEN 'Internal Repair' 
+					WHEN wo.WorkOrderTypeId = 3 THEN 'Internal Teardown' 
 					ELSE 'Shop Services' 
 				END AS workOrderType,
 				wop.workScope,
@@ -126,8 +127,8 @@ BEGIN
 				wo.workOrderTypeId,
 				CASE 
 					WHEN wo.WorkOrderTypeId = 1 THEN 'Customer' 
-					WHEN wo.WorkOrderTypeId = 2 THEN 'Internal' 
-					WHEN wo.WorkOrderTypeId = 3 THEN 'Tear Down' 
+					WHEN wo.WorkOrderTypeId = 2 THEN 'Internal Repair' 
+					WHEN wo.WorkOrderTypeId = 3 THEN 'Internal Teardown' 
 					ELSE 'Shop Services' 
 				END AS workOrderType,
 				wop.workScope,
@@ -164,7 +165,7 @@ BEGIN
 				'' AS wayBillRef,
 				@WOPartCount AS noofPieces, 
 				0 AS isCustomerShipping
-			FROM WorkOrder wo WITH(NOLOCK)
+			FROM [dbo].[WorkOrder] wo WITH(NOLOCK)
 			JOIN [dbo].[WorkOrderPartNumber] wop WITH(NOLOCK) ON wo.WorkOrderId = wop.WorkOrderId
 			LEFT JOIN [dbo].[WOPickTicket] wopick WITH(NOLOCK) ON wop.ID = wopick.OrderPartId
 			JOIN [dbo].[Customer] cust WITH(NOLOCK) ON wo.CustomerId = cust.CustomerId

@@ -20,7 +20,7 @@
   	7    19-SEP-2025  RAJESH GAMI	    Added return field: netSalesPricePerUnit
 	8    05-NOV-2025  RAJESH GAMI	    Added return field: TotalPartCost
 	9    20-NOV-2025  RAJESH GAMI	    Fixed TotalPartCost Issue
-	10   20-NOV-2025  Vishal Suthar	    Fixed Order By clause with order it based on SalesOrderQuotePartId
+	10   30-MAR-2026  Vishal Suthar	    Fixed Order By clause with order it based on SalesOrderQuotePartId
 
  EXEC [DBO].[GetSalesOrderQuotePartView] 1653, 'USD'
 **************************************************************/

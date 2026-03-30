@@ -21,6 +21,7 @@ EXEC [usp_UnIssueWorkOrderMaterialsStockline]
 ** 8    11/22/2024		Devendra Shekh		Modified (added fiels IssuedById, IssuedDate for WorkOrderMaterialStockLine and WorkOrderMaterialStockLineKit)
 ** 9    12/20/2024		Devendra Shekh		ExtendedCost Calculation issue Resolved
 ** 10	04/24/2025		Devendra Shekh		Modify (Added [IsManualText] check for DistributionSetup)
+** 11   27/03/2026      Moin Bloch	        Rename Internal To Internal Repair   PN-15850
 
 DECLARE @p1 dbo.ReserveWOMaterialsStocklineType
 
@@ -156,7 +157,7 @@ BEGIN
 					)
 
 					SELECT TOP 1 @CustomerWOTypeId =Id FROM dbo.WorkOrderType WITH (NOLOCK) WHERE [Description] = 'Customer'
-					SELECT TOP 1 @InternalWOTypeId =Id FROM dbo.WorkOrderType WITH (NOLOCK) WHERE [Description] = 'Internal'
+					SELECT TOP 1 @InternalWOTypeId =Id FROM dbo.WorkOrderType WITH (NOLOCK) WHERE [Description] = 'Internal Repair'
 
 					INSERT INTO #tmpUnIssueWOMaterialsStockline ([WorkOrderId],[WorkFlowWorkOrderId], [WorkOrderMaterialsId], [StockLineId],[ItemMasterId],[ConditionId], [ProvisionId], 
 							[TaskId], [Condition], [PartNumber], [PartDescription], [Quantity], [QtyToBeReserved], [QuantityActUnIssued], [ControlNo], [ControlId],

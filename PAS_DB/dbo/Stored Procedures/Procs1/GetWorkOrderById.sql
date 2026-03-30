@@ -1,4 +1,4 @@
-﻿	/*************************************************************           
+﻿/*************************************************************           
  ** File:  [GetWorkOrderById]           
  ** Author:  Moin Bloch
  ** Description: This stored procedure is used to Get Work Order Details     
@@ -26,6 +26,7 @@
 	14	 24-FEB-2026  Moin Bloch 	   Added OutGoingItemMasterId And OutGoingPartNumber PN-15427
 	15   09/03/2026   Moin Bloch	   Added OutGoingPartDescription PN-15681
 	16   23-MAR-2026  Ayushi Patel     PN-15825 added lineNum
+	17   27/03/2026   Moin Bloch	   Rename Internal To Internal Repair   PN-15850
 
 --    EXEC [dbo].[GetWorkOrderById] 0,5714,0,0,1
 --    EXEC [dbo].[GetWorkOrderById] 0,0,29,0,2  
@@ -161,7 +162,7 @@ BEGIN
 
 		IF(@CustomerAffiliationId = @CustAffiliationId)
 		BEGIN
-			SELECT @WorkOrderTypeId = [Id] FROM [dbo].[WorkOrderType] WITH(NOLOCK) WHERE [Description]='Internal';
+			SELECT @WorkOrderTypeId = [Id] FROM [dbo].[WorkOrderType] WITH(NOLOCK) WHERE [Description]='Internal Repair';
 		END
 		ELSE
 		BEGIN
@@ -365,7 +366,7 @@ BEGIN
 
 		IF(@CustomerAffiliationId = @CustAffiliationId)
 		BEGIN
-			SELECT @WorkOrderTypeId = [Id] FROM [dbo].[WorkOrderType] WITH(NOLOCK) WHERE [Description]='Internal';
+			SELECT @WorkOrderTypeId = [Id] FROM [dbo].[WorkOrderType] WITH(NOLOCK) WHERE [Description]='Internal Repair';
 		END
 		ELSE
 		BEGIN
@@ -539,7 +540,7 @@ BEGIN
 
 		IF(@CustomerId = 0 OR @CustomerId IS NULL OR @CustomerAffiliationId = @CustAffiliationId)
 		BEGIN
-			SELECT @WorkOrderTypeId = [Id] FROM [dbo].[WorkOrderType] WITH(NOLOCK) WHERE [Description]='Internal';
+			SELECT @WorkOrderTypeId = [Id] FROM [dbo].[WorkOrderType] WITH(NOLOCK) WHERE [Description]='Internal Repair';
 		END
 		ELSE
 		BEGIN

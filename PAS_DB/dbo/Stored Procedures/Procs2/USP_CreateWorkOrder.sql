@@ -28,6 +28,7 @@
 	15   10/02/2026   Moin Bloch        Added Accounting Entry For TearDown Work Order PN-15331
 	16   12/02/2026   Moin Bloch        Added Stockline Issue Entry For TearDown Work Order PN-15435
 	17   24/02/2026   Moin Bloch        Added Logic for IncomingPartNumber PN-15427
+	18   26/03/2026   Moin Bloch	    Rename TearDown To Internal Teardown PN-15850
 	
 --   EXEC [USP_CreateWorkOrder] 
 **************************************************************/
@@ -107,8 +108,8 @@ BEGIN
 	
 	-- Work Order Type
 	SELECT @Customer = [Id] FROM [dbo].[WorkOrderType] WITH(NOLOCK) WHERE [Description]='Customer';
-	SELECT @Internal = [Id] FROM [dbo].[WorkOrderType] WITH(NOLOCK) WHERE [Description]='Internal';
-	SELECT @TearDown = [Id] FROM [dbo].[WorkOrderType] WITH(NOLOCK) WHERE [Description]='Teardown';
+	SELECT @Internal = [Id] FROM [dbo].[WorkOrderType] WITH(NOLOCK) WHERE [Description]='Internal Repair';
+	SELECT @TearDown = [Id] FROM [dbo].[WorkOrderType] WITH(NOLOCK) WHERE [Description]='Internal Teardown';
 	SELECT @ShopServices = [Id] FROM [dbo].[WorkOrderType] WITH(NOLOCK) WHERE [Description]='Shop Services';
 
 	-- Code Types Of CodePrefix	

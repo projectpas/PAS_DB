@@ -1,5 +1,4 @@
-﻿
-/*************************************************************   
+﻿/*************************************************************   
 ** Author:  <Hemant Saliya>  
 ** Create date: <06/02/2023>  
 ** Description: <Get Work Order MPN details for INternal Customer>  
@@ -12,6 +11,7 @@ EXEC [GetWorkOrderMPNInternalStocklineList]
 ** --   --------    -------         --------------------------------
 ** 1    06/02/2023  HEMANT SALIYA    Get Work Order MPN details for INternal Customer
    2    28/03/2024  Moin Bloch       Resolved IsCustomerStock filter issue.
+   3    26/03/2026  Moin Bloch	     Rename TearDown To Internal Teardown PN-15850
 
 exec GetWorkOrderMPNInternalStocklineList @PageNumber=1,@PageSize=10,@SortColumn=N'CreatedDate',@SortOrder=-1,@GlobalFilter=N'',@PartNumber=NULL,@PartDescription=NULL,
 @ManufacturerName=NULL,@SerialNumber=NULL,@Condition=NULL,@StocklineNumber=NULL,@QuantityAvailable=NULL,@QuantityOnHand=NULL,@UnitCost=NULL,@EmployeeId=2,@MasterCompanyId=1,
@@ -54,7 +54,7 @@ BEGIN
 
 		  SET @RecordFrom = (@PageNumber-1)*@PageSize;   
 		  SET @MSModuelId = 2;   -- For Stockline  
-		  SELECT @TeardownWorkOrderTypeId = Id FROM dbo.WorkOrderType WITH(NOLOCK) where UPPER([Description]) = 'TEARDOWN';
+		  SELECT @TeardownWorkOrderTypeId = Id FROM dbo.WorkOrderType WITH(NOLOCK) WHERE UPPER([Description]) = 'INTERNAL TEARDOWN';
   
 		  IF @SortColumn IS NULL  
 		  BEGIN  

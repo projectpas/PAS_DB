@@ -24,7 +24,7 @@
 	6 	 18/07/2024     Moin Bloch          Added @LocationId Field
 	7    12/07/2024		Hemant Saliya		Convert Serial NUmber to Varchar
 	8 	 08/10/2025     Moin Bloch			Added MPN Tendor 
-	
+	9    26/03/2026     Moin Bloch	        Rename TearDown To Internal Teardown PN-15850
 
 exec USP_TenderStockLineForSubAssembly @WorkOrderId=3809,@WorkFlowWorkOrderId=3280,@WorkOrderMaterialsId=15917
 **************************************************************/
@@ -144,7 +144,7 @@ BEGIN
 						StartsFrom BIGINT NULL,
 				)
 
-				SET @TearDownWO = (SELECT Id FROM [dbo].[WorkOrderType] WITH(NOLOCK) WHERE [Description] = 'Teardown');
+				SET @TearDownWO = (SELECT Id FROM [dbo].[WorkOrderType] WITH(NOLOCK) WHERE [Description] = 'Internal Teardown');
 				SET @CodeTypeId = (SELECT [CodeTypeId] FROM [dbo].[CodeTypes] WHERE [CodeType] = 'Receiver Number Tender stockline');
 				SET @ObtainFromTypeId = (SELECT ModuleId FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'Customer');
 				SET @WOPartNoId = (SELECT [WorkOrderPartNoId] FROM [dbo].[WorkOrderWorkFlow] WITH(NOLOCK) WHERE [WorkFlowWorkOrderId] = @WorkFlowWorkOrderId);

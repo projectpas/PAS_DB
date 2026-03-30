@@ -36,6 +36,7 @@
 	17   12/05/2023   Devendra Shekh	qty issue for qty to tender
 	18   12/05/2023   Devendra Shekh	changes for subwo
 	19	 22/01/2025	  Moin Bloch		Modified (Added WorkOrderTask Table For conditionally check table for Task)
+	20   26/03/2026   Moin Bloch	    Rename TearDown To Internal Teardown PN-15850
 
 	
  EXECUTE [dbo].[USP_GetWorkOrderMaterialsList] 3731,3200, 0
@@ -63,7 +64,7 @@ SET NOCOUNT ON
 				DECLARE @WorkOrderFormTypeId BIT = 0; 
 				
 				SELECT @MasterCompanyId = MasterCompanyId,@WoTypeId = WorkOrderTypeId, @WorkOrderFormTypeId = ISNULL([WorkOrderFormTypeId],0) FROM dbo.WorkOrder WITH (NOLOCK) WHERE WorkOrderId = @WorkOrderId
-				SET @IsTeardownWO = (CASE WHEN (Select TOP 1 ID from dbo.WorkOrderType WITH(NOLOCK) WHERE UPPER(Description) = UPPER('Teardown') ) = @WoTypeId THEN 1 ELSE 0 END )
+				SET @IsTeardownWO = (CASE WHEN (Select TOP 1 ID from dbo.WorkOrderType WITH(NOLOCK) WHERE UPPER(Description) = UPPER('Internal Teardown') ) = @WoTypeId THEN 1 ELSE 0 END )
 				SELECT @SubProvisionId = ProvisionId FROM dbo.Provision WITH (NOLOCK) WHERE UPPER(StatusCode) = 'SUB WORK ORDER'
 				SELECT @ForStockProvisionId = ProvisionId FROM dbo.Provision WITH (NOLOCK) WHERE UPPER(StatusCode) = 'FOR STOCK'
 				SELECT @CustomerID = WO.CustomerId, @MasterCompanyId = WO.MasterCompanyId FROM dbo.WorkOrder WO WITH(NOLOCK) JOIN dbo.WorkOrderWorkFlow WOWF WITH(NOLOCK) on WO.WorkOrderId = WOWF.WorkOrderId WHERE WOWF.WorkFlowWorkOrderId = @WFWOId;

@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [GetSalesOrderQuotePartView]           
  ** Author:   Vishal Suthar
  ** Description: This stored procedure is used to get Sales Order Quote Part Data
@@ -21,7 +20,9 @@
   	7    19-SEP-2025  RAJESH GAMI	    Added return field: netSalesPricePerUnit
 	8    05-NOV-2025  RAJESH GAMI	    Added return field: TotalPartCost
 	9    20-NOV-2025  RAJESH GAMI	    Fixed TotalPartCost Issue
- EXEC [DBO].[GetSalesOrderQuotePartView] 980, 'USD'
+	10   20-NOV-2025  Vishal Suthar	    Fixed Order By clause with order it based on SalesOrderQuotePartId
+
+ EXEC [DBO].[GetSalesOrderQuotePartView] 1653, 'USD'
 **************************************************************/
 CREATE PROCEDURE [dbo].[GetSalesOrderQuotePartView]
     @SalesQuoteId BIGINT,
@@ -181,7 +182,7 @@ BEGIN
 		LEFT JOIN DBO.SOPartStatus st WITH (NOLOCK) ON part.StatusId = st.SOPartStatusId
 		LEFT JOIN DBO.Currency fcu WITH (NOLOCK) ON part.CurrencyId = fcu.CurrencyId AND fcu.IsActive = 1 AND fcu.IsDeleted = 0
 		WHERE part.SalesOrderQuoteId = @SalesQuoteId AND part.IsDeleted = 0
-		ORDER BY part.CreatedDate;
+		ORDER BY part.SalesOrderQuotePartId;
 
 	/****** Total Part Wise COST Calculation ******/
 		;WITH CTE_Cost AS (
@@ -200,8 +201,8 @@ BEGIN
 			(((main.QtyRequested - ISNULL(c.TotalQtyQuoted, 0)) * ISNULL(main.MainUnitSalesPrice, 0))
 			  + ISNULL(c.TotalNetSalePriceExtended, 0)) AS TotalPartCost
 		FROM #tmpSOPartTbl main
-		LEFT JOIN CTE_Cost c ON main.SalesOrderQuotePartId = c.SalesOrderQuotePartId;
-
+		LEFT JOIN CTE_Cost c ON main.SalesOrderQuotePartId = c.SalesOrderQuotePartId
+		ORDER BY main.SalesOrderQuotePartId;
 
 	END TRY
 

@@ -43,7 +43,7 @@
 	33   13-Jan-2026		Divyesh Kathiriya  		Added validation for "ItemMaster" of Dropdown value.
 	34	 02-Feb-2026        Nakul Chandigra  		Added New SingleScreen Modules
 	35	 26-MAR-2026		Nakul Chandigra			Added Valiodation For  AircraftStatus And MaintenanceStatus
-
+	36   30-MAR-2026		Ayushi Patel			PN-15831 Removed one unnecessary condition which was causing the issue 
 declare @p4 dbo.UploadModuleDataTableType
 insert into @p4 values(4,N'VICTOR ADMAS',1,N'{
   "partnumber": "AEIN122",
@@ -661,6 +661,7 @@ BEGIN
 															TRY_CAST(TMP.FieldValue AS INT) IS NULL 
 															OR CHARINDEX('.', TMP.FieldValue) > 0  
 														 )
+													AND @ModuleId != @PriceMasterModule
 												THEN IMF.HeaderName + ' must be a whole number (decimals not allowed)'
 												WHEN (@ModuleId = @MROPriceMasterModule OR @ModuleId = @MROPriceMasterListModule)
 													 AND IMF.FieldName = 'CustomerId' 
@@ -669,11 +670,6 @@ BEGIN
 													 AND UPPER(TRIM(TMP.FieldValue)) = 'ALL'
 												THEN
 													' '	
-
-												WHEN ISNULL(IMF.DropdownListType, '') != ''  
-													 AND ISNULL(IMF.DropdownListValueId, '') = '' 
-												THEN 
-													'Please Enter Correct  ' + IMF.HeaderName 
 
 												-- FlatRatePrice Validation (checking for numeric value and greater than 0)
 												WHEN (@ModuleId = @MROPriceMasterModule OR @ModuleId = @MROPriceMasterListModule)

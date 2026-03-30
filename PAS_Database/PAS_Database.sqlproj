@@ -4480,6 +4480,7 @@
     <Build Include="dbo\Stored Procedures\USP_GetAircraftRegistryHeaderDetails.sql" />
     <Build Include="dbo\Stored Procedures\USP_CreateAircraftRegistryHeader.sql" />
     <Build Include="dbo\User Defined Types\AircraftRegistryTableType.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetAircraftStatusList.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

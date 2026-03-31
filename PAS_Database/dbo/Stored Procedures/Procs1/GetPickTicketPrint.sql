@@ -24,6 +24,7 @@
 	8    11/26/2024   Vishal Suthar			Fixed issue with populating qty to pick and qty remaining
 	9    12/05/2024   Vishal Suthar			Fixed issue with printing and picked qty issue
 	10   12/10/2024	  Moin Bloch		    Modified fixed dublicate Pickticket issue
+	11   31/03/2026   Moin Bloch	        Update (Added UOM Changes PN-15067) 
      
 -- EXEC [dbo].[GetPickTicketPrint] 1457, 1776, 1236
 **************************************************************/
@@ -52,24 +53,15 @@ BEGIN
 				WHERE SOPT.SalesOrderId = @SalesOrderId AND sopp.SalesOrderId = @SalesOrderId AND SOPickTicketNumber = @pickTicketNo
 				group by sopp.SalesOrderId
 			)
-	 --,cte AS(
-		--	SELECT ISNULL(SUM([QtyToShip]),0) AS TotalQtyToShip, 
-		--	          MIN([QtyRemaining]) AS MinQty, 
-		--			  SOPick.[SalesOrderId],
-		--			  SOPick.[SalesOrderPartId]
-		--		FROM [dbo].[SOPickTicket] SOPick WITH(NOLOCK) 
-		--		WHERE SOPick.SalesOrderId = @SalesOrderId 
-		--		AND SOPickTicketNumber = @pickTicketNo
-		--		GROUP BY SOPick.SalesOrderId, SOPick.SalesOrderPartId
-		--     )		
+	
 		SELECT sopt.[SOPickTicketId], 
 		       sopt.[CreatedDate] AS SOPickTicketDate, 
 			    sopt.[SalesOrderId], 
 			    sl.[StockLineNumber], 
-			    stk.[QtyOrder] Qty, 		
-			   --CASE WHEN [MinQty] = 0 AND TResrvePart.[TotalResrvePart] > 1 THEN cte.[TotalQtyToShip] + 0 
-			   --WHEN [MinQty] > 0 THEN cte.[TotalQtyToShip] + [MinQty] ELSE cte.[TotalQtyToShip] + sopt.[QtyRemaining] END AS [QtyToPick],
-			    sopt.QtyToShip AS QtyToPick,
+			    --stk.[QtyOrder] Qty, 
+				ISNULL([dbo].[fn_ConvertUOM](ISNULL(stk.[QtyOrder],0),sl.[StockUnitOfMeasure], sl.[ConsumeUnitOfMeasure],0,sl.[MasterCompanyId]),0) AS Qty,			   
+			    --sopt.QtyToShip AS QtyToPick,
+				ISNULL([dbo].[fn_ConvertUOM](ISNULL(sopt.[QtyToShip],0),sl.[StockUnitOfMeasure], sl.[ConsumeUnitOfMeasure],0,sl.[MasterCompanyId]),0) AS QtyToPick,	
 			    imt.[partnumber] AS PartNumber, 
 			    imt.[PartDescription], 
 			    sopt.[SOPickTicketNumber],
@@ -86,14 +78,16 @@ BEGIN
 			    bn.[Name] AS BinName, 
 			     p.[Description] AS PriorityName, 
 			    po.[PurchaseOrderNumber] AS PONumber,
-			    sl.[QuantityOnHand], 
-			    sl.[QuantityAvailable] AS QtyAvailable, 
-			   sop.[Notes], 		
-			  sopt.[QtyToShip] AS QtyShipped,			
-			  --CASE WHEN [MinQty] = 0 AND TResrvePart.[TotalResrvePart] > 1 THEN 0 WHEN [MinQty] > 0 THEN [MinQty] ELSE sopt.[QtyRemaining] END AS QtyRemaining
-			  sopt.QtyRemaining AS QtyRemaining
+			    --sl.[QuantityOnHand], 
+				ISNULL([dbo].[fn_ConvertUOM](ISNULL(sl.[QuantityOnHand], 0),sl.[StockUnitOfMeasure] ,sl.[ConsumeUnitOfMeasure],0,sl.[MasterCompanyId]),0) AS QuantityOnHand, 
+			    --sl.[QuantityAvailable] AS QtyAvailable, 
+				ISNULL([dbo].[fn_ConvertUOM](ISNULL(sl.[QuantityAvailable],0),sl.[StockUnitOfMeasure], sl.[ConsumeUnitOfMeasure],0,sl.[MasterCompanyId]),0) AS QtyAvailable,
+			    sop.[Notes], 		
+			    --sopt.[QtyToShip] AS QtyShipped,	
+			    ISNULL([dbo].[fn_ConvertUOM](ISNULL(sopt.[QtyToShip],0),sl.[StockUnitOfMeasure], sl.[ConsumeUnitOfMeasure],0,sl.[MasterCompanyId]),0) AS QtyShipped,	
+			    --sopt.QtyRemaining AS QtyRemaining
+				ISNULL([dbo].[fn_ConvertUOM](ISNULL(sopt.[QtyRemaining],0),sl.[StockUnitOfMeasure], sl.[ConsumeUnitOfMeasure],0,sl.[MasterCompanyId]),0) AS QtyRemaining	
 		FROM [dbo].[SOPickTicket] sopt WITH(NOLOCK)
-		--INNER JOIN cte WITH(NOLOCK) ON cte.SalesOrderId = sopt.SalesOrderId AND cte.SalesOrderPartId = sopt.SalesOrderPartId
 		INNER JOIN [dbo].[SalesOrderStocklineV1] stk WITH(NOLOCK) ON stk.SalesOrderStocklineId = sopt.SalesOrderPartStocklineId
 		INNER JOIN [dbo].[SalesOrderPartV1] sop WITH(NOLOCK) ON sop.SalesOrderId = sopt.SalesOrderId AND sop.SalesOrderPartId = stk.SalesOrderPartId
 		INNER JOIN [dbo].[SalesOrder] so WITH(NOLOCK) ON so.SalesOrderId = sop.SalesOrderId

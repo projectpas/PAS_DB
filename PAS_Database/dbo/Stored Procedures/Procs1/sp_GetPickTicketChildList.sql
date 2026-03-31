@@ -16,6 +16,7 @@
  ** --   --------     -------		--------------------------------          
 	1    10/15/2024   Vishal Suthar Modified SP to get Pick ticket child table list from new SO Part tables
 	2    03/03/2025   Ayushi Patel    converted the date into utc (PickedDate , ConfirmedDate) , Added a case to get timeZone
+	3    08/01/2026   Moin Bloch	  Update (Added UOM Changes)
      
 	-- EXEC [dbo].[sp_GetPickTicketChildList] 1271, 10, 7
 **************************************************************/
@@ -53,21 +54,30 @@ BEGIN
 					WHERE 
 						E.EmployeeId = @EmployeeId; -- Use appropriate filter for the specific employee
 
-		SELECT DISTINCT sopt.SOPickTicketNumber, sopt.QtyToShip, sl.SerialNumber, sl.StockLineNumber,
-		--CAST(sopt.CreatedDate AS DATE) as PickedDate,
-		case when CAST(sopt.CreatedDate as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(sopt.CreatedDate, @CurrntEmpTimeZoneDesc) as Date))end PickedDate,
-		CONCAT(emp.FirstName, ' ', emp.LastName) as PickedBy, sopt.SOPickTicketId, sopt.SalesOrderId, sopt.SalesOrderPartId, stk.SalesOrderStocklineId,
-		CONCAT(empy.FirstName, ' ', empy.LastName) as ConfirmedBy, sl.ControlNumber, sl.IdNumber,
-		--CAST(sopt.ConfirmedDate AS DATE) AS ConfirmedDate, 
-		case when CAST(sopt.ConfirmedDate as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(sopt.ConfirmedDate, @CurrntEmpTimeZoneDesc) as Date))end ConfirmedDate,
-		sl.StockLineId, sopt.IsConfirmed 
-		FROM DBO.SOPickTicket sopt WITH(NOLOCK)
-		INNER JOIN DBO.SalesOrderPartV1 sop WITH(NOLOCK) on sop.SalesOrderId = sopt.SalesOrderId  AND sop.SalesOrderPartId = sopt.SalesOrderPartId
-		LEFT JOIN DBO.SalesOrderStocklineV1 stk WITH(NOLOCK) on stk.SalesOrderStocklineId = sopt.SalesOrderPartStocklineId
-		LEFT JOIN DBO.StockLine sl WITH(NOLOCK) on sl.StockLineId = stk.StockLineId
-		INNER JOIN DBO.Employee emp WITH(NOLOCK) on emp.EmployeeId = sopt.PickedById
-		LEFT JOIN DBO.Employee empy WITH(NOLOCK) on empy.EmployeeId = sopt.ConfirmedById
-		WHERE sopt.SalesOrderId = @SalesOrderId AND sop.ItemMasterId = @ItemMasterId and sop.ConditionId = @ConditionId
+		SELECT DISTINCT sopt.SOPickTicketNumber, 
+		                --sopt.QtyToShip, 
+						ISNULL([dbo].[fn_ConvertUOM](ISNULL(sopt.QtyToShip,0),sl.[StockUnitOfMeasure], sl.[ConsumeUnitOfMeasure],0,sopt.[MasterCompanyId]),0) AS QtyToShip,
+					    sl.SerialNumber, 
+					    sl.StockLineNumber,
+						CASE WHEN CAST(sopt.CreatedDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE)THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(sopt.CreatedDate, @CurrntEmpTimeZoneDesc) AS DATE))END PickedDate,
+						CONCAT(emp.FirstName, ' ', emp.LastName) AS PickedBy, 
+						sopt.SOPickTicketId, 
+						sopt.SalesOrderId, 
+						sopt.SalesOrderPartId, 
+						stk.SalesOrderStocklineId,
+						CONCAT(empy.FirstName, ' ', empy.LastName) AS ConfirmedBy, 
+						sl.ControlNumber, 
+						sl.IdNumber,						
+						CASE WHEN CAST(sopt.ConfirmedDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE)THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(sopt.ConfirmedDate, @CurrntEmpTimeZoneDesc) AS DATE))END ConfirmedDate,
+						sl.StockLineId,
+						sopt.IsConfirmed 
+				  FROM [dbo].[SOPickTicket] sopt WITH(NOLOCK)
+				 INNER JOIN [dbo].[SalesOrderPartV1] sop WITH(NOLOCK) ON sop.SalesOrderId = sopt.SalesOrderId  AND sop.SalesOrderPartId = sopt.SalesOrderPartId
+				  LEFT JOIN [dbo].[SalesOrderStocklineV1] stk WITH(NOLOCK) ON stk.SalesOrderStocklineId = sopt.SalesOrderPartStocklineId
+				  LEFT JOIN [dbo].[StockLine] sl WITH(NOLOCK) ON sl.StockLineId = stk.StockLineId
+				 INNER JOIN [dbo].[Employee] emp WITH(NOLOCK) ON emp.EmployeeId = sopt.PickedById
+				  LEFT JOIN [dbo].[Employee] empy WITH(NOLOCK) ON empy.EmployeeId = sopt.ConfirmedById
+				 WHERE sopt.SalesOrderId = @SalesOrderId AND sop.ItemMasterId = @ItemMasterId AND sop.ConditionId = @ConditionId
 	
 	END
 	COMMIT  TRANSACTION
@@ -80,9 +90,9 @@ BEGIN
 			DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name() 
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
             , @AdhocComments     VARCHAR(150)    = 'sp_GetPickTicketChildList' 
-            , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = '''+ ISNULL(@SalesOrderId, '') + ''',
-													 @Parameter2 = ' + ISNULL(@ItemMasterId,'') + ',
-													 @Parameter3 = ' + ISNULL(@ConditionId,'') + ''
+			 ,@ProcedureParameters VARCHAR(3000) = '@Parameter1 = ''' + CAST(ISNULL(@SalesOrderId, '') AS VARCHAR(100))
+												 + '@Parameter2 = ''' + CAST(ISNULL(@ItemMasterId, '') AS VARCHAR(100)) 
+												 + '@Parameter3 = ''' + CAST(ISNULL(@ConditionId, '') AS VARCHAR(100)) 
             , @ApplicationName VARCHAR(100) = 'PAS'
 -----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------
             exec spLogException 

@@ -16,7 +16,8 @@
  **************************************************************             
  ** PR   Date         Author              Change Description              
  ** --   --------     -------          --------------------------------     
-    1    26/02/2026   Bhargav Saliya       PN-15456: Created
+    1    26/03/2026   Bhargav Saliya       PN-15456: Created
+    2    31/03/2026   Bhargav Saliya       Modified - Added CodePrefix
 **************************************************************/
 CREATE   PROCEDURE dbo.[USP_CreateAircraftRegistryHeader]
     @tbl_AircraftRegistryHeaderType dbo.AircraftRegistryTableType READONLY
@@ -27,6 +28,11 @@ BEGIN
 	BEGIN TRY  
 
 	DECLARE @AircraftRegistryId BIGINT = (SELECT AircraftRegistryId FROM @tbl_AircraftRegistryHeaderType);
+	DECLARE @CodePrefix NVARCHAR(50),@CodeSuffix NVARCHAR(50),@AircraftRegistryNum VARCHAR(30) = NULL;
+	DECLARE @CurrentNo INT = 0;
+	DECLARE @AircraftRegistryCodePrefix INT = (SELECT [CodeTypeId] FROM [dbo].[CodeTypes] WITH(NOLOCK) WHERE [CodeType]='AircraftRegistryNumber');
+	DECLARE @MasterCompanyId INT = (SELECT [MasterCompanyId] FROM @tbl_AircraftRegistryHeaderType);
+	SELECT TOP 1 @CodePrefix = [CodePrefix], @CodeSuffix = [CodeSufix] FROM [dbo].[CodePrefixes] WITH(NOLOCK) WHERE [IsActive] = 1 AND [IsDeleted] = 0 AND [CodeTypeId] = @AircraftRegistryCodePrefix AND [MasterCompanyId] = @MasterCompanyId;
 
 	IF(@AircraftRegistryId > 0)
 	BEGIN
@@ -58,12 +64,37 @@ BEGIN
             AR.MasterCompanyId = T.MasterCompanyId,
             AR.UpdatedBy = T.UpdatedBy,
             AR.UpdatedDate = GETUTCDATE()
-        FROM AircraftRegistryHeader AR
+        FROM dbo.[AircraftRegistryHeader] AR
         INNER JOIN @tbl_AircraftRegistryHeaderType T ON AR.AircraftRegistryId = T.AircraftRegistryId
         WHERE T.AircraftRegistryId IS NOT NULL;
 	END
 	ELSE
 	BEGIN
+		IF @CodePrefix IS NOT NULL AND @CodePrefix <> ''
+		BEGIN
+			SELECT @CurrentNo = ISNULL([CurrentNummber], 0) FROM [dbo].[CodePrefixes] WITH(NOLOCK) WHERE [CodePrefix] = @CodePrefix AND [MasterCompanyId] = @MasterCompanyId;        
+			IF @CurrentNo > 0
+			BEGIN
+				SET @CurrentNo = @CurrentNo + 1;
+				UPDATE [dbo].[CodePrefixes] 
+				SET [CurrentNummber] = @CurrentNo
+				WHERE [CodePrefix] = @CodePrefix AND [MasterCompanyId] = @MasterCompanyId;
+			END
+			ELSE
+			BEGIN
+				SET @CurrentNo = (SELECT ISNULL([StartsFrom], 0)  FROM [dbo].[CodePrefixes] WHERE [CodePrefix] = @CodePrefix AND [MasterCompanyId] = @MasterCompanyId) + 1;
+				UPDATE [dbo].[CodePrefixes]
+				SET [CurrentNummber] = @CurrentNo 
+				WHERE [CodePrefix] = @CodePrefix AND [MasterCompanyId] = @MasterCompanyId;
+			END
+			-- Generate Aircraft Registry Number
+			SET @AircraftRegistryNum = (SELECT * FROM dbo.udfGenerateCodeNumberWithOutDash(@CurrentNo, ISNULL(@CodePrefix,''),ISNULL(@CodeSuffix, '')))
+		END
+		ELSE
+		BEGIN
+			-- Generate Aircraft Registry Number
+			SET @AircraftRegistryNum = (SELECT * FROM dbo.udfGenerateCodeNumberWithOutDash(@CurrentNo, '',''))
+		END
         INSERT INTO [AircraftRegistryHeader]
         (
             MakeTypeId,
@@ -93,7 +124,8 @@ BEGIN
             CreatedBy,
             UpdatedBy,
             CreatedDate,
-            UpdatedDate
+            UpdatedDate,
+			AircraftRegistryNumber
         )
         SELECT
             T.MakeTypeId,
@@ -123,7 +155,8 @@ BEGIN
             T.CreatedBy,
             T.UpdatedBy,
             GETUTCDATE(),
-            GETUTCDATE()
+            GETUTCDATE(),
+			@AircraftRegistryNum
         FROM @tbl_AircraftRegistryHeaderType T
 	END
 	SET @AircraftRegistryId = SCOPE_IDENTITY();

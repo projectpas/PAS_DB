@@ -42,6 +42,7 @@
 	26   12/24/2025   Vishal Suthar		Removed changes of Alt and Equ part which is causing the issue
 	27   12/27/2025   HEMANT SALIYA	    Handle ALT & EQU part reservation issue fix.
 	28   03/16/2026   AMIT GHEDIYA		Allow AR condition to reserve (PN-15562)
+	29   03/19/2026   Moin Bloch        Do not reserve stockline in Work Order during PO/RO receipt when WO is already Closed or moved to Finished Goods PN-15797
 
 exec dbo.USP_ReserveStocklineForReceivingPO @PurchaseOrderId=7671,@SelectedPartsToReserve=N'8963,8964,8965,8969',@UpdatedBy=N'Alex Torres',@AllowAutoIssue=default
 **************************************************************/  
@@ -275,9 +276,16 @@ BEGIN
 					--Start Loop based in Work Order Part wise
 					WHILE (@LoopIDWFWO > 0)
 					BEGIN
-						DECLARE @WorkFlowWorkOrderId BIGINT = 0;
+						DECLARE @WorkFlowWorkOrderId BIGINT = 0,@WorkOrderPartNoId BIGINT= 0,@IsFinishGood BIT = 0;
 
 						SELECT @WorkFlowWorkOrderId = [WorkFlowWorkOrderId] FROM #WorkOrderMaterialWithWorkOrderWorkFlow WHERE ID = @LoopIDWFWO;
+
+						SELECT @WorkOrderPartNoId = [WorkOrderPartNoId] FROM [dbo].[WorkOrderWorkFlow] WITH(NOLOCK) WHERE [WorkFlowWorkOrderId] = @WorkFlowWorkOrderId;
+
+						SELECT @IsFinishGood = ISNULL([IsFinishGood],0) FROM [dbo].[WorkOrderPartNumber] WITH(NOLOCK) WHERE [ID] = @WorkOrderPartNoId;
+						
+						IF(@IsFinishGood = 0)
+						BEGIN
 
 						IF EXISTS (SELECT TOP 1 1 FROM DBO.WorkOrderMaterials WOM WITH (NOLOCK) LEFT JOIN DBO.Nha_Tla_Alt_Equ_ItemMapping Nha WITH (NOLOCK) ON Nha.ItemMasterId = WOM.ItemMasterId WHERE WOM.WorkOrderId = @ReferenceId AND (WOM.ItemMasterId = @ItemMasterId OR Nha.ItemMasterId = WOM.ItemMasterId) AND WOM.ConditionCodeId = @ConditionId AND WOM.WorkFlowWorkOrderId = @WorkFlowWorkOrderId) OR @IsExchangePO = 1
 						BEGIN
@@ -953,6 +961,7 @@ BEGIN
 
 						NextWFWO: 
 
+						END
 						SET @LoopIDWFWO = @LoopIDWFWO - 1;
 					END
 				END

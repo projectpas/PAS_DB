@@ -44,6 +44,8 @@
 	34	 02-Feb-2026        Nakul Chandigra  		Added New SingleScreen Modules
 	35	 26-MAR-2026		Nakul Chandigra			Added Valiodation For  AircraftStatus And MaintenanceStatus
 	36   30-MAR-2026		Ayushi Patel			PN-15831 Removed one unnecessary condition which was causing the issue 
+	37   30-MAR-2026		Nakul Chandigra			Removed extra case from the validation for  @AircraftStatusModule And @MaintenanceStatusModule (PN-15874)
+
 declare @p4 dbo.UploadModuleDataTableType
 insert into @p4 values(4,N'VICTOR ADMAS',1,N'{
   "partnumber": "AEIN122",
@@ -1065,17 +1067,8 @@ BEGIN
 															THEN 'Entered Bin Name Already Exists In This Shelf !'
 														WHEN @ModuleId = @AircraftStatusModule AND @ChekDuplticateRef1 = 'Name'  
 															THEN 'Entered Name Already Exists!'
-														WHEN @ModuleId = @AircraftStatusModule AND @ChekDuplticateRef1 = 'Description'  
-															THEN 'Entered Description Already Exists!'
-														WHEN @ModuleId = @AircraftStatusModule AND @ChekDuplticateRef1 = 'SequenceNo'  
-															THEN 'Entered Sequence No Already Exists!'
 														WHEN @ModuleId = @MaintenanceStatusModule AND @ChekDuplticateRef1 = 'Name'  
 															THEN 'Entered Name Already Exists!'
-														WHEN @ModuleId = @MaintenanceStatusModule AND @ChekDuplticateRef1 = 'Description'  
-															THEN 'Entered Description Already Exists!'
-														WHEN @ModuleId = @MaintenanceStatusModule AND @ChekDuplticateRef1 = 'SequenceNo'  
-															THEN 'Entered Sequence No Already Exists!'
-
 														ELSE '' END
 						WHERE ImportModuleFieldMasterId = @CurrentRow;
 					END

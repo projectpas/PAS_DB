@@ -175,11 +175,10 @@
     [IsCalendarTimeAvailable]           BIT             NULL,
     [FlightHours]                       VARCHAR (200)   NULL,
     [FlightMinutes]                     VARCHAR (200)   NULL,
-    [FlightCycles]                      VARCHAR (200)   NULL,
-    [Landings]                          VARCHAR (200)   NULL,
-    [Starts]                            VARCHAR (200)   NULL,
-    [CalendarHours]                     VARCHAR (200)   NULL,
-    [CalendarMinutes]                   VARCHAR (200)   NULL,
+    [FlightCycles]                      INT             NULL,
+    [Landings]                          INT             NULL,
+    [Starts]                            INT             NULL,
+    [CalendarDate]                      DATETIME2 (7)   NULL,
     CONSTRAINT [PK_ItemMasterAudit] PRIMARY KEY CLUSTERED ([ItemMasterAuditId] ASC)
 );
 

@@ -12,7 +12,7 @@
 ** --   ----------   -------------  --------------------------------
 ** 1    2026-03-27   Amit Ghediya   Created
 *************************************************************/
-CREATE OR ALTER PROCEDURE [dbo].[USP_GetAircraftInstalledPartDetails]
+CREATE PROCEDURE [dbo].[USP_GetAircraftInstalledPartDetails]
 (
     @PageNumber         INT,
     @PageSize           INT,

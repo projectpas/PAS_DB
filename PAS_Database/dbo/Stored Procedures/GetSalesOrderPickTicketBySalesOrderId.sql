@@ -14,6 +14,7 @@
  ** PR   Date			 Author			Change Description              
  ** --   --------		-------			--------------------------------            
     1    06/12/2024		EKTA CHANDEGRA	 Created  
+	2    31/03/2026		Moin Bloch	     UOM Changes PN-15067
 
  EXEC GetSalesOrderPickTicketBySalesOrderId 1 , 1
 ************************************************************************/   
@@ -25,9 +26,20 @@ BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED    
 	SET NOCOUNT ON;   
 	BEGIN TRY
+	BEGIN
 		DECLARE @SalesOrderModuleId BIGINT = 10;
+		DECLARE @SalesOrderPartId BIGINT = 0,@ItemMasterId BIGINT = 0
+		DECLARE @PurchaseUnitOfMeasureId BIGINT = 0,  @StockUnitOfMeasureId BIGINT = 0,@ConsumeUnitOfMeasureId BIGINT = 0
+        DECLARE @POUnitOfMeasure VARCHAR(100), @StockUnitOfMeasure VARCHAR(100),@ConsumeUnitOfMeasure VARCHAR(100)
+				
+		SELECT TOP 1 @SalesOrderPartId = [SalesOrderPartId] FROM [dbo].[SOPickTicket] WITH(NOLOCK) WHERE [SalesOrderId] = @SalesOrderId AND [SOPickTicketId] = @SOPickTicketId	
+		SELECT @ItemMasterId = [ItemMasterId] FROM [dbo].[SalesOrderPartV1] WITH(NOLOCK) WHERE [SalesOrderId] = @SalesOrderId AND [SalesOrderPartId] = @SalesOrderPartId		
 
-		BEGIN
+		SELECT @PurchaseUnitOfMeasureId = [PurchaseUnitOfMeasureId],@StockUnitOfMeasureId =[StockUnitOfMeasureId], @ConsumeUnitOfMeasureId = [ConsumeUnitOfMeasureId] FROM [dbo].[ItemMaster] WITH(NOLOCK) WHERE [ItemMasterId] = @ItemMasterId;
+ 		SET @POUnitOfMeasure = (SELECT [ShortCode] FROM [dbo].[UnitOfMeasure] WITH(NOLOCK) WHERE [UnitOfMeasureId] = @PurchaseUnitOfMeasureId)
+		SET @StockUnitOfMeasure = (SELECT [ShortCode] FROM [dbo].[UnitOfMeasure] WITH(NOLOCK) WHERE [UnitOfMeasureId] = @StockUnitOfMeasureId)
+		SET @ConsumeUnitOfMeasure = (SELECT [ShortCode] FROM [dbo].[UnitOfMeasure] WITH(NOLOCK) WHERE [UnitOfMeasureId] = @ConsumeUnitOfMeasureId)
+		
 		SELECT TOP 1
         sopkt.SOPickTicketId,
         sopkt.SOPickTicketNumber,
@@ -61,15 +73,17 @@ BEGIN
         soq.UpdatedBy,
         soq.UpdatedDate,
         soq.ManagementStructureId,
-        soq.QtyRequested,
-        soq.QtyToBeQuoted,
+        --soq.QtyRequested,
+		ISNULL([dbo].[fn_ConvertUOM](ISNULL(soq.[QtyRequested],0),@StockUnitOfMeasure, @ConsumeUnitOfMeasure,0,soq.[MasterCompanyId]),0) AS [QtyRequested],
+		--soq.QtyToBeQuoted,
+		ISNULL([dbo].[fn_ConvertUOM](ISNULL(soq.[QtyToBeQuoted],0),@StockUnitOfMeasure, @ConsumeUnitOfMeasure,0,soq.[MasterCompanyId]),0) AS [QtyToBeQuoted],
         ISNULL(emp.FirstName, '') + ' ' + ISNULL(emp.LastName, '') AS PickedByName,
         sopkt.CreatedDate AS PickedDate,
         ISNULL(empy.FirstName, '') + ' ' + ISNULL(empy.LastName, '') AS ConfirmedByName,
         sopkt.ConfirmedDate,
         sopkt.CreatedDate AS PTCreatedDate,
         soq.CustomerReference
-			FROM [dbo].[SalesOrder] soq WITH(NOLOCK)
+		FROM [dbo].[SalesOrder] soq WITH(NOLOCK)
 			LEFT JOIN [dbo].[SOPickTicket] sopkt WITH(NOLOCK) ON soq.SalesOrderId = sopkt.SalesOrderId AND sopkt.SOPickTicketId = @SOPickTicketId
 			LEFT JOIN [dbo].[Customer] cust WITH(NOLOCK) ON soq.CustomerId = cust.CustomerId
 			LEFT JOIN [dbo].[Address] cuad WITH(NOLOCK) ON cust.AddressId = cuad.AddressId
@@ -80,7 +94,7 @@ BEGIN
 			LEFT JOIN [dbo].[AllShipVia] posv WITH(NOLOCK) ON soq.SalesOrderId = posv.ReferenceId AND posv.ModuleId = @SalesOrderModuleId
 			LEFT JOIN [dbo].[Employee] emp WITH(NOLOCK) ON sopkt.PickedById = emp.EmployeeId
 			LEFT JOIN [dbo].[Employee] empy WITH(NOLOCK) ON sopkt.ConfirmedById = empy.EmployeeId
-			WHERE sopkt.SalesOrderId = @SalesOrderId
+		WHERE sopkt.SalesOrderId = @SalesOrderId
 			ORDER BY sopkt.SOPickTicketId
 		END
 	END TRY

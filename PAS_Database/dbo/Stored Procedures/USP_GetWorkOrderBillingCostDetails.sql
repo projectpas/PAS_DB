@@ -9,7 +9,7 @@
  ** PR   Date				Author  				Change Description              
  ** --   --------			-------				--------------------------------            
     1    18-04-2025		Hemnat Saliya		Created  	
-		
+	2    31/Mar/2026	Rajesh Gami		    UOM Changes [PN-14832]		
 	exec dbo.USP_GetWorkOrderBillingCostDetails 8374,1
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_GetWorkOrderBillingCostDetails]
@@ -23,11 +23,11 @@ BEGIN
 	BEGIN TRY  
 
 		-- Temp tables or variables
-		DECLARE @LabourCost DECIMAL(18,2) = 0;
-		DECLARE @PartsCost DECIMAL(18,2) = 0;
-		DECLARE @MicCharges DECIMAL(18,2) = 0;
-		DECLARE @FreightCost DECIMAL(18,2) = 0;
-		DECLARE @TotalCost DECIMAL(18,2) = 0;
+		DECLARE @LabourCost DECIMAL(18, 6) = 0;
+		DECLARE @PartsCost DECIMAL(18, 6) = 0;
+		DECLARE @MicCharges DECIMAL(18, 6) = 0;
+		DECLARE @FreightCost DECIMAL(18, 6) = 0;
+		DECLARE @TotalCost DECIMAL(18, 6) = 0;
 		DECLARE @CustomerId BIGINT = 0;
 		DECLARE @WorkOrderId BIGINT = 0;
 		DECLARE @WorkOrderPartId BIGINT = 0;
@@ -44,8 +44,8 @@ BEGIN
 		CREATE TABLE #SalesTaxAndOtherTaxDetails
 		(
 			[ID] BIGINT NOT NULL IDENTITY,
-			[SalesTax] DECIMAL(18,2) NULL,
-			[OtherTax]  DECIMAL(18,2) NULL				
+			[SalesTax] DECIMAL(18, 6) NULL,
+			[OtherTax]  DECIMAL(18, 6) NULL				
 		)
 
 		-- Calculate parts cost (Materials)

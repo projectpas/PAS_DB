@@ -12,7 +12,7 @@
 	2    23-04-2025		Moin Bloch			    Fix For Analysis Revenue Amount
 	3    03-07-2025     Moin Bloch              Changed Old To New Billing Table
 	4    09-01-2026		Hemnat Saliya			FIxed for Act Vs Quote Summary Labor Flat Amount wa not get
-
+	5    30/Mar/2026	Rajesh Gami				UOM Changes [PN-15741]
 		
 	exec dbo.usp_GetWorkOrderAndQuoteCostDetails 8374,8688
 **************************************************************/
@@ -29,30 +29,30 @@ BEGIN
 		SELECT @WOModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'WorkOrder';
 
 		DECLARE 
-        @LabourCost DECIMAL(18,2) = 0,
-        @PartsCost DECIMAL(18,2) = 0,
-        @MICCharges DECIMAL(18,2) = 0,
-        @FreightCost DECIMAL(18,2) = 0,
-        @WORevenue DECIMAL(18,2) = 0,
+        @LabourCost DECIMAL(18,6) = 0,
+        @PartsCost DECIMAL(18,6) = 0,
+        @MICCharges DECIMAL(18,6) = 0,
+        @FreightCost DECIMAL(18,6) = 0,
+        @WORevenue DECIMAL(18,6) = 0,
         @IsRevenueFromWO BIT = 0,
         @QuoteId BIGINT,
         @QuoteDetailsId BIGINT,
         @QuoteMethod BIT,
-        @LaborFlatBillingAmount DECIMAL(18,2),
-        @LaborCost DECIMAL(18,2),
-        @MaterialFlatBillingAmount DECIMAL(18,2),
-        @MaterialCost DECIMAL(18,2),
-        @ChargesFlatBillingAmount DECIMAL(18,2),
-        @ChargesCost DECIMAL(18,2),
-        @FreightFlatBillingAmount DECIMAL(18,2),
-        @CommonFlatRate DECIMAL(18,2),
-		@TotalPrice DECIMAL(18,2),
-		@TotalCost DECIMAL(18,2),
+        @LaborFlatBillingAmount DECIMAL(18,6),
+        @LaborCost DECIMAL(18,6),
+        @MaterialFlatBillingAmount DECIMAL(18,6),
+        @MaterialCost DECIMAL(18,6),
+        @ChargesFlatBillingAmount DECIMAL(18,6),
+        @ChargesCost DECIMAL(18,6),
+        @FreightFlatBillingAmount DECIMAL(18,6),
+        @CommonFlatRate DECIMAL(18,6),
+		@TotalPrice DECIMAL(18,6),
+		@TotalCost DECIMAL(18,6),
         @LaborBuildMethod INT,
         @MaterialBuildMethod INT,
         @ChargesBuildMethod INT,
 		@FreightBuildMethod INT,
-        @LabourAmountPrice DECIMAL(18,2),
+        @LabourAmountPrice DECIMAL(18,6),
         @MarkupFixedPrice VARCHAR(10),
         @QuoteLabourHeaderId BIGINT,
         @WOPartNoId BIGINT;
@@ -119,7 +119,7 @@ BEGIN
 			WHERE WorkOrderQuoteDetailsId = @QuoteDetailsId AND IsDeleted = 0;
 
 			-- costDetails.QuoteLabourCost logic
-			DECLARE @QuoteLabourCost DECIMAL(18,2) = NULL;
+			DECLARE @QuoteLabourCost DECIMAL(18,6) = NULL;
 
 			IF (ISNULL(@QuoteLabourHeaderId, 0) > 0)
 			BEGIN

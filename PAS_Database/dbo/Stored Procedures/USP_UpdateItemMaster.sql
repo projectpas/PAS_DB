@@ -11,7 +11,7 @@
 ** --    --------     -------           -------------------------------          
 ** 1     19-Nov-2025   Bhargav Saliya   Created  
 ** 2     09-Mar-2026   Vishal Suthar    Handled UnitOfMeasureId to have NULL instead of 0 which will throw foreignkey constraint
-** 3     26-Mar-2026   Sahdev Saliya    Added [LifeLimitedPart] :-([IsFlightHoursAvailable], [IsFlightCyclesAvailable], [IsLandingsAvailable], [IsStartsAvailable], [IsCalendarTimeAvailable], [FlightHours], [FlightMinutes], [FlightCycles], [Landings], [Starts], [CalendarHours], [CalendarMinutes]) (PN-15833)
+** 3     26-Mar-2026   Sahdev Saliya    Added [LifeLimitedPart] :-([IsFlightHoursAvailable], [IsFlightCyclesAvailable], [IsLandingsAvailable], [IsStartsAvailable], [IsCalendarTimeAvailable], [FlightHours], [FlightMinutes], [FlightCycles], [Landings], [Starts], [CalendarDate]) (PN-15833)
 
 **************************************************************/
 create       PROCEDURE [dbo].[USP_UpdateItemMaster]
@@ -189,8 +189,7 @@ BEGIN
 		,i.FlightCycles = PST.FlightCycles
 		,i.Landings = PST.Landings
 		,i.Starts = PST.Starts
-		,i.CalendarHours = PST.CalendarHours
-		,i.CalendarMinutes = PST.CalendarMinutes
+		,i.CalendarDate = PST.CalendarDate
 		FROM dbo.ItemMaster i WITH(NOLOCK)
 		JOIN @tbl_ItemMasterUpdateType PST ON i.ItemMasterId = PST.ItemMasterId AND i.MasterCompanyId = PST.MasterCompanyId
 		WHERE i.ItemMasterId = @Id;

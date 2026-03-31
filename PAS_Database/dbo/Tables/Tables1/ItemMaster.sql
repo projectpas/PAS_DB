@@ -174,11 +174,10 @@
     [IsCalendarTimeAvailable]           BIT             NULL,
     [FlightHours]                       VARCHAR (200)   NULL,
     [FlightMinutes]                     VARCHAR (200)   NULL,
-    [FlightCycles]                      VARCHAR (200)   NULL,
-    [Landings]                          VARCHAR (200)   NULL,
-    [Starts]                            VARCHAR (200)   NULL,
-    [CalendarHours]                     VARCHAR (200)   NULL,
-    [CalendarMinutes]                   VARCHAR (200)   NULL,
+    [FlightCycles]                      INT             NULL,
+    [Landings]                          INT             NULL,
+    [Starts]                            INT             NULL,
+    [CalendarDate]                      DATETIME2 (7)   NULL,
     CONSTRAINT [PK_ItemMaster] PRIMARY KEY CLUSTERED ([ItemMasterId] ASC),
     CONSTRAINT [FK_ItemMaster_AlternatePart] FOREIGN KEY ([PartAlternatePartId]) REFERENCES [dbo].[Part] ([PartId]),
     CONSTRAINT [FK_ItemMaster_BinId] FOREIGN KEY ([BinId]) REFERENCES [dbo].[Bin] ([BinId]),
@@ -212,6 +211,8 @@
     CONSTRAINT [FK_ItemMaster_Warning] FOREIGN KEY ([WarningId]) REFERENCES [dbo].[Warning] ([WarningId]),
     CONSTRAINT [UC_ItemMaster_partnumber_manufacturerId] UNIQUE NONCLUSTERED ([partnumber] ASC, [ManufacturerId] ASC, [MasterCompanyId] ASC)
 );
+
+
 
 
 

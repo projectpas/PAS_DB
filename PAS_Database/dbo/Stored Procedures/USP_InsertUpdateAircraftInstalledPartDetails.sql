@@ -45,17 +45,18 @@ BEGIN
 		-- CHECK IF RECORD EXISTS
 		IF EXISTS (
 			SELECT 1 
-			FROM AircraftInstalledPartDetails WITH(NOLOCK)
+			FROM DBO.AircraftInstalledPartDetails WITH(NOLOCK)
 			WHERE AircraftInstalledPartDetailsId = @AircraftInstalledPartDetailsId
 		)
 		BEGIN
 			-- UPDATE
-			UPDATE AircraftInstalledPartDetails
+			UPDATE DBO.AircraftInstalledPartDetails
 			SET
 				ATAChapterId = @ATAChapterId,
 				PartNumber = @PartNumber,
 				PartDescription = @PartDescription,
 				IsLLP = @IsLLP,
+				IsSerialized = @IsSerialized,
 				DateInstalled = @DateInstalled,
 				PositionCode = @PositionCode,
 				[Hours] = @Hours,

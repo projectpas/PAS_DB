@@ -31,7 +31,7 @@
     [RejectedByName]            VARCHAR (100)  NULL,
     [RejectedDate]              DATETIME2 (7)  NULL,
     [InternalRejectedById]      BIGINT         NULL,
-    [InternalRejectedByName]    VARCHAR (100)  NULL,
+    [InternalRejectedByName]    VARCHAR (150)  NULL,
     [InternalRejectedDate]      DATETIME2 (7)  NULL,
     [InternalSentToId]          BIGINT         NULL,
     [InternalSentToName]        VARCHAR (100)  NULL,
@@ -43,6 +43,8 @@
     CONSTRAINT [FK_SalesOrderQuoteApproval_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId]),
     CONSTRAINT [FK_SalesOrderQuoteApproval_SalesOrderQuote] FOREIGN KEY ([SalesOrderQuoteId]) REFERENCES [dbo].[SalesOrderQuote] ([SalesOrderQuoteId])
 );
+
+
 
 
 

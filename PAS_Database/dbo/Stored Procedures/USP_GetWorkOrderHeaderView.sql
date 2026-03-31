@@ -13,6 +13,7 @@
  ** PR   Date             Author		          Change Description            
  ** --   --------         -------		      ----------------------------       
     1    26/03/2025      Ayushi Patel           Created
+	2    26/03/2026      Moin Bloch	            Rename TearDown To Internal Teardown PN-15850
 
 	exec [USP_GetWorkOrderHeaderView] 8511
 **************************************************************/
@@ -29,8 +30,8 @@ BEGIN
                 @WorkScope NVARCHAR(255) = '', 
                 @ManagementStructureId BIGINT = 0;
         DECLARE @CustomerTypeId INT = ( SELECT TOP 1 Id FROM DBO.WorkOrderType WITH (NOLOCK) WHERE Description = 'Customer' );
-        DECLARE @InternalTypeId INT = ( SELECT TOP 1 Id FROM DBO.WorkOrderType WITH (NOLOCK) WHERE Description = 'Internal' );
-        DECLARE @TeardownTypeId INT = ( SELECT TOP 1 Id FROM DBO.WorkOrderType WITH (NOLOCK) WHERE Description = 'Teardown' );
+        DECLARE @InternalTypeId INT = ( SELECT TOP 1 Id FROM DBO.WorkOrderType WITH (NOLOCK) WHERE Description = 'Internal Repair' );
+        DECLARE @TeardownTypeId INT = ( SELECT TOP 1 Id FROM DBO.WorkOrderType WITH (NOLOCK) WHERE Description = 'Internal Teardown' );
 
         IF EXISTS (SELECT 1 FROM dbo.WorkOrder WITH (NOLOCK) WHERE ISNULL(IsSinglePN, 0) = 1)
         BEGIN
@@ -53,8 +54,8 @@ BEGIN
             END AS SingleMPN,
             CASE 
                 WHEN wo.WorkOrderTypeId = @CustomerTypeId THEN 'Customer WO'
-                WHEN wo.WorkOrderTypeId = @InternalTypeId THEN 'Internal WO'
-                WHEN wo.WorkOrderTypeId = @TeardownTypeId THEN 'Tear Down WO'
+                WHEN wo.WorkOrderTypeId = @InternalTypeId THEN 'Internal Repair WO'
+                WHEN wo.WorkOrderTypeId = @TeardownTypeId THEN 'Internal Teardown WO'
                 ELSE 'Shop Services WO' 
             END AS WorkOrderType,
             wo.WorkOrderNum AS WorkOrderNumber,

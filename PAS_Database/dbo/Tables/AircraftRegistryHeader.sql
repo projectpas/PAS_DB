@@ -20,6 +20,7 @@
     [AircraftStatus]      VARCHAR (100)   NULL,
     [MaintenanceStatusId] BIGINT          NULL,
     [MaintenanceStatus]   VARCHAR (100)   NULL,
+    [Memo]                VARCHAR (MAX)   NULL,
     [IsActive]            BIT             CONSTRAINT [DF_AircraftRegistry_IsActive] DEFAULT ((1)) NOT NULL,
     [IsDeleted]           BIT             CONSTRAINT [DF_AircraftRegistry_IsDeleted] DEFAULT ((0)) NOT NULL,
     [MasterCompanyId]     INT             NOT NULL,

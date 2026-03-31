@@ -9,6 +9,7 @@
 ** --   --------		-------					--------------------------------
 ** 1	09/12/2024		Devendra Shekh			Created
 ** 2	27/09/2024		Devendra Shekh			Commented USP_CreateChildStockline
+** 3    26/03/2026      Moin Bloch	            Rename TearDown To Internal Teardown PN-15850
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[USP_SaveTurnInMultipleWorkOrderMaterils]
 	@tbl_SaveAndTenderMultipleStocklineType [SaveAndTenderMultipleStocklineType] READONLY
@@ -40,7 +41,7 @@ BEGIN
 
 					SELECT @ModuleId = [ModuleId] FROM dbo.[Module] WITH(NOLOCK) WHERE [ModuleId] = 22; -- For Stockline Module  
 					SELECT @SubModuleId = [ModuleId] FROM dbo.[Module] WITH(NOLOCK) WHERE [ModuleId] = 33; -- For WORK ORDER Materials Module  
-					SELECT @TearDownWorkOrderTypeId = [Id] FROM [WorkOrderType] WITH(NOLOCK) WHERE UPPER([Description]) ='TEARDOWN';
+					SELECT @TearDownWorkOrderTypeId = [Id] FROM [WorkOrderType] WITH(NOLOCK) WHERE UPPER([Description]) ='INTERNAL TEARDOWN';
 					SELECT @ActionId = [ActionId] FROM [dbo].[StklineHistory_Action] WITH(NOLOCK) WHERE UPPER([Type]) = 'TENDERED';
 					SELECT @HistoryModuleId = [ModuleId] FROM dbo.[Module] WITH(NOLOCK) WHERE UPPER([ModuleName]) = 'WORKORDER';
 					SELECT @CtrlNumCodeTypeId = [CodeTypeId] FROM dbo.[CodeTypes] WITH(NOLOCK) WHERE UPPER([CodeType]) = 'CONTROL NUMBER';

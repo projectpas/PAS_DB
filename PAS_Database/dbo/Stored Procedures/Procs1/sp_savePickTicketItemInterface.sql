@@ -18,6 +18,7 @@
 ** 8    11/05/2024		Vishal Suthar			Modified to make use of new SO Part tables
 ** 9    12/10/2024		Moin Bloch			    Modified fixed dublicate Pickticket issue
 ** 10   03/06/2025		Vishal Suthar			Fixed issue with Qty Picked and Qty Remaining calculation
+** 11   30/30/2026		Moin Bloch			    UOM Changes PN-15067
 
 exec sp_savePickTicketItemInterface @SOPickTicketId=0,@SOPickTicketNumber=N'PT(SO)-000742',@SalesOrderId=1570,@CreatedBy=N'Jim Roberts',@UpdatedBy=N'Jim Roberts',@IsActive=1,@IsDeleted=0,@SalesOrderPartId=1973,@SalesOrderStocklineId=2517,@Qty=0,@QtyToShip=1,@MasterCompanyId=1,@Status=1,@PickedById=55,@ConfirmedById=0,@Memo=default,@IsConfirmed=0,@CodePrefixId=17,@CurrentNummber=742
 ********************************************************************************/
@@ -32,8 +33,8 @@ CREATE      PROCEDURE [dbo].[sp_savePickTicketItemInterface]
   @IsDeleted bit =0,  
   @SalesOrderPartId bigint=0,  
   @SalesOrderStocklineId bigint=0,  
-  @Qty int = 0,  
-  @QtyToShip int=0,  
+  @Qty DECIMAL(18,6) = 0,  
+  @QtyToShip DECIMAL(18,6)=0,  
   @MasterCompanyId int=0,  
   @Status int=0,  
   @PickedById int=0,  
@@ -51,22 +52,37 @@ BEGIN
  BEGIN TRY  
  BEGIN TRANSACTION  
  BEGIN  
-  DECLARE @SOPartId BIGINT;  
-  DECLARE @QtyRemaining BIGINT = 0, @TotalRervePart BIGINT = 0; 
+  DECLARE @SOPartId BIGINT, @ItemMasterId BIGINT = 0
+  DECLARE @QtyRemaining DECIMAL(18,6) = 0, @TotalRervePart INT = 0; 
   DECLARE @EnforcePickTicketConfirmation BIT;
+  DECLARE @PurchaseUnitOfMeasureId BIGINT = 0,  @StockUnitOfMeasureId BIGINT = 0,@ConsumeUnitOfMeasureId BIGINT = 0
+  DECLARE @POUnitOfMeasure VARCHAR(100), @StockUnitOfMeasure VARCHAR(100),@ConsumeUnitOfMeasure VARCHAR(100)
+
+
+  SELECT @ItemMasterId = [ItemMasterId] FROM [dbo].[SalesOrderPartV1] WHERE [SalesOrderId] = @SalesOrderId AND [SalesOrderPartId] = @SalesOrderPartId		
+
+  SELECT @PurchaseUnitOfMeasureId = [PurchaseUnitOfMeasureId],@StockUnitOfMeasureId =[StockUnitOfMeasureId], @ConsumeUnitOfMeasureId = [ConsumeUnitOfMeasureId] FROM [dbo].[ItemMaster] WITH(NOLOCK) WHERE [ItemMasterId] = @ItemMasterId;
+ 	 SET @POUnitOfMeasure = (SELECT [ShortCode] FROM [dbo].[UnitOfMeasure] WITH(NOLOCK) WHERE [UnitOfMeasureId] = @PurchaseUnitOfMeasureId)
+	 SET @StockUnitOfMeasure = (SELECT [ShortCode] FROM [dbo].[UnitOfMeasure] WITH(NOLOCK) WHERE [UnitOfMeasureId] = @StockUnitOfMeasureId)
+	 SET @ConsumeUnitOfMeasure = (SELECT [ShortCode] FROM [dbo].[UnitOfMeasure] WITH(NOLOCK) WHERE [UnitOfMeasureId] = @ConsumeUnitOfMeasureId)
+
+  IF (@Qty > 0)
+	SET @Qty = [dbo].[fn_ConvertUOM](@Qty, @ConsumeUnitOfMeasure, @StockUnitOfMeasure, 0, @MasterCompanyId);
+  IF (@QtyToShip > 0)
+	SET @QtyToShip = [dbo].[fn_ConvertUOM](@QtyToShip, @ConsumeUnitOfMeasure, @StockUnitOfMeasure,0, @MasterCompanyId);
 
   IF(@SOPickTicketId = 0)  
   BEGIN  
-	SELECT @EnforcePickTicketConfirmation = EnforcePickTicketConfirmation FROM DBO.SalesOrder WITH (NOLOCK) WHERE SalesOrderId = @SalesOrderId;
+	SELECT @EnforcePickTicketConfirmation = EnforcePickTicketConfirmation FROM [dbo].[SalesOrder] WITH (NOLOCK) WHERE SalesOrderId = @SalesOrderId;
 
-	SELECT @TotalRervePart = COUNT(SalesOrderReservePartId) FROM dbo.SalesOrderPartV1 sopp WITH(NOLOCK)
-	INNER JOIN dbo.SalesOrderReserveParts sorpp WITH(NOLOCK) ON sopp.SalesOrderId = sorpp.SalesOrderId AND sopp.SalesOrderPartId = sorpp.SalesOrderPartId   
+	SELECT @TotalRervePart = COUNT(SalesOrderReservePartId) FROM [dbo].[SalesOrderPartV1] sopp WITH(NOLOCK)
+	INNER JOIN [dbo].[SalesOrderReserveParts] sorpp WITH(NOLOCK) ON sopp.SalesOrderId = sorpp.SalesOrderId AND sopp.SalesOrderPartId = sorpp.SalesOrderPartId   
 	WHERE sorpp.SalesOrderId = @SalesOrderId
 
 	IF(@TotalRervePart > 1)
 	BEGIN
-	    DECLARE @QtyToReserve INT = 0,@TotalQtyToShip INT = 0;
-		
+	    DECLARE @QtyToReserve DECIMAL(18,6) = 0,@TotalQtyToShip DECIMAL(18,6) = 0;
+			
 		--SELECT @QtyToReserve = ISNULL(SUM(sorpp.QtyToReserve),0) 
   --   		FROM dbo.SalesOrderPartV1 sopp WITH(NOLOCK)
 		--	LEFT JOIN dbo.SalesOrderStocklineV1 sos WITH(NOLOCK) ON sos.SalesOrderPartId = sopp.SalesOrderPartId
@@ -84,33 +100,32 @@ BEGIN
 		DECLARE @StocklineId BIGINT;
 
 		SELECT @StocklineId = StocklineId
-		FROM dbo.SalesOrderStocklineV1 WITH (NOLOCK)
+		FROM [dbo].[SalesOrderStocklineV1] WITH (NOLOCK)
 		WHERE SalesOrderStocklineId = @SalesOrderStocklineId;
 
 		SELECT 
-			@QtyToReserve = ISNULL(SUM(sorpp.QtyReserved), 0)
+			  @QtyToReserve = ISNULL(SUM(sorpp.[QtyReserved]), 0)
 		FROM dbo.SalesOrderStockLineV1 sorpp WITH(NOLOCK)
 		WHERE sorpp.SalesOrderPartId = @SalesOrderPartId
-		  AND sorpp.StocklineId = @StocklineId; -- Important!
+		  AND sorpp.StocklineId = @StocklineId -- Important!		 
 
 		SELECT 
-			@TotalQtyToShip = ISNULL(SUM(sopt.QtyToShip), 0)
+			  @TotalQtyToShip = ISNULL(SUM(sopt.[QtyToShip]), 0)
 		FROM dbo.SOPickTicket sopt WITH(NOLOCK)
 		WHERE sopt.SalesOrderId = @SalesOrderId
 		  AND sopt.SalesOrderPartId = @SalesOrderPartId
-		  AND sopt.SalesOrderPartStocklineId = @SalesOrderStocklineId;
-
+		  AND sopt.SalesOrderPartStocklineId = @SalesOrderStocklineId
+		  
 		-- Final calculation
 		SET @QtyRemaining = @QtyToReserve - @TotalQtyToShip - ISNULL(@QtyToShip, 0);
 	END
 	ELSE
-	BEGIN	   
-		SELECT @QtyRemaining = (sorpp.QtyToReserve - ISNULL(@QtyToShip,0) - SUM(ISNULL(sopt.QtyToShip, 0))) 
-		FROM 
-		dbo.SalesOrderPartV1 sopp WITH(NOLOCK)
-		LEFT JOIN dbo.SalesOrderStocklineV1 sos WITH(NOLOCK) ON sos.SalesOrderPartId = sopp.SalesOrderPartId
-		INNER JOIN dbo.SalesOrderReserveParts sorpp WITH(NOLOCK) ON sopp.SalesOrderId = sorpp.SalesOrderId AND sopp.SalesOrderPartId = sorpp.SalesOrderPartId AND sorpp.StocklineId = sos.StockLineId   
-		LEFT JOIN dbo.SOPickTicket sopt WITH(NOLOCK) ON sopt.SalesOrderId = sopp.SalesOrderId AND sopt.SalesOrderPartStocklineId = sos.SalesOrderStocklineId --and sopt.SalesOrderPartId = sopp.SalesOrderPartId
+	BEGIN	
+		SELECT @QtyRemaining = (sorpp.[QtyToReserve] - ISNULL(@QtyToShip,0) - SUM(ISNULL(sopt.[QtyToShip], 0))) 
+		FROM [dbo].[SalesOrderPartV1] sopp WITH(NOLOCK)
+		 LEFT JOIN [dbo].[SalesOrderStocklineV1] sos WITH(NOLOCK) ON sos.SalesOrderPartId = sopp.SalesOrderPartId
+		INNER JOIN [dbo].[SalesOrderReserveParts] sorpp WITH(NOLOCK) ON sopp.SalesOrderId = sorpp.SalesOrderId AND sopp.SalesOrderPartId = sorpp.SalesOrderPartId AND sorpp.StocklineId = sos.StockLineId   
+		 LEFT JOIN [dbo].[SOPickTicket] sopt WITH(NOLOCK) ON sopt.SalesOrderId = sopp.SalesOrderId AND sopt.SalesOrderPartStocklineId = sos.SalesOrderStocklineId --and sopt.SalesOrderPartId = sopp.SalesOrderPartId
 		WHERE sorpp.SalesOrderId = @SalesOrderId AND sorpp.SalesOrderPartId = @SalesOrderPartId GROUP BY sorpp.QtyToReserve
 	END
 
@@ -126,17 +141,17 @@ BEGIN
 
 	IF (ISNULL(@EnforcePickTicketConfirmation, 0) = 0)
 	BEGIN
-		UPDATE [dbo].[SOPickTicket] SET ConfirmedById = @PickedById, IsConfirmed = 1, ConfirmedDate = GETUTCDATE() WHERE SOPickTicketId = @SOPickTicketId;
+		UPDATE [dbo].[SOPickTicket] SET [ConfirmedById] = @PickedById, IsConfirmed = 1, [ConfirmedDate] = GETUTCDATE() WHERE [SOPickTicketId] = @SOPickTicketId;
 	END
 
 	IF(@CodePrefixId > 0 AND @CurrentNummber > 0)  
 	BEGIN  
-		UPDATE DBO.CodePrefixes SET CurrentNummber = @CurrentNummber WHERE CodePrefixId = @CodePrefixId;  
+		UPDATE DBO.CodePrefixes SET [CurrentNummber] = @CurrentNummber WHERE CodePrefixId = @CodePrefixId;  
 	END  
   END  
   ELSE IF(@SOPickTicketId > 0 AND @IsConfirmed = 0)  
   BEGIN  
-   UPDATE [dbo].[SOPickTicket] SET QtyToShip = @QtyToShip,UpdatedBy = @UpdatedBy, UpdatedDate = GETDATE() WHERE SOPickTicketId = @SOPickTicketId; 
+   UPDATE [dbo].[SOPickTicket] SET [QtyToShip] = @QtyToShip,[UpdatedBy] = @UpdatedBy, UpdatedDate = GETDATE() WHERE [SOPickTicketId] = @SOPickTicketId; 
 
    	SELECT @TotalRervePart = COUNT(SalesOrderReservePartId) FROM SalesOrderPartV1 sopp WITH(NOLOCK)
 	INNER JOIN SalesOrderReserveParts sorpp WITH(NOLOCK) ON sopp.SalesOrderId = sorpp.SalesOrderId AND sopp.SalesOrderPartId = sorpp.SalesOrderPartId  
@@ -144,23 +159,22 @@ BEGIN
 
 	IF(@TotalRervePart > 1)
 	BEGIN
-		SELECT @QtyRemaining = (SUM(sorpp.QtyToReserve) - SUM(ISNULL(sopt.QtyToShip, 0))) 
-		FROM SalesOrderPartV1 sopp WITH(NOLOCK)
-		INNER JOIN SalesOrderReserveParts sorpp WITH(NOLOCK) ON sopp.SalesOrderId = sorpp.SalesOrderId AND sopp.SalesOrderPartId = sorpp.SalesOrderPartId   
-		LEFT JOIN SOPickTicket sopt WITH(NOLOCK) ON sopt.SalesOrderId = sopp.SalesOrderId and sopt.SalesOrderPartId = sopp.SalesOrderPartId
-		WHERE sorpp.SalesOrderId = @SalesOrderId -- GROUP BY sorpp.QtyToReserve
+		SELECT @QtyRemaining = (SUM(sorpp.[QtyToReserve]) - SUM(ISNULL(sopt.[QtyToShip], 0))) 
+		FROM [dbo].[SalesOrderPartV1] sopp WITH(NOLOCK)
+		INNER JOIN [dbo].[SalesOrderReserveParts] sorpp WITH(NOLOCK) ON sopp.SalesOrderId = sorpp.SalesOrderId AND sopp.SalesOrderPartId = sorpp.SalesOrderPartId   
+		LEFT JOIN  [dbo].[SOPickTicket] sopt WITH(NOLOCK) ON sopt.SalesOrderId = sopp.SalesOrderId and sopt.SalesOrderPartId = sopp.SalesOrderPartId
+		WHERE sorpp.SalesOrderId = @SalesOrderId -- GROUP BY sorpp.QtyToReserve		
 	END
 	ELSE
 	BEGIN
 		SELECT @QtyRemaining = (sorpp.QtyToReserve - SUM(ISNULL(sopt.QtyToShip, 0))) 
-		FROM SalesOrderPartV1 sopp WITH(NOLOCK)
-		INNER JOIN SalesOrderReserveParts sorpp WITH(NOLOCK) ON sopp.SalesOrderId = sorpp.SalesOrderId AND sopp.SalesOrderPartId = sorpp.SalesOrderPartId   
-		LEFT JOIN SOPickTicket sopt WITH(NOLOCK) ON sopt.SalesOrderId = sopp.SalesOrderId and sopt.SalesOrderPartId = sopp.SalesOrderPartId
-		WHERE sorpp.SalesOrderPartId = @SalesOrderPartId GROUP BY sorpp.QtyToReserve
-	END
-	
+		FROM [dbo].[SalesOrderPartV1] sopp WITH(NOLOCK)
+		INNER JOIN [dbo].[SalesOrderReserveParts] sorpp WITH(NOLOCK) ON sopp.SalesOrderId = sorpp.SalesOrderId AND sopp.SalesOrderPartId = sorpp.SalesOrderPartId   
+		LEFT JOIN [dbo].[SOPickTicket] sopt WITH(NOLOCK) ON sopt.SalesOrderId = sopp.SalesOrderId and sopt.SalesOrderPartId = sopp.SalesOrderPartId
+		WHERE sorpp.SalesOrderPartId = @SalesOrderPartId GROUP BY sorpp.[QtyToReserve]
+	END	
 
-   UPDATE [dbo].[SOPickTicket] SET QtyToShip = @QtyToShip,UpdatedBy = @UpdatedBy, UpdatedDate = GETDATE(), [QtyRemaining] = @QtyRemaining  WHERE SOPickTicketId = @SOPickTicketId; 
+   UPDATE [dbo].[SOPickTicket] SET [QtyToShip] = @QtyToShip,UpdatedBy = @UpdatedBy, [UpdatedDate] = GETDATE(), [QtyRemaining] = @QtyRemaining  WHERE SOPickTicketId = @SOPickTicketId; 
   
   /***** Commented By Rajesh : DO NOT DELETE *****/
    --Update [dbo].[SalesOrderPart] SET StatusId = (SELECT SOPartStatusId FROM DBO.SOPartStatus WITH (NOLOCK) WHERE PartStatus = 'Picked')   
@@ -168,7 +182,7 @@ BEGIN
   END  
   ELSE IF(@SOPickTicketId > 0 AND @IsConfirmed = 1)  
   BEGIN  
-   UPDATE [dbo].[SOPickTicket] SET ConfirmedById = @ConfirmedById, IsConfirmed = @IsConfirmed, ConfirmedDate = GETUTCDATE() WHERE SOPickTicketId = @SOPickTicketId;  
+   UPDATE [dbo].[SOPickTicket] SET [ConfirmedById] = @ConfirmedById, [IsConfirmed] = @IsConfirmed, ConfirmedDate = GETUTCDATE() WHERE [SOPickTicketId] = @SOPickTicketId;  
   
    /***** Commented By Rajesh : DO NOT DELETE *****/ 
    --SELECT @SOPartId = SalesOrderPartId FROM [dbo].[SOPickTicket] WITH (NOLOCK) WHERE SOPickTicketId = @SOPickTicketId;  

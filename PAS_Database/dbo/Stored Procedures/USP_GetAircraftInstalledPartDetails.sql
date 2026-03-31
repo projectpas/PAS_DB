@@ -12,7 +12,7 @@
 ** --   ----------   -------------  --------------------------------
 ** 1    2026-03-27   Amit Ghediya   Created
 *************************************************************/
-CREATE  PROCEDURE [dbo].[USP_GetAircraftInstalledPartDetails]
+CREATE PROCEDURE [dbo].[USP_GetAircraftInstalledPartDetails]
 (
     @PageNumber         INT,
     @PageSize           INT,
@@ -26,7 +26,7 @@ BEGIN
     SET NOCOUNT ON;
 
     -- Use only if dirty reads are acceptable for this screen/report
-    SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
+    --SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
 
     BEGIN TRY
         DECLARE @RecordFrom INT = (@PageNumber - 1) * @PageSize;

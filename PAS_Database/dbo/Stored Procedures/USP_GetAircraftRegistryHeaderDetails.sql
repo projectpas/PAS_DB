@@ -54,7 +54,8 @@ BEGIN
 				AR.MaintenanceStatusId,
 				AR.MaintenanceStatus,
 				AR.MasterCompanyId,
-				AR.Memo
+				AR.Memo,
+				AR.AircraftRegistryNumber
 			FROM dbo.[AircraftRegistryHeader] AR WITH(NOLOCK) 
 			WHERE AR.AircraftRegistryId = @AircraftRegistryId AND AR.MasterCompanyId = @MasterCompanyId 
 		END

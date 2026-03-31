@@ -148,7 +148,7 @@
     [RevicedPNNumber]                     NVARCHAR (50)   NULL,
     [OEMPNNumber]                         NVARCHAR (50)   NULL,
     [TaggedBy]                            BIGINT          NULL,
-    [TaggedByName]                        NVARCHAR (50)   NULL,
+    [TaggedByName]                        NVARCHAR (200)  NULL,
     [UnitCost]                            DECIMAL (18, 6) CONSTRAINT [Stockline_DC_UnitCost] DEFAULT ((0)) NULL,
     [TaggedByType]                        INT             NULL,
     [TaggedByTypeName]                    VARCHAR (250)   NULL,
@@ -258,6 +258,8 @@
     CONSTRAINT [FK_StockLine_Warehouse] FOREIGN KEY ([WarehouseId]) REFERENCES [dbo].[Warehouse] ([WarehouseId]),
     CONSTRAINT [FK_StockLine_WorkOrder] FOREIGN KEY ([WorkOrderId]) REFERENCES [dbo].[WorkOrder] ([WorkOrderId])
 );
+
+
 
 
 

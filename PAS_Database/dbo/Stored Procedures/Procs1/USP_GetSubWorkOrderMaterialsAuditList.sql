@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿
+/*************************************************************           
  ** File:   [USP_GetSubWorkOrderMaterialsAuditList]           
  ** Author:   Subhash Saliya
  ** Description: This stored procedure is used retrieve Work Order Sub Materials List    
@@ -14,12 +15,13 @@
  **************************************************************           
   ** Change History           
  **************************************************************           
- ** PR   Date         Author		Change Description            
- ** --   --------     -------		--------------------------------          
-    1    03/23/2021   Subhash Saliya Created
-	2    12/07/2021   Hemant Saliya  Added new field for Audit log
-    3    02/06/2023   Rajesh Gami    Added Figure and Item field for the audit
-	4	07/Mar/2025	  Bhargav Saliya			UTC Date Changes
+ ** PR   Date         Author		 Change Description            
+ ** --   --------     -------		 --------------------------------          
+    1    03/23/2021   Subhash Saliya  Created
+	2    12/07/2021   Hemant Saliya   Added new field for Audit log
+    3    02/06/2023   Rajesh Gami     Added Figure and Item field for the audit
+	4	 07/Mar/2025  Bhargav Saliya  UTC Date Changes
+	5    26/03/2026   RAJESH GAMI     UOM Changes [PN-14832]
  EXECUTE USP_GetSubWorkOrderMaterialsAuditList 68
 
 **************************************************************/     
@@ -44,6 +46,8 @@ SET NOCOUNT ON
 
 			BEGIN TRANSACTION
 				BEGIN
+				WITH WOM_CTE AS
+					(
 					SELECT  IM.PartNumber,
 							IM.PartDescription, 
 							WorkOrderNumber = (select top 1(WO.WorkOrderNum) from  WorkOrder wo WITH (NOLOCK) where wo.WorkOrderId=WOM.WorkOrderId ),
@@ -110,7 +114,6 @@ SET NOCOUNT ON
 							WOM.Quantity,
 							WOM.ConditionCodeId,
 							WOM.UnitOfMeasureId,
-							WOM.WorkOrderId,
 							IM.ItemMasterId,
 							IM.ItemClassificationId,
 							IM.PurchaseUnitOfMeasureId,
@@ -124,7 +127,7 @@ SET NOCOUNT ON
 							WOM.IsAltPart,
 							WOM.IsEquPart,
 							ITC.Description AS ItemClassification,
-							UOM.ShortName AS UOM,
+							uomStock.ShortName AS UOM,
 							CASE WHEN WOM.IsDeferred = NULL OR WOM.IsDeferred = 0 THEN 'No' ELSE 'Yes' END AS Defered,
 							IsRoleUp = 0,
 							WOM.ProvisionId,
@@ -139,14 +142,17 @@ SET NOCOUNT ON
 							RO.RepairOrderNumber
 							,WOM.Figure
 							,WOM.Item
+							,uomStock.ShortName uomStock
+					,uomConsume.ShortName uomConsume
 					FROM dbo.SubWorkOrderMaterialsAudit WOM WITH (NOLOCK)  
 						JOIN dbo.ItemMaster IM WITH (NOLOCK) ON IM.ItemMasterId = WOM.ItemMasterId
-						JOIN dbo.UnitOfMeasure UOM WITH (NOLOCK) ON UOM.UnitOfMeasureId = IM.PurchaseUnitOfMeasureId
 						JOIN dbo.Condition C WITH (NOLOCK) ON C.ConditionId = WOM.ConditionCodeId
 						JOIN dbo.SubWorkOrderPartNumber wo WITH (NOLOCK) ON wo.SubWOPartNoId = WOM.SubWOPartNoId
 						JOIN dbo.MaterialMandatories MM WITH (NOLOCK) ON MM.Id = WOM.MaterialMandatoriesId
 						LEFT JOIN dbo.SubWorkOrderMaterialStockLine MSTL WITH (NOLOCK) ON MSTL.SubWorkOrderMaterialsId = WOM.SubWorkOrderMaterialsId AND MSTL.IsDeleted = 0
 						LEFT JOIN dbo.Stockline SL WITH (NOLOCK) ON SL.StockLineId = MSTL.StockLineId
+						LEFT JOIN [dbo].[UnitOfMeasure] uomStock WITH(NOLOCK) ON uomStock.UnitOfMeasureId = SL.StockUnitOfMeasureId
+						LEFT JOIN [dbo].[UnitOfMeasure] uomConsume WITH(NOLOCK) ON uomConsume.UnitOfMeasureId = SL.ConsumeUnitOfMeasureId
 						LEFT JOIN dbo.ItemClassification ITC WITH (NOLOCK) ON ITC.ItemClassificationId = IM.ItemClassificationId
 						LEFT JOIN dbo.Provision P WITH (NOLOCK) ON P.ProvisionId = WOM.ProvisionId
 						LEFT JOIN dbo.Task T WITH (NOLOCK) ON T.TaskId = WOM.TaskId
@@ -158,7 +164,76 @@ SET NOCOUNT ON
 						LEFT JOIN dbo.RepairOrderPart ROP WITH (NOLOCK) ON SL.RepairOrderPartRecordId = ROP.RepairOrderPartRecordId
 						LEFT JOIN dbo.RepairOrder RO WITH (NOLOCK) ON SL.RepairOrderId = RO.RepairOrderId
 					WHERE WOM.SubWorkOrderMaterialsId = @SubWorkOrderMaterialsId
-
+					)
+					SELECT  
+							PartNumber,
+							PartDescription,
+							WorkOrderNumber,
+							WorkOrderId,
+							SubWorkOrderNo,
+							SalesOrder,
+							Site,
+							WareHouse,
+							Location,
+							Shelf,	
+							Bin,
+							PartStatusId,
+							Provision,
+							StockType,
+							ItemType,
+							Condition,
+							dbo.fn_ConvertUOM(UnitCost, uomStock, uomConsume,1,MasterCompanyId) UnitCost,
+							(dbo.fn_ConvertUOM(UnitCost, uomStock, uomConsume,1,MasterCompanyId)  * dbo.fn_ConvertUOM(Quantity , uomStock, uomConsume,0,MasterCompanyId)) ExtendedCost,
+							StockLineId,
+							StockLineNumber,
+							SerialNumber,
+							ControlId,
+							ControlNo,
+							Receiver,
+							dbo.fn_ConvertUOM(PartQuantityOnHand , uomStock, uomConsume,0,MasterCompanyId)  PartQuantityOnHand,
+							dbo.fn_ConvertUOM(PartQuantityAvailable , uomStock, uomConsume,0,MasterCompanyId) PartQuantityAvailable,
+							dbo.fn_ConvertUOM(PartQuantityReserved , uomStock, uomConsume,0,MasterCompanyId) PartQuantityReserved,
+							dbo.fn_ConvertUOM(PartQuantityTurnIn , uomStock, uomConsume,0,MasterCompanyId) PartQuantityTurnIn,
+							dbo.fn_ConvertUOM(PartQuantityOnOrder , uomStock, uomConsume,0,MasterCompanyId) PartQuantityOnOrder,
+							CostDate,
+							Currency,
+							dbo.fn_ConvertUOM(StocklineQuantity , uomStock, uomConsume,0,MasterCompanyId) StocklineQuantity,
+							dbo.fn_ConvertUOM(QuantityIssued , uomStock, uomConsume,0,MasterCompanyId) QuantityIssued,
+							dbo.fn_ConvertUOM(QuantityReserved , uomStock, uomConsume,0,MasterCompanyId) QuantityReserved,
+							dbo.fn_ConvertUOM(QunatityRemaining , uomStock, uomConsume,0,MasterCompanyId) QunatityRemaining,
+							dbo.fn_ConvertUOM(Quantity , uomStock, uomConsume,0,MasterCompanyId) Quantity,
+							ConditionCodeId,
+							UnitOfMeasureId,
+							WorkOrderId,
+							ItemMasterId,
+							ItemClassificationId,
+							PurchaseUnitOfMeasureId,
+							Memo,
+							IsDeferred,
+							TaskId,
+							TaskName,
+							MandatoryOrSupplemental,
+							MaterialMandatoriesId,
+							MasterCompanyId,
+							IsAltPart,
+							IsEquPart,
+							ItemClassification,
+							UOM,
+							Defered,
+							IsRoleUp,
+							ProvisionId,
+							SubWorkOrderMaterialsId,
+							SubWOPartNoId,
+							IsFromWorkFlow,
+							CreatedBy,
+							UpdatedBy,
+							CreatedDate,
+							UpdatedDate,
+							RONextDlvrDate,
+							RepairOrderNumber,
+							Figure,
+							Item
+						FROM WOM_CTE;
 				END
 			COMMIT  TRANSACTION
 

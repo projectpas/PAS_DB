@@ -30,6 +30,7 @@ Exec [usp_SaveTurnInWorkOrderMaterils]
    18	30/01/2026  Moin Bloch			Fix For Getting FK Conflict Error In Bin
    19   10/02/2026  Moin Bloch          No need to remove cost from stockline while tendor WO materials PN-15331 & Added Accounting Entry For Teardown Stockline
    17	13/Mar/2026 Rajesh Gami			UOM Changes Added [PN-15714]
+   20   26/03/2026  Moin Bloch	        Rename TearDown To Internal Teardown PN-15850
 exec dbo.usp_SaveTurnInWorkOrderMaterils @IsMaterialStocklineCreate=1,@IsCustomerStock=1,@IsCustomerstockType=0,@ItemMasterId=291,@UnitOfMeasureId=5,  
 @ConditionId=10,@Quantity=2,@IsSerialized=0,@SerialNumber=NULL,@CustomerId=80,@ObtainFromTypeId=1,@ObtainFrom=80,@ObtainFromName=N'anil gill ',  
 @OwnerTypeId=NULL,@Owner=NULL,@OwnerName=N'',@TraceableToTypeId=NULL,@TraceableTo=NULL,@TraceableToName=N'',@Memo=N' ',@WorkOrderId=N'320',  
@@ -223,7 +224,7 @@ BEGIN
       
      SELECT @WorkOrderPartNoId = [WorkOrderPartNoId] FROM [dbo].[WorkOrderWorkFlow] WITH(NOLOCK) WHERE [WorkFlowWorkOrderId] = @WorkOrderWorkflowId  
 
-     SELECT @TearDownWorkOrderTypeId = [Id] FROM [dbo].[WorkOrderType] WITH(NOLOCK) WHERE [Description] ='Teardown'  
+     SELECT @TearDownWorkOrderTypeId = [Id] FROM [dbo].[WorkOrderType] WITH(NOLOCK) WHERE [Description] ='Internal Teardown'  
        
      INSERT INTO #tmpCodePrefixes_Parent (CodePrefixId,CodeTypeId,CurrentNummber, CodePrefix, CodeSufix, StartsFrom)   
      SELECT CodePrefixId, CP.CodeTypeId, CurrentNummber, CodePrefix, CodeSufix, StartsFrom   

@@ -1,4 +1,5 @@
-﻿/*********************             
+﻿
+/*********************             
  ** File:   [USP_UpdateCommonBillingInvoicingStatus]             
  ** Author:   Moin Bloch
  ** Description: This stored procedure is used to Update Common Billing Invoicing Status
@@ -18,6 +19,7 @@
 	6    04/07/2025   Moin Bloch		Update Comment Un USED SP
 	7    09/07/2025   Moin Bloch		Fix For Deposit Amount
 	8    23/07/2025   Rajesh Gami		Remove Transaction
+	9    27/03/2026   Moin Bloch	    Rename Internal To Internal Repair   PN-15850
     EXEC [dbo].[USP_UpdateCommonBillingInvoicingStatus] 10157,8998,0,3,15,'ADMIN User',1
 
 **********************/ 
@@ -75,7 +77,7 @@ BEGIN
 
 			SELECT @Customer = [Id] FROM [dbo].[WorkOrderType] WITH(NOLOCK) WHERE [Description]='Customer';
 			
-			SELECT @Internal = [Id] FROM [dbo].[WorkOrderType] WITH(NOLOCK) WHERE [Description]='Internal';	
+			SELECT @Internal = [Id] FROM [dbo].[WorkOrderType] WITH(NOLOCK) WHERE [Description]='Internal Repair';	
 			
 			SELECT @WOMSModuleId = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] = 'WorkOrder';
 			

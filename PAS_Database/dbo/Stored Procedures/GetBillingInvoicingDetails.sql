@@ -21,6 +21,7 @@
 	7    17 JUL 2025   RAJESH GAMI  Implement SO notes  
 	8    31 JUL 2025   BHARGAV Saliya  Handle [IsCustomerShipping] flage and Get AccountNo In SO
 	9    05 Aug 2025   BHARGAV Saliya Fixed ShippingTerms Issue PN_13778
+	10   26/03/2026    Moin Bloch	  Rename TearDown To Internal Teardown PN-15850
    EXEC [dbo].[GetBillingInvoicingDetails] 845,1334,2,10,0,9003
    EXEC [dbo].[GetBillingInvoicingDetails] 9800,9938,2,15,0,0
 **************************************************************/ 
@@ -83,8 +84,8 @@ BEGIN
 				[wo].[WorkOrderTypeId],
 				CASE 
 					WHEN [wo].[WorkOrderTypeId] = 1 THEN 'Customer'
-					WHEN [wo].[WorkOrderTypeId] = 2 THEN 'Internal'
-					WHEN [wo].[WorkOrderTypeId] = 3 THEN 'Tear Down'
+					WHEN [wo].[WorkOrderTypeId] = 2 THEN 'Internal Repair'
+					WHEN [wo].[WorkOrderTypeId] = 3 THEN 'Internal Teardown'
 					ELSE 'Shop Services'
 				END AS [WorkOrderType],
 				[wop].[WorkScope],
@@ -165,8 +166,8 @@ BEGIN
 					[wo].[WorkOrderTypeId],
 					CASE 
 						WHEN [wo].[WorkOrderTypeId] = 1 THEN 'Customer'
-						WHEN [wo].[WorkOrderTypeId] = 2 THEN 'Internal'
-						WHEN [wo].[WorkOrderTypeId] = 3 THEN 'Tear Down'
+						WHEN [wo].[WorkOrderTypeId] = 2 THEN 'Internal Repair'
+						WHEN [wo].[WorkOrderTypeId] = 3 THEN 'Internal Teardown'
 						ELSE 'Shop Services'
 					END AS [WorkOrderType],
 					[wop].[WorkScope],
@@ -244,8 +245,8 @@ BEGIN
 					[wo].[WorkOrderTypeId],
 					CASE 
 						WHEN [wo].[WorkOrderTypeId] = 1 THEN 'Customer'
-						WHEN [wo].[WorkOrderTypeId] = 2 THEN 'Internal'
-						WHEN [wo].[WorkOrderTypeId] = 3 THEN 'Tear Down'
+						WHEN [wo].[WorkOrderTypeId] = 2 THEN 'Internal Repair'
+						WHEN [wo].[WorkOrderTypeId] = 3 THEN 'Internal Teardown'
 						ELSE 'Shop Services'
 					END AS [WorkOrderType],
 					[wop].[WorkScope],
@@ -322,8 +323,8 @@ BEGIN
 					[wo].[WorkOrderTypeId],
 					CASE 
 						WHEN [wo].[WorkOrderTypeId] = 1 THEN 'Customer'
-						WHEN [wo].[WorkOrderTypeId] = 2 THEN 'Internal'
-						WHEN [wo].[WorkOrderTypeId] = 3 THEN 'Tear Down'
+						WHEN [wo].[WorkOrderTypeId] = 2 THEN 'Internal Repair'
+						WHEN [wo].[WorkOrderTypeId] = 3 THEN 'Internal Teardown'
 						ELSE 'Shop Services'
 					END AS [WorkOrderType],
 					[wop].[WorkScope],

@@ -1,5 +1,4 @@
-﻿
-/*************************************************************   
+﻿/*************************************************************   
 ** Author:  <Hemant Saliya>  
 ** Create date: <12/30/2021>  
 ** Description: <Save Work Order Materials Issue Stockline Details>  
@@ -25,6 +24,7 @@ EXEC [usp_IssueWorkOrderMaterialsStockline]
 ** 13	04/24/2025		Devendra Shekh    Modify (Added [IsManualText] check for DistributionSetup)
 ** 14	02/02/2026		HEMANT SALIYA     Modify to Get Stockline unit cost from stockline insted of Work Order materials stockline so, latest cost will reflacts
    15   04-March-2026	Rajesh Gami		   Implemented UOM Changes [PN-14832]
+** 15   27/03/2026      Moin Bloch	      Rename Internal To Internal Repair   PN-15850
 DECLARE @p1 dbo.ReserveWOMaterialsStocklineType
 
 insert into @p1 values(924,945,1458,79728,3,7,1,1,2,N'NEW',N'0856AE15',N'PITOT STATIC TUBE',1,0,0,1,0,0,N'CNTL-001062',N'ID_NUM-000001',N'STL-000087',N'',N'ADMIN User',1,0,0,0,0,0)
@@ -247,7 +247,7 @@ BEGIN
 					)
 
 					SELECT TOP 1 @CustomerWOTypeId =Id FROM dbo.WorkOrderType WITH (NOLOCK) WHERE [Description] = 'Customer'
-					SELECT TOP 1 @InternalWOTypeId =Id FROM dbo.WorkOrderType WITH (NOLOCK) WHERE [Description] = 'Internal'
+					SELECT TOP 1 @InternalWOTypeId =Id FROM dbo.WorkOrderType WITH (NOLOCK) WHERE [Description] = 'Internal Repair'
 
 					PRINT 'Hem-1'
 

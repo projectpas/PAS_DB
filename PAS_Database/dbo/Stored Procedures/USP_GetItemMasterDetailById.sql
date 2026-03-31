@@ -17,7 +17,7 @@
 	5	 22-Sep-2025	Divyesh Kathiriya   added new field: IsHotItem
 	6    27/11/2025  Bhargav Saliya	  Modified(Get GL accound code and name from the GLAcount Table).
 	8    02/12/2025  Bhargav Saliya	  Revert Changes.
-	9    26-Mar-2026    Sahdev Saliya       Added [LifeLimitedPart] :-([IsFlightHoursAvailable], [IsFlightCyclesAvailable], [IsLandingsAvailable], [IsStartsAvailable], [IsCalendarTimeAvailable], [FlightHours], [FlightMinutes], [FlightCycles], [Landings], [Starts], [CalendarHours], [CalendarMinutes]) (PN-15833)
+	9    26-Mar-2026    Sahdev Saliya       Added [LifeLimitedPart] :-([IsFlightHoursAvailable], [IsFlightCyclesAvailable], [IsLandingsAvailable], [IsStartsAvailable], [IsCalendarTimeAvailable], [FlightHours], [FlightMinutes], [FlightCycles], [Landings], [Starts], [CalendarDate]) (PN-15833)
 
 **************************************************************
  EXEC USP_GetItemMasterDetailById 96978
@@ -200,8 +200,7 @@ BEGIN
 				        iM.FlightCycles,
 						iM.Landings,
 						iM.Starts,
-						iM.CalendarHours,
-						iM.CalendarMinutes
+						iM.CalendarDate
 					FROM dbo.ItemMaster iM WITH(NOLOCK)
 					LEFT JOIN CTE_IntegrationPortal itp ON iM.ItemMasterId = itp.ItemMasterId
 					LEFT JOIN CTE_InventoryGLSetting its ON iM.InventoryGLSettingId = its.InventoryGLSettingId

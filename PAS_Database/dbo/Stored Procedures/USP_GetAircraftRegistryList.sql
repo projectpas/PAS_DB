@@ -9,7 +9,7 @@
 ** --   ----------   -------------   -------------------------
 ** 1    26/02/2026   Priyansh Patel  Created [PN-15841]
 ************************************************************/
-CREATE OR ALTER PROCEDURE [dbo].[USP_GetAircraftRegistryList]
+CREATE PROCEDURE [dbo].[USP_GetAircraftRegistryList]
     @PageNumber         INT             = 1,
     @PageSize           INT             = 10,
     @SortColumn         VARCHAR(100)    = 'AircraftRegistryId',
@@ -36,7 +36,7 @@ CREATE OR ALTER PROCEDURE [dbo].[USP_GetAircraftRegistryList]
     @MasterCompanyId    INT
 AS
 BEGIN
-    SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
+    --SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
     SET NOCOUNT ON;
 
     BEGIN TRY

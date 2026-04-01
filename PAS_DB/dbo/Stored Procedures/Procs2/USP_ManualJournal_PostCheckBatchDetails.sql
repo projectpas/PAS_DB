@@ -24,6 +24,7 @@
 	8    11/05/2024   Amit Ghediya		Handle bypass accounting entry.
 	9	 02/06/2025	  Abhishek Jirawla  Fixed Name concat read script
 	10   26/11/2025   Moin Bloch        Add Vendor Payment Details Entry
+	11   01/04/2026   AMIT GHEDIYA      Updated the transaction date in CommonBatchDetails and BatchDetails from the current date to the EffectiveDate.
      
 EXEC USP_ManualJournal_PostCheckBatchDetails 10243
 **************************************************************/
@@ -116,6 +117,7 @@ BEGIN
 		DECLARE @ReferenceName VARCHAR(100) = '';
 		DECLARE @FXRate DECIMAL(9,2) = 1;	--Default Value set to : 1
 		DECLARE @ReferenceModule VARCHAR(100) = 'MANUALJOURNAL';		
+		DECLARE @TransactionDate DATETIME2(7) = NULL;
 
 		SELECT @ManualJournalModuleID = ModuleId FROM [DBO].[Module] WITH(NOLOCK) WHERE UPPER(CodePrefix)=UPPER(@CodePrefixMJE);
 		
@@ -157,7 +159,7 @@ BEGIN
 			
 			SELECT @MasterCompanyId = MasterCompanyId , @UpdateBy = UpdatedBy , @ManagementStructureId = ManagementStructureId FROM [DBO].[ManualJournalDetails] WITH(NOLOCK) WHERE ManualJournalHeaderId = @ManualJournalHeaderId AND IsActive = 1;
 
-			SELECT @EmployeeId = @EmployeeId, @AccountingPeriodId = AccountingPeriodId, @JournalNumber = JournalNumber FROM [DBO].[ManualJournalHeader] WITH(NOLOCK) WHERE ManualJournalHeaderId = @ManualJournalHeaderId AND IsActive = 1;
+			SELECT @EmployeeId = @EmployeeId, @AccountingPeriodId = AccountingPeriodId, @JournalNumber = JournalNumber, @TransactionDate = [EffectiveDate] FROM [DBO].[ManualJournalHeader] WITH(NOLOCK) WHERE ManualJournalHeaderId = @ManualJournalHeaderId AND IsActive = 1;
 
 			SELECT TOP 1 @JournalTypeId = JournalTypeId FROM [DBO].[DistributionSetup] WITH(NOLOCK)
 			WHERE DistributionMasterId = @DistributionMasterId AND MasterCompanyId = @MasterCompanyId AND UPPER(DistributionSetupCode)=UPPER(@DistributionSetupCode);
@@ -253,7 +255,7 @@ BEGIN
 			INSERT INTO [DBO].[BatchDetails](JournalTypeNumber,CurrentNumber,DistributionSetupId, DistributionName, [JournalBatchHeaderId], [LineNumber], [GlAccountId], [GlAccountNumber], [GlAccountName], 
 			[TransactionDate], [EntryDate], [JournalTypeId], [JournalTypeName], [IsDebit], [DebitAmount], [CreditAmount], [ManagementStructureId], [ModuleName], LastMSLevel, AllMSlevels, [MasterCompanyId], 
 			[CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted], [AccountingPeriodId], [AccountingPeriod])
-			VALUES(@JournalTypeNumber,@currentNo,0, NULL, @JournalBatchHeaderId, 1, 0, NULL, NULL, GETUTCDATE(), GETUTCDATE(), 
+			VALUES(@JournalTypeNumber,@currentNo,0, NULL, @JournalBatchHeaderId, 1, 0, NULL, NULL, @TransactionDate, GETUTCDATE(), 
 			@JournalTypeId, @JournalTypename, 1, 0, 0, @ManagementStructureId, @DistributionCodeName, 
 			NULL, NULL, @MasterCompanyId, @UpdateBy, @UpdateBy, GETUTCDATE(), GETUTCDATE(), 1, 0, @AccountingPeriodId, @AccountingPeriod)
 		
@@ -366,7 +368,7 @@ BEGIN
 						[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[ReferenceId],[ReferenceNumber],[ReferenceName],[LocalCurrency],[FXRate],[ForeignCurrency],[ReferenceModule])
 						VALUES	
 						(@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,@JournalBatchHeaderId,1 
-						,@GlAccountId ,@GlAccountNumber ,@GlAccountName,GETUTCDATE(),GETUTCDATE(),@JournalTypeId ,@JournalTypename,
+						,@GlAccountId ,@GlAccountNumber ,@GlAccountName,@TransactionDate,GETUTCDATE(),@JournalTypeId ,@JournalTypename,
 						CASE WHEN ISNULL(@Debit,0) > 0 THEN 1 ELSE 0 END,
 						CASE WHEN ISNULL(@Debit,0) > 0 THEN @Debit ELSE 0 END,
 						CASE WHEN ISNULL(@Debit,0) > 0 THEN 0 ELSE @Credit END,

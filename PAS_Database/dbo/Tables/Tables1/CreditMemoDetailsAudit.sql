@@ -10,9 +10,9 @@
     [AltPartNumber]           VARCHAR (100)   NULL,
     [CustPartNumber]          VARCHAR (100)   NULL,
     [SerialNumber]            VARCHAR (100)   NULL,
-    [Qty]                     INT             NOT NULL,
-    [UnitPrice]               DECIMAL (18, 2) NOT NULL,
-    [Amount]                  DECIMAL (18, 2) NOT NULL,
+    [Qty]                     DECIMAL (18, 6) NULL,
+    [UnitPrice]               DECIMAL (18, 6) NULL,
+    [Amount]                  DECIMAL (18, 6) NULL,
     [ReasonId]                INT             NOT NULL,
     [Reason]                  VARCHAR (500)   NULL,
     [StocklineId]             BIGINT          NULL,
@@ -33,32 +33,20 @@
     [IsDeleted]               BIT             CONSTRAINT [DF_CreditMemoDetailsAudit_IsDeleted] DEFAULT ((0)) NOT NULL,
     [RMADeatilsId]            BIGINT          NULL,
     [BillingInvoicingItemId]  BIGINT          NULL,
-    [SalesTax]                DECIMAL (18, 2) NULL,
-    [OtherTax]                DECIMAL (18, 2) NULL,
-    [PartsRevenue]            DECIMAL (18, 2) NULL,
-    [LaborRevenue]            DECIMAL (18, 2) NULL,
-    [MiscRevenue]             DECIMAL (18, 2) NULL,
-    [FreightRevenue]          DECIMAL (18, 2) NULL,
-    [RestockingFee]           DECIMAL (18, 2) NULL,
-    [CogsParts]               DECIMAL (18, 2) NULL,
-    [CogsLabor]               DECIMAL (18, 2) NULL,
-    [CogsOverHeadCost]        DECIMAL (18, 2) NULL,
-    [CogsInventory]           DECIMAL (18, 2) NULL,
-    [PartsUnitCost]           DECIMAL (18, 2) NULL,
-    [COGSPartsUnitCost]       DECIMAL (18, 2) NULL,
+    [SalesTax]                DECIMAL (18, 6) NULL,
+    [OtherTax]                DECIMAL (18, 6) NULL,
+    [PartsRevenue]            DECIMAL (18, 6) NULL,
+    [LaborRevenue]            DECIMAL (18, 6) NULL,
+    [MiscRevenue]             DECIMAL (18, 6) NULL,
+    [FreightRevenue]          DECIMAL (18, 6) NULL,
+    [RestockingFee]           DECIMAL (18, 6) NULL,
+    [CogsParts]               DECIMAL (18, 6) NULL,
+    [CogsLabor]               DECIMAL (18, 6) NULL,
+    [CogsOverHeadCost]        DECIMAL (18, 6) NULL,
+    [CogsInventory]           DECIMAL (18, 6) NULL,
+    [PartsUnitCost]           DECIMAL (18, 6) NULL,
+    [COGSPartsUnitCost]       DECIMAL (18, 6) NULL,
     [InvoiceTypeId]           INT             NULL,
     CONSTRAINT [PK_CreditMemoDetailsAudit] PRIMARY KEY CLUSTERED ([CreditMemoDetailAuditId] ASC)
 );
-
-
-
-
-
-
-
-
-
-
-
-
 

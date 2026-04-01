@@ -2,9 +2,9 @@
     [StandAloneCreditMemoDetailId]  BIGINT          IDENTITY (1, 1) NOT NULL,
     [CreditMemoHeaderId]            BIGINT          NOT NULL,
     [GlAccountId]                   BIGINT          NOT NULL,
-    [Qty]                           INT             NOT NULL,
-    [Rate]                          DECIMAL (18, 2) NOT NULL,
-    [Amount]                        DECIMAL (18, 2) NOT NULL,
+    [Qty]                           DECIMAL (18, 6) NULL,
+    [Rate]                          DECIMAL (18, 6) NULL,
+    [Amount]                        DECIMAL (18, 6) NULL,
     [MasterCompanyId]               INT             NOT NULL,
     [CreatedBy]                     VARCHAR (256)   NOT NULL,
     [UpdatedBy]                     VARCHAR (256)   NOT NULL,
@@ -19,6 +19,8 @@
     [CustomerCreditPaymentDetailId] BIGINT          NULL,
     CONSTRAINT [PK_StandAloneCreditMemoDetails] PRIMARY KEY CLUSTERED ([StandAloneCreditMemoDetailId] ASC)
 );
+
+
 
 
 

@@ -4,7 +4,7 @@
     [ReceiptId]                BIGINT          NOT NULL,
     [CustomerId]               BIGINT          NOT NULL,
     [WireDate]                 DATETIME        NOT NULL,
-    [Amount]                   DECIMAL (20, 2) NOT NULL,
+    [Amount]                   DECIMAL (18, 6) NULL,
     [CurrencyId]               INT             NOT NULL,
     [BankName]                 INT             NULL,
     [ReferenceNo]              VARCHAR (100)   NULL,
@@ -24,8 +24,4 @@
     [CustomerPaymentDetailsId] BIGINT          NULL,
     CONSTRAINT [PK_InvoiceWireTransferAudit] PRIMARY KEY CLUSTERED ([WireTransferAuditId] ASC)
 );
-
-
-
-
 

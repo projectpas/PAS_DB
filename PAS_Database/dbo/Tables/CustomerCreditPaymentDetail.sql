@@ -8,10 +8,10 @@
     [PaymentId]                     BIGINT          NULL,
     [ReceiveDate]                   DATETIME2 (7)   NULL,
     [ReferenceNumber]               VARCHAR (100)   NULL,
-    [TotalAmount]                   DECIMAL (18, 2) NULL,
-    [PaidAmount]                    DECIMAL (18, 2) NULL,
-    [RemainingAmount]               DECIMAL (18, 2) NULL,
-    [RefundAmount]                  DECIMAL (18, 2) NULL,
+    [TotalAmount]                   DECIMAL (18, 6) NULL,
+    [PaidAmount]                    DECIMAL (18, 6) NULL,
+    [RemainingAmount]               DECIMAL (18, 6) NULL,
+    [RefundAmount]                  DECIMAL (18, 6) NULL,
     [CheckNumber]                   VARCHAR (50)    NULL,
     [CheckDate]                     DATETIME2 (7)   NULL,
     [IsCheckPayment]                BIT             NULL,
@@ -35,16 +35,4 @@
     [MappingCustomerId]             BIGINT          NULL,
     CONSTRAINT [PK_CustomerCreditPaymentDetail] PRIMARY KEY CLUSTERED ([CustomerCreditPaymentDetailId] ASC)
 );
-
-
-
-
-
-
-
-
-
-
-
-
 

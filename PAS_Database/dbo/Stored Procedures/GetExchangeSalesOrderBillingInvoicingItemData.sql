@@ -5,7 +5,7 @@
  ** Purpose:         
  ** Date:    06/13/2025  
 
- ** PARAMETERS: @ExchangeSalesOrderPartId BIGINT, @QtyShipped DECIMAL(18, 2)
+ ** PARAMETERS: @ExchangeSalesOrderPartId BIGINT, @QtyShipped [decimal](18,6)
          
  ** RETURN VALUE:           
  **************************************************************           
@@ -14,12 +14,12 @@
  ** PR   Date         Author		Change Description            
  ** -----------------------------------------------------------          
     1    06/13/2025  EKTA CHANDEGRA    Created
-	     
+	2	 31-Mar-2026	Rajesh Gami		UOM Conversion Changes [PN-15866]	     
  EXEC GetExchangeSalesOrderBillingInvoicingItemData @ExchangeSalesOrderPartId = 153 , @QtyShipped = 1
 ************************************************************************/ 
 CREATE   PROCEDURE [dbo].[GetExchangeSalesOrderBillingInvoicingItemData]
     @ExchangeSalesOrderPartId BIGINT,
-    @QtyShipped DECIMAL(18, 2)
+    @QtyShipped [decimal](18,6)
 AS
 BEGIN
     SET NOCOUNT ON;

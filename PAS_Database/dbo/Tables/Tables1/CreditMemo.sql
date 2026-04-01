@@ -43,10 +43,10 @@
     [ReturnDate]            DATETIME2 (7)   NULL,
     [PDFPath]               NVARCHAR (100)  NULL,
     [FreightBilingMethodId] INT             NULL,
-    [TotalFreight]          DECIMAL (20, 2) NULL,
+    [TotalFreight]          DECIMAL (18, 6) NULL,
     [ChargesBilingMethodId] INT             NULL,
-    [TotalCharges]          DECIMAL (18, 2) NULL,
-    [Amount]                DECIMAL (18, 2) NULL,
+    [TotalCharges]          DECIMAL (18, 6) NULL,
+    [Amount]                DECIMAL (18, 6) NULL,
     [IsStandAloneCM]        BIT             NULL,
     [AcctingPeriodId]       BIGINT          NULL,
     [IsClosed]              BIT             NULL,
@@ -64,6 +64,8 @@
     CONSTRAINT [FK_CREDITMEMO_RequestedById] FOREIGN KEY ([RequestedById]) REFERENCES [dbo].[Employee] ([EmployeeId]),
     CONSTRAINT [FK_CreditMemo_Status] FOREIGN KEY ([StatusId]) REFERENCES [dbo].[CreditMemoStatus] ([Id])
 );
+
+
 
 
 

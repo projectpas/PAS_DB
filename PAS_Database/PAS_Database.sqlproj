@@ -927,8 +927,6 @@
     <Build Include="dbo\Tables\Tables1\SalesOrder.sql" />
     <Build Include="dbo\Tables\Tables1\SalesOrderApproval.sql" />
     <Build Include="dbo\Tables\Tables1\SalesOrderApprovalAudit.sql" />
-    <Build Include="dbo\Tables\Tables1\SalesOrderApproverList.sql" />
-    <Build Include="dbo\Tables\Tables1\SalesOrderApproverListAudit.sql" />
     <Build Include="dbo\Tables\Tables1\SalesOrderAudit.sql" />
     <Build Include="dbo\Tables\Tables1\SalesOrderBatchDetails.sql" />
     <Build Include="dbo\Tables\Tables1\SalesOrderBillingInvoicing.sql" />
@@ -973,10 +971,6 @@
     <Build Include="dbo\Tables\Tables1\SalesOrderStockAudit.sql" />
     <Build Include="dbo\Tables\Tables1\SalesOrderStockLine.sql" />
     <Build Include="dbo\Tables\Tables1\SalesOrderStockLineAudit.sql" />
-    <Build Include="dbo\Tables\Tables1\SalesOrderStockLineReserve.sql" />
-    <Build Include="dbo\Tables\Tables1\SalesOrderStockLineReserveAudit.sql" />
-    <Build Include="dbo\Tables\Tables1\SalesOrderUnReservedStock.sql" />
-    <Build Include="dbo\Tables\Tables1\SalesOrderUnReservedStockAudit.sql" />
     <Build Include="dbo\Tables\Tables1\Scope.sql" />
     <Build Include="dbo\Tables\Tables1\ScopeAudit.sql" />
     <Build Include="dbo\Tables\Tables1\ScrapCertificate.sql" />

@@ -1,4 +1,4 @@
-/*************************************************************
+﻿/*************************************************************
 ** File:        [USP_GetAircraftInstalledPartDetails]
 ** Description:
 ** Purpose:
@@ -12,7 +12,7 @@
 ** --   ----------   -------------  --------------------------------
 ** 1    2026-03-27   Amit Ghediya   Created
 *************************************************************/
-CREATE PROCEDURE [dbo].[USP_GetAircraftInstalledPartDetails]
+CREATE   PROCEDURE [dbo].[USP_GetAircraftInstalledPartDetails]
 (
     @PageNumber         INT,
     @PageSize           INT,
@@ -45,7 +45,7 @@ BEGIN
                 CASE
                     WHEN AIPD.IsLLP = 1 THEN 'YES'
                     ELSE 'NO'
-                END AS LLPText,
+                END AS LLP,
                 AIPD.IsSerialized,
                 AIPD.DateInstalled,
                 AIPD.PositionCode,
@@ -74,7 +74,7 @@ BEGIN
             PartNumber,
             PartDescription,
             IsLLP,
-            LLPText,
+            LLP,
             IsSerialized,
             DateInstalled,
             PositionCode,
@@ -95,8 +95,8 @@ BEGIN
             CASE WHEN @SortOrder =  1 AND @SortColumn = 'ATACHAPTER'      THEN AtaChapter      END ASC,
             CASE WHEN @SortOrder = -1 AND @SortColumn = 'ATACHAPTER'      THEN AtaChapter      END DESC,
 
-            CASE WHEN @SortOrder =  1 AND @SortColumn = 'LLPTEXT'         THEN LLPText         END ASC,
-            CASE WHEN @SortOrder = -1 AND @SortColumn = 'LLPTEXT'         THEN LLPText         END DESC,
+            CASE WHEN @SortOrder =  1 AND @SortColumn = 'LLP'         THEN LLP         END ASC,
+            CASE WHEN @SortOrder = -1 AND @SortColumn = 'LLP'         THEN LLP         END DESC,
 
             CASE WHEN @SortOrder =  1 AND @SortColumn = 'PARTNUMBER'      THEN PartNumber      END ASC,
             CASE WHEN @SortOrder = -1 AND @SortColumn = 'PARTNUMBER'      THEN PartNumber      END DESC,

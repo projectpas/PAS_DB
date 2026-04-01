@@ -4,7 +4,7 @@
     [CustomerId]               BIGINT          NOT NULL,
     [PaymentMethod]            VARCHAR (50)    NULL,
     [CheckDate]                DATETIME        NULL,
-    [Amount]                   DECIMAL (20, 2) NOT NULL,
+    [Amount]                   DECIMAL (18, 6) NULL,
     [CurrencyId]               INT             NOT NULL,
     [CheckNumber]              VARCHAR (50)    NOT NULL,
     [PayorsBank]               VARCHAR (50)    NULL,
@@ -26,6 +26,8 @@
     CONSTRAINT [FK_InvoiceCheckPayment_Customer] FOREIGN KEY ([CustomerId]) REFERENCES [dbo].[Customer] ([CustomerId]),
     CONSTRAINT [FK_InvoiceCheckPayment_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId])
 );
+
+
 
 
 

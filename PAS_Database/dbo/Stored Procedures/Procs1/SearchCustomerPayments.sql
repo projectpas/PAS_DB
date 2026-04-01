@@ -18,6 +18,7 @@
 	3    24/10/2024   Devendra Shekh		Modified (added if/else for details and receipt view)
 	4    06-03-2025   Shrey Chandegara		Modified due to add view in Accouting Integration List's PendingSync(Add @IsUpdated parameter)
 	5    24-Mar-2025  Divyesh Kathiriya		Update OpenDate, PostedDate based on Employee time zone 
+	6    31-Mar-2026  Rajesh Gami			UOM Conversion Changes [PN-15866] 
 **************************************************************/  
 CREATE   PROCEDURE [dbo].[SearchCustomerPayments]
     @PageNumber INT,
@@ -78,9 +79,9 @@ BEGIN
 			 [CustomerId] [bigint] NULL,
 			 [CustomerName] [varchar](100) NULL,
 			 [CustomerCode] [varchar](100) NULL,
-			 [Amount] [decimal](18,2) NULL,
-			 [AmtApplied] [decimal](18,2) NULL,
-			 [AmtRemaining] [decimal](18,2) NULL,
+			 [Amount] [decimal](18,6) NULL,
+			 [AmtApplied] [decimal](18,6) NULL,
+			 [AmtRemaining] [decimal](18,6) NULL,
 			 [CheckDate] [datetime2] NULL,
 			 [Reference] [varchar](100) NULL,
 		)
@@ -90,7 +91,7 @@ BEGIN
 			 [Id] [bigint] IDENTITY(1,1) NOT NULL,
 			 [ReceiptId] [bigint] NULL,
 			 [CustomerPaymentDetailsId] [bigint] NULL,
-			 [CreditMemoAmount] [decimal](18,2) NULL
+			 [CreditMemoAmount] [decimal](18,6) NULL
 		)
 
 		DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';

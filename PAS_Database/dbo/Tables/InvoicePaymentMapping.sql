@@ -7,7 +7,7 @@
     [PaymentRef]               VARCHAR (200)   NULL,
     [ReferenceId]              BIGINT          NULL,
     [CustomerPaymentDetailsId] BIGINT          NULL,
-    [Amount]                   DECIMAL (20, 2) NULL,
+    [Amount]                   DECIMAL (18, 6) NULL,
     CONSTRAINT [PK_InvoicePaymentMapping] PRIMARY KEY CLUSTERED ([InvoicePaymentMappingId] ASC)
 );
 

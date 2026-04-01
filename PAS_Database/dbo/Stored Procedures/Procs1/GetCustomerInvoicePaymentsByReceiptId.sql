@@ -25,7 +25,7 @@
 	10	 24/10/2024	  Devendra Shekh	added [CustomerPaymentDetailsId] to select
 	11   13-03-2025   Shrey Chandegara  Modified Due to Time Optimization
 	12   02-07-2025   Moin Bloch		Changed to new Billing table
-      
+ 	13   31-Mar-2026  Rajesh Gami		UOM Conversion Changes [PN-15866]      
 -- EXEC GetCustomerInvoicePaymentsByReceiptId 90,0,2      
 -- EXEC GetCustomerInvoicePaymentsByReceiptId 10135,0,2,11      
 -- EXEC GetCustomerInvoicePaymentsByReceiptId 153,0,2,24      
@@ -74,14 +74,14 @@ BEGIN
 		IsWireTransfer BIT DEFAULT 0,
 		IsEFT BIT DEFAULT 0,
 		IsCCDCPayment BIT DEFAULT 0,
-		PaymentAmount DECIMAL(18,2),
-		DiscAmount DECIMAL(18,2),
+		PaymentAmount [decimal](18,6),
+		DiscAmount [decimal](18,6),
 		DiscType INT,
-		BankFeeAmount DECIMAL(18,2),
+		BankFeeAmount [decimal](18,6),
 		BankFeeType INT,
-		OtherAdjustAmt DECIMAL(18,2),
+		OtherAdjustAmt [decimal](18,6),
 		Reason VARCHAR(300),
-		RemainingBalance DECIMAL(18,2),
+		RemainingBalance [decimal](18,6),
 		Status VARCHAR(250),
 		CreatedBy VARCHAR(250),
 		UpdatedBy VARCHAR(250),
@@ -94,29 +94,29 @@ BEGIN
 		TradeReceivableORMiscReceiptGLAccnt BIGINT,
 		CtrlNum VARCHAR(200),
 		InvoiceType INT,
-		OriginalAmount DECIMAL(18,2),
-		NewRemainingBal DECIMAL(18,2),
+		OriginalAmount [decimal](18,6),
+		NewRemainingBal [decimal](18,6),
 		DocNum VARCHAR(200),
 		CurrencyCode VARCHAR(200),
-		FxRate DECIMAL(18,2),
+		FxRate [decimal](18,6),
 		WOSONum VARCHAR(250),
-		DSI DECIMAL(18,2),
-		DSO DECIMAL(18,2),
-		AmountPastDue DECIMAL(18,2),
-		ARBalance DECIMAL(18,2),
+		DSI [decimal](18,6),
+		DSO [decimal](18,6),
+		AmountPastDue [decimal](18,6),
+		ARBalance [decimal](18,6),
 		InvDueDate DATETIME2,
-		CreditLimit DECIMAL(18,2),
+		CreditLimit [decimal](18,6),
 		CreditTermName VARCHAR(100),
 		LastMSLevel NVARCHAR(500),
 		AllMSlevels NVARCHAR(500),
 		PageIndex INT,
-		RemainingAmount DECIMAL(18,2),
+		RemainingAmount [decimal](18,6),
 		InvoiceDate DATETIME2,
 		Id INT,
 		GLARAccount VARCHAR(50),
 		Selected BIT,
 		DiscountDate DATETIME2,
-		DiscountAvailable DECIMAL(18,2),
+		DiscountAvailable [decimal](18,6),
 		CustomerPaymentDetailsId INT );
 
 	IF(@Opr=1)      
@@ -200,9 +200,9 @@ BEGIN
 			   WHEN InvoiceType = 6 THEN CASE WHEN ISNULL(ESOBI.PostedDate, '') != '' THEN DATEADD(DAY, ISNULL(S.[Days],0), (CAST(ESOBI.PostedDate AS DATETIME))) ELSE DATEADD(DAY, ISNULL(S.[Days],0), (CAST(ESOBI.InvoiceDate AS DATETIME))) END  
 			   ELSE NULL END AS 'DiscountDate',    
   
-			   CASE WHEN InvoiceType = 1 THEN CASE WHEN ISNULL(DATEDIFF(DAY, (CAST(SOBI.PostedDate as DATETIME) + ISNULL(S.Days,0)), GETUTCDATE()), 0) <= 0 THEN CAST((SOBI.GrandTotal * ISNULL(ps.[PercentValue],0) / 100) AS DECIMAL(10,2)) ELSE 0 END  
-			   WHEN InvoiceType = 2 THEN CASE WHEN ISNULL(DATEDIFF(DAY, (CAST(WOBI.PostedDate as DATETIME) + ISNULL(WO.Days,0)), GETUTCDATE()), 0) <= 0 THEN CAST((WOBI.GrandTotal * ISNULL(pw.[PercentValue],0) / 100) AS DECIMAL(10,2)) ELSE 0 END  
-			   WHEN InvoiceType = 6 THEN CASE WHEN ISNULL(DATEDIFF(DAY, (CAST(ESOBI.PostedDate as DATETIME) + ISNULL(S.Days,0)), GETUTCDATE()), 0) <= 0 THEN CAST((ESOBI.GrandTotal * ISNULL(ps.[PercentValue],0) / 100) AS DECIMAL(10,2)) ELSE 0 END  
+			   CASE WHEN InvoiceType = 1 THEN CASE WHEN ISNULL(DATEDIFF(DAY, (CAST(SOBI.PostedDate as DATETIME) + ISNULL(S.Days,0)), GETUTCDATE()), 0) <= 0 THEN CAST((SOBI.GrandTotal * ISNULL(ps.[PercentValue],0) / 100) AS [decimal](18,6)) ELSE 0 END  
+			   WHEN InvoiceType = 2 THEN CASE WHEN ISNULL(DATEDIFF(DAY, (CAST(WOBI.PostedDate as DATETIME) + ISNULL(WO.Days,0)), GETUTCDATE()), 0) <= 0 THEN CAST((WOBI.GrandTotal * ISNULL(pw.[PercentValue],0) / 100) AS [decimal](18,6)) ELSE 0 END  
+			   WHEN InvoiceType = 6 THEN CASE WHEN ISNULL(DATEDIFF(DAY, (CAST(ESOBI.PostedDate as DATETIME) + ISNULL(S.Days,0)), GETUTCDATE()), 0) <= 0 THEN CAST((ESOBI.GrandTotal * ISNULL(ps.[PercentValue],0) / 100) AS [decimal](18,6)) ELSE 0 END  
 			   ELSE 0 END AS 'DiscountAvailable'    
 				,INV.[CustomerPaymentDetailsId]
 		FROM [dbo].[InvoicePayments] INV WITH (NOLOCK)      
@@ -275,7 +275,7 @@ BEGIN
 			  CASE WHEN IPT.SOBillingInvoicingId IS NOT NULL THEN IPT.GLARAccount    ELSE '' END AS 'GLARAccount',      
 			  CASE WHEN IPT.SOBillingInvoicingId IS NOT NULL THEN CASE WHEN IPT.IsDeleted = 1 THEN 0 ELSE 1 END    ELSE 0 END AS 'Selected',  
 			  CASE WHEN ISNULL(SOBI.PostedDate, '') != '' THEN DATEADD(DAY, ISNULL(SO.[Days],0), (CAST(SOBI.PostedDate AS DATETIME))) ELSE DATEADD(DAY, ISNULL(SO.[Days],0), (CAST(SOBI.InvoiceDate AS DATETIME))) END AS DiscountDate,  
-			  CASE WHEN ISNULL(DATEDIFF(DAY, (CAST(SOBI.PostedDate as DATETIME) + ISNULL(SO.Days,0)), GETUTCDATE()), 0) <= 0 THEN CAST((SOBI.GrandTotal * ISNULL(p.[PercentValue],0) / 100) AS DECIMAL(10,2)) ELSE 0 END AS DiscountAvailable       
+			  CASE WHEN ISNULL(DATEDIFF(DAY, (CAST(SOBI.PostedDate as DATETIME) + ISNULL(SO.Days,0)), GETUTCDATE()), 0) <= 0 THEN CAST((SOBI.GrandTotal * ISNULL(p.[PercentValue],0) / 100) AS [decimal](18,6)) ELSE 0 END AS DiscountAvailable       
 			  ,IPT.[CustomerPaymentDetailsId]
 		FROM [dbo].[BillingInvoicing] SOBI WITH (NOLOCK)      
 			INNER JOIN [dbo].[SalesOrder] SO WITH (NOLOCK) ON SO.SalesOrderId=SOBI.ReferenceId  AND SOBI.ModuleId = @SOModuleId    
@@ -339,7 +339,7 @@ BEGIN
 			  CASE WHEN IPT.SOBillingInvoicingId IS NOT NULL THEN IPT.GLARAccount    ELSE '' END AS 'GLARAccount',      
 			  CASE WHEN IPT.SOBillingInvoicingId IS NOT NULL THEN CASE WHEN IPT.IsDeleted = 1 THEN 0 ELSE 1 END    ELSE 0 END AS 'Selected',  
 			  CASE WHEN ISNULL(WOBI.PostedDate, '') != '' THEN DATEADD(DAY, ISNULL(WO.[Days],0), (CAST(WOBI.PostedDate AS DATETIME))) ELSE DATEADD(DAY, ISNULL(WO.[Days],0), (CAST(WOBI.InvoiceDate AS DATETIME))) END AS DiscountDate,        
-			  CASE WHEN ISNULL(DATEDIFF(DAY, (CAST(WOBI.PostedDate as DATETIME) + ISNULL(WO.Days,0)), GETUTCDATE()), 0) <= 0 THEN CAST((WOBI.GrandTotal * ISNULL(p.[PercentValue],0) / 100) AS DECIMAL(10,2)) ELSE 0 END AS DiscountAvailable       
+			  CASE WHEN ISNULL(DATEDIFF(DAY, (CAST(WOBI.PostedDate as DATETIME) + ISNULL(WO.Days,0)), GETUTCDATE()), 0) <= 0 THEN CAST((WOBI.GrandTotal * ISNULL(p.[PercentValue],0) / 100) AS [decimal](18,6)) ELSE 0 END AS DiscountAvailable       
 			  ,IPT.[CustomerPaymentDetailsId]
 		FROM [dbo].[BillingInvoicing] WOBI WITH (NOLOCK)      
 			 LEFT JOIN  [dbo].[BillingInvoicingItems] WOBII WITH (NOLOCK) ON WOBII.BillingInvoicingId = WOBI.BillingInvoicingId AND WOBI.ModuleId = @WOModuleId --AND ISNULL(WOBII.IsInvoicePosted, 0) = 0
@@ -539,7 +539,7 @@ BEGIN
 			  CASE WHEN IPT.SOBillingInvoicingId IS NOT NULL THEN IPT.GLARAccount    ELSE '' END AS 'GLARAccount',      
 			  CASE WHEN IPT.SOBillingInvoicingId IS NOT NULL THEN CASE WHEN IPT.IsDeleted = 1 THEN 0 ELSE 1 END    ELSE 0 END AS 'Selected',  
 			  CASE WHEN ISNULL(ESOBI.PostedDate, '') != '' THEN DATEADD(DAY, ISNULL(ESO.[Days],0), (CAST(ESOBI.PostedDate AS DATETIME))) ELSE DATEADD(DAY, ISNULL(ESO.[Days],0), (CAST(ESOBI.InvoiceDate AS DATETIME))) END AS DiscountDate,  
-			  CASE WHEN ISNULL(DATEDIFF(DAY, (CAST(ESOBI.PostedDate as DATETIME) + ISNULL(ESO.Days,0)), GETUTCDATE()), 0) <= 0 THEN CAST((ESOBI.GrandTotal * ISNULL(p.[PercentValue],0) / 100) AS DECIMAL(10,2)) ELSE 0 END AS DiscountAvailable        
+			  CASE WHEN ISNULL(DATEDIFF(DAY, (CAST(ESOBI.PostedDate as DATETIME) + ISNULL(ESO.Days,0)), GETUTCDATE()), 0) <= 0 THEN CAST((ESOBI.GrandTotal * ISNULL(p.[PercentValue],0) / 100) AS [decimal](18,6)) ELSE 0 END AS DiscountAvailable        
 			  ,IPT.[CustomerPaymentDetailsId]
 		FROM [dbo].[ExchangeSalesOrderBillingInvoicing] ESOBI WITH (NOLOCK)      
 			  INNER JOIN [dbo].[ExchangeSalesOrder] ESO WITH (NOLOCK) ON ESO.ExchangeSalesOrderId=ESOBI.ExchangeSalesOrderId      
@@ -583,9 +583,9 @@ BEGIN
 			   WHEN InvoiceType = 6 THEN CASE WHEN ISNULL(ESOBI.PostedDate, '') != '' THEN DATEADD(DAY, ISNULL(S.[Days],0), (CAST(ESOBI.PostedDate AS DATETIME))) ELSE DATEADD(DAY, ISNULL(S.[Days],0), (CAST(ESOBI.InvoiceDate AS DATETIME))) END  
 			   ELSE NULL END AS 'DiscountDate',    
   
-			   CASE WHEN InvoiceType = 1 THEN CASE WHEN ISNULL(DATEDIFF(DAY, (CAST(SOBI.PostedDate as DATETIME) + ISNULL(S.Days,0)), GETUTCDATE()), 0) <= 0 THEN CAST((SOBI.GrandTotal * ISNULL(ps.[PercentValue],0) / 100) AS DECIMAL(10,2)) ELSE 0 END  
-			   WHEN InvoiceType = 2 THEN CASE WHEN ISNULL(DATEDIFF(DAY, (CAST(WOBI.PostedDate as DATETIME) + ISNULL(WO.Days,0)), GETUTCDATE()), 0) <= 0 THEN CAST((WOBI.GrandTotal * ISNULL(pw.[PercentValue],0) / 100) AS DECIMAL(10,2)) ELSE 0 END  
-			   WHEN InvoiceType = 6 THEN CASE WHEN ISNULL(DATEDIFF(DAY, (CAST(ESOBI.PostedDate as DATETIME) + ISNULL(S.Days,0)), GETUTCDATE()), 0) <= 0 THEN CAST((ESOBI.GrandTotal * ISNULL(ps.[PercentValue],0) / 100) AS DECIMAL(10,2)) ELSE 0 END  
+			   CASE WHEN InvoiceType = 1 THEN CASE WHEN ISNULL(DATEDIFF(DAY, (CAST(SOBI.PostedDate as DATETIME) + ISNULL(S.Days,0)), GETUTCDATE()), 0) <= 0 THEN CAST((SOBI.GrandTotal * ISNULL(ps.[PercentValue],0) / 100) AS [decimal](18,6)) ELSE 0 END  
+			   WHEN InvoiceType = 2 THEN CASE WHEN ISNULL(DATEDIFF(DAY, (CAST(WOBI.PostedDate as DATETIME) + ISNULL(WO.Days,0)), GETUTCDATE()), 0) <= 0 THEN CAST((WOBI.GrandTotal * ISNULL(pw.[PercentValue],0) / 100) AS [decimal](18,6)) ELSE 0 END  
+			   WHEN InvoiceType = 6 THEN CASE WHEN ISNULL(DATEDIFF(DAY, (CAST(ESOBI.PostedDate as DATETIME) + ISNULL(S.Days,0)), GETUTCDATE()), 0) <= 0 THEN CAST((ESOBI.GrandTotal * ISNULL(ps.[PercentValue],0) / 100) AS [decimal](18,6)) ELSE 0 END  
 			   ELSE 0 END AS 'DiscountAvailable'    
 			  ,INV.[CustomerPaymentDetailsId]
 		FROM [dbo].[InvoicePayments] INV WITH (NOLOCK)      

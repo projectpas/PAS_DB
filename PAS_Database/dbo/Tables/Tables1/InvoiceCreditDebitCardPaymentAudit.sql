@@ -4,7 +4,7 @@
     [ReceiptId]                 BIGINT          NULL,
     [CustomerId]                BIGINT          NOT NULL,
     [PaymentDate]               DATETIME        NOT NULL,
-    [Amount]                    DECIMAL (20, 2) NOT NULL,
+    [Amount]                    DECIMAL (18, 6) NULL,
     [Reference]                 VARCHAR (50)    NULL,
     [CurrencyId]                INT             NOT NULL,
     [CardNumber]                VARCHAR (20)    NOT NULL,
@@ -30,8 +30,4 @@
     [CustomerPaymentDetailsId]  BIGINT          NULL,
     CONSTRAINT [PK_InvoiceCreditDebitCardPaymentAudit] PRIMARY KEY CLUSTERED ([CreditDebitPaymentAuditId] ASC)
 );
-
-
-
-
 

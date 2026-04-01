@@ -1,4 +1,5 @@
-﻿/*************************************************************             
+﻿
+/*************************************************************             
  ** File:   [SearchCustomerInvoicesByCustId]             
  ** Author:   Subhash Saliya
  ** Description: This stored procedure is used to Update Payment Price
@@ -12,6 +13,7 @@
  ** --   --------     -------		 -------------------------------            
     1    21/04/2023   Subhash Saliya  Created
 	2    02/10/2023   Moin Bloch      Formetted SP
+	3    31-Mar-2026  Rajesh Gami	  UOM Conversion Changes [PN-15866]
  **************************************************************/
 CREATE   PROCEDURE [dbo].[UpdatePaymentPrice]
 @ReceiptId BIGINT = NULL
@@ -23,8 +25,8 @@ BEGIN
 	BEGIN TRY
 	BEGIN TRANSACTION
 	BEGIN
-		DECLARE @paymentAmt DECIMAL(20, 2)
-		DECLARE @remPaymentAmt DECIMAL(20, 2)
+		DECLARE @paymentAmt [decimal](18,6)
+		DECLARE @remPaymentAmt [decimal](18,6)
 
 		--SELECT @paymentAmt = (SUM(ISNULL(IC.Amount, 0)) + SUM(ISNULL(IW.Amount, 0)) + SUM(ISNULL(ICC.Amount, 0)))
 		--FROM DBO.CustomerPayments C  WITH(NOLOCK)

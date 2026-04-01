@@ -44,10 +44,10 @@
     [ReturnDate]              DATETIME2 (7)   NULL,
     [PDFPath]                 NVARCHAR (100)  NULL,
     [FreightBilingMethodId]   INT             NULL,
-    [TotalFreight]            DECIMAL (20, 2) NULL,
+    [TotalFreight]            DECIMAL (18, 6) NULL,
     [ChargesBilingMethodId]   INT             NULL,
-    [TotalCharges]            DECIMAL (18, 2) NULL,
-    [Amount]                  DECIMAL (18, 2) NULL,
+    [TotalCharges]            DECIMAL (18, 6) NULL,
+    [Amount]                  DECIMAL (18, 6) NULL,
     [AcctingPeriodId]         BIGINT          NULL,
     [IsStandAloneCM]          BIT             NULL,
     [IsClosed]                BIT             NULL,
@@ -60,8 +60,4 @@
     [SyncToken]               VARCHAR (200)   NULL,
     CONSTRAINT [PK_CreditMemoAudit] PRIMARY KEY CLUSTERED ([CreditMemoHeaderAuditId] ASC)
 );
-
-
-
-
 

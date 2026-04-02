@@ -23,6 +23,7 @@
 	7    08 JAN 2025   AMIT GHEDIYA		 Added one parameter to identify if it's been called from shipping or not
 	8    02 JAN 2026   Moin Bloch		 UOM Related Changes
 	9    07/01/2026   Rajesh Gami		Added MasterCompanyId Parameter While Calling UOM Conversion Function
+	10   02 APR 2026   Moin Bloch		 UOM Related Changes PN-15067
 declare @p1 dbo.SalesOrderReserveIssueParts
 insert into @p1 values(NULL,1357,1629,161088,119,N'3100454',N'SENSOR',NULL,NULL,0,NULL,NULL,0,5,2,2,N'OH',0,NULL,50,3,NULL,0,NULL,2,NULL,NULL,NULL,NULL,0,NULL,2,'2024-11-18 13:51:53.2864044',NULL,N'OEM',0,NULL,1,NULL,0,0,0,0,0,NULL,N'STL-000004',N'CNTL--001282',47,N'CASCO CIRCUITS INC',NULL,NULL,1,N'ADMIN User',N'ADMIN User','2024-11-18 13:51:53.2864029','2024-11-18 13:51:53.2864029',1,0)
 insert into @p1 values(NULL,1357,1629,161083,119,N'3100454',N'SENSOR',NULL,NULL,0,NULL,NULL,0,39,33,2,N'OH',0,NULL,50,3,NULL,0,NULL,33,NULL,NULL,NULL,NULL,0,NULL,2,'2024-11-18 13:51:53.2864063',NULL,N'OEM',0,NULL,1,NULL,0,0,0,0,0,NULL,N'STL000003',N'CNTL-001277',47,N'CASCO CIRCUITS INC',NULL,NULL,1,N'ADMIN User',N'ADMIN User','2024-11-18 13:51:53.2864060','2024-11-18 13:51:53.2864060',1,0)
@@ -52,7 +53,7 @@ BEGIN
 				@ItemMasterId BIGINT = 0,
 				@ConditionId BIGINT = 0,
 				@StockLineId BIGINT = 0,
-				@StocklineUnitCost DECIMAL(18,2) = 0,
+				@StocklineUnitCost DECIMAL(18, 6) = 0,
 				@Quantity DECIMAL(18,6) = 0,
 				@QtyToReserve DECIMAL(18,6) = 0,
 				@QtyToUnReserve DECIMAL(18,6) = 0,
@@ -207,24 +208,24 @@ BEGIN
 			DECLARE @PartQty DECIMAL(18,6) = 0,
 					@PartQtyRequested DECIMAL(18,6) = 0,
 					@PartCurrencyId INT = 0,
-					@PartFxRate DECIMAL(18,2) = 0,
+					@PartFxRate DECIMAL(18,6) = 0,
 					@PartPriorityId BIGINT = 0,
-					@PartUnitSalePrice DECIMAL(18,2) = 0,
-					@PartUnitCost DECIMAL(18,2) = 0,
-					@PartMarginAmount DECIMAL(18,2) = 0,
-					@PartSalesPriceExtended DECIMAL(18,2) = 0,
-					@PartUnitCostExtended DECIMAL(18,2) = 0,
-					@PartMarginAmountExtended DECIMAL(18,2) = 0,
-					@PartMarginPercentage DECIMAL(18,2) = 0,
+					@PartUnitSalePrice DECIMAL(18,6) = 0,
+					@PartUnitCost DECIMAL(18,6) = 0,
+					@PartMarginAmount DECIMAL(18,6) = 0,
+					@PartSalesPriceExtended DECIMAL(18,6) = 0,
+					@PartUnitCostExtended DECIMAL(18, 6) = 0,
+					@PartMarginAmountExtended DECIMAL(18, 6) = 0,
+					@PartMarginPercentage DECIMAL(18, 6) = 0,
 					@PartSalesOrderPartId BIGINT = 0,
 					@CustomerRequestDate AS Datetime2(7),
 					@PromisedDate AS Datetime2(7),
 					@EstimatedShipDate AS Datetime2(7),
 					@InsertedSalesOrderStocklineId BIGINT,
-					@PartMarkUpPercentage DECIMAL(18,2) = 0,
-					@PartMarkUpAmount DECIMAL(18,2) = 0,
-					@PartDiscountPercentage DECIMAL(18,2) = 0,
-					@PartDiscountAmount DECIMAL(18,2) = 0,
+					@PartMarkUpPercentage DECIMAL(18, 6) = 0,
+					@PartMarkUpAmount DECIMAL(18, 6) = 0,
+					@PartDiscountPercentage DECIMAL(18, 6) = 0,
+					@PartDiscountAmount DECIMAL(18, 6) = 0,
 
 					@ECCN AS varchar(200),
 					@HSCODE AS varchar(200),
@@ -264,9 +265,9 @@ BEGIN
 					  LEFT JOIN [DBO].[SalesOrderStocklineV1] SOSP WITH(NOLOCK) ON SOSP.SalesOrderPartId = SOP.SalesOrderPartId
 					  WHERE SOP.SalesOrderId = @SalesOrderId AND SOSP.StockLineId = @StockLineId)
 				BEGIN 
-					DECLARE @QtyRequested BIGINT = NULL;
-					DECLARE @QtyAdded BIGINT = NULL;
-					DECLARE @QtyAfterReserve BIGINT = NULL;
+					DECLARE @QtyRequested DECIMAL(18, 6) = 0 
+					DECLARE @QtyAdded DECIMAL(18, 6) = 0
+					DECLARE @QtyAfterReserve DECIMAL(18, 6) = 0 
 
 					--Get Part Data
 					SELECT 
@@ -476,7 +477,7 @@ BEGIN
 			BEGIN 
 				IF(ISNULL(@SalesOrderPartId,0) > 0)
 				BEGIN 
-					DECLARE @ReservedQty BIGINT = 0;
+					DECLARE @ReservedQty DECIMAL(18, 6) = 0;
 
 					SELECT @ReservedQty = SOS.QtyReserved FROM DBO.SalesOrderStocklineV1 SOS WITH (NOLOCK) WHERE SOS.SalesOrderPartId = @SalesOrderPartId AND SOS.StockLineId = @StockLineId;
 

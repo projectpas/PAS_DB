@@ -3,7 +3,7 @@
     [ReceiptId]                BIGINT          NOT NULL,
     [CustomerId]               BIGINT          NOT NULL,
     [WireDate]                 DATETIME        NOT NULL,
-    [Amount]                   DECIMAL (20, 2) NOT NULL,
+    [Amount]                   DECIMAL (18, 6) NULL,
     [CurrencyId]               INT             NOT NULL,
     [BankName]                 INT             NULL,
     [ReferenceNo]              VARCHAR (100)   NULL,
@@ -26,6 +26,8 @@
     CONSTRAINT [FK_InvoiceWireTransferPayment_Customer] FOREIGN KEY ([CustomerId]) REFERENCES [dbo].[Customer] ([CustomerId]),
     CONSTRAINT [FK_InvoiceWireTransferPayment_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId])
 );
+
+
 
 
 

@@ -13,9 +13,9 @@
     [ControlId]              VARCHAR (100)   NULL,
     [ReferenceId]            BIGINT          NOT NULL,
     [ReferenceNo]            VARCHAR (100)   NULL,
-    [Qty]                    INT             NOT NULL,
-    [UnitPrice]              DECIMAL (18, 2) NULL,
-    [Amount]                 DECIMAL (18, 2) NULL,
+    [Qty]                    DECIMAL (18, 6) NULL,
+    [UnitPrice]              DECIMAL (18, 6) NULL,
+    [Amount]                 DECIMAL (18, 6) NULL,
     [RMAReasonId]            BIGINT          NOT NULL,
     [RMAReason]              VARCHAR (500)   NULL,
     [Notes]                  NVARCHAR (MAX)  NULL,
@@ -31,7 +31,7 @@
     [BillingInvoicingItemId] BIGINT          NOT NULL,
     [IsCreateStockline]      BIT             NULL,
     [CustomerReference]      VARCHAR (100)   NULL,
-    [InvoiceQty]             INT             CONSTRAINT [InvoiceQty] DEFAULT ((1)) NOT NULL,
+    [InvoiceQty]             DECIMAL (18, 6) CONSTRAINT [InvoiceQty] DEFAULT ((1)) NULL,
     [ReturnDate]             DATETIME2 (7)   NULL,
     [WorkOrderNum]           VARCHAR (50)    NULL,
     [ReceiverNum]            VARCHAR (50)    NULL,
@@ -41,6 +41,8 @@
     CONSTRAINT [FK_CustomerRMADeatils_RMAReasonId] FOREIGN KEY ([RMAReasonId]) REFERENCES [dbo].[RMAReason] ([RMAReasonId]),
     CONSTRAINT [FK_CustomerRMADeatils_StocklineId] FOREIGN KEY ([StocklineId]) REFERENCES [dbo].[Stockline] ([StockLineId])
 );
+
+
 
 
 GO

@@ -9,7 +9,7 @@
 ** --   ----------   -------------   -------------------------
 ** 1    26/02/2026   Priyansh Patel  Created [PN-15841]
 ************************************************************/
-CREATE OR ALTER PROCEDURE [dbo].[USP_GetAircraftRegistryList]
+CREATE PROCEDURE [dbo].[USP_GetAircraftRegistryList]
     @PageNumber         INT             = 1,
     @PageSize           INT             = 10,
     @SortColumn         VARCHAR(100)    = 'AircraftRegistryId',
@@ -24,9 +24,9 @@ CREATE OR ALTER PROCEDURE [dbo].[USP_GetAircraftRegistryList]
     @IsActive           BIT             = NULL,
     @ManufacturedDate   DATETIME        = NULL,
     @PlaceInServiceDate DATETIME        = NULL,
-    @TotalTSN           DECIMAL(18, 2)  = NULL,
-    @TotalCSN           DECIMAL(18, 2)  = NULL,
-    @Hobbs              DECIMAL(18, 2)  = NULL,
+    @TotalTSN           VARCHAR(50)  = NULL,
+    @TotalCSN           VARCHAR(50)  = NULL,
+    @Hobbs              VARCHAR(50)  = NULL,
     @AircraftLocation   VARCHAR(200)    = NULL,
     @NumOfEngines       VARCHAR(100)    = NULL,
     @NextScheduled      DATETIME        = NULL,
@@ -36,7 +36,7 @@ CREATE OR ALTER PROCEDURE [dbo].[USP_GetAircraftRegistryList]
     @MasterCompanyId    INT
 AS
 BEGIN
-    SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
+    --SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
     SET NOCOUNT ON;
 
     BEGIN TRY
@@ -85,9 +85,9 @@ BEGIN
                 AND (@ManufacturedDate  IS NULL OR CAST(AR.ManufacturedDate  AS DATE) = CAST(@ManufacturedDate  AS DATE))
                 AND (@PlaceInServiceDate IS NULL OR CAST(AR.PlaceInServiceDate AS DATE) = CAST(@PlaceInServiceDate AS DATE))
                 AND (@NumOfEngines      IS NULL OR AR.NumOfEngines     LIKE '%' + @NumOfEngines     + '%')
-                AND (@TotalTSN          IS NULL OR AR.TotalTSN         = @TotalTSN)
-                AND (@TotalCSN          IS NULL OR AR.TotalCSN         = @TotalCSN)
-                AND (@Hobbs             IS NULL OR AR.Hobbs            = @Hobbs)
+                AND (@TotalTSN          IS NULL OR AR.TotalTSN     LIKE '%' + @TotalTSN     + '%')
+                AND (@TotalCSN          IS NULL OR AR.TotalCSN     LIKE '%' + @TotalCSN     + '%')
+                AND (@Hobbs             IS NULL OR AR.Hobbs     LIKE '%' + @Hobbs     + '%')
                 AND (@AircraftLocation  IS NULL OR AR.AircraftLocation LIKE '%' + @AircraftLocation + '%')
                 AND (@NextScheduled     IS NULL OR CAST(AR.NextScheduled AS DATE) = CAST(@NextScheduled AS DATE))
                 AND (@MEL               IS NULL OR AR.MEL              LIKE '%' + @MEL              + '%')

@@ -20,11 +20,11 @@
     [PageIndex]                           INT             NULL,
     [CustomerCode]                        VARCHAR (100)   NULL,
     [PaymentRef]                          VARCHAR (100)   NULL,
-    [Amount]                              DECIMAL (18, 2) NULL,
-    [AmountRem]                           DECIMAL (18, 2) NULL,
+    [Amount]                              DECIMAL (18, 6) NULL,
+    [AmountRem]                           DECIMAL (18, 6) NULL,
     [Ismiscellaneous]                     BIT             DEFAULT ((0)) NOT NULL,
-    [AppliedAmount]                       DECIMAL (20, 2) NULL,
-    [InvoiceAmount]                       DECIMAL (20, 2) NULL,
+    [AppliedAmount]                       DECIMAL (18, 6) NULL,
+    [InvoiceAmount]                       DECIMAL (18, 6) NULL,
     [LegalEntityId]                       BIGINT          NULL,
     [BankAcctNum]                         VARCHAR (100)   NULL,
     [BankingId]                           BIGINT          NULL,
@@ -35,6 +35,8 @@
     [SyncToken]                           VARCHAR (200)   NULL,
     CONSTRAINT [PK_CustomerPaymentDetails] PRIMARY KEY CLUSTERED ([CustomerPaymentDetailsId] ASC)
 );
+
+
 
 
 GO

@@ -16,7 +16,7 @@
  ** --   --------			-------				--------------------------------          
     1    Unknown		 Unknown				Created	
 	2	 02/06/2025		 Abhishek Jirawla		Fixed Name concat read script
-     
+ 	3 	 01-Apr-2026	Rajesh Gami				UOM Conversion Changes [PN-15866]    
 	 exec USP_PostManualStockLineBatchDetails 164040
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_CreateCustomerGeneralLedger]
@@ -25,8 +25,8 @@ CREATE   PROCEDURE [dbo].[USP_CreateCustomerGeneralLedger]
 	@ModuleId INT,
 	@ReferenceId BIGINT,
 	@DocumentNumber VARCHAR(20),
-	@CreditAmount DECIMAL(18,2),
-	@DebitAmount DECIMAL(18,2),
+	@CreditAmount [decimal](18,6),
+	@DebitAmount [decimal](18,6),
 	@MasterCompanyId int,
 	@ModuleName VARCHAR(100),
 	@CreatedBy VARCHAR(250)
@@ -34,7 +34,7 @@ CREATE   PROCEDURE [dbo].[USP_CreateCustomerGeneralLedger]
 AS
 BEGIN
 	BEGIN TRY
-		DECLARE @AMOUNT DECIMAL(18,2) = 0;
+		DECLARE @AMOUNT [decimal](18,6) = 0;
 		DECLARE @CurrentManagementStructureId BIGINT=0
 		DECLARE @AccountingPeriod VARCHAR(100)
 		DECLARE @AccountingPeriodId BIGINT=0

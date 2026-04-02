@@ -17,8 +17,9 @@
  ** --   --------		-------				--------------------------------          
 	1	10/15/2024		VISHAL SUTHAR		Modified to make use of new SO part tables
 	1	12/02/2024		AMIT GHEDIYA		Modified for get soPartid for expand & collapse
+	3   31/03/2026      Moin Bloch	        Modified Added UOM Changes PN-15067
      
- -- [dbo].[sp_GetSOShippingParentList] 1269
+ -- EXEC [dbo].[sp_GetSOShippingParentList] 10861
 **************************************************************/
 CREATE Procedure [dbo].[sp_GetSOShippingParentList]
 @SalesOrderId  bigint
@@ -28,39 +29,40 @@ BEGIN
 	SET NOCOUNT ON;
 
 	BEGIN TRY
-	BEGIN TRANSACTION
-	BEGIN
+	--BEGIN TRANSACTION
+	--BEGIN
 		SELECT DISTINCT imt.ItemMasterId AS SalesOrderPartId,sop.SalesOrderPartId AS SOPartId, sop.ConditionId, 0 AS ItemNo, so.SalesOrderNumber, imt.partnumber, imt.PartDescription, 
-		SUM(ISNULL(sopt.QtyToShip, 0)) AS QtyToShip,
-		SUM(ISNULL(sosi.QtyShipped, 0)) AS QtyShipped,
+		--SUM(ISNULL(sopt.QtyToShip, 0)) AS QtyToShip,
+		ISNULL([dbo].[fn_ConvertUOM](SUM(ISNULL(sopt.[QtyToShip],0)),sl.[StockUnitOfMeasure], sl.[ConsumeUnitOfMeasure],0,so.[MasterCompanyId]),0) AS QtyToShip,
+		--SUM(ISNULL(sosi.QtyShipped, 0)) AS QtyShipped,
+		ISNULL([dbo].[fn_ConvertUOM](SUM(ISNULL(sosi.[QtyShipped],0)),sl.[StockUnitOfMeasure], sl.[ConsumeUnitOfMeasure],0,so.[MasterCompanyId]),0) AS QtyShipped,
 		sop.SalesOrderId,
-		SUM(ISNULL(sopt.QtyToShip, 0)) - SUM(ISNULL(sosi.QtyShipped, 0)) AS QtyRemaining,
-		CASE WHEN SUM(ISNULL(sopt.QtyToShip, 0)) = SUM(ISNULL(sosi.QtyShipped, 0)) THEN 'Shipped'
+		--SUM(ISNULL(sopt.QtyToShip, 0)) - SUM(ISNULL(sosi.QtyShipped, 0)) AS QtyRemaining,
+		(ISNULL([dbo].[fn_ConvertUOM](SUM(ISNULL(sopt.[QtyToShip],0)),sl.[StockUnitOfMeasure], sl.[ConsumeUnitOfMeasure],0,so.[MasterCompanyId]),0)	- ISNULL([dbo].[fn_ConvertUOM](SUM(ISNULL(sosi.[QtyShipped],0)),sl.[StockUnitOfMeasure], sl.[ConsumeUnitOfMeasure],0,so.[MasterCompanyId]),0)) AS QtyRemaining,		
+		CASE WHEN ISNULL(SUM(sopt.[QtyToShip]), 0) = ISNULL(SUM(sosi.[QtyShipped]), 0) THEN 'Shipped'
 		ELSE 'Shipping' END AS [Status]
-		FROM DBO.SalesOrderPartV1 sop WITH (NOLOCK)
-		LEFT JOIN DBO.SalesOrderStocklineV1 stk WITH (NOLOCK) ON stk.SalesOrderPartId = sop.SalesOrderPartId
-		LEFT JOIN DBO.SalesOrder so WITH (NOLOCK) ON so.SalesOrderId = sop.SalesOrderId
-		INNER JOIN DBO.SOPickTicket sopt WITH (NOLOCK) ON sopt.SalesOrderId = sop.SalesOrderId AND sopt.SalesOrderPartId = sop.SalesOrderPartId AND sopt.SalesOrderPartStocklineId = stk.SalesOrderStocklineId
-		LEFT JOIN DBO.ItemMaster imt WITH (NOLOCK) ON imt.ItemMasterId = sop.ItemMasterId
-		LEFT JOIN DBO.Stockline sl WITH (NOLOCK) ON sl.StockLineId = stk.StockLineId AND sl.ConditionId = sop.ConditionId
-		LEFT JOIN DBO.SalesOrderShippingItem sosi WITH (NOLOCK) ON sosi.SalesOrderPartId = sop.SalesOrderPartId 
-					AND sosi.SOPickTicketId = sopt.SOPickTicketId
-		LEFT JOIN DBO.SalesOrderShipping sos WITH (NOLOCK) ON sos.SalesOrderShippingId = sosi.SalesOrderShippingId 
-					AND sos.SalesOrderId = sopt.SalesOrderId AND sos.SalesOrderId = @SalesOrderId
+		FROM [dbo].[SalesOrderPartV1] sop WITH (NOLOCK)
+		LEFT JOIN [dbo].[SalesOrderStocklineV1] stk WITH (NOLOCK) ON stk.SalesOrderPartId = sop.SalesOrderPartId
+		LEFT JOIN [dbo].[SalesOrder] so WITH (NOLOCK) ON so.SalesOrderId = sop.SalesOrderId
+		INNER JOIN [dbo].[SOPickTicket] sopt WITH (NOLOCK) ON sopt.SalesOrderId = sop.SalesOrderId AND sopt.SalesOrderPartId = sop.SalesOrderPartId AND sopt.SalesOrderPartStocklineId = stk.SalesOrderStocklineId
+		LEFT JOIN [dbo].[ItemMaster] imt WITH (NOLOCK) ON imt.ItemMasterId = sop.ItemMasterId
+		LEFT JOIN [dbo].[Stockline] sl WITH (NOLOCK) ON sl.StockLineId = stk.StockLineId AND sl.ConditionId = sop.ConditionId
+		LEFT JOIN [dbo].[SalesOrderShippingItem] sosi WITH (NOLOCK) ON sosi.SalesOrderPartId = sop.SalesOrderPartId AND sosi.SOPickTicketId = sopt.SOPickTicketId
+		LEFT JOIN [dbo].[SalesOrderShipping] sos WITH (NOLOCK) ON sos.SalesOrderShippingId = sosi.SalesOrderShippingId AND sos.SalesOrderId = sopt.SalesOrderId AND sos.SalesOrderId = @SalesOrderId
 		WHERE sop.SalesOrderId = @SalesOrderId AND sopt.IsConfirmed = 1
-		GROUP BY so.SalesOrderNumber, imt.partnumber, imt.PartDescription, imt.ItemMasterId,sop.SalesOrderPartId, sop.SalesOrderId, sop.ConditionId
-	END
-	COMMIT  TRANSACTION
+		GROUP BY so.SalesOrderNumber, imt.partnumber, imt.PartDescription, imt.ItemMasterId,sop.SalesOrderPartId, sop.SalesOrderId, sop.ConditionId,sl.[StockUnitOfMeasure], sl.[ConsumeUnitOfMeasure],so.[MasterCompanyId]
+	--END
+	--COMMIT  TRANSACTION
 
 	END TRY    
 	BEGIN CATCH      
 		IF @@trancount > 0
 			PRINT 'ROLLBACK'
-			ROLLBACK TRAN;
+			--ROLLBACK TRAN;
 			DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name() 
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
-            , @AdhocComments     VARCHAR(150)    = 'sp_GetSOShippingParentList' 
-            , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = '''+ ISNULL(@SalesOrderId, '') + ''
+            , @AdhocComments     VARCHAR(150)    = 'sp_GetSOShippingParentList'             
+			, @ProcedureParameters VARCHAR(3000) = '@Parameter1 = ''' + CAST(ISNULL(@SalesOrderId, '') AS VARCHAR(100))
             , @ApplicationName VARCHAR(100) = 'PAS'
 -----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------
             exec spLogException 

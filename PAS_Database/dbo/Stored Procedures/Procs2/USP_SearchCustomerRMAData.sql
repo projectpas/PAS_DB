@@ -17,6 +17,8 @@
 	4	 10/10/2023	  Nainshi Joshi		Removed script of "MULTIPLE" hover over 
 	5	 09/07/2024	  AMIT GHEDIYA		Update for uppercase response.
 	6    24-Mar-2025  Divyesh Kathiriya	Update CreditMemoDate based on Employee time zone
+	7    02-Apr-2026  Priyansh Patel	UOM Conversion Changes [PN-15882]
+
 
  -- exec USP_SearchCustomerRMAData 92,1      
 **************************************************************/
@@ -196,9 +198,9 @@ BEGIN
       OR (IM.ManufacturerName LIKE '%' + @GlobalFilter + '%')
       OR (MSD.LastMSLevel LIKE '%' + @GlobalFilter + '%')
       OR (ReferenceNo LIKE '%' + @GlobalFilter + '%')
-      OR (CAST(Qty AS nvarchar(10)) LIKE '%' + @GlobalFilter + '%')
-      OR (CAST(UnitPrice AS nvarchar(10)) LIKE '%' + @GlobalFilter + '%')
-      OR (CAST(CRD.Amount AS nvarchar(10)) LIKE '%' + @GlobalFilter + '%')
+      OR (CAST(Qty AS nvarchar(50)) LIKE '%' + @GlobalFilter + '%')
+      OR (CAST(UnitPrice AS nvarchar(50)) LIKE '%' + @GlobalFilter + '%')
+      OR (CAST(CRD.Amount AS nvarchar(50)) LIKE '%' + @GlobalFilter + '%')
       OR (RMAReason LIKE '%' + @GlobalFilter + '%')))
       OR (@GlobalFilter = ''
       AND (ISNULL(@RMANumber, '') = ''
@@ -233,12 +235,14 @@ BEGIN
       OR CRH.[Memo] LIKE '%' + @Memo + '%')
       AND (ISNULL(@ReferenceNo, '') = ''
       OR ReferenceNo LIKE '%' + @ReferenceNo + '%')
-      AND (ISNULL(@Qty, '') = ''
-      OR Qty LIKE '%' + @Qty + '%')
-      AND (ISNULL(@UnitPrice, '') = ''
-      OR UnitPrice = @UnitPrice)
-      AND (ISNULL(@Amount, '') = ''
-      OR CRD.Amount = @Amount)
+      --AND (ISNULL(@Qty, '') = '' OR Qty LIKE '%' + @Qty + '%')
+      --AND (ISNULL(@UnitPrice, '') = '' OR UnitPrice = @UnitPrice)  
+      --AND (ISNULL(@Amount, '') = ''  OR CRD.Amount = @Amount)
+
+      AND (ISNULL(@Qty, '') = '' OR CAST(Qty AS nvarchar(50)) LIKE '%' + @Qty + '%')
+      AND (ISNULL(@UnitPrice, '') = '' OR CAST(UnitPrice AS nvarchar(50)) LIKE '%' + @UnitPrice + '%')
+      AND (ISNULL(@Amount, '') = '' OR CAST(CRD.Amount AS nvarchar(50)) LIKE '%' + @Amount + '%')
+
       AND (ISNULL(@Requestedby, '') = ''
       OR CRH.Requestedby LIKE '%' + @Requestedby + '%')
       AND (ISNULL(@RMAReason, '') = ''
@@ -558,9 +562,9 @@ BEGIN
       OUTER APPLY (SELECT
         STUFF((SELECT
           CASE
-            WHEN LEN(CAST(S.Qty AS nvarchar(10))) > 0 THEN ','
+            WHEN LEN(CAST(S.Qty AS nvarchar(50))) > 0 THEN ','
             ELSE ''
-          END + CAST(S.Qty AS nvarchar(10))
+          END + CAST(S.Qty AS nvarchar(50))
         FROM CustomerRMADeatils S WITH (NOLOCK)
         WHERE S.RMAHeaderId = CRD.RMAHeaderId AND S.IsActive = 1 AND S.IsDeleted = 0
         FOR xml PATH ('')), 1, 1, '') Qty) A
@@ -579,9 +583,9 @@ BEGIN
       OUTER APPLY (SELECT
         STUFF((SELECT
           CASE
-            WHEN LEN(CAST(S.UnitPrice AS nvarchar(10))) > 0 THEN ','
+            WHEN LEN(CAST(S.UnitPrice AS nvarchar(50))) > 0 THEN ','
             ELSE ''
-          END + CAST(S.UnitPrice AS nvarchar(10))
+          END + CAST(S.UnitPrice AS nvarchar(50))
         FROM CustomerRMADeatils S WITH (NOLOCK)
         WHERE S.RMAHeaderId = CRD.RMAHeaderId AND S.IsActive = 1 AND S.IsDeleted = 0
         FOR xml PATH ('')), 1, 1, '') UnitPrice) A
@@ -599,9 +603,9 @@ BEGIN
       OUTER APPLY (SELECT
         STUFF((SELECT
           CASE
-            WHEN LEN(CAST(S.Amount AS nvarchar(10))) > 0 THEN ','
+            WHEN LEN(CAST(S.Amount AS nvarchar(50))) > 0 THEN ','
             ELSE ''
-          END + CAST(S.Amount AS nvarchar(10))
+          END + CAST(S.Amount AS nvarchar(50))
         FROM CustomerRMADeatils S WITH (NOLOCK)
         WHERE S.RMAHeaderId = CRD.RMAHeaderId AND S.IsActive = 1 AND S.IsDeleted = 0
         FOR xml PATH ('')), 1, 1, '') Amount) A
@@ -715,9 +719,9 @@ BEGIN
       OR (LastMSLevel LIKE '%' + @GlobalFilter + '%')
       OR (CreditMemoRef LIKE '%' + @GlobalFilter + '%')
       OR (ReferenceNo LIKE '%' + @GlobalFilter + '%')
-      OR (CAST(Qty AS nvarchar(10)) LIKE '%' + @GlobalFilter + '%')
-      OR (CAST(UnitPrice AS nvarchar(10)) LIKE '%' + @GlobalFilter + '%')
-      OR (CAST(Amount AS nvarchar(10)) LIKE '%' + @GlobalFilter + '%')
+      OR (CAST(Qty AS nvarchar(50)) LIKE '%' + @GlobalFilter + '%')
+      OR (CAST(UnitPrice AS nvarchar(50)) LIKE '%' + @GlobalFilter + '%')
+      OR (CAST(Amount AS nvarchar(50)) LIKE '%' + @GlobalFilter + '%')
       OR (RMAReason LIKE '%' + @GlobalFilter + '%')))
       OR (@GlobalFilter = ''
       AND (ISNULL(@RMANumber, '') = '' OR RMANumber LIKE '%' + @RMANumber + '%')
@@ -736,9 +740,9 @@ BEGIN
       AND (ISNULL(@RMAStatus, '') = '' OR RMAStatus LIKE '%' + @RMAStatus + '%')
       AND (ISNULL(@Memo, '') = '' OR Memo LIKE '%' + @Memo + '%')
       AND (ISNULL(@ReferenceNo, '') = '' OR ReferenceNo LIKE '%' + @ReferenceNo + '%')
-      AND (ISNULL(@Qty, '') = '' OR Qty LIKE '%' + @Qty + '%')
-      AND (ISNULL(@UnitPrice, '') = '' OR UnitPrice = @UnitPrice)
-      AND (ISNULL(@Amount, '') = '' OR Amount = @Amount)
+      AND (ISNULL(@Qty, '') = '' OR CAST(Qty AS nvarchar(50)) LIKE '%' + @Qty + '%')
+      AND (ISNULL(@UnitPrice, '') = '' OR CAST(UnitPrice AS nvarchar(50)) LIKE '%' + @UnitPrice + '%')
+      AND (ISNULL(@Amount, '') = '' OR CAST(Amount AS nvarchar(50)) LIKE '%' + @Amount + '%')
       AND (ISNULL(@Requestedby, '') = '' OR Requestedby LIKE '%' + @Requestedby + '%')
       AND (ISNULL(@RMAReason, '') = '' OR RMAReason LIKE '%' + @RMAReason + '%')))
       SELECT @Count = COUNT(RMAHeaderId) FROM #TempResult

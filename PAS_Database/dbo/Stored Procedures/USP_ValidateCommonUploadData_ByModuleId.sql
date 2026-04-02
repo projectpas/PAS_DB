@@ -45,6 +45,7 @@
 	35	 26-MAR-2026		Nakul Chandigra			Added Valiodation For  AircraftStatus And MaintenanceStatus
 	36   30-MAR-2026		Ayushi Patel			PN-15831 Removed one unnecessary condition which was causing the issue 
 	37   30-MAR-2026		Nakul Chandigra			Removed extra case from the validation for  @AircraftStatusModule And @MaintenanceStatusModule (PN-15874)
+	38   02-APR-2026		Nakul Chandigra			Implemented maximum length validation for Name and Description fields in AircraftStatusModule and MaintenanceStatusModule (PN-15873).
 
 declare @p4 dbo.UploadModuleDataTableType
 insert into @p4 values(4,N'VICTOR ADMAS',1,N'{
@@ -768,6 +769,31 @@ BEGIN
 												--WHEN IMF.DropdownListValue = 'PartNumber' AND @ManufacturerId IS NOT NULL AND @ManufacturerName IS NOT NULL 
 												--	AND LOWER(@ManufacturerId) != LOWER(@ManufacturerName) THEN 'Incorrect Manufacturer'
 												WHEN ISNULL(IMF.DuplicateErrorMsg, '') != '' THEN IMF.DuplicateErrorMsg
+												WHEN @ModuleId = @AircraftStatusModule 
+													 AND IMF.FieldName = 'Name'  
+													 AND ISNULL(TMP.FieldValue, '') <> ''
+													 AND LEN(TMP.FieldValue) > 100
+												THEN '‘Name’ exceeds 100 characters limit.'
+												WHEN @ModuleId = @MaintenanceStatusModule  
+													 AND IMF.FieldName = 'Name'  
+													 AND ISNULL(TMP.FieldValue, '') <> ''
+													 AND LEN(TMP.FieldValue) > 100
+												THEN '‘Name’ exceeds 100 characters limit.'
+												WHEN @ModuleId = @AircraftStatusModule 
+													 AND IMF.FieldName = 'Name'  
+													 AND ISNULL(TMP.FieldValue, '') <> ''
+													 AND LEN(TMP.FieldValue) > 100
+												THEN '‘Name’ exceeds 100 characters limit.'
+												WHEN @ModuleId = @MaintenanceStatusModule  
+													 AND IMF.FieldName = 'Description'  
+													 AND ISNULL(TMP.FieldValue, '') <> ''
+													 AND LEN(TMP.FieldValue) > 500
+												THEN '‘Description’ exceeds 500 characters limit.'
+												WHEN @ModuleId = @AircraftStatusModule  
+													 AND IMF.FieldName = 'Description'  
+													 AND ISNULL(TMP.FieldValue, '') <> ''
+													 AND LEN(TMP.FieldValue) > 500
+												THEN '‘Description’ exceeds 500 characters limit.'
 										ELSE ' '
 										END,
 				TMP.FieldValue = CASE WHEN ISNULL(IMF.DropdownListTable, '') != '' THEN IMF.DropdownListValueId ELSE TMP.FieldValue END

@@ -235,10 +235,6 @@ BEGIN
       OR CRH.[Memo] LIKE '%' + @Memo + '%')
       AND (ISNULL(@ReferenceNo, '') = ''
       OR ReferenceNo LIKE '%' + @ReferenceNo + '%')
-      --AND (ISNULL(@Qty, '') = '' OR Qty LIKE '%' + @Qty + '%')
-      --AND (ISNULL(@UnitPrice, '') = '' OR UnitPrice = @UnitPrice)  
-      --AND (ISNULL(@Amount, '') = ''  OR CRD.Amount = @Amount)
-
       AND (ISNULL(@Qty, '') = '' OR CAST(Qty AS nvarchar(50)) LIKE '%' + @Qty + '%')
       AND (ISNULL(@UnitPrice, '') = '' OR CAST(UnitPrice AS nvarchar(50)) LIKE '%' + @UnitPrice + '%')
       AND (ISNULL(@Amount, '') = '' OR CAST(CRD.Amount AS nvarchar(50)) LIKE '%' + @Amount + '%')

@@ -1,6 +1,4 @@
-﻿
-
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [usprpt_GetGoodsReceiptNotInvoicedReport_SSRS]
  ** Author:   Devendra Shekh
  ** Description: Get Goods Receipt which are not Invoiced
@@ -13,6 +11,8 @@
     1    11-Feb-2025     Devendra Shekh				Created
     2    20-Feb-2025     Rajesh Gami				Modify as per requirement
 	3    23-Feb-2025     Rajesh Gami				Resolved Getting records issue
+	4    20-Mar-2026     Vishal Suthar				Fixed total mismatch issue by adding qtyRemaining > 0 condition in "WithTotal" cte
+
 EXEC [dbo].[usprpt_GetGoodsReceiptNotInvoicedReport_SSRS] 1,'1/1/2025','01/02/2025','2','1,5,6!2,7,8,9!3,11,10!4,12,13!!!!!!'
 **************************************************************/
 CREATE   PROCEDURE [dbo].[usprpt_GetGoodsReceiptNotInvoicedReport_SSRS]     
@@ -336,8 +336,9 @@ BEGIN
 				WithTotal ([masterCompanyId], [TotalExtCost]) 
 						AS (SELECT [masterCompanyId], 				
 						FORMAT(SUM([extCost]), 'N', 'en-us') [TotalExtCost]				
-						FROM OrderLevel GROUP BY [masterCompanyId])
-
+						FROM OrderLevel 
+						WHERE qtyRemaining > 0
+						GROUP BY [masterCompanyId])
 				SELECT
 					COUNT(*) OVER() totalRecordsCount,
 					FC.*

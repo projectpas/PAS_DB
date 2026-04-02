@@ -23,7 +23,7 @@
     6    28/APR/2025  Vishal Suthar		added partnumber column to update from itemmaster
 	7    30/APR/2025  Hemant Saliya		Added Revised PN, Revised Serial Number , Revised PN Desc
 	8    27/MAY/2025  Abhishek Jirawla	Added WHERE condition in Publication CMM number update last step
-
+	9    31/MAR/2026  RAJESH GAMI		Add the space after and before '-' while adding Workorder Stage [PN-15871]
 -- EXEC [UpdateWorkOrderPartNumberColumnsWithId] 30
 **************************************************************/
 CREATE   PROCEDURE [dbo].[UpdateWorkOrderPartNumberColumnsWithId]
@@ -100,7 +100,7 @@ BEGIN
 					WPN.[PartDescription] = IM.[PartDescription],
 					WPN.[WorkOrderStatus] = WOS.[Description],
 					WPN.[Priority] = PR.[Description],
-					WPN.[WorkOrderStage] = WOSG.[Code] + '-' + WOSG.[Stage],
+					WPN.[WorkOrderStage] = WOSG.[Code] + ' - ' + WOSG.[Stage],
 					WPN.[ManufacturerName] = IM.[ManufacturerName],
 					WPN.[TechName] = UPPER(EMP.FirstName + ' ' + EMP.LastName),
 					WPN.[EmployeeStation] = UPPER(EMPS.StationName),

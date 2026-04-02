@@ -17,6 +17,7 @@ EXEC [usp_IssueSubWorkOrderMaterialsStockline]
 ** 6    02/13/2025	Hemnat Saliya	 Updated - Re_calculate MPN Cost
 ** 7	04/24/2025	Devendra Shekh	 Modify (Added [IsManualText] check for DistributionSetup)
 ** 8	04/30/2025	Abhishek Jirawla In loop checked Whether it is kit or material
+** 9    27/03/2026  Moin Bloch	     Rename Internal To Internal Repair   PN-15850
 
 DECLARE @p1 dbo.ReserveWOMaterialsStocklineType
 
@@ -95,7 +96,7 @@ BEGIN
 					SET @countKIT = 1;
 
 					SELECT TOP 1 @CustomerWOTypeId =Id FROM dbo.WorkOrderType WITH (NOLOCK) WHERE [Description] = 'Customer'
-					SELECT TOP 1 @InternalWOTypeId =Id FROM dbo.WorkOrderType WITH (NOLOCK) WHERE [Description] = 'Internal'
+					SELECT TOP 1 @InternalWOTypeId =Id FROM dbo.WorkOrderType WITH (NOLOCK) WHERE [Description] = 'Internal Repair'
 
 					SELECT @DistributionMasterId =ID from DistributionMaster WITH(NOLOCK)  where UPPER(DistributionCode)= UPPER('WOMATERIALGRIDTAB')
 

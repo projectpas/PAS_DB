@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [USP_BatchTriggerForInternalWOBasedonDistribution]
  ** Author:  Devendra Shekh
  ** Description: This stored procedure is used to Accounting entry for Internal WO With JE
@@ -22,6 +21,7 @@
 	10	02/06/2025		Abhishek Jirawla	Fixed Name concat read script
 	11  03-07-2025      Moin Bloch          Changed Old To New Billing Table
 	12	20/02/2026		Moin Bloch   		Modify (Added Reverse Entry Logic For Work Order Labor)
+	13  30-03-2026      Moin Bloch          Tempararly Commented @TotalAmount to handle adjustment task sum is zero
 
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[USP_BatchTriggerForInternalWOBasedonDistribution]
@@ -181,7 +181,8 @@ BEGIN
 		@RevenueMROGLAccId BIGINT = 0,
 		@COGS_WorkOrderGLAccName VARCHAR(250);
 
-		WHILE(@TotalRecords >= @StartCount AND @TotalAmount <> 0)
+		--Commented Tempararly to handle adjustment task sum is zero
+		WHILE(@TotalRecords >= @StartCount ) -- AND @TotalAmount <> 0
 		BEGIN
 
 			SELECT	@DistributionMasterId = [DistributionMasterId], 

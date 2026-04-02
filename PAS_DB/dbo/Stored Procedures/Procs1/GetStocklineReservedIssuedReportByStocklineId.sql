@@ -22,7 +22,7 @@
 	9    26-12-2024    RAJESH GAMI		Modified WPN to check RO is closed or not
     10   13-02-2025    Ayushi Patel     converted the date into utc (RESERVED,ISSUED,RESERVEISSUE) , Added a case to get timeZone
     11   12-02-2026    Moin Bloch		Modified Added TearDown Work Order Issue Operation PN-15435
-
+	12   26-03-2026    Moin Bloch	    Rename TearDown To Internal Teardown PN-15850
 
 	EXEC [dbo].[GetStocklineReservedIssuedReportByStocklineId] 183296,1,1
 
@@ -82,7 +82,7 @@ BEGIN
 	  SET @RMARefunded = (SELECT VendorRMAStatusId FROM dbo.VendorRMAStatus WITH(NOLOCK) WHERE VendorRMAStatus = 'Refunded')
 	  SET @RMACancel = (SELECT VendorRMAStatusId FROM dbo.VendorRMAStatus WITH(NOLOCK) WHERE VendorRMAStatus = 'Canceled')
 	  SET @AdjPostedStatusId =(SELECT TOP 1 Id FROM StocklineAdjustmentstatus where [Name]='Posted')
-	  SET @TearDown = (SELECT [Id] FROM [dbo].[WorkOrderType] WITH(NOLOCK) WHERE [Description]='Teardown');
+	  SET @TearDown = (SELECT [Id] FROM [dbo].[WorkOrderType] WITH(NOLOCK) WHERE [Description]='Internal Teardown');
 	BEGIN TRY 
 	BEGIN
 	 IF OBJECT_ID(N'tempdb..#tmpStockline') IS NOT NULL      

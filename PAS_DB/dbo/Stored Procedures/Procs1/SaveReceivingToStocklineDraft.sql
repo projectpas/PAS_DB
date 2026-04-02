@@ -28,7 +28,7 @@
 	12   12-11-2024   RAJESH GAMI       Handle the NULL value of WOMaterialsId
 	13   12-12-2024   ABHISHEK JIRAWLA  Change made for Asset Inventory Status and Asset Available Status
 	14   16-01-2025   ABHISHEK JIRAWLA  If Part is non serialized and Quantity is greater then 200 then only 1 entry should be made (PN-10836)
-	15   19-03-2026   Amit Ghediya      update for traceble in rpo for isserialized part. (PN-15560)
+	15   19-03-2026   Amit Ghediya      update for traceble in rpo for isserialized part & other too. (PN-15560)
  EXEC [SaveReceivingToStocklineDraft] 2281, 'ADMIN User'    
 **************************************************************/    
 CREATE    PROCEDURE [dbo].[SaveReceivingToStocklineDraft]
@@ -132,7 +132,7 @@ BEGIN
      SELECT @ShipViaId = ShipViaId, @ShipViaName = ShipVia, @ShippingAccountNo = ShippingAccountNo FROM AllShipVia WHERE ReferenceId = @PurchaseOrderId AND ModuleId = 13;    
 
 	 --if blank take from header vendor
-	 IF(ISNULL(@TraceableTo,0) = 0)
+	 IF(ISNULL(@TraceableToType,0) = 0)
 	 BEGIN
 		  SET @TraceableTo = @VendorId;
 		  SET @TraceableToName = @VendorName;

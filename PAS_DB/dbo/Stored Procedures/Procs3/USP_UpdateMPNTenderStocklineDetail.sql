@@ -15,6 +15,7 @@
 	2		09/04/2024		Moin Bloch			Added Stockline History
 	3		15/04/2024		Moin Bloch			Added Scrap Entry Operatin
 	4		12/02/2026		Moin Bloch			Added Condition For TearDown Work Order We have change the logic for TearDown Work Order PN-15437
+	5       26/03/2026      Moin Bloch	        Rename TearDown To Internal Teardown PN-15850
 
 	EXEC [USP_UpdateMPNTenderStocklineDetail] 1,1,'dsdsd'
 **************************************************************/ 
@@ -44,7 +45,7 @@ BEGIN
 				DECLARE @TearDown INT;
 				DECLARE @WorkOrderTypeId BIGINT;  
 
-				SET @TearDown = (SELECT [Id] FROM [dbo].[WorkOrderType] WITH(NOLOCK) WHERE [Description]='Teardown');
+				SET @TearDown = (SELECT [Id] FROM [dbo].[WorkOrderType] WITH(NOLOCK) WHERE [Description]='Internal Teardown');
 
 				SELECT @WorkOrderTypeId = [WorkOrderTypeId] FROM  [dbo].[WorkOrder] WITH(NOLOCK)  WHERE [WorkOrderId] = @WorkOrderId
 

@@ -30,7 +30,7 @@
     [PartNumber]               VARCHAR (50)    NULL,
     [PartDescription]          VARCHAR (500)   NULL,
     [Provision]                VARCHAR (50)    NULL,
-    [UomName]                  VARCHAR (50)    NULL,
+    [UomName]                  VARCHAR (100)   NULL,
     [Conditiontype]            VARCHAR (50)    NULL,
     [Stocktype]                VARCHAR (50)    NULL,
     [BillingName]              VARCHAR (50)    NULL,
@@ -45,6 +45,8 @@
     CONSTRAINT [FK_WorkOrderQuoteMaterial_UnitOfMeasure] FOREIGN KEY ([UnitOfMeasureId]) REFERENCES [dbo].[UnitOfMeasure] ([UnitOfMeasureId]),
     CONSTRAINT [FK_WorkOrderQuoteMaterial_WorkOrderQuoteDetails] FOREIGN KEY ([WorkOrderQuoteDetailsId]) REFERENCES [dbo].[WorkOrderQuoteDetails] ([WorkOrderQuoteDetailsId])
 );
+
+
 
 
 GO

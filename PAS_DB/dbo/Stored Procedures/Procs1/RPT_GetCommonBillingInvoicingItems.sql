@@ -1,5 +1,4 @@
-﻿
-/*****************************************************************************************           
+﻿/*****************************************************************************************           
  ** File:   [RPT_GetCommonBillingInvoicingItems]           
  ** Author:   Moin Bloch 
  ** Description: This stored procedure is used to Get Common Billing Invoicing Items
@@ -100,7 +99,7 @@ BEGIN
 				    ELSE ISNULL(BII.[MiscChargesCostPlus],0)
 			   END [IsCharges]			
 			  ,ISNULL(BI.[IsCreatedFromQuote],0) [IsCreatedFromQuote]
-			  ,ROW_NUMBER() OVER (ORDER BY BII.[BillingInvoicingId]) AS ItemNo
+			  ,ROW_NUMBER() OVER (ORDER BY wop.ID) AS ItemNo
 			  ,WOP.CustomerReference
 		   FROM [dbo].[BillingInvoicingItems] BII WITH(NOLOCK) 
 		  INNER JOIN [dbo].[BillingInvoicing] BI WITH(NOLOCK) ON BII.[BillingInvoicingId] = BI.[BillingInvoicingId] AND BI.ModuleId = @WOModuleId

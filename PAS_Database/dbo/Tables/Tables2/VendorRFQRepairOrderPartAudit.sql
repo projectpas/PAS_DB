@@ -21,9 +21,9 @@
     [Condition]                    VARCHAR (256)   NULL,
     [WorkPerformedId]              BIGINT          NULL,
     [WorkPerformed]                VARCHAR (250)   NULL,
-    [QuantityOrdered]              INT             NOT NULL,
-    [UnitCost]                     DECIMAL (20, 2) NULL,
-    [ExtendedCost]                 DECIMAL (20, 2) NULL,
+    [QuantityOrdered]              DECIMAL (18, 6) NULL,
+    [UnitCost]                     DECIMAL (18, 6) NULL,
+    [ExtendedCost]                 DECIMAL (18, 6) NULL,
     [WorkOrderId]                  BIGINT          NULL,
     [WorkOrderNo]                  VARCHAR (250)   NULL,
     [SubWorkOrderId]               BIGINT          NULL,
@@ -61,6 +61,4 @@
     [IsNoQuote]                    BIT             DEFAULT ((0)) NOT NULL,
     CONSTRAINT [PK_VendorRFQRepairOrderPartAudit] PRIMARY KEY CLUSTERED ([VendorRFQROPartRecordAuditId] ASC)
 );
-
-
 

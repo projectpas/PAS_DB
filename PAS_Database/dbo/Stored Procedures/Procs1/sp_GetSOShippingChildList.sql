@@ -28,7 +28,7 @@
 
  EXEC [dbo].[sp_GetSOShippingChildList] 1272, 318, 7  
 **************************************************************/
-CREATE OR ALTER PROCEDURE [dbo].[sp_GetSOShippingChildList]
+CREATE PROCEDURE [dbo].[sp_GetSOShippingChildList]
     @SalesOrderId     BIGINT,
     @SalesOrderPartId BIGINT,
     @ConditionId      BIGINT

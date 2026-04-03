@@ -12,6 +12,7 @@
 ** 1     19-Nov-2025   Bhargav Saliya   Created  
 ** 2     09-Mar-2026   Vishal Suthar    Handled UnitOfMeasureId to have NULL instead of 0 which will throw foreignkey constraint
 ** 3     26-Mar-2026   Sahdev Saliya    Added [LifeLimitedPart] :-([IsFlightHoursAvailable], [IsFlightCyclesAvailable], [IsLandingsAvailable], [IsStartsAvailable], [IsCalendarTimeAvailable], [FlightHours], [FlightMinutes], [FlightCycles], [Landings], [Starts], [CalendarDate]) (PN-15833)
+** 4     03-Apr-2026   Sahdev Saliya    Remove LifeLimitedPart (PN-15833)
 
 **************************************************************/
 create       PROCEDURE [dbo].[USP_UpdateItemMaster]
@@ -178,7 +179,6 @@ BEGIN
 		,i.COGS_ExchSalesOrderGLAccName = PST.COGS_ExchSalesOrderGLAccName
 		,i.IsUpdated = 1
 		,i.WorkOrderFormTypeId = PST.WorkOrderFormTypeId
-	    ,i.LifeLimitedPart = PST.LifeLimitedPart
 		,i.IsFlightHoursAvailable = PST.IsFlightHoursAvailable
 		,i.IsFlightCyclesAvailable = PST.IsFlightCyclesAvailable
 		,i.IsLandingsAvailable = PST.IsLandingsAvailable

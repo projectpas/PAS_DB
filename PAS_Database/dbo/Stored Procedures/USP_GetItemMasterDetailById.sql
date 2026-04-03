@@ -18,6 +18,7 @@
 	6    27/11/2025  Bhargav Saliya	  Modified(Get GL accound code and name from the GLAcount Table).
 	8    02/12/2025  Bhargav Saliya	  Revert Changes.
 	9    26-Mar-2026    Sahdev Saliya       Added [LifeLimitedPart] :-([IsFlightHoursAvailable], [IsFlightCyclesAvailable], [IsLandingsAvailable], [IsStartsAvailable], [IsCalendarTimeAvailable], [FlightHours], [FlightMinutes], [FlightCycles], [Landings], [Starts], [CalendarDate]) (PN-15833)
+    10   03-Apr-2026    Sahdev Saliya       Remove LifeLimitedPart (PN-15833)
 
 **************************************************************
  EXEC USP_GetItemMasterDetailById 96978
@@ -189,7 +190,6 @@ BEGIN
 						COALESCE(iM.GoodsReceivedNotInvoicesGLAccName, '') AS GoodsReceivedNotInvoicesGLAccName,
 						iM.WorkOrderFormTypeId,
 						ISNULL(iM.IsHotItem,0) AS IsHotItem,
-						iM.LifeLimitedPart,
 				        iM.IsFlightHoursAvailable,
 						iM.IsFlightCyclesAvailable,
 						iM.IsLandingsAvailable,

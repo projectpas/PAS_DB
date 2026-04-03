@@ -166,7 +166,6 @@
     [LastSyncDate]                      DATETIME2 (7)   NULL,
     [SyncToken]                         VARCHAR (200)   NULL,
     [WorkOrderFormTypeId]               INT             NULL,
-    [LifeLimitedPart]                   BIT             NULL,
     [IsFlightHoursAvailable]            BIT             NULL,
     [IsFlightCyclesAvailable]           BIT             NULL,
     [IsLandingsAvailable]               BIT             NULL,
@@ -211,6 +210,8 @@
     CONSTRAINT [FK_ItemMaster_Warning] FOREIGN KEY ([WarningId]) REFERENCES [dbo].[Warning] ([WarningId]),
     CONSTRAINT [UC_ItemMaster_partnumber_manufacturerId] UNIQUE NONCLUSTERED ([partnumber] ASC, [ManufacturerId] ASC, [MasterCompanyId] ASC)
 );
+
+
 
 
 

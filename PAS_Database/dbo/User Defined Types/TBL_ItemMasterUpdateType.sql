@@ -135,7 +135,6 @@
     [MasterCompanyId]                   VARCHAR (200)   NULL,
     [UpdatedBy]                         VARCHAR (200)   NULL,
     [RepairUnitOfMeasureId]             BIGINT          NULL,
-    [LifeLimitedPart]                   BIT             NULL,
     [IsFlightHoursAvailable]            BIT             NULL,
     [IsFlightCyclesAvailable]           BIT             NULL,
     [IsLandingsAvailable]               BIT             NULL,

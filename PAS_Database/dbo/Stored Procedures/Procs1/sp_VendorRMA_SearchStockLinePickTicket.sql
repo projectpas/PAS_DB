@@ -11,6 +11,7 @@
     1    06/22/2023   Amit Ghediya   created
 	2    06/23/2023   Amit Ghediya   Get Data Based on ItemMasterId.
 	3    07/04/2023   Amit Ghediya   Updated for get Qty base ticket.
+	4    02-03-2026	  Amit Ghediya	UOM Conversion Changes [PN-15140]
 
 -- EXEC [dbo].[sp_VendorRMA_SearchStockLinePickTicket] 330,1,42,0
 -- EXEC [dbo].[sp_VendorRMA_SearchStockLinePickTicket] 1,1,42,1
@@ -52,9 +53,13 @@ BEGIN
 					,sl.SerialNumber
 					,sl.ControlNumber
 					,sl.IdNumber
-					,ISNULL(sl.QuantityAvailable,0) AS QtyAvailable
-					,ISNULL(sl.QuantityOnHand, 0) AS QtyOnHand
-					,ISNULL(((SELECT TOP 1 Qty FROM VendorRMADetail WITH(NOLOCK) Where VendorRMADetailId = sop.VendorRMADetailId AND ItemMasterId = sop.ItemMasterId) - SUM(ISNULL(Pick.QtyToShip,0))),0) as QtyToPick
+					,ISNULL(([dbo].[fn_ConvertUOM](ISNULL(sl.QuantityAvailable, 0),IM.[StockUnitOfMeasure],IM.[PurchaseUnitOfMeasure],0,IM.[MasterCompanyId])),0) AS QtyAvailable
+					,ISNULL(([dbo].[fn_ConvertUOM](ISNULL(sl.QuantityOnHand, 0),IM.[StockUnitOfMeasure],IM.[PurchaseUnitOfMeasure],0,IM.[MasterCompanyId])),0) AS QtyOnHand
+					,ISNULL(((SELECT TOP 1 ([dbo].[fn_ConvertUOM](ISNULL(VR.Qty, 0),IM.[StockUnitOfMeasure],IM.[PurchaseUnitOfMeasure],0,IM.[MasterCompanyId])) 
+						FROM VendorRMADetail VR WITH(NOLOCK)
+						INNER JOIN [dbo].[Stockline] ST WITH (NOLOCK) ON ST.[StockLineId] = VR.[StockLineId]
+						INNER JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON ST.[ItemMasterId] = IM.[ItemMasterId]
+						Where VR.VendorRMADetailId = sop.VendorRMADetailId AND VR.ItemMasterId = sop.ItemMasterId) - SUM(ISNULL(Pick.QtyToShip,0))),0) as QtyToPick
 					,ISNULL(sl.PurchaseOrderUnitCost, 0) AS unitCost
 					,CASE WHEN sl.TraceableToType = 1 THEN cusTraceble.Name
 							WHEN sl.TraceableToType = 2 THEN vTraceble.VendorName
@@ -98,7 +103,7 @@ BEGIN
 					--(SELECT ISNULL(SUM(QtyToShip), 0) FROM RMAPickTicket s WITH(NOLOCK) Where s.VendorRMAId = @VendorRMAId AND s.VendorRMADetailId = sop.VendorRMADetailId)) > 0
 				GROUP BY sop.VendorRMADetailId,im.PartNumber,sl.StockLineId,im.ItemMasterId ,im.ItemMasterId,im.PartDescription ,ig.Description ,mf.Name,im.ManufacturerId,sl.ConditionId
 					,sl.StockLineNumber ,sl.SerialNumber,sl.ControlNumber,sl.IdNumber,sl.QuantityAvailable,sl.QuantityOnHand,im.IsPma,im.IsDER,so.VendorRMAId ,sop.ItemMasterId,sl.PurchaseOrderUnitCost
-					,sl.TraceableToType,cusTraceble.Name,vTraceble.VendorName,leTraceble.Name,sl.TraceableTo,sl.TagType,sl.TagDate,sl.CertifiedBy,sl.CertifiedDate,sl.Memo,Smf.Name
+					,sl.TraceableToType,cusTraceble.Name,vTraceble.VendorName,leTraceble.Name,sl.TraceableTo,sl.TagType,sl.TagDate,sl.CertifiedBy,sl.CertifiedDate,sl.Memo,Smf.Name,IM.[StockUnitOfMeasure],IM.[PurchaseUnitOfMeasure],IM.[MasterCompanyId]
 		END
 		ELSE
 		BEGIN
@@ -125,9 +130,13 @@ BEGIN
 					,sl.SerialNumber
 					,sl.ControlNumber
 					,sl.IdNumber
-					,ISNULL(sl.QuantityAvailable,0) AS QtyAvailable
-					,ISNULL(sl.QuantityOnHand, 0) AS QtyOnHand
-					,ISNULL(((SELECT TOP 1 Qty FROM VendorRMADetail WITH(NOLOCK) Where VendorRMADetailId = sop.VendorRMADetailId AND ItemMasterId = sop.ItemMasterId) - SUM(ISNULL(Pick.QtyToShip,0))),0) as QtyToPick
+					,ISNULL(([dbo].[fn_ConvertUOM](ISNULL(sl.QuantityAvailable, 0),IM.[StockUnitOfMeasure],IM.[PurchaseUnitOfMeasure],0,IM.[MasterCompanyId])),0) AS QtyAvailable
+					,ISNULL(([dbo].[fn_ConvertUOM](ISNULL(sl.QuantityOnHand, 0),IM.[StockUnitOfMeasure],IM.[PurchaseUnitOfMeasure],0,IM.[MasterCompanyId])),0) AS QtyOnHand
+					,ISNULL(((SELECT TOP 1 ([dbo].[fn_ConvertUOM](ISNULL(VR.Qty, 0),IM.[StockUnitOfMeasure],IM.[PurchaseUnitOfMeasure],0,IM.[MasterCompanyId])) 
+						FROM VendorRMADetail VR WITH(NOLOCK) 
+						INNER JOIN [dbo].[Stockline] ST WITH (NOLOCK) ON ST.[StockLineId] = VR.[StockLineId]
+						INNER JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON ST.[ItemMasterId] = IM.[ItemMasterId]
+					Where VR.VendorRMADetailId = sop.VendorRMADetailId AND VR.ItemMasterId = sop.ItemMasterId) - SUM(ISNULL(Pick.QtyToShip,0))),0) as QtyToPick
 					,ISNULL(sl.PurchaseOrderUnitCost, 0) AS unitCost
 					,CASE WHEN sl.TraceableToType = 1 THEN cusTraceble.Name
 							WHEN sl.TraceableToType = 2 THEN vTraceble.VendorName
@@ -176,7 +185,7 @@ BEGIN
 					--) > 0
 				GROUP BY sop.VendorRMADetailId,im.PartNumber,sl.StockLineId,im.ItemMasterId ,im.ItemMasterId,im.PartDescription ,ig.Description ,mf.Name,im.ManufacturerId,sl.ConditionId
 					,sl.StockLineNumber ,sl.SerialNumber,sl.ControlNumber,sl.IdNumber,sl.QuantityAvailable,sl.QuantityOnHand,im.IsPma,im.IsDER,so.VendorRMAId ,sop.ItemMasterId,sl.PurchaseOrderUnitCost
-					,sl.TraceableToType,cusTraceble.Name,vTraceble.VendorName,leTraceble.Name,sl.TraceableTo,sl.TagType,sl.TagDate,sl.CertifiedBy,sl.CertifiedDate,sl.Memo,Smf.Name
+					,sl.TraceableToType,cusTraceble.Name,vTraceble.VendorName,leTraceble.Name,sl.TraceableTo,sl.TagType,sl.TagDate,sl.CertifiedBy,sl.CertifiedDate,sl.Memo,Smf.Name,IM.[StockUnitOfMeasure],IM.[PurchaseUnitOfMeasure],IM.[MasterCompanyId]
 					
 		END
 

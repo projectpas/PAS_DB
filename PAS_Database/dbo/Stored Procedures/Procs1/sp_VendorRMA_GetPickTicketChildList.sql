@@ -15,6 +15,7 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
 	1    06/19/2023   Amit Ghediya  Created
+	2    02-03-2026	  Amit Ghediya	UOM Conversion Changes [PN-15140]
      
 -- EXEC [dbo].[sp_VendorRMA_GetPickTicketChildList] 478
 **************************************************************/
@@ -32,13 +33,14 @@ BEGIN
 	BEGIN TRANSACTION
 	BEGIN
 
-		SELECT sopt.RMAPickTicketNumber, sopt.QtyToShip, sl.SerialNumber, sl.StockLineNumber, sopt.CreatedDate as PickedDate,
+		SELECT sopt.RMAPickTicketNumber, ([dbo].[fn_ConvertUOM](ISNULL(sopt.QtyToShip, 0),IM.[StockUnitOfMeasure],IM.[PurchaseUnitOfMeasure],0,IM.[MasterCompanyId])) AS QtyToShip, sl.SerialNumber, sl.StockLineNumber, sopt.CreatedDate as PickedDate,
 		CONCAT(emp.FirstName, ' ', emp.LastName) as PickedBy, sopt.RMAPickTicketId, sopt.VendorRMAId, sopt.VendorRMADetailId,
 		CONCAT(empy.FirstName, ' ', empy.LastName) as ConfirmedBy, sl.ControlNumber, sl.IdNumber, sopt.ConfirmedDate, 
 		sl.StockLineId, sopt.IsConfirmed 
 		FROM RMAPickTicket sopt WITH(NOLOCK)
 		INNER JOIN VendorRMADetail sop WITH(NOLOCK) on sop.VendorRMAId = sopt.VendorRMAId AND sop.VendorRMADetailId = sopt.VendorRMADetailId
 		LEFT JOIN StockLine sl WITH(NOLOCK) on sl.StockLineId = sop.StockLineId
+		INNER JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON sl.[ItemMasterId] = IM.[ItemMasterId]
 		INNER JOIN Employee emp WITH(NOLOCK) on emp.EmployeeId = sopt.PickedById
 		LEFT JOIN Employee empy WITH(NOLOCK) on empy.EmployeeId = sopt.ConfirmedById
 		WHERE sopt.VendorRMAId = @VendorRMAId AND sopt.VendorRMADetailId = @VendorRMADetailId AND sop.ItemMasterId = @ItemMasterId and sl.ConditionId = @ConditionId

@@ -28,6 +28,7 @@
 	12   29-03-2024   Shrey Chandegara            Add RevisedStocklineId
 	13   22/07/2024   Amit Ghediya		    Optimization sp.
 	14   22-07-2024   Shrey Chandegara      Modify For date filter issue(use this function @CurrntEmpTimeZoneDesc )
+	15   02-03-2026	  Amit Ghediya			UOM Conversion Changes [PN-15140]  
      
  EXECUTE USP_VendorRMA_GetVendorRMAList 
 **************************************************************/
@@ -222,8 +223,8 @@ BEGIN
        (ISNULL(@StockLineNumber,'') ='' OR StockLineNumberType LIKE '%'+ @StockLineNumber +'%') AND  
        (ISNULL(@PartDescription,'') ='' OR PartDescriptionType LIKE '%'+ @PartDescription +'%') AND  
        (ISNULL(@Qty,'') ='' OR QtyType = @Qty ) AND  
-	   (ISNULL(@UnitCost,'') ='' OR CAST(UnitCostType AS VARCHAR(10)) LIKE '%' + CAST(@UnitCost AS VARCHAR(10))+ '%') AND
-	   (ISNULL(@ExtendedCost,'') ='' OR CAST(ExtendedCostType AS VARCHAR(10)) LIKE '%' + CAST(@ExtendedCost AS VARCHAR(10))+ '%') AND
+	   (ISNULL(@UnitCost,'') ='' OR CAST(UnitCostType AS VARCHAR(50)) LIKE '%' + CAST(@UnitCost AS VARCHAR(50))+ '%') AND
+	   (ISNULL(@ExtendedCost,'') ='' OR CAST(ExtendedCostType AS VARCHAR(50)) LIKE '%' + CAST(@ExtendedCost AS VARCHAR(50))+ '%') AND
        (ISNULL(@ReplacementDate,'') ='' OR CAST(ReplacementDate AS DATE) = CAST(@ReplacementDate AS DATE)) and  
 	   (ISNULL(@RefundedRef,'') ='' OR RefundedRef LIKE '%'+@RefundedRef+'%') AND  
 	   (ISNULL(@VendorName,'') ='' OR VendorName LIKE '%'+@VendorName+'%') AND  
@@ -765,7 +766,7 @@ BEGIN
     DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name()   
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------  
               , @AdhocComments     VARCHAR(150)    = 'USP_VendorRMA_GetVendorRMAList'   
-              , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = '''+ ISNULL(@PageNumber, '') + ''  
+              , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = ''' + ISNULL(CAST(@PageNumber AS VARCHAR(20)), '') + ''''  
               , @ApplicationName VARCHAR(100) = 'PAS'  
 -----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------  
               exec spLogException   

@@ -13,6 +13,7 @@
     1    06/15/2023   Moin Bloch			Created
 	2    03-29-2024   Shrey Chandegara      Add RevisedStocklineId
 	3    07-23-2024   Vishal Suthar			Added EnforcePickTicketConfirmation column
+	4    02-03-2026	  Amit Ghediya			UOM Conversion Changes [PN-15140]
 *******************************************************************************
 EXEC USP_VendorRMA_DetailsById 113,2
 *******************************************************************************/
@@ -60,8 +61,8 @@ BEGIN
 			      ,IM.[PartDescription]
 				  ,VD.[SerialNumber]
 				  ,CASE WHEN SL.[PurchaseOrderId] > 0 THEN PO.[PurchaseOrderNumber] WHEN SL.[RepairOrderId] > 0 THEN RO.[RepairOrderNumber] ELSE '' END 'ReferenceNumber' 
-				  ,VD.[Qty]
-				  ,(SL.[QuantityAvailable] + VD.[Qty]) AS OriginalQty
+				  ,([dbo].[fn_ConvertUOM](ISNULL(VD.[Qty], 0),IM.[StockUnitOfMeasure],IM.[PurchaseUnitOfMeasure],0,IM.[MasterCompanyId])) AS Qty
+				  ,(([dbo].[fn_ConvertUOM](ISNULL(SL.[QuantityAvailable], 0),IM.[StockUnitOfMeasure],IM.[PurchaseUnitOfMeasure],0,IM.[MasterCompanyId])) + ([dbo].[fn_ConvertUOM](ISNULL(VD.[Qty], 0),IM.[StockUnitOfMeasure],IM.[PurchaseUnitOfMeasure],0,IM.[MasterCompanyId]))) AS OriginalQty
 				  ,VD.[UnitCost]
 				  ,VD.[ExtendedCost]
 				  ,VD.[VendorRMAReturnReasonId]
@@ -70,7 +71,9 @@ BEGIN
 				  ,RS.[VendorRMAStatus]
 				  ,VD.[VendorShippingAddressId]
 				  ,VD.[Notes]	
-				  ,(SELECT TOP 1 ISNULL(SUM(SP.[QtyShipped]), 0) FROM [dbo].[RMAShippingItem] SP WITH(NOLOCK)
+				  ,(SELECT TOP 1 ISNULL(SUM(([dbo].[fn_ConvertUOM](ISNULL(SP.[QtyShipped], 0),IM.[StockUnitOfMeasure],IM.[PurchaseUnitOfMeasure],0,IM.[MasterCompanyId]))), 0) FROM [dbo].[RMAShippingItem] SP WITH(NOLOCK)
+					INNER JOIN [dbo].[Stockline] SL WITH (NOLOCK) ON VD.[StockLineId] = SL.[StockLineId]
+					INNER JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON VD.[ItemMasterId] = IM.[ItemMasterId]
 					INNER JOIN [dbo].[RMAShipping] RS ON SP.[RMAShippingId] = RS.[RMAShippingId] 
 					WHERE RS.[VendorRMAId] = @VendorRMAId AND SP.[VendorRMADetailId] = VD.[VendorRMADetailId]) AS [QtyShipped]	
 			  FROM [dbo].[VendorRMADetail] VD WITH(NOLOCK) 

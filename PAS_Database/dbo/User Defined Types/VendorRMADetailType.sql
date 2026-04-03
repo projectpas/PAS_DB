@@ -6,9 +6,9 @@
     [ReferenceId]             BIGINT          NULL,
     [ItemMasterId]            BIGINT          NULL,
     [SerialNumber]            VARCHAR (50)    NULL,
-    [Qty]                     INT             NULL,
-    [UnitCost]                DECIMAL (18, 2) NULL,
-    [ExtendedCost]            DECIMAL (18, 2) NULL,
+    [Qty]                     DECIMAL (18, 6) NULL,
+    [UnitCost]                DECIMAL (18, 6) NULL,
+    [ExtendedCost]            DECIMAL (18, 6) NULL,
     [VendorRMAReturnReasonId] BIGINT          NULL,
     [VendorRMAStatusId]       INT             NULL,
     [VendorShippingAddressId] BIGINT          NULL,
@@ -20,7 +20,7 @@
     [UpdatedDate]             DATETIME2 (7)   NULL,
     [IsActive]                BIT             NULL,
     [IsDeleted]               BIT             NULL,
-    [QuantityBackOrdered]     INT             NULL,
-    [QuantityRejected]        INT             NULL,
+    [QuantityBackOrdered]     DECIMAL (18, 6) NULL,
+    [QuantityRejected]        DECIMAL (18, 6) NULL,
     [ModuleId]                INT             NULL);
 

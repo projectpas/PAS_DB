@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿
+/*************************************************************           
  ** File:   [USP_StandAloneCreditMemoDetails_AddUpdate]           
  ** Author: AMIT GHEDIYA
  ** Description: This stored procedure is used to Add & Update Stand Alone Credit Memo Details
@@ -16,9 +17,9 @@
 	4    09/15/2023   AMIT GHEDIYA     Updated for add for ManagementStructureDetails.
 	5    09/25/2023   AMIT GHEDIYA     Updated for Clear PDF path when new Item added.
 	6    03/25/2023   Devendra Shekh   added CustomerCreditPaymentDetailId
-
+	6    02 Apr 2026  RAJESH GAMI	   UOM Conversion Changes [PN-15866]
 *******************************************************************************/
-CREATE   PROCEDURE [dbo].[USP_StandAloneCreditMemoDetails_AddUpdate]
+CREATE     PROCEDURE [dbo].[USP_StandAloneCreditMemoDetails_AddUpdate]
 	@CreditMemoHeaderId BIGINT,
 	@CreatedBy VARCHAR(50),
 	@UpdatedBy VARCHAR(50),
@@ -35,11 +36,11 @@ BEGIN
 				@StandAloneCreditMemoDetailId BIGINT,
 				@GlAccountId BIGINT,
 				@Reason VARCHAR(MAX),
-				@Qty INT,
-				@Rate DECIMAL(18,2),
-				@Amount DECIMAL(18,2),
+				@Qty [decimal](18,6),
+				@Rate [decimal](18,6),
+				@Amount [decimal](18,6),
 				@IsDeleted BIT,
-				@FinalAmount Decimal(18,2),
+				@FinalAmount [decimal](18,6),
 				@StandAloneCreditMemoDetailsId BIGINT,
 				@ManagementStructureId BIGINT,
 				@LastMSLevel VARCHAR(256),
@@ -69,9 +70,9 @@ BEGIN
 			[StandAloneCreditMemoDetailId] BIGINT NULL,
 			[GlAccountId] [bigint] NOT NULL,
 			[Reason] [varchar](max) NOT NULL,
-			[Qty] [int] NOT NULL,
-			[Rate] [decimal](18, 2) NOT NULL,
-			[Amount] [decimal](18, 2) NOT NULL,
+			[Qty] [decimal](18,6) NOT NULL,
+			[Rate] [decimal](18,6) NOT NULL,
+			[Amount] [decimal](18,6) NOT NULL,
 			[IsDeleted] [bit] NOT NULL,
 			[ManagementStructureId] [bigint] NULL,
 			[LastMSLevel] [varchar](256) NULL,

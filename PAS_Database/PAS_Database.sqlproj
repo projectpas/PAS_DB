@@ -927,8 +927,6 @@
     <Build Include="dbo\Tables\Tables1\SalesOrder.sql" />
     <Build Include="dbo\Tables\Tables1\SalesOrderApproval.sql" />
     <Build Include="dbo\Tables\Tables1\SalesOrderApprovalAudit.sql" />
-    <Build Include="dbo\Tables\Tables1\SalesOrderApproverList.sql" />
-    <Build Include="dbo\Tables\Tables1\SalesOrderApproverListAudit.sql" />
     <Build Include="dbo\Tables\Tables1\SalesOrderAudit.sql" />
     <Build Include="dbo\Tables\Tables1\SalesOrderBatchDetails.sql" />
     <Build Include="dbo\Tables\Tables1\SalesOrderBillingInvoicing.sql" />
@@ -949,22 +947,17 @@
     <Build Include="dbo\Tables\Tables1\SalesOrderPart.sql" />
     <Build Include="dbo\Tables\Tables1\SalesOrderPartAudit.sql" />
     <Build Include="dbo\Tables\Tables1\SalesOrderQuote.sql" />
-    <Build Include="dbo\Tables\Tables1\SalesOrderQuoteAddress.sql" />
     <Build Include="dbo\Tables\Tables1\SalesOrderQuoteApproval.sql" />
     <Build Include="dbo\Tables\Tables1\SalesOrderQuoteApprovalAudit.sql" />
-    <Build Include="dbo\Tables\Tables1\SalesOrderQuoteApproverList.sql" />
-    <Build Include="dbo\Tables\Tables1\SalesOrderQuoteApproverListAudit.sql" />
     <Build Include="dbo\Tables\Tables1\SalesOrderQuoteAudit.sql" />
     <Build Include="dbo\Tables\Tables1\SalesOrderQuoteCharges.sql" />
     <Build Include="dbo\Tables\Tables1\SalesOrderQuoteChargesAudit.sql" />
-    <Build Include="dbo\Tables\Tables1\SalesOrderQuoteDcoumentDetails.sql" />
     <Build Include="dbo\Tables\Tables1\SalesOrderQuoteFreight.sql" />
     <Build Include="dbo\Tables\Tables1\SalesOrderQuoteFreightAudit.sql" />
     <Build Include="dbo\Tables\Tables1\SalesOrderQuotePart.sql" />
     <Build Include="dbo\Tables\Tables1\SalesOrderQuotePartAudit.sql" />
     <Build Include="dbo\Tables\Tables1\SalesOrderQuoteSettings.sql" />
     <Build Include="dbo\Tables\Tables1\SalesOrderQuoteSettingsAudit.sql" />
-    <Build Include="dbo\Tables\Tables1\SalesOrderQuoteShipVia.sql" />
     <Build Include="dbo\Tables\Tables1\SalesOrderReservedStock.sql" />
     <Build Include="dbo\Tables\Tables1\SalesOrderReservedStockAudit.sql" />
     <Build Include="dbo\Tables\Tables1\SalesOrderReserveParts.sql" />
@@ -978,10 +971,6 @@
     <Build Include="dbo\Tables\Tables1\SalesOrderStockAudit.sql" />
     <Build Include="dbo\Tables\Tables1\SalesOrderStockLine.sql" />
     <Build Include="dbo\Tables\Tables1\SalesOrderStockLineAudit.sql" />
-    <Build Include="dbo\Tables\Tables1\SalesOrderStockLineReserve.sql" />
-    <Build Include="dbo\Tables\Tables1\SalesOrderStockLineReserveAudit.sql" />
-    <Build Include="dbo\Tables\Tables1\SalesOrderUnReservedStock.sql" />
-    <Build Include="dbo\Tables\Tables1\SalesOrderUnReservedStockAudit.sql" />
     <Build Include="dbo\Tables\Tables1\Scope.sql" />
     <Build Include="dbo\Tables\Tables1\ScopeAudit.sql" />
     <Build Include="dbo\Tables\Tables1\ScrapCertificate.sql" />
@@ -4474,6 +4463,13 @@
     <Build Include="dbo\Tables\AircraftRegistryHeader.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdateAircraftRegistryState.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetAircraftRegistryList.sql" />
+    <Build Include="dbo\Tables\AircraftInstalledPartDetails.sql" />
+    <Build Include="dbo\Stored Procedures\USP_InsertUpdateAircraftInstalledPartDetails.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetAircraftInstalledPartDetails.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetAircraftRegistryHeaderDetails.sql" />
+    <Build Include="dbo\Stored Procedures\USP_CreateAircraftRegistryHeader.sql" />
+    <Build Include="dbo\User Defined Types\AircraftRegistryTableType.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetAircraftStatusList.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

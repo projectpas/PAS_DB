@@ -10,7 +10,7 @@
 ** --   ----------   -------------   -------------------------
 ** 1    26-03-2025   Priyansh Patel  Created [PN-15841]
 ************************************************************/
-CREATE OR ALTER PROCEDURE [dbo].[USP_UpdateAircraftRegistryState]
+CREATE PROCEDURE [dbo].[USP_UpdateAircraftRegistryState]
     @AircraftRegistryId BIGINT,
     @MasterCompanyId    INT,
     @IsDeleted          BIT = NULL,

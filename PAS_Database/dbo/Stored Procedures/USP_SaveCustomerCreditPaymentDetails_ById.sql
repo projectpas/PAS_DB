@@ -18,7 +18,7 @@ EXEC [USP_SaveCustomerCreditPaymentDetails_ById]
    5    20/03/2024      Devendra Shekh      added [IsMiscellaneous] 
    6    04/01/2024      Devendra Shekh      added [ManagementStructureId] 
    7    04/05/2024      Devendra Shekh      able to add suspense with known customer without any invoices
-
+   8    31-Mar-2026		Rajesh Gami			UOM Conversion Changes [PN-15866]
 	EXEC [dbo].[USP_SaveCustomerCreditPaymentDetails_ById] 195,1,'ADMIN User'
 *****************************************************************************/  
 
@@ -78,9 +78,9 @@ BEGIN
 					[IsCheckPayment] [BIT] NULL,
 					[IsWireTransfer] [BIT] NULL,
 					[IsCCDCPayment] [BIT] NULL,
-					[RemainingAmount] [DECIMAL](18,2) NULL,
-					[TotalAmount] [DECIMAL](18,2) NULL,
-					[PaidAmount] [DECIMAL](18,2) NULL,
+					[RemainingAmount] [decimal](18,6) NULL,
+					[TotalAmount] [decimal](18,6) NULL,
+					[PaidAmount] [decimal](18,6) NULL,
 					[ReferenceNumber] [VARCHAR](100) NULL,
 					[PaymentRef] [VARCHAR](100) NULL,
 					[IsMiscellaneous] [BIT] NULL,
@@ -94,9 +94,9 @@ BEGIN
 					[Name] [VARCHAR](100) NULL,
 					[CustomerCode] [VARCHAR](100) NULL,
 					[PaymentRef] [VARCHAR](100) NULL,
-					[Amount] [DECIMAL](18,2) NULL,
-					[AmountRemaining] [DECIMAL](18,2) NULL,
-					[AmtApplied] [DECIMAL](18,2) NULL,
+					[Amount] [decimal](18,6) NULL,
+					[AmountRemaining] [decimal](18,6) NULL,
+					[AmtApplied] [decimal](18,6) NULL,
 				)
 
 				CREATE TABLE #CustomerPaymentChild
@@ -108,9 +108,9 @@ BEGIN
 					[IsCheckPayment] [BIT] NULL,
 					[IsWireTransfer] [BIT] NULL,
 					[IsCCDCPayment] [BIT] NULL,
-					[ChildRemainingAmount] [DECIMAL](18,2) NULL,
-					[ChildTotalAmount] [DECIMAL](18,2) NULL,
-					[ChildPaidAmount] [DECIMAL](18,2) NULL,
+					[ChildRemainingAmount] [decimal](18,6) NULL,
+					[ChildTotalAmount] [decimal](18,6) NULL,
+					[ChildPaidAmount] [decimal](18,6) NULL,
 					[CheckNumber] [VARCHAR](50) NULL,
 					[CheckDate] [DATETIME2] NULL,
 				)

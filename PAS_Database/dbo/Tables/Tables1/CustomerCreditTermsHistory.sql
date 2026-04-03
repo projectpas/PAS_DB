@@ -3,8 +3,8 @@
     [AppModuleId]                  INT             NOT NULL,
     [ReffranceId]                  BIGINT          NOT NULL,
     [CustomerId]                   BIGINT          NOT NULL,
-    [ARBalance]                    DECIMAL (18, 2) NOT NULL,
-    [Amount]                       DECIMAL (18, 2) NOT NULL,
+    [ARBalance]                    DECIMAL (18, 6) NULL,
+    [Amount]                       DECIMAL (18, 6) NULL,
     [Notes]                        VARCHAR (500)   NOT NULL,
     [MasterCompanyId]              INT             NOT NULL,
     [CreatedBy]                    VARCHAR (256)   NOT NULL,
@@ -15,6 +15,8 @@
     [IsActive]                     BIT             CONSTRAINT [DF_CustomerCreditTermsHistory_IsActive] DEFAULT ((1)) NOT NULL,
     CONSTRAINT [PK_CustomerCreditTermsHistory] PRIMARY KEY CLUSTERED ([CustomerCreditTermsHistoryId] ASC)
 );
+
+
 
 
 GO

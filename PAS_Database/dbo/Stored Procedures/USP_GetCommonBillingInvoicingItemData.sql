@@ -12,11 +12,12 @@
  ** --   --------     -------		--------------------------------          
     1    16/05/2025   Moin Bloch		Created
     2    05/06/2025   RAJESH GAMI		SO implemented
+	3 	 01-Apr-2026  Rajesh Gami		UOM Conversion Changes [PN-15866]
 --   EXEC [dbo].[USP_GetWorkOrderBillingInvoicingItemData] 7929,1,3193,2
 ********************************************************************************/
 CREATE   PROCEDURE [dbo].[USP_GetCommonBillingInvoicingItemData]
 @SubReferenceId BIGINT = NULL,
-@qtyShipped INT = NULL,
+@qtyShipped DECIMAL(18,6) = NULL,
 @billingInvoicingId BIGINT = NULL,
 @ModuleId INT = NULL,
 @Opr INT = NULL,

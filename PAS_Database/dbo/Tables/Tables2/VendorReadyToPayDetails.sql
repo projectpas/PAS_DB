@@ -11,13 +11,13 @@
     [CurrencyId]                    INT             NULL,
     [CurrencyName]                  VARCHAR (50)    NULL,
     [FXRate]                        NUMERIC (9, 4)  NULL,
-    [OriginalAmount]                DECIMAL (18, 2) NULL,
-    [PaymentMade]                   DECIMAL (18, 2) NULL,
-    [AmountDue]                     DECIMAL (18, 2) NULL,
+    [OriginalAmount]                DECIMAL (18, 6) NULL,
+    [PaymentMade]                   DECIMAL (18, 6) NULL,
+    [AmountDue]                     DECIMAL (18, 6) NULL,
     [DaysPastDue]                   INT             NULL,
     [DiscountDate]                  DATETIME        NULL,
-    [DiscountAvailable]             DECIMAL (18, 2) NULL,
-    [DiscountToken]                 DECIMAL (18, 2) NULL,
+    [DiscountAvailable]             DECIMAL (18, 6) NULL,
+    [DiscountToken]                 DECIMAL (18, 6) NULL,
     [MasterCompanyId]               INT             NULL,
     [CreatedBy]                     VARCHAR (256)   NOT NULL,
     [UpdatedBy]                     VARCHAR (256)   NOT NULL,
@@ -31,7 +31,7 @@
     [CheckDate]                     DATETIME        NULL,
     [IsVoidedCheck]                 BIT             NULL,
     [IsCreditMemo]                  BIT             NULL,
-    [CreditMemoAmount]              DECIMAL (18, 2) NULL,
+    [CreditMemoAmount]              DECIMAL (18, 6) NULL,
     [CreditMemoHeaderId]            BIGINT          NULL,
     [IsCheckPrinted]                BIT             NULL,
     [VendorReadyToPayDetailsTypeId] INT             NULL,
@@ -47,6 +47,8 @@
     [ManualJournalHeaderId]         BIGINT          NULL,
     CONSTRAINT [PK_ReadyToPayDetails] PRIMARY KEY CLUSTERED ([ReadyToPayDetailsId] ASC)
 );
+
+
 
 
 

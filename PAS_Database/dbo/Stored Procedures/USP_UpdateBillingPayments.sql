@@ -12,14 +12,15 @@
  ** PR   Date         Author		 Change Description            
  ** --   --------     -------		 --------------------------------          
     1    30/06/2025   Moin Bloch     Created
+	2    31-Mar-2026  Rajesh Gami	 UOM Conversion Changes [PN-15866]
 ************************************************************************/
 CREATE    PROCEDURE [dbo].[USP_UpdateBillingPayments] 
 @BillingInvoicingId BIGINT = NULL,
-@PaymentAmount DECIMAL(18,2) = NULL,
-@DiscAmount DECIMAL(18,2) = NULL,
-@BankFeeAmount DECIMAL(18,2) = NULL,
-@OtherAdjustAmt DECIMAL(18,2) = NULL,
-@OriginalAmount DECIMAL(18,2) = NULL,
+@PaymentAmount [decimal](18,6) = NULL,
+@DiscAmount [decimal](18,6) = NULL,
+@BankFeeAmount [decimal](18,6) = NULL,
+@OtherAdjustAmt [decimal](18,6) = NULL,
+@OriginalAmount [decimal](18,6) = NULL,
 @ModuleId INT = NULL,
 @Opr INT = NULL
 AS
@@ -36,9 +37,9 @@ BEGIN
 		SET @OtherAdjustAmt = ISNULL(@OtherAdjustAmt, 0)
 		SET @OriginalAmount = ISNULL(@OriginalAmount, 0)		
 
-		DECLARE @RemainingAmount DECIMAL = 0,@GrandTotal DECIMAL = 0,@CreditMemoUsed DECIMAL = 0,@ReferenceId BIGINT = 0
+		DECLARE @RemainingAmount [decimal](18,6) = 0,@GrandTotal [decimal](18,6) = 0,@CreditMemoUsed [decimal](18,6) = 0,@ReferenceId BIGINT = 0
 		DECLARE @TotalRecordPRo INT = 0,@MinIdPro BIGINT = 1
-		DECLARE @DepositAmount DECIMAL = 0,@IsPerformaInvoice BIT = 0
+		DECLARE @DepositAmount [decimal](18,6) = 0,@IsPerformaInvoice BIT = 0
 
 		IF(@Opr = 1)
 		BEGIN		
@@ -79,8 +80,8 @@ BEGIN
 				(
 					[PKID] [BIGINT] NOT NULL IDENTITY,			
 					[BillingInvoicingItemId] [BIGINT],				
-					[DepositAmount] [DECIMAL](18,2) NULL, 
-					[GrandTotal] [DECIMAL](18,2) NULL	
+					[DepositAmount] [decimal](18,6) NULL, 
+					[GrandTotal] [decimal](18,6) NULL	
 				)
 			 					
 				INSERT INTO #TempUpdateBillingItemsForPerforma([BillingInvoicingItemId],[DepositAmount], [GrandTotal])
@@ -96,9 +97,9 @@ BEGIN
 
 				WHILE @MinIdPro <= @TotalRecordPRo
 				BEGIN
-					DECLARE @ItemDepositAmount DECIMAL = 0
+					DECLARE @ItemDepositAmount [decimal](18,6) = 0
 					DECLARE @BillingInvoicingItemId BIGINT = 0
-					DECLARE @ItemGrandTotal DECIMAL = 0
+					DECLARE @ItemGrandTotal [decimal](18,6) = 0
 				        
 					SELECT @BillingInvoicingItemId = [BillingInvoicingItemId], 
 						   @ItemDepositAmount = [DepositAmount],

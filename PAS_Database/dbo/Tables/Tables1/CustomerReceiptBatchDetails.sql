@@ -16,7 +16,7 @@
     [DocumentNumber]               VARCHAR (2000)  NULL,
     [ARControlNumber]              VARCHAR (50)    NULL,
     [CustomerRef]                  VARCHAR (MAX)   NULL,
-    [InvoicePayment]               DECIMAL (18, 2) NULL,
+    [InvoicePayment]               DECIMAL (18, 6) NULL,
     [CommonJournalBatchDetailId]   BIGINT          NULL,
     CONSTRAINT [PK_CustomerReceiptBatchDetails] PRIMARY KEY CLUSTERED ([CustomerReceiptBatchDetailId] ASC)
 );

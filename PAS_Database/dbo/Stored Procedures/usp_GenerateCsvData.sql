@@ -19,7 +19,7 @@
 	3    28/01/2026   Divyesh Kathiriya		Added New Module "Employee"
 	4	 02/02/2026   Nakul Chandigra		Added New condition to get @BaseTable AND ADDED ORDER BY FieldSortOrder TO Get @JoinList
 	5    04/02/2026   Divyesh Kathiriya		Added New Module "Stockline"
-
+	6	 02/04/2026   Nakul Chandigra       Add condtion for Orderby in final sql for squenceno (PN-15884)
  EXEC usp_GenerateCsvData 5, 1, 236
 **************************************************************/
 CREATE PROCEDURE [dbo].[usp_GenerateCsvData]
@@ -44,6 +44,7 @@ BEGIN
 		DECLARE @SQL NVARCHAR(MAX);
 		DECLARE @WhereCondition NVARCHAR(MAX);
 		DECLARE @MSModuelId INT; 
+		DECLARE @OrderByColumn NVARCHAR(50);
 
 
 		DECLARE @EmployeeModule AS INT;
@@ -143,6 +144,15 @@ BEGIN
 																			INNER JOIN dbo.EmployeeUserRole EUR WITH(NOLOCK) ON E.EmployeeId = EUR.EmployeeId 
 																			INNER JOIN dbo.UserRole RU WITH(NOLOCK)  ON RU.Id = EUR.RoleId AND RU.Name = ''SUPERADMIN'')'									
 		END
+		
+		IF EXISTS(SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = @BaseTable AND COLUMN_NAME ='SequenceNo')
+		BEGIN 
+			SET @OrderByColumn = 'SequenceNo ASC;'
+		END 
+		ELSE 
+		BEGIN 
+			SET @OrderByColumn = 'CreatedDate DESC;'
+		END 
 
 --------------Final SQL Query Start--------------
 		IF(@ModuleId = @StocklineModule)
@@ -177,8 +187,8 @@ BEGIN
 				WHERE ' + @BaseTable + '.MasterCompanyId = @MasterCompanyId
 				AND ' + @BaseTable + '.IsActive = 1
 				AND ' + @BaseTable + '.IsDeleted = 0
-				ORDER BY ' + @BaseTable + '.CreatedDate DESC;';
-
+				ORDER BY '+ @OrderByColumn;
+		
 		END
 --------------Final SQL Query END--------------
 

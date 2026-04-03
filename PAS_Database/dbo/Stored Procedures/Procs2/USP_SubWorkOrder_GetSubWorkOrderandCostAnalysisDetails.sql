@@ -21,7 +21,7 @@
 	5    12/27/2024   Hemnat Saliya		Update for Modify Work Order cost analysis Summary
 	6    01/27/2025   Hemant Saliya		Update OH Cost analysis Summary
 	7    04/28/2025   Hemant Saliya		Handle OutSide Service Cost Calculation
-
+	8    30/Mar/2026  Rajesh Gami		UOM Changes [PN-15741]
 EXEC [dbo].[USP_SubWorkOrder_GetSubWorkOrderandCostAnalysisDetails] 4324, 641, false, 627     
 exec USP_SubWorkOrder_GetSubWorkOrderandCostAnalysisDetails @WorkOrderWorkflowId=4324,@WorkOrderId=4776,@IsSubWOFromWo=1,@SubWOPartNoId=0
 **************************************************************/
@@ -35,15 +35,15 @@ CREATE PROCEDURE [dbo].[USP_SubWorkOrder_GetSubWorkOrderandCostAnalysisDetails]
 AS
 BEGIN 
 	BEGIN TRY
-		DECLARE @RowMaterialTotalCost DECIMAL(18,2) = 0.0,@MainSubWorkOrderId BIGINT, @SubRowMaterialTotalCost DECIMAL(18,2) = 0.0, @SubWoTotalCounts INT,@SubWoCount INT, @TotalCounts INT, @count INT, @partsCost DECIMAL(18,2) = 0.0,
-				@SubpartsCost DECIMAL(18,2) = 0.0, @ReservedCost DECIMAL(18,2) = 0.0, @SubReservedCost DECIMAL(18,2) = 0.0, @BkOrderCost DECIMAL(18,2) = 0.0, @SubBkOrderCost DECIMAL(18,2) = 0.0,
-				@QtyIssued INT,@SubQtyIssued INT,@QtyOnBkOrder INT,@SubQtyOnBkOrder INT,@QtyReserved INT,@SubQtyReserved INT ,@POQuantity BIGINT=0,@poid BIGINT,@UnitCost DECIMAL(18,2),
-				@bkUnitCost DECIMAL(18,2),@SubUnitCost DECIMAL(18,2),@QtyToTurnIn INT,@SubQtyToTurnIn INT,@QtyToTurnCost DECIMAL(18,2) = 0.0,@SubQtyToTurnCost DECIMAL(18,2) = 0.0,
-				@WorkOrderLaborHeaderIds BIGINT,@WorkOrderLaborHeaderId BIGINT,@SubWorkOrderLaborHeaderId BIGINT,@DirectLaborOHCost DECIMAL(18,2) = 0.0, @BurdenRateAmount DECIMAL(18,2) = 0.0,@DirectLaborCost DECIMAL(18,2) = 0.0,
-				@SubDirectLaborCost DECIMAL(18,2) = 0.0,@TotalWorkHours DECIMAL(18,2) = 0.0,@OverheadCost DECIMAL(18,2) = 0.0,@SubOverheadCost DECIMAL(18,2) = 0.0,@OutSideServiceCost DECIMAL(18,2),
-				@SubOutSideServiceCost DECIMAL(18,2),@FreightCost DECIMAL(18,2) = 0,@ChargesCost DECIMAL(18,2)=0,@woNumber VARCHAR(256),@subItemMasterId BIGINT,@subItemMasterIds VARCHAR(MAX),@subPartNumber VARCHAR(MAX),@subPartNumberDesc VARCHAR(MAX),@IsSubWO BIT = 0,
-				@ReserveOutSideServiceMaterialsCost DECIMAL(18,2),@IssueOutSideServiceMaterialsCost DECIMAL(18,2),@ReserveOutSideServiceKitCost DECIMAL(18,2),@IssueOutSideServiceKitCost DECIMAL(18,2),
-				@ReserveOutSideServiceCost DECIMAL(18,2) = 0.00,@IssueOutSideServiceCost DECIMAL(18,2) = 0.00, @OutSideServiceMaterialsCost DECIMAL(18,2),@OutSideServiceKitCost DECIMAL(18,2);
+		DECLARE @RowMaterialTotalCost DECIMAL(18, 6) = 0.0,@MainSubWorkOrderId BIGINT, @SubRowMaterialTotalCost DECIMAL(18, 6) = 0.0, @SubWoTotalCounts INT,@SubWoCount INT, @TotalCounts INT, @count INT, @partsCost DECIMAL(18, 6) = 0.0,
+				@SubpartsCost DECIMAL(18, 6) = 0.0, @ReservedCost DECIMAL(18, 6) = 0.0, @SubReservedCost DECIMAL(18, 6) = 0.0, @BkOrderCost DECIMAL(18, 6) = 0.0, @SubBkOrderCost DECIMAL(18, 6) = 0.0,
+				@QtyIssued DECIMAL(18, 6),@SubQtyIssued DECIMAL(18, 6),@QtyOnBkOrder DECIMAL(18, 6),@SubQtyOnBkOrder DECIMAL(18, 6),@QtyReserved DECIMAL(18, 6),@SubQtyReserved DECIMAL(18, 6) ,@POQuantity DECIMAL(18, 6)=0,@poid BIGINT,@UnitCost DECIMAL(18, 6),
+				@bkUnitCost DECIMAL(18, 6),@SubUnitCost DECIMAL(18, 6),@QtyToTurnIn DECIMAL(18, 6),@SubQtyToTurnIn DECIMAL(18, 6),@QtyToTurnCost DECIMAL(18, 6) = 0.0,@SubQtyToTurnCost DECIMAL(18, 6) = 0.0,
+				@WorkOrderLaborHeaderIds BIGINT,@WorkOrderLaborHeaderId BIGINT,@SubWorkOrderLaborHeaderId BIGINT,@DirectLaborOHCost DECIMAL(18, 6) = 0.0, @BurdenRateAmount DECIMAL(18, 6) = 0.0,@DirectLaborCost DECIMAL(18, 6) = 0.0,
+				@SubDirectLaborCost DECIMAL(18, 6) = 0.0,@TotalWorkHours DECIMAL(18, 6) = 0.0,@OverheadCost DECIMAL(18, 6) = 0.0,@SubOverheadCost DECIMAL(18, 6) = 0.0,@OutSideServiceCost DECIMAL(18, 6),
+				@SubOutSideServiceCost DECIMAL(18, 6),@FreightCost DECIMAL(18, 6) = 0,@ChargesCost DECIMAL(18, 6)=0,@woNumber VARCHAR(256),@subItemMasterId BIGINT,@subItemMasterIds VARCHAR(MAX),@subPartNumber VARCHAR(MAX),@subPartNumberDesc VARCHAR(MAX),@IsSubWO BIT = 0,
+				@ReserveOutSideServiceMaterialsCost DECIMAL(18, 6),@IssueOutSideServiceMaterialsCost DECIMAL(18, 6),@ReserveOutSideServiceKitCost DECIMAL(18, 6),@IssueOutSideServiceKitCost DECIMAL(18, 6),
+				@ReserveOutSideServiceCost DECIMAL(18, 6) = 0.00,@IssueOutSideServiceCost DECIMAL(18, 6) = 0.00, @OutSideServiceMaterialsCost DECIMAL(18, 6),@OutSideServiceKitCost DECIMAL(18, 6);
 				
 		DECLARE @exchangeProvisionId int = (SELECT TOP 1 ProvisionId FROM Provision Where Description = 'EXCHANGE')
 
@@ -105,14 +105,14 @@ BEGIN
 		(
 			ID BIGINT NOT NULL IDENTITY, 
 			SubWorkOrderMaterialsId BIGINT NULL,
-			UnitCost DECIMAL(18,2) NULL,
-			ExtendedCost DECIMAL(18,2) NULL,
-			QtyIssued INT NULL,
-			QtyReserved INT NULL,
-			QtyOnBkOrder INT NULL,
-			MUnitCost DECIMAL(18,2) NULL,
+			UnitCost DECIMAL(18, 6) NULL,
+			ExtendedCost DECIMAL(18, 6) NULL,
+			QtyIssued DECIMAL(18, 6) NULL,
+			QtyReserved DECIMAL(18, 6) NULL,
+			QtyOnBkOrder DECIMAL(18, 6) NULL,
+			MUnitCost DECIMAL(18, 6) NULL,
 			POId BIGINT NULL,
-			QtyToTurnIn INT NULL,
+			QtyToTurnIn DECIMAL(18, 6) NULL,
 		);
 
 		-- Temp for SWOMaterialKit data
@@ -126,14 +126,14 @@ BEGIN
 			ID BIGINT NOT NULL IDENTITY, 
 			WorkOrderMaterialsId BIGINT NULL,
 			WorkFlowWorkOrderId BIGINT NULL,
-			UnitCost DECIMAL(18,2) NULL,
-			ExtendedCost DECIMAL(18,2) NULL,
-			QtyIssued INT NULL,
-			QtyReserved INT NULL,
-			QtyOnBkOrder INT NULL,
-			MUnitCost DECIMAL(18,2) NULL,
+			UnitCost DECIMAL(18, 6) NULL,
+			ExtendedCost DECIMAL(18, 6) NULL,
+			QtyIssued DECIMAL(18, 6) NULL,
+			QtyReserved DECIMAL(18, 6) NULL,
+			QtyOnBkOrder DECIMAL(18, 6) NULL,
+			MUnitCost DECIMAL(18, 6) NULL,
 			POId BIGINT NULL,
-			QtyToTurnIn INT NULL,
+			QtyToTurnIn DECIMAL(18, 6) NULL,
 		)
 
 		-- Temp for WorkOrderLabor data
@@ -145,9 +145,9 @@ BEGIN
 		CREATE TABLE #tmpWorkOrderLabor
 		(
 			ID BIGINT NOT NULL IDENTITY, 
-			DirectLaborOHCost DECIMAL(18,2) NULL,
-			BurdenRateAmount DECIMAL(18,2) NULL,
-			AdjustedHours DECIMAL(18,2) NULL,
+			DirectLaborOHCost DECIMAL(18, 6) NULL,
+			BurdenRateAmount DECIMAL(18, 6) NULL,
+			AdjustedHours DECIMAL(18, 6) NULL,
 		);
 
 		IF(@IsSubWOFromWo = 1) -- Check is subWO for WO
@@ -542,14 +542,14 @@ BEGIN
 			SET @count = @count + 1;
 		END
 
-		DECLARE @tmpBurdenRateAmount DECIMAL(18,2)= 0.0,
-				@tmpDirectLaborOHCost DECIMAL(18,2)= 0.0,
-				@tmpAdjustedHours DECIMAL(18,2)= 0.0,
-				@tmpBurdonLaborCost DECIMAL(18,2) = 0.0,
-				@tmpDirectLaborCost DECIMAL(18,2) = 0.0,
+		DECLARE @tmpBurdenRateAmount DECIMAL(18, 6)= 0.0,
+				@tmpDirectLaborOHCost DECIMAL(18, 6)= 0.0,
+				@tmpAdjustedHours DECIMAL(18, 6)= 0.0,
+				@tmpBurdonLaborCost DECIMAL(18, 6) = 0.0,
+				@tmpDirectLaborCost DECIMAL(18, 6) = 0.0,
 				@tmpAdjustedHoursdata BIGINT,
 				@minutesdata BIGINT,
-				@tmpAdjustedHoursdata1 DECIMAL(18,2) = 0.0;
+				@tmpAdjustedHoursdata1 DECIMAL(18, 6) = 0.0;
 
 		--Get from WOMaterialKit table
 		SELECT @TotalCounts = COUNT(ID) FROM #tmpWorkOrderLabor;
@@ -563,7 +563,7 @@ BEGIN
 			SET @tmpBurdonLaborCost = ISNULL(@tmpBurdonLaborCost, 0) + (@tmpBurdenRateAmount * PARSENAME(@tmpAdjustedHours,2));
 			SET @tmpDirectLaborCost = ISNULL(@tmpDirectLaborCost, 0) + (@tmpDirectLaborOHCost * PARSENAME(@tmpAdjustedHours,2));
 
-			SET @tmpAdjustedHoursdata1 = CAST((CAST(@tmpAdjustedHoursdata AS DECIMAL(18,2))/ 100 )AS DECIMAL(18,2));
+			SET @tmpAdjustedHoursdata1 = CAST((CAST(@tmpAdjustedHoursdata AS DECIMAL(18, 6))/ 100 )AS DECIMAL(18, 6));
 
 			IF(@tmpAdjustedHoursdata > 0)
 			BEGIN

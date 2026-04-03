@@ -38,6 +38,7 @@
 	21   30/05/2025	  Devendra Shekh	Modify(added case for RepairOrderUnitCost while create stockline)
 	22   30/07/2025	  RAJESH GAMI		Implemented: Return Stockline to Lot After Internal Repair Completion and Move to Finished Goods  (PN-13046)
 	23   01/Aug/2025  RAJESH GAMI		Trans Out the Old finish good stockline from the LOT (Stk Unit Cost trans out from LOT)
+	24   27/03/2026   Moin Bloch	    Rename Internal To Internal Repair   PN-15850
 -- EXEC [CreateStocklineForFinishGoodMPN] 947  
 **************************************************************/
 CREATE   PROCEDURE [dbo].[CreateStocklineForFinishGoodMPN]
@@ -101,7 +102,7 @@ BEGIN
     SELECT @MaterialsCost = ISNULL(PartsCost, 0),  @LaborCost =  ISNULL(LaborCost, 0) FROM dbo.WorkOrderMPNCostDetails WITH(NOLOCK) WHERE WOPartNoId = @WorkOrderPartNumberId  
 
 	SELECT TOP 1 @CustomerWOTypeId =Id FROM dbo.WorkOrderType WITH (NOLOCK) WHERE [Description] = 'Customer'
-	SELECT TOP 1 @InternalWOTypeId =Id FROM dbo.WorkOrderType WITH (NOLOCK) WHERE [Description] = 'Internal'
+	SELECT TOP 1 @InternalWOTypeId =Id FROM dbo.WorkOrderType WITH (NOLOCK) WHERE [Description] = 'Internal Repair'
   
     SELECT @DistributionMasterId = ID , @DistributionCode = DistributionCode FROM dbo.DistributionMaster WITH(NOLOCK)  WHERE UPPER(DistributionCode)= UPPER('WOSETTLEMENTTAB')  
     SELECT @StocklineId = WOP.StockLineId,         

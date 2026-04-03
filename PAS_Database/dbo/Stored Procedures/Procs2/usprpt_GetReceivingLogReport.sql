@@ -21,6 +21,7 @@
 	 5    29-MAR-2024		Ekta Chandegra		IsDeleted and IsActive flag is added
 	 6    09-APR-2025		RAJESH GAMI			Resolved the Extend cost and receivied Qty(Exclude the Adustment Qty from the calculation)
 	 7    22-DEC-2025       SAHDEV SALIYA       Remove the tag type and add the vendor name.
+	 8    31-MAR-2026       Sahdev Saliya       Added Condition (PN-15844)
 
 EXECUTE   [dbo].[usprpt_GetReceivingLogReport] '','2020-06-15','2021-06-15','1','1,4,43,44,45,80,84,88','46,47,66','48,49,50,58,59,67,68,69','51,52,53,54,55,56,57,60,61,62,64,70,71,72'  
 **************************************************************/  
@@ -135,7 +136,8 @@ BEGIN
 				UPPER(MSD.Level7Name) AS level7, 
 				UPPER(MSD.Level8Name) AS level8, 
 				UPPER(MSD.Level9Name) AS level9, 
-				UPPER(MSD.Level10Name) AS level10  
+				UPPER(MSD.Level10Name) AS level10,
+				UPPER(POP.Condition) 'condition' 
 			  FROM DBO.PurchaseOrder PO WITH (NOLOCK)  
 				INNER JOIN DBO.PurchaseOrderPart POP WITH (NOLOCK) ON PO.PurchaseOrderId = POP.PurchaseOrderId and POP.isParent=1  
 				INNER JOIN DBO.Stockline STL WITH (NOLOCK) ON STL.PurchaseOrderPartRecordId = POP.PurchaseOrderPartRecordId and STL.IsParent=1     
@@ -206,7 +208,8 @@ BEGIN
 				UPPER(MSD.Level7Name) AS level7,
 				UPPER(MSD.Level8Name) AS level8, 
 				UPPER(MSD.Level9Name) AS level9, 
-				UPPER(MSD.Level10Name) AS level10  
+				UPPER(MSD.Level10Name) AS level10,
+				UPPER(POP.Condition) 'condition' 
 			  FROM DBO.RepairOrder PO WITH (NOLOCK)  
 				INNER JOIN DBO.RepairOrderPart POP WITH (NOLOCK) ON PO.RepairOrderId = POP.RepairOrderId and POP.isParent=1  
 				INNER JOIN DBO.Stockline STL WITH (NOLOCK) ON STL.RepairOrderPartRecordId = POP.RepairOrderPartRecordId and STL.IsParent=1     
@@ -243,7 +246,7 @@ BEGIN
 
 	  ;WITH rptCTE (TotalRecordsCount, pn, pndescription, recnum, vendorName, orderdate, rcvddate, poronum, porostatus, ctrlnum, idnum, slnum, sernum, stocktype, altequiv, 
 					manufacturer, itemtype, qtyord, qtyrcvd, unitcost, extcost, qtyrej, qtyonbacklog,
-					receivedby, requestor, approver, site, warehouse, location, shelf, bin, level1, level2, level3, level4, level5, level6, level7, level8, level9, level10, masterCompanyId) AS (
+					receivedby, requestor, approver, site, warehouse, location, shelf, bin, level1, level2, level3, level4, level5, level6, level7, level8, level9, level10, condition, masterCompanyId) AS (
 SELECT COUNT(1) OVER () AS TotalRecordsCount,* FROM(
   SELECT 
         UPPER(POP.partnumber) 'pn',  
@@ -288,6 +291,7 @@ SELECT COUNT(1) OVER () AS TotalRecordsCount,* FROM(
 		UPPER(MSD.Level8Name) AS level8, 
 		UPPER(MSD.Level9Name) AS level9, 
 		UPPER(MSD.Level10Name) AS level10,
+		UPPER(POP.Condition) 'condition', 
 		PO.MasterCompanyId
       FROM DBO.PurchaseOrder PO WITH (NOLOCK)  
         INNER JOIN DBO.PurchaseOrderPart POP WITH (NOLOCK) ON PO.PurchaseOrderId = POP.PurchaseOrderId and POP.isParent=1  
@@ -362,6 +366,7 @@ SELECT COUNT(1) OVER () AS TotalRecordsCount,* FROM(
         UPPER(MSD.Level8Name) AS level8, 
 		UPPER(MSD.Level9Name) AS level9, 
 		UPPER(MSD.Level10Name) AS level10,
+		UPPER(POP.Condition) 'condition', 
 		PO.MasterCompanyId
       FROM DBO.RepairOrder PO WITH (NOLOCK)  
         INNER JOIN DBO.RepairOrderPart POP WITH (NOLOCK) ON PO.RepairOrderId = POP.RepairOrderId and POP.isParent=1  
@@ -392,9 +397,9 @@ SELECT COUNT(1) OVER () AS TotalRecordsCount,* FROM(
 		AND  (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))
    ) T )
    ,FinalCTE(TotalRecordsCount, pn, pndescription, recnum, vendorName, orderdate, rcvddate, poronum, porostatus, ctrlnum, idnum, slnum, sernum, stocktype, altequiv, manufacturer, itemtype, qtyord, qtyrcvd, unitcost, extcost, qtyrej, qtyonbacklog,
-				receivedby, requestor, approver, site, warehouse, location, shelf, bin, level1, level2, level3, level4, level5, level6, level7, level8, level9, level10, masterCompanyId) 
+				receivedby, requestor, approver, site, warehouse, location, shelf, bin, level1, level2, level3, level4, level5, level6, level7, level8, level9, level10, condition, masterCompanyId) 
 			  AS (SELECT DISTINCT TotalRecordsCount, pn, pndescription, recnum, vendorName, orderdate, rcvddate, poronum, porostatus, ctrlnum, idnum, slnum, sernum, stocktype, altequiv, manufacturer, itemtype, qtyord, qtyrcvd, unitcost, extcost, qtyrej, qtyonbacklog,
-				receivedby, requestor, approver, site, warehouse, location, shelf, bin, level1, level2, level3, level4, level5, level6, level7, level8, level9, level10, masterCompanyId FROM rptCTE)
+				receivedby, requestor, approver, site, warehouse, location, shelf, bin, level1, level2, level3, level4, level5, level6, level7, level8, level9, level10, condition, masterCompanyId FROM rptCTE)
 
 			,WithTotal (masterCompanyId, TotalUnitCost, TotalExtCost ) 
 			  AS (SELECT masterCompanyId, 
@@ -408,6 +413,7 @@ SELECT COUNT(1) OVER () AS TotalRecordsCount,* FROM(
 					FORMAT(ISNULL(extcost,0) , 'N', 'en-us') 'extcost',    
 					qtyrej, qtyonbacklog, receivedby, requestor, approver, site, warehouse, location, shelf, bin, level1, level2, level3, level4, level5, level6, level7, level8, level9, level10,
 					level9, level10,
+					condition,
 					WC.TotalUnitCost,
 					WC.TotalExtCost
 					FROM FinalCTE FC

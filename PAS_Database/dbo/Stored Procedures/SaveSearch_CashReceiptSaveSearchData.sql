@@ -11,6 +11,7 @@
 ** 2    28/01/2025      SHREY CHANDEGARA        UPDATED due to duplicated record.
 ** 3    25/02/2025      SHREY CHANDEGARA        UPDATED due to PaymentMethod and PaymentReference(like if it is a checkpayment method then chek number).
 ** 4    07-07-2025      Moin Bloch              Changed Old To New Billing Table
+   5    31-Mar-2026		Rajesh Gami				UOM Conversion Changes [PN-15866]
 **************************************************************/
 CREATE   PROCEDURE [dbo].[SaveSearch_CashReceiptSaveSearchData]
 	@PageNumber INT,
@@ -176,12 +177,12 @@ AS
 						InvoiceDate DATETIME NULL,
 						ReferenceNum VARCHAR(150) NULL,
 						BatchRef VARCHAR(150) NULL,
-						OriginalAmount DECIMAL(18,2) NULL,
-						AmountPaid DECIMAL(18,2) NULL,
-						RemainAmount DECIMAL(18,2) NULL,
-						DiscAmount DECIMAL(18,2) NULL,
-						BankFees DECIMAL(18,2) NULL,
-						OtherAdj DECIMAL(18,2) NULL,
+						OriginalAmount [decimal](18,6) NULL,
+						AmountPaid [decimal](18,6) NULL,
+						RemainAmount [decimal](18,6) NULL,
+						DiscAmount [decimal](18,6) NULL,
+						BankFees [decimal](18,6) NULL,
+						OtherAdj [decimal](18,6) NULL,
 						AccountPeriod VARCHAR(150) NULL,
 						Currency VARCHAR(50) NULL,
 						PaymentMethod VARCHAR(50) NULL,

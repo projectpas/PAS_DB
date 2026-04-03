@@ -1,7 +1,7 @@
 ﻿CREATE TABLE [dbo].[ExchangeSalesOrderBillingInvoicingItem] (
     [ExchangeSOBillingInvoicingItemId]    BIGINT          IDENTITY (1, 1) NOT NULL,
     [SOBillingInvoicingId]                BIGINT          NOT NULL,
-    [NoofPieces]                          INT             NOT NULL,
+    [NoofPieces]                          DECIMAL (18, 6) NULL,
     [ExchangeSalesOrderPartId]            BIGINT          NOT NULL,
     [ItemMasterId]                        BIGINT          NOT NULL,
     [MasterCompanyId]                     INT             NOT NULL,
@@ -11,24 +11,26 @@
     [UpdatedDate]                         DATETIME2 (7)   CONSTRAINT [DF_ExchangeSalesOrderBillingInvoicingItem_UpdatedDate] DEFAULT (getdate()) NOT NULL,
     [IsActive]                            BIT             CONSTRAINT [DF_ExchangeSalesOrderBillingInvoicingItem_IsActive] DEFAULT ((1)) NOT NULL,
     [IsDeleted]                           BIT             CONSTRAINT [DF_ExchangeSalesOrderBillingInvoicingItem_IsDeleted] DEFAULT ((0)) NOT NULL,
-    [UnitPrice]                           DECIMAL (20, 2) NULL,
+    [UnitPrice]                           DECIMAL (18, 6) NULL,
     [ExchangeSalesOrderShippingId]        BIGINT          NULL,
     [ExchangeSalesOrderScheduleBillingId] BIGINT          NULL,
-    [MiscCharges]                         DECIMAL (18, 2) NULL,
-    [Freight]                             DECIMAL (18, 2) NULL,
-    [SubTotal]                            DECIMAL (18, 2) NULL,
-    [OtherTaxPercent]                     BIGINT          NULL,
-    [SalesTaxPercent]                     BIGINT          NULL,
-    [GrandTotal]                          DECIMAL (18, 2) NULL,
-    [OtherTax]                            DECIMAL (18, 2) NULL,
-    [SalesTax]                            DECIMAL (18, 2) NULL,
-    [CogsAmount]                          DECIMAL (18, 2) NULL,
+    [MiscCharges]                         DECIMAL (18, 6) NULL,
+    [Freight]                             DECIMAL (18, 6) NULL,
+    [SubTotal]                            DECIMAL (18, 6) NULL,
+    [OtherTaxPercent]                     DECIMAL (18, 6) NULL,
+    [SalesTaxPercent]                     DECIMAL (18, 6) NULL,
+    [GrandTotal]                          DECIMAL (18, 6) NULL,
+    [OtherTax]                            DECIMAL (18, 6) NULL,
+    [SalesTax]                            DECIMAL (18, 6) NULL,
+    [CogsAmount]                          DECIMAL (18, 6) NULL,
     CONSTRAINT [PK_ExchangeSalesOrderBillingInvoicingItem] PRIMARY KEY CLUSTERED ([ExchangeSOBillingInvoicingItemId] ASC),
     CONSTRAINT [FK_ExchangeSalesOrderBillingInvoicingItem_ExchangeSalesOrderBillingInvoicing] FOREIGN KEY ([SOBillingInvoicingId]) REFERENCES [dbo].[ExchangeSalesOrderBillingInvoicing] ([SOBillingInvoicingId]),
     CONSTRAINT [FK_ExchangeSalesOrderBillingInvoicingItem_ExchangeSalesOrderPart] FOREIGN KEY ([ExchangeSalesOrderPartId]) REFERENCES [dbo].[ExchangeSalesOrderPart] ([ExchangeSalesOrderPartId]),
     CONSTRAINT [FK_ExchangeSalesOrderBillingInvoicingItem_ItemMaster] FOREIGN KEY ([ItemMasterId]) REFERENCES [dbo].[ItemMaster] ([ItemMasterId]),
     CONSTRAINT [FK_ExchangeSalesOrderBillingInvoicingItem_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId])
 );
+
+
 
 
 

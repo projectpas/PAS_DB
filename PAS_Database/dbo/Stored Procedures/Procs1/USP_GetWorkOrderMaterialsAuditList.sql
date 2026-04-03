@@ -16,9 +16,10 @@
  **************************************************************           
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
-    1    02/22/2021   Hemant Saliya Created
-    2    02/06/2023   Rajesh Gami   Added Figure and Item field for the audit
-    2    11/02/2025   Bhargav Saliya   UTC Date Changes
+    1    02/22/2021   Hemant Saliya   Created
+    2    02/06/2023   Rajesh Gami     Added Figure and Item field for the audit
+    3    11/02/2025   Bhargav Saliya  UTC Date Changes
+	4    26/03/2026   RAJESH GAMI     UOM Changes [PN-14832]
  EXECUTE USP_GetWorkOrderMaterialsAuditList 37
 
 **************************************************************/     
@@ -44,7 +45,9 @@ SET NOCOUNT ON
 				LEFT JOIN dbo.LegalEntity LE WITH (NOLOCK) ON E.LegalEntityId = LE.LegalEntityId
 				LEFT JOIN dbo.TimeZone LTZ WITH (NOLOCK) ON LE.TimeZoneId = LTZ.TimeZoneId
 			WHERE E.EmployeeId = @EmployeeId;
-
+			
+			WITH WOM_CTE AS
+					(
 				SELECT  
 					WOM.PartNum  as PartNumber,
 					WOM.PartDescription as PartDescription, 
@@ -117,7 +120,6 @@ SET NOCOUNT ON
 					WOM.UnitOfMeasureId,
 					WOM.WorkOrderMaterialsId,
 					WOM.WorkFlowWorkOrderId,
-					WOM.WorkOrderId,
 					IM.ItemMasterId,
 					IM.ItemClassificationId,
 					IM.PurchaseUnitOfMeasureId,
@@ -132,8 +134,8 @@ SET NOCOUNT ON
 					WOM.IsAltPart,
 					WOM.IsEquPart,
 					WOM.ItemClassification AS ItemClassification,
-					UOM.ShortName AS UOM,
-					CASE WHEN WOM.IsDeferred = NULL OR WOM.IsDeferred = 0 THEN 'No' ELSE 'Yes' END AS Defered,
+					uomConsume.ShortName AS UOM,
+					CASE WHEN WOM.IsDeferred IS NULL OR WOM.IsDeferred = 0 THEN 'No' ELSE 'Yes' END AS Defered,
 					IsRoleUp = 0,
 					WOM.ProvisionId,
 					CASE WHEN SBWOMM.SubWorkOrderId IS NULL THEN 0 ELSE 1 END AS IsSubWorkOrderCreated,
@@ -147,13 +149,17 @@ SET NOCOUNT ON
 					RO.RepairOrderNumber
 					,WOM.Figure
 					,WOM.Item
+					,uomStock.ShortName uomStock
+					,uomConsume.ShortName uomConsume
 				FROM dbo.WorkOrderMaterialsAudit WOM WITH (NOLOCK)  
 					JOIN dbo.ItemMaster IM WITH (NOLOCK) ON IM.ItemMasterId = WOM.ItemMasterId
-					JOIN dbo.UnitOfMeasure UOM WITH (NOLOCK) ON UOM.UnitOfMeasureId = IM.PurchaseUnitOfMeasureId
+					--JOIN dbo.UnitOfMeasure UOM WITH (NOLOCK) ON UOM.UnitOfMeasureId = IM.PurchaseUnitOfMeasureId
 					JOIN dbo.WorkOrderWorkFlow WOWF WITH (NOLOCK) ON WOWF.WorkFlowWorkOrderId = WOM.WorkFlowWorkOrderId
 					JOIN dbo.MaterialMandatories MM WITH (NOLOCK) ON MM.Id = WOM.MaterialMandatoriesId
 					LEFT JOIN dbo.WorkOrderMaterialStockLine MSTL WITH (NOLOCK) ON MSTL.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId AND MSTL.IsDeleted = 0
 					LEFT JOIN dbo.Stockline SL WITH (NOLOCK) ON SL.StockLineId = MSTL.StockLineId
+					LEFT JOIN [dbo].[UnitOfMeasure] uomStock WITH(NOLOCK) ON uomStock.UnitOfMeasureId = SL.StockUnitOfMeasureId
+					LEFT JOIN [dbo].[UnitOfMeasure] uomConsume WITH(NOLOCK) ON uomConsume.UnitOfMeasureId = SL.ConsumeUnitOfMeasureId
 					LEFT JOIN dbo.Site S WITH (NOLOCK) ON S.SiteId = IM.SiteId
 					LEFT JOIN dbo.Warehouse W WITH (NOLOCK) ON W.WarehouseId = IM.WarehouseId
 					LEFT JOIN dbo.Location L WITH (NOLOCK) ON L.LocationId = IM.LocationId
@@ -164,6 +170,81 @@ SET NOCOUNT ON
 					LEFT JOIN dbo.RepairOrderPart ROP WITH (NOLOCK) ON SL.RepairOrderPartRecordId = ROP.RepairOrderPartRecordId
 					LEFT JOIN dbo.RepairOrder RO WITH (NOLOCK) ON SL.RepairOrderId = RO.RepairOrderId
 				WHERE WOM.WorkOrderMaterialsId = @WorkOrderMaterialsId
+				)
+				SELECT  
+					PartNumber,
+					PartDescription,
+					WorkOrderNumber,
+					WorkOrderId,
+					SubWorkOrderNo,
+					SalesOrder,
+					Site,
+					WareHouse,
+					Location,
+					Shelf,
+					Bin,
+					PartStatusId,
+					Provision,
+					StockType,
+					ItemType,
+					Condition,
+					dbo.fn_ConvertUOM(UnitCost, uomStock, uomConsume,1,MasterCompanyId) UnitCost,
+				    (dbo.fn_ConvertUOM(UnitCost, uomStock, uomConsume,1,MasterCompanyId)  * dbo.fn_ConvertUOM(Quantity , uomStock, uomConsume,0,MasterCompanyId)) AS ExtendedCost,
+					StockLineId,
+					StockLineNumber,
+					SerialNumber,
+					ControlId,
+					ControlNo,
+					Receiver,
+					dbo.fn_ConvertUOM(PartQuantityOnHand , uomStock, uomConsume,0,MasterCompanyId) PartQuantityOnHand,
+					dbo.fn_ConvertUOM(PartQuantityAvailable , uomStock, uomConsume,0,MasterCompanyId) PartQuantityAvailable,
+					dbo.fn_ConvertUOM(PartQuantityReserved , uomStock, uomConsume,0,MasterCompanyId) PartQuantityReserved ,
+					dbo.fn_ConvertUOM(PartQuantityTurnIn , uomStock, uomConsume,0,MasterCompanyId) PartQuantityTurnIn,
+					dbo.fn_ConvertUOM(PartQuantityOnOrder , uomStock, uomConsume,0,MasterCompanyId) PartQuantityOnOrder,
+					dbo.fn_ConvertUOM(StocklineQuantity , uomStock, uomConsume,0,MasterCompanyId) StocklineQuantity,
+					dbo.fn_ConvertUOM(QuantityIssued , uomStock, uomConsume,0,MasterCompanyId) QuantityIssued,
+					dbo.fn_ConvertUOM(QuantityReserved , uomStock, uomConsume,0,MasterCompanyId) QuantityReserved,
+					dbo.fn_ConvertUOM(QunatityRemaining , uomStock, uomConsume,0,MasterCompanyId) QunatityRemaining,
+					dbo.fn_ConvertUOM(QtyOnOrder , uomStock, uomConsume,0,MasterCompanyId) QtyOnOrder,
+					dbo.fn_ConvertUOM(QtyOnBkOrder , uomStock, uomConsume,0,MasterCompanyId) QtyOnBkOrder,
+					PurchaseOrderNumber,
+					dbo.fn_ConvertUOM(Quantity , uomStock, uomConsume,0,MasterCompanyId) Quantity,
+					ConditionCodeId,
+					UnitOfMeasureId,
+					WorkOrderMaterialsId,
+					WorkFlowWorkOrderId,
+					ItemMasterId,
+					ItemClassificationId,
+					PurchaseUnitOfMeasureId,
+					Memo,
+					IsDeferred,
+					TaskId,
+					TaskName,
+					MandatoryOrSupplemental,
+					MaterialMandatoriesId,
+					MasterCompanyId,
+					ParentWorkOrderMaterialsId,
+					IsAltPart,
+					IsEquPart,
+					ItemClassification,
+					UOM,
+					Defered,
+					IsRoleUp,
+					ProvisionId,
+					IsSubWorkOrderCreated,
+					SubWorkOrderId,
+					IsFromWorkFlow,
+					CreatedBy,
+					UpdatedBy,
+					CreatedDate,
+					UpdatedDate,
+					RONextDlvrDate,
+					RepairOrderNumber,
+					Figure,
+					Item,
+					uomStock,
+					uomConsume,CostDate,Currency
+				FROM WOM_CTE;
 			END
 		COMMIT  TRANSACTION
 

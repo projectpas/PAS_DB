@@ -14,7 +14,7 @@
  ** --   --------     -------		---------------------------     
     1    17/03/2025   Ayushi Patel     Created
 	2    03/07/2025   Moin Bloch       Changed Old To New Billing Table
-
+  	3    31/Mar/2026  Rajesh Gami		UOM Changes [PN-15741]   
     USP_WorkOrderAnalysisForShippingARbalance 8473 , 8128
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[USP_WorkOrderAnalysisForShippingARbalance]  
@@ -36,7 +36,7 @@ BEGIN
         (  
             WorkOrderId BIGINT,  
             WOPartNoId BIGINT,  
-            Revenue DECIMAL(18, 2)  
+            Revenue DECIMAL(18, 6)  
         );  
 
         INSERT INTO #QuoteTable  

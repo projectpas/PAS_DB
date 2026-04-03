@@ -27,7 +27,7 @@
 	14	 04/11/2024  Devendra Shekh Added ReferenceModule For [CommonBatchDetails]
 	15	 24/04/2025	 Devendra Shekh	Modify (Added [IsManualText] check for DistributionSetup)
 	16	 25/06/2025	 Devendra Shekh	Modify (using Code for [MasterDiscountType] and [MasterBankFeesType] instead name for compare)
-
+ 	17 	 01-Apr-2026	Rajesh Gami		UOM Conversion Changes [PN-15866]  
 	EXEC [dbo].[USP_BatchTriggerBasedonCustomerReceiptByIdNew] 8,218
 
 ************************************************************************/
@@ -64,13 +64,13 @@ BEGIN
 		DECLARE @PieceItemmasterId BIGINT
 		DECLARE @CustRefNumber VARCHAR(200)
 		DECLARE @LineNumber INT=1
-		DECLARE @TotalDebit decimal(18,2)=0
-		DECLARE @TotalCredit decimal(18,2)=0
-		DECLARE @TotalBalance decimal(18,2)=0
-		DECLARE @UnitPrice decimal(18,2)=0
-		DECLARE @LaborHrs decimal(18,2)=0
-		DECLARE @DirectLaborCost decimal(18,2)=0
-		DECLARE @OverheadCost decimal(18,2)=0
+		DECLARE @TotalDebit [decimal](18,6)=0
+		DECLARE @TotalCredit [decimal](18,6)=0
+		DECLARE @TotalBalance [decimal](18,6)=0
+		DECLARE @UnitPrice [decimal](18,6)=0
+		DECLARE @LaborHrs [decimal](18,6)=0
+		DECLARE @DirectLaborCost [decimal](18,6)=0
+		DECLARE @OverheadCost [decimal](18,6)=0
 		DECLARE @partId BIGINT=0
 		DECLARE @batch VARCHAR(100)
 		DECLARE @AccountingPeriod VARCHAR(100)
@@ -81,16 +81,16 @@ BEGIN
 		DECLARE @AllMSlevels VARCHAR(max)
 		DECLARE @DistributionSetupId INT=0
 		DECLARE @DistributionCode VARCHAR(200)
-		DECLARE @InvoiceTotalCost decimal(18,2)=0
-		DECLARE @MaterialCost decimal(18,2)=0
-		DECLARE @LaborOverHeadCost decimal(18,2)=0
-		DECLARE @FreightCost decimal(18,2)=0
-		DECLARE @SalesTax decimal(18,2)=0
+		DECLARE @InvoiceTotalCost [decimal](18,6)=0
+		DECLARE @MaterialCost [decimal](18,6)=0
+		DECLARE @LaborOverHeadCost [decimal](18,6)=0
+		DECLARE @FreightCost [decimal](18,6)=0
+		DECLARE @SalesTax [decimal](18,6)=0
 		DECLARE @InvoiceNo VARCHAR(100)
-		DECLARE @MiscChargesCost decimal(18,2)=0
-		DECLARE @LaborCost decimal(18,2)=0
-		DECLARE @InvoiceLaborCost decimal(18,2)=0
-		DECLARE @RevenuWO decimal(18,2)=0
+		DECLARE @MiscChargesCost [decimal](18,6)=0
+		DECLARE @LaborCost [decimal](18,6)=0
+		DECLARE @InvoiceLaborCost [decimal](18,6)=0
+		DECLARE @RevenuWO [decimal](18,6)=0
 		DECLARE @CurrentManagementStructureId BIGINT=0
 		DECLARE @JournalBatchDetailId BIGINT=0
 		DECLARE @DocumentNumber VARCHAR(2000);
@@ -137,7 +137,7 @@ BEGIN
 		DECLARE @ReceiptNo VARCHAR(50);
 		DECLARE @CRMSModuleId INT=59;
 		DECLARE @ModuleName VARCHAR(200);
-		DECLARE @Amount decimal(18,2)=0;
+		DECLARE @Amount [decimal](18,6)=0;
 		DECLARE @CommonJournalBatchDetailId BIGINT=0;
 		DECLARE @ValidDistribution BIT = 1;
 		DECLARE @AccountMSModuleId INT = 0
@@ -348,26 +348,26 @@ BEGIN
 
 			IF(UPPER(@DistributionCode) = UPPER('CashReceiptsTradeReceivable'))
 			BEGIN
-				DECLARE @PaymentAmount DECIMAL(18,2)=0;
-				DECLARE @CaseAmount DECIMAL(18,2)=0;
-				DECLARE @AccountsReceivablesAmount DECIMAL(18,2)=0;
-				DECLARE @EarlyDiscAmount DECIMAL(18,2)=0;
-				DECLARE @NotEarlyDiscAmount DECIMAL(18,2)=0;
-				DECLARE @OtherDiscAmount DECIMAL(18,2)=0;
-				DECLARE @WireBankFeesAmount DECIMAL(18,2)=0;
-				DECLARE @FXFeesAmount DECIMAL(18,2)=0;
-				DECLARE @OtherAdjustmentAmount DECIMAL(18,2)=0;
-				DECLARE @AapliedAmount DECIMAL(18,2)=0;
-				DECLARE @InvoiceAmount DECIMAL(18,2)=0;
-				DECLARE @InvoiceAmountDiffeence DECIMAL(18,2)=0;
-				DECLARE @RemainingAmount DECIMAL(18,2)=0;
+				DECLARE @PaymentAmount [decimal](18,6)=0;
+				DECLARE @CaseAmount [decimal](18,6)=0;
+				DECLARE @AccountsReceivablesAmount [decimal](18,6)=0;
+				DECLARE @EarlyDiscAmount [decimal](18,6)=0;
+				DECLARE @NotEarlyDiscAmount [decimal](18,6)=0;
+				DECLARE @OtherDiscAmount [decimal](18,6)=0;
+				DECLARE @WireBankFeesAmount [decimal](18,6)=0;
+				DECLARE @FXFeesAmount [decimal](18,6)=0;
+				DECLARE @OtherAdjustmentAmount [decimal](18,6)=0;
+				DECLARE @AapliedAmount [decimal](18,6)=0;
+				DECLARE @InvoiceAmount [decimal](18,6)=0;
+				DECLARE @InvoiceAmountDiffeence [decimal](18,6)=0;
+				DECLARE @RemainingAmount [decimal](18,6)=0;
 						 
 				DECLARE @InvoiceType VARCHAR(50);
 				DECLARE @SOBillingInvoicingId BIGINT=0;
 				DECLARE @IsDeposit BIT=0;
-				DECLARE @AccountReceivablesAmount DECIMAL(18,2)=0;
-				DECLARE @DepositeAmount DECIMAL(18,2)=0;
-				DECLARE @miscellaneousAmount DECIMAL(18,2)=0;
+				DECLARE @AccountReceivablesAmount [decimal](18,6)=0;
+				DECLARE @DepositeAmount [decimal](18,6)=0;
+				DECLARE @miscellaneousAmount [decimal](18,6)=0;
 				DECLARE @Ismiscellaneous BIT=0;
 
 				DECLARE @TotalRecord INT = 0;   

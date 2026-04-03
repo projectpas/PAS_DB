@@ -1,5 +1,4 @@
-﻿
-/*************************************************************             
+﻿/*************************************************************             
  ** File:   [USP_SaveCustomerARBalance]             
  ** Author: Moin Bloch
  ** Description: This stored procedure is used to calculate Customer AR Balance
@@ -16,6 +15,7 @@
  4      11/10/2024	   Moin Bloch       Modified (commented credit memo for ar balance)
  5      10/06/2025	   Moin Bloch       Format SP
  6      10 Feb 2026	   Rajesh Gami      Stop Customer Financial Credit Limit Update (PN-15325)
+ 7		31-Mar-2026	   Rajesh Gami		UOM Conversion Changes [PN-15866]
  --EXEC USP_SaveCustomerARBalance 1,10079,10079,100,150,'deep',1,'deep','deep',-1; 
 **************************************************************/ 
 CREATE     PROCEDURE [dbo].[USP_SaveCustomerARBalance]  
@@ -23,8 +23,8 @@ CREATE     PROCEDURE [dbo].[USP_SaveCustomerARBalance]
 @AppModuleId INT,  
 @ReffranceId BIGINT,  
 @CustomerId BIGINT,  
-@ARBalance DECIMAL(18,2),  
-@Amount DECIMAL(18,2),  
+@ARBalance [decimal](18,6),  
+@Amount [decimal](18,6),  
 @Notes VARCHAR(500),  
 @MasterCompanyId INT,  
 @CreatedBy VARCHAR(256),  
@@ -43,9 +43,9 @@ SET NOCOUNT ON
 
 	DECLARE @ModuleName VARCHAR(50);
 	SELECT @ModuleName = [CodeType] FROM [dbo].[CodeTypes] WITH(NOLOCK) WHERE [CodeTypeId] = @AppModuleId;
-     DECLARE @CreditLimit DECIMAL=0;  
-     DECLARE @AmountDiff DECIMAL=0;  
-     DECLARE @LastAmount DECIMAL=0;  
+     DECLARE @CreditLimit [decimal](18,6)=0;  
+     DECLARE @AmountDiff [decimal](18,6)=0;  
+     DECLARE @LastAmount [decimal](18,6)=0;  
      IF(@AppModuleId = 10) --customer  
      BEGIN  
       IF EXISTS(SELECT 1 FROM [dbo].[CustomerFinancial] WITH(NOLOCK) WHERE CustomerId=@CustomerId)  

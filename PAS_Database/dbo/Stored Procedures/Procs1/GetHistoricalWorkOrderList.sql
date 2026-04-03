@@ -14,6 +14,7 @@
  ** --   --------     -------  --------------------------------            
     1    03/15/2020   Hemant Saliya Created  
 	2    06/06/2023   Hemant Saliya Updated Teardown WO Name  
+	3    26/03/2026   Moin Bloch	Rename TearDown To Internal Teardown PN-15850
   
  EXECUTE [GetHistoricalWorkOrderList] 1, 100, null, -1, 1, '', '','','','','','','','','','2021-02-26','','','','','','','',1  
 **************************************************************/   
@@ -91,8 +92,8 @@ BEGIN
         WO.WorkOrderNum,  
         CASE   
          WHEN WO.WorkOrderTypeId = 1 THEN 'Customer'  
-         WHEN WO.WorkOrderTypeId = 2 THEN 'Internal'  
-         WHEN WO.WorkOrderTypeId = 3 THEN 'Teardown'  
+         WHEN WO.WorkOrderTypeId = 2 THEN 'Internal Repair'  
+         WHEN WO.WorkOrderTypeId = 3 THEN 'Internal Teardown'  
          ELSE 'Shop Services'  
         END AS WOType,  
         C.Name AS CustomerName,  
@@ -189,8 +190,8 @@ BEGIN
         WO.WorkOrderNum,  
         CASE   
          WHEN WO.WorkOrderTypeId = 1 THEN 'Customer'  
-         WHEN WO.WorkOrderTypeId = 2 THEN 'Internal'  
-         WHEN WO.WorkOrderTypeId = 3 THEN 'Teardown'  
+         WHEN WO.WorkOrderTypeId = 2 THEN 'Internal Repair'  
+         WHEN WO.WorkOrderTypeId = 3 THEN 'Internal Teardown'  
          ELSE 'Shop Services'  
         END AS WOType,  
         C.Name AS CustomerName,  

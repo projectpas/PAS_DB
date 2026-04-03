@@ -24,7 +24,7 @@
     10   07/25/2024   Moin Bloch      Added ReportLayoutId
     11   10/30/2024   Devendra Shekh  Added MasterCompanyId join for GLAccount in #TempResults insert
     12   05/23/2025   Hemant Saliya   Handle condition for statistical GL account
-	13   05/23/2025   Hemant Saliya  Changed Logic to get trial Balance from begining
+	13   04/02/2026   Hemant Saliya   Changed Logic to get trial Balance from begining
  **************************************************************
  exec dbo.USP_GetTrailBalanceReportData @masterCompanyId=1,  @managementStructureId=1,  @AccountingPeriodId=135, @IsSupressZero=1, @IsShortMS=1, @strFilter=N'1!2,7!3,11,10!4,12'
  exec dbo.USP_GetTrailBalanceReportData_Optimized @masterCompanyId=21, @managementStructureId=41, @AccountingPeriodId=322, @IsSupressZero=1, @IsShortMS=1, @strFilter=N'70!71'
@@ -369,11 +369,8 @@ BEGIN
             INNER JOIN dbo.BatchDetails                                    BD   WITH (NOLOCK) ON CB.JournalBatchDetailId       = BD.JournalBatchDetailId AND BD.StatusId  = @PostedBatchStatusId
             INNER JOIN dbo.BatchHeader                                     B    WITH (NOLOCK) ON BD.JournalBatchHeaderId       = B.JournalBatchHeaderId
             INNER JOIN dbo.AccountingBatchManagementStructureDetails       MSD  WITH (NOLOCK) ON MSD.ReferenceId               = CB.CommonJournalBatchDetailId AND MSD.ModuleId = @BatchMSModuleId
-            INNER JOIN dbo.GLAccount                                       GL   WITH (NOLOCK) ON CB.GlAccountId                = GL.GLAccountId
-                                                                                              AND CB.MasterCompanyId           = GL.MasterCompanyId
-                                                                                              AND (   @StatisticalGLAccountTypeId IS NULL
-                                                                                                   OR @StatisticalGLAccountTypeId = 0
-                                                                                                   OR GL.GLAccountTypeId     <> @StatisticalGLAccountTypeId)
+            INNER JOIN dbo.GLAccount                                       GL   WITH (NOLOCK) ON CB.GlAccountId                = GL.GLAccountId AND CB.MasterCompanyId = GL.MasterCompanyId
+                                                                                              AND (@StatisticalGLAccountTypeId IS NULL OR @StatisticalGLAccountTypeId = 0 OR GL.GLAccountTypeId     <> @StatisticalGLAccountTypeId)
             LEFT  JOIN dbo.GLAccountClass                                  GC   WITH (NOLOCK) ON GL.GLAccountTypeId            = GC.GLAccountClassId
             LEFT  JOIN dbo.ManagementStructureLevel                        MSL1 WITH (NOLOCK) ON MSD.Level1Id                  = MSL1.ID
             LEFT  JOIN dbo.ManagementStructureLevel                        MSL2 WITH (NOLOCK) ON MSD.Level2Id                  = MSL2.ID
@@ -385,10 +382,10 @@ BEGIN
             LEFT  JOIN dbo.ManagementStructureLevel                        MSL8 WITH (NOLOCK) ON MSD.Level8Id                  = MSL8.ID
             LEFT  JOIN dbo.ManagementStructureLevel                        MSL9 WITH (NOLOCK) ON MSD.Level9Id                  = MSL9.ID
             LEFT  JOIN dbo.ManagementStructureLevel                        MSL10 WITH (NOLOCK) ON MSD.Level10Id                = MSL10.ID
-            WHERE CB.IsDeleted                    = 0
+            WHERE ISNULL(CB.IsDeleted , 0)        = 0
               AND CB.MasterCompanyId              = @MasterCompanyId
-              AND BD.IsDeleted                    = 0
-              AND B.IsDeleted                     = 0
+              AND ISNULL(BD.IsDeleted , 0)        = 0
+              AND ISNULL(B.IsDeleted , 0)         = 0
               AND ISNULL(CB.IsVersionIncrease, 0) = 0
               AND BD.AccountingPeriodId IN (SELECT DISTINCT AccountcalID FROM #AccPeriodTable_All)
               AND MSD.[Level1Id] IN (SELECT Item FROM #L1)
@@ -515,16 +512,11 @@ BEGIN
             SUM(ISNULL(CMB.DebitAmount,  0)) AS DebitAmount,
             GC.SequenceNumber
         FROM       dbo.CommonBatchDetails                              CMB  WITH (NOLOCK)
-        INNER JOIN dbo.BatchDetails                                    BD   WITH (NOLOCK) ON CMB.JournalBatchDetailId       = BD.JournalBatchDetailId
-                                                                                          AND BD.StatusId                  = @PostedBatchStatusId
+        INNER JOIN dbo.BatchDetails                                    BD   WITH (NOLOCK) ON CMB.JournalBatchDetailId       = BD.JournalBatchDetailId AND BD.StatusId = @PostedBatchStatusId
         INNER JOIN dbo.BatchHeader                                     B    WITH (NOLOCK) ON BD.JournalBatchHeaderId        = B.JournalBatchHeaderId
-        INNER JOIN dbo.AccountingBatchManagementStructureDetails       MSD  WITH (NOLOCK) ON MSD.ReferenceId                = CMB.CommonJournalBatchDetailId
-                                                                                          AND MSD.ModuleId                 = @BatchMSModuleId
-        INNER JOIN dbo.GLAccount                                       GL   WITH (NOLOCK) ON CMB.GlAccountId               = GL.GLAccountId
-                                                                                          AND CMB.MasterCompanyId          = GL.MasterCompanyId
-                                                                                          AND (   @StatisticalGLAccountTypeId IS NULL
-                                                                                               OR @StatisticalGLAccountTypeId = 0
-                                                                                               OR GL.GLAccountTypeId      <> @StatisticalGLAccountTypeId)
+        INNER JOIN dbo.AccountingBatchManagementStructureDetails       MSD  WITH (NOLOCK) ON MSD.ReferenceId                = CMB.CommonJournalBatchDetailId AND MSD.ModuleId = @BatchMSModuleId
+        INNER JOIN dbo.GLAccount                                       GL   WITH (NOLOCK) ON CMB.GlAccountId                = GL.GLAccountId AND CMB.MasterCompanyId = GL.MasterCompanyId
+                                                                                          AND (@StatisticalGLAccountTypeId IS NULL OR @StatisticalGLAccountTypeId = 0 OR GL.GLAccountTypeId <> @StatisticalGLAccountTypeId)
         LEFT  JOIN dbo.GLAccountClass                                  GC   WITH (NOLOCK) ON GL.GLAccountTypeId             = GC.GLAccountClassId
         LEFT  JOIN dbo.ManagementStructureLevel                        MSL1 WITH (NOLOCK) ON MSD.Level1Id                  = MSL1.ID
         LEFT  JOIN dbo.ManagementStructureLevel                        MSL2 WITH (NOLOCK) ON MSD.Level2Id                  = MSL2.ID
@@ -536,17 +528,12 @@ BEGIN
         LEFT  JOIN dbo.ManagementStructureLevel                        MSL8 WITH (NOLOCK) ON MSD.Level8Id                  = MSL8.ID
         LEFT  JOIN dbo.ManagementStructureLevel                        MSL9 WITH (NOLOCK) ON MSD.Level9Id                  = MSL9.ID
         LEFT  JOIN dbo.ManagementStructureLevel                        MSL10 WITH (NOLOCK) ON MSD.Level10Id                = MSL10.ID
-        WHERE CMB.IsDeleted                    = 0
-          AND BD.IsDeleted                     = 0
-          AND B.IsDeleted                      = 0
+        WHERE ISNULL(CMB.IsDeleted , 0)        = 0
+          AND ISNULL(BD.IsDeleted , 0)         = 0
+          AND ISNULL(B.IsDeleted , 0)          = 0
           AND CMB.MasterCompanyId              = @MasterCompanyId
           AND ISNULL(CMB.IsVersionIncrease, 0) = 0
-          AND BD.AccountingPeriodId IN
-              (
-                  SELECT AccountcalID
-                  FROM   #AccPeriodTable_All
-                  WHERE  UPPER(PeriodName) = @PeriodName
-              )
+		  AND BD.AccountingPeriodId IN (SELECT DISTINCT AccountcalID FROM #AccPeriodTable_All) --WHERE  UPPER(PeriodName) = @PeriodName
           AND MSD.[Level1Id] IN (SELECT Item FROM #L1)
           AND (NOT EXISTS (SELECT 1 FROM #L2)  OR MSD.[Level2Id]  IN (SELECT Item FROM #L2))
           AND (NOT EXISTS (SELECT 1 FROM #L3)  OR MSD.[Level3Id]  IN (SELECT Item FROM #L3))
@@ -582,10 +569,8 @@ BEGIN
                 ISNULL(CMB.CreditAmount, 0)   AS CreditAmount,
                 ISNULL(CMB.DebitAmount,  0)   AS DebitAmount
             FROM       dbo.CommonBatchDetails                              CMB  WITH (NOLOCK)
-            INNER JOIN dbo.BatchDetails                                    BD   WITH (NOLOCK) ON CMB.JournalBatchDetailId       = BD.JournalBatchDetailId
-                                                                                              AND BD.StatusId                  = @PostedBatchStatusId
-            INNER JOIN dbo.AccountingBatchManagementStructureDetails       MSD  WITH (NOLOCK) ON MSD.ReferenceId                = CMB.CommonJournalBatchDetailId
-                                                                                              AND MSD.ModuleId                 = @BatchMSModuleId
+            INNER JOIN dbo.BatchDetails                                    BD   WITH (NOLOCK) ON CMB.JournalBatchDetailId       = BD.JournalBatchDetailId AND BD.StatusId = @PostedBatchStatusId
+            INNER JOIN dbo.AccountingBatchManagementStructureDetails       MSD  WITH (NOLOCK) ON MSD.ReferenceId                = CMB.CommonJournalBatchDetailId AND MSD.ModuleId = @BatchMSModuleId
             LEFT  JOIN dbo.ManagementStructureLevel                        MSL1 WITH (NOLOCK) ON MSD.Level1Id                  = MSL1.ID
             LEFT  JOIN dbo.ManagementStructureLevel                        MSL2 WITH (NOLOCK) ON MSD.Level2Id                  = MSL2.ID
             LEFT  JOIN dbo.ManagementStructureLevel                        MSL3 WITH (NOLOCK) ON MSD.Level3Id                  = MSL3.ID
@@ -596,16 +581,11 @@ BEGIN
             LEFT  JOIN dbo.ManagementStructureLevel                        MSL8 WITH (NOLOCK) ON MSD.Level8Id                  = MSL8.ID
             LEFT  JOIN dbo.ManagementStructureLevel                        MSL9 WITH (NOLOCK) ON MSD.Level9Id                  = MSL9.ID
             LEFT  JOIN dbo.ManagementStructureLevel                        MSL10 WITH (NOLOCK) ON MSD.Level10Id                = MSL10.ID
-            WHERE CMB.IsDeleted                    = 0
-              AND BD.IsDeleted                     = 0
-              AND CMB.MasterCompanyId              = @MasterCompanyId
-              AND ISNULL(CMB.IsVersionIncrease, 0) = 0
-              AND BD.AccountingPeriodId IN
-                  (
-                      SELECT AccountcalID
-                      FROM   #AccPeriodTable_All
-                      WHERE  UPPER(PeriodName) = @PeriodName
-                  )
+            WHERE ISNULL(CMB.IsDeleted , 0)        = 0
+			  AND ISNULL(BD.IsDeleted , 0)         = 0
+			  AND CMB.MasterCompanyId              = @MasterCompanyId
+			  AND ISNULL(CMB.IsVersionIncrease, 0) = 0
+			  AND BD.AccountingPeriodId IN (SELECT DISTINCT AccountcalID FROM #AccPeriodTable_All) --WHERE  UPPER(PeriodName) = @PeriodName
               AND MSD.[Level1Id] IN (SELECT Item FROM #L1)
               AND (NOT EXISTS (SELECT 1 FROM #L2)  OR MSD.[Level2Id]  IN (SELECT Item FROM #L2))
               AND (NOT EXISTS (SELECT 1 FROM #L3)  OR MSD.[Level3Id]  IN (SELECT Item FROM #L3))
@@ -726,8 +706,8 @@ BEGIN
                     @TotalCreditAmount  AS TotalCreditAmount,
                     @TotalDebitAmount   AS TotalDebitAmount
                 FROM #TempResults
-                WHERE MonthlyCreditAmount > 0
-                   OR MonthlyDebitAmount  > 0
+                WHERE YTDCreditAmount > 0
+                   OR YTDDebitAmount  > 0
                 ORDER BY CAST(AccountNum AS BIGINT);
             END
             ELSE

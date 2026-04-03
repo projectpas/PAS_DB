@@ -13,9 +13,9 @@
     [PromisedDate]             DATETIME2 (7)   NULL,
     [ConditionId]              BIGINT          NULL,
     [Condition]                VARCHAR (256)   NULL,
-    [QuantityOrdered]          INT             CONSTRAINT [VendorRFQPurchaseOrderPart_QuantityOrdered] DEFAULT ((0)) NOT NULL,
-    [UnitCost]                 DECIMAL (18, 2) CONSTRAINT [VendorRFQPurchaseOrderPart_UnitCost] DEFAULT ((0)) NOT NULL,
-    [ExtendedCost]             DECIMAL (18, 2) CONSTRAINT [VendorRFQPurchaseOrderPart_ExtendedCost] DEFAULT ((0)) NOT NULL,
+    [QuantityOrdered]          DECIMAL (18, 6) NULL,
+    [UnitCost]                 DECIMAL (18, 6) NULL,
+    [ExtendedCost]             DECIMAL (18, 6) NULL,
     [WorkOrderId]              BIGINT          NULL,
     [WorkOrderNo]              VARCHAR (250)   NULL,
     [SubWorkOrderId]           BIGINT          NULL,
@@ -62,6 +62,8 @@
     CONSTRAINT [FK_VendorRFQPurchaseOrderPart_SalesOrderId] FOREIGN KEY ([SalesOrderId]) REFERENCES [dbo].[SalesOrder] ([SalesOrderId]),
     CONSTRAINT [FK_VendorRFQPurchaseOrderPart_WorkOrder] FOREIGN KEY ([WorkOrderId]) REFERENCES [dbo].[WorkOrder] ([WorkOrderId])
 );
+
+
 
 
 

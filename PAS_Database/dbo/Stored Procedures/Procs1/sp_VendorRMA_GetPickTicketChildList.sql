@@ -1,73 +1,80 @@
-﻿/*************************************************************           
- ** File:   [sp_VendorRMA_GetPickTicketChildList]           
+/*************************************************************
+ ** File:   [sp_VendorRMA_GetPickTicketChildList]
  ** Author:   Amit Ghediya
- ** Description: This stored procedure is used to retrieve pickticket listing data for Vendor RMA STK details
- ** Purpose:         
- ** Date:   
-
- ** PARAMETERS:
-         
- ** RETURN VALUE:           
-  
- **************************************************************           
-  ** Change History           
- **************************************************************           
- ** PR   Date         Author		Change Description            
- ** --   --------     -------		--------------------------------          
-	1    06/19/2023   Amit Ghediya  Created
-	2    02-03-2026	  Amit Ghediya	UOM Conversion Changes [PN-15140]
-     
--- EXEC [dbo].[sp_VendorRMA_GetPickTicketChildList] 478
+ ** Description: Retrieve pick ticket child listing (STK details) for Vendor RMA
+ ** Change History:
+ ** PR   Date         Author          Description
+ ** 1    06/19/2023   Amit Ghediya    Created
+ ** 2    02/03/2026   Amit Ghediya    UOM Conversion Changes [PN-15140]
+ ** 3    [today]      [Hemant]        Performance & readability optimization
 **************************************************************/
-CREATE      Procedure [dbo].[sp_VendorRMA_GetPickTicketChildList]
-	@VendorRMAId  bigint,
-	@VendorRMADetailId  bigint,
-	@ItemMasterId bigint,
-	@ConditionId bigint
+CREATE OR ALTER PROCEDURE [dbo].[sp_VendorRMA_GetPickTicketChildList]
+    @VendorRMAId        BIGINT,
+    @VendorRMADetailId  BIGINT,
+    @ItemMasterId       BIGINT,
+    @ConditionId        BIGINT
 AS
 BEGIN
-	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
-	SET NOCOUNT ON;
+    SET NOCOUNT ON;
 
-	BEGIN TRY
-	BEGIN TRANSACTION
-	BEGIN
+    BEGIN TRY
 
-		SELECT sopt.RMAPickTicketNumber, ([dbo].[fn_ConvertUOM](ISNULL(sopt.QtyToShip, 0),IM.[StockUnitOfMeasure],IM.[PurchaseUnitOfMeasure],0,IM.[MasterCompanyId])) AS QtyToShip, sl.SerialNumber, sl.StockLineNumber, sopt.CreatedDate as PickedDate,
-		CONCAT(emp.FirstName, ' ', emp.LastName) as PickedBy, sopt.RMAPickTicketId, sopt.VendorRMAId, sopt.VendorRMADetailId,
-		CONCAT(empy.FirstName, ' ', empy.LastName) as ConfirmedBy, sl.ControlNumber, sl.IdNumber, sopt.ConfirmedDate, 
-		sl.StockLineId, sopt.IsConfirmed 
-		FROM RMAPickTicket sopt WITH(NOLOCK)
-		INNER JOIN VendorRMADetail sop WITH(NOLOCK) on sop.VendorRMAId = sopt.VendorRMAId AND sop.VendorRMADetailId = sopt.VendorRMADetailId
-		LEFT JOIN StockLine sl WITH(NOLOCK) on sl.StockLineId = sop.StockLineId
-		INNER JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON sl.[ItemMasterId] = IM.[ItemMasterId]
-		INNER JOIN Employee emp WITH(NOLOCK) on emp.EmployeeId = sopt.PickedById
-		LEFT JOIN Employee empy WITH(NOLOCK) on empy.EmployeeId = sopt.ConfirmedById
-		WHERE sopt.VendorRMAId = @VendorRMAId AND sopt.VendorRMADetailId = @VendorRMADetailId AND sop.ItemMasterId = @ItemMasterId and sl.ConditionId = @ConditionId
-	
-	END
-	COMMIT  TRANSACTION
+        SELECT
+            sopt.RMAPickTicketId,
+            sopt.RMAPickTicketNumber,
+            sopt.VendorRMAId,
+            sopt.VendorRMADetailId,
+            sopt.IsConfirmed,
+            sopt.ConfirmedDate,
+            sopt.CreatedDate                                                AS PickedDate,
+            [dbo].[fn_ConvertUOM](
+                ISNULL(sopt.QtyToShip, 0),
+                im.StockUnitOfMeasure,
+                im.PurchaseUnitOfMeasure,
+                0,
+                im.MasterCompanyId
+            )                                                               AS QtyToShip,
+            sl.SerialNumber,
+            sl.StockLineNumber,
+            sl.StockLineId,
+            sl.ControlNumber,
+            sl.IdNumber,
+            CONCAT(emp.FirstName,  ' ', emp.LastName)                       AS PickedBy,
+            CONCAT(empy.FirstName, ' ', empy.LastName)                      AS ConfirmedBy
+        FROM RMAPickTicket sopt WITH(NOLOCK)
+        INNER JOIN VendorRMADetail sop  WITH(NOLOCK) ON  sop.VendorRMAId       = sopt.VendorRMAId
+                                                     AND sop.VendorRMADetailId = sopt.VendorRMADetailId
+        LEFT  JOIN StockLine sl         WITH(NOLOCK) ON  sl.StockLineId        = sop.StockLineId
+        INNER JOIN ItemMaster im        WITH(NOLOCK) ON  im.ItemMasterId       = sl.ItemMasterId
+        INNER JOIN Employee emp         WITH(NOLOCK) ON  emp.EmployeeId        = sopt.PickedById
+        LEFT  JOIN Employee empy        WITH(NOLOCK) ON  empy.EmployeeId       = sopt.ConfirmedById
+        WHERE
+            sopt.VendorRMAId       = @VendorRMAId
+            AND sopt.VendorRMADetailId = @VendorRMADetailId
+            AND sop.ItemMasterId       = @ItemMasterId
+            AND sl.ConditionId         = @ConditionId;
 
-	END TRY    
-	BEGIN CATCH      
-		IF @@trancount > 0
-			PRINT 'ROLLBACK'
-			ROLLBACK TRAN;
-			DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name() 
------------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
-            , @AdhocComments     VARCHAR(150)    = 'sp_VendorRMA_GetPickTicketChildList' 
-            , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = '''+ ISNULL(@VendorRMAId, '') + ''',
-													 @Parameter2 = ' + ISNULL(@ItemMasterId,'') + ',
-													 @Parameter3 = ' + ISNULL(@ConditionId,'') + ''
-            , @ApplicationName VARCHAR(100) = 'PAS'
------------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------
-            exec spLogException 
-                    @DatabaseName           = @DatabaseName
-                    , @AdhocComments          = @AdhocComments
-                    , @ProcedureParameters = @ProcedureParameters
-                    , @ApplicationName        =  @ApplicationName
-                    , @ErrorLogID                    = @ErrorLogID OUTPUT ;
-            RAISERROR ('Unexpected Error Occured in the database. Please let the support team know of the error number : %d', 16, 1,@ErrorLogID)
-            RETURN(1);
-	END CATCH
+    END TRY
+    BEGIN CATCH
+        DECLARE
+            @ErrorLogID          INT,
+            @DatabaseName        VARCHAR(100)   = DB_NAME(),
+            @AdhocComments       VARCHAR(150)   = 'sp_VendorRMA_GetPickTicketChildList',
+            @ProcedureParameters VARCHAR(3000)  =
+                '@VendorRMAId = '       + CAST(ISNULL(@VendorRMAId,       0) AS VARCHAR(20)) + ', ' +
+                '@VendorRMADetailId = ' + CAST(ISNULL(@VendorRMADetailId, 0) AS VARCHAR(20)) + ', ' +
+                '@ItemMasterId = '      + CAST(ISNULL(@ItemMasterId,      0) AS VARCHAR(20)) + ', ' +
+                '@ConditionId = '       + CAST(ISNULL(@ConditionId,       0) AS VARCHAR(20)),
+            @ApplicationName     VARCHAR(100)   = 'PAS';
+
+        EXEC spLogException
+            @DatabaseName        = @DatabaseName,
+            @AdhocComments       = @AdhocComments,
+            @ProcedureParameters = @ProcedureParameters,
+            @ApplicationName     = @ApplicationName,
+            @ErrorLogID          = @ErrorLogID OUTPUT;
+
+        RAISERROR('Unexpected Error in the database. Support error number: %d', 16, 1, @ErrorLogID);
+        RETURN(1);
+    END CATCH
 END

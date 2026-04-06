@@ -15,6 +15,7 @@
  ** PR   Date         Author					Change Description            
  ** --   --------     -------				--------------------------------          
     1    07/05/2023   Devendra Shekh			Created
+	2    02-April-2026		Amit Ghediya		UOM Conversion Changes [PN-15140]  
      
  exec USP_VendorRMA_CreditMeMo_GetVendorRMAList 
 @PageNumber=1,@PageSize=10,@SortColumn=NULL,@SortOrder=-1,@GlobalFilter=N'',
@@ -83,7 +84,8 @@ BEGIN
 			VS.VendorRMAStatus as 'VendorRMADetailStatus',
 			RMA.RMANumber as 'VendorRMANumber',
 			RMAD.ModuleId,
-			RMS.QtyShipped,
+			--RMS.QtyShipped,
+			([dbo].[fn_ConvertUOM](ISNULL(RMS.QtyShipped, 0),IM.[StockUnitOfMeasure], IM.[ConsumeUnitOfMeasure],0,IM.[MasterCompanyId])) AS QtyShipped,
 			RMAD.VendorRMADetailId
 		FROM [DBO].[VendorRMA] RMA WITH (NOLOCK)
 		INNER JOIN [DBO].[Vendor] V WITH (NOLOCK) ON RMA.VendorId = V.VendorId

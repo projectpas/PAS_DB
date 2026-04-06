@@ -13,6 +13,7 @@
     1    06/12/2023			Moin Bloch			Created
     2    12-July-2023		Devendra SHekh     added condition to for @IsVCMAdd
     3    07-Nov-2023		Devendra SHekh     added case for vendorData
+	4    02-April-2026		Amit Ghediya		UOM Conversion Changes [PN-15140]  
 
 *******************************************************************************
 *******************************************************************************/
@@ -87,8 +88,10 @@ BEGIN
 			   ,IM.[partnumber] 'PartNumber'
 			   ,IM.[PartDescription]
 			   ,SL.[SerialNumber]
-			   ,SL.[QuantityAvailable]
-			   ,SL.[UnitCost]
+			   --,SL.[QuantityAvailable]
+			   ,([dbo].[fn_ConvertUOM](ISNULL(SL.[QuantityAvailable], 0),IM.[StockUnitOfMeasure], IM.[PurchaseUnitOfMeasure],0,IM.[MasterCompanyId])) AS QuantityAvailable
+			   --,SL.[UnitCost]
+			   ,([dbo].[fn_ConvertUOM](ISNULL(SL.[UnitCost], 0),IM.[StockUnitOfMeasure], IM.[PurchaseUnitOfMeasure],1,IM.[MasterCompanyId])) AS UnitCost
 			   ,CASE WHEN ISNULL(SL.[VendorId], 0) <> 0 THEN VO.[VendorName]
 			    WHEN SL.[PurchaseOrderId] > 0  THEN (SELECT POV.VendorName FROM [dbo].[PurchaseOrder] POV WITH(NOLOCK) INNER JOIN [dbo].[Vendor] V WITH(NOLOCK) ON POV.VendorId = V.VendorId WHERE SL.PurchaseOrderId = POV.PurchaseOrderId)
 			    WHEN SL.[RepairOrderId] > 0  THEN (SELECT ROV.VendorName FROM [dbo].[RepairOrder] ROV WITH(NOLOCK) INNER JOIN [dbo].[Vendor] V WITH(NOLOCK) ON ROV.VendorId = V.VendorId WHERE SL.RepairOrderId = ROV.RepairOrderId)
@@ -168,8 +171,10 @@ BEGIN
 			   ,IM.[partnumber] 'PartNumber'
 			   ,IM.[PartDescription]
 			   ,SL.[SerialNumber]
-			   ,SL.[QuantityAvailable]
-			   ,SL.[UnitCost]
+			   --,SL.[QuantityAvailable]
+			   ,([dbo].[fn_ConvertUOM](ISNULL(SL.[QuantityAvailable], 0),IM.[StockUnitOfMeasure], IM.[ConsumeUnitOfMeasure],0,IM.[MasterCompanyId])) AS QuantityAvailable
+			   --,SL.[UnitCost]
+			   ,([dbo].[fn_ConvertUOM](ISNULL(SL.[UnitCost], 0),IM.[StockUnitOfMeasure], IM.[ConsumeUnitOfMeasure],1,IM.[MasterCompanyId])) AS UnitCost
 			   ,CASE WHEN ISNULL(SL.[VendorId], 0) <> 0 THEN VO.[VendorName]
 			    WHEN SL.[PurchaseOrderId] > 0  THEN (SELECT POV.VendorName FROM [dbo].[PurchaseOrder] POV WITH(NOLOCK) INNER JOIN [dbo].[Vendor] V WITH(NOLOCK) ON POV.VendorId = V.VendorId WHERE SL.PurchaseOrderId = POV.PurchaseOrderId)
 			    WHEN SL.[RepairOrderId] > 0  THEN (SELECT ROV.VendorName FROM [dbo].[RepairOrder] ROV WITH(NOLOCK) INNER JOIN [dbo].[Vendor] V WITH(NOLOCK) ON ROV.VendorId = V.VendorId WHERE SL.RepairOrderId = ROV.RepairOrderId)
@@ -245,7 +250,7 @@ BEGIN
             @DatabaseName varchar(100) = DB_NAME()
             -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
             ,@AdhocComments varchar(150) = '[USP_VendorRMA_GetVendorStockList]'
-			,@ProcedureParameters VARCHAR(3000)  = '@PageNumber = '''+ ISNULL(@PageNumber, '') + ''',  
+			,@ProcedureParameters VARCHAR(3000)  = '@PageNumber = '''+ ISNULL(CAST(@PageNumber AS VARCHAR(20)), '') + ''',  
              @PageSize = ' + ISNULL(@PageSize,'') + ',   
              @SortColumn = ' + ISNULL(@SortColumn,'') + ',   
              @SortOrder = ' + ISNULL(@SortOrder,'') + ',   

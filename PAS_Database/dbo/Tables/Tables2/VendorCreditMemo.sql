@@ -5,9 +5,9 @@
     [RMANum]                   VARCHAR (100)   NULL,
     [VendorCreditMemoStatusId] INT             NOT NULL,
     [CurrencyId]               INT             NULL,
-    [OriginalAmt]              DECIMAL (18, 2) NULL,
-    [ApplierdAmt]              DECIMAL (18, 2) NULL,
-    [RefundAmt]                DECIMAL (18, 2) NULL,
+    [OriginalAmt]              DECIMAL (18, 6) NULL,
+    [ApplierdAmt]              DECIMAL (18, 6) NULL,
+    [RefundAmt]                DECIMAL (18, 6) NULL,
     [RefundDate]               DATETIME2 (7)   NOT NULL,
     [MasterCompanyId]          INT             NOT NULL,
     [CreatedBy]                VARCHAR (256)   NOT NULL,
@@ -25,8 +25,4 @@
     CONSTRAINT [PK_VendorCreditMemo] PRIMARY KEY CLUSTERED ([VendorCreditMemoId] ASC),
     CONSTRAINT [FK_VendorCreditMemo_VendorRMA] FOREIGN KEY ([VendorRMAId]) REFERENCES [dbo].[VendorRMA] ([VendorRMAId])
 );
-
-
-
-
 

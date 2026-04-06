@@ -34,6 +34,7 @@
 	23  12-03-2026	    Moin Bloch			    Modify to (Added WOMStockLIneId) PN-15605
 	24  17-03-2026	    Moin Bloch			    Modify to StocklineQtytobeReserved  SET 0 For For Stock Provision PN-15765
 	25  26/03/2026      Moin Bloch	            Rename TearDown To Internal Teardown PN-15850
+	26  03/Apr/2026     Rajesh Gami	            Getting UOM (Stock and consume) based on ItemMaster [PN-15911]
  EXECUTE [dbo].[USP_GetWorkOrderMaterialsList] 4257,3782, 0
 exec dbo.USP_GetWorkOrderMaterialsListNew @PageNumber=1,@PageSize=10,@SortColumn=default,@SortOrder=1,@WorkOrderId=5960,@WFWOId=5553,@ShowPendingToIssue=1
 **************************************************************/
@@ -761,8 +762,8 @@ SET NOCOUNT ON
 						,(ISNULL(MSTL.QtyReserved,0) * ISNULL(MSTL.UnitCost,0)) AS [ReservedStkExtendedCost]
 						,CASE WHEN ISNULL(SL.PurchaseOrderId, 0) <> 0 THEN (SELECT TOP 1 po.PurchaseOrderNumber FROM [dbo].[PurchaseOrder] po WITH (NOLOCK) WHERE SL.PurchaseOrderId = po.PurchaseOrderId AND SL.PurchaseOrderId = WOM.POId) ELSE '' END AS [StkPONum]
 						,CASE WHEN ISNULL(SL.PurchaseOrderId, 0) <> 0 THEN (SELECT TOP 1 po.OpenDate FROM [dbo].[PurchaseOrder] po WITH (NOLOCK) WHERE SL.PurchaseOrderId = po.PurchaseOrderId AND SL.PurchaseOrderId = WOM.POId) ELSE NULL END AS [StkPONextDlvrDate]
-						,SL.ConsumeUnitOfMeasure
-						,SL.StockUnitOfMeasure
+						,uomConsume.ShortName  ConsumeUnitOfMeasure
+						,uomStock.ShortName StockUnitOfMeasure
 					FROM dbo.WorkOrderMaterials WOM WITH (NOLOCK)  
 						JOIN dbo.ItemMaster IM WITH (NOLOCK) ON IM.ItemMasterId = WOM.ItemMasterId
 						JOIN dbo.UnitOfMeasure UOM WITH (NOLOCK) ON UOM.UnitOfMeasureId = IM.PurchaseUnitOfMeasureId
@@ -771,9 +772,9 @@ SET NOCOUNT ON
 						JOIN dbo.MaterialMandatories MM WITH (NOLOCK) ON MM.Id = WOM.MaterialMandatoriesId
 						LEFT JOIN dbo.WorkOrderMaterialStockLine MSTL WITH (NOLOCK) ON MSTL.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId AND MSTL.IsDeleted = 0
 						LEFT JOIN dbo.Stockline SL WITH (NOLOCK) ON SL.StockLineId = MSTL.StockLineId
-						LEFT JOIN dbo.UnitOfMeasure SUOM WITH (NOLOCK) ON SUOM.UnitOfMeasureId = SL.PurchaseUnitOfMeasureId
-						LEFT JOIN dbo.UnitOfMeasure uomStock WITH (NOLOCK) ON uomStock.UnitOfMeasureId = SL.StockUnitOfMeasureId
-						LEFT JOIN dbo.UnitOfMeasure uomConsume WITH (NOLOCK) ON uomConsume.UnitOfMeasureId = SL.ConsumeUnitOfMeasureId
+						LEFT JOIN dbo.UnitOfMeasure SUOM WITH (NOLOCK) ON SUOM.UnitOfMeasureId = IM.PurchaseUnitOfMeasureId
+						LEFT JOIN dbo.UnitOfMeasure uomStock WITH (NOLOCK) ON uomStock.UnitOfMeasureId = IM.StockUnitOfMeasureId
+						LEFT JOIN dbo.UnitOfMeasure uomConsume WITH (NOLOCK) ON uomConsume.UnitOfMeasureId = IM.ConsumeUnitOfMeasureId
 						--LEFT JOIN dbo.WorkOrderMaterialStockLine MSTL_PO WITH (NOLOCK) ON MSTL_PO.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId AND MSTL_PO.IsDeleted = 0 AND WOM.ConditionCodeId = MSTL_PO.ConditionId AND WOM.ItemMasterId = MSTL_PO.ItemMasterId AND WOM.POId > 0
 						LEFT JOIN dbo.Condition Stk_C WITH (NOLOCK) ON Stk_C.ConditionId = SL.ConditionId
 						LEFT JOIN dbo.ItemMasterPurchaseSale IMPS WITH (NOLOCK) ON IM.ItemMasterId = IMPS.ItemMasterId AND WOM.ConditionCodeId = IMPS.ConditionId
@@ -1003,8 +1004,8 @@ SET NOCOUNT ON
 						,(ISNULL(MSTL.QtyReserved,0) * ISNULL(MSTL.UnitCost,0)) AS [ReservedStkExtendedCost]
 						,CASE WHEN ISNULL(SL.PurchaseOrderId, 0) <> 0 THEN (SELECT TOP 1 po.PurchaseOrderNumber FROM [dbo].[PurchaseOrder] po WITH (NOLOCK) where SL.PurchaseOrderId = po.PurchaseOrderId AND SL.PurchaseOrderId = WOM.POId) ELSE '' END AS [StkPONum]
 						,CASE WHEN ISNULL(SL.PurchaseOrderId, 0) <> 0 THEN (SELECT TOP 1 po.OpenDate FROM [dbo].[PurchaseOrder] po WITH (NOLOCK) where SL.PurchaseOrderId = po.PurchaseOrderId AND SL.PurchaseOrderId = WOM.POId) ELSE NULL END AS [StkPONextDlvrDate]
-						,SL.ConsumeUnitOfMeasure
-						,SL.StockUnitOfMeasure
+						,uomConsume.ShortName  ConsumeUnitOfMeasure
+						,uomStock.ShortName StockUnitOfMeasure
 					FROM dbo.WorkOrderMaterialsKit WOM WITH (NOLOCK)  
 						JOIN dbo.ItemMaster IM WITH (NOLOCK) ON IM.ItemMasterId = WOM.ItemMasterId
 						JOIN dbo.UnitOfMeasure UOM WITH (NOLOCK) ON UOM.UnitOfMeasureId = IM.PurchaseUnitOfMeasureId
@@ -1013,9 +1014,9 @@ SET NOCOUNT ON
 						JOIN dbo.MaterialMandatories MM WITH (NOLOCK) ON MM.Id = WOM.MaterialMandatoriesId
 						LEFT JOIN dbo.WorkOrderMaterialStockLineKit MSTL WITH (NOLOCK) ON MSTL.WorkOrderMaterialsKitId = WOM.WorkOrderMaterialsKitId AND MSTL.IsDeleted = 0
 						LEFT JOIN dbo.Stockline SL WITH (NOLOCK) ON SL.StockLineId = MSTL.StockLineId
-						LEFT JOIN dbo.UnitOfMeasure SUOM WITH (NOLOCK) ON SUOM.UnitOfMeasureId = SL.PurchaseUnitOfMeasureId
-						LEFT JOIN dbo.UnitOfMeasure uomStock WITH (NOLOCK) ON uomStock.UnitOfMeasureId = SL.StockUnitOfMeasureId
-						LEFT JOIN dbo.UnitOfMeasure uomConsume WITH (NOLOCK) ON uomConsume.UnitOfMeasureId = SL.ConsumeUnitOfMeasureId
+						LEFT JOIN dbo.UnitOfMeasure SUOM WITH (NOLOCK) ON SUOM.UnitOfMeasureId = IM.PurchaseUnitOfMeasureId
+						LEFT JOIN dbo.UnitOfMeasure uomStock WITH (NOLOCK) ON uomStock.UnitOfMeasureId = IM.StockUnitOfMeasureId
+						LEFT JOIN dbo.UnitOfMeasure uomConsume WITH (NOLOCK) ON uomConsume.UnitOfMeasureId = IM.ConsumeUnitOfMeasureId
 						LEFT JOIN dbo.Condition Stk_C WITH (NOLOCK) ON Stk_C.ConditionId = SL.ConditionId
 						--LEFT JOIN dbo.WorkOrderMaterialStockLineKit MSTL_PO WITH (NOLOCK) ON MSTL_PO.WorkOrderMaterialsKitId = WOM.WorkOrderMaterialsKitId AND MSTL_PO.IsDeleted = 0 AND WOM.ConditionCodeId = MSTL_PO.ConditionId AND WOM.ItemMasterId = MSTL_PO.ItemMasterId AND WOM.POId > 0
 						LEFT JOIN dbo.ItemMasterPurchaseSale IMPS WITH (NOLOCK) ON IM.ItemMasterId = IMPS.ItemMasterId AND WOM.ConditionCodeId = IMPS.ConditionId
@@ -1258,8 +1259,8 @@ SET NOCOUNT ON
 						,(ISNULL(MSTL.QtyReserved,0) * ISNULL(MSTL.UnitCost,0)) AS [ReservedStkExtendedCost]
 						,CASE WHEN ISNULL(SL.PurchaseOrderId, 0) <> 0 THEN (SELECT TOP 1 po.PurchaseOrderNumber FROM [dbo].[PurchaseOrder] po WITH (NOLOCK) where SL.PurchaseOrderId = po.PurchaseOrderId AND SL.PurchaseOrderId = WOM.POId) ELSE '' END AS [StkPONum]
 						,CASE WHEN ISNULL(SL.PurchaseOrderId, 0) <> 0 THEN (SELECT TOP 1 po.OpenDate FROM [dbo].[PurchaseOrder] po WITH (NOLOCK) where SL.PurchaseOrderId = po.PurchaseOrderId AND SL.PurchaseOrderId = WOM.POId) ELSE NULL END AS [StkPONextDlvrDate]
-						,SL.ConsumeUnitOfMeasure
-						,SL.StockUnitOfMeasure
+						,uomConsume.ShortName  ConsumeUnitOfMeasure
+						,uomStock.ShortName StockUnitOfMeasure
 					FROM dbo.WorkOrderMaterials WOM WITH (NOLOCK)  
 						JOIN dbo.ItemMaster IM WITH (NOLOCK) ON IM.ItemMasterId = WOM.ItemMasterId
 						JOIN dbo.UnitOfMeasure UOM WITH (NOLOCK) ON UOM.UnitOfMeasureId = IM.PurchaseUnitOfMeasureId
@@ -1268,9 +1269,9 @@ SET NOCOUNT ON
 						JOIN dbo.MaterialMandatories MM WITH (NOLOCK) ON MM.Id = WOM.MaterialMandatoriesId
 						LEFT JOIN dbo.WorkOrderMaterialStockLine MSTL WITH (NOLOCK) ON MSTL.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId AND MSTL.IsDeleted = 0
 						LEFT JOIN dbo.Stockline SL WITH (NOLOCK) ON SL.StockLineId = MSTL.StockLineId
-						LEFT JOIN dbo.UnitOfMeasure SUOM WITH (NOLOCK) ON SUOM.UnitOfMeasureId = SL.PurchaseUnitOfMeasureId
-						LEFT JOIN dbo.UnitOfMeasure uomStock WITH (NOLOCK) ON uomStock.UnitOfMeasureId = SL.StockUnitOfMeasureId
-						LEFT JOIN dbo.UnitOfMeasure uomConsume WITH (NOLOCK) ON uomConsume.UnitOfMeasureId = SL.ConsumeUnitOfMeasureId
+						LEFT JOIN dbo.UnitOfMeasure SUOM WITH (NOLOCK) ON SUOM.UnitOfMeasureId = IM.PurchaseUnitOfMeasureId
+						LEFT JOIN dbo.UnitOfMeasure uomStock WITH (NOLOCK) ON uomStock.UnitOfMeasureId = IM.StockUnitOfMeasureId
+						LEFT JOIN dbo.UnitOfMeasure uomConsume WITH (NOLOCK) ON uomConsume.UnitOfMeasureId = IM.ConsumeUnitOfMeasureId
 						--LEFT JOIN dbo.WorkOrderMaterialStockLine MSTL_PO WITH (NOLOCK) ON MSTL_PO.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId AND MSTL_PO.IsDeleted = 0 AND WOM.ConditionCodeId = MSTL_PO.ConditionId AND WOM.ItemMasterId = MSTL_PO.ItemMasterId AND WOM.POId > 0
 						LEFT JOIN dbo.Condition Stk_C WITH (NOLOCK) ON Stk_C.ConditionId = MSTL.ConditionId -- DO Not Modify this 
 						--LEFT JOIN dbo.Stockline SL_PO WITH (NOLOCK) ON SL.StockLineId = MSTL.StockLineId
@@ -1501,8 +1502,8 @@ SET NOCOUNT ON
 						,(ISNULL(MSTL.QtyReserved,0) * ISNULL(MSTL.UnitCost,0)) AS [ReservedStkExtendedCost]
 						,CASE WHEN ISNULL(SL.PurchaseOrderId, 0) <> 0 THEN (SELECT TOP 1 po.PurchaseOrderNumber FROM [dbo].[PurchaseOrder] po WITH (NOLOCK) where SL.PurchaseOrderId = po.PurchaseOrderId AND SL.PurchaseOrderId = WOM.POId) ELSE '' END AS [StkPONum]
 						,CASE WHEN ISNULL(SL.PurchaseOrderId, 0) <> 0 THEN (SELECT TOP 1 po.OpenDate FROM [dbo].[PurchaseOrder] po WITH (NOLOCK) where SL.PurchaseOrderId = po.PurchaseOrderId AND SL.PurchaseOrderId = WOM.POId) ELSE NULL END AS [StkPONextDlvrDate]
-						,SL.ConsumeUnitOfMeasure
-						,SL.StockUnitOfMeasure
+						,uomConsume.ShortName  ConsumeUnitOfMeasure
+						,uomStock.ShortName StockUnitOfMeasure
 					FROM dbo.WorkOrderMaterialsKit WOM WITH (NOLOCK)  
 						JOIN dbo.ItemMaster IM WITH (NOLOCK) ON IM.ItemMasterId = WOM.ItemMasterId
 						JOIN dbo.UnitOfMeasure UOM WITH (NOLOCK) ON UOM.UnitOfMeasureId = IM.PurchaseUnitOfMeasureId
@@ -1511,9 +1512,9 @@ SET NOCOUNT ON
 						JOIN dbo.MaterialMandatories MM WITH (NOLOCK) ON MM.Id = WOM.MaterialMandatoriesId
 						LEFT JOIN dbo.WorkOrderMaterialStockLineKit MSTL WITH (NOLOCK) ON MSTL.WorkOrderMaterialsKitId = WOM.WorkOrderMaterialsKitId AND MSTL.IsDeleted = 0
 						LEFT JOIN dbo.Stockline SL WITH (NOLOCK) ON SL.StockLineId = MSTL.StockLineId -- DO Not Modify this 
-						LEFT JOIN dbo.UnitOfMeasure SUOM WITH (NOLOCK) ON SUOM.UnitOfMeasureId = SL.PurchaseUnitOfMeasureId
-						LEFT JOIN dbo.UnitOfMeasure uomStock WITH (NOLOCK) ON uomStock.UnitOfMeasureId = SL.StockUnitOfMeasureId
-						LEFT JOIN dbo.UnitOfMeasure uomConsume WITH (NOLOCK) ON uomConsume.UnitOfMeasureId = SL.ConsumeUnitOfMeasureId
+						LEFT JOIN dbo.UnitOfMeasure SUOM WITH (NOLOCK) ON SUOM.UnitOfMeasureId = IM.PurchaseUnitOfMeasureId
+						LEFT JOIN dbo.UnitOfMeasure uomStock WITH (NOLOCK) ON uomStock.UnitOfMeasureId = IM.StockUnitOfMeasureId
+						LEFT JOIN dbo.UnitOfMeasure uomConsume WITH (NOLOCK) ON uomConsume.UnitOfMeasureId = IM.ConsumeUnitOfMeasureId
 						LEFT JOIN dbo.Condition Stk_C WITH (NOLOCK) ON Stk_C.ConditionId = MSTL.ConditionId
 						--LEFT JOIN dbo.WorkOrderMaterialStockLineKit MSTL_PO WITH (NOLOCK) ON MSTL_PO.WorkOrderMaterialsKitId = WOM.WorkOrderMaterialsKitId AND MSTL_PO.IsDeleted = 0 AND WOM.ConditionCodeId = MSTL_PO.ConditionId AND WOM.ItemMasterId = MSTL_PO.ItemMasterId AND WOM.POId > 0
 						LEFT JOIN dbo.ItemMasterPurchaseSale IMPS WITH (NOLOCK) ON IM.ItemMasterId = IMPS.ItemMasterId AND WOM.ConditionCodeId = IMPS.ConditionId

@@ -13,7 +13,7 @@
 	2	11/03/2025		Moin Bloch			    Fixed Issue For Duplicate Records
 	3	18/04/2025		Devendra Shekh			Fixed Issue For Duplicate Records for Alt/Equ Part for parent Download
 	4   26/03/2026      Moin Bloch	            Rename TearDown To Internal Teardown PN-15850
-
+	5   03/Apr/2026     RAJESH GAMI	            UOM Changes [PN-15913]
  EXECUTE [dbo].[USP_GetWorkOrderMaterialsDownload] 4257,3782, 0
  exec dbo.USP_GetWorkOrderMaterialsDownload 8354,7964,1,1
  **************************************************************/
@@ -50,11 +50,11 @@ SET NOCOUNT ON
 				[StockLineId] [bigint] NOT NULL,
 				[ItemMasterId] [bigint] NULL,
 				[ConditionId] [bigint] NOT NULL,
-				[QuantityOnHand] [int] NOT NULL,
-				[QuantityReserved] [int] NULL,
-				[QuantityAvailable] [int] NULL,
-				[QuantityTurnIn] [int] NULL,
-				[QuantityOnOrder] [int] NULL,
+				[QuantityOnHand] [decimal](18,6) NOT NULL,
+				[QuantityReserved] [decimal](18,6) NULL,
+				[QuantityAvailable] [decimal](18,6) NULL,
+				[QuantityTurnIn] [decimal](18,6) NULL,
+				[QuantityOnOrder] [decimal](18,6) NULL,
 				[IsParent] [bit] NULL,
 			)
 			CREATE TABLE #tmpWOMStockline
@@ -63,8 +63,8 @@ SET NOCOUNT ON
 				[StockLineId] [bigint] NOT NULL,
 				[WorkOrderMaterialsId] [bigint] NULL,
 				[ConditionId] [bigint] NOT NULL,
-				[QtyIssued] [int] NOT NULL,
-				[QtyReserved] [int] NULL,
+				[QtyIssued] [decimal](18,6) NOT NULL,
+				[QtyReserved] [decimal](18,6) NULL,
 				[IsActive] BIT NULL,
 				[IsDeleted] BIT NULL,
 			)
@@ -74,8 +74,8 @@ SET NOCOUNT ON
 				[StockLineId] [bigint] NOT NULL,
 				[WorkOrderMaterialsId] [bigint] NULL,
 				[ConditionId] [bigint] NOT NULL,
-				[QtyIssued] [int] NOT NULL,
-				[QtyReserved] [int] NULL,
+				[QtyIssued] [decimal](18,6) NOT NULL,
+				[QtyReserved] [decimal](18,6) NULL,
 				[IsActive] BIT NULL,
 				[IsDeleted] BIT NULL,
 			)
@@ -85,11 +85,11 @@ SET NOCOUNT ON
 				[StockLineId] [bigint] NOT NULL,
 				[ItemMasterId] [bigint] NULL,
 				[ConditionId] [bigint] NOT NULL,
-				[QuantityOnHand] [int] NOT NULL,
-				[QuantityReserved] [int] NULL,
-				[QuantityAvailable] [int] NULL,
-				[QuantityTurnIn] [int] NULL,
-				[QuantityOnOrder] [int] NULL,
+				[QuantityOnHand] [decimal](18,6) NOT NULL,
+				[QuantityReserved] [decimal](18,6) NULL,
+				[QuantityAvailable] [decimal](18,6) NULL,
+				[QuantityTurnIn] [decimal](18,6) NULL,
+				[QuantityOnOrder] [decimal](18,6) NULL,
 				[IsParent] [bit] NULL,
 			)
 
@@ -247,9 +247,13 @@ SET NOCOUNT ON
 							WOM.[Memo],
 							WOM.[ExpectedSerialNumber],
 							'No' [IsKitItem]
+								,uomConsume.ShortName  ConsumeUnitOfMeasure
+						,uomStock.ShortName StockUnitOfMeasure
 						FROM [dbo].[WorkOrderMaterials] WOM WITH (NOLOCK)  
 							INNER JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON IM.[ItemMasterId] = WOM.[ItemMasterId]
 							INNER JOIN [dbo].[UnitOfMeasure] UOM WITH (NOLOCK) ON UOM.[UnitOfMeasureId] = IM.[PurchaseUnitOfMeasureId]
+							LEFT JOIN dbo.UnitOfMeasure uomStock WITH (NOLOCK) ON uomStock.UnitOfMeasureId = IM.StockUnitOfMeasureId
+							LEFT JOIN dbo.UnitOfMeasure uomConsume WITH (NOLOCK) ON uomConsume.UnitOfMeasureId = IM.ConsumeUnitOfMeasureId
 							INNER JOIN [dbo].[Condition] CO WITH (NOLOCK) ON CO.[ConditionId] = WOM.[ConditionCodeId]
 							INNER JOIN [dbo].[WorkOrderWorkFlow] WOWF WITH (NOLOCK) ON WOWF.[WorkFlowWorkOrderId] = WOM.[WorkFlowWorkOrderId]
 							INNER JOIN [dbo].[MaterialMandatories] MM WITH (NOLOCK) ON MM.[Id] = WOM.[MaterialMandatoriesId]
@@ -345,9 +349,13 @@ SET NOCOUNT ON
 						WOM.[Memo],
 						''  [ExpectedSerialNumber],
 						'Yes' [IsKitItem]
+						,uomConsume.ShortName  ConsumeUnitOfMeasure
+						,uomStock.ShortName StockUnitOfMeasure
 					FROM [dbo].[WorkOrderMaterialsKit] WOM WITH (NOLOCK)  
 						INNER JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON IM.ItemMasterId = WOM.ItemMasterId
 						INNER JOIN [dbo].[UnitOfMeasure] UOM WITH (NOLOCK) ON UOM.UnitOfMeasureId = IM.PurchaseUnitOfMeasureId
+						LEFT JOIN dbo.UnitOfMeasure uomStock WITH (NOLOCK) ON uomStock.UnitOfMeasureId = IM.StockUnitOfMeasureId
+						LEFT JOIN dbo.UnitOfMeasure uomConsume WITH (NOLOCK) ON uomConsume.UnitOfMeasureId = IM.ConsumeUnitOfMeasureId
 						INNER JOIN [dbo].[Condition] CO WITH (NOLOCK) ON CO.ConditionId = WOM.ConditionCodeId
 						INNER JOIN [dbo].[WorkOrderWorkFlow] WOWF WITH (NOLOCK) ON WOWF.WorkFlowWorkOrderId = WOM.WorkFlowWorkOrderId
 						INNER JOIN [dbo].[MaterialMandatories] MM WITH (NOLOCK) ON MM.Id = WOM.MaterialMandatoriesId
@@ -360,7 +368,46 @@ SET NOCOUNT ON
 					WHERE WOM.[IsDeleted] = 0 AND WOM.[WorkFlowWorkOrderId] = @WorkFlowWorkOrderId-- AND MSTL.[StockLineId] IS NULL
 						AND (ISNULL(WOM.Quantity,0) - ISNULL(WOM.QuantityIssued,0) > 0)		
 				)
-				SELECT * FROM MaterialResult 
+					SELECT 
+						TaskName,
+						PartNumber,
+						AlterPartNumber,
+						PartDescription,
+						ManufacturerName,
+						[Condition],
+						MandatoryOrSupplemental,
+						[Provision],
+						dbo.fn_ConvertUOM(Quantity, StockUnitOfMeasure, ConsumeUnitOfMeasure,0,@MasterCompanyId) Quantity,
+						kitStocklineQuantity,
+						dbo.fn_ConvertUOM(QuantityReserved, StockUnitOfMeasure, ConsumeUnitOfMeasure,0,@MasterCompanyId)QuantityReserved,
+						dbo.fn_ConvertUOM(QtytobeReserved, StockUnitOfMeasure, ConsumeUnitOfMeasure,0,@MasterCompanyId)QtytobeReserved,
+						dbo.fn_ConvertUOM(QuantityIssued, StockUnitOfMeasure, ConsumeUnitOfMeasure,0,@MasterCompanyId)QuantityIssued,
+						dbo.fn_ConvertUOM(QunatityRemaining, StockUnitOfMeasure, ConsumeUnitOfMeasure,0,@MasterCompanyId)QunatityRemaining,
+						dbo.fn_ConvertUOM(PartQtyToTurnIn, StockUnitOfMeasure, ConsumeUnitOfMeasure,0,@MasterCompanyId)PartQtyToTurnIn,
+						dbo.fn_ConvertUOM(PartQuantityTurnIn, StockUnitOfMeasure, ConsumeUnitOfMeasure,0,@MasterCompanyId)PartQuantityTurnIn,
+						dbo.fn_ConvertUOM(PartQuantityOnHand, StockUnitOfMeasure, ConsumeUnitOfMeasure,0,@MasterCompanyId)PartQuantityOnHand,
+						dbo.fn_ConvertUOM(PartQuantityAvailable, StockUnitOfMeasure, ConsumeUnitOfMeasure,0,@MasterCompanyId) PartQuantityAvailable,
+						ConsumeUnitOfMeasure AS UOM,
+						StockType,
+						needDate,
+						Currency,
+						dbo.fn_ConvertUOM(UnitCost, StockUnitOfMeasure, ConsumeUnitOfMeasure,1,@MasterCompanyId) UnitCost,
+						ExtendedCost,
+						dbo.fn_ConvertUOM(QtyOnOrder, StockUnitOfMeasure, ConsumeUnitOfMeasure,0,@MasterCompanyId)QtyOnOrder,
+						dbo.fn_ConvertUOM(QtyOnBkOrder, StockUnitOfMeasure, ConsumeUnitOfMeasure,0,@MasterCompanyId)QtyOnBkOrder,
+						PONum,
+						PONextDlvrDate,
+						Figure,
+						Item,
+						IsFromWorkFlow,
+						Employeename,
+						IsDeferred,
+						Memo,
+						ExpectedSerialNumber,
+						IsKitItem,
+						ConsumeUnitOfMeasure,
+						StockUnitOfMeasure
+					FROM MaterialResult;
 				END
 				ELSE
 				BEGIN
@@ -442,9 +489,13 @@ SET NOCOUNT ON
 							WOM.[Memo],
 							WOM.[ExpectedSerialNumber],
 							'No' [IsKitItem]
+							,uomConsume.ShortName  ConsumeUnitOfMeasure
+						,uomStock.ShortName StockUnitOfMeasure
 						FROM [dbo].[WorkOrderMaterials] WOM WITH (NOLOCK)  
 							INNER JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON IM.[ItemMasterId] = WOM.[ItemMasterId]
 							INNER JOIN [dbo].[UnitOfMeasure] UOM WITH (NOLOCK) ON UOM.[UnitOfMeasureId] = IM.[PurchaseUnitOfMeasureId]
+							LEFT JOIN dbo.UnitOfMeasure uomStock WITH (NOLOCK) ON uomStock.UnitOfMeasureId = IM.StockUnitOfMeasureId
+							LEFT JOIN dbo.UnitOfMeasure uomConsume WITH (NOLOCK) ON uomConsume.UnitOfMeasureId = IM.ConsumeUnitOfMeasureId
 							INNER JOIN [dbo].[Condition] CO WITH (NOLOCK) ON CO.[ConditionId] = WOM.[ConditionCodeId]
 							INNER JOIN [dbo].[WorkOrderWorkFlow] WOWF WITH (NOLOCK) ON WOWF.[WorkFlowWorkOrderId] = WOM.[WorkFlowWorkOrderId]
 							INNER JOIN [dbo].[MaterialMandatories] MM WITH (NOLOCK) ON MM.[Id] = WOM.[MaterialMandatoriesId]
@@ -539,9 +590,13 @@ SET NOCOUNT ON
 						WOM.[Memo],
 						''  [ExpectedSerialNumber],
 						'Yes' [IsKitItem]
+						,uomConsume.ShortName  ConsumeUnitOfMeasure
+						,uomStock.ShortName StockUnitOfMeasure
 					FROM [dbo].[WorkOrderMaterialsKit] WOM WITH (NOLOCK)  
 						INNER JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON IM.ItemMasterId = WOM.ItemMasterId
 						INNER JOIN [dbo].[UnitOfMeasure] UOM WITH (NOLOCK) ON UOM.UnitOfMeasureId = IM.PurchaseUnitOfMeasureId
+						LEFT JOIN dbo.UnitOfMeasure uomStock WITH (NOLOCK) ON uomStock.UnitOfMeasureId = IM.StockUnitOfMeasureId
+						LEFT JOIN dbo.UnitOfMeasure uomConsume WITH (NOLOCK) ON uomConsume.UnitOfMeasureId = IM.ConsumeUnitOfMeasureId
 						INNER JOIN [dbo].[Condition] CO WITH (NOLOCK) ON CO.ConditionId = WOM.ConditionCodeId
 						INNER JOIN [dbo].[WorkOrderWorkFlow] WOWF WITH (NOLOCK) ON WOWF.WorkFlowWorkOrderId = WOM.WorkFlowWorkOrderId
 						INNER JOIN [dbo].[MaterialMandatories] MM WITH (NOLOCK) ON MM.Id = WOM.MaterialMandatoriesId
@@ -553,7 +608,47 @@ SET NOCOUNT ON
 						 LEFT JOIN [dbo].[WorkOrderTask] WOT WITH (NOLOCK) ON WOT.WorkOrderTaskId = WOM.TaskId						
 					WHERE WOM.[IsDeleted] = 0 AND WOM.[WorkFlowWorkOrderId] = @WorkFlowWorkOrderId		
 				)
-				SELECT* FROM MaterialResult 
+				SELECT 
+						TaskName,
+						PartNumber,
+						AlterPartNumber,
+						PartDescription,
+						ManufacturerName,
+						[Condition],
+						MandatoryOrSupplemental,
+						[Provision],
+						dbo.fn_ConvertUOM(Quantity, StockUnitOfMeasure, ConsumeUnitOfMeasure,0,@MasterCompanyId) Quantity,
+						kitStocklineQuantity,
+						dbo.fn_ConvertUOM(QuantityReserved, StockUnitOfMeasure, ConsumeUnitOfMeasure,0,@MasterCompanyId)QuantityReserved,
+						dbo.fn_ConvertUOM(QtytobeReserved, StockUnitOfMeasure, ConsumeUnitOfMeasure,0,@MasterCompanyId)QtytobeReserved,
+						dbo.fn_ConvertUOM(QuantityIssued, StockUnitOfMeasure, ConsumeUnitOfMeasure,0,@MasterCompanyId)QuantityIssued,
+						dbo.fn_ConvertUOM(QunatityRemaining, StockUnitOfMeasure, ConsumeUnitOfMeasure,0,@MasterCompanyId)QunatityRemaining,
+						dbo.fn_ConvertUOM(PartQtyToTurnIn, StockUnitOfMeasure, ConsumeUnitOfMeasure,0,@MasterCompanyId)PartQtyToTurnIn,
+						dbo.fn_ConvertUOM(PartQuantityTurnIn, StockUnitOfMeasure, ConsumeUnitOfMeasure,0,@MasterCompanyId)PartQuantityTurnIn,
+						dbo.fn_ConvertUOM(PartQuantityOnHand, StockUnitOfMeasure, ConsumeUnitOfMeasure,0,@MasterCompanyId)PartQuantityOnHand,
+						dbo.fn_ConvertUOM(PartQuantityAvailable, StockUnitOfMeasure, ConsumeUnitOfMeasure,0,@MasterCompanyId) PartQuantityAvailable,
+						ConsumeUnitOfMeasure AS UOM,
+						StockType,
+						needDate,
+						Currency,
+						dbo.fn_ConvertUOM(UnitCost, StockUnitOfMeasure, ConsumeUnitOfMeasure,1,@MasterCompanyId) UnitCost,
+						ExtendedCost,
+						dbo.fn_ConvertUOM(QtyOnOrder, StockUnitOfMeasure, ConsumeUnitOfMeasure,0,@MasterCompanyId)QtyOnOrder,
+						dbo.fn_ConvertUOM(QtyOnBkOrder, StockUnitOfMeasure, ConsumeUnitOfMeasure,0,@MasterCompanyId)QtyOnBkOrder,
+						PONum,
+						PONextDlvrDate,
+						Figure,
+						Item,
+						IsFromWorkFlow,
+						Employeename,
+						IsDeferred,
+						Memo,
+						ExpectedSerialNumber,
+						IsKitItem,
+						ConsumeUnitOfMeasure,
+						StockUnitOfMeasure
+					FROM MaterialResult;
+
 				END
 			END
 			ELSE 
@@ -608,9 +703,13 @@ SET NOCOUNT ON
 						 '' [SalesOrder],
 						 WOM.[Memo],
 						 'No' [IsKitItem]
+						 ,uomConsume.ShortName  ConsumeUnitOfMeasure
+						,uomStock.ShortName StockUnitOfMeasure
 					FROM [dbo].[WorkOrderMaterials] WOM WITH (NOLOCK)  
 						INNER JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON IM.ItemMasterId = WOM.ItemMasterId
 						INNER JOIN [dbo].[UnitOfMeasure] UOM WITH (NOLOCK) ON UOM.UnitOfMeasureId = IM.PurchaseUnitOfMeasureId
+								LEFT JOIN dbo.UnitOfMeasure uomStock WITH (NOLOCK) ON uomStock.UnitOfMeasureId = IM.StockUnitOfMeasureId
+						LEFT JOIN dbo.UnitOfMeasure uomConsume WITH (NOLOCK) ON uomConsume.UnitOfMeasureId = IM.ConsumeUnitOfMeasureId
 						INNER JOIN [dbo].[MaterialMandatories] MM WITH (NOLOCK) ON MM.Id = WOM.MaterialMandatoriesId
 					    INNER JOIN [dbo].[WorkOrderMaterialStockLine] MSTL WITH (NOLOCK) ON MSTL.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId AND MSTL.IsDeleted = 0
 						 LEFT JOIN [dbo].[Stockline] SL WITH (NOLOCK) ON SL.StockLineId = MSTL.StockLineId
@@ -680,9 +779,13 @@ SET NOCOUNT ON
 						'' [SalesOrder],
 						WOM.[Memo],
 						'Yes' [IsKitItem]
+						,uomConsume.ShortName  ConsumeUnitOfMeasure
+						,uomStock.ShortName StockUnitOfMeasure
 					FROM [dbo].[WorkOrderMaterialsKit] WOM WITH (NOLOCK)  
 						INNER JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON IM.ItemMasterId = WOM.ItemMasterId
 						INNER JOIN [dbo].[UnitOfMeasure] UOM WITH (NOLOCK) ON UOM.UnitOfMeasureId = IM.PurchaseUnitOfMeasureId
+								LEFT JOIN dbo.UnitOfMeasure uomStock WITH (NOLOCK) ON uomStock.UnitOfMeasureId = IM.StockUnitOfMeasureId
+						LEFT JOIN dbo.UnitOfMeasure uomConsume WITH (NOLOCK) ON uomConsume.UnitOfMeasureId = IM.ConsumeUnitOfMeasureId
 						INNER JOIN [dbo].[MaterialMandatories] MM WITH (NOLOCK) ON MM.Id = WOM.MaterialMandatoriesId
 						INNER JOIN [dbo].[WorkOrderMaterialStockLineKit] MSTL WITH (NOLOCK) ON MSTL.WorkOrderMaterialsKitId = WOM.WorkOrderMaterialsKitId AND MSTL.IsDeleted = 0
 						 LEFT JOIN [dbo].[Stockline] SL WITH (NOLOCK) ON SL.StockLineId = MSTL.StockLineId
@@ -699,7 +802,48 @@ SET NOCOUNT ON
 					WHERE WOM.[IsDeleted] = 0 AND WOM.[WorkFlowWorkOrderId] = @WorkFlowWorkOrderId
 						AND (ISNULL(WOM.[Quantity],0) - ISNULL(WOM.[QuantityIssued],0) > 0)
 				)
-				SELECT * FROM MaterialResult
+				SELECT 
+						StockLineNumber,
+						SerialNumber,
+						PartNumber,
+						PartDescription,
+						ManufacturerName,
+						StocklineCondition,
+						MandatoryOrSupplemental,
+						StocklineProvision,
+						dbo.fn_ConvertUOM(StocklineQuantity, StockUnitOfMeasure, ConsumeUnitOfMeasure,0,@MasterCompanyId) StocklineQuantity,
+						dbo.fn_ConvertUOM(kitStocklineQty, StockUnitOfMeasure, ConsumeUnitOfMeasure,0,@MasterCompanyId) kitStocklineQty,
+						dbo.fn_ConvertUOM(StocklineQtyReserved, StockUnitOfMeasure, ConsumeUnitOfMeasure,0,@MasterCompanyId) StocklineQtyReserved,
+						dbo.fn_ConvertUOM(StocklineQtytobeReserved, StockUnitOfMeasure, ConsumeUnitOfMeasure,0,@MasterCompanyId) StocklineQtytobeReserved,
+						dbo.fn_ConvertUOM(StocklineQtyIssued, StockUnitOfMeasure, ConsumeUnitOfMeasure,0,@MasterCompanyId) StocklineQtyIssued,
+						dbo.fn_ConvertUOM(StocklineQtyRemaining, StockUnitOfMeasure, ConsumeUnitOfMeasure,0,@MasterCompanyId) StocklineQtyRemaining,
+						dbo.fn_ConvertUOM(StocklineQtyToTurnIn, StockUnitOfMeasure, ConsumeUnitOfMeasure,0,@MasterCompanyId) StocklineQtyToTurnIn,
+						dbo.fn_ConvertUOM(StocklineQuantityTurnIn, StockUnitOfMeasure, ConsumeUnitOfMeasure,0,@MasterCompanyId) StocklineQuantityTurnIn,
+						dbo.fn_ConvertUOM(StockLineQuantityOnHand, StockUnitOfMeasure, ConsumeUnitOfMeasure,0,@MasterCompanyId) StockLineQuantityOnHand,
+						dbo.fn_ConvertUOM(StockLineQuantityAvailable, StockUnitOfMeasure, ConsumeUnitOfMeasure,0,@MasterCompanyId) StockLineQuantityAvailable,
+						ConsumeUnitOfMeasure UOM,
+						StockType,
+						NeedDate,
+						Currency,
+						dbo.fn_ConvertUOM(StocklineUnitCost, StockUnitOfMeasure, ConsumeUnitOfMeasure,1,@MasterCompanyId) StocklineUnitCost,
+						StocklineExtendedCost,
+						Employeename,
+						ControlNo,
+						ControlId,
+						CostDate,
+						RepairOrderNumber,
+						RONextDlvrDate,
+						Receiver,
+						StockLineFigure,
+						StockLineItem,
+						WorkOrderNumber,
+						SubWorkOrderNo,
+						SalesOrder,
+						Memo,
+						IsKitItem,
+						ConsumeUnitOfMeasure,
+						StockUnitOfMeasure
+					FROM MaterialResult;
 				END
 				ELSE
 				BEGIN
@@ -751,9 +895,13 @@ SET NOCOUNT ON
 						 '' [SalesOrder],
 						 WOM.[Memo],
 						 'No' [IsKitItem]
+						 ,uomConsume.ShortName  ConsumeUnitOfMeasure
+						,uomStock.ShortName StockUnitOfMeasure
 					FROM [dbo].[WorkOrderMaterials] WOM WITH (NOLOCK)  
 						INNER JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON IM.ItemMasterId = WOM.ItemMasterId
 						INNER JOIN [dbo].[UnitOfMeasure] UOM WITH (NOLOCK) ON UOM.UnitOfMeasureId = IM.PurchaseUnitOfMeasureId
+						LEFT JOIN dbo.UnitOfMeasure uomStock WITH (NOLOCK) ON uomStock.UnitOfMeasureId = IM.StockUnitOfMeasureId
+						LEFT JOIN dbo.UnitOfMeasure uomConsume WITH (NOLOCK) ON uomConsume.UnitOfMeasureId = IM.ConsumeUnitOfMeasureId
 						INNER JOIN [dbo].[MaterialMandatories] MM WITH (NOLOCK) ON MM.Id = WOM.MaterialMandatoriesId
 					    INNER JOIN [dbo].[WorkOrderMaterialStockLine] MSTL WITH (NOLOCK) ON MSTL.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId AND MSTL.IsDeleted = 0
 						 LEFT JOIN [dbo].[Stockline] SL WITH (NOLOCK) ON SL.StockLineId = MSTL.StockLineId
@@ -821,6 +969,8 @@ SET NOCOUNT ON
 						'' [SalesOrder],
 						WOM.[Memo],
 						'Yes' [IsKitItem]
+						,uomConsume.ShortName  ConsumeUnitOfMeasure
+						,uomStock.ShortName StockUnitOfMeasure
 					FROM [dbo].[WorkOrderMaterialsKit] WOM WITH (NOLOCK)  
 						INNER JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON IM.ItemMasterId = WOM.ItemMasterId
 						INNER JOIN [dbo].[UnitOfMeasure] UOM WITH (NOLOCK) ON UOM.UnitOfMeasureId = IM.PurchaseUnitOfMeasureId						
@@ -828,6 +978,8 @@ SET NOCOUNT ON
 						INNER JOIN [dbo].[WorkOrderMaterialStockLineKit] MSTL WITH (NOLOCK) ON MSTL.WorkOrderMaterialsKitId = WOM.WorkOrderMaterialsKitId AND MSTL.IsDeleted = 0
 						 LEFT JOIN [dbo].[Stockline] SL WITH (NOLOCK) ON SL.StockLineId = MSTL.StockLineId
 						 LEFT JOIN [dbo].[UnitOfMeasure] SUOM WITH (NOLOCK) ON SUOM.UnitOfMeasureId = SL.PurchaseUnitOfMeasureId
+						 LEFT JOIN dbo.UnitOfMeasure uomStock WITH (NOLOCK) ON uomStock.UnitOfMeasureId = IM.StockUnitOfMeasureId
+						 LEFT JOIN dbo.UnitOfMeasure uomConsume WITH (NOLOCK) ON uomConsume.UnitOfMeasureId = IM.ConsumeUnitOfMeasureId
 						 LEFT JOIN [dbo].[Condition] Stk_C WITH (NOLOCK) ON Stk_C.ConditionId = SL.ConditionId						
 						 LEFT JOIN [dbo].[Provision] SP WITH (NOLOCK) ON SP.ProvisionId = MSTL.ProvisionId
 						 LEFT JOIN [dbo].[Task] T WITH (NOLOCK) ON T.TaskId = WOM.TaskId
@@ -839,7 +991,48 @@ SET NOCOUNT ON
 						 LEFT JOIN [dbo].[ItemMaster] IMS WITH (NOLOCK) ON IMS.ItemMasterId = MSTL.ItemMasterId
 					WHERE WOM.[IsDeleted] = 0 AND WOM.[WorkFlowWorkOrderId] = @WorkFlowWorkOrderId			
 				)
-			    SELECT* FROM MaterialResult 
+			    SELECT 
+						StockLineNumber,
+						SerialNumber,
+						PartNumber,
+						PartDescription,
+						ManufacturerName,
+						StocklineCondition,
+						MandatoryOrSupplemental,
+						StocklineProvision,
+						dbo.fn_ConvertUOM(StocklineQuantity, StockUnitOfMeasure, ConsumeUnitOfMeasure,0,@MasterCompanyId) StocklineQuantity,
+						dbo.fn_ConvertUOM(kitStocklineQty, StockUnitOfMeasure, ConsumeUnitOfMeasure,0,@MasterCompanyId) kitStocklineQty,
+						dbo.fn_ConvertUOM(StocklineQtyReserved, StockUnitOfMeasure, ConsumeUnitOfMeasure,0,@MasterCompanyId) StocklineQtyReserved,
+						dbo.fn_ConvertUOM(StocklineQtytobeReserved, StockUnitOfMeasure, ConsumeUnitOfMeasure,0,@MasterCompanyId) StocklineQtytobeReserved,
+						dbo.fn_ConvertUOM(StocklineQtyIssued, StockUnitOfMeasure, ConsumeUnitOfMeasure,0,@MasterCompanyId) StocklineQtyIssued,
+						dbo.fn_ConvertUOM(StocklineQtyRemaining, StockUnitOfMeasure, ConsumeUnitOfMeasure,0,@MasterCompanyId) StocklineQtyRemaining,
+						dbo.fn_ConvertUOM(StocklineQtyToTurnIn, StockUnitOfMeasure, ConsumeUnitOfMeasure,0,@MasterCompanyId) StocklineQtyToTurnIn,
+						dbo.fn_ConvertUOM(StocklineQuantityTurnIn, StockUnitOfMeasure, ConsumeUnitOfMeasure,0,@MasterCompanyId) StocklineQuantityTurnIn,
+						dbo.fn_ConvertUOM(StockLineQuantityOnHand, StockUnitOfMeasure, ConsumeUnitOfMeasure,0,@MasterCompanyId) StockLineQuantityOnHand,
+						dbo.fn_ConvertUOM(StockLineQuantityAvailable, StockUnitOfMeasure, ConsumeUnitOfMeasure,0,@MasterCompanyId) StockLineQuantityAvailable,
+						ConsumeUnitOfMeasure UOM,
+						StockType,
+						NeedDate,
+						Currency,
+						dbo.fn_ConvertUOM(StocklineUnitCost, StockUnitOfMeasure, ConsumeUnitOfMeasure,1,@MasterCompanyId) StocklineUnitCost,
+						StocklineExtendedCost,
+						Employeename,
+						ControlNo,
+						ControlId,
+						CostDate,
+						RepairOrderNumber,
+						RONextDlvrDate,
+						Receiver,
+						StockLineFigure,
+						StockLineItem,
+						WorkOrderNumber,
+						SubWorkOrderNo,
+						SalesOrder,
+						Memo,
+						IsKitItem,
+						ConsumeUnitOfMeasure,
+						StockUnitOfMeasure
+					FROM MaterialResult;
 				END			
 			END
 		END

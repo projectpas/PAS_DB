@@ -17,7 +17,7 @@
 	4	 17/04/2024	  AMIT GHEDIYA		JeNumber filter added
 	5	 27/06/2024	  Bhargav Saliya    PostedBy filter added
     6	 08/04/2025	  Ekta Chandegra    Convert date using dbo.ConvertUTCtoLocal
-    7	 03/04/2026	  Bhargav Saliya    [PN-15892]::Add One Field @IsError
+    7	 06/04/2026	  Bhargav Saliya    [PN-15892]::Add One Field @IsError
 
  -- exec USP_GetJournalBatchDataList 92,1          
 **************************************************************/       

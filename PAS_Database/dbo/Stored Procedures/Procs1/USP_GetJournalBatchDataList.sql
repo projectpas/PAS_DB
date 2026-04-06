@@ -17,6 +17,7 @@
 	4	 17/04/2024	  AMIT GHEDIYA		JeNumber filter added
 	5	 27/06/2024	  Bhargav Saliya    PostedBy filter added
     6	 08/04/2025	  Ekta Chandegra    Convert date using dbo.ConvertUTCtoLocal
+    7	 06/04/2026	  Bhargav Saliya    [PN-15892]::Add One Field @IsError
 
  -- exec USP_GetJournalBatchDataList 92,1          
 **************************************************************/       
@@ -43,7 +44,8 @@ CREATE     PROCEDURE [dbo].[USP_GetJournalBatchDataList]
 @CreatedBy varchar(50),  
 @UpdatedBy varchar(50),
 @PostedBy varchar(50),
-@JeNumber varchar(100) = NULL
+@JeNumber varchar(100) = NULL,
+@IsError varchar(50) = null
 AS      
 BEGIN      
  SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED      
@@ -95,8 +97,9 @@ BEGIN
 	
 	IF(@JeNumber IS NULL OR @JeNumber = '')
 	BEGIN
-		   SELECT COUNT(1) OVER () AS NumberOfItems        
-				  ,JBH.[JournalBatchHeaderId]      
+	;WITH Result AS(
+		   SELECT --COUNT(1) OVER () AS NumberOfItems        
+				  JBH.[JournalBatchHeaderId]      
 						   ,JBH.[BatchName]      
 						   ,JBH.[CurrentNumber]    
 						   ,(Cast(DBO.ConvertUTCtoLocal(JBH.[EntryDate],@CurrntEmpTimeZoneDesc)AS DATETIME)) as EntryDate
@@ -117,13 +120,16 @@ BEGIN
 						   ,JBH.[IsActive]      
 						   ,JBH.[IsDeleted]  
 						   ,JBH.[PostedBy]
-			   ,JBH.[Module]      
+						   ,JBH.[Module]      
+						   ,CASE WHEN ISNULL(JBH.[TotalBalance],0) <> 0 THEN 'YES' ELSE 'NO' END AS IsError
 				FROM [dbo].[BatchHeader] JBH WITH(NOLOCK)        
-				WHERE ((JBH.MasterCompanyId = @MasterCompanyId) AND (JBH.IsDeleted = @IsDeleted) AND (@StatusID=0 OR JBH.StatusId = @StatusID))        
-				 AND (        
+				WHERE ((JBH.MasterCompanyId = @MasterCompanyId) AND (JBH.IsDeleted = @IsDeleted) AND (@StatusID=0 OR JBH.StatusId = @StatusID))
+			), ResultCount AS(SELECT COUNT(JournalBatchHeaderId) AS totalItems FROM Result)
+			SELECT * INTO #TempResult FROM  Result
+			WHERE (        
 				(@GlobalFilter <>'' AND (        
-				(JBH.BatchName like '%' +@GlobalFilter+'%') OR        
-				(JBH.EntryDate like '%' +@GlobalFilter+'%') OR        
+				(BatchName like '%' +@GlobalFilter+'%') OR        
+				(EntryDate like '%' +@GlobalFilter+'%') OR        
 				(PostDate like '%' +@GlobalFilter+'%') OR        
 				(AccountingPeriod like '%' +@GlobalFilter+'%') OR        
 				(StatusName like '%'+@GlobalFilter+'%') OR        
@@ -147,8 +153,12 @@ BEGIN
 				(IsNull(@TotalBalance,'') ='' OR CAST(TotalBalance AS varchar(20)) like '%' + @TotalBalance+'%') AND       
 				(IsNull(@CreatedBy,'') ='' OR CreatedBy like '%' + @CreatedBy+'%') AND  
 				(IsNull(@UpdatedBy,'') ='' OR UpdatedBy like '%' + @UpdatedBy+'%') AND
-				(IsNull(@PostedBy,'') ='' OR PostedBy like '%' + @PostedBy+'%')))        
-				ORDER BY          
+				(IsNull(@PostedBy,'') ='' OR PostedBy like '%' + @PostedBy+'%') 
+				AND (IsNull(@IsError,'') ='' OR IsError like '%' + @IsError+'%')
+				))  
+				SELECT @Count = COUNT(JournalBatchHeaderId) FROM #TempResult
+				SELECT *, @Count AS NumberOfItems FROM #TempResult ORDER BY 
+
 				CASE WHEN (@SortOrder=1 and @SortColumn='JournalBatchHeaderId')  THEN JournalBatchHeaderId END ASC,        
 				CASE WHEN (@SortOrder=1 and @SortColumn='BatchName')  THEN BatchName END ASC,        
 				CASE WHEN (@SortOrder=1 and @SortColumn='EntryDate')  THEN EntryDate END ASC,        
@@ -162,6 +172,7 @@ BEGIN
 				CASE WHEN (@SortOrder=1 and @SortColumn='CreatedBy')  THEN CreatedBy END ASC,        
 				CASE WHEN (@SortOrder=1 and @SortColumn='UpdatedBy')  THEN UpdatedBy END ASC,
 				CASE WHEN (@SortOrder=1 and @SortColumn='PostedBy')  THEN PostedBy END ASC, 
+				CASE WHEN (@SortOrder=1 and @SortColumn='IsError')  THEN IsError END ASC, 
         
 				CASE WHEN (@SortOrder=-1 and @SortColumn='JournalBatchHeaderId')  THEN JournalBatchHeaderId END Desc,       
 				CASE WHEN (@SortOrder=-1 and @SortColumn='BatchName')  THEN BatchName END Desc,        
@@ -175,7 +186,8 @@ BEGIN
 				CASE WHEN (@SortOrder=-1 and @SortColumn='TotalBalance')  THEN CAST(TotalBalance AS varchar(20)) END Desc,        
 				CASE WHEN (@SortOrder=-1 and @SortColumn='CreatedBy')  THEN CreatedBy END Desc,     
 				CASE WHEN (@SortOrder=-1 and @SortColumn='UpdatedBy')  THEN UpdatedBy END Desc,
-				CASE WHEN (@SortOrder=-1 and @SortColumn='PostedBy')  THEN PostedBy END Desc     
+				CASE WHEN (@SortOrder=-1 and @SortColumn='PostedBy')  THEN PostedBy END Desc   
+				,CASE WHEN (@SortOrder=-1 and @SortColumn='IsError')  THEN IsError END Desc     
               
         
 				OFFSET @RecordFrom ROWS         
@@ -198,9 +210,9 @@ BEGIN
 
 			--PRINT @HeadersIdValue
 			--SELECT dbo.DistinctList(@HeaderIdValue,',') DistinctList
-
-		   SELECT COUNT(1) OVER () AS NumberOfItems        
-				  ,JBH.[JournalBatchHeaderId]      
+;WITH Results AS(
+		   SELECT --COUNT(1) OVER () AS NumberOfItems        
+				  JBH.[JournalBatchHeaderId]      
 						   ,JBH.[BatchName]      
 						   ,JBH.[CurrentNumber] 
 						   ,(Cast(DBO.ConvertUTCtoLocal(JBH.[EntryDate],@CurrntEmpTimeZoneDesc)AS DATETIME)) as EntryDate
@@ -221,14 +233,17 @@ BEGIN
 						   ,JBH.[IsActive]      
 						   ,JBH.[IsDeleted]  
 						   ,JBH.[PostedBy]
-			   ,JBH.[Module]      
+						   ,JBH.[Module]  
+			               ,CASE WHEN ISNULL(JBH.[TotalBalance],0) <> 0 THEN 'YES' ELSE 'NO' END AS IsError
 				FROM [dbo].[BatchHeader] JBH WITH(NOLOCK)        
 				WHERE ((JBH.MasterCompanyId = @MasterCompanyId) AND (JBH.IsDeleted = @IsDeleted) AND (@StatusID=0 OR JBH.StatusId = @StatusID)
-						AND JBH.JournalBatchHeaderId IN (SELECT Item FROM [dbo].[SplitString] (@HeadersIdValue,',')))        
-				 AND (        
+						AND JBH.JournalBatchHeaderId IN (SELECT Item FROM [dbo].[SplitString] (@HeadersIdValue,',')))    
+		), ResultCount AS(SELECT COUNT(JournalBatchHeaderId) AS totalItems FROM Results)
+		SELECT * INTO #TempResults FROM  Results
+			WHERE (        
 				(@GlobalFilter <>'' AND (        
-				(JBH.BatchName like '%' +@GlobalFilter+'%') OR        
-				(JBH.EntryDate like '%' +@GlobalFilter+'%') OR        
+				(BatchName like '%' +@GlobalFilter+'%') OR        
+				(EntryDate like '%' +@GlobalFilter+'%') OR        
 				(PostDate like '%' +@GlobalFilter+'%') OR        
 				(AccountingPeriod like '%' +@GlobalFilter+'%') OR        
 				(StatusName like '%'+@GlobalFilter+'%') OR        
@@ -238,7 +253,7 @@ BEGIN
 				((CAST(TotalBalance AS NVARCHAR(20))) LIKE '%' +@GlobalFilter+'%') OR       
 				(CreatedBy like '%' +@GlobalFilter+'%')  OR  
 				(UpdatedBy like '%' +@GlobalFilter+'%')	OR
-				(PostedBy like '%' +@GlobalFilter+'%')
+				(PostedBy like '%' +@GlobalFilter+'%') 
 				))        
 				OR           
 				(@GlobalFilter='' AND (IsNull(@BatchName,'') ='' OR BatchName like '%' + @BatchName+'%') AND        
@@ -253,10 +268,12 @@ BEGIN
 				(IsNull(@CreatedBy,'') ='' OR CreatedBy like '%' + @CreatedBy+'%') AND  
 				(IsNull(@UpdatedBy,'') ='' OR UpdatedBy like '%' + @UpdatedBy+'%') AND
 				(IsNull(@PostedBy,'') ='' OR PostedBy like '%' + @PostedBy+'%') 
+				AND (IsNull(@IsError,'') ='' OR IsError like '%' + @IsError+'%')
 				)      
-		  )        
-				ORDER BY          
-		   CASE WHEN (@SortOrder=1 and @SortColumn='JournalBatchHeaderId')  THEN JournalBatchHeaderId END ASC,        
+		  )
+		  SELECT @Count = COUNT(JournalBatchHeaderId) FROM #TempResults
+		  SELECT *, @Count AS NumberOfItems FROM #TempResults ORDER BY          
+				CASE WHEN (@SortOrder=1 and @SortColumn='JournalBatchHeaderId')  THEN JournalBatchHeaderId END ASC,        
 				CASE WHEN (@SortOrder=1 and @SortColumn='BatchName')  THEN BatchName END ASC,        
 				CASE WHEN (@SortOrder=1 and @SortColumn='EntryDate')  THEN EntryDate END ASC,        
 				CASE WHEN (@SortOrder=1 and @SortColumn='PostDate')  THEN PostDate END ASC,        
@@ -269,6 +286,7 @@ BEGIN
 				CASE WHEN (@SortOrder=1 and @SortColumn='CreatedBy')  THEN CreatedBy END ASC,        
 				CASE WHEN (@SortOrder=1 and @SortColumn='UpdatedBy')  THEN UpdatedBy END ASC,
 				CASE WHEN (@SortOrder=1 and @SortColumn='PostedBy')  THEN PostedBy END ASC, 
+				CASE WHEN (@SortOrder=1 and @SortColumn='IsError')  THEN IsError END ASC, 
         
 				CASE WHEN (@SortOrder=-1 and @SortColumn='JournalBatchHeaderId')  THEN JournalBatchHeaderId END Desc,       
 				CASE WHEN (@SortOrder=-1 and @SortColumn='BatchName')  THEN BatchName END Desc,        
@@ -283,6 +301,7 @@ BEGIN
 				CASE WHEN (@SortOrder=-1 and @SortColumn='CreatedBy')  THEN CreatedBy END Desc,     
 				CASE WHEN (@SortOrder=-1 and @SortColumn='UpdatedBy')  THEN UpdatedBy END Desc,
 				CASE WHEN (@SortOrder=-1 and @SortColumn='PostedBy')  THEN PostedBy END Desc
+				,CASE WHEN (@SortOrder=-1 and @SortColumn='IsError')  THEN IsError END Desc
               
         
 				OFFSET @RecordFrom ROWS         

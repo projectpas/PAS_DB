@@ -11,6 +11,7 @@
  ** --   -------------		----------------	--------------------------------          
     1    11-September-2025  Divyesh Kathiriya	Created
 	2    26-Mar-2026        Sahdev Saliya       Added [LifeLimitedPart] :-([IsFlightHoursAvailable], [IsFlightCyclesAvailable], [IsLandingsAvailable], [IsStartsAvailable], [IsCalendarTimeAvailable], [FlightHours], [FlightMinutes], [FlightCycles], [Landings], [Starts], [CalendarDate]) (PN-15833)
+	3    03-Apr-2026        Sahdev Saliya       Remove LifeLimitedPart (PN-15833)
     
  -- EXEC [USP_AddItemMasterGeneralInfo] 
 **************************************************************/
@@ -89,7 +90,6 @@ BEGIN
 				[COGS_SalesOrderGLAccId], [COGS_QtyVarianceGLAccId], [COGS_UnitCostVarianceGLAccId], [RevenueMroGLAccId], [RevenueSoGLAccId], [RevenueExchGLAccId], [COGS_ExchSalesOrderGLAccId], [GoodsReceivedNotInvoicesGLAccName], [WorkInProgressGLAccName], [InventoryToBillGLAccName],
 				[FinishedGoodsGLAccName], [InventoryExchAgreementGLAccName], [InventoryReserveGLAccName], [COGS_WorkOrderGLAccName], [COGS_SalesOrderGLAccName], [COGS_QtyVarianceGLAccName], [COGS_UnitCostVarianceGLAccName], [RevenueMroGLAccName], [RevenueSoGLAccName], [RevenueExchGLAccName],
 				[COGS_ExchSalesOrderGLAccName], [IsUpdated], [WorkOrderFormTypeId],
-				[LifeLimitedPart],
 				[IsFlightHoursAvailable],
 				[IsFlightCyclesAvailable],
 				[IsLandingsAvailable],
@@ -112,7 +112,6 @@ BEGIN
 				[COGS_SalesOrderGLAccId], [COGS_QtyVarianceGLAccId], [COGS_UnitCostVarianceGLAccId], [RevenueMroGLAccId], [RevenueSoGLAccId], [RevenueExchGLAccId], [COGS_ExchSalesOrderGLAccId], [GoodsReceivedNotInvoicesGLAccName], [WorkInProgressGLAccName], [InventoryToBillGLAccName],
 				[FinishedGoodsGLAccName], [InventoryExchAgreementGLAccName], [InventoryReserveGLAccName], [COGS_WorkOrderGLAccName], [COGS_SalesOrderGLAccName], [COGS_QtyVarianceGLAccName], [COGS_UnitCostVarianceGLAccName], [RevenueMroGLAccName], [RevenueSoGLAccName], [RevenueExchGLAccName],
 				[COGS_ExchSalesOrderGLAccName], [IsUpdated], [WorkOrderFormTypeId],
-				[LifeLimitedPart],
 				[IsFlightHoursAvailable],
 				[IsFlightCyclesAvailable],
 				[IsLandingsAvailable],

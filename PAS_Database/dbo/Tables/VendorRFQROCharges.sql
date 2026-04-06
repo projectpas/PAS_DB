@@ -4,11 +4,11 @@
     [VendorRFQROPartRecordId]  BIGINT          NULL,
     [ChargesTypeId]            BIGINT          NOT NULL,
     [VendorId]                 BIGINT          NULL,
-    [Quantity]                 INT             NOT NULL,
+    [Quantity]                 DECIMAL (18, 6) NULL,
     [MarkupPercentageId]       BIGINT          NULL,
     [Description]              VARCHAR (256)   NULL,
-    [UnitCost]                 DECIMAL (20, 2) NOT NULL,
-    [ExtendedCost]             DECIMAL (20, 2) NOT NULL,
+    [UnitCost]                 DECIMAL (18, 6) NULL,
+    [ExtendedCost]             DECIMAL (18, 6) NULL,
     [MasterCompanyId]          INT             NOT NULL,
     [MarkupFixedPrice]         DECIMAL (20, 2) NULL,
     [BillingMethodId]          INT             NULL,
@@ -35,6 +35,8 @@
     [UOMId]                    BIGINT          NULL,
     CONSTRAINT [PK_VendorRFQROCharges] PRIMARY KEY CLUSTERED ([VendorRFQROChargesId] ASC)
 );
+
+
 
 
 

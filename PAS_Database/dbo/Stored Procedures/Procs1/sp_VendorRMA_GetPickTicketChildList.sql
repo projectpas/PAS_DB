@@ -8,7 +8,7 @@
  ** 2    02/03/2026   Amit Ghediya    UOM Conversion Changes [PN-15140]
  ** 3    [today]      [Hemant]        Performance & readability optimization
 **************************************************************/
-CREATE OR ALTER PROCEDURE [dbo].[sp_VendorRMA_GetPickTicketChildList]
+CREATE PROCEDURE [dbo].[sp_VendorRMA_GetPickTicketChildList]
     @VendorRMAId        BIGINT,
     @VendorRMADetailId  BIGINT,
     @ItemMasterId       BIGINT,

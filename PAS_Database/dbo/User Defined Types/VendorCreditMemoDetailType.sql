@@ -3,10 +3,10 @@
     [VendorCreditMemoId]       BIGINT          NULL,
     [VendorRMADetailId]        BIGINT          NULL,
     [VendorRMAId]              BIGINT          NULL,
-    [Qty]                      INT             NULL,
-    [OriginalAmt]              DECIMAL (18, 2) NULL,
-    [ApplierdAmt]              DECIMAL (18, 2) NULL,
-    [RefundAmt]                DECIMAL (18, 2) NULL,
+    [Qty]                      DECIMAL (18, 6) NULL,
+    [OriginalAmt]              DECIMAL (18, 6) NULL,
+    [ApplierdAmt]              DECIMAL (18, 6) NULL,
+    [RefundAmt]                DECIMAL (18, 6) NULL,
     [RefundDate]               DATETIME2 (7)   NULL,
     [Notes]                    VARCHAR (MAX)   NULL,
     [MasterCompanyId]          INT             NULL,
@@ -16,8 +16,6 @@
     [UpdatedDate]              DATETIME2 (7)   NULL,
     [IsActive]                 BIT             NULL,
     [IsDeleted]                BIT             NULL,
-    [UnitCost]                 DECIMAL (18, 2) NULL,
+    [UnitCost]                 DECIMAL (18, 6) NULL,
     [StockLineId]              BIGINT          NULL);
-
-
 

@@ -3,7 +3,7 @@
     [VendorCreditMemoId]        BIGINT          NULL,
     [VendorPaymentDetailsId]    BIGINT          NULL,
     [VendorId]                  BIGINT          NULL,
-    [Amount]                    DECIMAL (18, 2) NULL,
+    [Amount]                    DECIMAL (18, 6) NULL,
     [MasterCompanyId]           INT             NOT NULL,
     [CreatedBy]                 VARCHAR (50)    NOT NULL,
     [CreatedDate]               DATETIME        CONSTRAINT [DF_VendorCreditMemoMapping_CreatedDate] DEFAULT (getdate()) NOT NULL,
@@ -15,6 +15,4 @@
     [IsPosted]                  BIT             NULL,
     CONSTRAINT [PK_VendorCreditMemoMapping] PRIMARY KEY CLUSTERED ([VendorCreditMemoMappingId] ASC)
 );
-
-
 

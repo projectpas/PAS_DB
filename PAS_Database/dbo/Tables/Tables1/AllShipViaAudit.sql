@@ -5,8 +5,8 @@
     [ModuleId]          BIGINT          NOT NULL,
     [UserType]          INT             NOT NULL,
     [ShipViaId]         BIGINT          NOT NULL,
-    [ShippingCost]      DECIMAL (20, 3) NOT NULL,
-    [HandlingCost]      DECIMAL (20, 3) NOT NULL,
+    [ShippingCost]      DECIMAL (18, 6) NULL,
+    [HandlingCost]      DECIMAL (18, 6) NULL,
     [IsModuleShipVia]   BIT             NULL,
     [ShippingAccountNo] VARCHAR (100)   NULL,
     [ShipVia]           VARCHAR (400)   NULL,
@@ -21,6 +21,4 @@
     [ShippingTerms]     VARCHAR (100)   NULL,
     CONSTRAINT [PK_AllShipViaAudit] PRIMARY KEY CLUSTERED ([AllShipViaAuditId] ASC)
 );
-
-
 

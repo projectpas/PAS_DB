@@ -14,7 +14,7 @@
     [VendorContactPhone]           VARCHAR (50)    NULL,
     [CreditTermsId]                INT             NULL,
     [Terms]                        VARCHAR (500)   NULL,
-    [CreditLimit]                  DECIMAL (18)    NULL,
+    [CreditLimit]                  DECIMAL (18, 6) NULL,
     [RequestedBy]                  BIGINT          NOT NULL,
     [Requisitioner]                VARCHAR (100)   NULL,
     [StatusId]                     BIGINT          NOT NULL,
@@ -39,13 +39,13 @@
     [PDFPath]                      NVARCHAR (100)  NULL,
     [IsFromBulkPO]                 BIT             NULL,
     [FreightBilingMethodId]        INT             NULL,
-    [TotalFreight]                 DECIMAL (18, 2) NULL,
+    [TotalFreight]                 DECIMAL (18, 6) NULL,
     [ChargesBilingMethodId]        INT             NULL,
-    [TotalCharges]                 DECIMAL (18, 2) NULL,
+    [TotalCharges]                 DECIMAL (18, 6) NULL,
     [VendorReference]              VARCHAR (100)   NULL,
     [FunctionalCurrencyId]         INT             NULL,
     [ReportCurrencyId]             INT             NULL,
-    [ForeignExchangeRate]          DECIMAL (18, 2) NULL,
+    [ForeignExchangeRate]          DECIMAL (18, 6) NULL,
     [SourceBy]                     VARCHAR (50)    NULL,
     [MarketplaceRef]               VARCHAR (50)    NULL,
     CONSTRAINT [PK_VendorRFQPurchaseOrder] PRIMARY KEY CLUSTERED ([VendorRFQPurchaseOrderId] ASC),
@@ -57,6 +57,8 @@
     CONSTRAINT [FK_VendorRFQPurchaseOrder_Vendor] FOREIGN KEY ([VendorId]) REFERENCES [dbo].[Vendor] ([VendorId]),
     CONSTRAINT [FK_VendorRFQPurchaseOrder_VendorContact] FOREIGN KEY ([VendorContactId]) REFERENCES [dbo].[VendorContact] ([VendorContactId])
 );
+
+
 
 
 

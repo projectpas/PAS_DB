@@ -4470,6 +4470,10 @@
     <Build Include="dbo\Stored Procedures\USP_CreateAircraftRegistryHeader.sql" />
     <Build Include="dbo\User Defined Types\AircraftRegistryTableType.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetAircraftStatusList.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetSOQPartsViewForDuplicate.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetSOFreightHistory.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetSOFreightAuditById.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetSOChargesAuditById.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

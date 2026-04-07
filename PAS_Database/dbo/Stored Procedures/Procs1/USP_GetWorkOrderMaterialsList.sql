@@ -37,7 +37,7 @@
 	18   12/05/2023   Devendra Shekh	changes for subwo
 	19	 22/01/2025	  Moin Bloch		Modified (Added WorkOrderTask Table For conditionally check table for Task)
 	20   26/03/2026   Moin Bloch	    Rename TearDown To Internal Teardown PN-15850
-
+	21   07/04/2026   Priyansh Patel	Quantity conversion from stock uom to consume uom PN-15915
 	
  EXECUTE [dbo].[USP_GetWorkOrderMaterialsList] 3731,3200, 0
 **************************************************************/
@@ -805,7 +805,8 @@ SET NOCOUNT ON
 						WOM.PONextDlvrDate,
 						SL.ReceivedDate,
 						WOM.POId,
-						WOM.Quantity,
+					--	WOM.Quantity,
+						dbo.fn_ConvertUOM(ISNULL(WOM.Quantity,0), IM.StockUnitOfMeasure, IM.ConsumeUnitOfMeasure,0,@MasterCompanyId)  AS Quantity,
 						MSTL.Quantity AS StocklineQuantity,
 						(CASE WHEN  @IsTeardownWO = 1 THEN (CASE WHEN ISNULL(WOM.Quantity,0) = 0 THEN 0 ELSE ISNULL(WOM.Quantity,0) - ISNULL((SELECT SUM(ISNULL(SL.QuantityTurnIn,0)) FROM  dbo.WorkOrderPartNumber WOP  WITH(NOLOCK) 
 													 JOIN dbo.Stockline SL ON WOP.WorkOrderId = SL.WorkOrderId AND WOP.ID = SL.WorkOrderPartNoId AND Sl.WorkOrderId = @WorkOrderId AND ISNULL(SL.isActive,0) = 1 AND ISNULL(SL.isDeleted,0) = 0
@@ -1030,7 +1031,8 @@ SET NOCOUNT ON
 						WOM.PONextDlvrDate,
 						SL.ReceivedDate,
 						WOM.POId,
-						WOM.Quantity,
+						--WOM.Quantity,
+						dbo.fn_ConvertUOM(ISNULL(WOM.Quantity,0), IM.StockUnitOfMeasure, IM.ConsumeUnitOfMeasure,0,@MasterCompanyId)  AS Quantity,
 						MSTL.Quantity AS StocklineQuantity,
 						WOM.QtyToTurnIn AS PartQtyToTurnIn,
 						--Roll Back Changes

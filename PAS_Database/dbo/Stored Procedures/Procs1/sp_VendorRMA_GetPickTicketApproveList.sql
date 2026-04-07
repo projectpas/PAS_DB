@@ -1,144 +1,146 @@
-﻿/*************************************************************           
+﻿
+/*************************************************************           
  ** File:   [sp_VendorRMA_GetPickTicketApproveList]           
  ** Author:   Amit Ghediya
- ** Description: This stored procedure is used to retrieve pickticket listing data for Vendor RMA
- ** Purpose:         
- ** Date:   
-
- ** PARAMETERS:
-         
- ** RETURN VALUE:           
-  
- **************************************************************           
-  ** Change History           
- **************************************************************           
- ** PR   Date         Author		Change Description            
- ** --   --------     -------		--------------------------------          
-	1    06/19/2023   Amit Ghediya  Created
-	2    07/04/2023   Amit Ghediya  Updated for get RMANum from PArt lavel.
-	3    02-03-2026	  Amit Ghediya	UOM Conversion Changes [PN-15140]
-     
--- EXEC [dbo].[sp_VendorRMA_GetPickTicketApproveList] 36
+ ** Description: Retrieve pick ticket listing data for Vendor RMA
+ ** Change History:
+ ** PR   Date         Author          Description            
+ ** 1    06/19/2023   Amit Ghediya    Created
+ ** 2    07/04/2023   Amit Ghediya    Get RMANum from Part level
+ ** 3    02/03/2026   Amit Ghediya    UOM Conversion Changes [PN-15140]
 **************************************************************/
-CREATE   Procedure [dbo].[sp_VendorRMA_GetPickTicketApproveList]
-	@VendorRMAId  bigint
+CREATE   PROCEDURE [dbo].[sp_VendorRMA_GetPickTicketApproveList]
+    @VendorRMAId BIGINT
 AS
 BEGIN
-	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
-	SET NOCOUNT ON;
+    SET NOCOUNT ON;
 
-	BEGIN TRY
-	BEGIN TRANSACTION
-	BEGIN
-		;WITH CTE AS (select DISTINCT sop.VendorRMADetailId AS VendorRMADetailId, sop.ItemMasterId, sop.VendorRMAId,imt.PartNumber,imt.PartDescription,
-		(SELECT TOP 1 ([dbo].[fn_ConvertUOM](ISNULL(VR.Qty, 0),IM.[StockUnitOfMeasure],IM.[PurchaseUnitOfMeasure],0,IM.[MasterCompanyId])) 
-			FROM VendorRMADetail VR WITH(NOLOCK) 
-			INNER JOIN [dbo].[Stockline] ST WITH (NOLOCK) ON ST.[StockLineId] = VR.[StockLineId]
-			INNER JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON ST.[ItemMasterId] = IM.[ItemMasterId]
-		Where VR.VendorRMADetailId = sop.VendorRMADetailId AND VR.ItemMasterId = sop.ItemMasterId) AS Qty,
-		'' AS SerialNumber, 
-		(SELECT SUM(([dbo].[fn_ConvertUOM](ISNULL(sll.QuantityAvailable, 0),IM.[StockUnitOfMeasure],IM.[PurchaseUnitOfMeasure],0,IM.[MasterCompanyId]))) 
-			FROM StockLine sll WITH(NOLOCK) 
-			INNER JOIN VendorRMADetail sp WITH(NOLOCK) ON sll.StockLineId = sp.StockLineId 
-			INNER JOIN [dbo].[Stockline] ST WITH (NOLOCK) ON ST.[StockLineId] = sp.[StockLineId]
-			INNER JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON ST.[ItemMasterId] = IM.[ItemMasterId]
-			AND sll.ItemMasterId = sop.ItemMasterId Where sp.VendorRMAId = @VendorRMAId) AS QuantityAvailable,
-		sop.RMANum AS RMANumber
-		,(SELECT SUM(([dbo].[fn_ConvertUOM](ISNULL(SP.QtyToShip, 0),IM.[StockUnitOfMeasure],IM.[PurchaseUnitOfMeasure],0,IM.[MasterCompanyId]))) FROM DBO.RMAPickTicket SP WITH(NOLOCK)
-			INNER JOIN VendorRMA S_O WITH(NOLOCK) ON S_O.VendorRMAId = SP.VendorRMAId
-			INNER JOIN VendorRMADetail SO_P WITH(NOLOCK) ON SP.VendorRMADetailId = SO_P.VendorRMADetailId
-			INNER JOIN [dbo].[Stockline] ST WITH (NOLOCK) ON ST.[StockLineId] = SO_P.[StockLineId]
-			INNER JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON ST.[ItemMasterId] = IM.[ItemMasterId]
-		Where SP.VendorRMAId = @VendorRMAId AND SP.VendorRMADetailId = sop.VendorRMADetailId AND SO_P.ItemMasterId = sop.ItemMasterId) AS QtyToShip,
-		((SELECT TOP 1 ([dbo].[fn_ConvertUOM](ISNULL(VR.Qty, 0),IM.[StockUnitOfMeasure],IM.[PurchaseUnitOfMeasure],0,IM.[MasterCompanyId])) 
-			FROM VendorRMADetail VR WITH(NOLOCK) 
-			INNER JOIN [dbo].[Stockline] ST WITH (NOLOCK) ON ST.[StockLineId] = VR.[StockLineId]
-			INNER JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON ST.[ItemMasterId] = IM.[ItemMasterId]
-		Where VR.VendorRMAId = @VendorRMAId AND VR.ItemMasterId = sop.ItemMasterId) - SUM(ISNULL(sopt.QtyToShip,0))) as QtyToPick,
-		'' as [Status], 
-		sl.ConditionId, 
-		--(SELECT ((SUM(sorpp.QtyToReserve) + SUM(ISNULL(ship_item.QtyShipped, 0))) - SUM(ISNULL(sopt.QtyToShip, 0))) FROM VendorRMADetail sopp WITH(NOLOCK) INNER JOIN SalesOrderReserveParts sorpp WITH(NOLOCK) ON 
-		--sopp.SalesOrderId = sorpp.SalesOrderId AND
-		--sopp.SalesOrderPartId = sorpp.SalesOrderPartId AND 
-		--sopp.ItemMasterId = imt.ItemMasterId AND
-		--sopp.SalesOrderId = @VendorRMAId AND sopp.ConditionId = sop.ConditionId
-		--LEFT JOIN SOPickTicket sopt WITH(NOLOCK) on sopt.SalesOrderId = sopp.SalesOrderId and sopt.SalesOrderPartId = sopp.SalesOrderPartId
-		--LEFT JOIN SalesOrderShipping ship WITH(NOLOCK) on ship.SalesOrderId = sopp.SalesOrderId 
-		--LEFT JOIN SalesOrderShippingItem ship_item WITH(NOLOCK) on ship_item.SalesOrderShippingId = ship.SalesOrderShippingId and ship_item.SalesOrderPartId = sopp.SalesOrderPartId
-		--) - (SELECT ISNULL(SUM(SOBI.NoofPieces), 0) FROM SalesOrderBillingInvoicing SOB
-		--LEFT JOIN SalesOrderBillingInvoicingItem SOBI WITH(NOLOCK) on SOBI.SOBillingInvoicingId = SOB.SOBillingInvoicingId 
-		--WHERE SOB.SalesOrderId = @VendorRMAId AND SOBI.ItemMasterId = sop.ItemMasterId AND SOBI.IsVersionIncrease = 0) as ReadyToPick,
-		(
-		(SELECT TOP 1 ([dbo].[fn_ConvertUOM](ISNULL(VR.Qty, 0),IM.[StockUnitOfMeasure],IM.[PurchaseUnitOfMeasure],0,IM.[MasterCompanyId])) 
-			FROM VendorRMADetail VR WITH(NOLOCK) 
-			INNER JOIN [dbo].[Stockline] ST WITH (NOLOCK) ON ST.[StockLineId] = VR.[StockLineId]
-			INNER JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON ST.[ItemMasterId] = IM.[ItemMasterId]
-		Where VR.VendorRMAId = @VendorRMAId AND VR.ItemMasterId = sop.ItemMasterId) - 
-		((SELECT TOP 1 ([dbo].[fn_ConvertUOM](ISNULL(VR.Qty, 0),IM.[StockUnitOfMeasure],IM.[PurchaseUnitOfMeasure],0,IM.[MasterCompanyId]))  
-			FROM VendorRMADetail VR WITH(NOLOCK) 
-			INNER JOIN [dbo].[Stockline] ST WITH (NOLOCK) ON ST.[StockLineId] = VR.[StockLineId]
-			INNER JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON ST.[ItemMasterId] = IM.[ItemMasterId]
-		Where VR.VendorRMAId = @VendorRMAId AND VR.ItemMasterId = sop.ItemMasterId) - SUM(ISNULL(sopt.QtyToShip,0)))) as ReadyToPick,
-		cr.[VendorName] as VendorName,cr.VendorCode,
-		
-		--ISNULL((SELECT ((SUM(ISNULL(sorpp.QtyToReserve, 0)) + SUM(ISNULL(ship_item.QtyShipped, 0))) - SUM(ISNULL(sopt.QtyToShip, 0))) FROM SalesOrderPart sopp WITH(NOLOCK) 
-		--INNER JOIN SalesOrderReserveParts sorpp WITH(NOLOCK) ON sopp.SalesOrderId = sorpp.SalesOrderId AND sopp.SalesOrderId = @VendorRMAId
-		--LEFT JOIN SalesOrderShipping ship WITH(NOLOCK) on ship.SalesOrderId = sopp.SalesOrderId 
-		--LEFT JOIN SalesOrderShippingItem ship_item WITH(NOLOCK) on ship_item.SalesOrderShippingId = ship.SalesOrderShippingId and ship_item.SalesOrderPartId = sopp.SalesOrderPartId
-		--), 0) as TotalReadyToPick
-		0 as TotalReadyToPick
+    BEGIN TRY
 
-		from dbo.VendorRMADetail sop WITH(NOLOCK)
-		INNER JOIN ItemMaster imt WITH(NOLOCK) on imt.ItemMasterId = sop.ItemMasterId
-		LEFT JOIN StockLine sl WITH(NOLOCK) on sl.StockLineId = sop.StockLineId
-		LEFT JOIN VendorRMA so WITH(NOLOCK) on so.VendorRMAId = sop.VendorRMAId
-		--LEFT JOIN SalesOrderQuote soq WITH(NOLOCK) on soq.SalesOrderQuoteId = sop.SalesOrderQuoteId
-		LEFT JOIN RMAPickTicket sopt WITH(NOLOCK) on sopt.VendorRMAId = sop.VendorRMAId
-		--INNER JOIN SalesOrderApproval soapr WITH(NOLOCK) on soapr.SalesOrderId = sop.SalesOrderId and soapr.SalesOrderPartId = sop.SalesOrderPartId	AND soapr.CustomerStatusId = 2
-		--INNER JOIN SalesOrderReserveParts sor WITH(NOLOCK) on sor.SalesOrderId = sop.SalesOrderId and sor.SalesOrderPartId = sop.SalesOrderPartId
-		LEFT JOIN Vendor cr WITH(NOLOCK) on cr.VendorId = so.VendorId
-		where sop.VendorRMAId=@VendorRMAId AND ((sopt.RMAPickTicketId IS NULL) OR sopt.RMAPickTicketId IS NOT NULL)
-		group by sop.VendorRMADetailId,sop.VendorRMAId,imt.PartNumber,imt.PartDescription,
-		sop.RMANum,sop.ItemMasterId,
-		sl.ConditionId, cr.[VendorName],cr.VendorCode, sl.ConditionId
-		,sl.isSerialized, imt.ItemMasterId)
+        -- Step 1: Compute converted Qty once per VendorRMADetailId
+        ;WITH ConvertedQty AS (
+            SELECT
+                VR.VendorRMADetailId,
+                VR.ItemMasterId,
+                [dbo].[fn_ConvertUOM](
+                    ISNULL(VR.Qty, 0),
+                    IM.StockUnitOfMeasure,
+                    IM.PurchaseUnitOfMeasure,
+                    0,
+                    IM.MasterCompanyId
+                ) AS ConvertedQty
+            FROM VendorRMADetail VR WITH(NOLOCK)
+            INNER JOIN Stockline ST WITH(NOLOCK) ON ST.StockLineId = VR.StockLineId
+            INNER JOIN ItemMaster IM WITH(NOLOCK) ON ST.ItemMasterId = IM.ItemMasterId
+            WHERE VR.VendorRMAId = @VendorRMAId
+        ),
 
-		SELECT DISTINCT cte.VendorRMADetailId, CTE.ItemMasterId, cte.VendorRMAId, PartNumber, PartDescription, cte.Qty,
-		SerialNumber, QuantityAvailable,
-		RMANumber, SUM(cte.QtyToShip) QtyToShip, (cte.Qty - SUM(cte.QtyToShip)) QtyToPick, ConditionId, 
-		--(CASE WHEN SUM(ReadyToPick) > (cte.Qty - SUM(cte.QtyToShip)) THEN (cte.Qty - SUM(cte.QtyToShip)) ELSE 
-		--CASE WHEN SUM(ReadyToPick) < 0 THEN 0 ELSE SUM(ReadyToPick) END END)
-		--AS ReadyToPick, 
-		--SUM(cte.QtyToShip) QtyToShip, (cte.Qty - SUM(cte.QtyToShip))
-		--(cte.Qty - SUM(cte.QtyToShip)) AS ReadyToPick,
-		CASE WHEN SUM(cte.QtyToShip) > 0 THEN (cte.Qty - SUM(cte.QtyToShip)) ELSE cte.Qty END AS ReadyToPick,
-		cte.[Status], VendorName, VendorCode 
-		,CASE WHEN cte.TotalReadyToPick < 0 THEN 0 ELSE cte.TotalReadyToPick END AS TotalReadyToPick 
-		FROM CTE
-		LEFT JOIN RMAPickTicket sopt WITH(NOLOCK) ON sopt.VendorRMAId = cte.VendorRMAId AND sopt.VendorRMADetailId = cte.VendorRMADetailId
-		GROUP BY cte.VendorRMADetailId, CTE.ItemMasterId, cte.VendorRMAId, PartNumber, PartDescription, cte.Qty,
-		SerialNumber, QuantityAvailable, cte.[Status], RMANumber, ConditionId, VendorName, VendorCode,cte.TotalReadyToPick 
-	END
-	COMMIT  TRANSACTION
+        -- Step 2: Compute QtyToShip per detail line
+        ShippedQty AS (
+            SELECT
+                SP.VendorRMADetailId,
+                SUM([dbo].[fn_ConvertUOM](
+                    ISNULL(SP.QtyToShip, 0),
+                    IM.StockUnitOfMeasure,
+                    IM.PurchaseUnitOfMeasure,
+                    0,
+                    IM.MasterCompanyId
+                )) AS QtyToShip
+            FROM RMAPickTicket SP WITH(NOLOCK)
+            INNER JOIN VendorRMADetail SO_P WITH(NOLOCK) ON SP.VendorRMADetailId = SO_P.VendorRMADetailId
+            INNER JOIN Stockline ST WITH(NOLOCK) ON ST.StockLineId = SO_P.StockLineId
+            INNER JOIN ItemMaster IM WITH(NOLOCK) ON ST.ItemMasterId = IM.ItemMasterId
+            WHERE SP.VendorRMAId = @VendorRMAId
+            GROUP BY SP.VendorRMADetailId
+        ),
 
-	END TRY    
-	BEGIN CATCH      
-		IF @@trancount > 0
-			PRINT 'ROLLBACK'
-			ROLLBACK TRAN;
-			DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name() 
------------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
-            , @AdhocComments     VARCHAR(150)    = 'sp_VendorRMA_GetPickTicketApproveList' 
-            , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = '''+ ISNULL(@VendorRMAId, '') + ''
-            , @ApplicationName VARCHAR(100) = 'PAS'
------------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------
-            exec spLogException 
-                    @DatabaseName           = @DatabaseName
-                    , @AdhocComments          = @AdhocComments
-                    , @ProcedureParameters = @ProcedureParameters
-                    , @ApplicationName        =  @ApplicationName
-                    , @ErrorLogID                    = @ErrorLogID OUTPUT ;
-            RAISERROR ('Unexpected Error Occured in the database. Please let the support team know of the error number : %d', 16, 1,@ErrorLogID)
-            RETURN(1);
-	END CATCH
+        -- Step 3: Compute QuantityAvailable per ItemMaster
+        AvailableQty AS (
+            SELECT
+                sp.ItemMasterId,
+                SUM([dbo].[fn_ConvertUOM](
+                    ISNULL(sll.QuantityAvailable, 0),
+                    IM.StockUnitOfMeasure,
+                    IM.PurchaseUnitOfMeasure,
+                    0,
+                    IM.MasterCompanyId
+                )) AS QuantityAvailable
+            FROM StockLine sll WITH(NOLOCK)
+            INNER JOIN VendorRMADetail sp WITH(NOLOCK) ON sll.StockLineId = sp.StockLineId
+            INNER JOIN Stockline ST WITH(NOLOCK) ON ST.StockLineId = sp.StockLineId
+            INNER JOIN ItemMaster IM WITH(NOLOCK) ON ST.ItemMasterId = IM.ItemMasterId
+            WHERE sp.VendorRMAId = @VendorRMAId
+            GROUP BY sp.ItemMasterId
+        ),
+
+        -- Step 4: Main aggregation
+        CTE AS (
+            SELECT
+                sop.VendorRMADetailId,
+                sop.ItemMasterId,
+                sop.VendorRMAId,
+                imt.PartNumber,
+                imt.PartDescription,
+                cq.ConvertedQty                         AS Qty,
+                ''                                      AS SerialNumber,
+                ISNULL(aq.QuantityAvailable, 0)         AS QuantityAvailable,
+                sop.RMANum                              AS RMANumber,
+                ISNULL(sq.QtyToShip, 0)                 AS QtyToShip,
+                ''                                      AS [Status],
+                sl.ConditionId,
+                cr.VendorName,
+                cr.VendorCode,
+                0                                       AS TotalReadyToPick
+            FROM VendorRMADetail sop WITH(NOLOCK)
+            INNER JOIN ItemMaster imt WITH(NOLOCK)  ON imt.ItemMasterId = sop.ItemMasterId
+            INNER JOIN ConvertedQty cq              ON cq.VendorRMADetailId = sop.VendorRMADetailId
+                                                   AND cq.ItemMasterId = sop.ItemMasterId
+            LEFT JOIN AvailableQty aq               ON aq.ItemMasterId = sop.ItemMasterId
+            LEFT JOIN ShippedQty sq                 ON sq.VendorRMADetailId = sop.VendorRMADetailId
+            LEFT JOIN StockLine sl WITH(NOLOCK)     ON sl.StockLineId = sop.StockLineId
+            LEFT JOIN VendorRMA so WITH(NOLOCK)     ON so.VendorRMAId = sop.VendorRMAId
+            LEFT JOIN Vendor cr WITH(NOLOCK)        ON cr.VendorId = so.VendorId
+            WHERE sop.VendorRMAId = @VendorRMAId
+        )
+
+        -- Step 5: Final output
+        SELECT
+            VendorRMADetailId,
+            ItemMasterId,
+            VendorRMAId,
+            PartNumber,
+            PartDescription,
+            Qty,
+            SerialNumber,
+            QuantityAvailable,
+            RMANumber,
+            QtyToShip,
+            (Qty - QtyToShip)                                                           AS QtyToPick,
+            ConditionId,
+            CASE WHEN QtyToShip > 0 THEN (Qty - QtyToShip) ELSE Qty END                AS ReadyToPick,
+            [Status],
+            VendorName,
+            VendorCode,
+            CASE WHEN TotalReadyToPick < 0 THEN 0 ELSE TotalReadyToPick END            AS TotalReadyToPick
+        FROM CTE;
+
+    END TRY
+    BEGIN CATCH
+        DECLARE
+            @ErrorLogID         INT,
+            @DatabaseName       VARCHAR(100)  = DB_NAME(),
+            @AdhocComments      VARCHAR(150)  = 'sp_VendorRMA_GetPickTicketApproveList',
+            @ProcedureParameters VARCHAR(3000) = '@VendorRMAId = ' + CAST(ISNULL(@VendorRMAId, 0) AS VARCHAR(20)),
+            @ApplicationName    VARCHAR(100)  = 'PAS';
+
+        EXEC spLogException
+            @DatabaseName        = @DatabaseName,
+            @AdhocComments       = @AdhocComments,
+            @ProcedureParameters = @ProcedureParameters,
+            @ApplicationName     = @ApplicationName,
+            @ErrorLogID          = @ErrorLogID OUTPUT;
+
+        RAISERROR('Unexpected Error in the database. Support error number: %d', 16, 1, @ErrorLogID);
+        RETURN(1);
+    END CATCH
 END

@@ -15,6 +15,7 @@
  ** PR   Date         Author					Change Description            
  ** --   --------     -------				--------------------------------          
     1    06/27/2023   Devendra Shekh			Created
+	2    06-04-2026	  Amit Ghediya				UOM Conversion Changes [PN-15140]
      
 declare @p1 dbo.VendorCreditMemoDetailType
 insert into @p1 values(0,1,61,37,5,116,0,0,'2023-06-27 07:41:33.0540000',N'<p>fewfw</p>',1,N'ADMIN User',N'ADMIN User','2023-06-27 10:41:34.3649874','2023-06-27 10:41:34.3649901',1,0)
@@ -34,34 +35,81 @@ BEGIN
      IF((SELECT COUNT(VendorCreditMemoId) FROM @TableVendorCreditMemoDetailType) > 0 )  
      BEGIN  
       SET @VendorCreditMemoId = (SELECT TOP 1 VendorCreditMemoId FROM @TableVendorCreditMemoDetailType);  
-      MERGE dbo.VendorCreditMemoDetail AS TARGET  
-      USING @TableVendorCreditMemoDetailType AS SOURCE ON (TARGET.VendorCreditMemoId = SOURCE.VendorCreditMemoId AND TARGET.VendorCreditMemoDetailId = SOURCE.VendorCreditMemoDetailId)   
-      WHEN MATCHED   
-      THEN UPDATE   
-      SET   
-      TARGET.[VendorCreditMemoId] = SOURCE.VendorCreditMemoId,  
-      TARGET.[VendorRMADetailId] = SOURCE.VendorRMADetailId,  
-      TARGET.[VendorRMAId] = SOURCE.VendorRMAId,  
-      TARGET.[Qty]  = SOURCE.Qty,  
-      TARGET.[OriginalAmt] = SOURCE.OriginalAmt,  
-      TARGET.[ApplierdAmt] = SOURCE.ApplierdAmt,  
-      TARGET.[RefundAmt] = SOURCE.RefundAmt,  
-      TARGET.[RefundDate] = SOURCE.RefundDate,  
-      TARGET.[Notes] = SOURCE.Notes,  
-      TARGET.[UpdatedBy] = SOURCE.UpdatedBy,  
-      TARGET.[UpdatedDate] = GETUTCDATE(),  
-      TARGET.[IsActive] = SOURCE.IsActive,  
-      TARGET.[IsDeleted] = SOURCE.IsDeleted,
-      TARGET.[UnitCost] = SOURCE.UnitCost,
-      TARGET.[StockLineId] = SOURCE.StockLineId
-  
-      WHEN NOT MATCHED BY TARGET  
-      THEN  
-       INSERT([VendorCreditMemoId],[VendorRMADetailId],[VendorRMAId],[Qty],[OriginalAmt], [ApplierdAmt],[RefundAmt],[RefundDate],[Notes],[MasterCompanyId],[CreatedBy],[CreatedDate],[UpdatedBy],[UpdatedDate],
-				[IsActive],[IsDeleted], [UnitCost], [StockLineId])  
-       VALUES(SOURCE.[VendorCreditMemoId],SOURCE.[VendorRMADetailId],SOURCE.[VendorRMAId],SOURCE.[Qty],SOURCE.[OriginalAmt],SOURCE.[ApplierdAmt],SOURCE.[RefundAmt],SOURCE.[RefundDate],SOURCE.[Notes],SOURCE.[MasterCompanyId],  
-         SOURCE.[CreatedBy],GETUTCDATE(),SOURCE.[UpdatedBy],GETUTCDATE(),SOURCE.[IsActive],SOURCE.[IsDeleted],SOURCE.[UnitCost],SOURCE.[StockLineId]);   
-     END  
+		MERGE dbo.VendorCreditMemoDetail AS TARGET  
+		USING
+		(
+			SELECT 
+				SRC.*,
+				([dbo].[fn_ConvertUOM](ISNULL(SRC.Qty, 0),IM.PurchaseUnitOfMeasure,IM.StockUnitOfMeasure,0,IM.MasterCompanyId)) AS ConvertedQty,
+				([dbo].[fn_ConvertUOM](ISNULL(SRC.UnitCost, 0),IM.PurchaseUnitOfMeasure,IM.StockUnitOfMeasure,1,IM.MasterCompanyId)) AS ConvertedUnitCost
+			FROM @TableVendorCreditMemoDetailType SRC 
+			INNER JOIN DBO.VendorRMADetail RMAD WITH (NOLOCK) ON SRC.VendorRMADetailId = RMAD.VendorRMADetailId
+			INNER JOIN DBO.ItemMaster IM WITH (NOLOCK) ON RMAD.ItemMasterId = IM.ItemMasterId
+		) AS SOURCE
+
+		ON TARGET.VendorCreditMemoId = SOURCE.VendorCreditMemoId  
+		AND TARGET.VendorCreditMemoDetailId = SOURCE.VendorCreditMemoDetailId  
+
+		WHEN MATCHED THEN  
+			UPDATE SET   
+				TARGET.VendorCreditMemoId = SOURCE.VendorCreditMemoId,  
+				TARGET.VendorRMADetailId = SOURCE.VendorRMADetailId,  
+				TARGET.VendorRMAId = SOURCE.VendorRMAId,  
+				TARGET.Qty = SOURCE.Qty,
+				TARGET.OriginalAmt = SOURCE.OriginalAmt,  
+				TARGET.ApplierdAmt = SOURCE.ApplierdAmt,  
+				TARGET.RefundAmt = SOURCE.RefundAmt,  
+				TARGET.RefundDate = SOURCE.RefundDate,  
+				TARGET.Notes = SOURCE.Notes,  
+				TARGET.UpdatedBy = SOURCE.UpdatedBy,  
+				TARGET.UpdatedDate = GETUTCDATE(),  
+				TARGET.IsActive = SOURCE.IsActive,  
+				TARGET.IsDeleted = SOURCE.IsDeleted,
+				TARGET.UnitCost = SOURCE.UnitCost,
+				TARGET.StockLineId = SOURCE.StockLineId  
+
+		WHEN NOT MATCHED BY TARGET THEN  
+			INSERT (
+				VendorCreditMemoId,
+				VendorRMADetailId,
+				VendorRMAId,
+				Qty,
+				OriginalAmt,
+				ApplierdAmt,
+				RefundAmt,
+				RefundDate,
+				Notes,
+				MasterCompanyId,
+				CreatedBy,
+				CreatedDate,
+				UpdatedBy,
+				UpdatedDate,
+				IsActive,
+				IsDeleted,
+				UnitCost,
+				StockLineId
+			)  
+			VALUES (
+				SOURCE.VendorCreditMemoId,
+				SOURCE.VendorRMADetailId,
+				SOURCE.VendorRMAId,
+				SOURCE.ConvertedQty,         
+				SOURCE.OriginalAmt,
+				SOURCE.ApplierdAmt,
+				SOURCE.RefundAmt,
+				SOURCE.RefundDate,
+				SOURCE.Notes,
+				SOURCE.MasterCompanyId,
+				SOURCE.CreatedBy,
+				GETUTCDATE(),
+				SOURCE.UpdatedBy,
+				GETUTCDATE(),
+				SOURCE.IsActive,
+				SOURCE.IsDeleted,
+				SOURCE.ConvertedUnitCost,    
+				SOURCE.StockLineId
+			);
+	 END  
       
     END  
    COMMIT  TRANSACTION  

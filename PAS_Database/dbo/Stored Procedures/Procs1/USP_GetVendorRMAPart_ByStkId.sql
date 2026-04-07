@@ -14,11 +14,12 @@
  **************************************************************             
  ** S NO   Date     Author     Change Description              
  ** --   --------   -------   --------------------------------            
- 1 28-June-2023  Devendra  created  
+ 1	  28-June-2023	   Devendra			created  
+ 2    06-04-2026	  Amit Ghediya		UOM Conversion Changes [PN-15140]
        
 EXECUTE   [dbo].[USP_GetVendorRMAPart_ByStkId] 37,1  
 **************************************************************/  
-Create   PROCEDURE [dbo].[USP_GetVendorRMAPart_ByStkId]  
+CREATE   PROCEDURE [dbo].[USP_GetVendorRMAPart_ByStkId]  
 @StockLineId bigint,  
 @VendorRMAId bigint,
 @VendorCreditMemoId bigint
@@ -45,12 +46,12 @@ BEGIN
      im.PartDescription as 'PNDescription',  
      sl.StockLineNumber,  
      sl.SerialNumber,  
-     ISNULL(vrmd.Qty, 0) AS 'Qty',  
+	 ([dbo].[fn_ConvertUOM](ISNULL(vrmd.Qty, 0),im.[StockUnitOfMeasure], im.[PurchaseUnitOfMeasure],0,im.[MasterCompanyId])) AS 'Qty',
      vrmd.ItemMasterId,  
      vrmd.StockLineId,  
      vrmd.VendorRMADetailId,
-	 ISNULL(sl.UnitCost, 0) AS 'UnitCost',
-	 (vrmd.Qty * sl.UnitCost) as 'ExtendedCost',
+	 ([dbo].[fn_ConvertUOM](ISNULL(sl.UnitCost, 0),im.[StockUnitOfMeasure], im.[PurchaseUnitOfMeasure],1,im.[MasterCompanyId])) AS 'UnitCost',
+	 ([dbo].[fn_ConvertUOM](ISNULL(vrmd.Qty, 0),im.[StockUnitOfMeasure], im.[PurchaseUnitOfMeasure],0,im.[MasterCompanyId])) * ([dbo].[fn_ConvertUOM](ISNULL(sl.UnitCost, 0),im.[StockUnitOfMeasure], im.[PurchaseUnitOfMeasure],1,im.[MasterCompanyId])) as 'ExtendedCost',
 	 vcm.VendorCreditMemoId,
 	 vrmd.RMANum,
 	 vrmd.StockLineId

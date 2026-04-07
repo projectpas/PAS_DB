@@ -55,19 +55,17 @@ BEGIN
 		SELECT @StockUnitOfMeasure = IM.StockUnitOfMeasure,
 			   @PurchaseUnitOfMeasure = IM.PurchaseUnitOfMeasure
 		FROM VendorRMADetail VR WITH(NOLOCK)
-		INNER JOIN [dbo].[Stockline] ST WITH (NOLOCK) ON ST.[StockLineId] = VR.[StockLineId]
-		INNER JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON ST.[ItemMasterId] = IM.[ItemMasterId]
+		INNER JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON VR.[ItemMasterId] = IM.[ItemMasterId]
 		WHERE VR.VendorRMADetailId = @VendorRMADetailId;
 
 		IF(@RMAPickTicketId = 0)
 		BEGIN
 
-		SELECT @QtyRemaining = (ISNULL(vra.Qty, 0) - ([dbo].[fn_ConvertUOM](ISNULL(@QtyToShip, 0),IM.[PurchaseUnitOfMeasure],IM.[StockUnitOfMeasure],0,IM.[MasterCompanyId])) - SUM(ISNULL(([dbo].[fn_ConvertUOM](ISNULL(rmp.QtyToShip, 0),IM.[PurchaseUnitOfMeasure],IM.[StockUnitOfMeasure],0,IM.[MasterCompanyId])), 0))) 
+		SELECT @QtyRemaining = (ISNULL(vra.Qty, 0) - ([dbo].[fn_ConvertUOM](ISNULL(@QtyToShip, 0),@PurchaseUnitOfMeasure,@StockUnitOfMeasure,0,@MasterCompanyId)) - SUM(ISNULL(([dbo].[fn_ConvertUOM](ISNULL(rmp.QtyToShip, 0),@PurchaseUnitOfMeasure,@StockUnitOfMeasure,0,@MasterCompanyId)), 0))) 
 		FROM VendorRMADetail vra WITH(NOLOCK)
 		--INNER JOIN SalesOrderReserveParts sorpp WITH(NOLOCK) ON vra.VendorRMAId = sorpp.SalesOrderId AND vra.ved = sorpp.SalesOrderPartId   
 		LEFT JOIN RMAPickTicket rmp WITH(NOLOCK) ON vra.VendorRMAId = rmp.VendorRMAId and vra.VendorRMADetailId = rmp.VendorRMADetailId
-		INNER JOIN [dbo].[Stockline] ST WITH (NOLOCK) ON ST.[StockLineId] = vra.[StockLineId]
-		INNER JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON ST.[ItemMasterId] = IM.[ItemMasterId]
+		INNER JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON vra.[ItemMasterId] = IM.[ItemMasterId]
 		WHERE vra.VendorRMAId = @VendorRMAId AND vra.VendorRMADetailId = @VendorRMADetailId GROUP BY vra.Qty,IM.[PurchaseUnitOfMeasure],IM.[StockUnitOfMeasure],IM.[MasterCompanyId]
 
 			INSERT INTO [dbo].[RMAPickTicket]
@@ -92,15 +90,15 @@ BEGIN
 		END
 		ELSE IF(@RMAPickTicketId > 0 AND @IsConfirmed = 0)
 		BEGIN
-			UPDATE [dbo].[RMAPickTicket] SET QtyToShip = ([dbo].[fn_ConvertUOM](ISNULL(@QtyToShip, 0),@StockUnitOfMeasure,@PurchaseUnitOfMeasure,0,@MasterCompanyId)),UpdatedBy = @UpdatedBy, UpdatedDate = GETDATE() WHERE RMAPickTicketId = @RMAPickTicketId;
+			UPDATE [dbo].[RMAPickTicket] SET QtyToShip = ([dbo].[fn_ConvertUOM](ISNULL(@QtyToShip, 0),@PurchaseUnitOfMeasure,@StockUnitOfMeasure,0,@MasterCompanyId)),UpdatedBy = @UpdatedBy, UpdatedDate = GETDATE() WHERE RMAPickTicketId = @RMAPickTicketId;
 
-			SELECT @QtyRemaining = (vra.Qty - SUM(ISNULL(rmp.QtyToShip, 0))) 
+			SELECT @QtyRemaining = (([dbo].[fn_ConvertUOM](ISNULL(vra.Qty, 0),@PurchaseUnitOfMeasure,@StockUnitOfMeasure,0,@MasterCompanyId)) - SUM(ISNULL(([dbo].[fn_ConvertUOM](ISNULL(rmp.QtyToShip, 0),@PurchaseUnitOfMeasure,@StockUnitOfMeasure,0,@MasterCompanyId)), 0))) 
 			FROM VendorRMADetail vra WITH(NOLOCK)
 			--INNER JOIN SalesOrderReserveParts sorpp WITH(NOLOCK) ON vra.VendorRMAId = sorpp.SalesOrderId AND vra.ved = sorpp.SalesOrderPartId   
 			LEFT JOIN RMAPickTicket rmp WITH(NOLOCK) ON vra.VendorRMAId = rmp.VendorRMAId and vra.VendorRMADetailId = rmp.VendorRMADetailId
 			WHERE vra.VendorRMADetailId = @VendorRMADetailId GROUP BY vra.Qty
 
-			UPDATE [dbo].[RMAPickTicket] SET QtyToShip = ([dbo].[fn_ConvertUOM](ISNULL(@QtyToShip, 0),@PurchaseUnitOfMeasure,@StockUnitOfMeasure,0,@MasterCompanyId)),UpdatedBy = @UpdatedBy, UpdatedDate = GETDATE(), [QtyRemaining] = ([dbo].[fn_ConvertUOM](ISNULL(@QtyRemaining, 0),@StockUnitOfMeasure,@PurchaseUnitOfMeasure,0,@MasterCompanyId)) WHERE RMAPickTicketId = @RMAPickTicketId;
+			UPDATE [dbo].[RMAPickTicket] SET QtyToShip = ([dbo].[fn_ConvertUOM](ISNULL(@QtyToShip, 0),@PurchaseUnitOfMeasure,@StockUnitOfMeasure,0,@MasterCompanyId)),UpdatedBy = @UpdatedBy, UpdatedDate = GETDATE(), [QtyRemaining] = ([dbo].[fn_ConvertUOM](ISNULL(@QtyRemaining, 0),@PurchaseUnitOfMeasure,@StockUnitOfMeasure,0,@MasterCompanyId)) WHERE RMAPickTicketId = @RMAPickTicketId;
 
 			--Update [dbo].[VendorRMADetail] SET VendorRMAStatusId = (SELECT VendorRMAStatusId FROM DBO.VendorRMAHeaderStatus WITH (NOLOCK) WHERE Code = 'Pending') --(SELECT VendorRMAStatusId FROM DBO.VendorRMAStatus WITH (NOLOCK) WHERE Code = 'RS') 
 			--WHERE VendorRMADetailId = @VendorRMADetailId;

@@ -15,7 +15,8 @@
  ** PR   Date         Author					Change Description            
  ** --   --------     -------				--------------------------------          
     1    06/27/2023   Amit Ghediya			Created
-	2    07/04/2023   Amit Ghediya  Updated for get RMANum from PArt lavel.
+	2    07/04/2023   Amit Ghediya			Updated for get RMANum from PArt lavel.
+	3    06-03-2026	  Amit Ghediya			UOM Conversion Changes [PN-15140]
      
  EXECUTE USP_VendorRMA_GetVendorRMAShippingParentList 41
 **************************************************************/
@@ -30,11 +31,11 @@ BEGIN
 	BEGIN TRANSACTION
 	BEGIN
 		SELECT DISTINCT imt.ItemMasterId AS VendorRMADetailId, sl.ConditionId, 0 AS ItemNo, sop.RMANum AS RMANumber, imt.partnumber, imt.PartDescription, 
-			SUM(ISNULL(sopt.QtyToShip, 0)) AS QtyToShip,
-			SUM(ISNULL(sosi.QtyShipped, 0)) AS QtyShipped,
+			SUM(ISNULL(([dbo].[fn_ConvertUOM](ISNULL(sopt.QtyToShip, 0),imt.[StockUnitOfMeasure],imt.[PurchaseUnitOfMeasure],0,imt.[MasterCompanyId])),0)) AS QtyToShip,
+			SUM(ISNULL(([dbo].[fn_ConvertUOM](ISNULL(sosi.QtyShipped, 0),imt.[StockUnitOfMeasure],imt.[PurchaseUnitOfMeasure],0,imt.[MasterCompanyId])),0)) AS QtyShipped,
 			sop.VendorRMAId,
-			SUM(ISNULL(sopt.QtyToShip, 0)) - SUM(ISNULL(sosi.QtyShipped, 0)) AS QtyRemaining,
-			CASE WHEN SUM(ISNULL(sopt.QtyToShip, 0)) = SUM(ISNULL(sosi.QtyShipped, 0)) THEN 'Shipped'
+			SUM(ISNULL([dbo].[fn_ConvertUOM](ISNULL(sopt.QtyToShip, 0),imt.[StockUnitOfMeasure],imt.[PurchaseUnitOfMeasure],0,imt.[MasterCompanyId]),0)) - SUM(ISNULL(([dbo].[fn_ConvertUOM](ISNULL(sosi.QtyShipped, 0),imt.[StockUnitOfMeasure],imt.[PurchaseUnitOfMeasure],0,imt.[MasterCompanyId])), 0)) AS QtyRemaining,
+			CASE WHEN SUM(ISNULL(([dbo].[fn_ConvertUOM](ISNULL(sopt.QtyToShip, 0),imt.[StockUnitOfMeasure],imt.[PurchaseUnitOfMeasure],0,imt.[MasterCompanyId])),0)) = SUM(ISNULL(([dbo].[fn_ConvertUOM](ISNULL(sosi.QtyShipped, 0),imt.[StockUnitOfMeasure],imt.[PurchaseUnitOfMeasure],0,imt.[MasterCompanyId])), 0)) THEN 'Shipped'
 			ELSE 'Shipping' END AS [Status]
 			FROM DBO.VendorRMADetail sop WITH (NOLOCK)
 			LEFT JOIN DBO.VendorRMA so WITH (NOLOCK) ON so.VendorRMAId = sop.VendorRMAId

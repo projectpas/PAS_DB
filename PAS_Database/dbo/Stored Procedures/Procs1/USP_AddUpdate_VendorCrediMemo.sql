@@ -18,6 +18,7 @@
     2    21-July-2022	Devendra Shekh		UpdateVendorCreditmemo issue resolved  
     3    07-Nov-2023	Devendra Shekh		added new columns for add/update 
     4    15-March-2024	Devendra Shekh		added new columns for add/@VendorCreditMemoTypeId,@CustomerCreditPaymentDetailId
+	5    06-04-2026	    Amit Ghediya		UOM Conversion Changes [PN-15140]
 
 **************************************************************/  
 CREATE   PROCEDURE [dbo].[USP_AddUpdate_VendorCrediMemo]
@@ -27,9 +28,9 @@ CREATE   PROCEDURE [dbo].[USP_AddUpdate_VendorCrediMemo]
 @RMANum varchar(50),
 @VendorCreditMemoStatusId INT,
 @CurrencyId BIGINT = NULL,
-@OriginalAmt decimal(18,0) = NULL,
-@ApplierdAmt decimal(18,0) = NULL,
-@RefundAmt decimal(18,0) = NULL,
+@OriginalAmt decimal(18,6) = NULL,
+@ApplierdAmt decimal(18,6) = NULL,
+@RefundAmt decimal(18,6) = NULL,
 @RefundDate datetime,
 @CreatedBy varchar(50),
 @UpdatedBy  varchar(50),

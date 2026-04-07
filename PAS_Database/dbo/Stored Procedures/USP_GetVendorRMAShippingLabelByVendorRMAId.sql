@@ -13,6 +13,7 @@
  ** S NO   Date            Author          Change Description              
  ** --   --------         -------          --------------------------------            
     1    09-06-2025    Sahdev Saliya       Created  
+	2    06-04-2026	   Amit Ghediya		   UOM Conversion Changes [PN-15140]
 
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[USP_GetVendorRMAShippingLabelByVendorRMAId]
@@ -54,11 +55,13 @@ BEGIN
 					sos.ShipSizeWidth AS Width,
 					sos.ShipSizeHeight AS Height,
 					sos.NoOfContainer,
-					sosi.QtyShipped AS NoOfPiece,
+					([dbo].[fn_ConvertUOM](ISNULL(sosi.QtyShipped, 0),IM.[PurchaseUnitOfMeasure],IM.[StockUnitOfMeasure],0,IM.[MasterCompanyId])) AS NoOfPiece,
 					so.UpdatedDate
 				FROM [dbo].VendorRMA so WITH(NOLOCK)
 				LEFT JOIN [dbo].RMAShipping sos WITH(NOLOCK) ON so.VendorRMAId = sos.VendorRMAId AND sos.RMAShippingId = @RMAShippingId
 				LEFT JOIN [dbo].RMAShippingItem sosi WITH(NOLOCK) ON sos.RMAShippingId = sosi.RMAShippingId
+				LEFT JOIN [dbo].[VendorRMADetail] vrd WITH(NOLOCK) ON sosi.VendorRMADetailId = vrd.VendorRMADetailId
+				LEFT JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON vrd.[ItemMasterId] = IM.[ItemMasterId]
 				LEFT JOIN [dbo].CustomerDomensticShipping cds WITH(NOLOCK) ON sos.ShipToSiteId = cds.CustomerDomensticShippingId
 				LEFT JOIN [dbo].Vendor cust WITH(NOLOCK) ON so.VendorId = cust.VendorId
 				LEFT JOIN [dbo].UnitOfMeasure uom WITH(NOLOCK) ON sos.ShipWeightUnit = uom.UnitOfMeasureId

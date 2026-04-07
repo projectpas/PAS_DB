@@ -14,11 +14,12 @@
  **************************************************************             
  ** S NO   Date     Author     Change Description              
  ** --   --------   -------   --------------------------------            
- 1 27-June-2023  Devendra  created  
+ 1	  27-June-2023	  Devendra		    created  
+ 2    06-04-2026	  Amit Ghediya		UOM Conversion Changes [PN-15140]
        
 EXECUTE   [dbo].[USP_GetVendorRMAPartsDetails_ById] 37,1  
 **************************************************************/  
-Create   PROCEDURE [dbo].[USP_GetVendorRMAPartsDetails_ById]  
+CREATE   PROCEDURE [dbo].[USP_GetVendorRMAPartsDetails_ById]  
 @VRMAId bigint,  
 @VendorCreditMemoId bigint  
 AS  
@@ -54,12 +55,15 @@ BEGIN
      im.PartDescription,  
      sl.StockLineNumber,  
      sl.SerialNumber,  
-     ISNULL(vrmd.Qty, 0) AS 'Qty',  
+     --ISNULL(vrmd.Qty, 0) AS 'Qty', 
+	 ([dbo].[fn_ConvertUOM](ISNULL(vrmd.Qty, 0),im.[StockUnitOfMeasure], im.[PurchaseUnitOfMeasure],0,im.[MasterCompanyId])) AS 'Qty',
      vrmd.ItemMasterId,  
      vrmd.StockLineId,  
      vrmd.VendorRMADetailId,
-	 ISNULL(sl.UnitCost, 0) AS 'UnitCost',
-	 (vrmd.Qty * sl.UnitCost) as 'ExtendedCost'
+	 --ISNULL(sl.UnitCost, 0) AS 'UnitCost',
+	 ([dbo].[fn_ConvertUOM](ISNULL(sl.UnitCost, 0),im.[StockUnitOfMeasure], im.[PurchaseUnitOfMeasure],1,im.[MasterCompanyId])) AS 'UnitCost',
+	 --(vrmd.Qty * sl.UnitCost) as 'ExtendedCost'
+	 ([dbo].[fn_ConvertUOM](ISNULL(vrmd.Qty, 0),im.[StockUnitOfMeasure], im.[PurchaseUnitOfMeasure],0,im.[MasterCompanyId])) * ([dbo].[fn_ConvertUOM](ISNULL(sl.UnitCost, 0),im.[StockUnitOfMeasure], im.[PurchaseUnitOfMeasure],1,im.[MasterCompanyId])) as 'ExtendedCost'
     FROM [DBO].[VendorCreditMemo] vcm WITH (NOLOCK)   
     LEFT JOIN [dbo].[Currency] cu WITH(NOLOCK) on vcm.CurrencyId = cu.CurrencyId  
     LEFT JOIN [dbo].[VendorRMA] vrm WITH(NOLOCK) on vcm.VendorRMAId = vrm.VendorRMAId  

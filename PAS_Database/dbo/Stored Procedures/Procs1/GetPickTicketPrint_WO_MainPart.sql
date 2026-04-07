@@ -20,7 +20,7 @@
     2    08/14/2023   Devendra Shekh		removed comment for ReadyToPick(QtyToPick)
 	3    09/28/2023   Hemant Saliya			Updated Qty Remaining
 	4    01/01/2024   Devendra Shekh		updated for serialnumber for MPN
-     
+    5    06/04/2026   Ayushi Patel	        PN-15908 Update (Added UOM Changes)
 --EXEC [GetPickTicketPrint_WO_MainPart] 5,0
 **************************************************************/
 CREATE   PROCEDURE [dbo].[GetPickTicketPrint_WO_MainPart]
@@ -41,7 +41,7 @@ BEGIN
 						WHERE WorkOrderId = @WorkOrderId AND WorkFlowWorkOrderId = @WorkOrderPartId
 						GROUP BY WorkOrderId, WorkFlowWorkOrderId
 					)
-					SELECT wopt.PickTicketId, wopt.CreatedDate as PickTicketDate, wopt.WorkOrderId, sl.StockLineNumber, wop.Quantity AS Qty, wopt.QtyToShip as QtyShipped,
+					SELECT wopt.PickTicketId, wopt.CreatedDate as PickTicketDate, wopt.WorkOrderId, sl.StockLineNumber,wop.Quantity AS Qty,wopt.QtyToShip as QtyShipped,
 						CASE WHEN ISNULL(wop.RevisedItemmasterid, 0) > 0 THEN wop.RevisedPartNumber ELSE imt.PartNumber END as 'PartNumber',
 						CASE WHEN ISNULL(wop.RevisedItemmasterid, 0) > 0 THEN wop.RevisedPartDescription ELSE imt.PartDescription END as 'PartDescription', 
 						wopt.PickTicketNumber,
@@ -51,10 +51,27 @@ BEGIN
 						s.[Name] as SiteName,w.[Name] as WarehouseName,l.[Name] as LocationName,sh.[Name] as ShelfName, p.Description as PriorityName,
 						bn.[Name] as BinName,
 						po.PurchaseOrderNumber as PONumber,
-						sl.QuantityOnHand,sl.QuantityAvailable as QtyAvailable, wowf.Memo AS Notes,
+						--sl.QuantityOnHand,
+						ISNULL([dbo].[fn_ConvertUOM](
+							ISNULL(sl.QuantityOnHand,0),
+							ISNULL(sl.[StockUnitOfMeasure], imt.[StockUnitOfMeasure]),
+							ISNULL(sl.[ConsumeUnitOfMeasure], imt.[ConsumeUnitOfMeasure]),
+							0,
+							ISNULL(sl.[MasterCompanyId], imt.[MasterCompanyId])
+						),0) AS QuantityOnHand,
+						--sl.QuantityAvailable as QtyAvailable,
+						ISNULL([dbo].[fn_ConvertUOM](
+							ISNULL(sl.QuantityAvailable,0),
+							ISNULL(sl.[StockUnitOfMeasure], imt.[StockUnitOfMeasure]),
+							ISNULL(sl.[ConsumeUnitOfMeasure], imt.[ConsumeUnitOfMeasure]),
+							0,
+							ISNULL(sl.[MasterCompanyId], imt.[MasterCompanyId])
+						),0) AS QtyAvailable,
+						wowf.Memo AS Notes,
 						(wop.Quantity - cte.TotalQtyToShip) as ReadyToPick,
 						wopt.QtyRemaining,
-						QtyToShip as QtyToPick,wop.CustomerReference as Reference
+						QtyToShip as QtyToPick,
+						wop.CustomerReference as Reference
 					FROM WOPickTicket wopt WITH (NOLOCK)
 						INNER JOIN cte on cte.WorkOrderId = wopt.WorkOrderId AND cte.WorkFlowWorkOrderId = wopt.WorkFlowWorkOrderId
 						INNER JOIN DBO.WorkOrderWorkFlow wowf WITH (NOLOCK) on wopt.WorkFlowWorkOrderId = wowf.WorkOrderPartNoId

@@ -250,10 +250,10 @@ BEGIN
 				FROM [dbo].[ManagementStructure] WITH(NOLOCK)
 				WHERE ManagementStructureId = ISNULL(@ManagementStructureId,0)
 
-				-- Fetch StatusName 
-				SELECT TOP 1 
+				-- Fetch StatusName
+				SELECT TOP 1
 				@StatusName =  Name
-				FROM [dbo].[MasterSalesOrderStatus] WITH(NOLOCK) 
+				FROM [dbo].[MasterSalesOrderQuoteStatus] WITH(NOLOCK)
 				WHERE Id = ISNULL(@StatusId,0)
 
 				-- Fetch Sales order quote settings details

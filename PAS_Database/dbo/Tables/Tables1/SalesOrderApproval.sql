@@ -44,6 +44,7 @@
     CONSTRAINT [FK_SalesOrderApproval_InternalApprovedById] FOREIGN KEY ([InternalApprovedById]) REFERENCES [dbo].[Employee] ([EmployeeId]),
     CONSTRAINT [FK_SalesOrderApproval_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId]),
     CONSTRAINT [FK_SalesOrderApproval_SalesOrder] FOREIGN KEY ([SalesOrderId]) REFERENCES [dbo].[SalesOrder] ([SalesOrderId]),
+    CONSTRAINT [FK_SalesOrderApproval_SalesOrderPartV1] FOREIGN KEY ([SalesOrderPartId]) REFERENCES [dbo].[SalesOrderPartV1] ([SalesOrderPartId]),
     CONSTRAINT [FK_SalesOrderApproval_SalesOrderQuote] FOREIGN KEY ([SalesOrderQuoteId]) REFERENCES [dbo].[SalesOrderQuote] ([SalesOrderQuoteId])
 );
 

@@ -22,7 +22,11 @@
     [IsActive]                  BIT             CONSTRAINT [DF_SalesOrderStockLineCost_IsActive] DEFAULT ((1)) NOT NULL,
     [IsDeleted]                 BIT             CONSTRAINT [DF_SalesOrderStockLineCost_IsDeleted] DEFAULT ((0)) NOT NULL,
     [NetSaleAmountPerUnit]      DECIMAL (18, 6) NULL,
-    CONSTRAINT [PK_SalesOrderStockLineCost] PRIMARY KEY CLUSTERED ([SalesOrderStockLineCostId] ASC)
+    CONSTRAINT [PK_SalesOrderStockLineCost] PRIMARY KEY CLUSTERED ([SalesOrderStockLineCostId] ASC),
+    CONSTRAINT [FK_SalesOrderStockLineCost_SalesOrder] FOREIGN KEY ([SalesOrderId]) REFERENCES [dbo].[SalesOrder] ([SalesOrderId]),
+    CONSTRAINT [FK_SalesOrderStockLineCost_SalesOrderPartV1] FOREIGN KEY ([SalesOrderPartId]) REFERENCES [dbo].[SalesOrderPartV1] ([SalesOrderPartId]),
+    CONSTRAINT [FK_SalesOrderStockLineCost_SalesOrderStocklineV1] FOREIGN KEY ([SalesOrderStocklineId]) REFERENCES [dbo].[SalesOrderStocklineV1] ([SalesOrderStocklineId]),
+    CONSTRAINT [FK_SalesOrderStockLineCost_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId])
 );
 
 

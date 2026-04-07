@@ -27,7 +27,9 @@
 	14	 04/11/2024  Devendra Shekh Added ReferenceModule For [CommonBatchDetails]
 	15	 24/04/2025	 Devendra Shekh	Modify (Added [IsManualText] check for DistributionSetup)
 	16	 25/06/2025	 Devendra Shekh	Modify (using Code for [MasterDiscountType] and [MasterBankFeesType] instead name for compare)
- 	17 	 01-Apr-2026	Rajesh Gami		UOM Conversion Changes [PN-15866]  
+ 	17 	 01-Apr-2026 Rajesh Gami	UOM Conversion Changes [PN-15866]  
+	18   07/04/2026  Moin Bloch     Modify (Fix For IsDeposit Entry ) PN-15894
+
 	EXEC [dbo].[USP_BatchTriggerBasedonCustomerReceiptByIdNew] 8,218
 
 ************************************************************************/
@@ -536,7 +538,7 @@ BEGIN
 					IF(@ValidDistribution = 1)
 					BEGIN
 						-----Account Receivables------						
-						IF(@AccountReceivablesAmount > 0 AND @Ismiscellaneous = 0)
+						IF(@AccountReceivablesAmount > 0 AND @Ismiscellaneous = 0 AND @IsDeposit = 0)
 						BEGIN	
 							
 							SELECT top 1 @DistributionSetupId=ID,

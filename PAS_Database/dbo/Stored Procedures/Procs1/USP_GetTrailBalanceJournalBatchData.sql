@@ -18,6 +18,7 @@
     7    10/07/2025   Bhargav Saliya  Added ReferenceNumber field
     8    09/02/2026   Bhargav Saliya  Added JournalTypeName field
 	9    03/04/2026   Moin Bloch      Added Pagination PN-15886
+	10   06/04/2026   Moin Bloch      Added @Balance Field PN-15886
 
  **************************************************************
 
@@ -49,8 +50,7 @@ CREATE PROCEDURE [dbo].[USP_GetTrailBalanceJournalBatchData]
 	@GLAccount VARCHAR(100) = NULL,
 	@PeriodNames VARCHAR(100) = NULL,
 	@ReferenceNumber VARCHAR(150) = NULL,
-	@CreditAmount VARCHAR(50) = NULL,
-	@DebitAmount VARCHAR(50) = NULL,
+	@Balance VARCHAR(50) = NULL,
     @masterCompanyId       VARCHAR(50)  = NULL,
     @managementStructureId VARCHAR(50)  = NULL,
     @id                    VARCHAR(50)  = NULL,
@@ -171,8 +171,8 @@ BEGIN
             MIN(FromDate),
             MAX(ToDate)
         FROM dbo.AccountingCalendar WITH (NOLOCK)
-        WHERE PeriodName  = @PeriodName
-          AND IsDeleted   = 0
+        WHERE --PeriodName  = @PeriodName
+              IsDeleted   = 0
           AND LegalEntityId IN
               (
                   SELECT MSL.LegalEntityId
@@ -189,9 +189,7 @@ BEGIN
 			CBD.ReferenceId,
 			CBD.ReferenceModule,
 			CM.IsStandAloneCM,
-            (GL.AccountCode + ' - ' + GL.AccountName)  AS GlAccount,
-            ISNULL(SUM(CBD.CreditAmount), 0)            AS Credit,
-            ISNULL(SUM(CBD.DebitAmount),  0)            AS Debit,
+            (GL.AccountCode + ' - ' + GL.AccountName)  AS GlAccount,            
 			ISNULL(SUM(CBD.DebitAmount), 0)  - ISNULL(SUM(CBD.CreditAmount),  0)  AS Balance,
             BD.AccountingPeriod                         AS PeriodName,
             BD.JournalTypeNumber                        AS JournalNumber,
@@ -225,8 +223,6 @@ BEGIN
 		  AND (ISNULL(@GLAccount,'') ='' OR (UPPER(GL.AccountCode) + '-' + UPPER(GL.AccountName)) LIKE '%' + @GLAccount+'%') 
 		  AND (ISNULL(@PeriodNames,'') ='' OR BD.AccountingPeriod LIKE '%' + @PeriodNames+'%') 
 		  AND (ISNULL(@ReferenceNumber,'') ='' OR CBD.ReferenceNumber LIKE '%' + @ReferenceNumber+'%') 
-		  AND (CAST(ISNULL(@CreditAmount,'') AS VARCHAR) ='' OR CAST(CBD.CreditAmount AS VARCHAR) LIKE '%' + CAST(ISNULL(@CreditAmount,'') AS VARCHAR) +'%') 
-		  AND (CAST(ISNULL(@DebitAmount,'') AS VARCHAR) ='' OR CAST(CBD.DebitAmount AS VARCHAR) LIKE '%' + CAST(ISNULL(@DebitAmount,'') AS VARCHAR) +'%') 
           AND MSD.[Level1Id] IN (SELECT Item FROM #L1)
           AND (NOT EXISTS (SELECT 1 FROM #L2)  OR MSD.[Level2Id]  IN (SELECT Item FROM #L2))
           AND (NOT EXISTS (SELECT 1 FROM #L3)  OR MSD.[Level3Id]  IN (SELECT Item FROM #L3))
@@ -247,7 +243,12 @@ BEGIN
             GL.AccountCode,
             GL.AccountName,
             CBD.ReferenceNumber,
-            CBD.JournalTypeName;
+            CBD.JournalTypeName
+			HAVING
+			(
+				CAST(ISNULL(@Balance,'') AS VARCHAR) = ''
+				OR CAST(ISNULL(SUM(CBD.DebitAmount), 0) - ISNULL(SUM(CBD.CreditAmount), 0) AS VARCHAR) LIKE '%' + CAST(ISNULL(@Balance,'') AS VARCHAR) + '%'
+			)
 		
 		SET @TotalRecordsCount = (SELECT COUNT(JournalNumber) FROM #TempResults);			   
 

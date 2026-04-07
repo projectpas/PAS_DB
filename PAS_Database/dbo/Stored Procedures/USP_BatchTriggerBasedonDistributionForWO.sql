@@ -21,7 +21,9 @@
 	10	 24/04/2025		Devendra Shekh		Modify (Added [IsManualText] check for DistributionSetup)
 	11	 12/JAN/2026	Rajesh Gami			UOM Conversion Changes
 	11	 28/01/2026		Moin Bloch   		Modify (Added Reverse Entry Logic For Work Order Labor)
+	12   30/03/2026     Moin Bloch          Tempararly Commented @TotalAmount to handle adjustment task sum is zero
 	12   03/04/2026     HEMANT SALIYA       Resolved Batch details entry missing while Auto Post is true
+
 
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[USP_BatchTriggerBasedonDistributionForWO]
@@ -163,8 +165,9 @@ BEGIN
 		DECLARE @CurrencyCode VARCHAR(20) = '';
 		DECLARE @FXRate  DECIMAL(18,6) = 1;	--Default Value set to : 1
 		DECLARE @ReferenceModule VARCHAR(100) = 'WO';
-
-		WHILE(@TotalRecords >= @StartCount AND @TotalAmount <> 0)
+		
+		--Commented Tempararly to handle adjustment task sum is zero
+		WHILE(@TotalRecords >= @StartCount) -- AND @TotalAmount <> 0
 		BEGIN
 
 			SELECT	@DistributionMasterId = [DistributionMasterId], 
@@ -473,9 +476,9 @@ BEGIN
 							EXEC [dbo].[UpdateToPostFullBatch] @JournalBatchHeaderId,@UpdateBy;
 						END
 						IF(@IsAutoPost = 1 AND @IsBatchGenerated = 1)
-						BEGIN
-							SET @JournalBatchDetailId =  0;
+						BEGIN							
 							EXEC [dbo].[USP_UpdateCommonBatchStatus] @JournalBatchDetailId,@UpdateBy,@AccountingPeriodId,@AccountingPeriod;
+							SET @JournalBatchDetailId =  0;
 						END
 					END
 					ELSE
@@ -639,9 +642,9 @@ BEGIN
 								EXEC [dbo].[UpdateToPostFullBatch] @JournalBatchHeaderId,@UpdateBy;
 							END
 							IF(@IsAutoPost = 1 AND @IsBatchGenerated = 1)
-							BEGIN
-								SET @JournalBatchDetailId =  0;
+							BEGIN								
 								EXEC [dbo].[USP_UpdateCommonBatchStatus] @JournalBatchDetailId,@UpdateBy,@AccountingPeriodId,@AccountingPeriod;
+								SET @JournalBatchDetailId =  0;
 							END
 						END
 					END
@@ -663,9 +666,9 @@ BEGIN
 						 EXEC [dbo].[UpdateToPostFullBatch] @JournalBatchHeaderId,@UpdateBy;
 					END
 					IF(@IsAutoPost = 1 AND @IsBatchGenerated = 1)
-					BEGIN
-						SET @JournalBatchDetailId =  0;
+					BEGIN						
 						EXEC [dbo].[USP_UpdateCommonBatchStatus] @JournalBatchDetailId,@UpdateBy,@AccountingPeriodId,@AccountingPeriod;
+						SET @JournalBatchDetailId =  0;
 					END
 				END
 
@@ -961,9 +964,9 @@ BEGIN
 								EXEC [dbo].[UpdateToPostFullBatch] @JournalBatchHeaderId,@UpdateBy;
 							END
 							IF(@IsAutoPost = 1 AND @IsBatchGenerated = 1)
-							BEGIN
-								SET @JournalBatchDetailId =  0;
+							BEGIN								
 								EXEC [dbo].[USP_UpdateCommonBatchStatus] @JournalBatchDetailId,@UpdateBy,@AccountingPeriodId,@AccountingPeriod;
+								SET @JournalBatchDetailId =  0;
 							END
 						 END
 						 ELSE
@@ -1197,9 +1200,9 @@ BEGIN
 									EXEC [dbo].[UpdateToPostFullBatch] @JournalBatchHeaderId,@UpdateBy;
 								END
 								IF(@IsAutoPost = 1 AND @IsBatchGenerated = 1)
-								BEGIN
-									SET @JournalBatchDetailId =  0;
+								BEGIN									
 									EXEC [dbo].[USP_UpdateCommonBatchStatus] @JournalBatchDetailId,@UpdateBy,@AccountingPeriodId,@AccountingPeriod;
+									SET @JournalBatchDetailId =  0;
 								END
 							END
 						 END
@@ -1457,9 +1460,9 @@ BEGIN
 								EXEC [dbo].[UpdateToPostFullBatch] @JournalBatchHeaderId,@UpdateBy;
 							END
 							IF(@IsAutoPost = 1 AND @IsBatchGenerated = 1)
-							BEGIN
-								SET @JournalBatchDetailId =  0;
+							BEGIN								
 								EXEC [dbo].[USP_UpdateCommonBatchStatus] @JournalBatchDetailId,@UpdateBy,@AccountingPeriodId,@AccountingPeriod;
+								SET @JournalBatchDetailId =  0;
 							END
 						END
 					END
@@ -1797,9 +1800,9 @@ BEGIN
 							EXEC [dbo].[UpdateToPostFullBatch] @JournalBatchHeaderId,@UpdateBy;
 						END
 						IF(@IsAutoPost = 1 AND @IsBatchGenerated = 1)
-						BEGIN
-							SET @JournalBatchDetailId =  0;
+						BEGIN							
 							EXEC [dbo].[USP_UpdateCommonBatchStatus] @JournalBatchDetailId,@UpdateBy,@AccountingPeriodId,@AccountingPeriod;
+							SET @JournalBatchDetailId =  0;
 						END
 					END
 				
@@ -2064,9 +2067,9 @@ BEGIN
 							EXEC [dbo].[UpdateToPostFullBatch] @JournalBatchHeaderId,@UpdateBy;
 						END
 						IF(@IsAutoPost = 1 AND @IsBatchGenerated = 1)
-						BEGIN
-							SET @JournalBatchDetailId =  0;
+						BEGIN							
 							EXEC [dbo].[USP_UpdateCommonBatchStatus] @JournalBatchDetailId,@UpdateBy,@AccountingPeriodId,@AccountingPeriod;
+							SET @JournalBatchDetailId =  0;
 						END
 					END
 				
@@ -2765,9 +2768,9 @@ BEGIN
 							EXEC [dbo].[UpdateToPostFullBatch] @JournalBatchHeaderId,@UpdateBy;
 						END
 						IF(@IsAutoPost = 1 AND @IsBatchGenerated = 1)
-						BEGIN
-							SET @JournalBatchDetailId =  0;
+						BEGIN							
 							EXEC [dbo].[USP_UpdateCommonBatchStatus] @JournalBatchDetailId,@UpdateBy,@AccountingPeriodId,@AccountingPeriod;
+							SET @JournalBatchDetailId =  0;
 						END
 					END
 
@@ -2967,9 +2970,9 @@ BEGIN
 								EXEC [dbo].[UpdateToPostFullBatch] @JournalBatchHeaderId,@UpdateBy;
 							END
 							IF(@IsAutoPost = 1 AND @IsBatchGenerated = 1)
-							BEGIN
-								SET @JournalBatchDetailId =  0;
+							BEGIN								
 								EXEC [dbo].[USP_UpdateCommonBatchStatus] @JournalBatchDetailId,@UpdateBy,@AccountingPeriodId,@AccountingPeriod;
+								SET @JournalBatchDetailId =  0;
 							END
 						END
 					

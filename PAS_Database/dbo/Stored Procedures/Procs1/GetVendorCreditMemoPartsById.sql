@@ -14,6 +14,7 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    27/06/2023  Devendra SHekh     Created
+	2    06-04-2026	  Amit Ghediya		UOM Conversion Changes [PN-15140]
      
 -- EXEC [GetVendorCreditMemoPartsById] 56
 ************************************************************************/
@@ -35,7 +36,7 @@ BEGIN
 					,CM.[VendorCreditMemoId]
 					,CM.[VendorRMADetailId]
 					,CM.[VendorRMAId]
-					,CM.[Qty]
+					,([dbo].[fn_ConvertUOM](ISNULL(CM.[Qty], 0),IM.[StockUnitOfMeasure], IM.[PurchaseUnitOfMeasure],0,IM.[MasterCompanyId])) AS 'Qty'
 					,CM.[OriginalAmt]
 					,CM.[ApplierdAmt]
 					,CM.[RefundAmt]
@@ -55,7 +56,7 @@ BEGIN
 					,v.[VendorName] as 'Vendor'
 					,vrmd.ItemMasterId
 					,vrmd.StockLineId
-					,sl.UnitCost
+					,([dbo].[fn_ConvertUOM](ISNULL(sl.UnitCost, 0),IM.[StockUnitOfMeasure], IM.[PurchaseUnitOfMeasure],1,IM.[MasterCompanyId])) AS 'UnitCost'
 					,vrmd.RMANum
 		  FROM [dbo].[VendorCreditMemoDetail] CM WITH (NOLOCK) 		
 			   --LEFT JOIN VendorCreditMemo vcm WITH (NOLOCK) ON CM.VendorCreditMemoId = vcm.VendorCreditMemodId
@@ -72,7 +73,7 @@ BEGIN
 					,CM.[VendorCreditMemoId]
 					,CM.[VendorRMADetailId]
 					,CM.[VendorRMAId]
-					,CM.[Qty]
+					,([dbo].[fn_ConvertUOM](ISNULL(CM.[Qty], 0),IM.[StockUnitOfMeasure], IM.[PurchaseUnitOfMeasure],0,IM.[MasterCompanyId])) AS 'Qty'
 					,CM.[OriginalAmt]
 					,CM.[ApplierdAmt]
 					,CM.[RefundAmt]
@@ -92,7 +93,7 @@ BEGIN
 					,v.[VendorName] as 'Vendor'
 					,sl.ItemMasterId
 					,sl.StockLineId
-					,sl.UnitCost
+					,([dbo].[fn_ConvertUOM](ISNULL(sl.UnitCost, 0),IM.[StockUnitOfMeasure], IM.[PurchaseUnitOfMeasure],1,IM.[MasterCompanyId])) AS 'UnitCost'
 					,'' as 'RMANum'
 		  FROM [dbo].[VendorCreditMemoDetail] CM WITH (NOLOCK) 		
 			   LEFT JOIN VendorCreditMemo vcm WITH (NOLOCK) ON CM.VendorCreditMemoId = vcm.VendorCreditMemoId

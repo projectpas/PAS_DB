@@ -11,6 +11,7 @@
  ** PR   Date         Author  		Change Description            
  ** --   --------     -------		---------------------------     
     1    06/20/2023   Moin Bloch     Created
+	2    06-04-2026	  Amit Ghediya		UOM Conversion Changes [PN-15140]
 *******************************************************************************
 EXEC USP_VendorRMA_Receiving_DetailsById 34
 *******************************************************************************/
@@ -27,18 +28,18 @@ BEGIN
 				  ,1 AS [ItemTypeId]
 				  ,0 AS [QuantityRejected]          --> Default SET 0   
 				  --,VD.[Qty] AS [QuantityOrdered]				  
-				  ,VD.[QtyShipped] AS [QuantityOrdered]		
+				  ,([dbo].[fn_ConvertUOM](ISNULL(VD.[QtyShipped], 0),IM.[StockUnitOfMeasure], IM.[PurchaseUnitOfMeasure],0,IM.[MasterCompanyId])) AS [QuantityOrdered]
   			    --,[QuantityBackOrdered] = (VD.[Qty] - (SELECT ISNULL(SUM(ISNULL(SL.[Quantity],0)),0) FROM [dbo].[StockLine] SL WITH (NOLOCK) WHERE SL.[VendorRMADetailId] = VD.[VendorRMADetailId] AND SL.[IsDeleted] = 0 AND SL.[IsParent] = 1))
-				  ,[QuantityBackOrdered] = (VD.[QtyShipped] - (SELECT ISNULL(SUM(ISNULL(SL.[Quantity],0)),0) FROM [dbo].[StockLine] SL WITH (NOLOCK) WHERE SL.[VendorRMADetailId] = VD.[VendorRMADetailId] AND SL.[IsDeleted] = 0 AND SL.[IsParent] = 1))
-				  ,[QuantityDrafted] = (SELECT ISNULL(SUM(ISNULL(SD.[Quantity],0)),0) FROM [dbo].[StockLineDraft] SD WITH (NOLOCK) WHERE SD.[VendorRMADetailId] = VD.[VendorRMADetailId] AND SD.[IsDeleted] = 0 AND SD.[IsParent] = 1 AND ISNULL(SD.[StockLineId],0) = 0)
-				  ,[QuantityReceived] = (SELECT ISNULL(SUM(ISNULL(SL.[Quantity],0)),0) FROM [dbo].[StockLine] SL WITH (NOLOCK) WHERE SL.[VendorRMADetailId] = VD.[VendorRMADetailId] AND SL.[IsDeleted] = 0 AND SL.[IsParent] = 1)
+				  ,[QuantityBackOrdered] = (([dbo].[fn_ConvertUOM](ISNULL(VD.[QtyShipped], 0),IM.[StockUnitOfMeasure], IM.[PurchaseUnitOfMeasure],0,IM.[MasterCompanyId])) - (SELECT ISNULL(SUM(ISNULL(([dbo].[fn_ConvertUOM](ISNULL(SL.[Quantity], 0),IM.[StockUnitOfMeasure], IM.[PurchaseUnitOfMeasure],0,IM.[MasterCompanyId])),0)),0) FROM [dbo].[StockLine] SL WITH (NOLOCK) INNER JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON SL.[ItemMasterId] = IM.[ItemMasterId] WHERE SL.[VendorRMADetailId] = VD.[VendorRMADetailId] AND SL.[IsDeleted] = 0 AND SL.[IsParent] = 1))
+				  ,[QuantityDrafted] = (SELECT ISNULL(SUM(ISNULL(([dbo].[fn_ConvertUOM](ISNULL(SD.[Quantity], 0),IM.[StockUnitOfMeasure], IM.[PurchaseUnitOfMeasure],0,IM.[MasterCompanyId])),0)),0) FROM [dbo].[StockLineDraft] SD WITH (NOLOCK) INNER JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON SD.[ItemMasterId] = IM.[ItemMasterId] WHERE SD.[VendorRMADetailId] = VD.[VendorRMADetailId] AND SD.[IsDeleted] = 0 AND SD.[IsParent] = 1 AND ISNULL(SD.[StockLineId],0) = 0)
+				  ,[QuantityReceived] = (SELECT ISNULL(SUM(ISNULL(([dbo].[fn_ConvertUOM](ISNULL(SL.[Quantity], 0),IM.[StockUnitOfMeasure], IM.[PurchaseUnitOfMeasure],0,IM.[MasterCompanyId])),0)),0) FROM [dbo].[StockLine] SL WITH (NOLOCK) INNER JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON SL.[ItemMasterId] = IM.[ItemMasterId] WHERE SL.[VendorRMADetailId] = VD.[VendorRMADetailId] AND SL.[IsDeleted] = 0 AND SL.[IsParent] = 1)
 				  ,VD.[SerialNumber]
 				  ,SL.[ConditionId]
 				  ,SL.[Condition]
 				  ,0 AS [DiscountAmount]   --> Default SET 0  
 				  ,0 AS [DiscountPercent]  --> Default SET 0  
 				  ,0 AS [DiscountPerUnit]  --> Default SET 0  				  
-				  ,VD.[ExtendedCost]
+				  ,([dbo].[fn_ConvertUOM](ISNULL(VD.[ExtendedCost], 0),IM.[StockUnitOfMeasure], IM.[PurchaseUnitOfMeasure],1,IM.[MasterCompanyId])) AS ExtendedCost
 				  ,0 AS [ForeignExchangeRate]
 				  ,NULL AS [FunctionalCurrencyId] --> Default SET NULL 
 				  ,SL.[GLAccountId]
@@ -55,7 +56,8 @@ BEGIN
 				  ,NULL AS [ReportCurrencyId]      --> Default SET NULL 
 				  ,0 AS [SalesOrderId]               --> Default SET 0  
 				  ,0 AS [WorkOrderId]              --> Default SET 0  
-				  ,VD.[UnitCost]
+				  --,VD.[UnitCost]
+				  ,([dbo].[fn_ConvertUOM](ISNULL(VD.[UnitCost], 0),IM.[StockUnitOfMeasure], IM.[PurchaseUnitOfMeasure],1,IM.[MasterCompanyId])) AS UnitCost
 				  ,SL.[PurchaseUnitOfMeasureId] AS [UOMId]				 
 				  ,SL.[ShippingViaId] AS [ShipViaId]
                   ,'' AS [ShipVia]

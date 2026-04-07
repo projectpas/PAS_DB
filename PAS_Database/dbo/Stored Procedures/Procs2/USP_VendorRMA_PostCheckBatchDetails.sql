@@ -29,6 +29,7 @@
 	13	 04/11/2024	  Devendra Shekh		Added ReferenceId, ReferenceModule For [CommonBatchDetails]
 	14	 03/02/2025	  Amit Ghediya			Modify(get Distribution based on new settings from stockline level)
 	15	 06/02/2025	  Abhishek Jirawla		Fixed Name concat read script
+	16   06-03-2026	  Amit Ghediya			UOM Conversion Changes [PN-15140]
 
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_VendorRMA_PostCheckBatchDetails]
@@ -71,7 +72,7 @@ BEGIN
 		DECLARE @StartsFrom varchar(200)='00'
 		DECLARE @GlAccountName varchar(200) 
 		DECLARE @GlAccountNumber varchar(200) 
-		DECLARE @ExtAmount DECIMAL(18,2)
+		DECLARE @ExtAmount DECIMAL(18,6)
 		DECLARE @BankId INT =0;
 		DECLARE @ManagementStructureId bigint
 		DECLARE @LastMSLevel varchar(200)
@@ -132,18 +133,24 @@ BEGIN
 			SET @DistributionCodeName = 'VRMACA';
 			SELECT @DistributionMasterId =ID,@DistributionCode = DistributionCode FROM [DBO].DistributionMaster WITH(NOLOCK) WHERE UPPER(DistributionCode)= UPPER('VRMACA');
 			SET @tmpVendorRMADetailId = @VendorRMADetailId;
-			SELECT @VendorRMADetailId = VendorRMADetailId, 
-			       @VendorRMAId = VendorRMAId,
-				   @ExtAmount = ISNULL(ApplierdAmt,0), 
-				   @VendorCreditMemoId = VendorCreditMemoId
-			FROM [DBO].[VendorCreditMemoDetail] WITH(NOLOCK) WHERE VendorCreditMemoId = @VendorRMADetailId;
+			SELECT @VendorRMADetailId = VCM.VendorRMADetailId, 
+			       @VendorRMAId = VCM.VendorRMAId,
+				   @ExtAmount = ISNULL(([dbo].[fn_ConvertUOM](ISNULL(VCM.ApplierdAmt, 0),imt.[StockUnitOfMeasure],imt.[PurchaseUnitOfMeasure],0,imt.[MasterCompanyId])),0), 
+				   @VendorCreditMemoId = VCM.VendorCreditMemoId
+			FROM [DBO].[VendorCreditMemoDetail] VCM WITH(NOLOCK) 
+			LEFT JOIN [DBO].[VendorRMADetail] VRM WITH(NOLOCK) ON VRM.VendorRMADetailId = VCM.VendorRMADetailId
+			LEFT JOIN DBO.ItemMaster imt WITH (NOLOCK) ON imt.ItemMasterId = VRM.ItemMasterId 
+			WHERE VCM.VendorCreditMemoId = @VendorRMADetailId;
 
 			SELECT @VendorId = VendorId FROM [DBO].[VendorRMA] WITH(NOLOCK) WHERE VendorRMAId = @VendorRMAId;
 			SELECT @ModuleId = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] ='VendorCreditMemo';
 		END
 		ELSE
 		BEGIN
-			SELECT @ExtAmount = ISNULL(ExtendedCost,0),@VendorCreditMemoId = VendorRMAId FROM [DBO].[VendorRMADetail] WITH(NOLOCK) WHERE  VendorRMADetailId = @VendorRMADetailId;
+			SELECT @ExtAmount = ISNULL(([dbo].[fn_ConvertUOM](ISNULL(VRM.ExtendedCost, 0),imt.[StockUnitOfMeasure],imt.[PurchaseUnitOfMeasure],0,imt.[MasterCompanyId])),0),@VendorCreditMemoId = VRM.VendorRMAId 
+			FROM [DBO].[VendorRMADetail] VRM WITH(NOLOCK) 
+			LEFT JOIN DBO.ItemMaster imt WITH (NOLOCK) ON imt.ItemMasterId = VRM.ItemMasterId 
+			WHERE  VRM.VendorRMADetailId = @VendorRMADetailId;
 		END
 
 		SELECT @MasterCompanyId = MasterCompanyId, @UpdateBy = CreatedBy, @RMANumber = RMANumber FROM [DBO].[VendorRMA] WITH(NOLOCK) WHERE VendorRMAId = @VendorRMAId;

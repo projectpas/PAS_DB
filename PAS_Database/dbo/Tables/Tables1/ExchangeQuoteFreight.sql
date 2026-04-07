@@ -5,13 +5,13 @@
     [ShipViaId]                BIGINT          NOT NULL,
     [Weight]                   VARCHAR (50)    NULL,
     [Memo]                     NVARCHAR (MAX)  NULL,
-    [Amount]                   DECIMAL (20, 3) NULL,
+    [Amount]                   DECIMAL (18, 6) NULL,
     [MarkupPercentageId]       BIGINT          NULL,
-    [MarkupFixedPrice]         DECIMAL (20, 2) NULL,
+    [MarkupFixedPrice]         DECIMAL (18, 6) NULL,
     [HeaderMarkupId]           BIGINT          NULL,
     [BillingMethodId]          INT             NULL,
-    [BillingRate]              DECIMAL (20, 2) NULL,
-    [BillingAmount]            DECIMAL (20, 2) NULL,
+    [BillingRate]              DECIMAL (18, 6) NULL,
+    [BillingAmount]            DECIMAL (18, 6) NULL,
     [Length]                   DECIMAL (10, 2) NULL,
     [Width]                    DECIMAL (10, 2) NULL,
     [Height]                   DECIMAL (10, 2) NULL,
@@ -33,6 +33,8 @@
     CONSTRAINT [PK_ExchangeQuoteFreight] PRIMARY KEY CLUSTERED ([ExchangeQuoteFreightId] ASC),
     CONSTRAINT [FK_ExchangeQuoteFreight_ExchangeQuote] FOREIGN KEY ([ExchangeQuoteId]) REFERENCES [dbo].[ExchangeQuote] ([ExchangeQuoteId])
 );
+
+
 
 
 GO

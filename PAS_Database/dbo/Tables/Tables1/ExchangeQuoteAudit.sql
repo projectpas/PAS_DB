@@ -18,11 +18,11 @@
     [CustomerName]             VARCHAR (100)   NULL,
     [CustomerCode]             VARCHAR (50)    NULL,
     [CustomerContactId]        BIGINT          NOT NULL,
-    [CreditLimit]              DECIMAL (18, 2) NULL,
+    [CreditLimit]              DECIMAL (18, 6) NULL,
     [CreditTermId]             INT             NULL,
     [CreditLimitName]          VARCHAR (50)    NULL,
     [CreditTermName]           VARCHAR (50)    NULL,
-    [BalanceDue]               NUMERIC (9, 2)  CONSTRAINT [DF_ExchangeQuoteAudit_BalanceDue] DEFAULT ((0)) NOT NULL,
+    [BalanceDue]               DECIMAL (18, 6) CONSTRAINT [DF_ExchangeQuoteAudit_BalanceDue] DEFAULT ((0)) NULL,
     [SalesPersonId]            BIGINT          NULL,
     [SalesPersonName]          VARCHAR (50)    NULL,
     [ApprovedById]             BIGINT          NULL,
@@ -64,18 +64,12 @@
     [IsNewVersionCreated]      BIT             DEFAULT ((0)) NOT NULL,
     [QuoteParentId]            BIGINT          NULL,
     [IsFreightFlatRate]        BIT             NULL,
-    [FreightFlatRate]          DECIMAL (18, 2) NULL,
+    [FreightFlatRate]          DECIMAL (18, 6) NULL,
     [IsChargeFlatRate]         BIT             NULL,
-    [ChargeFlatRate]           DECIMAL (18, 2) NULL,
+    [ChargeFlatRate]           DECIMAL (18, 6) NULL,
     [FunctionalCurrencyId]     INT             NULL,
     [ReportCurrencyId]         INT             NULL,
-    [ForeignExchangeRate]      DECIMAL (18, 2) NULL,
+    [ForeignExchangeRate]      DECIMAL (18, 6) NULL,
     CONSTRAINT [PK_ExchangeQuoteAudit] PRIMARY KEY CLUSTERED ([AuditExchangeQuoteId] ASC)
 );
-
-
-
-
-
-
 

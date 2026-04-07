@@ -2,7 +2,7 @@
     [SalesOrderSettingId]           BIGINT        IDENTITY (1, 1) NOT NULL,
     [TypeId]                        INT           NOT NULL,
     [Prefix]                        VARCHAR (20)  NULL,
-    [Sufix]                         VARCHAR (20)  NULL,
+    [Suffix]                        VARCHAR (20)  NULL,
     [StartCode]                     BIGINT        NULL,
     [CurrentNumber]                 BIGINT        NOT NULL,
     [DefaultStatusId]               INT           NOT NULL,

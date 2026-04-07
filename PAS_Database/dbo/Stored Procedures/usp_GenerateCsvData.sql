@@ -20,7 +20,8 @@
 	4	 02/02/2026   Nakul Chandigra		Added New condition to get @BaseTable AND ADDED ORDER BY FieldSortOrder TO Get @JoinList
 	5    04/02/2026   Divyesh Kathiriya		Added New Module "Stockline"
 	6	 02/04/2026   Nakul Chandigra       Add condtion for Orderby in final sql for squenceno (PN-15884)
- EXEC usp_GenerateCsvData 5, 1, 236
+	7	 07/04/2026   Nakul Chandigra       Add condtion for Orderby in final sql (PN-15944)
+ EXEC usp_GenerateCsvData 16, 1, 2
 **************************************************************/
 CREATE PROCEDURE [dbo].[usp_GenerateCsvData]
 (
@@ -147,11 +148,11 @@ BEGIN
 		
 		IF EXISTS(SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = @BaseTable AND COLUMN_NAME ='SequenceNo')
 		BEGIN 
-			SET @OrderByColumn = 'SequenceNo ASC;'
+			SET @OrderByColumn = '.SequenceNo ASC;'
 		END 
 		ELSE 
 		BEGIN 
-			SET @OrderByColumn = 'CreatedDate DESC;'
+			SET @OrderByColumn = '.CreatedDate DESC;'
 		END 
 
 --------------Final SQL Query Start--------------
@@ -187,7 +188,7 @@ BEGIN
 				WHERE ' + @BaseTable + '.MasterCompanyId = @MasterCompanyId
 				AND ' + @BaseTable + '.IsActive = 1
 				AND ' + @BaseTable + '.IsDeleted = 0
-				ORDER BY '+ @OrderByColumn;
+				ORDER BY '+  @BaseTable +@OrderByColumn;
 		
 		END
 --------------Final SQL Query END--------------
@@ -200,7 +201,6 @@ BEGIN
 		BEGIN
 			EXEC sp_executesql @SQL, N'@MasterCompanyId INT', @MasterCompanyId;
 		END
-
 	END TRY
 	BEGIN CATCH
 		DECLARE @ErrorLogID INT

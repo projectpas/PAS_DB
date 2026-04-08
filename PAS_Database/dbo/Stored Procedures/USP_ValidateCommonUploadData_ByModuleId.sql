@@ -47,6 +47,8 @@
 	37   30-MAR-2026		Nakul Chandigra			Removed extra case from the validation for  @AircraftStatusModule And @MaintenanceStatusModule (PN-15874)
 	38   02-APR-2026		Nakul Chandigra			Implemented maximum length validation for Name and Description fields in AircraftStatusModule and MaintenanceStatusModule (PN-15873).
 	39   06-APR-2026		Nakul Chandigra			Add extra case of the validation for  @AircraftStatusModule And @MaintenanceStatusModule (PN-15945)
+	40   07-APR-2026        Nakul Chandigra			Add a common case of validation for dropdown (PN-15950)
+
 declare @p4 dbo.UploadModuleDataTableType
 insert into @p4 values(4,N'VICTOR ADMAS',1,N'{
   "partnumber": "AEIN122",
@@ -376,7 +378,7 @@ BEGIN
 								@FieldValueId = @DropdownListValueId OUTPUT;
 						END
 					END
-					
+								
 					--IF(ISNULL(@DropdownListValueId, '') != '')
 					IF(ISNULL(@DropdownListValueId, '') != '' AND ISNULL(@IsMultiValue, 0) = 0)
 					BEGIN
@@ -673,7 +675,10 @@ BEGIN
 													 AND UPPER(TRIM(TMP.FieldValue)) = 'ALL'
 												THEN
 													' '	
-
+												WHEN ISNULL(IMF.DropdownListType, '') != ''  
+													 AND ISNULL(IMF.DropdownListValueId, '') = '' 
+												THEN 
+													'Please Enter Correct  ' + IMF.HeaderName 
 												-- FlatRatePrice Validation (checking for numeric value and greater than 0)
 												WHEN (@ModuleId = @MROPriceMasterModule OR @ModuleId = @MROPriceMasterListModule)
 														AND ISNULL(TMP.FieldValue, '') != '' 

@@ -2,7 +2,7 @@
     [SOStockLineId]       BIGINT          IDENTITY (1, 1) NOT NULL,
     [SalesOrderId]        BIGINT          NOT NULL,
     [SalesOrderPartId]    BIGINT          NOT NULL,
-    [StockLIneId]         BIGINT          NOT NULL,
+    [StockLineId]         BIGINT          NOT NULL,
     [ItemMasterId]        BIGINT          NOT NULL,
     [ConditionId]         BIGINT          NOT NULL,
     [Quantity]            DECIMAL (18, 6) NULL,
@@ -28,7 +28,7 @@
     CONSTRAINT [FK_SalesOrderStockLine_ItemMaster] FOREIGN KEY ([ItemMasterId]) REFERENCES [dbo].[ItemMaster] ([ItemMasterId]),
     CONSTRAINT [FK_SalesOrderStockLine_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId]),
     CONSTRAINT [FK_SalesOrderStockLine_SalesOrder] FOREIGN KEY ([SalesOrderId]) REFERENCES [dbo].[SalesOrder] ([SalesOrderId]),
-    CONSTRAINT [FK_SalesOrderStockLine_StockLine] FOREIGN KEY ([StockLIneId]) REFERENCES [dbo].[Stockline] ([StockLineId])
+    CONSTRAINT [FK_SalesOrderStockLine_StockLine] FOREIGN KEY ([StockLineId]) REFERENCES [dbo].[Stockline] ([StockLineId])
 );
 
 

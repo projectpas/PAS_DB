@@ -2,7 +2,7 @@
     [WOSReserveAuditId]    BIGINT          IDENTITY (1, 1) NOT NULL,
     [WOSReserveId]         BIGINT          NOT NULL,
     [WorkOrderMaterialsId] BIGINT          NOT NULL,
-    [StockLIneId]          BIGINT          NOT NULL,
+    [StockLineId]          BIGINT          NOT NULL,
     [QtyReserved]          DECIMAL (18, 6) NULL,
     [IsReserved]           BIT             NOT NULL,
     [MasterCompanyId]      INT             NOT NULL,

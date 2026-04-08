@@ -29,15 +29,15 @@ BEGIN
 	 BEGIN TRY  
 	  
 		    -- Delete SubWorkOrderStockLineReserve if exists
-			IF EXISTS(SELECT TOP 1 SWOSReserveId FROM [DBO].[SubWorkOrderStockLineReserve] WITH(NOLOCK) WHERE [SubWorkOrderMaterialsId] = @SubWorkOrderMaterialsId AND [StockLIneId] = @StocklineId)
+			IF EXISTS(SELECT TOP 1 SWOSReserveId FROM [DBO].[SubWorkOrderStockLineReserve] WITH(NOLOCK) WHERE [SubWorkOrderMaterialsId] = @SubWorkOrderMaterialsId AND [StockLineId] = @StocklineId)
 			BEGIN
-				 DELETE FROM [DBO].[SubWorkOrderStockLineReserve] WHERE [SubWorkOrderMaterialsId] = @SubWorkOrderMaterialsId AND [StockLIneId] = @StocklineId;
+				 DELETE FROM [DBO].[SubWorkOrderStockLineReserve] WHERE [SubWorkOrderMaterialsId] = @SubWorkOrderMaterialsId AND [StockLineId] = @StocklineId;
 			END
 
 			-- Delete SubWorkOrderMaterialStockLine if exists
-			IF EXISTS(SELECT TOP 1 SWOMStockLineId FROM [DBO].[SubWorkOrderMaterialStockLine] WITH(NOLOCK) WHERE [SubWorkOrderMaterialsId] = @SubWorkOrderMaterialsId AND [StockLIneId] = @StocklineId)
+			IF EXISTS(SELECT TOP 1 SWOMStockLineId FROM [DBO].[SubWorkOrderMaterialStockLine] WITH(NOLOCK) WHERE [SubWorkOrderMaterialsId] = @SubWorkOrderMaterialsId AND [StockLineId] = @StocklineId)
 			BEGIN
-				 DELETE FROM [DBO].[SubWorkOrderMaterialStockLine] WHERE [SubWorkOrderMaterialsId] = @SubWorkOrderMaterialsId AND [StockLIneId] = @StocklineId;
+				 DELETE FROM [DBO].[SubWorkOrderMaterialStockLine] WHERE [SubWorkOrderMaterialsId] = @SubWorkOrderMaterialsId AND [StockLineId] = @StocklineId;
 			END
 
 			-- UpdateSubWOMaterialsCost

@@ -3,7 +3,7 @@
     [SOReservedStockId]      BIGINT          NOT NULL,
     [SalesOrderId]           BIGINT          NOT NULL,
     [SalesOrderPartId]       BIGINT          NOT NULL,
-    [StockLIneId]            BIGINT          NOT NULL,
+    [StockLineId]            BIGINT          NOT NULL,
     [ConditionId]            BIGINT          NOT NULL,
     [ItemMasterId]           BIGINT          NOT NULL,
     [Quantity]               DECIMAL (18, 6) NOT NULL,

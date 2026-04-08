@@ -2,7 +2,7 @@
     [SOStockAuditId]           BIGINT        IDENTITY (1, 1) NOT NULL,
     [ExchangeSalesOrderId]     BIGINT        NOT NULL,
     [ExchangeSalesOrderPartId] BIGINT        NOT NULL,
-    [StockLIneId]              BIGINT        NOT NULL,
+    [StockLineId]              BIGINT        NOT NULL,
     [ConditionId]              BIGINT        NOT NULL,
     [ItemMasterId]             BIGINT        NOT NULL,
     [AltPartMasterPartId]      BIGINT        NULL,

@@ -19,6 +19,8 @@ EXEC [USP_AutoReserveAllSubWorkOrderMaterials]
 ** 8    03/21/2025		 Devendra Shekh			Updated For Checking PMA/DER Restrict Parts
 ***9    16/Mar/2026		 Rajesh Gami			Added UOM Changes [PN-15714]   
 **10    03/16/2026		 AMIT GHEDIYA			Allow AR condition to reserve (PN-15562)
+**11    04/08/2026		 Priyansh Patel			Fixed the Reserve Qty decimal for accurate history notes (PN-15936)
+
 EXEC USP_AutoReserveAllSubWorkOrderMaterials 161,0,0,2,0
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[USP_AutoReserveAllSubWorkOrderMaterials]
@@ -462,7 +464,8 @@ BEGIN
 						--FOR STOCK LINE HISTORY
 						WHILE @slcount<= @TotalCounts
 						BEGIN
-							DECLARE @ReservedQty bigint = 0;
+							
+							DECLARE @ReservedQty [decimal](18,6) = 0;
 
 							SELECT	@StocklineId = tmpWOM.StockLineId,
 									@MasterCompanyId = tmpWOM.MasterCompanyId,

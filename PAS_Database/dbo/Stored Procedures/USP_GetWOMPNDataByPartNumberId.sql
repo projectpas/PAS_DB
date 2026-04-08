@@ -16,6 +16,7 @@
  ** PR   Date			 Author			Change Description            
  ** --   --------		 -------		--------------------------------          
     1    25-April-2025   Bhargav Saliya		Created
+    2    06/04/2026      Ayushi Patel	    PN-15908 Update (Added UOM Changes)
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_GetWOMPNDataByPartNumberId]
     @WorkOrderId BIGINT,
@@ -34,7 +35,14 @@ BEGIN
         im.PartDescription,
         stl.StockLineNumber,
         stl.SerialNumber,
-        stl.QuantityOnHand AS Quantity,
+        --stl.QuantityOnHand AS Quantity,
+        ISNULL([dbo].[fn_ConvertUOM](
+            ISNULL(stl.QuantityOnHand,0),
+            ISNULL(stl.[StockUnitOfMeasure], im.[StockUnitOfMeasure]),
+            ISNULL(stl.[ConsumeUnitOfMeasure], im.[ConsumeUnitOfMeasure]),
+            0,
+            ISNULL(stl.[MasterCompanyId], im.[MasterCompanyId])
+        ),0) AS Quantity,
         stl.Condition,
         stl.ControlNumber,
         stl.Site AS siteName,

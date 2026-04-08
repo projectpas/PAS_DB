@@ -20,8 +20,8 @@ EXEC [GetSubWorkorderReleaseFromData]
 ** 6	04/APR/2025 Devendra Shekh	 Added IsLaborTrackingTurnedOff to select
 ** 7	14/APR/2025 RAJESH GAMI	     Change the traveler number logic: Get from the WO Partnumber table if available else get from the traveler_setup
 ** 8	22/JAN/2026 Priyansh Patel   Added CSN and TSN values
-
-EXEC GetWorkOrderPrintPdfData 8560,8227
+** 9    06/04/2026  Ayushi Patel	 PN-15908 Update (Added UOM Changes)
+EXEC GetWorkOrderPrintPdfData 10248,10466
 
 **************************************************************/
 CREATE   PROCEDURE [dbo].[GetWorkOrderPrintPdfData]              
@@ -52,7 +52,14 @@ BEGIN
 		SELECT  wo.WorkOrderId,              
 		wo.CustomerId,              
 		UPPER(wo.CustomerName) as CustomerName,              
-		wop.Quantity,              
+		--wop.Quantity,  
+		ISNULL([dbo].[fn_ConvertUOM](
+            ISNULL(wop.Quantity,0),
+            ISNULL(sl.[StockUnitOfMeasure], imt.[StockUnitOfMeasure]),
+            ISNULL(sl.[ConsumeUnitOfMeasure], imt.[ConsumeUnitOfMeasure]),
+            0,
+            ISNULL(sl.[MasterCompanyId], imt.[MasterCompanyId])
+        ),0) AS Quantity,
 		woq.QuoteNumber,              
 		woq.OpenDate as qouteDate,              
 		'1' as NoofItem,              

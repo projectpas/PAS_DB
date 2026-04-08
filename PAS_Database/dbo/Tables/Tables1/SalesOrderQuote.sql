@@ -75,7 +75,7 @@
     [ForeignExchangeRate]      DECIMAL (18, 2) NULL,
     [LotId]                    BIGINT          NULL,
     [IsLotAssigned]            BIT             NULL,
-    [SourceBy]                 VARCHAR (30)    NULL,
+    [SourceBy]                 VARCHAR (50)    NULL,
     [MarketplaceRef]           VARCHAR (50)    NULL,
     [ApprovalCode]             VARCHAR (200)   NULL,
     CONSTRAINT [PK_SalesOrderQuote] PRIMARY KEY CLUSTERED ([SalesOrderQuoteId] ASC),

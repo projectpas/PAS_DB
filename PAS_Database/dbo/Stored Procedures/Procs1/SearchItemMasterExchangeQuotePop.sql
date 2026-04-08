@@ -1,4 +1,18 @@
-﻿--EXEC SearchItemMasterExchangeQuotePop '3','1,2,3,7,8,9,10,11,12,13,14,15,101,111',NULL,-1,1
+﻿/*************************************************************           
+ ** File:   [SearchItemMasterExchangeQuotePop]           
+ ** Author:  
+ ** Description: This SP is Used to get Search ItemMaster ExchangeQuote
+ ** Purpose:         
+ ** Date:   08/07/2024		[mm/dd/yyyy]
+ **************************************************************           
+  ** Change History           
+ **************************************************************           
+ ** PR   Date			   Author					Change Description            
+ ** --   --------		  -------					--------------------------------          
+    1   											Created
+	2    07/APR/2026	  Rajesh Gami				Added UOM Changes [PN-15903]     
+
+**************************************************************/ 
 CREATE   PROCEDURE [dbo].[SearchItemMasterExchangeQuotePop]
 @ItemMasterIdlist VARCHAR(max), 
 --@ConditionId BIGINT = NULL,
@@ -22,8 +36,8 @@ BEGIN
 				,im.IsPma
 				,im.IsDER
 				,im.PartDescription AS Description
-				,SUM(ISNULL(sl.QuantityAvailable, 0)) AS QtyAvailable
-				,SUM(ISNULL(sl.QuantityOnHand, 0)) AS QtyOnHand
+				, dbo.fn_ConvertUOM(SUM(ISNULL(sl.QuantityAvailable, 0)), MAX(uomStock.ShortName), MAX(uomConsume.ShortName),0,im.[MasterCompanyId]) AS QtyAvailable
+				, dbo.fn_ConvertUOM(SUM(ISNULL(sl.QuantityOnHand, 0)), MAX(uomStock.ShortName), MAX(uomConsume.ShortName),0,im.[MasterCompanyId]) AS QtyOnHand
 				,ig.Description AS ItemGroup
 				,mf.Name Manufacturer
 				,ISNULL(im.ManufacturerId, -1) AS ManufacturerId
@@ -44,7 +58,7 @@ BEGIN
 					ELSE 'OEM'
 					END AS Oempmader
 				,@MappingType AS MappingType
-				,imps.PP_UnitPurchasePrice AS UnitCost
+				, dbo.fn_ConvertUOM(imps.PP_UnitPurchasePrice , MAX(uomPO.ShortName), MAX(uomConsume.ShortName),1,im.[MasterCompanyId]) UnitCost
 				,imel.ItemMasterLoanExchId
 				,imel.IsLoan
 				,imel.IsExchange
@@ -63,13 +77,7 @@ BEGIN
 			FROM DBO.ItemMaster im WITH (NOLOCK)
 			LEFT JOIN DBO.Condition c WITH (NOLOCK) ON c.ConditionId in (SELECT Item FROM DBO.SPLITSTRING(@ConditionIds,','))
 			LEFT JOIN DBO.StockLine sl WITH (NOLOCK) ON im.ItemMasterId = sl.ItemMasterId AND sl.ConditionId = c.ConditionId 
-				--AND sl.IsDeleted = 0 AND sl.isActive = 1 AND sl.IsParent = 1 AND sl.IsCustomerStock = 0
-				AND sl.IsDeleted = 0 AND sl.isActive = 1 AND sl.IsParent = 1 AND (sl.IsCustomerStock = 0 OR (sl.IsCustomerStock = 1 AND sl.CustomerId = @CustomerId) OR  (ISNULL(@IsVendor,0) = 1 AND sl.IsCustomerStock = 1))
-			--LEFT JOIN DBO.PurchaseOrder po WITH (NOLOCK) ON po.PurchaseOrderId = sl.PurchaseOrderId 
-			--	AND sl.IsDeleted = 0
-			--LEFT JOIN DBO.PurchaseOrderPart pop WITH (NOLOCK) ON po.PurchaseOrderId = pop.PurchaseOrderId 
-			--	AND pop.ItemMasterId = im.ItemMasterId 
-			--	AND pop.IsDeleted = 0
+					                   AND sl.IsDeleted = 0 AND sl.isActive = 1 AND sl.IsParent = 1 AND (sl.IsCustomerStock = 0 OR (sl.IsCustomerStock = 1 AND sl.CustomerId = @CustomerId) OR  (ISNULL(@IsVendor,0) = 1 AND sl.IsCustomerStock = 1))
 			LEFT JOIN DBO.ItemGroup ig WITH (NOLOCK) ON im.ItemGroupId = ig.ItemGroupId
 			LEFT JOIN DBO.Manufacturer mf WITH (NOLOCK) ON im.ManufacturerId = mf.ManufacturerId
 			LEFT JOIN DBO.ItemClassification ic WITH (NOLOCK) ON im.ItemClassificationId = ic.ItemClassificationId
@@ -77,6 +85,9 @@ BEGIN
 			LEFT JOIN DBO.ItemMasterPurchaseSale imps on imps.ItemMasterId = im.ItemMasterId
 						and imps.ConditionId = c.ConditionId
 			LEFT JOIN DBO.ItemMasterExchangeLoan imel WITH (NOLOCK) on imel.ItemMasterId = im.ItemMasterId
+			LEFT JOIN [dbo].[UnitOfMeasure] uomPO WITH(NOLOCK) ON uomPO.UnitOfMeasureId = im.PurchaseUnitOfMeasureId
+			LEFT JOIN [dbo].[UnitOfMeasure] uomStock WITH(NOLOCK) ON uomStock.UnitOfMeasureId = im.StockUnitOfMeasureId
+			LEFT JOIN [dbo].[UnitOfMeasure] uomConsume WITH(NOLOCK) ON uomConsume.UnitOfMeasureId = im.ConsumeUnitOfMeasureId
 			WHERE 
 				im.ItemMasterId IN (SELECT Item FROM DBO.SPLITSTRING(@ItemMasterIdlist,','))
 			GROUP BY
@@ -111,6 +122,7 @@ BEGIN
 				,imel.LoanFees
 				,imel.ExchangeOverhaulCost,
 				imel.EFcogs
+				,im.[MasterCompanyId]
 			END
 		COMMIT  TRANSACTION
 

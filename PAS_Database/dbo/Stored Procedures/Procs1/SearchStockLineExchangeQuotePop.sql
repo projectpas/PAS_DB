@@ -13,7 +13,7 @@
     1                 Unknown        Created
 	2	 19-04-2024   Moin Bloch     Allow IsCustomerStock in Vendor Exchange PN-7409
 	3    05-30-2025	  ABHISHEK JIRAWLA	Adding Traceability Changes
-     
+ 	4    07/APR/2026  Rajesh Gami				Added UOM Changes [PN-15903]    
 -- EXEC [dbo].[SearchStockLineExchangeQuotePop] '240', 1, 401
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[SearchStockLineExchangeQuotePop]
@@ -56,38 +56,14 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 					,sl.SerialNumber
 					,sl.ControlNumber
 					,sl.IdNumber
-					,uom.ShortName AS UomDescription
-					,ISNULL(sl.QuantityAvailable,0) AS QtyAvailable
-					,ISNULL(sl.QuantityOnHand, 0) AS QtyOnHand
-					--,ISNULL(sl.PurchaseOrderUnitCost, 0) AS unitCost
-					,ISNULL(sl.UnitCost, 0) AS unitCost
+					,uomConsume.ShortName AS UomDescription
+					, dbo.fn_ConvertUOM(ISNULL(sl.QuantityAvailable,0), uomStock.ShortName, uomConsume.ShortName,0,im.[MasterCompanyId]) QtyAvailable
+					, dbo.fn_ConvertUOM(ISNULL(sl.QuantityOnHand,0), uomStock.ShortName, uomConsume.ShortName,0,im.[MasterCompanyId]) QtyOnHand
+					, dbo.fn_ConvertUOM(ISNULL(sl.UnitCost,0), uomStock.ShortName, uomConsume.ShortName,1, im.[MasterCompanyId]) unitCost 
 					,sl.TraceableToName AS TracableToName
 					,sl.OwnerName AS OwnerName
 					,sl.ObtainFromName AS ObtainFromName
-					--,CASE WHEN sl.TraceableToType = 1 THEN cusTraceble.Name
-					--		WHEN sl.TraceableToType = 2 THEN vTraceble.VendorName
-					--		WHEN sl.TraceableToType = 9 THEN leTraceble.Name
-					--		WHEN sl.TraceableToType = 4 THEN CAST(sl.TraceableTo as varchar)
-					--		ELSE
-					--			''
-					--		END
-					--	 AS TracableToName
-					--,CASE WHEN sl.OwnerType = 1 THEN cusOwner.Name
-					--		WHEN sl.OwnerType = 2 THEN vOwner.VendorName
-					--		WHEN sl.OwnerType = 9 THEN leOwner.Name
-					--		WHEN sl.OwnerType = 4 THEN CAST(sl.Owner as varchar)
-					--		ELSE
-					--			''
-					--		END
-					--	 AS [OwnerName]
-					--,CASE WHEN sl.ObtainFromType = 1 THEN cusObtain.Name
-					--		WHEN sl.ObtainFromType = 2 THEN vObtain.VendorName
-					--		WHEN sl.ObtainFromType = 9 THEN leObtain.Name
-					--		WHEN sl.ObtainFromType = 4 THEN CAST(sl.ObtainFrom as varchar)
-					--		ELSE
-					--			''
-					--		END
-					--	 AS ObtainFromName
+					
 						 ,sl.TagDate
 						 ,sl.TagType
 						 ,sl.CertifiedBy
@@ -96,7 +72,6 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 						 ,'Stock Line' AS Method
 						 ,'S' AS MethodType
 						 ,CONVERT(BIT,0) AS PMA
-						 --,Smf.Name as StkLineManufacturer
 						 ,mf.Name as StkLineManufacturer
 						 ,imel.ItemMasterLoanExchId
 						 ,imel.IsLoan
@@ -131,8 +106,6 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 				--LEFT JOIN DBO.Manufacturer mf WITH(NOLOCK) ON im.ManufacturerId = mf.ManufacturerId
 				LEFT JOIN DBO.Manufacturer mf WITH(NOLOCK) ON sl.ManufacturerId = mf.ManufacturerId
 				LEFT JOIN DBO.ItemClassification ic WITH(NOLOCK) ON im.ItemClassificationId = ic.ItemClassificationId
-				LEFT JOIN DBO.UnitOfMeasure uom WITH(NOLOCK) ON im.PurchaseUnitOfMeasureId = uom.UnitOfMeasureId
-				LEFT JOIN DBO.UnitOfMeasure suom  WITH(NOLOCK) ON sl.PurchaseUnitOfMeasureId = suom.UnitOfMeasureId
 				LEFT JOIN DBO.Customer cusTraceble WITH(NOLOCK) ON sl.TraceableTo = cusTraceble.CustomerId
 				LEFT JOIN DBO.Vendor vTraceble WITH(NOLOCK) ON sl.TraceableTo = vTraceble.VendorId
 				LEFT JOIN DBO.LegalEntity leTraceble WITH(NOLOCK) ON sl.TraceableTo = leTraceble.LegalEntityId
@@ -142,12 +115,12 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 				LEFT JOIN DBO.Customer cusOwner WITH(NOLOCK) ON sl.ObtainFrom = cusOwner.CustomerId
 				LEFT JOIN DBO.Vendor vOwner WITH(NOLOCK) ON sl.ObtainFrom = vOwner.VendorId
 				LEFT JOIN DBO.LegalEntity leOwner WITH(NOLOCK) ON sl.ObtainFrom = leOwner.LegalEntityId
-				--LEFT JOIN (SELECT ItemMasterId, [Name] FROM DBO.Stockline S WITH(NOLOCK) INNER JOIN DBO.Manufacturer M WITH(NOLOCK) ON M.ManufacturerId = S.ManufacturerId) Smf ON Smf.ItemMasterId = im.ItemMasterId
 				LEFT JOIN DBO.ItemMasterExchangeLoan imel WITH(NOLOCK) on imel.ItemMasterId = sl.ItemMasterId
+				LEFT JOIN [dbo].[UnitOfMeasure] uomStock WITH(NOLOCK) ON uomStock.UnitOfMeasureId = sl.StockUnitOfMeasureId
+				LEFT JOIN [dbo].[UnitOfMeasure] uomConsume WITH(NOLOCK) ON uomConsume.UnitOfMeasureId = sl.ConsumeUnitOfMeasureId
 				WHERE 
 				im.ItemMasterId IN (SELECT Item FROM DBO.SPLITSTRING(@ItemMasterIdlist,','))
 				AND ISNULL(sl.QuantityAvailable, 0) > 0
-				--AND sl.IsCustomerStock = 0
 				AND sl.IsParent = 1
 		END
 		COMMIT  TRANSACTION

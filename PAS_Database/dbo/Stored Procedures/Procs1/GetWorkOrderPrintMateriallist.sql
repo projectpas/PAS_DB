@@ -92,7 +92,7 @@ BEGIN
 						CASE WHEN ISNULL(STK.[IsTurnIn],0) = 1 THEN ISNULL(STK.[WorkOrderNumber],'') ELSE '' END AS WorkOrderNumber,
 						STK.SerialNumber,
 						--WOMS.QuantityTurnIn AS TenderedQTY
-						ISNULL([dbo].[fn_ConvertUOM](SUM(WOMS.QuantityTurnIn),STk.[StockUnitOfMeasure], STk.[ConsumeUnitOfMeasure],0,STk.[MasterCompanyId]),0) AS TenderedQTY
+						ISNULL([dbo].[fn_ConvertUOM](ISNULL(WOMS.QuantityTurnIn,0),ISNULL(STk.[StockUnitOfMeasure], 0),ISNULL(STk.[ConsumeUnitOfMeasure], 0),0,ISNULL(STk.[MasterCompanyId], 0)),0) AS TenderedQTY
 				FROM [dbo].[WorkOrderMaterialStockLineKit] WOMS WITH(NOLOCK)
 				INNER JOIN [dbo].[WorkOrderMaterialsKit] WOM WITH(NOLOCK) ON WOM.WorkOrderMaterialsKitId= WOMS.WorkOrderMaterialsKitId
 				INNER JOIN [dbo].[Stockline] STK WITH(NOLOCK) ON STk.StockLineId = WOMS.StockLineId

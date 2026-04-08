@@ -11,6 +11,7 @@
 ** PR   Date         Author         Change Description
 ** --   ----------   -------------  --------------------------------
 ** 1    2026-03-27   Amit Ghediya   Created
+** 2    2026-04-07   Amit Ghediya   Get ItemMasterId for tender stk (PN-15938)
 *************************************************************/
 CREATE   PROCEDURE [dbo].[USP_GetAircraftInstalledPartDetails]
 (
@@ -41,6 +42,14 @@ BEGIN
                 ATAC.ATAChapterName AS AtaChapter,
                 AIPD.PartNumber,
                 AIPD.PartDescription,
+				AIPD.ItemMasterId,
+				ARH.AircraftRegistryId,
+				ARH.AircraftRegistryNumber,
+				STK.Condition,
+				STK.StockLineNumber,
+				STK.ControlNumber,
+				STK.SerialNumber,
+				STK.StockLineId,
                 AIPD.IsLLP,
                 CASE
                     WHEN AIPD.IsLLP = 1 THEN 'YES'
@@ -62,10 +71,10 @@ BEGIN
                 UPPER(AIPD.UpdatedBy) AS UpdatedBy,
                 COUNT(*) OVER () AS NumberOfItems
             FROM dbo.AircraftInstalledPartDetails AS AIPD WITH (NOLOCK)
-            INNER JOIN dbo.ATAChapter AS ATAC WITH (NOLOCK)
-                ON AIPD.ATAChapterId = ATAC.ATAChapterId
-            WHERE AIPD.AircraftRegistryId = @AircraftRegistryId
-              AND AIPD.MasterCompanyId = @MasterCompanyId
+            INNER JOIN dbo.ATAChapter AS ATAC WITH (NOLOCK) ON AIPD.ATAChapterId = ATAC.ATAChapterId
+			INNER JOIN dbo.AircraftRegistryHeader ARH WITH (NOLOCK) ON ARH.AircraftRegistryId = AIPD.AircraftRegistryId
+			LEFT JOIN dbo.Stockline STK WITH (NOLOCK) ON STK.StockLineId = AIPD.StockLineId
+            WHERE AIPD.AircraftRegistryId = @AircraftRegistryId AND AIPD.MasterCompanyId = @MasterCompanyId
         )
         SELECT
             AircraftInstalledPartDetailsId,
@@ -73,6 +82,14 @@ BEGIN
             AtaChapter,
             PartNumber,
             PartDescription,
+			ItemMasterId,
+			AircraftRegistryId,
+			AircraftRegistryNumber,
+			Condition,
+			StockLineNumber,
+			ControlNumber,
+			SerialNumber,
+			StockLineId,
             IsLLP,
             LLP,
             IsSerialized,
@@ -115,6 +132,18 @@ BEGIN
 
 			CASE WHEN @SortOrder =  1 AND @SortColumn = 'DATEINSTALLED'     THEN DATEINSTALLED     END ASC,
             CASE WHEN @SortOrder = -1 AND @SortColumn = 'DATEINSTALLED'     THEN DATEINSTALLED     END DESC,
+
+			CASE WHEN @SortOrder =  1 AND @SortColumn = 'CONDITION'      THEN Condition      END ASC,
+            CASE WHEN @SortOrder = -1 AND @SortColumn = 'CONDITION'      THEN Condition      END DESC,
+
+			CASE WHEN @SortOrder =  1 AND @SortColumn = 'STOCKLINENUMBER'      THEN StockLineNumber      END ASC,
+            CASE WHEN @SortOrder = -1 AND @SortColumn = 'STOCKLINENUMBER'      THEN StockLineNumber      END DESC,
+
+			CASE WHEN @SortOrder =  1 AND @SortColumn = 'CONTROLNUMBER'      THEN ControlNumber      END ASC,
+            CASE WHEN @SortOrder = -1 AND @SortColumn = 'CONTROLNUMBER'      THEN ControlNumber      END DESC,
+
+			CASE WHEN @SortOrder =  1 AND @SortColumn = 'SERIALNUMBER'      THEN SerialNumber      END ASC,
+            CASE WHEN @SortOrder = -1 AND @SortColumn = 'SERIALNUMBER'      THEN SerialNumber      END DESC,
 
             AircraftInstalledPartDetailsId DESC
         OFFSET @RecordFrom ROWS

@@ -4476,6 +4476,7 @@
     <Build Include="dbo\Stored Procedures\USP_GetSOChargesAuditById.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetJournalBatchListWithJEDetails.sql" />
     <Build Include="dbo\Stored Procedures\usp_GetStockConsumeUOMByItemMasterId.sql" />
+    <Build Include="dbo\Stored Procedures\usp_SaveTurnInAircraftMaterials.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

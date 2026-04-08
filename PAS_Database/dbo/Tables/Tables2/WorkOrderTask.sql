@@ -19,8 +19,11 @@
     [TaskName]              VARCHAR (200) NULL,
     [IsFromWorkFlow]        BIT           NULL,
     CONSTRAINT [PK_WorkOrderTask] PRIMARY KEY CLUSTERED ([WorkOrderTaskId] ASC),
+    CONSTRAINT [FK_WorkOrderTask_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId]),
+    CONSTRAINT [FK_WorkOrderTask_Task] FOREIGN KEY ([TaskId]) REFERENCES [dbo].[Task] ([TaskId]),
     CONSTRAINT [FK_WorkOrderTask_WorkFlowWorkOrder] FOREIGN KEY ([WorkFlowWorkOrderId]) REFERENCES [dbo].[WorkOrderWorkFlow] ([WorkFlowWorkOrderId]),
-    CONSTRAINT [FK_WorkOrderTask_WorkOrder] FOREIGN KEY ([WorkOrderId]) REFERENCES [dbo].[WorkOrder] ([WorkOrderId])
+    CONSTRAINT [FK_WorkOrderTask_WorkOrder] FOREIGN KEY ([WorkOrderId]) REFERENCES [dbo].[WorkOrder] ([WorkOrderId]),
+    CONSTRAINT [FK_WorkOrderTask_WorkOrderPartNumber] FOREIGN KEY ([WorkOrderPartNumberId]) REFERENCES [dbo].[WorkOrderPartNumber] ([ID])
 );
 
 

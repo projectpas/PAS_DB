@@ -36,6 +36,7 @@
 	24	 20/01/2025   RAJESH GAMI		  UnCommented the [UpdateStocklineBatchDetailsColumnsWithId] SP
 	25	 30/01/2025   HEMANT SALIYA		  Resolved Performa Accounting Entry in PO adn RO Partial Payment Handle
 	26	 19/02/2026   HEMANT SALIYA		  Resolved RO Batch Post when Stl Qty is 0 and RO cost is 0
+	27   03/09/2024   Moin Bloch          Batch: Duplicate JE Number generated for multiple entries on same day PN-15921
 **************************************************************/  
 CREATE   PROCEDURE [dbo].[usp_PostReceivingReconcilationBatchDetails]
 @tbl_PostRRBatchType PostRRBatchType READONLY,
@@ -2343,7 +2344,7 @@ BEGIN
 						PRINT '1.14' 
 						PRINT GETUTCDATE();
 																	   						 
-						IF(ISNULL(@IsStockTypeChange, 0) = 1 AND @RecordId != 1)
+						IF(ISNULL(@IsStockTypeChange, 0) = 1)  -- AND @RecordId != 1)
 						BEGIN
 							UPDATE [dbo].[CodePrefixes] 
 							   SET [CurrentNummber] = @currentNo

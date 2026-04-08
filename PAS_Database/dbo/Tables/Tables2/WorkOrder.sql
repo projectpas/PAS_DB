@@ -20,7 +20,7 @@
     [Memo]                             NVARCHAR (MAX)  NULL,
     [Notes]                            NVARCHAR (MAX)  NULL,
     [CustomerContactId]                BIGINT          NOT NULL,
-    [CustomerName]                     VARCHAR (100)   NULL,
+    [CustomerName]                     VARCHAR (256)   NULL,
     [CustomerType]                     VARCHAR (200)   NULL,
     [CreditLimit]                      DECIMAL (18, 2) CONSTRAINT [DF_WorkOrder_CreditLimit] DEFAULT ((0)) NULL,
     [CreditTerms]                      VARCHAR (200)   NULL,

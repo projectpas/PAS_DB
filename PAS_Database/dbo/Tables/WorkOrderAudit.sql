@@ -23,6 +23,7 @@
     [CustomerContactId]                BIGINT          NOT NULL,
     [Status]                           VARCHAR (256)   NULL,
     [CustomerName]                     VARCHAR (256)   NULL,
+    [CustomerType]                     VARCHAR (200)   NULL,
     [ContactName]                      VARCHAR (256)   NULL,
     [ContactPhone]                     VARCHAR (30)    NULL,
     [CreditLimit]                      DECIMAL (18, 2) NULL,
@@ -30,6 +31,7 @@
     [SalesPerson]                      VARCHAR (256)   NULL,
     [CSR]                              VARCHAR (256)   NULL,
     [Employee]                         VARCHAR (256)   NULL,
+    [WorkOrderType]                    VARCHAR (50)    NULL,
     [TearDownTypes]                    VARCHAR (300)   NULL,
     [RMAHeaderId]                      BIGINT          NULL,
     [IsWarranty]                       BIT             NULL,
@@ -41,6 +43,9 @@
     [PercentId]                        BIGINT          NULL,
     [Days]                             INT             NULL,
     [NetDays]                          INT             NULL,
+    [FunctionalCurrencyId]             INT             NULL,
+    [ReportCurrencyId]                 INT             NULL,
+    [ForeignExchangeRate]              DECIMAL (18, 2) NULL,
     [IsWoAlwaysOrOndemandId]           BIT             NULL,
     [WorkOrderFormTypeId]              BIT             NULL,
     [EnforceMpnPickTicketConfirmation] BIT             NULL,
@@ -54,6 +59,7 @@
     [CSRSalesMargin]                   BIGINT          NULL,
     [AgentSalesRevenue]                BIGINT          NULL,
     [AgentSalesMargin]                 BIGINT          NULL,
+    [IsMigrated]                       BIT             NULL,
     CONSTRAINT [PK_WorkOrderAudit] PRIMARY KEY CLUSTERED ([WorkOrderAuditId] ASC)
 );
 

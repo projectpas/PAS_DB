@@ -1754,7 +1754,7 @@ BEGIN
 										@Qty, 0, @Requisitioner, GETUTCDATE(), @Requisitioner, GETUTCDATE(), @UpdatedBy, GETUTCDATE(), @UpdatedBy, GETUTCDATE(), 1, 0,
 										@SalesOrderPartIdToUpdate, @Qty, NULL, @stkMasterCompanyId;
 
-										INSERT INTO DBO.SalesOrderStockLineV1 ([SalesOrderPartId],[StockLIneId],[ConditionId],[QtyOrder],[QtyReserved],[QtyAvailable],[QtyOH],
+										INSERT INTO DBO.SalesOrderStockLineV1 ([SalesOrderPartId],[StockLineId],[ConditionId],[QtyOrder],[QtyReserved],[QtyAvailable],[QtyOH],
 										[CustomerRequestDate],[PromisedDate],[EstimatedShipDate],[StatusId],[MasterCompanyId],[CreatedBy],
 										[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],
 										[ECCN],[HSCODE],[Weight],[SizeLength],[SizeWidth],[SizeHeight],
@@ -1906,7 +1906,7 @@ BEGIN
 										@Qty, 0, @Requisitioner, GETUTCDATE(), @Requisitioner, GETUTCDATE(), @UpdatedBy, GETUTCDATE(), @UpdatedBy, GETUTCDATE(), 1, 0,
 										@InsertedSalesOrderPartId, @Qty, NULL, @stkMasterCompanyId;
 
-										INSERT INTO DBO.SalesOrderStockLineV1 ([SalesOrderPartId],[StockLIneId],[ConditionId],[QtyOrder],[QtyReserved],[QtyAvailable],[QtyOH],
+										INSERT INTO DBO.SalesOrderStockLineV1 ([SalesOrderPartId],[StockLineId],[ConditionId],[QtyOrder],[QtyReserved],[QtyAvailable],[QtyOH],
 										[CustomerRequestDate],[PromisedDate],[EstimatedShipDate],[StatusId],[MasterCompanyId],[CreatedBy],
 										[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],
 										[ECCN],[HSCODE],[Weight],[SizeLength],[SizeWidth],[SizeHeight],
@@ -2089,7 +2089,7 @@ BEGIN
 									@Qty, 0, @Requisitioner, GETUTCDATE(), @Requisitioner, GETUTCDATE(), @UpdatedBy, GETUTCDATE(), @UpdatedBy, GETUTCDATE(), 1, 0,
 									@ExchangeSalesOrderPartIdToUpdate, @Qty, NULL, @stkMasterCompanyId;
 
-									INSERT INTO DBO.ExchangeSalesOrderStockLine ([ExchangeSalesOrderId],[ExchangeSalesOrderPartId],[StockLIneId],[ItemMasterId],[ConditionId],[Quantity],[QtyReserved],[QtyIssued],
+									INSERT INTO DBO.ExchangeSalesOrderStockLine ([ExchangeSalesOrderId],[ExchangeSalesOrderPartId],[StockLineId],[ItemMasterId],[ConditionId],[Quantity],[QtyReserved],[QtyIssued],
 									[AltPartMasterPartId],[EquPartMasterPartId],[IsAltPart],[IsEquPart],[UnitCost],[ExtendedCost],[UnitPrice],[ExtendedPrice],[MasterCompanyId],[CreatedBy],
 									[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[ReferenceNumber])
 									SELECT @ReferenceId, @ExchangeSalesOrderPartIdToUpdate, @StkStocklineId, @ItemMasterId, @ConditionId, @Qty, @Qty, 0,
@@ -2186,7 +2186,7 @@ BEGIN
 											@Qty, 0, @Requisitioner, GETUTCDATE(), @Requisitioner, GETUTCDATE(), @UpdatedBy, GETUTCDATE(), @UpdatedBy, GETUTCDATE(), 1, 0,
 											@InsertedExchangeSalesOrderPartId, @Qty, NULL, @stkMasterCompanyId;
 
-											INSERT INTO DBO.ExchangeSalesOrderStockLine ([ExchangeSalesOrderId],[ExchangeSalesOrderPartId],[StockLIneId],[ItemMasterId],[ConditionId],[Quantity],[QtyReserved],[QtyIssued],
+											INSERT INTO DBO.ExchangeSalesOrderStockLine ([ExchangeSalesOrderId],[ExchangeSalesOrderPartId],[StockLineId],[ItemMasterId],[ConditionId],[Quantity],[QtyReserved],[QtyIssued],
 											[AltPartMasterPartId],[EquPartMasterPartId],[IsAltPart],[IsEquPart],[UnitCost],[ExtendedCost],[UnitPrice],[ExtendedPrice],[MasterCompanyId],[CreatedBy],
 											[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted])
 											SELECT @ReferenceId, @InsertedExchangeSalesOrderPartId, @StkStocklineId, @ItemMasterId, @ConditionId, @Qty, @Qty, 0,

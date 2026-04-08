@@ -1,7 +1,7 @@
 ﻿CREATE TABLE [dbo].[SubWorkOrderMaterialStockLine] (
     [SWOMStockLineId]         BIGINT          IDENTITY (1, 1) NOT NULL,
     [SubWorkOrderMaterialsId] BIGINT          NOT NULL,
-    [StockLIneId]             BIGINT          NOT NULL,
+    [StockLineId]             BIGINT          NOT NULL,
     [ItemMasterId]            BIGINT          NOT NULL,
     [ConditionId]             BIGINT          NOT NULL,
     [Quantity]                DECIMAL (18, 6) NULL,
@@ -38,7 +38,7 @@
     CONSTRAINT [FK_SubWorkOrderMaterialStockLine_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId]),
     CONSTRAINT [FK_SubWorkOrderMaterialStockLine_ProvisionId] FOREIGN KEY ([ProvisionId]) REFERENCES [dbo].[Provision] ([ProvisionId]),
     CONSTRAINT [FK_SubWorkOrderMaterialStockLine_RepairOrderId] FOREIGN KEY ([RepairOrderId]) REFERENCES [dbo].[RepairOrder] ([RepairOrderId]),
-    CONSTRAINT [FK_SubWorkOrderMaterialStockLine_StockLine] FOREIGN KEY ([StockLIneId]) REFERENCES [dbo].[Stockline] ([StockLineId]),
+    CONSTRAINT [FK_SubWorkOrderMaterialStockLine_StockLine] FOREIGN KEY ([StockLineId]) REFERENCES [dbo].[Stockline] ([StockLineId]),
     CONSTRAINT [FK_SubWorkOrderMaterialStockLine_SubWorkOrderMaterials] FOREIGN KEY ([SubWorkOrderMaterialsId]) REFERENCES [dbo].[SubWorkOrderMaterials] ([SubWorkOrderMaterialsId])
 );
 

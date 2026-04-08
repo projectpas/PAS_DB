@@ -2,7 +2,7 @@
     [SOReservedStockId]        BIGINT        IDENTITY (1, 1) NOT NULL,
     [ExchangeSalesOrderId]     BIGINT        NOT NULL,
     [ExchangeSalesOrderPartId] BIGINT        NOT NULL,
-    [StockLIneId]              BIGINT        NOT NULL,
+    [StockLineId]              BIGINT        NOT NULL,
     [ConditionId]              BIGINT        NOT NULL,
     [ItemMasterId]             BIGINT        NOT NULL,
     [Quantity]                 INT           NOT NULL,
@@ -26,6 +26,6 @@
     CONSTRAINT [FK_ExchangeSalesOrderReservedStock_ExchangeSalesOrderPart] FOREIGN KEY ([ExchangeSalesOrderPartId]) REFERENCES [dbo].[ExchangeSalesOrderPart] ([ExchangeSalesOrderPartId]),
     CONSTRAINT [FK_ExchangeSalesOrderReservedStock_ItemMaster] FOREIGN KEY ([ItemMasterId]) REFERENCES [dbo].[ItemMaster] ([ItemMasterId]),
     CONSTRAINT [FK_ExchangeSalesOrderReservedStock_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId]),
-    CONSTRAINT [FK_ExchangeSalesOrderReservedStock_Stockline] FOREIGN KEY ([StockLIneId]) REFERENCES [dbo].[Stockline] ([StockLineId])
+    CONSTRAINT [FK_ExchangeSalesOrderReservedStock_Stockline] FOREIGN KEY ([StockLineId]) REFERENCES [dbo].[Stockline] ([StockLineId])
 );
 

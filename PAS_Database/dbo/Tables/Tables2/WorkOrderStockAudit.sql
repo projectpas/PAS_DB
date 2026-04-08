@@ -1,7 +1,7 @@
 ﻿CREATE TABLE [dbo].[WorkOrderStockAudit] (
     [WOStockAuditId]       BIGINT          IDENTITY (1, 1) NOT NULL,
     [WorkOrderMaterialsId] BIGINT          NOT NULL,
-    [StockLIneId]          BIGINT          NOT NULL,
+    [StockLineId]          BIGINT          NOT NULL,
     [ConditionId]          BIGINT          NOT NULL,
     [ItemMasterId]         BIGINT          NOT NULL,
     [AltPartMasterPartId]  BIGINT          NULL,
@@ -27,6 +27,6 @@
     CONSTRAINT [FK_WorkOrderStockAudit_ItemMasterId] FOREIGN KEY ([ItemMasterId]) REFERENCES [dbo].[ItemMaster] ([ItemMasterId]),
     CONSTRAINT [FK_WorkOrderStockAudit_MasterCompanyId] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId]),
     CONSTRAINT [FK_WorkOrderStockAudit_ReservedById] FOREIGN KEY ([ResIssuedById]) REFERENCES [dbo].[Employee] ([EmployeeId]),
-    CONSTRAINT [FK_WorkOrderStockAudit_StockLIneId] FOREIGN KEY ([StockLIneId]) REFERENCES [dbo].[Stockline] ([StockLineId])
+    CONSTRAINT [FK_WorkOrderStockAudit_StockLineId] FOREIGN KEY ([StockLineId]) REFERENCES [dbo].[Stockline] ([StockLineId])
 );
 

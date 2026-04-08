@@ -3,7 +3,7 @@
     [SOSReserveId]             BIGINT        NOT NULL,
     [ExchangeSalesOrderId]     BIGINT        NOT NULL,
     [ExchangeSalesOrderPartId] BIGINT        NOT NULL,
-    [StockLIneId]              BIGINT        NOT NULL,
+    [StockLineId]              BIGINT        NOT NULL,
     [ConditionId]              BIGINT        NULL,
     [QtyReserved]              INT           NULL,
     [IsReserved]               BIT           NOT NULL,

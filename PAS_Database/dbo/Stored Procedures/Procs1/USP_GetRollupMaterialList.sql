@@ -69,7 +69,7 @@ SET NOCOUNT ON
 			PartQuantityOnHand = sl.QuantityOnHand,
 			PartQuantityAvailable = sl.QuantityAvailable,
 			PartQuantityReserved = (SELECT SUM(sl.QuantityReserved) FROM WorkOrderMaterialStockLine womsl 
-							JOIN StockLine sl on womsl.StockLIneId = sl.StockLIneId 
+							JOIN StockLine sl on womsl.StockLineId = sl.StockLineId 
 							Where womsl.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId
 							),
 			sl.QuantityTurnIn as PartQuantityTurnIn,
@@ -109,8 +109,8 @@ SET NOCOUNT ON
 			CASE WHEN SBWOMM.SubWorkOrderId IS NULL THEN 0 ELSE 1 END AS IsSubWorkOrderCreated,
 			CASE WHEN SWO.SubWorkOrderId IS NULL THEN 0 ELSE  SWO.SubWorkOrderId END AS SubWorkOrderId,
 			isnull(WOM.IsFromWorkFlow,0) as IsFromWorkFlow,
-	        StockLIneId = (SELECT top 1 sl.StockLIneId
-							FROM WorkOrderMaterialStockLine womsl JOIN StockLine sl on womsl.StockLIneId = sl.StockLIneId
+	        StockLineId = (SELECT top 1 sl.StockLineId
+							FROM WorkOrderMaterialStockLine womsl JOIN StockLine sl on womsl.StockLineId = sl.StockLineId
 							Where womsl.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId
 							),
 			wom.Quantity as QunatityRequried,
@@ -125,7 +125,7 @@ SET NOCOUNT ON
             wsl.ExtendedCost
 	    FROM dbo.WorkOrderMaterials WOM WITH (NOLOCK)  
 		join dbo.WorkOrderMaterialStockLine wsl on wom.WorkOrderMaterialsId = wsl.WorkOrderMaterialsId
-		join dbo.StockLine sl on wsl.StockLIneId = sl.StockLineId
+		join dbo.StockLine sl on wsl.StockLineId = sl.StockLineId
 		JOIN dbo.ItemMaster IM WITH (NOLOCK) ON IM.ItemMasterId = WOM.ItemMasterId
 		JOIN dbo.UnitOfMeasure UOM WITH (NOLOCK) ON UOM.UnitOfMeasureId = IM.PurchaseUnitOfMeasureId
 		JOIN dbo.Condition C WITH (NOLOCK) ON C.ConditionId = WOM.ConditionCodeId

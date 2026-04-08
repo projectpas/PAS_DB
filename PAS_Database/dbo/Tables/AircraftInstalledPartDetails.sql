@@ -24,6 +24,9 @@
     [UpdatedDate]                    DATETIME2 (7)   NOT NULL,
     [IsActive]                       BIT             DEFAULT ((1)) NOT NULL,
     [IsDeleted]                      BIT             DEFAULT ((0)) NOT NULL,
+    [StockLineId]                    BIGINT          NULL,
+    [ConditionId]                    BIGINT          NULL,
+    [Quantity]                       DECIMAL (18, 6) NULL,
     PRIMARY KEY CLUSTERED ([AircraftInstalledPartDetailsId] ASC),
     CONSTRAINT [FK_AircraftInstalledPartDetails_AircraftRegistryId] FOREIGN KEY ([AircraftRegistryId]) REFERENCES [dbo].[AircraftRegistryHeader] ([AircraftRegistryId]),
     CONSTRAINT [FK_AircraftInstalledPartDetails_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId])

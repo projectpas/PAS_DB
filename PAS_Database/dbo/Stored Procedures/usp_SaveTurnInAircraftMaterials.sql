@@ -220,7 +220,7 @@ BEGIN
 		   [OEM],IsPMA, IsDER,IsOemPNId, OEMPNNumber,GLAccountId,[IsStkTimeLife],[EvidenceId], [IntegrationPortal], StockUnitOfMeasureId, ConsumeUnitOfMeasureId,AircraftInstalledPartDetailsId
 		 ) VALUES(@StockLineNumber, @ControlNumber, @IDNumber, @IsCustomerStock,@IsCustomerstockType,@ItemMasterId,@PartNumber,@PurchaseUOMId,@ConditionId,@Quantity, @Quantity, @Quantity, @Quantity,  
 		   @IsSerialized,@SerialNumber, @CustomerId, @ObtainFromTypeId, @ObtainFrom, @ObtainFromName, @OwnerTypeId, @Owner, @OwnerName, @TraceableToTypeId,   
-		   @TraceableTo, @TraceableToName, 'This Stockline is created using turn-in from ' + @AircraftRegistryNumber, NULL, NULL, @ManufacturerId, @InspectedById, @InspectedDate, @ReceiverNumber, 1, 0,0,0,0,0,0,0,0,0,0,  
+		   @TraceableTo, @TraceableToName, @Memo, NULL, NULL, @ManufacturerId, @InspectedById, @InspectedDate, @ReceiverNumber, 1, 0,0,0,0,0,0,0,0,0,0,  
 		   @ReceivedDate, @ManagementStructureId, @SiteId, @WarehouseId, @LocationId, @ShelfId, @BinId, @UpdatedBy, @UpdatedBy, GETUTCDATE(),GETUTCDATE(),1,0, @MasterCompanyId, 1,  
 		   @IsOEM,@IsPMA, @IsDER,@IsOemPNId, @OEMPNNumber,@GLAccountId, @IsTimeLife,@EvidenceId, @IntegrationPortal, @StockUOMId, @ConsumeUOMId,@AircraftInstalledPartDetailsId);  
        
@@ -232,7 +232,7 @@ BEGIN
   
 		 EXEC [dbo].[UpdateStocklineColumnsWithId] @StockLineId = @StockLineId  
        
-		 --UPDATE [dbo].[Stockline] SET Memo = 'This Stockline is created using turn-in from ' + @AircraftRegistryNumber,Unitcost= @Unitcost WHERE [StockLineId] = @StockLineId  
+		 UPDATE [dbo].[Stockline] SET Memo = 'This Stockline is created using turn-in from ' + @AircraftRegistryNumber,Unitcost= @Unitcost WHERE [StockLineId] = @StockLineId  
 
 		 UPDATE [dbo].[AircraftInstalledPartDetails] SET StockLineId = @StockLineId,ConditionId = @ConditionId,Quantity = @Quantity WHERE [AircraftInstalledPartDetailsId] = @AircraftInstalledPartDetailsId;
 	 

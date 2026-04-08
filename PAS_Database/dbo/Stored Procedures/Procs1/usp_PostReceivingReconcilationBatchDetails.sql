@@ -47,7 +47,6 @@ BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 	
 	BEGIN TRY
-		--BEGIN TRANSACTION
 		BEGIN
 			DECLARE @StocklineId bigint = 0;
 			DECLARE @InvoicedQty int = 0;
@@ -292,8 +291,6 @@ BEGIN
 			EXEC dbo.USP_GetSubLadgerGLAccountRestriction  @DistributionCode,  @MasterCompanyId,  0,  @UpdateBy, @IsRestrict OUTPUT, @IsAccountByPass OUTPUT;
 			IF(ISNULL(@TotalAmt,0) > 0 AND ISNULL(@IsAccountByPass, 0) = 0 AND (@DisCode = 'ReconciliationPO' OR @DisCode = 'ReconciliationRO'))
 			BEGIN
-				PRINT '1.1' 
-				PRINT GETUTCDATE();
 				SELECT TOP 1  @AccountingPeriodId=acc.AccountingCalendarId,@AccountingPeriod=PeriodName FROM dbo.EntityStructureSetup est WITH(NOLOCK) 
 				INNER JOIN dbo.ManagementStructureLevel msl WITH(NOLOCK) on est.Level1Id = msl.ID 
 				INNER JOIN dbo.AccountingCalendar acc WITH(NOLOCK) on msl.LegalEntityId = acc.LegalEntityId and acc.IsDeleted =0
@@ -312,22 +309,10 @@ BEGIN
 								ELSE  1 END 
 						FROM dbo.BatchHeader WITH(NOLOCK) Order by JournalBatchHeaderId desc 
 
-						IF(CAST(@Currentbatch AS BIGINT) >99)
-						BEGIN
-							SET @batch = CASE WHEN CAST(@Currentbatch AS BIGINT) > 99 THEN cast(@Currentbatch as VARCHAR(100))
-							   		ELSE CONCAT('00', CAST(@Currentbatch AS VARCHAR(50))) END 
-						END
-						ELSE IF(CAST(@Currentbatch AS BIGINT) >9)
-						BEGIN
-
-							SET @batch = CASE WHEN CAST(@Currentbatch AS BIGINT) > 99 THEN cast(@Currentbatch as VARCHAR(100))
-							   		ELSE CONCAT('0', CAST(@Currentbatch AS VARCHAR(50))) END 
-						END
-						ELSE
-						BEGIN
-							SET @batch = CASE WHEN CAST(@Currentbatch AS BIGINT) > 99 THEN cast(@Currentbatch as VARCHAR(100))
-							   		ELSE CONCAT('00', CAST(@Currentbatch AS VARCHAR(50))) END 
-
+						SET @batch = CASE
+							WHEN CAST(@Currentbatch AS BIGINT) > 99 THEN CAST(@Currentbatch AS VARCHAR(100))
+							WHEN CAST(@Currentbatch AS BIGINT) > 9  THEN CONCAT('0',  CAST(@Currentbatch AS VARCHAR(50)))
+							ELSE                                          CONCAT('00', CAST(@Currentbatch AS VARCHAR(50)))
 						END
 					END
 					SET @CurrentNumber = CAST(@Currentbatch AS BIGINT) 
@@ -366,12 +351,74 @@ BEGIN
 
 					SELECT @TotalCounts = COUNT(RecordId) FROM #RRPostType;
 
+					DECLARE @PieceItemmasterId bigint=0;
+					DECLARE @PiecePNId bigint=0;
+					DECLARE @PiecePN varchar(200);
+					DECLARE @DistributionSetupId int=0;
+					DECLARE @Distributionname varchar(200);
+					DECLARE @GlAccountId int;
+					DECLARE @GlAccountNumber varchar(200);
+					DECLARE @GlAccountName varchar(200);
+					DECLARE @WorkOrderNumber varchar(200);
+					DECLARE @partId bigint=0;
+					DECLARE @ItemMasterId bigint=NULL;
+					DECLARE @ManagementStructureId bigint;
+					DECLARE @LastMSLevel varchar(200);
+					DECLARE @AllMSlevels varchar(max);
+					DECLARE @PurchaseOrderId BIGINT=0;
+					DECLARE @PurchaseOrderNumber varchar(50) ='';
+					DECLARE @RepairOrderId BIGINT=0;
+					DECLARE @RepairOrderNumber varchar(50) ='';
+					DECLARE @StocklineNumber varchar(50) ='';
+					DECLARE @SiteId BIGINT;
+					DECLARE @Site varchar(100) ='';
+					DECLARE @WarehouseId BIGINT;
+					DECLARE @Warehouse varchar(100) ='';
+					DECLARE @LocationId BIGINT;
+					DECLARE @Location varchar(100) ='';
+					DECLARE @BinId BIGINT;
+					DECLARE @Bin varchar(100) ='';
+					DECLARE @ShelfId BIGINT;
+					DECLARE @Shelf varchar(100) ='';
+					DECLARE @MPNName varchar(200);
+					DECLARE @Desc varchar(100);
+					DECLARE @VendorId bigint;
+					DECLARE @VendorName varchar(50);
+					DECLARE @STKMSModuleID bigint=2;
+					DECLARE @EMPMSModuleID bigint=47;
+					DECLARE @ReceivedQty BIGINT=0;
+					DECLARE @StocklineQtyOH BIGINT=0;
+					DECLARE @StocklineQtyAvail BIGINT=0;
+					DECLARE @StocklineQtyreserved BIGINT=0;
+					DECLARE @POStocklineUnitPrice DECIMAL(18, 2) =0;
+					DECLARE @ROStocklineUnitPrice DECIMAL(18, 2) =0;
+					DECLARE @StocklineUnitPrice DECIMAL(18, 2) =0;
+					DECLARE @POROUnitPrice DECIMAL(18, 2) =0;
+					DECLARE @RRUnitPrice DECIMAL(18, 2) =0;
+					DECLARE @APTotalPrice DECIMAL(18, 2) =0;
+					DECLARE @Amount DECIMAL(18,2) =0;
+					DECLARE @Qty INT=0;
+					DECLARE @RRId BIGINT=0;
+					DECLARE @CommonJournalBatchDetailId BIGINT=0;
+					DECLARE @ModuleName VARCHAR(256);
+					DECLARE @CrDrType BIGINT
+
+					DECLARE @MiscGLId BIGINT
+					DECLARE @MiscGlAccountNumber VARCHAR(200);
+					DECLARE @MiscGlAccountName VARCHAR(200);
+
+					DECLARE @FreightAdjustment DECIMAL(18,2) =0;
+					DECLARE @TaxAdjustment DECIMAL(18,2) =0;
+					DECLARE @FreightAdjustmentPerUnit DECIMAL(18,2) =0;
+					DECLARE @TaxAdjustmentPerUnit DECIMAL(18,2) =0;
+
+					DECLARE @QtyVariance DECIMAL(18,2) = 0;
+					DECLARE @PriceVariance DECIMAL(18,2) = 0;
+
 					WHILE @count <= @TotalCounts
 					BEGIN
-						PRINT '1.3' 
-						PRINT GETUTCDATE();
 						SELECT @StocklineId = [StocklineId],
-								@InvoicedQty  = [InvoicedQty], 
+								@InvoicedQty  = [InvoicedQty],
 								@InvoicedUnitCost = [InvoicedUnitCost],
 								@JournalTypeName = [JournalTypeName],
 								@CreatedBy = [CreatedBy],
@@ -382,72 +429,8 @@ BEGIN
 								@EmployeeId = [EmployeeId],
 								@id = [id],
 								@ReceivingReconciliationDetailId = [ReceivingReconciliationDetailId],
-								@RecordId = [RecordId] 
+								@RecordId = [RecordId]
 						FROM #RRPostType WHERE RecordId = @count
-
-						DECLARE @PieceItemmasterId bigint=0;
-						DECLARE @PiecePNId bigint=0;
-						DECLARE @PiecePN varchar(200);
-						DECLARE @DistributionSetupId int=0;
-						DECLARE @Distributionname varchar(200);
-						DECLARE @GlAccountId int;
-						DECLARE @GlAccountNumber varchar(200);
-						DECLARE @GlAccountName varchar(200);
-						DECLARE @WorkOrderNumber varchar(200);
-						DECLARE @partId bigint=0;
-						DECLARE @ItemMasterId bigint=NULL;
-						DECLARE @ManagementStructureId bigint;
-						DECLARE @LastMSLevel varchar(200);
-						DECLARE @AllMSlevels varchar(max);
-						DECLARE @PurchaseOrderId BIGINT=0;
-						DECLARE @PurchaseOrderNumber varchar(50) ='';
-						DECLARE @RepairOrderId BIGINT=0;
-						DECLARE @RepairOrderNumber varchar(50) ='';
-						DECLARE @StocklineNumber varchar(50) ='';
-						DECLARE @SiteId BIGINT;
-						DECLARE @Site varchar(100) ='';
-						DECLARE @WarehouseId BIGINT;
-						DECLARE @Warehouse varchar(100) ='';
-						DECLARE @LocationId BIGINT;
-						DECLARE @Location varchar(100) ='';
-						DECLARE @BinId BIGINT;
-						DECLARE @Bin varchar(100) ='';
-						DECLARE @ShelfId BIGINT;
-						DECLARE @Shelf varchar(100) ='';
-						DECLARE @MPNName varchar(200);
-						DECLARE @Desc varchar(100);
-						DECLARE @VendorId bigint;
-						DECLARE @VendorName varchar(50);
-						DECLARE @STKMSModuleID bigint=2;
-						DECLARE @EMPMSModuleID bigint=47;
-						DECLARE @ReceivedQty BIGINT=0;
-						DECLARE @StocklineQtyOH BIGINT=0;
-						DECLARE @StocklineQtyAvail BIGINT=0;
-						DECLARE @StocklineQtyreserved BIGINT=0;
-						DECLARE @POStocklineUnitPrice DECIMAL(18, 2) =0;
-						DECLARE @ROStocklineUnitPrice DECIMAL(18, 2) =0;
-						DECLARE @StocklineUnitPrice DECIMAL(18, 2) =0;
-						DECLARE @POROUnitPrice DECIMAL(18, 2) =0;
-						DECLARE @RRUnitPrice DECIMAL(18, 2) =0;
-						DECLARE @APTotalPrice DECIMAL(18, 2) =0;
-						DECLARE @Amount DECIMAL(18,2) =0;
-						DECLARE @Qty INT=0;
-						DECLARE @RRId BIGINT=0;
-						DECLARE @CommonJournalBatchDetailId BIGINT=0;
-						DECLARE @ModuleName VARCHAR(256);
-						DECLARE @CrDrType BIGINT
-
-						DECLARE @MiscGLId BIGINT
-						DECLARE @MiscGlAccountNumber VARCHAR(200);
-						DECLARE @MiscGlAccountName VARCHAR(200);
-
-						DECLARE @FreightAdjustment DECIMAL(18,2) =0;
-						DECLARE @TaxAdjustment DECIMAL(18,2) =0;
-						DECLARE @FreightAdjustmentPerUnit DECIMAL(18,2) =0;
-						DECLARE @TaxAdjustmentPerUnit DECIMAL(18,2) =0;
-
-						DECLARE @QtyVariance DECIMAL(18,2) = 0;
-						DECLARE @PriceVariance DECIMAL(18,2) = 0;
 
 						SET @IsStockTypeChange = CASE WHEN @RecordId = 1 THEN 1 ELSE CASE WHEN @OLD_StockType != @StockType THEN 1 ELSE 0 END END;
 
@@ -544,8 +527,6 @@ BEGIN
 							SET @Desc='Receiving PO-'+@PurchaseOrderNumber+'  PN-'+@MPNName+'  SL-'+@StocklineNumber
 							SET @Amount=(ISNULL(@StocklineQtyAvail, 0) * @Amount);
 
-							PRINT '1.4' 
-							PRINT GETUTCDATE();
 
 							IF(ISNULL(@StocklineQtyAvail, 0) = ISNULL(@ReceivedQty, 0) AND @POROUnitPrice=ISNULL(@RRUnitPrice, 0))
 							BEGIN 							
@@ -840,8 +821,6 @@ BEGIN
 									END
 									------- Stock - Inventory -----
 
-									PRINT '1.5' 
-									PRINT GETUTCDATE();
 
 									------- Goods Received Not Invoiced (GRNI)------
 									SET @Amount=(@ReceivedQty * @POROUnitPrice);
@@ -975,8 +954,6 @@ BEGIN
 							END
 							ELSE IF(ISNULL(@StocklineQtyAvail, 0) <> ISNULL(@ReceivedQty, 0))
 							BEGIN		
-									PRINT '1.7' 
-									PRINT GETUTCDATE();
 									------- Stock - Inventory ---
 									SET @Amount = (ISNULL(@RRUnitPrice, 0) - ISNULL(@POROUnitPrice, 0)) * ISNULL(@StocklineQtyAvail, 0);
 									IF(@Amount = 0)
@@ -1064,8 +1041,6 @@ BEGIN
 										WHERE AssetInventoryId=@StocklineId;
 									END
 
-									PRINT '1.8' 
-									PRINT GETUTCDATE();
 
 									IF(ISNULL(@Amount,0) > 0)
 									BEGIN
@@ -1164,13 +1139,10 @@ BEGIN
 										WHERE TMPBatchId = @CommonJournalBatchDetailId;
 
 									END
-									PRINT '1.9' 
-									PRINT GETUTCDATE();
 									------- Stock - Inventory -------
 									------- VAR - Cost/Qty - COGS ------
 																		
 									SET @Amount= ISNULL(((@ReceivedQty - ISNULL(@StocklineQtyAvail, 0)) * (@RRUnitPrice - @POROUnitPrice)), 0);
-									--SET @APTotalPrice = (@APTotalPrice + @Amount);
 																								
 									SELECT TOP 1 @DistributionSetupId=ID, 
 									             @DistributionName=Name, 
@@ -1257,7 +1229,6 @@ BEGIN
 											CASE WHEN @PriceVariance > 0 THEN 1 ELSE 0 END,
 											CASE WHEN @PriceVariance > 0 THEN ABS(@PriceVariance) ELSE 0 END,
 											CASE WHEN @PriceVariance > 0 THEN 0 ELSE ABS(@PriceVariance) END,
-											--1,ABS(@PriceVariance),0,
 											@ManagementStructureId ,@ModuleName,@LastMSLevel,@AllMSlevels ,@MasterCompanyId,@CreatedBy,@CreatedBy,GETUTCDATE(),GETUTCDATE(),1,0,@ReceivingReconciliationId,@ReceivingReconciliationNumber,@VendorName,@LocalCurrencyCode,@FXRate,@ForeignCurrencyCode,@ReferenceModule)
 															 
 										SET @CommonJournalBatchDetailId=SCOPE_IDENTITY()
@@ -1297,8 +1268,6 @@ BEGIN
 
 									END
 
-									PRINT '1.10' 
-									PRINT GETUTCDATE();
 
 									------- VAR - Cost/Qty - COGS -------
 
@@ -1381,8 +1350,6 @@ BEGIN
 									  AND DistributionMasterId=@DistributionMasterId 
 									  AND MasterCompanyId = @MasterCompanyId;
 
-									  PRINT '1.11' 
-									  PRINT GETUTCDATE();
 
 									IF(ISNULL(@Amount,0) > 0)
 									BEGIN
@@ -1432,18 +1399,11 @@ BEGIN
 										WHERE TMPBatchId = @CommonJournalBatchDetailId;
 
 									END
-									PRINT '1.12' 
-									PRINT GETUTCDATE();
 									------- Accounts Payable ------
 								END
-								PRINT '1.13' 
-								PRINT GETUTCDATE();
-							/***** Commented here due to performance issue, It's shifted to after the cursor ******/
-							--EXEC [DBO].[UpdateStocklineBatchDetailsColumnsWithId] @StocklineId		
 						END
 						ELSE IF(UPPER(@ModuleName)=UPPER('ReconciliationRO'))
 						BEGIN
-							--SELECT 'ReconciliationRO'
 							SELECT TOP 1 @IsAutoPost = ISNULL(IsAutoPost,0)
 									        FROM [dbo].[DistributionSetup] WITH(NOLOCK)
 									        WHERE UPPER(DistributionSetupCode)=UPPER('RECROGRNI') 
@@ -2189,10 +2149,6 @@ BEGIN
 											[ReferenceTypeId] = 1
 										WHERE TMPBatchId = @CommonJournalBatchDetailId;
 
-										--INSERT INTO dbo.[StocklineBatchDetails](JournalBatchDetailId, JournalBatchHeaderId, VendorId, VendorName, ItemMasterId, PartId, PartNumber, PoId, PONum, RoId, RONum, StocklineId, StocklineNumber,
-										--	Consignment, [Description], [SiteId], [Site], [WarehouseId], [Warehouse], [LocationId], [Location], [BinId], [Bin], [ShelfId], [Shelf], [StockType],[CommonJournalBatchDetailId],[ReferenceId],[ReferenceTypeId],[ReferenceNumber])
-										--VALUES(@JournalBatchDetailId, @JournalBatchHeaderId, @VendorId, @VendorName, @ItemMasterId, @partId, @MPNName, @PurchaseOrderId, @PurchaseOrderNumber, @RepairOrderId, @RepairOrderNumber, @StocklineId, @StocklineNumber,
-										--	'', @Desc, @SiteId, @Site, @WarehouseId, @Warehouse, @LocationId, @Location, @BinId, @Bin, @ShelfId, @Shelf, @StockType,@CommonJournalBatchDetailId,@ReceivingReconciliationId,1,@ReceivingReconciliationNumber)
 									END
 									
 									------- VAR - Cost/Qty - COGS ------
@@ -2230,7 +2186,6 @@ BEGIN
 
 										-----  Accounting MS Entry  -----
 
-										--EXEC [dbo].[PROCAddUpdateAccountingBatchMSData] @CommonJournalBatchDetailId,@ManagementStructureId,@MasterCompanyId,@UpdateBy,@AccountMSModuleId,1; 
 										UPDATE #TMPCommonBatchDetail
 										SET 
 											VendorId = @VendorId,
@@ -2262,8 +2217,6 @@ BEGIN
 											[ReferenceTypeId] = 1
 										WHERE TMPBatchId = @CommonJournalBatchDetailId;
 
-										--INSERT INTO [StocklineBatchDetails](JournalBatchDetailId, JournalBatchHeaderId, VendorId, VendorName, ItemMasterId, PartId, PartNumber, PoId, PONum, RoId, RONum, StocklineId, StocklineNumber, Consignment, [Description], [SiteId], [Site], [WarehouseId], [Warehouse], [LocationId], [Location], [BinId], [Bin], [ShelfId], [Shelf], [StockType],[CommonJournalBatchDetailId],[ReferenceId],[ReferenceTypeId],[ReferenceNumber])
-										--VALUES(@JournalBatchDetailId, @JournalBatchHeaderId, @VendorId, @VendorName, @ItemMasterId, @partId, @MPNName, @PurchaseOrderId, @PurchaseOrderNumber, @RepairOrderId, @RepairOrderNumber, @StocklineId, @StocklineNumber, '', @Desc, @SiteId, @Site, @WarehouseId, @Warehouse, @LocationId, @Location, @BinId, @Bin, @ShelfId, @Shelf, @StockType,@CommonJournalBatchDetailId,@ReceivingReconciliationId,1,@ReceivingReconciliationNumber)
 									END
 									
 									------- Goods Received Not Invoiced (GRNI)-----
@@ -2300,7 +2253,6 @@ BEGIN
 
 										-----  Accounting MS Entry  -----
 
-										--EXEC [dbo].[PROCAddUpdateAccountingBatchMSData] @CommonJournalBatchDetailId,@ManagementStructureId,@MasterCompanyId,@UpdateBy,@AccountMSModuleId,1; 
 										UPDATE #TMPCommonBatchDetail
 										SET 
 											VendorId = @VendorId,
@@ -2332,17 +2284,12 @@ BEGIN
 											[ReferenceTypeId] = 1
 										WHERE TMPBatchId = @CommonJournalBatchDetailId;
 
-										--INSERT INTO [dbo].[StocklineBatchDetails](JournalBatchDetailId, JournalBatchHeaderId, VendorId, VendorName, ItemMasterId, PartId, PartNumber, PoId, PONum, RoId, RONum, StocklineId, StocklineNumber, Consignment, [Description], [SiteId], [Site], [WarehouseId], [Warehouse], [LocationId], [Location], [BinId], [Bin], [ShelfId], [Shelf], [StockType],[CommonJournalBatchDetailId],[ReferenceId],[ReferenceTypeId],[ReferenceNumber])
-										--VALUES(@JournalBatchDetailId, @JournalBatchHeaderId, @VendorId, @VendorName, @ItemMasterId, @partId, @MPNName, @PurchaseOrderId, @PurchaseOrderNumber, @RepairOrderId, @RepairOrderNumber, @StocklineId, @StocklineNumber, '', @Desc, @SiteId, @Site, @WarehouseId, @Warehouse, @LocationId, @Location, @BinId, @Bin, @ShelfId, @Shelf, @StockType,@CommonJournalBatchDetailId,@ReceivingReconciliationId,1,@ReceivingReconciliationNumber)
 									END
 									------- Accounts Payable ------
 								END
 															
-							--EXEC [DBO].[UpdateStocklineBatchDetailsColumnsWithId] @StocklineId							
 						END
 
-						PRINT '1.14' 
-						PRINT GETUTCDATE();
 																	   						 
 						IF(ISNULL(@IsStockTypeChange, 0) = 1)  -- AND @RecordId != 1)
 						BEGIN
@@ -2356,29 +2303,11 @@ BEGIN
 							SET @JournalTypeNumber = (SELECT * FROM dbo.udfGenerateCodeNumber(@currentNo,(SELECT CodePrefix FROM #tmpCodePrefixes
 							WHERE CodeTypeId = @CodeTypeId), (SELECT CodeSufix FROM #tmpCodePrefixes WHERE CodeTypeId = @CodeTypeId)))
 						END
-						PRINT '1.15' 
-						PRINT GETUTCDATE();
 						END
-						PRINT '1.16' 
-						PRINT GETUTCDATE();
 
 						SET @count = @count + 1;
 
-						PRINT 'END Main Loop' 
-						PRINT GETUTCDATE();
 					END
-
-				--		FETCH NEXT FROM @PostRRBatchCursor INTO @StocklineId,@InvoicedQty,@InvoicedUnitCost,@JournalTypeName,@CreatedBy,@Module,@JournalBatchHeaderId,@StockType,@Packagingid,@EmployeeId,@id,@ReceivingReconciliationDetailId,@RecordId;
-				--		PRINT '1.17' 
-				--	END
-				--CLOSE @PostRRBatchCursor
-				--DEALLOCATE @PostRRBatchCursor
-
-				--SELECT '#TMPCommonBatchDetail'
-				--SELECT * FROM #TMPCommonBatchDetail
-
-				PRINT 'Start Next Item' 
-				PRINT GETUTCDATE();
 
 				IF OBJECT_ID(N'tempdb..#TMPVendorProformaInv') IS NOT NULL
 				BEGIN
@@ -2458,8 +2387,6 @@ BEGIN
 				LEFT JOIN VendorProformaInvoiceHeader VPH WITH(NOLOCK) ON VPH.ReferenceId = PO.PurchaseOrderId AND ISNULL(VPH.IsPurchaseOrder, 0) = 1 AND VPH.MasterCompanyId = PO.MasterCompanyId
 				WHERE PO.MasterCompanyId = @MasterCompanyId
 
-				PRINT '1.18' 
-				PRINT GETUTCDATE();
 
 				INSERT INTO #TMPVendorProformaInv (VendorProformaInvoiceId, ProformaAmount, ReferenceId, StockType, [Type])
 				SELECT DISTINCT VPH.VendorProformaInvoiceId, RCD.VendorProformaAmount, RO.RepairOrderId, RCD.StockType, 2 FROM [DBO].[ReceivingReconciliationDetails] RCD WITH(NOLOCK)
@@ -2468,7 +2395,6 @@ BEGIN
 				LEFT JOIN VendorProformaInvoiceHeader VPH WITH(NOLOCK) ON VPH.ReferenceId = RO.RepairOrderId AND ISNULL(VPH.IsPurchaseOrder, 0) = 0 AND VPH.MasterCompanyId = RO.MasterCompanyId
 				WHERE RO.MasterCompanyId = @MasterCompanyId
 
-				--Select * from #TMPVendorProformaInv
 
 				IF((SELECT COUNT(1) FROM #TMPVendorProformaInv) > 0)
 				BEGIN
@@ -2506,8 +2432,6 @@ BEGIN
 
 					SET @CommonJournalBatchDetailId=SCOPE_IDENTITY();
 								
-					--PRINT '@CommonJournalBatchDetailId : #TMPCommonBatchDetail 1.0'
-					--PRINT @CommonJournalBatchDetailId
 
 					UPDATE #TMPCommonBatchDetail
 					SET 
@@ -2565,11 +2489,7 @@ BEGIN
 				
 					SET @CommonJournalBatchDetailId=SCOPE_IDENTITY();
 
-					--PRINT '@CommonJournalBatchDetailId : #TMPCommonBatchDetail'
-					--PRINT @CommonJournalBatchDetailId
 
-					--SELECT '@CommonJournalBatchDetailId : #TMPCommonBatchDetail'
-					--SELECT * FROM #TMPCommonBatchDetail
 
 					UPDATE #TMPCommonBatchDetail
 					SET 
@@ -2610,8 +2530,6 @@ BEGIN
 				
 				END
 
-				PRINT '1.18.1'
-				PRINT GETUTCDATE();
 				INSERT INTO #TMPBatchFinalResult ([TMPBatchId], JournalBatchDetailId, JournalTypeNumber, CurrentNumber, DistributionSetupId, DistributionName, [JournalBatchHeaderId], [LineNumber], 
 						[GlAccountId], [GlAccountNumber], [GlAccountName], [TransactionDate], [EntryDate], [JournalTypeId], [JournalTypeName], 
 						[IsDebit], [DebitAmount], [CreditAmount], [ManagementStructureId], [ModuleName], LastMSLevel, AllMSlevels, [MasterCompanyId], [CreatedBy],
@@ -2630,9 +2548,6 @@ BEGIN
 						[UpdatedBy], [IsActive], [IsDeleted], [ReferenceId], [ReferenceNumber], [ReferenceName], 
 						[LocalCurrency],[FXRate],[ForeignCurrency],[ReferenceModule], PoId, RoId, StockType
 
-				PRINT '1.18.2' 
-				PRINT GETUTCDATE();
-				--SELECT * From #TMPBatchFinalResult
 
 			
 				IF((SELECT COUNT(1) FROM #TMPVendorProformaInv) > 0)
@@ -2682,24 +2597,16 @@ BEGIN
 						AND #TMPBatchFinalResult.RoId = GroupTmp.ReferenceId 
 						AND #TMPBatchFinalResult.DistributionSetupId = @PaybleRODistributionSetupId
 
-						--SELECT * From #TMPBatchFinalResult
 
 				END
 
-				PRINT '1.18.3' 
-				PRINT GETUTCDATE();
 
-				--SELECT * From #TMPBatchFinalResult
 
 				SELECT @TotalBatchRecords = MAX(BatchId), @CurrentRecordId = MIN(BatchId) FROM #TMPBatchFinalResult;
 
 				WHILE(ISNULL(@CurrentRecordId, 0) <= ISNULL(@TotalBatchRecords, 0))
 				BEGIN
-					PRINT '1.18.4' 
-					PRINT GETUTCDATE();
-					PRINT @CurrentRecordId
 
-					PRINT 'CommonJournalBatchDetailId : Insert Start'
 					INSERT INTO [dbo].[CommonBatchDetails]
 					(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
 					[IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId],[ModuleName],LastMSLevel,AllMSlevels,[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[ReferenceId],[ReferenceNumber],[ReferenceName],[LocalCurrency],[FXRate],[ForeignCurrency],[ReferenceModule])
@@ -2711,11 +2618,7 @@ BEGIN
 					FROM #TMPBatchFinalResult WHERE BatchId = @CurrentRecordId;
 			
 					SET @CommonJournalBatchDetailId=SCOPE_IDENTITY()
-					--PRINT 'CommonJournalBatchDetailId : Insert End'
-					--PRINT @CommonJournalBatchDetailId
-					--PRINT GETUTCDATE();
 
-					PRINT '1.18.4.1' 
 
 					SELECT	@JournalBatchDetailId = JournalBatchDetailId, @UpdateBy = UpdatedBy,
 							@ManagementStructureId = ManagementStructureId, @MasterCompanyId = MasterCompanyId
@@ -2724,7 +2627,6 @@ BEGIN
 
 					EXEC [dbo].[PROCAddUpdateAccountingBatchMSData] @CommonJournalBatchDetailId,@ManagementStructureId,@MasterCompanyId,@UpdateBy,@AccountMSModuleId,1; 
 
-					PRINT '1.18.4.2'
 					INSERT INTO [dbo].[StocklineBatchDetails](JournalBatchDetailId, JournalBatchHeaderId, VendorId, VendorName, ItemMasterId, PartId, PartNumber, PoId, PONum, RoId, RONum, StocklineId, StocklineNumber, Consignment, [Description], [SiteId], [Site], [WarehouseId], [Warehouse], [LocationId], [Location], [BinId], [Bin], [ShelfId], [Shelf], [StockType],[CommonJournalBatchDetailId],[ReferenceId],[ReferenceTypeId],[ReferenceNumber])
 					SELECT TMPF.JournalBatchDetailId, TMPF.JournalBatchHeaderId, VendorId, VendorName, ItemMasterId, PartId, PartNumber, TMPC.PoId, PONum, TMPC.RoId, RONum, StocklineId, StocklineNumber, Consignment, [Description], [SiteId], [Site], [WarehouseId], [Warehouse], [LocationId], [Location], [BinId], [Bin], [ShelfId], [Shelf], TMPF.[StockType],@CommonJournalBatchDetailId,TMPF.[ReferenceId],[ReferenceTypeId],TMPF.[ReferenceNumber]
 					FROM #TMPBatchFinalResult TMPF
@@ -2735,7 +2637,6 @@ BEGIN
 					JOIN #TMPCommonBatchDetail TMPC ON TMPC.[TMPBatchId] = TMPF.[TMPBatchId]
 					WHERE BatchId = @CurrentRecordId;
 
-					PRINT '1.18.4.3'
 
 					EXEC [DBO].[UpdateStocklineBatchDetailsColumnsWithId] @StocklineId		
 
@@ -2755,17 +2656,12 @@ BEGIN
 						WHERE [JournalBatchDetailId] = @JournalBatchDetailId
 
 					SET @CurrentRecordId += 1;
-					PRINT '1.18.5' 
-					PRINT GETUTCDATE();
 				END
 
-				PRINT '1.18.6' 
-				PRINT GETUTCDATE();
 				/**************START: DO NOT DELETE BELOW CODE:  Update Stk Batch Detail Columns with Id by StocklineId : RAJESH GAMI **********/
 				SELECT @MinRecordId = MIN(RecordId), @MaxRecordId = MAX(RecordId) FROM #RRPostType;
 				WHILE @MinRecordId <= @MaxRecordId
 				BEGIN
-					PRINT @MinRecordId
 					SELECT @StocklineId = StocklineId FROM #RRPostType	WHERE RecordId = @MinRecordId;
 					EXEC [DBO].[UpdateStocklineBatchDetailsColumnsWithId] @StocklineId;
 					SET @MinRecordId += 1;
@@ -2784,25 +2680,18 @@ BEGIN
 		
 				SELECT @TotalMisc = SUM(ISNULL([InvoicedUnitCost],0)) FROM [dbo].[ReceivingReconciliationDetails] WITH(NOLOCK) WHERE [ReceivingReconciliationId] = @ReceivingReconciliationId AND [IsManual] = 1 AND [PackagingId] =  2;
 				
-				PRINT '1.18.7' 
-				PRINT GETUTCDATE();
 				IF(@TotalFreight > 0 OR @TotalTax > 0 OR @TotalMisc > 0)
 				BEGIN
 					EXEC [dbo].[USP_PostReceivingReconcilationFreightAndTaxBatchDetails] @ReceivingReconciliationId,@JournalBatchHeaderId,@JournalTypename,@jlTypeId,@jlTypeName,@INPUTMethod,@DisCode,@ModuleName,@AccountingPeriodId,@AccountingPeriod,@EmployeeId,@UpdateBy,@MasterCompanyId;					
 				END
-				PRINT '1.18.8' 
-				PRINT GETUTCDATE();
-				PRINT @JlBatchHeaderId
 				
 				SELECT @TotalDebit = SUM(ISNULL([DebitAmount],0)),
 				       @TotalCredit = SUM(ISNULL([CreditAmount],0)) 
 				FROM dbo.BatchDetails WITH(NOLOCK) 
 				WHERE [JournalBatchHeaderId]=@JlBatchHeaderId and [IsDeleted]=0 
-				--GROUP BY JournalBatchHeaderId
 			   	       
 				SET @TotalBalance = @TotalDebit - @TotalCredit
 
-				PRINT '1.18.8.1' 
 				
 				UPDATE dbo.BatchHeader 
 				  SET [TotalDebit] = @TotalDebit,
@@ -2812,8 +2701,6 @@ BEGIN
 					  [UpdatedBy]=@UpdateBy 
 				 WHERE [JournalBatchHeaderId] = @JlBatchHeaderId
 
-				 PRINT '1.18.9' 
-				 PRINT GETUTCDATE();
 
 				 --UPDATE PO/RO Deposite Amount based on PO RO
 				 UPDATE PO SET DepositAmount = CASE WHEN ISNULL(DepositAmount, 0) >= ISNULL(ProformaAmount, 0) THEN  ISNULL(DepositAmount, 0) - ISNULL(ProformaAmount, 0) ELSE 0 END FROM dbo.PurchaseOrder PO WITH(NOLOCK) JOIN #TMPVendorProformaInv TMPVP  ON TMPVP.ReferenceId = PO.PurchaseOrderId WHERE TMPVP.[Type] = 1
@@ -2833,8 +2720,6 @@ BEGIN
 				 BEGIN
 				 	EXEC [dbo].[USP_UpdateCommonBatchStatus] @JournalBatchDetailId,@UpdateBy,@AccountingPeriodId,@AccountingPeriod;
 				 END
-				 PRINT '1.18.10' 
-				 PRINT GETUTCDATE();
 
 				IF OBJECT_ID(N'tempdb..#RRPostType') IS NOT NULL
 				BEGIN
@@ -2860,13 +2745,9 @@ BEGIN
 				DROP TABLE #TMPCommonBatchDetail
 				END
 				END
-		END 			
-		--COMMIT TRANSACTION
-		--ROLLBACK TRAN;
+		END
 	END TRY
 	BEGIN CATCH
-		PRINT 'ROLLBACK'
-		--ROLLBACK TRAN;
 		SELECT
 			ERROR_NUMBER() AS ErrorNumber,
 			ERROR_STATE() AS ErrorState,

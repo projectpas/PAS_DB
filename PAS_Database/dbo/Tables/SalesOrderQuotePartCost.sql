@@ -27,7 +27,10 @@
     [IsActive]                  BIT             CONSTRAINT [DF_SalesOrderQuotePartCost_IsActive] DEFAULT ((1)) NOT NULL,
     [IsDeleted]                 BIT             CONSTRAINT [DF_SalesOrderQuotePartCost_IsDeleted] DEFAULT ((0)) NOT NULL,
     [NetSaleAmountPerUnit]      DECIMAL (18, 4) NULL,
-    CONSTRAINT [PK_SalesOrderQuotePartCost] PRIMARY KEY CLUSTERED ([SalesOrderQuotePartCostId] ASC)
+    CONSTRAINT [PK_SalesOrderQuotePartCost] PRIMARY KEY CLUSTERED ([SalesOrderQuotePartCostId] ASC),
+    CONSTRAINT [FK_SalesOrderQuotePartCost_SalesOrderQuote] FOREIGN KEY ([SalesOrderQuoteId]) REFERENCES [dbo].[SalesOrderQuote] ([SalesOrderQuoteId]),
+    CONSTRAINT [FK_SalesOrderQuotePartCost_SalesOrderQuotePartV1] FOREIGN KEY ([SalesOrderQuotePartId]) REFERENCES [dbo].[SalesOrderQuotePartV1] ([SalesOrderQuotePartId]),
+    CONSTRAINT [FK_SalesOrderQuotePartCost_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId])
 );
 
 

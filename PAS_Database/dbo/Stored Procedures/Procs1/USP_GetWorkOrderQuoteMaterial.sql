@@ -24,7 +24,8 @@
 	6	 02/10/2025	  Moin Bloch		 Modified (Added condition @WorkOrderQuoteDetailsId in [WorkOrderQuoteDetails] from duplicate WO Kit)
 	7	 02/10/2025	  Abhishek Jirawla	 Added Billing Name
 	8	 07/01/2026	  Rajesh Gami    	 Getting QTY and COST based on ItemMaster ConsumeUOM
-	9    08/01/2026   Rajesh Gami		Added MasterCompanyId Parameter While Calling UOM Conversion Function
+	9    08/01/2026   Rajesh Gami		 Added MasterCompanyId Parameter While Calling UOM Conversion Function
+	10   09/04/2026   Ayushi Patel	     PN-15909 resolved uom convertion issue for UnitPrice 
 -- EXEC [USP_GetWorkOrderQuoteMaterial] 1575,4,0,0
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_GetWorkOrderQuoteMaterial]
@@ -75,7 +76,7 @@ BEGIN
 					                     WHEN im.IsPma = 0 AND im.IsDER = 1  THEN 'DER' 
 										 ELSE 'OEM'
 									END)  as StockType,
-						ROUND(dbo.fn_ConvertUOM(wom.UnitCost, uomStock.ShortName, uomConsume.ShortName,0,wom.MasterCompanyId),2) as UnitCost,
+						ROUND(dbo.fn_ConvertUOM(wom.UnitCost, uomStock.ShortName, uomConsume.ShortName,1,wom.MasterCompanyId),2) as UnitCost,
                         wom.MarkupPercentageId,
                         wom.WorkOrderQuoteDetailsId,
                         wom.WorkOrderQuoteMaterialId,
@@ -142,7 +143,7 @@ BEGIN
                         0 as ConditionCodeId,
                         '' as Condition,
 					    ''  as StockType,
-						ROUND(dbo.fn_ConvertUOM(wom.UnitCost, uomStock.ShortName, uomConsume.ShortName,0,wom.MasterCompanyId),2)  AS UnitCost,
+						ROUND(dbo.fn_ConvertUOM(wom.UnitCost, uomStock.ShortName, uomConsume.ShortName,1,wom.MasterCompanyId),2)  AS UnitCost,
                         wom.MarkupPercentageId,
                         wq.WorkOrderQuoteDetailsId as WorkOrderQuoteDetailsId,
                         0 as WorkOrderQuoteMaterialId,

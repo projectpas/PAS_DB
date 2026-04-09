@@ -38,6 +38,7 @@
 	30	 04-Dec-2025        Divyesh Kathiriya		Handle new line "/r/n" in All Filed
 	31	 08-Dec-2025        Divyesh Kathiriya		Handle new tab "\", "\t" in All Filed
 	32	 17-DEC-2025        Nakul Chandigara  		Added New SingleScreen Modules
+	33   09-APR-2026		Ayushi Patel			PN-15988 Handled QuantityOnHand As decimal
 exec USP_SaveCommonUploadData_ByModuleId @ModuleId=1,@UserName=N'VICTOR ADMAS',@MasterCompanyId=1, @EmployeeId = 2;
 **************************************************************/
 CREATE PROCEDURE [dbo].[USP_SaveCommonUploadData_ByModuleId]
@@ -223,7 +224,8 @@ BEGIN
 			LEFT JOIN #DynamicKeyValue TMP ON TMP.FieldName = IMF.FieldName
 			WHERE IMF.[ModuleId] = @ModuleId  AND NOT ((@ModuleId = @PriceMasterModule OR @ModuleId = @PurchaseSalesModule OR @ModuleId = @MROPriceMasterModule  OR @ModuleId = @MROPriceMasterListModule) AND IMF.FieldName = 'ManufacturerId' );			
 			
-			DECLARE @Qty AS INT;
+			--DECLARE @Qty AS INT;
+			DECLARE @Qty AS DECIMAL(18,2);
 			DECLARE @PurchaseUOMId AS BIGINT;
 			DECLARE @ManagementStructureId AS BIGINT;
 			
@@ -276,7 +278,8 @@ BEGIN
 					WHERE FieldName = 'isSerialized';
 				END
 				SELECT @ManufacturerId = FieldValue FROM #DynamicKeyValue WHERE FieldName = 'ManufacturerId';
-				SELECT @Qty = FieldValue FROM #DynamicKeyValue WHERE FieldName = 'QuantityOnHand';
+				--SELECT @Qty = FieldValue FROM #DynamicKeyValue WHERE FieldName = 'QuantityOnHand';
+				SELECT @Qty = TRY_CAST(FieldValue AS DECIMAL(18,2))FROM #DynamicKeyValue WHERE FieldName = 'QuantityOnHand';
 
 				IF OBJECT_ID(N'tempdb..#tmpCodePrefixes') IS NOT NULL
                 BEGIN
@@ -1355,8 +1358,10 @@ BEGIN
 				DECLARE @StockLineModuleId BIGINT = (select ModuleId from dbo.Module WITH (NOLOCK) where ModuleName = 'StockLine');
 				DECLARE @StocklineHistoryActionId BIGINT = 1;
                 SELECT @ManagementStructureEntityId = [ManagementStructureId] FROM DBO.Stockline WITH (NOLOCK) WHERE StocklineId = @ModuleTableId;
-				DECLARE @QuantityOnHand BIGINT = 0;
-				SET @QuantityOnHand = (select FieldValue from #DynamicKeyValue where FieldName = 'QuantityOnHand')
+				--DECLARE @QuantityOnHand BIGINT = 0;
+				DECLARE @QuantityOnHand DECIMAL(18,2) = 0;
+				--SET @QuantityOnHand = (select FieldValue from #DynamicKeyValue where FieldName = 'QuantityOnHand')
+				SET @QuantityOnHand = TRY_CAST((SELECT FieldValue FROM #DynamicKeyValue WHERE FieldName = 'QuantityOnHand') AS DECIMAL(18,2))
 				DECLARE @UpdatedBy AS VARCHAR(200);
 				SET @UpdatedBy = (select FieldValue from #DynamicKeyValue where FieldName = 'UpdatedBy')
 				

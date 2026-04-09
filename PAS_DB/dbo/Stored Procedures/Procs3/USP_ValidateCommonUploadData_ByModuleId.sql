@@ -41,7 +41,7 @@
 	31	 18-DEC-2025        Nakul Chandigara  		Added New SingleScreen Modules
 	32   22-Dec-2025		Divyesh Kathiriya  		Added validation for Site,Warehouse,Location,Shelf,Bin
 	33   13-Jan-2026		Divyesh Kathiriya  		Added validation for "ItemMaster" of Dropdown value.
-
+	34   09-APR-2026		Ayushi Patel			PN-15988 Excluded StocklineModule from restricting Decimal number
 declare @p4 dbo.UploadModuleDataTableType
 insert into @p4 values(4,N'VICTOR ADMAS',1,N'{
   "partnumber": "AEIN122",
@@ -657,6 +657,7 @@ BEGIN
 															TRY_CAST(TMP.FieldValue AS INT) IS NULL 
 															OR CHARINDEX('.', TMP.FieldValue) > 0  
 														 )
+													 AND @ModuleId NOT IN (@PriceMasterModule, @StocklineModule)
 												THEN IMF.HeaderName + ' must be a whole number (decimals not allowed)'
 												WHEN (@ModuleId = @MROPriceMasterModule OR @ModuleId = @MROPriceMasterListModule)
 													 AND IMF.FieldName = 'CustomerId' 
@@ -722,7 +723,9 @@ BEGIN
 													THEN 'Email is not in a valid format'
 												WHEN ISNULL(TMP.FieldValue, '') != '' AND IMF.FieldName = 'QuantityOnHand'
 													AND (
-														TRY_CAST(TMP.FieldValue AS INT) IS NULL OR TRY_CAST(TMP.FieldValue AS INT) <= 0
+														--TRY_CAST(TMP.FieldValue AS INT) IS NULL OR TRY_CAST(TMP.FieldValue AS INT) <= 0
+														TRY_CAST(TMP.FieldValue AS DECIMAL(18,2)) IS NULL 
+														OR TRY_CAST(TMP.FieldValue AS DECIMAL(18,2)) <= 0
 													)
 													THEN 'QuantityOnHand must be a whole number greater than 0'
 												WHEN IMF.FieldName = 'QuantityOnHand'
@@ -1192,7 +1195,9 @@ BEGIN
 													THEN 'Email is not in a valid format'
 												WHEN ISNULL(TMP.FieldValue, '') != '' AND IMF.FieldName = 'QuantityOnHand'
 													AND (
-														TRY_CAST(TMP.FieldValue AS INT) IS NULL OR TRY_CAST(TMP.FieldValue AS INT) <= 0
+														--TRY_CAST(TMP.FieldValue AS INT) IS NULL OR TRY_CAST(TMP.FieldValue AS INT) <= 0
+														TRY_CAST(TMP.FieldValue AS DECIMAL(18,2)) IS NULL 
+														OR TRY_CAST(TMP.FieldValue AS DECIMAL(18,2)) <= 0
 													)
 													THEN 'QuantityOnHand must be a whole number greater than 0'
 												    WHEN IMF.FieldName = 'QuantityOnHand'

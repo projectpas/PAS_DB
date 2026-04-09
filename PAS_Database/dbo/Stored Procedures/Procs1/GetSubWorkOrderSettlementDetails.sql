@@ -106,7 +106,7 @@ BEGIN
 				WHERE WorkOrderId = @WorkorderId and SubWorkOrderId = @SubWorkOrderId and SubWOPartNoId = @SubWOPartNoId AND WOM.ProvisionId != @ProvisionId AND WOMS.SWOMStockLineKitId IS NULL
 
 				SELECT @QtyTendered = SUM(ISNULL(sl.QuantityTurnIn,0)) FROM dbo.SubWorkOrderMaterialStockLine womsl WITH (NOLOCK)
-					JOIN dbo.Stockline sl WITH (NOLOCK) ON womsl.StockLIneId = sl.StockLIneId
+					JOIN dbo.Stockline sl WITH (NOLOCK) ON womsl.StockLineId = sl.StockLineId
 					JOIN dbo.SubWorkOrderMaterials WOM WITH(NOLOCK) ON womsl.SubWorkOrderMaterialsId = WOM.SubWorkOrderMaterialsId
 				WHERE WOM.WorkOrderId=@WorkorderId AND WOM.SubWorkOrderId=@SubWorkOrderId AND WOM.SubWOPartNoId =@SubWOPartNoId AND womsl.ConditionId = WOM.ConditionCodeId
 					AND womsl.isActive = 1 AND womsl.isDeleted = 0 AND ISNULL(sl.QuantityTurnIn, 0) > 0

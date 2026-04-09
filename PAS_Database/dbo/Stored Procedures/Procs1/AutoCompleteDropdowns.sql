@@ -37,6 +37,7 @@
     20   16/12/2025   Ayushi Patel  	    Return fields: SalesOrderQuote for SalesOrderQuote Table
     21   20-Dec-2025  Divyesh Kathiriya  	Added case for Warehouse,Location,Shelf,Bin
     22   30/01/2026   Ayushi Patel          Added Vendor auto-suggestion logic with duplicate VendorName handling (append VendorCode when duplicates exist)
+    23   08/04/2026   Nakul Chandigra       Added order Order By Sequenceno ASC for AircraftStatus and MaintenanceStatus (PN-15946)
 
 --select * from dbo.Employee      
 --EXEC AutoCompleteDropdowns 'ItemMaster','ItemMasterId','PartNumber','',1,20,'0',1       
@@ -394,7 +395,54 @@ AS BEGIN
                                 FROM dbo.Vendor V WITH(NOLOCK) 
                                 WHERE V.MasterCompanyId=@MasterCompanyId AND V.VendorId IN(SELECT Item FROM dbo.SPLITSTRING(@Idlist,',')) 
                         END
+                        ELSE IF(@TableName = 'AircraftStatus')
+                        BEGIN
+                            SELECT DISTINCT 
+                                AircraftStatusId AS Value, 
+                                Name AS Label,
+                                SequenceNo
+                            FROM dbo.AircraftStatus WITH(NOLOCK)
+                            WHERE MasterCompanyId = @MasterCompanyId 
+                              AND IsActive = 1 
+                              AND ISNULL(IsDeleted, 0) = 0 
+                              AND Name LIKE '%' + @Parameter3 + '%'
 
+                            UNION
+
+                            SELECT DISTINCT 
+                                AircraftStatusId AS Value, 
+                                Name AS Label,
+                                SequenceNo
+                            FROM dbo.AircraftStatus WITH(NOLOCK)
+                            WHERE MasterCompanyId = @MasterCompanyId 
+                              AND AircraftStatusId IN (SELECT Item FROM DBO.SPLITSTRING(@Idlist, ','))
+
+                            ORDER BY SequenceNo ASC
+                        END
+                        ELSE IF(@TableName = 'MaintenanceStatus')
+                        BEGIN
+                            SELECT DISTINCT 
+                                MaintenanceStatusId AS Value, 
+                                Name AS Label,
+                                SequenceNo
+                            FROM dbo.MaintenanceStatus WITH(NOLOCK)
+                            WHERE MasterCompanyId = @MasterCompanyId 
+                              AND IsActive = 1 
+                              AND ISNULL(IsDeleted, 0) = 0 
+                              AND Name LIKE '%' + @Parameter3 + '%'
+
+                            UNION
+
+                            SELECT DISTINCT 
+                                MaintenanceStatusId AS Value, 
+                                Name AS Label,
+                                SequenceNo
+                            FROM dbo.MaintenanceStatus WITH(NOLOCK)
+                            WHERE MasterCompanyId = @MasterCompanyId 
+                              AND MaintenanceStatusId IN (SELECT Item FROM DBO.SPLITSTRING(@Idlist, ','))
+
+                            ORDER BY SequenceNo ASC
+                        END
                          ELSE BEGIN
                                   SET @Sql=N'INSERT INTO #TempTable (Value, Label, MasterCompanyId)   
            SELECT DISTINCT  CAST ( '+@Parameter1+' AS BIGINT) As Value,  

@@ -46,14 +46,14 @@
     [EnforceMpnPickTicketConfirmation] BIT             NULL,
     [SecondarySalesPersonId]           BIGINT          NULL,
     [SalesAgentID]                     BIGINT          NULL,
-    [PrimarySalesRevenue]              BIGINT          NULL,
-    [PrimarySalesMargin]               BIGINT          NULL,
-    [SecondarySalesRevenue]            BIGINT          NULL,
-    [SecondarySalesMargin]             BIGINT          NULL,
-    [CSRSalesRevenue]                  BIGINT          NULL,
-    [CSRSalesMargin]                   BIGINT          NULL,
-    [AgentSalesRevenue]                BIGINT          NULL,
-    [AgentSalesMargin]                 BIGINT          NULL,
+    [PrimarySalesRevenue]              DECIMAL (18, 6) NULL,
+    [PrimarySalesMargin]               DECIMAL (18, 6) NULL,
+    [SecondarySalesRevenue]            DECIMAL (18, 6) NULL,
+    [SecondarySalesMargin]             DECIMAL (18, 6) NULL,
+    [CSRSalesRevenue]                  DECIMAL (18, 6) NULL,
+    [CSRSalesMargin]                   DECIMAL (18, 6) NULL,
+    [AgentSalesRevenue]                DECIMAL (18, 6) NULL,
+    [AgentSalesMargin]                 DECIMAL (18, 6) NULL,
     CONSTRAINT [PK_WorkOrderAudit] PRIMARY KEY CLUSTERED ([WorkOrderAuditId] ASC)
 );
 

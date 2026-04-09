@@ -498,7 +498,7 @@ BEGIN
        --UPDATE QTY TO TURN IN IF MISMATCH  
        SELECT @QtyTendered = SUM(ISNULL(sl.QuantityTurnIn,0))   
        FROM dbo.WorkOrderMaterialStockLine womsl WITH (NOLOCK)  
-        JOIN dbo.Stockline sl WITH (NOLOCK) ON womsl.StockLIneId = sl.StockLIneId  
+        JOIN dbo.Stockline sl WITH (NOLOCK) ON womsl.StockLineId = sl.StockLineId  
         JOIN dbo.WorkOrderMaterials WOM WITH(NOLOCK) ON womsl.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId  
        WHERE WOM.WorkOrderMaterialsId = @WorkOrderMaterialsId AND womsl.ConditionId = WOM.ConditionCodeId  
         AND womsl.isActive = 1 AND womsl.isDeleted = 0 AND ISNULL(sl.QuantityTurnIn, 0) > 0  
@@ -582,7 +582,7 @@ BEGIN
        --UPDATE QTY TO TURN IN IF MISMATCH  
        SELECT @QtyTendered = SUM(ISNULL(sl.QuantityTurnIn,0))   
        FROM dbo.WorkOrderMaterialStockLineKit womsl WITH (NOLOCK)  
-        JOIN dbo.Stockline sl WITH (NOLOCK) ON womsl.StockLIneId = sl.StockLIneId  
+        JOIN dbo.Stockline sl WITH (NOLOCK) ON womsl.StockLineId = sl.StockLineId  
         JOIN dbo.WorkOrderMaterialsKit WOM WITH(NOLOCK) ON womsl.WorkOrderMaterialsKitId = WOM.WorkOrderMaterialsKitId  
        WHERE WOM.WorkOrderMaterialsKitId = @WorkOrderMaterialsId AND womsl.ConditionId = WOM.ConditionCodeId  
         AND womsl.isActive = 1 AND womsl.isDeleted = 0 AND ISNULL(sl.QuantityTurnIn, 0) > 0  

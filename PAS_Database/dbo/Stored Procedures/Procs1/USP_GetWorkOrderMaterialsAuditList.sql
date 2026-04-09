@@ -78,30 +78,30 @@ SET NOCOUNT ON
 					wom.Condition AS Condition,
 					WOM.UnitCost,
 					WOM.ExtendedCost,
-					MSTL.StockLIneId,
+					MSTL.StockLineId,
 					SL.StockLineNumber,
 					SL.SerialNumber,
 					SL.IdNumber AS ControlId,
 					SL.ControlNumber AS ControlNo,
 					SL.ReceiverNumber AS Receiver,
 					PartQuantityOnHand = (SELECT SUM(sl.QuantityOnHand)
-									FROM WorkOrderMaterialStockLine womsl WITH (NOLOCK) JOIN StockLine sl WITH (NOLOCK) on womsl.StockLIneId = sl.StockLIneId
+									FROM WorkOrderMaterialStockLine womsl WITH (NOLOCK) JOIN StockLine sl WITH (NOLOCK) on womsl.StockLineId = sl.StockLineId
 									Where womsl.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId
 									),
 					PartQuantityAvailable = (SELECT SUM(sl.QuantityAvailable) FROM WorkOrderMaterialStockLine womsl  WITH (NOLOCK)
-									JOIN StockLine sl WITH (NOLOCK) on womsl.StockLIneId = sl.StockLIneId
+									JOIN StockLine sl WITH (NOLOCK) on womsl.StockLineId = sl.StockLineId
 									Where womsl.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId
 									),
 					PartQuantityReserved = (SELECT SUM(sl.QuantityReserved) FROM WorkOrderMaterialStockLine womsl  WITH (NOLOCK)
-									JOIN StockLine sl WITH (NOLOCK) on womsl.StockLIneId = sl.StockLIneId 
+									JOIN StockLine sl WITH (NOLOCK) on womsl.StockLineId = sl.StockLineId 
 									Where womsl.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId
 									),
 					PartQuantityTurnIn = (SELECT SUM(sl.QuantityTurnIn) FROM WorkOrderMaterialStockLine womsl  WITH (NOLOCK)
-									JOIN StockLine sl WITH (NOLOCK) on womsl.StockLIneId = sl.StockLIneId
+									JOIN StockLine sl WITH (NOLOCK) on womsl.StockLineId = sl.StockLineId
 									Where womsl.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId
 									),
 					PartQuantityOnOrder = (SELECT SUM(sl.QuantityOnOrder) FROM WorkOrderMaterialStockLine womsl  WITH (NOLOCK)
-									JOIN StockLine sl WITH (NOLOCK) on womsl.StockLIneId = sl.StockLIneId
+									JOIN StockLine sl WITH (NOLOCK) on womsl.StockLineId = sl.StockLineId
 									Where womsl.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId
 									),
 					CostDate = (SELECT TOP 1 CONVERT(varchar, IMPS.PP_LastListPriceDate, 101) FROM dbo.ItemMasterPurchaseSale IMPS WITH (NOLOCK) WHERE IMPS.ItemMasterId = WOM.ItemMasterId AND

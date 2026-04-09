@@ -35,7 +35,8 @@
     [ConditionId]              BIGINT          NULL,
     CONSTRAINT [PK_SalesOrderFreight] PRIMARY KEY CLUSTERED ([SalesOrderFreightId] ASC),
     CONSTRAINT [FK_SalesOrderFreight_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId]),
-    CONSTRAINT [FK_SalesOrderFreight_SalesOrder] FOREIGN KEY ([SalesOrderQuoteId]) REFERENCES [dbo].[SalesOrderQuote] ([SalesOrderQuoteId]),
+    CONSTRAINT [FK_SalesOrderFreight_SalesOrder] FOREIGN KEY ([SalesOrderId]) REFERENCES [dbo].[SalesOrder] ([SalesOrderId]),
+    CONSTRAINT [FK_SalesOrderFreight_SalesOrderQuote] FOREIGN KEY ([SalesOrderQuoteId]) REFERENCES [dbo].[SalesOrderQuote] ([SalesOrderQuoteId]),
     CONSTRAINT [FK_SalesOrderFreight_ShippingVia] FOREIGN KEY ([ShipViaId]) REFERENCES [dbo].[ShippingVia] ([ShippingViaId])
 );
 

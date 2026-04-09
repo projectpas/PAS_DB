@@ -32,10 +32,10 @@ BEGIN
 	DECLARE @SalesPersonId BIGINT = NULL,@CSRId BIGINT = NULL,@SecondarySalesPersonId BIGINT = NULL,@SalesAgentID BIGINT = NULL;  
 	DECLARE @PrimarySalesperson INT = 1,@SecondarySalesperson INT = 2,@Agent INT = 3,@CSR INT = 4
 	DECLARE @MROActivity INT = 1,@Brokering INT = 2
-	DECLARE @PrimarySalesRevenue BIGINT = NULL,@PrimarySalesMargin BIGINT = NULL
-	DECLARE @SecondarySalesRevenue BIGINT = NULL,@SecondarySalesMargin BIGINT = NULL
-	DECLARE @CSRSalesRevenue BIGINT = NULL,@CSRSalesMargin BIGINT = NULL
-	DECLARE @AgentSalesRevenue BIGINT = NULL,@AgentSalesMargin BIGINT = NULL
+	DECLARE @PrimarySalesRevenue DECIMAL(18, 6) = NULL,@PrimarySalesMargin DECIMAL(18, 6) = NULL
+	DECLARE @SecondarySalesRevenue DECIMAL(18, 6) = NULL,@SecondarySalesMargin DECIMAL(18, 6) = NULL
+	DECLARE @CSRSalesRevenue DECIMAL(18, 6) = NULL,@CSRSalesMargin DECIMAL(18, 6) = NULL
+	DECLARE @AgentSalesRevenue DECIMAL(18, 6) = NULL,@AgentSalesMargin DECIMAL(18, 6) = NULL
 
 	SELECT @WorkOrderModuleID  = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName]='WorkOrder';
 	SELECT @SalesOrderModuleID = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName]='SalesOrder';

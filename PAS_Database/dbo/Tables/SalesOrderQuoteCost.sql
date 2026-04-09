@@ -14,7 +14,9 @@
     [UpdatedDate]           DATETIME2 (7)   CONSTRAINT [DF_SalesOrderQuoteCost_UpdatedDate] DEFAULT (getutcdate()) NOT NULL,
     [IsActive]              BIT             CONSTRAINT [DF_SalesOrderQuoteCost_IsActive] DEFAULT ((1)) NOT NULL,
     [IsDeleted]             BIT             CONSTRAINT [DF_SalesOrderQuoteCost_IsDeleted] DEFAULT ((0)) NOT NULL,
-    CONSTRAINT [PK_SalesOrderQuoteCost] PRIMARY KEY CLUSTERED ([SalesOrderQuoteCostId] ASC)
+    CONSTRAINT [PK_SalesOrderQuoteCost] PRIMARY KEY CLUSTERED ([SalesOrderQuoteCostId] ASC),
+    CONSTRAINT [FK_SalesOrderQuoteCost_SalesOrderQuote] FOREIGN KEY ([SalesOrderQuoteId]) REFERENCES [dbo].[SalesOrderQuote] ([SalesOrderQuoteId]),
+    CONSTRAINT [FK_SalesOrderQuoteCost_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId])
 );
 
 

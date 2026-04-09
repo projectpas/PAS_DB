@@ -65,7 +65,7 @@ BEGIN
 	DECLARE @totalrevenue DECIMAL(18, 2) = 0;
 	DECLARE @FunctionalCurrencyId BIGINT = 0;
     DECLARE @ReportCurrencyId BIGINT = 0;
-    DECLARE @ForeignExchangeRate BIGINT = 0;
+    DECLARE @ForeignExchangeRate DECIMAL(18, 6) = 0;
 	DECLARE @SalesOrderQuoteNumber VARCHAR(100) = NULL;
 	DECLARE @StkAutoReserveRefNumber VARCHAR(100) = 'Auto Reserve Stock - ';
 	DECLARE @RefNumber VARCHAR(100) = '';

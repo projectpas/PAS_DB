@@ -32,7 +32,8 @@ CREATE   PROCEDURE [dbo].[USP_InsertUpdateAircraftInstalledPartDetails]
     @EngineStarts BIGINT = NULL,
     @Memo NVARCHAR(MAX) = NULL,
     @MasterCompanyId INT,
-	@UpdatedBy VARCHAR(50) = NULL
+	@UpdatedBy VARCHAR(50) = NULL,
+	@StockLineId BIGINT = NULL
 )
 AS
 BEGIN
@@ -41,6 +42,9 @@ BEGIN
 
 	BEGIN TRY
 	BEGIN TRANSACTION;
+
+		DECLARE @AircraftPartDetailsId BIGINT = 0,
+				@ConditionId BIGINT = 0;
 
 		-- CHECK IF RECORD EXISTS
 		IF EXISTS (
@@ -128,6 +132,18 @@ BEGIN
 				1,
 				0
 			);
+
+			SELECT @AircraftPartDetailsId = SCOPE_IDENTITY() 
+
+			--Add stockline for part
+			IF(ISNULL(@StockLineId,0) > 0)
+			BEGIN
+				 UPDATE [dbo].[Stockline] SET [AircraftInstalledPartDetailsId] = @AircraftPartDetailsId WHERE [StockLineId] = @StockLineId;
+
+				 SELECT @ConditionId = [ConditionId] FROM [dbo].[Stockline] WITH(NOLOCK) WHERE [StockLineId] = @StockLineId;
+
+				 UPDATE [dbo].[AircraftInstalledPartDetails] SET [StockLineId] = @StockLineId,[ConditionId] = @ConditionId WHERE [AircraftInstalledPartDetailsId] = @AircraftPartDetailsId;
+			END
 		END
 		COMMIT TRANSACTION;
 

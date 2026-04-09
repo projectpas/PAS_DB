@@ -4478,6 +4478,7 @@
     <Build Include="dbo\Stored Procedures\usp_GetStockConsumeUOMByItemMasterId.sql" />
     <Build Include="dbo\Stored Procedures\usp_SaveTurnInAircraftMaterials.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetAllStocklineForAircraft.sql" />
+    <Build Include="dbo\Stored Procedures\AutoCompleteDropdownsAircraft.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

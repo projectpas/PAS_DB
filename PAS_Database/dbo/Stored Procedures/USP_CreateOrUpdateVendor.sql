@@ -10,6 +10,7 @@
 ** PR     Date         Author           Change Description            
 ** --    --------     -------           -------------------------------          
 ** 1     07-07-2025   Ayushi Patel      Created  
+** 2     08-APR-2026   Hemant Saliya     Corrected to Get customer type Id based on name  
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_CreateOrUpdateVendor]
     @VendorId BIGINT OUTPUT,
@@ -72,7 +73,9 @@ BEGIN
 		DECLARE @VendorAccountingModuleId INT = (select TOP 1 AccountingModuleId from DBO.AccountingModule WITH(NOLOCK) WHERE AccountingModuleName='Vendor')
 		DECLARE @BillingAddressId INT = 1;
 		DECLARE @ShippingAddressId INT = 2;
-		DECLARE @CustomerTypeId INT = 3;
+		DECLARE @CustomerTypeId INT;
+		SELECT @CustomerTypeId = CustomerTypeId FROM [dbo].[CustomerType] WITH(NOLOCK) WHERE CustomerTypeName = 'CUSTOMER' AND MasterCompanyId = @MasterCompanyId
+
         EXEC USP_AddAddress
             @Address1, @Address2, @Address3, @PostalCode, @StateOrProvince, @City,
             @CountryId, @MasterCompanyId, @CreatedBy, @UpdatedBy, @AddressId OUTPUT;

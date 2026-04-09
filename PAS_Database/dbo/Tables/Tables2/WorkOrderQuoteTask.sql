@@ -50,6 +50,7 @@
     [LaborRevenuePercentage]        DECIMAL (18, 6) NULL,
     [MaterialRevenuePercentage]     DECIMAL (18, 6) NULL,
     [OverHeadCostRevenuePercentage] DECIMAL (18, 6) NULL,
+    [IsKitPart]                     BIT             NULL,
     CONSTRAINT [PK_WorkOrderQuoteTask] PRIMARY KEY CLUSTERED ([WorkOrderQuoteTaskId] ASC),
     CONSTRAINT [FK_WorkOrderQuoteTask_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId]),
     CONSTRAINT [FK_WorkOrderQuoteTask_WorkOrderPartNumber] FOREIGN KEY ([WOPartNoId]) REFERENCES [dbo].[WorkOrderPartNumber] ([ID])

@@ -51,6 +51,7 @@
     [LaborRevenuePercentage]        DECIMAL (18, 6) NULL,
     [MaterialRevenuePercentage]     DECIMAL (18, 6) NULL,
     [OverHeadCostRevenuePercentage] DECIMAL (18, 6) NULL,
+    [IsKitPart]                     BIT             NULL,
     CONSTRAINT [PK_WorkOrderQuoteTaskAudit] PRIMARY KEY CLUSTERED ([WorkOrderQuoteTaskAuditId] ASC)
 );
 

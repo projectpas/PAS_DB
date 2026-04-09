@@ -1,5 +1,4 @@
-﻿
-/*************************************************************
+﻿/*************************************************************
  ** File:    [USP_GetTrailBalanceJournalBatchData]
  ** Author:  Devendra Shekh
  ** Description: Retrieves Trial Balance journal batch details by GL Account ID
@@ -18,6 +17,9 @@
     6    04/08/2024   Hemant Saliya   Added Management Structure Filters & Get AC Based on LE
     7    10/07/2025   Bhargav Saliya  Added ReferenceNumber field
     8    09/02/2026   Bhargav Saliya  Added JournalTypeName field
+	9    03/04/2026   Moin Bloch      Added Pagination PN-15886
+	10   06/04/2026   Moin Bloch      Added @Balance Field PN-15886
+
  **************************************************************
 
  EXEC [USP_GetTrailBalanceJournalBatchData] '1','1','134', 2, @xmlFilter = N'
@@ -38,17 +40,34 @@
 
 CREATE PROCEDURE [dbo].[USP_GetTrailBalanceJournalBatchData]
 (
+	@PageSize INT,
+	@PageNumber INT,
+	@SortColumn VARCHAR(50) = NULL,
+	@SortOrder INT,
+	@GlobalFilter VARCHAR(50) = NULL,	
+	@JournalNumber VARCHAR(100) = NULL,
+	@JournalTypeName VARCHAR(150) = NULL,
+	@GLAccount VARCHAR(100) = NULL,
+	@PeriodNames VARCHAR(100) = NULL,
+	@ReferenceNumber VARCHAR(150) = NULL,
+	@Balance VARCHAR(50) = NULL,
     @masterCompanyId       VARCHAR(50)  = NULL,
     @managementStructureId VARCHAR(50)  = NULL,
     @id                    VARCHAR(50)  = NULL,
     @GlAccId               BIGINT,
-    @xmlFilter             XML
+    @xmlFilter             XML,
+	@EmployeeId BIGINT = NULL
 )
 AS
 BEGIN
     BEGIN TRY
     BEGIN
+		DECLARE @CustomerRefundModuleId BIGINT = 0;
+		DECLARE @RecordFrom INT;
+		DECLARE @TotalRecordsCount INT;
+		SET @RecordFrom = (@PageNumber-1) * @PageSize;
 
+		SELECT @CustomerRefundModuleId = [ModuleId] FROM [dbo].[Module] WHERE [ModuleName] = 'CustomerRefund';
         ---------------------------------------------------------------------------
         -- Variable Declarations
         ---------------------------------------------------------------------------
@@ -152,8 +171,8 @@ BEGIN
             MIN(FromDate),
             MAX(ToDate)
         FROM dbo.AccountingCalendar WITH (NOLOCK)
-        WHERE PeriodName  = @PeriodName
-          AND IsDeleted   = 0
+        WHERE --PeriodName  = @PeriodName
+              IsDeleted   = 0
           AND LegalEntityId IN
               (
                   SELECT MSL.LegalEntityId
@@ -167,13 +186,16 @@ BEGIN
         ---------------------------------------------------------------------------
         SELECT
             CBD.GlAccountId,
-            (GL.AccountCode + ' - ' + GL.AccountName)  AS GlAccount,
-            ISNULL(SUM(CBD.CreditAmount), 0)            AS Credit,
-            ISNULL(SUM(CBD.DebitAmount),  0)            AS Debit,
+			CBD.ReferenceId,
+			CBD.ReferenceModule,
+			CM.IsStandAloneCM,
+            (GL.AccountCode + ' - ' + GL.AccountName)  AS GlAccount,            
+			ISNULL(SUM(CBD.DebitAmount), 0)  - ISNULL(SUM(CBD.CreditAmount),  0)  AS Balance,
             BD.AccountingPeriod                         AS PeriodName,
             BD.JournalTypeNumber                        AS JournalNumber,
             ISNULL(CBD.ReferenceNumber, '')             AS ReferenceNumber,
             CBD.JournalTypeName
+		INTO #TempResults
         FROM       dbo.CommonBatchDetails                              CBD WITH (NOLOCK)
         INNER JOIN dbo.BatchDetails                                    BD  WITH (NOLOCK) ON CBD.JournalBatchDetailId       = BD.JournalBatchDetailId
                                                                                         AND BD.StatusId                   = @PostedBatchStatusId
@@ -181,6 +203,13 @@ BEGIN
         INNER JOIN dbo.AccountingBatchManagementStructureDetails       MSD WITH (NOLOCK) ON MSD.ReferenceId                = CBD.CommonJournalBatchDetailId
                                                                                         AND MSD.ModuleId                  = @BatchMSModuleId
         INNER JOIN dbo.GLAccount                                       GL  WITH (NOLOCK) ON CBD.GlAccountId                = GL.GLAccountId
+		LEFT JOIN [dbo].[CreditMemoPaymentBatchDetails] CMBD WITH (NOLOCK) ON CBD.JournalBatchDetailId = CMBD.JournalBatchDetailId 		
+		LEFT JOIN [dbo].[RefundCreditMemoMapping] RFCM WITH (NOLOCK) ON CMBD.ReferenceId  = RFCM.CustomerRefundId AND RFCM.CustomerRefundId =
+		(
+			SELECT TOP 1 RCMP.[CustomerRefundId] FROM [dbo].[RefundCreditMemoMapping] RCMP WITH (NOLOCK) 
+			WHERE RCMP.[CustomerRefundId] = RFCM.[CustomerRefundId]
+		) AND CMBD.ModuleId = @CustomerRefundModuleId
+		LEFT JOIN  dbo.CreditMemo CM WITH (NOLOCK) ON CM.CreditMemoHeaderId = RFCM.CreditMemoHeaderId
         WHERE BD.AccountingPeriodId IN (SELECT AccountingCalendarId FROM #AccPeriodTable)
           AND CBD.GlAccountId                    = @GlAccId
           AND CBD.MasterCompanyId                = @masterCompanyId
@@ -189,6 +218,11 @@ BEGIN
           AND BD.IsDeleted                       = 0
           AND B.IsDeleted                        = 0
           AND ISNULL(CBD.IsVersionIncrease, 0)   = 0
+		  AND (ISNULL(@JournalNumber,'') ='' OR BD.JournalTypeNumber  LIKE '%' + @JournalNumber+'%') 
+		  AND (ISNULL(@JournalTypeName,'') ='' OR CBD.JournalTypeName LIKE '%' + @JournalTypeName+'%')
+		  AND (ISNULL(@GLAccount,'') ='' OR (UPPER(GL.AccountCode) + '-' + UPPER(GL.AccountName)) LIKE '%' + @GLAccount+'%') 
+		  AND (ISNULL(@PeriodNames,'') ='' OR BD.AccountingPeriod LIKE '%' + @PeriodNames+'%') 
+		  AND (ISNULL(@ReferenceNumber,'') ='' OR CBD.ReferenceNumber LIKE '%' + @ReferenceNumber+'%') 
           AND MSD.[Level1Id] IN (SELECT Item FROM #L1)
           AND (NOT EXISTS (SELECT 1 FROM #L2)  OR MSD.[Level2Id]  IN (SELECT Item FROM #L2))
           AND (NOT EXISTS (SELECT 1 FROM #L3)  OR MSD.[Level3Id]  IN (SELECT Item FROM #L3))
@@ -201,12 +235,28 @@ BEGIN
           AND (NOT EXISTS (SELECT 1 FROM #L10) OR MSD.[Level10Id] IN (SELECT Item FROM #L10))
         GROUP BY
             CBD.GlAccountId,
+			CBD.ReferenceId,
+			CBD.ReferenceModule,
+			CM.IsStandAloneCM,
             BD.AccountingPeriod,
             BD.JournalTypeNumber,
             GL.AccountCode,
             GL.AccountName,
             CBD.ReferenceNumber,
-            CBD.JournalTypeName;
+            CBD.JournalTypeName
+			HAVING
+			(
+				CAST(ISNULL(@Balance,'') AS VARCHAR) = ''
+				OR CAST(ISNULL(SUM(CBD.DebitAmount), 0) - ISNULL(SUM(CBD.CreditAmount), 0) AS VARCHAR) LIKE '%' + CAST(ISNULL(@Balance,'') AS VARCHAR) + '%'
+			)
+		
+		SET @TotalRecordsCount = (SELECT COUNT(JournalNumber) FROM #TempResults);			   
+
+		SELECT *, @TotalRecordsCount as NumberOfItems  
+		FROM #TempResults	
+		ORDER BY JournalNumber DESC
+		OFFSET @RecordFrom ROWS 
+		FETCH NEXT @PageSize ROWS ONLY
 
     END
     END TRY

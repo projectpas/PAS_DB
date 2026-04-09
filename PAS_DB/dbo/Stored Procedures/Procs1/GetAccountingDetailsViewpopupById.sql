@@ -1,5 +1,4 @@
-﻿
-/***********************************************************************************************           
+﻿/***********************************************************************************************           
  ** File:   [GetAccountingDetailsViewpopupById]
  ** Author:   
  ** Description: This stored procedure is used to Get AccountingDetailsViewpopupById
@@ -27,6 +26,7 @@
 	11   25/07/2024  Moin Bloch             Added IsReversedJE
 	12   20/08/2024  Moin Bloch             Getting Part Wise Records
 	13   12/01/2026  Bhargav Saliya         Change Order By (Debit entry displayed first)
+	14   06/04/2026  Moin Bloch             Added Flag For [IsDeleted] PN-15893
 	
 --EXEC [GetAccountingDetailsViewpopupById] 10206,10413
 
@@ -119,8 +119,8 @@ BEGIN
 				 CASE WHEN JBD.IsUpdated = 1 THEN 1 ELSE 0 END AS IsUpdated,
 				 CASE WHEN BD.IsReversedJE = 1 THEN 1 ELSE 0 END AS IsReversedJE
      FROM [dbo].[CommonBatchDetails] JBD WITH(NOLOCK)    
-		INNER JOIN  [dbo].[BatchDetails] BD WITH(NOLOCK) ON JBD.JournalBatchDetailId=BD.JournalBatchDetailId      
-		INNER JOIN  [dbo].[BatchHeader] JBH WITH(NOLOCK) ON BD.JournalBatchHeaderId=JBH.JournalBatchHeaderId      
+		INNER JOIN  [dbo].[BatchDetails] BD WITH(NOLOCK) ON JBD.JournalBatchDetailId=BD.JournalBatchDetailId AND BD.[IsDeleted] = 0 AND BD.[IsActive] = 1     
+		INNER JOIN  [dbo].[BatchHeader] JBH WITH(NOLOCK) ON BD.JournalBatchHeaderId=JBH.JournalBatchHeaderId AND JBH.[IsDeleted] = 0 AND JBH.[IsActive] = 1       
 		INNER JOIN  [dbo].[WorkOrderBatchDetails] WBD WITH(NOLOCK) ON JBD.CommonJournalBatchDetailId=WBD.CommonJournalBatchDetailId       
 		LEFT JOIN  [dbo].[WorkOrderManagementStructureDetails] MSD WITH (NOLOCK) ON  MSD.ReferenceID = WBD.MPNPartId
 		LEFT JOIN  [dbo].[Stockline] SL WITH(NOLOCK) ON SL.StockLineId=WBD.StocklineId 
@@ -135,7 +135,7 @@ BEGIN
 		LEFT JOIN  [dbo].[CustomerFinancial] CF WITH(NOLOCK) ON CF.CustomerId = WBD.CustomerId
 		LEFT JOIN  [dbo].[Currency] CR WITH(NOLOCK) ON CR.CurrencyId = CF.CurrencyId
       --WHERE WBD.ReferenceId = @WorkOrderId AND WBD.MPNPartId = @WorkOrderPartNumberId  
-	    WHERE WBD.ReferenceId=@WorkOrderId AND WBD.MPNPartId = @WorkOrderPartNumberId AND ISNULL(WBD.InvoiceId ,0) = 0
+	    WHERE WBD.ReferenceId=@WorkOrderId AND WBD.MPNPartId = @WorkOrderPartNumberId AND ISNULL(WBD.InvoiceId ,0) = 0 AND JBD.[IsDeleted] = 0 AND JBD.[IsActive] = 1
 
 	 UNION
 
@@ -209,8 +209,8 @@ BEGIN
 				 CASE WHEN JBD.IsUpdated = 1 THEN 1 ELSE 0 END AS IsUpdated,
 				 CASE WHEN BD.IsReversedJE = 1 THEN 1 ELSE 0 END AS IsReversedJE
      FROM [dbo].[CommonBatchDetails] JBD WITH(NOLOCK)    
-		INNER JOIN  [dbo].[BatchDetails] BD WITH(NOLOCK) ON JBD.JournalBatchDetailId=BD.JournalBatchDetailId      
-		INNER JOIN  [dbo].[BatchHeader] JBH WITH(NOLOCK) ON BD.JournalBatchHeaderId=JBH.JournalBatchHeaderId      
+		INNER JOIN  [dbo].[BatchDetails] BD WITH(NOLOCK) ON JBD.JournalBatchDetailId=BD.JournalBatchDetailId AND BD.[IsDeleted] = 0 AND BD.[IsActive] = 1      
+		INNER JOIN  [dbo].[BatchHeader] JBH WITH(NOLOCK) ON BD.JournalBatchHeaderId=JBH.JournalBatchHeaderId AND JBH.[IsDeleted] = 0 AND JBH.[IsActive] = 1      
 		INNER JOIN  [dbo].[WorkOrderBatchDetails] WBD WITH(NOLOCK) ON JBD.CommonJournalBatchDetailId=WBD.CommonJournalBatchDetailId       
 		LEFT JOIN  [dbo].[WorkOrderManagementStructureDetails] MSD WITH (NOLOCK) ON  MSD.ReferenceID = WBD.MPNPartId
 		LEFT JOIN  [dbo].[Stockline] SL WITH(NOLOCK) ON SL.StockLineId=WBD.StocklineId 
@@ -225,7 +225,7 @@ BEGIN
 		LEFT JOIN  [dbo].[CustomerFinancial] CF WITH(NOLOCK) ON CF.CustomerId = WBD.CustomerId
 		LEFT JOIN  [dbo].[Currency] CR WITH(NOLOCK) ON CR.CurrencyId = CF.CurrencyId
       --WHERE WBD.ReferenceId = @WorkOrderId AND WBD.MPNPartId = @WorkOrderPartNumberId    
-	    WHERE WBD.[ReferenceId] = @WorkOrderId  AND ISNULL(WBD.InvoiceId ,0) > 0) A
+	    WHERE WBD.[ReferenceId] = @WorkOrderId AND JBD.[IsDeleted] = 0 AND JBD.[IsActive] = 1 AND ISNULL(WBD.InvoiceId ,0) > 0) A
 
 		SELECT   [BatchName],    
                  [LineNumber],    

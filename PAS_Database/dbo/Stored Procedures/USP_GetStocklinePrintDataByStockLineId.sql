@@ -125,7 +125,7 @@ BEGIN
 			INNER JOIN [dbo].[ItemMaster] im WITH(NOLOCK) ON stl.ItemMasterId = im.ItemMasterId
 			LEFT JOIN [dbo].[PurchaseOrder] po WITH(NOLOCK) ON stl.PurchaseOrderId = po.PurchaseOrderId
 			LEFT JOIN [dbo].[Vendor] ve WITH(NOLOCK) ON stl.VendorId = ve.VendorId
-			LEFT JOIN [dbo].[SubWorkOrderMaterialStockLine] mst WITH(NOLOCK) ON stl.StockLineId = mst.StockLIneId AND mst.SubWorkOrderMaterialsId = @SubWorkOrderMaterialId
+			LEFT JOIN [dbo].[SubWorkOrderMaterialStockLine] mst WITH(NOLOCK) ON stl.StockLineId = mst.StockLineId AND mst.SubWorkOrderMaterialsId = @SubWorkOrderMaterialId
 			LEFT JOIN [dbo].[SubWorkOrderMaterials] womst WITH(NOLOCK) ON mst.SubWorkOrderMaterialsId = womst.SubWorkOrderMaterialsId
 			LEFT JOIN [dbo].[SubWorkOrder] wo WITH(NOLOCK) ON womst.SubWorkOrderId = wo.SubWorkOrderId
 			LEFT JOIN [dbo].[UnitOfMeasure] uomStock WITH(NOLOCK) ON uomStock.UnitOfMeasureId = stl.StockUnitOfMeasureId

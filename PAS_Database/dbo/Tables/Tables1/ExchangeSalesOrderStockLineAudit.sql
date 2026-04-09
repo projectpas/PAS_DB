@@ -3,7 +3,7 @@
     [SOStockLineId]            BIGINT          NOT NULL,
     [ExchangeSalesOrderId]     BIGINT          NOT NULL,
     [ExchangeSalesOrderPartId] BIGINT          NOT NULL,
-    [StockLIneId]              BIGINT          NOT NULL,
+    [StockLineId]              BIGINT          NOT NULL,
     [ItemMasterId]             BIGINT          NOT NULL,
     [ConditionId]              BIGINT          NOT NULL,
     [Quantity]                 INT             NULL,

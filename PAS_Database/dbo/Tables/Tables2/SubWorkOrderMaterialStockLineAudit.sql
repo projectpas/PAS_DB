@@ -2,7 +2,7 @@
     [SWOMStockLineAuditId]    BIGINT          IDENTITY (1, 1) NOT NULL,
     [SWOMStockLineId]         BIGINT          NOT NULL,
     [SubWorkOrderMaterialsId] BIGINT          NOT NULL,
-    [StockLIneId]             BIGINT          NOT NULL,
+    [StockLineId]             BIGINT          NOT NULL,
     [ItemMasterId]            BIGINT          NOT NULL,
     [ConditionId]             BIGINT          NOT NULL,
     [Quantity]                DECIMAL (18, 6) NULL,

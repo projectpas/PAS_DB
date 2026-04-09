@@ -1,7 +1,7 @@
 ﻿CREATE TABLE [dbo].[SubWorkOrderStockLineReserve] (
     [SWOSReserveId]           BIGINT          IDENTITY (1, 1) NOT NULL,
     [SubWorkOrderMaterialsId] BIGINT          NOT NULL,
-    [StockLIneId]             BIGINT          NOT NULL,
+    [StockLineId]             BIGINT          NOT NULL,
     [QtyReserved]             DECIMAL (18, 6) NULL,
     [IsReserved]              BIT             NOT NULL,
     [MasterCompanyId]         INT             NOT NULL,
@@ -15,7 +15,7 @@
     CONSTRAINT [PK_SubWorkOrderStockLineReserve] PRIMARY KEY CLUSTERED ([SWOSReserveId] ASC),
     CONSTRAINT [FK_SubWorkOrderStockLineReserve_ConditionId] FOREIGN KEY ([ConditionId]) REFERENCES [dbo].[Condition] ([ConditionId]),
     CONSTRAINT [FK_SubWorkOrderStockLineReserve_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId]),
-    CONSTRAINT [FK_SubWorkOrderStockLineReserve_StockLine] FOREIGN KEY ([StockLIneId]) REFERENCES [dbo].[Stockline] ([StockLineId]),
+    CONSTRAINT [FK_SubWorkOrderStockLineReserve_StockLine] FOREIGN KEY ([StockLineId]) REFERENCES [dbo].[Stockline] ([StockLineId]),
     CONSTRAINT [FK_SubWorkOrderStockLineReserve_SubWorkOrderMaterials] FOREIGN KEY ([SubWorkOrderMaterialsId]) REFERENCES [dbo].[SubWorkOrderMaterials] ([SubWorkOrderMaterialsId])
 );
 

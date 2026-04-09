@@ -1,7 +1,7 @@
 ﻿CREATE TABLE [dbo].[WorkOrderUnReservedStock] (
     [WOUnReservedStockId]  BIGINT          IDENTITY (1, 1) NOT NULL,
     [WorkOrderMaterialsId] BIGINT          NOT NULL,
-    [StockLIneId]          BIGINT          NOT NULL,
+    [StockLineId]          BIGINT          NOT NULL,
     [ConditionId]          BIGINT          NOT NULL,
     [ItemMasterId]         BIGINT          NOT NULL,
     [Quantity]             DECIMAL (18, 6) NULL,
@@ -22,7 +22,7 @@
     CONSTRAINT [FK_WorkOrderUnReservedStock_ConditionId] FOREIGN KEY ([ConditionId]) REFERENCES [dbo].[Condition] ([ConditionId]),
     CONSTRAINT [FK_WorkOrderUnReservedStock_ItemMasterId] FOREIGN KEY ([ItemMasterId]) REFERENCES [dbo].[ItemMaster] ([ItemMasterId]),
     CONSTRAINT [FK_WorkOrderUnReservedStock_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId]),
-    CONSTRAINT [FK_WorkOrderUnReservedStock_StockLine] FOREIGN KEY ([StockLIneId]) REFERENCES [dbo].[Stockline] ([StockLineId]),
+    CONSTRAINT [FK_WorkOrderUnReservedStock_StockLine] FOREIGN KEY ([StockLineId]) REFERENCES [dbo].[Stockline] ([StockLineId]),
     CONSTRAINT [FK_WorkOrderUnReservedStock_UnReservedById] FOREIGN KEY ([UnReservedById]) REFERENCES [dbo].[Employee] ([EmployeeId]),
     CONSTRAINT [FK_WorkOrderUnReservedStock_WorkOrderMaterials] FOREIGN KEY ([WorkOrderMaterialsId]) REFERENCES [dbo].[WorkOrderMaterials] ([WorkOrderMaterialsId])
 );

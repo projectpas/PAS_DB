@@ -2,7 +2,7 @@
     [WOIssuedStockAuditId] BIGINT          IDENTITY (1, 1) NOT NULL,
     [WOIssuedStockId]      BIGINT          NOT NULL,
     [WorkOrderMaterialsId] BIGINT          NOT NULL,
-    [StockLIneId]          BIGINT          NOT NULL,
+    [StockLineId]          BIGINT          NOT NULL,
     [ConditionId]          BIGINT          NOT NULL,
     [ItemMasterId]         BIGINT          NOT NULL,
     [Quantity]             DECIMAL (18, 6) NULL,

@@ -174,7 +174,7 @@ BEGIN
 
 				SET @PartQuantityTurnIn = (SELECT SUM(ISNULL(sl.QuantityTurnIn,0)) FROM dbo.WorkOrderMaterialStockLine womsl WITH (NOLOCK)
 												JOIN dbo.WorkOrderMaterials WOM WITH (NOLOCK) on womsl.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId
-												JOIN dbo.Stockline sl WITH (NOLOCK) on womsl.StockLIneId = sl.StockLIneId
+												JOIN dbo.Stockline sl WITH (NOLOCK) on womsl.StockLineId = sl.StockLineId
 												WHERE womsl.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId AND womsl.ConditionId = WOM.ConditionCodeId
 												AND womsl.isActive = 1 AND womsl.isDeleted = 0 AND ISNULL(sl.QuantityTurnIn, 0) > 0 AND WOM.WorkOrderMaterialsId = @WorkOrderMaterialsId)
 

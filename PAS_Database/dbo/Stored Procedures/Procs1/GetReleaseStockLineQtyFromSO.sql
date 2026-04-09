@@ -5,7 +5,7 @@ BEGIN
 	SET NOCOUNT ON;
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 	BEGIN TRY 
-		SELECT SOSReserveId,StockLIneId, QtyReserved
+		SELECT SOSReserveId,StockLineId, QtyReserved
 		FROM SalesOrderStockLineReserve WITH (NOLOCK)
 		WHERE IsReserved = 1 
 		AND DATEDIFF(MINUTE, CreatedDate, GETDATE()) > 10

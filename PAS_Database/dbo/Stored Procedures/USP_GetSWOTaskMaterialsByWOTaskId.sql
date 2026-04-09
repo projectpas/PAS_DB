@@ -33,7 +33,7 @@ BEGIN
 		(
 			SELECT 
 				IM.PartNumber,
-				CASE WHEN ISNULL(MSTL.StockLIneId, 0) > 0 THEN ISNULL(MSTL.ExtendedCost, 0) ELSE ISNULL(WOM.ExtendedCost, 0) END AS BillingAmount,
+				CASE WHEN ISNULL(MSTL.StockLineId, 0) > 0 THEN ISNULL(MSTL.ExtendedCost, 0) ELSE ISNULL(WOM.ExtendedCost, 0) END AS BillingAmount,
 				IM.PartDescription,
 				CASE WHEN SUOM.UnitOfMeasureId IS NOT NULL THEN SUOM.ShortName ELSE UOM.ShortName END AS UnitOfMeasure,
 				C.Description AS Condition,
@@ -52,7 +52,7 @@ BEGIN
     
 			SELECT 
 				IM.PartNumber,
-				CASE WHEN ISNULL(MSTL.StockLIneId, 0) > 0 THEN ISNULL(MSTL.ExtendedCost, 0) ELSE ISNULL(WOMK.ExtendedCost, 0) END AS BillingAmount,
+				CASE WHEN ISNULL(MSTL.StockLineId, 0) > 0 THEN ISNULL(MSTL.ExtendedCost, 0) ELSE ISNULL(WOMK.ExtendedCost, 0) END AS BillingAmount,
 				IM.PartDescription,
 				CASE WHEN SUOM.UnitOfMeasureId IS NOT NULL THEN SUOM.ShortName ELSE UOM.ShortName END AS UnitOfMeasure,
 				CASE WHEN Stk_C.ConditionId IS NOT NULL THEN Stk_C.Description ELSE C.Description END AS Condition,

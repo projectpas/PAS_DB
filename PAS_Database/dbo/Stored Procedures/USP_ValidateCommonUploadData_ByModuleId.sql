@@ -1,4 +1,5 @@
-﻿/*******  
+﻿
+/*******  
  ** File:   [USP_ValidateCommonUploadData_ByModuleId]             
  ** Author:   Devendra Shekh
  ** Description: This stored procedure is used to add upload Data
@@ -48,6 +49,7 @@
 	38   02-APR-2026		Nakul Chandigra			Implemented maximum length validation for Name and Description fields in AircraftStatusModule and MaintenanceStatusModule (PN-15873).
 	39   06-APR-2026		Nakul Chandigra			Add extra case of the validation for  @AircraftStatusModule And @MaintenanceStatusModule (PN-15945)
 	40   07-APR-2026        Nakul Chandigra			Add a common case of validation for dropdown (PN-15950)
+	41   09-APR-2026		Ayushi Patel			PN-15988 Excluded StocklineModule from restricting Decimal number
 
 declare @p4 dbo.UploadModuleDataTableType
 insert into @p4 values(4,N'VICTOR ADMAS',1,N'{
@@ -666,7 +668,7 @@ BEGIN
 															TRY_CAST(TMP.FieldValue AS INT) IS NULL 
 															OR CHARINDEX('.', TMP.FieldValue) > 0  
 														 )
-													AND @ModuleId != @PriceMasterModule
+													AND @ModuleId NOT IN (@PriceMasterModule, @StocklineModule)
 												THEN IMF.HeaderName + ' must be a whole number (decimals not allowed)'
 												WHEN (@ModuleId = @MROPriceMasterModule OR @ModuleId = @MROPriceMasterListModule)
 													 AND IMF.FieldName = 'CustomerId' 
@@ -730,7 +732,9 @@ BEGIN
 													THEN 'Email is not in a valid format'
 												WHEN ISNULL(TMP.FieldValue, '') != '' AND IMF.FieldName = 'QuantityOnHand'
 													AND (
-														TRY_CAST(TMP.FieldValue AS INT) IS NULL OR TRY_CAST(TMP.FieldValue AS INT) <= 0
+														--TRY_CAST(TMP.FieldValue AS INT) IS NULL OR TRY_CAST(TMP.FieldValue AS INT) <= 0
+														TRY_CAST(TMP.FieldValue AS DECIMAL(18,2)) IS NULL 
+														OR TRY_CAST(TMP.FieldValue AS DECIMAL(18,2)) <= 0
 													)
 													THEN 'QuantityOnHand must be a whole number greater than 0'
 												WHEN IMF.FieldName = 'QuantityOnHand'
@@ -1221,7 +1225,9 @@ BEGIN
 													THEN 'Email is not in a valid format'
 												WHEN ISNULL(TMP.FieldValue, '') != '' AND IMF.FieldName = 'QuantityOnHand'
 													AND (
-														TRY_CAST(TMP.FieldValue AS INT) IS NULL OR TRY_CAST(TMP.FieldValue AS INT) <= 0
+														--TRY_CAST(TMP.FieldValue AS INT) IS NULL OR TRY_CAST(TMP.FieldValue AS INT) <= 0
+														TRY_CAST(TMP.FieldValue AS DECIMAL(18,2)) IS NULL 
+														OR TRY_CAST(TMP.FieldValue AS DECIMAL(18,2)) <= 0
 													)
 													THEN 'QuantityOnHand must be a whole number greater than 0'
 												    WHEN IMF.FieldName = 'QuantityOnHand'

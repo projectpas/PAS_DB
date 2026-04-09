@@ -8,7 +8,7 @@
     [CustomerRequestDate]     DATETIME2 (7)  NULL,
     [PromisedDate]            DATETIME2 (7)  NULL,
     [EstimatedCompletionDate] DATETIME2 (7)  NULL,
-    [NTE]                     INT            NULL,
+    [NTE]                     VARCHAR (30)   NULL,
     [Quantity]                DECIMAL (18, 6) NULL,
     [StockLineId]             BIGINT         NULL,
     [CMMIds]                  VARCHAR (256)  NULL,

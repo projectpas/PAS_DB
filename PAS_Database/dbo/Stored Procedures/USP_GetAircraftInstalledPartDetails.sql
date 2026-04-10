@@ -12,6 +12,7 @@
 ** --   ----------   -------------  --------------------------------
 ** 1    2026-03-27   Amit Ghediya   Created
 ** 2    2026-04-07   Amit Ghediya   Get ItemMasterId for tender stk (PN-15938)
+** 3    2026-04-10   Amit Ghediya   Filter apply (PN-15970)
 *************************************************************/
 CREATE   PROCEDURE [dbo].[USP_GetAircraftInstalledPartDetails]
 (
@@ -19,18 +20,31 @@ CREATE   PROCEDURE [dbo].[USP_GetAircraftInstalledPartDetails]
     @PageSize           INT,
     @SortColumn         VARCHAR(50) = NULL,
     @SortOrder          INT,
+	@GlobalFilter VARCHAR(50) = NULL,
+	@PartNumber VARCHAR(100) = NULL,
+	@PartDescription VARCHAR(100) = NULL,
+	@AtaChapter VARCHAR(50) = NULL,
+	@Condition VARCHAR(50) = NULL,
+	@StockLineNumber VARCHAR(50) = NULL,
+	@SerialNumber VARCHAR(50) = NULL,
+	@ControlNumber VARCHAR(50) = NULL,
+	@PositionCode VARCHAR(50) = NULL,
+	@DateInstalled DATETIME = NULL,
+	@Serialized VARCHAR(50) = NULL,
+	@LLP VARCHAR(50) = NULL,
+	@IsDeleted BIT = NULL,
+	@IsActive BIT = NULL,
     @AircraftRegistryId BIGINT = NULL,
-    @MasterCompanyId    INT
+    @MasterCompanyId    BIGINT
 )
 AS
 BEGIN
     SET NOCOUNT ON;
 
-    -- Use only if dirty reads are acceptable for this screen/report
-    --SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
-
     BEGIN TRY
         DECLARE @RecordFrom INT = (@PageNumber - 1) * @PageSize;
+
+		DECLARE @Count Int;
 
         SET @SortColumn = UPPER(ISNULL(@SortColumn, 'CREATEDDATE'));
 
@@ -51,11 +65,8 @@ BEGIN
 				STK.SerialNumber,
 				STK.StockLineId,
                 AIPD.IsLLP,
-                CASE
-                    WHEN AIPD.IsLLP = 1 THEN 'YES'
-                    ELSE 'NO'
-                END AS LLP,
-                AIPD.IsSerialized,
+                CASE WHEN AIPD.IsLLP = 1 THEN 'YES' ELSE 'NO' END AS LLP,
+				CASE WHEN AIPD.IsSerialized = 1 THEN 'YES' ELSE 'NO' END AS Serialized,
                 AIPD.DateInstalled,
 				AIPD.PositionCodeId,
                 AIPD.PositionCode,
@@ -69,53 +80,50 @@ BEGIN
                 AIPD.CreatedDate,
                 AIPD.UpdatedDate,
                 UPPER(AIPD.CreatedBy) AS CreatedBy,
-                UPPER(AIPD.UpdatedBy) AS UpdatedBy,
-                COUNT(*) OVER () AS NumberOfItems
+                UPPER(AIPD.UpdatedBy) AS UpdatedBy
             FROM dbo.AircraftInstalledPartDetails AS AIPD WITH (NOLOCK)
 			LEFT JOIN dbo.ItemMasterAircraftMapping IMAM WITH (NOLOCK) ON AIPD.ATAChapterId = IMAM.ItemMasterAircraftMappingId
 			INNER JOIN dbo.AircraftRegistryHeader ARH WITH (NOLOCK) ON ARH.AircraftRegistryId = AIPD.AircraftRegistryId
 			LEFT JOIN dbo.Stockline STK WITH (NOLOCK) ON STK.StockLineId = AIPD.StockLineId
             WHERE AIPD.AircraftRegistryId = @AircraftRegistryId AND AIPD.MasterCompanyId = @MasterCompanyId
-        )
-        SELECT
-            AircraftInstalledPartDetailsId,
-            ATAChapterId,
-            AtaChapter,
-            PartNumber,
-            PartDescription,
-			ItemMasterId,
-			AircraftRegistryId,
-			AircraftRegistryNumber,
-			Condition,
-			StockLineNumber,
-			ControlNumber,
-			SerialNumber,
-			StockLineId,
-            IsLLP,
-            LLP,
-            IsSerialized,
-            DateInstalled,
-			PositionCodeId,
-            PositionCode,
-            [Hours],
-            [Minutes],
-            FlightHours,
-            Cycles,
-            Landings,
-            EngineStarts,
-            Memo,
-            CreatedDate,
-            UpdatedDate,
-            CreatedBy,
-            UpdatedBy,
-            NumberOfItems
-        FROM Result
-        ORDER BY
+        ), ResultCount AS(SELECT COUNT(AircraftInstalledPartDetailsId) AS totalItems FROM Result)
+			SELECT * INTO #TempResult FROM  Result
+			 WHERE ((@GlobalFilter <>'' AND (([PartNumber] LIKE '%' +@GlobalFilter+'%') OR
+					(PartNumber LIKE '%' +@GlobalFilter+'%') OR
+					(PartDescription LIKE '%' +@GlobalFilter+'%') OR
+					(AtaChapter LIKE '%' +@GlobalFilter+'%') OR
+					(Condition LIKE '%' +@GlobalFilter+'%') OR
+					(StockLineNumber LIKE '%' +@GlobalFilter+'%') OR
+					(SerialNumber LIKE '%' +@GlobalFilter+'%') OR
+					(ControlNumber LIKE '%' +@GlobalFilter+'%') OR
+					(Serialized LIKE '%' +@GlobalFilter+'%') OR
+					(LLP LIKE '%' +@GlobalFilter+'%') OR
+					(DateInstalled like '%' + @GlobalFilter + '%') OR
+					(PositionCode LIKE '%' +@GlobalFilter+'%'))) OR
+					(@GlobalFilter='' AND (ISNULL(@PartNumber,'') ='' OR [PartNumber] LIKE '%' + @PartNumber+'%') AND
+					(ISNULL(@PartNumber,'') ='' OR PartNumber LIKE '%' + @PartNumber + '%') AND	
+					(ISNULL(@PartDescription,'') ='' OR PartDescription LIKE '%' + @PartDescription + '%') AND
+					(ISNULL(@AtaChapter,'') ='' OR AtaChapter LIKE '%' + @AtaChapter + '%') AND
+					(ISNULL(@Condition,'') ='' OR Condition LIKE '%' + @Condition + '%') AND
+					(ISNULL(@StockLineNumber,'') ='' OR StockLineNumber LIKE '%' + @StockLineNumber + '%') AND
+					(ISNULL(@SerialNumber,'') ='' OR SerialNumber LIKE '%' + @SerialNumber + '%') AND
+					(ISNULL(@ControlNumber,'') ='' OR ControlNumber LIKE '%' + @ControlNumber + '%') AND
+					(ISNULL(@Serialized,'') ='' OR Serialized LIKE '%' + @Serialized + '%') AND
+					(ISNULL(@LLP,'') ='' OR LLP LIKE '%' + @LLP + '%') AND
+					(ISNULL(@DateInstalled,'') ='' OR CAST(DateInstalled AS Date) = CAST(@DateInstalled AS Date)) AND
+					(ISNULL(@PositionCode,'') ='' OR PositionCode LIKE '%' + @PositionCode + '%'))
+			)
+   SELECT @Count = COUNT(AircraftInstalledPartDetailsId) FROM #TempResult			
+
+			SELECT *, @Count AS NumberOfItems FROM #TempResult ORDER BY  
             CASE WHEN @SortOrder =  1 AND @SortColumn = 'ATACHAPTER'      THEN AtaChapter      END ASC,
             CASE WHEN @SortOrder = -1 AND @SortColumn = 'ATACHAPTER'      THEN AtaChapter      END DESC,
 
             CASE WHEN @SortOrder =  1 AND @SortColumn = 'LLP'         THEN LLP         END ASC,
             CASE WHEN @SortOrder = -1 AND @SortColumn = 'LLP'         THEN LLP         END DESC,
+
+			 CASE WHEN @SortOrder =  1 AND @SortColumn = 'Serialized'         THEN Serialized         END ASC,
+            CASE WHEN @SortOrder = -1 AND @SortColumn = 'Serialized'         THEN Serialized         END DESC,
 
             CASE WHEN @SortOrder =  1 AND @SortColumn = 'PARTNUMBER'      THEN PartNumber      END ASC,
             CASE WHEN @SortOrder = -1 AND @SortColumn = 'PARTNUMBER'      THEN PartNumber      END DESC,

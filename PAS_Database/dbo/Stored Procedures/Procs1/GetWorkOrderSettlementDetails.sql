@@ -27,7 +27,7 @@
 	10	 04/14/2025	  Devendra Shekh	Added changes for IsLaborTrackingTurnedOff
 	11	 05/28/2025	  Amit Ghediya		WO settlment material check box not checked issue while material deleted.
 	12   03/07/2025   Moin Bloch        Changed Old To New Billing Table
-
+	13   09/04/2026   RAJESH GAMI       UOM Changes [PN-15738]
 EXEC [GetWorkOrderSettlementDetails] 3555,3025,3019
 **************************************************************/
 CREATE     PROCEDURE [dbo].[GetWorkOrderSettlementDetails]
@@ -57,21 +57,21 @@ BEGIN
 		BEGIN TRY
 		BEGIN TRANSACTION
 			BEGIN  
-				DECLARE @qtyissue INT =0;
-				DECLARE @qtyissued INT =0;
-				DECLARE @OtherMaterialsProvisionQty INT =0;
-				DECLARE @OtherProvisionQty INT =0;
-				DECLARE @qtyreq INT =0;
-				DECLARE @qtyrequested INT =0;
-				DECLARE @QtyTendered INT =0;
+				DECLARE @qtyissue [decimal](18,6) =0;
+				DECLARE @qtyissued [decimal](18,6) =0;
+				DECLARE @OtherMaterialsProvisionQty [decimal](18,6) =0;
+				DECLARE @OtherProvisionQty [decimal](18,6) =0;
+				DECLARE @qtyreq [decimal](18,6) =0;
+				DECLARE @qtyrequested [decimal](18,6) =0;
+				DECLARE @QtyTendered [decimal](18,6) =0;
 				
-				DECLARE @kitqtyissue INT =0;
-				DECLARE @OtherMaterialsProvisionKitQty INT =0;
-				DECLARE @OtherProvisionKitQty INT =0;
-				DECLARE @kitqtyreq INT =0;
-				DECLARE @kitQtyTendered INT =0;
+				DECLARE @kitqtyissue [decimal](18,6) =0;
+				DECLARE @OtherMaterialsProvisionKitQty [decimal](18,6) =0;
+				DECLARE @OtherProvisionKitQty [decimal](18,6) =0;
+				DECLARE @kitqtyreq [decimal](18,6) =0;
+				DECLARE @kitQtyTendered [decimal](18,6) =0;
 
-				DECLARE @QtyToTendered INT =0;
+				DECLARE @QtyToTendered [decimal](18,6) =0;
 				DECLARE @TaskStatusID INT;
 				DECLARE @MasterCompanyID INT;
 				DECLARE @IsLaborCompleled INT = 0;

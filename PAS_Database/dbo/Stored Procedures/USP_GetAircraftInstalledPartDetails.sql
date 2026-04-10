@@ -39,7 +39,6 @@ BEGIN
             SELECT
                 AIPD.AircraftInstalledPartDetailsId,
                 AIPD.ATAChapterId,
-                --ATAC.ATAChapterName AS AtaChapter,
 				CONCAT_WS(' - ', IMAM.Level1, IMAM.Level2, IMAM.Level3) AS AtaChapter,
                 AIPD.PartNumber,
                 AIPD.PartDescription,
@@ -58,6 +57,7 @@ BEGIN
                 END AS LLP,
                 AIPD.IsSerialized,
                 AIPD.DateInstalled,
+				AIPD.PositionCodeId,
                 AIPD.PositionCode,
                 AIPD.[Hours],
                 AIPD.[Minutes],
@@ -73,7 +73,6 @@ BEGIN
                 COUNT(*) OVER () AS NumberOfItems
             FROM dbo.AircraftInstalledPartDetails AS AIPD WITH (NOLOCK)
 			LEFT JOIN dbo.ItemMasterAircraftMapping IMAM WITH (NOLOCK) ON AIPD.ATAChapterId = IMAM.ItemMasterAircraftMappingId
-           -- INNER JOIN dbo.ATAChapter AS ATAC WITH (NOLOCK) ON AIPD.ATAChapterId = ATAC.ATAChapterId
 			INNER JOIN dbo.AircraftRegistryHeader ARH WITH (NOLOCK) ON ARH.AircraftRegistryId = AIPD.AircraftRegistryId
 			LEFT JOIN dbo.Stockline STK WITH (NOLOCK) ON STK.StockLineId = AIPD.StockLineId
             WHERE AIPD.AircraftRegistryId = @AircraftRegistryId AND AIPD.MasterCompanyId = @MasterCompanyId
@@ -96,6 +95,7 @@ BEGIN
             LLP,
             IsSerialized,
             DateInstalled,
+			PositionCodeId,
             PositionCode,
             [Hours],
             [Minutes],

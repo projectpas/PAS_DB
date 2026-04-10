@@ -38,6 +38,7 @@
     21   20-Dec-2025  Divyesh Kathiriya  	Added case for Warehouse,Location,Shelf,Bin
     22   30/01/2026   Ayushi Patel          Added Vendor auto-suggestion logic with duplicate VendorName handling (append VendorCode when duplicates exist)
     23   08/04/2026   Nakul Chandigra       Added order Order By Sequenceno ASC for AircraftStatus and MaintenanceStatus (PN-15946)
+	24   10/04/2026   AMIT GHEDIYA       Added EnginesModel (PN-15987)
 
 --select * from dbo.Employee      
 --EXEC AutoCompleteDropdowns 'ItemMaster','ItemMasterId','PartNumber','',1,20,'0',1       
@@ -254,7 +255,13 @@ AS BEGIN
                 FROM [DBO].[Bin] WITH(NOLOCK)
                 WHERE [MasterCompanyId] = @MasterCompanyId AND [ShelfId] IN(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ','))
                 ORDER BY [Binid] ASC 
-            END           
+            END 
+			ELSE IF(@TableName='EnginesModel')
+            BEGIN 
+                SELECT DISTINCT [Id] AS Value, [Number] AS Label
+                FROM [DBO].[EnginesModel] WITH(NOLOCK)
+                ORDER BY [Id] ASC 
+            END
             ELSE BEGIN
                      IF(@Parameter4=1)BEGIN
                          IF(@TableName='ItemMaster' AND ISNULL(@IsFromUpload,0) = 0)BEGIN

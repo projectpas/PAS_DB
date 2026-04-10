@@ -39,7 +39,8 @@ BEGIN
             SELECT
                 AIPD.AircraftInstalledPartDetailsId,
                 AIPD.ATAChapterId,
-                ATAC.ATAChapterName AS AtaChapter,
+                --ATAC.ATAChapterName AS AtaChapter,
+				CONCAT_WS(' - ', IMAM.Level1, IMAM.Level2, IMAM.Level3) AS AtaChapter,
                 AIPD.PartNumber,
                 AIPD.PartDescription,
 				AIPD.ItemMasterId,
@@ -71,7 +72,8 @@ BEGIN
                 UPPER(AIPD.UpdatedBy) AS UpdatedBy,
                 COUNT(*) OVER () AS NumberOfItems
             FROM dbo.AircraftInstalledPartDetails AS AIPD WITH (NOLOCK)
-            INNER JOIN dbo.ATAChapter AS ATAC WITH (NOLOCK) ON AIPD.ATAChapterId = ATAC.ATAChapterId
+			LEFT JOIN dbo.ItemMasterAircraftMapping IMAM WITH (NOLOCK) ON AIPD.ATAChapterId = IMAM.ItemMasterAircraftMappingId
+           -- INNER JOIN dbo.ATAChapter AS ATAC WITH (NOLOCK) ON AIPD.ATAChapterId = ATAC.ATAChapterId
 			INNER JOIN dbo.AircraftRegistryHeader ARH WITH (NOLOCK) ON ARH.AircraftRegistryId = AIPD.AircraftRegistryId
 			LEFT JOIN dbo.Stockline STK WITH (NOLOCK) ON STK.StockLineId = AIPD.StockLineId
             WHERE AIPD.AircraftRegistryId = @AircraftRegistryId AND AIPD.MasterCompanyId = @MasterCompanyId

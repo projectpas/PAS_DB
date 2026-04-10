@@ -1,5 +1,5 @@
 ﻿/*************************************************************
-** File:        [USP_GetAircraftInstalledPartDetails]
+** File:        [USP_GetAllStocklineForAircraft]
 ** Description:
 ** Purpose:
 ** Date:
@@ -33,7 +33,6 @@ BEGIN
 			sl.ItemMasterId,
 			im.PartNumber,
 			im.PartDescription,
-			im.ItemTypeId,
 			CASE 
 				WHEN im.IsPma = 1 AND im.IsDER = 1 THEN 'PMA&DER'
 				WHEN im.IsPma = 1 AND im.IsDER = 0 THEN 'PMA'
@@ -42,9 +41,6 @@ BEGIN
 			END AS StockType,
 			sl.ManufacturerId,
 			sl.Manufacturer,
-			sl.GLAccountId,
-			sl.InventoryGLAccName AS GLAccount,
-			sl.StockUnitOfMeasureId AS PurchaseUnitOfMeasureId,
 			cn.Description AS UnitOfMeasure,
 			sl.QuantityAvailable,
 			sl.QuantityOnHand,
@@ -61,13 +57,6 @@ BEGIN
 			sl.CertifiedBy,
 			sl.CertifiedDate,
 			sl.AircraftTailNumber,
-			sl.LotId,
-			sl.TraceableToType,
-			sl.TagTypeId,
-			sl.TaggedBy,
-			sl.TaggedByType,
-			sl.TaggedByName,
-			sl.TaggedByTypeName,
 			sl.Memo
 		FROM dbo.StockLine sl WITH (NOLOCK)
 		INNER JOIN dbo.ItemMaster im WITH (NOLOCK) ON sl.ItemMasterId = im.ItemMasterId

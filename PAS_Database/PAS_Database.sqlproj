@@ -4481,7 +4481,7 @@
     <Build Include="dbo\Stored Procedures\AutoCompleteDropdownsAircraft.sql" />
     <Build Include="dbo\Stored Procedures\RPT_GetEmployeeTrainingListById.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetAllAircraft.sql" />
-    <Build Include="dbo\Tables\EnginesNumber.sql" />
+    <Build Include="dbo\Tables\NumberOfEngines.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

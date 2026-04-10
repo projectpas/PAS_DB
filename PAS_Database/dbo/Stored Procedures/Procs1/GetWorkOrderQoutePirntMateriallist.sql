@@ -42,20 +42,56 @@ BEGIN
         mt.PartDescription as PartDescription,  
         --(mt.BillingAmount / isnull(mt.Quantity,0)) as UnitCost, 
         (
-            (
-                mt.BillingAmount
-                /
-                (ISNULL([dbo].[fn_ConvertUOM](ISNULL(mt.Quantity,0),ISNULL(imt.[StockUnitOfMeasure],0),ISNULL(imt.[ConsumeUnitOfMeasure],0),0,ISNULL(imt.[MasterCompanyId],0)),0))
-            )
+            CASE 
+                WHEN ISNULL([dbo].[fn_ConvertUOM](
+                        ISNULL(mt.Quantity,0),
+                        ISNULL(imt.[StockUnitOfMeasure],0),
+                        ISNULL(imt.[ConsumeUnitOfMeasure],0),
+                        0,
+                        ISNULL(imt.[MasterCompanyId],0)
+                    ),0) = 0
+                THEN 0
+                ELSE
+                    mt.BillingAmount /
+                    ISNULL([dbo].[fn_ConvertUOM](
+                        ISNULL(mt.Quantity,0),
+                        ISNULL(imt.[StockUnitOfMeasure],0),
+                        ISNULL(imt.[ConsumeUnitOfMeasure],0),
+                        0,
+                        ISNULL(imt.[MasterCompanyId],0)
+                    ),0)
+            END
         ) AS UnitCost,
 	    --(mt.Quantity * (mt.BillingAmount / isnull(mt.Quantity,0))) as extCost  
         (
-            (ISNULL([dbo].[fn_ConvertUOM](ISNULL(mt.Quantity,0),ISNULL(imt.[StockUnitOfMeasure],0),ISNULL(imt.[ConsumeUnitOfMeasure],0),0,ISNULL(imt.[MasterCompanyId],0)),0))
+            ISNULL([dbo].[fn_ConvertUOM](
+                ISNULL(mt.Quantity,0),
+                ISNULL(imt.[StockUnitOfMeasure],0),
+                ISNULL(imt.[ConsumeUnitOfMeasure],0),
+                0,
+                ISNULL(imt.[MasterCompanyId],0)
+            ),0)
             *
             (
-                mt.BillingAmount
-                /
-                (ISNULL([dbo].[fn_ConvertUOM](ISNULL(mt.Quantity,0),ISNULL(imt.[StockUnitOfMeasure],0),ISNULL(imt.[ConsumeUnitOfMeasure],0),0,ISNULL(imt.[MasterCompanyId],0)),0))
+                CASE 
+                    WHEN ISNULL([dbo].[fn_ConvertUOM](
+                            ISNULL(mt.Quantity,0),
+                            ISNULL(imt.[StockUnitOfMeasure],0),
+                            ISNULL(imt.[ConsumeUnitOfMeasure],0),
+                            0,
+                            ISNULL(imt.[MasterCompanyId],0)
+                        ),0) = 0
+                    THEN 0
+                    ELSE
+                        mt.BillingAmount /
+                        ISNULL([dbo].[fn_ConvertUOM](
+                            ISNULL(mt.Quantity,0),
+                            ISNULL(imt.[StockUnitOfMeasure],0),
+                            ISNULL(imt.[ConsumeUnitOfMeasure],0),
+                            0,
+                            ISNULL(imt.[MasterCompanyId],0)
+                        ),0)
+                END
             )
         ) AS extCost
     FROM WorkOrderQuoteMaterial mt WITH(NOLOCK)    
@@ -73,8 +109,33 @@ BEGIN
         KIM.KitDescription as PartDescription,  
         --(wom.BillingAmount / isnull(wom.Quantity,0)) as UnitCost,  
          (
-            wom.BillingAmount
-            /
+            CASE 
+                WHEN ISNULL(
+                    [dbo].[fn_ConvertUOM](
+                        ISNULL(wom.Quantity,0),
+                        ISNULL(im.[StockUnitOfMeasure],0),
+                        ISNULL(im.[ConsumeUnitOfMeasure],0),
+                        0,
+                        ISNULL(im.[MasterCompanyId],0)
+                    ), 0
+                ) = 0
+                THEN 0
+                ELSE
+                    wom.BillingAmount
+                    /
+                    ISNULL(
+                        [dbo].[fn_ConvertUOM](
+                            ISNULL(wom.Quantity,0),
+                            ISNULL(im.[StockUnitOfMeasure],0),
+                            ISNULL(im.[ConsumeUnitOfMeasure],0),
+                            0,
+                            ISNULL(im.[MasterCompanyId],0)
+                        ), 0
+                    )
+            END
+        ) AS UnitCost,
+	    --(wom.Quantity * (wom.BillingAmount / isnull(wom.Quantity,0))) as extCost  
+         (
             ISNULL(
                 [dbo].[fn_ConvertUOM](
                     ISNULL(wom.Quantity,0),
@@ -84,15 +145,32 @@ BEGIN
                     ISNULL(im.[MasterCompanyId],0)
                 ), 0
             )
-        ) AS UnitCost,
-	    --(wom.Quantity * (wom.BillingAmount / isnull(wom.Quantity,0))) as extCost  
-         (
-            (ISNULL([dbo].[fn_ConvertUOM](ISNULL(wom.Quantity,0),ISNULL(im.[StockUnitOfMeasure],0),ISNULL(im.[ConsumeUnitOfMeasure],0),0,ISNULL(im.[MasterCompanyId],0)),0))
             *
             (
-                wom.BillingAmount
-                /
-                (ISNULL([dbo].[fn_ConvertUOM](ISNULL(wom.Quantity,0),ISNULL(im.[StockUnitOfMeasure],0),ISNULL(im.[ConsumeUnitOfMeasure],0),0,ISNULL(im.[MasterCompanyId],0)),0))
+                CASE 
+                    WHEN ISNULL(
+                        [dbo].[fn_ConvertUOM](
+                            ISNULL(wom.Quantity,0),
+                            ISNULL(im.[StockUnitOfMeasure],0),
+                            ISNULL(im.[ConsumeUnitOfMeasure],0),
+                            0,
+                            ISNULL(im.[MasterCompanyId],0)
+                        ), 0
+                    ) = 0
+                    THEN 0
+                    ELSE
+                        wom.BillingAmount
+                        /
+                        ISNULL(
+                            [dbo].[fn_ConvertUOM](
+                                ISNULL(wom.Quantity,0),
+                                ISNULL(im.[StockUnitOfMeasure],0),
+                                ISNULL(im.[ConsumeUnitOfMeasure],0),
+                                0,
+                                ISNULL(im.[MasterCompanyId],0)
+                            ), 0
+                        )
+                END
             )
         ) AS extCost
 	  FROM DBO.WorkOrderQuoteMaterialKitMapping wom WITH(NOLOCK)

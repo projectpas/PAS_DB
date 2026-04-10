@@ -19,6 +19,7 @@
     8    09/02/2026   Bhargav Saliya  Added JournalTypeName field
 	9    03/04/2026   Moin Bloch      Added Pagination PN-15886
 	10   06/04/2026   Moin Bloch      Added @Balance Field PN-15886
+	11   06/04/2026   Moin Bloch      Fix For Future data comming PN-15990
 
  **************************************************************
 
@@ -74,6 +75,7 @@ BEGIN
         DECLARE @BatchMSModuleId     BIGINT;
         DECLARE @PostedBatchStatusId BIGINT;
         DECLARE @PeriodName          VARCHAR(100);
+		DECLARE @FromDate DATETIME = NULL,@ToDate DATETIME = NULL,@PeriodEndDate DATETIME = NULL;
 
         DECLARE
             @level1  VARCHAR(MAX) = NULL,
@@ -160,9 +162,20 @@ BEGIN
         );
 
         -- Resolve period name from the supplied accounting calendar ID
-        SELECT @PeriodName = PeriodName
-        FROM   dbo.AccountingCalendar WITH (NOLOCK)
-        WHERE  AccountingCalendarId = @id;
+		SELECT @PeriodName    = UPPER(PeriodName),
+               @PeriodEndDate = [ToDate]               
+        FROM [dbo].[AccountingCalendar] WITH (NOLOCK)
+        WHERE [AccountingCalendarId] = @id;
+
+		SELECT @FromDate = MIN([FromDate]) 
+		FROM [dbo].[AccountingCalendar] WITH(NOLOCK) 
+		WHERE [MasterCompanyId] = @MasterCompanyId 
+		  AND [LegalEntityId] IN
+              (
+                  SELECT MSL.[LegalEntityId]
+                  FROM   [dbo].[ManagementStructureLevel] MSL WITH (NOLOCK)
+                  WHERE  MSL.ID IN (SELECT Item FROM #L1)
+              ) AND [IsDeleted] = 0 
 
         INSERT INTO #AccPeriodTable (AccountingCalendarId, PeriodName, FromDate, ToDate)
         SELECT DISTINCT
@@ -170,15 +183,18 @@ BEGIN
             REPLACE(PeriodName, ' - ', ''),
             MIN(FromDate),
             MAX(ToDate)
-        FROM dbo.AccountingCalendar WITH (NOLOCK)
+        FROM dbo.AccountingCalendar AC WITH (NOLOCK)
         WHERE --PeriodName  = @PeriodName
-              IsDeleted   = 0
-          AND LegalEntityId IN
+              AC.IsDeleted   = 0
+          AND AC.LegalEntityId IN
               (
                   SELECT MSL.LegalEntityId
                   FROM   dbo.ManagementStructureLevel MSL WITH (NOLOCK)
                   WHERE  MSL.ID IN (SELECT Item FROM #L1)
               )
+		  AND CAST(AC.Fromdate AS DATE) >= CAST(@FromDate AS DATE)
+          AND CAST(AC.ToDate   AS DATE) <= CAST(@PeriodEndDate   AS DATE)
+          AND ISNULL(AC.IsAdjustPeriod, 0) = 0
         GROUP BY AccountingCalendarId, REPLACE(PeriodName, ' - ', ''), [Period];
 
         ---------------------------------------------------------------------------

@@ -21,11 +21,14 @@
     [PageIndex]                INT             NULL,
     [Ismiscellaneous]          BIT             NULL,
     [CustomerPaymentDetailsId] BIGINT          NULL,
+    [IsNonInvoicePayment]      BIT             DEFAULT ((0)) NULL,
     CONSTRAINT [PK_InvoiceWireTransfer] PRIMARY KEY CLUSTERED ([WireTransferId] ASC),
     CONSTRAINT [FK_InvoiceWireTransferPayment_Currency] FOREIGN KEY ([CurrencyId]) REFERENCES [dbo].[Currency] ([CurrencyId]),
     CONSTRAINT [FK_InvoiceWireTransferPayment_Customer] FOREIGN KEY ([CustomerId]) REFERENCES [dbo].[Customer] ([CustomerId]),
     CONSTRAINT [FK_InvoiceWireTransferPayment_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId])
 );
+
+
 
 
 GO

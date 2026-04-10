@@ -17,7 +17,7 @@
  ** --   --------     -------  --------------------------------            
     1    06/02/2020    Subhash Saliya   Created  
     2    06/17/2025    Hemant  Saliya   Check For Is deleted Condition  
-    3    09/04/2026    Ayushi Patel	    PN-15908 Update (Added UOM Changes)   
+    3    09/04/2026    Ayushi Patel	    PN-15909 Update (Added UOM Changes)   
 --EXEC [GetWorkOrderQoutePirntMateriallist] 10338,10476,8307
 **************************************************************/  
 --SELECT  * FROM WorkOrderQuoteMaterial mt WITH(NOLOCK)   
@@ -43,13 +43,7 @@ BEGIN
         --(mt.BillingAmount / isnull(mt.Quantity,0)) as UnitCost, 
         (
             CASE 
-                WHEN ISNULL([dbo].[fn_ConvertUOM](
-                        ISNULL(mt.Quantity,0),
-                        ISNULL(imt.[StockUnitOfMeasure],0),
-                        ISNULL(imt.[ConsumeUnitOfMeasure],0),
-                        0,
-                        ISNULL(imt.[MasterCompanyId],0)
-                    ),0) = 0
+                WHEN ISNULL(mt.Quantity,0) = 0
                 THEN 0
                 ELSE
                     mt.BillingAmount /
@@ -74,13 +68,7 @@ BEGIN
             *
             (
                 CASE 
-                    WHEN ISNULL([dbo].[fn_ConvertUOM](
-                            ISNULL(mt.Quantity,0),
-                            ISNULL(imt.[StockUnitOfMeasure],0),
-                            ISNULL(imt.[ConsumeUnitOfMeasure],0),
-                            0,
-                            ISNULL(imt.[MasterCompanyId],0)
-                        ),0) = 0
+                    WHEN ISNULL(mt.Quantity,0) = 0
                     THEN 0
                     ELSE
                         mt.BillingAmount /
@@ -110,15 +98,7 @@ BEGIN
         --(wom.BillingAmount / isnull(wom.Quantity,0)) as UnitCost,  
          (
             CASE 
-                WHEN ISNULL(
-                    [dbo].[fn_ConvertUOM](
-                        ISNULL(wom.Quantity,0),
-                        ISNULL(im.[StockUnitOfMeasure],0),
-                        ISNULL(im.[ConsumeUnitOfMeasure],0),
-                        0,
-                        ISNULL(im.[MasterCompanyId],0)
-                    ), 0
-                ) = 0
+                WHEN ISNULL(wom.Quantity,0) = 0
                 THEN 0
                 ELSE
                     wom.BillingAmount
@@ -148,15 +128,7 @@ BEGIN
             *
             (
                 CASE 
-                    WHEN ISNULL(
-                        [dbo].[fn_ConvertUOM](
-                            ISNULL(wom.Quantity,0),
-                            ISNULL(im.[StockUnitOfMeasure],0),
-                            ISNULL(im.[ConsumeUnitOfMeasure],0),
-                            0,
-                            ISNULL(im.[MasterCompanyId],0)
-                        ), 0
-                    ) = 0
+                    WHEN ISNULL(wom.Quantity,0) = 0
                     THEN 0
                     ELSE
                         wom.BillingAmount

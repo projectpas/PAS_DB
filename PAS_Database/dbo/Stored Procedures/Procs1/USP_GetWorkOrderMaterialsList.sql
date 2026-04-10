@@ -38,6 +38,7 @@
 	19	 22/01/2025	  Moin Bloch		Modified (Added WorkOrderTask Table For conditionally check table for Task)
 	20   26/03/2026   Moin Bloch	    Rename TearDown To Internal Teardown PN-15850
 	21   07/04/2026   Priyansh Patel	Quantity conversion from stock uom to consume uom PN-15915
+	22   09/04/2026   Priyansh Patel	unit cost and uom conversion from stock uom to consume uom PN-15982
 	
  EXECUTE [dbo].[USP_GetWorkOrderMaterialsList] 3731,3200, 0
 **************************************************************/
@@ -705,9 +706,9 @@ SET NOCOUNT ON
 						END AS ItemType,
 						C.Description AS Condition,
 						Stk_C.Description AS StocklineCondition,
-						WOM.UnitCost,
+						dbo.fn_ConvertUOM(ISNULL(WOM.UnitCost,0), IM.StockUnitOfMeasure, IM.ConsumeUnitOfMeasure,1,@MasterCompanyId)  AS UnitCost,
 						IMPS.PP_UnitPurchasePrice AS ItemMasterUnitCost,
-						WOM.ExtendedCost,
+						dbo.fn_ConvertUOM(ISNULL(WOM.ExtendedCost,0), IM.StockUnitOfMeasure, IM.ConsumeUnitOfMeasure,1,@MasterCompanyId)  AS ExtendedCost,
 						WOM.TotalStocklineQtyReq,
 						MSTL.UnitCost StocklineUnitCost,
 						MSTL.ExtendedCost StocklineExtendedCost,
@@ -936,9 +937,9 @@ SET NOCOUNT ON
 						END AS ItemType,
 						C.Description AS Condition,
 						Stk_C.Description AS StocklineCondition,
-						WOM.UnitCost,
+						dbo.fn_ConvertUOM(ISNULL(WOM.UnitCost,0), IM.StockUnitOfMeasure, IM.ConsumeUnitOfMeasure,1,@MasterCompanyId)  AS UnitCost,
 						IMPS.PP_UnitPurchasePrice AS ItemMasterUnitCost,
-						WOM.ExtendedCost,
+						dbo.fn_ConvertUOM(ISNULL(WOM.ExtendedCost,0), IM.StockUnitOfMeasure, IM.ConsumeUnitOfMeasure,1,@MasterCompanyId)  AS ExtendedCost,
 						WOM.TotalStocklineQtyReq,
 						MSTL.UnitCost StocklineUnitCost,
 						MSTL.ExtendedCost StocklineExtendedCost,

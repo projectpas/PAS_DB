@@ -22,6 +22,7 @@
     [PageIndex]                INT             NULL,
     [Ismiscellaneous]          BIT             DEFAULT ((0)) NOT NULL,
     [CustomerPaymentDetailsId] BIGINT          NULL,
+    [IsNonInvoicePayment]      BIT             DEFAULT ((0)) NULL,
     CONSTRAINT [PK_InvoiceCheckPaymentAudit] PRIMARY KEY CLUSTERED ([CheckPaymentAuditId] ASC)
 );
 

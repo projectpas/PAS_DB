@@ -19,6 +19,7 @@ EXEC [USP_SaveCustomerCreditPaymentDetails_ById]
    6    04/01/2024      Devendra Shekh      added [ManagementStructureId] 
    7    04/05/2024      Devendra Shekh      able to add suspense with known customer without any invoices
    8    31-Mar-2026		Rajesh Gami			UOM Conversion Changes [PN-15866]
+   9    10/04/2026      Moin Bloch          Added New Field [IsNonInvoicePayment] PN-15989
 	EXEC [dbo].[USP_SaveCustomerCreditPaymentDetails_ById] 195,1,'ADMIN User'
 *****************************************************************************/  
 
@@ -84,6 +85,7 @@ BEGIN
 					[ReferenceNumber] [VARCHAR](100) NULL,
 					[PaymentRef] [VARCHAR](100) NULL,
 					[IsMiscellaneous] [BIT] NULL,
+					[IsNonInvoicePayment] [BIT] NULL,
 				)
 
 				CREATE TABLE #CustomerAmountDetails
@@ -95,6 +97,7 @@ BEGIN
 					[CustomerCode] [VARCHAR](100) NULL,
 					[PaymentRef] [VARCHAR](100) NULL,
 					[Amount] [decimal](18,6) NULL,
+					[IsNonInvoicePayment] [BIT] NULL,
 					[AmountRemaining] [decimal](18,6) NULL,
 					[AmtApplied] [decimal](18,6) NULL,
 				)
@@ -115,20 +118,20 @@ BEGIN
 					[CheckDate] [DATETIME2] NULL,
 				)
 
-				INSERT INTO #CustomerPayment (ReceiptId, CustomerId, VendorId, ReferenceNumber, IsMiscellaneous) 
-				SELECT CP.ReceiptId, CustomerId, 0, CP.ReceiptNo, CPD.Ismiscellaneous
+				INSERT INTO #CustomerPayment (ReceiptId, CustomerId, VendorId, ReferenceNumber, IsMiscellaneous, IsNonInvoicePayment) 
+				SELECT CP.ReceiptId, CustomerId, 0, CP.ReceiptNo, CPD.Ismiscellaneous,CPD.IsNonInvoicePayment
 				FROM dbo.CustomerPayments CP WITH(NOLOCK) 
 				INNER JOIN [DBO].[CustomerPaymentDetails] CPD WITH(NOLOCK) ON CP.ReceiptId = CPD.ReceiptId
  				WHERE CP.ReceiptId = @ReceiptId
-				GROUP BY CP.ReceiptId, CustomerId, CP.ReceiptNo,CPD.Ismiscellaneous;
+				GROUP BY CP.ReceiptId, CustomerId, CP.ReceiptNo,CPD.Ismiscellaneous,CPD.IsNonInvoicePayment;
 
-				INSERT INTO #CustomerAmountDetails([ReceiptId],[CustomerId],[Name],[CustomerCode],[PaymentRef],[Amount],[AmountRemaining],[AmtApplied])
+				INSERT INTO #CustomerAmountDetails([ReceiptId],[CustomerId],[Name],[CustomerCode],[PaymentRef],[Amount],[IsNonInvoicePayment],[AmountRemaining],[AmtApplied])
 				EXEC [CustomerPaymentsReview] @ReceiptId;
 
 				UPDATE CP
-				SET CP.RemainingAmount = CASE WHEN CP.IsMiscellaneous = 1 THEN CA.Amount ELSE CASE WHEN InvoiceData.TotalInvoies > 0 THEN CA.AmountRemaining ELSE CA.Amount END END,
+				SET CP.RemainingAmount = CASE WHEN CP.IsMiscellaneous = 1 THEN CA.Amount WHEN CP.IsNonInvoicePayment = 1 THEN CA.Amount ELSE CASE WHEN InvoiceData.TotalInvoies > 0 THEN CA.AmountRemaining ELSE CA.Amount END END,
 					CP.[TotalAmount] = CA.Amount,
-					CP.[PaidAmount] = CASE WHEN CP.IsMiscellaneous = 1 THEN 0 ELSE CASE WHEN InvoiceData.TotalInvoies > 0 THEN ISNULL(CA.Amount, 0) - ISNULL(CA.AmountRemaining, 0) ELSE 0 END END,
+					CP.[PaidAmount] = CASE WHEN CP.IsMiscellaneous = 1 THEN 0 WHEN CP.IsNonInvoicePayment = 1 THEN 0 ELSE CASE WHEN InvoiceData.TotalInvoies > 0 THEN ISNULL(CA.Amount, 0) - ISNULL(CA.AmountRemaining, 0) ELSE 0 END END,
 					CP.CustomerName = CA.[Name], CP.CustomerCode = CA.CustomerCode, CP.[PaymentRef] = CA.[PaymentRef],
 					CP.VendorId = VA.VendorId
 				FROM #CustomerPayment CP 

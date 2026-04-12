@@ -13,6 +13,7 @@ EXEC [GetCustomerCheckDetailsByReceiptId]
 ** --   --------		-------				--------------------------------  
 ** 1					Unknown				created
 ** 2   03/20/2024		Devendra Shekh		added CustomerPaymentDetailsId
+** 3   09/04/2026       Moin Bloch          Added New Field [IsNonInvoicePayment] PN-15989
 
 	EXEC GetCustomerCheckDetailsByReceiptId 90,0,2
 *****************************************************************************/  
@@ -49,6 +50,7 @@ BEGIN
 			  ,[PageIndex]
 			  ,[Ismiscellaneous]
 			  ,ISNULL(CustomerPaymentDetailsId, 0) AS CustomerPaymentDetailsId
+			  ,ISNULL([IsNonInvoicePayment],0) [IsNonInvoicePayment]
 	      FROM [dbo].[InvoiceCheckPayment] WITH (NOLOCK) WHERE ReceiptId = @ReceiptId ORDER BY PageIndex
 		END
 		IF(@Opr=2)
@@ -75,6 +77,7 @@ BEGIN
 			  ,[PageIndex]
 			  ,[Ismiscellaneous]
 			  ,ISNULL(CustomerPaymentDetailsId, 0) AS CustomerPaymentDetailsId
+			  ,ISNULL([IsNonInvoicePayment],0) [IsNonInvoicePayment]
 	      FROM [dbo].[InvoiceCheckPayment] WITH (NOLOCK) WHERE ReceiptId = @ReceiptId AND PageIndex=@PageIndex;
 		END
 	END TRY    

@@ -28,6 +28,7 @@
     [PostalCode]                VARCHAR (50)    NULL,
     [Ismiscellaneous]           BIT             NULL,
     [CustomerPaymentDetailsId]  BIGINT          NULL,
+    [IsNonInvoicePayment]       BIT             CONSTRAINT [DF__InvoiceCr__IsNon__43B31C14] DEFAULT ((0)) NULL,
     CONSTRAINT [PK_InvoiceCreditDebitCardPaymentAudit] PRIMARY KEY CLUSTERED ([CreditDebitPaymentAuditId] ASC)
 );
 

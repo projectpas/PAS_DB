@@ -13,6 +13,7 @@ EXEC [GetCustomerWireTransferDetailsByReceiptId]
 ** --   --------		-------				--------------------------------  
 ** 1					Unknown				created
 ** 2   03/20/2024		Devendra Shekh		added CustomerPaymentDetailsId
+** 3   09/04/2026       Moin Bloch          Added New Field [IsNonInvoicePayment] PN-15989
 
 -- EXEC GetCustomerWireTransferDetailsByReceiptId 90,0,2
 *****************************************************************************/  
@@ -49,6 +50,7 @@ BEGIN
 			  ,[IsDeleted]
 			  ,[PageIndex]
 			  ,ISNULL(CustomerPaymentDetailsId, 0) AS CustomerPaymentDetailsId
+			  ,ISNULL([IsNonInvoicePayment],0) [IsNonInvoicePayment]
 	      FROM [dbo].[InvoiceWireTransferPayment] WITH (NOLOCK) WHERE ReceiptId = @ReceiptId ORDER BY PageIndex
 		END
 		IF(@Opr=2)
@@ -74,6 +76,7 @@ BEGIN
 			  ,[IsDeleted]
 			  ,[PageIndex]
 			  ,ISNULL(CustomerPaymentDetailsId, 0) AS CustomerPaymentDetailsId
+			  ,ISNULL([IsNonInvoicePayment],0) [IsNonInvoicePayment]
 	      FROM [dbo].[InvoiceWireTransferPayment] WITH (NOLOCK) WHERE ReceiptId = @ReceiptId AND PageIndex=@PageIndex;
 		END
 	END TRY    

@@ -29,13 +29,15 @@
 	16	 25/06/2025	 Devendra Shekh	Modify (using Code for [MasterDiscountType] and [MasterBankFeesType] instead name for compare)
  	17 	 01-Apr-2026 Rajesh Gami	UOM Conversion Changes [PN-15866]  
 	18   07/04/2026  Moin Bloch     Modify (Fix For IsDeposit Entry ) PN-15894
+	18   10/04/2026  Moin Bloch     Modify (Added New Param @AccountReceivableglAccountId PN-15989)
 
 	EXEC [dbo].[USP_BatchTriggerBasedonCustomerReceiptByIdNew] 8,218
 
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[USP_BatchTriggerBasedonCustomerReceiptByIdNew]
 @DistributionMasterId BIGINT=NULL,
-@ReceiptId BIGINT=NULL
+@ReceiptId BIGINT=NULL,
+@AccountReceivableglAccountId BIGINT=NULL
 AS
 BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
@@ -372,6 +374,9 @@ BEGIN
 				DECLARE @miscellaneousAmount [decimal](18,6)=0;
 				DECLARE @Ismiscellaneous BIT=0;
 
+				DECLARE @NonInvoiceAmount DECIMAL(18,2)=0;
+				DECLARE @IsNonInvoicePayment BIT=0;
+
 				DECLARE @TotalRecord INT = 0;   
 				DECLARE @MinId BIGINT = 1;    
 
@@ -463,6 +468,16 @@ BEGIN
 					   AND ISNULL([IsActive],1)=1
 					   GROUP BY [Ismiscellaneous];
 
+					SELECT @NonInvoiceAmount = ISNULL(SUM([Amount]),0),  					
+				           @IsNonInvoicePayment = ISNULL([IsNonInvoicePayment],0) 
+				      FROM [dbo].[CustomerPaymentDetails] WITH(NOLOCK)					 
+				     WHERE [ReceiptId] = @ReceiptId 
+				       AND [CustomerId] = @CustomerId  
+				       AND ISNULL([IsNonInvoicePayment],0)=1 
+				       AND ISNULL(IsDeleted,0)=0 
+					   AND ISNULL([IsActive],1)=1
+					   GROUP BY [IsNonInvoicePayment];
+
 					SELECT @InvoiceAmountDiffeence = ISNULL(SUM(ISNULL([AppliedAmount],0)) - SUM(ISNULL([InvoiceAmount],0)),0)
 				      FROM [dbo].[CustomerPaymentDetails] WITH(NOLOCK)
 				     WHERE [ReceiptId] = @ReceiptId  
@@ -538,7 +553,7 @@ BEGIN
 					IF(@ValidDistribution = 1)
 					BEGIN
 						-----Account Receivables------						
-						IF(@AccountReceivablesAmount > 0 AND @Ismiscellaneous = 0 AND @IsDeposit = 0)
+						IF(@AccountReceivablesAmount > 0 AND @Ismiscellaneous = 0 AND @IsDeposit = 0 AND @IsNonInvoicePayment = 0)
 						BEGIN	
 							
 							SELECT top 1 @DistributionSetupId=ID,
@@ -610,6 +625,49 @@ BEGIN
 						END
 
 						-----Cash Entry------
+
+						-----Vendor Non Invoice Payment----- 
+						IF(@NonInvoiceAmount > 0 AND @IsNonInvoicePayment = 1 AND @AccountReceivableglAccountId > 0)
+						BEGIN								
+							SELECT TOP 1 @DistributionSetupId=ID,
+							             @DistributionName=Name,
+										 @JournalTypeId =JournalTypeId,										
+										 @CrDrType = CRDRType,
+										 @IsAutoPost = ISNULL(IsAutoPost,0)
+							FROM DBO.DistributionSetup WITH(NOLOCK)  
+							WHERE UPPER(DistributionSetupCode) = UPPER('CRSACCRECH') 
+							AND DistributionMasterId=@DistributionMasterId 
+							AND MasterCompanyId = @MasterCompanyId
+
+							SELECT @GlAccountId = @AccountReceivableglAccountId,
+							       @GlAccountNumber = [AccountCode],
+					               @GlAccountName = [AccountName] 
+							FROM [dbo].[GLAccount] WITH(NOLOCK) 
+							WHERE [GLAccountId]=@AccountReceivableglAccountId
+
+							INSERT INTO [dbo].[CommonBatchDetails]
+								(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName],
+								[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],[IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId],[ModuleName],LastMSLevel,AllMSlevels,[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[ReferenceNumber],[ReferenceName],[FXRate],[ForeignCurrency],[ReferenceId],[ReferenceModule])
+							VALUES
+								(@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,@JournalBatchHeaderId,1 ,@GlAccountId ,@GlAccountNumber ,@GlAccountName,GETUTCDATE(),GETUTCDATE(),@JournalTypeId ,@JournalTypename,
+								0,
+								0,
+								@NonInvoiceAmount,
+								@ManagementStructureId ,@ModuleName,@LastMSLevel,@AllMSlevels ,@MasterCompanyId,@UpdatedBy,@UpdatedBy,GETUTCDATE(),GETUTCDATE(),1,0,@ReceiptNo,@CustomerName,@FXRate,@ForeignCurrencyCode,@ReceiptId,@ReferenceModule)
+
+							SET @CommonJournalBatchDetailId = SCOPE_IDENTITY()
+
+							-----  Accounting MS Entry  -----
+
+							EXEC [dbo].[PROCAddUpdateAccountingBatchMSData] @CommonJournalBatchDetailId,@ManagementStructureId,@MasterCompanyId,@UpdatedBy,@AccountMSModuleId,1; 
+
+							INSERT INTO [dbo].[CustomerReceiptBatchDetails]
+								(JournalBatchDetailId,[JournalBatchHeaderId],[CustomerTypeId],[CustomerType],[CustomerId],[CustomerName],[ModuleId],[ReferenceId] ,[ReferenceNumber],[ReferenceInvId],[ReferenceInvNumber],[DocumentId],[DocumentNumber],ARControlNumber,CustomerRef,CommonJournalBatchDetailId)
+							VALUES
+								(@JournalBatchDetailId,@JournalBatchHeaderId,@CustomerTypeId ,@CustomerTypeName ,@CustomerId,@CustomerName,0,@ReceiptId,@ReceiptNo ,@SOBillingInvoicingId,@InvoiceNo,@SOBillingInvoicingId,@DocumentNumber,NULL,NULL,@CommonJournalBatchDetailId)
+						END
+
+						-----Vendor Non Invoice Payment----- 
 
 						-----Early Pay (Earned)------
 						IF(@EarlyDiscAmount > 0)
@@ -824,7 +882,7 @@ BEGIN
 						-----Other Adjustments------
 
 						-----Deposit/Unearned Revenue------
-						IF(@IsDeposit = 1 AND @DepositeAmount > 0)
+						IF(@IsDeposit = 1 AND @DepositeAmount > 0 AND @IsNonInvoicePayment = 0)
 						BEGIN
 							SELECT TOP 1 @DistributionSetupId=ID,
 							             @DistributionName=Name,
@@ -863,7 +921,7 @@ BEGIN
 						-----Deposit/Unearned Revenue------
 
 						-----Suspense------						
-						IF(@miscellaneousAmount > 0)
+						IF(@miscellaneousAmount > 0 AND @IsNonInvoicePayment = 0)
 						BEGIN					
 							SELECT TOP 1 @DistributionSetupId=ID,
 							             @DistributionName=Name,

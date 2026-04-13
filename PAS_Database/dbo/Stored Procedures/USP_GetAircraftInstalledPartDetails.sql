@@ -13,6 +13,7 @@
 ** 1    2026-03-27   Amit Ghediya   Created
 ** 2    2026-04-07   Amit Ghediya   Get ItemMasterId for tender stk (PN-15938)
 ** 3    2026-04-10   Amit Ghediya   Filter apply (PN-15970)
+** 4    2026-04-13   Amit Ghediya   Added for Quantity (PN-16028)
 *************************************************************/
 CREATE   PROCEDURE [dbo].[USP_GetAircraftInstalledPartDetails]
 (
@@ -64,6 +65,7 @@ BEGIN
 				STK.ControlNumber,
 				STK.SerialNumber,
 				STK.StockLineId,
+				AIPD.Quantity,
                 AIPD.IsLLP,
                 CASE WHEN AIPD.IsLLP = 1 THEN 'YES' ELSE 'NO' END AS LLP,
 				CASE WHEN AIPD.IsSerialized = 1 THEN 'YES' ELSE 'NO' END AS Serialized,

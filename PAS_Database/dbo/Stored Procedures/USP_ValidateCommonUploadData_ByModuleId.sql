@@ -50,6 +50,7 @@
 	39   06-APR-2026		Nakul Chandigra			Add extra case of the validation for  @AircraftStatusModule And @MaintenanceStatusModule (PN-15945)
 	40   07-APR-2026        Nakul Chandigra			Add a common case of validation for dropdown (PN-15950)
 	41   09-APR-2026		Ayushi Patel			PN-15988 Excluded StocklineModule from restricting Decimal number
+	42   13-APR-2026		Nakul Chandigra			added validation for TrainingName And PositionCode setup screen Uplload (PN-15980)
 
 declare @p4 dbo.UploadModuleDataTableType
 insert into @p4 values(4,N'VICTOR ADMAS',1,N'{
@@ -220,6 +221,8 @@ BEGIN
 		DECLARE @BinModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'Bin');
 		DECLARE @AircraftStatusModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'AircraftStatus');
 		DECLARE @MaintenanceStatusModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'MaintenanceStatus');
+		DECLARE @TrainingNameModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'TrainingName');
+		DECLARE @PositionCodeModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'PositionCode');
 
 		DECLARE @DropdownListTable VARCHAR(100) = NULL, 
 		@DropdownListId VARCHAR(100) = NULL, 
@@ -1108,6 +1111,10 @@ BEGIN
 															THEN 'Entered SequenceNo Already Exists!'
 														WHEN @ModuleId = @MaintenanceStatusModule AND @ChekDuplticateRef1 = 'SequenceNo'  
 															THEN 'Entered SequenceNo Already Exists!'
+														WHEN @ModuleId = @TrainingNameModule AND @ChekDuplticateRef1 = 'Name'  
+															THEN 'Entered Name Already Exists!'	
+														WHEN @ModuleId = @PositionCodeModule AND @ChekDuplticateRef1 = 'Code'  
+															THEN 'Entered Code Already Exists!'	
 														ELSE '' END
 						WHERE ImportModuleFieldMasterId = @CurrentRow;
 					END

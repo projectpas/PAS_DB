@@ -10,6 +10,7 @@
  ** PR   Date			Author             Change Description            
  ** --   ----------  -----------------  -----------------------------         
  **  1   03-27-2026   Amit Ghediya      Created
+ **  2   04-13-2026   Amit Ghediya      Added for Quantity (PN-16028)
  ************************************************************************/
 CREATE   PROCEDURE [dbo].[USP_InsertUpdateAircraftInstalledPartDetails]
 (
@@ -34,7 +35,8 @@ CREATE   PROCEDURE [dbo].[USP_InsertUpdateAircraftInstalledPartDetails]
     @Memo NVARCHAR(MAX) = NULL,
     @MasterCompanyId INT,
 	@UpdatedBy VARCHAR(50) = NULL,
-	@StockLineId BIGINT = NULL
+	@StockLineId BIGINT = NULL,
+	@Quantity DECIMAL(18,6) = NULL
 )
 AS
 BEGIN
@@ -45,7 +47,8 @@ BEGIN
 	BEGIN TRANSACTION;
 
 		DECLARE @AircraftPartDetailsId BIGINT = 0,
-				@ConditionId BIGINT = 0;
+				@ConditionId BIGINT = 0,
+				@OldStockLineId BIGINT = 0;
 
 		-- CHECK IF RECORD EXISTS
 		IF EXISTS (
@@ -54,17 +57,29 @@ BEGIN
 			WHERE AircraftInstalledPartDetailsId = @AircraftInstalledPartDetailsId
 		)
 		BEGIN
+			-- Remove from stockline table
+			IF(ISNULL(@StockLineId,0) = 0)
+			BEGIN
+				 SELECT @OldStockLineId = [StockLineId] FROM DBO.AircraftInstalledPartDetails WITH(NOLOCK) WHERE AircraftInstalledPartDetailsId = @AircraftInstalledPartDetailsId;
+
+				 UPDATE [dbo].[Stockline] SET [AircraftInstalledPartDetailsId] = 0 WHERE [StockLineId] = @OldStockLineId;
+			END
+
 			-- UPDATE
 			UPDATE DBO.AircraftInstalledPartDetails
 			SET
 				ATAChapterId = @ATAChapterId,
 				PartNumber = @PartNumber,
 				PartDescription = @PartDescription,
-				IsLLP = @IsLLP,
-				IsSerialized = @IsSerialized,
+				--CASE WHEN ISNULL(@StockLineId,0) > 0 THEN IsLLP = @IsLLP ELSE 0 END,
+				IsLLP = CASE WHEN ISNULL(@StockLineId,0) > 0 THEN @IsLLP ELSE 0 END,
+				IsSerialized = CASE WHEN ISNULL(@StockLineId,0) > 0 THEN @IsSerialized ELSE 0 END,
+				--IsSerialized = @IsSerialized,
 				DateInstalled = @DateInstalled,
 				PositionCodeId = @PositionCodeId,
 				PositionCode = @PositionCode,
+				Quantity = @Quantity,
+				[StockLineId] = @StockLineId,
 				[Hours] = @Hours,
 				[Minutes] = @Minutes,
 				FlightHours = @FlightHours,
@@ -76,6 +91,16 @@ BEGIN
 				UpdatedBy = @UpdatedBy,
 				UpdatedDate = GETUTCDATE()
 			WHERE AircraftInstalledPartDetailsId = @AircraftInstalledPartDetailsId;
+			
+			--Update stockline for part
+			IF(ISNULL(@StockLineId,0) > 0)
+			BEGIN
+				 UPDATE [dbo].[Stockline] SET [AircraftInstalledPartDetailsId] = @AircraftInstalledPartDetailsId WHERE [StockLineId] = @StockLineId;
+
+				 SELECT @ConditionId = [ConditionId] FROM [dbo].[Stockline] WITH(NOLOCK) WHERE [StockLineId] = @StockLineId;
+
+				 UPDATE [dbo].[AircraftInstalledPartDetails] SET [StockLineId] = @StockLineId,[ConditionId] = @ConditionId WHERE [AircraftInstalledPartDetailsId] = @AircraftInstalledPartDetailsId;
+			END
 		END
 		ELSE
 		BEGIN
@@ -93,6 +118,7 @@ BEGIN
 				DateInstalled,
 				PositionCodeId,
 				PositionCode,
+				Quantity,
 				[Hours],
 				[Minutes],
 				FlightHours,
@@ -121,6 +147,7 @@ BEGIN
 				@DateInstalled,
 				@PositionCodeId,
 				@PositionCode,
+				@Quantity,
 				@Hours,
 				@Minutes,
 				@FlightHours,

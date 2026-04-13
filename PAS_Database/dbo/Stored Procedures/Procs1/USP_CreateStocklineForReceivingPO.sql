@@ -1,4 +1,6 @@
-﻿/*************************************************************               
+﻿
+
+/*************************************************************               
  ** File:   [USP_CreateStocklineForReceivingPO]              
  ** Author:   Vishal Suthar    
  ** Description: This stored procedure is used to Crate stocklines for receiving PO  
@@ -41,10 +43,11 @@
 	24   07/01/2026   Rajesh Gami		Added MasterCompanyId Parameter While Calling UOM Conversion Function
 	25   06/03/2026   Bhargav Saliya	PN-15667[When we add a flat price, there is no need to Sum @PP_UnitPurchasePrice + @PP_FlatPrice] 
 	26   26-MAr-2026  Moin Bloch        Modified Fix Issue For Close PO When SO Shipped Partial Stockline Qty
+	27   10-APR-2026  Rajesh Gami		UOM Conversion Changes [PN-15733]
 declare @p2 dbo.POPartsToReceive  insert into @p2 values(2371,4051,2)    
 exec dbo.USP_CreateStocklineForReceivingPO @PurchaseOrderId=2371,@tbl_POPartsToReceive=@p2,@UpdatedBy=N'ADMIN User',@MasterCompanyId=1  
 **************************************************************/
-CREATE   PROCEDURE [dbo].[USP_CreateStocklineForReceivingPO]
+CREATE     PROCEDURE [dbo].[USP_CreateStocklineForReceivingPO]
 (
     @PurchaseOrderId BIGINT = NULL,
     @UpdatedBy VARCHAR(100) = NULL,
@@ -79,7 +82,7 @@ BEGIN
                 ID BIGINT NOT NULL IDENTITY,
                 [PurchaseOrderId] [bigint] NULL,
                 [PurchaseOrderPartRecordId] [bigint] NULL,
-                [QtyToReceive] [int] NULL
+                [QtyToReceive] [decimal](18,6) NULL
             )
 
             IF OBJECT_ID(N'tempdb..#InsertedStkForLot') IS NOT NULL
@@ -108,7 +111,7 @@ BEGIN
                 DECLARE @ItemMasterNonStockId_Part BIGINT;
                 DECLARE @IsSerializedPart BIT;
                 DECLARE @SelectedPurchaseOrderPartRecordId BIGINT;
-                DECLARE @QtyToReceive INT;
+                DECLARE @QtyToReceive  DECIMAL(18,6);
                 DECLARE @MainPOPartBackOrderQty INT;
                 DECLARE @ItemTypeId INT;
 				DECLARE @PurchaseUnitOfMeasureId BIGINT = 0,  @StockUnitOfMeasureId BIGINT = 0,@ConsumeUnitOfMeasureId BIGINT = 0, @QtyToReceiveAfterConversion DECIMAL(18,6) =0, @QtyAfterConversion DECIMAL(18,6)  =0;
@@ -147,7 +150,7 @@ BEGIN
                         [StocklineMatchKey] [varchar](100) NULL,
                         [ControlNumber] [varchar](50) NULL,
                         [ItemMasterId] [bigint] NULL,
-                        [Quantity] [int] NOT NULL,
+                        [Quantity] [decimal](18,6) NOT NULL,
                         [ConditionId] [bigint] NULL,
                         [SerialNumber] [varchar](30) NULL,
                         [ShelfLife] [bit] NULL,
@@ -205,14 +208,14 @@ BEGIN
                         [UnitCostAdjustmentReasonTypeId] [int] NULL,
                         [UnitSalePriceAdjustmentReasonTypeId] [int] NULL,
                         [IdNumber] [varchar](100) NULL,
-                        [QuantityToReceive] [int] NOT NULL,
+                        [QuantityToReceive] [decimal](18,6) NOT NULL,
                         [PurchaseOrderExtendedCost] DECIMAL(18,6) NOT NULL,
                         [ManufacturingTrace] [nvarchar](200) NULL,
                         [ExpirationDate] [datetime2](7) NULL,
                         [AircraftTailNumber] [nvarchar](200) NULL,
                         [ShippingViaId] [bigint] NULL,
                         [EngineSerialNumber] [nvarchar](200) NULL,
-                        [QuantityRejected] [int] NOT NULL,
+                        [QuantityRejected] [decimal](18,6) NOT NULL,
                         [PurchaseOrderPartRecordId] [bigint] NULL,
                         [ShippingAccount] [nvarchar](200) NULL,
                         [ShippingReference] [nvarchar](200) NULL,
@@ -220,14 +223,14 @@ BEGIN
                         [TimeLifeDetailsNotProvided] [bit] NOT NULL,
                         [WorkOrderId] [bigint] NULL,
                         [WorkOrderMaterialsId] [bigint] NULL,
-                        [QuantityReserved] [int] NULL,
-                        [QuantityTurnIn] [int] NULL,
-                        [QuantityIssued] [int] NULL,
-                        [QuantityOnHand] [int] NULL,
-                        [QuantityAvailable] [int] NULL,
-                        [QuantityOnOrder] [int] NULL,
-                        [QtyReserved] [int] NULL,
-                        [QtyIssued] [int] NULL,
+                        [QuantityReserved] [decimal](18,6) NULL,
+                        [QuantityTurnIn] [decimal](18,6) NULL,
+                        [QuantityIssued] [decimal](18,6) NULL,
+                        [QuantityOnHand] [decimal](18,6) NULL,
+                        [QuantityAvailable] [decimal](18,6) NULL,
+                        [QuantityOnOrder] [decimal](18,6) NULL,
+                        [QtyReserved] [decimal](18,6) NULL,
+                        [QtyIssued] [decimal](18,6) NULL,
                         [BlackListed] [bit] NOT NULL,
                         [BlackListedReason] [varchar](500) NULL,
                         [Incident] [bit] NOT NULL,
@@ -295,12 +298,12 @@ BEGIN
                         [SalesOrderId] [bigint] NULL,
                         [SubWorkOrderId] [bigint] NULL,
                         [ExchangeSalesOrderId] [bigint] NULL,
-                        [WOQty] [int] NULL,
-                        [SOQty] [int] NULL,
-                        [ForStockQty] [int] NULL,
+                        [WOQty] [decimal](18,6) NULL,
+                        [SOQty] [decimal](18,6) NULL,
+                        [ForStockQty] [decimal](18,6) NULL,
                         [IsLotAssigned] [bit] NULL,
-                        [LOTQty] [int] NULL,
-                        [LOTQtyReserve] [int] NULL,
+                        [LOTQty] [decimal](18,6) NULL,
+                        [LOTQtyReserve] [decimal](18,6) NULL,
                         [OriginalCost] DECIMAL(18,6) NULL,
                         [POOriginalCost] DECIMAL(18,6) NULL,
                         [ROOriginalCost] DECIMAL(18,6) NULL,
@@ -350,14 +353,21 @@ BEGIN
                         SELECT TOP 1 @IsSameDetailsForAllParts = StkDraft.IsSameDetailsForAllParts
                         FROM DBO.StocklineDraft StkDraft WITH (NOLOCK)
                         WHERE ISNULL(IsParent, 0) = 1 AND StkDraft.PurchaseOrderPartRecordId = @SelectedPurchaseOrderPartRecordId;
-
+						PRINT @IsSameDetailsForAllParts
+						PRINT '@IsSameDetailsForAllParts'
                         IF (@IsSameDetailsForAllParts = 0)
                         BEGIN
-                            SET @LoopID = @QtyToReceive;
+							DECLARE @IntegerPart INT = FLOOR(@QtyToReceive);
+							DECLARE @DecimalPart DECIMAL(18,6) = @QtyToReceive - @IntegerPart;
+							SET @LoopID = @IntegerPart + CASE WHEN @DecimalPart > 0 THEN 1 ELSE 0 END;
+							PRINT '@IsSameDetailsForAllParts = 0 LoopId'
+							PRINT @LoopID
                         END
                         ELSE
                         BEGIN
                             SELECT @LoopID = MAX(ID) FROM #tmpStocklineDraft;
+								PRINT 'Direct LoopId LoopId'
+							PRINT @LoopID
                         END
                     END
 
@@ -726,7 +736,7 @@ BEGIN
 
                             SELECT @LoopID_QtyToReceive = MAX(ID) FROM #StocklineDraftForQtyToReceive;
 
-                            DECLARE @TotalQtyToTraverse INT = 0;
+                            DECLARE @TotalQtyToTraverse DECIMAL(18,6) = 0;
 
                             SET @TotalQtyToTraverse = @QtyToReceive;
 
@@ -2095,9 +2105,9 @@ BEGIN
                         [ReceivedDate] [datetime2](7) NULL,
                         [IsSerialized] [bit] NOT NULL,
                         [SerialNumber] [varchar](50) NULL,
-                        [Quantity] [int] NOT NULL,
-                        [QuantityRejected] [int] NULL,
-                        [QuantityOnHand] [int] NULL,
+                        [Quantity] [decimal](18,6) NOT NULL,
+                        [QuantityRejected] [decimal](18,6) NULL,
+                        [QuantityOnHand] [decimal](18,6) NULL,
                         [CurrencyId] [bigint] NULL,
                         [Currency] [varchar](50) NULL,
                         [ConditionId] [bigint] NULL,
@@ -2267,7 +2277,7 @@ BEGIN
                             EXEC USP_CreateStocklinePartHistory @NewNonStockInventoryId, 1, 0, 0, 0
 
 							/* Accounting Entry :- Insert Into Table*/
-							DECLARE @QtyAdded_NonStock INT = 0;
+							DECLARE @QtyAdded_NonStock [decimal](18,6) = 0;
 							DECLARE @PurchaseOrderUnitCostAdded_NonStock DECIMAL(18,6) = 0;
 
 							SELECT @QtyAdded_NonStock = CASE WHEN @IsSerializedPart = 1 THEN [Quantity] ELSE CASE WHEN ISNULL(IsSameDetailsForAllParts,0) = 0 THEN [Quantity] ELSE @QtyToReceive END END,
@@ -2384,7 +2394,7 @@ BEGIN
 
 								SELECT @LoopID_QtyToReceive_NS = MAX(ID) FROM #NonStocklineDraftForQtyToReceive;
 
-								DECLARE @TotalQtyToTraverse_NS INT = 0;
+								DECLARE @TotalQtyToTraverse_NS [decimal](18,6) = 0;
 
 								SET @TotalQtyToTraverse_NS = @QtyToReceive;
 
@@ -2544,8 +2554,8 @@ BEGIN
                 ID BIGINT NOT NULL IDENTITY,
                 [PurchaseOrderId] [bigint] NULL,
                 [PurchaseOrderPartRecordId] [bigint] NULL,
-                [QuantityOrdered] [int] NULL,
-				[QuantityReceived] [int] NULL
+                [QuantityOrdered] [decimal](18,6) NULL,
+				[QuantityReceived] [decimal](18,6) NULL
             )
 
             INSERT INTO #POParts ([PurchaseOrderId], [PurchaseOrderPartRecordId], [QuantityOrdered],[QuantityReceived])
@@ -2557,16 +2567,16 @@ BEGIN
 			  	
             SELECT @POPartLoopID = MAX(ID) FROM #POParts;
 
-            DECLARE @MainQuantityOrdered BIGINT = 0;
-            DECLARE @MainStkQuantity BIGINT = 0;
+            DECLARE @MainQuantityOrdered [decimal](18,6) = 0;
+            DECLARE @MainStkQuantity [decimal](18,6) = 0;
 
             WHILE (@POPartLoopID > 0)
             BEGIN
                 DECLARE @PurchaseOrderPartRecordId BIGINT = 0;
-                DECLARE @QuantityOrdered BIGINT = 0;
-                DECLARE @StkQuantity BIGINT = 0;
-                DECLARE @StkAssetQuantity BIGINT = 0;
-                DECLARE @NonStkInventoryQuantity BIGINT = 0;
+                DECLARE @QuantityOrdered [decimal](18,6) = 0;
+                DECLARE @StkQuantity [decimal](18,6) = 0;
+                DECLARE @StkAssetQuantity [decimal](18,6) = 0;
+                DECLARE @NonStkInventoryQuantity [decimal](18,6) = 0;
 
                 SELECT @QuantityOrdered = [QuantityOrdered], @PurchaseOrderPartRecordId = [PurchaseOrderPartRecordId] FROM #POParts WHERE ID = @POPartLoopID;
 

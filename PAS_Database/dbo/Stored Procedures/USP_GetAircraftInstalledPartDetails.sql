@@ -67,6 +67,7 @@ BEGIN
 				STK.StockLineId,
 				AIPD.Quantity,
                 AIPD.IsLLP,
+				AIPD.IsSerialized,
                 CASE WHEN AIPD.IsLLP = 1 THEN 'YES' ELSE 'NO' END AS LLP,
 				CASE WHEN AIPD.IsSerialized = 1 THEN 'YES' ELSE 'NO' END AS Serialized,
                 AIPD.DateInstalled,

@@ -16,6 +16,7 @@
 	5    05-07-2015   BHARGAV SALIYA	 Change the Save SOQ Order Using @MinsoqId
 	6    15-09-2025	  Amit Ghediya		 Update for Reset Approval Process
 	7    20-11-2025	  Rajesh Gami		Added UnitSalesPrice in SalesOrderQuotePartV1 table
+	8   10-Apr-026   Bhargav Saliya	 UOM Changes
 declare @p1 dbo.SOQPartListType
 insert into @p1 values(909,871,318,7,3,NULL,3,NULL,1,3,3,NULL,NULL,1,1.000000,378.2,5,6.12,348.84,0,0,348.84,'2024-11-06 00:00:00','2024-11-07 00:00:00',NULL,120.00,2,2.4,360.00,0,100,0,NULL,N'',NULL,1,N'admin')
 insert into @p1 values(910,871,20753,9,3,NULL,3,NULL,1,3,3,NULL,NULL,NULL,1.000000,6.0,5,105.57,0,0,0,0,NULL,NULL,'2024-11-05 00:00:00',230.00,2,2.0,105.57,0,0,0,NULL,N'',NULL,1,N'admin')
@@ -23,7 +24,7 @@ insert into @p1 values(910,871,20753,9,3,NULL,3,NULL,1,3,3,NULL,NULL,NULL,1.0000
 exec USP_AddUpdateSalesOrderQuotePart @tbl_SalesOrderQuotePartList=@p1
 
 ***************************************************************/
-CREATE       PROCEDURE [dbo].[USP_AddUpdateSalesOrderQuotePart]
+CREATE   PROCEDURE [dbo].[USP_AddUpdateSalesOrderQuotePart]
 	@tbl_SalesOrderQuotePartList SOQPartListType READONLY
 	--@tbl_SalesOrderQuoteStocklineList SOQStockLineListType READONLY
 AS
@@ -49,32 +50,32 @@ BEGIN
 		ConditionId bigint,
 		PriorityId bigint,
 		StocklineId bigint,
-		QuantityQuote int,
+		QuantityQuote decimal(18,6),
 		SalesOrderQuoteStocklineId bigint,
 		StatusId int,
-		QtyRequested int,
-		QtyQuoted int,
-		QtyAvailable int,
-		QtyOH int,
+		QtyRequested decimal(18,6),
+		QtyQuoted decimal(18,6),
+		QtyAvailable decimal(18,6),
+		QtyOH decimal(18,6),
 		CurrencyId int,
 		FxRate decimal(18,4),
-		GrossSaleAmount decimal(18,4),
-		DiscountAmount decimal(18,4),
-		NetSaleAmount decimal(18,4),
-		TaxAmount decimal(18,4),
-		UnitCostExtended decimal(18,4),
-		MarginAmount decimal(18,4),
+		GrossSaleAmount decimal(18,6),
+		DiscountAmount decimal(18,6),
+		NetSaleAmount decimal(18,6),
+		TaxAmount decimal(18,6),
+		UnitCostExtended decimal(18,6),
+		MarginAmount decimal(18,6),
 		CustomerRequestDate datetime2(7),
 		PromisedDate datetime2(7),
 		EstimatedShipDate datetime2(7),
-		UnitSalesPrice decimal(18,4),
-		MarkUpPercentage decimal(18,4),
-		DiscountPercentage decimal(18,4),
-		MarkUpAmount decimal(18,4),
-		SalesPriceExtended decimal(18,4),
-		UnitCost decimal(18,4),
-		MarginPercentage decimal(18,4),
-		TaxPercentage decimal(18,4),
+		UnitSalesPrice decimal(18,6),
+		MarkUpPercentage decimal(18,6),
+		DiscountPercentage decimal(18,6),
+		MarkUpAmount decimal(18,6),
+		SalesPriceExtended decimal(18,6),
+		UnitCost decimal(18,6),
+		MarginPercentage decimal(18,6),
+		TaxPercentage decimal(18,6),
 		StatusName varchar(100),
 		AltOrEqType varchar(25),
 		Notes nvarchar(max),
@@ -107,17 +108,17 @@ BEGIN
 		DECLARE @ConditionId BIGINT = 0;
 		DECLARE @StocklineId BIGINT = 0;
 		DECLARE @MasterCompanyId BIGINT = 0;
-		DECLARE @UnitSalesPrice AS decimal(18,4);
-		DECLARE @MarkUpAmount AS decimal(18,4);
-		DECLARE @MarkUpPercentage AS decimal(18,4);
-		DECLARE @DiscountAmount AS decimal(18,4);
-		DECLARE @MarginAmount AS decimal(18,4);
-		DECLARE @UnitCost AS decimal(18,4);
-		DECLARE @MarginPercentage AS decimal(18,4);
-		DECLARE @DiscountPercentage AS decimal(18,4);
-		DECLARE @QtyQuoted AS INT;
-		DECLARE @QtyRequested AS INT;
-		DECLARE @QuantityToQuote AS INT;
+		DECLARE @UnitSalesPrice AS decimal(18,6);
+		DECLARE @MarkUpAmount AS decimal(18,6);
+		DECLARE @MarkUpPercentage AS decimal(18,6);
+		DECLARE @DiscountAmount AS decimal(18,6);
+		DECLARE @MarginAmount AS decimal(18,6);
+		DECLARE @UnitCost AS decimal(18,6);
+		DECLARE @MarginPercentage AS decimal(18,6);
+		DECLARE @DiscountPercentage AS decimal(18,6);
+		DECLARE @QtyQuoted AS decimal(18,6);
+		DECLARE @QtyRequested AS decimal(18,6);
+		DECLARE @QuantityToQuote AS decimal(18,6);
 		DECLARE @CreatedBy AS VARCHAR(100);
 		DECLARE @Notes AS VARCHAR(MAX);
 		DECLARE @CustomerRequestDate AS Datetime2(7);
@@ -157,12 +158,12 @@ BEGIN
 
 				SET @SalesOrderQuotePartId = SCOPE_IDENTITY();
 
-				DECLARE @SalesPrice AS decimal(18,4);
-				DECLARE @MarkUpAmt AS decimal(18,4);
-				DECLARE @DiscAmt AS decimal(18,4);
-				DECLARE @GrossAmt AS decimal(18,4);
-				DECLARE @NetSalesAmt AS decimal(18,4);
-				DECLARE @NetSalesPerUnitAmt AS decimal(18,4);
+				DECLARE @SalesPrice AS decimal(18,6);
+				DECLARE @MarkUpAmt AS decimal(18,6);
+				DECLARE @DiscAmt AS decimal(18,6);
+				DECLARE @GrossAmt AS decimal(18,6);
+				DECLARE @NetSalesAmt AS decimal(18,6);
+				DECLARE @NetSalesPerUnitAmt AS decimal(18,6);
 
 				SET @SalesPrice = ISNULL(@UnitSalesPrice, 0);
 				SET @MarkUpAmt = ISNULL(@MarkUpAmount, 0);
@@ -217,7 +218,7 @@ BEGIN
 		ELSE
 		BEGIN
 			DECLARE @IsQtyRequestedModified BIT,@IsPriorityModified BIT,@IsUnitSalesModified BIT;;
-			DECLARE @ExistingQtyReq INT,@ExistingPriority INT,@ExistingUnitSales DECIMAL;;
+			DECLARE @ExistingQtyReq DECIMAL(18,6),@ExistingPriority INT,@ExistingUnitSales DECIMAL(18,6);;
 
 			SELECT @ExistingQtyReq = SOP.QtyRequested,@ExistingPriority = SOP.PriorityId FROM [DBO].[SalesOrderQuotePartV1] SOP WITH (NOLOCK) WHERE SOP.SalesOrderQuotePartId = @SalesOrderQuotePartId;
 			
@@ -248,14 +249,14 @@ BEGIN
 			WHERE SalesOrderQuotePartId = @SalesOrderQuotePartId
 
 			-- Update Part Details
-			DECLARE @QtyQuoted_U AS INT = 0;
+			DECLARE @QtyQuoted_U AS DECIMAL(18,6) = 0;
 
-			DECLARE @SalesPrice_U AS decimal(18,4);
-			DECLARE @MarkUpAmt_U AS decimal(18,4);
-			DECLARE @DiscAmt_U AS decimal(18,4);
-			DECLARE @GrossAmt_U AS decimal(18,4);
-			DECLARE @NetSalesAmt_U AS decimal(18,4);
-			DECLARE @NetSalesPerUnitAmt_U AS decimal(18,4);
+			DECLARE @SalesPrice_U AS decimal(18,6);
+			DECLARE @MarkUpAmt_U AS decimal(18,6);
+			DECLARE @DiscAmt_U AS decimal(18,6);
+			DECLARE @GrossAmt_U AS decimal(18,6);
+			DECLARE @NetSalesAmt_U AS decimal(18,6);
+			DECLARE @NetSalesPerUnitAmt_U AS decimal(18,6);
 
 			SET @SalesPrice_U = ISNULL(@UnitSalesPrice, 0);
 			SET @MarkUpAmt_U = ISNULL(@MarkUpAmount, 0) * @QtyQuoted;

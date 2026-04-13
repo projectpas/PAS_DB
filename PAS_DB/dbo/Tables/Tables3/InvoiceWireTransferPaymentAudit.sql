@@ -22,6 +22,7 @@
     [PageIndex]                INT             NULL,
     [Ismiscellaneous]          BIT             NULL,
     [CustomerPaymentDetailsId] BIGINT          NULL,
+    [IsNonInvoicePayment]      BIT             DEFAULT ((0)) NULL,
     CONSTRAINT [PK_InvoiceWireTransferAudit] PRIMARY KEY CLUSTERED ([WireTransferAuditId] ASC)
 );
 

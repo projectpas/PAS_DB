@@ -3,20 +3,20 @@
     [SOStockLineId]            BIGINT          NOT NULL,
     [ExchangeSalesOrderId]     BIGINT          NOT NULL,
     [ExchangeSalesOrderPartId] BIGINT          NOT NULL,
-    [StockLineId]              BIGINT          NOT NULL,
+    [StockLIneId]              BIGINT          NOT NULL,
     [ItemMasterId]             BIGINT          NOT NULL,
     [ConditionId]              BIGINT          NOT NULL,
-    [Quantity]                 INT             NULL,
-    [QtyReserved]              INT             NULL,
-    [QtyIssued]                INT             NULL,
+    [Quantity]                 DECIMAL (18, 6) NULL,
+    [QtyReserved]              DECIMAL (18, 6) NULL,
+    [QtyIssued]                DECIMAL (18, 6) NULL,
     [AltPartMasterPartId]      BIGINT          NULL,
     [EquPartMasterPartId]      BIGINT          NULL,
     [IsAltPart]                BIT             NULL,
     [IsEquPart]                BIT             NULL,
-    [UnitCost]                 DECIMAL (20, 2) NULL,
-    [ExtendedCost]             DECIMAL (20, 2) NULL,
-    [UnitPrice]                DECIMAL (20, 2) NULL,
-    [ExtendedPrice]            DECIMAL (20, 2) NULL,
+    [UnitCost]                 DECIMAL (18, 6) NULL,
+    [ExtendedCost]             DECIMAL (18, 6) NULL,
+    [UnitPrice]                DECIMAL (18, 6) NULL,
+    [ExtendedPrice]            DECIMAL (18, 6) NULL,
     [MasterCompanyId]          INT             NOT NULL,
     [CreatedBy]                VARCHAR (256)   NOT NULL,
     [UpdatedBy]                VARCHAR (256)   NOT NULL,
@@ -27,6 +27,4 @@
     [ReferenceNumber]          VARCHAR (100)   NULL,
     CONSTRAINT [PK_ExchangeSalesOrderStockLineAudit] PRIMARY KEY CLUSTERED ([SOStockLineAuditId] ASC)
 );
-
-
 

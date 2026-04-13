@@ -7,18 +7,18 @@
     [StockLineId]              BIGINT          NULL,
     [ExchangeCurrencyId]       BIGINT          NULL,
     [LoanCurrencyId]           BIGINT          NULL,
-    [ExchangeListPrice]        NUMERIC (9, 2)  NULL,
+    [ExchangeListPrice]        DECIMAL (18, 6) NULL,
     [EntryDate]                DATETIME2 (7)   NULL,
-    [ExchangeOverhaulPrice]    NUMERIC (9, 2)  NULL,
-    [ExchangeCorePrice]        NUMERIC (9, 2)  NULL,
+    [ExchangeOverhaulPrice]    DECIMAL (18, 6) NULL,
+    [ExchangeCorePrice]        DECIMAL (18, 6) NULL,
     [EstOfFeeBilling]          INT             NULL,
     [BillingStartDate]         DATETIME2 (7)   NULL,
-    [ExchangeOutrightPrice]    NUMERIC (9, 2)  NULL,
+    [ExchangeOutrightPrice]    DECIMAL (18, 6) NULL,
     [DaysForCoreReturn]        INT             NULL,
     [BillingIntervalDays]      INT             NULL,
     [CurrencyId]               INT             NULL,
     [Currency]                 VARCHAR (50)    NULL,
-    [DepositeAmount]           NUMERIC (9, 2)  NULL,
+    [DepositeAmount]           DECIMAL (18, 6) NULL,
     [CoreDueDate]              DATETIME2 (7)   NULL,
     [MasterCompanyId]          INT             NOT NULL,
     [CreatedBy]                VARCHAR (256)   NOT NULL,
@@ -34,7 +34,7 @@
     [ConditionName]            NVARCHAR (100)  NULL,
     [IsRemark]                 BIT             CONSTRAINT [DF_ExchangeSalesOrderPart_IsRemark] DEFAULT ((0)) NULL,
     [RemarkText]               VARCHAR (MAX)   NULL,
-    [ExchangeOverhaulCost]     NUMERIC (9, 2)  NULL,
+    [ExchangeOverhaulCost]     DECIMAL (18, 6) NULL,
     [QtyQuoted]                DECIMAL (18, 6) NULL,
     [MethodType]               CHAR (1)        NULL,
     [IsConvertedToSalesOrder]  BIT             CONSTRAINT [DF_ExchangeSalesOrderPart_IsConvertedToSalesOrder] DEFAULT ((0)) NOT NULL,
@@ -44,8 +44,8 @@
     [ExpectedCoreSN]           VARCHAR (50)    NULL,
     [StatusId]                 INT             NULL,
     [StatusName]               NVARCHAR (50)   NULL,
-    [FxRate]                   NUMERIC (9, 4)  NULL,
-    [UnitCost]                 NUMERIC (9, 2)  NULL,
+    [FxRate]                   DECIMAL (18, 6) NULL,
+    [UnitCost]                 DECIMAL (18, 6) NULL,
     [PriorityId]               BIGINT          NULL,
     [Qty]                      DECIMAL (18, 6) NULL,
     [QtyRequested]             DECIMAL (18, 6) NULL,
@@ -75,6 +75,8 @@
     CONSTRAINT [FK_ExchangeSalesOrderPart_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId]),
     CONSTRAINT [FK_ExchangeSalesOrderPart_Stockline] FOREIGN KEY ([StockLineId]) REFERENCES [dbo].[Stockline] ([StockLineId])
 );
+
+
 
 
 

@@ -10,7 +10,7 @@
     [AirwayBill]                         VARCHAR (50)    NULL,
     [HouseAirwayBill]                    VARCHAR (50)    NOT NULL,
     [TrackingNum]                        VARCHAR (50)    NOT NULL,
-    [Weight]                             DECIMAL (10, 2) NULL,
+    [Weight]                             DECIMAL (18, 6) NULL,
     [SoldToName]                         VARCHAR (256)   NOT NULL,
     [SoldToAddress1]                     VARCHAR (256)   NOT NULL,
     [SoldToAddress2]                     VARCHAR (256)   NULL,
@@ -50,9 +50,9 @@
     [UpdatedDate]                        DATETIME2 (7)   CONSTRAINT [DF_ExchangeSalesOrderShipping_UpdatedDate] DEFAULT (getdate()) NOT NULL,
     [IsActive]                           BIT             CONSTRAINT [DF_ExchangeSalesOrderShipping_IsActive] DEFAULT ((1)) NOT NULL,
     [IsDeleted]                          BIT             CONSTRAINT [DF_ExchangeSalesOrderShipping_IsDeleted] DEFAULT ((0)) NOT NULL,
-    [ShipSizeLength]                     DECIMAL (10, 2) NULL,
-    [ShipSizeWidth]                      DECIMAL (10, 2) NULL,
-    [ShipSizeHeight]                     DECIMAL (10, 2) NULL,
+    [ShipSizeLength]                     DECIMAL (18, 6) NULL,
+    [ShipSizeWidth]                      DECIMAL (18, 6) NULL,
+    [ShipSizeHeight]                     DECIMAL (18, 6) NULL,
     [ShipWeightUnit]                     BIGINT          NULL,
     [ShipSizeUnitOfMeasureId]            BIGINT          NULL,
     [ServiceClass]                       VARCHAR (50)    NULL,
@@ -63,8 +63,8 @@
     [IsCustomerShipping]                 BIT             NULL,
     [IsManualShipping]                   BIT             NULL,
     [ManufactureCountryId]               INT             NULL,
-    [QtyUOM]                             BIGINT          NULL,
-    [UnitPrice]                          DECIMAL (20, 2) NULL,
+    [QtyUOM]                             DECIMAL (18, 6) NULL,
+    [UnitPrice]                          DECIMAL (18, 6) NULL,
     [UnitPriceCurrencyId]                INT             NULL,
     [PackagingSlipNotes]                 NVARCHAR (MAX)  NULL,
     CONSTRAINT [PK_ExchangeSalesOrderShipping] PRIMARY KEY CLUSTERED ([ExchangeSalesOrderShippingId] ASC),
@@ -76,6 +76,8 @@
     CONSTRAINT [FK_ExchangeSalesOrderShipping_ShipToCountry] FOREIGN KEY ([ShipToCountryId]) REFERENCES [dbo].[Countries] ([countries_id]),
     CONSTRAINT [FK_ExchangeSalesOrderShipping_SoldToCountry] FOREIGN KEY ([SoldToCountryId]) REFERENCES [dbo].[Countries] ([countries_id])
 );
+
+
 
 
 

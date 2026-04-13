@@ -37,6 +37,7 @@
 	25	 30/01/2026   HEMANT SALIYA		  Resolved Performa Accounting Entry in PO adn RO Partial Payment Handle
 	25	 19/02/2026   HEMANT SALIYA		  Resolved RO Batch Post when Stl Qty is 0 and RO cost is 0
 	26   03/09/2024   Moin Bloch          Batch: Duplicate JE Number generated for multiple entries on same day PN-15921
+	27   03/09/2024   Moin Bloch          Batch: Duplicate JE Number generated for multiple entries on same day PN-15921
 
 **************************************************************/  
 CREATE  PROCEDURE [dbo].[usp_PostReceivingReconcilationBatchDetails]
@@ -2345,7 +2346,7 @@ BEGIN
 						PRINT '1.14' 
 						PRINT GETUTCDATE();
 																	   						 
-						IF(ISNULL(@IsStockTypeChange, 0) = 1)  -- AND @RecordId != 1)
+						IF(ISNULL(@IsStockTypeChange, 0) = 1 AND @RecordId != 1)
 						BEGIN
 							UPDATE [dbo].[CodePrefixes] 
 							   SET [CurrentNummber] = @currentNo
@@ -2789,7 +2790,7 @@ BEGIN
 				PRINT GETUTCDATE();
 				IF(@TotalFreight > 0 OR @TotalTax > 0 OR @TotalMisc > 0)
 				BEGIN
-					EXEC [dbo].[USP_PostReceivingReconcilationFreightAndTaxBatchDetails] @ReceivingReconciliationId,@JournalBatchHeaderId,@JournalTypename,@jlTypeId,@jlTypeName,@INPUTMethod,@DisCode,@ModuleName,@AccountingPeriodId,@AccountingPeriod,@EmployeeId,@UpdateBy,@MasterCompanyId;					
+					EXEC [dbo].[USP_PostReceivingReconcilationFreightAndTaxBatchDetails] @ReceivingReconciliationId,@JournalBatchHeaderId,@JournalTypename,@jlTypeId,@jlTypeName,@INPUTMethod,@DisCode,@ModuleName,@AccountingPeriodId,@AccountingPeriod,@EmployeeId,@UpdateBy,@MasterCompanyId,@JournalTypeNumber,@currentNo;					
 				END
 				PRINT '1.18.8' 
 				PRINT GETUTCDATE();

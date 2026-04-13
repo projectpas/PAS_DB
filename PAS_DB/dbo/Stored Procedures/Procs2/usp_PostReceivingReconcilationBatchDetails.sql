@@ -2346,17 +2346,17 @@ BEGIN
 						PRINT '1.14' 
 						PRINT GETUTCDATE();
 																	   						 
-						IF(ISNULL(@IsStockTypeChange, 0) = 1 AND @RecordId != 1)
+						IF(ISNULL(@RecordId, 0) = 1) -- AND @RecordId != 1)
 						BEGIN
 							UPDATE [dbo].[CodePrefixes] 
 							   SET [CurrentNummber] = @currentNo
 							 WHERE [CodeTypeId] = @CodeTypeId 
 							   AND [MasterCompanyId] = @MasterCompanyId    
 						
-							SET @currentNo = @currentNo + 1
+							--SET @currentNo = @currentNo + 1
 
-							SET @JournalTypeNumber = (SELECT * FROM dbo.udfGenerateCodeNumber(@currentNo,(SELECT CodePrefix FROM #tmpCodePrefixes
-							WHERE CodeTypeId = @CodeTypeId), (SELECT CodeSufix FROM #tmpCodePrefixes WHERE CodeTypeId = @CodeTypeId)))
+							--SET @JournalTypeNumber = (SELECT * FROM dbo.udfGenerateCodeNumber(@currentNo,(SELECT CodePrefix FROM #tmpCodePrefixes
+							--WHERE CodeTypeId = @CodeTypeId), (SELECT CodeSufix FROM #tmpCodePrefixes WHERE CodeTypeId = @CodeTypeId)))
 						END
 						PRINT '1.15' 
 						PRINT GETUTCDATE();

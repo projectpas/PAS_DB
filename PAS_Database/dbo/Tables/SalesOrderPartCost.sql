@@ -28,9 +28,9 @@
     [IsDeleted]              BIT             CONSTRAINT [DF_SalesOrderPartCost_IsDeleted] DEFAULT ((0)) NOT NULL,
     [NetSaleAmountPerUnit]   DECIMAL (18, 6) NULL,
     CONSTRAINT [PK_SalesOrderPartCost] PRIMARY KEY CLUSTERED ([SalesOrderPartCostId] ASC),
+    CONSTRAINT [FK_SalesOrderPartCost_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId]),
     CONSTRAINT [FK_SalesOrderPartCost_SalesOrder] FOREIGN KEY ([SalesOrderId]) REFERENCES [dbo].[SalesOrder] ([SalesOrderId]),
-    CONSTRAINT [FK_SalesOrderPartCost_SalesOrderPartV1] FOREIGN KEY ([SalesOrderPartId]) REFERENCES [dbo].[SalesOrderPartV1] ([SalesOrderPartId]),
-    CONSTRAINT [FK_SalesOrderPartCost_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId])
+    CONSTRAINT [FK_SalesOrderPartCost_SalesOrderPartV1] FOREIGN KEY ([SalesOrderPartId]) REFERENCES [dbo].[SalesOrderPartV1] ([SalesOrderPartId])
 );
 
 
@@ -40,13 +40,72 @@
 
 
 
+
+
 GO
-CREATE TRIGGER [dbo].[Trg_SalesOrderPartCostAudit]
-   ON  [dbo].[SalesOrderPartCost]
-   AFTER INSERT,DELETE,UPDATE
+CREATE   TRIGGER [dbo].[Trg_SalesOrderPartCostAudit]
+ON [dbo].[SalesOrderPartCost]
+AFTER INSERT, UPDATE, DELETE
 AS
 BEGIN
-	INSERT INTO SalesOrderPartCostAudit
-	SELECT * FROM INSERTED
-	SET NOCOUNT ON;
+    SET NOCOUNT ON;
+
+    INSERT INTO SalesOrderPartCostAudit (
+        SalesOrderPartCostId,
+        SalesOrderId,
+        SalesOrderPartId,
+        UnitSalesPrice,
+        UnitSalesPriceExtended,
+        UnitCost,
+        UnitCostExtended,
+        MarkUpPercentage,
+        MarkUpAmount,
+        MarginAmount,
+        MarginPercentage,
+        DiscountPercentage,
+        DiscountAmount,
+        TaxPercentage,
+        TaxAmount,
+        NetSaleAmount,
+        MiscCharges,
+        Freight,
+        TotalRevenue,
+        MasterCompanyId,
+        CreatedBy,
+        CreatedDate,
+        UpdatedBy,
+        UpdatedDate,
+        IsActive,
+        IsDeleted,
+        NetSaleAmountPerUnit
+    )
+    SELECT
+        SalesOrderPartCostId,
+        SalesOrderId,
+        SalesOrderPartId,
+        UnitSalesPrice,
+        UnitSalesPriceExtended,
+        UnitCost,
+        UnitCostExtended,
+        MarkUpPercentage,
+        MarkUpAmount,
+        MarginAmount,
+        MarginPercentage,
+        DiscountPercentage,
+        DiscountAmount,
+        TaxPercentage,
+        TaxAmount,
+        NetSaleAmount,
+        MiscCharges,
+        Freight,
+        TotalRevenue,
+        MasterCompanyId,
+        CreatedBy,
+        CreatedDate,
+        UpdatedBy,
+        UpdatedDate,
+        IsActive,
+        IsDeleted,
+        NetSaleAmountPerUnit
+    FROM INSERTED;
 END

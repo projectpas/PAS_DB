@@ -18,6 +18,7 @@
 	2    09/12/2024   Moin Bloch		Alter set QtyRequested When stk line is null
 	3    21/jul/2025  Bhargav Saliya	Select UOM
 	4    22/Aug/2025  Amit Ghediya		Select Condition
+	5   10-Apr-026   Bhargav Saliya	 UOM Changes
 
 EXEC [dbo].[USP_GetSOQApprovalList] 866
 **************************************************************/
@@ -237,27 +238,28 @@ BEGIN
 			CASE WHEN sqp.CustomerStatusId IS null THEN 1 ELSE sqp.CustomerStatusId END AS CustomerStatusId,
 			1 AS IsInternalApprove,
 			--soqp.QtyQuoted Qty,
-			CASE WHEN ISNULL(soqp.QtyQuoted,0) > 0 THEN soqp.[QtyQuoted] ELSE ISNULL(soqp.[QtyRequested],0) END AS Qty,
-			soqpc.UnitSalesPrice UnitSalePrice,
+			CASE WHEN ISNULL(soqp.QtyQuoted,0) > 0 THEN ([dbo].[fn_ConvertUOM](ISNULL(soqp.QtyQuoted, 0),im.[StockUnitOfMeasure] ,im.[ConsumeUnitOfMeasure],0,soq.MasterCompanyId)) ELSE ([dbo].[fn_ConvertUOM](ISNULL(soqp.[QtyRequested], 0),im.[StockUnitOfMeasure] ,im.[ConsumeUnitOfMeasure],0,soq.MasterCompanyId)) END AS Qty,
+			([dbo].[fn_ConvertUOM](ISNULL(soqpc.UnitSalesPrice, 0),im.[StockUnitOfMeasure] ,im.[ConsumeUnitOfMeasure],0,soq.MasterCompanyId)) AS UnitSalePrice,
 			soqpc.MarkUpPercentage,
 			0 SalesBeforeDiscount,
-			soqpc.DiscountPercentage Discount,
-			soqpc.DiscountAmount,
-			soqpc.NetSaleAmount NetSales,
-			soqpc.UnitCost,
-			soqpc.UnitSalesPriceExtended SalesPriceExtended,
-			soqpc.MarkUpAmount MarkupExtended,
-			soqpc.DiscountAmount SalesDiscountExtended,
-			soqpc.NetSaleAmount NetSalePriceExtended,
-			soqpc.UnitCostExtended,
-			soqpc.MarginAmount,
-			soqpc.MarginAmount AS MarginAmountExtended,
+			--([dbo].[fn_ConvertUOM](ISNULL(soqpc.NetSaleAmount, 0),im.[StockUnitOfMeasure] ,im.[ConsumeUnitOfMeasure],0,soq.MasterCompanyId))
+			([dbo].[fn_ConvertUOM](ISNULL(soqpc.DiscountPercentage, 0),im.[StockUnitOfMeasure] ,im.[ConsumeUnitOfMeasure],0,soq.MasterCompanyId)) Discount,
+			([dbo].[fn_ConvertUOM](ISNULL(soqpc.DiscountAmount, 0),im.[StockUnitOfMeasure] ,im.[ConsumeUnitOfMeasure],0,soq.MasterCompanyId)) DiscountAmount,
+			([dbo].[fn_ConvertUOM](ISNULL(soqpc.NetSaleAmount, 0),im.[StockUnitOfMeasure] ,im.[ConsumeUnitOfMeasure],0,soq.MasterCompanyId)) as NetSales,
+			([dbo].[fn_ConvertUOM](ISNULL(soqpc.UnitCost, 0),im.[StockUnitOfMeasure] ,im.[ConsumeUnitOfMeasure],0,soq.MasterCompanyId)) AS UnitCost,
+			([dbo].[fn_ConvertUOM](ISNULL(soqpc.UnitSalesPriceExtended, 0),im.[StockUnitOfMeasure] ,im.[ConsumeUnitOfMeasure],0,soq.MasterCompanyId)) SalesPriceExtended,
+			([dbo].[fn_ConvertUOM](ISNULL(soqpc.MarkUpAmount, 0),im.[StockUnitOfMeasure] ,im.[ConsumeUnitOfMeasure],0,soq.MasterCompanyId)) MarkupExtended,
+			([dbo].[fn_ConvertUOM](ISNULL(soqpc.DiscountAmount, 0),im.[StockUnitOfMeasure] ,im.[ConsumeUnitOfMeasure],0,soq.MasterCompanyId)) SalesDiscountExtended,
+			([dbo].[fn_ConvertUOM](ISNULL(soqpc.NetSaleAmount, 0),im.[StockUnitOfMeasure] ,im.[ConsumeUnitOfMeasure],0,soq.MasterCompanyId)) as NetSalePriceExtended,
+			([dbo].[fn_ConvertUOM](ISNULL(soqpc.UnitCostExtended, 0),im.[StockUnitOfMeasure] ,im.[ConsumeUnitOfMeasure],0,soq.MasterCompanyId)) AS UnitCostExtended,
+			([dbo].[fn_ConvertUOM](ISNULL(soqpc.MarginAmount, 0),im.[StockUnitOfMeasure] ,im.[ConsumeUnitOfMeasure],0,soq.MasterCompanyId)) AS MarginAmount,
+			([dbo].[fn_ConvertUOM](ISNULL(soqpc.MarginAmount, 0),im.[StockUnitOfMeasure] ,im.[ConsumeUnitOfMeasure],0,soq.MasterCompanyId)) AS MarginAmountExtended,
 			soqpc.MarginPercentage,
 			soqpc.TaxAmount,
 			soqpc.TaxPercentage,
 			--sop.TaxType,
 			'' AS TaxType,
-			soqpc.NetSaleAmount + soqpc.TaxAmount + 
+			([dbo].[fn_ConvertUOM](ISNULL(soqpc.NetSaleAmount, 0),im.[StockUnitOfMeasure] ,im.[ConsumeUnitOfMeasure],0,soq.MasterCompanyId)) + soqpc.TaxAmount + 
 			(CASE WHEN
 			(SELECT SUM(BillingAmount) FROM DBO.SalesOrderQuoteCharges WITH (NOLOCK) WHERE SalesOrderQuoteId = soq.SalesOrderQuoteId AND IsActive = 1 AND IsDeleted = 0 AND SalesOrderQuotePartId = soqp.SalesOrderQuotePartId) IS NULL THEN 
 			0 ELSE 

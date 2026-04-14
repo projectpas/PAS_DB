@@ -35,8 +35,8 @@
     [ManagementStructureId]    BIGINT          NOT NULL,
     [Version]                  INT             NOT NULL,
     [AgentId]                  BIGINT          NULL,
-    [QtyRequested]             INT             CONSTRAINT [DF__SalesOrde__QtyRe__43C1CFF5] DEFAULT ((0)) NULL,
-    [QtyToBeQuoted]            INT             CONSTRAINT [DF__SalesOrde__QtyTo__44B5F42E] DEFAULT ((0)) NULL,
+    [QtyRequested]             DECIMAL (18, 6) CONSTRAINT [DF__SalesOrde__QtyRe__43C1CFF5] DEFAULT ((0)) NULL,
+    [QtyToBeQuoted]            DECIMAL (18, 6) CONSTRAINT [DF__SalesOrde__QtyTo__44B5F42E] DEFAULT ((0)) NULL,
     [SalesOrderQuoteNumber]    VARCHAR (50)    NOT NULL,
     [QuoteSentDate]            DATETIME2 (7)   NULL,
     [IsNewVersionCreated]      BIT             CONSTRAINT [DF__SalesOrde__IsNew__45AA1867] DEFAULT ((0)) NOT NULL,
@@ -93,6 +93,8 @@
     CONSTRAINT [FK_SalesOrderQuote_MasterSalesOrderQuoteTypes] FOREIGN KEY ([QuoteTypeId]) REFERENCES [dbo].[MasterSalesOrderQuoteTypes] ([Id]),
     CONSTRAINT [FK_SalesOrderQuote_Percent] FOREIGN KEY ([ProbabilityId]) REFERENCES [dbo].[Percent] ([PercentId])
 );
+
+
 
 
 

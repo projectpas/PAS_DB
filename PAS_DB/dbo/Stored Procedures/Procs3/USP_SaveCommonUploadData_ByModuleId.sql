@@ -1,4 +1,5 @@
-﻿/***************************************************************  
+﻿
+/***************************************************************  
  ** File:   [USP_SaveCommonUploadData_ByModuleId]             
  ** Author:   Devendra Shekh
  ** Description: This stored procedure is used to add upload Data
@@ -228,7 +229,7 @@ BEGIN
 			WHERE IMF.[ModuleId] = @ModuleId  AND NOT ((@ModuleId = @PriceMasterModule OR @ModuleId = @PurchaseSalesModule OR @ModuleId = @MROPriceMasterModule  OR @ModuleId = @MROPriceMasterListModule) AND IMF.FieldName = 'ManufacturerId' );			
 			
 			--DECLARE @Qty AS INT;
-			DECLARE @Qty AS DECIMAL(18,2);
+			DECLARE @Qty AS DECIMAL(18,6);
 			DECLARE @PurchaseUOMId AS BIGINT;
 			DECLARE @ManagementStructureId AS BIGINT;
 			
@@ -282,7 +283,7 @@ BEGIN
 				END
 				SELECT @ManufacturerId = FieldValue FROM #DynamicKeyValue WHERE FieldName = 'ManufacturerId';
 				--SELECT @Qty = FieldValue FROM #DynamicKeyValue WHERE FieldName = 'QuantityOnHand';
-				SELECT @Qty = TRY_CAST(FieldValue AS DECIMAL(18,2))FROM #DynamicKeyValue WHERE FieldName = 'QuantityOnHand';
+				SELECT @Qty = TRY_CAST(FieldValue AS DECIMAL(18,6))FROM #DynamicKeyValue WHERE FieldName = 'QuantityOnHand';
 
 				IF OBJECT_ID(N'tempdb..#tmpCodePrefixes') IS NOT NULL
                 BEGIN
@@ -1350,9 +1351,9 @@ BEGIN
 				DECLARE @StocklineHistoryActionId BIGINT = 1;
                 SELECT @ManagementStructureEntityId = [ManagementStructureId] FROM DBO.Stockline WITH (NOLOCK) WHERE StocklineId = @ModuleTableId;
 				--DECLARE @QuantityOnHand BIGINT = 0;
-				DECLARE @QuantityOnHand DECIMAL(18,2) = 0;
+				DECLARE @QuantityOnHand DECIMAL(18,6) = 0;
 				--SET @QuantityOnHand = (select FieldValue from #DynamicKeyValue where FieldName = 'QuantityOnHand')
-				SET @QuantityOnHand = TRY_CAST((SELECT FieldValue FROM #DynamicKeyValue WHERE FieldName = 'QuantityOnHand') AS DECIMAL(18,2))
+				SET @QuantityOnHand = TRY_CAST((SELECT FieldValue FROM #DynamicKeyValue WHERE FieldName = 'QuantityOnHand') AS DECIMAL(18,6))
 				DECLARE @UpdatedBy AS VARCHAR(200);
 				SET @UpdatedBy = (select FieldValue from #DynamicKeyValue where FieldName = 'UpdatedBy')
 				

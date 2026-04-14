@@ -371,7 +371,7 @@ BEGIN
 								CASE WHEN @CrDrType = 1 THEN 1 ELSE 0 END,
 								CASE WHEN @CrDrType = 1 THEN @TotalFreight ELSE 0 END,
 								CASE WHEN @CrDrType = 1 THEN 0 ELSE @TotalFreight END,@ManagementStructureId,
-								@ModuleName,@LastMSLevel,@AllMSlevels ,@MasterCompanyId,@UpdateBy + '111',@UpdateBy,
+								@ModuleName,@LastMSLevel,@AllMSlevels ,@MasterCompanyId,@UpdateBy,@UpdateBy,
 								GETUTCDATE(),GETUTCDATE(),1,0,@ReceivingReconciliationId)
 
 					SET @CommonJournalBatchDetailId = SCOPE_IDENTITY();
@@ -438,7 +438,7 @@ BEGIN
 									CASE WHEN @CrDrType = 1 THEN 1 ELSE 0 END,
 									CASE WHEN @CrDrType = 1 THEN ROUND((@FreightInvCost),2)  ELSE 0 END,
 									CASE WHEN @CrDrType = 1 THEN 0 ELSE ROUND((@FreightInvCost),2) END,
-									@ManagementStructureId,@ModuleName,@LastMSLevel,@AllMSlevels,@MasterCompanyId, @UpdateBy + '222',
+									@ManagementStructureId,@ModuleName,@LastMSLevel,@AllMSlevels,@MasterCompanyId, @UpdateBy,
 									@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@ReceivingReconciliationId);
 
 						SET @CommonJournalBatchDetailId = SCOPE_IDENTITY()
@@ -481,7 +481,7 @@ BEGIN
 									CASE WHEN @CrDrType = 1 THEN 1 ELSE 0 END,
 									CASE WHEN @CrDrType = 1 THEN ROUND((@FreightInvCogs),2)  ELSE 0 END,
 									CASE WHEN @CrDrType = 1 THEN 0 ELSE ROUND((@FreightInvCogs),2) END,
-									@ManagementStructureId,@ModuleName,@LastMSLevel,@AllMSlevels,@MasterCompanyId, @UpdateBy + '333',
+									@ManagementStructureId,@ModuleName,@LastMSLevel,@AllMSlevels,@MasterCompanyId, @UpdateBy,
 									@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@ReceivingReconciliationId);
 													
 						SET @CommonJournalBatchDetailId = SCOPE_IDENTITY()
@@ -516,7 +516,7 @@ BEGIN
 								CASE WHEN @CrDrType = 1 THEN 1 ELSE 0 END,
 								CASE WHEN @CrDrType = 1 THEN @TotalFreight ELSE 0 END,
 								CASE WHEN @CrDrType = 1 THEN 0 ELSE @TotalFreight END,@ManagementStructureId,
-								@ModuleName,@LastMSLevel,@AllMSlevels ,@MasterCompanyId,@UpdateBy,@UpdateBy + '444',
+								@ModuleName,@LastMSLevel,@AllMSlevels ,@MasterCompanyId,@UpdateBy,@UpdateBy,
 								GETUTCDATE(),GETUTCDATE(),1,0,@ReceivingReconciliationId)
 
 					SET @CommonJournalBatchDetailId = SCOPE_IDENTITY();
@@ -558,7 +558,7 @@ BEGIN
 									CASE WHEN @CrDrType = 1 THEN 1 ELSE 0 END,
 									CASE WHEN @CrDrType = 1 THEN ROUND((@TotalFreight),2)  ELSE 0 END,
 									CASE WHEN @CrDrType = 1 THEN 0 ELSE ROUND((@TotalFreight),2) END,
-									@ManagementStructureId,@ModuleName,@LastMSLevel,@AllMSlevels,@MasterCompanyId, @UpdateBy + '444',
+									@ManagementStructureId,@ModuleName,@LastMSLevel,@AllMSlevels,@MasterCompanyId, @UpdateBy,
 									@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@ReceivingReconciliationId);
 
 						SET @CommonJournalBatchDetailId = SCOPE_IDENTITY()

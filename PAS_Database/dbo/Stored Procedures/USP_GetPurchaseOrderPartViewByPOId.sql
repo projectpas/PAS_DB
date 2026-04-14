@@ -13,6 +13,7 @@
 ** 1    20-Nov-2024		RAJESH GAMI		    CREATED
    2    24-Dec-2024		Ayushi Patel		Return functional and report currency
    3    14-Apr-2026		DB Review			Added SalesOrderQuoteId, SalesOrderQuoteNumber fields
+   4    14-Apr-2026		DB Review			Fixed truncation risk: LotNumber, ReapairOrderNo VARCHAR(100) → VARCHAR(MAX)
 
 --EXEC [dbo].[USP_GetPurchaseOrderPartViewByPOId] 3131 ,NULL,NULL
 **************************************************************/ 
@@ -256,8 +257,8 @@ BEGIN
 					IsSubWO BIT NULL,
 					ExpectedSerialNumber VARCHAR(250) NULL,POChargesCount INT NULL, POFrightsCount INT NULL,IsApproved BIT NULL,
 					LastMSLevel VARCHAR(MAX) NULL,AllMSlevels VARCHAR(MAX) NULL,
-					LotNumber VARCHAR(100) NULL,
-					ReapairOrderNo VARCHAR(100) NULL,
+					LotNumber VARCHAR(MAX) NULL,
+					ReapairOrderNo VARCHAR(MAX) NULL,
 					StockLineCount INT NULL,
 					DraftedStockLineCount INT NULL,
 					PurchaseUnitOfMeasureId BIGINT NULL,

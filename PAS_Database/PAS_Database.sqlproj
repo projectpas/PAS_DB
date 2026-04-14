@@ -4486,6 +4486,8 @@
     <Build Include="dbo\Tables\TrainingName.sql" />
     <Build Include="dbo\Views\vw_TrainingName.sql" />
     <Build Include="dbo\Views\vw_PositionCode.sql" />
+    <Build Include="dbo\Tables\AircraftMaintenanceProgram.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetAircraftMaintenanceList.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

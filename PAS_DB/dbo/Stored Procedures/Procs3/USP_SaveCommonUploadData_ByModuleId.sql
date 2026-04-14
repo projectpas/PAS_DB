@@ -965,7 +965,7 @@ BEGIN
 			BEGIN
 				DECLARE @SP_FSP_UOMId BIGINT = (SELECT FieldValue FROM #DynamicKeyValue WHERE FieldName = 'PP_UOMId')
 				DECLARE @SP_FSP_CurrencyId BIGINT = (SELECT FieldValue FROM #DynamicKeyValue WHERE FieldName = 'PP_CurrencyId');
-				SET @SP_CalSPByPP_MarkUpPercOnListPriceValue = (SELECT ISNULL(TRY_CAST(NULLIF(FieldValue, '') AS BIGINT), 0) FROM #DynamicKeyValue WHERE FieldName = 'SP_CalSPByPP_MarkUpPercOnListPrice');
+				SET @SP_CalSPByPP_MarkUpPercOnListPriceValue = (SELECT ISNULL(TRY_CAST(NULLIF(FieldValue, '') AS DECIMAL(18,2)), 0) FROM #DynamicKeyValue WHERE FieldName = 'SP_CalSPByPP_MarkUpPercOnListPrice');
 			
 				--IF @SP_CalSPByPP_MarkUpPercOnListPriceValue > 0
 				--BEGIN

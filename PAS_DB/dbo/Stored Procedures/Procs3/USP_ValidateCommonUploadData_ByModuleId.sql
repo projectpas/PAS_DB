@@ -1,4 +1,5 @@
-﻿/*******  
+﻿
+/*******  
  ** File:   [USP_ValidateCommonUploadData_ByModuleId]             
  ** Author:   Devendra Shekh
  ** Description: This stored procedure is used to add upload Data
@@ -37,11 +38,18 @@
 	27   26-Nov-2025        Ayushi Patel            Added common validation for FieldType = 'number' to allow only whole numeric values (no decimals, no alphabets), and return appropriate RecordStatus message.
 	28   26-Nov-2025        Ayushi Patel            Added condition to skip duplicate validation SP when any RecordStatus contains error.
 	29	 02-DEC-2025        Ayushi Patel			Added New SingleScreen Modules
-	30	 17-DEC-2025        Nakul Chandigara  		Added New SingleScreen Modules
-	31	 18-DEC-2025        Nakul Chandigara  		Added New SingleScreen Modules
+	30	 17-DEC-2025        Nakul Chandigra  		Added New SingleScreen Modules
+	31	 18-DEC-2025        Nakul Chandigra  		Added New SingleScreen Modules
 	32   22-Dec-2025		Divyesh Kathiriya  		Added validation for Site,Warehouse,Location,Shelf,Bin
 	33   13-Jan-2026		Divyesh Kathiriya  		Added validation for "ItemMaster" of Dropdown value.
-	34   09-APR-2026		Ayushi Patel			PN-15988 Excluded StocklineModule from restricting Decimal number
+	34	 02-Feb-2026        Nakul Chandigra  		Added New SingleScreen Modules
+	35	 26-MAR-2026		Nakul Chandigra			Added Valiodation For  AircraftStatus And MaintenanceStatus
+	36   30-MAR-2026		Ayushi Patel			PN-15831 Removed one unnecessary condition which was causing the issue 
+	37   30-MAR-2026		Nakul Chandigra			Removed extra case from the validation for  @AircraftStatusModule And @MaintenanceStatusModule (PN-15874)
+	38   02-APR-2026		Nakul Chandigra			Implemented maximum length validation for Name and Description fields in AircraftStatusModule and MaintenanceStatusModule (PN-15873).
+	39   06-APR-2026		Nakul Chandigra			Add extra case of the validation for  @AircraftStatusModule And @MaintenanceStatusModule (PN-15945)
+	40   07-APR-2026        Nakul Chandigra			Add a common case of validation for dropdown (PN-15950)
+	41   09-APR-2026		Ayushi Patel			PN-15988 Excluded StocklineModule from restricting Decimal number
 declare @p4 dbo.UploadModuleDataTableType
 insert into @p4 values(4,N'VICTOR ADMAS',1,N'{
   "partnumber": "AEIN122",
@@ -105,7 +113,7 @@ BEGIN
 		DECLARE @AlterModule AS BIGINT, @GLModule AS BIGINT, @ItemMasterModule AS BIGINT, @CustomerModule AS BIGINT,@StocklineModule AS BIGINT, @EmployeeModule AS BIGINT, @DiscountModule AS BIGINT;
 		DECLARE @DefaultMessageModule AS BIGINT, @CertificationTypeModule AS BIGINT, @LeadSource AS BIGINT, @UnitOfMeasureModule AS BIGINT, @AssetAcquisitionTypeModule AS BIGINT, @DocumentTypeModule AS BIGINT , @ShippingViaModule AS BIGINT;
 		DECLARE @AssetAttributeType AS BIGINT
-
+	
 		DECLARE @POROCategory AS BIGINT , @CapabilityTypeModule AS BIGINT , @VendorClassificationModule AS BIGINT , @chargeModule AS BIGINT;;
 		DECLARE @PriceMasterModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'PriceMaster');
 		DECLARE @PurchaseSalesModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'PurchaseSales');
@@ -207,7 +215,11 @@ BEGIN
 		DECLARE @EvidenceModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'Evidence');
 		DECLARE @LocationModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'Location');
 		DECLARE @PublicationTypeModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'PublicationType');
-		
+		DECLARE @ShelfModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'Shelf');
+		DECLARE @BinModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'Bin');
+		DECLARE @AircraftStatusModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'AircraftStatus');
+		DECLARE @MaintenanceStatusModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'MaintenanceStatus');
+
 		DECLARE @DropdownListTable VARCHAR(100) = NULL, 
 		@DropdownListId VARCHAR(100) = NULL, 
 		@DropdownListValue VARCHAR(100) = NULL, 
@@ -324,9 +336,8 @@ BEGIN
 			FROM [DBO].[ImportModuleFieldMaster] IMF WITH(NOLOCK)
 			LEFT JOIN #DynamicKeyValue TMP ON TMP.FieldName = IMF.FieldName
 			WHERE IMF.[ModuleId] = @ModuleId
-			
 			--ORDER BY IMF.DisplaySortOrder ASC
-			--SELECT * FROM #ImportFields ----R
+			--SELECT * FROM #ImportFields 
 			SELECT @TotalRow = MAX(ImportModuleFieldMasterId), @CurrentRow = MIN(ImportModuleFieldMasterId) FROM #ImportFields;
 			
 			WHILE(@TotalRow >= @CurrentRow)
@@ -368,7 +379,7 @@ BEGIN
 								@FieldValueId = @DropdownListValueId OUTPUT;
 						END
 					END
-					
+								
 					--IF(ISNULL(@DropdownListValueId, '') != '')
 					IF(ISNULL(@DropdownListValueId, '') != '' AND ISNULL(@IsMultiValue, 0) = 0)
 					BEGIN
@@ -613,15 +624,14 @@ BEGIN
 					SET @BinError = 0
 				END	
 			END			
-			
 			UPDATE TMP
 			SET TMP.[RecordStatus] =	CASE	WHEN ISNULL(IMF.IsRequired, 0) = 1 AND ISNULL(TMP.FieldValue, '') = '' THEN IMF.HeaderName + ' is Required'
 												WHEN ISNULL(IMF.IsRequired, 0) = 1 AND ISNULL(IMF.DropdownListType, '') != ''  AND ISNULL(IMF.FieldValue, '') = '' THEN IMF.HeaderName + ' is Required'
 												WHEN (@ModuleId = @ItemMasterModule) AND ISNULL(IMF.IsRequired, 0) = 0 AND ISNULL(IMF.DropdownListType, '') != '' AND ISNULL(IMF.FieldValue, '') = '' THEN ''
 												WHEN (@ModuleId = @ItemMasterModule)
 												THEN LTRIM(RTRIM(
-															CASE
-																WHEN ISNULL(IMF.DropdownListType, '') != ''  AND ISNULL(IMF.DropdownListValueId, '') = '' 
+															CASE 
+															WHEN ISNULL(IMF.DropdownListType, '') != ''  AND ISNULL(IMF.DropdownListValueId, '') = '' 
 																THEN 'Please Enter Correct  ' + IMF.HeaderName
 																ELSE ''
 															END
@@ -657,7 +667,7 @@ BEGIN
 															TRY_CAST(TMP.FieldValue AS INT) IS NULL 
 															OR CHARINDEX('.', TMP.FieldValue) > 0  
 														 )
-													 AND @ModuleId NOT IN (@PriceMasterModule, @StocklineModule)
+													AND @ModuleId NOT IN (@PriceMasterModule, @StocklineModule)
 												THEN IMF.HeaderName + ' must be a whole number (decimals not allowed)'
 												WHEN (@ModuleId = @MROPriceMasterModule OR @ModuleId = @MROPriceMasterListModule)
 													 AND IMF.FieldName = 'CustomerId' 
@@ -666,12 +676,10 @@ BEGIN
 													 AND UPPER(TRIM(TMP.FieldValue)) = 'ALL'
 												THEN
 													' '	
-
 												WHEN ISNULL(IMF.DropdownListType, '') != ''  
 													 AND ISNULL(IMF.DropdownListValueId, '') = '' 
 												THEN 
 													'Please Enter Correct  ' + IMF.HeaderName 
-
 												-- FlatRatePrice Validation (checking for numeric value and greater than 0)
 												WHEN (@ModuleId = @MROPriceMasterModule OR @ModuleId = @MROPriceMasterListModule)
 														AND ISNULL(TMP.FieldValue, '') != '' 
@@ -769,6 +777,31 @@ BEGIN
 												--WHEN IMF.DropdownListValue = 'PartNumber' AND @ManufacturerId IS NOT NULL AND @ManufacturerName IS NOT NULL 
 												--	AND LOWER(@ManufacturerId) != LOWER(@ManufacturerName) THEN 'Incorrect Manufacturer'
 												WHEN ISNULL(IMF.DuplicateErrorMsg, '') != '' THEN IMF.DuplicateErrorMsg
+												WHEN @ModuleId = @AircraftStatusModule 
+													 AND IMF.FieldName = 'Name'  
+													 AND ISNULL(TMP.FieldValue, '') <> ''
+													 AND LEN(TMP.FieldValue) > 100
+												THEN '‘Name’ exceeds 100 characters limit.'
+												WHEN @ModuleId = @MaintenanceStatusModule  
+													 AND IMF.FieldName = 'Name'  
+													 AND ISNULL(TMP.FieldValue, '') <> ''
+													 AND LEN(TMP.FieldValue) > 100
+												THEN '‘Name’ exceeds 100 characters limit.'
+												WHEN @ModuleId = @AircraftStatusModule 
+													 AND IMF.FieldName = 'Name'  
+													 AND ISNULL(TMP.FieldValue, '') <> ''
+													 AND LEN(TMP.FieldValue) > 100
+												THEN '‘Name’ exceeds 100 characters limit.'
+												WHEN @ModuleId = @MaintenanceStatusModule  
+													 AND IMF.FieldName = 'Description'  
+													 AND ISNULL(TMP.FieldValue, '') <> ''
+													 AND LEN(TMP.FieldValue) > 500
+												THEN '‘Description’ exceeds 500 characters limit.'
+												WHEN @ModuleId = @AircraftStatusModule  
+													 AND IMF.FieldName = 'Description'  
+													 AND ISNULL(TMP.FieldValue, '') <> ''
+													 AND LEN(TMP.FieldValue) > 500
+												THEN '‘Description’ exceeds 500 characters limit.'
 										ELSE ' '
 										END,
 				TMP.FieldValue = CASE WHEN ISNULL(IMF.DropdownListTable, '') != '' THEN IMF.DropdownListValueId ELSE TMP.FieldValue END
@@ -819,19 +852,6 @@ BEGIN
 				SET @CurrentRow += 1;
 			END
 
-			--IF(@ModuleId = @LocationModule)
-			--BEGIN 
-			--	DECLARE @WarehouseId BIGINT
-			--	SELECT @SiteName = FieldValue FROM #DynamicKeyValue WHERE FieldName = 'SiteId';
-			--	SELECT @WarehouseName = FieldValue FROM #DynamicKeyValue WHERE FieldName = 'WarehouseId';
-			--	SELECT @siteId = siteId FROM [Site] WHERE [Name] = @SiteName AND MasterCompanyId = @MasterCompanyId;
-			--	SELECT @WarehouseId = WarehouseId FROM Warehouse WHERE @WarehouseName = [Name] AND MasterCompanyId = @MasterCompanyId;
-
-			--	UPDATE #ImportFields
-			--	SET FieldValue = @WarehouseId 
-			--	WHERE FieldName = 'WarehouseId'
-			--END 
-
 			SELECT @TotalRow = MAX(ImportModuleFieldMasterId), @CurrentRow = MIN(ImportModuleFieldMasterId) FROM #ImportFields;
 			WHILE(@TotalRow >= @CurrentRow)
 			BEGIN
@@ -861,7 +881,6 @@ BEGIN
 							EXEC [dbo].[USP_ChekDuplicateValueForUpload] @ChekDuplticateRef1, @ChekDuplticateRef2, @DuplicateRefeValue1, @DuplicateRefeValue2, @ReferenceTable, @MasterCompanyId, @ModuleId, @UploadData, @UploadRecord, @IsDuplicate = @IsDuplicate OUTPUT;
 						END
 					END
-			
 					IF(ISNULL(@IsDuplicate, 0) = 1)
 					BEGIN
 						UPDATE #ImportFields 
@@ -993,7 +1012,7 @@ BEGIN
 														WHEN @ModuleId = @AssetAttributeTypeModule THEN 'Entered Name Already Exits!'
 														WHEN @ModuleId = @SiteModule THEN 'Entered Name Already Exits!'
 														WHEN @ModuleId = @WarehouseModule THEN 'Entered Name Already Exits!'
-														WHEN @ModuleId = @LocationModule THEN 'Entered Name Already Exits!'
+														--WHEN @ModuleId = @LocationModule THEN 'Entered Name Already Exits!'
 														WHEN @ModuleId = @FindingModule AND @ChekDuplticateRef1 = 'FindingCode'
 															THEN 'Entered Code Already Exists!'
 														WHEN @ModuleId = @FindingModule AND @ChekDuplticateRef1 = 'Description'
@@ -1070,14 +1089,24 @@ BEGIN
 															THEN 'Entered Reason Already Exists!'
 														WHEN @ModuleId = @EvidenceModule AND @ChekDuplticateRef1 = 'EvidenceName'  
 															THEN 'Entered Evidence Already Exists!'
-														--WHEN @ModuleId = @LocationModule    
-														--	THEN 'Entered Location Name And Warehouse Already Exists!'
+														WHEN @ModuleId = @LocationModule 
+															THEN 'Entered Location Name Already Exists In This Warehouse !'
 														WHEN @ModuleId = @PublicationTypeModule AND @ChekDuplticateRef1 = 'Name'  
 															THEN 'Entered Pub Name Already Exists!'
 														WHEN @ModuleId = @PublicationTypeModule AND @ChekDuplticateRef1 = 'Description'  
 															THEN 'Entered Description Already Exists!'
-
-		
+														WHEN @ModuleId = @ShelfModule 
+															THEN 'Entered Shelf Name Already Exists In This Location !'
+														WHEN @ModuleId = @BinModule 
+															THEN 'Entered Bin Name Already Exists In This Shelf !'
+														WHEN @ModuleId = @AircraftStatusModule AND @ChekDuplticateRef1 = 'Name'  
+															THEN 'Entered Name Already Exists!'
+														WHEN @ModuleId = @MaintenanceStatusModule AND @ChekDuplticateRef1 = 'Name'  
+															THEN 'Entered Name Already Exists!'
+														WHEN @ModuleId = @AircraftStatusModule AND @ChekDuplticateRef1 = 'SequenceNo'  
+															THEN 'Entered SequenceNo Already Exists!'
+														WHEN @ModuleId = @MaintenanceStatusModule AND @ChekDuplticateRef1 = 'SequenceNo'  
+															THEN 'Entered SequenceNo Already Exists!'
 														ELSE '' END
 						WHERE ImportModuleFieldMasterId = @CurrentRow;
 					END

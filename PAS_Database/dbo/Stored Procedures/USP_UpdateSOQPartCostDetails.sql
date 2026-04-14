@@ -19,6 +19,7 @@
 	3   12/12/2014    Vishal Suthar		Resolved issue with price calculation
 	4   21-01-2025    Shrey Chandegara  Add Charge in total Revenue
 	5   12-03-2026    Hemant Saliya		Corrected Charges Calucation
+	8   10-Apr-026    Bhargav Saliya	 UOM Changes
      
  EXECUTE USP_UpdateSOQPartCostDetails 745, 551, 'ADMIN User', 1
 **************************************************************/ 
@@ -46,21 +47,21 @@ SET NOCOUNT ON
 					ID BIGINT NOT NULL IDENTITY, 
 					[SalesOrderQuoteId] [bigint] NOT NULL,
 					[SalesOrderQuotePartId] [bigint] NOT NULL,
-					[UnitSalesPrice] [decimal](18, 4) NULL,
-					[SalesPriceExtended] [decimal](18, 4) NULL,
-					[MarkUpPercentage] [decimal](18, 4) NULL,
-					[MarkUpAmount] [decimal](18, 4) NULL,
-					[DiscountAmount] [decimal](18, 4) NULL,
-					[GrossSaleAmount] [decimal](18, 4) NULL,
-					[NetSaleAmount] [decimal](18, 4) NULL,
-					[MiscCharges] [decimal](18, 4) NULL,
-					[Freight] [decimal](18, 4) NULL,
-					[TaxAmount] [decimal](18, 4) NULL,
-					[TaxPercentage] [decimal](18, 4) NULL,
-					[UnitCost] [decimal](18, 4) NULL,
-					[UnitCostExtended] [decimal](18, 4) NULL,
-					[MarginAmount] [decimal](18, 4) NULL,
-					[MarginPercentage] [decimal](18, 4) NULL
+					[UnitSalesPrice] [decimal](18, 6) NULL,
+					[SalesPriceExtended] [decimal](18, 6) NULL,
+					[MarkUpPercentage] [decimal](18, 6) NULL,
+					[MarkUpAmount] [decimal](18, 6) NULL,
+					[DiscountAmount] [decimal](18, 6) NULL,
+					[GrossSaleAmount] [decimal](18, 6) NULL,
+					[NetSaleAmount] [decimal](18, 6) NULL,
+					[MiscCharges] [decimal](18, 6) NULL,
+					[Freight] [decimal](18, 6) NULL,
+					[TaxAmount] [decimal](18, 6) NULL,
+					[TaxPercentage] [decimal](18, 6) NULL,
+					[UnitCost] [decimal](18, 6) NULL,
+					[UnitCostExtended] [decimal](18, 6) NULL,
+					[MarginAmount] [decimal](18, 6) NULL,
+					[MarginPercentage] [decimal](18, 6) NULL
 				)
 
 				INSERT INTO #SOQPartCostDetails (SalesOrderQuoteId, SalesOrderQuotePartId)

@@ -1,12 +1,12 @@
 ﻿CREATE TABLE [dbo].[SalesOrderQuoteCost] (
     [SalesOrderQuoteCostId] BIGINT          IDENTITY (1, 1) NOT NULL,
     [SalesOrderQuoteId]     BIGINT          NOT NULL,
-    [SubTotal]              DECIMAL (18, 4) NULL,
+    [SubTotal]              DECIMAL (18, 6) NULL,
     [SalesTax]              DECIMAL (18, 4) NULL,
     [OtherTax]              DECIMAL (18, 4) NULL,
     [MiscCharges]           DECIMAL (18, 4) NULL,
     [Freight]               DECIMAL (18, 4) NULL,
-    [NetTotal]              DECIMAL (18, 4) NULL,
+    [NetTotal]              DECIMAL (18, 6) NULL,
     [MasterCompanyId]       INT             NOT NULL,
     [CreatedBy]             VARCHAR (256)   NOT NULL,
     [CreatedDate]           DATETIME2 (7)   CONSTRAINT [DF_SalesOrderQuoteCost_CreatedDate] DEFAULT (getutcdate()) NOT NULL,
@@ -15,9 +15,11 @@
     [IsActive]              BIT             CONSTRAINT [DF_SalesOrderQuoteCost_IsActive] DEFAULT ((1)) NOT NULL,
     [IsDeleted]             BIT             CONSTRAINT [DF_SalesOrderQuoteCost_IsDeleted] DEFAULT ((0)) NOT NULL,
     CONSTRAINT [PK_SalesOrderQuoteCost] PRIMARY KEY CLUSTERED ([SalesOrderQuoteCostId] ASC),
-    CONSTRAINT [FK_SalesOrderQuoteCost_SalesOrderQuote] FOREIGN KEY ([SalesOrderQuoteId]) REFERENCES [dbo].[SalesOrderQuote] ([SalesOrderQuoteId]),
-    CONSTRAINT [FK_SalesOrderQuoteCost_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId])
+    CONSTRAINT [FK_SalesOrderQuoteCost_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId]),
+    CONSTRAINT [FK_SalesOrderQuoteCost_SalesOrderQuote] FOREIGN KEY ([SalesOrderQuoteId]) REFERENCES [dbo].[SalesOrderQuote] ([SalesOrderQuoteId])
 );
+
+
 
 
 

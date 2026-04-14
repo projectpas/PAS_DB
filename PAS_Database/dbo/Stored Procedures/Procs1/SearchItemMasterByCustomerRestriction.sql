@@ -19,7 +19,8 @@
 	3    02-19-2024		Vishal Suthar	Changed to always exclude customer stocks, and sorting based on availability
 	4    11-21-2024		Amit Ghediya	Get ECCN,HSCODE,Weight,LWH for billing.
 	5    05-01-2025		ABHISHEK JIRAWLA Allow Repair Management Customer Stock Stockline
-	9    07/01/2026   Rajesh Gami		Added MasterCompanyId Parameter While Calling UOM Conversion Function     
+	6    07/01/2026   Rajesh Gami		Added MasterCompanyId Parameter While Calling UOM Conversion Function     
+	7    10/04/2026   Bhargav Saliya	Change to    [StockUnitOfMeasure] to [PurchaseUnitOfMeasure] For UnitCost and UnitPost
  EXECUTE [SearchItemMasterByCustomerRestriction] 11, 7, 77,-1
 **************************************************************/ 
 CREATE PROCEDURE [dbo].[SearchItemMasterByCustomerRestriction]
@@ -70,9 +71,9 @@ BEGIN
 						END AS Oempmader
 					,@MappingType AS MappingType
 				    --,imps.PP_UnitPurchasePrice AS UnitCost
-					,([dbo].[fn_ConvertUOM](ISNULL(imps.PP_UnitPurchasePrice, 0),im.[StockUnitOfMeasure], im.[ConsumeUnitOfMeasure],1,im.MasterCompanyId)) AS UnitCost
+					,([dbo].[fn_ConvertUOM](ISNULL(imps.PP_UnitPurchasePrice, 0),im.[PurchaseUnitOfMeasure], im.[ConsumeUnitOfMeasure],1,im.MasterCompanyId)) AS UnitCost
 					--,imps.SP_CalSPByPP_UnitSalePrice AS UnitSalePrice
-					,([dbo].[fn_ConvertUOM](ISNULL(imps.SP_CalSPByPP_UnitSalePrice, 0),im.[StockUnitOfMeasure], im.[ConsumeUnitOfMeasure],1,im.MasterCompanyId)) AS UnitSalePrice
+					,([dbo].[fn_ConvertUOM](ISNULL(imps.SP_CalSPByPP_UnitSalePrice, 0),im.[PurchaseUnitOfMeasure], im.[ConsumeUnitOfMeasure],1,im.MasterCompanyId)) AS UnitSalePrice
 					--,imps.PP_FXRatePerc AS FixRate
 					,([dbo].[fn_ConvertUOM](ISNULL(imps.PP_FXRatePerc, 0),im.[StockUnitOfMeasure], im.[ConsumeUnitOfMeasure],1,im.MasterCompanyId)) AS FixRate
 					,ime.ExportECCN AS ECCN

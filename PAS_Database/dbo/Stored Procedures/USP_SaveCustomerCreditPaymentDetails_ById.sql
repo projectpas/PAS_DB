@@ -20,6 +20,7 @@ EXEC [USP_SaveCustomerCreditPaymentDetails_ById]
    7    04/05/2024      Devendra Shekh      able to add suspense with known customer without any invoices
    8    31-Mar-2026		Rajesh Gami			UOM Conversion Changes [PN-15866]
    9    10/04/2026      Moin Bloch          Added New Field [IsNonInvoicePayment] PN-15989
+   10   13/04/2026      Moin Bloch          Restrict Suspense Entry PN-16039
 	EXEC [dbo].[USP_SaveCustomerCreditPaymentDetails_ById] 195,1,'ADMIN User'
 *****************************************************************************/  
 
@@ -146,23 +147,16 @@ BEGIN
 
 				WHILE(@TotalPaymentRec >= @PayMentStartCount)
 				BEGIN
+					DECLARE @IsNonInvoicePayment BIT = 0
 
-					SELECT @CustomerId = CustomerId--, @IsCheckPayment = IsCheckPayment, @IsWireTransger = IsWireTransfer, @IsCCDCPayment = IsCCDCPayment
+					SELECT @CustomerId = [CustomerId],
+						   @IsNonInvoicePayment = ISNULL([IsNonInvoicePayment],0)
 					FROM #CustomerPayment WHERE Id = @PayMentStartCount;
-				
-					--IF(@IsCheckPayment = 1)
-					--BEGIN
-					--	SELECT TOP 1 @CheckNumber = CheckNumber, @CheckDate = CheckDate, @PaymentId = CheckPaymentId FROM [dbo].[InvoiceCheckPayment] WITH(NOLOCK) WHERE ReceiptId = @ReceiptId AND CustomerId = @CustomerId;
-					--END
-					--ELSE IF(@IsWireTransger = 1)
-					--BEGIN
-					--	SELECT TOP 1 @CheckNumber = ReferenceNo, @PaymentId = WireTransferId FROM [dbo].[InvoiceWireTransferPayment] WITH(NOLOCK) WHERE ReceiptId = @ReceiptId AND CustomerId = @CustomerId;
-					--END
-					--ELSE IF(@IsCCDCPayment = 1)
-					--BEGIN
-					--	SELECT TOP 1 @CheckNumber = Reference, @PaymentId = CreditDebitPaymentId FROM [dbo].[InvoiceCreditDebitCardPayment] WITH(NOLOCK) WHERE ReceiptId = @ReceiptId AND CustomerId = @CustomerId;
-					--END
 
+					IF(@IsNonInvoicePayment = 0)
+					BEGIN
+				
+					
 					/*************** Prefixes ***************/		   			
 					IF OBJECT_ID(N'tempdb..#tmpCodePrefixes') IS NOT NULL
 					BEGIN
@@ -256,6 +250,8 @@ BEGIN
 
 						TRUNCATE TABLE #CustomerPaymentChild;
 						SET @ChildPayMentStartCount = 1;
+
+					END
 
 					END
 

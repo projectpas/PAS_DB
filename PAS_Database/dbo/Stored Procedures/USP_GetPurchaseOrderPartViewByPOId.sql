@@ -6,12 +6,13 @@
 -- =============================================
 **************************************************************
 
-** Change History 
-**************************************************************   
-** PR   Date			Author				Change Description  
+** Change History
+**************************************************************
+** PR   Date			Author				Change Description
 ** --   --------		-------				--------------------------------
 ** 1    20-Nov-2024		RAJESH GAMI		    CREATED
    2    24-Dec-2024		Ayushi Patel		Return functional and report currency
+   3    14-Apr-2026		DB Review			Added SalesOrderQuoteId, SalesOrderQuoteNumber fields
 
 --EXEC [dbo].[USP_GetPurchaseOrderPartViewByPOId] 3131 ,NULL,NULL
 **************************************************************/ 
@@ -140,9 +141,11 @@ BEGIN
 					TaggedByTypeName VARCHAR(250) NULL,
 					TagDate DATETIME2(7) NULL,
 					IsKit BIT NULL DEFAULT 0,
-					IsSubWO BIT NULL
+					IsSubWO BIT NULL,
+					SalesOrderQuoteId BIGINT NULL,
+					SalesOrderQuoteNumber NVARCHAR(250) NULL
 				);
-				 IF OBJECT_ID(N'tempdb..#tmpSubWOMtbl') IS NOT NULL    
+				 IF OBJECT_ID(N'tempdb..#tmpSubWOMtbl') IS NOT NULL
 				BEGIN    
 					DROP TABLE #tmpSubWOMtbl
 				END
@@ -260,8 +263,10 @@ BEGIN
 					PurchaseUnitOfMeasureId BIGINT NULL,
 					ConditionCodeId BIGINT NULL,
 					Quantity INT NULL,
+					SalesOrderQuoteId BIGINT NULL,
+					SalesOrderQuoteNumber NVARCHAR(250) NULL
 				);
-				INSERT INTO #tmpPoPartList SELECT 
+				INSERT INTO #tmpPoPartList SELECT
 				PurchaseOrderPartRecordId,
 				PurchaseOrderId,
 				ItemMasterId,
@@ -357,8 +362,10 @@ BEGIN
 				TaggedByTypeName,
 				TagDate,
 				IsKit,
-				IsSubWO
-				FROM DBO.PurchaseOrderPart P WITH(NOLOCK) WHERE PurchaseOrderId = @PurchaseOrderId AND ISNULL(IsDeleted,0) = 0 
+				IsSubWO,
+				SalesOrderQuoteId,
+				SalesOrderQuoteNumber
+				FROM DBO.PurchaseOrderPart P WITH(NOLOCK) WHERE PurchaseOrderId = @PurchaseOrderId AND ISNULL(IsDeleted,0) = 0
 				--SELECT * FROM #tmpPoPartList
 				--SELECT * INTO #tmpPoPartList FROM (SELECT * FROM DBO.PurchaseOrderPart WITH(NOLOCK) WHERE PurchaseOrderId = @PurchaseOrderId AND ISNULL(IsDeleted,0) = 0) AS partResult
 				SET @TotalPartsCount = (SELECT COUNT(1) FROM #tmpPoPartList)
@@ -516,7 +523,9 @@ BEGIN
 								TaggedByTypeName,
 								TagDate,
 								POChargesCount,
-								POFrightsCount,[Priority]
+								POFrightsCount,[Priority],
+								SalesOrderQuoteId,
+								SalesOrderQuoteNumber
 								)
 							SELECT (CASE WHEN @ItemTypeId = @ItemTypeIdStock THEN (SELECT TOP 1 PartNumber  FROM DBO.ItemMaster  WITH(NOLOCK) WHERE ItemMasterId = @ItemMasterId)
 										 WHEN @ItemTypeId = @ItemTypeIdNonStock THEN (SELECT TOP 1 PartNumber  FROM DBO.ItemMasterNonStock  WITH(NOLOCK) WHERE MasterPartId = @ItemMasterId)
@@ -551,7 +560,9 @@ BEGIN
 									 AssetModel,AssetClass, ISNULL(IsLotAssigned,0) IsLotAssigned,ISNULL(LotId,0) LotId,ISNULL(LT.WorkOrderMaterialsId,0) WorkOrderMaterialsId,
 									 ExpectedSerialNumber,TraceableTo,TraceableToName,TraceableToType,TagTypeId,TaggedBy,TaggedByName,TaggedByType,TaggedByTypeName,TagDate,
 									 (SELECT COUNT(1) FROM dbo.PurchaseOrderCharges C WITH(NOLOCK) WHERE c.PurchaseOrderPartRecordId= LT.PurchaseOrderPartRecordId and ISNULL(c.IsDeleted,0) = 0)POChargesCount,
-									 (SELECT COUNT(1) FROM dbo.PurchaseOrderFreight C WITH(NOLOCK) WHERE c.PurchaseOrderPartRecordId= LT.PurchaseOrderPartRecordId and ISNULL(c.IsDeleted,0) = 0)POFrightsCount,[Priority]
+									 (SELECT COUNT(1) FROM dbo.PurchaseOrderFreight C WITH(NOLOCK) WHERE c.PurchaseOrderPartRecordId= LT.PurchaseOrderPartRecordId and ISNULL(c.IsDeleted,0) = 0)POFrightsCount,[Priority],
+									 LT.SalesOrderQuoteId,
+									 LT.SalesOrderQuoteNumber
 
 									 FROM #tmpLoopTable LT LEFT JOIN #tmpPOPMs ms on ms.ReferenceID = LT.PurchaseOrderPartRecordId AND ms.ModuleID = @PoPartMGMTModuleId
 									 LEFT JOIN #tmpWOMTble wom on wom.WorkOrderMaterialsId = LT.WorkOrderMaterialsId

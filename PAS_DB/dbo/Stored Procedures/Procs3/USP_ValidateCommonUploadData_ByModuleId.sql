@@ -731,7 +731,9 @@ BEGIN
 													THEN 'Email is not in a valid format'
 												WHEN ISNULL(TMP.FieldValue, '') != '' AND IMF.FieldName = 'QuantityOnHand'
 													AND (
-														TRY_CAST(TMP.FieldValue AS INT) IS NULL OR TRY_CAST(TMP.FieldValue AS INT) <= 0
+														--TRY_CAST(TMP.FieldValue AS INT) IS NULL OR TRY_CAST(TMP.FieldValue AS INT) <= 0
+														TRY_CAST(TMP.FieldValue AS DECIMAL(18,2)) IS NULL 
+														OR TRY_CAST(TMP.FieldValue AS DECIMAL(18,2)) <= 0
 													)
 													THEN 'QuantityOnHand must be a whole number greater than 0'
 												WHEN IMF.FieldName = 'QuantityOnHand'
@@ -1222,7 +1224,9 @@ BEGIN
 													THEN 'Email is not in a valid format'
 												WHEN ISNULL(TMP.FieldValue, '') != '' AND IMF.FieldName = 'QuantityOnHand'
 													AND (
-														TRY_CAST(TMP.FieldValue AS INT) IS NULL OR TRY_CAST(TMP.FieldValue AS INT) <= 0
+														--TRY_CAST(TMP.FieldValue AS INT) IS NULL OR TRY_CAST(TMP.FieldValue AS INT) <= 0
+														TRY_CAST(TMP.FieldValue AS DECIMAL(18,2)) IS NULL 
+														OR TRY_CAST(TMP.FieldValue AS DECIMAL(18,2)) <= 0
 													)
 													THEN 'QuantityOnHand must be a whole number greater than 0'
 												    WHEN IMF.FieldName = 'QuantityOnHand'

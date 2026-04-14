@@ -3,11 +3,11 @@
     [ExchangeSalesOrderShippingId]    BIGINT          NOT NULL,
     [EntryType]                       VARCHAR (100)   NULL,
     [EPU]                             VARCHAR (100)   NULL,
-    [CustomsValue]                    DECIMAL (20, 2) NULL,
-    [NetMass]                         DECIMAL (20, 2) NULL,
+    [CustomsValue]                    DECIMAL (18, 6) NULL,
+    [NetMass]                         DECIMAL (18, 6) NULL,
     [EntryStatus]                     VARCHAR (100)   NULL,
     [EntryNumber]                     VARCHAR (100)   NULL,
-    [VATValue]                        DECIMAL (20, 2) NULL,
+    [VATValue]                        DECIMAL (18, 6) NULL,
     [UCR]                             VARCHAR (100)   NULL,
     [MasterUCR]                       VARCHAR (100)   NULL,
     [MovementRefNo]                   VARCHAR (100)   NULL,
@@ -24,6 +24,8 @@
     CONSTRAINT [FK_ExchangeSalesOrderShippingCustomsInfo_ExchangeSalesOrderShipping] FOREIGN KEY ([ExchangeSalesOrderShippingId]) REFERENCES [dbo].[ExchangeSalesOrderShipping] ([ExchangeSalesOrderShippingId]),
     CONSTRAINT [FK_ExchangeSalesOrderShippingCustomsInfo_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId])
 );
+
+
 
 
 GO

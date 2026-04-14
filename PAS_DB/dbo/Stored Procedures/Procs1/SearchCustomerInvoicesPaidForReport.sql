@@ -16,9 +16,10 @@
 	4   13/03/2024      Moin Bloch      Modify(makes Exchange Invoice to Invoice)
 	5   30/06/2025      Moin Bloch      Modify(Old To New Table)
 	6   23/02/2026      Hemant Patel    Modify(Added Ismiscellaneous Entry)
-
+	7   13/04/2026      Moin Bloch      Modify(Missing data for multiple Non-Invoice Payments) PN-16044
+	
 ************************************************************************/
--- EXEC SearchCustomerInvoicesPaidForReport 196
+-- EXEC SearchCustomerInvoicesPaidForReport 10244
 CREATE     PROCEDURE [dbo].[SearchCustomerInvoicesPaidForReport]
 @ReceiptId bigint = null
 AS
@@ -166,9 +167,9 @@ BEGIN
 					''  AS 'DocumentType',
 					1 AS Ismiscellaneous 
 		  FROM [dbo].[CustomerPayments] CP WITH (NOLOCK) 
-		  LEFT JOIN [dbo].[InvoiceCheckPayment] ICP WITH (NOLOCK)  ON ICP.ReceiptId = CP.ReceiptId AND ICP.Ismiscellaneous = 1   
-		  LEFT JOIN [dbo].[InvoiceWireTransferPayment] IWP WITH (NOLOCK) ON IWP.ReceiptId = CP.ReceiptId AND IWP.Ismiscellaneous = 1   
-		  LEFT JOIN [dbo].[InvoiceCreditDebitCardPayment] ICCP WITH (NOLOCK) ON ICCP.ReceiptId = CP.ReceiptId AND ICCP.Ismiscellaneous = 1  
+		  LEFT JOIN [dbo].[InvoiceCheckPayment] ICP WITH (NOLOCK)  ON ICP.ReceiptId = CP.ReceiptId AND (ICP.Ismiscellaneous = 1  OR ISNULL(ICP.IsNonInvoicePayment,0) = 1) 
+		  LEFT JOIN [dbo].[InvoiceWireTransferPayment] IWP WITH (NOLOCK) ON IWP.ReceiptId = CP.ReceiptId AND (IWP.Ismiscellaneous = 1 OR ISNULL(IWP.IsNonInvoicePayment,0) = 1)    
+		  LEFT JOIN [dbo].[InvoiceCreditDebitCardPayment] ICCP WITH (NOLOCK) ON ICCP.ReceiptId = CP.ReceiptId AND (ICCP.Ismiscellaneous = 1 OR ISNULL(ICCP.IsNonInvoicePayment,0) = 1)   
 		  LEFT JOIN [dbo].[CustomerCreditPaymentDetail] CCPD WITH (NOLOCK)  ON CCPD.ReceiptId = CP.ReceiptId 
 		  LEFT JOIN [dbo].[Customer] CCP WITH (NOLOCK) ON CCP.CustomerId = ICP.CustomerId  
 		  LEFT JOIN [dbo].[Customer] CWP WITH (NOLOCK) ON CWP.CustomerId = IWP.CustomerId  

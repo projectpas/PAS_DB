@@ -1350,7 +1350,7 @@ BEGIN
 				DECLARE @StocklineHistoryActionId BIGINT = 1;
                 SELECT @ManagementStructureEntityId = [ManagementStructureId] FROM DBO.Stockline WITH (NOLOCK) WHERE StocklineId = @ModuleTableId;
 				--DECLARE @QuantityOnHand BIGINT = 0;
-				DECLARE @QuantityOnHand DECIMAL(18,2) = 0;
+				DECLARE @QuantityOnHand DECIMAL(18,6) = 0;
 				--SET @QuantityOnHand = (select FieldValue from #DynamicKeyValue where FieldName = 'QuantityOnHand')
 				SET @QuantityOnHand = TRY_CAST((SELECT FieldValue FROM #DynamicKeyValue WHERE FieldName = 'QuantityOnHand') AS DECIMAL(18,6))
 				DECLARE @UpdatedBy AS VARCHAR(200);

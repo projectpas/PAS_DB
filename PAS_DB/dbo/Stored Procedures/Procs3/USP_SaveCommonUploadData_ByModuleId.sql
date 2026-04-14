@@ -108,8 +108,8 @@ BEGIN
 		DECLARE @IsAddressForBilling VARCHAR(50);				
 		DECLARE @IsAddressForShipping VARCHAR(50);
 		DECLARE @SalePriceSelectId Varchar(30)= '';
-		DECLARE @SP_CalSPByPP_MarkUpPercOnListPriceValue INT =0;
-		DECLARE @SP_CalSPByPP_MarkUpPercOnListPrice INT = 0
+		DECLARE @SP_CalSPByPP_MarkUpPercOnListPriceValue DECIMAL(18,2) =0;
+		DECLARE @SP_CalSPByPP_MarkUpPercOnListPrice DECIMAL(18,2) = 0
 		DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
 		DECLARE @EnumEmployeeGeneralInfo INT;		
 		DECLARE @ItemMasterAssetTypeId INT;

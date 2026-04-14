@@ -1,5 +1,4 @@
-﻿
-/*************************************************************   
+﻿/*************************************************************   
 ** Author:  <Hemant Saliya>  
 ** Create date: <06/12/2023 >  
 ** Description: <Preview Work Order Materials Auto reserve Stockline Details>  
@@ -2172,7 +2171,7 @@ BEGIN
 					UPDATE WOMM SET Condition = (SELECT TOP 1 Condition FROM #SubWorkOrderMaterials WOM WHERE WOMM.SubWorkOrderMaterialsId = WOM.SubWorkOrderMaterialsId AND ISNULL(WOM.Condition, '') != '') 
 					FROM #SubWorkOrderMaterials WOMM WHERE ISNULL(WOMM.Condition, '') = ''
 
-					SELECT DENSE_RANK() OVER (ORDER BY ISNULL(StockLineId,0) DESC) AS RowNumber , 
+					SELECT DENSE_RANK() OVER (ORDER BY ISNULL(wom.StockLineId,0) DESC) AS RowNumber , 
 						[ID], wom.[SubWorkOrderMaterialsId],wom.[SubWorkOrderMaterialsKITId],[SubWorkOrderMaterialsKitMappingId],wom.[WorkOrderId],wom.[SubWorkOrderId],wom.[SubWOPartNoId],wom.[ItemMasterId],
 						wom.[ConditionId],
 						dbo.fn_ConvertUOM(wom.Quantity, uomStock.ShortName, uomConsume.ShortName,0,@MasterCompanyId) AS [Quantity],

@@ -20,8 +20,10 @@
 	8    20/06/2024    Moin Bloch	    Added isDeleted flage
 	9    11/07/2024    Moin Bloch	    Fix For Stand Alone Credit Memo
 	10   10/04/2026    Moin Bloch       Added New Field [IsNonInvoicePayment] PN-15989
+	11   13/04/2026    Moin Bloch       Fix Duplicate lines generated in Review & Post for multiple Non-Invoice Payments PN-16040
+	
 
-	EXEC [dbo].[CustomerPaymentsReview]  155
+	EXEC [dbo].[CustomerPaymentsReview]  10243
 **************************************************************/  
 
 CREATE   PROCEDURE [dbo].[CustomerPaymentsReview]    
@@ -157,44 +159,61 @@ BEGIN
 		
 	  UNION ALL
 
-	  SELECT CP.ReceiptId, 
-			 CASE WHEN ICP.CustomerId IS NOT NULL THEN ICP.CustomerId 
-				  WHEN IWP.CustomerId IS NOT NULL THEN IWP.CustomerId 
-				  WHEN ICCP.CustomerId IS NOT NULL THEN ICCP.CustomerId 
-				  ELSE 0 END AS CustomerId,
-			 CASE WHEN ICP.CustomerId IS NOT NULL THEN CCP.Name 
-				  WHEN IWP.CustomerId IS NOT NULL THEN CWP.Name 
-				  WHEN ICCP.CustomerId IS NOT NULL THEN CCDP.Name 
-				  ELSE '' END AS [Name],
-			 CASE WHEN ICP.CustomerId IS NOT NULL THEN CCP.CustomerCode 
-				  WHEN IWP.CustomerId IS NOT NULL THEN CWP.CustomerCode 
-				  WHEN ICCP.CustomerId IS NOT NULL THEN CCDP.CustomerCode 
-				  ELSE '' END AS CustomerCode,
-			LTRIM(RTRIM(A.PaymentRef)) PaymentRef, 
-			(ISNULL(ICP.Amount, 0) + ISNULL(IWP.Amount, 0) + ISNULL(ICCP.Amount, 0)) AS 'Amount',
-			CASE WHEN ICP.CustomerId IS NOT NULL THEN ISNULL(ICP.[IsNonInvoicePayment],0)
-				  WHEN IWP.CustomerId IS NOT NULL THEN ISNULL(IWP.[IsNonInvoicePayment],0)
-				  WHEN ICCP.CustomerId IS NOT NULL THEN ISNULL(ICCP.[IsNonInvoicePayment],0)
-				  ELSE 0 END AS IsNonInvoicePayment,
-			0 AmountRemaining,
-			(ISNULL(ICP.Amount, 0) + ISNULL(IWP.Amount, 0) + ISNULL(ICCP.Amount, 0)) AS 'AmtApplied'	
-	   FROM [dbo].[CustomerPayments] CP WITH (NOLOCK) 
-	  LEFT JOIN [dbo].[InvoiceCheckPayment] ICP WITH (NOLOCK)  ON ICP.ReceiptId = CP.ReceiptId AND (ICP.Ismiscellaneous = 1 OR ISNULL(ICP.[IsNonInvoicePayment],0) = 1)
-	  LEFT JOIN [dbo].[InvoiceWireTransferPayment] IWP WITH (NOLOCK) ON IWP.ReceiptId = CP.ReceiptId AND (IWP.Ismiscellaneous = 1  OR ISNULL(IWP.[IsNonInvoicePayment],0) = 1)
-	  LEFT JOIN [dbo].[InvoiceCreditDebitCardPayment] ICCP WITH (NOLOCK) ON ICCP.ReceiptId = CP.ReceiptId AND (ICCP.Ismiscellaneous = 1 OR ISNULL(ICCP.[IsNonInvoicePayment],0) = 1) 
-	  LEFT JOIN [dbo].[Customer] CCP WITH (NOLOCK) ON CCP.CustomerId = ICP.CustomerId  
-	  LEFT JOIN [dbo].[Customer] CWP WITH (NOLOCK) ON CWP.CustomerId = IWP.CustomerId  
-	  LEFT JOIN [dbo].[Customer] CCDP WITH (NOLOCK) ON CCDP.CustomerId = ICCP.CustomerId  
-	  OUTER APPLY(    
-		   SELECT DISTINCT  ((ISNULL(ICP1.CheckNumber,'')) + (CASE WHEN IWP1.ReferenceNo IS NOT NULL THEN ' ' + IWP1.ReferenceNo ELSE '' END) +     
-		   (CASE WHEN ICCP1.Reference IS NOT NULL THEN ' ' + ICCP1.Reference ELSE '' END)) AS 'PaymentRef'    
-		   FROM [dbo].[CustomerPayments] CP1 WITH (NOLOCK)
-		   LEFT JOIN [dbo].[InvoiceCheckPayment] ICP1 WITH (NOLOCK)  ON ICP1.ReceiptId = CP1.ReceiptId AND (ICP1.Ismiscellaneous = 1  OR ISNULL(ICP1.[IsNonInvoicePayment],0) = 1)
-		   LEFT JOIN [dbo].[InvoiceWireTransferPayment] IWP1 WITH (NOLOCK) ON IWP1.ReceiptId = CP1.ReceiptId AND (IWP1.Ismiscellaneous = 1 OR ISNULL(IWP1.[IsNonInvoicePayment],0) = 1)
-		   LEFT JOIN [dbo].[InvoiceCreditDebitCardPayment] ICCP1 WITH (NOLOCK) ON ICCP1.ReceiptId = CP1.ReceiptId AND (ICCP1.Ismiscellaneous = 1 OR ISNULL(ICCP1.[IsNonInvoicePayment],0) = 1)
-		   WHERE CP.ReceiptId = CP1.ReceiptId 
-	  ) A  
-	  WHERE CP.[ReceiptId] = @ReceiptId AND (ICP.CustomerId > 0 OR IWP.CustomerId > 0 OR ICCP.CustomerId > 0) AND CP.IsDeleted = 0	 
+	  SELECT 
+		[ReceiptId],
+		[CustomerId],
+		[Name],
+		[CustomerCode],
+		LTRIM(RTRIM(PaymentRef)) AS [PaymentRef],
+		[Amount],
+		[IsNonInvoicePayment],
+		0 AS [AmountRemaining],
+		[Amount] AS AmtApplied
+		FROM
+		(
+			SELECT 
+				CP.[ReceiptId],
+				ICP.[CustomerId],
+				C.[Name],
+				C.[CustomerCode],
+				ICP.[CheckNumber] AS PaymentRef,
+				ICP.[Amount],
+				ISNULL(ICP.[IsNonInvoicePayment],0) AS IsNonInvoicePayment
+			FROM [dbo].[CustomerPayments] CP WITH(NOLOCK) 
+			INNER JOIN [dbo].[InvoiceCheckPayment] ICP WITH(NOLOCK) ON ICP.ReceiptId = CP.ReceiptId AND (ICP.Ismiscellaneous = 1 OR ISNULL(ICP.IsNonInvoicePayment,0) = 1)
+			INNER JOIN [dbo].[Customer] C WITH(NOLOCK) ON C.CustomerId = ICP.CustomerId 
+			WHERE CP.ReceiptId = @ReceiptId AND CP.IsDeleted = 0 AND ICP.CustomerId > 0
+
+			UNION ALL
+
+			SELECT 
+				CP.[ReceiptId],
+				IWP.[CustomerId],
+				C.[Name],
+				C.[CustomerCode],
+				IWP.[ReferenceNo] AS PaymentRef,
+				IWP.[Amount],
+				ISNULL(IWP.[IsNonInvoicePayment],0)
+			FROM [dbo].[CustomerPayments] CP WITH(NOLOCK)
+			INNER JOIN [dbo].[InvoiceWireTransferPayment] IWP WITH(NOLOCK) ON IWP.ReceiptId = CP.ReceiptId AND (IWP.Ismiscellaneous = 1 OR ISNULL(IWP.IsNonInvoicePayment,0) = 1)
+			INNER JOIN [dbo].[Customer] C WITH(NOLOCK) ON C.CustomerId = IWP.CustomerId
+			WHERE CP.ReceiptId = @ReceiptId AND CP.IsDeleted = 0 AND IWP.CustomerId > 0
+
+			UNION ALL
+
+			SELECT 
+				CP.[ReceiptId],
+				ICCP.[CustomerId],
+				C.[Name],
+				C.[CustomerCode],
+				ICCP.[Reference] AS PaymentRef,
+				ICCP.[Amount],
+				ISNULL(ICCP.[IsNonInvoicePayment],0)
+			FROM [dbo].[CustomerPayments] CP WITH(NOLOCK)
+			INNER JOIN [dbo].[InvoiceCreditDebitCardPayment] ICCP WITH(NOLOCK) ON ICCP.ReceiptId = CP.ReceiptId AND (ICCP.Ismiscellaneous = 1 OR ISNULL(ICCP.IsNonInvoicePayment,0) = 1)
+			INNER JOIN [dbo].[Customer] C WITH(NOLOCK) ON C.CustomerId = ICCP.CustomerId
+			WHERE CP.ReceiptId = @ReceiptId AND CP.IsDeleted = 0 AND ICCP.CustomerId > 0
+		) X; 
 
  END TRY        
   BEGIN CATCH    

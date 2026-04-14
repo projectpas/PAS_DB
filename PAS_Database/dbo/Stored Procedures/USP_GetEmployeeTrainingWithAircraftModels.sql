@@ -12,6 +12,7 @@
  ** PR   Date			 Author				Change Description              
  ** --   --------		 -------			--------------------------------            
     1    04-15-2025    Bhargav Saliya		Created  
+	2    14-APR-2026   Sahdev Saliya        Added TrainingName, ProviderId, ProviderType, IsRecurring, DurationHours, DurationMinutes (PN-15932)
 
 	--EXEC [USP_GetEmployeeTrainingWithAircraftModels] @EmployeeId= 232, @EmployeeTrainingId = 39
 ********************************************************************************/ 
@@ -44,7 +45,6 @@ BEGIN
 			,ET.Cost as EstimatedCost
 			,ET.CreatedBy
 			,ET.CreatedDate
-			,ET.Duration
 			,ET.DurationTypeId
 			,ET.EmployeeId
 			,ET.EmployeeTrainingId
@@ -63,10 +63,17 @@ BEGIN
 			,ET.ScheduleDate
 			,ET.UpdatedBy
 			,ET.UpdatedDate
+			,TN.[Name] as TrainingName
+			,ET.ProviderId
+			,ET.ProviderType
+			,ET.IsRecurring
+			,ET.DurationHours
+			,ET.DurationMinutes
 		FROM dbo.EmployeeTraining ET WITH (NOLOCK)
 			LEFT JOIN dbo.EmployeeTrainingType ETP WITH (NOLOCK) ON ET.EmployeeTrainingTypeId = ETP.EmployeeTrainingTypeId
 			LEFT JOIN dbo.AircraftType AFT WITH (NOLOCK) ON ET.AircraftManufacturerId = AFT.AircraftTypeId
 			LEFT JOIN dbo.FrequencyOfTraining FT WITH (NOLOCK) ON ET.FrequencyOfTrainingId = FT.FrequencyOfTrainingId
+			LEFT JOIN dbo.TrainingName TN WITH (NOLOCK) ON ET.TrainingNameId = TN.TrainingNameId
 		WHERE et.EmployeeId = @EmployeeId
 		  AND et.EmployeeTrainingId = @EmployeeTrainingId;
 	END TRY 

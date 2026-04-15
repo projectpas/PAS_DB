@@ -1,8 +1,27 @@
-﻿
+﻿/*************************************************************           
+ ** File:   [UpdateStockline]          
+ ** Author: 
+ ** Description: This stored procedure is used to Update Stockline
+ ** Purpose:         
+ ** Date:   
+
+ ** PARAMETERS: @ExchangeSalesOrderId BIGINT 
+
+ ** RETURN VALUE:           
+ **************************************************************           
+ ** Change History           
+ **************************************************************           
+ ** PR   Date         Author		Change Description            
+ ** ----------------------------------------------------------          
+    1    -				-					Created
+    2    15/04/2026  RAJESH GAMI			UOM Decimal Changes  [PN-15904] 	     
+
+************************************************************************/ 
+
 CREATE PROC [dbo].[UpdateStockline]
 	@StocklineId  bigint,
-	@QtyToReserve int,
-	@QuantityOnOrder int,
+	@QtyToReserve decimal(18,6),
+	@QuantityOnOrder decimal(18,6),
 	@UpdatedBy varchar(50)
 AS
 BEGIN

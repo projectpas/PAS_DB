@@ -11,7 +11,7 @@
  ** --   --------		  -------					--------------------------------          
     1   											Created
 	2    07/APR/2026	  Rajesh Gami				Added UOM Changes [PN-15903]     
-
+	3    15/APR/2026	  Rajesh Gami				Remove UOM Conversion for QUOTE: Need to display stock QTY [PN-15903]
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[SearchItemMasterExchangeQuotePop]
 @ItemMasterIdlist VARCHAR(max), 
@@ -36,8 +36,10 @@ BEGIN
 				,im.IsPma
 				,im.IsDER
 				,im.PartDescription AS Description
-				, dbo.fn_ConvertUOM(SUM(ISNULL(sl.QuantityAvailable, 0)), MAX(uomStock.ShortName), MAX(uomConsume.ShortName),0,im.[MasterCompanyId]) AS QtyAvailable
-				, dbo.fn_ConvertUOM(SUM(ISNULL(sl.QuantityOnHand, 0)), MAX(uomStock.ShortName), MAX(uomConsume.ShortName),0,im.[MasterCompanyId]) AS QtyOnHand
+				--, dbo.fn_ConvertUOM(SUM(ISNULL(sl.QuantityAvailable, 0)), MAX(uomStock.ShortName), MAX(uomConsume.ShortName),0,im.[MasterCompanyId]) AS QtyAvailable
+				--, dbo.fn_ConvertUOM(SUM(ISNULL(sl.QuantityOnHand, 0)), MAX(uomStock.ShortName), MAX(uomConsume.ShortName),0,im.[MasterCompanyId]) AS QtyOnHand
+				, SUM(ISNULL(sl.QuantityAvailable, 0)) AS QtyAvailable
+				, SUM(ISNULL(sl.QuantityOnHand, 0)) AS QtyOnHand
 				,ig.Description AS ItemGroup
 				,mf.Name Manufacturer
 				,ISNULL(im.ManufacturerId, -1) AS ManufacturerId
@@ -58,7 +60,8 @@ BEGIN
 					ELSE 'OEM'
 					END AS Oempmader
 				,@MappingType AS MappingType
-				, dbo.fn_ConvertUOM(imps.PP_UnitPurchasePrice , MAX(uomPO.ShortName), MAX(uomConsume.ShortName),1,im.[MasterCompanyId]) UnitCost
+				--, dbo.fn_ConvertUOM(imps.PP_UnitPurchasePrice , MAX(uomPO.ShortName), MAX(uomConsume.ShortName),1,im.[MasterCompanyId]) UnitCost
+				, imps.PP_UnitPurchasePrice UnitCost
 				,imel.ItemMasterLoanExchId
 				,imel.IsLoan
 				,imel.IsExchange

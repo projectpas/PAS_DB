@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿
+/*************************************************************           
  ** File:   [USP_GetExchangeQuotePartView]           
  ** Author:  Ekta Chandegra
  ** Description: This stored procedure is used to USP_GetExchangeQuotePartView
@@ -14,7 +15,7 @@
  ** PR   Date         Author			Change Description            
  ** --   --------     -------			--------------------------------          
     1    07/17/2025   Ekta Chandegra     Created
-     
+    2    15/04/2026   RAJESH GAMI		 Getting StockUOM instead of POUOM  [PN-15903]    
   EXEC USP_GetExchangeQuotePartViewByQuoteId @ExchangeQuoteId = 10119
 
 ************************************************************************/
@@ -86,7 +87,7 @@ BEGIN
 		INNER JOIN [dbo].[ExchangeQuote] soq WITH(NOLOCK) ON eqp.ExchangeQuoteId = soq.ExchangeQuoteId
 		LEFT JOIN [dbo].[StockLine] sl WITH(NOLOCK) ON eqp.StockLineId = sl.StockLineId
 		LEFT JOIN [dbo].[Condition] cond WITH(NOLOCK) ON eqp.ConditionId = cond.ConditionId
-		LEFT JOIN [dbo].[UnitOfMeasure] uom WITH(NOLOCK) ON im.PurchaseUnitOfMeasureId = uom.UnitOfMeasureId
+		LEFT JOIN [dbo].[UnitOfMeasure] uom WITH(NOLOCK) ON im.StockUnitOfMeasureId = uom.UnitOfMeasureId
 		WHERE eqp.ExchangeQuoteId = @ExchangeQuoteId AND ISNULL(eqp.IsDeleted,0) = 0;
 
 		SELECT 

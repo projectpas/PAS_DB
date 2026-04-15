@@ -1,4 +1,5 @@
-﻿/****************************   
+﻿
+/****************************   
 ** Author:      
 ** Create date:  
 ** Description: This SP is Used to save pick ticket details   
@@ -12,7 +13,7 @@ EXEC [sp_saveExchangePickTicketItemInterface]
 ** 1     
 ** 2    21-0-2023      Devendra Shekh            added qtyremaing for insert AND UPDATE
    3    21-08-2023      Saliya Bhargav            Convert Dates In UTC
-
+   4    15/04/2026		RAJESH GAMI				 Added UOM Decimal Changes  [PN-15904] 	   
 EXEC USP_AutoReserveAllWorkOrderMaterials 2858,0,0,98
 ****************************/
 CREATE   PROCEDURE [dbo].[sp_saveExchangePickTicketItemInterface]  
@@ -25,8 +26,8 @@ CREATE   PROCEDURE [dbo].[sp_saveExchangePickTicketItemInterface]
   @IsActive bit =0,  
   @IsDeleted bit =0,  
   @ExchangeSalesOrderPartId bigint=0,  
-  @Qty int = 0,  
-  @QtyToShip int=0,  
+  @Qty decimal(18,6) = 0,  
+  @QtyToShip decimal(18,6)=0,  
   @MasterCompanyId int=0,  
   @Status int=0,  
   @PickedById int=0,  

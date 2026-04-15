@@ -16,9 +16,9 @@
  ** --   --------     -------				--------------------------------          
 	1										This stored procedure is used to retrieve pickticket data for pdf
 	2    08/14/2023	  Devendra SHekh		added ReadyToPick to result 
-	2    08/16/2023	  Devendra SHekh		changes temptable to result for data
-	2    08/18/2023	  Devendra SHekh		commneted ReadyToPick and added QtyRemaining to result
-     
+	3    08/16/2023	  Devendra SHekh		changes temptable to result for data
+	4    08/18/2023	  Devendra SHekh		commneted ReadyToPick and added QtyRemaining to result
+    5    15/04/2026		RAJESH GAMI				 Added UOM Changes  [PN-15904] 	     
 -- EXEC [dbo].[GetExchangePickTicketPrint] 107, 101, 76
 
 **************************************************************/
@@ -68,7 +68,7 @@ BEGIN
   LEFT JOIN Stockline sl WITH(NOLOCK) on sl.StockLineId = sop.StockLineId  
   INNER JOIN ItemMaster imt WITH(NOLOCK) on imt.ItemMasterId = sop.ItemMasterId  
   LEFT JOIN Condition co WITH(NOLOCK) on co.ConditionId = sop.ConditionId  
-  LEFT JOIN UnitOfMeasure uom WITH(NOLOCK) on uom.UnitOfMeasureId = imt.ConsumeUnitOfMeasureId  
+  LEFT JOIN UnitOfMeasure uom WITH(NOLOCK) on uom.UnitOfMeasureId = imt.StockUnitOfMeasureId  
   LEFT JOIN [Site] s WITH(NOLOCK) on s.SiteId = sl.SiteId  
   LEFT JOIN Warehouse w WITH(NOLOCK) on w.WarehouseId = sl.WarehouseId  
   LEFT JOIN [Location] l WITH(NOLOCK) on l.LocationId = sl.LocationId  

@@ -13,6 +13,7 @@
  ** S NO   Date            Author          Change Description              
  ** --   --------         -------          --------------------------------            
     1    24-09-2025    Sahdev Saliya       Created  
+	2    14-APR-2026   Sahdev Saliya       Added TrainingName, ProviderId, ProviderType, IsRecurring, DurationHours, DurationMinutes (PN-15932)
 
 	exec [USP_UpdateEmployeeTraining] 
 **************************************************************/ 
@@ -38,7 +39,13 @@ CREATE   PROCEDURE [dbo].[USP_UpdateEmployeeTraining]
     @CreatedBy VARCHAR(256),
     @IsActive BIT = NULL,
     @IsDeleted BIT = NULL,
-    @AircraftModelIds VARCHAR(256) = NULL 
+    @AircraftModelIds VARCHAR(256) = NULL, 
+	@TrainingNameId BIGINT = NULL,
+	@ProviderId BIGINT = NULL,
+    @ProviderType VARCHAR(50) = NULL,
+	@IsRecurring BIT = NULL,
+	@DurationHours VARCHAR(200) = NULL,
+	@DurationMinutes VARCHAR(200) = NULL
 
 AS
 BEGIN
@@ -59,7 +66,6 @@ BEGIN
                 CompletionDate        = @CompletionDate,
                 Provider              = @Provider,
                 Cost                  = @Cost,
-                Duration              = @Duration,
                 IndustryCode          = @IndustryCode,
                 ExpirationDate        = @ExpirationDate,
                 UpdatedDate           = GETUTCDATE(),
@@ -68,7 +74,13 @@ BEGIN
                 DurationTypeId        = @DurationTypeId,
                 FrequencyOfTrainingId = @FrequencyOfTrainingId,
                 Memo                  = @Memo,
-                InternalReference     = @InternalReference
+                InternalReference     = @InternalReference,
+				TrainingNameId        = @TrainingNameId,
+				ProviderId            = @ProviderId,
+                ProviderType          = @ProviderType,
+				IsRecurring           = @IsRecurring,
+				DurationHours         = @DurationHours,
+                DurationMinutes       = @DurationMinutes
             WHERE EmployeeTrainingId = @id;
 
             IF (LEN(@AircraftModelIds) > 0)
@@ -128,6 +140,12 @@ BEGIN
 			,[FrequencyOfTrainingId]
 			,[Memo]
 			,[InternalReference]
+			,[TrainingNameId]
+			,[ProviderId]
+			,[ProviderType]
+			,[IsRecurring]
+			,[DurationHours]
+			,[DurationMinutes]
 		    FROM [DBO].[EmployeeTraining] WITH(NOLOCK) 
 		    WHERE [EmployeeTrainingId] = @id;
 

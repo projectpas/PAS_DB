@@ -9,11 +9,12 @@
  **************************************************************               
  ** Change History               
  **************************************************************               
- ** PR   Date         Author			Change Description                
- ** --   --------     -------		--------------------------------              
+ ** PR   Date         Author				Change Description                
+ ** --   --------     ---------------		--------------------------------              
     1    26-Feb-2025   Bhargav Saliya		Created    
     2    26-MAR-2025   Bhargav Saliya		Get Model Field Data
 	3    27-MAR-2025   Bhargav Saliya		Add Employee and Training Type Filters
+	4    13-APR-2026   Divyesh Kathiriya	Handle Multiple EmployeeId. [PN-15934]
          
 ************************************************************************/ 
 CREATE   PROCEDURE [dbo].[usprpt_GetTrainingReport]  
@@ -142,7 +143,7 @@ BEGIN
 	    INNER JOIN dbo.EmployeeManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = E.EmployeeId
 		LEFT JOIN dbo.EntityStructureSetup ES WITH (NOLOCK) ON ES.EntityStructureId = MSD.EntityMSID
 		LEFT JOIN dbo.JobTitle J WITH (NOLOCK) ON E.JobTitleId = J.JobTitleId
-		LEFT JOIN dbo.EmployeeTraining ET WITH (NOLOCK) ON E.EmployeeId = ET.EmployeeId
+		INNER JOIN dbo.EmployeeTraining ET WITH (NOLOCK) ON E.EmployeeId = ET.EmployeeId
 		LEFT JOIN dbo.EmployeeTrainingType ETP WITH (NOLOCK) ON ET.EmployeeTrainingTypeId = ETP.EmployeeTrainingTypeId
 		LEFT JOIN dbo.FrequencyOfTraining FT WITH (NOLOCK) ON ET.FrequencyOfTrainingId = FT.FrequencyOfTrainingId
 		LEFT JOIN dbo.AircraftType AFT WITH (NOLOCK) ON ET.AircraftManufacturerId = AFT.AircraftTypeId
@@ -151,7 +152,8 @@ BEGIN
 		LEFT JOIN dbo.AircraftModel A WITH (NOLOCK) ON A.AircraftModelId = EAMP.AircraftModelId
 
       WHERE E.mastercompanyid = @mastercompanyid and E.IsActive =1 AND E.IsDeleted=0 AND E.FirstName <> 'TBD'
-			AND  ((ISNULL(@Employee, '') = '' OR E.EmployeeId = @Employee) and (ISNULL(@TrainingType, '') = '' OR ET.EmployeeTrainingTypeId = @TrainingType))
+			--AND  ((ISNULL(@Employee, '') = '' OR E.EmployeeId = @Employee) and (ISNULL(@TrainingType, '') = '' OR ET.EmployeeTrainingTypeId = @TrainingType))
+			AND  ((ISNULL(@Employee, '') = '' OR E.[EmployeeId] IN (SELECT CAST(Item AS INT) FROM DBO.SPLITSTRING(@Employee,','))) and (ISNULL(@TrainingType, '') = '' OR ET.[EmployeeTrainingTypeId] = @TrainingType))
 			AND  (ISNULL(@Level1,'') ='' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))
 			AND  (ISNULL(@Level2,'') ='' OR MSD.[Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,',')))
 			AND  (ISNULL(@Level3,'') ='' OR MSD.[Level3Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level3,',')))

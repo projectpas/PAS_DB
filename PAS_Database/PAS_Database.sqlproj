@@ -4493,6 +4493,7 @@
     <Build Include="dbo\Tables\AircraftMaintenanceProgram.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetAircraftMaintenanceList.sql" />
     <Build Include="dbo\Tables\PersistedGrants.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetGLAccountDetailsByID.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

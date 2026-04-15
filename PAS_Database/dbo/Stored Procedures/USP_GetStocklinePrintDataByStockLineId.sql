@@ -14,8 +14,8 @@
  ** --   --------		-------			--------------------------------          
     1    09/24/2021     Hemant Saliya	Created
 	2    29/01/2026     Moin Bloch		Getting Quantity From PickTicket Insted of Stockline PN-15111
-	3    27/Feb/2026    Rajesh Gami		Added UOM Changes - PN-14832   
-	4    14/APR/2026    Ayushi Patel	Added UOM Changes - PN-16059
+	3    27/Feb/2026    Rajesh Gami		Added UOM Changes - PN-14832    
+	4    15/Apr/2026	Ayushi Patel	Added UOM Changes [PN-15910]
 --EXEC [USP_GetStocklinePrintDataByStockLineId] 
 **************************************************************/
 CREATE PROCEDURE [dbo].[USP_GetStocklinePrintDataByStockLineId]

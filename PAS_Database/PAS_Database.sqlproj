@@ -4490,6 +4490,9 @@
     <Build Include="dbo\Tables\AircraftCycleTimeMappings.sql" />
     <Build Include="dbo\Stored Procedures\USP_SaveAircraftCycleTimeMappings.sql" />
     <Build Include="dbo\Stored Procedures\usp_GetAircraftCycleTimeById.sql" />
+    <Build Include="dbo\Tables\AircraftMaintenanceProgram.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetAircraftMaintenanceList.sql" />
+
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

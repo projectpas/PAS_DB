@@ -15,6 +15,7 @@
 	3    12/22/2023   Moin Bloch    Modified GLAccounts From Distribution Setup To  ReceivingReconciliationDetails
 	4    12/26/2023   Moin Bloch    Change the logic of Batch Entry
 	5    13/02/2026   Amit Ghediya  Update gl to get it from line level for tax (PN-15443)
+	6    03/09/2024   Moin Bloch    Batch: Duplicate JE Number generated for multiple entries on same day PN-15921
 
 	EXEC USP_PostReceivingReconcilationFreightAndTaxBatchDetails 173
 
@@ -32,7 +33,9 @@ CREATE   PROCEDURE [dbo].[USP_PostReceivingReconcilationFreightAndTaxBatchDetail
 @AccountingPeriod  VARCHAR(50),
 @EmployeeId BIGINT,
 @UpdateBy VARCHAR(50),
-@MasterCompanyId INT
+@MasterCompanyId INT,
+@JournalTypeNumber VARCHAR(50),
+@currentNo BIGINT = 0
 AS
 BEGIN
 	SET NOCOUNT ON;
@@ -64,8 +67,8 @@ BEGIN
 			DECLARE @TotalDebit decimal(18, 2) = 0;
 			DECLARE @TotalCredit decimal(18, 2) = 0;
 			DECLARE @TransactionDate DATETIME2(7)
-			DECLARE @currentNo AS BIGINT = 0;
-			DECLARE @JournalTypeNumber VARCHAR(50)
+			--DECLARE @currentNo AS BIGINT = 0;
+			--DECLARE @JournalTypeNumber VARCHAR(50)
 			DECLARE @CodeTypeId AS BIGINT = 74;
 			DECLARE @StlQtyAvailGlobal INT  = 0
 			DECLARE @StlQtyUsedGlobal INT  = 0
@@ -94,17 +97,17 @@ BEGIN
 
 			SELECT @AccountMSModuleId = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] ='Accounting';
 					
-			SELECT @currentNo = CASE WHEN CP.[CurrentNummber] > 0 THEN CAST(CP.[CurrentNummber] AS BIGINT) + 1 
-						             ELSE CAST([StartsFROM] AS BIGINT) + 1 END 
-				FROM dbo.CodePrefixes CP WITH(NOLOCK) JOIN dbo.CodeTypes CT ON CP.CodeTypeId = CT.CodeTypeId
-			WHERE CT.CodeTypeId IN (@CodeTypeId) AND CP.MasterCompanyId = @MasterCompanyId AND CP.IsActive = 1 AND CP.IsDeleted = 0;
+			--SELECT @currentNo = CASE WHEN CP.[CurrentNummber] > 0 THEN CAST(CP.[CurrentNummber] AS BIGINT) + 1 
+			--			             ELSE CAST([StartsFROM] AS BIGINT) + 1 END 
+			--	FROM dbo.CodePrefixes CP WITH(NOLOCK) JOIN dbo.CodeTypes CT ON CP.CodeTypeId = CT.CodeTypeId
+			--WHERE CT.CodeTypeId IN (@CodeTypeId) AND CP.MasterCompanyId = @MasterCompanyId AND CP.IsActive = 1 AND CP.IsDeleted = 0;
 
-			SET @JournalTypeNumber = 
-			(SELECT * FROM dbo.udfGenerateCodeNumber(@currentNo,
-			(SELECT CodePrefix FROM dbo.CodePrefixes CP WITH(NOLOCK) JOIN dbo.CodeTypes CT ON CP.CodeTypeId = CT.CodeTypeId
-			WHERE CT.CodeTypeId IN (@CodeTypeId) AND CP.MasterCompanyId = @MasterCompanyId AND CP.IsActive = 1 AND CP.IsDeleted = 0),
-			(SELECT CodeSufix FROM dbo.CodePrefixes CP WITH(NOLOCK) JOIN dbo.CodeTypes CT ON CP.CodeTypeId = CT.CodeTypeId
-			WHERE CT.CodeTypeId IN (@CodeTypeId) AND CP.MasterCompanyId = @MasterCompanyId AND CP.IsActive = 1 AND CP.IsDeleted = 0)))
+			--SET @JournalTypeNumber = 
+			--(SELECT * FROM dbo.udfGenerateCodeNumber(@currentNo,
+			--(SELECT CodePrefix FROM dbo.CodePrefixes CP WITH(NOLOCK) JOIN dbo.CodeTypes CT ON CP.CodeTypeId = CT.CodeTypeId
+			--WHERE CT.CodeTypeId IN (@CodeTypeId) AND CP.MasterCompanyId = @MasterCompanyId AND CP.IsActive = 1 AND CP.IsDeleted = 0),
+			--(SELECT CodeSufix FROM dbo.CodePrefixes CP WITH(NOLOCK) JOIN dbo.CodeTypes CT ON CP.CodeTypeId = CT.CodeTypeId
+			--WHERE CT.CodeTypeId IN (@CodeTypeId) AND CP.MasterCompanyId = @MasterCompanyId AND CP.IsActive = 1 AND CP.IsDeleted = 0)))
 					
 			IF OBJECT_ID(N'tempdb..#RRFreightAndTaxPostType') IS NOT NULL    
 			BEGIN    
@@ -363,7 +366,7 @@ BEGIN
 								[ModuleName],[LastMSLevel],[AllMSlevels],[MasterCompanyId],[CreatedBy],[UpdatedBy],
 								[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[ReferenceId])
 						VALUES (@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,
-						        @JournalBatchHeaderId,1 ,ISNULL(@FreightGLId,0),@FreightGlAccountNumber,@FreightGlAccountName,@TransactionDate,
+						        @JournalBatchHeaderId,1 ,ISNULL(@GlAccountId,0),@GlAccountNumber ,@GlAccountName,@TransactionDate,
 								GETUTCDATE(),@JournalTypeId ,@JournalTypename, 
 								CASE WHEN @CrDrType = 1 THEN 1 ELSE 0 END,
 								CASE WHEN @CrDrType = 1 THEN @TotalFreight ELSE 0 END,
@@ -430,7 +433,7 @@ BEGIN
 									[ManagementStructureId],[ModuleName],[LastMSLevel],[AllMSlevels],[MasterCompanyId],[CreatedBy],
 									[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive] ,[IsDeleted],[ReferenceId])
 							VALUES (@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,
-									@JournalBatchHeaderId,1,@StkGlAccountId,@StkGlAccountNumber,@StkGlAccountName,@TransactionDate,										
+									@JournalBatchHeaderId,1,ISNULL(@FreightGLId,0),@FreightGlAccountNumber,@FreightGlAccountName,@TransactionDate,										
 									GETUTCDATE(),@JournalTypeId,@JournalTypename,
 									CASE WHEN @CrDrType = 1 THEN 1 ELSE 0 END,
 									CASE WHEN @CrDrType = 1 THEN ROUND((@FreightInvCost),2)  ELSE 0 END,
@@ -596,7 +599,7 @@ BEGIN
 								[ModuleName],[LastMSLevel],[AllMSlevels],[MasterCompanyId],[CreatedBy],[UpdatedBy],
 								[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[ReferenceId])
 						VALUES (@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,
-						        @JournalBatchHeaderId,1 ,ISNULL(@TaxGLId,0),@TaxGlAccountNumber ,@TaxGlAccountName,@TransactionDate,
+						        @JournalBatchHeaderId,1 ,ISNULL(@GlAccountId,0),@GlAccountNumber,@GlAccountName,@TransactionDate,
 								GETUTCDATE(),@JournalTypeId ,@JournalTypename, 
 								CASE WHEN @CrDrType = 1 THEN 1 ELSE 0 END,
 								CASE WHEN @CrDrType = 1 THEN @TotalTax ELSE 0 END,
@@ -663,7 +666,7 @@ BEGIN
 									[ManagementStructureId],[ModuleName],[LastMSLevel],[AllMSlevels],[MasterCompanyId],[CreatedBy],
 									[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive] ,[IsDeleted],[ReferenceId])
 							VALUES (@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,
-									@JournalBatchHeaderId,1,@StkGlAccountId,@StkGlAccountNumber,@StkGlAccountName,@TransactionDate,										
+									@JournalBatchHeaderId,1,ISNULL(@TaxGLId,0),@TaxGlAccountNumber ,@TaxGlAccountName,@TransactionDate,										
 									GETUTCDATE(),@JournalTypeId,@JournalTypename,
 									CASE WHEN @CrDrType = 1 THEN 1 ELSE 0 END,
 									CASE WHEN @CrDrType = 1 THEN ROUND((@TaxInvCost),2)  ELSE 0 END,
@@ -755,7 +758,7 @@ BEGIN
 								[ModuleName],[LastMSLevel],[AllMSlevels],[MasterCompanyId],[CreatedBy],[UpdatedBy],
 								[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[ReferenceId])
 						VALUES (@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,
-						        @JournalBatchHeaderId,1 ,ISNULL(@TaxGLId,0),@TaxGlAccountNumber ,@TaxGlAccountName,@TransactionDate,
+						        @JournalBatchHeaderId,1 ,ISNULL(@GlAccountId,0),@GlAccountNumber,@GlAccountName,@TransactionDate,
 								GETUTCDATE(),@JournalTypeId ,@JournalTypename, 
 								CASE WHEN @CrDrType = 1 THEN 1 ELSE 0 END,
 								CASE WHEN @CrDrType = 1 THEN @TotalTax ELSE 0 END,
@@ -841,7 +844,7 @@ BEGIN
 								[ModuleName],[LastMSLevel],[AllMSlevels],[MasterCompanyId],[CreatedBy],[UpdatedBy],
 								[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[ReferenceId])
 						VALUES (@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,
-						        @JournalBatchHeaderId,1 ,ISNULL(@MiscGLId,0),@MiscGlAccountNumber,@MISCGlAccountName,@TransactionDate,
+						        @JournalBatchHeaderId,1 ,ISNULL(@GlAccountId,0),@GlAccountNumber ,@GlAccountName,@TransactionDate,
 								GETUTCDATE(),@JournalTypeId ,@JournalTypename, 
 								CASE WHEN @CrDrType = 1 THEN 1 ELSE 0 END,
 								CASE WHEN @CrDrType = 1 THEN @TotalMisc ELSE 0 END,
@@ -925,10 +928,10 @@ BEGIN
 					   [UpdatedBy] = @UpdateBy   
 				 WHERE [JournalBatchDetailId] = @JournalBatchDetailId;
 				
-				UPDATE [dbo].[CodePrefixes] 
-				   SET [CurrentNummber] = @currentNo
-				 WHERE [CodeTypeId] = @CodeTypeId 
-				   AND [MasterCompanyId] = @MasterCompanyId;   
+				--UPDATE [dbo].[CodePrefixes] 
+				--   SET [CurrentNummber] = @currentNo
+				-- WHERE [CodeTypeId] = @CodeTypeId 
+				--   AND [MasterCompanyId] = @MasterCompanyId;   
 			END
 
 			IF(UPPER(@ModuleName) = UPPER('ReconciliationRO') AND (@TotalFreight > 0 OR @TotalTax > 0 OR @TotalMisc > 0))
@@ -984,7 +987,7 @@ BEGIN
 								[ModuleName],[LastMSLevel],[AllMSlevels],[MasterCompanyId],[CreatedBy],[UpdatedBy],
 								[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[ReferenceId])
 						VALUES (@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,
-						        @JournalBatchHeaderId,1 ,ISNULL(@FreightGLId,0),@FreightGlAccountNumber,@FreightGlAccountName,@TransactionDate,
+						        @JournalBatchHeaderId,1 ,ISNULL(@GlAccountId,0),@GlAccountNumber ,@GlAccountName,@TransactionDate,
 								GETUTCDATE(),@JournalTypeId ,@JournalTypename, 
 								CASE WHEN @CrDrType = 1 THEN 1 ELSE 0 END,
 								CASE WHEN @CrDrType = 1 THEN @TotalFreight ELSE 0 END,
@@ -1051,7 +1054,7 @@ BEGIN
 									[ManagementStructureId],[ModuleName],[LastMSLevel],[AllMSlevels],[MasterCompanyId],[CreatedBy],
 									[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive] ,[IsDeleted],[ReferenceId])
 							VALUES (@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,
-									@JournalBatchHeaderId,1,@StkGlAccountId,@StkGlAccountNumber,@StkGlAccountName,@TransactionDate,										
+									@JournalBatchHeaderId,1,ISNULL(@FreightGLId,0),@FreightGlAccountNumber,@FreightGlAccountName,@TransactionDate,										
 									GETUTCDATE(),@JournalTypeId,@JournalTypename,
 									CASE WHEN @CrDrType = 1 THEN 1 ELSE 0 END,
 									CASE WHEN @CrDrType = 1 THEN ROUND((@FreightInvCost),2)  ELSE 0 END,
@@ -1217,7 +1220,7 @@ BEGIN
 								[ModuleName],[LastMSLevel],[AllMSlevels],[MasterCompanyId],[CreatedBy],[UpdatedBy],
 								[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[ReferenceId])
 						VALUES (@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,
-						        @JournalBatchHeaderId,1 ,ISNULL(@TaxGLId,0),@TaxGlAccountNumber ,@TaxGlAccountName,@TransactionDate,
+						        @JournalBatchHeaderId,1 ,ISNULL(@GlAccountId,0),@GlAccountNumber ,@GlAccountName,@TransactionDate,
 								GETUTCDATE(),@JournalTypeId ,@JournalTypename, 
 								CASE WHEN @CrDrType = 1 THEN 1 ELSE 0 END,
 								CASE WHEN @CrDrType = 1 THEN @TotalTax ELSE 0 END,
@@ -1284,7 +1287,7 @@ BEGIN
 									[ManagementStructureId],[ModuleName],[LastMSLevel],[AllMSlevels],[MasterCompanyId],[CreatedBy],
 									[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive] ,[IsDeleted],[ReferenceId])
 							VALUES (@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,
-									@JournalBatchHeaderId,1,@StkGlAccountId,@StkGlAccountNumber,@StkGlAccountName,@TransactionDate,										
+									@JournalBatchHeaderId,1,ISNULL(@TaxGLId,0),@TaxGlAccountNumber ,@TaxGlAccountName,@TransactionDate,										
 									GETUTCDATE(),@JournalTypeId,@JournalTypename,
 									CASE WHEN @CrDrType = 1 THEN 1 ELSE 0 END,
 									CASE WHEN @CrDrType = 1 THEN ROUND((@TaxInvCost),2)  ELSE 0 END,
@@ -1376,7 +1379,7 @@ BEGIN
 								[ModuleName],[LastMSLevel],[AllMSlevels],[MasterCompanyId],[CreatedBy],[UpdatedBy],
 								[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[ReferenceId])
 						VALUES (@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,
-						        @JournalBatchHeaderId,1 ,ISNULL(@TaxGLId,0),@TaxGlAccountNumber ,@TaxGlAccountName,@TransactionDate,
+						        @JournalBatchHeaderId,1 ,ISNULL(@GlAccountId,0),@GlAccountNumber ,@GlAccountName,@TransactionDate,
 								GETUTCDATE(),@JournalTypeId ,@JournalTypename, 
 								CASE WHEN @CrDrType = 1 THEN 1 ELSE 0 END,
 								CASE WHEN @CrDrType = 1 THEN @TotalTax ELSE 0 END,
@@ -1462,7 +1465,7 @@ BEGIN
 								[ModuleName],[LastMSLevel],[AllMSlevels],[MasterCompanyId],[CreatedBy],[UpdatedBy],
 								[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[ReferenceId])
 						VALUES (@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,
-						        @JournalBatchHeaderId,1 ,ISNULL(@MiscGLId,0),@MiscGlAccountNumber,@MISCGlAccountName,@TransactionDate,
+						        @JournalBatchHeaderId,1 ,ISNULL(@GlAccountId,0),@GlAccountNumber ,@GlAccountName,@TransactionDate,
 								GETUTCDATE(),@JournalTypeId ,@JournalTypename, 
 								CASE WHEN @CrDrType = 1 THEN 1 ELSE 0 END,
 								CASE WHEN @CrDrType = 1 THEN @TotalMisc ELSE 0 END,
@@ -1547,10 +1550,10 @@ BEGIN
 					   [UpdatedBy] = @UpdateBy   
 				 WHERE [JournalBatchDetailId] = @JournalBatchDetailId;
 				
-				UPDATE [dbo].[CodePrefixes] 
-				   SET [CurrentNummber] = @currentNo
-				 WHERE [CodeTypeId] = @CodeTypeId 
-				   AND [MasterCompanyId] = @MasterCompanyId;    				
+				--UPDATE [dbo].[CodePrefixes] 
+				--   SET [CurrentNummber] = @currentNo
+				-- WHERE [CodeTypeId] = @CodeTypeId 
+				--   AND [MasterCompanyId] = @MasterCompanyId;    				
 				
 			END
 

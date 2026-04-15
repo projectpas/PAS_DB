@@ -1,0 +1,225 @@
+﻿/************************************************************
+** File:        [USP_GetAircraftMaintenanceList]
+** Author:      Priyansh Patel
+** Description: Get Aircraft Registry data from AircraftRegistryHeader
+** 
+** Change History
+************************************************************
+** PR   Date         Author             Description
+** --   ----------   -------------      -------------------------
+** 1    10/04/2026   Priyansh Patel     Created [PN-16016]
+************************************************************/
+
+ -- EXEC [dbo].[USP_GetAircraftMaintenanceList] @MasterCompanyId = 1 @AircraftRegistryId = 22;
+
+ CREATE     PROCEDURE [dbo].[USP_GetAircraftMaintenanceList]
+    @PageNumber              INT             = 1,
+    @PageSize                INT             = 10,
+    @SortColumn              VARCHAR(100)    = 'ProgramId',
+    @SortOrder               VARCHAR(4)      = 'DESC',
+    @GlobalFilter            VARCHAR(100)    = NULL,
+    @ProgramId               VARCHAR(50)      = NULL,
+    @VersionNumber           VARCHAR(50)     = NULL,
+    @TailNumber              VARCHAR(50)     = NULL,
+    @AircraftMake            VARCHAR(100)    = NULL,
+    @AircraftModel           VARCHAR(100)    = NULL,
+    @SerialNumber            VARCHAR(100)    = NULL,
+    @NextScheduled           DATETIME        = NULL,
+    @MaintenanceType         VARCHAR(200)    = NULL,
+    @TemplateId              BIGINT          = NULL,
+    @TemplateVersionNumber   VARCHAR(50)    = NULL,
+    @FlightHoursLimit        VARCHAR(20) = NULL,
+    @CyclesLimit             VARCHAR(50) = NULL,
+    @TimeLimit               VARCHAR(50) = NULL,
+    @LandingsLimit           VARCHAR(50) = NULL,
+    @EngineStartsLimit       VARCHAR(50) = NULL,
+    @FlightHoursRecorded     VARCHAR(20) = NULL,
+    @CyclesRecorded          VARCHAR(50) = NULL,
+    @TimeRecorded            VARCHAR(50) = NULL,
+    @LandingsRecorded        VARCHAR(50) = NULL,
+    @EngineStartsRecorded    VARCHAR(50) = NULL,
+    @FlightHoursRemaining    VARCHAR(20) = NULL,
+    @CyclesRemaining         VARCHAR(50) = NULL,
+    @TimeRemaining           VARCHAR(50) = NULL,
+    @LandingsRemaining       VARCHAR(50) = NULL,
+    @EngineStartsRemaining   VARCHAR(50) = NULL,
+    @IsActive                BIT             = NULL,
+    @IsDeleted               BIT             = 0,
+    @AircraftRegistryId      BIGINT,
+    @MasterCompanyId         INT
+
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    BEGIN TRY
+
+        WITH CTE AS
+        (
+            SELECT
+                AMP.ProgramId,AMP.AircraftRegistryId,AMP.VersionNumber,AMP.MaintenanceType, AMP.NextScheduledMaintenance,AMP.TemplateId,AMP.TemplateVersionNumber,
+                ARH.TailNum AS TailNumber,
+                ARH.MakeType AS AircraftMake,
+                ARH.AircraftModel,
+                ARH.SerialNum AS SerialNumber,
+                AMP.FlightHoursLimitHours,
+                AMP.FlightHoursLimitMinutes,
+                AMP.FlightHoursRecordedHours,
+                AMP.FlightHoursRecordedMinutes,
+                AMP.FlightHoursRemainingHours,
+                AMP.FlightHoursRemainingMinutes,
+                -- Flight Hours
+                CAST(AMP.FlightHoursRecordedHours AS VARCHAR) + ':' + RIGHT('00' + CAST(ISNULL(AMP.FlightHoursRecordedMinutes,0) AS VARCHAR),2) AS FlightHoursRecorded,
+                CAST(AMP.FlightHoursLimitHours AS VARCHAR) + ':' +  RIGHT('00' + CAST(ISNULL(AMP.FlightHoursLimitMinutes,0) AS VARCHAR),2) AS FlightHoursLimit,
+                CAST(AMP.FlightHoursRemainingHours AS VARCHAR) + ':' + RIGHT('00' + CAST(ISNULL(AMP.FlightHoursRemainingMinutes,0) AS VARCHAR),2) AS FlightHoursRemaining,
+                -- Limits
+                AMP.CyclesLimit,
+                AMP.TimeLimit,
+                AMP.LandingsLimit,
+                AMP.EngineStartsLimit,
+                -- Recorded
+                AMP.CyclesRecorded,
+                AMP.TimeRecorded,
+                AMP.LandingsRecorded,
+                AMP.EngineStartsRecorded,
+                -- Remaining
+                AMP.CyclesRemaining,
+                AMP.TimeRemaining,
+                AMP.LandingsRemaining,
+                AMP.EngineStartsRemaining,
+                AMP.IsActive,
+                AMP.UpdatedDate,
+                AMP.UpdatedBy,
+                AMP.CreatedDate,
+                AMP.CreatedBy,
+                COUNT(1) OVER () AS TotalRecords
+
+            FROM [dbo].[AircraftMaintenanceProgram] AMP WITH (NOLOCK)
+            LEFT JOIN [dbo].[AircraftRegistryHeader] ARH WITH (NOLOCK) ON AMP.AircraftRegistryId = ARH.AircraftRegistryId  AND ARH.MasterCompanyId = @MasterCompanyId 
+            WHERE AMP.AircraftRegistryId = @AircraftRegistryId  AND AMP.MasterCompanyId = @MasterCompanyId  AND (@IsDeleted IS NULL OR AMP.IsDeleted = @IsDeleted)
+                -- Global Filter
+                AND ( @GlobalFilter IS NULL OR AMP.TailNumber       LIKE '%' + @GlobalFilter + '%' OR CAST(AMP.ProgramId AS VARCHAR(50))   LIKE '%' + @GlobalFilter + '%' OR
+                    AMP.MaintenanceType  LIKE '%' + @GlobalFilter + '%'
+                )
+                -- Column Filters
+                AND (@ProgramId IS NULL  OR CAST(AMP.ProgramId AS VARCHAR(50)) LIKE '%' + @ProgramId + '%')
+                AND (@VersionNumber   IS NULL OR AMP.VersionNumber     LIKE '%' + @VersionNumber     + '%')
+                AND (@TailNumber      IS NULL OR ARH.TailNum     LIKE '%' + @TailNumber     + '%')
+                AND (@AircraftMake    IS NULL OR ARH.MakeType   LIKE '%' + @AircraftMake   + '%')
+                AND (@AircraftModel   IS NULL OR ARH.AircraftModel  LIKE '%' + @AircraftModel  + '%')
+                AND (@SerialNumber    IS NULL OR ARH.SerialNum   LIKE '%' + @SerialNumber   + '%')
+                AND (@MaintenanceType IS NULL OR AMP.MaintenanceType LIKE '%' + @MaintenanceType + '%')
+                AND (@TemplateId      IS NULL OR AMP.TemplateId = @TemplateId)
+                AND (@TemplateVersionNumber IS NULL OR AMP.TemplateVersionNumber LIKE '%' + @TemplateVersionNumber + '%')
+                AND (@IsActive        IS NULL OR AMP.IsActive = @IsActive)
+                AND (@NextScheduled   IS NULL OR CAST(AMP.NextScheduledMaintenance AS DATE) = CAST(@NextScheduled AS DATE))
+                -- Flight Hours (string compare since formatted HH:mm)
+                AND (@FlightHoursLimit IS NULL OR  (CAST(AMP.FlightHoursLimitHours AS VARCHAR) + ':' + RIGHT('00' + CAST(ISNULL(AMP.FlightHoursLimitMinutes,0) AS VARCHAR),2)) LIKE '%' + @FlightHoursLimit + '%')
+                AND (@FlightHoursRecorded IS NULL OR   (CAST(AMP.FlightHoursRecordedHours AS VARCHAR) + ':' +  RIGHT('00' + CAST(ISNULL(AMP.FlightHoursRecordedMinutes,0) AS VARCHAR),2)) LIKE '%' + @FlightHoursRecorded + '%')
+                AND (@FlightHoursRemaining IS NULL OR  (CAST(AMP.FlightHoursRemainingHours AS VARCHAR) + ':' + RIGHT('00' + CAST(ISNULL(AMP.FlightHoursRemainingMinutes,0) AS VARCHAR),2)) LIKE '%' + @FlightHoursRemaining + '%')
+               
+                AND (@CyclesLimit IS NULL OR CAST(AMP.CyclesLimit AS VARCHAR) LIKE '%' + @CyclesLimit + '%')
+                AND (@TimeLimit IS NULL OR CAST(AMP.TimeLimit AS VARCHAR) LIKE '%' + @TimeLimit + '%')
+                AND (@LandingsLimit IS NULL OR CAST(AMP.LandingsLimit AS VARCHAR) LIKE '%' + @LandingsLimit + '%')
+                AND (@EngineStartsLimit IS NULL OR CAST(AMP.EngineStartsLimit AS VARCHAR) LIKE '%' + @EngineStartsLimit + '%')
+                AND (@CyclesRecorded IS NULL OR CAST(AMP.CyclesRecorded AS VARCHAR) LIKE '%' + @CyclesRecorded + '%')
+                AND (@TimeRecorded IS NULL OR CAST(AMP.TimeRecorded AS VARCHAR) LIKE '%' + @TimeRecorded + '%')
+                AND (@LandingsRecorded IS NULL OR CAST(AMP.LandingsRecorded AS VARCHAR) LIKE '%' + @LandingsRecorded + '%')
+                AND (@EngineStartsRecorded IS NULL OR CAST(AMP.EngineStartsRecorded AS VARCHAR) LIKE '%' + @EngineStartsRecorded + '%')
+                AND (@CyclesRemaining IS NULL OR CAST(AMP.CyclesRemaining AS VARCHAR) LIKE '%' + @CyclesRemaining + '%')
+                AND (@TimeRemaining IS NULL OR CAST(AMP.TimeRemaining AS VARCHAR) LIKE '%' + @TimeRemaining + '%')
+                AND (@LandingsRemaining IS NULL OR CAST(AMP.LandingsRemaining AS VARCHAR) LIKE '%' + @LandingsRemaining + '%')
+                AND (@EngineStartsRemaining IS NULL OR CAST(AMP.EngineStartsRemaining AS VARCHAR) LIKE '%' + @EngineStartsRemaining + '%')
+        )
+
+        SELECT *
+        FROM CTE
+        ORDER BY
+            CASE WHEN @SortColumn = 'ProgramId'        AND @SortOrder = 'ASC'  THEN ProgramId END ASC,
+            CASE WHEN @SortColumn = 'ProgramId'        AND @SortOrder = 'DESC' THEN ProgramId END DESC,
+            CASE WHEN @SortColumn = 'VersionNumber'    AND @SortOrder = 'ASC'  THEN VersionNumber END ASC,
+            CASE WHEN @SortColumn = 'VersionNumber'    AND @SortOrder = 'DESC' THEN VersionNumber END DESC,
+            CASE WHEN @SortColumn = 'TailNumber'        AND @SortOrder = 'ASC'  THEN TailNumber END ASC,
+            CASE WHEN @SortColumn = 'TailNumber'        AND @SortOrder = 'DESC' THEN TailNumber END DESC,
+            CASE WHEN @SortColumn = 'AircraftMake'      AND @SortOrder = 'ASC'  THEN AircraftMake END ASC,
+            CASE WHEN @SortColumn = 'AircraftMake'      AND @SortOrder = 'DESC' THEN AircraftMake END DESC,
+            CASE WHEN @SortColumn = 'AircraftModel'     AND @SortOrder = 'ASC'  THEN AircraftModel END ASC,
+            CASE WHEN @SortColumn = 'AircraftModel'     AND @SortOrder = 'DESC' THEN AircraftModel END DESC,
+            CASE WHEN @SortColumn = 'SerialNumber'     AND @SortOrder = 'ASC'  THEN SerialNumber END ASC,
+            CASE WHEN @SortColumn = 'SerialNumber'     AND @SortOrder = 'DESC' THEN SerialNumber END DESC,
+            CASE WHEN @SortColumn = 'MaintenanceType'   AND @SortOrder = 'ASC'  THEN MaintenanceType END ASC,
+            CASE WHEN @SortColumn = 'MaintenanceType'   AND @SortOrder = 'DESC' THEN MaintenanceType END DESC,
+            CASE WHEN @SortColumn = 'TemplateId'   AND @SortOrder = 'ASC'  THEN TemplateId END ASC,
+            CASE WHEN @SortColumn = 'TemplateId'   AND @SortOrder = 'DESC' THEN TemplateId END DESC,
+            CASE WHEN @SortColumn = 'TemplateVersionNumber'   AND @SortOrder = 'ASC'  THEN TemplateVersionNumber END ASC,
+            CASE WHEN @SortColumn = 'TemplateVersionNumber'   AND @SortOrder = 'DESC' THEN TemplateVersionNumber END DESC,
+            CASE WHEN @SortColumn = 'NextScheduledMaintenance' AND @SortOrder = 'ASC'  THEN NextScheduledMaintenance END ASC,
+            CASE WHEN @SortColumn = 'NextScheduledMaintenance' AND @SortOrder = 'DESC' THEN NextScheduledMaintenance END DESC,
+            CASE WHEN @SortColumn = 'FlightHoursLimit' AND @SortOrder = 'ASC'THEN FlightHoursLimitHours END ASC,
+            CASE WHEN @SortColumn = 'FlightHoursLimit' AND @SortOrder = 'DESC' THEN FlightHoursLimitHours END DESC,
+            CASE WHEN @SortColumn = 'FlightHoursRecorded' AND @SortOrder = 'ASC' THEN FlightHoursRecordedHours END ASC,
+            CASE WHEN @SortColumn = 'FlightHoursRecorded' AND @SortOrder = 'DESC' THEN FlightHoursRecordedHours END DESC,
+            CASE WHEN @SortColumn = 'FlightHoursRemaining' AND @SortOrder = 'ASC' THEN FlightHoursRemainingHours END ASC,
+            CASE WHEN @SortColumn = 'FlightHoursRemaining' AND @SortOrder = 'DESC' THEN FlightHoursRemainingHours END DESC,
+            CASE WHEN @SortColumn = 'CyclesLimit' AND @SortOrder = 'ASC' THEN CyclesLimit END ASC,
+            CASE WHEN @SortColumn = 'CyclesLimit' AND @SortOrder = 'DESC' THEN CyclesLimit END DESC,
+            CASE WHEN @SortColumn = 'TimeLimit' AND @SortOrder = 'ASC' THEN TimeLimit END ASC,
+            CASE WHEN @SortColumn = 'TimeLimit' AND @SortOrder = 'DESC' THEN TimeLimit END DESC,
+            CASE WHEN @SortColumn = 'LandingsLimit' AND @SortOrder = 'ASC' THEN LandingsLimit END ASC,
+            CASE WHEN @SortColumn = 'LandingsLimit' AND @SortOrder = 'DESC' THEN LandingsLimit END DESC,
+            CASE WHEN @SortColumn = 'EngineStartsLimit' AND @SortOrder = 'ASC' THEN EngineStartsLimit END ASC,
+            CASE WHEN @SortColumn = 'EngineStartsLimit' AND @SortOrder = 'DESC' THEN EngineStartsLimit END DESC,
+            CASE WHEN @SortColumn = 'CyclesRecorded' AND @SortOrder = 'ASC' THEN CyclesRecorded END ASC,
+            CASE WHEN @SortColumn = 'CyclesRecorded' AND @SortOrder = 'DESC' THEN CyclesRecorded END DESC,
+            CASE WHEN @SortColumn = 'TimeRecorded' AND @SortOrder = 'ASC' THEN TimeRecorded END ASC,
+            CASE WHEN @SortColumn = 'TimeRecorded' AND @SortOrder = 'DESC' THEN TimeRecorded END DESC,
+            CASE WHEN @SortColumn = 'LandingsRecorded' AND @SortOrder = 'ASC' THEN LandingsRecorded END ASC,
+            CASE WHEN @SortColumn = 'LandingsRecorded' AND @SortOrder = 'DESC' THEN LandingsRecorded END DESC,
+            CASE WHEN @SortColumn = 'EngineStartsRecorded' AND @SortOrder = 'ASC' THEN EngineStartsRecorded END ASC,
+            CASE WHEN @SortColumn = 'EngineStartsRecorded' AND @SortOrder = 'DESC' THEN EngineStartsRecorded END DESC,
+            CASE WHEN @SortColumn = 'CyclesRemaining' AND @SortOrder = 'ASC' THEN CyclesRemaining END ASC,
+            CASE WHEN @SortColumn = 'CyclesRemaining' AND @SortOrder = 'DESC' THEN CyclesRemaining END DESC,
+            CASE WHEN @SortColumn = 'TimeRemaining' AND @SortOrder = 'ASC' THEN TimeRemaining END ASC,
+            CASE WHEN @SortColumn = 'TimeRemaining' AND @SortOrder = 'DESC' THEN TimeRemaining END DESC,
+            CASE WHEN @SortColumn = 'LandingsRemaining' AND @SortOrder = 'ASC' THEN LandingsRemaining END ASC,
+            CASE WHEN @SortColumn = 'LandingsRemaining' AND @SortOrder = 'DESC' THEN LandingsRemaining END DESC,
+            CASE WHEN @SortColumn = 'EngineStartsRemaining' AND @SortOrder = 'ASC' THEN EngineStartsRemaining END ASC,
+            CASE WHEN @SortColumn = 'EngineStartsRemaining' AND @SortOrder = 'DESC' THEN EngineStartsRemaining END DESC,
+            CASE WHEN @SortColumn = 'CreatedDate'       AND @SortOrder = 'ASC'  THEN CreatedDate END ASC,
+            CASE WHEN @SortColumn = 'CreatedDate'       AND @SortOrder = 'DESC' THEN CreatedDate END DESC,
+            ProgramId DESC
+
+        OFFSET (@PageNumber - 1) * @PageSize ROWS
+        FETCH NEXT @PageSize ROWS ONLY
+        OPTION (RECOMPILE);
+
+    END TRY
+
+    BEGIN CATCH
+      
+        DECLARE
+            @ErrorLogID          INT,
+            @DatabaseName        VARCHAR(100)  = DB_NAME(),
+            @AdhocComments       VARCHAR(150)  = 'USP_GetAircraftMaintenanceList',
+            @ProcedureParameters VARCHAR(3000) =
+                '@MasterCompanyId = '    + ISNULL(CAST(@MasterCompanyId   AS VARCHAR(20)), 'NULL')
+                + ', @IsDeleted = '      + ISNULL(CAST(@IsDeleted         AS VARCHAR(5)),  'NULL')
+                + ', @GlobalFilter = '   + ISNULL(@GlobalFilter, 'NULL'),
+            @ApplicationName     VARCHAR(100)  = 'PAS';
+
+        EXEC spLogException
+            @DatabaseName        = @DatabaseName,
+            @AdhocComments       = @AdhocComments,
+            @ProcedureParameters = @ProcedureParameters,
+            @ApplicationName     = @ApplicationName,
+            @ErrorLogID          = @ErrorLogID OUTPUT;
+
+        RAISERROR(
+            'Unexpected error in the database. Please provide error number %d to the support team.',
+            16, 1, @ErrorLogID
+        );
+
+        RETURN 1;
+
+    END CATCH;
+END;

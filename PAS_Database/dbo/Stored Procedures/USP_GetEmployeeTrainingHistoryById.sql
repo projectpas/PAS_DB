@@ -11,7 +11,8 @@
  ********             
  ** PR   Date			 Author				Change Description              
  ** --   --------		 -------			--------------------------------            
-    1    04-11-2025    Bhargav Saliya		Created  
+    1    04-11-2025    Bhargav Saliya		Created 
+	2    14-APR-2026   Sahdev Saliya        Added TrainingName, ProviderId, ProviderType, IsRecurring, DurationHours, DurationMinutes (PN-15932)
 
 	exec [USP_GetEmployeeTrainingHistoryById]  @EmployeeTrainingId = 20 , @EmployeeId = 2
 ********************************************************************************/   
@@ -42,7 +43,7 @@ BEGIN
 			,ETA.[IndustryCode]
 			,FT.[FrequencyName] as FrequencyofTraining
 			,ETA.[Cost] as EstimatedCost
-			,ETA.[Duration]
+			,CAST(ETA.DurationHours AS VARCHAR(max)) + ' : ' + RIGHT('00' + CAST(ETA.DurationMinutes AS VARCHAR(2)), 2) AS Duration
 			,ETA.[ScheduleDate]
 			,ETA.[CompletionDate]
 			,ETA.[ExpirationDate]
@@ -53,16 +54,21 @@ BEGIN
 			,CASE WHEN CAST(ETA.[UpdatedDate] AS DATE) = CAST('0001-01-01 00:00:00' AS DATE)THEN NULL ELSE (Cast(DBO.ConvertUTCtoLocal(ETA.[UpdatedDate], @CurrntEmpTimeZoneDesc) AS DATETIME))END [UpdatedDate]
 			,ETA.MasterCompanyId
 			,ETA.[IsActive]  
-			,ETA.[IsDeleted]  
+			,ETA.[IsDeleted] 
+			,TN.[Name] as TrainingName
+			,ETA.ProviderId
+			,ETA.ProviderType
+			,ETA.IsRecurring
 		FROM [dbo].[EmployeeTrainingAudit] ETA WITH(NOLOCK)  
 		LEFT JOIN dbo.EmployeeTrainingType ETP WITH (NOLOCK) ON ETA.EmployeeTrainingTypeId = ETP.EmployeeTrainingTypeId
 		LEFT JOIN dbo.AircraftType AFT WITH (NOLOCK) ON ETA.AircraftManufacturerId = AFT.AircraftTypeId
 		LEFT JOIN dbo.EmployeeAircraftModelMapping EAMP WITH (NOLOCK) ON ETA.EmployeeId = EAMP.EmployeeId
 		LEFT JOIN dbo.AircraftModel A WITH (NOLOCK) ON A.AircraftModelId = EAMP.AircraftModelId
 		LEFT JOIN dbo.FrequencyOfTraining FT WITH (NOLOCK) ON ETA.FrequencyOfTrainingId = FT.FrequencyOfTrainingId
+	    LEFT JOIN dbo.TrainingName TN WITH (NOLOCK) ON ETA.TrainingNameId = TN.TrainingNameId
 		WHERE ETA.[EmployeeTrainingId] = @EmployeeTrainingId 
 		GROUP BY ETA.EmployeeTrainingId,ETA.EmployeeId,ETP.[TrainingType],AFT.[Description],ETA.[Provider],ETA.[IndustryCode],FT.[FrequencyName],ETA.[Cost],
-			ETA.[Duration],ETA.[ScheduleDate],ETA.[CompletionDate],ETA.[ExpirationDate],ETA.InternalReference,ETA.Memo,ETA.[IsActive],ETA.[IsDeleted],ETA.[CreatedBy],ETA.[UpdatedBy],ETA.[UpdatedDate],ETA.[MasterCompanyId]
+			ETA.[DurationHours],ETA.[DurationMinutes],ETA.[ScheduleDate],ETA.[CompletionDate],ETA.[ExpirationDate],ETA.InternalReference,ETA.Memo,ETA.[IsActive],ETA.[IsDeleted],ETA.[CreatedBy],ETA.[UpdatedBy],ETA.[UpdatedDate],ETA.[MasterCompanyId],TN.[Name],ETA.[ProviderId],ETA.[ProviderType],ETA.[IsRecurring]
 	order by ETA.[EmployeeTrainingId] desc	
   END    
   END TRY    

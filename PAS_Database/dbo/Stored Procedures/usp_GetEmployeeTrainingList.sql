@@ -6,14 +6,15 @@
  ** Purpose:           
  ** Date:  04-09-2025  
            
- ** RETURN VALUE:             
+ ** RETURN VALUE:
  ********             
  ** Change History             
  ********             
  ** PR   Date			 Author				Change Description              
  ** --   --------		 -------			--------------------------------            
     1    04-09-2025    Bhargav Saliya		Created  
-    1    04-15-2025    Bhargav Saliya		Modefied  
+    2    04-15-2025    Bhargav Saliya		Modefied 
+	3    14-APR-2026   Sahdev Saliya        Added TrainingName, ProviderId, ProviderType, IsRecurring, DurationHours, DurationMinutes (PN-15932)
 
 	--EXEC [usp_GetEmployeeTrainingList] @EmployeeId= 243, @MasterCompanyId = 1 , @IsdeleteStatus = 0
 ********************************************************************************/ 
@@ -29,8 +30,8 @@ BEGIN
   BEGIN TRY   
    
    ;WITH rptCTE (TotalRecordsCount, EmployeeTrainingId,EmployeeId,TrainingType, AircraftManufacturer, AircraftModel, Provider, IndustryCode, FrequencyofTraining, EstimatedCost,
-				 Duration, ScheduleDate, CompletionDate,ExpirationDate,InternalReference,MEMO,IsActive,IsDeleted,
-				 MasterCompanyId) 
+				 DurationHours, DurationMinutes, ScheduleDate, CompletionDate,ExpirationDate,InternalReference,MEMO,IsActive,IsDeleted,
+				 MasterCompanyId,TrainingNameId,TrainingName,ProviderId,ProviderType,IsRecurring) 
 				 AS (
       SELECT COUNT(1) OVER () AS TotalRecordsCount
 			 ,ET.EmployeeTrainingId
@@ -49,7 +50,8 @@ BEGIN
 			 ,ET.[IndustryCode]
 			 ,FT.[FrequencyName] as FrequencyofTraining
 			 ,ET.[Cost] as EstimatedCost
-			 ,ET.[Duration]
+			 ,ET.DurationHours
+			 ,ET.DurationMinutes
 			 ,ET.[ScheduleDate]
 			 ,ET.[CompletionDate]
 			 ,ET.[ExpirationDate]
@@ -58,25 +60,31 @@ BEGIN
 			 ,ET.[IsActive]
 			 ,ET.[IsDeleted]
 			 ,ET.[MasterCompanyId]
+			 ,ET.TrainingNameId
+             ,TN.[Name] as TrainingName
+			 ,ET.[ProviderId]
+			 ,ET.[ProviderType]
+			 ,ET.IsRecurring AS IsRecurring
       FROM DBO.EmployeeTraining ET WITH (NOLOCK)
 		LEFT JOIN dbo.EmployeeTrainingType ETP WITH (NOLOCK) ON ET.EmployeeTrainingTypeId = ETP.EmployeeTrainingTypeId
 		LEFT JOIN dbo.AircraftType AFT WITH (NOLOCK) ON ET.AircraftManufacturerId = AFT.AircraftTypeId
 		LEFT JOIN dbo.FrequencyOfTraining FT WITH (NOLOCK) ON ET.FrequencyOfTrainingId = FT.FrequencyOfTrainingId
+		LEFT JOIN dbo.TrainingName TN WITH (NOLOCK) ON ET.TrainingNameId = TN.TrainingNameId
 
       WHERE ET.EmployeeId = @EmployeeId AND ET.MasterCompanyId = @MasterCompanyId AND ET.IsDeleted = @IsdeleteStatus 
 			
 			GROUP BY ET.EmployeeTrainingId,ET.EmployeeId,ETP.[TrainingType],AFT.[Description],ET.[Provider],ET.[IndustryCode],FT.[FrequencyName],ET.[Cost],
-			ET.[Duration],ET.[ScheduleDate],ET.[CompletionDate],ET.[ExpirationDate],ET.InternalReference,ET.Memo,ET.[IsActive],ET.[IsDeleted],ET.[MasterCompanyId]
+			 ET.DurationHours, ET.DurationMinutes,ET.[ScheduleDate],ET.[CompletionDate],ET.[ExpirationDate],ET.InternalReference,ET.Memo,ET.[IsActive],ET.[IsDeleted],ET.[MasterCompanyId],ET.[TrainingNameId],TN.[Name],ET.[ProviderId],ET.[ProviderType],ET.IsRecurring
 			)
 			,FinalCTE(TotalRecordsCount, EmployeeTrainingId,EmployeeId,TrainingType, AircraftManufacturer, AircraftModel, Provider, IndustryCode, FrequencyofTraining, EstimatedCost,
-				 Duration, ScheduleDate, CompletionDate,ExpirationDate,InternalReference,MEMO,IsActive,IsDeleted,MasterCompanyId) 
+				 DurationHours, DurationMinutes, ScheduleDate, CompletionDate,ExpirationDate,InternalReference,MEMO,IsActive,IsDeleted,MasterCompanyId,TrainingNameId,TrainingName,ProviderId,ProviderType,IsRecurring) 
 
 			  AS (SELECT DISTINCT TotalRecordsCount, EmployeeTrainingId,EmployeeId,TrainingType, AircraftManufacturer, AircraftModel, Provider, IndustryCode, FrequencyofTraining, EstimatedCost,
-				 Duration, ScheduleDate, CompletionDate,ExpirationDate,InternalReference,MEMO,IsActive,IsDeleted,MasterCompanyId FROM rptCTE)
+				 DurationHours, DurationMinutes, ScheduleDate, CompletionDate,ExpirationDate,InternalReference,MEMO,IsActive,IsDeleted,MasterCompanyId,TrainingNameId,TrainingName,ProviderId,ProviderType,IsRecurring FROM rptCTE)
 			
 		    SELECT COUNT(2) OVER () AS TotalRecordsCount, EmployeeTrainingId,EmployeeId,TrainingType, AircraftManufacturer, AircraftModel, Provider, IndustryCode, FrequencyofTraining, EstimatedCost,
-				 Duration, ScheduleDate, CompletionDate,ExpirationDate,InternalReference,MEMO,IsActive,IsDeleted,
-				 MasterCompanyId
+				 ScheduleDate, CompletionDate,ExpirationDate,InternalReference,MEMO,IsActive,IsDeleted,
+				 MasterCompanyId, CAST(DurationHours AS VARCHAR(max)) + ' : ' + RIGHT('' + CAST(DurationMinutes AS VARCHAR(2)), 2) AS Duration,TrainingNameId,TrainingName,ProviderId,ProviderType,IsRecurring
 		    FROM FinalCTE FC
 
 			ORDER BY EmployeeTrainingId DESC

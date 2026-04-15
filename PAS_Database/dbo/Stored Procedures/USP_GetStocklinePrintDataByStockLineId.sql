@@ -14,7 +14,8 @@
  ** --   --------		-------			--------------------------------          
     1    09/24/2021     Hemant Saliya	Created
 	2    29/01/2026     Moin Bloch		Getting Quantity From PickTicket Insted of Stockline PN-15111
-	3    27/Feb/2026    Rajesh Gami		Added UOM Changes - PN-14832      
+	3    27/Feb/2026    Rajesh Gami		Added UOM Changes - PN-14832   
+	4    14/APR/2026    Ayushi Patel	Added UOM Changes - PN-16059
 --EXEC [USP_GetStocklinePrintDataByStockLineId] 
 **************************************************************/
 CREATE PROCEDURE [dbo].[USP_GetStocklinePrintDataByStockLineId]
@@ -64,7 +65,8 @@ BEGIN
 			stl.UpdatedDate,
 			stl.IsSerialized,
 			stl.TraceableToName,
-			stl.UnitOfMeasure AS UnitOfMeasureName,
+			--stl.UnitOfMeasure AS UnitOfMeasureName,
+			uomConsume.ShortName AS UnitOfMeasureName,
 			'' AS MPNNum,
 			wo.WorkOrderNum AS WoNum,
 			CAST(0 AS BIT) AS IsFromSubWO,
@@ -113,7 +115,8 @@ BEGIN
             stl.UpdatedDate,
             stl.IsSerialized,
             stl.TraceableToName,
-            stl.UnitOfMeasure AS UnitOfMeasureName,
+            --stl.UnitOfMeasure AS UnitOfMeasureName,
+			uomConsume.ShortName AS UnitOfMeasureName,
             wo.SubWorkOrderNo AS SubWorkOrderNo,
             im.PartNumber AS MPNNum,
 			'' AS WoNum,
@@ -125,7 +128,7 @@ BEGIN
 			INNER JOIN [dbo].[ItemMaster] im WITH(NOLOCK) ON stl.ItemMasterId = im.ItemMasterId
 			LEFT JOIN [dbo].[PurchaseOrder] po WITH(NOLOCK) ON stl.PurchaseOrderId = po.PurchaseOrderId
 			LEFT JOIN [dbo].[Vendor] ve WITH(NOLOCK) ON stl.VendorId = ve.VendorId
-			LEFT JOIN [dbo].[SubWorkOrderMaterialStockLine] mst WITH(NOLOCK) ON stl.StockLineId = mst.StockLineId AND mst.SubWorkOrderMaterialsId = @SubWorkOrderMaterialId
+			LEFT JOIN [dbo].[SubWorkOrderMaterialStockLine] mst WITH(NOLOCK) ON stl.StockLineId = mst.StockLIneId AND mst.SubWorkOrderMaterialsId = @SubWorkOrderMaterialId
 			LEFT JOIN [dbo].[SubWorkOrderMaterials] womst WITH(NOLOCK) ON mst.SubWorkOrderMaterialsId = womst.SubWorkOrderMaterialsId
 			LEFT JOIN [dbo].[SubWorkOrder] wo WITH(NOLOCK) ON womst.SubWorkOrderId = wo.SubWorkOrderId
 			LEFT JOIN [dbo].[UnitOfMeasure] uomStock WITH(NOLOCK) ON uomStock.UnitOfMeasureId = stl.StockUnitOfMeasureId
@@ -173,7 +176,8 @@ BEGIN
 				mst.Item,
 				CAST(0 AS BIT) AS IsFromSubWO,
 				stl.TraceableToName,
-				stl.UnitOfMeasure AS UnitOfMeasureName
+				--stl.UnitOfMeasure AS UnitOfMeasureName
+				uomConsume.ShortName AS UnitOfMeasureName
 			FROM [dbo].[Stockline] stl WITH(NOLOCK)
 				INNER JOIN [dbo].[ItemMaster] im WITH(NOLOCK) ON stl.ItemMasterId = im.ItemMasterId
 				LEFT JOIN [dbo].[PurchaseOrder] po WITH(NOLOCK) ON stl.PurchaseOrderId = po.PurchaseOrderId
@@ -228,7 +232,8 @@ BEGIN
 				mst.Item,
 				CAST(0 AS BIT) AS IsFromSubWO,
 				stl.TraceableToName,
-				stl.UnitOfMeasure AS UnitOfMeasureName
+				--stl.UnitOfMeasure AS UnitOfMeasureName
+				uomConsume.ShortName AS UnitOfMeasureName
 			FROM [dbo].[Stockline] stl WITH(NOLOCK)
 				INNER JOIN [dbo].[ItemMaster] im WITH(NOLOCK) ON stl.ItemMasterId = im.ItemMasterId
 				LEFT JOIN [dbo].[PurchaseOrder] po WITH(NOLOCK) ON stl.PurchaseOrderId = po.PurchaseOrderId
@@ -286,7 +291,8 @@ BEGIN
 				mst.Item,
 				0 AS IsFromSubWO,
 				stl.TraceableToName,
-				stl.UnitOfMeasure AS UnitOfMeasureName
+				--stl.UnitOfMeasure AS UnitOfMeasureName
+				uomConsume.ShortName AS UnitOfMeasureName
 			FROM [dbo].[Stockline] stl WITH(NOLOCK)
 				INNER JOIN [dbo].[ItemMaster] im WITH(NOLOCK) ON stl.ItemMasterId = im.ItemMasterId
 				LEFT JOIN [dbo].[PurchaseOrder] po WITH(NOLOCK) ON stl.PurchaseOrderId = po.PurchaseOrderId
@@ -340,7 +346,8 @@ BEGIN
 				mst.Item,
 				0 AS IsFromSubWO,
 				stl.TraceableToName,
-				stl.UnitOfMeasure AS UnitOfMeasureName
+				--stl.UnitOfMeasure AS UnitOfMeasureName
+				uomConsume.ShortName AS UnitOfMeasureName
 			FROM [dbo].[Stockline] stl WITH(NOLOCK)
 				INNER JOIN [dbo].[ItemMaster] im WITH(NOLOCK) ON stl.ItemMasterId = im.ItemMasterId
 				LEFT JOIN [dbo].[PurchaseOrder] po WITH(NOLOCK) ON stl.PurchaseOrderId = po.PurchaseOrderId

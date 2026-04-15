@@ -38,27 +38,28 @@ BEGIN
 			CreatedBy,
 			UpdatedBy
 		FROM dbo.AircraftCycleTimeMappings WITH(NOLOCK)
-		WHERE AircraftCycleTimeMappingsId = @AircraftCycleTimeMappingsId
-		  AND IsDeleted = 0;
+		WHERE RefrenceId = @AircraftCycleTimeMappingsId
+		  AND IsActive = 1 AND IsDeleted = 0;
 
 		-- Engine Data
 		SELECT 
-			AircraftEngineStartsMappingsId,
-			AircraftCycleTimeMappingsId,
-			EngineName,
-			Hours,
-			CurruntHours,
-			CumulativeHours,
-			Starts,
-			CurruntStarts,
-			CumulativeStarts,
-			Memo,
-			MasterCompanyId,
-			CreatedBy,
-			UpdatedBy
-		FROM dbo.AircraftEngineStartsMappings WITH(NOLOCK)
-		WHERE AircraftCycleTimeMappingsId = @AircraftCycleTimeMappingsId
-		  AND IsDeleted = 0;
+			AESM.AircraftEngineStartsMappingsId,
+			AESM.AircraftCycleTimeMappingsId,
+			AESM.EngineName,
+			AESM.Hours,
+			AESM.CurruntHours,
+			AESM.CumulativeHours,
+			AESM.Starts,
+			AESM.CurruntStarts,
+			AESM.CumulativeStarts,
+			AESM.Memo,
+			AESM.MasterCompanyId,
+			AESM.CreatedBy,
+			AESM.UpdatedBy
+		FROM dbo.AircraftEngineStartsMappings AESM WITH(NOLOCK)
+		INNER JOIN dbo.AircraftCycleTimeMappings ACTM WITH(NOLOCK) ON ACTM.AircraftCycleTimeMappingsId = AESM.AircraftCycleTimeMappingsId
+		WHERE ACTM.RefrenceId = @AircraftCycleTimeMappingsId
+		  AND AESM.IsActive = 1 AND AESM.IsDeleted = 0;
     END TRY
     BEGIN CATCH
         DECLARE

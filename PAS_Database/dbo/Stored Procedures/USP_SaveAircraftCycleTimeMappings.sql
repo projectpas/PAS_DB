@@ -25,6 +25,19 @@ BEGIN
     BEGIN 
 
 		DECLARE @CycleId BIGINT;
+		DECLARE @AircraftEngineStartsMappingsId BIGINT,
+				@AircraftCycleTimeMappingsId BIGINT,
+				@EngineName VARCHAR(50),
+				@Hours DECIMAL(18,6),
+				@CurruntHours DECIMAL(18,6),
+				@CumulativeHours DECIMAL(18,6),
+				@Starts DECIMAL(18,6),
+				@CurruntStarts DECIMAL(18,6),
+				@CumulativeStarts DECIMAL(18,6),
+				@Memo NVARCHAR(MAX),
+				@MasterCompanyId INT,
+				@CreatedBy VARCHAR(256),
+				@UpdatedBy VARCHAR(256);
 
         -------------------------------------------------------
         -- READ JSON INTO TEMP TABLE
@@ -148,64 +161,168 @@ BEGIN
         -------------------------------------------------------
         -- INSERT ENGINE DATA
         -------------------------------------------------------
-        INSERT INTO dbo.AircraftEngineStartsMappings
-        (
-            AircraftCycleTimeMappingsId,
-            EngineName,
-            Hours,
-            CurruntHours,
-            CumulativeHours,
-            Starts,
-            CurruntStarts,
-            CumulativeStarts,
-            Memo,
-            MasterCompanyId,
-            CreatedBy,
-            UpdatedBy,
-            CreatedDate,
-            UpdatedDate,
-            IsActive,
-            IsDeleted
-        )
-        SELECT
-            @CycleId,
-            EngineName,
-            Hours,
-            CurruntHours,
-            CumulativeHours,
-            Starts,
-            CurruntStarts,
-            CumulativeStarts,
-            Memo,
-            MasterCompanyId,
-            CreatedBy,
-            UpdatedBy,
-            GETUTCDATE(),
-            GETUTCDATE(),
-            1,
-            0
-        FROM OPENJSON(@EngineData)
-        WITH
-        (
-            EngineName VARCHAR(50),
-            Hours DECIMAL(18,6),
-            CurruntHours DECIMAL(18,6),
-            CumulativeHours DECIMAL(18,6),
-            Starts DECIMAL(18,6),
-            CurruntStarts DECIMAL(18,6),
-            CumulativeStarts DECIMAL(18,6),
-            Memo NVARCHAR(MAX),
-            MasterCompanyId INT,
-            CreatedBy VARCHAR(256),
-            UpdatedBy VARCHAR(256)
-        );
+		DECLARE @EngineTable TABLE
+		(
+			AircraftEngineStartsMappingsId BIGINT,
+			AircraftCycleTimeMappingsId BIGINT,
+			EngineName VARCHAR(50),
+			Hours DECIMAL(18,6),
+			CurruntHours DECIMAL(18,6),
+			CumulativeHours DECIMAL(18,6),
+			Starts DECIMAL(18,6),
+			CurruntStarts DECIMAL(18,6),
+			CumulativeStarts DECIMAL(18,6),
+			Memo NVARCHAR(MAX),
+			MasterCompanyId INT,
+			CreatedBy VARCHAR(256),
+			UpdatedBy VARCHAR(256)
+		);
+
+		INSERT INTO @EngineTable
+		SELECT
+			AircraftEngineStartsMappingsId,
+			AircraftCycleTimeMappingsId,
+			EngineName,
+			Hours,
+			CurruntHours,
+			CumulativeHours,
+			Starts,
+			CurruntStarts,
+			CumulativeStarts,
+			Memo,
+			MasterCompanyId,
+			CreatedBy,
+			UpdatedBy
+		FROM OPENJSON(@EngineData)
+		WITH
+		(
+			AircraftEngineStartsMappingsId BIGINT,
+			AircraftCycleTimeMappingsId BIGINT,
+			EngineName VARCHAR(50),
+			Hours DECIMAL(18,6),
+			CurruntHours DECIMAL(18,6),
+			CumulativeHours DECIMAL(18,6),
+			Starts DECIMAL(18,6),
+			CurruntStarts DECIMAL(18,6),
+			CumulativeStarts DECIMAL(18,6),
+			Memo NVARCHAR(MAX),
+			MasterCompanyId INT,
+			CreatedBy VARCHAR(256),
+			UpdatedBy VARCHAR(256)
+		);
+
+		DECLARE EngineCursor CURSOR FOR
+		SELECT 
+			AircraftEngineStartsMappingsId,
+			AircraftCycleTimeMappingsId,
+			EngineName,
+			Hours,
+			CurruntHours,
+			CumulativeHours,
+			Starts,
+			CurruntStarts,
+			CumulativeStarts,
+			Memo,
+			MasterCompanyId,
+			CreatedBy,
+			UpdatedBy
+		FROM @EngineTable;
+
+		OPEN EngineCursor;
+
+		FETCH NEXT FROM EngineCursor INTO @AircraftEngineStartsMappingsId,@AircraftCycleTimeMappingsId,
+			@EngineName, @Hours, @CurruntHours, @CumulativeHours,
+			@Starts, @CurruntStarts, @CumulativeStarts,
+			@Memo, @MasterCompanyId, @CreatedBy, @UpdatedBy;
+
+		WHILE @@FETCH_STATUS = 0
+		BEGIN
+
+			IF EXISTS (
+				SELECT 1 
+				FROM dbo.AircraftEngineStartsMappings
+				WHERE AircraftEngineStartsMappingsId = @AircraftEngineStartsMappingsId
+				  AND EngineName = @EngineName
+			)
+			BEGIN
+				---------------------------------------------------
+				-- UPDATE
+				---------------------------------------------------
+				UPDATE dbo.AircraftEngineStartsMappings
+				SET
+					Hours = @Hours,
+					CurruntHours = @CurruntHours,
+					CumulativeHours = @CumulativeHours,
+					Starts = @Starts,
+					CurruntStarts = @CurruntStarts,
+					CumulativeStarts = @CumulativeStarts,
+					Memo = @Memo,
+					MasterCompanyId = @MasterCompanyId,
+					UpdatedBy = @UpdatedBy,
+					UpdatedDate = GETUTCDATE()
+				WHERE AircraftEngineStartsMappingsId = @AircraftEngineStartsMappingsId
+				  AND EngineName = @EngineName;
+			END
+			ELSE
+			BEGIN
+				---------------------------------------------------
+				-- INSERT
+				---------------------------------------------------
+				INSERT INTO dbo.AircraftEngineStartsMappings
+				(
+					AircraftCycleTimeMappingsId,
+					EngineName,
+					Hours,
+					CurruntHours,
+					CumulativeHours,
+					Starts,
+					CurruntStarts,
+					CumulativeStarts,
+					Memo,
+					MasterCompanyId,
+					CreatedBy,
+					UpdatedBy,
+					CreatedDate,
+					UpdatedDate,
+					IsActive,
+					IsDeleted
+				)
+				VALUES
+				(
+					@CycleId,
+					@EngineName,
+					@Hours,
+					@CurruntHours,
+					@CumulativeHours,
+					@Starts,
+					@CurruntStarts,
+					@CumulativeStarts,
+					@Memo,
+					@MasterCompanyId,
+					@CreatedBy,
+					@UpdatedBy,
+					GETUTCDATE(),
+					GETUTCDATE(),
+					1,
+					0
+				);
+			END
+
+			FETCH NEXT FROM EngineCursor INTO @AircraftEngineStartsMappingsId,@AircraftCycleTimeMappingsId,
+				@EngineName, @Hours, @CurruntHours, @CumulativeHours,
+				@Starts, @CurruntStarts, @CumulativeStarts,
+				@Memo, @MasterCompanyId, @CreatedBy, @UpdatedBy;
+
+		END
+
+		CLOSE EngineCursor;
+		DEALLOCATE EngineCursor;
 
         -------------------------------------------------------
         -- RETURN
         -------------------------------------------------------
         SELECT @CycleId AS AircraftCycleTimeMappingsId;
 
-        COMMIT TRANSACTION;
     END  
    COMMIT  TRANSACTION 
     END TRY        

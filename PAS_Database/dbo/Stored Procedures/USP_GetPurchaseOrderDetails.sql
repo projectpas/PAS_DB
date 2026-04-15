@@ -18,6 +18,7 @@
     1    02-April-2025   Bhargav Saliya		Created
 	2    04-Dec-2025	 Rajesh Gami		Added CustomerRFQNo while getting record
 	3    08-Dec-2025     Sahdev Saliya      Added New Field :- VendorRFQPurchaseOrderNumber
+	4    14-Apr-2026     DB Review          Added SourceBy, MarketplaceRef fields to SELECT
 
 exec [dbo].[USP_GetPurchaseOrderDetails] @PurchaseOrderId = 6708
 **************************************************************/ 
@@ -114,7 +115,9 @@ BEGIN
 			ISNULL(rcu.Code, '') AS ReportCurrency,
 			CASE WHEN po.ForeignExchangeRate > 0 THEN po.ForeignExchangeRate ELSE 0 END AS ForeignExchangeRate,
 			ISNULL(rfqData.CustomerRFQNo,'-') AS CustomerRFQNo,
-			VRFQ.VendorRFQPurchaseOrderNumber
+			VRFQ.VendorRFQPurchaseOrderNumber,
+			ISNULL(po.SourceBy, '') AS SourceBy,
+			ISNULL(po.MarketplaceRef, '') AS MarketplaceRef
 		FROM PurchaseOrder po WITH(NOLOCK)
 		LEFT JOIN [dbo].AllAddress posadd WITH(NOLOCK) ON po.PurchaseOrderId = posadd.ReffranceId AND posadd.IsShippingAdd = 1 AND posadd.ModuleId = @ModuleId
 		LEFT JOIN [dbo].AllAddress pobadd WITH(NOLOCK) ON po.PurchaseOrderId = pobadd.ReffranceId AND pobadd.IsShippingAdd = 0 AND pobadd.ModuleId = @ModuleId

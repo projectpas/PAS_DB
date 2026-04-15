@@ -16,6 +16,7 @@
    4    08-DEC-2025     Rajesh Gami         Added DecimalPlaces
    5    17-DEC-2025     Amit Ghediya        Get new fields SalesOrderCustomerId for redirect to so.
    6    14-APR-2025     Rajesh Gami         DraftedStocklineCount added as a decimal : [PN-16065]
+   7    14-APR-2026     DB Review           Fixed truncation risk: LotNumber, ReapairOrderNo VARCHAR(100) → VARCHAR(MAX)
 --EXEC [dbo].[USP_GetPurchaseOrderPartByPOId] 7910 ,NULL,NULL
 **************************************************************/ 
 
@@ -268,8 +269,8 @@ BEGIN
 					SalesOrderQuoteNumber VARCHAR(250) NULL,
 					ExpectedSerialNumber VARCHAR(250) NULL,POChargesCount INT NULL, POFrightsCount INT NULL,IsApproved BIT NULL,
 					LastMSLevel VARCHAR(MAX) NULL,AllMSlevels VARCHAR(MAX) NULL,
-					LotNumber VARCHAR(100) NULL,
-					ReapairOrderNo VARCHAR(100) NULL,
+					LotNumber VARCHAR(MAX) NULL,
+					ReapairOrderNo VARCHAR(MAX) NULL,
 					StockLineCount DECIMAL(18,6) NULL,
 					DraftedStockLineCount DECIMAL(18,6) NULL,
 					PurchaseUnitOfMeasureId BIGINT NULL,

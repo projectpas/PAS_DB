@@ -1,0 +1,232 @@
+﻿/*************************************************************     
+** Author:  <Amit Ghediya>    
+** Create date: <14/04/2026>    
+** Description: <This Proc Is used to Same Turn In Aircraft CycleTime>    
+    
+Exec [USP_SaveAircraftCycleTimeMappings]   
+**************************************************************   
+** Change History   
+**************************************************************     
+** PR   Date        Author          Change Description    
+** --   --------    -------         --------------------------------  
+   1    14/04/2026  Amit Ghediya		Created  
+     
+**************************************************************/   
+CREATE     PROCEDURE [dbo].[USP_SaveAircraftCycleTimeMappings]  
+	 @CycleData NVARCHAR(MAX),
+     @EngineData NVARCHAR(MAX)
+AS  
+BEGIN  
+   
+ SET NOCOUNT ON;  
+ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED  
+   BEGIN TRY 
+   BEGIN TRANSACTION  
+    BEGIN 
+
+		DECLARE @CycleId BIGINT;
+
+        -------------------------------------------------------
+        -- READ JSON INTO TEMP TABLE
+        -------------------------------------------------------
+        DECLARE @CycleTable TABLE
+        (
+            AircraftCycleTimeMappingsId BIGINT,
+            ModuleId BIGINT,
+            RefrenceId BIGINT,
+            CycleDate DATETIME2,
+            Hours DECIMAL(18,6),
+            CurruntHours DECIMAL(18,6),
+            CumulativeHours DECIMAL(18,6),
+            Cycles DECIMAL(18,6),
+            CurruntCycles DECIMAL(18,6),
+            CumulativeCycles DECIMAL(18,6),
+            Memo NVARCHAR(MAX),
+            MasterCompanyId INT,
+            CreatedBy VARCHAR(256),
+            UpdatedBy VARCHAR(256)
+        );
+
+        INSERT INTO @CycleTable
+        SELECT *
+        FROM OPENJSON(@CycleData)
+        WITH
+        (
+            AircraftCycleTimeMappingsId BIGINT,
+            ModuleId BIGINT,
+            RefrenceId BIGINT,
+            CycleDate DATETIME2,
+            Hours DECIMAL(18,6),
+            CurruntHours DECIMAL(18,6),
+            CumulativeHours DECIMAL(18,6),
+            Cycles DECIMAL(18,6),
+            CurruntCycles DECIMAL(18,6),
+            CumulativeCycles DECIMAL(18,6),
+            Memo NVARCHAR(MAX),
+            MasterCompanyId INT,
+            CreatedBy VARCHAR(256),
+            UpdatedBy VARCHAR(256)
+        );
+
+        -------------------------------------------------------
+        -- CHECK INSERT OR UPDATE
+        -------------------------------------------------------
+        IF EXISTS (SELECT 1 FROM @CycleTable WHERE ISNULL(AircraftCycleTimeMappingsId,0) > 0)
+        BEGIN
+            ---------------------------------------------------
+            -- UPDATE
+            ---------------------------------------------------
+            UPDATE A
+            SET
+                A.ModuleId = C.ModuleId,
+                A.RefrenceId = C.RefrenceId,
+                A.CycleDate = C.CycleDate,
+                A.Hours = C.Hours,
+                A.CurruntHours = C.CurruntHours,
+                A.CumulativeHours = C.CumulativeHours,
+                A.Cycles = C.Cycles,
+                A.CurruntCycles = C.CurruntCycles,
+                A.CumulativeCycles = C.CumulativeCycles,
+                A.Memo = C.Memo,
+                A.MasterCompanyId = C.MasterCompanyId,
+                A.UpdatedBy = C.UpdatedBy,
+                A.UpdatedDate = GETUTCDATE()
+            FROM dbo.AircraftCycleTimeMappings A
+            INNER JOIN @CycleTable C
+                ON A.AircraftCycleTimeMappingsId = C.AircraftCycleTimeMappingsId;
+
+            SELECT @CycleId = AircraftCycleTimeMappingsId FROM @CycleTable;
+        END
+        ELSE
+        BEGIN
+            ---------------------------------------------------
+            -- INSERT
+            ---------------------------------------------------
+            INSERT INTO dbo.AircraftCycleTimeMappings
+            (
+                ModuleId,
+                RefrenceId,
+                CycleDate,
+                Hours,
+                CurruntHours,
+                CumulativeHours,
+                Cycles,
+                CurruntCycles,
+                CumulativeCycles,
+                Memo,
+                MasterCompanyId,
+                CreatedBy,
+                UpdatedBy,
+                CreatedDate,
+                UpdatedDate,
+                IsActive,
+                IsDeleted
+            )
+            SELECT
+                ModuleId,
+                RefrenceId,
+                GETUTCDATE(),
+                Hours,
+                CurruntHours,
+                CumulativeHours,
+                Cycles,
+                CurruntCycles,
+                CumulativeCycles,
+                Memo,
+                MasterCompanyId,
+                CreatedBy,
+                UpdatedBy,
+                GETUTCDATE(),
+                GETUTCDATE(),
+                1,
+                0
+            FROM @CycleTable;
+
+            SET @CycleId = SCOPE_IDENTITY();
+        END
+
+        -------------------------------------------------------
+        -- INSERT ENGINE DATA
+        -------------------------------------------------------
+        INSERT INTO dbo.AircraftEngineStartsMappings
+        (
+            AircraftCycleTimeMappingsId,
+            EngineName,
+            Hours,
+            CurruntHours,
+            CumulativeHours,
+            Starts,
+            CurruntStarts,
+            CumulativeStarts,
+            Memo,
+            MasterCompanyId,
+            CreatedBy,
+            UpdatedBy,
+            CreatedDate,
+            UpdatedDate,
+            IsActive,
+            IsDeleted
+        )
+        SELECT
+            @CycleId,
+            EngineName,
+            Hours,
+            CurruntHours,
+            CumulativeHours,
+            Starts,
+            CurruntStarts,
+            CumulativeStarts,
+            Memo,
+            MasterCompanyId,
+            CreatedBy,
+            UpdatedBy,
+            GETUTCDATE(),
+            GETUTCDATE(),
+            1,
+            0
+        FROM OPENJSON(@EngineData)
+        WITH
+        (
+            EngineName VARCHAR(50),
+            Hours DECIMAL(18,6),
+            CurruntHours DECIMAL(18,6),
+            CumulativeHours DECIMAL(18,6),
+            Starts DECIMAL(18,6),
+            CurruntStarts DECIMAL(18,6),
+            CumulativeStarts DECIMAL(18,6),
+            Memo NVARCHAR(MAX),
+            MasterCompanyId INT,
+            CreatedBy VARCHAR(256),
+            UpdatedBy VARCHAR(256)
+        );
+
+        -------------------------------------------------------
+        -- RETURN
+        -------------------------------------------------------
+        SELECT @CycleId AS AircraftCycleTimeMappingsId;
+
+        COMMIT TRANSACTION;
+    END  
+   COMMIT  TRANSACTION 
+    END TRY        
+ BEGIN CATCH
+  IF @@trancount > 0    
+   PRINT 'ROLLBACK'  
+    
+   ROLLBACK TRAN;    
+   DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name()     
+-----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------    
+            , @AdhocComments     VARCHAR(150)    = 'USP_SaveAircraftCycleTimeMappings'     
+			, @ProcedureParameters VARCHAR(3000) = '@CycleData = ''' + CAST(ISNULL(@CycleData, '') AS VARCHAR(100))  
+            , @ApplicationName VARCHAR(100) = 'PAS'    
+-----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------    
+            exec spLogException     
+                    @DatabaseName           = @DatabaseName    
+                    , @AdhocComments          = @AdhocComments    
+                    , @ProcedureParameters = @ProcedureParameters    
+                    , @ApplicationName        =  @ApplicationName    
+                    , @ErrorLogID             = @ErrorLogID OUTPUT ;    
+            RAISERROR ('Unexpected Error Occured in the database. Please let the support team know of the error number : %d', 16, 1, @ErrorLogID)    
+            RETURN(1);    
+ END CATCH    
+END

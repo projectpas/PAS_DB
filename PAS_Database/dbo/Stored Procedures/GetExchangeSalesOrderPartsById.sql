@@ -14,7 +14,7 @@
  ** PR   Date         Author		Change Description            
  ** ----------------------------------------------------------          
     1    06/05/2025  EKTA CHANDEGRA    Created
-	     
+    2    15/04/2026  RAJESH GAMI	   Getting StockUOM instead of POUOM  [PN-15904] 	     
  EXEC GetExchangeSalesOrderPartsById @ExchangeSalesOrderId = 150 
 ************************************************************************/ 
 CREATE   PROCEDURE [dbo].[GetExchangeSalesOrderPartsById]
@@ -127,7 +127,7 @@ BEGIN
         LEFT JOIN [dbo].[ItemMaster] im WITH(NOLOCK) ON part.ItemMasterId = im.ItemMasterId
         LEFT JOIN [dbo].[Condition] cp WITH(NOLOCK) ON part.ConditionId = cp.ConditionId
         LEFT JOIN [dbo].[ExchangeSalesOrder] soq WITH(NOLOCK) ON part.ExchangeSalesOrderId = soq.ExchangeSalesOrderId
-        LEFT JOIN [dbo].[UnitOfMeasure] uom WITH(NOLOCK) ON im.ConsumeUnitOfMeasureId = uom.UnitOfMeasureId
+        LEFT JOIN [dbo].[UnitOfMeasure] uom WITH(NOLOCK) ON im.StockUnitOfMeasureId = uom.UnitOfMeasureId
         LEFT JOIN [dbo].[ExchangeSalesOrderReserveParts] rpart WITH(NOLOCK) ON part.ExchangeSalesOrderPartId = rpart.ExchangeSalesOrderPartId
         LEFT JOIN [dbo].[ExchangeQuote] q WITH(NOLOCK) ON part.ExchangeQuoteId = q.ExchangeQuoteId
         LEFT JOIN [dbo].[Priority] pri WITH(NOLOCK) ON part.PriorityId = pri.PriorityId

@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿
+/*************************************************************           
  ** File:   [SearchStockLineExchangeQuotePop]           
  ** Author:  Unknown
  ** Description: Get Search Data for Exchange Quote  search for from part list tab
@@ -13,7 +14,8 @@
     1                 Unknown        Created
 	2	 19-04-2024   Moin Bloch     Allow IsCustomerStock in Vendor Exchange PN-7409
 	3    05-30-2025	  ABHISHEK JIRAWLA	Adding Traceability Changes
- 	4    07/APR/2026  Rajesh Gami				Added UOM Changes [PN-15903]    
+ 	4    07/APR/2026  Rajesh Gami				Added UOM Changes [PN-15903]  
+	5    15/APR/2026	  Rajesh Gami				Remove UOM Conversion for QUOTE: Need to display stock QTY [PN-15903]
 -- EXEC [dbo].[SearchStockLineExchangeQuotePop] '240', 1, 401
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[SearchStockLineExchangeQuotePop]
@@ -57,9 +59,12 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 					,sl.ControlNumber
 					,sl.IdNumber
 					,uomConsume.ShortName AS UomDescription
-					, dbo.fn_ConvertUOM(ISNULL(sl.QuantityAvailable,0), uomStock.ShortName, uomConsume.ShortName,0,im.[MasterCompanyId]) QtyAvailable
-					, dbo.fn_ConvertUOM(ISNULL(sl.QuantityOnHand,0), uomStock.ShortName, uomConsume.ShortName,0,im.[MasterCompanyId]) QtyOnHand
-					, dbo.fn_ConvertUOM(ISNULL(sl.UnitCost,0), uomStock.ShortName, uomConsume.ShortName,1, im.[MasterCompanyId]) unitCost 
+					--, dbo.fn_ConvertUOM(ISNULL(sl.QuantityAvailable,0), uomStock.ShortName, uomConsume.ShortName,0,im.[MasterCompanyId]) QtyAvailable
+					--, dbo.fn_ConvertUOM(ISNULL(sl.QuantityOnHand,0), uomStock.ShortName, uomConsume.ShortName,0,im.[MasterCompanyId]) QtyOnHand
+					--, dbo.fn_ConvertUOM(ISNULL(sl.UnitCost,0), uomStock.ShortName, uomConsume.ShortName,1, im.[MasterCompanyId]) unitCost 
+					, ISNULL(sl.QuantityAvailable,0) QtyAvailable
+					, ISNULL(sl.QuantityOnHand,0) QtyOnHand
+					, ISNULL(sl.UnitCost,0) unitCost 
 					,sl.TraceableToName AS TracableToName
 					,sl.OwnerName AS OwnerName
 					,sl.ObtainFromName AS ObtainFromName

@@ -5,7 +5,7 @@
  ** Purpose:         
  ** Date:   08/04/2023
           
- ** PARAMETERS: @DistributionMasterId BIGINT,@ReferenceId BIGINT,@ReferencePartId BIGINT,@ReferencePieceId BIGINT,@InvoiceId BIGINT,@StocklineId BIGINT,@Qty INT,@Amount DECIMAL(18,2),@ModuleName VARCHAR(200),@MasterCompanyId INT,@UpdateBy VARCHAR(200) 
+ ** PARAMETERS: @DistributionMasterId BIGINT,@ReferenceId BIGINT,@ReferencePartId BIGINT,@ReferencePieceId BIGINT,@InvoiceId BIGINT,@StocklineId BIGINT,@Qty INT,@Amount [decimal](18,6),@ModuleName VARCHAR(200),@MasterCompanyId INT,@UpdateBy VARCHAR(200) 
          
  ** RETURN VALUE:           
  **************************************************************           
@@ -26,7 +26,7 @@
 	11	 15/04/2025   Devendra Shekh Shipping Accounting Entry Issue Resolved
 	12	 17/04/2025   Devendra Shekh Invoice Accounting Entry Issue Resolved
 	13	 24/04/2025	  Devendra Shekh Modify (Added [IsManualText] check for DistributionSetup)
-     
+    14   15/04/2026	  RAJESH GAMI		Added UOM Decimal Changes  [PN-15904] 	       
    EXEC [dbo].[USP_BatchTriggerBasedonEXSOInvoice] 
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[USP_BatchTriggerBasedonEXSOInvoice]
@@ -36,8 +36,8 @@ CREATE   PROCEDURE [dbo].[USP_BatchTriggerBasedonEXSOInvoice]
 @ReferencePieceId BIGINT=NULL,
 @InvoiceId BIGINT=NULL,
 @StocklineId BIGINT=NULL,
-@Qty INT=0,
-@Amount DECIMAL(18,2),
+@Qty [decimal](18,6)=0,
+@Amount [decimal](18,6),
 @ModuleName VARCHAR(200),
 @MasterCompanyId INT,
 @UpdateBy VARCHAR(200) 
@@ -71,13 +71,13 @@ BEGIN
 	    DECLARE @PieceItemmasterId BIGINT
 	    DECLARE @CustRefNumber VARCHAR(200)
 	    DECLARE @LineNumber INT=1
-	    DECLARE @TotalDebit DECIMAL(18,2)=0
-	    DECLARE @TotalCredit DECIMAL(18,2)=0
-	    DECLARE @TotalBalance DECIMAL(18,2)=0
-	    DECLARE @UnitPrice DECIMAL(18,2)=0
-	    DECLARE @LaborHrs DECIMAL(18,2)=0
-	    DECLARE @DirectLaborCost DECIMAL(18,2)=0
-	    DECLARE @OverheadCost DECIMAL(18,2)=0
+	    DECLARE @TotalDebit [decimal](18,6)=0
+	    DECLARE @TotalCredit [decimal](18,6)=0
+	    DECLARE @TotalBalance [decimal](18,6)=0
+	    DECLARE @UnitPrice [decimal](18,6)=0
+	    DECLARE @LaborHrs [decimal](18,6)=0
+	    DECLARE @DirectLaborCost [decimal](18,6)=0
+	    DECLARE @OverheadCost [decimal](18,6)=0
 	    DECLARE @partId BIGINT=0
 		DECLARE @batch VARCHAR(100)
 		DECLARE @AccountingPeriod VARCHAR(100)
@@ -89,7 +89,7 @@ BEGIN
 		DECLARE @DistributionSetupId INT=0
 		DECLARE @IsAccountByPass BIT=0
 		DECLARE @DistributionCode VARCHAR(200)
-		DECLARE @InvoiceTotalCost DECIMAL(18,2)=0
+		DECLARE @InvoiceTotalCost [decimal](18,6)=0
 		DECLARE @InvoiceNo VARCHAR(100)
 		DECLARE @InvoiceDate DATETIME2(7) = NULL
 		DECLARE @CurrentManagementStructureId BIGINT=0
@@ -107,7 +107,7 @@ BEGIN
 		DECLARE @STKGlAccountId INT;
 		DECLARE @STKGlAccountName VARCHAR(200);
 		DECLARE @STKGlAccountNumber VARCHAR(200);
-		DECLARE @PartUnitSalesPrices DECIMAL(18,2);
+		DECLARE @PartUnitSalesPrices [decimal](18,6);
 		DECLARE @STKId BIGINT;
 		DECLARE @CrDrType BIGINT;
 		DECLARE @ValidDistribution BIT = 1;
@@ -797,14 +797,14 @@ BEGIN
 				END
 				IF(@ValidDistribution = 1)
 				BEGIN
-					DECLARE @TotalBillingAmount DECIMAL(18,2) = 0;
-					DECLARE @TotalCogsAmount DECIMAL(18,2) = 0;
-					DECLARE @MiscChargesCost DECIMAL(18,2) = 0;
-					DECLARE @FreightCost DECIMAL(18,2) = 0;		
-					DECLARE @TotalSalesTaxAmount DECIMAL(18,2) = 0;		
-					DECLARE @TotalOtherTaxAmount DECIMAL(18,2) = 0;	
-					DECLARE @TotalBilling DECIMAL(18,2) = 0;	
-					DECLARE @TotalCreditBilling DECIMAL(18,2) = 0;	
+					DECLARE @TotalBillingAmount [decimal](18,6) = 0;
+					DECLARE @TotalCogsAmount [decimal](18,6) = 0;
+					DECLARE @MiscChargesCost [decimal](18,6) = 0;
+					DECLARE @FreightCost [decimal](18,6) = 0;		
+					DECLARE @TotalSalesTaxAmount [decimal](18,6) = 0;		
+					DECLARE @TotalOtherTaxAmount [decimal](18,6) = 0;	
+					DECLARE @TotalBilling [decimal](18,6) = 0;	
+					DECLARE @TotalCreditBilling [decimal](18,6) = 0;	
 					
 					DECLARE @EXCHBillingTypeId INT = 0;
 					DECLARE @ExchangeBillingStatusId INT = 0,@ChargesBillingTypeId INT = 0,@FreightBillingTypeId INT = 0
@@ -2091,7 +2091,7 @@ BEGIN
 				END
 				IF(@ValidDistribution = 1)
 				BEGIN
-					DECLARE @CoreReturnAmount DECIMAL(18,2) = 0;
+					DECLARE @CoreReturnAmount [decimal](18,6) = 0;
 									
 					SELECT @CoreReturnAmount = ISNULL(ESOP.[ExchangeListPrice],0)
 					  FROM [dbo].[ExchangeSalesOrderPart] ESOP WITH(NOLOCK) WHERE ESOP.[ExchangeSalesOrderPartId] = @partId;

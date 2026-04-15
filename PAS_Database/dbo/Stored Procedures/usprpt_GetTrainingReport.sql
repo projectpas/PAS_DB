@@ -14,6 +14,7 @@
     1    26-Feb-2025   Bhargav Saliya		Created    
     2    26-MAR-2025   Bhargav Saliya		Get Model Field Data
 	3    27-MAR-2025   Bhargav Saliya		Add Employee and Training Type Filters
+    4    15-MAR-2026   Sahdev Saliya		Added TrainingName, ProviderType, IsRecurring, DurationHours, DurationMinutes (PN-15933)
          
 ************************************************************************/ 
 CREATE   PROCEDURE [dbo].[usprpt_GetTrainingReport]  
@@ -93,11 +94,9 @@ BEGIN
 		AND  (ISNULL(@Level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))
 		AND  (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))	
 	END
-
-  
    ;WITH rptCTE (TotalRecordsCount, EmployeeId,firstName, lastName, title, expertise, email, phone, trainingType,
-				 provider, industryCode, frequency,duration,scheduleDate,completionDate,expirationDate,
-				 daysToExpiration,inforce,aircraftType,model,issuingEntity,certNum,issueDate,
+				 provider, industryCode, frequency,DurationHours, DurationMinutes,scheduleDate,completionDate,expirationDate,
+				 daysToExpiration,inforce,aircraftType,model,issuingEntity,certNum,issueDate,trainingName,providerType,isRecurring,
 				 level1, level2, level3, level4, level5, level6, level7, level8,level9, level10) 
 				 AS (
       SELECT COUNT(1) OVER () AS TotalRecordsCount,
@@ -116,7 +115,8 @@ BEGIN
 	   ET.Provider 'provider',
 	   ET.IndustryCode 'industryCode',
 	   FT.FrequencyName 'frequency',
-	   ET.Duration 'duration',
+	   ET.DurationHours,
+	   ET.DurationMinutes,
 	   FORMAT(ET.ScheduleDate,'MM-dd-yyyy') 'scheduleDate',
 	   FORMAT(ET.CompletionDate,'MM-dd-yyyy') 'completionDate',
 	   FORMAT(ET.ExpirationDate,'MM-dd-yyyy') 'expirationDate',
@@ -128,6 +128,9 @@ BEGIN
 	   EC.CertifyingInstitution 'issuingEntity',
 	   EC.CertificationNumber 'certNum',
 	   FORMAT(ET.CreatedDate,'MM-dd-yyyy') 'issueDate',
+	   TN.[Name] 'trainingName',
+	   ET.ProviderType 'providerType',
+	   CASE WHEN ISNULL(ET.IsRecurring,0) = 1 THEN 'YES' ELSE 'NO' end AS isRecurring,
         UPPER(MSD.Level1Name) AS level1,  
 		UPPER(MSD.Level2Name) AS level2, 
 		UPPER(MSD.Level3Name) AS level3, 
@@ -149,6 +152,7 @@ BEGIN
 		LEFT JOIN dbo.EmployeeCertification EC WITH (NOLOCK) ON E.EmployeeId = EC.EmployeeId
 		LEFT JOIN dbo.EmployeeAircraftModelMapping EAMP WITH (NOLOCK) ON ET.EmployeeId = EAMP.EmployeeId
 		LEFT JOIN dbo.AircraftModel A WITH (NOLOCK) ON A.AircraftModelId = EAMP.AircraftModelId
+		LEFT JOIN dbo.TrainingName TN WITH (NOLOCK) ON ET.TrainingNameId = TN.TrainingNameId
 
       WHERE E.mastercompanyid = @mastercompanyid and E.IsActive =1 AND E.IsDeleted=0 AND E.FirstName <> 'TBD'
 			AND  ((ISNULL(@Employee, '') = '' OR E.EmployeeId = @Employee) and (ISNULL(@TrainingType, '') = '' OR ET.EmployeeTrainingTypeId = @TrainingType))
@@ -165,26 +169,26 @@ BEGIN
 
 			GROUP BY E.EmployeeId, E.FirstName, E.LastName, J.Description, 
                E.Email, E.MobilePhone, ETP.TrainingType, ET.Provider, ET.IndustryCode, 
-               FT.FrequencyName, ET.Duration, ET.ScheduleDate, ET.CompletionDate, 
+               FT.FrequencyName, ET.DurationHours, ET.DurationMinutes, ET.ScheduleDate, ET.CompletionDate, 
                ET.ExpirationDate, EC.IsCertificationInForce, AFT.Description, 
-               EC.CertifyingInstitution, EC.CertificationNumber, ET.CreatedDate, 
+               EC.CertifyingInstitution, EC.CertificationNumber, ET.CreatedDate,TN.[Name],ET.ProviderType,ET.IsRecurring,
                MSD.Level1Name, MSD.Level2Name, MSD.Level3Name, MSD.Level4Name, 
                MSD.Level5Name, MSD.Level6Name, MSD.Level7Name, MSD.Level8Name, 
                MSD.Level9Name, MSD.Level10Name,E.EmployeeExpIds
 			)
 			,FinalCTE(TotalRecordsCount,EmployeeId, firstName, lastName, title, expertise, email, phone, trainingType,
-				 provider, industryCode, frequency,duration,scheduleDate,completionDate,expirationDate,
-				 daysToExpiration,inforce,aircraftType,model,issuingEntity,certNum,issueDate,
+				 provider, industryCode, frequency,DurationHours, DurationMinutes,scheduleDate,completionDate,expirationDate,
+				 daysToExpiration,inforce,aircraftType,model,issuingEntity,certNum,issueDate,trainingName,providerType,isRecurring,
 				 level1, level2, level3, level4, level5, level6, level7, level8,level9, level10) 
 
 			  AS (SELECT DISTINCT TotalRecordsCount,EmployeeId, firstName, lastName, title, expertise, email, phone, trainingType,
-				 provider, industryCode, frequency,duration,scheduleDate,completionDate,expirationDate,
-				 daysToExpiration,inforce,aircraftType,model,issuingEntity,certNum,issueDate,
+				 provider, industryCode, frequency,DurationHours, DurationMinutes,scheduleDate,completionDate,expirationDate,
+				 daysToExpiration,inforce,aircraftType,model,issuingEntity,certNum,issueDate,trainingName,providerType,isRecurring,
 				 level1, level2, level3, level4, level5, level6, level7, level8,level9, level10 FROM rptCTE)
 			
 		    SELECT COUNT(2) OVER () AS TotalRecordsCount,EmployeeId, firstName, lastName, title, expertise, email, phone, trainingType,
-				 provider, industryCode, frequency,duration,scheduleDate,completionDate,expirationDate,
-				 daysToExpiration,inforce,aircraftType,model,issuingEntity,certNum,issueDate,
+				 provider, industryCode, frequency, CAST(DurationHours AS VARCHAR(max)) + ' : ' + RIGHT('' + CAST(DurationMinutes AS VARCHAR(2)), 2) AS Duration,scheduleDate,completionDate,expirationDate,
+				 daysToExpiration,inforce,aircraftType,model,issuingEntity,certNum,issueDate,trainingName,providerType,isRecurring,
 				 level1, level2, level3, level4, level5, level6, level7, level8,level9, level10
 		    FROM FinalCTE FC
 

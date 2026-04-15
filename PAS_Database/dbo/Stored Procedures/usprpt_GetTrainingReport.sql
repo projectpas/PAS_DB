@@ -18,7 +18,7 @@
     5    15-APR-2026   Sahdev Saliya   Standards and performance improvements (PN-15933)
 
 ************************************************************************/
-CREATE OR ALTER PROCEDURE [dbo].[usprpt_GetTrainingReport]
+CREATE PROCEDURE [dbo].[usprpt_GetTrainingReport]
     @PageNumber      INT = 1,
     @PageSize        INT = NULL,
     @mastercompanyid INT,

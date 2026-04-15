@@ -11,6 +11,7 @@
  ** --   ----------  -----------------  -----------------------------         
  **  1   03-27-2026   Amit Ghediya      Created
  **  2   04-13-2026   Amit Ghediya      Added for Quantity (PN-16028)
+ **  3   04-15-2026   Amit Ghediya      Added for AircraftTailNumber in stockline selected.
  ************************************************************************/
 CREATE   PROCEDURE [dbo].[USP_InsertUpdateAircraftInstalledPartDetails]
 (
@@ -48,7 +49,11 @@ BEGIN
 
 		DECLARE @AircraftPartDetailsId BIGINT = 0,
 				@ConditionId BIGINT = 0,
-				@OldStockLineId BIGINT = 0;
+				@OldStockLineId BIGINT = 0,
+				@TailNum VARCHAR(30) = NULL;
+
+		-- Get TailNum
+		SELECT @TailNum = [TailNum] FROM DBO.AircraftRegistryHeader WITH(NOLOCK) WHERE [AircraftRegistryId] = @AircraftRegistryId;
 
 		-- CHECK IF RECORD EXISTS
 		IF EXISTS (
@@ -62,7 +67,7 @@ BEGIN
 			BEGIN
 				 SELECT @OldStockLineId = [StockLineId] FROM DBO.AircraftInstalledPartDetails WITH(NOLOCK) WHERE AircraftInstalledPartDetailsId = @AircraftInstalledPartDetailsId;
 
-				 UPDATE [dbo].[Stockline] SET [AircraftInstalledPartDetailsId] = 0 WHERE [StockLineId] = @OldStockLineId;
+				 UPDATE [dbo].[Stockline] SET [AircraftInstalledPartDetailsId] = 0, [AircraftTailNumber] = NULL WHERE [StockLineId] = @OldStockLineId;
 			END
 
 			-- UPDATE
@@ -71,8 +76,6 @@ BEGIN
 				ATAChapterId = @ATAChapterId,
 				PartNumber = @PartNumber,
 				PartDescription = @PartDescription,
-				--IsLLP = CASE WHEN ISNULL(@StockLineId,0) > 0 THEN @IsLLP ELSE 0 END,
-				--IsSerialized = CASE WHEN ISNULL(@StockLineId,0) > 0 THEN @IsSerialized ELSE 0 END,
 				IsLLP = @IsLLP,
 				IsSerialized = @IsSerialized,
 				DateInstalled = @DateInstalled,
@@ -95,7 +98,7 @@ BEGIN
 			--Update stockline for part
 			IF(ISNULL(@StockLineId,0) > 0)
 			BEGIN
-				 UPDATE [dbo].[Stockline] SET [AircraftInstalledPartDetailsId] = @AircraftInstalledPartDetailsId WHERE [StockLineId] = @StockLineId;
+				 UPDATE [dbo].[Stockline] SET [AircraftInstalledPartDetailsId] = @AircraftInstalledPartDetailsId, [AircraftTailNumber] = @TailNum WHERE [StockLineId] = @StockLineId;
 
 				 SELECT @ConditionId = [ConditionId] FROM [dbo].[Stockline] WITH(NOLOCK) WHERE [StockLineId] = @StockLineId;
 
@@ -169,7 +172,7 @@ BEGIN
 			--Add stockline for part
 			IF(ISNULL(@StockLineId,0) > 0)
 			BEGIN
-				 UPDATE [dbo].[Stockline] SET [AircraftInstalledPartDetailsId] = @AircraftPartDetailsId WHERE [StockLineId] = @StockLineId;
+				 UPDATE [dbo].[Stockline] SET [AircraftInstalledPartDetailsId] = @AircraftPartDetailsId, [AircraftTailNumber] = @TailNum WHERE [StockLineId] = @StockLineId;
 
 				 SELECT @ConditionId = [ConditionId] FROM [dbo].[Stockline] WITH(NOLOCK) WHERE [StockLineId] = @StockLineId;
 

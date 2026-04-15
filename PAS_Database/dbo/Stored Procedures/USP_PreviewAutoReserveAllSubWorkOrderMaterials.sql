@@ -13,7 +13,7 @@ EXEC [USP_AutoReserveAllWorkOrderMaterials]
 ** 2    03/21/2025	Devendra Shekh	 Updated For Checking PMA/DER Restrict Parts
 ** 9    16/Mar/2026	Rajesh Gami		 Added UOM Changes [PN-15714]
 EXEC USP_PreviewAutoReserveAllSubWorkOrderMaterials 160,1,0,2,0
-exec USP_PreviewAutoReserveAllSubWorkOrderMaterials @SubWOPartNoId=162,@IncludeAlternate=0,@IncludeEquiv=0,@EmployeeId=2,@IncludeCustomerStock=0
+exec USP_PreviewAutoReserveAllSubWorkOrderMaterials @SubWOPartNoId=270,@IncludeAlternate=1,@IncludeEquiv=1,@EmployeeId=2,@IncludeCustomerStock=1
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[USP_PreviewAutoReserveAllSubWorkOrderMaterials]
 	@SubWOPartNoId BIGINT,
@@ -2195,7 +2195,10 @@ BEGIN
 						CASE WHEN LEN(UPPER([StkPartDesc])) > 40 THEN LEFT(UPPER([StkPartDesc]), 40) + '...' ELSE  UPPER([StkPartDesc]) END AS [StkPartDesc],
 						UPPER(wom.[Condition]) AS [Condition], UPPER([stkCondition]) AS [stkCondition],
 						UPPER([SerialNo]) AS [SerialNo],UPPER([StocklineNo]) AS [StocklineNo],UPPER([ControlNo]) AS [ControlNo],
-						UPPER([ControlId]) AS [ControlId],UPPER([UOM]) AS [UOM],UPPER([Priority]) AS [Priority],[QtyAvail],[QtyOH],	UPPER(wom.[Location]) AS [Location],UPPER([Wherehouse]) AS [Wherehouse], UPPER(wom.[Shelf]) AS [Shelf], UPPER(wom.[Bin]) AS [Bin],[IsMaterials]
+						UPPER([ControlId]) AS [ControlId],UPPER(uomConsume.[ShortName]) AS [UOM],UPPER([Priority]) AS [Priority],
+						dbo.fn_ConvertUOM(wom.[QtyAvail], uomStock.ShortName, uomConsume.ShortName,0,@MasterCompanyId) AS [QtyAvail],
+						dbo.fn_ConvertUOM(wom.[QtyOH], uomStock.ShortName, uomConsume.ShortName,0,@MasterCompanyId) AS [QtyOH],
+						UPPER(wom.[Location]) AS [Location],UPPER([Wherehouse]) AS [Wherehouse], UPPER(wom.[Shelf]) AS [Shelf], UPPER(wom.[Bin]) AS [Bin],[IsMaterials]
 					FROM #SubWorkOrderMaterials wom
 					LEFT JOIN DBO.Stockline SL ON wom.StockLineId = SL.StockLineId
 					LEFT JOIN [dbo].[UnitOfMeasure] uomStock WITH(NOLOCK) ON uomStock.UnitOfMeasureId = SL.StockUnitOfMeasureId

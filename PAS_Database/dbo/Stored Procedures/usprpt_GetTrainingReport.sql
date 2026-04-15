@@ -1,219 +1,241 @@
-﻿/*************************************************************               
- ** File:  [usprpt_GetTrainingReport]      
+/*************************************************************
+ ** File:  [usprpt_GetTrainingReport]
  ** Author:  Bhargav Saliya
- ** Description: This stored procedure is used to GetTrainingReport DATA.    
- ** Purpose:             
- ** Date:   26-Feb-2025          
-              
- ** RETURN VALUE:               
- **************************************************************               
- ** Change History               
- **************************************************************               
- ** PR   Date         Author			Change Description                
- ** --   --------     -------		--------------------------------              
-    1    26-Feb-2025   Bhargav Saliya		Created    
-    2    26-MAR-2025   Bhargav Saliya		Get Model Field Data
-	3    27-MAR-2025   Bhargav Saliya		Add Employee and Training Type Filters
-         
-************************************************************************/ 
-CREATE   PROCEDURE [dbo].[usprpt_GetTrainingReport]  
-@PageNumber int = 1,  
-@PageSize int = NULL,  
-@mastercompanyid int,  
-@xmlFilter XML  
-AS  
-BEGIN  
-  SET NOCOUNT ON;  
-  SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED  
-  
-   DECLARE @level1 VARCHAR(MAX) = NULL,  
-		   @level2 VARCHAR(MAX) = NULL,  
-		   @level3 VARCHAR(MAX) = NULL,  
-		   @level4 VARCHAR(MAX) = NULL,  
-		   @Level5 VARCHAR(MAX) = NULL,  
-		   @Level6 VARCHAR(MAX) = NULL,  
-		   @Level7 VARCHAR(MAX) = NULL,  
-		   @Level8 VARCHAR(MAX) = NULL,  
-		   @Level9 VARCHAR(MAX) = NULL,  
-		   @Level10 VARCHAR(MAX) = NULL ,
-		   @Employee VARCHAR(100) = NULL,
-		   @TrainingType VARCHAR(100) = NULL,
-		   @ModuleID INT = 0
-  SELECT @ModuleID = (SELECT ManagementStructureModuleId FROM ManagementStructureModule WITH(NOLOCK) where ModuleName = 'EmployeeGeneralInfo');
-  BEGIN TRY  
-      
-	SELECT   
-		@level1=case when filterby.value('(FieldName/text())[1]','VARCHAR(100)')='Level1'   
-		then filterby.value('(FieldValue/text())[1]','VARCHAR(100)') else @level1 end,  
-		@level2=case when filterby.value('(FieldName/text())[1]','VARCHAR(100)')='Level2'   
-		then filterby.value('(FieldValue/text())[1]','VARCHAR(100)') else @level2 end,  
-		@level3=case when filterby.value('(FieldName/text())[1]','VARCHAR(100)')='Level3'   
-		then filterby.value('(FieldValue/text())[1]','VARCHAR(100)') else @level3 end,  
-		@level4=case when filterby.value('(FieldName/text())[1]','VARCHAR(100)')='Level4'   
-		then filterby.value('(FieldValue/text())[1]','VARCHAR(100)') else @level4 end,  
-		@level5=case when filterby.value('(FieldName/text())[1]','VARCHAR(100)')='Level5'   
-		then filterby.value('(FieldValue/text())[1]','VARCHAR(100)') else @level5 end,  
-		@level6=case when filterby.value('(FieldName/text())[1]','VARCHAR(100)')='Level6'   
-		then filterby.value('(FieldValue/text())[1]','VARCHAR(100)') else @level6 end,  
-		@level7=case when filterby.value('(FieldName/text())[1]','VARCHAR(100)')='Level7'   
-		then filterby.value('(FieldValue/text())[1]','VARCHAR(100)') else @level7 end,  
-		@level8=case when filterby.value('(FieldName/text())[1]','VARCHAR(100)')='Level8'   
-		then filterby.value('(FieldValue/text())[1]','VARCHAR(100)') else @level8 end,  
-		@level9=case when filterby.value('(FieldName/text())[1]','VARCHAR(100)')='Level9'   
-		then filterby.value('(FieldValue/text())[1]','VARCHAR(100)') else @level9 end,  
-		@level10=case when filterby.value('(FieldName/text())[1]','VARCHAR(100)')='Level10'   
-		then filterby.value('(FieldValue/text())[1]','VARCHAR(100)') else @level10 end,
-		@Employee=CASE WHEN filterby.value('(FieldName/text())[1]','VARCHAR(100)')='Employee Name' 
-		THEN filterby.value('(FieldValue/text())[1]','VARCHAR(100)') ELSE @Employee END,
-		@TrainingType=CASE WHEN filterby.value('(FieldName/text())[1]','VARCHAR(100)')='Training Type' 
-		THEN filterby.value('(FieldValue/text())[1]','VARCHAR(100)') ELSE @TrainingType END
-	FROM  
-		@xmlFilter.nodes('/ArrayOfFilter/Filter')AS TEMPTABLE(filterby)  
-  
-	IF ISNULL(@PageSize,0)=0
-	BEGIN 
-		SELECT @PageSize=COUNT(E.EmployeeId)
-		FROM DBO.Employee E WITH (NOLOCK)
-			INNER JOIN dbo.EmployeeManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = E.EmployeeId
-			LEFT JOIN dbo.EntityStructureSetup ES WITH (NOLOCK) ON ES.EntityStructureId = MSD.EntityMSID
-			LEFT JOIN dbo.JobTitle J WITH (NOLOCK) ON E.JobTitleId = J.JobTitleId
-			LEFT JOIN dbo.EmployeeTraining ET WITH (NOLOCK) ON E.EmployeeId = ET.EmployeeId
-			LEFT JOIN dbo.EmployeeTrainingType ETP WITH (NOLOCK) ON ET.EmployeeTrainingTypeId = ETP.EmployeeTrainingTypeId
-			LEFT JOIN dbo.FrequencyOfTraining FT WITH (NOLOCK) ON ET.FrequencyOfTrainingId = FT.FrequencyOfTrainingId
-			LEFT JOIN dbo.AircraftType AFT WITH (NOLOCK) ON ET.AircraftManufacturerId = AFT.AircraftTypeId
-		WHERE E.mastercompanyid = @mastercompanyid and E.IsActive =1 AND E.IsDeleted=0
-		AND  (ISNULL(@Level1,'') ='' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))
-		AND  (ISNULL(@Level2,'') ='' OR MSD.[Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,',')))
-		AND  (ISNULL(@Level3,'') ='' OR MSD.[Level3Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level3,',')))
-		AND  (ISNULL(@Level4,'') ='' OR MSD.[Level4Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level4,',')))
-		AND  (ISNULL(@Level5,'') ='' OR MSD.[Level5Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level5,',')))
-		AND  (ISNULL(@Level6,'') ='' OR MSD.[Level6Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level6,',')))
-		AND  (ISNULL(@Level7,'') ='' OR MSD.[Level7Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level7,',')))
-		AND  (ISNULL(@Level8,'') ='' OR MSD.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,',')))
-		AND  (ISNULL(@Level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))
-		AND  (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))	
-	END
+ ** Description: This stored procedure is used to GetTrainingReport DATA.
+ ** Purpose:
+ ** Date:   26-Feb-2025
 
-  
-   ;WITH rptCTE (TotalRecordsCount, EmployeeId,firstName, lastName, title, expertise, email, phone, trainingType,
-				 provider, industryCode, frequency,duration,scheduleDate,completionDate,expirationDate,
-				 daysToExpiration,inforce,aircraftType,model,issuingEntity,certNum,issueDate,
-				 level1, level2, level3, level4, level5, level6, level7, level8,level9, level10) 
-				 AS (
-      SELECT COUNT(1) OVER () AS TotalRecordsCount,
-	   E.EmployeeId,
-       E.FirstName 'firstName',
-       E.LastName 'lastName',
-       J.Description 'title',
-	   ISNULL((
-			   SELECT STRING_AGG(EE.[Description],',') 
-			   FROM STRING_SPLIT(E.EmployeeExpIds,',') AS ExpIds
-					LEFT JOIN [DBO].EmployeeExpertise EE WITH(NOLOCK) ON EE.EmployeeExpertiseId = CAST(ExpIds.value AS INT)
-			   WHERE ExpIds.value IS NOT NULL),'') 'expertise',
-       E.Email 'email',
-       E.MobilePhone 'phone',
-	   ETP.TrainingType 'trainingType',
-	   ET.Provider 'provider',
-	   ET.IndustryCode 'industryCode',
-	   FT.FrequencyName 'frequency',
-	   ET.Duration 'duration',
-	   FORMAT(ET.ScheduleDate,'MM-dd-yyyy') 'scheduleDate',
-	   FORMAT(ET.CompletionDate,'MM-dd-yyyy') 'completionDate',
-	   FORMAT(ET.ExpirationDate,'MM-dd-yyyy') 'expirationDate',
-	   DATEDIFF(DAY, ET.ScheduleDate, ET.ExpirationDate) 'daysToExpiration',
-	   --CASE WHEN DATEDIFF(DAY, ET.ScheduleDate, ET.ExpirationDate) = 0 THEN '' ELSE CAST(DATEDIFF(DAY, ET.ScheduleDate, ET.ExpirationDate) AS VARCHAR) END AS daysToExpiration,
-	   CASE WHEN ISNULL(EC.IsCertificationInForce,0) = 1 THEN 'YES' ELSE 'NO' end AS inforce,
-	   AFT.Description 'aircraftType',
-	   STRING_AGG(A.ModelName, ', ') 'model',
-	   EC.CertifyingInstitution 'issuingEntity',
-	   EC.CertificationNumber 'certNum',
-	   FORMAT(ET.CreatedDate,'MM-dd-yyyy') 'issueDate',
-        UPPER(MSD.Level1Name) AS level1,  
-		UPPER(MSD.Level2Name) AS level2, 
-		UPPER(MSD.Level3Name) AS level3, 
-		UPPER(MSD.Level4Name) AS level4, 
-		UPPER(MSD.Level5Name) AS level5, 
-		UPPER(MSD.Level6Name) AS level6, 
-		UPPER(MSD.Level7Name) AS level7, 
-		UPPER(MSD.Level8Name) AS level8, 
-		UPPER(MSD.Level9Name) AS level9, 
-		UPPER(MSD.Level10Name) AS level10  
-      FROM DBO.Employee E WITH (NOLOCK)
-	    INNER JOIN dbo.EmployeeManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = E.EmployeeId
-		LEFT JOIN dbo.EntityStructureSetup ES WITH (NOLOCK) ON ES.EntityStructureId = MSD.EntityMSID
-		LEFT JOIN dbo.JobTitle J WITH (NOLOCK) ON E.JobTitleId = J.JobTitleId
-		LEFT JOIN dbo.EmployeeTraining ET WITH (NOLOCK) ON E.EmployeeId = ET.EmployeeId
-		LEFT JOIN dbo.EmployeeTrainingType ETP WITH (NOLOCK) ON ET.EmployeeTrainingTypeId = ETP.EmployeeTrainingTypeId
-		LEFT JOIN dbo.FrequencyOfTraining FT WITH (NOLOCK) ON ET.FrequencyOfTrainingId = FT.FrequencyOfTrainingId
-		LEFT JOIN dbo.AircraftType AFT WITH (NOLOCK) ON ET.AircraftManufacturerId = AFT.AircraftTypeId
-		LEFT JOIN dbo.EmployeeCertification EC WITH (NOLOCK) ON E.EmployeeId = EC.EmployeeId
-		LEFT JOIN dbo.EmployeeAircraftModelMapping EAMP WITH (NOLOCK) ON ET.EmployeeId = EAMP.EmployeeId
-		LEFT JOIN dbo.AircraftModel A WITH (NOLOCK) ON A.AircraftModelId = EAMP.AircraftModelId
+ ** RETURN VALUE:
+ **************************************************************
+ ** Change History
+ **************************************************************
+ ** PR   Date         Author          Change Description
+ ** --   --------     -------         --------------------------------
+    1    26-Feb-2025   Bhargav Saliya  Created
+    2    26-MAR-2025   Bhargav Saliya  Get Model Field Data
+    3    27-MAR-2025   Bhargav Saliya  Add Employee and Training Type Filters
+    4    15-MAR-2026   Sahdev Saliya   Added TrainingName, ProviderType, IsRecurring, DurationHours, DurationMinutes (PN-15933)
+    5    15-APR-2026   Sahdev Saliya   Standards and performance improvements (PN-15933)
 
-      WHERE E.mastercompanyid = @mastercompanyid and E.IsActive =1 AND E.IsDeleted=0 AND E.FirstName <> 'TBD'
-			AND  ((ISNULL(@Employee, '') = '' OR E.EmployeeId = @Employee) and (ISNULL(@TrainingType, '') = '' OR ET.EmployeeTrainingTypeId = @TrainingType))
-			AND  (ISNULL(@Level1,'') ='' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))
-			AND  (ISNULL(@Level2,'') ='' OR MSD.[Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,',')))
-			AND  (ISNULL(@Level3,'') ='' OR MSD.[Level3Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level3,',')))
-			AND  (ISNULL(@Level4,'') ='' OR MSD.[Level4Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level4,',')))
-			AND  (ISNULL(@Level5,'') ='' OR MSD.[Level5Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level5,',')))
-			AND  (ISNULL(@Level6,'') ='' OR MSD.[Level6Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level6,',')))
-			AND  (ISNULL(@Level7,'') ='' OR MSD.[Level7Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level7,',')))
-			AND  (ISNULL(@Level8,'') ='' OR MSD.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,',')))
-			AND  (ISNULL(@Level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))
-			AND  (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))
+************************************************************************/
+CREATE PROCEDURE [dbo].[usprpt_GetTrainingReport]
+    @PageNumber      INT = 1,
+    @PageSize        INT = NULL,
+    @mastercompanyid INT,
+    @xmlFilter       XML
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
 
-			GROUP BY E.EmployeeId, E.FirstName, E.LastName, J.Description, 
-               E.Email, E.MobilePhone, ETP.TrainingType, ET.Provider, ET.IndustryCode, 
-               FT.FrequencyName, ET.Duration, ET.ScheduleDate, ET.CompletionDate, 
-               ET.ExpirationDate, EC.IsCertificationInForce, AFT.Description, 
-               EC.CertifyingInstitution, EC.CertificationNumber, ET.CreatedDate, 
-               MSD.Level1Name, MSD.Level2Name, MSD.Level3Name, MSD.Level4Name, 
-               MSD.Level5Name, MSD.Level6Name, MSD.Level7Name, MSD.Level8Name, 
-               MSD.Level9Name, MSD.Level10Name,E.EmployeeExpIds
-			)
-			,FinalCTE(TotalRecordsCount,EmployeeId, firstName, lastName, title, expertise, email, phone, trainingType,
-				 provider, industryCode, frequency,duration,scheduleDate,completionDate,expirationDate,
-				 daysToExpiration,inforce,aircraftType,model,issuingEntity,certNum,issueDate,
-				 level1, level2, level3, level4, level5, level6, level7, level8,level9, level10) 
+    DECLARE @Level1         VARCHAR(MAX) = NULL,
+            @Level2         VARCHAR(MAX) = NULL,
+            @Level3         VARCHAR(MAX) = NULL,
+            @Level4         VARCHAR(MAX) = NULL,
+            @Level5         VARCHAR(MAX) = NULL,
+            @Level6         VARCHAR(MAX) = NULL,
+            @Level7         VARCHAR(MAX) = NULL,
+            @Level8         VARCHAR(MAX) = NULL,
+            @Level9         VARCHAR(MAX) = NULL,
+            @Level10        VARCHAR(MAX) = NULL,
+            @EmployeeRaw    VARCHAR(100) = NULL,
+            @TrainingTypeRaw VARCHAR(100) = NULL,
+            @EmployeeId     INT = NULL,
+            @TrainingTypeId INT = NULL,
+            @ModuleID       INT = 0;
 
-			  AS (SELECT DISTINCT TotalRecordsCount,EmployeeId, firstName, lastName, title, expertise, email, phone, trainingType,
-				 provider, industryCode, frequency,duration,scheduleDate,completionDate,expirationDate,
-				 daysToExpiration,inforce,aircraftType,model,issuingEntity,certNum,issueDate,
-				 level1, level2, level3, level4, level5, level6, level7, level8,level9, level10 FROM rptCTE)
-			
-		    SELECT COUNT(2) OVER () AS TotalRecordsCount,EmployeeId, firstName, lastName, title, expertise, email, phone, trainingType,
-				 provider, industryCode, frequency,duration,scheduleDate,completionDate,expirationDate,
-				 daysToExpiration,inforce,aircraftType,model,issuingEntity,certNum,issueDate,
-				 level1, level2, level3, level4, level5, level6, level7, level8,level9, level10
-		    FROM FinalCTE FC
+    BEGIN TRY
 
-			ORDER BY EmployeeId DESC
-		OFFSET((@PageNumber-1) * @pageSize) ROWS FETCH NEXT @pageSize ROWS ONLY; 
-  END TRY  
-  
-  BEGIN CATCH  
-   
-    DECLARE @ErrorLogID int,  
-            @DatabaseName varchar(100) = DB_NAME(),  
-            -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------  
-            @AdhocComments varchar(150) = '[usprpt_GetTrainingReport]',  
-            @ProcedureParameters varchar(3000) = '@Parameter1 = ''' + CAST(ISNULL(@PageNumber, '') AS varchar(100)) +    
-            '@Parameter2 = ''' + CAST(ISNULL(@PageSize, '') AS varchar(100)) +    
-            '@Parameter3 = ''' + CAST(ISNULL(@mastercompanyid, '') AS varchar(100)) +    
-            '@Parameter4 = ''' + CAST(ISNULL(@xmlFilter, '') AS varchar(max)),  
-            @ApplicationName varchar(100) = 'PAS'   
-    -----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------  
-    EXEC Splogexception @DatabaseName = @DatabaseName,  
-                        @AdhocComments = @AdhocComments,  
-                        @ProcedureParameters = @ProcedureParameters,  
-                        @ApplicationName = @ApplicationName,  
-                        @ErrorLogID = @ErrorLogID OUTPUT;  
-  
-    RAISERROR (  
-    'Unexpected Error Occured in the database. Please let the support team know of the error number : %d'  
-    , 16, 1, @ErrorLogID)  
-  
-    RETURN (1);  
-  END CATCH   
+        SELECT @ModuleID = ManagementStructureModuleId
+        FROM ManagementStructureModule WITH (NOLOCK)
+        WHERE ModuleName = 'EmployeeGeneralInfo';
+
+        SELECT
+            @Level1          = CASE WHEN filterby.value('(FieldName/text())[1]', 'VARCHAR(100)') = 'Level1'         THEN filterby.value('(FieldValue/text())[1]', 'VARCHAR(100)') ELSE @Level1          END,
+            @Level2          = CASE WHEN filterby.value('(FieldName/text())[1]', 'VARCHAR(100)') = 'Level2'         THEN filterby.value('(FieldValue/text())[1]', 'VARCHAR(100)') ELSE @Level2          END,
+            @Level3          = CASE WHEN filterby.value('(FieldName/text())[1]', 'VARCHAR(100)') = 'Level3'         THEN filterby.value('(FieldValue/text())[1]', 'VARCHAR(100)') ELSE @Level3          END,
+            @Level4          = CASE WHEN filterby.value('(FieldName/text())[1]', 'VARCHAR(100)') = 'Level4'         THEN filterby.value('(FieldValue/text())[1]', 'VARCHAR(100)') ELSE @Level4          END,
+            @Level5          = CASE WHEN filterby.value('(FieldName/text())[1]', 'VARCHAR(100)') = 'Level5'         THEN filterby.value('(FieldValue/text())[1]', 'VARCHAR(100)') ELSE @Level5          END,
+            @Level6          = CASE WHEN filterby.value('(FieldName/text())[1]', 'VARCHAR(100)') = 'Level6'         THEN filterby.value('(FieldValue/text())[1]', 'VARCHAR(100)') ELSE @Level6          END,
+            @Level7          = CASE WHEN filterby.value('(FieldName/text())[1]', 'VARCHAR(100)') = 'Level7'         THEN filterby.value('(FieldValue/text())[1]', 'VARCHAR(100)') ELSE @Level7          END,
+            @Level8          = CASE WHEN filterby.value('(FieldName/text())[1]', 'VARCHAR(100)') = 'Level8'         THEN filterby.value('(FieldValue/text())[1]', 'VARCHAR(100)') ELSE @Level8          END,
+            @Level9          = CASE WHEN filterby.value('(FieldName/text())[1]', 'VARCHAR(100)') = 'Level9'         THEN filterby.value('(FieldValue/text())[1]', 'VARCHAR(100)') ELSE @Level9          END,
+            @Level10         = CASE WHEN filterby.value('(FieldName/text())[1]', 'VARCHAR(100)') = 'Level10'        THEN filterby.value('(FieldValue/text())[1]', 'VARCHAR(100)') ELSE @Level10         END,
+            @EmployeeRaw     = CASE WHEN filterby.value('(FieldName/text())[1]', 'VARCHAR(100)') = 'Employee Name'  THEN filterby.value('(FieldValue/text())[1]', 'VARCHAR(100)') ELSE @EmployeeRaw     END,
+            @TrainingTypeRaw = CASE WHEN filterby.value('(FieldName/text())[1]', 'VARCHAR(100)') = 'Training Type'  THEN filterby.value('(FieldValue/text())[1]', 'VARCHAR(100)') ELSE @TrainingTypeRaw END
+        FROM @xmlFilter.nodes('/ArrayOfFilter/Filter') AS TEMPTABLE(filterby);
+
+        -- Avoid implicit INT conversion in WHERE clauses
+        SET @EmployeeId     = TRY_CAST(@EmployeeRaw AS INT);
+        SET @TrainingTypeId = TRY_CAST(@TrainingTypeRaw AS INT);
+
+        -- Pre-compute level filter values once; avoids calling SPLITSTRING up to 20 times
+        CREATE TABLE #Level1Ids  (Item INT);
+        CREATE TABLE #Level2Ids  (Item INT);
+        CREATE TABLE #Level3Ids  (Item INT);
+        CREATE TABLE #Level4Ids  (Item INT);
+        CREATE TABLE #Level5Ids  (Item INT);
+        CREATE TABLE #Level6Ids  (Item INT);
+        CREATE TABLE #Level7Ids  (Item INT);
+        CREATE TABLE #Level8Ids  (Item INT);
+        CREATE TABLE #Level9Ids  (Item INT);
+        CREATE TABLE #Level10Ids (Item INT);
+
+        IF NULLIF(@Level1,  '') IS NOT NULL  INSERT INTO #Level1Ids  SELECT Item FROM DBO.SPLITSTRING(@Level1,  ',');
+        IF NULLIF(@Level2,  '') IS NOT NULL  INSERT INTO #Level2Ids  SELECT Item FROM DBO.SPLITSTRING(@Level2,  ',');
+        IF NULLIF(@Level3,  '') IS NOT NULL  INSERT INTO #Level3Ids  SELECT Item FROM DBO.SPLITSTRING(@Level3,  ',');
+        IF NULLIF(@Level4,  '') IS NOT NULL  INSERT INTO #Level4Ids  SELECT Item FROM DBO.SPLITSTRING(@Level4,  ',');
+        IF NULLIF(@Level5,  '') IS NOT NULL  INSERT INTO #Level5Ids  SELECT Item FROM DBO.SPLITSTRING(@Level5,  ',');
+        IF NULLIF(@Level6,  '') IS NOT NULL  INSERT INTO #Level6Ids  SELECT Item FROM DBO.SPLITSTRING(@Level6,  ',');
+        IF NULLIF(@Level7,  '') IS NOT NULL  INSERT INTO #Level7Ids  SELECT Item FROM DBO.SPLITSTRING(@Level7,  ',');
+        IF NULLIF(@Level8,  '') IS NOT NULL  INSERT INTO #Level8Ids  SELECT Item FROM DBO.SPLITSTRING(@Level8,  ',');
+        IF NULLIF(@Level9,  '') IS NOT NULL  INSERT INTO #Level9Ids  SELECT Item FROM DBO.SPLITSTRING(@Level9,  ',');
+        IF NULLIF(@Level10, '') IS NOT NULL  INSERT INTO #Level10Ids SELECT Item FROM DBO.SPLITSTRING(@Level10, ',');
+
+        IF ISNULL(@PageSize, 0) = 0
+        BEGIN
+            SELECT @PageSize = COUNT(E.EmployeeId)
+            FROM DBO.Employee E WITH (NOLOCK)
+                INNER JOIN dbo.EmployeeManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = E.EmployeeId
+                LEFT JOIN dbo.EmployeeTraining ET WITH (NOLOCK) ON E.EmployeeId = ET.EmployeeId
+            WHERE E.mastercompanyid = @mastercompanyid
+                AND E.IsActive  = 1
+                AND E.IsDeleted = 0
+                AND E.FirstName <> 'TBD'
+                AND (ISNULL(@EmployeeId,     0) = 0 OR E.EmployeeId              = @EmployeeId)
+                AND (ISNULL(@TrainingTypeId, 0) = 0 OR ET.EmployeeTrainingTypeId = @TrainingTypeId)
+                AND (NOT EXISTS (SELECT 1 FROM #Level1Ids)  OR MSD.[Level1Id]  IN (SELECT Item FROM #Level1Ids))
+                AND (NOT EXISTS (SELECT 1 FROM #Level2Ids)  OR MSD.[Level2Id]  IN (SELECT Item FROM #Level2Ids))
+                AND (NOT EXISTS (SELECT 1 FROM #Level3Ids)  OR MSD.[Level3Id]  IN (SELECT Item FROM #Level3Ids))
+                AND (NOT EXISTS (SELECT 1 FROM #Level4Ids)  OR MSD.[Level4Id]  IN (SELECT Item FROM #Level4Ids))
+                AND (NOT EXISTS (SELECT 1 FROM #Level5Ids)  OR MSD.[Level5Id]  IN (SELECT Item FROM #Level5Ids))
+                AND (NOT EXISTS (SELECT 1 FROM #Level6Ids)  OR MSD.[Level6Id]  IN (SELECT Item FROM #Level6Ids))
+                AND (NOT EXISTS (SELECT 1 FROM #Level7Ids)  OR MSD.[Level7Id]  IN (SELECT Item FROM #Level7Ids))
+                AND (NOT EXISTS (SELECT 1 FROM #Level8Ids)  OR MSD.[Level8Id]  IN (SELECT Item FROM #Level8Ids))
+                AND (NOT EXISTS (SELECT 1 FROM #Level9Ids)  OR MSD.[Level9Id]  IN (SELECT Item FROM #Level9Ids))
+                AND (NOT EXISTS (SELECT 1 FROM #Level10Ids) OR MSD.[Level10Id] IN (SELECT Item FROM #Level10Ids));
+        END
+
+        ;WITH rptCTE AS (
+            SELECT
+                E.EmployeeId,
+                E.FirstName AS firstName,
+                E.LastName  AS lastName,
+                J.Description AS title,
+                ISNULL((
+                    SELECT STRING_AGG(EE.[Description], ',')
+                    FROM STRING_SPLIT(E.EmployeeExpIds, ',') AS ExpIds
+                        LEFT JOIN DBO.EmployeeExpertise EE WITH (NOLOCK) ON EE.EmployeeExpertiseId = TRY_CAST(ExpIds.value AS INT)
+                    WHERE NULLIF(ExpIds.value, '') IS NOT NULL
+                ), '') AS expertise,
+                E.Email       AS email,
+                E.MobilePhone AS phone,
+                ETP.TrainingType  AS trainingType,
+                ET.Provider       AS provider,
+                ET.IndustryCode   AS industryCode,
+                FT.FrequencyName  AS frequency,
+                ET.DurationHours,
+                ET.DurationMinutes,
+                CONVERT(VARCHAR(10), ET.ScheduleDate,   110) AS scheduleDate,
+                CONVERT(VARCHAR(10), ET.CompletionDate, 110) AS completionDate,
+                CONVERT(VARCHAR(10), ET.ExpirationDate, 110) AS expirationDate,
+                DATEDIFF(DAY, ET.ScheduleDate, ET.ExpirationDate) AS daysToExpiration,
+                CASE WHEN ISNULL(EC.IsCertificationInForce, 0) = 1 THEN 'YES' ELSE 'NO' END AS inforce,
+                AFT.Description AS aircraftType,
+                STRING_AGG(A.ModelName, ', ') AS model,
+                EC.CertifyingInstitution AS issuingEntity,
+                EC.CertificationNumber   AS certNum,
+                CONVERT(VARCHAR(10), ET.CreatedDate, 110) AS issueDate,
+                TN.[Name]        AS trainingName,
+                ET.ProviderType  AS providerType,
+                CASE WHEN ISNULL(ET.IsRecurring, 0) = 1 THEN 'YES' ELSE 'NO' END AS isRecurring,
+                UPPER(MSD.Level1Name)  AS level1,
+                UPPER(MSD.Level2Name)  AS level2,
+                UPPER(MSD.Level3Name)  AS level3,
+                UPPER(MSD.Level4Name)  AS level4,
+                UPPER(MSD.Level5Name)  AS level5,
+                UPPER(MSD.Level6Name)  AS level6,
+                UPPER(MSD.Level7Name)  AS level7,
+                UPPER(MSD.Level8Name)  AS level8,
+                UPPER(MSD.Level9Name)  AS level9,
+                UPPER(MSD.Level10Name) AS level10
+            FROM DBO.Employee E WITH (NOLOCK)
+                INNER JOIN dbo.EmployeeManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = E.EmployeeId
+                LEFT JOIN dbo.JobTitle J WITH (NOLOCK) ON E.JobTitleId = J.JobTitleId
+                LEFT JOIN dbo.EmployeeTraining ET WITH (NOLOCK) ON E.EmployeeId = ET.EmployeeId
+                LEFT JOIN dbo.EmployeeTrainingType ETP WITH (NOLOCK) ON ET.EmployeeTrainingTypeId = ETP.EmployeeTrainingTypeId
+                LEFT JOIN dbo.FrequencyOfTraining FT WITH (NOLOCK) ON ET.FrequencyOfTrainingId = FT.FrequencyOfTrainingId
+                LEFT JOIN dbo.AircraftType AFT WITH (NOLOCK) ON ET.AircraftManufacturerId = AFT.AircraftTypeId
+                LEFT JOIN dbo.EmployeeCertification EC WITH (NOLOCK) ON E.EmployeeId = EC.EmployeeId
+                LEFT JOIN dbo.EmployeeAircraftModelMapping EAMP WITH (NOLOCK) ON ET.EmployeeId = EAMP.EmployeeId
+                LEFT JOIN dbo.AircraftModel A WITH (NOLOCK) ON A.AircraftModelId = EAMP.AircraftModelId
+                LEFT JOIN dbo.TrainingName TN WITH (NOLOCK) ON ET.TrainingNameId = TN.TrainingNameId
+            WHERE E.mastercompanyid = @mastercompanyid
+                AND E.IsActive  = 1
+                AND E.IsDeleted = 0
+                AND E.FirstName <> 'TBD'
+                AND (ISNULL(@EmployeeId,     0) = 0 OR E.EmployeeId              = @EmployeeId)
+                AND (ISNULL(@TrainingTypeId, 0) = 0 OR ET.EmployeeTrainingTypeId = @TrainingTypeId)
+                AND (NOT EXISTS (SELECT 1 FROM #Level1Ids)  OR MSD.[Level1Id]  IN (SELECT Item FROM #Level1Ids))
+                AND (NOT EXISTS (SELECT 1 FROM #Level2Ids)  OR MSD.[Level2Id]  IN (SELECT Item FROM #Level2Ids))
+                AND (NOT EXISTS (SELECT 1 FROM #Level3Ids)  OR MSD.[Level3Id]  IN (SELECT Item FROM #Level3Ids))
+                AND (NOT EXISTS (SELECT 1 FROM #Level4Ids)  OR MSD.[Level4Id]  IN (SELECT Item FROM #Level4Ids))
+                AND (NOT EXISTS (SELECT 1 FROM #Level5Ids)  OR MSD.[Level5Id]  IN (SELECT Item FROM #Level5Ids))
+                AND (NOT EXISTS (SELECT 1 FROM #Level6Ids)  OR MSD.[Level6Id]  IN (SELECT Item FROM #Level6Ids))
+                AND (NOT EXISTS (SELECT 1 FROM #Level7Ids)  OR MSD.[Level7Id]  IN (SELECT Item FROM #Level7Ids))
+                AND (NOT EXISTS (SELECT 1 FROM #Level8Ids)  OR MSD.[Level8Id]  IN (SELECT Item FROM #Level8Ids))
+                AND (NOT EXISTS (SELECT 1 FROM #Level9Ids)  OR MSD.[Level9Id]  IN (SELECT Item FROM #Level9Ids))
+                AND (NOT EXISTS (SELECT 1 FROM #Level10Ids) OR MSD.[Level10Id] IN (SELECT Item FROM #Level10Ids))
+            GROUP BY
+                E.EmployeeId, E.FirstName, E.LastName, J.Description,
+                E.Email, E.MobilePhone, ETP.TrainingType, ET.Provider, ET.IndustryCode,
+                FT.FrequencyName, ET.DurationHours, ET.DurationMinutes, ET.ScheduleDate, ET.CompletionDate,
+                ET.ExpirationDate, EC.IsCertificationInForce, AFT.Description,
+                EC.CertifyingInstitution, EC.CertificationNumber, ET.CreatedDate, TN.[Name], ET.ProviderType, ET.IsRecurring,
+                MSD.Level1Name, MSD.Level2Name, MSD.Level3Name, MSD.Level4Name,
+                MSD.Level5Name, MSD.Level6Name, MSD.Level7Name, MSD.Level8Name,
+                MSD.Level9Name, MSD.Level10Name, E.EmployeeExpIds
+        )
+        SELECT
+            COUNT(1) OVER () AS TotalRecordsCount,
+            EmployeeId, firstName, lastName, title, expertise, email, phone, trainingType,
+            provider, industryCode, frequency,
+            CAST(DurationHours AS VARCHAR(10)) + ' : ' + RIGHT('0' + CAST(DurationMinutes AS VARCHAR(2)), 2) AS Duration,
+            scheduleDate, completionDate, expirationDate,
+            daysToExpiration, inforce, aircraftType, model, issuingEntity, certNum, issueDate,
+            trainingName, providerType, isRecurring,
+            level1, level2, level3, level4, level5, level6, level7, level8, level9, level10
+        FROM rptCTE
+        ORDER BY EmployeeId DESC
+        OFFSET ((@PageNumber - 1) * @PageSize) ROWS FETCH NEXT @PageSize ROWS ONLY
+        OPTION (RECOMPILE);
+
+    END TRY
+
+    BEGIN CATCH
+
+        DECLARE @ErrorLogID INT,
+                @DatabaseName VARCHAR(100) = DB_NAME(),
+                @AdhocComments VARCHAR(150) = '[usprpt_GetTrainingReport]',
+                @ProcedureParameters VARCHAR(3000) =
+                    '@Parameter1 = ''' + CAST(ISNULL(@PageNumber,        '') AS VARCHAR(100)) + ''', ' +
+                    '@Parameter2 = ''' + CAST(ISNULL(@PageSize,          '') AS VARCHAR(100)) + ''', ' +
+                    '@Parameter3 = ''' + CAST(ISNULL(@mastercompanyid,   '') AS VARCHAR(100)) + ''', ' +
+                    '@Parameter4 = ''' + CAST(ISNULL(@xmlFilter,         '') AS VARCHAR(MAX))  + '''',
+                @ApplicationName VARCHAR(100) = 'PAS';
+
+        EXEC Splogexception
+            @DatabaseName        = @DatabaseName,
+            @AdhocComments       = @AdhocComments,
+            @ProcedureParameters = @ProcedureParameters,
+            @ApplicationName     = @ApplicationName,
+            @ErrorLogID          = @ErrorLogID OUTPUT;
+
+        RAISERROR (
+            'Unexpected Error Occured in the database. Please let the support team know of the error number : %d'
+            , 16, 1, @ErrorLogID);
+
+        RETURN (1);
+
+    END CATCH
 END

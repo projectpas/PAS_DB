@@ -11,10 +11,10 @@
     [CustomerContactId]         BIGINT          NOT NULL,
     [CustomerReference]         VARCHAR (100)   NULL,
     [CurrencyId]                INT             NULL,
-    [TotalSalesAmount]          NUMERIC (9, 2)  CONSTRAINT [DF_ExchangeSalesOrderAudit_TotalSalesAmount] DEFAULT ((0)) NOT NULL,
-    [CustomerHold]              NUMERIC (9, 2)  CONSTRAINT [DF_ExchangeSalesOrderAudit_CustomerHold] DEFAULT ((0)) NOT NULL,
-    [DepositAmount]             NUMERIC (9, 2)  CONSTRAINT [DF_ExchangeSalesOrderAudit_DepositAmount] DEFAULT ((0)) NOT NULL,
-    [BalanceDue]                DECIMAL (18, 2) NULL,
+    [TotalSalesAmount]          DECIMAL (18, 6) CONSTRAINT [DF_ExchangeSalesOrderAudit_TotalSalesAmount] DEFAULT ((0)) NULL,
+    [CustomerHold]              DECIMAL (18, 6) CONSTRAINT [DF_ExchangeSalesOrderAudit_CustomerHold] DEFAULT ((0)) NULL,
+    [DepositAmount]             DECIMAL (18, 6) CONSTRAINT [DF_ExchangeSalesOrderAudit_DepositAmount] DEFAULT ((0)) NULL,
+    [BalanceDue]                DECIMAL (18, 6) NULL,
     [SalesPersonId]             BIGINT          NULL,
     [AgentId]                   BIGINT          NULL,
     [CustomerSeviceRepId]       BIGINT          NULL,
@@ -36,8 +36,8 @@
     [MasterCompanyId]           INT             NOT NULL,
     [IsDeleted]                 BIT             CONSTRAINT [DF_ExchangeSalesOrderAudit_IsDeleted] DEFAULT ((0)) NOT NULL,
     [ExchangeQuoteId]           BIGINT          NULL,
-    [QtyRequested]              INT             CONSTRAINT [DF_ExchangeSalesOrderAudit_QtyRequested] DEFAULT ((0)) NULL,
-    [QtyToBeQuoted]             INT             CONSTRAINT [DF_ExchangeSalesOrderAudit_QtyToBeQuoted] DEFAULT ((0)) NULL,
+    [QtyRequested]              DECIMAL (18, 6) CONSTRAINT [DF_ExchangeSalesOrderAudit_QtyRequested] DEFAULT ((0)) NULL,
+    [QtyToBeQuoted]             DECIMAL (18, 6) CONSTRAINT [DF_ExchangeSalesOrderAudit_QtyToBeQuoted] DEFAULT ((0)) NULL,
     [ExchangeSalesOrderNumber]  VARCHAR (50)    NOT NULL,
     [IsActive]                  BIT             CONSTRAINT [DF_ExchangeSalesOrderAudit_IsActive] DEFAULT ((1)) NOT NULL,
     [ContractReference]         VARCHAR (100)   NULL,
@@ -51,7 +51,7 @@
     [CurrencyName]              VARCHAR (50)    NULL,
     [CustomerWarningName]       VARCHAR (300)   NULL,
     [ManagementStructureName]   VARCHAR (286)   NULL,
-    [CreditLimit]               DECIMAL (18, 2) NULL,
+    [CreditLimit]               DECIMAL (18, 6) NULL,
     [CreditTermId]              INT             NULL,
     [CreditLimitName]           VARCHAR (50)    NULL,
     [CreditTermName]            VARCHAR (50)    NULL,
@@ -61,9 +61,9 @@
     [CoreAccepted]              BIT             DEFAULT ((0)) NOT NULL,
     [IsVendor]                  BIT             NULL,
     [IsFreightFlatRate]         BIT             NULL,
-    [FreightFlatRate]           DECIMAL (18, 2) NULL,
+    [FreightFlatRate]           DECIMAL (18, 6) NULL,
     [IsChargeFlatRate]          BIT             NULL,
-    [ChargeFlatRate]            DECIMAL (18, 2) NULL,
+    [ChargeFlatRate]            DECIMAL (18, 6) NULL,
     [IsFreightFlatRateInsert]   BIT             NULL,
     [IsChargeFlatRateInsert]    BIT             NULL,
     [PercentId]                 BIGINT          NULL,
@@ -71,21 +71,7 @@
     [NetDays]                   INT             NULL,
     [FunctionalCurrencyId]      INT             NULL,
     [ReportCurrencyId]          INT             NULL,
-    [ForeignExchangeRate]       DECIMAL (18, 2) NULL,
+    [ForeignExchangeRate]       DECIMAL (18, 6) NULL,
     CONSTRAINT [PK_ExchangeSalesOrderAudit_1] PRIMARY KEY CLUSTERED ([AuditExchangeSalesOrderId] ASC)
 );
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 

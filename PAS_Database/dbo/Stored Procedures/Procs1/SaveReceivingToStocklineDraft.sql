@@ -31,10 +31,10 @@
 	15   09-Dec-2025  Rajesh Gami		Added logic : INT to DECIMAL (QTY related Fields)
 	16   24-02-2026   Amit Ghediya		IF TraceableTo is blank then take from vendor & other too (PN-15560)
 	17   16-03-2026   Vishal Suthar		Increased max qty to 500 from 200
-
+	18   10-APR-2026  Rajesh Gami		UOM Conversion Changes [PN-15733]
  EXEC [SaveReceivingToStocklineDraft] 2281, 'ADMIN User'    
 **********************/    
-CREATE    PROCEDURE [dbo].[SaveReceivingToStocklineDraft]
+CREATE      PROCEDURE [dbo].[SaveReceivingToStocklineDraft]
  @PurchaseOrderId bigint = 0,    
  @UserName VARCHAR(100)    
 AS    
@@ -45,8 +45,8 @@ BEGIN
  BEGIN TRY    
   BEGIN TRANSACTION    
    BEGIN    
-    DECLARE @LoopID AS int;    
-    DECLARE @LoopID_Qty AS int;    
+    DECLARE @LoopID AS DECIMAL(18,6);    
+    DECLARE @LoopID_Qty AS DECIMAL(18,6);    
     DECLARE @CurrentIndex BIGINT;    
     DECLARE @CurrentIdNumber AS BIGINT;    
     DECLARE @IdNumber AS VARCHAR(50);    
@@ -150,17 +150,18 @@ BEGIN
      SELECT @IsSerialized = ISNULL(IM.isSerialized, 0) FROM DBO.ItemMaster IM WITH (NOLOCK) WHERE IM.ItemMasterId = @ItemMasterId;    
     
      SET @CurrentIndex = 0;    
-     SET @LoopID_Qty = @QtyToTraverse;    
-    
-     SET @LoopID_Qty = @LoopID_Qty + 1;    
-
+	 DECLARE @IntegerPart INT = FLOOR(@QtyToTraverse);
+	 DECLARE @DecimalPart DECIMAL(18,6) = @QtyToTraverse - @IntegerPart;
+     --SET @LoopID_Qty = @QtyToTraverse;    
+	 SET @LoopID_Qty = @IntegerPart + CASE WHEN @DecimalPart > 0 THEN 2 ELSE 1 END;
+	 
 	 DECLARE @NewStocklineDraftId BIGINT;    
 	 DECLARE @IsParent BIT = 1;
 
 	DECLARE @Quantity DECIMAL(18,6) = 1;    
 	DECLARE @QuantityAvailable DECIMAL(18,6) = 1;    
 	DECLARE @QuantityOnHand DECIMAL(18,6) = 1;  
-    
+	DECLARE @QuantityToReceive DECIMAL(18,6) = 1;  
 	IF ISNULL(@IsSerialized, 0) = 0 AND ISNULL(@LoopID_Qty, 0) >= 500
 	BEGIN
 	      
@@ -261,11 +262,22 @@ BEGIN
 				(SELECT CodePrefix FROM #tmpCodePrefixes WHERE CodeTypeId = @IdCodeTypeId),    
 				(SELECT CodeSufix FROM #tmpCodePrefixes WHERE CodeTypeId = @IdCodeTypeId)))      
 			END    
-    
-			SET @Quantity = 1;    
-			SET @QuantityAvailable = 1;    
-			SET @QuantityOnHand = 1;    
-          
+			IF (@LoopID_Qty = 1 AND @DecimalPart > 0)
+			BEGIN
+				-- Last iteration → decimal value
+				SET @Quantity = @DecimalPart;
+				SET @QuantityAvailable = @DecimalPart;
+				SET @QuantityOnHand = @DecimalPart;
+				SET @QuantityToReceive = @DecimalPart;
+			END
+			ELSE
+			BEGIN
+				-- Normal iterations → 1
+				SET @Quantity = 1;
+				SET @QuantityAvailable = 1;
+				SET @QuantityOnHand = 1;
+				SET @QuantityToReceive = 1;
+			END
 			IF (@CurrentIndex = 0)    
 			BEGIN    
 				IF (@IsSerialized = 0)    
@@ -320,7 +332,7 @@ BEGIN
 		  NULL, NULL, @TagDate, NULL, NULL, NULL, NULL, @OrderDate, @PurchaseOrderId, CASE WHEN @POPartUnitCost = 0 THEN @POUnitCost ELSE @POPartUnitCost END, NULL,    
 		  NULL, NULL, GETUTCDATE(), NULL, NULL, NULL, CASE WHEN @POPartUnitCost = 0 THEN @POUnitCost ELSE @POPartUnitCost END, IM.GLAccountId, NULL, IM.IsHazardousMaterial, IM.IsPma,     
 		  IM.IsDER, IM.IsOEM, NULL, @ManagementStructureId, NULL, @MasterCompanyId, @UserName, @UserName, GETUTCDATE(), GETUTCDATE(), IM.isSerialized, NULL, NULL, IM.SiteId,    
-		  NULL, NULL, @TraceableToType, NULL, NULL, @IdNumber, 1, ((CASE WHEN @POPartUnitCost = 0 THEN @POUnitCost ELSE @POPartUnitCost END) * 1),     
+		  NULL, NULL, @TraceableToType, NULL, NULL, @IdNumber, @QuantityToReceive, ((CASE WHEN @POPartUnitCost = 0 THEN @POUnitCost ELSE @POPartUnitCost END) * 1),     
 		  NULL, NULL, NULL, CASE WHEN @ShipViaId = 0 THEN NULL ELSE @ShipViaId END, NULL, 0, @PurchaseOrderPartRecordId, @ShippingAccountNo, '',    
 		  NULL, 0, NULL, CASE WHEN @WorkOrderMaterialsId = 0 THEN NULL ELSE @WorkOrderMaterialsId END, NULL, NULL, NULL, @QuantityOnHand, @QuantityAvailable,     
 		  NULL, NULL, NULL, 0, NULL, 0, NULL, 0, NULL, NULL, 1, 0, 0, NULL, NULL, NULL, @IsParent, 0, 1, NULL, NULL, NULL, NULL, @ConditionName,    

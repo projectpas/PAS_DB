@@ -15,7 +15,7 @@
    3    05-DEC-2025     Ayushi Patel        Get new fields SalesOrderQuoteId,SalesOrderQuoteNumber
    4    08-DEC-2025     Rajesh Gami         Added DecimalPlaces
    5    17-DEC-2025     Amit Ghediya        Get new fields SalesOrderCustomerId for redirect to so.
-   
+   6    14-APR-2025     Rajesh Gami         DraftedStocklineCount added as a decimal : [PN-16065]
 --EXEC [dbo].[USP_GetPurchaseOrderPartByPOId] 7910 ,NULL,NULL
 **************************************************************/ 
 
@@ -34,7 +34,7 @@ BEGIN
 			BEGIN
 				DECLARE @RoutinePriorityId INT = (SELECT TOP 1 PriorityId FROM dbo.[Priority] WITH(NOLOCK) WHERE LOWER(Description) = 'routine');
 				DECLARE @TotalPartsCount int = 0, @PartLoopId int = 1, @ItemTypeIdAsset int = (SELECT TOP 1 ItemTypeId FROM dbo.ItemType WITH(NOLOCK) WHERE Name = 'Asset');
-				DECLARE @ItemTypeIdStock int = (SELECT TOP 1 ItemTypeId FROM dbo.ItemType WITH(NOLOCK) WHERE Name = 'Stock'), @ItemMasterId BIGINT =0, @StockLineCount INT =0, @DraftedStockLineCount INT =0;
+				DECLARE @ItemTypeIdStock int = (SELECT TOP 1 ItemTypeId FROM dbo.ItemType WITH(NOLOCK) WHERE Name = 'Stock'), @ItemMasterId BIGINT =0, @StockLineCount DECIMAL(18,6) =0, @DraftedStockLineCount DECIMAL(18,6) =0;
 				DECLARE @ItemTypeIdNonStock int = (SELECT TOP 1 ItemTypeId FROM dbo.ItemType WITH(NOLOCK) WHERE Name = 'Non-Stock'),@PartDescription VARCHAR(MAX);
 				DECLARE @isParentPart bit = 0, @WorkOrderMaterialsId BIGINT = 0, @ItemTypeId INT =0,@AltEquiPartNumberId BIGINT =0,@ManufacturerId BIGINT =0; 
 				DECLARE @GlAccountId BIGINT =0, @UOMId BIGINT,@IsPartApproved bit =0, @ActionId INT =0, @ApprovedActionId INT = (SELECT ApprovalProcessId FROM DBO.ApprovalProcess WITH(NOLOCK) WHERE Name ='Approved');
@@ -270,8 +270,8 @@ BEGIN
 					LastMSLevel VARCHAR(MAX) NULL,AllMSlevels VARCHAR(MAX) NULL,
 					LotNumber VARCHAR(100) NULL,
 					ReapairOrderNo VARCHAR(100) NULL,
-					StockLineCount INT NULL,
-					DraftedStockLineCount INT NULL,
+					StockLineCount DECIMAL(18,6) NULL,
+					DraftedStockLineCount DECIMAL(18,6) NULL,
 					PurchaseUnitOfMeasureId BIGINT NULL,
 					ConditionCodeId BIGINT NULL,
 					Quantity DECIMAL(18,6) NULL,

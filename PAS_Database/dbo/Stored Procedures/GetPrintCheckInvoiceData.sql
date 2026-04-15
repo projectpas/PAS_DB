@@ -16,8 +16,9 @@
  ** --   --------     -------		--------------------------------          
     1    28-01-2026   AMIT GHEDIYA  Created 
 	2    19-03-2026   AMIT GHEDIYA  Update for MJE
+	3	 14-04-2026	  Ayushi Patel	PN-16004 Added IsPrimary in the condition to prevent the subquery from returning multiple rows
     
- --EXEC GetPrintCheckInvoiceData 10,1,35
+ --EXEC GetPrintCheckInvoiceData 254,292,1
 **************************************************************/
 CREATE     PROCEDURE [dbo].[GetPrintCheckInvoiceData]
 	@ReadyToPayId BIGINT = NULL,
@@ -38,6 +39,7 @@ BEGIN
 			 LEFT JOIN [dbo].[Address] addr WITH(NOLOCK) ON addr.AddressId = lebl.AddressId
 			WHERE lebl.[LegalEntityId] = @LegalEntityId 
 			AND lebl.[AccountTypeId] = 2 
+			AND lebl.IsPrimay = 1
 			AND ISNULL(lebl.IsDeleted,0) = 0 AND ISNULL(lebl.IsActive,0) = 1);
 
 			SET @LEName = (SELECT TOP 1 [Name] FROM [dbo].[LegalEntity] WITH(NOLOCK) WHERE [LegalEntityId] = @LegalEntityId);
@@ -90,6 +92,13 @@ BEGIN
 			AND [ReadyToPayDetailsId] = @ReadyToPayDetailsId
 	END TRY    
 		BEGIN CATCH
+		SELECT
+				ERROR_NUMBER() AS ErrorNumber,
+				ERROR_STATE() AS ErrorState,
+				ERROR_SEVERITY() AS ErrorSeverity,
+				ERROR_PROCEDURE() AS ErrorProcedure,
+				ERROR_LINE() AS ErrorLine,
+				ERROR_MESSAGE() AS ErrorMessage;
 				DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name() 
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
               , @AdhocComments     VARCHAR(150)    = 'GetPrintCheckInvoiceData' 

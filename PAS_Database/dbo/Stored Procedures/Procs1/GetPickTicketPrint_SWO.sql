@@ -100,7 +100,7 @@ BEGIN
 						--cte.TotalQtyToShip as QtyShipped,
 						dbo.fn_ConvertUOM(QtyToShip , uomStock.ShortName, uomConsume.ShortName,0,@masterCompanyId) as QtyShipped,
 						sl.[Shelf] as ShelfName, p.Description as PriorityName,
-						wo.WorkOrderNum, swo.SubWorkOrderNo, uom.ShortName as UOM,sl.[Site] as SiteName,sl.[Warehouse] as WarehouseName,sl.[Location] as LocationName,
+						wo.WorkOrderNum, swo.SubWorkOrderNo, uomConsume.ShortName as UOM,sl.[Site] as SiteName,sl.[Warehouse] as WarehouseName,sl.[Location] as LocationName,
 						dbo.fn_ConvertUOM(sl.QuantityOnHand , uomStock.ShortName, uomConsume.ShortName,0,@masterCompanyId)  AS QuantityOnHand,
 						dbo.fn_ConvertUOM(sl.QuantityAvailable, uomStock.ShortName, uomConsume.ShortName,0,@masterCompanyId) as QtyAvailable, 
 						wom.Memo AS Notes, 

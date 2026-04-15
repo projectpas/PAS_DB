@@ -13,6 +13,8 @@
  ** --   --------     -------			--------------------------------          
     1   09/11/2025  Ekta Chandegra     Created
     2   13/Oct/2025  RAJESH			    Added missing code And Change the datatype as required
+	3   15/04/2026		RAJESH GAMI				 Added UOM Decimal Changes  [PN-15904] 	   
+	
 	EXEC [dbo].[USP_CreateExchangeSalesOrderShipping] @ExchangeSalesOrderShippingId=0,
 	@ExchangeSalesOrderId=146,@IsCustomerShipping=0,@ShipviaId=2,@CustomerDomensticShippingShipViaId=0,
 	@CreatedBy=N'roza diaz',@SOShippingStatusId=1,@OpenDate='2025-09-11 00:00:00',@CustomerId=9,
@@ -45,7 +47,7 @@ CREATE   PROCEDURE [dbo].[USP_CreateExchangeSalesOrderShipping]
 @AirwayBill VARCHAR(50),
 @HouseAirwayBill VARCHAR(50),
 @TrackingNum VARCHAR(50),
-@Weight DECIMAL(10,2),
+@Weight [decimal](18,6),
 @SoldToName VARCHAR(256),
 @SoldToAddress1 VARCHAR(256),
 @SoldToAddress2 VARCHAR(256),
@@ -78,9 +80,9 @@ CREATE   PROCEDURE [dbo].[USP_CreateExchangeSalesOrderShipping]
 @OriginSiteId BIGINT,
 @IsSameForShipTo BIT,
 @MasterCompanyId INT,
-@ShipSizeLength DECIMAL(10,2),
-@ShipSizeWidth DECIMAL(10,2),
-@ShipSizeHeight DECIMAL(10,2),
+@ShipSizeLength [decimal](18,6),
+@ShipSizeWidth [decimal](18,6),
+@ShipSizeHeight [decimal](18,6),
 @ShipWeightUnit BIGINT,
 @ShipSizeUnitOfMeasureId BIGINT,
 @NoOfContainer INT,
@@ -89,11 +91,11 @@ CREATE   PROCEDURE [dbo].[USP_CreateExchangeSalesOrderShipping]
 @IsManualShipping BIT,
 @ManufactureCountryId INT,
 @QtyUOM BIGINT,
-@UnitPrice DECIMAL(20,2),
+@UnitPrice [decimal](18,6),
 @UnitPriceCurrencyId INT,
 @PackagingSlipNotes NVARCHAR(MAX),
 @ExchangeSalesOrderPartId BIGINT,
-@QtyShipped INT,
+@QtyShipped [decimal](18,6),
 @SOPickTicketId BIGINT,
 @PackagingSlipId BIGINT,
 @ExchangeSalesOrderCustomsInfoId BIGINT = NULL,
@@ -104,10 +106,10 @@ CREATE   PROCEDURE [dbo].[USP_CreateExchangeSalesOrderShipping]
 @UCR VARCHAR(100) = NULL,
 @MasterUCR VARCHAR(100) = NULL,
 @MovementRefNo VARCHAR(100) = NULL,
-@CustomsValue DECIMAL(18,2) = NULL,
+@CustomsValue [decimal](18,6) = NULL,
 @CustomCurrencyId BIGINT = NULL,
-@NetMass DECIMAL(18,2) = NULL,
-@VATValue DECIMAL(18,2) = NULL
+@NetMass [decimal](18,6) = NULL,
+@VATValue [decimal](18,6) = NULL
 AS
 BEGIN
 	SET NOCOUNT ON;

@@ -11,9 +11,11 @@
  **************************************************************           
  ** Change History           
  **************************************************************           
- ** PR   Date         Author		Change Description            
- ** --   --------     -------		--------------------------------          
-    1    15/04/2025   Moin Bloch     Created
+ ** PR   Date         Author			Change Description            
+ ** --   --------     -------			--------------------------------          
+    1    15/04/2025   Moin Bloch		Created
+    2    16/04/2026   Priyansh Patel    For Quantity above 500 change the receive to Stockline PN-15960
+
      
 --  EXEC [dbo].[USP_GetPurchaseOrderPartsForView] 6732,1
 --  EXEC [dbo].[USP_GetPurchaseOrderPartsForView] 6743,12853,0,1
@@ -41,6 +43,8 @@ BEGIN
   	    SELECT @NonStocklineMSID = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] = 'NonStockStockline'
 
 		SELECT @AssetMSID = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] = 'AssetInventoryTangible'
+
+		DECLARE @MaxStockDraftQuantity DECIMAL(18,6) = 500;
 				
 		IF(@Opr=1)
 		BEGIN
@@ -173,15 +177,14 @@ BEGIN
 			SL.[ControlNumber],
 			SL.[IdNumber],
             SL.[SerialNumber],		
-			CASE WHEN [SL].[IsSerialized] = 1 THEN [SL].[Quantity]
-			ELSE (
-			  SELECT ISNULL(SUM([x].[Quantity]),0)
-			  FROM [dbo].[StocklineDraft] AS [x] WITH(NOLOCK)
-			  WHERE [x].[PurchaseOrderId] = [SL].[PurchaseOrderId]
-				AND [x].[PurchaseOrderPartRecordId] = [SL].[PurchaseOrderPartRecordId]
-				AND [x].[StockLineId] = SL.[StockLineId]
-			)
-			END [Quantity],
+			CASE  WHEN [SL].[IsSerialized] = 1 THEN [SL].[Quantity]
+			WHEN EXISTS ( SELECT 1 FROM dbo.StocklineDraft x WITH(NOLOCK) WHERE x.PurchaseOrderId = SL.PurchaseOrderId AND x.PurchaseOrderPartRecordId = SL.PurchaseOrderPartRecordId AND x.StockLineId = SL.StockLineId )
+			THEN ( SELECT dbo.fn_ConvertUOM( SUM(x.Quantity), [itm].StockUnitOfMeasure, [itm].PurchaseUnitOfMeasure, 0,SL.MasterCompanyId)
+			FROM dbo.StocklineDraft x WITH(NOLOCK) WHERE x.PurchaseOrderId = SL.PurchaseOrderId AND x.PurchaseOrderPartRecordId = SL.PurchaseOrderPartRecordId AND x.StockLineId = SL.StockLineId )
+			WHEN EXISTS ( SELECT 1 FROM dbo.StocklineDraft x WITH(NOLOCK) WHERE x.PurchaseOrderId = SL.PurchaseOrderId AND x.PurchaseOrderPartRecordId = SL.PurchaseOrderPartRecordId AND x.Quantity > @MaxStockDraftQuantity )
+			THEN SL.Quantity
+			ELSE SL.Quantity
+			END AS [Quantity],
 			ISNULL(SL.[PurchaseOrderUnitCost],0) [PurchaseOrderUnitCost],
 			SL.[PurchaseOrderExtendedCost],
 			SL.[ReceiverNumber],
@@ -264,6 +267,8 @@ BEGIN
 		FROM [dbo].[Stockline] SL WITH(NOLOCK) 
 		LEFT JOIN [dbo].[ShippingVia] SV WITH(NOLOCK) ON SL.[ShippingViaId] = SV.[ShippingViaId]
 		LEFT JOIN [dbo].[StockLineManagementStructureDetails] MD WITH(NOLOCK) ON MD.[ReferenceID] = SL.[StockLineId] AND [ModuleID] = @StocklineMSID
+		LEFT JOIN [dbo].[ItemMaster] itm WITH(NOLOCK) ON SL.[ItemMasterId] = [itm].[ItemMasterId]
+
 		WHERE SL.[PurchaseOrderId] = @PurchaseOrderId AND SL.[PurchaseOrderPartRecordId] = @PurchaseOrderPartRecordId AND SL.isDeleted = 0
 		
 		END

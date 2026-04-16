@@ -13,7 +13,7 @@
 ** 1    2026-03-27   Amit Ghediya   Created
 ** 2    2026-04-07   Amit Ghediya   Get ItemMasterId for tender stk (PN-15938)
 ** 3    2026-04-10   Amit Ghediya   Filter apply (PN-15970)
-** 4    2026-04-13   Amit Ghediya   Added for Quantity (PN-16028)
+** 4    2026-04-13   Amit Ghediya   Added for Quantity,QuantityAvailable,QuantityOnHand (PN-16028)
 *************************************************************/
 CREATE   PROCEDURE [dbo].[USP_GetAircraftInstalledPartDetails]
 (
@@ -65,6 +65,8 @@ BEGIN
 				STK.ControlNumber,
 				STK.SerialNumber,
 				STK.StockLineId,
+				STK.QuantityAvailable,
+				STK.QuantityOnHand,
 				AIPD.Quantity,
                 AIPD.IsLLP,
 				AIPD.IsSerialized,
@@ -75,8 +77,12 @@ BEGIN
                 AIPD.PositionCode,
                 AIPD.[Hours],
                 AIPD.[Minutes],
-                AIPD.FlightHours,
-                AIPD.Cycles,
+                IM.FlightHours AS 'FlightHours',
+				AIPD.FlightHours AS 'RecordFlightHours', 
+				CASE WHEN ISNULL(IM.FlightHours,0) > 0 THEN  ISNULL(IM.FlightHours,0) - ISNULL(AIPD.FlightHours,0) ELSE  0 END AS 'RemainingFlightHours', 
+                IM.FlightCycles AS 'Cycles',
+				AIPD.Cycles AS 'RecordCycles',
+				CASE WHEN ISNULL(IM.FlightCycles,0) > 0 THEN  ISNULL(IM.FlightCycles,0) - ISNULL(AIPD.Cycles,0) ELSE  0 END AS 'RemainingCycles',
                 AIPD.Landings,
                 AIPD.EngineStarts,
                 AIPD.Memo,
@@ -87,6 +93,7 @@ BEGIN
             FROM dbo.AircraftInstalledPartDetails AS AIPD WITH (NOLOCK)
 			LEFT JOIN dbo.ItemMasterAircraftMapping IMAM WITH (NOLOCK) ON AIPD.ATAChapterId = IMAM.ItemMasterAircraftMappingId
 			INNER JOIN dbo.AircraftRegistryHeader ARH WITH (NOLOCK) ON ARH.AircraftRegistryId = AIPD.AircraftRegistryId
+			INNER JOIN dbo.ItemMaster IM WITH (NOLOCK) ON AIPD.ItemMasterId = IM.ItemMasterId
 			LEFT JOIN dbo.Stockline STK WITH (NOLOCK) ON STK.StockLineId = AIPD.StockLineId
             WHERE AIPD.AircraftRegistryId = @AircraftRegistryId AND AIPD.MasterCompanyId = @MasterCompanyId
         ), ResultCount AS(SELECT COUNT(AircraftInstalledPartDetailsId) AS totalItems FROM Result)

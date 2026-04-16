@@ -168,7 +168,7 @@ BEGIN
 			AIPD.Cycles = ISNULL(AIPD.Cycles, 0) + ISNULL(C.CumulativeCycles, 0),
 			AIPD.UpdatedBy = C.UpdatedBy,
 			AIPD.UpdatedDate = GETUTCDATE()
-		FROM dbo.AircraftInstalledPartDetails AIPD
+		FROM dbo.AircraftInstalledPartDetails AIPD WITH(NOLOCK)
 		INNER JOIN @CycleTable C ON AIPD.AircraftRegistryId = C.RefrenceId;
 
 		---------------------------------------------------
@@ -180,6 +180,8 @@ BEGIN
 			SET
 				AMP.FlightHoursRecordedHours = FLOOR(ISNULL(C.CumulativeHours, 0)),
 				AMP.CyclesRecorded = ISNULL(C.CumulativeCycles, 0),
+				AMP.FlightHoursRemainingHours = FLOOR(ISNULL(C.CumulativeHours, 0)),
+				AMP.CyclesRemaining = ISNULL(C.CumulativeCycles, 0),
 				AMP.UpdatedBy = C.UpdatedBy,
 				AMP.UpdatedDate = GETUTCDATE()
 			FROM dbo.AircraftMaintenanceProgram AMP WITH(NOLOCK)
@@ -197,6 +199,8 @@ BEGIN
 				TemplateId,
 				FlightHoursRecordedHours,
 				FlightHoursRecordedMinutes,
+				FlightHoursRemainingHours,
+				CyclesRemaining,
 				CyclesRecorded,
 				MasterCompanyId,
 				CreatedBy,
@@ -212,10 +216,12 @@ BEGIN
 				'',
 				'',
 				'',
-				'Cycle Update',
-				1,
+				'',
+				NULL,
 				FLOOR(ISNULL(C.CumulativeHours, 0)),
 				0,
+				FLOOR(ISNULL(C.CumulativeHours, 0)),
+				ISNULL(C.CumulativeCycles, 0),
 				ISNULL(C.CumulativeCycles, 0),
 				C.MasterCompanyId,
 				C.CreatedBy,

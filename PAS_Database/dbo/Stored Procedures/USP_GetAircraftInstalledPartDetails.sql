@@ -27,6 +27,11 @@ CREATE   PROCEDURE [dbo].[USP_GetAircraftInstalledPartDetails]
 	@AtaChapter VARCHAR(50) = NULL,
 	@Condition VARCHAR(50) = NULL,
 	@StockLineNumber VARCHAR(50) = NULL,
+
+	@Quantity VARCHAR(50) = NULL,
+	@QuantityAvailable VARCHAR(50) = NULL,
+	@QuantityOnHand VARCHAR(50) = NULL,
+
 	@SerialNumber VARCHAR(50) = NULL,
 	@ControlNumber VARCHAR(50) = NULL,
 	@PositionCode VARCHAR(50) = NULL,
@@ -104,6 +109,9 @@ BEGIN
 					(AtaChapter LIKE '%' +@GlobalFilter+'%') OR
 					(Condition LIKE '%' +@GlobalFilter+'%') OR
 					(StockLineNumber LIKE '%' +@GlobalFilter+'%') OR
+					(Quantity LIKE '%' +@GlobalFilter+'%') OR    
+					(QuantityAvailable LIKE '%' +@GlobalFilter+'%') OR    
+					(QuantityOnHand LIKE '%' +@GlobalFilter+'%') OR    
 					(SerialNumber LIKE '%' +@GlobalFilter+'%') OR
 					(ControlNumber LIKE '%' +@GlobalFilter+'%') OR
 					(Serialized LIKE '%' +@GlobalFilter+'%') OR
@@ -116,6 +124,11 @@ BEGIN
 					(ISNULL(@AtaChapter,'') ='' OR AtaChapter LIKE '%' + @AtaChapter + '%') AND
 					(ISNULL(@Condition,'') ='' OR Condition LIKE '%' + @Condition + '%') AND
 					(ISNULL(@StockLineNumber,'') ='' OR StockLineNumber LIKE '%' + @StockLineNumber + '%') AND
+
+					(ISNULL(@Quantity,'') ='' OR Quantity LIKE '%' + @Quantity + '%') AND  
+					(ISNULL(@QuantityAvailable,'') ='' OR QuantityAvailable LIKE '%' + @QuantityAvailable + '%') AND
+					(ISNULL(@QuantityOnHand,'') ='' OR QuantityOnHand LIKE '%' + @QuantityOnHand + '%') AND
+
 					(ISNULL(@SerialNumber,'') ='' OR SerialNumber LIKE '%' + @SerialNumber + '%') AND
 					(ISNULL(@ControlNumber,'') ='' OR ControlNumber LIKE '%' + @ControlNumber + '%') AND
 					(ISNULL(@Serialized,'') ='' OR Serialized LIKE '%' + @Serialized + '%') AND
@@ -158,6 +171,15 @@ BEGIN
 
 			CASE WHEN @SortOrder =  1 AND @SortColumn = 'STOCKLINENUMBER'      THEN StockLineNumber      END ASC,
             CASE WHEN @SortOrder = -1 AND @SortColumn = 'STOCKLINENUMBER'      THEN StockLineNumber      END DESC,
+
+			CASE WHEN (@SortOrder=1  AND @SortColumn='QUANTITY')  THEN Quantity END ASC,        
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='QUANTITY')  THEN Quantity END DESC,
+
+			CASE WHEN (@SortOrder=1  AND @SortColumn='QUANTITYAVAILABLE')  THEN QuantityAvailable END ASC,        
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='QUANTITYAVAILABLE')  THEN QuantityAvailable END DESC,
+
+			CASE WHEN (@SortOrder=1  AND @SortColumn='QUANTITYONHAND')  THEN QuantityOnHand END ASC,        
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='QUANTITYONHAND')  THEN QuantityOnHand END DESC,
 
 			CASE WHEN @SortOrder =  1 AND @SortColumn = 'CONTROLNUMBER'      THEN ControlNumber      END ASC,
             CASE WHEN @SortOrder = -1 AND @SortColumn = 'CONTROLNUMBER'      THEN ControlNumber      END DESC,

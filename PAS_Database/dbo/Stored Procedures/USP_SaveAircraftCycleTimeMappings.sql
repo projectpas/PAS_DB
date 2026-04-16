@@ -217,7 +217,7 @@ BEGIN
 				'',
 				'',
 				'',
-				NULL,
+				1,
 				FLOOR(ISNULL(C.CumulativeHours, 0)),
 				0,
 				FLOOR(ISNULL(C.CumulativeHours, 0)),

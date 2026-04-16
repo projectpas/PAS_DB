@@ -1,4 +1,4 @@
-/*************************************************************
+﻿/*************************************************************
  ** File:  [usprpt_GetTrainingReport]
  ** Author:  Bhargav Saliya
  ** Description: This stored procedure is used to GetTrainingReport DATA.
@@ -9,16 +9,17 @@
  **************************************************************
  ** Change History
  **************************************************************
- ** PR   Date         Author          Change Description
- ** --   --------     -------         --------------------------------
-    1    26-Feb-2025   Bhargav Saliya  Created
-    2    26-MAR-2025   Bhargav Saliya  Get Model Field Data
-    3    27-MAR-2025   Bhargav Saliya  Add Employee and Training Type Filters
-    4    15-MAR-2026   Sahdev Saliya   Added TrainingName, ProviderType, IsRecurring, DurationHours, DurationMinutes (PN-15933)
-    5    15-APR-2026   Sahdev Saliya   Standards and performance improvements (PN-15933)
+ ** PR   Date         Author                Change Description
+ ** --   --------     ----------------      --------------------------------
+    1    26-Feb-2025   Bhargav Saliya       Created
+    2    26-MAR-2025   Bhargav Saliya       Get Model Field Data
+    3    27-MAR-2025   Bhargav Saliya       Add Employee and Training Type Filters
+    4    15-MAR-2026   Sahdev Saliya        Added TrainingName, ProviderType, IsRecurring, DurationHours, DurationMinutes (PN-15933)
+    5    15-APR-2026   Sahdev Saliya        Standards and performance improvements (PN-15933)
+    6    15-APR-2026   Divyesh Kathiriya	Handle Multiple EmployeeId. [PN-15934]
 
 ************************************************************************/
-CREATE PROCEDURE [dbo].[usprpt_GetTrainingReport]
+CREATE   PROCEDURE [dbo].[usprpt_GetTrainingReport]
     @PageNumber      INT = 1,
     @PageSize        INT = NULL,
     @mastercompanyid INT,
@@ -40,8 +41,6 @@ BEGIN
             @Level10        VARCHAR(MAX) = NULL,
             @EmployeeRaw    VARCHAR(100) = NULL,
             @TrainingTypeRaw VARCHAR(100) = NULL,
-            @EmployeeId     INT = NULL,
-            @TrainingTypeId INT = NULL,
             @ModuleID       INT = 0;
 
     BEGIN TRY
@@ -63,11 +62,7 @@ BEGIN
             @Level10         = CASE WHEN filterby.value('(FieldName/text())[1]', 'VARCHAR(100)') = 'Level10'        THEN filterby.value('(FieldValue/text())[1]', 'VARCHAR(100)') ELSE @Level10         END,
             @EmployeeRaw     = CASE WHEN filterby.value('(FieldName/text())[1]', 'VARCHAR(100)') = 'Employee Name'  THEN filterby.value('(FieldValue/text())[1]', 'VARCHAR(100)') ELSE @EmployeeRaw     END,
             @TrainingTypeRaw = CASE WHEN filterby.value('(FieldName/text())[1]', 'VARCHAR(100)') = 'Training Type'  THEN filterby.value('(FieldValue/text())[1]', 'VARCHAR(100)') ELSE @TrainingTypeRaw END
-        FROM @xmlFilter.nodes('/ArrayOfFilter/Filter') AS TEMPTABLE(filterby);
-
-        -- Avoid implicit INT conversion in WHERE clauses
-        SET @EmployeeId     = TRY_CAST(@EmployeeRaw AS INT);
-        SET @TrainingTypeId = TRY_CAST(@TrainingTypeRaw AS INT);
+        FROM @xmlFilter.nodes('/ArrayOfFilter/Filter') AS TEMPTABLE(filterby);       
 
         -- Pre-compute level filter values once; avoids calling SPLITSTRING up to 20 times
         CREATE TABLE #Level1Ids  (Item INT);
@@ -80,6 +75,8 @@ BEGIN
         CREATE TABLE #Level8Ids  (Item INT);
         CREATE TABLE #Level9Ids  (Item INT);
         CREATE TABLE #Level10Ids (Item INT);
+        CREATE TABLE #EmployeeIds (Item INT);
+        CREATE TABLE #TrainingTypeIds (Item INT);
 
         IF NULLIF(@Level1,  '') IS NOT NULL  INSERT INTO #Level1Ids  SELECT Item FROM DBO.SPLITSTRING(@Level1,  ',');
         IF NULLIF(@Level2,  '') IS NOT NULL  INSERT INTO #Level2Ids  SELECT Item FROM DBO.SPLITSTRING(@Level2,  ',');
@@ -91,19 +88,23 @@ BEGIN
         IF NULLIF(@Level8,  '') IS NOT NULL  INSERT INTO #Level8Ids  SELECT Item FROM DBO.SPLITSTRING(@Level8,  ',');
         IF NULLIF(@Level9,  '') IS NOT NULL  INSERT INTO #Level9Ids  SELECT Item FROM DBO.SPLITSTRING(@Level9,  ',');
         IF NULLIF(@Level10, '') IS NOT NULL  INSERT INTO #Level10Ids SELECT Item FROM DBO.SPLITSTRING(@Level10, ',');
+        IF NULLIF(@EmployeeRaw, '') IS NOT NULL INSERT INTO #EmployeeIds(Item) SELECT DISTINCT TRY_CAST(Item AS INT)
+            FROM DBO.SPLITSTRING(@EmployeeRaw, ',') WHERE TRY_CAST(Item AS INT) IS NOT NULL;
+        IF NULLIF(@TrainingTypeRaw, '') IS NOT NULL INSERT INTO #TrainingTypeIds(Item) SELECT DISTINCT TRY_CAST(Item AS INT)
+            FROM DBO.SPLITSTRING(@TrainingTypeRaw, ',') WHERE TRY_CAST(Item AS INT) IS NOT NULL;
 
         IF ISNULL(@PageSize, 0) = 0
         BEGIN
-            SELECT @PageSize = COUNT(E.EmployeeId)
+            SELECT @PageSize = COUNT(DISTINCT E.EmployeeId)
             FROM DBO.Employee E WITH (NOLOCK)
                 INNER JOIN dbo.EmployeeManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = E.EmployeeId
                 LEFT JOIN dbo.EmployeeTraining ET WITH (NOLOCK) ON E.EmployeeId = ET.EmployeeId
             WHERE E.mastercompanyid = @mastercompanyid
                 AND E.IsActive  = 1
                 AND E.IsDeleted = 0
-                AND E.FirstName <> 'TBD'
-                AND (ISNULL(@EmployeeId,     0) = 0 OR E.EmployeeId              = @EmployeeId)
-                AND (ISNULL(@TrainingTypeId, 0) = 0 OR ET.EmployeeTrainingTypeId = @TrainingTypeId)
+                AND E.FirstName <> 'TBD'                
+                AND (NOT EXISTS (SELECT 1 FROM #EmployeeIds)     OR E.EmployeeId IN (SELECT Item FROM #EmployeeIds))
+                AND (NOT EXISTS (SELECT 1 FROM #TrainingTypeIds) OR ET.EmployeeTrainingTypeId IN (SELECT Item FROM #TrainingTypeIds))
                 AND (NOT EXISTS (SELECT 1 FROM #Level1Ids)  OR MSD.[Level1Id]  IN (SELECT Item FROM #Level1Ids))
                 AND (NOT EXISTS (SELECT 1 FROM #Level2Ids)  OR MSD.[Level2Id]  IN (SELECT Item FROM #Level2Ids))
                 AND (NOT EXISTS (SELECT 1 FROM #Level3Ids)  OR MSD.[Level3Id]  IN (SELECT Item FROM #Level3Ids))
@@ -162,7 +163,7 @@ BEGIN
             FROM DBO.Employee E WITH (NOLOCK)
                 INNER JOIN dbo.EmployeeManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = E.EmployeeId
                 LEFT JOIN dbo.JobTitle J WITH (NOLOCK) ON E.JobTitleId = J.JobTitleId
-                LEFT JOIN dbo.EmployeeTraining ET WITH (NOLOCK) ON E.EmployeeId = ET.EmployeeId
+                INNER JOIN dbo.EmployeeTraining ET WITH (NOLOCK) ON E.EmployeeId = ET.EmployeeId
                 LEFT JOIN dbo.EmployeeTrainingType ETP WITH (NOLOCK) ON ET.EmployeeTrainingTypeId = ETP.EmployeeTrainingTypeId
                 LEFT JOIN dbo.FrequencyOfTraining FT WITH (NOLOCK) ON ET.FrequencyOfTrainingId = FT.FrequencyOfTrainingId
                 LEFT JOIN dbo.AircraftType AFT WITH (NOLOCK) ON ET.AircraftManufacturerId = AFT.AircraftTypeId
@@ -173,9 +174,9 @@ BEGIN
             WHERE E.mastercompanyid = @mastercompanyid
                 AND E.IsActive  = 1
                 AND E.IsDeleted = 0
-                AND E.FirstName <> 'TBD'
-                AND (ISNULL(@EmployeeId,     0) = 0 OR E.EmployeeId              = @EmployeeId)
-                AND (ISNULL(@TrainingTypeId, 0) = 0 OR ET.EmployeeTrainingTypeId = @TrainingTypeId)
+                AND E.FirstName <> 'TBD'                
+                AND (NOT EXISTS (SELECT 1 FROM #EmployeeIds)     OR E.EmployeeId IN (SELECT Item FROM #EmployeeIds))
+                AND (NOT EXISTS (SELECT 1 FROM #TrainingTypeIds) OR ET.EmployeeTrainingTypeId IN (SELECT Item FROM #TrainingTypeIds))
                 AND (NOT EXISTS (SELECT 1 FROM #Level1Ids)  OR MSD.[Level1Id]  IN (SELECT Item FROM #Level1Ids))
                 AND (NOT EXISTS (SELECT 1 FROM #Level2Ids)  OR MSD.[Level2Id]  IN (SELECT Item FROM #Level2Ids))
                 AND (NOT EXISTS (SELECT 1 FROM #Level3Ids)  OR MSD.[Level3Id]  IN (SELECT Item FROM #Level3Ids))

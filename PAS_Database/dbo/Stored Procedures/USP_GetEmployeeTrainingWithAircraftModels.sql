@@ -13,6 +13,7 @@
  ** --   --------		 -------			--------------------------------            
     1    04-15-2025    Bhargav Saliya		Created  
 	2    14-APR-2026   Sahdev Saliya        Added TrainingName, ProviderId, ProviderType, IsRecurring, DurationHours, DurationMinutes (PN-15932)
+	3    16-APR-2026   Sahdev Saliya        Added TrainingNameId
 
 	--EXEC [USP_GetEmployeeTrainingWithAircraftModels] @EmployeeId= 232, @EmployeeTrainingId = 39
 ********************************************************************************/ 
@@ -63,6 +64,7 @@ BEGIN
 			,ET.ScheduleDate
 			,ET.UpdatedBy
 			,ET.UpdatedDate
+			,ET.TrainingNameId
 			,TN.[Name] as TrainingName
 			,ET.ProviderId
 			,ET.ProviderType

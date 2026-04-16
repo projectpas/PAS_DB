@@ -14,6 +14,7 @@
  ** PR   Date         Author		  Change Description            
  ** --   --------     -------		 --------------------------------          
     1    06/06/2025   Moin Bloch      Created
+	2    16/04/2026   Hemanat Saliya  Handle for if user generate $0 then no need to make accounting Entry
 
 -- EXEC USP_BatchTriggerBasedonDistributionNew 3
 ************************************************************************/
@@ -103,7 +104,7 @@ BEGIN
 	    SELECT @DistributionCode = [DistributionCode] FROM [dbo].[DistributionMaster] WITH(NOLOCK)  WHERE ID= @DistributionMasterId
 	    SELECT @StatusId =Id, @StatusName= [name] FROM [dbo].[BatchStatus] WITH(NOLOCK)  WHERE [Name] = 'Open'
 	    SELECT top 1 @JournalTypeId = [JournalTypeId] FROM [dbo].[DistributionSetup] WITH(NOLOCK)  WHERE DistributionMasterId =@DistributionMasterId AND MasterCompanyId=@MasterCompanyId
-	    SELECT @JournalBatchHeaderId = [JournalBatchHeaderId] FROM [dbo].[BatchHeader] WITH(NOLOCK)  WHERE JournalTypeId= @JournalTypeId AND StatusId=@StatusId
+		SELECT @JournalBatchHeaderId = [JournalBatchHeaderId] FROM [dbo].[BatchHeader] WITH(NOLOCK) WHERE [JournalTypeId] = @JournalTypeId AND [MasterCompanyId] = @MasterCompanyId AND CAST([EntryDate] AS DATE) = CAST(GETUTCDATE() AS DATE) AND [StatusId] = @StatusId
 	    SELECT @JournalTypeCode = [JournalTypeCode],@JournalTypename = [JournalTypeName] FROM [dbo].[JournalType] WITH(NOLOCK)  WHERE ID= @JournalTypeId
 	    SELECT @WopJounralTypeid = [ID] FROM [dbo].[JournalType] WITH(NOLOCK)  WHERE JournalTypeCode = 'WIP'
 		SELECT @AccountMSModuleId = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] ='Accounting';
@@ -1914,7 +1915,7 @@ BEGIN
 					 END
 
 					 -----COGSPARTS------
-					 IF(@MaterialCost >0)
+					 IF(@MaterialCost > 0 AND @InvoiceTotalCost > 0)
 					 BEGIN
 						SELECT top 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName,@CrDrType = CRDRType
 						FROM [dbo].[DistributionSetup] WITH(NOLOCK)  WHERE UPPER(DistributionSetupCode) =UPPER('COGSPARTS') and DistributionMasterId =@DistributionMasterId AND MasterCompanyId=@MasterCompanyId
@@ -1948,7 +1949,7 @@ BEGIN
 					END
 
 					-----COGSDIRECTLABOR------
-					IF(@LaborCost >0)
+					IF(@LaborCost > 0 AND @InvoiceTotalCost > 0)
 					BEGIN
 						SELECT top 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName,@CrDrType = CRDRType 
 						FROM [dbo].[DistributionSetup] WITH(NOLOCK)  WHERE UPPER(DistributionSetupCode) =UPPER('COGSDIRECTLABOR') and DistributionMasterId =@DistributionMasterId AND MasterCompanyId=@MasterCompanyId
@@ -1977,7 +1978,7 @@ BEGIN
 					END
 
 					-----COGSOVERHEAD------
-					IF(@LaborOverHeadCost >0)
+					IF(@LaborOverHeadCost > 0 AND @InvoiceTotalCost > 0)
 					BEGIN
 						SELECT top 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName,@CrDrType = CRDRType 
 						FROM [dbo].[DistributionSetup] WITH(NOLOCK)  WHERE UPPER(DistributionSetupCode) =UPPER('COGSOVERHEAD') and DistributionMasterId =@DistributionMasterId AND MasterCompanyId=@MasterCompanyId
@@ -2006,7 +2007,7 @@ BEGIN
 					END
 
 					-----Inventory to Bill-----
-					IF(@FinishGoodAmount >0)
+					IF(@FinishGoodAmount > 0 AND @InvoiceTotalCost > 0)
 					BEGIN
 						SELECT top 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName,@CrDrType = CRDRType 
 						FROM [dbo].[DistributionSetup] WITH(NOLOCK)  WHERE UPPER(DistributionSetupCode) = UPPER('WOIFINISHGOOD') and DistributionMasterId =@DistributionMasterId AND MasterCompanyId=@MasterCompanyId
@@ -2038,7 +2039,7 @@ BEGIN
 					 
 					END
 
-					IF(@MiscChargesCost >0)
+					IF(@MiscChargesCost > 0 AND @InvoiceTotalCost > 0)
 					BEGIN
 						SELECT top 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName,@CrDrType = CRDRType
 						FROM [dbo].[DistributionSetup] WITH(NOLOCK)  WHERE UPPER(DistributionSetupCode) =UPPER('REVENUEMISCCHARGE') And DistributionMasterId=@DistributionMasterId AND MasterCompanyId=@MasterCompanyId
@@ -2068,7 +2069,7 @@ BEGIN
 
 					-----REVENUEFREIGHT------
 
-					IF(@FreightCost >0)
+					IF(@FreightCost > 0 AND @InvoiceTotalCost > 0)
 					BEGIN
 						SELECT top 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName,@CrDrType=CRDRType
 						FROM [dbo].[DistributionSetup] WITH(NOLOCK)  WHERE UPPER(DistributionSetupCode) =UPPER('REVENUEFREIGHT') And DistributionMasterId=@DistributionMasterId AND MasterCompanyId=@MasterCompanyId
@@ -2097,7 +2098,7 @@ BEGIN
 					END
 
 					-----REVENUEWO------
-					IF(@RevenuWO >0)
+					IF(@RevenuWO > 0 AND @InvoiceTotalCost > 0)
 					BEGIN
 						SELECT top 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName,@CrDrType=CRDRType
 						FROM [dbo].[DistributionSetup] WITH(NOLOCK)  WHERE UPPER(DistributionSetupCode) =UPPER('REVENUEWO') and DistributionMasterId =@DistributionMasterId AND MasterCompanyId=@MasterCompanyId
@@ -2130,7 +2131,7 @@ BEGIN
 					END
 
 					-----SALESTAXPAYABLEWOI------
-					IF(@SalesTax >0)
+					IF(@SalesTax > 0 AND @InvoiceTotalCost > 0)
 					BEGIN						
 						SELECT top 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName,@CrDrType=CRDRType
 						from [dbo].[DistributionSetup] WITH(NOLOCK)  WHERE UPPER(DistributionSetupCode) =UPPER('SALESTAXPAYABLEWOI') And DistributionMasterId=@DistributionMasterId AND MasterCompanyId=@MasterCompanyId
@@ -2159,7 +2160,7 @@ BEGIN
 					END
 
 					-----OTHERTAXPAYABLEWOI------
-					IF(@OtherTax >0)
+					IF(@OtherTax > 0 AND @InvoiceTotalCost > 0)
 					BEGIN						
 						SELECT top 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName,@CrDrType=CRDRType
 						FROM [dbo].[DistributionSetup] WITH(NOLOCK)  WHERE UPPER(DistributionSetupCode) =UPPER('WOIOTHERTAX') And DistributionMasterId=@DistributionMasterId AND MasterCompanyId=@MasterCompanyId
@@ -2187,7 +2188,7 @@ BEGIN
 
 					END
 					-----UNEARNEDAMOUNTPAYABLEWOI------
-					IF(@UnEarnedAmount >0)
+					IF(@UnEarnedAmount > 0 AND @InvoiceTotalCost > 0)
 					BEGIN						
 						SELECT top 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName,@CrDrType=CRDRType
 						FROM [dbo].[DistributionSetup] WITH(NOLOCK)  WHERE UPPER(DistributionSetupCode) =UPPER('WOIUNEARNAMT') And DistributionMasterId=@DistributionMasterId AND MasterCompanyId=@MasterCompanyId
@@ -2216,7 +2217,7 @@ BEGIN
 					END
 
 					-----UNEARNEDRECVAMOUNTPAYABLEWOI------
-					IF(@UnEarnedAmount >0)
+					IF(@UnEarnedAmount > 0 AND @InvoiceTotalCost > 0)
 					BEGIN						
 						SELECT TOP 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName,@CrDrType=CRDRType
 						FROM [dbo].[DistributionSetup] WITH(NOLOCK)  WHERE UPPER(DistributionSetupCode) =UPPER('ACCOUNTSRECEIVABLETRADE') And DistributionMasterId=@DistributionMasterId AND MasterCompanyId=@MasterCompanyId

@@ -24,7 +24,7 @@ BEGIN
 	BEGIN TRY
 		SELECT MC.MasterCompanyId, MC.TokenUserName, MC.TokenPassword
 		FROM DBO.MasterCompany MC WITH (NOLOCK)
-		WHERE MC.MasterCompanyId NOT IN (2, 3, 4, 5, 6, 7, 8, 9, 10, 17);
+		WHERE MC.MasterCompanyId NOT IN (2, 3, 4, 5, 6, 8, 9, 10, 17);
 	END TRY
 	BEGIN CATCH
 		DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name() 

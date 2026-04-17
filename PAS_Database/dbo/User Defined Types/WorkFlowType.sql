@@ -49,7 +49,10 @@
     [IsVersionIncrease]            BIT             NULL,
     [Verified]                     BIT             NULL,
     [VerifiedBy]                   VARCHAR (256)   NULL,
-    [VerifiedDate]                 DATETIME2 (7)   NULL);
-
-
+    [VerifiedDate]                 DATETIME2 (7)   NULL,
+    [TailNum]                      VARCHAR (50)    NULL,
+    [SerialNum]                    VARCHAR (100)   NULL,
+    [AircraftModelId]              BIGINT          NULL,
+    [MakeTypeId]                   INT             NULL,
+    [TemplateType]                 INT             NULL);
 

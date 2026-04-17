@@ -15,6 +15,7 @@
  ** --   --------     -------		--------------------------------          
     1    04-April-2025   BHARGAV SALIYA    Created
     2    02-Sep-2025     SAHDEV SALIYA     Added New Field Verified, VerifiedBy And VerifiedDate
+	3	 17-APR-2026     PRIYANSH PATEL    Added AC Template Fields [PN-15968]
 
 --   EXEC [usp_SaveWorkFlowData] 
 **************************************************************/
@@ -100,7 +101,12 @@ BEGIN
 			[IsVersionIncrease] BIT NULL,
 			[Verified] BIT NULL,
 			[VerifiedBy] VARCHAR(256) NULL,
-			[VerifiedDate] DATETIME NULL
+			[VerifiedDate] DATETIME NULL,
+			[TailNum] VARCHAR(50) NULL,
+			[SerialNum] VARCHAR(100) NULL,
+			[AircraftModelId] BIGINT NULL,
+			[MakeTypeId] INT NULL,
+			[TemplateType] INT  NULL,
 		);
 
 		-- Generate Work Flow version
@@ -171,7 +177,8 @@ BEGIN
 			[BERThresholdAmount], [WorkOrderNumber], [CustomerCode], [OtherCost], [WorkflowCreateDate],
 			[ChangedPartNumberId], [PercentageOfMaterial], [PercentageOfExpertise], [PercentageOfCharges], [PercentageOfOthers],
 			[PercentageOfTotal], [RevisedPartNumber], [ChangedPartNumberDescription], [ChangedPartNumber], [WorkScope],
-			[Currency], [WFParentId], [IsVersionIncrease], [Verified], [VerifiedBy], [VerifiedDate]
+			[Currency], [WFParentId], [IsVersionIncrease], [Verified], [VerifiedBy], [VerifiedDate],
+			[TailNum],[SerialNum] ,[AircraftModelId] ,[MakeTypeId] ,[TemplateType]   
 		)
 		SELECT 
 			[WorkflowDescription], @NewVersionNum, [WorkScopeId], [ItemMasterId],
@@ -183,7 +190,8 @@ BEGIN
 			[BERThresholdAmount], @WorkFlowNum, [CustomerCode], [OtherCost], [WorkflowCreateDate],
 			[ChangedPartNumberId], [PercentageOfMaterial], [PercentageOfExpertise], [PercentageOfCharges], [PercentageOfOthers],
 			[PercentageOfTotal], [RevisedPartNumber], [ChangedPartNumberDescription], [ChangedPartNumber], [WorkScope],
-			[Currency], [WFParentId], [IsVersionIncrease], [Verified], [VerifiedBy], [VerifiedDate]
+			[Currency], [WFParentId], [IsVersionIncrease], [Verified], [VerifiedBy], [VerifiedDate], 
+			[TailNum],[SerialNum] ,[AircraftModelId] ,[MakeTypeId] ,[TemplateType]   
 		FROM @tbl_WorkFloaddItemsType temp where temp.[WorkflowId] = 0;  
 
 		set @WorkFlowid = SCOPE_IDENTITY();

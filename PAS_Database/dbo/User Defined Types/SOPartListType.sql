@@ -40,7 +40,5 @@
     [Weight]                DECIMAL (18, 6) NULL,
     [SizeLength]            DECIMAL (18, 6) NULL,
     [SizeWidth]             DECIMAL (18, 6) NULL,
-    [SizeHeight]            DECIMAL (18, 6) NULL,
-    [LotId]                 BIGINT          NULL,
-    [IsLotAssigned]         BIT             NULL);
+    [SizeHeight]            DECIMAL (18, 6) NULL);
 

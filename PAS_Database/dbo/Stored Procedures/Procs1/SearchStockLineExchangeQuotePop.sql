@@ -58,7 +58,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 					,sl.SerialNumber
 					,sl.ControlNumber
 					,sl.IdNumber
-					,uomConsume.ShortName AS UomDescription
+					,uomStock.ShortName AS UomDescription
 					--, dbo.fn_ConvertUOM(ISNULL(sl.QuantityAvailable,0), uomStock.ShortName, uomConsume.ShortName,0,im.[MasterCompanyId]) QtyAvailable
 					--, dbo.fn_ConvertUOM(ISNULL(sl.QuantityOnHand,0), uomStock.ShortName, uomConsume.ShortName,0,im.[MasterCompanyId]) QtyOnHand
 					--, dbo.fn_ConvertUOM(ISNULL(sl.UnitCost,0), uomStock.ShortName, uomConsume.ShortName,1, im.[MasterCompanyId]) unitCost 
@@ -122,7 +122,6 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 				LEFT JOIN DBO.LegalEntity leOwner WITH(NOLOCK) ON sl.ObtainFrom = leOwner.LegalEntityId
 				LEFT JOIN DBO.ItemMasterExchangeLoan imel WITH(NOLOCK) on imel.ItemMasterId = sl.ItemMasterId
 				LEFT JOIN [dbo].[UnitOfMeasure] uomStock WITH(NOLOCK) ON uomStock.UnitOfMeasureId = sl.StockUnitOfMeasureId
-				LEFT JOIN [dbo].[UnitOfMeasure] uomConsume WITH(NOLOCK) ON uomConsume.UnitOfMeasureId = sl.ConsumeUnitOfMeasureId
 				WHERE 
 				im.ItemMasterId IN (SELECT Item FROM DBO.SPLITSTRING(@ItemMasterIdlist,','))
 				AND ISNULL(sl.QuantityAvailable, 0) > 0

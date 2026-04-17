@@ -11,7 +11,9 @@ EXEC [USP_AutoReserveAllWorkOrderMaterials]
 ** --   --------    -------         --------------------------------
 ** 1    06/12/2023  HEMANT SALIYA    Preview Work Order Materials Auto reserve Stockline Details
 ** 2    03/21/2025	Devendra Shekh	 Updated For Checking PMA/DER Restrict Parts
-** 9    16/Mar/2026	Rajesh Gami		 Added UOM Changes [PN-15714]
+** 3    16/Mar/2026	Rajesh Gami		 Added UOM Changes [PN-15714]
+** 4    15/Apr/2026	Ayushi Patel	 Added UOM Changes [PN-15910]
+** 5    16/Apr/2026 Ayushi Patel     Resolved QtyShort Issue [PN-16098]
 EXEC USP_PreviewAutoReserveAllSubWorkOrderMaterials 160,1,0,2,0
 exec USP_PreviewAutoReserveAllSubWorkOrderMaterials @SubWOPartNoId=270,@IncludeAlternate=1,@IncludeEquiv=1,@EmployeeId=2,@IncludeCustomerStock=1
 **************************************************************/ 
@@ -2179,7 +2181,7 @@ BEGIN
 						[ExtendedCost],
 						wom.[QuantityReserved],
 						wom.[QuantityIssued],
-						dbo.fn_ConvertUOM(wom.Quantity, uomStock.ShortName, uomConsume.ShortName,0,@MasterCompanyId) AS [QuantityShort],
+						wom.[QuantityShort],
 						[IsAltPart],[AltPartMasterPartId],
 						[PartStatusId],[UnReservedQty],[UnIssuedQty],[IssuedById],[ReservedById],[IsEquPart],[ItemMappingId],[TotalReserved],[TotalIssued],
 						[TotalUnReserved],[TotalUnIssued],[ProvisionId],[MaterialMandatoriesId],[WOPartNoId],[TotalStocklineQtyReq],[QtyOnOrder],[QtyOnBkOrder],

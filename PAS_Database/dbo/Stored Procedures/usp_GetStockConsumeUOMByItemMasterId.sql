@@ -10,6 +10,7 @@
  ** PR   Date				Author				Change Description            
  ** --   --------			-------				--------------------------------          
     1    07-APR-2026		Rajesh Gami		Created [PN-15916]
+	2    16-APR-2026		Ayushi Patel	Return StockUOMId,ConsumeUOMId [PN-16034]
 EXEC [dbo].[usp_GetStockConsumeUOMByItemMasterId] 97625
 **************************************************************/
 CREATE         PROCEDURE [dbo].[usp_GetStockConsumeUOMByItemMasterId]
@@ -23,6 +24,8 @@ BEGIN
 		SELECT 
 				CASE WHEN ISNULL(StockUnitOfMeasure,'') = '' THEN  uomStock.ShortName ELSE ISNULL(StockUnitOfMeasure,'')END AS StockUOM,
 			    CASE WHEN ISNULL(ConsumeUnitOfMeasure,'') = '' THEN  uomConsume.ShortName ELSE ISNULL(ConsumeUnitOfMeasure,'') END AS ConsumeUOM,
+				CASE WHEN ISNULL(StockUnitOfMeasureId,'') = '' THEN uomStock.UnitOfMeasureId ELSE ISNULL(StockUnitOfMeasureId,'') END StockUOMId,
+				CASE WHEN ISNULL(ConsumeUnitOfMeasureId,'') = '' THEN uomConsume.UnitOfMeasureId ELSE ISNULL(ConsumeUnitOfMeasureId,'') END ConsumeUOMId,
 				IM.PurchaseUnitOfMeasure as PurchaseUOM
 				FROM DBO.ItemMaster IM  WITH(NOLOCK) 
 									LEFT JOIN [dbo].[UnitOfMeasure] uomStock WITH(NOLOCK) ON uomStock.UnitOfMeasureId = IM.StockUnitOfMeasureId

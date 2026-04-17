@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿
+/*************************************************************           
  ** File:   [SP_MapWOSOEXCHByPartListFromPO]           
  ** Author:  Rajesh Gami
  ** Description: This stored procedure is used to Map WO,SO,EXCH,LOT from the PO 
@@ -13,7 +14,7 @@
     1    03/Oct/2024   RAJESH GAMI			Created
 
 ************************************************************************/
-CREATE   PROCEDURE [dbo].[SP_MapWOSOEXCHByPartListFromPO]
+CREATE     PROCEDURE [dbo].[SP_MapWOSOEXCHByPartListFromPO]
 	@userName varchar(50) = NULL,
 	@masterCompanyId bigint = NULL,
 	@tbl_PurchaseOrderPartWOSOEXCHType PurchaseOrderPartWOSOEXCHType READONLY
@@ -28,9 +29,9 @@ BEGIN
 
 			DECLARE @TotalPartsCount int = 0, @PartLoopId int = 1,@ManagementStructureId BIGINT;
 			DECLARE @NewPartId BIGINT = 0, @PurchaseOrderPartRecordId BIGINT,@PurchaseOrderId BIGINT, @LotId BIGINT, @WorkOrderId BIGINT;
-			DECLARE @SalesOrderId BIGINT,@SubWorkOrderId BIGINT,@RequestedQtyFromWO INT = 0,@ExchangeSalesOrderId BIGINT 
+			DECLARE @SalesOrderId BIGINT,@SubWorkOrderId BIGINT,@RequestedQtyFromWO [decimal](18,6) = 0,@ExchangeSalesOrderId BIGINT 
 			DECLARE @WOModuleId INT = 1, @SOModuleId INT = 3, @ExchModuleId INT = 4, @SubWOModuleId INT = 5, @LOTModuleId INT = 6
-			DECLARE @POPartRecordCount INT = 0,@QuantityOrdered INT =0,@IsFromSubWorkOrder BIT = 0;
+			DECLARE @POPartRecordCount INT = 0,@QuantityOrdered [decimal](18,6) =0,@IsFromSubWorkOrder BIT = 0;
 			IF OBJECT_ID(N'tempdb..#tmpPoPartList') IS NOT NULL    
 			BEGIN    
 				DROP TABLE #tmpPoPartList

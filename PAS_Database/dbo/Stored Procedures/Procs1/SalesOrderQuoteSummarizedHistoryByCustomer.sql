@@ -14,6 +14,7 @@
  ** --   --------     -------		--------------------------------          
     1    07/13/2021   Vishal Suthar Created
     2    11/04/2024   Vishal Suthar Modified to make use of new tables
+	3    16-Apr-026   Bhargav Saliya  UOM Changes
      
 --EXEC [SalesOrderQuoteSummarizedHistoryByCustomer] 125, 1
 **************************************************************/
@@ -47,8 +48,8 @@ BEGIN
 						Cond.Description AS Condition,
 						CASE WHEN ISNULL(APPR.ApprovalActionId, 0) = 5 THEN 1 ELSE 0 END AS CustApproved,
 						C.Code AS CurrencyName,
-						((ISNULL(SOQPC.UnitSalesPrice, 0) * ISNULL(SOQP.QtyQuoted, 0)) + ISNULL(SUM(Charges.BillingAmount), 0)) AS Revenue,
-						((ISNULL(SOQPC.UnitCost, 0) * ISNULL(SOQP.QtyQuoted, 0)) + ISNULL(SUM(Charges.BillingAmount), 0)) AS DirectCost,
+						((([dbo].[fn_ConvertUOM](ISNULL(SOQPC.UnitSalesPrice, 0),IM.[StockUnitOfMeasure] ,IM.[ConsumeUnitOfMeasure],0,SOQP.MasterCompanyId)) * ([dbo].[fn_ConvertUOM](ISNULL(SOQP.QtyQuoted, 0),IM.[StockUnitOfMeasure] ,IM.[ConsumeUnitOfMeasure],0,SOQP.MasterCompanyId))) + ISNULL(SUM(Charges.BillingAmount), 0)) AS Revenue,
+						((([dbo].[fn_ConvertUOM](ISNULL(SOQPC.UnitCost, 0),IM.[StockUnitOfMeasure] ,IM.[ConsumeUnitOfMeasure],0,SOQP.MasterCompanyId)) * ([dbo].[fn_ConvertUOM](ISNULL(SOQP.QtyQuoted, 0),IM.[StockUnitOfMeasure] ,IM.[ConsumeUnitOfMeasure],0,SOQP.MasterCompanyId))) + ISNULL(SUM(Charges.BillingAmount), 0)) AS DirectCost,
 						SOQ.SalesOrderQuoteNumber,
 						SOQ.VersionNumber,
 						SOQ.OpenDate AS SOQDate,
@@ -86,7 +87,7 @@ BEGIN
 						SOQ.SalesOrderQuoteNumber,
 						SOQ.VersionNumber,
 						SOQ.OpenDate, SO.SalesOrderNumber, SO.SalesOrderId,
-						SOQ.StatusName, sl.TraceableToType, cusTraceble.Name, vTraceble.VendorName, leTraceble.Name, sl.TraceableTo
+						SOQ.StatusName, sl.TraceableToType, cusTraceble.Name, vTraceble.VendorName, leTraceble.Name, sl.TraceableTo,IM.[StockUnitOfMeasure],IM.[ConsumeUnitOfMeasure],SOQP.MasterCompanyId
 					)
 
 					SELECT CustomerName, CustomerId, SalesOrderQuoteId, Condition, CustApproved, CurrencyName, SalesOrderQuoteNumber, VersionNumber, SOQDate, StatusName, Revenue AS Revenue,

@@ -19,6 +19,7 @@
 	4    12/12/2024	  Vishal Suthar			Fixed an issue with SOQ History Unit Price and Unit Price Extended
 	5    31/12/2025	  Bhargav Saliya		Fixed an issue (PN-15053)
 	6    26/02/2026   Priyansh Patel		changed NVARCHAR(10) to NVARCHAR(20) for quatity and cost
+	7    16-Apr-026   Bhargav Saliya        UOM Changes
 
 **************************************************************/
 CREATE       PROCEDURE [dbo].[GetPNTileSalesOrderQuoteList]
@@ -84,10 +85,10 @@ BEGIN
 		            SOD.[SalesOrderNumber],
 					SOQ.[OpenDate],
 					SOQ.[CustomerReference],
-					(ISNULL(SPC.NetSaleAmount, 0) / ISNULL(SP.[QtyRequested], 1)) AS [UnitSalesPrice],
-					ISNULL(SPC.[UnitCost],0) AS [UnitCost],
-					ISNULL(SP.[QtyRequested],0) AS [Qty],
-					ISNULL(SPC.[UnitCostExtended],0) AS [UnitCostExtended],
+					(([dbo].[fn_ConvertUOM](ISNULL(SPC.NetSaleAmount, 0),IM.[StockUnitOfMeasure] ,IM.[ConsumeUnitOfMeasure],0,SP.MasterCompanyId)) / ([dbo].[fn_ConvertUOM](ISNULL(SP.[QtyRequested], 0),IM.[StockUnitOfMeasure] ,IM.[ConsumeUnitOfMeasure],0,SP.MasterCompanyId))) AS [UnitSalesPrice],
+					([dbo].[fn_ConvertUOM](ISNULL(SPC.[UnitCost], 0),IM.[StockUnitOfMeasure] ,IM.[ConsumeUnitOfMeasure],0,SP.MasterCompanyId)) AS [UnitCost],
+					([dbo].[fn_ConvertUOM](ISNULL(SP.[QtyRequested], 0),IM.[StockUnitOfMeasure] ,IM.[ConsumeUnitOfMeasure],0,SP.MasterCompanyId)) AS [Qty],
+					([dbo].[fn_ConvertUOM](ISNULL(SPC.[UnitCostExtended], 0),IM.[StockUnitOfMeasure] ,IM.[ConsumeUnitOfMeasure],0,SP.MasterCompanyId)) AS [UnitCostExtended],
 					CO.[Description] AS [ConditionName],
 					SP.ConditionId,
 					SOQ.[SalesPersonName],

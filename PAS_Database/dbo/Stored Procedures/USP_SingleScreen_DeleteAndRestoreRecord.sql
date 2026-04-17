@@ -12,8 +12,8 @@
     1    04/04/2024   Vishal Suthar	        Created  
 	2    12/11/2024   Ayushi Patel	        Updated For Updated By , Updated Date 
 	3	 26-MAR-2026  Nakul Chandigra		Added Condition For  AircraftStatus And MaintenanceStatus
-    4    13/04/2026   NAkul Chandigra       removed  'POSITIONCODE' AND 'TRAININGNAME' from the exec of [USP_InsertAuditDataForSingleScreen] (PN-15980)
-
+    4    13/04/2026   Nakul Chandigra       removed  'POSITIONCODE' AND 'TRAININGNAME' from the exec of [USP_InsertAuditDataForSingleScreen] (PN-15980)
+    5    17/04/2026   Nakul Chandigra       removed  'MaintenanceType' from the exec of [USP_InsertAuditDataForSingleScreen] (PN-16108)
 **************************************************************/
 -- EXEC  USP_SingleScreen_DeleteAndRestoreRecord 10, 'assetlocation'
 CREATE   PROCEDURE [dbo].[USP_SingleScreen_DeleteAndRestoreRecord]  
@@ -45,7 +45,7 @@ BEGIN
       RETURN  
     END  
  
-    IF ( UPPER(@PageName) <> 'AIRCRAFTSTATUS' AND UPPER(@PageName) <> 'MAINTENANCESTATUS' AND UPPER(@PageName) <> 'POSITIONCODE' AND UPPER(@PageName) <> 'TRAININGNAME')
+    IF ( UPPER(@PageName) <> 'AIRCRAFTSTATUS' AND UPPER(@PageName) <> 'MAINTENANCESTATUS' AND UPPER(@PageName) <> 'POSITIONCODE' AND UPPER(@PageName) <> 'TRAININGNAME' AND UPPER(@PageName) <> 'MAINTENANCETYPE')
     BEGIN
 	    EXEC [DBO].[USP_InsertAuditDataForSingleScreen] @ID,@PageName,@PrimaryKey 
     END

@@ -4494,6 +4494,8 @@
     <Build Include="dbo\Stored Procedures\USP_GetAircraftMaintenanceList.sql" />
     <Build Include="dbo\Tables\PersistedGrants.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetGLAccountDetailsByID.sql" />
+    <Build Include="dbo\Tables\MaintenanceType.sql" />
+    <Build Include="dbo\Views\vw_MaintenanceType.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetMasterCompanyDetails.sql" />
   </ItemGroup>
   <ItemGroup>

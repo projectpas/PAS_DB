@@ -88,9 +88,9 @@ BEGIN
 			LEFT JOIN DBO.ItemMasterPurchaseSale imps on imps.ItemMasterId = im.ItemMasterId
 						and imps.ConditionId = c.ConditionId
 			LEFT JOIN DBO.ItemMasterExchangeLoan imel WITH (NOLOCK) on imel.ItemMasterId = im.ItemMasterId
-			LEFT JOIN [dbo].[UnitOfMeasure] uomPO WITH(NOLOCK) ON uomPO.UnitOfMeasureId = im.PurchaseUnitOfMeasureId
-			LEFT JOIN [dbo].[UnitOfMeasure] uomStock WITH(NOLOCK) ON uomStock.UnitOfMeasureId = im.StockUnitOfMeasureId
-			LEFT JOIN [dbo].[UnitOfMeasure] uomConsume WITH(NOLOCK) ON uomConsume.UnitOfMeasureId = im.ConsumeUnitOfMeasureId
+			--LEFT JOIN [dbo].[UnitOfMeasure] uomPO WITH(NOLOCK) ON uomPO.UnitOfMeasureId = im.PurchaseUnitOfMeasureId
+			--LEFT JOIN [dbo].[UnitOfMeasure] uomStock WITH(NOLOCK) ON uomStock.UnitOfMeasureId = im.StockUnitOfMeasureId
+			--LEFT JOIN [dbo].[UnitOfMeasure] uomConsume WITH(NOLOCK) ON uomConsume.UnitOfMeasureId = im.ConsumeUnitOfMeasureId
 			WHERE 
 				im.ItemMasterId IN (SELECT Item FROM DBO.SPLITSTRING(@ItemMasterIdlist,','))
 			GROUP BY

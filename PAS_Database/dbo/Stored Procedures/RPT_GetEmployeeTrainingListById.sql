@@ -10,32 +10,38 @@
  ** PR   Date				Author				Change Description            
  ** --   -------------		----------------	--------------------------------          
     1    07-APR-2026		Divyesh Kathiriya	Created [PN-15934]
+	2    17-APR-2026		Divyesh Kathiriya	Handle Boolean Issuse AND Other Change [PN-16047]
     
  -- EXEC [RPT_GetEmployeeTrainingListById] @EmployeeId= 374, @MasterCompanyId = 1
 **************************************************************/
-CREATE   PROCEDURE [DBO].[RPT_GetEmployeeTrainingListById]
+CREATE   PROCEDURE [dbo].[RPT_GetEmployeeTrainingListById]
 @EmployeeId BIGINT,
 @MasterCompanyId BIGINT 
 AS
 BEGIN
 	SET NOCOUNT ON;
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
-	BEGIN TRY	
-
+	BEGIN TRY
 		SELECT
-			FirstName + ' ' + LastName AS [EmployeeName],		
-			AFT.[Description] AS [TrainingName],
+			E.[FirstName] + ' ' + E.[LastName] AS [EmployeeName],
+			ETN.[Name] AS [TrainingName],
 			ET.[Provider],
-			ETP.[TrainingType],
-			FT.[FrequencyName] AS [Recurring],
-			ET.[Duration],
-			ET.[ScheduleDate],
-			ET.[CompletionDate],
+			ETP.[TrainingType],				
+			CASE 
+				WHEN ET.[IsRecurring] IS NULL THEN ''
+				WHEN ET.[IsRecurring] = 1 THEN 'Yes'
+				ELSE 'No'
+			END AS [Recurring],			
+			CASE 
+				WHEN ET.[DurationHours] IS NULL OR ET.[DurationMinutes] IS NULL THEN NULL
+				ELSE CONCAT(FORMAT(ET.[DurationHours], '00'), ':', FORMAT(ET.[DurationMinutes], '00'))
+			END AS [Duration],
+			ET.[ScheduleDate],			
+			ET.[CompletionDate],			
 			ET.[ExpirationDate]			
 		FROM [DBO].[EmployeeTraining] ET WITH(NOLOCK)
-		LEFT JOIN [DBO].[EmployeeTrainingType] ETP WITH(NOLOCK) ON ET.[EmployeeTrainingTypeId] = ETP.[EmployeeTrainingTypeId]
-		LEFT JOIN [DBO].[AircraftType] AFT WITH(NOLOCK) ON ET.[AircraftManufacturerId] = AFT.[AircraftTypeId]
-		LEFT JOIN [DBO].[FrequencyOfTraining] FT WITH(NOLOCK) ON ET.[FrequencyOfTrainingId] = FT.[FrequencyOfTrainingId]
+		LEFT JOIN [DBO].[TrainingName] ETN WITH(NOLOCK) ON ET.[TrainingNameId] = ETN.[TrainingNameId]
+		LEFT JOIN [DBO].[EmployeeTrainingType] ETP WITH(NOLOCK) ON ET.[EmployeeTrainingTypeId] = ETP.[EmployeeTrainingTypeId]		
 		LEFT JOIN [DBO].[Employee] E WITH(NOLOCK) ON E.[EmployeeId] = @EmployeeId		
 		WHERE 
 			ET.[EmployeeId] = @EmployeeId

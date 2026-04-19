@@ -4592,6 +4592,7 @@
     <Build Include="dbo\Stored Procedures\USP_GetRepairOrderbasedOnWorkWorkOrderMaterialsId.sql" />
     <Build Include="dbo\Tables\WorkOrederMaterialsROHistory.sql" />
     <Build Include="dbo\Stored Procedures\USP_SaveWorkOrederMaterialsROHistory.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetMasterCompanyDetails.sql" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Snapshots\PAS_DB_20220518_07-53-10.dacpac" />

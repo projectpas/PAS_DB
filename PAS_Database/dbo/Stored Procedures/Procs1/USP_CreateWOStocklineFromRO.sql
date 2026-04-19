@@ -28,7 +28,7 @@
 	10	 07/07/2025   Vishal Suthar	   Fixed an issue with updating new condition and provision in material stockline level
 	11	 07/25/2025   Vishal Suthar	   Fixed an issue with not updating the Provision with new implementation
 	12   11/19/2025   Moin Bloch       Fixed an issue For WO Kit When We Change Condition at Receiving Time 
-
+	13   17/Apr/2026  Ayushi Patel     Added UOM Conversion Changes [PN-15044]
 exec sp_executesql N'EXEC dbo.USP_CreateWOStocklineFromRO @RepairOrderId',N'@RepairOrderId bigint',@RepairOrderId=692
 EXEC [dbo].[USP_CreateWOStocklineFromRO]   3043,'ADMIN User' 
 **************************************************************/
@@ -53,9 +53,9 @@ SET NOCOUNT ON
 				DECLARE @MaterialMandatoriesId INT = 0;
 				DECLARE @WorkFlowWorkOrderId BIGINT = 0;
 				DECLARE @WorkOrderMaterialStockLineId BIGINT = 0;
-				DECLARE @Quantity INT = 0;	
-				DECLARE @StlQuantity INT = 0;
-				DECLARE @QtyFulfilled INT = 0;	
+				DECLARE @Quantity DECIMAL(18, 6) = 0;	
+				DECLARE @StlQuantity DECIMAL(18, 6) = 0;
+				DECLARE @QtyFulfilled DECIMAL(18, 6) = 0;	
 				DECLARE @WorkOrderMaterialsId BIGINT = 0;
 				DECLARE @ExWorkOrderMaterialsId BIGINT;
 				DECLARE @ExWorkOrderMaterialStockLineId BIGINT = 0;
@@ -352,7 +352,7 @@ SET NOCOUNT ON
 										BEGIN
 											SELECT @WorkOrderMaterialStockLineId = SWOMStockLineId FROM DBO.SubWorkOrderMaterialStockLine WITH (NOLOCK) WHERE SubWorkOrderMaterialsId = @ExWorkOrderMaterialsId AND StockLineId = @StockLineId;
 											
-											DECLARE @UnitCostSWO DECIMAL (18, 2) = 0;
+											DECLARE @UnitCostSWO DECIMAL(18, 6) = 0;
 											SELECT @UnitCostSWO = ISNULL(SL.UnitCost, 0) FROM DBO.Stockline SL WITH (NOLOCK) WHERE StockLineId = @StocklineId;
 											UPDATE dbo.SubWorkOrderMaterialStockLine SET UnitCost = @UnitCostSWO WHERE SWOMStockLineId = @WorkOrderMaterialStockLineId;
 
@@ -446,7 +446,7 @@ SET NOCOUNT ON
 											DECLARE @MainItemMasterId BIGINT = 0;
 											DECLARE @OldConditionId_2 BIGINT = 0;
 											DECLARE @NewConditionId_2 BIGINT = 0;
-											DECLARE @NewUnitCost_2 DECIMAL(18,2) = 0;
+											DECLARE @NewUnitCost_2 DECIMAL(18, 6) = 0;
 
 											SELECT @WorkOrderPartNoId = ISNULL(WOP.ID, 0),
 													@MainItemMasterId = ROS.MainItemMasterId
@@ -521,7 +521,7 @@ SET NOCOUNT ON
 											DECLARE @ExWorkOrderPartNoId BIGINT = 0;
 											DECLARE @OldConditionId_1 BIGINT = 0;
 											DECLARE @NewConditionId_1 BIGINT = 0;
-											DECLARE @NewUnitCost_1 DECIMAL(18,2) = 0;
+											DECLARE @NewUnitCost_1 DECIMAL(18, 6) = 0;
 
 
 											SELECT @ExWorkOrderPartNoId = WOP.ID, @ExWorkOrderMaterialStockLineId = WOP.StockLineId
@@ -714,7 +714,7 @@ SET NOCOUNT ON
 											DECLARE @NewConditionId BIGINT = 0;
 											DECLARE @NewWorkOrderMaterialsId BIGINT = 0;
 											DECLARE @NewProvisionId BIGINT = 0;
-											DECLARE @UnitCost DECIMAL(20, 2) = 0;
+											DECLARE @UnitCost DECIMAL(18, 6) = 0;
 
 											SELECT @ExWorkOrderMaterialsId = WOM.WorkOrderMaterialsId, @ExWorkOrderMaterialStockLineId = WOMS.WOMStockLineId
 											FROM dbo.WorkOrderMaterialStockLine WOMS WITH(NOLOCK)
@@ -1076,7 +1076,7 @@ SET NOCOUNT ON
 											DECLARE @NewConditionId1 BIGINT = 0;
 											DECLARE @NewWorkOrderMaterialsId1 BIGINT = 0;
 											DECLARE @NewProvisionId1 BIGINT = 0;
-											DECLARE @UnitCost1 DECIMAL(20, 2) = 0;
+											DECLARE @UnitCost1 DECIMAL(18, 6) = 0;
 
 											SELECT @ExWorkOrderMaterialsId = WOM.WorkOrderMaterialsKitId, @ExWorkOrderMaterialStockLineId = WOMS.WorkOrderMaterialStockLineKitId
 											FROM dbo.WorkOrderMaterialStockLineKit WOMS WITH(NOLOCK)

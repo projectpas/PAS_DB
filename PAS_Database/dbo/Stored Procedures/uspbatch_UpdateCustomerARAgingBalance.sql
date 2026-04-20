@@ -16,11 +16,11 @@
  **************************************************************
  ** S NO  Date         Author          Change Description
  ** ---   ----------   -----------     --------------------------
- **  1    04-20-2026   HEMANT SALIYA   Created
+ **  1    04-20-2026   HEMANT SALIYA   Created (Excuded CM/Stand Alone CM, MANUAL JOURNAL and SUSPENSE AND UNAPPLIED CASH)
  **
- ** EXEC uspbatch_UpdateCustomerARAgingBalance @MasterCompanyId = 20, @UpdatedBy = 'System'
+ ** EXEC uspbatch_UpdateCustomerARAgingBalance @MasterCompanyId = 1, @UpdatedBy = 'System'
  **************************************************************/
-CREATE PROCEDURE [dbo].[uspbatch_UpdateCustomerARAgingBalance]
+CREATE   PROCEDURE [dbo].[uspbatch_UpdateCustomerARAgingBalance]
     @MasterCompanyId INT          = NULL,
     @UpdatedBy       VARCHAR(256) = 'System'
 AS
@@ -37,9 +37,11 @@ BEGIN
 
         DECLARE @workOrderModuleId  INT;
         DECLARE @salesOrderModuleId INT;
+		DECLARE @CMPostedStatusId INT;
 
         SELECT @workOrderModuleId  = ModuleId FROM [dbo].[Module] WITH(NOLOCK) WHERE ModuleName = 'WorkOrder';
         SELECT @salesOrderModuleId = ModuleId FROM [dbo].[Module] WITH(NOLOCK) WHERE ModuleName = 'SalesOrder';
+		SELECT @CMPostedStatusId = Id FROM [dbo].[CreditMemoStatus] WITH(NOLOCK) WHERE UPPER([Name]) = 'POSTED';  
 
         -- ----------------------------------------------------------------
         -- Staging table: one row per invoice (not yet aggregated by customer)
@@ -300,8 +302,41 @@ BEGIN
           AND (ESO.[MasterCompanyId] = @MasterCompanyId OR @MasterCompanyId IS NULL)
         GROUP BY ESO.[CustomerId], ESO.[MasterCompanyId];
 
+		-- ================================================================
+        -- 4. CREDIT MEMO  ()
         -- ================================================================
-        -- 4. MERGE aggregated aging into CustomerAging
+
+		INSERT INTO #ARAgingCalc
+               ([CustomerId], [MasterCompanyId],
+                [CurrentAmount], [Days1_30], [Days31_60], [Days61_90], [Days91_120], [Days120Plus],
+                [InvoiceCount])
+		SELECT CM.CustomerId, CM.[MasterCompanyId], SUM(CMD.[Amount]), 0, 0, 0, 0, 0, SUM(CMD.[Amount])
+		FROM [dbo].[CreditMemo] CM WITH (NOLOCK)  
+			INNER JOIN [dbo].[CreditMemoDetails] CMD WITH (NOLOCK) ON CM.CreditMemoHeaderId = CMD.CreditMemoHeaderId AND CM.IsDeleted = 0  AND CMD.IsDeleted = 0  
+		WHERE CM.StatusId = @CMPostedStatusId
+			AND CAST(CM.[InvoiceDate] AS DATE)  <= @AsOfDate
+			AND (CM.[MasterCompanyId] = @MasterCompanyId OR @MasterCompanyId IS NULL)
+		GROUP BY CM.[CustomerId], CM.[MasterCompanyId];
+
+		-- ================================================================
+        -- 5. STAND ALONE CREDIT MEMO  ()
+        -- ================================================================
+
+		INSERT INTO #ARAgingCalc
+               ([CustomerId], [MasterCompanyId],
+                [CurrentAmount], [Days1_30], [Days31_60], [Days61_90], [Days91_120], [Days120Plus],
+                [InvoiceCount])
+		SELECT CM.CustomerId, CM.[MasterCompanyId], SUM(CMD.[Amount]), 0, 0, 0, 0, 0, SUM(CMD.[Amount])
+		FROM [dbo].[CreditMemo] CM WITH (NOLOCK)  
+			INNER JOIN [dbo].[StandAloneCreditMemoDetails] CMD WITH (NOLOCK) ON CM.CreditMemoHeaderId = CMD.CreditMemoHeaderId AND CM.IsDeleted = 0  AND CMD.IsDeleted = 0  
+		WHERE CM.StatusId = @CMPostedStatusId
+			AND CAST(CM.[InvoiceDate] AS DATE)  <= @AsOfDate
+			AND (CM.[MasterCompanyId] = @MasterCompanyId OR @MasterCompanyId IS NULL)
+		GROUP BY CM.[CustomerId], CM.[MasterCompanyId];
+
+
+        -- ================================================================
+        -- 6. MERGE aggregated aging into CustomerAging
         --    One row per (CustomerId, MasterCompanyId, AsOfDate).
         --    Re-running on the same day performs UPDATE (idempotent).
         -- ================================================================

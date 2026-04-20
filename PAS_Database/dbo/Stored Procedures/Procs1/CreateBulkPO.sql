@@ -1,4 +1,5 @@
-﻿/***************************************************************************************************************************************             
+﻿
+/***************************************************************************************************************************************             
   ** Change History             
  ***************************************************************************************************************************************             
  ** PR   Date						 Author							Change Description              
@@ -9,8 +10,9 @@
 	3    25/10/2024              RAJESH GAMI                        Correction the @ShippingViaId value, And set the currency
 	4    18 MAR 2024             RAJESH GAMI                        Correction the Generate Code issue 
 	5    26/12/2025				 Amit Ghediya						Update Part memo
+	6    20/04/2026				 RAJESH GAMI						UOM Decimal changes [PN-16131]
 ****************************************************************************************************************************************/ 
-CREATE   PROCEDURE [dbo].[CreateBulkPO]
+CREATE     PROCEDURE [dbo].[CreateBulkPO]
 	@tbl_BulkPODetailType BulkPODetailType READONLY,
 	@loginUserName varchar(50) = NULL,
 	@employeeId bigint = NULL,
@@ -82,8 +84,8 @@ BEGIN
 				[Priority] [nvarchar](max) NULL,
 				[ConditionId] [bigint] NULL,
 				[Condition] [varchar](256) NULL,
-				[Quantity] [int] NULL,
-				[UnitCost] [decimal](18,2) NULL,
+				[Quantity] DECIMAL(18, 6) NULL,
+				[UnitCost] DECIMAL(18, 6) NULL,
 				[VendorId] [bigint] NULL,
 				[VendorName] [varchar](100) NULL,
 				[VendorCode] [varchar](100) NULL,

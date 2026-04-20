@@ -24,9 +24,8 @@
     [EnforcePickTicketConfirmation] BIT           NULL,
     [ATA13BFormTypeId]              INT           NULL,
     [ATA13CFormTypeId]              INT           NULL,
+    [Notes]                         VARCHAR (MAX) NULL,
     CONSTRAINT [PK_SalesOrderSettingsAudit] PRIMARY KEY CLUSTERED ([SalesOrderSettingAuditId] ASC),
     CONSTRAINT [FK_SalesOrderSettingsAudit_SalesOrderSettings] FOREIGN KEY ([SalesOrderSettingId]) REFERENCES [dbo].[SalesOrderSettings] ([SalesOrderSettingId])
 );
-
-
 

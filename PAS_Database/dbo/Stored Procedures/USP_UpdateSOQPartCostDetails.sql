@@ -19,9 +19,9 @@
 	3   12/12/2014    Vishal Suthar		Resolved issue with price calculation
 	4   21-01-2025    Shrey Chandegara  Add Charge in total Revenue
 	5   12-03-2026    Hemant Saliya		Corrected Charges Calucation
-	8   10-Apr-026    Bhargav Saliya	 UOM Changes
+	6   17-Apr-026    Bhargav Saliya	 UOM Changes
      
- EXECUTE USP_UpdateSOQPartCostDetails 745, 551, 'ADMIN User', 1
+ EXECUTE USP_UpdateSOQPartCostDetails 1536, 5530, 'ADMIN User', 1
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[USP_UpdateSOQPartCostDetails]
 (
@@ -82,20 +82,20 @@ SET NOCOUNT ON
 					  [SalesOrderQuoteId] [bigint] NOT NULL,
 					  [SalesOrderQuotePartId] [bigint] NOT NULL,
 					  [SalesOrderQuoteStocklineId] [bigint] NOT NULL,
-					  [UnitSalesPrice] [decimal](18, 4) NULL,
-					  [SalesPriceExtended] [decimal](18, 4) NULL,
-					  [MarkUpPercentage] [decimal](18, 4) NULL,
-					  [MarkUpAmount] [decimal](18, 4) NULL,
-					  [DiscountPercentage] [decimal](18, 4) NULL,
-					  [DiscountAmount] [decimal](18, 4) NULL,
-					  [UnitCost] [decimal](18, 4) NULL,
-					  [UnitCostExtended] [decimal](18, 4) NULL,
-					  [MarginAmount] [decimal](18, 4) NULL,
-					  [MarginPercentage] [decimal](18, 4) NULL
+					  [UnitSalesPrice] [decimal](18, 6) NULL,
+					  [SalesPriceExtended] [decimal](18, 6) NULL,
+					  [MarkUpPercentage] [decimal](18, 6) NULL,
+					  [MarkUpAmount] [decimal](18, 6) NULL,
+					  [DiscountPercentage] [decimal](18, 6) NULL,
+					  [DiscountAmount] [decimal](18, 6) NULL,
+					  [UnitCost] [decimal](18, 6) NULL,
+					  [UnitCostExtended] [decimal](18, 6) NULL,
+					  [MarginAmount] [decimal](18, 6) NULL,
+					  [MarginPercentage] [decimal](18, 6) NULL
 					)
 
-					DECLARE @Freight_S AS [decimal](18, 4);
-					DECLARE @Charges_S AS [decimal](18, 4);
+					DECLARE @Freight_S AS [decimal](18, 6);
+					DECLARE @Charges_S AS [decimal](18, 6);
 					DECLARE @SalesOrderQuoteModuleId BIGINT;
 
 					SELECT @Freight_S = ISNULL(SUM(F.BillingAmount), 0) FROM [DBO].[SalesOrderQuoteFreight] F WITH (NOLOCK)
@@ -104,11 +104,11 @@ SET NOCOUNT ON
 					SELECT @Charges_S = ISNULL(SUM(C.BillingAmount), 0) FROM [DBO].[SalesOrderQuoteCharges] C WITH (NOLOCK)
 					WHERE C.SalesOrderQuotePartId = @SalesOrderQuotePartId AND ISNULL(IsDeleted, 0) = 0;
 
-					DECLARE @UnitSalesPrice_S AS [decimal](18, 4) = 0;
-					DECLARE @SalesPriceExtended_S AS [decimal](18, 4) = 0;
-					DECLARE @UnitCost_S AS [decimal](18, 4);
-					DECLARE @UnitCostExtended_S AS [decimal](18, 4);
-					DECLARE @DiscountAmount_S AS [decimal](18, 4);
+					DECLARE @UnitSalesPrice_S AS [decimal](18, 6) = 0;
+					DECLARE @SalesPriceExtended_S AS [decimal](18, 6) = 0;
+					DECLARE @UnitCost_S AS [decimal](18, 6);
+					DECLARE @UnitCostExtended_S AS [decimal](18, 6);
+					DECLARE @DiscountAmount_S AS [decimal](18, 6);
 
 					INSERT INTO #SOQStocklineDetails ([SalesOrderQuoteId], [SalesOrderQuotePartId], [SalesOrderQuoteStocklineId], [UnitSalesPrice], [SalesPriceExtended], [MarkUpPercentage], [MarkUpAmount], [DiscountPercentage], [DiscountAmount], [UnitCost],[UnitCostExtended],[MarginAmount],[MarginPercentage])
 					SELECT [SalesOrderQuoteId], [SalesOrderQuotePartId], [SalesOrderQuoteStocklineId], [UnitSalesPrice], [UnitSalesPriceExtended], [MarkUpPercentage], [MarkUpAmount], [DiscountPercentage], [DiscountAmount], [UnitCost],[UnitCostExtended],[MarginAmount],[MarginPercentage]
@@ -121,8 +121,8 @@ SET NOCOUNT ON
 						BEGIN
 							DECLARE @SOQPartId BIGINT;
 							DECLARE @SOQStocklineId BIGINT;
-							DECLARE @PartQty INT = 0;
-							DECLARE @StockLineQty INT = 0;
+							DECLARE @PartQty [decimal](18, 6) = 0;
+							DECLARE @StockLineQty [decimal](18, 6) = 0;
 
 							SELECT @SOQPartId = [SalesOrderQuotePartId], @SOQStocklineId = [SalesOrderQuoteStocklineId] FROM #SOQStocklineDetails WHERE ID  = @MasterLoopID
 
@@ -168,7 +168,7 @@ SET NOCOUNT ON
 					END
 
 					DECLARE @CustomerId bigint = 0;
-					DECLARE @SalesTax AS [decimal](18, 4) = 0;
+					DECLARE @SalesTax AS [decimal](18, 6) = 0;
 
 					SELECT @CustomerId = [CustomerId] FROM [dbo].[SalesOrderQuote] WITH(NOLOCK) WHERE SalesOrderQuoteId = @SalesOrderQuoteId;
 					

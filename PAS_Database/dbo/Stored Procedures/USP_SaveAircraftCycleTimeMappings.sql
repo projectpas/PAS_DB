@@ -11,7 +11,7 @@ Exec [USP_SaveAircraftCycleTimeMappings]
 ** --   --------    -------         --------------------------------  
    1    14/04/2026  Amit Ghediya		Created  
    2	15/04/2026  Amit Ghediya		Added into AircraftMaintenanceProgram table (PN-16015)
-   3	21/04/2026  Amit Ghediya		Stop insert into AircraftMaintenanceProgram table
+   3	21/04/2026  Amit Ghediya		Stop insert into AircraftMaintenanceProgram table update logic to save data.
      
 **************************************************************/   
 CREATE     PROCEDURE [dbo].[USP_SaveAircraftCycleTimeMappings]  
@@ -165,8 +165,8 @@ BEGIN
 		---------------------------------------------------
 		UPDATE AIPD
 		SET 
-			AIPD.FlightHours = ISNULL(AIPD.FlightHours, 0) + ISNULL(C.CumulativeHours, 0),
-			AIPD.Cycles = ISNULL(AIPD.Cycles, 0) + ISNULL(C.CumulativeCycles, 0),
+			AIPD.FlightHours = ISNULL(AIPD.FlightHours, 0) + ISNULL(C.[Hours], 0),
+			AIPD.Cycles = ISNULL(AIPD.Cycles, 0) + ISNULL(C.[Cycles], 0),
 			AIPD.UpdatedBy = C.UpdatedBy,
 			AIPD.UpdatedDate = GETUTCDATE()
 		FROM dbo.AircraftInstalledPartDetails AIPD WITH(NOLOCK)

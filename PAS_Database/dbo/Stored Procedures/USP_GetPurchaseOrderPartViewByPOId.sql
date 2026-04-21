@@ -1,4 +1,5 @@
-﻿/*************************************************************   
+﻿
+/*************************************************************   
 -- =============================================
 -- Author:		<Rajesh Gami>
 -- Create date: <20-Nov-2024>
@@ -14,7 +15,7 @@
    2    24-Dec-2024		Ayushi Patel		Return functional and report currency
    3    14-Apr-2026		DB Review			Added SalesOrderQuoteId, SalesOrderQuoteNumber fields
    4    14-Apr-2026		DB Review			Fixed truncation risk: LotNumber, ReapairOrderNo VARCHAR(100) → VARCHAR(MAX)
-
+   5    20-Apr-2026		RAJESH GAMI			UOM Conversion Changes [PN-16130]
 --EXEC [dbo].[USP_GetPurchaseOrderPartViewByPOId] 3131 ,NULL,NULL
 **************************************************************/ 
 
@@ -63,18 +64,18 @@ BEGIN
 					NeedByDate DATETIME2(7) NULL,
 					ConditionId BIGINT NULL,
 					Condition VARCHAR(256) NULL,
-					QuantityOrdered INT NULL,
-					QuantityBackOrdered INT NULL,
-					QuantityRejected INT NULL,
-					VendorListPrice DECIMAL(18, 2) NULL,
+					QuantityOrdered DECIMAL(18, 6) NULL,
+					QuantityBackOrdered DECIMAL(18, 6) NULL,
+					QuantityRejected DECIMAL(18, 6) NULL,
+					VendorListPrice DECIMAL(18, 6) NULL,
 					DiscountPercent BIGINT NULL,
-					DiscountPerUnit DECIMAL(18, 2) NULL,
-					DiscountAmount DECIMAL(18, 2) NULL,
-					UnitCost DECIMAL(18, 2) NULL,
-					ExtendedCost DECIMAL(18, 2) NULL,
+					DiscountPerUnit DECIMAL(18, 6) NULL,
+					DiscountAmount DECIMAL(18, 6) NULL,
+					UnitCost DECIMAL(18, 6) NULL,
+					ExtendedCost DECIMAL(18, 6) NULL,
 					FunctionalCurrencyId INT NULL,
 					FunctionalCurrency VARCHAR(50) NULL,
-					ForeignExchangeRate DECIMAL(18, 2) NULL,
+					ForeignExchangeRate DECIMAL(18, 6) NULL,
 					ReportCurrencyId INT NULL,
 					ReportCurrency VARCHAR(50) NULL,
 					WorkOrderId BIGINT NULL,
@@ -121,7 +122,7 @@ BEGIN
 					UpdatedDate DATETIME2(7) NULL,
 					IsActive BIT NULL,
 					IsDeleted BIT NULL,
-					DiscountPercentValue DECIMAL(18, 2) NULL,
+					DiscountPercentValue DECIMAL(18, 6) NULL,
 					EstDeliveryDate DATETIME2(7) NULL,
 					ExchangeSalesOrderId BIGINT NULL,
 					ExchangeSalesOrderNo VARCHAR(250) NULL,
@@ -175,18 +176,18 @@ BEGIN
 					NeedByDate DATETIME2(7) NULL,
 					ConditionId BIGINT NULL,
 					Condition VARCHAR(256) NULL,
-					QuantityOrdered INT NULL,
-					QuantityBackOrdered INT NULL,
-					QuantityRejected INT NULL,
-					VendorListPrice DECIMAL(18, 2) NULL,
+					QuantityOrdered DECIMAL(18, 6) NULL,
+					QuantityBackOrdered DECIMAL(18, 6) NULL,
+					QuantityRejected DECIMAL(18, 6) NULL,
+					VendorListPrice DECIMAL(18, 6) NULL,
 					DiscountPercent BIGINT NULL,
-					DiscountPerUnit DECIMAL(18, 2) NULL,
-					DiscountAmount DECIMAL(18, 2) NULL,
-					UnitCost DECIMAL(18, 2) NULL,
-					ExtendedCost DECIMAL(18, 2) NULL,
+					DiscountPerUnit DECIMAL(18, 6) NULL,
+					DiscountAmount DECIMAL(18, 6) NULL,
+					UnitCost DECIMAL(18, 6) NULL,
+					ExtendedCost DECIMAL(18, 6) NULL,
 					FunctionalCurrencyId INT NULL,
 					FunctionalCurrency VARCHAR(50) NULL,
-					ForeignExchangeRate DECIMAL(18, 2) NULL,
+					ForeignExchangeRate DECIMAL(18, 6) NULL,
 					ReportCurrencyId INT NULL,
 					ReportCurrency VARCHAR(50) NULL,
 					WorkOrderId BIGINT NULL,
@@ -233,7 +234,7 @@ BEGIN
 					UpdatedDate DATETIME2(7) NULL,
 					IsActive BIT NULL,
 					IsDeleted BIT NULL,
-					DiscountPercentValue DECIMAL(18, 2) NULL,
+					DiscountPercentValue DECIMAL(18, 6) NULL,
 					EstDeliveryDate DATETIME2(7) NULL,
 					ExchangeSalesOrderId BIGINT NULL,
 					ExchangeSalesOrderNo VARCHAR(250) NULL,
@@ -259,11 +260,11 @@ BEGIN
 					LastMSLevel VARCHAR(MAX) NULL,AllMSlevels VARCHAR(MAX) NULL,
 					LotNumber VARCHAR(MAX) NULL,
 					ReapairOrderNo VARCHAR(MAX) NULL,
-					StockLineCount INT NULL,
-					DraftedStockLineCount INT NULL,
+					StockLineCount DECIMAL(18, 6) NULL,
+					DraftedStockLineCount DECIMAL(18, 6) NULL,
 					PurchaseUnitOfMeasureId BIGINT NULL,
 					ConditionCodeId BIGINT NULL,
-					Quantity INT NULL,
+					Quantity DECIMAL(18, 6) NULL,
 					SalesOrderQuoteId BIGINT NULL,
 					SalesOrderQuoteNumber NVARCHAR(250) NULL
 				);

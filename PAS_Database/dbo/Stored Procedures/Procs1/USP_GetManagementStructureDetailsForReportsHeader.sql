@@ -27,7 +27,6 @@
 	12   05-01-2025   Amit Ghediya			Remove hide cert in sp (Before hide for all.)
 	13   04-20-2026   Vishal Suthar			Keep lowercase companyname for A2Z company
 	14   20-04-2026   Ayushi Patel			Keep lowercase email for A2Z company
-
  EXECUTE USP_GetManagementStructureDetailsForReportsHeader 45
 **********************/ 
 CREATE    PROCEDURE [dbo].[USP_GetManagementStructureDetailsForReportsHeader]    

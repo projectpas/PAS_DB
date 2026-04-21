@@ -20,6 +20,7 @@
 	4    10/Oct/2025	RAJESH GAMI		 Added code for NEO (PN-14371)
 	5    29/Oct/2025	RAJESH GAMI		 Added Swift Code
 	6    30/Oct/2025	RAJESH GAMI		 Check the condition with MasterCompanyCode instead of MasterCompanyId
+	7    20/Apr/2026	AYUSHI PATEL	 return the BankName based on MasterCompanyCode (lower case for a2z)
 EXEC [dbo].[RPT_ACHByManagementStructId]  38
 **************************************************************/
 CREATE  PROCEDURE [dbo].[RPT_ACHByManagementStructId] 
@@ -32,6 +33,7 @@ BEGIN
       BEGIN
 			DECLARE @LegalEntityId BIGINT, @ownerAddress VARCHAR(MAX);
 			DECLARE @MasterCompanyId INT,@NEO_MasterComapnyId BIGINT = 20,@NEO_MasterCompanyIdCode  VARCHAR(100)='NEO' , @CompanyCode VARCHAR(100)='';
+			DECLARE @a2z_MasterCompanyIdCode  VARCHAR(100)='a2z';
 				SET @MasterCompanyId = (SELECT TOP 1 MasterCompanyId
 								FROM [dbo].[EntityStructureSetup] WITH(NOLOCK)
 								WHERE EntityStructureId = @ManagementStructId AND ISNULL(IsDeleted,0) = 0 AND ISNULL(IsActive,0) = 1 );
@@ -73,7 +75,12 @@ BEGIN
 			END
 			ELSE
 			BEGIN
-					SELECT  '<label style="text-transform:uppercase;"> ' + UPPER(ISNULL(BankName, '')) + ' </label><br/>' +
+					SELECT  '<label style="text-transform:' + 
+							CASE WHEN LOWER(@CompanyCode) = LOWER(@a2z_MasterCompanyIdCode) THEN 'lowercase' ELSE 'uppercase' END + ';"> ' + 
+							CASE WHEN LOWER(@CompanyCode) = LOWER(@a2z_MasterCompanyIdCode) 
+								THEN LOWER(ISNULL(BankName, '')) 
+								ELSE UPPER(ISNULL(BankName, '')) 
+							END + ' </label><br/>' +
 					'<label style="text-transform:uppercase;"> ' + UPPER(ISNULL(IntermediateBankName, '')) + ' </label><br/>' +
 					'ACCT# <label style="text-transform:uppercase;">' + UPPER(ISNULL(AccountNumber, '')) + '</label><br/>' +
 					'ROUTING# <label style="text-transform:uppercase;">' + UPPER(ISNULL(ABA, '')) + '</label><br/>'

@@ -97,7 +97,6 @@ BEGIN
                 UPPER(AIPD.CreatedBy) AS CreatedBy,
                 UPPER(AIPD.UpdatedBy) AS UpdatedBy,
 				LS.LastSequence
-				--(select top 1 SequenceNum from dbo.AircraftInstalledPartDetails WITH (NOLOCK) ORDER BY 1 DESC) AS LastSequence
             FROM dbo.AircraftInstalledPartDetails AS AIPD WITH (NOLOCK)
 			LEFT JOIN dbo.ItemMasterAircraftMapping IMAM WITH (NOLOCK) ON AIPD.ATAChapterId = IMAM.ItemMasterAircraftMappingId
 			INNER JOIN dbo.AircraftRegistryHeader ARH WITH (NOLOCK) ON ARH.AircraftRegistryId = AIPD.AircraftRegistryId

@@ -54,5 +54,6 @@
     [SerialNum]                    VARCHAR (100)   NULL,
     [AircraftModelId]              BIGINT          NULL,
     [MakeTypeId]                   INT             NULL,
-    [TemplateType]                 INT             NULL);
+    [TemplateType]                 INT             NULL,
+    [MaintenanceTypeId]            BIGINT          NULL);
 

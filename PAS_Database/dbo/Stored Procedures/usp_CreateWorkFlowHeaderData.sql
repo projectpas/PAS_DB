@@ -107,6 +107,8 @@ BEGIN
 			[AircraftModelId] BIGINT NULL,
 			[MakeTypeId] INT NULL,
 			[TemplateType] INT  NULL,
+			[MaintenanceTypeId] BIGINT NULL,
+
 		);
 
 		-- Generate Work Flow version
@@ -178,7 +180,7 @@ BEGIN
 			[ChangedPartNumberId], [PercentageOfMaterial], [PercentageOfExpertise], [PercentageOfCharges], [PercentageOfOthers],
 			[PercentageOfTotal], [RevisedPartNumber], [ChangedPartNumberDescription], [ChangedPartNumber], [WorkScope],
 			[Currency], [WFParentId], [IsVersionIncrease], [Verified], [VerifiedBy], [VerifiedDate],
-			[TailNum],[SerialNum] ,[AircraftModelId] ,[MakeTypeId] ,[TemplateType]   
+			[TailNum],[SerialNum] ,[AircraftModelId] ,[MakeTypeId] ,[TemplateType], [MaintenanceTypeId]   
 		)
 		SELECT 
 			[WorkflowDescription], @NewVersionNum, [WorkScopeId], [ItemMasterId],
@@ -191,7 +193,7 @@ BEGIN
 			[ChangedPartNumberId], [PercentageOfMaterial], [PercentageOfExpertise], [PercentageOfCharges], [PercentageOfOthers],
 			[PercentageOfTotal], [RevisedPartNumber], [ChangedPartNumberDescription], [ChangedPartNumber], [WorkScope],
 			[Currency], [WFParentId], [IsVersionIncrease], [Verified], [VerifiedBy], [VerifiedDate], 
-			[TailNum],[SerialNum] ,[AircraftModelId] ,[MakeTypeId] ,[TemplateType]   
+			[TailNum],[SerialNum] ,[AircraftModelId] ,[MakeTypeId] ,[TemplateType] ,  [MaintenanceTypeId]     
 		FROM @tbl_WorkFloaddItemsType temp where temp.[WorkflowId] = 0;  
 
 		set @WorkFlowid = SCOPE_IDENTITY();

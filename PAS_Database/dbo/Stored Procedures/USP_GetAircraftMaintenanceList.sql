@@ -57,7 +57,7 @@ BEGIN
         WITH CTE AS
         (
             SELECT
-                AMP.ProgramId,AMP.AircraftRegistryId,AMP.VersionNumber,AMP.MaintenanceType, AMP.NextScheduledMaintenance,AMP.TemplateId,AMP.TemplateVersionNumber,
+                AMP.ProgramId,AMP.AircraftRegistryId,AMP.VersionNumber,AMP.MaintenanceType, AMP.MaintenanceTypeId,AMP.NextScheduledMaintenance,AMP.TemplateId,AMP.TemplateVersionNumber,
                 ARH.TailNum AS TailNumber,
                 ARH.MakeType AS AircraftMake,
                 ARH.AircraftModel,

@@ -14,9 +14,9 @@
 CREATE PROCEDURE [dbo].[USP_CreateUpdateAircraftMaintenanceProgram]
     @ProgramId                  BIGINT,
     @AircraftRegistryId         BIGINT,
-    @MaintenanceTypeId          BIGINT    = NULL,
+    @MaintenanceTypeId          BIGINT          = NULL,
     @NextScheduledMaintenance   DATETIME2(7)    = NULL,
-    @TemplateId                 BIGINT,
+    @TemplateId                 BIGINT          = NULL,
     @TemplateVersionNumber      VARCHAR(50)     = NULL,
     @FlightHoursLimitHours      INT             = NULL,
     @FlightHoursLimitMinutes    INT             = NULL,

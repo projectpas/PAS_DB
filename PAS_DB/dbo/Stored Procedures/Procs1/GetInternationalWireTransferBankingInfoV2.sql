@@ -15,6 +15,7 @@
  ** --   --------		-------			--------------------------------            
 	1    08/Oct/2025	RAJESH GAMI		 CREATED
 	2    30/Oct/2025	RAJESH GAMI		 Check the condition with MasterCompanyCode instead of MasterCompanyId
+	3    20/04/2026	    AYUSHI PATEL	 return the BankName based on MasterCompanyCode (lower case for a2z)
  EXEC GetInternationalWireTransferBankingInfoV2 38 
 ************************************************************************/  
 CREATE       PROCEDURE [dbo].[GetInternationalWireTransferBankingInfoV2]
@@ -26,7 +27,7 @@ BEGIN
 	BEGIN TRY
 		DECLARE @MasterCompanyId INT;
 		DECLARE @MTI_MasterCompanyCode  VARCHAR(100) ='MTI',@NEO_MasterCompanyIdCode  VARCHAR(100)='NEO',@CompanyCode VARCHAR(100)='';;
-
+		DECLARE @a2z_MasterCompanyIdCode  VARCHAR(100)='a2z';
 		SET @MasterCompanyId = (SELECT MasterCompanyId
 								FROM [dbo].[EntityStructureSetup] WITH(NOLOCK)
 								WHERE EntityStructureId = @ManagementStructId AND ISNULL(IsDeleted,0) = 0 AND ISNULL(IsActive,0) = 1);
@@ -136,8 +137,17 @@ BEGIN
 		BEGIN
 			SELECT TOP 1
 			(
-				 CASE WHEN inter.BankName IS NOT NULL THEN 
-                '<label style="text-transform: uppercase;">' + UPPER(inter.BankName) + '</label><br />' 
+				CASE WHEN inter.BankName IS NOT NULL THEN 
+					'<label style="text-transform:' + 
+					CASE 
+						WHEN @CompanyCode = @a2z_MasterCompanyIdCode THEN 'lowercase'
+						ELSE 'uppercase'
+					END +';">' + 
+					CASE 
+						WHEN @CompanyCode = @a2z_MasterCompanyIdCode
+							THEN LOWER(inter.BankName)
+						ELSE UPPER(inter.BankName)
+					END+ '</label><br />' 
 				ELSE '' END +
 				CASE WHEN ad.Line1 IS NOT NULL THEN 
 					'<label style="text-transform: uppercase;">' + UPPER(ad.Line1) + '</label><br />' 

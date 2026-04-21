@@ -24,8 +24,11 @@
 	9    15-12-2025   Devendra Shekh		Added field CurrencyCode.
 	10   19-12-2025   Ayushi Patel			Return NULL License for 'PAR' MasterCompany
 	11   31-12-2025   Amit Ghediya			Static email for 'PAR' MasterCompany
-	11   05-01-2025   Amit Ghediya			Remove hide cert in sp (Before hide for all.)
- EXECUTE USP_GetManagementStructureDetailsForReportsHeader 1
+	12   05-01-2025   Amit Ghediya			Remove hide cert in sp (Before hide for all.)
+	13   04-20-2026   Vishal Suthar			Keep lowercase companyname for A2Z company
+	14   20-04-2026   Ayushi Patel			Keep lowercase email for A2Z company
+
+ EXECUTE USP_GetManagementStructureDetailsForReportsHeader 45
 **********************/ 
 CREATE    PROCEDURE [dbo].[USP_GetManagementStructureDetailsForReportsHeader]    
 (    
@@ -42,6 +45,7 @@ SET NOCOUNT ON
 			BEGIN
 				DECLARE @ModuleId BIGINT;
 				DECLARE @MasterCompanyCode VARCHAR(50);
+				DECLARE @A2ZMasterCompanyCode VARCHAR(50);
 				DECLARE @MasterCompanyCodeAll VARCHAR(50);
 				DECLARE @ParEmail VARCHAR(100) = 'phogan@phxair.net <br/> repairs@phxair.net';
 				DECLARE @FinalEmail NVARCHAR(500);
@@ -53,6 +57,7 @@ SET NOCOUNT ON
 				DECLARE @Address1 NVARCHAR(255),@Address2 NVARCHAR(255),@City NVARCHAR(100),@StateOrProvince NVARCHAR(100),@PostalCode NVARCHAR(20);
 				DECLARE @Country NVARCHAR(100),@PhoneNumber NVARCHAR(50),@PhoneExt NVARCHAR(10),@Email NVARCHAR(255);
 				SELECT @MasterCompanyCode = MasterCompanyCode FROM DBO.MasterCompany WITH(NOLOCK) WHERE UPPER(MasterCompanyCode) = UPPER('PAR');
+				SELECT @A2ZMasterCompanyCode = MasterCompanyCode FROM DBO.MasterCompany WITH(NOLOCK) WHERE UPPER(MasterCompanyCode) = UPPER('A2Z');
 			
 					 SELECT 
 						@Address1 = ad.Line1,
@@ -114,8 +119,8 @@ SET NOCOUNT ON
 				FROM 
 
 				(SELECT DISTINCT TOP 1
-					CompanyName = Upper(le.CompanyName),
-					Company = le.CompanyName,
+					CompanyName = CASE WHEN ISNULL(@MasterCompanyCodeAll,'') = ISNULL(@A2ZMasterCompanyCode,'') THEN Lower(le.CompanyName) ELSE Upper(le.CompanyName) END,
+					Company = CASE WHEN ISNULL(@MasterCompanyCodeAll,'') = ISNULL(@A2ZMasterCompanyCode,'') THEN Lower(le.CompanyName) ELSE Upper(le.CompanyName) END,
 					le.CompanyCode,
 					atd.Link,
 					at.ModuleId,
@@ -136,7 +141,7 @@ SET NOCOUNT ON
 					Upper(le.CAACLicense) as CAACLicense,
 					Upper(le.TCCALicense) as TCCALicense,
 					UKCAALicense = UPPER(le.UKCAALicense),
-					Upper(c.Email) as Email,
+					Email = CASE WHEN ISNULL(@MasterCompanyCodeAll,'') = ISNULL(@A2ZMasterCompanyCode,'') THEN Lower(c.Email) ELSE Upper(c.Email) END,
 					CompanyLogoPath = MS.companylogo,
 					[dbo].[ConvertUTCtoLocal](GETUTCDATE(),tz.description)  as 'CurrentDateTime',
 					MS.MasterCompanyCode as MasterCompanyCode,

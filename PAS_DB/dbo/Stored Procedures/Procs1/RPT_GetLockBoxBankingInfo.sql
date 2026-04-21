@@ -16,6 +16,7 @@
     1    01/10/2024  Amit Ghediya    Created
     2    30/12/2024	 EKTA CHANDEGRA	 Check IsPrimary 
     3    01/09/2025	 RAJESH GAMI	 Add LegalEntityBankingCheque details instead of LegalEntityBankingLockBox table
+    4    20/04/2026	 AYUSHI PATEL	 return the BankName based on MasterCompanyCode (lower case for a2z)
 -- EXEC RPT_GetLockBoxBankingInfo 1
 ************************************************************************/
 CREATE       PROCEDURE [dbo].[RPT_GetLockBoxBankingInfo] 
@@ -26,8 +27,27 @@ BEGIN
 	SET NOCOUNT ON;
 	BEGIN TRY	
 
+    DECLARE @CompanyCode VARCHAR(100)='' , @MasterCompanyId INT;
+	DECLARE @a2z_MasterCompanyIdCode  VARCHAR(100)='a2z';
+	SET @MasterCompanyId = (SELECT TOP 1 MasterCompanyId
+								FROM [dbo].[EntityStructureSetup] WITH(NOLOCK)
+								WHERE EntityStructureId = @ManagementStructId AND ISNULL(IsDeleted,0) = 0 AND ISNULL(IsActive,0) = 1 );
+	SET @CompanyCode = (SELECT TOP 1 MasterCompanyCode FROM dbo.MasterCompany WITH(NOLOCK) WHERE MasterCompanyId=@MasterCompanyId AND ISNULL(IsDeleted,0) = 0 AND ISNULL(IsActive,0) = 1 )
+			
+
 	SELECT TOP 1
-		CASE WHEN lb.AccountTypeId = 1 THEN UPPER(ISNULL(lb.BankName,'')) ELSE UPPER(ISNULL(lb.PayeeName,'')) END AS BankName,
+		--CASE WHEN lb.AccountTypeId = 1 THEN UPPER(ISNULL(lb.BankName,'')) ELSE UPPER(ISNULL(lb.PayeeName,'')) END AS BankName,
+        CASE 
+        WHEN lb.AccountTypeId = 1 THEN 
+            CASE 
+                WHEN @CompanyCode = @a2z_MasterCompanyIdCode 
+                    THEN LOWER(ISNULL(lb.BankName,'')) 
+                ELSE UPPER(ISNULL(lb.BankName,'')) 
+            END
+        ELSE 
+            UPPER(ISNULL(lb.PayeeName,'')) 
+        END AS BankName,
+
 		'' AS PoBox,
 		MergedAddress = (SELECT dbo.ValidatePDFAddress(ad.Line1,NULL,NULL,ad.City,ad.StateOrProvince,ad.PostalCode,co.countries_name,NULL,NULL,NULL)),
 			

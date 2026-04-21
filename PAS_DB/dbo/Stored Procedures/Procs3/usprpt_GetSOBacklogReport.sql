@@ -21,7 +21,7 @@
 	5    10-OCT-2024		Abhishek Jirawla	Implemented the new tables for SalesOrderQuotePart related tables
 	6    01-DEC-2024		Vishal Suthar		Fixed amount and qty issues in the report
 	7    12-DEC-2024		Vishal Suthar		Fixed an issue with dates printed with 01-01-0001 even when it is NULL
-
+	3    20-APR-2026	    AYUSHI PATEL	    return the LEVEL1 based on MasterCompanyCode (lower case for a2z)
 **************************************************************/  
 CREATE   PROCEDURE [dbo].[usprpt_GetSOBacklogReport] 
 @PageNumber int = 1,
@@ -53,7 +53,8 @@ BEGIN
   
   BEGIN TRY  
     --BEGIN TRANSACTION  
-       
+	  DECLARE @a2z_MasterCompanyIdCode  VARCHAR(100)='a2z',@CompanyCode VARCHAR(100)='';
+      SET @CompanyCode = (SELECT TOP 1 MasterCompanyCode FROM dbo.MasterCompany WITH(NOLOCK) WHERE MasterCompanyId=@MasterCompanyId AND ISNULL(IsDeleted,0) = 0 AND ISNULL(IsActive,0) = 1 )
       DECLARE @ModuleID INT = 17; -- MS Module ID
 	  SET @IsDownload = CASE WHEN NULLIF(@PageSize,0) IS NULL THEN 1 ELSE 0 END
 
@@ -146,7 +147,12 @@ BEGIN
 			CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(SO.openDate, 'MM/dd/yyyy') ELSE CONVERT(VARCHAR(50), SO.openDate, 107) END 'opendate',
 			CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(SOP.CustomerRequestDate, 'MM/dd/yyyy') ELSE CONVERT(VARCHAR(50), SOP.CustomerRequestDate, 107) END 'custreqdate',
 			CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(SOP.EstimatedShipDate, 'MM/dd/yyyy') ELSE CONVERT(VARCHAR(50), SOP.EstimatedShipDate, 107) END 'shipdate',
-			UPPER(MSD.Level1Name) AS level1,  
+			--UPPER(MSD.Level1Name) AS level1, 
+			CASE 
+				WHEN @CompanyCode = @a2z_MasterCompanyIdCode 
+					THEN LOWER(MSD.Level1Name)
+				ELSE UPPER(MSD.Level1Name)
+			END AS level1,
 			UPPER(MSD.Level2Name) AS level2, 
 			UPPER(MSD.Level3Name) AS level3, 
 			UPPER(MSD.Level4Name) AS level4, 

@@ -4497,6 +4497,8 @@
     <Build Include="dbo\Tables\MaintenanceType.sql" />
     <Build Include="dbo\Views\vw_MaintenanceType.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetMasterCompanyDetails.sql" />
+    <Build Include="dbo\Stored Procedures\USP_CreateUpdateAircraftMaintenanceProgram.sql" />
+    <Build Include="dbo\Stored Procedures\GetACWorkFlowList.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

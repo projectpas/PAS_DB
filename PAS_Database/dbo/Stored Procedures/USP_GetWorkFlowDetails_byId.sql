@@ -10,6 +10,7 @@
  ** --   --------			-------				--------------------------------          
     1    23-April-2025		Devendra Shekh			Created
 	2    02-Sep-2025        Sahdev Saliya           Added New Field Verified, VerifiedBy And VerifiedDate
+	3	 17-APR-2026		Priyansh Patel			Added AC Template Fields [PN-15968]
 
 EXEC [USP_GetWorkFlowDetails_byId] 5242, 2
 **************************************************************/
@@ -42,6 +43,7 @@ BEGIN
 					[CostOfNew], [PercentageOfNew], [IsPercentageOfReplacement], [CostOfReplacement], [PercentageOfReplacement], [Memo], [ManagementStructureId], [MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted],
 					[PartNumber], [CustomerName], [FlatRate], [BERThresholdAmount], [WorkOrderNumber], [CustomerCode], [OtherCost], [WorkflowCreateDate], [ChangedPartNumberId], [PercentageOfMaterial], [PercentageOfExpertise], [PercentageOfCharges], 
 					[PercentageOfOthers], [PercentageOfTotal], [RevisedPartNumber], [changedPartNumberDescription], [ChangedPartNumber], [Currency], [WFParentId], [IsVersionIncrease], @Symbol AS [CurrencySymbol], @Code AS [CurrencyText], @IGDescription AS [ItemGroup], [Verified], [VerifiedBy], [VerifiedDate]
+					,[TailNum],[SerialNum] ,[AircraftModelId] ,[MakeTypeId] ,[TemplateType], [MaintenanceTypeId]
 			INTO #tmpWorkFLow FROM [dbo].[Workflow] WITH(NOLOCK) WHERE [WorkflowId] = @WorkflowId;
 
 			UPDATE	TMP

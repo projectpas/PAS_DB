@@ -51,8 +51,12 @@
     [Verified]                     BIT             NULL,
     [VerifiedBy]                   VARCHAR (256)   NULL,
     [VerifiedDate]                 DATETIME2 (7)   NULL,
+    [TailNum]                      VARCHAR (50)    NULL,
+    [SerialNum]                    VARCHAR (100)   NULL,
+    [AircraftModelId]              BIGINT          NULL,
+    [MakeTypeId]                   INT             NULL,
+    [TemplateType]                 INT             DEFAULT ((1)) NOT NULL,
+    [MaintenanceTypeId]            BIGINT          NULL,
     CONSTRAINT [PK_WorkflowAudit] PRIMARY KEY CLUSTERED ([WorkflowAuditId] ASC)
 );
-
-
 

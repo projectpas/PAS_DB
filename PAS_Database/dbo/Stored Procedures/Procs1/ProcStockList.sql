@@ -1215,7 +1215,7 @@ BEGIN
 		ISNULL(stl.[IsBatchStock],0) [IsBatchStock],
 		stl.[BatchNumber],
 		ROUND(stl.[UnitCost],2) UnitCost,
-		stl.[InventoryGLAccName] AS 'GLAccount'
+		stl.[InventoryGLAccName] AS 'GLAccount',
 		CASE 
 			WHEN stl.[IsPMA] = 1 THEN 'PMA'
 			WHEN stl.[IsDER] = 1 THEN 'DER'

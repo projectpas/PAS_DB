@@ -11,6 +11,7 @@ Exec [USP_SaveAircraftCycleTimeMappings]
 ** --   --------    -------         --------------------------------  
    1    14/04/2026  Amit Ghediya		Created  
    2	15/04/2026  Amit Ghediya		Added into AircraftMaintenanceProgram table (PN-16015)
+   3	21/04/2026  Amit Ghediya		Stop insert into AircraftMaintenanceProgram table
      
 **************************************************************/   
 CREATE     PROCEDURE [dbo].[USP_SaveAircraftCycleTimeMappings]  
@@ -174,65 +175,65 @@ BEGIN
 		---------------------------------------------------
 		-- INSERT INTO AircraftMaintenanceProgram
 		---------------------------------------------------
-		IF EXISTS (SELECT 1 FROM dbo.AircraftMaintenanceProgram AMP WITH(NOLOCK) INNER JOIN @CycleTable C ON AMP.AircraftRegistryId = C.RefrenceId)
-		BEGIN
-			UPDATE AMP
-			SET
-				AMP.FlightHoursRecordedHours = FLOOR(ISNULL(C.CumulativeHours, 0)),
-				AMP.CyclesRecorded = ISNULL(C.CumulativeCycles, 0),
-				AMP.FlightHoursRemainingHours = FLOOR(ISNULL(C.CumulativeHours, 0)),
-				AMP.CyclesRemaining = ISNULL(C.CumulativeCycles, 0),
-				AMP.UpdatedBy = C.UpdatedBy,
-				AMP.UpdatedDate = GETUTCDATE()
-			FROM dbo.AircraftMaintenanceProgram AMP WITH(NOLOCK)
-			INNER JOIN @CycleTable C ON AMP.AircraftRegistryId = C.RefrenceId;
-		END
-		ELSE
-		BEGIN
-			INSERT INTO dbo.AircraftMaintenanceProgram
-			(
-				TailNumber,
-				AircraftMake,
-				AircraftModel,
-				SerialNumber,
-				MaintenanceType,
-				TemplateId,
-				FlightHoursRecordedHours,
-				FlightHoursRecordedMinutes,
-				FlightHoursRemainingHours,
-				CyclesRemaining,
-				CyclesRecorded,
-				MasterCompanyId,
-				CreatedBy,
-				UpdatedBy,
-				CreatedDate,
-				UpdatedDate,
-				IsActive,
-				IsDeleted,
-				AircraftRegistryId
-			)
-			SELECT
-				'',
-				'',
-				'',
-				'',
-				'',
-				1,
-				FLOOR(ISNULL(C.CumulativeHours, 0)),
-				0,
-				FLOOR(ISNULL(C.CumulativeHours, 0)),
-				ISNULL(C.CumulativeCycles, 0),
-				ISNULL(C.CumulativeCycles, 0),
-				C.MasterCompanyId,
-				C.CreatedBy,
-				C.UpdatedBy,
-				GETUTCDATE(),
-				GETUTCDATE(),
-				1,
-				0,
-				C.RefrenceId
-			FROM @CycleTable C;
-		END
+		--IF EXISTS (SELECT 1 FROM dbo.AircraftMaintenanceProgram AMP WITH(NOLOCK) INNER JOIN @CycleTable C ON AMP.AircraftRegistryId = C.RefrenceId)
+		--BEGIN
+		--	UPDATE AMP
+		--	SET
+		--		AMP.FlightHoursRecordedHours = FLOOR(ISNULL(C.CumulativeHours, 0)),
+		--		AMP.CyclesRecorded = ISNULL(C.CumulativeCycles, 0),
+		--		AMP.FlightHoursRemainingHours = FLOOR(ISNULL(C.CumulativeHours, 0)),
+		--		AMP.CyclesRemaining = ISNULL(C.CumulativeCycles, 0),
+		--		AMP.UpdatedBy = C.UpdatedBy,
+		--		AMP.UpdatedDate = GETUTCDATE()
+		--	FROM dbo.AircraftMaintenanceProgram AMP WITH(NOLOCK)
+		--	INNER JOIN @CycleTable C ON AMP.AircraftRegistryId = C.RefrenceId;
+		--END
+		--ELSE
+		--BEGIN
+		--	INSERT INTO dbo.AircraftMaintenanceProgram
+		--	(
+		--		TailNumber,
+		--		AircraftMake,
+		--		AircraftModel,
+		--		SerialNumber,
+		--		MaintenanceType,
+		--		TemplateId,
+		--		FlightHoursRecordedHours,
+		--		FlightHoursRecordedMinutes,
+		--		FlightHoursRemainingHours,
+		--		CyclesRemaining,
+		--		CyclesRecorded,
+		--		MasterCompanyId,
+		--		CreatedBy,
+		--		UpdatedBy,
+		--		CreatedDate,
+		--		UpdatedDate,
+		--		IsActive,
+		--		IsDeleted,
+		--		AircraftRegistryId
+		--	)
+		--	SELECT
+		--		'',
+		--		'',
+		--		'',
+		--		'',
+		--		'',
+		--		1,
+		--		FLOOR(ISNULL(C.CumulativeHours, 0)),
+		--		0,
+		--		FLOOR(ISNULL(C.CumulativeHours, 0)),
+		--		ISNULL(C.CumulativeCycles, 0),
+		--		ISNULL(C.CumulativeCycles, 0),
+		--		C.MasterCompanyId,
+		--		C.CreatedBy,
+		--		C.UpdatedBy,
+		--		GETUTCDATE(),
+		--		GETUTCDATE(),
+		--		1,
+		--		0,
+		--		C.RefrenceId
+		--	FROM @CycleTable C;
+		--END
 
         -------------------------------------------------------
         -- INSERT ENGINE DATA

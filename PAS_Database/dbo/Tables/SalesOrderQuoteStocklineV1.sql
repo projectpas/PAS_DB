@@ -24,9 +24,10 @@
     CONSTRAINT [PK_SalesOrderQuoteStocklineV1] PRIMARY KEY CLUSTERED ([SalesOrderQuoteStocklineId] ASC),
     CONSTRAINT [FK_SalesOrderQuoteStocklineV1_Condition] FOREIGN KEY ([ConditionId]) REFERENCES [dbo].[Condition] ([ConditionId]),
     CONSTRAINT [FK_SalesOrderQuoteStocklineV1_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId]),
-    CONSTRAINT [FK_SalesOrderQuoteStocklineV1_SalesOrderQuotePartV1] FOREIGN KEY ([SalesOrderQuotePartId]) REFERENCES [dbo].[SalesOrderQuotePartV1] ([SalesOrderQuotePartId]),
     CONSTRAINT [FK_SalesOrderQuoteStocklineV1_StockLine] FOREIGN KEY ([StockLineId]) REFERENCES [dbo].[Stockline] ([StockLineId])
 );
+
+
 
 
 

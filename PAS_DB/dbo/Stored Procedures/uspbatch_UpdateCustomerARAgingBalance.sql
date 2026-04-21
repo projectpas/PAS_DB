@@ -21,8 +21,7 @@
  ** EXEC uspbatch_UpdateCustomerARAgingBalance @MasterCompanyId = 1, @UpdatedBy = 'System'
  **************************************************************/
 CREATE   PROCEDURE [dbo].[uspbatch_UpdateCustomerARAgingBalance]
-    @MasterCompanyId INT          = NULL,
-    @UpdatedBy       VARCHAR(256) = 'System'
+    @MasterCompanyId INT          = NULL    
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -34,6 +33,7 @@ BEGIN
         -- re-running on the same day overwrites (MERGE UPDATE) the existing row.
         DECLARE @AsOfDate      DATE         = CAST(GETUTCDATE() AS DATE);
         DECLARE @InvoiceStatus VARCHAR(20)  = 'Invoiced';
+		DECLARE @UpdatedBy    VARCHAR(256) = 'System';
 
         DECLARE @workOrderModuleId  INT;
         DECLARE @salesOrderModuleId INT;

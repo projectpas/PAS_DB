@@ -27,6 +27,7 @@
 	11	 06/18/2025   AMIT GHEDIYA		Updated the sp USP_UpdateSOPartCostDetails for SalesOrderPartV1 table.
 	12	 06/23/2025   Vishal Suthar		Handle the case of having the same stockline after repair
 	13	 10/Jul/2025  Rajesh Gami		Fixed: Added the Stockline History while reserve the stockline in the SO (Create RO from the SO and then receive the RO that time history not inserted)
+	14   17/Apr/2026  Ayushi Patel		Added UOM Conversion Changes [PN-15044]
  EXECUTE USP_CreateSOStocklineFromRO 2667
 
 **************************************************************/
@@ -45,8 +46,8 @@ BEGIN
       BEGIN
         DECLARE @RowCount int = 0;
         DECLARE @StocklineId bigint;
-        DECLARE @Quantity int = 0;
-        DECLARE @QtyFulfilled int = 0;
+        DECLARE @Quantity DECIMAL(18, 6) = 0;
+        DECLARE @QtyFulfilled DECIMAL(18, 6) = 0;
         DECLARE @SalesOrderPartId bigint = 0;
 		DECLARE @SalesOrderStockLineId BIGINT = 0;
         DECLARE @ExSalesOrderPartId bigint;
@@ -56,7 +57,7 @@ BEGIN
         DECLARE @LoopID AS int;
 		DECLARE @MasterLoopID AS INT;
 		DECLARE @RepairOrderPartId BIGINT;
-		DECLARE @StlQuantity BIGINT;
+		DECLARE @StlQuantity DECIMAL(18, 6) = 0;
 		DECLARE @soPartFulfilledStatusId INT = (SELECT SOPartStatusId FROM DBO.SOPartStatus WITH(NOLOCK) WHERE Description = 'Fulfilled');
 		DECLARE @StkAutoReserveRefNumber VARCHAR(100) = 'Auto Reserve Stock - ';
 		DECLARE @RPUpdatedBy VARCHAR(256) = '';
@@ -307,7 +308,7 @@ BEGIN
 					INSERT INTO [dbo].[SalesOrderReservedStock]
 								([SalesOrderId]
 								,[SalesOrderPartId]
-								,[StockLineId]
+								,[StockLIneId]
 								,[ConditionId]
 								,[ItemMasterId]
 								,[Quantity]
@@ -335,7 +336,7 @@ BEGIN
 					INSERT INTO [dbo].[SalesOrderStockLine]
 									([SalesOrderId]
 									,[SalesOrderPartId]
-									,[StockLineId]
+									,[StockLIneId]
 									,[ItemMasterId]
 									,[ConditionId]
 									,[Quantity]
@@ -466,8 +467,8 @@ BEGIN
 					DECLARE @NewItemMasterId BIGINT = 0;
 					DECLARE @NewSalesOrderPartId BIGINT = 0;
 					DECLARE @NewSalesOrderStocklineId BIGINT = 0;
-					DECLARE @UnitCost DECIMAL(20, 2) = 0;
-					DECLARE @NewQtyRequested INT = 0;
+					DECLARE @UnitCost DECIMAL(18, 6) = 0;
+					DECLARE @NewQtyRequested DECIMAL(18, 6) = 0;
 					DECLARE @SalesOrderNumber VARCHAR(100) = NULL;
 					DECLARE @RepairOrderNumber VARCHAR(100) = NULL;
 
@@ -488,7 +489,7 @@ BEGIN
 					WHERE RP.RepairOrderId = @RepairOrderId AND RP.RepairOrderPartRecordId = @RepairOrderPartId 
 					AND SOP.SalesOrderId = @SalesOrderId AND RP.ItemTypeId=1
 					
-					DECLARE @TotalQty INT,@SoId BIGINT,@RevQty INT
+					DECLARE @TotalQty DECIMAL(18, 6) = 0,@SoId BIGINT,@RevQty DECIMAL(18, 6) = 0;
 
 					IF NOT EXISTS (SELECT TOP 1 1 FROM DBO.SalesOrderStocklineV1 WITH (NOLOCK) WHERE SalesOrderPartId = @ExSalesOrderPartId AND StockLineId = @StockLineId)
 					BEGIN

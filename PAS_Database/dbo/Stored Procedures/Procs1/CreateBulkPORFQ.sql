@@ -5,9 +5,10 @@
  ** PR   Date						 Author							Change Description              
  ** --   --------					 -------						-------------------------------            
     1   	
-	2    23/10/2024              RAJESH GAMI                        Change the Local date to UTC date by default 
+	2    23/10/2024              RAJESH GAMI                        Change the Local date to UTC date by default
+	3    20/04/2026				 RAJESH GAMI						UOM Decimal changes [PN-16131]
 ****************************************************************************************************************************************/ 
-CREATE    PROCEDURE [dbo].[CreateBulkPORFQ]    
+CREATE      PROCEDURE [dbo].[CreateBulkPORFQ]    
  @tbl_BulkPORFQDetailType BulkPODetailType READONLY,    
  @loginUserName varchar(50) = NULL,    
  @employeeId bigint = NULL,    
@@ -74,8 +75,8 @@ BEGIN
     [Priority] [nvarchar](max) NULL,    
     [ConditionId] [bigint] NULL,    
     [Condition] [varchar](256) NULL,    
-    [Quantity] [int] NULL,    
-    [UnitCost] [decimal](18,2) NULL,    
+    [Quantity] [decimal](18,2) NULL,    
+    [UnitCost] [decimal](18,6) NULL,    
     [VendorId] [bigint] NULL,    
     [VendorName] [varchar](100) NULL,    
     [VendorCode] [varchar](100) NULL,    

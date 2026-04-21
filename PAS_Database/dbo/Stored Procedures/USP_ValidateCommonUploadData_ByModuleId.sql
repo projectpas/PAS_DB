@@ -50,7 +50,8 @@
 	39   06-APR-2026		Nakul Chandigra			Add extra case of the validation for  @AircraftStatusModule And @MaintenanceStatusModule (PN-15945)
 	40   07-APR-2026        Nakul Chandigra			Add a common case of validation for dropdown (PN-15950)
 	41   09-APR-2026		Ayushi Patel			PN-15988 Excluded StocklineModule from restricting Decimal number
-	42   13-APR-2026		Nakul Chandigra			added validation for TrainingName And PositionCode setup screen Uplload (PN-15980)
+	42   13-APR-2026		Nakul Chandigra			added validation for TrainingName And PositionCode setup screen Upload (PN-15980)
+	43   17-APR-2026		Nakul Chandigra			added validation for MaintenanceType  setup screen Upload (PN-16108)
 
 declare @p4 dbo.UploadModuleDataTableType
 insert into @p4 values(4,N'VICTOR ADMAS',1,N'{
@@ -223,6 +224,7 @@ BEGIN
 		DECLARE @MaintenanceStatusModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'MaintenanceStatus');
 		DECLARE @TrainingNameModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'TrainingName');
 		DECLARE @PositionCodeModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'PositionCode');
+		DECLARE @MaintenanceTypeModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'MaintenanceType');
 
 		DECLARE @DropdownListTable VARCHAR(100) = NULL, 
 		@DropdownListId VARCHAR(100) = NULL, 
@@ -806,6 +808,11 @@ BEGIN
 													 AND ISNULL(TMP.FieldValue, '') <> ''
 													 AND LEN(TMP.FieldValue) > 500
 												THEN '‘Description’ exceeds 500 characters limit.'
+												WHEN @ModuleId = @MaintenanceTypeModule  
+													 AND IMF.FieldName = 'MaintenanceType'  
+													 AND ISNULL(TMP.FieldValue, '') <> ''
+													 AND LEN(TMP.FieldValue) > 500
+												THEN '‘MaintenanceType’ exceeds 500 characters limit.'
 										ELSE ' '
 										END,
 				TMP.FieldValue = CASE WHEN ISNULL(IMF.DropdownListTable, '') != '' THEN IMF.DropdownListValueId ELSE TMP.FieldValue END
@@ -1115,6 +1122,8 @@ BEGIN
 															THEN 'Entered Name Already Exists!'	
 														WHEN @ModuleId = @PositionCodeModule AND @ChekDuplticateRef1 = 'Code'  
 															THEN 'Entered Code Already Exists!'	
+														WHEN @ModuleId = @MaintenanceTypeModule AND @ChekDuplticateRef1 = 'MaintenanceType'  
+															THEN 'Entered Maintenance Type Already Exists!'		
 														ELSE '' END
 						WHERE ImportModuleFieldMasterId = @CurrentRow;
 					END

@@ -21,6 +21,7 @@
 	8    13-08-2025  Rajesh Gami		 Add New Parameters @SourceBy,@MarketplaceRef And as same as for Return
     9    24-09-2025  Sahdev Saliya       Added New Dropdown Filter Lead Source
 	10   20-11-2025  Rajesh Gami		 Correct the QuoteAmount
+	11   16-Apr-026  Bhargav Saliya	     UOM Changes
 **************************************************************/ 
 CREATE PROCEDURE [dbo].[SearchPNViewData]  
  @PageNumber int,  
@@ -33,7 +34,7 @@ CREATE PROCEDURE [dbo].[SearchPNViewData]
  @SalesOrderNumber varchar(50)=null,  
  @CustomerName varchar(50)=null,  
  @Status varchar(50)=null,  
- @QuoteAmount numeric(18,4)=null,  
+ @QuoteAmount numeric(18,6)=null,  
  @SoAmount numeric(18,4)=null,  
  @QuoteDate datetime=null,  
  @SalesPerson varchar(50)=null,  
@@ -130,7 +131,7 @@ BEGIN
 	END
 
    ;WITH Result AS (
-    SELECT DISTINCT SOQ.SalesOrderQuoteId,SOQ.SalesOrderQuoteNumber,SOQ.OpenDate AS 'QuoteDate',SOQ.CustomerId,SOQ.CustomerName AS 'CustomerName', MST.Name AS 'Status', ISNULL(SPC.NetSaleAmount, 0) AS 'QuoteAmount',  
+    SELECT DISTINCT SOQ.SalesOrderQuoteId,SOQ.SalesOrderQuoteNumber,SOQ.OpenDate AS 'QuoteDate',SOQ.CustomerId,SOQ.CustomerName AS 'CustomerName', MST.Name AS 'Status', ([dbo].[fn_ConvertUOM](ISNULL(SPC.NetSaleAmount, 0),IM.[StockUnitOfMeasure] ,IM.[ConsumeUnitOfMeasure],0,@MasterCompanyId)) AS 'QuoteAmount',  
 	SOQ.IsNewVersionCreated,SOQ.StatusId,SOQ.CustomerReference,IsNull(SP.PriorityName,'') AS 'Priority',ISNULL(SP.PriorityName, '') AS 'PriorityType', (E.FirstName + ' ' + E.LastName) AS SalesPerson,  
     ISNULL(IM.partnumber,'') AS 'PartNumber',M.Name AS 'ManufacturerType',IsNull(IM.partnumber,'') AS 'PartNumberType', ISNULL(im.PartDescription, '') AS 'PartDescription', ISNULL(im.PartDescription, '') AS 'PartDescriptionType',  
     SOQ.AccountTypeName AS 'CustomerType',SO.SalesOrderNumber,
@@ -158,7 +159,7 @@ BEGIN
 	SOQ.IsNewVersionCreated,SOQ.StatusId,SOQ.CustomerReference,Priority,SP.PriorityName,E.FirstName, E.LastName,
     IM.partnumber,M.Name,IM.partnumber, im.PartDescription, im.PartDescription,  
     SOQ.AccountTypeName,SO.SalesOrderNumber, SOQ.CreatedDate, SOQ.UpdatedDate,MST.Name,
-	SOQ.UpdatedBy, SOQ.CreatedBy,SOQ.IsDeleted,SOQ.Version, SOQ.SourceBy, SOQ.MarketplaceRef,SP.SalesOrderQuotePartId,SP.QtyQuoted,SP.QtyRequested,SP.UnitSalesPrice)
+	SOQ.UpdatedBy, SOQ.CreatedBy,SOQ.IsDeleted,SOQ.Version, SOQ.SourceBy, SOQ.MarketplaceRef,SP.SalesOrderQuotePartId,SP.QtyQuoted,SP.QtyRequested,SP.UnitSalesPrice,IM.[StockUnitOfMeasure],IM.[ConsumeUnitOfMeasure])
 	,  
     FinalResult AS (SELECT SalesOrderQuoteId,SalesOrderQuoteNumber,QuoteDate,CustomerId,CustomerName,Status,VersionNumber,ISNULL(QuoteAmount,0) AS QuoteAmount,IsNewVersionCreated,StatusId  
      ,CustomerReference,Priority,PriorityType,SalesPerson,PartNumber,ManufacturerType,PartNumberType,PartDescription,PartDescriptionType,CustomerType,SalesOrderNumber,  

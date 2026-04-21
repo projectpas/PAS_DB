@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [SalesOrderQuoteSummarizedHistoryByPN]           
  ** Author:   Vishal Suthar
  ** Description: This stored procedure is used for SOQ Summarized History By PN.    
@@ -15,8 +14,9 @@
  **************************************************************           
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
-    1    07/12/2021   Vishal Suthar Created
-    2    11/04/2024   Vishal Suthar Modified to make use of new tables
+    1    07/12/2021   Vishal Suthar   Created
+    2    11/04/2024   Vishal Suthar   Modified to make use of new tables
+	3    16-Apr-026   Bhargav Saliya  UOM Changes
      
 --EXEC [SalesOrderQuoteSummarizedHistoryByPN] 246,0
 **************************************************************/
@@ -49,8 +49,8 @@ BEGIN
 						Cond.Description AS Condition,
 						CASE WHEN ISNULL(APPR.ApprovalActionId, 0) = 5 THEN 1 ELSE 0 END AS CustApproved,
 						C.Code AS CurrencyName,
-						((ISNULL(SOQPC.UnitSalesPrice, 0) * ISNULL(SOQP.QtyQuoted, 0)) + ISNULL(SUM(Charges.BillingAmount), 0)) AS Revenue,
-						((ISNULL(SOQPC.UnitCost, 0) * ISNULL(SOQP.QtyQuoted, 0)) + ISNULL(SUM(Charges.BillingAmount), 0)) AS DirectCost
+						((([dbo].[fn_ConvertUOM](ISNULL(SOQPC.UnitSalesPrice, 0),IM.[StockUnitOfMeasure] ,IM.[ConsumeUnitOfMeasure],0,SOQP.MasterCompanyId)) * ([dbo].[fn_ConvertUOM](ISNULL(SOQP.QtyQuoted, 0),IM.[StockUnitOfMeasure] ,IM.[ConsumeUnitOfMeasure],0,SOQP.MasterCompanyId))) + ISNULL(SUM(Charges.BillingAmount), 0)) AS Revenue,
+						((([dbo].[fn_ConvertUOM](ISNULL(SOQPC.UnitCost, 0),IM.[StockUnitOfMeasure] ,IM.[ConsumeUnitOfMeasure],0,SOQP.MasterCompanyId)) * ([dbo].[fn_ConvertUOM](ISNULL(SOQP.QtyQuoted, 0),IM.[StockUnitOfMeasure] ,IM.[ConsumeUnitOfMeasure],0,SOQP.MasterCompanyId))) + ISNULL(SUM(Charges.BillingAmount), 0)) AS DirectCost
 					FROM dbo.SalesOrderQuotePartV1 SOQP WITH(NOLOCK)
 						JOIN dbo.ItemMaster IM WITH(NOLOCK) ON SOQP.ItemMasterId = IM.ItemMasterId
 						JOIN dbo.SalesOrderQuote SOQ WITH(NOLOCK) ON SOQ.SalesOrderQuoteId = SOQP.SalesOrderQuoteId
@@ -63,7 +63,7 @@ BEGIN
 						LEFT JOIN dbo.SalesOrderQuotePartCost SOQPC WITH (NOLOCK) ON SOQPC.SalesOrderQuotePartId = SOQP.SalesOrderQuotePartId
 					WHERE SOQP.ItemMasterId = @ItemMasterId AND DATEDIFF(MM, SOQ.OpenDate, GETDATE()) < @Month
 					GROUP BY IM.partnumber, SOQP.ItemMasterId, Cond.Description, APPR.ApprovalActionId, C.Code,
-					SOQPC.UnitSalesPrice, SOQP.QtyQuoted, SOQPC.UnitCost
+					SOQPC.UnitSalesPrice, SOQP.QtyQuoted, SOQPC.UnitCost,IM.[ConsumeUnitOfMeasure],IM.[StockUnitOfMeasure],SOQP.MasterCompanyId
 					)
 
 					SELECT PartNumber, ItemMasterId, Condition, MIN(CustApproved) CustApproved, CurrencyName, SUM(Revenue) AS Revenue,

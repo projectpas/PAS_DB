@@ -98,7 +98,7 @@
     [CoreDueDate]               DATETIME        NULL,
     [IsCreateExchange]          BIT             NULL,
     [ExpectedSerialNumber]      VARCHAR (100)   NULL,
-    [RequestedQtyFromWO]        INT             NULL,
+    [RequestedQtyFromWO]        DECIMAL (18, 6) NULL,
     [ModuleId]                  INT             NULL,
     [IsFromSubWorkOrder]        BIT             DEFAULT ((0)) NULL,
     [IsKit]                     BIT             DEFAULT ((0)) NULL,

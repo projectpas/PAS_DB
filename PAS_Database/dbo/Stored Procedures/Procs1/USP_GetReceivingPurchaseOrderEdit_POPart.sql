@@ -19,10 +19,10 @@
 	3    12/12/2023   Jevik Raiyani		Case 1 changes for AssetAcquisitionTypeId  
 	4    12/20/2023   Vishal Suthar		Fix issue with fetching child entries
 	5    09/04/2025   Moin Bloch        Fix Issue For QuantityReceived when StockLine Adjusment
-	6    16/04/2026   Priyansh Patel    For Quantity above 500 change the receive to Stockline PN-15962
+	6    21/04/2026   Priyansh Patel    For Quantity 500 and above change the receive to Stockline PN-15962
 
         
-EXEC [dbo].[USP_GetReceivingPurchaseOrderEdit_POPart] 2386    
+EXEC [dbo].[USP_GetReceivingPurchaseOrderEdit_POPart] 8213    
 **************************************************************/        
 CREATE    PROCEDURE [dbo].[USP_GetReceivingPurchaseOrderEdit_POPart]    
 (    
@@ -46,7 +46,7 @@ BEGIN
         part.QuantityOrdered,      
         --part.QuantityBackOrdered,  
         CASE 
-        WHEN NOT EXISTS (SELECT 1 FROM dbo.StocklineDraft STKD WITH (NOLOCK) WHERE STKD.StockLineId > 0 AND STKD.PurchaseOrderPartRecordId = part.PurchaseOrderPartRecordId AND STKD.PurchaseOrderId = @PurchaseOrderId AND STKD.isDeleted = 0) AND part.ItemTypeId = 1  AND part.QuantityOrdered > @MaxStockDraftQuantity THEN ISNULL(part.QuantityBackOrdered, 0)
+        WHEN NOT EXISTS (SELECT 1 FROM dbo.StocklineDraft STKD WITH (NOLOCK) WHERE STKD.StockLineId > 0 AND STKD.PurchaseOrderPartRecordId = part.PurchaseOrderPartRecordId AND STKD.PurchaseOrderId = @PurchaseOrderId AND STKD.isDeleted = 0) AND part.ItemTypeId = 1  AND part.QuantityOrdered >= @MaxStockDraftQuantity THEN ISNULL(part.QuantityBackOrdered, 0)
         ELSE
             ((part.QuantityOrdered) - (CASE WHEN part.ItemTypeId = 1 THEN    
             (SELECT ISNULL(SUM(STKD.[Quantity]),0) FROM [dbo].[StocklineDraft] STKD WITH (NOLOCK) WHERE STKD.[StockLineId] > 0 AND STKD.[PurchaseOrderPartRecordId] = part.[PurchaseOrderPartRecordId] AND STKD.[PurchaseOrderId] = @PurchaseOrderId AND STKD.[isDeleted] = 0)

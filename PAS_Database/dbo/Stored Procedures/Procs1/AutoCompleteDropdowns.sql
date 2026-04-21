@@ -39,6 +39,7 @@
     22   30/01/2026   Ayushi Patel          Added Vendor auto-suggestion logic with duplicate VendorName handling (append VendorCode when duplicates exist)
     23   08/04/2026   Nakul Chandigra       Added order Order By Sequenceno ASC for AircraftStatus and MaintenanceStatus (PN-15946)
 	24   10/04/2026   AMIT GHEDIYA			Added NumberOfEngines (PN-15987)
+	25   21/04/2026   Sahdev Saliya			Display Only Trainer Expertise EMPLOYEE list for EMP TRAINER SCREEN(PN-16113)
 
 --select * from dbo.Employee      
 --EXEC AutoCompleteDropdowns 'ItemMaster','ItemMasterId','PartNumber','',1,20,'0',1       
@@ -62,7 +63,11 @@ AS BEGIN
 
         SET @TableName = LTRIM(RTRIM(@TableName));
         SET @TableName = REPLACE(REPLACE(@TableName, '[', ''), ']', '');
-
+		DECLARE @TrainerExpertiseId INT =0;
+		IF(@TableName='EmpTrainer')
+		BEGIN
+			SET @TrainerExpertiseId = (SELECT TOP 1 EmployeeExpertiseId FROM DBO.EmployeeExpertise WITH(NOLOCK) WHERE EmpExpCode  = 'Trainer')
+		END
         CREATE TABLE #TempTable (
 			Value BIGINT,
 			Label VARCHAR(MAX),
@@ -92,6 +97,19 @@ AS BEGIN
                     WHERE MasterCompanyId=@MasterCompanyId AND EmployeeId IN(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') )
                 END
             END
+			ELSE IF (@TableName='EmpTrainer')
+			BEGIN
+				SELECT DISTINCT e.EmployeeId AS Value, e.FirstName+' '+e.LastName AS Label
+				FROM dbo.Employee e WITH(NOLOCK)
+				WHERE e.MasterCompanyId=@MasterCompanyId AND ISNULL(e.IsDeleted,0)=0
+				  AND EXISTS (SELECT 1 FROM STRING_SPLIT(e.EmployeeExpIds,',') s WHERE TRY_CAST(s.value AS INT)=@TrainerExpertiseId)
+				  AND (
+						(@Parameter4=1 AND (e.IsActive=1 AND (e.FirstName LIKE '%'+@Parameter3+'%' OR e.LastName LIKE '%'+@Parameter3+'%')))
+					 OR (@Parameter4<>1 AND (e.IsActive=1 AND (e.FirstName LIKE '%'+@Parameter3+'%' OR e.LastName LIKE '%'+@Parameter3+'%')))
+					 OR e.EmployeeId IN (SELECT TRY_CAST(value AS INT) FROM STRING_SPLIT(@Idlist,','))
+				  )
+				ORDER BY Label;
+			 END
 			 ELSE IF(@TableName='PublicationType')BEGIN
                      IF(@Parameter4=1)BEGIN
                          SELECT DISTINCT PublicationTypeId as Value, [Name] as Label, (SELECT TOP 1 EmailBody FROM DBO.PublicationTemplate PT WITH(NOLOCK) WHERE PT.PublicationTypeId = P.PublicationTypeId AND Pt.MasterCompanyId = P.MasterCompanyId ) as PublicationTemplate
@@ -496,6 +514,17 @@ AS BEGIN
                     WHERE MasterCompanyId=@MasterCompanyId AND EmployeeId in(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') )
                 END
             END
+			ELSE IF (@TableName='EmpTrainer')
+			BEGIN
+				SELECT DISTINCT TOP 20 e.EmployeeId AS Value, e.FirstName+' '+e.LastName AS Label
+				FROM dbo.Employee e WITH(NOLOCK)
+				WHERE e.MasterCompanyId=@MasterCompanyId AND ISNULL(e.IsDeleted,0)=0
+				  AND EXISTS (SELECT 1 FROM STRING_SPLIT(e.EmployeeExpIds,',') s WHERE TRY_CAST(s.value AS INT)=@TrainerExpertiseId)
+				  AND ((e.IsActive=1 AND (e.FirstName LIKE '%'+@Parameter3+'%' OR e.LastName LIKE '%'+@Parameter3+'%'))
+					   OR e.EmployeeId IN (SELECT TRY_CAST(Item AS INT) FROM dbo.SPLITSTRING(@Idlist,',')))
+				  AND (@Parameter4=0 OR e.IsActive=1)
+				ORDER BY Label;
+			END
 			ELSE IF(@TableName='PublicationType')BEGIN
                      IF(@Parameter4=1)BEGIN
                          SELECT DISTINCT PublicationTypeId as Value, [Name] as Label, (SELECT TOP 1 EmailBody FROM DBO.PublicationTemplate PT WITH(NOLOCK) WHERE PT.PublicationTypeId = P.PublicationTypeId AND Pt.MasterCompanyId = P.MasterCompanyId ) as PublicationTemplate

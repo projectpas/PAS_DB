@@ -21,6 +21,7 @@
 	6    10/Sep/2025	RAJESH GAMI		 Rename the #value as mentioned in the PBI (PN-14096), Remove line break comma
 	7    08/Oct/2025	RAJESH GAMI		 Added logic for NEO(PN-14371)
 	8    30/Oct/2025	RAJESH GAMI		 Check the condition with MasterCompanyCode instead of MasterCompanyId
+	9    20/Apr/2026	AYUSHI PATEL	 return the BankName based on MasterCompanyCode (lower case for a2z)
  EXEC GetWireTransferBankingInfo 38 
 ************************************************************************/  
 CREATE     PROCEDURE [dbo].[GetWireTransferBankingInfo]
@@ -32,7 +33,7 @@ BEGIN
 	BEGIN TRY
 		DECLARE @MasterCompanyId INT , @CompanyCode VARCHAR(100)='';
 		--DECLARE @MTI_MasterComapnyId BIGINT = 12,@NEO_MasterComapnyId BIGINT = 20;
-		DECLARE @MTI_MasterCompanyCode  VARCHAR(100) ='MTI',@NEO_MasterCompanyIdCode  VARCHAR(100)='NEO';
+		DECLARE @MTI_MasterCompanyCode  VARCHAR(100) ='MTI',@NEO_MasterCompanyIdCode  VARCHAR(100)='NEO' ,@a2z_MasterCompanyIdCode  VARCHAR(100)='a2z';
 		SET @MasterCompanyId = (SELECT MasterCompanyId	FROM [dbo].[EntityStructureSetup] WITH(NOLOCK)	WHERE EntityStructureId = @ManagementStructId AND ISNULL(IsDeleted,0) = 0 AND ISNULL(IsActive,0) = 1 );
 		SET @CompanyCode = (SELECT TOP 1 MasterCompanyCode FROM dbo.MasterCompany WITH(NOLOCK) WHERE MasterCompanyId=@MasterCompanyId AND ISNULL(IsDeleted,0) = 0 AND ISNULL(IsActive,0) = 1 )
 
@@ -145,8 +146,18 @@ BEGIN
 			-- Query for other companies
 			SELECT TOP 1
 			(
-				 CASE WHEN inter.BankName IS NOT NULL THEN 
-                '<label style="text-transform: uppercase;">' + UPPER(inter.BankName) + '</label><br />' 
+				CASE WHEN inter.BankName IS NOT NULL THEN 
+					'<label style="text-transform:' + 
+					CASE 
+						WHEN @CompanyCode = @a2z_MasterCompanyIdCode THEN 'lowercase'
+						ELSE 'uppercase'
+					END +
+					';">' + 
+					CASE 
+						WHEN @CompanyCode = @a2z_MasterCompanyIdCode THEN LOWER(inter.BankName)
+						ELSE UPPER(inter.BankName)
+					END 
+					+ '</label><br />' 
 				ELSE '' END +
 				CASE WHEN ad.Line1 IS NOT NULL THEN 
 					'<label style="text-transform: uppercase;">' + UPPER(ad.Line1) + '</label><br />' 

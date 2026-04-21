@@ -26,7 +26,7 @@
 	11   31-12-2025   Amit Ghediya			Static email for 'PAR' MasterCompany
 	12   05-01-2025   Amit Ghediya			Remove hide cert in sp (Before hide for all.)
 	13   04-20-2026   Vishal Suthar			Keep lowercase companyname for A2Z company
-
+	14   20-04-2026   Ayushi Patel			Keep lowercase email for A2Z company
  EXECUTE USP_GetManagementStructureDetailsForReportsHeader 45
 **********************/ 
 CREATE    PROCEDURE [dbo].[USP_GetManagementStructureDetailsForReportsHeader]    
@@ -140,7 +140,7 @@ SET NOCOUNT ON
 					Upper(le.CAACLicense) as CAACLicense,
 					Upper(le.TCCALicense) as TCCALicense,
 					UKCAALicense = UPPER(le.UKCAALicense),
-					Upper(c.Email) as Email,
+					Email = CASE WHEN ISNULL(@MasterCompanyCodeAll,'') = ISNULL(@A2ZMasterCompanyCode,'') THEN Lower(c.Email) ELSE Upper(c.Email) END,
 					CompanyLogoPath = MS.companylogo,
 					[dbo].[ConvertUTCtoLocal](GETUTCDATE(),tz.description)  as 'CurrentDateTime',
 					MS.MasterCompanyCode as MasterCompanyCode,

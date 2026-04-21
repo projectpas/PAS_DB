@@ -1,5 +1,4 @@
 ﻿
-
 /*************************************************************               
  ** File:   [USP_CreateStocklineForReceivingPO]              
  ** Author:   Vishal Suthar    
@@ -44,6 +43,7 @@
 	25   06/03/2026   Bhargav Saliya	PN-15667[When we add a flat price, there is no need to Sum @PP_UnitPurchasePrice + @PP_FlatPrice] 
 	26   26-MAr-2026  Moin Bloch        Modified Fix Issue For Close PO When SO Shipped Partial Stockline Qty
 	27   10-APR-2026  Rajesh Gami		UOM Conversion Changes [PN-15733]
+	28   21-APR-2026  Rajesh Gami		UOM Conversion Issue Resolved [PN-16133]
 declare @p2 dbo.POPartsToReceive  insert into @p2 values(2371,4051,2)    
 exec dbo.USP_CreateStocklineForReceivingPO @PurchaseOrderId=2371,@tbl_POPartsToReceive=@p2,@UpdatedBy=N'ADMIN User',@MasterCompanyId=1  
 **************************************************************/
@@ -129,9 +129,9 @@ BEGIN
                 WHERE POP.PurchaseOrderPartRecordId = @SelectedPurchaseOrderPartRecordId;
 
 				SELECT @PurchaseUnitOfMeasureId = IM.PurchaseUnitOfMeasureId,@StockUnitOfMeasureId =StockUnitOfMeasureId, @ConsumeUnitOfMeasureId = ConsumeUnitOfMeasureId FROM DBO.ItemMaster IM WITH (NOLOCK) WHERE IM.ItemMasterId = @ItemMasterId_Part;
-				SET @POUnitOfMeasure = (SELECT ShortCode FROM DBO.UnitOfMeasure WITH(NOLOCK) WHERE UnitOfMeasureId = @PurchaseUnitOfMeasureId)
-				SET @StockUnitOfMeasure = (SELECT ShortCode FROM DBO.UnitOfMeasure WITH(NOLOCK) WHERE UnitOfMeasureId = @StockUnitOfMeasureId)
-				SET @ConsumeUnitOfMeasure = (SELECT ShortCode FROM DBO.UnitOfMeasure WITH(NOLOCK) WHERE UnitOfMeasureId = @ConsumeUnitOfMeasureId)
+				SET @POUnitOfMeasure = (SELECT ShortName FROM DBO.UnitOfMeasure WITH(NOLOCK) WHERE UnitOfMeasureId = @PurchaseUnitOfMeasureId)
+				SET @StockUnitOfMeasure = (SELECT ShortName FROM DBO.UnitOfMeasure WITH(NOLOCK) WHERE UnitOfMeasureId = @StockUnitOfMeasureId)
+				SET @ConsumeUnitOfMeasure = (SELECT ShortName FROM DBO.UnitOfMeasure WITH(NOLOCK) WHERE UnitOfMeasureId = @ConsumeUnitOfMeasureId)
                 IF (@ItemTypeId = 1)
                 BEGIN
                     SELECT @IsSerializedPart = IM.isSerialized FROM DBO.ItemMaster IM WITH (NOLOCK) WHERE IM.ItemMasterId = @ItemMasterId_Part;

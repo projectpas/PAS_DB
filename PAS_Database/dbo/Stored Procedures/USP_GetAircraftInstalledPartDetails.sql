@@ -67,6 +67,7 @@ BEGIN
 				ARH.AircraftRegistryId,
 				ARH.AircraftRegistryNumber,
 				STK.Condition,
+				STK.ConditionId,
 				STK.StockLineNumber,
 				STK.ControlNumber,
 				STK.SerialNumber,

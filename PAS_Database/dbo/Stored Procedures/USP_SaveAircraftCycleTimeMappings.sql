@@ -12,6 +12,7 @@ Exec [USP_SaveAircraftCycleTimeMappings]
    1    14/04/2026  Amit Ghediya		Created  
    2	15/04/2026  Amit Ghediya		Added into AircraftMaintenanceProgram table (PN-16015)
    3	21/04/2026  Amit Ghediya		Stop insert into AircraftMaintenanceProgram table update logic to save data.
+   4	22/04/2026  Amit Ghediya		Add DateInstalled Last Flown Date (PN-16156).
      
 **************************************************************/   
 CREATE     PROCEDURE [dbo].[USP_SaveAircraftCycleTimeMappings]  
@@ -168,7 +169,8 @@ BEGIN
 			AIPD.FlightHours = ISNULL(AIPD.FlightHours, 0) + ISNULL(C.[Hours], 0),
 			AIPD.Cycles = ISNULL(AIPD.Cycles, 0) + ISNULL(C.[Cycles], 0),
 			AIPD.UpdatedBy = C.UpdatedBy,
-			AIPD.UpdatedDate = GETUTCDATE()
+			AIPD.UpdatedDate = GETUTCDATE(),
+			AIPD.DateInstalled = CAST(GETUTCDATE() AS DATE)
 		FROM dbo.AircraftInstalledPartDetails AIPD WITH(NOLOCK)
 		INNER JOIN @CycleTable C ON AIPD.AircraftRegistryId = C.RefrenceId;
 

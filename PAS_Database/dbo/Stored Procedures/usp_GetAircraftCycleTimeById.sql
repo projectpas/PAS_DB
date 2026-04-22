@@ -11,6 +11,7 @@
 ** PR   Date         Author         Change Description
 ** --   ----------   -------------  --------------------------------
 ** 1    14/04/2026  Amit Ghediya		Created 
+** 2    14/04/2026  Amit Ghediya		Get LastFlownDate (PN-16156)
 *************************************************************/
 CREATE     PROCEDURE [dbo].[usp_GetAircraftCycleTimeById]
 (
@@ -36,7 +37,8 @@ BEGIN
 			Memo,
 			MasterCompanyId,
 			CreatedBy,
-			UpdatedBy
+			UpdatedBy,
+			LastFlownDate = (SELECT TOP 1 DateInstalled FROM dbo.AircraftInstalledPartDetails WITH(NOLOCK) WHERE [AircraftRegistryId] = [RefrenceId])
 		FROM dbo.AircraftCycleTimeMappings WITH(NOLOCK)
 		WHERE RefrenceId = @AircraftCycleTimeMappingsId
 		  AND IsActive = 1 AND IsDeleted = 0;

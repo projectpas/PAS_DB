@@ -14,6 +14,7 @@
 ** 2    2026-04-07   Amit Ghediya   Get ItemMasterId for tender stk (PN-15938)
 ** 3    2026-04-10   Amit Ghediya   Filter apply (PN-15970)
 ** 4    2026-04-13   Amit Ghediya   Added for Quantity,QuantityAvailable,QuantityOnHand (PN-16028)
+** 4    2026-04-21   Amit Ghediya   Added for SequenceNum (PN-16146)
 *************************************************************/
 CREATE   PROCEDURE [dbo].[USP_GetAircraftInstalledPartDetails]
 (
@@ -22,16 +23,15 @@ CREATE   PROCEDURE [dbo].[USP_GetAircraftInstalledPartDetails]
     @SortColumn         VARCHAR(50) = NULL,
     @SortOrder          INT,
 	@GlobalFilter VARCHAR(50) = NULL,
+	@SequenceNum VARCHAR(10) = NULL,
 	@PartNumber VARCHAR(100) = NULL,
 	@PartDescription VARCHAR(100) = NULL,
 	@AtaChapter VARCHAR(50) = NULL,
 	@Condition VARCHAR(50) = NULL,
 	@StockLineNumber VARCHAR(50) = NULL,
-
 	@Quantity VARCHAR(50) = NULL,
 	@QuantityAvailable VARCHAR(50) = NULL,
 	@QuantityOnHand VARCHAR(50) = NULL,
-
 	@SerialNumber VARCHAR(50) = NULL,
 	@ControlNumber VARCHAR(50) = NULL,
 	@PositionCode VARCHAR(50) = NULL,
@@ -62,6 +62,7 @@ BEGIN
 				CONCAT_WS(' - ', IMAM.Level1, IMAM.Level2, IMAM.Level3) AS AtaChapter,
                 AIPD.PartNumber,
                 AIPD.PartDescription,
+				AIPD.SequenceNum,
 				AIPD.ItemMasterId,
 				ARH.AircraftRegistryId,
 				ARH.AircraftRegistryNumber,
@@ -94,16 +95,24 @@ BEGIN
                 AIPD.CreatedDate,
                 AIPD.UpdatedDate,
                 UPPER(AIPD.CreatedBy) AS CreatedBy,
-                UPPER(AIPD.UpdatedBy) AS UpdatedBy
+                UPPER(AIPD.UpdatedBy) AS UpdatedBy,
+				LS.LastSequence
             FROM dbo.AircraftInstalledPartDetails AS AIPD WITH (NOLOCK)
 			LEFT JOIN dbo.ItemMasterAircraftMapping IMAM WITH (NOLOCK) ON AIPD.ATAChapterId = IMAM.ItemMasterAircraftMappingId
 			INNER JOIN dbo.AircraftRegistryHeader ARH WITH (NOLOCK) ON ARH.AircraftRegistryId = AIPD.AircraftRegistryId
 			INNER JOIN dbo.ItemMaster IM WITH (NOLOCK) ON AIPD.ItemMasterId = IM.ItemMasterId
 			LEFT JOIN dbo.Stockline STK WITH (NOLOCK) ON STK.StockLineId = AIPD.StockLineId
+			CROSS JOIN (
+					SELECT MAX(SequenceNum) AS LastSequence
+					FROM dbo.AircraftInstalledPartDetails WITH (NOLOCK)
+					WHERE AircraftRegistryId = @AircraftRegistryId
+					AND MasterCompanyId = @MasterCompanyId
+			) LS
             WHERE AIPD.AircraftRegistryId = @AircraftRegistryId AND AIPD.MasterCompanyId = @MasterCompanyId
         ), ResultCount AS(SELECT COUNT(AircraftInstalledPartDetailsId) AS totalItems FROM Result)
 			SELECT * INTO #TempResult FROM  Result
 			 WHERE ((@GlobalFilter <>'' AND (([PartNumber] LIKE '%' +@GlobalFilter+'%') OR
+					(SequenceNum LIKE '%' +@GlobalFilter+'%') OR
 					(PartNumber LIKE '%' +@GlobalFilter+'%') OR
 					(PartDescription LIKE '%' +@GlobalFilter+'%') OR
 					(AtaChapter LIKE '%' +@GlobalFilter+'%') OR
@@ -119,6 +128,7 @@ BEGIN
 					(DateInstalled like '%' + @GlobalFilter + '%') OR
 					(PositionCode LIKE '%' +@GlobalFilter+'%'))) OR
 					(@GlobalFilter='' AND (ISNULL(@PartNumber,'') ='' OR [PartNumber] LIKE '%' + @PartNumber+'%') AND
+					(ISNULL(@SequenceNum,'') ='' OR SequenceNum LIKE '%' + @SequenceNum + '%') AND
 					(ISNULL(@PartNumber,'') ='' OR PartNumber LIKE '%' + @PartNumber + '%') AND	
 					(ISNULL(@PartDescription,'') ='' OR PartDescription LIKE '%' + @PartDescription + '%') AND
 					(ISNULL(@AtaChapter,'') ='' OR AtaChapter LIKE '%' + @AtaChapter + '%') AND
@@ -147,6 +157,9 @@ BEGIN
 
 			 CASE WHEN @SortOrder =  1 AND @SortColumn = 'Serialized'         THEN Serialized         END ASC,
             CASE WHEN @SortOrder = -1 AND @SortColumn = 'Serialized'         THEN Serialized         END DESC,
+
+			CASE WHEN @SortOrder =  1 AND @SortColumn = 'SEQUENCENUM'      THEN SequenceNum      END ASC,
+            CASE WHEN @SortOrder = -1 AND @SortColumn = 'SEQUENCENUM'      THEN SequenceNum      END DESC,
 
             CASE WHEN @SortOrder =  1 AND @SortColumn = 'PARTNUMBER'      THEN PartNumber      END ASC,
             CASE WHEN @SortOrder = -1 AND @SortColumn = 'PARTNUMBER'      THEN PartNumber      END DESC,

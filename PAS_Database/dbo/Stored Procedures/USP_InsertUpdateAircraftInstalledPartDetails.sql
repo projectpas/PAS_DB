@@ -12,6 +12,7 @@
  **  1   03-27-2026   Amit Ghediya      Created
  **  2   04-13-2026   Amit Ghediya      Added for Quantity (PN-16028)
  **  3   04-15-2026   Amit Ghediya      Added for AircraftTailNumber in stockline selected.
+ **  4   04-21-2026   Amit Ghediya      Added for SequenceNum. (PN-16146)
  ************************************************************************/
 CREATE   PROCEDURE [dbo].[USP_InsertUpdateAircraftInstalledPartDetails]
 (
@@ -37,7 +38,8 @@ CREATE   PROCEDURE [dbo].[USP_InsertUpdateAircraftInstalledPartDetails]
     @MasterCompanyId INT,
 	@UpdatedBy VARCHAR(50) = NULL,
 	@StockLineId BIGINT = NULL,
-	@Quantity DECIMAL(18,6) = NULL
+	@Quantity DECIMAL(18,6) = NULL,
+	@SequenceNum BIGINT
 )
 AS
 BEGIN
@@ -74,6 +76,7 @@ BEGIN
 			UPDATE DBO.AircraftInstalledPartDetails
 			SET
 				ATAChapterId = @ATAChapterId,
+				SequenceNum = @SequenceNum,
 				PartNumber = @PartNumber,
 				PartDescription = @PartDescription,
 				IsLLP = @IsLLP,
@@ -112,6 +115,7 @@ BEGIN
 			(
 				AircraftRegistryId,
 				ATAChapterId,
+				SequenceNum,
 				ItemMasterId,
 				PartNumber,
 				PartDescription,
@@ -141,6 +145,7 @@ BEGIN
 			(
 				@AircraftRegistryId,
 				@ATAChapterId,
+				@SequenceNum,
 				@ItemMasterId,
 				@PartNumber,
 				@PartDescription,

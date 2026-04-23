@@ -43,7 +43,7 @@
 	26   01/20/2026   Amit Ghediya		Update for filter allow unitcost to decimal like (18.25)
 	27   26/01/2026   Divyesh Kathiriya	Added new field 'GLAccount' for list
 	28   21/04/2026   Divyesh Kathiriya	Added new field 'PN Source' for list [PN-16132]
-
+	30   23/04/2026   Ayushi Patel		[PN-15958] returned StockUnitOfMeasure insted of PurchaseUnitOfMeasure (UnitOfMeasure)
 	(Do Not add any new join or In Query in Stockline list SP)
 	
 -- exec ProcStockList @PageNumber=1,@PageSize=20,@SortColumn=N'CreatedDate',@SortOrder=-1,@GlobalFilter=N'',@stockTypeId=1,@StocklineNumber=NULL,@MainPartNumber=NULL,
@@ -214,7 +214,8 @@ BEGIN
 		--(ISNULL(rPart.PartNumber,'')) 'RevisedPN',    
 		stl.RevicedPNNumber 'RevisedPN',
 		(ISNULL(stl.ItemGroup,'')) 'ItemGroup',         
-		(ISNULL(stl.UnitOfMeasure,'')) 'UnitOfMeasure',        
+		--(ISNULL(stl.UnitOfMeasure,'')) 'UnitOfMeasure', 
+		(ISNULL(uom.ShortName,'')) 'UnitOfMeasure',
 		CAST(stl.QuantityOnHand AS varchar) 'QuantityOnHand',        
 		stl.QuantityOnHand  as QuantityOnHandnew,        
 		CAST(stl.QuantityAvailable AS varchar) 'QuantityAvailable',        
@@ -525,7 +526,8 @@ BEGIN
 		(ISNULL(stl.Manufacturer,'')) 'Manufacturer',          
 		(ISNULL(RevicedPNNumber,'')) 'RevisedPN',                  
 		(ISNULL(stl.ItemGroup,'')) 'ItemGroup',         
-		(ISNULL(stl.UnitOfMeasure,'')) 'UnitOfMeasure',        
+		--(ISNULL(stl.UnitOfMeasure,'')) 'UnitOfMeasure',
+		(ISNULL(uom.ShortName,'')) 'UnitOfMeasure',
 		CAST(stl.QuantityOnHand AS varchar) 'QuantityOnHand',        
 		stl.QuantityOnHand  as QuantityOnHandnew,        
 		CAST(stl.QuantityAvailable AS varchar) 'QuantityAvailable',        
@@ -844,7 +846,7 @@ BEGIN
 		(ISNULL(stl.Manufacturer,'')) 'Manufacturer',          
 		(ISNULL(RevicedPNNumber,'')) 'RevisedPN',                  
 		(ISNULL(stl.ItemGroup,'')) 'ItemGroup',         
-		(ISNULL(stl.UnitOfMeasure,'')) 'UnitOfMeasure',        
+		(ISNULL(stl.StockUnitOfMeasure,'')) 'UnitOfMeasure',        
 		CAST(stl.QuantityOnHand AS varchar) 'QuantityOnHand',        
 		stl.QuantityOnHand  as QuantityOnHandnew,   
 		CAST(stl.QuantityAvailable AS varchar) 'QuantityAvailable',        
@@ -1152,7 +1154,7 @@ BEGIN
 		(ISNULL(stl.Manufacturer,'')) 'Manufacturer',          
 		(ISNULL(stl.RevicedPNNumber,'')) 'RevisedPN',                  
 		(ISNULL(stl.ItemGroup,'')) 'ItemGroup',         
-		(ISNULL(stl.UnitOfMeasure,'')) 'UnitOfMeasure',        
+		(ISNULL(stl.StockUnitOfMeasure,'')) 'UnitOfMeasure',        
 		CAST(stl.QuantityOnHand AS varchar) 'QuantityOnHand',        
 		stl.QuantityOnHand  as QuantityOnHandnew,        
 		CAST(stl.QuantityAvailable AS varchar) 'QuantityAvailable',        

@@ -1,4 +1,4 @@
-/************************************************************
+﻿/************************************************************
 ** File:        [USP_GetAircraftRegistryList]
 ** Author:      Priyansh Patel
 ** Description: Get Aircraft Registry data from AircraftRegistryHeader
@@ -8,6 +8,8 @@
 ** PR   Date         Author          Description
 ** --   ----------   -------------   -------------------------
 ** 1    26/02/2026   Priyansh Patel  Created [PN-15841]
+** 2    23/04/2026   Priyansh Patel  Added Maintenance Status [PN-16152]
+
 ************************************************************/
 CREATE PROCEDURE [dbo].[USP_GetAircraftRegistryList]
     @PageNumber         INT             = 1,
@@ -28,6 +30,7 @@ CREATE PROCEDURE [dbo].[USP_GetAircraftRegistryList]
     @TotalCSN           VARCHAR(50)  = NULL,
     @Hobbs              VARCHAR(50)  = NULL,
     @AircraftLocation   VARCHAR(200)    = NULL,
+    @MaintenanceStatus   VARCHAR(100)    = NULL,
     @NumOfEngines       VARCHAR(100)    = NULL,
     @NextScheduled      DATETIME        = NULL,
     @AircraftStatusId   BIGINT          = NULL,
@@ -57,6 +60,7 @@ BEGIN
                 AR.TotalCSN,
                 AR.Hobbs,
                 AR.AircraftLocation,
+                AR.MaintenanceStatus,
                 AR.NextScheduled,
                 AR.MEL,
                 AR.AircraftStatus,
@@ -89,6 +93,7 @@ BEGIN
                 AND (@TotalCSN          IS NULL OR AR.TotalCSN     LIKE '%' + @TotalCSN     + '%')
                 AND (@Hobbs             IS NULL OR AR.Hobbs     LIKE '%' + @Hobbs     + '%')
                 AND (@AircraftLocation  IS NULL OR AR.AircraftLocation LIKE '%' + @AircraftLocation + '%')
+                AND (@MaintenanceStatus  IS NULL OR AR.MaintenanceStatus LIKE '%' + @MaintenanceStatus + '%')
                 AND (@NextScheduled     IS NULL OR CAST(AR.NextScheduled AS DATE) = CAST(@NextScheduled AS DATE))
                 AND (@MEL               IS NULL OR AR.MEL              LIKE '%' + @MEL              + '%')
                 AND (@AircraftStatusId  IS NULL OR AR.AircraftStatusId = @AircraftStatusId)
@@ -107,6 +112,7 @@ BEGIN
             TotalCSN,
             Hobbs,
             AircraftLocation,
+            MaintenanceStatus,
             NextScheduled,
             MEL,
             AircraftStatus,
@@ -139,6 +145,8 @@ BEGIN
             CASE WHEN @SortColumn = 'Hobbs'              AND @SortOrder = 'DESC' THEN Hobbs             END DESC,
             CASE WHEN @SortColumn = 'AircraftLocation'   AND @SortOrder = 'ASC'  THEN AircraftLocation  END ASC,
             CASE WHEN @SortColumn = 'AircraftLocation'   AND @SortOrder = 'DESC' THEN AircraftLocation  END DESC,
+            CASE WHEN @SortColumn = 'MaintenanceStatus'  AND @SortOrder = 'ASC'  THEN MaintenanceStatus  END ASC,
+            CASE WHEN @SortColumn = 'MaintenanceStatus'  AND @SortOrder = 'DESC' THEN MaintenanceStatus  END DESC,
             CASE WHEN @SortColumn = 'NextScheduled'      AND @SortOrder = 'ASC'  THEN NextScheduled     END ASC,
             CASE WHEN @SortColumn = 'NextScheduled'      AND @SortOrder = 'DESC' THEN NextScheduled     END DESC,
             CASE WHEN @SortColumn = 'MEL'                AND @SortOrder = 'ASC'  THEN MEL               END ASC,

@@ -29,8 +29,11 @@
     [NetSaleAmountPerUnit]      DECIMAL (18, 6) NULL,
     CONSTRAINT [PK_SalesOrderQuotePartCost] PRIMARY KEY CLUSTERED ([SalesOrderQuotePartCostId] ASC),
     CONSTRAINT [FK_SalesOrderQuotePartCost_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId]),
-    CONSTRAINT [FK_SalesOrderQuotePartCost_SalesOrderQuote] FOREIGN KEY ([SalesOrderQuoteId]) REFERENCES [dbo].[SalesOrderQuote] ([SalesOrderQuoteId])
+    CONSTRAINT [FK_SalesOrderQuotePartCost_SalesOrderQuote] FOREIGN KEY ([SalesOrderQuoteId]) REFERENCES [dbo].[SalesOrderQuote] ([SalesOrderQuoteId]),
+    CONSTRAINT [FK_SalesOrderQuotePartCost_SalesOrderQuotePartV1] FOREIGN KEY ([SalesOrderQuotePartId]) REFERENCES [dbo].[SalesOrderQuotePartV1] ([SalesOrderQuotePartId])
 );
+
+
 
 
 

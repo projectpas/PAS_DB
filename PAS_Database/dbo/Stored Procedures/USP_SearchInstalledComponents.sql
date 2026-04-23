@@ -1,5 +1,5 @@
 ﻿/*************************************************************
-** File:        [USP_SearchIntalldComponents]
+** File:        [USP_SearchInstalledComponents]
 ** Description: To search the installed components
 ** Date:        21/04/2026
 **
@@ -12,8 +12,8 @@
 ** 1    21/04/2026   Priyansh Patel     Created [PN-16140]
 
 *************************************************************/
---EXEC [dbo].[USP_SearchIntalldComponents] @MasterCompanyId =1
-CREATE PROCEDURE [dbo].[USP_SearchIntalldComponents]
+--EXEC [dbo].[USP_SearchInstalledComponents] @MasterCompanyId =1
+CREATE PROCEDURE [dbo].[USP_SearchInstalledComponents]
 (   
     @MasterCompanyId    INT,
     @ItemMasterId       BIGINT          = NULL,
@@ -26,11 +26,11 @@ CREATE PROCEDURE [dbo].[USP_SearchIntalldComponents]
     @MakeType           VARCHAR(100)    = NULL,
     @AircraftModel      VARCHAR(100)    = NULL,
     @ColumnSerialNum    VARCHAR(100)    = NULL,  
-    @TotalTSN           DECIMAL(18,2)   = NULL,
-    @TotalCSN           DECIMAL(18,2)   = NULL,
-    @Hobbs              DECIMAL(18,2)   = NULL,
-    @FlightHours        DECIMAL(18,2)   = NULL,
-    @Cycles             DECIMAL(18,2)   = NULL,
+    @TotalTSN           DECIMAL(18,6)   = NULL,
+    @TotalCSN           DECIMAL(18,6)   = NULL,
+    @Hobbs              DECIMAL(18,6)   = NULL,
+    @FlightHours        DECIMAL(18,6)   = NULL,
+    @Cycles             DECIMAL(18,6)   = NULL,
     @LastMaintenance    DATE            = NULL,
     @NextMaintenance    DATE            = NULL,
 
@@ -137,7 +137,7 @@ BEGIN
     DECLARE
         @ErrorLogID INT,
         @DatabaseName VARCHAR(100) = DB_NAME(),
-        @AdhocComments VARCHAR(150) = 'USP_SearchIntalldComponents',
+        @AdhocComments VARCHAR(150) = 'USP_SearchInstalledComponents',
         @ProcedureParameters VARCHAR(3000),
         @ApplicationName VARCHAR(100) = 'PAS';
 

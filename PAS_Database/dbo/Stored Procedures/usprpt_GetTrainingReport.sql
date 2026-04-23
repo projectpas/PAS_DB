@@ -17,9 +17,10 @@
     4    15-MAR-2026   Sahdev Saliya        Added TrainingName, ProviderType, IsRecurring, DurationHours, DurationMinutes (PN-15933)
     5    15-APR-2026   Sahdev Saliya        Standards and performance improvements (PN-15933)
     6    15-APR-2026   Divyesh Kathiriya	Handle Multiple EmployeeId. [PN-15934]
+	7    22-APR-2026   Sahdev Saliya        Added condion of IsDeleted for EmployeeTraining report List.(PN-16144)
 
 ************************************************************************/
-CREATE   PROCEDURE [dbo].[usprpt_GetTrainingReport]
+CREATE    PROCEDURE [dbo].[usprpt_GetTrainingReport]
     @PageNumber      INT = 1,
     @PageSize        INT = NULL,
     @mastercompanyid INT,
@@ -98,7 +99,8 @@ BEGIN
             SELECT @PageSize = COUNT(DISTINCT E.EmployeeId)
             FROM DBO.Employee E WITH (NOLOCK)
                 INNER JOIN dbo.EmployeeManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = E.EmployeeId
-                LEFT JOIN dbo.EmployeeTraining ET WITH (NOLOCK) ON E.EmployeeId = ET.EmployeeId
+				INNER JOIN dbo.EmployeeTraining ET WITH (NOLOCK) ON E.EmployeeId = ET.EmployeeId AND ISNULL(ET.IsDeleted, 0) = 0
+
             WHERE E.mastercompanyid = @mastercompanyid
                 AND E.IsActive  = 1
                 AND E.IsDeleted = 0
@@ -163,7 +165,7 @@ BEGIN
             FROM DBO.Employee E WITH (NOLOCK)
                 INNER JOIN dbo.EmployeeManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = E.EmployeeId
                 LEFT JOIN dbo.JobTitle J WITH (NOLOCK) ON E.JobTitleId = J.JobTitleId
-                INNER JOIN dbo.EmployeeTraining ET WITH (NOLOCK) ON E.EmployeeId = ET.EmployeeId
+				INNER JOIN dbo.EmployeeTraining ET WITH (NOLOCK) ON E.EmployeeId = ET.EmployeeId AND ISNULL(ET.IsDeleted, 0) = 0
                 LEFT JOIN dbo.EmployeeTrainingType ETP WITH (NOLOCK) ON ET.EmployeeTrainingTypeId = ETP.EmployeeTrainingTypeId
                 LEFT JOIN dbo.FrequencyOfTraining FT WITH (NOLOCK) ON ET.FrequencyOfTrainingId = FT.FrequencyOfTrainingId
                 LEFT JOIN dbo.AircraftType AFT WITH (NOLOCK) ON ET.AircraftManufacturerId = AFT.AircraftTypeId

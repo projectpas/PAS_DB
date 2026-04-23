@@ -11,6 +11,7 @@
  ** --   --------			-------				--------------------------------          
     1    03-March-2026		Rajesh Gami		Created [PN-14832]
 	2    16-APR-2026		Ayushi Patel	Return StockUOMId,ConsumeUOMId [PN-16034]
+	3    22-APR-2026        Ayushi Patel	Return PurchaseUOMId [PN-16034]
 EXEC [dbo].[usp_GetStockConsumeUOMByStocklineId]
 **************************************************************/
 CREATE       PROCEDURE [dbo].[usp_GetStockConsumeUOMByStocklineId]
@@ -26,10 +27,12 @@ BEGIN
 			    CASE WHEN ISNULL(ConsumeUnitOfMeasure,'') = '' THEN  uomConsume.ShortName ELSE ISNULL(ConsumeUnitOfMeasure,'') END AS ConsumeUOM,
 				CASE WHEN ISNULL(StockUnitOfMeasureId,'') = '' THEN uomStock.UnitOfMeasureId ELSE ISNULL(StockUnitOfMeasureId,'') END StockUOMId,
 				CASE WHEN ISNULL(ConsumeUnitOfMeasureId,'') = '' THEN uomConsume.UnitOfMeasureId ELSE ISNULL(ConsumeUnitOfMeasureId,'') END ConsumeUOMId,
+				CASE WHEN ISNULL(PurchaseUnitOfMeasureId,'') = '' THEN uomPurchase.UnitOfMeasureId ELSE ISNULL(PurchaseUnitOfMeasureId,'') END PurchaseUOMId,
 				UnitOfMeasure as PurchaseUOM
 				FROM DBO.Stockline SL WITH(NOLOCK) 
 									LEFT JOIN [dbo].[UnitOfMeasure] uomStock WITH(NOLOCK) ON uomStock.UnitOfMeasureId = SL.StockUnitOfMeasureId
 									LEFT JOIN [dbo].[UnitOfMeasure] uomConsume WITH(NOLOCK) ON uomConsume.UnitOfMeasureId = SL.ConsumeUnitOfMeasureId
+									LEFT JOIN [dbo].[UnitOfMeasure] uomPurchase WITH(NOLOCK) ON uomPurchase.UnitOfMeasureId = SL.PurchaseUnitOfMeasureId
 									WHERE SL.MasterCompanyId = @MasterCompanyId AND SL.StockLineId = @StocklineId
 			
 	END TRY    

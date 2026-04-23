@@ -25,7 +25,8 @@
 	8    24/09/2025  Sahdev Saliya    Added Classification
 	7    27/11/2025  Bhargav Saliya	  Modified(Get GL accound code and name from the GLAcount Table).
 	8    02/12/2025  Bhargav Saliya	  Revert Changes.
-	9    10 DEc @025   Rajesh Gami		   Return DecimalPlaces from UnitOfMeasure, ConsumeUnitOfMeasureId
+	9    10/12/2025  Rajesh Gami		   Return DecimalPlaces from UnitOfMeasure, ConsumeUnitOfMeasureId
+	10   22/04/2026  Ayushi Patel	 Removed ROUND function [PN-16034]	
     EXEC dbo.GetStockLineDetails  179632  180170
 ***********************************************************************************************/
 
@@ -72,16 +73,16 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 			  ,stl.[itemType] 'itemCategory'                                
               ,stl.[IdNumber]
               ,stl.[ItemMasterId]
-			  ,stl.[PNDescription] 'partDescription'                                
+			  ,stl.[PNDescription] AS 'partDescription'                                
               ,stl.[ManagementStructureId]
               ,''  [managementStructureName]
-              ,ISNULL(stl.[Quantity],0) 'Quantity'
-              ,ISNULL(stl.[QuantityOnOrder],0) 'QuantityOnOrder'
-              ,ISNULL(stl.[QuantityIssued],0) 'QuantityIssued'
-              ,stl.[QuantityOnHand] 'QuantityOnHand'
-              ,ISNULL(stl.[QuantityAvailable],0) 'QuantityAvailable'
-              ,ISNULL(stl.[QuantityTurnIn],0) 'QuantityTurnIn'
-              ,ISNULL(stl.[QuantityReserved],0) 'QuantityReserved'
+              ,ISNULL(stl.[Quantity],0) AS 'Quantity'
+              ,ISNULL(stl.[QuantityOnOrder],0) AS 'QuantityOnOrder'
+              ,ISNULL(stl.[QuantityIssued],0) AS 'QuantityIssued'
+              ,stl.[QuantityOnHand] AS 'QuantityOnHand'
+              ,ISNULL(stl.[QuantityAvailable],0) AS 'QuantityAvailable'
+              ,ISNULL(stl.[QuantityTurnIn],0) AS 'QuantityTurnIn'
+              ,ISNULL(stl.[QuantityReserved],0) AS 'QuantityReserved'
               ,stl.[Accident]
               ,stl.[AccidentReason]
               ,stl.[Incident]
@@ -117,20 +118,20 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
               ,stl.[CertifiedTypeId]
               ,stl.[CertifiedDate]
               ,stl.[TagTypeId]    
-			  ,ISNULL(tt.[Name], '') 'TagType'
+			  ,ISNULL(tt.[Name], '') AS 'TagType'
 			  ,stl.[CertifiedDueDate]
               ,stl.[CalibrationMemo]
               ,stl.[OrderDate]
-			  ,ISNULL(po.[PurchaseOrderNumber], '') 'PurchaseOrderNumber'
-              ,ROUND(ISNULL(stl.[PurchaseOrderUnitCost],0),2) 'PurchaseOrderUnitCost'
-              ,ISNULL(ro.[RepairOrderNumber], '') 'RepairOrderNumber'
-			  ,ROUND(ISNULL(stl.[RepairOrderUnitCost],0),2)  'RepairOrderUnitCost'
-              ,ROUND(ISNULL(stl.[InventoryUnitCost],0),2) 'InventoryUnitCost'
+			  ,ISNULL(po.[PurchaseOrderNumber], '') AS 'PurchaseOrderNumber'
+              ,ISNULL(stl.[PurchaseOrderUnitCost],0) AS 'PurchaseOrderUnitCost'
+              ,ISNULL(ro.[RepairOrderNumber], '') AS 'RepairOrderNumber'
+			  ,ISNULL(stl.[RepairOrderUnitCost],0) AS 'RepairOrderUnitCost'
+              ,ISNULL(stl.[InventoryUnitCost],0) AS 'InventoryUnitCost'
               ,stl.[ReceivedDate]
               ,stl.[ReconciliationNumber]
-              ,ROUND(ISNULL(stl.[UnitSalesPrice],0),2) 'UnitSalesPrice'
+              ,ISNULL(stl.[UnitSalesPrice],0) AS 'UnitSalesPrice'
               ,stl.[SalesPriceExpiryDate]
-              ,ROUND(ISNULL(stl.[CoreUnitCost],0),2) 'CoreUnitCost'
+              ,ISNULL(stl.[CoreUnitCost],0) AS 'CoreUnitCost'
               ,stl.[GLAccountId]
               ,stl.[AssetId]
               ,stl.[IsPMA]
@@ -164,29 +165,29 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
               ,stl.[TimeLifeDetailsNotProvided]
               ,stl.[PurchaseOrderId]
               ,stl.[RepairOrderId]
-              ,ISNULL(stl.[IsCustomerStock],0) IsCustomerStock
+              ,ISNULL(stl.[IsCustomerStock],0) AS IsCustomerStock
               ,stl.[QuantityRejected]
               ,stl.[IsDeleted]
               ,stl.[LegalEntityId]
               ,stl.[MasterCompanyId]
-              ,ISNULL(stl.[IsSerialized],0) IsSerialized
+              ,ISNULL(stl.[IsSerialized],0) AS IsSerialized
               ,stl.[WorkOrderId]
               ,stl.[PurchaseOrderPartRecordId]
-              ,ROUND(stl.[PurchaseOrderExtendedCost],2) PurchaseOrderExtendedCost
+              ,stl.[PurchaseOrderExtendedCost] AS PurchaseOrderExtendedCost
               ,stl.[ShippingViaId]
               ,stl.[RepairOrderPartRecordId]
-              ,ROUND(ISNULL(stl.[WorkOrderExtendedCost],0),2) WorkOrderExtendedCost
+              ,ISNULL(stl.[WorkOrderExtendedCost],0) AS WorkOrderExtendedCost
               ,NULL  'PurchaseOrderPartRecord'
-			  ,ROUND(ISNULL(stl.[RepairOrderExtendedCost],0),2) RepairOrderExtendedCost
-              ,ISNULL(stl.[IsHazardousMaterial],0) IsHazardousMaterial
-              ,ISNULL(stl.[QuantityToReceive],0) QuantityToReceive
+			  ,ISNULL(stl.[RepairOrderExtendedCost],0) AS RepairOrderExtendedCost
+              ,ISNULL(stl.[IsHazardousMaterial],0) AS IsHazardousMaterial
+              ,ISNULL(stl.[QuantityToReceive],0) AS QuantityToReceive
               ,stl.[ManufacturingTrace]
               ,stl.[WorkOrderMaterialsId]
               ,stl.[ShippingAccount]
               ,stl.[ShippingReference]
               ,im.[NationalStockNumber]
               ,stl.[EntryDate]
-              ,ROUND(ISNULL(stl.[LotCost],0),2) LotCost
+              ,ISNULL(stl.[LotCost],0) LotCost
               ,stl.[CustomerId]
               ,stl.[ExistingCustomerId]
 			  ,stl.[ExistingCustomer] 'ExistingCustomerName'
@@ -232,17 +233,17 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 				   WHEN stl.[ObtainFromType] = @OthersModuleId THEN stl.[ObtainFromName]
 	    		   ELSE ''
 	    	  END 'ObtainFromName'
-			 ,stl.[NHAPartNumber] 'nha'
-			 ,stl.[TLAPartNumber] 'tla'
-			 ,stl.[NHAPartDescription] 'nhaPartDescription'
-			 ,stl.[TLAPartDescription] 'tlaPartDescription'
+			 ,stl.[NHAPartNumber] AS 'nha'
+			 ,stl.[TLAPartNumber] AS 'tla'
+			 ,stl.[NHAPartDescription] AS 'nhaPartDescription'
+			 ,stl.[TLAPartDescription] AS 'tlaPartDescription'
 			 ,0 'DaysReceived'
 			 ,0 'TagDays'
 			 ,0 'OpenDays'
 			 ,0 'ManufacturingDays'
 			 ,stl.[GlAccountName]
              ,stl.[AcquistionTypeId]
-			 ,ISNULL(iaty.[Name], '') 'AcquistionTypeName'
+			 ,ISNULL(iaty.[Name], '') AS 'AcquistionTypeName'
 			 ,stl.[RequestorId]
 			 ,stl.[LotNumber]
 			 ,stl.[LotDescription]
@@ -290,9 +291,9 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
               ,stl.[SubWorkOrderId]
               ,stl.[SubWorkOrderNumber]
 			  ,ISNULL(stl.[IsManualEntry], 0) AS IsManualEntry
-              ,ROUND(ISNULL(stl.[Adjustment], 0),2) AS Adjustment
-              ,ROUND(ISNULL(stl.[FreightAdjustment], 0),2) AS FreightAdjustment
-              ,ROUND(ISNULL(stl.[TaxAdjustment], 0),2) AS TaxAdjustment
+              ,ISNULL(stl.[Adjustment], 0) AS Adjustment
+              ,ISNULL(stl.[FreightAdjustment], 0) AS FreightAdjustment
+              ,ISNULL(stl.[TaxAdjustment], 0) AS TaxAdjustment
 			  ,'' AS TaxAdjustmentAmounts
 			  ,ISNULL(stl.[IsStkTimeLife], im.[IsTimeLife]) AS isTimeLife
 			  ,CASE WHEN stl.[IsSerialized] = 1 AND (stl.[SerialNumber] IS NULL OR stl.[SerialNumber] = '') THEN 1 ELSE 0 END AS IsSkipSerialNo

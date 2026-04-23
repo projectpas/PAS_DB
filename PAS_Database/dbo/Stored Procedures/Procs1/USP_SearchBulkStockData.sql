@@ -14,7 +14,8 @@
     1    12/10/2023     AMIT GHEDIYA			Created
 	2    06/12/2023     AMIT GHEDIYA			Modify(Added Adjustment Type column)
 	3	 09/04/2025	    Ekta Chandegra	        Convert date using dbo.ConvertUTCtoLocal
-    4    26/01/2026     Ayushi Patel            Enhancement: Added ViewType-based data handling (SUMMARY / DETAILS).   
+    4    26/01/2026     Ayushi Patel            Enhancement: Added ViewType-based data handling (SUMMARY / DETAILS).
+	5    22/04/2026     Rajesh Gami				Getting proper value of Quantity and UnitCost for the details type [PN-15728]
 -- EXEC USP_SearchBulkStockData
 ************************************************************************/  
 CREATE    PROCEDURE [dbo].[USP_SearchBulkStockData]
@@ -164,8 +165,8 @@ BEGIN
                     IM.PartNumber,
                     IM.PartDescription,
 
-                    BSAD.QtyAdjustment,
-                    BSAD.NewUnitCost,
+                    BSAD.QtyAdjustment As NewQty,
+                    BSAD.NewUnitCost As UnitCost ,
                     BSAD.LastMSLevel,
                     BSAD.AllMSLevels,
 
@@ -196,8 +197,8 @@ BEGIN
                     CreatedDate,
                     PartNumber,
                     PartDescription,
-                    QtyAdjustment,
-                    NewUnitCost,
+                    NewQty,
+                    UnitCost,
                     LastMSLevel,
                     AllMSLevels,
                     [Condition],
@@ -217,8 +218,8 @@ BEGIN
                         OR LOWER(AdjustmentType) LIKE '%' + LOWER(@GlobalFilter) + '%'
                         OR LOWER(LastMSLevel) LIKE '%' + LOWER(@GlobalFilter) + '%'
                         OR LOWER(AllMSLevels) LIKE '%' + LOWER(@GlobalFilter) + '%'
-                        OR CAST(QtyAdjustment AS VARCHAR(50)) LIKE '%' + @GlobalFilter + '%'
-                        OR CAST(NewUnitCost AS VARCHAR(50)) LIKE '%' + @GlobalFilter + '%'
+                        OR CAST(NewQty AS VARCHAR(50)) LIKE '%' + @GlobalFilter + '%'
+                        OR CAST(UnitCost AS VARCHAR(50)) LIKE '%' + @GlobalFilter + '%'
                     )
                 )
                 OR
@@ -233,8 +234,8 @@ BEGIN
                     AND (ISNULL(@ControlNumber, '') = '' OR ControlNumber LIKE '%' + @ControlNumber + '%')
                     AND (ISNULL(@LastMSLevel, '') = '' OR LastMSLevel LIKE '%' + @LastMSLevel + '%')
                     AND (ISNULL(@AllMSLevels, '') = '' OR AllMSLevels LIKE '%' + @AllMSLevels + '%')
-                    AND (ISNULL(@QtyAdjustment, '') = '' OR CAST(QtyAdjustment AS VARCHAR(50)) LIKE '%' + @QtyAdjustment + '%')
-                    AND (ISNULL(@NewUnitCost, '') = '' OR CAST(NewUnitCost AS VARCHAR(50)) LIKE '%' + @NewUnitCost + '%')
+                    AND (ISNULL(@QtyAdjustment, '') = '' OR CAST(NewQty AS VARCHAR(50)) LIKE '%' + @QtyAdjustment + '%')
+                    AND (ISNULL(@NewUnitCost, '') = '' OR CAST(UnitCost AS VARCHAR(50)) LIKE '%' + @NewUnitCost + '%')
                 )
             ),
             ResultCount AS
@@ -248,8 +249,8 @@ BEGIN
                 CreatedDate,
                 PartNumber,
                 PartDescription,
-                QtyAdjustment,
-                NewUnitCost,
+                NewQty,
+                UnitCost,
                 LastMSLevel,
                 AllMSLevels,
                 [Condition],
@@ -283,11 +284,11 @@ BEGIN
                 CASE WHEN (@SortOrder = 1 AND @SortColumn = 'CONTROLNUMBER') THEN ControlNumber END ASC,
                 CASE WHEN (@SortOrder = -1 AND @SortColumn = 'CONTROLNUMBER') THEN ControlNumber END DESC,
 
-                CASE WHEN (@SortOrder = 1 AND @SortColumn = 'QTYADJUSTMENT') THEN QtyAdjustment END ASC,
-                CASE WHEN (@SortOrder = -1 AND @SortColumn = 'QTYADJUSTMENT') THEN QtyAdjustment END DESC,
+                CASE WHEN (@SortOrder = 1 AND @SortColumn = 'QTYADJUSTMENT') THEN NewQty END ASC,
+                CASE WHEN (@SortOrder = -1 AND @SortColumn = 'QTYADJUSTMENT') THEN NewQty END DESC,
 
-                CASE WHEN (@SortOrder = 1 AND @SortColumn = 'NEWUNITCOST') THEN NewUnitCost END ASC,
-                CASE WHEN (@SortOrder = -1 AND @SortColumn = 'NEWUNITCOST') THEN NewUnitCost END DESC,
+                CASE WHEN (@SortOrder = 1 AND @SortColumn = 'NEWUNITCOST') THEN UnitCost END ASC,
+                CASE WHEN (@SortOrder = -1 AND @SortColumn = 'NEWUNITCOST') THEN UnitCost END DESC,
 
                 CASE WHEN (@SortOrder = 1 AND @SortColumn = 'LASTMSLEVEL') THEN LastMSLevel END ASC,
                 CASE WHEN (@SortOrder = -1 AND @SortColumn = 'LASTMSLEVEL') THEN LastMSLevel END DESC,

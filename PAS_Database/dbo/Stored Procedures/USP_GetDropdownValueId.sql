@@ -14,16 +14,17 @@
 	4	 06-Aug-2025		Ayushi Patel			Updated WHERE clause in dynamic SQL to include MasterCompanyId = 0
 	5	 31-Oct-2025		Priyansh Patel			Updated the conditions for the MRO price master
 	6	 10-Nov-2025		Priyansh Patel			Added Delimiter logic for item master SiteId
-
+	7	 22-Apr-2026		Nakul Chandigra			Added condition for CustomerSettingsModule (PN-15950)
 
 DECLARE @FieldValueId VARCHAR(50);
 
 EXEC [dbo].[USP_GetDropdownValueId]
-    @DropdownListTable = 'CustomerAffiliation',
-    @DropdownListId = 'CustomerAffiliationId',
-    @DropdownListValue = 'Description',
-    @FieldValue = 'external',
+    @DropdownListTable = 'CreditTerms',
+    @DropdownListId = 'CreditTermsId',
+    @DropdownListValue = 'Name',
+    @FieldValue = '1% NET 15, 30',
     @MasterCompanyId = 1,
+	@ModuleId= 39,
 	@ColumnReferenceName = '',
 	@IsChekColumnRef = '',
     @FieldValueId = @FieldValueId OUTPUT;
@@ -57,7 +58,7 @@ BEGIN
 	DECLARE @AlterModule AS BIGINT;
 	SET @AlterModule = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'AlternateItemMaster');
 
-
+	DECLARE @CustomerSettingsModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'CustomerSettings');
 	DECLARE @MROPriceMasterModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'MROPriceMaster');
 	DECLARE @MROPriceMasterListModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'MROPriceMasterList');
 	DECLARE @ItemMasterModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'itemMaster');
@@ -96,6 +97,18 @@ BEGIN
 				END
 				
 		END
+	
+	ELSE IF( @ModuleId = @CustomerSettingsModule) 
+	BEGIN
+		IF(ISNULL(@MasterCompanyId, 0) > 0)
+		BEGIN
+			SET @RefQuery = 'SELECT @FieldValueId = CAST(' + @DropdownListId + ' AS VARCHAR)' + ' FROM [DBO].[' + @DropdownListTable + '] WITH(NOLOCK)'+ ' WHERE UPPER(TRIM(' + @DropdownListValue + ')) = UPPER(TRIM(''' + REPLACE(@FieldValue, '''', '''''') + '''))'+ ' AND (MasterCompanyId = ' + CAST(@MasterCompanyId AS VARCHAR) + ' OR MasterCompanyId = 0)';
+		END
+		ELSE
+		BEGIN
+			SET @RefQuery = 'SELECT @FieldValueId = CAST(' + @DropdownListId + ' AS VARCHAR)' + ' FROM [DBO].[' + @DropdownListTable + '] WITH(NOLOCK)' + ' WHERE UPPER(TRIM(' + @DropdownListValue + ')) = UPPER(TRIM(''' + REPLACE(@FieldValue, '''', '''''') + '''))';
+		END
+	END
 	ELSE
 		BEGIN
 			IF(ISNULL(@MasterCompanyId, 0) > 0)

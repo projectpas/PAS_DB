@@ -28,6 +28,7 @@
     [ConditionId]                    BIGINT          NULL,
     [Quantity]                       DECIMAL (18, 6) NULL,
     [PositionCodeId]                 BIGINT          NULL,
+    [SequenceNum]                    INT             NULL,
     PRIMARY KEY CLUSTERED ([AircraftInstalledPartDetailsId] ASC),
     CONSTRAINT [FK_AircraftInstalledPartDetails_AircraftRegistryId] FOREIGN KEY ([AircraftRegistryId]) REFERENCES [dbo].[AircraftRegistryHeader] ([AircraftRegistryId]),
     CONSTRAINT [FK_AircraftInstalledPartDetails_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId])

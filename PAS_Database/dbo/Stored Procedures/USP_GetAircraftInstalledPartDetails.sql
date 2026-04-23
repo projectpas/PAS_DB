@@ -14,7 +14,8 @@
 ** 2    2026-04-07   Amit Ghediya   Get ItemMasterId for tender stk (PN-15938)
 ** 3    2026-04-10   Amit Ghediya   Filter apply (PN-15970)
 ** 4    2026-04-13   Amit Ghediya   Added for Quantity,QuantityAvailable,QuantityOnHand (PN-16028)
-** 4    2026-04-21   Amit Ghediya   Added for SequenceNum (PN-16146)
+** 5    2026-04-21   Amit Ghediya   Added for SequenceNum (PN-16146)
+** 6    2026-04-22   Amit Ghediya   Added for ConditionId (PN-16149)
 *************************************************************/
 CREATE   PROCEDURE [dbo].[USP_GetAircraftInstalledPartDetails]
 (
@@ -67,6 +68,7 @@ BEGIN
 				ARH.AircraftRegistryId,
 				ARH.AircraftRegistryNumber,
 				STK.Condition,
+				STK.ConditionId,
 				STK.StockLineNumber,
 				STK.ControlNumber,
 				STK.SerialNumber,

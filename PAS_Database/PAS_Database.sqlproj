@@ -4500,6 +4500,7 @@
     <Build Include="dbo\Stored Procedures\USP_CreateUpdateAircraftMaintenanceProgram.sql" />
     <Build Include="dbo\Stored Procedures\GetACWorkFlowList.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetCommonForNonStocklineByItemMasterId.sql" />
+    <Build Include="dbo\Stored Procedures\USP_SearchIntalldComponents.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

@@ -20,6 +20,7 @@
 	6    20/03/2025   Ekta Chandegra Convert date using dbo.ConvertUTCtoLocal
 	7    18-04-2025   Shrey Chandegara  Modifed due to datefilter issue
 	8    02-08-2025   Sahdev Saliya   Added New Field Verified, VerifiedBy And VerifiedDate
+	9    24-04-2026   Priyansh Patel   Added New Field TemplateType [PN-16166]
 
 exec GetWorkFlowList @PageSize=20,@PageNumber=1,@SortColumn=NULL,@SortOrder=-1,@StatusID=1,@GlobalFilter=N'',@WorkOrderNumber=NULL,@Version=NULL,@PartNumber=NULL,@PartDescription=NULL,@ManufacturerName=NULL,@Description=NULL,@CustomerName=NULL,@WorkflowCreateDate=NULL,@WorkflowExpirationDate=NULL,@CreatedDate=NULL,@UpdatedDate=NULL,@CreatedBy=NULL,@UpdatedBy=NULL,@IsDeleted=0,@MasterCompanyId=1,@TemplateDescription=NULL,@EmployeeId=223
 **************************************************************/ 
@@ -135,6 +136,7 @@ BEGIN
 					wf.UpdatedBy,
 					CASE WHEN wf.IsVersionIncrease IS NULL THEN CASE WHEN WFParentId IS NULL THEN 0 ELSE 1 END ELSE wf.IsVersionIncrease END AS IsVersionIncrease
 					,im.ManufacturerName ManufacturerName,
+					wf.TemplateType,
 					wf.Verified,
 					wf.VerifiedBy,
 					wf.VerifiedDate

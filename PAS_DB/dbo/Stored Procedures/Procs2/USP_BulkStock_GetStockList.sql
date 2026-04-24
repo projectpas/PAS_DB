@@ -15,6 +15,7 @@
 	3    30/10/2023			AMIT GHEDIYA			Get Serialized data when Qty,UnitCost,IntraCompany,InterComapny wise filter list.
 	4    06/10/2023         BHARGAV SALIYA          Get Customer Stock Data When isCustomerStock = 1 and Customer wise filter List
 	5    15/12/2023         BHARGAV SALIYA          ADD ONE Condition to get Customer Stock Data when [QuantityAvailable] > 0
+	6    24/04/2026         AMIT GHEDIYA            Bulk stock adjustmet Qty Available to Qty OH on UnitCost Adjustment
 *********
 *********/
 CREATE      PROCEDURE [dbo].[USP_BulkStock_GetStockList] 
@@ -150,7 +151,7 @@ BEGIN
 					   SL.[Condition],
 					   SL.[ControlNumber],
 					   SL.[IdNumber],
-					   SL.[QuantityAvailable],
+					   SL.[QuantityOnHand] AS QuantityAvailable,
 					   SL.[UnitCost],
 					   SL.[ManagementStructureId],
 					   SL.[StockLineId],

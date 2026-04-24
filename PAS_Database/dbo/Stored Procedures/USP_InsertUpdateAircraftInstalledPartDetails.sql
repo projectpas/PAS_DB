@@ -13,6 +13,7 @@
  **  2   04-13-2026   Amit Ghediya      Added for Quantity (PN-16028)
  **  3   04-15-2026   Amit Ghediya      Added for AircraftTailNumber in stockline selected.
  **  4   04-21-2026   Amit Ghediya      Added for SequenceNum. (PN-16146)
+ **  5   04-23-2026   Amit Ghediya      Added item cycle data. (PN-16162)
  ************************************************************************/
 CREATE   PROCEDURE [dbo].[USP_InsertUpdateAircraftInstalledPartDetails]
 (
@@ -39,7 +40,12 @@ CREATE   PROCEDURE [dbo].[USP_InsertUpdateAircraftInstalledPartDetails]
 	@UpdatedBy VARCHAR(50) = NULL,
 	@StockLineId BIGINT = NULL,
 	@Quantity DECIMAL(18,6) = NULL,
-	@SequenceNum BIGINT
+	@SequenceNum BIGINT,
+
+	@PartFlightHours DECIMAL(18,6) = NULL,
+	@PartCycles DECIMAL(18,6) = NULL,
+	@PartLandings DECIMAL(18,6) = NULL,
+	@PartEngineStarts DECIMAL(18,6) = NULL
 )
 AS
 BEGIN
@@ -95,7 +101,11 @@ BEGIN
 				Memo = @Memo,
 				MasterCompanyId = @MasterCompanyId,
 				UpdatedBy = @UpdatedBy,
-				UpdatedDate = GETUTCDATE()
+				UpdatedDate = GETUTCDATE(),
+				PartFlightHours = @PartFlightHours,
+				PartCycles = @PartCycles,
+				PartLandings = @PartLandings,
+				PartEngineStarts = @PartEngineStarts
 			WHERE AircraftInstalledPartDetailsId = @AircraftInstalledPartDetailsId;
 			
 			--Update stockline for part
@@ -139,7 +149,11 @@ BEGIN
 				CreatedDate,
 				UpdatedDate,
 				IsActive,
-				IsDeleted
+				IsDeleted,
+				PartFlightHours,
+				PartCycles,
+				PartLandings,
+				PartEngineStarts
 			)
 			VALUES
 			(
@@ -169,7 +183,11 @@ BEGIN
 				GETUTCDATE(),
 				GETUTCDATE(),
 				1,
-				0
+				0,
+				@PartFlightHours,
+				@PartCycles,
+				@PartLandings,
+				@PartEngineStarts
 			);
 
 			SELECT @AircraftPartDetailsId = SCOPE_IDENTITY() 

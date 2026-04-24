@@ -22,6 +22,7 @@
 	9    07 JUL 2025   RAJESH GAMI		added @DefaultInvoiceTypeId for if any STANDARD or COMMERCIAL invoice are there then it should be by default 
 	10   09 Jul 2025   RAJESH GAMI		Deposit amount getting from the item level instead of invoice in SO
 	11   30-10-2025    Moin Bloch       Added CreditMemoHeaderId 
+	12   24-APR-2026   RAJESH			Added ModuleId Condition In WO Billing [PN-16192]
 **************************************************************/ 
 --   EXEC [dbo].[GetCommonBillingInvoiceChildListNew] 9728,9831,1,15
 
@@ -151,28 +152,28 @@ BEGIN
 					SELECT * INTO #MyTempTable FROM 
 					(SELECT DISTINCT 
 						wosi.WorkOrderShippingId, 
-						CASE WHEN wop.ID IS NOT NULL AND  (SELECT COUNT(1) FROM DBO.BillingInvoicingItems wobii WITH(NOLOCK) WHERE wobii.BillingInvoicingId = Wobi.BillingInvoicingId and wobii.SubReferenceId = @SubReferenceId AND ISNULL(wobii.IsPerformaInvoice, 0) = 0) >0 THEN wobi.BillingInvoicingId  ELSE NULL END AS BillingInvoicingId, 
-						CASE WHEN wop.ID IS NOT NULL AND (SELECT COUNT(1) FROM DBO.BillingInvoicingItems wobii WITH(NOLOCK) WHERE wobii.BillingInvoicingId = Wobi.BillingInvoicingId and wobii.SubReferenceId = @SubReferenceId AND ISNULL(wobii.IsPerformaInvoice, 0) = 0) >0  THEN wobi.InvoiceDate ELSE NULL END AS InvoiceDate,
-						CASE WHEN wop.ID IS NOT NULL AND  (SELECT COUNT(1) FROM DBO.BillingInvoicingItems wobii WITH(NOLOCK) WHERE wobii.BillingInvoicingId = Wobi.BillingInvoicingId and wobii.SubReferenceId = @SubReferenceId AND ISNULL(wobii.IsPerformaInvoice, 0) = 0) >0  THEN wobi.InvoiceNo ELSE NULL END AS InvoiceNo, 
+						CASE WHEN wop.ID IS NOT NULL AND  (SELECT COUNT(1) FROM DBO.BillingInvoicingItems wobii WITH(NOLOCK) WHERE wobii.BillingInvoicingId = Wobi.BillingInvoicingId AND wobii.ModuleId = @WOModuleId and wobii.SubReferenceId = @SubReferenceId AND ISNULL(wobii.IsPerformaInvoice, 0) = 0) >0 THEN wobi.BillingInvoicingId  ELSE NULL END AS BillingInvoicingId, 
+						CASE WHEN wop.ID IS NOT NULL AND (SELECT COUNT(1) FROM DBO.BillingInvoicingItems wobii WITH(NOLOCK) WHERE wobii.BillingInvoicingId = Wobi.BillingInvoicingId AND wobii.ModuleId = @WOModuleId and wobii.SubReferenceId = @SubReferenceId AND ISNULL(wobii.IsPerformaInvoice, 0) = 0) >0  THEN wobi.InvoiceDate ELSE NULL END AS InvoiceDate,
+						CASE WHEN wop.ID IS NOT NULL AND  (SELECT COUNT(1) FROM DBO.BillingInvoicingItems wobii WITH(NOLOCK) WHERE wobii.BillingInvoicingId = Wobi.BillingInvoicingId AND wobii.ModuleId = @WOModuleId and wobii.SubReferenceId = @SubReferenceId AND ISNULL(wobii.IsPerformaInvoice, 0) = 0) >0  THEN wobi.InvoiceNo ELSE NULL END AS InvoiceNo, 
 						wos.WOShippingNum, 
 						wos.AirwayBill As 'AWB',
-						(SUM(wosi.QtyShipped)- (SELECT COUNT(1) FROM DBO.BillingInvoicingItems wobii WITH(NOLOCK) WHERE wobii.BillingInvoicingId = Wobi.BillingInvoicingId and wobii.SubReferenceId = @SubReferenceId AND ISNULL(wobii.IsPerformaInvoice, 0) = 0)) as QtyToBill, 
+						(SUM(wosi.QtyShipped)- (SELECT COUNT(1) FROM DBO.BillingInvoicingItems wobii WITH(NOLOCK) WHERE wobii.BillingInvoicingId = Wobi.BillingInvoicingId AND wobii.ModuleId = @WOModuleId and wobii.SubReferenceId = @SubReferenceId AND ISNULL(wobii.IsPerformaInvoice, 0) = 0)) as QtyToBill, 
 						wo.WorkOrderNum as ReferenceNumber, 
 						wop.RevisedPartNumber as 'PartNumber',
 						wop.RevisedPartDescription as 'PartDescription',
 						sl.StockLineNumber,
 						wop.RevisedSerialNumber AS 'SerialNumber', 
 						cr.[Name] as CustomerName, 
-						(SELECT COUNT(1) FROM DBO.BillingInvoicingItems wobii WITH(NOLOCK) JOIN DBO.BillingInvoicing wobi WITH(NOLOCK) ON wobi.BillingInvoicingId = wobii.BillingInvoicingId WHERE wobii.BillingInvoicingId = Wobi.BillingInvoicingId AND wobii.SubReferenceId = @SubReferenceId AND ISNULL(wobii.IsPerformaInvoice, 0) = 0) AS QtyBilled,
+						(SELECT COUNT(1) FROM DBO.BillingInvoicingItems wobii WITH(NOLOCK) JOIN DBO.BillingInvoicing wobi WITH(NOLOCK) ON wobi.BillingInvoicingId = wobii.BillingInvoicingId WHERE wobii.BillingInvoicingId = Wobi.BillingInvoicingId AND wobii.ModuleId = @WOModuleId AND wobii.SubReferenceId = @SubReferenceId AND ISNULL(wobii.IsPerformaInvoice, 0) = 0) AS QtyBilled,
 						'1' as ItemNo,
 						wop.WorkOrderId, 
 						wop.Id as WorkOrderPartId, 
 						cond.Memo as 'Condition',
 						cond.ConditionId,
 						curr.Code as 'CurrencyCode',
-						(CASE when (CASE WHEN wop.ID IS NOT NULL and  (SELECT COUNT(1) FROM DBO.BillingInvoicingItems wobii WITH(NOLOCK) WHERE wobii.BillingInvoicingId = Wobi.BillingInvoicingId and wobii.SubReferenceId = @SubReferenceId AND ISNULL(wobii.IsPerformaInvoice, 0) = 0) >0 THEN wobi.BillingInvoicingId  ELSE NULL END) is null  then wocd.TotalCost else wobii.GrandTotal end) as TotalSales,
+						(CASE when (CASE WHEN wop.ID IS NOT NULL and  (SELECT COUNT(1) FROM DBO.BillingInvoicingItems wobii WITH(NOLOCK) WHERE wobii.BillingInvoicingId = Wobi.BillingInvoicingId AND wobii.ModuleId = @WOModuleId and wobii.SubReferenceId = @SubReferenceId AND ISNULL(wobii.IsPerformaInvoice, 0) = 0) >0 THEN wobi.BillingInvoicingId  ELSE NULL END) is null  then wocd.TotalCost else wobii.GrandTotal end) as TotalSales,
 						wobi.InvoiceStatus ,
-						(CASE when (CASE WHEN wop.ID IS NOT NULL and  (SELECT COUNT(1) FROM DBO.BillingInvoicingItems wobii WITH(NOLOCK) WHERE wobii.BillingInvoicingId = Wobi.BillingInvoicingId and wobii.SubReferenceId = @SubReferenceId AND ISNULL(wobii.IsPerformaInvoice, 0) = 0) >0 THEN wobi.BillingInvoicingId  ELSE NULL END) is null  then NULL else wobi.VersionNo end) as VersionNo ,
+						(CASE when (CASE WHEN wop.ID IS NOT NULL and  (SELECT COUNT(1) FROM DBO.BillingInvoicingItems wobii WITH(NOLOCK) WHERE wobii.BillingInvoicingId = Wobi.BillingInvoicingId and wobii.SubReferenceId = @SubReferenceId AND wobii.ModuleId = @WOModuleId AND ISNULL(wobii.IsPerformaInvoice, 0) = 0) >0 THEN wobi.BillingInvoicingId  ELSE NULL END) is null  then NULL else wobi.VersionNo end) as VersionNo ,
 						CASE WHEN ISNULL(wop.RevisedItemmasterid, 0) > 0 THEN wop.RevisedItemmasterid ELSE imt.ItemMasterId END As ItemMasterId,
 						(CASE WHEN wobi.IsVersionIncrease = 1 then 0 else 1 end) IsAllowIncreaseVersion
 						,ISNULL(wowf.WorkFlowWorkOrderId,0) WorkFlowWorkOrderId
@@ -188,8 +189,8 @@ BEGIN
 					FROM [dbo].[WorkOrderShippingItem] wosi WITH(NOLOCK)
 						INNER JOIN [dbo].[WorkOrderShipping] wos WITH(NOLOCK) ON wosi.WorkOrderShippingId = wos.WorkOrderShippingId
 						LEFT JOIN [dbo].[WorkOrderWorkFlow] wof WITH(NOLOCK) ON wos.WorkOrderId = wof.WorkOrderId AND wof.WorkOrderPartNoId = @SubReferenceId AND wosi.WorkOrderPartNumId = wof.WorkOrderPartNoId
-						LEFT JOIN [dbo].[BillingInvoicingItems] wobii WITH(NOLOCK) ON wobii.SubReferenceId = @SubReferenceId AND ISNULL(wobii.IsPerformaInvoice, 0) = 0
-						LEFT JOIN [dbo].[BillingInvoicing] wobi WITH(NOLOCK) ON wobi.BillingInvoicingId = wobii.BillingInvoicingId AND wobi.ReferenceId = wof.WorkOrderId AND ISNULL(wobi.IsPerformaInvoice, 0) = 0 --AND wof.WorkFlowWorkOrderId = wobi.WorkFlowWorkOrderId
+						LEFT JOIN [dbo].[BillingInvoicingItems] wobii WITH(NOLOCK) ON wobii.SubReferenceId = @SubReferenceId AND ISNULL(wobii.IsPerformaInvoice, 0) = 0 AND wobii.ModuleId = @WOModuleId
+						LEFT JOIN [dbo].[BillingInvoicing] wobi WITH(NOLOCK) ON wobi.BillingInvoicingId = wobii.BillingInvoicingId AND wobi.ReferenceId = wof.WorkOrderId AND ISNULL(wobi.IsPerformaInvoice, 0) = 0  AND wobi.ModuleId = @WOModuleId--AND wof.WorkFlowWorkOrderId = wobi.WorkFlowWorkOrderId
 						INNER JOIN [dbo].[WorkOrderPartNumber] wop WITH(NOLOCK) ON wop.WorkOrderId = wos.WorkOrderId AND wop.ID = wosi.WorkOrderPartNumId
 						LEFT JOIN [dbo].[WorkOrderMPNCostDetails] wocd WITH(NOLOCK) ON wop.ID = wocd.WOPartNoId
 						INNER JOIN [dbo].[WorkOrderWorkFlow] wowf WITH(NOLOCK) ON wop.ID = wowf.WorkOrderPartNoId 
@@ -246,28 +247,28 @@ BEGIN
 						SELECT * INTO #MyTempTable1 from 
 							(SELECT DISTINCT 
 								wosi.WorkOrderShippingId, 
-								CASE WHEN wop.ID IS NOT NULL and  (SELECT COUNT(1) FROM DBO.BillingInvoicingItems wobii WITH(NOLOCK) WHERE wobii.BillingInvoicingId = Wobi.BillingInvoicingId and wobii.SubReferenceId = @SubReferenceId AND ISNULL(wobii.IsPerformaInvoice, 0) = 0) >0 THEN wobi.BillingInvoicingId  ELSE NULL END AS BillingInvoicingId, 
-								CASE WHEN wop.ID IS NOT NULL and (SELECT COUNT(1) FROM DBO.BillingInvoicingItems wobii WITH(NOLOCK) WHERE wobii.BillingInvoicingId = Wobi.BillingInvoicingId and wobii.SubReferenceId = @SubReferenceId AND ISNULL(wobii.IsPerformaInvoice, 0) = 0) >0  THEN wobi.InvoiceDate ELSE NULL END AS InvoiceDate,
-								CASE WHEN wop.ID IS NOT NULL and  (SELECT COUNT(1) FROM DBO.BillingInvoicingItems wobii WITH(NOLOCK) WHERE wobii.BillingInvoicingId = Wobi.BillingInvoicingId and wobii.SubReferenceId = @SubReferenceId AND ISNULL(wobii.IsPerformaInvoice, 0) = 0) >0  THEN wobi.InvoiceNo ELSE NULL END AS InvoiceNo, 
+								CASE WHEN wop.ID IS NOT NULL and  (SELECT COUNT(1) FROM DBO.BillingInvoicingItems wobii WITH(NOLOCK) WHERE wobii.BillingInvoicingId = Wobi.BillingInvoicingId AND wobii.ModuleId = @WOModuleId and wobii.SubReferenceId = @SubReferenceId AND ISNULL(wobii.IsPerformaInvoice, 0) = 0) >0 THEN wobi.BillingInvoicingId  ELSE NULL END AS BillingInvoicingId, 
+								CASE WHEN wop.ID IS NOT NULL and (SELECT COUNT(1) FROM DBO.BillingInvoicingItems wobii WITH(NOLOCK) WHERE wobii.BillingInvoicingId = Wobi.BillingInvoicingId AND wobii.ModuleId = @WOModuleId and wobii.SubReferenceId = @SubReferenceId AND ISNULL(wobii.IsPerformaInvoice, 0) = 0) >0  THEN wobi.InvoiceDate ELSE NULL END AS InvoiceDate,
+								CASE WHEN wop.ID IS NOT NULL and  (SELECT COUNT(1) FROM DBO.BillingInvoicingItems wobii WITH(NOLOCK) WHERE wobii.BillingInvoicingId = Wobi.BillingInvoicingId AND wobii.ModuleId = @WOModuleId and wobii.SubReferenceId = @SubReferenceId AND ISNULL(wobii.IsPerformaInvoice, 0) = 0) >0  THEN wobi.InvoiceNo ELSE NULL END AS InvoiceNo, 
 								wos.WOShippingNum, 
 								wos.AirwayBill As 'AWB',
-								(SUM(wosi.QtyShipped)- (SELECT COUNT(1) FROM DBO.BillingInvoicingItems wobii WITH(NOLOCK) WHERE wobii.BillingInvoicingId = Wobi.BillingInvoicingId and wobii.SubReferenceId = @SubReferenceId AND ISNULL(wobii.IsPerformaInvoice, 0) = 0)) as QtyToBill, 
+								(SUM(wosi.QtyShipped)- (SELECT COUNT(1) FROM DBO.BillingInvoicingItems wobii WITH(NOLOCK) WHERE wobii.BillingInvoicingId = Wobi.BillingInvoicingId AND wobii.ModuleId = @WOModuleId and wobii.SubReferenceId = @SubReferenceId AND ISNULL(wobii.IsPerformaInvoice, 0) = 0)) as QtyToBill, 
 								wo.WorkOrderNum as ReferenceNumber, 
 							    wop.RevisedPartNumber as 'PartNumber',
 								wop.RevisedPartDescription as 'PartDescription',
 								sl.StockLineNumber,
 								wop.RevisedSerialNumber AS 'SerialNumber',
 								cr.[Name] as CustomerName, 
-								(SELECT COUNT(1) FROM DBO.BillingInvoicingItems wobii WITH(NOLOCK) JOIN DBO.BillingInvoicing wobi WITH(NOLOCK) ON wobi.BillingInvoicingId = wobii.BillingInvoicingId WHERE wobii.BillingInvoicingId = Wobi.BillingInvoicingId AND wobii.SubReferenceId = @SubReferenceId AND ISNULL(wobii.IsPerformaInvoice, 0) = 0) AS QtyBilled,
+								(SELECT COUNT(1) FROM DBO.BillingInvoicingItems wobii WITH(NOLOCK) JOIN DBO.BillingInvoicing wobi WITH(NOLOCK) ON wobi.BillingInvoicingId = wobii.BillingInvoicingId WHERE wobii.BillingInvoicingId = Wobi.BillingInvoicingId AND wobii.ModuleId = @WOModuleId AND wobii.SubReferenceId = @SubReferenceId AND ISNULL(wobii.IsPerformaInvoice, 0) = 0) AS QtyBilled,
 								'1' as ItemNo,
 								wop.WorkOrderId, 
 								wop.Id as WorkOrderPartId, 
 								cond.Memo as 'Condition',
 								cond.ConditionId,
 								curr.Code as 'CurrencyCode',
-								(CASE when (CASE WHEN wop.ID IS NOT NULL and  (SELECT COUNT(1) FROM DBO.BillingInvoicingItems wobii WITH(NOLOCK) WHERE wobii.BillingInvoicingId = Wobi.BillingInvoicingId and wobii.SubReferenceId = @SubReferenceId AND ISNULL(wobii.IsPerformaInvoice, 0) = 0) >0 THEN wobi.BillingInvoicingId  ELSE NULL END) is null  then wocd.TotalCost else wobii.GrandTotal end) as TotalSales,
+								(CASE when (CASE WHEN wop.ID IS NOT NULL and  (SELECT COUNT(1) FROM DBO.BillingInvoicingItems wobii WITH(NOLOCK) WHERE wobii.BillingInvoicingId = Wobi.BillingInvoicingId AND wobii.ModuleId = @WOModuleId and wobii.SubReferenceId = @SubReferenceId AND ISNULL(wobii.IsPerformaInvoice, 0) = 0) >0 THEN wobi.BillingInvoicingId  ELSE NULL END) is null  then wocd.TotalCost else wobii.GrandTotal end) as TotalSales,
 								wobi.InvoiceStatus ,
-								(CASE when (CASE WHEN wop.ID IS NOT NULL and  (SELECT COUNT(1) FROM DBO.BillingInvoicingItems wobii WITH(NOLOCK) WHERE wobii.BillingInvoicingId = Wobi.BillingInvoicingId and wobii.SubReferenceId = @SubReferenceId AND ISNULL(wobii.IsPerformaInvoice, 0) = 0) >0 THEN wobi.BillingInvoicingId  ELSE NULL END) is null  then NULL else wobi.VersionNo end) as VersionNo ,
+								(CASE when (CASE WHEN wop.ID IS NOT NULL and  (SELECT COUNT(1) FROM DBO.BillingInvoicingItems wobii WITH(NOLOCK) WHERE wobii.BillingInvoicingId = Wobi.BillingInvoicingId AND wobii.ModuleId = @WOModuleId and wobii.SubReferenceId = @SubReferenceId AND ISNULL(wobii.IsPerformaInvoice, 0) = 0) >0 THEN wobi.BillingInvoicingId  ELSE NULL END) is null  then NULL else wobi.VersionNo end) as VersionNo ,
 								CASE WHEN ISNULL(wop.RevisedItemmasterid, 0) > 0 THEN wop.RevisedItemmasterid ELSE imt.ItemMasterId END As ItemMasterId,
 								(CASE WHEN wobi.IsVersionIncrease = 1 then 0 else 1 end) IsAllowIncreaseVersion
 								,ISNULL(wowf.WorkFlowWorkOrderId,0) WorkFlowWorkOrderId
@@ -283,8 +284,8 @@ BEGIN
 							FROM [dbo].[WorkOrderShippingItem] wosi WITH(NOLOCK)
 							INNER JOIN [dbo].[WorkOrderShipping] wos WITH(NOLOCK) ON wosi.WorkOrderShippingId = wos.WorkOrderShippingId								
 							 LEFT JOIN [dbo].[WorkOrderWorkFlow] wof WITH(NOLOCK) ON wos.WorkOrderId = wof.WorkOrderId AND wof.WorkOrderPartNoId = @SubReferenceId
-							 LEFT JOIN [dbo].[BillingInvoicingItems] wobii WITH(NOLOCK) ON wobii.SubReferenceId = @SubReferenceId AND ISNULL(wobii.IsPerformaInvoice, 0) = 0
-							 LEFT JOIN [dbo].[BillingInvoicing] wobi WITH(NOLOCK) ON wobi.BillingInvoicingId = wobii.BillingInvoicingId AND wobi.ReferenceId = wof.WorkOrderId AND ISNULL(wobi.IsPerformaInvoice, 0) = 0 --AND wof.WorkFlowWorkOrderId = wobi.WorkFlowWorkOrderId
+							 LEFT JOIN [dbo].[BillingInvoicingItems] wobii WITH(NOLOCK) ON wobii.SubReferenceId = @SubReferenceId AND ISNULL(wobii.IsPerformaInvoice, 0) = 0 AND wobii.ModuleId = @WOModuleId
+							 LEFT JOIN [dbo].[BillingInvoicing] wobi WITH(NOLOCK) ON wobi.BillingInvoicingId = wobii.BillingInvoicingId AND wobi.ReferenceId = wof.WorkOrderId AND ISNULL(wobi.IsPerformaInvoice, 0) = 0 AND wobi.ModuleId = @WOModuleId --AND wof.WorkFlowWorkOrderId = wobi.WorkFlowWorkOrderId
 							INNER JOIN [dbo].[WorkOrderPartNumber] wop WITH(NOLOCK) ON wop.WorkOrderId = wos.WorkOrderId AND wop.ID = wosi.WorkOrderPartNumId
 							 LEFT JOIN [dbo].[WorkOrderMPNCostDetails] wocd WITH(NOLOCK) ON wop.ID = wocd.WOPartNoId
 							INNER JOIN [dbo].[WorkOrderWorkFlow] wowf WITH(NOLOCK) ON wop.ID = wowf.WorkOrderPartNoId 
@@ -339,28 +340,28 @@ BEGIN
 						SELECT * INTO #MyTempTable2 from 
 						(SELECT DISTINCT 							
 							CASE WHEN wosi.WorkOrderShippingId IS NOT NULL THEN wosi.WorkOrderShippingId ELSE wop.ID END AS WorkOrderShippingId, 
-							CASE WHEN wop.ID IS NOT NULL and  (SELECT COUNT(1) FROM DBO.BillingInvoicingItems wobii WITH(NOLOCK) WHERE wobii.BillingInvoicingId = Wobi.BillingInvoicingId and wobii.SubReferenceId = @SubReferenceId AND ISNULL(wobii.IsPerformaInvoice, 0) = 0) >0 THEN wobi.BillingInvoicingId  ELSE NULL END AS BillingInvoicingId, 
-							CASE WHEN wop.ID IS NOT NULL and (SELECT COUNT(1) FROM DBO.BillingInvoicingItems wobii WITH(NOLOCK) WHERE wobii.BillingInvoicingId = Wobi.BillingInvoicingId and wobii.SubReferenceId = @SubReferenceId AND ISNULL(wobii.IsPerformaInvoice, 0) = 0) >0  THEN wobi.InvoiceDate ELSE NULL END AS InvoiceDate,
-							CASE WHEN wop.ID IS NOT NULL and  (SELECT COUNT(1) FROM DBO.BillingInvoicingItems wobii WITH(NOLOCK) WHERE wobii.BillingInvoicingId = Wobi.BillingInvoicingId and wobii.SubReferenceId = @SubReferenceId AND ISNULL(wobii.IsPerformaInvoice, 0) = 0) >0  THEN wobi.InvoiceNo ELSE NULL END AS InvoiceNo, 
+							CASE WHEN wop.ID IS NOT NULL and  (SELECT COUNT(1) FROM DBO.BillingInvoicingItems wobii WITH(NOLOCK) WHERE wobii.BillingInvoicingId = Wobi.BillingInvoicingId AND wobii.ModuleId = @WOModuleId and wobii.SubReferenceId = @SubReferenceId AND ISNULL(wobii.IsPerformaInvoice, 0) = 0) >0 THEN wobi.BillingInvoicingId  ELSE NULL END AS BillingInvoicingId, 
+							CASE WHEN wop.ID IS NOT NULL and (SELECT COUNT(1) FROM DBO.BillingInvoicingItems wobii WITH(NOLOCK) WHERE wobii.BillingInvoicingId = Wobi.BillingInvoicingId AND wobii.ModuleId = @WOModuleId and wobii.SubReferenceId = @SubReferenceId AND ISNULL(wobii.IsPerformaInvoice, 0) = 0) >0  THEN wobi.InvoiceDate ELSE NULL END AS InvoiceDate,
+							CASE WHEN wop.ID IS NOT NULL and  (SELECT COUNT(1) FROM DBO.BillingInvoicingItems wobii WITH(NOLOCK) WHERE wobii.BillingInvoicingId = Wobi.BillingInvoicingId AND wobii.ModuleId = @WOModuleId and wobii.SubReferenceId = @SubReferenceId AND ISNULL(wobii.IsPerformaInvoice, 0) = 0) >0  THEN wobi.InvoiceNo ELSE NULL END AS InvoiceNo, 
 							wos.WOShippingNum, 
 						    wos.AirwayBill As 'AWB',	
-							(SUM(wop.Quantity)- (SELECT COUNT(1) FROM DBO.BillingInvoicingItems wobii WITH(NOLOCK) WHERE wobii.BillingInvoicingId = Wobi.BillingInvoicingId and wobii.SubReferenceId = @SubReferenceId AND ISNULL(wobii.IsPerformaInvoice, 0) = 0)) as QtyToBill, 
+							(SUM(wop.Quantity)- (SELECT COUNT(1) FROM DBO.BillingInvoicingItems wobii WITH(NOLOCK) WHERE wobii.BillingInvoicingId = Wobi.BillingInvoicingId AND wobii.ModuleId = @WOModuleId and wobii.SubReferenceId = @SubReferenceId AND ISNULL(wobii.IsPerformaInvoice, 0) = 0)) as QtyToBill, 
 							wo.WorkOrderNum as ReferenceNumber, 
 							wop.RevisedPartNumber as 'PartNumber',
 							wop.RevisedPartDescription as 'PartDescription',
 							sl.StockLineNumber,
 							wop.RevisedSerialNumber AS 'SerialNumber', 
 							cr.[Name] as CustomerName, 
-							(SELECT COUNT(1) FROM DBO.BillingInvoicingItems wobii WITH(NOLOCK) JOIN DBO.BillingInvoicing wobi WITH(NOLOCK) ON wobi.BillingInvoicingId = wobii.BillingInvoicingId WHERE wobii.BillingInvoicingId = Wobi.BillingInvoicingId AND wobii.SubReferenceId = @SubReferenceId AND ISNULL(wobii.IsPerformaInvoice, 0) = 0) AS QtyBilled,
+							(SELECT COUNT(1) FROM DBO.BillingInvoicingItems wobii WITH(NOLOCK) JOIN DBO.BillingInvoicing wobi WITH(NOLOCK) ON wobi.BillingInvoicingId = wobii.BillingInvoicingId WHERE wobii.BillingInvoicingId = Wobi.BillingInvoicingId AND wobii.ModuleId = @WOModuleId AND wobii.SubReferenceId = @SubReferenceId AND ISNULL(wobii.IsPerformaInvoice, 0) = 0) AS QtyBilled,
 							'1' as ItemNo,
 							wop.WorkOrderId, 
 							wop.Id as WorkOrderPartId, 
 							cond.Memo as 'Condition',
 							cond.ConditionId ,
 							curr.Code as 'CurrencyCode',
-							(CASE when (CASE WHEN wop.ID IS NOT NULL and  (SELECT COUNT(1) FROM DBO.BillingInvoicingItems wobii WITH(NOLOCK) WHERE wobii.BillingInvoicingId = Wobi.BillingInvoicingId and wobii.SubReferenceId = @SubReferenceId AND ISNULL(wobii.IsPerformaInvoice, 0) = 0) >0 THEN wobi.BillingInvoicingId  ELSE NULL END) is null  then wocd.TotalCost else wobii.GrandTotal end) as TotalSales,
+							(CASE when (CASE WHEN wop.ID IS NOT NULL and  (SELECT COUNT(1) FROM DBO.BillingInvoicingItems wobii WITH(NOLOCK) WHERE wobii.BillingInvoicingId = Wobi.BillingInvoicingId AND wobii.ModuleId = @WOModuleId and wobii.SubReferenceId = @SubReferenceId AND ISNULL(wobii.IsPerformaInvoice, 0) = 0) >0 THEN wobi.BillingInvoicingId  ELSE NULL END) is null  then wocd.TotalCost else wobii.GrandTotal end) as TotalSales,
 							wobi.InvoiceStatus ,
-							(CASE when (CASE WHEN wop.ID IS NOT NULL and  (SELECT COUNT(1) FROM DBO.BillingInvoicingItems wobii WITH(NOLOCK) WHERE wobii.BillingInvoicingId = Wobi.BillingInvoicingId and wobii.SubReferenceId = @SubReferenceId AND ISNULL(wobii.IsPerformaInvoice, 0) = 0) >0 THEN wobi.BillingInvoicingId  ELSE NULL END) is null  then NULL else wobi.VersionNo end) as VersionNo ,
+							(CASE when (CASE WHEN wop.ID IS NOT NULL and  (SELECT COUNT(1) FROM DBO.BillingInvoicingItems wobii WITH(NOLOCK) WHERE wobii.BillingInvoicingId = Wobi.BillingInvoicingId AND wobii.ModuleId = @WOModuleId and wobii.SubReferenceId = @SubReferenceId AND ISNULL(wobii.IsPerformaInvoice, 0) = 0) >0 THEN wobi.BillingInvoicingId  ELSE NULL END) is null  then NULL else wobi.VersionNo end) as VersionNo ,
 							CASE WHEN ISNULL(wop.RevisedItemmasterid, 0) > 0 THEN wop.RevisedItemmasterid ELSE imt.ItemMasterId END As ItemMasterId,
 							(CASE WHEN wobi.IsVersionIncrease = 1 then 0 else 1 end) IsAllowIncreaseVersion
 							,ISNULL(wowf.WorkFlowWorkOrderId,0) WorkFlowWorkOrderId
@@ -375,8 +376,8 @@ BEGIN
 							,wobi.[CreditMemoHeaderId]
 						FROM [dbo].[WorkOrderPartNumber] wop WITH(NOLOCK)							
 						 LEFT JOIN [dbo].[WorkOrderWorkFlow] wof WITH(NOLOCK) ON wop.WorkOrderId = wof.WorkOrderId AND wof.WorkOrderPartNoId = @SubReferenceId
-						 LEFT JOIN [dbo].[BillingInvoicingItems] wobii WITH(NOLOCK) ON wobii.SubReferenceId = @SubReferenceId AND ISNULL(wobii.IsPerformaInvoice, 0) = 0
-						 LEFT JOIN [dbo].[BillingInvoicing] wobi WITH(NOLOCK) ON wobi.BillingInvoicingId = wobii.BillingInvoicingId AND wobi.ReferenceId = wof.WorkOrderId AND ISNULL(wobi.IsPerformaInvoice, 0) = 0 --AND wof.WorkFlowWorkOrderId = wobi.WorkFlowWorkOrderId
+						 LEFT JOIN [dbo].[BillingInvoicingItems] wobii WITH(NOLOCK) ON wobii.SubReferenceId = @SubReferenceId AND ISNULL(wobii.IsPerformaInvoice, 0) = 0 AND wobii.ModuleId = @WOModuleId
+						 LEFT JOIN [dbo].[BillingInvoicing] wobi WITH(NOLOCK) ON wobi.BillingInvoicingId = wobii.BillingInvoicingId AND wobi.ReferenceId = wof.WorkOrderId AND ISNULL(wobi.IsPerformaInvoice, 0) = 0 AND wobii.ModuleId = @WOModuleId --AND wof.WorkFlowWorkOrderId = wobi.WorkFlowWorkOrderId
 						 LEFT JOIN [dbo].[WorkOrderMPNCostDetails] wocd WITH(NOLOCK) ON wop.ID = wocd.WOPartNoId
 						INNER JOIN [dbo].[WorkOrderWorkFlow] wowf WITH(NOLOCK) ON wop.ID = wowf.WorkOrderPartNoId 
 						INNER JOIN [dbo].[WorkOrder] wo WITH(NOLOCK) ON wo.WorkOrderId = wop.WorkOrderId
@@ -434,21 +435,21 @@ BEGIN
 						CASE WHEN wos.WorkOrderShippingId IS NOT NULL THEN wos.WorkOrderShippingId 
 							 ELSE CASE WHEN ISNULL(woProfomaBillData.WorkOrderShippingId, 0) > 0 THEN woProfomaBillData.WorkOrderShippingId
 							 ELSE 0  END END AS WorkOrderShippingId, 
-						CASE WHEN wop.ID IS NOT NULL AND  (SELECT COUNT(1) FROM DBO.BillingInvoicingItems wobii WITH(NOLOCK)  WHERE wobii.BillingInvoicingId = Wobi.BillingInvoicingId AND wobii.SubReferenceId = @SubReferenceId AND ISNULL(wobii.IsPerformaInvoice, 0) = 1) >0 THEN wobi.BillingInvoicingId  ELSE NULL END AS BillingInvoicingId, 
-						CASE WHEN wop.ID IS NOT NULL AND (SELECT COUNT(1) FROM DBO.BillingInvoicingItems wobii WITH(NOLOCK) WHERE wobii.BillingInvoicingId = Wobi.BillingInvoicingId AND wobii.SubReferenceId = @SubReferenceId AND ISNULL(wobii.IsPerformaInvoice, 0) = 1) >0  THEN wobi.InvoiceDate ELSE NULL END AS InvoiceDate,
-						CASE WHEN wop.ID IS NOT NULL AND  (SELECT COUNT(1) FROM DBO.BillingInvoicingItems wobii WITH(NOLOCK) WHERE wobii.BillingInvoicingId = Wobi.BillingInvoicingId AND wobii.SubReferenceId = @SubReferenceId AND ISNULL(wobii.IsPerformaInvoice, 0) = 1) >0  THEN wobi.InvoiceNo ELSE NULL END AS InvoiceNo, 
+						CASE WHEN wop.ID IS NOT NULL AND  (SELECT COUNT(1) FROM DBO.BillingInvoicingItems wobii WITH(NOLOCK)  WHERE wobii.BillingInvoicingId = Wobi.BillingInvoicingId AND wobii.ModuleId = @WOModuleId AND wobii.SubReferenceId = @SubReferenceId AND ISNULL(wobii.IsPerformaInvoice, 0) = 1) >0 THEN wobi.BillingInvoicingId  ELSE NULL END AS BillingInvoicingId, 
+						CASE WHEN wop.ID IS NOT NULL AND (SELECT COUNT(1) FROM DBO.BillingInvoicingItems wobii WITH(NOLOCK) WHERE wobii.BillingInvoicingId = Wobi.BillingInvoicingId AND wobii.ModuleId = @WOModuleId AND wobii.SubReferenceId = @SubReferenceId AND ISNULL(wobii.IsPerformaInvoice, 0) = 1) >0  THEN wobi.InvoiceDate ELSE NULL END AS InvoiceDate,
+						CASE WHEN wop.ID IS NOT NULL AND  (SELECT COUNT(1) FROM DBO.BillingInvoicingItems wobii WITH(NOLOCK) WHERE wobii.BillingInvoicingId = Wobi.BillingInvoicingId AND wobii.ModuleId = @WOModuleId AND wobii.SubReferenceId = @SubReferenceId AND ISNULL(wobii.IsPerformaInvoice, 0) = 1) >0  THEN wobi.InvoiceNo ELSE NULL END AS InvoiceNo, 
 						CASE WHEN ISNULL(wos.WOShippingNum, '') = ''  THEN '' ELSE wos.WOShippingNum END AS WOShippingNum, 
 						CASE WHEN ISNULL(wos.AirwayBill, '') = '' THEN '' ELSE wos.AirwayBill END As 'AWB',
 						CASE WHEN ISNULL(wos.WorkOrderShippingId, 0) != 0 
-							 THEN (SUM(wosi.QtyShipped)- (SELECT COUNT(1) FROM DBO.BillingInvoicingItems wobii WITH(NOLOCK) WHERE wobii.BillingInvoicingId = Wobi.BillingInvoicingId AND wobii.SubReferenceId = @SubReferenceId AND ISNULL(wobii.IsPerformaInvoice, 0) = 1))
-							 ELSE (SUM(wop.Quantity)- (SELECT COUNT(1) FROM DBO.BillingInvoicingItems wobii WITH(NOLOCK) WHERE wobii.BillingInvoicingId = Wobi.BillingInvoicingId AND wobii.SubReferenceId = @SubReferenceId AND ISNULL(wobii.IsPerformaInvoice, 0) = 1)) END AS QtyToBill, 
+							 THEN (SUM(wosi.QtyShipped)- (SELECT COUNT(1) FROM DBO.BillingInvoicingItems wobii WITH(NOLOCK) WHERE wobii.BillingInvoicingId = Wobi.BillingInvoicingId AND wobii.ModuleId = @WOModuleId AND wobii.SubReferenceId = @SubReferenceId AND ISNULL(wobii.IsPerformaInvoice, 0) = 1))
+							 ELSE (SUM(wop.Quantity)- (SELECT COUNT(1) FROM DBO.BillingInvoicingItems wobii WITH(NOLOCK) WHERE wobii.BillingInvoicingId = Wobi.BillingInvoicingId AND wobii.ModuleId = @WOModuleId AND wobii.SubReferenceId = @SubReferenceId AND ISNULL(wobii.IsPerformaInvoice, 0) = 1)) END AS QtyToBill, 
 						wo.WorkOrderNum AS ReferenceNumber, 
 						wop.RevisedPartNumber AS 'PartNumber',
 						wop.RevisedPartDescription AS 'PartDescription',
 						sl.StockLineNumber,
 						wop.RevisedSerialNumber AS 'SerialNumber', 
 						cr.[Name] AS CustomerName, 
-						(SELECT COUNT(1) FROM DBO.BillingInvoicingItems wobii WITH(NOLOCK) WHERE wobii.BillingInvoicingId = Wobi.BillingInvoicingId AND wobii.SubReferenceId = @SubReferenceId AND ISNULL(wobii.IsPerformaInvoice, 0) = 1) AS QtyBilled,
+						(SELECT COUNT(1) FROM DBO.BillingInvoicingItems wobii WITH(NOLOCK) WHERE wobii.BillingInvoicingId = Wobi.BillingInvoicingId AND wobii.ModuleId = @WOModuleId AND wobii.SubReferenceId = @SubReferenceId AND ISNULL(wobii.IsPerformaInvoice, 0) = 1) AS QtyBilled,
 						'1' AS ItemNo,
 						wop.WorkOrderId, 
 						wop.Id AS WorkOrderPartId, 
@@ -456,9 +457,9 @@ BEGIN
 							 WHEN ISNULL(billcond.Code, '') != '' THEN billcond.Code ELSE cond.Memo END AS 'Condition',
 						CASE WHEN ISNULL(billcond.ConditionId, 0) = 0 THEN cond.ConditionId ELSE billcond.ConditionId END AS 'ConditionId',
 						curr.Code AS 'CurrencyCode',
-						(CASE WHEN (CASE WHEN wop.ID IS NOT NULL AND (SELECT COUNT(1) FROM DBO.BillingInvoicingItems wobii WITH(NOLOCK) WHERE wobii.BillingInvoicingId = Wobi.BillingInvoicingId AND wobii.SubReferenceId = @SubReferenceId AND ISNULL(wobii.IsPerformaInvoice, 0) = 1) >0 THEN wobi.BillingInvoicingId  ELSE NULL END) IS NULL THEN 0 ELSE wobii.SubTotal END) AS TotalSales,
+						(CASE WHEN (CASE WHEN wop.ID IS NOT NULL AND (SELECT COUNT(1) FROM DBO.BillingInvoicingItems wobii WITH(NOLOCK) WHERE wobii.BillingInvoicingId = Wobi.BillingInvoicingId AND wobii.ModuleId = @WOModuleId AND wobii.SubReferenceId = @SubReferenceId AND ISNULL(wobii.IsPerformaInvoice, 0) = 1) >0 THEN wobi.BillingInvoicingId  ELSE NULL END) IS NULL THEN 0 ELSE wobii.SubTotal END) AS TotalSales,
 						wobi.InvoiceStatus ,
-						(CASE WHEN (CASE WHEN wop.ID IS NOT NULL AND (SELECT COUNT(1) FROM DBO.BillingInvoicingItems wobii WITH(NOLOCK) WHERE wobii.BillingInvoicingId = Wobi.BillingInvoicingId AND wobii.SubReferenceId = @SubReferenceId AND ISNULL(wobii.IsPerformaInvoice, 0) = 1) >0 THEN wobi.BillingInvoicingId  ELSE NULL END) IS NULL THEN NULL ELSE wobi.VersionNo END) AS VersionNo ,
+						(CASE WHEN (CASE WHEN wop.ID IS NOT NULL AND (SELECT COUNT(1) FROM DBO.BillingInvoicingItems wobii WITH(NOLOCK) WHERE wobii.BillingInvoicingId = Wobi.BillingInvoicingId AND wobii.ModuleId = @WOModuleId AND wobii.SubReferenceId = @SubReferenceId AND ISNULL(wobii.IsPerformaInvoice, 0) = 1) >0 THEN wobi.BillingInvoicingId  ELSE NULL END) IS NULL THEN NULL ELSE wobi.VersionNo END) AS VersionNo ,
 						CASE WHEN ISNULL(wop.RevisedItemmasterid, 0) > 0 THEN wop.RevisedItemmasterid ELSE imt.ItemMasterId END As ItemMasterId,
 						(CASE WHEN wobi.IsVersionIncrease = 1 THEN 0 ELSE 1 END) IsAllowIncreaseVersion
 						,ISNULL(wowf.WorkFlowWorkOrderId,0) WorkFlowWorkOrderId
@@ -473,8 +474,8 @@ BEGIN
 						,wobi.[CreditMemoHeaderId]
 					FROM [dbo].[WorkOrderPartNumber] wop WITH(NOLOCK)							
 					 LEFT JOIN [dbo].[WorkOrderWorkFlow] wof WITH(NOLOCK) ON wop.WorkOrderId = wof.WorkOrderId AND wof.WorkOrderPartNoId = @SubReferenceId
-					 LEFT JOIN [dbo].[BillingInvoicingItems] wobii WITH(NOLOCK) ON wobii.SubReferenceId = @SubReferenceId AND ISNULL(wobii.IsPerformaInvoice, 0) = 1
-					 LEFT JOIN [dbo].[BillingInvoicing] wobi WITH(NOLOCK) ON wobi.BillingInvoicingId = wobii.BillingInvoicingId AND wobi.ReferenceId = wof.WorkOrderId AND ISNULL(wobi.IsPerformaInvoice, 0) = 1 
+					 LEFT JOIN [dbo].[BillingInvoicingItems] wobii WITH(NOLOCK) ON wobii.SubReferenceId = @SubReferenceId AND ISNULL(wobii.IsPerformaInvoice, 0) = 1AND wobii.ModuleId = @WOModuleId
+					 LEFT JOIN [dbo].[BillingInvoicing] wobi WITH(NOLOCK) ON wobi.BillingInvoicingId = wobii.BillingInvoicingId AND wobi.ReferenceId = wof.WorkOrderId AND ISNULL(wobi.IsPerformaInvoice, 0) = 1 AND wobii.ModuleId = @WOModuleId
 					INNER JOIN [dbo].[WorkOrderWorkFlow] wowf WITH(NOLOCK) ON wop.ID = wowf.WorkOrderPartNoId 
 					INNER JOIN [dbo].[WorkOrder] wo WITH(NOLOCK) ON wo.WorkOrderId = wop.WorkOrderId
 					 LEFT JOIN [dbo].[ItemMaster] imt WITH(NOLOCK) ON imt.ItemMasterId = wop.ItemMasterId
@@ -490,14 +491,14 @@ BEGIN
 						OUTER APPLY
 							(SELECT NWOP.WorkOrderId, NWOP.Id,NWOBI.InvoiceStatus FROM DBO.WorkOrderPartNumber NWOP WITH(NOLOCK)							
 							LEFT JOIN dbo.WorkOrderWorkFlow NWOF WITH(NOLOCK) ON NWOP.WorkOrderId = NWOF.WorkOrderId AND NWOF.WorkOrderPartNoId = @SubReferenceId
-							LEFT JOIN DBO.BillingInvoicingItems NWOBII WITH(NOLOCK) ON Nwobii.SubReferenceId = @SubReferenceId AND ISNULL(NWOBII.IsPerformaInvoice, 0) = 0
-							LEFT JOIN DBO.BillingInvoicing NWOBI WITH(NOLOCK) ON NWOBI.BillingInvoicingId = NWOBII.BillingInvoicingId AND NWOBI.ReferenceId = NWOF.WorkOrderId AND ISNULL(NWOBI.IsPerformaInvoice, 0) = 0
+							LEFT JOIN DBO.BillingInvoicingItems NWOBII WITH(NOLOCK) ON Nwobii.SubReferenceId = @SubReferenceId AND Nwobii.ModuleId = @WOModuleId AND ISNULL(NWOBII.IsPerformaInvoice, 0) = 0
+							LEFT JOIN DBO.BillingInvoicing NWOBI WITH(NOLOCK) ON NWOBI.BillingInvoicingId = NWOBII.BillingInvoicingId AND Nwobi.ModuleId = @WOModuleId AND NWOBI.ReferenceId = NWOF.WorkOrderId AND ISNULL(NWOBI.IsPerformaInvoice, 0) = 0
 							WHERE NWOP.WorkOrderId = @ReferenceId AND NWOP.ID = @SubReferenceId AND (ISNULL(NWOP.IsFinishGood, 0) = 1) AND ISNULL(NWOBII.IsVersionIncrease, 0) = 0 GROUP BY NWOP.WorkOrderId, NWOP.Id,NWOBI.InvoiceStatus) woBillData
 						OUTER APPLY
 							(SELECT PWOP.WorkOrderId, PWOP.Id,PWOSSN.WorkOrderShippingId  FROM DBO.WorkOrderPartNumber PWOP WITH(NOLOCK)							
 							LEFT JOIN dbo.WorkOrderWorkFlow PWOF WITH(NOLOCK) ON PWOP.WorkOrderId = PWOF.WorkOrderId AND PWOF.WorkOrderPartNoId = @SubReferenceId
-							LEFT JOIN DBO.BillingInvoicingItems PWOBII WITH(NOLOCK) ON Pwobii.SubReferenceId = @SubReferenceId AND ISNULL(PWOBII.IsPerformaInvoice, 0) = 1
-							LEFT JOIN DBO.BillingInvoicing PWOBI WITH(NOLOCK) ON PWOBI.BillingInvoicingId = PWOBII.BillingInvoicingId AND PWOBI.ReferenceId = PWOF.WorkOrderId AND ISNULL(PWOBI.IsPerformaInvoice, 0) = 1
+							LEFT JOIN DBO.BillingInvoicingItems PWOBII WITH(NOLOCK) ON Pwobii.SubReferenceId = @SubReferenceId AND PWobii.ModuleId = @WOModuleId AND ISNULL(PWOBII.IsPerformaInvoice, 0) = 1
+							LEFT JOIN DBO.BillingInvoicing PWOBI WITH(NOLOCK) ON PWOBI.BillingInvoicingId = PWOBII.BillingInvoicingId AND Pwobi.ModuleId = @WOModuleId AND PWOBI.ReferenceId = PWOF.WorkOrderId AND ISNULL(PWOBI.IsPerformaInvoice, 0) = 1
 						    LEFT JOIN DBO.WorkOrderShippingItem PWOSISN WITH(NOLOCK) ON PWOSISN.WorkOrderPartNumId = PWOP.ID AND PWOSISN.WorkOrderPartNumId = @SubReferenceId
 							LEFT JOIN DBO.WorkOrderShipping PWOSSN WITH(NOLOCK) ON PWOSISN.WorkOrderShippingId = PWOSSN.WorkOrderShippingId
 							WHERE PWOP.WorkOrderId = @ReferenceId AND PWOP.ID = @SubReferenceId AND (ISNULL(PWOP.IsFinishGood, 0) = 1) AND ISNULL(PWOBII.IsVersionIncrease, 0) = 0 GROUP BY PWOP.WorkOrderId, PWOP.Id,PWOSSN.WorkOrderShippingId) woProfomaBillData

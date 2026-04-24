@@ -15,8 +15,16 @@
  ** S NO   Date         Author  			Change Description            
  ** --   --------		-------				--------------------------------          
 	1	 01-01-2024		VISHAL SUTHAR		Created
-	2    26-02-2026		Priyansh Patel      Added Total Posted,Unposted and reconcile values
-	3	 24-04-2026		HEMANT SALIYA		Added Is Delete Condition for Batch GL account total
+	2    18-03-2024     ABHISHEK JIRAWLA    Modified Added and filtered using id5 and id6 for Location details and partnumber respectively
+	3    02-04-2024     RAJESH GAMI			Modified: Add Removed From OH from AsOfNow till Today
+	4    09-04-2024     RAJESH GAMI			Modified: Add reduce reserve from AsOfNow till Today
+	5    05-05-2025     VISHAL SUTHAR		Added one more parameter for (excluded locations)
+	6	 23-09-2025		Moin Bloch		    Added more fields
+	7	 28-11-2025		Devendra Shekh		Modified: managed '0' value for @id2
+ 	8	 02-02-2026		RAJESH GAMI			Modified: [Traceableto] modify size  
+ 	9	 13-02-2026		Devendra Shekh		Added New param @id9  
+	10   26-02-2026		Priyansh Patel      Added Total Posted,Unposted and reconcile values
+	11	 24-04-2026		HEMANT SALIYA		Added Is Delete Condition for Batch GL account total
 
 **************************************************************/
 CREATE   PROCEDURE [dbo].[usprpt_GetStockReportAsOfNow]
@@ -131,23 +139,23 @@ BEGIN
 		[Item_Type] VARCHAR(100) NULL,
 		[stocktype] VARCHAR(50) NULL,
 		[Vendor_Name] VARCHAR(100) NULL,
-		[Qty] INT NULL,
-		[QTY_on_Hand] INT NULL,
-		[Qty_Reserved] INT NULL,
-		[Qty_Available] INT NULL,
-		[Qty_Adjusted] INT NULL,
+		[Qty] DECIMAL(18, 6) NULL,
+		[QTY_on_Hand] DECIMAL(18, 6) NULL,
+		[Qty_Reserved] DECIMAL(18, 6) NULL,
+		[Qty_Available] DECIMAL(18, 6) NULL,
+		[Qty_Adjusted] DECIMAL(18, 6) NULL,
 		[PO_UnitCost] DECIMAL(18, 2) NULL,
-		[POExtCost] DECIMAL(18, 2) NULL,
-		[ROExtCost] DECIMAL(18, 2) NULL,
+		[POExtCost] DECIMAL(18, 6) NULL,
+		[ROExtCost] DECIMAL(18, 6) NULL,
 		[ObtainedFrom] VARCHAR(100) NULL,
 		[Owner] VARCHAR(50) NULL,
 		[Traceableto] VARCHAR(MAX) NULL,
 		[Mfg] VARCHAR(50) NULL,
-		[UnitCost] DECIMAL(18, 2) NULL,
-		[UnitPrice] DECIMAL(18, 2) NULL,
-		[ExtPrice] DECIMAL(18, 2) NULL,
-		[CostAdjustment] DECIMAL(18, 2) NULL,
-		[ExtCostAdjustment] DECIMAL(18, 2) NULL,
+		[UnitCost]DECIMAL(18, 6) NULL,
+		[UnitPrice] DECIMAL(18, 6) NULL,
+		[ExtPrice] DECIMAL(18, 6) NULL,
+		[CostAdjustment] DECIMAL(18, 6) NULL,
+		[ExtCostAdjustment] DECIMAL(18, 6) NULL,
 		[level1] VARCHAR(500) NULL,
 		[level2] VARCHAR(500) NULL,
 		[level3] VARCHAR(500) NULL,
@@ -168,8 +176,8 @@ BEGIN
 		[RO_Num] VARCHAR(100) NULL,
 		[WO_Num] VARCHAR(100) NULL,
 		[SWO_Num] VARCHAR(100) NULL,
-		[RO_Cost] DECIMAL(18, 2) NULL,
-		[Inventory_Cost] DECIMAL(18, 2) NULL,
+		[RO_Cost] DECIMAL(18, 6) NULL,
+		[Inventory_Cost] DECIMAL(18, 6) NULL,
 		[PORcvdDate] VARCHAR(50) NULL,
 		[RORcvdDate] VARCHAR(50) NULL,
 		[POReceiverNum] VARCHAR(100) NULL,
@@ -183,7 +191,7 @@ BEGIN
 		[Ranking] VARCHAR(250) NULL,
 		[Classification] VARCHAR(50) NULL,
 		[Currency] VARCHAR(50) NULL,	
-		[PO_Qty] INT NULL,
+		[PO_Qty] DECIMAL(18, 6) NULL,
 		[ReceivedDate] DATETIME2(7) NULL,
 		[ReceivedDays] INT NULL,
 		[TagType] VARCHAR(100) NULL,
@@ -217,7 +225,7 @@ BEGIN
         stl.[QuantityOnHand] 'QTY_on_Hand',    
         stl.[QuantityReserved] 'Qty_Reserved',    
         UPPER(stl.[QuantityAvailable]) 'Qty_Available',    
-        (SELECT SUM(CAST(stladj.[ChangedTo] AS INT) - CAST(stladj.[ChangedFrom] AS INT)) FROM [dbo].[StocklineAdjustment] stladj WITH(NOLOCK) LEFT JOIN [dbo].[StocklineAdjustmentDataType] stladjtype WITH (NOLOCK) ON stladj.StocklineAdjustmentDataTypeId = stladjtype.StocklineAdjustmentDataTypeId
+        (SELECT SUM(CAST(stladj.[ChangedTo] AS DECIMAL(18, 6)) - CAST(stladj.[ChangedFrom] AS DECIMAL(18, 6))) FROM [dbo].[StocklineAdjustment] stladj WITH(NOLOCK) LEFT JOIN [dbo].[StocklineAdjustmentDataType] stladjtype WITH (NOLOCK) ON stladj.StocklineAdjustmentDataTypeId = stladjtype.StocklineAdjustmentDataTypeId
 		WHERE stladj.[StocklineAdjustmentDataTypeId] IN (10, 15) AND
 		stladj.[StocklineId] = stl.[StockLineId]) AS 'Qty_Adjusted',
 		ISNULL(stl.[PurchaseOrderUnitCost] , 0) 'PO_UnitCost',    
@@ -323,8 +331,8 @@ BEGIN
 
     SELECT TOP (1) @OpenStatusId = Id FROM [dbo].[BatchStatus]  WITH (NOLOCK) WHERE [Name] = 'OPEN' AND ISNULL(IsDeleted, 0) = 0  AND ISNULL(IsActive, 0) = 1 ORDER BY Id;
 
-	DECLARE @TotalPostedGL DECIMAL(18,2) = 0 
-	DECLARE @TotalUnPostedGL DECIMAL(18,2) = 0 
+	DECLARE @TotalPostedGL DECIMAL(18,6) = 0 
+	DECLARE @TotalUnPostedGL DECIMAL(18,6) = 0 
 
 	SELECT @TotalPostedGL = SUM(ISNULL(CBD.DebitAmount, 0) - ISNULL(CBD.CreditAmount, 0))
 	FROM [dbo].[CommonBatchDetails] CBD WITH (NOLOCK)
@@ -345,7 +353,7 @@ BEGIN
 		AND stl.[IsDeleted] = 0 AND CAST(stl.[CreatedDate] AS DATE) <= CASE WHEN ISNULL(@id9, 0) = 1 THEN CAST(GETUTCDATE() AS DATE) ELSE CAST(GETUTCDATE()-1 AS DATE) END
 	) AND BD.StatusId = @OpenStatusId  AND CBD.[MasterCompanyId] = @mastercompanyid AND ISNULL(CBD.IsDeleted, 0) = 0 AND ISNULL(CBD.IsActive, 0) = 1
 
-	DECLARE @TotalInventory DECIMAL(18,2) = 0 
+	DECLARE @TotalInventory DECIMAL(18,6) = 0 
 	SELECT @TotalInventory = SUM(ISNULL(ISNULL(stl.[UnitCost],0) * ISNULL(stl.[QTY_on_Hand],0) , 0))
 		FROM #TEMPOriginalStocklineRecords stl WHERE [QTY_on_Hand] > 0
 

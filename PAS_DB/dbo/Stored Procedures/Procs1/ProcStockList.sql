@@ -41,6 +41,7 @@
 	24   02/12/2025   Bhargav Saliya	Added Unit Cost
 	25   01/20/2026   Amit Ghediya		Update for filter allow unitcost to decimal like (18.25)
 	26   26/01/2026   Divyesh Kathiriya	Added new field 'GLAccount' for list
+	27   21/04/2026   Divyesh Kathiriya	Added new field 'PN Source' for list [PN-16132]
 
 	(Do Not add any new join or In Query in Stockline list SP)
 	
@@ -50,10 +51,10 @@
 @TagType=NULL,@TagDate=NULL,@ExpirationDate=NULL,@ControlNumber=NULL,@IdNumber=NULL,@Manufacturer=NULL,@PartCertificationNumber=NULL,@CertifiedBy=NULL,@CertifiedDate=NULL,
 @UpdatedBy=NULL,@UpdatedDate=NULL,@EmployeeId=98,@MasterCompanyId=11,@IsCustomerStock=NULL,@ItemMasterId=0,@StockLineIds=NULL,@obtainFrom=NULL,@ownerName=NULL,
 @LastMSLevel=NULL,@QuantityReserved=NULL,@WorkOrderStage=NULL,@IsECStock=1,@IsCStock=0,@Site=NULL,@Location=NULL,@IsALTStock=0,@WorkOrderNumber=NULL,@IsTimeLife=NULL,
-@CustomerName=NULL,@IsTurnIn=NULL,@GLAccount=NULL
+@CustomerName=NULL,@IsTurnIn=NULL,@GLAccount=NULL,@PNSource=NULL
 **************************************************************/   
-CREATE      PROCEDURE [dbo].[ProcStockList]
-	@PageNumber int = NULL,        
+CREATE       PROCEDURE [dbo].[ProcStockList]	
+	@PageNumber int = NULL,
 	@PageSize int = NULL,        
 	@SortColumn varchar(50)=NULL,        
 	@SortOrder int = NULL,        
@@ -118,7 +119,8 @@ CREATE      PROCEDURE [dbo].[ProcStockList]
 	@IsRepairManagement varchar(50) = NULL,
 	@BatchNumber varchar(50)=NULL,
 	@UnitCost varchar(50)=NULL,
-	@GLAccount varchar(255) = NULL
+	@GLAccount varchar(255) = NULL,
+	@PNSource varchar(20) = NULL
 AS        
 BEGIN         
      SET NOCOUNT ON;        
@@ -273,7 +275,13 @@ BEGIN
 		ISNULL(stl.[IsBatchStock],0) [IsBatchStock],
 		stl.[BatchNumber],
 		stl.[UnitCost],
-		stl.[InventoryGLAccName] AS 'GLAccount'
+		stl.[InventoryGLAccName] AS 'GLAccount',
+		CASE 
+			WHEN stl.[IsPMA] = 1 THEN 'PMA'
+			WHEN stl.[IsDER] = 1 THEN 'DER'
+			WHEN stl.[OEM] = 1 THEN 'OEM'
+			ELSE ''
+		END AS 'PNSource'
 	   --CASE WHEN ISNULL((SELECT COUNT(CommonDocumentDetailId) FROM [DBO].[CommonDocumentDetails] CDD WITH(NOLOCK) WHERE stl.StockLineId = CDD.ReferenceId AND CDD.ModuleId = @AttachmentModuleId AND ISNULL(CDD.IsDeleted, 0) = 0), 0) > 0 THEN 'Yes' ELSE 'No' END AS 'IsDocument'
 		FROM  dbo.StockLine stl WITH (NOLOCK)        
 		  INNER JOIN dbo.StocklineManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @MSModuelId AND MSD.ReferenceID = stl.StockLineId     
@@ -333,7 +341,8 @@ BEGIN
 		  ([BatchNumber] LIKE '%' +@GlobalFilter+'%') OR	
 		  (IsDocument LIKE '%' +@GlobalFilter+'%') OR 
 		  ((CAST(UnitCost AS NVARCHAR(20))) LIKE '%' +@GlobalFilter+'%') OR
-		  (GLAccount LIKE '%' +@GlobalFilter+'%')
+		  (GLAccount LIKE '%' +@GlobalFilter+'%') OR
+		  (PNSource LIKE '%' +@GlobalFilter+'%')		  
 		  ))         
 		  OR           
 		  (@GlobalFilter='' AND (ISNULL(@MainPartNumber,'') ='' OR MainPartNumber LIKE '%' + @MainPartNumber+'%') AND        
@@ -386,7 +395,8 @@ BEGIN
 		  (ISNULL(@BatchNumber,'') ='' OR [BatchNumber] LIKE '%' + @BatchNumber+'%') AND			
 		  (ISNULL(@IsDocument,'') ='' OR IsDocument LIKE '%' + @IsDocument + '%') and 
 		  (IsNull(@UnitCost,'') ='' OR CAST(UnitCost AS varchar(20)) like '%' + @UnitCost+'%' ) AND
-		  (ISNULL(@GLAccount,'') ='' OR GLAccount LIKE '%' + @GLAccount + '%'))        
+		  (ISNULL(@GLAccount,'') ='' OR GLAccount LIKE '%' + @GLAccount + '%') AND
+		  (ISNULL(@PNSource,'') ='' OR PNSource LIKE '%' + @PNSource + '%'))		   
 		 )        
 		SELECT @Count = COUNT(StockLineId) FROM #TempResults       		
 		
@@ -490,8 +500,9 @@ BEGIN
 		  CASE WHEN (@SortOrder=1 AND @SortColumn='UnitCost')  THEN CAST(UnitCost AS varchar(20)) END ASC,
 		  CASE WHEN (@SortOrder=-1 AND @SortColumn='UnitCost')  THEN CAST(UnitCost AS varchar(20)) END DESC,
 		  CASE WHEN (@SortOrder=1  AND @SortColumn='GLAccount')  THEN GLAccount END ASC,        
-		  CASE WHEN (@SortOrder=-1 AND @SortColumn='GLAccount')  THEN GLAccount END DESC 
-            
+		  CASE WHEN (@SortOrder=-1 AND @SortColumn='GLAccount')  THEN GLAccount END DESC,
+		  CASE WHEN (@SortOrder=1  AND @SortColumn='PNSource')  THEN PNSource END ASC,        
+		  CASE WHEN (@SortOrder=-1 AND @SortColumn='PNSource')  THEN PNSource END DESC
 		OFFSET @RecordFROM ROWS         
 		FETCH NEXT @PageSize ROWS ONLY        
 	  END        
@@ -571,7 +582,13 @@ BEGIN
 		ISNULL(stl.[IsBatchStock],0) [IsBatchStock],
 		stl.[BatchNumber],
 		stl.[UnitCost],
-		stl.[InventoryGLAccName] AS 'GLAccount'
+		stl.[InventoryGLAccName] AS 'GLAccount',
+		CASE 
+			WHEN stl.[IsPMA] = 1 THEN 'PMA'
+			WHEN stl.[IsDER] = 1 THEN 'DER'
+			WHEN stl.[OEM] = 1 THEN 'OEM'
+			ELSE ''
+		END AS 'PNSource'
 	    --CASE WHEN ISNULL((SELECT COUNT(CommonDocumentDetailId) FROM [DBO].[CommonDocumentDetails] CDD WITH(NOLOCK) WHERE stl.StockLineId = CDD.ReferenceId AND CDD.ModuleId = @AttachmentModuleId AND ISNULL(CDD.IsDeleted, 0) = 0), 0) > 0 THEN 'Yes' ELSE 'No' END AS 'IsDocument'
 		FROM  DBO.StockLine stl WITH (NOLOCK)    
 		 INNER JOIN  dbo.StocklineManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @MSModuelId AND MSD.ReferenceID = stl.StockLineId        
@@ -636,7 +653,8 @@ BEGIN
 		([BatchNumber] LIKE '%' +@GlobalFilter+'%') OR
 		(IsDocument LIKE '%' +@GlobalFilter+'%') OR
 		((CAST(UnitCost AS NVARCHAR(20))) LIKE '%' +@GlobalFilter+'%') OR
-		(GLAccount LIKE '%' +@GlobalFilter+'%')
+		(GLAccount LIKE '%' +@GlobalFilter+'%') OR
+		(PNSource LIKE '%' +@GlobalFilter+'%')		
 		))         
 		OR           
 		(@GlobalFilter='' AND (ISNULL(@MainPartNumber,'') ='' OR MainPartNumber LIKE '%' + @MainPartNumber+'%') AND        
@@ -689,7 +707,8 @@ BEGIN
 		(ISNULL(@BatchNumber,'') ='' OR [BatchNumber] LIKE '%' + @BatchNumber+'%') 	
 		AND (ISNULL(@IsDocument,'') ='' OR IsDocument LIKE '%' + @IsDocument + '%') 
 		AND (IsNull(@UnitCost,'') ='' OR CAST(UnitCost AS varchar(20)) like '%' + @UnitCost+'%' )AND
-		(ISNULL(@GLAccount,'') ='' OR GLAccount LIKE '%' + @GLAccount + '%'))        
+		(ISNULL(@GLAccount,'') ='' OR GLAccount LIKE '%' + @GLAccount + '%') AND
+		(ISNULL(@PNSource,'') ='' OR PNSource LIKE '%' + @PNSource + '%'))		 
 	   )        
 	   SELECT @Count = COUNT(StockLineId) FROM #TempResult           
         
@@ -794,7 +813,9 @@ BEGIN
 	   CASE WHEN (@SortOrder=1 AND @SortColumn='UnitCost')  THEN CAST(UnitCost AS varchar(20)) END ASC,
 	   CASE WHEN (@SortOrder=-1 AND @SortColumn='UnitCost')  THEN CAST(UnitCost AS varchar(20)) END DESC,
 	   CASE WHEN (@SortOrder=1  AND @SortColumn='GLAccount')  THEN GLAccount END ASC,        
-	   CASE WHEN (@SortOrder=-1 AND @SortColumn='GLAccount')  THEN GLAccount END DESC 
+	   CASE WHEN (@SortOrder=-1 AND @SortColumn='GLAccount')  THEN GLAccount END DESC,
+	   CASE WHEN (@SortOrder=1  AND @SortColumn='PNSource')  THEN PNSource END ASC,        
+	   CASE WHEN (@SortOrder=-1 AND @SortColumn='PNSource')  THEN PNSource END DESC   
             
 		OFFSET @RecordFROM ROWS         
 		FETCH NEXT @PageSize ROWS ONLY        
@@ -876,7 +897,13 @@ BEGIN
 	   ISNULL(stl.[IsBatchStock],0) [IsBatchStock],
 	   stl.[BatchNumber],
 	   stl.[UnitCost],
-	   stl.[InventoryGLAccName] AS 'GLAccount'
+	   stl.[InventoryGLAccName] AS 'GLAccount',
+	   CASE 
+			WHEN stl.[IsPMA] = 1 THEN 'PMA'
+			WHEN stl.[IsDER] = 1 THEN 'DER'
+			WHEN stl.[OEM] = 1 THEN 'OEM'
+			ELSE ''
+		END AS 'PNSource'
 	   --CASE WHEN ISNULL((SELECT COUNT(CommonDocumentDetailId) FROM [DBO].[CommonDocumentDetails] CDD WITH(NOLOCK) WHERE stl.StockLineId = CDD.ReferenceId AND CDD.ModuleId = @AttachmentModuleId AND ISNULL(CDD.IsDeleted, 0) = 0), 0) > 0 THEN 'Yes' ELSE 'No' END AS 'IsDocument'
 	  FROM Nha_Tla_Alt_Equ_ItemMapping ALT    
 	   INNER JOIN DBO.ItemMaster im WITH (NOLOCK) ON ALT.MappingItemMasterId = im.ItemMasterId --ALTPART    
@@ -939,7 +966,8 @@ BEGIN
 		  ([BatchNumber] LIKE '%' +@GlobalFilter+'%') OR
 		  (IsDocument LIKE '%' +@GlobalFilter+'%') OR
 		  ((CAST(UnitCost AS NVARCHAR(20))) LIKE '%' +@GlobalFilter+'%') OR
-		  (GLAccount LIKE '%' +@GlobalFilter+'%')))
+		  (GLAccount LIKE '%' +@GlobalFilter+'%') OR
+		  (PNSource LIKE '%' +@GlobalFilter+'%')))		  
 		  OR           
 		  (@GlobalFilter='' AND (ISNULL(@MainPartNumber,'') ='' OR MainPartNumber LIKE '%' + @MainPartNumber+'%') AND      
 		  (ISNULL(@PartNumber,'') ='' OR PartNumber LIKE '%' + @PartNumber + '%') AND    
@@ -991,7 +1019,8 @@ BEGIN
 		  (ISNULL(@BatchNumber,'') ='' OR [BatchNumber] LIKE '%' + @BatchNumber+'%') AND		
 		  (ISNULL(@IsDocument,'') ='' OR IsDocument LIKE '%' + @IsDocument + '%') AND
 		  (IsNull(@UnitCost,'') ='' OR CAST(UnitCost AS varchar(20)) like '%' + @UnitCost+'%' ) AND
-		  (ISNULL(@GLAccount,'') ='' OR GLAccount LIKE '%' + @GLAccount + '%'))        
+		  (ISNULL(@GLAccount,'') ='' OR GLAccount LIKE '%' + @GLAccount + '%') AND
+		  (ISNULL(@PNSource,'') ='' OR PNSource LIKE '%' + @PNSource + '%'))		   
 		 )        
 	   SELECT @Count = COUNT(StockLineId) FROM #TempALTResults           
         
@@ -1095,7 +1124,9 @@ BEGIN
 		  CASE WHEN (@SortOrder=1 AND @SortColumn='UnitCost')  THEN CAST(UnitCost AS varchar(20)) END ASC,
 		  CASE WHEN (@SortOrder=-1 AND @SortColumn='UnitCost')  THEN CAST(UnitCost AS varchar(20)) END DESC,
 		  CASE WHEN (@SortOrder=1  AND @SortColumn='GLAccount')  THEN GLAccount END ASC,        
-		  CASE WHEN (@SortOrder=-1 AND @SortColumn='GLAccount')  THEN GLAccount END DESC 
+		  CASE WHEN (@SortOrder=-1 AND @SortColumn='GLAccount')  THEN GLAccount END DESC,
+		  CASE WHEN (@SortOrder=1  AND @SortColumn='PNSource')  THEN PNSource END ASC,        
+		  CASE WHEN (@SortOrder=-1 AND @SortColumn='PNSource')  THEN PNSource END DESC		  
             
 		OFFSET @RecordFROM ROWS         
 		FETCH NEXT @PageSize ROWS ONLY        
@@ -1174,7 +1205,13 @@ BEGIN
 		ISNULL(stl.[IsBatchStock],0) [IsBatchStock],
 		stl.[BatchNumber],
 		stl.[UnitCost],
-		stl.[InventoryGLAccName] AS 'GLAccount'
+		stl.[InventoryGLAccName] AS 'GLAccount',
+		CASE 
+			WHEN stl.[IsPMA] = 1 THEN 'PMA'
+			WHEN stl.[IsDER] = 1 THEN 'DER'
+			WHEN stl.[OEM] = 1 THEN 'OEM'
+			ELSE ''
+		END AS 'PNSource'
 	    --CASE WHEN ISNULL((SELECT COUNT(CommonDocumentDetailId) FROM [DBO].[CommonDocumentDetails] CDD WITH(NOLOCK) WHERE stl.StockLineId = CDD.ReferenceId AND CDD.ModuleId = @AttachmentModuleId AND ISNULL(CDD.IsDeleted, 0) = 0), 0) > 0 THEN 'Yes' ELSE 'No' END AS 'IsDocument'
 		FROM Nha_Tla_Alt_Equ_ItemMapping ALT    
 	   INNER JOIN DBO.ItemMaster im WITH (NOLOCK) ON ALT.MappingItemMasterId = im.ItemMasterId --ALTPART    
@@ -1240,7 +1277,8 @@ BEGIN
 		([BatchNumber] LIKE '%' +@GlobalFilter+'%')	OR		
 		(IsDocument LIKE '%' +@GlobalFilter+'%') or
 		((CAST(UnitCost AS NVARCHAR(20))) LIKE '%' +@GlobalFilter+'%') OR
-		(GLAccount LIKE '%' +@GlobalFilter+'%')))       
+		(GLAccount LIKE '%' +@GlobalFilter+'%') OR
+		(PNSource LIKE '%' +@GlobalFilter+'%')))
 		OR           
 		(@GlobalFilter='' AND (ISNULL(@MainPartNumber,'') ='' OR MainPartNumber LIKE '%' + @MainPartNumber+'%') AND        
 		(ISNULL(@PartNumber,'') ='' OR PartNumber LIKE '%' + @PartNumber + '%') AND      
@@ -1292,7 +1330,8 @@ BEGIN
 		(ISNULL(@BatchNumber,'') ='' OR [BatchNumber] LIKE '%' + @BatchNumber+'%') AND	
 		(ISNULL(@IsDocument,'') ='' OR IsDocument LIKE '%' + @IsDocument + '%') and 
 		(IsNull(@UnitCost,'') =''  OR CAST(UnitCost AS varchar(20)) like '%' + @UnitCost+'%' ) AND
-		(ISNULL(@GLAccount,'') ='' OR GLAccount LIKE '%' + @GLAccount + '%'))        
+		(ISNULL(@GLAccount,'') ='' OR GLAccount LIKE '%' + @GLAccount + '%') AND
+		(ISNULL(@PNSource,'') ='' OR PNSource LIKE '%' + @PNSource + '%'))		  
 	   )        
 	   SELECT @Count = COUNT(StockLineId) FROM #TempALTResult           
         
@@ -1397,7 +1436,9 @@ BEGIN
 	   CASE WHEN (@SortOrder=1 AND @SortColumn='UnitCost')  THEN CAST(UnitCost AS varchar(20)) END ASC,
        CASE WHEN (@SortOrder=-1 AND @SortColumn='UnitCost')  THEN CAST(UnitCost AS varchar(20)) END DESC,
 	   CASE WHEN (@SortOrder=1  AND @SortColumn='GLAccount')  THEN GLAccount END ASC,        
-	   CASE WHEN (@SortOrder=-1 AND @SortColumn='GLAccount')  THEN GLAccount END DESC 
+	   CASE WHEN (@SortOrder=-1 AND @SortColumn='GLAccount')  THEN GLAccount END DESC,
+	   CASE WHEN (@SortOrder=1  AND @SortColumn='PNSource')  THEN PNSource END ASC,        
+	   CASE WHEN (@SortOrder=-1 AND @SortColumn='PNSource')  THEN PNSource END DESC
             
 		OFFSET @RecordFROM ROWS         
 		FETCH NEXT @PageSize ROWS ONLY        

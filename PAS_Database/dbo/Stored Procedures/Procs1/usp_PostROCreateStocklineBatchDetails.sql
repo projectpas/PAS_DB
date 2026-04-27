@@ -26,8 +26,9 @@
 	15	 02/06/2025	  Abhishek Jirawla  Fixed Name concat read script
 	16	 01/12/2025   AMIT GHEDIYA   Update for batch gl account basd on stockline (Goods Received Not Invoiced (GRNI))
 	17   01/29/2026   Hemant Saliya	 Corrected to get Goods Received Not Invoiced (GRNI) from Stockline
+	18   27/04/2025   Bhargav Saliya [PN-16170](UOM-Fixed Amount Issue)
 **************************************************************/  
-CREATE    PROCEDURE [dbo].[usp_PostROCreateStocklineBatchDetails]
+CREATE      PROCEDURE [dbo].[usp_PostROCreateStocklineBatchDetails]
 @tbl_PostStocklineBatchType PostStocklineBatchType READONLY,
 @MstCompanyId int,
 @updatedByName varchar(256)
@@ -39,7 +40,7 @@ BEGIN
 				BEGIN TRANSACTION
 				BEGIN
 					DECLARE @StocklineId bigint = 0;
-					DECLARE @Qty int = 0;
+					DECLARE @Qty DECIMAL(18,6) = 0;
 					DECLARE @Amount decimal(18, 2) = 0;
 					DECLARE @ModuleName varchar(256) = 0;
 					DECLARE @UpdateBy varchar(256) = 0;
@@ -80,7 +81,7 @@ BEGIN
 					(    
 					    [ID] BIGINT NOT NULL IDENTITY, 
 						[StocklineId] [bigint] NOT NULL,
-						[Qty] [int] NOT NULL,
+						[Qty] [decimal](18, 6) NOT NULL,
 						[Amount] [decimal](18, 2) NULL,
 						[ModuleName] [varchar](256) NULL,
 						[UpdateBy] [varchar](256) NULL,

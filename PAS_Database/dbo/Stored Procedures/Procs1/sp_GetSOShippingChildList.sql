@@ -1,4 +1,4 @@
-/**************************************************************           
+﻿/**********************           
  ** File:   [sp_GetSOShippingChildList]           
  ** Author:   
  ** Description: Returns shipping child list for a given SalesOrder part.
@@ -12,9 +12,9 @@
          
  ** RETURN VALUE: Result set of shipping line items
   
- **************************************************************           
+ **********************           
  ** Change History           
- **************************************************************           
+ **********************           
  ** PR   Date          Author            Change Description            
  ** --   ----------    ---------------   --------------------------------          
     1    01/31/2024    Amit Ghediya      Added IsPerforma for Billing
@@ -25,9 +25,9 @@
     6    10/11/2025    Rajesh Gami       Added [UPSPdfPath]
     7    12/01/2026    Vishal Suthar     Fixed duplicate shipping records for same stockline (SA multi-invoice)
     8    31/03/2026    Moin Bloch        Added UOM changes PN-15067
-
+    9	 25 APR 2026   RAJESH GAMI       Added MastercompanyId in the condition
  EXEC [dbo].[sp_GetSOShippingChildList] 1272, 318, 7  
-**************************************************************/
+**********************/
 CREATE PROCEDURE [dbo].[sp_GetSOShippingChildList]
     @SalesOrderId     BIGINT,
     @SalesOrderPartId BIGINT,
@@ -44,7 +44,7 @@ BEGIN
             FROM   dbo.Module WITH (NOLOCK)
             WHERE  ModuleName = 'SalesOrder'
         );
-
+        DECLARE @masterCompanyId BIGINT = (SELECT TOP 1 MasterCompanyId FROM dbo.SalesOrder WITH(NOLOCK) WHERE SalesOrderId = @SalesOrderId)
         SELECT DISTINCT
             sopt.SOPickTicketId,
             sos.SalesOrderShippingId,
@@ -139,9 +139,10 @@ BEGIN
          LEFT JOIN [dbo].[SalesOrderPackaginSlipItems]  SPI WITH (NOLOCK)
                 ON SPI.SOPickTicketId    = sopt.SOPickTicketId
                AND SPI.SalesOrderPartId = sop.SalesOrderPartId
+               AND SPI.MasterCompanyId = @masterCompanyId AND ISNULL(SPI.IsDeleted,0) = 0
 
          LEFT JOIN [dbo].[SalesOrderPackaginSlipHeader] SPB WITH (NOLOCK)
-                ON SPB.PackagingSlipId = SPI.PackagingSlipId
+                ON SPB.PackagingSlipId = SPI.PackagingSlipId AND SPB.SalesOrderId = sopt.SalesOrderId AND ISNULL(SPB.IsDeleted,0) = 0
 
         OUTER APPLY
         (
@@ -164,7 +165,7 @@ BEGIN
         WHERE  sopt.SalesOrderId  = @SalesOrderId
           AND  sop.ItemMasterId   = @SalesOrderPartId
           AND  sop.ConditionId    = @ConditionId
-          AND  sopt.IsConfirmed   = 1;  -- Avoid ISNULL() to allow index seek
+          AND  sopt.IsConfirmed   = 1 AND sopt.MasterCompanyId = @masterCompanyId;  -- Avoid ISNULL() to allow index seek
 
     END TRY
     BEGIN CATCH

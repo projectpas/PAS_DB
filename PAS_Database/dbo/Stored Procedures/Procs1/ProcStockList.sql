@@ -44,7 +44,7 @@
 	27   26/01/2026   Divyesh Kathiriya	Added new field 'GLAccount' for list
 	28   21/04/2026   Divyesh Kathiriya	Added new field 'PN Source' for list [PN-16132]
 	30   23/04/2026   Ayushi Patel		[PN-15958] returned StockUnitOfMeasure insted of PurchaseUnitOfMeasure (UnitOfMeasure)
-	31   28/04/2026   Ayushi Patel      [PN-16202] Removed Round from UnitCost
+	31   28/04/2026   Ayushi Patel      [PN-16202] Removed Round from UnitCost 
 	(Do Not add any new join or In Query in Stockline list SP)
 	
 -- exec ProcStockList @PageNumber=1,@PageSize=20,@SortColumn=N'CreatedDate',@SortOrder=-1,@GlobalFilter=N'',@stockTypeId=1,@StocklineNumber=NULL,@MainPartNumber=NULL,

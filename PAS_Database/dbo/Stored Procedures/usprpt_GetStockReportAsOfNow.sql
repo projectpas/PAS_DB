@@ -25,6 +25,7 @@
  	9	 13-02-2026		Devendra Shekh		Added New param @id9  
 	10   26-02-2026		Priyansh Patel      Added Total Posted,Unposted and reconcile values
 	11	 24-04-2026		HEMANT SALIYA		Added Is Delete Condition for Batch GL account total
+	12	 28-04-2026		HEMANT SALIYA		Exclude Non-Stock GL account from get GL balance
 
 **************************************************************/
 CREATE   PROCEDURE [dbo].[usprpt_GetStockReportAsOfNow]
@@ -108,6 +109,8 @@ BEGIN
 
     DECLARE @ModuleID INT = 2; -- MS Module ID 	
 	SELECT @ModuleID = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] = 'Stockline'
+	DECLARE @NonStockGLAccountId BIGINT = 0; -- MS Module ID 
+	SELECT @NonStockGLAccountId = GLAccountId  FROM [dbo].[GLAccount] WHERE AccountCode = 73300 AND MasterCompanyId = 21
 
 	IF @id6 = 0
 	BEGIN
@@ -144,14 +147,14 @@ BEGIN
 		[Qty_Reserved] DECIMAL(18, 6) NULL,
 		[Qty_Available] DECIMAL(18, 6) NULL,
 		[Qty_Adjusted] DECIMAL(18, 6) NULL,
-		[PO_UnitCost] DECIMAL(18, 2) NULL,
+		[PO_UnitCost] DECIMAL(18, 6) NULL,
 		[POExtCost] DECIMAL(18, 6) NULL,
 		[ROExtCost] DECIMAL(18, 6) NULL,
 		[ObtainedFrom] VARCHAR(100) NULL,
 		[Owner] VARCHAR(50) NULL,
 		[Traceableto] VARCHAR(MAX) NULL,
 		[Mfg] VARCHAR(50) NULL,
-		[UnitCost]DECIMAL(18, 6) NULL,
+		[UnitCost] DECIMAL(18, 6) NULL,
 		[UnitPrice] DECIMAL(18, 6) NULL,
 		[ExtPrice] DECIMAL(18, 6) NULL,
 		[CostAdjustment] DECIMAL(18, 6) NULL,
@@ -340,8 +343,9 @@ BEGIN
 	WHERE  EXISTS (SELECT 1 FROM [dbo].[Stockline] stl WITH (NOLOCK) WHERE stl.GLAccountId = CBD.GLAccountId 
 		AND stl.[MasterCompanyId] = @mastercompanyid
 		AND stl.[IsParent] = 1 
+		AND stl.GLAccountId <> @NonStockGLAccountId
 		AND stl.[IsDeleted] = 0 AND CAST(stl.[CreatedDate] AS DATE) <= CASE WHEN ISNULL(@id9, 0) = 1 THEN CAST(GETUTCDATE() AS DATE) ELSE CAST(GETUTCDATE()-1 AS DATE) END
-	) AND BD.StatusId = @PostedStatusId  AND CBD.[MasterCompanyId] = @mastercompanyid AND ISNULL(CBD.IsDeleted, 0) = 0 AND ISNULL(CBD.IsActive, 0) = 1
+	) AND BD.StatusId = @PostedStatusId AND CBD.GLAccountId <> @NonStockGLAccountId AND CBD.[MasterCompanyId] = @mastercompanyid AND ISNULL(CBD.IsDeleted, 0) = 0 AND ISNULL(CBD.IsActive, 0) = 1
 
 
 	SELECT @TotalUnPostedGL = SUM(ISNULL(CBD.DebitAmount, 0) - ISNULL(CBD.CreditAmount, 0))
@@ -350,8 +354,9 @@ BEGIN
 	WHERE  EXISTS (SELECT 1 FROM [dbo].[Stockline] stl WITH (NOLOCK) WHERE stl.GLAccountId = CBD.GLAccountId 
 		AND stl.[MasterCompanyId] = @mastercompanyid 
 		AND stl.[IsParent] = 1
+		AND stl.GLAccountId <> @NonStockGLAccountId
 		AND stl.[IsDeleted] = 0 AND CAST(stl.[CreatedDate] AS DATE) <= CASE WHEN ISNULL(@id9, 0) = 1 THEN CAST(GETUTCDATE() AS DATE) ELSE CAST(GETUTCDATE()-1 AS DATE) END
-	) AND BD.StatusId = @OpenStatusId  AND CBD.[MasterCompanyId] = @mastercompanyid AND ISNULL(CBD.IsDeleted, 0) = 0 AND ISNULL(CBD.IsActive, 0) = 1
+	) AND BD.StatusId = @OpenStatusId AND CBD.GLAccountId <> @NonStockGLAccountId AND CBD.[MasterCompanyId] = @mastercompanyid AND ISNULL(CBD.IsDeleted, 0) = 0 AND ISNULL(CBD.IsActive, 0) = 1
 
 	DECLARE @TotalInventory DECIMAL(18,6) = 0 
 	SELECT @TotalInventory = SUM(ISNULL(ISNULL(stl.[UnitCost],0) * ISNULL(stl.[QTY_on_Hand],0) , 0))

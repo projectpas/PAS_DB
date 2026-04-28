@@ -100,7 +100,7 @@
     [SalesOrderQuoteId]              BIGINT          NULL,
     [SalesOrderQuoteNumber]          NVARCHAR (250)  NULL,
     [AircraftRegistryNumber]         VARCHAR (30)    NULL,
-    [IsFromAircraft]                 BIT             NULL,
+    [IsFromAircraft]                 BIT             CONSTRAINT [DF_PurchaseOrderPartAudit_IsFromAircraft] DEFAULT ((0)) NULL,
     [AircraftInstalledPartDetailsId] BIGINT          NULL,
     CONSTRAINT [PK_PurchaseOrderPartAudit] PRIMARY KEY CLUSTERED ([PurchaseOrderPartAuditId] ASC)
 );

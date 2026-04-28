@@ -44,6 +44,7 @@
 	27   26/01/2026   Divyesh Kathiriya	Added new field 'GLAccount' for list
 	28   21/04/2026   Divyesh Kathiriya	Added new field 'PN Source' for list [PN-16132]
 	30   23/04/2026   Ayushi Patel		[PN-15958] returned StockUnitOfMeasure insted of PurchaseUnitOfMeasure (UnitOfMeasure)
+	31   28/04/2026   Ayushi Patel      [PN-16202] Removed Round from UnitCost
 	(Do Not add any new join or In Query in Stockline list SP)
 	
 -- exec ProcStockList @PageNumber=1,@PageSize=20,@SortColumn=N'CreatedDate',@SortOrder=-1,@GlobalFilter=N'',@stockTypeId=1,@StocklineNumber=NULL,@MainPartNumber=NULL,
@@ -280,7 +281,7 @@ BEGIN
 		CASE WHEN ISNULL(stl.IsRepairManagement, 0) = 0 THEN 'No' ELSE 'Yes' END AS IsRepairManagement,
 		ISNULL(stl.[IsBatchStock],0) [IsBatchStock],
 		stl.[BatchNumber],
-		ROUND(stl.[UnitCost],2) as UnitCost,
+		stl.[UnitCost] as UnitCost,
 		ISNULL(uom.DecimalPlaces,2) DecimalPlaces,
 		ISNULL(uom.Class,'Decimal') Class,
 		stl.[InventoryGLAccName] AS 'GLAccount',
@@ -591,7 +592,7 @@ BEGIN
 		CASE WHEN stl.IsRepairManagement = 1 THEN 'Yes' ELSE 'No' END AS IsRepairManagement,
 		ISNULL(stl.[IsBatchStock],0) [IsBatchStock],
 		stl.[BatchNumber],
-		ROUND(stl.[UnitCost],2)UnitCost,
+		stl.[UnitCost] UnitCost,
 		ISNULL(uom.DecimalPlaces,2) DecimalPlaces,
 		ISNULL(uom.Class,'Decimal') Class,
 		stl.[InventoryGLAccName] AS 'GLAccount',
@@ -908,7 +909,7 @@ BEGIN
 	   CASE WHEN stl.IsRepairManagement = 1 THEN 'Yes' ELSE 'No' END AS IsRepairManagement,
 	   ISNULL(stl.[IsBatchStock],0) [IsBatchStock],
 	   stl.[BatchNumber],
-	   ROUND(stl.[UnitCost],2) UnitCost,
+	   stl.[UnitCost] UnitCost,
 	   stl.[InventoryGLAccName] AS 'GLAccount',
 	   CASE 
 			WHEN stl.[IsPMA] = 1 THEN 'PMA'
@@ -1216,7 +1217,7 @@ BEGIN
 		CASE WHEN stl.IsRepairManagement = 1 THEN 'Yes' ELSE 'No' END AS IsRepairManagement,
 		ISNULL(stl.[IsBatchStock],0) [IsBatchStock],
 		stl.[BatchNumber],
-		ROUND(stl.[UnitCost],2) UnitCost,
+		stl.[UnitCost] UnitCost,
 		stl.[InventoryGLAccName] AS 'GLAccount',
 		CASE 
 			WHEN stl.[IsPMA] = 1 THEN 'PMA'

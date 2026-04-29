@@ -20,9 +20,9 @@
 	10	 01/13/2024		HEMANT SALIYA		    Resolved repair Order View Issue
 	11   04/25/2025		Devendra Shekh		    Modified (Added New Fields IssuedStkExtendedCost, ReservedStkExtendedCost, StkPONum, StkPONextDlvrDate, TotalIssuedStkExtendedCost, TotalReservedStkExtendedCost)
 *** 12   16/Mar/2026	Rajesh Gami				Added UOM Changes [PN-15714] (Added Remaing Changes)
-       
+    13   28/04/2026	    Ayushi Patel			Added condition to get UnitOfMeasure [PN-16096] 
  EXECUTE USP_GetSubWorkOrderMaterialsList 316,0  
-exec dbo.USP_GetSubWorkOrderMaterialsListNew @PageNumber=1,@PageSize=5,@SortColumn=default,@SortOrder=1,@subWOPartNoId=260,@ShowPendingToIssue=0
+exec dbo.USP_GetSubWorkOrderMaterialsListNew @PageNumber=1,@PageSize=10,@SortColumn=default,@SortOrder=1,@subWOPartNoId=282,@ShowPendingToIssue=0
 **************************************************************/   
 CREATE   PROCEDURE [dbo].[USP_GetSubWorkOrderMaterialsListNew]      
 (
@@ -165,7 +165,7 @@ SET NOCOUNT ON
 		 	[UnitCost] [decimal](18,6) NULL,
 		 	[ExtendedCost] [decimal](18,6) NULL,
 		 	[TotalStocklineQtyReq] [decimal](18,6) NULL,
-		 	[WOMStockLineId] [bigint] NULL,
+		 	[WOMStockLIneId] [bigint] NULL,
 			[StocklineUnitCost] [decimal](18,6) NULL,
 			[StocklineExtendedCost] [decimal](18,6) NULL,
 		 	[StockLineProvisionId] [bigint] NULL,
@@ -485,7 +485,7 @@ SET NOCOUNT ON
 		BEGIN
 				INSERT INTO	#finalMaterialListResult([PartNumber], [PartDescription], [StocklinePartNumber], [StocklinePartDescription], [KitNumber], [KitDescription], [KitCost], [WOQMaterialKitMappingId], [KitId],
 								[ItemGroup], [ManufacturerName], [WorkOrderNumber], [SubWorkOrderNo], [SubWorkOrderId], [SalesOrder], [Site], [WareHouse], [Location], [Shelf], [Bin], [PartStatusId], [Provision], 
-								[ProvisionStatusCode], [StockType], [ItemType], [Condition], [StocklineCondition], [UnitCost], [ExtendedCost], [TotalStocklineQtyReq], [WOMStockLineId], [StocklineUnitCost], 
+								[ProvisionStatusCode], [StockType], [ItemType], [Condition], [StocklineCondition], [UnitCost], [ExtendedCost], [TotalStocklineQtyReq], [WOMStockLIneId], [StocklineUnitCost], 
 								[StocklineExtendedCost],[StockLineProvisionId], [StocklineProvision], [StocklineProvisionStatusCode], [StockLineNumber], [SerialNumber], [ControlId], [ControlNo], [Receiver],
 								[StockLineQuantityOnHand], [StockLineQuantityAvailable], [PartQuantityOnHand], [PartQuantityAvailable], [PartQuantityReserved], [PartQuantityTurnIn], [PartQuantityOnOrder], [CostDate], 
 								[Currency], [QuantityIssued], [QuantityReserved], [QunatityRemaining], [StocklineQuantity], [StocklineQtyReserved], [StocklineQtyIssued], [PartQtyToTurnIn], [QtytobeReserved], 
@@ -579,9 +579,9 @@ SET NOCOUNT ON
 					Currency = (SELECT TOP 1 CUR.Code  FROM dbo.ItemMasterPurchaseSale IMPS WITH (NOLOCK) LEFT JOIN dbo.Currency CUR WITH (NOLOCK) ON IMPS.PP_CurrencyId = CUR.CurrencyId   
 						WHERE IMPS.ItemMasterId = WOM.ItemMasterId AND IMPS.ConditionId = WOM.ConditionCodeId ),  
 					QuantityIssued = ISNULL((SELECT SUM(ISNULL(womsl.QtyIssued,0)) FROM #tmpWOMStockline womsl WITH (NOLOCK)   
-						WHERE womsl.SubWorkOrderMaterialsId = WOM.SubWorkOrderMaterialsId AND womsl.isActive = 1 AND womsl.isDeleted = 0),0),  
+						WHERE womsl.SubWorkOrderMaterialsId = WOM.SubWorkOrderMaterialsId AND womsl.isActive = 1 AND womsl.isDeleted = 0),0), 
 					QuantityReserved = ISNULL((SELECT SUM(ISNULL(womsl.QtyReserved,0)) FROM #tmpWOMStockline womsl  WITH (NOLOCK)  
-						WHERE womsl.SubWorkOrderMaterialsId = WOM.SubWorkOrderMaterialsId AND womsl.isActive = 1 AND womsl.isDeleted = 0),0),  
+						WHERE womsl.SubWorkOrderMaterialsId = WOM.SubWorkOrderMaterialsId AND womsl.isActive = 1 AND womsl.isDeleted = 0),0), 
 					QunatityRemaining = ISNULL(WOM.Quantity - ISNULL((SELECT SUM(ISNULL(womsl.QtyIssued,0)) FROM #tmpWOMStockline womsl  WITH (NOLOCK)  
 						WHERE womsl.SubWorkOrderMaterialsId = WOM.SubWorkOrderMaterialsId AND womsl.isActive = 1 AND womsl.isDeleted = 0), 0),0),  
 					ISNULL(MSTL.Quantity,0) AS StocklineQuantity,  
@@ -676,8 +676,8 @@ SET NOCOUNT ON
 						,(ISNULL(MSTL.QtyReserved,0) * ISNULL(MSTL.UnitCost,0)) AS [ReservedStkExtendedCost]
 						,CASE WHEN ISNULL(SL.PurchaseOrderId, 0) <> 0 THEN (SELECT TOP 1 po.PurchaseOrderNumber FROM [dbo].[PurchaseOrder] po WITH (NOLOCK) WHERE SL.PurchaseOrderId = po.PurchaseOrderId AND SL.PurchaseOrderId = WOM.POId) ELSE '' END AS [StkPONum]
 						,CASE WHEN ISNULL(SL.PurchaseOrderId, 0) <> 0 THEN (SELECT TOP 1 po.OpenDate FROM [dbo].[PurchaseOrder] po WITH (NOLOCK) WHERE SL.PurchaseOrderId = po.PurchaseOrderId AND SL.PurchaseOrderId = WOM.POId) ELSE NULL END AS [StkPONextDlvrDate]
-						,SL.ConsumeUnitOfMeasure
-						,SL.StockUnitOfMeasure
+						,COALESCE(SL.ConsumeUnitOfMeasure, IM_ConsumeUOM.ShortName) AS ConsumeUnitOfMeasure
+						,COALESCE(SL.StockUnitOfMeasure, IM_StockUOM.ShortName) AS StockUnitOfMeasure
 				FROM dbo.SubWorkOrderMaterials WOM WITH (NOLOCK)    
 					JOIN dbo.WorkOrder W WITH (NOLOCK) ON W.WorkOrderId = WOM.WorkOrderId  
 					JOIN dbo.ItemMaster IM WITH (NOLOCK) ON IM.ItemMasterId = WOM.ItemMasterId  
@@ -691,6 +691,8 @@ SET NOCOUNT ON
 					LEFT JOIN dbo.UnitOfMeasure SUOM WITH (NOLOCK) ON SUOM.UnitOfMeasureId = SL.PurchaseUnitOfMeasureId
 					LEFT JOIN dbo.UnitOfMeasure uomStock WITH (NOLOCK) ON uomStock.UnitOfMeasureId = SL.StockUnitOfMeasureId
 					LEFT JOIN dbo.UnitOfMeasure uomConsume WITH (NOLOCK) ON uomConsume.UnitOfMeasureId = SL.ConsumeUnitOfMeasureId
+					LEFT JOIN dbo.UnitOfMeasure IM_StockUOM ON IM_StockUOM.UnitOfMeasureId = IM.StockUnitOfMeasureId
+					LEFT JOIN dbo.UnitOfMeasure IM_ConsumeUOM ON IM_ConsumeUOM.UnitOfMeasureId = IM.ConsumeUnitOfMeasureId
 					LEFT JOIN dbo.ItemClassification ITC WITH (NOLOCK) ON ITC.ItemClassificationId = IM.ItemClassificationId  
 					LEFT JOIN dbo.Provision P WITH (NOLOCK) ON P.ProvisionId = WOM.ProvisionId     
 					LEFT JOIN dbo.Provision SP WITH (NOLOCK) ON SP.ProvisionId = MSTL.ProvisionId  
@@ -710,7 +712,7 @@ SET NOCOUNT ON
 				--UNION ALL
 				INSERT INTO	#finalMaterialListResult([PartNumber], [PartDescription], [StocklinePartNumber], [StocklinePartDescription], [KitNumber], [KitDescription], [KitCost], [WOQMaterialKitMappingId], [KitId],
 								[ItemGroup], [ManufacturerName], [WorkOrderNumber], [SubWorkOrderNo], [SubWorkOrderId], [SalesOrder], [Site], [WareHouse], [Location], [Shelf], [Bin], [PartStatusId], [Provision], 
-								[ProvisionStatusCode], [StockType], [ItemType], [Condition], [StocklineCondition], [UnitCost], [ExtendedCost], [TotalStocklineQtyReq], [WOMStockLineId], [StocklineUnitCost], 
+								[ProvisionStatusCode], [StockType], [ItemType], [Condition], [StocklineCondition], [UnitCost], [ExtendedCost], [TotalStocklineQtyReq], [WOMStockLIneId], [StocklineUnitCost], 
 								[StocklineExtendedCost],[StockLineProvisionId], [StocklineProvision], [StocklineProvisionStatusCode], [StockLineNumber], [SerialNumber], [ControlId], [ControlNo], [Receiver],
 								[StockLineQuantityOnHand], [StockLineQuantityAvailable], [PartQuantityOnHand], [PartQuantityAvailable], [PartQuantityReserved], [PartQuantityTurnIn], [PartQuantityOnOrder], [CostDate], 
 								[Currency], [QuantityIssued], [QuantityReserved], [QunatityRemaining], [StocklineQuantity], [StocklineQtyReserved], [StocklineQtyIssued], [PartQtyToTurnIn], [QtytobeReserved], 
@@ -821,7 +823,7 @@ SET NOCOUNT ON
 					ISNULL(CASE WHEN MSTL.ProvisionId = @SubProvisionId AND ISNULL(MSTL.Quantity, 0) != 0 THEN MSTL.Quantity 
 					ELSE CASE WHEN MSTL.ProvisionId = @SubProvisionId OR MSTL.ProvisionId = @ForStockProvisionId THEN SL.QuantityTurnIn ELSE 0 END END,0) AS 'StocklineQtyToTurnIn',
 					ISNULL(MSTL.Quantity, 0) - ISNULL(MSTL.QtyIssued,0) AS StocklineQtyRemaining,  
-					ISNULL(WOM.Quantity,0),  
+					ISNULL(WOM.Quantity,0), 
 					ISNULL(WOM.ConditionCodeId,0),  
 					ISNULL(MSTL.ConditionId,0) AS StocklineConditionCodeId,
 					ISNULL(WOM.UnitOfMeasureId,0),  
@@ -913,6 +915,8 @@ SET NOCOUNT ON
 					LEFT JOIN dbo.UnitOfMeasure SUOM WITH (NOLOCK) ON SUOM.UnitOfMeasureId = SL.PurchaseUnitOfMeasureId
 					LEFT JOIN dbo.UnitOfMeasure uomStock WITH (NOLOCK) ON uomStock.UnitOfMeasureId = SL.StockUnitOfMeasureId
 					LEFT JOIN dbo.UnitOfMeasure uomConsume WITH (NOLOCK) ON uomConsume.UnitOfMeasureId = SL.ConsumeUnitOfMeasureId
+					LEFT JOIN dbo.UnitOfMeasure IM_StockUOM ON IM_StockUOM.UnitOfMeasureId = IM.StockUnitOfMeasureId
+					LEFT JOIN dbo.UnitOfMeasure IM_ConsumeUOM ON IM_ConsumeUOM.UnitOfMeasureId = IM.ConsumeUnitOfMeasureId
 					LEFT JOIN dbo.ItemClassification ITC WITH (NOLOCK) ON ITC.ItemClassificationId = IM.ItemClassificationId  
 					LEFT JOIN dbo.Provision P WITH (NOLOCK) ON P.ProvisionId = WOM.ProvisionId     
 					LEFT JOIN dbo.Provision SP WITH (NOLOCK) ON SP.ProvisionId = MSTL.ProvisionId  
@@ -933,7 +937,7 @@ SET NOCOUNT ON
 		BEGIN
 			INSERT INTO	#finalMaterialListResult([PartNumber], [PartDescription], [StocklinePartNumber], [StocklinePartDescription], [KitNumber], [KitDescription], [KitCost], [WOQMaterialKitMappingId], [KitId],
 								[ItemGroup], [ManufacturerName], [WorkOrderNumber], [SubWorkOrderNo], [SubWorkOrderId], [SalesOrder], [Site], [WareHouse], [Location], [Shelf], [Bin], [PartStatusId], [Provision], 
-								[ProvisionStatusCode], [StockType], [ItemType], [Condition], [StocklineCondition], [UnitCost], [ExtendedCost], [TotalStocklineQtyReq], [WOMStockLineId], [StocklineUnitCost], 
+								[ProvisionStatusCode], [StockType], [ItemType], [Condition], [StocklineCondition], [UnitCost], [ExtendedCost], [TotalStocklineQtyReq], [WOMStockLIneId], [StocklineUnitCost], 
 								[StocklineExtendedCost],[StockLineProvisionId], [StocklineProvision], [StocklineProvisionStatusCode], [StockLineNumber], [SerialNumber], [ControlId], [ControlNo], [Receiver],
 								[StockLineQuantityOnHand], [StockLineQuantityAvailable], [PartQuantityOnHand], [PartQuantityAvailable], [PartQuantityReserved], [PartQuantityTurnIn], [PartQuantityOnOrder], [CostDate], 
 								[Currency], [QuantityIssued], [QuantityReserved], [QunatityRemaining], [StocklineQuantity], [StocklineQtyReserved], [StocklineQtyIssued], [PartQtyToTurnIn], [QtytobeReserved], 
@@ -1123,8 +1127,8 @@ SET NOCOUNT ON
 					,(ISNULL(MSTL.QtyReserved,0) * ISNULL(MSTL.UnitCost,0)) AS [ReservedStkExtendedCost]
 					,CASE WHEN ISNULL(SL.PurchaseOrderId, 0) <> 0 THEN (SELECT TOP 1 po.PurchaseOrderNumber FROM [dbo].[PurchaseOrder] po WITH (NOLOCK) WHERE SL.PurchaseOrderId = po.PurchaseOrderId AND SL.PurchaseOrderId = WOM.POId) ELSE '' END AS [StkPONum]
 					,CASE WHEN ISNULL(SL.PurchaseOrderId, 0) <> 0 THEN (SELECT TOP 1 po.OpenDate FROM [dbo].[PurchaseOrder] po WITH (NOLOCK) WHERE SL.PurchaseOrderId = po.PurchaseOrderId AND SL.PurchaseOrderId = WOM.POId) ELSE NULL END AS [StkPONextDlvrDate]
-					,SL.ConsumeUnitOfMeasure
-					,SL.StockUnitOfMeasure
+					,COALESCE(SL.ConsumeUnitOfMeasure, IM_ConsumeUOM.ShortName) AS ConsumeUnitOfMeasure
+					,COALESCE(SL.StockUnitOfMeasure, IM_StockUOM.ShortName) AS StockUnitOfMeasure
 			 FROM dbo.SubWorkOrderMaterials WOM WITH (NOLOCK)    
 				  JOIN dbo.WorkOrder W WITH (NOLOCK) ON W.WorkOrderId = WOM.WorkOrderId  
 				  JOIN dbo.ItemMaster IM WITH (NOLOCK) ON IM.ItemMasterId = WOM.ItemMasterId  
@@ -1138,6 +1142,8 @@ SET NOCOUNT ON
 				  LEFT JOIN dbo.UnitOfMeasure SUOM WITH (NOLOCK) ON SUOM.UnitOfMeasureId = SL.PurchaseUnitOfMeasureId
 				  LEFT JOIN dbo.UnitOfMeasure uomStock WITH (NOLOCK) ON uomStock.UnitOfMeasureId = SL.StockUnitOfMeasureId
 				  LEFT JOIN dbo.UnitOfMeasure uomConsume WITH (NOLOCK) ON uomConsume.UnitOfMeasureId = SL.ConsumeUnitOfMeasureId
+				  LEFT JOIN dbo.UnitOfMeasure IM_StockUOM ON IM_StockUOM.UnitOfMeasureId = IM.StockUnitOfMeasureId
+				  LEFT JOIN dbo.UnitOfMeasure IM_ConsumeUOM ON IM_ConsumeUOM.UnitOfMeasureId = IM.ConsumeUnitOfMeasureId
 				  LEFT JOIN dbo.ItemClassification ITC WITH (NOLOCK) ON ITC.ItemClassificationId = IM.ItemClassificationId  
 				  LEFT JOIN dbo.Provision P WITH (NOLOCK) ON P.ProvisionId = WOM.ProvisionId     
 				  LEFT JOIN dbo.Provision SP WITH (NOLOCK) ON SP.ProvisionId = MSTL.ProvisionId  
@@ -1155,7 +1161,7 @@ SET NOCOUNT ON
 			 --UNION ALL
 			INSERT INTO	#finalMaterialListResult([PartNumber], [PartDescription], [StocklinePartNumber], [StocklinePartDescription], [KitNumber], [KitDescription], [KitCost], [WOQMaterialKitMappingId], [KitId],
 							[ItemGroup], [ManufacturerName], [WorkOrderNumber], [SubWorkOrderNo], [SubWorkOrderId], [SalesOrder], [Site], [WareHouse], [Location], [Shelf], [Bin], [PartStatusId], [Provision], 
-							[ProvisionStatusCode], [StockType], [ItemType], [Condition], [StocklineCondition], [UnitCost], [ExtendedCost], [TotalStocklineQtyReq], [WOMStockLineId], [StocklineUnitCost], 
+							[ProvisionStatusCode], [StockType], [ItemType], [Condition], [StocklineCondition], [UnitCost], [ExtendedCost], [TotalStocklineQtyReq], [WOMStockLIneId], [StocklineUnitCost], 
 							[StocklineExtendedCost],[StockLineProvisionId], [StocklineProvision], [StocklineProvisionStatusCode], [StockLineNumber], [SerialNumber], [ControlId], [ControlNo], [Receiver],
 							[StockLineQuantityOnHand], [StockLineQuantityAvailable], [PartQuantityOnHand], [PartQuantityAvailable], [PartQuantityReserved], [PartQuantityTurnIn], [PartQuantityOnOrder], [CostDate], 
 							[Currency], [QuantityIssued], [QuantityReserved], [QunatityRemaining], [StocklineQuantity], [StocklineQtyReserved], [StocklineQtyIssued], [PartQtyToTurnIn], [QtytobeReserved], 
@@ -1266,7 +1272,7 @@ SET NOCOUNT ON
 				  CASE WHEN MSTL.ProvisionId = @SubProvisionId AND ISNULL(MSTL.Quantity, 0) != 0 THEN MSTL.Quantity 
 					ELSE CASE WHEN MSTL.ProvisionId = @SubProvisionId OR MSTL.ProvisionId = @ForStockProvisionId THEN SL.QuantityTurnIn ELSE 0 END END AS 'StocklineQtyToTurnIn',
 				  ISNULL(MSTL.Quantity, 0) - ISNULL(MSTL.QtyIssued,0) AS StocklineQtyRemaining,  
-				  ISNULL(WOM.Quantity,0),  
+				  ISNULL(WOM.Quantity,0), 
 				  ISNULL(WOM.ConditionCodeId,0),  
 				  ISNULL(MSTL.ConditionId,0) AS StocklineConditionCodeId,
 				  ISNULL(WOM.UnitOfMeasureId,0),  
@@ -1343,8 +1349,8 @@ SET NOCOUNT ON
 					,(ISNULL(MSTL.QtyReserved,0) * ISNULL(MSTL.UnitCost,0)) AS [ReservedStkExtendedCost]
 					,CASE WHEN ISNULL(SL.PurchaseOrderId, 0) <> 0 THEN (SELECT TOP 1 po.PurchaseOrderNumber FROM [dbo].[PurchaseOrder] po WITH (NOLOCK) WHERE SL.PurchaseOrderId = po.PurchaseOrderId AND SL.PurchaseOrderId = WOM.POId) ELSE '' END AS [StkPONum]
 					,CASE WHEN ISNULL(SL.PurchaseOrderId, 0) <> 0 THEN (SELECT TOP 1 po.OpenDate FROM [dbo].[PurchaseOrder] po WITH (NOLOCK) WHERE SL.PurchaseOrderId = po.PurchaseOrderId AND SL.PurchaseOrderId = WOM.POId) ELSE NULL END AS [StkPONextDlvrDate]
-					,SL.ConsumeUnitOfMeasure
-					,SL.StockUnitOfMeasure
+					,COALESCE(SL.ConsumeUnitOfMeasure, IM_ConsumeUOM.ShortName) AS ConsumeUnitOfMeasure
+					,COALESCE(SL.StockUnitOfMeasure, IM_StockUOM.ShortName) AS StockUnitOfMeasure
 			 FROM dbo.SubWorkOrderMaterialsKit WOM WITH (NOLOCK)    
 				  JOIN dbo.WorkOrder W WITH (NOLOCK) ON W.WorkOrderId = WOM.WorkOrderId  
 				  JOIN dbo.ItemMaster IM WITH (NOLOCK) ON IM.ItemMasterId = WOM.ItemMasterId  
@@ -1355,6 +1361,8 @@ SET NOCOUNT ON
 				  LEFT JOIN dbo.SubWorkOrderMaterialStockLineKit MSTL WITH (NOLOCK) ON MSTL.SubWorkOrderMaterialsKitId = WOM.SubWorkOrderMaterialsKitId AND MSTL.IsDeleted = 0  
 				  LEFT JOIN dbo.Stockline SL WITH (NOLOCK) ON SL.StockLineId = MSTL.StockLineId  
 				  LEFT JOIN dbo.Condition Stk_C WITH (NOLOCK) ON Stk_C.ConditionId = SL.ConditionId
+				  LEFT JOIN dbo.UnitOfMeasure IM_StockUOM ON IM_StockUOM.UnitOfMeasureId = IM.StockUnitOfMeasureId
+				  LEFT JOIN dbo.UnitOfMeasure IM_ConsumeUOM ON IM_ConsumeUOM.UnitOfMeasureId = IM.ConsumeUnitOfMeasureId
 				  LEFT JOIN dbo.UnitOfMeasure SUOM WITH (NOLOCK) ON SUOM.UnitOfMeasureId = SL.PurchaseUnitOfMeasureId
 				  LEFT JOIN dbo.UnitOfMeasure uomStock WITH (NOLOCK) ON uomStock.UnitOfMeasureId = SL.StockUnitOfMeasureId
 				  LEFT JOIN dbo.UnitOfMeasure uomConsume WITH (NOLOCK) ON uomConsume.UnitOfMeasureId = SL.ConsumeUnitOfMeasureId

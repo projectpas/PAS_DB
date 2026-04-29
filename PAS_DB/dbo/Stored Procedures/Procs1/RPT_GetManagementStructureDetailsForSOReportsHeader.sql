@@ -15,7 +15,7 @@
     1    01/11/2024   AMIT GHEDIYA		Created
 	2    08/21/2024   HEMANT SALIYA		Corrected Email Address get from LE Default Contact
 	3    04/07/2025   Devendra Shekh	added UKCAALicense to select
-
+	4    29/04/2026   Ayushi Patel      Return MasterCompanyCode [PN-16030]
  EXECUTE RPT_GetManagementStructureDetailsForSOReportsHeader 1,1,1058
 **********************/ 
 CREATE     PROCEDURE [dbo].[RPT_GetManagementStructureDetailsForSOReportsHeader]    
@@ -59,7 +59,8 @@ SET NOCOUNT ON
 					Upper(le.TCCALicense) as TCCALicense,
 					Upper(ISNULL(le.UKCAALicense, '')) as UKCAALicense,
 					MergedAddress = (SELECT dbo.ValidatePDFAddress(ad.Line1,ad.Line2,NULL,ad.City,ad.StateOrProvince,ad.PostalCode,co.countries_name,le.PhoneNumber,le.PhoneExt,CASE WHEN @Email IS NULL THEN UPPER(c.Email) ELSE  UPPER(@Email) END)),
-					CompanyLogoPath = MS.companylogo
+					CompanyLogoPath = MS.companylogo,
+					MS.MasterCompanyCode as MasterCompanyCode
 				FROM dbo.EntityStructureSetup est WITH(NOLOCK)
 					INNER JOIN dbo.ManagementStructureLevel msl WITH(NOLOCK) ON est.Level1Id = msl.ID
 					INNER JOIN dbo.LegalEntity le WITH(NOLOCK) ON msl.LegalEntityId = le.LegalEntityId

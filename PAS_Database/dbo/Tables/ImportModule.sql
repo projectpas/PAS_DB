@@ -15,6 +15,7 @@
     [UpdatedDate]             DATETIME2 (7) CONSTRAINT [DF_ImportModule_UpdatedDate] DEFAULT (getutcdate()) NOT NULL,
     [IsActive]                BIT           CONSTRAINT [DF__ImportModule__IsActive] DEFAULT ((1)) NOT NULL,
     [IsDeleted]               BIT           CONSTRAINT [DF__ImportModule__IsDeleted] DEFAULT ((0)) NOT NULL,
+    [DisplayModuleName]       VARCHAR (100) CONSTRAINT [DF_ImportModule_DisplayModuleName] DEFAULT ('') NOT NULL,
     CONSTRAINT [PK_ImportModule] PRIMARY KEY CLUSTERED ([ImportModuleId] ASC)
 );
 

@@ -16,6 +16,7 @@
 	2    08/21/2024   HEMANT SALIYA		Corrected Email Address get from LE Default Contact
 	3    04/07/2025   Devendra Shekh	added UKCAALicense to select
 	4    29/04/2026   Ayushi Patel      Return MasterCompanyCode [PN-16030]
+	5    29/04/2026   Ayushi Patel		Keep CompanyName as it is for A2Z company [PN-16030]
  EXECUTE RPT_GetManagementStructureDetailsForSOReportsHeader 1,1,1058
 **********************/ 
 CREATE     PROCEDURE [dbo].[RPT_GetManagementStructureDetailsForSOReportsHeader]    
@@ -34,11 +35,13 @@ SET NOCOUNT ON
 		BEGIN TRANSACTION
 			BEGIN
 				DECLARE @ModuleId BIGINT,@IsRequestor BIT, @RequestedBy BIGINT, @Email VARCHAR(100) = NULL;
-
+				DECLARE @A2ZMasterCompanyCode VARCHAR(50);
+				DECLARE @MasterCompanyCodeAll VARCHAR(50);
 				SELECT @ModuleId = AttachmentModuleId FROM dbo.AttachmentModule WITH(NOLOCK) WHERE UPPER(Name) = UPPER('LEGALENTITYLOGO');
-
+				SELECT @A2ZMasterCompanyCode = MasterCompanyCode FROM DBO.MasterCompany WITH(NOLOCK) WHERE UPPER(MasterCompanyCode) = UPPER('A2Z');
+				SELECT @MasterCompanyCodeAll = [MasterCompanyCode] FROM DBO.MasterCompany WITH(NOLOCK) WHERE [MasterCompanyId] = @MasterCompanyId;
 				SELECT DISTINCT TOP 1
-					CompanyName = Upper(le.CompanyName),
+					CompanyName = CASE WHEN ISNULL(@MasterCompanyCodeAll,'') = ISNULL(@A2ZMasterCompanyCode,'') THEN (le.CompanyName) ELSE Upper(le.CompanyName) END,
 					le.CompanyCode,
 					atd.Link,
 					at.ModuleId,

@@ -17,6 +17,12 @@
     [UpdatedDate]                 DATETIME2 (7)   NOT NULL,
     [IsActive]                    BIT             DEFAULT ((1)) NOT NULL,
     [IsDeleted]                   BIT             DEFAULT ((0)) NOT NULL,
+    [Minutes]                     DECIMAL (18, 6) NULL,
+    [CurruntMinutes]              DECIMAL (18, 6) NULL,
+    [CumulativeMinutes]           DECIMAL (18, 6) NULL,
+    [CyclesMinutes]               DECIMAL (18, 6) NULL,
+    [CurruntCyclesMinutes]        DECIMAL (18, 6) NULL,
+    [CumulativeCyclesMinutes]     DECIMAL (18, 6) NULL,
     PRIMARY KEY CLUSTERED ([AircraftCycleTimeMappingsId] ASC),
     CONSTRAINT [FK_AircraftCycleTimeMappings_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId])
 );

@@ -8,6 +8,8 @@
 ** PR   Date         Author             Description
 ** --   ----------   -------------      -------------------------
 ** 1    10/04/2026   Priyansh Patel     Created [PN-16016]
+** 2    28/04/2026   Priyansh Patel     Added Mtce Class [PN-16160]
+
 ************************************************************/
 
  -- EXEC [dbo].[USP_GetAircraftMaintenanceList] @MasterCompanyId = 1 @AircraftRegistryId = 22;
@@ -43,6 +45,7 @@
     @TimeRemaining           VARCHAR(50) = NULL,
     @LandingsRemaining       VARCHAR(50) = NULL,
     @EngineStartsRemaining   VARCHAR(50) = NULL,
+    @MaintenanceClassName    VARCHAR(100) = NULL,
     @IsActive                BIT             = NULL,
     @IsDeleted               BIT             = 0,
     @AircraftRegistryId      BIGINT,
@@ -62,6 +65,7 @@ BEGIN
                 ARH.MakeType AS AircraftMake,
                 ARH.AircraftModel,
                 ARH.SerialNum AS SerialNumber,
+                MC.[Name] AS MaintenanceClassName,
                 AMP.FlightHoursLimitHours,
                 AMP.FlightHoursLimitMinutes,
                 AMP.FlightHoursRecordedHours,
@@ -96,6 +100,7 @@ BEGIN
 
             FROM [dbo].[AircraftMaintenanceProgram] AMP WITH (NOLOCK)
             LEFT JOIN [dbo].[AircraftRegistryHeader] ARH WITH (NOLOCK) ON AMP.AircraftRegistryId = ARH.AircraftRegistryId  AND ARH.MasterCompanyId = @MasterCompanyId 
+            LEFT JOIN [dbo].[MaintenanceClass] MC WITH (NOLOCK)  ON AMP.MaintenanceClassId = MC.MaintenanceClassId
             WHERE AMP.AircraftRegistryId = @AircraftRegistryId  AND AMP.MasterCompanyId = @MasterCompanyId  AND (@IsDeleted IS NULL OR AMP.IsDeleted = @IsDeleted)
                 -- Global Filter
                 AND ( @GlobalFilter IS NULL OR AMP.TailNumber       LIKE '%' + @GlobalFilter + '%' OR CAST(AMP.ProgramId AS VARCHAR(50))   LIKE '%' + @GlobalFilter + '%' OR
@@ -104,7 +109,7 @@ BEGIN
                 -- Column Filters
                 AND (@ProgramId IS NULL  OR CAST(AMP.ProgramId AS VARCHAR(50)) LIKE '%' + @ProgramId + '%')
                 AND (@VersionNumber   IS NULL OR AMP.VersionNumber     LIKE '%' + @VersionNumber     + '%')
-                AND (@TailNumber      IS NULL OR ARH.TailNum     LIKE '%' + @TailNumber     + '%')
+                AND (@TailNumber      IS NULL OR AMP.TailNumber     LIKE '%' + @TailNumber     + '%')
                 AND (@AircraftMake    IS NULL OR ARH.MakeType   LIKE '%' + @AircraftMake   + '%')
                 AND (@AircraftModel   IS NULL OR ARH.AircraftModel  LIKE '%' + @AircraftModel  + '%')
                 AND (@SerialNumber    IS NULL OR ARH.SerialNum   LIKE '%' + @SerialNumber   + '%')
@@ -113,6 +118,7 @@ BEGIN
                 AND (@TemplateVersionNumber IS NULL OR AMP.TemplateVersionNumber LIKE '%' + @TemplateVersionNumber + '%')
                 AND (@IsActive        IS NULL OR AMP.IsActive = @IsActive)
                 AND (@NextScheduled   IS NULL OR CAST(AMP.NextScheduledMaintenance AS DATE) = CAST(@NextScheduled AS DATE))
+                AND (@MaintenanceClassName IS NULL  OR MC.[Name] LIKE '%' + @MaintenanceClassName + '%')
                 -- Flight Hours (string compare since formatted HH:mm)
                 AND (@FlightHoursLimit IS NULL OR  (CAST(AMP.FlightHoursLimitHours AS VARCHAR) + ':' + RIGHT('00' + CAST(ISNULL(AMP.FlightHoursLimitMinutes,0) AS VARCHAR),2)) LIKE '%' + @FlightHoursLimit + '%')
                 AND (@FlightHoursRecorded IS NULL OR   (CAST(AMP.FlightHoursRecordedHours AS VARCHAR) + ':' +  RIGHT('00' + CAST(ISNULL(AMP.FlightHoursRecordedMinutes,0) AS VARCHAR),2)) LIKE '%' + @FlightHoursRecorded + '%')
@@ -155,6 +161,8 @@ BEGIN
             CASE WHEN @SortColumn = 'TemplateVersionNumber'   AND @SortOrder = 'DESC' THEN TemplateVersionNumber END DESC,
             CASE WHEN @SortColumn = 'NextScheduledMaintenance' AND @SortOrder = 'ASC'  THEN NextScheduledMaintenance END ASC,
             CASE WHEN @SortColumn = 'NextScheduledMaintenance' AND @SortOrder = 'DESC' THEN NextScheduledMaintenance END DESC,
+            CASE WHEN @SortColumn = 'MaintenanceClassName' AND @SortOrder = 'ASC' THEN MaintenanceClassName END ASC,
+            CASE WHEN @SortColumn = 'MaintenanceClassName' AND @SortOrder = 'DESC' THEN MaintenanceClassName END DESC,
             CASE WHEN @SortColumn = 'FlightHoursLimit' AND @SortOrder = 'ASC'THEN FlightHoursLimitHours END ASC,
             CASE WHEN @SortColumn = 'FlightHoursLimit' AND @SortOrder = 'DESC' THEN FlightHoursLimitHours END DESC,
             CASE WHEN @SortColumn = 'FlightHoursRecorded' AND @SortOrder = 'ASC' THEN FlightHoursRecordedHours END ASC,

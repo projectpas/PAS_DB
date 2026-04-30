@@ -155,7 +155,6 @@ BEGIN
 				FROM AircraftEngineStartsMappings
 			WHERE AircraftCycleTimeMappingsId = @PK_Value;
 
-			--select @DetailId
             SELECT @cols =
                 STRING_AGG(QUOTENAME(ColumnName), ',')
             FROM (
@@ -213,12 +212,8 @@ BEGIN
                     AND ic.ColumnName = AL.ColumnName
             )
             ) AS c;
-			select  @cols
         END
 		
-		--select 'abc'
-		--select @cols
-
         IF CHARINDEX('[UpdatedDate]', @cols) = 0
         SET @cols = @cols + ',[UpdatedDate]';
 
@@ -246,7 +241,6 @@ BEGIN
         DECLARE @valExpr nvarchar(20) =
             CASE WHEN @UseOld = 1 THEN N'OldValue' ELSE N'NewValue' END;
 
-			--select 'abc'
     ----------------------------------------------------------------
     -- Dynamic pivot:
     --  - Deduplicate multiple rows for the same column at the same event

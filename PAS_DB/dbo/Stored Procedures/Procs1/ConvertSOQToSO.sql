@@ -482,10 +482,7 @@ BEGIN
 		/* END Transfer SalesOrderApproval */
 
 		/* Add ShipToAddress */
-		DECLARE @ShipToSiteId bigint = 0;
-		SELECT  @ShipToSiteId = CustomerDomensticShippingId FROM dbo.[CustomerDomensticShipping] WITH(NOLOCK)  WHERE CustomerId = @CustomerId
-
-		DECLARE @UserTypeId bigint,@UserId bigint,@SiteName varchar(500),@AddressId bigint = 0,@Address1 varchar(100),@Address2 varchar(100) = '',@Address3 varchar(100) = '',
+		DECLARE @UserTypeId bigint,@SiteId bigint = 0,@UserId bigint,@SiteName varchar(500),@AddressId bigint = 0,@Address1 varchar(100),@Address2 varchar(100) = '',@Address3 varchar(100) = '',
 		@City varchar(100),@StateOrProvince varchar(100),@PostalCode varchar(100),@CountryId bigint,@IsPrimary bit = 0,@UpdateBy varchar(100),@AllAddressId BIGINT = 0,
 		@IsModuleOnly bit = 0,@ModuleId bigint = 0,@IsShippingAdd bit = 0,@Memo varchar(500),@ContactId bigint,@ContactName varchar(500),@Country varchar(50),@UserTypeName varchar(100),@UserName varchar(100);
 
@@ -493,6 +490,7 @@ BEGIN
 
 		SELECT TOP 1
 			@UserTypeId = UserType,
+			@SiteId = SiteId,
 			@UserId = UserId,
 			@SiteName = SiteName,
 			@AddressId = AddressId,
@@ -514,21 +512,19 @@ BEGIN
 			@UserName = UserName,
 			@UpdateBy = UpdatedBy
 		FROM dbo.AllAddress WITH(NOLOCK)
-		WHERE ReffranceId = @SalesOrderQuoteId AND SiteId = @ShipToSiteId
+		WHERE ReffranceId = @SalesOrderQuoteId AND ISNULL(IsShippingAdd,0) = 1
 		
-		IF NOT EXISTS (SELECT 1 FROM dbo.AllAddress WHERE ReffranceId = @SalesOrderId AND SiteId = @ShipToSiteId)
+		IF NOT EXISTS (SELECT 1 FROM dbo.AllAddress WHERE ReffranceId = @SalesOrderId AND ISNULL(IsShippingAdd,0) = 1)
 		BEGIN
-			EXEC dbo.usp_createAllAddress @ShipToSiteId,@UserTypeId, @UserId,@SiteName,@AddressId, @Address1, @Address2,@Address3,@City,@StateOrProvince,@PostalCode,@CountryId,@IsPrimary,@MasterCompanyId,@CreatedBy,@UpdateBy,
+			EXEC dbo.usp_createAllAddress @SiteId,@UserTypeId, @UserId,@SiteName,@AddressId, @Address1, @Address2,@Address3,@City,@StateOrProvince,@PostalCode,@CountryId,@IsPrimary,@MasterCompanyId,@CreatedBy,@UpdateBy,
 				@SalesOrderId,@IsModuleOnly,@ModuleId,@IsShippingAdd,@Memo,@ContactId,@ContactName,@Country,@AllAddressId, @UserTypeName,@UserName;
 		END
 		/* END ShipToAddress */
 
 		/* Add BillToAddress */
-		DECLARE @BillToSiteId bigint = 0;
-		SELECT  @BillToSiteId = CustomerBillingAddressId FROM dbo.[CustomerBillingAddress] WITH(NOLOCK)  WHERE CustomerId = @CustomerId
-
 		SELECT TOP 1
 			@UserTypeId = UserType,
+			@SiteId = SiteId,
 			@UserId = UserId,
 			@SiteName = SiteName,
 			@AddressId = AddressId,
@@ -550,11 +546,11 @@ BEGIN
 			@UserName = UserName,
 			@UpdateBy = UpdatedBy
 		FROM dbo.AllAddress WITH(NOLOCK)
-		WHERE ReffranceId = @SalesOrderQuoteId AND SiteId = @BillToSiteId
+		WHERE ReffranceId = @SalesOrderQuoteId AND ISNULL(IsShippingAdd,0) = 0
 
-		IF NOT EXISTS (SELECT 1 FROM dbo.AllAddress WHERE ReffranceId = @SalesOrderId AND SiteId = @BillToSiteId)
+		IF NOT EXISTS (SELECT 1 FROM dbo.AllAddress WHERE ReffranceId = @SalesOrderId AND ISNULL(IsShippingAdd,0) = 0)
 		BEGIN
-			EXEC dbo.usp_createAllAddress @BillToSiteId,@UserTypeId, @UserId,@SiteName,@AddressId, @Address1, @Address2,@Address3,@City,@StateOrProvince,@PostalCode,@CountryId,@IsPrimary,@MasterCompanyId,@CreatedBy,@UpdateBy,
+			EXEC dbo.usp_createAllAddress @SiteId,@UserTypeId, @UserId,@SiteName,@AddressId, @Address1, @Address2,@Address3,@City,@StateOrProvince,@PostalCode,@CountryId,@IsPrimary,@MasterCompanyId,@CreatedBy,@UpdateBy,
 				@SalesOrderId,@IsModuleOnly,@ModuleId,@IsShippingAdd,@Memo,@ContactId,@ContactName,@Country,@AllAddressId, @UserTypeName,@UserName;
 		END
 		/* END BillToAddress */

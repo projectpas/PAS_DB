@@ -19,6 +19,7 @@
 	4    22/05/2025  Devendra Shekh		checking IsParent for @TotalPartCost
 	5    12 Nov 2025 RAJESH GAMI        Make changes for PAR company (BillTo|ShipTo Address)  
 	6    19-12-2025  Ayushi Patel		removed the condition from email that we applied for 'PAR'
+	6    30/04/2026  Ayushi Patel       Added LegalEntity name override for BillToUser and ShipToUser when CompanyCode = 'a2z'
 -- EXEC RPT_PrintPurchaseOrderDataById 7881
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[RPT_PrintPurchaseOrderDataById]
@@ -41,6 +42,8 @@ BEGIN
 		SELECT @ModuleID = ModuleId FROM Module WITH (NOLOCK) WHERE ModuleName = 'PurchaseOrder';
 		SELECT @OtherModuleID = ModuleId FROM Module WITH (NOLOCK) WHERE ModuleName = 'Others';
 		SELECT @POPart = ModuleId FROM Module WITH (NOLOCK) WHERE ModuleName = 'Revision';
+		DECLARE @A2ZLegalEntityId BIGINT;
+		SELECT @A2ZLegalEntityId = LegalEntityId FROM dbo.LegalEntity WITH (NOLOCK) WHERE CompanyCode = 'a2z';
 		SELECT
 		 @NumofRecords = COUNT(PO.[PurchaseOrderId])
 		FROM [DBO].[PurchaseOrder] PO WITH (NOLOCK)
@@ -100,7 +103,14 @@ BEGIN
 			   PO.[IsEnforce] AS 'IsEnforce',
 			   PO.[UpdatedDate] AS 'UpdatedDate',
 			   ISNULL(AD.[UserTypeName],'') AS 'ShipToUserType',
-			   ISNULL(Ad.[UserName],'') AS 'ShipToUser',
+			   --ISNULL(Ad.[UserName],'') AS 'ShipToUser',
+			   CASE 
+					WHEN @A2ZLegalEntityId IS NOT NULL 
+						AND LE_Ship.LegalEntityId IS NOT NULL 
+						AND AD.[UserId] = LE_Ship.LegalEntityId
+					THEN ISNULL(LE_Ship.[Name], ISNULL(Ad.[UserName],''))
+					ELSE ISNULL(Ad.[UserName],'')
+			   END AS 'ShipToUser',
 			   ISNULL(Ad.[SiteName],'') AS 'ShipToSiteName',
 			   ISNULL(Ad.[ContactName],'') AS 'ShipToContact',
 			   ISNULL(Ad.[ContactPhoneNo],'') AS 'ShipToContactPhone',
@@ -170,7 +180,14 @@ BEGIN
 					''
 			   END AS 'ShippingAccountNo',
 			   ISNULL(ADB.[UserTypeName],'') AS 'BillToUserType',	   
-			   ISNULL(ADB.[UserName],'') AS 'BillToUser',
+			   --ISNULL(ADB.[UserName],'') AS 'BillToUser',
+			   CASE 
+					WHEN @A2ZLegalEntityId IS NOT NULL 
+						AND LE_Bill.LegalEntityId IS NOT NULL 
+						AND ADB.[UserId] = LE_Bill.LegalEntityId
+					THEN ISNULL(LE_Bill.[Name], ISNULL(ADB.[UserName],''))
+					ELSE ISNULL(ADB.[UserName],'')
+			   END AS 'BillToUser',
 			   ISNULL(ADB.[UserId],0) AS 'BillToUserId',
 			   ISNULL(ADB.[SiteId],0) AS 'BillToSiteId',
 			   ISNULL(ADB.[SiteName],'') AS 'BillToSiteName',
@@ -242,6 +259,8 @@ BEGIN
 		--LEFT JOIN [DBO].[VendorWarning] VW WITH (NOLOCK) ON PO.VendorId = VW.VendorId AND VW.Warning = @IsTrue
 		--LEFT JOIN [DBO].[VendorWarningList] VWL WITH (NOLOCK) ON VW.VendorWarningListId = VWL.VendorWarningListId AND VWL.Name = @VendorWarningListName
 		LEFT JOIN [DBO].[PurchaseOrderManagementStructureDetails] PMSD WITH (NOLOCK) ON PO.PurchaseOrderId = PMSD.ReferenceID AND PMSD.ModuleID = @OtherModuleID
+		LEFT JOIN dbo.LegalEntity LE_Ship WITH (NOLOCK) ON LE_Ship.LegalEntityId = @A2ZLegalEntityId AND LE_Ship.LegalEntityId = AD.[UserId]
+		LEFT JOIN dbo.LegalEntity LE_Bill WITH (NOLOCK) ON LE_Bill.LegalEntityId = @A2ZLegalEntityId AND LE_Bill.LegalEntityId = ADB.[UserId]
 		WHERE PO.[PurchaseOrderId] = @PurchaseOrderId;
 		
 

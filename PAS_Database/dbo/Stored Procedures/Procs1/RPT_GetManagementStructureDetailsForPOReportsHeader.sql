@@ -14,7 +14,9 @@
  ** --   --------     -------		--------------------------------          
     1    05/25/2023   Amit Ghediya		Created
 	2    04/07/2025   Devendra Shekh	added UKCAALicense to select
-	3   19-12-2025    Ayushi Patel		Return NULL License for 'PAR' MasterCompany
+	3    19-12-2025   Ayushi Patel		Return NULL License for 'PAR' MasterCompany
+	4    29/04/2026   Ayushi Patel      Return MasterCompanyCode [PN-16030]
+	5    29/04/2026   Ayushi Patel		Keep CompanyName as it is for A2Z company [PN-16030]
  EXECUTE RPT_GetManagementStructureDetailsForPOReportsHeader 1,1,2621
 **************************************************************/ 
 CREATE    PROCEDURE [dbo].[RPT_GetManagementStructureDetailsForPOReportsHeader]    
@@ -34,9 +36,14 @@ SET NOCOUNT ON
 			BEGIN
 				DECLARE @ModuleId BIGINT,@IsRequestor BIT, @RequestedBy BIGINT, @Email VARCHAR(100) = NULL;
 				DECLARE @MasterCompanyCode VARCHAR(50);
+				DECLARE @A2ZMasterCompanyCode VARCHAR(50);
+				DECLARE @MasterCompanyCodeAll VARCHAR(50);
 				SELECT @ModuleId = AttachmentModuleId FROM dbo.AttachmentModule WITH(NOLOCK) WHERE UPPER(Name) = UPPER('LEGALENTITYLOGO');
 				SELECT @IsRequestor = IsRequestor  FROM dbo.PurchaseOrderSettingMaster WITH(NOLOCK) WHERE MasterCompanyId = @MasterCompanyId;
 				SELECT @MasterCompanyCode = MasterCompanyCode FROM DBO.MasterCompany WITH(NOLOCK) WHERE UPPER(MasterCompanyCode) = UPPER('PAR')
+				SELECT @A2ZMasterCompanyCode = MasterCompanyCode FROM DBO.MasterCompany WITH(NOLOCK) WHERE UPPER(MasterCompanyCode) = UPPER('A2Z');
+				SELECT @MasterCompanyCodeAll = [MasterCompanyCode] FROM DBO.MasterCompany WITH(NOLOCK) WHERE [MasterCompanyId] = @MasterCompanyId;
+				
 				IF(@IsRequestor > 0)
 				BEGIN 
 					SELECT @RequestedBy = RequestedBy FROM dbo.PurchaseOrder WITH(NOLOCK) WHERE PurchaseOrderId = @PurchaseOrderId;
@@ -44,7 +51,7 @@ SET NOCOUNT ON
 				END
 				
 				SELECT DISTINCT TOP 1
-					CompanyName = Upper(le.CompanyName),
+					CompanyName = CASE WHEN ISNULL(@MasterCompanyCodeAll,'') = ISNULL(@A2ZMasterCompanyCode,'') THEN (le.CompanyName) ELSE Upper(le.CompanyName) END,
 					le.CompanyCode,
 					atd.Link,
 					at.ModuleId,
@@ -59,6 +66,7 @@ SET NOCOUNT ON
 					PhoneExt = Upper(le.PhoneExt),
 					LogoName = atd.FileName,
 					AttachmentDetailId = atd.AttachmentDetailId,
+					MS.MasterCompanyCode as MasterCompanyCode,
 					--Email = CASE WHEN @Email IS NULL THEN UPPER(c.Email) ELSE  UPPER(@Email) END,
 					Email = 
 					CASE 

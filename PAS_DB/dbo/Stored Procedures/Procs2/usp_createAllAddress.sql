@@ -12,8 +12,16 @@
          
  ** RETURN VALUE:           
      
+ **************************************************************           
+  ** Change History           
+ **************************************************************           
+ ** PR   Date         Author			Change Description            
+ ** --   --------     -------			--------------------------------          
+    1    -  /-  /-    unknown			Created
+	2    30/04/2026   Ayushi Patel      Added LegalEntity name override for UserName when CompanyCode = 'a2z' before INSERT/UPDATE
+	
  EXECUTE [USP_GetUserDetailByUserTypePOAddress] 9, '',1,'50','313'
-**********************/ 
+**************************************************************/
     
 CREATE PROCEDURE [dbo].[usp_createAllAddress]    
 (    
@@ -59,6 +67,22 @@ BEGIN
 			DECLARE @ContactPhoneNo as varchar(100)
 			DECLARE @WorkPhoneExtn as varchar(100)
 			DECLARE @SetDesh as varchar(10)
+			DECLARE @A2ZLegalEntityId BIGINT;
+			DECLARE @FinalUserName VARCHAR(100);
+			SELECT @A2ZLegalEntityId = LegalEntityId FROM dbo.LegalEntity WITH (NOLOCK) WHERE CompanyCode = 'a2z';
+			DECLARE @CompanyModuleId BIGINT;
+			SELECT @CompanyModuleId = ModuleId FROM dbo.Module WITH (NOLOCK) WHERE ModuleName = 'Company';
+			IF @A2ZLegalEntityId IS NOT NULL AND @CompanyModuleId = @UserTypeId
+			BEGIN
+				SELECT @FinalUserName = ISNULL(LE.[Name], @UserName) FROM dbo.LegalEntity LE WITH (NOLOCK) WHERE LE.LegalEntityId = @A2ZLegalEntityId AND LE.LegalEntityId = @UserId;
+
+				IF @FinalUserName IS NULL SET @FinalUserName = @UserName;
+			END
+			ELSE
+			BEGIN
+				SET @FinalUserName = @UserName;
+			END
+
 			SELECT @WorkPhoneExtn = ISNULL(c.WorkPhoneExtn,'') FROM dbo.Contact c Where c.ContactId = @ContactId;
 			IF(@WorkPhoneExtn!='')
 			BEGIN
@@ -101,7 +125,7 @@ BEGIN
 						[UpdatedBy] = @UpdatedBy,
 						[UpdatedDate] = GETDATE(),
 						[UserTypeName] = @UserTypeName,
-						[UserName] = @UserName,
+						[UserName] = @FinalUserName,
 						[ContactPhoneNo] = @ContactPhoneNo
 					WHERE AllAddressId = @AllAddressId
 
@@ -115,7 +139,7 @@ BEGIN
 					   ,[UserTypeName],[UserName],[Country],[MasterCompanyId],[CreatedBy],[UpdatedBy] ,[CreatedDate] ,[UpdatedDate] ,[IsActive] ,[IsDeleted],[ContactPhoneNo])
 				 VALUES(@ReffranceId,@ModuleId,@UserTypeId,@UserId,@SiteId,@SiteName,@AddressId,@IsModuleOnly,@IsShippingAdd,
 						@Memo,@ContactId,@ContactName,@Address1,@Address2,@Address3,@City,@StateOrProvince,@PostalCode,@CountryId,
-						@UserTypeName,@UserName,@Country,@MasterCompanyId,@CreatedBy,@UpdatedBy,GETDATE(),GETDATE(),1,0,@ContactPhoneNo)  
+						@UserTypeName,@FinalUserName,@Country,@MasterCompanyId,@CreatedBy,@UpdatedBy,GETDATE(),GETDATE(),1,0,@ContactPhoneNo)  
 				SET @AllAddressId=SCOPE_IDENTITY()		
 			END
 

@@ -15,7 +15,8 @@
  ** --   --------     -------			--------------------------------          
     1    15/04/2025   Moin Bloch		Created
     2    16/04/2026   Priyansh Patel    For Quantity above 500 change the receive to Stockline PN-15960
-
+	3    23/04/2026   Ayushi Patel		[PN-15960] changed the uom convertion for Quantity from 'stock to purchase' TO 'purchase to stock' ,
+										also returned StockUnitOfMeasure insted of PurchaseUnitOfMeasure (UnitOfMeasure)
      
 --  EXEC [dbo].[USP_GetPurchaseOrderPartsForView] 6732,1
 --  EXEC [dbo].[USP_GetPurchaseOrderPartsForView] 6743,12853,0,1
@@ -179,9 +180,9 @@ BEGIN
             SL.[SerialNumber],		
 			CASE  WHEN [SL].[IsSerialized] = 1 THEN [SL].[Quantity]
 			WHEN EXISTS ( SELECT 1 FROM dbo.StocklineDraft x WITH(NOLOCK) WHERE x.PurchaseOrderId = SL.PurchaseOrderId AND x.PurchaseOrderPartRecordId = SL.PurchaseOrderPartRecordId AND x.StockLineId = SL.StockLineId )
-			THEN ( SELECT dbo.fn_ConvertUOM( SUM(x.Quantity), [itm].StockUnitOfMeasure, [itm].PurchaseUnitOfMeasure, 0,SL.MasterCompanyId)
+			THEN ( SELECT dbo.fn_ConvertUOM( SUM(x.Quantity), [itm].PurchaseUnitOfMeasure,[itm].StockUnitOfMeasure,0,SL.MasterCompanyId)
 			FROM dbo.StocklineDraft x WITH(NOLOCK) WHERE x.PurchaseOrderId = SL.PurchaseOrderId AND x.PurchaseOrderPartRecordId = SL.PurchaseOrderPartRecordId AND x.StockLineId = SL.StockLineId )
-			WHEN EXISTS ( SELECT 1 FROM dbo.StocklineDraft x WITH(NOLOCK) WHERE x.PurchaseOrderId = SL.PurchaseOrderId AND x.PurchaseOrderPartRecordId = SL.PurchaseOrderPartRecordId AND x.Quantity > @MaxStockDraftQuantity )
+			WHEN EXISTS ( SELECT 1 FROM dbo.StocklineDraft x WITH(NOLOCK) WHERE x.PurchaseOrderId = SL.PurchaseOrderId AND x.PurchaseOrderPartRecordId = SL.PurchaseOrderPartRecordId AND x.Quantity >= @MaxStockDraftQuantity )
 			THEN SL.Quantity
 			ELSE SL.Quantity
 			END AS [Quantity],
@@ -255,8 +256,8 @@ BEGIN
 			SL.[TaggedByName],
 			SL.[TaggedByType],
 			SL.[TaggedByTypeName],
-			SL.[PurchaseUnitOfMeasureId] [UnitOfMeasureId],
-			SL.[UnitOfMeasure],
+			SL.[StockUnitOfMeasureId] [UnitOfMeasureId],
+			SL.[StockUnitOfMeasure] [UnitOfMeasure],
 			SL.[TagType],
 			SL.[TagTypeId],
 			SL.[CertifiedType],

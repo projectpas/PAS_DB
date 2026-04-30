@@ -21,8 +21,9 @@
 	9	 23/09/2025	  Amit Ghediya			Update VendorRFQ refrence
 	9	 05/12/2025	  Ayushi Patel			Added new fields SalesOrderQuoteId,SalesOrderQuoteNumber
 	10	 06/03/2026	  Amit Ghediya			Remove PurchaseOrder open status (PN-15673)
+	11   28/04/2026	  Nakul Chandigra 		Added New Fields (PN-16150)
 ************************************************************************/
-CREATE     PROCEDURE [dbo].[SP_AddUpdatePurchaseOrderParts]
+CREATE   PROCEDURE [dbo].[SP_AddUpdatePurchaseOrderParts]
 	@userName varchar(50) = NULL,
 	@masterCompanyId bigint = NULL,
 	@tbl_PurchaseOrderPartType PurchaseOrderPartType READONLY,
@@ -274,7 +275,10 @@ BEGIN
 					   ,[TaggedByTypeName]
 					   ,[TagDate], IsKit, IsSubWO
 					   ,[SalesOrderQuoteId]
-					   ,[SalesOrderQuoteNumber])
+					   ,[SalesOrderQuoteNumber]
+					   ,[IsFromAircraft]
+					   ,[AircraftInstalledPartDetailsId]
+					   ,[AircraftRegistryNumber])
 			
 					   (SELECT 
 						@PurchaseOrderId
@@ -374,6 +378,9 @@ BEGIN
 					   ,CASE WHEN ISNULL(WorkOrderMaterialsId,0) = 0 THEN NULL ELSE (CASE WHEN IsFromSubWorkOrder = 0  THEN  NULL ELSE IsFromSubWorkOrder END) END
 					   ,SalesOrderQuoteId
 					   ,SalesOrderQuoteNumber
+					   ,IsFromAircraft
+					   ,AircraftInstalledPartDetailsId
+					   ,AircraftRegistryNumber
 					    FROM #tmpPoPartList WHERE PoPartSrNum = @PartLoopId)
 
 					  SET @PurchaseOrderPartRecordId = SCOPE_IDENTITY();

@@ -28,6 +28,7 @@
 	12   29/09/2025   Vishal Suthar		Fixed an issue with order of parts after transfer
 	13   16/10/2024   Moin Bloch		Updated Added SalesPersion Details
 	14   12/12/2025   Devendra Shekh	Added SP usp_MapRFQReferences For PO Part Reference Mapping
+	15   28/04/2026   BHARGAV SALIYA	When Convert SOQ to SO Save ShipTO BillTO Address in SO
 
 declare @p13 bigint
 set @p13=NULL
@@ -479,6 +480,102 @@ BEGIN
 			FROM DBO.SalesOrderQuoteApproval SOQA WITH (NOLOCK) WHERE SOQA.SalesOrderQuotePartId = @CurrentSOQPartId AND SOQA.SalesOrderQuoteId = @SalesOrderQuoteId;
 		END
 		/* END Transfer SalesOrderApproval */
+
+		/* Add ShipToAddress */
+		DECLARE @UserTypeId bigint,@SiteId bigint = 0,@UserId bigint,@SiteName varchar(500),@AddressId bigint = 0,@Address1 varchar(100),@Address2 varchar(100) = '',@Address3 varchar(100) = '',
+		@City varchar(100),@StateOrProvince varchar(100),@PostalCode varchar(100),@CountryId bigint,@IsPrimary bit = 0,@UpdateBy varchar(100),@AllAddressId BIGINT = 0,
+		@IsModuleOnly bit = 0,@ModuleId bigint = 0,@IsShippingAdd bit = 0,@Memo varchar(500),@ContactId bigint,@ContactName varchar(500),@Country varchar(50),@UserTypeName varchar(100),@UserName varchar(100);
+
+		SELECT @ModuleId =ModuleId FROM dbo.Module WITH(NOLOCK) WHERE ModuleName = 'SalesOrder';
+
+		SELECT TOP 1
+			@UserTypeId = UserType,
+			@SiteId = SiteId,
+			@UserId = UserId,
+			@SiteName = SiteName,
+			@AddressId = AddressId,
+			@Address1 = Line1,
+			@Address2 = Line2,
+			@Address3 = Line3,
+			@City = City,
+			@StateOrProvince = StateOrProvince,
+			@PostalCode = PostalCode,
+			@CountryId = CountryId,
+			@IsPrimary = ISNULL(IsPrimary,0),
+			@IsModuleOnly = ISNULL(IsModuleOnly,0),
+			@IsShippingAdd = ISNULL(IsShippingAdd,0),
+			@Memo = Memo,
+			@ContactId = ContactId,
+			@ContactName = ContactName,
+			@Country = Country,
+			@UserTypeName = UserTypeName,
+			@UserName = UserName,
+			@UpdateBy = UpdatedBy
+		FROM dbo.AllAddress WITH(NOLOCK)
+		WHERE ReffranceId = @SalesOrderQuoteId AND ISNULL(IsShippingAdd,0) = 1
+		
+		IF NOT EXISTS (SELECT 1 FROM dbo.AllAddress WHERE ReffranceId = @SalesOrderId AND ISNULL(IsShippingAdd,0) = 1)
+		BEGIN
+			EXEC dbo.usp_createAllAddress @SiteId,@UserTypeId, @UserId,@SiteName,@AddressId, @Address1, @Address2,@Address3,@City,@StateOrProvince,@PostalCode,@CountryId,@IsPrimary,@MasterCompanyId,@CreatedBy,@UpdateBy,
+				@SalesOrderId,@IsModuleOnly,@ModuleId,@IsShippingAdd,@Memo,@ContactId,@ContactName,@Country,@AllAddressId, @UserTypeName,@UserName;
+		END
+		/* END ShipToAddress */
+
+		/* Add BillToAddress */
+		SELECT TOP 1
+			@UserTypeId = UserType,
+			@SiteId = SiteId,
+			@UserId = UserId,
+			@SiteName = SiteName,
+			@AddressId = AddressId,
+			@Address1 = Line1,
+			@Address2 = Line2,
+			@Address3 = Line3,
+			@City = City,
+			@StateOrProvince = StateOrProvince,
+			@PostalCode = PostalCode,
+			@CountryId = CountryId,
+			@IsPrimary = ISNULL(IsPrimary,0),
+			@IsModuleOnly = ISNULL(IsModuleOnly,0),
+			@IsShippingAdd = ISNULL(IsShippingAdd,0),
+			@Memo = Memo,
+			@ContactId = ContactId,
+			@ContactName = ContactName,
+			@Country = Country,
+			@UserTypeName = UserTypeName,
+			@UserName = UserName,
+			@UpdateBy = UpdatedBy
+		FROM dbo.AllAddress WITH(NOLOCK)
+		WHERE ReffranceId = @SalesOrderQuoteId AND ISNULL(IsShippingAdd,0) = 0
+
+		IF NOT EXISTS (SELECT 1 FROM dbo.AllAddress WHERE ReffranceId = @SalesOrderId AND ISNULL(IsShippingAdd,0) = 0)
+		BEGIN
+			EXEC dbo.usp_createAllAddress @SiteId,@UserTypeId, @UserId,@SiteName,@AddressId, @Address1, @Address2,@Address3,@City,@StateOrProvince,@PostalCode,@CountryId,@IsPrimary,@MasterCompanyId,@CreatedBy,@UpdateBy,
+				@SalesOrderId,@IsModuleOnly,@ModuleId,@IsShippingAdd,@Memo,@ContactId,@ContactName,@Country,@AllAddressId, @UserTypeName,@UserName;
+		END
+		/* END BillToAddress */
+
+		/* Add ShipVia */
+		DECLARE @AllShipViaId bigint = 0,@UserType int,@ShipViaId bigint = 0,@ShippingCost decimal(20,3),@HandlingCost decimal(20,3),@IsModuleShipVia bit,@ShippingAccountNo varchar(100),@ShipVia varchar(100),
+		@ShippingViaId bigint,@ShippingTerms varchar(100) = null;
+
+		SELECT TOP 1
+			@UserType = UserType,
+			@ShipViaId = ShipViaId,
+			@ShippingCost = ISNULL(ShippingCost,0),
+			@HandlingCost = ISNULL(HandlingCost,0),
+			@IsModuleShipVia = ISNULL(IsModuleShipVia,0),
+			@ShippingAccountNo = ShippingAccountNo,
+			@ShipVia = ShipVia,
+			@ShippingViaId = ShippingViaId,
+			@ShippingTerms = ShippingTerms
+		FROM dbo.AllShipVia WITH (NOLOCK) WHERE ReferenceId = @SalesOrderQuoteId;
+
+		IF NOT EXISTS (SELECT 1 FROM dbo.AllShipVia WITH (NOLOCK) WHERE ReferenceId = @SalesOrderId)
+		BEGIN
+			EXEC dbo.usp_createAllShipVia 0, @SalesOrderId, @ModuleId, @UserType,@ShipViaId,@ShippingCost,@HandlingCost,@IsModuleShipVia,@ShippingAccountNo,@ShipVia,@ShippingViaId,@MasterCompanyId,@CreatedBy,@UpdateBy,@ShippingTerms;
+		END
+		/* Add ShipVia */
 
 		UPDATE DBO.SalesOrderQuotePartV1 SET IsConvertedToSalesOrder = 1, StatusId = @ClosedPartStatusId WHERE SalesOrderQuotePartId = @CurrentSOQPartId;
 		

@@ -40,7 +40,8 @@
 	32	 17-DEC-2025        Nakul Chandigra  		Added New SingleScreen Modules
 	34	 02-Feb-2026        Nakul Chandigra  		Added New SingleScreen Modules
 	35   09-APR-2026		Ayushi Patel			Handled QuantityOnHand As decimal 
-exec USP_SaveCommonUploadData_ByModuleId @ModuleId=4,@UserName=N'VICTOR ADMAS',@MasterCompanyId=1, @EmployeeId = 236;
+	35   22-APR-2026		Nakul Chandigra			Removed Handled Description code for  Item Classification and  Item Group (PN-15952)
+	exec USP_SaveCommonUploadData_ByModuleId @ModuleId=4,@UserName=N'VICTOR ADMAS',@MasterCompanyId=1, @EmployeeId = 236;
 **************************************************************/
 CREATE PROCEDURE [dbo].[USP_SaveCommonUploadData_ByModuleId]
 	@ModuleId BIGINT = NULL,    
@@ -1131,16 +1132,6 @@ BEGIN
 			BEGIN
 				SET @RefFieldName += ' , IsDeleted,IsActive,CreatedDate,UpdatedDate, MasterCompanyId, CreatedBy, UpdatedBy'
 				SET @FieldValue += '0,1,GETUTCDATE(),GETUTCDATE(), '
-			END
-			ELSE IF(@ModuleId = @ItemGroupModule)
-			BEGIN
-				SET @RefFieldName += ' , Description, MasterCompanyId, CreatedBy, UpdatedBy'
-				SET @FieldValue += ' '' '','  
-			END
-			ELSE IF(@ModuleId = @ItemClassificationModule)
-			BEGIN
-				SET @RefFieldName += ' , Description, MasterCompanyId, CreatedBy, UpdatedBy'
-				SET @FieldValue += ' '' '','  
 			END
 			ELSE IF(@ModuleId = @InventoryGLSettingModule)
 			BEGIN

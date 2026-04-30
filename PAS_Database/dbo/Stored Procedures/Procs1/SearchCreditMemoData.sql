@@ -20,6 +20,7 @@
 	7    06/25/2024   Moin Bloch        Updated Multiple Reson
 	8    06-03-2025   Shrey Chandegara  Modified due to add view in Accouting Integration List's PendingSync(Add @IsUpdated parameter)
 	9    24-Mar-2025  Divyesh Kathiriya	Update IssueDate and returnDate based on Employee time zone
+	10   23-Mar-2026  Sahdev Saliya     Updated to Length in UnitPrice field
    
  -- exec SearchCreditMemoData 10,1,'CreatedDate',-1,'',1,null,null,'',null,null,null,null,null,null,null,null,null,null,null,null,null,null,2,'',15,0,1   
 **********************/   
@@ -256,7 +257,7 @@ BEGIN
     LEFT JOIN dbo.CreditMemoDetails CRD WITH (NOLOCK) ON CRH.CreditMemoHeaderId =CRD.CreditMemoHeaderId  
     OUTER APPLY(    
      SELECT     
-     STUFF((SELECT CASE WHEN LEN(CAST(S.UnitPrice AS NVARCHAR(10))) > 0 THEN ',' ELSE '' END + CAST(S.UnitPrice AS NVARCHAR(10))   
+     STUFF((SELECT CASE WHEN LEN(CAST(S.UnitPrice AS NVARCHAR(max))) > 0 THEN ',' ELSE '' END + CAST(S.UnitPrice AS NVARCHAR(max))   
       FROM dbo.CreditMemoDetails S WITH (NOLOCK)    
       Where S.CreditMemoHeaderId = CRD.CreditMemoHeaderId    
       AND S.IsActive = 1 AND S.IsDeleted = 0    

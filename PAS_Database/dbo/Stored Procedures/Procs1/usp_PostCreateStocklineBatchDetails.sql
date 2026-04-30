@@ -27,9 +27,10 @@
 	16	 30/01/2025   AMIT GHEDIYA		   Modify(get Distribution based on new settings from stockline level)
 	17	 02/06/2025	  Abhishek Jirawla	   Fixed Name concat read script
 	18   24/07/2025   Moin Bloch		   Modify(Fixed For Amount 0 then getting Error at the time of Receiving) 
+	19   27/04/2025   Bhargav Saliya	   [PN-16170](UOM-Fixed Amount Issue)
 **************************************************************/
 
-CREATE   PROCEDURE [dbo].[usp_PostCreateStocklineBatchDetails]
+CREATE     PROCEDURE [dbo].[usp_PostCreateStocklineBatchDetails]
 @tbl_PostStocklineBatchType PostStocklineBatchType READONLY,
 @MstCompanyId INT,
 @updatedByName VARCHAR(256)
@@ -41,7 +42,7 @@ BEGIN
 	BEGIN TRANSACTION
 	BEGIN
 		DECLARE @StocklineId BIGINT = 0;
-		DECLARE @Qty INT = 0;
+		DECLARE @Qty DECIMAL(18, 6) = 0;
 		DECLARE @Amount DECIMAL(18, 2) = 0;
 		DECLARE @ModuleName VARCHAR(256) = 0;
 		DECLARE @UpdateBy VARCHAR(256) = 0;
@@ -161,7 +162,7 @@ BEGIN
 		(    
 		    [ID] BIGINT NOT NULL IDENTITY,
 			[StocklineId] [BIGINT] NOT NULL,
-			[Qty] [INT] NOT NULL,
+			[Qty] [DECIMAL](18, 6) NOT NULL,
 			[Amount] [DECIMAL](18, 2) NULL,
 			[ModuleName] [VARCHAR](256) NULL,
 			[UpdateBy] [VARCHAR](256) NULL,

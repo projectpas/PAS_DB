@@ -34,8 +34,11 @@ BEGIN
 
 		SELECT DISTINCT TOP 20 
 			   IMAM.ItemMasterAircraftMappingId AS Value, 
-			   --ISNULL(IMAM.Level1, '') + ' - ' + ISNULL(IMAM.Level2, '') + ' - ' + ISNULL(IMAM.Level3, '') AS Label
-			   CONCAT_WS(' - ', IMAM.Level1, IMAM.Level2, IMAM.Level3) AS Label
+			   CONCAT_WS(' - ',
+				   NULLIF(IMAM.Level1, ''),
+				   NULLIF(IMAM.Level2, ''),
+				   NULLIF(IMAM.Level3, '')
+			   ) AS Label
 		FROM dbo.ItemMasterAircraftMapping IMAM WITH(NOLOCK)
 			 WHERE IMAM.MasterCompanyId = @MasterCompanyId AND IMAM.IsActive = 1 AND ISNULL(IMAM.IsDeleted,0) = 0 
 			 AND (IMAM.Level1 LIKE @StartWith + '%') AND IMAM.ItemMasterId = @ItemMasterId

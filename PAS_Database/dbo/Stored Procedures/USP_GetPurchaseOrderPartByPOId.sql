@@ -17,7 +17,8 @@
    5    17-DEC-2025     Amit Ghediya        Get new fields SalesOrderCustomerId for redirect to so.
    6    14-APR-2025     Rajesh Gami         DraftedStocklineCount added as a decimal : [PN-16065]
    7    14-APR-2026     DB Review           Fixed truncation risk: LotNumber, ReapairOrderNo VARCHAR(100) → VARCHAR(MAX)
---EXEC [dbo].[USP_GetPurchaseOrderPartByPOId] 7910 ,NULL,NULL
+   8    28-Apr-2026	    Nakul Chandigra 	Added New Fields (PN-16150)
+--EXEC [dbo].[USP_GetPurchaseOrderPartByPOId] 8225 ,NULL,NULL
 **************************************************************/ 
 
 CREATE       PROCEDURE [dbo].[USP_GetPurchaseOrderPartByPOId]
@@ -153,6 +154,9 @@ BEGIN
 					SalesOrderQuoteNumber VARCHAR(250) NULL,
 					Class VARCHAR(50) NULL,
 					DecimalPlaces INT NULL,
+					AircraftRegistryNumber VARCHAR(30) NULL,
+					IsFromAircraft bit Null,
+					AircraftInstalledPartDetailsId bigint null
 				);
 				 IF OBJECT_ID(N'tempdb..#tmpSubWOMtbl') IS NOT NULL    
 				BEGIN    
@@ -277,7 +281,10 @@ BEGIN
 					ConditionCodeId BIGINT NULL,
 					Quantity DECIMAL(18,6) NULL,
 					Class VARCHAR(50) NULL,
-					DecimalPlaces INT NULL
+					DecimalPlaces INT NULL,
+					AircraftRegistryNumber VARCHAR(30) NULL,
+					IsFromAircraft bit Null,
+					AircraftInstalledPartDetailsId bigint null
 				);
 				INSERT INTO #tmpPoPartList SELECT 
 				part.PurchaseOrderPartRecordId,
@@ -380,7 +387,10 @@ BEGIN
 				part.SalesOrderQuoteId,
 				part.SalesOrderQuoteNumber,
 				ISNULL(uom.Class,'Decimal') as Class,
-				ISNULL(uom.DecimalPlaces,2) as DecimalPlaces
+				ISNULL(uom.DecimalPlaces,2) as DecimalPlaces,
+				part.AircraftRegistryNumber,
+				part.IsFromAircraft,
+				part.AircraftInstalledPartDetailsId
 				FROM DBO.PurchaseOrderPart part WITH(NOLOCK) LEFT JOIN dbo.UnitOfMeasure uom WITH(NOLOCK)  ON part.UOMId = uom.UnitOfMeasureId WHERE PurchaseOrderId = @PurchaseOrderId AND ISNULL(part.IsDeleted,0) = 0 
 
 				--SELECT * INTO #tmpPoPartList FROM (SELECT * FROM DBO.PurchaseOrderPart WITH(NOLOCK) WHERE PurchaseOrderId = @PurchaseOrderId AND ISNULL(IsDeleted,0) = 0) AS partResult
@@ -543,7 +553,7 @@ BEGIN
 								POChargesCount,
 								POFrightsCount,
 								SalesOrderQuoteId,
-								SalesOrderQuoteNumber,Class,DecimalPlaces
+								SalesOrderQuoteNumber,Class,DecimalPlaces,AircraftRegistryNumber,IsFromAircraft,AircraftInstalledPartDetailsId
 								)
 							SELECT (CASE WHEN @ItemTypeId = @ItemTypeIdStock THEN (SELECT TOP 1 PartNumber  FROM DBO.ItemMaster  WITH(NOLOCK) WHERE ItemMasterId = @ItemMasterId)
 										 WHEN @ItemTypeId = @ItemTypeIdNonStock THEN (SELECT TOP 1 PartNumber  FROM DBO.ItemMasterNonStock  WITH(NOLOCK) WHERE MasterPartId = @ItemMasterId)
@@ -583,7 +593,7 @@ BEGIN
 									 (SELECT COUNT(1) FROM dbo.PurchaseOrderFreight C WITH(NOLOCK) WHERE c.PurchaseOrderPartRecordId= LT.PurchaseOrderPartRecordId and ISNULL(c.IsDeleted,0) = 0)POFrightsCount,
 									 LT.SalesOrderQuoteId,
 									 LT.SalesOrderQuoteNumber
-									 ,LT.Class, LT.DecimalPlaces
+									 ,LT.Class, LT.DecimalPlaces,LT.AircraftRegistryNumber,LT.IsFromAircraft,LT.AircraftInstalledPartDetailsId
 									 FROM #tmpLoopTable LT LEFT JOIN #tmpPOPMs ms on ms.ReferenceID = LT.PurchaseOrderPartRecordId AND ms.ModuleID = @PoPartMGMTModuleId
 									 LEFT JOIN #tmpWOMTble wom on wom.WorkOrderMaterialsId = LT.WorkOrderMaterialsId
 									 WHERE ISNULL(LT.IsParent,0) = 1

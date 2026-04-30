@@ -15,7 +15,7 @@
     [Hobbs]                  DECIMAL (18, 2) NULL,
     [AircraftLocation]       VARCHAR (200)   NULL,
     [NextScheduled]          DATETIME2 (7)   NULL,
-    [MEL]                    VARCHAR (100)   NULL,
+    [MEL]                    BIT             NULL,
     [AircraftStatusId]       BIGINT          NULL,
     [AircraftStatus]         VARCHAR (100)   NULL,
     [MaintenanceStatusId]    BIGINT          NULL,

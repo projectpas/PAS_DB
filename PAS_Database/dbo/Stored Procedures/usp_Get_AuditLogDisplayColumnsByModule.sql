@@ -18,41 +18,76 @@
     1      18-DEC-2025    AYUSHI PATEL        Created  
     2      16-FEB-2026    DIVYESH KATHIRIYA   Set Table Name for SalesOrderQuote.
     3      25-FEB-2026    DIVYESH KATHIRIYA   Set New HistoryModule Table and Remove Table Name for SalesOrderQuote.
+	4      29-APRIL-2026  Amit Ghediya        Aadded New SubModuleId.
 
-    EXEC usp_Get_AuditLogDisplayColumnsByModule @ModuleId=7
+    EXEC usp_Get_AuditLogDisplayColumnsByModule @ModuleId=85,@SubModuleId=86
 **********************/
 
 CREATE PROC [dbo].[usp_Get_AuditLogDisplayColumnsByModule]
-    @ModuleId BIGINT
+    @ModuleId BIGINT,
+	@SubModuleId BIGINT
 AS
 BEGIN
     SET NOCOUNT ON;
     BEGIN TRY 
 
     DECLARE @TableName VARCHAR(128);
+	DECLARE @TModuleId BIGINT;
+	DECLARE @Ids NVARCHAR(100);
 
-    SELECT @TableName = [HistoryModuleName] 
-    FROM [dbo].[HistoryModule] WITH (NOLOCK)
-    WHERE [HistoryModuleId] = @ModuleId;  
+	SET @TModuleId = (SELECT [HistoryModuleId] FROM [dbo].[HistoryModule] WITH (NOLOCK) WHERE [HistoryModuleName] = 'AircraftCycleTimeMappings');
 
-   
-    IF @TableName IS NULL
-    BEGIN
-        SELECT TOP 0 
-            ColumnName,
-            DisplayName,
-            SeqNo
-        FROM dbo.AuditLogDisplayColumns;
-        RETURN;
-    END
+	IF(@ModuleId = @TModuleId)
+	BEGIN
+		SET @Ids = CAST(@ModuleId AS VARCHAR(20)) + ',' + CAST(@SubModuleId AS VARCHAR(20));
 
-    SELECT 
-        ColumnName,
-        DisplayName,
-        SeqNo
-    FROM dbo.AuditLogDisplayColumns WITH (NOLOCK)
-    WHERE TableName = @TableName 
-    ORDER BY SeqNo;
+		SELECT @TableName = STRING_AGG(CAST([HistoryModuleName] AS VARCHAR(50)), ',') 
+			FROM [dbo].[HistoryModule] WITH (NOLOCK)
+		WHERE [HistoryModuleId]  IN (SELECT value FROM STRING_SPLIT(@Ids, ','));
+
+		IF @TableName IS NULL
+		BEGIN
+			SELECT TOP 0 
+				ColumnName,
+				DisplayName,
+				SeqNo
+			FROM dbo.AuditLogDisplayColumns;
+			RETURN;
+		END
+
+		SELECT 
+			ColumnName,
+			DisplayName,
+			SeqNo
+		FROM dbo.AuditLogDisplayColumns WITH (NOLOCK)
+		WHERE TableName IN (SELECT value FROM STRING_SPLIT(@TableName, ','))
+		ORDER BY SeqNo;
+	END
+	ELSE
+	BEGIN
+		SELECT @TableName = [HistoryModuleName] 
+			FROM [dbo].[HistoryModule] WITH (NOLOCK)
+		WHERE [HistoryModuleId] = @ModuleId;
+
+		IF @TableName IS NULL
+		BEGIN
+			SELECT TOP 0 
+				ColumnName,
+				DisplayName,
+				SeqNo
+			FROM dbo.AuditLogDisplayColumns;
+			RETURN;
+		END
+
+		SELECT 
+			ColumnName,
+			DisplayName,
+			SeqNo
+		FROM dbo.AuditLogDisplayColumns WITH (NOLOCK)
+		WHERE TableName = @TableName 
+		ORDER BY SeqNo;
+	END
+    
 
 END TRY      
   BEGIN CATCH        

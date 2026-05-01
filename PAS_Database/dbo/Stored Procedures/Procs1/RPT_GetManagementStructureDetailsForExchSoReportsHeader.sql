@@ -14,6 +14,7 @@
  ** --   --------     -------		--------------------------------          
     1    12/06/2023   Ekta Chandegra  Created
 	2	 11 Sep 2024  Bhargav Saliya  address convert into single string value
+	3    01/05/2026   Ayushi Patel    [PN-16030] Added MasterCompanyCode/NULL parameter in ValidatePDFAddress calls.
 
  EXECUTE RPT_GetManagementStructureDetailsForPOReportsHeader 1,1,210
 **************************************************************/ 
@@ -48,7 +49,7 @@ SET NOCOUNT ON
 					Country = Upper(co.countries_name),
 					PhoneNumber = Upper(le.PhoneNumber),
 					PhoneExt = Upper(le.PhoneExt),
-					MergedAddress = (SELECT DBO.ValidatePDFAddress(ad.Line1,ad.Line2,ad.Line3,ad.City,ad.StateOrProvince,ad.PostalCode,co.countries_name,le.PhoneNumber,le.PhoneExt,'')),
+					MergedAddress = (SELECT DBO.ValidatePDFAddress(ad.Line1,ad.Line2,ad.Line3,ad.City,ad.StateOrProvince,ad.PostalCode,co.countries_name,le.PhoneNumber,le.PhoneExt,'',MS.MasterCompanyCode)),
 					LogoName = atd.FileName,
 					AttachmentDetailId = atd.AttachmentDetailId,
 					Upper(le.FAALicense) as FAALicense,

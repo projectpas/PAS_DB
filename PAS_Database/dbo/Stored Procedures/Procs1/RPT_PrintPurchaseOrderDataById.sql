@@ -19,6 +19,7 @@
 	4    22/05/2025  Devendra Shekh		checking IsParent for @TotalPartCost
 	5    12 Nov 2025 RAJESH GAMI        Make changes for PAR company (BillTo|ShipTo Address)  
 	6    19-12-2025  Ayushi Patel		removed the condition from email that we applied for 'PAR'
+	4    01/05/2026  Ayushi Patel       [PN-16030] Added MasterCompanyCode/NULL parameter in ValidatePDFAddress calls.
 -- EXEC RPT_PrintPurchaseOrderDataById 7881
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[RPT_PrintPurchaseOrderDataById]
@@ -120,7 +121,7 @@ BEGIN
 					--CASE WHEN ISNULL(SC.[Email],'') != '' THEN Upper(SC.[Email])+'<br/>'ELSE ''END
 					--) ShipToMergedAddress
 					--,
-				ShipToMergedAddress1 = (SELECT dbo.ValidatePDFAddress(Ad.[Line1],Ad.[Line2],NULL,Ad.[City],Ad.[StateOrProvince],Ad.[PostalCode],Ad.[Country],Ad.[ContactPhoneNo],NULL,CASE WHEN MC.MasterCompanyCode = 'PAR' THEN '' ELSE SC.[Email] END)),
+				ShipToMergedAddress1 = (SELECT dbo.ValidatePDFAddress(Ad.[Line1],Ad.[Line2],NULL,Ad.[City],Ad.[StateOrProvince],Ad.[PostalCode],Ad.[Country],Ad.[ContactPhoneNo],NULL,CASE WHEN MC.MasterCompanyCode = 'PAR' THEN '' ELSE SC.[Email] END,MC.MasterCompanyCode)),
 					
 			   CASE
 			   WHEN Ad.[Line1] !='' OR Ad.[Line2] !='' 
@@ -191,7 +192,7 @@ BEGIN
 					--CASE WHEN ISNULL(BC.[Email],'') != '' THEN Upper(BC.[Email])+'<br/>'ELSE ''END
 					--) BillToMergedAddress
 					--,
-				BillToMergedAddress1 = (SELECT dbo.ValidatePDFAddress(ADB.[Line1],ADB.[Line2],NULL,ADB.[City],ADB.[StateOrProvince],ADB.[PostalCode],ADB.[Country],ADB.[ContactPhoneNo],NULL, BC.[Email])),	
+				BillToMergedAddress1 = (SELECT dbo.ValidatePDFAddress(ADB.[Line1],ADB.[Line2],NULL,ADB.[City],ADB.[StateOrProvince],ADB.[PostalCode],ADB.[Country],ADB.[ContactPhoneNo],NULL, BC.[Email],MC.MasterCompanyCode)),	
 			   CASE
 			   WHEN ADB.[Line1] !='' OR ADB.[Line2] !='' 
 			   THEN

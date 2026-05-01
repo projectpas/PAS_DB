@@ -23,10 +23,10 @@
 	9	 01/05/2025   AMIT GHEDIYA      Get Email & Phone from Contact (Before from cust general info.).
 	10	 02/12/2025   AMIT GHEDIYA      Get All Added charge type in notes (PN-15364)
 	11	 02/18/2025   AMIT GHEDIYA      Remove MTI static value
-
+	4    01/05/2026   Ayushi Patel      [PN-16030] Added MasterCompanyCode/NULL parameter in ValidatePDFAddress calls.
 -- EXEC [RPT_GetWorkOrderQuoteHeaderData] 7011
 **************************************************************/  
-CREATE   PROCEDURE [dbo].[RPT_GetWorkOrderQuoteHeaderData]  
+CREATE    PROCEDURE [dbo].[RPT_GetWorkOrderQuoteHeaderData]  
  @WorkOrderQuoteId bigint,
  @workOrderPartNoId BIGINT = NULL
 AS  
@@ -98,7 +98,7 @@ BEGIN
 				(CASE WHEN ISNULL(adr.PostalCode,'') = '' THEN '' ELSE ', ' + UPPER(ISNULL(adr.PostalCode,'')) END),
             Zip = UPPER(ISNULL(adr.PostalCode,'')),
             Country = UPPER(ISNULL(co.countries_name,'')),
-			MergerdQuoteAddress = (SELECT [dbo].ValidatePDFAddress(adr.Line1,adr.Line2,NULL,adr.City,adr.StateOrProvince,adr.PostalCode,co.countries_name,con.WorkPhone,NULL,con.Email)),
+			MergerdQuoteAddress = (SELECT [dbo].ValidatePDFAddress(adr.Line1,adr.Line2,NULL,adr.City,adr.StateOrProvince,adr.PostalCode,co.countries_name,con.WorkPhone,NULL,con.Email,NULL)),
             ShipVia = UPPER(ISNULL(cs.ShipVia,'')),
             CustomerEmail = cust.Email,
             cust.CustomerPhone,

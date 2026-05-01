@@ -17,6 +17,7 @@
     2    30/12/2024	 EKTA CHANDEGRA	 Check IsPrimary 
     3    01/09/2025	 RAJESH GAMI	 Add LegalEntityBankingCheque details instead of LegalEntityBankingLockBox table
     4    20/04/2026	 AYUSHI PATEL	 return the BankName based on MasterCompanyCode (lower case for a2z)
+    6    01/05/2026  Ayushi Patel    [PN-16030] Added MasterCompanyCode/NULL parameter in ValidatePDFAddress calls.
 -- EXEC RPT_GetLockBoxBankingInfo 1
 ************************************************************************/
 CREATE       PROCEDURE [dbo].[RPT_GetLockBoxBankingInfo] 
@@ -41,7 +42,7 @@ BEGIN
         WHEN lb.AccountTypeId = 1 THEN 
             CASE 
                 WHEN @CompanyCode = @a2z_MasterCompanyIdCode 
-                    THEN LOWER(ISNULL(lb.BankName,'')) 
+                    THEN (ISNULL(lb.BankName,'')) 
                 ELSE UPPER(ISNULL(lb.BankName,'')) 
             END
         ELSE 
@@ -49,7 +50,7 @@ BEGIN
         END AS BankName,
 
 		'' AS PoBox,
-		MergedAddress = (SELECT dbo.ValidatePDFAddress(ad.Line1,NULL,NULL,ad.City,ad.StateOrProvince,ad.PostalCode,co.countries_name,NULL,NULL,NULL)),
+		MergedAddress = (SELECT dbo.ValidatePDFAddress(ad.Line1,NULL,NULL,ad.City,ad.StateOrProvince,ad.PostalCode,co.countries_name,NULL,NULL,NULL,MS.MasterCompanyCode)),
 			
 		UPPER(ISNULL(ad.Line1,'')) AS Line1,
 		UPPER(ISNULL(ad.City,'')) AS City,
@@ -59,6 +60,7 @@ BEGIN
         dbo.EntityStructureSetup ess WITH(NOLOCK)
         JOIN dbo.ManagementStructureLevel msl WITH(NOLOCK) ON ess.Level1Id = msl.ID
         JOIN dbo.LegalEntity le WITH(NOLOCK) ON msl.LegalEntityId = le.LegalEntityId
+        LEFT JOIN MasterCompany MS WITH(NOLOCK) ON MS.MasterCompanyId = le.MasterCompanyId
         LEFT JOIN dbo.LegalEntityBankingCheque lb WITH(NOLOCK) ON le.LegalEntityId = lb.LegalEntityId AND lb.IsPrimary = 1
         LEFT JOIN dbo.[Address] ad WITH(NOLOCK) ON lb.AddressId = ad.AddressId
         LEFT JOIN dbo.Countries co WITH(NOLOCK) ON ad.CountryId = co.countries_id

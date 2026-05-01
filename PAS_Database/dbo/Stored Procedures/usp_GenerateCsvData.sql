@@ -21,7 +21,9 @@
 	5    04/02/2026   Divyesh Kathiriya		Added New Module "Stockline"
 	6	 02/04/2026   Nakul Chandigra       Add condtion for Orderby in final sql for squenceno (PN-15884)
 	7	 07/04/2026   Nakul Chandigra       Add condtion for Orderby in final sql (PN-15944)
- EXEC usp_GenerateCsvData 16, 1, 2
+	8    29/04/2026   Divyesh Kathiriya		Added New Module "ManualJournal" [PN-16139]
+
+ EXEC usp_GenerateCsvData 111, 1, 236
 **************************************************************/
 CREATE PROCEDURE [dbo].[usp_GenerateCsvData]
 (
@@ -38,6 +40,7 @@ BEGIN
 		DECLARE @SelectList NVARCHAR(MAX) = '';
 		DECLARE @JoinList NVARCHAR(MAX) = '';
 		DECLARE @BaseTable NVARCHAR(200);
+		DECLARE @TableName NVARCHAR(200) = 'ManualJournalDetails';
 		DECLARE @ModuleName VARCHAR(100);
 		DECLARE @LocationModuleId BIGINT;
 		DECLARE @ShelfModuleId BIGINT;
@@ -50,14 +53,16 @@ BEGIN
 
 		DECLARE @EmployeeModule AS INT;
 		DECLARE @StocklineModule AS INT;
+		DECLARE @ManualJournalModule AS INT;
 
 		SELECT @ModuleName = [ModuleName] FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ImportModuleId] = @ModuleId;
 
-		SET @StocklineModule = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'Stockline');
-		SET @EmployeeModule = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'Employee');
-		SET @LocationModuleId = (SELECT [ImportModuleId] FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName]='Location')
-		SET @ShelfModuleId = (SELECT [ImportModuleId] FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName]='Shelf')
-		SET @BinModuleId = (SELECT [ImportModuleId] FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName]='Bin')
+		SET @StocklineModule = (SELECT [ImportModuleId] FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'Stockline');
+		SET @EmployeeModule = (SELECT [ImportModuleId] FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'Employee');
+		SET @LocationModuleId = (SELECT [ImportModuleId] FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName]='Location');
+		SET @ShelfModuleId = (SELECT [ImportModuleId] FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName]='Shelf');
+		SET @BinModuleId = (SELECT [ImportModuleId] FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName]='Bin');
+		SET @ManualJournalModule = (SELECT [ImportModuleId] FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'ManualJournal');
 
 		SET @MSModuelId = (SELECT [ManagementStructureModuleId] FROM [DBO].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] = 'Stockline');
 		
@@ -75,16 +80,25 @@ BEGIN
 		FROM [dbo].[ImportModuleFieldMaster] WITH(NOLOCK)
 		WHERE ModuleId = @ModuleId 
 		
-		IF EXISTS (SELECT 1	FROM #ColumnData WHERE IsUseJoinCondition = 0)
+		--------------Set @BaseTable Start--------------
+		IF (@ModuleId = @ManualJournalModule)
 		BEGIN
-			SELECT TOP 1 @BaseTable = SourceTableName
-			FROM DBO.ImportModuleFieldMaster WITH (NOLOCK)
-			WHERE ModuleId = @ModuleId AND ParentTableRereneceTypeId = 0 AND IsActive = 1 AND IsDeleted = 0 AND ISNULL(IsUseJoinCondition,0) = 0 ;
+			SET @BaseTable = @TableName;
 		END
 		ELSE
 		BEGIN
-			SET @BaseTable = @ModuleName
+			IF EXISTS (SELECT 1	FROM #ColumnData WHERE IsUseJoinCondition = 0)
+			BEGIN
+				SELECT TOP 1 @BaseTable = SourceTableName
+				FROM DBO.ImportModuleFieldMaster WITH (NOLOCK)
+				WHERE ModuleId = @ModuleId AND ParentTableRereneceTypeId = 0 AND IsActive = 1 AND IsDeleted = 0 AND ISNULL(IsUseJoinCondition,0) = 0 ;
+			END
+			ELSE
+			BEGIN
+				SET @BaseTable = @ModuleName
+			END
 		END
+		--------------Set @BaseTable END--------------
 
 		SELECT @SelectList = STRING_AGG(
 			CASE 
@@ -144,7 +158,7 @@ BEGIN
 									AND Employee.EmployeeId Not in  (SELECT E.EmployeeId FROM dbo.Employee E WITH(NOLOCK) 
 																			INNER JOIN dbo.EmployeeUserRole EUR WITH(NOLOCK) ON E.EmployeeId = EUR.EmployeeId 
 																			INNER JOIN dbo.UserRole RU WITH(NOLOCK)  ON RU.Id = EUR.RoleId AND RU.Name = ''SUPERADMIN'')'									
-		END
+		END		
 		
 		IF EXISTS(SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = @BaseTable AND COLUMN_NAME ='SequenceNo')
 		BEGIN 
@@ -178,6 +192,68 @@ BEGIN
 			AND ' + @BaseTable + '.IsDeleted = 0
 			' + @WhereCondition + '
 			ORDER BY ' + @BaseTable + '.CreatedDate DESC;';
+		END
+		ELSE IF(@ModuleId = @ManualJournalModule)
+		BEGIN
+			IF OBJECT_ID('tempdb..#EntityList') IS NOT NULL
+			BEGIN
+				DROP TABLE #EntityList
+			END
+			
+			CREATE TABLE #EntityList (
+				EntityStructureId INT,
+				MasterCompanyId INT,
+				Level1Id INT,
+				Level1Name NVARCHAR(255),
+				Level2Id INT,
+				Level2Name NVARCHAR(255),
+				Level3Id INT,
+				Level3Name NVARCHAR(255),
+				Level4Id INT,
+				Level4Name NVARCHAR(255),
+				Level5Id INT,
+				Level5Name NVARCHAR(255),
+				Level6Id INT,
+				Level6Name NVARCHAR(255),
+				Level7Id INT,
+				Level7Name NVARCHAR(255),
+				Level8Id INT,
+				Level8Name NVARCHAR(255),
+				Level9Id INT,
+				Level9Name NVARCHAR(255),
+				Level10Id INT,
+				Level10Name NVARCHAR(255),
+				AllMSlevels NVARCHAR(MAX),
+				LastMSlevel NVARCHAR(255),
+				LegalEntityId BIGINT
+			)
+			
+			INSERT INTO #EntityList
+			EXEC dbo.USP_GetAllEntityManagementStructureList 
+				@MasterCompanyId = @MasterCompanyId, @EmployeeId = @EmployeeId;
+
+			UPDATE #EntityList
+			SET Level1Name = LTRIM(RTRIM(LEFT(Level1Name, CHARINDEX('-', Level1Name) - 1))),
+				Level2Name = LTRIM(RTRIM(LEFT(Level2Name, CHARINDEX('-', Level2Name) - 1))),
+				Level3Name = LTRIM(RTRIM(LEFT(Level3Name, CHARINDEX('-', Level3Name) - 1))),
+				Level4Name = LTRIM(RTRIM(LEFT(Level4Name, CHARINDEX('-', Level4Name) - 1))),
+				Level5Name = LTRIM(RTRIM(LEFT(Level5Name, CHARINDEX('-', Level5Name) - 1))),
+				Level6Name = LTRIM(RTRIM(LEFT(Level6Name, CHARINDEX('-', Level6Name) - 1))),
+				Level7Name = LTRIM(RTRIM(LEFT(Level7Name, CHARINDEX('-', Level7Name) - 1))),
+				Level8Name = LTRIM(RTRIM(LEFT(Level8Name, CHARINDEX('-', Level8Name) - 1))),
+				Level9Name = LTRIM(RTRIM(LEFT(Level9Name, CHARINDEX('-', Level9Name) - 1))),
+				Level10Name = LTRIM(RTRIM(LEFT(Level10Name, CHARINDEX('-', Level10Name) - 1)))  
+			FROM #EntityList;
+
+
+			SET @SQL  = '
+				SELECT ' + @SelectList + '
+				FROM ' + @BaseTable + '  WITH(NOLOCK)
+				' + ISNULL(@JoinList, '') + '
+				WHERE ' + @BaseTable + '.MasterCompanyId = @MasterCompanyId
+				AND ' + @BaseTable + '.IsActive = 1
+				AND ' + @BaseTable + '.IsDeleted = 0
+				ORDER BY '+  @BaseTable +@OrderByColumn;		
 		END
 		ELSE
 		BEGIN

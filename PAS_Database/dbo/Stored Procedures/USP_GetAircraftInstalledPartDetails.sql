@@ -1,22 +1,25 @@
-﻿/*************************************************************
+﻿/*********************
 ** File:        [USP_GetAircraftInstalledPartDetails]
 ** Description:
 ** Purpose:
 ** Date:
 **
 ** RETURN VALUE:
-**************************************************************
+**********************
 ** Change History
-**************************************************************
-** PR   Date         Author         Change Description
-** --   ----------   -------------  --------------------------------
-** 1    2026-03-27   Amit Ghediya   Created
-** 2    2026-04-07   Amit Ghediya   Get ItemMasterId for tender stk (PN-15938)
-** 3    2026-04-10   Amit Ghediya   Filter apply (PN-15970)
-** 4    2026-04-13   Amit Ghediya   Added for Quantity,QuantityAvailable,QuantityOnHand (PN-16028)
-** 5    2026-04-21   Amit Ghediya   Added for SequenceNum (PN-16146)
-** 6    2026-04-22   Amit Ghediya   Added for ConditionId (PN-16149)
-*************************************************************/
+**********************
+** PR   Date         Author				Change Description
+** --   ----------   -------------		--------------------------------
+** 1    2026-03-27   Amit Ghediya		Created
+** 2    2026-04-07   Amit Ghediya		Get ItemMasterId for tender stk (PN-15938)
+** 3    2026-04-10   Amit Ghediya		Filter apply (PN-15970)
+** 4    2026-04-13   Amit Ghediya		Added for Quantity,QuantityAvailable,QuantityOnHand (PN-16028)
+** 5    2026-04-21   Amit Ghediya		Added for SequenceNum (PN-16146)
+** 6    2026-04-22   Amit Ghediya		Added for ConditionId (PN-16149)
+** 7    2026-04-23   Priyansh Patel		Added IsCustomerStock from stockline [PN-16174]
+** 8    2026-04-23   Amit Ghediya		Get item data from table [PN-16162]
+
+*********************/
 CREATE   PROCEDURE [dbo].[USP_GetAircraftInstalledPartDetails]
 (
     @PageNumber         INT,
@@ -75,6 +78,7 @@ BEGIN
 				STK.StockLineId,
 				STK.QuantityAvailable,
 				STK.QuantityOnHand,
+				CASE WHEN STK.IsCustomerStock = 1 THEN 'Yes' ELSE 'No' END AS IsCustomerStock, 
 				AIPD.Quantity,
                 AIPD.IsLLP,
 				AIPD.IsSerialized,
@@ -85,14 +89,14 @@ BEGIN
                 AIPD.PositionCode,
                 AIPD.[Hours],
                 AIPD.[Minutes],
-                IM.FlightHours AS 'FlightHours',
+                AIPD.PartFlightHours AS 'FlightHours',
 				AIPD.FlightHours AS 'RecordFlightHours', 
-				CASE WHEN ISNULL(IM.FlightHours,0) > 0 THEN  ISNULL(IM.FlightHours,0) - ISNULL(AIPD.FlightHours,0) ELSE  0 END AS 'RemainingFlightHours', 
-                IM.FlightCycles AS 'Cycles',
+				CASE WHEN ISNULL(AIPD.PartFlightHours,0) > 0 THEN  ISNULL(AIPD.PartFlightHours,0) - ISNULL(AIPD.FlightHours,0) ELSE  0 END AS 'RemainingFlightHours', 
+                AIPD.PartCycles AS 'Cycles',
 				AIPD.Cycles AS 'RecordCycles',
-				CASE WHEN ISNULL(IM.FlightCycles,0) > 0 THEN  ISNULL(IM.FlightCycles,0) - ISNULL(AIPD.Cycles,0) ELSE  0 END AS 'RemainingCycles',
-                AIPD.Landings,
-                AIPD.EngineStarts,
+				CASE WHEN ISNULL(AIPD.PartCycles,0) > 0 THEN  ISNULL(AIPD.PartCycles,0) - ISNULL(AIPD.Cycles,0) ELSE  0 END AS 'RemainingCycles',
+                AIPD.PartLandings AS Landings,
+                AIPD.PartEngineStarts AS EngineStarts,
                 AIPD.Memo,
                 AIPD.CreatedDate,
                 AIPD.UpdatedDate,

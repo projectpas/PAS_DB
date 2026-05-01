@@ -43,7 +43,8 @@
 	26   26-MAr-2026  Moin Bloch        Modified Fix Issue For Close PO When SO Shipped Partial Stockline Qty
 	27   10-APR-2026  Rajesh Gami		UOM Conversion Changes [PN-15733]
 	28   21-APR-2026  Rajesh Gami		UOM Conversion Issue Resolved [PN-16133]
-	29   29-Apr-2026  RAJESH GAMI       Insert Stock,NonStock,Asset InventoryId In the DRAFT Table when Order QTY more than 500 (Where IsParent = 1) [PN-16244]
+  29   27-APR-2026  Priyansh patel 	Updated Aircraftpartdetails with New StocklineId [PN-16177]
+  30   29-Apr-2026  RAJESH GAMI       Insert Stock,NonStock,Asset InventoryId In the DRAFT Table when Order QTY more than 500 (Where IsParent = 1) [PN-16244]
 declare @p2 dbo.POPartsToReceive  insert into @p2 values(2371,4051,2)    
 exec dbo.USP_CreateStocklineForReceivingPO @PurchaseOrderId=2371,@tbl_POPartsToReceive=@p2,@UpdatedBy=N'ADMIN User',@MasterCompanyId=1  
 **************************************************************/
@@ -391,6 +392,8 @@ BEGIN
                         DECLARE @StkPurchaseOrderUnitCost AS DECIMAL(18,6) = 0;
                         DECLARE @ManufacturerId AS BIGINT;
                         DECLARE @PreviousStockLineNumber VARCHAR(50);
+                        DECLARE @AircraftInstalledPartDetailsId BIGINT = NULL;
+
 
                         SELECT @SelectedStockLineDraftId = StockLineDraftId FROM #tmpStocklineDraft WHERE ID = @LoopID;
 
@@ -620,7 +623,17 @@ BEGIN
 
 
                         INSERT INTO #InsertedStkForLot (StockLineId)
-                        SELECT @NewStocklineId
+                        SELECT @NewStocklineId  
+
+                        -- For Aircraftinstalled Parts
+                        SET @AircraftInstalledPartDetailsId = NULL;
+                        SELECT @AircraftInstalledPartDetailsId = AircraftInstalledPartDetailsId FROM DBO.PurchaseOrder WITH (NOLOCK) WHERE PurchaseOrderId = @PurchaseOrderId;
+
+                        IF (@AircraftInstalledPartDetailsId IS NOT NULL AND @AircraftInstalledPartDetailsId > 0)
+                        BEGIN
+                           UPDATE DBO.AircraftInstalledPartDetails SET StockLineId = @NewStocklineId  WHERE AircraftInstalledPartDetailsId = @AircraftInstalledPartDetailsId
+                                  AND (StockLineId IS NULL OR StockLineId = 0); 
+                        END
 
                         IF (@IsTimeLIfe = 1)
                         BEGIN

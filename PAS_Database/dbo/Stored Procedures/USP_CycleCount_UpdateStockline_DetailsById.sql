@@ -20,6 +20,7 @@
 	6    25/11/2024   Moin Bloch   Updated Changed logic of Qty Avail TO OH
 	7    27/12/2024   Moin Bloch   Updated Added LegalEntityId
     8    03/Feb/2025  RAJESH GAMI  Added QuantityAdjustment while Increase or Decrease the QTY.   
+    9    23/Feb/2026  BhargavSaliya UOM Changes    
  EXEC USP_CycleCount_UpdateStockline_DetailsById  26,'ADMIN User',1
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_CycleCount_UpdateStockline_DetailsById]
@@ -40,14 +41,14 @@ BEGIN
 		DECLARE @MinId BIGINT = 1;
 		DECLARE @CycleCountDetailId BIGINT;
 		DECLARE @StockLineId BIGINT;
-		DECLARE @UnitCost DECIMAL(18,2) = 0;
-		DECLARE @CurrentStockQuantity INT = 0;
-		DECLARE @CountedQuantity INT = 0;
-		DECLARE @DifferenceQuantity INT = 0;
-		DECLARE @DifferenceAmount DECIMAL(18,2) = 0;
-		DECLARE @QuantityAvailable INT = 0;
-		DECLARE @QuantityReserved INT = 0;
-		DECLARE @DifferenceQty INT = 0;
+		DECLARE @UnitCost DECIMAL(18,6) = 0;
+		DECLARE @CurrentStockQuantity DECIMAL(18,6) = 0;
+		DECLARE @CountedQuantity DECIMAL(18,6) = 0;
+		DECLARE @DifferenceQuantity DECIMAL(18,6) = 0;
+		DECLARE @DifferenceAmount DECIMAL(18,6) = 0;
+		DECLARE @QuantityAvailable DECIMAL(18,6) = 0;
+		DECLARE @QuantityReserved DECIMAL(18,6) = 0;
+		DECLARE @DifferenceQty DECIMAL(18,6) = 0;
 		DECLARE @CCModuleId INT;	
 		DECLARE	@ActionId INT;
 		DECLARE @CycleCountStatusId INT;
@@ -74,11 +75,11 @@ BEGIN
 			[ID] BIGINT NOT NULL IDENTITY, 
 			[CycleCountDetailId] BIGINT NULL,
 			[StockLineId] BIGINT NULL,
-			[UnitCost] DECIMAL(18,2) NULL,
-			[CurrentStockQuantity] INT NULL,
-			[CountedQuantity] INT NULL,
-			[DifferenceQuantity] INT NULL,
-			[DifferenceAmount] DECIMAL(18,2) NULL			
+			[UnitCost]DECIMAL(18,6) NULL,
+			[CurrentStockQuantity] DECIMAL(18,6) NULL,
+			[CountedQuantity] DECIMAL(18,6) NULL,
+			[DifferenceQuantity] DECIMAL(18,6) NULL,
+			[DifferenceAmount] DECIMAL(18,6) NULL			
 		)  
 
 		INSERT INTO #tmpCycleCountStocklineDetails ([CycleCountDetailId],[StockLineId],[UnitCost],[CurrentStockQuantity],[CountedQuantity],[DifferenceQuantity],[DifferenceAmount])

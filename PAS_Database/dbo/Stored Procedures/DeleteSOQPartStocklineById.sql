@@ -15,8 +15,8 @@
  ** --   --------     -------			--------------------------------          
     1    11/13/2024   Vishal Suthar     Created
 	2    15-09-2025	  Amit Ghediya		Update for Reset Approval Process
-     
--- EXEC DeleteSOQPartStocklineById 425
+    3    22-04-2026	  Bhargav Saliya	Change Delete Table Siquence [SalesOrderQuoteStocklineCost] and [SalesOrderQuoteStocklineV1]
+-- EXEC DeleteSOQPartStocklineById 265
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[DeleteSOQPartStocklineById]
 	@SalesOrderQuoteStocklineId bigint
@@ -33,10 +33,8 @@ BEGIN
 
 		SELECT @SalesOrderQuotePartId = SalesOrderQuotePartId, @CreatedBy = CreatedBy, @MasterCompanyId = MasterCompanyId FROM DBO.[SalesOrderQuoteStocklineV1] WITH (NOLOCK) WHERE SalesOrderQuoteStocklineId = @SalesOrderQuoteStocklineId;
 		SELECT @SalesOrderQuoteId = SalesOrderQuoteId FROM DBO.[SalesOrderQuotePartV1] WITH (NOLOCK) WHERE SalesOrderQuotePartId = @SalesOrderQuotePartId;
-
-		DELETE FROM [dbo].[SalesOrderQuoteStocklineV1] WHERE SalesOrderQuoteStocklineId = @SalesOrderQuoteStocklineId;
 		DELETE FROM [dbo].[SalesOrderQuoteStocklineCost]  WHERE SalesOrderQuoteStocklineId = @SalesOrderQuoteStocklineId;
-
+		DELETE FROM [dbo].[SalesOrderQuoteStocklineV1] WHERE SalesOrderQuoteStocklineId = @SalesOrderQuoteStocklineId;
 		EXEC [dbo].[USP_UpdateSOQPartCostDetails] @SalesOrderQuoteId, @SalesOrderQuotePartId, @CreatedBy, @MasterCompanyId;
 
 		--Update Reset Approve Process

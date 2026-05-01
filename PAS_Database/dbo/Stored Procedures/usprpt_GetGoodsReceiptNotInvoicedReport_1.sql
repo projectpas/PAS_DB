@@ -9,8 +9,8 @@
   ** S NO   Date            Author				Change Description              
  ** --   --------         -------			--------------------------------            
     1    11-Feb-2025     Devendra Shekh				Created
-    2    20-Feb-2025     Rajesh Gami				Modify as per requirement
-	3    23-Feb-2025     Rajesh Gami				Resolved Getting records issue
+    2    20-Feb-2025     Rajesh Gami				Modify as per requirement  (PN-15420)
+	3    23-Feb-2025     Rajesh Gami				Resolved Getting records issue (Parent Jira ID: PN-15420) -> (PN-15547)
 	4    20-Mar-2026     Vishal Suthar				Fixed total mismatch issue by adding qtyRemaining > 0 condition in "WithTotal" cte
 	5    01-May-2026     Rajesh Gami				Added NonStock and ASSET Inventory [PN-16267]
 **************************************************************/

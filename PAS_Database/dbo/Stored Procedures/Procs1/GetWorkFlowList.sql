@@ -21,6 +21,7 @@
 	7    18-04-2025   Shrey Chandegara  Modifed due to datefilter issue
 	8    02-08-2025   Sahdev Saliya   Added New Field Verified, VerifiedBy And VerifiedDate
 	9    24-04-2026   Priyansh Patel   Added New Field TemplateType [PN-16166]
+	10   01-05-2026   Priyansh Patel   Workscope join changes [PN-16262]
 
 exec GetWorkFlowList @PageSize=20,@PageNumber=1,@SortColumn=NULL,@SortOrder=-1,@StatusID=1,@GlobalFilter=N'',@WorkOrderNumber=NULL,@Version=NULL,@PartNumber=NULL,@PartDescription=NULL,@ManufacturerName=NULL,@Description=NULL,@CustomerName=NULL,@WorkflowCreateDate=NULL,@WorkflowExpirationDate=NULL,@CreatedDate=NULL,@UpdatedDate=NULL,@CreatedBy=NULL,@UpdatedBy=NULL,@IsDeleted=0,@MasterCompanyId=1,@TemplateDescription=NULL,@EmployeeId=223
 **************************************************************/ 
@@ -49,6 +50,7 @@ CREATE   PROCEDURE [dbo].[GetWorkFlowList]
     @IsDeleted bit= null,
 	@MasterCompanyId int,
 	@TemplateDescription varchar(500)=null,
+	@AcTemplate bit =null,
 	@EmployeeId bigint
 
 AS
@@ -141,7 +143,7 @@ BEGIN
 					wf.VerifiedBy,
 					wf.VerifiedDate
 					FROM Workflow wf WITH (NOLOCK)
-					INNER JOIN dbo.WorkScope ws WITH (NOLOCK) on wf.WorkScopeId = ws.WorkScopeId
+					LEFT  JOIN dbo.WorkScope ws WITH (NOLOCK) on wf.WorkScopeId = ws.WorkScopeId
 					LEFT JOIN dbo.Customer c WITH (NOLOCK) on c.CustomerId =  wf.CustomerId
 					LEFT JOIN dbo.ItemMaster im WITH (NOLOCK) on im.ItemMasterId =  wf.ItemMasterId
 					LEFT JOIN dbo.ItemMaster cp WITH (NOLOCK) on cp.ItemMasterId =  wf.ChangedPartNumberId
@@ -171,6 +173,7 @@ BEGIN
 					(IsNull(@CustomerName,'') ='' OR Name like '%' + @CustomerName+'%') and
 					(IsNull(@CreatedBy,'') ='' OR CreatedBy like '%' + @CreatedBy+'%') and
 					(IsNull(@UpdatedBy,'') ='' OR UpdatedBy like '%' + @UpdatedBy+'%') and
+					(@AcTemplate IS NULL OR TemplateType = CASE WHEN @AcTemplate = 1 THEN 2 ELSE 1 END) and
 					(IsNull(@WorkflowCreateDate,'') ='' OR Cast(WorkflowCreateDate as Date)=Cast(@WorkflowCreateDate as date)) and
 					(IsNull(@WorkflowExpirationDate,'') ='' OR Cast(WorkflowExpirationDate as Date)=Cast(@WorkflowExpirationDate as date)) and
 					(IsNull(@CreatedDate,'') ='' OR Cast(CreatedDate as Date)=Cast(@CreatedDate as date)) and
@@ -197,6 +200,8 @@ BEGIN
 			CASE WHEN (@SortOrder=1 and @SortColumn='UPDATEDDATE')  THEN UpdatedDate END ASC,
 			CASE WHEN (@SortOrder=1 and @SortColumn='MANUFACTURERNAME')  THEN ManufacturerName END ASC,
 			CASE WHEN (@SortOrder=1 and @SortColumn='TEMPLATEDESCRIPTION')  THEN TemplateDescription END ASC,
+			CASE WHEN (@SortOrder=1 and @SortColumn='ACTEMPLATE')  THEN TemplateType END ASC,
+
 
 			CASE WHEN (@SortOrder=-1 and @SortColumn='WORKORDERNUMBER')  THEN WorkOrderNumber END DESC,
 			CASE WHEN (@SortOrder=-1 and @SortColumn='VERSION')  THEN Version END DESC,
@@ -211,7 +216,9 @@ BEGIN
             CASE WHEN (@SortOrder=-1 and @SortColumn='CREATEDDATE')  THEN CreatedDate END DESC,
 			CASE WHEN (@SortOrder=-1 and @SortColumn='UPDATEDDATE')  THEN UpdatedDate END DESC,
 			CASE WHEN (@SortOrder=-1 and @SortColumn='MANUFACTURERNAME')  THEN ManufacturerName END DESC,
-			CASE WHEN (@SortOrder=-1 and @SortColumn='TEMPLATEDESCRIPTION')  THEN TemplateDescription END DESC
+			CASE WHEN (@SortOrder=-1 and @SortColumn='TEMPLATEDESCRIPTION')  THEN TemplateDescription END DESC,
+			CASE WHEN (@SortOrder=-1 and @SortColumn='ACTEMPLATE')  THEN TemplateType END DESC
+
 
 
 			OFFSET @RecordFrom ROWS 

@@ -73,8 +73,9 @@ BEGIN
 					--ISNULL(RMAAS.Country, '') AS BillToCountryName,
 					--ISNULL(RMAAS.StateOrProvince, '') AS BillToState,
 					--ISNULL(RMAAS.PostalCode, '') AS BillToPostalCode
-				MergedAddress = (SELECT dbo.ValidatePDFAddress(RMAA.Line1,RMAA.Line2,NULL,RMAA.City,RMAA.StateOrProvince,RMAA.PostalCode,RMAA.Country,NULL,NULL,NULL,NULL))
+				MergedAddress = (SELECT dbo.ValidatePDFAddress(RMAA.Line1,RMAA.Line2,NULL,RMAA.City,RMAA.StateOrProvince,RMAA.PostalCode,RMAA.Country,NULL,NULL,NULL,MS.MasterCompanyCode))
 			FROM CustomerRMAHeader CRMA  WITH (NOLOCK)
+				LEFT JOIN [dbo].[MasterCompany] MS WITH(NOLOCK) ON CRMA.MasterCompanyId = MS.MasterCompanyId
 				LEFT JOIN AllAddress RMAA WITH (NOLOCK) ON CRMA.RMAHeaderId = RMAA.ReffranceId AND RMAA.IsShippingAdd = 1 and RMAA.ModuleId = @ModuleId
 				LEFT JOIN AllAddress RMAAS WITH (NOLOCK) ON CRMA.RMAHeaderId = RMAAS.ReffranceId AND RMAAS.IsShippingAdd = 0 and RMAAS.ModuleId = @ModuleId
 			WHERE CRMA.RMAHeaderId = @RMAHeaderId

@@ -98,7 +98,7 @@ BEGIN
 				(CASE WHEN ISNULL(adr.PostalCode,'') = '' THEN '' ELSE ', ' + UPPER(ISNULL(adr.PostalCode,'')) END),
             Zip = UPPER(ISNULL(adr.PostalCode,'')),
             Country = UPPER(ISNULL(co.countries_name,'')),
-			MergerdQuoteAddress = (SELECT [dbo].ValidatePDFAddress(adr.Line1,adr.Line2,NULL,adr.City,adr.StateOrProvince,adr.PostalCode,co.countries_name,con.WorkPhone,NULL,con.Email,NULL)),
+			MergerdQuoteAddress = (SELECT [dbo].ValidatePDFAddress(adr.Line1,adr.Line2,NULL,adr.City,adr.StateOrProvince,adr.PostalCode,co.countries_name,con.WorkPhone,NULL,con.Email,MS.MasterCompanyCode)),
             ShipVia = UPPER(ISNULL(cs.ShipVia,'')),
             CustomerEmail = cust.Email,
             cust.CustomerPhone,
@@ -140,6 +140,7 @@ BEGIN
             WOCustomerRef = UPPER(wop.CustomerReference),
 			WorkScope = UPPER(wop.WorkScope)
 			 FROM dbo.WorkOrderQuote woq WITH(NOLOCK)
+			 LEFT JOIN [dbo].[MasterCompany] MS WITH(NOLOCK) ON woq.MasterCompanyId = MS.MasterCompanyId
 			 INNER JOIN dbo.WorkOrder wo WITH(NOLOCK) ON woq.WorkOrderId = wo.WorkOrderId
 			 INNER JOIN dbo.WorkOrderPartNumber wop WITH(NOLOCK)  ON woq.WorkOrderId = wop.WorkOrderId
 			 INNER JOIN dbo.WorkOrderQuoteStatus wqs WITH(NOLOCK)  ON woq.QuoteStatusId = wqs.WorkOrderQuoteStatusId

@@ -43,7 +43,7 @@ BEGIN
 					--CASE WHEN ISNULL(PO.[VendorContactEmail],'') != '' THEN Upper(PO.[VendorContactEmail])+'<br/>'ELSE ''END
 					--) MergedAddress
 					--,
-				MergedAddress1 = (SELECT dbo.ValidatePDFAddress(AD.[Line1],AD.[Line2],NULL,AD.[City],AD.[StateOrProvince],AD.[PostalCode],CO.[countries_name],VN.[VendorPhone],NULL,PO.[VendorContactEmail],NULL)),
+				MergedAddress1 = (SELECT dbo.ValidatePDFAddress(AD.[Line1],AD.[Line2],NULL,AD.[City],AD.[StateOrProvince],AD.[PostalCode],CO.[countries_name],VN.[VendorPhone],NULL,PO.[VendorContactEmail],MS.MasterCompanyCode)),
 					
 			   AD.[Line1],
 			   AD.[Line2],
@@ -55,6 +55,7 @@ BEGIN
 			   CU.[Code],
 			   PO.[VendorContactEmail] AS 'VendorEmail'
 		FROM [DBO].[Vendor] VN WITH (NOLOCK)
+		LEFT JOIN [dbo].[MasterCompany] MS WITH(NOLOCK) ON VN.MasterCompanyId = MS.MasterCompanyId
 		LEFT JOIN [DBO].[PurchaseOrder] PO WITH (NOLOCK) ON PO.PurchaseOrderId = @PurchaseOrderId
 		LEFT JOIN [DBO].[Address] AD WITH (NOLOCK) ON VN.AddressId = AD.AddressId
 		LEFT JOIN [DBO].[Countries] CO WITH (NOLOCK) ON AD.CountryId = CO.countries_id

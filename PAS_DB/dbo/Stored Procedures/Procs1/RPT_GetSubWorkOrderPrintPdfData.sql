@@ -15,6 +15,7 @@ EXEC [RPT_GetSubWorkOrderPrintPdfData]
 ** 4	18 Sep 2024 Bhargav Saliya  address convert into single string value
 ** 5    17/02/2025  Moin Bloch      Updated (Added Publication PublicationNo)
 ** 6    02/09/2025  Moin Bloch      Updated (Added EmployeeId Parameter)
+** 7    01/05/2026  Ayushi Patel    [PN-16030] Added MasterCompanyCode/NULL parameter in ValidatePDFAddress calls.
 EXEC RPT_GetSubWorkOrderPrintPdfData 177,179,2
 
 **************************************************************/
@@ -115,7 +116,7 @@ AS
 																CASE WHEN shippingInfo.WorkOrderId > 0  THEN UPPER(shippingInfo.SoldToState) else UPPER(billToAddress.StateOrProvince) END,
 																CASE WHEN shippingInfo.WorkOrderId > 0  THEN UPPER(shippingInfo.SoldToZip) else UPPER(billToAddress.PostalCode) END,
 																CASE WHEN shippingInfo.WorkOrderId > 0  THEN UPPER(shippingInfo.SoldToCountryName) else UPPER(billToCountry.countries_name) END,
-																NULL,NULL,NULL,NULL)),
+																NULL,NULL,NULL,MS.MasterCompanyCode)),
 
 				shipSiteName = CASE WHEN shippingInfo.WorkOrderId > 0  THEN UPPER(shippingInfo.ShipToSiteName) else UPPER(shipToSite.SiteName) END,              
 				shipAttention = CASE WHEN shippingInfo.WorkOrderId > 0  THEN 'ATTN: ' + UPPER(shipToSiteatt.Attention) else 'ATTN: ' + UPPER(shipToSite.Attention) END,              
@@ -141,7 +142,7 @@ AS
 																CASE WHEN shippingInfo.WorkOrderId > 0  THEN UPPER(shippingInfo.ShipToState) else UPPER(shipToAddress.StateOrProvince) END,
 																CASE WHEN shippingInfo.WorkOrderId > 0  THEN UPPER(shippingInfo.ShipToZip) else UPPER(shipToAddress.PostalCode) END,
 																CASE WHEN shippingInfo.WorkOrderId > 0  THEN UPPER(shippingInfo.ShipToCountryName) else UPPER(shipToCountry.countries_name) END,
-																NULL,NULL,NULL,NULL)),
+																NULL,NULL,NULL,MS.MasterCompanyCode)),
 
 				wop.ManagementStructureId,              
 				wf.WorkFlowWorkOrderId as WorkFlowWorkOrderId,              
@@ -162,6 +163,7 @@ AS
 				   FOR XML PATH('')              
 				   ), 1, 1, '')              
 			FROM [dbo].[SubWorkOrder] SWO WITH(NOLOCK) 
+				LEFT JOIN [dbo].[MasterCompany] MS WITH(NOLOCK) ON SWO.MasterCompanyId = MS.MasterCompanyId
 				INNER JOIN [dbo].[SubWorkOrderPartNumber] SWOPN WITH(NOLOCK) ON SWO.SubWorkOrderId = SWOPN.SubWorkOrderId
 				INNER JOIN [dbo].[WorkOrder] wo WITH(NOLOCK) ON SWO.WorkOrderId = wo.WorkOrderId             
 				INNER JOIN [dbo].[WorkOrderPartNumber] wop WITH(NOLOCK) ON wop.ID = SWO.WorkOrderPartNumberId

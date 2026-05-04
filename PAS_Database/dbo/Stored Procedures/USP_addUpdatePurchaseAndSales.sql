@@ -1,4 +1,6 @@
-﻿/*************************************************************           
+﻿
+
+/*************************************************************           
  ** File:   [USP_addUpdatePurchaseAndSales]           
  ** Author:   Bhargav Saliya
  ** Description: This Sp Used For the Add Update Purchase and Sales  
@@ -16,9 +18,9 @@
  ** PR   Date           Author		    Change Description            
  ** --   --------       -------		  --------------------------------          
     1    18-Nov-2025  Bhargav Saliya     Created
-     
+    2    01-May-2026  Rajesh Gami		 Handle NULL value [PN-16265]
 **************************************************************/ 
-CREATE   PROCEDURE [dbo].[USP_addUpdatePurchaseAndSales]
+CREATE     PROCEDURE [dbo].[USP_addUpdatePurchaseAndSales]
  @ItemMasterPurchaseSaleType [PurchaseSalesType] readonly,
  @RetMessage varchar(500) OUTPUT
 AS
@@ -43,39 +45,39 @@ BEGIN
     ConditionId BIGINT NULL,
     PP_UOMId BIGINT NULL,
     PP_CurrencyId INT NULL,
-    PP_FXRatePerc DECIMAL(18, 2) NULL,
-    PP_VendorListPrice DECIMAL(18, 2) NULL,
+    PP_FXRatePerc [decimal](18, 6) NULL,
+    PP_VendorListPrice [decimal](18, 6) NULL,
     PP_LastListPriceDate DATETIME NULL,
     PP_PurchaseDiscPerc INT NULL,
-    PP_PurchaseDiscAmount DECIMAL(18, 2) NULL,
+    PP_PurchaseDiscAmount [decimal](18, 6) NULL,
     PP_LastPurchaseDiscDate DATETIME NULL,
-    PP_UnitPurchasePrice DECIMAL(18, 2) NULL,
+    PP_UnitPurchasePrice [decimal](18, 6) NULL,
     SP_FSP_UOMId BIGINT NULL,
     SP_FSP_CurrencyId INT NULL,
-    SP_FSP_FXRatePerc DECIMAL(18, 2) NULL,
-    SP_FSP_FlatPriceAmount DECIMAL(18, 2) NULL,
+    SP_FSP_FXRatePerc [decimal](18, 6) NULL,
+    SP_FSP_FlatPriceAmount [decimal](18, 6) NULL,
     SP_FSP_LastFlatPriceDate DATETIME NULL,
     SP_CalSPByPP_MarkUpPercOnListPrice INT NULL,
-    SP_CalSPByPP_MarkUpAmount DECIMAL(18, 2) NULL,
+    SP_CalSPByPP_MarkUpAmount [decimal](18, 6) NULL,
     SP_CalSPByPP_LastMarkUpDate DATETIME NULL,
-    SP_CalSPByPP_BaseSalePrice DECIMAL(18, 2) NULL,
+    SP_CalSPByPP_BaseSalePrice [decimal](18, 6) NULL,
     SP_CalSPByPP_SaleDiscPerc INT NULL,
-    SP_CalSPByPP_SaleDiscAmount DECIMAL(18, 2) NULL,
+    SP_CalSPByPP_SaleDiscAmount [decimal](18, 6) NULL,
     SP_CalSPByPP_LastSalesDiscDate DATETIME NULL,
-    SP_CalSPByPP_UnitSalePrice DECIMAL(18, 2) NULL,
+    SP_CalSPByPP_UnitSalePrice [decimal](18, 6) NULL,
     SalePriceSelectId INT NULL,
     ConditionName NVARCHAR(200) NULL,
     PP_UOMName NVARCHAR(200) NULL,
     PP_CurrencyName NVARCHAR(200) NULL,
     SP_FSP_UOMName NVARCHAR(200) NULL,
     SP_FSP_CurrencyName NVARCHAR(200) NULL,
-    PP_PurchaseDiscPercValue DECIMAL(18, 2) NULL,
-    SP_CalSPByPP_MarkUpPercOnListPriceValue DECIMAL(18, 2) NULL,
-    SP_CalSPByPP_SaleDiscPercValue DECIMAL(18, 2) NULL,
+    PP_PurchaseDiscPercValue [decimal](18, 6) NULL,
+    SP_CalSPByPP_MarkUpPercOnListPriceValue [decimal](18, 6) NULL,
+    SP_CalSPByPP_SaleDiscPercValue [decimal](18, 6) NULL,
     SalePriceSelectName NVARCHAR(200) NULL,
     ManufacturerName NVARCHAR(200) NULL,
     SP_CalSPByPP_MarkUpPercValueOnListPrice INT NULL,
-    SuggestedPrice DECIMAL(18, 2) NULL,
+    SuggestedPrice [decimal](18, 6) NULL,
 	[MasterCompanyId] int NULL,
 	[CreatedBy] varchar(256) NULL,
 	[CreatedDate] DATETIME NULL,
@@ -102,6 +104,12 @@ BEGIN
 		SP_CalSPByPP_MarkUpPercOnListPriceValue,SP_CalSPByPP_SaleDiscPercValue,SalePriceSelectName,ManufacturerName,SP_CalSPByPP_MarkUpPercValueOnListPrice,SuggestedPrice,
 		[MasterCompanyId],[CreatedBy],[CreatedDate],[UpdatedBy],[UpdatedDate],[IsActive],[IsDeleted]
 	FROM @ItemMasterPurchaseSaleType;
+
+	UPDATE #PurchaseSalesTemp
+	SET 
+    SP_FSP_CurrencyId = NULLIF(SP_FSP_CurrencyId, 0),
+    SP_FSP_UOMId      = NULLIF(SP_FSP_UOMId, 0),
+    ConditionId       = NULLIF(ConditionId, 0)
 
 	SELECT @MaxId = MAX(Id),@MinId = Min(Id) from #PurchaseSalesTemp
 
@@ -212,6 +220,13 @@ BEGIN
  BEGIN CATCH      
   IF @@trancount > 0
   PRINT 'ROLLBACK'
+   SELECT
+    ERROR_NUMBER() AS ErrorNumber,
+    ERROR_STATE() AS ErrorState,
+    ERROR_SEVERITY() AS ErrorSeverity,
+    ERROR_PROCEDURE() AS ErrorProcedure,
+    ERROR_LINE() AS ErrorLine,
+    ERROR_MESSAGE() AS ErrorMessage;
   ROLLBACK TRAN;
   DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name() 
 

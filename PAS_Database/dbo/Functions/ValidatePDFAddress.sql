@@ -1,5 +1,4 @@
-﻿
-/*****************************************************************************
+﻿/*****************************************************************************
  ** File:   [ValidatePDFAddress]
  ** Author:   Unkwon
  ** Description: Merge Address
@@ -25,11 +24,15 @@ CREATE   FUNCTION [dbo].[ValidatePDFAddress]
     @Country NVARCHAR(255),
     @PhoneNumber NVARCHAR(50),
     @PhoneExt NVARCHAR(50),
-    @Email NVARCHAR(255)
+    @Email NVARCHAR(255),
+    @MasterCompanyCode NVARCHAR(50)
 )
 RETURNS NVARCHAR(MAX)
 AS
 BEGIN
+
+    DECLARE @A2ZMasterCompanyCode VARCHAR(50);
+    SELECT @A2ZMasterCompanyCode = MasterCompanyCode FROM DBO.MasterCompany WITH(NOLOCK) WHERE UPPER(MasterCompanyCode) = UPPER('A2Z');
     DECLARE @address NVARCHAR(MAX);
     SET @address = '';
 
@@ -93,6 +96,18 @@ BEGIN
     IF (COALESCE(NULLIF(TRIM(@Email), '-'), '') <> '')
     BEGIN
         SET @address = @address + @newLine + @Email;
+    END
+
+    IF (UPPER(ISNULL(@MasterCompanyCode, '')) = UPPER(ISNULL(@A2ZMasterCompanyCode,'')))
+    BEGIN
+        IF (COALESCE(NULLIF(TRIM(@Email), '-'), '') <> '')
+        BEGIN
+            RETURN REPLACE(
+                UPPER(@address),
+                UPPER(@Email),
+                LOWER(@Email)
+            );
+        END
     END
 
     RETURN UPPER(@address);

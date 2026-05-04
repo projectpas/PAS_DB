@@ -15,7 +15,7 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    09/03/2023  Amit Ghediya    Created
-     
+    2    01/05/2026  Ayushi Patel    [PN-16030] Added MasterCompanyCode/NULL parameter in ValidatePDFAddress calls.
 -- EXEC RPT_PrintPurchaseVendorDataById 7
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[RPT_PrintPurchaseVendorDataById]
@@ -43,7 +43,7 @@ BEGIN
 					--CASE WHEN ISNULL(PO.[VendorContactEmail],'') != '' THEN Upper(PO.[VendorContactEmail])+'<br/>'ELSE ''END
 					--) MergedAddress
 					--,
-				MergedAddress1 = (SELECT dbo.ValidatePDFAddress(AD.[Line1],AD.[Line2],NULL,AD.[City],AD.[StateOrProvince],AD.[PostalCode],CO.[countries_name],VN.[VendorPhone],NULL,PO.[VendorContactEmail])),
+				MergedAddress1 = (SELECT dbo.ValidatePDFAddress(AD.[Line1],AD.[Line2],NULL,AD.[City],AD.[StateOrProvince],AD.[PostalCode],CO.[countries_name],VN.[VendorPhone],NULL,PO.[VendorContactEmail],NULL)),
 					
 			   AD.[Line1],
 			   AD.[Line2],

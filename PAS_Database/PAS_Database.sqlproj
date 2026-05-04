@@ -4512,6 +4512,8 @@
     <Build Include="dbo\Stored Procedures\USP_GetAircraftPublicationList.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetAircraftPublicationById.sql" />
     <Build Include="dbo\User Defined Types\AircraftPublicationType.sql" />
+    <Build Include="dbo\Tables\AircraftSection.sql" />
+    <Build Include="dbo\Views\vw_AircraftSection.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

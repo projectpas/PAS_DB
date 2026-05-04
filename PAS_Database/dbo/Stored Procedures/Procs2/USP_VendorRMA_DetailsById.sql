@@ -14,6 +14,7 @@
 	2    03-29-2024   Shrey Chandegara      Add RevisedStocklineId
 	3    07-23-2024   Vishal Suthar			Added EnforcePickTicketConfirmation column
 	4    02-03-2026	  Amit Ghediya			UOM Conversion Changes [PN-15140]
+	5    04-05-2026   Ayushi Patel          UOM Conversion for UnitCost [PN-16266]
 *******************************************************************************
 EXEC USP_VendorRMA_DetailsById 113,2
 *******************************************************************************/
@@ -63,7 +64,7 @@ BEGIN
 				  ,CASE WHEN SL.[PurchaseOrderId] > 0 THEN PO.[PurchaseOrderNumber] WHEN SL.[RepairOrderId] > 0 THEN RO.[RepairOrderNumber] ELSE '' END 'ReferenceNumber' 
 				  ,([dbo].[fn_ConvertUOM](ISNULL(VD.[Qty], 0),IM.[StockUnitOfMeasure],IM.[PurchaseUnitOfMeasure],0,IM.[MasterCompanyId])) AS Qty
 				  ,(([dbo].[fn_ConvertUOM](ISNULL(SL.[QuantityAvailable], 0),IM.[StockUnitOfMeasure],IM.[PurchaseUnitOfMeasure],0,IM.[MasterCompanyId])) + ([dbo].[fn_ConvertUOM](ISNULL(VD.[Qty], 0),IM.[StockUnitOfMeasure],IM.[PurchaseUnitOfMeasure],0,IM.[MasterCompanyId]))) AS OriginalQty
-				  ,VD.[UnitCost]
+				  ,([dbo].[fn_ConvertUOM](ISNULL(VD.[UnitCost], 0),IM.[StockUnitOfMeasure],IM.[PurchaseUnitOfMeasure],1,IM.[MasterCompanyId])) AS UnitCost
 				  ,VD.[ExtendedCost]
 				  ,VD.[VendorRMAReturnReasonId]
 				  ,RR.[Reason]

@@ -1,4 +1,5 @@
-﻿/*************************************************************                   
+﻿
+/*************************************************************                   
  ** File:   [USP_GetReceivingPurchaseOrderEdit_POPart]                  
  ** Author:   Vishal Suthar        
  ** Description: This stored procedure is used to get stockline draft details to receive      
@@ -19,7 +20,7 @@
 	3    12/12/2023   Jevik Raiyani		Case 1 changes for AssetAcquisitionTypeId  
 	4    12/20/2023   Vishal Suthar		Fix issue with fetching child entries
 	5    09/04/2025   Moin Bloch        Fix Issue For QuantityReceived when StockLine Adjusment
-        
+ 	6    01/05/2026   RAJESH GAMI       Fix Issue For more then 500 QTY [PN-16244]
 EXEC [dbo].[USP_GetReceivingPurchaseOrderEdit_POPart] 2386    
 **************************************************************/        
 CREATE    PROCEDURE [dbo].[USP_GetReceivingPurchaseOrderEdit_POPart]    
@@ -31,7 +32,7 @@ BEGIN
   SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED        
   SET NOCOUNT ON          
   BEGIN TRY        
-      
+      DECLARE @maxQtyLimit INT = 500;
   SELECT DISTINCT      
   part.PurchaseOrderId,      
         part.ItemTypeId,      
@@ -357,11 +358,11 @@ BEGIN
   LEFT JOIN DBO.Asset asi WITH (NOLOCK) ON part.ItemMasterId = asi.AssetRecordId      
   LEFT JOIN DBO.ItemMasterNonStock nsi WITH (NOLOCK) ON part.ItemMasterId = nsi.MasterPartId      
   LEFT JOIN DBO.StocklineDraft StkD_Ser WITH (NOLOCK) ON StkD_Ser.PurchaseOrderPartRecordId = part.PurchaseOrderPartRecordId AND StkD_Ser.isSerialized = 1 AND StkD_Ser.IsParent = 0      
-  LEFT JOIN DBO.StocklineDraft StkD_NonSer WITH (NOLOCK) ON StkD_NonSer.PurchaseOrderPartRecordId = part.PurchaseOrderPartRecordId AND StkD_NonSer.isSerialized = 0 AND (StkD_NonSer.IsParent = 1 OR StkD_NonSer.StockLineId = 0)
+  LEFT JOIN DBO.StocklineDraft StkD_NonSer WITH (NOLOCK) ON StkD_NonSer.PurchaseOrderPartRecordId = part.PurchaseOrderPartRecordId AND StkD_NonSer.isSerialized = 0 AND ( StkD_NonSer.IsParent = 1 OR ISNULL(StkD_NonSer.StockLineId,0) = 0 OR StkD_NonSer.Quantity > @maxQtyLimit)
   LEFT JOIN DBO.AssetInventoryDraft StkD_Ser_Asset WITH (NOLOCK) ON StkD_Ser_Asset.PurchaseOrderPartRecordId = part.PurchaseOrderPartRecordId AND StkD_Ser_Asset.isSerialized = 1 AND StkD_Ser_Asset.IsParent = 0      
-  LEFT JOIN DBO.AssetInventoryDraft StkD_NonSer_Asset WITH (NOLOCK) ON StkD_NonSer_Asset.PurchaseOrderPartRecordId = part.PurchaseOrderPartRecordId AND StkD_NonSer_Asset.isSerialized = 0 AND StkD_NonSer_Asset.IsParent = 1   
+  LEFT JOIN DBO.AssetInventoryDraft StkD_NonSer_Asset WITH (NOLOCK) ON StkD_NonSer_Asset.PurchaseOrderPartRecordId = part.PurchaseOrderPartRecordId AND StkD_NonSer_Asset.isSerialized = 0 AND (StkD_NonSer_Asset.IsParent = 1 OR ISNULL(StkD_NonSer_Asset.AssetInventoryId,0) = 0 OR StkD_NonSer_Asset.Qty > @maxQtyLimit)
   LEFT JOIN DBO.NonStockInventoryDraft StkD_Ser_NonStk WITH (NOLOCK) ON StkD_Ser_NonStk.PurchaseOrderPartRecordId = part.PurchaseOrderPartRecordId AND StkD_Ser_NonStk.isSerialized = 1 AND StkD_Ser_NonStk.IsParent = 0      
-  LEFT JOIN DBO.NonStockInventoryDraft StkD_NonSer_NonStk WITH (NOLOCK) ON StkD_NonSer_NonStk.PurchaseOrderPartRecordId = part.PurchaseOrderPartRecordId AND StkD_NonSer_NonStk.isSerialized = 0 AND StkD_NonSer_NonStk.IsParent = 1  
+  LEFT JOIN DBO.NonStockInventoryDraft StkD_NonSer_NonStk WITH (NOLOCK) ON StkD_NonSer_NonStk.PurchaseOrderPartRecordId = part.PurchaseOrderPartRecordId AND StkD_NonSer_NonStk.isSerialized = 0 AND (StkD_NonSer_NonStk.IsParent = 1  OR ISNULL(StkD_NonSer_NonStk.NonStockInventoryId,0) = 0 OR StkD_NonSer_NonStk.Quantity > @maxQtyLimit )
   WHERE part.PurchaseOrderId = @PurchaseOrderId      
   AND (part.PurchaseOrderPartRecordId NOT IN (SELECT ParentId FROM PurchaseOrderPart WHERE PurchaseOrderId = @PurchaseOrderId AND ParentId IS NOT NULL));      
       

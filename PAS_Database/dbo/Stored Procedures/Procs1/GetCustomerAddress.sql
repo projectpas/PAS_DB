@@ -36,8 +36,9 @@ BEGIN
 				ad.CountryId,
 			    UPPER(ct.countries_name) 'Country',
 				UPPER(c.Name) AS 'SiteName',
-				MergedAddress = (SELECT DBO.ValidatePDFAddress(ad.Line1,ad.Line2,ad.Line3,ad.City,ad.StateOrProvince,ad.PostalCode,ct.countries_name,'','','',NULL))
+				MergedAddress = (SELECT DBO.ValidatePDFAddress(ad.Line1,ad.Line2,ad.Line3,ad.City,ad.StateOrProvince,ad.PostalCode,ct.countries_name,'','','',MS.MasterCompanyCode))
 		  FROM dbo.Customer c WITH (NOLOCK) 
+		 LEFT JOIN dbo.MasterCompany MS WITH (NOLOCK)  ON c.MasterCompanyId = MS.MasterCompanyId
 	     INNER JOIN dbo.Address ad WITH (NOLOCK)  ON c.AddressId = ad.AddressId
 		 LEFT JOIN dbo.Countries ct WITH (NOLOCK)  ON ct.countries_id = ad.CountryId
 		 WHERE c.CustomerId = @CustomerId;

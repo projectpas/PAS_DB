@@ -15,7 +15,7 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    04/21/2023   Amit Ghediya    Created
-     
+    2    01/05/2026   Ayushi Patel    [PN-16030] Added MasterCompanyCode/NULL parameter in ValidatePDFAddress calls.
  EXEC RPT_GetCustomerAddress 93
 
 **************************************************************/ 
@@ -59,8 +59,9 @@ BEGIN
 				ad.CountryId,
 			    UPPER(ct.countries_name) 'Country',
 				UPPER(c.Name) AS 'SiteName',
-				MergedAddress = (SELECT dbo.ValidatePDFAddress(ad.Line1,ad.Line2,ad.Line3,ad.City,ad.StateOrProvince,ad.PostalCode,ct.countries_name,NULL,NULL,NULL,NULL))
+				MergedAddress = (SELECT dbo.ValidatePDFAddress(ad.Line1,ad.Line2,ad.Line3,ad.City,ad.StateOrProvince,ad.PostalCode,ct.countries_name,NULL,NULL,NULL,MS.MasterCompanyCode))
 		  FROM dbo.Customer c WITH (NOLOCK) 
+		 LEFT JOIN dbo.MasterCompany MS WITH (NOLOCK)  ON c.MasterCompanyId = MS.MasterCompanyId
 	     INNER JOIN dbo.Address ad WITH (NOLOCK)  ON c.AddressId = ad.AddressId
 		 LEFT JOIN dbo.Countries ct WITH (NOLOCK)  ON ct.countries_id = ad.CountryId
 		 WHERE c.CustomerId = @CustomerId;

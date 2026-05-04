@@ -35,7 +35,7 @@ BEGIN
 			UPPER(ISNULL(cust.Email, '')) AS CustEmail,
 			UPPER(ISNULL(cust.CustomerPhone, '')) AS CustomerPhone,
 			so.Notes AS SONotes,
-			CustEmailPhone = (SELECT dbo.ValidatePDFAddress(NULL,NULL,NULL,NULL,NULL,NULL,NULL,cust.CustomerPhone,NULL,cust.Email,NULL)),
+			CustEmailPhone = (SELECT dbo.ValidatePDFAddress(NULL,NULL,NULL,NULL,NULL,NULL,NULL,cust.CustomerPhone,NULL,cust.Email,MS.MasterCompanyCode)),
 					
 			UPPER(ISNULL(po.PurchaseOrderNumber, '') + ISNULL('/' + ro.RepairOrderNumber, '')) AS PORONum,
 			UPPER(ISNULL(cont.countries_name, '')) AS CustCountry,
@@ -75,6 +75,7 @@ BEGIN
 					WHERE sos.SalesOrderId = @salesOrderId)
 			, UPPER(CONCAT(emp.FirstName, ' ', emp.LastName)) AS EmployeeName
 		FROM dbo.SalesOrder so WITH(NOLOCK)
+			LEFT JOIN [dbo].[MasterCompany] MS WITH(NOLOCK) ON so.MasterCompanyId = MS.MasterCompanyId
 			LEFT JOIN dbo.SalesOrderPartV1 sop WITH(NOLOCK) ON so.SalesOrderId = sop.SalesOrderId
 			LEFT JOIN dbo.SalesOrderStocklineV1 stk WITH(NOLOCK) ON stk.SalesOrderPartId = sop.SalesOrderPartId
 			LEFT JOIN dbo.SalesOrderPartCost sopc WITH(NOLOCK) ON sopc.SalesOrderPartId = sop.SalesOrderPartId

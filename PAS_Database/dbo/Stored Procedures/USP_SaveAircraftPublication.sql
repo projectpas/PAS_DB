@@ -51,7 +51,7 @@ BEGIN
 				AP.VerifiedBy = T.VerifiedBy,
 				AP.UpdatedBy = T.UpdatedBy,
 				AP.UpdatedDate = GETUTCDATE()
-			FROM AircraftPublication AP
+			FROM [dbo].[AircraftPublication] AP WITH(NOLOCK)
 			INNER JOIN @tbl_AircraftPublicationType T 
 				ON AP.AircraftPublicationId = T.AircraftPublicationId;
 
@@ -140,7 +140,7 @@ BEGIN
 
 			DECLARE @NewId BIGINT = SCOPE_IDENTITY();
 
-			SELECT * FROM AircraftPublication WHERE AircraftPublicationId = @NewId;
+			SELECT * FROM DBO.AircraftPublication WITH(NOLOCK) WHERE AircraftPublicationId = @NewId;
 		END
 	END  
    COMMIT  TRANSACTION 

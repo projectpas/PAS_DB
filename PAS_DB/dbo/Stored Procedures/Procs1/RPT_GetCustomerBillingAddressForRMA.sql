@@ -13,7 +13,7 @@
  ** --   --------     -------		--------------------------------          
     1    04/21/2023   Amit Ghediya    Created
 	2    04-09-2024   Ekta Chandegara  Retrieve address using common function
-	
+	3    01/05/2026   Ayushi Patel     [PN-16030] Added MasterCompanyCode/NULL parameter in ValidatePDFAddress calls.
 
 -- EXEC [dbo].[RPT_GetCustomerBillingAddressForRMA] 5,65,0,1,37
 **************************************************************/ 
@@ -73,8 +73,9 @@ BEGIN
 					--ISNULL(RMAAS.Country, '') AS BillToCountryName,
 					--ISNULL(RMAAS.StateOrProvince, '') AS BillToState,
 					--ISNULL(RMAAS.PostalCode, '') AS BillToPostalCode
-				MergedAddress = (SELECT dbo.ValidatePDFAddress(RMAA.Line1,RMAA.Line2,NULL,RMAA.City,RMAA.StateOrProvince,RMAA.PostalCode,RMAA.Country,NULL,NULL,NULL))
+				MergedAddress = (SELECT dbo.ValidatePDFAddress(RMAA.Line1,RMAA.Line2,NULL,RMAA.City,RMAA.StateOrProvince,RMAA.PostalCode,RMAA.Country,NULL,NULL,NULL,MS.MasterCompanyCode))
 			FROM CustomerRMAHeader CRMA  WITH (NOLOCK)
+				LEFT JOIN [dbo].[MasterCompany] MS WITH(NOLOCK) ON CRMA.MasterCompanyId = MS.MasterCompanyId
 				LEFT JOIN AllAddress RMAA WITH (NOLOCK) ON CRMA.RMAHeaderId = RMAA.ReffranceId AND RMAA.IsShippingAdd = 1 and RMAA.ModuleId = @ModuleId
 				LEFT JOIN AllAddress RMAAS WITH (NOLOCK) ON CRMA.RMAHeaderId = RMAAS.ReffranceId AND RMAAS.IsShippingAdd = 0 and RMAAS.ModuleId = @ModuleId
 			WHERE CRMA.RMAHeaderId = @RMAHeaderId

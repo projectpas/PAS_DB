@@ -10,8 +10,9 @@
  ** PR   Date				Author  				Change Description              
  ** --   --------			-------				--------------------------------            
     1    2025-05-26		  Ayushi Patel				Created
+    2    01/05/2026       Ayushi Patel              [PN-16030] Added MasterCompanyCode/NULL parameter in ValidatePDFAddress calls.
 *************************************************************/ 
-CREATE   PROCEDURE USP_GetVendorAddressById  
+CREATE   PROCEDURE [dbo].[USP_GetVendorAddressById]  
     @VendorId BIGINT  
 AS  
 BEGIN  
@@ -43,9 +44,11 @@ BEGIN
                 c.countries_name, 
                 v.VendorPhone, 
                 '',
-				''
+				'',
+                MS.MasterCompanyCode
             ) AS MergedAddress
         FROM dbo.Vendor v WITH (NOLOCK)  
+        LEFT JOIN [dbo].[MasterCompany] MS WITH(NOLOCK) ON v.MasterCompanyId = MS.MasterCompanyId
         INNER JOIN dbo.Address a WITH (NOLOCK) ON v.AddressId = a.AddressId  
         LEFT JOIN dbo.Countries c WITH (NOLOCK) ON a.CountryId = c.countries_id  
         LEFT JOIN dbo.Currency cur WITH (NOLOCK) ON v.CurrencyId = cur.CurrencyId  

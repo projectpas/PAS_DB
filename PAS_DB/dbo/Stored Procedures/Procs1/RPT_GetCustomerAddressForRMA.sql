@@ -16,7 +16,7 @@
 	3    28-08-2023   Shrey Chandegara  Modify Due to remove (...) From AddCommon and set proper length.
 	4    04-09-2024   Ekta Chandegara  Retrieve address using common function
 	5    05-07-2025   AMIT GHEDIYA		new billing table.
-	
+	6    01/05/2026   Ayushi Patel     [PN-16030] Added MasterCompanyCode/NULL parameter in ValidatePDFAddress calls.
 
 -- EXEC [dbo].[RPT_GetCustomerAddressForRMA] 5,65,0,1,37
 **************************************************************/ 
@@ -67,9 +67,10 @@ BEGIN
 				END  AS 'StatePostalCommon',
 				Country = ca.countries_name,
 
-				MergedAddress = (SELECT dbo.ValidatePDFAddress(billToAddress.Line1,billToAddress.Line2,NULL,billToAddress.City,billToAddress.StateOrProvince,billToAddress.PostalCode,ca.countries_name,NULL,NULL,NULL))
+				MergedAddress = (SELECT dbo.ValidatePDFAddress(billToAddress.Line1,billToAddress.Line2,NULL,billToAddress.City,billToAddress.StateOrProvince,billToAddress.PostalCode,ca.countries_name,NULL,NULL,NULL,MS.MasterCompanyCode))
 
 				FROM [dbo].[BillingInvoicing] bi WITH(NOLOCK)
+				 LEFT JOIN [dbo].[MasterCompany] MS WITH(NOLOCK) ON bi.MasterCompanyId = MS.MasterCompanyId
 				 INNER JOIN [dbo].[BillingInvoicingDetails] BID WITH(NOLOCK) ON BI.[BillingInvoicingId] = BID.[BillingInvoicingId]
 				 INNER JOIN [dbo].[Customer] billToCustomer WITH(NOLOCK) ON BID.SoldToCustomerId=billToCustomer.CustomerId
 				 INNER JOIN [dbo].[CustomerBillingAddress] billToSite WITH(NOLOCK) ON billToSite.CustomerBillingAddressId=BID.SoldToSiteId
@@ -110,9 +111,10 @@ BEGIN
 				END  AS 'StatePostalCommon',
 				Country = ca.countries_name,
 				
-				MergedAddress = (SELECT dbo.ValidatePDFAddress(billToAddress.Line1,billToAddress.Line2,NULL,billToAddress.City,billToAddress.StateOrProvince,billToAddress.PostalCode,ca.countries_name,NULL,NULL,NULL))
+				MergedAddress = (SELECT dbo.ValidatePDFAddress(billToAddress.Line1,billToAddress.Line2,NULL,billToAddress.City,billToAddress.StateOrProvince,billToAddress.PostalCode,ca.countries_name,NULL,NULL,NULL,MS.MasterCompanyCode))
 
 				FROM [dbo].[BillingInvoicing] bi WITH(NOLOCK)
+				LEFT JOIN [dbo].[MasterCompany] MS WITH(NOLOCK) ON bi.MasterCompanyId = MS.MasterCompanyId
 				 INNER JOIN [dbo].[BillingInvoicingDetails] BID WITH(NOLOCK) ON BI.[BillingInvoicingId] = BID.[BillingInvoicingId]
 				 INNER JOIN [dbo].[Customer] billToCustomer WITH(NOLOCK) ON BID.SoldToCustomerId=billToCustomer.CustomerId
 				 INNER JOIN [dbo].[CustomerBillingAddress] billToSite WITH(NOLOCK) ON billToSite.CustomerBillingAddressId=BID.SoldToSiteId

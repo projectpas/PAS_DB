@@ -13,7 +13,7 @@
  **  2   04-13-2026   Amit Ghediya      Added for Quantity (PN-16028)
  **  3   04-15-2026   Amit Ghediya      Added for AircraftTailNumber in stockline selected.
  **  4   04-21-2026   Amit Ghediya      Added for SequenceNum. (PN-16146)
- **  5   04-23-2026   Amit Ghediya      Added item cycle data. (PN-16162)
+ **  5   04-23-2026   Amit Ghediya      Added item cycle data with PartFlightMinutes. (PN-16162)
  ************************************************************************/
 CREATE   PROCEDURE [dbo].[USP_InsertUpdateAircraftInstalledPartDetails]
 (
@@ -43,6 +43,7 @@ CREATE   PROCEDURE [dbo].[USP_InsertUpdateAircraftInstalledPartDetails]
 	@SequenceNum BIGINT,
 
 	@PartFlightHours DECIMAL(18,6) = NULL,
+	@PartFlightMinutes DECIMAL(18,6) = NULL,
 	@PartCycles DECIMAL(18,6) = NULL,
 	@PartLandings DECIMAL(18,6) = NULL,
 	@PartEngineStarts DECIMAL(18,6) = NULL
@@ -103,6 +104,7 @@ BEGIN
 				UpdatedBy = @UpdatedBy,
 				UpdatedDate = GETUTCDATE(),
 				PartFlightHours = @PartFlightHours,
+				PartFlightMinutes = @PartFlightMinutes,
 				PartCycles = @PartCycles,
 				PartLandings = @PartLandings,
 				PartEngineStarts = @PartEngineStarts
@@ -151,6 +153,7 @@ BEGIN
 				IsActive,
 				IsDeleted,
 				PartFlightHours,
+				PartFlightMinutes,
 				PartCycles,
 				PartLandings,
 				PartEngineStarts
@@ -185,6 +188,7 @@ BEGIN
 				1,
 				0,
 				@PartFlightHours,
+				@PartFlightMinutes,
 				@PartCycles,
 				@PartLandings,
 				@PartEngineStarts

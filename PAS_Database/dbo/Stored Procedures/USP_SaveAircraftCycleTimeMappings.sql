@@ -202,6 +202,7 @@ BEGIN
 		UPDATE AIPD
 		SET 
 			AIPD.FlightHours = ISNULL(AIPD.FlightHours, 0) + ISNULL(C.[Hours], 0),
+			AIPD.FlightMinutes = ISNULL(AIPD.FlightMinutes, 0) + ISNULL(C.[Minutes], 0),
 			AIPD.Cycles = ISNULL(AIPD.Cycles, 0) + ISNULL(C.[Cycles], 0),
 			AIPD.UpdatedBy = C.UpdatedBy,
 			AIPD.UpdatedDate = GETUTCDATE(),

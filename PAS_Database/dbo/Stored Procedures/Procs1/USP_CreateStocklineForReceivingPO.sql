@@ -1,4 +1,5 @@
-﻿/*************************************************************               
+﻿
+/*************************************************************               
  ** File:   [USP_CreateStocklineForReceivingPO]              
  ** Author:   Vishal Suthar    
  ** Description: This stored procedure is used to Crate stocklines for receiving PO  
@@ -43,8 +44,8 @@
 	26   26-MAr-2026  Moin Bloch        Modified Fix Issue For Close PO When SO Shipped Partial Stockline Qty
 	27   10-APR-2026  Rajesh Gami		UOM Conversion Changes [PN-15733]
 	28   21-APR-2026  Rajesh Gami		UOM Conversion Issue Resolved [PN-16133]
-  29   27-APR-2026  Priyansh patel 	Updated Aircraftpartdetails with New StocklineId [PN-16177]
-  30   29-Apr-2026  RAJESH GAMI       Insert Stock,NonStock,Asset InventoryId In the DRAFT Table when Order QTY more than 500 (Where IsParent = 1) [PN-16244]
+	29   27-APR-2026  Priyansh patel 	Updated Aircraftpartdetails with New StocklineId [PN-16177]
+	30   04-May-2026  RAJESH GAMI       Insert Stock,NonStock,Asset InventoryId In the DRAFT Table when Order QTY more than 500 (Where IsParent = 1) [PN-16244]
 declare @p2 dbo.POPartsToReceive  insert into @p2 values(2371,4051,2)    
 exec dbo.USP_CreateStocklineForReceivingPO @PurchaseOrderId=2371,@tbl_POPartsToReceive=@p2,@UpdatedBy=N'ADMIN User',@MasterCompanyId=1  
 **************************************************************/
@@ -790,12 +791,12 @@ BEGIN
                             FROM DBO.StocklineDraft dstl
                             WHERE StockLineDraftId = @SelectedStockLineDraftId;
 
-                            --UPDATE DBO.StocklineDraft
-                            --SET StockLineId = 0
-                            --WHERE StockLineDraftId = @SelectedStockLineDraftId
-                            --      AND isSerialized = 0
-                            --      AND IsSameDetailsForAllParts = 1
-                            --      AND IsParent = 1;
+                            UPDATE DBO.StocklineDraft
+                            SET StockLineId = 0
+                            WHERE StockLineDraftId = @SelectedStockLineDraftId
+                                  AND isSerialized = 0
+                                  AND IsSameDetailsForAllParts = 1
+                                  AND IsParent = 1;
                         END
 						ELSE IF(@IsSerializedPart = 0 AND @SelectedIsSameDetailsForAllParts = 0)
 						BEGIN
@@ -2050,12 +2051,12 @@ BEGIN
                             FROM DBO.AssetInventoryDraft dstl
                             WHERE AssetInventoryDraftId = @SelectedStockLineDraftId_Asset;
 
-                            --UPDATE DBO.AssetInventoryDraft
-                            --SET AssetInventoryId = 0
-                            --WHERE AssetInventoryDraftId = @SelectedStockLineDraftId_Asset
-                            --      AND isSerialized = 0
-                            --      AND IsSameDetailsForAllParts = 1
-                            --      AND IsParent = 1;
+                            UPDATE DBO.AssetInventoryDraft
+                            SET AssetInventoryId = 0
+                            WHERE AssetInventoryDraftId = @SelectedStockLineDraftId_Asset
+                                  AND isSerialized = 0
+                                  AND IsSameDetailsForAllParts = 1
+                                  AND IsParent = 1;
                         END
                         ELSE
                         BEGIN

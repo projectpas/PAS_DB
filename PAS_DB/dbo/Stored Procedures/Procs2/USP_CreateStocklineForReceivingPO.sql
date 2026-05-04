@@ -766,12 +766,12 @@ BEGIN
                             FROM DBO.StocklineDraft dstl
                             WHERE StockLineDraftId = @SelectedStockLineDraftId;
 
-                            --UPDATE DBO.StocklineDraft
-                            --SET StockLineId = 0
-                            --WHERE StockLineDraftId = @SelectedStockLineDraftId
-                            --      AND isSerialized = 0
-                            --      AND IsSameDetailsForAllParts = 1
-                            --      AND IsParent = 1;
+                            UPDATE DBO.StocklineDraft
+                            SET StockLineId = 0
+                            WHERE StockLineDraftId = @SelectedStockLineDraftId
+                                  AND isSerialized = 0
+                                  AND IsSameDetailsForAllParts = 1
+                                  AND IsParent = 1;
                         END
 						ELSE IF(@IsSerializedPart = 0 AND @SelectedIsSameDetailsForAllParts = 0)
 						BEGIN
@@ -2025,12 +2025,12 @@ BEGIN
                             FROM DBO.AssetInventoryDraft dstl
                             WHERE AssetInventoryDraftId = @SelectedStockLineDraftId_Asset;
 
-                            --UPDATE DBO.AssetInventoryDraft
-                            --SET AssetInventoryId = 0
-                            --WHERE AssetInventoryDraftId = @SelectedStockLineDraftId_Asset
-                            --      AND isSerialized = 0
-                            --      AND IsSameDetailsForAllParts = 1
-                            --      AND IsParent = 1;
+                            UPDATE DBO.AssetInventoryDraft
+                            SET AssetInventoryId = 0
+                            WHERE AssetInventoryDraftId = @SelectedStockLineDraftId_Asset
+                                  AND isSerialized = 0
+                                  AND IsSameDetailsForAllParts = 1
+                                  AND IsParent = 1;
                         END
                         ELSE
                         BEGIN
@@ -2441,12 +2441,12 @@ BEGIN
 								FROM DBO.NonStockInventoryDraft dstl WITH(NOLOCK)
 								WHERE NonStockInventoryDraftId = @TempNonStockId;
 
-								--UPDATE DBO.NonStockInventoryDraft
-								--SET NonStockInventoryId = 0
-								--WHERE NonStockInventoryDraftId = @TempNonStockId
-								--		AND isSerialized = 0
-								--		AND IsSameDetailsForAllParts = 1
-								--		AND IsParent = 1;
+								UPDATE DBO.NonStockInventoryDraft
+								SET NonStockInventoryId = 0
+								WHERE NonStockInventoryDraftId = @TempNonStockId
+										AND isSerialized = 0
+										AND IsSameDetailsForAllParts = 1
+										AND IsParent = 1;
 							END
 							ELSE
 							BEGIN

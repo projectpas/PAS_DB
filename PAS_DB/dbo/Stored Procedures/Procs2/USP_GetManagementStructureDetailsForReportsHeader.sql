@@ -26,8 +26,8 @@
 	11   31-12-2025   Amit Ghediya			Static email for 'PAR' MasterCompany
 	12   05-01-2025   Amit Ghediya			Remove hide cert in sp (Before hide for all.)
 	13   04-20-2026   Vishal Suthar			Keep lowercase companyname for A2Z company
-	14   20-04-2026   Ayushi Patel			Keep lowercase email for A2Z company
-
+	14   20-04-2026   Ayushi Patel			Keep lowercase email for A2Z company [PN-16030]
+	15   29/04/2026   Ayushi Patel		    Keep CompanyName as it is for A2Z company [PN-16030]
  EXECUTE USP_GetManagementStructureDetailsForReportsHeader 45
 **********************/ 
 CREATE    PROCEDURE [dbo].[USP_GetManagementStructureDetailsForReportsHeader]    
@@ -119,8 +119,8 @@ SET NOCOUNT ON
 				FROM 
 
 				(SELECT DISTINCT TOP 1
-					CompanyName = CASE WHEN ISNULL(@MasterCompanyCodeAll,'') = ISNULL(@A2ZMasterCompanyCode,'') THEN Lower(le.CompanyName) ELSE Upper(le.CompanyName) END,
-					Company = CASE WHEN ISNULL(@MasterCompanyCodeAll,'') = ISNULL(@A2ZMasterCompanyCode,'') THEN Lower(le.CompanyName) ELSE Upper(le.CompanyName) END,
+					CompanyName = CASE WHEN ISNULL(@MasterCompanyCodeAll,'') = ISNULL(@A2ZMasterCompanyCode,'') THEN (le.CompanyName) ELSE Upper(le.CompanyName) END,
+					Company = CASE WHEN ISNULL(@MasterCompanyCodeAll,'') = ISNULL(@A2ZMasterCompanyCode,'') THEN (le.CompanyName) ELSE Upper(le.CompanyName) END,
 					le.CompanyCode,
 					atd.Link,
 					at.ModuleId,

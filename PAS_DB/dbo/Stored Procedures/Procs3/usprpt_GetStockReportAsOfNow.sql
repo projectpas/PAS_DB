@@ -111,6 +111,8 @@ BEGIN
 	DECLARE @NonStockGLAccountId BIGINT = 0; -- MS Module ID 
 	SELECT @NonStockGLAccountId = GLAccountId  FROM [dbo].[GLAccount] WHERE AccountCode = 73300 AND MasterCompanyId = 21
 
+	--SELECT *  FROM [dbo].[GLAccount] WHERE AccountCode = 73300 AND MasterCompanyId = 21
+
 	IF @id6 = 0
 	BEGIN
 		SET @id6 = NULL
@@ -303,7 +305,7 @@ BEGIN
 	  LEFT JOIN [dbo].[TagType] TT WITH (NOLOCK) ON TT.[TagTypeId] = stl.[TagTypeId]
 	  LEFT JOIN [dbo].[ReceivingReconciliationDetails] RRD WITH (NOLOCK) ON RRD.[StocklineId] = stl.[StocklineId]
 	  LEFT JOIN [dbo].[ReceivingReconciliationHeader] RRH WITH (NOLOCK) ON RRH.[ReceivingReconciliationId] = RRD.[ReceivingReconciliationId]  
-     WHERE stl.[MasterCompanyId] = @mastercompanyid 
+     WHERE stl.[MasterCompanyId] = @mastercompanyid AND stl.GLAccountId <> @NonStockGLAccountId
 	 AND stl.[IsParent] = 1 
 	 AND stl.[IsDeleted] = 0
 	 AND CAST(stl.[CreatedDate] AS DATE) <= CASE WHEN ISNULL(@id9, 0) = 1 THEN CAST(GETUTCDATE() AS DATE) ELSE CAST(GETUTCDATE()-1 AS DATE) END

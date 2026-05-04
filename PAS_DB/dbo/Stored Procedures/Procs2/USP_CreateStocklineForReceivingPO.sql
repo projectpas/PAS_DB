@@ -1,4 +1,5 @@
-﻿/*************************************************************               
+﻿
+/*************************************************************               
  ** File:   [USP_CreateStocklineForReceivingPO]              
  ** Author:   Vishal Suthar    
  ** Description: This stored procedure is used to Crate stocklines for receiving PO  
@@ -38,7 +39,7 @@
 	21   04-Dec-2025  Moin Bloch        Modified Fix For Asset Inverntory
 	22   30-Dec-2025  Sahdev Saliya     Update UI for Sales Price Dropdown in Purchase & Sales Information Changes
 	23   26-MAr-2026  Moin Bloch        Modified Fix Issue For Close PO When SO Shipped Partial Stockline Qty
-
+	24   29-Apr-2026  RAJESH GAMI       Insert Stock,NonStock,Asset InventoryId In the DRAFT Table when Order QTY more than 500 (Where IsParent = 1) [PN-16244]
 declare @p2 dbo.POPartsToReceive  
 insert into @p2 values(2371,4051,2)  
   
@@ -68,7 +69,7 @@ BEGIN
 			DECLARE @p2 dbo.PostStocklineBatchType;
 			DECLARE @p3 dbo.PostStocklineBatchType;
 			DECLARE @p4 dbo.PostStocklineBatchType;
-
+			DECLARE @maxQtyLimit INT = 499
             IF OBJECT_ID(N'tempdb..#POPartsToReceive') IS NOT NULL
             BEGIN
                 DROP TABLE #POPartsToReceive
@@ -605,6 +606,7 @@ BEGIN
                         FROM #tmpStocklineDraft WHERE StockLineDraftId = @SelectedStockLineDraftId;
 
                         SELECT @NewStocklineId = SCOPE_IDENTITY();
+										
 
                         INSERT INTO #InsertedStkForLot (StockLineId)
                         SELECT @NewStocklineId
@@ -1006,6 +1008,13 @@ BEGIN
 								EXEC USP_AddUpdatePriceMasterHistory @ItemMasterPurchaseSaleId , @ReceivingPurchaseOrderModule , @MasterCompanyId, @PurchaseOrderId;
                             END
                         END
+
+						/*******Due to not showing PO Part while receive reconciliation (When QTY is more than 500)********/
+						IF(@QtyAdded > @maxQtyLimit)
+						BEGIN
+							  UPDATE dbo.StocklineDraft SET StockLineId = @NewStocklineId, StockLineNumber = @StockLineNumber,	ControlNumber =@ControlNumber 
+									WHERE PurchaseOrderId = @PurchaseOrderId AND PurchaseOrderPartRecordId = @SelectedPurchaseOrderPartRecordId AND IsParent = 1 AND isSerialized = 0
+						END
 
                         EXEC UpdateStocklineColumnsWithId @NewStocklineId;
 
@@ -1899,6 +1908,7 @@ BEGIN
                         SELECT @NewStocklineId_Asset = SCOPE_IDENTITY();
 
 						SET @NewAssetRecordId = (SELECT AssetRecordId FROM AssetInventory WITH (NOLOCK) WHERE AssetInventoryId = @NewStocklineId_Asset)
+					
 
 						IF EXISTS (SELECT TOP 1 1 FROM DBO.AssetCalibration AC WITH (NOLOCK) WHERE AC.AssetRecordId = @ItemMasterId_Asset)
 						BEGIN
@@ -1992,7 +2002,8 @@ BEGIN
 
                                     UPDATE dbo.AssetInventoryDraft
                                     SET AssetInventoryId = @NewStocklineId_Asset,
-                                        StklineNumber = @StockLineNumber_Asset
+                                        StklineNumber = @StockLineNumber_Asset,
+										ControlNumber =@ControlNumber_Asset 
                                     WHERE AssetInventoryDraftId = @CurrentStocklineDraftId_Asset;
 
                                     SET @TotalQtyToTraverse_Asset = @TotalQtyToTraverse_Asset - 1;
@@ -2031,6 +2042,13 @@ BEGIN
                             FROM DBO.AssetInventoryDraft dstl
                             WHERE AssetInventoryDraftId = @SelectedStockLineDraftId_Asset;
                         END
+
+						/*******Due to not showing PO Part while receive reconciliation (When QTY is more than 500)********/
+						IF(@QtyAdded_Asset > @maxQtyLimit)
+						BEGIN
+							  UPDATE  dbo.AssetInventoryDraft SET AssetInventoryId = @NewStocklineId_Asset, InventoryNumber = @StockLineNumber_Asset,	ControlNumber =@ControlNumber_Asset 
+									WHERE PurchaseOrderId = @PurchaseOrderId AND PurchaseOrderPartRecordId = @SelectedPurchaseOrderPartRecordId AND IsParent = 1 AND isSerialized = 0 
+						END
 
                         EXEC UpdateStocklineColumnsWithId @NewStocklineId_Asset;
 						EXEC UpdateAssetInventoryAttributeColumns @NewStocklineId_Asset,@NewAssetRecordId;
@@ -2263,6 +2281,8 @@ BEGIN
                             SET @NewNonStockInventoryId = SCOPE_IDENTITY();
                             EXEC USP_CreateStocklinePartHistory @NewNonStockInventoryId, 1, 0, 0, 0
 
+							
+
 							/* Accounting Entry :- Insert Into Table*/
 							DECLARE @QtyAdded_NonStock INT = 0;
 							DECLARE @PurchaseOrderUnitCostAdded_NonStock DECIMAL(18, 2) = 0;
@@ -2275,6 +2295,7 @@ BEGIN
 							
 							INSERT INTO @p4 VALUES (@NewNonStockInventoryId, @QtyAdded_NonStock, @PurchaseOrderUnitCostAdded_NonStock, 'ReceivingPO', @UpdatedBy, @MasterCompanyId, 'NONSTOCK')
 
+							
                             SELECT @MSId = MasterCompanyId,
                                    @NonStockMasterPartId = MasterPartId,
                                    @NonStockManufacturerId = ManufacturerId,
@@ -2441,6 +2462,13 @@ BEGIN
 									dstl.ReceiverNumber = @ReceiverNumber
 								FROM DBO.NonStockInventoryDraft dstl WITH(NOLOCK)
 								WHERE NonStockInventoryDraftId = @TempNonStockId;
+							END
+
+							/*******Due to not showing PO Part while receive reconciliation (When QTY is more than 500)********/
+							IF(@QtyAdded_NonStock > @maxQtyLimit)
+							BEGIN
+								  UPDATE  dbo.NonStockInventoryDraft SET NonStockInventoryId = @NewNonStockInventoryId, NonStockInventoryNumber = @NonStockInventoryNumber,	ControlNumber =@NonStockControlNumber 
+										WHERE PurchaseOrderId = @PurchaseOrderId AND PurchaseOrderPartRecordId = @SelectedPurchaseOrderPartRecordId AND IsParent = 1 AND isSerialized = 0 
 							END
 
                             SET @StartNonStock = @StartNonStock + 1;

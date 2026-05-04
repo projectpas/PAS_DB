@@ -16,7 +16,7 @@
  ** --   --------     -------				--------------------------------          
     1    06/27/2023   Devendra Shekh			Created
 	2    06-04-2026	  Amit Ghediya				UOM Conversion Changes [PN-15140]
-     
+    3    01/05/2026   Ayushi Patel				[PN-16258]Fixed: Stock type Credit Memo parts not saving due to INNER JOIN failure when VendorRMADetailId = 0 Changed to LEFT JOIN with dual ItemMaster path. 
 declare @p1 dbo.VendorCreditMemoDetailType
 insert into @p1 values(0,1,61,37,5,116,0,0,'2023-06-27 07:41:33.0540000',N'<p>fewfw</p>',1,N'ADMIN User',N'ADMIN User','2023-06-27 10:41:34.3649874','2023-06-27 10:41:34.3649901',1,0)
 
@@ -43,8 +43,10 @@ BEGIN
 				([dbo].[fn_ConvertUOM](ISNULL(SRC.Qty, 0),IM.PurchaseUnitOfMeasure,IM.StockUnitOfMeasure,0,IM.MasterCompanyId)) AS ConvertedQty,
 				([dbo].[fn_ConvertUOM](ISNULL(SRC.UnitCost, 0),IM.PurchaseUnitOfMeasure,IM.StockUnitOfMeasure,1,IM.MasterCompanyId)) AS ConvertedUnitCost
 			FROM @TableVendorCreditMemoDetailType SRC 
-			INNER JOIN DBO.VendorRMADetail RMAD WITH (NOLOCK) ON SRC.VendorRMADetailId = RMAD.VendorRMADetailId
-			INNER JOIN DBO.ItemMaster IM WITH (NOLOCK) ON RMAD.ItemMasterId = IM.ItemMasterId
+			LEFT JOIN DBO.VendorRMADetail RMAD WITH (NOLOCK) ON SRC.VendorRMADetailId = RMAD.VendorRMADetailId
+			LEFT JOIN DBO.ItemMaster IM WITH (NOLOCK) ON RMAD.ItemMasterId = IM.ItemMasterId
+			LEFT JOIN DBO.Stockline SL WITH (NOLOCK) ON SRC.StockLineId = SL.StockLineId AND SRC.VendorRMADetailId = 0
+            LEFT JOIN DBO.ItemMaster IM_STK WITH (NOLOCK) ON SL.ItemMasterId = IM_STK.ItemMasterId
 		) AS SOURCE
 
 		ON TARGET.VendorCreditMemoId = SOURCE.VendorCreditMemoId  

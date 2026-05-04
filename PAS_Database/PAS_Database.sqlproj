@@ -4506,6 +4506,12 @@
     <Build Include="dbo\Tables\MaintenanceClass.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetImportModuleList.sql" />
     <Build Include="dbo\Views\vw_MaintenanceClass.sql" />
+    <Build Include="dbo\Tables\AircraftPublication.sql" />
+    <Build Include="dbo\Stored Procedures\USP_UpdateAircraftPublicationState.sql" />
+    <Build Include="dbo\Stored Procedures\USP_SaveAircraftPublication.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetAircraftPublicationList.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetAircraftPublicationById.sql" />
+    <Build Include="dbo\User Defined Types\AircraftPublicationType.sql" />
     <Build Include="dbo\Tables\AircraftSection.sql" />
     <Build Include="dbo\Views\vw_AircraftSection.sql" />
   </ItemGroup>

@@ -11,7 +11,7 @@
  ** --   --------			-------				--------------------------------            
     1    2025-05-26		  Ayushi Patel				Created
 *************************************************************/ 
-CREATE   PROCEDURE USP_GetVendorAddressById  
+CREATE   PROCEDURE [dbo].[USP_GetVendorAddressById]  
     @VendorId BIGINT  
 AS  
 BEGIN  
@@ -43,7 +43,8 @@ BEGIN
                 c.countries_name, 
                 v.VendorPhone, 
                 '',
-				''
+				'',
+                NULL
             ) AS MergedAddress
         FROM dbo.Vendor v WITH (NOLOCK)  
         INNER JOIN dbo.Address a WITH (NOLOCK) ON v.AddressId = a.AddressId  

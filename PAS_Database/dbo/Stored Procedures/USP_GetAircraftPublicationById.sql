@@ -40,7 +40,7 @@ BEGIN
 			EntryDate,
 			VerifiedBy,
 			MasterCompanyId
-		FROM AircraftPublication WITH (NOLOCK)
+		FROM DBO.AircraftPublication WITH (NOLOCK)
 		WHERE AircraftPublicationId = @AircraftPublicationId
 		  AND ISNULL(IsDeleted,0) = 0;
     END TRY

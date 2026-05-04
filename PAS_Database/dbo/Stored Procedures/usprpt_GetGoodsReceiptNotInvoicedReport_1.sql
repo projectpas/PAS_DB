@@ -9,10 +9,11 @@
   ** S NO   Date            Author				Change Description              
  ** --   --------         -------			--------------------------------            
     1    11-Feb-2025     Devendra Shekh				Created
-    2    20-Feb-2025     Rajesh Gami				Modify as per requirement  (PN-15420)
-	3    23-Feb-2025     Rajesh Gami				Resolved Getting records issue (Parent Jira ID: PN-15420) -> (PN-15547)
+    2    20-Feb-2025     Rajesh Gami				Modify as per requirement
+	3    23-Feb-2025     Rajesh Gami				Resolved Getting records issue
 	4    20-Mar-2026     Vishal Suthar				Fixed total mismatch issue by adding qtyRemaining > 0 condition in "WithTotal" cte
 	5    01-May-2026     Rajesh Gami				Added NonStock and ASSET Inventory [PN-16267]
+	6    04-May-2026     Rajesh Gami				Return PN and PN Desc for Asset and NonStock [PN-16267]
 **************************************************************/
 CREATE       PROCEDURE [dbo].[usprpt_GetGoodsReceiptNotInvoicedReport]     
 @PageNumber INT = 1,    
@@ -113,8 +114,8 @@ BEGIN
 			PO.VendorCode AS 'vendorCode',
 			PO.PurchaseOrderNumber AS 'poRoNum',
 			PO.[Status] AS 'poStatus',
-			STK.PartNumber AS 'pn',
-			STK.PNDescription AS 'pnDescription',
+			COALESCE(STK.PartNumber, NSTK.PartNumber, AI.[Name]) AS 'pn',
+			COALESCE(STK.PNDescription, NSTK.PartDescription, AI.[Description]) AS 'pnDescription',
 			POP.StockType AS 'stockType',
 			--STK.Condition AS 'cond',
 			ISNULL(POP.QuantityOrdered,0) AS 'qtyOrdered',
@@ -125,7 +126,7 @@ BEGIN
 			ISNULL(POP.UnitCost,0) AS 'unitCost',
 			ISNULL(ISNULL(POP.UnitCost,0),0) AS 'extCost',
 			POP.FunctionalCurrency AS 'baseCurrency',
-			STK.CreatedBy AS 'receivedBy',
+			COALESCE(STK.CreatedBy, NSTK.CreatedBy, AI.CreatedBy)  AS 'receivedBy',
 			UPPER(MSL1.Code)  AS 'level1',      
 			UPPER(MSL2.Code)  AS 'level2',     
 			UPPER(MSL3.Code)  AS 'level3',     
@@ -137,7 +138,7 @@ BEGIN
 			UPPER(MSL9.Code)  AS 'level9',     
 			UPPER(MSL10.Code) AS 'level10',  
 			PO.MasterCompanyId,
-			STK.[CreatedDate] CreatedDate,
+			COALESCE(STK.[CreatedDate], NSTK.[CreatedDate], AI.[CreatedDate])AS  CreatedDate,
 			PO.PurchaseOrderId as Id,
 			1 as IsPO,
 			POP.PurchaseOrderPartRecordId PartID
@@ -184,8 +185,8 @@ BEGIN
 			RO.VendorCode AS 'vendorCode',
 			RO.RepairOrderNumber AS 'poRoNum',
 			RO.[Status] AS 'poStatus',
-			STK.PartNumber AS 'pn',
-			STK.PNDescription AS 'pnDescription',
+		    COALESCE(STK.PartNumber,AI.[Name])  AS 'pn',
+			COALESCE(STK.PNDescription,AI.[Description]) AS 'pnDescription',
 			ROP.StockType AS 'stockType',
 			--STK.Condition AS 'cond',
 			ISNULL(ROP.QuantityOrdered,0) AS 'qtyOrdered',
@@ -193,11 +194,11 @@ BEGIN
 			ISNULL(RRCD.InvoicedQty,0) AS 'qtyReconciled',
 			 0 AS 'qtyRemaining',
 			RRCH.ReceivingReconciliationNumber AS 'receivingReconNum',
-			(ISNULL(STK.RepairOrderUnitCost,0) * ISNULL(ROP.QuantityReceived,0))  AS 'unitCost',
+			(COALESCE(ISNULL(STK.RepairOrderUnitCost,0),ISNULL(AI.UnitCost,0))  * ISNULL(ROP.QuantityReceived,0))  AS 'unitCost',
 			ISNULL(ROP.UnitCost,0) AS 'extCost',
 			--0 AS 'extCost',
 			ROP.FunctionalCurrency AS 'baseCurrency',
-			STK.CreatedBy AS 'receivedBy',
+			COALESCE(STK.CreatedBy,AI.CreatedBy)AS 'receivedBy',
 			UPPER(MSL1.Code)  AS 'level1',      
 			UPPER(MSL2.Code)  AS 'level2',     
 			UPPER(MSL3.Code)  AS 'level3',     
@@ -209,7 +210,7 @@ BEGIN
 			UPPER(MSL9.Code)  AS 'level9',     
 			UPPER(MSL10.Code) AS 'level10',  
 			RO.MasterCompanyId,
-			STK.CreatedDate CreatedDate,
+			COALESCE(STK.CreatedDate,AI.CreatedDate)CreatedDate,
 			RO.RepairOrderId as Id,
 			0 as IsPO,
 			ROP.RepairOrderPartRecordId PartID

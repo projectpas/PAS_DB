@@ -18,6 +18,7 @@
 	3	 10/29/2024	  Bhargav Saliya    Added Merge Address
 	4	 06/11/2025	  Vishal Suthar     Modified parameter data type to varchar from bigint
 	5	 27/01/2026	  Rajesh Gami		Get the MasterCompany's CompanyCode instead of LE
+	6    01/05/2026   Ayushi Patel      [PN-16030] Added MasterCompanyCode/NULL parameter in ValidatePDFAddress calls.
  EXECUTE USP_GetManagementStructureDetailsForReportsHeader 49
 **************************************************************/ 
 CREATE    PROCEDURE [dbo].[USP_GetManagementStructureDetailsForSSRSReportsHeader]    
@@ -34,10 +35,16 @@ SET NOCOUNT ON
 		BEGIN TRANSACTION
 			BEGIN
 				DECLARE @ModuleId BIGINT;
+				DECLARE @A2ZMasterCompanyCode VARCHAR(50);
 				SELECT @ModuleId = AttachmentModuleId FROM dbo.AttachmentModule WITH(NOLOCK) WHERE UPPER(Name) = UPPER('LEGALENTITYLOGO')
-
+				SELECT @A2ZMasterCompanyCode = MasterCompanyCode FROM DBO.MasterCompany WITH(NOLOCK) WHERE UPPER(MasterCompanyCode) = UPPER('A2Z');
 				SELECT DISTINCT TOP 1
-					CompanyName = Upper(le.CompanyName),
+					CompanyName = CASE 
+									WHEN UPPER(MS.MasterCompanyCode) = @A2ZMasterCompanyCode
+										THEN le.CompanyName
+									ELSE 
+										UPPER(le.CompanyName)
+								  END,
 					MS.MasterCompanyCode CompanyCode,
 					atd.Link,
 					at.ModuleId,
@@ -49,8 +56,8 @@ SET NOCOUNT ON
 					Country = Upper(co.countries_name),
 					PhoneNumber = Upper(le.PhoneNumber),
 					PhoneExt = Upper(le.PhoneExt),
-					Email = Upper(c.Email),
-					MergedAddress = (SELECT DBO.ValidatePDFAddress(ad.Line1,ad.Line2,NULL,ad.City,ad.StateOrProvince,ad.PostalCode,co.countries_name,le.PhoneNumber,le.PhoneExt,c.Email)),
+					Email = CASE WHEN ISNULL(MS.MasterCompanyCode,'') = ISNULL(@A2ZMasterCompanyCode,'') THEN LOWER(c.Email) ELSE UPPER(c.Email) END,
+					MergedAddress = (SELECT DBO.ValidatePDFAddress(ad.Line1,ad.Line2,NULL,ad.City,ad.StateOrProvince,ad.PostalCode,co.countries_name,le.PhoneNumber,le.PhoneExt,c.Email,MS.MasterCompanyCode)),
 					LogoName = atd.FileName,
 					AttachmentDetailId = atd.AttachmentDetailId,
 					Upper(le.FAALicense) as FAALicense,

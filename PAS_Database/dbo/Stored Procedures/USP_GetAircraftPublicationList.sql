@@ -61,7 +61,7 @@ BEGIN
                 AP.Timeframe,
                 AP.PurposeReasonBackground,
                 AP.EntryDate,
-                AP.VerifiedBy,
+                EMP.FirstName + EMP.LastName AS VerifiedBy,
 				AP.CreatedDate,
 				AP.CreatedBy,
 				AP.UpdatedDate,
@@ -73,6 +73,7 @@ BEGIN
             FROM [dbo].[AircraftPublication] AS AP WITH (NOLOCK)
 			LEFT JOIN dbo.PublicationType PT WITH (NOLOCK) ON AP.PublicationTypeId = PT.PublicationTypeId
 			LEFT JOIN dbo.AircraftSection ASE WITH (NOLOCK) ON AP.AircraftSectionId = ASE.AircraftSectionId
+			LEFT JOIN dbo.Employee EMP WITH (NOLOCK) ON EMP.EmployeeId = AP.VerifiedBy
             WHERE
                 AP.MasterCompanyId = @MasterCompanyId
                 AND (@IsDeleted IS NULL OR AP.IsDeleted = @IsDeleted)
@@ -115,7 +116,7 @@ BEGIN
 				AND (NULLIF(@Timeframe, '') IS NULL OR AP.Timeframe LIKE '%' + @Timeframe + '%')
 				AND (NULLIF(@PurposeReasonBackground, '') IS NULL OR AP.PurposeReasonBackground LIKE '%' + @PurposeReasonBackground + '%')
 				AND (@EntryDate IS NULL OR CAST(AP.EntryDate AS DATE) = CAST(@EntryDate AS DATE))
-				AND (NULLIF(@VerifiedBy, '') IS NULL OR CAST(AP.VerifiedBy AS VARCHAR) LIKE '%' + @VerifiedBy + '%')
+				AND (NULLIF(@VerifiedBy, '') IS NULL OR CAST(EMP.FirstName + EMP.LastName AS VARCHAR) LIKE '%' + @VerifiedBy + '%')
 				AND (@CreatedDate IS NULL OR CAST(AP.CreatedDate AS DATE) = CAST(@CreatedDate AS DATE))
 				AND (NULLIF(@CreatedBy, '') IS NULL OR AP.CreatedBy LIKE '%' + @CreatedBy + '%')
 				AND (@UpdatedDate IS NULL OR CAST(AP.UpdatedDate AS DATE) = CAST(@UpdatedDate AS DATE))

@@ -20,7 +20,7 @@
 	3    12/12/2023   Jevik Raiyani		Case 1 changes for AssetAcquisitionTypeId  
 	4    12/20/2023   Vishal Suthar		Fix issue with fetching child entries
 	5    09/04/2025   Moin Bloch        Fix Issue For QuantityReceived when StockLine Adjusment
- 	6    01/05/2026   Moin Bloch        Fix Issue For more then 500 QTY [PN-16244]
+ 	6    01/05/2026   RAJESH GAMI       Fix Issue For more then 500 QTY [PN-16244]
 EXEC [dbo].[USP_GetReceivingPurchaseOrderEdit_POPart] 2386    
 **************************************************************/        
 CREATE    PROCEDURE [dbo].[USP_GetReceivingPurchaseOrderEdit_POPart]    

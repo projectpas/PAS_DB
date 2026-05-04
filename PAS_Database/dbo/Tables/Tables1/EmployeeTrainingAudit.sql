@@ -29,6 +29,10 @@
     [IsRecurring]             BIT             NULL,
     [DurationHours]           INT             NULL,
     [DurationMinutes]         INT             NULL,
+    [CategoryId]              BIGINT          NULL,
+    [CategoryType]            VARCHAR (50)    NULL,
+    [CurrencyId]              BIGINT          NULL,
+    [CurrencyCode]            VARCHAR (200)   NULL,
     CONSTRAINT [PK_EmployeeTrainingAudit] PRIMARY KEY CLUSTERED ([EmployeeTrainingAuditId] ASC)
 );
 

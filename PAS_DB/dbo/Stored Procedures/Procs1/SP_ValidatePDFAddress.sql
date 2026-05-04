@@ -10,7 +10,7 @@
  ** PR   Date         Author				Change Description            
  ** --   --------     -------				--------------------------------          
     1    17/09/2024   RAJESH GAMI			Created
-
+    2    01/05/2026   AYUSHI PATEL          Email set to lowercase for A2Z company;
 **********************/ 
 CREATE PROCEDURE [dbo].[SP_ValidatePDFAddress]
 (
@@ -24,6 +24,7 @@ CREATE PROCEDURE [dbo].[SP_ValidatePDFAddress]
     @PhoneNumber NVARCHAR(50),
 	@PhoneExt NVARCHAR(50),
     @Email NVARCHAR(255),
+    @MasterCompanyCode  NVARCHAR(50) = NULL,
     @AddressOutput NVARCHAR(MAX) OUTPUT
 )
 AS
@@ -31,6 +32,8 @@ BEGIN
     SET NOCOUNT ON;
 
     DECLARE @address NVARCHAR(MAX);
+    DECLARE @A2ZMasterCompanyCode VARCHAR(50);
+    SELECT @A2ZMasterCompanyCode = MasterCompanyCode FROM DBO.MasterCompany WITH(NOLOCK) WHERE UPPER(MasterCompanyCode) = UPPER('A2Z');
     SET @address = '';
 
     -- Append Address1
@@ -126,9 +129,34 @@ BEGIN
     -- Append Email
     IF (@Email IS NOT NULL AND @Email <> '' AND TRIM(@Email) <> '-')
     BEGIN
-        SET @address =  @address + @Email;
+        IF (UPPER(@MasterCompanyCode) = UPPER(@A2ZMasterCompanyCode))
+        BEGIN
+            SET @address = @address + LOWER(@Email);
+        END
+        ELSE
+        BEGIN
+            SET @address = @address + @Email;
+        END
     END
 
     -- Assign final address to output parameter
-    SET @AddressOutput = UPPER(@address);
+    IF (UPPER(@MasterCompanyCode) = UPPER(@A2ZMasterCompanyCode))
+    BEGIN
+        IF (@Email IS NOT NULL AND @Email <> '' AND TRIM(@Email) <> '-')
+        BEGIN
+            SET @AddressOutput = REPLACE(
+                UPPER(@address),
+                UPPER(@Email),
+                LOWER(@Email)
+            );
+        END
+        ELSE
+        BEGIN
+            SET @AddressOutput = UPPER(@address);
+        END
+    END
+    ELSE
+    BEGIN
+        SET @AddressOutput = UPPER(@address);
+    END
 END;

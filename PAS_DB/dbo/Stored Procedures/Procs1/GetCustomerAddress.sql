@@ -14,6 +14,7 @@
  ** --   --------     -------		--------------------------------          
     1    03/05/2021   Moin Bloch     Created
     2	 16 Sep 2024  Bhargav Saliya address convert into single string value 
+	3    01/05/2026   Ayushi Patel   [PN-16030] Added MasterCompanyCode/NULL parameter in ValidatePDFAddress calls.
  EXEC GetCustomerAddress 11
 
 **************************************************************/ 
@@ -35,8 +36,9 @@ BEGIN
 				ad.CountryId,
 			    UPPER(ct.countries_name) 'Country',
 				UPPER(c.Name) AS 'SiteName',
-				MergedAddress = (SELECT DBO.ValidatePDFAddress(ad.Line1,ad.Line2,ad.Line3,ad.City,ad.StateOrProvince,ad.PostalCode,ct.countries_name,'','',''))
+				MergedAddress = (SELECT DBO.ValidatePDFAddress(ad.Line1,ad.Line2,ad.Line3,ad.City,ad.StateOrProvince,ad.PostalCode,ct.countries_name,'','','',MS.MasterCompanyCode))
 		  FROM dbo.Customer c WITH (NOLOCK) 
+		 LEFT JOIN dbo.MasterCompany MS WITH (NOLOCK)  ON c.MasterCompanyId = MS.MasterCompanyId
 	     INNER JOIN dbo.Address ad WITH (NOLOCK)  ON c.AddressId = ad.AddressId
 		 LEFT JOIN dbo.Countries ct WITH (NOLOCK)  ON ct.countries_id = ad.CountryId
 		 WHERE c.CustomerId = @CustomerId;

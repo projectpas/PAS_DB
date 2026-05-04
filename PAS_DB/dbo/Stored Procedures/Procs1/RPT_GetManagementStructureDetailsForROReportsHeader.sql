@@ -15,7 +15,7 @@
     1    05/25/2023   Amit Ghediya		Created
 	2    24-Oct-2024  Sahdev Saliya		Address convert into single string value
 	3    04/07/2025   Devendra Shekh	added UKCAALicense to select
-
+	4    01/05/2026   Ayushi Patel      [PN-16030] Added MasterCompanyCode/NULL parameter in ValidatePDFAddress calls.
  EXECUTE RPT_GetManagementStructureDetailsForROReportsHeader 1,1,1611
 **************************************************************/ 
 CREATE     PROCEDURE [dbo].[RPT_GetManagementStructureDetailsForROReportsHeader]    
@@ -34,7 +34,10 @@ SET NOCOUNT ON
 		BEGIN TRANSACTION
 			BEGIN
 				DECLARE @ModuleId BIGINT,@IsRequestor BIT, @RequestedBy BIGINT, @Email VARCHAR(100) = NULL;
-
+				DECLARE @A2ZMasterCompanyCode VARCHAR(50);
+				DECLARE @MasterCompanyCodeAll VARCHAR(50);
+				SELECT @A2ZMasterCompanyCode = MasterCompanyCode FROM DBO.MasterCompany WITH(NOLOCK) WHERE UPPER(MasterCompanyCode) = UPPER('A2Z');
+				SELECT @MasterCompanyCodeAll = [MasterCompanyCode] FROM DBO.MasterCompany WITH(NOLOCK) WHERE [MasterCompanyId] = @MasterCompanyId;
 				SELECT @ModuleId = AttachmentModuleId FROM dbo.AttachmentModule WITH(NOLOCK) WHERE UPPER(Name) = UPPER('LEGALENTITYLOGO');
 				SELECT @IsRequestor = IsRequestor  FROM dbo.RepairOrderSettingMaster WITH(NOLOCK) WHERE MasterCompanyId = @MasterCompanyId;
 				
@@ -46,7 +49,7 @@ SET NOCOUNT ON
 				
 				SELECT DISTINCT TOP 1
 				
-					CompanyName = Upper(le.CompanyName),
+					CompanyName = CASE WHEN ISNULL(@MasterCompanyCodeAll,'') = ISNULL(@A2ZMasterCompanyCode,'') THEN (le.CompanyName) ELSE Upper(le.CompanyName) END,
 					le.CompanyCode,
 					atd.Link,
 					at.ModuleId,
@@ -59,7 +62,7 @@ SET NOCOUNT ON
 					Country = Upper(co.countries_name),
 					PhoneNumber = Upper(le.PhoneNumber),
 					PhoneExt = Upper(le.PhoneExt),
-					MergedAddress = (SELECT DBO.ValidatePDFAddress(ad.Line1,ad.Line2,ad.Line3,ad.City,ad.StateOrProvince,ad.PostalCode,co.countries_name,le.PhoneNumber,le.PhoneExt,'')),
+					MergedAddress = (SELECT DBO.ValidatePDFAddress(ad.Line1,ad.Line2,ad.Line3,ad.City,ad.StateOrProvince,ad.PostalCode,co.countries_name,le.PhoneNumber,le.PhoneExt,'',MS.MasterCompanyCode)),
 					LogoName = atd.FileName,
 					AttachmentDetailId = atd.AttachmentDetailId,
 					Email = CASE WHEN @Email IS NULL THEN UPPER(c.Email) ELSE  UPPER(@Email) END,

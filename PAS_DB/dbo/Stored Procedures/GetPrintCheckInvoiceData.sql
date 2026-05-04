@@ -16,8 +16,9 @@
  ** --   --------     -------		--------------------------------          
     1    28-01-2026   AMIT GHEDIYA  Created 
 	2    19-03-2026   AMIT GHEDIYA  Update for MJE
-    
- --EXEC GetPrintCheckInvoiceData 10,1,35
+	3	 14-04-2026	  Ayushi Patel	PN-16004 Added IsPrimary in the condition to prevent the subquery from returning multiple rows
+    4    01/05/2026   Ayushi Patel  [PN-16030] Added MasterCompanyCode/NULL parameter in ValidatePDFAddress calls.
+ --EXEC GetPrintCheckInvoiceData 254,292,1
 **************************************************************/
 CREATE     PROCEDURE [dbo].[GetPrintCheckInvoiceData]
 	@ReadyToPayId BIGINT = NULL,
@@ -30,7 +31,10 @@ BEGIN
 		BEGIN TRY
 		DECLARE @BankGlAccount VARCHAR(100) = NULL,
 				@LEName VARCHAR(100) = NULL;
+		DECLARE @MasterCompanyCode VARCHAR(50);
 
+		SELECT @MasterCompanyCode = MC.MasterCompanyCode FROM dbo.LegalEntity LE WITH(NOLOCK) INNER JOIN dbo.MasterCompany MC WITH(NOLOCK) ON MC.MasterCompanyId = LE.MasterCompanyId WHERE LE.LegalEntityId = @LegalEntityId;
+			
 			SET @BankGlAccount = (SELECT DISTINCT 
 				   CONCAT(G.[AccountCode],' - ',G.[AccountName]) AS GLAccount
 			FROM [dbo].[LegalEntityBankingLockBox] lebl WITH (NOLOCK)
@@ -38,6 +42,7 @@ BEGIN
 			 LEFT JOIN [dbo].[Address] addr WITH(NOLOCK) ON addr.AddressId = lebl.AddressId
 			WHERE lebl.[LegalEntityId] = @LegalEntityId 
 			AND lebl.[AccountTypeId] = 2 
+			AND lebl.IsPrimay = 1
 			AND ISNULL(lebl.IsDeleted,0) = 0 AND ISNULL(lebl.IsActive,0) = 1);
 
 			SET @LEName = (SELECT TOP 1 [Name] FROM [dbo].[LegalEntity] WITH(NOLOCK) WHERE [LegalEntityId] = @LegalEntityId);
@@ -76,7 +81,7 @@ BEGIN
 					@LEName AS 'LEName',
 					VD.[VendorCode] AS 'vendorCode',
 					VD.[VendorName] AS 'vendorName',
-					dbo.ValidatePDFAddress(CASE WHEN AD.Line1 = 'N/A' OR AD.Line1 = 'NA' THEN '' ELSE AD.Line1 END,CASE WHEN AD.Line2 = 'N/A' OR AD.Line2 = 'NA' THEN '' ELSE AD.Line2 END,'',CASE WHEN AD.City = 'N/A' OR AD.City = 'NA' THEN '' ELSE AD.City END,AD.StateOrProvince, AD.PostalCode,'','','','') AS MergedAddress
+					dbo.ValidatePDFAddress(CASE WHEN AD.Line1 = 'N/A' OR AD.Line1 = 'NA' THEN '' ELSE AD.Line1 END,CASE WHEN AD.Line2 = 'N/A' OR AD.Line2 = 'NA' THEN '' ELSE AD.Line2 END,'',CASE WHEN AD.City = 'N/A' OR AD.City = 'NA' THEN '' ELSE AD.City END,AD.StateOrProvince, AD.PostalCode,'','','','',@MasterCompanyCode) AS MergedAddress
 		    FROM [dbo].[VendorReadyToPayDetails] VPD WITH(NOLOCK)
 			LEFT JOIN [dbo].[Vendor] VD WITH(NOLOCK) ON VD.[VendorId] = VPD.[VendorId]
 			LEFT JOIN [dbo].[Address] AD WITH (NOLOCK) ON VD.[AddressId] = AD.[AddressId] 
@@ -90,6 +95,13 @@ BEGIN
 			AND [ReadyToPayDetailsId] = @ReadyToPayDetailsId
 	END TRY    
 		BEGIN CATCH
+		SELECT
+				ERROR_NUMBER() AS ErrorNumber,
+				ERROR_STATE() AS ErrorState,
+				ERROR_SEVERITY() AS ErrorSeverity,
+				ERROR_PROCEDURE() AS ErrorProcedure,
+				ERROR_LINE() AS ErrorLine,
+				ERROR_MESSAGE() AS ErrorMessage;
 				DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name() 
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
               , @AdhocComments     VARCHAR(150)    = 'GetPrintCheckInvoiceData' 

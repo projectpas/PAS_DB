@@ -17,7 +17,7 @@
 	3    19-12-2025   Ayushi Patel		Return NULL License for 'PAR' MasterCompany
 	4    29/04/2026   Ayushi Patel      Return MasterCompanyCode [PN-16030]
 	5    29/04/2026   Ayushi Patel		Keep CompanyName as it is for A2Z company [PN-16030]
- EXECUTE RPT_GetManagementStructureDetailsForPOReportsHeader 1,1,2621
+ EXECUTE RPT_GetManagementStructureDetailsForPOReportsHeader 1,1,8302
 **************************************************************/ 
 CREATE    PROCEDURE [dbo].[RPT_GetManagementStructureDetailsForPOReportsHeader]    
 (    
@@ -55,7 +55,7 @@ SET NOCOUNT ON
 					le.CompanyCode,
 					atd.Link,
 					at.ModuleId,
-					MergedAddress1 = (SELECT dbo.ValidatePDFAddress(ad.Line1,ad.Line2,NULL,ad.City,ad.StateOrProvince,ad.PostalCode,co.countries_name,le.PhoneNumber,NULL,(CASE WHEN @Email IS NULL THEN UPPER(c.Email) ELSE  UPPER(@Email) END))),
+					MergedAddress1 = (SELECT dbo.ValidatePDFAddress(ad.Line1,ad.Line2,NULL,ad.City,ad.StateOrProvince,ad.PostalCode,co.countries_name,le.PhoneNumber,NULL,(CASE WHEN @Email IS NULL THEN UPPER(c.Email) ELSE  UPPER(@Email) END),MS.MasterCompanyCode)),
 					Address1 = Upper(ad.Line1),
 					Address2 = Upper(ad.Line2),
 					City = Upper(ad.City),
@@ -68,14 +68,22 @@ SET NOCOUNT ON
 					AttachmentDetailId = atd.AttachmentDetailId,
 					MS.MasterCompanyCode as MasterCompanyCode,
 					--Email = CASE WHEN @Email IS NULL THEN UPPER(c.Email) ELSE  UPPER(@Email) END,
-					Email = 
+					Email =
 					CASE 
+						WHEN MS.MasterCompanyCode = @A2ZMasterCompanyCode
+							THEN 
+								CASE 
+									WHEN @Email IS NULL THEN LOWER(c.Email)
+									ELSE LOWER(@Email)
+								END
+
 						WHEN MS.MasterCompanyCode = @MasterCompanyCode 
-							 THEN UPPER(c.Email)
+							THEN UPPER(c.Email)
+
 						ELSE 
 							CASE 
 								WHEN @Email IS NULL THEN UPPER(c.Email) 
-								ELSE  UPPER(@Email) 
+								ELSE UPPER(@Email) 
 							END
 					END,
 					--Upper(le.FAALicense) as FAALicense,

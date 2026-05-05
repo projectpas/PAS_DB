@@ -23,6 +23,7 @@
 	8	 13-FEB-2026   BHARGAV SALIYA  		Added [CustReqCertTypeId], [CustReqCertType] fields IN update ReceivingCustomerWork table
 	9	 24-FEB-2026   Moin Bloch 		    Added OutGoingItemMasterId And OutGoingPartNumber PN-15427
 	10	 09-MAR-2026   Moin Bloch 		    Added OutGoingItemMasterId And OutGoingPartNumber ON UPDATE Receiving Customer PN-15681
+	11   05-MAY-2026   Sahdev Saliya        Added CustReqDate Fiield In Update ReceivingCustomerWork Table (PN-16257)
 
  EXECUTE [USP_GetWorkOrderPartsView] 1
 **************************************************************/ 
@@ -924,6 +925,7 @@ BEGIN
 						  ,RC.[CustReqCertType] = TR.[CustReqCertType]
 						  ,RC.[OutGoingItemMasterId] = TR.[OutGoingItemMasterId]
 						  ,RC.[OutGoingPartNumber] = TR.[OutGoingPartNumber]
+						  ,RC.[CustReqDate] = TR.[CustReqDate]
 						 FROM [dbo].[ReceivingCustomerWork] RC WITH(NOLOCK) INNER JOIN #tmprReceiveCustomer TR ON RC.[ReceivingCustomerWorkId] = TR.[ReceivingCustomerWorkId]
 					 WHERE RC.[ReceivingCustomerWorkId] = @ReceivingCustomerWorkId;
 

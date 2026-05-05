@@ -202,6 +202,7 @@ BEGIN
 		UPDATE AIPD
 		SET 
 			AIPD.FlightHours = ISNULL(AIPD.FlightHours, 0) + ISNULL(C.[Hours], 0),
+			AIPD.FlightMinutes = ISNULL(AIPD.FlightMinutes, 0) + ISNULL(C.[Minutes], 0),
 			AIPD.Cycles = ISNULL(AIPD.Cycles, 0) + ISNULL(C.[Cycles], 0),
 			AIPD.UpdatedBy = C.UpdatedBy,
 			AIPD.UpdatedDate = GETUTCDATE(),
@@ -214,21 +215,67 @@ BEGIN
 		---------------------------------------------------
 		IF EXISTS (SELECT 1 FROM dbo.AircraftMaintenanceProgram AMP WITH(NOLOCK) INNER JOIN @CycleTable C ON AMP.AircraftRegistryId = C.RefrenceId)
 		BEGIN
+			--UPDATE AMP
+			--	SET
+			--		AMP.FlightHoursRecordedHours = FLOOR(ISNULL(C.CumulativeHours, 0)),
+			--		AMP.FlightHoursRecordedMinutes = FLOOR(ISNULL(C.CumulativeMinutes, 0)),
+			--		AMP.CyclesRecorded = ISNULL(C.CumulativeCycles, 0),
+			--		AMP.FlightHoursRemainingHours = FLOOR(ISNULL(AMP.FlightHoursLimitHours, 0)) - FLOOR(ISNULL(C.CumulativeHours, 0)),
+			--		AMP.FlightHoursRemainingMinutes = FLOOR(ISNULL(AMP.FlightHoursLimitMinutes, 0)) - FLOOR(ISNULL(C.CumulativeMinutes, 0)),
+			--		AMP.CyclesRemaining = FLOOR(ISNULL(AMP.CyclesLimit, 0)) - ISNULL(C.CumulativeCycles, 0),
+			--		AMP.[TimeRemaining] = FLOOR(ISNULL(AMP.TimeLimit, 0)) - 0,
+			--		AMP.[LandingsRemaining] = FLOOR(ISNULL(AMP.LandingsLimit, 0)) - 0,
+			--		AMP.[EngineStartsRemaining] = FLOOR(ISNULL(AMP.EngineStartsLimit, 0)) - 0,
+			--		AMP.UpdatedBy = C.UpdatedBy,
+			--		AMP.UpdatedDate = GETUTCDATE()
+			--	FROM dbo.AircraftMaintenanceProgram AMP WITH(NOLOCK)
+			--	INNER JOIN @CycleTable C ON AMP.AircraftRegistryId = C.RefrenceId;
 			UPDATE AMP
-				SET
-					AMP.FlightHoursRecordedHours = FLOOR(ISNULL(C.CumulativeHours, 0)),
-					AMP.FlightHoursRecordedMinutes = FLOOR(ISNULL(C.CumulativeMinutes, 0)),
-					AMP.CyclesRecorded = ISNULL(C.CumulativeCycles, 0),
-					AMP.FlightHoursRemainingHours = FLOOR(ISNULL(AMP.FlightHoursLimitHours, 0)) - FLOOR(ISNULL(C.CumulativeHours, 0)),
-					AMP.FlightHoursRemainingMinutes = FLOOR(ISNULL(AMP.FlightHoursLimitMinutes, 0)) - FLOOR(ISNULL(C.CumulativeMinutes, 0)),
-					AMP.CyclesRemaining = FLOOR(ISNULL(AMP.CyclesLimit, 0)) - ISNULL(C.CumulativeCycles, 0),
-					AMP.[TimeRemaining] = FLOOR(ISNULL(AMP.TimeLimit, 0)) - 0,
-					AMP.[LandingsRemaining] = FLOOR(ISNULL(AMP.LandingsLimit, 0)) - 0,
-					AMP.[EngineStartsRemaining] = FLOOR(ISNULL(AMP.EngineStartsLimit, 0)) - 0,
-					AMP.UpdatedBy = C.UpdatedBy,
-					AMP.UpdatedDate = GETUTCDATE()
-				FROM dbo.AircraftMaintenanceProgram AMP WITH(NOLOCK)
-				INNER JOIN @CycleTable C ON AMP.AircraftRegistryId = C.RefrenceId;
+			SET
+				-- Recorded (safe)
+				AMP.FlightHoursRecordedHours = FLOOR(ISNULL(C.CumulativeHours, 0)),
+				AMP.FlightHoursRecordedMinutes = 
+					CASE 
+						WHEN FLOOR(ISNULL(C.CumulativeMinutes, 0)) > 59 THEN 59
+						WHEN FLOOR(ISNULL(C.CumulativeMinutes, 0)) < 0 THEN 0
+						ELSE FLOOR(ISNULL(C.CumulativeMinutes, 0))
+					END,
+
+				AMP.CyclesRecorded = ISNULL(C.CumulativeCycles, 0),
+
+				-- Remaining Hours (handle borrow)
+				AMP.FlightHoursRemainingHours =
+					CASE 
+						WHEN ISNULL(AMP.FlightHoursLimitMinutes,0) < ISNULL(C.CumulativeMinutes,0)
+							THEN FLOOR(ISNULL(AMP.FlightHoursLimitHours,0)) 
+								 - FLOOR(ISNULL(C.CumulativeHours,0)) - 1
+						ELSE FLOOR(ISNULL(AMP.FlightHoursLimitHours,0)) 
+							 - FLOOR(ISNULL(C.CumulativeHours,0))
+					END,
+
+				-- Remaining Minutes (handle borrow)
+				AMP.FlightHoursRemainingMinutes =
+					CASE 
+						WHEN ISNULL(AMP.FlightHoursLimitMinutes,0) < ISNULL(C.CumulativeMinutes,0)
+							THEN (ISNULL(AMP.FlightHoursLimitMinutes,0) + 60) 
+								 - ISNULL(C.CumulativeMinutes,0)
+						ELSE ISNULL(AMP.FlightHoursLimitMinutes,0) 
+							 - ISNULL(C.CumulativeMinutes,0)
+					END,
+
+				AMP.CyclesRemaining =
+					ISNULL(AMP.CyclesLimit, 0) - ISNULL(C.CumulativeCycles, 0),
+
+				AMP.TimeRemaining = ISNULL(AMP.TimeLimit, 0),
+				AMP.LandingsRemaining = ISNULL(AMP.LandingsLimit, 0),
+				AMP.EngineStartsRemaining = ISNULL(AMP.EngineStartsLimit, 0),
+
+				AMP.UpdatedBy = C.UpdatedBy,
+				AMP.UpdatedDate = GETUTCDATE()
+
+			FROM dbo.AircraftMaintenanceProgram AMP
+			INNER JOIN @CycleTable C 
+				ON AMP.AircraftRegistryId = C.RefrenceId;
 		END
 		ELSE
 		BEGIN

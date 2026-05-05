@@ -17,7 +17,8 @@
 ** 5    2026-04-21   Amit Ghediya		Added for SequenceNum (PN-16146)
 ** 6    2026-04-22   Amit Ghediya		Added for ConditionId (PN-16149)
 ** 7    2026-04-23   Priyansh Patel		Added IsCustomerStock from stockline [PN-16174]
-** 8    2026-04-23   Amit Ghediya		Get item data from table with minuts [PN-16162]
+** 8    2026-04-23   Amit Ghediya		Get item data from table [PN-16162]
+** 9    2026-05-04   Abhishek Jirawla	@AircraftRegistryId if nullable get all dataa
 
 *********************/
 CREATE   PROCEDURE [dbo].[USP_GetAircraftInstalledPartDetails]
@@ -29,6 +30,9 @@ CREATE   PROCEDURE [dbo].[USP_GetAircraftInstalledPartDetails]
 	@GlobalFilter VARCHAR(50) = NULL,
 	@SequenceNum VARCHAR(10) = NULL,
 	@PartNumber VARCHAR(100) = NULL,
+	@AircraftRegistryNumber VARCHAR(100) = NULL,
+	@TailNum VARCHAR(100) = NULL,
+	@SerialNum VARCHAR(100) = NULL,
 	@PartDescription VARCHAR(100) = NULL,
 	@AtaChapter VARCHAR(50) = NULL,
 	@Condition VARCHAR(50) = NULL,
@@ -62,6 +66,8 @@ BEGIN
         (
             SELECT
                 AIPD.AircraftInstalledPartDetailsId,
+				ARH.TailNum,
+				ARH.SerialNum,
                 AIPD.ATAChapterId,
 				CONCAT_WS(' - ', IMAM.Level1, IMAM.Level2, IMAM.Level3) AS AtaChapter,
                 AIPD.PartNumber,
@@ -69,7 +75,7 @@ BEGIN
 				AIPD.SequenceNum,
 				AIPD.ItemMasterId,
 				ARH.AircraftRegistryId,
-				ARH.AircraftRegistryNumber,
+				COALESCE(ARH.AircraftRegistryNumber, '') AS AircraftRegistryNumber,
 				STK.Condition,
 				STK.ConditionId,
 				STK.StockLineNumber,
@@ -90,18 +96,13 @@ BEGIN
                 AIPD.[Hours],
                 AIPD.[Minutes],
                 AIPD.PartFlightHours AS 'FlightHours',
-				AIPD.PartFlightMinutes AS 'FlightMinutes',
 				AIPD.FlightHours AS 'RecordFlightHours', 
-				AIPD.FlightMinutes AS 'RecordFlightMinutes', 				
 				CASE WHEN ISNULL(AIPD.PartFlightHours,0) > 0 THEN  ISNULL(AIPD.PartFlightHours,0) - ISNULL(AIPD.FlightHours,0) ELSE  0 END AS 'RemainingFlightHours', 
-				CASE WHEN ISNULL(AIPD.PartFlightMinutes,0) > 0 THEN  ISNULL(AIPD.PartFlightMinutes,0) - ISNULL(AIPD.FlightMinutes,0) ELSE  0 END AS 'RemainingFlightMinutes', 
                 AIPD.PartCycles AS 'Cycles',
 				AIPD.Cycles AS 'RecordCycles',
 				CASE WHEN ISNULL(AIPD.PartCycles,0) > 0 THEN  ISNULL(AIPD.PartCycles,0) - ISNULL(AIPD.Cycles,0) ELSE  0 END AS 'RemainingCycles',
                 AIPD.PartLandings AS Landings,
-				CASE WHEN ISNULL(AIPD.PartLandings,0) > 0 THEN  ISNULL(AIPD.PartLandings,0) - ISNULL(AIPD.Landings,0) ELSE  0 END AS 'RemainingLandings',
                 AIPD.PartEngineStarts AS EngineStarts,
-				CASE WHEN ISNULL(AIPD.PartEngineStarts,0) > 0 THEN  ISNULL(AIPD.PartEngineStarts,0) - ISNULL(AIPD.EngineStarts,0) ELSE  0 END AS 'RemainingEngineStarts',
                 AIPD.Memo,
                 AIPD.CreatedDate,
                 AIPD.UpdatedDate,
@@ -116,13 +117,16 @@ BEGIN
 			CROSS JOIN (
 					SELECT MAX(SequenceNum) AS LastSequence
 					FROM dbo.AircraftInstalledPartDetails WITH (NOLOCK)
-					WHERE AircraftRegistryId = @AircraftRegistryId
+					WHERE (@AircraftRegistryId IS NULL OR @AircraftRegistryId = 0 OR AircraftRegistryId = @AircraftRegistryId)
 					AND MasterCompanyId = @MasterCompanyId
 			) LS
-            WHERE AIPD.AircraftRegistryId = @AircraftRegistryId AND AIPD.MasterCompanyId = @MasterCompanyId
+            WHERE (@AircraftRegistryId IS NULL OR @AircraftRegistryId = 0 OR AIPD.AircraftRegistryId = @AircraftRegistryId) AND AIPD.MasterCompanyId = @MasterCompanyId
         ), ResultCount AS(SELECT COUNT(AircraftInstalledPartDetailsId) AS totalItems FROM Result)
 			SELECT * INTO #TempResult FROM  Result
-			 WHERE ((@GlobalFilter <>'' AND (([PartNumber] LIKE '%' +@GlobalFilter+'%') OR
+			 WHERE ((@GlobalFilter <>'' AND ((AircraftRegistryNumber LIKE '%' +@GlobalFilter+'%') OR
+					(TailNum LIKE '%' +@GlobalFilter+'%') OR
+					(SerialNum LIKE '%' +@GlobalFilter+'%') OR
+					([PartNumber] LIKE '%' +@GlobalFilter+'%') OR
 					(SequenceNum LIKE '%' +@GlobalFilter+'%') OR
 					(PartNumber LIKE '%' +@GlobalFilter+'%') OR
 					(PartDescription LIKE '%' +@GlobalFilter+'%') OR
@@ -138,7 +142,11 @@ BEGIN
 					(LLP LIKE '%' +@GlobalFilter+'%') OR
 					(DateInstalled like '%' + @GlobalFilter + '%') OR
 					(PositionCode LIKE '%' +@GlobalFilter+'%'))) OR
-					(@GlobalFilter='' AND (ISNULL(@PartNumber,'') ='' OR [PartNumber] LIKE '%' + @PartNumber+'%') AND
+					(@GlobalFilter='' AND 
+					(ISNULL(@AircraftRegistryNumber,'') ='' OR [AircraftRegistryNumber] LIKE '%' + @AircraftRegistryNumber+'%') AND
+					(ISNULL(@TailNum,'') ='' OR [TailNum] LIKE '%' + @TailNum+'%') AND
+					(ISNULL(@SerialNum,'') ='' OR [SerialNum] LIKE '%' + @SerialNum+'%') AND
+					(ISNULL(@PartNumber,'') ='' OR [PartNumber] LIKE '%' + @PartNumber+'%') AND
 					(ISNULL(@SequenceNum,'') ='' OR SequenceNum LIKE '%' + @SequenceNum + '%') AND
 					(ISNULL(@PartNumber,'') ='' OR PartNumber LIKE '%' + @PartNumber + '%') AND	
 					(ISNULL(@PartDescription,'') ='' OR PartDescription LIKE '%' + @PartDescription + '%') AND
@@ -160,6 +168,16 @@ BEGIN
    SELECT @Count = COUNT(AircraftInstalledPartDetailsId) FROM #TempResult			
 
 			SELECT *, @Count AS NumberOfItems FROM #TempResult ORDER BY  
+			
+            CASE WHEN @SortOrder =  1 AND @SortColumn = 'AircraftRegistryNumber'      THEN AircraftRegistryNumber      END ASC,
+            CASE WHEN @SortOrder = -1 AND @SortColumn = 'AircraftRegistryNumber'      THEN AircraftRegistryNumber      END DESC,
+            
+			CASE WHEN @SortOrder =  1 AND @SortColumn = 'TailNum'      THEN TailNum      END ASC,
+            CASE WHEN @SortOrder = -1 AND @SortColumn = 'TailNum'      THEN TailNum      END DESC,
+            
+			CASE WHEN @SortOrder =  1 AND @SortColumn = 'SerialNum'      THEN SerialNum      END ASC,
+            CASE WHEN @SortOrder = -1 AND @SortColumn = 'SerialNum'      THEN SerialNum      END DESC,
+
             CASE WHEN @SortOrder =  1 AND @SortColumn = 'ATACHAPTER'      THEN AtaChapter      END ASC,
             CASE WHEN @SortOrder = -1 AND @SortColumn = 'ATACHAPTER'      THEN AtaChapter      END DESC,
 

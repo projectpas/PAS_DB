@@ -28,10 +28,7 @@ BEGIN
     BEGIN TRY
         BEGIN TRANSACTION;
 
-        IF NOT EXISTS (
-            SELECT 1 
-            FROM dbo.Workflow 
-            WHERE WorkflowId = @WorkflowId
+        IF NOT EXISTS ( SELECT 1  FROM dbo.Workflow WITH (NOLOCK)  WHERE WorkflowId = @WorkflowId
         )
         BEGIN
             SET @returnOut = 'Workflow does not exist';
@@ -40,8 +37,7 @@ BEGIN
         END
 
         UPDATE dbo.Workflow
-        SET 
-            IsActive = CASE WHEN ISNULL(IsActive, 0) = 1 THEN 0 ELSE 1 END,
+        SET IsActive = CASE WHEN ISNULL(IsActive, 0) = 1 THEN 0 ELSE 1 END,
             UpdatedBy = @UpdatedBy,
             UpdatedDate = GETDATE()
         WHERE WorkflowId = @WorkflowId;

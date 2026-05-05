@@ -1,18 +1,18 @@
-﻿/*************************************************************           
+﻿/*********************           
  ** File:		       [USP_GetUomSetup]   
  ** Author:		 Nakul Chandigra
  ** Description: This Stored Procedure Is Used To 
  ** Purpose:         
  ** Date:   
- **************************************************************           
+ **********************           
  ** Change History           
- **************************************************************           
+ **********************           
  ** PR   Date				Author				Change Description            
  ** --   -------------		----------------	--------------------------------          
 	1	09-03-2026           Nakul Chandigra     Created (PN-15597)
-
+	2	05-May-2026          Rajesh Gami		 Set @Factor = NULL When it is 0 or blank
 exec dbo.USP_GetUomSetup @PageNumber=1,@PageSize=10,@SortColumn=N'CreatedDate',@SortOrder=-1,@GlobalFilter=N'',@FromUOM=NULL,@ToUOM=NULL,@Factor=0,@CreatedBy=NULL,@UpdatedBy=NULL,@CreatedDate=NULL,@UpdatedDate=NULL,@IsDeleted=0,@MasterCompanyId=1,@EmployeeId=2
-**************************************************************/
+**********************/
 CREATE   PROCEDURE [dbo].[USP_GetUomSetup]
 @PageNumber INT = 1,
 @PageSize INT = 10,
@@ -45,7 +45,10 @@ BEGIN
 	WHERE E.EmployeeId = @EmployeeId; 
 
     SELECT TOP 1 @BaseUtcOffsetSec = BaseUtcOffsetSec FROM dbo.TimeZone WITH(NOLOCK) WHERE [Description] = @CurrntEmpTimeZoneDesc;
-
+		IF(@Factor = '' OR @Factor = 0)
+		BEGIN
+			SET @Factor = NULL;
+		END
         SET @PageNumber = CASE WHEN @PageNumber < 1 THEN 1 ELSE @PageNumber END;
         SET @PageSize   = CASE WHEN @PageSize < 1 THEN 10 ELSE @PageSize END;
         SET @SortOrder  = CASE WHEN @SortOrder IN (1,-1) THEN @SortOrder ELSE -1 END;

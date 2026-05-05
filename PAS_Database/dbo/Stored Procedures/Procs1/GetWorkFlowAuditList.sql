@@ -9,6 +9,7 @@
  ** PR   Date				Author  					Change Description              
  ** --   --------			-------					--------------------------------            
 	2    20-March-2025      Ekta Chandegra          Convert date using dbo.ConvertUTCtoLocal
+	3    05-May-2026        Priyansh Patel          Added Aircraft related fields [PN-16276]
 
 	exec dbo.GetWorkFlowAuditList @wfwoId=5200,@EmployeeId=223
 
@@ -61,7 +62,7 @@ BEGIN
 				(Cast(DBO.ConvertUTCtoLocal(wof.UpdatedDate, @CurrntEmpTimeZoneDesc) AS DATETIME)) UpdatedDate,
                 CostOfReplacement,
                 PercentageOfReplacement,
-                Memo,
+                wof.Memo,
 				PartNumber,
 				CustomerName,
 				FlatRate,
@@ -75,8 +76,20 @@ BEGIN
                 changedPartNumberDescription,
                 ChangedPartNumber,
                 WorkScope,
-				Currency
-			FROM [dbo].[WorkflowAudit] wof WITH(NOLOCK)				
+				Currency,
+                wof.TailNum,
+                wof.SerialNum,
+                wof.AircraftModelId,
+                wof.MakeTypeId,
+                wof.TemplateType,
+                wof.MaintenanceTypeId,
+                ACM.ModelName       AS AircraftModel,
+                ACT.[Description]   AS AircraftMake,
+                MT.[Description]    AS MaintenanceType
+			FROM [dbo].[WorkflowAudit] wof WITH(NOLOCK)	
+			LEFT JOIN [dbo].[AircraftModel]   ACM WITH(NOLOCK) ON ACM.AircraftModelId  = wof.AircraftModelId
+            LEFT JOIN [dbo].[AircraftType]    ACT WITH(NOLOCK) ON ACT.AircraftTypeId   = wof.MakeTypeId
+            LEFT JOIN [dbo].[MaintenanceType] MT  WITH(NOLOCK) ON MT.MaintenanceTypeId = wof.MaintenanceTypeId
 			WHERE wof.WorkflowId = @wfwoId or wof.WFParentId = @wfwoId
 			ORDER BY wof.WorkflowId DESC
 	  END TRY 

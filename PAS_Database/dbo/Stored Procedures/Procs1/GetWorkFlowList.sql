@@ -21,7 +21,7 @@
 	7    18-04-2025   Shrey Chandegara  Modifed due to datefilter issue
 	8    02-08-2025   Sahdev Saliya   Added New Field Verified, VerifiedBy And VerifiedDate
 	9    24-04-2026   Priyansh Patel   Added New Field TemplateType [PN-16166]
-	10   01-05-2026   Priyansh Patel   Workscope join changes [PN-16262]
+	10   04-05-2026   Priyansh Patel   Added New Field TemplateType [PN-16166]
 
 exec GetWorkFlowList @PageSize=20,@PageNumber=1,@SortColumn=NULL,@SortOrder=-1,@StatusID=1,@GlobalFilter=N'',@WorkOrderNumber=NULL,@Version=NULL,@PartNumber=NULL,@PartDescription=NULL,@ManufacturerName=NULL,@Description=NULL,@CustomerName=NULL,@WorkflowCreateDate=NULL,@WorkflowExpirationDate=NULL,@CreatedDate=NULL,@UpdatedDate=NULL,@CreatedBy=NULL,@UpdatedBy=NULL,@IsDeleted=0,@MasterCompanyId=1,@TemplateDescription=NULL,@EmployeeId=223
 **************************************************************/ 
@@ -51,6 +51,11 @@ CREATE   PROCEDURE [dbo].[GetWorkFlowList]
 	@MasterCompanyId int,
 	@TemplateDescription varchar(500)=null,
 	@AcTemplate bit =null,
+	@TailNumber varchar(100)=null,
+	@SerialNum varchar(100)=null,
+	@AircraftModel	varchar(100) = NULL,
+	@AircraftMake	varchar(100) = NULL,
+	@MaintenanceType varchar(100) = NULL,
 	@EmployeeId bigint
 
 AS
@@ -130,6 +135,7 @@ BEGIN
 					cp.partnumber AS  ChangedPartNumber,
 					cp.PartDescription AS ChangedPartNumberDescription,					
 					wf.Memo,
+
 					wf.IsActive,
 					wf.IsDeleted,
 					(Cast(DBO.ConvertUTCtoLocal(wf.CreatedDate, @CurrntEmpTimeZoneDesc) AS DATETIME)) CreatedDate,
@@ -139,6 +145,11 @@ BEGIN
 					CASE WHEN wf.IsVersionIncrease IS NULL THEN CASE WHEN WFParentId IS NULL THEN 0 ELSE 1 END ELSE wf.IsVersionIncrease END AS IsVersionIncrease
 					,im.ManufacturerName ManufacturerName,
 					wf.TemplateType,
+					wf.TailNum AS AcTailNumber,
+					wf.SerialNum AS AcSerialNumber,
+					ACM.ModelName AS AircraftModel,
+					ACT.[Description] AS AircraftMake,
+					MT.[Description] AS MaintenanceType,
 					wf.Verified,
 					wf.VerifiedBy,
 					wf.VerifiedDate
@@ -147,6 +158,9 @@ BEGIN
 					LEFT JOIN dbo.Customer c WITH (NOLOCK) on c.CustomerId =  wf.CustomerId
 					LEFT JOIN dbo.ItemMaster im WITH (NOLOCK) on im.ItemMasterId =  wf.ItemMasterId
 					LEFT JOIN dbo.ItemMaster cp WITH (NOLOCK) on cp.ItemMasterId =  wf.ChangedPartNumberId
+					LEFT JOIN dbo.AircraftModel ACM WITH (NOLOCK) on ACM.AircraftModelId =  wf.AircraftModelId
+					LEFT JOIN dbo.AircraftType ACT WITH (NOLOCK) on ACT.AircraftTypeId =  wf.MakeTypeId
+					LEFT JOIN dbo.MaintenanceType MT WITH (NOLOCK) on MT.MaintenanceTypeId =  wf.MaintenanceTypeId
 					WHERE ((ISNULL(wf.IsDeleted, 0) = @IsDeleted) and (@IsActive is null or wf.IsActive=@IsActive))
 					AND wf.MasterCompanyId=@MasterCompanyId	
 			), ResultCount AS(Select COUNT(WorkflowId) AS totalItems FROM Result)
@@ -173,12 +187,17 @@ BEGIN
 					(IsNull(@CustomerName,'') ='' OR Name like '%' + @CustomerName+'%') and
 					(IsNull(@CreatedBy,'') ='' OR CreatedBy like '%' + @CreatedBy+'%') and
 					(IsNull(@UpdatedBy,'') ='' OR UpdatedBy like '%' + @UpdatedBy+'%') and
-					(@AcTemplate IS NULL OR TemplateType = CASE WHEN @AcTemplate = 1 THEN 2 ELSE 1 END) and
 					(IsNull(@WorkflowCreateDate,'') ='' OR Cast(WorkflowCreateDate as Date)=Cast(@WorkflowCreateDate as date)) and
 					(IsNull(@WorkflowExpirationDate,'') ='' OR Cast(WorkflowExpirationDate as Date)=Cast(@WorkflowExpirationDate as date)) and
 					(IsNull(@CreatedDate,'') ='' OR Cast(CreatedDate as Date)=Cast(@CreatedDate as date)) and
 					--(IsNull(@CreatedDate,'') ='' OR CAST(DBO.ConvertUTCtoLocal(CreatedDate, @CurrntEmpTimeZoneDesc)AS DATE)=CAST(@CreatedDate AS DATE)) and
 					--(IsNull(@UpdatedDate,'') ='' OR CAST(DBO.ConvertUTCtoLocal(UpdatedDate, @CurrntEmpTimeZoneDesc)AS DATE)=CAST(@UpdatedDate AS DATE))
+					(IsNull(@TailNumber,'') ='' OR AcTailNumber like '%' + @TailNumber+'%') and
+					(IsNull(@SerialNum,'') ='' OR AcSerialNumber like '%' + @SerialNum+'%') and
+					(IsNull(@AircraftModel,'') ='' OR AircraftModel like '%' + @AircraftModel+'%') and
+					(IsNull(@AircraftMake,'') ='' OR AircraftMake like '%' + @AircraftMake+'%') and
+					(IsNull(@MaintenanceType,'') ='' OR MaintenanceType like '%' + @MaintenanceType+'%') and
+					(@AcTemplate IS NULL OR TemplateType = CASE WHEN @AcTemplate = 1 THEN 2 ELSE 1 END) and
 					(IsNull(@UpdatedDate,'') ='' OR Cast(UpdatedDate as Date)=Cast(@UpdatedDate as date)))
 					)
 			
@@ -200,8 +219,11 @@ BEGIN
 			CASE WHEN (@SortOrder=1 and @SortColumn='UPDATEDDATE')  THEN UpdatedDate END ASC,
 			CASE WHEN (@SortOrder=1 and @SortColumn='MANUFACTURERNAME')  THEN ManufacturerName END ASC,
 			CASE WHEN (@SortOrder=1 and @SortColumn='TEMPLATEDESCRIPTION')  THEN TemplateDescription END ASC,
-			CASE WHEN (@SortOrder=1 and @SortColumn='ACTEMPLATE')  THEN TemplateType END ASC,
-
+			CASE WHEN (@SortOrder=1 and @SortColumn='ACTAILNUMBER')  THEN AcTailNumber END ASC,
+			CASE WHEN (@SortOrder=1 and @SortColumn='ACSERIALNUMBER')  THEN AcSerialNumber END ASC,
+			CASE WHEN (@SortOrder=1 and @SortColumn='AIRCRAFTMODEL')  THEN AircraftModel END ASC,
+			CASE WHEN (@SortOrder=1 and @SortColumn='AIRCRAFTMAKE')  THEN AircraftMake END ASC,
+			CASE WHEN (@SortOrder=1 and @SortColumn='MAINTENANCETYPE')  THEN MaintenanceType END ASC,
 
 			CASE WHEN (@SortOrder=-1 and @SortColumn='WORKORDERNUMBER')  THEN WorkOrderNumber END DESC,
 			CASE WHEN (@SortOrder=-1 and @SortColumn='VERSION')  THEN Version END DESC,
@@ -217,7 +239,13 @@ BEGIN
 			CASE WHEN (@SortOrder=-1 and @SortColumn='UPDATEDDATE')  THEN UpdatedDate END DESC,
 			CASE WHEN (@SortOrder=-1 and @SortColumn='MANUFACTURERNAME')  THEN ManufacturerName END DESC,
 			CASE WHEN (@SortOrder=-1 and @SortColumn='TEMPLATEDESCRIPTION')  THEN TemplateDescription END DESC,
-			CASE WHEN (@SortOrder=-1 and @SortColumn='ACTEMPLATE')  THEN TemplateType END DESC
+			CASE WHEN (@SortOrder=-1 and @SortColumn='ACTAILNUMBER')  THEN AcTailNumber END DESC,
+			CASE WHEN (@SortOrder=-1 and @SortColumn='ACSERIALNUMBER')  THEN AcSerialNumber END DESC,
+			CASE WHEN (@SortOrder=-1 and @SortColumn='AIRCRAFTMODEL')  THEN AircraftModel END DESC,
+			CASE WHEN (@SortOrder=-1 and @SortColumn='AIRCRAFTMAKE')  THEN AircraftMake END DESC,
+			CASE WHEN (@SortOrder=-1 and @SortColumn='MAINTENANCETYPE')  THEN MaintenanceType END DESC
+
+
 
 
 

@@ -17,6 +17,7 @@
 	3    04/07/2025   Devendra Shekh	added UKCAALicense to select
 	4    29/04/2026   Ayushi Patel      Return MasterCompanyCode [PN-16030]
 	5    29/04/2026   Ayushi Patel		Keep CompanyName as it is for A2Z company [PN-16030]
+	6    01/05/2026   Ayushi Patel		Keep Email in lowercase for A2Z company [PN-16030]
  EXECUTE RPT_GetManagementStructureDetailsForSOReportsHeader 1,1,1058
 **********************/ 
 CREATE     PROCEDURE [dbo].[RPT_GetManagementStructureDetailsForSOReportsHeader]    
@@ -55,13 +56,13 @@ SET NOCOUNT ON
 					PhoneExt = Upper(le.PhoneExt),
 					LogoName = atd.FileName,
 					AttachmentDetailId = atd.AttachmentDetailId,
-					Email = UPPER(c.Email),
+					Email = CASE WHEN ISNULL(@MasterCompanyCodeAll,'') = ISNULL(@A2ZMasterCompanyCode,'') THEN LOWER(c.Email) ELSE UPPER(c.Email) END,
 					Upper(le.FAALicense) as FAALicense,
 					Upper(le.EASALicense) as EASALicense,
 					Upper(le.CAACLicense) as CAACLicense,
 					Upper(le.TCCALicense) as TCCALicense,
 					Upper(ISNULL(le.UKCAALicense, '')) as UKCAALicense,
-					MergedAddress = (SELECT dbo.ValidatePDFAddress(ad.Line1,ad.Line2,NULL,ad.City,ad.StateOrProvince,ad.PostalCode,co.countries_name,le.PhoneNumber,le.PhoneExt,CASE WHEN @Email IS NULL THEN UPPER(c.Email) ELSE  UPPER(@Email) END)),
+					MergedAddress = (SELECT dbo.ValidatePDFAddress(ad.Line1,ad.Line2,NULL,ad.City,ad.StateOrProvince,ad.PostalCode,co.countries_name,le.PhoneNumber,le.PhoneExt,CASE WHEN @Email IS NULL THEN UPPER(c.Email) ELSE  UPPER(@Email) END,MS.MasterCompanyCode)),
 					CompanyLogoPath = MS.companylogo,
 					MS.MasterCompanyCode as MasterCompanyCode
 				FROM dbo.EntityStructureSetup est WITH(NOLOCK)

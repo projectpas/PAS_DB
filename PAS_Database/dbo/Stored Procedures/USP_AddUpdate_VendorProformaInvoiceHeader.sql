@@ -18,7 +18,8 @@
 	2    25-Dec-2024	Rajesh Gami			Added ControlNumber
 	3    02-JAN-2025	Rajesh Gami			Remove Unwanted while update the Proforma
 	3    02-JAN-2025	Bhargav Saliya		Append UTC time in InvoiceDate
-  
+	4    04-May-2026	Bhargav Saliya		Revert UTC date Conversation for InvoiceDate
+	
 **********************/    
 CREATE   PROCEDURE [dbo].[USP_AddUpdate_VendorProformaInvoiceHeader]  
 @VendorProformaInvoiceId BIGINT,  
@@ -59,7 +60,7 @@ BEGIN
 	DECLARE @CurrentNumber AS BIGINT, @CurrentCTRLNumber AS BIGINT;
 	DECLARE @VendorProformaInvoiceNo AS VARCHAR(50),@CTRLNumber AS VARCHAR(50);
 
-	SET @InvoiceDate = DATEADD(SECOND, DATEDIFF(SECOND, CAST(GETUTCDATE() AS DATE), GETUTCDATE()), CAST(@InvoiceDate AS DATETIME2));
+	--SET @InvoiceDate = DATEADD(SECOND, DATEDIFF(SECOND, CAST(GETUTCDATE() AS DATE), GETUTCDATE()), CAST(@InvoiceDate AS DATETIME2));
 	SET @ModuleID = (SELECT [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH (NOLOCK) WHERE [ModuleName] = 'VendorProformaInvoice')
 	SELECT @IdCodeTypeId = [CodeTypeId] FROM [dbo].[CodeTypes] WITH (NOLOCK) WHERE [CodeType] = 'VendorProformaInvoice';
 	SELECT @ControlCodeTypeId = [CodeTypeId] FROM [dbo].[CodeTypes] WITH (NOLOCK) WHERE [CodeType] = 'VendorProformaInvoiceCTRL';

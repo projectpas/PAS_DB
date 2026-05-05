@@ -17,7 +17,7 @@
 ** 5    2026-04-21   Amit Ghediya		Added for SequenceNum (PN-16146)
 ** 6    2026-04-22   Amit Ghediya		Added for ConditionId (PN-16149)
 ** 7    2026-04-23   Priyansh Patel		Added IsCustomerStock from stockline [PN-16174]
-** 8    2026-04-23   Amit Ghediya		Get item data from table [PN-16162]
+** 8    2026-04-23   Amit Ghediya		Get item data from table with minuts [PN-16162]
 
 *********************/
 CREATE   PROCEDURE [dbo].[USP_GetAircraftInstalledPartDetails]
@@ -90,13 +90,18 @@ BEGIN
                 AIPD.[Hours],
                 AIPD.[Minutes],
                 AIPD.PartFlightHours AS 'FlightHours',
+				AIPD.PartFlightMinutes AS 'FlightMinutes',
 				AIPD.FlightHours AS 'RecordFlightHours', 
+				AIPD.FlightMinutes AS 'RecordFlightMinutes', 				
 				CASE WHEN ISNULL(AIPD.PartFlightHours,0) > 0 THEN  ISNULL(AIPD.PartFlightHours,0) - ISNULL(AIPD.FlightHours,0) ELSE  0 END AS 'RemainingFlightHours', 
+				CASE WHEN ISNULL(AIPD.PartFlightMinutes,0) > 0 THEN  ISNULL(AIPD.PartFlightMinutes,0) - ISNULL(AIPD.FlightMinutes,0) ELSE  0 END AS 'RemainingFlightMinutes', 
                 AIPD.PartCycles AS 'Cycles',
 				AIPD.Cycles AS 'RecordCycles',
 				CASE WHEN ISNULL(AIPD.PartCycles,0) > 0 THEN  ISNULL(AIPD.PartCycles,0) - ISNULL(AIPD.Cycles,0) ELSE  0 END AS 'RemainingCycles',
                 AIPD.PartLandings AS Landings,
+				CASE WHEN ISNULL(AIPD.PartLandings,0) > 0 THEN  ISNULL(AIPD.PartLandings,0) - ISNULL(AIPD.Landings,0) ELSE  0 END AS 'RemainingLandings',
                 AIPD.PartEngineStarts AS EngineStarts,
+				CASE WHEN ISNULL(AIPD.PartEngineStarts,0) > 0 THEN  ISNULL(AIPD.PartEngineStarts,0) - ISNULL(AIPD.EngineStarts,0) ELSE  0 END AS 'RemainingEngineStarts',
                 AIPD.Memo,
                 AIPD.CreatedDate,
                 AIPD.UpdatedDate,

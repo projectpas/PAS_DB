@@ -21,7 +21,7 @@
 	5    09/04/2025   Moin Bloch        Fix Issue For QuantityReceived when StockLine Adjusment
 	6    21/04/2026   Priyansh Patel    For Quantity 500 and above change the receive to Stockline PN-15962
     7    27/04/2026   Ayushi Patel      For Quantity 500 and above change the receive to Stockline PN-16201 (For QuantityReceived)
-
+	8    04-May-2026  RAJESH GAMI       QTY more than 500 Handle fro all types inventory, Asset, NonStock and Stock Inventory [PN-16244]
         
 EXEC [dbo].[USP_GetReceivingPurchaseOrderEdit_POPart] 8233    
 **************************************************************/        
@@ -46,10 +46,22 @@ BEGIN
         part.PartDescription,      
         part.QuantityOrdered,      
         --part.QuantityBackOrdered,  
-        CASE 
-        WHEN NOT EXISTS (SELECT 1 FROM dbo.StocklineDraft STKD WITH (NOLOCK) WHERE STKD.StockLineId > 0 AND STKD.PurchaseOrderPartRecordId = part.PurchaseOrderPartRecordId AND STKD.PurchaseOrderId = @PurchaseOrderId AND STKD.isDeleted = 0) AND part.ItemTypeId = 1  AND part.QuantityOrdered >= @MaxStockDraftQuantity THEN ISNULL(part.QuantityBackOrdered, 0)
-        ELSE
-            ((part.QuantityOrdered) - (CASE WHEN part.ItemTypeId = 1 THEN    
+        --CASE 
+        --WHEN NOT EXISTS (SELECT 1 FROM dbo.StocklineDraft STKD WITH (NOLOCK) WHERE STKD.StockLineId > 0 AND STKD.PurchaseOrderPartRecordId = part.PurchaseOrderPartRecordId AND STKD.PurchaseOrderId = @PurchaseOrderId AND STKD.isDeleted = 0) AND part.ItemTypeId = 1  AND part.QuantityOrdered >= @MaxStockDraftQuantity THEN ISNULL(part.QuantityBackOrdered, 0)
+        --ELSE
+        --    ((part.QuantityOrdered) - (CASE WHEN part.ItemTypeId = 1 THEN    
+        --    (SELECT ISNULL(SUM(STKD.[Quantity]),0) FROM [dbo].[StocklineDraft] STKD WITH (NOLOCK) WHERE STKD.[StockLineId] > 0 AND STKD.[PurchaseOrderPartRecordId] = part.[PurchaseOrderPartRecordId] AND STKD.[PurchaseOrderId] = @PurchaseOrderId AND STKD.[isDeleted] = 0)
+	       --     WHEN part.ItemTypeId = 11 THEN
+        --    (SELECT ISNULL(SUM(STKD.[Qty]),0) FROM [dbo].[AssetInventoryDraft] STKD WITH (NOLOCK) WHERE STKD.[AssetInventoryId] > 0 AND STKD.[PurchaseOrderPartRecordId] = part.[PurchaseOrderPartRecordId] AND STKD.[PurchaseOrderId] = @PurchaseOrderId AND STKD.[isDeleted] = 0)
+	       --     WHEN part.ItemTypeId = 2 THEN
+        --    (SELECT ISNULL(SUM(STKD.[Quantity]),0) FROM [dbo].[NonStockInventoryDraft] STKD WITH (NOLOCK) WHERE STKD.[NonStockInventoryId] > 0 AND STKD.[PurchaseOrderPartRecordId] = part.[PurchaseOrderPartRecordId] AND STKD.[PurchaseOrderId] = @PurchaseOrderId AND STKD.[isDeleted] = 0)
+	       --     ELSE
+        --    (SELECT ISNULL(SUM(STKD.[Quantity]),0) FROM [dbo].[StocklineDraft] STKD WITH (NOLOCK) WHERE STKD.[StockLineId] > 0 AND STKD.[PurchaseOrderPartRecordId] = part.[PurchaseOrderPartRecordId] AND STKD.[PurchaseOrderId] = @PurchaseOrderId AND STKD.[isDeleted] = 0)
+        --    END)
+        --    ) 
+        --END AS [QuantityBackOrdered],       
+
+		 ((part.QuantityOrdered) - (CASE WHEN part.ItemTypeId = 1 THEN    
             (SELECT ISNULL(SUM(STKD.[Quantity]),0) FROM [dbo].[StocklineDraft] STKD WITH (NOLOCK) WHERE STKD.[StockLineId] > 0 AND STKD.[PurchaseOrderPartRecordId] = part.[PurchaseOrderPartRecordId] AND STKD.[PurchaseOrderId] = @PurchaseOrderId AND STKD.[isDeleted] = 0)
 	            WHEN part.ItemTypeId = 11 THEN
             (SELECT ISNULL(SUM(STKD.[Qty]),0) FROM [dbo].[AssetInventoryDraft] STKD WITH (NOLOCK) WHERE STKD.[AssetInventoryId] > 0 AND STKD.[PurchaseOrderPartRecordId] = part.[PurchaseOrderPartRecordId] AND STKD.[PurchaseOrderId] = @PurchaseOrderId AND STKD.[isDeleted] = 0)
@@ -58,8 +70,8 @@ BEGIN
 	            ELSE
             (SELECT ISNULL(SUM(STKD.[Quantity]),0) FROM [dbo].[StocklineDraft] STKD WITH (NOLOCK) WHERE STKD.[StockLineId] > 0 AND STKD.[PurchaseOrderPartRecordId] = part.[PurchaseOrderPartRecordId] AND STKD.[PurchaseOrderId] = @PurchaseOrderId AND STKD.[isDeleted] = 0)
             END)
-            ) 
-        END AS [QuantityBackOrdered],        
+            )  AS [QuantityBackOrdered],  
+
 		CASE WHEN part.ItemTypeId = 1 THEN  
          CASE WHEN itm.isSerialized = 1 THEN StkD_Ser.ConditionId ELSE StkD_NonSer.ConditionId END  
     WHEN part.ItemTypeId = 2 THEN    
@@ -94,18 +106,14 @@ BEGIN
   --(SELECT NonStockInventoryId FROM DBO.NonStockInventoryDraft STKD WITH (NOLOCK) WHERE STKD.PurchaseOrderId = @PurchaseOrderId))   
   --ELSE (SELECT SUM(STK.Quantity) FROM DBO.Stockline STK WITH (NOLOCK) WHERE STK.PurchaseOrderPartRecordId = part.PurchaseOrderPartRecordId AND STK.IsParent = 1 AND STK.StockLineId IN       
   --(SELECT StockLineId FROM DBO.StocklineDraft STKD WITH (NOLOCK) WHERE STKD.PurchaseOrderId = @PurchaseOrderId)) END AS QuantityReceived,   
-  CASE 
-    WHEN NOT EXISTS (SELECT 1 FROM dbo.StocklineDraft STKD WITH (NOLOCK) WHERE STKD.StockLineId > 0 AND STKD.PurchaseOrderPartRecordId = part.PurchaseOrderPartRecordId AND STKD.PurchaseOrderId = @PurchaseOrderId AND STKD.isDeleted = 0) AND part.ItemTypeId = 1 AND part.QuantityOrdered >= @MaxStockDraftQuantity THEN ISNULL(part.QuantityReceived, 0) 
-    ELSE
-    CASE WHEN part.ItemTypeId = 1 THEN    
+  CASE WHEN part.ItemTypeId = 1 THEN    
     (SELECT ISNULL(SUM(STKD.[Quantity]),0) FROM [dbo].[StocklineDraft] STKD WITH (NOLOCK) WHERE STKD.[StockLineId] > 0 AND STKD.[PurchaseOrderPartRecordId] = part.[PurchaseOrderPartRecordId] AND STKD.[PurchaseOrderId] = @PurchaseOrderId AND STKD.[isDeleted] = 0)
        WHEN part.ItemTypeId = 11 THEN
 	(SELECT ISNULL(SUM(STKD.[Qty]),0) FROM [dbo].[AssetInventoryDraft] STKD WITH (NOLOCK) WHERE STKD.[AssetInventoryId] > 0 AND STKD.[PurchaseOrderPartRecordId] = part.[PurchaseOrderPartRecordId] AND STKD.[PurchaseOrderId] = @PurchaseOrderId AND STKD.[isDeleted] = 0)
 	   WHEN part.ItemTypeId = 2 THEN
 	(SELECT ISNULL(SUM(STKD.[Quantity]),0) FROM [dbo].[NonStockInventoryDraft] STKD WITH (NOLOCK) WHERE STKD.[NonStockInventoryId] > 0 AND STKD.[PurchaseOrderPartRecordId] = part.[PurchaseOrderPartRecordId] AND STKD.[PurchaseOrderId] = @PurchaseOrderId AND STKD.[isDeleted] = 0)
        ELSE
-	(SELECT ISNULL(SUM(STKD.[Quantity]),0) FROM [dbo].[StocklineDraft] STKD WITH (NOLOCK) WHERE STKD.[StockLineId] > 0 AND STKD.[PurchaseOrderPartRecordId] = part.[PurchaseOrderPartRecordId] AND STKD.[PurchaseOrderId] = @PurchaseOrderId AND STKD.[isDeleted] = 0)
-  END END AS [QuantityReceived],
+	(SELECT ISNULL(SUM(STKD.[Quantity]),0) FROM [dbo].[StocklineDraft] STKD WITH (NOLOCK) WHERE STKD.[StockLineId] > 0 AND STKD.[PurchaseOrderPartRecordId] = part.[PurchaseOrderPartRecordId] AND STKD.[PurchaseOrderId] = @PurchaseOrderId AND STKD.[isDeleted] = 0) END AS [QuantityReceived],
   part.ManufacturerId,      
   part.Manufacturer,      
   part.ManagementStructureId,            
@@ -370,11 +378,11 @@ BEGIN
   LEFT JOIN DBO.Asset asi WITH (NOLOCK) ON part.ItemMasterId = asi.AssetRecordId      
   LEFT JOIN DBO.ItemMasterNonStock nsi WITH (NOLOCK) ON part.ItemMasterId = nsi.MasterPartId      
   LEFT JOIN DBO.StocklineDraft StkD_Ser WITH (NOLOCK) ON StkD_Ser.PurchaseOrderPartRecordId = part.PurchaseOrderPartRecordId AND StkD_Ser.isSerialized = 1 AND StkD_Ser.IsParent = 0      
-  LEFT JOIN DBO.StocklineDraft StkD_NonSer WITH (NOLOCK) ON StkD_NonSer.PurchaseOrderPartRecordId = part.PurchaseOrderPartRecordId AND StkD_NonSer.isSerialized = 0 AND (StkD_NonSer.IsParent = 1 OR StkD_NonSer.StockLineId = 0)
+  LEFT JOIN DBO.StocklineDraft StkD_NonSer WITH (NOLOCK) ON StkD_NonSer.PurchaseOrderPartRecordId = part.PurchaseOrderPartRecordId AND StkD_NonSer.isSerialized = 0 AND (StkD_NonSer.IsParent = 1 OR StkD_NonSer.StockLineId = 0  OR StkD_NonSer.Quantity > @MaxStockDraftQuantity)
   LEFT JOIN DBO.AssetInventoryDraft StkD_Ser_Asset WITH (NOLOCK) ON StkD_Ser_Asset.PurchaseOrderPartRecordId = part.PurchaseOrderPartRecordId AND StkD_Ser_Asset.isSerialized = 1 AND StkD_Ser_Asset.IsParent = 0      
-  LEFT JOIN DBO.AssetInventoryDraft StkD_NonSer_Asset WITH (NOLOCK) ON StkD_NonSer_Asset.PurchaseOrderPartRecordId = part.PurchaseOrderPartRecordId AND StkD_NonSer_Asset.isSerialized = 0 AND StkD_NonSer_Asset.IsParent = 1   
+  LEFT JOIN DBO.AssetInventoryDraft StkD_NonSer_Asset WITH (NOLOCK) ON StkD_NonSer_Asset.PurchaseOrderPartRecordId = part.PurchaseOrderPartRecordId AND StkD_NonSer_Asset.isSerialized = 0 AND (StkD_NonSer_Asset.IsParent = 1 OR ISNULL(StkD_NonSer_Asset.AssetInventoryId,0) = 0 OR StkD_NonSer_Asset.Qty > @MaxStockDraftQuantity)
   LEFT JOIN DBO.NonStockInventoryDraft StkD_Ser_NonStk WITH (NOLOCK) ON StkD_Ser_NonStk.PurchaseOrderPartRecordId = part.PurchaseOrderPartRecordId AND StkD_Ser_NonStk.isSerialized = 1 AND StkD_Ser_NonStk.IsParent = 0      
-  LEFT JOIN DBO.NonStockInventoryDraft StkD_NonSer_NonStk WITH (NOLOCK) ON StkD_NonSer_NonStk.PurchaseOrderPartRecordId = part.PurchaseOrderPartRecordId AND StkD_NonSer_NonStk.isSerialized = 0 AND StkD_NonSer_NonStk.IsParent = 1  
+  LEFT JOIN DBO.NonStockInventoryDraft StkD_NonSer_NonStk WITH (NOLOCK) ON StkD_NonSer_NonStk.PurchaseOrderPartRecordId = part.PurchaseOrderPartRecordId AND StkD_NonSer_NonStk.isSerialized = 0 AND (StkD_NonSer_NonStk.IsParent = 1  OR ISNULL(StkD_NonSer_NonStk.NonStockInventoryId,0) = 0 OR StkD_NonSer_NonStk.Quantity > @MaxStockDraftQuantity )
   WHERE part.PurchaseOrderId = @PurchaseOrderId      
   AND (part.PurchaseOrderPartRecordId NOT IN (SELECT ParentId FROM PurchaseOrderPart WHERE PurchaseOrderId = @PurchaseOrderId AND ParentId IS NOT NULL));      
       

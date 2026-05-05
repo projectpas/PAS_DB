@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿
+/*************************************************************           
  ** File:        [dbo].[USP_Addupdateexchangeloan]            
  ** Author:      Nakul Chandigra
  ** Description: This stored procedure is used to Add And Update exchangeloan
@@ -11,8 +12,9 @@
  ** PR   Date			Author             Change Description            
  ** --   ----------  -----------------  -----------------------------         
  **  1   17-09-2025   Nakul Chandigra    Created 
+ **  2   01-May-2025   Nakul Chandigra   Added ExchangeOutrightPrice While Update [PN-16021 ]
  ************************************************************************/
-CREATE   PROCEDURE [dbo].[USP_Addupdateexchangeloan] 
+CREATE     PROCEDURE [dbo].[USP_Addupdateexchangeloan] 
 	@tbl_AddexchangeloanType dbo.AddexchangeloanType READONLY 
 AS
 BEGIN
@@ -55,6 +57,7 @@ BEGIN
 			,T.IsActive					=	S.IsActive
 			,T.IsDeleted				=	S.IsDeleted
 			,T.ExchangeOverhaulCost		=	S.ExchangeOverhaulCost
+			,T.ExchangeOutrightPrice    = S.ExchangeOutrightPrice
 			,T.EFcogs					=	S.EFcogs
 			,T.OPcogs					=	S.OPcogs
 			,T.EFcogsamount				=	S.EFcogsamount

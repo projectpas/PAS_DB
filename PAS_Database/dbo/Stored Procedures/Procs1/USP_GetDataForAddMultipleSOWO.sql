@@ -21,6 +21,7 @@
 	7	 12/05/2024	  Ayushi Patel			Added missing brackets in where clouse 
 	8	 12/17/2024	  Ayushi Patel			Added cancel so condition in where clouse
 	9    12/30/2025   Sahdev Saliya         Implemented filtering in all spaces using the search text.
+	10   01/05/2026   Bhargav               get ItemMasterId.
 
  EXECUTE USP_GetDataForAddMultipleSOWO 'loadwo',102539,7,2688,14760     
 **************************************************************/         
@@ -51,7 +52,8 @@ BEGIN
 				WOP.PromisedDate AS 'PromisedDate',      
 				WOP.EstimatedCompletionDate AS 'EstimatedCompletionDate',      
 				WOP.EstimatedShipDate AS 'EstimatedShipDate',      
-				@viewType AS 'ViewType'      
+				@viewType AS 'ViewType'  ,
+				IM.ItemMasterId
 			FROM [WorkOrderMaterials] WOM WITH (NOLOCK)       
 			LEFT JOIN [DBO].[WorkOrder] WO WITH (NOLOCK) ON WO.WorkOrderId = WOM.WorkOrderId      
 			LEFT JOIN [DBO].[WorkOrderMaterialsKit] WOMK WITH (NOLOCK) ON WOMK.ItemMasterId = @ItemMasterId AND WOMK.ConditionCodeId = @ConditionId AND WOMK.WorkOrderId = WOM.WorkOrderId  AND WOMK.WorkFlowWorkOrderId = WOM.WorkFlowWorkOrderId       
@@ -62,7 +64,7 @@ BEGIN
 			LEFT JOIN [DBO].[Condition] C WITH (NOLOCK) ON C.ConditionId = @ConditionId      
 			WHERE (WOM.ItemMasterId = @ItemMasterId AND WOM.ConditionCodeId = @ConditionId)
 			OR ((WOM.ItemMasterId = Nha.MappingItemMasterId OR WOM.ItemMasterId = MainNha.ItemMasterId) AND WOM.ConditionCodeId = @ConditionId) AND (@SearchText is null or WO.WorkOrderNum LIKE '%'+@SearchText+'%')
-			GROUP BY WO.WorkOrderNum, WOP.PromisedDate, WOP.EstimatedCompletionDate, WOP.EstimatedShipDate, IM.partnumber, C.code, WO.WorkOrderId
+			GROUP BY WO.WorkOrderNum, WOP.PromisedDate, WOP.EstimatedCompletionDate, WOP.EstimatedShipDate, IM.partnumber, C.code, WO.WorkOrderId,IM.ItemMasterId
 			ORDER BY WO.WorkOrderId DESC      
         END      
 		ELSE IF(@viewType = 'soview')      
@@ -78,7 +80,8 @@ BEGIN
 				SOP.PromisedDate AS 'PromisedDate',      
 				SOP.CustomerRequestDate AS 'EstimatedCompletionDate',      
 				SOP.EstimatedShipDate 'EstimatedShipDate',      
-				@viewType AS 'ViewType'      
+				@viewType AS 'ViewType',
+				IM.ItemMasterId
 			FROM [SalesOrderPartV1] SOP WITH(NOLOCK)      
 			LEFT JOIN [DBO].[SalesOrderReserveParts] SOR WITH (NOLOCK) ON SOR.SalesOrderPartId = SOP.SalesOrderPartId
 			LEFT JOIN [DBO].[Nha_Tla_Alt_Equ_ItemMapping] Nha WITH (NOLOCK) ON Nha.ItemMasterId = @ItemMasterId AND (Nha.MappingType = 1 OR Nha.MappingType = 2)
@@ -89,7 +92,7 @@ BEGIN
 			WHERE (SOP.ItemMasterId = @ItemMasterId AND SOP.ConditionId = @ConditionId 
 			OR ((SOP.ItemMasterId = Nha.MappingItemMasterId OR SOP.ItemMasterId = MainNha.ItemMasterId) AND SOP.ConditionId = @ConditionId))
 			AND SO.StatusId != @CloseSOStatusId AND SO.StatusId != @CancelSOStatusId AND (@SearchText is null or SO.SalesOrderNumber LIKE '%'+@SearchText+'%')
-			GROUP BY SOP.QtyRequested,SOR.QtyToReserve,SO.SalesOrderNumber,SO.SalesOrderId,  SOP.PromisedDate,SOP.CustomerRequestDate,SOP.EstimatedShipDate,IM.partnumber,C.Code      
+			GROUP BY SOP.QtyRequested,SOR.QtyToReserve,SO.SalesOrderNumber,SO.SalesOrderId,  SOP.PromisedDate,SOP.CustomerRequestDate,SOP.EstimatedShipDate,IM.partnumber,C.Code,IM.ItemMasterId      
 			ORDER BY SO.SalesOrderId DESC      
 		END      
 		ELSE IF(@viewType = 'loadwo')      
@@ -103,7 +106,8 @@ BEGIN
 				WOP.PromisedDate AS 'PromisedDate',      
 				WOP.EstimatedCompletionDate AS 'EstimatedCompletionDate',      
 				WOP.EstimatedShipDate AS 'EstimatedShipDate',      
-				@viewType AS 'ViewType'      
+				@viewType AS 'ViewType',
+				IM.ItemMasterId
 			FROM [DBO].[WorkOrder] WO WITH (NOLOCK)       
 			LEFT JOIN [WorkOrderMaterials] WOM WITH (NOLOCK) ON WO.WorkOrderId = WOM.WorkOrderId      
 			LEFT JOIN [DBO].[WorkOrderMaterialsKit] WOMK WITH (NOLOCK) ON WOMK.WorkOrderId = WO.WorkOrderId --AND WOMK.WorkFlowWorkOrderId = WOM.WorkFlowWorkOrderId        
@@ -119,7 +123,7 @@ BEGIN
 			GROUP BY WO.WorkOrderNum,      
 					WOP.PromisedDate,      
 					WOP.EstimatedCompletionDate,      
-					WOP.EstimatedShipDate,IM.partnumber,C.code,WO.WorkOrderId      
+					WOP.EstimatedShipDate,IM.partnumber,C.code,WO.WorkOrderId,IM.ItemMasterId      
 		   ORDER BY WO.WorkOrderId DESC;
 		END      
 		ELSE IF(@viewType = 'loadso')      
@@ -135,7 +139,8 @@ BEGIN
                 SOP.PromisedDate AS 'PromisedDate',      
                 SOP.CustomerRequestDate AS 'EstimatedCompletionDate',      
                 SOP.EstimatedShipDate 'EstimatedShipDate',      
-				@viewType AS 'ViewType'      
+				@viewType AS 'ViewType',
+				IM.ItemMasterId
 			FROM [SalesOrderPartV1] SOP WITH(NOLOCK)      
             LEFT JOIN [DBO].[SalesOrderReserveParts] SOR WITH (NOLOCK) ON SOR.SalesOrderPartId = SOP.SalesOrderPartId      
             LEFT JOIN [DBO].[SalesOrder] SO WITH (NOLOCK) ON SO.SalesOrderId = SOP.SalesOrderId      
@@ -146,7 +151,7 @@ BEGIN
 			WHERE (SOP.ItemMasterId = @ItemMasterId AND SOP.ConditionId = @ConditionId OR
 			((SOP.ItemMasterId = Nha.MappingItemMasterId OR SOP.ItemMasterId = MainNha.ItemMasterId) AND SOP.ConditionId = @ConditionId))
 			AND SO.StatusId != @CloseSOStatusId  AND SO.StatusId != @CancelSOStatusId AND (@SearchText is null or SO.SalesOrderNumber LIKE '%'+@SearchText+'%')
-			GROUP BY SOP.QtyRequested,SOR.QtyToReserve,SO.SalesOrderNumber,SO.SalesOrderId,  SOP.PromisedDate,SOP.CustomerRequestDate,SOP.EstimatedShipDate,IM.partnumber,C.Code      
+			GROUP BY SOP.QtyRequested,SOR.QtyToReserve,SO.SalesOrderNumber,SO.SalesOrderId,  SOP.PromisedDate,SOP.CustomerRequestDate,SOP.EstimatedShipDate,IM.partnumber,C.Code,IM.ItemMasterId      
 			ORDER BY SO.SalesOrderId DESC;
 		END      
 		ELSE IF(@viewType = 'loadro')      
@@ -160,7 +165,8 @@ BEGIN
                 NULL AS 'PromisedDate',      
                 NULL AS 'EstimatedCompletionDate',      
                 NULL 'EstimatedShipDate',      
-				@viewType AS 'ViewType'      
+				@viewType AS 'ViewType',
+				IM.ItemMasterId
 			FROM [RepairOrderPart] ROP WITH(NOLOCK)       
             LEFT JOIN [DBO].[RepairOrder] RO WITH (NOLOCK) ON RO.RepairOrderId = ROP.RepairOrderId       
 			LEFT JOIN [DBO].[ItemMaster] IM WITH (NOLOCK) ON IM.ItemMasterId = @ItemMasterId      
@@ -179,7 +185,8 @@ BEGIN
 				NULL AS 'PromisedDate',      
 				NULL AS 'EstimatedCompletionDate',      
 				NULL 'EstimatedShipDate',      
-				@viewType AS 'ViewType'      
+				@viewType AS 'ViewType',
+				IM.ItemMasterId
             FROM [ExchangeSalesOrderPart] ESOP WITH(NOLOCK)           
             LEFT JOIN [DBO].[ExchangeSalesOrder] ESO WITH (NOLOCK) ON ESO.ExchangeSalesOrderId = ESOP.ExchangeSalesOrderId      
 			LEFT JOIN [DBO].[Stockline] SL WITH (NOLOCK) ON SL.StockLineId = ESOP.StockLineId
@@ -189,7 +196,7 @@ BEGIN
 			LEFT JOIN [DBO].[Nha_Tla_Alt_Equ_ItemMapping] MainNha WITH (NOLOCK) ON MainNha.MappingItemMasterId = @ItemMasterId AND (MainNha.MappingType = 1 OR MainNha.MappingType = 2)
             WHERE (ESOP.ItemMasterId = @ItemMasterId AND ESOP.ConditionId = @ConditionId
 			OR ((ESOP.ItemMasterId = Nha.MappingItemMasterId OR ESOP.ItemMasterId = MainNha.ItemMasterId) AND ESOP.ConditionId = @ConditionId)) AND (@SearchText is null or ESO.ExchangeSalesOrderNumber LIKE '%'+@SearchText+'%')
-			GROUP BY IM.partnumber,C.Code,ESO.ExchangeSalesOrderNumber,ESO.ExchangeSalesOrderId,ESOP.QtyRequested,SL.QuantityReserved
+			GROUP BY IM.partnumber,C.Code,ESO.ExchangeSalesOrderNumber,ESO.ExchangeSalesOrderId,ESOP.QtyRequested,SL.QuantityReserved,IM.ItemMasterId
 			ORDER BY ESO.ExchangeSalesOrderId DESC;
 		END      
 		ELSE IF(@viewType = 'loadswo')      
@@ -204,7 +211,8 @@ BEGIN
 				NULL AS 'PromisedDate',      
 				NULL AS 'EstimatedCompletionDate',      
 				NULL 'EstimatedShipDate',      
-				@viewType AS 'ViewType'      
+				@viewType AS 'ViewType',
+				IM.ItemMasterId
             FROM [SubWorkOrder] SWO  WITH(NOLOCK)      
             LEFT JOIN [DBO]. [SubWorkOrderMaterials] SWM WITH (NOLOCK) ON SWO.SubWorkOrderId = SWM.SubWorkOrderId      
             LEFT JOIN [DBO]. [SubWorkOrderMaterialsKit] SWMK WITH (NOLOCK) ON SWO.SubWorkOrderId = SWMK.SubWorkOrderId      
@@ -216,7 +224,7 @@ BEGIN
 			OR ((SWM.ItemMasterId = Nha.MappingItemMasterId OR SWM.ItemMasterId = MainNha.ItemMasterId) AND SWM.ConditionCodeId = @ConditionId)
 			OR ((SWMK.ItemMasterId = Nha.MappingItemMasterId OR SWMK.ItemMasterId = MainNha.ItemMasterId) AND SWMK.ConditionCodeId = @ConditionId)
 			OR (SWMK.ItemMasterId = @ItemMasterId AND SWMK.ConditionCodeId = @ConditionId)) AND  (@SearchText is null or SWO.SubWorkOrderNo LIKE '%'+@SearchText+'%')
-			GROUP BY SWO.SubWorkOrderNo, IM.partnumber,C.code,SWO.SubWorkOrderId
+			GROUP BY SWO.SubWorkOrderNo, IM.partnumber,C.code,SWO.SubWorkOrderId,IM.ItemMasterId
 			ORDER BY SWO.SubWorkOrderId DESC;
 		END
 		ELSE       

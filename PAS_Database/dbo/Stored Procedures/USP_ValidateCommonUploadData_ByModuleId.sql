@@ -52,7 +52,8 @@
 	41   09-APR-2026		Ayushi Patel			PN-15988 Excluded StocklineModule from restricting Decimal number
 	42   13-APR-2026		Nakul Chandigra			added validation for TrainingName And PositionCode setup screen Upload (PN-15980)
 	43   17-APR-2026		Nakul Chandigra			added validation for MaintenanceType  setup screen Upload (PN-16108)
-	43   29-APR-2026		Nakul Chandigra			added validation for MaintenanceClass  setup screen Upload (PN-16200)
+	44   29-APR-2026		Nakul Chandigra			added validation for MaintenanceClass  setup screen Upload (PN-16200)
+	45   04-MAY-2026		Nakul Chandigra			added validation for AircraftSection  setup screen Upload (PN-16270)
 
 declare @p4 dbo.UploadModuleDataTableType
 insert into @p4 values(4,N'VICTOR ADMAS',1,N'{
@@ -227,6 +228,7 @@ BEGIN
 		DECLARE @PositionCodeModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'PositionCode');
 		DECLARE @MaintenanceTypeModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'MaintenanceType');
 		DECLARE @MaintenanceClassModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'Maintenanceclass');
+		DECLARE @AircraftSectionModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'AircraftSection');
 
 		DECLARE @DropdownListTable VARCHAR(100) = NULL, 
 		@DropdownListId VARCHAR(100) = NULL, 
@@ -820,6 +822,11 @@ BEGIN
 													 AND ISNULL(TMP.FieldValue, '') <> ''
 													 AND LEN(TMP.FieldValue) > 256
 												THEN '‘Name’ exceeds 256 characters limit.'
+												WHEN @ModuleId = @AircraftSectionModule  
+													 AND IMF.FieldName = 'Section'  
+													 AND ISNULL(TMP.FieldValue, '') <> ''
+													 AND LEN(TMP.FieldValue) > 256
+												THEN '‘Section’ exceeds 256 characters limit.'
 												
 										ELSE ' '
 										END,
@@ -1134,7 +1141,8 @@ BEGIN
 															THEN 'Entered Maintenance Type Already Exists!'	
 														WHEN @ModuleId = @MaintenanceClassModule AND @ChekDuplticateRef1 = 'Name'
 															THEN 'Entered Name Already Exists!'	
-															
+														WHEN @ModuleId = @AircraftSectionModule AND @ChekDuplticateRef1 = 'Section'
+															THEN 'Entered Section Already Exists!'	
 														ELSE '' END
 						WHERE ImportModuleFieldMasterId = @CurrentRow;
 					END

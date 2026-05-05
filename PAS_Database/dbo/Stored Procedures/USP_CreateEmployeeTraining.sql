@@ -14,6 +14,7 @@
  ** --   --------         -------          --------------------------------            
     1    28-08-2025    Sahdev Saliya       Created  
 	2    14-APR-2026   Sahdev Saliya       Added TrainingName, ProviderId, ProviderType, IsRecurring, DurationHours, DurationMinutes (PN-15932)
+	3    04-May-2026   Sahdev Saliya       Added CategoryId, CategoryType, CurrencyId (PN-16203)
 
 	exec [USP_CreateEmployeeTraining] 
 **************************************************************/ 
@@ -44,7 +45,10 @@ CREATE   PROCEDURE [dbo].[USP_CreateEmployeeTraining]
 	@ProviderType VARCHAR(50) = NULL,
 	@IsRecurring BIT = NULL,
 	@DurationHours VARCHAR(200) = NULL,
-	@DurationMinutes VARCHAR(200) = NULL
+	@DurationMinutes VARCHAR(200) = NULL,
+	@CategoryId BIGINT= NULL,
+	@CategoryType VARCHAR(50) = NULL,
+	@CurrencyId BIGINT = NULL
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -79,7 +83,10 @@ BEGIN
 			ProviderType,
 		    IsRecurring,  
 			DurationHours,
-			DurationMinutes)
+			DurationMinutes,
+			CategoryId,
+			CategoryType,
+			CurrencyId)
         VALUES
         (   @EmployeeId ,
 			@AircraftManufacturerId, 
@@ -107,7 +114,10 @@ BEGIN
 			@ProviderType,
 			@IsRecurring,
 			@DurationHours,
-			@DurationMinutes);
+			@DurationMinutes,
+		    @CategoryId,
+			@CategoryType,
+			@CurrencyId);
 		
 		IF (LEN(@AircraftModelIds) > 0)
         BEGIN

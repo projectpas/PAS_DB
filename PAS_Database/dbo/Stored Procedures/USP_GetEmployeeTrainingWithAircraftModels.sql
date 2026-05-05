@@ -14,6 +14,7 @@
     1    04-15-2025    Bhargav Saliya		Created  
 	2    14-APR-2026   Sahdev Saliya        Added TrainingName, ProviderId, ProviderType, IsRecurring, DurationHours, DurationMinutes (PN-15932)
 	3    16-APR-2026   Sahdev Saliya        Added TrainingNameId
+	4    04-May-2026   Sahdev Saliya        Added CategoryId, CategoryType, CurrencyId, CurrencyCode (PN-16203)
 
 	--EXEC [USP_GetEmployeeTrainingWithAircraftModels] @EmployeeId= 232, @EmployeeTrainingId = 39
 ********************************************************************************/ 
@@ -71,11 +72,16 @@ BEGIN
 			,ET.IsRecurring
 			,ET.DurationHours
 			,ET.DurationMinutes
+			,ET.CategoryId
+			,ET.CategoryType
+			,ET.CurrencyId
+			,CR.[Code] as CurrencyCode
 		FROM dbo.EmployeeTraining ET WITH (NOLOCK)
 			LEFT JOIN dbo.EmployeeTrainingType ETP WITH (NOLOCK) ON ET.EmployeeTrainingTypeId = ETP.EmployeeTrainingTypeId
 			LEFT JOIN dbo.AircraftType AFT WITH (NOLOCK) ON ET.AircraftManufacturerId = AFT.AircraftTypeId
 			LEFT JOIN dbo.FrequencyOfTraining FT WITH (NOLOCK) ON ET.FrequencyOfTrainingId = FT.FrequencyOfTrainingId
 			LEFT JOIN dbo.TrainingName TN WITH (NOLOCK) ON ET.TrainingNameId = TN.TrainingNameId
+			LEFT JOIN dbo.Currency CR WITH (NOLOCK) ON ET.CurrencyId = CR.CurrencyId
 		WHERE et.EmployeeId = @EmployeeId
 		  AND et.EmployeeTrainingId = @EmployeeTrainingId;
 	END TRY 

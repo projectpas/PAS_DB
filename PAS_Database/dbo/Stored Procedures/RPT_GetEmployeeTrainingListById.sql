@@ -11,12 +11,14 @@
  ** --   -------------		----------------	--------------------------------          
     1    07-APR-2026		Divyesh Kathiriya	Created [PN-15934]
 	2    17-APR-2026		Divyesh Kathiriya	Handle Boolean Issuse AND Other Change [PN-16047]
+	3    05-MAY-2026		Bhargav Saliya  	Add Para @IsCategoryType and  [CategoryType] [PN-16203]
     
  -- EXEC [RPT_GetEmployeeTrainingListById] @EmployeeId= 374, @MasterCompanyId = 1
 **************************************************************/
 CREATE   PROCEDURE [dbo].[RPT_GetEmployeeTrainingListById]
 @EmployeeId BIGINT,
-@MasterCompanyId BIGINT 
+@MasterCompanyId BIGINT ,
+@IsCategoryType BIT = 1
 AS
 BEGIN
 	SET NOCOUNT ON;
@@ -38,7 +40,8 @@ BEGIN
 			END AS [Duration],
 			ET.[ScheduleDate],			
 			ET.[CompletionDate],			
-			ET.[ExpirationDate]			
+			ET.[ExpirationDate],			
+			ET.[CategoryType]			
 		FROM [DBO].[EmployeeTraining] ET WITH(NOLOCK)
 		LEFT JOIN [DBO].[TrainingName] ETN WITH(NOLOCK) ON ET.[TrainingNameId] = ETN.[TrainingNameId]
 		LEFT JOIN [DBO].[EmployeeTrainingType] ETP WITH(NOLOCK) ON ET.[EmployeeTrainingTypeId] = ETP.[EmployeeTrainingTypeId]		
@@ -47,6 +50,7 @@ BEGIN
 			ET.[EmployeeId] = @EmployeeId
 			AND ET.[MasterCompanyId] = @MasterCompanyId
 			AND ET.[IsDeleted] = 0
+			AND ET.IsCategoryType = ISNULL(@IsCategoryType,1)
 		ORDER BY 
 			ET.[EmployeeTrainingId] DESC;
 			

@@ -13,7 +13,8 @@
  ** --   --------		 -------			--------------------------------            
     1    04-11-2025    Bhargav Saliya		Created 
 	2    14-APR-2026   Sahdev Saliya        Added TrainingName, ProviderId, ProviderType, IsRecurring, DurationHours, DurationMinutes (PN-15932)
-	3    04-May-2026   Sahdev Saliya        Added CategoryId, CategoryType, CurrencyId, CurrencyCode (PN-16203)
+	3    03-May-2026   Sahdev Saliya        Added CategoryId, CategoryType, CurrencyId, CurrencyCode (PN-16203)
+	4    05-May-2026   Bhargav Saliya      Rename Field CategoryId to IsCategoryType
 
 	exec [USP_GetEmployeeTrainingHistoryById]  @EmployeeTrainingId = 20 , @EmployeeId = 2
 ********************************************************************************/   
@@ -60,7 +61,7 @@ BEGIN
 			,ETA.ProviderId
 			,ETA.ProviderType
 			,ETA.IsRecurring
-			,ETA.CategoryId
+			,ETA.IsCategoryType
 			,ETA.CategoryType
 			,ETA.CurrencyId
 			,CR.[Code] as CurrencyCode
@@ -74,7 +75,7 @@ BEGIN
 		LEFT JOIN dbo.Currency CR WITH (NOLOCK) ON ETA.CurrencyId = CR.CurrencyId
 		WHERE ETA.[EmployeeTrainingId] = @EmployeeTrainingId 
 		GROUP BY ETA.EmployeeTrainingId,ETA.EmployeeId,ETP.[TrainingType],AFT.[Description],ETA.[Provider],ETA.[IndustryCode],FT.[FrequencyName],ETA.[Cost],
-			ETA.[DurationHours],ETA.[DurationMinutes],ETA.[ScheduleDate],ETA.[CompletionDate],ETA.[ExpirationDate],ETA.InternalReference,ETA.Memo,ETA.[IsActive],ETA.[IsDeleted],ETA.[CreatedBy],ETA.[UpdatedBy],ETA.[UpdatedDate],ETA.[MasterCompanyId],TN.[Name],ETA.[ProviderId],ETA.[ProviderType],ETA.[IsRecurring],ETA.[CategoryId],ETA.[CategoryType],ETA.[CurrencyId],CR.[Code]
+			ETA.[DurationHours],ETA.[DurationMinutes],ETA.[ScheduleDate],ETA.[CompletionDate],ETA.[ExpirationDate],ETA.InternalReference,ETA.Memo,ETA.[IsActive],ETA.[IsDeleted],ETA.[CreatedBy],ETA.[UpdatedBy],ETA.[UpdatedDate],ETA.[MasterCompanyId],TN.[Name],ETA.[ProviderId],ETA.[ProviderType],ETA.[IsRecurring],ETA.[IsCategoryType],ETA.[CategoryType],ETA.[CurrencyId],CR.[Code]
 	order by ETA.[EmployeeTrainingId] desc	
   END    
   END TRY    

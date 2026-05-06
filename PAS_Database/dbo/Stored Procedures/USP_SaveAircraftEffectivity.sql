@@ -25,7 +25,7 @@ BEGIN
 		
 		DECLARE @Id BIGINT;
 
-        IF EXISTS ( SELECT 1 FROM dbo.AircraftEffectivity AE INNER JOIN @tbl_AircraftEffectivityType T ON AE.MakeTypeId = T.MakeTypeId
+        IF EXISTS ( SELECT 1 FROM dbo.AircraftEffectivity AE WITH (NOLOCK) INNER JOIN @tbl_AircraftEffectivityType T ON AE.MakeTypeId = T.MakeTypeId
                 AND ISNULL(AE.AircraftModelId,0) = ISNULL(T.AircraftModelId,0)
                 AND AE.SerialNum = T.SerialNum
                 AND AE.MasterCompanyId = T.MasterCompanyId
@@ -55,7 +55,7 @@ BEGIN
 					AE.Notes = T.Notes,
 					AE.UpdatedBy = T.UpdatedBy,
 					AE.UpdatedDate = GETUTCDATE()
-				FROM dbo.AircraftEffectivity AE
+				FROM dbo.AircraftEffectivity AE WITH (NOLOCK)
 				INNER JOIN @tbl_AircraftEffectivityType T
 					ON AE.AircraftEffectivityId = T.AircraftEffectivityId
 				WHERE T.AircraftEffectivityId > 0;

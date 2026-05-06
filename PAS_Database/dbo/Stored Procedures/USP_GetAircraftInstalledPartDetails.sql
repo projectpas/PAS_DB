@@ -18,7 +18,7 @@
 ** 6    2026-04-22   Amit Ghediya		Added for ConditionId (PN-16149)
 ** 7    2026-04-23   Priyansh Patel		Added IsCustomerStock from stockline [PN-16174]
 ** 8    2026-04-23   Amit Ghediya		Get item data from table [PN-16162]
-** 9    2026-05-04   Abhishek Jirawla	@AircraftRegistryId if nullable get all dataa
+** 9    2026-05-04   Abhishek Jirawla	@AircraftRegistryId if nullable get all dataa [PN-16282]
 
 *********************/
 CREATE   PROCEDURE [dbo].[USP_GetAircraftInstalledPartDetails]
@@ -30,8 +30,8 @@ CREATE   PROCEDURE [dbo].[USP_GetAircraftInstalledPartDetails]
 	@GlobalFilter VARCHAR(50) = NULL,
 	@SequenceNum VARCHAR(10) = NULL,
 	@PartNumber VARCHAR(100) = NULL,
-	@AircraftRegistryNumber VARCHAR(100) = NULL,
-	@TailNum VARCHAR(100) = NULL,
+	@AircraftRegistryNumber VARCHAR(30) = NULL,
+	@TailNum VARCHAR(50) = NULL,
 	@SerialNum VARCHAR(100) = NULL,
 	@PartDescription VARCHAR(100) = NULL,
 	@AtaChapter VARCHAR(50) = NULL,
@@ -42,6 +42,7 @@ CREATE   PROCEDURE [dbo].[USP_GetAircraftInstalledPartDetails]
 	@QuantityOnHand VARCHAR(50) = NULL,
 	@SerialNumber VARCHAR(50) = NULL,
 	@ControlNumber VARCHAR(50) = NULL,
+	@AircraftStatus VARCHAR(100) = NULL,
 	@PositionCode VARCHAR(50) = NULL,
 	@DateInstalled DATETIME = NULL,
 	@Serialized VARCHAR(50) = NULL,
@@ -90,6 +91,8 @@ BEGIN
 				AIPD.IsSerialized,
                 CASE WHEN AIPD.IsLLP = 1 THEN 'YES' ELSE 'NO' END AS LLP,
 				CASE WHEN AIPD.IsSerialized = 1 THEN 'YES' ELSE 'NO' END AS Serialized,
+				ARH.AircraftStatusId,
+				AST.Name AS AircraftStatus,
                 AIPD.DateInstalled,
 				AIPD.PositionCodeId,
                 AIPD.PositionCode,
@@ -113,6 +116,7 @@ BEGIN
 			LEFT JOIN dbo.ItemMasterAircraftMapping IMAM WITH (NOLOCK) ON AIPD.ATAChapterId = IMAM.ItemMasterAircraftMappingId
 			INNER JOIN dbo.AircraftRegistryHeader ARH WITH (NOLOCK) ON ARH.AircraftRegistryId = AIPD.AircraftRegistryId
 			INNER JOIN dbo.ItemMaster IM WITH (NOLOCK) ON AIPD.ItemMasterId = IM.ItemMasterId
+			INNER JOIN dbo.AircraftStatus AST WITH (NOLOCK) ON AST.AircraftStatusId = ARH.AircraftStatusId
 			LEFT JOIN dbo.Stockline STK WITH (NOLOCK) ON STK.StockLineId = AIPD.StockLineId
 			CROSS JOIN (
 					SELECT MAX(SequenceNum) AS LastSequence
@@ -132,6 +136,7 @@ BEGIN
 					(PartDescription LIKE '%' +@GlobalFilter+'%') OR
 					(AtaChapter LIKE '%' +@GlobalFilter+'%') OR
 					(Condition LIKE '%' +@GlobalFilter+'%') OR
+					(AircraftStatus LIKE '%' +@GlobalFilter+'%') OR
 					(StockLineNumber LIKE '%' +@GlobalFilter+'%') OR
 					(Quantity LIKE '%' +@GlobalFilter+'%') OR    
 					(QuantityAvailable LIKE '%' +@GlobalFilter+'%') OR    
@@ -152,6 +157,7 @@ BEGIN
 					(ISNULL(@PartDescription,'') ='' OR PartDescription LIKE '%' + @PartDescription + '%') AND
 					(ISNULL(@AtaChapter,'') ='' OR AtaChapter LIKE '%' + @AtaChapter + '%') AND
 					(ISNULL(@Condition,'') ='' OR Condition LIKE '%' + @Condition + '%') AND
+					(ISNULL(@AircraftStatus,'') ='' OR AircraftStatus LIKE '%' + @AircraftStatus + '%') AND
 					(ISNULL(@StockLineNumber,'') ='' OR StockLineNumber LIKE '%' + @StockLineNumber + '%') AND
 
 					(ISNULL(@Quantity,'') ='' OR Quantity LIKE '%' + @Quantity + '%') AND  
@@ -210,6 +216,9 @@ BEGIN
 
 			CASE WHEN @SortOrder =  1 AND @SortColumn = 'CONDITION'      THEN Condition      END ASC,
             CASE WHEN @SortOrder = -1 AND @SortColumn = 'CONDITION'      THEN Condition      END DESC,
+
+			CASE WHEN @SortOrder =  1 AND @SortColumn = 'AircraftStatus'      THEN AircraftStatus      END ASC,
+            CASE WHEN @SortOrder = -1 AND @SortColumn = 'AircraftStatus'      THEN AircraftStatus      END DESC,
 
 			CASE WHEN @SortOrder =  1 AND @SortColumn = 'STOCKLINENUMBER'      THEN StockLineNumber      END ASC,
             CASE WHEN @SortOrder = -1 AND @SortColumn = 'STOCKLINENUMBER'      THEN StockLineNumber      END DESC,

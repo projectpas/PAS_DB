@@ -9,6 +9,7 @@
 ** --   ----------   -------------   -------------------------
 ** 1    26/02/2026   Priyansh Patel  Created [PN-15841]
 ** 2    23/04/2026   Priyansh Patel  Added Maintenance Status [PN-16152]
+** 3    06/05/2026   Amit Ghediya    GET Maintenance/Aircraft Status [PN-16296]
 
 ************************************************************/
 CREATE PROCEDURE [dbo].[USP_GetAircraftRegistryList]
@@ -60,14 +61,16 @@ BEGIN
                 AR.TotalCSN,
                 AR.Hobbs,
                 AR.AircraftLocation,
-                AR.MaintenanceStatus,
+				AMS.[Name] AS MaintenanceStatus,
                 AR.NextScheduled,
                 AR.MEL,
-                AR.AircraftStatus,
+				ASS.[Name] AS AircraftStatus,
                 AR.IsActive,
                 AR.CreatedDate,
                 COUNT(1) OVER () AS TotalRecords
             FROM [dbo].[AircraftRegistryHeader] AS AR WITH (NOLOCK)
+			LEFT JOIN [dbo].[AircraftStatus] ASS WITH (NOLOCK) ON AR.[AircraftStatusId] = ASS.[AircraftStatusId]
+			LEFT JOIN [dbo].[MaintenanceStatus] AMS WITH (NOLOCK) ON AR.[MaintenanceStatusId] = AMS.[MaintenanceStatusId]
             WHERE
                 AR.MasterCompanyId = @MasterCompanyId
                 AND (@IsDeleted IS NULL OR AR.IsDeleted = @IsDeleted)

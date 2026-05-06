@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [USP_SearchCustomerInvoicesQBExtract]           
  ** Author:  RAJESH GAMI
  ** Description: Search CustomerInvoices QuickBook Extract : Copied from USP_SearchCustomerInvoices for Extract the Quickbook
@@ -24,6 +23,7 @@
 	6    26 Jun 2025   RAJESH GAMI       Resovled duplicate WO Invoice while Invoice VIEW filter selection due to WorkFlowWorkORderId
 	7	 04 Jul 2025   RAJESH GAMI       Added IsStandardInvoicePosted In the Billing Invoicing
 	8	 12 SEP 2025   RAJESH GAMI       DROP Temp table
+	9	 06 May 2026   RAJESH GAMI       UOM Conversion Changes [PN-16330]
 **************************************************************/ 
 CREATE      PROCEDURE [dbo].[USP_SearchCustomerInvoicesQBExtract]
 @PageSize int,  
@@ -68,7 +68,7 @@ BEGIN
 	  DECLARE @SOModuleID VARCHAR(500) = (SELECT ManagementStructureModuleId FROM dbo.ManagementStructureModule WITH(NOLOCK) Where ModuleName = 'SalesOrder')
 	  DECLARE @ExchSOModuleID VARCHAR(500) = (SELECT ManagementStructureModuleId FROM dbo.ManagementStructureModule WITH(NOLOCK) Where ModuleName = 'ExchangeSOHeader')
 	  DECLARE @IsActive BIT = 1  
-	  DECLARE @Count INT, @InvoiceTotalAmount DECIMAL(18,2);  
+	  DECLARE @Count INT, @InvoiceTotalAmount [decimal](18, 6);  
 	  SET @RecordFrom = (@PageNumber - 1) * @PageSize;
 
 	  DECLARE @WOInvoiceTypeId INT;

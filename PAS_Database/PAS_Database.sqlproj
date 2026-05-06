@@ -4516,6 +4516,10 @@
     <Build Include="dbo\Views\vw_AircraftSection.sql" />
     <Build Include="dbo\Stored Procedures\USP_ToggleWorkflowState.sql" />
     <Build Include="dbo\Stored Procedures\UpdateWorkflowDeletedStatus.sql" />
+    <Build Include="dbo\Tables\AircraftEffectivity.sql" />
+    <Build Include="dbo\Stored Procedures\USP_SaveAircraftEffectivity.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetAircraftEffectivity.sql" />
+    <Build Include="dbo\User Defined Types\AircraftEffectivityTableType.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

@@ -19,7 +19,7 @@
     6    28/03/2024		Devendra Shekh        inserting data in vendorPaymentDetail for creditMemo
 	7    07/10/2024		Moin Bloch            Added AR Balance 
 	8    11/10/2024		Moin Bloch            Modified (commented credit memo for ar balance)
-   
+	9	 06 May 2026   RAJESH GAMI       UOM Conversion Changes [PN-16331]   
  -- exec USP_UpdateCreditMemoStatus_Refund 
 **********************/   
   
@@ -44,7 +44,7 @@ BEGIN
 		@CustRefStatus VARCHAR(100) = 'Refund Requested', @CustRefundId  BIGINT = 0, @StartCMMapping BIGINT = 1, @CreditMemoHeaderId BIGINT = 0;
 
 		DECLARE @DefaultMethodId INT = 0,
-		@DefaultMethodName VARCHAR(250) = 0,@CreditMemoNumber VARCHAR(50) = '',@CreditAmount DECIMAL(18,2) = 0,@StatusId INT = 0,@StatusName VARCHAR(50) = '';
+		@DefaultMethodName VARCHAR(250) = 0,@CreditMemoNumber VARCHAR(50) = '',@CreditAmount DECIMAL(18,6) = 0,@StatusId INT = 0,@StatusName VARCHAR(50) = '';
 
 		SELECT TOP 1  @DefaultMethodId = DefaultPaymentMethod FROM [dbo].[VendorPayment] WHERE VendorId = @VendorId ORDER BY VendorId DESC;
 		SELECT @DefaultMethodName = [Description] FROM [dbo].[VendorPaymentMethod] WHERE VendorPaymentMethodId = @DefaultMethodId;

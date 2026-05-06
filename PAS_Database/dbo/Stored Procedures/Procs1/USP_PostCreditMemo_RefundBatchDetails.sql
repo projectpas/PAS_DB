@@ -16,7 +16,7 @@
 	3    03/04/2024	    HEMANT SALIYA	         Updated for Restrict Accounting Entry by Master Company
 	4    25/09/2024		AMIT GHEDIYA			 Added for AutoPost Batch
 	5	 11/04/2024		Devendra Shekh			 Added new fields for [CommonBatchDetails]
-
+	6	 06 May 2026   RAJESH GAMI				 UOM Conversion Changes [PN-16331]
  -- exec USP_PostCreditMemo_RefundBatchDetails 
 **********************/   
   
@@ -49,7 +49,7 @@ BEGIN
 		DECLARE @batch varchar(100);    
 		DECLARE @Currentbatch varchar(100);    
 		DECLARE @CurrentNumber int;    
-		DECLARE @Amount decimal(18,2); 
+		DECLARE @Amount [decimal](18, 6); 
 		DECLARE @CurrentPeriodId bigint=0; 
 		DECLARE @LineNumber int=1;    
 		DECLARE @JournalBatchDetailId BIGINT=0;
@@ -59,20 +59,20 @@ BEGIN
 		DECLARE @GlAccountId int
 		DECLARE @GlAccountName varchar(200) 
 		DECLARE @GlAccountNumber varchar(200) 
-		DECLARE @CheckAmount DECIMAL(18,2)
+		DECLARE @CheckAmount [decimal](18, 6)
 		DECLARE @ManagementStructureId bigint
 		DECLARE @LastMSLevel varchar(200)
 		DECLARE @AllMSlevels varchar(max)
-		DECLARE @TotalDebit decimal(18, 2) =0;
-		DECLARE @TotalCredit decimal(18, 2) =0;
-		DECLARE @TotalBalance decimal(18, 2) =0;
+		DECLARE @TotalDebit [decimal](18, 6) =0;
+		DECLARE @TotalCredit [decimal](18, 6) =0;
+		DECLARE @TotalBalance [decimal](18, 6) =0;
 
 		DECLARE @ModuleId BIGINT = 0;
 		DECLARE @CRDRType BIGINT = 0;
 		DECLARE @AccountMSModuleId INT = 0
 		DECLARE @AppModuleId INT = 0;
 		SELECT @AccountMSModuleId = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] ='Accounting';
-		DECLARE @SumAmount decimal(18,2); 
+		DECLARE @SumAmount [decimal](18, 6); 
 		DECLARE @IsAutoPost INT = 0;
 		DECLARE @IsBatchGenerated INT = 0;
 		DECLARE @LocalCurrencyCode VARCHAR(20) = '';

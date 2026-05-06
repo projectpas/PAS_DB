@@ -10,6 +10,7 @@
 ** PR   Date         Author             Change Description
 ** --   ----------   -------------      --------------------------------
 ** 1    21/04/2026   Priyansh Patel     Created [PN-16140]
+** 2    06/05/2026   Priyansh Patel     Created [PN-16303]
 
 *************************************************************/
 --EXEC [dbo].[USP_SearchInstalledComponents] @MasterCompanyId =1
@@ -29,7 +30,7 @@ CREATE PROCEDURE [dbo].[USP_SearchInstalledComponents]
     @TotalTSN           DECIMAL(18,6)   = NULL,
     @TotalCSN           DECIMAL(18,6)   = NULL,
     @Hobbs              DECIMAL(18,6)   = NULL,
-    @FlightHours        DECIMAL(18,6)   = NULL,
+    @FlightHours        VARCHAR(100)   = NULL,
     @Cycles             DECIMAL(18,6)   = NULL,
     @LastMaintenance    DATE            = NULL,
     @NextMaintenance    DATE            = NULL,
@@ -49,6 +50,7 @@ BEGIN
 
     ;WITH Result AS (
         SELECT
+            [AIPD].[AircraftRegistryId]                                                     AS [AircraftRegistryId],
             [AIPD].[ItemMasterId]                                                           AS [ItemMasterId],
             [AIPD].[PartNumber]                                                             AS [PartNumber],
             [AIPD].[PartDescription]                                                        AS [PartDescription],
@@ -61,7 +63,7 @@ BEGIN
             [ARH].[Hobbs],
             CONCAT_WS(' - ', [IMAM].[Level1], [IMAM].[Level2], [IMAM].[Level3])            AS [ATACode],
             [AIPD].[DateInstalled],
-            [AIPD].[FlightHours],
+            FORMAT(ISNULL([AIPD].[FlightHours], 0), '0') + ' : ' + FORMAT(ISNULL([AIPD].[FlightMinutes], 0), '00') AS [FlightHours],
             [AIPD].[Cycles],
             [ARH].[LastMaintenanceDate]                                                     AS [LastMaintenance],
             [ARH].[NextScheduled]                                                           AS [NextMaintenance]
@@ -83,7 +85,7 @@ BEGIN
             AND (@TotalTSN          IS NULL OR ARH.TotalTSN      = @TotalTSN)
             AND (@TotalCSN          IS NULL OR ARH.TotalCSN      = @TotalCSN)
             AND (@Hobbs             IS NULL OR ARH.Hobbs         = @Hobbs)
-            AND (@FlightHours       IS NULL OR AIPD.FlightHours  = @FlightHours)
+            AND (@FlightHours       IS NULL OR CAST([AIPD].[FlightHours]  AS VARCHAR) LIKE '%' + @FlightHours + '%' OR CAST([AIPD].[FlightMinutes]  AS VARCHAR) LIKE '%' + @FlightHours + '%')
             AND (@Cycles            IS NULL OR AIPD.Cycles       = @Cycles)
     ),
     TotalCounted AS (

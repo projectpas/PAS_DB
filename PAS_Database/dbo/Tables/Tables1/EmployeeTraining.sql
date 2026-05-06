@@ -28,7 +28,7 @@
     [IsRecurring]            BIT             NULL,
     [DurationHours]          INT             NULL,
     [DurationMinutes]        INT             NULL,
-    [CategoryId]             BIGINT          NULL,
+    [IsCategoryType]         BIT             NULL,
     [CategoryType]           VARCHAR (50)    NULL,
     [CurrencyId]             BIGINT          NULL,
     [CurrencyCode]           VARCHAR (200)   NULL,
@@ -39,6 +39,10 @@
     CONSTRAINT [FK_EmployeeTraining_EmployeeTrainingType] FOREIGN KEY ([EmployeeTrainingTypeId]) REFERENCES [dbo].[EmployeeTrainingType] ([EmployeeTrainingTypeId]),
     CONSTRAINT [FK_EmployeeTraining_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId])
 );
+
+
+
+
 
 
 

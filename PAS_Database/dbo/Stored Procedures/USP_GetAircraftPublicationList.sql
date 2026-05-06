@@ -46,6 +46,12 @@ BEGIN
 
     BEGIN TRY
 
+		DECLARE @ManufactureTypeId int;
+		DECLARE @VendorTypeId int;
+
+		SET @VendorTypeId = (SELECT ModuleId FROM [dbo].Module WITH(NOLOCK) WHERE ModuleName = 'Vendor');
+		SET @ManufactureTypeId = (SELECT ModuleId FROM [dbo].Module WITH(NOLOCK) WHERE ModuleName = 'Manufacturer');
+
         WITH CTE AS
         (
             SELECT
@@ -56,7 +62,7 @@ BEGIN
                 AP.RevisionNum,
                 ASE.Section AS AircraftSection,
                 AP.[Subject] AS Subject,
-                '' AS PublishedBy,
+				CASE WHEN AP.PublishedById = @ManufactureTypeId THEN ISNULL(M.[Name],'') WHEN AP.PublishedById = @VendorTypeId THEN ISNULL(V.VendorName,'') ELSE ISNULL(AP.PublishedByOthers,'') END  AS PublishedBy,
                 AP.ComplianceCategory,
                 AP.Timeframe,
                 AP.PurposeReasonBackground,
@@ -74,6 +80,9 @@ BEGIN
 			LEFT JOIN dbo.PublicationType PT WITH (NOLOCK) ON AP.PublicationTypeId = PT.PublicationTypeId
 			LEFT JOIN dbo.AircraftSection ASE WITH (NOLOCK) ON AP.AircraftSectionId = ASE.AircraftSectionId
 			LEFT JOIN dbo.Employee EMP WITH (NOLOCK) ON EMP.EmployeeId = AP.VerifiedBy
+			LEFT JOIN [dbo].[Module] pemp WITH (NOLOCK) ON AP.PublishedById = pemp.ModuleId 
+			LEFT JOIN [dbo].[Manufacturer] M with (NOLOCK) ON AP.PublishedByRefId = M.ManufacturerId
+			LEFT JOIN [dbo].[Vendor] V with (NOLOCK) ON AP.PublishedByRefId = V.VendorId
             WHERE
                 AP.MasterCompanyId = @MasterCompanyId
                 AND (@IsDeleted IS NULL OR AP.IsDeleted = @IsDeleted)
@@ -111,7 +120,7 @@ BEGIN
 				AND (NULLIF(@RevisionNum, '') IS NULL OR AP.RevisionNum LIKE '%' + @RevisionNum + '%')
 				AND (NULLIF(@AircraftSection, '') IS NULL OR ASE.Section LIKE '%' + @AircraftSection + '%')
 				AND (NULLIF(@Subject, '') IS NULL OR AP.[Subject] LIKE '%' + @Subject + '%')
-				AND (NULLIF(@PublishedBy, '') IS NULL OR '' LIKE '%' + @PublishedBy + '%') -- placeholder
+				AND (NULLIF(@PublishedBy, '') IS NULL OR CASE WHEN AP.PublishedById = @ManufactureTypeId THEN ISNULL(M.[Name],'') WHEN AP.PublishedById = @VendorTypeId THEN ISNULL(V.VendorName,'') ELSE ISNULL(AP.PublishedByOthers,'') END LIKE '%' + @PublishedBy + '%') -- placeholder
 				AND (NULLIF(@ComplianceCategory, '') IS NULL OR AP.ComplianceCategory LIKE '%' + @ComplianceCategory + '%')
 				AND (NULLIF(@Timeframe, '') IS NULL OR AP.Timeframe LIKE '%' + @Timeframe + '%')
 				AND (NULLIF(@PurposeReasonBackground, '') IS NULL OR AP.PurposeReasonBackground LIKE '%' + @PurposeReasonBackground + '%')

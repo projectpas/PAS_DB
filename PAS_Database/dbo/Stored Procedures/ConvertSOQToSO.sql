@@ -486,70 +486,76 @@ BEGIN
 		@City varchar(100),@StateOrProvince varchar(100),@PostalCode varchar(100),@CountryId bigint,@IsPrimary bit = 0,@UpdateBy varchar(100),@AllAddressId BIGINT = 0,
 		@IsModuleOnly bit = 0,@IsShippingAdd bit = 0,@Memo varchar(500),@ContactId bigint,@ContactName varchar(500),@Country varchar(50),@UserTypeName varchar(100),@UserName varchar(100);
 
-		SELECT TOP 1
-			@UserTypeId = UserType,
-			@SiteId = SiteId,
-			@UserId = UserId,
-			@SiteName = SiteName,
-			@AddressId = AddressId,
-			@Address1 = Line1,
-			@Address2 = Line2,
-			@Address3 = Line3,
-			@City = City,
-			@StateOrProvince = StateOrProvince,
-			@PostalCode = PostalCode,
-			@CountryId = CountryId,
-			@IsPrimary = ISNULL(IsPrimary,0),
-			@IsModuleOnly = ISNULL(IsModuleOnly,0),
-			@IsShippingAdd = ISNULL(IsShippingAdd,0),
-			@Memo = Memo,
-			@ContactId = ContactId,
-			@ContactName = ContactName,
-			@Country = Country,
-			@UserTypeName = UserTypeName,
-			@UserName = UserName,
-			@UpdateBy = UpdatedBy
-		FROM dbo.AllAddress WITH(NOLOCK)
-		WHERE ReffranceId = @SalesOrderQuoteId AND ModuleId = @SOQModuleId AND ISNULL(IsShippingAdd,0) = 1
-
-		IF NOT EXISTS (SELECT 1 FROM dbo.AllAddress WHERE ReffranceId = @SalesOrderId AND ModuleId = @SOModuleId AND ISNULL(IsShippingAdd,0) = 1)
+		IF EXISTS (SELECT 1 FROM dbo.AllAddress WHERE ReffranceId = @SalesOrderQuoteId AND ModuleId = @SOQModuleId AND ISNULL(IsShippingAdd,0) = 1)
 		BEGIN
-			EXEC dbo.usp_createAllAddress @SiteId,@UserTypeId, @UserId,@SiteName,@AddressId, @Address1, @Address2,@Address3,@City,@StateOrProvince,@PostalCode,@CountryId,@IsPrimary,@MasterCompanyId,@CreatedBy,@UpdateBy,
-				@SalesOrderId,@IsModuleOnly,@SOModuleId,@IsShippingAdd,@Memo,@ContactId,@ContactName,@Country,@AllAddressId, @UserTypeName,@UserName;
+			SELECT TOP 1
+				@UserTypeId = UserType,
+				@SiteId = SiteId,
+				@UserId = UserId,
+				@SiteName = SiteName,
+				@AddressId = AddressId,
+				@Address1 = Line1,
+				@Address2 = Line2,
+				@Address3 = Line3,
+				@City = City,
+				@StateOrProvince = StateOrProvince,
+				@PostalCode = PostalCode,
+				@CountryId = CountryId,
+				@IsPrimary = ISNULL(IsPrimary,0),
+				@IsModuleOnly = ISNULL(IsModuleOnly,0),
+				@IsShippingAdd = ISNULL(IsShippingAdd,0),
+				@Memo = Memo,
+				@ContactId = ContactId,
+				@ContactName = ContactName,
+				@Country = Country,
+				@UserTypeName = UserTypeName,
+				@UserName = UserName,
+				@UpdateBy = UpdatedBy
+			FROM dbo.AllAddress WITH(NOLOCK)
+			WHERE ReffranceId = @SalesOrderQuoteId AND ModuleId = @SOQModuleId AND ISNULL(IsShippingAdd,0) = 1
+
+			IF NOT EXISTS (SELECT 1 FROM dbo.AllAddress WHERE ReffranceId = @SalesOrderId AND ModuleId = @SOModuleId AND ISNULL(IsShippingAdd,0) = 1)
+			BEGIN
+				EXEC dbo.usp_createAllAddress @SiteId,@UserTypeId, @UserId,@SiteName,@AddressId, @Address1, @Address2,@Address3,@City,@StateOrProvince,@PostalCode,@CountryId,@IsPrimary,@MasterCompanyId,@CreatedBy,@UpdateBy,
+					@SalesOrderId,@IsModuleOnly,@SOModuleId,@IsShippingAdd,@Memo,@ContactId,@ContactName,@Country,@AllAddressId, @UserTypeName,@UserName;
+			END
 		END
 		/* END ShipToAddress */
 
 		/* Add BillToAddress */
-		SELECT TOP 1
-			@UserTypeId = UserType,
-			@SiteId = SiteId,
-			@UserId = UserId,
-			@SiteName = SiteName,
-			@AddressId = AddressId,
-			@Address1 = Line1,
-			@Address2 = Line2,
-			@Address3 = Line3,
-			@City = City,
-			@StateOrProvince = StateOrProvince,
-			@PostalCode = PostalCode,
-			@CountryId = CountryId,
-			@IsPrimary = ISNULL(IsPrimary,0),
-			@IsModuleOnly = ISNULL(IsModuleOnly,0),
-			@IsShippingAdd = ISNULL(IsShippingAdd,0),
-			@Memo = Memo,
-			@ContactId = ContactId,
-			@ContactName = ContactName,
-			@Country = Country,
-			@UserTypeName = UserTypeName,
-			@UserName = UserName,
-			@UpdateBy = UpdatedBy
-		FROM dbo.AllAddress WITH(NOLOCK)
-		WHERE ReffranceId = @SalesOrderQuoteId AND ModuleId = @SOQModuleId AND ISNULL(IsShippingAdd,0) = 0
-		
-		IF NOT EXISTS (SELECT 1 FROM dbo.AllAddress WHERE ReffranceId = @SalesOrderId AND ModuleId = @SOModuleId AND ISNULL(IsShippingAdd,0) = 0)
+		IF EXISTS (SELECT 1 FROM dbo.AllAddress WHERE ReffranceId = @SalesOrderQuoteId AND ModuleId = @SOQModuleId AND ISNULL(IsShippingAdd,0) = 0)
 		BEGIN
-			EXEC dbo.usp_createAllAddress @SiteId,@UserTypeId, @UserId,@SiteName,@AddressId, @Address1, @Address2,@Address3,@City,@StateOrProvince,@PostalCode,@CountryId,@IsPrimary,@MasterCompanyId,@CreatedBy,@UpdateBy,
-				@SalesOrderId,@IsModuleOnly,@SOModuleId,@IsShippingAdd,@Memo,@ContactId,@ContactName,@Country,@AllAddressId, @UserTypeName,@UserName;
+			SELECT TOP 1
+				@UserTypeId = UserType,
+				@SiteId = SiteId,
+				@UserId = UserId,
+				@SiteName = SiteName,
+				@AddressId = AddressId,
+				@Address1 = Line1,
+				@Address2 = Line2,
+				@Address3 = Line3,
+				@City = City,
+				@StateOrProvince = StateOrProvince,
+				@PostalCode = PostalCode,
+				@CountryId = CountryId,
+				@IsPrimary = ISNULL(IsPrimary,0),
+				@IsModuleOnly = ISNULL(IsModuleOnly,0),
+				@IsShippingAdd = ISNULL(IsShippingAdd,0),
+				@Memo = Memo,
+				@ContactId = ContactId,
+				@ContactName = ContactName,
+				@Country = Country,
+				@UserTypeName = UserTypeName,
+				@UserName = UserName,
+				@UpdateBy = UpdatedBy
+			FROM dbo.AllAddress WITH(NOLOCK)
+			WHERE ReffranceId = @SalesOrderQuoteId AND ModuleId = @SOQModuleId AND ISNULL(IsShippingAdd,0) = 0
+		
+			IF NOT EXISTS (SELECT 1 FROM dbo.AllAddress WHERE ReffranceId = @SalesOrderId AND ModuleId = @SOModuleId AND ISNULL(IsShippingAdd,0) = 0)
+			BEGIN
+				EXEC dbo.usp_createAllAddress @SiteId,@UserTypeId, @UserId,@SiteName,@AddressId, @Address1, @Address2,@Address3,@City,@StateOrProvince,@PostalCode,@CountryId,@IsPrimary,@MasterCompanyId,@CreatedBy,@UpdateBy,
+					@SalesOrderId,@IsModuleOnly,@SOModuleId,@IsShippingAdd,@Memo,@ContactId,@ContactName,@Country,@AllAddressId, @UserTypeName,@UserName;
+			END
 		END
 		/* END BillToAddress */
 
@@ -557,21 +563,24 @@ BEGIN
 		DECLARE @AllShipViaId bigint = 0,@UserType int,@ShipViaId bigint = 0,@ShippingCost decimal(20,3),@HandlingCost decimal(20,3),@IsModuleShipVia bit,@ShippingAccountNo varchar(100),@ShipVia varchar(100),
 		@ShippingViaId bigint,@ShippingTerms varchar(100) = null;
 
-		SELECT TOP 1
-			@UserType = UserType,
-			@ShipViaId = ShipViaId,
-			@ShippingCost = ISNULL(ShippingCost,0),
-			@HandlingCost = ISNULL(HandlingCost,0),
-			@IsModuleShipVia = ISNULL(IsModuleShipVia,0),
-			@ShippingAccountNo = ShippingAccountNo,
-			@ShipVia = ShipVia,
-			@ShippingViaId = ShippingViaId,
-			@ShippingTerms = ShippingTerms
-		FROM dbo.AllShipVia WITH (NOLOCK) WHERE ReferenceId = @SalesOrderQuoteId AND ModuleId = @SOQModuleId;
-
-		IF NOT EXISTS (SELECT 1 FROM dbo.AllShipVia WITH (NOLOCK) WHERE ReferenceId = @SalesOrderId AND ModuleId = @SOModuleId)
+		IF EXISTS (SELECT 1 FROM dbo.AllShipVia WITH (NOLOCK) WHERE ReferenceId = @SalesOrderQuoteId AND ModuleId = @SOQModuleId)
 		BEGIN
-			EXEC dbo.usp_createAllShipVia 0, @SalesOrderId, @SOModuleId, @UserType,@ShipViaId,@ShippingCost,@HandlingCost,@IsModuleShipVia,@ShippingAccountNo,@ShipVia,@ShippingViaId,@MasterCompanyId,@CreatedBy,@UpdateBy,@ShippingTerms;
+			SELECT TOP 1
+				@UserType = UserType,
+				@ShipViaId = ShipViaId,
+				@ShippingCost = ISNULL(ShippingCost,0),
+				@HandlingCost = ISNULL(HandlingCost,0),
+				@IsModuleShipVia = ISNULL(IsModuleShipVia,0),
+				@ShippingAccountNo = ShippingAccountNo,
+				@ShipVia = ShipVia,
+				@ShippingViaId = ShippingViaId,
+				@ShippingTerms = ShippingTerms
+			FROM dbo.AllShipVia WITH (NOLOCK) WHERE ReferenceId = @SalesOrderQuoteId AND ModuleId = @SOQModuleId;
+
+			IF NOT EXISTS (SELECT 1 FROM dbo.AllShipVia WITH (NOLOCK) WHERE ReferenceId = @SalesOrderId AND ModuleId = @SOModuleId)
+			BEGIN
+				EXEC dbo.usp_createAllShipVia 0, @SalesOrderId, @SOModuleId, @UserType,@ShipViaId,@ShippingCost,@HandlingCost,@IsModuleShipVia,@ShippingAccountNo,@ShipVia,@ShippingViaId,@MasterCompanyId,@CreatedBy,@UpdateBy,@ShippingTerms;
+			END
 		END
 		/* Add ShipVia */
 

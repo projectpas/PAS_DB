@@ -29,7 +29,7 @@
     [IsRecurring]             BIT             NULL,
     [DurationHours]           INT             NULL,
     [DurationMinutes]         INT             NULL,
-    [CategoryId]              BIGINT          NULL,
+    [IsCategoryType]          BIT             NULL,
     [CategoryType]            VARCHAR (50)    NULL,
     [CurrencyId]              BIGINT          NULL,
     [CurrencyCode]            VARCHAR (200)   NULL,

@@ -23,7 +23,7 @@ CREATE   PROCEDURE [dbo].[USP_GetAircraftEffectivity]
     @AircraftModel VARCHAR(50) = NULL,
     @AircraftSubModel VARCHAR(100) = NULL,
     @SerialNum VARCHAR(100) = NULL,
-	@Notes VARCHAR(100) = NULL,
+	@Notes VARCHAR(MAX) = NULL,
     @PartNumber VARCHAR(100) = NULL,
     @PartDescription VARCHAR(200) = NULL,
     @IsDeleted BIT = NULL,

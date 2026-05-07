@@ -126,6 +126,34 @@ BEGIN
 				LandingsLimit               = @LandingsLimit,
 				EngineStartsLimit           = @EngineStartsLimit,
 
+				--FlightHoursRemainingHours =
+				--	CASE 
+				--		WHEN @FlightHoursLimitHours IS NULL AND @FlightHoursLimitMinutes IS NULL THEN NULL
+				--		ELSE
+				--			(
+				--				CASE 
+				--					WHEN FlightHoursRecordedHours IS NULL AND FlightHoursRecordedMinutes IS NULL
+				--						THEN (@FlightHoursLimitHours * 60 + @FlightHoursLimitMinutes)
+				--					ELSE
+				--						(@FlightHoursLimitHours * 60 + @FlightHoursLimitMinutes)
+				--						- (ISNULL(FlightHoursRecordedHours,0) * 60 + ISNULL(FlightHoursRecordedMinutes,0))
+				--				END
+				--			) / 60
+				--	END,
+				--FlightHoursRemainingMinutes =
+				--	CASE 
+				--		WHEN @FlightHoursLimitHours IS NULL AND @FlightHoursLimitMinutes IS NULL THEN NULL
+				--		ELSE
+				--			(
+				--				CASE 
+				--					WHEN FlightHoursRecordedHours IS NULL AND FlightHoursRecordedMinutes IS NULL
+				--						THEN (@FlightHoursLimitHours * 60 + @FlightHoursLimitMinutes)
+				--					ELSE
+				--						(@FlightHoursLimitHours * 60 + @FlightHoursLimitMinutes)
+				--						- (ISNULL(FlightHoursRecordedHours,0) * 60 + ISNULL(FlightHoursRecordedMinutes,0))
+				--				END
+				--			) % 60
+				--	END,
 				FlightHoursRemainingHours =
 					CASE 
 						WHEN @FlightHoursLimitHours IS NULL AND @FlightHoursLimitMinutes IS NULL THEN NULL
@@ -133,13 +161,14 @@ BEGIN
 							(
 								CASE 
 									WHEN FlightHoursRecordedHours IS NULL AND FlightHoursRecordedMinutes IS NULL
-										THEN (@FlightHoursLimitHours * 60 + @FlightHoursLimitMinutes)
+										THEN (ISNULL(@FlightHoursLimitHours,0) * 60 + ISNULL(@FlightHoursLimitMinutes,0))
 									ELSE
-										(@FlightHoursLimitHours * 60 + @FlightHoursLimitMinutes)
+										(ISNULL(@FlightHoursLimitHours,0) * 60 + ISNULL(@FlightHoursLimitMinutes,0))
 										- (ISNULL(FlightHoursRecordedHours,0) * 60 + ISNULL(FlightHoursRecordedMinutes,0))
 								END
 							) / 60
 					END,
+
 				FlightHoursRemainingMinutes =
 					CASE 
 						WHEN @FlightHoursLimitHours IS NULL AND @FlightHoursLimitMinutes IS NULL THEN NULL
@@ -147,9 +176,9 @@ BEGIN
 							(
 								CASE 
 									WHEN FlightHoursRecordedHours IS NULL AND FlightHoursRecordedMinutes IS NULL
-										THEN (@FlightHoursLimitHours * 60 + @FlightHoursLimitMinutes)
+										THEN (ISNULL(@FlightHoursLimitHours,0) * 60 + ISNULL(@FlightHoursLimitMinutes,0))
 									ELSE
-										(@FlightHoursLimitHours * 60 + @FlightHoursLimitMinutes)
+										(ISNULL(@FlightHoursLimitHours,0) * 60 + ISNULL(@FlightHoursLimitMinutes,0))
 										- (ISNULL(FlightHoursRecordedHours,0) * 60 + ISNULL(FlightHoursRecordedMinutes,0))
 								END
 							) % 60

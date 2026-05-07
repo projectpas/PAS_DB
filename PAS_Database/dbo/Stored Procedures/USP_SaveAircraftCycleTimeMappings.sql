@@ -45,7 +45,8 @@ BEGIN
 				@Memo NVARCHAR(MAX),
 				@MasterCompanyId INT,
 				@CreatedBy VARCHAR(256),
-				@UpdatedBy VARCHAR(256);
+				@UpdatedBy VARCHAR(256),
+				@ProgramId BIGINT = 0;
 
         -------------------------------------------------------
         -- READ JSON INTO TEMP TABLE
@@ -230,6 +231,17 @@ BEGIN
 			--		AMP.UpdatedDate = GETUTCDATE()
 			--	FROM dbo.AircraftMaintenanceProgram AMP WITH(NOLOCK)
 			--	INNER JOIN @CycleTable C ON AMP.AircraftRegistryId = C.RefrenceId;
+
+			SET @ProgramId = (SELECT TOP 1 [ProgramId] FROM [dbo].[AircraftMaintenanceProgram] AMP WITH(NOLOCK)
+							INNER JOIN @CycleTable C ON AMP.AircraftRegistryId = C.RefrenceId
+							WHERE 
+								[IsDeleted] = 0
+								AND [IsActive] = 1
+								AND [NextScheduledMaintenance] IS NOT NULL
+								AND [NextScheduledMaintenance] >= CAST(GETDATE() AS DATE)
+								AND [AircraftRegistryId] = AMP.AircraftRegistryId
+							ORDER BY NextScheduledMaintenance ASC);
+
 			UPDATE AMP
 			SET
 				-- Recorded (safe)
@@ -274,8 +286,8 @@ BEGIN
 				AMP.UpdatedDate = GETUTCDATE()
 
 			FROM dbo.AircraftMaintenanceProgram AMP
-			INNER JOIN @CycleTable C 
-				ON AMP.AircraftRegistryId = C.RefrenceId;
+			INNER JOIN @CycleTable C ON AMP.AircraftRegistryId = C.RefrenceId
+			AND AMP.ProgramId = @ProgramId;
 		END
 		ELSE
 		BEGIN

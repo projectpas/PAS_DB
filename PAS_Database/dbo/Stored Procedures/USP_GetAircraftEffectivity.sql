@@ -32,7 +32,8 @@ CREATE   PROCEDURE [dbo].[USP_GetAircraftEffectivity]
 	@CreatedDate datetime,  
 	@UpdatedDate  datetime,  
 	@CreatedBy  varchar(50),  
-	@UpdatedBy  varchar(50)
+	@UpdatedBy  varchar(50),
+	@AircraftPublicationsId BIGINT = NULL
 )
 AS
 BEGIN
@@ -71,7 +72,8 @@ BEGIN
             LEFT JOIN dbo.aircrafttype MT WITH(NOLOCK) ON AE.MakeTypeId = MT.AircraftTypeId
             LEFT JOIN dbo.AircraftModel AM WITH(NOLOCK) ON AE.AircraftModelId = AM.AircraftModelId
             LEFT JOIN dbo.ItemMaster IM WITH(NOLOCK) ON AE.ItemMasterId = IM.ItemMasterId
-            WHERE AE.MasterCompanyId = @MasterCompanyId
+            WHERE (@AircraftPublicationsId IS NULL OR @AircraftPublicationsId = 0 OR AE.AircraftPublicationId = @AircraftPublicationsId) 
+			AND AE.MasterCompanyId = @MasterCompanyId
         )
 
         SELECT * INTO #TempResult
@@ -119,6 +121,9 @@ BEGIN
 
             CASE WHEN @SortOrder = 1 AND @SortColumn = 'AIRCRAFTMODEL' THEN AircraftModel END ASC,
             CASE WHEN @SortOrder = -1 AND @SortColumn = 'AIRCRAFTMODEL' THEN AircraftModel END DESC,
+
+			 CASE WHEN @SortOrder = 1 AND @SortColumn = 'AircraftSubModel' THEN AircraftSubModel END ASC,
+            CASE WHEN @SortOrder = -1 AND @SortColumn = 'AircraftSubModel' THEN AircraftSubModel END DESC,
 
             CASE WHEN @SortOrder = 1 AND @SortColumn = 'SERIALNUM' THEN SerialNum END ASC,
             CASE WHEN @SortOrder = -1 AND @SortColumn = 'SERIALNUM' THEN SerialNum END DESC,

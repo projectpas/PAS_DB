@@ -22,11 +22,13 @@
 	8    02-08-2025   Sahdev Saliya   Added New Field Verified, VerifiedBy And VerifiedDate
 	9    24-04-2026   Priyansh Patel   Added New Field TemplateType [PN-16166]
 	10   04-05-2026   Priyansh Patel   Added New Field TemplateType [PN-16166]
+	11   07-05-2026   Priyansh Patel   Global filter updated [PN-16341]
+
 
 exec GetWorkFlowList @PageSize=20,@PageNumber=1,@SortColumn=NULL,@SortOrder=-1,@StatusID=1,@GlobalFilter=N'',@WorkOrderNumber=NULL,@Version=NULL,@PartNumber=NULL,@PartDescription=NULL,@ManufacturerName=NULL,@Description=NULL,@CustomerName=NULL,@WorkflowCreateDate=NULL,@WorkflowExpirationDate=NULL,@CreatedDate=NULL,@UpdatedDate=NULL,@CreatedBy=NULL,@UpdatedBy=NULL,@IsDeleted=0,@MasterCompanyId=1,@TemplateDescription=NULL,@EmployeeId=223
 **************************************************************/ 
 
-CREATE   PROCEDURE [dbo].[GetWorkFlowList]
+CREATE    PROCEDURE [dbo].[GetWorkFlowList]
 	-- Add the parameters for the stored procedure here
 	@PageNumber int,
 	@PageSize int,
@@ -148,7 +150,7 @@ BEGIN
 					wf.TailNum AS AcTailNumber,
 					wf.SerialNum AS AcSerialNumber,
 					ACM.ModelName AS AircraftModel,
-					ACT.[Description] AS AircraftMake,
+					ACT.[Description] AS AircraftMake, 
 					MT.[Description] AS MaintenanceType,
 					wf.Verified,
 					wf.VerifiedBy,
@@ -175,7 +177,9 @@ BEGIN
 					(Name like '%' +@GlobalFilter+'%') OR
 					(CreatedBy like '%' +@GlobalFilter+'%') OR
 					(UpdatedBy like '%' +@GlobalFilter+'%') 
-					))
+					)
+					AND (@AcTemplate IS NULL OR TemplateType = CASE WHEN @AcTemplate = 1 THEN 2 ELSE 1 END)
+					)
 					OR   
 					(@GlobalFilter='' AND (IsNull(@WorkOrderNumber,'') ='' OR WorkOrderNumber like '%' + @WorkOrderNumber+'%') and 
 					(IsNull(@Version,'') ='' OR Version like '%' + @Version+'%') and

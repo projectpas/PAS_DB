@@ -1,5 +1,4 @@
-﻿
-/*************************************************************  
+﻿/*************************************************************  
 ** Author:  <AMIT GHEDIYA>  
 ** Create date: <01/09/2024>  
 ** Description: 
@@ -14,6 +13,7 @@ EXEC [RPT_GetViewSalesOrderById]
    2	07/23/2024  Bhargav Saiya	Addes ShippingTerms
    3    05/03/2026  Ayushi Patel    PN-15661 return email through customerContactId insted of cutomer table
    4    01/05/2026  Ayushi Patel    [PN-16030] Added MasterCompanyCode/NULL parameter in ValidatePDFAddress calls.
+   5    07/May/2026	Rajesh Gami	     ARBalance Getting From New Table CustomerAging Instead Of CustomerCreditTermsHistory [PN-16092]
 EXEC RPT_GetViewSalesOrderById 782
 **************************************************************/
 CREATE    PROCEDURE [dbo].[RPT_GetViewSalesOrderById]              
@@ -64,7 +64,7 @@ BEGIN
 			soq.TotalSalesAmount,
 			soq.CustomerHold,
 			soq.DepositAmount,
-			ISNULL((SELECT TOP 1 ARBalance FROM dbo.CustomerCreditTermsHistory WITH(NOLOCK) WHERE CustomerId = soq.CustomerId ORDER BY CustomerCreditTermsHistoryId DESC), 0) AS BalanceDue,
+			ISNULL((SELECT TOP 1 TotalOutstanding FROM dbo.CustomerAging WITH(NOLOCK) WHERE CustomerId = soq.CustomerId ORDER BY CustomerAgingId DESC), 0) AS BalanceDue,
 			ISNULL(cur.Code, '') AS CurrencyName,
 			soq.ApprovedDate,
 			ISNULL(qst.Name, '') AS Status,

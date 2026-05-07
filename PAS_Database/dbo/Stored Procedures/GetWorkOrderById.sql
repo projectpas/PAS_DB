@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿
+/*************************************************************           
  ** File:  [GetWorkOrderById]           
  ** Author:  Moin Bloch
  ** Description: This stored procedure is used to Get Work Order Details     
@@ -28,8 +29,7 @@
 	16   23-MAR-2026  Ayushi Patel     PN-15825 added lineNum
 	17   27/03/2026   Moin Bloch	   Rename Internal To Internal Repair   PN-15850
 	18   30/04/2026   Nakul Chandigra   Added  [AircraftRegistryNumber] ,[IsFromAircraft],[AircraftInstalledPartDetailsId] for Work Order (PN-16150)
-
-
+	19   07/May/2026  Rajesh Gami	   ARBalance Getting From New Table CustomerAging Instead Of CustomerCreditTermsHistory [PN-16092]
 --    EXEC [dbo].[GetWorkOrderById] 0,5714,0,0,1
 --    EXEC [dbo].[GetWorkOrderById] 0,0,29,0,2  
 --    EXEC [dbo].[GetWorkOrderById] 8927,0,0,0,4
@@ -176,7 +176,8 @@ BEGIN
 			SELECT @CreditTermName = [Name] FROM [dbo].[CreditTerms] WITH(NOLOCK) WHERE [CreditTermsId]=@CreditTermsId;
 		END
 		
-		SELECT TOP 1 @ARBalance = ISNULL(ARBalance,0) FROM [dbo].[CustomerCreditTermsHistory] WITH(NOLOCK) WHERE [CustomerId] = @CustomerId ORDER BY [CustomerCreditTermsHistoryId] DESC;
+		--SELECT TOP 1 @ARBalance = ISNULL(ARBalance,0) FROM [dbo].[CustomerCreditTermsHistory] WITH(NOLOCK) WHERE [CustomerId] = @CustomerId ORDER BY [CustomerCreditTermsHistoryId] DESC;
+		SELECT @ARBalance = ISNULL((SELECT TOP 1 TotalOutstanding FROM [dbo].CustomerAging WITH(NOLOCK) WHERE [CustomerId] = @CustomerId ORDER BY CustomerAgingId DESC), 0);
 
 		SELECT TOP 1 @DefaultPriorityId = [DefaultPriorityId],@DefaultStageCodeId = [DefaultStageCodeId],@DefaultStatusId = [DefaultStatusId] FROM [dbo].[WorkOrderSettings] WITH(NOLOCK) WHERE [WorkOrderTypeId] = @WorkOrderTypeId AND [MasterCompanyId] = @MasterCompanyId AND [IsActive] = 1 AND [IsDeleted] = 0;
 
@@ -380,8 +381,8 @@ BEGIN
 			SELECT @CreditTermName = [Name] FROM [dbo].[CreditTerms] WITH(NOLOCK) WHERE [CreditTermsId]=@CreditTermsId;
 		END
 
-		SELECT TOP 1 @ARBalance = ISNULL(ARBalance,0) FROM [dbo].[CustomerCreditTermsHistory] WITH(NOLOCK) WHERE [CustomerId] = @CustomerId ORDER BY [CustomerCreditTermsHistoryId] DESC;
-
+		--SELECT TOP 1 @ARBalance = ISNULL(ARBalance,0) FROM [dbo].[CustomerCreditTermsHistory] WITH(NOLOCK) WHERE [CustomerId] = @CustomerId ORDER BY [CustomerCreditTermsHistoryId] DESC;
+		SELECT @ARBalance = ISNULL((SELECT TOP 1 TotalOutstanding FROM [dbo].CustomerAging WITH(NOLOCK) WHERE [CustomerId] = @CustomerId ORDER BY CustomerAgingId DESC), 0);
 		SELECT TOP 1 @DefaultPriorityId = [DefaultPriorityId],@DefaultStageCodeId = [DefaultStageCodeId],@DefaultStatusId = [DefaultStatusId] FROM [dbo].[WorkOrderSettings] WITH(NOLOCK) WHERE [WorkOrderTypeId] = @WorkOrderTypeId AND [MasterCompanyId] = @MasterCompanyId AND [IsActive] = 1 AND [IsDeleted] = 0;
 		
 		SELECT @TotalRecord = COUNT([RMADeatilsId]), @MinId = MIN(ID) FROM #TempTableForCustomerRMADeatils    
@@ -554,8 +555,8 @@ BEGIN
 			SELECT @CreditTermName = [Name] FROM [dbo].[CreditTerms] WITH(NOLOCK) WHERE [CreditTermsId]=@CreditTermsId;
 		END
 
-		SELECT TOP 1 @ARBalance = ISNULL(ARBalance,0) FROM [dbo].[CustomerCreditTermsHistory] WITH(NOLOCK) WHERE [CustomerId] = @CustomerId ORDER BY [CustomerCreditTermsHistoryId] DESC;
-
+		--SELECT TOP 1 @ARBalance = ISNULL(ARBalance,0) FROM [dbo].[CustomerCreditTermsHistory] WITH(NOLOCK) WHERE [CustomerId] = @CustomerId ORDER BY [CustomerCreditTermsHistoryId] DESC;
+		SELECT @ARBalance = ISNULL((SELECT TOP 1 TotalOutstanding FROM [dbo].CustomerAging WITH(NOLOCK) WHERE [CustomerId] = @CustomerId ORDER BY CustomerAgingId DESC), 0);
 		SELECT TOP 1 @DefaultPriorityId = [DefaultPriorityId],@DefaultStageCodeId = [DefaultStageCodeId],@DefaultStatusId = [DefaultStatusId] FROM [dbo].[WorkOrderSettings] WITH(NOLOCK) WHERE [WorkOrderTypeId] = @WorkOrderTypeId AND [MasterCompanyId] = @MasterCompanyId AND [IsActive] = 1 AND [IsDeleted] = 0;
 		
 		SET @IsSinglePN = 1;
@@ -1150,8 +1151,8 @@ BEGIN
 
 				SELECT TOP 1 @CustomerFinancialId=[CustomerFinancialId],@CreditLimit=[CreditLimit],@CreditTermsId=ISNULL([CreditTermsId],0),@CurrencyId=[CurrencyId] FROM [dbo].[CustomerFinancial] WITH(NOLOCK) WHERE [CustomerId] = @CustomerId;
 				
-				SELECT TOP 1 @ARBalance = ISNULL([ARBalance],0) FROM [dbo].[CustomerCreditTermsHistory] WITH(NOLOCK) WHERE [CustomerId] = @CustomerId ORDER BY [CustomerCreditTermsHistoryId] DESC;
-				
+				--SELECT TOP 1 @ARBalance = ISNULL([ARBalance],0) FROM [dbo].[CustomerCreditTermsHistory] WITH(NOLOCK) WHERE [CustomerId] = @CustomerId ORDER BY [CustomerCreditTermsHistoryId] DESC;
+				SELECT @ARBalance = ISNULL((SELECT TOP 1 TotalOutstanding FROM [dbo].CustomerAging WITH(NOLOCK) WHERE [CustomerId] = @CustomerId ORDER BY CustomerAgingId DESC), 0);
 				SELECT TOP 1 @RCReference = [Reference] FROM [dbo].[ReceivingCustomerWork] WITH(NOLOCK) WHERE [ReceivingCustomerWorkId] = @ReceivingCustomerWorkId;
 
 				IF(@CustomerFinancialId > 0 AND @CreditTermsId > 0)

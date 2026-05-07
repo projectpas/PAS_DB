@@ -16,6 +16,7 @@
  ** --   --------     -------			--------------------------------          
     1	07/25/2024	Abhishek Jirawla	Created
     2	08/06/2024	Rajesh Gami     	Implemented 'CustomerReference','IsCopyUnitPrice','IsCopyQty','IsCopyNote' for the make duplicate
+	3   07/May/2026	  Rajesh Gami		ARBalance Getting From New Table CustomerAging Instead Of CustomerCreditTermsHistory [PN-16092]
 **********************/
 CREATE  PROCEDURE [dbo].[USP_DuplicateSpeedQuote]
 	@SpeedQuoteId BIGINT,
@@ -68,7 +69,7 @@ BEGIN
 
 		SELECT @CreditTermsId = CreditTermsId FROM [dbo].[CustomerFinancial] WITH(NOLOCK)  WHERE CustomerId = @CustomerId
 		SELECT @CreditLimit = CreditLimit FROM [dbo].[CustomerFinancial] WITH(NOLOCK)  WHERE CustomerId = @CustomerId
-		SELECT @ARBalance = ARBalance FROM [dbo].[CustomerCreditTermsHistory] WITH(NOLOCK)  WHERE CustomerId = @CustomerId
+		SELECT TOP 1 @ARBalance = TotalOutstanding FROM [dbo].[CustomerAging] WITH(NOLOCK)  WHERE CustomerId = @CustomerId ORDER BY CustomerAgingId DESC
 
 		SELECT @CreditTermName = [Name] FROM CreditTerms WITH(NOLOCK) WHERE [CreditTermsId] = @CreditTermsId
 

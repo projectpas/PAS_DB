@@ -20,6 +20,7 @@
     5    06/02/2025		EKTA CHANDEGRA	 Add changes for can reserve stockline
     6    18/02/2025		VISHAL SUTHAR	 Modified to change SO Status to always OPEN when duplicated from any other status
 	9	 28/02/2024		Ayushi Patel	 Cast OpenDate As A Date
+    10   07/May/2026	Rajesh Gami	      ARBalance Getting From New Table CustomerAging Instead Of CustomerCreditTermsHistory [PN-16092] 
 exec dbo.CopySalesOrder @SalesOrderId=1730,@CreatedBy=N'EKTA CHANDEGARA',@TransferSOApproval=1,
 @CustomerId=85,@CustomerReference=N'test',@FunctionalCurrencyId=3,@ForeignExchangeRate=1.000000,
 @ReportCurrencyId=3,@EmployeeId=211
@@ -140,9 +141,11 @@ BEGIN
 				 WHERE C.CustomerId = @CustomerId
 
 			-- Fetch ARBalance details by customerId
-				 SELECT TOP 1 
-				 @BalanceDue = CCTH.ARBalance FROM [dbo].[CustomerCreditTermsHistory] CCTH WITH(NOLOCK) WHERE CCTH.CustomerId = @CustomerId 
-				 ORDER BY CCTH.UpdatedDate DESC; 
+				 --SELECT TOP 1 
+				 --@BalanceDue = CCTH.ARBalance FROM [dbo].[CustomerCreditTermsHistory] CCTH WITH(NOLOCK) WHERE CCTH.CustomerId = @CustomerId 
+				 --ORDER BY CCTH.UpdatedDate DESC; 
+				 SELECT @BalanceDue = ISNULL(( SELECT TOP 1 TotalOutstanding FROM CustomerAging cch WITH(NOLOCK) WHERE cch.CustomerId = @CustomerId  ORDER BY CustomerAgingId DESC), 0);
+
 
 			-- Insert SalesOrder
 				INSERT INTO [dbo].[SalesOrder]

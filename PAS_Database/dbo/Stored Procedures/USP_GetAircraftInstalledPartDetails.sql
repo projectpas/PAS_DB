@@ -20,6 +20,7 @@
 ** 8    2026-04-23   Amit Ghediya		Get item data from table [PN-16162]
 ** 9    2026-05-04   Abhishek Jirawla	@AircraftRegistryId if nullable get all dataa [PN-16282]
 ** 10   2026-05-07	 Priyansh Patel		Fixed the Remaining time calculation [PN-16306]
+** 11   2026-05-07	 Abhishek Jirawla	Adding Make Type and Model [PN-16282]
 
 *********************/
 CREATE   PROCEDURE [dbo].[USP_GetAircraftInstalledPartDetails]
@@ -31,6 +32,8 @@ CREATE   PROCEDURE [dbo].[USP_GetAircraftInstalledPartDetails]
 	@GlobalFilter VARCHAR(50) = NULL,
 	@SequenceNum VARCHAR(10) = NULL,
 	@PartNumber VARCHAR(100) = NULL,
+	@MakeType VARCHAR(50) = NULL,
+	@Model VARCHAR(100) = NULL,
 	@AircraftRegistryNumber VARCHAR(30) = NULL,
 	@TailNum VARCHAR(50) = NULL,
 	@SerialNum VARCHAR(100) = NULL,
@@ -68,6 +71,8 @@ BEGIN
         (
             SELECT
                 AIPD.AircraftInstalledPartDetailsId,
+				ARH.MakeType,
+				ARH.AircraftModel AS Model,
 				ARH.TailNum,
 				ARH.SerialNum,
                 AIPD.ATAChapterId,
@@ -146,6 +151,8 @@ BEGIN
         ), ResultCount AS(SELECT COUNT(AircraftInstalledPartDetailsId) AS totalItems FROM Result)
 			SELECT * INTO #TempResult FROM  Result
 			 WHERE ((@GlobalFilter <>'' AND ((AircraftRegistryNumber LIKE '%' +@GlobalFilter+'%') OR
+					(MakeType LIKE '%' +@GlobalFilter+'%') OR
+					(Model LIKE '%' +@GlobalFilter+'%') OR
 					(TailNum LIKE '%' +@GlobalFilter+'%') OR
 					(SerialNum LIKE '%' +@GlobalFilter+'%') OR
 					([PartNumber] LIKE '%' +@GlobalFilter+'%') OR
@@ -167,6 +174,8 @@ BEGIN
 					(PositionCode LIKE '%' +@GlobalFilter+'%'))) OR
 					(@GlobalFilter='' AND 
 					(ISNULL(@AircraftRegistryNumber,'') ='' OR [AircraftRegistryNumber] LIKE '%' + @AircraftRegistryNumber+'%') AND
+					(ISNULL(@MakeType,'') ='' OR [MakeType] LIKE '%' + @MakeType+'%') AND
+					(ISNULL(@Model,'') ='' OR [Model] LIKE '%' + @Model+'%') AND
 					(ISNULL(@TailNum,'') ='' OR [TailNum] LIKE '%' + @TailNum+'%') AND
 					(ISNULL(@SerialNum,'') ='' OR [SerialNum] LIKE '%' + @SerialNum+'%') AND
 					(ISNULL(@PartNumber,'') ='' OR [PartNumber] LIKE '%' + @PartNumber+'%') AND
@@ -195,6 +204,12 @@ BEGIN
 			
             CASE WHEN @SortOrder =  1 AND @SortColumn = 'AircraftRegistryNumber'      THEN AircraftRegistryNumber      END ASC,
             CASE WHEN @SortOrder = -1 AND @SortColumn = 'AircraftRegistryNumber'      THEN AircraftRegistryNumber      END DESC,
+            
+			CASE WHEN @SortOrder =  1 AND @SortColumn = 'MakeType'      THEN MakeType      END ASC,
+            CASE WHEN @SortOrder = -1 AND @SortColumn = 'MakeType'      THEN MakeType      END DESC,
+            
+			CASE WHEN @SortOrder =  1 AND @SortColumn = 'Model'      THEN Model      END ASC,
+            CASE WHEN @SortOrder = -1 AND @SortColumn = 'Model'      THEN Model      END DESC,
             
 			CASE WHEN @SortOrder =  1 AND @SortColumn = 'TailNum'      THEN TailNum      END ASC,
             CASE WHEN @SortOrder = -1 AND @SortColumn = 'TailNum'      THEN TailNum      END DESC,

@@ -11,6 +11,7 @@ Exec [usp_SaveTurnInAircraftMaterials]
 ** --   --------    -------         --------------------------------  
    1    08/04/2026  Amit Ghediya		Created  
    2	07/05/2026  Nakul Chandigra		Added two new field in stockline Save (PN-16315)
+   3	07/05/2026  Nakul Chandigra		Changed Size of two new field  (PN-16315)
 **************************************************************/   
 CREATE     PROCEDURE [dbo].[usp_SaveTurnInAircraftMaterials]  
 	@IsCustomerStock BIT = 0,  
@@ -51,8 +52,8 @@ CREATE     PROCEDURE [dbo].[usp_SaveTurnInAircraftMaterials]
 	@Unitcost [decimal](18,6) = 0,
 	@ProvisionId INT =0, 
 	@EvidenceId INT = NULL,
-	@AircraftTail VARCHAR(500) = NULL,  
-	@AircraftSN VARCHAR(500) = NULL
+	@AircraftTail VARCHAR(400) = NULL,  
+	@AircraftSN VARCHAR(30) = NULL
 AS  
 BEGIN  
    

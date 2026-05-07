@@ -31,6 +31,7 @@ CREATE   PROCEDURE [dbo].[USP_GetAircraftPublicationList]
 
 	@EntryDate   DATETIME        = NULL,
 	@VerifiedBy     VARCHAR(100)    = NULL,
+	@PubDate   DATETIME        = NULL,
 	@CreatedDate   DATETIME        = NULL,
 	@CreatedBy     VARCHAR(100)    = NULL,
 
@@ -68,6 +69,7 @@ BEGIN
                 AP.PurposeReasonBackground,
                 AP.EntryDate,
                 EMP.FirstName + EMP.LastName AS VerifiedBy,
+				AP.PubDate,
 				AP.CreatedDate,
 				AP.CreatedBy,
 				AP.UpdatedDate,
@@ -126,6 +128,7 @@ BEGIN
 				AND (NULLIF(@PurposeReasonBackground, '') IS NULL OR AP.PurposeReasonBackground LIKE '%' + @PurposeReasonBackground + '%')
 				AND (@EntryDate IS NULL OR CAST(AP.EntryDate AS DATE) = CAST(@EntryDate AS DATE))
 				AND (NULLIF(@VerifiedBy, '') IS NULL OR CAST(EMP.FirstName + EMP.LastName AS VARCHAR) LIKE '%' + @VerifiedBy + '%')
+				AND (@PubDate IS NULL OR CAST(AP.PubDate AS DATE) = CAST(@PubDate AS DATE))
 				AND (@CreatedDate IS NULL OR CAST(AP.CreatedDate AS DATE) = CAST(@CreatedDate AS DATE))
 				AND (NULLIF(@CreatedBy, '') IS NULL OR AP.CreatedBy LIKE '%' + @CreatedBy + '%')
 				AND (@UpdatedDate IS NULL OR CAST(AP.UpdatedDate AS DATE) = CAST(@UpdatedDate AS DATE))
@@ -145,6 +148,7 @@ BEGIN
             PurposeReasonBackground,
             EntryDate,
             VerifiedBy,
+			PubDate,
 			CreatedDate,
 			CreatedBy,
 			UpdatedDate,
@@ -214,6 +218,10 @@ BEGIN
 			-- VerifiedBy
 			CASE WHEN @SortColumn = 'VerifiedBy' AND @SortOrder = 'ASC'  THEN VerifiedBy END ASC,
 			CASE WHEN @SortColumn = 'VerifiedBy' AND @SortOrder = 'DESC' THEN VerifiedBy END DESC,
+
+			-- PubDate
+			CASE WHEN @SortColumn = 'PubDate' AND @SortOrder = 'ASC'  THEN PubDate END ASC,
+			CASE WHEN @SortColumn = 'PubDate' AND @SortOrder = 'DESC' THEN PubDate END DESC,
 
 			-- CreatedDate
 			CASE WHEN @SortColumn = 'CreatedDate' AND @SortOrder = 'ASC'  THEN CreatedDate END ASC,

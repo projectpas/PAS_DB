@@ -20,6 +20,7 @@
 ** 8    2026-04-23   Amit Ghediya		Get item data from table [PN-16162]
 ** 9    2026-05-04   Abhishek Jirawla	@AircraftRegistryId if nullable get all dataa [PN-16282]
 ** 10   2026-05-07	 Priyansh Patel		Fixed the Remaining time calculation [PN-16306]
+** 11   2026-05-04   Amit Ghediya		ATA Chapter level shows “-” when no data exists [PN-16249]
 
 *********************/
 CREATE   PROCEDURE [dbo].[USP_GetAircraftInstalledPartDetails]
@@ -71,7 +72,11 @@ BEGIN
 				ARH.TailNum,
 				ARH.SerialNum,
                 AIPD.ATAChapterId,
-				CONCAT_WS(' - ', IMAM.Level1, IMAM.Level2, IMAM.Level3) AS AtaChapter,
+				CONCAT_WS(' - ',
+				   NULLIF(IMAM.Level1, ''),
+				   NULLIF(IMAM.Level2, ''),
+				   NULLIF(IMAM.Level3, '')
+			   ) AS AtaChapter,
                 AIPD.PartNumber,
                 AIPD.PartDescription,
 				AIPD.SequenceNum,

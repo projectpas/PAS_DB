@@ -39,7 +39,10 @@ CREATE   PROCEDURE [dbo].[USP_GetAircraftPublicationList]
 	@UpdatedBy     VARCHAR(100)    = NULL,
     @IsActive           BIT             = NULL,
 	@MasterCompanyId    INT,
-	@IsDeleted          BIT             = 0
+	@IsDeleted          BIT             = 0,
+
+	@FromPubDate   DATETIME        = NULL,
+	@ToPubDate   DATETIME        = NULL
 AS
 BEGIN
     --SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
@@ -88,6 +91,11 @@ BEGIN
             WHERE
                 AP.MasterCompanyId = @MasterCompanyId
                 AND (@IsDeleted IS NULL OR AP.IsDeleted = @IsDeleted)
+				AND ((@FromPubDate IS NULL AND @ToPubDate IS NULL)
+						OR CAST(AP.PubDate AS DATE) BETWEEN 
+						CAST(@FromPubDate AS DATE) 
+						AND CAST(@ToPubDate AS DATE)
+					)
                 AND (
      --               @GlobalFilter IS NULL
      --               OR AP.AircraftPublicationNumber  LIKE '%' + @GlobalFilter + '%'

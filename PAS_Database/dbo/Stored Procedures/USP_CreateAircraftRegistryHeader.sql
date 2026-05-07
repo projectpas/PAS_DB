@@ -94,6 +94,8 @@ BEGIN
             FROM dbo.[AircraftRegistryHeader] AR
             INNER JOIN @tbl_AircraftRegistryHeaderType T ON AR.AircraftRegistryId = T.AircraftRegistryId
             WHERE T.AircraftRegistryId IS NOT NULL;
+
+            SELECT 1 AS Status, 'Saved successfully' AS Message
 	    END
 	    ELSE
 	    BEGIN

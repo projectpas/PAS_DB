@@ -100,6 +100,7 @@ BEGIN
                 AMP.UpdatedBy,
                 AMP.CreatedDate,
                 AMP.CreatedBy,
+				AMP.TemplateId,
                 COUNT(1) OVER () AS TotalRecords
 
             FROM [dbo].[AircraftMaintenanceProgram] AMP WITH (NOLOCK)

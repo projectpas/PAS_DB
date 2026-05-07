@@ -9,6 +9,7 @@
 ** --   ----------   -------------      -------------------------
 ** 1    10/04/2026   Priyansh Patel     Created [PN-16016]
 ** 2    28/04/2026   Priyansh Patel     Added Mtce Class [PN-16160]
+** 3    07/05/2026   Priyansh Patel     Added TemplateIdNumber [PN-16344]
 
 ************************************************************/
 
@@ -29,6 +30,7 @@
     @NextScheduled           DATETIME        = NULL,
     @MaintenanceType         VARCHAR(200)    = NULL,
     @TemplateId              BIGINT          = NULL,
+    @TemplateIdNumber        VARCHAR(100)     = NULL,
     @TemplateVersionNumber   VARCHAR(50)    = NULL,
     @FlightHoursLimit        VARCHAR(20) = NULL,
     @CyclesLimit             VARCHAR(50) = NULL,
@@ -56,11 +58,13 @@ BEGIN
     SET NOCOUNT ON;
 
     BEGIN TRY
+        DECLARE @ACTemplateType INT  = 2;
 
         WITH CTE AS
         (
             SELECT
-                AMP.ProgramId,AMP.AircraftRegistryId,AMP.VersionNumber,AMP.MaintenanceType, AMP.MaintenanceTypeId,AMP.NextScheduledMaintenance,AMP.TemplateId,AMP.TemplateVersionNumber,
+                AMP.ProgramId,AMP.AircraftRegistryId,AMP.VersionNumber,AMP.MaintenanceType, AMP.MaintenanceTypeId,AMP.NextScheduledMaintenance,
+                WF.WorkOrderNumber AS TemplateIdNumber,AMP.TemplateVersionNumber,
                 ARH.TailNum AS TailNumber,
                 ARH.MakeType AS AircraftMake,
                 ARH.AircraftModel,
@@ -87,7 +91,7 @@ BEGIN
                 AMP.LandingsRecorded,
                 AMP.EngineStartsRecorded,
                 -- Remaining
-                AMP.CyclesRemaining,
+                CASE WHEN AMP.CyclesRemaining > 0 THEN AMP.CyclesRemaining ELSE NULL END AS CyclesRemaining,
                 AMP.TimeRemaining,
                 AMP.LandingsRemaining,
                 AMP.EngineStartsRemaining,
@@ -101,6 +105,8 @@ BEGIN
             FROM [dbo].[AircraftMaintenanceProgram] AMP WITH (NOLOCK)
             LEFT JOIN [dbo].[AircraftRegistryHeader] ARH WITH (NOLOCK) ON AMP.AircraftRegistryId = ARH.AircraftRegistryId  AND ARH.MasterCompanyId = @MasterCompanyId 
             LEFT JOIN [dbo].[MaintenanceClass] MC WITH (NOLOCK)  ON AMP.MaintenanceClassId = MC.MaintenanceClassId
+            LEFT JOIN [dbo].[Workflow] WF WITH (NOLOCK)  ON AMP.TemplateId = WF.WorkflowId AND WF.TemplateType = @ACTemplateType
+
             WHERE AMP.AircraftRegistryId = @AircraftRegistryId  AND AMP.MasterCompanyId = @MasterCompanyId  AND (@IsDeleted IS NULL OR AMP.IsDeleted = @IsDeleted)
                 -- Global Filter
                 AND ( @GlobalFilter IS NULL OR AMP.TailNumber       LIKE '%' + @GlobalFilter + '%' OR CAST(AMP.ProgramId AS VARCHAR(50))   LIKE '%' + @GlobalFilter + '%' OR
@@ -116,6 +122,7 @@ BEGIN
                 AND (@MaintenanceType IS NULL OR AMP.MaintenanceType LIKE '%' + @MaintenanceType + '%')
                 AND (@TemplateId      IS NULL OR AMP.TemplateId = @TemplateId)
                 AND (@TemplateVersionNumber IS NULL OR AMP.TemplateVersionNumber LIKE '%' + @TemplateVersionNumber + '%')
+                AND (@TemplateIdNumber IS NULL OR WF.WorkOrderNumber LIKE '%' + @TemplateIdNumber + '%')
                 AND (@IsActive        IS NULL OR AMP.IsActive = @IsActive)
                 AND (@NextScheduled   IS NULL OR CAST(AMP.NextScheduledMaintenance AS DATE) = CAST(@NextScheduled AS DATE))
                 AND (@MaintenanceClassName IS NULL  OR MC.[Name] LIKE '%' + @MaintenanceClassName + '%')
@@ -155,8 +162,8 @@ BEGIN
             CASE WHEN @SortColumn = 'SerialNumber'     AND @SortOrder = 'DESC' THEN SerialNumber END DESC,
             CASE WHEN @SortColumn = 'MaintenanceType'   AND @SortOrder = 'ASC'  THEN MaintenanceType END ASC,
             CASE WHEN @SortColumn = 'MaintenanceType'   AND @SortOrder = 'DESC' THEN MaintenanceType END DESC,
-            CASE WHEN @SortColumn = 'TemplateId'   AND @SortOrder = 'ASC'  THEN TemplateId END ASC,
-            CASE WHEN @SortColumn = 'TemplateId'   AND @SortOrder = 'DESC' THEN TemplateId END DESC,
+            CASE WHEN @SortColumn = 'TemplateId'   AND @SortOrder = 'ASC'  THEN TemplateIdNumber END ASC,
+            CASE WHEN @SortColumn = 'TemplateId'   AND @SortOrder = 'DESC' THEN TemplateIdNumber END DESC,
             CASE WHEN @SortColumn = 'TemplateVersionNumber'   AND @SortOrder = 'ASC'  THEN TemplateVersionNumber END ASC,
             CASE WHEN @SortColumn = 'TemplateVersionNumber'   AND @SortOrder = 'DESC' THEN TemplateVersionNumber END DESC,
             CASE WHEN @SortColumn = 'NextScheduledMaintenance' AND @SortOrder = 'ASC'  THEN NextScheduledMaintenance END ASC,

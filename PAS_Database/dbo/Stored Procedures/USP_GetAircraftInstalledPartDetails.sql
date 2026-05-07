@@ -19,7 +19,8 @@
 ** 7    2026-04-23   Priyansh Patel		Added IsCustomerStock from stockline [PN-16174]
 ** 8    2026-04-23   Amit Ghediya		Get item data from table [PN-16162]
 ** 9    2026-05-04   Abhishek Jirawla	@AircraftRegistryId if nullable get all dataa [PN-16282]
-** 10   2026-05-04   Amit Ghediya		ATA Chapter level shows “-” when no data exists [PN-16249]
+** 10   2026-05-07	 Priyansh Patel		Fixed the Remaining time calculation [PN-16306]
+** 11   2026-05-04   Amit Ghediya		ATA Chapter level shows “-” when no data exists [PN-16249]
 
 *********************/
 CREATE   PROCEDURE [dbo].[USP_GetAircraftInstalledPartDetails]
@@ -103,12 +104,24 @@ BEGIN
                 AIPD.PositionCode,
                 AIPD.[Hours],
                 AIPD.[Minutes],
-                AIPD.PartFlightHours AS 'FlightHours',
+				AIPD.PartFlightHours AS 'FlightHours',
 				AIPD.PartFlightMinutes AS 'FlightMinutes',
-				AIPD.FlightHours AS 'RecordFlightHours', 
-				AIPD.FlightMinutes AS 'RecordFlightMinutes', 				
-				CASE WHEN ISNULL(AIPD.PartFlightHours,0) > 0 THEN  ISNULL(AIPD.PartFlightHours,0) - ISNULL(AIPD.FlightHours,0) ELSE  0 END AS 'RemainingFlightHours', 
-				CASE WHEN ISNULL(AIPD.PartFlightMinutes,0) > 0 THEN  ISNULL(AIPD.PartFlightMinutes,0) - ISNULL(AIPD.FlightMinutes,0) ELSE  0 END AS 'RemainingFlightMinutes', 
+				ISNULL(AIPD.FlightHours,0) + CAST(ISNULL(AIPD.FlightMinutes,0) AS INT) / 60 AS 'RecordFlightHours',
+				CAST(ISNULL(AIPD.FlightMinutes,0) AS INT) % 60 AS 'RecordFlightMinutes',
+				CASE 
+					WHEN ISNULL(AIPD.PartFlightHours,0) = 0 AND ISNULL(AIPD.PartFlightMinutes,0) = 0 THEN 0
+					WHEN (CAST(ISNULL(AIPD.PartFlightHours,0) AS INT) * 60 + CAST(ISNULL(AIPD.PartFlightMinutes,0) AS INT))
+					   - (CAST(ISNULL(AIPD.FlightHours,0) AS INT) * 60 + CAST(ISNULL(AIPD.FlightMinutes,0) AS INT)) < 0 THEN 0
+					ELSE ((CAST(ISNULL(AIPD.PartFlightHours,0) AS INT) * 60 + CAST(ISNULL(AIPD.PartFlightMinutes,0) AS INT))
+					   - (CAST(ISNULL(AIPD.FlightHours,0) AS INT) * 60 + CAST(ISNULL(AIPD.FlightMinutes,0) AS INT))) / 60
+				END AS 'RemainingFlightHours',
+				CASE 
+					WHEN ISNULL(AIPD.PartFlightHours,0) = 0 AND ISNULL(AIPD.PartFlightMinutes,0) = 0 THEN 0
+					WHEN (CAST(ISNULL(AIPD.PartFlightHours,0) AS INT) * 60 + CAST(ISNULL(AIPD.PartFlightMinutes,0) AS INT))
+					   - (CAST(ISNULL(AIPD.FlightHours,0) AS INT) * 60 + CAST(ISNULL(AIPD.FlightMinutes,0) AS INT)) < 0 THEN 0
+					ELSE ((CAST(ISNULL(AIPD.PartFlightHours,0) AS INT) * 60 + CAST(ISNULL(AIPD.PartFlightMinutes,0) AS INT))
+					   - (CAST(ISNULL(AIPD.FlightHours,0) AS INT) * 60 + CAST(ISNULL(AIPD.FlightMinutes,0) AS INT))) % 60
+				END AS 'RemainingFlightMinutes',
                 AIPD.PartCycles AS 'Cycles',
 				AIPD.Cycles AS 'RecordCycles',
 				CASE WHEN ISNULL(AIPD.PartCycles,0) > 0 THEN  ISNULL(AIPD.PartCycles,0) - ISNULL(AIPD.Cycles,0) ELSE  0 END AS 'RemainingCycles',

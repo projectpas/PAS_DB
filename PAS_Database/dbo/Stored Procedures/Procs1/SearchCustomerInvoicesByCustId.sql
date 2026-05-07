@@ -39,6 +39,7 @@
 	27   27/06/2025   Moin Bloch		Modify(Changed To New Table)
 	28   07/07/2025   Rajesh Gami		FIXED: If Standard invoice posted then no need to display proformainvoice 
 	29 	 01-Apr-2026  Rajesh Gami		UOM Conversion Changes [PN-15866]
+	30   07/May/2026  Rajesh Gami	     ARBalance Getting From New Table CustomerAging Instead Of CustomerCreditTermsHistory [PN-16092]
 EXEC  [dbo].[SearchCustomerInvoicesByCustId] 90,1,226 
 **************************************************************/ 
 
@@ -133,7 +134,7 @@ FROM (
 			   MSD.LastMSLevel,      
 			   MSD.AllMSlevels,      
 			   1 AS InvoiceType,      
-			   ISNULL(H.ARBalance,0) AS ARBalance,      
+			   ISNULL(H.TotalOutstanding,0) AS ARBalance,      
 			   C.Ismiscellaneous,
 			   0 AS 'ExchangeSalesOrderScheduleBillingId',
 			   0 AS 'BillingId',
@@ -150,8 +151,8 @@ FROM (
 			  INNER JOIN [dbo].[ManagementStructureType] MST WITH(NOLOCK) ON MST.TypeID = ML.TypeID AND MST.SequenceNo = @Level1SequenceNo AND MST.MasterCompanyId = S.MasterCompanyId
 	          OUTER APPLY       
 			  (       
-				 SELECT TOP 1 ARBalance FROM [dbo].[CustomerCreditTermsHistory] cch WITH(NOLOCK)      
-				 WHERE c.CustomerId = @customerId ORDER BY CustomerCreditTermsHistoryId DESC      
+				 SELECT TOP 1 TotalOutstanding FROM [dbo].CustomerAging cch WITH(NOLOCK)      
+				 WHERE c.CustomerId = @customerId ORDER BY CustomerAgingId DESC      
 			  ) H      
 		WHERE SOBI.InvoiceStatus = 'Invoiced'      
 			  AND SOBI.CustomerId = @customerId 
@@ -161,7 +162,7 @@ FROM (
 			  AND ISNULL(SOBI.IsStandardInvoicePosted,0)= 0
 		GROUP BY SOBI.ReferenceId,SOBI.InvoiceNo,C.CustomerId, C.Name, C.CustomerCode, SOBI.BillingInvoicingId, SOBI.InvoiceNo, SOBI.InvoiceDate, S.Days, SOBI.PostedDate, S.SalesOrderNumber,      
 			  S.CustomerReference, Curr.Code, SOBI.GrandTotal,SOBI.RemainingAmount, SOBI.InvoiceDate, S.BalanceDue, CF.CreditLimit, S.CreditTermName, p.[PercentValue],       
-			  MSD.LastMSLevel,MSD.AllMSlevels,S.NetDays,ARBalance,C.Ismiscellaneous,SOBI.IsPerformaInvoice,msq.[Name]--,SOBI.CreditMemoUsed      
+			  MSD.LastMSLevel,MSD.AllMSlevels,S.NetDays,TotalOutstanding,C.Ismiscellaneous,SOBI.IsPerformaInvoice,msq.[Name]--,SOBI.CreditMemoUsed      
       
 		UNION ALL    
       
@@ -203,7 +204,7 @@ FROM (
 			 MSD.LastMSLevel,      
 			 MSD.AllMSlevels,         
 			 2 AS InvoiceType,      
-			 ISNULL(H.ARBalance,0) AS ARBalance,      
+			 ISNULL(H.TotalOutstanding,0) AS ARBalance,      
 			 C.Ismiscellaneous,
 			 0 AS 'ExchangeSalesOrderScheduleBillingId',
 			 0 AS 'BillingId',
@@ -222,8 +223,8 @@ FROM (
 			 INNER JOIN [dbo].[ManagementStructureType] MST WITH(NOLOCK) ON MST.TypeID = ML.TypeID AND MST.SequenceNo = @Level1SequenceNo AND MST.MasterCompanyId = WO.MasterCompanyId
 			 OUTER APPLY       
 			 (       
-					 SELECT TOP 1 ARBalance FROM [dbo].[CustomerCreditTermsHistory] cch WITH(NOLOCK)      
-					 WHERE c.CustomerId = @customerId ORDER BY CustomerCreditTermsHistoryId DESC      
+					 SELECT TOP 1 TotalOutstanding FROM [dbo].CustomerAging cch WITH(NOLOCK)      
+					 WHERE c.CustomerId = @customerId ORDER BY CustomerAgingId DESC      
 			 ) H      
 		WHERE WOBI.InvoiceStatus = 'Invoiced' 
 		AND WOBI.CustomerId = @customerId 
@@ -233,7 +234,7 @@ FROM (
 		AND WOBI.ModuleId = @WOModuleId 
 		GROUP BY  WOBI.ReferenceId,WOBI.InvoiceNo,C.CustomerId, C.Name, C.CustomerCode, WOBI.BillingInvoicingId, WOBI.InvoiceNo, WOBI.InvoiceDate, WO.Days, WOBI.PostedDate, WO.WorkOrderNum,      
 			 Curr.Code, WOBI.GrandTotal,WOBI.RemainingAmount, WOBI.InvoiceDate, p.[PercentValue],      --wop.CustomerReference,
-			 CF.CreditLimit, WO.CreditTerms,MSD.LastMSLevel,MSD.AllMSlevels,WO.NetDays,ARBalance,C.Ismiscellaneous,WOBI.IsPerformaInvoice,WOS.[Description]--,WOBI.CreditMemoUsed      
+			 CF.CreditLimit, WO.CreditTerms,MSD.LastMSLevel,MSD.AllMSlevels,WO.NetDays,TotalOutstanding,C.Ismiscellaneous,WOBI.IsPerformaInvoice,WOS.[Description]--,WOBI.CreditMemoUsed      
       
 		UNION ALL    
     
@@ -440,7 +441,7 @@ FROM (
 			  MSD.LastMSLevel,      
 			  MSD.AllMSlevels,      
 			  6 AS InvoiceType,      
-			  ISNULL(H.ARBalance,0) AS ARBalance,      
+			  ISNULL(H.TotalOutstanding,0) AS ARBalance,      
 			  C.Ismiscellaneous,
 			  ESOBI.ExchangeSalesOrderScheduleBillingId,
 			  ESOBI.BillingId,
@@ -457,15 +458,15 @@ FROM (
 			INNER JOIN [dbo].[ManagementStructureType] MST WITH(NOLOCK) ON MST.TypeID = ML.TypeID AND MST.SequenceNo = @Level1SequenceNo AND MST.MasterCompanyId = ES.MasterCompanyId
 	        OUTER APPLY       
 			(       
-			SELECT TOP 1 ARBalance FROM [dbo].[CustomerCreditTermsHistory] cch WITH(NOLOCK)      
-			WHERE c.CustomerId = @customerId ORDER BY CustomerCreditTermsHistoryId DESC      
+			SELECT TOP 1 TotalOutstanding FROM [dbo].[CustomerAging] cch WITH(NOLOCK)      
+			WHERE c.CustomerId = @customerId ORDER BY CustomerAgingId DESC      
 			) H      
 		WHERE ESOBI.InvoiceStatus = 'Invoiced'     
 			  AND ES.IsVendor = 0
 			  AND ESOBI.CustomerId = @customerId AND ESOBI.RemainingAmount > 0     
 		GROUP BY ESOBI.ExchangeSalesOrderId,ESOBI.InvoiceNo,C.CustomerId, C.Name, C.CustomerCode, ESOBI.SOBillingInvoicingId, ESOBI.InvoiceNo, ESOBI.InvoiceDate, ES.Days, ESOBI.PostedDate, ES.ExchangeSalesOrderNumber,      
 			  ES.CustomerReference, Curr.Code, ESOBI.GrandTotal,ESOBI.RemainingAmount, ESOBI.InvoiceDate, ES.BalanceDue, CF.CreditLimit, ES.CreditTermName, p.[PercentValue],       
-			  MSD.LastMSLevel,MSD.AllMSlevels,ES.NetDays,ARBalance,C.Ismiscellaneous,ExchangeSalesOrderScheduleBillingId,BillingId,EST.[Name] 
+			  MSD.LastMSLevel,MSD.AllMSlevels,ES.NetDays,TotalOutstanding,C.Ismiscellaneous,ExchangeSalesOrderScheduleBillingId,BillingId,EST.[Name] 
 			  ) AS FinalResult ORDER BY InvoiceDate DESC;
     
  END TRY          

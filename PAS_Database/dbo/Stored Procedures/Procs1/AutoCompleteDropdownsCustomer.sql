@@ -16,7 +16,7 @@
 	1    05/05/2020   Hemant Saliya			Added Try-catch & Content Managment
 	3    05/25/2020   Subhash Saliya		Get Data From Customer type wise
 	4    03/17/2026   Amit Ghediya			add IncludeInternalCustomer flag for allow internal & Affiliate customer (PN-15762)
-     
+ 	5    07/May/2026  Rajesh Gami	        ARBalance Getting From New Table CustomerAging Instead Of CustomerCreditTermsHistory [PN-16092]    
 -- EXEC [AutoCompleteDropdownsCustomer] '',1,25,'0',1,1
 **************************************************************/
 
@@ -68,7 +68,7 @@ BEGIN
 								ct.Name CreditTerm,
 								c.RestrictPMA,
 								c.RestrictDER,
-								ISNULL(H.ARBalance,0) as ARBalance
+								ISNULL(H.TotalOutstanding,0) as ARBalance
 							FROM dbo.Customer c WITH(NOLOCK)
 								LEFT JOIN dbo.CustomerSales cs WITH(NOLOCK) ON c.CustomerId =  cs.CustomerId
 								LEFT JOIN dbo.CustomerFinancial cf WITH(NOLOCK) ON c.CustomerId =  cf.CustomerId
@@ -79,8 +79,8 @@ BEGIN
 								LEFT JOIN dbo.CreditTerms ct WITH(NOLOCK) ON cf.CreditTermsId = ct.CreditTermsId
 								OUTER APPLY 
 									( 
-									SELECT top 1 ARBalance FROM CustomerCreditTermsHistory cch WITH(NOLOCK)
-									WHERE c.CustomerId = cch.CustomerId order by CustomerCreditTermsHistoryId desc
+									SELECT top 1 TotalOutstanding FROM CustomerAging cch WITH(NOLOCK)
+									WHERE c.CustomerId = cch.CustomerId order by CustomerAgingId desc
 									) H 
 							WHERE (c.IsActive = 1 AND ISNULL(c.IsDeleted, 0) = 0 AND c.MasterCompanyId = @MasterCompanyId  AND (c.Name LIKE  '%'+ @StartWith + '%'))   
 							AND (
@@ -105,7 +105,7 @@ BEGIN
 								ct.Name CreditTerm,
 								c.RestrictPMA,
 								c.RestrictDER,
-								ISNULL(H.ARBalance,0) as ARBalance
+								ISNULL(H.TotalOutstanding,0) as ARBalance
 							FROM dbo.Customer c WITH(NOLOCK)
 								LEFT JOIN dbo.CustomerSales cs WITH(NOLOCK) ON c.CustomerId =  cs.CustomerId
 								LEFT JOIN dbo.CustomerFinancial cf WITH(NOLOCK) ON c.CustomerId =  cf.CustomerId
@@ -116,8 +116,8 @@ BEGIN
 								LEFT JOIN dbo.CreditTerms ct WITH(NOLOCK) ON cf.CreditTermsId = ct.CreditTermsId
 								OUTER APPLY 
 									( 
-									SELECT top 1 ARBalance FROM CustomerCreditTermsHistory cch WITH(NOLOCK)
-									WHERE c.CustomerId = cch.CustomerId order by CustomerCreditTermsHistoryId desc
+									SELECT top 1 TotalOutstanding FROM CustomerAging cch WITH(NOLOCK)
+									WHERE c.CustomerId = cch.CustomerId order by CustomerAgingId desc
 									) H 
 							WHERE c.CustomerId in (SELECT Item FROM DBO.SPLITSTRING(@Idlist, ','))    
 						ORDER BY CustomerName				
@@ -141,7 +141,7 @@ BEGIN
 								ct.Name CreditTerm,
 								c.RestrictPMA,
 								c.RestrictDER,
-								ISNULL(H.ARBalance,0) as ARBalance
+								ISNULL(H.TotalOutstanding,0) as ARBalance
 							FROM dbo.Customer c WITH(NOLOCK)
 								LEFT JOIN dbo.CustomerSales cs WITH(NOLOCK) ON c.CustomerId =  cs.CustomerId
 								LEFT JOIN dbo.CustomerFinancial cf WITH(NOLOCK) ON c.CustomerId =  cf.CustomerId
@@ -152,8 +152,8 @@ BEGIN
 								LEFT JOIN dbo.CreditTerms ct WITH(NOLOCK) ON cf.CreditTermsId = ct.CreditTermsId
 								OUTER APPLY 
 									( 
-									SELECT top 1 ARBalance FROM CustomerCreditTermsHistory cch WITH(NOLOCK)
-									WHERE c.CustomerId = cch.CustomerId order by CustomerCreditTermsHistoryId desc
+									SELECT top 1 TotalOutstanding FROM CustomerAging cch WITH(NOLOCK)
+									WHERE c.CustomerId = cch.CustomerId order by CustomerAgingId desc
 									) H
 						WHERE c.IsActive = 1 AND ISNULL(c.IsDeleted,0) = 0 AND (c.CustomerAffiliationId = 2) AND c.MasterCompanyId = @MasterCompanyId AND (c.Name LIKE '%' + @StartWith + '%' OR c.Name  LIKE '%' + @StartWith + '%')
 						UNION 
@@ -174,7 +174,7 @@ BEGIN
 								ct.Name CreditTerm,
 								c.RestrictPMA,
 								c.RestrictDER,
-								ISNULL(H.ARBalance,0) as ARBalance
+								ISNULL(H.TotalOutstanding,0) as ARBalance
 							FROM dbo.Customer c WITH(NOLOCK)
 								LEFT JOIN dbo.CustomerSales cs WITH(NOLOCK) ON c.CustomerId =  cs.CustomerId
 								LEFT JOIN dbo.CustomerFinancial cf WITH(NOLOCK) ON c.CustomerId =  cf.CustomerId
@@ -185,8 +185,8 @@ BEGIN
 								LEFT JOIN dbo.CreditTerms ct WITH(NOLOCK) ON cf.CreditTermsId = ct.CreditTermsId
 								OUTER APPLY 
 									( 
-									SELECT top 1 ARBalance FROM CustomerCreditTermsHistory cch WITH(NOLOCK)
-									WHERE c.CustomerId = cch.CustomerId order by CustomerCreditTermsHistoryId desc
+									SELECT top 1 TotalOutstanding FROM CustomerAging cch WITH(NOLOCK)
+									WHERE c.CustomerId = cch.CustomerId order by CustomerAgingId desc
 									) H
 						WHERE c.CustomerId in (SELECT Item FROM DBO.SPLITSTRING(@Idlist, ','))
 						ORDER BY CustomerName	
@@ -213,7 +213,7 @@ BEGIN
 								ct.Name CreditTerm,
 								c.RestrictPMA,
 								c.RestrictDER,
-								ISNULL(H.ARBalance,0) as ARBalance
+								ISNULL(H.TotalOutstanding,0) as ARBalance
 							FROM dbo.Customer c WITH(NOLOCK)
 								LEFT JOIN dbo.CustomerSales cs WITH(NOLOCK) ON c.CustomerId =  cs.CustomerId
 								LEFT JOIN dbo.CustomerFinancial cf WITH(NOLOCK) ON c.CustomerId =  cf.CustomerId
@@ -224,8 +224,8 @@ BEGIN
 								LEFT JOIN dbo.CreditTerms ct WITH(NOLOCK) ON cf.CreditTermsId = ct.CreditTermsId
 								OUTER APPLY 
 									( 
-									SELECT top 1 ARBalance FROM CustomerCreditTermsHistory cch WITH(NOLOCK)
-									WHERE c.CustomerId = cch.CustomerId order by CustomerCreditTermsHistoryId desc
+									SELECT top 1 TotalOutstanding FROM CustomerAging cch WITH(NOLOCK)
+									WHERE c.CustomerId = cch.CustomerId order by CustomerAgingId desc
 									) H
 							WHERE (c.IsActive = 1 AND ISNULL(c.IsDeleted, 0) = 0 AND c.MasterCompanyId = @MasterCompanyId AND c.CustomerAffiliationId = 1 AND (c.Name LIKE '%'+ @StartWith + '%' ))    
 					   UNION     
@@ -246,7 +246,7 @@ BEGIN
 								ct.Name CreditTerm,
 								c.RestrictPMA,
 								c.RestrictDER,
-								ISNULL(H.ARBalance,0) as ARBalance
+								ISNULL(H.TotalOutstanding,0) as ARBalance
 							FROM dbo.Customer c WITH(NOLOCK)
 								LEFT JOIN dbo.CustomerSales cs WITH(NOLOCK) ON c.CustomerId =  cs.CustomerId
 								LEFT JOIN dbo.CustomerFinancial cf WITH(NOLOCK) ON c.CustomerId =  cf.CustomerId
@@ -257,8 +257,8 @@ BEGIN
 								LEFT JOIN dbo.CreditTerms ct WITH(NOLOCK) ON cf.CreditTermsId = ct.CreditTermsId
 								OUTER APPLY 
 									( 
-									SELECT top 1 ARBalance FROM CustomerCreditTermsHistory cch WITH(NOLOCK)
-									WHERE c.CustomerId = cch.CustomerId order by CustomerCreditTermsHistoryId desc
+									SELECT top 1 TotalOutstanding FROM CustomerAging cch WITH(NOLOCK)
+									WHERE c.CustomerId = cch.CustomerId order by CustomerAgingId desc
 									) H
 							WHERE c.CustomerId in (SELECT Item FROM DBO.SPLITSTRING(@Idlist, ','))    
 						ORDER BY CustomerName				
@@ -282,7 +282,7 @@ BEGIN
 								ct.Name CreditTerm,
 								c.RestrictPMA,
 								c.RestrictDER,
-								ISNULL(H.ARBalance,0) as ARBalance
+								ISNULL(H.TotalOutstanding,0) as ARBalance
 							FROM dbo.Customer c WITH(NOLOCK)
 								LEFT JOIN dbo.CustomerSales cs WITH(NOLOCK) ON c.CustomerId =  cs.CustomerId
 								LEFT JOIN dbo.CustomerFinancial cf WITH(NOLOCK) ON c.CustomerId =  cf.CustomerId
@@ -293,8 +293,8 @@ BEGIN
 								LEFT JOIN dbo.CreditTerms ct WITH(NOLOCK) ON cf.CreditTermsId = ct.CreditTermsId
 								OUTER APPLY 
 									( 
-									SELECT top 1 ARBalance FROM CustomerCreditTermsHistory cch WITH(NOLOCK)
-									WHERE c.CustomerId = cch.CustomerId order by CustomerCreditTermsHistoryId desc
+									SELECT top 1 TotalOutstanding FROM CustomerAging cch WITH(NOLOCK)
+									WHERE c.CustomerId = cch.CustomerId order by CustomerAgingId desc
 									) H
 						WHERE c.IsActive=1 AND ISNULL(c.IsDeleted, 0) = 0 AND c.CustomerAffiliationId = 1 AND c.MasterCompanyId = @MasterCompanyId AND (c.Name LIKE '%' + @StartWith + '%' OR c.Name  LIKE '%' + @StartWith + '%')
 						UNION 
@@ -315,7 +315,7 @@ BEGIN
 								ct.Name CreditTerm,
 								c.RestrictPMA,
 								c.RestrictDER,
-								ISNULL(H.ARBalance,0) as ARBalance
+								ISNULL(H.TotalOutstanding,0) as ARBalance
 							FROM dbo.Customer c WITH(NOLOCK)
 								LEFT JOIN dbo.CustomerSales cs WITH(NOLOCK) ON c.CustomerId =  cs.CustomerId
 								LEFT JOIN dbo.CustomerFinancial cf WITH(NOLOCK) ON c.CustomerId =  cf.CustomerId
@@ -326,8 +326,8 @@ BEGIN
 								LEFT JOIN dbo.CreditTerms ct WITH(NOLOCK) ON cf.CreditTermsId = ct.CreditTermsId
 								OUTER APPLY 
 									( 
-									SELECT top 1 ARBalance FROM CustomerCreditTermsHistory cch WITH(NOLOCK)
-									WHERE c.CustomerId = cch.CustomerId order by CustomerCreditTermsHistoryId desc
+									SELECT top 1 TotalOutstanding FROM CustomerAging cch WITH(NOLOCK)
+									WHERE c.CustomerId = cch.CustomerId order by CustomerAgingId desc
 									) H
 						WHERE c.CustomerId in (SELECT Item FROM DBO.SPLITSTRING(@Idlist, ','))
 						ORDER BY CustomerName	
@@ -354,7 +354,7 @@ BEGIN
 								ct.Name CreditTerm,
 								c.RestrictPMA,
 								c.RestrictDER,
-								ISNULL(H.ARBalance,0) as ARBalance
+								ISNULL(H.TotalOutstanding,0) as ARBalance
 							FROM dbo.Customer c WITH(NOLOCK)
 								LEFT JOIN dbo.CustomerSales cs WITH(NOLOCK) ON c.CustomerId =  cs.CustomerId
 								LEFT JOIN dbo.CustomerFinancial cf WITH(NOLOCK) ON c.CustomerId =  cf.CustomerId
@@ -365,8 +365,8 @@ BEGIN
 								LEFT JOIN dbo.CreditTerms ct WITH(NOLOCK) ON cf.CreditTermsId = ct.CreditTermsId
 								OUTER APPLY 
 								( 
-									SELECT top 1 ARBalance FROM CustomerCreditTermsHistory cch WITH(NOLOCK)
-									WHERE c.CustomerId = cch.CustomerId order by CustomerCreditTermsHistoryId desc
+									SELECT top 1 TotalOutstanding FROM CustomerAging cch WITH(NOLOCK)
+									WHERE c.CustomerId = cch.CustomerId order by CustomerAgingId desc
 								) H
 							WHERE (c.IsActive = 1 AND ISNULL(c.IsDeleted, 0) = 0 AND c.MasterCompanyId = @MasterCompanyId AND (c.Name LIKE '%'+ @StartWith + '%' ))    
 					   UNION     
@@ -387,7 +387,7 @@ BEGIN
 								ct.Name CreditTerm,
 								c.RestrictPMA,
 								c.RestrictDER,
-								ISNULL(H.ARBalance,0) as ARBalance
+								ISNULL(H.TotalOutstanding,0) as ARBalance
 							FROM dbo.Customer c WITH(NOLOCK)
 								LEFT JOIN dbo.CustomerSales cs WITH(NOLOCK) ON c.CustomerId =  cs.CustomerId
 								LEFT JOIN dbo.CustomerFinancial cf WITH(NOLOCK) ON c.CustomerId =  cf.CustomerId
@@ -398,8 +398,8 @@ BEGIN
 								LEFT JOIN dbo.CreditTerms ct WITH(NOLOCK) ON cf.CreditTermsId = ct.CreditTermsId
 								OUTER APPLY 
 									( 
-									SELECT top 1 ARBalance FROM CustomerCreditTermsHistory cch WITH(NOLOCK)
-									WHERE c.CustomerId = cch.CustomerId order by CustomerCreditTermsHistoryId desc
+									SELECT top 1 TotalOutstanding FROM CustomerAging cch WITH(NOLOCK)
+									WHERE c.CustomerId = cch.CustomerId order by CustomerAgingId desc
 									) H
 							WHERE c.CustomerId in (SELECT Item FROM DBO.SPLITSTRING(@Idlist, ','))    
 						ORDER BY CustomerName				
@@ -423,7 +423,7 @@ BEGIN
 								ct.Name CreditTerm,
 								c.RestrictPMA,
 								c.RestrictDER,
-								ISNULL(H.ARBalance,0) as ARBalance
+								ISNULL(H.TotalOutstanding,0) as ARBalance
 							FROM dbo.Customer c WITH(NOLOCK)
 								LEFT JOIN dbo.CustomerSales cs WITH(NOLOCK) ON c.CustomerId =  cs.CustomerId
 								LEFT JOIN dbo.CustomerFinancial cf WITH(NOLOCK) ON c.CustomerId =  cf.CustomerId
@@ -434,8 +434,8 @@ BEGIN
 								LEFT JOIN dbo.CreditTerms ct WITH(NOLOCK) ON cf.CreditTermsId = ct.CreditTermsId
 								OUTER APPLY 
 									( 
-									SELECT top 1 ARBalance FROM CustomerCreditTermsHistory cch WITH(NOLOCK)
-									WHERE c.CustomerId = cch.CustomerId order by CustomerCreditTermsHistoryId desc
+									SELECT top 1 TotalOutstanding FROM CustomerAging cch WITH(NOLOCK)
+									WHERE c.CustomerId = cch.CustomerId order by CustomerAgingId desc
 									) H
 						WHERE c.IsActive = 1 AND ISNULL(c.IsDeleted, 0) = 0 AND c.MasterCompanyId = @MasterCompanyId AND (c.Name  LIKE '%' + @StartWith + '%')
 						UNION 
@@ -456,7 +456,7 @@ BEGIN
 								ct.Name CreditTerm,
 								c.RestrictPMA,
 								c.RestrictDER,
-								ISNULL(H.ARBalance,0) as ARBalance
+								ISNULL(H.TotalOutstanding,0) as ARBalance
 							FROM dbo.Customer c WITH(NOLOCK)
 								LEFT JOIN dbo.CustomerSales cs WITH(NOLOCK) ON c.CustomerId =  cs.CustomerId
 								LEFT JOIN dbo.CustomerFinancial cf WITH(NOLOCK) ON c.CustomerId =  cf.CustomerId
@@ -467,8 +467,8 @@ BEGIN
 								LEFT JOIN dbo.CreditTerms ct WITH(NOLOCK) ON cf.CreditTermsId = ct.CreditTermsId
 								OUTER APPLY 
 									( 
-									SELECT top 1 ARBalance FROM CustomerCreditTermsHistory cch WITH(NOLOCK)
-									WHERE c.CustomerId = cch.CustomerId order by CustomerCreditTermsHistoryId desc
+									SELECT top 1 TotalOutstanding FROM CustomerAging cch WITH(NOLOCK)
+									WHERE c.CustomerId = cch.CustomerId order by CustomerAgingId desc
 									) H
 						WHERE c.CustomerId in (SELECT Item FROM DBO.SPLITSTRING(@Idlist, ','))
 						ORDER BY CustomerName	

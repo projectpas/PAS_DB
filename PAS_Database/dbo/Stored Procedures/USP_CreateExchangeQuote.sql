@@ -14,7 +14,7 @@
  ** PR     Date              Author              Change Description              
  ** --    --------         -------              --------------------------------            
     1     07/23/2025      Ekta Chandegra        Created  
-
+	2     07/May/2026	  Rajesh Gami			ARBalance Getting From New Table CustomerAging Instead Of CustomerCreditTermsHistory [PN-16092]
 
 exec [dbo].[USP_CreateExchangeQuote] @CustomerReference=N'',@OpenDate='2025-07-23 00:00:00',@QuoteExpireDate='2025-08-22 00:00:00',
 @PriorityId=3,@StatusId=1,@StatusChangeDate='2025-07-23 16:50:33.567',@CustomerId=77,@SalesPersonId=5,@CreatedBy=N'roza diaz',
@@ -138,12 +138,12 @@ BEGIN
 		SELECT TOP 1 @CreditTermName = CT.[Name],
 			   @CreditLimit = CF.[CreditLimit],
 			   @CreditTermId = CT.[CreditTermsId],
-			   @BalanceDue = CCTH.ARBalance
+			   @BalanceDue = ISNULL(CCTH.TotalOutstanding,0)
 		FROM [dbo].[CustomerFinancial] CF WITH(NOLOCK) 
-		LEFT JOIN [dbo].[CustomerCreditTermsHistory] CCTH WITH(NOLOCK) ON CCTH.CustomerId = CF.CustomerId
+		LEFT JOIN [dbo].[CustomerAging] CCTH WITH(NOLOCK) ON CCTH.CustomerId = CF.CustomerId
 		LEFT JOIN [dbo].[CreditTerms] CT WITH(NOLOCK) ON CT.CreditTermsId = CF.CreditTermsId
 		WHERE CF.CustomerId = @CustomerId
-		ORDER BY CCTH.UpdatedDate DESC;
+		ORDER BY CCTH.CustomerAgingId DESC;
 		PRINT @CreditTermName
 		PRINT @CreditTermId
 		PRINT @BalanceDue

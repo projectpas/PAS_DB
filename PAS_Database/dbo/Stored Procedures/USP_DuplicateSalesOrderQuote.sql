@@ -20,6 +20,7 @@
 	4   11/13/2014  Abhishek Jirawla    Resolved error after adding new table details
     5	28/02/2025	Ayushi Patel		Cast openDate as a Date
     6	25/07/2025	Ekta Chandegra		Add IsConvertedToSalesOrder false instead add from SalesOrderQuotePartV1 table 
+	7   07/May/2026	  Rajesh Gami		ARBalance Getting From New Table CustomerAging Instead Of CustomerCreditTermsHistory [PN-16092]
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_DuplicateSalesOrderQuote]
 	@SalesOrderQuoteId BIGINT,
@@ -67,7 +68,7 @@ BEGIN
 
 		SELECT @CreditTermsId = CreditTermsId FROM [dbo].[CustomerFinancial] WITH(NOLOCK)  WHERE CustomerId = @CustomerId
 		SELECT @CreditLimit = CreditLimit FROM [dbo].[CustomerFinancial] WITH(NOLOCK)  WHERE CustomerId = @CustomerId
-		SELECT @ARBalance = ARBalance FROM [dbo].[CustomerCreditTermsHistory] WITH(NOLOCK)  WHERE CustomerId = @CustomerId
+		SELECT TOP 1 @ARBalance = TotalOutstanding FROM [dbo].[CustomerAging] WITH(NOLOCK)  WHERE CustomerId = @CustomerId ORDER BY CustomerAgingId DESC
 
 		SELECT @ManagementStructureHeaderModuleId = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] = 'SalesOrderQuote';
 

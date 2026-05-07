@@ -64,7 +64,8 @@ BEGIN
         (
             SELECT
                 AMP.ProgramId,AMP.AircraftRegistryId,AMP.VersionNumber,AMP.MaintenanceType, AMP.MaintenanceTypeId,AMP.NextScheduledMaintenance,
-                WF.WorkOrderNumber AS TemplateIdNumber,AMP.TemplateVersionNumber,
+               AMP.TemplateId AS TemplateId,
+               WF.WorkOrderNumber AS TemplateIdNumber,AMP.TemplateVersionNumber,
                 ARH.TailNum AS TailNumber,
                 ARH.MakeType AS AircraftMake,
                 ARH.AircraftModel,

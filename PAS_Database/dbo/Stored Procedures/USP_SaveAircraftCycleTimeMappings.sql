@@ -16,9 +16,10 @@ Exec [USP_SaveAircraftCycleTimeMappings]
    5    28/04/2026  Amit Ghediya		Get Minutes related data (PN-16151)
    6	04/05/2026  Amit Ghediya		revert insert into AircraftMaintenanceProgram table update logic to save data.
    7    07/05/2026	Priyansh Patel		Fixed the Remaining time calculation [PN-16306]
+   8    07/05/2026  Abhishek Jirawla	Edit Last flown date only when add cycle time is done.
      
 **************************************************************/   
-CREATE     PROCEDURE [dbo].[USP_SaveAircraftCycleTimeMappings]  
+CREATE PROCEDURE [dbo].[USP_SaveAircraftCycleTimeMappings]  
 	 @CycleData NVARCHAR(MAX),
      @EngineData NVARCHAR(MAX)
 AS  
@@ -70,6 +71,7 @@ BEGIN
 			CurruntCyclesMinutes DECIMAL(18,6),
             CumulativeCycles DECIMAL(18,6),
 			CumulativeCyclesMinutes DECIMAL(18,6),
+			AddUpdated BIT,
             Memo NVARCHAR(MAX),
             MasterCompanyId INT,
             CreatedBy VARCHAR(256),
@@ -97,6 +99,7 @@ BEGIN
 			CurruntCyclesMinutes DECIMAL(18,6),
             CumulativeCycles DECIMAL(18,6),
 			CumulativeCyclesMinutes DECIMAL(18,6),
+			AddUpdated BIT,
             Memo NVARCHAR(MAX),
             MasterCompanyId INT,
             CreatedBy VARCHAR(256),
@@ -208,7 +211,11 @@ BEGIN
 			AIPD.Cycles = ISNULL(AIPD.Cycles, 0) + ISNULL(C.[Cycles], 0),
 			AIPD.UpdatedBy = C.UpdatedBy,
 			AIPD.UpdatedDate = GETUTCDATE(),
-			AIPD.DateInstalled = CAST(GETUTCDATE() AS DATE)
+			AIPD.DateInstalled = CASE 
+									WHEN ISNULL(C.AddUpdated, 0) = 1 
+									THEN CAST(GETUTCDATE() AS DATE)
+									ELSE AIPD.DateInstalled
+								 END
 		FROM dbo.AircraftInstalledPartDetails AIPD WITH(NOLOCK)
 		INNER JOIN @CycleTable C ON AIPD.AircraftRegistryId = C.RefrenceId;
 

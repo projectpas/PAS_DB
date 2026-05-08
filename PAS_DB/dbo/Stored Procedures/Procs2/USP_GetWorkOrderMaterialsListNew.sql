@@ -32,8 +32,8 @@
 	21  27-02-2026	    Moin Bloch			    Modify to Removed QtyRemaining  SET 0 For For Stock Provision PN-15704
 	22  12-03-2026	    Moin Bloch			    Modify to (Added WOMStockLIneId) PN-15605
 	23  17-03-2026	    Moin Bloch			    Modify to StocklineQtytobeReserved  SET 0 For For Stock Provision PN-15765
-	24  26/03/2026      Moin Bloch	            Rename TearDown To Internal Teardown PN-15850
-	
+	24  26-03-2026      Moin Bloch	            Rename TearDown To Internal Teardown PN-15850
+	25  08-05-2026      Moin Bloch              Added Part Number Filter  PN-16363
 	
  EXECUTE [dbo].[USP_GetWorkOrderMaterialsList] 4257,3782, 0
 exec dbo.USP_GetWorkOrderMaterialsListNew @PageNumber=1,@PageSize=10,@SortColumn=default,@SortOrder=1,@WorkOrderId=5960,@WFWOId=5553,@ShowPendingToIssue=1
@@ -48,7 +48,8 @@ CREATE   PROCEDURE [dbo].[USP_GetWorkOrderMaterialsListNew]
 	@WFWOId BIGINT  = NULL,
 	@ShowPendingToIssue BIT  = 0,
 	@IsDownload BIT = 0,
-	@IsParent BIT = 0
+	@IsParent BIT = 0,
+	@PartNumber VARCHAR(50) = NULL
 )    
 AS    
 BEGIN    
@@ -785,7 +786,10 @@ SET NOCOUNT ON
 						LEFT JOIN dbo.ItemMaster IMS WITH (NOLOCK) ON IMS.ItemMasterId = MSTL.ItemMasterId
 					WHERE WOM.IsDeleted = 0 AND WOM.WorkFlowWorkOrderId = @Local_WFWOId
 					AND (ISNULL(WOM.Quantity,0) - ISNULL(WOM.QuantityIssued,0) > 0)
-					AND WOM.WorkOrderMaterialsId IN (SELECT WorkOrderMaterialsId FROM #TMPWOMaterialResultListData WHERE IsKit = 0)	ORDER BY WOM.WorkOrderMaterialsId ASC
+					AND WOM.WorkOrderMaterialsId IN (SELECT WorkOrderMaterialsId FROM #TMPWOMaterialResultListData WHERE IsKit = 0)
+					AND (@PartNumber IS NULL OR IM.[PartNumber] LIKE '%' + @PartNumber + '%')
+					ORDER BY WOM.WorkOrderMaterialsId ASC
+					
 
 					--WorkOrderMaterial Kit Data Insert
 					INSERT INTO	#finalMaterialListResult([PartNumber], [PartDescription], [StocklinePartNumber], [StocklinePartDescription], [KitNumber], [KitDescription], [KitCost], [WOQMaterialKitMappingId], [KitId],
@@ -1027,7 +1031,8 @@ SET NOCOUNT ON
 						LEFT JOIN dbo.ItemMaster IMS WITH (NOLOCK) ON IMS.ItemMasterId = MSTL.ItemMasterId
 					WHERE WOM.IsDeleted = 0 AND WOM.WorkFlowWorkOrderId = @Local_WFWOId
 						AND (ISNULL(WOM.Quantity,0) - ISNULL(WOM.QuantityIssued,0) > 0)
-						AND WOMKM.WorkOrderMaterialsKitMappingId IN (SELECT WorkOrderMaterialsKitMappingId FROM #TMPWOMaterialResultListData WHERE IsKit = 1)	ORDER BY WOM.WorkOrderMaterialsKitId ASC
+						AND WOMKM.WorkOrderMaterialsKitMappingId IN (SELECT WorkOrderMaterialsKitMappingId FROM #TMPWOMaterialResultListData WHERE IsKit = 1)	
+						AND (@PartNumber IS NULL OR IM.PartNumber LIKE '%' + @PartNumber + '%') ORDER BY WOM.WorkOrderMaterialsKitId ASC
 				END
 				ELSE
 				BEGIN					
@@ -1280,7 +1285,7 @@ SET NOCOUNT ON
 						LEFT JOIN dbo.ItemMaster IMS WITH (NOLOCK) ON IMS.ItemMasterId = MSTL.ItemMasterId
 					WHERE WOM.IsDeleted = 0 AND WOM.WorkFlowWorkOrderId = @Local_WFWOId
 					AND WOM.WorkOrderMaterialsId IN (SELECT WorkOrderMaterialsId FROM #TMPWOMaterialResultListData WHERE IsKit = 0)
-					ORDER BY WOM.WorkOrderMaterialsId ASC
+					AND (@PartNumber IS NULL OR IM.PartNumber LIKE '%' + @PartNumber + '%') ORDER BY WOM.WorkOrderMaterialsId ASC
 
 					--WorkOrderMaterial Kit Data Insert
 					INSERT INTO	#finalMaterialListResult([PartNumber], [PartDescription], [StocklinePartNumber], [StocklinePartDescription], [KitNumber], [KitDescription], [KitCost], [WOQMaterialKitMappingId], [KitId],
@@ -1522,7 +1527,8 @@ SET NOCOUNT ON
 						LEFT JOIN [dbo].[WorkOrderMaterialsKitMapping] WOMKM WITH (NOLOCK) ON WOMKM.WOPartNoId = WOWF.WorkOrderPartNoId AND WOMKM.WorkOrderMaterialsKitMappingId = WOM.WorkOrderMaterialsKitMappingId
 						LEFT JOIN dbo.ItemMaster IMS WITH (NOLOCK) ON IMS.ItemMasterId = MSTL.ItemMasterId
 					WHERE WOM.IsDeleted = 0 AND WOM.WorkFlowWorkOrderId = @Local_WFWOId
-					AND WOMKM.WorkOrderMaterialsKitMappingId IN (SELECT WorkOrderMaterialsKitMappingId FROM #TMPWOMaterialResultListData WHERE IsKit = 1) ORDER BY WOM.WorkOrderMaterialsKitId ASC
+					AND WOMKM.WorkOrderMaterialsKitMappingId IN (SELECT WorkOrderMaterialsKitMappingId FROM #TMPWOMaterialResultListData WHERE IsKit = 1) 
+					AND (@PartNumber IS NULL OR IM.PartNumber LIKE '%' + @PartNumber + '%') ORDER BY WOM.WorkOrderMaterialsKitId ASC
 				END
 
 				--	Calculating Total Material Parts and StockLine Parts	: Start

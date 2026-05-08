@@ -4502,7 +4502,6 @@
     <Build Include="dbo\Stored Procedures\USP_SearchInstalledComponents.sql" />
     <Build Include="dbo\Stored Procedures\USP_deleteSalesOrderQuoteStocklinePart.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetCommonForNonStocklineByItemMasterId.sql" />
-    <Build Include="dbo\Stored Procedures\USP_SearchIntalldComponents.sql" />
     <Build Include="dbo\Tables\MaintenanceClass.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetImportModuleList.sql" />
     <Build Include="dbo\Views\vw_MaintenanceClass.sql" />

@@ -1,5 +1,4 @@
-﻿
-/*************************************************************             
+﻿/*************************************************************             
  ** File:   [GetSalesOrderDetailsById]            
  ** Author:  EKTA CHANDEGRA
  ** Description: This stored procedure is used GetSalesOrderDetailsById
@@ -16,7 +15,7 @@
  ** --   --------		-------			--------------------------------            
     1    05/12/2024		EKTA CHANDEGRA	 Created  
 	2	 04/25/2025     Bhargav Saliya   Customer Name Get from the SO table instead of the Customer table
-
+    3    07/May/2026	Rajesh Gami	     ARBalance Getting From New Table CustomerAging Instead Of CustomerCreditTermsHistory [PN-16092]
  EXEC GetSalesOrderDetailsById 1484 
 ************************************************************************/   
 CREATE   PROCEDURE [dbo].[GetSalesOrderDetailsById]
@@ -63,10 +62,10 @@ BEGIN
         soq.TotalSalesAmount,
         soq.CustomerHold,
         soq.DepositAmount,
-        ISNULL((SELECT TOP 1 ARBalance
-                FROM [dbo].[CustomerCreditTermsHistory] WITH(NOLOCK) 
+        ISNULL((SELECT TOP 1 TotalOutstanding
+                FROM [dbo].CustomerAging WITH(NOLOCK) 
                 WHERE CustomerId = soq.CustomerId
-                ORDER BY CustomerCreditTermsHistoryId DESC), 0) AS BalanceDue,
+                ORDER BY CustomerAgingId DESC), 0) AS BalanceDue,
         custfc.CurrencyId,
         ISNULL(cur.Code, '') AS CurrencyName,
         soq.ApprovedDate,

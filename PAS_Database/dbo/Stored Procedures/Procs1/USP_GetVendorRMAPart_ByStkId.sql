@@ -16,7 +16,7 @@
  ** --   --------   -------   --------------------------------            
  1	  28-June-2023	   Devendra			created  
  2    06-04-2026	  Amit Ghediya		UOM Conversion Changes [PN-15140]
-       
+ 3    08/05/2026      Ayushi Patel      Return Qty,Unitcost as it is from table [PN-15140]      
 EXECUTE   [dbo].[USP_GetVendorRMAPart_ByStkId] 37,1  
 **************************************************************/  
 CREATE   PROCEDURE [dbo].[USP_GetVendorRMAPart_ByStkId]  
@@ -46,12 +46,12 @@ BEGIN
      im.PartDescription as 'PNDescription',  
      sl.StockLineNumber,  
      sl.SerialNumber,  
-	 ([dbo].[fn_ConvertUOM](ISNULL(vrmd.Qty, 0),im.[StockUnitOfMeasure], im.[PurchaseUnitOfMeasure],0,im.[MasterCompanyId])) AS 'Qty',
+     vrmd.Qty,
      vrmd.ItemMasterId,  
      vrmd.StockLineId,  
      vrmd.VendorRMADetailId,
-	 ([dbo].[fn_ConvertUOM](ISNULL(sl.UnitCost, 0),im.[StockUnitOfMeasure], im.[PurchaseUnitOfMeasure],1,im.[MasterCompanyId])) AS 'UnitCost',
-	 ([dbo].[fn_ConvertUOM](ISNULL(vrmd.Qty, 0),im.[StockUnitOfMeasure], im.[PurchaseUnitOfMeasure],0,im.[MasterCompanyId])) * ([dbo].[fn_ConvertUOM](ISNULL(sl.UnitCost, 0),im.[StockUnitOfMeasure], im.[PurchaseUnitOfMeasure],1,im.[MasterCompanyId])) as 'ExtendedCost',
+	 sl.UnitCost,
+     ISNULL(vrmd.Qty, 0) * ISNULL(sl.UnitCost,0) as 'ExtendedCost',
 	 vcm.VendorCreditMemoId,
 	 vrmd.RMANum,
 	 vrmd.StockLineId

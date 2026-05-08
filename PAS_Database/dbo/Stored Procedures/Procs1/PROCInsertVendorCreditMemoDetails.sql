@@ -39,9 +39,9 @@ BEGIN
 		USING
 		(
 			SELECT 
-				SRC.*,
-				([dbo].[fn_ConvertUOM](ISNULL(SRC.Qty, 0),IM.PurchaseUnitOfMeasure,IM.StockUnitOfMeasure,0,IM.MasterCompanyId)) AS ConvertedQty,
-				([dbo].[fn_ConvertUOM](ISNULL(SRC.UnitCost, 0),IM.PurchaseUnitOfMeasure,IM.StockUnitOfMeasure,1,IM.MasterCompanyId)) AS ConvertedUnitCost
+				SRC.*
+				--([dbo].[fn_ConvertUOM](ISNULL(SRC.Qty, 0),IM.PurchaseUnitOfMeasure,IM.StockUnitOfMeasure,0,IM.MasterCompanyId)) AS ConvertedQty,
+				--([dbo].[fn_ConvertUOM](ISNULL(SRC.UnitCost, 0),IM.PurchaseUnitOfMeasure,IM.StockUnitOfMeasure,1,IM.MasterCompanyId)) AS ConvertedUnitCost
 			FROM @TableVendorCreditMemoDetailType SRC 
 			LEFT JOIN DBO.VendorRMADetail RMAD WITH (NOLOCK) ON SRC.VendorRMADetailId = RMAD.VendorRMADetailId
 			LEFT JOIN DBO.ItemMaster IM WITH (NOLOCK) ON RMAD.ItemMasterId = IM.ItemMasterId
@@ -95,7 +95,7 @@ BEGIN
 				SOURCE.VendorCreditMemoId,
 				SOURCE.VendorRMADetailId,
 				SOURCE.VendorRMAId,
-				SOURCE.ConvertedQty,         
+				SOURCE.Qty,         
 				SOURCE.OriginalAmt,
 				SOURCE.ApplierdAmt,
 				SOURCE.RefundAmt,
@@ -108,7 +108,7 @@ BEGIN
 				GETUTCDATE(),
 				SOURCE.IsActive,
 				SOURCE.IsDeleted,
-				SOURCE.ConvertedUnitCost,    
+				SOURCE.UnitCost,    
 				SOURCE.StockLineId
 			);
 	 END  

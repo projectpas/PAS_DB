@@ -16,7 +16,7 @@
  ** --   --------     -------				--------------------------------          
     1    07/05/2023   Devendra Shekh			Created
 	2    02-April-2026		Amit Ghediya		UOM Conversion Changes [PN-15140]  
-     
+    3    08/05/2026         Ayushi Patel        Return QtyShipped as it is from table [PN-15140]
  exec USP_VendorRMA_CreditMeMo_GetVendorRMAList 
 @PageNumber=1,@PageSize=10,@SortColumn=NULL,@SortOrder=-1,@GlobalFilter=N'',
 @RMANumber=NULL,@Partnumber=NULL,@StockLineNumber=NULL,@PartDescription=NULL,
@@ -84,8 +84,8 @@ BEGIN
 			VS.VendorRMAStatus as 'VendorRMADetailStatus',
 			RMA.RMANumber as 'VendorRMANumber',
 			RMAD.ModuleId,
-			([dbo].[fn_ConvertUOM](ISNULL(RMS.QtyShipped, 0),IM.[StockUnitOfMeasure], IM.[PurchaseUnitOfMeasure],0,IM.[MasterCompanyId])) AS QtyShipped,
-			RMAD.VendorRMADetailId
+			RMS.QtyShipped,
+            RMAD.VendorRMADetailId
 		FROM [DBO].[VendorRMA] RMA WITH (NOLOCK)
 		INNER JOIN [DBO].[Vendor] V WITH (NOLOCK) ON RMA.VendorId = V.VendorId
 		INNER JOIN [DBO].[VendorRMADetail] RMAD WITH (NOLOCK) ON RMA.[VendorRMAId] = RMAD.[VendorRMAId]

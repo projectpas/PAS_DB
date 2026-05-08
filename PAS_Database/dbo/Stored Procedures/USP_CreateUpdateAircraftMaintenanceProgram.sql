@@ -6,9 +6,11 @@
 
  ** Change History
  **************************************************************
- ** PR   Date				Author  				Change Description
- ** --   --------			-------					--------------------------------
-    1    21/04/2026	   Priyansh Patel			    Created  PN-16016
+ ** PR   Date			Author  				Change Description
+ ** --   --------		-------					--------------------------------
+    1    21/04/2026	    Priyansh Patel			Created  PN-16016
+	2    05/05/2026	    Amit Ghediya			update chnge for program
+    3    07/05/2026	    Priyansh Patel			Fixed the Remaining time calculation [PN-16306]
 
 **************************************************************/
 CREATE PROCEDURE [dbo].[USP_CreateUpdateAircraftMaintenanceProgram]
@@ -43,6 +45,13 @@ BEGIN
         DECLARE @AircraftModel   VARCHAR(100)    = NULL;
         DECLARE @SerialNumber    VARCHAR(100)    = NULL;
         DECLARE @MaintenanceType VARCHAR(200)    = NULL;
+
+
+        IF @FlightHoursLimitHours IS NOT NULL OR @FlightHoursLimitMinutes IS NOT NULL
+        BEGIN
+            SET @FlightHoursLimitHours    = ISNULL(@FlightHoursLimitHours, 0);
+            SET @FlightHoursLimitMinutes  = ISNULL(@FlightHoursLimitMinutes, 0);
+        END
 
         SELECT @TailNumber     = TailNum, @AircraftMake   = MakeType, @AircraftModel  = AircraftModel, @SerialNumber   = SerialNum
         FROM dbo.AircraftRegistryHeader WITH(NOLOCK) WHERE AircraftRegistryId = @AircraftRegistryId AND [IsActive]= 1 AND [IsDeleted] = 0;
@@ -104,31 +113,88 @@ BEGIN
                 FROM dbo.AircraftMaintenanceProgram WITH(NOLOCK)
                 WHERE ProgramId = @ProgramId AND [MasterCompanyId] = @MasterCompanyId;
             END
+            
+			UPDATE dbo.AircraftMaintenanceProgram
+			SET
+				AircraftRegistryId          = @AircraftRegistryId,
+				TailNumber                  = @TailNumber,
+				AircraftMake                = @AircraftMake,
+				AircraftModel               = @AircraftModel,
+				SerialNumber                = @SerialNumber,
+				MaintenanceType             = @MaintenanceType,
+				MaintenanceTypeId           = @MaintenanceTypeId,
+				NextScheduledMaintenance    = @NextScheduledMaintenance,
+				TemplateId                  = @TemplateId,
+				TemplateVersionNumber       = @TemplateVersionNumber,
+				VersionNumber               = @NewVersionNum,
+				FlightHoursLimitHours       = @FlightHoursLimitHours,
+				FlightHoursLimitMinutes     = @FlightHoursLimitMinutes,
+				CyclesLimit                 = @CyclesLimit,
+				TimeLimit                   = @TimeLimit,
+				LandingsLimit               = @LandingsLimit,
+				EngineStartsLimit           = @EngineStartsLimit,
+                FlightHoursRemainingHours =
+                CASE 
+                    WHEN @FlightHoursLimitHours IS NULL AND @FlightHoursLimitMinutes IS NULL THEN NULL
+                    ELSE
+                        CASE
+                            WHEN (
+                                (@FlightHoursLimitHours * 60 + @FlightHoursLimitMinutes)
+                                - (ISNULL(FlightHoursRecordedHours,0) * 60 + ISNULL(FlightHoursRecordedMinutes,0))
+                            ) < 0 THEN 0
+                            ELSE (
+                                (@FlightHoursLimitHours * 60 + @FlightHoursLimitMinutes)
+                                - (ISNULL(FlightHoursRecordedHours,0) * 60 + ISNULL(FlightHoursRecordedMinutes,0))
+                            ) / 60
+                        END
+                END,
 
-            UPDATE dbo.AircraftMaintenanceProgram
-            SET
-                AircraftRegistryId          = @AircraftRegistryId,
-                TailNumber                  = @TailNumber,
-                AircraftMake                = @AircraftMake,
-                AircraftModel               = @AircraftModel,
-                SerialNumber                = @SerialNumber,
-                MaintenanceType             = @MaintenanceType,
-                MaintenanceTypeId           = @MaintenanceTypeId,
-                NextScheduledMaintenance    = @NextScheduledMaintenance,
-                TemplateId                  = @TemplateId,
-                TemplateVersionNumber       = @TemplateVersionNumber,
-                VersionNumber               = @NewVersionNum,
-                FlightHoursLimitHours       = @FlightHoursLimitHours,
-                FlightHoursLimitMinutes     = @FlightHoursLimitMinutes,
-                CyclesLimit                 = @CyclesLimit,
-                TimeLimit                   = @TimeLimit,
-                LandingsLimit               = @LandingsLimit,
-                EngineStartsLimit           = @EngineStartsLimit,
-                IsActive                    = @IsActive,
-                IsDeleted                   = @IsDeleted,
-                UpdatedBy                   = @UpdatedBy,
-                UpdatedDate                 = GETUTCDATE()
-            WHERE ProgramId = @ProgramId AND [MasterCompanyId] = @MasterCompanyId;
+                FlightHoursRemainingMinutes =
+                    CASE 
+                        WHEN @FlightHoursLimitHours IS NULL AND @FlightHoursLimitMinutes IS NULL THEN NULL
+                        ELSE
+                            CASE
+                                WHEN (
+                                    (@FlightHoursLimitHours * 60 + @FlightHoursLimitMinutes)
+                                    - (ISNULL(FlightHoursRecordedHours,0) * 60 + ISNULL(FlightHoursRecordedMinutes,0))
+                                ) < 0 THEN 0
+                                ELSE (
+                                    (@FlightHoursLimitHours * 60 + @FlightHoursLimitMinutes)
+                                    - (ISNULL(FlightHoursRecordedHours,0) * 60 + ISNULL(FlightHoursRecordedMinutes,0))
+                                ) % 60
+                            END
+                    END,
+                    CyclesRemaining =
+	                    CASE 
+		                    WHEN CyclesRecorded IS NULL THEN @CyclesLimit
+		                    ELSE 
+                                CASE
+                                    WHEN  @CyclesLimit - CyclesRecorded < 0 THEN 0
+                                    ELSE  @CyclesLimit - CyclesRecorded
+                                END
+                            
+	                    END,
+				TimeRemaining =
+					CASE 
+						WHEN TimeRecorded IS NULL THEN @TimeLimit
+						ELSE @TimeLimit - TimeRecorded
+					END,
+				LandingsRemaining =
+					CASE 
+						WHEN LandingsRecorded IS NULL THEN @LandingsLimit
+						ELSE @LandingsLimit - LandingsRecorded
+					END,
+				EngineStartsRemaining =
+					CASE 
+						WHEN EngineStartsRecorded IS NULL THEN @EngineStartsLimit
+						ELSE @EngineStartsLimit - EngineStartsRecorded
+					END,
+				IsActive        = @IsActive,
+				IsDeleted       = @IsDeleted,
+				UpdatedBy       = @UpdatedBy,
+				UpdatedDate     = GETUTCDATE()
+			WHERE ProgramId = @ProgramId 
+			AND MasterCompanyId = @MasterCompanyId;
         END
 
         -- ===================== INSERT =====================
@@ -144,6 +210,7 @@ BEGIN
                 TemplateId, TemplateVersionNumber,
                 FlightHoursLimitHours, FlightHoursLimitMinutes,
                 CyclesLimit, TimeLimit, LandingsLimit, EngineStartsLimit,
+                FlightHoursRemainingHours,FlightHoursRemainingMinutes,CyclesRemaining,
                 IsActive, IsDeleted, MasterCompanyId,
                 CreatedBy, UpdatedBy, CreatedDate, UpdatedDate
             )
@@ -155,6 +222,7 @@ BEGIN
                 @TemplateId, @TemplateVersionNumber,
                 @FlightHoursLimitHours, @FlightHoursLimitMinutes,
                 @CyclesLimit, @TimeLimit, @LandingsLimit, @EngineStartsLimit,
+                @FlightHoursLimitHours, @FlightHoursLimitMinutes, @CyclesLimit,
                 ISNULL(@IsActive, 1), ISNULL(@IsDeleted, 0), @MasterCompanyId,
                 @CreatedBy, @UpdatedBy, GETUTCDATE(), GETUTCDATE()
             );

@@ -12,6 +12,7 @@
 ** --   ----------   -------------  --------------------------------
 ** 1    14/04/2026  Amit Ghediya		Created 
 ** 2    14/04/2026  Amit Ghediya		Get LastFlownDate (PN-16156)
+** 3    28/04/2026  Amit Ghediya		Get Minutes related data (PN-16151)
 *************************************************************/
 CREATE     PROCEDURE [dbo].[usp_GetAircraftCycleTimeById]
 (
@@ -29,11 +30,17 @@ BEGIN
 			RefrenceId,
 			CycleDate,
 			Hours,
+			Minutes,
 			CurruntHours,
+			CurruntMinutes,
 			CumulativeHours,
+			CumulativeMinutes,
 			Cycles,
+			CyclesMinutes,
 			CurruntCycles,
+			CurruntCyclesMinutes,
 			CumulativeCycles,
+			CumulativeCyclesMinutes,
 			Memo,
 			MasterCompanyId,
 			CreatedBy,
@@ -49,8 +56,11 @@ BEGIN
 			AESM.AircraftCycleTimeMappingsId,
 			AESM.EngineName,
 			AESM.Hours,
+			AESM.Minutes,
 			AESM.CurruntHours,
+			AESM.CurruntMinutes,
 			AESM.CumulativeHours,
+			AESM.CumulativeMinutes,
 			AESM.Starts,
 			AESM.CurruntStarts,
 			AESM.CumulativeStarts,

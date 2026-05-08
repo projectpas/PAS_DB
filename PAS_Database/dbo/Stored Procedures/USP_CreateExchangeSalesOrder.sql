@@ -20,6 +20,7 @@
     1     08/04/2025      Ekta Chandegra        Created  
 	2     09/10/2025      Amit Ghediya			Update Balance due condition to nullable  
 	3    16/02/2026       Ayushi Patel          Added IsVendor flag to support Vendor-based Exchange Sales Order creation.
+	4     07/May/2026	  Rajesh Gami			ARBalance Getting From New Table CustomerAging Instead Of CustomerCreditTermsHistory [PN-16092]
 exec [dbo].[USP_CreateExchangeSalesOrder] @TypeId=1,@OpenDate='2025-08-04 00:00:00',@CustomerId=44,
 @CustomerReference=N'test',@SalesPersonId=0,@CustomerSeviceRepId=0,@EmployeeId=237,@Memo=N'',@StatusId=1,
 @StatusChangeDate='2025-08-04 14:06:11.010',@Notes=N'',@ManagementStructureId=1,@CreatedBy=N'roza diaz',
@@ -167,17 +168,17 @@ BEGIN
 			DECLARE @CreditLimit DECIMAL(18, 2),@CreditTermId INT, @CreditTermName VARCHAR(50),@BalanceDue DECIMAL(18, 2),@PercentId BIGINT,@Days INT,@NetDays INT;
 			SELECT TOP 1  @CreditLimit = CF.[CreditLimit],
 				@CreditTermId = CT.[CreditTermsId],
-				@BalanceDue = CCTH.ARBalance,
+				@BalanceDue = CCTH.TotalOutstanding,
 				@CreditTermName = CT.[Name],
 				@PercentId = CT.[PercentId],
 				@Days = CT.[Days],
 				@NetDays = CT.[NetDays]
 			FROM [dbo].[CustomerFinancial] CF WITH(NOLOCK)
-			LEFT JOIN [dbo].[CustomerCreditTermsHistory] CCTH WITH(NOLOCK) ON CCTH.CustomerId = CF.CustomerId
+			LEFT JOIN [dbo].CustomerAging CCTH WITH(NOLOCK) ON CCTH.CustomerId = CF.CustomerId
 			LEFT JOIN [dbo].[CreditTerms] CT WITH(NOLOCK) ON CT.CreditTermsId = CF.CreditTermsId
 			WHERE CF.CustomerId = @CustomerId
-			ORDER BY CCTH.UpdatedDate DESC;
-			
+			ORDER BY CCTH.CustomerAgingId DESC;
+
 		INSERT INTO [dbo].[ExchangeSalesOrder]
 		(
 			   [Version]

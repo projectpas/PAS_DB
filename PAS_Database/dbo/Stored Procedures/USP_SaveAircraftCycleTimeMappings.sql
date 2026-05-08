@@ -13,9 +13,13 @@ Exec [USP_SaveAircraftCycleTimeMappings]
    2	15/04/2026  Amit Ghediya		Added into AircraftMaintenanceProgram table (PN-16015)
    3	21/04/2026  Amit Ghediya		Stop insert into AircraftMaintenanceProgram table update logic to save data.
    4	22/04/2026  Amit Ghediya		Add DateInstalled Last Flown Date (PN-16156).
+   5    28/04/2026  Amit Ghediya		Get Minutes related data (PN-16151)
+   6	04/05/2026  Amit Ghediya		revert insert into AircraftMaintenanceProgram table update logic to save data.
+   7    07/05/2026	Priyansh Patel		Fixed the Remaining time calculation [PN-16306]
+   8    07/05/2026  Abhishek Jirawla	Edit Last flown date only when add cycle time is done.
      
 **************************************************************/   
-CREATE     PROCEDURE [dbo].[USP_SaveAircraftCycleTimeMappings]  
+CREATE PROCEDURE [dbo].[USP_SaveAircraftCycleTimeMappings]  
 	 @CycleData NVARCHAR(MAX),
      @EngineData NVARCHAR(MAX)
 AS  
@@ -32,15 +36,19 @@ BEGIN
 				@AircraftCycleTimeMappingsId BIGINT,
 				@EngineName VARCHAR(50),
 				@Hours DECIMAL(18,6),
+				@Minutes DECIMAL(18,6),
 				@CurruntHours DECIMAL(18,6),
+				@CurruntMinutes DECIMAL(18,6),
 				@CumulativeHours DECIMAL(18,6),
-				@Starts DECIMAL(18,6),
-				@CurruntStarts DECIMAL(18,6),
-				@CumulativeStarts DECIMAL(18,6),
+				@CumulativeMinutes DECIMAL(18,6),
+				@Starts INT,
+				@CurruntStarts INT,
+				@CumulativeStarts INT,
 				@Memo NVARCHAR(MAX),
 				@MasterCompanyId INT,
 				@CreatedBy VARCHAR(256),
-				@UpdatedBy VARCHAR(256);
+				@UpdatedBy VARCHAR(256),
+				@ProgramId BIGINT = 0;
 
         -------------------------------------------------------
         -- READ JSON INTO TEMP TABLE
@@ -51,12 +59,19 @@ BEGIN
             ModuleId BIGINT,
             RefrenceId BIGINT,
             CycleDate DATETIME2,
-            Hours DECIMAL(18,6),
+            [Hours] DECIMAL(18,6),
+			[Minutes] DECIMAL(18,6),
             CurruntHours DECIMAL(18,6),
+			CurruntMinutes DECIMAL(18,6),
             CumulativeHours DECIMAL(18,6),
+			CumulativeMinutes DECIMAL(18,6),
             Cycles DECIMAL(18,6),
+			CyclesMinutes DECIMAL(18,6),
             CurruntCycles DECIMAL(18,6),
+			CurruntCyclesMinutes DECIMAL(18,6),
             CumulativeCycles DECIMAL(18,6),
+			CumulativeCyclesMinutes DECIMAL(18,6),
+			AddUpdated BIT,
             Memo NVARCHAR(MAX),
             MasterCompanyId INT,
             CreatedBy VARCHAR(256),
@@ -72,12 +87,19 @@ BEGIN
             ModuleId BIGINT,
             RefrenceId BIGINT,
             CycleDate DATETIME2,
-            Hours DECIMAL(18,6),
+            [Hours] DECIMAL(18,6),
+			[Minutes] DECIMAL(18,6),
             CurruntHours DECIMAL(18,6),
+			CurruntMinutes DECIMAL(18,6),
             CumulativeHours DECIMAL(18,6),
+			CumulativeMinutes DECIMAL(18,6),
             Cycles DECIMAL(18,6),
+			CyclesMinutes DECIMAL(18,6),
             CurruntCycles DECIMAL(18,6),
+			CurruntCyclesMinutes DECIMAL(18,6),
             CumulativeCycles DECIMAL(18,6),
+			CumulativeCyclesMinutes DECIMAL(18,6),
+			AddUpdated BIT,
             Memo NVARCHAR(MAX),
             MasterCompanyId INT,
             CreatedBy VARCHAR(256),
@@ -98,11 +120,17 @@ BEGIN
                 A.RefrenceId = C.RefrenceId,
                 A.CycleDate = C.CycleDate,
                 A.Hours = C.Hours,
+				A.Minutes = C.Minutes,
                 A.CurruntHours = C.CurruntHours,
+				A.CurruntMinutes = C.CurruntMinutes,
                 A.CumulativeHours = C.CumulativeHours,
+				A.CumulativeMinutes = C.CumulativeMinutes,
                 A.Cycles = C.Cycles,
+				A.CyclesMinutes = C.CyclesMinutes,				
                 A.CurruntCycles = C.CurruntCycles,
+				A.CurruntCyclesMinutes = C.CurruntCyclesMinutes,
                 A.CumulativeCycles = C.CumulativeCycles,
+				A.CumulativeCyclesMinutes = C.CumulativeCyclesMinutes,
                 A.Memo = C.Memo,
                 A.MasterCompanyId = C.MasterCompanyId,
                 A.UpdatedBy = C.UpdatedBy,
@@ -123,12 +151,18 @@ BEGIN
                 ModuleId,
                 RefrenceId,
                 CycleDate,
-                Hours,
+                [Hours],
+				[Minutes],
                 CurruntHours,
+				CurruntMinutes,
                 CumulativeHours,
+				CumulativeMinutes,
                 Cycles,
+				CyclesMinutes,
                 CurruntCycles,
+				CurruntCyclesMinutes,
                 CumulativeCycles,
+				CumulativeCyclesMinutes,
                 Memo,
                 MasterCompanyId,
                 CreatedBy,
@@ -142,12 +176,18 @@ BEGIN
                 ModuleId,
                 RefrenceId,
                 GETUTCDATE(),
-                Hours,
+                [Hours],
+				[Minutes],
                 CurruntHours,
+				CurruntMinutes,
                 CumulativeHours,
+				CumulativeMinutes,
                 Cycles,
+				CyclesMinutes,
                 CurruntCycles,
+				CurruntCyclesMinutes,
                 CumulativeCycles,
+				CumulativeCyclesMinutes,
                 Memo,
                 MasterCompanyId,
                 CreatedBy,
@@ -167,75 +207,139 @@ BEGIN
 		UPDATE AIPD
 		SET 
 			AIPD.FlightHours = ISNULL(AIPD.FlightHours, 0) + ISNULL(C.[Hours], 0),
+			AIPD.FlightMinutes = ISNULL(AIPD.FlightMinutes, 0) + ISNULL(C.[Minutes], 0),
 			AIPD.Cycles = ISNULL(AIPD.Cycles, 0) + ISNULL(C.[Cycles], 0),
 			AIPD.UpdatedBy = C.UpdatedBy,
 			AIPD.UpdatedDate = GETUTCDATE(),
-			AIPD.DateInstalled = CAST(GETUTCDATE() AS DATE)
+			AIPD.DateInstalled = CASE 
+									WHEN ISNULL(C.AddUpdated, 0) = 1 
+									THEN CAST(GETUTCDATE() AS DATE)
+									ELSE AIPD.DateInstalled
+								 END
 		FROM dbo.AircraftInstalledPartDetails AIPD WITH(NOLOCK)
 		INNER JOIN @CycleTable C ON AIPD.AircraftRegistryId = C.RefrenceId;
 
 		---------------------------------------------------
 		-- INSERT INTO AircraftMaintenanceProgram
 		---------------------------------------------------
-		--IF EXISTS (SELECT 1 FROM dbo.AircraftMaintenanceProgram AMP WITH(NOLOCK) INNER JOIN @CycleTable C ON AMP.AircraftRegistryId = C.RefrenceId)
-		--BEGIN
-		--	UPDATE AMP
-		--	SET
-		--		AMP.FlightHoursRecordedHours = FLOOR(ISNULL(C.CumulativeHours, 0)),
-		--		AMP.CyclesRecorded = ISNULL(C.CumulativeCycles, 0),
-		--		AMP.FlightHoursRemainingHours = FLOOR(ISNULL(C.CumulativeHours, 0)),
-		--		AMP.CyclesRemaining = ISNULL(C.CumulativeCycles, 0),
-		--		AMP.UpdatedBy = C.UpdatedBy,
-		--		AMP.UpdatedDate = GETUTCDATE()
-		--	FROM dbo.AircraftMaintenanceProgram AMP WITH(NOLOCK)
-		--	INNER JOIN @CycleTable C ON AMP.AircraftRegistryId = C.RefrenceId;
-		--END
-		--ELSE
-		--BEGIN
-		--	INSERT INTO dbo.AircraftMaintenanceProgram
-		--	(
-		--		TailNumber,
-		--		AircraftMake,
-		--		AircraftModel,
-		--		SerialNumber,
-		--		MaintenanceType,
-		--		TemplateId,
-		--		FlightHoursRecordedHours,
-		--		FlightHoursRecordedMinutes,
-		--		FlightHoursRemainingHours,
-		--		CyclesRemaining,
-		--		CyclesRecorded,
-		--		MasterCompanyId,
-		--		CreatedBy,
-		--		UpdatedBy,
-		--		CreatedDate,
-		--		UpdatedDate,
-		--		IsActive,
-		--		IsDeleted,
-		--		AircraftRegistryId
-		--	)
-		--	SELECT
-		--		'',
-		--		'',
-		--		'',
-		--		'',
-		--		'',
-		--		1,
-		--		FLOOR(ISNULL(C.CumulativeHours, 0)),
-		--		0,
-		--		FLOOR(ISNULL(C.CumulativeHours, 0)),
-		--		ISNULL(C.CumulativeCycles, 0),
-		--		ISNULL(C.CumulativeCycles, 0),
-		--		C.MasterCompanyId,
-		--		C.CreatedBy,
-		--		C.UpdatedBy,
-		--		GETUTCDATE(),
-		--		GETUTCDATE(),
-		--		1,
-		--		0,
-		--		C.RefrenceId
-		--	FROM @CycleTable C;
-		--END
+		IF EXISTS (SELECT 1 FROM dbo.AircraftMaintenanceProgram AMP WITH(NOLOCK) INNER JOIN @CycleTable C ON AMP.AircraftRegistryId = C.RefrenceId)
+		BEGIN
+			--UPDATE AMP
+			--	SET
+			--		AMP.FlightHoursRecordedHours = FLOOR(ISNULL(C.CumulativeHours, 0)),
+			--		AMP.FlightHoursRecordedMinutes = FLOOR(ISNULL(C.CumulativeMinutes, 0)),
+			--		AMP.CyclesRecorded = ISNULL(C.CumulativeCycles, 0),
+			--		AMP.FlightHoursRemainingHours = FLOOR(ISNULL(AMP.FlightHoursLimitHours, 0)) - FLOOR(ISNULL(C.CumulativeHours, 0)),
+			--		AMP.FlightHoursRemainingMinutes = FLOOR(ISNULL(AMP.FlightHoursLimitMinutes, 0)) - FLOOR(ISNULL(C.CumulativeMinutes, 0)),
+			--		AMP.CyclesRemaining = FLOOR(ISNULL(AMP.CyclesLimit, 0)) - ISNULL(C.CumulativeCycles, 0),
+			--		AMP.[TimeRemaining] = FLOOR(ISNULL(AMP.TimeLimit, 0)) - 0,
+			--		AMP.[LandingsRemaining] = FLOOR(ISNULL(AMP.LandingsLimit, 0)) - 0,
+			--		AMP.[EngineStartsRemaining] = FLOOR(ISNULL(AMP.EngineStartsLimit, 0)) - 0,
+			--		AMP.UpdatedBy = C.UpdatedBy,
+			--		AMP.UpdatedDate = GETUTCDATE()
+			--	FROM dbo.AircraftMaintenanceProgram AMP WITH(NOLOCK)
+			--	INNER JOIN @CycleTable C ON AMP.AircraftRegistryId = C.RefrenceId;
+
+			SET @ProgramId = (SELECT TOP 1 [ProgramId] FROM [dbo].[AircraftMaintenanceProgram] AMP WITH(NOLOCK)
+							INNER JOIN @CycleTable C ON AMP.AircraftRegistryId = C.RefrenceId
+							WHERE 
+								[IsDeleted] = 0
+								AND [IsActive] = 1
+								AND [NextScheduledMaintenance] IS NOT NULL
+								AND [NextScheduledMaintenance] >= CAST(GETDATE() AS DATE)
+								AND [AircraftRegistryId] = AMP.AircraftRegistryId
+							ORDER BY NextScheduledMaintenance ASC);
+
+
+			-- Compute remaining minutes before UPDATE
+			DECLARE @TotalRemainingMinutes INT = NULL;
+
+			SELECT @TotalRemainingMinutes =
+				(ISNULL(AMP.FlightHoursLimitHours, 0) * 60 + ISNULL(AMP.FlightHoursLimitMinutes, 0))
+				- (FLOOR(ISNULL(C.CumulativeHours, 0)) * 60 + FLOOR(ISNULL(C.CumulativeMinutes, 0)))
+			FROM dbo.AircraftMaintenanceProgram AMP
+			INNER JOIN @CycleTable C ON AMP.AircraftRegistryId = C.RefrenceId AND AMP.ProgramId = @ProgramId;;
+
+			SET @TotalRemainingMinutes = CASE WHEN @TotalRemainingMinutes < 0 THEN 0 ELSE @TotalRemainingMinutes END;
+
+
+			UPDATE AMP
+			SET
+				-- Recorded (safe)
+				AMP.FlightHoursRecordedHours = FLOOR(ISNULL(C.CumulativeHours, 0)),
+				AMP.FlightHoursRecordedMinutes = 
+					CASE 
+						WHEN FLOOR(ISNULL(C.CumulativeMinutes, 0)) > 59 THEN 59
+						WHEN FLOOR(ISNULL(C.CumulativeMinutes, 0)) < 0 THEN 0
+						ELSE FLOOR(ISNULL(C.CumulativeMinutes, 0))
+					END,
+
+				AMP.CyclesRecorded = ISNULL(C.CumulativeCycles, 0),
+
+				AMP.FlightHoursRemainingHours   = CASE WHEN @TotalRemainingMinutes IS NULL THEN NULL ELSE @TotalRemainingMinutes / 60 END,
+				AMP.FlightHoursRemainingMinutes = CASE WHEN @TotalRemainingMinutes IS NULL THEN NULL ELSE @TotalRemainingMinutes % 60 END,
+				AMP.CyclesRemaining = CASE WHEN ISNULL(AMP.CyclesLimit, 0) - ISNULL(C.CumulativeCycles, 0) < 0 THEN 0 ELSE 
+					ISNULL(AMP.CyclesLimit, 0) - ISNULL(C.CumulativeCycles, 0) END,
+
+				AMP.TimeRemaining = ISNULL(AMP.TimeLimit, 0),
+				AMP.LandingsRemaining = ISNULL(AMP.LandingsLimit, 0),
+				AMP.EngineStartsRemaining = ISNULL(AMP.EngineStartsLimit, 0),
+
+				AMP.UpdatedBy = C.UpdatedBy,
+				AMP.UpdatedDate = GETUTCDATE()
+
+			FROM dbo.AircraftMaintenanceProgram AMP
+			INNER JOIN @CycleTable C ON AMP.AircraftRegistryId = C.RefrenceId
+			AND AMP.ProgramId = @ProgramId;
+		END
+		ELSE
+		BEGIN
+			INSERT INTO dbo.AircraftMaintenanceProgram
+			(
+				TailNumber,
+				AircraftMake,
+				AircraftModel,
+				SerialNumber,
+				MaintenanceType,
+				TemplateId,
+				FlightHoursRecordedHours,
+				FlightHoursRecordedMinutes,
+				FlightHoursRemainingHours,
+				FlightHoursRemainingMinutes,
+				CyclesRemaining,
+				CyclesRecorded,
+				MasterCompanyId,
+				CreatedBy,
+				UpdatedBy,
+				CreatedDate,
+				UpdatedDate,
+				IsActive,
+				IsDeleted,
+				AircraftRegistryId
+			)
+			SELECT
+				'',
+				'',
+				'',
+				'',
+				'',
+				1,
+				FLOOR(ISNULL(C.CumulativeHours, 0)),
+				FLOOR(ISNULL(C.CumulativeMinutes, 0)),
+				FLOOR(ISNULL(C.CumulativeHours, 0)),
+				FLOOR(ISNULL(C.CumulativeMinutes, 0)),
+				ISNULL(C.CumulativeCycles, 0),
+				ISNULL(C.CumulativeCycles, 0),
+				C.MasterCompanyId,
+				C.CreatedBy,
+				C.UpdatedBy,
+				GETUTCDATE(),
+				GETUTCDATE(),
+				1,
+				0,
+				C.RefrenceId
+			FROM @CycleTable C;
+		END
 
         -------------------------------------------------------
         -- INSERT ENGINE DATA
@@ -245,12 +349,15 @@ BEGIN
 			AircraftEngineStartsMappingsId BIGINT,
 			AircraftCycleTimeMappingsId BIGINT,
 			EngineName VARCHAR(50),
-			Hours DECIMAL(18,6),
+			[Hours] DECIMAL(18,6),
+			[Minutes] DECIMAL(18,6),
 			CurruntHours DECIMAL(18,6),
+			CurruntMinutes DECIMAL(18,6),
 			CumulativeHours DECIMAL(18,6),
-			Starts DECIMAL(18,6),
-			CurruntStarts DECIMAL(18,6),
-			CumulativeStarts DECIMAL(18,6),
+			CumulativeMinutes DECIMAL(18,6),
+			Starts INT,
+			CurruntStarts INT,
+			CumulativeStarts INT,
 			Memo NVARCHAR(MAX),
 			MasterCompanyId INT,
 			CreatedBy VARCHAR(256),
@@ -262,9 +369,12 @@ BEGIN
 			AircraftEngineStartsMappingsId,
 			AircraftCycleTimeMappingsId,
 			EngineName,
-			Hours,
+			[Hours],
+			[Minutes],
 			CurruntHours,
+			CurruntMinutes,
 			CumulativeHours,
+			CumulativeMinutes,
 			Starts,
 			CurruntStarts,
 			CumulativeStarts,
@@ -278,12 +388,15 @@ BEGIN
 			AircraftEngineStartsMappingsId BIGINT,
 			AircraftCycleTimeMappingsId BIGINT,
 			EngineName VARCHAR(50),
-			Hours DECIMAL(18,6),
+			[Hours] DECIMAL(18,6),
+			[Minutes] DECIMAL(18,6),
 			CurruntHours DECIMAL(18,6),
+			CurruntMinutes DECIMAL(18,6),
 			CumulativeHours DECIMAL(18,6),
-			Starts DECIMAL(18,6),
-			CurruntStarts DECIMAL(18,6),
-			CumulativeStarts DECIMAL(18,6),
+			CumulativeMinutes DECIMAL(18,6),
+			Starts INT,
+			CurruntStarts INT,
+			CumulativeStarts INT,
 			Memo NVARCHAR(MAX),
 			MasterCompanyId INT,
 			CreatedBy VARCHAR(256),
@@ -295,9 +408,12 @@ BEGIN
 			AircraftEngineStartsMappingsId,
 			AircraftCycleTimeMappingsId,
 			EngineName,
-			Hours,
+			[Hours],
+			[Minutes],
 			CurruntHours,
+			CurruntMinutes,
 			CumulativeHours,
+			CumulativeMinutes,
 			Starts,
 			CurruntStarts,
 			CumulativeStarts,
@@ -310,7 +426,7 @@ BEGIN
 		OPEN EngineCursor;
 
 		FETCH NEXT FROM EngineCursor INTO @AircraftEngineStartsMappingsId,@AircraftCycleTimeMappingsId,
-			@EngineName, @Hours, @CurruntHours, @CumulativeHours,
+			@EngineName, @Hours, @Minutes, @CurruntHours, @CurruntMinutes, @CumulativeHours, @CumulativeMinutes,
 			@Starts, @CurruntStarts, @CumulativeStarts,
 			@Memo, @MasterCompanyId, @CreatedBy, @UpdatedBy;
 
@@ -329,9 +445,12 @@ BEGIN
 				---------------------------------------------------
 				UPDATE dbo.AircraftEngineStartsMappings
 				SET
-					Hours = @Hours,
+					[Hours] = @Hours,
+					[Minutes] = @Minutes,
 					CurruntHours = @CurruntHours,
+					CurruntMinutes = @CurruntMinutes,
 					CumulativeHours = @CumulativeHours,
+					CumulativeMinutes = @CumulativeMinutes,
 					Starts = @Starts,
 					CurruntStarts = @CurruntStarts,
 					CumulativeStarts = @CumulativeStarts,
@@ -351,9 +470,12 @@ BEGIN
 				(
 					AircraftCycleTimeMappingsId,
 					EngineName,
-					Hours,
+					[Hours],
+					[Minutes],
 					CurruntHours,
+					CurruntMinutes,
 					CumulativeHours,
+					CumulativeMinutes,
 					Starts,
 					CurruntStarts,
 					CumulativeStarts,
@@ -371,8 +493,11 @@ BEGIN
 					@CycleId,
 					@EngineName,
 					@Hours,
+					@Minutes,
 					@CurruntHours,
+					@CurruntMinutes,
 					@CumulativeHours,
+					@CumulativeMinutes,
 					@Starts,
 					@CurruntStarts,
 					@CumulativeStarts,
@@ -388,7 +513,7 @@ BEGIN
 			END
 
 			FETCH NEXT FROM EngineCursor INTO @AircraftEngineStartsMappingsId,@AircraftCycleTimeMappingsId,
-				@EngineName, @Hours, @CurruntHours, @CumulativeHours,
+				@EngineName, @Hours, @Minutes, @CurruntHours, @CurruntMinutes, @CumulativeHours, @CumulativeMinutes,
 				@Starts, @CurruntStarts, @CumulativeStarts,
 				@Memo, @MasterCompanyId, @CreatedBy, @UpdatedBy;
 

@@ -54,6 +54,7 @@
 	38  05 Aug 2025   RAJESH GAMI       Implemented: Added new filter for creditmemo ('OPEN', 'POSTED', 'FULFILLING', 'CLOSED' status consider under the INVOICED filter) 
 	39  15 Jan 2025   Moin Bloch        Modify No need to check RemainingAmount when Invoice Status Is ALL PBI  PN-15177
 	40  28 Jan 2025   Bhargav Saliya    Get RemainingAmount From The [BillingInvoicing] table instead of [BillingInvoicingItems]
+	41  06 May 2026   RAJESH GAMI       UOM Conversion Changes [PN-16329]
 exec dbo.USP_SearchCustomerInvoices
 @PageSize=10,@PageNumber=1,@SortColumn=NULL,@SortOrder=-1,@StatusID=0,@GlobalFilter=N'',@InvoiceNo=NULL,@InvoiceStatus=NULL,@InvoiceDate=NULL,
 @OrderNumber=NULL,@CustomerName=NULL,@CustomerType=NULL,@InvoiceAmt=NULL,@PN=NULL,@PNDescription=NULL,@VersionNo=NULL,@QuoteNumber=NULL,
@@ -99,8 +100,8 @@ BEGIN
 	  DECLARE @CMMSModuleID BIGINT;
 	  DECLARE @IsActive BIT = 1  
 	  DECLARE @Count INT;  
-	  DECLARE @InvoiceTotalAmount DECIMAL(18, 2);  
-	  DECLARE @RemainingTotalAmount DECIMAL(18, 2);  
+	  DECLARE @InvoiceTotalAmount [decimal](18, 6);  
+	  DECLARE @RemainingTotalAmount [decimal](18, 6);  
 	  SET @RecordFrom = (@PageNumber - 1) * @PageSize;
 
 	  DECLARE @WOInvoiceTypeId INT;

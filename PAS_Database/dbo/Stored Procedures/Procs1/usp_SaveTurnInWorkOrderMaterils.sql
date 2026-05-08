@@ -31,6 +31,8 @@ Exec [usp_SaveTurnInWorkOrderMaterils]
    19   10/02/2026  Moin Bloch          No need to remove cost from stockline while tendor WO materials PN-15331 & Added Accounting Entry For Teardown Stockline
    17	13/Mar/2026 Rajesh Gami			UOM Changes Added [PN-15714]
    20   26/03/2026  Moin Bloch	        Rename TearDown To Internal Teardown PN-15850
+   21	07/05/2026  Nakul Chandigra		Added two new field in stockline Save (PN-16315)
+   22	07/05/2026  Nakul Chandigra		Changed Size of two new field  (PN-16315)
 exec dbo.usp_SaveTurnInWorkOrderMaterils @IsMaterialStocklineCreate=1,@IsCustomerStock=1,@IsCustomerstockType=0,@ItemMasterId=291,@UnitOfMeasureId=5,  
 @ConditionId=10,@Quantity=2,@IsSerialized=0,@SerialNumber=NULL,@CustomerId=80,@ObtainFromTypeId=1,@ObtainFrom=80,@ObtainFromName=N'anil gill ',  
 @OwnerTypeId=NULL,@Owner=NULL,@OwnerName=N'',@TraceableToTypeId=NULL,@TraceableTo=NULL,@TraceableToName=N'',@Memo=N' ',@WorkOrderId=N'320',  
@@ -79,7 +81,9 @@ CREATE   PROCEDURE [dbo].[usp_SaveTurnInWorkOrderMaterils]
 @ProvisionId INT =0, 
 @EvidenceId INT = NULL,  
 @WorkOrderWorkflowId BIGINT  = NULL,  
-@IsMPNTendor BIT = 0  
+@IsMPNTendor BIT = 0 ,
+@AircraftTail VARCHAR(400) = NULL,  
+@AircraftSN VARCHAR(30) = NULL
 AS  
 BEGIN  
    
@@ -300,12 +304,12 @@ BEGIN
        TraceableTo, TraceableToName, Memo, WorkOrderId, WorkOrderNumber, ManufacturerId, InspectionBy, InspectionDate, ReceiverNumber, IsParent, LotCost, ParentId,  
        QuantityIssued, QuantityReserved,QuantityToReceive,RepairOrderExtendedCost, SubWOPartNoId,SubWorkOrderId, WorkOrderExtendedCost, WorkOrderPartNoId,  
        ReceivedDate, ManagementStructureId, SiteId, WarehouseId, LocationId, ShelfId, BinId, CreatedBy, UpdatedBy, CreatedDate, UpdatedDate,isActive, isDeleted, MasterCompanyId, IsTurnIn,  
-       [OEM],IsPMA, IsDER,IsOemPNId, OEMPNNumber,GLAccountId,[IsStkTimeLife],[EvidenceId], [IntegrationPortal], StockUnitOfMeasureId, ConsumeUnitOfMeasureId
+       [OEM],IsPMA, IsDER,IsOemPNId, OEMPNNumber,GLAccountId,[IsStkTimeLife],[EvidenceId], [IntegrationPortal], StockUnitOfMeasureId, ConsumeUnitOfMeasureId, AircraftTailNumber, AircraftSN
      ) VALUES(@StockLineNumber, @ControlNumber, @IDNumber, @IsCustomerStock,@IsCustomerstockType,@ItemMasterId,@PartNumber,@PurchaseUOMId,@ConditionId,@Quantity, @Quantity, @Quantity, @Quantity,  
        @IsSerialized,@SerialNumber, @CustomerId, @ObtainFromTypeId, @ObtainFrom, @ObtainFromName, @OwnerTypeId, @Owner, @OwnerName, @TraceableToTypeId,   
        @TraceableTo, @TraceableToName, @Memo, @WorkOrderId, @WorkOrderNum, @ManufacturerId, @InspectedById, @InspectedDate, @ReceiverNumber, 1, 0,0,0,0,0,0,0,0,0,@WorkOrderPartNoId,  
        @ReceivedDate, @ManagementStructureId, @SiteId, @WarehouseId, @LocationId, @ShelfId, @BinId, @UpdatedBy, @UpdatedBy, GETUTCDATE(),GETUTCDATE(),1,0, @MasterCompanyId, 1,  
-       @IsOEM,@IsPMA, @IsDER,@IsOemPNId, @OEMPNNumber,@GLAccountId, @IsTimeLife,@EvidenceId, @IntegrationPortal, @StockUOMId, @ConsumeUOMId);  
+       @IsOEM,@IsPMA, @IsDER,@IsOemPNId, @OEMPNNumber,@GLAccountId, @IsTimeLife,@EvidenceId, @IntegrationPortal, @StockUOMId, @ConsumeUOMId, @AircraftTail, @AircraftSN );  
        
      SELECT @StockLineId = SCOPE_IDENTITY()  
   
@@ -498,7 +502,7 @@ BEGIN
        --UPDATE QTY TO TURN IN IF MISMATCH  
        SELECT @QtyTendered = SUM(ISNULL(sl.QuantityTurnIn,0))   
        FROM dbo.WorkOrderMaterialStockLine womsl WITH (NOLOCK)  
-        JOIN dbo.Stockline sl WITH (NOLOCK) ON womsl.StockLineId = sl.StockLineId  
+        JOIN dbo.Stockline sl WITH (NOLOCK) ON womsl.StockLIneId = sl.StockLIneId  
         JOIN dbo.WorkOrderMaterials WOM WITH(NOLOCK) ON womsl.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId  
        WHERE WOM.WorkOrderMaterialsId = @WorkOrderMaterialsId AND womsl.ConditionId = WOM.ConditionCodeId  
         AND womsl.isActive = 1 AND womsl.isDeleted = 0 AND ISNULL(sl.QuantityTurnIn, 0) > 0  
@@ -582,7 +586,7 @@ BEGIN
        --UPDATE QTY TO TURN IN IF MISMATCH  
        SELECT @QtyTendered = SUM(ISNULL(sl.QuantityTurnIn,0))   
        FROM dbo.WorkOrderMaterialStockLineKit womsl WITH (NOLOCK)  
-        JOIN dbo.Stockline sl WITH (NOLOCK) ON womsl.StockLineId = sl.StockLineId  
+        JOIN dbo.Stockline sl WITH (NOLOCK) ON womsl.StockLIneId = sl.StockLIneId  
         JOIN dbo.WorkOrderMaterialsKit WOM WITH(NOLOCK) ON womsl.WorkOrderMaterialsKitId = WOM.WorkOrderMaterialsKitId  
        WHERE WOM.WorkOrderMaterialsKitId = @WorkOrderMaterialsId AND womsl.ConditionId = WOM.ConditionCodeId  
         AND womsl.isActive = 1 AND womsl.isDeleted = 0 AND ISNULL(sl.QuantityTurnIn, 0) > 0  

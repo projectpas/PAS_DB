@@ -8,11 +8,12 @@
  **************************************************************             
   ** Change History             
  **************************************************************             
- ** PR   Date         Author		Change Description              
- ** --   --------     -------		-------------------------------            
-	1    22/08/2023   Satish Gohil  Created
-	2    31/08/2023	  Satish Gohil  Modify(Added Credit/Debit Validation and GL Validation changes)
-	3    13/10/2023   MOIN BLOCH    Modify(Added Name for Customer / Vendor )
+ ** PR   Date         Author				Change Description              
+ ** --   --------     -------				-------------------------------            
+	1    22/08/2023   Satish Gohil			Created
+	2    31/08/2023	  Satish Gohil			Modify(Added Credit/Debit Validation and GL Validation changes)
+	3    13/10/2023   MOIN BLOCH			Modify(Added Name for Customer / Vendor )
+	4    29/04/2026   Divyesh Kathiriya		Modify Error Msg [PN-16139]
 **************************************************************/  
 
 CREATE   PROCEDURE [dbo].[USP_ValidateManualBatch]
@@ -79,7 +80,7 @@ BEGIN
 		
 		SELECT @MaxLevel = [ManagementStructureLevel] FROM [dbo].[MasterCompany] WITH(NOLOCK) WHERE [MasterCompanyId] = @MasterCompanyId
 
-		SELECT * FROM #temptable
+SELECT * FROM #temptable
 
 		SELECT @TotalRecord = COUNT(*), @MinId = MIN(rownumber) FROM #temptable     
 
@@ -260,7 +261,7 @@ BEGIN
 				IF(ISNULL(@Level1Code,'') = '')
 				BEGIN				
 					INSERT INTO #tmpmsg(msg)
-					VALUES('Please Enter Level1Code');
+					VALUES('Please Enter LE');
 
 					SET @ValidLevel = 0;
 				END
@@ -277,7 +278,7 @@ BEGIN
 				IF(ISNULL(@Level2Code,'') = '')
 				BEGIN				
 					INSERT INTO #tmpmsg(msg)
-					VALUES('Please Enter Level2Code');
+					VALUES('Please Enter BU');
 					SET @ValidLevel = 0;
 				END
 				ELSE
@@ -293,7 +294,7 @@ BEGIN
 				IF(ISNULL(@Level3Code,'') = '')
 				BEGIN				
 					INSERT INTO #tmpmsg(msg)
-					VALUES('Please Enter Level3Code');
+					VALUES('Please Enter DIV');
 					SET @ValidLevel = 0;
 				END
 				ELSE
@@ -309,7 +310,7 @@ BEGIN
 				IF(ISNULL(@Level4Code,'') = '')
 				BEGIN				
 					INSERT INTO #tmpmsg(msg)
-					VALUES('Please Enter Level4Code');
+					VALUES('Please Enter DEPT');
 					SET @ValidLevel = 0;
 				END
 				ELSE

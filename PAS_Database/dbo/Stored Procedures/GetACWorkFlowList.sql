@@ -29,7 +29,7 @@ BEGIN
     DECLARE @TemplateType INT = 2
     BEGIN TRANSACTION
 
-        SELECT  wf.WorkflowId,  wf.[WorkOrderNumber] + '_' + wf.[Version] AS WorkFlowNo, wf.TailNum,wf.SerialNum,
+        SELECT  wf.WorkflowId,wf.WorkflowId AS TemplateId,  wf.[WorkOrderNumber] + '_' + wf.[Version] AS WorkFlowNo, wf.TailNum,wf.SerialNum,
             wf.AircraftModelId, wf.MakeTypeId, wf.TemplateType,  wf.MaintenanceTypeId, wf.WorkOrderNumber, wf.Version,
             UPPER(wf.WorkflowDescription) AS TemplateDescription
         FROM dbo.Workflow wf WITH (NOLOCK)

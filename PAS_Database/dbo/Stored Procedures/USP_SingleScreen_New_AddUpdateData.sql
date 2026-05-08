@@ -15,7 +15,7 @@
 	4.   27/05/2024   Amit Ghediya     Update for set Default Site.
 	5    10/11/2025   Sahdev Saliya    New field named “IsDefault” and a Sequence have been added to the Single Screen Default Message.
     6    30/03/2026   Nakul Chandigra  Handle the empty value to null for sequence number (PN-15865,PN-15867)
-
+    7    05/05/2026   Nakul Chandigra  Added a Case for null in Update*(PN-16281)
 
 declare @p5 dbo.SingleScreenColumnType
 insert into @p5 values(N'Description',N'TEST',N'string',N'')
@@ -241,7 +241,7 @@ BEGIN
           WHEN FieldType = 'string' THEN FieldName + '=' + '''' + ISNULL(REPLACE(FieldValue, '''', ''''''), '') + ''','    
           WHEN FieldType = 'boolean' THEN FieldName + '=' + (CASE WHEN LOWER(REPLACE(FieldValue, '''', '''''')) = 'true' THEN '1,' ELSE '0,'  END)    
           WHEN LOWER(FieldType) = 'datetime' OR LOWER(FieldType) = 'date' THEN FieldName + '= CONVERT(DATETIME,''' + REPLACE(FieldValue, '''', '''''') + ''',101),'    
-          WHEN FieldType = 'integer' THEN FieldName + ' = ' + (CASE WHEN FieldName = 'SequenceNo' AND (@PageName=N'aircraftstatus'OR @PageName=N'maintenancestatus') AND ISNULL(LTRIM(RTRIM(FieldValue)), '') = '' THEN 'NULL' ELSE FieldValue END) + ',' ELSE CASE
+          WHEN FieldType = 'integer' THEN FieldName + ' = ' + (CASE WHEN FieldName = 'SequenceNo' AND (@PageName=N'aircraftstatus'OR @PageName=N'maintenancestatus') AND ISNULL(LTRIM(RTRIM(FieldValue)), '') = '' THEN 'NULL' WHEN FieldValue IS NULL THEN 'NULL' ELSE FieldValue END) + ',' ELSE CASE
 									 WHEN FieldType = 'number' THEN FieldName + ' = ' + FieldValue + ',' ELSE '' end
 		  END)
 		  , 
@@ -250,7 +250,7 @@ BEGIN
 				WHEN	LOWER(FieldType) = 'datetime' OR    
 						LOWER(FieldType) = 'date' THEN FieldName + '= CONVERT(DATETIME,''' + REPLACE(FieldValue, '''', '''''') + ''',101),'    
 				WHEN FieldType = 'integer' OR FieldType = 'int' OR FieldType = 'number' THEN FieldName + '=' + (CASE WHEN FieldName = 'SequenceNo' AND (@PageName=N'aircraftstatus'OR @PageName=N'maintenancestatus') AND ISNULL(LTRIM(RTRIM(FieldValue)), '') = '' THEN 'NULL'ELSE REPLACE(FieldValue, '''', '''''') END) + ','   
-				ELSE '' END))    
+				ELSE '' END),@FieldValue)    
       FROM @Fields WHERE ISNULL(ReferenceTable, '') = ''    
     
       SET @FieldValue = SUBSTRING(@FieldValue, 1, LEN(@FieldValue) - 1)  

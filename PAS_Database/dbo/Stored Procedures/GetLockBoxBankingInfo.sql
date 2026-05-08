@@ -18,7 +18,8 @@
     2    12/12/2024		EKTA CHANDEGRA	 Check IsNUll And Add Inline Html  
     3    25/12/2024		EKTA CHANDEGRA	 Check IsPrimary 
 	4    16/Jul/2025    Moin Bloch	     Added UPPERCASE
-    5    11/09/2025	 RAJESH GAMI	     Add LegalEntityBankingCheque details instead of LegalEntityBankingLockBox table
+    5    11/09/2025	    RAJESH GAMI	     Add LegalEntityBankingCheque details instead of LegalEntityBankingLockBox table
+    6    01/05/2026     Ayushi Patel    [PN-16030] Added MasterCompanyCode/NULL parameter in ValidatePDFAddress calls.
  EXEC GetLockBoxBankingInfo 1 
 ************************************************************************/  
 CREATE     PROCEDURE [dbo].[GetLockBoxBankingInfo]
@@ -31,7 +32,7 @@ BEGIN
 	SELECT TOP 1
         (
             CASE WHEN lb.AccountTypeId = 1 THEN UPPER(ISNULL(lb.BankName,'')) ELSE UPPER(ISNULL(lb.PayeeName,'')) END +'<br />'+
-            (SELECT dbo.ValidatePDFAddress(ad.Line1,NULL,NULL,ad.City,ad.StateOrProvince,ad.PostalCode,co.countries_name,NULL,NULL,NULL))
+            (SELECT dbo.ValidatePDFAddress(ad.Line1,NULL,NULL,ad.City,ad.StateOrProvince,ad.PostalCode,co.countries_name,NULL,NULL,NULL,MS.MasterCompanyCode))
         ) AS chequeTo
 		--SELECT TOP 1
   --      (
@@ -72,6 +73,7 @@ BEGIN
 		FROM [dbo].[EntityStructureSetup] ess WITH(NOLOCK)
 		LEFT JOIN [dbo].[ManagementStructureLevel] msl WITH(NOLOCK) ON ess.Level1Id = msl.ID
 		LEFT JOIN [dbo].[LegalEntity] le WITH(NOLOCK) ON msl.LegalEntityId = le.LegalEntityId
+        LEFT JOIN [dbo].[MasterCompany] MS WITH(NOLOCK) ON MS.MasterCompanyId = le.MasterCompanyId
 		LEFT JOIN dbo.LegalEntityBankingCheque lb WITH(NOLOCK) ON le.LegalEntityId = lb.LegalEntityId AND lb.IsPrimary = 1
 		LEFT JOIN [dbo].[Address] ad WITH(NOLOCK) ON lb.AddressId = ad.AddressId
 		LEFT JOIN [dbo].[Countries] co WITH(NOLOCK) ON ad.CountryId = co.countries_id

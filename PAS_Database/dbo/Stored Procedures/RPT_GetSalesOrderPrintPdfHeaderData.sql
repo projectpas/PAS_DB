@@ -14,7 +14,7 @@ EXEC [RPT_GetSalesOrderPrintPdfHeaderData]
 ** 3    16-Apr-2024	Bhargav Saliya		CreditTerms Changes
 ** 4	11/04/2024	Vishal Suthar		Modified to make use of new SO Part tables
 ** 5	29-May-2025	Devendra Shekh		Modified to get EmployeeName
-
+** 6    01/05/2026  Ayushi Patel        [PN-16030] Added MasterCompanyCode/NULL parameter in ValidatePDFAddress calls.
 EXEC RPT_GetSalesOrderPrintPdfHeaderData 862
 
 **************************************************************/
@@ -35,7 +35,7 @@ BEGIN
 			UPPER(ISNULL(cust.Email, '')) AS CustEmail,
 			UPPER(ISNULL(cust.CustomerPhone, '')) AS CustomerPhone,
 			so.Notes AS SONotes,
-			CustEmailPhone = (SELECT dbo.ValidatePDFAddress(NULL,NULL,NULL,NULL,NULL,NULL,NULL,cust.CustomerPhone,NULL,cust.Email)),
+			CustEmailPhone = (SELECT dbo.ValidatePDFAddress(NULL,NULL,NULL,NULL,NULL,NULL,NULL,cust.CustomerPhone,NULL,cust.Email,MS.MasterCompanyCode)),
 					
 			UPPER(ISNULL(po.PurchaseOrderNumber, '') + ISNULL('/' + ro.RepairOrderNumber, '')) AS PORONum,
 			UPPER(ISNULL(cont.countries_name, '')) AS CustCountry,
@@ -75,6 +75,7 @@ BEGIN
 					WHERE sos.SalesOrderId = @salesOrderId)
 			, UPPER(CONCAT(emp.FirstName, ' ', emp.LastName)) AS EmployeeName
 		FROM dbo.SalesOrder so WITH(NOLOCK)
+			LEFT JOIN [dbo].[MasterCompany] MS WITH(NOLOCK) ON so.MasterCompanyId = MS.MasterCompanyId
 			LEFT JOIN dbo.SalesOrderPartV1 sop WITH(NOLOCK) ON so.SalesOrderId = sop.SalesOrderId
 			LEFT JOIN dbo.SalesOrderStocklineV1 stk WITH(NOLOCK) ON stk.SalesOrderPartId = sop.SalesOrderPartId
 			LEFT JOIN dbo.SalesOrderPartCost sopc WITH(NOLOCK) ON sopc.SalesOrderPartId = sop.SalesOrderPartId

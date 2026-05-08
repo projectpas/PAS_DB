@@ -1,4 +1,5 @@
-﻿/*************************************************************             
+﻿
+/*************************************************************             
  ** File:   [usp_PostROCreateStocklineBatchDetails]             
  ** Author:   Satish Gohil  
  ** Description: This stored procedure is used to create Batch while Post RRO
@@ -26,8 +27,10 @@
 	15	 02/06/2025	  Abhishek Jirawla  Fixed Name concat read script
 	16	 01/12/2025   AMIT GHEDIYA   Update for batch gl account basd on stockline (Goods Received Not Invoiced (GRNI))
 	17   01/29/2026   Hemant Saliya	 Corrected to get Goods Received Not Invoiced (GRNI) from Stockline
+	18   27/04/2026   Bhargav Saliya [PN-16170](UOM-Fixed Amount Issue)
+	19   04/May/2026  UOM conversion related change (Decimal 18,6) [PN-16275]
 **************************************************************/  
-CREATE    PROCEDURE [dbo].[usp_PostROCreateStocklineBatchDetails]
+CREATE      PROCEDURE [dbo].[usp_PostROCreateStocklineBatchDetails]
 @tbl_PostStocklineBatchType PostStocklineBatchType READONLY,
 @MstCompanyId int,
 @updatedByName varchar(256)
@@ -39,8 +42,8 @@ BEGIN
 				BEGIN TRANSACTION
 				BEGIN
 					DECLARE @StocklineId bigint = 0;
-					DECLARE @Qty int = 0;
-					DECLARE @Amount decimal(18, 2) = 0;
+					DECLARE @Qty DECIMAL(18,6) = 0;
+					DECLARE @Amount [decimal](18, 6) = 0;
 					DECLARE @ModuleName varchar(256) = 0;
 					DECLARE @UpdateBy varchar(256) = 0;
 					DECLARE @MasterCompanyId int = 0;
@@ -51,9 +54,9 @@ BEGIN
 					DECLARE @JournalTypeNumber varchar(100);
 					DECLARE @JournalBatchDetailId BIGINT=0;
 					DECLARE @JlBatchHeaderId bigint=0;
-					DECLARE @TotalDebit decimal(18, 2) =0;
-					DECLARE @TotalCredit decimal(18, 2) =0;
-					DECLARE @TotalBalance decimal(18, 2) =0;
+					DECLARE @TotalDebit [decimal](18, 6) =0;
+					DECLARE @TotalCredit [decimal](18, 6) =0;
+					DECLARE @TotalBalance [decimal](18, 6) =0;
 					DECLARE @INPUTMethod varchar(100);
 					DECLARE @jlTypeId BIGINT;
 					DECLARE @jlTypeName varchar(100);
@@ -80,8 +83,8 @@ BEGIN
 					(    
 					    [ID] BIGINT NOT NULL IDENTITY, 
 						[StocklineId] [bigint] NOT NULL,
-						[Qty] [int] NOT NULL,
-						[Amount] [decimal](18, 2) NULL,
+						[Qty] [decimal](18, 6) NOT NULL,
+						[Amount] [decimal](18, 6) NULL,
 						[ModuleName] [varchar](256) NULL,
 						[UpdateBy] [varchar](256) NULL,
 						[MasterCompanyId] [int] NULL,
@@ -116,10 +119,10 @@ BEGIN
 					  DECLARE @PieceItemmasterId bigint
 					  DECLARE @CustRefNumber varchar(200)
 					  DECLARE @LineNumber int=1
-					  DECLARE @UnitPrice decimal(18,2)=0
-					  DECLARE @LaborHrs decimal(18,2)=0
-					  DECLARE @DirectLaborCost decimal(18,2)=0
-					  DECLARE @OverheadCost decimal(18,2)=0
+					  DECLARE @UnitPrice [decimal](18, 6)=0
+					  DECLARE @LaborHrs [decimal](18, 6)=0
+					  DECLARE @DirectLaborCost [decimal](18, 6)=0
+					  DECLARE @OverheadCost [decimal](18, 6)=0
 					  DECLARE @partId bigint=0
 					  DECLARE @batch varchar(100)
 					  DECLARE @AccountingPeriod varchar(100)
@@ -130,16 +133,16 @@ BEGIN
 					  DECLARE @AllMSlevels varchar(max)
 					  DECLARE @DistributionSetupId int=0
 					  DECLARE @DistributionCode varchar(200)
-					  DECLARE @InvoiceTotalCost decimal(18,2)=0
-					  DECLARE @MaterialCost decimal(18,2)=0
-					  DECLARE @LaborOverHeadCost decimal(18,2)=0
-					  DECLARE @FreightCost decimal(18,2)=0
-					  DECLARE @SalesTax decimal(18,2)=0
+					  DECLARE @InvoiceTotalCost [decimal](18, 6)=0
+					  DECLARE @MaterialCost [decimal](18, 6)=0
+					  DECLARE @LaborOverHeadCost [decimal](18, 6)=0
+					  DECLARE @FreightCost [decimal](18, 6)=0
+					  DECLARE @SalesTax [decimal](18, 6)=0
 					  DECLARE @InvoiceNo varchar(100)
-					  DECLARE @MiscChargesCost decimal(18,2)=0
-					  DECLARE @LaborCost decimal(18,2)=0
-					  DECLARE @InvoiceLaborCost decimal(18,2)=0
-					  DECLARE @RevenuWO decimal(18,2)=0
+					  DECLARE @MiscChargesCost [decimal](18, 6)=0
+					  DECLARE @LaborCost [decimal](18, 6)=0
+					  DECLARE @InvoiceLaborCost [decimal](18, 6)=0
+					  DECLARE @RevenuWO [decimal](18, 6)=0
 					  DECLARE @CurrentManagementStructureId bigint=0
 					  
 					  DECLARE @DistributionMasterId bigint;

@@ -11,6 +11,7 @@
  ** PR   Date         Author  		Change Description            
  ** --   --------     -------		---------------------------     
     1    06/23/2023   Moin Bloch     Created
+	2    06/05/2026   Ayushi Patel   UOM Changes RMA [PN-15140]
 *******************************************************************************
 EXEC USP_VendorRMA_Edit_Receiving_DetailsById 39,64,2
 *******************************************************************************/
@@ -55,8 +56,9 @@ BEGIN
 				  ,IM.[PartDescription]
 				--,VD.[Qty] AS [QuantityOrdered]
 				--,[QuantityBackOrdered] = (VD.[Qty] - (SELECT ISNULL(SUM(ISNULL(SL.[Quantity],0)),0) FROM [dbo].[StockLine] SL WITH (NOLOCK) WHERE SL.[VendorRMADetailId] = VD.[VendorRMADetailId] AND SL.[IsDeleted] = 0 AND SL.[IsParent] = 1))
-				  ,VD.[QtyShipped] AS [QuantityOrdered]
-				  ,[QuantityBackOrdered] = (VD.[QtyShipped] - (SELECT ISNULL(SUM(ISNULL(SL.[Quantity],0)),0) FROM [dbo].[StockLine] SL WITH (NOLOCK) WHERE SL.[VendorRMADetailId] = VD.[VendorRMADetailId] AND SL.[IsDeleted] = 0 AND SL.[IsParent] = 1))
+				  ,([dbo].[fn_ConvertUOM](ISNULL(VD.[QtyShipped], 0),IM.[StockUnitOfMeasure], IM.[PurchaseUnitOfMeasure],0,IM.[MasterCompanyId])) AS QuantityOrdered
+				  ,[dbo].[fn_ConvertUOM]((VD.[QtyShipped] - (SELECT ISNULL(SUM(ISNULL(SL.[Quantity], 0)), 0) FROM [dbo].[StockLine] SL WITH (NOLOCK) WHERE SL.[VendorRMADetailId] = VD.[VendorRMADetailId] AND SL.[IsDeleted] = 0 AND SL.[IsParent] = 1)),
+				   IM.[StockUnitOfMeasure],IM.[PurchaseUnitOfMeasure], 0,IM.[MasterCompanyId]) AS QuantityBackOrdered
 				  ,SL.[ManufacturerId]
 				  ,SL.[Manufacturer] AS [ManufacturerName]
 				  ,SL.[ManagementStructureId]
@@ -64,7 +66,8 @@ BEGIN
 				  ,'' AS [AllMSlevels]
 				  ,SL.[PurchaseUnitOfMeasureId] AS [UOMId]		
 				  ,UM.[ShortName] AS [UomText]
-				  ,VD.[UnitCost]
+				  --,VD.[UnitCost]
+				  ,([dbo].[fn_ConvertUOM](ISNULL(VD.[UnitCost], 0),IM.[StockUnitOfMeasure], IM.[PurchaseUnitOfMeasure],1,IM.[MasterCompanyId])) AS UnitCost
 				  ,VD.[ExtendedCost]
 				  ,VD.[SerialNumber]
 				  ,0 AS [DiscountPerUnit]  --> Default SET 0  
@@ -86,7 +89,7 @@ BEGIN
 			  INNER JOIN [dbo].[Stockline] SL WITH (NOLOCK) ON VD.[StockLineId] = SL.[StockLineId]
 			  INNER JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON VD.[ItemMasterId] = IM.[ItemMasterId]	
 			   LEFT JOIN [dbo].[VendorRMAHeaderStatus] HS WITH (NOLOCK) ON VR.[VendorRMAStatusId] = HS.[VendorRMAStatusId]
-			   LEFT JOIN [dbo].[UnitOfMeasure] UM WITH (NOLOCK) ON SL.[PurchaseUnitOfMeasureId] = UM.[UnitOfMeasureId]
+			   LEFT JOIN [dbo].[UnitOfMeasure] UM WITH (NOLOCK) ON IM.[PurchaseUnitOfMeasureId] = UM.[UnitOfMeasureId]
 			   LEFT JOIN [dbo].[StocklineManagementStructureDetails] MS WITH (NOLOCK) ON MS.[ReferenceID] = VD.[StockLineId] AND MS.[ModuleID] = @StocklineModuleId			
 			  WHERE VD.[VendorRMADetailId] IN (SELECT * FROM dbo.SplitString(@Ids,','));
 		END
@@ -153,8 +156,8 @@ BEGIN
                   ,SL.[TraceableToName]
 				  ,SL.[TaggedBy]
                   ,SL.[TaggedByName]
-                  ,SL.[UnitOfMeasureId]
-                  ,SL.[UnitOfMeasure]
+				  ,IM.[StockUnitOfMeasureId] AS UnitOfMeasureId
+				  ,IM.[StockUnitOfMeasure] AS UnitOfMeasure
                   ,SL.[RevisedPartId]
                   ,SL.[RevisedPartNumber]
                   ,SL.[TagType]
@@ -168,7 +171,8 @@ BEGIN
                   ,SL.[CertTypeId]     
 				  ,1 AS [ItemTypeId]
 			FROM [dbo].[StockLineDraft] SL WITH(NOLOCK) 
-			LEFT JOIN [dbo].[StockLineDraftManagementStructureDetails] MS WITH (NOLOCK) ON MS.[ReferenceID] = SL.[StockLineDraftId] AND MS.ModuleID = @ReceivingRMADraftModuleId						
+			LEFT JOIN [dbo].[StockLineDraftManagementStructureDetails] MS WITH (NOLOCK) ON MS.[ReferenceID] = SL.[StockLineDraftId] AND MS.ModuleID = @ReceivingRMADraftModuleId	
+			LEFT JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON SL.[ItemMasterId] = IM.[ItemMasterId]	
 			WHERE SL.[VendorRMAId] = @VendorRMAId AND 
 			      SL.[VendorRMADetailId] = @VendorRMADetailId AND 
 				  SL.[IsParent] = 1;

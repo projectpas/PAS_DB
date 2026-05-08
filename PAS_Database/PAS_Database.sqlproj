@@ -4502,7 +4502,6 @@
     <Build Include="dbo\Stored Procedures\USP_SearchInstalledComponents.sql" />
     <Build Include="dbo\Stored Procedures\USP_deleteSalesOrderQuoteStocklinePart.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetCommonForNonStocklineByItemMasterId.sql" />
-    <Build Include="dbo\Stored Procedures\USP_SearchIntalldComponents.sql" />
     <Build Include="dbo\Tables\MaintenanceClass.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetImportModuleList.sql" />
     <Build Include="dbo\Views\vw_MaintenanceClass.sql" />
@@ -4520,6 +4519,8 @@
     <Build Include="dbo\Stored Procedures\USP_SaveAircraftEffectivity.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetAircraftEffectivity.sql" />
     <Build Include="dbo\User Defined Types\AircraftEffectivityTableType.sql" />
+    <Build Include="dbo\Tables\CustomerAging_1.sql" />
+    <Build Include="dbo\Stored Procedures\uspbatch_UpdateCustomerARAgingBalance_1.sql" />
     <Build Include="dbo\Stored Procedures\USP_deleteSalesOrderStockLineCost.sql" />
   </ItemGroup>
   <ItemGroup>

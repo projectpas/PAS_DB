@@ -13,7 +13,7 @@
 	2	 02/1/2024	  AMIT GHEDIYA	added isperforma Flage for SO
 	3    10/16/2024	  Abhishek Jirawla	Implemented the new tables for SalesOrder related tables
 	4    03-07-2025   Moin Bloch        Changed Old To New Billing Table
-	
+	5    08-05-2026   Rajesh Gami       UOM Conversion Changes[PN-16331]
  --  EXEC GetCreditMemoPartsForPrint 93,0,38
 **************************************************************/ 
 
@@ -39,7 +39,7 @@ BEGIN
 					   SOBI.InvoiceNo,
 					   --SOPN.CustomerReference,
 					   '' AS CustomerReference,
-					   IM.PurchaseUnitOfMeasure AS UOM,
+					   IM.StockUnitOfMeasure AS UOM,
 					   CM.Qty,
 					   CM.UnitPrice,
 					   CM.Amount						
@@ -60,7 +60,7 @@ BEGIN
 					   CO.Code AS 'Codition',
 					   WOBI.InvoiceNo,
 					   WOPN.CustomerReference,
-					   IM.PurchaseUnitOfMeasure AS UOM,
+					   IM.StockUnitOfMeasure AS UOM,
 					   CM.Qty,
 					   CM.UnitPrice,
 					   CM.Amount

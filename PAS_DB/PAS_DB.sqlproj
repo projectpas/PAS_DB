@@ -4073,6 +4073,7 @@
     <Build Include="dbo\Stored Procedures\Procs3\USP_SearchCustomerInvoicesQBExtract.sql" />
     <Build Include="dbo\Stored Procedures\Procs3\USP_SearchCustomerRMAData.sql" />
     <Build Include="dbo\Stored Procedures\Procs3\USP_searchgetAircraftMappingDataByMultiTypeIdModelIDDashID.sql" />
+	<Build Include="dbo\Stored Procedures\Procs3\USP_SearchInstalledComponents.sql" />
     <Build Include="dbo\Stored Procedures\Procs3\USP_SearchItemAircraftMappingData.sql" />
     <Build Include="dbo\Stored Procedures\Procs3\USP_searchItemmasterfordashboardheader.sql" />
     <Build Include="dbo\Stored Procedures\Procs3\USP_SendILSQuote.sql" />

@@ -32,6 +32,7 @@ Exec [usp_SaveTurnInWorkOrderMaterils]
    17	13/Mar/2026 Rajesh Gami			UOM Changes Added [PN-15714]
    20   26/03/2026  Moin Bloch	        Rename TearDown To Internal Teardown PN-15850
    21	07/05/2026  Nakul Chandigra		Added two new field in stockline Save (PN-16315)
+   22	07/05/2026  Nakul Chandigra		Changed Size of two new field  (PN-16315)
 exec dbo.usp_SaveTurnInWorkOrderMaterils @IsMaterialStocklineCreate=1,@IsCustomerStock=1,@IsCustomerstockType=0,@ItemMasterId=291,@UnitOfMeasureId=5,  
 @ConditionId=10,@Quantity=2,@IsSerialized=0,@SerialNumber=NULL,@CustomerId=80,@ObtainFromTypeId=1,@ObtainFrom=80,@ObtainFromName=N'anil gill ',  
 @OwnerTypeId=NULL,@Owner=NULL,@OwnerName=N'',@TraceableToTypeId=NULL,@TraceableTo=NULL,@TraceableToName=N'',@Memo=N' ',@WorkOrderId=N'320',  
@@ -81,8 +82,8 @@ CREATE   PROCEDURE [dbo].[usp_SaveTurnInWorkOrderMaterils]
 @EvidenceId INT = NULL,  
 @WorkOrderWorkflowId BIGINT  = NULL,  
 @IsMPNTendor BIT = 0 ,
-@AircraftTail VARCHAR(500) = NULL,  
-@AircraftSN VARCHAR(500) = NULL
+@AircraftTail VARCHAR(400) = NULL,  
+@AircraftSN VARCHAR(30) = NULL
 AS  
 BEGIN  
    

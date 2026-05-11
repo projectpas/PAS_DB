@@ -32,11 +32,16 @@ SET NOCOUNT ON
 		BEGIN TRANSACTION
 			BEGIN
 				DECLARE @ModuleId BIGINT,@ExchangeSalesOrder BIGINT, @RequestedBy BIGINT, @Email VARCHAR(100) = NULL;
-
-				SELECT @ModuleId = AttachmentModuleId FROM dbo.AttachmentModule WITH(NOLOCK) WHERE UPPER(Name) = UPPER('LEGALENTITYLOGO');
 				
+				DECLARE @A2ZMasterCompanyCode VARCHAR(50);
+				DECLARE @MasterCompanyCodeAll VARCHAR(50);
+				SELECT @ModuleId = AttachmentModuleId FROM dbo.AttachmentModule WITH(NOLOCK) WHERE UPPER(Name) = UPPER('LEGALENTITYLOGO');
+				SELECT @MasterCompanyCodeAll = [MasterCompanyCode] FROM DBO.MasterCompany WITH(NOLOCK) WHERE [MasterCompanyId] = @MasterCompanyId;
+				SELECT @A2ZMasterCompanyCode = MasterCompanyCode FROM DBO.MasterCompany WITH(NOLOCK) WHERE UPPER(MasterCompanyCode) = UPPER('A2Z');
+			
 				SELECT DISTINCT TOP 1
-					CompanyName = Upper(le.CompanyName),
+					--CompanyName = Upper(le.CompanyName),
+					CompanyName = CASE WHEN ISNULL(@MasterCompanyCodeAll,'') = ISNULL(@A2ZMasterCompanyCode,'') THEN (le.CompanyName) ELSE Upper(le.CompanyName) END,
 					le.CompanyCode,
 					atd.Link,
 					at.ModuleId,

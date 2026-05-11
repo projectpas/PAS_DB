@@ -15,7 +15,7 @@
 	4    04/12/2024   HEMANT SALIYA   Updated Status Id 
 	5	 11/04/2024	  Vishal Suthar	  Modified to make use of new SO Part tables
 	6    26/06/2025	  AMIT GHEDIYA	  Modified to make use of new common Billing tables
-	
+	7    08-05-2026   Rajesh Gami       UOM Conversion Changes[PN-16331]
  --  EXEC RPT_GetCreditMemoPartsForPrint 546,1,190
 **************************************************************/ 
 
@@ -47,7 +47,7 @@ BEGIN
 					   CO.Code AS 'Codition',
 					   SOBI.InvoiceNo,
 					   SO.CustomerReference,
-					   IM.PurchaseUnitOfMeasure AS UOM,
+					    IM.StockUnitOfMeasure AS UOM,
 					   CM.Qty,
 					   --ABS(CM.UnitPrice) UnitPrice,
 					   ABS(ISNULL(CM.PartsUnitCost, 0)) UnitPrice,
@@ -77,7 +77,7 @@ BEGIN
 					   CO.Code AS 'Codition',
 					   WOBI.InvoiceNo,
 					   WOPN.CustomerReference,
-					   IM.PurchaseUnitOfMeasure AS UOM,
+					    IM.StockUnitOfMeasure AS UOM,
 					   CM.Qty,
 					   --ABS(CM.UnitPrice) UnitPrice,
 					   ABS(ISNULL(CM.PartsUnitCost, 0)) UnitPrice,

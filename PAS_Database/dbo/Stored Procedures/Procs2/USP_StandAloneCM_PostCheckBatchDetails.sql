@@ -22,7 +22,7 @@
 	6    11/05/2024   Amit Ghediya	Handle bypass accounting entry.
 	7	 02/06/2025	  Abhishek Jirawla  Fixed Name concat read script
 	8	 09/15/2025	  Devendra Shekh	Added Missing Columns for [CommonBatchDetails] Insert
-
+	9    11/MAY/2026  Rajesh Gami		UOM Conversion Changes [PN-16332]
 **************************************************************/
 
 CREATE   PROCEDURE [dbo].[USP_StandAloneCM_PostCheckBatchDetails]
@@ -30,7 +30,7 @@ CREATE   PROCEDURE [dbo].[USP_StandAloneCM_PostCheckBatchDetails]
 	@StandAloneCreditMemoDetailsId BIGINT,
 	@CreditMemoHeaderId BIGINT,
 	@ManagementStructureDetailsId BIGINT,
-	@Amount DECIMAL(18,2),
+	@Amount decimal(18,6),
 	@MasterCompanyId INT,
 	@UpdateBy VARCHAR(100)
 )
@@ -64,15 +64,15 @@ BEGIN
 		DECLARE @StartsFrom varchar(200)='00'
 		DECLARE @GlAccountName varchar(200) 
 		DECLARE @GlAccountNumber varchar(200) 
-		DECLARE @ExtAmount DECIMAL(18,2)
+		DECLARE @ExtAmount decimal(18,6)
 		DECLARE @BankId INT =0;
 		DECLARE @ManagementStructureId bigint
 		DECLARE @LastMSLevel varchar(200)
 		DECLARE @AllMSlevels varchar(max)
 		DECLARE @ModuleId INT
-		DECLARE @TotalDebit decimal(18, 2) =0;
-		DECLARE @TotalCredit decimal(18, 2) =0;
-		DECLARE @TotalBalance decimal(18, 2) =0;
+		DECLARE @TotalDebit decimal(18,6) =0;
+		DECLARE @TotalCredit decimal(18,6) =0;
+		DECLARE @TotalBalance decimal(18,6) =0;
 		DECLARE @ExtNumber VARCHAR(50);
 		DECLARE @VendorName VARCHAR(50);
 		DECLARE @ExtDate Datetime;

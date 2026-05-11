@@ -4521,6 +4521,7 @@
     <Build Include="dbo\User Defined Types\AircraftEffectivityTableType.sql" />
     <Build Include="dbo\Tables\CustomerAging_1.sql" />
     <Build Include="dbo\Stored Procedures\uspbatch_UpdateCustomerARAgingBalance_1.sql" />
+    <Build Include="dbo\Stored Procedures\USP_deleteSalesOrderStockLineCost.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

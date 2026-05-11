@@ -22,8 +22,9 @@
 	6	 02/04/2026   Nakul Chandigra       Add condtion for Orderby in final sql for squenceno (PN-15884)
 	7	 07/04/2026   Nakul Chandigra       Add condtion for Orderby in final sql (PN-15944)
 	8    29/04/2026   Divyesh Kathiriya		Added New Module "ManualJournal" [PN-16139]
+	9    11/05/2026   Nakul Chandigra       Added a new function to apply upper or lower case formatting based on the employee and legal entity.(PN-16181)
 
- EXEC usp_GenerateCsvData 111, 1, 236
+ EXEC usp_GenerateCsvData 20, 1, 2
 **************************************************************/
 CREATE PROCEDURE [dbo].[usp_GenerateCsvData]
 (
@@ -49,7 +50,10 @@ BEGIN
 		DECLARE @WhereCondition NVARCHAR(MAX);
 		DECLARE @MSModuelId INT; 
 		DECLARE @OrderByColumn NVARCHAR(50);
-
+		DECLARE @TextTransformId BIGINT;
+		DECLARE @TextTransform VARCHAR(50);
+		DECLARE @LegalEntityId BIGINT;
+		DECLARE @TransformedSelectList NVARCHAR(MAX);
 
 		DECLARE @EmployeeModule AS INT;
 		DECLARE @StocklineModule AS INT;
@@ -65,8 +69,18 @@ BEGIN
 		SET @ManualJournalModule = (SELECT [ImportModuleId] FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'ManualJournal');
 
 		SET @MSModuelId = (SELECT [ManagementStructureModuleId] FROM [DBO].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] = 'Stockline');
-		
+		SET @LegalEntityId = (SELECT [LegalEntityId] FROM [DBO].[Employee] WHERE EmployeeId = @EmployeeId AND MasterCompanyId = @MasterCompanyId) 
 
+		IF EXISTS (SELECT 1 FROM employee WHERE EmployeeId = @EmployeeId AND MasterCompanyId = @MasterCompanyId AND TextTransformId IS NOT NULL)
+		BEGIN
+			SET @TextTransformId = (SELECT TextTransformId FROM employee WHERE EmployeeId = @EmployeeId AND MasterCompanyId = @MasterCompanyId)
+			SET @TextTransform = (SELECT DisplayName FROM TextTransform WHERE @TextTransformId = TextTransformId)
+		END 
+		ELSE 
+		BEGIN 
+			SET @TextTransformId = (SELECT TextTransformId FROM LegalEntity WHERE LegalEntityId = @LegalEntityId AND MasterCompanyId = @MasterCompanyId)
+			SET @TextTransform = (SELECT DisplayName FROM TextTransform WHERE TextTransformId = @TextTransformId)
+		END 
 		IF OBJECT_ID('tempdb..#ColumnData') IS NOT NULL
 			DROP TABLE #ColumnData
 
@@ -169,11 +183,13 @@ BEGIN
 			SET @OrderByColumn = '.CreatedDate DESC;'
 		END 
 
+		SET @TransformedSelectList = dbo.fn_TransformSelectList(@SelectList, @TextTransform);
+
 --------------Final SQL Query Start--------------
 		IF(@ModuleId = @StocklineModule)
 		BEGIN
 			SET @SQL = '
-			SELECT ' + @SelectList + '
+			SELECT ' + @TransformedSelectList + '
 			FROM ' + @BaseTable + ' WITH(NOLOCK)
 			' + ISNULL(@JoinList, '') + '
 			WHERE ' + @BaseTable + '.MasterCompanyId = @MasterCompanyId			
@@ -184,7 +200,7 @@ BEGIN
 		ELSE IF(@ModuleId = @EmployeeModule)
 		BEGIN
 			SET @SQL = '
-			SELECT ' + @SelectList + '
+			SELECT ' + @TransformedSelectList + '
 			FROM ' + @BaseTable + ' WITH(NOLOCK)
 			' + ISNULL(@JoinList, '') + '
 			WHERE ' + @BaseTable + '.MasterCompanyId = @MasterCompanyId
@@ -247,7 +263,7 @@ BEGIN
 
 
 			SET @SQL  = '
-				SELECT ' + @SelectList + '
+				SELECT ' + @TransformedSelectList + '
 				FROM ' + @BaseTable + '  WITH(NOLOCK)
 				' + ISNULL(@JoinList, '') + '
 				WHERE ' + @BaseTable + '.MasterCompanyId = @MasterCompanyId
@@ -258,7 +274,7 @@ BEGIN
 		ELSE
 		BEGIN
 			SET @SQL  = '
-				SELECT ' + @SelectList + '
+				SELECT ' + @TransformedSelectList + '
 				FROM ' + @BaseTable + '  WITH(NOLOCK)
 				' + ISNULL(@JoinList, '') + '
 				WHERE ' + @BaseTable + '.MasterCompanyId = @MasterCompanyId
@@ -268,7 +284,6 @@ BEGIN
 		
 		END
 --------------Final SQL Query END--------------
-
 		IF(@ModuleId = @StocklineModule)
 		BEGIN		 
 			EXEC sp_executesql @SQL, N'@MasterCompanyId INT, @MSModuelId INT, @EmployeeId BIGINT', @MasterCompanyId, @MSModuelId , @EmployeeId;

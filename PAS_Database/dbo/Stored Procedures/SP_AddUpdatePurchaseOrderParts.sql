@@ -22,6 +22,7 @@
 	9	 05/12/2025	  Ayushi Patel			Added new fields SalesOrderQuoteId,SalesOrderQuoteNumber
 	10	 06/03/2026	  Amit Ghediya			Remove PurchaseOrder open status (PN-15673)
 	11   28/04/2026	  Nakul Chandigra 		Added New Fields (PN-16150)
+	12	 08/05/2026	  Priyansh Patel 		Added Ac tail number (PN-16231)
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[SP_AddUpdatePurchaseOrderParts]
 	@userName varchar(50) = NULL,
@@ -167,8 +168,8 @@ BEGIN
 									PART.TagTypeId = TMP.TagTypeId,PART.TaggedBy = TMP.TaggedBy,PART.TaggedByType = TMP.TaggedByType,
 									PART.TaggedByName = TMP.TaggedByName,PART.TaggedByTypeName = TMP.TaggedByTypeName,PART.TagDate = TMP.TagDate,
 									PART.SalesOrderQuoteId = TMP.SalesOrderQuoteId,
-									PART.SalesOrderQuoteNumber = TMP.SalesOrderQuoteNumber
-
+									PART.SalesOrderQuoteNumber = TMP.SalesOrderQuoteNumber,
+									PART.ACTailNum = TMP.ACTailNum
 								FROM DBO.PurchaseOrderPart PART
 								JOIN #tmpPoPartList TMP
 									ON PART.PurchaseOrderPartRecordId = TMP.PurchaseOrderPartRecordId
@@ -278,7 +279,8 @@ BEGIN
 					   ,[SalesOrderQuoteNumber]
 					   ,[IsFromAircraft]
 					   ,[AircraftInstalledPartDetailsId]
-					   ,[AircraftRegistryNumber])
+					   ,[AircraftRegistryNumber]
+					   ,[ACTailNum])
 			
 					   (SELECT 
 						@PurchaseOrderId
@@ -381,6 +383,7 @@ BEGIN
 					   ,IsFromAircraft
 					   ,AircraftInstalledPartDetailsId
 					   ,AircraftRegistryNumber
+					   ,ACTailNum
 					    FROM #tmpPoPartList WHERE PoPartSrNum = @PartLoopId)
 
 					  SET @PurchaseOrderPartRecordId = SCOPE_IDENTITY();

@@ -28,7 +28,7 @@
 	13   04-20-2026   Vishal Suthar			Keep lowercase companyname for A2Z company
 	14   20-04-2026   Ayushi Patel			Keep lowercase email for A2Z company [PN-16030]
 	15   29/04/2026   Ayushi Patel		    Keep CompanyName as it is for A2Z company [PN-16030]
- EXECUTE USP_GetManagementStructureDetailsForReportsHeader 45
+ EXECUTE USP_GetManagementStructureDetailsForReportsHeader 1
 **********************/ 
 CREATE    PROCEDURE [dbo].[USP_GetManagementStructureDetailsForReportsHeader]    
 (    
@@ -100,6 +100,7 @@ SET NOCOUNT ON
                 @PhoneNumber = @PhoneNumber,
                 @PhoneExt = @PhoneExt,
                 @Email = @FinalEmail,
+				@MasterCompanyCode = @MasterCompanyCodeAll, 
                 @AddressOutput = @MergedAddress OUTPUT;
 
 				EXEC [dbo].[SP_ValidatePDFAddress] 
@@ -113,6 +114,7 @@ SET NOCOUNT ON
                 @PhoneNumber = NULL,
                 @PhoneExt = NULL,
                 @Email = NULL,
+				@MasterCompanyCode = @MasterCompanyCodeAll, 
                 @AddressOutput = @MergedAddressForCOC OUTPUT;
 			SELECT *
 			INTO #TempDestinationTable

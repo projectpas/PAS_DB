@@ -12,13 +12,14 @@
     1    07-APR-2026		Divyesh Kathiriya	Created [PN-15934]
 	2    17-APR-2026		Divyesh Kathiriya	Handle Boolean Issuse AND Other Change [PN-16047]
 	3    05-MAY-2026		Bhargav Saliya  	Add Para @IsCategoryType and  [CategoryType] [PN-16203]
+	4    08-MAY-2026		Bhargav Saliya  	Modified @IsCategoryType to @CategoryId
     
  -- EXEC [RPT_GetEmployeeTrainingListById] @EmployeeId= 374, @MasterCompanyId = 1
 **************************************************************/
 CREATE   PROCEDURE [dbo].[RPT_GetEmployeeTrainingListById]
 @EmployeeId BIGINT,
 @MasterCompanyId BIGINT ,
-@IsCategoryType BIT = 1
+@CategoryId BIT = null
 AS
 BEGIN
 	SET NOCOUNT ON;
@@ -50,7 +51,7 @@ BEGIN
 			ET.[EmployeeId] = @EmployeeId
 			AND ET.[MasterCompanyId] = @MasterCompanyId
 			AND ET.[IsDeleted] = 0
-			AND ET.IsCategoryType = ISNULL(@IsCategoryType,1)
+			AND (@CategoryId IS NULL OR ET.CategoryId = @CategoryId)
 		ORDER BY 
 			ET.[EmployeeTrainingId] DESC;
 			

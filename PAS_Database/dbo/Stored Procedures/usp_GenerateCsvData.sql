@@ -69,17 +69,17 @@ BEGIN
 		SET @ManualJournalModule = (SELECT [ImportModuleId] FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'ManualJournal');
 
 		SET @MSModuelId = (SELECT [ManagementStructureModuleId] FROM [DBO].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] = 'Stockline');
-		SET @LegalEntityId = (SELECT [LegalEntityId] FROM [DBO].[Employee] WHERE EmployeeId = @EmployeeId AND MasterCompanyId = @MasterCompanyId) 
+		SET @LegalEntityId = (SELECT [LegalEntityId] FROM [DBO].[Employee] WITH(NOLOCK) WHERE EmployeeId = @EmployeeId AND MasterCompanyId = @MasterCompanyId) 
 
-		IF EXISTS (SELECT 1 FROM employee WHERE EmployeeId = @EmployeeId AND MasterCompanyId = @MasterCompanyId AND TextTransformId IS NOT NULL)
+		IF EXISTS (SELECT 1 FROM [DBO].[Employee] WITH(NOLOCK) WHERE EmployeeId = @EmployeeId AND MasterCompanyId = @MasterCompanyId AND TextTransformId IS NOT NULL)
 		BEGIN
-			SET @TextTransformId = (SELECT TextTransformId FROM employee WHERE EmployeeId = @EmployeeId AND MasterCompanyId = @MasterCompanyId)
-			SET @TextTransform = (SELECT DisplayName FROM TextTransform WHERE @TextTransformId = TextTransformId)
+			SET @TextTransformId = (SELECT TextTransformId FROM [DBO].[Employee] WITH(NOLOCK) WHERE EmployeeId = @EmployeeId AND MasterCompanyId = @MasterCompanyId)
+			SET @TextTransform = (SELECT DisplayName FROM [DBO].[TextTransform] WITH(NOLOCK) WHERE @TextTransformId = TextTransformId)
 		END 
 		ELSE 
 		BEGIN 
-			SET @TextTransformId = (SELECT TextTransformId FROM LegalEntity WHERE LegalEntityId = @LegalEntityId AND MasterCompanyId = @MasterCompanyId)
-			SET @TextTransform = (SELECT DisplayName FROM TextTransform WHERE TextTransformId = @TextTransformId)
+			SET @TextTransformId = (SELECT TextTransformId FROM [DBO].[LegalEntity]  WITH(NOLOCK) WHERE LegalEntityId = @LegalEntityId AND MasterCompanyId = @MasterCompanyId)
+			SET @TextTransform = (SELECT DisplayName FROM [DBO].[TextTransform] WITH(NOLOCK) WHERE TextTransformId = @TextTransformId)
 		END 
 		IF OBJECT_ID('tempdb..#ColumnData') IS NOT NULL
 			DROP TABLE #ColumnData

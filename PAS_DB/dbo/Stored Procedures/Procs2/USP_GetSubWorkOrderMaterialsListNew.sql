@@ -19,7 +19,7 @@
     9	 01/13/2024		Moin Bloch			    Modified (Added WorkOrderTask Table For conditionally check table for Task)
 	10	 01/13/2024		HEMANT SALIYA		    Resolved repair Order View Issue
 	11   04/25/2025		Devendra Shekh		    Modified (Added New Fields IssuedStkExtendedCost, ReservedStkExtendedCost, StkPONum, StkPONextDlvrDate, TotalIssuedStkExtendedCost, TotalReservedStkExtendedCost)
-
+	11   08/05/2026     Moin Bloch              Added Part Number Filter  PN-16363
        
  EXECUTE USP_GetSubWorkOrderMaterialsList 316,0  
 exec dbo.USP_GetSubWorkOrderMaterialsListNew @PageNumber=1,@PageSize=5,@SortColumn=default,@SortOrder=1,@subWOPartNoId=260,@ShowPendingToIssue=0
@@ -31,7 +31,8 @@ CREATE   PROCEDURE [dbo].[USP_GetSubWorkOrderMaterialsListNew]
 	@SortColumn varchar(50)=null,  
 	@SortOrder int,  
 	@subWOPartNoId BIGINT = NULL , 
-	@ShowPendingToIssue BIT NULL = 0
+	@ShowPendingToIssue BIT NULL = 0,
+	@PartNumber VARCHAR(50) = NULL
 )      
 AS      
 BEGIN      
@@ -700,6 +701,7 @@ SET NOCOUNT ON
 				WHERE WOM.IsDeleted = 0 AND WOM.SubWOPartNoId = @subWOPartNoId AND ISNULL(WOM.IsAltPart, 0) = 0 AND ISNULL(WOM.IsEquPart, 0) = 0 
 				AND (ISNULL(WOM.Quantity,0) - ISNULL(WOM.QuantityIssued,0) > 0)
 			    AND WOM.SubWorkOrderMaterialsId IN (SELECT SubWorkOrderMaterialsId FROM #TMPWOMaterialResultListData WHERE IsKit = 0)
+				AND (@PartNumber IS NULL OR IM.[PartNumber] LIKE '%' + @PartNumber + '%')
 
 				--UNION ALL
 				INSERT INTO	#finalMaterialListResult([PartNumber], [PartDescription], [StocklinePartNumber], [StocklinePartDescription], [KitNumber], [KitDescription], [KitCost], [WOQMaterialKitMappingId], [KitId],
@@ -917,7 +919,8 @@ SET NOCOUNT ON
 					LEFT JOIN dbo.ItemMaster IMS WITH (NOLOCK) ON IMS.ItemMasterId = MSTL.ItemMasterId
 				WHERE WOM.IsDeleted = 0 AND WOM.SubWOPartNoId = @subWOPartNoId AND ISNULL(WOM.IsAltPart, 0) = 0 AND ISNULL(WOM.IsEquPart, 0) = 0
 				AND (ISNULL(WOM.Quantity,0) - ISNULL(WOM.QuantityIssued,0) > 0)
-				AND WOM.SubWorkOrderMaterialsKitMappingId IN (SELECT SubWorkOrderMaterialsKitMappingId FROM #TMPWOMaterialResultListData WHERE IsKit = 1);
+				AND WOM.SubWorkOrderMaterialsKitMappingId IN (SELECT SubWorkOrderMaterialsKitMappingId FROM #TMPWOMaterialResultListData WHERE IsKit = 1)
+				AND (@PartNumber IS NULL OR IM.[PartNumber] LIKE '%' + @PartNumber + '%')
 		END
 		ELSE
 		BEGIN
@@ -1137,6 +1140,7 @@ SET NOCOUNT ON
 				  LEFT JOIN dbo.ItemMaster IMS WITH (NOLOCK) ON IMS.ItemMasterId = MSTL.ItemMasterId
 			 WHERE WOM.IsDeleted = 0 AND WOM.SubWOPartNoId = @subWOPartNoId AND ISNULL(WOM.IsAltPart, 0) = 0 AND ISNULL(WOM.IsEquPart, 0) = 0 
 			 AND WOM.SubWorkOrderMaterialsId IN (SELECT SubWorkOrderMaterialsId FROM #TMPWOMaterialResultListData WHERE IsKit = 0)
+			 AND (@PartNumber IS NULL OR IM.[PartNumber] LIKE '%' + @PartNumber + '%')
 
 			 --UNION ALL
 			INSERT INTO	#finalMaterialListResult([PartNumber], [PartDescription], [StocklinePartNumber], [StocklinePartDescription], [KitNumber], [KitDescription], [KitCost], [WOQMaterialKitMappingId], [KitId],
@@ -1354,7 +1358,8 @@ SET NOCOUNT ON
 				  LEFT JOIN [dbo].[SubWorkOrderMaterialsKitMapping] WOMKM WITH (NOLOCK) ON WOMKM.SubWOPartNoId = wo.SubWOPartNoId AND WOMKM.SubWorkOrderMaterialsKitMappingId = WOM.SubWorkOrderMaterialsKitMappingId
 				  LEFT JOIN dbo.ItemMaster IMS WITH (NOLOCK) ON IMS.ItemMasterId = MSTL.ItemMasterId
 			 WHERE WOM.IsDeleted = 0 AND WOM.SubWOPartNoId = @subWOPartNoId AND ISNULL(WOM.IsAltPart, 0) = 0 AND ISNULL(WOM.IsEquPart, 0) = 0
-			 AND WOMKM.SubWorkOrderMaterialsKitMappingId IN (SELECT SubWorkOrderMaterialsKitMappingId FROM #TMPWOMaterialResultListData WHERE IsKit = 1);  
+			 AND WOMKM.SubWorkOrderMaterialsKitMappingId IN (SELECT SubWorkOrderMaterialsKitMappingId FROM #TMPWOMaterialResultListData WHERE IsKit = 1)
+			 AND (@PartNumber IS NULL OR IM.[PartNumber] LIKE '%' + @PartNumber + '%')
 		END
 
 		SELECT @Count = COUNT(ParentID) from #TMPWOMaterialParentListData;

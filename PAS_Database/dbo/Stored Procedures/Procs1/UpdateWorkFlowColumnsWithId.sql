@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [UpdateWorkFlowColumnsWithId]           
  ** Author:   Hemant Saliya
  ** Description: This stored procedure is used Update Workflow Column based on ID    
@@ -14,9 +13,10 @@
  **************************************************************           
   ** Change History           
  **************************************************************           
- ** PR   Date         Author		Change Description            
- ** --   --------     -------		--------------------------------          
-    1    04/28/2020   Hemant Saliya Created
+ ** PR   Date         Author			Change Description            
+ ** --   --------     -------			--------------------------------          
+    1    04/28/2020   Hemant Saliya		Created
+	2    05/11/2026   Amit Ghediya		Update due to curuncy not available in AC module (PN-16262)
      
 --EXEC [UpdateWorkFlowColumnsWithId] 5
 **************************************************************/
@@ -34,7 +34,7 @@ BEGIN
 					WF.WorkScope = WS.WorkScopeCode,
 					WF.CustomerName = CUS.Name
 				FROM [dbo].[Workflow] WF WITH (NOLOCK)
-					JOIN [dbo].[Currency] C WITH (NOLOCK) ON WF.CurrencyId = C.CurrencyId
+					LEFT JOIN [dbo].[Currency] C WITH (NOLOCK) ON WF.CurrencyId = C.CurrencyId
 					JOIN [dbo].[WorkScope] WS WITH (NOLOCK) ON WF.WorkScopeId = WS.WorkScopeId 
 					LEFT JOIN [dbo].[Customer] CUS WITH (NOLOCK) ON WF.CustomerId = CUS.CustomerId
 				WHERE WF.WorkflowId = @WorkFlowId

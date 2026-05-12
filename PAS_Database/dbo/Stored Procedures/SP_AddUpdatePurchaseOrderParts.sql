@@ -22,7 +22,7 @@
 	9	 05/12/2025	  Ayushi Patel			Added new fields SalesOrderQuoteId,SalesOrderQuoteNumber
 	10	 06/03/2026	  Amit Ghediya			Remove PurchaseOrder open status (PN-15673)
 	11   28/04/2026	  Nakul Chandigra 		Added New Fields (PN-16150)
-	12	 08/05/2026	  Priyansh Patel 		Added Ac tail number (PN-16231)
+	12	 08/05/2026	  Priyansh Patel 		Added Ac tail number [PN-16231]
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[SP_AddUpdatePurchaseOrderParts]
 	@userName varchar(50) = NULL,
@@ -114,6 +114,7 @@ BEGIN
 								SET SL.ItemMasterId = PT.ItemMasterId,SL.PurchaseOrderUnitCost = PT.UnitCost,SL.PurchaseOrderExtendedCost = PT.UnitCost,SL.UnitOfMeasureId = PT.UOMId,
 								    SL.ConditionId = PT.ConditionId,SL.TraceableToType = PT.TraceableToType,SL.TraceableTo = PT.TraceableTo,SL.TraceableToName = PT.TraceableToName,
 									SL.TagTypeId = PT.TagTypeId,SL.TaggedByType = PT.TaggedByType,SL.TaggedBy = PT.TaggedBy,SL.TagDate = PT.TagDate,
+									SL.AircraftTailNumber = PT.ACTailNum,
 									--, SL.CurrencyId = PT.FunctionalCurrencyId,
 										SL.IsKitType = CASE WHEN ISNULL(PT.WorkOrderMaterialsId,0) = 0 THEN 0 ELSE PT.IsKit END,
 										SL.IsSubWOType = CASE WHEN ISNULL(PT.WorkOrderMaterialsId,0) = 0 THEN 0 ELSE PT.IsFromSubWorkOrder END,

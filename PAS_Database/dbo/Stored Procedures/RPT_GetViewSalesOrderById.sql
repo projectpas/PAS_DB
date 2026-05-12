@@ -14,6 +14,7 @@ EXEC [RPT_GetViewSalesOrderById]
    3    05/03/2026  Ayushi Patel    PN-15661 return email through customerContactId insted of cutomer table
    4    01/05/2026  Ayushi Patel    [PN-16030] Added MasterCompanyCode/NULL parameter in ValidatePDFAddress calls.
    5    07/May/2026	Rajesh Gami	     ARBalance Getting From New Table CustomerAging Instead Of CustomerCreditTermsHistory [PN-16092]
+   6    12/05/2026  Ayushi Patel    [PN-16030]Updated ShipToUser casing logic for A2Z Company user type.
 EXEC RPT_GetViewSalesOrderById 782
 **************************************************************/
 CREATE    PROCEDURE [dbo].[RPT_GetViewSalesOrderById]              
@@ -26,8 +27,13 @@ BEGIN
   BEGIN TRY              
    BEGIN            
 		DECLARE @moduleId BIGINT;
-
 		SET @moduleId = (SELECT ModuleId FROM dbo.module WHERE CodePrefix = 'SO');
+
+		DECLARE @CompanyId BIGINT;
+		SELECT @CompanyId = ModuleId FROM Module WHERE ModuleName = 'Company';
+
+		DECLARE @A2ZMasterCompanyCode VARCHAR(50);
+		SELECT @A2ZMasterCompanyCode = MasterCompanyCode FROM DBO.MasterCompany WITH(NOLOCK) WHERE UPPER(MasterCompanyCode) = UPPER('A2Z');
 
 		SELECT TOP 1
 			soq.SalesOrderId,
@@ -112,7 +118,13 @@ BEGIN
 			soq.IsDeleted,
 			soq.ManagementStructureId,
 			posadd.UserTypeName AS ShipToUserType,
-			UPPER(posadd.UserName) AS ShipToUser,
+			--UPPER(posadd.UserName) AS ShipToUser,
+			CASE 
+				WHEN posadd.UserType = @CompanyId
+					 AND UPPER(MS.MasterCompanyCode) = UPPER(@A2ZMasterCompanyCode)
+				THEN ISNULL(posadd.UserName, '')
+				ELSE UPPER(ISNULL(posadd.UserName, ''))
+			END AS ShipToUser,
 			pobadd.UserTypeName AS BillToUserType,
 			pobadd.UserName AS BillToUser,
 			soq.Version,

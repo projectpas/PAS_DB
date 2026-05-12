@@ -18,6 +18,7 @@
 	6    05 Aug 2025   Bhargav Saliya   Get Shipping Terms Name from BillingInvoiceDatails
 	7    29 Aug 2025   RAJESH GAMI		Get date byb employee/legalentity
 	8	 17-03-2026    Ayushi Patel		PN-15689 return email and phone no from customerContact table insted of customer table
+	9    12-05-2026    Ayushi Patel     Added A2Z-specific casing logic for BillToSiteName and ShipToSiteName.
 --  EXEC [dbo].[RPT_GetCommonBillingInvoicingPdfData_SO] 9060,10,55
 **************************************************************/
 CREATE       PROCEDURE [dbo].[RPT_GetCommonBillingInvoicingPdfData_SO]
@@ -35,7 +36,10 @@ BEGIN
 	SELECT @SOModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'SalesOrder';
 	SELECT @EXModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'ExchangeSalesOrder';
 	DECLARE @ReferenceId BIGINT = NULL, @ProformaDepositAmount DECIMAL(18, 2) = 0;
-	
+
+	DECLARE @A2ZMasterCompanyCode VARCHAR(50);
+	SELECT @A2ZMasterCompanyCode = MasterCompanyCode FROM DBO.MasterCompany WITH(NOLOCK) WHERE UPPER(MasterCompanyCode) = UPPER('A2Z');
+
 	DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
 		
 	SELECT @CurrntEmpTimeZoneDesc = COALESCE(ETZ.[Description], LTZ.[Description]) 
@@ -72,7 +76,11 @@ BEGIN
 					
 					CUST.[CustomerPhone]  [PhoneFax],
 				
-					SHIPTOSITE.[SiteName] [ShipToSiteName],
+					CASE 
+						WHEN UPPER(MC.MasterCompanyCode) = UPPER(@A2ZMasterCompanyCode)
+						THEN ISNULL(SHIPTOSITE.SiteName, '')
+						ELSE UPPER(ISNULL(SHIPTOSITE.SiteName, ''))
+					END AS ShipToSiteName,
 					SHIPTOADDRESS.[Line1] [ShipToAddressLine1],
 					SHIPTOADDRESS.[Line2] [ShipToAddressLine2],
 					SHIPTOADDRESS.[City]  [ShipToCity],
@@ -82,7 +90,11 @@ BEGIN
 					SHIPTOSITE.[Attention] [ShipToAttention],
 			
 				
-					BILLTOSITE.[SiteName] [BillToSiteName],
+					CASE 
+						WHEN UPPER(MC.MasterCompanyCode) = UPPER(@A2ZMasterCompanyCode)
+						THEN ISNULL(BILLTOSITE.SiteName, '')
+						ELSE UPPER(ISNULL(BILLTOSITE.SiteName, ''))
+					END AS BillToSiteName,
 					BILLTOADDRESS.[Line1] [BillToAddressLine1],
 					BILLTOADDRESS.[Line2] [BillToAddressLine2],
 					BILLTOADDRESS.[City] [BillToCity],
@@ -196,8 +208,8 @@ BEGIN
 								ELSE  ISNULL(BI.[GrandTotal],0) END [GrandTotal],
 					--ISNULL(BI.[RemainingAmount],0) [RemainingAmount],
 					CASE WHEN ISNULL(BI.[DepositAmount],0) >= @ProformaDepositAmount AND ISNULL(IsPerformaInvoice, 0) = 0 THEN ISNULL(BI.[GrandTotal],0) - @ProformaDepositAmount ELSE ISNULL(BI.[GrandTotal],0) - ISNULL(BI.[DepositAmount],0) END [RemainingAmount],
-					SHIPTOFULLADDRESS = (SELECT dbo.FN_ValidatePDFAddress(SHIPTOADDRESS.[Line1],SHIPTOADDRESS.[Line2],NULL,SHIPTOADDRESS.[City],SHIPTOADDRESS.[StateOrProvince],SHIPTOADDRESS.[PostalCode],SHIPTOCOUNTRY.[countries_name],NULL,NULL,NULL)),
-  				    BILLTOFULLADDRESS = (SELECT dbo.FN_ValidatePDFAddress(BILLTOADDRESS.[Line1],BILLTOADDRESS.[Line2],NULL,BILLTOADDRESS.[City],BILLTOADDRESS.[StateOrProvince],BILLTOADDRESS.[PostalCode],BILLTOCOUNTRY.[countries_name],CONTACT.[WorkPhone],NULL,CONTACT.[Email])),
+					SHIPTOFULLADDRESS = (SELECT dbo.ValidatePDFAddress(SHIPTOADDRESS.[Line1],SHIPTOADDRESS.[Line2],NULL,SHIPTOADDRESS.[City],SHIPTOADDRESS.[StateOrProvince],SHIPTOADDRESS.[PostalCode],SHIPTOCOUNTRY.[countries_name],NULL,NULL,NULL,MC.MasterCompanyCode)),
+  				    BILLTOFULLADDRESS = (SELECT dbo.ValidatePDFAddress(BILLTOADDRESS.[Line1],BILLTOADDRESS.[Line2],NULL,BILLTOADDRESS.[City],BILLTOADDRESS.[StateOrProvince],BILLTOADDRESS.[PostalCode],BILLTOCOUNTRY.[countries_name],CONTACT.[WorkPhone],NULL,CONTACT.[Email],MC.MasterCompanyCode)),
 					case when CAST(GETUTCDATE() as datetime2) = CAST('0001-01-01 00:00:00' as datetime2)then null else (Cast(DBO.ConvertUTCtoLocal(GETUTCDATE(), @CurrntEmpTimeZoneDesc) as datetime2))end [PrintDate],
 					UPPER(inv.[Description]) InvoiceType,
 					oriCountry.countries_name OriginCountry,
@@ -229,6 +241,7 @@ BEGIN
 				LEFT JOIN  [dbo].AllShipVia posv WITH(NOLOCK) ON so.SalesOrderId = posv.ReferenceId AND posv.ModuleId = @ModuleId
 				LEFT JOIN [dbo].[Countries] oriCountry WITH(NOLOCK) ON Bi.OriginCountryId = oriCountry.[countries_id]
 				LEFT JOIN [dbo].[Countries] destCountry WITH(NOLOCK) ON Bi.ShipToCountryId = destCountry.[countries_id]
+				LEFT JOIN [dbo].[MasterCompany] MC WITH(NOLOCK) ON SO.MasterCompanyId = MC.MasterCompanyId
 				WHERE BI.[BillingInvoicingId] = @BillingInvoicingId AND BI.[IsActive] = 1 AND BI.[IsDeleted] = 0 AND ISNULL(BI.[IsVersionIncrease],0) = 0
 
 		END  /*********END: SALES ORDER ********/		

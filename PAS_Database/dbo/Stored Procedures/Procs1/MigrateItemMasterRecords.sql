@@ -25,10 +25,10 @@ declare @p7 int
 set @p7=NULL
 declare @p8 int
 set @p8=NULL
-exec sp_executesql N'EXEC MigrateItemMasterRecords @FromMasterComanyID, @UserName, @Processed OUTPUT, @Migrated OUTPUT, @Failed OUTPUT, @Exists OUTPUT',N'@FromMasterComanyID int,@UserName nvarchar(12),@Processed int output,@Migrated int output,@Failed int output,@Exists int output',@FromMasterComanyID=20,@UserName=N'ADMIN ADMIN',@Processed=@p5 output,@Migrated=@p6 output,@Failed=@p7 output,@Exists=@p8 output
+exec sp_executesql N'EXEC MigrateItemMasterRecords @FromMasterComanyID, @UserName, @Processed OUTPUT, @Migrated OUTPUT, @Failed OUTPUT, @Exists OUTPUT',N'@FromMasterComanyID int,@UserName nvarchar(12),@Processed int output,@Migrated int output,@Failed int output,@Exists int output',@FromMasterComanyID=25,@UserName=N'ADMIN ADMIN',@Processed=@p5 output,@Migrated=@p6 output,@Failed=@p7 output,@Exists=@p8 output
 select @p5, @p6, @p7, @p8
 **************************************************************/
-CREATE   PROCEDURE [dbo].[MigrateItemMasterRecords]
+CREATE     PROCEDURE [dbo].[MigrateItemMasterRecords]
 (
 	@FromMasterComanyID INT = NULL,
 	@UserName VARCHAR(100) NULL,
@@ -61,7 +61,7 @@ BEGIN
 			[ItemClassificationId] [bigint] NULL,
 			[ManufacturerId] [bigint] NULL,
 			[UnitOfMeasureId] [bigint] NULL,
-			[PartNumber] [varchar](100) NULL,
+			[PartNumber] [varchar](MAX) NULL,
 			[PartDescription] [varchar](max) NULL,
 			[Hazard_Material] [varchar](10) NULL,
 			[DER_Flag] [varchar](10) NULL,
@@ -93,7 +93,9 @@ BEGIN
 		SELECT [ItemMasterId],[CurrencyId],[ItemGroupId],[ItemClassificationId],[ManufacturerId],[UnitOfMeasureId],[PartNumber],[PartDescription],
 		[Hazard_Material],[DER_Flag],[Reorder_Cond_Level],[MinimumOrderQuantity],[PartListPrice],[NotesAdded],[IsActive],[Date_Created],[IsTimeLife],[IsSerialized],
 		[Shelf_Life],[List_Price_Date],[ECC_Number],[ITAR_Number],[Shelf_Life_Days],[PMA_Flag],[Procurement],[IsHOTPart],[LeadDays],[Migrated_Id],[SuccessMsg],[ErrorMsg] 
-		FROM [Quantum_Staging].dbo.ItemMasters IM WITH (NOLOCK) WHERE IM.Migrated_Id IS NULL;
+		FROM [Quantum_Staging_BETA].dbo.ItemMasters IM WITH (NOLOCK) 
+		WHERE IM.Migrated_Id IS NULL AND MasterCompanyId = @FromMasterComanyID;
+		--WHERE IM.Id IN (29619,29620,29621,29622,29623,29624,29625,29626,29627,29628,29629,29630,29631);
 
 		DECLARE @ProcessedRecords INT = 0;
 		DECLARE @MigratedRecords INT = 0;
@@ -107,7 +109,7 @@ BEGIN
 		BEGIN
 			SET @ProcessedRecords = @ProcessedRecords + 1;
 
-			DECLARE @PN VARCHAR(100) = NULL;
+			DECLARE @PN VARCHAR(MAX) = NULL;
 			DECLARE @ManufacturerId BIGINT = 0;
 			DECLARE @ItemGroupdId BIGINT = 0;
 			DECLARE @ItemClassificationId BIGINT = 0;
@@ -125,7 +127,9 @@ BEGIN
 			DECLARE @FoundError BIT = 0;
 			DECLARE @ErrorMsg VARCHAR(MAX) = '';
 
-			SELECT @CurrentItemMasterId = ItemMasterId, @PN = PartNumber, @ManufacturerId = ManufacturerId, @ItemGroupdId = ItemGroupId, @ItemClassificationId = ItemClassificationId, @UOM_AUTO_KEY = UnitOfMeasureId FROM #TempItemMaster WHERE ID = @LoopID;
+			SELECT @CurrentItemMasterId = ItemMasterId, @PN = PartNumber, @ManufacturerId = ManufacturerId, @ItemGroupdId = ItemGroupId, @ItemClassificationId = ItemClassificationId, @UOM_AUTO_KEY = UnitOfMeasureId, 
+			@CurrencyId = CurrencyId
+			FROM #TempItemMaster WHERE ID = @LoopID;
 
 			IF (ISNULL(@PN, '') = '')
 			BEGIN
@@ -164,31 +168,270 @@ BEGIN
 
 			IF (@FoundError = 0)
 			BEGIN
-				IF NOT EXISTS (SELECT 1 FROM DBO.GLAccount GL WITH (NOLOCK) WHERE AccountCode = '10000' AND MasterCompanyId = @FromMasterComanyID)
+				IF NOT EXISTS (SELECT 1 FROM DBO.GLAccount GL WITH (NOLOCK) WHERE AccountCode = '11050' AND MasterCompanyId = @FromMasterComanyID)
 				BEGIN
 					INSERT INTO DBO.GLAccount ([OldAccountCode],[AccountCode],[AccountName],[AccountDescription],[AllowManualJE],[GLAccountTypeId],[GLClassFlowClassificationId],
 					[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[POROCategoryId],[GLAccountNodeId],[LedgerId],[LedgerName],[InterCompany],
 					[Category1099Id],[Threshold],[IsManualJEReference],[ReferenceTypeId])
-					VALUES (NULL, '10000', 'Cash', '', 1, (SELECT GLC.GLAccountClassId FROM DBO.GLAccountClass GLC WITH (NOLOCK) WHERE GLC.GLAccountClassName = 'Asset' AND GLC.MasterCompanyId = @FromMasterComanyID), 
+					VALUES (NULL, '11050', 'Cash', '', 1, (SELECT GLC.GLAccountClassId FROM DBO.GLAccountClass GLC WITH (NOLOCK) WHERE GLC.GLAccountClassName = 'Asset' AND GLC.MasterCompanyId = @FromMasterComanyID), 
 					(SELECT GLCF.GLClassFlowClassificationId FROM DBO.GLCashFlowClassification GLCF WITH (NOLOCK) WHERE GLCF.GLClassFlowClassificationName = 'OPERATING ACTIVITY' AND GLCF.MasterCompanyId = @FromMasterComanyID),
 					@FromMasterComanyID, @UserName, @UserName, GETDATE(), GETDATE(), 1, 0, NULL, NULL, 0, '', 0, NULL, NULL, NULL, NULL)
 				END
-				SELECT @GLAccountId = GLAccountId FROM DBO.GLAccount GL WITH (NOLOCK) WHERE AccountCode = '10000' AND MasterCompanyId = @FromMasterComanyID;
-				SELECT @UOMId = UnitOfMeasureId FROM DBO.UnitOfMeasure MF WHERE UPPER(MF.ShortName) IN (SELECT UPPER(UOM_CODE) FROM [Quantum].QCTL_NEW_3.UOM_CODES Where UOM_AUTO_KEY = @UOM_AUTO_KEY) AND MasterCompanyId = @FromMasterComanyID;
-				SELECT @ManufacturerId = ManufacturerId FROM DBO.Manufacturer MF WHERE UPPER(MF.[Name]) IN (SELECT UPPER(DESCRIPTION) FROM [Quantum].QCTL_NEW_3.MANUFACTURER Where MFG_AUTO_KEY = @ManufacturerId) AND MasterCompanyId = @FromMasterComanyID;
+				SELECT @GLAccountId = GLAccountId FROM DBO.GLAccount GL WITH (NOLOCK) WHERE AccountCode = '11050' AND MasterCompanyId = @FromMasterComanyID;
+				--SELECT @UOMId = UnitOfMeasureId FROM DBO.UnitOfMeasure MF WHERE UPPER(MF.ShortName) IN (SELECT UPPER(UOM_CODE) FROM [Quantum].QCTL_NEW_3.UOM_CODES Where UOM_AUTO_KEY = @UOM_AUTO_KEY) AND MasterCompanyId = @FromMasterComanyID;
+				--SELECT @ManufacturerId = ManufacturerId FROM DBO.Manufacturer MF WHERE UPPER(MF.[Name]) IN (SELECT UPPER(DESCRIPTION) FROM [Quantum].QCTL_NEW_3.MANUFACTURER Where MFG_AUTO_KEY = @ManufacturerId) AND MasterCompanyId = @FromMasterComanyID;
 				SELECT @PriorityId = PriorityId FROM DBO.[Priority] P WHERE UPPER(Description) = 'ROUTINE' AND MasterCompanyId = @FromMasterComanyID;
-				SELECT @CurrencyId = CurrencyId FROM DBO.[Currency] C WHERE UPPER(Code) = 'USD' AND MasterCompanyId = @FromMasterComanyID;
+				--SELECT @CurrencyId = CurrencyId FROM DBO.[Currency] C WHERE UPPER(Code) = 'USD' AND MasterCompanyId = @FromMasterComanyID;
+				
+				------------------------------------------------------------
+				-- MAP / INSERT CURRENCY
+				------------------------------------------------------------
+				DECLARE @CurrencyCode VARCHAR(50);
+
+				SELECT TOP 1
+					@CurrencyCode = CURRENCY_CODE
+				FROM BEACH.QCTL1.CURRENCY
+				WHERE CUR_AUTO_KEY = @CurrencyId;
+
+				SELECT @CurrencyId =
+				(
+					SELECT TOP 1 CurrencyId
+					FROM dbo.Currency
+					WHERE UPPER(Code) = UPPER(@CurrencyCode)
+					  AND MasterCompanyId = @FromMasterComanyID
+				);
+
+				--IF @CurrencyId IS NULL
+				--BEGIN
+				--	INSERT INTO dbo.Currency
+				--	(
+				--		Code,
+				--		Name,
+				--		MasterCompanyId,
+				--		CreatedBy,
+				--		UpdatedBy,
+				--		CreatedDate,
+				--		UpdatedDate,
+				--		IsActive,
+				--		IsDeleted
+				--	)
+				--	VALUES
+				--	(
+				--		@CurrencyCode,
+				--		@CurrencyCode,
+				--		@FromMasterComanyID,
+				--		@UserName,
+				--		@UserName,
+				--		GETDATE(),
+				--		GETDATE(),
+				--		1,
+				--		0
+				--	);
+
+				--	SET @CurrencyId = SCOPE_IDENTITY();
+				--END
+
+				------------------------------------------------------------
+				-- MAP / INSERT ITEM GROUP
+				------------------------------------------------------------
+				DECLARE @ItemGroupName VARCHAR(200);
+
+				SELECT TOP 1
+					@ItemGroupName = DESCRIPTION
+				FROM BEACH.QCTL1.PN_GROUPS
+				WHERE PNG_AUTO_KEY = @ItemGroupdId;
+
+				SELECT @ItemGroupdId =
+				(
+					SELECT TOP 1 ItemGroupId
+					FROM dbo.ItemGroup
+					WHERE UPPER([Description]) = UPPER(@ItemGroupName)
+					  AND MasterCompanyId = @FromMasterComanyID
+				);
+
+				IF @ItemGroupdId IS NULL
+				BEGIN
+					INSERT INTO dbo.ItemGroup
+					(
+						[Description],
+						MasterCompanyId,
+						CreatedBy,
+						UpdatedBy,
+						CreatedDate,
+						UpdatedDate,
+						IsActive,
+						IsDeleted
+					)
+					VALUES
+					(
+						@ItemGroupName,
+						@FromMasterComanyID,
+						@UserName,
+						@UserName,
+						GETDATE(),
+						GETDATE(),
+						1,
+						0
+					);
+
+					SET @ItemGroupdId = SCOPE_IDENTITY();
+				END
+
+				------------------------------------------------------------
+				-- MAP / INSERT ITEM CLASSIFICATION
+				------------------------------------------------------------
+				DECLARE @ItemClassificationName VARCHAR(200);
+
+				SELECT TOP 1
+					@ItemClassificationName = DESCRIPTION
+				FROM BEACH.QCTL1.PN_TYPE_CODES
+				WHERE PTC_AUTO_KEY = @ItemClassificationId;
+
+				SELECT @ItemClassificationId =
+				(
+					SELECT TOP 1 ItemClassificationId
+					FROM dbo.ItemClassification
+					WHERE UPPER([Description]) = UPPER(@ItemClassificationName)
+					  AND MasterCompanyId = @FromMasterComanyID
+				);
+
+				IF @ItemClassificationId IS NULL
+				BEGIN
+					INSERT INTO dbo.ItemClassification
+					(
+						[Description],
+						MasterCompanyId,
+						CreatedBy,
+						UpdatedBy,
+						CreatedDate,
+						UpdatedDate,
+						IsActive,
+						IsDeleted
+					)
+					VALUES
+					(
+						@ItemClassificationName,
+						@FromMasterComanyID,
+						@UserName,
+						@UserName,
+						GETDATE(),
+						GETDATE(),
+						1,
+						0
+					);
+
+					SET @ItemClassificationId = SCOPE_IDENTITY();
+				END
+
+				------------------------------------------------------------
+				-- MAP / INSERT MANUFACTURER
+				------------------------------------------------------------
+				DECLARE @ManufacturerName VARCHAR(200);
+
+				SELECT TOP 1
+					@ManufacturerName = DESCRIPTION
+				FROM BEACH.QCTL1.MANUFACTURER
+				WHERE MFG_AUTO_KEY = @ManufacturerId;
+
+				SELECT @ManufacturerId =
+				(
+					SELECT TOP 1 ManufacturerId
+					FROM dbo.Manufacturer
+					WHERE UPPER([Name]) = UPPER(@ManufacturerName)
+					  AND MasterCompanyId = @FromMasterComanyID
+				);
+
+				IF @ManufacturerId IS NULL
+				BEGIN
+					INSERT INTO dbo.Manufacturer
+					(
+						[Name],
+						MasterCompanyId,
+						CreatedBy,
+						UpdatedBy,
+						CreatedDate,
+						UpdatedDate,
+						IsActive,
+						IsDeleted
+					)
+					VALUES
+					(
+						@ManufacturerName,
+						@FromMasterComanyID,
+						@UserName,
+						@UserName,
+						GETDATE(),
+						GETDATE(),
+						1,
+						0
+					);
+
+					SET @ManufacturerId = SCOPE_IDENTITY();
+				END
+
+				------------------------------------------------------------
+				-- MAP / INSERT UNIT OF MEASURE
+				------------------------------------------------------------
+				DECLARE @UOMCode VARCHAR(50);
+
+				SELECT TOP 1
+					@UOMCode = UOM_CODE
+				FROM BEACH.QCTL1.UOM_CODES
+				WHERE UOM_AUTO_KEY = @UOM_AUTO_KEY;
+
+				SELECT @UOMId =
+				(
+					SELECT TOP 1 UnitOfMeasureId
+					FROM dbo.UnitOfMeasure
+					WHERE UPPER(ShortName) = UPPER(@UOMCode)
+					  AND MasterCompanyId = @FromMasterComanyID
+				);
+
+				IF @UOMId IS NULL
+				BEGIN
+					INSERT INTO dbo.UnitOfMeasure
+					(
+						ShortName,
+						[Description],
+						MasterCompanyId,
+						CreatedBy,
+						UpdatedBy,
+						CreatedDate,
+						UpdatedDate,
+						IsActive,
+						IsDeleted,
+						StandardId,
+						SequenceNo
+					)
+					VALUES
+					(
+						@UOMCode,
+						@UOMCode,
+						@FromMasterComanyID,
+						@UserName,
+						@UserName,
+						GETDATE(),
+						GETDATE(),
+						1,
+						0,
+						(SELECT TOP 1 StandardId FROM DBO.[Standard] WITH (NOLOCK) WHERE MasterCompanyId = @FromMasterComanyID),
+						NULL
+					);
+
+					SET @UOMId = SCOPE_IDENTITY();
+				END
+
 				SELECT @AssetAcquisitionTypeId_BUY = AssetAcquisitionTypeId FROM DBO.[AssetAcquisitionType] C WHERE UPPER(Name) = 'BUY' AND MasterCompanyId = @FromMasterComanyID;
 				SELECT @AssetAcquisitionTypeId_MAKE = AssetAcquisitionTypeId FROM DBO.[AssetAcquisitionType] C WHERE UPPER(Name) = 'MAKE' AND MasterCompanyId = @FromMasterComanyID;
 
 				DECLARE @DefaultSiteId BIGINT;
-				SELECT @DefaultSiteId = SiteId FROM DBO.[Site] WHERE UPPER([Name]) = UPPER('NEO-NEOSOURCE INC.') AND MasterCompanyId = @FromMasterComanyID;
+				SELECT @DefaultSiteId = SiteId FROM DBO.[Site] WHERE UPPER([Name]) = UPPER('Beach Aviation Group') AND MasterCompanyId = @FromMasterComanyID;
 
 				IF NOT EXISTS (SELECT 1 FROM DBO.[ItemMaster] WITH (NOLOCK) WHERE UPPER([partnumber]) = UPPER(@PN) AND ManufacturerId = @ManufacturerId AND MasterCompanyId = @FromMasterComanyID)
 				BEGIN
 					INSERT INTO [MasterParts]
 					([PartNumber], [Description], [MasterCompanyId], [CreatedDate], [CreatedBy], [UpdatedDate], [UpdatedBy], [IsActive], [IsDeleted], [ManufacturerId], [PartType])
-					SELECT T.PartNumber, T.PartDescription, @FromMasterComanyID, GETDATE(), @UserName, GETDATE(), @UserName, 1, 0, @ManufacturerId, NULL
+					SELECT LEFT(LTRIM(RTRIM(T.PartNumber)), 100), T.PartDescription, @FromMasterComanyID, GETDATE(), @UserName, GETDATE(), @UserName, 1, 0, @ManufacturerId, NULL
 					FROM #TempItemMaster AS T WHERE ID = @LoopID;
 
 					SET @InsertedPartId = SCOPE_IDENTITY();
@@ -207,22 +450,32 @@ BEGIN
 					,[IsExportMilitary],[IsExportDual],[IsOemPNId],[MasterPartId],[RepairUnitOfMeasureId],[RevisedPartId],[SiteId],[WarehouseId],[LocationId],[ShelfId]
 					,[BinId],[ItemMasterAssetTypeId],[IsHotItem],[ExportSizeUnitOfMeasureId],[IsAcquiredMethodBuy],[IsOEM],[RevisedPart],[OEMPN],[ItemClassificationName]
 					,[ItemGroup],[AssetAcquistionType],[ManufacturerName],[PurchaseUnitOfMeasure],[StockUnitOfMeasure],[ConsumeUnitOfMeasure],[PurchaseCurrency],[SalesCurrency]
-					,[GLAccount],[Priority],[SiteName],[WarehouseName],[LocationName],[ShelfName],[BinName],[CurrentStlNo],[MTBUR],[NE],[NS],[OH],[REP],[SVC],[Figure],[Item])
+					,[GLAccount],[Priority],[SiteName],[WarehouseName],[LocationName],[ShelfName],[BinName],[CurrentStlNo],[MTBUR],[NE],[NS],[OH],[REP],[SVC],[Figure],[Item],
+					InventoryGLSettingId,GoodsReceivedNotInvoicesGLAccId,WorkInProgressGLAccId,InventoryToBillGLAccId,FinishedGoodsGLAccId,InventoryExchAgreementGLAccId,
+					InventoryReserveGLAccId,COGS_WorkOrderGLAccId,COGS_SalesOrderGLAccId,COGS_QtyVarianceGLAccId,COGS_UnitCostVarianceGLAccId,RevenueMroGLAccId,RevenueSoGLAccId,
+					RevenueExchGLAccId,COGS_ExchSalesOrderGLAccId,GoodsReceivedNotInvoicesGLAccName,WorkInProgressGLAccName,InventoryToBillGLAccName,FinishedGoodsGLAccName,
+					InventoryExchAgreementGLAccName,InventoryReserveGLAccName,COGS_WorkOrderGLAccName,COGS_SalesOrderGLAccName,COGS_QtyVarianceGLAccName,COGS_UnitCostVarianceGLAccName,
+					RevenueMroGLAccName,RevenueSoGLAccName,RevenueExchGLAccName,COGS_ExchSalesOrderGLAccName,QuickBooksReferenceId,IsUpdated,LastSyncDate,SyncToken,WorkOrderFormTypeId)
 
 					SELECT 1, NULL, @ItemGroupdId, @ItemClassificationId, (CASE WHEN HAZARD_MATERIAL = 'T' THEN 1 ELSE 0 END), 0, NULL
 					,0, 0, 0, 0, 0, 0, 0
 					,0, 0, 0, 0, 0, NULL, @ManufacturerId, (CASE WHEN DER_FLAG = 'T' THEN 1 ELSE 0 END), NULL, 0
-					,0, 0, 0, 0, @GLAccountId, T.UnitOfMeasureId, NULL, NULL, CAST(ISNULL(LeadDays, 0) AS INT)
+					,0, 0, 0, 0, @GLAccountId, @UOMId, NULL, NULL, CAST(ISNULL(LeadDays, 0) AS INT)
 					,CAST(ISNULL(REORDER_COND_LEVEL, 0) AS INT), 0, CAST(ISNULL(MinimumOrderQuantity, 0) AS INT), CAST(PartListPrice AS DECIMAL), @PriorityId, NULL, NotesAdded, NULL, NULL, NULL
 					,NULL, NULL, NULL, NULL, NULL, NULL, NULL, @CurrencyId
-					,NULL, @CurrencyId, GETDATE(), GETDATE(), CASE WHEN T.IsActive = 'T' THEN 1 ELSE 0 END, @CurrencyId, @FromMasterComanyID, @UserName
-					,@UserName, CASE WHEN T.DATE_CREATED IS NOT NULL THEN CAST(T.DATE_CREATED AS Datetime2) ELSE GETDATE() END, CASE WHEN T.DATE_CREATED IS NOT NULL THEN CAST(T.DATE_CREATED AS Datetime2) ELSE GETDATE() END, 0, 0, NULL, 0, NULL, T.PartNumber, T.PartDescription
+					,NULL, @CurrencyId, GETDATE(), GETDATE(), CASE WHEN T.IsActive = '1' THEN 1 ELSE 0 END, @CurrencyId, @FromMasterComanyID, @UserName
+					,@UserName, CASE WHEN T.DATE_CREATED IS NOT NULL THEN CAST(T.DATE_CREATED AS Datetime2) ELSE GETDATE() END, CASE WHEN T.DATE_CREATED IS NOT NULL THEN CAST(T.DATE_CREATED AS Datetime2) ELSE GETDATE() END, 0, 0, NULL, 0, NULL, LEFT(LTRIM(RTRIM(T.PartNumber)), 50), T.PartDescription
 					,(CASE WHEN ISNULL(T.IsTimeLife, 'F') = 'T' THEN 1 ELSE 0 END), (CASE WHEN ISNULL(T.IsSerialized, 'F') = 'T' THEN 1 ELSE 0 END), NULL, (CASE WHEN ISNULL(T.SHELF_LIFE, 'F') = 'T' THEN 1 ELSE 0 END), NULL, NULL, CAST(ISNULL(PartListPrice, 0) AS decimal), LIST_PRICE_DATE, NULL
 					,0, ECC_NUMBER, ITAR_NUMBER, CAST(ISNULL(SHELF_LIFE_DAYS, 0) AS NUMERIC), 0, (CASE WHEN ISNULL(T.PMA_FLAG, 'F') = 'T' THEN 1 ELSE 0 END), 0, 0, NULL, NULL
 					,NULL, NULL, NULL, @InsertedPartId, NULL, NULL, @DefaultSiteId, NULL, NULL, NULL
-					,NULL, (CASE WHEN T.PROCUREMENT = 'BUY' THEN @AssetAcquisitionTypeId_BUY WHEN T.PROCUREMENT = 'MAKE' THEN @AssetAcquisitionTypeId_MAKE ELSE @AssetAcquisitionTypeId_BUY END), (CASE WHEN ISNULL(T.IsHOTPart, 'F') = 'T' THEN 1 ELSE 0 END), NULL, 0, (CASE WHEN ISNULL(T.PMA_FLAG, 'F') = 'F' THEN 1 ELSE 0 END), NULL, NULL, NULL
-					,NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL
-					,NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, 0, 0, 0, 0, 0, NULL, NULL
+					,NULL, (CASE WHEN T.PROCUREMENT = 'BUY' THEN @AssetAcquisitionTypeId_BUY WHEN T.PROCUREMENT = 'MAKE' THEN @AssetAcquisitionTypeId_MAKE ELSE @AssetAcquisitionTypeId_BUY END), (CASE WHEN ISNULL(T.IsHOTPart, 'F') = 'T' THEN 1 ELSE 0 END), NULL, 0, (CASE WHEN ISNULL(T.PMA_FLAG, 'F') = 'F' THEN 1 ELSE 0 END), NULL, NULL, @ItemClassificationName
+					,@ItemGroupName, NULL, @ManufacturerName, @UOMCode, NULL, NULL, NULL, NULL
+					,NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, 0, 0, 0, 0, 0, NULL, NULL,
+					(SELECT TOP 1 InventoryGLSettingId FROM DBO.InventoryGLSetting WITH (NOLOCK) WHERE MasterCompanyId = @FromMasterComanyID),3550,3550,3550,3550,3550,
+					3550,3550,3550,3550,3550,3550,3550,
+					3550,3550,'11050-Inventory','11050-Inventory','11050-Inventory','11050-Inventory',
+					'11050-Inventory','11050-Inventory','11050-Inventory','11050-Inventory','11050-Inventory','11050-Inventory',
+					'11050-Inventory','11050-Inventory','11050-Inventory','11050-Inventory',NULL,1,NULL,NULL,3
 					FROM #TempItemMaster AS T WHERE ID = @LoopID;
 
 					SET @InsertedItemMasterId = SCOPE_IDENTITY();
@@ -232,7 +485,7 @@ BEGIN
 					UPDATE IMs
 					SET IMs.Migrated_Id = @InsertedItemMasterId,
 					IMs.SuccessMsg = 'Record migrated successfully'
-					FROM [Quantum_Staging].DBO.ItemMasters IMs WHERE IMs.ItemMasterId = @CurrentItemMasterId;
+					FROM [Quantum_Staging_BETA].DBO.ItemMasters IMs WHERE IMs.ItemMasterId = @CurrentItemMasterId;
 
 					SET @MigratedRecords = @MigratedRecords + 1;
 				END
@@ -240,7 +493,7 @@ BEGIN
 				BEGIN
 					UPDATE IMs
 					SET IMs.ErrorMsg = ISNULL(@ErrorMsg, '') + '<p>Item Master record already exists</p>'
-					FROM [Quantum_Staging].DBO.ItemMasters IMs WHERE IMs.ItemMasterId = @CurrentItemMasterId;
+					FROM [Quantum_Staging_BETA].DBO.ItemMasters IMs WHERE IMs.ItemMasterId = @CurrentItemMasterId;
 
 					SET @RecordExits = @RecordExits + 1;
 				END

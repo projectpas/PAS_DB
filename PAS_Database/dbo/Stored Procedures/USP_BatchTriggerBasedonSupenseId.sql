@@ -15,7 +15,7 @@
     1    04/01/2024		Devendra Shekh			Created
 	2	 10/14/2024		Devendra Shekh			Added new fields for [CommonBatchDetails]
 	3	 11/04/2024			 Devendra Shekh			Added ReferenceId, ReferenceModule For [CommonBatchDetails]
-
+	4    11/MAY/2026	Rajesh Gami				UOM Conversion Changes [PN-16332]
 
 	EXEC [USP_BatchTriggerBasedonSupenseId] 15
 ************************************************************************/
@@ -43,9 +43,9 @@ BEGIN
 		DECLARE @ManagementStructureId BIGINT;
 		DECLARE @CustomerName VARCHAR(200);
 		DECLARE @LineNumber INT = 1;
-		DECLARE @TotalDebit decimal(18,2) = 0;
-		DECLARE @TotalCredit decimal(18,2) = 0;
-		DECLARE @TotalBalance decimal(18,2) = 0;
+		DECLARE @TotalDebit decimal(18,6) = 0;
+		DECLARE @TotalCredit decimal(18,6) = 0;
+		DECLARE @TotalBalance decimal(18,6) = 0;
 		DECLARE @batch VARCHAR(100);
 		DECLARE @AccountingPeriod VARCHAR(100);
 		DECLARE @AccountingPeriodId BIGINT = 0;
@@ -85,7 +85,7 @@ BEGIN
 		DECLARE @ReferenceNum VARCHAR(50);
 		DECLARE @CRMSModuleId INT = 78;
 		DECLARE @ModuleName VARCHAR(200);
-		DECLARE @Amount decimal(18,2) = 0;
+		DECLARE @Amount decimal(18,6) = 0;
 		DECLARE @CommonJournalBatchDetailId BIGINT = 0;
 		DECLARE @AccountMSModuleId INT = 0
 		SELECT @AccountMSModuleId = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] ='Accounting';
@@ -235,7 +235,7 @@ BEGIN
 
 			IF(UPPER(@DistributionCode) = UPPER('CMDISACC'))
 			BEGIN
-				DECLARE @PaymentAmount DECIMAL(18,2)=0;
+				DECLARE @PaymentAmount decimal(18,6)=0;
 				DECLARE @TotalRecord INT = 0;   
 				DECLARE @MinId BIGINT = 1;    
 

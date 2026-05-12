@@ -21,7 +21,7 @@
 	5	 26-Jun-2025	Rajesh Gami			Modified as per new billing table changes (WO, SO)
 	6	 07-Jul-2025	Devendra Shekh		Modified (Balance Amount Issue Resolved, Added LegalEntityId)
 	7	 10-Jul-2025	Devendra Shekh		Modified (Balance Amount Changes)
-
+	8    11/MAY/2026	Rajesh Gami			UOM Conversion Changes [PN-16333]
 EXEC [dbo].[usprpt_GetPrintStatementCustomerBalanceList] 1,10,'CreatedDate',-1,'',2,'','','','',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,61,NULL,NULL,NULL,NULL,NULL,'ALL',1	     
 
 **************************************************************/
@@ -36,15 +36,15 @@ CREATE    PROCEDURE [dbo].[usprpt_GetPrintStatementCustomerBalanceList]
   @CustomerCode                VARCHAR(50) = NULL,
   @CustomertType               VARCHAR(50) = NULL,
   @CurrencyCode                VARCHAR(50) = NULL,
-  @BalanceAmount               DECIMAL(18,2) = NULL,
-  @CurrentAmount               DECIMAL(18,2) = NULL,
-  @CreditMemoAmount            DECIMAL(18,2) = NULL,
-  @Amountlessthan0days		   DECIMAL(18,2) = NULL,
-  @Amountlessthan30days        DECIMAL(18,2) = NULL,
-  @Amountlessthan60days        DECIMAL(18,2) = NULL,
-  @Amountlessthan90days        DECIMAL(18,2) = NULL,
-  @Amountlessthan120days       DECIMAL(18,2) = NULL,
-  @Amountmorethan120days	   DECIMAL(18,2) = NULL,
+  @BalanceAmount               decimal(18,6) = NULL,
+  @CurrentAmount               decimal(18,6) = NULL,
+  @CreditMemoAmount            decimal(18,6) = NULL,
+  @Amountlessthan0days		   decimal(18,6) = NULL,
+  @Amountlessthan30days        decimal(18,6) = NULL,
+  @Amountlessthan60days        decimal(18,6) = NULL,
+  @Amountlessthan90days        decimal(18,6) = NULL,
+  @Amountlessthan120days       decimal(18,6) = NULL,
+  @Amountmorethan120days	   decimal(18,6) = NULL,
   @LegelEntity                 VARCHAR(50) = NULL,
   @EmployeeId                  BIGINT = NULL,
   @CreatedBy                   VARCHAR(50) = NULL,
@@ -60,15 +60,15 @@ BEGIN
   SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
     DECLARE @RecordFrom INT;
 	DECLARE @Count INT;
-	DECLARE @TotalAmount DECIMAL(18,2) = 0;	
-	DECLARE @TotalCurrentAmount DECIMAL(18,2) = 0;
-	DECLARE @TotalReceivedAmount DECIMAL(18,2) = 0;
-	DECLARE @TotalAmountlessthan0days  DECIMAL(18,2) = 0;
-	DECLARE @TotalAmountlessthan30days DECIMAL(18,2) = 0;  
-	DECLARE @TotalAmountlessthan60days DECIMAL(18,2) = 0; 
-	DECLARE @TotalAmountlessthan90days DECIMAL(18,2) = 0;
-	DECLARE @TotalAmountlessthan120days DECIMAL(18,2) = 0;
-	DECLARE @TotalAmountmorethan120days DECIMAL(18,2) = 0;
+	DECLARE @TotalAmount decimal(18,6) = 0;	
+	DECLARE @TotalCurrentAmount decimal(18,6) = 0;
+	DECLARE @TotalReceivedAmount decimal(18,6) = 0;
+	DECLARE @TotalAmountlessthan0days  decimal(18,6) = 0;
+	DECLARE @TotalAmountlessthan30days decimal(18,6) = 0;  
+	DECLARE @TotalAmountlessthan60days decimal(18,6) = 0; 
+	DECLARE @TotalAmountlessthan90days decimal(18,6) = 0;
+	DECLARE @TotalAmountlessthan120days decimal(18,6) = 0;
+	DECLARE @TotalAmountmorethan120days decimal(18,6) = 0;
 
 	DECLARE @CMPostedStatusId INT;
 	DECLARE @ClosedCreditMemoStatus INT;
@@ -160,27 +160,27 @@ BEGIN
 				[CustomerName] VARCHAR(200) NULL,
 				[CustomerCode] VARCHAR(50) NULL,	
 				[CurrencyCode] VARCHAR(50) NULL,		
-				[BalanceAmount] DECIMAL(18, 2) NULL,
-				[RemainingAmount] DECIMAL(18, 2) NULL,
-				[CurrentAmount] DECIMAL(18, 2) NULL,
-				[PaymentAmount] DECIMAL(18, 2) NULL,
-				[Amountlessthan0days] DECIMAL(18, 2) NULL,
-				[Amountlessthan30days] DECIMAL(18, 2) NULL,
-				[Amountlessthan60days] DECIMAL(18, 2) NULL,
-				[Amountlessthan90days] DECIMAL(18, 2) NULL,
-				[Amountlessthan120days] DECIMAL(18, 2) NULL,
-				[Amountmorethan120days] DECIMAL(18, 2) NULL,		
-				[InvoiceAmount] DECIMAL(18, 2) NULL,
-				[CMAmount] DECIMAL(18, 2) NULL,
-				[CreditMemoAmount] DECIMAL(18, 2) NULL,
-				[CreditMemoUsed] DECIMAL(18, 2) NULL,
+				[BalanceAmount] decimal(18,6) NULL,
+				[RemainingAmount] decimal(18,6) NULL,
+				[CurrentAmount] decimal(18,6) NULL,
+				[PaymentAmount] decimal(18,6) NULL,
+				[Amountlessthan0days] decimal(18,6) NULL,
+				[Amountlessthan30days] decimal(18,6) NULL,
+				[Amountlessthan60days] decimal(18,6) NULL,
+				[Amountlessthan90days] decimal(18,6) NULL,
+				[Amountlessthan120days] decimal(18,6) NULL,
+				[Amountmorethan120days] decimal(18,6) NULL,		
+				[InvoiceAmount] decimal(18,6) NULL,
+				[CMAmount] decimal(18,6) NULL,
+				[CreditMemoAmount] decimal(18,6) NULL,
+				[CreditMemoUsed] decimal(18,6) NULL,
 				[MasterCompanyId] INT NULL,
 				[StatusId] BIGINT NULL,
 				[IsCreditMemo] BIT NULL,
-				[InvoicePaidAmount] DECIMAL(18, 2) NULL,
+				[InvoicePaidAmount] decimal(18,6) NULL,
 				[ModuleTypeId] INT NULL,
 				[LegalEntityName] VARCHAR(MAX) NULL,
-				[ReceivedAmount] DECIMAL(18, 2) NULL,
+				[ReceivedAmount] decimal(18,6) NULL,
 				[LegalEntityId] BIGINT NULL
 			) 
 		
@@ -801,20 +801,20 @@ BEGIN
 				[CustName] VARCHAR(200) NULL,
 				[CustomerCode] VARCHAR(50) NULL,	
 				[CurrencyCode] VARCHAR(50) NULL,		
-				[BalanceAmount] DECIMAL(18, 2) NULL,
-				[RemainingAmount] DECIMAL(18, 2) NULL,
-				[CurrentAmount] DECIMAL(18, 2) NULL,
-				[CreditMemoAmount] DECIMAL(18, 2) NULL,
-				[PaymentAmount] DECIMAL(18, 2) NULL,
-				[Amountpaidbylessthen0days] DECIMAL(18, 2) NULL,
-				[Amountpaidby30days] DECIMAL(18, 2) NULL,
-				[Amountpaidby60days] DECIMAL(18, 2) NULL,
-				[Amountpaidby90days] DECIMAL(18, 2) NULL,
-				[Amountpaidby120days] DECIMAL(18, 2) NULL,
-				[Amountpaidbymorethan120days] DECIMAL(18, 2) NULL,	
+				[BalanceAmount] decimal(18,6) NULL,
+				[RemainingAmount] decimal(18,6) NULL,
+				[CurrentAmount] decimal(18,6) NULL,
+				[CreditMemoAmount] decimal(18,6) NULL,
+				[PaymentAmount] decimal(18,6) NULL,
+				[Amountpaidbylessthen0days] decimal(18,6) NULL,
+				[Amountpaidby30days] decimal(18,6) NULL,
+				[Amountpaidby60days] decimal(18,6) NULL,
+				[Amountpaidby90days] decimal(18,6) NULL,
+				[Amountpaidby120days] decimal(18,6) NULL,
+				[Amountpaidbymorethan120days] decimal(18,6) NULL,	
 				[LegelEntity] VARCHAR(MAX) NULL,
-				[InvoiceAmount] DECIMAL(18, 2) NULL,
-				[ReceivedAmount] DECIMAL(18, 2) NULL,
+				[InvoiceAmount] decimal(18,6) NULL,
+				[ReceivedAmount] decimal(18,6) NULL,
 				[LegalEntityId] BIGINT NULL,
 			)
 

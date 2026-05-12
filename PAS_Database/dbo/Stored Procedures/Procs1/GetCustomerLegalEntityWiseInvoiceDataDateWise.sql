@@ -31,6 +31,7 @@
  19	  30/06/2025   Rajesh Gami		Modified (Billing Invoicing Table Changes for SO as per new structure)
  20	  09/07/2025   Devendra Shekh	Modified (returning 0 values data if no records)
  21   10/07/2025   Devendra Shekh	Modified (Balance Amount Changes)
+ 22   11/MAY/2026  Rajesh Gami		UOM Conversion Changes [PN-16333]
 exec dbo.GetCustomerLegalEntityWiseInvoiceDataDateWise @CustomerId=3389,@ManagementStructureId=1,@StartDate='2024-04-12 09:12:23',@EndDate='2024-06-21 09:12:23',
 @OpenTransactionsOnly=1,@IncludeCredits=1,@SiteId=4527,@MasterCompanyId=1  
   
@@ -80,10 +81,10 @@ BEGIN
 			CreditTerm VARCHAR(100) NULL,
 			DueDate DATETIME2 NULL,
 			Currency VARCHAR(50) NULL,
-			CM DECIMAL(18, 2) NULL,
-			InvoiceAmount DECIMAL(18, 2) NULL,
-			RemainingAmount DECIMAL(18, 2) NULL,
-			PaidAmount DECIMAL(18, 2) NULL,
+			CM decimal(18,6) NULL,
+			InvoiceAmount decimal(18,6) NULL,
+			RemainingAmount decimal(18,6) NULL,
+			PaidAmount decimal(18,6) NULL,
 		  )
 
 

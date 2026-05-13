@@ -22,6 +22,8 @@
 ** 10   2026-05-07	 Priyansh Patel		Fixed the Remaining time calculation [PN-16306]
 ** 11   2026-05-04   Amit Ghediya		ATA Chapter level shows “-” when no data exists [PN-16249]
 ** 12   2026-05-07	 Abhishek Jirawla	Adding Make Type and Model [PN-16282]
+** 13   05-12-2026   Amit Ghediya       Added item InstallFlightHours,InstalledTime,InstalledCycles,. (PN-16382)
+** 13   05-13-2026   Amit Ghediya       Added item PO,RO,WO Num. (PN-16415)
 
 *********************/
 CREATE   PROCEDURE [dbo].[USP_GetAircraftInstalledPartDetails]
@@ -109,6 +111,8 @@ BEGIN
                 AIPD.PositionCode,
                 AIPD.[Hours],
                 AIPD.[Minutes],
+				AIPD.InstallFlightHours,
+				AIPD.InstallFlightTime AS 'InstallFlightMinutes',
 				AIPD.PartFlightHours AS 'FlightHours',
 				AIPD.PartFlightMinutes AS 'FlightMinutes',
 				ISNULL(AIPD.FlightHours,0) + CAST(ISNULL(AIPD.FlightMinutes,0) AS INT) / 60 AS 'RecordFlightHours',
@@ -116,20 +120,25 @@ BEGIN
 				CASE 
 					WHEN ISNULL(AIPD.PartFlightHours,0) = 0 AND ISNULL(AIPD.PartFlightMinutes,0) = 0 THEN 0
 					WHEN (CAST(ISNULL(AIPD.PartFlightHours,0) AS INT) * 60 + CAST(ISNULL(AIPD.PartFlightMinutes,0) AS INT))
+					   - (CAST(ISNULL(AIPD.InstallFlightHours,0) AS INT) * 60 + CAST(ISNULL(AIPD.InstallFlightTime,0) AS INT))
 					   - (CAST(ISNULL(AIPD.FlightHours,0) AS INT) * 60 + CAST(ISNULL(AIPD.FlightMinutes,0) AS INT)) < 0 THEN 0
 					ELSE ((CAST(ISNULL(AIPD.PartFlightHours,0) AS INT) * 60 + CAST(ISNULL(AIPD.PartFlightMinutes,0) AS INT))
+					   - (CAST(ISNULL(AIPD.InstallFlightHours,0) AS INT) * 60 + CAST(ISNULL(AIPD.InstallFlightTime,0) AS INT))
 					   - (CAST(ISNULL(AIPD.FlightHours,0) AS INT) * 60 + CAST(ISNULL(AIPD.FlightMinutes,0) AS INT))) / 60
 				END AS 'RemainingFlightHours',
 				CASE 
 					WHEN ISNULL(AIPD.PartFlightHours,0) = 0 AND ISNULL(AIPD.PartFlightMinutes,0) = 0 THEN 0
 					WHEN (CAST(ISNULL(AIPD.PartFlightHours,0) AS INT) * 60 + CAST(ISNULL(AIPD.PartFlightMinutes,0) AS INT))
+					   - (CAST(ISNULL(AIPD.InstallFlightHours,0) AS INT) * 60 + CAST(ISNULL(AIPD.InstallFlightTime,0) AS INT))
 					   - (CAST(ISNULL(AIPD.FlightHours,0) AS INT) * 60 + CAST(ISNULL(AIPD.FlightMinutes,0) AS INT)) < 0 THEN 0
 					ELSE ((CAST(ISNULL(AIPD.PartFlightHours,0) AS INT) * 60 + CAST(ISNULL(AIPD.PartFlightMinutes,0) AS INT))
+						- (CAST(ISNULL(AIPD.InstallFlightHours,0) AS INT) * 60 + CAST(ISNULL(AIPD.InstallFlightTime,0) AS INT))
 					   - (CAST(ISNULL(AIPD.FlightHours,0) AS INT) * 60 + CAST(ISNULL(AIPD.FlightMinutes,0) AS INT))) % 60
 				END AS 'RemainingFlightMinutes',
+				AIPD.InstallCycles,
                 AIPD.PartCycles AS 'Cycles',
 				AIPD.Cycles AS 'RecordCycles',
-				CASE WHEN ISNULL(AIPD.PartCycles,0) > 0 THEN  ISNULL(AIPD.PartCycles,0) - ISNULL(AIPD.Cycles,0) ELSE  0 END AS 'RemainingCycles',
+				CASE WHEN ISNULL(AIPD.PartCycles,0) > 0 THEN  ISNULL(AIPD.PartCycles,0) - ISNULL(AIPD.InstallCycles,0) - ISNULL(AIPD.Cycles,0) ELSE  0 END AS 'RemainingCycles',
                 AIPD.PartLandings AS Landings,
 				CASE WHEN ISNULL(AIPD.PartLandings,0) > 0 THEN  ISNULL(AIPD.PartLandings,0) - ISNULL(AIPD.Landings,0) ELSE  0 END AS 'RemainingLandings',
                 AIPD.PartEngineStarts AS EngineStarts,
@@ -138,14 +147,23 @@ BEGIN
                 AIPD.CreatedDate,
                 AIPD.UpdatedDate,
                 UPPER(AIPD.CreatedBy) AS CreatedBy,
-                UPPER(AIPD.UpdatedBy) AS UpdatedBy,
-				LS.LastSequence
+                UPPER(AIPD.UpdatedBy) AS UpdatedBy,				
+				LS.LastSequence,
+				PO.PurchaseOrderNumber AS 'PONumber',
+				RO.RepairOrderNumber AS 'RONumber',
+				WO.WorkOrderNum AS 'WONumber'
             FROM dbo.AircraftInstalledPartDetails AS AIPD WITH (NOLOCK)
 			LEFT JOIN dbo.ItemMasterAircraftMapping IMAM WITH (NOLOCK) ON AIPD.ATAChapterId = IMAM.ItemMasterAircraftMappingId
 			INNER JOIN dbo.AircraftRegistryHeader ARH WITH (NOLOCK) ON ARH.AircraftRegistryId = AIPD.AircraftRegistryId
 			INNER JOIN dbo.ItemMaster IM WITH (NOLOCK) ON AIPD.ItemMasterId = IM.ItemMasterId
 			INNER JOIN dbo.AircraftStatus AST WITH (NOLOCK) ON AST.AircraftStatusId = ARH.AircraftStatusId
 			LEFT JOIN dbo.Stockline STK WITH (NOLOCK) ON STK.StockLineId = AIPD.StockLineId
+			LEFT JOIN dbo.PurchaseOrderPart POP WITH (NOLOCK) ON POP.AircraftInstalledPartDetailsId = AIPD.AircraftInstalledPartDetailsId
+			LEFT JOIN dbo.PurchaseOrder PO WITH (NOLOCK) ON PO.PurchaseOrderId = POP.PurchaseOrderId
+			LEFT JOIN dbo.RepairOrderPart ROP WITH (NOLOCK) ON ROP.AircraftInstalledPartDetailsId = AIPD.AircraftInstalledPartDetailsId
+			LEFT JOIN dbo.RepairOrder RO WITH (NOLOCK) ON RO.RepairOrderId = ROP.RepairOrderId
+			LEFT JOIN dbo.WorkOrderPartNumber WOP WITH (NOLOCK) ON WOP.AircraftInstalledPartDetailsId = AIPD.AircraftInstalledPartDetailsId
+			LEFT JOIN dbo.WorkOrder WO WITH (NOLOCK) ON WO.WorkOrderId = WOP.WorkOrderId
 			CROSS JOIN (
 					SELECT MAX(SequenceNum) AS LastSequence
 					FROM dbo.AircraftInstalledPartDetails WITH (NOLOCK)

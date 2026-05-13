@@ -14,6 +14,7 @@
  **  3   04-15-2026   Amit Ghediya      Added for AircraftTailNumber in stockline selected.
  **  4   04-21-2026   Amit Ghediya      Added for SequenceNum. (PN-16146)
  **  5   04-23-2026   Amit Ghediya      Added item cycle data with PartFlightMinutes. (PN-16162)
+ **  5   05-12-2026   Amit Ghediya      Added item InstallFlightHours,InstalledTime,InstalledCycles,. (PN-16382)
  ************************************************************************/
 CREATE   PROCEDURE [dbo].[USP_InsertUpdateAircraftInstalledPartDetails]
 (
@@ -41,12 +42,15 @@ CREATE   PROCEDURE [dbo].[USP_InsertUpdateAircraftInstalledPartDetails]
 	@StockLineId BIGINT = NULL,
 	@Quantity DECIMAL(18,6) = NULL,
 	@SequenceNum BIGINT,
-
 	@PartFlightHours DECIMAL(18,6) = NULL,
 	@PartFlightMinutes DECIMAL(18,6) = NULL,
 	@PartCycles DECIMAL(18,6) = NULL,
 	@PartLandings DECIMAL(18,6) = NULL,
-	@PartEngineStarts DECIMAL(18,6) = NULL
+	@PartEngineStarts DECIMAL(18,6) = NULL,
+
+	@InstallFlightHours DECIMAL(18,6) = NULL,
+	@InstallFlightTime DECIMAL(18,6) = NULL,
+	@InstallCycles DECIMAL(18,6) = NULL
 )
 AS
 BEGIN
@@ -102,7 +106,10 @@ BEGIN
 				PartFlightMinutes = @PartFlightMinutes,
 				PartCycles = @PartCycles,
 				PartLandings = @PartLandings,
-				PartEngineStarts = @PartEngineStarts
+				PartEngineStarts = @PartEngineStarts,
+				InstallFlightHours = @InstallFlightHours,
+				InstallFlightTime = @InstallFlightTime,
+				InstallCycles = @InstallCycles
 			WHERE AircraftInstalledPartDetailsId = @AircraftInstalledPartDetailsId;
 			
 			--Update stockline for part
@@ -151,7 +158,10 @@ BEGIN
 				PartFlightMinutes,
 				PartCycles,
 				PartLandings,
-				PartEngineStarts
+				PartEngineStarts,
+				InstallFlightHours,
+				InstallFlightTime,
+				InstallCycles
 			)
 			VALUES
 			(
@@ -186,7 +196,10 @@ BEGIN
 				@PartFlightMinutes,
 				@PartCycles,
 				@PartLandings,
-				@PartEngineStarts
+				@PartEngineStarts,
+				@InstallFlightHours,
+				@InstallFlightTime,
+				@InstallCycles
 			);
 
 			SELECT @AircraftPartDetailsId = SCOPE_IDENTITY() 

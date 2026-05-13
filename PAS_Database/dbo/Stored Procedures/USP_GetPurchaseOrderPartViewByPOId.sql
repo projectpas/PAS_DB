@@ -17,6 +17,8 @@
    4    14-Apr-2026		DB Review			Fixed truncation risk: LotNumber, ReapairOrderNo VARCHAR(100) → VARCHAR(MAX)
    5    20-Apr-2026		RAJESH GAMI			UOM Conversion Changes [PN-16130]
    6	28-Apr-2026	    Nakul Chandigra 	Added New Fields (PN-16150)
+   7	08-May-2026	    Priyansh Patel 		Added Ac tail number (PN-16231)
+
 --EXEC [dbo].[USP_GetPurchaseOrderPartViewByPOId] 3131 ,NULL,NULL
 **************************************************************/ 
 
@@ -147,7 +149,8 @@ BEGIN
 					IsSubWO BIT NULL,
 					SalesOrderQuoteId BIGINT NULL,
 					SalesOrderQuoteNumber NVARCHAR(250) NULL,
-					AircraftRegistryNumber VARCHAR(30) NULL
+					AircraftRegistryNumber VARCHAR(30) NULL,
+					ACTailNum VARCHAR(250) NULL
 				);
 				 IF OBJECT_ID(N'tempdb..#tmpSubWOMtbl') IS NOT NULL
 				BEGIN    
@@ -269,7 +272,8 @@ BEGIN
 					Quantity DECIMAL(18, 6) NULL,
 					SalesOrderQuoteId BIGINT NULL,
 					SalesOrderQuoteNumber NVARCHAR(250) NULL,
-					AircraftRegistryNumber VARCHAR(30) NULL
+					AircraftRegistryNumber VARCHAR(30) NULL,
+					ACTailNum VARCHAR(250) NULL
 				);
 				INSERT INTO #tmpPoPartList SELECT
 				PurchaseOrderPartRecordId,
@@ -370,7 +374,8 @@ BEGIN
 				IsSubWO,
 				SalesOrderQuoteId,
 				SalesOrderQuoteNumber,
-				AircraftRegistryNumber 
+				AircraftRegistryNumber,
+				ACTailNum
 				FROM DBO.PurchaseOrderPart P WITH(NOLOCK) WHERE PurchaseOrderId = @PurchaseOrderId AND ISNULL(IsDeleted,0) = 0
 				--SELECT * FROM #tmpPoPartList
 				--SELECT * INTO #tmpPoPartList FROM (SELECT * FROM DBO.PurchaseOrderPart WITH(NOLOCK) WHERE PurchaseOrderId = @PurchaseOrderId AND ISNULL(IsDeleted,0) = 0) AS partResult
@@ -532,7 +537,8 @@ BEGIN
 								POFrightsCount,[Priority],
 								SalesOrderQuoteId,
 								SalesOrderQuoteNumber,
-								AircraftRegistryNumber 
+								AircraftRegistryNumber,
+								ACTailNum
 								)
 							SELECT (CASE WHEN @ItemTypeId = @ItemTypeIdStock THEN (SELECT TOP 1 PartNumber  FROM DBO.ItemMaster  WITH(NOLOCK) WHERE ItemMasterId = @ItemMasterId)
 										 WHEN @ItemTypeId = @ItemTypeIdNonStock THEN (SELECT TOP 1 PartNumber  FROM DBO.ItemMasterNonStock  WITH(NOLOCK) WHERE MasterPartId = @ItemMasterId)
@@ -570,7 +576,8 @@ BEGIN
 									 (SELECT COUNT(1) FROM dbo.PurchaseOrderFreight C WITH(NOLOCK) WHERE c.PurchaseOrderPartRecordId= LT.PurchaseOrderPartRecordId and ISNULL(c.IsDeleted,0) = 0)POFrightsCount,[Priority],
 									 LT.SalesOrderQuoteId,
 									 LT.SalesOrderQuoteNumber,
-									 LT.AircraftRegistryNumber
+									 LT.AircraftRegistryNumber,
+									 LT.ACTailNum
 
 									 FROM #tmpLoopTable LT LEFT JOIN #tmpPOPMs ms on ms.ReferenceID = LT.PurchaseOrderPartRecordId AND ms.ModuleID = @PoPartMGMTModuleId
 									 LEFT JOIN #tmpWOMTble wom on wom.WorkOrderMaterialsId = LT.WorkOrderMaterialsId

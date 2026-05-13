@@ -32,6 +32,8 @@
 	16   24-02-2026   Amit Ghediya		IF TraceableTo is blank then take from vendor & other too (PN-15560)
 	17   16-03-2026   Vishal Suthar		Increased max qty to 500 from 200
 	18   10-APR-2026  Rajesh Gami		UOM Conversion Changes [PN-15733]
+	19   12-MAY-2026  Priyansh Patel	Added Ac tail number [PN-16231]
+
  EXEC [SaveReceivingToStocklineDraft] 2281, 'ADMIN User'    
 **********************/    
 CREATE      PROCEDURE [dbo].[SaveReceivingToStocklineDraft]
@@ -78,6 +80,7 @@ BEGIN
 	DECLARE @TaggedByType INT = NULL;
 	DECLARE @TaggedBy BIGINT = NULL;
 	DECLARE @TagDate DATETIME;    
+	DECLARE @ACTailNum VARCHAR(250) = NULL;
     
     IF OBJECT_ID(N'tempdb..#tmpPurchaseOrderParts') IS NOT NULL    
     BEGIN    
@@ -127,7 +130,8 @@ BEGIN
 	 @TaggedByType = (CASE WHEN ISNULL(POP.isParent,0) = 0 THEN (SELECT TOP 1 puo.TaggedByType FROM DBO.PurchaseOrderPart puo WITH (NOLOCK) WHERE puo.PurchaseOrderPartRecordId = pop.ParentId) ELSE POP.TaggedByType END), 
 	 @TaggedBy = (CASE WHEN ISNULL(POP.isParent,0) = 0 THEN (SELECT TOP 1 puo.TaggedBy FROM DBO.PurchaseOrderPart puo WITH (NOLOCK) WHERE puo.PurchaseOrderPartRecordId = pop.ParentId) ELSE POP.TaggedBy END), 
 	 @TagDate = (CASE WHEN ISNULL(POP.isParent,0) = 0 THEN (SELECT TOP 1 puo.TagDate FROM DBO.PurchaseOrderPart puo WITH (NOLOCK) WHERE puo.PurchaseOrderPartRecordId = pop.ParentId) ELSE POP.TagDate END)
-	 ,@WorkOrderMaterialsId = WorkOrderMaterialsId, @IsKit = IsKit, @IsSubWO = IsSubWO
+	 ,@WorkOrderMaterialsId = WorkOrderMaterialsId, @IsKit = IsKit, @IsSubWO = IsSubWO,
+	 @ACTailNum = POP.ACTailNum
 	 FROM DBO.PurchaseOrderPart POP WITH (NOLOCK) WHERE PurchaseOrderPartRecordId = @PurchaseOrderPartRecordId;    
      
 	 SELECT @OrderDate = PO.CreatedDate, @ManagementStructureId = PO.ManagementStructureId, @LotId = PO.LotId, @VendorId = PO.VendorId, @VendorName = PO.VendorName FROM DBO.PurchaseOrder PO WITH (NOLOCK) WHERE PurchaseOrderId = @PurchaseOrderId;    
@@ -220,7 +224,7 @@ BEGIN
 		NULL, NULL, GETUTCDATE(), NULL, NULL, NULL, CASE WHEN @POPartUnitCost = 0 THEN @POUnitCost ELSE @POPartUnitCost END, IM.GLAccountId, NULL, IM.IsHazardousMaterial, IM.IsPma,     
 		IM.IsDER, IM.IsOEM, NULL, @ManagementStructureId, NULL, @MasterCompanyId, @UserName, @UserName, GETUTCDATE(), GETUTCDATE(), IM.isSerialized, NULL, NULL, IM.SiteId,    
 		NULL, NULL, @TraceableToType, NULL, NULL, @IdNumber, 1, ((CASE WHEN @POPartUnitCost = 0 THEN @POUnitCost ELSE @POPartUnitCost END) * 1),     
-		NULL, NULL, NULL, CASE WHEN @ShipViaId = 0 THEN NULL ELSE @ShipViaId END, NULL, 0, @PurchaseOrderPartRecordId, @ShippingAccountNo, '',    
+		NULL, NULL, @ACTailNum, CASE WHEN @ShipViaId = 0 THEN NULL ELSE @ShipViaId END, NULL, 0, @PurchaseOrderPartRecordId, @ShippingAccountNo, '',    
 		NULL, 0, NULL, CASE WHEN @WorkOrderMaterialsId = 0 THEN NULL ELSE @WorkOrderMaterialsId END, NULL, NULL, NULL, @QuantityOnHand, @QuantityAvailable,     
 		NULL, NULL, NULL, 0, NULL, 0, NULL, 0, NULL, NULL, 1, 0, 0, NULL, NULL, NULL, @IsParent, 0, 1, NULL, NULL, NULL, NULL, @ConditionName,    
 		IM.WarehouseName, IM.LocationName, '', '', @TraceableToName, IM.GLAccount, NULL, NULL, NULL, NULL, IM.SiteName, '', '',    
@@ -333,7 +337,7 @@ BEGIN
 		  NULL, NULL, GETUTCDATE(), NULL, NULL, NULL, CASE WHEN @POPartUnitCost = 0 THEN @POUnitCost ELSE @POPartUnitCost END, IM.GLAccountId, NULL, IM.IsHazardousMaterial, IM.IsPma,     
 		  IM.IsDER, IM.IsOEM, NULL, @ManagementStructureId, NULL, @MasterCompanyId, @UserName, @UserName, GETUTCDATE(), GETUTCDATE(), IM.isSerialized, NULL, NULL, IM.SiteId,    
 		  NULL, NULL, @TraceableToType, NULL, NULL, @IdNumber, @QuantityToReceive, ((CASE WHEN @POPartUnitCost = 0 THEN @POUnitCost ELSE @POPartUnitCost END) * 1),     
-		  NULL, NULL, NULL, CASE WHEN @ShipViaId = 0 THEN NULL ELSE @ShipViaId END, NULL, 0, @PurchaseOrderPartRecordId, @ShippingAccountNo, '',    
+		  NULL, NULL, @ACTailNum, CASE WHEN @ShipViaId = 0 THEN NULL ELSE @ShipViaId END, NULL, 0, @PurchaseOrderPartRecordId, @ShippingAccountNo, '',    
 		  NULL, 0, NULL, CASE WHEN @WorkOrderMaterialsId = 0 THEN NULL ELSE @WorkOrderMaterialsId END, NULL, NULL, NULL, @QuantityOnHand, @QuantityAvailable,     
 		  NULL, NULL, NULL, 0, NULL, 0, NULL, 0, NULL, NULL, 1, 0, 0, NULL, NULL, NULL, @IsParent, 0, 1, NULL, NULL, NULL, NULL, @ConditionName,    
 		  IM.WarehouseName, IM.LocationName, '', '', @TraceableToName, IM.GLAccount, NULL, NULL, NULL, NULL, IM.SiteName, '', '',    
@@ -396,7 +400,8 @@ BEGIN
      SET @ShipViaName = '';    
      SET @ManagementStructureId = 0;    
      SET @IsSerialized = 0;    
-    
+	 SET @ACTailNum  = NULL;
+
      SELECT @IdCodeTypeId = CodeTypeId FROM DBO.CodeTypes WITH (NOLOCK) Where CodeType = 'Id Number';      
     
      IF OBJECT_ID(N'tempdb..#tmpCodePrefixes_Asset') IS NOT NULL      
@@ -419,7 +424,7 @@ BEGIN
     
      SELECT @QtyToTraverse = POP.QuantityOrdered, @QtyOrdered = POP.QuantityOrdered, @ItemMasterId = POP.ItemMasterId, @ConditionId = POP.ConditionId, @ConditionName = POP.Condition, @MasterCompanyId = POP.MasterCompanyId, @POPartUnitCost = POP.UnitCost, 
    
-     @POPartGLAccountId = POP.GlAccountId, @POPartGLAccountName = POP.GLAccount FROM DBO.PurchaseOrderPart POP WITH (NOLOCK) WHERE PurchaseOrderPartRecordId = @PurchaseOrderPartRecordId;    
+     @POPartGLAccountId = POP.GlAccountId, @POPartGLAccountName = POP.GLAccount, @ACTailNum = POP.ACTailNum  FROM DBO.PurchaseOrderPart POP WITH (NOLOCK) WHERE PurchaseOrderPartRecordId = @PurchaseOrderPartRecordId;    
      SELECT @OrderDate = PO.CreatedDate, @ManagementStructureId = PO.ManagementStructureId FROM DBO.PurchaseOrder PO WITH (NOLOCK) WHERE PurchaseOrderId = @PurchaseOrderId;    
      SELECT @POUnitCost = IMS.PP_VendorListPrice FROM DBO.ItemMasterPurchaseSale IMS WITH (NOLOCK) WHERE ItemMasterId = @ItemMasterId AND ConditionId = @ConditionId;    
      SELECT @ShipViaId = ShipViaId, @ShipViaName = ShipVia, @ShippingAccountNo = ShippingAccountNo FROM DBO.AllShipVia WITH (NOLOCK) WHERE ReferenceId = @PurchaseOrderId AND ModuleId = 13;    

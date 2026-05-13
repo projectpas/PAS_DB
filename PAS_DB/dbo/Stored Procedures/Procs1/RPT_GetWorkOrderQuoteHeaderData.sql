@@ -24,6 +24,7 @@
 	10	 02/12/2025   AMIT GHEDIYA      Get All Added charge type in notes (PN-15364)
 	11	 02/18/2025   AMIT GHEDIYA      Remove MTI static value
 	4    01/05/2026   Ayushi Patel      [PN-16030] Added MasterCompanyCode/NULL parameter in ValidatePDFAddress calls.
+	13   15/05/2026   Ayushi Patel      [PN-16030] RETURN EMAIL IN LOWER FOR A2Z.
 -- EXEC [RPT_GetWorkOrderQuoteHeaderData] 7011
 **************************************************************/  
 CREATE    PROCEDURE [dbo].[RPT_GetWorkOrderQuoteHeaderData]  
@@ -58,7 +59,8 @@ BEGIN
 				INNER JOIN [dbo].[Charge] CH WITH(NOLOCK) ON CH.[ChargeId] = WQC.[ChargesTypeId]
 				WHERE WQD.[WorkOrderQuoteId] = @WorkOrderQuoteId AND WQD.[WOPartNoId] = @workOrderPartNoId
 		END
-
+		DECLARE @A2ZMasterCompanyCode VARCHAR(50);
+		SELECT @A2ZMasterCompanyCode = MasterCompanyCode FROM DBO.MasterCompany WITH(NOLOCK) WHERE UPPER(MasterCompanyCode) = UPPER('A2Z');
 
 		SELECT TOP 1  
 			woq.WorkOrderQuoteId,
@@ -86,7 +88,11 @@ BEGIN
             Title = con.ContactTitle,
             WorkPhone = con.WorkPhone + ' ' + con.WorkPhoneExtn,
 			Phone = UPPER(ISNULL(con.WorkPhone,'')),
-            Email = UPPER(ISNULL(con.Email,'')),
+			CASE 
+				WHEN UPPER(MS.MasterCompanyCode) = UPPER(@A2ZMasterCompanyCode) 
+				THEN LOWER(ISNULL(con.Email, '')) 
+				ELSE UPPER(ISNULL(con.Email, '')) 
+			END AS Email,
             Address1 = UPPER(ISNULL(adr.Line1,'')),
             Address2 = UPPER(ISNULL(adr.Line2,'')),
 			ComboAddress = UPPER(ISNULL(adr.Line1,'')) + (CASE WHEN ISNULL(adr.Line2, '') = '' THEN '' ELSE (', ' + UPPER(ISNULL(adr.Line2,''))) END),
@@ -100,7 +106,11 @@ BEGIN
             Country = UPPER(ISNULL(co.countries_name,'')),
 			MergerdQuoteAddress = (SELECT [dbo].ValidatePDFAddress(adr.Line1,adr.Line2,NULL,adr.City,adr.StateOrProvince,adr.PostalCode,co.countries_name,con.WorkPhone,NULL,con.Email,MS.MasterCompanyCode)),
             ShipVia = UPPER(ISNULL(cs.ShipVia,'')),
-            CustomerEmail = cust.Email,
+			CASE 
+				WHEN UPPER(MS.MasterCompanyCode) = UPPER(@A2ZMasterCompanyCode) 
+				THEN LOWER(ISNULL(cust.Email, '')) 
+				ELSE UPPER(ISNULL(cust.Email, '')) 
+			END AS CustomerEmail,
             cust.CustomerPhone,
             CustomerRef = cust.ContractReference,
             ARBalance = woq.AccountsReceivableBalance,

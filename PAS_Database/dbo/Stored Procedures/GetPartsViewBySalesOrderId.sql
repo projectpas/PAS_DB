@@ -25,6 +25,7 @@
 	9    01-09-2025   BHARGAV SALIYA	Fixed: Quote Number Binded issue in Analysis tab.
 	10   19-SEP-2025  RAJESH GAMI	    Added return field: netSalesPricePerUnit
 	11   30-SEP-2025  Vishal Suthar	    Fix for showing Freight Cost in Freight
+	12   30-SEP-2025  Bhargav Saliya	UOM Changes
 
 EXEC [dbo].[GetPartsViewBySalesOrderId]  879
 **************************************************************/
@@ -111,13 +112,14 @@ BEGIN
 			stk.StockLineId stockLineId,
 			ISNULL(qs.StockLineNumber, '') AS stockLineNumber,
 			part.FxRate fxRate,
-			CASE WHEN stk.SalesOrderStocklineId IS NOT NULL THEN stk.QtyOrder ELSE part.QtyOrder END qty,
-			CASE WHEN SOSC.SalesOrderStocklineId IS NOT NULL THEN SOSC.UnitSalesPrice ELSE SOPC.UnitSalesPrice END AS unitSalePrice,
+			CASE WHEN stk.SalesOrderStocklineId IS NOT NULL THEN ([dbo].[fn_ConvertUOM](ISNULL(stk.QtyOrder,0),itemMaster.[StockUnitOfMeasure], itemMaster.[ConsumeUnitOfMeasure],0,part.[MasterCompanyId])) ELSE ([dbo].[fn_ConvertUOM](ISNULL(part.QtyOrder,0),itemMaster.[StockUnitOfMeasure], itemMaster.[ConsumeUnitOfMeasure],0,part.[MasterCompanyId])) END qty,
+			CASE WHEN SOSC.SalesOrderStocklineId IS NOT NULL THEN ([dbo].[fn_ConvertUOM](ISNULL(SOSC.UnitSalesPrice,0),itemMaster.[StockUnitOfMeasure], itemMaster.[ConsumeUnitOfMeasure],0,part.[MasterCompanyId])) ELSE ([dbo].[fn_ConvertUOM](ISNULL(SOPC.UnitSalesPrice,0),itemMaster.[StockUnitOfMeasure], itemMaster.[ConsumeUnitOfMeasure],0,part.[MasterCompanyId])) END AS unitSalePrice,
 			CASE WHEN SOSC.SalesOrderStocklineId IS NOT NULL THEN SOSC.MarkUpPercentage ELSE SOPC.MarkUpPercentage END markUpPercentage,
 			0 AS salesBeforeDiscount,
 			CASE WHEN SOSC.SalesOrderStocklineId IS NOT NULL THEN SOSC.DiscountPercentage ELSE SOPC.DiscountPercentage END discount,
-			CASE WHEN SOSC.SalesOrderStocklineId IS NOT NULL THEN SOSC.DiscountAmount ELSE SOPC.DiscountAmount END discountAmount,
-			CASE WHEN SOSC.SalesOrderStocklineId IS NOT NULL THEN SOSC.NetSaleAmount ELSE SOPC.NetSaleAmount END netSales,
+			CASE WHEN SOSC.SalesOrderStocklineId IS NOT NULL THEN ([dbo].[fn_ConvertUOM](ISNULL(SOSC.DiscountAmount,0),itemMaster.[StockUnitOfMeasure], itemMaster.[ConsumeUnitOfMeasure],0,part.[MasterCompanyId])) 
+			ELSE ([dbo].[fn_ConvertUOM](ISNULL(SOPC.DiscountAmount,0),itemMaster.[StockUnitOfMeasure], itemMaster.[ConsumeUnitOfMeasure],0,part.[MasterCompanyId])) END discountAmount,
+			CASE WHEN SOSC.SalesOrderStocklineId IS NOT NULL THEN ([dbo].[fn_ConvertUOM](ISNULL(SOSC.NetSaleAmount,0),itemMaster.[StockUnitOfMeasure], itemMaster.[ConsumeUnitOfMeasure],0,part.[MasterCompanyId])) ELSE ([dbo].[fn_ConvertUOM](ISNULL(SOPC.NetSaleAmount,0),itemMaster.[StockUnitOfMeasure], itemMaster.[ConsumeUnitOfMeasure],0,part.[MasterCompanyId])) END netSales,
 			part.MasterCompanyId masterCompanyId,
 			part.CreatedBy createdBy,
 			part.CreatedDate createdDate,
@@ -140,15 +142,15 @@ BEGIN
 			t.SalesTaxPercentage AS taxPercentage,
 			'' AS taxType,
 			SOPC.TaxAmount AS taxAmount,
-			CASE WHEN SOSC.SalesOrderStocklineId IS NOT NULL THEN SOSC.MarginAmount ELSE SOPC.MarginAmount END markupPerUnit,
-			CASE WHEN SOSC.SalesOrderStocklineId IS NOT NULL THEN SOSC.UnitCost ELSE SOPC.UnitCost END AS unitCost,
-			CASE WHEN SOSC.SalesOrderStocklineId IS NOT NULL THEN SOSC.UnitSalesPriceExtended ELSE SOPC.UnitSalesPriceExtended END salesPriceExtended,
-			CASE WHEN SOSC.SalesOrderStocklineId IS NOT NULL THEN SOSC.MarkUpAmount ELSE SOPC.MarkUpAmount END markupExtended,
+			CASE WHEN SOSC.SalesOrderStocklineId IS NOT NULL THEN ([dbo].[fn_ConvertUOM](ISNULL(SOSC.MarginAmount,0),itemMaster.[StockUnitOfMeasure], itemMaster.[ConsumeUnitOfMeasure],0,part.[MasterCompanyId])) ELSE ([dbo].[fn_ConvertUOM](ISNULL(SOPC.MarginAmount,0),itemMaster.[StockUnitOfMeasure], itemMaster.[ConsumeUnitOfMeasure],0,part.[MasterCompanyId])) END markupPerUnit,
+			CASE WHEN SOSC.SalesOrderStocklineId IS NOT NULL THEN ([dbo].[fn_ConvertUOM](ISNULL(SOSC.UnitCost,0),itemMaster.[StockUnitOfMeasure], itemMaster.[ConsumeUnitOfMeasure],0,part.[MasterCompanyId])) ELSE ([dbo].[fn_ConvertUOM](ISNULL(SOPC.UnitCost,0),itemMaster.[StockUnitOfMeasure], itemMaster.[ConsumeUnitOfMeasure],0,part.[MasterCompanyId])) END AS unitCost,
+			CASE WHEN SOSC.SalesOrderStocklineId IS NOT NULL THEN ([dbo].[fn_ConvertUOM](ISNULL(SOSC.UnitSalesPriceExtended,0),itemMaster.[StockUnitOfMeasure], itemMaster.[ConsumeUnitOfMeasure],0,part.[MasterCompanyId])) ELSE ([dbo].[fn_ConvertUOM](ISNULL(SOPC.UnitSalesPriceExtended,0),itemMaster.[StockUnitOfMeasure], itemMaster.[ConsumeUnitOfMeasure],0,part.[MasterCompanyId])) END salesPriceExtended,
+			CASE WHEN SOSC.SalesOrderStocklineId IS NOT NULL THEN ([dbo].[fn_ConvertUOM](ISNULL(SOSC.MarkUpAmount,0),itemMaster.[StockUnitOfMeasure], itemMaster.[ConsumeUnitOfMeasure],0,part.[MasterCompanyId])) ELSE ([dbo].[fn_ConvertUOM](ISNULL(SOPC.MarkUpAmount,0),itemMaster.[StockUnitOfMeasure], itemMaster.[ConsumeUnitOfMeasure],0,part.[MasterCompanyId])) END markupExtended,
 			0 salesDiscountExtended,
-			CASE WHEN SOSC.SalesOrderStocklineId IS NOT NULL THEN SOSC.NetSaleAmount ELSE SOPC.NetSaleAmount END netSalePriceExtended,
-			CASE WHEN SOSC.SalesOrderStocklineId IS NOT NULL THEN SOSC.UnitCostExtended ELSE SOPC.UnitCostExtended END AS unitCostExtended,
-			CASE WHEN SOSC.SalesOrderStocklineId IS NOT NULL THEN SOSC.MarginAmount ELSE SOPC.MarginAmount END AS marginAmount,
-			CASE WHEN SOSC.SalesOrderStocklineId IS NOT NULL THEN SOSC.MarginAmount ELSE SOPC.MarginAmount END marginAmountExtended,
+			CASE WHEN SOSC.SalesOrderStocklineId IS NOT NULL THEN ([dbo].[fn_ConvertUOM](ISNULL(SOSC.NetSaleAmount,0),itemMaster.[StockUnitOfMeasure], itemMaster.[ConsumeUnitOfMeasure],0,part.[MasterCompanyId])) ELSE ([dbo].[fn_ConvertUOM](ISNULL(SOPC.NetSaleAmount,0),itemMaster.[StockUnitOfMeasure], itemMaster.[ConsumeUnitOfMeasure],0,part.[MasterCompanyId])) END netSalePriceExtended,
+			CASE WHEN SOSC.SalesOrderStocklineId IS NOT NULL THEN ([dbo].[fn_ConvertUOM](ISNULL(SOSC.UnitCostExtended,0),itemMaster.[StockUnitOfMeasure], itemMaster.[ConsumeUnitOfMeasure],0,part.[MasterCompanyId])) ELSE ([dbo].[fn_ConvertUOM](ISNULL(SOPC.UnitCostExtended,0),itemMaster.[StockUnitOfMeasure], itemMaster.[ConsumeUnitOfMeasure],0,part.[MasterCompanyId])) END AS unitCostExtended,
+			CASE WHEN SOSC.SalesOrderStocklineId IS NOT NULL THEN ([dbo].[fn_ConvertUOM](ISNULL(SOSC.MarginAmount,0),itemMaster.[StockUnitOfMeasure], itemMaster.[ConsumeUnitOfMeasure],0,part.[MasterCompanyId])) ELSE ([dbo].[fn_ConvertUOM](ISNULL(SOPC.MarginAmount,0),itemMaster.[StockUnitOfMeasure], itemMaster.[ConsumeUnitOfMeasure],0,part.[MasterCompanyId])) END AS marginAmount,
+			CASE WHEN SOSC.SalesOrderStocklineId IS NOT NULL THEN ([dbo].[fn_ConvertUOM](ISNULL(SOSC.MarginAmount,0),itemMaster.[StockUnitOfMeasure], itemMaster.[ConsumeUnitOfMeasure],0,part.[MasterCompanyId])) ELSE ([dbo].[fn_ConvertUOM](ISNULL(SOPC.MarginAmount,0),itemMaster.[StockUnitOfMeasure], itemMaster.[ConsumeUnitOfMeasure],0,part.[MasterCompanyId])) END marginAmountExtended,
 			CASE WHEN SOSC.SalesOrderStocklineId IS NOT NULL THEN SOSC.MarginPercentage ELSE SOPC.MarginPercentage END AS marginPercentage,
 			ISNULL(cur.Code, '') AS currency,
 			part.ConditionId conditionId,
@@ -157,10 +159,10 @@ BEGIN
 			so.SalesOrderNumber salesOrderNumber,
 			ISNULL(q.SalesOrderQuoteNumber, '') AS salesOrderQuoteNumber,
 			ISNULL(CONVERT(VARCHAR, q.OpenDate), '') AS quoteDate,
-			ISNULL(qs.QuantityAvailable, 0) AS qtyAvailable,
+			([dbo].[fn_ConvertUOM](ISNULL(qs.QuantityAvailable,0),itemMaster.[StockUnitOfMeasure], itemMaster.[ConsumeUnitOfMeasure],0,part.[MasterCompanyId])) AS qtyAvailable,
 			ISNULL(iu.ShortName, '') AS uom,
 			--ISNULL(rPart.QtyToReserve, NULL) AS qtyReserved,
-			ISNULL(stk.QtyReserved, NULL) AS qtyReserved,
+			([dbo].[fn_ConvertUOM](ISNULL(stk.QtyReserved,NULL),itemMaster.[StockUnitOfMeasure], itemMaster.[ConsumeUnitOfMeasure],0,part.[MasterCompanyId])) AS qtyReserved,
 			--ISNULL(st.Name, '') AS [status],			
 			CASE WHEN sp.ApprovalActionId =  @SentForInternalApproval THEN 'Send for Internal Approval'
 			     WHEN sp.ApprovalActionId =  @SubmitInternalApproval THEN 'Submitted for Internal Approval'
@@ -180,9 +182,9 @@ BEGIN
 			CASE WHEN sob.BillingInvoicingItemId > 0 THEN ISNULL(sob.MiscChargesCostPlus,0) ELSE SOPC.MiscCharges END AS misc,
 			CASE WHEN sob.BillingInvoicingItemId > 0 THEN ISNULL(sob.MiscChargesCostPlus,0) ELSE CASE WHEN so.ChargesBilingMethodId = 3 THEN 0 ELSE (SELECT ISNULL(SUM(SOCC.ExtendedCost), 0) FROM DBO.SalesOrderCharges SOCC WHERE SOCC.SalesOrderPartId = part.SalesOrderPartId) END END AS miscCost,
 			--(part.QtyOrder * part.UnitSalesPricePerUnit) + part.TaxAmount + ISNULL(SUM(ch.BillingAmount), 0) AS TotalSales,
-			CASE WHEN SOSC.SalesOrderStocklineId IS NOT NULL THEN SOSC.NetSaleAmount ELSE SOPC.NetSaleAmount END AS totalSales,
+			CASE WHEN SOSC.SalesOrderStocklineId IS NOT NULL THEN ([dbo].[fn_ConvertUOM](ISNULL(SOSC.NetSaleAmount,0),itemMaster.[StockUnitOfMeasure], itemMaster.[ConsumeUnitOfMeasure],0,part.[MasterCompanyId])) ELSE ([dbo].[fn_ConvertUOM](ISNULL(SOPC.NetSaleAmount,0),itemMaster.[StockUnitOfMeasure], itemMaster.[ConsumeUnitOfMeasure],0,part.[MasterCompanyId])) END AS totalSales,
 			CASE WHEN sob.BillingInvoicingItemId > 0 THEN ISNULL(sob.FreightCostPlus,0)  ELSE CASE WHEN so.FreightBilingMethodId = 3 THEN 0 ELSE (SELECT ISNULL(SUM(SOFF.Amount), 0) FROM DBO.SalesOrderFreight SOFF WHERE SOFF.SalesOrderPartId = part.SalesOrderPartId) END END AS freightCost,
-			CASE WHEN SOSC.SalesOrderStocklineId IS NOT NULL THEN SOSC.UnitSalesPrice ELSE SOPC.UnitSalesPrice END unitSalesPricePerUnit,
+			CASE WHEN SOSC.SalesOrderStocklineId IS NOT NULL THEN ([dbo].[fn_ConvertUOM](ISNULL(SOSC.UnitSalesPrice,0),itemMaster.[StockUnitOfMeasure], itemMaster.[ConsumeUnitOfMeasure],0,part.[MasterCompanyId])) ELSE ([dbo].[fn_ConvertUOM](ISNULL(SOPC.UnitSalesPrice,0),itemMaster.[StockUnitOfMeasure], itemMaster.[ConsumeUnitOfMeasure],0,part.[MasterCompanyId])) END unitSalesPricePerUnit,
 			CASE WHEN sob.BillingInvoicingItemId > 0 THEN ISNULL(sob.MiscChargesCostPlus,0) ELSE so.TotalCharges END totalCharges,
 			CASE WHEN sob.BillingInvoicingItemId > 0 THEN ISNULL(sob.FreightCostPlus,0) ELSE  so.TotalFreight END totalFreight,
 			so.ChargesBilingMethodId chargesBilingMethodId,
@@ -199,7 +201,7 @@ BEGIN
 			ISNULL((SELECT SUM(b.Amount) FROM DBO.SalesOrderFreight b WITH (NOLOCK) WHERE b.SalesOrderId = @SalesOrderId AND b.IsActive = 1 AND b.IsDeleted = 0 AND b.ItemMasterId = part.ItemMasterId AND b.ConditionId = part.ConditionId), 0) AS freight,
 			0 AS sobillingInvoicingItemId,
 			@IsInvoiceGenerated isInvoiceGenerated,
-			CASE WHEN SOSC.SalesOrderStocklineId IS NOT NULL THEN ISNULL(SOSC.NetSaleAmountPerUnit, 0) ELSE ISNULL(SOPC.NetSaleAmountPerUnit, 0) END AS netSalesPricePerUnit
+			CASE WHEN SOSC.SalesOrderStocklineId IS NOT NULL THEN ([dbo].[fn_ConvertUOM](ISNULL(SOSC.NetSaleAmountPerUnit,0),itemMaster.[StockUnitOfMeasure], itemMaster.[ConsumeUnitOfMeasure],0,part.[MasterCompanyId])) ELSE ([dbo].[fn_ConvertUOM](ISNULL(SOPC.NetSaleAmountPerUnit,0),itemMaster.[StockUnitOfMeasure], itemMaster.[ConsumeUnitOfMeasure],0,part.[MasterCompanyId])) END AS netSalesPricePerUnit
 		FROM DBO.SalesOrder so WITH(NOLOCK)
 		INNER JOIN DBO.SalesOrderPartV1 part WITH(NOLOCK) ON so.SalesOrderId = part.SalesOrderId
 		LEFT JOIN DBO.SalesOrderStocklineV1 stk WITH(NOLOCK) ON stk.SalesOrderPartId = part.SalesOrderPartId

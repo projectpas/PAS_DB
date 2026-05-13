@@ -25,7 +25,7 @@
 	9    01-09-2025   BHARGAV SALIYA	Fixed: Quote Number Binded issue in Analysis tab.
 	10   19-SEP-2025  RAJESH GAMI	    Added return field: netSalesPricePerUnit
 	11   30-SEP-2025  Vishal Suthar	    Fix for showing Freight Cost in Freight
-	12   30-SEP-2025  Bhargav Saliya	UOM Changes
+	12   12-MAY-2026   Bhargav Saliya	UOM Changes [PN-15067]
 
 EXEC [dbo].[GetPartsViewBySalesOrderId]  879
 **************************************************************/

@@ -21,7 +21,7 @@
 	5    28/Aug/2025  Amit Ghediya		Select Condition
 	6    05/01/2026   Moin Bloch		UOM Related Changes
 	7    07/01/2026   Rajesh Gami		Added MasterCompanyId Parameter While Calling UOM Conversion Function
-	8    11/05/2026   Bhargav Saliya	Modified UOM Related Changes
+	8    11/05/2026   Bhargav Saliya	Modified UOM Related Changes [PN-16192]
 EXEC [dbo].[USP_GetSOApprovalList]  1266
 **************************************************************/
 CREATE PROCEDURE [dbo].[USP_GetSOApprovalList] 

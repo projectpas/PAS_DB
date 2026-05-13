@@ -23,6 +23,7 @@
 	10   09 Jul 2025   RAJESH GAMI		Deposit amount getting from the item level instead of invoice in SO
 	11   30-10-2025    Moin Bloch       Added CreditMemoHeaderId 
 	12   24-APR-2026   RAJESH			Added ModuleId Condition In WO Billing [PN-16192]
+	13   12-MAY-2026   Bhargav Saliya	UOM Changes [PN-15067]
 **************************************************************/ 
 --   EXEC [dbo].[GetCommonBillingInvoiceChildListNew] 1162,1829,1,10,2,2,97625
 

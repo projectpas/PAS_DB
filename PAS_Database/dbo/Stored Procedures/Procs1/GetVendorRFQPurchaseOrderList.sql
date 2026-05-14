@@ -15,7 +15,7 @@
 	4    24/09/2025   Amit Ghediya		Vendor Filter
 	5    08/10/2025   Devendra Shekh	Added New Parameters @SourceBy,@MarketplaceRef And as same as for Select
 	7    04/12/2025   RAJESH GAMI		ADDED: @CustomerRFQNo and functionality while getting the list
-	8    14/05/2026   Bhargav Saliya	Remove VendorId Condition
+	8    14/05/2026   Bhargav Saliya	Remove VendorId Condition [PN-16416]
 **************************************************************/  
 
 CREATE   PROCEDURE [dbo].[GetVendorRFQPurchaseOrderList]  

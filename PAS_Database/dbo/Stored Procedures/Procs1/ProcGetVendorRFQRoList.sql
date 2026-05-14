@@ -14,7 +14,7 @@
 	3    08/08/2024   Rajesh Gami		Return vendor Reference number for the make duplicate functionality.
 	4    13/08/2024   Shrey Chandegara  Modified for global filter  and some field filters are not working.
 	5.   16/08/2024   Shrey Chandegara  Modify because Note(MemoType) is not bind in VendorRFQView.
-	6    14/05/2026   Bhargav Saliya    Remove VendorId Condition
+	6    14/05/2026   Bhargav Saliya    Remove VendorId Condition [PN-16416]
 **************************************************************/  
 
 ----------------------------------------------------------------------------------------------------------------------

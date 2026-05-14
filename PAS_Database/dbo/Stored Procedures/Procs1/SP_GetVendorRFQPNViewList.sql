@@ -17,7 +17,7 @@
 	6    08/10/2025   Devendra Shekh	Added New Parameters @SourceBy,@MarketplaceRef And as same as for Select
 	7    04/12/2025   RAJESH GAMI		ADDED: @CustomerRFQNo and functionality while getting the list
     8    01/04/2026   Ayushi Patel      PN-15880 Changed varchar size from 10 to 50 for UnitCost casting in global search
-    9    14/05/2026   Bhargav Saliya    Remove VendorId Condition
+    9    14/05/2026   Bhargav Saliya    Remove VendorId Condition [PN-16416]
     exec SP_GetVendorRFQPNViewList @PageNumber=1,@PageSize=20,@SortColumn=NULL,@SortOrder=-1,@StatusID=1,@Status=N'open',@GlobalFilter=N'',@VendorRFQPurchaseOrderNumber=NULL,@OpenDate=NULL,@VendorName=NULL,@RequestedBy=NULL,@CreatedBy=NULL,@CreatedDate=NULL,@UpdatedBy=NULL,@UpdatedDate=NULL,@IsDeleted=0,@EmployeeId=2,@MasterCompanyId=1,@VendorId=NULL,@PartNumber=NULL,@PartDescription=NULL,@StockType=NULL,@Manufacturer=NULL,@Priority=NULL,@NeedByDate=NULL,@PromisedDate=NULL,@Condition=NULL,@UnitCost=N'210.00',@QuantityOrdered=N'10.00000',@WorkOrderNo=NULL,@SubWorkOrderNo=NULL,@SalesOrderNo=NULL,@PurchaseOrderNumber=NULL,@mgmtStructure=NULL,@Level2Type=N'',@Level3Type=N'',@Level4Type=N'',@Memo=NULL,@SourceBy=NULL,@MarketplaceRef=NULL,@CustomerRFQNo=NULL
 **********************/  
 

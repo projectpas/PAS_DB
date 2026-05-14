@@ -33,7 +33,7 @@
 	17  04/12/2025		RAJESH GAMI			ADDED: @CustomerRFQNo and functionality while getting the list
 	18  08-12-2025      Sahdev Saliya       Added New Field :- VendorRFQPurchaseOrderNumber
 	19  01-20-2026      Vishal Suthar       Added filter to skip migrated PO from the listing for PAR
-	20  05-14-2026      Bhargav Saliya      Remove The [VendoreId] Condition
+	20  05-14-2026      Bhargav Saliya      Remove The [VendoreId] Condition [PN-16416]
 
 **************************************************************/      
 CREATE    PROCEDURE [dbo].[GetPurchaseOrderList]

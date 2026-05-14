@@ -4523,6 +4523,7 @@
     <Build Include="dbo\Stored Procedures\uspbatch_UpdateCustomerARAgingBalance_1.sql" />
     <Build Include="dbo\Stored Procedures\USP_deleteSalesOrderStockLineCost.sql" />
     <Build Include="dbo\Functions\fn_TransformSelectList.sql" />
+    <Build Include="dbo\Views\vw_ItemMasterPartManufacturer.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

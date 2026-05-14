@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [ProcGetRoList]           
  ** Author:   Moin Bloch  
  ** Description: Get Data for Repair Order listing
@@ -28,9 +27,10 @@
 	11   13-05-2025     Bhargav Saliya      MULTIPLE checking for  WO and SO Number was improper so corrected it
 	12   04-12-2025     Amit Ghediya        Added qtyShipped,qtyRemaining for shipping details
     13   31-12-2025     Rajesh Gami         UOM Decimal Places Changes
+    14   14-05-2026     Bhargav Saliya      Remove VendoreId Condition [PN-16416]
 -- exec ProcGetRoList @PageNumber=1,@PageSize=20,@SortColumn=N'CreatedDate',@SortOrder=-1,@StatusID=6,@GlobalFilter=N'',@RepairOrderNumber=NULL,@OpenDate=NULL,@ClosedDate=NULL,@VendorName=NULL,@VendorCode=NULL,@Status=N'open',@ApprovedBy=NULL,@RequestedBy=NULL,@CreatedDate=NULL,@UpdatedDate=NULL,@CreatedBy=NULL,@UpdatedBy=NULL,@IsDeleted=0,@EmployeeId=223,@MasterCompanyId=1,@VendorId=NULL,@ViewType=N'roview',@PartNumberType=NULL,@PartDescription=NULL,@EstDeliveryType=NULL,@ManufacturerType=NULL,@SalesOrderNumberType=NULL,@WorkOrderNumType=NULL,@IsUpdated=0
 **************************************************************/
-CREATE      PROCEDURE [dbo].[ProcGetRoList]
+CREATE PROCEDURE [dbo].[ProcGetRoList]
 	@PageNumber int = null,
 	@PageSize int = null,
 	@SortColumn varchar(50) = null,
@@ -182,7 +182,7 @@ BEGIN
 			 LEFT JOIN dbo.RepairOrderPart ROP WITH (NOLOCK) ON ROP.RepairOrderId = RO.RepairOrderId AND ROP.isParent=1
 			 LEFT JOIN RepairOrderPartAggregated ROPA ON ROPA.RepairOrderId = RO.RepairOrderId
 			WHERE ((RO.IsDeleted=@IsDeleted) AND (@StatusID IS NULL OR RO.StatusId=@StatusID)) AND
-					RO.MasterCompanyId=@MasterCompanyId AND (ISNULL(@IsUpdated,0) <> 1 OR ISNULL(RO.IsUpdated,0) = ISNULL(@IsUpdated,0)) AND (@VendorId IS NULL OR RO.VendorId = @VendorId)
+					RO.MasterCompanyId=@MasterCompanyId AND (ISNULL(@IsUpdated,0) <> 1 OR ISNULL(RO.IsUpdated,0) = ISNULL(@IsUpdated,0)) --AND (@VendorId IS NULL OR RO.VendorId = @VendorId)
 			GROUP BY RO.RepairOrderId,RO.RepairOrderNumber,RO.RepairOrderNumber,RO.OpenDate,RO.ClosedDate,RO.CreatedDate,RO.CreatedBy,
 				   RO.UpdatedDate,RO.UpdatedBy,RO.IsActive,RO.IsDeleted,RO.VendorId,RO.VendorName,RO.VendorCode,RO.StatusId,RO.[Status],
 				   RO.Requisitioner,RO.ApprovedBy,ROPA.PartCount,
@@ -354,7 +354,7 @@ BEGIN
 			 LEFT JOIN dbo.RepairOrderPart ROP WITH (NOLOCK) ON ROP.RepairOrderId = RO.RepairOrderId AND ROP.isParent=1
 
 			WHERE ((RO.IsDeleted=@IsDeleted) AND (@StatusID IS NULL OR RO.StatusId=@StatusID)) AND
-			        RO.MasterCompanyId=@MasterCompanyId AND (@VendorId IS NULL OR RO.VendorId = @VendorId)
+			        RO.MasterCompanyId=@MasterCompanyId --AND (@VendorId IS NULL OR RO.VendorId = @VendorId)
 		    
 			UPDATE TMP
 				SET TMP.isStkLable = case when result.StkCount > 0 then 1 else 0 end

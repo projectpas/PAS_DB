@@ -14,7 +14,7 @@
 	3    08/08/2024   Rajesh Gami		Return vendor Reference number for the make duplicate functionality.
 	4    13/08/2024   Shrey Chandegara  Modified for global filter  and some field filters are not working.
 	5.   16/08/2024   Shrey Chandegara  Modify because Note(MemoType) is not bind in VendorRFQView.
-
+	6    14/05/2026   Bhargav Saliya    Remove VendorId Condition
 **************************************************************/  
 
 ----------------------------------------------------------------------------------------------------------------------
@@ -152,8 +152,7 @@ BEGIN
 			WHERE ((RO.IsDeleted=@IsDeleted) AND (@StatusID IS NULL OR RO.StatusId=@StatusID)) AND
 			        --EMS.EmployeeId = @EmployeeId AND
 					RO.MasterCompanyId=@MasterCompanyId 
-					 AND 
-					 (@VendorId  IS NULL OR RO.VendorId=@VendorId)
+					 --AND (@VendorId  IS NULL OR RO.VendorId=@VendorId)
 					), ResultCount AS(Select COUNT(VendorRFQRepairOrderId) AS totalItems FROM Result)
 			SELECT * INTO #TempResult FROM  Result
 			WHERE ((@GlobalFilter <>'' AND ((VendorRFQRepairOrderNumber LIKE '%' +@GlobalFilter+'%') OR	
@@ -314,8 +313,7 @@ BEGIN
 			WHERE ((RO.IsDeleted=@IsDeleted) AND (@StatusID IS NULL OR RO.StatusId=@StatusID)) AND
 			        --EMS.EmployeeId = @EmployeeId AND
 					RO.MasterCompanyId=@MasterCompanyId 
-					 AND 
-					 (@VendorId  IS NULL OR RO.VendorId=@VendorId)
+					 --AND (@VendorId  IS NULL OR RO.VendorId=@VendorId)
 					 )
 			SELECT DISTINCT M.VendorRFQRepairOrderId,M.VendorRFQRepairOrderNumber,M.OpenDate,M.ClosedDate,M.CreatedDate,M.CreatedBy,M.UpdatedDate,
 					M.UpdatedBy,M.IsActive,M.IsDeleted,M.StatusId,M.VendorId,M.VendorName,M.VendorCode,M.[Status],M.MemoType,

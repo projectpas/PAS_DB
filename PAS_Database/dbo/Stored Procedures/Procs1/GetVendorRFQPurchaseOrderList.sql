@@ -15,6 +15,7 @@
 	4    24/09/2025   Amit Ghediya		Vendor Filter
 	5    08/10/2025   Devendra Shekh	Added New Parameters @SourceBy,@MarketplaceRef And as same as for Select
 	7    04/12/2025   RAJESH GAMI		ADDED: @CustomerRFQNo and functionality while getting the list
+	8    14/05/2026   Bhargav Saliya	Remove VendorId Condition
 **************************************************************/  
 
 CREATE   PROCEDURE [dbo].[GetVendorRFQPurchaseOrderList]  
@@ -179,7 +180,7 @@ BEGIN
 
      WHERE ((PO.IsDeleted = @IsDeleted) AND (VPOP.IsDeleted = 0) AND (@StatusID IS NULL OR PO.StatusId = @StatusID))   
       AND PO.MasterCompanyId = @MasterCompanyId   
-	  AND (@VendorId IS NULL OR PO.VendorId = @VendorId)
+	  --AND (@VendorId IS NULL OR PO.VendorId = @VendorId)
 		GROUP By PO.VendorRFQPurchaseOrderId,PO.VendorRFQPurchaseOrderNumber,PO.OpenDate,PO.ClosedDate,PO.CreatedDate,PO.CreatedBy,PO.UpdatedDate,PO.UpdatedBy,PO.IsActive,
 		PO.IsDeleted,PO.StatusId,PO.VendorId,PO.VendorName,PO.VendorCode,PO.Status,PO.Requisitioner,VPOP.VendorRFQPOPartRecordId,VPOP.PartNumber,VPOP.PartDescription,VPOP.StockType,
 		VPOP.Manufacturer,VPOP.Priority,VPOP.NeedByDate,VPOP.PromisedDate,VPOP.Condition,VPOP.UnitCost,VPOP.QuantityOrdered,VPOP.IsNoQuote,VPOP.Level1,VPOP.Level2,VPOP.Level3,VPOP.Level4,VPOP.Memo,VPOP.PurchaseOrderId,

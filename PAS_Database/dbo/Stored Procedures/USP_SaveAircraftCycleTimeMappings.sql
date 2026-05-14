@@ -17,6 +17,7 @@ Exec [USP_SaveAircraftCycleTimeMappings]
    6	04/05/2026  Amit Ghediya		revert insert into AircraftMaintenanceProgram table update logic to save data.
    7    07/05/2026	Priyansh Patel		Fixed the Remaining time calculation [PN-16306]
    8    07/05/2026  Abhishek Jirawla	Edit Last flown date only when add cycle time is done.
+   9    14/05/2026  Amit Ghediya		Update logic for AircraftMaintenanceProgram [PN-16428].
      
 **************************************************************/   
 CREATE PROCEDURE [dbo].[USP_SaveAircraftCycleTimeMappings]  
@@ -254,11 +255,16 @@ BEGIN
 			-- Compute remaining minutes before UPDATE
 			DECLARE @TotalRemainingMinutes INT = NULL;
 
+			--SELECT @TotalRemainingMinutes =
+			--	(ISNULL(AMP.FlightHoursLimitHours, 0) * 60 + ISNULL(AMP.FlightHoursLimitMinutes, 0))
+			--	- (FLOOR(ISNULL(C.CumulativeHours, 0)) * 60 + FLOOR(ISNULL(C.CumulativeMinutes, 0)))
+			--FROM dbo.AircraftMaintenanceProgram AMP
+			--INNER JOIN @CycleTable C ON AMP.AircraftRegistryId = C.RefrenceId AND AMP.ProgramId = @ProgramId;
 			SELECT @TotalRemainingMinutes =
 				(ISNULL(AMP.FlightHoursLimitHours, 0) * 60 + ISNULL(AMP.FlightHoursLimitMinutes, 0))
-				- (FLOOR(ISNULL(C.CumulativeHours, 0)) * 60 + FLOOR(ISNULL(C.CumulativeMinutes, 0)))
+				- (FLOOR(ISNULL(C.[Hours], 0)) * 60 + FLOOR(ISNULL(C.[Minutes], 0)))
 			FROM dbo.AircraftMaintenanceProgram AMP
-			INNER JOIN @CycleTable C ON AMP.AircraftRegistryId = C.RefrenceId AND AMP.ProgramId = @ProgramId;;
+			INNER JOIN @CycleTable C ON AMP.AircraftRegistryId = C.RefrenceId AND AMP.ProgramId = @ProgramId;
 
 			SET @TotalRemainingMinutes = CASE WHEN @TotalRemainingMinutes < 0 THEN 0 ELSE @TotalRemainingMinutes END;
 
@@ -266,15 +272,22 @@ BEGIN
 			UPDATE AMP
 			SET
 				-- Recorded (safe)
-				AMP.FlightHoursRecordedHours = FLOOR(ISNULL(C.CumulativeHours, 0)),
-				AMP.FlightHoursRecordedMinutes = 
-					CASE 
-						WHEN FLOOR(ISNULL(C.CumulativeMinutes, 0)) > 59 THEN 59
-						WHEN FLOOR(ISNULL(C.CumulativeMinutes, 0)) < 0 THEN 0
-						ELSE FLOOR(ISNULL(C.CumulativeMinutes, 0))
-					END,
-
-				AMP.CyclesRecorded = ISNULL(C.CumulativeCycles, 0),
+				--AMP.FlightHoursRecordedHours = FLOOR(ISNULL(C.CumulativeHours, 0)),
+				--AMP.FlightHoursRecordedMinutes = 
+				--CASE 
+				--	WHEN FLOOR(ISNULL(C.CumulativeMinutes, 0)) > 59 THEN 59
+				--	WHEN FLOOR(ISNULL(C.CumulativeMinutes, 0)) < 0 THEN 0
+				--	ELSE FLOOR(ISNULL(C.CumulativeMinutes, 0))
+				--END,
+				--AMP.CyclesRecorded = ISNULL(C.CumulativeCycles, 0),
+				AMP.FlightHoursRecordedHours = FLOOR(ISNULL(AMP.FlightHoursRecordedHours, 0)) + FLOOR(ISNULL(C.[Hours], 0)),
+				AMP.FlightHoursRecordedMinutes = FLOOR(ISNULL(AMP.FlightHoursRecordedMinutes, 0)) +
+				CASE 
+					WHEN FLOOR(ISNULL(C.[Minutes], 0)) > 59 THEN 59
+					WHEN FLOOR(ISNULL(C.[Minutes], 0)) < 0 THEN 0
+					ELSE FLOOR(ISNULL(C.[Minutes], 0))
+				END,
+				AMP.CyclesRecorded = ISNULL(AMP.CyclesRecorded, 0) + ISNULL(C.Cycles, 0),
 
 				AMP.FlightHoursRemainingHours   = CASE WHEN @TotalRemainingMinutes IS NULL THEN NULL ELSE @TotalRemainingMinutes / 60 END,
 				AMP.FlightHoursRemainingMinutes = CASE WHEN @TotalRemainingMinutes IS NULL THEN NULL ELSE @TotalRemainingMinutes % 60 END,

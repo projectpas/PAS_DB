@@ -1,5 +1,4 @@
-﻿
-/*******  
+﻿/*******  
  ** File:   [USP_ValidateCommonUploadData_ByModuleId]             
  ** Author:   Devendra Shekh
  ** Description: This stored procedure is used to add upload Data
@@ -693,20 +692,32 @@ BEGIN
 															 @ModuleId IN (@PriceMasterModule, @StocklineModule, @WorkOrderMaterialsModule)
 															 AND
 															 (
-																 TRY_CAST(TMP.FieldValue AS DECIMAL(18,2)) IS NULL
-																 OR
-																 (
-																	 CHARINDEX('.', TMP.FieldValue) > 0
-																	 AND LEN(PARSENAME(TMP.FieldValue, 1)) > 2
-																 )
+																  TRY_CAST(TMP.FieldValue AS DECIMAL(18,2)) IS NULL
+																	 OR
+																	 (
+																		 CHARINDEX('.', TMP.FieldValue) > 0
+																		 AND LEN(PARSENAME(TMP.FieldValue, 1)) > 2
+																	 )
+																	 OR
+																	 (
+																		 @ModuleId = @WorkOrderMaterialsModule
+																		 AND IMF.FieldName = 'Quantity'
+																		 AND TRY_CAST(TMP.FieldValue AS DECIMAL(18,2)) <= 0
+																	 )
 															 )
 														 )
 													 )
 
 												THEN
 													CASE
+														WHEN @ModuleId = @WorkOrderMaterialsModule
+															 AND IMF.FieldName = 'Quantity'
+															 AND TRY_CAST(TMP.FieldValue AS DECIMAL(18,2)) <= 0
+														THEN IMF.HeaderName + ' must be greater than 0'
+
 														WHEN @ModuleId IN (@PriceMasterModule, @StocklineModule, @WorkOrderMaterialsModule)
 														THEN IMF.HeaderName + ' allows only 2 decimal places'
+
 														ELSE IMF.HeaderName + ' must be a whole number (decimals not allowed)'
 													END
 

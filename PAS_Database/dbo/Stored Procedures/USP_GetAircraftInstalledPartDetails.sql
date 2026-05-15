@@ -57,7 +57,11 @@ CREATE   PROCEDURE [dbo].[USP_GetAircraftInstalledPartDetails]
 	@IsDeleted BIT = NULL,
 	@IsActive BIT = NULL,
     @AircraftRegistryId BIGINT = NULL,
-    @MasterCompanyId    BIGINT
+    @MasterCompanyId    BIGINT,
+
+	@PONumber VARCHAR(50) = NULL,
+	@RONumber VARCHAR(50) = NULL,
+	@WONumber VARCHAR(50) = NULL
 )
 AS
 BEGIN
@@ -194,7 +198,10 @@ BEGIN
 					(Serialized LIKE '%' +@GlobalFilter+'%') OR
 					(LLP LIKE '%' +@GlobalFilter+'%') OR
 					(DateInstalled like '%' + @GlobalFilter + '%') OR
-					(PositionCode LIKE '%' +@GlobalFilter+'%'))) OR
+					(PositionCode LIKE '%' +@GlobalFilter+'%') OR
+					(PONumber LIKE '%' +@GlobalFilter+'%') OR
+					(RONumber LIKE '%' +@GlobalFilter+'%') OR
+					(WONumber LIKE '%' +@GlobalFilter+'%'))) OR
 					(@GlobalFilter='' AND 
 					(ISNULL(@AircraftRegistryNumber,'') ='' OR [AircraftRegistryNumber] LIKE '%' + @AircraftRegistryNumber+'%') AND
 					(ISNULL(@MakeType,'') ='' OR [MakeType] LIKE '%' + @MakeType+'%') AND
@@ -209,17 +216,18 @@ BEGIN
 					(ISNULL(@Condition,'') ='' OR Condition LIKE '%' + @Condition + '%') AND
 					(ISNULL(@AircraftStatus,'') ='' OR AircraftStatus LIKE '%' + @AircraftStatus + '%') AND
 					(ISNULL(@StockLineNumber,'') ='' OR StockLineNumber LIKE '%' + @StockLineNumber + '%') AND
-
 					(ISNULL(@Quantity,'') ='' OR Quantity LIKE '%' + @Quantity + '%') AND  
 					(ISNULL(@QuantityAvailable,'') ='' OR QuantityAvailable LIKE '%' + @QuantityAvailable + '%') AND
 					(ISNULL(@QuantityOnHand,'') ='' OR QuantityOnHand LIKE '%' + @QuantityOnHand + '%') AND
-
 					(ISNULL(@SerialNumber,'') ='' OR SerialNumber LIKE '%' + @SerialNumber + '%') AND
 					(ISNULL(@ControlNumber,'') ='' OR ControlNumber LIKE '%' + @ControlNumber + '%') AND
 					(ISNULL(@Serialized,'') ='' OR Serialized LIKE '%' + @Serialized + '%') AND
 					(ISNULL(@LLP,'') ='' OR LLP LIKE '%' + @LLP + '%') AND
 					(ISNULL(@DateInstalled,'') ='' OR CAST(DateInstalled AS Date) = CAST(@DateInstalled AS Date)) AND
-					(ISNULL(@PositionCode,'') ='' OR PositionCode LIKE '%' + @PositionCode + '%'))
+					(ISNULL(@PositionCode,'') ='' OR PositionCode LIKE '%' + @PositionCode + '%') AND
+					(ISNULL(@PONumber,'') ='' OR PONumber LIKE '%' + @PONumber + '%') AND
+					(ISNULL(@RONumber,'') ='' OR RONumber LIKE '%' + @RONumber + '%') AND
+					(ISNULL(@WONumber,'') ='' OR WONumber LIKE '%' + @WONumber + '%'))
 			)
    SELECT @Count = COUNT(AircraftInstalledPartDetailsId) FROM #TempResult			
 
@@ -293,6 +301,15 @@ BEGIN
 
 			CASE WHEN @SortOrder =  1 AND @SortColumn = 'SERIALNUMBER'      THEN SerialNumber      END ASC,
             CASE WHEN @SortOrder = -1 AND @SortColumn = 'SERIALNUMBER'      THEN SerialNumber      END DESC,
+
+			CASE WHEN @SortOrder =  1 AND @SortColumn = 'PONUMBER'      THEN PONumber      END ASC,
+            CASE WHEN @SortOrder = -1 AND @SortColumn = 'PONUMBER'      THEN PONumber      END DESC,
+
+			CASE WHEN @SortOrder =  1 AND @SortColumn = 'RONUMBER'      THEN RONumber      END ASC,
+            CASE WHEN @SortOrder = -1 AND @SortColumn = 'RONUMBER'      THEN RONumber      END DESC,
+
+			CASE WHEN @SortOrder =  1 AND @SortColumn = 'WONUMBER'      THEN WONumber      END ASC,
+            CASE WHEN @SortOrder = -1 AND @SortColumn = 'WONUMBER'      THEN WONumber      END DESC,
 
             AircraftInstalledPartDetailsId DESC
         OFFSET @RecordFrom ROWS

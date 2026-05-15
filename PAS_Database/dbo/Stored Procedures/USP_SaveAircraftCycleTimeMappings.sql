@@ -17,7 +17,7 @@ Exec [USP_SaveAircraftCycleTimeMappings]
    6	04/05/2026  Amit Ghediya		revert insert into AircraftMaintenanceProgram table update logic to save data.
    7    07/05/2026	Priyansh Patel		Fixed the Remaining time calculation [PN-16306]
    8    07/05/2026  Abhishek Jirawla	Edit Last flown date only when add cycle time is done.
-   9    14/05/2026  Amit Ghediya		Update logic for AircraftMaintenanceProgram [PN-16428].
+   9    14/05/2026  Amit Ghediya		Update logic for AircraftMaintenanceProgram & LastFlownDate [PN-16428].
      
 **************************************************************/   
 CREATE PROCEDURE [dbo].[USP_SaveAircraftCycleTimeMappings]  
@@ -212,10 +212,10 @@ BEGIN
 			AIPD.Cycles = ISNULL(AIPD.Cycles, 0) + ISNULL(C.[Cycles], 0),
 			AIPD.UpdatedBy = C.UpdatedBy,
 			AIPD.UpdatedDate = GETUTCDATE(),
-			AIPD.DateInstalled = CASE 
+			AIPD.LastFlownDate = CASE 
 									WHEN ISNULL(C.AddUpdated, 0) = 1 
 									THEN CAST(GETUTCDATE() AS DATE)
-									ELSE AIPD.DateInstalled
+									ELSE AIPD.LastFlownDate
 								 END
 		FROM dbo.AircraftInstalledPartDetails AIPD WITH(NOLOCK)
 		INNER JOIN @CycleTable C ON AIPD.AircraftRegistryId = C.RefrenceId;

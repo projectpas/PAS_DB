@@ -676,12 +676,40 @@ BEGIN
 												--WHEN ISNULL(IMF.IsRequired, 0) = 1 AND ISNULL(IMF.DropdownListType, '') != ''  AND ISNULL(IMF.DropdownListValueId, '') = '' THEN 'Pleas Enter Correct ' + IMF.HeaderName
 												WHEN ISNULL(TMP.FieldValue, '') <> ''
 													 AND ISNULL(IMF.FieldType, '') = 'number'
-													 AND (
-															TRY_CAST(TMP.FieldValue AS INT) IS NULL 
-															OR CHARINDEX('.', TMP.FieldValue) > 0  
+													 AND
+													 (
+														 (
+															 @ModuleId NOT IN (@PriceMasterModule, @StocklineModule, @WorkOrderMaterialsModule)
+															 AND
+															 (
+																 TRY_CAST(TMP.FieldValue AS INT) IS NULL
+																 OR CHARINDEX('.', TMP.FieldValue) > 0
+															 )
 														 )
-													AND @ModuleId NOT IN (@PriceMasterModule, @StocklineModule, @WorkOrderMaterialsModule)
-												THEN IMF.HeaderName + ' must be a whole number (decimals not allowed)'
+
+														 OR
+
+														 (
+															 @ModuleId IN (@PriceMasterModule, @StocklineModule, @WorkOrderMaterialsModule)
+															 AND
+															 (
+																 TRY_CAST(TMP.FieldValue AS DECIMAL(18,2)) IS NULL
+																 OR
+																 (
+																	 CHARINDEX('.', TMP.FieldValue) > 0
+																	 AND LEN(PARSENAME(TMP.FieldValue, 1)) > 2
+																 )
+															 )
+														 )
+													 )
+
+												THEN
+													CASE
+														WHEN @ModuleId IN (@PriceMasterModule, @StocklineModule, @WorkOrderMaterialsModule)
+														THEN IMF.HeaderName + ' allows only 2 decimal places'
+														ELSE IMF.HeaderName + ' must be a whole number (decimals not allowed)'
+													END
+
 												WHEN (@ModuleId = @MROPriceMasterModule OR @ModuleId = @MROPriceMasterListModule)
 													 AND IMF.FieldName = 'CustomerId' 
 													 AND ISNULL(IMF.DropdownListType, '') != ''  

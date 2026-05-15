@@ -450,7 +450,7 @@ BEGIN
 
 			UPDATE TEMP_TABLE
 			SET 
-				[QtyBilled] = ([dbo].[fn_ConvertUOM](ISNULL([QtyBilled], 0),IM.[ConsumeUnitOfMeasure],IM.[StockUnitOfMeasure] ,0,TEMP_TABLE.MasterCompanyId)),
+				[UnitPrice] = ([dbo].[fn_ConvertUOM](ISNULL([UnitPrice], 0),IM.[ConsumeUnitOfMeasure],IM.[StockUnitOfMeasure] ,0,TEMP_TABLE.MasterCompanyId)),
 				[QtyBilled] = ([dbo].[fn_ConvertUOM](ISNULL([QtyBilled], 0),IM.[ConsumeUnitOfMeasure],IM.[StockUnitOfMeasure] ,0,TEMP_TABLE.MasterCompanyId)),
 				[PartCost] = ([dbo].[fn_ConvertUOM](ISNULL([PartCost], 0),IM.[ConsumeUnitOfMeasure],IM.[StockUnitOfMeasure] ,0,TEMP_TABLE.MasterCompanyId)),
 				[SubTotal] = ([dbo].[fn_ConvertUOM](ISNULL([SubTotal], 0),IM.[ConsumeUnitOfMeasure],IM.[StockUnitOfMeasure] ,0,TEMP_TABLE.MasterCompanyId)),

@@ -1,5 +1,4 @@
-﻿
-/*********************               
+﻿/*********************               
  ** File:   [SP_GetVendorRFQPNViewList]               
  ** Author:   -    
  ** Description: This stored procedure is used to GetVendorRFQPNViewList      
@@ -17,6 +16,9 @@
 	5    24/09/2025   Amit Ghediya		Vendor Filter
 	6    08/10/2025   Devendra Shekh	Added New Parameters @SourceBy,@MarketplaceRef And as same as for Select
 	7    04/12/2025   RAJESH GAMI		ADDED: @CustomerRFQNo and functionality while getting the list
+    8    01/04/2026   Ayushi Patel      PN-15880 Changed varchar size from 10 to 50 for UnitCost casting in global search
+    9    14/05/2026   Bhargav Saliya    Remove VendorId Condition [PN-16416]
+    exec SP_GetVendorRFQPNViewList @PageNumber=1,@PageSize=20,@SortColumn=NULL,@SortOrder=-1,@StatusID=1,@Status=N'open',@GlobalFilter=N'',@VendorRFQPurchaseOrderNumber=NULL,@OpenDate=NULL,@VendorName=NULL,@RequestedBy=NULL,@CreatedBy=NULL,@CreatedDate=NULL,@UpdatedBy=NULL,@UpdatedDate=NULL,@IsDeleted=0,@EmployeeId=2,@MasterCompanyId=1,@VendorId=NULL,@PartNumber=NULL,@PartDescription=NULL,@StockType=NULL,@Manufacturer=NULL,@Priority=NULL,@NeedByDate=NULL,@PromisedDate=NULL,@Condition=NULL,@UnitCost=N'210.00',@QuantityOrdered=N'10.00000',@WorkOrderNo=NULL,@SubWorkOrderNo=NULL,@SalesOrderNo=NULL,@PurchaseOrderNumber=NULL,@mgmtStructure=NULL,@Level2Type=N'',@Level3Type=N'',@Level4Type=N'',@Memo=NULL,@SourceBy=NULL,@MarketplaceRef=NULL,@CustomerRFQNo=NULL
 **********************/  
 
 CREATE   PROCEDURE [dbo].[SP_GetVendorRFQPNViewList]  
@@ -111,7 +113,6 @@ SET NOCOUNT ON;
 		
   --BEGIN TRANSACTION  
   --BEGIN   
-  
   ;WITH Main AS(           
        SELECT PO.VendorRFQPurchaseOrderId,PO.VendorRFQPurchaseOrderNumber,PO.OpenDate,PO.ClosedDate,PO.CreatedDate,PO.CreatedBy,PO.UpdatedDate,  
      PO.UpdatedBy,PO.IsActive,PO.IsDeleted,PO.StatusId,PO.VendorId,PO.VendorName,PO.VendorCode,PO.[Status],  
@@ -130,7 +131,8 @@ SET NOCOUNT ON;
 					WHERE part.VendorRFQPurchaseOrderId =PO.VendorRFQPurchaseOrderId) rfqData
       WHERE ((PO.IsDeleted = @IsDeleted) AND (@StatusID IS NULL OR PO.StatusId = @StatusID))   
       AND PO.MasterCompanyId = @MasterCompanyId 
-	  AND (@VendorId IS NULL OR PO.VendorId = @VendorId))   
+	  --AND (@VendorId IS NULL OR PO.VendorId = @VendorId)
+      )   
    
    SELECT 
 	DISTINCT M.VendorRFQPurchaseOrderId,M.VendorRFQPurchaseOrderNumber,M.OpenDate,M.ClosedDate,M.CreatedDate,M.CreatedBy,M.UpdatedDate,  
@@ -271,7 +273,7 @@ SET NOCOUNT ON;
      (ISNULL(@Manufacturer,'') ='' OR ManufacturerType LIKE '%' + @Manufacturer + '%') AND  
      (ISNULL(@Priority,'') ='' OR PriorityType LIKE '%' + @Priority + '%') AND  
      (ISNULL(@Condition,'') ='' OR ConditionType LIKE '%' + @Condition + '%') AND  
-     (ISNULL(@UnitCost,'') ='' OR CAST(UnitCost AS varchar(10)) LIKE '%' + CAST(@UnitCost AS VARCHAR(10))+ '%') AND  
+     (ISNULL(@UnitCost,'') ='' OR CAST(UnitCost AS varchar(50)) LIKE '%' + CAST(@UnitCost AS VARCHAR(50))+ '%') AND  
      (ISNULL(@QuantityOrdered,'') ='' OR QuantityOrdered LIKE '%' + @QuantityOrdered + '%') AND  
      (ISNULL(@WorkOrderNo,'') ='' OR WorkOrderNoType LIKE '%' + @WorkOrderNo + '%') AND  
      (ISNULL(@SubWorkOrderNo,'') ='' OR SubWorkOrderNoType LIKE '%' + @SubWorkOrderNo + '%') AND  
@@ -287,7 +289,7 @@ SET NOCOUNT ON;
      --(ISNULL(@Level4Type,'') ='' OR Level4 LIKE '%' + @Level4Type + '%') AND       
      (ISNULL(@UpdatedDate,'') ='' OR CAST(UpdatedDate AS date)=CAST(@UpdatedDate AS date))) )
 
-
+     
 	 SELECT VendorRFQPurchaseOrderId,VendorRFQPurchaseOrderNumber,OpenDate,ClosedDate,CreatedDate,CreatedBy,UpdatedDate,  
      UpdatedBy,IsActive,IsDeleted,StatusId,VendorId,VendorName,VendorCode,[Status],UnitCost,QuantityOrdered  
      ,RequestedBy,VendorReference, SourceBy, MarketplaceRef,CustomerRFQNo,
@@ -320,7 +322,7 @@ SET NOCOUNT ON;
 	 ConditionType,WorkOrderNoType,SubWorkOrderNoType,SalesOrderNoType,PurchaseOrderNumberType 
        
      ,Level1Type,Level2Type,Level3Type,Level4Type,MemoType,LastMSLevel,AllMSlevels,LastMSLevelType 
-
+     
 	 	 SET @TotalCount = (SELECT COUNT(VendorRFQPurchaseOrderId) FROM #finalTemp)
    SELECT VendorRFQPurchaseOrderId,VendorRFQPurchaseOrderNumber,OpenDate,ClosedDate,CreatedDate,CreatedBy,UpdatedDate,  
      UpdatedBy,IsActive,IsDeleted,StatusId,VendorId,VendorName,VendorCode,[Status],UnitCost,QuantityOrdered  
@@ -422,6 +424,7 @@ SET NOCOUNT ON;
   
    OFFSET @RecordFrom ROWS   
    FETCH NEXT @PageSize ROWS ONLY  
+   
   --END  
   --COMMIT  TRANSACTION  
  END TRY      

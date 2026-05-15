@@ -1,7 +1,7 @@
 ﻿/*************************************************************           
- ** File:		          
+ ** File:		 [USP_GetAircraftSetup]         
  ** Author:		 Nakul Chandigra
- ** Description: This Stored Procedure Is Used To 
+ ** Description: This Stored Procedure Is Used To Get AircraftSetup
  ** Purpose:         
  ** Date:   
  **************************************************************           
@@ -35,9 +35,9 @@
 			AR.[IsActive],
 			AR.[IsDeleted]
 		FROM [dbo].[AircraftSetup] AR WITH (NOLOCK)
-		LEFT JOIN [dbo].[MaintenanceStatus] MS ON MS.MaintenanceStatusId = AR.MaintenanceStatusId
-		LEFT JOIN [dbo].[AircraftStatus] ARS ON ARS.AircraftStatusId = AR.AircraftStatusId
-		LEFT JOIN [dbo].[Currency] CU ON CU.CurrencyId = AR.CurrencyId
+		LEFT JOIN [dbo].[MaintenanceStatus] MS WITH (NOLOCK) ON MS.MaintenanceStatusId = AR.MaintenanceStatusId
+		LEFT JOIN [dbo].[AircraftStatus] ARS WITH (NOLOCK) ON ARS.AircraftStatusId = AR.AircraftStatusId
+		LEFT JOIN [dbo].[Currency] CU WITH (NOLOCK)  ON CU.CurrencyId = AR.CurrencyId
 		WHERE AR.MasterCompanyId = @MasterCompanyId AND AR.IsDeleted = 0 AND AR.IsActive = 1
 		ORDER BY AR.AircraftSetupId DESC
 
@@ -47,7 +47,7 @@
 		ROLLBACK TRAN;  
 		DECLARE @ErrorLogID INT, @DatabaseName VARCHAR(100) = db_name() 
 	-----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
-				, @AdhocComments     VARCHAR(150)    = '[dbo].[USP_AddupdateAircraftSetup]'
+				, @AdhocComments     VARCHAR(150)    = '[dbo].[USP_GetAircraftSetup]'
 				, @ProcedureParameters VARCHAR(3000) = '@Parameter1 = '''
 				, @ApplicationName VARCHAR(100) = 'PAS'
 	-----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------

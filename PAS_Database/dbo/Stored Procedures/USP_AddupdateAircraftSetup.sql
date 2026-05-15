@@ -1,7 +1,7 @@
 ﻿/*************************************************************           
- ** File:		          
+ ** File:		   [USP_AddupdateAircraftSetup]       
  ** Author:		 Nakul Chandigra
- ** Description: This Stored Procedure Is Used To 
+ ** Description: This Stored Procedure Is Used To Add,update AircraftSetup 
  ** Purpose:         
  ** Date:   
  **************************************************************           
@@ -20,16 +20,12 @@ CREATE   PROCEDURE [dbo].[USP_AddupdateAircraftSetup]
 )
 AS
 BEGIN
-
     SET NOCOUNT ON;
-
     BEGIN TRY
-
         SET @IsError = 0;
 
-        IF EXISTS(SELECT 1 FROM dbo.AircraftSetup WHERE AircraftSetupId = @AircraftSetupId )
+        IF EXISTS(SELECT 1 FROM dbo.AircraftSetup WITH (NOLOCK) WHERE AircraftSetupId = @AircraftSetupId )
         BEGIN
-
             UPDATE T
             SET
                 T.MaintenanceStatusId = S.MaintenanceStatusId,
@@ -48,11 +44,9 @@ BEGIN
                 FROM @tblType_AircraftSetupType
             ) S
             WHERE T.AircraftSetupId = @AircraftSetupId;
-
         END
         ELSE
         BEGIN
-
             INSERT INTO dbo.AircraftSetup
             (
                 MaintenanceStatusId,
@@ -78,9 +72,7 @@ BEGIN
                 IsDeleted,
                 MasterCompanyId
             FROM @tblType_AircraftSetupType;
-
         END
-
     END TRY
 BEGIN CATCH
 IF @@trancount > 0		  

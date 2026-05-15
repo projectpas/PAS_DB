@@ -680,7 +680,7 @@ BEGIN
 															TRY_CAST(TMP.FieldValue AS INT) IS NULL 
 															OR CHARINDEX('.', TMP.FieldValue) > 0  
 														 )
-													AND @ModuleId NOT IN (@PriceMasterModule, @StocklineModule)
+													AND @ModuleId NOT IN (@PriceMasterModule, @StocklineModule, @WorkOrderMaterialsModule)
 												THEN IMF.HeaderName + ' must be a whole number (decimals not allowed)'
 												WHEN (@ModuleId = @MROPriceMasterModule OR @ModuleId = @MROPriceMasterListModule)
 													 AND IMF.FieldName = 'CustomerId' 

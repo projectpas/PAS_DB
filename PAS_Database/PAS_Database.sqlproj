@@ -4525,6 +4525,7 @@
     <Build Include="dbo\Functions\fn_TransformSelectList.sql" />
     <Build Include="dbo\Views\vw_ItemMasterPartManufacturer.sql" />
     <Build Include="dbo\Stored Procedures\USP_CheckAircraftTailNumberExists.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetAircraftTailNumberList.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

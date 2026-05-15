@@ -11,6 +11,7 @@
     1    21/04/2026	    Priyansh Patel			Created  PN-16016
 	2    05/05/2026	    Amit Ghediya			update chnge for program
     3    07/05/2026	    Priyansh Patel			Fixed the Remaining time calculation [PN-16306]
+	4    14/05/2026	    Amit Ghediya			Added TailNumber [PN-16378]
 
 **************************************************************/
 CREATE PROCEDURE [dbo].[USP_CreateUpdateAircraftMaintenanceProgram]
@@ -31,7 +32,8 @@ CREATE PROCEDURE [dbo].[USP_CreateUpdateAircraftMaintenanceProgram]
     @MasterCompanyId            INT,
     @CreatedBy                  VARCHAR(256),
     @UpdatedBy                  VARCHAR(256)    = NULL,
-    @IsVersionIncrease          BIT             = 0
+    @IsVersionIncrease          BIT             = 0,
+	@TailNumber      VARCHAR(50)     = NULL
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -40,7 +42,7 @@ BEGIN
     BEGIN TRANSACTION
 
         -- Fetch Aircraft details from AircraftRegistryHeader
-        DECLARE @TailNumber      VARCHAR(50)     = NULL;
+        --DECLARE @TailNumber      VARCHAR(50)     = NULL;
         DECLARE @AircraftMake    VARCHAR(100)    = NULL;
         DECLARE @AircraftModel   VARCHAR(100)    = NULL;
         DECLARE @SerialNumber    VARCHAR(100)    = NULL;
@@ -52,6 +54,13 @@ BEGIN
             SET @FlightHoursLimitHours    = ISNULL(@FlightHoursLimitHours, 0);
             SET @FlightHoursLimitMinutes  = ISNULL(@FlightHoursLimitMinutes, 0);
         END
+
+		--GET AC Details
+		IF(ISNULL(@TailNumber,'') != '')
+		BEGIN
+			 SELECT @AircraftRegistryId = AircraftRegistryId
+			 FROM dbo.AircraftRegistryHeader WITH(NOLOCK) WHERE UPPER(LTRIM(RTRIM(TailNum))) = UPPER(LTRIM(RTRIM(@TailNumber)))
+		END
 
         SELECT @TailNumber     = TailNum, @AircraftMake   = MakeType, @AircraftModel  = AircraftModel, @SerialNumber   = SerialNum
         FROM dbo.AircraftRegistryHeader WITH(NOLOCK) WHERE AircraftRegistryId = @AircraftRegistryId AND [IsActive]= 1 AND [IsDeleted] = 0;

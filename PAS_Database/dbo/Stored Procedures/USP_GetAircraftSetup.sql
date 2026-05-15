@@ -43,8 +43,7 @@
 
 	END TRY
 	BEGIN CATCH
-	IF @@trancount > 0		  
-		ROLLBACK TRAN;  
+		  
 		DECLARE @ErrorLogID INT, @DatabaseName VARCHAR(100) = db_name() 
 	-----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
 				, @AdhocComments     VARCHAR(150)    = '[dbo].[USP_GetAircraftSetup]'

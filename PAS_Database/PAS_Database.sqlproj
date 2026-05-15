@@ -4525,6 +4525,16 @@
     <Build Include="dbo\Functions\fn_TransformSelectList.sql" />
     <Build Include="dbo\Views\vw_ItemMasterPartManufacturer.sql" />
     <Build Include="dbo\Stored Procedures\USP_CheckAircraftTailNumberExists.sql" />
+    <Build Include="dbo\Tables\WorksheetPart.sql" />
+    <Build Include="dbo\Tables\WorksheetHeader.sql" />
+    <Build Include="dbo\Stored Procedures\USP_UpdateWorksheetPartStatus.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetWorksheetPartsByHeaderId.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetWorksheetList.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetWorksheetHeaderById.sql" />
+    <Build Include="dbo\Stored Procedures\USP_CreateUpdateWorksheetParts.sql" />
+    <Build Include="dbo\Stored Procedures\USP_CreateUpdateWorksheetHeader.sql" />
+    <Build Include="dbo\User Defined Types\WorksheetPartTableType.sql" />
+    <Build Include="dbo\User Defined Types\WorksheetHeaderTableType.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

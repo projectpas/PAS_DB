@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿
+/*************************************************************           
  ** File:   [USP_VendorRMA_CreditMeMo_GetVendorRMAList]          
  ** Author:   Devendra Shekh
  ** Description: This stored procedure is used to get vendorrma for credit memo create
@@ -17,6 +18,8 @@
     1    07/05/2023   Devendra Shekh			Created
 	2    02-April-2026		Amit Ghediya		UOM Conversion Changes [PN-15140]  
     3    08/05/2026         Ayushi Patel        Return QtyShipped as it is from table [PN-15140]
+	4    15-May-2026        Sahdev Saliya       Added ControlNumber, UnitOfMeasure, QuantityAvailable, UnitCost, ExtendedCost [PN-16205]
+
  exec USP_VendorRMA_CreditMeMo_GetVendorRMAList 
 @PageNumber=1,@PageSize=10,@SortColumn=NULL,@SortOrder=-1,@GlobalFilter=N'',
 @RMANumber=NULL,@Partnumber=NULL,@StockLineNumber=NULL,@PartDescription=NULL,
@@ -85,7 +88,12 @@ BEGIN
 			RMA.RMANumber as 'VendorRMANumber',
 			RMAD.ModuleId,
 			RMS.QtyShipped,
-            RMAD.VendorRMADetailId
+            RMAD.VendorRMADetailId,
+			SL.[ControlNumber],
+			SL.[UnitOfMeasure],
+			CASE WHEN SL.[PurchaseOrderId] > 0 THEN ISNULL(SL.QuantityAvailable,0) WHEN SL.[RepairOrderId] > 0 THEN ISNULL(SL.QuantityAvailable,0) ELSE 0 END AS QuantityAvailable,
+			CASE WHEN SL.[PurchaseOrderId] > 0 THEN ISNULL(SL.UnitCost,0) WHEN SL.[RepairOrderId] > 0 THEN ISNULL(SL.UnitCost,0) ELSE 0 END AS UnitCost,
+			CASE  WHEN SL.[PurchaseOrderId] > 0 THEN (ISNULL(SL.QuantityAvailable,0) * SL.UnitCost) WHEN SL.[RepairOrderId] > 0 THEN (ISNULL(SL.QuantityAvailable,0) * SL.UnitCost) ELSE 0 END AS ExtendedCost
 		FROM [DBO].[VendorRMA] RMA WITH (NOLOCK)
 		INNER JOIN [DBO].[Vendor] V WITH (NOLOCK) ON RMA.VendorId = V.VendorId
 		INNER JOIN [DBO].[VendorRMADetail] RMAD WITH (NOLOCK) ON RMA.[VendorRMAId] = RMAD.[VendorRMAId]
@@ -99,7 +107,7 @@ BEGIN
 		),
     FinalResult AS (  
     SELECT VendorRMAId, VendorId, VendorName, VendorCode, RMANumber, ItemMasterId, PartNumberType, StockLineIdType, StockLineNumberType, PartDescriptionType, 
-      CreatedDate, UpdatedDate, CreatedBy, UpdatedBy, ReferenceId, VendorCreditMemoId, VendorRMADetailStatus, VendorRMANumber, ModuleId, QtyShipped, VendorRMADetailId FROM Result  
+      CreatedDate, UpdatedDate, CreatedBy, UpdatedBy, ReferenceId, VendorCreditMemoId, VendorRMADetailStatus, VendorRMANumber, ModuleId, QtyShipped, VendorRMADetailId, ControlNumber, UnitOfMeasure, QuantityAvailable, UnitCost, ExtendedCost FROM Result  
     where  (  
      (@GlobalFilter <>'' AND ((RMANumber like '%' +@GlobalFilter+'%' ) OR   
        (PartNumberType like '%' +@GlobalFilter+'%') OR  
@@ -122,7 +130,7 @@ BEGIN
        )),  
       ResultCount AS (Select COUNT(VendorRMAId) AS NumberOfItems FROM FinalResult)  
       SELECT VendorRMAId, VendorId, VendorName, VendorCode, RMANumber, ItemMasterId, PartNumberType, StockLineIdType, StockLineNumberType, PartDescriptionType, 
-      CreatedDate, UpdatedDate, CreatedBy, UpdatedBy, ReferenceId, VendorCreditMemoId, VendorRMADetailStatus, VendorRMANumber, ModuleId, QtyShipped, VendorRMADetailId, NumberOfItems FROM FinalResult, ResultCount  
+      CreatedDate, UpdatedDate, CreatedBy, UpdatedBy, ReferenceId, VendorCreditMemoId, VendorRMADetailStatus, VendorRMANumber, ModuleId, QtyShipped, VendorRMADetailId, NumberOfItems, ControlNumber, UnitOfMeasure, QuantityAvailable, UnitCost, ExtendedCost FROM FinalResult, ResultCount  
   
       ORDER BY    
       CASE WHEN (@SortOrder=1 and @SortColumn='VENDORRMAID')  THEN VendorRMAId END ASC,  

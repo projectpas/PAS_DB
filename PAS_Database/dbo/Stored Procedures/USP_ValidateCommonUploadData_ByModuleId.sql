@@ -55,6 +55,7 @@
 	44   29-APR-2026		Nakul Chandigra			added validation for MaintenanceClass  setup screen Upload (PN-16200)
 	45   04-MAY-2026		Nakul Chandigra			added validation for AircraftSection  setup screen Upload (PN-16270)
 	46   13-MAY-2026		Ayushi Patel			PN-16321 Added validation for WorkOrderMaterial module , Also get manufacture for partnumber dynamically 
+	47   15-May-2026		Ayushi Patel			PN-16321 Updated duplicate validation call to support 3-field combination for WorkOrderMaterials module 
 
 declare @p4 dbo.UploadModuleDataTableType
 insert into @p4 values(4,N'VICTOR ADMAS',1,N'{
@@ -901,6 +902,17 @@ BEGIN
 						BEGIN
 						EXEC [dbo].[USP_ChekDuplicateValueForUpload] @ChekDuplticateRef1, @ChekDuplticateRef2, @DuplicateRefeValue1, @DuplicateRefeValue2, @ReferenceTable, @MasterCompanyId, @ModuleId, @UploadData, @UploadRecord, @IsDuplicate = @IsDuplicate OUTPUT;
 						END
+					END
+					ELSE IF(@ModuleId=@WorkOrderMaterialsModule)
+					BEGIN
+						DECLARE @ChekDuplticateRef3 AS VARCHAR(150);
+						DECLARE @DuplicateRefeValue3 AS VARCHAR(150);
+						SELECT @DuplicateRefeValue3 = FieldValue FROM #DynamicKeyValue WHERE FieldName = 'WorkOrderId';
+						SELECT @ChekDuplticateRef3 = FieldName FROM #DynamicKeyValue WHERE FieldName = 'WorkOrderId';
+							IF NOT EXISTS (SELECT 1 FROM #DynamicKeyValue WHERE ISNULL(RecordStatus, '') <> '')
+							BEGIN
+								EXEC [dbo].[USP_ChekDuplicateValueForUpload] @ChekDuplticateRef1, @ChekDuplticateRef2,@ChekDuplticateRef3, @DuplicateRefeValue1, @DuplicateRefeValue2,@DuplicateRefeValue3, @ReferenceTable, @MasterCompanyId, @ModuleId, @UploadData, @UploadRecord, @IsDuplicate = @IsDuplicate OUTPUT;
+							END
 					END
 					ELSE
 					BEGIN

@@ -14,6 +14,7 @@
     2    12-July-2023		Devendra SHekh     added condition to for @IsVCMAdd
     3    07-Nov-2023		Devendra SHekh     added case for vendorData
 	4    02-April-2026		Amit Ghediya		UOM Conversion Changes [PN-15140]  
+	5    15-May-2026        Sahdev Saliya       Added UnitOfMeasure, ExtendedCost [PN-16205]
 
 *******************************************************************************
 *******************************************************************************/
@@ -106,6 +107,8 @@ BEGIN
 			   ,CAST(SL.[ReceivedDate] AS DATE) AS [ReceivedDate]
 			   ,SL.[CreatedDate]
 			   ,0 AS [IsSelected]
+			   ,SL.[UnitOfMeasure]
+			   ,CASE  WHEN SL.[PurchaseOrderId] > 0 THEN (ISNULL(SL.QuantityAvailable,0) * SL.UnitCost) WHEN SL.[RepairOrderId] > 0 THEN (ISNULL(SL.QuantityAvailable,0) * SL.UnitCost) ELSE 0 END AS ExtendedCost
 		  FROM [dbo].[Stockline] SL WITH (NOLOCK)
 		  INNER JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON SL.[ItemMasterId] = IM.[ItemMasterId]
 		  LEFT JOIN [dbo].[PurchaseOrder] PO WITH (NOLOCK) ON SL.[PurchaseOrderId] = PO.[PurchaseOrderId]
@@ -134,7 +137,7 @@ BEGIN
 
 			SELECT @Count = COUNT([StockLineId]) FROM #TempResult			
 
-			SELECT @Count AS NumberOfItems, [StockLineId],[VendorId],[PurchaseOrderId],[RepairOrderId],[ReferenceNumber],[ReferenceId],[ModuleId],[ItemMasterId],[PartNumber],[PartDescription],[SerialNumber],[QuantityAvailable],[UnitCost],[VendorName],[VendorCode],[StockLineNumber],[IdNumber],[ControlNumber],[ReceivedDate],[CreatedDate],[IsSelected], @Count AS NumberOfItems FROM #TempResult WHERE [ModuleId] > 0
+			SELECT @Count AS NumberOfItems, [StockLineId],[VendorId],[PurchaseOrderId],[RepairOrderId],[ReferenceNumber],[ReferenceId],[ModuleId],[ItemMasterId],[PartNumber],[PartDescription],[SerialNumber],[QuantityAvailable],[UnitCost],[VendorName],[VendorCode],[StockLineNumber],[IdNumber],[ControlNumber],[ReceivedDate],[CreatedDate],[IsSelected],[UnitOfMeasure],[ExtendedCost], @Count AS NumberOfItems FROM #TempResult WHERE [ModuleId] > 0
 			ORDER BY  
 			CASE WHEN (@SortOrder = 1  AND @SortColumn='ReferenceNumber') THEN ReferenceNumber END ASC,
 			CASE WHEN (@SortOrder = -1 AND @SortColumn='ReferenceNumber') THEN ReferenceNumber END DESC,
@@ -190,6 +193,8 @@ BEGIN
 			   ,CAST(SL.[ReceivedDate] AS DATE) AS [ReceivedDate]
 			   ,SL.[CreatedDate]
 			   ,0 AS [IsSelected]
+			   ,SL.[UnitOfMeasure]
+			   ,CASE  WHEN SL.[PurchaseOrderId] > 0 THEN (ISNULL(SL.QuantityAvailable,0) * SL.UnitCost) WHEN SL.[RepairOrderId] > 0 THEN (ISNULL(SL.QuantityAvailable,0) * SL.UnitCost) ELSE 0 END AS ExtendedCost
 		  FROM [dbo].[Stockline] SL WITH (NOLOCK)
 		  INNER JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON SL.[ItemMasterId] = IM.[ItemMasterId]
 		  LEFT JOIN [dbo].[PurchaseOrder] PO WITH (NOLOCK) ON SL.[PurchaseOrderId] = PO.[PurchaseOrderId]
@@ -222,7 +227,7 @@ BEGIN
 
 			SELECT @Count = COUNT([StockLineId]) FROM #TempResultData			
 
-			SELECT @Count AS NumberOfItems, [StockLineId],[VendorId],[PurchaseOrderId],[RepairOrderId],[ReferenceNumber],[ReferenceId],[ModuleId],[ItemMasterId],[PartNumber],[PartDescription],[SerialNumber],[QuantityAvailable],[UnitCost],[VendorName],[VendorCode],[StockLineNumber],[IdNumber],[ControlNumber],[ReceivedDate],[CreatedDate],[IsSelected] FROM #TempResultData WHERE [ModuleId] > 0
+			SELECT @Count AS NumberOfItems, [StockLineId],[VendorId],[PurchaseOrderId],[RepairOrderId],[ReferenceNumber],[ReferenceId],[ModuleId],[ItemMasterId],[PartNumber],[PartDescription],[SerialNumber],[QuantityAvailable],[UnitCost],[VendorName],[VendorCode],[StockLineNumber],[IdNumber],[ControlNumber],[ReceivedDate],[CreatedDate],[IsSelected],[UnitOfMeasure],[ExtendedCost] FROM #TempResultData WHERE [ModuleId] > 0
 			ORDER BY  
 			CASE WHEN (@SortOrder = 1  AND @SortColumn='ReferenceNumber') THEN ReferenceNumber END ASC,
 			CASE WHEN (@SortOrder = -1 AND @SortColumn='ReferenceNumber') THEN ReferenceNumber END DESC,

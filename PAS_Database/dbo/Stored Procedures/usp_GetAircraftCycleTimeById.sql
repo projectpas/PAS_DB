@@ -12,7 +12,7 @@
 ** --   ----------   -------------  --------------------------------
 ** 1    14/04/2026  Amit Ghediya		Created 
 ** 2    14/04/2026  Amit Ghediya		Get LastFlownDate (PN-16156)
-** 3    28/04/2026  Amit Ghediya		Get Minutes related data (PN-16151)
+** 3    28/04/2026  Amit Ghediya		Get Minutes related data,LastFlownDate (PN-16151)
 *************************************************************/
 CREATE     PROCEDURE [dbo].[usp_GetAircraftCycleTimeById]
 (
@@ -45,7 +45,7 @@ BEGIN
 			MasterCompanyId,
 			CreatedBy,
 			UpdatedBy,
-			LastFlownDate = (SELECT TOP 1 DateInstalled FROM dbo.AircraftInstalledPartDetails WITH(NOLOCK) WHERE [AircraftRegistryId] = [RefrenceId])
+			LastFlownDate = (SELECT TOP 1 LastFlownDate FROM dbo.AircraftInstalledPartDetails WITH(NOLOCK) WHERE [AircraftRegistryId] = [RefrenceId])
 		FROM dbo.AircraftCycleTimeMappings WITH(NOLOCK)
 		WHERE RefrenceId = @AircraftCycleTimeMappingsId
 		  AND IsActive = 1 AND IsDeleted = 0;

@@ -51,10 +51,10 @@ BEGIN
 
 		'' AS SerialNumber, 
 		--(SELECT SUM(QuantityAvailable)  
-		(SELECT [dbo].[fn_ConvertUOM](SUM(sll.[QuantityAvailable]),(sll.[StockUnitOfMeasure]), (sll.[ConsumeUnitOfMeasure]),0,(sll.[MasterCompanyId]))
+		(SELECT [dbo].[fn_ConvertUOM](SUM(sll.[QuantityAvailable]),MAX(sll.[StockUnitOfMeasure]), MAX(sll.[ConsumeUnitOfMeasure]),0,(sll.[MasterCompanyId]))
 			FROM dbo.StockLine sll WITH(NOLOCK) 
 			WHERE sll.ItemMasterId = sop.ItemMasterId AND sll.ConditionId = sop.ConditionId
-			GROUP BY sll.[StockUnitOfMeasure], sll.[ConsumeUnitOfMeasure],sll.[MasterCompanyId]
+			GROUP BY sll.[MasterCompanyId]
 			) AS QuantityAvailable,
 		so.SalesOrderNumber,
 		soq.SalesOrderQuoteNumber,

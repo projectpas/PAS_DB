@@ -1,5 +1,4 @@
-﻿
-/*****************************************************************************************           
+﻿/*****************************************************************************************           
  ** File:   [RPT_GetCommonBillingInvoicingItems_SO]           
  ** Author:   Moin Bloch 
  ** Description: This stored procedure is used to Get Common Billing Invoicing Items FOR SO Invoice SSRS
@@ -18,8 +17,9 @@
 	5    17/JUL/2025   RAJESH GAMI		SO: Freight Charges Amount Issue Fixed
 	6    17/JUL/2025   VISHAL SUTHAR	Trimming the Notes field with "<p></p>" tag in the beginning and end.
 	7    12/Jan/2026   VISHAL SUTHAR	Use Serial Number from BillingInvoicingItems if exists
+	8    15/May/2026   Bhargav Saliya	UOM Changes [PN-15067]
 
---   EXEC [dbo].[RPT_GetCommonBillingInvoicingItems_SO] 4729,10
+--   EXEC [dbo].[RPT_GetCommonBillingInvoicingItems_SO] 9328,10
 ********************************************************************************************/
 CREATE   PROCEDURE [dbo].[RPT_GetCommonBillingInvoicingItems_SO]
 @BillingInvoicingId BIGINT = NULL,
@@ -75,10 +75,10 @@ BEGIN
 					END,
 					UOM = UPPER(im.PurchaseUnitOfMeasure),
 					Cond = UPPER(c.Description),
-					QtyShipped = ISNULL(BII.QtyBilled,0),
-					QTYOnBACKOrder = ISNULL(sop.QtyRequested, 0) - ISNULL(BII.QtyBilled,0),
-					UnitPrice = ISNULL(BII.UnitPrice, 0),
-					Amount = ISNULL(BII.PartCost, 0),
+					QtyShipped = ([dbo].[fn_ConvertUOM](ISNULL(BII.QtyBilled, 0),im.[StockUnitOfMeasure],im.[ConsumeUnitOfMeasure] ,0,so.MasterCompanyId)),
+					QTYOnBACKOrder = ([dbo].[fn_ConvertUOM](ISNULL(sop.QtyRequested, 0),im.[StockUnitOfMeasure],im.[ConsumeUnitOfMeasure] ,0,so.MasterCompanyId)) - ([dbo].[fn_ConvertUOM](ISNULL(BII.QtyBilled, 0),im.[StockUnitOfMeasure],im.[ConsumeUnitOfMeasure] ,0,so.MasterCompanyId)),
+					UnitPrice = ([dbo].[fn_ConvertUOM](ISNULL(BII.UnitPrice, 0),im.[StockUnitOfMeasure],im.[ConsumeUnitOfMeasure] ,0,so.MasterCompanyId)),
+					Amount = ([dbo].[fn_ConvertUOM](ISNULL(BII.PartCost, 0),im.[StockUnitOfMeasure],im.[ConsumeUnitOfMeasure] ,0,so.MasterCompanyId)),
 					StockLineId = sl.StockLineId,
 					ISNULL(UPPER(SOP.ECCN),'-')ExportECCN,
 					ISNULL(UPPER(SOP.HSCODE),'-')HSCode,

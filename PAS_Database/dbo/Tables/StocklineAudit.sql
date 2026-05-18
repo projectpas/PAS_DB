@@ -241,6 +241,7 @@
     [ConsumeUnitOfMeasureId]              BIGINT          NULL,
     [ConsumeUnitOfMeasure]                VARCHAR (250)   NULL,
     [PoPartUnitCost]                      DECIMAL (18, 6) NULL,
+    [IsReadyReleaseForm]                  BIT             CONSTRAINT [DF_StocklineAudit_IsReadyReleaseForm] DEFAULT ((0)) NULL,
     CONSTRAINT [PK_StocklineAudit] PRIMARY KEY CLUSTERED ([AuditStockLineId] ASC)
 );
 

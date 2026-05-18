@@ -12,16 +12,19 @@
 	2	 24-Feb-2025		Abhishek Jirawla		Modified this SP to check when 1 reference is checked
 	3	 28-July-2025		Ayushi Patel			Check Duplicate Value Condition for @ItemMasterModule too
 	4	 13-Aug-2025		Ayushi Patel			Check Duplicate Value Condition for @StockLineModule too
+	5    15-May-2026		Ayushi Patel			[PN-16321] Added optional third reference field support in duplicate validation 
 DECLARE @IsDuplicate BIT;
 
 EXEC [dbo].[USP_ChekDuplicateValueForUpload]
-    @ChekDuplticateRef1 = 'SerialNumber',
-    @ChekDuplticateRef2 = 'PartNumber',
-    @DuplicateRefeValue1 = 'AY2',
-    @DuplicateRefeValue2 = 'PN-18712',
-    @ReferenceTable = 'Stockline',
+    @ChekDuplticateRef1 = 'ItemMasterId',
+    @ChekDuplticateRef2 = 'ConditionCodeId',
+	@ChekDuplticateRef3 = 'WorkOrderId',
+    @DuplicateRefeValue1 = '3',
+    @DuplicateRefeValue2 = '9',
+	@DuplicateRefeValue3 = '10405',
+    @ReferenceTable = 'WorkOrderMaterials',
     @MasterCompanyId = 1,
-    @ModuleId = 5,
+    @ModuleId = 116,
     @IsDuplicate = @IsDuplicate OUTPUT;
 
 SELECT @IsDuplicate AS IsDuplicateResult;
@@ -31,8 +34,10 @@ CREATE   PROCEDURE [dbo].[USP_ChekDuplicateValueForUpload]
 (
     @ChekDuplticateRef1    AS VARCHAR(150) = NULL,
     @ChekDuplticateRef2    AS VARCHAR(150) = NULL,
+	@ChekDuplticateRef3   AS VARCHAR(150) = NULL,
     @DuplicateRefeValue1   AS VARCHAR(150) = NULL,
     @DuplicateRefeValue2   AS VARCHAR(150) = NULL,
+	@DuplicateRefeValue3  AS VARCHAR(150) = NULL,
     @ReferenceTable        AS VARCHAR(150) = NULL,
     @MasterCompanyId       AS INT = NULL,
     @ModuleId              AS BIGINT = NULL,
@@ -89,22 +94,32 @@ BEGIN
 	IF((ISNULL(@ChekDuplticateRef1, '') != '' AND ISNULL(@ChekDuplticateRef2, '') != ''))  
 	BEGIN
 		SET @RefQuery = N'
-			IF EXISTS (
-				SELECT 1 FROM ' + QUOTENAME(@ReferenceTable) + N' WITH(NOLOCK)
-				WHERE MasterCompanyId = @MasterCompanyId 
-				AND ' + QUOTENAME(@ChekDuplticateRef1) + N' = @DuplicateRefeValue1 
-				AND ' + QUOTENAME(@ChekDuplticateRef2) + N' = @DuplicateRefeValue2
+		IF EXISTS (
+			SELECT 1 FROM ' + QUOTENAME(@ReferenceTable) + N' WITH(NOLOCK)
+			WHERE MasterCompanyId = @MasterCompanyId 
+			AND ' + QUOTENAME(@ChekDuplticateRef1) + N' = @DuplicateRefeValue1 
+			AND ' + QUOTENAME(@ChekDuplticateRef2) + N' = @DuplicateRefeValue2';
+
+		IF(ISNULL(@ChekDuplticateRef3, '') != '')
+		BEGIN
+			SET @RefQuery = @RefQuery + N'
+				AND ' + QUOTENAME(@ChekDuplticateRef3) + N' = @DuplicateRefeValue3';
+		END
+
+		SET @RefQuery = @RefQuery + N'
 			)
 			BEGIN
 				SET @IsDuplicate = 1;
 			END';
+	
 		
-		SET @Params = N'@MasterCompanyId INT, @DuplicateRefeValue1 VARCHAR(150), @DuplicateRefeValue2 VARCHAR(150), @IsDuplicate BIT OUTPUT';
+		SET @Params = N'@MasterCompanyId INT, @DuplicateRefeValue1 VARCHAR(150), @DuplicateRefeValue2 VARCHAR(150),@DuplicateRefeValue3 VARCHAR(150), @IsDuplicate BIT OUTPUT';
     
 		EXEC sp_executesql @RefQuery, @Params, 
 			@MasterCompanyId = @MasterCompanyId, 
 			@DuplicateRefeValue1 = @DuplicateRefeValue1, 
 			@DuplicateRefeValue2 = @DuplicateRefeValue2, 
+			@DuplicateRefeValue3 = @DuplicateRefeValue3,
 			@IsDuplicate = @IsDuplicate OUTPUT;
 
 		IF @ModuleId = @AlterModule OR @ModuleId = @ItemMasterModule OR @ModuleId = @StocklineModule

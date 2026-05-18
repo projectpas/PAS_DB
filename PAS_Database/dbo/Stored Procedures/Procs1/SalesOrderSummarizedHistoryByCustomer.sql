@@ -16,6 +16,7 @@
     2	 11/04/2024		Vishal Suthar	Modified to make use of new SO Part tables
 	3	 01/05/2026	  Moin Bloch	Modified Added UOM changes
 	4    07/01/2026   Rajesh Gami		Added MasterCompanyId Parameter While Calling UOM Conversion Function
+	5    14/05/2026   Bhargav Saliya		Modified UOM Changes [PN-15067]
 --EXEC [SalesOrderSummarizedHistoryByCustomer] 115640, 1
 **************************************************************/
 
@@ -49,7 +50,7 @@ BEGIN
 						0 AS CustApproved,
 						C.Code AS CurrencyName,
 						--((ISNULL(SOPC.NetSaleAmount, 0)) + ISNULL(Charges.BillingAmount, 0)) AS Revenue,
-						ISNULL([dbo].[fn_ConvertUOM](ISNULL(SOPC.NetSaleAmount, 0),IM.[StockUnitOfMeasure], IM.[ConsumeUnitOfMeasure],1,SOP.MasterCompanyId)  + ISNULL(Charges.BillingAmount, 0),0) AS Revenue,
+						ISNULL([dbo].[fn_ConvertUOM](ISNULL(SOPC.NetSaleAmount, 0),IM.[StockUnitOfMeasure], IM.[ConsumeUnitOfMeasure],0,SOP.MasterCompanyId)  + ISNULL(Charges.BillingAmount, 0),0) AS Revenue,
 						--((ISNULL(SOPC.UnitCost, 0) * ISNULL(SOP.QtyOrder, 0)) + ISNULL(Charges.BillingAmount, 0)) AS DirectCost,
 						ISNULL([dbo].[fn_ConvertUOM](ISNULL(SOPC.UnitCost, 0),IM.[StockUnitOfMeasure], IM.[ConsumeUnitOfMeasure],1,SOP.MasterCompanyId) * [dbo].[fn_ConvertUOM](ISNULL(SOP.[QtyOrder],0),IM.[StockUnitOfMeasure], IM.[ConsumeUnitOfMeasure],0,SOP.MasterCompanyId),0) + ISNULL(Charges.BillingAmount, 0) AS DirectCost,										
 						SO.SalesOrderNumber,

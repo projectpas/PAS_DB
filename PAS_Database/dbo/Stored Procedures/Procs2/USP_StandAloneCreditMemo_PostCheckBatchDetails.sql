@@ -17,7 +17,7 @@
 	2	 09/15/2023     AMIT GHEDIYA	        Update for management stucture add in common table.
 	3	 09/18/2023     AMIT GHEDIYA	        Update status to Approved after post batch.
     4    10/16/2023      Moin Bloch		        Modify(Added Posted Status Insted of Closed Credit Memo Status)
-
+	5    11/MAY/2026	Rajesh Gami				UOM Conversion Changes [PN-16332]
 -- EXEC USP_StandAloneCreditMemo_PostCheckBatchDetails 1
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[USP_StandAloneCreditMemo_PostCheckBatchDetails]
@@ -32,7 +32,7 @@ BEGIN
 		BEGIN
 			
 			DECLARE @StatusId INT,@StatusName VARCHAR(50),@StandAloneCreditMemoDetailsId BIGINT,
-				    @ManagementStructureId BIGINT,@Amount DECIMAL(18,2),@StandAloneCreditMemoDetailId BIGINT,
+				    @ManagementStructureId BIGINT,@Amount decimal(18,6),@StandAloneCreditMemoDetailId BIGINT,
 				    @MasterCompanyId INT,@UpdatedBy VARCHAR(50),@MasterLoopID INT;
 
 			SELECT @StatusId = Id, @StatusName = Name FROM [dbo].[CreditMemoStatus] WITH(NOLOCK) WHERE Name = 'Posted';
@@ -46,7 +46,7 @@ BEGIN
 			(
 				[ID] INT IDENTITY,
 				[StandAloneCreditMemoDetailId] BIGINT NULL,
-				[Amount] [decimal](18, 2) NOT NULL,
+				[Amount] decimal(18,6) NOT NULL,
 				[ManagementStructureId] [bigint] NULL,
 				[MasterCompanyId] [int],
 				[UpdatedBy] [varchar](50)

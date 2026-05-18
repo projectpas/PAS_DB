@@ -16,6 +16,7 @@
 	4    07/07/2025   Abhishek Jirawla Updated Manufacturer
 	5    18/07/2025   RAJESH GAMI	sale tax related issue fix for the SO & WO
 	6    19/08/2025   Moin Bloch    Added Percent value for view
+	7    15/May/2026   Bhargav Saliya	UOM Changes [PN-15067]
 --   EXEC [dbo].[USP_GetCommonBillingInvoicingItems] 20070,15
 ********************************************************************************************/
 CREATE PROCEDURE [dbo].[USP_GetCommonBillingInvoicingItems]
@@ -240,9 +241,9 @@ BEGIN
 				  ,BII.[StocklineId]
 				  ,BII.[ConditionId]
 				  ,BII.[CostPlusType]
-				  ,ISNULL(BII.[UnitPrice],0) [UnitPrice]
-				  ,ISNULL(BII.[QtyBilled],0) [QtyBilled]
-				  ,ISNULL(BII.[PartCost],0) [PartCost]
+				  ,([dbo].[fn_ConvertUOM](ISNULL(BII.[UnitPrice], 0),IM.[StockUnitOfMeasure],IM.[ConsumeUnitOfMeasure] ,0,WO.MasterCompanyId)) [UnitPrice]
+				  ,([dbo].[fn_ConvertUOM](ISNULL(BII.[QtyBilled], 0),IM.[StockUnitOfMeasure],IM.[ConsumeUnitOfMeasure] ,0,WO.MasterCompanyId)) [QtyBilled]
+				  ,([dbo].[fn_ConvertUOM](ISNULL(BII.[PartCost], 0),IM.[StockUnitOfMeasure],IM.[ConsumeUnitOfMeasure] ,0,WO.MasterCompanyId)) [PartCost]
 				  ,ISNULL(BII.[IsTotalCheck],0) [IsTotalCheck]
 				  ,ISNULL(BII.[TotalBillingCost],0) [TotalBillingCost]
 				  ,ISNULL(BII.[TotalBillingCostPercent],0) [TotalBillingCostPercent]
@@ -263,12 +264,12 @@ BEGIN
 				  ,ISNULL(BII.[MiscCharges],0) [MiscCharges]
 				  ,ISNULL(BII.[MiscChargesCostPercent],0) [MiscChargesCostPercent]
 				  ,ISNULL(BII.[MiscChargesCostPlus],0) [MiscChargesCostPlus]
-				  ,ISNULL(BII.[SubTotal],0) [SubTotal] 
+				  ,([dbo].[fn_ConvertUOM](ISNULL(BII.[SubTotal], 0),IM.[StockUnitOfMeasure],IM.[ConsumeUnitOfMeasure] ,0,WO.MasterCompanyId)) [SubTotal] 
 				  ,ISNULL(salePer.PercentValue,0) [SalesTaxPercent]
 				  ,ISNULL(BII.[SalesTax],0) [SalesTax]
 				  ,ISNULL(otherPer.PercentValue,0) [OtherTaxPercent]
 				  ,ISNULL(BII.[OtherTax],0) [OtherTax]
-				  ,ISNULL(BII.[GrandTotal],0) [GrandTotal]
+				  ,([dbo].[fn_ConvertUOM](ISNULL(BII.[GrandTotal], 0),IM.[StockUnitOfMeasure],IM.[ConsumeUnitOfMeasure] ,0,WO.MasterCompanyId)) [GrandTotal]
 				  ,BII.[PDFPath]
 				  ,BII.[VersionNo]
 				  ,ISNULL(BII.[IsVersionIncrease],0) [IsVersionIncrease]

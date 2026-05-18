@@ -32,6 +32,7 @@ EXEC [GetSubWorkorderReleaseFromData]
 ** 21   23/01/2026  Moin Bloch       Fix For **
 ** 22   11/02/2026  Moin Bloch       Updated Added WOReleaseFormId insted of Country PN-15388
 ** 23   12/03/2026  Moin Bloch       Removed '-' FROM FooterRemarks
+** 23   18/MAY/2026 Rajesh Gami      8130 Release Form Enhancements for the ATI [PN-16447]
 
 
  EXEC [dbo].[GetWorkorderReleaseFromData] 12680,13359,0,0,1
@@ -66,7 +67,9 @@ BEGIN
 		DECLARE @MasterCompanyCode VARCHAR(20) = 'PAR'
 		DECLARE @ParCommonTeardownTypeId BIGINT = 0;
 		DECLARE @CorrectiveAction NVARCHAR(MAX)=''
-
+		DECLARE @MasterCompanyCodeATI VARCHAR(20) = 'ATI'
+		DECLARE @ATIReleaseFormCommonTeardownTypeId BIGINT = 0;
+		DECLARE @ReleaseForm NVARCHAR(MAX) = '';
 		
 		SELECT @MasterCompanyId = [MasterCompanyId] FROM [DBO].[WorkOrder] CTT WITH(NOLOCK) WHERE [WorkorderId] = @WorkorderId;
 
@@ -77,32 +80,7 @@ BEGIN
 			SELECT @WorkFlowWorkOrderId = [WorkFlowWorkOrderId] FROM [DBO].[WorkOrderWorkFlow] WITH(NOLOCK) WHERE [WorkorderId]=@WorkorderId AND [WorkOrderPartNoId]=@workOrderPartNumberId				
 			SELECT @CorrectiveAction = [Memo] FROM [DBO].[CommonWorkOrderTearDown] WITH(NOLOCK) WHERE [CommonTeardownTypeId]=@ParCommonTeardownTypeId AND [WorkorderId]=@WorkorderId AND [WorkFlowWorkOrderId]=@WorkFlowWorkOrderId		
 			PRINT @CorrectiveAction
-			--SELECT @CorrectiveAction =
-			--	STRING_AGG(
-			--		CASE
-			--			WHEN s.value LIKE '<p>*%' THEN
-			--				REPLACE(s.value, '<p>*', '<p>') + '</p>'
-			--			WHEN LTRIM(s.value) LIKE '*%' THEN
-			--				STUFF(LTRIM(s.value), 1, 1, '')
-			--			ELSE NULL END, '')
-			--FROM [DBO].[CommonWorkOrderTearDown] t WITH (NOLOCK)
-			--CROSS APPLY STRING_SPLIT(REPLACE(REPLACE(t.[Memo], '</p>', CHAR(10)), CHAR(13), ''), CHAR(10)) s
-			--WHERE t.[CommonTeardownTypeId] = @ParCommonTeardownTypeId
-			--	AND t.[WorkorderId] = @WorkorderId
-			--	AND t.[WorkFlowWorkOrderId] = @WorkFlowWorkOrderId
-			--	AND (s.value LIKE '<p>*%' OR LTRIM(s.value) LIKE '*%');			
-			--IF (@CorrectiveAction IS NOT NULL AND @CorrectiveAction <> '')
-			--BEGIN
-			--	WHILE CHARINDEX('<ol>', @CorrectiveAction) > 0
-			--	BEGIN
-			--		SET @CorrectiveAction = STUFF(@CorrectiveAction, 
-			--						  CHARINDEX('<ol>', @CorrectiveAction), 
-			--						  CHARINDEX('</ol>', @CorrectiveAction) - CHARINDEX('<ol>', @CorrectiveAction) + 5, 
-			--						  '');
-			--	END
-
-			--	SET @CorrectiveAction = REPLACE(@CorrectiveAction, '<p>*', '<p>');
-			--END			
+				
 			DECLARE @Start INT, @End INT;
 
 			WHILE PATINDEX('%<ul%', @CorrectiveAction) > 0
@@ -128,6 +106,65 @@ BEGIN
 									
 			SET	@CorrectiveAction = @FinalResult
 		END
+		/********* For the ATI company: Release Form *********/
+		IF(@MasterCompanyCodeATI = (SELECT [MasterCompanyCode]FROM [dbo].[MasterCompany] WITH(NOLOCK)WHERE [MasterCompanyId] = @MasterCompanyId	))
+			BEGIN
+				SELECT @WorkFlowWorkOrderId = [WorkFlowWorkOrderId]
+				FROM [DBO].[WorkOrderWorkFlow] WITH(NOLOCK)
+				WHERE [WorkorderId] = @WorkorderId
+				AND [WorkOrderPartNoId] = @workOrderPartNumberId;
+
+				SELECT @ATIReleaseFormCommonTeardownTypeId = [CommonTeardownTypeId]
+				FROM [dbo].[CommonTeardownType] WITH(NOLOCK)
+				WHERE [MasterCompanyId] = @MasterCompanyId
+				AND [Code] = 'RELEASEFORM';
+
+				SELECT @ReleaseForm = [Memo]
+				FROM [DBO].[CommonWorkOrderTearDown] WITH(NOLOCK)
+				WHERE [CommonTeardownTypeId] = @ATIReleaseFormCommonTeardownTypeId
+				AND [WorkorderId] = @WorkorderId
+				AND [WorkFlowWorkOrderId] = @WorkFlowWorkOrderId;
+
+				PRINT @ReleaseForm;
+
+				DECLARE @StartATI INT, @EndATI INT;
+
+				WHILE PATINDEX('%<ul%', @ReleaseForm) > 0
+				BEGIN
+					SET @StartATI = PATINDEX('%<ul%', @ReleaseForm);
+					SET @EndATI = CHARINDEX('</ul>', @ReleaseForm, @StartATI);
+					SET @ReleaseForm = STUFF(@ReleaseForm, @StartATI, (@EndATI - @StartATI) + 5, '');
+				END
+
+				WHILE PATINDEX('%<ol%', @ReleaseForm) > 0
+				BEGIN
+					SET @StartATI = PATINDEX('%<ol%', @ReleaseForm);
+					SET @EndATI = CHARINDEX('</ol>', @ReleaseForm, @StartATI);
+					SET @ReleaseForm = STUFF(@ReleaseForm, @StartATI, (@EndATI - @StartATI) + 5, '');
+				END
+
+				DECLARE @FinalResultATI NVARCHAR(MAX) = '';
+
+				SELECT @FinalResultATI = @FinalResultATI + '<p>' +
+					   LTRIM(
+							CASE 
+								WHEN CHARINDEX('*', CleanedItem) > 0 
+									THEN SUBSTRING(CleanedItem, CHARINDEX('*', CleanedItem) + 1, LEN(CleanedItem))
+								ELSE CleanedItem
+							END
+					   ) + '</p>'
+				FROM
+				(
+					SELECT value AS RawItem,
+						   SUBSTRING(value, CHARINDEX('>', value) + 1, LEN(value)) AS CleanedItem
+					FROM STRING_SPLIT(REPLACE(@ReleaseForm, '</p>', '|'), '|')
+				) AS T
+				WHERE LTRIM(RTRIM(CleanedItem)) <> '';
+
+				SET @ReleaseForm = @FinalResultATI;
+				SET @CorrectiveAction = @ReleaseForm;
+				PRINT @CorrectiveAction
+			END
 
 		DECLARE @VerCodePrefix NVARCHAR(50),@VerCode INT
 
@@ -320,7 +357,7 @@ BEGIN
 							(CASE WHEN @IsEasaLicense = 0 AND @IsEasaUKLicense = 0 THEN '<div style='+ '"bottom : 0px; position:absolute;font-size: 10px !important;line-height: 12px;"'+'>' + (REPLACE(REPLACE(ISNULL(wods.Dualreleaselanguage,''),'<p>',''),'</p>','') +' '+ +'</div>') ELSE ''  END)        
 							+ (CASE WHEN @IsEasaLicense = 1 AND @formTypeId = @FAAEASA THEN '<div style='+ '"bottom : 0px; position:absolute;font-size: 10px !important;line-height: 12px;"'+'>' + (REPLACE(REPLACE(ISNULL(wods.Dualreleaselanguage,''),'<p>',''),'</p>','') +' '+ le.EASALicense +'</div>') ELSE ''  END)        
 							+ (CASE WHEN @IsEasaUKLicense = 1 AND @formTypeId = @FAAEASAUK THEN '<div style='+ '"bottom : 0px; position:absolute;font-size: 10px !important;line-height: 12px;"'+'>' + (REPLACE(REPLACE(ISNULL(wods.Dualreleaselanguage,''),'<p>',''),'</p>','') +' '+ le.UKCAALicense +'</div>') ELSE ''  END)        
-							+ '</div>' FooterRemarks,  
+							 FooterRemarks,  
 							UPPER(le.EASALicense) AS EASALicense,  
 							@EmailBody AS EmailBody
 							,@VersionNo VersionNo
@@ -473,7 +510,6 @@ BEGIN
 							 + ' ' + le.UKCAALicense + '</div>'
 						ELSE ''
 					END
-					+ '</div>'
 				) AS FooterRemarks,
 
 				UPPER(le.EASALicense) AS EASALicense,  
@@ -595,7 +631,7 @@ BEGIN
 					  (CASE WHEN @IsEasaLicense = 0 AND @IsEasaUKLicense = 0 THEN '<div style='+ '"bottom : 0px; position:absolute;font-size: 10px !important;line-height: 12px;"'+'>' + (REPLACE(REPLACE(ISNULL(wods.Dualreleaselanguage,''),'<p>',''),'</p>','') +' '++'</div>') ELSE ''  END)        
 					+ (CASE WHEN @IsEasaLicense = 1 AND @formTypeId = @FAAEASA THEN '<div style='+ '"bottom : 0px; position:absolute;font-size: 10px !important;line-height: 12px;"'+'>' + (REPLACE(REPLACE(ISNULL(wods.Dualreleaselanguage,''),'<p>',''),'</p>','') +' '+ le.EASALicense +'</div>') ELSE ''  END)        
 					+ (CASE WHEN @IsEasaUKLicense = 1 AND @formTypeId = @FAAEASAUK THEN '<div style='+ '"bottom : 0px; position:absolute;font-size: 10px !important;line-height: 12px;"'+'>' + (REPLACE(REPLACE(ISNULL(wods.Dualreleaselanguage,''),'<p>',''),'</p>','') +' '+ le.UKCAALicense +'</div>') ELSE ''  END)        
-					+ '</div>' FooterRemarks,  
+					  FooterRemarks,  
 					   UPPER(le.EASALicense) AS EASALicense,  
 					   @EmailBody AS EmailBody
 					   ,@VersionNo VersionNo

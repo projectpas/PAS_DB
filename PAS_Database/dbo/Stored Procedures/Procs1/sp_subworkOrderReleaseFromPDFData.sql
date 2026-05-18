@@ -21,7 +21,7 @@
 	4    07/14/2024   Hemant  Saliya Updated for Condition Is not populating in 8130
 	5    12/31/2024   Devendra Shekh Updated For Get FormType and Batchnumber Name
 	6    02/24/2025   Moin Bloch     Updated For Get Is813013aeOr14ae
-     
+ 	7   14/May/2026  Rajesh Gami	 Return EmployeeId [PN-16405 :  Generate Multiple Release Forms for Teardown Work Orders]       
  EXECUTE [sp_subworkOrderReleaseFromPDFData] 10, 1, null, -1, '',null, '','','',null,null,null,null,null,null,0,1
 **************************************************************/ 
 
@@ -97,7 +97,8 @@ BEGIN
 					  ,CASE WHEN wro.[is8130from] = 1 THEN '8130 Certificate' ELSE '9130 Form' END AS FormType 
 					  ,wop.CustomerRequestDate AS ReceivedDate
 					  ,@ManagementStructureId AS ManagementStructureId
-					  ,wro.Is813013aeOr14ae
+					  ,wro.Is813013aeOr14ae,
+					  wro.EmployeeId
 				FROM [dbo].[SubWorkOrder_ReleaseFrom_8130] wro WITH(NOLOCK)
 				      LEFT JOIN [dbo].[SubWorkOrderPartNumber] wop WITH(NOLOCK) ON wro.SubWOPartNoId = wop.SubWOPartNoId
 					  LEFT JOIN [dbo].[ItemMaster] im  WITH(NOLOCK) ON im.ItemMasterId = wop.ItemMasterId  

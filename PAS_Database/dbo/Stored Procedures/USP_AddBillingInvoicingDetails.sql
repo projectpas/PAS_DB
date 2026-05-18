@@ -30,11 +30,11 @@
 	17   05/11/2025   MOIN BLOCH      Added Credit Memo Logic   
 	18   09/01/2026   Vishal Suthar  Added SerialNumber column in BillingInvoicingDetails for SA
 	19   15/01/2026   Vishal Suthar  Issue with new version created for SA
-
+	20   14/05/2026   Bhargav Saliya	Added UOM Changes [PN-15067]
 -- EXEC USP_AddBillingInvoicingDetails 
 ************************************************************************/  
   
-CREATE     PROCEDURE [dbo].[USP_AddBillingInvoicingDetails]  
+CREATE       PROCEDURE [dbo].[USP_AddBillingInvoicingDetails]  
 -------------------------------------------BillingInvoicing-------------------------------------------
 @BillingInvoicingId BIGINT = NULL,  
 @ModuleId INT = NULL,
@@ -56,11 +56,11 @@ CREATE     PROCEDURE [dbo].[USP_AddBillingInvoicingDetails]
 @IsPerformaInvoice BIT = 0,
 @IsVersionIncrease BIT = 0,
 @PostedDate DATETIME2(7) = NULL,
-@SubTotal DECIMAL(18,2) = 0,
+@SubTotal DECIMAL(18,6) = 0,
 @OtherTax DECIMAL(18,2) = 0,
 @SalesTax DECIMAL(18,2) = 0,
-@DepositAmount DECIMAL(18,2) = 0,
-@GrandTotal DECIMAL(18,2) = NULL,
+@DepositAmount DECIMAL(18,6) = 0,
+@GrandTotal DECIMAL(18,6) = NULL,
 @Notes NVARCHAR(MAX) = NULL,
 @WorkOrderShippingId  BIGINT = NULL,
 @ManagementStructureId BIGINT = NULL,
@@ -109,9 +109,9 @@ BEGIN
 	DECLARE @BilledInvoiceStatusId INT = 0,@WorkOrderMPNModuleID INT ,@SOPartModuleId INT 
 	DECLARE @BilledInvoiceStatus VARCHAR(50), @InvoiceCodeTypeId INT,@ProformaInvoiceCodeTypeId INT,@VerCode INT
 	DECLARE @CurrentNo INT = 0, @TemplateBody VARCHAR(MAX)='',@PartNumber VARCHAR(50)='', @BillingInvoicingIdNew BIGINT = 0
-	DECLARE @RemainingAmount DECIMAL(18,2) = 0,@CustomerId BIGINT
-	DECLARE @UnitSalePrice DECIMAL(18,2) = 0,@MarkUpPercentage  DECIMAL(18,2) = 0,@DiscountPercentage DECIMAL(18,2) = 0,@MarkUpAmount DECIMAL(18,2) = 0,@DiscountAmount DECIMAL(18,2) = 0,@PartQty INT = 0;
-	DECLARE @StocklineId BIGINT = 0, @SOStocklineId BIGINT = 0,@NetSalePrice DECIMAL(18,2) = 0, @SOStockLineCostId BIGINT = 0 , @QtyOrder INT = 0 , @NetSalePriceExtended  BIGINT = 0,@ChargesAmount AS DECIMAL(18, 4);
+	DECLARE @RemainingAmount DECIMAL(18,6) = 0,@CustomerId BIGINT
+	DECLARE @UnitSalePrice DECIMAL(18,6) = 0,@MarkUpPercentage  DECIMAL(18,2) = 0,@DiscountPercentage DECIMAL(18,2) = 0,@MarkUpAmount DECIMAL(18,6) = 0,@DiscountAmount DECIMAL(18,6) = 0,@PartQty DECIMAL(18,6) = 0;
+	DECLARE @StocklineId BIGINT = 0, @SOStocklineId BIGINT = 0,@NetSalePrice DECIMAL(18,6) = 0, @SOStockLineCostId BIGINT = 0 , @QtyOrder DECIMAL(18,6) = 0 , @NetSalePriceExtended  BIGINT = 0,@ChargesAmount AS DECIMAL(18, 4);
 	SELECT @WOModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'WorkOrder';
 	SELECT @SOModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'SalesOrder';
 	SELECT @EXModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'ExchangeSalesOrder';
@@ -330,35 +330,35 @@ BEGIN
 			[StocklineId] [BIGINT] NULL,
 			[ConditionId] [BIGINT] NULL,
 			[CostPlusType] [VARCHAR](50) NULL,
-			[UnitPrice] [DECIMAL](18, 2) NULL,
-			[QtyBilled] [INT] NULL,
-			[PartCost] [DECIMAL](18, 2) NULL,
+			[UnitPrice] [DECIMAL](18, 6) NULL,
+			[QtyBilled] [DECIMAL](18, 6) NULL,
+			[PartCost] [DECIMAL](18, 6) NULL,
 			[IsTotalCheck] [bit] NULL,
-			[TotalBillingCost] [decimal](18, 2) NULL,
+			[TotalBillingCost] [decimal](18, 6) NULL,
 			[TotalBillingCostPercent] [bigint] NULL,
-			[TotalBillingCostPlus] [decimal](18, 2) NULL,
+			[TotalBillingCostPlus] [decimal](18, 6) NULL,
 			[IsMaterialCheck] [bit] NULL,				
-			[MaterialCost] [DECIMAL](18, 2) NULL,
+			[MaterialCost] [DECIMAL](18, 6) NULL,
 			[MaterialCostPercent] [BIGINT] NULL,
-			[MaterialCostPlus] [DECIMAL](18, 2) NULL,
+			[MaterialCostPlus] [DECIMAL](18, 6) NULL,
 			[IsLaborCheck] [bit] NULL,		
-			[LaborCost] [DECIMAL](18, 2) NULL,
+			[LaborCost] [DECIMAL](18, 6) NULL,
 			[LaborCostPercent] [BIGINT] NULL,
-			[LaborCostPlus] [DECIMAL](18, 2) NULL,
+			[LaborCostPlus] [DECIMAL](18, 6) NULL,
 			[IsFreightCheck] [bit] NULL,	
 			[Freight] [DECIMAL](18, 2) NULL,
 			[FreightCostPercent] [BIGINT] NULL,
-			[FreightCostPlus] [DECIMAL](18, 2) NULL,
+			[FreightCostPlus] [DECIMAL](18, 6) NULL,
 			[IsMiscChargesCheck] [bit] NULL,
 			[MiscCharges] [DECIMAL](18, 2) NULL,
 			[MiscChargesCostPercent] [BIGINT] NULL,
-			[MiscChargesCostPlus] [DECIMAL](18, 2) NULL,
-			[SubTotal] [DECIMAL](18, 2) NULL,
+			[MiscChargesCostPlus] [DECIMAL](18, 6) NULL,
+			[SubTotal] [DECIMAL](18, 6) NULL,
 			[SalesTaxPercent] [BIGINT] NULL,
 			[SalesTax] [DECIMAL](18, 2) NULL,
 			[OtherTaxPercent] [BIGINT] NULL,
 			[OtherTax] [DECIMAL](18, 2) NULL,
-			[GrandTotal] [DECIMAL](18, 2) NULL,
+			[GrandTotal] [DECIMAL](18, 6) NULL,
 			[PDFPath] [NVARCHAR](MAX) NULL,
 			[VersionNo] [VARCHAR](20) NULL,
 			[IsVersionIncrease] [BIT] NULL,
@@ -371,11 +371,11 @@ BEGIN
 			[IsActive] [BIT] NULL,
 			[IsDeleted] [BIT] NULL,
 			[ShippingId] [bigint] NULL,
-			[UnitSalePrice] [decimal](18, 2) NULL,
-			[MarkUpPercentage] [decimal](18, 2) NULL,
-			[DiscountPercentage] [decimal](18, 2) NULL,
-			[MarkUpAmount] [decimal](18, 2) NULL,
-			[DiscountAmount] [decimal](18, 2) NULL
+			[UnitSalePrice] [decimal](18, 6) NULL,
+			[MarkUpPercentage] [decimal](18, 6) NULL,
+			[DiscountPercentage] [decimal](18, 6) NULL,
+			[MarkUpAmount] [decimal](18, 6) NULL,
+			[DiscountAmount] [decimal](18, 6) NULL
 		)
 
 		SET @SubTotal = 0;
@@ -447,6 +447,20 @@ BEGIN
 		BEGIN  
 			DECLARE @BillingInvoicingItemId BIGINT = 0,@SubReferenceId BIGINT = 0,@WorkFlowWorkOrderId BIGINT = NULL,@ShippingId BIGINT = 0
 			DECLARE @ShipDate DATETIME2(7) = NULL
+
+			UPDATE TEMP_TABLE
+			SET 
+				[UnitPrice] = ([dbo].[fn_ConvertUOM](ISNULL([UnitPrice], 0),IM.[ConsumeUnitOfMeasure],IM.[StockUnitOfMeasure] ,0,TEMP_TABLE.MasterCompanyId)),
+				[QtyBilled] = ([dbo].[fn_ConvertUOM](ISNULL([QtyBilled], 0),IM.[ConsumeUnitOfMeasure],IM.[StockUnitOfMeasure] ,0,TEMP_TABLE.MasterCompanyId)),
+				[PartCost] = ([dbo].[fn_ConvertUOM](ISNULL([PartCost], 0),IM.[ConsumeUnitOfMeasure],IM.[StockUnitOfMeasure] ,0,TEMP_TABLE.MasterCompanyId)),
+				[SubTotal] = ([dbo].[fn_ConvertUOM](ISNULL([SubTotal], 0),IM.[ConsumeUnitOfMeasure],IM.[StockUnitOfMeasure] ,0,TEMP_TABLE.MasterCompanyId)),
+				[GrandTotal] = ([dbo].[fn_ConvertUOM](ISNULL([GrandTotal], 0),IM.[ConsumeUnitOfMeasure],IM.[StockUnitOfMeasure] ,0,TEMP_TABLE.MasterCompanyId)),
+				[UnitSalePrice] = ([dbo].[fn_ConvertUOM](ISNULL([UnitSalePrice], 0),IM.[ConsumeUnitOfMeasure],IM.[StockUnitOfMeasure] ,0,TEMP_TABLE.MasterCompanyId)),
+				[MarkUpAmount] = ([dbo].[fn_ConvertUOM](ISNULL([MarkUpAmount], 0),IM.[ConsumeUnitOfMeasure],IM.[StockUnitOfMeasure] ,0,TEMP_TABLE.MasterCompanyId)),
+				[DiscountAmount] = ([dbo].[fn_ConvertUOM](ISNULL([DiscountAmount], 0),IM.[ConsumeUnitOfMeasure],IM.[StockUnitOfMeasure] ,0,TEMP_TABLE.MasterCompanyId))
+			FROM #tmprAddBillingInvoicingDetailsTemp TEMP_TABLE
+			JOIN dbo.ItemMaster IM WITH(NOLOCK) ON TEMP_TABLE.ItemMasterId = IM.ItemMasterId
+			WHERE [PKID] = @MinId 
 
 			 SELECT @BillingInvoicingId = ISNULL([BillingInvoicingId],0),
 			        @BillingInvoicingItemId = ISNULL([BillingInvoicingItemId],0),
@@ -616,22 +630,22 @@ BEGIN
 					SELECT TOP 1 @SOStocklineId= ISNULL(SalesOrderStocklineId,0), @QtyOrder = ISNULL(QtyOrder,0)  FROM SalesOrderStocklineV1 SS WITH(NOLOCK) WHERE SS.SalesOrderPartId = @SubReferenceId AND SS.StockLineId = @StocklineId AND ISNULL(IsDeleted,0) = 0 AND SS.MasterCompanyId =@MasterCompanyId
 					--SET @SOStockLineCostId = (SELECT TOP 1 ISNULL(SalesOrderStockLineCostId,0)  FROM SalesOrderStockLineCost SSC WITH(NOLOCK) WHERE SSC.SalesOrderPartId = @SubReferenceId AND SSC.SalesOrderStocklineId = @SOStocklineId AND ISNULL(IsDeleted,0) = 0 AND SSC.MasterCompanyId =@MasterCompanyId)
 					UPDATE SalesOrderStockLineCost 
-						SET NetSaleAmount = CAST((@NetSalePrice * @QtyOrder) AS DECIMAL(18,4)), NetSaleAmountPerUnit =@NetSalePrice,
-							UnitSalesPrice = CAST(ISNULL(@UnitSalePrice, 0) AS DECIMAL(18,4)),
-							UnitSalesPriceExtended = CAST(ISNULL(@UnitSalePrice, 0) * ISNULL(@QtyOrder, 0) AS DECIMAL(18,4)),
-							MarkUpAmount = CAST((ISNULL(@UnitSalePrice, 0) * ISNULL(@QtyOrder, 0) * ISNULL(@MarkUpPercentage, 0)) / 100.0 AS DECIMAL(18,4))
+						SET NetSaleAmount = CAST((@NetSalePrice * @QtyOrder) AS DECIMAL(18,6)), NetSaleAmountPerUnit =@NetSalePrice,
+							UnitSalesPrice = CAST(ISNULL(@UnitSalePrice, 0) AS DECIMAL(18,6)),
+							UnitSalesPriceExtended = CAST(ISNULL(@UnitSalePrice, 0) * ISNULL(@QtyOrder, 0) AS DECIMAL(18,6)),
+							MarkUpAmount = CAST((ISNULL(@UnitSalePrice, 0) * ISNULL(@QtyOrder, 0) * ISNULL(@MarkUpPercentage, 0)) / 100.0 AS DECIMAL(18,6))
 							WHERE SalesOrderPartId = @SubReferenceId AND SalesOrderStocklineId = @SOStocklineId AND ISNULL(IsDeleted,0) = 0 AND MasterCompanyId =@MasterCompanyId
 				
 					UPDATE SalesOrderStockLineCost 
-							SET DiscountAmount = CAST(((ISNULL(UnitSalesPriceExtended,0) +  ISNULL(MarkUpAmount,0)) * ISNULL(@DiscountPercentage, 0)) / 100.0 AS DECIMAL(18,4))
+							SET DiscountAmount = CAST(((ISNULL(UnitSalesPriceExtended,0) +  ISNULL(MarkUpAmount,0)) * ISNULL(@DiscountPercentage, 0)) / 100.0 AS DECIMAL(18,6))
 							WHERE SalesOrderPartId = @SubReferenceId AND SalesOrderStocklineId = @SOStocklineId AND ISNULL(IsDeleted,0) = 0 AND MasterCompanyId =@MasterCompanyId
 
 					UPDATE SalesOrderStockLineCost 
-							SET MarginAmount = CAST((ISNULL(NetSaleAmount, 0) - ISNULL(UnitCostExtended, 0)) AS DECIMAL(18, 4)),
+							SET MarginAmount = CAST((ISNULL(NetSaleAmount, 0) - ISNULL(UnitCostExtended, 0)) AS DECIMAL(18, 6)),
 								MarginPercentage = 
 									CASE 
 										WHEN ISNULL(NetSaleAmount, 0) = 0 THEN 0
-										ELSE CAST(((ISNULL(NetSaleAmount, 0) - ISNULL(UnitCostExtended, 0)) / ISNULL(NetSaleAmount, 0)) * 100 AS DECIMAL(18, 4))
+										ELSE CAST(((ISNULL(NetSaleAmount, 0) - ISNULL(UnitCostExtended, 0)) / ISNULL(NetSaleAmount, 0)) * 100 AS DECIMAL(18, 6))
 									END
 							WHERE SalesOrderPartId = @SubReferenceId AND SalesOrderStocklineId = @SOStocklineId AND ISNULL(IsDeleted,0) = 0 AND MasterCompanyId =@MasterCompanyId
 

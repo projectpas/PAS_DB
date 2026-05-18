@@ -39,8 +39,9 @@
 	31	 08-Dec-2025        Divyesh Kathiriya		Handle new tab "\", "\t" in All Filed
 	32	 17-DEC-2025        Nakul Chandigra  		Added New SingleScreen Modules
 	34	 02-Feb-2026        Nakul Chandigra  		Added New SingleScreen Modules
-	35   09-APR-2026		Ayushi Patel			Handled QuantityOnHand As decimal 
+	35   09-APR-2026		Ayushi Patel			PN-15988 Handled QuantityOnHand As decimal 
 	35   22-APR-2026		Nakul Chandigra			Removed Handled Description code for  Item Classification and  Item Group (PN-15952)
+	36   13-MAY-2026		Ayushi Patel			PN-16321 handled new WorkOrderMaterial module
 	exec USP_SaveCommonUploadData_ByModuleId @ModuleId=4,@UserName=N'VICTOR ADMAS',@MasterCompanyId=1, @EmployeeId = 236;
 **************************************************************/
 CREATE PROCEDURE [dbo].[USP_SaveCommonUploadData_ByModuleId]
@@ -143,6 +144,7 @@ BEGIN
 		DECLARE @LocationModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'Location');
 		DECLARE @ShelfModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'Shelf');
 		DECLARE @BinModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'Bin');
+		DECLARE @WorkOrderMaterialsModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'WorkOrderMaterials');
 
 		SET @EmployeeMSId = (SELECT [ManagementStructureId] FROM [DBO].[Employee] WITH(NOLOCK) WHERE [EmployeeId] = @EmployeeId);
 		SET @PublicationMSId = (SELECT [ManagementStructureId] FROM DBO.[Employee] WITH(NOLOCK) WHERE [EmployeeId] = @EmployeeId);
@@ -991,6 +993,24 @@ BEGIN
 										+ CAST(@SalePriceSelectId AS VARCHAR(30)) + ',' 
 										+ '''' + CONVERT(VARCHAR(30), @UtcNow, 126) + '''' + ',';
 			END	
+			ELSE IF (@ModuleId = @WorkOrderMaterialsModule)
+			BEGIN
+			DECLARE @WMItemMasterId BIGINT;
+			DECLARE @WMWorkOrderId BIGINT , @WMWorkFlowWorkOrderId BIGINT , @WMExtendedCost BIGINT;
+			SELECT @ItemMasterId = FieldValue FROM #DynamicKeyValue WHERE FieldName = 'ItemMasterId';
+			SELECT @WMWorkOrderId = FieldValue FROM #DynamicKeyValue WHERE FieldName = 'WorkOrderId';
+			SELECT @WMWorkFlowWorkOrderId = FieldValue FROM #DynamicKeyValue WHERE FieldName = 'WorkFlowWorkOrderId';
+			SELECT @WMExtendedCost = FieldValue FROM #DynamicKeyValue WHERE FieldName = 'ExtendedCost';
+			
+			DECLARE @ItemClassificationId BIGINT;
+			DECLARE @UomId BIGINT;
+			SELECT TOP 1 @ItemClassificationId = IM.ItemClassificationId,@UomId = IM.PurchaseUnitOfMeasureId FROM dbo.ItemMaster IM WITH(NOLOCK) WHERE IM.ItemMasterId=@ItemMasterId
+				
+				SET @RefFieldName += ',MaterialMandatoriesId, ItemClassificationId, UnitOfMeasureId,WorkOrderId,WorkFlowWorkOrderId,ExtendedCost,MasterCompanyId, CreatedBy, UpdatedBy';
+
+				SET @FieldValue += '1'+',' + CAST(ISNULL(@ItemClassificationId,0) AS VARCHAR(20)) + ',' + CAST(ISNULL(@UomId,0) AS VARCHAR(20)) + ',' + CAST(ISNULL(@WMWorkOrderId,0) AS VARCHAR(20)) + ',' + CAST(ISNULL(@WMWorkFlowWorkOrderId,0) AS VARCHAR(20)) + ','+ CAST(ISNULL(@WMExtendedCost,0) AS VARCHAR(20)) + ','
+
+			END
 			ELSE IF(@ModuleId = @MROPriceMasterModule OR @ModuleId = @MROPriceMasterListModule )
 			BEGIN
 				DECLARE @MROWhereClause NVARCHAR(MAX) = '';
@@ -1567,7 +1587,38 @@ BEGIN
 				END
 			END
 ------------END: Save Mapping Data Of Multiple DropDownl List------------
+			IF (@ModuleId = @WorkOrderMaterialsModule AND ISNULL(@ModuleTableId, 0) > 0)
+			BEGIN
+				DECLARE @WM_WorkOrderId    BIGINT;
+				DECLARE @WM_WorkFlowWOId   BIGINT;
+				DECLARE @WM_WorkOrderId2   BIGINT;
 
+				SELECT 
+					@WM_WorkOrderId   = WorkOrderId,
+					@WM_WorkFlowWOId  = WorkFlowWorkOrderId
+				FROM dbo.WorkOrderMaterials WITH(NOLOCK)
+				WHERE WorkOrderMaterialsId = @ModuleTableId;
+
+				EXEC [dbo].[USP_AutoReserveIssueWorkOrderMaterials] 
+					@WM_WorkFlowWOId, 
+					@UserName;
+
+				EXEC [dbo].[USP_UpdateWOMaterialsCost] 
+					@ModuleTableId, 
+					@WM_WorkFlowWOId;
+
+				EXEC [dbo].[USP_UpdateWOTotalCostDetails] 
+					@WM_WorkOrderId, 
+					@WM_WorkFlowWOId, 
+					@UserName, 
+					@MasterCompanyId;
+
+				EXEC [dbo].[USP_UpdateWOCostDetails] 
+					@WM_WorkOrderId, 
+					@WM_WorkFlowWOId, 
+					@UserName, 
+					@MasterCompanyId;
+			END
 			-- Need to update ledger
 			IF(@ModuleId = @GLModule)
 			BEGIN

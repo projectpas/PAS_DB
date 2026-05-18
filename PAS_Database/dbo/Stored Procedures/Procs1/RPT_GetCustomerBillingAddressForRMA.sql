@@ -14,6 +14,7 @@
     1    04/21/2023   Amit Ghediya    Created
 	2    04-09-2024   Ekta Chandegara  Retrieve address using common function
 	3    01/05/2026   Ayushi Patel     [PN-16030] Added MasterCompanyCode/NULL parameter in ValidatePDFAddress calls.
+	4    12/05/2026   Ayushi Patel     [PN-16030] Added A2Z-specific SiteName casing logic for Company user type.
 
 -- EXEC [dbo].[RPT_GetCustomerBillingAddressForRMA] 5,65,0,1,37
 **************************************************************/ 
@@ -29,9 +30,20 @@ BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 	SET NOCOUNT ON;
 	BEGIN TRY
-	     
+			DECLARE @CompanyId BIGINT;
+			SELECT @CompanyId = ModuleId FROM Module WHERE ModuleName = 'Company';
+
+			DECLARE @A2ZMasterCompanyCode VARCHAR(50);
+			SELECT @A2ZMasterCompanyCode = MasterCompanyCode FROM DBO.MasterCompany WITH(NOLOCK) WHERE UPPER(MasterCompanyCode) = UPPER('A2Z');
+			  
 			  SELECT  		        
-					ISNULL(RMAA.SiteName, '') AS BillSiteName,
+					--ISNULL(RMAA.SiteName, '') AS BillSiteName,
+					CASE 
+						WHEN RMAA.UserType = @CompanyId 
+							 AND UPPER(MS.MasterCompanyCode) = UPPER(@A2ZMasterCompanyCode)
+						THEN ISNULL(RMAA.SiteName, '')
+						ELSE UPPER(ISNULL(RMAA.SiteName, ''))
+					END AS BillSiteName,
 					ISNULL(RMAA.Memo, '') AS BillShipToMemo,
 					CASE
 					WHEN RMAA.Line1 !='' OR RMAA.Line2 !='' 

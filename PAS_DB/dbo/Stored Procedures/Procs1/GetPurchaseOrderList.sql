@@ -33,6 +33,7 @@
 	17  04/12/2025		RAJESH GAMI			ADDED: @CustomerRFQNo and functionality while getting the list
 	18  08-12-2025      Sahdev Saliya       Added New Field :- VendorRFQPurchaseOrderNumber
 	19  01-20-2026      Vishal Suthar       Added filter to skip migrated PO from the listing for PAR
+	20  05-14-2026      Bhargav Saliya      Remove The [VendoreId] Condition [PN-16416]
 
 **************************************************************/      
 CREATE    PROCEDURE [dbo].[GetPurchaseOrderList]
@@ -231,7 +232,7 @@ BEGIN
 				LEFT JOIN  [dbo].[VendorRFQPurchaseOrder] VRPO WITH (NOLOCK) ON VRPO.VendorRFQPurchaseOrderId = PO.VendorRFQPurchaseOrderId
 				WHERE ((PO.IsDeleted = @IsDeleted) AND (@StatusID IS NULL OR PO.StatusId = @StatusID))      
 				AND PO.MasterCompanyId = @MasterCompanyId AND (ISNULL(@IsUpdated,0) <> 1 OR ISNULL(PO.IsUpdated,0) = ISNULL(@IsUpdated,0))   
-				AND (@VendorId IS NULL OR PO.VendorId = @VendorId)
+				--AND (@VendorId IS NULL OR PO.VendorId = @VendorId)
 				AND (PO.Notes <> 'PARMigrate' AND PO.CreatedBy <> 'TBD')
 				GROUP BY PO.PurchaseOrderId, 				   
 					PO.PurchaseOrderNumber,
@@ -449,7 +450,7 @@ BEGIN
 			LEFT JOIN  [dbo].[VendorRFQPurchaseOrder] VRPO WITH (NOLOCK) ON VRPO.VendorRFQPurchaseOrderId = PO.VendorRFQPurchaseOrderId
 
 		WHERE ((PO.IsDeleted = @IsDeleted) AND (@StatusID IS NULL OR PO.StatusId = @StatusID)) AND PO.MasterCompanyId = @MasterCompanyId    
-				AND (@VendorId IS NULL OR PO.VendorId = @VendorId)
+				--AND (@VendorId IS NULL OR PO.VendorId = @VendorId)
 		
 		), ResultCount AS(
 	  

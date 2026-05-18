@@ -16,7 +16,8 @@
 	2    20/09/2024   MOIN BLOCH      UPDATED for nullable to blanck
 	3	 18/04/2025	  ABHISHEK JIRAWLA Updated Receiving Number for Receiving Customer Work
 	4	 30/04/2025	  ABHISHEK JIRAWLA Adding IsPiecePart and IsRepairManagement to the Stockline
-	     
+	5    12/05/2026   Nakul Chandigra  Added OutGoingItemMasterId And OutGoingPartNumber
+	
 -- EXEC AddUpdateReceiveCustomerPiecePart 
 ************************************************************************/    
 CREATE   PROCEDURE [dbo].[AddUpdateReceiveCustomerPiecePart]  
@@ -182,6 +183,8 @@ BEGIN
 				[LastSinceOVH] [varchar](20) NULL,	
 				[LastSinceInspection] [varchar](20) NULL,
 				[IsSkipShippingReference] [bit] NULL,
+				[OutGoingItemMasterId] [bigint] NULL,
+				[OutGoingPartNumber] [varchar](50) NULL
 			)
 				
 		INSERT INTO #tmprReceiveCustomerPiecePart ([ReceivingCustomerWorkId],[EmployeeId],[CustomerId],[ReceivingNumber],[CustomerContactId],
@@ -195,7 +198,7 @@ BEGIN
 						[CertifiedById],[CertifiedTypeId],[CertifiedType],[CertTypeId],[CertType],[RemovalReasonId],[RemovalReasons],[RemovalReasonsMemo],[ExchangeSalesOrderId],
 				        [CustReqTagTypeId],[CustReqTagType],[CustReqCertTypeId],[CustReqCertType],[RepairOrderPartRecordId],[IsExchangeBatchEntry],[ShippingViaId],[EngineSerialNumber],[ShippingAccount],
 						[ShippingReference],[TimeLifeDetailsNotProvided],[PurchaseUnitOfMeasureId],[GlAccountName],[CyclesRemaining],[CyclesSinceNew],[CyclesSinceOVH],[CyclesSinceInspection],
-                        [CyclesSinceRepair],[TimeRemaining],[TimeSinceNew],[TimeSinceOVH],[TimeSinceInspection],[TimeSinceRepair],[LastSinceNew],[LastSinceOVH],[LastSinceInspection],[IsSkipShippingReference])
+                        [CyclesSinceRepair],[TimeRemaining],[TimeSinceNew],[TimeSinceOVH],[TimeSinceInspection],[TimeSinceRepair],[LastSinceNew],[LastSinceOVH],[LastSinceInspection],[IsSkipShippingReference],[OutGoingItemMasterId],[OutGoingPartNumber])
 			     SELECT [ReceivingCustomerWorkId],[EmployeeId],[CustomerId],[ReceivingNumber],[CustomerContactId],
 						[ItemMasterId],[ManufacturerId],[RevisePartId],[IsSerialized],[SerialNumber],[Quantity],[UnitCost],[ExtendedCost],[ConditionId],[SiteId],[WarehouseId],[LocationId],[ShelfId],[BinId],[OwnerTypeId],
 						[Owner],[IsCustomerStock],[TraceableToTypeId],[TraceableTo],[ObtainFromTypeId],[ObtainFrom],[IsMFGDate],[MFGDate],[MFGTrace],[MFGLotNo],[MFGBatchNo],[IsExpDate],
@@ -207,7 +210,7 @@ BEGIN
 						[CertifiedById],[CertifiedTypeId],[CertifiedType],[CertTypeId],[CertType],[RemovalReasonId],[RemovalReasons],[RemovalReasonsMemo],[ExchangeSalesOrderId],
 				        [CustReqTagTypeId],[CustReqTagType],[CustReqCertTypeId],[CustReqCertType],[RepairOrderPartRecordId],[IsExchangeBatchEntry],[ShippingViaId],[EngineSerialNumber],[ShippingAccount], 
 						[ShippingReference],[TimeLifeDetailsNotProvided],[PurchaseUnitOfMeasureId],[GlAccountName],[CyclesRemaining],[CyclesSinceNew],[CyclesSinceOVH],[CyclesSinceInspection],
-                        [CyclesSinceRepair],[TimeRemaining],[TimeSinceNew],[TimeSinceOVH],[TimeSinceInspection],[TimeSinceRepair],[LastSinceNew],[LastSinceOVH],[LastSinceInspection],[IsSkipShippingReference]							
+                        [CyclesSinceRepair],[TimeRemaining],[TimeSinceNew],[TimeSinceOVH],[TimeSinceInspection],[TimeSinceRepair],[LastSinceNew],[LastSinceOVH],[LastSinceInspection],[IsSkipShippingReference],[OutGoingItemMasterId],[OutGoingPartNumber]							
 						FROM @tbl_ReceivingCustomerWorkType
 
 		SELECT @TotalRecord = COUNT(*), @MinId = MIN(ID) FROM #tmprReceiveCustomerPiecePart    
@@ -515,7 +518,7 @@ BEGIN
 							   ,[WorkScope] ,[Condition] ,[Site] ,[Warehouse] ,[Location] ,[Shelf] ,[Bin] ,[InspectedBy] ,[InspectedDate] ,[TaggedById] ,[TaggedBy] 
 							   ,[ACTailNum] ,[TaggedByType] ,[TaggedByTypeName] ,[CertifiedById] ,[CertifiedTypeId] ,[CertifiedType] ,[CertTypeId],[CertType] 
 							   ,[RemovalReasonId] ,[RemovalReasons] ,[RemovalReasonsMemo] ,[ExchangeSalesOrderId] ,[CustReqTagTypeId] ,[CustReqTagType] 
-							   ,[CustReqCertTypeId] ,[CustReqCertType] ,[RepairOrderPartRecordId] ,[IsExchangeBatchEntry],[IsPiecePart],[IsSkipShippingReference])
+							   ,[CustReqCertTypeId] ,[CustReqCertType] ,[RepairOrderPartRecordId] ,[IsExchangeBatchEntry],[IsPiecePart],[IsSkipShippingReference],[OutGoingItemMasterId],[OutGoingPartNumber])
 					     SELECT [EmployeeId],[CustomerId],@RCReceiverNumber,[CustomerContactId] ,[ItemMasterId] ,[RevisePartId] 
 						       ,[IsSerialized] ,[SerialNumber] ,[Quantity] ,[ConditionId] ,[SiteId] ,[WarehouseId] ,[LocationId] ,[ShelfId] ,[BinId] ,[OwnerTypeId]
 							   ,[Owner] ,[IsCustomerStock] ,[TraceableToTypeId] ,[TraceableTo] ,[ObtainFromTypeId] ,[ObtainFrom] ,[IsMFGDate] ,[MFGDate] ,[MFGTrace]
@@ -527,7 +530,7 @@ BEGIN
 							   ,[WorkScope] ,[Condition] ,[Site] ,[Warehouse] ,[Location] ,[Shelf] ,[Bin] ,[InspectedBy] ,[InspectedDate] ,[TaggedById] ,[TaggedByName] 
 							   ,[ACTailNum] ,[TaggedByType] ,[TaggedByTypeName] ,[CertifiedById] ,[CertifiedTypeId] ,[CertifiedType] ,[CertTypeId],[CertType] 
 							   ,[RemovalReasonId] ,[RemovalReasons] ,[RemovalReasonsMemo] ,[ExchangeSalesOrderId] ,[CustReqTagTypeId] ,[CustReqTagType] 
-							   ,[CustReqCertTypeId] ,[CustReqCertType] ,[RepairOrderPartRecordId] ,[IsExchangeBatchEntry],1,[IsSkipShippingReference] FROM #tmprReceiveCustomerPiecePart WHERE ID = @MinId;	
+							   ,[CustReqCertTypeId] ,[CustReqCertType] ,[RepairOrderPartRecordId] ,[IsExchangeBatchEntry],1,[IsSkipShippingReference],[OutGoingItemMasterId],[OutGoingPartNumber]FROM #tmprReceiveCustomerPiecePart WHERE ID = @MinId;	
 
 					SELECT @ReceivingCustomerWorkId = SCOPE_IDENTITY(); 
 

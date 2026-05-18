@@ -23,7 +23,8 @@
 ** 11   2026-05-04   Amit Ghediya		ATA Chapter level shows “-” when no data exists [PN-16249]
 ** 12   2026-05-07	 Abhishek Jirawla	Adding Make Type and Model [PN-16282]
 ** 13   05-12-2026   Amit Ghediya       Added item InstallFlightHours,InstalledTime,InstalledCycles,. (PN-16382)
-** 13   05-13-2026   Amit Ghediya       Added item PO,RO,WO Num. (PN-16415)
+** 14   05-13-2026   Amit Ghediya       Added item PO,RO,WO Num. (PN-16415)
+** 15   05-18-2026   Abhishek Jirawla   Added item PO,RO,WO Id. (PN-16464)
 
 *********************/
 CREATE   PROCEDURE [dbo].[USP_GetAircraftInstalledPartDetails]
@@ -153,8 +154,11 @@ BEGIN
                 UPPER(AIPD.CreatedBy) AS CreatedBy,
                 UPPER(AIPD.UpdatedBy) AS UpdatedBy,				
 				LS.LastSequence,
+				POP.PurchaseOrderId AS POId,
 				PO.PurchaseOrderNumber AS 'PONumber',
+				ROP.RepairOrderId AS ROId,
 				RO.RepairOrderNumber AS 'RONumber',
+				WOP.WorkOrderId AS WOId,
 				WO.WorkOrderNum AS 'WONumber'
             FROM dbo.AircraftInstalledPartDetails AS AIPD WITH (NOLOCK)
 			LEFT JOIN dbo.ItemMasterAircraftMapping IMAM WITH (NOLOCK) ON AIPD.ATAChapterId = IMAM.ItemMasterAircraftMappingId

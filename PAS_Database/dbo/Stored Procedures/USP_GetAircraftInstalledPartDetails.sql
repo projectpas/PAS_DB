@@ -23,6 +23,8 @@
 ** 11   2026-05-04   Amit Ghediya		ATA Chapter level shows “-” when no data exists [PN-16249]
 ** 12   2026-05-07	 Abhishek Jirawla	Adding Make Type and Model [PN-16282]
 ** 13   05-12-2026   Amit Ghediya       Added item InstallFlightHours,InstalledTime,InstalledCycles,. (PN-16382)
+** 13   05-13-2026   Amit Ghediya       Added item PO,RO,WO Num. (PN-16415)
+** 14   18-05-2026   Ayushi Patel       Return WorksheetNumber from worksheetheader table [PN-16454]
 ** 14   05-13-2026   Amit Ghediya       Added item PO,RO,WO Num. (PN-16415)
 ** 15   05-18-2026   Abhishek Jirawla   Added item PO,RO,WO Id. (PN-16464)
 
@@ -62,7 +64,8 @@ CREATE   PROCEDURE [dbo].[USP_GetAircraftInstalledPartDetails]
 
 	@PONumber VARCHAR(50) = NULL,
 	@RONumber VARCHAR(50) = NULL,
-	@WONumber VARCHAR(50) = NULL
+	@WONumber VARCHAR(50) = NULL,
+	@WorksheetNumber VARCHAR(50) = NULL
 )
 AS
 BEGIN
@@ -157,7 +160,8 @@ BEGIN
 				POP.PurchaseOrderId AS POId,
 				PO.PurchaseOrderNumber AS 'PONumber',
 				ROP.RepairOrderId AS ROId,
-				RO.RepairOrderNumber AS 'RONumber',
+				RO.RepairOrderNumber AS 'RONumber',				
+				WSH.WorksheetNumber,
 				WOP.WorkOrderId AS WOId,
 				WO.WorkOrderNum AS 'WONumber'
             FROM dbo.AircraftInstalledPartDetails AS AIPD WITH (NOLOCK)
@@ -172,6 +176,7 @@ BEGIN
 			LEFT JOIN dbo.RepairOrder RO WITH (NOLOCK) ON RO.RepairOrderId = ROP.RepairOrderId
 			LEFT JOIN dbo.WorkOrderPartNumber WOP WITH (NOLOCK) ON WOP.AircraftInstalledPartDetailsId = AIPD.AircraftInstalledPartDetailsId
 			LEFT JOIN dbo.WorkOrder WO WITH (NOLOCK) ON WO.WorkOrderId = WOP.WorkOrderId
+			LEFT JOIN dbo.worksheetheader WSH WITH (NOLOCK) ON WSH.AircraftInstalledPartDetailsId = AIPD.AircraftInstalledPartDetailsId
 			CROSS JOIN (
 					SELECT MAX(SequenceNum) AS LastSequence
 					FROM dbo.AircraftInstalledPartDetails WITH (NOLOCK)
@@ -205,7 +210,8 @@ BEGIN
 					(PositionCode LIKE '%' +@GlobalFilter+'%') OR
 					(PONumber LIKE '%' +@GlobalFilter+'%') OR
 					(RONumber LIKE '%' +@GlobalFilter+'%') OR
-					(WONumber LIKE '%' +@GlobalFilter+'%'))) OR
+					(WONumber LIKE '%' +@GlobalFilter+'%') OR
+					(WorksheetNumber LIKE '%' +@GlobalFilter+'%'))) OR
 					(@GlobalFilter='' AND 
 					(ISNULL(@AircraftRegistryNumber,'') ='' OR [AircraftRegistryNumber] LIKE '%' + @AircraftRegistryNumber+'%') AND
 					(ISNULL(@MakeType,'') ='' OR [MakeType] LIKE '%' + @MakeType+'%') AND
@@ -231,7 +237,8 @@ BEGIN
 					(ISNULL(@PositionCode,'') ='' OR PositionCode LIKE '%' + @PositionCode + '%') AND
 					(ISNULL(@PONumber,'') ='' OR PONumber LIKE '%' + @PONumber + '%') AND
 					(ISNULL(@RONumber,'') ='' OR RONumber LIKE '%' + @RONumber + '%') AND
-					(ISNULL(@WONumber,'') ='' OR WONumber LIKE '%' + @WONumber + '%'))
+					(ISNULL(@WONumber,'') ='' OR WONumber LIKE '%' + @WONumber + '%') AND
+					(ISNULL(@WorksheetNumber,'') ='' OR WorksheetNumber LIKE '%' + @WorksheetNumber + '%'))
 			)
    SELECT @Count = COUNT(AircraftInstalledPartDetailsId) FROM #TempResult			
 
@@ -314,6 +321,9 @@ BEGIN
 
 			CASE WHEN @SortOrder =  1 AND @SortColumn = 'WONUMBER'      THEN WONumber      END ASC,
             CASE WHEN @SortOrder = -1 AND @SortColumn = 'WONUMBER'      THEN WONumber      END DESC,
+
+			CASE WHEN @SortOrder =  1 AND @SortColumn = 'WorksheetNumber'      THEN WorksheetNumber      END ASC,
+            CASE WHEN @SortOrder = -1 AND @SortColumn = 'WorksheetNumber'      THEN WorksheetNumber      END DESC,
 
             AircraftInstalledPartDetailsId DESC
         OFFSET @RecordFrom ROWS

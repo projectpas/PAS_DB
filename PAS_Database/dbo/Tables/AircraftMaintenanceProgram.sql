@@ -37,6 +37,7 @@
     [IsDeleted]                   BIT           CONSTRAINT [DF_AMP_IsDeleted] DEFAULT ((0)) NOT NULL,
     [MaintenanceTypeId]           BIGINT        NULL,
     [MaintenanceClassId]          BIGINT        NULL,
+    [IsScheduledMaintenance]      BIT           NULL,
     CONSTRAINT [PK_AircraftMaintenanceProgram] PRIMARY KEY CLUSTERED ([ProgramId] ASC),
     CONSTRAINT [CK_AMP_Minutes] CHECK (([FlightHoursLimitMinutes] IS NULL OR [FlightHoursLimitMinutes]>=(0) AND [FlightHoursLimitMinutes]<=(59)) AND ([FlightHoursRecordedMinutes] IS NULL OR [FlightHoursRecordedMinutes]>=(0) AND [FlightHoursRecordedMinutes]<=(59)) AND ([FlightHoursRemainingMinutes] IS NULL OR [FlightHoursRemainingMinutes]>=(0) AND [FlightHoursRemainingMinutes]<=(59))),
     CONSTRAINT [FK_AircraftMaintenanceProgram_AircraftRegistry] FOREIGN KEY ([AircraftRegistryId]) REFERENCES [dbo].[AircraftRegistryHeader] ([AircraftRegistryId]),

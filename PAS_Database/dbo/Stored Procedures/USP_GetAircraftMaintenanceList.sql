@@ -13,7 +13,7 @@
 ** 1    10/04/2026   Priyansh Patel     Created [PN-16016]
 ** 2    28/04/2026   Priyansh Patel     Added Mtce Class [PN-16160]
 ** 3    07/05/2026   Priyansh Patel     Added TemplateIdNumber [PN-16344]
-** 4    18-05-2026   Ayushi Patel       Return WorksheetNumber from worksheetheader table [PN-16454]
+** 5    18/05/2026   Bhargav Saliya     Added IsScheduledMaintenance [PN-16475]
 *********************/
 -- EXEC [dbo].[USP_GetAircraftMaintenanceList] @MasterCompanyId = 1 @AircraftRegistryId = 22;
 CREATE  PROCEDURE [dbo].[USP_GetAircraftMaintenanceList]
@@ -53,7 +53,7 @@ CREATE  PROCEDURE [dbo].[USP_GetAircraftMaintenanceList]
     @IsDeleted               BIT             = 0,
     @AircraftRegistryId      BIGINT,
     @MasterCompanyId         INT,
-    @WorksheetNumber         VARCHAR(50) = NULL
+    @IsScheduledMaintenance    VARCHAR(100) = NULL
 
 AS
 BEGIN
@@ -103,14 +103,13 @@ BEGIN
                 AMP.UpdatedBy,
                 AMP.CreatedDate,
                 AMP.CreatedBy,
-                WSH.WorksheetNumber,
+                CASE WHEN ISNULL(AMP.IsScheduledMaintenance,0) = 1 THEN 'Scheduled' ELSE 'Non-Scheduled' END AS IsScheduledMaintenance,
                 COUNT(1) OVER () AS TotalRecords
 
             FROM [dbo].[AircraftMaintenanceProgram] AMP WITH (NOLOCK)
             LEFT JOIN [dbo].[AircraftRegistryHeader] ARH WITH (NOLOCK) ON AMP.AircraftRegistryId = ARH.AircraftRegistryId  AND ARH.MasterCompanyId = @MasterCompanyId 
             LEFT JOIN [dbo].[MaintenanceClass] MC WITH (NOLOCK)  ON AMP.MaintenanceClassId = MC.MaintenanceClassId
             LEFT JOIN [dbo].[Workflow] WF WITH (NOLOCK)  ON AMP.TemplateId = WF.WorkflowId AND WF.TemplateType = @ACTemplateType
-            LEFT JOIN [dbo].[worksheetheader] WSH WITH (NOLOCK) ON AMP.ProgramId = WSH.ProgramId
 
             WHERE (@AircraftRegistryId IS NULL OR @AircraftRegistryId = 0 OR AMP.AircraftRegistryId = @AircraftRegistryId) --AMP.AircraftRegistryId = @AircraftRegistryId  
 			AND AMP.MasterCompanyId = @MasterCompanyId  AND (@IsDeleted IS NULL OR AMP.IsDeleted = @IsDeleted)
@@ -149,8 +148,7 @@ BEGIN
                 AND (@TimeRemaining IS NULL OR CAST(AMP.TimeRemaining AS VARCHAR) LIKE '%' + @TimeRemaining + '%')
                 AND (@LandingsRemaining IS NULL OR CAST(AMP.LandingsRemaining AS VARCHAR) LIKE '%' + @LandingsRemaining + '%')
                 AND (@EngineStartsRemaining IS NULL OR CAST(AMP.EngineStartsRemaining AS VARCHAR) LIKE '%' + @EngineStartsRemaining + '%')
-                AND (@WorksheetNumber IS NULL  OR MC.[Name] LIKE '%' + @MaintenanceClassName + '%')
-                AND (ISNULL(@WorksheetNumber,'') ='' OR WSH.WorksheetNumber LIKE '%' + @WorksheetNumber + '%')
+                AND (@IsScheduledMaintenance IS NULL OR CASE WHEN ISNULL(AMP.IsScheduledMaintenance, 0) = 1 THEN 'Scheduled' ELSE 'Non-Scheduled' END LIKE '%' + @IsScheduledMaintenance + '%')
         )
 
         SELECT *
@@ -210,8 +208,8 @@ BEGIN
             CASE WHEN @SortColumn = 'EngineStartsRemaining' AND @SortOrder = 'DESC' THEN EngineStartsRemaining END DESC,
             CASE WHEN @SortColumn = 'CreatedDate'       AND @SortOrder = 'ASC'  THEN CreatedDate END ASC,
             CASE WHEN @SortColumn = 'CreatedDate'       AND @SortOrder = 'DESC' THEN CreatedDate END DESC,
-            CASE WHEN @SortColumn = 'WorksheetNumber' AND @SortOrder = 'ASC' THEN WorksheetNumber END ASC,
-            CASE WHEN @SortColumn = 'WorksheetNumber' AND @SortOrder = 'DESC' THEN WorksheetNumber END DESC,
+            CASE WHEN @SortColumn = 'IsScheduledMaintenance'       AND @SortOrder = 'ASC'  THEN IsScheduledMaintenance END ASC,
+            CASE WHEN @SortColumn = 'IsScheduledMaintenance'       AND @SortOrder = 'DESC' THEN IsScheduledMaintenance END DESC,
             ProgramId DESC
 
         OFFSET (@PageNumber - 1) * @PageSize ROWS

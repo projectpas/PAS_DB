@@ -23,9 +23,9 @@
 	9    24-04-2026   Priyansh Patel   Added New Field TemplateType [PN-16166]
 	10   04-05-2026   Priyansh Patel   Added New Field TemplateType [PN-16166]
 	11   07-05-2026   Priyansh Patel   Global filter updated [PN-16341]
+	12   18-05-2026   Priyansh Patel   Updated maintenance type and Work scope return column [PN-16419]
 
-
-exec GetWorkFlowList @PageSize=20,@PageNumber=1,@SortColumn=NULL,@SortOrder=-1,@StatusID=1,@GlobalFilter=N'',@WorkOrderNumber=NULL,@Version=NULL,@PartNumber=NULL,@PartDescription=NULL,@ManufacturerName=NULL,@Description=NULL,@CustomerName=NULL,@WorkflowCreateDate=NULL,@WorkflowExpirationDate=NULL,@CreatedDate=NULL,@UpdatedDate=NULL,@CreatedBy=NULL,@UpdatedBy=NULL,@IsDeleted=0,@MasterCompanyId=1,@TemplateDescription=NULL,@EmployeeId=223
+exec GetWorkFlowList @PageSize=20,@PageNumber=1,@SortColumn=NULL,@SortOrder=-1,@StatusID=1,@GlobalFilter=N'',@WorkOrderNumber=NULL,@Version=NULL,@PartNumber=NULL,@PartDescription=NULL,@ManufacturerName=NULL,@WorkScopeCode=NULL,@CustomerName=NULL,@WorkflowCreateDate=NULL,@WorkflowExpirationDate=NULL,@CreatedDate=NULL,@UpdatedDate=NULL,@CreatedBy=NULL,@UpdatedBy=NULL,@IsDeleted=0,@MasterCompanyId=1,@TemplateDescription=NULL,@EmployeeId=223
 **************************************************************/ 
 
 CREATE    PROCEDURE [dbo].[GetWorkFlowList]
@@ -41,7 +41,7 @@ CREATE    PROCEDURE [dbo].[GetWorkFlowList]
 	@PartNumber varchar(50)=null,
 	@PartDescription varchar(50)=null,
 	@ManufacturerName varchar(50)=null,
-	@Description varchar(50)=null,
+	@WorkScopeCode varchar(50)=null,
 	@CustomerName varchar(50)=null,	
 	@WorkflowCreateDate datetime=null,
 	@WorkflowExpirationDate datetime=null,	
@@ -121,7 +121,7 @@ BEGIN
 				;With Result AS(
 					SELECT	
 					wf.WorkflowId, 					
-					ws.Description,
+					ws.WorkScopeCode As WorkScopeCode,
 					wf.WorkScopeId,
 					c.Name,
 					im.PartNumber,	
@@ -151,7 +151,7 @@ BEGIN
 					wf.SerialNum AS AcSerialNumber,
 					ACM.ModelName AS AircraftModel,
 					ACT.[Description] AS AircraftMake, 
-					MT.[Description] AS MaintenanceType,
+					MT.[MaintenanceType] AS MaintenanceType,
 					wf.Verified,
 					wf.VerifiedBy,
 					wf.VerifiedDate
@@ -173,7 +173,7 @@ BEGIN
 					(PartNumber like '%' +@GlobalFilter+'%') OR					
 					(PartDescription like '%' +@GlobalFilter+'%') OR
 					(ManufacturerName like '%' +@GlobalFilter+'%') OR
-					(Description like '%' +@GlobalFilter+'%') OR
+					(WorkScopeCode like '%' +@GlobalFilter+'%') OR
 					(Name like '%' +@GlobalFilter+'%') OR
 					(CreatedBy like '%' +@GlobalFilter+'%') OR
 					(UpdatedBy like '%' +@GlobalFilter+'%') 
@@ -187,7 +187,7 @@ BEGIN
 					(IsNull(@TemplateDescription,'') ='' OR TemplateDescription like '%' + @TemplateDescription+'%') and
 					(IsNull(@PartDescription,'') ='' OR PartDescription like '%' + @PartDescription+'%') and
 					(IsNull(@ManufacturerName,'') ='' OR ManufacturerName like '%' + @ManufacturerName+'%') and
-					(IsNull(@Description,'') ='' OR Description like '%' + @Description+'%') and
+					(IsNull(@WorkScopeCode,'') ='' OR WorkScopeCode like '%' + @WorkScopeCode+'%') and
 					(IsNull(@CustomerName,'') ='' OR Name like '%' + @CustomerName+'%') and
 					(IsNull(@CreatedBy,'') ='' OR CreatedBy like '%' + @CreatedBy+'%') and
 					(IsNull(@UpdatedBy,'') ='' OR UpdatedBy like '%' + @UpdatedBy+'%') and
@@ -213,7 +213,7 @@ BEGIN
 			CASE WHEN (@SortOrder=1 and @SortColumn='VERSION')  THEN Version END ASC,
 			CASE WHEN (@SortOrder=1 and @SortColumn='PARTNUMBER')  THEN partnumber END ASC,
 			CASE WHEN (@SortOrder=1 and @SortColumn='PARTDESCRIPTION')  THEN PartDescription END ASC,
-			CASE WHEN (@SortOrder=1 and @SortColumn='DESCRIPTION')  THEN Description END ASC,
+			CASE WHEN (@SortOrder=1 and @SortColumn='DESCRIPTION')  THEN WorkScopeCode END ASC,
 			CASE WHEN (@SortOrder=1 and @SortColumn='NAME')  THEN Name END ASC,
 			CASE WHEN (@SortOrder=1 and @SortColumn='CREATEDBY')  THEN CreatedBy END ASC,
 			CASE WHEN (@SortOrder=1 and @SortColumn='UPDATEDBY')  THEN UpdatedBy END ASC,
@@ -233,7 +233,7 @@ BEGIN
 			CASE WHEN (@SortOrder=-1 and @SortColumn='VERSION')  THEN Version END DESC,
 			CASE WHEN (@SortOrder=-1 and @SortColumn='PARTNUMBER')  THEN partnumber END DESC,
 			CASE WHEN (@SortOrder=-1 and @SortColumn='PARTDESCRIPTION')  THEN PartDescription END DESC,
-			CASE WHEN (@SortOrder=-1 and @SortColumn='DESCRIPTION')  THEN Description END DESC,
+			CASE WHEN (@SortOrder=-1 and @SortColumn='DESCRIPTION')  THEN WorkScopeCode END DESC,
 			CASE WHEN (@SortOrder=-1 and @SortColumn='NAME')  THEN Name END DESC,
 			CASE WHEN (@SortOrder=-1 and @SortColumn='CREATEDBY')  THEN CreatedBy END DESC,
 			CASE WHEN (@SortOrder=-1 and @SortColumn='UPDATEDBY')  THEN UpdatedBy END DESC,
@@ -277,7 +277,7 @@ BEGIN
 													   @Parameter8 = ' + ISNULL(@Version,'') + ', 
 													   @Parameter9 = ' + ISNULL(@PartNumber,'') + ', 
 													   @Parameter10 = ' + ISNULL(@PartDescription,'') + ', 
-													   @Parameter11 = ' + ISNULL(@Description,'') + ', 
+													   @Parameter11 = ' + ISNULL(@WorkScopeCode,'') + ', 
 													   @Parameter12 = ' + ISNULL(@CustomerName,'') + ', 
 													   @Parameter13 = ' + ISNULL(@WorkflowCreateDate,'') + ', 
 													   @Parameter14 = ' + ISNULL(@WorkflowExpirationDate,'') + ', 

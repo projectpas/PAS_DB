@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿
+/*************************************************************           
  ** File:   [USP_GetWOTearDownStockLineList]           
  ** Author:  Devendra Shekh
  ** Description: This stored procedure is used retrieve stockline list for teardown work order
@@ -18,7 +19,7 @@
 	6    02/04/2024   Moin Bloch			    Added new Field AttachmentId
 	7    05/04/2024   Moin Bloch			    Added new Field Condition	
 	8    25/02/2025   Moin Bloch			    Fixed for Blank Print Data For MTI
-
+	9    14/May/2026  Rajesh Gami			    Return IsReadyReleaseForm & Added the @isFromMultipleReleaseFormModal Parameter [PN-16405 :  Generate Multiple Release Forms for Teardown Work Orders]
      
 exec USP_GetWOTearDownStockLineList 
 @PageNumber=1,@PageSize=10,@SortColumn=N'CreatedDate',@SortOrder=-1,@GlobalFilter=N'',@StatusId=1,@PartNumber=NULL,@PartDescription=NULL,
@@ -54,7 +55,8 @@ CREATE   PROCEDURE [dbo].[USP_GetWOTearDownStockLineList]
 @WorkOrderId BIGINT = NULL,
 @WorkOrderPartNumberId BIGINT = NULL,
 @WorkFlowWorkOrderId BIGINT = NULL,
-@MasterCompanyId BIGINT = NULL
+@MasterCompanyId BIGINT = NULL,
+@isFromMultipleReleaseFormModal BIT = NULL
 AS
 BEGIN	
 	    SET NOCOUNT ON;
@@ -93,7 +95,7 @@ BEGIN
 		BEGIN
 			SET @IsActive=NULL;
 		END
-
+		SET @isFromMultipleReleaseFormModal = CASE WHEN ISNULL(@isFromMultipleReleaseFormModal,0) = 1 THEN 1 ELSE NULL END
 		;WITH Result AS(
 				SELECT DISTINCT
 						SL.StockLineId,
@@ -117,6 +119,7 @@ BEGIN
 						Upper(SL.CreatedBy) CreatedBy,
 						Upper(SL.UpdatedBy) UpdatedBy,
 						ISNULL(SL.IsGenerateReleaseForm,0) IsGenerateReleaseForm,
+						ISNULL(SL.IsReadyReleaseForm,0) IsReadyReleaseForm,
 						SL.ConditionId,
 						ISNULL((SELECT TOP 1 ATT.AttachmentId FROM [dbo].[Attachment] ATT WITH (NOLOCK) 
 				               INNER JOIN [dbo].[CommonDocumentDetails] DOC WITH (NOLOCK) ON DOC.AttachmentId = ATT.AttachmentId AND DOC.ReferenceId = SL.StockLineId AND DOC.ModuleId = @AttStockLineModuleId --AND DOC.[DocumentTypeId] = @DocumentTypeId
@@ -132,6 +135,7 @@ BEGIN
 					AND SL.MasterCompanyId=@MasterCompanyId AND SL.WorkOrderId = @WorkOrderId AND SL.IsTurnIn = 1
 					AND WOP.ID = @WorkOrderPartNumberId AND SL.WorkOrderPartNoId = @WorkOrderPartNumberId AND
 					SL.StockLineId NOT IN(SELECT StocklineId FROM [DBO].[WorkOrderPartNumber] WITH(NOLOCK) WHERE WorkOrderId = @WorkOrderId AND ID = @WorkOrderPartNumberId)
+					AND (@isFromMultipleReleaseFormModal IS NULL OR (ISNULL(SL.IsGenerateReleaseForm,0) = 0 AND ISNULL(SL.IsReadyReleaseForm,0) = 1) )
 			), ResultCount AS(SELECT COUNT(StockLineId) AS totalItems FROM Result)
 			SELECT * INTO #TempResult FROM  Result
 			 WHERE ((@GlobalFilter <>'' AND ((PartNumber LIKE '%' +@GlobalFilter+'%') OR

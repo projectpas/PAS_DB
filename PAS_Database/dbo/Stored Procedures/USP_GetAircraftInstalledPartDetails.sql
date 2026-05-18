@@ -25,6 +25,9 @@
 ** 13   05-12-2026   Amit Ghediya       Added item InstallFlightHours,InstalledTime,InstalledCycles,. (PN-16382)
 ** 13   05-13-2026   Amit Ghediya       Added item PO,RO,WO Num. (PN-16415)
 ** 14   18-05-2026   Ayushi Patel       Return WorksheetNumber from worksheetheader table [PN-16454]
+** 14   05-13-2026   Amit Ghediya       Added item PO,RO,WO Num. (PN-16415)
+** 15   05-18-2026   Abhishek Jirawla   Added item PO,RO,WO Id. (PN-16464)
+
 *********************/
 CREATE   PROCEDURE [dbo].[USP_GetAircraftInstalledPartDetails]
 (
@@ -154,10 +157,13 @@ BEGIN
                 UPPER(AIPD.CreatedBy) AS CreatedBy,
                 UPPER(AIPD.UpdatedBy) AS UpdatedBy,				
 				LS.LastSequence,
+				POP.PurchaseOrderId AS POId,
 				PO.PurchaseOrderNumber AS 'PONumber',
-				RO.RepairOrderNumber AS 'RONumber',
-				WO.WorkOrderNum AS 'WONumber',
-				WSH.WorksheetNumber
+				ROP.RepairOrderId AS ROId,
+				RO.RepairOrderNumber AS 'RONumber',				
+				WSH.WorksheetNumber,
+				WOP.WorkOrderId AS WOId,
+				WO.WorkOrderNum AS 'WONumber'
             FROM dbo.AircraftInstalledPartDetails AS AIPD WITH (NOLOCK)
 			LEFT JOIN dbo.ItemMasterAircraftMapping IMAM WITH (NOLOCK) ON AIPD.ATAChapterId = IMAM.ItemMasterAircraftMappingId
 			INNER JOIN dbo.AircraftRegistryHeader ARH WITH (NOLOCK) ON ARH.AircraftRegistryId = AIPD.AircraftRegistryId

@@ -4595,6 +4595,7 @@
     <Build Include="dbo\Stored Procedures\USP_GetMasterCompanyDetails.sql" />
     <Build Include="dbo\Tables\CustomerAging.sql" />
     <Build Include="dbo\Stored Procedures\uspbatch_UpdateCustomerARAgingBalance.sql" />
+    <Build Include="dbo\Views\vw_ItemMasterPartManufacturer.sql" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Snapshots\PAS_DB_20220518_07-53-10.dacpac" />

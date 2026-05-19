@@ -32,7 +32,7 @@ EXEC [GetSubWorkorderReleaseFromData]
 ** 21   23/01/2026  Moin Bloch       Fix For **
 ** 22   11/02/2026  Moin Bloch       Updated Added WOReleaseFormId insted of Country PN-15388
 ** 23   12/03/2026  Moin Bloch       Removed '-' FROM FooterRemarks
-** 23   18/MAY/2026 Rajesh Gami      8130 Release Form Enhancements for the ATI [PN-16447]
+** 24   18/MAY/2026 Rajesh Gami      8130 Release Form Enhancements for the ATI [PN-16447]
 
 
  EXEC [dbo].[GetWorkorderReleaseFromData] 12680,13359,0,0,1
@@ -71,7 +71,7 @@ BEGIN
 		DECLARE @ATIReleaseFormCommonTeardownTypeId BIGINT = 0;
 		DECLARE @ReleaseForm NVARCHAR(MAX) = '';
 		DECLARE @isATICompany BIT = 0;
-
+		
 		SELECT @MasterCompanyId = [MasterCompanyId] FROM [DBO].[WorkOrder] CTT WITH(NOLOCK) WHERE [WorkorderId] = @WorkorderId;
 
 		IF(@MasterCompanyCode = (SELECT [MasterCompanyCode] FROM [dbo].[MasterCompany] WITH(NOLOCK) WHERE [MasterCompanyId] = @MasterCompanyId))
@@ -359,7 +359,7 @@ BEGIN
 							(CASE WHEN @IsEasaLicense = 0 AND @IsEasaUKLicense = 0 THEN '<div style='+ '"bottom : 0px; position:absolute;font-size: 10px !important;line-height: 12px;"'+'>' + (REPLACE(REPLACE(ISNULL(wods.Dualreleaselanguage,''),'<p>',''),'</p>','') +' '+ +'</div>') ELSE ''  END)        
 							+ (CASE WHEN @IsEasaLicense = 1 AND @formTypeId = @FAAEASA THEN '<div style='+ '"bottom : 0px; position:absolute;font-size: 10px !important;line-height: 12px;"'+'>' + (REPLACE(REPLACE(ISNULL(wods.Dualreleaselanguage,''),'<p>',''),'</p>','') +' '+ le.EASALicense +'</div>') ELSE ''  END)        
 							+ (CASE WHEN @IsEasaUKLicense = 1 AND @formTypeId = @FAAEASAUK THEN '<div style='+ '"bottom : 0px; position:absolute;font-size: 10px !important;line-height: 12px;"'+'>' + (REPLACE(REPLACE(ISNULL(wods.Dualreleaselanguage,''),'<p>',''),'</p>','') +' '+ le.UKCAALicense +'</div>') ELSE ''  END)        
-							 FooterRemarks,  
+							+ '</div>' FooterRemarks,  
 							UPPER(le.EASALicense) AS EASALicense,  
 							@EmailBody AS EmailBody
 							,@VersionNo VersionNo
@@ -512,6 +512,7 @@ BEGIN
 							 + ' ' + le.UKCAALicense + '</div>'
 						ELSE ''
 					END
+					+ '</div>'
 				) AS FooterRemarks,
 
 				UPPER(le.EASALicense) AS EASALicense,  
@@ -634,7 +635,6 @@ BEGIN
 					+ (CASE WHEN @IsEasaLicense = 1 AND @formTypeId = @FAAEASA THEN '<div style='+ '"bottom : 0px; position:absolute;font-size: 10px !important;line-height: 12px;"'+'>' + (REPLACE(REPLACE(ISNULL(wods.Dualreleaselanguage,''),'<p>',''),'</p>','') +' '+ le.EASALicense +'</div>') ELSE ''  END)        
 					+ (CASE WHEN @IsEasaUKLicense = 1 AND @formTypeId = @FAAEASAUK THEN '<div style='+ '"bottom : 0px; position:absolute;font-size: 10px !important;line-height: 12px;"'+'>' + (REPLACE(REPLACE(ISNULL(wods.Dualreleaselanguage,''),'<p>',''),'</p>','') +' '+ le.UKCAALicense +'</div>') ELSE ''  END)        
 					  + '</div>'FooterRemarks,  
-
 					   UPPER(le.EASALicense) AS EASALicense,  
 					   @EmailBody AS EmailBody
 					   ,@VersionNo VersionNo

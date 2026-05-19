@@ -4,7 +4,7 @@
     [WorkflowId]              BIGINT          NOT NULL,
     [ItemMasterId]            BIGINT          NOT NULL,
     [TaskId]                  BIGINT          NULL,
-    [Quantity]                SMALLINT        NULL,
+    [Quantity]                DECIMAL (18, 6) NULL,
     [UnitOfMeasureId]         BIGINT          NULL,
     [ConditionCodeId]         BIGINT          NULL,
     [UnitCost]                DECIMAL (18, 2) NULL,

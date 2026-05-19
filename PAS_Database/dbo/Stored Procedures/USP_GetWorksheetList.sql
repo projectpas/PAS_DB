@@ -81,7 +81,7 @@ BEGIN
                 COUNT(1) OVER () AS TotalRecords
             FROM [dbo].[WorksheetHeader] WH WITH (NOLOCK)
             LEFT JOIN [dbo].[WorksheetPart] WP WITH (NOLOCK)
-                ON WP.WorksheetHeaderId = WH.WorksheetHeaderId
+                ON WP.WorksheetHeaderId = WH.WorksheetHeaderId AND WP.IsDeleted = @IsDeleted
             WHERE
                 WH.MasterCompanyId = @MasterCompanyId
                 AND (@IsDeleted IS NULL OR WH.IsDeleted = @IsDeleted)

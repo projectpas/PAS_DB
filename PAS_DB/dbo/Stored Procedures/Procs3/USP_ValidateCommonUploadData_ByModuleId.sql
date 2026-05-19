@@ -50,6 +50,8 @@
 	39   06-APR-2026		Nakul Chandigra			Add extra case of the validation for  @AircraftStatusModule And @MaintenanceStatusModule (PN-15945)
 	40   07-APR-2026        Nakul Chandigra			Add a common case of validation for dropdown (PN-15950)
 	41   09-APR-2026		Ayushi Patel			PN-15988 Excluded StocklineModule from restricting Decimal number
+	42   13-MAY-2026		Ayushi Patel			PN-16321 Added validation for WorkOrderMaterial module , Also get manufacture for partnumber dynamically 
+	43   15-May-2026		Ayushi Patel			PN-16321 Updated duplicate validation call to support 3-field combination for WorkOrderMaterials module 
 declare @p4 dbo.UploadModuleDataTableType
 insert into @p4 values(4,N'VICTOR ADMAS',1,N'{
   "partnumber": "AEIN122",
@@ -219,6 +221,7 @@ BEGIN
 		DECLARE @BinModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'Bin');
 		DECLARE @AircraftStatusModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'AircraftStatus');
 		DECLARE @MaintenanceStatusModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'MaintenanceStatus');
+		DECLARE @WorkOrderMaterialsModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'WorkOrderMaterials');
 
 		DECLARE @DropdownListTable VARCHAR(100) = NULL, 
 		@DropdownListId VARCHAR(100) = NULL, 
@@ -668,6 +671,10 @@ BEGIN
 															OR CHARINDEX('.', TMP.FieldValue) > 0  
 														 )
 													AND @ModuleId NOT IN (@PriceMasterModule, @StocklineModule)
+													AND NOT (
+														@ModuleId = @WorkOrderMaterialsModule
+														AND IMF.FieldName = 'UnitCost'
+													 )
 												THEN IMF.HeaderName + ' must be a whole number (decimals not allowed)'
 												WHEN (@ModuleId = @MROPriceMasterModule OR @ModuleId = @MROPriceMasterListModule)
 													 AND IMF.FieldName = 'CustomerId' 
@@ -873,6 +880,17 @@ BEGIN
 						BEGIN
 						EXEC [dbo].[USP_ChekDuplicateValueForUpload] @ChekDuplticateRef1, @ChekDuplticateRef2, @DuplicateRefeValue1, @DuplicateRefeValue2, @ReferenceTable, @MasterCompanyId, @ModuleId, @UploadData, @UploadRecord, @IsDuplicate = @IsDuplicate OUTPUT;
 						END
+					END
+					ELSE IF(@ModuleId=@WorkOrderMaterialsModule)
+					BEGIN
+						DECLARE @ChekDuplticateRef3 AS VARCHAR(150);
+						DECLARE @DuplicateRefeValue3 AS VARCHAR(150);
+						SELECT @DuplicateRefeValue3 = FieldValue FROM #DynamicKeyValue WHERE FieldName = 'WorkOrderId';
+						SELECT @ChekDuplticateRef3 = FieldName FROM #DynamicKeyValue WHERE FieldName = 'WorkOrderId';
+							IF NOT EXISTS (SELECT 1 FROM #DynamicKeyValue WHERE ISNULL(RecordStatus, '') <> '')
+							BEGIN
+								EXEC [dbo].[USP_ChekDuplicateValueForUpload] @ChekDuplticateRef1, @ChekDuplticateRef2,@ChekDuplticateRef3, @DuplicateRefeValue1, @DuplicateRefeValue2,@DuplicateRefeValue3, @ReferenceTable, @MasterCompanyId, @ModuleId, @UploadData, @UploadRecord, @IsDuplicate = @IsDuplicate OUTPUT;
+							END
 					END
 					ELSE
 					BEGIN
@@ -1107,6 +1125,8 @@ BEGIN
 															THEN 'Entered SequenceNo Already Exists!'
 														WHEN @ModuleId = @MaintenanceStatusModule AND @ChekDuplticateRef1 = 'SequenceNo'  
 															THEN 'Entered SequenceNo Already Exists!'
+														WHEN @ModuleId = @WorkOrderMaterialsModule
+															THEN 'Entered Part And Condition Already Exits!'
 														ELSE '' END
 						WHERE ImportModuleFieldMasterId = @CurrentRow;
 					END
@@ -1274,6 +1294,59 @@ BEGIN
 					WHERE FieldName = 'ManufacturerId';
 				END
 			END
+			
+			IF (@ModuleId = @WorkOrderMaterialsModule)
+			BEGIN
+				DECLARE @InputManufacturerName VARCHAR(255);
+				DECLARE @ResolvedItemMasterId BIGINT;
+
+				SELECT @InputManufacturerName = FieldValue 
+				FROM #DynamicKeyValue 
+				WHERE FieldName = 'ManufacturerId';
+
+				SELECT @ResolvedItemMasterId = TRY_CAST(DropdownListValueId AS BIGINT)
+				FROM #ImportFields 
+				WHERE FieldName = 'ItemMasterId';
+
+				IF (@ResolvedItemMasterId IS NOT NULL AND @ResolvedItemMasterId > 0)
+				BEGIN
+					IF EXISTS (
+						SELECT 1 
+						FROM ItemMaster IM WITH(NOLOCK)
+						WHERE IM.ItemMasterId = @ResolvedItemMasterId
+						  AND UPPER(TRIM(IM.ManufacturerName)) = UPPER(TRIM(@InputManufacturerName))
+						  AND ISNULL(IM.IsDeleted, 0) = 0
+						  AND ISNULL(IM.IsActive, 0) = 1
+						  AND IM.MasterCompanyId = @MasterCompanyId
+					)
+					BEGIN
+						SET @ManufacturerName = @InputManufacturerName;
+					END
+					ELSE
+					BEGIN
+						SELECT TOP 1 
+							@ManufacturerName = IM.ManufacturerName
+						FROM ItemMaster IM WITH(NOLOCK)
+						WHERE IM.ItemMasterId = @ResolvedItemMasterId
+						  AND ISNULL(IM.IsDeleted, 0) = 0
+						  AND ISNULL(IM.IsActive, 0) = 1
+						  AND IM.MasterCompanyId = @MasterCompanyId
+						ORDER BY IM.ManufacturerName ASC;
+					END
+
+					IF ISNULL(@ManufacturerName, '') <> ''
+					   AND UPPER(TRIM(@InputManufacturerName)) <> UPPER(TRIM(@ManufacturerName))
+					BEGIN
+						UPDATE #DynamicKeyValue
+						SET FieldValue = @ManufacturerName
+						WHERE FieldName = 'ManufacturerId';
+
+						UPDATE #ImportFields
+						SET FieldValue = @ManufacturerName
+						WHERE FieldName = 'ManufacturerId';
+					END
+				END
+			END
 			--SELECT * FROM #DynamicKeyValue
 			--IF(ISNULL(@GlImportModuleId, 0) = ISNULL(@ModuleId, 0))
 			--BEGIN
@@ -1294,7 +1367,7 @@ BEGIN
 				[UploadRecord] = @json
 			WHERE RecordId = @CurrentRecord;
 
-			if (@ModuleId = @StocklineModule OR @ModuleId = @PriceMasterModule)
+			if (@ModuleId = @StocklineModule OR @ModuleId = @PriceMasterModule OR @ModuleId = @WorkOrderMaterialsModule)
 			BEGIN
 				UPDATE #uploadDataResults 
 				SET 

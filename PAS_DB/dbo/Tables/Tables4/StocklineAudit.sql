@@ -236,6 +236,7 @@
     [PurchaseOrderNumber]                 VARCHAR (50)    NULL,
     [IsBatchStock]                        BIT             DEFAULT ((0)) NULL,
     [BatchNumber]                         VARCHAR (50)    NULL,
+    [IsReadyReleaseForm]                  BIT             CONSTRAINT [DF_StocklineAudit_IsReadyReleaseForm] DEFAULT ((0)) NULL,
     CONSTRAINT [PK_StocklineAudit] PRIMARY KEY CLUSTERED ([AuditStockLineId] ASC)
 );
 

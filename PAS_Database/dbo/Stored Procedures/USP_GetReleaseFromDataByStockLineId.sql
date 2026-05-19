@@ -65,7 +65,7 @@ BEGIN
 		DECLARE @MasterCompanyCodeATI VARCHAR(20) = 'ATI'
 		DECLARE @ATIReleaseFormCommonTeardownTypeId BIGINT = 0;
 		DECLARE @ReleaseForm NVARCHAR(MAX) = '';
-
+		DECLARE @isATICompany BIT = 0;
 		SET @MSModuleId = 2 ; -- For WO PART NUMBER  
 		SET @MTIMasterCompanyId = 11; -- For MTI
 	  	  
@@ -105,6 +105,7 @@ BEGIN
 		/********* For the ATI company: Release Form *********/
 		IF(@MasterCompanyCodeATI = (SELECT [MasterCompanyCode]FROM [dbo].[MasterCompany] WITH(NOLOCK)WHERE [MasterCompanyId] = @MasterCompanyId	))
 			BEGIN
+				SET @isATICompany = 1;
 				SELECT @WorkFlowWorkOrderId = [WorkFlowWorkOrderId]
 				FROM [DBO].[WorkOrderWorkFlow] WITH(NOLOCK)
 				WHERE [WorkorderId] = @WorkorderId
@@ -325,12 +326,12 @@ BEGIN
 			  pub.[PublishedByOthers],				  
 			  CASE WHEN @IsEasaUKLicense = 1 AND @formTypeId = @FAAEASAUK THEN 'UK' ELSE 'EASA' END AS IsEasaUKLicenseType,
 			  @EmailBody AS EmailBody,
-			  ('<div style = "position:relative; min-height:90px;max-height:100px;  font-family: Arial, Helvetica, sans-serif!important; letter-spacing: 1px!important; font-size:10px">') AS HeaderRemarks,  
+			  ('<div style = "position:relative;' +CASE WHEN @isATICompany = 1 THEN 'min-height:130px;max-height:140px;' ELSE 'min-height:140px;max-height:150px;' END +  'padding-bottom:35px; font-family: Arial, Helvetica, sans-serif!important; letter-spacing: 1px!important; font-size:10px">') AS HeaderRemarks,  
 			  (CASE WHEN cwt.Memo IS NOT NULL THEN (CASE WHEN ISNULL(cwt.Memo,'') = '' THEN '' ELSE ISNULL(cwt.Memo,'') END) + '<p>&nbsp;</p>' ELSE '' END) 	
 			  + (CASE WHEN @IsEasaLicense = 0 AND @IsEasaUKLicense = 0 THEN '<div style='+ '"bottom : 0px; position:absolute;font-size: 10px !important;line-height: 12px;"'+'>' + (REPLACE(REPLACE(ISNULL(wods.Dualreleaselanguage,''),'<p>',''),'</p>','') +' '+ +'</div>') ELSE ''  END)        
 			  + (CASE WHEN @IsEasaLicense = 1 AND @formTypeId = @FAAEASA THEN '<div style='+ '"bottom : 0px; position:absolute;font-size: 10px !important;line-height: 12px;"'+'>' + (REPLACE(REPLACE(ISNULL(wods.Dualreleaselanguage,''),'<p>',''),'</p>','') +' '+ le.EASALicense +'</div>') ELSE ''  END)        
 			  + (CASE WHEN @IsEasaUKLicense = 1 AND @formTypeId = @FAAEASAUK THEN '<div style='+ '"bottom : 0px; position:absolute;font-size: 10px !important;line-height: 12px;"'+'>' + (REPLACE(REPLACE(ISNULL(wods.Dualreleaselanguage,''),'<p>',''),'</p>','') +' '+ le.UKCAALicense +'</div>') ELSE ''  END)         
-			   AS FooterRemarks,   
+			   + '</div>' AS FooterRemarks,   
 			   Upper(le.EASALicense) AS EASALicense,
 			   0 AS [IsClosed],
 			   wop.[islocked],
@@ -412,12 +413,12 @@ BEGIN
 			  pub.[PublishedByOthers],				  
 			  CASE WHEN @IsEasaUKLicense = 1 AND @formTypeId = @FAAEASAUK THEN 'UK' ELSE 'EASA' END AS IsEasaUKLicenseType,		
 			  @EmailBody AS EmailBody,
-			  ('<div style = "position:relative; min-height:90px;max-height:100px;  font-family: Arial, Helvetica, sans-serif!important; letter-spacing: 1px!important; font-size:10px">') AS HeaderRemarks,  
+			  ('<div style = "position:relative;' +CASE WHEN @isATICompany = 1 THEN 'min-height:130px;max-height:140px;' ELSE 'min-height:140px;max-height:150px;' END +  'padding-bottom:35px;  font-family: Arial, Helvetica, sans-serif!important; letter-spacing: 1px!important; font-size:10px">') AS HeaderRemarks,  
   		      (CASE WHEN cwt.Memo IS NOT NULL THEN (CASE WHEN ISNULL(cwt.Memo,'') = '' THEN '' ELSE ISNULL(cwt.Memo,'') END) + '<p>&nbsp;</p>' ELSE '' END) 	
 			  + (CASE WHEN @IsEasaLicense = 0 AND @IsEasaUKLicense = 0 THEN '<div style='+ '"bottom : 0px; position:absolute;font-size: 10px !important;line-height: 12px;"'+'>' + (REPLACE(REPLACE(ISNULL(wods.Dualreleaselanguage,''),'<p>',''),'</p>','') +' '+ +'</div>') ELSE ''  END)        
 			  + (CASE WHEN @IsEasaLicense = 1 AND @formTypeId = @FAAEASA THEN '<div style='+ '"bottom : 0px; position:absolute;font-size: 10px !important;line-height: 12px;"'+'>' + (REPLACE(REPLACE(ISNULL(wods.Dualreleaselanguage,''),'<p>',''),'</p>','') +' '+ le.EASALicense +'</div>') ELSE ''  END)        
 			  + (CASE WHEN @IsEasaUKLicense = 1 AND @formTypeId = @FAAEASAUK THEN '<div style='+ '"bottom : 0px; position:absolute;font-size: 10px !important;line-height: 12px;"'+'>' + (REPLACE(REPLACE(ISNULL(wods.Dualreleaselanguage,''),'<p>',''),'</p>','') +' '+ le.UKCAALicense +'</div>') ELSE ''  END)         
-			  AS FooterRemarks, 
+			  + '</div>' AS FooterRemarks, 
 			  Upper(le.EASALicense) AS EASALicense,
 			   0 AS [IsClosed],
 			   wop.[islocked],
@@ -496,12 +497,12 @@ BEGIN
 			  pub.[PublishedByOthers],				  
 			  CASE WHEN @IsEasaUKLicense = 1 AND @formTypeId = @FAAEASAUK THEN 'UK' ELSE 'EASA' END AS IsEasaUKLicenseType,
 			  @EmailBody AS EmailBody,
-			  ('<div style = "position:relative; min-height:90px;max-height:100px;  font-family: Arial, Helvetica, sans-serif!important; letter-spacing: 1px!important; font-size:10px">') AS HeaderRemarks,  
+			  ('<div style = "position:relative;' +CASE WHEN @isATICompany = 1 THEN 'min-height:130px;max-height:140px;' ELSE 'min-height:140px;max-height:150px;' END +  'padding-bottom:35px;  font-family: Arial, Helvetica, sans-serif!important; letter-spacing: 1px!important; font-size:10px">') AS HeaderRemarks,  
 			  (CASE WHEN cwt.Memo IS NOT NULL THEN (CASE WHEN ISNULL(cwt.Memo,'') = '' THEN '' ELSE ISNULL(cwt.Memo,'') END) + '<p>&nbsp;</p>' ELSE '' END) 
 			  + (CASE WHEN @IsEasaLicense = 0 AND @IsEasaUKLicense = 0 THEN '<div style='+ '"bottom : 0px; position:absolute;font-size: 10px !important;line-height: 12px;"'+'>' + (REPLACE(REPLACE(ISNULL(wods.Dualreleaselanguage,''),'<p>',''),'</p>','') +' '+ +'</div>') ELSE ''  END)        
 			  + (CASE WHEN @IsEasaLicense = 1 AND @formTypeId = @FAAEASA THEN '<div style='+ '"bottom : 0px; position:absolute;font-size: 10px !important;line-height: 12px;"'+'>' + (REPLACE(REPLACE(ISNULL(wods.Dualreleaselanguage,''),'<p>',''),'</p>','') +' '+ le.EASALicense +'</div>') ELSE ''  END)        
 			  + (CASE WHEN @IsEasaUKLicense = 1 AND @formTypeId = @FAAEASAUK THEN '<div style='+ '"bottom : 0px; position:absolute;font-size: 10px !important;line-height: 12px;"'+'>' + (REPLACE(REPLACE(ISNULL(wods.Dualreleaselanguage,''),'<p>',''),'</p>','') +' '+ le.UKCAALicense +'</div>') ELSE ''  END)         
-			  AS FooterRemarks,   
+			 + '</div>' AS FooterRemarks,   
 			   Upper(le.EASALicense) AS EASALicense,
 			   0 AS [IsClosed],
 			   wop.[islocked],

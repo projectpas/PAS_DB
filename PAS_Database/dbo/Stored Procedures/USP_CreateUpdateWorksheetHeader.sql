@@ -21,7 +21,7 @@
 
 **************************************************************/
 
-CREATE PROCEDURE [dbo].[USP_CreateUpdateWorksheetHeader]
+CREATE   PROCEDURE [dbo].[USP_CreateUpdateWorksheetHeader]
     @tbl_WorksheetHeaderType dbo.WorksheetHeaderTableType READONLY
 AS
 BEGIN
@@ -31,10 +31,17 @@ BEGIN
 
         DECLARE @WorksheetHeaderId  BIGINT = (SELECT WorksheetHeaderId FROM @tbl_WorksheetHeaderType);
         DECLARE @MasterCompanyId    INT    = (SELECT MasterCompanyId   FROM @tbl_WorksheetHeaderType);
+        DECLARE @AircraftRegistryId BIGINT  = (SELECT AircraftRegistryId   FROM @tbl_WorksheetHeaderType);
+
         DECLARE @CodePrefix         NVARCHAR(50);
         DECLARE @CodeSuffix         NVARCHAR(50);
         DECLARE @WorksheetNum       VARCHAR(50)  = NULL;
         DECLARE @CurrentNo          INT          = 0;
+
+        DECLARE @TailNum            VARCHAR(50)  = NULL;
+        DECLARE @SerialNum          VARCHAR(50)  = NULL;
+        DECLARE @AircraftModelId    BIGINT  = NULL;
+        DECLARE @MakeTypeId         BIGINT  = NULL;
 
         DECLARE @WorksheetCodePrefix INT = (
             SELECT [CodeTypeId]
@@ -114,6 +121,9 @@ BEGIN
                     WH.DupInspSignatory2By          = T.DupInspSignatory2By,
                     WH.DupInspSignatory2LicAppNo    = T.DupInspSignatory2LicAppNo,
                     WH.DupInspSignatory2Time        = T.DupInspSignatory2Time,
+                    WH.AircraftInstalledPartDetailsId = T.AircraftInstalledPartDetailsId,
+                    WH.ProgramId                    = T.ProgramId,
+                    WH.AircraftRegistryId           = T.AircraftRegistryId,
                     WH.IsActive                      = ISNULL(T.IsActive,  WH.IsActive),
                     WH.IsDeleted                     = ISNULL(T.IsDeleted, WH.IsDeleted),
                     WH.UpdatedBy                     = T.UpdatedBy,
@@ -180,6 +190,19 @@ BEGIN
                     );
                 END
 
+
+                IF ISNULL(@AircraftRegistryId, 0) > 0
+                BEGIN
+                    SELECT
+                        @MakeTypeId = MakeTypeId,
+                        @AircraftModelId = AircraftModelId,
+                        @SerialNum = SerialNum,
+                        @TailNum = TailNum
+                    FROM dbo.AircraftRegistryHeader WITH (NOLOCK)
+                    WHERE AircraftRegistryId = @AircraftRegistryId;
+                END
+
+
                 INSERT INTO [dbo].[WorksheetHeader]
                 (
                     WorksheetNumber,
@@ -217,6 +240,9 @@ BEGIN
                     DupInspSignatory2By,
                     DupInspSignatory2LicAppNo,
                     DupInspSignatory2Time,
+                    AircraftInstalledPartDetailsId ,
+                    ProgramId,
+                    AircraftRegistryId,
                     IsActive,
                     IsDeleted,
                     MasterCompanyId,
@@ -227,15 +253,15 @@ BEGIN
                 )
                 SELECT
                     @WorksheetNum,
-                    T.MakeTypeId,
+                    ISNULL(@MakeTypeId, T.MakeTypeId),
                     T.MakeType,
-                    T.AircraftModelId,
+                    ISNULL(@AircraftModelId, T.AircraftModelId),
                     T.AircraftModel,
                     T.WorksheetType,
                     T.WorksheetTypeId,
                     T.WorkOrderNo,
-                     T.TailNum,
-                T.SerialNum,
+                    ISNULL(@TailNum, T.TailNum),
+                    ISNULL(@SerialNum, T.SerialNum),
                     T.AFHours,
                     T.InspectionType,
                     T.InspectionDate,
@@ -261,6 +287,9 @@ BEGIN
                     T.DupInspSignatory2By,
                     T.DupInspSignatory2LicAppNo,
                     T.DupInspSignatory2Time,
+                    T.AircraftInstalledPartDetailsId,
+                    T.ProgramId,
+                    T.AircraftRegistryId,
                     ISNULL(T.IsActive,  1),
                     ISNULL(T.IsDeleted, 0),
                     T.MasterCompanyId,

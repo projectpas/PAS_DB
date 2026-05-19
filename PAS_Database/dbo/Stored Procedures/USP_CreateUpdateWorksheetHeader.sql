@@ -15,8 +15,10 @@
   ** Change History             
  **************************************************************             
  ** PR   Date         Author              Change Description              
- ** --   --------     -------          --------------------------------     
-    1    14/05/2026                        Created [PN-16408]
+ ** --   --------     -------            --------------------------------     
+    1    14/05/2026   Priyansh Patel     Created [PN-16408]
+    2    19/05/2026   Priyansh Patel     Added Duplicate inspection fields [PN-16408]
+
 **************************************************************/
 
 CREATE PROCEDURE [dbo].[USP_CreateUpdateWorksheetHeader]
@@ -102,6 +104,16 @@ BEGIN
                     WH.TechnicalRecordsWO            = T.TechnicalRecordsWO,
                     WH.CalmSysWO                     = T.CalmSysWO,
                     WH.CertificationStatement        = T.CertificationStatement,
+                    WH.DupInspSysDescription        = T.DupInspSysDescription,
+                    WH.DupInspDefectWorkNo          = T.DupInspDefectWorkNo,
+                    WH.DupInspDate                  = T.DupInspDate,
+                    WH.DupInspStation               = T.DupInspStation,
+                    WH.DupInspSignatory1By          = T.DupInspSignatory1By,
+                    WH.DupInspSignatory1LicAppNo    = T.DupInspSignatory1LicAppNo,
+                    WH.DupInspSignatory1Time        = T.DupInspSignatory1Time,
+                    WH.DupInspSignatory2By          = T.DupInspSignatory2By,
+                    WH.DupInspSignatory2LicAppNo    = T.DupInspSignatory2LicAppNo,
+                    WH.DupInspSignatory2Time        = T.DupInspSignatory2Time,
                     WH.IsActive                      = ISNULL(T.IsActive,  WH.IsActive),
                     WH.IsDeleted                     = ISNULL(T.IsDeleted, WH.IsDeleted),
                     WH.UpdatedBy                     = T.UpdatedBy,
@@ -195,6 +207,16 @@ BEGIN
                     TechnicalRecordsWO,
                     CalmSysWO,
                     CertificationStatement,
+                    DupInspSysDescription,
+                    DupInspDefectWorkNo,
+                    DupInspDate,
+                    DupInspStation,
+                    DupInspSignatory1By,
+                    DupInspSignatory1LicAppNo,
+                    DupInspSignatory1Time,
+                    DupInspSignatory2By,
+                    DupInspSignatory2LicAppNo,
+                    DupInspSignatory2Time,
                     IsActive,
                     IsDeleted,
                     MasterCompanyId,
@@ -229,6 +251,16 @@ BEGIN
                     T.TechnicalRecordsWO,
                     T.CalmSysWO,
                     T.CertificationStatement,
+                    T.DupInspSysDescription,
+                    T.DupInspDefectWorkNo,
+                    T.DupInspDate,
+                    T.DupInspStation,
+                    T.DupInspSignatory1By,
+                    T.DupInspSignatory1LicAppNo,
+                    T.DupInspSignatory1Time,
+                    T.DupInspSignatory2By,
+                    T.DupInspSignatory2LicAppNo,
+                    T.DupInspSignatory2Time,
                     ISNULL(T.IsActive,  1),
                     ISNULL(T.IsDeleted, 0),
                     T.MasterCompanyId,

@@ -332,7 +332,6 @@ BEGIN
 			  + (CASE WHEN @IsEasaLicense = 1 AND @formTypeId = @FAAEASA THEN '<div style='+ '"bottom : 0px; position:absolute;font-size: 10px !important;line-height: 12px;"'+'>' + (REPLACE(REPLACE(ISNULL(wods.Dualreleaselanguage,''),'<p>',''),'</p>','') +' '+ le.EASALicense +'</div>') ELSE ''  END)        
 			  + (CASE WHEN @IsEasaUKLicense = 1 AND @formTypeId = @FAAEASAUK THEN '<div style='+ '"bottom : 0px; position:absolute;font-size: 10px !important;line-height: 12px;"'+'>' + (REPLACE(REPLACE(ISNULL(wods.Dualreleaselanguage,''),'<p>',''),'</p>','') +' '+ le.UKCAALicense +'</div>') ELSE ''  END)         
 			   + '</div>' AS FooterRemarks,   
-
 			   Upper(le.EASALicense) AS EASALicense,
 			   0 AS [IsClosed],
 			   wop.[islocked],
@@ -419,7 +418,7 @@ BEGIN
 			  + (CASE WHEN @IsEasaLicense = 0 AND @IsEasaUKLicense = 0 THEN '<div style='+ '"bottom : 0px; position:absolute;font-size: 10px !important;line-height: 12px;"'+'>' + (REPLACE(REPLACE(ISNULL(wods.Dualreleaselanguage,''),'<p>',''),'</p>','') +' '+ +'</div>') ELSE ''  END)        
 			  + (CASE WHEN @IsEasaLicense = 1 AND @formTypeId = @FAAEASA THEN '<div style='+ '"bottom : 0px; position:absolute;font-size: 10px !important;line-height: 12px;"'+'>' + (REPLACE(REPLACE(ISNULL(wods.Dualreleaselanguage,''),'<p>',''),'</p>','') +' '+ le.EASALicense +'</div>') ELSE ''  END)        
 			  + (CASE WHEN @IsEasaUKLicense = 1 AND @formTypeId = @FAAEASAUK THEN '<div style='+ '"bottom : 0px; position:absolute;font-size: 10px !important;line-height: 12px;"'+'>' + (REPLACE(REPLACE(ISNULL(wods.Dualreleaselanguage,''),'<p>',''),'</p>','') +' '+ le.UKCAALicense +'</div>') ELSE ''  END)         
-			  AS FooterRemarks, 
+			  + '</div>' AS FooterRemarks, 
 			  Upper(le.EASALicense) AS EASALicense,
 			   0 AS [IsClosed],
 			   wop.[islocked],
@@ -504,7 +503,6 @@ BEGIN
 			  + (CASE WHEN @IsEasaLicense = 1 AND @formTypeId = @FAAEASA THEN '<div style='+ '"bottom : 0px; position:absolute;font-size: 10px !important;line-height: 12px;"'+'>' + (REPLACE(REPLACE(ISNULL(wods.Dualreleaselanguage,''),'<p>',''),'</p>','') +' '+ le.EASALicense +'</div>') ELSE ''  END)        
 			  + (CASE WHEN @IsEasaUKLicense = 1 AND @formTypeId = @FAAEASAUK THEN '<div style='+ '"bottom : 0px; position:absolute;font-size: 10px !important;line-height: 12px;"'+'>' + (REPLACE(REPLACE(ISNULL(wods.Dualreleaselanguage,''),'<p>',''),'</p>','') +' '+ le.UKCAALicense +'</div>') ELSE ''  END)         
 			 + '</div>' AS FooterRemarks,   
-
 			   Upper(le.EASALicense) AS EASALicense,
 			   0 AS [IsClosed],
 			   wop.[islocked],

@@ -17,7 +17,7 @@
 	5    17 JUL 2025   Moin Bloch       Notes Replace <p> Tag
 	6	 01/05/2025    AMIT GHEDIYA     Get Email & Phone from Contact (Before from cust general info.).
 	7    27/01/2026    Moin Bloch       Fix For Ship To Country
-	
+	8    12/05/2026    Ayushi Patel     Added A2Z-specific casing logic for BillToSiteName and ShipToSiteName.
 --   EXEC [dbo].[RPT_GetCommonBillingInvoicingPdfData] 6749,15,249
 **************************************************************/
 CREATE     PROCEDURE [dbo].[RPT_GetCommonBillingInvoicingPdfData]
@@ -38,7 +38,11 @@ BEGIN
 	SELECT @EXModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'ExchangeSalesOrder';
 	
 	DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
-		
+	
+
+	DECLARE @A2ZMasterCompanyCode VARCHAR(50);
+	SELECT @A2ZMasterCompanyCode = MasterCompanyCode FROM DBO.MasterCompany WITH(NOLOCK) WHERE UPPER(MasterCompanyCode) = UPPER('A2Z');
+
 	SELECT @CurrntEmpTimeZoneDesc = COALESCE(ETZ.[Description], LTZ.[Description]) 
 	  FROM [dbo].[Employee] E WITH (NOLOCK) 
 	       LEFT JOIN [dbo].[TimeZone] ETZ WITH (NOLOCK) ON E.TimeZoneId = ETZ.TimeZoneId
@@ -84,7 +88,11 @@ BEGIN
 					-- CLIENT ADDRESS END
 					CUST.[CustomerPhone]  [PhoneFax],
 					-- SHIP TO ADDRESS START
-					SHIPTOSITE.[SiteName] [ShipToSiteName],
+					CASE 
+						WHEN UPPER(MC.MasterCompanyCode) = UPPER(@A2ZMasterCompanyCode)
+						THEN ISNULL(SHIPTOSITE.SiteName, '')
+						ELSE UPPER(ISNULL(SHIPTOSITE.SiteName, ''))
+					END AS ShipToSiteName,
 					SHIPTOADDRESS.[Line1] [ShipToAddressLine1],
 					SHIPTOADDRESS.[Line2] [ShipToAddressLine2],
 					SHIPTOADDRESS.[City]  [ShipToCity],
@@ -92,21 +100,25 @@ BEGIN
 					SHIPTOADDRESS.[PostalCode] [ShipToPostalCode],
 					ISNULL(SHIPTOCOUNTRY.[countries_name], '') [ShipToCountry],
 					SHIPTOSITE.[Attention] [ShipToAttention],
-					SHIPTOFULLADDRESS = (SELECT dbo.FN_ValidatePDFAddress(SHIPTOADDRESS.[Line1],SHIPTOADDRESS.[Line2],NULL,SHIPTOADDRESS.[City],SHIPTOADDRESS.[StateOrProvince],SHIPTOADDRESS.[PostalCode],
+					SHIPTOFULLADDRESS = (SELECT dbo.ValidatePDFAddress(SHIPTOADDRESS.[Line1],SHIPTOADDRESS.[Line2],NULL,SHIPTOADDRESS.[City],SHIPTOADDRESS.[StateOrProvince],SHIPTOADDRESS.[PostalCode],
 					(CASE WHEN ISNULL(SHIPPINGINFO.WorkOrderShippingId,0) > 0  THEN ISNULL(SHIPTOCOUNTRY.[countries_name], '')
 					--BILLTOCOUNTRY.[countries_name] 
-					ELSE CUSHIPTOCOUNTRY.[countries_name] END),NULL,NULL,NULL)),
+					ELSE CUSHIPTOCOUNTRY.[countries_name] END),NULL,NULL,NULL,MC.MasterCompanyCode)),
 					-- SHIP TO ADDRESS END
 					-- BILL TO ADDRESS START 
-					BILLTOSITE.[SiteName] [BillToSiteName],
+					CASE 
+						WHEN UPPER(MC.MasterCompanyCode) = UPPER(@A2ZMasterCompanyCode)
+						THEN ISNULL(BILLTOSITE.SiteName, '')
+						ELSE UPPER(ISNULL(BILLTOSITE.SiteName, ''))
+					END AS BillToSiteName,
 					BILLTOADDRESS.[Line1] [BillToAddressLine1],
 					BILLTOADDRESS.[Line2] [BillToAddressLine2],
 					BILLTOADDRESS.[City] [BillToCity],
 					BILLTOADDRESS.[StateOrProvince] [BillToState],
 					BILLTOADDRESS.[PostalCode] [BillToPostalCode],
 					ISNULL(BILLTOCOUNTRY.[countries_name], '') [BillToCountry],						
-  				    BILLTOFULLADDRESS = (SELECT dbo.FN_ValidatePDFAddress(BILLTOADDRESS.[Line1],BILLTOADDRESS.[Line2],NULL,BILLTOADDRESS.[City],BILLTOADDRESS.[StateOrProvince],BILLTOADDRESS.[PostalCode],
-					BILLTOCOUNTRY.[countries_name],CONTACT.[WorkPhone],NULL,CONTACT.[Email])),					
+  				    BILLTOFULLADDRESS = (SELECT dbo.ValidatePDFAddress(BILLTOADDRESS.[Line1],BILLTOADDRESS.[Line2],NULL,BILLTOADDRESS.[City],BILLTOADDRESS.[StateOrProvince],BILLTOADDRESS.[PostalCode],
+					BILLTOCOUNTRY.[countries_name],CONTACT.[WorkPhone],NULL,CONTACT.[Email],MC.MasterCompanyCode)),					
 					-- BILL TO ADDRESS END 
 					BILLTOCUSTOMER.[Name] [BillToNameOfCustomer],
 					BI.[InvoiceNo] [InvoiceNumber],
@@ -173,6 +185,7 @@ BEGIN
 				 LEFT JOIN [dbo].[Address] CUDOMAddRESS WITH(NOLOCK) ON CUDOMAddRESS.[AddressId] = DSHIP.[AddressId]
 				 LEFT JOIN [dbo].[Countries] CUSHIPTOCOUNTRY WITH(NOLOCK) ON CUDOMAddRESS.[CountryId] = CUSHIPTOCOUNTRY.[countries_id]
 				 LEFT JOIN #TempCustomerRef CUSTREF ON BI.ReferenceId = CUSTREF.ReferenceId
+				 LEFT JOIN [dbo].[MasterCompany] MC WITH(NOLOCK) ON WO.MasterCompanyId = MC.MasterCompanyId
 				WHERE BI.[BillingInvoicingId] = @BillingInvoicingId AND BI.[IsActive] = 1 AND BI.[IsDeleted] = 0 
 		END  /*********END: WORK ORDER ********/		
 	END TRY    

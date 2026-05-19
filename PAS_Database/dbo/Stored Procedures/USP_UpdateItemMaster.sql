@@ -7,15 +7,16 @@
 **************************************************************           
 ** Change History           
 **************************************************************           
-** PR     Date         Author           Change Description            
-** --    --------     -------           -------------------------------          
-** 1     19-Nov-2025   Bhargav Saliya   Created  
-** 2     09-Mar-2026   Vishal Suthar    Handled UnitOfMeasureId to have NULL instead of 0 which will throw foreignkey constraint
-** 3     26-Mar-2026   Sahdev Saliya    Added [LifeLimitedPart] :-([IsFlightHoursAvailable], [IsFlightCyclesAvailable], [IsLandingsAvailable], [IsStartsAvailable], [IsCalendarTimeAvailable], [FlightHours], [FlightMinutes], [FlightCycles], [Landings], [Starts], [CalendarDate]) (PN-15833)
-** 4     03-Apr-2026   Sahdev Saliya    Remove LifeLimitedPart (PN-15833)
+** PR     Date         Author				Change Description            
+** --    --------     -------				-------------------------------          
+** 1     19-Nov-2025   Bhargav Saliya		Created  
+** 2     09-Mar-2026   Vishal Suthar		Handled UnitOfMeasureId to have NULL instead of 0 which will throw foreignkey constraint
+** 3     26-Mar-2026   Sahdev Saliya		Added [LifeLimitedPart] :-([IsFlightHoursAvailable], [IsFlightCyclesAvailable], [IsLandingsAvailable], [IsStartsAvailable], [IsCalendarTimeAvailable], [FlightHours], [FlightMinutes], [FlightCycles], [Landings], [Starts], [CalendarDate]) (PN-15833)
+** 4     03-Apr-2026   Sahdev Saliya		Remove LifeLimitedPart (PN-15833)
+** 5     07-May-2026   Divyesh Kathiriya    Update "IsTimeLife" in stockline table based on ItemMaster Id. [PN-16327]
 
 **************************************************************/
-create       PROCEDURE [dbo].[USP_UpdateItemMaster]
+CREATE PROCEDURE [dbo].[USP_UpdateItemMaster]
     @tbl_ItemMasterUpdateType [TBL_ItemMasterUpdateType] readonly,
     @tbl_BigInt [TVP_BigInt] readonly,
 	@Id BIGINT,
@@ -216,7 +217,13 @@ BEGIN
 			MP.[IsDeleted] = @IsDeleted,
 			MP.[UpdatedDate] = GETUTCDATE()
 		FROM dbo.MasterParts MP WITH(NOLOCK)
-		WHERE MP.MasterPartId = @MasterPartId AND MP.[MasterCompanyId] = @mMasterCompanyId
+		WHERE MP.MasterPartId = @MasterPartId AND MP.[MasterCompanyId] = @mMasterCompanyId	
+
+		UPDATE [dbo].[Stockline]
+		SET [IsStkTimeLife] = IM.[IsTimeLife]
+		FROM [dbo].[Stockline] sl
+		INNER JOIN @tbl_ItemMasterUpdateType IM ON sl.[ItemMasterId] = IM.[ItemMasterId]
+		WHERE sl.[ItemMasterId] = @Id;
 
 		EXEC dbo.UpdateItemMasterDetail @Id
 

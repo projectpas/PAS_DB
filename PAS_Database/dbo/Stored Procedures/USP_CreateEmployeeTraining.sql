@@ -15,7 +15,6 @@
     1    28-08-2025    Sahdev Saliya       Created  
 	2    14-APR-2026   Sahdev Saliya       Added TrainingName, ProviderId, ProviderType, IsRecurring, DurationHours, DurationMinutes (PN-15932)
 	3    04-May-2026   Sahdev Saliya       Added CategoryId, CategoryType, CurrencyId (PN-16203)
-	4    06-May-2026   Bhargav Saliya      Rename Field CategoryId to IsCategoryType
 	 
 	exec [USP_CreateEmployeeTraining] 
 **************************************************************/ 
@@ -47,7 +46,7 @@ CREATE   PROCEDURE [dbo].[USP_CreateEmployeeTraining]
 	@IsRecurring BIT = NULL,
 	@DurationHours VARCHAR(200) = NULL,
 	@DurationMinutes VARCHAR(200) = NULL,
-	@IsCategoryType bit= NULL,
+	@CategoryId BIGINT= NULL,
 	@CategoryType VARCHAR(50) = NULL,
 	@CurrencyId BIGINT = NULL
 AS
@@ -85,7 +84,7 @@ BEGIN
 		    IsRecurring,  
 			DurationHours,
 			DurationMinutes,
-			IsCategoryType,
+			CategoryId,
 			CategoryType,
 			CurrencyId)
         VALUES
@@ -116,7 +115,7 @@ BEGIN
 			@IsRecurring,
 			@DurationHours,
 			@DurationMinutes,
-		    ISNULL(@IsCategoryType,0),
+		    @CategoryId,
 			@CategoryType,
 			@CurrencyId);
 		

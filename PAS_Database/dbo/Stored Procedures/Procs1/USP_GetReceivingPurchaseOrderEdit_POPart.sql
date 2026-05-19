@@ -22,6 +22,7 @@
 	6    21/04/2026   Priyansh Patel    For Quantity 500 and above change the receive to Stockline PN-15962
     7    27/04/2026   Ayushi Patel      For Quantity 500 and above change the receive to Stockline PN-16201 (For QuantityReceived)
 	8    04-May-2026  RAJESH GAMI       QTY more than 500 Handle fro all types inventory, Asset, NonStock and Stock Inventory [PN-16244]
+    9    11-May-2026  Priyansh Patel    Added and Modified the  Ac tail number (PN-16231)
         
 EXEC [dbo].[USP_GetReceivingPurchaseOrderEdit_POPart] 8233    
 **************************************************************/        
@@ -372,7 +373,12 @@ BEGIN
   CASE WHEN itm.isSerialized = 1 THEN StkD_Ser.TaggedBy ELSE StkD_NonSer.TaggedBy END AS TaggedBy,      
   CASE WHEN itm.isSerialized = 1 THEN StkD_Ser.TaggedByName ELSE StkD_NonSer.TaggedByName END AS TaggedByName,      
   CASE WHEN itm.isSerialized = 1 THEN StkD_Ser.TaggedByTypeName ELSE StkD_NonSer.TaggedByTypeName END AS TaggedByTypeName,    
-  '' AS CalibrationMemo    
+  '' AS CalibrationMemo,
+  CASE WHEN part.ItemTypeId = 1 THEN    
+  CASE WHEN itm.isSerialized = 1 THEN StkD_Ser.AircraftTailNumber ELSE StkD_NonSer.AircraftTailNumber END     
+  ELSE part.ACTailNum
+  END AS ACTailNum  
+
   FROM DBO.PurchaseOrderPart part WITH (NOLOCK)      
   LEFT JOIN DBO.ItemMaster itm WITH (NOLOCK) ON part.ItemMasterId = itm.ItemMasterId      
   LEFT JOIN DBO.Asset asi WITH (NOLOCK) ON part.ItemMasterId = asi.AssetRecordId      

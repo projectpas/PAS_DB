@@ -1,16 +1,18 @@
 ﻿CREATE TABLE [dbo].[SOMarginSummary] (
-    [SOMarginSummaryId] BIGINT         IDENTITY (1, 1) NOT NULL,
-    [SalesOrderId]      BIGINT         NOT NULL,
-    [Sales]             NUMERIC (9, 2) NOT NULL,
-    [Misc]              NUMERIC (9, 2) NOT NULL,
-    [NetSales]          NUMERIC (9, 2) NOT NULL,
-    [ProductCost]       NUMERIC (9, 2) NOT NULL,
-    [MarginAmount]      NUMERIC (9, 2) NOT NULL,
-    [MarginPercentage]  NUMERIC (9, 2) NOT NULL,
-    [FreightAmount]     NUMERIC (9, 2) NULL,
+    [SOMarginSummaryId] BIGINT          IDENTITY (1, 1) NOT NULL,
+    [SalesOrderId]      BIGINT          NOT NULL,
+    [Sales]             DECIMAL (18, 6) NULL,
+    [Misc]              DECIMAL (18, 6) NULL,
+    [NetSales]          DECIMAL (18, 6) NULL,
+    [ProductCost]       DECIMAL (18, 6) NULL,
+    [MarginAmount]      DECIMAL (18, 6) NULL,
+    [MarginPercentage]  DECIMAL (18, 6) NULL,
+    [FreightAmount]     DECIMAL (18, 6) NULL,
     CONSTRAINT [PK_SOMarginSummary] PRIMARY KEY CLUSTERED ([SOMarginSummaryId] ASC),
     CONSTRAINT [FK_SOMarginSummary_SalesOrderId] FOREIGN KEY ([SalesOrderId]) REFERENCES [dbo].[SalesOrder] ([SalesOrderId])
 );
+
+
 
 
 GO

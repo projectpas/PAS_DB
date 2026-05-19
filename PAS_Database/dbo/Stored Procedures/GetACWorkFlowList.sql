@@ -13,7 +13,7 @@
  ** PR   Date         Author		    Change Description            
  ** --   --------     -------		    --------------------------------          
     1    20/04/2026   Priyansh Patel    Created
-
+    2    11/05/2026   Priyansh Patel    Created [PN-16322]
 
 **************************************************************/ 
  CREATE   PROCEDURE [dbo].[GetACWorkFlowList]
@@ -29,22 +29,40 @@ BEGIN
     DECLARE @TemplateType INT = 2
     BEGIN TRANSACTION
 
-        SELECT  wf.WorkflowId,  wf.[WorkOrderNumber] + '_' + wf.[Version] AS WorkFlowNo, wf.TailNum,wf.SerialNum,
-            wf.AircraftModelId, wf.MakeTypeId, wf.TemplateType,  wf.MaintenanceTypeId, wf.WorkOrderNumber, wf.Version,
-            UPPER(wf.WorkflowDescription) AS TemplateDescription
-        FROM dbo.Workflow wf WITH (NOLOCK)
-        INNER JOIN dbo.AircraftRegistryHeader ar WITH (NOLOCK) 
-            ON  ar.TailNum          = wf.TailNum
-            AND ar.SerialNum        = wf.SerialNum
-            AND ar.AircraftModelId  = wf.AircraftModelId
-            AND ar.MakeTypeId       = wf.MakeTypeId
+
+        SELECT  
+        wf.WorkflowId,
+        wf.WorkflowId          AS TemplateId,  
+        wf.[WorkOrderNumber] + '_' + wf.[Version] AS WorkFlowNo, 
+        wf.TailNum,
+        wf.SerialNum,
+        wf.AircraftModelId, 
+        wf.MakeTypeId, 
+        wf.TemplateType,  
+        wf.MaintenanceTypeId, 
+        wf.WorkOrderNumber, 
+        wf.Version,
+        UPPER(wf.WorkflowDescription) AS TemplateDescription
+        FROM [dbo].[Workflow] wf WITH (NOLOCK)
+        INNER JOIN [dbo].[AircraftRegistryHeader]ar WITH (NOLOCK) 
+        ON ar.AircraftRegistryId = @AircraftRegistryId  
+        AND ar.TailNum           = wf.TailNum          
+        AND ar.AircraftModelId   = wf.AircraftModelId
+        AND ar.MakeTypeId        = wf.MakeTypeId
+        AND (
+            NULLIF(wf.SerialNum, '') IS NULL         
+            OR ar.SerialNum = wf.SerialNum           
+        )
         WHERE
-            ar.AircraftRegistryId   = @AircraftRegistryId
-            AND wf.IsDeleted        = 0
-            AND wf.IsActive         = 1
-            AND wf.MasterCompanyId  = @MasterCompanyId
-            AND (@TemplateType      IS NULL OR wf.TemplateType      = @TemplateType)
-            AND (@MaintenanceTypeId IS NULL OR wf.MaintenanceTypeId = @MaintenanceTypeId)
+        wf.IsDeleted        = 0
+        AND wf.IsActive     = 1
+        AND wf.MasterCompanyId  = @MasterCompanyId
+        AND (@TemplateType      IS NULL OR wf.TemplateType      = @TemplateType)
+        AND (
+            wf.MaintenanceTypeId IS NULL              
+            OR @MaintenanceTypeId IS NULL            
+            OR wf.MaintenanceTypeId = @MaintenanceTypeId
+        )
         ORDER BY wf.WorkflowDescription;
 
         COMMIT TRANSACTION;

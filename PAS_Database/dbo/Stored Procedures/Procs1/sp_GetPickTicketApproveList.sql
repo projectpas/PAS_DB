@@ -23,7 +23,8 @@
 	7    08/07/2025   Vishal Suthar		Added a check for approval of the part before generating pick ticket
 	8    26/12/2025   Amit Ghediya		Update condition for ReadyToPick
 	9    06/03/2026   Moin Bloch		Update (Added UOM Changes) PN-15067
-     
+	10   11/05/2026   Bhargav saliya	Fixed Issue Group BY For QuantityAvailable select Field
+     s
 -- EXEC [dbo].[sp_GetPickTicketApproveList] 10851
 **************************************************************/
 CREATE    Procedure [dbo].[sp_GetPickTicketApproveList]
@@ -50,10 +51,11 @@ BEGIN
 
 		'' AS SerialNumber, 
 		--(SELECT SUM(QuantityAvailable)  
-		(SELECT [dbo].[fn_ConvertUOM](SUM(sll.[QuantityAvailable]),sll.[StockUnitOfMeasure], sll.[ConsumeUnitOfMeasure],0,sll.[MasterCompanyId])
+		(SELECT [dbo].[fn_ConvertUOM](SUM(sll.[QuantityAvailable]),MAX(sll.[StockUnitOfMeasure]), MAX(sll.[ConsumeUnitOfMeasure]),0,(sll.[MasterCompanyId]))
 			FROM dbo.StockLine sll WITH(NOLOCK) 
 			WHERE sll.ItemMasterId = sop.ItemMasterId AND sll.ConditionId = sop.ConditionId
-			GROUP BY sll.[StockUnitOfMeasure], sll.[ConsumeUnitOfMeasure],sll.[MasterCompanyId]) AS QuantityAvailable,
+			GROUP BY sll.[MasterCompanyId]
+			) AS QuantityAvailable,
 		so.SalesOrderNumber,
 		soq.SalesOrderQuoteNumber,
 		--(SELECT SUM(SP.QtyToShip) 

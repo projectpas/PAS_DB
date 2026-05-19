@@ -11,7 +11,7 @@
  ** --   -------------		----------------	--------------------------------          
     1    05-Oct-2025		Bhargav Saliya      Created
     2    07-Oct-2025		Bhargav Saliya      Modefied
-
+	3    15-May-2026        Rajesh Gami         Remove condition @CreditLimit < 0 PN-16411
 --[USP_checkEnforceCustomerCreditRestrictions] @LegalEntityId = 1, @CustomerId = 4468, @MastercompanyId = 1
 **************************************************************/
 CREATE     PROCEDURE [dbo].[USP_checkEnforceCustomerCreditRestrictions]
@@ -55,10 +55,11 @@ BEGIN
 		SELECT @CreditLimit = ISNULL([CreditLimit],0) FROM [dbo].[CustomerFinancial] WITH(NOLOCK) WHERE CustomerId = @CustomerId and MasterCompanyId = @MastercompanyId;
 
 		SELECT top 1 @SelectCustId = CustomerId FROM [CustomerWarning] WITH(NOLOCK) WHERE CustomerId = @CustomerId AND MasterCompanyId = @MastercompanyId
-
+		PRINT  @IsCreaditRestriction
 		
-		IF(@CreditLimit < 0 AND @IsCreaditRestriction = 1)
+		IF(@IsCreaditRestriction = 1)
 		BEGIN
+		PRINT '1'
 			IF(@SelectCustId is not null AND @SelectCustId > 0)
 			BEGIN
 				INSERT INTO #restrictTempTable([IsRestrict],[IsWarning],[RestrictMessage],[WarningMessage],[LeRestriction],[IsCreaditRestriction],[CreditLimit])
@@ -75,6 +76,7 @@ BEGIN
 			END
 			ELSE
 			BEGIN
+			PRINT '2'
 			 INSERT INTO #restrictTempTable([IsRestrict],[IsWarning],[RestrictMessage],[WarningMessage],[LeRestriction],[IsCreaditRestriction],[CreditLimit])
 			 values(0,0,'','',@RestrictMessage,@IsCreaditRestriction,@CreditLimit);
 			END

@@ -1,21 +1,22 @@
-﻿/************************************************************
+﻿/*********************
 ** File:        [USP_GetAircraftMaintenanceList]
-** Author:      Priyansh Patel
-** Description: Get Aircraft Registry data from AircraftRegistryHeader
-** 
+** Description:
+** Purpose:
+** Date:
+**
+** RETURN VALUE:
+**********************
 ** Change History
-************************************************************
-** PR   Date         Author             Description
-** --   ----------   -------------      -------------------------
+**********************
+** PR   Date         Author				Change Description
+** --   ----------   -------------		--------------------------------
 ** 1    10/04/2026   Priyansh Patel     Created [PN-16016]
 ** 2    28/04/2026   Priyansh Patel     Added Mtce Class [PN-16160]
 ** 3    07/05/2026   Priyansh Patel     Added TemplateIdNumber [PN-16344]
-
-************************************************************/
-
- -- EXEC [dbo].[USP_GetAircraftMaintenanceList] @MasterCompanyId = 1 @AircraftRegistryId = 22;
-
- CREATE     PROCEDURE [dbo].[USP_GetAircraftMaintenanceList]
+** 4    18-05-2026   Ayushi Patel       Return WorksheetNumber from worksheetheader table [PN-16454]
+*********************/
+-- EXEC [dbo].[USP_GetAircraftMaintenanceList] @MasterCompanyId = 1 @AircraftRegistryId = 22;
+CREATE  PROCEDURE [dbo].[USP_GetAircraftMaintenanceList]
     @PageNumber              INT             = 1,
     @PageSize                INT             = 10,
     @SortColumn              VARCHAR(100)    = 'ProgramId',
@@ -51,7 +52,8 @@
     @IsActive                BIT             = NULL,
     @IsDeleted               BIT             = 0,
     @AircraftRegistryId      BIGINT,
-    @MasterCompanyId         INT
+    @MasterCompanyId         INT,
+    @WorksheetNumber         VARCHAR(50) = NULL
 
 AS
 BEGIN
@@ -64,7 +66,8 @@ BEGIN
         (
             SELECT
                 AMP.ProgramId,AMP.AircraftRegistryId,AMP.VersionNumber,AMP.MaintenanceType, AMP.MaintenanceTypeId,AMP.NextScheduledMaintenance,
-                WF.WorkOrderNumber AS TemplateIdNumber,AMP.TemplateVersionNumber,
+				AMP.TemplateId AS TemplateId,
+               WF.WorkOrderNumber AS TemplateIdNumber,AMP.TemplateVersionNumber,
                 ARH.TailNum AS TailNumber,
                 ARH.MakeType AS AircraftMake,
                 ARH.AircraftModel,
@@ -100,14 +103,17 @@ BEGIN
                 AMP.UpdatedBy,
                 AMP.CreatedDate,
                 AMP.CreatedBy,
+                WSH.WorksheetNumber,
                 COUNT(1) OVER () AS TotalRecords
 
             FROM [dbo].[AircraftMaintenanceProgram] AMP WITH (NOLOCK)
             LEFT JOIN [dbo].[AircraftRegistryHeader] ARH WITH (NOLOCK) ON AMP.AircraftRegistryId = ARH.AircraftRegistryId  AND ARH.MasterCompanyId = @MasterCompanyId 
             LEFT JOIN [dbo].[MaintenanceClass] MC WITH (NOLOCK)  ON AMP.MaintenanceClassId = MC.MaintenanceClassId
             LEFT JOIN [dbo].[Workflow] WF WITH (NOLOCK)  ON AMP.TemplateId = WF.WorkflowId AND WF.TemplateType = @ACTemplateType
+            LEFT JOIN [dbo].[worksheetheader] WSH WITH (NOLOCK) ON AMP.ProgramId = WSH.ProgramId
 
-            WHERE AMP.AircraftRegistryId = @AircraftRegistryId  AND AMP.MasterCompanyId = @MasterCompanyId  AND (@IsDeleted IS NULL OR AMP.IsDeleted = @IsDeleted)
+            WHERE (@AircraftRegistryId IS NULL OR @AircraftRegistryId = 0 OR AMP.AircraftRegistryId = @AircraftRegistryId) --AMP.AircraftRegistryId = @AircraftRegistryId  
+			AND AMP.MasterCompanyId = @MasterCompanyId  AND (@IsDeleted IS NULL OR AMP.IsDeleted = @IsDeleted)
                 -- Global Filter
                 AND ( @GlobalFilter IS NULL OR AMP.TailNumber       LIKE '%' + @GlobalFilter + '%' OR CAST(AMP.ProgramId AS VARCHAR(50))   LIKE '%' + @GlobalFilter + '%' OR
                     AMP.MaintenanceType  LIKE '%' + @GlobalFilter + '%'
@@ -143,6 +149,8 @@ BEGIN
                 AND (@TimeRemaining IS NULL OR CAST(AMP.TimeRemaining AS VARCHAR) LIKE '%' + @TimeRemaining + '%')
                 AND (@LandingsRemaining IS NULL OR CAST(AMP.LandingsRemaining AS VARCHAR) LIKE '%' + @LandingsRemaining + '%')
                 AND (@EngineStartsRemaining IS NULL OR CAST(AMP.EngineStartsRemaining AS VARCHAR) LIKE '%' + @EngineStartsRemaining + '%')
+                AND (@WorksheetNumber IS NULL  OR MC.[Name] LIKE '%' + @MaintenanceClassName + '%')
+                AND (ISNULL(@WorksheetNumber,'') ='' OR WSH.WorksheetNumber LIKE '%' + @WorksheetNumber + '%')
         )
 
         SELECT *
@@ -202,6 +210,8 @@ BEGIN
             CASE WHEN @SortColumn = 'EngineStartsRemaining' AND @SortOrder = 'DESC' THEN EngineStartsRemaining END DESC,
             CASE WHEN @SortColumn = 'CreatedDate'       AND @SortOrder = 'ASC'  THEN CreatedDate END ASC,
             CASE WHEN @SortColumn = 'CreatedDate'       AND @SortOrder = 'DESC' THEN CreatedDate END DESC,
+            CASE WHEN @SortColumn = 'WorksheetNumber' AND @SortOrder = 'ASC' THEN WorksheetNumber END ASC,
+            CASE WHEN @SortColumn = 'WorksheetNumber' AND @SortOrder = 'DESC' THEN WorksheetNumber END DESC,
             ProgramId DESC
 
         OFFSET (@PageNumber - 1) * @PageSize ROWS

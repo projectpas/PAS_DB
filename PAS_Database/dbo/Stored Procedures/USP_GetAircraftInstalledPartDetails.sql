@@ -22,6 +22,11 @@
 ** 10   2026-05-07	 Priyansh Patel		Fixed the Remaining time calculation [PN-16306]
 ** 11   2026-05-04   Amit Ghediya		ATA Chapter level shows “-” when no data exists [PN-16249]
 ** 12   2026-05-07	 Abhishek Jirawla	Adding Make Type and Model [PN-16282]
+** 13   05-12-2026   Amit Ghediya       Added item InstallFlightHours,InstalledTime,InstalledCycles,. (PN-16382)
+** 13   05-13-2026   Amit Ghediya       Added item PO,RO,WO Num. (PN-16415)
+** 14   18-05-2026   Ayushi Patel       Return WorksheetNumber from worksheetheader table [PN-16454]
+** 14   05-13-2026   Amit Ghediya       Added item PO,RO,WO Num. (PN-16415)
+** 15   05-18-2026   Abhishek Jirawla   Added item PO,RO,WO Id. (PN-16464)
 
 *********************/
 CREATE   PROCEDURE [dbo].[USP_GetAircraftInstalledPartDetails]
@@ -55,7 +60,12 @@ CREATE   PROCEDURE [dbo].[USP_GetAircraftInstalledPartDetails]
 	@IsDeleted BIT = NULL,
 	@IsActive BIT = NULL,
     @AircraftRegistryId BIGINT = NULL,
-    @MasterCompanyId    BIGINT
+    @MasterCompanyId    BIGINT,
+
+	@PONumber VARCHAR(50) = NULL,
+	@RONumber VARCHAR(50) = NULL,
+	@WONumber VARCHAR(50) = NULL,
+	@WorksheetNumber VARCHAR(50) = NULL
 )
 AS
 BEGIN
@@ -109,6 +119,8 @@ BEGIN
                 AIPD.PositionCode,
                 AIPD.[Hours],
                 AIPD.[Minutes],
+				AIPD.InstallFlightHours,
+				AIPD.InstallFlightTime AS 'InstallFlightMinutes',
 				AIPD.PartFlightHours AS 'FlightHours',
 				AIPD.PartFlightMinutes AS 'FlightMinutes',
 				ISNULL(AIPD.FlightHours,0) + CAST(ISNULL(AIPD.FlightMinutes,0) AS INT) / 60 AS 'RecordFlightHours',
@@ -116,20 +128,25 @@ BEGIN
 				CASE 
 					WHEN ISNULL(AIPD.PartFlightHours,0) = 0 AND ISNULL(AIPD.PartFlightMinutes,0) = 0 THEN 0
 					WHEN (CAST(ISNULL(AIPD.PartFlightHours,0) AS INT) * 60 + CAST(ISNULL(AIPD.PartFlightMinutes,0) AS INT))
+					   - (CAST(ISNULL(AIPD.InstallFlightHours,0) AS INT) * 60 + CAST(ISNULL(AIPD.InstallFlightTime,0) AS INT))
 					   - (CAST(ISNULL(AIPD.FlightHours,0) AS INT) * 60 + CAST(ISNULL(AIPD.FlightMinutes,0) AS INT)) < 0 THEN 0
 					ELSE ((CAST(ISNULL(AIPD.PartFlightHours,0) AS INT) * 60 + CAST(ISNULL(AIPD.PartFlightMinutes,0) AS INT))
+					   - (CAST(ISNULL(AIPD.InstallFlightHours,0) AS INT) * 60 + CAST(ISNULL(AIPD.InstallFlightTime,0) AS INT))
 					   - (CAST(ISNULL(AIPD.FlightHours,0) AS INT) * 60 + CAST(ISNULL(AIPD.FlightMinutes,0) AS INT))) / 60
 				END AS 'RemainingFlightHours',
 				CASE 
 					WHEN ISNULL(AIPD.PartFlightHours,0) = 0 AND ISNULL(AIPD.PartFlightMinutes,0) = 0 THEN 0
 					WHEN (CAST(ISNULL(AIPD.PartFlightHours,0) AS INT) * 60 + CAST(ISNULL(AIPD.PartFlightMinutes,0) AS INT))
+					   - (CAST(ISNULL(AIPD.InstallFlightHours,0) AS INT) * 60 + CAST(ISNULL(AIPD.InstallFlightTime,0) AS INT))
 					   - (CAST(ISNULL(AIPD.FlightHours,0) AS INT) * 60 + CAST(ISNULL(AIPD.FlightMinutes,0) AS INT)) < 0 THEN 0
 					ELSE ((CAST(ISNULL(AIPD.PartFlightHours,0) AS INT) * 60 + CAST(ISNULL(AIPD.PartFlightMinutes,0) AS INT))
+						- (CAST(ISNULL(AIPD.InstallFlightHours,0) AS INT) * 60 + CAST(ISNULL(AIPD.InstallFlightTime,0) AS INT))
 					   - (CAST(ISNULL(AIPD.FlightHours,0) AS INT) * 60 + CAST(ISNULL(AIPD.FlightMinutes,0) AS INT))) % 60
 				END AS 'RemainingFlightMinutes',
+				AIPD.InstallCycles,
                 AIPD.PartCycles AS 'Cycles',
 				AIPD.Cycles AS 'RecordCycles',
-				CASE WHEN ISNULL(AIPD.PartCycles,0) > 0 THEN  ISNULL(AIPD.PartCycles,0) - ISNULL(AIPD.Cycles,0) ELSE  0 END AS 'RemainingCycles',
+				CASE WHEN ISNULL(AIPD.PartCycles,0) > 0 THEN  ISNULL(AIPD.PartCycles,0) - ISNULL(AIPD.InstallCycles,0) - ISNULL(AIPD.Cycles,0) ELSE  0 END AS 'RemainingCycles',
                 AIPD.PartLandings AS Landings,
 				CASE WHEN ISNULL(AIPD.PartLandings,0) > 0 THEN  ISNULL(AIPD.PartLandings,0) - ISNULL(AIPD.Landings,0) ELSE  0 END AS 'RemainingLandings',
                 AIPD.PartEngineStarts AS EngineStarts,
@@ -138,14 +155,28 @@ BEGIN
                 AIPD.CreatedDate,
                 AIPD.UpdatedDate,
                 UPPER(AIPD.CreatedBy) AS CreatedBy,
-                UPPER(AIPD.UpdatedBy) AS UpdatedBy,
-				LS.LastSequence
+                UPPER(AIPD.UpdatedBy) AS UpdatedBy,				
+				LS.LastSequence,
+				POP.PurchaseOrderId AS POId,
+				PO.PurchaseOrderNumber AS 'PONumber',
+				ROP.RepairOrderId AS ROId,
+				RO.RepairOrderNumber AS 'RONumber',				
+				WSH.WorksheetNumber,
+				WOP.WorkOrderId AS WOId,
+				WO.WorkOrderNum AS 'WONumber'
             FROM dbo.AircraftInstalledPartDetails AS AIPD WITH (NOLOCK)
 			LEFT JOIN dbo.ItemMasterAircraftMapping IMAM WITH (NOLOCK) ON AIPD.ATAChapterId = IMAM.ItemMasterAircraftMappingId
 			INNER JOIN dbo.AircraftRegistryHeader ARH WITH (NOLOCK) ON ARH.AircraftRegistryId = AIPD.AircraftRegistryId
 			INNER JOIN dbo.ItemMaster IM WITH (NOLOCK) ON AIPD.ItemMasterId = IM.ItemMasterId
 			INNER JOIN dbo.AircraftStatus AST WITH (NOLOCK) ON AST.AircraftStatusId = ARH.AircraftStatusId
 			LEFT JOIN dbo.Stockline STK WITH (NOLOCK) ON STK.StockLineId = AIPD.StockLineId
+			LEFT JOIN dbo.PurchaseOrderPart POP WITH (NOLOCK) ON POP.AircraftInstalledPartDetailsId = AIPD.AircraftInstalledPartDetailsId
+			LEFT JOIN dbo.PurchaseOrder PO WITH (NOLOCK) ON PO.PurchaseOrderId = POP.PurchaseOrderId
+			LEFT JOIN dbo.RepairOrderPart ROP WITH (NOLOCK) ON ROP.AircraftInstalledPartDetailsId = AIPD.AircraftInstalledPartDetailsId
+			LEFT JOIN dbo.RepairOrder RO WITH (NOLOCK) ON RO.RepairOrderId = ROP.RepairOrderId
+			LEFT JOIN dbo.WorkOrderPartNumber WOP WITH (NOLOCK) ON WOP.AircraftInstalledPartDetailsId = AIPD.AircraftInstalledPartDetailsId
+			LEFT JOIN dbo.WorkOrder WO WITH (NOLOCK) ON WO.WorkOrderId = WOP.WorkOrderId
+			LEFT JOIN dbo.worksheetheader WSH WITH (NOLOCK) ON WSH.AircraftInstalledPartDetailsId = AIPD.AircraftInstalledPartDetailsId
 			CROSS JOIN (
 					SELECT MAX(SequenceNum) AS LastSequence
 					FROM dbo.AircraftInstalledPartDetails WITH (NOLOCK)
@@ -176,7 +207,11 @@ BEGIN
 					(Serialized LIKE '%' +@GlobalFilter+'%') OR
 					(LLP LIKE '%' +@GlobalFilter+'%') OR
 					(DateInstalled like '%' + @GlobalFilter + '%') OR
-					(PositionCode LIKE '%' +@GlobalFilter+'%'))) OR
+					(PositionCode LIKE '%' +@GlobalFilter+'%') OR
+					(PONumber LIKE '%' +@GlobalFilter+'%') OR
+					(RONumber LIKE '%' +@GlobalFilter+'%') OR
+					(WONumber LIKE '%' +@GlobalFilter+'%') OR
+					(WorksheetNumber LIKE '%' +@GlobalFilter+'%'))) OR
 					(@GlobalFilter='' AND 
 					(ISNULL(@AircraftRegistryNumber,'') ='' OR [AircraftRegistryNumber] LIKE '%' + @AircraftRegistryNumber+'%') AND
 					(ISNULL(@MakeType,'') ='' OR [MakeType] LIKE '%' + @MakeType+'%') AND
@@ -191,17 +226,19 @@ BEGIN
 					(ISNULL(@Condition,'') ='' OR Condition LIKE '%' + @Condition + '%') AND
 					(ISNULL(@AircraftStatus,'') ='' OR AircraftStatus LIKE '%' + @AircraftStatus + '%') AND
 					(ISNULL(@StockLineNumber,'') ='' OR StockLineNumber LIKE '%' + @StockLineNumber + '%') AND
-
 					(ISNULL(@Quantity,'') ='' OR Quantity LIKE '%' + @Quantity + '%') AND  
 					(ISNULL(@QuantityAvailable,'') ='' OR QuantityAvailable LIKE '%' + @QuantityAvailable + '%') AND
 					(ISNULL(@QuantityOnHand,'') ='' OR QuantityOnHand LIKE '%' + @QuantityOnHand + '%') AND
-
 					(ISNULL(@SerialNumber,'') ='' OR SerialNumber LIKE '%' + @SerialNumber + '%') AND
 					(ISNULL(@ControlNumber,'') ='' OR ControlNumber LIKE '%' + @ControlNumber + '%') AND
 					(ISNULL(@Serialized,'') ='' OR Serialized LIKE '%' + @Serialized + '%') AND
 					(ISNULL(@LLP,'') ='' OR LLP LIKE '%' + @LLP + '%') AND
 					(ISNULL(@DateInstalled,'') ='' OR CAST(DateInstalled AS Date) = CAST(@DateInstalled AS Date)) AND
-					(ISNULL(@PositionCode,'') ='' OR PositionCode LIKE '%' + @PositionCode + '%'))
+					(ISNULL(@PositionCode,'') ='' OR PositionCode LIKE '%' + @PositionCode + '%') AND
+					(ISNULL(@PONumber,'') ='' OR PONumber LIKE '%' + @PONumber + '%') AND
+					(ISNULL(@RONumber,'') ='' OR RONumber LIKE '%' + @RONumber + '%') AND
+					(ISNULL(@WONumber,'') ='' OR WONumber LIKE '%' + @WONumber + '%') AND
+					(ISNULL(@WorksheetNumber,'') ='' OR WorksheetNumber LIKE '%' + @WorksheetNumber + '%'))
 			)
    SELECT @Count = COUNT(AircraftInstalledPartDetailsId) FROM #TempResult			
 
@@ -275,6 +312,18 @@ BEGIN
 
 			CASE WHEN @SortOrder =  1 AND @SortColumn = 'SERIALNUMBER'      THEN SerialNumber      END ASC,
             CASE WHEN @SortOrder = -1 AND @SortColumn = 'SERIALNUMBER'      THEN SerialNumber      END DESC,
+
+			CASE WHEN @SortOrder =  1 AND @SortColumn = 'PONUMBER'      THEN PONumber      END ASC,
+            CASE WHEN @SortOrder = -1 AND @SortColumn = 'PONUMBER'      THEN PONumber      END DESC,
+
+			CASE WHEN @SortOrder =  1 AND @SortColumn = 'RONUMBER'      THEN RONumber      END ASC,
+            CASE WHEN @SortOrder = -1 AND @SortColumn = 'RONUMBER'      THEN RONumber      END DESC,
+
+			CASE WHEN @SortOrder =  1 AND @SortColumn = 'WONUMBER'      THEN WONumber      END ASC,
+            CASE WHEN @SortOrder = -1 AND @SortColumn = 'WONUMBER'      THEN WONumber      END DESC,
+
+			CASE WHEN @SortOrder =  1 AND @SortColumn = 'WorksheetNumber'      THEN WorksheetNumber      END ASC,
+            CASE WHEN @SortOrder = -1 AND @SortColumn = 'WorksheetNumber'      THEN WorksheetNumber      END DESC,
 
             AircraftInstalledPartDetailsId DESC
         OFFSET @RecordFrom ROWS

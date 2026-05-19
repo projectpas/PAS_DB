@@ -10,9 +10,10 @@
  **************************************************************             
   ** Change History             
  **************************************************************             
- ** PR   Date         Author              Change Description              
- ** --   --------     -------          --------------------------------     
-    1    14/05/2026                        Created [PN-16408]
+ ** PR   Date         Author             Change Description              
+ ** --   --------     -------            --------------------------------     
+    1    14/05/2026   Priyansh Patel     Created [PN-16408]
+    2    19/05/2026   Priyansh Patel     Added Duplicate inspection fields [PN-16408]
 **************************************************************/
 
 CREATE PROCEDURE [dbo].[USP_GetWorksheetHeaderById]
@@ -51,6 +52,16 @@ BEGIN
             WH.TechnicalRecordsWO,
             WH.CalmSysWO,
             WH.CertificationStatement,
+            WH.DupInspSysDescription,
+            WH.DupInspDefectWorkNo ,
+            WH.DupInspDate,
+            WH.DupInspStation,
+            WH.DupInspSignatory1By,
+            WH.DupInspSignatory1LicAppNo,
+            WH.DupInspSignatory1Time,
+            WH.DupInspSignatory2By,
+            WH.DupInspSignatory2LicAppNo,
+            WH.DupInspSignatory2Time,
             WH.IsActive,
             WH.IsDeleted,
             WH.MasterCompanyId,

@@ -12,6 +12,8 @@
 	2    05/05/2026	    Amit Ghediya			update chnge for program
     3    07/05/2026	    Priyansh Patel			Fixed the Remaining time calculation [PN-16306]
 	4    14/05/2026	    Amit Ghediya			Added TailNumber [PN-16378]
+	5    18/05/2026	    Bhargav Saliya			Added @IsScheduledMaintenance [PN-16475]
+	6    19/05/2026	    Bhargav Saliya			Replace @IsScheduledMaintenance to @MtcCategoryId
 
 **************************************************************/
 CREATE PROCEDURE [dbo].[USP_CreateUpdateAircraftMaintenanceProgram]
@@ -33,7 +35,8 @@ CREATE PROCEDURE [dbo].[USP_CreateUpdateAircraftMaintenanceProgram]
     @CreatedBy                  VARCHAR(256),
     @UpdatedBy                  VARCHAR(256)    = NULL,
     @IsVersionIncrease          BIT             = 0,
-	@TailNumber      VARCHAR(50)     = NULL
+	@TailNumber      VARCHAR(50)     = NULL,
+    @MtcCategoryId          BIGINT
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -201,7 +204,8 @@ BEGIN
 				IsActive        = @IsActive,
 				IsDeleted       = @IsDeleted,
 				UpdatedBy       = @UpdatedBy,
-				UpdatedDate     = GETUTCDATE()
+				UpdatedDate     = GETUTCDATE(),
+                MtcCategoryId = @MtcCategoryId
 			WHERE ProgramId = @ProgramId 
 			AND MasterCompanyId = @MasterCompanyId;
         END
@@ -221,7 +225,7 @@ BEGIN
                 CyclesLimit, TimeLimit, LandingsLimit, EngineStartsLimit,
                 FlightHoursRemainingHours,FlightHoursRemainingMinutes,CyclesRemaining,
                 IsActive, IsDeleted, MasterCompanyId,
-                CreatedBy, UpdatedBy, CreatedDate, UpdatedDate
+                CreatedBy, UpdatedBy, CreatedDate, UpdatedDate,MtcCategoryId
             )
             VALUES
             (
@@ -233,7 +237,7 @@ BEGIN
                 @CyclesLimit, @TimeLimit, @LandingsLimit, @EngineStartsLimit,
                 @FlightHoursLimitHours, @FlightHoursLimitMinutes, @CyclesLimit,
                 ISNULL(@IsActive, 1), ISNULL(@IsDeleted, 0), @MasterCompanyId,
-                @CreatedBy, @UpdatedBy, GETUTCDATE(), GETUTCDATE()
+                @CreatedBy, @UpdatedBy, GETUTCDATE(), GETUTCDATE(),@MtcCategoryId
             );
 
             SET @ProgramId = SCOPE_IDENTITY();

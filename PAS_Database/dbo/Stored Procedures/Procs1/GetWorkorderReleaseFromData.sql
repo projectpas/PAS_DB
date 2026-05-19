@@ -66,7 +66,10 @@ BEGIN
 		DECLARE @MasterCompanyCode VARCHAR(20) = 'PAR'
 		DECLARE @ParCommonTeardownTypeId BIGINT = 0;
 		DECLARE @CorrectiveAction NVARCHAR(MAX)=''
-
+		DECLARE @MasterCompanyCodeATI VARCHAR(20) = 'ATI'
+		DECLARE @ATIReleaseFormCommonTeardownTypeId BIGINT = 0;
+		DECLARE @ReleaseForm NVARCHAR(MAX) = '';
+		DECLARE @isATICompany BIT = 0;
 		
 		SELECT @MasterCompanyId = [MasterCompanyId] FROM [DBO].[WorkOrder] CTT WITH(NOLOCK) WHERE [WorkorderId] = @WorkorderId;
 
@@ -128,6 +131,19 @@ BEGIN
 									
 			SET	@CorrectiveAction = @FinalResult
 		END
+		/********* For the ATI company: Release Form *********/
+		IF(@MasterCompanyCodeATI = (SELECT [MasterCompanyCode]FROM [dbo].[MasterCompany] WITH(NOLOCK)WHERE [MasterCompanyId] = @MasterCompanyId	))
+			BEGIN
+				SET @isATICompany = 1;
+				SELECT @WorkFlowWorkOrderId = [WorkFlowWorkOrderId]
+				FROM [DBO].[WorkOrderWorkFlow] WITH(NOLOCK)
+				WHERE [WorkorderId] = @WorkorderId
+				AND [WorkOrderPartNoId] = @workOrderPartNumberId;
+
+				SELECT @ATIReleaseFormCommonTeardownTypeId = [CommonTeardownTypeId]
+				FROM [dbo].[CommonTeardownType] WITH(NOLOCK)
+				WHERE [MasterCompanyId] = @MasterCompanyId
+				AND [Code] = 'RELEASEFORM';
 
 		DECLARE @VerCodePrefix NVARCHAR(50),@VerCode INT
 
@@ -304,7 +320,7 @@ BEGIN
 					  pub.[PublishedByOthers],
 					  wo.[MasterCompanyId],
 					  CASE WHEN @IsEasaUKLicense = 1 AND @formTypeId = @FAAEASAUK THEN 'UK' ELSE 'EASA' END AS IsEasaUKLicenseType,
-					  ('<div style = "position:relative; min-height:140px;max-height:150px;  font-family: Arial, Helvetica, sans-serif!important; letter-spacing: 1px!important; font-size:10px">') AS HeaderRemarks,   				
+					  ('<div style = "position:relative;' +CASE WHEN @isATICompany = 1 THEN 'min-height:130px;max-height:140px;' ELSE 'min-height:140px;max-height:150px;' END +  'padding-bottom:35px;  font-family: Arial, Helvetica, sans-serif!important; letter-spacing: 1px!important; font-size:10px">') AS HeaderRemarks,   				
 					   --+ (CASE WHEN wop.CMMId is not null and wop.CMMId > 0 THEN   
 						--		CASE WHEN wo.MasterCompanyId != @MTIMasterCompanyId THEN '<p>' + ('Publication ID: ' + ISNULL(UPPER(pub.PublicationId),0)) +'</p>'   
 						--				+'<p>'+(CASE WHEN pub.PublishedById = 2 THEN 'Published By: ' + ISNULL(UPPER(ven.VendorName),'-')  
@@ -445,7 +461,7 @@ BEGIN
 					THEN 'UK' ELSE 'EASA' 
 				END AS IsEasaUKLicenseType,
 
-				'<div style="position:relative; min-height:140px; max-height:150px;
+				'<div style="position:relative;' +CASE WHEN @isATICompany = 1 THEN 'min-height:130px;max-height:140px;' ELSE 'min-height:140px;max-height:150px;' END +  'padding-bottom:35px;
 					font-family:Arial, Helvetica, sans-serif!important;
 					letter-spacing:1px!important; font-size:10px">' AS HeaderRemarks,
 
@@ -591,11 +607,11 @@ BEGIN
 					  pub.[PublishedByOthers],
 					  wo.[MasterCompanyId],
 					  CASE WHEN @IsEasaUKLicense = 1 AND @formTypeId = @FAAEASAUK THEN 'UK' ELSE 'EASA' END AS IsEasaUKLicenseType,
-					  ('<div style = "position:relative; min-height:140px;max-height:150px;  font-family: Arial, Helvetica, sans-serif!important; letter-spacing: 1px!important; font-size:10px">') AS HeaderRemarks,   				
+					  ('<div style = "position:relative;' +CASE WHEN @isATICompany = 1 THEN 'min-height:130px;max-height:140px;' ELSE 'min-height:140px;max-height:150px;' END +  'padding-bottom:35px;  font-family: Arial, Helvetica, sans-serif!important; letter-spacing: 1px!important; font-size:10px">') AS HeaderRemarks,   				
 					  (CASE WHEN @IsEasaLicense = 0 AND @IsEasaUKLicense = 0 THEN '<div style='+ '"bottom : 0px; position:absolute;font-size: 10px !important;line-height: 12px;"'+'>' + (REPLACE(REPLACE(ISNULL(wods.Dualreleaselanguage,''),'<p>',''),'</p>','') +' '++'</div>') ELSE ''  END)        
 					+ (CASE WHEN @IsEasaLicense = 1 AND @formTypeId = @FAAEASA THEN '<div style='+ '"bottom : 0px; position:absolute;font-size: 10px !important;line-height: 12px;"'+'>' + (REPLACE(REPLACE(ISNULL(wods.Dualreleaselanguage,''),'<p>',''),'</p>','') +' '+ le.EASALicense +'</div>') ELSE ''  END)        
 					+ (CASE WHEN @IsEasaUKLicense = 1 AND @formTypeId = @FAAEASAUK THEN '<div style='+ '"bottom : 0px; position:absolute;font-size: 10px !important;line-height: 12px;"'+'>' + (REPLACE(REPLACE(ISNULL(wods.Dualreleaselanguage,''),'<p>',''),'</p>','') +' '+ le.UKCAALicense +'</div>') ELSE ''  END)        
-					+ '</div>' FooterRemarks,  
+					  + '</div>'FooterRemarks,  
 					   UPPER(le.EASALicense) AS EASALicense,  
 					   @EmailBody AS EmailBody
 					   ,@VersionNo VersionNo

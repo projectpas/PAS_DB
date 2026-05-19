@@ -15,6 +15,7 @@
  ** --   --------     -------		--------------------------------          
     1    10/02/2026  Moin Bloch     CREATED
 	2    20/02/2026  Moin Bloch     Tender Stockline Multiply by Tendered Quantity PN-15505
+	3    24/04/2026  Moin Bloch     Tender Stockline GLAccount Fix
 
    EXEC [dbo].[USP_TearDownWOBatchTriggerBasedonDistribution] 4,3915,0,0,459,0,0,'',0,0.00,'WO',1,'ADMIN User'
 
@@ -408,8 +409,8 @@ BEGIN
 				  AND [DistributionMasterId] = @DistributionMasterId 
 				  AND [MasterCompanyId] = @MasterCompanyId;
 
-				--GL Selection Saved At StockLine 
-				SELECT	@GlAccountId = SL.WorkInProgressGLAccId	FROM [dbo].[Stockline] SL WITH(NOLOCK) WHERE SL.[StockLineId] = @StocklineId;
+				--GL Selection Saved At StockLine 				
+				SELECT @GlAccountId=GlAccountId FROM [dbo].[Stockline] WITH(NOLOCK) WHERE [StockLineId]=@StocklineId
 				SELECT	@GlAccountNumber = [AccountCode], @GlAccountName = [AccountName] FROM [dbo].[GLAccount] WITH(NOLOCK) WHERE [GLAccountId] = @GlAccountId
 
 				IF EXISTS(SELECT 1 FROM [dbo].[DistributionSetup] WITH(NOLOCK) WHERE [DistributionMasterId] =@DistributionMasterId AND [MasterCompanyId]=@MasterCompanyId AND ISNULL([GlAccountId],0) = 0 AND ISNULL([IsManualText],0) = 0)
@@ -517,10 +518,8 @@ BEGIN
 						   WHERE UPPER(DistributionSetupCode) =UPPER('TDSWOWIPPARTS') 
 						     AND [DistributionMasterId] = @DistributionMasterId 
 						     AND [MasterCompanyId] = @MasterCompanyId
-
-					SELECT @GlAccountId=GlAccountId 
-					  FROM [dbo].[Stockline] WITH(NOLOCK) 
-					 WHERE [StockLineId]=@StocklineId
+				    
+					SELECT @GlAccountId = SL.WorkInProgressGLAccId	FROM [dbo].[Stockline] SL WITH(NOLOCK) WHERE SL.[StockLineId] = @StocklineId;
 					
 					SELECT @GlAccountNumber=AccountCode,
 					       @GlAccountName=AccountName 

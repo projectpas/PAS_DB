@@ -11,6 +11,7 @@
 ** PR   Date         Author				Change Description
 ** --   ----------   -------------		--------------------------------
 ** 1    18/05/2026   Moin Bloch         Created [PN-16449]
+** 2    20/05/2026	 Moin Bloch			Added IsMtceRecordUpdated [PN-16449]
 *******************************************************************************/
 --EXEC dbo.USP_GetAircraftTechnicalRecordList @PageNumber=1,@PageSize=20,@SortColumn=NULL,@SortOrder=N'ASC',
 --@GlobalFilter=NULL,@TailNumber=NULL,@AircraftMake=NULL,@AircraftModel=NULL,@SerialNumber=NULL,@PubDate=NULL,
@@ -58,14 +59,14 @@ BEGIN
 				PUB.[PubNum],
                 PUB.[RevisionNum],
 				CASE WHEN PUB.PublishedById = @ManufactureTypeId THEN ISNULL(M.[Name],'') WHEN PUB.PublishedById = @VendorTypeId THEN ISNULL(V.VendorName,'') ELSE ISNULL(PUB.PublishedByOthers,'') END  AS PublishedBy,                
-				0 AS IsMtceRecordUpdated,
+				ISNULL(AMP.[IsMtceRecordUpdated],0) AS [IsMtceRecordUpdated],
 				'' AS MELNumber,
                 '' AS WorksheetNumber,
-                GETDATE() AS InspectionDate,
+                NULL AS InspectionDate,
                 '' AS WorkSheetCompletedBy,
                 '' AS WorkSheetStatus,
                 '' AS WorkOrderNo,
-                GETDATE() AS OpenDate,
+                NULL AS OpenDate,
                 '' AS WorkOrderStatus,			
 				ARH.[IsActive],
 				ARH.[IsDeleted],
@@ -78,6 +79,7 @@ BEGIN
             FROM [dbo].[AircraftRegistryHeader] ARH WITH(NOLOCK) 			
 			INNER JOIN [dbo].[AircraftEffectivity] ACE WITH(NOLOCK) ON ARH.[MakeTypeId] = ACE.[MakeTypeId] AND ARH.[SerialNum] = ACE.[SerialNum]
 			INNER JOIN [dbo].[AircraftPublication] PUB WITH(NOLOCK) ON ACE.[AircraftPublicationId] = PUB.[AircraftPublicationId]
+			 LEFT JOIN [dbo].[AircraftMaintenanceProgram] AMP WITH(NOLOCK) ON ARH.[AircraftRegistryId] = AMP.[AircraftRegistryId]			
 			 LEFT JOIN [dbo].[PublicationType] PUT WITH(NOLOCK) ON PUB.[PublicationTypeId] = PUT.[PublicationTypeId]
 			 LEFT JOIN [dbo].[Manufacturer] M WITH(NOLOCK) ON PUB.[PublishedByRefId] = M.[ManufacturerId]
 			 LEFT JOIN [dbo].[Vendor] V WITH(NOLOCK) ON PUB.[PublishedByRefId] = V.[VendorId]

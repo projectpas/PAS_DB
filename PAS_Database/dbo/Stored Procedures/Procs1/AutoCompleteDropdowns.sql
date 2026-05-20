@@ -41,6 +41,7 @@
 	24   10/04/2026   AMIT GHEDIYA			Added NumberOfEngines (PN-15987)
 	25   21/04/2026   Sahdev Saliya			Display Only Trainer Expertise EMPLOYEE list for EMP TRAINER SCREEN(PN-16113)
     26   13/05/2026   Ayushi Patel  	    [PN-16321]return partdescription for itemMaster
+	27   20/05/2026   Moin Bloch  	        Added case for MaintenanceCategory table. PN-16449
 
 --select * from dbo.Employee      
 --EXEC AutoCompleteDropdowns 'ItemMaster','ItemMasterId','PartNumber','',1,20,'0',1       
@@ -132,6 +133,31 @@ AS BEGIN
                          FROM dbo.PublicationType P WITH(NOLOCK)
                          WHERE MasterCompanyId=@MasterCompanyId AND PublicationTypeId IN(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') )
                          ORDER BY Name asc
+                     END
+            END
+			ELSE IF(@TableName='MaintenanceCategory')
+			BEGIN
+				IF(@Parameter4=1)
+				BEGIN
+                         SELECT DISTINCT MtcCategoryId as Value, [MtcCategory] as Label, MaintenanceCode
+                         FROM dbo.MaintenanceCategory P WITH(NOLOCK)
+                         WHERE MasterCompanyId=@MasterCompanyId AND(IsActive=1 AND ISNULL(IsDeleted, 0)=0 AND(MtcCategory LIKE '%'+@Parameter3+'%'))
+                         UNION
+                         SELECT DISTINCT MtcCategoryId as Value, [MtcCategory] as Label, MaintenanceCode
+                         FROM dbo.MaintenanceCategory P WITH(NOLOCK)
+                         WHERE MasterCompanyId=@MasterCompanyId AND MtcCategoryId IN(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') )
+                         ORDER BY [MtcCategory] asc
+                     END
+                     ELSE 
+					 BEGIN
+                         SELECT DISTINCT MtcCategoryId as Value, [MtcCategory] as Label, MaintenanceCode
+                         FROM dbo.MaintenanceCategory P WITH(NOLOCK)
+                         WHERE MasterCompanyId=@MasterCompanyId AND IsActive=1 AND ISNULL(IsDeleted, 0)=0 AND MtcCategory LIKE '%'+@Parameter3+'%'
+                         UNION
+                         SELECT DISTINCT MtcCategoryId as Value, [MtcCategory] as Label, MaintenanceCode
+                         FROM dbo.MaintenanceCategory P WITH(NOLOCK)
+                         WHERE MasterCompanyId=@MasterCompanyId AND MtcCategoryId IN(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') )
+                         ORDER BY [MtcCategory] asc
                      END
             END
             ELSE IF(@TableName='Task')BEGIN
@@ -376,6 +402,17 @@ AS BEGIN
                                   WHERE MasterCompanyId=@MasterCompanyId AND PublicationTypeId IN(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') )
                                   ORDER BY PublicationTypeId DESC
                          END
+						 ELSE IF(@TableName='MaintenanceCategory')
+						 BEGIN
+                                  SELECT DISTINCT MtcCategoryId as Value, [MtcCategory] as Label, MaintenanceCode
+								  FROM dbo.MaintenanceCategory P WITH(NOLOCK)
+                                  WHERE MasterCompanyId=@MasterCompanyId AND(IsActive=1 AND ISNULL(IsDeleted, 0)=0 AND([MtcCategory] LIKE '%'+@Parameter3+'%'))
+                                  UNION
+                                  SELECT DISTINCT MtcCategoryId as Value, [MtcCategory] as Label, MaintenanceCode
+								  FROM dbo.MaintenanceCategory P WITH(NOLOCK)
+                                  WHERE MasterCompanyId=@MasterCompanyId AND MtcCategoryId IN(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') )
+                                  ORDER BY MtcCategoryId DESC
+                         END
 						  ELSE IF(@TableName = 'TaxType') BEGIN
 							  SELECT TY.TaxTypeId as Value, TY.Description as Label, TY.Code
 								 FROM dbo.TaxType TY WITH(NOLOCK)
@@ -549,6 +586,30 @@ AS BEGIN
                          ORDER BY Name asc
                      END
             END
+			ELSE IF(@TableName='MaintenanceCategory')
+			BEGIN
+                     IF(@Parameter4=1)BEGIN
+                         SELECT DISTINCT MtcCategoryId as Value, [MtcCategory] as Label, MaintenanceCode
+                         FROM dbo.MaintenanceCategory P WITH(NOLOCK)
+                         WHERE MasterCompanyId=@MasterCompanyId AND(IsActive=1 AND ISNULL(IsDeleted, 0)=0 AND([MtcCategory] LIKE '%'+@Parameter3+'%'))
+                         UNION
+                         SELECT DISTINCT MtcCategoryId as Value, [MtcCategory] as Label, MaintenanceCode
+                         FROM dbo.MaintenanceCategory P WITH(NOLOCK)
+                         WHERE MasterCompanyId=@MasterCompanyId AND MtcCategoryId IN(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') )
+                         ORDER BY [MtcCategory] asc
+                     END
+                     ELSE 
+					 BEGIN
+                         SELECT DISTINCT MtcCategoryId as Value, [MtcCategory] as Label, MaintenanceCode
+                         FROM dbo.MaintenanceCategory P WITH(NOLOCK)
+                         WHERE MasterCompanyId=@MasterCompanyId AND IsActive=1 AND ISNULL(IsDeleted, 0)=0 AND [MtcCategory] LIKE '%'+@Parameter3+'%'
+                         UNION
+                         SELECT DISTINCT MtcCategoryId as Value, [MtcCategory] as Label, MaintenanceCode
+                         FROM dbo.MaintenanceCategory P WITH(NOLOCK)
+                         WHERE MasterCompanyId=@MasterCompanyId AND MtcCategoryId IN(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') )
+                         ORDER BY [MtcCategory] asc
+                     END
+            END
             ELSE IF(@TableName='Task')BEGIN
                      IF(@Parameter4=1)BEGIN
                          SELECT DISTINCT TaskId AS Value, Description AS Label, Sequence , IsTravelerTask, StandardHours, StandardMinute, Descrepancy, Resolution, IsPrintInWO, IsPrintInWOQ,IsPrintInspector,IsPrintTechnician,IsPrintAdmin
@@ -700,6 +761,17 @@ AS BEGIN
 									FROM dbo.PublicationType P WITH(NOLOCK)
                                   WHERE MasterCompanyId=@MasterCompanyId AND PublicationTypeId IN(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') )
                                   ORDER BY PublicationTypeId DESC
+                         END
+						 ELSE IF(@TableName='MaintenanceCategory')
+						 BEGIN
+                                  SELECT TOP 20 MtcCategoryId as Value, [MtcCategory] as Label, MaintenanceCode
+										FROM dbo.MaintenanceCategory P WITH(NOLOCK)
+                                  WHERE MasterCompanyId=@MasterCompanyId AND(IsActive=1 AND ISNULL(IsDeleted, 0)=0 AND([MtcCategory] LIKE '%'+@Parameter3+'%'))
+                                  UNION
+                                  SELECT DISTINCT MtcCategoryId as Value, [MtcCategory] as Label, MaintenanceCode
+										FROM dbo.MaintenanceCategory P WITH(NOLOCK)
+                                  WHERE MasterCompanyId=@MasterCompanyId AND MtcCategoryId IN(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') )
+                                  ORDER BY MtcCategoryId DESC
                          END
 						 ELSE IF(@TableName = 'VendorOrderType') BEGIN
 							  SELECT VT.VendorOrderTypeId as Value, VT.OrderTypeName as Label

@@ -14,6 +14,7 @@
 	4    14/05/2026	    Amit Ghediya			Added TailNumber [PN-16378]
 	5    18/05/2026	    Bhargav Saliya			Added @IsScheduledMaintenance [PN-16475]
 	6    19/05/2026	    Bhargav Saliya			Replace @IsScheduledMaintenance to @MtcCategoryId
+	7    20/05/2026	    Moin Bloch			    Added @IsMtceRecordUpdated [PN-16449]
 
 **************************************************************/
 CREATE PROCEDURE [dbo].[USP_CreateUpdateAircraftMaintenanceProgram]
@@ -36,7 +37,8 @@ CREATE PROCEDURE [dbo].[USP_CreateUpdateAircraftMaintenanceProgram]
     @UpdatedBy                  VARCHAR(256)    = NULL,
     @IsVersionIncrease          BIT             = 0,
 	@TailNumber      VARCHAR(50)     = NULL,
-    @MtcCategoryId          BIGINT
+    @MtcCategoryId          BIGINT,
+	@IsMtceRecordUpdated    BIT          = NULL
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -225,7 +227,7 @@ BEGIN
                 CyclesLimit, TimeLimit, LandingsLimit, EngineStartsLimit,
                 FlightHoursRemainingHours,FlightHoursRemainingMinutes,CyclesRemaining,
                 IsActive, IsDeleted, MasterCompanyId,
-                CreatedBy, UpdatedBy, CreatedDate, UpdatedDate,MtcCategoryId
+                CreatedBy, UpdatedBy, CreatedDate, UpdatedDate,MtcCategoryId,IsMtceRecordUpdated
             )
             VALUES
             (
@@ -237,7 +239,7 @@ BEGIN
                 @CyclesLimit, @TimeLimit, @LandingsLimit, @EngineStartsLimit,
                 @FlightHoursLimitHours, @FlightHoursLimitMinutes, @CyclesLimit,
                 ISNULL(@IsActive, 1), ISNULL(@IsDeleted, 0), @MasterCompanyId,
-                @CreatedBy, @UpdatedBy, GETUTCDATE(), GETUTCDATE(),@MtcCategoryId
+                @CreatedBy, @UpdatedBy, GETUTCDATE(), GETUTCDATE(),@MtcCategoryId, @IsMtceRecordUpdated
             );
 
             SET @ProgramId = SCOPE_IDENTITY();

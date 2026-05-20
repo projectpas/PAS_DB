@@ -12,7 +12,10 @@
 ** --   ----------   -------------		--------------------------------
 ** 1    18/05/2026   Moin Bloch         Created [PN-16449]
 *******************************************************************************/
--- EXEC [dbo].[USP_GetAircraftTechnicalRecordList] 
+--EXEC dbo.USP_GetAircraftTechnicalRecordList @PageNumber=1,@PageSize=20,@SortColumn=NULL,@SortOrder=N'ASC',
+--@GlobalFilter=NULL,@TailNumber=NULL,@AircraftMake=NULL,@AircraftModel=NULL,@SerialNumber=NULL,@PubDate=NULL,
+--@PublicationType=NULL,@PubNum=NULL,@RevisionNum=NULL,@PublishedBy=NULL,@IsActive=NULL,@IsDeleted=0,@MasterCompanyId=1
+
 CREATE   PROCEDURE [dbo].[USP_GetAircraftTechnicalRecordList]
 @PageNumber      INT             = 1,
 @PageSize        INT             = 10,
@@ -44,7 +47,7 @@ BEGIN
 
         WITH CTE AS
         (		
-            SELECT
+            SELECT DISTINCT
                 ARH.[AircraftRegistryId],
                 ARH.[TailNum] AS TailNumber,
                 ARH.[MakeType] AS AircraftMake,
@@ -54,8 +57,17 @@ BEGIN
 				PUT.[Name] AS  PublicationType,
 				PUB.[PubNum],
                 PUB.[RevisionNum],
-				CASE WHEN PUB.PublishedById = @ManufactureTypeId THEN ISNULL(M.[Name],'') WHEN PUB.PublishedById = @VendorTypeId THEN ISNULL(V.VendorName,'') ELSE ISNULL(PUB.PublishedByOthers,'') END  AS PublishedBy,
-                ARH.[IsActive],
+				CASE WHEN PUB.PublishedById = @ManufactureTypeId THEN ISNULL(M.[Name],'') WHEN PUB.PublishedById = @VendorTypeId THEN ISNULL(V.VendorName,'') ELSE ISNULL(PUB.PublishedByOthers,'') END  AS PublishedBy,                
+				0 AS IsMtceRecordUpdated,
+				'' AS MELNumber,
+                '' AS WorksheetNumber,
+                GETDATE() AS InspectionDate,
+                '' AS WorkSheetCompletedBy,
+                '' AS WorkSheetStatus,
+                '' AS WorkOrderNo,
+                GETDATE() AS OpenDate,
+                '' AS WorkOrderStatus,			
+				ARH.[IsActive],
 				ARH.[IsDeleted],
                 ARH.[UpdatedDate],
                 ARH.[UpdatedBy],

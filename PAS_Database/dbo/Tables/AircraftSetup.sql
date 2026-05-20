@@ -18,6 +18,11 @@
     [ItemClassificationId] BIGINT        NULL,
     [InventoryGLSettingId] BIGINT        NULL,
     [InventoryGLAccId]     BIGINT        NULL,
+    [UOMId]                BIGINT        NULL,
+    [RedIndicator]         INT           NULL,
+    [YellowIndicator]      INT           NULL,
+    [GreenIndicator]       INT           NULL,
+    [ItemgroupId]          BIGINT        NULL,
     CONSTRAINT [PK_AircraftSetup] PRIMARY KEY CLUSTERED ([AircraftSetupId] ASC)
 );
 

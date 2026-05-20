@@ -10,7 +10,8 @@
  ** PR   Date				Author				Change Description            
  ** --   -------------		----------------	--------------------------------          
 	1	 15/05/2026          Nakul Chandigra     Created 
-	2    19/05/2026           Nakul Chandigra    Added fields 
+	2    19/05/2026          Nakul Chandigra    Added fields 
+	3    20/05/2026          Nakul Chandigra    Added fields 
 	exec [USP_GetAircraftSetup] 1
 **************************************************************/
 	CREATE   PROCEDURE [dbo].[USP_GetAircraftSetup]
@@ -28,14 +29,13 @@
 			ARS.Name AS AircraftStatus,
 			AR.[CurrencyId],
 			CU.[Code] AS Currency,
-			AR.PurchaseUOMId,
-	        AR.StockUOMId,
-	        AR.ConsumeUOMId,
-	        AR.PurchaseCurrencyId,
-	        AR.SalesCurrencyId,
+			AR.UOMId,
 	        AR.ItemClassificationId,
 	        AR.InventoryGLSettingId,
-			AR.InventoryGLAccId,
+			AR.RedIndicator,
+			AR.YellowIndicator,
+			AR.GreenIndicator,
+			AR.ItemgroupId,
 			AR.[MasterCompanyId],
 			AR.[CreatedBy],
 			AR.[UpdatedBy],

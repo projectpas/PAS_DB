@@ -14,6 +14,7 @@
 	3    09/26/2024   Devendra Shekh	     Modified to differentiate Serialized part with PartRowIndex
 	4    10/01/2024   Devendra Shekh	     Modified (changes for [QtyToTender] and for where case to select result)
 	5    14/11/2025   Bhargav Saliya	     Get TaskName
+	6    21/05/2026   Priyansh Patel	     Added For Stock ProvisionId [PN-16357]
 
 exec USP_GetTenderMultipleStockLineList @PageSize=10,@PageNumber=1,@SortColumn=NULL,@SortOrder=1,@WorkOrderId=4390,@WorkFlowWorkOrderId=3917,@MasterCompanyId=1
 exec dbo.USP_GetTenderMultipleStockLineList @PageNumber=1,@PageSize=10,@SortColumn=default,@SortOrder=1,@WorkOrderId=4404,@WorkFlowWorkOrderId=3925,@MasterCompanyId=1
@@ -38,6 +39,9 @@ BEGIN
 
 		DECLARE @RepairProvisionId INT = 0;
 		SELECT @RepairProvisionId  = [ProvisionId] FROM [dbo].[Provision] WITH(NOLOCK) WHERE UPPER([StatusCode]) = 'REPAIR';
+
+		DECLARE @ForStockProvisionId INT = 0;
+		SELECT @ForStockProvisionId  = [ProvisionId] FROM [dbo].[Provision] WITH(NOLOCK) WHERE UPPER([StatusCode]) = 'STOCK';
 		
 		SET @RecordFrom = (@PageNumber-1) * @PageSize;
 
@@ -188,7 +192,7 @@ BEGIN
 				JOIN dbo.WorkOrderMaterials WOM WITH (NOLOCK) ON WOM.WorkOrderMaterialsId = WOMS.WorkOrderMaterialsId 
 				AND WOM.WorkFlowWorkOrderId = @WorkFlowWorkOrderId AND WOMS.IsActive = 1 AND WOMS.IsDeleted = 0
 				WHERE	WOM.MasterCompanyId = @MasterCompanyId AND WOM.WorkOrderId = @WorkOrderId AND WOM.WorkFlowWorkOrderId = @WorkFlowWorkOrderId
-						AND WOM.ProvisionId = @RepairProvisionId
+						AND (WOM.ProvisionId = @RepairProvisionId  OR WOM.ProvisionId = @ForStockProvisionId)
 				GROUP BY WOMS.WorkOrderMaterialsId, WOMS.ConditionId;
 
 		INSERT INTO #tmpWOMStocklineKit 
@@ -201,7 +205,7 @@ BEGIN
 				JOIN dbo.WorkOrderMaterialsKit WOM WITH (NOLOCK) ON WOM.WorkOrderMaterialsKitId = WOMS.WorkOrderMaterialsKitId 
 				AND WOM.WorkFlowWorkOrderId = @WorkFlowWorkOrderId AND WOMS.IsActive = 1 AND WOMS.IsDeleted = 0
 				WHERE	WOM.MasterCompanyId = @MasterCompanyId AND WOM.WorkOrderId = @WorkOrderId AND WOM.WorkFlowWorkOrderId = @WorkFlowWorkOrderId
-						AND WOM.ProvisionId = @RepairProvisionId
+						AND (WOM.ProvisionId = @RepairProvisionId  OR WOM.ProvisionId = @ForStockProvisionId)
 				GROUP BY WOMS.WorkOrderMaterialsKitId, WOMS.ConditionId;
 
 		--Adding WorkOrder Material Data 
@@ -225,7 +229,7 @@ BEGIN
 			LEFT JOIN dbo.Task T WITH (NOLOCK) ON WOM.TaskId = T.TaskId
 			LEFT JOIN dbo.WorkOrderTask WT WITH (NOLOCK) ON WOM.TaskId = WT.WorkOrderTaskId
 			WHERE	WOM.MasterCompanyId = @MasterCompanyId AND WOM.WorkOrderId = @WorkOrderId AND WOM.WorkFlowWorkOrderId = @WorkFlowWorkOrderId
-					AND WOM.ProvisionId = @RepairProvisionId AND (ISNULL(WOM.Quantity, 0) - (ISNULL(tmpWOM.TotalQuantityTurnIn, 0) + ISNULL(tmpWOM.TotalReservedQty, 0) + ISNULL(tmpWOM.TotalIssuedQty, 0)) > 0);
+					AND (WOM.ProvisionId = @RepairProvisionId  OR WOM.ProvisionId = @ForStockProvisionId) AND (ISNULL(WOM.Quantity, 0) - (ISNULL(tmpWOM.TotalQuantityTurnIn, 0) + ISNULL(tmpWOM.TotalReservedQty, 0) + ISNULL(tmpWOM.TotalIssuedQty, 0)) > 0);
 		
 		--Adding WorkOrder Material Kit Data 
 		INSERT INTO #TenderMultipleStkListData (
@@ -248,7 +252,7 @@ BEGIN
 			LEFT JOIN dbo.Task T WITH (NOLOCK) ON WOM.TaskId = T.TaskId
 			LEFT JOIN dbo.WorkOrderTask WT WITH (NOLOCK) ON WOM.TaskId = WT.WorkOrderTaskId
 			WHERE	WOM.MasterCompanyId = @MasterCompanyId AND WOM.WorkOrderId = @WorkOrderId AND WOM.WorkFlowWorkOrderId = @WorkFlowWorkOrderId
-					AND WOM.ProvisionId = @RepairProvisionId AND (ISNULL(WOM.Quantity, 0) - (ISNULL(tmpWOMKit.TotalQuantityTurnIn, 0) + ISNULL(tmpWOMKit.TotalReservedQty, 0) + ISNULL(tmpWOMKit.TotalIssuedQty, 0)) > 0);
+					AND (WOM.ProvisionId = @RepairProvisionId  OR WOM.ProvisionId = @ForStockProvisionId) AND (ISNULL(WOM.Quantity, 0) - (ISNULL(tmpWOMKit.TotalQuantityTurnIn, 0) + ISNULL(tmpWOMKit.TotalReservedQty, 0) + ISNULL(tmpWOMKit.TotalIssuedQty, 0)) > 0);
 
 		DECLARE @WOMMaxQty INT;
 		SELECT @WOMMaxQty = MAX(ISNULL(Quantity,0)) FROM #TenderMultipleStkListData;

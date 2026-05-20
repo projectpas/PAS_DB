@@ -22,6 +22,7 @@
 	9    20-NOV-2025  RAJESH GAMI	    Fixed TotalPartCost Issue
 	10   30-MAR-2026  Vishal Suthar	    Fixed Order By clause with order it based on SalesOrderQuotePartId
 	11   10-Apr-026   Bhargav Saliya	 UOM Changes
+	12   20-MAY-2026  RAJESH GAMI	    Fixed: Get the CustomerStatusId from ApprovalStatus Table instead of Static  [PN-16505]
  EXEC [DBO].[GetSalesOrderQuotePartView] 980, 'USD'
 **************************************************************/
 CREATE PROCEDURE [dbo].[GetSalesOrderQuotePartView]
@@ -87,7 +88,7 @@ BEGIN
 					FROM SalesOrderQuoteApproval sqap
 					WHERE sqap.SalesOrderQuotePartId = part.SalesOrderQuotePartId 
 					  AND sqap.IsDeleted = 0 
-					  AND sqap.CustomerStatusId = 1 -- Assuming 1 is 'Approved'
+					  AND sqap.CustomerStatusId = (SELECT TOP 1 ApprovalStatusId FROM dbo.ApprovalStatus WITH(NOLOCK) WHERE Name = 'Approved' AND ISNULL(isDeleted,0) = 0 AND isActive = 1)
 				) THEN 1 ELSE 0 END AS IsApproved,
 			ISNULL(UPPER(itemMaster.ConsumeUnitOfMeasure), '') AS UomName,
 			ISNULL(po.PurchaseOrderNumber, '') AS PoNumber,

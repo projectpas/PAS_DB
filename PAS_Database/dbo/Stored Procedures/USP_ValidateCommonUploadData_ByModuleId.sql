@@ -55,6 +55,7 @@
 	45   04-MAY-2026		Nakul Chandigra			added validation for AircraftSection  setup screen Upload (PN-16270)
 	46   13-MAY-2026		Ayushi Patel			PN-16321 Added validation for WorkOrderMaterial module , Also get manufacture for partnumber dynamically 
 	47   15-May-2026		Ayushi Patel			PN-16321 Updated duplicate validation call to support 3-field combination for WorkOrderMaterials module 
+	48   20-May-2026        Ayushi Patel            PN-16321 Handled duplicate record validation from excel uploded data 
 
 declare @p4 dbo.UploadModuleDataTableType
 insert into @p4 values(4,N'VICTOR ADMAS',1,N'{
@@ -354,10 +355,15 @@ BEGIN
 			
 			WHILE(@TotalRow >= @CurrentRow)
 			BEGIN
-
+			DECLARE @wManufacturerId VARCHAR(255)
 				SELECT	@DropdownListTable = DropdownListTable, @DropdownListId = DropdownListId, @DropdownListValue = DropdownListValue, @DropdownLFieldValue = FieldValue, @IsChekColumnReference = IsChekColumnReference,@ReferenceColumn = '',@SelectFieldName = FieldName, @IsMultiValue = IsMultiValue
 				FROM #ImportFields WHERE ImportModuleFieldMasterId = @CurrentRow;
-				
+				if(@ModuleId = @WorkOrderMaterialsModule)
+				BEGIN
+					SELECT @wManufacturerId = FieldValue 
+						FROM #ImportFields 
+						WHERE FieldName = 'ManufacturerId';
+				END
 				IF(ISNULL(@DropdownListTable, '') != '' AND ISNULL(@DropdownLFieldValue, '') != '')
 				BEGIN
 					DECLARE @DropdownListValueId VARCHAR(100) = NULL;
@@ -377,6 +383,17 @@ BEGIN
 						END
 						ELSE
 						BEGIN
+						IF(@ModuleId = @WorkOrderMaterialsModule AND @DropdownListId = 'ItemMasterId')
+						BEGIN
+							IF (
+								SELECT COUNT(*)
+								FROM ItemMaster
+								WHERE UPPER(TRIM(partnumber)) = UPPER(TRIM(@DropdownLFieldValue))
+							) > 1
+							BEGIN
+								SET @DropdownLFieldValue = CONCAT(@DropdownLFieldValue, ' - ', @wManufacturerId)
+							END
+						END
 							-- Execute SP normally
 							EXEC [dbo].[USP_GetDropdownValueId] 
 								@DropdownListTable, 
@@ -948,10 +965,44 @@ BEGIN
 						DECLARE @DuplicateRefeValue3 AS VARCHAR(150);
 						SELECT @DuplicateRefeValue3 = FieldValue FROM #DynamicKeyValue WHERE FieldName = 'WorkOrderId';
 						SELECT @ChekDuplticateRef3 = FieldName FROM #DynamicKeyValue WHERE FieldName = 'WorkOrderId';
-							IF NOT EXISTS (SELECT 1 FROM #DynamicKeyValue WHERE ISNULL(RecordStatus, '') <> '')
-							BEGIN
-								EXEC [dbo].[USP_ChekDuplicateValueForUpload] @ChekDuplticateRef1, @ChekDuplticateRef2,@ChekDuplticateRef3, @DuplicateRefeValue1, @DuplicateRefeValue2,@DuplicateRefeValue3, @ReferenceTable, @MasterCompanyId, @ModuleId, @UploadData, @UploadRecord, @IsDuplicate = @IsDuplicate OUTPUT;
-							END
+
+						DECLARE @WM_OrigItemMasterId   VARCHAR(255);
+						DECLARE @WM_OrigConditionCodeId VARCHAR(255);
+						DECLARE @WM_OrigManufacturerId  VARCHAR(255);
+
+						SELECT @WM_OrigItemMasterId    = JSON_VALUE(@UploadRecord, '$.ItemMasterId');
+						SELECT @WM_OrigConditionCodeId = JSON_VALUE(@UploadRecord, '$.ConditionCodeId');
+						SELECT @WM_OrigManufacturerId  = JSON_VALUE(@UploadRecord, '$.ManufacturerId');
+
+						DECLARE @WMDuplicateHandled BIT = 0;
+						IF (
+							SELECT COUNT(*)
+							FROM @UploadData UD
+							WHERE 
+								UPPER(TRIM(JSON_VALUE(UD.UploadRecord, '$.ItemMasterId')))    
+									= UPPER(TRIM(@WM_OrigItemMasterId))
+							AND UPPER(TRIM(JSON_VALUE(UD.UploadRecord, '$.ConditionCodeId'))) 
+									= UPPER(TRIM(@WM_OrigConditionCodeId))
+							AND UPPER(TRIM(JSON_VALUE(UD.UploadRecord, '$.ManufacturerId')))  
+									= UPPER(TRIM(@WM_OrigManufacturerId))
+							AND CAST(JSON_VALUE(UD.UploadRecord, '$.WorkOrderId') AS VARCHAR) 
+									= CAST(@DuplicateRefeValue3 AS VARCHAR)
+						) > 1
+						BEGIN
+							UPDATE #ImportFields
+							SET DuplicateErrorMsg = 'Duplicate entry found for Part Number and Condition. This combination must be unique in the uploaded file.'
+							WHERE ImportModuleFieldMasterId = @CurrentRow;
+							SET @WMDuplicateHandled = 1; 
+							SET @IsDuplicate = 1;
+						END
+						ELSE IF NOT EXISTS (SELECT 1 FROM #DynamicKeyValue WHERE ISNULL(RecordStatus, '') <> '')
+						BEGIN
+							EXEC [dbo].[USP_ChekDuplicateValueForUpload] 
+								@ChekDuplticateRef1, @ChekDuplticateRef2, @ChekDuplticateRef3, 
+								@DuplicateRefeValue1, @DuplicateRefeValue2, @DuplicateRefeValue3, 
+								@ReferenceTable, @MasterCompanyId, @ModuleId, @UploadData, @UploadRecord, 
+								@IsDuplicate = @IsDuplicate OUTPUT;
+						END
 					END
 					ELSE
 					BEGIN
@@ -1427,10 +1478,34 @@ BEGIN
 
 			DECLARE @json VARCHAR(MAX);
 			-- Use STRING_AGG to build a JSON-like string
+			--SET @json = (
+			--		SELECT STRING_AGG(CONCAT('"', FieldName, '": "', ISNULL(FieldValue, ''), '"'), ', ')
+			--		FROM #DynamicKeyValue
+			--	);
 			SET @json = (
-					SELECT STRING_AGG(CONCAT('"', FieldName, '": "', ISNULL(FieldValue, ''), '"'), ', ')
-					FROM #DynamicKeyValue
-				);
+				SELECT STRING_AGG(
+					CONCAT(
+						'"', 
+						FieldName, 
+						'": "', 
+						-- Escape backslash first (must be first to avoid double-escaping)
+						-- then escape double-quote, so values like 0.375" or C:\path
+						-- are stored as valid JSON string content
+						REPLACE(
+							REPLACE(
+								ISNULL(FieldValue, ''), 
+								'\',    -- escape backslash: \ becomes \\
+								'\\'
+							), 
+							'"',        -- escape double-quote: " becomes \"
+							'\"'
+						), 
+						'"'
+					), 
+					', '
+				)
+				FROM #DynamicKeyValue
+			);
 			-- Wrap the result to form a valid JSON object
 			SET @json = '{' + @json + '}';
 

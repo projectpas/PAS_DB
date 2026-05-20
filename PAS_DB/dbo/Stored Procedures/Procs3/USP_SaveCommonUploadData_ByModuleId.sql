@@ -1,5 +1,4 @@
-﻿
-/***************************************************************  
+﻿/***************************************************************  
  ** File:   [USP_SaveCommonUploadData_ByModuleId]             
  ** Author:   Devendra Shekh
  ** Description: This stored procedure is used to add upload Data
@@ -198,7 +197,7 @@ BEGIN
 			SELECT @UploadRecord = [RecordData] FROM #uploadDataResults WHERE [RecordId] = @CurrentRecord;
 
 			------------START: Handle new line, new tab "/r", "/n", "\", "\t" ------------
-			SET @UploadRecord = REPLACE(@UploadRecord, '\', '\\');			
+			--SET @UploadRecord = REPLACE(@UploadRecord, '\', '\\');			
 			SET @UploadRecord = REPLACE(@UploadRecord, CHAR(13) + CHAR(10), '\r\n');
 			SET @UploadRecord = REPLACE(@UploadRecord, CHAR(13), '\r\n');
 			SET @UploadRecord = REPLACE(@UploadRecord, CHAR(10), '\n');
@@ -996,7 +995,8 @@ BEGIN
 			ELSE IF (@ModuleId = @WorkOrderMaterialsModule)
 			BEGIN
 			DECLARE @WMItemMasterId BIGINT;
-			DECLARE @WMWorkOrderId BIGINT , @WMWorkFlowWorkOrderId BIGINT , @WMExtendedCost BIGINT;
+			DECLARE @WMWorkOrderId BIGINT , @WMWorkFlowWorkOrderId BIGINT ;
+			DECLARE @WMExtendedCost DECIMAL(18,2); 
 			SELECT @ItemMasterId = FieldValue FROM #DynamicKeyValue WHERE FieldName = 'ItemMasterId';
 			SELECT @WMWorkOrderId = FieldValue FROM #DynamicKeyValue WHERE FieldName = 'WorkOrderId';
 			SELECT @WMWorkFlowWorkOrderId = FieldValue FROM #DynamicKeyValue WHERE FieldName = 'WorkFlowWorkOrderId';

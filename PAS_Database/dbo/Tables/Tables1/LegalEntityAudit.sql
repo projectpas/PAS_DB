@@ -49,6 +49,8 @@
     [EmployeeId]              BIGINT        NULL,
     [IsCreaditRestriction]    BIT           NULL,
     [RestrictMessage]         VARCHAR (MAX) NULL,
+    [IsCreditLimitWarning]    BIT           NULL,
+    [WarningMessage]          VARCHAR (MAX) NULL,
     CONSTRAINT [PK_LegalEntityAudit] PRIMARY KEY CLUSTERED ([LegalEntityAuditId] ASC)
 );
 

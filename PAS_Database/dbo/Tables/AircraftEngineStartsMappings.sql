@@ -26,6 +26,8 @@
 
 
 
+
+
 GO
 CREATE TRIGGER [dbo].[trg_Audit_dbo_AircraftEngineStartsMappings] 
 ON [dbo].[AircraftEngineStartsMappings]
@@ -54,8 +56,9 @@ BEGIN
                 d.[Minutes] AS EngineAddMinutes,
                 d.[CurruntMinutes] AS EngineCurrentMinutes,
                 d.[CumulativeMinutes] AS EngineUpdatedMinutes
-        FROM   deleted d), 
-        i AS (
+        FROM   deleted d
+    ), 
+    i AS (
         SELECT i.[AircraftEngineStartsMappingsId],
                 i.[AircraftCycleTimeMappingsId],
                 i.[EngineName],
@@ -76,8 +79,9 @@ BEGIN
                 i.[Minutes] AS EngineAddMinutes,
                 i.[CurruntMinutes] AS EngineCurrentMinutes,
                 i.[CumulativeMinutes] AS EngineUpdatedMinutes
-        FROM   inserted i), 
-        paired AS (
+        FROM   inserted i
+    ), 
+    paired AS (
         SELECT COALESCE(i.aircraftenginestartsmappingsid, d.aircraftenginestartsmappingsid) AS aircraftenginestartsmappingsid,
                 (SELECT d.* FOR json path, without_array_wrapper) AS old_row_json,
                 (SELECT i.* FOR json path, without_array_wrapper) AS new_row_json,
@@ -93,7 +97,8 @@ BEGIN
         FROM   d
         FULL OUTER JOIN i
             ON i.aircraftenginestartsmappingsid = d.aircraftenginestartsmappingsid
-    ), oldv AS (
+    ), 
+    oldv AS (
         SELECT p.pkjson,
                 p.aircraftenginestartsmappingsid,
                 v.[key] AS columnname,
@@ -102,12 +107,13 @@ BEGIN
         CROSS APPLY OPENJSON(p.old_row_json) v
         WHERE  NOT EXISTS (
                     SELECT 1
-                    FROM   dbo.ignorecolumn ign WITH(NOLOCK)
-                    WHERE  ign.schemaname = N'dbo'
-                            AND ign.tablename = N'AircraftEngineStartsMappings'
-                            AND ign.columnname = N'AircraftEngineStartsMappingsId'
+                    FROM   dbo.IgnoreColumn ign WITH(NOLOCK)
+                    WHERE  ign.SchemaName = N'dbo'
+                            AND ign.TableName = N'AircraftEngineStartsMappings'
+                            AND ign.ColumnName = N'AircraftEngineStartsMappingsId'
                 )
-    ), newv AS (
+    ), 
+    newv AS (
         SELECT p.pkjson,
                 p.aircraftenginestartsmappingsid,
                 v.[key] AS columnname,
@@ -116,12 +122,13 @@ BEGIN
         CROSS APPLY OPENJSON(p.new_row_json) v
         WHERE  NOT EXISTS (
                     SELECT 1
-                    FROM   dbo.ignorecolumn ign WITH(NOLOCK)
-                    WHERE  ign.schemaname = N'dbo'
-                            AND ign.tablename = N'AircraftEngineStartsMappings'
-                            AND ign.columnname = N'AircraftEngineStartsMappingsId'
+                    FROM   dbo.IgnoreColumn ign WITH(NOLOCK)
+                    WHERE  ign.SchemaName = N'dbo'
+                            AND ign.TableName = N'AircraftEngineStartsMappings'
+                            AND ign.ColumnName = N'AircraftEngineStartsMappingsId'
                 )
-    ), merged AS (
+    ), 
+    merged AS (
         SELECT COALESCE(n.pkjson, o.pkjson) AS pkjson,
                 COALESCE(n.columnname, o.columnname) AS columnname,
                 o.oldvalue,
@@ -148,6 +155,90 @@ BEGIN
                     WHERE  o2.aircraftenginestartsmappingsid = p.aircraftenginestartsmappingsid
                             AND o2.columnname = n.columnname
                 )
+    ),
+    engineaddhoursminutes_changes AS (
+        SELECT pkjson,
+               'EngineAddHoursMinutes' AS columnname,
+               CASE
+                   WHEN MIN(CASE WHEN columnname = 'EngineAddHours' THEN oldvalue END) IS NULL
+                        AND MIN(CASE WHEN columnname = 'EngineAddMinutes' THEN oldvalue END) IS NULL
+                   THEN NULL
+                   ELSE CONCAT(CAST(COALESCE(CAST(CAST(MIN(CASE WHEN columnname = 'EngineAddHours' THEN oldvalue END) AS DECIMAL(18,6)) AS INT), 0) AS VARCHAR(10)), ':',
+                               CAST(COALESCE(CAST(CAST(MIN(CASE WHEN columnname = 'EngineAddMinutes' THEN oldvalue END) AS DECIMAL(18,6)) AS INT), 0) AS VARCHAR(10)))
+               END AS oldvalue,
+               CASE
+                   WHEN MIN(CASE WHEN columnname = 'EngineAddHours' THEN newvalue END) IS NULL
+                        AND MIN(CASE WHEN columnname = 'EngineAddMinutes' THEN newvalue END) IS NULL
+                   THEN NULL
+                   ELSE CONCAT(CAST(COALESCE(CAST(CAST(MIN(CASE WHEN columnname = 'EngineAddHours' THEN newvalue END) AS DECIMAL(18,6)) AS INT), 0) AS VARCHAR(10)), ':',
+                               CAST(COALESCE(CAST(CAST(MIN(CASE WHEN columnname = 'EngineAddMinutes' THEN newvalue END) AS DECIMAL(18,6)) AS INT), 0) AS VARCHAR(10)))
+               END AS newvalue,
+               action
+        FROM merged
+        WHERE columnname IN ('EngineAddHours', 'EngineAddMinutes')
+        GROUP BY pkjson, action
+    ),
+    enginecurrenthoursminutes_changes AS (
+        SELECT pkjson,
+               'EngineCurrentHoursMinutes' AS columnname,
+               CASE
+                   WHEN MIN(CASE WHEN columnname = 'EngineCurrentHours' THEN oldvalue END) IS NULL
+                        AND MIN(CASE WHEN columnname = 'EngineCurrentMinutes' THEN oldvalue END) IS NULL
+                   THEN NULL
+                   ELSE CONCAT(CAST(COALESCE(CAST(CAST(MIN(CASE WHEN columnname = 'EngineCurrentHours' THEN oldvalue END) AS DECIMAL(18,6)) AS INT), 0) AS VARCHAR(10)), ':',
+                               CAST(COALESCE(CAST(CAST(MIN(CASE WHEN columnname = 'EngineCurrentMinutes' THEN oldvalue END) AS DECIMAL(18,6)) AS INT), 0) AS VARCHAR(10)))
+               END AS oldvalue,
+               CASE
+                   WHEN MIN(CASE WHEN columnname = 'EngineCurrentHours' THEN newvalue END) IS NULL
+                        AND MIN(CASE WHEN columnname = 'EngineCurrentMinutes' THEN newvalue END) IS NULL
+                   THEN NULL
+                   ELSE CONCAT(CAST(COALESCE(CAST(CAST(MIN(CASE WHEN columnname = 'EngineCurrentHours' THEN newvalue END) AS DECIMAL(18,6)) AS INT), 0) AS VARCHAR(10)), ':',
+                               CAST(COALESCE(CAST(CAST(MIN(CASE WHEN columnname = 'EngineCurrentMinutes' THEN newvalue END) AS DECIMAL(18,6)) AS INT), 0) AS VARCHAR(10)))
+               END AS newvalue,
+               action
+        FROM merged
+        WHERE columnname IN ('EngineCurrentHours', 'EngineCurrentMinutes')
+        GROUP BY pkjson, action
+    ),
+    engineupdatedhoursminutes_changes AS (
+        SELECT pkjson,
+               'EngineUpdatedHoursMinutes' AS columnname,
+               CASE
+                   WHEN MIN(CASE WHEN columnname = 'EngineUpdatedHours' THEN oldvalue END) IS NULL
+                        AND MIN(CASE WHEN columnname = 'EngineUpdatedMinutes' THEN oldvalue END) IS NULL
+                   THEN NULL
+                   ELSE CONCAT(CAST(COALESCE(CAST(CAST(MIN(CASE WHEN columnname = 'EngineUpdatedHours' THEN oldvalue END) AS DECIMAL(18,6)) AS INT), 0) AS VARCHAR(10)), ':',
+                               CAST(COALESCE(CAST(CAST(MIN(CASE WHEN columnname = 'EngineUpdatedMinutes' THEN oldvalue END) AS DECIMAL(18,6)) AS INT), 0) AS VARCHAR(10)))
+               END AS oldvalue,
+               CASE
+                   WHEN MIN(CASE WHEN columnname = 'EngineUpdatedHours' THEN newvalue END) IS NULL
+                        AND MIN(CASE WHEN columnname = 'EngineUpdatedMinutes' THEN newvalue END) IS NULL
+                   THEN NULL
+                   ELSE CONCAT(CAST(COALESCE(CAST(CAST(MIN(CASE WHEN columnname = 'EngineUpdatedHours' THEN newvalue END) AS DECIMAL(18,6)) AS INT), 0) AS VARCHAR(10)), ':',
+                               CAST(COALESCE(CAST(CAST(MIN(CASE WHEN columnname = 'EngineUpdatedMinutes' THEN newvalue END) AS DECIMAL(18,6)) AS INT), 0) AS VARCHAR(10)))
+               END AS newvalue,
+               action
+        FROM merged
+        WHERE columnname IN ('EngineUpdatedHours', 'EngineUpdatedMinutes')
+        GROUP BY pkjson, action
+    ),
+    other_changes AS (
+        SELECT pkjson,
+                columnname,
+                oldvalue,
+                newvalue,
+                action
+        FROM   merged
+        WHERE  columnname NOT IN ('EngineAddHours', 'EngineAddMinutes', 'EngineCurrentHours', 'EngineCurrentMinutes', 'EngineUpdatedHours', 'EngineUpdatedMinutes', 'AircraftEngineStartsMappingsId')
+    ),
+    all_changes AS (
+        SELECT * FROM engineaddhoursminutes_changes
+        UNION ALL
+        SELECT * FROM enginecurrenthoursminutes_changes
+        UNION ALL
+        SELECT * FROM engineupdatedhoursminutes_changes
+        UNION ALL
+        SELECT * FROM other_changes
     )
     INSERT INTO dbo.AuditLog
             (
@@ -159,26 +250,46 @@ BEGIN
                 OldValue,
                 NewValue
             )
-    SELECT N'dbo' AS schemaname,
-            N'AircraftEngineStartsMappings' AS tablename,
-            m.pkjson,
-            m.columnname,
-            m.action,
-            m.oldvalue,
-            m.newvalue
-    FROM   merged m
-    WHERE  m.columnname <> 'AircraftEngineStartsMappingsId'
+    SELECT N'dbo' AS SchemaName,
+            N'AircraftEngineStartsMappings' AS TableName,
+            a.pkjson,
+            a.columnname,
+            a.action,
+            CASE
+                WHEN a.ColumnName = 'EngineName' THEN 
+                    CASE 
+                        WHEN a.OldValue = 'ENGINE1' THEN 'ENGINE 1' 
+                        WHEN a.OldValue = 'ENGINE2' THEN 'ENGINE 2' 
+                        WHEN a.OldValue = 'ENGINE3' THEN 'ENGINE 3'
+                        WHEN a.OldValue = 'ENGINE4' THEN 'ENGINE 4' 
+                        ELSE a.OldValue
+                    END            
+                ELSE a.OldValue
+            END AS OldValue,        
+            CASE 
+                WHEN a.ColumnName = 'EngineName' THEN 
+                    CASE 
+                        WHEN a.NewValue = 'ENGINE1' THEN 'ENGINE 1' 
+                        WHEN a.NewValue = 'ENGINE2' THEN 'ENGINE 2' 
+                        WHEN a.NewValue = 'ENGINE3' THEN 'ENGINE 3'
+                        WHEN a.NewValue = 'ENGINE4' THEN 'ENGINE 4' 
+                        ELSE a.NewValue
+                    END            
+                ELSE a.NewValue
+            END AS NewValue
+    FROM   all_changes a
+    WHERE  a.columnname <> 'AircraftEngineStartsMappingsId'
             AND (
                     (
-                        m.action = 'U'
+                        a.action = 'U'
                         AND (
-                                (m.oldvalue IS NULL AND m.newvalue IS NOT NULL)
-                                OR (m.oldvalue IS NOT NULL AND m.newvalue IS NULL)
-                                OR (m.oldvalue <> m.newvalue)
-                                OR (m.columnname = 'EngineName')
+                                (a.oldvalue IS NULL AND a.newvalue IS NOT NULL)
+                                OR (a.oldvalue IS NOT NULL AND a.newvalue IS NULL)
+                                OR (a.oldvalue <> a.newvalue)
+                                OR (a.columnname = 'EngineName')
                             )
                     )
-                    OR (m.action = 'I' AND m.newvalue IS NOT NULL)
-                    OR (m.action = 'D' AND m.oldvalue IS NOT NULL)
+                    OR (a.action = 'I' AND a.newvalue IS NOT NULL)
+                    OR (a.action = 'D' AND a.oldvalue IS NOT NULL)
                 );
 END;

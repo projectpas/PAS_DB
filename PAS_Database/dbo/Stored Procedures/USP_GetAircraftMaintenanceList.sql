@@ -157,7 +157,7 @@ BEGIN
                 AND (@TimeRemaining IS NULL OR CAST(AMP.TimeRemaining AS VARCHAR) LIKE '%' + @TimeRemaining + '%')
                 AND (@LandingsRemaining IS NULL OR CAST(AMP.LandingsRemaining AS VARCHAR) LIKE '%' + @LandingsRemaining + '%')
                 AND (@EngineStartsRemaining IS NULL OR CAST(AMP.EngineStartsRemaining AS VARCHAR) LIKE '%' + @EngineStartsRemaining + '%')
-                AND (@WorksheetNumber IS NULL  OR MC.[Name] LIKE '%' + @MaintenanceClassName + '%')
+                AND (@MaintenanceClassName IS NULL  OR MC.[Name] LIKE '%' + @MaintenanceClassName + '%')
                 AND (ISNULL(@WorksheetNumber,'') ='' OR WSH.WorksheetNumber LIKE '%' + @WorksheetNumber + '%')
                 AND (ISNULL(@MtcCategory,'') ='' OR mtc.MtcCategory LIKE '%' + @MtcCategory + '%')
         )

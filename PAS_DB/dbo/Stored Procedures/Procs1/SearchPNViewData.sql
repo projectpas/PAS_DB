@@ -21,6 +21,7 @@
 	8    13-08-2025  Rajesh Gami		 Add New Parameters @SourceBy,@MarketplaceRef And as same as for Return
     9    24-09-2025  Sahdev Saliya       Added New Dropdown Filter Lead Source
 	10   20-11-2025  Rajesh Gami		 Correct the QuoteAmount
+	11   21-MAY-2026  Rajesh Gami		 PN-16508 : Fix the duplicate issue when Single SOQ have muliple SO Converted
 **************************************************************/ 
 CREATE PROCEDURE [dbo].[SearchPNViewData]  
  @PageNumber int,  
@@ -133,7 +134,13 @@ BEGIN
     SELECT DISTINCT SOQ.SalesOrderQuoteId,SOQ.SalesOrderQuoteNumber,SOQ.OpenDate AS 'QuoteDate',SOQ.CustomerId,SOQ.CustomerName AS 'CustomerName', MST.Name AS 'Status', ISNULL(SPC.NetSaleAmount, 0) AS 'QuoteAmount',  
 	SOQ.IsNewVersionCreated,SOQ.StatusId,SOQ.CustomerReference,IsNull(SP.PriorityName,'') AS 'Priority',ISNULL(SP.PriorityName, '') AS 'PriorityType', (E.FirstName + ' ' + E.LastName) AS SalesPerson,  
     ISNULL(IM.partnumber,'') AS 'PartNumber',M.Name AS 'ManufacturerType',IsNull(IM.partnumber,'') AS 'PartNumberType', ISNULL(im.PartDescription, '') AS 'PartDescription', ISNULL(im.PartDescription, '') AS 'PartDescriptionType',  
-    SOQ.AccountTypeName AS 'CustomerType',SO.SalesOrderNumber,
+    SOQ.AccountTypeName AS 'CustomerType',
+	(
+    SELECT TOP 1 SO.SalesOrderNumber
+    FROM DBO.SalesOrder SO WITH (NOLOCK) INNER JOIN DBO.SalesOrderPartV1 SOP WITH (NOLOCK) ON SO.SalesOrderId = SOP.SalesOrderId 
+    WHERE SO.SalesOrderQuoteId = SOQ.SalesOrderQuoteId AND SOP.ConditionId = SP.ConditionId AND SOP.ItemMasterId = SP.ItemMasterId
+) AS SalesOrderNumber,
+--SO.SalesOrderNumber,
 	(CAST(DBO.ConvertUTCtoLocal(SOQ.CreatedDate, @CurrntEmpTimeZoneDesc) AS DATE)) CreatedDate,
 	(CAST(DBO.ConvertUTCtoLocal(SOQ.UpdatedDate, @CurrntEmpTimeZoneDesc) AS DATE)) UpdatedDate,
 	SOQ.UpdatedBy, SOQ.CreatedBy,SOQ.IsDeleted,dbo.GenearteVersionNumber(SOQ.Version) as 'VersionNumber',ISNULL(count(SP.SalesOrderQuotePartId),0) AS NumberOfItemCount,
@@ -147,8 +154,9 @@ BEGIN
     LEFT JOIN DBO.SalesOrderQuotePartCost SPC WITH (NOLOCK) ON SPC.SalesOrderQuotePartId = SP.SalesOrderQuotePartId
     LEFT JOIN DBO.ItemMaster IM WITH (NOLOCK) ON Im.ItemMasterId=SP.ItemMasterId  
     LEFT JOIN dbo.Manufacturer M WITH(NOLOCK) ON Im.ManufacturerId = M.ManufacturerId  
-    LEFT JOIN DBO.Employee E WITH (NOLOCK) ON E.EmployeeId=SOQ.SalesPersonId --and SOQ.SalesPersonId is not null  
-    LEFT JOIN DBO.SalesOrder SO WITH (NOLOCK) ON SO.SalesOrderQuoteId=SOQ.SalesOrderQuoteId and SO.SalesOrderQuoteId is not Null  
+  LEFT JOIN DBO.Employee E WITH (NOLOCK) ON E.EmployeeId=SOQ.SalesPersonId --and SOQ.SalesPersonId is not null  
+ --LEFT JOIN DBO.SalesOrder SO WITH (NOLOCK) ON SO.SalesOrderQuoteId=SOQ.SalesOrderQuoteId and SO.SalesOrderQuoteId is not Null  AND SOP.SalesOrderId = SO.SalesOrderId
+	
     INNER JOIN dbo.SalesOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @MSModuleID AND MSD.ReferenceID = SOQ.SalesOrderQuoteId  
     INNER JOIN [dbo].[RoleManagementStructure] RMS WITH (NOLOCK) ON SOQ.ManagementStructureId = RMS.EntityStructureId  
     INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId  
@@ -157,7 +165,7 @@ BEGIN
 	GROUP BY SOQ.SalesOrderQuoteId,SOQ.SalesOrderQuoteNumber,SOQ.OpenDate,SOQ.CustomerId,SOQ.CustomerName, SOQ.StatusName, SPC.NetSaleAmount,  
 	SOQ.IsNewVersionCreated,SOQ.StatusId,SOQ.CustomerReference,Priority,SP.PriorityName,E.FirstName, E.LastName,
     IM.partnumber,M.Name,IM.partnumber, im.PartDescription, im.PartDescription,  
-    SOQ.AccountTypeName,SO.SalesOrderNumber, SOQ.CreatedDate, SOQ.UpdatedDate,MST.Name,
+    SOQ.AccountTypeName, SOQ.CreatedDate, SOQ.UpdatedDate,MST.Name,SP.ConditionId, SP.ItemMasterId,
 	SOQ.UpdatedBy, SOQ.CreatedBy,SOQ.IsDeleted,SOQ.Version, SOQ.SourceBy, SOQ.MarketplaceRef,SP.SalesOrderQuotePartId,SP.QtyQuoted,SP.QtyRequested,SP.UnitSalesPrice)
 	,  
     FinalResult AS (SELECT SalesOrderQuoteId,SalesOrderQuoteNumber,QuoteDate,CustomerId,CustomerName,Status,VersionNumber,ISNULL(QuoteAmount,0) AS QuoteAmount,IsNewVersionCreated,StatusId  

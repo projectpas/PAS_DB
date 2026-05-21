@@ -4546,6 +4546,8 @@
     <Build Include="dbo\Stored Procedures\USP_CreateAircraftInfoHeader.sql" />
     <Build Include="dbo\User Defined Types\AircraftInfoTableType.sql" />
     <Build Include="dbo\Views\vw_MaintenanceCategory.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetWorksheetPartsByHeaderIdSSRS.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetWorksheetHeaderByIdSSRS.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

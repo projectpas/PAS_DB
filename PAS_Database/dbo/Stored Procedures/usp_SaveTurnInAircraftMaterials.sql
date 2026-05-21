@@ -12,6 +12,7 @@ Exec [usp_SaveTurnInAircraftMaterials]
    1    08/04/2026  Amit Ghediya		Created  
    2	07/05/2026  Nakul Chandigra		Added two new field in stockline Save (PN-16315)
    3	07/05/2026  Nakul Chandigra		Changed Size of two new field  (PN-16315)
+   4	21/05/2026  Abhishek Jirawla	Added stockline Id to AircraftRegistryHeader  (PN-16523)
 **************************************************************/   
 CREATE     PROCEDURE [dbo].[usp_SaveTurnInAircraftMaterials]  
 	@IsCustomerStock BIT = 0,  
@@ -236,7 +237,9 @@ BEGIN
 		 EXEC [dbo].[UpdateStocklineColumnsWithId] @StockLineId = @StockLineId  
        
 		 UPDATE [dbo].[Stockline] SET Memo = 'This Stockline is created using turn-in from ' + @AircraftRegistryNumber,Unitcost= @Unitcost WHERE [StockLineId] = @StockLineId  
-
+		 
+		 UPDATE [dbo].[AircraftRegistryHeader] SET StockLineId = @StockLineId WHERE [AircraftRegistryId] = @AircraftRegistryId;
+	 
 		 UPDATE [dbo].[AircraftInstalledPartDetails] SET StockLineId = @StockLineId,ConditionId = @ConditionId,Quantity = @Quantity WHERE [AircraftInstalledPartDetailsId] = @AircraftInstalledPartDetailsId;
 	 
 		 SELECT @ActionId = [ActionId] FROM [dbo].[StklineHistory_Action] WITH(NOLOCK) WHERE [Type] = 'Tendered'

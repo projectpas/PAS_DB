@@ -5,9 +5,10 @@
 ** 
 ** Change History
 ************************************************************
-** PR   Date         Author          Description
-** --   ----------   -------------   -------------------------
-** 1    14/05/2026                   Created [PN-16408]
+** PR   Date          Author           Description
+** --   ----------    -------------    -------------------------
+** 1    14/05/2026    Priyansh Patel   Created [PN-16408]
+** 2    21/05/2026    Priyansh Pate    Worksheettype from setup screen [PN-16515]
 
 ************************************************************/
 CREATE PROCEDURE [dbo].[USP_GetWorksheetList]
@@ -53,14 +54,14 @@ BEGIN
             SELECT
                 WH.WorksheetHeaderId,
                 WH.WorksheetNumber,
-                WH.WorksheetType,
+                ACS.Section AS WorksheetType,
                 WH.WorkOrderNo,
                 WH.MakeTypeId,
                 WH.MakeType,
                 WH.AircraftModelId,
                 WH.AircraftModel,
                 WH.AFHours,
-                WH.InspectionType,
+                MT.MaintenanceType AS InspectionType,
                 WH.InspectionDate,
                 WH.QualitySafetyDeptSignOutBy,
                 WH.QualitySafetyDeptSignOutDate,
@@ -80,8 +81,11 @@ BEGIN
                 WP.InspBy,
                 COUNT(1) OVER () AS TotalRecords
             FROM [dbo].[WorksheetHeader] WH WITH (NOLOCK)
-            LEFT JOIN [dbo].[WorksheetPart] WP WITH (NOLOCK)
-                ON WP.WorksheetHeaderId = WH.WorksheetHeaderId AND WP.IsDeleted = 0
+            LEFT JOIN [dbo].[WorksheetPart] WP WITH (NOLOCK) ON WP.WorksheetHeaderId = WH.WorksheetHeaderId AND WP.IsDeleted = 0
+            LEFT JOIN [dbo].[AircraftSection] ACS WITH (NOLOCK) ON WH.WorksheetTypeId = ACS.AircraftSectionId AND ACS.IsDeleted = 0
+            LEFT JOIN [dbo].[MaintenanceType] MT WITH (NOLOCK) ON MT.MaintenanceTypeId = WH.InspectionType AND MT.IsDeleted = 0
+
+
             WHERE
                 WH.MasterCompanyId = @MasterCompanyId
                 AND (@IsDeleted IS NULL OR WH.IsDeleted = @IsDeleted)

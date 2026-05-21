@@ -5,7 +5,7 @@
     [MakeType]                       VARCHAR (100)  NULL,
     [AircraftModelId]                BIGINT         NULL,
     [AircraftModel]                  VARCHAR (100)  NULL,
-    [WorksheetType]                  VARCHAR (50)   NULL,
+    [WorksheetType]                  BIGINT         NULL,
     [WorkOrderNo]                    VARCHAR (50)   NULL,
     [AFHours]                        VARCHAR (50)   NULL,
     [InspectionType]                 BIGINT         NULL,

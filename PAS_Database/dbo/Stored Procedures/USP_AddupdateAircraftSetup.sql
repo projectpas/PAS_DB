@@ -10,9 +10,9 @@
  ** PR   Date				Author				Change Description            
  ** --   -------------		----------------	--------------------------------          
 	1	 15/05/2026          Nakul Chandigra     Created 
-
+    2    20/05/2026           Nakul Chandigra    Added fields 
 **************************************************************/
-CREATE   PROCEDURE [dbo].[USP_AddupdateAircraftSetup]
+create     PROCEDURE [dbo].[USP_AddupdateAircraftSetup]
 (
     @tblType_AircraftSetupType [AircraftSetupType] READONLY,
     @AircraftSetupId BIGINT,
@@ -30,6 +30,13 @@ BEGIN
             SET
                 T.MaintenanceStatusId = S.MaintenanceStatusId,
                 T.AircraftStatusId = S.AircraftStatusId,
+                T.UOMId = S.UOMId,
+	            T.ItemClassificationId = S.ItemClassificationId,
+	            T.InventoryGLSettingId = S.InventoryGLSettingId,
+                T.RedIndicator = S.RedIndicator,
+                T.YellowIndicator = S.YellowIndicator,
+                T.GreenIndicator = S.GreenIndicator,
+                T.ItemgroupId = S.ItemgroupId,
                 T.CurrencyId = S.CurrencyId,
                 T.UpdatedBy = S.UpdatedBy,
                 T.UpdatedDate = GETUTCDATE()
@@ -40,6 +47,13 @@ BEGIN
                     MaintenanceStatusId,
                     AircraftStatusId,
                     CurrencyId,
+                    UOMId,
+	                ItemClassificationId,
+	                InventoryGLSettingId,
+                    RedIndicator,
+                    YellowIndicator,
+                    GreenIndicator,
+                    ItemgroupId,
                     UpdatedBy
                 FROM @tblType_AircraftSetupType
             ) S
@@ -52,6 +66,13 @@ BEGIN
                 MaintenanceStatusId,
                 AircraftStatusId,
                 CurrencyId,
+                UOMId,
+	            ItemClassificationId,
+	            InventoryGLSettingId,
+                RedIndicator,
+                YellowIndicator,
+                GreenIndicator,
+                ItemgroupId,
                 CreatedBy,
                 CreatedDate,
                 UpdatedBy,
@@ -64,6 +85,13 @@ BEGIN
                 MaintenanceStatusId,
                 AircraftStatusId,
                 CurrencyId,
+                UOMId,
+	            ItemClassificationId,
+	            InventoryGLSettingId,
+                RedIndicator,
+                YellowIndicator,
+                GreenIndicator,
+                ItemgroupId,
                 CreatedBy,
                 GETUTCDATE(),
                 UpdatedBy,

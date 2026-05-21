@@ -27,6 +27,7 @@
 ** 14   18-05-2026   Ayushi Patel       Return WorksheetNumber from worksheetheader table [PN-16454]
 ** 14   05-13-2026   Amit Ghediya       Added item PO,RO,WO Num. (PN-16415)
 ** 15   05-18-2026   Abhishek Jirawla   Added item PO,RO,WO Id. (PN-16464)
+** 16   05-20-2026   Priyansh Patel     Fix the WorksheetNumber to return the latest [PN-16408]
 
 *********************/
 CREATE   PROCEDURE [dbo].[USP_GetAircraftInstalledPartDetails]
@@ -176,7 +177,7 @@ BEGIN
 			LEFT JOIN dbo.RepairOrder RO WITH (NOLOCK) ON RO.RepairOrderId = ROP.RepairOrderId
 			LEFT JOIN dbo.WorkOrderPartNumber WOP WITH (NOLOCK) ON WOP.AircraftInstalledPartDetailsId = AIPD.AircraftInstalledPartDetailsId
 			LEFT JOIN dbo.WorkOrder WO WITH (NOLOCK) ON WO.WorkOrderId = WOP.WorkOrderId
-			LEFT JOIN dbo.worksheetheader WSH WITH (NOLOCK) ON WSH.AircraftInstalledPartDetailsId = AIPD.AircraftInstalledPartDetailsId
+			LEFT JOIN (SELECT *, ROW_NUMBER() OVER (PARTITION BY AircraftInstalledPartDetailsId ORDER BY CreatedDate DESC) AS RN FROM dbo.WorksheetHeader WITH (NOLOCK)) WSH ON WSH.AircraftInstalledPartDetailsId = AIPD.AircraftInstalledPartDetailsId AND WSH.RN = 1
 			CROSS JOIN (
 					SELECT MAX(SequenceNum) AS LastSequence
 					FROM dbo.AircraftInstalledPartDetails WITH (NOLOCK)

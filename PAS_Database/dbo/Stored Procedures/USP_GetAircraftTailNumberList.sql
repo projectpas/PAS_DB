@@ -9,9 +9,10 @@
  **********************************************************               
  ** check customer emial & phone exists.             
  **********************************************************               
- ** PR   Date			Author			 Change Description                
- ** --   --------		-------			 --------------------------------              
-    1    15/05/2026  	Abhishek Jirawla Created     
+ ** PR   Date			Author				Change Description                
+ ** --   --------		-------				--------------------------------              
+    1    15/05/2026  	Abhishek Jirawla	Created     
+	2    20/05/2026  	Amit Ghediya		Get	AircraftRegistryId for Template data (PN-16488)
  
  EXEC [USP_GetAircraftTailNumberList] 'VT-BCL'
 ********************************************************************/ 
@@ -21,7 +22,7 @@ AS
 BEGIN
 		BEGIN TRY
 			
-			SELECT DISTINCT TailNum
+			SELECT DISTINCT TailNum,AircraftRegistryId
             FROM dbo.AircraftRegistryHeader WITH(NOLOCK)
             WHERE MasterCompanyId = @MasterCompanyId AND IsActive = 1 and IsDeleted = 0
 		END TRY    

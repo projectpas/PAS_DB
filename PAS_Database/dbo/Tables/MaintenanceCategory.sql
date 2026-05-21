@@ -2,6 +2,7 @@
     [MtcCategoryId]   BIGINT        IDENTITY (1, 1) NOT NULL,
     [MtcCategory]     VARCHAR (256) NOT NULL,
     [Description]     VARCHAR (MAX) NULL,
+    [MaintenanceCode] VARCHAR (256) NULL,
     [MasterCompanyId] INT           NOT NULL,
     [CreatedBy]       VARCHAR (256) NOT NULL,
     [UpdatedBy]       VARCHAR (256) NOT NULL,

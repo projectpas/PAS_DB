@@ -24,8 +24,9 @@
     8       10-MAR-2026     NAKUL CHANDIGRA         Add a condition of IgnoreColumn In '@sql = N';WITH S AS' to prevent Getting dublicate row (PN-15590)
     9       23-MAR-2026     NAKUL CHANDIGRA         Add a condition in the dynamic SQL to prevent getting duplicate rows for VendorContact Module.(PN-15772)
    10       29-MAR-2026     Amit Ghediya            get aircraft data.(PN-16154)
+   11 	    15-MAY-2026	    DIVYESH KATHIRIYA       Combine Aircraft Hour and Minitues Like HH:MM. [PN-16398]
 
-EXEC usp_Get_CommonAuditLogHistory @ModuleId=85, @PK_Key=N'AircraftCycleTimeMappingsId', @PK_Value=1, @EmployeeId=2, @SubModuleId=null, @SubPK_Key=null, @SubPK_Value=null
+ EXEC usp_Get_CommonAuditLogHistory @ModuleId=87,@PK_Key=N'AircraftCycleTimeMappingsId',@PK_Value=8,@EmployeeId=236, @SubModuleId=88, @SubPK_Key = '',@SubPK_Value=0
 **********************/ 
 
 CREATE PROC [dbo].[usp_Get_CommonAuditLogHistory]
@@ -163,7 +164,7 @@ BEGIN
                  WHERE (@Module IS NULL OR TableName = @Module)
                   AND (@StartAt IS NULL OR ChangedAt >= @StartAt)
                   AND (@EndAt   IS NULL OR ChangedAt <  @EndAt)
-				  AND TRY_CONVERT(BIGINT, JSON_VALUE(PKJson, '$.aircraftcycletimemappingsid')) = @PK_Value
+				  AND TRY_CONVERT(BIGINT, JSON_VALUE(PKJson, '$.AircraftCycleTimeMappingsId')) = @PK_Value
                   AND ColumnName IS NOT NULL
                   AND ColumnName <> ''
                   AND LEN(ColumnName) <= 128 
@@ -336,7 +337,7 @@ BEGIN
 							WHERE (@Module IS NULL OR TableName = @Module) 
 							  AND (@StartAt IS NULL OR ChangedAt >= @StartAt)
 							  AND (@EndAt   IS NULL OR ChangedAt <  @EndAt)
-							  AND TRY_CONVERT(INT, JSON_VALUE(PKJson, ''$.aircraftcycletimemappingsid'')) = @PK_Value
+							  AND TRY_CONVERT(INT, JSON_VALUE(PKJson, ''$.AircraftCycleTimeMappingsId'')) = @PK_Value
 
 							UNION ALL
 

@@ -11,6 +11,7 @@ Exec [USP_SaveAircraftEffectivity]
 ** --   --------    -------         --------------------------------  
    1    05/05/2026  Amit Ghediya		Created  
    2    15/05/2026  Amit Ghediya		Added ToSerialNumber,FromSerialNumber (PN-16446)
+   3    20/05/2026  Amit Ghediya		Remove validation for part due to non mandatory
      
 **************************************************************/  
 CREATE     PROCEDURE [dbo].[USP_SaveAircraftEffectivity]
@@ -27,7 +28,7 @@ BEGIN
 		DECLARE @Id BIGINT;
 
         IF EXISTS ( SELECT 1 FROM dbo.AircraftEffectivity AE WITH (NOLOCK) INNER JOIN @tbl_AircraftEffectivityType T ON AE.MakeTypeId = T.MakeTypeId
-                AND ISNULL(AE.ItemMasterId,0) = ISNULL(T.ItemMasterId,0)
+               -- AND ISNULL(AE.ItemMasterId,0) = ISNULL(T.ItemMasterId,0)
                 AND AE.SerialNum = T.FromSerialNumber
                 AND AE.MasterCompanyId = T.MasterCompanyId
                 AND AE.IsDeleted = 0
@@ -36,7 +37,7 @@ BEGIN
         BEGIN
 			ROLLBACK TRANSACTION;
 
-            SELECT 0 AS Status, 'Duplicate Serial Number for same Aircraft Type & Components/Parts' AS Message;
+            SELECT 0 AS Status, 'Duplicate Serial Number for same Aircraft Type' AS Message;
             RETURN;
         END
 		ELSE

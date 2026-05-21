@@ -8,10 +8,12 @@
 ** PR   Date          Author           Description
 ** --   ----------    -------------    -------------------------
 ** 1    14/05/2026    Priyansh Patel   Created [PN-16408]
-** 2    21/05/2026    Priyansh Pate    Worksheettype from setup screen [PN-16515]
+** 2    21/05/2026    Priyansh Patel    Worksheettype from setup screen [PN-16515]
+** 3    21/05/2026    Priyansh Patel    Added MaintenanceTime minutes [PN-16509]
+
 
 ************************************************************/
-CREATE PROCEDURE [dbo].[USP_GetWorksheetList]
+CREATE   PROCEDURE [dbo].[USP_GetWorksheetList]
     @PageNumber                     INT             = 1,
     @PageSize                       INT             = 10,
     @SortColumn                     VARCHAR(100)    = 'WorksheetHeaderId',
@@ -76,7 +78,8 @@ BEGIN
                 WP.SignedBy,
                 WP.DefectDescription,
                 WP.MaintenanceAction,
-                WP.MaintenanceTime,
+                RIGHT('00' + CAST(WP.MaintenanceTime AS VARCHAR(2)), 2) + ' : ' + 
+                RIGHT('00' + CAST(WP.MaintenanceTimeMinutes AS VARCHAR(2)), 2) AS MaintenanceTime,
                 WP.MechBy,
                 WP.InspBy,
                 COUNT(1) OVER () AS TotalRecords

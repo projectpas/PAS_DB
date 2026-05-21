@@ -13,9 +13,11 @@
  **************************************************************             
   ** Change History             
  **************************************************************             
- ** PR   Date         Author              Change Description              
- ** --   --------     -------          --------------------------------     
-    1    14/05/2026                        Created [PN-16408]
+ ** PR   Date          Author            Change Description              
+ ** --   --------      -------           --------------------------------     
+    1    14/05/2026    Priyansh Patel    Created [PN-16408]
+    2    14/05/2026    Priyansh Patel    Added SignById [PN-16520]
+
 **************************************************************/
 
 CREATE PROCEDURE [dbo].[USP_CreateUpdateWorksheetParts]
@@ -57,9 +59,11 @@ BEGIN
                 SET
                     WP.ItemNo            = T.ItemNo,
                     WP.SignedBy          = T.SignedBy,
+                    WP.SignedById          = T.SignedById,
                     WP.DefectDescription = T.DefectDescription,
                     WP.MaintenanceAction = T.MaintenanceAction,
                     WP.MaintenanceTime   = T.MaintenanceTime,
+                    WP.MaintenanceTimeMinutes   = T.MaintenanceTimeMinutes,
                     WP.MechBy            = T.MechBy,
                     WP.InspBy            = T.InspBy,
                     WP.IsActive          = ISNULL(T.IsActive,  WP.IsActive),
@@ -77,9 +81,11 @@ BEGIN
                     WorksheetHeaderId,
                     ItemNo,
                     SignedBy,
+                    SignedById,
                     DefectDescription,
                     MaintenanceAction,
                     MaintenanceTime,
+                    MaintenanceTimeMinutes,
                     MechBy,
                     InspBy,
                     IsActive,
@@ -94,9 +100,11 @@ BEGIN
                     T.WorksheetHeaderId,
                     T.ItemNo,
                     T.SignedBy,
+                    T.SignedById,
                     T.DefectDescription,
                     T.MaintenanceAction,
                     T.MaintenanceTime,
+                    T.MaintenanceTimeMinutes,
                     T.MechBy,
                     T.InspBy,
                     ISNULL(T.IsActive,  1),

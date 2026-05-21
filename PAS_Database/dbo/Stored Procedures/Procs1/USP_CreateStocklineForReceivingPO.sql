@@ -1,5 +1,4 @@
-﻿
-/*************************************************************               
+﻿/*************************************************************               
  ** File:   [USP_CreateStocklineForReceivingPO]              
  ** Author:   Vishal Suthar    
  ** Description: This stored procedure is used to Crate stocklines for receiving PO  
@@ -46,6 +45,7 @@
 	28   21-APR-2026  Rajesh Gami		UOM Conversion Issue Resolved [PN-16133]
 	29   27-APR-2026  Priyansh patel 	Updated Aircraftpartdetails with New StocklineId [PN-16177]
 	30   04-May-2026  RAJESH GAMI       Insert Stock,NonStock,Asset InventoryId In the DRAFT Table when Order QTY more than 500 (Where IsParent = 1) [PN-16244]
+	31   20-May-2026  Amit Ghediya  	Updated Aircraftpartdetails with New StocklineId for part wise not header wise [PN-16232]
 declare @p2 dbo.POPartsToReceive  insert into @p2 values(2371,4051,2)    
 exec dbo.USP_CreateStocklineForReceivingPO @PurchaseOrderId=2371,@tbl_POPartsToReceive=@p2,@UpdatedBy=N'ADMIN User',@MasterCompanyId=1  
 **************************************************************/
@@ -628,7 +628,7 @@ BEGIN
 
                         -- For Aircraftinstalled Parts
                         SET @AircraftInstalledPartDetailsId = NULL;
-                        SELECT @AircraftInstalledPartDetailsId = AircraftInstalledPartDetailsId FROM DBO.PurchaseOrder WITH (NOLOCK) WHERE PurchaseOrderId = @PurchaseOrderId;
+                        SELECT @AircraftInstalledPartDetailsId = AircraftInstalledPartDetailsId FROM [DBO].[PurchaseOrderPart] WITH (NOLOCK) WHERE [PurchaseOrderPartRecordId] = @SelectedPurchaseOrderPartRecordId--PurchaseOrderId = @PurchaseOrderId;
 
                         IF (@AircraftInstalledPartDetailsId IS NOT NULL AND @AircraftInstalledPartDetailsId > 0)
                         BEGIN

@@ -56,6 +56,7 @@
 	46   13-MAY-2026		Ayushi Patel			PN-16321 Added validation for WorkOrderMaterial module , Also get manufacture for partnumber dynamically 
 	47   15-May-2026		Ayushi Patel			PN-16321 Updated duplicate validation call to support 3-field combination for WorkOrderMaterials module 
 	48   20-May-2026        Ayushi Patel            PN-16321 Handled duplicate record validation from excel uploded data 
+	49   21-May-2026        Bhargav Saliya          Fixed the parameter sequence issue and add and add case  @MaintenanceCategoryModule
 
 declare @p4 dbo.UploadModuleDataTableType
 insert into @p4 values(4,N'VICTOR ADMAS',1,N'{
@@ -232,6 +233,7 @@ BEGIN
 		DECLARE @MaintenanceClassModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'Maintenanceclass');
 		DECLARE @AircraftSectionModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'AircraftSection');
 		DECLARE @WorkOrderMaterialsModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'WorkOrderMaterials');
+		DECLARE @MaintenanceCategoryModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'MaintenanceCategory');
 
 		DECLARE @DropdownListTable VARCHAR(100) = NULL, 
 		@DropdownListId VARCHAR(100) = NULL, 
@@ -1008,7 +1010,7 @@ BEGIN
 					BEGIN
 						IF NOT EXISTS (SELECT 1 FROM #DynamicKeyValue WHERE ISNULL(RecordStatus, '') <> '')
 						BEGIN
-							EXEC [dbo].[USP_ChekDuplicateValueForUpload] @ChekDuplticateRef1, @ChekDuplticateRef2, @DuplicateRefeValue1, @DuplicateRefeValue2, @ReferenceTable, @MasterCompanyId, @ModuleId, @UploadData, @UploadRecord, @IsDuplicate = @IsDuplicate OUTPUT;
+							EXEC [dbo].[USP_ChekDuplicateValueForUpload] @ChekDuplticateRef1, @ChekDuplticateRef2,@ChekDuplticateRef3, @DuplicateRefeValue1, @DuplicateRefeValue2,@DuplicateRefeValue3, @ReferenceTable, @MasterCompanyId, @ModuleId, @UploadData, @UploadRecord, @IsDuplicate = @IsDuplicate OUTPUT;
 						END
 					END
 					IF(ISNULL(@IsDuplicate, 0) = 1)
@@ -1249,6 +1251,8 @@ BEGIN
 															THEN 'Entered Section Already Exists!'	
 														WHEN @ModuleId = @WorkOrderMaterialsModule
 															THEN 'Entered Part And Condition Already Exits!'
+														WHEN @ModuleId = @MaintenanceCategoryModule
+															THEN 'Entered Maintenance Category Already Exits!'
 														ELSE '' END
 						WHERE ImportModuleFieldMasterId = @CurrentRow;
 					END

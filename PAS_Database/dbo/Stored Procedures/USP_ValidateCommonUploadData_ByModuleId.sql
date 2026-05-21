@@ -1252,7 +1252,7 @@ BEGIN
 														WHEN @ModuleId = @WorkOrderMaterialsModule
 															THEN 'Entered Part And Condition Already Exits!'
 														WHEN @ModuleId = @MaintenanceCategoryModule
-															THEN 'Entered MtcCategory Already Exits!'
+															THEN 'Entered Maintenance Category Already Exits!'
 														ELSE '' END
 						WHERE ImportModuleFieldMasterId = @CurrentRow;
 					END

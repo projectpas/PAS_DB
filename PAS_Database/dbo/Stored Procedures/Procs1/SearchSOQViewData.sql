@@ -20,6 +20,7 @@
 	7    13-08-2025  Rajesh Gami		 Add New Parameters @SourceBy,@MarketplaceRef And as same as for Return 
 	8    24-09-2025  Sahdev Saliya       Added New Dropdown Filter Lead Source
 	9    20-11-2025  Rajesh Gami		Correct the QuoteAmount 
+	10   21-MAY-2026  Rajesh Gami		 PN-16508 : Fix the duplicate issue when Single SOQ have muliple SO Converted
 **************************************************************/ 
 CREATE    PROCEDURE [dbo].[SearchSOQViewData]
  -- Add the parameters for the stored procedure here
@@ -134,7 +135,15 @@ BEGIN
       Select DISTINCT SOQ.SalesOrderQuoteId,SOQ.SalesOrderQuoteNumber,
 	  SOQ.OpenDate,
 	  SOQ.CustomerId, SOQ.CustomerName Name, SOQ.CustomerCode CustomerCode, MST.Name AS 'Status',  
-      B.Cost, Z.NetSales AS 'SalesPrice', (E.FirstName + ' ' + E.LastName) AS SalesPerson, SOQ.AccountTypeName CustomerTypeName, SO.SalesOrderNumber,  
+      B.Cost, Z.NetSales AS 'SalesPrice', (E.FirstName + ' ' + E.LastName) AS SalesPerson, SOQ.AccountTypeName CustomerTypeName, 
+	  	(
+		CASE WHEN (SELECT COUNT(SalesOrderId) FROM DBO.SalesOrder SOR WITH (NOLOCK) WHERE SOR.SalesOrderQuoteId = SOQ.SalesOrderQuoteId) > 1 THEN 'MULTIPLE' ELSE
+		(SELECT TOP 1 SO.SalesOrderNumber 
+		FROM DBO.SalesOrder SO WITH (NOLOCK) INNER JOIN DBO.SalesOrderPartV1 SOP WITH (NOLOCK) ON SO.SalesOrderId = SOP.SalesOrderId 
+		WHERE SO.SalesOrderQuoteId = SOQ.SalesOrderQuoteId AND SOP.ConditionId = SOQP.ConditionId AND SOP.ItemMasterId = SOQP.ItemMasterId)
+		END
+	) AS SalesOrderNumber,
+
       A.SoAmount,
 	  (Cast(DBO.ConvertUTCtoLocal(SOQ.CreatedDate, @CurrntEmpTimeZoneDesc) AS DATE)) CreatedDate,
 	  (Cast(DBO.ConvertUTCtoLocal(SOQ.UpdatedDate, @CurrntEmpTimeZoneDesc) AS DATE)) UpdatedDate,
@@ -144,9 +153,9 @@ BEGIN
 	  ISNULL(SOQ.MarketplaceRef,'') MarketplaceRef
       FROM DBO.SalesOrderQuote SOQ WITH (NOLOCK) INNER JOIN MasterSalesOrderQuoteStatus MST WITH (NOLOCK) on SOQ.StatusId = MST.Id
 	  LEFT JOIN DBO.SalesOrderQuotePartV1 SOQP WITH (NOLOCK) ON SOQP.SalesOrderQuoteId = SOQ.SalesOrderQuoteId
-	  LEFT JOIN DBO.SalesOrderPartV1 SP WITH (NOLOCK) ON SOQP.SalesOrderQuotePartId = SP.SalesOrderQuotePartId
+	  --LEFT JOIN DBO.SalesOrderPartV1 SP WITH (NOLOCK) ON SOQP.SalesOrderQuotePartId = SP.SalesOrderQuotePartId
       LEFT JOIN DBO.Employee E WITH (NOLOCK) ON E.EmployeeId = SOQ.SalesPersonId
-      LEFT JOIN DBO.SalesOrder SO WITH (NOLOCK) ON SO.SalesOrderQuoteId = SOQ.SalesOrderQuoteId AND SO.SalesOrderQuoteId IS NOT NULL
+      --LEFT JOIN DBO.SalesOrder SO WITH (NOLOCK) ON SO.SalesOrderQuoteId = SOQ.SalesOrderQuoteId AND SO.SalesOrderQuoteId IS NOT NULL
       INNER JOIN dbo.SalesOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @MSModuleID AND MSD.ReferenceID = SOQ.SalesOrderQuoteId
       INNER JOIN [dbo].[RoleManagementStructure] RMS WITH (NOLOCK) ON SOQ.ManagementStructureId = RMS.EntityStructureId
       INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId

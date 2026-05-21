@@ -54,12 +54,8 @@
     [CSRSalesMargin]                   DECIMAL (18, 6) NULL,
     [AgentSalesRevenue]                DECIMAL (18, 6) NULL,
     [AgentSalesMargin]                 DECIMAL (18, 6) NULL,
+    [IsFromAircraft]                   BIT             DEFAULT ((0)) NULL,
+    [MtcCategoryId]                    BIGINT          NULL,
     CONSTRAINT [PK_WorkOrderAudit] PRIMARY KEY CLUSTERED ([WorkOrderAuditId] ASC)
 );
-
-
-
-
-
-
 

@@ -53,6 +53,8 @@
     [AgentSalesRevenue]                DECIMAL (18, 6) NULL,
     [AgentSalesMargin]                 DECIMAL (18, 6) NULL,
     [IsMigrated]                       BIT             NULL,
+    [IsFromAircraft]                   BIT             DEFAULT ((0)) NULL,
+    [MtcCategoryId]                    BIGINT          NULL,
     CONSTRAINT [PK_WorkOrder] PRIMARY KEY CLUSTERED ([WorkOrderId] ASC),
     CONSTRAINT [FK_WorkOrder_CSR] FOREIGN KEY ([CSRId]) REFERENCES [dbo].[Employee] ([EmployeeId]),
     CONSTRAINT [FK_WorkOrder_Customer] FOREIGN KEY ([CustomerId]) REFERENCES [dbo].[Customer] ([CustomerId]),
@@ -60,13 +62,15 @@
     CONSTRAINT [FK_WorkOrder_Employee] FOREIGN KEY ([EmployeeId]) REFERENCES [dbo].[Employee] ([EmployeeId]),
     CONSTRAINT [FK_WorkOrder_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId]),
     CONSTRAINT [FK_WorkOrder_ReceivingCustomerWork] FOREIGN KEY ([ReceivingCustomerWorkId]) REFERENCES [dbo].[ReceivingCustomerWork] ([ReceivingCustomerWorkId]),
+    CONSTRAINT [FK_WorkOrder_SalesAgent] FOREIGN KEY ([SalesAgentID]) REFERENCES [dbo].[Employee] ([EmployeeId]),
     CONSTRAINT [FK_WorkOrder_SalesPerson] FOREIGN KEY ([SalesPersonId]) REFERENCES [dbo].[Employee] ([EmployeeId]),
     CONSTRAINT [FK_WorkOrder_SecondarySalesPerson] FOREIGN KEY ([SecondarySalesPersonId]) REFERENCES [dbo].[Employee] ([EmployeeId]),
-    CONSTRAINT [FK_WorkOrder_SalesAgent] FOREIGN KEY ([SalesAgentID]) REFERENCES [dbo].[Employee] ([EmployeeId]),
     CONSTRAINT [FK_WorkOrder_WorkOrderStatus] FOREIGN KEY ([WorkOrderStatusId]) REFERENCES [dbo].[WorkOrderStatus] ([Id]),
     CONSTRAINT [FK_WorkOrder_WorkOrderType] FOREIGN KEY ([WorkOrderTypeId]) REFERENCES [dbo].[WorkOrderType] ([Id]),
     CONSTRAINT [Unique_WorkOrder] UNIQUE NONCLUSTERED ([WorkOrderNum] ASC, [MasterCompanyId] ASC)
 );
+
+
 
 
 

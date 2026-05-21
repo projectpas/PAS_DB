@@ -92,6 +92,7 @@
     [AircraftRegistryNumber]         VARCHAR (30)    NULL,
     [IsFromAircraft]                 BIT             CONSTRAINT [DF_workorderpartnumber_IsFromAircraft] DEFAULT ((0)) NULL,
     [AircraftInstalledPartDetailsId] BIGINT          NULL,
+    [AircraftSerialNumber]           VARCHAR (100)   NULL,
     CONSTRAINT [PK_WorkOrderPartNumberAudit] PRIMARY KEY CLUSTERED ([WOPartNoAuditId] ASC)
 );
 

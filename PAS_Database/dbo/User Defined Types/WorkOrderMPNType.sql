@@ -77,5 +77,6 @@
     [Notes]                          NVARCHAR (MAX)  NULL,
     [AircraftRegistryNumber]         VARCHAR (30)    NULL,
     [IsFromAircraft]                 BIT             NULL,
-    [AircraftInstalledPartDetailsId] BIGINT          NULL);
+    [AircraftInstalledPartDetailsId] BIGINT          NULL,
+    [AircraftSerialNumber]           VARCHAR (100)   NULL);
 

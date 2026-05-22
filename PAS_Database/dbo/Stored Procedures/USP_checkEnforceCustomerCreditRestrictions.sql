@@ -11,20 +11,23 @@
  ** --   -------------		----------------	--------------------------------          
     1    05-Oct-2025		Bhargav Saliya      Created
     2    07-Oct-2025		Bhargav Saliya      Modefied
-
+	3    15-May-2026        Rajesh Gami         Remove condition @CreditLimit < 0 PN-16411
+	4    20-May-2026        Rajesh Gami         Added @IsCreditLimitWarning [PN-16501]
 --[USP_checkEnforceCustomerCreditRestrictions] @LegalEntityId = 1, @CustomerId = 4468, @MastercompanyId = 1
 **************************************************************/
 CREATE     PROCEDURE [dbo].[USP_checkEnforceCustomerCreditRestrictions]
 @LegalEntityId BIGINT,
 @CustomerId BIGINT,
-@MastercompanyId BIGINT
+@MastercompanyId BIGINT,
+@IsFromQuote BIT = 0
 AS
 BEGIN
 	DECLARE @IsCreaditRestriction BIT = 0,
 			@CreditLimit DECIMAL = 0,
 			@IsRestrict BIT = 0,
-			@IsWarning BIT = 0,
+			@IsCreditLimitWarning BIT = 0,
 			@RestrictMessage varchar(MAX) = NULL,
+			@WarningMessage varchar(MAX) = NULL,
 			@SelectCustId BIGINT;
 
 	DECLARE @WarningTypeId INT = (SELECT [CustomerWarningTypeId] FROM dbo.[CustomerWarningType] WITH(NOLOCK) WHERE UPPER([Name]) = 'IF CREDIT LIMIT IS NEGATIVE');
@@ -36,6 +39,7 @@ BEGIN
 
 	CREATE TABLE #restrictTempTable (
 	  IsRestrict BIT NULL,
+	  IsCreditLimitWarning BIT NULL,
 	  IsWarning BIT NULL,
 	  [RestrictMessage] VARCHAR(300) NULL,
 	  [WarningMessage] VARCHAR(300) NULL,
@@ -49,19 +53,20 @@ BEGIN
 	BEGIN TRY
 
 		SELECT @IsCreaditRestriction = ISNULL(IsCreaditRestriction,0),
-			   @RestrictMessage = CASE WHEN IsCreaditRestriction = 1 THEN RestrictMessage ELSE '' END
+			   @RestrictMessage = CASE WHEN IsCreaditRestriction = 1 THEN RestrictMessage ELSE '' END,
+			   @IsCreditLimitWarning = ISNULL(IsCreditLimitWarning,0),
+			   @WarningMessage = CASE WHEN IsCreditLimitWarning = 1 THEN WarningMessage ELSE '' END
 		FROM [dbo].[LegalEntity] WITH(NOLOCK) WHERE LegalEntityId = @LegalEntityId and MasterCompanyId = @MastercompanyId;
-
 		SELECT @CreditLimit = ISNULL([CreditLimit],0) FROM [dbo].[CustomerFinancial] WITH(NOLOCK) WHERE CustomerId = @CustomerId and MasterCompanyId = @MastercompanyId;
+		
 
 		SELECT top 1 @SelectCustId = CustomerId FROM [CustomerWarning] WITH(NOLOCK) WHERE CustomerId = @CustomerId AND MasterCompanyId = @MastercompanyId
-
-		
-		IF(@CreditLimit < 0 AND @IsCreaditRestriction = 1)
+		PRINT  @IsCreaditRestriction		
+		IF(@IsCreaditRestriction = 1 AND ISNULL(@IsFromQuote,0) = 0)
 		BEGIN
 			IF(@SelectCustId is not null AND @SelectCustId > 0)
 			BEGIN
-				INSERT INTO #restrictTempTable([IsRestrict],[IsWarning],[RestrictMessage],[WarningMessage],[LeRestriction],[IsCreaditRestriction],[CreditLimit])
+				INSERT INTO #restrictTempTable([IsRestrict],[IsWarning],[RestrictMessage],[WarningMessage],[LeRestriction],[IsCreaditRestriction],[CreditLimit],IsCreditLimitWarning)
 				SELECT 
 					ISNULL([Restrict],0) as IsRestrict,
 					ISNULL([Warning],0) as IsWarning,
@@ -69,17 +74,23 @@ BEGIN
 					ISNULL([WarningMessage],'') as [WarningMessage],
 					@RestrictMessage AS LeRestriction,
 					@IsCreaditRestriction as IsCreaditRestriction,
-					@CreditLimit AS CreditLimit
+					@CreditLimit AS CreditLimit,
+					@IsCreditLimitWarning as [IsCreditLimitWarning]
 				FROM [dbo].[CustomerWarning] WITH(NOLOCK) 
 				WHERE CustomerId = @CustomerId AND CustomerWarningTypeId = @WarningTypeId and MasterCompanyId = @MastercompanyId;
 			END
 			ELSE
 			BEGIN
-			 INSERT INTO #restrictTempTable([IsRestrict],[IsWarning],[RestrictMessage],[WarningMessage],[LeRestriction],[IsCreaditRestriction],[CreditLimit])
-			 values(0,0,'','',@RestrictMessage,@IsCreaditRestriction,@CreditLimit);
+			PRINT '2'
+			 INSERT INTO #restrictTempTable([IsRestrict],[IsWarning],[RestrictMessage],[WarningMessage],[LeRestriction],[IsCreaditRestriction],[CreditLimit],[IsCreditLimitWarning])
+			 values(0,0,'',@WarningMessage,@RestrictMessage,@IsCreaditRestriction,@CreditLimit,@IsCreditLimitWarning);
 			END
 		END
-
+		ELSE
+		BEGIN
+			INSERT INTO #restrictTempTable([IsRestrict],[IsCreditLimitWarning],[RestrictMessage],[WarningMessage],[LeRestriction],[IsCreaditRestriction],[CreditLimit],[IsWarning])
+			 values(0,@IsCreditLimitWarning,@RestrictMessage,@WarningMessage,@RestrictMessage,@IsCreaditRestriction,@CreditLimit,'');
+		END
 		SELECT * FROM #restrictTempTable
 
 	END TRY 

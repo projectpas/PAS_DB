@@ -38,6 +38,7 @@
     [InstallFlightHours]             DECIMAL (18, 6) NULL,
     [InstallFlightTime]              DECIMAL (18, 6) NULL,
     [InstallCycles]                  DECIMAL (18, 6) NULL,
+    [LastFlownDate]                  DATETIME2 (7)   NULL,
     PRIMARY KEY CLUSTERED ([AircraftInstalledPartDetailsId] ASC),
     CONSTRAINT [FK_AircraftInstalledPartDetails_AircraftRegistryId] FOREIGN KEY ([AircraftRegistryId]) REFERENCES [dbo].[AircraftRegistryHeader] ([AircraftRegistryId]),
     CONSTRAINT [FK_AircraftInstalledPartDetails_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId])

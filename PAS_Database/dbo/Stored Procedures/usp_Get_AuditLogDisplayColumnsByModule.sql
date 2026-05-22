@@ -19,6 +19,7 @@
     2      16-FEB-2026    DIVYESH KATHIRIYA   Set Table Name for SalesOrderQuote.
     3      25-FEB-2026    DIVYESH KATHIRIYA   Set New HistoryModule Table and Remove Table Name for SalesOrderQuote.
 	4      29-APRIL-2026  Amit Ghediya        Aadded New SubModuleId.
+	5 	   15-MAY-2026	  DIVYESH KATHIRIYA   Aadded New "FieldAlign" Field. [PN-16398]
 
     EXEC usp_Get_AuditLogDisplayColumnsByModule @ModuleId=85,@SubModuleId=86
 **********************/
@@ -58,7 +59,8 @@ BEGIN
 		SELECT 
 			ColumnName,
 			DisplayName,
-			SeqNo
+			SeqNo,
+			FieldAlign
 		FROM dbo.AuditLogDisplayColumns WITH (NOLOCK)
 		WHERE TableName IN (SELECT value FROM STRING_SPLIT(@TableName, ','))
 		ORDER BY SeqNo;
@@ -82,7 +84,8 @@ BEGIN
 		SELECT 
 			ColumnName,
 			DisplayName,
-			SeqNo
+			SeqNo,
+			FieldAlign
 		FROM dbo.AuditLogDisplayColumns WITH (NOLOCK)
 		WHERE TableName = @TableName 
 		ORDER BY SeqNo;

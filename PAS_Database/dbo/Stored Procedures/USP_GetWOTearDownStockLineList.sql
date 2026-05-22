@@ -18,8 +18,8 @@
 	6    02/04/2024   Moin Bloch			    Added new Field AttachmentId
 	7    05/04/2024   Moin Bloch			    Added new Field Condition	
 	8    25/02/2025   Moin Bloch			    Fixed for Blank Print Data For MTI
-
-     
+	9    14/May/2026  Rajesh Gami			    Return IsReadyReleaseForm & Added the @isFromMultipleReleaseFormModal Parameter [PN-16405 :  Generate Multiple Release Forms for Teardown Work Orders]
+    10    25/02/2025   Moin Bloch			    Added @GenerateReleaseForm Para. For Filter [PN-16504]
 exec USP_GetWOTearDownStockLineList 
 @PageNumber=1,@PageSize=10,@SortColumn=N'CreatedDate',@SortOrder=-1,@GlobalFilter=N'',@StatusId=1,@PartNumber=NULL,@PartDescription=NULL,
 @Manufacturer=NULL,@StockLineNumber=NULL,@SerialNumber=NULL,@ControlNumber=NULL,@IdNumber=NULL,@UnitCost=NULL,@QtyOnHand=NULL,
@@ -54,7 +54,9 @@ CREATE   PROCEDURE [dbo].[USP_GetWOTearDownStockLineList]
 @WorkOrderId BIGINT = NULL,
 @WorkOrderPartNumberId BIGINT = NULL,
 @WorkFlowWorkOrderId BIGINT = NULL,
-@MasterCompanyId BIGINT = NULL
+@MasterCompanyId BIGINT = NULL,
+@isFromMultipleReleaseFormModal BIT = NULL,
+@GenerateReleaseForm VARCHAR(50) = NULL
 AS
 BEGIN	
 	    SET NOCOUNT ON;
@@ -93,7 +95,7 @@ BEGIN
 		BEGIN
 			SET @IsActive=NULL;
 		END
-
+		SET @isFromMultipleReleaseFormModal = CASE WHEN ISNULL(@isFromMultipleReleaseFormModal,0) = 1 THEN 1 ELSE NULL END
 		;WITH Result AS(
 				SELECT DISTINCT
 						SL.StockLineId,
@@ -117,12 +119,14 @@ BEGIN
 						Upper(SL.CreatedBy) CreatedBy,
 						Upper(SL.UpdatedBy) UpdatedBy,
 						ISNULL(SL.IsGenerateReleaseForm,0) IsGenerateReleaseForm,
+						ISNULL(SL.IsReadyReleaseForm,0) IsReadyReleaseForm,
 						SL.ConditionId,
 						ISNULL((SELECT TOP 1 ATT.AttachmentId FROM [dbo].[Attachment] ATT WITH (NOLOCK) 
 				               INNER JOIN [dbo].[CommonDocumentDetails] DOC WITH (NOLOCK) ON DOC.AttachmentId = ATT.AttachmentId AND DOC.ReferenceId = SL.StockLineId AND DOC.ModuleId = @AttStockLineModuleId --AND DOC.[DocumentTypeId] = @DocumentTypeId
 				               WHERE ATT.ReferenceId = SL.StockLineId 
 							     AND ATT.ModuleId = @AttStockLineModuleId ORDER BY ATT.AttachmentId DESC),0) AS AttachmentId,
-						SL.Condition
+						SL.Condition,
+						CASE WHEN ISNULL(SL.IsGenerateReleaseForm,0) = 1 THEN 'YES' ELSE 'NO' END AS GenerateReleaseForm
 			   FROM [dbo].[Stockline] SL WITH (NOLOCK)
 				INNER JOIN [dbo].[WorkOrder] WO WITH (NOLOCK) ON WO.WorkOrderId = SL.WorkOrderId
 				INNER JOIN [dbo].[WorkOrderPartNumber] WOP WITH (NOLOCK) ON WO.WorkOrderId = WOP.WorkOrderId AND WOP.ID = @WorkOrderPartNumberId
@@ -132,6 +136,7 @@ BEGIN
 					AND SL.MasterCompanyId=@MasterCompanyId AND SL.WorkOrderId = @WorkOrderId AND SL.IsTurnIn = 1
 					AND WOP.ID = @WorkOrderPartNumberId AND SL.WorkOrderPartNoId = @WorkOrderPartNumberId AND
 					SL.StockLineId NOT IN(SELECT StocklineId FROM [DBO].[WorkOrderPartNumber] WITH(NOLOCK) WHERE WorkOrderId = @WorkOrderId AND ID = @WorkOrderPartNumberId)
+					AND (@isFromMultipleReleaseFormModal IS NULL OR (ISNULL(SL.IsGenerateReleaseForm,0) = 0 AND ISNULL(SL.IsReadyReleaseForm,0) = 1) )
 			), ResultCount AS(SELECT COUNT(StockLineId) AS totalItems FROM Result)
 			SELECT * INTO #TempResult FROM  Result
 			 WHERE ((@GlobalFilter <>'' AND ((PartNumber LIKE '%' +@GlobalFilter+'%') OR
@@ -161,7 +166,8 @@ BEGIN
 					(ISNULL(@CreatedBy,'') ='' OR CreatedBy LIKE '%' + @CreatedBy + '%') AND
 					(ISNULL(@UpdatedBy,'') ='' OR UpdatedBy LIKE '%' + @UpdatedBy + '%') AND						
 					(ISNULL(@CreatedDate,'') ='' OR CAST(CreatedDate AS Date)=CAST(@CreatedDate AS date)) AND
-					(ISNULL(@UpdatedDate,'') ='' OR CAST(UpdatedDate AS date)=CAST(@UpdatedDate AS date)))
+					(ISNULL(@UpdatedDate,'') ='' OR CAST(UpdatedDate AS date)=CAST(@UpdatedDate AS date)) AND
+					(ISNULL(@GenerateReleaseForm, '') = '' OR (CASE WHEN ISNULL(IsGenerateReleaseForm,0) = 1 THEN 'YES' ELSE 'NO' END) LIKE '%' + @GenerateReleaseForm + '%' ))
 				   )
 
 			SELECT @Count = COUNT(StockLineId) FROM #TempResult			
@@ -196,7 +202,9 @@ BEGIN
 			CASE WHEN (@SortOrder=1  AND @SortColumn='UpdatedBy')  THEN UpdatedBy END ASC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='UpdatedBy')  THEN UpdatedBy END DESC,
 			CASE WHEN (@SortOrder=1  AND @SortColumn='UpdatedDate')  THEN UpdatedDate END ASC,
-			CASE WHEN (@SortOrder=-1 AND @SortColumn='UpdatedDate')  THEN UpdatedDate END DESC			
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='UpdatedDate')  THEN UpdatedDate END DESC,
+			CASE WHEN (@SortOrder=1  AND @SortColumn='GenerateReleaseForm')  THEN GenerateReleaseForm END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='GenerateReleaseForm')  THEN GenerateReleaseForm END DESC
 			OFFSET @RecordFrom ROWS 
    			FETCH NEXT @PageSize ROWS ONLY
 

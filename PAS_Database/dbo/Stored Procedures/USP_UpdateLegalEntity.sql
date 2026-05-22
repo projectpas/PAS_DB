@@ -12,7 +12,7 @@
     1    13-May-2025		Divyesh Kathiriya	Created    
     2    01-Oct-2025		Bhargav Saliya	    Add Field [IsCreaditRestriction].    
 	3    09-Oct-2025        Bhargav Saliya      Added New Field [RestrictMessage]
- 
+   	4    20-May-2026        Rajesh Gami			Added New Filed IsCreditLimitWarning, WarningMessage [PN-16501]
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_UpdateLegalEntity]
 @LegalEntityId BIGINT,
@@ -54,7 +54,9 @@ CREATE   PROCEDURE [dbo].[USP_UpdateLegalEntity]
 @LastLevel BIT = Null,
 @LedgerId BIGINT = Null,
 @IsCreaditRestriction BIT = Null,
-@RestrictMessage VARCHAR(Max) = Null
+@RestrictMessage VARCHAR(Max) = Null,
+@IsCreditLimitWarning BIT = Null,
+@WarningMessage VARCHAR(Max) = Null
 AS
 BEGIN
 	SET NOCOUNT ON;
@@ -139,7 +141,9 @@ BEGIN
 								[IsTurnOffMgmt] = @IsTurnOffMgmt,
 								[UKCAALicense] = @UKCAALicense,
 								[IsCreaditRestriction] = @IsCreaditRestriction,
-								[RestrictMessage] = @RestrictMessage
+								[RestrictMessage] = @RestrictMessage,
+								IsCreditLimitWarning = @IsCreditLimitWarning,
+								WarningMessage = @WarningMessage
 						  WHERE [LegalEntityId] = @LegalEntityId;
 
 						  UPDATE [DBO].[Address]

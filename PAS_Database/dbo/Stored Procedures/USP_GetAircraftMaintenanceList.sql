@@ -13,6 +13,11 @@
 ** 1    10/04/2026   Priyansh Patel     Created [PN-16016]
 ** 2    28/04/2026   Priyansh Patel     Added Mtce Class [PN-16160]
 ** 3    07/05/2026   Priyansh Patel     Added TemplateIdNumber [PN-16344]
+** 4    18-05-2026   Ayushi Patel       Return WorksheetNumber from worksheetheader table [PN-16454]
+** 5    18/05/2026   Bhargav Saliya     Added IsScheduledMaintenance [PN-16475]
+** 6    19/05/2026   Bhargav Saliya     Rever The IsScheduledMaintenance Changes and added MtcCategory and MtcCategoryId [PN-16475]
+** 7    20/05/2026   Priyansh Patel     Fix the WorksheetNumber to return the latest [PN-16408]
+
 *********************/
 -- EXEC [dbo].[USP_GetAircraftMaintenanceList] @MasterCompanyId = 1 @AircraftRegistryId = 22;
 CREATE  PROCEDURE [dbo].[USP_GetAircraftMaintenanceList]
@@ -51,7 +56,9 @@ CREATE  PROCEDURE [dbo].[USP_GetAircraftMaintenanceList]
     @IsActive                BIT             = NULL,
     @IsDeleted               BIT             = 0,
     @AircraftRegistryId      BIGINT,
-    @MasterCompanyId         INT
+    @MasterCompanyId         INT,
+    @WorksheetNumber         VARCHAR(50) = NULL,
+    @MtcCategory    VARCHAR(256) = NULL
 
 AS
 BEGIN
@@ -101,12 +108,17 @@ BEGIN
                 AMP.UpdatedBy,
                 AMP.CreatedDate,
                 AMP.CreatedBy,
+                WSH.WorksheetNumber,
+                mtc.MtcCategory,
+                AMP.MtcCategoryId,
                 COUNT(1) OVER () AS TotalRecords
 
             FROM [dbo].[AircraftMaintenanceProgram] AMP WITH (NOLOCK)
             LEFT JOIN [dbo].[AircraftRegistryHeader] ARH WITH (NOLOCK) ON AMP.AircraftRegistryId = ARH.AircraftRegistryId  AND ARH.MasterCompanyId = @MasterCompanyId 
             LEFT JOIN [dbo].[MaintenanceClass] MC WITH (NOLOCK)  ON AMP.MaintenanceClassId = MC.MaintenanceClassId
             LEFT JOIN [dbo].[Workflow] WF WITH (NOLOCK)  ON AMP.TemplateId = WF.WorkflowId AND WF.TemplateType = @ACTemplateType
+            LEFT JOIN [dbo].[MaintenanceCategory] mtc WITH (NOLOCK) ON AMP.[MtcCategoryId] = mtc.[MtcCategoryId]
+            LEFT JOIN (SELECT *, ROW_NUMBER() OVER (PARTITION BY ProgramId ORDER BY CreatedDate DESC) AS RN FROM [dbo].[WorksheetHeader] WITH (NOLOCK)) WSH ON AMP.ProgramId = WSH.ProgramId AND WSH.RN = 1
 
             WHERE (@AircraftRegistryId IS NULL OR @AircraftRegistryId = 0 OR AMP.AircraftRegistryId = @AircraftRegistryId) --AMP.AircraftRegistryId = @AircraftRegistryId  
 			AND AMP.MasterCompanyId = @MasterCompanyId  AND (@IsDeleted IS NULL OR AMP.IsDeleted = @IsDeleted)
@@ -145,6 +157,9 @@ BEGIN
                 AND (@TimeRemaining IS NULL OR CAST(AMP.TimeRemaining AS VARCHAR) LIKE '%' + @TimeRemaining + '%')
                 AND (@LandingsRemaining IS NULL OR CAST(AMP.LandingsRemaining AS VARCHAR) LIKE '%' + @LandingsRemaining + '%')
                 AND (@EngineStartsRemaining IS NULL OR CAST(AMP.EngineStartsRemaining AS VARCHAR) LIKE '%' + @EngineStartsRemaining + '%')
+                AND (@MaintenanceClassName IS NULL  OR MC.[Name] LIKE '%' + @MaintenanceClassName + '%')
+                AND (ISNULL(@WorksheetNumber,'') ='' OR WSH.WorksheetNumber LIKE '%' + @WorksheetNumber + '%')
+                AND (ISNULL(@MtcCategory,'') ='' OR mtc.MtcCategory LIKE '%' + @MtcCategory + '%')
         )
 
         SELECT *
@@ -204,6 +219,10 @@ BEGIN
             CASE WHEN @SortColumn = 'EngineStartsRemaining' AND @SortOrder = 'DESC' THEN EngineStartsRemaining END DESC,
             CASE WHEN @SortColumn = 'CreatedDate'       AND @SortOrder = 'ASC'  THEN CreatedDate END ASC,
             CASE WHEN @SortColumn = 'CreatedDate'       AND @SortOrder = 'DESC' THEN CreatedDate END DESC,
+            CASE WHEN @SortColumn = 'WorksheetNumber' AND @SortOrder = 'ASC' THEN WorksheetNumber END ASC,
+            CASE WHEN @SortColumn = 'WorksheetNumber' AND @SortOrder = 'DESC' THEN WorksheetNumber END DESC,
+            CASE WHEN @SortColumn = 'MtcCategory'       AND @SortOrder = 'ASC'  THEN MtcCategory END ASC,
+            CASE WHEN @SortColumn = 'MtcCategory'       AND @SortOrder = 'DESC' THEN MtcCategory END DESC,
             ProgramId DESC
 
         OFFSET (@PageNumber - 1) * @PageSize ROWS

@@ -1,0 +1,28 @@
+﻿CREATE TABLE [dbo].[AircraftSetup] (
+    [AircraftSetupId]      BIGINT        IDENTITY (1, 1) NOT NULL,
+    [MaintenanceStatusId]  BIGINT        NOT NULL,
+    [AircraftStatusId]     BIGINT        NOT NULL,
+    [MasterCompanyId]      INT           NOT NULL,
+    [CurrencyId]           INT           NOT NULL,
+    [CreatedBy]            VARCHAR (256) NOT NULL,
+    [UpdatedBy]            VARCHAR (256) NOT NULL,
+    [CreatedDate]          DATETIME2 (7) CONSTRAINT [DF_AircraftSetup_CreatedDate] DEFAULT (sysdatetime()) NOT NULL,
+    [UpdatedDate]          DATETIME2 (7) CONSTRAINT [DF_AircraftSetup_UpdatedDate] DEFAULT (sysdatetime()) NOT NULL,
+    [IsActive]             BIT           CONSTRAINT [DF_AircraftSetup_IsActive] DEFAULT ((1)) NOT NULL,
+    [IsDeleted]            BIT           CONSTRAINT [DF_AircraftSetup_IsDeleted] DEFAULT ((0)) NOT NULL,
+    [PurchaseUOMId]        BIGINT        NULL,
+    [StockUOMId]           BIGINT        NULL,
+    [ConsumeUOMId]         BIGINT        NULL,
+    [PurchaseCurrencyId]   INT           NULL,
+    [SalesCurrencyId]      INT           NULL,
+    [ItemClassificationId] BIGINT        NULL,
+    [InventoryGLSettingId] BIGINT        NULL,
+    [InventoryGLAccId]     BIGINT        NULL,
+    [UOMId]                BIGINT        NULL,
+    [RedIndicator]         INT           NULL,
+    [YellowIndicator]      INT           NULL,
+    [GreenIndicator]       INT           NULL,
+    [ItemgroupId]          BIGINT        NULL,
+    CONSTRAINT [PK_AircraftSetup] PRIMARY KEY CLUSTERED ([AircraftSetupId] ASC)
+);
+

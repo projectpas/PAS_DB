@@ -13,7 +13,7 @@
 	2    26-Aug-2025        Sahdev Saliya       Added New Field EmployeeId
 	3    01-Oct-2025        Bhargav Saliya      Added New Field IsCreaditRestriction
 	4    09-Oct-2025        Bhargav Saliya      Added New Field Memo
-    
+  	5    20-May-2026        Rajesh Gami			Added New Filed IsCreditLimitWarning, WarningMessage [PN-16501]
  -- EXEC [USP_GetLegalEntityDataById] @LegalEntityId=34
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_GetLegalEntityDataById]
@@ -84,7 +84,9 @@ BEGIN
 			ISNULL(le.[EmployeeId], 0) AS EmployeeId,	
 			(SELECT STRING_AGG(mp.[TagName], ',') FROM [LegalEntityTagNameMapping] mp WITH (NOLOCK) WHERE mp.[LegalEntityId] = le.[LegalEntityId]) AS TagNames,
 			ISNULL(le.IsCreaditRestriction, 0) AS IsCreaditRestriction,
-			ISNULL(le.[RestrictMessage],'') as RestrictMessage
+			ISNULL(le.[RestrictMessage],'') as RestrictMessage,
+			ISNULL(le.IsCreditLimitWarning, 0) AS IsCreditLimitWarning,
+			ISNULL(le.WarningMessage,'') as WarningMessage
 		FROM [DBO].[LegalEntity] le WITH (NOLOCK) 	
 		LEFT JOIN [DBO].[Address] ad WITH (NOLOCK) ON le.[AddressId] = ad.[AddressId]
 		LEFT JOIN [DBO].[Countries] cont WITH (NOLOCK) ON ad.[CountryId] = cont.[countries_id]

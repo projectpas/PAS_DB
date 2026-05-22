@@ -3,7 +3,7 @@
     [WorkflowId]              BIGINT          NOT NULL,
     [ItemMasterId]            BIGINT          NOT NULL,
     [TaskId]                  BIGINT          NULL,
-    [Quantity]                SMALLINT        NULL,
+    [Quantity]                DECIMAL (18, 6) NULL,
     [UnitOfMeasureId]         BIGINT          NULL,
     [ConditionCodeId]         BIGINT          NULL,
     [UnitCost]                DECIMAL (18, 2) CONSTRAINT [DF_WorkflowMaterial_UnitCost] DEFAULT ((0)) NULL,
@@ -39,6 +39,8 @@
     CONSTRAINT [FK_WorkflowMaterial_UnitOfMeasureId] FOREIGN KEY ([UnitOfMeasureId]) REFERENCES [dbo].[UnitOfMeasure] ([UnitOfMeasureId]),
     CONSTRAINT [FK_WorkflowMaterial_WorkflowId] FOREIGN KEY ([WorkflowId]) REFERENCES [dbo].[Workflow] ([WorkflowId])
 );
+
+
 
 
 

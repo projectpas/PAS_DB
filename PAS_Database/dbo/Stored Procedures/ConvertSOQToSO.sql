@@ -29,7 +29,7 @@
 	13   16/10/2024   Moin Bloch		Updated Added SalesPersion Details
 	14   12/12/2025   Devendra Shekh	Added SP usp_MapRFQReferences For PO Part Reference Mapping
 	15   28/04/2026   BHARGAV SALIYA	[PN-16221] When Convert SOQ to SO Save ShipTO BillTO Address in SO
-
+	15   21/May/2026  Rajesh Gami	    [PN-16507] SOQ to SO: SOQ status should not change to Closed until all parts are converted to SO
 declare @p13 bigint
 set @p13=NULL
 declare @p14 bigint
@@ -206,25 +206,6 @@ BEGIN
 		AllowInvoiceBeforeShipping = @soAllowInvoiceBeforeShipping
 	WHERE SalesOrderId = @SalesOrderId;
 
-
-	/* Transfer Parts */
-	--INSERT INTO DBO.SalesOrderPart ([SalesOrderId],[ItemMasterId],[StockLineId],[FxRate],[Qty],[UnitSalePrice],[MarkUpPercentage],[SalesBeforeDiscount],
-	--[Discount],[DiscountAmount],[NetSales],[MasterCompanyId],[CreatedBy],[CreatedDate],[UpdatedBy],[UpdatedDate],[IsDeleted],[UnitCost],[MethodType],
-	--[SalesPriceExtended],[MarkupExtended],[SalesDiscountExtended],[NetSalePriceExtended],[UnitCostExtended],[MarginAmount],[MarginAmountExtended],[MarginPercentage],
-	--[ConditionId],[SalesOrderQuoteId],[SalesOrderQuotePartId],[IsActive],[CustomerRequestDate],[PromisedDate],[EstimatedShipDate],[PriorityId],[StatusId],
-	--[CustomerReference],[QtyRequested],[Notes],[CurrencyId],[MarkupPerUnit],[GrossSalePricePerUnit],[GrossSalePrice],[TaxType],[TaxPercentage],[TaxAmount],
-	--[AltOrEqType],[ControlNumber],[IdNumber],[ItemNo],[POId],[PONumber],[PONextDlvrDate],[UnitSalesPricePerUnit],[LotId],[IsLotAssigned])
-	--SELECT @SalesOrderId, sop.[ItemMasterId], sop.[StockLineId], sop.[FxRate], sop.QtyQuoted, sop.[UnitSalePrice], sop.[MarkUpPercentage], sop.[SalesBeforeDiscount],
-	--sop.[Discount], sop.[DiscountAmount], sop.[NetSales], sop.[MasterCompanyId], sop.[CreatedBy], sop.[CreatedDate], sop.[UpdatedBy], sop.[UpdatedDate], sop.[IsDeleted], sop.[UnitCost], sop.[MethodType],
-	--sop.[SalesPriceExtended], sop.[MarkupExtended], sop.[SalesDiscountExtended], sop.[NetSalePriceExtended], sop.[UnitCostExtended], sop.[MarginAmount], sop.[MarginAmountExtended], sop.[MarginPercentage],
-	--sop.[ConditionId], sop.[SalesOrderQuoteId], sop.[SalesOrderQuotePartId], sop.[IsActive], sop.[CustomerRequestDate], sop.[PromisedDate], sop.[EstimatedShipDate], sop.[PriorityId], sop.[StatusId],
-	--@CustomerReference, sop.[QtyRequested], sop.[Notes], sop.[CurrencyId], sop.[MarkupPerUnit], sop.[GrossSalePricePerUnit], sop.[GrossSalePrice], sop.[TaxType], sop.[TaxPercentage], sop.[TaxAmount],
-	--sop.[AltOrEqType], sop.[ControlNumber], sop.[IdNumber], sop.[ItemNo], NULL, NULL, NULL, sop.[UnitSalesPricePerUnit], sop.[LotId], sop.[IsLotAssigned]
-	--FROM DBO.SalesOrderQuotePart sop WITH (NOLOCK)
-	--WHERE sop.SalesOrderQuoteId = @SalesOrderQuoteId
- --   AND ((@TransferStockline = 0 AND LOWER(sop.MethodType) <> 's') OR @TransferStockline = 1)
-	--AND ISNULL(sop.IsNoQuote, 0) <> 1;
-
 	DECLARE @SOQLoopID AS INT;
 	CREATE TABLE #soqpList
     (
@@ -250,6 +231,7 @@ BEGIN
 	WHERE SOQP.SalesOrderQuoteId = @SalesOrderQuoteId
 	AND ((@TransferStockline = 0) OR @TransferStockline = 1)
 	AND ISNULL(SOQP.IsNoQuote, 0) <> 1
+	AND ISNULL(SOQP.IsConvertedToSalesOrder,0) = 0
 	ORDER BY SOQP.SalesOrderQuotePartId DESC;
 
 	SELECT @SOQLoopID = MAX(ID) FROM #soqpList;
@@ -286,6 +268,7 @@ BEGIN
 		LEFT JOIN DBO.ItemMasterExportInfo ime WITH (NOLOCK) ON ime.ItemMasterId = sop.ItemMasterId
 		WHERE sop.SalesOrderQuotePartId = @CurrentSOQPartId
 		AND ((@TransferStockline = 0) OR @TransferStockline = 1)
+		AND ISNULL(SOP.IsConvertedToSalesOrder,0) = 0
 		AND ISNULL(sop.IsNoQuote, 0) <> 1;
 
 		SET @CurrentSOPartId = SCOPE_IDENTITY();
@@ -350,7 +333,7 @@ BEGIN
 				FROM DBO.SalesOrderQuoteStocklineV1 SOPSTK WITH(NOLOCK)
 				INNER JOIN DBO.SalesOrderQuotePartV1 SOP WITH (NOLOCK) ON SOP.SalesOrderQuotePartId = SOPSTK.SalesOrderQuotePartId
 				LEFT JOIN DBO.ItemMasterExportInfo ime WITH (NOLOCK) ON ime.ItemMasterId = SOP.ItemMasterId
-				WHERE SOPSTK.SalesOrderQuoteStocklineId = @CurrentSOQStocklineId;
+				WHERE SOPSTK.SalesOrderQuoteStocklineId = @CurrentSOQStocklineId AND ISNULL(SOP.IsConvertedToSalesOrder,0) = 0; 
 				--WHERE SOPSTK.SalesOrderQuotePartId = @CurrentSOQPartId;
 
 				SET @NewSOStocklineId = SCOPE_IDENTITY();
@@ -595,16 +578,21 @@ BEGIN
 	DECLARE @ApprovedActionId BIGINT = 5;
 	DECLARE @SOQPartClosedStatusId BIGINT = 2;
 
-	IF NOT EXISTS (SELECT TOP 1 * FROM DBO.SalesOrderQuote SOQ WITH (NOLOCK) 
-				INNER JOIN DBO.SalesOrderQuotePartV1 SOQP WITH (NOLOCK) ON SOQ.SalesOrderQuoteId = SOQP.SalesOrderQuoteId
-				LEFT JOIN DBO.SalesOrderQuoteApproval SOQA WITH (NOLOCK) ON SOQA.SalesOrderQuotePartId = SOQP.SalesOrderQuotePartId
-				WHERE SOQ.SalesOrderQuoteId = @SalesOrderQuoteId AND SOQA.ApprovalActionId <> @ApprovedActionId)
+	IF NOT EXISTS (
+		SELECT 1 
+		FROM DBO.SalesOrderQuotePartV1 SOQP WITH (NOLOCK)
+		LEFT JOIN DBO.SalesOrderQuoteApproval SOQA WITH (NOLOCK) 
+			ON SOQA.SalesOrderQuotePartId = SOQP.SalesOrderQuotePartId
+		WHERE SOQP.SalesOrderQuoteId = @SalesOrderQuoteId
+		  AND (SOQA.ApprovalActionId IS NULL                    -- Part has no approval record
+			OR SOQA.ApprovalActionId <> @ApprovedActionId)      -- Part is not approved
+	)
 	BEGIN
-		-- Close Sales Order Quote
+		-- Close Sales Order Quote (all parts are approved)
 		UPDATE DBO.SalesOrderQuote 
-		SET StatusId  = @SOQPartClosedStatusId,
+		SET StatusId         = @SOQPartClosedStatusId,
 			StatusChangeDate = GETUTCDATE(),
-			UpdatedDate = GETUTCDATE()
+			UpdatedDate      = GETUTCDATE()
 		WHERE SalesOrderQuoteId = @SalesOrderQuoteId;
 	END
 

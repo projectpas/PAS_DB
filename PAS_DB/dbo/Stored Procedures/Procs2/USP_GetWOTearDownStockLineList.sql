@@ -19,7 +19,8 @@
 	7    05/04/2024   Moin Bloch			    Added new Field Condition	
 	8    25/02/2025   Moin Bloch			    Fixed for Blank Print Data For MTI
 	9    14/May/2026  Rajesh Gami			    Return IsReadyReleaseForm & Added the @isFromMultipleReleaseFormModal Parameter [PN-16405 :  Generate Multiple Release Forms for Teardown Work Orders]
-    10    25/02/2025   Moin Bloch			    Added @GenerateReleaseForm Para. For Filter [PN-16504]
+    10   25/02/2025   BHARGAV SALIYA			Added @GenerateReleaseForm Para. For Filter [PN-16504]
+    11   26/02/2025   BHARGAV SALIYA			Added @Condition Para. For Filter
 exec USP_GetWOTearDownStockLineList 
 @PageNumber=1,@PageSize=10,@SortColumn=N'CreatedDate',@SortOrder=-1,@GlobalFilter=N'',@StatusId=1,@PartNumber=NULL,@PartDescription=NULL,
 @Manufacturer=NULL,@StockLineNumber=NULL,@SerialNumber=NULL,@ControlNumber=NULL,@IdNumber=NULL,@UnitCost=NULL,@QtyOnHand=NULL,
@@ -56,7 +57,8 @@ CREATE   PROCEDURE [dbo].[USP_GetWOTearDownStockLineList]
 @WorkFlowWorkOrderId BIGINT = NULL,
 @MasterCompanyId BIGINT = NULL,
 @isFromMultipleReleaseFormModal BIT = NULL,
-@GenerateReleaseForm VARCHAR(50) = NULL
+@GenerateReleaseForm VARCHAR(50) = NULL,
+@Condition VARCHAR(50) = NULL
 AS
 BEGIN	
 	    SET NOCOUNT ON;
@@ -167,7 +169,8 @@ BEGIN
 					(ISNULL(@UpdatedBy,'') ='' OR UpdatedBy LIKE '%' + @UpdatedBy + '%') AND						
 					(ISNULL(@CreatedDate,'') ='' OR CAST(CreatedDate AS Date)=CAST(@CreatedDate AS date)) AND
 					(ISNULL(@UpdatedDate,'') ='' OR CAST(UpdatedDate AS date)=CAST(@UpdatedDate AS date)) AND
-					(ISNULL(@GenerateReleaseForm, '') = '' OR (CASE WHEN ISNULL(IsGenerateReleaseForm,0) = 1 THEN 'YES' ELSE 'NO' END) LIKE '%' + @GenerateReleaseForm + '%' ))
+					(ISNULL(@GenerateReleaseForm, '') = '' OR (CASE WHEN ISNULL(IsGenerateReleaseForm,0) = 1 THEN 'YES' ELSE 'NO' END) LIKE '%' + @GenerateReleaseForm + '%' ) AND
+					(ISNULL(@Condition,'') ='' OR Condition LIKE '%' + @Condition + '%'))
 				   )
 
 			SELECT @Count = COUNT(StockLineId) FROM #TempResult			
@@ -204,7 +207,9 @@ BEGIN
 			CASE WHEN (@SortOrder=1  AND @SortColumn='UpdatedDate')  THEN UpdatedDate END ASC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='UpdatedDate')  THEN UpdatedDate END DESC,
 			CASE WHEN (@SortOrder=1  AND @SortColumn='GenerateReleaseForm')  THEN GenerateReleaseForm END ASC,
-			CASE WHEN (@SortOrder=-1 AND @SortColumn='GenerateReleaseForm')  THEN GenerateReleaseForm END DESC
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='GenerateReleaseForm')  THEN GenerateReleaseForm END DESC,
+			CASE WHEN (@SortOrder=1  AND @SortColumn='Condition')  THEN Condition END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='Condition')  THEN Condition END DESC
 			OFFSET @RecordFrom ROWS 
    			FETCH NEXT @PageSize ROWS ONLY
 

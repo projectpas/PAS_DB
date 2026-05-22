@@ -56,6 +56,8 @@
 	40   02/03/2026   Amit Ghediya		Updated for Add MJE in Partially payment & Pending payment for get update (PN-15622).
 	41   11/03/2026   Amit Ghediya		Updated for get isactive records (PN-15588).
 	42   19/03/2026   Amit Ghediya		Updated for get Vendor performa invoice number
+	43   22/05/2026   Sahdev Saliya     Added ReferenceNumber for PaidinFull (PN-16205)
+
  --EXEC VendorPaymentList 10,1,'ReceivingReconciliationId',1,'','',0,0,0,'ALL','',NULL,NULL,1,73   
 **************************************************************/
 CREATE      PROCEDURE [dbo].[VendorPaymentList]  
@@ -89,7 +91,8 @@ CREATE      PROCEDURE [dbo].[VendorPaymentList]
 @PaymentMethod varchar(50)=null,
 @PaymentRef varchar(50)=null,
 @CheckCrashed varchar(50)=null,
-@ControlNumber varchar(150)=null
+@ControlNumber varchar(150)=null,
+@ReferenceNumber varchar(50)=null
 AS  
 BEGIN  
  -- SET NOCOUNT ON added to prevent extra result sets from  
@@ -194,6 +197,7 @@ BEGIN
 		[NonPOInvoiceId] BIGINT NULL,
 		[CustomerCreditPaymentDetailId] BIGINT NULL,
 		[VendorProformaInvoiceId] BIGINT NULL,
+		[ReferenceNumber] VARCHAR(100) NULL
 		) 
      
     IF(@CurrentStatus = 'PendingPayment')  
@@ -202,7 +206,7 @@ BEGIN
 	-- VendorPayment -ReceivingReconciliation DETAILS
 		INSERT INTO #TEMPVendorPaymentListRecords([ReceivingReconciliationId], [InvoiceNum], [Status], [OriginalTotal], [RRTotal], [InvoiceTotal], [CreditMemoUsed], [DifferenceAmount], [VendorName], [PaymentHold],
 		[InvociedDate], [EntryDate], [DueDate], [DaysPastDue], [PaymentMethod], [PaymentRef], [DateProcessed], [CheckCrashed], [DiscountToken], [ReadyToPaymentMade], [ReadyToPayId], [BankName],
-		[BankAccountNumber], [VendorId], [ControlNumber], [LegalEntity])
+		[BankAccountNumber], [VendorId], [ControlNumber], [LegalEntity], [ReferenceNumber])
 		SELECT RRH.ReceivingReconciliationId,
 		       RRH.InvoiceNum,
 			   --RRH.[Status],			   
@@ -250,7 +254,8 @@ BEGIN
 			   RRH.VendorId,
 			   ISNULL(TAB.ControlNumber,'') AS 'ControlNumber',
 			   --CASE WHEN ISNULL(RRH.[LastMSLevel],'') = '' THEN  ISNULL(le.Name, '') ELSE ISNULL(RRH.[LastMSLevel], '') END AS 'LegalEntity'
-			   ISNULL(le.CompanyCode, '') AS 'LegalEntity'
+			   ISNULL(le.CompanyCode, '') AS 'LegalEntity',
+			   '' AS 'ReferenceNumber'
 		  FROM [dbo].[VendorPaymentDetails] RRH  WITH(NOLOCK)
 		       INNER JOIN [dbo].[ReceivingReconciliationHeader] RRC WITH(NOLOCK) ON RRH.[ReceivingReconciliationId] = RRC.[ReceivingReconciliationId]	
 			   INNER JOIN [dbo].[Vendor] VN WITH(NOLOCK) ON RRH.VendorId = VN.VendorId  --WHERE StatusId=3
@@ -278,7 +283,7 @@ BEGIN
 	-- -ReceivingReconciliation DETAILS
 		INSERT INTO #TEMPVendorPaymentListRecords([ReceivingReconciliationId], [InvoiceNum], [Status], [OriginalTotal], [RRTotal], [InvoiceTotal], [CreditMemoUsed], [DifferenceAmount], [VendorName], [PaymentHold],
 		[InvociedDate], [EntryDate], [DueDate], [DaysPastDue], [PaymentMethod], [PaymentRef], [DateProcessed], [CheckCrashed], [DiscountToken], [ReadyToPaymentMade], [ReadyToPayId], [BankName],
-		[BankAccountNumber], [VendorId], [ControlNumber], [LegalEntity])
+		[BankAccountNumber], [VendorId], [ControlNumber], [LegalEntity], [ReferenceNumber])
 		SELECT DISTINCT
 		       RRH.ReceivingReconciliationId,
 			   RRH.InvoiceNum,
@@ -313,7 +318,8 @@ BEGIN
 			   '' AS BankAccountNumber,
 			   RRH.VendorId,
 			   '' AS 'ControlNumber',
-			   ISNULL(le.[CompanyCode], '') AS 'LegalEntity'
+			   ISNULL(le.[CompanyCode], '') AS 'LegalEntity',
+			   '' AS 'ReferenceNumber'
 		FROM [dbo].[ReceivingReconciliationHeader] RRH  WITH(NOLOCK) 		
 			INNER JOIN [dbo].[ReceivingReconciliationDetails] RRD WITH(NOLOCK) ON RRH.[ReceivingReconciliationId] = RRD.[ReceivingReconciliationId]	
 			INNER JOIN [dbo].[Vendor] VN WITH(NOLOCK) ON RRH.[VendorId] = VN.[VendorId]	
@@ -341,7 +347,7 @@ BEGIN
 	-- VendorPayment -CreditMemo DETAILS
 		INSERT INTO #TEMPVendorPaymentListRecords([ReceivingReconciliationId], [InvoiceNum], [Status], [OriginalTotal], [RRTotal], [InvoiceTotal], [CreditMemoUsed], [DifferenceAmount], [VendorName], [PaymentHold],
 		[InvociedDate], [EntryDate], [DueDate], [DaysPastDue], [PaymentMethod], [PaymentRef], [DateProcessed], [CheckCrashed], [DiscountToken], [ReadyToPaymentMade], [ReadyToPayId], [BankName],
-		[BankAccountNumber], [VendorId], [ControlNumber], [LegalEntity])
+		[BankAccountNumber], [VendorId], [ControlNumber], [LegalEntity], [ReferenceNumber])
 		SELECT RRH.ReceivingReconciliationId,
 		       RRH.InvoiceNum,
 			   CASE WHEN RRH.PaymentMade > 0 THEN 'Partially Paid' 
@@ -383,7 +389,8 @@ BEGIN
 			   '' AS BankAccountNumber,
 			   RRH.VendorId,
 			   ISNULL(TAB.ControlNumber,'') AS 'ControlNumber',
-			   ISNULL(le.[CompanyCode], '') AS 'LegalEntity'
+			   ISNULL(le.[CompanyCode], '') AS 'LegalEntity',
+			   '' AS 'ReferenceNumber'
 		  FROM [dbo].[VendorPaymentDetails] RRH  WITH(NOLOCK)
 		       INNER JOIN [dbo].[CreditMemo] CM WITH(NOLOCK) ON RRH.CreditMemoHeaderId = CM.CreditMemoHeaderId	
 			   INNER JOIN [dbo].[Vendor] VN WITH(NOLOCK) ON RRH.VendorId = VN.VendorId
@@ -415,7 +422,7 @@ BEGIN
 	-- VendorPayment NonPOInvoice DETAILS
 		INSERT INTO #TEMPVendorPaymentListRecords([ReceivingReconciliationId], [InvoiceNum], [Status], [OriginalTotal], [RRTotal], [InvoiceTotal], [CreditMemoUsed], [DifferenceAmount], [VendorName], [PaymentHold],
 		[InvociedDate], [EntryDate], [DueDate], [DaysPastDue], [PaymentMethod], [PaymentRef], [DateProcessed], [CheckCrashed], [DiscountToken], [ReadyToPaymentMade], [ReadyToPayId], [BankName],
-		[BankAccountNumber], [VendorId], [ControlNumber], [LegalEntity], [NonPOInvoiceId])
+		[BankAccountNumber], [VendorId], [ControlNumber], [LegalEntity], [NonPOInvoiceId], [ReferenceNumber])
 		SELECT 0 AS ReceivingReconciliationId,
 				NPH.InvoiceNumber AS [InvoiceNum],
 				NPHS.[Description] AS [Status],
@@ -457,7 +464,8 @@ BEGIN
 				NPH.VendorId,
 				ISNULL(VPD.ControlNumber,'') AS 'ControlNumber',
 				ISNULL(le.[CompanyCode], '') AS 'LegalEntity',
-				NPH.NonPOInvoiceId
+				NPH.NonPOInvoiceId,
+				'' AS 'ReferenceNumber'
 		  FROM [dbo].[NonPOInvoiceHeader] NPH  WITH(NOLOCK)
 		       LEFT JOIN [dbo].[VendorReadyToPayDetails] VPD WITH(NOLOCK) ON VPD.NonPOInvoiceId = NPH.NonPOInvoiceId	
 			   INNER JOIN [dbo].[Vendor] VN WITH(NOLOCK) ON NPH.VendorId = VN.VendorId
@@ -491,7 +499,7 @@ BEGIN
 		-- VendorPayment -NonPOInvoice DETAILS
 		INSERT INTO #TEMPVendorPaymentListRecords([ReceivingReconciliationId], [InvoiceNum], [Status], [OriginalTotal], [RRTotal], [InvoiceTotal], [CreditMemoUsed], [DifferenceAmount], [VendorName], [PaymentHold],
 		[InvociedDate], [EntryDate], [DueDate], [DaysPastDue], [PaymentMethod], [PaymentRef], [DateProcessed], [CheckCrashed], [DiscountToken], [ReadyToPaymentMade], [ReadyToPayId], [BankName],
-		[BankAccountNumber], [VendorId], [ControlNumber], [LegalEntity], [NonPOInvoiceId])
+		[BankAccountNumber], [VendorId], [ControlNumber], [LegalEntity], [NonPOInvoiceId], [ReferenceNumber])
 		SELECT RRH.ReceivingReconciliationId,
 		       NPH.InvoiceNumber,
 			   CASE WHEN RRH.PaymentMade > 0 THEN 'Partially Paid' 
@@ -535,7 +543,8 @@ BEGIN
 			   RRH.VendorId,
 			    ISNULL(TAB.ControlNumber,'') AS 'ControlNumber',
 				ISNULL(le.[CompanyCode], '') AS 'LegalEntity',
-				NPH.NonPOInvoiceId
+				NPH.NonPOInvoiceId,
+				'' AS 'ReferenceNumber'
 		  FROM [dbo].[VendorPaymentDetails] RRH  WITH(NOLOCK)
 		       INNER JOIN [dbo].[NonPOInvoiceHeader] NPH WITH(NOLOCK) ON RRH.NonPOInvoiceId = NPH.NonPOInvoiceId 	
 			   INNER JOIN [dbo].[Vendor] VN WITH(NOLOCK) ON RRH.VendorId = VN.VendorId  --WHERE StatusId=3
@@ -566,7 +575,7 @@ BEGIN
 				---MJE 
 			INSERT INTO #TEMPVendorPaymentListRecords([ReceivingReconciliationId], [InvoiceNum], [Status], [OriginalTotal], [RRTotal], [InvoiceTotal], [CreditMemoUsed], [DifferenceAmount], [VendorName], [PaymentHold],
 		[InvociedDate], [EntryDate], [DueDate], [DaysPastDue], [PaymentMethod], [PaymentRef], [DateProcessed], [CheckCrashed], [DiscountToken], [ReadyToPaymentMade], [ReadyToPayId], [BankName],
-		[BankAccountNumber], [VendorId], [ControlNumber], [LegalEntity], [NonPOInvoiceId])
+		[BankAccountNumber], [VendorId], [ControlNumber], [LegalEntity], [NonPOInvoiceId], [ReferenceNumber])
 				SELECT DISTINCT 0 AS ReceivingReconciliationId,
 						VPD.[InvoiceNum],
 						CASE WHEN VPD.PaymentMade > 0 THEN 'Partially Paid' 
@@ -597,6 +606,7 @@ BEGIN
 					    VPD.[VendorId],
 						 ISNULL(TAB.ControlNumber,'') AS 'ControlNumber',
 						 ISNULL(le.[CompanyCode], '') AS 'LegalEntity',
+						 '' AS 'ReferenceNumber',
 						0
 			      FROM [dbo].[VendorPaymentDetails] VPD WITH(NOLOCK)  
 			INNER JOIN [dbo].[ManualJournalHeader] MJH WITH(NOLOCK) ON VPD.[ManualJournalHeaderId] = MJH.[ManualJournalHeaderId]	
@@ -628,7 +638,7 @@ BEGIN
 	    --CustomerCreditPayment DETAILS
 		INSERT INTO #TEMPVendorPaymentListRecords([ReceivingReconciliationId], [InvoiceNum], [Status], [OriginalTotal], [RRTotal], [InvoiceTotal], [CreditMemoUsed], [DifferenceAmount], [VendorName], [PaymentHold],
 		[InvociedDate], [EntryDate], [DueDate], [DaysPastDue], [PaymentMethod], [PaymentRef], [DateProcessed], [CheckCrashed], [DiscountToken], [ReadyToPaymentMade], [ReadyToPayId], [BankName],
-		[BankAccountNumber], [VendorId], [ControlNumber], [LegalEntity], [CustomerCreditPaymentDetailId] )
+		[BankAccountNumber], [VendorId], [ControlNumber], [LegalEntity], [CustomerCreditPaymentDetailId], [ReferenceNumber])
 		SELECT RRH.ReceivingReconciliationId,
 		       RRH.InvoiceNum,
 			   CASE WHEN RRH.PaymentMade > 0 THEN 'Partially Paid' 
@@ -667,7 +677,8 @@ BEGIN
 			   RRH.VendorId,
 			   ISNULL(TAB.ControlNumber,'') AS 'ControlNumber',
 			   ISNULL(le.[CompanyCode], '') AS 'LegalEntity',
-			   CCPD.CustomerCreditPaymentDetailId
+			   CCPD.CustomerCreditPaymentDetailId,
+			   '' AS 'ReferenceNumber'
 		  FROM [dbo].[VendorPaymentDetails] RRH  WITH(NOLOCK)
 		       INNER JOIN [dbo].[CustomerCreditPaymentDetail] CCPD WITH(NOLOCK) ON RRH.CustomerCreditPaymentDetailId = CCPD.CustomerCreditPaymentDetailId	
 			   INNER JOIN [dbo].[Vendor] VN WITH(NOLOCK) ON RRH.VendorId = VN.VendorId
@@ -695,7 +706,7 @@ BEGIN
 	/***********************START: Vendor Proforma Invoice Details **************************/
 		INSERT INTO #TEMPVendorPaymentListRecords([ReceivingReconciliationId], [InvoiceNum], [Status], [OriginalTotal], [RRTotal], [InvoiceTotal], [CreditMemoUsed], [DifferenceAmount], [VendorName], [PaymentHold],
 		[InvociedDate], [EntryDate], [DueDate], [DaysPastDue], [PaymentMethod], [PaymentRef], [DateProcessed], [CheckCrashed], [DiscountToken], [ReadyToPaymentMade], [ReadyToPayId], [BankName],
-		[BankAccountNumber], [VendorId], [ControlNumber], [LegalEntity], [VendorProformaInvoiceId])
+		[BankAccountNumber], [VendorId], [ControlNumber], [LegalEntity], [VendorProformaInvoiceId], [ReferenceNumber])
 		SELECT 0 AS ReceivingReconciliationId,
 				NPH.InvoiceNumber AS [InvoiceNum],
 				NPHS.[Description] AS [Status],
@@ -726,7 +737,8 @@ BEGIN
 				NPH.VendorId,
 				'' AS 'ControlNumber',
 				ISNULL(le.[CompanyCode], '') AS 'LegalEntity',
-				NPH.VendorProformaInvoiceId AS VendorProformaInvoiceId
+				NPH.VendorProformaInvoiceId AS VendorProformaInvoiceId,
+				'' AS 'ReferenceNumber'
 		  FROM [dbo].[VendorProformaInvoiceHeader] NPH  WITH(NOLOCK)
 			   INNER JOIN [dbo].[Vendor] VN WITH(NOLOCK) ON NPH.VendorId = VN.VendorId
 			   LEFT JOIN  [dbo].[CreditTerms] ctm WITH(NOLOCK) ON ctm.CreditTermsId = VN.CreditTermsId
@@ -745,7 +757,7 @@ BEGIN
 	
 		INSERT INTO #TEMPVendorPaymentListRecords([ReceivingReconciliationId], [InvoiceNum], [Status], [OriginalTotal], [RRTotal], [InvoiceTotal], [CreditMemoUsed], [DifferenceAmount], [VendorName], [PaymentHold],
 		[InvociedDate], [EntryDate], [DueDate], [DaysPastDue], [PaymentMethod], [PaymentRef], [DateProcessed], [CheckCrashed], [DiscountToken], [ReadyToPaymentMade], [ReadyToPayId], [BankName],
-		[BankAccountNumber], [VendorId], [ControlNumber], [LegalEntity], VendorProformaInvoiceId)
+		[BankAccountNumber], [VendorId], [ControlNumber], [LegalEntity], VendorProformaInvoiceId, [ReferenceNumber])
 		SELECT RRH.ReceivingReconciliationId,
 		       NPH.InvoiceNumber,
 			   CASE WHEN RRH.PaymentMade > 0 THEN 'Partially Paid' 
@@ -783,7 +795,8 @@ BEGIN
 			   RRH.VendorId,
 			    ISNULL(TAB.ControlNumber,'') AS 'ControlNumber',
 				ISNULL(le.[CompanyCode], '') AS 'LegalEntity',
-					NPH.VendorProformaInvoiceId AS VendorProformaInvoiceId
+					NPH.VendorProformaInvoiceId AS VendorProformaInvoiceId,
+					'' AS 'ReferenceNumber'
 		  FROM [dbo].[VendorPaymentDetails] RRH  WITH(NOLOCK)
 		       INNER JOIN [dbo].[VendorProformaInvoiceHeader] NPH WITH(NOLOCK) ON RRH.VendorProformaInvoiceId = NPH.VendorProformaInvoiceId 	
 			   INNER JOIN [dbo].[Vendor] VN WITH(NOLOCK) ON RRH.VendorId = VN.VendorId 
@@ -927,7 +940,7 @@ BEGIN
 	-- VendorPayment -ReceivingReconciliation DETAILS
 		INSERT INTO #TEMPVendorPaymentListRecords([ReceivingReconciliationId], [InvoiceNum], [Status], [OriginalTotal], [RRTotal], [InvoiceTotal], [CreditMemoUsed], [DifferenceAmount], [VendorName], [PaymentHold],
 		[InvociedDate], [EntryDate], [DueDate], [DaysPastDue], [PaymentMethod], [PaymentRef], [DateProcessed], [CheckCrashed], [DiscountToken], [ReadyToPaymentMade], [BankName], [BankAccountNumber], 
-		[ReadyToPayId], [VendorId], [CreatedDate], [ControlNumber], [LegalEntity])
+		[ReadyToPayId], [VendorId], [CreatedDate], [ControlNumber], [LegalEntity], [ReferenceNumber])
 		 SELECT DISTINCT 
 		        RRH.ReceivingReconciliationId,
 				RRH.InvoiceNum,
@@ -963,7 +976,8 @@ BEGIN
 				RRH.VendorId,
 				(Cast(DBO.ConvertUTCtoLocal(RRH.CreatedDate,@CurrntEmpTimeZoneDesc)AS DATETIME)) AS CreatedDate,
 				ISNULL(TAB.ControlNumber,'') AS 'ControlNumber',
-				ISNULL(le.CompanyCode, '') AS 'LegalEntity'
+				ISNULL(le.CompanyCode, '') AS 'LegalEntity',
+				'' AS 'ReferenceNumber'
 		   FROM [dbo].[VendorPaymentDetails] RRH  WITH(NOLOCK)
 		        INNER JOIN [dbo].[ReceivingReconciliationHeader] RRC WITH(NOLOCK) ON RRH.[ReceivingReconciliationId] = RRC.[ReceivingReconciliationId]	
 				INNER JOIN [dbo].[Vendor] VN WITH(NOLOCK) ON RRH.VendorId = VN.VendorId  --WHERE StatusId=3
@@ -989,7 +1003,7 @@ BEGIN
 		 -- VendorPayment -CreditMemo DETAILS
 		 INSERT INTO #TEMPVendorPaymentListRecords([ReceivingReconciliationId], [InvoiceNum], [Status], [OriginalTotal], [RRTotal], [InvoiceTotal], [CreditMemoUsed], [DifferenceAmount], [VendorName], [PaymentHold],
 		 [InvociedDate], [EntryDate], [DueDate], [DaysPastDue], [PaymentMethod], [PaymentRef], [DateProcessed], [CheckCrashed], [DiscountToken], [ReadyToPaymentMade], [BankName], [BankAccountNumber], 
-		 [ReadyToPayId], [VendorId], [CreatedDate],[ControlNumber], [LegalEntity])
+		 [ReadyToPayId], [VendorId], [CreatedDate],[ControlNumber], [LegalEntity], [ReferenceNumber])
 		 SELECT DISTINCT 
 		        RRH.ReceivingReconciliationId,
 				RRH.InvoiceNum,
@@ -1026,7 +1040,8 @@ BEGIN
 				RRH.VendorId,
 				(Cast(DBO.ConvertUTCtoLocal(RRH.CreatedDate,@CurrntEmpTimeZoneDesc)AS DATETIME)) AS CreatedDate,
 				ISNULL(TAB.ControlNumber,'') AS 'ControlNumber',
-				ISNULL(le.[CompanyCode], '') AS 'LegalEntity'
+				ISNULL(le.[CompanyCode], '') AS 'LegalEntity',
+				'' AS 'ReferenceNumber'
 		   FROM [dbo].[VendorPaymentDetails] RRH  WITH(NOLOCK)
 		        INNER JOIN [dbo].[CreditMemo] CM WITH(NOLOCK) ON RRH.CreditMemoHeaderId = CM.CreditMemoHeaderId
 				INNER JOIN [dbo].[Vendor] VN WITH(NOLOCK) ON RRH.VendorId = VN.VendorId
@@ -1055,7 +1070,7 @@ BEGIN
 	-- VendorPayment -NonPOInvoice DETAILS
 		INSERT INTO #TEMPVendorPaymentListRecords([ReceivingReconciliationId], [InvoiceNum], [Status], [OriginalTotal], [RRTotal], [InvoiceTotal], [CreditMemoUsed], [DifferenceAmount], [VendorName], [PaymentHold],
 		[InvociedDate], [EntryDate], [DueDate], [DaysPastDue], [PaymentMethod], [PaymentRef], [DateProcessed], [CheckCrashed], [DiscountToken], [ReadyToPaymentMade], [BankName], [BankAccountNumber], 
-		[ReadyToPayId], [VendorId], [CreatedDate], [ControlNumber], [LegalEntity], [NonPOInvoiceId])
+		[ReadyToPayId], [VendorId], [CreatedDate], [ControlNumber], [LegalEntity], [NonPOInvoiceId], [ReferenceNumber])
 		SELECT DISTINCT 
 		        RRH.ReceivingReconciliationId,
 				RRH.InvoiceNum,
@@ -1092,7 +1107,8 @@ BEGIN
 				(Cast(DBO.ConvertUTCtoLocal(RRH.CreatedDate,@CurrntEmpTimeZoneDesc)AS DATETIME)) AS CreatedDate,
 				ISNULL(TAB.ControlNumber,'') AS 'ControlNumber',
 				ISNULL(le.[CompanyCode], '') AS 'LegalEntity',
-				NPH.NonPOInvoiceId
+				NPH.NonPOInvoiceId,
+				'' AS 'ReferenceNumber'
 		   FROM [dbo].[VendorPaymentDetails] RRH  WITH(NOLOCK)
 		        INNER JOIN [dbo].[NonPOInvoiceHeader] NPH WITH(NOLOCK) ON RRH.NonPOInvoiceId = NPH.NonPOInvoiceId
 				INNER JOIN [dbo].[Vendor] VN WITH(NOLOCK) ON RRH.VendorId = VN.VendorId
@@ -1119,7 +1135,7 @@ BEGIN
 	/********************START: Vendor Proforma Invoice *************************/
 		INSERT INTO #TEMPVendorPaymentListRecords([ReceivingReconciliationId], [InvoiceNum], [Status], [OriginalTotal], [RRTotal], [InvoiceTotal], [CreditMemoUsed], [DifferenceAmount], [VendorName], [PaymentHold],
 		[InvociedDate], [EntryDate], [DueDate], [DaysPastDue], [PaymentMethod], [PaymentRef], [DateProcessed], [CheckCrashed], [DiscountToken], [ReadyToPaymentMade], [BankName], [BankAccountNumber], 
-		[ReadyToPayId], [VendorId], [CreatedDate], [ControlNumber], [LegalEntity], VendorProformaInvoiceId)
+		[ReadyToPayId], [VendorId], [CreatedDate], [ControlNumber], [LegalEntity], VendorProformaInvoiceId, [ReferenceNumber])
 		SELECT DISTINCT 
 		        RRH.ReceivingReconciliationId,
 				RRH.InvoiceNum,
@@ -1157,7 +1173,8 @@ BEGIN
 				(Cast(DBO.ConvertUTCtoLocal(RRH.CreatedDate,@CurrntEmpTimeZoneDesc)AS DATETIME)) AS CreatedDate,
 				ISNULL(TAB.ControlNumber,'') AS 'ControlNumber',
 				ISNULL(le.[CompanyCode], '') AS 'LegalEntity',
-				NPH.VendorProformaInvoiceId VendorProformaInvoiceId
+				NPH.VendorProformaInvoiceId VendorProformaInvoiceId,
+				'' AS 'ReferenceNumber'
 		   FROM [dbo].[VendorPaymentDetails] RRH  WITH(NOLOCK)
 		        INNER JOIN [dbo].[VendorProformaInvoiceHeader] NPH WITH(NOLOCK) ON RRH.VendorProformaInvoiceId = NPH.VendorProformaInvoiceId
 				INNER JOIN [dbo].[Vendor] VN WITH(NOLOCK) ON RRH.VendorId = VN.VendorId
@@ -1185,7 +1202,7 @@ BEGIN
 		 -- CustomerCreditPayment DETAILS
 		INSERT INTO #TEMPVendorPaymentListRecords([ReceivingReconciliationId], [InvoiceNum], [Status], [OriginalTotal], [RRTotal], [InvoiceTotal], [CreditMemoUsed], [DifferenceAmount], [VendorName], [PaymentHold],
 		[InvociedDate], [EntryDate], [DueDate], [DaysPastDue], [PaymentMethod], [PaymentRef], [DateProcessed], [CheckCrashed], [DiscountToken], [ReadyToPaymentMade], [BankName], [BankAccountNumber], 
-		[ReadyToPayId], [VendorId], [CreatedDate], [ControlNumber], [LegalEntity], [CustomerCreditPaymentDetailId])
+		[ReadyToPayId], [VendorId], [CreatedDate], [ControlNumber], [LegalEntity], [CustomerCreditPaymentDetailId], [ReferenceNumber])
 		  SELECT 0 AS ReceivingReconciliationId,
 				CCPD.SuspenseUnappliedNumber AS [InvoiceNum],
 				'Ready to Pay' [Status],
@@ -1222,7 +1239,8 @@ BEGIN
 				(Cast(DBO.ConvertUTCtoLocal(CCPD.CreatedDate,@CurrntEmpTimeZoneDesc)AS DATETIME)) AS CreatedDate,
 				ISNULL(TAB.ControlNumber,'') AS 'ControlNumber',
 				ISNULL(le.[CompanyCode], '') AS 'LegalEntity',
-				CCPD.CustomerCreditPaymentDetailId
+				CCPD.CustomerCreditPaymentDetailId,
+				'' AS 'ReferenceNumber'
 			FROM [dbo].[CustomerCreditPaymentDetail] CCPD WITH(NOLOCK)  
 				LEFT JOIN [dbo].[VendorPaymentDetails] VPD WITH(NOLOCK) ON VPD.[CustomerCreditPaymentDetailId] = CCPD.[CustomerCreditPaymentDetailId]	  
 				LEFT JOIN [dbo].[Vendor] V WITH(NOLOCK) ON CCPD.VendorId = V.VendorId  
@@ -1360,124 +1378,7 @@ BEGIN
 	-- VendorPayment DETAILS
 		INSERT INTO #TEMPVendorPaymentListRecords([ReceivingReconciliationId], [InvoiceNum], [Status], [OriginalTotal], [RRTotal], [InvoiceTotal], [DifferenceAmount], [VendorName], [PaymentHold],
 		[InvociedDate], [EntryDate], [PaymentMethod], [PaymentRef], [DateProcessed], [CheckCrashed], [DiscountToken], [ReadyToPaymentMade], [BankName], [BankAccountNumber], 
-		[ReadyToPayId], [ReadyToPayDetailsId], [VendorId], [CreatedDate])
-		SELECT ReceivingReconciliationId,
-		       RRH.InvoiceNum,
-			   'Selected to be Paid' AS [Status],
-			   ISNULL(InvoiceTotal,0) AS OriginalTotal,
-			   ISNULL(RRTotal,0) AS RRTotal,
-			   ISNULL(PaymentMade,0) AS InvoiceTotal,
-			   RRH.RemainingAmount AS 'DifferenceAmount',  
-			   VN.VendorName,
-			   CASE WHEN ISNULL(VN.IsVendorOnHold, 0) = 1 THEN 'YES' ELSE 'NO' END AS 'PaymentHold',
-			   (Cast(DBO.ConvertUTCtoLocal(RRH.DueDate,@CurrntEmpTimeZoneDesc)AS DATETIME)) AS 'InvociedDate',
-			   (Cast(DBO.ConvertUTCtoLocal(RRH.DueDate,@CurrntEmpTimeZoneDesc)AS DATETIME)) AS 'EntryDate',
-			   ISNULL(Tab.PaymentMethod,'') AS 'PaymentMethod',
-			   ISNULL(Tab.PaymentRef,'') AS 'PaymentRef',
-			   '' AS 'DateProcessed',
-			   '' AS 'CheckCrashed',
-			   ISNULL(Tab.DiscountToken,0) AS 'DiscountToken',
-			   ISNULL(Tab.ReadyToPaymentMade,0) 'ReadyToPaymentMade',
-			   '' AS BankName,
-			   '' AS BankAccountNumber,
-			   Tab.ReadyToPayId,
-			   Tab.ReadyToPayDetailsId,
-			   RRH.VendorId,
-			   (Cast(DBO.ConvertUTCtoLocal(RRH.CreatedDate,@CurrntEmpTimeZoneDesc)AS DATETIME))AS CreatedDate
-		  FROM [dbo].[VendorPaymentDetails] RRH WITH(NOLOCK)
-               INNER JOIN [dbo].[Vendor] VN WITH(NOLOCK) ON RRH.VendorId = VN.VendorId  --WHERE StatusId=3
-	           OUTER APPLY (SELECT VD.VendorPaymentDetailsId,ReadyToPayDetailsId,SUM(ISNULL(VD.PaymentMade,0) + ISNULL(VD.CreditMemoAmount,0)) ReadyToPaymentMade,SUM(ISNULL(VD.DiscountToken,0)) DiscountToken,MAX(PM.Description) as PaymentMethod,MAX(VD.CheckNumber) AS PaymentRef,VRTPDH.ReadyToPayId
-							 FROM [dbo].[VendorReadyToPayDetails] VD WITH(NOLOCK) 
-							 LEFT JOIN [dbo].[PaymentMethod] PM WITH(NOLOCK) ON PM.PaymentMethodId = VD.PaymentMethodId
-							 LEFT JOIN [dbo].[VendorReadyToPayHeader] VRTPDH WITH(NOLOCK) ON VD.ReadyToPayId = VRTPDH.ReadyToPayId
-							 WHERE ISNULL(VD.VendorPaymentDetailsId,0) = RRH.VendorPaymentDetailsId AND VD.CheckNumber IS NULL
-							 GROUP BY VD.VendorPaymentDetailsId,VRTPDH.ReadyToPayId,ReadyToPayDetailsId) AS Tab
-	      WHERE RRH.MasterCompanyId = @MasterCompanyId AND RemainingAmount > 0 AND ISNULL(RRH.NonPOInvoiceId, 0) = 0--WHERE StatusId=3  
-
-		-- UNION ALL
-		 --VendorPayment -CreditMemo DETAILS
-		 INSERT INTO #TEMPVendorPaymentListRecords([ReceivingReconciliationId], [InvoiceNum], [Status], [OriginalTotal], [RRTotal], [InvoiceTotal], [DifferenceAmount], [VendorName], [PaymentHold],
-		 [InvociedDate], [EntryDate], [PaymentMethod], [PaymentRef], [DateProcessed], [CheckCrashed], [DiscountToken], [ReadyToPaymentMade], [BankName], [BankAccountNumber], 
-		 [ReadyToPayId], [ReadyToPayDetailsId], [VendorId], [CreatedDate])
-		 SELECT ReceivingReconciliationId,
-		       RRH.InvoiceNum,
-			   'Selected to be Paid' AS [Status],
-			   ISNULL(InvoiceTotal,0) AS OriginalTotal,
-			   ISNULL(RRTotal,0) AS RRTotal,
-			   ISNULL(PaymentMade,0) AS InvoiceTotal,
-			   RRH.RemainingAmount AS 'DifferenceAmount',  
-			   VN.VendorName,
-			   CASE WHEN ISNULL(VN.IsVendorOnHold, 0) = 1 THEN 'YES' ELSE 'NO' END AS 'PaymentHold',
-			   (Cast(DBO.ConvertUTCtoLocal(RRH.DueDate,@CurrntEmpTimeZoneDesc)AS DATETIME)) AS 'InvociedDate',
-			   (Cast(DBO.ConvertUTCtoLocal(RRH.DueDate,@CurrntEmpTimeZoneDesc)AS DATETIME)) AS 'EntryDate',
-			   ISNULL(Tab.PaymentMethod,'') AS 'PaymentMethod',
-			   ISNULL(Tab.PaymentRef,'') AS 'PaymentRef',
-			   '' AS 'DateProcessed',
-			   '' AS 'CheckCrashed',
-			   ISNULL(Tab.DiscountToken,0) AS 'DiscountToken',
-			   ISNULL(Tab.ReadyToPaymentMade,0) 'ReadyToPaymentMade',
-			   '' AS BankName,
-			   '' AS BankAccountNumber,
-			   Tab.ReadyToPayId,
-			   Tab.ReadyToPayDetailsId,
-			   RRH.VendorId,
-			   (Cast(DBO.ConvertUTCtoLocal(RRH.CreatedDate,@CurrntEmpTimeZoneDesc)AS DATETIME)) AS CreatedDate
-		  FROM [dbo].[VendorPaymentDetails] RRH WITH(NOLOCK)
-               INNER JOIN [dbo].[Vendor] VN WITH(NOLOCK) ON RRH.VendorId = VN.VendorId
-	           OUTER APPLY (SELECT VD.VendorPaymentDetailsId,ReadyToPayDetailsId,SUM(ISNULL(VD.PaymentMade,0) + ISNULL(VD.CreditMemoAmount,0)) ReadyToPaymentMade,SUM(ISNULL(VD.DiscountToken,0)) DiscountToken,MAX(PM.Description) as PaymentMethod,MAX(VD.CheckNumber) AS PaymentRef,VRTPDH.ReadyToPayId
-							 FROM [dbo].[VendorReadyToPayDetails] VD WITH(NOLOCK) 
-							 LEFT JOIN [dbo].[PaymentMethod] PM WITH(NOLOCK) ON PM.PaymentMethodId = VD.PaymentMethodId
-							 LEFT JOIN [dbo].[VendorReadyToPayHeader] VRTPDH WITH(NOLOCK) ON VD.ReadyToPayId = VRTPDH.ReadyToPayId
-							 WHERE ISNULL(VD.VendorPaymentDetailsId,0) = RRH.VendorPaymentDetailsId AND VD.CheckNumber IS NULL
-							 GROUP BY VD.VendorPaymentDetailsId,VRTPDH.ReadyToPayId,ReadyToPayDetailsId) AS Tab
-	      WHERE RRH.MasterCompanyId = @MasterCompanyId AND RemainingAmount > 0 
-		  AND ISNULL(RRH.NonPOInvoiceId, 0) = 0
-		  AND ISNULL(RRH.CustomerCreditPaymentDetailId, 0) = 0
-		  AND ISNULL(RRH.CreditMemoHeaderId, 0) <> 0
-
-	--UNION ALL
-	--VendorPayment -NonPOInvoice DETAILS
-		INSERT INTO #TEMPVendorPaymentListRecords([ReceivingReconciliationId], [InvoiceNum], [Status], [OriginalTotal], [RRTotal], [InvoiceTotal], [DifferenceAmount], [VendorName], [PaymentHold],
-		[InvociedDate], [EntryDate], [PaymentMethod], [PaymentRef], [DateProcessed], [CheckCrashed], [DiscountToken], [ReadyToPaymentMade], [BankName], [BankAccountNumber], 
-		[ReadyToPayId], [ReadyToPayDetailsId], [VendorId], [CreatedDate], [NonPOInvoiceId])
-		SELECT ReceivingReconciliationId,
-		       RRH.InvoiceNum,
-			   'Selected to be Paid' AS [Status],
-			   ISNULL(InvoiceTotal,0) AS OriginalTotal,
-			   ISNULL(RRTotal,0) AS RRTotal,
-			   ISNULL(PaymentMade,0) AS InvoiceTotal,
-			   RRH.RemainingAmount AS 'DifferenceAmount',  
-			   VN.VendorName,
-			   CASE WHEN ISNULL(VN.IsVendorOnHold, 0) = 1 THEN 'YES' ELSE 'NO' END AS 'PaymentHold',
-			   (Cast(DBO.ConvertUTCtoLocal(RRH.DueDate,@CurrntEmpTimeZoneDesc)AS DATETIME)) AS 'InvociedDate',
-			   (Cast(DBO.ConvertUTCtoLocal(RRH.DueDate,@CurrntEmpTimeZoneDesc)AS DATETIME)) AS 'EntryDate',
-			   ISNULL(Tab.PaymentMethod,'') AS 'PaymentMethod',
-			   ISNULL(Tab.PaymentRef,'') AS 'PaymentRef',
-			   '' AS 'DateProcessed',
-			   '' AS 'CheckCrashed',
-			   ISNULL(Tab.DiscountToken,0) AS 'DiscountToken',
-			   ISNULL(Tab.ReadyToPaymentMade,0) 'ReadyToPaymentMade',
-			   '' AS BankName,
-			   '' AS BankAccountNumber,
-			   Tab.ReadyToPayId,
-			   Tab.ReadyToPayDetailsId,
-			   RRH.VendorId,
-			   (Cast(DBO.ConvertUTCtoLocal(RRH.CreatedDate,@CurrntEmpTimeZoneDesc)AS DATETIME)) AS CreatedDate,
-			   RRH.NonPOInvoiceId
-		  FROM [dbo].[VendorPaymentDetails] RRH WITH(NOLOCK)
-               INNER JOIN [dbo].[Vendor] VN WITH(NOLOCK) ON RRH.VendorId = VN.VendorId
-	           OUTER APPLY (SELECT VD.VendorPaymentDetailsId,ReadyToPayDetailsId,SUM(ISNULL(VD.PaymentMade,0) + ISNULL(VD.CreditMemoAmount,0)) ReadyToPaymentMade,SUM(ISNULL(VD.DiscountToken,0)) DiscountToken,MAX(PM.Description) as PaymentMethod,MAX(VD.CheckNumber) AS PaymentRef,VRTPDH.ReadyToPayId
-							 FROM [dbo].[VendorReadyToPayDetails] VD WITH(NOLOCK) 
-							 LEFT JOIN [dbo].[PaymentMethod] PM WITH(NOLOCK) ON PM.PaymentMethodId = VD.PaymentMethodId
-							 LEFT JOIN [dbo].[VendorReadyToPayHeader] VRTPDH WITH(NOLOCK) ON VD.ReadyToPayId = VRTPDH.ReadyToPayId
-							 WHERE ISNULL(VD.VendorPaymentDetailsId,0) = RRH.VendorPaymentDetailsId AND VD.CheckNumber IS NULL
-							 GROUP BY VD.VendorPaymentDetailsId,VRTPDH.ReadyToPayId,ReadyToPayDetailsId) AS Tab
-	      WHERE RRH.MasterCompanyId = @MasterCompanyId AND RemainingAmount > 0 AND ISNULL(RRH.NonPOInvoiceId, 0) <> 0 
-
-	/********************START: Vendor Proforma Invoice *************************/
-		INSERT INTO #TEMPVendorPaymentListRecords([ReceivingReconciliationId], [InvoiceNum], [Status], [OriginalTotal], [RRTotal], [InvoiceTotal], [DifferenceAmount], [VendorName], [PaymentHold],
-		[InvociedDate], [EntryDate], [PaymentMethod], [PaymentRef], [DateProcessed], [CheckCrashed], [DiscountToken], [ReadyToPaymentMade], [BankName], [BankAccountNumber], 
-		[ReadyToPayId], [ReadyToPayDetailsId], [VendorId], [CreatedDate], VendorProformaInvoiceId)
+		[ReadyToPayId], [ReadyToPayDetailsId], [VendorId], [CreatedDate], [ReferenceNumber])
 		SELECT ReceivingReconciliationId,
 		       RRH.InvoiceNum,
 			   'Selected to be Paid' AS [Status],
@@ -1501,7 +1402,128 @@ BEGIN
 			   Tab.ReadyToPayDetailsId,
 			   RRH.VendorId,
 			   (Cast(DBO.ConvertUTCtoLocal(RRH.CreatedDate,@CurrntEmpTimeZoneDesc)AS DATETIME))AS CreatedDate,
-			   RRH.VendorProformaInvoiceId VendorProformaInvoiceId
+			   '' AS 'ReferenceNumber'
+		  FROM [dbo].[VendorPaymentDetails] RRH WITH(NOLOCK)
+               INNER JOIN [dbo].[Vendor] VN WITH(NOLOCK) ON RRH.VendorId = VN.VendorId  --WHERE StatusId=3
+	           OUTER APPLY (SELECT VD.VendorPaymentDetailsId,ReadyToPayDetailsId,SUM(ISNULL(VD.PaymentMade,0) + ISNULL(VD.CreditMemoAmount,0)) ReadyToPaymentMade,SUM(ISNULL(VD.DiscountToken,0)) DiscountToken,MAX(PM.Description) as PaymentMethod,MAX(VD.CheckNumber) AS PaymentRef,VRTPDH.ReadyToPayId
+							 FROM [dbo].[VendorReadyToPayDetails] VD WITH(NOLOCK) 
+							 LEFT JOIN [dbo].[PaymentMethod] PM WITH(NOLOCK) ON PM.PaymentMethodId = VD.PaymentMethodId
+							 LEFT JOIN [dbo].[VendorReadyToPayHeader] VRTPDH WITH(NOLOCK) ON VD.ReadyToPayId = VRTPDH.ReadyToPayId
+							 WHERE ISNULL(VD.VendorPaymentDetailsId,0) = RRH.VendorPaymentDetailsId AND VD.CheckNumber IS NULL
+							 GROUP BY VD.VendorPaymentDetailsId,VRTPDH.ReadyToPayId,ReadyToPayDetailsId) AS Tab
+	      WHERE RRH.MasterCompanyId = @MasterCompanyId AND RemainingAmount > 0 AND ISNULL(RRH.NonPOInvoiceId, 0) = 0--WHERE StatusId=3  
+
+		-- UNION ALL
+		 --VendorPayment -CreditMemo DETAILS
+		 INSERT INTO #TEMPVendorPaymentListRecords([ReceivingReconciliationId], [InvoiceNum], [Status], [OriginalTotal], [RRTotal], [InvoiceTotal], [DifferenceAmount], [VendorName], [PaymentHold],
+		 [InvociedDate], [EntryDate], [PaymentMethod], [PaymentRef], [DateProcessed], [CheckCrashed], [DiscountToken], [ReadyToPaymentMade], [BankName], [BankAccountNumber], 
+		 [ReadyToPayId], [ReadyToPayDetailsId], [VendorId], [CreatedDate], [ReferenceNumber])
+		 SELECT ReceivingReconciliationId,
+		       RRH.InvoiceNum,
+			   'Selected to be Paid' AS [Status],
+			   ISNULL(InvoiceTotal,0) AS OriginalTotal,
+			   ISNULL(RRTotal,0) AS RRTotal,
+			   ISNULL(PaymentMade,0) AS InvoiceTotal,
+			   RRH.RemainingAmount AS 'DifferenceAmount',  
+			   VN.VendorName,
+			   CASE WHEN ISNULL(VN.IsVendorOnHold, 0) = 1 THEN 'YES' ELSE 'NO' END AS 'PaymentHold',
+			   (Cast(DBO.ConvertUTCtoLocal(RRH.DueDate,@CurrntEmpTimeZoneDesc)AS DATETIME)) AS 'InvociedDate',
+			   (Cast(DBO.ConvertUTCtoLocal(RRH.DueDate,@CurrntEmpTimeZoneDesc)AS DATETIME)) AS 'EntryDate',
+			   ISNULL(Tab.PaymentMethod,'') AS 'PaymentMethod',
+			   ISNULL(Tab.PaymentRef,'') AS 'PaymentRef',
+			   '' AS 'DateProcessed',
+			   '' AS 'CheckCrashed',
+			   ISNULL(Tab.DiscountToken,0) AS 'DiscountToken',
+			   ISNULL(Tab.ReadyToPaymentMade,0) 'ReadyToPaymentMade',
+			   '' AS BankName,
+			   '' AS BankAccountNumber,
+			   Tab.ReadyToPayId,
+			   Tab.ReadyToPayDetailsId,
+			   RRH.VendorId,
+			   (Cast(DBO.ConvertUTCtoLocal(RRH.CreatedDate,@CurrntEmpTimeZoneDesc)AS DATETIME)) AS CreatedDate,
+			  '' AS 'ReferenceNumber'
+		  FROM [dbo].[VendorPaymentDetails] RRH WITH(NOLOCK)
+               INNER JOIN [dbo].[Vendor] VN WITH(NOLOCK) ON RRH.VendorId = VN.VendorId
+	           OUTER APPLY (SELECT VD.VendorPaymentDetailsId,ReadyToPayDetailsId,SUM(ISNULL(VD.PaymentMade,0) + ISNULL(VD.CreditMemoAmount,0)) ReadyToPaymentMade,SUM(ISNULL(VD.DiscountToken,0)) DiscountToken,MAX(PM.Description) as PaymentMethod,MAX(VD.CheckNumber) AS PaymentRef,VRTPDH.ReadyToPayId
+							 FROM [dbo].[VendorReadyToPayDetails] VD WITH(NOLOCK) 
+							 LEFT JOIN [dbo].[PaymentMethod] PM WITH(NOLOCK) ON PM.PaymentMethodId = VD.PaymentMethodId
+							 LEFT JOIN [dbo].[VendorReadyToPayHeader] VRTPDH WITH(NOLOCK) ON VD.ReadyToPayId = VRTPDH.ReadyToPayId
+							 WHERE ISNULL(VD.VendorPaymentDetailsId,0) = RRH.VendorPaymentDetailsId AND VD.CheckNumber IS NULL
+							 GROUP BY VD.VendorPaymentDetailsId,VRTPDH.ReadyToPayId,ReadyToPayDetailsId) AS Tab
+	      WHERE RRH.MasterCompanyId = @MasterCompanyId AND RemainingAmount > 0 
+		  AND ISNULL(RRH.NonPOInvoiceId, 0) = 0
+		  AND ISNULL(RRH.CustomerCreditPaymentDetailId, 0) = 0
+		  AND ISNULL(RRH.CreditMemoHeaderId, 0) <> 0
+
+	--UNION ALL
+	--VendorPayment -NonPOInvoice DETAILS
+		INSERT INTO #TEMPVendorPaymentListRecords([ReceivingReconciliationId], [InvoiceNum], [Status], [OriginalTotal], [RRTotal], [InvoiceTotal], [DifferenceAmount], [VendorName], [PaymentHold],
+		[InvociedDate], [EntryDate], [PaymentMethod], [PaymentRef], [DateProcessed], [CheckCrashed], [DiscountToken], [ReadyToPaymentMade], [BankName], [BankAccountNumber], 
+		[ReadyToPayId], [ReadyToPayDetailsId], [VendorId], [CreatedDate], [NonPOInvoiceId], [ReferenceNumber])
+		SELECT ReceivingReconciliationId,
+		       RRH.InvoiceNum,
+			   'Selected to be Paid' AS [Status],
+			   ISNULL(InvoiceTotal,0) AS OriginalTotal,
+			   ISNULL(RRTotal,0) AS RRTotal,
+			   ISNULL(PaymentMade,0) AS InvoiceTotal,
+			   RRH.RemainingAmount AS 'DifferenceAmount',  
+			   VN.VendorName,
+			   CASE WHEN ISNULL(VN.IsVendorOnHold, 0) = 1 THEN 'YES' ELSE 'NO' END AS 'PaymentHold',
+			   (Cast(DBO.ConvertUTCtoLocal(RRH.DueDate,@CurrntEmpTimeZoneDesc)AS DATETIME)) AS 'InvociedDate',
+			   (Cast(DBO.ConvertUTCtoLocal(RRH.DueDate,@CurrntEmpTimeZoneDesc)AS DATETIME)) AS 'EntryDate',
+			   ISNULL(Tab.PaymentMethod,'') AS 'PaymentMethod',
+			   ISNULL(Tab.PaymentRef,'') AS 'PaymentRef',
+			   '' AS 'DateProcessed',
+			   '' AS 'CheckCrashed',
+			   ISNULL(Tab.DiscountToken,0) AS 'DiscountToken',
+			   ISNULL(Tab.ReadyToPaymentMade,0) 'ReadyToPaymentMade',
+			   '' AS BankName,
+			   '' AS BankAccountNumber,
+			   Tab.ReadyToPayId,
+			   Tab.ReadyToPayDetailsId,
+			   RRH.VendorId,
+			   (Cast(DBO.ConvertUTCtoLocal(RRH.CreatedDate,@CurrntEmpTimeZoneDesc)AS DATETIME)) AS CreatedDate,
+			   RRH.NonPOInvoiceId,
+			   '' AS 'ReferenceNumber'
+		  FROM [dbo].[VendorPaymentDetails] RRH WITH(NOLOCK)
+               INNER JOIN [dbo].[Vendor] VN WITH(NOLOCK) ON RRH.VendorId = VN.VendorId
+	           OUTER APPLY (SELECT VD.VendorPaymentDetailsId,ReadyToPayDetailsId,SUM(ISNULL(VD.PaymentMade,0) + ISNULL(VD.CreditMemoAmount,0)) ReadyToPaymentMade,SUM(ISNULL(VD.DiscountToken,0)) DiscountToken,MAX(PM.Description) as PaymentMethod,MAX(VD.CheckNumber) AS PaymentRef,VRTPDH.ReadyToPayId
+							 FROM [dbo].[VendorReadyToPayDetails] VD WITH(NOLOCK) 
+							 LEFT JOIN [dbo].[PaymentMethod] PM WITH(NOLOCK) ON PM.PaymentMethodId = VD.PaymentMethodId
+							 LEFT JOIN [dbo].[VendorReadyToPayHeader] VRTPDH WITH(NOLOCK) ON VD.ReadyToPayId = VRTPDH.ReadyToPayId
+							 WHERE ISNULL(VD.VendorPaymentDetailsId,0) = RRH.VendorPaymentDetailsId AND VD.CheckNumber IS NULL
+							 GROUP BY VD.VendorPaymentDetailsId,VRTPDH.ReadyToPayId,ReadyToPayDetailsId) AS Tab
+	      WHERE RRH.MasterCompanyId = @MasterCompanyId AND RemainingAmount > 0 AND ISNULL(RRH.NonPOInvoiceId, 0) <> 0 
+
+	/********************START: Vendor Proforma Invoice *************************/
+		INSERT INTO #TEMPVendorPaymentListRecords([ReceivingReconciliationId], [InvoiceNum], [Status], [OriginalTotal], [RRTotal], [InvoiceTotal], [DifferenceAmount], [VendorName], [PaymentHold],
+		[InvociedDate], [EntryDate], [PaymentMethod], [PaymentRef], [DateProcessed], [CheckCrashed], [DiscountToken], [ReadyToPaymentMade], [BankName], [BankAccountNumber], 
+		[ReadyToPayId], [ReadyToPayDetailsId], [VendorId], [CreatedDate], VendorProformaInvoiceId, [ReferenceNumber])
+		SELECT ReceivingReconciliationId,
+		       RRH.InvoiceNum,
+			   'Selected to be Paid' AS [Status],
+			   ISNULL(InvoiceTotal,0) AS OriginalTotal,
+			   ISNULL(RRTotal,0) AS RRTotal,
+			   ISNULL(PaymentMade,0) AS InvoiceTotal,
+			   RRH.RemainingAmount AS 'DifferenceAmount',  
+			   VN.VendorName,
+			   CASE WHEN ISNULL(VN.IsVendorOnHold, 0) = 1 THEN 'YES' ELSE 'NO' END AS 'PaymentHold',
+			   (Cast(DBO.ConvertUTCtoLocal(RRH.DueDate,@CurrntEmpTimeZoneDesc)AS DATETIME)) AS 'InvociedDate',
+			   (Cast(DBO.ConvertUTCtoLocal(RRH.DueDate,@CurrntEmpTimeZoneDesc)AS DATETIME)) AS 'EntryDate',
+			   ISNULL(Tab.PaymentMethod,'') AS 'PaymentMethod',
+			   ISNULL(Tab.PaymentRef,'') AS 'PaymentRef',
+			   '' AS 'DateProcessed',
+			   '' AS 'CheckCrashed',
+			   ISNULL(Tab.DiscountToken,0) AS 'DiscountToken',
+			   ISNULL(Tab.ReadyToPaymentMade,0) 'ReadyToPaymentMade',
+			   '' AS BankName,
+			   '' AS BankAccountNumber,
+			   Tab.ReadyToPayId,
+			   Tab.ReadyToPayDetailsId,
+			   RRH.VendorId,
+			   (Cast(DBO.ConvertUTCtoLocal(RRH.CreatedDate,@CurrntEmpTimeZoneDesc)AS DATETIME))AS CreatedDate,
+			   RRH.VendorProformaInvoiceId VendorProformaInvoiceId,
+			   '' AS 'ReferenceNumber'
 		  FROM [dbo].[VendorPaymentDetails] RRH WITH(NOLOCK)
                INNER JOIN [dbo].[Vendor] VN WITH(NOLOCK) ON RRH.VendorId = VN.VendorId
 	           OUTER APPLY (SELECT VD.VendorPaymentDetailsId,ReadyToPayDetailsId,SUM(ISNULL(VD.PaymentMade,0) + ISNULL(VD.CreditMemoAmount,0)) ReadyToPaymentMade,SUM(ISNULL(VD.DiscountToken,0)) DiscountToken,MAX(PM.Description) as PaymentMethod,MAX(VD.CheckNumber) AS PaymentRef,VRTPDH.ReadyToPayId
@@ -1551,12 +1573,12 @@ BEGIN
 	   (ISNULL(@DifferenceAmount,'') ='' OR DifferenceAmount LIKE '%'+ @DifferenceAmount+'%') AND
 	   (ISNULL(@PaymentMethod,'') ='' OR PaymentMethod LIKE '%'+ @PaymentMethod+'%') AND
 	   (ISNULL(@PaymentRef,'') ='' OR PaymentRef LIKE '%'+ @PaymentRef+'%') AND
-	   (ISNULL(@ControlNumber,'') ='' OR ControlNumber LIKE '%'+ @ControlNumber+'%')) 
+	   (ISNULL(@ControlNumber,'') ='' OR ControlNumber LIKE '%'+ @ControlNumber+'%'))
        )),  
       ResultCount AS (SELECT COUNT(ReceivingReconciliationId) AS NumberOfItems FROM FinalResult)  
       SELECT ReceivingReconciliationId, UPPER(InvoiceNum) AS InvoiceNum, UPPER([Status]) AS Status, OriginalTotal, RRTotal, InvoiceTotal,DifferenceAmount, UPPER(VendorName) AS VendorName, 
 	  PaymentHold, InvociedDate, EntryDate, UPPER(PaymentMethod) AS PaymentMethod, PaymentRef, DateProcessed, CheckCrashed, NumberOfItems, DiscountToken,
-	  ReadyToPaymentMade, UPPER(BankName) AS BankName, UPPER(BankAccountNumber) AS BankAccountNumber, ReadyToPayId, ReadyToPayDetailsId, VendorId,NonPOInvoiceId, CustomerCreditPaymentDetailId,VendorProformaInvoiceId  FROM FinalResult, ResultCount  
+	  ReadyToPaymentMade, UPPER(BankName) AS BankName, UPPER(BankAccountNumber) AS BankAccountNumber, ReadyToPayId, ReadyToPayDetailsId, VendorId,NonPOInvoiceId, CustomerCreditPaymentDetailId,VendorProformaInvoiceId FROM FinalResult, ResultCount  
   
      ORDER BY    
      CASE WHEN (@SortOrder=1 and @SortColumn='RECEIVINGRECONCILIATIONID') THEN ReceivingReconciliationId END DESC,  
@@ -1608,7 +1630,7 @@ BEGIN
 	--VendorPayment -ReceivingReconciliation DETAILS
 		INSERT INTO #TEMPVendorPaymentListRecords([ReceivingReconciliationId], [InvoiceNum], [Status], [OriginalTotal], [RRTotal], [InvoiceTotal],[CreditMemoUsed], [DifferenceAmount], [VendorName], [PaymentHold],
 		[InvociedDate], [EntryDate], [DueDate], [DaysPastDue], [PaymentMethod], [PaymentRef], [DateProcessed], [CheckCrashed], [DiscountToken], [BankName], [BankAccountNumber], [ReadyToPaymentMade],
-		[ReadyToPayId], [ReadyToPayDetailsId], [IsVoidedCheck], [VendorId], [PaymentMethodId], [CreatedDate], [ControlNumber], [LegalEntity])
+		[ReadyToPayId], [ReadyToPayDetailsId], [IsVoidedCheck], [VendorId], [PaymentMethodId], [CreatedDate], [ControlNumber], [LegalEntity], [ReferenceNumber])
 		SELECT RRH.ReceivingReconciliationId,
 			   RRH.InvoiceNum,
 			   'Partially Paid' AS [Status],
@@ -1640,7 +1662,8 @@ BEGIN
 			   tab.PaymentMethodId,
 			   (Cast(DBO.ConvertUTCtoLocal(tab.CreatedDate,@CurrntEmpTimeZoneDesc)AS DATETIME))AS CreatedDate,
 			   ISNULL(TAB.ControlNumber,'') AS 'ControlNumber',
-			   ISNULL(le.CompanyCode, '') AS 'LegalEntity'
+			   ISNULL(le.CompanyCode, '') AS 'LegalEntity',
+			   '' AS 'ReferenceNumber'
 		  FROM [dbo].[VendorPaymentDetails] RRH WITH(NOLOCK) 
 			   INNER JOIN [dbo].[ReceivingReconciliationHeader] RRC WITH(NOLOCK) ON RRH.[ReceivingReconciliationId] = RRC.[ReceivingReconciliationId]	
 			   INNER JOIN [dbo].[Vendor] VN WITH(NOLOCK) ON RRH.VendorId = VN.VendorId 
@@ -1672,7 +1695,7 @@ BEGIN
 	--VendorPayment -NonPOInvoice DETAILS
 		INSERT INTO #TEMPVendorPaymentListRecords([ReceivingReconciliationId], [InvoiceNum], [Status], [OriginalTotal], [RRTotal], [InvoiceTotal],[CreditMemoUsed], [DifferenceAmount], [VendorName], [PaymentHold],
 		[InvociedDate], [EntryDate], [DueDate], [DaysPastDue], [PaymentMethod], [PaymentRef], [DateProcessed], [CheckCrashed], [DiscountToken], [BankName], [BankAccountNumber], [ReadyToPaymentMade],
-		[ReadyToPayId], [ReadyToPayDetailsId], [IsVoidedCheck], [VendorId], [PaymentMethodId], [CreatedDate],[ControlNumber], [LegalEntity], [NonPOInvoiceId])
+		[ReadyToPayId], [ReadyToPayDetailsId], [IsVoidedCheck], [VendorId], [PaymentMethodId], [CreatedDate],[ControlNumber], [LegalEntity], [NonPOInvoiceId], [ReferenceNumber])
 		SELECT RRH.ReceivingReconciliationId,
 			   RRH.InvoiceNum,
 			   'Partially Paid' AS [Status],
@@ -1705,7 +1728,8 @@ BEGIN
 			   (Cast(DBO.ConvertUTCtoLocal(tab.CreatedDate,@CurrntEmpTimeZoneDesc)AS DATETIME)) AS CreatedDate,
 			   ISNULL(TAB.ControlNumber,'') AS 'ControlNumber',
 			   ISNULL(le.[CompanyCode], '') AS 'LegalEntity',
-			   NPH.NonPOInvoiceId
+			   NPH.NonPOInvoiceId,
+			   '' AS 'ReferenceNumber'
 		  FROM [dbo].[VendorPaymentDetails] RRH WITH(NOLOCK) 
 			   INNER JOIN [dbo].[NonPOInvoiceHeader] NPH WITH(NOLOCK) ON RRH.NonPOInvoiceId = NPH.NonPOInvoiceId		
 			   INNER JOIN [dbo].[Vendor] VN WITH(NOLOCK) ON RRH.VendorId = VN.VendorId 
@@ -1738,7 +1762,7 @@ BEGIN
 	---MJE 
 			INSERT INTO #TEMPVendorPaymentListRecords([ReceivingReconciliationId], [InvoiceNum], [Status], [OriginalTotal], [RRTotal], [InvoiceTotal], [CreditMemoUsed], [DifferenceAmount], [VendorName], [PaymentHold],
 		[InvociedDate], [EntryDate], [DueDate], [DaysPastDue], [PaymentMethod], [PaymentRef], [DateProcessed], [CheckCrashed], [DiscountToken], [BankName],
-		[BankAccountNumber], [ReadyToPaymentMade],[ReadyToPayId], [ReadyToPayDetailsId], [IsVoidedCheck],  [VendorId], [ControlNumber], [LegalEntity], [NonPOInvoiceId])
+		[BankAccountNumber], [ReadyToPaymentMade],[ReadyToPayId], [ReadyToPayDetailsId], [IsVoidedCheck],  [VendorId], [ControlNumber], [LegalEntity], [NonPOInvoiceId], [ReferenceNumber])
 				SELECT DISTINCT VPD.[ManualJournalHeaderId],
 						VPD.[InvoiceNum],
 						'Partially Paid' AS [Status],
@@ -1769,6 +1793,7 @@ BEGIN
 					    VPD.[VendorId],
 						 ISNULL(TAB.ControlNumber,'') AS 'ControlNumber',
 						 ISNULL(le.[CompanyCode], '') AS 'LegalEntity',
+						 '' AS 'ReferenceNumber',
 						0
 			      FROM [dbo].[VendorPaymentDetails] VPD WITH(NOLOCK)  
 			INNER JOIN [dbo].[ManualJournalHeader] MJH WITH(NOLOCK) ON VPD.[ManualJournalHeaderId] = MJH.[ManualJournalHeaderId]	
@@ -1803,7 +1828,7 @@ BEGIN
 	/********************START: Vendor Proforma Invoice *************************/
 		  INSERT INTO #TEMPVendorPaymentListRecords([ReceivingReconciliationId], [InvoiceNum], [Status], [OriginalTotal], [RRTotal], [InvoiceTotal], [CreditMemoUsed], [DifferenceAmount], [VendorName], [PaymentHold],
 		[InvociedDate], [EntryDate], [DueDate], [DaysPastDue], [PaymentMethod], [PaymentRef], [DateProcessed], [CheckCrashed], [DiscountToken], [BankName], [BankAccountNumber], [ReadyToPaymentMade],
-		[ReadyToPayId], [ReadyToPayDetailsId], [IsVoidedCheck], [VendorId], [PaymentMethodId], [CreatedDate],[ControlNumber], [LegalEntity], VendorProformaInvoiceId)
+		[ReadyToPayId], [ReadyToPayDetailsId], [IsVoidedCheck], [VendorId], [PaymentMethodId], [CreatedDate],[ControlNumber], [LegalEntity], VendorProformaInvoiceId, [ReferenceNumber])
 		SELECT RRH.ReceivingReconciliationId,
 			   NPH.InvoiceNumber,
 			   'Partially Paid' AS [Status],
@@ -1843,7 +1868,8 @@ BEGIN
 			   (Cast(DBO.ConvertUTCtoLocal(tab.CreatedDate,@CurrntEmpTimeZoneDesc)AS DATETIME)) AS CreatedDate,
 			   ISNULL(TAB.ControlNumber,'') AS 'ControlNumber',
 			   ISNULL(le.[CompanyCode], '') AS 'LegalEntity',
-			   NPH.VendorProformaInvoiceId VendorProformaInvoiceId
+			   NPH.VendorProformaInvoiceId VendorProformaInvoiceId,
+			   '' AS 'ReferenceNumber'
 		  FROM [dbo].[VendorPaymentDetails] RRH WITH(NOLOCK) 
 			   INNER JOIN [dbo].[VendorProformaInvoiceHeader] NPH WITH(NOLOCK) ON RRH.VendorProformaInvoiceId = NPH.VendorProformaInvoiceId		
 			   INNER JOIN [dbo].[Vendor] VN WITH(NOLOCK) ON RRH.VendorId = VN.VendorId 
@@ -1880,7 +1906,7 @@ BEGIN
 		--VendorPayment -CustomerCreditPayment DETAILS
 		INSERT INTO #TEMPVendorPaymentListRecords([ReceivingReconciliationId], [InvoiceNum], [Status], [OriginalTotal], [RRTotal], [InvoiceTotal],[CreditMemoUsed], [DifferenceAmount], [VendorName], [PaymentHold],
 		[InvociedDate], [EntryDate], [DueDate], [DaysPastDue], [PaymentMethod], [PaymentRef], [DateProcessed], [CheckCrashed], [DiscountToken], [BankName], [BankAccountNumber], [ReadyToPaymentMade],
-		[ReadyToPayId], [ReadyToPayDetailsId], [IsVoidedCheck], [VendorId], [PaymentMethodId], [CreatedDate], [ControlNumber], [LegalEntity], [CustomerCreditPaymentDetailId])
+		[ReadyToPayId], [ReadyToPayDetailsId], [IsVoidedCheck], [VendorId], [PaymentMethodId], [CreatedDate], [ControlNumber], [LegalEntity], [CustomerCreditPaymentDetailId], [ReferenceNumber])
 		SELECT VPD.ReceivingReconciliationId,
 			   VPD.InvoiceNum,
 			   'Partially Paid' AS [Status],
@@ -1920,7 +1946,8 @@ BEGIN
 			   (Cast(DBO.ConvertUTCtoLocal(tab.CreatedDate,@CurrntEmpTimeZoneDesc)AS DATETIME)) AS CreatedDate,
 			   ISNULL(TAB.ControlNumber,'') AS 'ControlNumber',
 			   ISNULL(le.[CompanyCode], '') AS 'LegalEntity',			   
-			   CCPD.CustomerCreditPaymentDetailId
+			   CCPD.CustomerCreditPaymentDetailId,
+			   '' AS 'ReferenceNumber'
 		  FROM [dbo].[VendorPaymentDetails] VPD WITH(NOLOCK) 
 			   INNER JOIN [dbo].[CustomerCreditPaymentDetail] CCPD WITH(NOLOCK) ON VPD.CustomerCreditPaymentDetailId = CCPD.CustomerCreditPaymentDetailId		
 			   INNER JOIN [dbo].[Vendor] VN WITH(NOLOCK) ON VPD.VendorId = VN.VendorId 
@@ -1992,7 +2019,7 @@ BEGIN
 	   (ISNULL(@DifferenceAmount,'') ='' OR DifferenceAmount LIKE '%'+ @DifferenceAmount+'%') AND
 	   (ISNULL(@PaymentMethod,'') ='' OR PaymentMethod LIKE '%'+ @PaymentMethod+'%') AND
 	   (ISNULL(@PaymentRef,'') ='' OR PaymentRef LIKE '%'+ @PaymentRef+'%') AND
-	   (ISNULL(@ControlNumber,'') ='' OR ControlNumber LIKE '%'+ @ControlNumber+'%'))    
+	   (ISNULL(@ControlNumber,'') ='' OR ControlNumber LIKE '%'+ @ControlNumber+'%'))
        )),  
       ResultCount AS (SELECT COUNT(ReceivingReconciliationId) AS NumberOfItems FROM FinalResult)  
       SELECT ReceivingReconciliationId, UPPER(InvoiceNum) AS InvoiceNum, UPPER([Status]) AS Status, OriginalTotal, RRTotal, InvoiceTotal,CreditMemoUsed, DifferenceAmount, UPPER(VendorName) AS VendorName, 
@@ -2062,7 +2089,7 @@ BEGIN
     --;With Result AS (  
 	--VendorPayment -ReceivingReconciliation DETAILS
 		INSERT INTO #TEMPVendorPaymentListRecords([ReceivingReconciliationId], [InvoiceNum], [Status], [OriginalTotal], [RRTotal], [InvoiceTotal], [DifferenceAmount], [VendorId], [VendorName], [PaymentHold],
-		[InvociedDate], [EntryDate], [PaymentMethod], [PaymentRef], [DateProcessed], [CheckCrashed], [DiscountToken], [BankName], [BankAccountNumber], [ReadyToPayId], [IsVoidedCheck], [PaymentMethodId], [CreatedDate], [ReadyToPayDetailsId],[ControlNumber], [LegalEntity])
+		[InvociedDate], [EntryDate], [PaymentMethod], [PaymentRef], [DateProcessed], [CheckCrashed], [DiscountToken], [BankName], [BankAccountNumber], [ReadyToPayId], [IsVoidedCheck], [PaymentMethodId], [CreatedDate], [ReadyToPayDetailsId],[ControlNumber], [LegalEntity], [ReferenceNumber])
 		SELECT 0 AS ReceivingReconciliationId,
 		CASE WHEN VRTPD.IsVoidedCheck = 1 THEN VRTPD.CheckNumber + ' (V)' ELSE VRTPD.CheckNumber END AS InvoiceNum,
 		CASE WHEN ISNULL(VRTPD.AmountDue,0) > 0 THEN 'Partially Paid' 
@@ -2092,7 +2119,8 @@ BEGIN
 		,(Cast(DBO.ConvertUTCtoLocal(SRT.CreatedDate,@CurrntEmpTimeZoneDesc)AS DATETIME)) AS CreatedDate
 		,VRTPD.ReadyToPayDetailsId
 		,VRTPD.ControlNumber
-		,ISNULL(le.CompanyCode, '') AS 'LegalEntity'
+		,ISNULL(le.CompanyCode, '') AS 'LegalEntity',
+		'' AS 'ReferenceNumber'
 		FROM [dbo].[VendorReadyToPayDetails] VRTPD  WITH(NOLOCK)
 		INNER JOIN [dbo].[Vendor] VN WITH(NOLOCK) ON VRTPD.VendorId = VN.VendorId
 		 LEFT JOIN [dbo].[VendorPaymentDetails] RRH  WITH(NOLOCK) ON VRTPD.ReceivingReconciliationId = RRH.ReceivingReconciliationId
@@ -2116,7 +2144,7 @@ BEGIN
 		-- UNION ALL
 		--VendorPayment -CreditMemo DETAILS
 		INSERT INTO #TEMPVendorPaymentListRecords([ReceivingReconciliationId], [InvoiceNum], [Status], [OriginalTotal], [RRTotal], [InvoiceTotal], [DifferenceAmount], [VendorId], [VendorName], [PaymentHold],
-		[InvociedDate], [EntryDate], [PaymentMethod], [PaymentRef], [DateProcessed], [CheckCrashed], [DiscountToken], [BankName], [BankAccountNumber], [ReadyToPayId], [IsVoidedCheck], [PaymentMethodId], [CreatedDate], [ReadyToPayDetailsId], [ControlNumber], [LegalEntity])
+		[InvociedDate], [EntryDate], [PaymentMethod], [PaymentRef], [DateProcessed], [CheckCrashed], [DiscountToken], [BankName], [BankAccountNumber], [ReadyToPayId], [IsVoidedCheck], [PaymentMethodId], [CreatedDate], [ReadyToPayDetailsId], [ControlNumber], [LegalEntity], [ReferenceNumber])
 		SELECT 0 AS ReceivingReconciliationId,
 		CASE WHEN VRTPD.IsVoidedCheck = 1 THEN VRTPD.CheckNumber + ' (V)' ELSE VRTPD.CheckNumber END AS InvoiceNum,
 		CASE WHEN ISNULL(VRTPD.AmountDue,0) > 0 THEN 'Partially Paid' 
@@ -2146,7 +2174,8 @@ BEGIN
 		,(Cast(DBO.ConvertUTCtoLocal(SRT.CreatedDate,@CurrntEmpTimeZoneDesc)AS DATETIME)) AS CreatedDate
 		,VRTPD.ReadyToPayDetailsId
 		,VRTPD.ControlNumber
-		,ISNULL(le.[CompanyCode], '') AS 'LegalEntity'
+		,ISNULL(le.[CompanyCode], '') AS 'LegalEntity',
+		'' AS 'ReferenceNumber'
 		FROM [dbo].[VendorReadyToPayDetails] VRTPD  WITH(NOLOCK)
 		INNER JOIN [dbo].[Vendor] VN WITH(NOLOCK) ON VRTPD.VendorId = VN.VendorId
 		 LEFT JOIN [dbo].[VendorPaymentDetails] RRH  WITH(NOLOCK) ON VRTPD.CreditMemoHeaderId = RRH.CreditMemoHeaderId
@@ -2170,7 +2199,7 @@ BEGIN
 	 --UNION ALL
 	 --VendorPayment -NonPO DETAILS
 		INSERT INTO #TEMPVendorPaymentListRecords([ReceivingReconciliationId], [InvoiceNum], [Status], [OriginalTotal], [RRTotal], [InvoiceTotal], [DifferenceAmount], [VendorId], [VendorName], [PaymentHold],
-		[InvociedDate], [EntryDate], [PaymentMethod], [PaymentRef], [DateProcessed], [CheckCrashed], [DiscountToken], [BankName], [BankAccountNumber], [ReadyToPayId], [IsVoidedCheck], [PaymentMethodId], [CreatedDate], [ReadyToPayDetailsId], [ControlNumber], [LegalEntity],[NonPOInvoiceId])
+		[InvociedDate], [EntryDate], [PaymentMethod], [PaymentRef], [DateProcessed], [CheckCrashed], [DiscountToken], [BankName], [BankAccountNumber], [ReadyToPayId], [IsVoidedCheck], [PaymentMethodId], [CreatedDate], [ReadyToPayDetailsId], [ControlNumber], [LegalEntity],[NonPOInvoiceId], [ReferenceNumber])
 		SELECT 0 AS ReceivingReconciliationId,
 		CASE WHEN VRTPD.IsVoidedCheck = 1 THEN VRTPD.CheckNumber + ' (V)' ELSE VRTPD.CheckNumber END AS InvoiceNum,
 		CASE WHEN ISNULL(VRTPD.AmountDue,0) > 0 THEN 'Partially Paid' 
@@ -2201,7 +2230,8 @@ BEGIN
 		,VRTPD.ReadyToPayDetailsId
 		,VRTPD.ControlNumber
 		,ISNULL(le.[CompanyCode], '') AS 'LegalEntity'
-		,RRH.NonPOInvoiceId
+		,RRH.NonPOInvoiceId,
+		'' AS 'ReferenceNumber'
 		FROM [dbo].[VendorReadyToPayDetails] VRTPD  WITH(NOLOCK)
 		INNER JOIN [dbo].[Vendor] VN WITH(NOLOCK) ON VRTPD.VendorId = VN.VendorId
 		 LEFT JOIN [dbo].[VendorPaymentDetails] RRH  WITH(NOLOCK) ON VRTPD.NonPOInvoiceId = RRH.NonPOInvoiceId
@@ -2223,7 +2253,7 @@ BEGIN
 
 		--VendorPayment -CustomerCreditPayment DETAILS
 		INSERT INTO #TEMPVendorPaymentListRecords([ReceivingReconciliationId], [InvoiceNum], [Status], [OriginalTotal], [RRTotal], [InvoiceTotal], [DifferenceAmount], [VendorId], [VendorName], [PaymentHold],
-		[InvociedDate], [EntryDate], [PaymentMethod], [PaymentRef], [DateProcessed], [CheckCrashed], [DiscountToken], [BankName], [BankAccountNumber], [ReadyToPayId], [IsVoidedCheck], [PaymentMethodId], [CreatedDate], [ReadyToPayDetailsId], [ControlNumber], [LegalEntity],[CustomerCreditPaymentDetailId])
+		[InvociedDate], [EntryDate], [PaymentMethod], [PaymentRef], [DateProcessed], [CheckCrashed], [DiscountToken], [BankName], [BankAccountNumber], [ReadyToPayId], [IsVoidedCheck], [PaymentMethodId], [CreatedDate], [ReadyToPayDetailsId], [ControlNumber], [LegalEntity],[CustomerCreditPaymentDetailId], [ReferenceNumber])
 		SELECT 0 AS ReceivingReconciliationId,
 		CASE WHEN VRTPD.IsVoidedCheck = 1 THEN VRTPD.CheckNumber + ' (V)' ELSE VRTPD.CheckNumber END AS InvoiceNum,
 		CASE WHEN ISNULL(VRTPD.AmountDue,0) > 0 THEN 'Partially Paid' 
@@ -2254,7 +2284,8 @@ BEGIN
 		,VRTPD.ReadyToPayDetailsId
 		,VRTPD.ControlNumber
 		,ISNULL(le.[CompanyCode], '') AS 'LegalEntity'
-		,RRH.CustomerCreditPaymentDetailId
+		,RRH.CustomerCreditPaymentDetailId,
+		'' AS 'ReferenceNumber'
 		FROM [dbo].[VendorReadyToPayDetails] VRTPD  WITH(NOLOCK)
 		INNER JOIN [dbo].[Vendor] VN WITH(NOLOCK) ON VRTPD.VendorId = VN.VendorId
 		 LEFT JOIN [dbo].[VendorPaymentDetails] RRH  WITH(NOLOCK) ON VRTPD.CustomerCreditPaymentDetailId = RRH.CustomerCreditPaymentDetailId
@@ -2276,7 +2307,7 @@ BEGIN
 
 	/********************START: Vendor Proforma Invoice *************************/
 		INSERT INTO #TEMPVendorPaymentListRecords([ReceivingReconciliationId], [InvoiceNum], [Status], [OriginalTotal], [RRTotal], [InvoiceTotal], [DifferenceAmount], [VendorId], [VendorName], [PaymentHold],
-		[InvociedDate], [EntryDate], [PaymentMethod], [PaymentRef], [DateProcessed], [CheckCrashed], [DiscountToken], [BankName], [BankAccountNumber], [ReadyToPayId], [IsVoidedCheck], [PaymentMethodId], [CreatedDate], [ReadyToPayDetailsId], [ControlNumber], [LegalEntity],VendorProformaInvoiceId)
+		[InvociedDate], [EntryDate], [PaymentMethod], [PaymentRef], [DateProcessed], [CheckCrashed], [DiscountToken], [BankName], [BankAccountNumber], [ReadyToPayId], [IsVoidedCheck], [PaymentMethodId], [CreatedDate], [ReadyToPayDetailsId], [ControlNumber], [LegalEntity],VendorProformaInvoiceId, [ReferenceNumber])
 		SELECT 0 AS ReceivingReconciliationId,
 		CASE WHEN VRTPD.IsVoidedCheck = 1 THEN VRTPD.CheckNumber + ' (V)' ELSE VRTPD.CheckNumber END AS InvoiceNum,
 		CASE WHEN ISNULL(VRTPD.AmountDue,0) > 0 THEN 'Partially Paid' 
@@ -2307,7 +2338,8 @@ BEGIN
 		,VRTPD.ReadyToPayDetailsId
 		,VRTPD.ControlNumber
 		,ISNULL(le.[CompanyCode], '') AS 'LegalEntity'
-		,RRH.VendorProformaInvoiceId
+		,RRH.VendorProformaInvoiceId,
+		'' AS 'ReferenceNumber'
 		FROM [dbo].[VendorReadyToPayDetails] VRTPD  WITH(NOLOCK)
 		INNER JOIN [dbo].[Vendor] VN WITH(NOLOCK) ON VRTPD.VendorId = VN.VendorId
 		 LEFT JOIN [dbo].[VendorPaymentDetails] RRH  WITH(NOLOCK) ON VRTPD.VendorProformaInvoiceId = RRH.VendorProformaInvoiceId
@@ -2423,7 +2455,7 @@ BEGIN
     --;With Result AS (  
 	--VendorPayment DETAILS
 		INSERT INTO #TEMPVendorPaymentListRecords([ReceivingReconciliationId], [InvoiceNum], [Status], [OriginalTotal], [RRTotal], [InvoiceTotal], [DifferenceAmount], [VendorId], [VendorName], [PaymentHold],
-		[InvociedDate], [EntryDate], [PaymentMethod], [PaymentRef], [DateProcessed], [CheckCrashed], [DiscountToken], [BankName], [BankAccountNumber], [ReadyToPayId], [IsVoidedCheck], [PaymentMethodId], [CreatedDate], [ReadyToPayDetailsId],[ControlNumber], [LegalEntity])
+		[InvociedDate], [EntryDate], [PaymentMethod], [PaymentRef], [DateProcessed], [CheckCrashed], [DiscountToken], [BankName], [BankAccountNumber], [ReadyToPayId], [IsVoidedCheck], [PaymentMethodId], [CreatedDate], [ReadyToPayDetailsId],[ControlNumber], [LegalEntity], [ReferenceNumber])
 		SELECT 0 AS ReceivingReconciliationId,
 		CASE WHEN VRTPD.IsVoidedCheck = 1 THEN VRTPD.CheckNumber + ' (V)' ELSE VRTPD.CheckNumber END AS InvoiceNum,
 		CASE WHEN VRTPD.IsVoidedCheck = 1 THEN 'Voided' ELSE CASE WHEN ISNULL(VRTPD.AmountDue,0) > 0 THEN 'Partially Paid' ELSE 'Full Payment' END END AS [Status],
@@ -2462,7 +2494,8 @@ BEGIN
 		,(Cast(DBO.ConvertUTCtoLocal(SRT.CreatedDate,@CurrntEmpTimeZoneDesc)AS DATETIME)) AS CreatedDate
 		,VRTPD.ReadyToPayDetailsId
 		,VRTPD.ControlNumber
-		,ISNULL(le.CompanyCode, '') AS 'LegalEntity'
+		,ISNULL(le.CompanyCode, '') AS 'LegalEntity',
+		VRTPDH.ReferenceNumber
 		FROM [dbo].[VendorReadyToPayDetails] VRTPD  WITH(NOLOCK)
 		INNER JOIN [dbo].[Vendor] VN WITH(NOLOCK) ON VRTPD.VendorId = VN.VendorId
 		LEFT JOIN [dbo].[VendorPaymentDetails] RRH  WITH(NOLOCK) ON VRTPD.VendorPaymentDetailsId = RRH.VendorPaymentDetailsId
@@ -2483,11 +2516,11 @@ BEGIN
 		 GROUP BY VRTPD.CheckNumber,lebl.BankName,lebl.BankAccountNumber,DWPL.AccountNumber,
 		          IWPL.BeneficiaryBankAccount, VRTPDH.ReadyToPayId,VRTPD.AmountDue,VN.IsVendorOnHold,
 		          CheckDate,VN.VendorName,IsVoidedCheck,VRTPD.VendorId,VRTPD.PaymentMethodId,SRT.CreatedDate,
-				  DWPL.BankName,IWPL.BeneficiaryBank,VRTPD.ReadyToPayDetailsId,VRTPD.ControlNumber, le.[CompanyCode],RRH.[LastMSLevel],pm.Description
+				  DWPL.BankName,IWPL.BeneficiaryBank,VRTPD.ReadyToPayDetailsId,VRTPD.ControlNumber, le.[CompanyCode],RRH.[LastMSLevel],pm.Description,VRTPDH.ReferenceNumber
 
     ;WITH FinalResult AS (  
     SELECT ReceivingReconciliationId, InvoiceNum, [Status], OriginalTotal, RRTotal, InvoiceTotal,DifferenceAmount, VendorName, PaymentHold, InvociedDate,EntryDate,DiscountToken,  
-      PaymentMethod, PaymentRef, DateProcessed, CheckCrashed,BankName,BankAccountNumber,ReadyToPayId,IsVoidedCheck,VendorId,PaymentMethodId,CreatedDate,ReadyToPayDetailsId,ControlNumber,LegalEntity FROM #TEMPVendorPaymentListRecords  
+      PaymentMethod, PaymentRef, DateProcessed, CheckCrashed,BankName,BankAccountNumber,ReadyToPayId,IsVoidedCheck,VendorId,PaymentMethodId,CreatedDate,ReadyToPayDetailsId,ControlNumber,LegalEntity,ReferenceNumber FROM #TEMPVendorPaymentListRecords  
     WHERE (  
      (@GlobalFilter <>'' AND ((InvoiceNum LIKE '%' +@GlobalFilter+'%' ) OR   
        ([Status] LIKE '%' +@GlobalFilter+'%') OR  
@@ -2500,7 +2533,8 @@ BEGIN
        (InvoiceTotal LIKE '%' +@GlobalFilter+'%') OR  
        (VendorName LIKE '%' +@GlobalFilter+'%')  OR 
 	   (LegalEntity LIKE '%' +@GlobalFilter+'%') OR 
-       (ControlNumber LIKE '%' +@GlobalFilter+'%') 
+       (ControlNumber LIKE '%' +@GlobalFilter+'%') OR
+	   (ReferenceNumber LIKE '%' +@GlobalFilter+'%')
        ))  
        OR     
        (@GlobalFilter='' AND (ISNULL(@InvoiceNum,'') ='' OR InvoiceNum LIKE  '%'+ @InvoiceNum+'%') AND   
@@ -2516,13 +2550,14 @@ BEGIN
 	   (ISNULL(@LegalEntity,'') ='' OR [LegalEntity] LIKE '%'+ @LegalEntity +'%') AND
 	   (ISNULL(@Status,'') ='' OR [Status] LIKE '%'+ @Status +'%') AND
 	   (ISNULL(@PaymentHold,'') ='' OR PaymentHold LIKE '%' + @PaymentHold + '%') AND
-	   (ISNULL(@ControlNumber,'') ='' OR ControlNumber LIKE '%'+ @ControlNumber+'%'))   
+	   (ISNULL(@ControlNumber,'') ='' OR ControlNumber LIKE '%'+ @ControlNumber+'%') AND 
+	   (ISNULL(@ReferenceNumber,'') ='' OR ReferenceNumber LIKE '%'+ @ReferenceNumber+'%'))
        )),  
       ResultCount AS (SELECT COUNT(ReceivingReconciliationId) AS NumberOfItems FROM FinalResult)  
       SELECT ReceivingReconciliationId, UPPER(InvoiceNum) AS InvoiceNum, UPPER([Status]) AS Status, OriginalTotal, RRTotal, InvoiceTotal, DifferenceAmount, UPPER(VendorName) AS VendorName, 
 	  PaymentHold, InvociedDate, EntryDate,  UPPER(PaymentMethod) AS PaymentMethod, PaymentRef, DateProcessed, CheckCrashed, NumberOfItems,DiscountToken,
 	  UPPER(BankName) AS BankName, UPPER(BankAccountNumber) AS BankAccountNumber, ReadyToPayId, IsVoidedCheck, VendorId, PaymentMethodId, CreatedDate, ReadyToPayDetailsId,
-	  UPPER(ControlNumber) AS ControlNumber, UPPER(LegalEntity) AS LegalEntity FROM FinalResult, ResultCount  
+	  UPPER(ControlNumber) AS ControlNumber, UPPER(LegalEntity) AS LegalEntity, UPPER(ReferenceNumber) AS ReferenceNumber FROM FinalResult, ResultCount  
   
      ORDER BY    
      CASE WHEN (@SortOrder=1 and @SortColumn='RECEIVINGRECONCILIATIONID')  THEN ReceivingReconciliationId END DESC,  
@@ -2547,6 +2582,7 @@ BEGIN
 	 CASE WHEN (@SortOrder=1 and @SortColumn='PaymentMethod')  THEN PaymentMethod END ASC,
 	 CASE WHEN (@SortOrder=1 and @SortColumn='NumberOfItems')  THEN NumberOfItems END ASC,
 	 CASE WHEN (@SortOrder=1 and @SortColumn='CheckCrashed')  THEN CheckCrashed END ASC,
+	 CASE WHEN (@SortOrder=1 and @SortColumn='ReferenceNumber')  THEN ReferenceNumber END ASC,
 	  
      CASE WHEN (@SortOrder=-1 and @SortColumn='RECEIVINGRECONCILIATIONID')  THEN ReceivingReconciliationId END DESC,  
      CASE WHEN (@SortOrder=-1 and @SortColumn='INVOICENUM')  THEN InvoiceNum END DESC,  
@@ -2569,7 +2605,8 @@ BEGIN
 	 CASE WHEN (@SortOrder=-1 and @SortColumn='LegalEntity')  THEN LegalEntity END DESC,
 	 CASE WHEN (@SortOrder=-1 and @SortColumn='PaymentMethod')  THEN PaymentMethod END DESC,
 	 CASE WHEN (@SortOrder=-1 and @SortColumn='NumberOfItems')  THEN NumberOfItems END DESC,
-	 CASE WHEN (@SortOrder=-1 and @SortColumn='CheckCrashed')  THEN CheckCrashed END DESC
+	 CASE WHEN (@SortOrder=-1 and @SortColumn='CheckCrashed')  THEN CheckCrashed END DESC,
+	 CASE WHEN (@SortOrder=-1 and @SortColumn='ReferenceNumber')  THEN ReferenceNumber END DESC
 
      OFFSET @RecordFrom ROWS   
      FETCH NEXT @PageSize ROWS ONLY  

@@ -12,6 +12,7 @@
 	1	 15/05/2026          Nakul Chandigra     Created 
 	2    19/05/2026          Nakul Chandigra    Added fields 
 	3    20/05/2026          Nakul Chandigra    Added fields 
+	4    22/05/2026          Bhargav Saliya     Added [SiteId] 
 	exec [USP_GetAircraftSetup] 1
 **************************************************************/
 	CREATE   PROCEDURE [dbo].[USP_GetAircraftSetup]
@@ -42,7 +43,8 @@
 			AR.[CreatedDate],
 			AR.[UpdatedDate],
 			AR.[IsActive],
-			AR.[IsDeleted]
+			AR.[IsDeleted],
+			AR.[SiteId]
 		FROM [dbo].[AircraftSetup] AR WITH (NOLOCK)
 		LEFT JOIN [dbo].[MaintenanceStatus] MS WITH (NOLOCK) ON MS.MaintenanceStatusId = AR.MaintenanceStatusId
 		LEFT JOIN [dbo].[AircraftStatus] ARS WITH (NOLOCK) ON ARS.AircraftStatusId = AR.AircraftStatusId

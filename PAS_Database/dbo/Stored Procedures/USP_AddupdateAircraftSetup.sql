@@ -10,9 +10,10 @@
  ** PR   Date				Author				Change Description            
  ** --   -------------		----------------	--------------------------------          
 	1	 15/05/2026          Nakul Chandigra     Created 
-    2    20/05/2026           Nakul Chandigra    Added fields 
+    2    20/05/2026          Nakul Chandigra    Added fields 
+    3    22/05/2026          Bhargav Saliya    Added field [SiteId] 
 **************************************************************/
-create     PROCEDURE [dbo].[USP_AddupdateAircraftSetup]
+CREATE   PROCEDURE [dbo].[USP_AddupdateAircraftSetup]
 (
     @tblType_AircraftSetupType [AircraftSetupType] READONLY,
     @AircraftSetupId BIGINT,
@@ -39,7 +40,8 @@ BEGIN
                 T.ItemgroupId = S.ItemgroupId,
                 T.CurrencyId = S.CurrencyId,
                 T.UpdatedBy = S.UpdatedBy,
-                T.UpdatedDate = GETUTCDATE()
+                T.UpdatedDate = GETUTCDATE(),
+                T.SiteId = S.SiteId
             FROM dbo.AircraftSetup T
             CROSS APPLY
             (
@@ -54,7 +56,8 @@ BEGIN
                     YellowIndicator,
                     GreenIndicator,
                     ItemgroupId,
-                    UpdatedBy
+                    UpdatedBy,
+                    SiteId
                 FROM @tblType_AircraftSetupType
             ) S
             WHERE T.AircraftSetupId = @AircraftSetupId;
@@ -79,7 +82,8 @@ BEGIN
                 UpdatedDate,
                 IsActive,
                 IsDeleted,
-                MasterCompanyId
+                MasterCompanyId,
+                SiteId
             )
             SELECT TOP 1
                 MaintenanceStatusId,
@@ -98,7 +102,8 @@ BEGIN
                 GETUTCDATE(),
                 IsActive,
                 IsDeleted,
-                MasterCompanyId
+                MasterCompanyId,
+                SiteId
             FROM @tblType_AircraftSetupType;
         END
     END TRY

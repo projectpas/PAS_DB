@@ -1,13 +1,13 @@
-﻿/*********************
+﻿/****************************************************************************************************
 ** File:        [USP_GetAircraftMaintenanceList]
 ** Description:
 ** Purpose:
 ** Date:
 **
 ** RETURN VALUE:
-**********************
+*****************************************************************************************************
 ** Change History
-**********************
+*****************************************************************************************************
 ** PR   Date         Author				Change Description
 ** --   ----------   -------------		--------------------------------
 ** 1    10/04/2026   Priyansh Patel     Created [PN-16016]
@@ -17,8 +17,9 @@
 ** 5    18/05/2026   Bhargav Saliya     Added IsScheduledMaintenance [PN-16475]
 ** 6    19/05/2026   Bhargav Saliya     Rever The IsScheduledMaintenance Changes and added MtcCategory and MtcCategoryId [PN-16475]
 ** 7    20/05/2026   Priyansh Patel     Fix the WorksheetNumber to return the latest [PN-16408]
+** 8    22/05/2026   Moin Bloch         Added  [StockLineId],[IsCustomerStock] PN-16469
 
-*********************/
+*****************************************************************************************************/
 -- EXEC [dbo].[USP_GetAircraftMaintenanceList] @MasterCompanyId = 1 @AircraftRegistryId = 22;
 CREATE  PROCEDURE [dbo].[USP_GetAircraftMaintenanceList]
     @PageNumber              INT             = 1,
@@ -70,7 +71,7 @@ BEGIN
         WITH CTE AS
         (
             SELECT
-                AMP.ProgramId,AMP.AircraftRegistryId,AMP.VersionNumber,AMP.MaintenanceType, AMP.MaintenanceTypeId,AMP.NextScheduledMaintenance,
+                AMP.ProgramId,AMP.AircraftRegistryId,ARH.AircraftRegistryNumber,AMP.VersionNumber,AMP.MaintenanceType, AMP.MaintenanceTypeId,AMP.NextScheduledMaintenance,
 				AMP.TemplateId AS TemplateId,
                WF.WorkOrderNumber AS TemplateIdNumber,AMP.TemplateVersionNumber,
                 ARH.TailNum AS TailNumber,
@@ -111,14 +112,18 @@ BEGIN
                 WSH.WorksheetNumber,
                 mtc.MtcCategory,
                 AMP.MtcCategoryId,
+				ARH.StockLineId,				
+				CASE WHEN STK.[IsCustomerStock] = 1 THEN 'Yes' ELSE 'No' END AS [IsCustomerStock], 
+				ISNULL(STK.[QuantityAvailable],0) [QuantityAvailable],
+				ISNULL(STK.[QuantityOnHand],0) [QuantityOnHand],
                 COUNT(1) OVER () AS TotalRecords
-
             FROM [dbo].[AircraftMaintenanceProgram] AMP WITH (NOLOCK)
             LEFT JOIN [dbo].[AircraftRegistryHeader] ARH WITH (NOLOCK) ON AMP.AircraftRegistryId = ARH.AircraftRegistryId  AND ARH.MasterCompanyId = @MasterCompanyId 
             LEFT JOIN [dbo].[MaintenanceClass] MC WITH (NOLOCK)  ON AMP.MaintenanceClassId = MC.MaintenanceClassId
             LEFT JOIN [dbo].[Workflow] WF WITH (NOLOCK)  ON AMP.TemplateId = WF.WorkflowId AND WF.TemplateType = @ACTemplateType
             LEFT JOIN [dbo].[MaintenanceCategory] mtc WITH (NOLOCK) ON AMP.[MtcCategoryId] = mtc.[MtcCategoryId]
-            LEFT JOIN (SELECT *, ROW_NUMBER() OVER (PARTITION BY ProgramId ORDER BY CreatedDate DESC) AS RN FROM [dbo].[WorksheetHeader] WITH (NOLOCK)) WSH ON AMP.ProgramId = WSH.ProgramId AND WSH.RN = 1
+            LEFT JOIN [dbo].[Stockline] STK WITH (NOLOCK) ON STK.[StockLineId] = ARH.[StockLineId]
+			LEFT JOIN (SELECT *, ROW_NUMBER() OVER (PARTITION BY ProgramId ORDER BY CreatedDate DESC) AS RN FROM [dbo].[WorksheetHeader] WITH (NOLOCK)) WSH ON AMP.ProgramId = WSH.ProgramId AND WSH.RN = 1
 
             WHERE (@AircraftRegistryId IS NULL OR @AircraftRegistryId = 0 OR AMP.AircraftRegistryId = @AircraftRegistryId) --AMP.AircraftRegistryId = @AircraftRegistryId  
 			AND AMP.MasterCompanyId = @MasterCompanyId  AND (@IsDeleted IS NULL OR AMP.IsDeleted = @IsDeleted)

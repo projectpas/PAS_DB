@@ -28,6 +28,8 @@
 	9    10/12/2025  Rajesh Gami		   Return DecimalPlaces from UnitOfMeasure, ConsumeUnitOfMeasureId
 	10   22/04/2026  Ayushi Patel	 Removed ROUND function [PN-16034]	
 	11   07/05/2026  Nakul Chandigra	Added new field 'AircraftSN '(PN-16315)
+	11   22/05/2026  Nakul Chandigra	Added new field 'ExchangeSalesOrderNumber '(PN-16315)
+
 
     EXEC dbo.GetStockLineDetails  179632  180170
 ***********************************************************************************************/
@@ -345,7 +347,8 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 			uomConsume.ShortName as ConsumeUnitOfMeasure,
 			uomStock.ShortName as StockUnitOfMeasure,
 			ISNULL(stl.[PoPartUnitCost],0)PoPartUnitCost,
-			stl.AircraftSN
+			stl.AircraftSN,
+			ES.ExchangeSalesOrderNumber 
 		FROM [dbo].[StockLine] stl WITH(NOLOCK)
 		INNER JOIN [dbo].[ItemMaster] im WITH(NOLOCK) ON stl.[ItemMasterId] = im.[ItemMasterId]
 		INNER JOIN [dbo].[StocklineManagementStructureDetails] msd WITH(NOLOCK) ON stl.[StockLineId] = msd.[ReferenceID] AND msd.[ModuleID] = @StocklineMSModuleId 
@@ -391,6 +394,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 		 LEFT JOIN DBO.UnitOfMeasure uom WITH (NOLOCK) ON stl.PurchaseUnitOfMeasureId = uom.UnitOfMeasureId
 		 LEFT JOIN DBO.UnitOfMeasure uomStock WITH (NOLOCK) ON stl.StockUnitOfMeasureId = uomStock.UnitOfMeasureId
 		 LEFT JOIN DBO.UnitOfMeasure uomConsume WITH (NOLOCK) ON stl.ConsumeUnitOfMeasureId = uomConsume.UnitOfMeasureId
+		 LEFT JOIN DBO.ExchangeSalesOrder ES WITH (NOLOCK) ON stl.ExchangeSalesOrderId = ES.ExchangeSalesOrderId
 		WHERE stl.[IsDeleted] = 0 AND stl.[StockLineId] = @StockLineId
 
 	END TRY    

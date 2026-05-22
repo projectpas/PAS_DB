@@ -31,11 +31,15 @@
     [UpdatedDate]            DATETIME2 (7)   CONSTRAINT [DF_AircraftRegistry_UpdatedDate] DEFAULT (sysdatetime()) NOT NULL,
     [AircraftRegistryNumber] VARCHAR (30)    NULL,
     [LastMaintenanceDate]    DATETIME        NULL,
+    [TotalTSNMM]             DECIMAL (18, 6) NULL,
+    [TotalCSNMM]             DECIMAL (18, 6) NULL,
     CONSTRAINT [PK_AircraftRegistry] PRIMARY KEY CLUSTERED ([AircraftRegistryId] ASC),
     CONSTRAINT [FK_AircraftRegistry_AircraftStatus] FOREIGN KEY ([AircraftStatusId]) REFERENCES [dbo].[AircraftStatus] ([AircraftStatusId]),
     CONSTRAINT [FK_AircraftRegistry_MaintenanceStatus] FOREIGN KEY ([MaintenanceStatusId]) REFERENCES [dbo].[MaintenanceStatus] ([MaintenanceStatusId]),
     CONSTRAINT [FK_AircraftRegistry_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId])
 );
+
+
 
 
 

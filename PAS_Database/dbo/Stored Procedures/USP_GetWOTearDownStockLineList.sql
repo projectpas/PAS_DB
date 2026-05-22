@@ -20,7 +20,7 @@
 	8    25/02/2025   Moin Bloch			    Fixed for Blank Print Data For MTI
 	9    14/May/2026  Rajesh Gami			    Return IsReadyReleaseForm & Added the @isFromMultipleReleaseFormModal Parameter [PN-16405 :  Generate Multiple Release Forms for Teardown Work Orders]
     10   25/02/2025   BHARGAV SALIYA			Added @GenerateReleaseForm Para. For Filter [PN-16504]
-    10   26/02/2025   BHARGAV SALIYA			Added @Condition Para. For Filter
+    11   26/02/2025   BHARGAV SALIYA			Added @Condition Para. For Filter
 exec USP_GetWOTearDownStockLineList 
 @PageNumber=1,@PageSize=10,@SortColumn=N'CreatedDate',@SortOrder=-1,@GlobalFilter=N'',@StatusId=1,@PartNumber=NULL,@PartDescription=NULL,
 @Manufacturer=NULL,@StockLineNumber=NULL,@SerialNumber=NULL,@ControlNumber=NULL,@IdNumber=NULL,@UnitCost=NULL,@QtyOnHand=NULL,

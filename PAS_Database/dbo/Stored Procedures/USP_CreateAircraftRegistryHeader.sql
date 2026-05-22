@@ -19,8 +19,9 @@
     1    26/03/2026   Bhargav Saliya       PN-15456: Created
     2    31/03/2026   Bhargav Saliya       Modified - Added CodePrefix
     3    05/06/2026   Abhishek Jirawla     Adding Data Validation & Restrictions [PN-16292] 
+	4    22/06/2026   Amit Ghediya		   Adding TTSN H/M & TCSN H/M [PN-16533]
 **************************************************************/
-CREATE   PROCEDURE [dbo].[USP_CreateAircraftRegistryHeader]
+CREATE     PROCEDURE [dbo].[USP_CreateAircraftRegistryHeader]
     @tbl_AircraftRegistryHeaderType dbo.AircraftRegistryTableType READONLY
 AS
 BEGIN
@@ -76,7 +77,9 @@ BEGIN
                 AR.ManufacturedDate = T.ManufacturedDate,
                 AR.PlaceInServiceDate = T.PlaceInServiceDate,
                 AR.TotalTSN = T.TotalTSN,
+				AR.TotalTSNMM = T.TotalTSNMM,
                 AR.TotalCSN = T.TotalCSN,
+				AR.TotalCSNMM = T.TotalCSNMM,
                 AR.Hobbs = T.Hobbs,
                 AR.AircraftLocation = T.AircraftLocation,
                 AR.NextScheduled = T.NextScheduled,
@@ -95,7 +98,7 @@ BEGIN
             INNER JOIN @tbl_AircraftRegistryHeaderType T ON AR.AircraftRegistryId = T.AircraftRegistryId
             WHERE T.AircraftRegistryId IS NOT NULL;
 
-            SELECT 1 AS Status, 'Saved successfully' AS Message
+            SELECT 1 AS Status, 'Saved successfully' AS Message, * FROM dbo.[AircraftRegistryHeader] WITH(NOLOCK) WHERE AircraftRegistryId = @AircraftRegistryId
 	    END
 	    ELSE
 	    BEGIN
@@ -137,7 +140,9 @@ BEGIN
                 ManufacturedDate,
                 PlaceInServiceDate,
                 TotalTSN,
+				TotalTSNMM,
                 TotalCSN,
+				TotalCSNMM,
                 Hobbs,
                 AircraftLocation,
                 NextScheduled,
@@ -168,7 +173,9 @@ BEGIN
                 T.ManufacturedDate,
                 T.PlaceInServiceDate,
                 T.TotalTSN,
+				T.TotalTSNMM,
                 T.TotalCSN,
+				T.TotalCSNMM,
                 T.Hobbs,
                 T.AircraftLocation,
                 T.NextScheduled,

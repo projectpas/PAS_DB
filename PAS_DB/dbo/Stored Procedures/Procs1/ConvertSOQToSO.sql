@@ -93,6 +93,8 @@ BEGIN
 		), 0) AS Misc
 	FROM DBO.SalesOrderQuote soq WITH (NOLOCK)
 	JOIN DBO.SalesOrderQuotePartV1 part WITH (NOLOCK) ON soq.SalesOrderQuoteId = part.SalesOrderQuoteId
+	INNER JOIN DBO.SalesOrderQuoteApproval SOQA WITH (NOLOCK) 
+			ON part.SalesOrderQuotePartId = SOQA.SalesOrderQuotePartId
 	LEFT JOIN DBO.SalesOrderQuoteStocklineV1 stk WITH (NOLOCK) ON stk.SalesOrderQuotePartId = part.SalesOrderQuotePartId
 	LEFT JOIN DBO.SalesOrderQuotePartCost partc WITH (NOLOCK) ON partc.SalesOrderQuotePartId = part.SalesOrderQuotePartId
 	LEFT JOIN DBO.StockLine qs WITH (NOLOCK) ON stk.StockLineId = qs.StockLineId
@@ -228,6 +230,8 @@ BEGIN
 	SELECT DISTINCT SOQP.SalesOrderQuotePartId, 
 	SOQP.ItemMasterId, SOQP.ConditionId, SOQP.CreatedBy, SOQP.MasterCompanyId
 	FROM DBO.SalesOrderQuotePartV1 SOQP WITH (NOLOCK)
+	INNER JOIN DBO.SalesOrderQuoteApproval SOQA WITH (NOLOCK) 
+			ON SOQP.SalesOrderQuotePartId = SOQA.SalesOrderQuotePartId
 	WHERE SOQP.SalesOrderQuoteId = @SalesOrderQuoteId
 	AND ((@TransferStockline = 0) OR @TransferStockline = 1)
 	AND ISNULL(SOQP.IsNoQuote, 0) <> 1
@@ -265,6 +269,8 @@ BEGIN
 			sop.[UpdatedBy],GETUTCDATE(),sop.[IsActive],sop.[IsDeleted],sop.[SalesOrderQuotePartId],
 			ime.[ExportECCN],ime.[HSCODE],ime.[ExportWeight],ime.[ExportSizeLength],ime.[ExportSizeWidth],ime.[ExportSizeHeight]
 		FROM DBO.SalesOrderQuotePartV1 sop WITH(NOLOCK)
+		INNER JOIN DBO.SalesOrderQuoteApproval SOQA WITH (NOLOCK) 
+			ON sop.SalesOrderQuotePartId = SOQA.SalesOrderQuotePartId
 		LEFT JOIN DBO.ItemMasterExportInfo ime WITH (NOLOCK) ON ime.ItemMasterId = sop.ItemMasterId
 		WHERE sop.SalesOrderQuotePartId = @CurrentSOQPartId
 		AND ((@TransferStockline = 0) OR @TransferStockline = 1)
@@ -332,6 +338,7 @@ BEGIN
 					ime.[ExportECCN],ime.[HSCODE],ime.[ExportWeight],ime.[ExportSizeLength],ime.[ExportSizeWidth],ime.[ExportSizeHeight]
 				FROM DBO.SalesOrderQuoteStocklineV1 SOPSTK WITH(NOLOCK)
 				INNER JOIN DBO.SalesOrderQuotePartV1 SOP WITH (NOLOCK) ON SOP.SalesOrderQuotePartId = SOPSTK.SalesOrderQuotePartId
+				INNER JOIN DBO.SalesOrderQuoteApproval SOQA WITH (NOLOCK) ON SOP.SalesOrderQuotePartId = SOQA.SalesOrderQuotePartId
 				LEFT JOIN DBO.ItemMasterExportInfo ime WITH (NOLOCK) ON ime.ItemMasterId = SOP.ItemMasterId
 				WHERE SOPSTK.SalesOrderQuoteStocklineId = @CurrentSOQStocklineId AND ISNULL(SOP.IsConvertedToSalesOrder,0) = 0; 
 				--WHERE SOPSTK.SalesOrderQuotePartId = @CurrentSOQPartId;

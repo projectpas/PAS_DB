@@ -15,7 +15,7 @@
 	5    18/05/2026	    Bhargav Saliya			Added @IsScheduledMaintenance [PN-16475]
 	6    19/05/2026	    Bhargav Saliya			Replace @IsScheduledMaintenance to @MtcCategoryId
 	7    20/05/2026	    Moin Bloch			    Added @IsMtceRecordUpdated [PN-16449]
-
+    8    22/05/2026     Ayushi Patel            [PN-16553] Save MaintenanceType from WorkScope table
 **************************************************************/
 CREATE PROCEDURE [dbo].[USP_CreateUpdateAircraftMaintenanceProgram]
     @ProgramId                  BIGINT,
@@ -70,7 +70,7 @@ BEGIN
         SELECT @TailNumber     = TailNum, @AircraftMake   = MakeType, @AircraftModel  = AircraftModel, @SerialNumber   = SerialNum
         FROM dbo.AircraftRegistryHeader WITH(NOLOCK) WHERE AircraftRegistryId = @AircraftRegistryId AND [IsActive]= 1 AND [IsDeleted] = 0;
 
-        SELECT @MaintenanceType = MaintenanceType FROM dbo.MaintenanceType WITH(NOLOCK) WHERE MaintenanceTypeId = @MaintenanceTypeId AND [IsActive]= 1 AND [IsDeleted] = 0;
+        SELECT @MaintenanceType = WorkScopeCode FROM dbo.WorkScope WITH(NOLOCK) WHERE WorkScopeId = @MaintenanceTypeId AND [IsActive]= 1 AND [IsDeleted] = 0;
 
         -- Version Control
         DECLARE @VersionNum         VARCHAR(50)     = NULL;

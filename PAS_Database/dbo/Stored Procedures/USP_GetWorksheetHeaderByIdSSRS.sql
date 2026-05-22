@@ -11,7 +11,8 @@
  **************************************************************             
  ** PR   Date         Author              Change Description              
  ** --   --------     -------          --------------------------------     
-    1    21/05/2026  Ayushi Patel              Created
+    1    21/05/2026   Ayushi Patel         [PN-16530]Created
+    2    22/05/2026   Ayushi Patel         [PN-16535]Return WorksheetType from AircraftSection table
 **************************************************************/
 
 CREATE PROCEDURE [dbo].[USP_GetWorksheetHeaderByIdSSRS]
@@ -30,7 +31,7 @@ BEGIN
             WH.MakeType,
             WH.AircraftModelId,
             WH.AircraftModel,
-            WH.WorksheetType,
+            ACS.Section AS WorksheetType,
             WH.WorksheetTypeId,
             WH.WorkOrderNo,
             WH.TailNum,
@@ -60,6 +61,7 @@ BEGIN
             MT.MaintenanceType AS InspectionTypeName
         FROM [dbo].[WorksheetHeader] WH WITH (NOLOCK)
         LEFT JOIN [dbo].[MaintenanceType] MT WITH (NOLOCK) ON MT.MaintenanceTypeId = WH.InspectionType
+        LEFT JOIN [dbo].[AircraftSection] ACS WITH (NOLOCK) ON WH.WorksheetTypeId = ACS.AircraftSectionId AND ACS.IsDeleted = 0
         WHERE WH.WorksheetHeaderId = @WorksheetHeaderId AND WH.MasterCompanyId =  @MasterCompanyId
           AND WH.IsDeleted = 0;
 

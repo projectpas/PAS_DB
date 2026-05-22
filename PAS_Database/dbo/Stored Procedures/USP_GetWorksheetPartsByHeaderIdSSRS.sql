@@ -11,7 +11,9 @@
  **************************************************************             
  ** PR   Date         Author              Change Description              
  ** --   --------     -------          --------------------------------     
-    1    21/05/2026   Ayushi Patel            Created 
+    1    21/05/2026   Ayushi Patel         [PN-16530]Created 
+    2    22/05/2026   Ayushi Patel         [PN-16544]Return SignedBy,MechBy,InspBy,MaintenanceTime
+    exec USP_GetWorksheetPartsByHeaderIdSSRS 14,1
 **************************************************************/
 
 
@@ -30,23 +32,27 @@ BEGIN
                 WorksheetPartId,
                 ItemNo,
                 WorksheetHeaderId,
-                SignedBy,
+                ISNULL(es.FirstName,'') + CASE WHEN ISNULL(es.LastName,'') <> '' THEN ' ' + es.LastName ELSE '' END AS SignedBy,
                 DefectDescription,
                 MaintenanceAction,
-                MaintenanceTime,
-                MechBy,
-                InspBy,
-                MasterCompanyId,
-                IsActive,
-                IsDeleted,
-                CreatedBy,
-                UpdatedBy,
-                CreatedDate,
-                UpdatedDate
-            FROM dbo.WorksheetPart  
+                RIGHT('00' + CAST(WP.MaintenanceTime AS VARCHAR(2)), 2) + ' : ' + 
+                RIGHT('00' + CAST(WP.MaintenanceTimeMinutes AS VARCHAR(2)), 2) AS MaintenanceTime,
+                ISNULL(em.FirstName,'') + CASE WHEN ISNULL(em.LastName,'') <> '' THEN ' ' + em.LastName ELSE '' END AS MechBy,
+                ISNULL(ei.FirstName,'') + CASE WHEN ISNULL(ei.LastName,'') <> '' THEN ' ' + ei.LastName ELSE '' END AS InspBy,
+                wp.MasterCompanyId,
+                wp.IsActive,
+                wp.IsDeleted,
+                wp.CreatedBy,
+                wp.UpdatedBy,
+                wp.CreatedDate,
+                wp.UpdatedDate
+            FROM dbo.WorksheetPart wp WITH(NOLOCK)
+            LEFT JOIN dbo.Employee es WITH(NOLOCK) ON es.EmployeeId = wp.SignedById
+            LEFT JOIN dbo.Employee em WITH(NOLOCK) ON em.EmployeeId = wp.MechBy
+            LEFT JOIN dbo.Employee ei WITH(NOLOCK) ON ei.EmployeeId = wp.InspBy
             WHERE WorksheetHeaderId = @WorksheetHeaderId
-              AND MasterCompanyId = @MasterCompanyId
-              AND ISNULL(IsDeleted, 0) = 0
+              AND wp.MasterCompanyId = @MasterCompanyId
+              AND ISNULL(wp.IsDeleted, 0) = 0
         ),
         Padding AS (
             SELECT n.number AS RowNum
@@ -63,8 +69,8 @@ BEGIN
             ISNULL(NR.DefectDescription, '') AS DefectDescription,
             ISNULL(NR.MaintenanceAction, '') AS MaintenanceAction,
             ISNULL(NR.MaintenanceTime, '')  AS MaintenanceTime,
-            ISNULL(NR.MechBy, 0)            AS MechBy,
-            ISNULL(NR.InspBy, 0)            AS InspBy,
+            ISNULL(NR.MechBy, '')            AS MechBy,
+            ISNULL(NR.InspBy, '')            AS InspBy,
             @MasterCompanyId                AS MasterCompanyId,
             ISNULL(NR.IsActive, 1)          AS IsActive,
             ISNULL(NR.IsDeleted, 0)         AS IsDeleted,

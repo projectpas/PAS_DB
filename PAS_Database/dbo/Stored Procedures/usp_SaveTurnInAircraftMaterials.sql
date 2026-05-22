@@ -13,6 +13,7 @@ Exec [usp_SaveTurnInAircraftMaterials]
    2	07/05/2026  Nakul Chandigra		Added two new field in stockline Save (PN-16315)
    3	07/05/2026  Nakul Chandigra		Changed Size of two new field  (PN-16315)
    4	21/05/2026  Abhishek Jirawla	Added stockline Id to AircraftRegistryHeader  (PN-16523)
+   5	22/05/2026  Abhishek Jirawla	Added @IsCustomer Stock based on customer
 **************************************************************/   
 CREATE     PROCEDURE [dbo].[usp_SaveTurnInAircraftMaterials]  
 	@IsCustomerStock BIT = 0,  
@@ -60,6 +61,7 @@ BEGIN
    
  SET NOCOUNT ON;  
  SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED  
+
   
 	 DECLARE @PartNumber VARCHAR(500),
 			 @SLCurrentNummber BIGINT,  
@@ -98,6 +100,12 @@ BEGIN
    BEGIN TRY 
    BEGIN TRANSACTION  
     BEGIN 
+
+		IF @IsCustomerStock IS NULL OR @IsCustomerStock = 0
+		BEGIN
+			SELECT @IsCustomerStock = (CASE WHEN CustomerAffiliationId = 2 THEN 1 ELSE 0 END) FROM dbo.Customer WITH(NOLOCK) where CustomerId = @CustomerId
+		END
+		 
 
 		 SET @TraceableTo = CASE WHEN @TraceableTo = 0 THEN NULL ELSE @TraceableTo END	 
 		 SET @InspectedById = CASE WHEN @InspectedById = 0 THEN NULL ELSE @InspectedById END	 

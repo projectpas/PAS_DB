@@ -23,6 +23,7 @@
 	10   31-07-2025   RAJESH GAMI       Fixed the IsCustomerStock related issue for OtherCost tab
 	11   07-Aug-2025  RAJESH GAMI       New SO Shipping and Invoiced status related change(PN-8302) 
 	12   27-Aug-2025  RAJESH GAMI       Remove Duplicate Stockline from the 'ViewAllPN' (PN-14039)
+	13   22-MAY-2026  RAJESH GAMI       Added IsVersionIncrease condition for billing invoicing [PN-16565]
 -- EXEC USP_Lot_GetAllLotViewsByLotId_Filter 7,'ViewAllPN',1
 -- EXEC USP_Lot_GetAllLotViewsByLotId 67,'ViewAllPN',1
 ************************************************************************/
@@ -192,7 +193,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 
 			IF(UPPER(@Type) = UPPER('ViewAllPN'))
 			BEGIN
-				;WITH Result AS (SELECT 
+				;WITH Result AS (SELECT DISTINCT 
 				 lot.LotId
 				,lot.LotNumber
 				,lot.LotName
@@ -294,7 +295,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 				,SL.LotMainStocklineId
 		        ,(ISNULL(sl.Adjustment,0) * ISNULL(sl.QuantityOnHand, 0)) Adjustment
 				,im.ManufacturerName
-				,sobi.InvoiceDate InvoiceDate,
+				,CAST(sobi.InvoiceDate AS DATE) InvoiceDate,
 				(CASE WHEN ISNULL(lot.InitialPOId,0) != 0 AND ISNULL(lot.InitialPOId,0) =ISNULL(SL.PurchaseOrderId,0) THEN 1 ELSE 0 END) As IsInitialPO
 				,ISNULL(ltin.ReferenceNumber,'') as ReferenceNumber
 				FROM DBO.LOT lot WITH(NOLOCK)
@@ -304,7 +305,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 					 Inner JOIN DBO.LotCalculationDetails ltCal WITH(NOLOCK) on ltin.LotTransInOutId = ltCal.LotTransInOutId
 					 LEFT JOIN DBO.SalesOrder so WITH(NOLOCK) on ltCal.ReferenceId = so.SalesOrderId AND (UPPER(REPLACE(ltCal.Type,' ','')) = UPPER(REPLACE(@LOT_TransOut_SO,' ','')) OR UPPER(REPLACE(ltCal.Type,' ','')) = UPPER(REPLACE(@LOT_SO_Shipped,' ','')))
 					 LEFT JOIN DBO.SalesOrderPartV1 sop WITH(NOLOCK) on ltcal.ChildId = sop.SalesOrderPartId AND so.SalesOrderId = sop.SalesOrderId
-					 LEFT JOIN DBO.BillingInvoicing sobi WITH(NOLOCK) on so.SalesOrderId = sobi.ReferenceId AND sobi.MasterCompanyId = so.MasterCompanyId AND ISNULL(sobi.IsPerformaInvoice,0) = 0 AND sobi.[ModuleId] = @SOModuleId
+					 LEFT JOIN DBO.BillingInvoicing sobi WITH(NOLOCK) on so.SalesOrderId = sobi.ReferenceId AND sobi.MasterCompanyId = so.MasterCompanyId AND ISNULL(sobi.IsVersionIncrease,0) = 0 AND ISNULL(sobi.IsPerformaInvoice,0) = 0 AND sobi.[ModuleId] = @SOModuleId
 					 LEFT JOIN DBO.BillingInvoicingItems sobii WITH(NOLOCK) on sop.SalesOrderPartId = sobii.SubReferenceId AND sobi.BillingInvoicingId = sobii.BillingInvoicingId AND ISNULL(sobii.IsPerformaInvoice,0) = 0 AND sobii.[ModuleId] = @SOModuleId
 					 LEFT JOIN DBO.ItemClassification ic WITH(NOLOCK) ON im.ItemClassificationId = ic.ItemClassificationId
 					 LEFT JOIN DBO.ItemGroup ig WITH(NOLOCK) ON im.ItemGroupId = ig.ItemGroupId
@@ -679,7 +680,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 			END
 			ELSE IF(UPPER(@Type) = UPPER('PNInStockView'))
 			BEGIN
-			;WITH Result AS (SELECT
+			;WITH Result AS (SELECT DISTINCT 
 				 lot.LotId
 				,lot.LotNumber
 				,lot.LotName
@@ -771,8 +772,8 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 					 INNER JOIN DBO.LotCalculationDetails ltCal WITH(NOLOCK) on ltin.LotTransInOutId = ltCal.LotTransInOutId
 					 LEFT JOIN DBO.SalesOrder so WITH(NOLOCK) on ltCal.ReferenceId = so.SalesOrderId AND UPPER(REPLACE(ltCal.Type,' ','')) = UPPER(REPLACE(@LOT_TransOut_SO,' ',''))
 					 LEFT JOIN DBO.SalesOrderPartV1 sop WITH(NOLOCK) on ltcal.ChildId = sop.SalesOrderPartId AND so.SalesOrderId = sop.SalesOrderId
-					 LEFT JOIN DBO.BillingInvoicing sobi on so.SalesOrderId = sobi.ReferenceId AND sobi.MasterCompanyId = so.MasterCompanyId AND ISNULL(sobi.IsPerformaInvoice,0) = 0 AND sobi.[ModuleId] = @SOModuleId
-					 LEFT JOIN DBO.BillingInvoicingItems sobii on sop.SalesOrderPartId = sobii.SubReferenceId AND sobi.BillingInvoicingId = sobii.BillingInvoicingId AND ISNULL(sobii.IsPerformaInvoice,0) = 0 AND sobii.[ModuleId] = @SOModuleId
+					 LEFT JOIN DBO.BillingInvoicing sobi on so.SalesOrderId = sobi.ReferenceId AND sobi.MasterCompanyId = so.MasterCompanyId AND ISNULL(sobi.IsVersionIncrease,0) = 0 AND ISNULL(sobi.IsPerformaInvoice,0) = 0 AND sobi.[ModuleId] = @SOModuleId
+					 LEFT JOIN DBO.BillingInvoicingItems sobii on sop.SalesOrderPartId = sobii.SubReferenceId AND sobi.BillingInvoicingId = sobii.BillingInvoicingId  AND ISNULL(sobii.IsPerformaInvoice,0) = 0 AND sobii.[ModuleId] = @SOModuleId
 					 LEFT JOIN DBO.ItemClassification ic WITH(NOLOCK) ON im.ItemClassificationId = ic.ItemClassificationId
 					 LEFT JOIN DBO.ItemGroup ig WITH(NOLOCK) ON im.ItemGroupId = ig.ItemGroupId
 					 LEFT JOIN DBO.Condition c WITH(NOLOCK) ON c.ConditionId = sl.ConditionId
@@ -983,7 +984,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 			END
 			ELSE IF(UPPER(@Type) = UPPER('PNQuoteView'))
 			BEGIN
-			;WITH Result AS (SELECT 
+			;WITH Result AS (SELECT DISTINCT 
 				 lot.LotId
 				,lot.LotNumber
 				,lot.LotName
@@ -1245,7 +1246,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 			END
 			ELSE IF(UPPER(@Type) = UPPER('PNSoldView'))
 			BEGIN
-			;WITH Result AS (SELECT 
+			;WITH Result AS (SELECT DISTINCT 
 				 lot.LotId
 				,lot.LotNumber
 				,lot.LotName
@@ -1266,7 +1267,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 				,c.Description AS Condition
 				,'INVOICED' AS Status
 				,So.CustomerName
-				,sobi.InvoiceDate
+				,CAST(sobi.InvoiceDate AS DATE) InvoiceDate
 				--,case when CAST(sobi.InvoiceDate as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(sobi.InvoiceDate, @CurrntEmpTimeZoneDesc) as Date))end InvoiceDate
 				,ltCal.Qty Qty
 				,ltCal.SalesUnitPrice UnitPrice
@@ -1567,7 +1568,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 			END
 			ELSE IF(UPPER(@Type) = UPPER('RepairedView'))
 			BEGIN
-			  ;WITH Result AS (SELECT 
+			  ;WITH Result AS (SELECT DISTINCT 
 				 lot.LotId
 				,lot.LotNumber
 				,lot.LotName
@@ -1658,7 +1659,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 					 INNER JOIN DBO.LotCalculationDetails ltCal WITH(NOLOCK) on ltin.LotTransInOutId = ltCal.LotTransInOutId
 					 LEFT JOIN DBO.SalesOrder so WITH(NOLOCK) on ltCal.ReferenceId = so.SalesOrderId AND UPPER(REPLACE(ltCal.Type,' ','')) = UPPER(REPLACE(@LOT_TransOut_SO,' ',''))
 					 LEFT JOIN DBO.SalesOrderPartV1 sop WITH(NOLOCK) on ltcal.ChildId = sop.SalesOrderPartId AND so.SalesOrderId = sop.SalesOrderId
-					 LEFT JOIN DBO.BillingInvoicing sobi on so.SalesOrderId = sobi.ReferenceId AND sobi.MasterCompanyId = so.MasterCompanyId AND ISNULL(sobi.IsPerformaInvoice,0) = 0 AND sobi.[ModuleId] = @SOModuleId
+					 LEFT JOIN DBO.BillingInvoicing sobi on so.SalesOrderId = sobi.ReferenceId AND sobi.MasterCompanyId = so.MasterCompanyId AND ISNULL(sobi.IsVersionIncrease,0) = 0 AND ISNULL(sobi.IsPerformaInvoice,0) = 0 AND sobi.[ModuleId] = @SOModuleId
 					 LEFT JOIN DBO.BillingInvoicingItems sobii on sop.SalesOrderPartId = sobii.SubReferenceId AND sobi.BillingInvoicingId = sobii.BillingInvoicingId AND ISNULL(sobii.IsPerformaInvoice,0) = 0 AND sobii.[ModuleId] = @SOModuleId
 					 LEFT JOIN DBO.ItemClassification ic WITH(NOLOCK) ON im.ItemClassificationId = ic.ItemClassificationId
 					 LEFT JOIN DBO.ItemGroup ig WITH(NOLOCK) ON im.ItemGroupId = ig.ItemGroupId
@@ -1871,7 +1872,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 			END
 			ELSE IF(UPPER(@Type) = UPPER('OtherCost'))
 			BEGIN
-			;WITH Result AS (SELECT
+			;WITH Result AS (SELECT DISTINCT
 				 lot.LotId
 				,ISNULL(po.PurchaseOrderId,0) PurchaseOrderId			
 				,ven.VendorName Vendor
@@ -1902,7 +1903,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 				
 				UNION ALL
 
-					SELECT
+					SELECT DISTINCT
 					 lot.LotId
 					,ISNULL(ro.RepairOrderId,0) PurchaseOrderId			
 					,ven.VendorName Vendor
@@ -2004,7 +2005,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 			END
 			ELSE IF(UPPER(@Type) = UPPER('Commission'))
 			BEGIN
-			   ;WITH Result AS (SELECT 
+			   ;WITH Result AS (SELECT DISTINCT 
 				 lot.LotId
 				,lot.LotNumber
 				,lot.LotName
@@ -2029,7 +2030,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 				,UPPER(MSD.LastMSLevel)	LastMSLevel
 				,UPPER(MSD.AllMSlevels) AllMSlevels
 				,ISNULL(so.CustomerId,0) SoCustomerId
-				,ltCal.CreatedDate
+				,CAST(ltCal.CreatedDate AS DATE) CreatedDate
 				,sl.ConditionId
 				,sl.ItemMasterId
 				,sl.CustomerId
@@ -2064,7 +2065,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 					 INNER JOIN DBO.SalesOrder so WITH(NOLOCK) on ltCal.ReferenceId = so.SalesOrderId AND UPPER(REPLACE(ltCal.Type,' ','')) = UPPER(REPLACE(@LOT_TransOut_SO,' ',''))
 					 INNER JOIN DBO.SalesOrderPartV1 sop WITH(NOLOCK) on ltcal.ChildId = sop.SalesOrderPartId AND so.SalesOrderId = sop.SalesOrderId
 					 INNER JOIN DBO.LotConsignment LC WITH(NOLOCK) on lot.LotId = LC.LotId
-					 LEFT JOIN DBO.BillingInvoicing sobi on so.SalesOrderId = sobi.ReferenceId AND sobi.MasterCompanyId = so.MasterCompanyId AND ISNULL(sobi.IsPerformaInvoice,0) = 0 AND sobi.[ModuleId] = @SOModuleId
+					 LEFT JOIN DBO.BillingInvoicing sobi on so.SalesOrderId = sobi.ReferenceId AND sobi.MasterCompanyId = so.MasterCompanyId AND ISNULL(sobi.IsVersionIncrease,0) = 0 AND ISNULL(sobi.IsPerformaInvoice,0) = 0 AND sobi.[ModuleId] = @SOModuleId
 					 LEFT JOIN dbo.LotManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID IN (SELECT Item FROM DBO.SPLITSTRING(@AppModuleId,',')) AND MSD.ReferenceID = lot.LotId	
 				WHERE lot.LotId = @LotId AND lot.MasterCompanyId = @MasterCompanyId
 				), ResultCount AS(Select COUNT(*) AS totalItems FROM Result) 

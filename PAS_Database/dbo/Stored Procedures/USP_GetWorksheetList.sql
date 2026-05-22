@@ -10,7 +10,7 @@
 ** 1    14/05/2026    Priyansh Patel   Created [PN-16408]
 ** 2    21/05/2026    Priyansh Patel    Worksheettype from setup screen [PN-16515]
 ** 3    21/05/2026    Priyansh Patel    Added MaintenanceTime minutes [PN-16509]
-
+** 4    22/05/2026    Priyansh Patel    Fixed the employee and time filters [PN-16536]
 
 ************************************************************/
 CREATE   PROCEDURE [dbo].[USP_GetWorksheetList]
@@ -80,14 +80,17 @@ BEGIN
                 WP.MaintenanceAction,
                 RIGHT('00' + CAST(WP.MaintenanceTime AS VARCHAR(2)), 2) + ' : ' + 
                 RIGHT('00' + CAST(WP.MaintenanceTimeMinutes AS VARCHAR(2)), 2) AS MaintenanceTime,
-                WP.MechBy,
-                WP.InspBy,
+                ISNULL(em.FirstName,'') + CASE WHEN ISNULL(em.LastName,'') <> '' THEN ' ' + em.LastName ELSE '' END AS MechBy,
+                ISNULL(ei.FirstName,'') + CASE WHEN ISNULL(ei.LastName,'') <> '' THEN ' ' + ei.LastName ELSE '' END AS InspBy,
                 COUNT(1) OVER () AS TotalRecords
             FROM [dbo].[WorksheetHeader] WH WITH (NOLOCK)
             LEFT JOIN [dbo].[WorksheetPart] WP WITH (NOLOCK) ON WP.WorksheetHeaderId = WH.WorksheetHeaderId AND WP.IsDeleted = 0
             LEFT JOIN [dbo].[AircraftSection] ACS WITH (NOLOCK) ON WH.WorksheetTypeId = ACS.AircraftSectionId AND ACS.IsDeleted = 0
             LEFT JOIN [dbo].[MaintenanceType] MT WITH (NOLOCK) ON MT.MaintenanceTypeId = WH.InspectionType AND MT.IsDeleted = 0
+            LEFT JOIN dbo.Employee em WITH(NOLOCK) ON em.EmployeeId = wp.MechBy AND em.MasterCompanyId = @MasterCompanyId
+            LEFT JOIN dbo.Employee ei WITH(NOLOCK) ON ei.EmployeeId = wp.InspBy AND ei.MasterCompanyId = @MasterCompanyId
 
+				
 
             WHERE
                 WH.MasterCompanyId = @MasterCompanyId
@@ -103,18 +106,18 @@ BEGIN
                     OR WH.InspectionType    LIKE '%' + @GlobalFilter + '%'
                     OR WP.DefectDescription LIKE '%' + @GlobalFilter + '%'
                     OR WP.MaintenanceAction LIKE '%' + @GlobalFilter + '%'
-                    OR WP.MechBy            LIKE '%' + @GlobalFilter + '%'
-                    OR WP.InspBy            LIKE '%' + @GlobalFilter + '%'
+                    OR ISNULL(em.FirstName,'') + CASE WHEN ISNULL(em.LastName,'') <> '' THEN ' ' + em.LastName ELSE '' END LIKE '%' + @GlobalFilter + '%'
+                    OR ISNULL(ei.FirstName,'') + CASE WHEN ISNULL(ei.LastName,'') <> '' THEN ' ' + ei.LastName ELSE '' END LIKE '%' + @GlobalFilter + '%'
                 )
 
                 -- Row-level column filters
                 AND (@WorksheetNumber            IS NULL OR WH.WorksheetNumber           LIKE '%' + @WorksheetNumber           + '%')
-                AND (@WorksheetType              IS NULL OR WH.WorksheetType             LIKE '%' + @WorksheetType             + '%')
+                AND (@WorksheetType              IS NULL OR ACS.Section             LIKE '%' + @WorksheetType             + '%')
                 AND (@WorkOrderNo                IS NULL OR WH.WorkOrderNo               LIKE '%' + @WorkOrderNo               + '%')
                 AND (@MakeType                   IS NULL OR WH.MakeType                  LIKE '%' + @MakeType                  + '%')
                 AND (@AircraftModel              IS NULL OR WH.AircraftModel             LIKE '%' + @AircraftModel             + '%')
                 AND (@AFHours                    IS NULL OR WH.AFHours                   LIKE '%' + @AFHours                   + '%')
-                AND (@InspectionType             IS NULL OR WH.InspectionType            LIKE '%' + @InspectionType            + '%')
+                AND (@InspectionType             IS NULL OR MT.MaintenanceType            LIKE '%' + @InspectionType            + '%')
                 AND (@InspectionDate             IS NULL OR CAST(WH.InspectionDate             AS DATE) = CAST(@InspectionDate             AS DATE))
                 AND (@QualitySafetyDeptSignOutBy IS NULL OR WH.QualitySafetyDeptSignOutBy LIKE '%' + @QualitySafetyDeptSignOutBy + '%')
                 AND (@QualitySafetyDeptSignOutDate IS NULL OR CAST(WH.QualitySafetyDeptSignOutDate AS DATE) = CAST(@QualitySafetyDeptSignOutDate AS DATE))
@@ -126,9 +129,9 @@ BEGIN
                 AND (@CreatedDate                IS NULL OR CAST(WH.CreatedDate                AS DATE) = CAST(@CreatedDate                AS DATE))
                 AND (@DefectDescription          IS NULL OR WP.DefectDescription         LIKE '%' + @DefectDescription         + '%')
                 AND (@MaintenanceAction          IS NULL OR WP.MaintenanceAction         LIKE '%' + @MaintenanceAction         + '%')
-                AND (@MaintenanceTime            IS NULL OR WP.MaintenanceTime           LIKE '%' + @MaintenanceTime            + '%')
-                AND (@MechBy                     IS NULL OR WP.MechBy                    LIKE '%' + @MechBy                    + '%')
-                AND (@InspBy                     IS NULL OR WP.InspBy                    LIKE '%' + @InspBy                    + '%')
+                AND (@MaintenanceTime IS NULL OR RIGHT('00' + CAST(WP.MaintenanceTime AS VARCHAR(2)), 2)  + ' : ' + RIGHT('00' + CAST(WP.MaintenanceTimeMinutes AS VARCHAR(2)), 2)LIKE '%' + @MaintenanceTime + '%')
+                AND (@MechBy IS NULL OR ISNULL(em.FirstName,'') + CASE WHEN ISNULL(em.LastName,'') <> '' THEN ' ' + em.LastName ELSE '' END  LIKE '%' + @MechBy + '%')
+                AND ( @InspBy IS NULL OR ISNULL(ei.FirstName,'') + CASE WHEN ISNULL(ei.LastName,'') <> '' THEN ' ' + ei.LastName ELSE '' END LIKE '%' + @InspBy + '%')
         )
         SELECT
             WorksheetHeaderId,

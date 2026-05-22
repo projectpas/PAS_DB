@@ -21,10 +21,7 @@
     [LegalEntityId]         BIGINT          NULL,
     [CheckBatchNum]         VARCHAR (200)   NULL,
     [CheckBatchDate]        DATETIME        NULL,
+    [ReferenceNumber]       VARCHAR (50)    NULL,
     CONSTRAINT [PK_VendorReadyToPayHeader] PRIMARY KEY CLUSTERED ([ReadyToPayId] ASC)
 );
-
-
-
-
 

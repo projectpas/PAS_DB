@@ -22,9 +22,10 @@
 	6    18-12-2024   RAJESH GAMI			handle QtyAdjustment in bulkadjustment
 	7    19-12-2024   RAJESH GAMI		    Add MastercompanyId in the managementstructure JOIN
 	8    26-12-2024   RAJESH GAMI		    Modified WPN to check RO is closed or not
+	9    26-05-2026   BHARGAV SALIYA		UOM Changes [PN-15052]
 exec GetStocklineReservedIssuedReport @PageNumber=1,@PageSize=20,@SortColumn=NULL,@SortOrder=1,@GlobalFilter=N'',@strFilter=N'1,5,6,52,84!2,7,8,9!3,11,10!4,13,12!!!!!!',@ViewType=N'1',@StockLineId=0,@PartNumber=N'0856AE15',@PartDescription=NULL,@Condition=NULL,@StocklineNumber=NULL,@ControlNumber=NULL,@IdNumber=NULL,@QuantityReserved=NULL,@QuantityIssued=NULL,@Module=NULL,@ReferenceNumber=NULL,@level1Str=NULL,@level2Str=NULL,@level3Str=NULL,@level4Str=NULL,@level5Str=NULL,@level6Str=NULL,@level7Str=NULL,@level8Str=NULL,@level9Str=NULL,@level10Str=NULL,@MasterCompanyId=1    
-**************************************************************/    
-CREATE   PROCEDURE [dbo].[GetStocklineReservedIssuedReport]
+**************************************************************/   
+CREATE PROCEDURE [dbo].[GetStocklineReservedIssuedReport]
 @PageNumber INT = NULL,
 @PageSize INT = NULL,
 @SortColumn VARCHAR(50)=NULL,
@@ -39,8 +40,8 @@ CREATE   PROCEDURE [dbo].[GetStocklineReservedIssuedReport]
 @StocklineNumber NVARCHAR(50),
 @ControlNumber NVARCHAR(50),
 @IdNumber NVARCHAR(50),
-@QuantityReserved INT = NULL,
-@QuantityIssued INT = NULL,
+@QuantityReserved DECIMAL(18,2) = NULL,   
+@QuantityIssued DECIMAL(18,2) = NULL,    
 @Module NVARCHAR(50),
 @ReferenceNumber NVARCHAR(50),
 @level1Str VARCHAR(MAX) = NULL,
@@ -148,8 +149,8 @@ BEGIN
 	  StocklineNumber VARCHAR(100) NULL,
 	  ControlNumber VARCHAR(100) NULL,
 	  IdNumber VARCHAR(100) NULL,
-	  QuantityReserved INT NULL,
-	  QuantityIssued INT NULL,
+	  QuantityReserved DECIMAL(18,2) NULL,   -- changed from INT to DECIMAL(18,2)
+	  QuantityIssued DECIMAL(18,2) NULL,     -- changed from INT to DECIMAL(18,2)
 	  Module VARCHAR(50) NULL,
 	  ReferenceNumber VARCHAR(50) NULL,
 	  level1 VARCHAR(MAX)  NULL,
@@ -231,7 +232,7 @@ BEGIN
 					SL.ControlNumber,
 					SL.IdNumber,
 					ROP.QuantityReserved,
-					'' ,
+					'',
 					'RepairOrder' AS Module,
 					RO.RepairOrderNumber,
 					UPPER(SLM.Level1Name) AS level1,  
@@ -283,7 +284,7 @@ BEGIN
 					SL.ControlNumber,
 					SL.IdNumber,
 					ESR.QtyToReserve,
-					'' ,
+					'',
 					'ExchangeSalesOrder' AS Module,
 					ESO.ExchangeSalesOrderNumber,
 					UPPER(SLM.Level1Name) AS level1,  
@@ -336,7 +337,7 @@ BEGIN
 					SL.ControlNumber,
 					SL.IdNumber,
 					VRD.Qty,
-					'' ,
+					'',
 					'RMA' AS Module,
 					VRD.RMANum,
 					UPPER(SLM.Level1Name) AS level1,  
@@ -387,7 +388,7 @@ BEGIN
 					SL.ControlNumber,
 					SL.IdNumber,
 					SSTL.QtyReserved,
-					'' ,
+					'',
 					'SalesOrder' AS Module,
 					ESO.SalesOrderNumber,
 					UPPER(SLM.Level1Name) AS level1,  
@@ -429,8 +430,8 @@ BEGIN
 					  (ISNULL(@Level9,'') ='' OR [Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,','))) AND     
 					  (ISNULL(@Level10,'') =''  OR [Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))
 				--* END: ExchangeSalesOrder For Reserve *--
+
 				--* START: Stockline Bulk Adjustment For Reserve *--		
-				
 				INSERT INTO #tmptmpStockline (StockLineId,PartNumber,PartDescription,Condition,StocklineNumber,ControlNumber,IdNumber,QuantityReserved,QuantityIssued,Module,ReferenceNumber,
 											  level1,level2,level3,level4,level5,level6,level7,level8,level9,level10)
 					SELECT
@@ -483,9 +484,6 @@ BEGIN
 					  (ISNULL(@Level8,'') ='' OR [Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,','))) AND     
 					  (ISNULL(@Level9,'') ='' OR [Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,','))) AND     
 					  (ISNULL(@Level10,'') =''  OR [Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))
-
-
-				
 				--* END: Stockline Bulk Adjustment For Reserve *--
 				
 		 END
@@ -688,7 +686,6 @@ BEGIN
 					INNER JOIN [dbo].[Stockline] SL WITH(NOLOCK) ON SL.StockLineId = SWMS.StockLineId
 					INNER JOIN [dbo].[StocklineManagementStructureDetails] SLM WITH(NOLOCK) ON SLM.ReferenceID = SL.StockLineId AND SWMS.MasterCompanyId = SLM.MasterCompanyId
 					INNER JOIN [dbo].[SubWorkOrder] SWO WITH(NOLOCK) ON SWO.SubWorkOrderId = SWM.SubWorkOrderId
-					--INNER JOIN [dbo].[Employee] EM WITH(NOLOCK) ON EM.EmployeeId = SWM.ReservedById
 					WHERE SWMS.MasterCompanyId = @MasterCompanyId AND ISNULL(SWMS.QtyReserved,0) > 0 AND ISNULL(SWO.IsActive,0) = 1 AND ISNULL(SWMS.IsActive,0) = 1 AND ISNULL(SWMS.IsDeleted,0) = 0 AND ISNULL(SWO.IsDeleted,0) = 0 AND (ISNULL(SWOP.IsFinishGood,0) != 1 OR ISNULL(SWOP.IsClosed,0) != 1 OR ISNULL(SWOP.SubWorkOrderStatusId,0) != @WOStatusId OR ISNULL(SWO.SubWorkOrderStatusId,0) != @WOStatusId)
 						AND(ISNULL(@level1Str,'') ='' OR [Level1Name] LIKE '%' + @level1Str + '%') AND
 					  (ISNULL(@level2Str,'') ='' OR [level2Name] LIKE '%' + @level2Str + '%') AND
@@ -711,7 +708,6 @@ BEGIN
 					  (ISNULL(@Level9,'') ='' OR [Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,','))) AND     
 					  (ISNULL(@Level10,'') =''  OR [Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))
 				--* END: SubWorkOrderMaterialStocklineKit For Reserve *--
-
 
 		 END
 		 IF(@ViewType = '2')
@@ -749,7 +745,6 @@ BEGIN
 						INNER JOIN [dbo].[Stockline] SL  WITH(NOLOCK) ON SL.StockLineId = WMS.StockLineId
 						INNER JOIN [dbo].[StocklineManagementStructureDetails] SLM  WITH(NOLOCK) ON SLM.ReferenceID = SL.StockLineId AND WMS.MasterCompanyId = SLM.MasterCompanyId
 						INNER JOIN [dbo].[WorkOrder] WO WITH(NOLOCK) ON WO.WorkOrderId = WM.WorkOrderId
-						--INNER JOIN [dbo].[Employee] EM  WITH(NOLOCK) ON EM.EmployeeId = WM.IssuedById
 						WHERE WMS.MasterCompanyId = @MasterCompanyId AND ISNULL(WO.IsActive,0) = 1 AND ISNULL(WMS.IsActive,0) = 1 AND ISNULL(WMS.IsDeleted,0) = 0 AND ISNULL(WO.IsDeleted,0) = 0 AND ISNULL(WMS.QtyIssued,0) > 0 AND (ISNULL(WOP.IsFinishGood,0) != 1 OR ISNULL(WOP.IsClosed,0) != 1 OR ISNULL(WOP.WorkOrderStatusId,0) != @WOStatusId OR ISNULL(WO.WorkOrderStatusId,0) != @WOStatusId)
 							AND(ISNULL(@level1Str,'') ='' OR [Level1Name] LIKE '%' + @level1Str + '%') AND
 						  (ISNULL(@level2Str,'') ='' OR [level2Name] LIKE '%' + @level2Str + '%') AND
@@ -831,7 +826,6 @@ BEGIN
 				--* START: SUBWorkOrderMaterialStockline For Issued *--
 				INSERT INTO #tmptmpStockline (StockLineId,PartNumber,PartDescription,Condition,StocklineNumber,ControlNumber,IdNumber,QuantityReserved,QuantityIssued,Module,ReferenceNumber,
 											  level1,level2,level3,level4,level5,level6,level7,level8,level9,level10)
-
 					SELECT
 					SL.StockLineId,
 					SL.PartNumber,
@@ -881,13 +875,11 @@ BEGIN
 						  (ISNULL(@Level8,'') ='' OR [Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,','))) AND     
 						  (ISNULL(@Level9,'') ='' OR [Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,','))) AND     
 						  (ISNULL(@Level10,'') =''  OR [Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))
-
 				--* END: SUBWorkOrderMaterialStockline For Issued *--
 
 				--* START: SUBWorkOrderMaterialStocklineKit For Issued *--
 				INSERT INTO #tmptmpStockline (StockLineId,PartNumber,PartDescription,Condition,StocklineNumber,ControlNumber,IdNumber,QuantityReserved,QuantityIssued,Module,ReferenceNumber,
 											  level1,level2,level3,level4,level5,level6,level7,level8,level9,level10)
-
 					SELECT
 					SL.StockLineId,
 					SL.PartNumber,
@@ -937,9 +929,7 @@ BEGIN
 					  (ISNULL(@Level8,'') ='' OR [Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,','))) AND     
 					  (ISNULL(@Level9,'') ='' OR [Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,','))) AND     
 					  (ISNULL(@Level10,'') =''  OR [Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))
-
 				--* END: SUBWorkOrderMaterialStockline For Issued *--
-
 
 		 END
 		 IF(@ViewType = '3')
@@ -1057,7 +1047,6 @@ BEGIN
 				--* Start: SubWorkOrderMaterialStockline For ALL *--				
 				INSERT INTO #tmptmpStockline (StockLineId,PartNumber,PartDescription,Condition,StocklineNumber,ControlNumber,IdNumber,QuantityReserved,QuantityIssued,Module,ReferenceNumber,
 											  level1,level2,level3,level4,level5,level6,level7,level8,level9,level10)
-
 					SELECT
 					SL.StockLineId,
 					SL.PartNumber,
@@ -1112,7 +1101,6 @@ BEGIN
 				--* Start: SubWorkOrderMaterialStocklineKIT For ALL *--				
 				INSERT INTO #tmptmpStockline (StockLineId,PartNumber,PartDescription,Condition,StocklineNumber,ControlNumber,IdNumber,QuantityReserved,QuantityIssued,Module,ReferenceNumber,
 											  level1,level2,level3,level4,level5,level6,level7,level8,level9,level10)
-
 					SELECT
 					SL.StockLineId,
 					SL.PartNumber,
@@ -1165,10 +1153,11 @@ BEGIN
 				--* END: SubWorkOrderMaterialStockline For ALL *--
 
 		 END
+
 		  SET @PageSize = CASE WHEN NULLIF(@PageSize,0) IS NULL THEN 10 ELSE @PageSize END
 		  SET @PageNumber = CASE WHEN NULLIF(@PageNumber,0) IS NULL THEN 1 ELSE @PageNumber END
 		 
-		 select * into #finalResult
+		 SELECT * INTO #finalResult
 		 FROM #tmptmpStockline
 		 WHERE (
 		 (ISNULL(@PartNumber,'') ='' OR [PartNumber] LIKE '%' + @PartNumber+'%') AND
@@ -1183,13 +1172,9 @@ BEGIN
 		 (ISNULL(@ReferenceNumber,'') ='' OR [ReferenceNumber] LIKE '%' + @ReferenceNumber+'%') 
 		 )
 
-
-
-
 		 SET @Total = (SELECT TOP 1 COUNT(1) OVER () AS TotalRecordsCount FROM #finalResult); 
 
-		  
-		 select @Total as NumberOfItems, * from #finalResult
+		 SELECT @Total AS NumberOfItems, * FROM #finalResult
 		 ORDER BY  					 
 			CASE WHEN (@SortOrder=1  AND @SortColumn='PARTNUMBER') THEN [PartNumber] END ASC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='PARTNUMBER') THEN [PartNumber] END DESC,
@@ -1246,12 +1231,13 @@ BEGIN
     ERROR_LINE() AS ErrorLine,
     ERROR_MESSAGE() AS ErrorMessage;
     ROLLBACK TRANSACTION;    
-    DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name()     
+    DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name()   
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------    
         , @AdhocComments     VARCHAR(150)    = 'GetStocklineReservedIssuedReport'     
         , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = ' +  CAST(ISNULL(@PageNumber, '') AS varchar(100))  +''    
         , @ApplicationName VARCHAR(100) = 'PAS'    
 -----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------    
+
         exec spLogException     
                 @DatabaseName           =  @DatabaseName    
                 , @AdhocComments          =  @AdhocComments    

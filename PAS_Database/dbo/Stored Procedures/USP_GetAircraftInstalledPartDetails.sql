@@ -28,6 +28,8 @@
 ** 14   05-13-2026   Amit Ghediya       Added item PO,RO,WO Num. (PN-16415)
 ** 15   05-18-2026   Abhishek Jirawla   Added item PO,RO,WO Id. (PN-16464)
 ** 16   05-20-2026   Priyansh Patel     Fix the WorksheetNumber to return the latest [PN-16408]
+** 17   05-26-2026   Priyansh Patel     Added Worksheet Header Id [PN-16537]
+
 
 *********************/
 CREATE   PROCEDURE [dbo].[USP_GetAircraftInstalledPartDetails]
@@ -164,7 +166,8 @@ BEGIN
 				RO.RepairOrderNumber AS 'RONumber',				
 				WSH.WorksheetNumber,
 				WOP.WorkOrderId AS WOId,
-				WO.WorkOrderNum AS 'WONumber'
+				WO.WorkOrderNum AS 'WONumber',
+                WSH.WorksheetHeaderId
             FROM dbo.AircraftInstalledPartDetails AS AIPD WITH (NOLOCK)
 			LEFT JOIN dbo.ItemMasterAircraftMapping IMAM WITH (NOLOCK) ON AIPD.ATAChapterId = IMAM.ItemMasterAircraftMappingId
 			INNER JOIN dbo.AircraftRegistryHeader ARH WITH (NOLOCK) ON ARH.AircraftRegistryId = AIPD.AircraftRegistryId

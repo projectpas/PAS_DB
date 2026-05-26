@@ -19,6 +19,8 @@
 ** 7    20/05/2026   Priyansh Patel     Fix the WorksheetNumber to return the latest [PN-16408]
 ** 8    22/05/2026   Priyansh Patel     Added WO num  [PN-16537]
 ** 9    22/05/2026   Moin Bloch         Added  [StockLineId],[IsCustomerStock] PN-16469
+** 10   26/05/2026   Priyansh Patel     Added Worsheet Header Id [PN-16537]
+
 
 *****************************************************************************************************/
 -- EXEC [dbo].[USP_GetAircraftMaintenanceList] @MasterCompanyId = 1 @AircraftRegistryId = 22;
@@ -121,6 +123,7 @@ BEGIN
                 CASE WHEN STK.[IsCustomerStock] = 1 THEN 'Yes' ELSE 'No' END AS [IsCustomerStock], 
                 ISNULL(STK.[QuantityAvailable],0) [QuantityAvailable],
                 ISNULL(STK.[QuantityOnHand],0) [QuantityOnHand],
+                WSH.WorksheetHeaderId,
                 COUNT(1) OVER () AS TotalRecords
             FROM [dbo].[AircraftMaintenanceProgram] AMP WITH (NOLOCK)
             LEFT JOIN [dbo].[AircraftRegistryHeader] ARH WITH (NOLOCK) ON AMP.AircraftRegistryId = ARH.AircraftRegistryId  AND ARH.MasterCompanyId = @MasterCompanyId 

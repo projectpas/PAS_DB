@@ -14,6 +14,7 @@
     1    10/12/2025    Moin Bloch		Created
     2    02/JAN/2026   Rajesh Gami		UOM Conversion related change (INT to DECIMAL) & Added Stock & Consume UnitOfMeasureId
 	3    02/MAR/2026   Priyansh Patel	Added PoPartUnitCost param for po cost in stockline
+	4    26/MAY/2026   Priyansh Patel 	Added new field 'TTSN, TCSN '(PN-16477)
 
 --   EXEC [USP_CreateStockLine] 
 **************************************************************/
@@ -263,7 +264,11 @@ CREATE   PROCEDURE [dbo].[USP_CreateStockLine]
 @StockUnitOfMeasureId BIGINT = NULL,
 @ConsumeUnitOfMeasureId BIGINT = NULL,
 @tbl_TimeLifeType TimeLifeType READONLY,
-@PoPartUnitCost DECIMAL(18,2) = NULL
+@PoPartUnitCost DECIMAL(18,2) = NULL,
+@TotalTSN DECIMAL(18,2) = NULL,
+@TotalCSN DECIMAL(18,2) = NULL,
+@TotalTSNMM DECIMAL(18,6) = NULL,
+@TotalCSNMM DECIMAL(18,6) = NULL
 AS
 BEGIN
 
@@ -475,7 +480,8 @@ BEGIN
 			   ,[InventoryExchAgreementGLAccName],[InventoryReserveGLAccId],[InventoryReserveGLAccName],[COGS_WorkOrderGLAccId],[COGS_WorkOrderGLAccName],[COGS_SalesOrderGLAccId]			  
 			   ,[COGS_SalesOrderGLAccName],[COGS_QtyVarianceGLAccId],[COGS_QtyVarianceGLAccName],[COGS_UnitCostVarianceGLAccId],[COGS_UnitCostVarianceGLAccName],[RevenueMroGLAccId]
 			   ,[RevenueMroGLAccName],[RevenueSoGLAccId],[RevenueSoGLAccName],[RevenueExchGLAccId],[RevenueExchGLAccName],[COGS_ExchSalesOrderGLAccId],[COGS_ExchSalesOrderGLAccName]			   
-			   ,[QuantityAdjustment],[IsPiecePart],[IsRepairManagement],[IsDocument],[PurchaseOrderNumber],[IsBatchStock],[BatchNumber],StockUnitOfMeasureId,ConsumeUnitOfMeasureId,[PoPartUnitCost])
+			   ,[QuantityAdjustment],[IsPiecePart],[IsRepairManagement],[IsDocument],[PurchaseOrderNumber],[IsBatchStock],[BatchNumber],StockUnitOfMeasureId,ConsumeUnitOfMeasureId,[PoPartUnitCost]
+			   ,[TotalTSN], [TotalCSN], [TotalTSNMM], [TotalCSNMM])
 	     SELECT @PartNumber,@StockLineNumber,@StocklineMatchKey,@ControlNumber,@ItemMasterId,@QuantityOnHand,@ConditionId,@SerialNumber,@ShelfLife,@ShelfLifeExpirationDate
                ,@WarehouseId,@LocationId,@ObtainFrom,@Owner,@TraceableTo,@ManufacturerId,@Manufacturer,@ManufacturerLotNumber,@ManufacturingDate,@ManufacturingBatchNumber,@PartCertificationNumber
                ,@CertifiedBy,@CertifiedDate,@TagDate,@TagType,@CertifiedDueDate,@CalibrationMemo,@OrderDate,@PurchaseOrderId,@PurchaseOrderUnitCost,@InventoryUnitCost,@RepairOrderId,@RepairOrderUnitCost
@@ -499,7 +505,8 @@ BEGIN
                ,@InventoryExchAgreementGLAccName,@InventoryReserveGLAccId,@InventoryReserveGLAccName,@COGS_WorkOrderGLAccId,@COGS_WorkOrderGLAccName,@COGS_SalesOrderGLAccId
                ,@COGS_SalesOrderGLAccName,@COGS_QtyVarianceGLAccId,@COGS_QtyVarianceGLAccName,@COGS_UnitCostVarianceGLAccId,@COGS_UnitCostVarianceGLAccName,@RevenueMroGLAccId
                ,@RevenueMroGLAccName,@RevenueSoGLAccId,@RevenueSoGLAccName,@RevenueExchGLAccId,@RevenueExchGLAccName,@COGS_ExchSalesOrderGLAccId,@COGS_ExchSalesOrderGLAccName
-               ,@QuantityAdjustment,@IsPiecePart,@IsRepairManagement,@IsDocument,@PurchaseOrderNumber,@IsBatchStock,@BatchNumber,@StockUnitOfMeasureId,@ConsumeUnitOfMeasureId,@PoPartUnitCost
+               ,@QuantityAdjustment,@IsPiecePart,@IsRepairManagement,@IsDocument,@PurchaseOrderNumber,@IsBatchStock,@BatchNumber,@StockUnitOfMeasureId,@ConsumeUnitOfMeasureId,@PoPartUnitCost,
+			    @TotalTSN, @TotalCSN, @TotalTSNMM,@TotalCSNMM
 
 			SELECT @StockLineId = SCOPE_IDENTITY();
 
@@ -714,7 +721,11 @@ BEGIN
                [Adjustment] = ISNULL(@UnitCost,0) - (ISNULL(@PurchaseOrderUnitCost,0) + ISNULL(@RepairOrderUnitCost,0)),
 			   ConsumeUnitOfMeasureId = @ConsumeUnitOfMeasureId,
 			   StockUnitOfMeasureId = @StockUnitOfMeasureId,
-               [PoPartUnitCost] = ISNULL(@PoPartUnitCost,0)
+               [PoPartUnitCost] = ISNULL(@PoPartUnitCost,0),
+			   [TotalTSN] = ISNULL(@TotalTSN,0),
+			   [TotalCSN]= ISNULL(@TotalCSN,0),
+			   [TotalTSNMM] = ISNULL(@TotalTSNMM ,0),
+			   [TotalCSNMM] = ISNULL(@TotalCSNMM,0)
 	     WHERE [MasterCompanyId] = @MasterCompanyId AND [StockLineId] = @StockLineId
 		 
 		EXEC [dbo].[USP_UpdateSLMSDetails] @StkManagementStructureModuleId,@StockLineId,@ManagementStructureId,@UpdatedBy;

@@ -13,8 +13,9 @@
 ** 1    18/05/2026   Moin Bloch         Created [PN-16449]
 ** 2    20/05/2026	 Moin Bloch			Added IsMtceRecordUpdated [PN-16449]
 ** 3    22/05/2026	 Moin Bloch			Fixed Duplicate Issue [PN-16449]
-** 3    22/05/2026	 Moin Bloch			Fixed Duplicate Issue [PN-16449]
-** 3    22/05/2026	 Amit Ghediya	    Get WSheet & wo data [PN-16546]
+** 4    22/05/2026	 Moin Bloch			Fixed Duplicate Issue [PN-16449]
+** 5    22/05/2026	 Amit Ghediya	    Get WSheet & wo data [PN-16546]
+** 6    22/05/2026	 Bhargav Saliya		Added MtceRecordUpdated Filter [PN-16567]
 *******************************************************************************/
 --EXEC dbo.USP_GetAircraftTechnicalRecordList @PageNumber=1,@PageSize=20,@SortColumn=NULL,@SortOrder=N'ASC',
 --@GlobalFilter=NULL,@TailNumber=NULL,@AircraftMake=NULL,@AircraftModel=NULL,@SerialNumber=NULL,@PubDate=NULL,
@@ -42,7 +43,8 @@ CREATE PROCEDURE [dbo].[USP_GetAircraftTechnicalRecordList]
 @WorkSheetCompletedBy VARCHAR(100) = NULL,
 @WorkOrderNo VARCHAR(100) = NULL,
 @WorkOrderStatus VARCHAR(100) = NULL,
-@OpenDate  DATETIME        = NULL
+@OpenDate  DATETIME        = NULL,
+@MtceRecordUpdated VARCHAR(50)     = NULL
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -140,6 +142,8 @@ BEGIN
                 ARH.CreatedDate,
                 ARH.CreatedBy,
                 ARH.MasterCompanyId,
+                CASE WHEN EXISTS (SELECT 1 FROM dbo.AircraftMaintenanceProgram AMP WITH(NOLOCK) WHERE AMP.AircraftRegistryId = ARH.AircraftRegistryId AND ISNULL(AMP.IsMtceRecordUpdated, 0) = 1)
+                THEN 'YES' ELSE 'NO' END AS MtceRecordUpdated,
                 COUNT(1) OVER() AS TotalRecords
              FROM [dbo].[AircraftRegistryHeader] ARH WITH(NOLOCK) 			
 			INNER JOIN [dbo].[AircraftEffectivity] ACE WITH(NOLOCK) ON ARH.[MakeTypeId] = ACE.[MakeTypeId] AND ARH.[SerialNum] = ACE.[SerialNum]
@@ -183,6 +187,7 @@ BEGIN
         AND (NULLIF(@WorkSheetCompletedBy,'') IS NULL OR ISNULL(WorkSheetCompletedBy,'') LIKE '%' + @WorkSheetCompletedBy + '%')
         AND (NULLIF(@WorkOrderNo,'') IS NULL OR ISNULL(WorkOrderNo,'') LIKE '%' + @WorkOrderNo + '%')
         AND (NULLIF(@WorkOrderStatus,'') IS NULL OR ISNULL(WorkOrderStatus,'') LIKE '%' + @WorkOrderStatus + '%')
+        AND (ISNULL(@MtceRecordUpdated, '') = '' OR (CASE WHEN ISNULL([IsMtceRecordUpdated],0) = 1 THEN 'YES' ELSE 'NO' END) LIKE '%' + @MtceRecordUpdated + '%' )
 
         ORDER BY
 
@@ -215,6 +220,9 @@ BEGIN
 
             CASE WHEN @SortColumn = 'WorkOrderStatus' AND @SortOrder = 'ASC' THEN WorkOrderStatus END ASC,
             CASE WHEN @SortColumn = 'WorkOrderStatus' AND @SortOrder = 'DESC' THEN WorkOrderStatus END DESC,
+
+            CASE WHEN @SortColumn = 'MtceRecordUpdated' AND @SortOrder = 'ASC'  THEN [MtceRecordUpdated] END ASC,
+            CASE WHEN @SortColumn = 'MtceRecordUpdated' AND @SortOrder = 'DESC' THEN [MtceRecordUpdated] END DESC,
 
             AircraftRegistryId DESC
 

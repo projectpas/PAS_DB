@@ -15,5 +15,6 @@
     [RedIndicator]         INT           NULL,
     [YellowIndicator]      INT           NULL,
     [GreenIndicator]       INT           NULL,
-    [ItemgroupId]          BIGINT        NULL);
+    [ItemgroupId]          BIGINT        NULL,
+    [SiteId]               BIGINT        NULL);
 

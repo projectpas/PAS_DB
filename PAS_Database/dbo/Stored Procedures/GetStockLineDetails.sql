@@ -29,6 +29,7 @@
 	10   22/04/2026  Ayushi Patel	 Removed ROUND function [PN-16034]	
 	11   07/05/2026  Nakul Chandigra	Added new field 'AircraftSN '(PN-16315)
 	11   22/05/2026  Nakul Chandigra	Added new field 'ExchangeSalesOrderNumber '(PN-16315)
+	12   26/05/2026  Priyansh Patel 	Added new field 'TTSN, TCSN '(PN-16477)
 
 
     EXEC dbo.GetStockLineDetails  179632  180170
@@ -348,7 +349,8 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 			uomStock.ShortName as StockUnitOfMeasure,
 			ISNULL(stl.[PoPartUnitCost],0)PoPartUnitCost,
 			stl.AircraftSN,
-			ES.ExchangeSalesOrderNumber 
+			ES.ExchangeSalesOrderNumber,
+			stl.TotalTSN, stl.TotalCSN, stl.TotalTSNMM, stl.TotalCSNMM
 		FROM [dbo].[StockLine] stl WITH(NOLOCK)
 		INNER JOIN [dbo].[ItemMaster] im WITH(NOLOCK) ON stl.[ItemMasterId] = im.[ItemMasterId]
 		INNER JOIN [dbo].[StocklineManagementStructureDetails] msd WITH(NOLOCK) ON stl.[StockLineId] = msd.[ReferenceID] AND msd.[ModuleID] = @StocklineMSModuleId 

@@ -14,6 +14,8 @@ Exec [usp_SaveTurnInAircraftMaterials]
    3	07/05/2026  Nakul Chandigra		Changed Size of two new field  (PN-16315)
    4	21/05/2026  Abhishek Jirawla	Added stockline Id to AircraftRegistryHeader  (PN-16523)
    5	22/05/2026  Abhishek Jirawla	Added @IsCustomer Stock based on customer
+   6	26/05/2026  Priyansh Patel	    Added new field 'TTSN, TCSN '(PN-16477)
+
 **************************************************************/   
 CREATE     PROCEDURE [dbo].[usp_SaveTurnInAircraftMaterials]  
 	@IsCustomerStock BIT = 0,  
@@ -55,7 +57,12 @@ CREATE     PROCEDURE [dbo].[usp_SaveTurnInAircraftMaterials]
 	@ProvisionId INT =0, 
 	@EvidenceId INT = NULL,
 	@AircraftTail VARCHAR(400) = NULL,  
-	@AircraftSN VARCHAR(30) = NULL
+	@AircraftSN VARCHAR(30) = NULL,
+	@TotalTSN DECIMAL(18,2) = NULL,
+	@TotalCSN DECIMAL(18,2) = NULL,
+	@TotalTSNMM DECIMAL(18,6) = NULL,
+	@TotalCSNMM DECIMAL(18,6) = NULL
+
 AS  
 BEGIN  
    
@@ -229,12 +236,12 @@ BEGIN
 		   TraceableTo, TraceableToName, Memo, WorkOrderId, WorkOrderNumber, ManufacturerId, InspectionBy, InspectionDate, ReceiverNumber, IsParent, LotCost, ParentId,  
 		   QuantityIssued, QuantityReserved,QuantityToReceive,RepairOrderExtendedCost, SubWOPartNoId,SubWorkOrderId, WorkOrderExtendedCost, WorkOrderPartNoId,  
 		   ReceivedDate, ManagementStructureId, SiteId, WarehouseId, LocationId, ShelfId, BinId, CreatedBy, UpdatedBy, CreatedDate, UpdatedDate,isActive, isDeleted, MasterCompanyId, IsTurnIn,  
-		   [OEM],IsPMA, IsDER,IsOemPNId, OEMPNNumber,GLAccountId,[IsStkTimeLife],[EvidenceId], [IntegrationPortal], StockUnitOfMeasureId, ConsumeUnitOfMeasureId,AircraftInstalledPartDetailsId, AircraftTailNumber, AircraftSN
+		   [OEM],IsPMA, IsDER,IsOemPNId, OEMPNNumber,GLAccountId,[IsStkTimeLife],[EvidenceId], [IntegrationPortal], StockUnitOfMeasureId, ConsumeUnitOfMeasureId,AircraftInstalledPartDetailsId, AircraftTailNumber, AircraftSN,TotalTSN, TotalCSN, TotalTSNMM, TotalCSNMM
 		 ) VALUES(@StockLineNumber, @ControlNumber, @IDNumber, @IsCustomerStock,@IsCustomerstockType,@ItemMasterId,@PartNumber,@PurchaseUOMId,@ConditionId,@Quantity, @Quantity, @Quantity, @Quantity,  
 		   @IsSerialized,@SerialNumber, @CustomerId, @ObtainFromTypeId, @ObtainFrom, @ObtainFromName, @OwnerTypeId, @Owner, @OwnerName, @TraceableToTypeId,   
 		   @TraceableTo, @TraceableToName, @Memo, NULL, NULL, @ManufacturerId, @InspectedById, @InspectedDate, @ReceiverNumber, 1, 0,0,0,0,0,0,0,0,0,0,  
 		   @ReceivedDate, @ManagementStructureId, @SiteId, @WarehouseId, @LocationId, @ShelfId, @BinId, @UpdatedBy, @UpdatedBy, GETUTCDATE(),GETUTCDATE(),1,0, @MasterCompanyId, 1,  
-		   @IsOEM,@IsPMA, @IsDER,@IsOemPNId, @OEMPNNumber,@GLAccountId, @IsTimeLife,@EvidenceId, @IntegrationPortal, @StockUOMId, @ConsumeUOMId,@AircraftInstalledPartDetailsId, @AircraftTail, @AircraftSN );  
+		   @IsOEM,@IsPMA, @IsDER,@IsOemPNId, @OEMPNNumber,@GLAccountId, @IsTimeLife,@EvidenceId, @IntegrationPortal, @StockUOMId, @ConsumeUOMId,@AircraftInstalledPartDetailsId, @AircraftTail, @AircraftSN, @TotalTSN, @TotalCSN, @TotalTSNMM,@TotalCSNMM );  
        
 		 SELECT @StockLineId = SCOPE_IDENTITY()  
   

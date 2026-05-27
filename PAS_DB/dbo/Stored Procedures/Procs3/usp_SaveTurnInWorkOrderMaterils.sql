@@ -29,7 +29,7 @@
    20   10/02/2026  Moin Bloch          No cost removal on tender; added Accounting Entry for Teardown  
    21   26/03/2026  Moin Bloch          Renamed TearDown → Internal Teardown (PN-15850)  
    22   26/05/2026  Hemant Saliya        Lot Trans-In for tender stockline when MPN stockline is a Lot stockline  
-   23   26/05/2026  Hemant Saliya        Performance optimization and code cleanup  
+   23   27/05/2026  Hemant Saliya        Performance optimization and code cleanup  
 
    exec dbo.usp_SaveTurnInWorkOrderMaterils @IsMaterialStocklineCreate=0,@IsCustomerStock=0,
 @IsCustomerstockType=0,@ItemMasterId=557,@UnitOfMeasureId=1,@ConditionId=9,@Quantity=1,@IsSerialized=1,
@@ -517,7 +517,8 @@ BEGIN
                 @CreatedBy                     = @UpdatedBy,
                 @UpdatedBy                     = @UpdatedBy,
                 @CreatedDate                   = @LotCreatedDate,
-                @UpdatedDate                   = @LotCreatedDate;
+                @UpdatedDate                   = @LotCreatedDate,
+				@IsFromPreCostStk			   = 1;
 
 			DROP TABLE #LotResult;  -- discard immediately
         END

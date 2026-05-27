@@ -33,6 +33,7 @@
    24   26/05/2026  Hemant Saliya        Lot Trans-In for tender stockline when MPN stockline is a Lot stockline
    25   26/05/2026  Hemant Saliya        Performance optimization and code cleanup
    26   26/05/2026  Nakul Chandigra      Sync the stored procedure from PROD to UAT.
+   27   27/05/2026  Nakul Chandigra      Sync the stored procedure from PROD to UAT.
 
 **************************************************************/
 CREATE PROCEDURE [dbo].[usp_SaveTurnInWorkOrderMaterils]
@@ -528,7 +529,8 @@ BEGIN
                 @CreatedBy                    = @UpdatedBy,
                 @UpdatedBy                    = @UpdatedBy,
                 @CreatedDate                  = @LotCreatedDate,
-                @UpdatedDate                  = @LotCreatedDate;
+                @UpdatedDate                  = @LotCreatedDate,
+                @IsFromPreCostStk             = 1;
 
             DROP TABLE #LotResult;  -- discard immediately
         END

@@ -1,4 +1,4 @@
-﻿
+
 /*************************************************************     
 ** Author:  <Amit Ghediya>    
 ** Create date: <01/04/2026>    
@@ -10,20 +10,20 @@ Exec [USP_SaveAircraftPublication]
 **************************************************************     
 ** PR   Date        Author          Change Description    
 ** --   --------    -------         --------------------------------  
-   1    01/05/2026  Amit Ghediya		Created  
-     
-**************************************************************/  
+   1    01/05/2026  Amit Ghediya		Created
+   2    27/05/2026  Code Review		Removed READ UNCOMMITTED isolation; atomic code number generation via UPDATE OUTPUT
+
+**************************************************************/
 CREATE   PROCEDURE [dbo].[USP_SaveAircraftPublication]
     @tbl_AircraftPublicationType dbo.AircraftPublicationType READONLY
 AS
 BEGIN
-    SET NOCOUNT ON;  
-	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
+    SET NOCOUNT ON;
 
-	BEGIN TRY 
-	BEGIN TRANSACTION  
-    BEGIN 
-		
+	BEGIN TRY
+	BEGIN TRANSACTION
+    BEGIN
+
 		DECLARE @CodePrefix NVARCHAR(50),@CodeSuffix NVARCHAR(50),@AircraftPublicationNum VARCHAR(30) = NULL;
 		DECLARE @CurrentNo INT = 0;
 		DECLARE @AircraftPublicationCodePrefix INT = (SELECT [CodeTypeId] FROM [dbo].[CodeTypes] WITH(NOLOCK) WHERE [CodeType]='AircraftPublicationNumber');
@@ -34,7 +34,7 @@ BEGIN
 		BEGIN
 			-- UPDATE
 			UPDATE AP
-			SET 
+			SET
 				AP.PubDate = T.PubDate,
 				AP.PublicationTypeId = T.PublicationTypeId,
 				AP.PubNum = T.PubNum,
@@ -52,35 +52,29 @@ BEGIN
 				AP.VerifiedBy = T.VerifiedBy,
 				AP.UpdatedBy = T.UpdatedBy,
 				AP.UpdatedDate = GETUTCDATE()
-			FROM [dbo].[AircraftPublication] AP WITH(NOLOCK)
-			INNER JOIN @tbl_AircraftPublicationType T 
+			FROM [dbo].[AircraftPublication] AP
+			INNER JOIN @tbl_AircraftPublicationType T
 				ON AP.AircraftPublicationId = T.AircraftPublicationId;
 
-			SELECT * 
-			FROM AircraftPublication 
+			SELECT *
+			FROM AircraftPublication
 			WHERE AircraftPublicationId = (SELECT TOP 1 AircraftPublicationId FROM @tbl_AircraftPublicationType);
 		END
 		ELSE
 		BEGIN
 			IF @CodePrefix IS NOT NULL AND @CodePrefix <> ''
 			BEGIN
-				SELECT @CurrentNo = ISNULL([CurrentNummber], 0) FROM [dbo].[CodePrefixes] WITH(NOLOCK) WHERE [CodePrefix] = @CodePrefix AND [MasterCompanyId] = @MasterCompanyId;        
-				IF @CurrentNo > 0
-				BEGIN
-					SET @CurrentNo = @CurrentNo + 1;
-					UPDATE [dbo].[CodePrefixes] 
-					SET [CurrentNummber] = @CurrentNo
-					WHERE [CodePrefix] = @CodePrefix AND [MasterCompanyId] = @MasterCompanyId;
-				END
-				ELSE
-				BEGIN
-					SET @CurrentNo = (SELECT ISNULL([StartsFrom], 0)  FROM [dbo].[CodePrefixes] WHERE [CodePrefix] = @CodePrefix AND [MasterCompanyId] = @MasterCompanyId) + 1;
-					UPDATE [dbo].[CodePrefixes]
-					SET [CurrentNummber] = @CurrentNo 
-					WHERE [CodePrefix] = @CodePrefix AND [MasterCompanyId] = @MasterCompanyId;
-				END
-				
-				SET @AircraftPublicationNum = (SELECT * FROM dbo.udfGenerateCodeNumberWithOutDash(@CurrentNo, ISNULL(@CodePrefix,''),ISNULL(@CodeSuffix, '')))
+				-- Atomically increment counter and retrieve new value to eliminate race condition
+				DECLARE @TempNumber TABLE ([CurrentNummber] INT);
+
+				UPDATE [dbo].[CodePrefixes]
+				SET [CurrentNummber] = ISNULL([CurrentNummber], ISNULL([StartsFrom], 0)) + 1
+				OUTPUT INSERTED.[CurrentNummber] INTO @TempNumber([CurrentNummber])
+				WHERE [CodePrefix] = @CodePrefix AND [MasterCompanyId] = @MasterCompanyId;
+
+				SELECT @CurrentNo = [CurrentNummber] FROM @TempNumber;
+
+				SET @AircraftPublicationNum = (SELECT * FROM dbo.udfGenerateCodeNumberWithOutDash(@CurrentNo, ISNULL(@CodePrefix,''), ISNULL(@CodeSuffix, '')))
 			END
 			ELSE
 			BEGIN

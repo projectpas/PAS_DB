@@ -1,4 +1,4 @@
-﻿
+
 /*************************************************************     
 ** Author:  <Amit Ghediya>    
 ** Create date: <05/04/2026>    
@@ -13,16 +13,16 @@ Exec [USP_SaveAircraftEffectivity]
    1    05/05/2026  Amit Ghediya		Created  
    2    15/05/2026  Amit Ghediya		Added ToSerialNumber,FromSerialNumber (PN-16446)
    3    20/05/2026  Amit Ghediya		Remove validation for part due to non mandatory
-     
-**************************************************************/  
+   4    27/05/2026  Code Review		Removed READ UNCOMMITTED isolation
+
+**************************************************************/
 CREATE     PROCEDURE [dbo].[USP_SaveAircraftEffectivity]
     @tbl_AircraftEffectivityType dbo.AircraftEffectivityTableType READONLY
 AS
 BEGIN
-    SET NOCOUNT ON;  
-	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
+    SET NOCOUNT ON;
 
-	BEGIN TRY 
+	BEGIN TRY
 	BEGIN TRANSACTION  
     BEGIN 
 		

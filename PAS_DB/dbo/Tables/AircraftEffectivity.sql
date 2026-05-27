@@ -1,4 +1,4 @@
-CREATE TABLE [dbo].[AircraftEffectivity] (
+﻿CREATE TABLE [dbo].[AircraftEffectivity] (
     [AircraftEffectivityId] BIGINT         IDENTITY (1, 1) NOT NULL,
     [AircraftPublicationId] BIGINT         NOT NULL,
     [MakeTypeId]            BIGINT         NOT NULL,
@@ -7,7 +7,7 @@ CREATE TABLE [dbo].[AircraftEffectivity] (
     [AircraftModel]         VARCHAR (100)  NULL,
     [AircraftSubModel]      VARCHAR (100)  NULL,
     [SerialNum]             VARCHAR (100)  NOT NULL,
-    [ItemMasterId]          BIGINT         NULL,
+    [ItemMasterId]          BIGINT         NOT NULL,
     [PartNumber]            VARCHAR (50)   NULL,
     [PartDescription]       NVARCHAR (MAX) NULL,
     [Notes]                 VARCHAR (MAX)  NULL,
@@ -22,3 +22,4 @@ CREATE TABLE [dbo].[AircraftEffectivity] (
     CONSTRAINT [FK_AE_AircraftPublication] FOREIGN KEY ([AircraftPublicationId]) REFERENCES [dbo].[AircraftPublication] ([AircraftPublicationId]),
     CONSTRAINT [FK_AE_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId])
 );
+

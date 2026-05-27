@@ -16,6 +16,7 @@
 	5    17/03/2025   Ayushi Patel		Converted the date into utc (created , updated) , Added a case to get timeZone
 	6	 01/04/2025   Devendra Shekh	Modified (For Task SS - Order By Description ASC)
 	7	 09/04/2025   Divyesh Kathiriya	Modified (For Aircraft Model SS - Order By Model Names ASC)
+    8    04/05/2025   Nakul Chnadigra   Removed ISNULL Condition from the Filter (PN-16272) 
 **********************/
 CREATE   PROCEDURE [dbo].[USP_SingleScreen_GetListData] 
 	@PageNumber INT = NULL,
@@ -105,7 +106,8 @@ BEGIN
 			END
           WHEN LOWER(FieldName) = 'createdby' THEN ' And (ISNULL(createdby, '''') = '''' OR createdby LIKE ''%' + FieldValue + '%'')'
           WHEN LOWER(FieldName) = 'updatedby' THEN ' And (ISNULL(updatedby, '''') = '''' OR updatedby LIKE ''%' + FieldValue + '%'')'
-          ELSE ' And (ISNULL(t.' + FieldName + ','''') ='''' OR t.' + FieldName + ' LIKE ''%' + FieldValue + '%'')'
+          ELSE ' And t.' + FieldName + ' LIKE ''%' + FieldValue + '%'''
+
         END)
       FROM #tmpFilterData
       FOR xml PATH (''))

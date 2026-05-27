@@ -202,7 +202,6 @@ BEGIN
 						iM.Landings,
 						iM.Starts,
 						iM.CalendarDate,
-						iM.CalendarDate,
 						iM.Model
 					FROM dbo.ItemMaster iM WITH(NOLOCK)
 					LEFT JOIN CTE_IntegrationPortal itp ON iM.ItemMasterId = itp.ItemMasterId

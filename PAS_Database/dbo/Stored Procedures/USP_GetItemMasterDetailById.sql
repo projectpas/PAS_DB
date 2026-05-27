@@ -19,11 +19,12 @@
 	8    02/12/2025  Bhargav Saliya	  Revert Changes.
 	9    26-Mar-2026    Sahdev Saliya       Added [LifeLimitedPart] :-([IsFlightHoursAvailable], [IsFlightCyclesAvailable], [IsLandingsAvailable], [IsStartsAvailable], [IsCalendarTimeAvailable], [FlightHours], [FlightMinutes], [FlightCycles], [Landings], [Starts], [CalendarDate]) (PN-15833)
     10   03-Apr-2026    Sahdev Saliya       Remove LifeLimitedPart (PN-15833)
+	11   27-May-2026    Sahdev Saliya       Added Model [PN-16353]
 
 **************************************************************
  EXEC USP_GetItemMasterDetailById 96978
 **************************************************************/
-create       PROCEDURE [dbo].[USP_GetItemMasterDetailById] 
+CREATE       PROCEDURE [dbo].[USP_GetItemMasterDetailById] 
 @ItemMasterId bigint =0
 AS
 BEGIN
@@ -200,7 +201,9 @@ BEGIN
 				        iM.FlightCycles,
 						iM.Landings,
 						iM.Starts,
-						iM.CalendarDate
+						iM.CalendarDate,
+						iM.CalendarDate,
+						iM.Model
 					FROM dbo.ItemMaster iM WITH(NOLOCK)
 					LEFT JOIN CTE_IntegrationPortal itp ON iM.ItemMasterId = itp.ItemMasterId
 					LEFT JOIN CTE_InventoryGLSetting its ON iM.InventoryGLSettingId = its.InventoryGLSettingId

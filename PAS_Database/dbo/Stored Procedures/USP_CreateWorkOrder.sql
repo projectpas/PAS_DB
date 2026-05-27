@@ -32,10 +32,10 @@
 	19   30/04/2026   Nakul Chandigra   Added  [AircraftRegistryNumber] ,[IsFromAircraft],[AircraftInstalledPartDetailsId] for Work Order (PN-16150)
 	20   21/05/2026   Moin Bloch        Added  [MtcCategoryId] PN-16469
 	21   22/05/2026   Moin Bloch        Added  [AircraftRegistryId],[ProgramId] PN-16469
-
+	22   27/05/2026   Ayushi Patel      [PN-16476]added CSN, CSO, TSN, TSO in WorkOrderPartNumber from StockLine TimeLife for internal workorder
 --   EXEC [USP_CreateWorkOrder] 
 **************************************************************/
-CREATE   PROCEDURE [dbo].[USP_CreateWorkOrder]
+CREATE     PROCEDURE [dbo].[USP_CreateWorkOrder]
 @WorkOrderId BIGINT = NULL,
 @WorkOrderNum VARCHAR(30) = NULL,
 @IsSinglePN BIT = NULL,
@@ -554,7 +554,24 @@ BEGIN
 		FROM #tmprCreateWorkOrderPartNumber WHERE [PKID] = @MinId
 			   		
 		SELECT @StocklineCost = [UnitCost] FROM [dbo].[StockLine] WITH(NOLOCK) WHERE [StockLineId] = @StockLineId;
+		IF @WorkOrderTypeId = @Internal AND ISNULL(@StockLineId, 0) > 0
+		BEGIN
+			SELECT 
+				@CSN = [CyclesSinceNew],
+				@CSO = [CyclesSinceOVH],
+				@TSN = [TimeSinceNew],
+				@TSO = [TimeSinceOVH]
+			FROM [dbo].[TimeLife] WITH (NOLOCK)
+			WHERE [StockLineId] = @StockLineId
+			  AND ISNULL([IsActive], 0) = 1
 
+			UPDATE #tmprCreateWorkOrderPartNumber
+			SET [CSN] = @CSN,
+				[TSN] = @TSN,
+				[CSO] = @CSO,
+				[TSO] = @TSO
+			WHERE [PKID] = @MinId;
+		END
 		IF(@ReceivingCustomerWorkId > 0)
 		BEGIN
 			SELECT @IncomingPartNumber = [PartNumber],@OutGoingItemMasterId = [OutGoingItemMasterId],@OutGoingPartNumber = [OutGoingPartNumber] FROM [dbo].[ReceivingCustomerWork] WITH(NOLOCK) WHERE [ReceivingCustomerWorkId] = @ReceivingCustomerWorkId;

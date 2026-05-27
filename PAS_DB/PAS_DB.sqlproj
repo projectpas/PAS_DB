@@ -4596,6 +4596,20 @@
     <Build Include="dbo\Tables\CustomerAging.sql" />
     <Build Include="dbo\Stored Procedures\uspbatch_UpdateCustomerARAgingBalance.sql" />
     <Build Include="dbo\Views\vw_ItemMasterPartManufacturer.sql" />
+    <Build Include="dbo\Tables\TrainingName.sql" />
+    <Build Include="dbo\Tables\PositionCode.sql" />
+    <Build Include="dbo\Tables\MaintenanceType.sql" />
+    <Build Include="dbo\Tables\MaintenanceStatus.sql" />
+    <Build Include="dbo\Tables\MaintenanceClass.sql" />
+    <Build Include="dbo\Tables\MaintenanceCategory.sql" />
+    <Build Include="dbo\Tables\AircraftStatus.sql" />
+    <Build Include="dbo\Tables\AircraftSection.sql" />
+    <Build Include="dbo\Views\vw_TrainingName.sql" />
+    <Build Include="dbo\Views\vw_PositionCode.sql" />
+    <Build Include="dbo\Views\vw_MaintenanceType.sql" />
+    <Build Include="dbo\Views\vw_MaintenanceStatus.sql" />
+    <Build Include="dbo\Views\vw_MaintenanceClass.sql" />
+    <Build Include="dbo\Views\vw_AircraftStatus.sql" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Snapshots\PAS_DB_20220518_07-53-10.dacpac" />

@@ -14,9 +14,10 @@
 ** 3     26-Mar-2026   Sahdev Saliya		Added [LifeLimitedPart] :-([IsFlightHoursAvailable], [IsFlightCyclesAvailable], [IsLandingsAvailable], [IsStartsAvailable], [IsCalendarTimeAvailable], [FlightHours], [FlightMinutes], [FlightCycles], [Landings], [Starts], [CalendarDate]) (PN-15833)
 ** 4     03-Apr-2026   Sahdev Saliya		Remove LifeLimitedPart (PN-15833)
 ** 5     07-May-2026   Divyesh Kathiriya    Update "IsTimeLife" in stockline table based on ItemMaster Id. [PN-16327]
+** 6     27-May-2026   Sahdev Saliya        Added Model [PN-16353]
 
 **************************************************************/
-CREATE PROCEDURE [dbo].[USP_UpdateItemMaster]
+CREATE   PROCEDURE [dbo].[USP_UpdateItemMaster]
     @tbl_ItemMasterUpdateType [TBL_ItemMasterUpdateType] readonly,
     @tbl_BigInt [TVP_BigInt] readonly,
 	@Id BIGINT,
@@ -191,6 +192,7 @@ BEGIN
 		,i.Landings = PST.Landings
 		,i.Starts = PST.Starts
 		,i.CalendarDate = PST.CalendarDate
+		,i.Model = PST.Model
 		FROM dbo.ItemMaster i WITH(NOLOCK)
 		JOIN @tbl_ItemMasterUpdateType PST ON i.ItemMasterId = PST.ItemMasterId AND i.MasterCompanyId = PST.MasterCompanyId
 		WHERE i.ItemMasterId = @Id;

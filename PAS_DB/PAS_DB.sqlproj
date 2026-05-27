@@ -4631,6 +4631,9 @@
     <Build Include="dbo\User Defined Types\AircraftSetupType.sql" />
     <Build Include="dbo\User Defined Types\AircraftRegistryTableType.sql" />
     <Build Include="dbo\User Defined Types\AircraftInfoTableType.sql" />
+    <Build Include="dbo\Stored Procedures\USP_InsertUpdateAircraftInstalledPartDetails.sql" />
+    <Build Include="dbo\Stored Procedures\USP_CreateUpdateAircraftMaintenanceProgram.sql" />
+    <Build Include="dbo\Stored Procedures\GetACWorkFlowList.sql" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Snapshots\PAS_DB_20220518_07-53-10.dacpac" />

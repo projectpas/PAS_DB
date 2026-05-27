@@ -4634,6 +4634,15 @@
     <Build Include="dbo\Stored Procedures\USP_InsertUpdateAircraftInstalledPartDetails.sql" />
     <Build Include="dbo\Stored Procedures\USP_CreateUpdateAircraftMaintenanceProgram.sql" />
     <Build Include="dbo\Stored Procedures\GetACWorkFlowList.sql" />
+    <Build Include="dbo\Tables\AircraftPublication.sql" />
+    <Build Include="dbo\Tables\AircraftEffectivity.sql" />
+    <Build Include="dbo\Stored Procedures\USP_SaveAircraftPublication.sql" />
+    <Build Include="dbo\Stored Procedures\USP_SaveAircraftEffectivity.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetAircraftPublicationList.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetAircraftPublicationById.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetAircraftEffectivity.sql" />
+    <Build Include="dbo\User Defined Types\AircraftPublicationType.sql" />
+    <Build Include="dbo\User Defined Types\AircraftEffectivityTableType.sql" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Snapshots\PAS_DB_20220518_07-53-10.dacpac" />

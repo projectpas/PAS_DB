@@ -11,6 +11,8 @@
 ** 2    21/05/2026    Priyansh Patel    Worksheettype from setup screen [PN-16515]
 ** 3    21/05/2026    Priyansh Patel    Added MaintenanceTime minutes [PN-16509]
 ** 4    22/05/2026    Priyansh Patel    Fixed the employee and time filters [PN-16536]
+** 5    26/05/2026    Priyansh Patel    Fixed the issue with time [PN-16588]
+
 
 ************************************************************/
 CREATE   PROCEDURE [dbo].[USP_GetWorksheetList]
@@ -78,8 +80,8 @@ BEGIN
                 WP.SignedBy,
                 WP.DefectDescription,
                 WP.MaintenanceAction,
-                RIGHT('00' + CAST(WP.MaintenanceTime AS VARCHAR(2)), 2) + ' : ' + 
-                RIGHT('00' + CAST(WP.MaintenanceTimeMinutes AS VARCHAR(2)), 2) AS MaintenanceTime,
+                CAST(ISNULL(WP.MaintenanceTime, 0) AS VARCHAR(10)) + ' : ' + 
+                RIGHT('00' + CAST(ISNULL(WP.MaintenanceTimeMinutes, 0) AS VARCHAR(2)), 2) AS MaintenanceTime,
                 ISNULL(em.FirstName,'') + CASE WHEN ISNULL(em.LastName,'') <> '' THEN ' ' + em.LastName ELSE '' END AS MechBy,
                 ISNULL(ei.FirstName,'') + CASE WHEN ISNULL(ei.LastName,'') <> '' THEN ' ' + ei.LastName ELSE '' END AS InspBy,
                 COUNT(1) OVER () AS TotalRecords
@@ -129,7 +131,8 @@ BEGIN
                 AND (@CreatedDate                IS NULL OR CAST(WH.CreatedDate                AS DATE) = CAST(@CreatedDate                AS DATE))
                 AND (@DefectDescription          IS NULL OR WP.DefectDescription         LIKE '%' + @DefectDescription         + '%')
                 AND (@MaintenanceAction          IS NULL OR WP.MaintenanceAction         LIKE '%' + @MaintenanceAction         + '%')
-                AND (@MaintenanceTime IS NULL OR RIGHT('00' + CAST(WP.MaintenanceTime AS VARCHAR(2)), 2)  + ' : ' + RIGHT('00' + CAST(WP.MaintenanceTimeMinutes AS VARCHAR(2)), 2)LIKE '%' + @MaintenanceTime + '%')
+                AND (@MaintenanceTime IS NULL OR CAST(ISNULL(WP.MaintenanceTime, 0) AS VARCHAR(10)) + ' : ' + 
+                RIGHT('00' + CAST(ISNULL(WP.MaintenanceTimeMinutes, 0) AS VARCHAR(2)), 2) LIKE '%' + @MaintenanceTime + '%')
                 AND (@MechBy IS NULL OR ISNULL(em.FirstName,'') + CASE WHEN ISNULL(em.LastName,'') <> '' THEN ' ' + em.LastName ELSE '' END  LIKE '%' + @MechBy + '%')
                 AND ( @InspBy IS NULL OR ISNULL(ei.FirstName,'') + CASE WHEN ISNULL(ei.LastName,'') <> '' THEN ' ' + ei.LastName ELSE '' END LIKE '%' + @InspBy + '%')
         )

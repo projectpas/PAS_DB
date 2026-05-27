@@ -4610,6 +4610,30 @@
     <Build Include="dbo\Views\vw_MaintenanceStatus.sql" />
     <Build Include="dbo\Views\vw_MaintenanceClass.sql" />
     <Build Include="dbo\Views\vw_AircraftStatus.sql" />
+    <Build Include="dbo\Tables\WorksheetHeader.sql" />
+    <Build Include="dbo\Tables\NumberOfEngines.sql" />
+    <Build Include="dbo\Tables\AircraftSetup.sql" />
+    <Build Include="dbo\Tables\AircraftRegistryHeader.sql" />
+    <Build Include="dbo\Tables\AircraftMaintenanceProgram.sql" />
+    <Build Include="dbo\Tables\AircraftInstalledPartDetails.sql" />
+    <Build Include="dbo\Tables\AircraftInfo.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetAircraftTailNumberList.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetAircraftStatusList.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetAircraftSetup.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetAircraftRegistryList.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetAircraftRegistryHeaderDetails.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetAircraftMaintenanceList.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetAircraftInstalledPartDetails.sql" />
+    <Build Include="dbo\Stored Procedures\USP_CreateAircraftRegistryHeader.sql" />
+    <Build Include="dbo\Stored Procedures\USP_CreateAircraftInfoHeader.sql" />
+    <Build Include="dbo\Stored Procedures\USP_AddupdateAircraftSetup.sql" />
+    <Build Include="dbo\Stored Procedures\AutoCompleteDropdownsAircraft.sql" />
+    <Build Include="dbo\User Defined Types\AircraftSetupType.sql" />
+    <Build Include="dbo\User Defined Types\AircraftRegistryTableType.sql" />
+    <Build Include="dbo\User Defined Types\AircraftInfoTableType.sql" />
+    <Build Include="dbo\Stored Procedures\USP_InsertUpdateAircraftInstalledPartDetails.sql" />
+    <Build Include="dbo\Stored Procedures\USP_CreateUpdateAircraftMaintenanceProgram.sql" />
+    <Build Include="dbo\Stored Procedures\GetACWorkFlowList.sql" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Snapshots\PAS_DB_20220518_07-53-10.dacpac" />

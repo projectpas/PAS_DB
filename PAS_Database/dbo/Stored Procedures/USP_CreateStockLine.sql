@@ -15,7 +15,7 @@
     2    02/JAN/2026   Rajesh Gami		UOM Conversion related change (INT to DECIMAL) & Added Stock & Consume UnitOfMeasureId
 	3    02/MAR/2026   Priyansh Patel	Added PoPartUnitCost param for po cost in stockline
 	4    26/MAY/2026   Priyansh Patel 	Added new field 'TTSN, TCSN '(PN-16477)
-
+	5    27/05/2026    Ayushi Patel     [PN-16476]Sync CSN, CSO, TSN, TSO in WorkOrderPartNumber on StockLine TimeLife update
 --   EXEC [USP_CreateStockLine] 
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_CreateStockLine]
@@ -776,6 +776,36 @@ BEGIN
 			END
 		END
 		
+		IF(@IsStkTimeLife = 1)
+		BEGIN
+			DECLARE @UpdatedCSN VARCHAR(50) = NULL,
+					@UpdatedTSN VARCHAR(50) = NULL,
+					@UpdatedCSO VARCHAR(50) = NULL,
+					@UpdatedTSO VARCHAR(50) = NULL;
+
+			SELECT TOP 1 
+				@UpdatedCSN = CAST([CyclesSinceNew] AS VARCHAR(50)),
+				@UpdatedCSO = CAST([CyclesSinceOVH] AS VARCHAR(50)),
+				@UpdatedTSN = CAST([TimeSinceNew]   AS VARCHAR(50)),
+				@UpdatedTSO = CAST([TimeSinceOVH]   AS VARCHAR(50))
+			FROM [dbo].[TimeLife] WITH(NOLOCK)
+			WHERE [StockLineId] = @StockLineId
+			  AND ISNULL([IsActive], 0) = 1;
+
+			IF (@UpdatedCSN IS NOT NULL OR @UpdatedTSN IS NOT NULL 
+				OR @UpdatedCSO IS NOT NULL OR @UpdatedTSO IS NOT NULL)
+			BEGIN
+				UPDATE [dbo].[WorkOrderPartNumber]
+				   SET [CSN]         = @UpdatedCSN,
+					   [TSN]         = @UpdatedTSN,
+					   [CSO]         = @UpdatedCSO,
+					   [TSO]         = @UpdatedTSO,
+					   [UpdatedDate] = @UpdatedDate,
+					   [UpdatedBy]   = @UpdatedBy
+				 WHERE [StockLineId] = @StockLineId
+				   AND ISNULL([IsDeleted], 0) = 0;
+			END
+		END
 		--Add a logic to handle Parent Child relationship for resialized stockline
 		DECLARE @IsAddUpdate BIT = 0
 		DECLARE @ExecuteParentChild BIT =1 

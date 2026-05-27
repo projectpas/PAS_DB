@@ -14,6 +14,7 @@
     1    04-November-2022	Vishal Suthar			Created
 	2    21-November-2025	Amit ghediya		    Added filter & sortOrder
 	3    21-November-2025	Rajesh Gami				Added Quantity BackOrder
+	4    26-May-2025		Bhargav Saliya			Added UOM Changes and Remove The commented Code [PN-15052]
 
 EXECUTE   [dbo].[usprpt_GetStockLevelAnalysisReport] '2','2010-01-01','2022-04-26',null,1,10
 **************************************************************/
@@ -55,12 +56,12 @@ BEGIN
 	@manufacturer VARCHAR(MAX) = NULL,
 	@stocklevel INT = NULL,
 	@leadtimedays INT = NULL,
-	@qtyonhand INT = NULL,
-	@minqtyorder INT = NULL,
-	@qtyonavail INT = NULL,
+	@qtyonhand DECIMAL(18,6) = NULL,
+	@minqtyorder DECIMAL(18,6) = NULL,
+	@qtyonavail DECIMAL(18,6) = NULL,
 	@reorder VARCHAR(100) = NULL,
-	@qtytoorder INT = NULL,
-	@quantityBackOrdered INT = NULL
+	@qtytoorder DECIMAL(18,6) = NULL,
+	@quantityBackOrdered DECIMAL(18,6) = NULL
 
   BEGIN TRY
 	select 
@@ -111,27 +112,27 @@ BEGIN
 		@leadtimedays=case when filterby.value('(FieldName/text())[1]','VARCHAR(100)')='leadtimedays' 
 		then filterby.value('(FieldValue/text())[1]','VARCHAR(100)') else @leadtimedays end,
 		@qtyonhand=case when filterby.value('(FieldName/text())[1]','VARCHAR(100)')='qtyonhand' 
-		then filterby.value('(FieldValue/text())[1]','VARCHAR(100)') else @qtyonhand end,
+		then TRY_CAST(filterby.value('(FieldValue/text())[1]','VARCHAR(100)') AS DECIMAL(18,6)) ELSE @qtyonhand end,
 		@minqtyorder=case when filterby.value('(FieldName/text())[1]','VARCHAR(100)')='minqtyorder' 
-		then filterby.value('(FieldValue/text())[1]','VARCHAR(100)') else @minqtyorder end,
+		then TRY_CAST(filterby.value('(FieldValue/text())[1]','VARCHAR(100)') AS DECIMAL(18,6)) else @minqtyorder end,
 		@qtyonavail=case when filterby.value('(FieldName/text())[1]','VARCHAR(100)')='qtyonavail' 
-		then filterby.value('(FieldValue/text())[1]','VARCHAR(100)') else @qtyonavail end,
+		THEN TRY_CAST(filterby.value('(FieldValue/text())[1]','VARCHAR(100)') AS DECIMAL(18,6)) else @qtyonavail end,
 		@reorder=case when filterby.value('(FieldName/text())[1]','VARCHAR(100)')='reorder' 
 		then filterby.value('(FieldValue/text())[1]','VARCHAR(100)') else @reorder end,
 		@qtytoorder=case when filterby.value('(FieldName/text())[1]','VARCHAR(100)')='qtytoorder' 
-		then filterby.value('(FieldValue/text())[1]','VARCHAR(100)') else @qtytoorder end,
+		then TRY_CAST(filterby.value('(FieldValue/text())[1]','VARCHAR(100)') AS DECIMAL(18,6)) else @qtytoorder end,
 		@quantityBackOrdered=case when filterby.value('(FieldName/text())[1]','VARCHAR(100)')='quantityBackOrdered' 
-		then filterby.value('(FieldValue/text())[1]','VARCHAR(100)') else @quantityBackOrdered end
+		then TRY_CAST(filterby.value('(FieldValue/text())[1]','VARCHAR(100)') AS DECIMAL(18,6)) else @quantityBackOrdered end
   FROM
       @xmlFilter.nodes('/ArrayOfFilter/Filter')AS TEMPTABLE(filterby)
 
       DECLARE @ModuleID INT = 2; -- MS Module ID
 	  SET @IsDownload = CASE WHEN NULLIF(@PageSize,0) IS NULL THEN 1 ELSE 0 END
 	  	 
-		IF(ISNULL(@qtyonavail,0) > 0)
-		BEGIN
-			 SET @qtyonavail = CAST(@qtyonavail AS INT) 
-		END
+		--IF(ISNULL(@qtyonavail,0) > 0)
+		--BEGIN
+		--	 SET @qtyonavail = CAST(@qtyonavail AS INT) 
+		--END
 
 	   IF ISNULL(@PageSize,0)=0
 		BEGIN 
@@ -155,82 +156,6 @@ BEGIN
 	  SET @PageSize = CASE WHEN NULLIF(@PageSize,0) IS NULL THEN 10 ELSE @PageSize END
 	  SET @PageNumber = CASE WHEN NULLIF(@PageNumber,0) IS NULL THEN 1 ELSE @PageNumber END
 
-	 -- ;WITH rptCTE (TotalRecordsCount, pn, pndescription,manufacturer,cond,stockLineId,stockuom, masterCompanyId,stocklevel,leadtimedays,reorderpoint,reorderqty,minqtyorder,
-		--			qtyonhand,qtyonavail,reorder,qtytoorder,site,warehouse,location,shelf,bin,level1, level2, level3, level4, level5, level6, level7, level8,
-		--	     level9, level10) AS (
-  --    SELECT COUNT(1) OVER () AS TotalRecordsCount,
-  --      UPPER(stl.partnumber) AS 'pn',
-  --      UPPER(stl.PNDescription) AS 'pndescription',
-		--UPPER(stl.Manufacturer) AS 'manufacturer',
-		--UPPER(stl.Condition) AS 'cond',
-		--stl.StockLineId AS 'stockLineId',
-		--stl.UnitOfMeasure AS 'stockuom',
-		--stl.MasterCompanyId AS 'masterCompanyId',
-		--IM.StockLevel AS 'stocklevel',
-		--IM.LeadTimeDays AS 'leadtimedays',
-		--IM.ReorderPoint AS 'reorderpoint',
-		--IM.ReorderQuantiy AS 'reorderqty',
-		--IM.MinimumOrderQuantity AS 'minqtyorder',
-		--stl.QuantityOnHand AS 'qtyonhand',
-		--stl.QuantityAvailable AS 'qtyonavail',
-		--CASE WHEN stl.QuantityAvailable <= IM.StockLevel THEN 'YES' ELSE 'NO' END AS 'reorder',
-		--CASE 
-		--	WHEN 
-		--		(ISNULL(IM.StockLevel,0) - ISNULL(stl.QuantityAvailable,0)) > ISNULL(IM.MinimumOrderQuantity,0) 
-		--	THEN (ISNULL(IM.StockLevel,0) - ISNULL(stl.QuantityAvailable,0)) ELSE ISNULL(IM.MinimumOrderQuantity,0)
-		--END	AS 'qtytoorder',
-		--UPPER(stl.[Site]) As 'site',
-		--UPPER(stl.[Warehouse]) As 'warehouse',
-		--UPPER(stl.[Location]) As 'location',
-		--UPPER(stl.[Shelf]) As 'shelf',
-		--UPPER(stl.[Bin]) As 'bin',
-		--UPPER(MSD.Level1Name) AS level1,     
-		--UPPER(MSD.Level2Name) AS level2,    
-		--UPPER(MSD.Level3Name) AS level3,    
-		--UPPER(MSD.Level4Name) AS level4,    
-		--UPPER(MSD.Level5Name) AS level5,    
-		--UPPER(MSD.Level6Name) AS level6,    
-		--UPPER(MSD.Level7Name) AS level7,   
-		--UPPER(MSD.Level8Name) AS level8,    
-		--UPPER(MSD.Level9Name) AS level9,    
-		--UPPER(MSD.Level10Name) AS level10
-		--FROM DBO.Stockline stl WITH (NOLOCK)
-		--INNER JOIN dbo.ItemMaster IM WITH(NOLOCK) ON IM.ItemMasterId = stl.ItemMasterId
-	 --   INNER JOIN dbo.StocklineManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = stl.StockLineId
-		--LEFT JOIN dbo.EntityStructureSetup ES WITH(NOLOCK) ON ES.EntityStructureId=MSD.EntityMSID
-		--WHERE stl.mastercompanyid = @mastercompanyid and stl.isActive =1 AND ISNULL(stl.IsParent, 0) = 1 AND stl.IsDeleted=0 AND ISNULL(stl.IsCustomerStock, 0) = 0
-		--	AND (ISNULL(@PN,'') ='' OR stl.ItemMasterId  = @PN)
-		--	AND (ISNULL(@Condition,'') ='' OR stl.ConditionId IN (SELECT Item FROM DBO.SPLITSTRING(@Condition,','))) 
-		--	AND (ISNULL(@Site,'') ='' OR stl.SiteId IN (SELECT Item FROM DBO.SPLITSTRING(@Site,',')))   
-		--	AND (ISNULL(@Warehouse,'') ='' OR stl.WarehouseId IN (SELECT Item FROM DBO.SPLITSTRING(@Warehouse,',')))   
-		--	AND (ISNULL(@Location,'') ='' OR stl.LocationId IN (SELECT Item FROM DBO.SPLITSTRING(@Location,',')))   
-		--	AND (ISNULL(@Shelf,'') ='' OR stl.ShelfId IN (SELECT Item FROM DBO.SPLITSTRING(@Shelf,',')))   
-		--	AND (ISNULL(@Bin,'') ='' OR stl.BinId IN (SELECT Item FROM DBO.SPLITSTRING(@Bin,',')))
-	 --       AND  (ISNULL(@Level1,'') ='' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))
-		--	AND  (ISNULL(@Level2,'') ='' OR MSD.[Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,',')))
-		--	AND  (ISNULL(@Level3,'') ='' OR MSD.[Level3Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level3,',')))
-		--	AND  (ISNULL(@Level4,'') ='' OR MSD.[Level4Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level4,',')))
-		--	AND  (ISNULL(@Level5,'') ='' OR MSD.[Level5Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level5,',')))
-		--	AND  (ISNULL(@Level6,'') ='' OR MSD.[Level6Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level6,',')))
-		--	AND  (ISNULL(@Level7,'') ='' OR MSD.[Level7Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level7,',')))
-		--	AND  (ISNULL(@Level8,'') ='' OR MSD.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,',')))
-		--	AND  (ISNULL(@Level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))
-		--	AND  (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))
-		--	)
-		--	,FinalCTE(TotalRecordsCount, pn, pndescription,manufacturer,cond,stockLineId,stockuom,stocklevel,leadtimedays,reorderpoint,reorderqty,minqtyorder,qtyonhand,qtyonavail,reorder,qtytoorder,site,warehouse,location,shelf,bin,level1, level2, level3, level4, level5, level6, level7, level8,level9, level10, masterCompanyId) 
-		--	  AS (SELECT DISTINCT TotalRecordsCount, pn, pndescription,manufacturer,cond,stockLineId,stockuom,stocklevel,leadtimedays,reorderpoint,reorderqty,minqtyorder,qtyonhand,qtyonavail,reorder,qtytoorder,site,warehouse,location,shelf,bin,level1, level2, level3, level4, level5, level6, level7, level8,level9, level10, masterCompanyId 
-		--	  FROM rptCTE)
-
-		--	,WithTotal (masterCompanyId) 
-		--	  AS (SELECT masterCompanyId
-		--		FROM FinalCTE
-		--		GROUP BY masterCompanyId)
-
-		--	  SELECT COUNT(2) OVER () AS TotalRecordsCount, pn, pndescription,manufacturer,cond,stockLineId,stockuom,stocklevel,leadtimedays,reorderpoint,reorderqty,minqtyorder,qtyonhand,qtyonavail,reorder,qtytoorder,site,warehouse,location,shelf,bin,level1, level2, level3, level4, level5, level6, level7, level8,level9, level10
-		--		FROM FinalCTE FC
-		--			INNER JOIN WithTotal WC ON FC.masterCompanyId = WC.masterCompanyId
-		--		ORDER BY pn DESC
-		--		OFFSET((@PageNumber-1) * @pageSize) ROWS FETCH NEXT @pageSize ROWS ONLY; 
 		;WITH rptCTE AS (
 			SELECT 
 				COUNT(1) OVER () AS TotalRecordsCount,
@@ -362,10 +287,9 @@ BEGIN
 			level1, level2, level3, level4, level5, level6, level7, level8, level9, level10,quantityBackOrdered
 		FROM GroupedCTE
 		WHERE 
-				qtyonhand = ISNULL(@qtyonhand,qtyonhand)
-				AND minqtyorder = ISNULL(@minqtyorder,minqtyorder)
+				 minqtyorder = ISNULL(@minqtyorder,minqtyorder)
 				AND qtyonhand = ISNULL(@qtyonhand,qtyonhand)
-				AND (ISNULL(@qtyonavail,'') = '' OR qtyonavail = @qtyonavail)
+				AND (@qtyonavail IS NULL OR qtyonavail = @qtyonavail)
 				AND (ISNULL(@reorder,'') ='' OR CASE WHEN qtyonavail <= stocklevel THEN 'YES' ELSE 'NO' END LIKE '%' + @reorder + '%')
 				AND quantityBackOrdered = ISNULL(@quantityBackOrdered,quantityBackOrdered)	
 		ORDER BY  					 

@@ -14,6 +14,7 @@ Exec [USP_SaveAircraftEffectivity]
    2    15/05/2026  Amit Ghediya		Added ToSerialNumber,FromSerialNumber (PN-16446)
    3    20/05/2026  Amit Ghediya		Remove validation for part due to non mandatory
    4    27/05/2026  Code Review		Removed READ UNCOMMITTED isolation
+   5    27/05/2026  Code Review		Set-based range insert; full-range duplicate check
 
 **************************************************************/
 CREATE     PROCEDURE [dbo].[USP_SaveAircraftEffectivity]
@@ -186,53 +187,75 @@ BEGIN
 						RETURN;
 					END
 
-					SET @CurrentNo = @FromNo;
-
-					WHILE @CurrentNo <= @ToNo
+					-- Check for duplicates across the full serial range before inserting
+					;WITH RangeCheck AS (
+						SELECT @FromNo AS Num
+						UNION ALL
+						SELECT Num + 1 FROM RangeCheck WHERE Num < @ToNo
+					)
+					IF EXISTS (
+						SELECT 1
+						FROM dbo.AircraftEffectivity AE WITH (NOLOCK)
+						INNER JOIN @tbl_AircraftEffectivityType T ON AE.MakeTypeId = T.MakeTypeId
+						INNER JOIN RangeCheck RC ON AE.SerialNum = @Prefix + CAST(RC.Num AS VARCHAR)
+						WHERE AE.MasterCompanyId = T.MasterCompanyId
+						  AND AE.IsDeleted = 0
+						  AND AE.AircraftEffectivityId <> ISNULL(T.AircraftEffectivityId, 0)
+						OPTION (MAXRECURSION 0)
+					)
 					BEGIN
-
-						INSERT INTO dbo.AircraftEffectivity
-						(
-							AircraftPublicationId,
-							MakeTypeId,
-							AircraftModelId,
-							AircraftSubModel,
-							SerialNum,
-							ItemMasterId,
-							PartNumber,
-							PartDescription,
-							Notes,
-							MasterCompanyId,
-							CreatedBy,
-							UpdatedBy,
-							CreatedDate,
-							UpdatedDate,
-							IsActive,
-							IsDeleted
-						)
-						SELECT
-							T.AircraftPublicationsId,
-							T.MakeTypeId,
-							T.AircraftModelId,
-							T.AircraftSubModel,
-							@Prefix + CAST(@CurrentNo AS VARCHAR),
-							T.ItemMasterId,
-							T.PartNumber,
-							T.PartDescription,
-							T.Notes,
-							T.MasterCompanyId,
-							T.CreatedBy,
-							T.UpdatedBy,
-							GETUTCDATE(),
-							GETUTCDATE(),
-							1,
-							0
-						FROM @tbl_AircraftEffectivityType T;
-
-						SET @Id = SCOPE_IDENTITY();
-
-						SET @CurrentNo = @CurrentNo + 1;
+						ROLLBACK TRANSACTION;
+						SELECT 0 AS Status, 'Duplicate Serial Number found in range for same Aircraft Type' AS Message;
+						RETURN;
 					END
+
+					-- Set-based insert for entire range (replaces row-by-row WHILE loop)
+					;WITH Numbers AS (
+						SELECT @FromNo AS Num
+						UNION ALL
+						SELECT Num + 1 FROM Numbers WHERE Num < @ToNo
+					)
+					INSERT INTO dbo.AircraftEffectivity
+					(
+						AircraftPublicationId,
+						MakeTypeId,
+						AircraftModelId,
+						AircraftSubModel,
+						SerialNum,
+						ItemMasterId,
+						PartNumber,
+						PartDescription,
+						Notes,
+						MasterCompanyId,
+						CreatedBy,
+						UpdatedBy,
+						CreatedDate,
+						UpdatedDate,
+						IsActive,
+						IsDeleted
+					)
+					SELECT
+						T.AircraftPublicationsId,
+						T.MakeTypeId,
+						T.AircraftModelId,
+						T.AircraftSubModel,
+						@Prefix + CAST(N.Num AS VARCHAR),
+						T.ItemMasterId,
+						T.PartNumber,
+						T.PartDescription,
+						T.Notes,
+						T.MasterCompanyId,
+						T.CreatedBy,
+						T.UpdatedBy,
+						GETUTCDATE(),
+						GETUTCDATE(),
+						1,
+						0
+					FROM @tbl_AircraftEffectivityType T
+					CROSS JOIN Numbers N
+					OPTION (MAXRECURSION 0);
+
+					SET @Id = SCOPE_IDENTITY();
 
 				END
 

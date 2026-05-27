@@ -18,6 +18,7 @@ Exec [USP_SaveAircraftCycleTimeMappings]
    7    07/05/2026	Priyansh Patel		Fixed the Remaining time calculation [PN-16306]
    8    07/05/2026  Abhishek Jirawla	Edit Last flown date only when add cycle time is done.
    9    14/05/2026  Amit Ghediya		Update logic for AircraftMaintenanceProgram & LastFlownDate [PN-16428].
+   10   27/05/2026  Priyansh Patel		Update logic for Remaining Cycles [PN-16587].
      
 **************************************************************/   
 CREATE PROCEDURE [dbo].[USP_SaveAircraftCycleTimeMappings]  
@@ -254,6 +255,7 @@ BEGIN
 
 			-- Compute remaining minutes before UPDATE
 			DECLARE @TotalRemainingMinutes INT = NULL;
+			DECLARE @TotalRemainingCycles BIGINT = NULL;
 
 			--SELECT @TotalRemainingMinutes =
 			--	(ISNULL(AMP.FlightHoursLimitHours, 0) * 60 + ISNULL(AMP.FlightHoursLimitMinutes, 0))
@@ -262,7 +264,8 @@ BEGIN
 			--INNER JOIN @CycleTable C ON AMP.AircraftRegistryId = C.RefrenceId AND AMP.ProgramId = @ProgramId;
 			SELECT @TotalRemainingMinutes =
 				(ISNULL(AMP.FlightHoursLimitHours, 0) * 60 + ISNULL(AMP.FlightHoursLimitMinutes, 0))
-				- (FLOOR(ISNULL(C.[Hours], 0)) * 60 + FLOOR(ISNULL(C.[Minutes], 0)))
+				- (FLOOR(ISNULL(C.[Hours], 0)) * 60 + FLOOR(ISNULL(C.[Minutes], 0))),
+				 @TotalRemainingCycles =  ISNULL(AMP.CyclesLimit, 0) - ISNULL(C.Cycles, 0)
 			FROM dbo.AircraftMaintenanceProgram AMP
 			INNER JOIN @CycleTable C ON AMP.AircraftRegistryId = C.RefrenceId AND AMP.ProgramId = @ProgramId;
 
@@ -291,8 +294,8 @@ BEGIN
 
 				AMP.FlightHoursRemainingHours   = CASE WHEN @TotalRemainingMinutes IS NULL THEN NULL ELSE @TotalRemainingMinutes / 60 END,
 				AMP.FlightHoursRemainingMinutes = CASE WHEN @TotalRemainingMinutes IS NULL THEN NULL ELSE @TotalRemainingMinutes % 60 END,
-				AMP.CyclesRemaining = CASE WHEN ISNULL(AMP.CyclesLimit, 0) - ISNULL(C.CumulativeCycles, 0) < 0 THEN 0 ELSE 
-					ISNULL(AMP.CyclesLimit, 0) - ISNULL(C.CumulativeCycles, 0) END,
+				AMP.CyclesRemaining = CASE WHEN @TotalRemainingCycles IS NULL THEN NULL  WHEN @TotalRemainingCycles < 0 THEN 0
+				ELSE @TotalRemainingCycles END,
 
 				AMP.TimeRemaining = ISNULL(AMP.TimeLimit, 0),
 				AMP.LandingsRemaining = ISNULL(AMP.LandingsLimit, 0),

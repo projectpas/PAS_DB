@@ -12,7 +12,8 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    04/07/2023  Amit Ghediya    Created
-    2    08 Apr 2025 RAJESH GAMI     Implement Reference Number     
+    2    08 Apr 2025 RAJESH GAMI     Implement Reference Number  
+	3    26/05/2026  Hemant Saliya   Lot Trans-In for tender stockline when MPN stockline is a Lot stockline  added IsFromPreCostStk flag 
 -- EXEC USP_Lot_AddUpdateLotTransInOutDetails
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[USP_Lot_AddUpdateLotTransInOutDetails]
@@ -24,7 +25,8 @@ CREATE   PROCEDURE [dbo].[USP_Lot_AddUpdateLotTransInOutDetails]
 	@CreatedBy VARCHAR(200),
 	@UpdatedBy VARCHAR(200),
 	@CreatedDate DATETIME,
-	@UpdatedDate DATETIME
+	@UpdatedDate DATETIME,
+	@IsFromPreCostStk BIT = 0
 AS
 BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
@@ -127,7 +129,7 @@ BEGIN
 				SELECT @LatestId = SCOPE_IDENTITY();
 
 				INSERT INTO @p1
-					SELECT 0,lotadd.LotId,@LatestId,'Trans In (Lot)',0,0,lotadd.ExtCost,0,0,0,lotadd.QtyToTransIn,(ISNULL(lotadd.UnitCost,0) * ISNULL(lotadd.QtyToTransIn,0)),0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+					SELECT 0,lotadd.LotId,@LatestId,'Trans In (Lot)',0,0,lotadd.ExtCost,0,0,0,lotadd.QtyToTransIn,(ISNULL(lotadd.UnitCost,0) * ISNULL(lotadd.QtyToTransIn,0)),0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,@IsFromPreCostStk
 				FROM #tmpLotTransInOutDetails lotadd
 				WHERE lotadd.ID = @count;
 			

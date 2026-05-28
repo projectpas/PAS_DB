@@ -4670,6 +4670,7 @@
     <Build Include="dbo\Stored Procedures\USP_CheckAircraftTailNumberExists.sql" />
     <Build Include="dbo\Stored Procedures\UpdateWorkflowDeletedStatus.sql" />
     <Build Include="dbo\Stored Procedures\RPT_GetEmployeeTrainingListById.sql" />
+    <Build Include="dbo\Views\vw_MaintenanceCategory.sql" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Snapshots\PAS_DB_20220518_07-53-10.dacpac" />

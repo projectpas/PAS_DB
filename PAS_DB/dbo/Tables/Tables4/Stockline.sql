@@ -238,6 +238,8 @@
     [IsBatchStock]                        BIT             DEFAULT ((0)) NULL,
     [BatchNumber]                         VARCHAR (50)    NULL,
     [IsReadyReleaseForm]                  BIT             CONSTRAINT [DF_Stockline_IsReadyReleaseForm] DEFAULT ((0)) NULL,
+    [TransferredFromLotId]                BIGINT          NULL,
+    [TransferredFromLotNumber]            VARCHAR (200)   NULL,
     [AircraftInstalledPartDetailsId]      BIGINT          NULL,
     [AircraftSN]                          VARCHAR (30)    NULL,
     [TotalTSN]                            DECIMAL (18, 2) NULL,
@@ -260,6 +262,8 @@
     CONSTRAINT [FK_StockLine_Warehouse] FOREIGN KEY ([WarehouseId]) REFERENCES [dbo].[Warehouse] ([WarehouseId]),
     CONSTRAINT [FK_StockLine_WorkOrder] FOREIGN KEY ([WorkOrderId]) REFERENCES [dbo].[WorkOrder] ([WorkOrderId])
 );
+
+
 
 
 

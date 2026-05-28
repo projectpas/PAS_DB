@@ -1,5 +1,4 @@
-﻿
-/*************************************************************     
+﻿/*************************************************************     
 ** Author:  <Amit Ghediya>    
 ** Create date: <08/04/2026>    
 ** Description: <This Proc Is used to Same Turn In Aircraft Materials Stockline>    
@@ -94,9 +93,7 @@ BEGIN
 			 @stockLineQtyAvailable DECIMAL(18,6),
 			 @GLAccountId INT,  
 			 @IsTimeLife BIT, 
-			 @StockUOMId  BIGINT = @UnitOfMeasureId, 
 			 @PurchaseUOMId BIGINT, 
-			 @ConsumeUOMId BIGINT,  
 			 @AircraftRegistryNumber VARCHAR(50),
 			 @ActionId INT = 0,
 			 @ItemClassificationId BIGINT = 0,
@@ -170,7 +167,7 @@ BEGIN
 		 INNER JOIN DBO.ItemMaster IM ON STL.ItemMasterId = IM.ItemMasterId AND STL.ManufacturerId = IM.ManufacturerId  
 		 ON CSTL.StockLineId = STL.StockLineId  
   
-		 SELECT @PurchaseUOMId = PurchaseUnitOfMeasureId, @ConsumeUOMId =ConsumeUnitOfMeasureId ,@PartNumber = partnumber, @IsPMA = IsPMA, @IsDER = IsDER, @IsOemPNId = IsOemPNId, @IsOEM = IsOEM, @OEMPNNumber = OEMPN,@GLAccountId=GLAccountId, @IsTimeLife = isTimeLife, @ItemClassificationId = [ItemClassificationId]   FROM dbo.ItemMaster WITH(NOLOCK) WHERE ItemMasterId = @ItemMasterId;  
+		 SELECT @PurchaseUOMId = PurchaseUnitOfMeasureId, @PartNumber = partnumber, @IsPMA = IsPMA, @IsDER = IsDER, @IsOemPNId = IsOemPNId, @IsOEM = IsOEM, @OEMPNNumber = OEMPN,@GLAccountId=GLAccountId, @IsTimeLife = isTimeLife, @ItemClassificationId = [ItemClassificationId]   FROM dbo.ItemMaster WITH(NOLOCK) WHERE ItemMasterId = @ItemMasterId;  
      
 		 SELECT @AircraftRegistryNumber = [AircraftRegistryNumber] FROM [dbo].[AircraftRegistryHeader] WITH(NOLOCK) WHERE [AircraftRegistryId] = @AircraftRegistryId 
 

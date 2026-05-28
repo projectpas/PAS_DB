@@ -4661,6 +4661,7 @@
     <Build Include="dbo\Stored Procedures\USP_SaveAircraftCycleTimeMappings.sql" />
     <Build Include="dbo\Stored Procedures\usp_GetAircraftCycleTimeById.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetAircraftInfoHeaderDetailsByItemMasterId.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetAllAircraft.sql" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Snapshots\PAS_DB_20220518_07-53-10.dacpac" />

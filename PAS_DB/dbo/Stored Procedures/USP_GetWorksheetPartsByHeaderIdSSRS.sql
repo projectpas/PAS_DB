@@ -39,8 +39,12 @@ BEGIN
                 ISNULL(es.FirstName,'') + CASE WHEN ISNULL(es.LastName,'') <> '' THEN ' ' + es.LastName ELSE '' END AS SignedBy,
                 DefectDescription,
                 MaintenanceAction,
+                 CASE 
+                    WHEN ISNULL(WP.MaintenanceTime, 0) = 0 AND ISNULL(WP.MaintenanceTimeMinutes, 0) = 0 
+                    THEN NULL
+                ELSE 
                 CAST(ISNULL(WP.MaintenanceTime, 0) AS VARCHAR(10)) + ' : ' + 
-                RIGHT('00' + CAST(ISNULL(WP.MaintenanceTimeMinutes, 0) AS VARCHAR(2)), 2) AS MaintenanceTime,
+                RIGHT('00' + CAST(ISNULL(WP.MaintenanceTimeMinutes, 0) AS VARCHAR(2)), 2) END AS MaintenanceTime,
                 ISNULL(em.FirstName,'') + CASE WHEN ISNULL(em.LastName,'') <> '' THEN ' ' + em.LastName ELSE '' END AS MechBy,
                 ISNULL(ei.FirstName,'') + CASE WHEN ISNULL(ei.LastName,'') <> '' THEN ' ' + ei.LastName ELSE '' END AS InspBy,
                 wp.MasterCompanyId,

@@ -4655,6 +4655,7 @@
     <Build Include="dbo\Stored Procedures\USP_CreateUpdateWorksheetHeader.sql" />
     <Build Include="dbo\User Defined Types\WorksheetPartTableType.sql" />
     <Build Include="dbo\User Defined Types\WorksheetHeaderTableType.sql" />
+    <Build Include="dbo\Stored Procedures\usp_SaveTurnInAircraftMaterials.sql" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Snapshots\PAS_DB_20220518_07-53-10.dacpac" />

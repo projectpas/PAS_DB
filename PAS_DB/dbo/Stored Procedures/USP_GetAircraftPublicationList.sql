@@ -1,4 +1,4 @@
-﻿/************************************************************
+/************************************************************
 ** File:        [USP_GetAircraftPublicationList]
 ** Author:      Amit Ghediya
 ** Description: Get Aircraft Registry data from Aircraft Publication List Data
@@ -7,7 +7,8 @@
 ************************************************************
 ** PR   Date         Author          Description
 ** --   ----------   -------------   -------------------------
-**  1    01/05/2026  Amit Ghediya		Created 
+**  1    01/05/2026  Amit Ghediya		Created
+**  2    27/05/2026  Code Review		Fix VerifiedBy name space; add IsActive filter; remove unused pemp JOIN
 
 ************************************************************/
 CREATE   PROCEDURE [dbo].[USP_GetAircraftPublicationList]
@@ -71,7 +72,7 @@ BEGIN
                 AP.Timeframe,
                 AP.PurposeReasonBackground,
                 AP.EntryDate,
-                EMP.FirstName + EMP.LastName AS VerifiedBy,
+                EMP.FirstName + ' ' + EMP.LastName AS VerifiedBy,
 				AP.PubDate,
 				AP.CreatedDate,
 				AP.CreatedBy,
@@ -85,12 +86,12 @@ BEGIN
 			LEFT JOIN dbo.PublicationType PT WITH (NOLOCK) ON AP.PublicationTypeId = PT.PublicationTypeId
 			LEFT JOIN dbo.AircraftSection ASE WITH (NOLOCK) ON AP.AircraftSectionId = ASE.AircraftSectionId
 			LEFT JOIN dbo.Employee EMP WITH (NOLOCK) ON EMP.EmployeeId = AP.VerifiedBy
-			LEFT JOIN [dbo].[Module] pemp WITH (NOLOCK) ON AP.PublishedById = pemp.ModuleId 
 			LEFT JOIN [dbo].[Manufacturer] M with (NOLOCK) ON AP.PublishedByRefId = M.ManufacturerId
 			LEFT JOIN [dbo].[Vendor] V with (NOLOCK) ON AP.PublishedByRefId = V.VendorId
             WHERE
                 AP.MasterCompanyId = @MasterCompanyId
                 AND (@IsDeleted IS NULL OR AP.IsDeleted = @IsDeleted)
+				AND (@IsActive IS NULL OR AP.IsActive = @IsActive)
 				AND ((@FromPubDate IS NULL AND @ToPubDate IS NULL)
 						OR CAST(AP.PubDate AS DATE) BETWEEN 
 						CAST(@FromPubDate AS DATE) 
@@ -135,7 +136,7 @@ BEGIN
 				AND (NULLIF(@Timeframe, '') IS NULL OR AP.Timeframe LIKE '%' + @Timeframe + '%')
 				AND (NULLIF(@PurposeReasonBackground, '') IS NULL OR AP.PurposeReasonBackground LIKE '%' + @PurposeReasonBackground + '%')
 				AND (@EntryDate IS NULL OR CAST(AP.EntryDate AS DATE) = CAST(@EntryDate AS DATE))
-				AND (NULLIF(@VerifiedBy, '') IS NULL OR CAST(EMP.FirstName + EMP.LastName AS VARCHAR) LIKE '%' + @VerifiedBy + '%')
+				AND (NULLIF(@VerifiedBy, '') IS NULL OR CAST(EMP.FirstName + ' ' + EMP.LastName AS VARCHAR) LIKE '%' + @VerifiedBy + '%')
 				AND (@PubDate IS NULL OR CAST(AP.PubDate AS DATE) = CAST(@PubDate AS DATE))
 				AND (@CreatedDate IS NULL OR CAST(AP.CreatedDate AS DATE) = CAST(@CreatedDate AS DATE))
 				AND (NULLIF(@CreatedBy, '') IS NULL OR AP.CreatedBy LIKE '%' + @CreatedBy + '%')

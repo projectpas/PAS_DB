@@ -1,5 +1,4 @@
-﻿
-/*************************************************************     
+﻿/*************************************************************     
 ** Author:  <Amit Ghediya>    
 ** Create date: <05/04/2026>    
 ** Description: <This Proc Is used to Get Aircraft AircraftEffectivity>    
@@ -10,9 +9,10 @@ Exec [USP_GetAircraftEffectivity]
 **************************************************************     
 ** PR   Date        Author          Change Description    
 ** --   --------    -------         --------------------------------  
-   1    05/05/2026  Amit Ghediya		Created  
-     
-**************************************************************/  
+   1    05/05/2026  Amit Ghediya		Created
+   2    27/05/2026  Code Review		Apply IsActive and IsDeleted filters
+
+**************************************************************/
 CREATE   PROCEDURE [dbo].[USP_GetAircraftEffectivity]
 (
     @PageNumber INT,
@@ -105,10 +105,10 @@ BEGIN
                 (ISNULL(@PartDescription,'')='' OR PartDescription LIKE '%' + @PartDescription + '%') AND
 				(IsNull(@CreatedDate,'') ='' OR Cast(CreatedDate as DATE)=Cast(@CreatedDate as DATE)) AND  
 				  (IsNull(@UpdatedDate,'') ='' OR Cast(UpdatedDate as DATE)=Cast(@UpdatedDate as DATE)) and  
-				  (IsNull(@CreatedBy,'') ='' OR CreatedBy like '%' + @CreatedBy+'%') AND  
-				  (IsNull(@UpdatedBy,'') ='' OR UpdatedBy like '%' + @UpdatedBy+'%')  
+				  (IsNull(@CreatedBy,'') ='' OR CreatedBy like '%' + @CreatedBy+'%') AND
+				  (IsNull(@UpdatedBy,'') ='' OR UpdatedBy like '%' + @UpdatedBy+'%')
             )
-        );
+        )
 
         -- Total count
         SELECT @Count = COUNT(*) FROM #TempResult;

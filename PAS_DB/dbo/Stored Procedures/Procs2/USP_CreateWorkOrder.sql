@@ -29,7 +29,10 @@
 	16   12/02/2026   Moin Bloch        Added Stockline Issue Entry For TearDown Work Order PN-15435
 	17   24/02/2026   Moin Bloch        Added Logic for IncomingPartNumber PN-15427
 	18   26/03/2026   Moin Bloch	    Rename TearDown To Internal Teardown PN-15850
-	
+	19   30/04/2026   Nakul Chandigra   Added  [AircraftRegistryNumber] ,[IsFromAircraft],[AircraftInstalledPartDetailsId] for Work Order (PN-16150)
+	20   21/05/2026   Moin Bloch        Added  [MtcCategoryId] PN-16469
+	21   22/05/2026   Moin Bloch        Added  [AircraftRegistryId],[ProgramId] PN-16469
+	22   27/05/2026   Ayushi Patel      [PN-16476]added CSN, CSO, TSN, TSO in WorkOrderPartNumber from StockLine TimeLife for internal workorder
 --   EXEC [USP_CreateWorkOrder] 
 **************************************************************/
 CREATE     PROCEDURE [dbo].[USP_CreateWorkOrder]
@@ -80,6 +83,7 @@ CREATE     PROCEDURE [dbo].[USP_CreateWorkOrder]
 @IsTraveler BIT=NULL,
 @AllowInvoiceBeforeShipping BIT=NULL,
 @IsFromLot BIT=NULL,
+@MtcCategoryId BIGINT = NULL,
 @tbl_WorkOrderPartNumberType WorkOrderMPNType READONLY
 AS
 BEGIN
@@ -100,7 +104,7 @@ BEGIN
 	DECLARE @CurrentNumber AS BIGINT,@TravelerCodeTypeId BIGINT = (SELECT  [CodeTypeId] FROM [dbo].[CodeTypes] WITH (NOLOCK) WHERE [CodeType] = 'TravelerId')
 	DECLARE @TravelerName AS varchar(100) = 0,@WorkOrderScopeId BIGINT = NULL, @EnforceMpnPickTicketConfirmation BIT; 
 	DECLARE @SecondarySalesPersonId BIGINT = NULL,@SalesAgentID BIGINT = NULL,@CommonTeardownTypeId BIGINT = NULL, @StocklineHistoryReserveActionEnum INT = 0, @StocklineHistoryIssueActionEnum INT = 0
-
+	DECLARE @IsFromAircraft BIT = 0
 	DECLARE @CSN VARCHAR(50) = NULL,@TSN VARCHAR(50) = NULL,@CSO VARCHAR(50) = NULL, @TSO VARCHAR(50) = NULL;
 
 	-- From Receiving Customer 
@@ -136,6 +140,8 @@ BEGIN
 	-- RMA Status
 	SELECT @OpenRMAStatus = [RMAStatusId] FROM [dbo].[RMAStatus] WITH(NOLOCK) WHERE [Description]='Open';
 	SELECT @CustomerRMAItemReturnedStatus = [RMAStatusId] FROM [dbo].[RMAStatus] WITH(NOLOCK) WHERE [Description]='Item Returned';
+
+	SELECT @IsFromAircraft = (SELECT TOP 1 ISNULL([IsFromAircraft],0) FROM @tbl_WorkOrderPartNumberType)	
 		
 	SET @CreatedDate = GETUTCDATE();
     SET @UpdatedDate = GETUTCDATE();
@@ -247,7 +253,13 @@ BEGIN
 		[CSN] [varchar](50) NULL,
 		[TSN] [varchar](50) NULL,
 		[CSO] [varchar](50) NULL,
-		[TSO] [varchar](50) NULL
+		[TSO] [varchar](50) NULL,
+		[AircraftRegistryNumber] [VARCHAR](30) NULL,
+		[IsFromAircraft] [BIT] NULL,
+		[AircraftInstalledPartDetailsId] [BIGINT] NULL,
+		[AircraftSerialNumber] [VARCHAR](100)  NULL,
+		[AircraftRegistryId] [BIGINT] NULL,
+		[ProgramId] [BIGINT] NULL
 	)
 
 	CREATE TABLE #tmprCreateWorkOrderCustomerRMADeatils
@@ -482,12 +494,12 @@ BEGIN
 	            [CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[SalesPersonId],[CSRId],[ReceivingCustomerWorkId],[Memo],[Notes],[CustomerContactId],[CustomerName],[CustomerType],
                 [CreditLimit],[CreditTerms],[TearDownTypes],[RMAHeaderId],[IsWarranty],[IsAccepted],[ReasonId],[Reason],[CreditTermId],[IsManualForm],[PercentId],[Days],[NetDays],
                 [WorkOrderType],[FunctionalCurrencyId],[ReportCurrencyId],[ForeignExchangeRate],[WorkOrderFormTypeId],[IsWoAlwaysOrOndemandId],[EnforceMpnPickTicketConfirmation],
-				[SecondarySalesPersonId],[SalesAgentID])
+				[SecondarySalesPersonId],[SalesAgentID],[IsFromAircraft],[MtcCategoryId])
          VALUES (@WorkOrderNum,@IsSinglePN,@WorkOrderTypeId,GETUTCDATE(),@CustomerId,@WorkOrderStatusId,@EmployeeId,@MasterCompanyId,@CreatedBy,@UpdatedBy,
 				 @CreatedDate,@UpdatedDate,1,0,@SalesPersonId,@CSRId,@ReceivingCustomerWorkId,@Memo,@Notes,@CustomerContactId,@CustomerName,@CustomerType,
 				 @CreditLimit,@CreditTerms,@TearDownTypes,@RMAHeaderId,@IsWarranty,@IsAccepted,@ReasonId,@Reason,@CreditTermId,@IsManualForm,@PercentId,@Days,@NetDays,
 				 @WorkOrderType,@FunctionalCurrencyId,@ReportCurrencyId,@ForeignExchangeRate,@WorkOrderFormTypeId,@IsWoAlwaysOrOndemandId,@EnforceMpnPickTicketConfirmation,
-				 @SecondarySalesPersonId,@SalesAgentID)
+				 @SecondarySalesPersonId,@SalesAgentID,@IsFromAircraft,@MtcCategoryId)
 
 	SET @WorkOrderId = SCOPE_IDENTITY();	
 	
@@ -501,16 +513,17 @@ BEGIN
 		   [ContractNo],[WorkScope],[isLocked],[ReceivedDate],[IsClosed],[ACTailNum],[ClosedDate],[PDFPath],[IsFinishGood],[RevisedConditionId],[CustomerReference],[Level1],[Level2],[Level3],
 		   [Level4],[AssignDate],[ReceivingCustomerWorkId],[ExpertiseId],[RevisedItemmasterid],[RevisedPartNumber],[RevisedPartDescription],[IsTraveler],[AllowInvoiceBeforeShipping],
 		   [WOFPrintDate],[CurrentSerialNumber],[StocklineCost],[TendorStocklineCost],[RepairOrderId],[RONumber],[RevisedSerialNumber],[IsROCreated],[PartNumber],[PartDescription],
-		   [WorkOrderStatus],[Priority],[WorkOrderStage],[ManufacturerName],[TechName],[EmployeeStation],[PublicationNo],[SerialNumber],[MasterPartId],Notes,
-		   [CSN],[TSN],[CSO],[TSO])
+		   [WorkOrderStatus],[Priority],[WorkOrderStage],[ManufacturerName],[TechName],[EmployeeStation],[PublicationNo],[SerialNumber],[MasterPartId],Notes,[AircraftRegistryNumber],
+		   [IsFromAircraft],[AircraftInstalledPartDetailsId],[CSN],[TSN],[CSO],[TSO],[AircraftSerialNumber],[AircraftRegistryId],[ProgramId])
 	SELECT [ID],@WorkOrderId,[WorkOrderScopeId],[EstimatedShipDate],[CustomerRequestDate],[PromisedDate],[EstimatedCompletionDate],[NTE],[Quantity],
 		   [StockLineId],[CMMIds],[WorkflowId],[WorkOrderStageId],[WorkOrderStatusId],[WorkOrderPriorityId],[IsPMA],[IsDER],[TechStationId],[TATDaysStandard],[MasterCompanyId],[CreatedBy],
 		   [UpdatedBy],@CreatedDate,@UpdatedDate,[IsActive],[IsDeleted],[ItemMasterId],[TechnicianId],[ConditionId],[TATDaysCurrent],[RevisedPartId],[ManagementStructureId],[IsMPNContract],
 		   [ContractNo],[WorkScope],[isLocked],[ReceivedDate],[IsClosed],[ACTailNum],[ClosedDate],[PDFPath],[IsFinishGood],[RevisedConditionId],[CustomerReference],[Level1],[Level2],[Level3],
 		   [Level4],[AssignDate],[ReceivingCustomerWorkId],[ExpertiseId],[RevisedItemmasterid],[RevisedPartNumber],[RevisedPartDescription],[IsTraveler],[AllowInvoiceBeforeShipping],
 		   [WOFPrintDate],[CurrentSerialNumber],[StocklineCost],[TendorStocklineCost],[RepairOrderId],[RONumber],[RevisedSerialNumber],[IsROCreated],[PartNumber],[PartDescription],
-		   [WorkOrderStatus],[Priority],[WorkOrderStage],[ManufacturerName],[TechName],[EmployeeStation],[PublicationNo],[SerialNumber],[MasterPartId],Notes,
-		   @CSN,@TSN,@CSO,@TSO FROM @tbl_WorkOrderPartNumberType
+		   [WorkOrderStatus],[Priority],[WorkOrderStage],[ManufacturerName],[TechName],[EmployeeStation],[PublicationNo],[SerialNumber],[MasterPartId],Notes,[AircraftRegistryNumber],
+		   [IsFromAircraft],[AircraftInstalledPartDetailsId],
+		   @CSN,@TSN,@CSO,@TSO,[AircraftSerialNumber],[AircraftRegistryId],[ProgramId] FROM @tbl_WorkOrderPartNumberType
 
 	SELECT @TotalRecord = COUNT(*), @MinId = MIN([PKID]) FROM #tmprCreateWorkOrderPartNumber    
 
@@ -541,7 +554,24 @@ BEGIN
 		FROM #tmprCreateWorkOrderPartNumber WHERE [PKID] = @MinId
 			   		
 		SELECT @StocklineCost = [UnitCost] FROM [dbo].[StockLine] WITH(NOLOCK) WHERE [StockLineId] = @StockLineId;
+		IF @WorkOrderTypeId = @Internal AND ISNULL(@StockLineId, 0) > 0
+		BEGIN
+			SELECT 
+				@CSN = [CyclesSinceNew],
+				@CSO = [CyclesSinceOVH],
+				@TSN = [TimeSinceNew],
+				@TSO = [TimeSinceOVH]
+			FROM [dbo].[TimeLife] WITH (NOLOCK)
+			WHERE [StockLineId] = @StockLineId
+			  AND ISNULL([IsActive], 0) = 1
 
+			UPDATE #tmprCreateWorkOrderPartNumber
+			SET [CSN] = @CSN,
+				[TSN] = @TSN,
+				[CSO] = @CSO,
+				[TSO] = @TSO
+			WHERE [PKID] = @MinId;
+		END
 		IF(@ReceivingCustomerWorkId > 0)
 		BEGIN
 			SELECT @IncomingPartNumber = [PartNumber],@OutGoingItemMasterId = [OutGoingItemMasterId],@OutGoingPartNumber = [OutGoingPartNumber] FROM [dbo].[ReceivingCustomerWork] WITH(NOLOCK) WHERE [ReceivingCustomerWorkId] = @ReceivingCustomerWorkId;
@@ -625,7 +655,7 @@ BEGIN
 				[Level1],[Level2],[Level3],[Level4],[AssignDate],[ReceivingCustomerWorkId],[ExpertiseId],[RevisedItemmasterid],[RevisedPartNumber],[RevisedPartDescription],[IsTraveler],
 				[AllowInvoiceBeforeShipping],[WOFPrintDate],[CurrentSerialNumber],[StocklineCost],[TendorStocklineCost],[RepairOrderId],[RONumber],[RevisedSerialNumber],[IsROCreated],
 				[PartNumber],[PartDescription],[WorkOrderStatus],[Priority],[WorkOrderStage],[ManufacturerName],[TechName],[EmployeeStation],[PublicationNo],TravelerNumber,Notes,
-				[CSN],[TSN],[CSO],[TSO],[IncomingPartNumber])
+				[CSN],[TSN],[CSO],[TSO],[IncomingPartNumber],[AircraftRegistryNumber],[IsFromAircraft],[AircraftInstalledPartDetailsId],[AircraftSerialNumber],[AircraftRegistryId],[ProgramId])
 		 SELECT [WorkOrderId],[WorkOrderScopeId],[EstimatedShipDate],[CustomerRequestDate],[PromisedDate],[EstimatedCompletionDate],[NTE],[Quantity],
 	            [StockLineId],[CMMIds],[WorkflowId],[WorkOrderStageId],[WorkOrderStatusId],[WorkOrderPriorityId],[IsPMA],[IsDER],[TechStationId],[TATDaysStandard],[MasterCompanyId],
 				[CreatedBy],[UpdatedBy],@CreatedDate,@UpdatedDate,[IsActive],[IsDeleted],[ItemMasterId],[TechnicianId],[ConditionId],[TATDaysCurrent],[RevisedPartId],[ManagementStructureId],
@@ -633,7 +663,7 @@ BEGIN
 				[Level1],[Level2],[Level3],[Level4],[AssignDate],[ReceivingCustomerWorkId],[ExpertiseId],[RevisedItemmasterid],[RevisedPartNumber],[RevisedPartDescription],[IsTraveler],
 				[AllowInvoiceBeforeShipping],[WOFPrintDate],[CurrentSerialNumber],[StocklineCost],[TendorStocklineCost],[RepairOrderId],[RONumber],[RevisedSerialNumber],[IsROCreated],
 				[PartNumber],[PartDescription],[WorkOrderStatus],[Priority],[WorkOrderStage],[ManufacturerName],[TechName],[EmployeeStation],[PublicationNo],@TravelerName,Notes,
-				[CSN],[TSN],[CSO],[TSO],CASE WHEN @IncomingPartNumber IS NOT NULL THEN @IncomingPartNumber ELSE [PartNumber] END
+				[CSN],[TSN],[CSO],[TSO],CASE WHEN @IncomingPartNumber IS NOT NULL THEN @IncomingPartNumber ELSE [PartNumber] END,[AircraftRegistryNumber],[IsFromAircraft],[AircraftInstalledPartDetailsId],[AircraftSerialNumber],[AircraftRegistryId],[ProgramId]
 		   FROM #tmprCreateWorkOrderPartNumber 
 		  WHERE [PKID] = @MinId
 

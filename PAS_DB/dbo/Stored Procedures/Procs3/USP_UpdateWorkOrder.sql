@@ -18,6 +18,7 @@
 	6    24/09/2025    RAJESH GAMI		Added MPN Notes
 	7	 19/02/2026    Moin Bloch       Added IncomingPartNumber
 	8	 20/03/2026    RAJESH GAMI      WO Part IsFinishGood update the TRUE when WO is closed PN-15819
+	9    21/05/2026   Moin Bloch        Added  [MtcCategoryId] PN-16469
 --   EXEC [USP_UpdateWorkOrder] 
 **************************************************************/
 CREATE    PROCEDURE [dbo].[USP_UpdateWorkOrder]
@@ -67,6 +68,7 @@ CREATE    PROCEDURE [dbo].[USP_UpdateWorkOrder]
 @StockLineId INT=NULL,
 @IsTraveler BIT=NULL,
 @AllowInvoiceBeforeShipping BIT=NULL,
+@MtcCategoryId BIGINT = NULL,
 @tbl_WorkOrderPartNumberType WorkOrderMPNType READONLY
 AS
 BEGIN
@@ -354,6 +356,7 @@ BEGIN
 		  ,[FunctionalCurrencyId] = @FunctionalCurrencyId
 		  ,[ReportCurrencyId] = @ReportCurrencyId
 		  ,[ForeignExchangeRate] = @ForeignExchangeRate
+		  ,[MtcCategoryId] = @MtcCategoryId
 	 WHERE [WorkOrderId] = @WorkOrderId;
 
 	SELECT @TotalRecord = COUNT(*), @MinId = MIN([PKID]) FROM #tmprCreateWorkOrderPartNumber    

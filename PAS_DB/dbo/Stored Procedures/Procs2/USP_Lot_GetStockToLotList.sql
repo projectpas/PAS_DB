@@ -15,6 +15,7 @@
 	3	 20 jun 2024  Bhargav Saliya   Remove UPPER case for the memo
 	4    19/02/2025   Ayushi Patel      converted the date into utc (created) , Added a case to get timeZone
 	5    04/Apr/2025  RAJESH GAMI      Add DISTINCT due to duplicate data and Add the Reference Number related change
+	6	 27-MAY-2026  RAJESH GAMI      Added Lot Number & Transfer From Lot Num In Every Type [PN-16572]
 **************************************************************
 **************************************************************/
 CREATE     PROCEDURE [dbo].[USP_Lot_GetStockToLotList] 
@@ -56,7 +57,9 @@ CREATE     PROCEDURE [dbo].[USP_Lot_GetStockToLotList]
 	@TaggedByName varchar(200) = NULL,
 	@TagDate datetime = NULL,
 	@EmployeeId bigint,
-	@ReferenceNumber varchar(100) = NULL
+	@ReferenceNumber varchar(100) = NULL,
+	@LotNumber varchar(200) = NULL,
+	@TransferredFromLotNumber varchar(200) = NULL
 AS
 BEGIN
   SET NOCOUNT ON;
@@ -133,7 +136,9 @@ BEGIN
 					,stl.TraceableToName
 					,stl.TaggedByName
 					,stl.TagDate,
-					ind.ReferenceNumber
+					ind.ReferenceNumber,
+					lt.LotNumber,
+					ISNULL(stl.TransferredFromLotNumber,'')TransferredFromLotNumber
 				FROM [dbo].LotTransInOutDetails ind WITH (NOLOCK)
 				INNER JOIN DBO.Lot lt WITH(NOLOCK) on ind.LotId = lt.LotId
 				INNER JOIN [dbo].[StockLine] stl WITH (NOLOCK) ON ind.StockLineId = stl.StockLineId
@@ -169,6 +174,8 @@ BEGIN
 							(TraceableToName like '%'+@GlobalFilter+'%') OR
 							(TaggedByName like '%'+@GlobalFilter+'%') OR
 							(ReferenceNumber like '%'+@GlobalFilter+'%') OR
+							(LotNumber like '%'+@GlobalFilter+'%') OR
+							(TransferredFromLotNumber like '%'+@GlobalFilter+'%') OR
 							(TagDate like '%'+@GlobalFilter+'%')
 							))
 							OR   
@@ -188,6 +195,8 @@ BEGIN
 							(IsNull(@TraceableToName,'') ='' OR TraceableToName like '%'+ @TraceableToName+'%') and
 							(IsNull(@TaggedByName,'') ='' OR TaggedByName like '%'+ @TaggedByName+'%') and
 							(IsNull(@ReferenceNumber,'') ='' OR ReferenceNumber like '%'+ @ReferenceNumber+'%') and
+							(IsNull(@LotNumber,'') ='' OR LotNumber like '%'+ @LotNumber+'%') and
+							(IsNull(@TransferredFromLotNumber,'') ='' OR TransferredFromLotNumber like '%'+ @TransferredFromLotNumber+'%') and
 							(ISNULL(@TagDate,'') ='' OR CAST(TagDate AS Date) = CAST(@TagDate AS date)) AND
 							(IsNull(@Cond,'') ='' OR Cond like '%'+@Cond+'%')
 							))
@@ -240,7 +249,11 @@ BEGIN
 							CASE WHEN (@SortOrder=1  AND @SortColumn='TagDate')  THEN TagDate END ASC,
 							CASE WHEN (@SortOrder=-1 AND @SortColumn='TagDate')  THEN TagDate END DESC,
 							CASE WHEN (@SortOrder=1  AND @SortColumn='ReferenceNumber')  THEN ReferenceNumber END ASC,
-							CASE WHEN (@SortOrder=-1 AND @SortColumn='ReferenceNumber')  THEN ReferenceNumber END DESC
+							CASE WHEN (@SortOrder=-1 AND @SortColumn='ReferenceNumber')  THEN ReferenceNumber END DESC,
+							CASE WHEN (@SortOrder=1  AND @SortColumn='LotNumber')  THEN LotNumber END ASC,
+							CASE WHEN (@SortOrder=-1 AND @SortColumn='LotNumber')  THEN LotNumber END DESC,
+							CASE WHEN (@SortOrder=1  AND @SortColumn='TransferredFromLotNumber')  THEN TransferredFromLotNumber END ASC,
+							CASE WHEN (@SortOrder=-1 AND @SortColumn='TransferredFromLotNumber')  THEN TransferredFromLotNumber END DESC
 					
 						OFFSET @RecordFrom ROWS 
 						FETCH NEXT @PageSize ROWS ONLY
@@ -284,9 +297,11 @@ BEGIN
 					,stl.TraceableToName
 					,stl.TaggedByName
 					,stl.TagDate,
-					ind.ReferenceNumber
+					ind.ReferenceNumber,
+					lt.LotNumber,
+					ISNULL(stl.TransferredFromLotNumber,'')TransferredFromLotNumber
 				FROM DBO.LotTransInOutDetails ind WITH (NOLOCK)
-				--INNER JOIN DBO.LotCalculationDetails LC WITH(NOLOCK) ON ind.LotTransInOutId = LC.LotTransInOutId
+				INNER JOIN DBO.Lot lt WITH(NOLOCK) on ind.LotId = lt.LotId
 				INNER JOIN [dbo].[StockLine] stl WITH (NOLOCK) ON ind.StockLineId = stl.StockLineId
 				INNER JOIN [dbo].[ItemMaster] im WITH (NOLOCK) ON stl.ItemMasterId = im.ItemMasterId 
 				INNER JOIN [dbo].[StocklineManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ReferenceID = stl.StockLineId AND MSD.ModuleID = @MSModuelId
@@ -320,6 +335,7 @@ BEGIN
 							(TraceableToName like '%'+@GlobalFilter+'%') OR
 							(TaggedByName like '%'+@GlobalFilter+'%') OR
 							(ReferenceNumber like '%'+@GlobalFilter+'%') OR
+							(LotNumber like '%'+@GlobalFilter+'%') OR
 							(TagDate like '%'+@GlobalFilter+'%')
 							))
 							OR   
@@ -339,6 +355,7 @@ BEGIN
 							(IsNull(@TraceableToName,'') ='' OR TraceableToName like '%'+ @TraceableToName+'%') and
 							(IsNull(@TaggedByName,'') ='' OR TaggedByName like '%'+ @TaggedByName+'%') and
 							(IsNull(@ReferenceNumber,'') ='' OR ReferenceNumber like '%'+ @ReferenceNumber+'%') and
+							(IsNull(@LotNumber,'') ='' OR LotNumber like '%'+ @LotNumber+'%') and
 							(ISNULL(@TagDate,'') ='' OR CAST(TagDate AS Date) = CAST(@TagDate AS date)) AND
 							(IsNull(@Cond,'') ='' OR Cond like '%'+@Cond+'%')
 							)))
@@ -390,7 +407,9 @@ BEGIN
 							CASE WHEN (@SortOrder=1  AND @SortColumn='TagDate')  THEN TagDate END ASC,
 							CASE WHEN (@SortOrder=-1 AND @SortColumn='TagDate')  THEN TagDate END DESC,
 							CASE WHEN (@SortOrder=1  AND @SortColumn='ReferenceNumber')  THEN ReferenceNumber END ASC,
-							CASE WHEN (@SortOrder=-1 AND @SortColumn='ReferenceNumber')  THEN ReferenceNumber END DESC
+							CASE WHEN (@SortOrder=-1 AND @SortColumn='ReferenceNumber')  THEN ReferenceNumber END DESC,							
+							CASE WHEN (@SortOrder=1  AND @SortColumn='LotNumber')  THEN LotNumber END ASC,
+							CASE WHEN (@SortOrder=-1 AND @SortColumn='LotNumber')  THEN LotNumber END DESC
 					
 						OFFSET @RecordFrom ROWS 
 						FETCH NEXT @PageSize ROWS ONLY

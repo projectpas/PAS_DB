@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿
+/*************************************************************           
  ** File:   [AutoCompleteDropdowns]           
  ** Author:   Vishal Suthar
  ** Description: This stored procedure is used to search part
@@ -38,7 +39,8 @@
     21   20-Dec-2025  Divyesh Kathiriya  	Added case for Warehouse,Location,Shelf,Bin
     22   30/01/2026   Ayushi Patel          Added Vendor auto-suggestion logic with duplicate VendorName handling (append VendorCode when duplicates exist)
     23   13/05/2026   Ayushi Patel  	    [PN-16321]return partdescription for itemMasterAll
-	24   21/04/2026   Sahdev Saliya			Display Only Trainer Expertise EMPLOYEE list for EMP TRAINER SCREEN(PN-16113)
+	24   20/05/2026   Moin Bloch  	        Added case for MaintenanceCategory table. PN-16449
+	25   21/04/2026   Sahdev Saliya			Display Only Trainer Expertise EMPLOYEE list for EMP TRAINER SCREEN(PN-16113)
 
 --select * from dbo.Employee      
 --EXEC AutoCompleteDropdowns 'ItemMasterALL','ItemMasterId','PartDescription','',1,0,'',1,0       
@@ -132,6 +134,31 @@ AS BEGIN
                          FROM dbo.PublicationType P WITH(NOLOCK)
                          WHERE MasterCompanyId=@MasterCompanyId AND PublicationTypeId IN(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') )
                          ORDER BY Name asc
+                     END
+            END
+			ELSE IF(@TableName='MaintenanceCategory')
+			BEGIN
+				IF(@Parameter4=1)
+				BEGIN
+                         SELECT DISTINCT MtcCategoryId as Value, [MtcCategory] as Label, MaintenanceCode
+                         FROM dbo.MaintenanceCategory P WITH(NOLOCK)
+                         WHERE MasterCompanyId=@MasterCompanyId AND(IsActive=1 AND ISNULL(IsDeleted, 0)=0 AND(MtcCategory LIKE '%'+@Parameter3+'%'))
+                         UNION
+                         SELECT DISTINCT MtcCategoryId as Value, [MtcCategory] as Label, MaintenanceCode
+                         FROM dbo.MaintenanceCategory P WITH(NOLOCK)
+                         WHERE MasterCompanyId=@MasterCompanyId AND MtcCategoryId IN(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') )
+                         ORDER BY [MtcCategory] asc
+                     END
+                     ELSE 
+					 BEGIN
+                         SELECT DISTINCT MtcCategoryId as Value, [MtcCategory] as Label, MaintenanceCode
+                         FROM dbo.MaintenanceCategory P WITH(NOLOCK)
+                         WHERE MasterCompanyId=@MasterCompanyId AND IsActive=1 AND ISNULL(IsDeleted, 0)=0 AND MtcCategory LIKE '%'+@Parameter3+'%'
+                         UNION
+                         SELECT DISTINCT MtcCategoryId as Value, [MtcCategory] as Label, MaintenanceCode
+                         FROM dbo.MaintenanceCategory P WITH(NOLOCK)
+                         WHERE MasterCompanyId=@MasterCompanyId AND MtcCategoryId IN(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') )
+                         ORDER BY [MtcCategory] asc
                      END
             END
             ELSE IF(@TableName='Task')BEGIN
@@ -274,7 +301,13 @@ AS BEGIN
                 FROM [DBO].[Bin] WITH(NOLOCK)
                 WHERE [MasterCompanyId] = @MasterCompanyId AND [ShelfId] IN(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ','))
                 ORDER BY [Binid] ASC 
-            END           
+            END   
+			ELSE IF(@TableName='NumberOfEngines')
+            BEGIN 
+                SELECT DISTINCT [Id] AS Value, [Number] AS Label
+                FROM [DBO].[NumberOfEngines] WITH(NOLOCK)
+                ORDER BY [Id] ASC 
+            END
             ELSE BEGIN
                      IF(@Parameter4=1)BEGIN
                          IF(@TableName='ItemMaster' AND ISNULL(@IsFromUpload,0) = 0)BEGIN

@@ -25,6 +25,7 @@
 	12   27-Aug-2025  RAJESH GAMI       Remove Duplicate Stockline from the 'ViewAllPN' (PN-14039)
 	13   03-Mar-2026  RAJESH GAMI       Resolved Error While Getting Part (PN-15635)
 	14   22-MAY-2026  RAJESH GAMI       Added IsVersionIncrease condition for billing invoicing [PN-16565]
+	15   27-MAY-2026  RAJESH GAMI       Added LotNumber In Every Type [PN-16571]
 -- EXEC USP_Lot_GetAllLotViewsByLotId_Filter 7,'ViewAllPN',1
 -- EXEC USP_Lot_GetAllLotViewsByLotId 67,'ViewAllPN',1
 ************************************************************************/
@@ -379,7 +380,8 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 					(StocklineTotalCost like '%' + @GlobalFilter + '%') OR
 					(RemainStocklineCost like '%' + @GlobalFilter + '%') OR
 					(Adjustment like '%' + @GlobalFilter + '%') OR
-						(ManufacturerName like '%' + @GlobalFilter + '%') OR	
+					(ManufacturerName like '%' + @GlobalFilter + '%') OR	
+					(LotNumber like '%' + @GlobalFilter + '%') OR	
 					([Status] like '%' + @GlobalFilter + '%')
 					))
 					OR
@@ -763,6 +765,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 				,SL.LotMainStocklineId
 				,ISNULL(sl.Adjustment,0) Adjustment
 				,ltCal.CreatedDate
+				,(CASE WHEN ISNULL(lot.InitialPOId,0) != 0 AND ISNULL(lot.InitialPOId,0) =ISNULL(SL.PurchaseOrderId,0) THEN 1 ELSE 0 END) As IsInitialPO
 				,ISNULL(ltin.ReferenceNumber,'') as ReferenceNumber
 				FROM DBO.LOT lot WITH(NOLOCK)
 					 INNER JOIN DBO.LotTransInOutDetails ltin WITH(NOLOCK) on lot.LotId = ltin.LotId
@@ -829,7 +832,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 					(RemainStocklineCost like '%' + @GlobalFilter + '%') OR
 						(ManufacturerName like '%' + @GlobalFilter + '%') OR	
 					(Adjustment like '%' + @GlobalFilter + '%') OR
-					
+					(LotNumber like '%' + @GlobalFilter + '%') OR
 					(VendorCode like '%' + @GlobalFilter + '%')
 					))
 					OR
@@ -1113,7 +1116,8 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 					(StocklineTotalCost like '%' + @GlobalFilter + '%') OR
 					(RemainStocklineCost like '%' + @GlobalFilter + '%') OR
 					(Adjustment like '%' + @GlobalFilter + '%') OR
-						(ManufacturerName like '%' + @GlobalFilter + '%') OR	
+						(ManufacturerName like '%' + @GlobalFilter + '%') OR
+						(LotNumber like '%' + @GlobalFilter + '%') OR
 					([Status] like '%' + @GlobalFilter + '%')
 					))
 					OR
@@ -1401,7 +1405,8 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 					(StocklineTotalCost like '%' + @GlobalFilter + '%') OR
 					(RemainStocklineCost like '%' + @GlobalFilter + '%') OR
 					(Adjustment like '%' + @GlobalFilter + '%') OR
-						(ManufacturerName like '%' + @GlobalFilter + '%') OR	
+						(ManufacturerName like '%' + @GlobalFilter + '%') OR
+						(LotNumber like '%' + @GlobalFilter + '%') OR
 					([Status] like '%' + @GlobalFilter + '%')
 					))
 					OR
@@ -1718,8 +1723,10 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 					(StocklineTotalCost like '%' + @GlobalFilter + '%') OR
 					(RemainStocklineCost like '%' + @GlobalFilter + '%') OR
 					(Adjustment like '%' + @GlobalFilter + '%') OR
-						(ManufacturerName like '%' + @GlobalFilter + '%') OR	
+						(ManufacturerName like '%' + @GlobalFilter + '%') OR
+						(LotNumber like '%' + @GlobalFilter + '%') OR
 					(VendorCode like '%' + @GlobalFilter + '%')
+
 					))
 					OR
 					(@GlobalFilter = '' AND (ISNULL(@Partnumber, '') = '' OR Partnumber LIKE '%' + @Partnumber + '%') AND
@@ -2098,7 +2105,8 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 					(CommissionExpense like '%' + @GlobalFilter + '%') OR
 					
 					(HowCalculate like '%' + @GlobalFilter + '%') OR
-					(ManufacturerName like '%' + @GlobalFilter + '%') OR					
+					(ManufacturerName like '%' + @GlobalFilter + '%') OR
+					(LotNumber like '%' + @GlobalFilter + '%') OR
 					(Adjustment like '%' + @GlobalFilter + '%')
 					))
 					OR

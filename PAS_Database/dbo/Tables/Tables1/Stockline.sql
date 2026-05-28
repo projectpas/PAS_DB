@@ -242,6 +242,8 @@
     [ConsumeUnitOfMeasureId]              BIGINT          NULL,
     [ConsumeUnitOfMeasure]                VARCHAR (250)   NULL,
     [PoPartUnitCost]                      DECIMAL (18, 6) NULL,
+    [TransferredFromLotId]                BIGINT          NULL,
+    [TransferredFromLotNumber]            VARCHAR (200)   NULL,
     [AircraftInstalledPartDetailsId]      BIGINT          NULL,
     [AircraftSN]                          VARCHAR (30)    NULL,
     [IsReadyReleaseForm]                  BIT             CONSTRAINT [DF_Stockline_IsReadyReleaseForm] DEFAULT ((0)) NULL,

@@ -52,6 +52,7 @@
 	42   13-MAY-2026		Ayushi Patel			PN-16321 Added validation for WorkOrderMaterial module , Also get manufacture for partnumber dynamically 
 	43   15-May-2026		Ayushi Patel			PN-16321 Updated duplicate validation call to support 3-field combination for WorkOrderMaterials module 
 	44   20-May-2026        Ayushi Patel            PN-16321 Handled duplicate record validation from excel uploded data 
+	45   28-may-202         Nakul Chandigra         Sync the stored procedure from UAT.
 declare @p4 dbo.UploadModuleDataTableType
 insert into @p4 values(4,N'VICTOR ADMAS',1,N'{
   "partnumber": "AEIN122",
@@ -221,7 +222,13 @@ BEGIN
 		DECLARE @BinModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'Bin');
 		DECLARE @AircraftStatusModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'AircraftStatus');
 		DECLARE @MaintenanceStatusModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'MaintenanceStatus');
+		DECLARE @TrainingNameModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'TrainingName');
+		DECLARE @PositionCodeModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'PositionCode');
+		DECLARE @MaintenanceTypeModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'MaintenanceType');
+		DECLARE @MaintenanceClassModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'Maintenanceclass');
+		DECLARE @AircraftSectionModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'AircraftSection');
 		DECLARE @WorkOrderMaterialsModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'WorkOrderMaterials');
+		DECLARE @MaintenanceCategoryModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'MaintenanceCategory');
 
 		DECLARE @DropdownListTable VARCHAR(100) = NULL, 
 		@DropdownListId VARCHAR(100) = NULL, 
@@ -825,6 +832,21 @@ BEGIN
 													 AND ISNULL(TMP.FieldValue, '') <> ''
 													 AND LEN(TMP.FieldValue) > 500
 												THEN '‘Description’ exceeds 500 characters limit.'
+												WHEN @ModuleId = @MaintenanceTypeModule  
+													 AND IMF.FieldName = 'MaintenanceType'  
+													 AND ISNULL(TMP.FieldValue, '') <> ''
+													 AND LEN(TMP.FieldValue) > 500
+												THEN '‘MaintenanceType’ exceeds 500 characters limit.'
+												WHEN @ModuleId = @MaintenanceClassModule  
+													 AND IMF.FieldName = 'Name'  
+													 AND ISNULL(TMP.FieldValue, '') <> ''
+													 AND LEN(TMP.FieldValue) > 256
+												THEN '‘Name’ exceeds 256 characters limit.'
+												WHEN @ModuleId = @AircraftSectionModule  
+													 AND IMF.FieldName = 'Section'  
+													 AND ISNULL(TMP.FieldValue, '') <> ''
+													 AND LEN(TMP.FieldValue) > 256
+												THEN '‘Section’ exceeds 256 characters limit.'
 										ELSE ' '
 										END,
 				TMP.FieldValue = CASE WHEN ISNULL(IMF.DropdownListTable, '') != '' THEN IMF.DropdownListValueId ELSE TMP.FieldValue END
@@ -946,8 +968,7 @@ BEGIN
 					BEGIN
 						IF NOT EXISTS (SELECT 1 FROM #DynamicKeyValue WHERE ISNULL(RecordStatus, '') <> '')
 						BEGIN
-							EXEC [dbo].[USP_ChekDuplicateValueForUpload] @ChekDuplticateRef1, @ChekDuplticateRef2, @DuplicateRefeValue1, @DuplicateRefeValue2, @ReferenceTable, @MasterCompanyId, @ModuleId, @UploadData, @UploadRecord, @IsDuplicate = @IsDuplicate OUTPUT;
-						END
+							EXEC [dbo].[USP_ChekDuplicateValueForUpload] @ChekDuplticateRef1, @ChekDuplticateRef2, @ChekDuplticateRef3, @DuplicateRefeValue1, @DuplicateRefeValue2, @DuplicateRefeValue3 , @ReferenceTable, @MasterCompanyId, @ModuleId, @UploadData, @UploadRecord, @IsDuplicate = @IsDuplicate OUTPUT;						END
 					END
 					IF(ISNULL(@IsDuplicate, 0) = 1)
 					BEGIN
@@ -1177,8 +1198,20 @@ BEGIN
 															THEN 'Entered SequenceNo Already Exists!'
 														WHEN @ModuleId = @MaintenanceStatusModule AND @ChekDuplticateRef1 = 'SequenceNo'  
 															THEN 'Entered SequenceNo Already Exists!'
+														WHEN @ModuleId = @TrainingNameModule AND @ChekDuplticateRef1 = 'Name'  
+															THEN 'Entered Name Already Exists!'	
+														WHEN @ModuleId = @PositionCodeModule AND @ChekDuplticateRef1 = 'Code'  
+															THEN 'Entered Code Already Exists!'	
+														WHEN @ModuleId = @MaintenanceTypeModule AND @ChekDuplticateRef1 = 'MaintenanceType'  
+															THEN 'Entered Maintenance Type Already Exists!'	
+														WHEN @ModuleId = @MaintenanceClassModule AND @ChekDuplticateRef1 = 'Name'
+															THEN 'Entered Name Already Exists!'	
+														WHEN @ModuleId = @AircraftSectionModule AND @ChekDuplticateRef1 = 'Section'
+															THEN 'Entered Section Already Exists!'	
 														WHEN @ModuleId = @WorkOrderMaterialsModule
 															THEN 'Entered Part And Condition Already Exits!'
+														WHEN @ModuleId = @MaintenanceCategoryModule
+															THEN 'Entered Maintenance Category Already Exits!'
 														ELSE '' END
 						WHERE ImportModuleFieldMasterId = @CurrentRow;
 					END

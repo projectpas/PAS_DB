@@ -4671,6 +4671,8 @@
     <Build Include="dbo\Stored Procedures\UpdateWorkflowDeletedStatus.sql" />
     <Build Include="dbo\Stored Procedures\RPT_GetEmployeeTrainingListById.sql" />
     <Build Include="dbo\Views\vw_MaintenanceCategory.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetAllStocklineForAircraft.sql" />
+    <Build Include="dbo\Stored Procedures\GetAircraftWorkOrderList.sql" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Snapshots\PAS_DB_20220518_07-53-10.dacpac" />

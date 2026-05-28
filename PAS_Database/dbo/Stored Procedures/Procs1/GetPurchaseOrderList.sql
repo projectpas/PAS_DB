@@ -34,7 +34,7 @@
 	18  08-12-2025      Sahdev Saliya       Added New Field :- VendorRFQPurchaseOrderNumber
 	19  01-20-2026      Vishal Suthar       Added filter to skip migrated PO from the listing for PAR
 	20  05-14-2026      Bhargav Saliya      Remove The [VendoreId] Condition [PN-16416]
-
+	21  28-05-2026      Ayushi Patel        [PN-16427]Fixed bigint casting issue for quantity sorting columns
 **************************************************************/      
 CREATE    PROCEDURE [dbo].[GetPurchaseOrderList]
 	@PageNumber int = 1,
@@ -159,9 +159,9 @@ BEGIN
 		[Status] NVARCHAR(100),
 		[RequestedBy] NVARCHAR(100),
 		[ApprovedBy] NVARCHAR(100),
-		[QuantityOrdered] NVARCHAR(100),
-		[QuantityBackOrdered] NVARCHAR(100),
-		[QuantityReceived] NVARCHAR(100),
+		[QuantityOrdered] DECIMAL(18,6),
+		[QuantityBackOrdered] DECIMAL(18,6),
+		[QuantityReceived] DECIMAL(18,6),
 		[PartNumberType] NVARCHAR(250),
 		[PartDescription] NVARCHAR(MAX),
 		[ManufacturerType] NVARCHAR(250),
@@ -536,12 +536,12 @@ BEGIN
 	  CASE WHEN (@SortOrder=-1 and @SortColumn='WORKORDERNUMBERTYPE')  THEN WorkOrderNumType END DESC,
 	  CASE WHEN (@SortOrder=1 and @SortColumn='REPAIRORDERNUMBERTYPE')  THEN RepairOrderNumberType END ASC,
 	  CASE WHEN (@SortOrder=-1 and @SortColumn='REPAIRORDERNUMBERTYPE')  THEN RepairOrderNumberType END DESC,
-	  CASE WHEN (@SortOrder=1  AND @SortColumn='quantityOrdered')  THEN cast(quantityOrdered as bigint) END ASC,
-	  CASE WHEN (@SortOrder=-1 AND @SortColumn='quantityOrdered')  THEN cast(quantityOrdered as bigint) END DESC, 
-	  CASE WHEN (@SortOrder=1  AND @SortColumn='quantityReceived')  THEN cast(quantityReceived as bigint) END ASC,
-	  CASE WHEN (@SortOrder=-1 AND @SortColumn='quantityReceived')  THEN cast(quantityReceived as bigint) END DESC, 
-	  CASE WHEN (@SortOrder=1  AND @SortColumn='quantityBackOrdered')  THEN cast(quantityBackOrdered as bigint) END ASC,
-	  CASE WHEN (@SortOrder=-1 AND @SortColumn='quantityBackOrdered')  THEN cast(quantityBackOrdered as bigint) END DESC ,
+	  CASE WHEN (@SortOrder=1  AND @SortColumn='quantityOrdered')  THEN TRY_CAST(quantityOrdered as decimal(18,6)) END ASC,
+	  CASE WHEN (@SortOrder=-1 AND @SortColumn='quantityOrdered')  THEN TRY_CAST(quantityOrdered as decimal(18,6)) END DESC, 
+	  CASE WHEN (@SortOrder=1  AND @SortColumn='quantityReceived')  THEN TRY_CAST(quantityReceived as decimal(18,6)) END ASC,
+	  CASE WHEN (@SortOrder=-1 AND @SortColumn='quantityReceived')  THEN TRY_CAST(quantityReceived as decimal(18,6)) END DESC, 
+	  CASE WHEN (@SortOrder=1  AND @SortColumn='quantityBackOrdered')  THEN TRY_CAST(quantityBackOrdered as decimal(18,6)) END ASC,
+	  CASE WHEN (@SortOrder=-1 AND @SortColumn='quantityBackOrdered')  THEN TRY_CAST(quantityBackOrdered as decimal(18,6)) END DESC ,
 	  CASE WHEN (@SortOrder=1 and @SortColumn='PRIORITY')  THEN [Priority] END ASC,
 	  CASE WHEN (@SortOrder=-1 and @SortColumn='PRIORITY')  THEN [Priority] END DESC,
 	  CASE WHEN (@SortOrder=1 and @SortColumn='CustomerRFQNo')  THEN CustomerRFQNo END ASC,

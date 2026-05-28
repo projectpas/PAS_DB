@@ -13,6 +13,7 @@
     1    03/04/2023   Rajesh Gami     Created
 	2    10/16/2024	 Abhishek Jirawla	Implemented the new tables for SalesOrder related tables
 	3    19/02/2025   Ayushi Patel      converted the date into utc (created) , Added a case to get timeZone
+	4    28 May 2026  Rajesh Gami     Added VendorName [PN-16601]
 **************************************************************
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_Lot_GetLotList] 
@@ -41,7 +42,8 @@ CREATE   PROCEDURE [dbo].[USP_Lot_GetLotList]
 	@UpdatedBy  varchar(50) = NULL,
 	@UpdatedDate  datetime = NULL,
 	@MasterCompanyId bigint = NULL,
-	@EmployeeId bigint
+	@EmployeeId bigint,
+	@VendorName varchar(200) = NULL
 AS
 BEGIN
   SET NOCOUNT ON;
@@ -170,6 +172,7 @@ BEGIN
 					(CAST(OriginalCost AS NVARCHAR(10)) LIKE '%' + @GlobalFilter + '%') OR
 					(ConsignmentNumber LIKE '%' + @GlobalFilter + '%') OR
 					(ConsigneeName LIKE '%' + @GlobalFilter + '%') OR
+					(VendorName LIKE '%' + @GlobalFilter + '%') OR
 					(CAST(AcqusitionCost AS NVARCHAR(10)) LIKE '%' + @GlobalFilter + '%') OR
 					(CAST(RemainingCost AS NVARCHAR(10)) LIKE '%' + @GlobalFilter + '%') OR
 					(CAST(RemainingPercentage AS NVARCHAR(10)) LIKE '%' + @GlobalFilter + '%') OR
@@ -189,6 +192,7 @@ BEGIN
 					(IsNull(@OriginalCost, 0) = 0 OR CAST(OriginalCost as VARCHAR(10)) like @OriginalCost) AND
 					(ISNULL(@ConsignmentNumber, '') = '' OR ConsignmentNumber LIKE '%' + @ConsignmentNumber + '%') AND
 					(ISNULL(@ConsigneeName, '') = '' OR ConsigneeName LIKE '%' + @ConsigneeName + '%') AND
+					(ISNULL(@VendorName, '') = '' OR VendorName LIKE '%' + @VendorName + '%') AND
 					(ISNULL(@AcqusitionCost, 0) = 0 OR CAST(AcqusitionCost as VARCHAR(10)) LIKE @AcqusitionCost) AND
 					(ISNULL(@RemainingCost, 0) = 0 OR CAST(RemainingCost as VARCHAR(10)) LIKE @RemainingCost) AND
 					(ISNULL(@RemainingPercentage, 0) = 0 OR CAST(RemainingPercentage as VARCHAR(10)) = @RemainingPercentage) AND
@@ -218,6 +222,8 @@ BEGIN
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='ConsignmentNumber')  THEN ConsignmentNumber END DESC,           
 			CASE WHEN (@SortOrder=1  AND @SortColumn='ConsigneeName')  THEN ConsigneeName END ASC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='ConsigneeName')  THEN ConsigneeName END DESC,
+			CASE WHEN (@SortOrder=1  AND @SortColumn='VendorName')  THEN VendorName END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='VendorName')  THEN VendorName END DESC,
 			CASE WHEN (@SortOrder=1  AND @SortColumn='AcqusitionCost')  THEN AcqusitionCost END ASC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='AcqusitionCost')  THEN AcqusitionCost END DESC,
 			CASE WHEN (@SortOrder=1  AND @SortColumn='RemainingCost')  THEN RemainingCost END ASC,

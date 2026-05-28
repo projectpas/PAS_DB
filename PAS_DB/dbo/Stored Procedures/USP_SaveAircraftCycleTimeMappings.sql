@@ -21,7 +21,7 @@ Exec [USP_SaveAircraftCycleTimeMappings]
    10   27/05/2026  Priyansh Patel		Update logic for Remaining Cycles [PN-16587].
      
 **************************************************************/   
-CREATE   PROCEDURE [dbo].[USP_SaveAircraftCycleTimeMappings]  
+create PROCEDURE [dbo].[USP_SaveAircraftCycleTimeMappings]  
 	 @CycleData NVARCHAR(MAX),
      @EngineData NVARCHAR(MAX)
 AS  

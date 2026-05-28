@@ -23,6 +23,16 @@
     [IsDeleted]               BIT             CONSTRAINT [DF_EmployeeTrainingAudit_IsDeleted] DEFAULT ((0)) NOT NULL,
     [Memo]                    VARCHAR (MAX)   NULL,
     [InternalReference]       VARCHAR (256)   NULL,
+    [TrainingNameId]          BIGINT          NULL,
+    [ProviderId]              BIGINT          NULL,
+    [ProviderType]            VARCHAR (50)    NULL,
+    [IsRecurring]             BIT             NULL,
+    [DurationHours]           INT             NULL,
+    [DurationMinutes]         INT             NULL,
+    [CategoryId]              BIGINT          NULL,
+    [CategoryType]            VARCHAR (50)    NULL,
+    [CurrencyId]              BIGINT          NULL,
+    [CurrencyCode]            VARCHAR (200)   NULL,
     CONSTRAINT [PK_EmployeeTrainingAudit] PRIMARY KEY CLUSTERED ([EmployeeTrainingAuditId] ASC)
 );
 

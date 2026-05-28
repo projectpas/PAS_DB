@@ -14,7 +14,7 @@
 ** 2    14/04/2026  Amit Ghediya		Get LastFlownDate (PN-16156)
 ** 3    28/04/2026  Amit Ghediya		Get Minutes related data,LastFlownDate (PN-16151)
 *************************************************************/
-CREATE     PROCEDURE [dbo].[usp_GetAircraftCycleTimeById]
+create     PROCEDURE [dbo].[usp_GetAircraftCycleTimeById]
 (
     @AircraftCycleTimeMappingsId BIGINT
 )

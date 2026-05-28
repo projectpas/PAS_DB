@@ -1,4 +1,11 @@
-﻿
+﻿/*************************************************************           
+ ** File:   [USP_GetAircraftInfoHeaderDetailsByItemMasterId]           
+ ** Author: Abhishek Jirawla
+ ** Description: This stored procedure is used to Get Aircraft Info by ItemMasterId
+ ** Purpose:         
+ ** jira id :  PN-16523       
+ ** Date:   05/21/2026
+
 CREATE PROCEDURE [dbo].[USP_GetAircraftInfoHeaderDetailsByItemMasterId]
 (
 	@ItemMasterId BIGINT,

@@ -4661,6 +4661,14 @@
     <Build Include="dbo\Stored Procedures\USP_SaveAircraftCycleTimeMappings.sql" />
     <Build Include="dbo\Stored Procedures\usp_GetAircraftCycleTimeById.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetAircraftInfoHeaderDetailsByItemMasterId.sql" />
+    <Build Include="dbo\Stored Procedures\USP_UpdateAircraftRegistryState.sql" />
+    <Build Include="dbo\Stored Procedures\USP_UpdateAircraftPublicationState.sql" />
+    <Build Include="dbo\Stored Procedures\USP_ToggleWorkflowState.sql" />
+    <Build Include="dbo\Stored Procedures\USP_SearchInstalledComponents.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetAllAircraft.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetAircraftTechnicalRecordList.sql" />
+    <Build Include="dbo\Stored Procedures\USP_CheckAircraftTailNumberExists.sql" />
+    <Build Include="dbo\Stored Procedures\UpdateWorkflowDeletedStatus.sql" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Snapshots\PAS_DB_20220518_07-53-10.dacpac" />

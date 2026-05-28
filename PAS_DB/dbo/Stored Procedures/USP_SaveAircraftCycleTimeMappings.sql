@@ -257,6 +257,7 @@ BEGIN
 			DECLARE @TotalRemainingMinutes INT = NULL;
 			DECLARE @TotalRemainingCycles BIGINT = NULL;
 
+
 			--SELECT @TotalRemainingMinutes =
 			--	(ISNULL(AMP.FlightHoursLimitHours, 0) * 60 + ISNULL(AMP.FlightHoursLimitMinutes, 0))
 			--	- (FLOOR(ISNULL(C.CumulativeHours, 0)) * 60 + FLOOR(ISNULL(C.CumulativeMinutes, 0)))
@@ -296,6 +297,9 @@ BEGIN
 				AMP.FlightHoursRemainingMinutes = CASE WHEN @TotalRemainingMinutes IS NULL THEN NULL ELSE @TotalRemainingMinutes % 60 END,
 				AMP.CyclesRemaining = CASE WHEN @TotalRemainingCycles IS NULL THEN NULL  WHEN @TotalRemainingCycles < 0 THEN 0
 				ELSE @TotalRemainingCycles END,
+
+				--AMP.CyclesRemaining = CASE WHEN ISNULL(AMP.CyclesLimit, 0) - ISNULL(C.CumulativeCycles, 0) < 0 THEN 0 ELSE 
+				--	ISNULL(AMP.CyclesLimit, 0) - ISNULL(C.CumulativeCycles, 0) END,
 
 				AMP.TimeRemaining = ISNULL(AMP.TimeLimit, 0),
 				AMP.LandingsRemaining = ISNULL(AMP.LandingsLimit, 0),

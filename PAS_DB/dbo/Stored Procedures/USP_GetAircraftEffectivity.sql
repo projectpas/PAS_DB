@@ -1,5 +1,4 @@
-
-/*************************************************************     
+﻿/*************************************************************     
 ** Author:  <Amit Ghediya>    
 ** Create date: <05/04/2026>    
 ** Description: <This Proc Is used to Get Aircraft AircraftEffectivity>    
@@ -110,8 +109,6 @@ BEGIN
 				  (IsNull(@UpdatedBy,'') ='' OR UpdatedBy like '%' + @UpdatedBy+'%')
             )
         )
-        AND (@IsDeleted IS NULL OR IsDeleted = @IsDeleted)
-        AND (@IsActive IS NULL OR IsActive = @IsActive);
 
         -- Total count
         SELECT @Count = COUNT(*) FROM #TempResult;

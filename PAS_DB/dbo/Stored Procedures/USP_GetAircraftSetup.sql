@@ -13,9 +13,10 @@
 	2    19/05/2026          Nakul Chandigra    Added fields 
 	3    20/05/2026          Nakul Chandigra    Added fields 
 	4    22/05/2026          Bhargav Saliya     Added [SiteId] 
+	5    29/05/2026          Bhargav Saliya    Added field [MaintenanceTypeId] 
 	exec [USP_GetAircraftSetup] 1
 **************************************************************/
-	CREATE   PROCEDURE [dbo].[USP_GetAircraftSetup]
+	CREATE     PROCEDURE [dbo].[USP_GetAircraftSetup]
 	@MasterCompanyId INT
 	
 	AS
@@ -44,7 +45,8 @@
 			AR.[UpdatedDate],
 			AR.[IsActive],
 			AR.[IsDeleted],
-			AR.[SiteId]
+			AR.[SiteId],
+			AR.[MaintenanceTypeId] AS AircraftMaintenanceTypeId
 		FROM [dbo].[AircraftSetup] AR WITH (NOLOCK)
 		LEFT JOIN [dbo].[MaintenanceStatus] MS WITH (NOLOCK) ON MS.MaintenanceStatusId = AR.MaintenanceStatusId
 		LEFT JOIN [dbo].[AircraftStatus] ARS WITH (NOLOCK) ON ARS.AircraftStatusId = AR.AircraftStatusId

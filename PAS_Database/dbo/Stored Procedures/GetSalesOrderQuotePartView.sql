@@ -23,11 +23,12 @@
 	10   30-MAR-2026  Vishal Suthar	    Fixed Order By clause with order it based on SalesOrderQuotePartId
 	11   10-Apr-026   Bhargav Saliya	 UOM Changes
 	12   20-MAY-2026  RAJESH GAMI	    Fixed: Get the CustomerStatusId from ApprovalStatus Table instead of Static  [PN-16505]
+	13   29/05/2026   Ayushi Patel      [PN-16645]Added default value for @CurrencyDisplayName to handle null currency
  EXEC [DBO].[GetSalesOrderQuotePartView] 980, 'USD'
 **************************************************************/
 CREATE PROCEDURE [dbo].[GetSalesOrderQuotePartView]
     @SalesQuoteId BIGINT,
-    @CurrencyDisplayName NVARCHAR(100)
+    @CurrencyDisplayName NVARCHAR(100) = ''
 AS
 BEGIN
   SET NOCOUNT ON;

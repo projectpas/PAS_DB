@@ -13,6 +13,9 @@
  ** --   --------     -------          --------------------------------     
     1    21/05/2026   Ayushi Patel         [PN-16530]Created 
     2    22/05/2026   Ayushi Patel         [PN-16544]Return SignedBy,MechBy,InspBy,MaintenanceTime
+    3    26/05/2026   Priyansh Patel       [PN-16588]Fixed the issue with time
+
+
     exec USP_GetWorksheetPartsByHeaderIdSSRS 14,1
 **************************************************************/
 
@@ -35,8 +38,8 @@ BEGIN
                 ISNULL(es.FirstName,'') + CASE WHEN ISNULL(es.LastName,'') <> '' THEN ' ' + es.LastName ELSE '' END AS SignedBy,
                 DefectDescription,
                 MaintenanceAction,
-                RIGHT('00' + CAST(WP.MaintenanceTime AS VARCHAR(2)), 2) + ' : ' + 
-                RIGHT('00' + CAST(WP.MaintenanceTimeMinutes AS VARCHAR(2)), 2) AS MaintenanceTime,
+                CAST(ISNULL(WP.MaintenanceTime, 0) AS VARCHAR(10)) + ' : ' + 
+                RIGHT('00' + CAST(ISNULL(WP.MaintenanceTimeMinutes, 0) AS VARCHAR(2)), 2) AS MaintenanceTime,
                 ISNULL(em.FirstName,'') + CASE WHEN ISNULL(em.LastName,'') <> '' THEN ' ' + em.LastName ELSE '' END AS MechBy,
                 ISNULL(ei.FirstName,'') + CASE WHEN ISNULL(ei.LastName,'') <> '' THEN ' ' + ei.LastName ELSE '' END AS InspBy,
                 wp.MasterCompanyId,

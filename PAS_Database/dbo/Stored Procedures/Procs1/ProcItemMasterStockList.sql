@@ -25,6 +25,7 @@
 	11   09-Sep-2025    Sahdev Saliya        Added Filter For RankingsName And WorkOrderType
 	12   12-Nov-2025    Divyesh Kathiriya    Update HasSubAssy only return 'WoSubAssy' value due to column name change.
 	13   14-Nov-2025    Divyesh Kathiriya     Get RoSubAssy.
+	14   27-May-2026    Sahdev Saliya        Added Model [PN-16353]
 
 **********************/
 CREATE   PROCEDURE [dbo].[ProcItemMasterStockList]
@@ -57,7 +58,8 @@ CREATE   PROCEDURE [dbo].[ProcItemMasterStockList]
 @WorkOrderFormTypeId INT = NULL,
 @RankingsName VARCHAR(50) = NULL,
 @workOrderType VARCHAR(50) = NULL,
-@RoSubAssy varchar(50) = NULL
+@RoSubAssy varchar(50) = NULL,
+@Model varchar(200) = NULL
 AS
 BEGIN	
 	    SET NOCOUNT ON;
@@ -161,7 +163,8 @@ BEGIN
                        im.UpdatedBy,	
 					   im.IsDeleted,
 					   itp.Ranking as RankingsName,
-					   CASE WHEN im.WorkOrderFormTypeId = 1 THEN 'Dynamic' WHEN im.WorkOrderFormTypeId = 2 THEN 'Static' ELSE 'At WO creation' END AS workOrderType
+					   CASE WHEN im.WorkOrderFormTypeId = 1 THEN 'Dynamic' WHEN im.WorkOrderFormTypeId = 2 THEN 'Static' ELSE 'At WO creation' END AS workOrderType,
+					   im.Model
 			   FROM dbo.ItemMaster im WITH (NOLOCK)	
 			   left join CTE_IntegrationPortal itp WITH(NOLOCK) ON iM.ItemMasterId = itp.ItemMasterId
 		 	  WHERE ((im.IsDeleted=@IsDeleted) AND (@IsActive IS NULL OR im.IsActive=@IsActive) AND (@IsHazardousMaterial IS NULL OR im.IsHazardousMaterial=@IsHazardousMaterial))			     
@@ -185,7 +188,8 @@ BEGIN
 					(UpdatedBy LIKE '%' +@GlobalFilter+'%') OR
 					(RankingsName LIKE '%' +@GlobalFilter+'%') OR
 					(workOrderType LIKE '%' +@GlobalFilter+'%') OR
-					(RoSubAssy LIKE '%' +@GlobalFilter+'%')))	
+					(RoSubAssy LIKE '%' +@GlobalFilter+'%') OR
+					(Model LIKE '%' +@GlobalFilter+'%')))
 					OR   
 					(@GlobalFilter='' AND (ISNULL(@PartNumber,'') ='' OR PartNumber LIKE '%' + @PartNumber+'%') AND
 					(ISNULL(@PartDescription,'') ='' OR PartDescription LIKE '%' + @PartDescription + '%') AND
@@ -206,7 +210,8 @@ BEGIN
 					(ISNULL(@UpdatedDate,'') ='' OR CAST(UpdatedDate AS date)=CAST(@UpdatedDate AS date))AND
 				    (ISNULL(@RankingsName,'') ='' OR RankingsName LIKE '%' + @RankingsName + '%') AND
 					(ISNULL(@workOrderType,'') ='' OR workOrderType LIKE '%' + @workOrderType + '%') AND
-					(ISNULL(@RoSubAssy,'') ='' OR RoSubAssy LIKE '%' + @RoSubAssy + '%'))
+					(ISNULL(@RoSubAssy,'') ='' OR RoSubAssy LIKE '%' + @RoSubAssy + '%') AND
+					(ISNULL(@Model,'') ='' OR Model LIKE '%' + @Model + '%'))
 	)
 
 			SELECT @Count = COUNT(ItemMasterId) FROM #TempResult			
@@ -249,7 +254,9 @@ BEGIN
 			CASE WHEN (@SortOrder=1  AND @SortColumn='workOrderType')  THEN workOrderType END ASC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='workOrderType')  THEN workOrderType END DESC,
 			CASE WHEN (@SortOrder=1  AND @SortColumn='RoSubAssy')  THEN RoSubAssy END ASC,
-			CASE WHEN (@SortOrder=-1 AND @SortColumn='RoSubAssy')  THEN RoSubAssy END DESC
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='RoSubAssy')  THEN RoSubAssy END DESC,
+			CASE WHEN (@SortOrder=1  AND @SortColumn='Model')  THEN Model END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='Model')  THEN Model END DESC
 			OFFSET @RecordFrom ROWS 
 			FETCH NEXT @PageSize ROWS ONLY
 		END TRY

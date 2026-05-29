@@ -12,10 +12,11 @@
     1    11-September-2025  Divyesh Kathiriya	Created
 	2    26-Mar-2026        Sahdev Saliya       Added [LifeLimitedPart] :-([IsFlightHoursAvailable], [IsFlightCyclesAvailable], [IsLandingsAvailable], [IsStartsAvailable], [IsCalendarTimeAvailable], [FlightHours], [FlightMinutes], [FlightCycles], [Landings], [Starts], [CalendarDate]) (PN-15833)
 	3    03-Apr-2026        Sahdev Saliya       Remove LifeLimitedPart (PN-15833)
+	4    27-May-2026        Sahdev Saliya       Added Model [PN-16353]
     
  -- EXEC [USP_AddItemMasterGeneralInfo] 
 **************************************************************/
-create     PROCEDURE [dbo].[USP_AddItemMasterGeneralInfo]
+CREATE       PROCEDURE [dbo].[USP_AddItemMasterGeneralInfo]
 @tbl_ItemMasterTableType [DBO].[ItemMasterTableType] READONLY
 AS
 BEGIN
@@ -95,7 +96,7 @@ BEGIN
 				[IsLandingsAvailable],
 				[IsStartsAvailable],
 				[IsCalendarTimeAvailable],
-				[FlightHours], [FlightMinutes], [FlightCycles], [Landings], [Starts], [CalendarDate])
+				[FlightHours], [FlightMinutes], [FlightCycles], [Landings], [Starts], [CalendarDate], [Model])
 			SELECT
 				[ItemTypeId], [PartAlternatePartId], [ItemGroupId], [ItemClassificationId], [IsHazardousMaterial], [IsExpirationDateAvailable], [ExpirationDate], [IsReceivedDateAvailable], [DaysReceived], [IsManufacturingDateAvailable],
 				[ManufacturingDays], [IsTagDateAvailable], [TagDays], [IsOpenDateAvailable], [OpenDays], [IsShippedDateAvailable], [ShippedDays], [IsOtherDateAvailable], [OtherDays], 
@@ -117,7 +118,7 @@ BEGIN
 				[IsLandingsAvailable],
 				[IsStartsAvailable],
 				[IsCalendarTimeAvailable],
-				[FlightHours], [FlightMinutes], [FlightCycles], [Landings], [Starts], [CalendarDate]
+				[FlightHours], [FlightMinutes], [FlightCycles], [Landings], [Starts], [CalendarDate], [Model]
 			FROM @tbl_ItemMasterTableType;
 
 			SET @ItemMasterId = SCOPE_IDENTITY();

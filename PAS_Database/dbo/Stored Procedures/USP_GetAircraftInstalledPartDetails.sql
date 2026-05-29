@@ -1,4 +1,5 @@
-﻿/*********************
+﻿
+/*********************
 ** File:        [USP_GetAircraftInstalledPartDetails]
 ** Description:
 ** Purpose:
@@ -28,9 +29,11 @@
 ** 14   05-13-2026   Amit Ghediya       Added item PO,RO,WO Num. (PN-16415)
 ** 15   05-18-2026   Abhishek Jirawla   Added item PO,RO,WO Id. (PN-16464)
 ** 16   05-20-2026   Priyansh Patel     Fix the WorksheetNumber to return the latest [PN-16408]
+** 17   05-26-2026   Priyansh Patel     Added Worksheet Header Id [PN-16537]
+
 
 *********************/
-CREATE   PROCEDURE [dbo].[USP_GetAircraftInstalledPartDetails]
+CREATE    PROCEDURE [dbo].[USP_GetAircraftInstalledPartDetails]
 (
     @PageNumber         INT,
     @PageSize           INT,
@@ -105,9 +108,11 @@ BEGIN
 				STK.ControlNumber,
 				STK.SerialNumber,
 				STK.StockLineId,
+				CSTK.StockLineId AS ReStockLineId,
 				STK.QuantityAvailable,
 				STK.QuantityOnHand,
 				CASE WHEN STK.IsCustomerStock = 1 THEN 'Yes' ELSE 'No' END AS IsCustomerStock, 
+				CASE WHEN CSTK.IsCustomerStock = 1 THEN 'Yes' ELSE 'No' END AS IsReCustomerStock, 
 				AIPD.Quantity,
                 AIPD.IsLLP,
 				AIPD.IsSerialized,
@@ -164,13 +169,15 @@ BEGIN
 				RO.RepairOrderNumber AS 'RONumber',				
 				WSH.WorksheetNumber,
 				WOP.WorkOrderId AS WOId,
-				WO.WorkOrderNum AS 'WONumber'
+				WO.WorkOrderNum AS 'WONumber',
+                WSH.WorksheetHeaderId
             FROM dbo.AircraftInstalledPartDetails AS AIPD WITH (NOLOCK)
 			LEFT JOIN dbo.ItemMasterAircraftMapping IMAM WITH (NOLOCK) ON AIPD.ATAChapterId = IMAM.ItemMasterAircraftMappingId
 			INNER JOIN dbo.AircraftRegistryHeader ARH WITH (NOLOCK) ON ARH.AircraftRegistryId = AIPD.AircraftRegistryId
 			INNER JOIN dbo.ItemMaster IM WITH (NOLOCK) ON AIPD.ItemMasterId = IM.ItemMasterId
 			INNER JOIN dbo.AircraftStatus AST WITH (NOLOCK) ON AST.AircraftStatusId = ARH.AircraftStatusId
 			LEFT JOIN dbo.Stockline STK WITH (NOLOCK) ON STK.StockLineId = AIPD.StockLineId
+			LEFT JOIN [dbo].[Stockline] CSTK WITH (NOLOCK) ON CSTK.[StockLineId] = ARH.[StockLineId] 
 			LEFT JOIN dbo.PurchaseOrderPart POP WITH (NOLOCK) ON POP.AircraftInstalledPartDetailsId = AIPD.AircraftInstalledPartDetailsId
 			LEFT JOIN dbo.PurchaseOrder PO WITH (NOLOCK) ON PO.PurchaseOrderId = POP.PurchaseOrderId
 			LEFT JOIN dbo.RepairOrderPart ROP WITH (NOLOCK) ON ROP.AircraftInstalledPartDetailsId = AIPD.AircraftInstalledPartDetailsId

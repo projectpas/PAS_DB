@@ -14,7 +14,7 @@
    2    10-APR-2025     Moin Bloch          Updated [QuantityReceived] For StockLine Count
    3    05-DEC-2025     Ayushi Patel        Get new fields SalesOrderQuoteId,SalesOrderQuoteNumber
    4    17-DEC-2025     Amit Ghediya        Get new fields SalesOrderCustomerId for redirect to so.
-
+   5	08-May-2026	    Priyansh Patel 		Added Ac tail number (PN-16231)
 --EXEC [dbo].[USP_GetPurchaseOrderPartByPOId] 7910 ,NULL,NULL
 **************************************************************/ 
 
@@ -149,6 +149,8 @@ BEGIN
 					IsSubWO BIT NULL,
 					SalesOrderQuoteId BIGINT NULL,
 					SalesOrderQuoteNumber VARCHAR(250) NULL,
+					AircraftRegistryNumber VARCHAR(30) NULL,
+					ACTailNum VARCHAR(250) NULL
 				);
 				 IF OBJECT_ID(N'tempdb..#tmpSubWOMtbl') IS NOT NULL    
 				BEGIN    
@@ -272,6 +274,8 @@ BEGIN
 					PurchaseUnitOfMeasureId BIGINT NULL,
 					ConditionCodeId BIGINT NULL,
 					Quantity INT NULL,
+					AircraftRegistryNumber VARCHAR(30) NULL,
+					ACTailNum VARCHAR(250) NULL
 				);
 				INSERT INTO #tmpPoPartList SELECT 
 				PurchaseOrderPartRecordId,
@@ -372,7 +376,9 @@ BEGIN
 				IsKit,
 				IsSubWO,
 				SalesOrderQuoteId,
-				SalesOrderQuoteNumber
+				SalesOrderQuoteNumber,
+				AircraftRegistryNumber,
+				ACTailNum
 				FROM DBO.PurchaseOrderPart POP WITH(NOLOCK) 
 				WHERE PurchaseOrderId = @PurchaseOrderId AND ISNULL(IsDeleted,0) = 0 
 
@@ -538,6 +544,7 @@ BEGIN
 								POFrightsCount,
 								SalesOrderQuoteId,
 								SalesOrderQuoteNumber
+								,AircraftRegistryNumber,ACTailNum
 								)
 							SELECT (CASE WHEN @ItemTypeId = @ItemTypeIdStock THEN (SELECT TOP 1 PartNumber  FROM DBO.ItemMaster  WITH(NOLOCK) WHERE ItemMasterId = @ItemMasterId)
 										 WHEN @ItemTypeId = @ItemTypeIdNonStock THEN (SELECT TOP 1 PartNumber  FROM DBO.ItemMasterNonStock  WITH(NOLOCK) WHERE MasterPartId = @ItemMasterId)
@@ -576,7 +583,7 @@ BEGIN
 									 (SELECT COUNT(1) FROM dbo.PurchaseOrderFreight C WITH(NOLOCK) WHERE c.PurchaseOrderPartRecordId= LT.PurchaseOrderPartRecordId and ISNULL(c.IsDeleted,0) = 0)POFrightsCount,
 									 LT.SalesOrderQuoteId,
 									 LT.SalesOrderQuoteNumber
-
+									 ,LT.AircraftRegistryNumber, LT.ACTailNum
 									 FROM #tmpLoopTable LT LEFT JOIN #tmpPOPMs ms on ms.ReferenceID = LT.PurchaseOrderPartRecordId AND ms.ModuleID = @PoPartMGMTModuleId
 									 LEFT JOIN #tmpWOMTble wom on wom.WorkOrderMaterialsId = LT.WorkOrderMaterialsId
 									 WHERE ISNULL(LT.IsParent,0) = 1

@@ -105,5 +105,7 @@
     [IsModified]                BIT             DEFAULT ((0)) NULL,
     [IsFromVendorRFQ]           BIGINT          NULL,
     [SalesOrderQuoteId]         BIGINT          NULL,
-    [SalesOrderQuoteNumber]     VARCHAR (250)   NULL);
+    [SalesOrderQuoteNumber]     VARCHAR (250)   NULL,
+    [AircraftRegistryNumber]    VARCHAR (30)    NULL,
+    [ACTailNum]                 VARCHAR (250)   NULL);
 

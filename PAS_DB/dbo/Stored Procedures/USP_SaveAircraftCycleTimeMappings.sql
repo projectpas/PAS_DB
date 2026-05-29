@@ -1,8 +1,5 @@
 /****** Object:  StoredProcedure [dbo].[USP_SaveAircraftCycleTimeMappings] ******/
-SET ANSI_NULLS ON
-GO
-SET QUOTED_IDENTIFIER ON
-GO
+
 /*************************************************************     
 ** Author:  <Amit Ghediya>    
 ** Create date: <14/04/2026>    

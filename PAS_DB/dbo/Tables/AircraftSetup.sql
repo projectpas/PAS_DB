@@ -24,6 +24,7 @@
     [GreenIndicator]       INT           NULL,
     [ItemgroupId]          BIGINT        NULL,
     [SiteId]               BIGINT        NULL,
+    [MaintenanceTypeId]    BIGINT        NULL,
     CONSTRAINT [PK_AircraftSetup] PRIMARY KEY CLUSTERED ([AircraftSetupId] ASC)
 );
 

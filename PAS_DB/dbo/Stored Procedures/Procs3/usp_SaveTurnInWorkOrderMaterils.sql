@@ -30,6 +30,7 @@
    21   26/03/2026  Moin Bloch          Renamed TearDown → Internal Teardown (PN-15850)  
    22   26/05/2026  Hemant Saliya        Lot Trans-In for tender stockline when MPN stockline is a Lot stockline  
    23   27/05/2026  Hemant Saliya        Performance optimization and code cleanup  
+   24   29/05/2026  Nakul Chandigra      Added AircraftTail, AircraftSN field 
 
    exec dbo.usp_SaveTurnInWorkOrderMaterils @IsMaterialStocklineCreate=0,@IsCustomerStock=0,
 @IsCustomerstockType=0,@ItemMasterId=557,@UnitOfMeasureId=1,@ConditionId=9,@Quantity=1,@IsSerialized=1,
@@ -83,7 +84,9 @@ CREATE   PROCEDURE [dbo].[usp_SaveTurnInWorkOrderMaterils]
     @ProvisionId                INT             = 0,
     @EvidenceId                 INT             = NULL,
     @WorkOrderWorkflowId        BIGINT          = NULL,
-    @IsMPNTendor                BIT             = 0
+    @IsMPNTendor                BIT             = 0,
+    @AircraftTail VARCHAR(400) = NULL,  
+    @AircraftSN VARCHAR(30) = NULL
 AS
 BEGIN
 
@@ -376,6 +379,7 @@ BEGIN
             [OEM], IsPMA, IsDER, IsOemPNId, OEMPNNumber,
             GLAccountId, [IsStkTimeLife], [EvidenceId],
             [IntegrationPortal], [LotId], [IsLotAssigned], LOTQty
+            , AircraftTailNumber, AircraftSN
         )
         VALUES (
             @StockLineNumber, @ControlNumber, @IDNumber,
@@ -401,7 +405,7 @@ BEGIN
             @IntegrationPortal,
             @SourceLotId,
             CASE WHEN ISNULL(@SourceLotId, 0) > 0 THEN 1 ELSE 0 END,
-            @Quantity
+            @Quantity, @AircraftTail, @AircraftSN 
         );
 
         SELECT @StockLineId = SCOPE_IDENTITY();

@@ -11,6 +11,7 @@
  ** --   --------     -------		--------------------------------            
     1    04/04/2024   Vishal Suthar	Created  
 	2    12/11/2024   Ayushi Patel	Updated For Updated By , Updated Date 
+    3    29/05/2026   Nakul Chandigra  Merge the UAT Changes 
 **************************************************************/
 -- EXEC  USP_SingleScreen_DeleteAndRestoreRecord 10, 'assetlocation'
 CREATE   PROCEDURE [dbo].[USP_SingleScreen_DeleteAndRestoreRecord]  
@@ -41,8 +42,11 @@ BEGIN
       RAISERROR (@Erorr, 16, 1)  
       RETURN  
     END  
- 
-	EXEC [DBO].[USP_InsertAuditDataForSingleScreen] @ID,@PageName,@PrimaryKey 
+
+    IF ( UPPER(@PageName) <> 'AIRCRAFTSTATUS' AND UPPER(@PageName) <> 'MAINTENANCESTATUS' AND UPPER(@PageName) <> 'POSITIONCODE' AND UPPER(@PageName) <> 'TRAININGNAME' AND UPPER(@PageName) <> 'MAINTENANCETYPE' AND UPPER(@PageName) <> 'MAINTENANCECLASS' AND UPPER(@PageName) <> 'AIRCRAFTSECTION' AND UPPER(@PageName) <> 'MAINTENANCECATEGORY')
+    BEGIN
+	    EXEC [DBO].[USP_InsertAuditDataForSingleScreen] @ID,@PageName,@PrimaryKey 
+    END
 
     SET @Query = 'UPDATE [' + @PageName + '] SET UpdatedDate =  GETUTCDATE(), UpdatedBy = ''' + @CurrentUser + ''', IsDeleted  =' + CAST(@Status AS VARCHAR) + '  WHERE ' + @PrimaryKey + ' = ' + CAST(@ID AS VARCHAR)  
     EXEC (@Query)  

@@ -1,4 +1,9 @@
-﻿/*************************************************************     
+/****** Object:  StoredProcedure [dbo].[USP_SaveAircraftCycleTimeMappings] ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+/*************************************************************     
 ** Author:  <Amit Ghediya>    
 ** Create date: <14/04/2026>    
 ** Description: <This Proc Is used to Save Turn In Aircraft CycleTime>    
@@ -499,3 +504,4 @@ BEGIN
         RETURN(1);
     END CATCH    
 END
+GO

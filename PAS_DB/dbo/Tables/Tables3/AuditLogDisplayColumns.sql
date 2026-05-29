@@ -4,6 +4,7 @@
     [ColumnName]               VARCHAR (128) NOT NULL,
     [DisplayName]              VARCHAR (256) NOT NULL,
     [SeqNo]                    INT           NULL,
+    [FieldAlign]               INT           NULL,
     PRIMARY KEY CLUSTERED ([AuditLogDisplayColumnsId] ASC)
 );
 

@@ -26,7 +26,7 @@ EXEC [RPT_GetWorkOrderPrintPdfData]
 ** 15	03/Feb/2026 Bhargav Saliya      Get Ship To Site From WOQ if Exists
 ** 16   02/Mar/2026 Moin Bloch          Updated (Added Outgoing PN condition)
 ** 17   09/Mar/2026 Moin Bloch		    Updated OutGoingPartDescription PN-15681 
-
+** 18   29/05/2026  Ayushi Patel        Strip time portion from CSN, CSO fields (remove ':00' suffix)
 EXEC RPT_GetWorkOrderPrintPdfData 4108,3625
 
 **************************************************************/
@@ -118,9 +118,9 @@ BEGIN
 			CASE WHEN ISNULL(wop.RevisedItemmasterid, 0) > 0 THEN UPPER(imtr.ItemGroup) ELSE  UPPER(imt.ItemGroup) END as 'itemGroup',            
 			UPPER(wop.ACTailNum) as ACTailNum,              
 			wop.TSN as TSN,              
-			wop.CSN as CSN,
+			CASE WHEN CHARINDEX(':', ISNULL(wop.CSN, '')) > 0 THEN LEFT(wop.CSN, CHARINDEX(':', wop.CSN) - 1) ELSE wop.CSN END AS CSN,
 			wop.TSO as TSO,              
-			wop.CSO as CSO,
+			CASE WHEN CHARINDEX(':', ISNULL(wop.CSO, '')) > 0 THEN LEFT(wop.CSO, CHARINDEX(':', wop.CSO) - 1) ELSE wop.CSO END AS CSO,
 			FORMAT(wop.ReceivedDate, 'MM/dd/yyyy') AS Recd_Date,
 			wop.ReceivedDate,
 			woq.CreatedDate as Qte_Date,              

@@ -16,5 +16,6 @@
     [YellowIndicator]      INT           NULL,
     [GreenIndicator]       INT           NULL,
     [ItemgroupId]          BIGINT        NULL,
-    [SiteId]               BIGINT        NULL);
+    [SiteId]               BIGINT        NULL,
+    [MaintenanceTypeId]    BIGINT        NULL);
 

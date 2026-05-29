@@ -67,7 +67,8 @@ CREATE   PROCEDURE [dbo].[GetAircraftWorkOrderList]
      @RevisedCondition VARCHAR(100) = NULL,
      @IncomingPartNumber VARCHAR(50)=NULL,
      @WorkOrderStagesType VARCHAR(500) = NULL,
-     @CalData NVARCHAR(MAX) = NULL
+     @CalData NVARCHAR(MAX) = NULL,
+	 @AircraftRegistryId BIGINT = NULL
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -89,6 +90,8 @@ BEGIN
         DECLARE @SentForInternalApprovalProcessId INT;
         DECLARE @SentForCustomerApprovalProcessId INT;
         DECLARE @ApprovedProcessId INT;
+		DECLARE @TailNum VARCHAR(20);
+		DECLARE @SerialNum VARCHAR(20);
 
         IF @IsDeleted IS NULL SET @IsDeleted = 0;
         IF ISNULL(@ViewType, '') = '' SET @ViewType = 'mpn';
@@ -137,6 +140,8 @@ BEGIN
         SELECT @WOApprovalDesc = [Description]
         FROM dbo.ApprovalStatus WITH (NOLOCK)
         WHERE UPPER([Description]) = 'APPROVED';
+
+		SELECT @SerialNum = [SerialNum],@TailNum = [TailNum] FROM dbo.AircraftRegistryHeader WITH(NOLOCK) WHERE [AircraftRegistryId] = @AircraftRegistryId;
 
         SELECT
             @CurrntEmpTimeZoneDesc = COALESCE(ETZ.[Description], LTZ.[Description])
@@ -391,13 +396,17 @@ BEGIN
             LEFT JOIN dbo.ApprovalStatus APPA WITH (NOLOCK) ON @WaitingForApprovalStatusId = APPA.ApprovalStatusId
             LEFT JOIN dbo.ApprovalStatus APPC WITH (NOLOCK) ON WOA.CustomerStatusId = APPC.ApprovalStatusId
             LEFT JOIN dbo.WorkOrderWorkFlow WOWF WITH (NOLOCK) ON WOWF.WorkOrderPartNoId = WPN.ID
+
+			LEFT JOIN dbo.AircraftRegistryHeader ACRH WITH (NOLOCK) ON ACRH.AircraftRegistryId = WPN.AircraftRegistryId
+
             LEFT JOIN dbo.CommonWorkOrderTearDown CWTD WITH (NOLOCK)
                 ON CWTD.WorkFlowWorkOrderId = WOWF.WorkFlowWorkOrderId
                AND CWTD.CommonTeardownTypeId = @CalDataTypeId
                AND CWTD.IsActive = 1
                AND CWTD.IsDeleted = 0
             WHERE
-                WO.IsFromAircraft = 1  -- Aircraft work orders only
+                --WO.IsFromAircraft = 1  -- Aircraft work orders only
+				ACRH.TailNum = @TailNum AND ACRH.SerialNum = @SerialNum
                 AND ((@IsDeleted = 0 AND WO.IsDeleted = 0 AND ISNULL(WO.IsMigrated, 0) <> 1)
                      OR
                      (@IsDeleted = 1 AND (WO.IsDeleted = 1 OR WO.IsMigrated = 1)))

@@ -11,6 +11,7 @@
 ** 2    23/04/2026   Priyansh Patel  Added Maintenance Status [PN-16152]
 ** 3    06/05/2026   Amit Ghediya    GET Maintenance/Aircraft Status [PN-16296]
 ** 4    22/05/2026   Amit Ghediya    GET TSN/CSN H/M [PN-16533]
+** 5    29/05/2026   Sahdev Saliya   Removed TotalCSNHHMM [PN-16621]
 
 ************************************************************/
 CREATE PROCEDURE [dbo].[USP_GetAircraftRegistryList]
@@ -63,7 +64,6 @@ BEGIN
 				CAST(CAST(ISNULL(AR.TotalTSN,0) AS INT) AS VARCHAR) + ' : ' + RIGHT('00' + CAST(CAST(ISNULL(AR.TotalTSNMM,0) AS INT) AS VARCHAR),2) AS TotalTSNHHMM,
 				AR.TotalCSN,
 				--CAST(AR.TotalCSN AS VARCHAR) + ':' + RIGHT('00' + CAST(ISNULL(AR.TotalCSNMM,0) AS VARCHAR),2) AS TotalCSNHHMM,
-				CAST(CAST(ISNULL(AR.TotalCSN,0) AS INT) AS VARCHAR) + ' : ' + RIGHT('00' + CAST(CAST(ISNULL(AR.TotalCSNMM,0) AS INT) AS VARCHAR),2) AS TotalCSNHHMM,
                 AR.Hobbs,
                 AR.AircraftLocation,
 				AMS.[Name] AS MaintenanceStatus,
@@ -119,7 +119,6 @@ BEGIN
             TotalTSN,			
             TotalCSN,
 			TotalTSNHHMM,
-			TotalCSNHHMM,
             Hobbs,
             AircraftLocation,
             MaintenanceStatus,
@@ -153,8 +152,6 @@ BEGIN
             CASE WHEN @SortColumn = 'TotalCSN'           AND @SortOrder = 'DESC' THEN TotalCSN          END DESC,
 			CASE WHEN @SortColumn = 'TotalTSNHHMM'       AND @SortOrder = 'ASC'  THEN TotalTSNHHMM      END ASC,
             CASE WHEN @SortColumn = 'TotalTSNHHMM'       AND @SortOrder = 'DESC' THEN TotalTSNHHMM      END DESC,
-            CASE WHEN @SortColumn = 'TotalCSNHHMM'       AND @SortOrder = 'ASC'  THEN TotalCSNHHMM      END ASC,
-            CASE WHEN @SortColumn = 'TotalCSNHHMM'       AND @SortOrder = 'DESC' THEN TotalCSNHHMM      END DESC,
             CASE WHEN @SortColumn = 'Hobbs'              AND @SortOrder = 'ASC'  THEN Hobbs             END ASC,
             CASE WHEN @SortColumn = 'Hobbs'              AND @SortOrder = 'DESC' THEN Hobbs             END DESC,
             CASE WHEN @SortColumn = 'AircraftLocation'   AND @SortOrder = 'ASC'  THEN AircraftLocation  END ASC,

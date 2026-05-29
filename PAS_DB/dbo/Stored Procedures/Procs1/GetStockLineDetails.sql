@@ -25,11 +25,12 @@
 	7    27/11/2025  Bhargav Saliya	  Modified(Get GL accound code and name from the GLAcount Table).
 	8    02/12/2025  Bhargav Saliya	  Revert Changes.
 	9    29/05/2026  Nakul Chandigra  Added AircraftSN,ExchangeSalesOrderNumber fields
+	10   29/05/2026  Priyansh Patel 	Added new field 'TTSN, TCSN '(PN-16477)
 
     EXEC dbo.GetStockLineDetails  179632  180170
 ***********************************************************************************************/
 
-CREATE   PROCEDURE [dbo].[GetStockLineDetails]
+CREATE    PROCEDURE [dbo].[GetStockLineDetails]
 @StockLineId BIGINT
 AS
 BEGIN
@@ -336,7 +337,8 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 			,stl.[BatchNumber]
 			,im.ItemClassificationName AS Classification
 			,stl.AircraftSN
-			,ES.ExchangeSalesOrderNumber 
+			,ES.ExchangeSalesOrderNumber
+			,	stl.TotalTSN, stl.TotalCSN, stl.TotalTSNMM, stl.TotalCSNMM
 		FROM [dbo].[StockLine] stl WITH(NOLOCK)
 		INNER JOIN [dbo].[ItemMaster] im WITH(NOLOCK) ON stl.[ItemMasterId] = im.[ItemMasterId]
 		INNER JOIN [dbo].[StocklineManagementStructureDetails] msd WITH(NOLOCK) ON stl.[StockLineId] = msd.[ReferenceID] AND msd.[ModuleID] = @StocklineMSModuleId 

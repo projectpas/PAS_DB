@@ -21,6 +21,8 @@
 	4    12/20/2023   Vishal Suthar		Fix issue with fetching child entries
 	5    09/04/2025   Moin Bloch        Fix Issue For QuantityReceived when StockLine Adjusment
  	6    01/05/2026   RAJESH GAMI       Fix Issue For more then 500 QTY [PN-16244]
+    7    11-May-2026  Priyansh Patel    Added and Modified the  Ac tail number (PN-16231)
+
 EXEC [dbo].[USP_GetReceivingPurchaseOrderEdit_POPart] 2386    
 **************************************************************/        
 CREATE    PROCEDURE [dbo].[USP_GetReceivingPurchaseOrderEdit_POPart]    
@@ -352,7 +354,11 @@ BEGIN
   CASE WHEN itm.isSerialized = 1 THEN StkD_Ser.TaggedBy ELSE StkD_NonSer.TaggedBy END AS TaggedBy,      
   CASE WHEN itm.isSerialized = 1 THEN StkD_Ser.TaggedByName ELSE StkD_NonSer.TaggedByName END AS TaggedByName,      
   CASE WHEN itm.isSerialized = 1 THEN StkD_Ser.TaggedByTypeName ELSE StkD_NonSer.TaggedByTypeName END AS TaggedByTypeName,    
-  '' AS CalibrationMemo    
+  '' AS CalibrationMemo,
+    CASE WHEN part.ItemTypeId = 1 THEN    
+  CASE WHEN itm.isSerialized = 1 THEN StkD_Ser.AircraftTailNumber ELSE StkD_NonSer.AircraftTailNumber END     
+  ELSE part.ACTailNum
+  END AS ACTailNum
   FROM DBO.PurchaseOrderPart part WITH (NOLOCK)      
   LEFT JOIN DBO.ItemMaster itm WITH (NOLOCK) ON part.ItemMasterId = itm.ItemMasterId      
   LEFT JOIN DBO.Asset asi WITH (NOLOCK) ON part.ItemMasterId = asi.AssetRecordId      

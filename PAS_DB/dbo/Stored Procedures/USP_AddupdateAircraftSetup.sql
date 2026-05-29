@@ -10,9 +10,11 @@
  ** PR   Date				Author				Change Description            
  ** --   -------------		----------------	--------------------------------          
 	1	 15/05/2026          Nakul Chandigra     Created 
-    2    20/05/2026           Nakul Chandigra    Added fields 
+    2    20/05/2026          Nakul Chandigra    Added fields 
+    3    22/05/2026          Bhargav Saliya    Added field [SiteId] 
+    4    29/05/2026          Bhargav Saliya    Added field [MaintenanceTypeId] 
 **************************************************************/
-CREATE     PROCEDURE [dbo].[USP_AddupdateAircraftSetup]
+CREATE   PROCEDURE [dbo].[USP_AddupdateAircraftSetup]
 (
     @tblType_AircraftSetupType [AircraftSetupType] READONLY,
     @AircraftSetupId BIGINT,
@@ -37,10 +39,11 @@ BEGIN
                 T.YellowIndicator = S.YellowIndicator,
                 T.GreenIndicator = S.GreenIndicator,
                 T.ItemgroupId = S.ItemgroupId,
-				T.SiteId = S.SiteId,
                 T.CurrencyId = S.CurrencyId,
                 T.UpdatedBy = S.UpdatedBy,
-                T.UpdatedDate = GETUTCDATE()
+                T.UpdatedDate = GETUTCDATE(),
+                T.SiteId = S.SiteId,
+                T.[MaintenanceTypeId] = S.[MaintenanceTypeId]
             FROM dbo.AircraftSetup T
             CROSS APPLY
             (
@@ -55,8 +58,9 @@ BEGIN
                     YellowIndicator,
                     GreenIndicator,
                     ItemgroupId,
-					SiteId,
-                    UpdatedBy
+                    UpdatedBy,
+                    SiteId,
+                    [MaintenanceTypeId]
                 FROM @tblType_AircraftSetupType
             ) S
             WHERE T.AircraftSetupId = @AircraftSetupId;
@@ -75,14 +79,15 @@ BEGIN
                 YellowIndicator,
                 GreenIndicator,
                 ItemgroupId,
-				SiteId,
                 CreatedBy,
                 CreatedDate,
                 UpdatedBy,
                 UpdatedDate,
                 IsActive,
                 IsDeleted,
-                MasterCompanyId
+                MasterCompanyId,
+                SiteId,
+                [MaintenanceTypeId]
             )
             SELECT TOP 1
                 MaintenanceStatusId,
@@ -95,14 +100,15 @@ BEGIN
                 YellowIndicator,
                 GreenIndicator,
                 ItemgroupId,
-				SiteId,
                 CreatedBy,
                 GETUTCDATE(),
                 UpdatedBy,
                 GETUTCDATE(),
                 IsActive,
                 IsDeleted,
-                MasterCompanyId
+                MasterCompanyId,
+                SiteId,
+                [MaintenanceTypeId]
             FROM @tblType_AircraftSetupType;
         END
     END TRY

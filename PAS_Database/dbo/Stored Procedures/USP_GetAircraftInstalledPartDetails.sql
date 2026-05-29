@@ -1,4 +1,5 @@
-﻿/*********************
+﻿
+/*********************
 ** File:        [USP_GetAircraftInstalledPartDetails]
 ** Description:
 ** Purpose:
@@ -32,7 +33,7 @@
 
 
 *********************/
-CREATE   PROCEDURE [dbo].[USP_GetAircraftInstalledPartDetails]
+CREATE    PROCEDURE [dbo].[USP_GetAircraftInstalledPartDetails]
 (
     @PageNumber         INT,
     @PageSize           INT,
@@ -107,9 +108,11 @@ BEGIN
 				STK.ControlNumber,
 				STK.SerialNumber,
 				STK.StockLineId,
+				CSTK.StockLineId AS ReStockLineId,
 				STK.QuantityAvailable,
 				STK.QuantityOnHand,
 				CASE WHEN STK.IsCustomerStock = 1 THEN 'Yes' ELSE 'No' END AS IsCustomerStock, 
+				CASE WHEN CSTK.IsCustomerStock = 1 THEN 'Yes' ELSE 'No' END AS IsReCustomerStock, 
 				AIPD.Quantity,
                 AIPD.IsLLP,
 				AIPD.IsSerialized,
@@ -174,6 +177,7 @@ BEGIN
 			INNER JOIN dbo.ItemMaster IM WITH (NOLOCK) ON AIPD.ItemMasterId = IM.ItemMasterId
 			INNER JOIN dbo.AircraftStatus AST WITH (NOLOCK) ON AST.AircraftStatusId = ARH.AircraftStatusId
 			LEFT JOIN dbo.Stockline STK WITH (NOLOCK) ON STK.StockLineId = AIPD.StockLineId
+			LEFT JOIN [dbo].[Stockline] CSTK WITH (NOLOCK) ON CSTK.[StockLineId] = ARH.[StockLineId] 
 			LEFT JOIN dbo.PurchaseOrderPart POP WITH (NOLOCK) ON POP.AircraftInstalledPartDetailsId = AIPD.AircraftInstalledPartDetailsId
 			LEFT JOIN dbo.PurchaseOrder PO WITH (NOLOCK) ON PO.PurchaseOrderId = POP.PurchaseOrderId
 			LEFT JOIN dbo.RepairOrderPart ROP WITH (NOLOCK) ON ROP.AircraftInstalledPartDetailsId = AIPD.AircraftInstalledPartDetailsId

@@ -24,6 +24,7 @@
 	8    24/09/2025  Sahdev Saliya    Added Classification
 	7    27/11/2025  Bhargav Saliya	  Modified(Get GL accound code and name from the GLAcount Table).
 	8    02/12/2025  Bhargav Saliya	  Revert Changes.
+	9    29/05/2026  Nakul Chandigra  Added AircraftSN,ExchangeSalesOrderNumber fields
 
     EXEC dbo.GetStockLineDetails  179632  180170
 ***********************************************************************************************/
@@ -334,6 +335,8 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 			,ISNULL(stl.[IsBatchStock],0) IsBatchStock
 			,stl.[BatchNumber]
 			,im.ItemClassificationName AS Classification
+			,stl.AircraftSN
+			,ES.ExchangeSalesOrderNumber 
 		FROM [dbo].[StockLine] stl WITH(NOLOCK)
 		INNER JOIN [dbo].[ItemMaster] im WITH(NOLOCK) ON stl.[ItemMasterId] = im.[ItemMasterId]
 		INNER JOIN [dbo].[StocklineManagementStructureDetails] msd WITH(NOLOCK) ON stl.[StockLineId] = msd.[ReferenceID] AND msd.[ModuleID] = @StocklineMSModuleId 
@@ -376,6 +379,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 		 LEFT JOIN [dbo].[Customer] CUSTOBF  WITH (NOLOCK) ON CUSTOBF.[CustomerId] = stl.[ObtainFrom]     
          LEFT JOIN [dbo].[Vendor] VENOBF  WITH (NOLOCK) ON VENOBF.[VendorId] = stl.[ObtainFrom] 
          LEFT JOIN [dbo].[LegalEntity] COMOBF  WITH (NOLOCK) ON COMOBF.[LegalEntityId] = stl.[ObtainFrom]
+		 LEFT JOIN DBO.ExchangeSalesOrder ES WITH (NOLOCK) ON stl.ExchangeSalesOrderId = ES.ExchangeSalesOrderId
 		WHERE stl.[IsDeleted] = 0 AND stl.[StockLineId] = @StockLineId
 
 	END TRY    

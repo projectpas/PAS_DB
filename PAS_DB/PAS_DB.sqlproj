@@ -4675,6 +4675,7 @@
     <Build Include="dbo\Stored Procedures\GetAircraftWorkOrderList.sql" />
     <Build Include="dbo\Stored Procedures\USP_CreateStockLine.sql" />
     <Build Include="dbo\User Defined Types\TimeLifeType.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetAircraftComponentMaintenanceDashboardList.sql" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Snapshots\PAS_DB_20220518_07-53-10.dacpac" />

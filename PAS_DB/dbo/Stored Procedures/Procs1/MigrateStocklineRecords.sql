@@ -25,7 +25,7 @@ declare @p7 int
 set @p7=NULL
 declare @p8 int
 set @p8=NULL
-exec sp_executesql N'EXEC MigrateStocklineRecords @FromMasterComanyID, @UserName, @Processed OUTPUT, @Migrated OUTPUT, @Failed OUTPUT, @Exists OUTPUT',N'@FromMasterComanyID int,@UserName nvarchar(12),@Processed int output,@Migrated int output,@Failed int output,@Exists int output',@FromMasterComanyID=12,@UserName=N'ROGER BENTLY',@Processed=@p5 output,@Migrated=@p6 output,@Failed=@p7 output,@Exists=@p8 output
+exec sp_executesql N'EXEC MigrateStocklineRecords @FromMasterComanyID, @UserName, @Processed OUTPUT, @Migrated OUTPUT, @Failed OUTPUT, @Exists OUTPUT',N'@FromMasterComanyID int,@UserName nvarchar(12),@Processed int output,@Migrated int output,@Failed int output,@Exists int output',@FromMasterComanyID=25,@UserName=N'ADMIN ADMIN',@Processed=@p5 output,@Migrated=@p6 output,@Failed=@p7 output,@Exists=@p8 output
 select @p5, @p6, @p7, @p8
 **************************************************************/
 CREATE   PROCEDURE [dbo].[MigrateStocklineRecords]
@@ -111,7 +111,8 @@ BEGIN
 		[Ctrl_ID],[Qty_Received],[Qty_OH],[Qty_Available],[Qty_Reserved],[Qty_Adjusted],[SerialNumber],[ShelfLife],[ExpirationDate],[MfgLotNum],[MfgDate],[PartCertNumber],[TagDate],
 		[CalibRemarks],[OrderRecDate],[OriginalCost],[RepairOrderUnitCost],[RecDate],[ReceiverNumber],[UnitPrice],[CoreCost],[UnitCost],[HazardMaterial],[Notes],[TailNumber],[IsIncident],
 		[IncidentReason],[IsCustomerOwned],[TagNumber],[Owner],[TaggedBy],[IsManuallyAdded],[MasterCompanyId],[Migrated_Id],[SuccessMsg],[ErrorMsg]
-		FROM [Quantum_Staging].dbo.[Stocklines] STK WITH (NOLOCK) WHERE STK.Migrated_Id IS NULL;
+		FROM [Quantum_Staging_BETA].dbo.[Stocklines] STK WITH (NOLOCK) 
+		WHERE STK.Migrated_Id IS NULL AND STK.MasterCompanyId = @FromMasterComanyID;
 
 		DECLARE @ProcessedRecords INT = 0;
 		DECLARE @MigratedRecords INT = 0;
@@ -134,7 +135,7 @@ BEGIN
 			DECLARE @CurrentItemMasterId BIGINT = 0;
 			DECLARE @CurrentCustomerId BIGINT = 0;
 			DECLARE @CurrentStocklineNumber VARCHAR(100) = NULL;
-			DECLARE @ManufacturerId BIGINT = 0;
+			DECLARE @ManufacturerId BIGINT = NULL;
 			
 			DECLARE @InsertedStocklineId BIGINT = 0;
 			DECLARE @AssetAcquisitionTypeId_BUY BIGINT = 0;
@@ -152,11 +153,11 @@ BEGIN
 				SET @FoundError = 1;
 				SET @ErrorMsg = @ErrorMsg + '<p>Condition is missing</p>'
 			END
-			IF (ISNULL(@CurrentManufacturerId, 0) = 0)
-			BEGIN
-				SET @FoundError = 1;
-				SET @ErrorMsg = @ErrorMsg + '<p>Manufacturer is missing</p>'
-			END
+			--IF (ISNULL(@CurrentManufacturerId, 0) = 0)
+			--BEGIN
+			--	SET @FoundError = 1;
+			--	SET @ErrorMsg = @ErrorMsg + '<p>Manufacturer is missing</p>'
+			--END
 			IF (ISNULL(@CurrentStocklineNumber, '') = '')
 			BEGIN
 				SET @FoundError = 1;
@@ -172,7 +173,7 @@ BEGIN
 			BEGIN
 				UPDATE Stk
 				SET Stk.ErrorMsg = @ErrorMsg
-				FROM [Quantum_Staging].DBO.Stocklines Stk WHERE Stk.StocklineId = @CurrentStocklineId;
+				FROM [Quantum_Staging_BETA].DBO.Stocklines Stk WHERE Stk.StocklineId = @CurrentStocklineId;
 
 				SET @RecordsWithError = @RecordsWithError + 1;
 			END
@@ -191,26 +192,31 @@ BEGIN
 				DECLARE @ItemGroupId BIGINT;
 				DECLARE @ItemManufacturerId BIGINT;
 
-				SELECT @ConditionId = ConditionId, @ConditionName = [Description] FROM DBO.Condition MF WHERE UPPER(MF.[Code]) IN (SELECT UPPER(CONDITION_CODE) FROM [Quantum].QCTL_NEW_3.PART_CONDITION_CODES Where PCC_AUTO_KEY = @CurrentConditionId) AND MasterCompanyId = @FromMasterComanyID;
-				SELECT @WarehouseId = WarehouseId FROM DBO.Warehouse WH WHERE UPPER(WH.[Name]) IN (SELECT UPPER(DESCRIPTION) FROM [Quantum].QCTL_NEW_3.WAREHOUSE Where WHS_AUTO_KEY = @CurrentWarehouseId) AND MasterCompanyId = @FromMasterComanyID;
-				SELECT @LocationId = LocationId FROM DBO.[Location] LOC WHERE UPPER(LOC.[Name]) IN (SELECT UPPER(DESCRIPTION) FROM [Quantum].QCTL_NEW_3.LOCATION Where LOC_AUTO_KEY = @CurrentLocationId) AND MasterCompanyId = @FromMasterComanyID;
-				SELECT @ManufacturerId = ManufacturerId FROM DBO.Manufacturer MF WHERE UPPER(MF.[Name]) IN (SELECT UPPER(DESCRIPTION) FROM [Quantum].QCTL_NEW_3.MANUFACTURER Where MFG_AUTO_KEY = @CurrentManufacturerId) AND MasterCompanyId = @FromMasterComanyID;
-				SELECT @ItemMasterId = ItemMasterId FROM DBO.ItemMaster IM WHERE UPPER(IM.[partnumber]) IN (SELECT UPPER(PN) FROM [Quantum].QCTL_NEW_3.PARTS_MASTER Where PNM_AUTO_KEY = @CurrentItemMasterId) AND MasterCompanyId = @FromMasterComanyID;
-				SELECT @CustomerId = CustomerId FROM DBO.Customer C WHERE UPPER(C.[Name]) IN (SELECT UPPER(COMPANY_NAME) FROM [Quantum].QCTL_NEW_3.COMPANIES Where CMP_AUTO_KEY = @CurrentCustomerId) AND MasterCompanyId = @FromMasterComanyID;
+				SELECT @ConditionId = ConditionId, @ConditionName = [Description] FROM DBO.Condition MF WHERE UPPER(MF.[Description]) IN (SELECT UPPER(CONDITION_CODE) FROM [BEACH].QCTL1.PART_CONDITION_CODES Where PCC_AUTO_KEY = @CurrentConditionId) AND MasterCompanyId = @FromMasterComanyID;
+				SELECT @WarehouseId = WarehouseId FROM DBO.Warehouse WH WHERE UPPER(WH.[Name]) IN (SELECT UPPER(DESCRIPTION) FROM [BEACH].QCTL1.WAREHOUSE Where WHS_AUTO_KEY = @CurrentWarehouseId) AND MasterCompanyId = @FromMasterComanyID;
+				SELECT @LocationId = LocationId FROM DBO.[Location] LOC WHERE UPPER(LOC.[Name]) IN (SELECT UPPER(DESCRIPTION) FROM [BEACH].QCTL1.LOCATION Where LOC_AUTO_KEY = @CurrentLocationId) AND MasterCompanyId = @FromMasterComanyID;
+				SELECT @ManufacturerId = ManufacturerId FROM DBO.Manufacturer MF WHERE UPPER(MF.[Name]) IN (SELECT UPPER(DESCRIPTION) FROM [BEACH].QCTL1.MANUFACTURER Where MFG_AUTO_KEY = @CurrentManufacturerId) AND MasterCompanyId = @FromMasterComanyID;
+				SELECT @ItemMasterId = ItemMasterId FROM DBO.ItemMaster IM WHERE UPPER(IM.[partnumber]) IN (SELECT UPPER(PN) FROM [BEACH].QCTL1.PARTS_MASTER Where PNM_AUTO_KEY = @CurrentItemMasterId) AND MasterCompanyId = @FromMasterComanyID;
+				SELECT @CustomerId = CustomerId FROM DBO.Customer C WHERE UPPER(C.[Name]) IN (SELECT UPPER(COMPANY_NAME) FROM [BEACH].QCTL1.COMPANIES Where CMP_AUTO_KEY = @CurrentCustomerId) AND MasterCompanyId = @FromMasterComanyID;
 				SELECT @PurchaseUnitOfMeasureId = IM.PurchaseUnitOfMeasureId FROM DBO.ItemMaster IM WHERE ItemMasterId = @ItemMasterId;
 				SELECT @ItemGroupId = IM.ItemGroupId FROM DBO.ItemMaster IM WHERE ItemMasterId = @ItemMasterId;
 				SELECT @ItemManufacturerId = IM.ManufacturerId FROM DBO.ItemMaster IM WHERE ItemMasterId = @ItemMasterId;
 
-				SET @EntityStructureId = 37;
+				IF (@ManufacturerId IS NULL)
+				BEGIN
+					SET @ManufacturerId = @ItemManufacturerId;
+				END
+
+				SET @EntityStructureId = 44;
 				DECLARE @OwnerType INT = 4; -- Others
 
 				DECLARE @DefaultSiteId BIGINT;
-				SELECT @DefaultSiteId = SiteId FROM DBO.[Site] WHERE UPPER([Name]) = UPPER('MIG') AND MasterCompanyId = @FromMasterComanyID;
+				SELECT @DefaultSiteId = SiteId FROM DBO.[Site] WHERE UPPER([Name]) = UPPER('Beach Aviation Group') AND MasterCompanyId = @FromMasterComanyID;
 
 				IF NOT EXISTS (SELECT * FROM DBO.Stockline stock WHERE StockLineNumber = (SELECT CAST(StocklineNumber AS VARCHAR(100)) FROM #TempStockline STL WHERE STL.ID = @LoopID) AND stock.ControlNumber = (SELECT CAST(STL.Ctrl_Number AS VARCHAR(100)) FROM #TempStockline STL WHERE STL.ID = @LoopID) AND stock.IdNumber = (SELECT CAST(STL.Ctrl_ID AS VARCHAR(100)) FROM #TempStockline STL WHERE STL.ID = @LoopID) AND MasterCompanyId = @FromMasterComanyID)
 				BEGIN
-					PRINT @CurrentStocklineId;
-					PRINT @ConditionId;
+					--PRINT @CurrentStocklineId;
+					--PRINT @ConditionId;
 
 					DECLARE @SiteId BIGINT = NULL;
 
@@ -233,11 +239,11 @@ BEGIN
 					[PNDescription],[RevicedPNId],[RevicedPNNumber],[OEMPNNumber],[TaggedBy],[TaggedByName],[UnitCost],[TaggedByType],[TaggedByTypeName],[CertifiedById],[CertifiedTypeId],[CertifiedType],
 					[CertTypeId],[CertType],[TagTypeId],[IsFinishGood],[IsTurnIn],[IsCustomerRMA],[RMADeatilsId],[DaysReceived],[ManufacturingDays],[TagDays],[OpenDays],[ExchangeSalesOrderId],[RRQty],[SubWorkOrderNumber],[IsManualEntry])
 
-					SELECT ST.PartNumber, ST.StocklineNumber, NULL, CAST(ST.CTRL_NUMBER AS VARCHAR(50)), @ItemMasterId, ST.QTY_OH, @ConditionId, ST.SerialNumber, ISNULL(ST.ShelfLife, 0), CASE WHEN ST.ExpirationDate IS NOT NULL THEN CAST(ST.ExpirationDate AS Datetime2) ELSE NULL END, @WarehouseId,
+					SELECT ST.PartNumber, ST.StocklineNumber, NULL, CAST(ST.CTRL_NUMBER AS VARCHAR(50)), @ItemMasterId, ST.QTY_OH, @ConditionId, ST.SerialNumber, ISNULL(CASE WHEN ST.ShelfLife IS NOT NULL THEN 1 ELSE 0 END, 0), CASE WHEN ST.ExpirationDate IS NOT NULL THEN CAST(ST.ExpirationDate AS Datetime2) ELSE NULL END, @WarehouseId,
 					@LocationId, NULL, NULL, NULL, ISNULL(@ManufacturerId, (SELECT TOP 1 ManufacturerId FROM DBO.ItemMaster WHERE ItemMasterId = @ItemMasterId)), (SELECT TOP 1 UPPER([Name]) FROM dbo.Manufacturer WHERE ManufacturerId = @ItemManufacturerId), ST.MfgLotNum, CASE WHEN ST.MfgDate IS NOT NULL THEN CAST(ST.MfgDate AS Datetime2) ELSE NULL END, NULL, ST.PartCertNumber,
 					NULL, NULL, CASE WHEN ST.TagDate IS NOT NULL THEN CAST(ST.TagDate AS datetime2) ELSE NULL END, NULL, NULL, ST.CalibRemarks, CASE WHEN ST.OrderRecDate IS NOT NULL THEN CAST(ST.OrderRecDate AS datetime2) ELSE NULL END, NULL, CAST(ISNULL(ST.OriginalCost, 0) AS decimal), 0, NULL,
 					CAST(ST.RepairOrderUnitCost AS decimal), CASE WHEN ST.OrderRecDate IS NOT NULL THEN CAST(ST.OrderRecDate AS datetime2) ELSE GETUTCDATE() END, ST.ReceiverNumber, NULL, CAST(ISNULL(ST.UnitPrice, 0) AS decimal), CAST(ISNULL(ST.CoreCost, 0) AS decimal), (SELECT TOP 1 GLAccountId FROM DBO.ItemMaster WHERE ItemMasterId = @ItemMasterId), NULL, ISNULL(ST.HazardMaterial, 0), ISNULL((SELECT TOP 1 IsPma FROM DBO.ItemMaster WHERE ItemMasterId = @ItemMasterId), 0), ISNULL((SELECT TOP 1 IsDER FROM DBO.ItemMaster WHERE ItemMasterId = @ItemMasterId), 0), ISNULL((SELECT TOP 1 IsOEM FROM DBO.ItemMaster WHERE ItemMasterId = @ItemMasterId), 0),
-					ST.NOTES, @EntityStructureId, (SELECT LegalEntityId FROM dbo.LegalEntity WHERE UPPER([Name]) = UPPER('MTI Aviation Inc.') AND MasterCompanyId = @FromMasterComanyID), @FromMasterComanyID, @UserName, @UserName, GETDATE(), GETDATE(), CASE WHEN ST.SerialNumber IS NOT NULL THEN 1 ELSE 0 END, NULL, NULL, ISNULL(@SiteId, @DefaultSiteId), NULL,
+					ST.NOTES, @EntityStructureId, (SELECT LegalEntityId FROM dbo.LegalEntity WHERE UPPER([Name]) = UPPER('Beach Aviation Group') AND MasterCompanyId = @FromMasterComanyID), @FromMasterComanyID, @UserName, @UserName, GETDATE(), GETDATE(), CASE WHEN ST.SerialNumber IS NOT NULL THEN 1 ELSE 0 END, NULL, NULL, ISNULL(@SiteId, @DefaultSiteId), NULL,
 					@OwnerType, NULL, NULL, NULL, CAST(ST.CTRL_ID AS VARCHAR(50)), ST.Qty_Received, (ISNULL(ST.OriginalCost, 0) * ISNULL(ST.QTY_OH, 0)), NULL,
 					CASE WHEN ST.ExpirationDate IS NOT NULL THEN CAST(ST.ExpirationDate AS datetime2) ELSE NULL END, ST.TailNumber, NULL, NULL, 0, NULL, NULL, NULL, NULL,
 					0, NULL, NULL, ISNULL(ST.QTY_RESERVED, 0), NULL, CASE WHEN ST.Qty_Adjusted < 0 THEN ABS(ST.Qty_Adjusted) ELSE 0 END, ISNULL(ST.QTY_OH, 0), ISNULL(ST.QTY_AVAILABLE, 0), ISNULL(ST.Qty_Received, 0),
@@ -276,7 +282,7 @@ BEGIN
 
 					SELECT @QtyCreated = ISNULL(ST.QTY_AVAILABLE, 0) FROM #TempStockline AS ST WHERE ID = @LoopID;
 
-					EXEC DBO.USP_AddUpdateChildStockline @StocklineId = @InsertedStocklineId, @ActionId = 1, @QtyOnAction = @QtyCreated, @ModuleName = 'Migration', @ReferenceNumber = NULL, @SubModuleName = NULL, @SubReferenceNumber = NULL, @UpdatedBy = @UserName;
+					--EXEC DBO.USP_AddUpdateChildStockline @StocklineId = @InsertedStocklineId, @ActionId = 1, @QtyOnAction = @QtyCreated, @ModuleName = 'Migration', @ReferenceNumber = NULL, @SubModuleName = NULL, @SubReferenceNumber = NULL, @UpdatedBy = @UserName;
 
 					INSERT INTO [dbo].[Stkline_History] ([StocklineId],[ModuleId],[RefferenceId],[RefferenceNumber],[SubModuleId],[SubRefferenceId],[SubRefferenceNumber],[ActionId],[Type],
 						[QtyOH],[QtyAvailable],[QtyReserved],[QtyIssued],[QtyOnAction],[Notes],[UpdatedBy],[UpdatedDate],UnitSalesPrice,SalesPriceExpiryDate)
@@ -287,7 +293,7 @@ BEGIN
 					UPDATE Stk
 					SET Stk.Migrated_Id = @InsertedStocklineId,
 					Stk.SuccessMsg = 'Record migrated successfully'
-					FROM [Quantum_Staging].DBO.Stocklines Stk WHERE Stk.StocklineId = @CurrentStocklineId;
+					FROM [Quantum_Staging_BETA].DBO.Stocklines Stk WHERE Stk.StocklineId = @CurrentStocklineId;
 
 					SET @MigratedRecords = @MigratedRecords + 1;
 				END
@@ -295,7 +301,7 @@ BEGIN
 				BEGIN
 					UPDATE Stk
 					SET Stk.ErrorMsg = ISNULL(ErrorMsg, '') + '<p>Stockline record already exists</p>'
-					FROM [Quantum_Staging].DBO.Stocklines Stk WHERE Stk.StocklineId = @CurrentStocklineId;
+					FROM [Quantum_Staging_BETA].DBO.Stocklines Stk WHERE Stk.StocklineId = @CurrentStocklineId;
 
 					SET @RecordExits = @RecordExits + 1;
 				END

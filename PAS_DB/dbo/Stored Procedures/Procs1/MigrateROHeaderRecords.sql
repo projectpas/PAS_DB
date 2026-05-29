@@ -25,7 +25,7 @@ declare @p7 int
 set @p7=NULL
 declare @p8 int
 set @p8=NULL
-exec sp_executesql N'EXEC MigrateROHeaderRecords @FromMasterComanyID, @UserName, @Processed OUTPUT, @Migrated OUTPUT, @Failed OUTPUT, @Exists OUTPUT',N'@FromMasterComanyID int,@UserName nvarchar(12),@Processed int output,@Migrated int output,@Failed int output,@Exists int output',@FromMasterComanyID=12,@UserName=N'ROGER BENTLY',@Processed=@p5 output,@Migrated=@p6 output,@Failed=@p7 output,@Exists=@p8 output
+exec sp_executesql N'EXEC MigrateROHeaderRecords @FromMasterComanyID, @UserName, @Processed OUTPUT, @Migrated OUTPUT, @Failed OUTPUT, @Exists OUTPUT',N'@FromMasterComanyID int,@UserName nvarchar(12),@Processed int output,@Migrated int output,@Failed int output,@Exists int output',@FromMasterComanyID=25,@UserName=N'ADMIN ADMIN',@Processed=@p5 output,@Migrated=@p6 output,@Failed=@p7 output,@Exists=@p8 output
 select @p5, @p6, @p7, @p8
 **************************************************************/
 CREATE   PROCEDURE [dbo].[MigrateROHeaderRecords]
@@ -67,7 +67,7 @@ BEGIN
 			[FaxNumber] VARCHAR(100) NULL,
 			[HistoricalFlag] VARCHAR(10) NULL,
 			[InOutFlag] VARCHAR(10) NULL,
-			[Notes] VARCHAR(500) NULL,
+			[Notes] VARCHAR(MAX) NULL,
 			[TotalCost] decimal(18, 2) NULL,
 			[OpenFlag] VARCHAR(100) NULL,
 			[PhoneNumber] VARCHAR(100) NULL,
@@ -121,7 +121,7 @@ BEGIN
 		[OpenFlag],[PhoneNumber],[ResaleFlag],[ShipAddress1],[ShipAddress2],[ShipAddress3],[ShipAddress4],[ShipAddress5],[ShipName],[Attention],[Remarks],[FOB],[EmailAddress],[WarrantyFlag],[ReplyDate],
 		[ApprovedDate],[QuoteDate],[NextActDate],[TrackChanges],[VendorName],[VendorAddress1],[VendorAddress2],[VendorAddress3],[VendorAddress4],[VendorAddress5],[CST_AUTO_KEY],[DeferredRec],[TrackingNumber],
 		[CompanyRefNumber],[CountryCodeId],[BatchNumber],[ExpediteFlag],[DateCreated],[LastModified],[ShipPriority],[UrlLink],[TaxId],[IntegrationType],[MasterCompanyId],[Migrated_Id],[SuccessMsg],[ErrorMsg]
-		FROM [Quantum_Staging].dbo.[RepairOrderHeaders] ROH WITH (NOLOCK) WHERE ROH.Migrated_Id IS NULL;
+		FROM [Quantum_Staging_BETA].dbo.[RepairOrderHeaders] ROH WITH (NOLOCK) WHERE ROH.Migrated_Id IS NULL AND ROH.MasterCompanyId = @FromMasterComanyID;
 
 		DECLARE @ProcessedRecords INT = 0;
 		DECLARE @MigratedRecords INT = 0;
@@ -172,17 +172,18 @@ BEGIN
 			SELECT @VendorModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'Vendor';
 			SELECT @CompanyModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'Company';
 
-			SELECT @VendorId =  V.[VendorId], @VendorName =  V.[VendorName], @VendorCode = V.[VendorCode], @CreditLimit = V.[CreditLimit] FROM [dbo].[Vendor] V WITH(NOLOCK) WHERE UPPER(V.VendorCode) IN (SELECT UPPER(CMP.COMPANY_CODE) FROM [Quantum_Staging].DBO.Vendors CMP WHERE CMP.VendorId = @CMP_AUTO_KEY) AND [MasterCompanyId] = @FromMasterComanyID;
+			SELECT @VendorId =  V.[VendorId], @VendorName =  V.[VendorName], @VendorCode = V.[VendorCode], @CreditLimit = V.[CreditLimit] FROM [dbo].[Vendor] V WITH(NOLOCK) WHERE UPPER(V.VendorCode) IN (SELECT UPPER(CMP.COMPANY_CODE) FROM [Quantum_Staging_BETA].DBO.Vendors CMP WHERE CMP.VendorId = @CMP_AUTO_KEY) AND [MasterCompanyId] = @FromMasterComanyID;
+			PRINT @CMP_AUTO_KEY;
 		    SELECT @VendorContactId = V.[VendorContactId], @ContactId = V.[ContactId] FROM [dbo].[VendorContact] V WITH(NOLOCK) WHERE V.[VendorId] = @VendorId AND V.[IsDefaultContact] = 1 AND [MasterCompanyId] = @FromMasterComanyID;
 		    SELECT @VendorContactName = (C.[FirstName] + ' ' + C.[LastName]),  @VendorContactPhone = C.[WorkPhone] FROM DBO.[Contact] C WITH(NOLOCK) WHERE C.[ContactId] = @ContactId AND [MasterCompanyId] = @FromMasterComanyID;
-		    SELECT @CreditTermsId = [CreditTermsId], @TemrsName = CT.[Name] FROM dbo.[CreditTerms] CT WITH(NOLOCK) WHERE UPPER(CT.Name) IN (SELECT UPPER(T.TermCode) FROM [Quantum_Staging].DBO.Term_Codes T Where T.TermCodesId = @TMC_AUTO_KEY) AND MasterCompanyId = @FromMasterComanyID;
+		    SELECT @CreditTermsId = [CreditTermsId], @TemrsName = CT.[Name] FROM dbo.[CreditTerms] CT WITH(NOLOCK) WHERE UPPER(CT.Name) IN (SELECT UPPER(T.TermCode) FROM [Quantum_Staging_BETA].DBO.Term_Codes T Where T.TermCodesId = @TMC_AUTO_KEY) AND MasterCompanyId = @FromMasterComanyID;
             SELECT @OpenStatusId = RS.[ROStatusId] FROM [dbo].[ROStatus] RS WITH(NOLOCK) WHERE UPPER(RS.[Status]) = UPPER('Open');
             SELECT @ClosedStatusId = RS.[ROStatusId] FROM DBO.[ROStatus] RS WITH(NOLOCK) WHERE UPPER(RS.Status) = 'Closed';
-			SELECT TOP 1 @ManagementStructureId = MS.ManagementStructureId FROM DBO.ManagementStructure MS WHERE [MasterCompanyId] = @FromMasterComanyID;
+			SELECT TOP 1 @ManagementStructureId = MS.EntityStructureId FROM DBO.EntityStructureSetup MS WHERE [MasterCompanyId] = @FromMasterComanyID;
 			SELECT @ManagementStructureTypeId = MST.TypeID FROM DBO.ManagementStructureType MST WHERE MST.[Description] = 'LE' AND MST.[MasterCompanyId] = @FromMasterComanyID;
 			SELECT @Level1 = (MSL.Code + ' - ' + MSL.[Description]) FROM DBO.ManagementStructureLevel MSL WHERE MSL.TypeID = @ManagementStructureTypeId AND MSL.[MasterCompanyId] = @FromMasterComanyID;
 
-			SELECT @DefaultUserId = U.EmployeeId FROM DBO.AspNetUsers U WHERE UserName like 'MIG-ADMIN' AND MasterCompanyId = @FromMasterComanyID;
+			SELECT @DefaultUserId = U.EmployeeId FROM DBO.AspNetUsers U WHERE UserName like 'BAG-ADMIN' AND MasterCompanyId = @FromMasterComanyID;
 			SELECT @countries_id = [countries_id] FROM [dbo].[Countries] WITH(NOLOCK) WHERE [MasterCompanyId] = @FromMasterComanyID AND [countries_name] = 'UNITED STATES';
 
 			IF (ISNULL(@ManagementStructureId, 0) = 0)
@@ -210,7 +211,7 @@ BEGIN
 			BEGIN
 				UPDATE ROH
 				SET ROH.ErrorMsg = @ErrorMsg
-				FROM [Quantum_Staging].DBO.RepairOrderHeaders ROH WHERE ROH.ROHeaderId = @CurrentRepairOrderHeaderId;
+				FROM [Quantum_Staging_BETA].DBO.RepairOrderHeaders ROH WHERE ROH.ROHeaderId = @CurrentRepairOrderHeaderId;
 
 				SET @RecordsWithError = @RecordsWithError + 1;
 			END
@@ -272,7 +273,7 @@ BEGIN
 						SELECT @State = SUBSTRING(@StateAndPinCode, 0, CHARINDEX(' ', @StateAndPinCode, 0)), @PostalCode = SUBSTRING(@StateAndPinCode, CHARINDEX(' ', @StateAndPinCode, 0) + 1, LEN(@StateAndPinCode));
 						
 						INSERT INTO [dbo].[Address]([POBox],[Line1],[Line2],[Line3],[City],[StateOrProvince],[PostalCode],[CountryId],[Latitude],[Longitude],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted])
-						SELECT  NULL, PO.ShipAddress1, PO.ShipAddress2, PO.ShipAddress3, @City, @State, @PostalCode, @countries_id, NULL, NULL, @FromMasterComanyID, @UserName, @UserName, GETDATE(),GETDATE(),1,0  FROM #TempROHeader AS PO WHERE ID = @LoopID;
+						SELECT  NULL, PO.ShipAddress1, PO.ShipAddress2, PO.ShipAddress3, @City, @State, LEFT(ISNULL(@PostalCode,'N/A'), 5), @countries_id, NULL, NULL, @FromMasterComanyID, @UserName, @UserName, GETDATE(),GETDATE(),1,0  FROM #TempROHeader AS PO WHERE ID = @LoopID;
 						
 						SELECT @ShippingAddressId = IDENT_CURRENT('Address');
 						
@@ -336,7 +337,7 @@ BEGIN
 						@BTPostalCode = SUBSTRING(@BTStateAndPinCode,CHARINDEX(' ',@BTStateAndPinCode,0)+1,LEN(@BTStateAndPinCode));
 						
 						INSERT INTO [dbo].[Address]([POBox],[Line1],[Line2],[Line3],[City],[StateOrProvince],[PostalCode],[CountryId],[Latitude],[Longitude],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted])
-						SELECT  NULL,RO.VendorAddress1, RO.VendorAddress2, RO.VendorAddress3, @BTCity, @BTState, TRIM(@BTPostalCode), @countries_id, NULL, NULL, @FromMasterComanyID, @UserName, @UserName, GETDATE(), GETDATE(), 1, 0  FROM #TempROHeader AS RO WHERE ID = @LoopID;
+						SELECT  NULL,RO.VendorAddress1, RO.VendorAddress2, RO.VendorAddress3, @BTCity, @BTState, LEFT(ISNULL(TRIM(@BTPostalCode),'N/A'), 5), @countries_id, NULL, NULL, @FromMasterComanyID, @UserName, @UserName, GETDATE(), GETDATE(), 1, 0  FROM #TempROHeader AS RO WHERE ID = @LoopID;
 
 						SELECT @BillingAddressId = IDENT_CURRENT('Address');
 
@@ -366,7 +367,7 @@ BEGIN
 					UPDATE ROH
 					SET ROH.Migrated_Id = @InsertedRepairOrderId,
 					ROH.SuccessMsg = 'Record migrated successfully'
-					FROM [Quantum_Staging].DBO.RepairOrderHeaders ROH WHERE ROH.ROHeaderId = @CurrentRepairOrderHeaderId;
+					FROM [Quantum_Staging_BETA].DBO.RepairOrderHeaders ROH WHERE ROH.ROHeaderId = @CurrentRepairOrderHeaderId;
 
 					SET @MigratedRecords = @MigratedRecords + 1;
 				END
@@ -374,7 +375,7 @@ BEGIN
 				BEGIN
 					UPDATE IMs
 					SET IMs.ErrorMsg = ISNULL(ErrorMsg, '') + '<p>Repair Order Header record already exists</p>'
-					FROM [Quantum_Staging].DBO.ItemMasters IMs WHERE IMs.ItemMasterId = @CurrentRepairOrderHeaderId;
+					FROM [Quantum_Staging_BETA].DBO.ItemMasters IMs WHERE IMs.ItemMasterId = @CurrentRepairOrderHeaderId;
 
 					SET @RecordExits = @RecordExits + 1;
 
@@ -395,7 +396,7 @@ BEGIN
 							SELECT @State= SUBSTRING(@StateAndPinCode,0,CHARINDEX(' ',@StateAndPinCode,0)), @PostalCode = SUBSTRING(@StateAndPinCode,CHARINDEX(' ',@StateAndPinCode,0)+1,LEN(@StateAndPinCode)); 
 					
 							INSERT INTO [dbo].[Address]([POBox],[Line1],[Line2],[Line3],[City],[StateOrProvince],[PostalCode],[CountryId],[Latitude],[Longitude],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted])			
-							SELECT NULL, RO.ShipAddress1, RO.ShipAddress2, RO.ShipAddress3, @City, @State, @PostalCode, @countries_id, NULL, NULL, @FromMasterComanyID, @UserName, @UserName, GETDATE(), GETDATE(), 1, 0  FROM #TempROHeader AS RO WHERE ID = @LoopID;
+							SELECT NULL, RO.ShipAddress1, RO.ShipAddress2, RO.ShipAddress3, @City, @State, LEFT(ISNULL(@PostalCode,'N/A'), 5), @countries_id, NULL, NULL, @FromMasterComanyID, @UserName, @UserName, GETDATE(), GETDATE(), 1, 0  FROM #TempROHeader AS RO WHERE ID = @LoopID;
 							
 							SELECT @ShippingAddressId = IDENT_CURRENT('Address')
 							

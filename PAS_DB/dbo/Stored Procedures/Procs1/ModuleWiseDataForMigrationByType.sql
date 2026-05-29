@@ -59,8 +59,8 @@ BEGIN
 					CASE WHEN ISNULL(Cs.Track_Changes, 'F') = 'T' THEN 1 ELSE 0 END AS IsTrackScoreCard,
 					SuccessMsg,
 					ErrorMsg
-				FROM [Quantum_Staging].dbo.Customers Cs WITH (NOLOCK)
-				LEFT JOIN [Quantum].QCTL_NEW_3.CLASS_CODES CD ON CD.CLC_AUTO_KEY = Cs.CustomerClassCodeId
+				FROM [Quantum_Staging_BETA].dbo.Customers Cs WITH (NOLOCK)
+				LEFT JOIN [BEACH].QCTL1.CLASS_CODES CD ON CD.CLC_AUTO_KEY = Cs.CustomerClassCodeId
 				LEFT JOIN dbo.Customer C  WITH (NOLOCK) ON C.CustomerId = Cs.Migrated_Id
 				LEFT JOIN dbo.CustomerAffiliation CA  WITH (NOLOCK) ON C.CustomerAffiliationId = CA.CustomerAffiliationId
 		 		  WHERE Cs.MasterCompanyId = @MasterCompanyId
@@ -118,8 +118,8 @@ BEGIN
 					CASE WHEN ISNULL(Cs.Track_Changes, 'F') = 'T' THEN 1 ELSE 0 END AS IsTrackScoreCard,
 					SuccessMsg,
 					ErrorMsg
-				FROM [Quantum_Staging].dbo.Customers Cs WITH (NOLOCK)
-				LEFT JOIN [Quantum].QCTL_NEW_3.CLASS_CODES CD ON CD.CLC_AUTO_KEY = Cs.CustomerClassCodeId
+				FROM [Quantum_Staging_BETA].dbo.Customers Cs WITH (NOLOCK)
+				LEFT JOIN [BEACH].QCTL1.CLASS_CODES CD ON CD.CLC_AUTO_KEY = Cs.CustomerClassCodeId
 				LEFT JOIN dbo.Customer C  WITH (NOLOCK) ON C.CustomerId = Cs.Migrated_Id
 				LEFT JOIN dbo.CustomerAffiliation CA  WITH (NOLOCK) ON C.CustomerAffiliationId = CA.CustomerAffiliationId
 		 		  WHERE Cs.Migrated_Id IS NOT NULL AND Cs.MasterCompanyId = @MasterCompanyId
@@ -176,8 +176,8 @@ BEGIN
 					CASE WHEN ISNULL(Cs.Track_Changes, 'F') = 'T' THEN 1 ELSE 0 END AS IsTrackScoreCard,
 					SuccessMsg,
 					ErrorMsg
-				FROM [Quantum_Staging].dbo.Customers Cs WITH (NOLOCK)
-				LEFT JOIN [Quantum].QCTL_NEW_3.CLASS_CODES CD ON CD.CLC_AUTO_KEY = Cs.CustomerClassCodeId
+				FROM [Quantum_Staging_BETA].dbo.Customers Cs WITH (NOLOCK)
+				LEFT JOIN [BEACH].QCTL1.CLASS_CODES CD ON CD.CLC_AUTO_KEY = Cs.CustomerClassCodeId
 				LEFT JOIN dbo.Customer C  WITH (NOLOCK) ON C.CustomerId = Cs.Migrated_Id
 				LEFT JOIN dbo.CustomerAffiliation CA  WITH (NOLOCK) ON C.CustomerAffiliationId = CA.CustomerAffiliationId
 		 		  WHERE Cs.Migrated_Id IS NULL AND (Cs.ErrorMsg IS NOT NULL AND Cs.ErrorMsg NOT like '%Customer already exists%') AND Cs.MasterCompanyId = @MasterCompanyId
@@ -234,8 +234,8 @@ BEGIN
 					CASE WHEN ISNULL(Cs.Track_Changes, 'F') = 'T' THEN 1 ELSE 0 END AS IsTrackScoreCard,
 					SuccessMsg,
 					ErrorMsg
-				FROM [Quantum_Staging].dbo.Customers Cs WITH (NOLOCK)
-				LEFT JOIN [Quantum].QCTL_NEW_3.CLASS_CODES CD ON CD.CLC_AUTO_KEY = Cs.CustomerClassCodeId
+				FROM [Quantum_Staging_BETA].dbo.Customers Cs WITH (NOLOCK)
+				LEFT JOIN [BEACH].QCTL1.CLASS_CODES CD ON CD.CLC_AUTO_KEY = Cs.CustomerClassCodeId
 				LEFT JOIN dbo.Customer C  WITH (NOLOCK) ON C.CustomerId = Cs.Migrated_Id
 				LEFT JOIN dbo.CustomerAffiliation CA  WITH (NOLOCK) ON C.CustomerAffiliationId = CA.CustomerAffiliationId
 		 		  WHERE Cs.Migrated_Id IS NULL AND (Cs.ErrorMsg IS NOT NULL AND Cs.ErrorMsg like '%Customer already exists%') AND Cs.MasterCompanyId = @MasterCompanyId
@@ -293,8 +293,8 @@ BEGIN
 					ISNULL(CD.DESCRIPTION, '') 'ClassificationName',
 					SuccessMsg,
 					ErrorMsg
-				FROM [Quantum_Staging].dbo.Vendors Vs WITH (NOLOCK)
-				LEFT JOIN [Quantum].QCTL_NEW_3.CLASS_CODES CD ON CD.CLC_AUTO_KEY = Vs.CustomerClassCodeId
+				FROM [Quantum_Staging_BETA].dbo.Vendors Vs WITH (NOLOCK)
+				LEFT JOIN [BEACH].QCTL1.CLASS_CODES CD ON CD.CLC_AUTO_KEY = Vs.CustomerClassCodeId
 				LEFT JOIN dbo.Vendor V WITH (NOLOCK) ON V.VendorId = Vs.Migrated_Id
 				LEFT JOIN dbo.VendorType VT WITH (NOLOCK) ON V.VendorTypeId = VT.VendorTypeId
 		 		  WHERE Vs.MasterCompanyId = @MasterCompanyId
@@ -344,8 +344,8 @@ BEGIN
 					ISNULL(CD.DESCRIPTION, '') 'ClassificationName',
 					SuccessMsg,
 					ErrorMsg
-				FROM [Quantum_Staging].dbo.Vendors Vs WITH (NOLOCK)
-				LEFT JOIN [Quantum].QCTL_NEW_3.CLASS_CODES CD ON CD.CLC_AUTO_KEY = Vs.CustomerClassCodeId
+				FROM [Quantum_Staging_BETA].dbo.Vendors Vs WITH (NOLOCK)
+				LEFT JOIN [BEACH].QCTL1.CLASS_CODES CD ON CD.CLC_AUTO_KEY = Vs.CustomerClassCodeId
 				LEFT JOIN dbo.Vendor V WITH (NOLOCK) ON V.VendorId = Vs.Migrated_Id
 				LEFT JOIN dbo.VendorType VT WITH (NOLOCK) ON V.VendorTypeId = VT.VendorTypeId
 		 		  WHERE Vs.Migrated_Id IS NOT NULL AND Vs.MasterCompanyId = @MasterCompanyId
@@ -394,8 +394,8 @@ BEGIN
 					ISNULL(CD.DESCRIPTION, '') 'ClassificationName',
 					SuccessMsg,
 					ErrorMsg
-				FROM [Quantum_Staging].dbo.Vendors Vs WITH (NOLOCK)
-				LEFT JOIN [Quantum].QCTL_NEW_3.CLASS_CODES CD ON CD.CLC_AUTO_KEY = Vs.CustomerClassCodeId
+				FROM [Quantum_Staging_BETA].dbo.Vendors Vs WITH (NOLOCK)
+				LEFT JOIN [BEACH].QCTL1.CLASS_CODES CD ON CD.CLC_AUTO_KEY = Vs.CustomerClassCodeId
 				LEFT JOIN dbo.Vendor V WITH (NOLOCK) ON V.VendorId = Vs.Migrated_Id
 				LEFT JOIN dbo.VendorType VT WITH (NOLOCK) ON V.VendorTypeId = VT.VendorTypeId
 		 		  WHERE Vs.Migrated_Id IS NULL AND (Vs.ErrorMsg IS NOT NULL AND Vs.ErrorMsg NOT like '%Vendor already exists%') AND Vs.MasterCompanyId = @MasterCompanyId
@@ -444,8 +444,8 @@ BEGIN
 					ISNULL(CD.DESCRIPTION, '') 'ClassificationName',
 					SuccessMsg,
 					ErrorMsg
-				FROM [Quantum_Staging].dbo.Vendors Vs WITH (NOLOCK)
-				LEFT JOIN [Quantum].QCTL_NEW_3.CLASS_CODES CD ON CD.CLC_AUTO_KEY = Vs.CustomerClassCodeId
+				FROM [Quantum_Staging_BETA].dbo.Vendors Vs WITH (NOLOCK)
+				LEFT JOIN [BEACH].QCTL1.CLASS_CODES CD ON CD.CLC_AUTO_KEY = Vs.CustomerClassCodeId
 				LEFT JOIN dbo.Vendor V WITH (NOLOCK) ON V.VendorId = Vs.Migrated_Id
 				LEFT JOIN dbo.VendorType VT WITH (NOLOCK) ON V.VendorTypeId = VT.VendorTypeId
 		 		  WHERE Vs.Migrated_Id IS NULL AND (Vs.ErrorMsg IS NOT NULL AND Vs.ErrorMsg like '%Vendor already exists%') AND Vs.MasterCompanyId = @MasterCompanyId
@@ -501,13 +501,13 @@ BEGIN
 										WHEN IMs.PMA_Flag = 'F' AND IMs.DER_Flag = 'T'  THEN 'DER' 
 										ELSE 'OEM'
 								END),                       
-					IMs.Date_Created AS CreatedDate,
+					im.CreatedDate AS CreatedDate,
 					'' AS CreatedBy,
 					'' AS UpdatedBy,	
 					0 AS IsDeleted,
 					SuccessMsg,
 					ErrorMsg
-				FROM [Quantum_Staging].dbo.ItemMasters IMs WITH (NOLOCK)
+				FROM [Quantum_Staging_BETA].dbo.ItemMasters IMs WITH (NOLOCK)
 				LEFT JOIN dbo.ItemClassification ic ON IMs.ItemClassificationId = ic.ItemClassificationId
 				LEFT JOIN dbo.ItemGroup ig ON IMs.ItemGroupId = ig.ItemGroupId
 				LEFT JOIN dbo.ItemMaster im ON IMs.Migrated_Id = im.ItemMasterId
@@ -570,13 +570,13 @@ BEGIN
 										WHEN IMs.PMA_Flag = 'F' AND IMs.DER_Flag = 'T'  THEN 'DER' 
 										ELSE 'OEM'
 								END),                       
-					IMs.Date_Created AS CreatedDate,
+					im.CreatedDate AS CreatedDate,
 					'' AS CreatedBy,
 					'' AS UpdatedBy,	
 					0 AS IsDeleted,
 					SuccessMsg,
 					ErrorMsg
-				FROM [Quantum_Staging].dbo.ItemMasters IMs WITH (NOLOCK)
+				FROM [Quantum_Staging_BETA].dbo.ItemMasters IMs WITH (NOLOCK)
 				LEFT JOIN dbo.ItemClassification ic ON IMs.ItemClassificationId = ic.ItemClassificationId
 				LEFT JOIN dbo.ItemGroup ig ON IMs.ItemGroupId = ig.ItemGroupId
 				LEFT JOIN dbo.ItemMaster im ON IMs.Migrated_Id = im.ItemMasterId
@@ -638,13 +638,13 @@ BEGIN
 										WHEN IMs.PMA_Flag = 'F' AND IMs.DER_Flag = 'T'  THEN 'DER' 
 										ELSE 'OEM'
 								END),                       
-					IMs.Date_Created AS CreatedDate,
+					im.CreatedDate AS CreatedDate,
 					'' AS CreatedBy,
 					'' AS UpdatedBy,	
 					0 AS IsDeleted,
 					SuccessMsg,
 					ErrorMsg
-				FROM [Quantum_Staging].dbo.ItemMasters IMs WITH (NOLOCK)
+				FROM [Quantum_Staging_BETA].dbo.ItemMasters IMs WITH (NOLOCK)
 				LEFT JOIN dbo.ItemClassification ic ON IMs.ItemClassificationId = ic.ItemClassificationId
 				LEFT JOIN dbo.ItemGroup ig ON IMs.ItemGroupId = ig.ItemGroupId
 				LEFT JOIN dbo.ItemMaster im ON IMs.Migrated_Id = im.ItemMasterId
@@ -706,13 +706,13 @@ BEGIN
 										WHEN IMs.PMA_Flag = 'F' AND IMs.DER_Flag = 'T'  THEN 'DER' 
 										ELSE 'OEM'
 								END),                       
-					IMs.Date_Created AS CreatedDate,
+					ISNULL(im.CreatedDate, GETDATE()) AS CreatedDate,
 					'' AS CreatedBy,
 					'' AS UpdatedBy,	
 					0 AS IsDeleted,
 					SuccessMsg,
 					ErrorMsg
-				FROM [Quantum_Staging].dbo.ItemMasters IMs WITH (NOLOCK)
+				FROM [Quantum_Staging_BETA].dbo.ItemMasters IMs WITH (NOLOCK)
 				LEFT JOIN dbo.ItemClassification ic ON IMs.ItemClassificationId = ic.ItemClassificationId
 				LEFT JOIN dbo.ItemGroup ig ON IMs.ItemGroupId = ig.ItemGroupId
 				LEFT JOIN dbo.ItemMaster im ON IMs.Migrated_Id = im.ItemMasterId
@@ -761,9 +761,9 @@ BEGIN
 				;WITH Result AS (
 				SELECT DISTINCT Stks.StockLineId,
 					Stks.Migrated_Id,
-					(ISNULL(im.ItemMasterId,0)) 'ItemMasterId',        
-					(ISNULL(im.PartNumber,'')) 'MainPartNumber',        
-					(ISNULL(im.PartDescription,'')) 'PartDescription',        
+					(ISNULL(im_mg.ItemMasterId,0)) 'ItemMasterId',        
+					(ISNULL(im_mg.PartNumber,'')) 'MainPartNumber',        
+					(ISNULL(im_mg.PartDescription,'')) 'PartDescription',        
 					(ISNULL(mf.Name,'')) 'Manufacturer',          
 					(ISNULL(rPart.PartNumber,'')) 'RevisedPN',                  
 					(ISNULL(ig.Description,'')) 'ItemGroup',         
@@ -790,7 +790,7 @@ BEGIN
 					'' AS 'ItemCategory',         
 					im_mg.ItemTypeId,        
 					1 AS IsActive,                             
-					Stks.Date_Created AS CreatedDate,        
+					stk.CreatedDate AS CreatedDate,        
 					'' AS CreatedBy,        
 					Stks.PartCertNumber PartCertificationNumber,        
 					'' AS CertifiedBy,        
@@ -818,11 +818,11 @@ BEGIN
 					0 as rsworkOrderId,
 					Stks.SuccessMsg,
 					Stks.ErrorMsg
-				FROM [Quantum_Staging].dbo.Stocklines Stks WITH (NOLOCK)
+				FROM [Quantum_Staging_BETA].dbo.Stocklines Stks WITH (NOLOCK)
 				LEFT JOIN dbo.Stockline stk WITH (NOLOCK) ON stk.StockLineId = Stks.Migrated_Id
-				LEFT JOIN [Quantum_Staging].dbo.ItemMasters im WITH (NOLOCK) ON Stks.ItemMasterId = im.ItemMasterId       
-				LEFT JOIN dbo.ItemMaster im_mg WITH (NOLOCK) ON im_mg.ItemMasterId = im.Migrated_Id
-				LEFT JOIN dbo.ItemGroup ig WITH (NOLOCK) ON ig.ItemGroupId = im.ItemGroupId
+				--LEFT JOIN [Quantum_Staging_BETA].dbo.ItemMasters im WITH (NOLOCK) ON Stks.ItemMasterId = im.ItemMasterId         
+				LEFT JOIN dbo.ItemMaster im_mg WITH (NOLOCK) ON im_mg.ItemMasterId = stk.ItemMasterId         
+				LEFT JOIN dbo.ItemGroup ig WITH (NOLOCK) ON ig.ItemGroupId = im_mg.ItemGroupId
 				LEFT JOIN dbo.UnitOfMeasure uom WITH (NOLOCK) ON uom.UnitOfMeasureId = im_mg.PurchaseUnitOfMeasureId
 				LEFT JOIN dbo.Condition cond WITH (NOLOCK) ON cond.ConditionId = stk.ConditionId
 				LEFT JOIN dbo.Manufacturer mf WITH (NOLOCK) ON mf.ManufacturerId = stk.ManufacturerId         
@@ -918,9 +918,9 @@ BEGIN
 				SELECT DISTINCT Stks.Migrated_Id StockLineId,
 					Stks.Migrated_Id,
 					22 ModuleId,
-					(ISNULL(im.ItemMasterId,0)) 'ItemMasterId',        
-					(ISNULL(im.PartNumber,'')) 'MainPartNumber',        
-					(ISNULL(im.PartDescription,'')) 'PartDescription',        
+					(ISNULL(im_mg.ItemMasterId,0)) 'ItemMasterId',        
+					(ISNULL(im_mg.PartNumber,'')) 'MainPartNumber',        
+					(ISNULL(im_mg.PartDescription,'')) 'PartDescription',        
 					(ISNULL(mf.Name,'')) 'Manufacturer',          
 					(ISNULL(rPart.PartNumber,'')) 'RevisedPN',                  
 					(ISNULL(ig.Description,'')) 'ItemGroup',         
@@ -947,7 +947,7 @@ BEGIN
 					'' AS 'ItemCategory',         
 					im_mg.ItemTypeId,        
 					1 AS IsActive,                             
-					Stks.Date_Created AS CreatedDate,        
+					stk.CreatedDate AS CreatedDate,        
 					'' AS CreatedBy,        
 					Stks.PartCertNumber PartCertificationNumber,        
 					'' AS CertifiedBy,        
@@ -975,18 +975,18 @@ BEGIN
 					0 as rsworkOrderId,
 					Stks.SuccessMsg,
 					Stks.ErrorMsg
-				FROM [Quantum_Staging].dbo.Stocklines Stks WITH (NOLOCK)
+				FROM [Quantum_Staging_BETA].dbo.Stocklines Stks WITH (NOLOCK)
 				LEFT JOIN dbo.Stockline stk WITH (NOLOCK) ON stk.StockLineId = Stks.Migrated_Id
-				LEFT JOIN [Quantum_Staging].dbo.ItemMasters im WITH (NOLOCK) ON Stks.ItemMasterId = im.ItemMasterId         
-				LEFT JOIN dbo.ItemMaster im_mg WITH (NOLOCK) ON im_mg.ItemMasterId = im.Migrated_Id         
-				LEFT JOIN dbo.ItemGroup ig WITH (NOLOCK) ON ig.ItemGroupId = im.ItemGroupId
+				--LEFT JOIN [Quantum_Staging_BETA].dbo.ItemMasters im WITH (NOLOCK) ON Stks.ItemMasterId = im.ItemMasterId         
+				LEFT JOIN dbo.ItemMaster im_mg WITH (NOLOCK) ON im_mg.ItemMasterId = stk.ItemMasterId         
+				LEFT JOIN dbo.ItemGroup ig WITH (NOLOCK) ON ig.ItemGroupId = im_mg.ItemGroupId
 				LEFT JOIN dbo.UnitOfMeasure uom WITH (NOLOCK) ON uom.UnitOfMeasureId = im_mg.PurchaseUnitOfMeasureId
 				LEFT JOIN dbo.Condition cond WITH (NOLOCK) ON cond.ConditionId = stk.ConditionId
 				LEFT JOIN dbo.Manufacturer mf WITH (NOLOCK) ON mf.ManufacturerId = stk.ManufacturerId         
 				LEFT JOIN dbo.[Location] loc WITH (NOLOCK) ON loc.LocationId = stk.LocationId
 				LEFT JOIN dbo.ItemMaster rPart WITH (NOLOCK) ON im_mg.RevisedPartId = rPart.ItemMasterId
 		 		  WHERE Stks.Migrated_Id IS NOT NULL AND Stks.MasterCompanyId = @MasterCompanyId
-				), ResultCount AS(Select COUNT(ItemMasterId) AS totalItems FROM Result)
+				), ResultCount AS(Select COUNT(StockLineId) AS totalItems FROM Result)
 				SELECT * INTO #TempResultS2 FROM  Result
 
 				SELECT @Count = COUNT(ItemMasterId) FROM #TempResultS2
@@ -1074,10 +1074,10 @@ BEGIN
 				;WITH Result AS (
 				SELECT DISTINCT Stks.StockLineId,    
 					Stks.Migrated_Id,
-					(ISNULL(im.ItemMasterId,0)) 'ItemMasterId',        
-					(ISNULL(im.PartNumber,'')) 'MainPartNumber',        
-					(ISNULL(im.PartDescription,'')) 'PartDescription',        
-					(ISNULL(mf.DESCRIPTION,'')) 'Manufacturer',          
+					(ISNULL(im_mg.ItemMasterId,0)) 'ItemMasterId',        
+					(ISNULL(im_mg.PartNumber,'')) 'MainPartNumber',        
+					(ISNULL(im_mg.PartDescription,'')) 'PartDescription',        
+					(ISNULL(mf.Name,'')) 'Manufacturer',          
 					(ISNULL(rPart.PartNumber,'')) 'RevisedPN',                  
 					(ISNULL(ig.Description,'')) 'ItemGroup',         
 					(ISNULL(uom.ShortName,'')) 'UnitOfMeasure',        
@@ -1103,7 +1103,7 @@ BEGIN
 					'' AS 'ItemCategory',         
 					im_mg.ItemTypeId,        
 					1 AS IsActive,                             
-					Stks.Date_Created AS CreatedDate,        
+					stk.CreatedDate AS CreatedDate,        
 					'' AS CreatedBy,        
 					Stks.PartCertNumber PartCertificationNumber,        
 					'' AS CertifiedBy,        
@@ -1131,15 +1131,15 @@ BEGIN
 					0 as rsworkOrderId,
 					Stks.SuccessMsg,
 					Stks.ErrorMsg
-				FROM [Quantum_Staging].dbo.Stocklines Stks WITH (NOLOCK)
+				FROM [Quantum_Staging_BETA].dbo.Stocklines Stks WITH (NOLOCK)
 				LEFT JOIN dbo.Stockline stk WITH (NOLOCK) ON stk.StockLineId = Stks.Migrated_Id
-				LEFT JOIN [Quantum_Staging].dbo.ItemMasters im WITH (NOLOCK) ON Stks.ItemMasterId = im.ItemMasterId         
-				LEFT JOIN dbo.ItemMaster im_mg WITH (NOLOCK) ON im_mg.ItemMasterId = im.Migrated_Id         
-				LEFT JOIN dbo.ItemGroup ig WITH (NOLOCK) ON ig.ItemGroupId = im.ItemGroupId
+				--LEFT JOIN [Quantum_Staging_BETA].dbo.ItemMasters im WITH (NOLOCK) ON Stks.ItemMasterId = im.ItemMasterId         
+				LEFT JOIN dbo.ItemMaster im_mg WITH (NOLOCK) ON im_mg.ItemMasterId = stk.ItemMasterId         
+				LEFT JOIN dbo.ItemGroup ig WITH (NOLOCK) ON ig.ItemGroupId = im_mg.ItemGroupId
 				LEFT JOIN dbo.UnitOfMeasure uom WITH (NOLOCK) ON uom.UnitOfMeasureId = im_mg.PurchaseUnitOfMeasureId
 				LEFT JOIN dbo.Condition cond WITH (NOLOCK) ON cond.ConditionId = stk.ConditionId
-				--LEFT JOIN dbo.Manufacturer mf WITH (NOLOCK) ON mf.ManufacturerId = stk.ManufacturerId         
-				LEFT JOIN Quantum.QCTL_NEW_3.Manufacturer mf WITH (NOLOCK) ON mf.MFG_AUTO_KEY = Stks.ManufacturerId         
+				LEFT JOIN dbo.Manufacturer mf WITH (NOLOCK) ON mf.ManufacturerId = stk.ManufacturerId         
+				--LEFT JOIN Quantum.QCTL_NEW_3.Manufacturer mf WITH (NOLOCK) ON mf.MFG_AUTO_KEY = Stks.ManufacturerId         
 				LEFT JOIN dbo.[Location] loc WITH (NOLOCK) ON loc.LocationId = stk.LocationId
 				LEFT JOIN dbo.ItemMaster rPart WITH (NOLOCK) ON im_mg.RevisedPartId = rPart.ItemMasterId
 		 		  WHERE Stks.Migrated_Id IS NULL AND (Stks.ErrorMsg IS NOT NULL AND Stks.ErrorMsg NOT like '%Stockline record already exists%') AND Stks.MasterCompanyId = @MasterCompanyId
@@ -1231,9 +1231,9 @@ BEGIN
 				;WITH Result AS (
 				SELECT DISTINCT Stks.StockLineId,    
 					Stks.Migrated_Id,
-					(ISNULL(im.ItemMasterId,0)) 'ItemMasterId',        
-					(ISNULL(im.PartNumber,'')) 'MainPartNumber',        
-					(ISNULL(im.PartDescription,'')) 'PartDescription',        
+					(ISNULL(im_mg.ItemMasterId,0)) 'ItemMasterId',        
+					(ISNULL(im_mg.PartNumber,'')) 'MainPartNumber',        
+					(ISNULL(im_mg.PartDescription,'')) 'PartDescription',        
 					(ISNULL(mf.Name,'')) 'Manufacturer',          
 					(ISNULL(rPart.PartNumber,'')) 'RevisedPN',                  
 					(ISNULL(ig.Description,'')) 'ItemGroup',         
@@ -1260,7 +1260,7 @@ BEGIN
 					'' AS 'ItemCategory',         
 					im_mg.ItemTypeId,        
 					1 AS IsActive,                             
-					Stks.Date_Created AS CreatedDate,        
+					ISNULL(stk.CreatedDate, GETDATE()) AS CreatedDate,        
 					'' AS CreatedBy,        
 					Stks.PartCertNumber PartCertificationNumber,        
 					'' AS CertifiedBy,        
@@ -1288,11 +1288,11 @@ BEGIN
 					0 as rsworkOrderId,
 					Stks.SuccessMsg,
 					Stks.ErrorMsg
-				FROM [Quantum_Staging].dbo.Stocklines Stks WITH (NOLOCK)
+				FROM [Quantum_Staging_BETA].dbo.Stocklines Stks WITH (NOLOCK)
 				LEFT JOIN dbo.Stockline stk WITH (NOLOCK) ON stk.StockLineId = Stks.Migrated_Id
-				LEFT JOIN [Quantum_Staging].dbo.ItemMasters im WITH (NOLOCK) ON Stks.ItemMasterId = im.ItemMasterId         
-				LEFT JOIN dbo.ItemMaster im_mg WITH (NOLOCK) ON im_mg.ItemMasterId = im.Migrated_Id         
-				LEFT JOIN dbo.ItemGroup ig WITH (NOLOCK) ON ig.ItemGroupId = im.ItemGroupId
+				--LEFT JOIN [Quantum_Staging_BETA].dbo.ItemMasters im WITH (NOLOCK) ON Stks.ItemMasterId = im.ItemMasterId         
+				LEFT JOIN dbo.ItemMaster im_mg WITH (NOLOCK) ON im_mg.ItemMasterId = stk.ItemMasterId         
+				LEFT JOIN dbo.ItemGroup ig WITH (NOLOCK) ON ig.ItemGroupId = im_mg.ItemGroupId
 				LEFT JOIN dbo.UnitOfMeasure uom WITH (NOLOCK) ON uom.UnitOfMeasureId = im_mg.PurchaseUnitOfMeasureId
 				LEFT JOIN dbo.Condition cond WITH (NOLOCK) ON cond.ConditionId = stk.ConditionId
 				LEFT JOIN dbo.Manufacturer mf WITH (NOLOCK) ON mf.ManufacturerId = stk.ManufacturerId         
@@ -1408,7 +1408,7 @@ BEGIN
 					0 AS IsDeleted,
 					SuccessMsg,
 					ErrorMsg
-				FROM [Quantum_Staging].dbo.[KitMasters] kitm WITH (NOLOCK)
+				FROM [Quantum_Staging_BETA].dbo.[KitMasters] kitm WITH (NOLOCK)
 				LEFT JOIN dbo.KitMaster km ON km.KitId = kitm.Migrated_Id
 				LEFT JOIN dbo.ItemMaster im ON im.ItemMasterId = kitm.MainItemMasterId
 				LEFT JOIN dbo.Manufacturer mf ON km.ManufacturerId = mf.ManufacturerId
@@ -1466,7 +1466,7 @@ BEGIN
 					0 AS IsDeleted,
 					SuccessMsg,
 					ErrorMsg
-				FROM [Quantum_Staging].dbo.[KitMasters] kitm WITH (NOLOCK)
+				FROM [Quantum_Staging_BETA].dbo.[KitMasters] kitm WITH (NOLOCK)
 				LEFT JOIN dbo.KitMaster km ON km.KitId = kitm.Migrated_Id
 				LEFT JOIN dbo.ItemMaster im ON im.ItemMasterId = kitm.MainItemMasterId
 				LEFT JOIN dbo.Manufacturer mf ON km.ManufacturerId = mf.ManufacturerId
@@ -1524,7 +1524,7 @@ BEGIN
 					0 AS IsDeleted,
 					SuccessMsg,
 					ErrorMsg
-				FROM [Quantum_Staging].dbo.[KitMasters] kitm WITH (NOLOCK)
+				FROM [Quantum_Staging_BETA].dbo.[KitMasters] kitm WITH (NOLOCK)
 				LEFT JOIN dbo.KitMaster km ON km.KitId = kitm.Migrated_Id
 				LEFT JOIN dbo.ItemMaster im ON im.ItemMasterId = kitm.MainItemMasterId
 				LEFT JOIN dbo.Manufacturer mf ON km.ManufacturerId = mf.ManufacturerId
@@ -1582,7 +1582,7 @@ BEGIN
 					0 AS IsDeleted,
 					SuccessMsg,
 					ErrorMsg
-				FROM [Quantum_Staging].dbo.[KitMasters] kitm WITH (NOLOCK)
+				FROM [Quantum_Staging_BETA].dbo.[KitMasters] kitm WITH (NOLOCK)
 				LEFT JOIN dbo.KitMaster km ON km.KitId = kitm.Migrated_Id
 				LEFT JOIN dbo.ItemMaster im ON im.ItemMasterId = kitm.MainItemMasterId
 				LEFT JOIN dbo.Manufacturer mf ON km.ManufacturerId = mf.ManufacturerId
@@ -1623,464 +1623,367 @@ BEGIN
 			IF (@TypeId = 1)
 			BEGIN
 				;WITH Result AS (
-				SELECT
-					POH.Migrated_Id POId,
-					--kitm.Migrated_Id,
-					--km.KitNumber KitNumber,
-					POH.POHeaderId POHeaderId,
-					--im.partnumber PartNumber,
-					--im.PartDescription PartDescription,
-					--km.Manufacturer,
-					--km.CustomerId,
-					--km.CustomerName AS CustomerName,
-					--wos.WorkScopeCode AS WorkScopeName,
-					--km.KitCost,
-					--kitm.UnitCost AS UnitCost,
-					--(SELECT ISNULL(COUNT(kimm.KitItemMasterMappingId),0) FROM [dbo].[KitItemMasterMapping] kimm WITH (NOLOCK) WHERE kimm.KitId = km.KitId AND kimm.IsDeleted = 0) AS Qty,
-					--0 AS StocklineUnitCost,
-					--1 AS IsActive,
-					--kitm.Date_Created CreatedDate,
-					0 AS IsDeleted,
-					SuccessMsg,
-					ErrorMsg
-				FROM [Quantum_Staging].dbo.[PurchaseOrderHeaders] POH WITH (NOLOCK)
-				LEFT JOIN dbo.PurchaseOrder PO ON PO.PurchaseOrderId = POH.Migrated_Id
-		 		  WHERE POH.MasterCompanyId = @MasterCompanyId
-				), ResultCount AS(Select COUNT(POId) AS totalItems FROM Result)
-				SELECT * INTO #TempResultPO1 FROM  Result
+					SELECT DISTINCT
+						POH.POHeaderId,
+						POH.Migrated_Id,
+						POH.PONumber,
+						V.VendorName,
+						POH.EntryDate OrderDate,
+						'PURCHASE ORDER' AS AccountType,
+						1 IsActive,
+						0 IsDeleted,
+						POH.DATE_CREATED CreatedDate,
+						SuccessMsg,
+						ErrorMsg
+					FROM [Quantum_Staging_BETA].dbo.[PurchaseOrderHeaders] POH WITH (NOLOCK)
+					LEFT JOIN dbo.PurchaseOrder PO WITH (NOLOCK) ON PO.PurchaseOrderId = POH.Migrated_Id
+					LEFT JOIN dbo.Vendor V WITH (NOLOCK) ON PO.VendorId = V.VendorId
+					WHERE POH.MasterCompanyId = @MasterCompanyId
+				)
+				SELECT * INTO #TempResultPO1 FROM Result
 
-				SELECT @Count = COUNT(POHeaderId) FROM #TempResultPO1			
+				SELECT @Count = COUNT(POHeaderId) FROM #TempResultPO1
 
-				SELECT *, @Count AS NumberOfItems FROM #TempResultPO1 
-				--ORDER BY  
-				--CASE WHEN (@SortOrder=1  AND @SortColumn='PartNumber')  THEN PartNumber END ASC,
-				--CASE WHEN (@SortOrder=-1 AND @SortColumn='PartNumber')  THEN PartNumber END DESC,
-				--CASE WHEN (@SortOrder=1  AND @SortColumn='PartDescription')  THEN PartDescription END ASC,
-				--CASE WHEN (@SortOrder=-1 AND @SortColumn='PartDescription')  THEN PartDescription END DESC,
-				--CASE WHEN (@SortOrder=1  AND @SortColumn='Manufacturer')  THEN Manufacturer END ASC,
-				--CASE WHEN (@SortOrder=-1 AND @SortColumn='Manufacturer')  THEN Manufacturer END DESC,
-				--CASE WHEN (@SortOrder=1  AND @SortColumn='KitNumber')  THEN KitNumber END ASC,
-				--CASE WHEN (@SortOrder=-1 AND @SortColumn='KitNumber')  THEN KitNumber END DESC,
-				--CASE WHEN (@SortOrder=1  AND @SortColumn='WorkScopeName')  THEN WorkScopeName END ASC,
-				--CASE WHEN (@SortOrder=-1 AND @SortColumn='WorkScopeName')  THEN WorkScopeName END DESC,
-				--CASE WHEN (@SortOrder=1  AND @SortColumn='CustomerName')  THEN CustomerName END ASC,
-				--CASE WHEN (@SortOrder=-1 AND @SortColumn='CustomerName')  THEN CustomerName END DESC,
-				--CASE WHEN (@SortOrder=1  AND @SortColumn='Qty')  THEN Qty END ASC,
-				--CASE WHEN (@SortOrder=-1 AND @SortColumn='Qty')  THEN Qty END DESC,
-				--CASE WHEN (@SortOrder=1  AND @SortColumn='UnitCost')  THEN UnitCost END ASC,
-				--CASE WHEN (@SortOrder=-1 AND @SortColumn='UnitCost')  THEN UnitCost END DESC,
-				--CASE WHEN (@SortOrder=1  AND @SortColumn='StocklineUnitCost')  THEN StocklineUnitCost END ASC,
-				--CASE WHEN (@SortOrder=-1 AND @SortColumn='StocklineUnitCost')  THEN StocklineUnitCost END DESC,
-				--CASE WHEN (@SortOrder=1  AND @SortColumn='CreatedDate')  THEN CreatedDate END ASC,
-				--CASE WHEN (@SortOrder=-1 AND @SortColumn='CreatedDate')  THEN CreatedDate END DESC
-				--OFFSET @RecordFrom ROWS 
-				--FETCH NEXT @PageSize ROWS ONLY
-			END
-			ELSE IF (@TypeId = 2)
-			BEGIN
-				;WITH Result AS (
-				SELECT
-					kitm.Migrated_Id KitId,
-					kitm.Migrated_Id,
-					km.KitNumber KitNumber,
-					kitm.MainItemMasterId ItemMasterId,
-					im.partnumber PartNumber,
-					im.PartDescription PartDescription,
-					km.Manufacturer,
-					km.CustomerId,
-					km.CustomerName AS CustomerName,
-					wos.WorkScopeCode AS WorkScopeName,
-					km.KitCost,
-					kitm.UnitCost AS UnitCost,
-					(SELECT ISNULL(COUNT(kimm.KitItemMasterMappingId),0) FROM [dbo].[KitItemMasterMapping] kimm WITH (NOLOCK) WHERE kimm.KitId = kitm.Migrated_Id AND kimm.IsDeleted = 0) AS Qty,
-					0 AS StocklineUnitCost,
-					1 AS IsActive,
-					kitm.Date_Created CreatedDate,
-					0 AS IsDeleted,
-					SuccessMsg,
-					ErrorMsg
-				FROM [Quantum_Staging].dbo.[KitMasters] kitm WITH (NOLOCK)
-				LEFT JOIN dbo.KitMaster km ON km.KitId = kitm.Migrated_Id
-				LEFT JOIN dbo.ItemMaster im ON im.ItemMasterId = kitm.MainItemMasterId
-				LEFT JOIN dbo.Manufacturer mf ON km.ManufacturerId = mf.ManufacturerId
-				LEFT JOIN [dbo].[WorkScope] wos WITH (NOLOCK) ON km.WorkScopeId = wos.WorkScopeId
-		 		  WHERE kitm.Migrated_Id IS NOT NULL AND kitm.MasterCompanyId = @MasterCompanyId
-				), ResultCount AS(Select COUNT(ItemMasterId) AS totalItems FROM Result)
-				SELECT * INTO #TempResultPO2 FROM  Result
-
-				SELECT @Count = COUNT(ItemMasterId) FROM #TempResultPO2			
-
-				SELECT *, @Count AS NumberOfItems FROM #TempResultPO2 ORDER BY  
-				CASE WHEN (@SortOrder=1  AND @SortColumn='PartNumber')  THEN PartNumber END ASC,
-				CASE WHEN (@SortOrder=-1 AND @SortColumn='PartNumber')  THEN PartNumber END DESC,
-				CASE WHEN (@SortOrder=1  AND @SortColumn='PartDescription')  THEN PartDescription END ASC,
-				CASE WHEN (@SortOrder=-1 AND @SortColumn='PartDescription')  THEN PartDescription END DESC,
-				CASE WHEN (@SortOrder=1  AND @SortColumn='Manufacturer')  THEN Manufacturer END ASC,
-				CASE WHEN (@SortOrder=-1 AND @SortColumn='Manufacturer')  THEN Manufacturer END DESC,
-				CASE WHEN (@SortOrder=1  AND @SortColumn='KitNumber')  THEN KitNumber END ASC,
-				CASE WHEN (@SortOrder=-1 AND @SortColumn='KitNumber')  THEN KitNumber END DESC,
-				CASE WHEN (@SortOrder=1  AND @SortColumn='WorkScopeName')  THEN WorkScopeName END ASC,
-				CASE WHEN (@SortOrder=-1 AND @SortColumn='WorkScopeName')  THEN WorkScopeName END DESC,
-				CASE WHEN (@SortOrder=1  AND @SortColumn='CustomerName')  THEN CustomerName END ASC,
-				CASE WHEN (@SortOrder=-1 AND @SortColumn='CustomerName')  THEN CustomerName END DESC,
-				CASE WHEN (@SortOrder=1  AND @SortColumn='Qty')  THEN Qty END ASC,
-				CASE WHEN (@SortOrder=-1 AND @SortColumn='Qty')  THEN Qty END DESC,
-				CASE WHEN (@SortOrder=1  AND @SortColumn='UnitCost')  THEN UnitCost END ASC,
-				CASE WHEN (@SortOrder=-1 AND @SortColumn='UnitCost')  THEN UnitCost END DESC,
-				CASE WHEN (@SortOrder=1  AND @SortColumn='StocklineUnitCost')  THEN StocklineUnitCost END ASC,
-				CASE WHEN (@SortOrder=-1 AND @SortColumn='StocklineUnitCost')  THEN StocklineUnitCost END DESC,
-				CASE WHEN (@SortOrder=1  AND @SortColumn='CreatedDate')  THEN CreatedDate END ASC,
-				CASE WHEN (@SortOrder=-1 AND @SortColumn='CreatedDate')  THEN CreatedDate END DESC	
-				OFFSET @RecordFrom ROWS 
+				SELECT *, @Count AS NumberOfItems FROM #TempResultPO1 ORDER BY
+				CASE WHEN (@SortOrder=1  AND @SortColumn='PONUMBER')      THEN PONumber    END ASC,
+				CASE WHEN (@SortOrder=1  AND @SortColumn='VENDORNAME')    THEN VendorName  END ASC,
+				CASE WHEN (@SortOrder=1  AND @SortColumn='ORDERDATE')     THEN OrderDate   END ASC,
+				CASE WHEN (@SortOrder=1  AND @SortColumn='CREATEDDATE')   THEN CreatedDate END ASC,
+				CASE WHEN (@SortOrder=-1 AND @SortColumn='PONUMBER')      THEN PONumber    END DESC,
+				CASE WHEN (@SortOrder=-1 AND @SortColumn='VENDORNAME')    THEN VendorName  END DESC,
+				CASE WHEN (@SortOrder=-1 AND @SortColumn='ORDERDATE')     THEN OrderDate   END DESC,
+				CASE WHEN (@SortOrder=-1 AND @SortColumn='CREATEDDATE')   THEN CreatedDate END DESC
+				OFFSET @RecordFrom ROWS
 				FETCH NEXT @PageSize ROWS ONLY
 			END
-			ELSE IF (@TypeId = 3)
+			ELSE IF (@TypeId = 2)  -- Migrated
 			BEGIN
 				;WITH Result AS (
-				SELECT
-					kitm.Migrated_Id KitId,
-					kitm.Migrated_Id,
-					km.KitNumber KitNumber,
-					kitm.MainItemMasterId ItemMasterId,
-					im.partnumber PartNumber,
-					im.PartDescription PartDescription,
-					km.Manufacturer,
-					km.CustomerId,
-					km.CustomerName AS CustomerName,
-					wos.WorkScopeCode AS WorkScopeName,
-					km.KitCost,
-					kitm.UnitCost AS UnitCost,
-					(SELECT ISNULL(COUNT(kimm.KitItemMasterMappingId),0) FROM [dbo].[KitItemMasterMapping] kimm WITH (NOLOCK) WHERE kimm.KitId = kitm.Migrated_Id AND kimm.IsDeleted = 0) AS Qty,
-					0 AS StocklineUnitCost,
-					1 AS IsActive,
-					kitm.Date_Created CreatedDate,
-					0 AS IsDeleted,
-					SuccessMsg,
-					ErrorMsg
-				FROM [Quantum_Staging].dbo.[KitMasters] kitm WITH (NOLOCK)
-				LEFT JOIN dbo.KitMaster km ON km.KitId = kitm.Migrated_Id
-				LEFT JOIN dbo.ItemMaster im ON im.ItemMasterId = kitm.MainItemMasterId
-				LEFT JOIN dbo.Manufacturer mf ON km.ManufacturerId = mf.ManufacturerId
-				LEFT JOIN [dbo].[WorkScope] wos WITH (NOLOCK) ON km.WorkScopeId = wos.WorkScopeId
-		 		  WHERE kitm.Migrated_Id IS NULL AND (kitm.ErrorMsg IS NOT NULL AND kitm.ErrorMsg NOT like '%Purchase Order record already exists%') AND kitm.MasterCompanyId = @MasterCompanyId
-				), ResultCount AS(Select COUNT(KitId) AS totalItems FROM Result)
-				SELECT * INTO #TempResultPO3 FROM  Result
+					SELECT DISTINCT
+						POH.POHeaderId,
+						POH.Migrated_Id,
+						POH.PONumber,
+						V.VendorName,
+						POH.EntryDate OrderDate,
+						'PURCHASE ORDER' AS AccountType,
+						1 IsActive,
+						0 IsDeleted,
+						POH.DATE_CREATED CreatedDate,
+						SuccessMsg,
+						ErrorMsg
+					FROM [Quantum_Staging_BETA].dbo.[PurchaseOrderHeaders] POH WITH (NOLOCK)
+					LEFT JOIN dbo.PurchaseOrder PO WITH (NOLOCK) ON PO.PurchaseOrderId = POH.Migrated_Id
+					LEFT JOIN dbo.Vendor V WITH (NOLOCK) ON PO.VendorId = V.VendorId
+					WHERE POH.Migrated_Id IS NOT NULL
+					  AND POH.MasterCompanyId = @MasterCompanyId
+				)
+				SELECT * INTO #TempResultPO2 FROM Result
 
-				SELECT @Count = COUNT(ItemMasterId) FROM #TempResultPO3			
+				SELECT @Count = COUNT(POHeaderId) FROM #TempResultPO2
 
-				SELECT *, @Count AS NumberOfItems FROM #TempResultPO3 ORDER BY  
-				CASE WHEN (@SortOrder=1  AND @SortColumn='PartNumber')  THEN PartNumber END ASC,
-				CASE WHEN (@SortOrder=-1 AND @SortColumn='PartNumber')  THEN PartNumber END DESC,
-				CASE WHEN (@SortOrder=1  AND @SortColumn='PartDescription')  THEN PartDescription END ASC,
-				CASE WHEN (@SortOrder=-1 AND @SortColumn='PartDescription')  THEN PartDescription END DESC,
-				CASE WHEN (@SortOrder=1  AND @SortColumn='Manufacturer')  THEN Manufacturer END ASC,
-				CASE WHEN (@SortOrder=-1 AND @SortColumn='Manufacturer')  THEN Manufacturer END DESC,
-				CASE WHEN (@SortOrder=1  AND @SortColumn='KitNumber')  THEN KitNumber END ASC,
-				CASE WHEN (@SortOrder=-1 AND @SortColumn='KitNumber')  THEN KitNumber END DESC,
-				CASE WHEN (@SortOrder=1  AND @SortColumn='WorkScopeName')  THEN WorkScopeName END ASC,
-				CASE WHEN (@SortOrder=-1 AND @SortColumn='WorkScopeName')  THEN WorkScopeName END DESC,
-				CASE WHEN (@SortOrder=1  AND @SortColumn='CustomerName')  THEN CustomerName END ASC,
-				CASE WHEN (@SortOrder=-1 AND @SortColumn='CustomerName')  THEN CustomerName END DESC,
-				CASE WHEN (@SortOrder=1  AND @SortColumn='Qty')  THEN Qty END ASC,
-				CASE WHEN (@SortOrder=-1 AND @SortColumn='Qty')  THEN Qty END DESC,
-				CASE WHEN (@SortOrder=1  AND @SortColumn='UnitCost')  THEN UnitCost END ASC,
-				CASE WHEN (@SortOrder=-1 AND @SortColumn='UnitCost')  THEN UnitCost END DESC,
-				CASE WHEN (@SortOrder=1  AND @SortColumn='StocklineUnitCost')  THEN StocklineUnitCost END ASC,
-				CASE WHEN (@SortOrder=-1 AND @SortColumn='StocklineUnitCost')  THEN StocklineUnitCost END DESC,
-				CASE WHEN (@SortOrder=1  AND @SortColumn='CreatedDate')  THEN CreatedDate END ASC,
-				CASE WHEN (@SortOrder=-1 AND @SortColumn='CreatedDate')  THEN CreatedDate END DESC	
-				OFFSET @RecordFrom ROWS 
+				SELECT *, @Count AS NumberOfItems FROM #TempResultPO2 ORDER BY
+				CASE WHEN (@SortOrder=1  AND @SortColumn='PONUMBER')      THEN PONumber    END ASC,
+				CASE WHEN (@SortOrder=1  AND @SortColumn='VENDORNAME')    THEN VendorName  END ASC,
+				CASE WHEN (@SortOrder=1  AND @SortColumn='ORDERDATE')     THEN OrderDate   END ASC,
+				CASE WHEN (@SortOrder=1  AND @SortColumn='CREATEDDATE')   THEN CreatedDate END ASC,
+				CASE WHEN (@SortOrder=-1 AND @SortColumn='PONUMBER')      THEN PONumber    END DESC,
+				CASE WHEN (@SortOrder=-1 AND @SortColumn='VENDORNAME')    THEN VendorName  END DESC,
+				CASE WHEN (@SortOrder=-1 AND @SortColumn='ORDERDATE')     THEN OrderDate   END DESC,
+				CASE WHEN (@SortOrder=-1 AND @SortColumn='CREATEDDATE')   THEN CreatedDate END DESC
+				OFFSET @RecordFrom ROWS
 				FETCH NEXT @PageSize ROWS ONLY
 			END
-			ELSE IF (@TypeId = 4)
+			ELSE IF (@TypeId = 3)  -- Failed
 			BEGIN
 				;WITH Result AS (
-				SELECT
-					kitm.Migrated_Id KitId,
-					kitm.Migrated_Id,
-					km.KitNumber KitNumber,
-					kitm.MainItemMasterId ItemMasterId,
-					im.partnumber PartNumber,
-					im.PartDescription PartDescription,
-					km.Manufacturer,
-					km.CustomerId,
-					km.CustomerName AS CustomerName,
-					wos.WorkScopeCode AS WorkScopeName,
-					km.KitCost,
-					kitm.UnitCost AS UnitCost,
-					(SELECT ISNULL(COUNT(kimm.KitItemMasterMappingId),0) FROM [dbo].[KitItemMasterMapping] kimm WITH (NOLOCK) WHERE kimm.KitId = kitm.Migrated_Id AND kimm.IsDeleted = 0) AS Qty,
-					0 AS StocklineUnitCost,
-					1 AS IsActive,
-					kitm.Date_Created CreatedDate,
-					0 AS IsDeleted,
-					SuccessMsg,
-					ErrorMsg
-				FROM [Quantum_Staging].dbo.[KitMasters] kitm WITH (NOLOCK)
-				LEFT JOIN dbo.KitMaster km ON km.KitId = kitm.Migrated_Id
-				LEFT JOIN dbo.ItemMaster im ON im.ItemMasterId = kitm.MainItemMasterId
-				LEFT JOIN dbo.Manufacturer mf ON km.ManufacturerId = mf.ManufacturerId
-				LEFT JOIN [dbo].[WorkScope] wos WITH (NOLOCK) ON km.WorkScopeId = wos.WorkScopeId
-		 		  WHERE kitm.Migrated_Id IS NULL AND (kitm.ErrorMsg IS NOT NULL AND kitm.ErrorMsg like '%Purchase Order record already exists%') AND kitm.MasterCompanyId = @MasterCompanyId
-				), ResultCount AS(Select COUNT(KitId) AS totalItems FROM Result)
-				SELECT * INTO #TempResultPO4 FROM  Result
+					SELECT DISTINCT
+						POH.POHeaderId,
+						POH.Migrated_Id,
+						POH.PONumber,
+						V.VendorName,
+						POH.EntryDate OrderDate,
+						'PURCHASE ORDER' AS AccountType,
+						1 IsActive,
+						0 IsDeleted,
+						POH.DATE_CREATED CreatedDate,
+						SuccessMsg,
+						ErrorMsg
+					FROM [Quantum_Staging_BETA].dbo.[PurchaseOrderHeaders] POH WITH (NOLOCK)
+					LEFT JOIN dbo.PurchaseOrder PO WITH (NOLOCK) ON PO.PurchaseOrderId = POH.Migrated_Id
+					LEFT JOIN dbo.Vendor V WITH (NOLOCK) ON PO.VendorId = V.VendorId
+					WHERE POH.Migrated_Id IS NULL
+					  AND (POH.ErrorMsg IS NOT NULL AND POH.ErrorMsg NOT LIKE '%Purchase Order record already exists%')
+					  AND POH.MasterCompanyId = @MasterCompanyId
+				)
+				SELECT * INTO #TempResultPO3 FROM Result
 
-				SELECT @Count = COUNT(ItemMasterId) FROM #TempResultPO4			
+				SELECT @Count = COUNT(POHeaderId) FROM #TempResultPO3
 
-				SELECT *, @Count AS NumberOfItems FROM #TempResultPO4 ORDER BY  
-				CASE WHEN (@SortOrder=1  AND @SortColumn='PartNumber')  THEN PartNumber END ASC,
-				CASE WHEN (@SortOrder=-1 AND @SortColumn='PartNumber')  THEN PartNumber END DESC,
-				CASE WHEN (@SortOrder=1  AND @SortColumn='PartDescription')  THEN PartDescription END ASC,
-				CASE WHEN (@SortOrder=-1 AND @SortColumn='PartDescription')  THEN PartDescription END DESC,
-				CASE WHEN (@SortOrder=1  AND @SortColumn='Manufacturer')  THEN Manufacturer END ASC,
-				CASE WHEN (@SortOrder=-1 AND @SortColumn='Manufacturer')  THEN Manufacturer END DESC,
-				CASE WHEN (@SortOrder=1  AND @SortColumn='KitNumber')  THEN KitNumber END ASC,
-				CASE WHEN (@SortOrder=-1 AND @SortColumn='KitNumber')  THEN KitNumber END DESC,
-				CASE WHEN (@SortOrder=1  AND @SortColumn='WorkScopeName')  THEN WorkScopeName END ASC,
-				CASE WHEN (@SortOrder=-1 AND @SortColumn='WorkScopeName')  THEN WorkScopeName END DESC,
-				CASE WHEN (@SortOrder=1  AND @SortColumn='CustomerName')  THEN CustomerName END ASC,
-				CASE WHEN (@SortOrder=-1 AND @SortColumn='CustomerName')  THEN CustomerName END DESC,
-				CASE WHEN (@SortOrder=1  AND @SortColumn='Qty')  THEN Qty END ASC,
-				CASE WHEN (@SortOrder=-1 AND @SortColumn='Qty')  THEN Qty END DESC,
-				CASE WHEN (@SortOrder=1  AND @SortColumn='UnitCost')  THEN UnitCost END ASC,
-				CASE WHEN (@SortOrder=-1 AND @SortColumn='UnitCost')  THEN UnitCost END DESC,
-				CASE WHEN (@SortOrder=1  AND @SortColumn='StocklineUnitCost')  THEN StocklineUnitCost END ASC,
-				CASE WHEN (@SortOrder=-1 AND @SortColumn='StocklineUnitCost')  THEN StocklineUnitCost END DESC,
-				CASE WHEN (@SortOrder=1  AND @SortColumn='CreatedDate')  THEN CreatedDate END ASC,
-				CASE WHEN (@SortOrder=-1 AND @SortColumn='CreatedDate')  THEN CreatedDate END DESC
-				OFFSET @RecordFrom ROWS 
+				SELECT *, @Count AS NumberOfItems FROM #TempResultPO3 ORDER BY
+				CASE WHEN (@SortOrder=1  AND @SortColumn='PONUMBER')      THEN PONumber    END ASC,
+				CASE WHEN (@SortOrder=1  AND @SortColumn='VENDORNAME')    THEN VendorName  END ASC,
+				CASE WHEN (@SortOrder=1  AND @SortColumn='ORDERDATE')     THEN OrderDate   END ASC,
+				CASE WHEN (@SortOrder=1  AND @SortColumn='CREATEDDATE')   THEN CreatedDate END ASC,
+				CASE WHEN (@SortOrder=-1 AND @SortColumn='PONUMBER')      THEN PONumber    END DESC,
+				CASE WHEN (@SortOrder=-1 AND @SortColumn='VENDORNAME')    THEN VendorName  END DESC,
+				CASE WHEN (@SortOrder=-1 AND @SortColumn='ORDERDATE')     THEN OrderDate   END DESC,
+				CASE WHEN (@SortOrder=-1 AND @SortColumn='CREATEDDATE')   THEN CreatedDate END DESC
+				OFFSET @RecordFrom ROWS
+				FETCH NEXT @PageSize ROWS ONLY
+			END
+			ELSE IF (@TypeId = 4)  -- Duplicates
+			BEGIN
+				;WITH Result AS (
+					SELECT DISTINCT
+						POH.POHeaderId,
+						POH.Migrated_Id,
+						POH.PONumber,
+						V.VendorName,
+						POH.EntryDate OrderDate,
+						'PURCHASE ORDER' AS AccountType,
+						1 IsActive,
+						0 IsDeleted,
+						POH.DATE_CREATED CreatedDate,
+						SuccessMsg,
+						ErrorMsg
+					FROM [Quantum_Staging_BETA].dbo.[PurchaseOrderHeaders] POH WITH (NOLOCK)
+					LEFT JOIN dbo.PurchaseOrder PO WITH (NOLOCK) ON PO.PurchaseOrderId = POH.Migrated_Id
+					LEFT JOIN dbo.Vendor V WITH (NOLOCK) ON PO.VendorId = V.VendorId
+					WHERE POH.Migrated_Id IS NULL
+					  AND (POH.ErrorMsg IS NOT NULL AND POH.ErrorMsg LIKE '%Purchase Order record already exists%')
+					  AND POH.MasterCompanyId = @MasterCompanyId
+				)
+				SELECT * INTO #TempResultPO4 FROM Result
+
+				SELECT @Count = COUNT(POHeaderId) FROM #TempResultPO4
+
+				SELECT *, @Count AS NumberOfItems FROM #TempResultPO4 ORDER BY
+				CASE WHEN (@SortOrder=1  AND @SortColumn='PONUMBER')      THEN PONumber    END ASC,
+				CASE WHEN (@SortOrder=1  AND @SortColumn='VENDORNAME')    THEN VendorName  END ASC,
+				CASE WHEN (@SortOrder=1  AND @SortColumn='ORDERDATE')     THEN OrderDate   END ASC,
+				CASE WHEN (@SortOrder=1  AND @SortColumn='CREATEDDATE')   THEN CreatedDate END ASC,
+				CASE WHEN (@SortOrder=-1 AND @SortColumn='PONUMBER')      THEN PONumber    END DESC,
+				CASE WHEN (@SortOrder=-1 AND @SortColumn='VENDORNAME')    THEN VendorName  END DESC,
+				CASE WHEN (@SortOrder=-1 AND @SortColumn='ORDERDATE')     THEN OrderDate   END DESC,
+				CASE WHEN (@SortOrder=-1 AND @SortColumn='CREATEDDATE')   THEN CreatedDate END DESC
+				OFFSET @RecordFrom ROWS
 				FETCH NEXT @PageSize ROWS ONLY
 			END
 		END
 		ELSE IF (@ModuleName = 'RO')
 		BEGIN
-			IF (@TypeId = 1)
+			IF (@TypeId = 1)  -- All Source
 			BEGIN
 				;WITH Result AS (
-				SELECT
-					POH.Migrated_Id POId,
-					--kitm.Migrated_Id,
-					--km.KitNumber KitNumber,
-					POH.POHeaderId POHeaderId,
-					--im.partnumber PartNumber,
-					--im.PartDescription PartDescription,
-					--km.Manufacturer,
-					--km.CustomerId,
-					--km.CustomerName AS CustomerName,
-					--wos.WorkScopeCode AS WorkScopeName,
-					--km.KitCost,
-					--kitm.UnitCost AS UnitCost,
-					--(SELECT ISNULL(COUNT(kimm.KitItemMasterMappingId),0) FROM [dbo].[KitItemMasterMapping] kimm WITH (NOLOCK) WHERE kimm.KitId = km.KitId AND kimm.IsDeleted = 0) AS Qty,
-					--0 AS StocklineUnitCost,
-					--1 AS IsActive,
-					--kitm.Date_Created CreatedDate,
-					0 AS IsDeleted,
-					SuccessMsg,
-					ErrorMsg
-				FROM [Quantum_Staging].dbo.[PurchaseOrderHeaders] POH WITH (NOLOCK)
-				LEFT JOIN dbo.PurchaseOrder PO ON PO.PurchaseOrderId = POH.Migrated_Id
-		 		  WHERE POH.MasterCompanyId = @MasterCompanyId
-				), ResultCount AS(Select COUNT(POId) AS totalItems FROM Result)
-				SELECT * INTO #TempResultRO1 FROM  Result
+					SELECT DISTINCT
+						ROH.Id,
+						ROH.ROHeaderId,
+						ROH.Migrated_Id,
+						ROH.RONumber,
+						ROH.VendorName,
+						ROH.VendorAddress1,
+						ROH.EmailAddress,
+						ROH.PhoneNumber,
+						ROH.FaxNumber,
+						ROH.TotalCost,
+						ROH.EntryDate,
+						ROH.OutDate,
+						ROH.CompanyRefNumber,
+						ROH.BatchNumber,
+						ROH.TrackingNumber,
+						ROH.Notes,
+						ROH.Remarks,
+						1 AS IsActive,
+						0 AS IsDeleted,
+						ROH.DateCreated AS CreatedDate,
+						SuccessMsg,
+						ErrorMsg
+					FROM [Quantum_Staging_BETA].dbo.[RepairOrderHeaders] ROH WITH (NOLOCK)
+					LEFT JOIN dbo.RepairOrder RO WITH (NOLOCK) ON RO.RepairOrderId = ROH.Migrated_Id
+					WHERE ROH.MasterCompanyId = @MasterCompanyId
+				)
+				SELECT * INTO #TempResultRO1 FROM Result
 
-				SELECT @Count = COUNT(POHeaderId) FROM #TempResultRO1			
+				SELECT @Count = COUNT(ROHeaderId) FROM #TempResultRO1
 
-				SELECT *, @Count AS NumberOfItems FROM #TempResultRO1 
-				--ORDER BY  
-				--CASE WHEN (@SortOrder=1  AND @SortColumn='PartNumber')  THEN PartNumber END ASC,
-				--CASE WHEN (@SortOrder=-1 AND @SortColumn='PartNumber')  THEN PartNumber END DESC,
-				--CASE WHEN (@SortOrder=1  AND @SortColumn='PartDescription')  THEN PartDescription END ASC,
-				--CASE WHEN (@SortOrder=-1 AND @SortColumn='PartDescription')  THEN PartDescription END DESC,
-				--CASE WHEN (@SortOrder=1  AND @SortColumn='Manufacturer')  THEN Manufacturer END ASC,
-				--CASE WHEN (@SortOrder=-1 AND @SortColumn='Manufacturer')  THEN Manufacturer END DESC,
-				--CASE WHEN (@SortOrder=1  AND @SortColumn='KitNumber')  THEN KitNumber END ASC,
-				--CASE WHEN (@SortOrder=-1 AND @SortColumn='KitNumber')  THEN KitNumber END DESC,
-				--CASE WHEN (@SortOrder=1  AND @SortColumn='WorkScopeName')  THEN WorkScopeName END ASC,
-				--CASE WHEN (@SortOrder=-1 AND @SortColumn='WorkScopeName')  THEN WorkScopeName END DESC,
-				--CASE WHEN (@SortOrder=1  AND @SortColumn='CustomerName')  THEN CustomerName END ASC,
-				--CASE WHEN (@SortOrder=-1 AND @SortColumn='CustomerName')  THEN CustomerName END DESC,
-				--CASE WHEN (@SortOrder=1  AND @SortColumn='Qty')  THEN Qty END ASC,
-				--CASE WHEN (@SortOrder=-1 AND @SortColumn='Qty')  THEN Qty END DESC,
-				--CASE WHEN (@SortOrder=1  AND @SortColumn='UnitCost')  THEN UnitCost END ASC,
-				--CASE WHEN (@SortOrder=-1 AND @SortColumn='UnitCost')  THEN UnitCost END DESC,
-				--CASE WHEN (@SortOrder=1  AND @SortColumn='StocklineUnitCost')  THEN StocklineUnitCost END ASC,
-				--CASE WHEN (@SortOrder=-1 AND @SortColumn='StocklineUnitCost')  THEN StocklineUnitCost END DESC,
-				--CASE WHEN (@SortOrder=1  AND @SortColumn='CreatedDate')  THEN CreatedDate END ASC,
-				--CASE WHEN (@SortOrder=-1 AND @SortColumn='CreatedDate')  THEN CreatedDate END DESC
-				--OFFSET @RecordFrom ROWS 
-				--FETCH NEXT @PageSize ROWS ONLY
-			END
-			ELSE IF (@TypeId = 2)
-			BEGIN
-				;WITH Result AS (
-				SELECT
-					kitm.Migrated_Id KitId,
-					kitm.Migrated_Id,
-					km.KitNumber KitNumber,
-					kitm.MainItemMasterId ItemMasterId,
-					im.partnumber PartNumber,
-					im.PartDescription PartDescription,
-					km.Manufacturer,
-					km.CustomerId,
-					km.CustomerName AS CustomerName,
-					wos.WorkScopeCode AS WorkScopeName,
-					km.KitCost,
-					kitm.UnitCost AS UnitCost,
-					(SELECT ISNULL(COUNT(kimm.KitItemMasterMappingId),0) FROM [dbo].[KitItemMasterMapping] kimm WITH (NOLOCK) WHERE kimm.KitId = kitm.Migrated_Id AND kimm.IsDeleted = 0) AS Qty,
-					0 AS StocklineUnitCost,
-					1 AS IsActive,
-					kitm.Date_Created CreatedDate,
-					0 AS IsDeleted,
-					SuccessMsg,
-					ErrorMsg
-				FROM [Quantum_Staging].dbo.[KitMasters] kitm WITH (NOLOCK)
-				LEFT JOIN dbo.KitMaster km ON km.KitId = kitm.Migrated_Id
-				LEFT JOIN dbo.ItemMaster im ON im.ItemMasterId = kitm.MainItemMasterId
-				LEFT JOIN dbo.Manufacturer mf ON km.ManufacturerId = mf.ManufacturerId
-				LEFT JOIN [dbo].[WorkScope] wos WITH (NOLOCK) ON km.WorkScopeId = wos.WorkScopeId
-		 		  WHERE kitm.Migrated_Id IS NOT NULL AND kitm.MasterCompanyId = @MasterCompanyId
-				), ResultCount AS(Select COUNT(ItemMasterId) AS totalItems FROM Result)
-				SELECT * INTO #TempResultRO2 FROM  Result
-
-				SELECT @Count = COUNT(ItemMasterId) FROM #TempResultRO2			
-
-				SELECT *, @Count AS NumberOfItems FROM #TempResultRO2 ORDER BY  
-				CASE WHEN (@SortOrder=1  AND @SortColumn='PartNumber')  THEN PartNumber END ASC,
-				CASE WHEN (@SortOrder=-1 AND @SortColumn='PartNumber')  THEN PartNumber END DESC,
-				CASE WHEN (@SortOrder=1  AND @SortColumn='PartDescription')  THEN PartDescription END ASC,
-				CASE WHEN (@SortOrder=-1 AND @SortColumn='PartDescription')  THEN PartDescription END DESC,
-				CASE WHEN (@SortOrder=1  AND @SortColumn='Manufacturer')  THEN Manufacturer END ASC,
-				CASE WHEN (@SortOrder=-1 AND @SortColumn='Manufacturer')  THEN Manufacturer END DESC,
-				CASE WHEN (@SortOrder=1  AND @SortColumn='KitNumber')  THEN KitNumber END ASC,
-				CASE WHEN (@SortOrder=-1 AND @SortColumn='KitNumber')  THEN KitNumber END DESC,
-				CASE WHEN (@SortOrder=1  AND @SortColumn='WorkScopeName')  THEN WorkScopeName END ASC,
-				CASE WHEN (@SortOrder=-1 AND @SortColumn='WorkScopeName')  THEN WorkScopeName END DESC,
-				CASE WHEN (@SortOrder=1  AND @SortColumn='CustomerName')  THEN CustomerName END ASC,
-				CASE WHEN (@SortOrder=-1 AND @SortColumn='CustomerName')  THEN CustomerName END DESC,
-				CASE WHEN (@SortOrder=1  AND @SortColumn='Qty')  THEN Qty END ASC,
-				CASE WHEN (@SortOrder=-1 AND @SortColumn='Qty')  THEN Qty END DESC,
-				CASE WHEN (@SortOrder=1  AND @SortColumn='UnitCost')  THEN UnitCost END ASC,
-				CASE WHEN (@SortOrder=-1 AND @SortColumn='UnitCost')  THEN UnitCost END DESC,
-				CASE WHEN (@SortOrder=1  AND @SortColumn='StocklineUnitCost')  THEN StocklineUnitCost END ASC,
-				CASE WHEN (@SortOrder=-1 AND @SortColumn='StocklineUnitCost')  THEN StocklineUnitCost END DESC,
-				CASE WHEN (@SortOrder=1  AND @SortColumn='CreatedDate')  THEN CreatedDate END ASC,
-				CASE WHEN (@SortOrder=-1 AND @SortColumn='CreatedDate')  THEN CreatedDate END DESC	
-				OFFSET @RecordFrom ROWS 
+				SELECT *, @Count AS NumberOfItems FROM #TempResultRO1 ORDER BY
+				CASE WHEN (@SortOrder=1  AND @SortColumn='RONUMBER')         THEN RONumber        END ASC,
+				CASE WHEN (@SortOrder=1  AND @SortColumn='VENDORNAME')       THEN VendorName      END ASC,
+				CASE WHEN (@SortOrder=1  AND @SortColumn='ENTRYDATE')        THEN EntryDate       END ASC,
+				CASE WHEN (@SortOrder=1  AND @SortColumn='OUTDATE')          THEN OutDate         END ASC,
+				CASE WHEN (@SortOrder=1  AND @SortColumn='TOTALCOST')        THEN TotalCost       END ASC,
+				CASE WHEN (@SortOrder=1  AND @SortColumn='COMPANYREFNUMBER') THEN CompanyRefNumber END ASC,
+				CASE WHEN (@SortOrder=1  AND @SortColumn='CREATEDDATE')      THEN CreatedDate     END ASC,
+				CASE WHEN (@SortOrder=-1 AND @SortColumn='RONUMBER')         THEN RONumber        END DESC,
+				CASE WHEN (@SortOrder=-1 AND @SortColumn='VENDORNAME')       THEN VendorName      END DESC,
+				CASE WHEN (@SortOrder=-1 AND @SortColumn='ENTRYDATE')        THEN EntryDate       END DESC,
+				CASE WHEN (@SortOrder=-1 AND @SortColumn='OUTDATE')          THEN OutDate         END DESC,
+				CASE WHEN (@SortOrder=-1 AND @SortColumn='TOTALCOST')        THEN TotalCost       END DESC,
+				CASE WHEN (@SortOrder=-1 AND @SortColumn='COMPANYREFNUMBER') THEN CompanyRefNumber END DESC,
+				CASE WHEN (@SortOrder=-1 AND @SortColumn='CREATEDDATE')      THEN CreatedDate     END DESC
+				OFFSET @RecordFrom ROWS
 				FETCH NEXT @PageSize ROWS ONLY
 			END
-			ELSE IF (@TypeId = 3)
+			ELSE IF (@TypeId = 2)  -- Migrated
 			BEGIN
 				;WITH Result AS (
-				SELECT
-					kitm.Migrated_Id KitId,
-					kitm.Migrated_Id,
-					km.KitNumber KitNumber,
-					kitm.MainItemMasterId ItemMasterId,
-					im.partnumber PartNumber,
-					im.PartDescription PartDescription,
-					km.Manufacturer,
-					km.CustomerId,
-					km.CustomerName AS CustomerName,
-					wos.WorkScopeCode AS WorkScopeName,
-					km.KitCost,
-					kitm.UnitCost AS UnitCost,
-					(SELECT ISNULL(COUNT(kimm.KitItemMasterMappingId),0) FROM [dbo].[KitItemMasterMapping] kimm WITH (NOLOCK) WHERE kimm.KitId = kitm.Migrated_Id AND kimm.IsDeleted = 0) AS Qty,
-					0 AS StocklineUnitCost,
-					1 AS IsActive,
-					kitm.Date_Created CreatedDate,
-					0 AS IsDeleted,
-					SuccessMsg,
-					ErrorMsg
-				FROM [Quantum_Staging].dbo.[KitMasters] kitm WITH (NOLOCK)
-				LEFT JOIN dbo.KitMaster km ON km.KitId = kitm.Migrated_Id
-				LEFT JOIN dbo.ItemMaster im ON im.ItemMasterId = kitm.MainItemMasterId
-				LEFT JOIN dbo.Manufacturer mf ON km.ManufacturerId = mf.ManufacturerId
-				LEFT JOIN [dbo].[WorkScope] wos WITH (NOLOCK) ON km.WorkScopeId = wos.WorkScopeId
-		 		  WHERE kitm.Migrated_Id IS NULL AND (kitm.ErrorMsg IS NOT NULL AND kitm.ErrorMsg NOT like '%Repair Order record already exists%') AND kitm.MasterCompanyId = @MasterCompanyId
-				), ResultCount AS(Select COUNT(KitId) AS totalItems FROM Result)
-				SELECT * INTO #TempResultRO3 FROM  Result
+					SELECT DISTINCT
+						ROH.Id,
+						ROH.ROHeaderId,
+						ROH.Migrated_Id,
+						1 ModuleId,
+						ROH.RONumber,
+						ROH.VendorName,
+						ROH.VendorAddress1,
+						ROH.EmailAddress,
+						ROH.PhoneNumber,
+						ROH.FaxNumber,
+						ROH.TotalCost,
+						ROH.EntryDate,
+						ROH.OutDate,
+						ROH.CompanyRefNumber,
+						ROH.BatchNumber,
+						ROH.TrackingNumber,
+						ROH.Notes,
+						ROH.Remarks,
+						1 AS IsActive,
+						0 AS IsDeleted,
+						ROH.DateCreated AS CreatedDate,
+						SuccessMsg,
+						ErrorMsg
+					FROM [Quantum_Staging_BETA].dbo.[RepairOrderHeaders] ROH WITH (NOLOCK)
+					LEFT JOIN dbo.RepairOrder RO WITH (NOLOCK) ON RO.RepairOrderId = ROH.Migrated_Id
+					WHERE ROH.Migrated_Id IS NOT NULL
+					  AND ROH.MasterCompanyId = @MasterCompanyId
+				)
+				SELECT * INTO #TempResultRO2 FROM Result
 
-				SELECT @Count = COUNT(ItemMasterId) FROM #TempResultRO3			
+				SELECT @Count = COUNT(ROHeaderId) FROM #TempResultRO2
 
-				SELECT *, @Count AS NumberOfItems FROM #TempResultRO3 ORDER BY  
-				CASE WHEN (@SortOrder=1  AND @SortColumn='PartNumber')  THEN PartNumber END ASC,
-				CASE WHEN (@SortOrder=-1 AND @SortColumn='PartNumber')  THEN PartNumber END DESC,
-				CASE WHEN (@SortOrder=1  AND @SortColumn='PartDescription')  THEN PartDescription END ASC,
-				CASE WHEN (@SortOrder=-1 AND @SortColumn='PartDescription')  THEN PartDescription END DESC,
-				CASE WHEN (@SortOrder=1  AND @SortColumn='Manufacturer')  THEN Manufacturer END ASC,
-				CASE WHEN (@SortOrder=-1 AND @SortColumn='Manufacturer')  THEN Manufacturer END DESC,
-				CASE WHEN (@SortOrder=1  AND @SortColumn='KitNumber')  THEN KitNumber END ASC,
-				CASE WHEN (@SortOrder=-1 AND @SortColumn='KitNumber')  THEN KitNumber END DESC,
-				CASE WHEN (@SortOrder=1  AND @SortColumn='WorkScopeName')  THEN WorkScopeName END ASC,
-				CASE WHEN (@SortOrder=-1 AND @SortColumn='WorkScopeName')  THEN WorkScopeName END DESC,
-				CASE WHEN (@SortOrder=1  AND @SortColumn='CustomerName')  THEN CustomerName END ASC,
-				CASE WHEN (@SortOrder=-1 AND @SortColumn='CustomerName')  THEN CustomerName END DESC,
-				CASE WHEN (@SortOrder=1  AND @SortColumn='Qty')  THEN Qty END ASC,
-				CASE WHEN (@SortOrder=-1 AND @SortColumn='Qty')  THEN Qty END DESC,
-				CASE WHEN (@SortOrder=1  AND @SortColumn='UnitCost')  THEN UnitCost END ASC,
-				CASE WHEN (@SortOrder=-1 AND @SortColumn='UnitCost')  THEN UnitCost END DESC,
-				CASE WHEN (@SortOrder=1  AND @SortColumn='StocklineUnitCost')  THEN StocklineUnitCost END ASC,
-				CASE WHEN (@SortOrder=-1 AND @SortColumn='StocklineUnitCost')  THEN StocklineUnitCost END DESC,
-				CASE WHEN (@SortOrder=1  AND @SortColumn='CreatedDate')  THEN CreatedDate END ASC,
-				CASE WHEN (@SortOrder=-1 AND @SortColumn='CreatedDate')  THEN CreatedDate END DESC	
-				OFFSET @RecordFrom ROWS 
+				SELECT *, @Count AS NumberOfItems FROM #TempResultRO2 ORDER BY
+				CASE WHEN (@SortOrder=1  AND @SortColumn='RONUMBER')         THEN RONumber        END ASC,
+				CASE WHEN (@SortOrder=1  AND @SortColumn='VENDORNAME')       THEN VendorName      END ASC,
+				CASE WHEN (@SortOrder=1  AND @SortColumn='ENTRYDATE')        THEN EntryDate       END ASC,
+				CASE WHEN (@SortOrder=1  AND @SortColumn='OUTDATE')          THEN OutDate         END ASC,
+				CASE WHEN (@SortOrder=1  AND @SortColumn='TOTALCOST')        THEN TotalCost       END ASC,
+				CASE WHEN (@SortOrder=1  AND @SortColumn='COMPANYREFNUMBER') THEN CompanyRefNumber END ASC,
+				CASE WHEN (@SortOrder=1  AND @SortColumn='CREATEDDATE')      THEN CreatedDate     END ASC,
+				CASE WHEN (@SortOrder=-1 AND @SortColumn='RONUMBER')         THEN RONumber        END DESC,
+				CASE WHEN (@SortOrder=-1 AND @SortColumn='VENDORNAME')       THEN VendorName      END DESC,
+				CASE WHEN (@SortOrder=-1 AND @SortColumn='ENTRYDATE')        THEN EntryDate       END DESC,
+				CASE WHEN (@SortOrder=-1 AND @SortColumn='OUTDATE')          THEN OutDate         END DESC,
+				CASE WHEN (@SortOrder=-1 AND @SortColumn='TOTALCOST')        THEN TotalCost       END DESC,
+				CASE WHEN (@SortOrder=-1 AND @SortColumn='COMPANYREFNUMBER') THEN CompanyRefNumber END DESC,
+				CASE WHEN (@SortOrder=-1 AND @SortColumn='CREATEDDATE')      THEN CreatedDate     END DESC
+				OFFSET @RecordFrom ROWS
 				FETCH NEXT @PageSize ROWS ONLY
 			END
-			ELSE IF (@TypeId = 4)
+			ELSE IF (@TypeId = 3)  -- Failed
 			BEGIN
 				;WITH Result AS (
-				SELECT
-					kitm.Migrated_Id KitId,
-					kitm.Migrated_Id,
-					km.KitNumber KitNumber,
-					kitm.MainItemMasterId ItemMasterId,
-					im.partnumber PartNumber,
-					im.PartDescription PartDescription,
-					km.Manufacturer,
-					km.CustomerId,
-					km.CustomerName AS CustomerName,
-					wos.WorkScopeCode AS WorkScopeName,
-					km.KitCost,
-					kitm.UnitCost AS UnitCost,
-					(SELECT ISNULL(COUNT(kimm.KitItemMasterMappingId),0) FROM [dbo].[KitItemMasterMapping] kimm WITH (NOLOCK) WHERE kimm.KitId = kitm.Migrated_Id AND kimm.IsDeleted = 0) AS Qty,
-					0 AS StocklineUnitCost,
-					1 AS IsActive,
-					kitm.Date_Created CreatedDate,
-					0 AS IsDeleted,
-					SuccessMsg,
-					ErrorMsg
-				FROM [Quantum_Staging].dbo.[KitMasters] kitm WITH (NOLOCK)
-				LEFT JOIN dbo.KitMaster km ON km.KitId = kitm.Migrated_Id
-				LEFT JOIN dbo.ItemMaster im ON im.ItemMasterId = kitm.MainItemMasterId
-				LEFT JOIN dbo.Manufacturer mf ON km.ManufacturerId = mf.ManufacturerId
-				LEFT JOIN [dbo].[WorkScope] wos WITH (NOLOCK) ON km.WorkScopeId = wos.WorkScopeId
-		 		  WHERE kitm.Migrated_Id IS NULL AND (kitm.ErrorMsg IS NOT NULL AND kitm.ErrorMsg like '%Repair Order record already exists%') AND kitm.MasterCompanyId = @MasterCompanyId
-				), ResultCount AS(Select COUNT(KitId) AS totalItems FROM Result)
-				SELECT * INTO #TempResultRO4 FROM  Result
+					SELECT DISTINCT
+						ROH.Id,
+						ROH.ROHeaderId,
+						ROH.Migrated_Id,
+						ROH.RONumber,
+						ROH.VendorName,
+						ROH.VendorAddress1,
+						ROH.EmailAddress,
+						ROH.PhoneNumber,
+						ROH.FaxNumber,
+						ROH.TotalCost,
+						ROH.EntryDate,
+						ROH.OutDate,
+						ROH.CompanyRefNumber,
+						ROH.BatchNumber,
+						ROH.TrackingNumber,
+						ROH.Notes,
+						ROH.Remarks,
+						1 AS IsActive,
+						0 AS IsDeleted,
+						ROH.DateCreated AS CreatedDate,
+						SuccessMsg,
+						ErrorMsg
+					FROM [Quantum_Staging_BETA].dbo.[RepairOrderHeaders] ROH WITH (NOLOCK)
+					LEFT JOIN dbo.RepairOrder RO WITH (NOLOCK) ON RO.RepairOrderId = ROH.Migrated_Id
+					WHERE ROH.Migrated_Id IS NULL
+					  AND (ROH.ErrorMsg IS NOT NULL AND ROH.ErrorMsg NOT LIKE '%Repair Order record already exists%')
+					  AND ROH.MasterCompanyId = @MasterCompanyId
+				)
+				SELECT * INTO #TempResultRO3 FROM Result
 
-				SELECT @Count = COUNT(ItemMasterId) FROM #TempResultRO4			
+				SELECT @Count = COUNT(ROHeaderId) FROM #TempResultRO3
 
-				SELECT *, @Count AS NumberOfItems FROM #TempResultRO4 ORDER BY  
-				CASE WHEN (@SortOrder=1  AND @SortColumn='PartNumber')  THEN PartNumber END ASC,
-				CASE WHEN (@SortOrder=-1 AND @SortColumn='PartNumber')  THEN PartNumber END DESC,
-				CASE WHEN (@SortOrder=1  AND @SortColumn='PartDescription')  THEN PartDescription END ASC,
-				CASE WHEN (@SortOrder=-1 AND @SortColumn='PartDescription')  THEN PartDescription END DESC,
-				CASE WHEN (@SortOrder=1  AND @SortColumn='Manufacturer')  THEN Manufacturer END ASC,
-				CASE WHEN (@SortOrder=-1 AND @SortColumn='Manufacturer')  THEN Manufacturer END DESC,
-				CASE WHEN (@SortOrder=1  AND @SortColumn='KitNumber')  THEN KitNumber END ASC,
-				CASE WHEN (@SortOrder=-1 AND @SortColumn='KitNumber')  THEN KitNumber END DESC,
-				CASE WHEN (@SortOrder=1  AND @SortColumn='WorkScopeName')  THEN WorkScopeName END ASC,
-				CASE WHEN (@SortOrder=-1 AND @SortColumn='WorkScopeName')  THEN WorkScopeName END DESC,
-				CASE WHEN (@SortOrder=1  AND @SortColumn='CustomerName')  THEN CustomerName END ASC,
-				CASE WHEN (@SortOrder=-1 AND @SortColumn='CustomerName')  THEN CustomerName END DESC,
-				CASE WHEN (@SortOrder=1  AND @SortColumn='Qty')  THEN Qty END ASC,
-				CASE WHEN (@SortOrder=-1 AND @SortColumn='Qty')  THEN Qty END DESC,
-				CASE WHEN (@SortOrder=1  AND @SortColumn='UnitCost')  THEN UnitCost END ASC,
-				CASE WHEN (@SortOrder=-1 AND @SortColumn='UnitCost')  THEN UnitCost END DESC,
-				CASE WHEN (@SortOrder=1  AND @SortColumn='StocklineUnitCost')  THEN StocklineUnitCost END ASC,
-				CASE WHEN (@SortOrder=-1 AND @SortColumn='StocklineUnitCost')  THEN StocklineUnitCost END DESC,
-				CASE WHEN (@SortOrder=1  AND @SortColumn='CreatedDate')  THEN CreatedDate END ASC,
-				CASE WHEN (@SortOrder=-1 AND @SortColumn='CreatedDate')  THEN CreatedDate END DESC
-				OFFSET @RecordFrom ROWS 
+				SELECT *, @Count AS NumberOfItems FROM #TempResultRO3 ORDER BY
+				CASE WHEN (@SortOrder=1  AND @SortColumn='RONUMBER')         THEN RONumber        END ASC,
+				CASE WHEN (@SortOrder=1  AND @SortColumn='VENDORNAME')       THEN VendorName      END ASC,
+				CASE WHEN (@SortOrder=1  AND @SortColumn='ENTRYDATE')        THEN EntryDate       END ASC,
+				CASE WHEN (@SortOrder=1  AND @SortColumn='OUTDATE')          THEN OutDate         END ASC,
+				CASE WHEN (@SortOrder=1  AND @SortColumn='TOTALCOST')        THEN TotalCost       END ASC,
+				CASE WHEN (@SortOrder=1  AND @SortColumn='COMPANYREFNUMBER') THEN CompanyRefNumber END ASC,
+				CASE WHEN (@SortOrder=1  AND @SortColumn='CREATEDDATE')      THEN CreatedDate     END ASC,
+				CASE WHEN (@SortOrder=-1 AND @SortColumn='RONUMBER')         THEN RONumber        END DESC,
+				CASE WHEN (@SortOrder=-1 AND @SortColumn='VENDORNAME')       THEN VendorName      END DESC,
+				CASE WHEN (@SortOrder=-1 AND @SortColumn='ENTRYDATE')        THEN EntryDate       END DESC,
+				CASE WHEN (@SortOrder=-1 AND @SortColumn='OUTDATE')          THEN OutDate         END DESC,
+				CASE WHEN (@SortOrder=-1 AND @SortColumn='TOTALCOST')        THEN TotalCost       END DESC,
+				CASE WHEN (@SortOrder=-1 AND @SortColumn='COMPANYREFNUMBER') THEN CompanyRefNumber END DESC,
+				CASE WHEN (@SortOrder=-1 AND @SortColumn='CREATEDDATE')      THEN CreatedDate     END DESC
+				OFFSET @RecordFrom ROWS
+				FETCH NEXT @PageSize ROWS ONLY
+			END
+			ELSE IF (@TypeId = 4)  -- Duplicates
+			BEGIN
+				;WITH Result AS (
+					SELECT DISTINCT
+						ROH.Id,
+						ROH.ROHeaderId,
+						ROH.Migrated_Id,
+						ROH.RONumber,
+						ROH.VendorName,
+						ROH.VendorAddress1,
+						ROH.EmailAddress,
+						ROH.PhoneNumber,
+						ROH.FaxNumber,
+						ROH.TotalCost,
+						ROH.EntryDate,
+						ROH.OutDate,
+						ROH.CompanyRefNumber,
+						ROH.BatchNumber,
+						ROH.TrackingNumber,
+						ROH.Notes,
+						ROH.Remarks,
+						1 AS IsActive,
+						0 AS IsDeleted,
+						ROH.DateCreated AS CreatedDate,
+						SuccessMsg,
+						ErrorMsg
+					FROM [Quantum_Staging_BETA].dbo.[RepairOrderHeaders] ROH WITH (NOLOCK)
+					LEFT JOIN dbo.RepairOrder RO WITH (NOLOCK) ON RO.RepairOrderId = ROH.Migrated_Id
+					WHERE ROH.Migrated_Id IS NULL
+					  AND (ROH.ErrorMsg IS NOT NULL AND ROH.ErrorMsg LIKE '%Repair Order record already exists%')
+					  AND ROH.MasterCompanyId = @MasterCompanyId
+				)
+				SELECT * INTO #TempResultRO4 FROM Result
+
+				SELECT @Count = COUNT(ROHeaderId) FROM #TempResultRO4
+
+				SELECT *, @Count AS NumberOfItems FROM #TempResultRO4 ORDER BY
+				CASE WHEN (@SortOrder=1  AND @SortColumn='RONUMBER')         THEN RONumber        END ASC,
+				CASE WHEN (@SortOrder=1  AND @SortColumn='VENDORNAME')       THEN VendorName      END ASC,
+				CASE WHEN (@SortOrder=1  AND @SortColumn='ENTRYDATE')        THEN EntryDate       END ASC,
+				CASE WHEN (@SortOrder=1  AND @SortColumn='OUTDATE')          THEN OutDate         END ASC,
+				CASE WHEN (@SortOrder=1  AND @SortColumn='TOTALCOST')        THEN TotalCost       END ASC,
+				CASE WHEN (@SortOrder=1  AND @SortColumn='COMPANYREFNUMBER') THEN CompanyRefNumber END ASC,
+				CASE WHEN (@SortOrder=1  AND @SortColumn='CREATEDDATE')      THEN CreatedDate     END ASC,
+				CASE WHEN (@SortOrder=-1 AND @SortColumn='RONUMBER')         THEN RONumber        END DESC,
+				CASE WHEN (@SortOrder=-1 AND @SortColumn='VENDORNAME')       THEN VendorName      END DESC,
+				CASE WHEN (@SortOrder=-1 AND @SortColumn='ENTRYDATE')        THEN EntryDate       END DESC,
+				CASE WHEN (@SortOrder=-1 AND @SortColumn='OUTDATE')          THEN OutDate         END DESC,
+				CASE WHEN (@SortOrder=-1 AND @SortColumn='TOTALCOST')        THEN TotalCost       END DESC,
+				CASE WHEN (@SortOrder=-1 AND @SortColumn='COMPANYREFNUMBER') THEN CompanyRefNumber END DESC,
+				CASE WHEN (@SortOrder=-1 AND @SortColumn='CREATEDDATE')      THEN CreatedDate     END DESC
+				OFFSET @RecordFrom ROWS
 				FETCH NEXT @PageSize ROWS ONLY
 			END
 		END
@@ -2109,7 +2012,7 @@ BEGIN
 					0 AS IsDeleted,
 					SuccessMsg,
 					ErrorMsg
-				FROM [Quantum_Staging].dbo.[PurchaseOrderHeaders] POH WITH (NOLOCK)
+				FROM [Quantum_Staging_BETA].dbo.[PurchaseOrderHeaders] POH WITH (NOLOCK)
 				LEFT JOIN dbo.PurchaseOrder PO ON PO.PurchaseOrderId = POH.Migrated_Id
 		 		  WHERE POH.MasterCompanyId = @MasterCompanyId
 				), ResultCount AS(Select COUNT(POId) AS totalItems FROM Result)
@@ -2165,7 +2068,7 @@ BEGIN
 					0 AS IsDeleted,
 					SuccessMsg,
 					ErrorMsg
-				FROM [Quantum_Staging].dbo.[KitMasters] kitm WITH (NOLOCK)
+				FROM [Quantum_Staging_BETA].dbo.[KitMasters] kitm WITH (NOLOCK)
 				LEFT JOIN dbo.KitMaster km ON km.KitId = kitm.Migrated_Id
 				LEFT JOIN dbo.ItemMaster im ON im.ItemMasterId = kitm.MainItemMasterId
 				LEFT JOIN dbo.Manufacturer mf ON km.ManufacturerId = mf.ManufacturerId
@@ -2223,7 +2126,7 @@ BEGIN
 					0 AS IsDeleted,
 					SuccessMsg,
 					ErrorMsg
-				FROM [Quantum_Staging].dbo.[KitMasters] kitm WITH (NOLOCK)
+				FROM [Quantum_Staging_BETA].dbo.[KitMasters] kitm WITH (NOLOCK)
 				LEFT JOIN dbo.KitMaster km ON km.KitId = kitm.Migrated_Id
 				LEFT JOIN dbo.ItemMaster im ON im.ItemMasterId = kitm.MainItemMasterId
 				LEFT JOIN dbo.Manufacturer mf ON km.ManufacturerId = mf.ManufacturerId
@@ -2281,7 +2184,7 @@ BEGIN
 					0 AS IsDeleted,
 					SuccessMsg,
 					ErrorMsg
-				FROM [Quantum_Staging].dbo.[KitMasters] kitm WITH (NOLOCK)
+				FROM [Quantum_Staging_BETA].dbo.[KitMasters] kitm WITH (NOLOCK)
 				LEFT JOIN dbo.KitMaster km ON km.KitId = kitm.Migrated_Id
 				LEFT JOIN dbo.ItemMaster im ON im.ItemMasterId = kitm.MainItemMasterId
 				LEFT JOIN dbo.Manufacturer mf ON km.ManufacturerId = mf.ManufacturerId
@@ -2342,7 +2245,7 @@ BEGIN
 					0 AS IsDeleted,
 					SuccessMsg,
 					ErrorMsg
-				FROM [Quantum_Staging].dbo.[PurchaseOrderHeaders] POH WITH (NOLOCK)
+				FROM [Quantum_Staging_BETA].dbo.[PurchaseOrderHeaders] POH WITH (NOLOCK)
 				LEFT JOIN dbo.PurchaseOrder PO ON PO.PurchaseOrderId = POH.Migrated_Id
 		 		  WHERE POH.MasterCompanyId = @MasterCompanyId
 				), ResultCount AS(Select COUNT(POId) AS totalItems FROM Result)
@@ -2398,7 +2301,7 @@ BEGIN
 					0 AS IsDeleted,
 					SuccessMsg,
 					ErrorMsg
-				FROM [Quantum_Staging].dbo.[KitMasters] kitm WITH (NOLOCK)
+				FROM [Quantum_Staging_BETA].dbo.[KitMasters] kitm WITH (NOLOCK)
 				LEFT JOIN dbo.KitMaster km ON km.KitId = kitm.Migrated_Id
 				LEFT JOIN dbo.ItemMaster im ON im.ItemMasterId = kitm.MainItemMasterId
 				LEFT JOIN dbo.Manufacturer mf ON km.ManufacturerId = mf.ManufacturerId
@@ -2456,7 +2359,7 @@ BEGIN
 					0 AS IsDeleted,
 					SuccessMsg,
 					ErrorMsg
-				FROM [Quantum_Staging].dbo.[KitMasters] kitm WITH (NOLOCK)
+				FROM [Quantum_Staging_BETA].dbo.[KitMasters] kitm WITH (NOLOCK)
 				LEFT JOIN dbo.KitMaster km ON km.KitId = kitm.Migrated_Id
 				LEFT JOIN dbo.ItemMaster im ON im.ItemMasterId = kitm.MainItemMasterId
 				LEFT JOIN dbo.Manufacturer mf ON km.ManufacturerId = mf.ManufacturerId
@@ -2514,7 +2417,7 @@ BEGIN
 					0 AS IsDeleted,
 					SuccessMsg,
 					ErrorMsg
-				FROM [Quantum_Staging].dbo.[KitMasters] kitm WITH (NOLOCK)
+				FROM [Quantum_Staging_BETA].dbo.[KitMasters] kitm WITH (NOLOCK)
 				LEFT JOIN dbo.KitMaster km ON km.KitId = kitm.Migrated_Id
 				LEFT JOIN dbo.ItemMaster im ON im.ItemMasterId = kitm.MainItemMasterId
 				LEFT JOIN dbo.Manufacturer mf ON km.ManufacturerId = mf.ManufacturerId

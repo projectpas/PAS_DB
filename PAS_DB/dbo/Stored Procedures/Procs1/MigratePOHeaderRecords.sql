@@ -25,7 +25,7 @@ declare @p7 int
 set @p7=NULL
 declare @p8 int
 set @p8=NULL
-exec sp_executesql N'EXEC MigratePOHeaderRecords @FromMasterComanyID, @UserName, @Processed OUTPUT, @Migrated OUTPUT, @Failed OUTPUT, @Exists OUTPUT',N'@FromMasterComanyID int,@UserName nvarchar(12),@Processed int output,@Migrated int output,@Failed int output,@Exists int output',@FromMasterComanyID=12,@UserName=N'ROGER BENTLY',@Processed=@p5 output,@Migrated=@p6 output,@Failed=@p7 output,@Exists=@p8 output
+exec sp_executesql N'EXEC MigratePOHeaderRecords @FromMasterComanyID, @UserName, @Processed OUTPUT, @Migrated OUTPUT, @Failed OUTPUT, @Exists OUTPUT',N'@FromMasterComanyID int,@UserName nvarchar(12),@Processed int output,@Migrated int output,@Failed int output,@Exists int output',@FromMasterComanyID=25,@UserName=N'ADMIN ADMIN',@Processed=@p5 output,@Migrated=@p6 output,@Failed=@p7 output,@Exists=@p8 output
 select @p5, @p6, @p7, @p8
 **************************************************************/
 CREATE   PROCEDURE [dbo].[MigratePOHeaderRecords]
@@ -67,7 +67,7 @@ BEGIN
 			[EntryDate] Datetime2(7) NULL,
 			[FaxNumber] VARCHAR(100) NULL,
 			[HistoricalFlag] VARCHAR(10) NULL,
-			[Notes] VARCHAR(500) NULL,
+			[Notes] VARCHAR(MAX) NULL,
 			[TotalCost] decimal(18, 2) NULL,
 			[OpenFlag] VARCHAR(100) NULL,
 			[PhoneNumber] VARCHAR(100) NULL,
@@ -104,7 +104,8 @@ BEGIN
 		SELECT [POHeaderId],[PONumber],[VendorId],[CurrencyId],[ShipViaCodeId],[TermsCondtionId],[UserId],[Attention],[CompanyRefNumber],[EntryDate],[FaxNumber],[HistoricalFlag],
 		[Notes],[TotalCost],[OpenFlag],[PhoneNumber],[RecDate],[Remarks],[ResaleFlag],[VendorAddress1],[VendorAddress2],[VendorAddress3],[VendorAddress4],[VendorAddress5],[ShipAddress1],[ShipAddress2],
 		[ShipAddress3],[ShipAddress4],[ShipAddress5],[ShipDate],[FOB],[EmailAddress],[PoShipDate],[DeferredRec],[DATE_CREATED],[Date_Modified],[Priority],[MasterCompanyId],[Migrated_Id],[SuccessMsg],[ErrorMsg]
-		FROM [Quantum_Staging].dbo.[PurchaseOrderHeaders] POH WITH (NOLOCK) WHERE POH.Migrated_Id IS NULL;
+		FROM [Quantum_Staging_BETA].dbo.[PurchaseOrderHeaders] POH WITH (NOLOCK) 
+		WHERE POH.Migrated_Id IS NULL AND POH.MasterCompanyId = @FromMasterComanyID;
 
 		DECLARE @ProcessedRecords INT = 0;
 		DECLARE @MigratedRecords INT = 0;
@@ -150,12 +151,12 @@ BEGIN
 			SELECT @POModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'PurchaseOrder';
 			SELECT @VendorModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'Vendor';			
 			SELECT @countries_id = [countries_id] FROM [dbo].[Countries] WITH(NOLOCK) WHERE [MasterCompanyId] = @FromMasterComanyID AND [countries_name] = 'UNITED STATES';
-			SELECT @DefaultUserId = U.EmployeeId FROM DBO.AspNetUsers U WHERE UserName like 'MIG-ADMIN' AND MasterCompanyId = @FromMasterComanyID;
+			SELECT @DefaultUserId = U.EmployeeId FROM DBO.AspNetUsers U WHERE UserName like 'BAG-ADMIN' AND MasterCompanyId = @FromMasterComanyID;
 			SELECT TOP 1 @ManagementStructureId = MS.ManagementStructureId FROM DBO.ManagementStructure MS WHERE [MasterCompanyId] = @FromMasterComanyID;
 			SELECT @ManagementStructureTypeId = MST.TypeID FROM DBO.ManagementStructureType MST WHERE MST.[Description] = 'LE' AND MST.[MasterCompanyId] = @FromMasterComanyID;
 			SELECT @Level1 = (MSL.Code + ' - ' + MSL.[Description]) FROM DBO.ManagementStructureLevel MSL WHERE MSL.TypeID = @ManagementStructureTypeId AND MSL.[MasterCompanyId] = @FromMasterComanyID;
 
-			SELECT @VendorId = VendorId, @VendorName = VendorName, @VendorCode = V.VendorCode, @CreditLimit = V.CreditLimit FROM DBO.Vendor V WHERE UPPER(V.VendorCode) IN (SELECT UPPER(CMP.COMPANY_CODE) FROM [Quantum].QCTL_NEW_3.COMPANIES CMP Where CMP.CMP_AUTO_KEY = @CMP_AUTO_KEY) AND MasterCompanyId = @FromMasterComanyID;
+			SELECT @VendorId = VendorId, @VendorName = VendorName, @VendorCode = V.VendorCode, @CreditLimit = V.CreditLimit FROM DBO.Vendor V WHERE UPPER(V.VendorCode) IN (SELECT UPPER(CMP.COMPANY_CODE) FROM [BEACH].QCTL1.COMPANIES CMP Where CMP.CMP_AUTO_KEY = @CMP_AUTO_KEY) AND MasterCompanyId = @FromMasterComanyID;
 			SELECT @VendorContactId = V.VendorContactId, @ContactId = V.ContactId FROM DBO.VendorContact V WHERE V.VendorId = @VendorId AND V.IsDefaultContact = 1 AND MasterCompanyId = @FromMasterComanyID;
 			SELECT @VendorContactName = (C.FirstName + ' ' + C.LastName), @VendorContactPhone = C.WorkPhone FROM DBO.Contact C WHERE C.ContactId = @ContactId AND MasterCompanyId = @FromMasterComanyID;
 
@@ -184,7 +185,7 @@ BEGIN
 			BEGIN
 				UPDATE POH
 				SET POH.ErrorMsg = @ErrorMsg
-				FROM [Quantum_Staging].DBO.PurchaseOrderHeaders POH WHERE POH.POHeaderId = @CurrentPurchaseOrderHeaderId;
+				FROM [Quantum_Staging_BETA].DBO.PurchaseOrderHeaders POH WHERE POH.POHeaderId = @CurrentPurchaseOrderHeaderId;
 
 				SET @RecordsWithError = @RecordsWithError + 1;
 			END
@@ -195,7 +196,7 @@ BEGIN
 			BEGIN
 				IF NOT EXISTS(SELECT 1 FROM [dbo].[PurchaseOrder] WITH(NOLOCK) WHERE PurchaseOrderNumber = (SELECT PO.PONumber FROM #TempPOHeader PO WHERE PO.ID = @LoopID) AND MasterCompanyId = @FromMasterComanyID)
 				BEGIN
-					SELECT @CreditTermsId = CreditTermsId, @TemrsName = [Name] FROM DBO.CreditTerms CT WHERE UPPER(CT.Name) IN (SELECT UPPER(T.TERM_CODE) FROM [Quantum].QCTL_NEW_3.TERM_CODES T Where T.TMC_AUTO_KEY = @TMC_AUTO_KEY) AND MasterCompanyId = @FromMasterComanyID;
+					SELECT @CreditTermsId = CreditTermsId, @TemrsName = [Name] FROM DBO.CreditTerms CT WHERE UPPER(CT.Name) IN (SELECT UPPER(T.TERM_CODE) FROM [BEACH].QCTL1.TERM_CODES T Where T.TMC_AUTO_KEY = @TMC_AUTO_KEY) AND MasterCompanyId = @FromMasterComanyID;
 					SELECT @OpenStatusId = PS.POStatusId FROM DBO.POStatus PS WHERE UPPER(PS.Status) = 'Open';
 					SELECT @ClosedStatusId = PS.POStatusId FROM DBO.POStatus PS WHERE UPPER(PS.Status) = 'Closed';
 
@@ -204,7 +205,7 @@ BEGIN
 					[CreditTermsId],[Terms],[CreditLimit],[RequestedBy],[Requisitioner],[StatusId],[Status],[StatusChangeDate],[Resale],[DeferredReceiver],[ApproverId],[ApprovedBy],[DateApproved],
 					[POMemo],[Notes],[ManagementStructureId],[Level1],[Level2],[Level3],[Level4],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[IsEnforce],
 					[PDFPath],[VendorRFQPurchaseOrderId],[FreightBilingMethodId],[TotalFreight],[ChargesBilingMethodId],[TotalCharges])
-					SELECT PO.PONumber, CASE WHEN PO.EntryDate IS NOT NULL THEN CAST(PO.EntryDate AS datetime2) ELSE NULL END, NULL, CASE WHEN PO.PoShipDate IS NOT NULL THEN CAST(PO.PoShipDate AS datetime2) ELSE GETDATE() END, CASE WHEN PO.[PRIORITY] = 0 THEN (SELECT PriorityId FROM DBO.[Priority] WITH (NOLOCK) WHERE MasterCompanyId = @FromMasterComanyID AND UPPER([Description]) = 'ROUTINE') WHEN PO.[PRIORITY] = 1 THEN (SELECT PriorityId FROM DBO.[Priority] WITH (NOLOCK) WHERE MasterCompanyId = @FromMasterComanyID AND UPPER([Description]) = 'HIGH') END, CASE WHEN PO.[PRIORITY] = 1 THEN 'ROUTINE' WHEN PO.[PRIORITY] = 1 THEN 'HIGH' ELSE '' END, @VendorId, @VendorName, @VendorCode, @VendorContactId, @VendorContactName, @VendorContactPhone,
+					SELECT PO.PONumber, CASE WHEN PO.EntryDate IS NOT NULL THEN CAST(PO.EntryDate AS datetime2) ELSE NULL END, NULL, CASE WHEN PO.PoShipDate IS NOT NULL THEN CAST(PO.PoShipDate AS datetime2) ELSE GETDATE() END, CASE WHEN PO.[PRIORITY] = 0 THEN (SELECT PriorityId FROM DBO.[Priority] WITH (NOLOCK) WHERE MasterCompanyId = @FromMasterComanyID AND UPPER([Description]) = 'ROUTINE') WHEN PO.[PRIORITY] = 1 THEN (SELECT PriorityId FROM DBO.[Priority] WITH (NOLOCK) WHERE MasterCompanyId = @FromMasterComanyID AND UPPER([Description]) = 'HIGH') ELSE (SELECT PriorityId FROM DBO.[Priority] WITH (NOLOCK) WHERE MasterCompanyId = @FromMasterComanyID AND UPPER([Description]) = 'CRITICAL') END, CASE WHEN PO.[PRIORITY] = 0 THEN 'ROUTINE' WHEN PO.[PRIORITY] = 1 THEN 'HIGH' ELSE 'CRITICAL' END, @VendorId, @VendorName, @VendorCode, @VendorContactId, @VendorContactName, @VendorContactPhone,
 					@CreditTermsId, @TemrsName, @CreditLimit, @DefaultUserId, @UserName, CASE WHEN PO.OpenFlag = 'T' THEN @OpenStatusId ELSE @ClosedStatusId END, CASE WHEN PO.OpenFlag = 'T' THEN 'Open' ELSE 'Closed' END, CASE WHEN PO.DATE_CREATED IS NOT NULL THEN CAST(PO.DATE_CREATED AS datetime2) ELSE NULL END, (CASE WHEN ISNULL(PO.ResaleFlag, 'F') = 'T' THEN 1 ELSE 0 END), (CASE WHEN ISNULL(PO.DeferredRec, 'F') = 'T' THEN 1 ELSE 0 END), NULL, NULL, NULL,
 					NULL, PO.NOTES, @ManagementStructureId, @Level1, NULL, NULL, NULL, @FromMasterComanyID, @UserName, @UserName, GETDATE(), GETDATE(), 1, 0, 0,
 					NULL, NULL, NULL, NULL, NULL, NULL
@@ -339,7 +340,7 @@ BEGIN
 					UPDATE POH
 					SET POH.Migrated_Id = @InsertedPurchaseOrderId,
 					POH.SuccessMsg = 'Record migrated successfully'
-					FROM [Quantum_Staging].DBO.PurchaseOrderHeaders POH WHERE POH.POHeaderId = @CurrentPurchaseOrderHeaderId;
+					FROM [Quantum_Staging_BETA].DBO.PurchaseOrderHeaders POH WHERE POH.POHeaderId = @CurrentPurchaseOrderHeaderId;
 
 					SET @MigratedRecords = @MigratedRecords + 1;
 				END
@@ -347,7 +348,7 @@ BEGIN
 				BEGIN
 					UPDATE IMs
 					SET IMs.ErrorMsg = ISNULL(ErrorMsg, '') + '<p>Purchase Order Header record already exists</p>'
-					FROM [Quantum_Staging].DBO.ItemMasters IMs WHERE IMs.ItemMasterId = @CurrentPurchaseOrderHeaderId;
+					FROM [Quantum_Staging_BETA].DBO.PurchaseOrderHeaders IMs WHERE IMs.POHeaderId = @CurrentPurchaseOrderHeaderId;
 
 					SET @RecordExits = @RecordExits + 1;
 
@@ -355,7 +356,7 @@ BEGIN
 					
 					IF NOT EXISTS(SELECT 1 FROM [dbo].[AllAddress] WITH(NOLOCK) WHERE [ReffranceId] = @InsertedPurchaseOrderId AND [ModuleId] = @POModuleId AND [MasterCompanyId] = @FromMasterComanyID)
 					BEGIN
-						SELECT @VendorId = VendorId, @VendorName = VendorName, @VendorCode = V.VendorCode, @CreditLimit = V.CreditLimit FROM DBO.Vendor V WHERE UPPER(V.VendorCode) IN (SELECT UPPER(CMP.COMPANY_CODE) FROM [Quantum].QCTL_NEW_3.COMPANIES CMP Where CMP.CMP_AUTO_KEY = @CMP_AUTO_KEY) AND MasterCompanyId = @FromMasterComanyID;
+						SELECT @VendorId = VendorId, @VendorName = VendorName, @VendorCode = V.VendorCode, @CreditLimit = V.CreditLimit FROM DBO.Vendor V WHERE UPPER(V.VendorCode) IN (SELECT UPPER(CMP.COMPANY_CODE) FROM [BEACH].QCTL1.COMPANIES CMP Where CMP.CMP_AUTO_KEY = @CMP_AUTO_KEY) AND MasterCompanyId = @FromMasterComanyID;
 						SELECT @VendorContactId = V.VendorContactId, @ContactId = V.ContactId FROM DBO.VendorContact V WHERE V.VendorId = @VendorId AND V.IsDefaultContact = 1 AND MasterCompanyId = @FromMasterComanyID;
 						SELECT @VendorContactName = (C.FirstName + ' ' + C.LastName), @VendorContactPhone = C.WorkPhone FROM DBO.Contact C WHERE C.ContactId = @ContactId AND MasterCompanyId = @FromMasterComanyID;
 		

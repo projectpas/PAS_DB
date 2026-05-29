@@ -12,6 +12,7 @@
 	1	 15/05/2026          Nakul Chandigra     Created 
     2    20/05/2026          Nakul Chandigra    Added fields 
     3    22/05/2026          Bhargav Saliya    Added field [SiteId] 
+    4    29/05/2026          Bhargav Saliya    Added field [MaintenanceTypeId] 
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_AddupdateAircraftSetup]
 (
@@ -41,7 +42,8 @@ BEGIN
                 T.CurrencyId = S.CurrencyId,
                 T.UpdatedBy = S.UpdatedBy,
                 T.UpdatedDate = GETUTCDATE(),
-                T.SiteId = S.SiteId
+                T.SiteId = S.SiteId,
+                T.[MaintenanceTypeId] = S.[MaintenanceTypeId]
             FROM dbo.AircraftSetup T
             CROSS APPLY
             (
@@ -57,7 +59,8 @@ BEGIN
                     GreenIndicator,
                     ItemgroupId,
                     UpdatedBy,
-                    SiteId
+                    SiteId,
+                    [MaintenanceTypeId]
                 FROM @tblType_AircraftSetupType
             ) S
             WHERE T.AircraftSetupId = @AircraftSetupId;
@@ -83,7 +86,8 @@ BEGIN
                 IsActive,
                 IsDeleted,
                 MasterCompanyId,
-                SiteId
+                SiteId,
+                [MaintenanceTypeId]
             )
             SELECT TOP 1
                 MaintenanceStatusId,
@@ -103,7 +107,8 @@ BEGIN
                 IsActive,
                 IsDeleted,
                 MasterCompanyId,
-                SiteId
+                SiteId,
+                [MaintenanceTypeId]
             FROM @tblType_AircraftSetupType;
         END
     END TRY

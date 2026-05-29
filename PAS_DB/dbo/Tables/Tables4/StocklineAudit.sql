@@ -238,13 +238,7 @@
     [BatchNumber]                         VARCHAR (50)    NULL,
     [IsReadyReleaseForm]                  BIT             CONSTRAINT [DF_StocklineAudit_IsReadyReleaseForm] DEFAULT ((0)) NULL,
     [TransferredFromLotId]                BIGINT          NULL,
-    [TransferredFromLotNumber]            VARCHAR (200)   NULL,
-    [AircraftInstalledPartDetailsId]      BIGINT          NULL,
-    [AircraftSN]                          VARCHAR (30)    NULL,
-    [TotalTSN]                            DECIMAL (18, 2) NULL,
-    [TotalCSN]                            DECIMAL (18, 2) NULL,
-    [TotalTSNMM]                          DECIMAL (18, 6) NULL,
-    [TotalCSNMM]                          DECIMAL (18, 6) NULL,
+    [TransferredFromLotNumber]            VARCHAR (200)   NULL
     CONSTRAINT [PK_StocklineAudit] PRIMARY KEY CLUSTERED ([AuditStockLineId] ASC)
 );
 

@@ -238,6 +238,8 @@
     [IsBatchStock]                        BIT             DEFAULT ((0)) NULL,
     [BatchNumber]                         VARCHAR (50)    NULL,
     [IsReadyReleaseForm]                  BIT             CONSTRAINT [DF_Stockline_IsReadyReleaseForm] DEFAULT ((0)) NULL,
+    [TransferredFromLotId] BIGINT NULL, 
+    [TransferredFromLotNumber] VARCHAR(200) NULL 
     CONSTRAINT [PK_Stockline] PRIMARY KEY CLUSTERED ([StockLineId] ASC),
     CONSTRAINT [FK_StockLine_AcquistionType] FOREIGN KEY ([AcquistionTypeId]) REFERENCES [dbo].[AssetAcquisitionType] ([AssetAcquisitionTypeId]),
     CONSTRAINT [FK_StockLine_Bin] FOREIGN KEY ([BinId]) REFERENCES [dbo].[Bin] ([BinId]),

@@ -13,11 +13,14 @@
     [CapabilityTypeDesc] VARCHAR (256)  NULL,
     [WorkScopeId]        BIGINT         NULL,
     [ConditionId]        INT            NULL,
+    [IsAircraft]         BIT            NULL,
     CONSTRAINT [PK_CapabilityType] PRIMARY KEY CLUSTERED ([CapabilityTypeId] ASC),
     CONSTRAINT [FK_CapabilityType_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId]),
     CONSTRAINT [Unique_CapabilityType] UNIQUE NONCLUSTERED ([Description] ASC, [MasterCompanyId] ASC),
     CONSTRAINT [Unique_CapabilityTypeSeqNo] UNIQUE NONCLUSTERED ([SequenceNo] ASC, [MasterCompanyId] ASC)
 );
+
+
 
 
 GO
@@ -95,9 +98,9 @@ BEGIN
 
 	
 
-	INSERT INTO [dbo].[WorkScope](WorkScopeCode,Description,Memo,MasterCompanyId,CreatedBy,UpdatedBy,CreatedDate,UpdatedDate, IsActive, IsDeleted, WorkScopeCodeNew,ConditionId )
+	INSERT INTO [dbo].[WorkScope](WorkScopeCode,Description,Memo,MasterCompanyId,CreatedBy,UpdatedBy,CreatedDate,UpdatedDate, IsActive, IsDeleted, WorkScopeCodeNew,ConditionId,IsAircraft )
 
-	SELECT CapabilityTypeDesc, [Description], SequenceMemo, MasterCompanyId,CreatedBy, UpdatedBy, GETDATE(), GETDATE(), IsActive, IsDeleted,CapabilityTypeDesc,ConditionId FROM INSERTED
+	SELECT CapabilityTypeDesc, [Description], SequenceMemo, MasterCompanyId,CreatedBy, UpdatedBy, GETDATE(), GETDATE(), IsActive, IsDeleted,CapabilityTypeDesc,ConditionId,IsAircraft FROM INSERTED
 
 
 
@@ -158,7 +161,7 @@ BEGIN
 
 	UPDATE [dbo].[WorkScope] SET WorkScopeCode = ins.CapabilityTypeDesc, [Description]=ins.Description ,
 
-	Memo = ins.SequenceMemo, IsActive = ins.IsActive, IsDeleted = ins.IsDeleted, ConditionId=ins.ConditionId
+	Memo = ins.SequenceMemo, IsActive = ins.IsActive, IsDeleted = ins.IsDeleted, ConditionId=ins.ConditionId,IsAircraft = ins.IsAircraft
 
 	FROM [dbo].[WorkScope] WS JOIN INSERTED ins ON ws.WorkScopeId = ins.WorkScopeId 
 	 WHERE NOT EXISTS (

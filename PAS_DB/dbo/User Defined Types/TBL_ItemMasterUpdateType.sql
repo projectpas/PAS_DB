@@ -134,5 +134,18 @@
     [Classification]                    VARCHAR (200)   NULL,
     [MasterCompanyId]                   VARCHAR (200)   NULL,
     [UpdatedBy]                         VARCHAR (200)   NULL,
-    [RepairUnitOfMeasureId]             BIGINT          NULL);
+    [RepairUnitOfMeasureId]             BIGINT          NULL,
+    [LifeLimitedPart]                   BIT             NULL,
+    [IsFlightHoursAvailable]            BIT             NULL,
+    [IsFlightCyclesAvailable]           BIT             NULL,
+    [IsLandingsAvailable]               BIT             NULL,
+    [IsStartsAvailable]                 BIT             NULL,
+    [IsCalendarTimeAvailable]           BIT             NULL,
+    [FlightHours]                       VARCHAR (200)   NULL,
+    [FlightMinutes]                     VARCHAR (200)   NULL,
+    [FlightCycles]                      VARCHAR (200)   NULL,
+    [Landings]                          VARCHAR (200)   NULL,
+    [Starts]                            VARCHAR (200)   NULL,
+    [CalendarHours]                     VARCHAR (200)   NULL,
+    [CalendarMinutes]                   VARCHAR (200)   NULL);
 

@@ -11,9 +11,10 @@
 ** --    --------     -------           -------------------------------          
 ** 1     19-Nov-2025   Bhargav Saliya   Created  
 ** 2     09-Mar-2026   Vishal Suthar    Handled UnitOfMeasureId to have NULL instead of 0 which will throw foreignkey constraint
+** 3     26-Mar-2026   Sahdev Saliya    Added [LifeLimitedPart] :-([IsFlightHoursAvailable], [IsFlightCyclesAvailable], [IsLandingsAvailable], [IsStartsAvailable], [IsCalendarTimeAvailable], [FlightHours], [FlightMinutes], [FlightCycles], [Landings], [Starts], [CalendarHours], [CalendarMinutes]) (PN-15833, PN-16649_65)
 
 **************************************************************/
-CREATE     PROCEDURE [dbo].[USP_UpdateItemMaster]
+create       PROCEDURE [dbo].[USP_UpdateItemMaster]
     @tbl_ItemMasterUpdateType [TBL_ItemMasterUpdateType] readonly,
     @tbl_BigInt [TVP_BigInt] readonly,
 	@Id BIGINT,
@@ -177,6 +178,19 @@ BEGIN
 		,i.COGS_ExchSalesOrderGLAccName = PST.COGS_ExchSalesOrderGLAccName
 		,i.IsUpdated = 1
 		,i.WorkOrderFormTypeId = PST.WorkOrderFormTypeId
+	    ,i.LifeLimitedPart = PST.LifeLimitedPart
+		,i.IsFlightHoursAvailable = PST.IsFlightHoursAvailable
+		,i.IsFlightCyclesAvailable = PST.IsFlightCyclesAvailable
+		,i.IsLandingsAvailable = PST.IsLandingsAvailable
+		,i.IsStartsAvailable = PST.IsStartsAvailable
+		,i.IsCalendarTimeAvailable = PST.IsCalendarTimeAvailable
+		,i.FlightHours = PST.FlightHours
+		,i.FlightMinutes = PST.FlightMinutes
+		,i.FlightCycles = PST.FlightCycles
+		,i.Landings = PST.Landings
+		,i.Starts = PST.Starts
+		,i.CalendarHours = PST.CalendarHours
+		,i.CalendarMinutes = PST.CalendarMinutes
 		FROM dbo.ItemMaster i WITH(NOLOCK)
 		JOIN @tbl_ItemMasterUpdateType PST ON i.ItemMasterId = PST.ItemMasterId AND i.MasterCompanyId = PST.MasterCompanyId
 		WHERE i.ItemMasterId = @Id;

@@ -1105,7 +1105,10 @@ BEGIN
 	END
 
 	--*************** CREATE A WORK ORDER MATERIALS FOR SUB ASSY : BY RAJESH ***************
-	EXEC [dbo].[CreateWorkOrderMaterialsforSubAssy] @WorkOrderParts,@WorkOrderId,@WorkOrderTypeId,@CreatedBy,@CreatedDate,@MasterCompanyId,@WorkOrderFormTypeId
+	IF(ISNULL(@WorksheetId,0) = 0)
+	BEGIN
+		EXEC [dbo].[CreateWorkOrderMaterialsforSubAssy] @WorkOrderParts,@WorkOrderId,@WorkOrderTypeId,@CreatedBy,@CreatedDate,@MasterCompanyId,@WorkOrderFormTypeId
+	END
 
 	-- TEARDOWN WORK ORDER ACCOUNTING ENTRY
 	IF @WorkOrderTypeId = @TearDown -- TearDown

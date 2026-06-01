@@ -1,10 +1,10 @@
-﻿/************************************************************
+﻿/********************
 ** File:        [USP_GetAircraftRegistryList]
 ** Author:      Priyansh Patel
 ** Description: Get Aircraft Registry data from AircraftRegistryHeader
 ** 
 ** Change History
-************************************************************
+********************
 ** PR   Date         Author          Description
 ** --   ----------   -------------   -------------------------
 ** 1    26/02/2026   Priyansh Patel  Created [PN-15841]
@@ -12,8 +12,9 @@
 ** 3    06/05/2026   Amit Ghediya    GET Maintenance/Aircraft Status [PN-16296]
 ** 4    22/05/2026   Amit Ghediya    GET TSN/CSN H/M [PN-16533]
 ** 5    29/05/2026   Sahdev Saliya   Removed TotalCSNHHMM [PN-16621]
+** 5    01/06/2026   Ayushi Patel    GET CustomerName from stockline [PN-16660]
 
-************************************************************/
+********************/
 CREATE PROCEDURE [dbo].[USP_GetAircraftRegistryList]
     @PageNumber         INT             = 1,
     @PageSize           INT             = 10,
@@ -39,7 +40,8 @@ CREATE PROCEDURE [dbo].[USP_GetAircraftRegistryList]
     @AircraftStatusId   BIGINT          = NULL,
     @MEL                VARCHAR(200)    = NULL,
     @IsDeleted          BIT             = 0,
-    @MasterCompanyId    INT
+    @MasterCompanyId    INT,
+    @Custname           VARCHAR(200)    = NULL
 AS
 BEGIN
     --SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
@@ -72,10 +74,12 @@ BEGIN
 				ASS.[Name] AS AircraftStatus,
                 AR.IsActive,
                 AR.CreatedDate,
+                SL.CustomerName AS Custname,
                 COUNT(1) OVER () AS TotalRecords
             FROM [dbo].[AircraftRegistryHeader] AS AR WITH (NOLOCK)
 			LEFT JOIN [dbo].[AircraftStatus] ASS WITH (NOLOCK) ON AR.[AircraftStatusId] = ASS.[AircraftStatusId]
 			LEFT JOIN [dbo].[MaintenanceStatus] AMS WITH (NOLOCK) ON AR.[MaintenanceStatusId] = AMS.[MaintenanceStatusId]
+            LEFT JOIN [dbo].[StockLine] SL WITH (NOLOCK) ON AR.StockLineId = SL.StockLineId
             WHERE
                 AR.MasterCompanyId = @MasterCompanyId
                 AND (@IsDeleted IS NULL OR AR.IsDeleted = @IsDeleted)
@@ -86,6 +90,7 @@ BEGIN
                     OR AR.TailNum        LIKE '%' + @GlobalFilter + '%'
                     OR AR.SerialNum      LIKE '%' + @GlobalFilter + '%'
                     OR AR.AircraftStatus LIKE '%' + @GlobalFilter + '%'
+                    OR SL.CustomerName LIKE '%' + @GlobalFilter + '%'
                 )
                 AND (@MakeType          IS NULL OR AR.MakeType         LIKE '%' + @MakeType         + '%')
                 AND (@AircraftModel     IS NULL OR AR.AircraftModel    LIKE '%' + @AircraftModel    + '%')
@@ -105,6 +110,7 @@ BEGIN
                 AND (@NextScheduled     IS NULL OR CAST(AR.NextScheduled AS DATE) = CAST(@NextScheduled AS DATE))
                 AND (@MEL               IS NULL OR AR.MEL              LIKE '%' + @MEL              + '%')
                 AND (@AircraftStatusId  IS NULL OR AR.AircraftStatusId = @AircraftStatusId)
+                AND (@Custname          IS NULL OR SL.CustomerName LIKE '%' + @Custname + '%')
         )
         SELECT
             AircraftRegistryId,
@@ -127,6 +133,7 @@ BEGIN
             AircraftStatus,
             IsActive,
             CreatedDate,
+            Custname,
             TotalRecords
         FROM CTE
         ORDER BY
@@ -166,6 +173,8 @@ BEGIN
             CASE WHEN @SortColumn = 'NumOfEngines'       AND @SortOrder = 'DESC' THEN NumOfEngines      END DESC,
             CASE WHEN @SortColumn = 'CreatedDate'        AND @SortOrder = 'ASC'  THEN CreatedDate       END ASC,
             CASE WHEN @SortColumn = 'CreatedDate'        AND @SortOrder = 'DESC' THEN CreatedDate       END DESC,
+            CASE WHEN @SortColumn = 'Custname' AND @SortOrder = 'ASC' THEN Custname END ASC,
+            CASE WHEN @SortColumn = 'Custname' AND @SortOrder = 'DESC' THEN Custname END DESC,
             AircraftRegistryId DESC
         OFFSET  (@PageNumber - 1) * @PageSize ROWS
         FETCH NEXT @PageSize ROWS ONLY

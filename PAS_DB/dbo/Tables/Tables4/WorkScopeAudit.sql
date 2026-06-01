@@ -13,6 +13,7 @@
     [IsDeleted]        BIT            NOT NULL,
     [WorkScopeCodeNew] VARCHAR (50)   NULL,
     [ConditionId]      INT            NULL,
+    [IsAircraft]       BIT            NULL,
     CONSTRAINT [PK__WorkScop__D2984988BF1C48D4] PRIMARY KEY CLUSTERED ([WorkScopeAuditId] ASC)
 );
 

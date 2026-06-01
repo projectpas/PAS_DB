@@ -14,6 +14,7 @@
     [CapabilityTypeDesc]    VARCHAR (256)  NULL,
     [WorkScopeId]           BIGINT         NULL,
     [ConditionId]           INT            NULL,
+    [IsAircraft]            BIT            NULL,
     CONSTRAINT [PK_CapabilityTypeAudit] PRIMARY KEY CLUSTERED ([AuditCapabilityTypeId] ASC)
 );
 

@@ -1,40 +1,45 @@
 ﻿
 /****************************************************************************************************
 ** File:        [USP_GetAircraftComponentMaintenanceDashboardList]
-** Description:
-** Purpose:
-** Date:
+** Description: Adds three optional dashboard-level filter parameters:
+**                @SearchTailNumber  - exact / case-insensitive tail-number filter
+**                @SectionId         - filter by AircraftSection.AircraftSectionId (from WorksheetHeader.WorksheetTypeId)
+**                @IsScheduled       - NULL=all, 1=scheduled only, 0=unscheduled only
+** Date:        2026-06-01
 **
-** RETURN VALUE:
-*****************************************************************************************************
 ** Change History
 *****************************************************************************************************
-** PR   Date         Author				Change Description
-** --   ----------   -------------		--------------------------------
+** PR   Date         Author               Change Description
+** --   ----------   ----------------     --------------------------------
 ** 1    29/05/2026   Abhishek Jirawla     Created [PN-16598]
+** 2    01/06/2026   Abhishek Jirawla     Added @SearchTailNumber, @SectionId, @IsScheduled [PN-16598]
 *****************************************************************************************************/
 CREATE PROCEDURE [dbo].[USP_GetAircraftComponentMaintenanceDashboardList]
 (
-    @PageNumber      INT           = 1,
-    @PageSize        INT           = 10,
-    @SortColumn      VARCHAR(100)  = NULL,
-    @SortOrder       VARCHAR(4)    = 'DESC',
-    @GlobalFilter    VARCHAR(100)  = NULL,
-    @MasterCompanyId INT,
-    @TailNumber      VARCHAR(50)   = NULL,
-    @AircraftMake    VARCHAR(100)  = NULL,
-    @SerialNumber    VARCHAR(100)  = NULL,
-    @MtceCategory    VARCHAR(256)  = NULL,
-    @MtceType        VARCHAR(200)  = NULL,
-    @Section         VARCHAR(100)  = NULL,
-    @PNNum           VARCHAR(100)  = NULL,
-    @PNDescription   VARCHAR(100)  = NULL,
-    @Qty             VARCHAR(50)   = NULL,
-    @CustomerName    VARCHAR(200)  = NULL,
-    @ATAChapter      VARCHAR(50)   = NULL,
-    @LastMaintained  DATETIME      = NULL,
-    @WONumber        VARCHAR(256)  = NULL,
-    @NextScheduled   DATETIME      = NULL
+    @PageNumber         INT           = 1,
+    @PageSize           INT           = 10,
+    @SortColumn         VARCHAR(100)  = NULL,
+    @SortOrder          VARCHAR(4)    = 'DESC',
+    @GlobalFilter       VARCHAR(100)  = NULL,
+    @MasterCompanyId    INT,
+    @TailNumber         VARCHAR(50)   = NULL,
+    @AircraftMake       VARCHAR(100)  = NULL,
+    @SerialNumber       VARCHAR(100)  = NULL,
+    @MtceCategory       VARCHAR(256)  = NULL,
+    @MtceType           VARCHAR(200)  = NULL,
+    @Section            VARCHAR(100)  = NULL,
+    @PNNum              VARCHAR(100)  = NULL,
+    @PNDescription      VARCHAR(100)  = NULL,
+    @Qty                VARCHAR(50)   = NULL,
+    @CustomerName       VARCHAR(200)  = NULL,
+    @ATAChapter         VARCHAR(50)   = NULL,
+    @LastMaintained     DATETIME      = NULL,
+    @WONumber           VARCHAR(256)  = NULL,
+    @NextScheduled      DATETIME      = NULL,
+    -- Dashboard-level filters (additive, AND logic with all filters above)
+    @SearchTailNumber   VARCHAR(50)   = NULL,
+    @SectionId          INT           = NULL,
+    @IsScheduled        BIT           = NULL
 )
 AS
 BEGIN
@@ -53,7 +58,7 @@ BEGIN
                 ARH.SerialNum                                                      AS serialNum,
                 mtc.MtcCategory                                                    AS mtceCategory,
                 AMP.MaintenanceType                                                AS mtceType,
-                MC.[Name]                                                          AS section,
+                WS_M.Section                                                       AS section,
                 WF.WorkOrderNumber                                                 AS pnNum,
                 CAST(NULL AS NVARCHAR(MAX))                                        AS pnDescription,
                 CAST(ISNULL(STK.QuantityAvailable, 0) AS DECIMAL(18,4))           AS qty,
@@ -66,7 +71,6 @@ BEGIN
                 CAST(NULL AS DATETIME)                                             AS installedDate,
                 CAST(NULL AS NVARCHAR(20))                                         AS installedTime,
                 CAST(NULL AS BIGINT)                                               AS installedCycle,
-                -- Limits
                 AMP.CyclesLimit                                                    AS limitCycles,
                 AMP.TimeLimit                                                      AS limitTime,
                 AMP.LandingsLimit                                                  AS limitLandings,
@@ -74,7 +78,6 @@ BEGIN
                 AMP.FlightHoursLimitHours                                          AS LimitFlightHoursHours,
                 AMP.FlightHoursLimitMinutes                                        AS LimitFlightHoursMinutes,
                 CAST(AMP.FlightHoursLimitHours AS VARCHAR(10)) + ':' + RIGHT('00' + CAST(ISNULL(AMP.FlightHoursLimitMinutes, 0) AS VARCHAR(5)), 2) AS limitFlightHours,
-                -- Recorded
                 AMP.CyclesRecorded                                                 AS recordCycles,
                 AMP.TimeRecorded                                                   AS recordTime,
                 AMP.LandingsRecorded                                               AS recordLandings,
@@ -82,7 +85,6 @@ BEGIN
                 AMP.FlightHoursRecordedHours                                       AS RecordFlightHoursHours,
                 AMP.FlightHoursRecordedMinutes                                     AS RecordFlightHoursMinutes,
                 CAST(AMP.FlightHoursRecordedHours AS VARCHAR(10)) + ':' + RIGHT('00' + CAST(ISNULL(AMP.FlightHoursRecordedMinutes, 0) AS VARCHAR(5)), 2) AS recordFlightHours,
-                -- Remaining
                 CASE WHEN AMP.CyclesRemaining > 0 THEN AMP.CyclesRemaining ELSE NULL END AS remainingCycles,
                 AMP.TimeRemaining                                                  AS remainingTime,
                 AMP.LandingsRemaining                                              AS remainingLandings,
@@ -91,7 +93,6 @@ BEGIN
                 AMP.FlightHoursRemainingMinutes                                    AS RemainingFlightHoursMinutes,
                 CAST(AMP.FlightHoursRemainingHours AS VARCHAR(10)) + ':' + RIGHT('00' + CAST(ISNULL(AMP.FlightHoursRemainingMinutes, 0) AS VARCHAR(5)), 2) AS remainingFlightHours,
                 'MAINTENANCE'                                                      AS SourceType,
-                -- Reference fields
                 CAST(NULL AS BIGINT)                                               AS aircraftInstalledPartDetailsId,
                 CAST(NULL AS BIGINT)                                               AS itemMasterId,
                 WF.WorkOrderNumber                                                 AS partNumber,
@@ -117,6 +118,14 @@ BEGIN
                 FROM [dbo].[WorkOrderPartNumber] WOP WITH (NOLOCK)
                 JOIN [dbo].[WorkOrder] WO WITH (NOLOCK) ON WOP.[WorkOrderId] = WO.[WorkOrderId]
             ) LWO ON LWO.[ProgramId] = AMP.[ProgramId] AND LWO.rn = 1
+            -- WorksheetHeader -> AircraftSection: resolves the section name for display
+            LEFT JOIN (
+                SELECT WSH.AircraftRegistryId, ASEC.Section,
+                       ROW_NUMBER() OVER (PARTITION BY WSH.AircraftRegistryId ORDER BY WSH.WorksheetHeaderId DESC) AS rn
+                FROM [dbo].[WorksheetHeader] WSH WITH (NOLOCK)
+                INNER JOIN [dbo].[AircraftSection] ASEC WITH (NOLOCK)
+                    ON ASEC.AircraftSectionId = WSH.WorksheetTypeId
+            ) WS_M ON WS_M.AircraftRegistryId = ARH.AircraftRegistryId AND WS_M.rn = 1
             WHERE AMP.MasterCompanyId = @MasterCompanyId AND AMP.IsDeleted = 0
 
             UNION ALL
@@ -130,7 +139,7 @@ BEGIN
                 ARH.SerialNum                                                      AS serialNum,
                 CAST(NULL AS NVARCHAR(256))                                        AS mtceCategory,
                 CAST(NULL AS NVARCHAR(200))                                        AS mtceType,
-                AIPD.PositionCode                                                  AS section,
+                WS_I.Section                                                       AS section,
                 AIPD.PartNumber                                                    AS pnNum,
                 AIPD.PartDescription                                               AS pnDescription,
                 CAST(ISNULL(AIPD.Quantity, 0) AS DECIMAL(18,4))                   AS qty,
@@ -143,7 +152,6 @@ BEGIN
                 AIPD.DateInstalled                                                 AS installedDate,
                 CAST(ISNULL(AIPD.[Hours], 0) AS VARCHAR(10)) + ':' + RIGHT('00' + CAST(ISNULL(AIPD.[Minutes], 0) AS VARCHAR(5)), 2) AS installedTime,
                 CAST(AIPD.InstallCycles AS BIGINT)                                 AS installedCycle,
-                -- Limits
                 CAST(AIPD.PartCycles AS BIGINT)                                    AS limitCycles,
                 CAST(NULL AS BIGINT)                                               AS limitTime,
                 CAST(AIPD.PartLandings AS BIGINT)                                  AS limitLandings,
@@ -151,7 +159,6 @@ BEGIN
                 CAST(ISNULL(AIPD.PartFlightHours, 0) AS INT)                      AS LimitFlightHoursHours,
                 CAST(ISNULL(AIPD.PartFlightMinutes, 0) AS INT)                    AS LimitFlightHoursMinutes,
                 CONCAT(CAST(ISNULL(CAST(AIPD.PartFlightHours AS BIGINT), 0) AS VARCHAR(50)), ':', RIGHT('00' + CAST(ISNULL(CAST(AIPD.PartFlightMinutes AS INT), 0) AS VARCHAR(5)), 2)) AS limitFlightHours,
-                -- Recorded
                 CAST(AIPD.Cycles AS BIGINT)                                        AS recordCycles,
                 CAST(NULL AS BIGINT)                                               AS recordTime,
                 CAST(AIPD.Landings AS BIGINT)                                      AS recordLandings,
@@ -159,7 +166,6 @@ BEGIN
                 CAST(ISNULL(AIPD.FlightHours, 0) AS INT) + CAST(ISNULL(AIPD.FlightMinutes, 0) AS INT) / 60 AS RecordFlightHoursHours,
                 CAST(ISNULL(AIPD.FlightMinutes, 0) AS INT) % 60                   AS RecordFlightHoursMinutes,
                 CAST(CAST(ISNULL(AIPD.FlightHours, 0) AS INT) + CAST(ISNULL(AIPD.FlightMinutes, 0) AS INT) / 60 AS VARCHAR(10)) + ':' + RIGHT('00' + CAST(CAST(ISNULL(AIPD.FlightMinutes, 0) AS INT) % 60 AS VARCHAR(5)), 2) AS recordFlightHours,
-                -- Remaining
                 CASE WHEN ISNULL(AIPD.PartCycles,0) > 0 THEN ISNULL(AIPD.PartCycles,0) - ISNULL(AIPD.InstallCycles,0) - ISNULL(AIPD.Cycles,0) ELSE NULL END AS remainingCycles,
                 CAST(NULL AS BIGINT)                                               AS remainingTime,
                 CASE WHEN ISNULL(AIPD.PartLandings,0) > 0 THEN ISNULL(AIPD.PartLandings,0) - ISNULL(AIPD.Landings,0) ELSE NULL END AS remainingLandings,
@@ -177,7 +183,6 @@ BEGIN
                           WHEN ((CAST(ISNULL(AIPD.PartFlightHours,0) AS INT)*60+CAST(ISNULL(AIPD.PartFlightMinutes,0) AS INT))-(CAST(ISNULL(AIPD.InstallFlightHours,0) AS INT)*60+CAST(ISNULL(AIPD.InstallFlightTime,0) AS INT))-(CAST(ISNULL(AIPD.FlightHours,0) AS INT)*60+CAST(ISNULL(AIPD.FlightMinutes,0) AS INT)))<0 THEN 0
                           ELSE ((CAST(ISNULL(AIPD.PartFlightHours,0) AS INT)*60+CAST(ISNULL(AIPD.PartFlightMinutes,0) AS INT))-(CAST(ISNULL(AIPD.InstallFlightHours,0) AS INT)*60+CAST(ISNULL(AIPD.InstallFlightTime,0) AS INT))-(CAST(ISNULL(AIPD.FlightHours,0) AS INT)*60+CAST(ISNULL(AIPD.FlightMinutes,0) AS INT)))%60 END AS VARCHAR(5)), 2) AS remainingFlightHours,
                 'INSTALLED'                                                        AS SourceType,
-                -- Reference fields
                 AIPD.AircraftInstalledPartDetailsId                                AS aircraftInstalledPartDetailsId,
                 AIPD.ItemMasterId                                                  AS itemMasterId,
                 AIPD.PartNumber                                                    AS partNumber,
@@ -197,14 +202,23 @@ BEGIN
                 FROM dbo.WorkOrderPartNumber WOP WITH (NOLOCK)
                 JOIN dbo.WorkOrder WO WITH (NOLOCK) ON WO.WorkOrderId = WOP.WorkOrderId
             ) LWO_I ON LWO_I.AircraftInstalledPartDetailsId = AIPD.AircraftInstalledPartDetailsId AND LWO_I.rn = 1
+            -- WorksheetHeader -> AircraftSection: resolves the section name for display
+            LEFT JOIN (
+                SELECT WSH.AircraftRegistryId, ASEC.Section,
+                       ROW_NUMBER() OVER (PARTITION BY WSH.AircraftRegistryId ORDER BY WSH.WorksheetHeaderId DESC) AS rn
+                FROM [dbo].[WorksheetHeader] WSH WITH (NOLOCK)
+                INNER JOIN [dbo].[AircraftSection] ASEC WITH (NOLOCK)
+                    ON ASEC.AircraftSectionId = WSH.WorksheetTypeId
+            ) WS_I ON WS_I.AircraftRegistryId = ARH.AircraftRegistryId AND WS_I.rn = 1
             WHERE AIPD.MasterCompanyId = @MasterCompanyId
         ),
         Filtered AS
         (
             SELECT * FROM Combined
             WHERE
+                -- existing column-level / global filters (unchanged)
                 (@GlobalFilter IS NULL OR @GlobalFilter = '' OR acTailNum LIKE '%'+@GlobalFilter+'%' OR acMake LIKE '%'+@GlobalFilter+'%' OR serialNum LIKE '%'+@GlobalFilter+'%' OR mtceCategory LIKE '%'+@GlobalFilter+'%' OR mtceType LIKE '%'+@GlobalFilter+'%' OR section LIKE '%'+@GlobalFilter+'%' OR pnNum LIKE '%'+@GlobalFilter+'%' OR pnDescription LIKE '%'+@GlobalFilter+'%' OR ataChpt LIKE '%'+@GlobalFilter+'%' OR woNum LIKE '%'+@GlobalFilter+'%')
-                AND (ISNULL(@TailNumber,   '')='' OR acTailNum    LIKE '%'+@TailNumber   +'%')
+                AND (ISNULL(@TailNumber,   '')='' OR LOWER(LTRIM(RTRIM(acTailNum))) = LOWER(LTRIM(RTRIM(@TailNumber))))
                 AND (ISNULL(@AircraftMake, '')='' OR acMake       LIKE '%'+@AircraftMake +'%')
                 AND (ISNULL(@SerialNumber, '')='' OR serialNum    LIKE '%'+@SerialNumber +'%')
                 AND (ISNULL(@MtceCategory, '')='' OR mtceCategory LIKE '%'+@MtceCategory +'%')
@@ -218,6 +232,36 @@ BEGIN
                 AND (@LastMaintained IS NULL OR CAST(lastMtced AS DATE)=CAST(@LastMaintained AS DATE))
                 AND (ISNULL(@WONumber,     '')='' OR woNum        LIKE '%'+@WONumber     +'%')
                 AND (@NextScheduled IS NULL OR CAST(nextSchdMtce AS DATE)=CAST(@NextScheduled AS DATE))
+                -- new dashboard-level filters
+                -- 1. Tail-number exact / case-insensitive match
+                AND (ISNULL(@SearchTailNumber, '') = '' OR LOWER(acTailNum) = LOWER(@SearchTailNumber))
+                -- 2. Section filter by ID: keep only rows whose aircraft has a WorksheetHeader
+                --    with WorksheetTypeId matching the selected AircraftSectionId
+                AND (
+                    @SectionId IS NULL
+                    OR EXISTS (
+                        SELECT 1
+                        FROM [dbo].[WorksheetHeader] WSH WITH (NOLOCK)
+                        WHERE WSH.AircraftRegistryId = AircraftRegistryId
+                          AND WSH.WorksheetTypeId    = @SectionId
+                    )
+                )
+                -- 3. Scheduled / unscheduled filter
+                AND (
+                    @IsScheduled IS NULL
+                    OR (
+                        @IsScheduled = 1
+                        AND (
+                            nextSchdMtce IS NOT NULL
+                            OR (SourceType = 'MAINTENANCE' AND pnNum IS NOT NULL)
+                        )
+                    )
+                    OR (
+                        @IsScheduled = 0
+                        AND nextSchdMtce IS NULL
+                        AND NOT (SourceType = 'MAINTENANCE' AND pnNum IS NOT NULL)
+                    )
+                )
         ),
         Paged AS (SELECT *, COUNT(1) OVER () AS TotalRecords FROM Filtered)
         SELECT * FROM Paged

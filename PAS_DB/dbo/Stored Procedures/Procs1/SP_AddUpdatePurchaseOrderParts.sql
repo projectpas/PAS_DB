@@ -23,7 +23,7 @@
 	10	 06/03/2026	  Amit Ghediya			Remove PurchaseOrder open status (PN-15673)
 	12	 08/05/2026	  Priyansh Patel 		Added Ac tail number (PN-16231)
 ************************************************************************/
-CREATE     PROCEDURE [dbo].[SP_AddUpdatePurchaseOrderParts]
+CREATE       PROCEDURE [dbo].[SP_AddUpdatePurchaseOrderParts]
 	@userName varchar(50) = NULL,
 	@masterCompanyId bigint = NULL,
 	@tbl_PurchaseOrderPartType PurchaseOrderPartType READONLY,
@@ -276,7 +276,9 @@ BEGIN
 					   ,[TagDate], IsKit, IsSubWO
 					   ,[SalesOrderQuoteId]
 					   ,[SalesOrderQuoteNumber]
-					    ,[AircraftRegistryNumber]
+					   ,[IsFromAircraft]
+					   ,[AircraftInstalledPartDetailsId]
+					   ,[AircraftRegistryNumber]
 					   ,[ACTailNum])
 			
 					   (SELECT 
@@ -377,8 +379,10 @@ BEGIN
 					   ,CASE WHEN ISNULL(WorkOrderMaterialsId,0) = 0 THEN NULL ELSE (CASE WHEN IsFromSubWorkOrder = 0  THEN  NULL ELSE IsFromSubWorkOrder END) END
 					   ,SalesOrderQuoteId
 					   ,SalesOrderQuoteNumber
-					    ,AircraftRegistryNumber
-					    ,ACTailNum
+					   ,IsFromAircraft
+					   ,AircraftInstalledPartDetailsId
+					   ,AircraftRegistryNumber
+					   ,ACTailNum
 					    FROM #tmpPoPartList WHERE PoPartSrNum = @PartLoopId)
 
 					  SET @PurchaseOrderPartRecordId = SCOPE_IDENTITY();

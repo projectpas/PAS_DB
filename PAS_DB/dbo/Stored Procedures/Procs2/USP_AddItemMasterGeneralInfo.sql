@@ -10,7 +10,7 @@
  ** PR   Date				Author				Change Description            
  ** --   -------------		----------------	--------------------------------          
     1    11-September-2025  Divyesh Kathiriya	Created
-	2    26-Mar-2026        Sahdev Saliya       Added [LifeLimitedPart] :-([IsFlightHoursAvailable], [IsFlightCyclesAvailable], [IsLandingsAvailable], [IsStartsAvailable], [IsCalendarTimeAvailable], [FlightHours], [FlightMinutes], [FlightCycles], [Landings], [Starts], [CalendarHours], [CalendarMinutes]) (PN-15833, PN-16649_65)
+	2    26-Mar-2026        Sahdev Saliya       Added [LifeLimitedPart] :-([IsFlightHoursAvailable], [IsFlightCyclesAvailable], [IsLandingsAvailable], [IsStartsAvailable], [IsCalendarTimeAvailable], [FlightHours], [FlightMinutes], [FlightCycles], [Landings], [Starts], [CalendarDate]) (PN-15833, PN-16649_65)
     
  -- EXEC [USP_AddItemMasterGeneralInfo] 
 **************************************************************/
@@ -95,7 +95,7 @@ BEGIN
 				[IsLandingsAvailable],
 				[IsStartsAvailable],
 				[IsCalendarTimeAvailable],
-				[FlightHours], [FlightMinutes], [FlightCycles], [Landings], [Starts], [CalendarHours], [CalendarMinutes])
+				[FlightHours], [FlightMinutes], [FlightCycles], [Landings], [Starts], [CalendarDate])
 			SELECT
 				[ItemTypeId], [PartAlternatePartId], [ItemGroupId], [ItemClassificationId], [IsHazardousMaterial], [IsExpirationDateAvailable], [ExpirationDate], [IsReceivedDateAvailable], [DaysReceived], [IsManufacturingDateAvailable],
 				[ManufacturingDays], [IsTagDateAvailable], [TagDays], [IsOpenDateAvailable], [OpenDays], [IsShippedDateAvailable], [ShippedDays], [IsOtherDateAvailable], [OtherDays], 
@@ -118,7 +118,7 @@ BEGIN
 				[IsLandingsAvailable],
 				[IsStartsAvailable],
 				[IsCalendarTimeAvailable],
-				[FlightHours], [FlightMinutes], [FlightCycles], [Landings], [Starts], [CalendarHours], [CalendarMinutes]
+				[FlightHours], [FlightMinutes], [FlightCycles], [Landings], [Starts], [CalendarDate]
 			FROM @tbl_ItemMasterTableType;
 
 			SET @ItemMasterId = SCOPE_IDENTITY();

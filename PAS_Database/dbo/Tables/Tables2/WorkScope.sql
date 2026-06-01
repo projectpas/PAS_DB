@@ -12,10 +12,13 @@
     [IsDeleted]        BIT            CONSTRAINT [WorkScope_DC_Delete] DEFAULT ((0)) NOT NULL,
     [WorkScopeCodeNew] VARCHAR (50)   NULL,
     [ConditionId]      INT            NULL,
+    [IsAircraft]       BIT            NULL,
     CONSTRAINT [PK_WorkScope] PRIMARY KEY CLUSTERED ([WorkScopeId] ASC),
     CONSTRAINT [FK_WorkScope_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId]),
     CONSTRAINT [Unique_WorkScope] UNIQUE NONCLUSTERED ([WorkScopeCode] ASC, [MasterCompanyId] ASC)
 );
+
+
 
 
 GO

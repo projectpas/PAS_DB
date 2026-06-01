@@ -1,0 +1,21 @@
+﻿CREATE TYPE [dbo].[AircraftSetupType] AS TABLE (
+    [MaintenanceStatusId]  BIGINT        NULL,
+    [AircraftStatusId]     BIGINT        NULL,
+    [CurrencyId]           INT           NULL,
+    [CreatedBy]            VARCHAR (256) NULL,
+    [CreatedDate]          DATETIME2 (7) NULL,
+    [UpdatedBy]            VARCHAR (256) NULL,
+    [UpdatedDate]          DATETIME2 (7) NULL,
+    [IsActive]             BIT           NULL,
+    [IsDeleted]            BIT           NULL,
+    [MasterCompanyId]      INT           NULL,
+    [UOMId]                BIGINT        NULL,
+    [ItemClassificationId] BIGINT        NULL,
+    [InventoryGLSettingId] BIGINT        NULL,
+    [RedIndicator]         INT           NULL,
+    [YellowIndicator]      INT           NULL,
+    [GreenIndicator]       INT           NULL,
+    [ItemgroupId]          BIGINT        NULL,
+    [SiteId]               BIGINT        NULL,
+    [MaintenanceTypeId]    BIGINT        NULL);
+

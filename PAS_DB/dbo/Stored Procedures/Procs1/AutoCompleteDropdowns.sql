@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿
+/*************************************************************           
  ** File:   [AutoCompleteDropdowns]           
  ** Author:   Vishal Suthar
  ** Description: This stored procedure is used to search part
@@ -38,6 +39,9 @@
     21   20-Dec-2025  Divyesh Kathiriya  	Added case for Warehouse,Location,Shelf,Bin
     22   30/01/2026   Ayushi Patel          Added Vendor auto-suggestion logic with duplicate VendorName handling (append VendorCode when duplicates exist)
     23   13/05/2026   Ayushi Patel  	    [PN-16321]return partdescription for itemMasterAll
+	24   20/05/2026   Moin Bloch  	        Added case for MaintenanceCategory table. PN-16449
+	25   21/04/2026   Sahdev Saliya			Display Only Trainer Expertise EMPLOYEE list for EMP TRAINER SCREEN(PN-16113)
+
 --select * from dbo.Employee      
 --EXEC AutoCompleteDropdowns 'ItemMasterALL','ItemMasterId','PartDescription','',1,0,'',1,0       
 --EXEC AutoCompleteDropdowns 'Vendor','VendorId','VendorName','',1,20,'0',1  
@@ -60,6 +64,12 @@ AS BEGIN
 
         SET @TableName = LTRIM(RTRIM(@TableName));
         SET @TableName = REPLACE(REPLACE(@TableName, '[', ''), ']', '');
+
+		DECLARE @TrainerExpertiseId INT =0;
+		IF(@TableName='EmpTrainer')
+		BEGIN
+			SET @TrainerExpertiseId = (SELECT TOP 1 EmployeeExpertiseId FROM DBO.EmployeeExpertise WITH(NOLOCK) WHERE EmpExpCode  = 'Trainer')
+		END
 
         CREATE TABLE #TempTable (
 			Value BIGINT,
@@ -90,6 +100,19 @@ AS BEGIN
                     WHERE MasterCompanyId=@MasterCompanyId AND EmployeeId IN(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') )
                 END
             END
+			ELSE IF (@TableName='EmpTrainer')
+			BEGIN
+				SELECT DISTINCT e.EmployeeId AS Value, e.FirstName+' '+e.LastName AS Label
+				FROM dbo.Employee e WITH(NOLOCK)
+				WHERE e.MasterCompanyId=@MasterCompanyId AND ISNULL(e.IsDeleted,0)=0
+				  AND EXISTS (SELECT 1 FROM STRING_SPLIT(e.EmployeeExpIds,',') s WHERE TRY_CAST(s.value AS INT)=@TrainerExpertiseId)
+				  AND (
+						(@Parameter4=1 AND (e.IsActive=1 AND (e.FirstName LIKE '%'+@Parameter3+'%' OR e.LastName LIKE '%'+@Parameter3+'%')))
+					 OR (@Parameter4<>1 AND (e.IsActive=1 AND (e.FirstName LIKE '%'+@Parameter3+'%' OR e.LastName LIKE '%'+@Parameter3+'%')))
+					 OR e.EmployeeId IN (SELECT TRY_CAST(value AS INT) FROM STRING_SPLIT(@Idlist,','))
+				  )
+				ORDER BY Label;
+			 END
 			 ELSE IF(@TableName='PublicationType')BEGIN
                      IF(@Parameter4=1)BEGIN
                          SELECT DISTINCT PublicationTypeId as Value, [Name] as Label, (SELECT TOP 1 EmailBody FROM DBO.PublicationTemplate PT WITH(NOLOCK) WHERE PT.PublicationTypeId = P.PublicationTypeId AND Pt.MasterCompanyId = P.MasterCompanyId ) as PublicationTemplate
@@ -111,6 +134,31 @@ AS BEGIN
                          FROM dbo.PublicationType P WITH(NOLOCK)
                          WHERE MasterCompanyId=@MasterCompanyId AND PublicationTypeId IN(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') )
                          ORDER BY Name asc
+                     END
+            END
+			ELSE IF(@TableName='MaintenanceCategory')
+			BEGIN
+				IF(@Parameter4=1)
+				BEGIN
+                         SELECT DISTINCT MtcCategoryId as Value, [MtcCategory] as Label, MaintenanceCode
+                         FROM dbo.MaintenanceCategory P WITH(NOLOCK)
+                         WHERE MasterCompanyId=@MasterCompanyId AND(IsActive=1 AND ISNULL(IsDeleted, 0)=0 AND(MtcCategory LIKE '%'+@Parameter3+'%'))
+                         UNION
+                         SELECT DISTINCT MtcCategoryId as Value, [MtcCategory] as Label, MaintenanceCode
+                         FROM dbo.MaintenanceCategory P WITH(NOLOCK)
+                         WHERE MasterCompanyId=@MasterCompanyId AND MtcCategoryId IN(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') )
+                         ORDER BY [MtcCategory] asc
+                     END
+                     ELSE 
+					 BEGIN
+                         SELECT DISTINCT MtcCategoryId as Value, [MtcCategory] as Label, MaintenanceCode
+                         FROM dbo.MaintenanceCategory P WITH(NOLOCK)
+                         WHERE MasterCompanyId=@MasterCompanyId AND IsActive=1 AND ISNULL(IsDeleted, 0)=0 AND MtcCategory LIKE '%'+@Parameter3+'%'
+                         UNION
+                         SELECT DISTINCT MtcCategoryId as Value, [MtcCategory] as Label, MaintenanceCode
+                         FROM dbo.MaintenanceCategory P WITH(NOLOCK)
+                         WHERE MasterCompanyId=@MasterCompanyId AND MtcCategoryId IN(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') )
+                         ORDER BY [MtcCategory] asc
                      END
             END
             ELSE IF(@TableName='Task')BEGIN
@@ -253,7 +301,13 @@ AS BEGIN
                 FROM [DBO].[Bin] WITH(NOLOCK)
                 WHERE [MasterCompanyId] = @MasterCompanyId AND [ShelfId] IN(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ','))
                 ORDER BY [Binid] ASC 
-            END           
+            END   
+			ELSE IF(@TableName='NumberOfEngines')
+            BEGIN 
+                SELECT DISTINCT [Id] AS Value, [Number] AS Label
+                FROM [DBO].[NumberOfEngines] WITH(NOLOCK)
+                ORDER BY [Id] ASC 
+            END
             ELSE BEGIN
                      IF(@Parameter4=1)BEGIN
                          IF(@TableName='ItemMaster' AND ISNULL(@IsFromUpload,0) = 0)BEGIN
@@ -441,6 +495,19 @@ AS BEGIN
                     WHERE MasterCompanyId=@MasterCompanyId AND EmployeeId in(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') )
                 END
             END
+			ELSE IF (@TableName='EmpTrainer')
+			BEGIN
+				SELECT DISTINCT e.EmployeeId AS Value, e.FirstName+' '+e.LastName AS Label
+				FROM dbo.Employee e WITH(NOLOCK)
+				WHERE e.MasterCompanyId=@MasterCompanyId AND ISNULL(e.IsDeleted,0)=0
+				  AND EXISTS (SELECT 1 FROM STRING_SPLIT(e.EmployeeExpIds,',') s WHERE TRY_CAST(s.value AS INT)=@TrainerExpertiseId)
+				  AND (
+						(@Parameter4=1 AND (e.IsActive=1 AND (e.FirstName LIKE '%'+@Parameter3+'%' OR e.LastName LIKE '%'+@Parameter3+'%')))
+					 OR (@Parameter4<>1 AND (e.IsActive=1 AND (e.FirstName LIKE '%'+@Parameter3+'%' OR e.LastName LIKE '%'+@Parameter3+'%')))
+					 OR e.EmployeeId IN (SELECT TRY_CAST(value AS INT) FROM STRING_SPLIT(@Idlist,','))
+				  )
+				ORDER BY Label;
+			 END
 			ELSE IF(@TableName='PublicationType')BEGIN
                      IF(@Parameter4=1)BEGIN
                          SELECT DISTINCT PublicationTypeId as Value, [Name] as Label, (SELECT TOP 1 EmailBody FROM DBO.PublicationTemplate PT WITH(NOLOCK) WHERE PT.PublicationTypeId = P.PublicationTypeId AND Pt.MasterCompanyId = P.MasterCompanyId ) as PublicationTemplate

@@ -11,6 +11,8 @@
     1    23-April-2025		Devendra Shekh			Created
 	2    02-Sep-2025        Sahdev Saliya           Added New Field Verified, VerifiedBy And VerifiedDate
 	3    12-Feb-2026        Amit Ghediya            Added New Field Provision (PN-15390)
+	4	 17-APR-2026		Priyansh Patel			Added Templatetype field in select [PN-15968]
+	5	 05-May-2026		Priyansh Patel			Added AC Template Field [PN-16164]
 
 EXEC [USP_GetWorkFlowDetails_byId] 5242, 2
 **************************************************************/
@@ -29,7 +31,7 @@ BEGIN
 			DECLARE @PublicationAttachmentModuleId INT = (SELECT [AttachmentModuleId] FROM [dbo].[AttachmentModule] WITH(NOLOCK) WHERE [Name] = 'Publication');
 
 			DECLARE @IGDescription VARCHAR(256), @Symbol VARCHAR(10), @Code VARCHAR(10), @chargesTypeName VARCHAR(256), @AssetName VARCHAR(50), @AssetId VARCHAR(30), @AssetTypeName VARCHAR(50), @stockType VARCHAR(30), @ItemClassification VARCHAR(30),
-					@Condition VARCHAR(256), @Provision VARCHAR(256), @ManufacturerName VARCHAR(250), @ExpetiseTypeName VARCHAR(30), @UnitOfMeasure VARCHAR(100), @PublicationTypeName VARCHAR(100), @ModelName VARCHAR(50), @PublicationId VARCHAR(100);
+					@Condition VARCHAR(256),  @Provision VARCHAR(256), @ManufacturerName VARCHAR(250), @ExpetiseTypeName VARCHAR(30), @UnitOfMeasure VARCHAR(100), @PublicationTypeName VARCHAR(100), @ModelName VARCHAR(50), @PublicationId VARCHAR(100);
 
 			SELECT	@CurrntEmpTimeZoneDesc = COALESCE(ETZ.[Description],LTZ.[Description])
 			FROM [dbo].[Employee] E WITH(NOLOCK) 
@@ -43,6 +45,8 @@ BEGIN
 					[CostOfNew], [PercentageOfNew], [IsPercentageOfReplacement], [CostOfReplacement], [PercentageOfReplacement], [Memo], [ManagementStructureId], [MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted],
 					[PartNumber], [CustomerName], [FlatRate], [BERThresholdAmount], [WorkOrderNumber], [CustomerCode], [OtherCost], [WorkflowCreateDate], [ChangedPartNumberId], [PercentageOfMaterial], [PercentageOfExpertise], [PercentageOfCharges], 
 					[PercentageOfOthers], [PercentageOfTotal], [RevisedPartNumber], [changedPartNumberDescription], [ChangedPartNumber], [Currency], [WFParentId], [IsVersionIncrease], @Symbol AS [CurrencySymbol], @Code AS [CurrencyText], @IGDescription AS [ItemGroup], [Verified], [VerifiedBy], [VerifiedDate]
+					,[TailNum],[SerialNum] ,[AircraftModelId] ,[MakeTypeId] ,[TemplateType], [MaintenanceTypeId],
+					 CAST(NULL AS VARCHAR(100)) AS [AircraftModel],   CAST(NULL AS VARCHAR(250)) AS [AircraftMake],   CAST(NULL AS VARCHAR(256)) AS [MaintenanceType]  
 			INTO #tmpWorkFLow FROM [dbo].[Workflow] WITH(NOLOCK) WHERE [WorkflowId] = @WorkflowId;
 
 			UPDATE	TMP
@@ -50,12 +54,18 @@ BEGIN
 				TMP.CustomerName = CU.[Name],
 				TMP.CustomerCode = CU.[CustomerCode],
 				TMP.CurrencySymbol = CY.[Symbol],
-				TMP.CurrencyText = CY.[Code]
+				TMP.CurrencyText = CY.[Code],
+				TMP.AircraftModel = ACM.[ModelName],
+				TMP.AircraftMake = ACT.[Description],
+				TMP.MaintenanceType = MT.[Description]
 			FROM #tmpWorkFLow TMP
 			LEFT JOIN [dbo].[ItemMaster] IM WITH(NOLOCK) ON TMP.ItemMasterId = IM.ItemMasterId
 			LEFT JOIN [dbo].[ItemGroup] IG WITH(NOLOCK) ON IM.ItemGroupId = IG.ItemGroupId
 			LEFT JOIN [dbo].[Customer] CU WITH(NOLOCK) ON TMP.CustomerId = CU.CustomerId
 			LEFT JOIN [dbo].[Currency] CY WITH(NOLOCK) ON TMP.CurrencyId = CY.CurrencyId
+			LEFT JOIN [dbo].[AircraftModel] ACM WITH (NOLOCK) on ACM.AircraftModelId =  TMP.AircraftModelId
+			LEFT JOIN [dbo].[AircraftType] ACT WITH (NOLOCK) on ACT.AircraftTypeId =  TMP.MakeTypeId
+			LEFT JOIN [dbo].[MaintenanceType] MT WITH (NOLOCK) on MT.MaintenanceTypeId =  TMP.MaintenanceTypeId
 			
 			SELECT @WFItemMasterId = [ItemMasterId], @WFWorkScopeId = [WorkScopeId] FROM #tmpWorkFLow WHERE [WorkflowId] = @WorkflowId;
 

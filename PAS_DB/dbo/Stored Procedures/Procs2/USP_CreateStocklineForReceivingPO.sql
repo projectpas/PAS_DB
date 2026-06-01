@@ -39,6 +39,7 @@
 	22   30-Dec-2025  Sahdev Saliya     Update UI for Sales Price Dropdown in Purchase & Sales Information Changes
 	23   26-MAr-2026  Moin Bloch        Modified Fix Issue For Close PO When SO Shipped Partial Stockline Qty
 	24   01-May-2026  RAJESH GAMI       Insert Stock,NonStock,Asset InventoryId In the DRAFT Table when Order QTY more than 500 (Where IsParent = 1) [PN-16244]
+	25   27-APR-2026  Priyansh patel 	Updated Aircraftpartdetails with New StocklineId [PN-16177]
 declare @p2 dbo.POPartsToReceive  
 insert into @p2 values(2371,4051,2)  
   
@@ -376,6 +377,7 @@ BEGIN
                         DECLARE @StkPurchaseOrderUnitCost AS DECIMAL(18, 2) = 0;
                         DECLARE @ManufacturerId AS BIGINT;
                         DECLARE @PreviousStockLineNumber VARCHAR(50);
+						DECLARE @AircraftInstalledPartDetailsId BIGINT = NULL;
 
                         SELECT @SelectedStockLineDraftId = StockLineDraftId FROM #tmpStocklineDraft WHERE ID = @LoopID;
 
@@ -609,6 +611,16 @@ BEGIN
 
                         INSERT INTO #InsertedStkForLot (StockLineId)
                         SELECT @NewStocklineId
+
+						-- For Aircraftinstalled Parts
+                        SET @AircraftInstalledPartDetailsId = NULL;
+                        SELECT @AircraftInstalledPartDetailsId = AircraftInstalledPartDetailsId FROM [DBO].[PurchaseOrderPart] WITH (NOLOCK) WHERE [PurchaseOrderPartRecordId] = @SelectedPurchaseOrderPartRecordId--PurchaseOrderId = @PurchaseOrderId;
+
+                        IF (@AircraftInstalledPartDetailsId IS NOT NULL AND @AircraftInstalledPartDetailsId > 0)
+                        BEGIN
+                           UPDATE DBO.AircraftInstalledPartDetails SET StockLineId = @NewStocklineId  WHERE AircraftInstalledPartDetailsId = @AircraftInstalledPartDetailsId
+                                  AND (StockLineId IS NULL OR StockLineId = 0); 
+                        END
 
                         IF (@IsTimeLIfe = 1)
                         BEGIN

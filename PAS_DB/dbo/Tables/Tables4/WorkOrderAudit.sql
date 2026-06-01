@@ -54,6 +54,8 @@
     [CSRSalesMargin]                   BIGINT          NULL,
     [AgentSalesRevenue]                BIGINT          NULL,
     [AgentSalesMargin]                 BIGINT          NULL,
+    [IsFromAircraft]                   BIT             NULL,
+    [MtcCategoryId]                    BIGINT          NULL,
     CONSTRAINT [PK_WorkOrderAudit] PRIMARY KEY CLUSTERED ([WorkOrderAuditId] ASC)
 );
 

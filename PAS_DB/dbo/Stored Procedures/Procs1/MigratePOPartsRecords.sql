@@ -25,7 +25,7 @@ declare @p7 int
 set @p7=NULL
 declare @p8 int
 set @p8=NULL
-exec sp_executesql N'EXEC MigratePOPartsRecords @FromMasterComanyID, @UserName, @Processed OUTPUT, @Migrated OUTPUT, @Failed OUTPUT, @Exists OUTPUT',N'@FromMasterComanyID int,@UserName nvarchar(12),@Processed int output,@Migrated int output,@Failed int output,@Exists int output',@FromMasterComanyID=12,@UserName=N'ROGER BENTLY',@Processed=@p5 output,@Migrated=@p6 output,@Failed=@p7 output,@Exists=@p8 output
+exec sp_executesql N'EXEC MigratePOPartsRecords @FromMasterComanyID, @UserName, @Processed OUTPUT, @Migrated OUTPUT, @Failed OUTPUT, @Exists OUTPUT',N'@FromMasterComanyID int,@UserName nvarchar(12),@Processed int output,@Migrated int output,@Failed int output,@Exists int output',@FromMasterComanyID=25,@UserName=N'ADMIN ADMIN',@Processed=@p5 output,@Migrated=@p6 output,@Failed=@p7 output,@Exists=@p8 output
 select @p5, @p6, @p7, @p8
 **************************************************************/
 CREATE   PROCEDURE [dbo].[MigratePOPartsRecords]
@@ -102,7 +102,8 @@ BEGIN
 		SELECT [POPartId],[ItemMasterId],[AltItemMasterId],[ConditionId],[UnitOfMeasureId],[POHeaderId],[UserId],[BuyAsType],[EntryDate],[ExchangeRate],[ItemNumber],[LastDeliveryDate],[NextDeliveryDate],
 		[Notes],[QtyBackOrder],[QtyOrdered],[QtyRec],[UnitCost],[STR_Id],[VendorPrice],[POCategoryId],[SODetailLink],[ReceiverInstr],[DSC_Id],[Warehouse_Id],[ListPrice],[Remarks],[EDINumber],[ConsignmentCodeId],
 		[HasPieceParts],[SHM_Id],[StockCategoryCodeId],[WorkOrderOperationId],[ShipDate],[TrackingNumber],[MasterCompanyId],[Migrated_Id],[SuccessMsg],[ErrorMsg]
-		FROM [Quantum_Staging].dbo.[PurchaseOrderParts] POP WITH (NOLOCK) WHERE POP.Migrated_Id IS NULL;
+		FROM [Quantum_Staging_BETA].dbo.[PurchaseOrderParts] POP WITH (NOLOCK) 
+		WHERE POP.Migrated_Id IS NULL AND POP.MasterCompanyId = @FromMasterComanyID;
 
 		DECLARE @ProcessedRecords INT = 0;
 		DECLARE @MigratedRecords INT = 0;
@@ -148,19 +149,22 @@ BEGIN
 
 			SELECT @CurrentPurchaseOrderPartId = [POPartId], @PNM_AUTO_KEY = ItemMasterId, @ALT_PNM_AUTO_KEY = AltItemMasterId, @PCC_AUTO_KEY = ConditionId, @UOM_AUTO_KEY = UnitOfMeasureId, @POH_AUTO_KEY = POHeaderId FROM #TempPOPart WHERE ID = @LoopID;
 
-			SELECT @UOMId = UOM.UnitOfMeasureId, @UOMCode = UOM.ShortName FROM DBO.UnitOfMeasure UOM WHERE UPPER(UOM.ShortName) IN (SELECT UPPER(UOM_CODE) FROM [Quantum].QCTL_NEW_3.UOM_CODES Where UOM_AUTO_KEY = @UOM_AUTO_KEY) AND MasterCompanyId = @FromMasterComanyID;
-			SELECT @PO_NUMBER = PO.PO_NUMBER FROM [Quantum].QCTL_NEW_3.PO_HEADER PO WHERE PO.POH_AUTO_KEY = @POH_AUTO_KEY;
+			SELECT @UOMId = UOM.UnitOfMeasureId, @UOMCode = UOM.ShortName FROM DBO.UnitOfMeasure UOM WHERE UPPER(UOM.ShortName) IN (SELECT UPPER(UOM_CODE) FROM [BEACH].QCTL1.UOM_CODES Where UOM_AUTO_KEY = @UOM_AUTO_KEY) AND MasterCompanyId = @FromMasterComanyID;
+			SELECT @PO_NUMBER = PO.PO_NUMBER FROM [BEACH].QCTL1.PO_HEADER PO WHERE PO.POH_AUTO_KEY = @POH_AUTO_KEY;
 			SELECT @PO_Id = PurchaseOrderId FROM DBO.PurchaseOrder PO WHERE PO.PurchaseOrderNumber = @PO_NUMBER;
 	
-			SELECT @Part_NUMBER = IM.PN, @Part_Desc = IM.DESCRIPTION FROM [Quantum].QCTL_NEW_3.PARTS_MASTER IM WHERE IM.PNM_AUTO_KEY = @PNM_AUTO_KEY;
-			SELECT @ALT_Part_NUMBER = IM.PN, @ALT_Part_Desc = IM.DESCRIPTION FROM [Quantum].QCTL_NEW_3.PARTS_MASTER IM WHERE IM.PNM_AUTO_KEY = @ALT_PNM_AUTO_KEY;
-			SELECT @ConditionCode = CC.CONDITION_CODE FROM [Quantum].QCTL_NEW_3.PART_CONDITION_CODES CC WHERE CC.PCC_AUTO_KEY = @PCC_AUTO_KEY;
-			SELECT @ItemMaster_Id = IM.ItemMasterId FROM DBO.ItemMaster IM WHERE UPPER(IM.partnumber) = UPPER(@Part_NUMBER) AND UPPER(IM.PartDescription) = UPPER(@Part_Desc) AND IM.MasterCompanyId = @FromMasterComanyID;
+			SELECT @Part_NUMBER = IM.PN, @Part_Desc = IM.DESCRIPTION FROM [BEACH].QCTL1.PARTS_MASTER IM WHERE IM.PNM_AUTO_KEY = @PNM_AUTO_KEY;
+			SELECT @ALT_Part_NUMBER = IM.PN, @ALT_Part_Desc = IM.DESCRIPTION FROM [BEACH].QCTL1.PARTS_MASTER IM WHERE IM.PNM_AUTO_KEY = @ALT_PNM_AUTO_KEY;
+			SELECT @ConditionCode = CC.CONDITION_CODE FROM [BEACH].QCTL1.PART_CONDITION_CODES CC WHERE CC.PCC_AUTO_KEY = @PCC_AUTO_KEY;
+			SELECT @ItemMaster_Id = IM.ItemMasterId FROM DBO.ItemMaster IM WHERE UPPER(IM.partnumber) = UPPER(@Part_NUMBER) AND IM.MasterCompanyId = @FromMasterComanyID;
 			SELECT @ALT_ItemMaster_Id = IM.ItemMasterId FROM DBO.ItemMaster IM WHERE UPPER(IM.partnumber) = UPPER(@ALT_Part_NUMBER) AND UPPER(IM.PartDescription) = UPPER(@ALT_Part_Desc);
 
-			SELECT TOP 1 @ManagementStructureId = MS.ManagementStructureId FROM DBO.ManagementStructure MS WHERE [MasterCompanyId] = @FromMasterComanyID;
+			PRINT '@ItemMaster_Id'
+			PRINT @ItemMaster_Id
 
-			SELECT @Part_NUMBER = IM.partnumber, @Part_Desc = IM.PartDescription, @IsPMA = IM.IsPma, @IsDER = IM.IsDER, @ManufacturerId = IM.ManufacturerId, @ManufacturerName = IM.ManufacturerName, @GLAccountId = GLAccountId, @GLAccount = GLAccount FROM DBO.ItemMaster IM WHERE IM.ItemMasterId = @ItemMaster_Id AND MasterCompanyId = @FromMasterComanyID;SELECT @Part_NUMBER = IM.partnumber, @Part_Desc = IM.PartDescription, @IsPMA = IM.IsPma, @IsDER = IM.IsDER, @ManufacturerId = IM.ManufacturerId, @ManufacturerName = IM.ManufacturerName, @GLAccountId = GLAccountId, @GLAccount = GLAccount FROM DBO.ItemMaster IM WHERE IM.ItemMasterId = @ItemMaster_Id AND MasterCompanyId = @FromMasterComanyID;
+			SELECT TOP 1 @ManagementStructureId = MS.EntityStructureId FROM DBO.EntityStructureSetup MS WHERE [MasterCompanyId] = @FromMasterComanyID;
+
+			SELECT @Part_NUMBER = IM.partnumber, @Part_Desc = IM.PartDescription, @IsPMA = IM.IsPma, @IsDER = IM.IsDER, @ManufacturerId = IM.ManufacturerId, @ManufacturerName = IM.ManufacturerName, @GLAccountId = GLAccountId, @GLAccount = GLAccount FROM DBO.ItemMaster IM WHERE IM.ItemMasterId = @ItemMaster_Id AND MasterCompanyId = @FromMasterComanyID;
 			SELECT @PriorityId = PriorityId, @Priority = [Priority], @NeedByDate = NeedByDate FROM DBO.PurchaseOrder PO WHERE PO.PurchaseOrderNumber = @PO_NUMBER AND MasterCompanyId = @FromMasterComanyID;
 
 			IF (ISNULL(@ManufacturerId, 0) = 0)
@@ -203,7 +207,7 @@ BEGIN
 			BEGIN
 				UPDATE POP
 				SET POP.ErrorMsg = @ErrorMsg
-				FROM [Quantum_Staging].DBO.PurchaseOrderParts POP WHERE POP.POPartId = @CurrentPurchaseOrderPartId;
+				FROM [Quantum_Staging_BETA].DBO.PurchaseOrderParts POP WHERE POP.POPartId = @CurrentPurchaseOrderPartId;
 
 				SET @RecordsWithError = @RecordsWithError + 1;
 			END
@@ -212,8 +216,8 @@ BEGIN
 
 			IF (@FoundError = 0)
 			BEGIN
-				IF NOT EXISTS(SELECT * FROM DBO.PurchaseOrderPart WHERE PurchaseOrderId = @PO_Id AND ItemMasterId = @ItemMaster_Id AND MasterCompanyId = @FromMasterComanyID)
-				BEGIN
+				--IF NOT EXISTS(SELECT * FROM DBO.PurchaseOrderPart WHERE PurchaseOrderId = @PO_Id AND ItemMasterId = @ItemMaster_Id AND MasterCompanyId = @FromMasterComanyID)
+				--BEGIN
 					DECLARE @ConditionId BIGINT;
 					DECLARE @CurrencyId BIGINT;
 					DECLARE @ItemTypeId BIGINT;
@@ -269,18 +273,18 @@ BEGIN
 					UPDATE POP
 					SET POP.Migrated_Id = @InsertedPurchaseOrderId,
 					POP.SuccessMsg = 'Record migrated successfully'
-					FROM [Quantum_Staging].DBO.PurchaseOrderParts POP WHERE POP.POPartId = @CurrentPurchaseOrderPartId;
+					FROM [Quantum_Staging_BETA].DBO.PurchaseOrderParts POP WHERE POP.POPartId = @CurrentPurchaseOrderPartId;
 
 					SET @MigratedRecords = @MigratedRecords + 1;
-				END
-				ELSE
-				BEGIN
-					UPDATE POP
-					SET POP.ErrorMsg = ISNULL(ErrorMsg, '') + '<p>Purchase Order Part record already exists</p>'
-					FROM [Quantum_Staging].DBO.PurchaseOrderParts POP WHERE POP.POPartId = @CurrentPurchaseOrderPartId;
+				--END
+				--ELSE
+				--BEGIN
+				--	UPDATE POP
+				--	SET POP.ErrorMsg = ISNULL(ErrorMsg, '') + '<p>Purchase Order Part record already exists</p>'
+				--	FROM [Quantum_Staging_BETA].DBO.PurchaseOrderParts POP WHERE POP.POPartId = @CurrentPurchaseOrderPartId;
 
-					SET @RecordExits = @RecordExits + 1;
-				END
+				--	SET @RecordExits = @RecordExits + 1;
+				--END
 			END
 
 			SET @LoopID = @LoopID + 1;

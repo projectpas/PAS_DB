@@ -25,7 +25,7 @@ declare @p7 int
 set @p7=NULL
 declare @p8 int
 set @p8=NULL
-exec sp_executesql N'EXEC MigrateROPartsRecords @FromMasterComanyID, @UserName, @Processed OUTPUT, @Migrated OUTPUT, @Failed OUTPUT, @Exists OUTPUT',N'@FromMasterComanyID int,@UserName nvarchar(12),@Processed int output,@Migrated int output,@Failed int output,@Exists int output',@FromMasterComanyID=12,@UserName=N'ROGER BENTLY',@Processed=@p5 output,@Migrated=@p6 output,@Failed=@p7 output,@Exists=@p8 output
+exec sp_executesql N'EXEC MigrateROPartsRecords @FromMasterComanyID, @UserName, @Processed OUTPUT, @Migrated OUTPUT, @Failed OUTPUT, @Exists OUTPUT',N'@FromMasterComanyID int,@UserName nvarchar(12),@Processed int output,@Migrated int output,@Failed int output,@Exists int output',@FromMasterComanyID=25,@UserName=N'ADMIN ADMIN',@Processed=@p5 output,@Migrated=@p6 output,@Failed=@p7 output,@Exists=@p8 output
 select @p5, @p6, @p7, @p8
 **************************************************************/
 CREATE   PROCEDURE [dbo].[MigrateROPartsRecords]
@@ -121,7 +121,8 @@ BEGIN
 		[PartsCost],[RepairNotes],[SerialNumber],[QtyRepair],[QtyReserved],[QtyRepaired],[QtyScrapped],[ItemMasterModify],[WOMaterialId],[WOOperationId],[QtyBilled],[HasPieceParts],[ReceiverInstr],[CapitalizeCost],[ExpenseCost],
 		[VendorAdj],[WOTaskId],[EstPrice],[FlatRate],[QtyRecIncr],[LastModified],[SysUserModifiedId],[TaxAmount],[ForeignTaxAmount],[CalcTax],[ROCategoryCodeId],[CalibrationFlag],[ContryCodeId],[ApplicationCodeId],[CommitShipDate],
 		[ShopFindings],[FinalRemarks],[ROType],[StockCategoryId],[CapabilityCodeId],[GroupNumber],[RODetailSplitFrom],[TrackingNumber],[ShipDate],[MasterCompanyId],[Migrated_Id],[SuccessMsg],[ErrorMsg]
-		FROM [Quantum_Staging].dbo.[RepairOrderParts] ROP WITH (NOLOCK) WHERE ROP.Migrated_Id IS NULL;
+		FROM [Quantum_Staging_BETA].dbo.[RepairOrderParts] ROP WITH (NOLOCK) 
+		WHERE ROP.Migrated_Id IS NULL AND ROP.MasterCompanyId = @FromMasterComanyID;
 
 		DECLARE @ProcessedRecords INT = 0;
 		DECLARE @MigratedRecords INT = 0;
@@ -162,11 +163,14 @@ BEGIN
 
 			SELECT @CurrentRepairOrderPartId = [ROPartId], @PNM_AUTO_KEY = ItemMasterId, @PCC_AUTO_KEY = PartConditionCodeId, @ROH_AUTO_KEY = ROHeaderId, @ROD_AUTO_KEY = ROPartId FROM #TempROPart WHERE ID = @LoopID;
 
-			SELECT @RO_NUMBER = RO.[RO_NUMBER] FROM [Quantum].[QCTL_NEW_3].[RO_HEADER] RO WITH(NOLOCK) WHERE RO.ROH_AUTO_KEY = @ROH_AUTO_KEY;
+			SELECT @RO_NUMBER = RO.[RO_NUMBER] FROM [BEACH].QCTL1.[RO_HEADER] RO WITH(NOLOCK) WHERE RO.ROH_AUTO_KEY = @ROH_AUTO_KEY;
 			SELECT @RO_Id = RO.[RepairOrderId] FROM dbo.[RepairOrder] RO WITH(NOLOCK) WHERE RO.[RepairOrderNumber] = @RO_NUMBER;		
-			SELECT @Part_NUMBER = IM.PN, @Part_Desc = IM.[DESCRIPTION] FROM [Quantum].[QCTL_NEW_3].[PARTS_MASTER] IM  WITH(NOLOCK) WHERE IM.PNM_AUTO_KEY = @PNM_AUTO_KEY;
-			SELECT @ConditionCode = CC.CONDITION_CODE FROM [Quantum].QCTL_NEW_3.[PART_CONDITION_CODES] CC WITH(NOLOCK) WHERE CC.PCC_AUTO_KEY = @PCC_AUTO_KEY;	   	  
-			SELECT @ItemMaster_Id = IM.ItemMasterId FROM [dbo].[ItemMaster] IM WITH(NOLOCK) WHERE UPPER(IM.partnumber) = UPPER(@Part_NUMBER) AND UPPER(IM.PartDescription) = UPPER(@Part_Desc);
+			SELECT @Part_NUMBER = IM.PN, @Part_Desc = IM.[DESCRIPTION] FROM [BEACH].QCTL1.[PARTS_MASTER] IM  WITH(NOLOCK) WHERE IM.PNM_AUTO_KEY = @PNM_AUTO_KEY;
+			SELECT @ConditionCode = CC.CONDITION_CODE FROM [BEACH].QCTL1.[PART_CONDITION_CODES] CC WITH(NOLOCK) WHERE CC.PCC_AUTO_KEY = @PCC_AUTO_KEY;	   	  
+			SELECT @ItemMaster_Id = IM.ItemMasterId FROM [dbo].[ItemMaster] IM WITH(NOLOCK) WHERE UPPER(IM.partnumber) = UPPER(@Part_NUMBER) AND MasterCompanyId = @FromMasterComanyID;
+
+			PRINT @ItemMaster_Id;
+
 			SELECT @ALT_ItemMaster_Id = IM.ItemMasterId FROM [dbo].[ItemMaster] IM WITH(NOLOCK) WHERE UPPER(IM.partnumber) = UPPER(@ALT_Part_NUMBER) AND UPPER(IM.PartDescription) = UPPER(@ALT_Part_Desc);
 
 			SELECT @UOMId = IM.[PurchaseUnitOfMeasureId], @Part_NUMBER = IM.[partnumber], @Part_Desc = IM.[PartDescription], @IsPMA = IM.[IsPma], @IsDER = IM.[IsDER], @ManufacturerId = IM.[ManufacturerId], @ManufacturerName = IM.[ManufacturerName], @GLAccountId = [GLAccountId], @GLAccount = [GLAccount] FROM [dbo].[ItemMaster] IM WITH(NOLOCK) WHERE IM.ItemMasterId = @ItemMaster_Id AND MasterCompanyId = @FromMasterComanyID;
@@ -191,7 +195,7 @@ BEGIN
 			BEGIN
 				UPDATE ROP
 				SET ROP.ErrorMsg = @ErrorMsg
-				FROM [Quantum_Staging].DBO.RepairOrderParts ROP WHERE ROP.ROPartId = @CurrentRepairOrderPartId;
+				FROM [Quantum_Staging_BETA].DBO.RepairOrderParts ROP WHERE ROP.ROPartId = @CurrentRepairOrderPartId;
 
 				SET @RecordsWithError = @RecordsWithError + 1;
 			END
@@ -200,8 +204,8 @@ BEGIN
 
 			IF (@FoundError = 0)
 			BEGIN
-				IF NOT EXISTS (SELECT * FROM DBO.RepairOrderPart WHERE RepairOrderId = @RO_Id AND ItemMasterId = @ItemMaster_Id AND MasterCompanyId = @FromMasterComanyID)
-				BEGIN
+				--IF NOT EXISTS (SELECT * FROM DBO.RepairOrderPart WHERE RepairOrderId = @RO_Id AND ItemMasterId = @ItemMaster_Id AND MasterCompanyId = @FromMasterComanyID)
+				--BEGIN
 					IF EXISTS (SELECT * FROM DBO.RepairOrder WHERE [RepairOrderNumber] = @RO_NUMBER AND MasterCompanyId = @FromMasterComanyID)
 					BEGIN
 						DECLARE @ConditionId BIGINT;
@@ -235,8 +239,9 @@ BEGIN
 						SELECT @CurrencyId = [CurrencyId] FROM [dbo].[Currency] C WITH(NOLOCK) WHERE UPPER(Code) = 'USD' AND [MasterCompanyId] = @FromMasterComanyID;
 						SELECT @ItemTypeId = [ItemTypeId] FROM [dbo].[ItemType] IT WITH(NOLOCK) WHERE UPPER([Name]) = 'STOCK';
 						SELECT @WorkPerformedId = [CapabilityTypeId] FROM [dbo].[CapabilityType] CT WITH(NOLOCK) WHERE UPPER([Description]) = 'REP' AND [MasterCompanyId] = @FromMasterComanyID;
+						SELECT TOP 1 @ManagementStructureId = MS.EntityStructureId FROM DBO.EntityStructureSetup MS WHERE [MasterCompanyId] = @FromMasterComanyID;
 					
-						SELECT @STM_AUTO_KEY = [STM_AUTO_KEY] FROM [Quantum].QCTL_NEW_3.STOCK_RESERVATIONS WITH(NOLOCK) WHERE [ROD_AUTO_KEY] = @ROD_AUTO_KEY;
+						SELECT @STM_AUTO_KEY = [STM_AUTO_KEY] FROM [BEACH].QCTL1.STOCK_RESERVATIONS WITH(NOLOCK) WHERE [ROD_AUTO_KEY] = @ROD_AUTO_KEY;
 
 						SELECT @PCC_AUTO_KEY = [PCC_AUTO_KEY], @STOCK_LINE = (CAST(ISNULL(STOCK_LINE, '') AS VARCHAR)), @CTRL_ID = (CAST(ISNULL(CTRL_ID, '') AS VARCHAR)), @CTRL_NUMBER = (CAST(ISNULL(CTRL_NUMBER, '') AS VARCHAR))
 						FROM Quantum.QCTL_NEW_3.STOCK WHERE [STM_AUTO_KEY] = @STM_AUTO_KEY;
@@ -288,7 +293,7 @@ BEGIN
 						UPDATE ROP
 						SET ROP.Migrated_Id = @InsertedPurchaseOrderId,
 						ROP.SuccessMsg = 'Record migrated successfully'
-						FROM [Quantum_Staging].DBO.RepairOrderParts ROP WHERE ROP.ROPartId = @CurrentRepairOrderPartId;
+						FROM [Quantum_Staging_BETA].DBO.RepairOrderParts ROP WHERE ROP.ROPartId = @CurrentRepairOrderPartId;
 
 						SET @MigratedRecords = @MigratedRecords + 1;
 					END
@@ -297,15 +302,15 @@ BEGIN
 						-- Repair Order not found
 						DECLARE @NotFound INT;
 					END
-				END
-				ELSE
-				BEGIN
-					UPDATE ROP
-					SET ROP.ErrorMsg = ISNULL(ErrorMsg, '') + '<p>Repair Order Part record already exists</p>'
-					FROM [Quantum_Staging].DBO.RepairOrderParts ROP WHERE ROP.ROPartId = @CurrentRepairOrderPartId;
+				--END
+				--ELSE
+				--BEGIN
+				--	UPDATE ROP
+				--	SET ROP.ErrorMsg = ISNULL(ErrorMsg, '') + '<p>Repair Order Part record already exists</p>'
+				--	FROM [Quantum_Staging_BETA].DBO.RepairOrderParts ROP WHERE ROP.ROPartId = @CurrentRepairOrderPartId;
 
-					SET @RecordExits = @RecordExits + 1;
-				END
+				--	SET @RecordExits = @RecordExits + 1;
+				--END
 			END
 
 			SET @LoopID = @LoopID + 1;

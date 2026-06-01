@@ -150,6 +150,8 @@ BEGIN
 					SalesOrderQuoteId BIGINT NULL,
 					SalesOrderQuoteNumber VARCHAR(250) NULL,
 					AircraftRegistryNumber VARCHAR(30) NULL,
+					IsFromAircraft bit Null,
+					AircraftInstalledPartDetailsId bigint null,
 					ACTailNum VARCHAR(250) NULL
 				);
 				 IF OBJECT_ID(N'tempdb..#tmpSubWOMtbl') IS NOT NULL    
@@ -275,6 +277,8 @@ BEGIN
 					ConditionCodeId BIGINT NULL,
 					Quantity INT NULL,
 					AircraftRegistryNumber VARCHAR(30) NULL,
+					IsFromAircraft bit Null,
+					AircraftInstalledPartDetailsId bigint null,
 					ACTailNum VARCHAR(250) NULL
 				);
 				INSERT INTO #tmpPoPartList SELECT 
@@ -377,8 +381,10 @@ BEGIN
 				IsSubWO,
 				SalesOrderQuoteId,
 				SalesOrderQuoteNumber,
-				AircraftRegistryNumber,
-				ACTailNum
+				POP.AircraftRegistryNumber,
+				POP.IsFromAircraft,
+				POP.AircraftInstalledPartDetailsId,
+				POP.ACTailNum
 				FROM DBO.PurchaseOrderPart POP WITH(NOLOCK) 
 				WHERE PurchaseOrderId = @PurchaseOrderId AND ISNULL(IsDeleted,0) = 0 
 
@@ -543,8 +549,7 @@ BEGIN
 								POChargesCount,
 								POFrightsCount,
 								SalesOrderQuoteId,
-								SalesOrderQuoteNumber
-								,AircraftRegistryNumber,ACTailNum
+								SalesOrderQuoteNumber,AircraftRegistryNumber,IsFromAircraft,AircraftInstalledPartDetailsId,ACTailNum
 								)
 							SELECT (CASE WHEN @ItemTypeId = @ItemTypeIdStock THEN (SELECT TOP 1 PartNumber  FROM DBO.ItemMaster  WITH(NOLOCK) WHERE ItemMasterId = @ItemMasterId)
 										 WHEN @ItemTypeId = @ItemTypeIdNonStock THEN (SELECT TOP 1 PartNumber  FROM DBO.ItemMasterNonStock  WITH(NOLOCK) WHERE MasterPartId = @ItemMasterId)
@@ -583,7 +588,7 @@ BEGIN
 									 (SELECT COUNT(1) FROM dbo.PurchaseOrderFreight C WITH(NOLOCK) WHERE c.PurchaseOrderPartRecordId= LT.PurchaseOrderPartRecordId and ISNULL(c.IsDeleted,0) = 0)POFrightsCount,
 									 LT.SalesOrderQuoteId,
 									 LT.SalesOrderQuoteNumber
-									 ,LT.AircraftRegistryNumber, LT.ACTailNum
+									 ,LT.AircraftRegistryNumber,LT.IsFromAircraft,LT.AircraftInstalledPartDetailsId, LT.ACTailNum
 									 FROM #tmpLoopTable LT LEFT JOIN #tmpPOPMs ms on ms.ReferenceID = LT.PurchaseOrderPartRecordId AND ms.ModuleID = @PoPartMGMTModuleId
 									 LEFT JOIN #tmpWOMTble wom on wom.WorkOrderMaterialsId = LT.WorkOrderMaterialsId
 									 WHERE ISNULL(LT.IsParent,0) = 1

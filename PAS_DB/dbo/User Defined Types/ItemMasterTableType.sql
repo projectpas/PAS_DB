@@ -133,7 +133,6 @@
     [IsUpdated]                         BIT             NULL,
     [WorkOrderFormTypeId]               INT             NULL,
     [ItemMasterRankingIds]              VARCHAR (MAX)   NULL,
-    [LifeLimitedPart]                   BIT             NULL,
     [IsFlightHoursAvailable]            BIT             NULL,
     [IsFlightCyclesAvailable]           BIT             NULL,
     [IsLandingsAvailable]               BIT             NULL,

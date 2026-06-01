@@ -167,7 +167,6 @@
     [LastSyncDate]                      DATETIME2 (7)   NULL,
     [SyncToken]                         VARCHAR (200)   NULL,
     [WorkOrderFormTypeId]               INT             NULL,
-    [LifeLimitedPart]                   BIT             NULL,
     [IsFlightHoursAvailable]            BIT             NULL,
     [IsFlightCyclesAvailable]           BIT             NULL,
     [IsLandingsAvailable]               BIT             NULL,

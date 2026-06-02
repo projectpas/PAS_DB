@@ -12,6 +12,7 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
 	1    29/05/2026   Moin Bloch       Updated
+	2    02/06/2026   Amit Ghediya     Update for get CustomerId from AircraftRegistryHeader [PN-16679]
 
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_CreateWorkOrderFromAircraft]
@@ -51,9 +52,7 @@ BEGIN
 			SELECT @CustomerId = [CustomerId],@ConditionId = [ConditionId] FROM [dbo].[StockLine] WITH(NOLOCK) WHERE [StockLineId] = @StockLineId;
 			IF(ISNULL(@CustomerId,0) = 0)
 			BEGIN
-				 SELECT @CustomerId = stk.CustomerId  FROM dbo.AircraftRegistryHeader ACH WITH(NOLOCK)
-				 JOIN dbo.Stockline stk WITH(NOLOCK) on stk.StockLineId = ACH.StockLineId
-				 WHERE [AircraftRegistryId] = @AircraftRegistryId
+				 SELECT @CustomerId = ACH.CustomerId  FROM dbo.AircraftRegistryHeader ACH WITH(NOLOCK) WHERE [AircraftRegistryId] = @AircraftRegistryId
 			END
 
 			SELECT @CustomerName=[Name], @CustomerAffiliationId = [CustomerAffiliationId], @CustomerTypeId = CustomerTypeId FROM [dbo].[Customer] WITH(NOLOCK) WHERE [CustomerId] = @CustomerId;
@@ -73,14 +72,12 @@ BEGIN
 			BEGIN
 				SET @WorkOrderTypeId = @Internal
 			END
-
 			
 			SELECT TOP 1 @CreditLimit=[CreditLimit],@CreditTermsId=[CreditTermsId],@CurrencyId=[CurrencyId] FROM [dbo].[CustomerFinancial] WITH(NOLOCK) WHERE [CustomerId] = @CustomerId;
 
 			SELECT @PercentId=[PercentId],@Days=[Days],@NetDays=[NetDays],@CreditTerms = [Name] FROM [dbo].[CreditTerms] WITH(NOLOCK) WHERE [CreditTermsId]=@CreditTermsId AND [MasterCompanyId]=@MasterCompanyId AND [IsActive]=1 AND [IsDeleted]=0;
 			
 			SELECT TOP 1 @CsrId =[CsrId],@SalesPersonId = [PrimarySalesPersonId] FROM [dbo].[CustomerSales] WITH(NOLOCK) WHERE [CustomerId] = @CustomerId;
-
 
 			SELECT @CustomerContactId = cc.CustomerContactId, @ContactContactId=con.[ContactId] FROM [dbo].[CustomerContact] cc WITH(NOLOCK)
 			INNER JOIN [dbo].[Contact] con WITH(NOLOCK) ON cc.ContactId = con.ContactId 

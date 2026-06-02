@@ -4549,6 +4549,7 @@
     <Build Include="dbo\Stored Procedures\USP_GetWorksheetPartsByHeaderIdSSRS.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetWorksheetHeaderByIdSSRS.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetAircraftInfoHeaderDetailsByItemMasterId.sql" />
+    <Build Include="dbo\Views\VW_WorkScopeType.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

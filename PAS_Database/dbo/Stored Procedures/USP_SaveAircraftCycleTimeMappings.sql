@@ -30,6 +30,7 @@ Exec [USP_SaveAircraftCycleTimeMappings]
                                         Perf: Remove NOLOCK from UPDATE targets;
                                         Perf: Collapse multi-scan of AMP into single pass;
                                         Perf: Remove READ UNCOMMITTED from write transaction.
+  12    02/06/2026  Amit Ghediya        Update logic for AircraftMaintenanceProgram for currunt HH:mm update for hr & cycle [PN-16650].
 **************************************************************/   
 CREATE PROCEDURE [dbo].[USP_SaveAircraftCycleTimeMappings]  
     @CycleData  NVARCHAR(MAX),
@@ -183,9 +184,21 @@ BEGIN
         -------------------------------------------------------
         UPDATE AIPD
         SET 
-            AIPD.FlightHours    = ISNULL(AIPD.FlightHours,   0) + ISNULL(C.[Hours],  0),
-            AIPD.FlightMinutes  = ISNULL(AIPD.FlightMinutes, 0) + ISNULL(C.[Minutes],0),
-            AIPD.Cycles         = ISNULL(AIPD.Cycles,        0) + ISNULL(C.[Cycles], 0),
+            AIPD.FlightHours    = CASE 
+									WHEN ISNULL(C.[Hours], 0) > 0 
+									THEN ISNULL(AIPD.FlightHours,   0) + ISNULL(C.[Hours],  0)
+									ELSE ISNULL(C.[CumulativeHours], 0)
+								  END,
+            AIPD.FlightMinutes  = CASE 
+									WHEN ISNULL(C.[Minutes], 0) > 0 
+									THEN ISNULL(AIPD.FlightMinutes, 0) + ISNULL(C.[Minutes],0)
+									ELSE ISNULL(C.[CumulativeMinutes], 0)
+								  END,
+            AIPD.Cycles         = CASE 
+									WHEN ISNULL(C.[Cycles], 0) > 0 
+									THEN ISNULL(AIPD.Cycles,        0) + ISNULL(C.[Cycles], 0)
+									ELSE ISNULL(C.[CumulativeCycles], 0)
+								  END,
             AIPD.UpdatedBy      = C.UpdatedBy,
             AIPD.UpdatedDate    = GETUTCDATE(),
             AIPD.LastFlownDate  = CASE 
@@ -220,22 +233,35 @@ BEGIN
                 -----------------------------------------------
                 -- Hours: carry over any minute overflow
                 AMP.FlightHoursRecordedHours =
-                    FLOOR(ISNULL(AMP.FlightHoursRecordedHours,   0))
-                    + FLOOR(ISNULL(C.[Hours], 0))
-                    + (   -- carry from minutes overflow
-                          (FLOOR(ISNULL(AMP.FlightHoursRecordedMinutes, 0))
-                           + FLOOR(ISNULL(C.[Minutes], 0)))
-                          / 60
-                      ),
+					CASE WHEN ISNULL(C.[Hours], 0) > 0 THEN
+						FLOOR(ISNULL(AMP.FlightHoursRecordedHours,   0))
+						+ FLOOR(ISNULL(C.[Hours], 0))
+						+ (   -- carry from minutes overflow
+							  (FLOOR(ISNULL(AMP.FlightHoursRecordedMinutes, 0))
+							   + FLOOR(ISNULL(C.[Minutes], 0)))
+							  / 60
+						  )
+					ELSE FLOOR(ISNULL(C.[CumulativeHours], 0))
+						+ (  FLOOR(ISNULL(C.[CumulativeMinutes], 0))
+							  / 60
+						  )
+				    END,
 
                 -- Minutes: keep only the remainder after carrying into hours
                 AMP.FlightHoursRecordedMinutes =
-                    (FLOOR(ISNULL(AMP.FlightHoursRecordedMinutes, 0))
-                     + FLOOR(ISNULL(C.[Minutes], 0)))
-                    % 60,
+					CASE WHEN ISNULL(C.[Minutes], 0) > 0 THEN
+						(FLOOR(ISNULL(AMP.FlightHoursRecordedMinutes, 0))
+						 + FLOOR(ISNULL(C.[Minutes], 0)))
+						% 60
+					ELSE (FLOOR(ISNULL(C.[CumulativeMinutes], 0)))
+						% 60
+					END,
 
                 AMP.CyclesRecorded =
-                    ISNULL(AMP.CyclesRecorded, 0) + ISNULL(C.Cycles, 0),
+					CASE WHEN ISNULL(C.[Cycles], 0) > 0 THEN
+						 ISNULL(AMP.CyclesRecorded, 0) + ISNULL(C.Cycles, 0)
+					ELSE ISNULL(C.CumulativeCycles, 0)
+					END,
 
                 -----------------------------------------------
                 -- REMAINING: Limit minus NEW cumulative total

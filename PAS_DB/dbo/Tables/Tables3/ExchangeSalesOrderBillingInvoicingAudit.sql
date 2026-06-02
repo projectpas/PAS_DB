@@ -55,6 +55,7 @@
     [LastSyncDate]                        DATETIME2 (7)   NULL,
     [SyncToken]                           VARCHAR (200)   NULL,
     [IsQuickBookGeneratedInvoice]         BIT             NULL,
+    [IntegrationTypeId]                   INT             NULL,
     CONSTRAINT [PK_ExchangeSalesOrderBillingInvoicingAudit] PRIMARY KEY CLUSTERED ([AuditSOBillingInvoicingId] ASC)
 );
 

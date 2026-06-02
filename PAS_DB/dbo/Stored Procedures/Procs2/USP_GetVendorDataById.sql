@@ -10,6 +10,7 @@
  ** PR   Date				Author  				Change Description              
  ** --   --------			-------				--------------------------------            
     1    2025-05-26		  Ayushi Patel				Created
+	2    2026-04-22		  Moin Bloch				Added QuickBooksReferenceId PN-16009
 
 	exec [USP_GetVendorDataById] 4787
 *************************************************************/ 
@@ -95,14 +96,14 @@ BEGIN
             ISNULL(v.IsTrackScoreCard,0) as IsTrackScoreCard,
             ISNULL(v.IsVendorOnHold,0) as IsVendorOnHold,
             v.CreditTermsId,
-            ISNULL(v.IsWarningRestriction,0) as IsWarningRestriction
-
-        FROM DBO.Vendor v WITH (NOLOCK)
-        LEFT JOIN DBO.Address ad WITH (NOLOCK) ON v.AddressId = ad.AddressId
-        LEFT JOIN DBO.Countries cont WITH (NOLOCK) ON ad.CountryId = cont.countries_id
-        LEFT JOIN DBO.VendorType vt WITH (NOLOCK) ON v.VendorTypeId = vt.VendorTypeId
-        LEFT JOIN DBO.Vendor vp1 WITH (NOLOCK) ON v.VendorParentId = vp1.VendorId
-
+            ISNULL(v.IsWarningRestriction,0) as IsWarningRestriction,
+			v.QuickBooksReferenceId,
+			v.IntegrationTypeId
+        FROM [dbo].[Vendor] v WITH (NOLOCK)
+        LEFT JOIN [dbo].[Address] ad WITH (NOLOCK) ON v.AddressId = ad.AddressId
+        LEFT JOIN [dbo].[Countries] cont WITH (NOLOCK) ON ad.CountryId = cont.countries_id
+        LEFT JOIN [dbo].[VendorType] vt WITH (NOLOCK) ON v.VendorTypeId = vt.VendorTypeId
+        LEFT JOIN [dbo].[Vendor] vp1 WITH (NOLOCK) ON v.VendorParentId = vp1.VendorId
         WHERE v.VendorId = @VendorId
 
     END TRY

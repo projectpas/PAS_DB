@@ -4680,6 +4680,10 @@
     <Build Include="dbo\Stored Procedures\CreateWorkOrderTasksForWorksheet.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdateWorkOrderFromAircraft.sql" />
     <Build Include="dbo\Views\VW_WorkScopeType.sql" />
+    <Build Include="dbo\Tables\XeroTokens.sql" />
+    <Build Include="dbo\Tables\AccountingIntegrationType.sql" />
+    <Build Include="dbo\Stored Procedures\Xero_GetNewGLAccountListForCreateAccount.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetCommonBillingInvoicingItemsByInvoiceIdForXeroAccounting.sql" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Snapshots\PAS_DB_20220518_07-53-10.dacpac" />

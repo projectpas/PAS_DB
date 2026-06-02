@@ -178,6 +178,7 @@
     [Landings]                          INT             NULL,
     [Starts]                            INT             NULL,
     [CalendarDate]                      DATETIME2 (7)   NULL,
+    [IntegrationTypeId]                 INT             NULL,
     CONSTRAINT [PK_ItemMasterAudit] PRIMARY KEY CLUSTERED ([ItemMasterAuditId] ASC)
 );
 

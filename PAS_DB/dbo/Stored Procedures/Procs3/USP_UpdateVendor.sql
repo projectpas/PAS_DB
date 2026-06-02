@@ -11,6 +11,7 @@
 ** --    --------     -------           -------------------------------          
 ** 1     09-07-2025   Ayushi Patel      Created  
    2     08-Dec-2025  Bhargav Saliya    Add SP [USP_UpdateVendorContact] for Updat Vendor Contact Detail
+** 3     22-APR-2026  Moin Bloch        Moved to API Due TO Xero Accounting Changes PN-16009
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_UpdateVendor]
     @VendorId BIGINT,
@@ -242,7 +243,7 @@ BEGIN
         END
 
         -- Finalize
-        EXEC QuickBooks_UpdateModuleCountDetails @MasterCompanyId, @VendorAccountingModuleId;
+        --EXEC QuickBooks_UpdateModuleCountDetails @MasterCompanyId, @VendorAccountingModuleId;
 
         COMMIT;
     END TRY

@@ -18,6 +18,7 @@
     2    08/16/2023   Devendra shekh			commented RMAPickTicketNumber for cte and added ReadyToPick to result
     3    08/17/2023   Devendra shekh			removed commented RMAPickTicketNumber for cte and added ReadyToPick
 	4    02-03-2026	  Amit Ghediya				UOM Conversion Changes [PN-15140]
+	5    02-06-2026	  Priyansh Patel			Changed the consume Uom to Purchase Uom [PN-16605]
      
 **************************************************************/
 -- EXEC [dbo].[USP_VendorRMA_GetPickTicketPrint] 262, 399, 172
@@ -69,7 +70,7 @@ BEGIN
 		LEFT JOIN Stockline sl WITH(NOLOCK) ON sl.StockLineId = sop.StockLineId
 		INNER JOIN ItemMaster imt WITH(NOLOCK) ON imt.ItemMasterId = sop.ItemMasterId
 		LEFT JOIN Condition co WITH(NOLOCK) ON co.ConditionId = sl.ConditionId
-		LEFT JOIN UnitOfMeasure uom WITH(NOLOCK) ON uom.UnitOfMeasureId = imt.ConsumeUnitOfMeasureId
+		LEFT JOIN UnitOfMeasure uom WITH(NOLOCK) ON uom.UnitOfMeasureId = imt.PurchaseUnitOfMeasureId
 		LEFT JOIN [Site] s WITH(NOLOCK) ON s.SiteId = sl.SiteId
 		LEFT JOIN Warehouse w WITH(NOLOCK) ON w.WarehouseId = sl.WarehouseId
 		LEFT JOIN [Location] l WITH(NOLOCK) ON l.LocationId = sl.LocationId

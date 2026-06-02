@@ -15,7 +15,7 @@ SELECT
     WorkScopeCodeNew,
     ConditionId,
     IsAircraft
-FROM dbo.WorkScope
+FROM dbo.WorkScope WITH(NOLOCK)
 WHERE IsAircraft = 1
     AND ISNULL(IsDeleted, 0) = 0
     AND ISNULL(IsActive, 0) = 1;

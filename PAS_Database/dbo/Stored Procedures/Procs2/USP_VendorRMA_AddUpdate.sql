@@ -15,6 +15,7 @@
 	3    12/16/2024   AMIT GHEDIYA		Add RefrenceNumber in stocktable.
 	4    07/23/2024   Vishal Suthar		Updating EnforcePickTicketConfirmation column from VendorRMASettings
 	5    02-03-2026	  Amit Ghediya		UOM Conversion Changes [PN-15140]
+	6    02-06-2026	  Ayushi Patel		UOM Conversion Changes [PN-16604]
 
 *******************************************************************************/
 CREATE    PROCEDURE [dbo].[USP_VendorRMA_AddUpdate]
@@ -43,7 +44,7 @@ BEGIN
 		(
 			[ID] INT IDENTITY,
 			[VendorRMADetailId] BIGINT NULL,
-			[Qty] INT,
+			[Qty] decimal (18, 6),
 			[StockLineId] BIGINT,
 			[IsDeleted] BIT NULL,
 		)
@@ -67,7 +68,7 @@ BEGIN
 		(
 			[ID] INT IDENTITY,
 			[VendorRMADetailId] BIGINT NULL,
-			[Qty] INT,
+			[Qty] decimal (18, 6) ,
 			[MasterCompanyId] INT
 		)
 

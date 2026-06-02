@@ -21,6 +21,7 @@
 	9    14/May/2026  Rajesh Gami			    Return IsReadyReleaseForm & Added the @isFromMultipleReleaseFormModal Parameter [PN-16405 :  Generate Multiple Release Forms for Teardown Work Orders]
     10   25/02/2025   BHARGAV SALIYA			Added @GenerateReleaseForm Para. For Filter [PN-16504]
     11   26/02/2025   BHARGAV SALIYA			Added @Condition Para. For Filter
+	12   02/June/2026 Vishal Suthar				Uncommented @DocumentTypeId condition and add document type name (FAA 8130 CERT)
 exec USP_GetWOTearDownStockLineList 
 @PageNumber=1,@PageSize=10,@SortColumn=N'CreatedDate',@SortOrder=-1,@GlobalFilter=N'',@StatusId=1,@PartNumber=NULL,@PartDescription=NULL,
 @Manufacturer=NULL,@StockLineNumber=NULL,@SerialNumber=NULL,@ControlNumber=NULL,@IdNumber=NULL,@UnitCost=NULL,@QtyOnHand=NULL,
@@ -67,7 +68,7 @@ BEGIN
 		DECLARE @DocumentTypeId INT;
 		DECLARE @AttStockLineModuleId INT;	
 		SELECT  @AttStockLineModuleId = [AttachmentModuleId] FROM [dbo].[AttachmentModule] WITH(NOLOCK) WHERE [Name] = 'StockLine'
-		SELECT  @DocumentTypeId = [DocumentTypeId] FROM [dbo].[DocumentType] WITH(NOLOCK) WHERE [Name] = 'FAA 8130' AND [MasterCompanyId] = @MasterCompanyId;
+		SELECT  @DocumentTypeId = [DocumentTypeId] FROM [dbo].[DocumentType] WITH(NOLOCK) WHERE [Name] = 'FAA 8130 CERT' AND [MasterCompanyId] = @MasterCompanyId;
 		
 		DECLARE @RecordFrom INT;		
 		DECLARE @Count INT;
@@ -124,7 +125,7 @@ BEGIN
 						ISNULL(SL.IsReadyReleaseForm,0) IsReadyReleaseForm,
 						SL.ConditionId,
 						ISNULL((SELECT TOP 1 ATT.AttachmentId FROM [dbo].[Attachment] ATT WITH (NOLOCK) 
-				               INNER JOIN [dbo].[CommonDocumentDetails] DOC WITH (NOLOCK) ON DOC.AttachmentId = ATT.AttachmentId AND DOC.ReferenceId = SL.StockLineId AND DOC.ModuleId = @AttStockLineModuleId --AND DOC.[DocumentTypeId] = @DocumentTypeId
+				               INNER JOIN [dbo].[CommonDocumentDetails] DOC WITH (NOLOCK) ON DOC.AttachmentId = ATT.AttachmentId AND DOC.ReferenceId = SL.StockLineId AND DOC.ModuleId = @AttStockLineModuleId AND DOC.[DocumentTypeId] = @DocumentTypeId
 				               WHERE ATT.ReferenceId = SL.StockLineId 
 							     AND ATT.ModuleId = @AttStockLineModuleId ORDER BY ATT.AttachmentId DESC),0) AS AttachmentId,
 						SL.Condition,

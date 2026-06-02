@@ -21,6 +21,7 @@
 ** 8    22/05/2026   Priyansh Patel     Added WO num  [PN-16537]
 ** 9    22/05/2026   Moin Bloch         Added  [StockLineId],[IsCustomerStock] PN-16469
 ** 10   26/05/2026   Priyansh Patel     Added Worsheet Header Id [PN-16537]
+** 11   02/06/2026   Abhishek Jirawla   Added IsScheduled [PN-16679]
 
 
 *****************************************************************************************************/
@@ -110,6 +111,7 @@ BEGIN
                 AMP.TimeRemaining,
                 AMP.LandingsRemaining,
                 AMP.EngineStartsRemaining,
+                AMP.IsScheduled,
                 AMP.IsActive,
                 AMP.UpdatedDate,
                 AMP.UpdatedBy,

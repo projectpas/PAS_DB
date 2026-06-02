@@ -15,7 +15,6 @@
     1    28-08-2025    Sahdev Saliya       Created  
 	2    14-APR-2026   Sahdev Saliya       Added TrainingName, ProviderId, ProviderType, IsRecurring, DurationHours, DurationMinutes (PN-15932)
 	3    04-May-2026   Sahdev Saliya       Added CategoryId, CategoryType, CurrencyId (PN-16203)
-	4    02-June-2026  Sahdev Saliya       Updated Provider & IndustryCode with Length, and DurationHours & DurationMinutes with DataType.
 	 
 	exec [USP_CreateEmployeeTraining] 
 **************************************************************/ 
@@ -23,8 +22,8 @@ CREATE   PROCEDURE [dbo].[USP_CreateEmployeeTraining]
     @EmployeeId BIGINT,
     @AircraftManufacturerId INT = NULL,
 	@AircraftModelId BIGINT = NULL,
-	@Provider VARCHAR(30) = NULL,
-    @IndustryCode VARCHAR(30) = NULL,
+	@Provider VARCHAR(256) = NULL,
+    @IndustryCode VARCHAR(256) = NULL,
     @EmployeeTrainingTypeId BIGINT = NULL,
     @FrequencyOfTrainingId BIGINT= NULL,
     @Cost DECIMAL(18, 2) = NULL,
@@ -45,8 +44,8 @@ CREATE   PROCEDURE [dbo].[USP_CreateEmployeeTraining]
 	@ProviderId BIGINT= NULL,
 	@ProviderType VARCHAR(50) = NULL,
 	@IsRecurring BIT = NULL,
-	@DurationHours INT = NULL,
-	@DurationMinutes INT = NULL,
+	@DurationHours VARCHAR(200) = NULL,
+	@DurationMinutes VARCHAR(200) = NULL,
 	@CategoryId BIGINT= NULL,
 	@CategoryType VARCHAR(50) = NULL,
 	@CurrencyId BIGINT = NULL

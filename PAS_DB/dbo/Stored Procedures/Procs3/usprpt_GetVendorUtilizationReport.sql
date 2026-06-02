@@ -17,6 +17,7 @@
 	2    16-JUNE-2023   Devendra Shekh      made changes TO DO TOTAL
 	3    29-MARCH-2024  Ekta Chandegra      IsDeleted and IsActive flag is added
 	4	 11/05/2024		Vishal Suthar		Modified to make use of new SO Part tables
+  5	 02/06/2024		Sumit Kumar		Modified to correct Extended amount value
 **************************************************************/
 
 CREATE      PROCEDURE [dbo].[usprpt_GetVendorUtilizationReport]  
@@ -122,7 +123,7 @@ BEGIN
     CASE WHEN stl.isPma = 1 AND stl.IsDER = 1 THEN 'PMA&DER' WHEN stl.isPma = 1 AND (stl.IsDER IS NULL OR stl.IsDER = 0) THEN 'PMA'  
       WHEN (stl.isPma = 0 OR stl.isPma IS NULL) AND stl.IsDER = 1 THEN 'DER' ELSE 'OEM' END,  
       PO.status,PO.VendorName,PO.VendorCode,POP.unitofmeasure, POP.QuantityOrdered, POP.PurchaseOrderId, STL.UnitCost ,POP.functionalcurrency, FORMAT (POP.NeedByDate, 'MM/dd/yyyy hh:mm:tt'),  
-      STL.PurchaseOrderExtendedCost,POP.workorderno,IM1.partnumber,IM1.partdescription,POP.salesorderno,IM2.partnumber,IM2.partnumber,IM2.partdescription,WO.CustomerName,  
+      POP.workorderno,IM1.partnumber,IM1.partdescription,POP.salesorderno,IM2.partnumber,IM2.partnumber,IM2.partdescription,WO.CustomerName,  
       MSD.Level1Name,MSD.Level2Name,MSD.Level3Name,MSD.Level4Name,MSD.Level5Name,MSD.Level6Name,MSD.Level7Name,MSD.Level8Name,MSD.Level9Name,MSD.Level10Name  
    ) TEMP  
   END  
@@ -162,7 +163,7 @@ UPPER(MSD.Level8Name) AS level8,    UPPER(MSD.Level9Name) AS level9,    UPPER(MS
 		ISNULL(STL.UnitCost ,0) AS 'unitcost',
         UPPER(POP.functionalcurrency) 'currency',  
         --STL.PurchaseOrderExtendedCost 'extamount', 
-		ISNULL(STL.PurchaseOrderExtendedCost , 0) AS 'extamount',
+		ISNULL(POP.QuantityOrdered, 0) * ISNULL(STL.UnitCost, 0) AS 'extamount',
         'N/A' 'localamount',  
         FORMAT (POP.NeedByDate, 'MM/dd/yyyy hh:mm:tt') 'requestdate',  
         UPPER(ISNULL(POP.workorderno,'')) 'wonum',  
@@ -207,7 +208,7 @@ UPPER(MSD.Level8Name) AS level8,    UPPER(MSD.Level9Name) AS level9,    UPPER(MS
    CASE WHEN stl.isPma = 1 AND stl.IsDER = 1 THEN 'PMA&DER' WHEN stl.isPma = 1 AND (stl.IsDER IS NULL OR stl.IsDER = 0) THEN 'PMA'  
      WHEN (stl.isPma = 0 OR stl.isPma IS NULL) AND stl.IsDER = 1 THEN 'DER' ELSE 'OEM' END,  
      PO.status,PO.VendorName,PO.VendorCode,POP.unitofmeasure, POP.QuantityOrdered, POP.PurchaseOrderId, STL.UnitCost ,POP.functionalcurrency, FORMAT (POP.NeedByDate, 'MM/dd/yyyy hh:mm:tt'),  
-     STL.PurchaseOrderExtendedCost,POP.workorderno,IM1.partnumber,IM1.partdescription,POP.salesorderno,IM2.partnumber,IM2.partnumber,IM2.partdescription,WO.CustomerName,  
+     POP.workorderno,IM1.partnumber,IM1.partdescription,POP.salesorderno,IM2.partnumber,IM2.partnumber,IM2.partdescription,WO.CustomerName,  
      MSD.Level1Name,MSD.Level2Name,MSD.Level3Name,MSD.Level4Name,MSD.Level5Name,MSD.Level6Name,MSD.Level7Name,MSD.Level8Name,MSD.Level9Name,MSD.Level10Name, POP.MasterCompanyId
 	 )
 	 ,FinalCTE(TotalRecordsCount, level1, level2, level3, level4, level5, level6, level7, level8, level9, level10, ponum,

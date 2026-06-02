@@ -20,6 +20,8 @@
     [AircraftStatus]         VARCHAR (100)   NULL,
     [MaintenanceStatusId]    BIGINT          NULL,
     [MaintenanceStatus]      VARCHAR (100)   NULL,
+    [CustomerId]             BIGINT          NULL,
+    [CustomerName]           VARCHAR (100)   NULL,
     [Memo]                   VARCHAR (MAX)   NULL,
     [StockLineId]            BIGINT          NULL,
     [IsActive]               BIT             CONSTRAINT [DF_AircraftRegistry_IsActive] DEFAULT ((1)) NOT NULL,
@@ -39,6 +41,8 @@
     CONSTRAINT [FK_AircraftRegistry_MaintenanceStatus] FOREIGN KEY ([MaintenanceStatusId]) REFERENCES [dbo].[MaintenanceStatus] ([MaintenanceStatusId]),
     CONSTRAINT [FK_AircraftRegistry_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId])
 );
+
+
 
 
 

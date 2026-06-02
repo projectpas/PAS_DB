@@ -20,6 +20,7 @@
     2    31/03/2026   Bhargav Saliya       Modified - Added CodePrefix
     3    05/06/2026   Abhishek Jirawla     Adding Data Validation & Restrictions [PN-16292] 
 	4    22/06/2026   Amit Ghediya		   Adding TTSN H/M & TCSN H/M [PN-16533]
+	5    02/06/2026   Abhishek Jirawla	   Adding CustomerId and CustomerName [PN-16679]
 **************************************************************/
 CREATE     PROCEDURE [dbo].[USP_CreateAircraftRegistryHeader]
     @tbl_AircraftRegistryHeaderType dbo.AircraftRegistryTableType READONLY
@@ -88,6 +89,8 @@ BEGIN
                 AR.AircraftStatus = T.AircraftStatus,
                 AR.MaintenanceStatusId = T.MaintenanceStatusId,
                 AR.MaintenanceStatus = T.MaintenanceStatus,
+                AR.CustomerId = T.CustomerId,
+                AR.CustomerName = T.CustomerName,
                 AR.Memo = T.Memo,
                 AR.IsActive = ISNULL(T.IsActive, AR.IsActive),
                 AR.IsDeleted = ISNULL(T.IsDeleted, AR.IsDeleted),
@@ -151,6 +154,8 @@ BEGIN
                 AircraftStatus,
                 MaintenanceStatusId,
                 MaintenanceStatus,
+                CustomerId,
+                CustomerName,
 			    Memo,
                 IsActive,
                 IsDeleted,
@@ -184,6 +189,8 @@ BEGIN
                 T.AircraftStatus,
                 T.MaintenanceStatusId,
                 T.MaintenanceStatus,
+                T.CustomerId,
+                T.CustomerName,
 			    T.Memo,
                 ISNULL(T.IsActive, 1),
                 ISNULL(T.IsDeleted, 0),

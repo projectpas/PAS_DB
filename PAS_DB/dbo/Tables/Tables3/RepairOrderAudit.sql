@@ -64,6 +64,7 @@
     [EnforcePickTicketConfirmation]  BIT             NULL,
     [IsFromAircraft]                 BIT             NULL,
     [AircraftInstalledPartDetailsId] BIGINT          NULL,
+    [IntegrationTypeId]              INT             NULL,
     CONSTRAINT [PK_RepairOrderAudit] PRIMARY KEY CLUSTERED ([RepairOrderAuditId] ASC)
 );
 

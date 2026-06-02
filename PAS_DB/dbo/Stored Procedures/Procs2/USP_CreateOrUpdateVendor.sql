@@ -11,6 +11,8 @@
 ** --    --------     -------           -------------------------------          
 ** 1     07-07-2025   Ayushi Patel      Created  
 ** 2     08-APR-2026   Hemant Saliya     Corrected to Get customer type Id based on name  
+** 3     22-APR-2026   Moin Bloch        Moved to API Due TO Xero Accounting Changes PN-16009
+
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_CreateOrUpdateVendor]
     @VendorId BIGINT OUTPUT,
@@ -329,7 +331,7 @@ BEGIN
             SET VendorId = @VendorId, UpdatedDate = GETUTCDATE(), UpdatedBy = @UpdatedBy
             WHERE CustomerCreditPaymentDetailId = @CustomerCreditPaymentDetailId;
         END
-        EXEC QuickBooks_UpdateModuleCountDetails @MasterCompanyId, @VendorAccountingModuleId;
+        --EXEC QuickBooks_UpdateModuleCountDetails @MasterCompanyId, @VendorAccountingModuleId;
         COMMIT;
     END TRY
       BEGIN CATCH

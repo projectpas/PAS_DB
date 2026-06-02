@@ -1,4 +1,4 @@
-/****** Object:  StoredProcedure [dbo].[USP_SaveAircraftCycleTimeMappings] ******/
+﻿/****** Object:  StoredProcedure [dbo].[USP_SaveAircraftCycleTimeMappings] ******/
 
 /*************************************************************     
 ** Author:  <Amit Ghediya>    
@@ -102,7 +102,7 @@ BEGIN
         -------------------------------------------------------
         -- DECLARE @CycleId for return
         -------------------------------------------------------
-        DECLARE @CycleId BIGINT;
+        DECLARE @CycleId BIGINT, @AircraftRegistryId BIGINT = 0;		
 
         -------------------------------------------------------
         -- CHECK INSERT OR UPDATE
@@ -464,6 +464,13 @@ BEGIN
                 GETUTCDATE(), GETUTCDATE(),
                 1, 0
             );
+
+		-----------------------Add LastFlownDate--------------------
+		SELECT TOP 1 @AircraftRegistryId = RefrenceId FROM @CycleTable;
+
+		UPDATE dbo.AircraftRegistryHeader SET LastFlownDate = CAST(GETUTCDATE() AS DATE) WHERE AircraftRegistryId  = @AircraftRegistryId;
+
+		----------------------End LastFlownDate----------------------
 
         -------------------------------------------------------
         -- RETURN the saved cycle ID to the caller

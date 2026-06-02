@@ -74,12 +74,13 @@ BEGIN
 				ASS.[Name] AS AircraftStatus,
                 AR.IsActive,
                 AR.CreatedDate,
-                SL.CustomerName AS Custname,
+                C.Name AS Custname,
                 COUNT(1) OVER () AS TotalRecords
             FROM [dbo].[AircraftRegistryHeader] AS AR WITH (NOLOCK)
 			LEFT JOIN [dbo].[AircraftStatus] ASS WITH (NOLOCK) ON AR.[AircraftStatusId] = ASS.[AircraftStatusId]
 			LEFT JOIN [dbo].[MaintenanceStatus] AMS WITH (NOLOCK) ON AR.[MaintenanceStatusId] = AMS.[MaintenanceStatusId]
             LEFT JOIN [dbo].[StockLine] SL WITH (NOLOCK) ON AR.StockLineId = SL.StockLineId
+            LEFT JOIN [dbo].[Customer] C WITH (NOLOCK) ON SL.CustomerId = C.CustomerId
             WHERE
                 AR.MasterCompanyId = @MasterCompanyId
                 AND (@IsDeleted IS NULL OR AR.IsDeleted = @IsDeleted)

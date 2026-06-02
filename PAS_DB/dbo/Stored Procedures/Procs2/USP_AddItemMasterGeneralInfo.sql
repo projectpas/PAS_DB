@@ -10,10 +10,11 @@
  ** PR   Date				Author				Change Description            
  ** --   -------------		----------------	--------------------------------          
     1    11-September-2025		Divyesh Kathiriya	Created	
+	2    04-May-2026		    Moin Bloch	        Moved TO API SIDE PN-16014
     
  -- EXEC [USP_AddItemMasterGeneralInfo] 
 **************************************************************/
-Create   PROCEDURE [DBO].[USP_AddItemMasterGeneralInfo]
+CREATE   PROCEDURE [dbo].[USP_AddItemMasterGeneralInfo]
 @tbl_ItemMasterTableType [DBO].[ItemMasterTableType] READONLY
 AS
 BEGIN
@@ -126,7 +127,7 @@ BEGIN
 
 			EXEC [DBO].[UpdateItemMasterDetail] @ItemMasterId;				
 
-			EXEC [DBO].[QuickBooks_UpdateModuleCountDetails] @MasterCompanyId, @ItemMasterModuleId; 
+			--EXEC [DBO].[QuickBooks_UpdateModuleCountDetails] @MasterCompanyId, @ItemMasterModuleId; 
 
 		END
 		ELSE

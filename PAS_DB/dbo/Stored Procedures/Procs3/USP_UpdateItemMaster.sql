@@ -11,6 +11,7 @@
 ** --    --------     -------           -------------------------------          
 ** 1     19-Nov-2025   Bhargav Saliya   Created  
 ** 2     09-Mar-2026   Vishal Suthar    Handled UnitOfMeasureId to have NULL instead of 0 which will throw foreignkey constraint
+** 3     04-May-2026    Moin Bloch      Moved TO API SIDE PN-16014
 
 **************************************************************/
 CREATE     PROCEDURE [dbo].[USP_UpdateItemMaster]
@@ -28,14 +29,14 @@ BEGIN
 	DECLARE @imItemMasterId BIGINT ,@imManufacturerId BIGINT,@imPartNumber VARCHAR(256),@MasterCompanyId INT, @AccountingModuleId BIGINT;
 
 	--MasterParts TABLE variables Declaration--
-	DECLARE @mItemMasterId BIGINT,@MasterPartId BIGINT,@PartDescription VARCHAR(256),@PartNumber VARCHAR(256),@ManufacturerId BIGINT,
+	DECLARE @mItemMasterId BIGINT,@MasterPartId BIGINT,@PartDescription VARCHAR(256),@PartNumber VARCHAR(256),@ManufacturerId BIGINT,@QuickBooksReferenceId VARCHAR(200),@IntegrationTypeId INT,
 			@mMasterCompanyId BIGINT,@CreatedBy VARCHAR(200),@UpdatedBy VARCHAR(200),@CreatedDate DATETIME2,@IsActive BIT,@IsDeleted BIT;
 
 	SELECT @MasterCompanyId = MasterCompanyId,@imManufacturerId = ManufacturerId,@imPartNumber = PartNumber FROM @tbl_ItemMasterUpdateType tempTbl where  tempTbl.ItemMasterId = @Id
 
 	SELECT @AccountingModuleId = AccountingModuleId FROM dbo.AccountingModule WITH(NOLOCK) WHERE AccountingModuleName = 'ItemMaster' 
 
-	SELECT	@mItemMasterId = ItemMasterId,@MasterPartId = MasterPartId,@PartDescription = PartDescription,
+	SELECT	@mItemMasterId = ItemMasterId,@MasterPartId = MasterPartId,@PartDescription = PartDescription, @QuickBooksReferenceId = [QuickBooksReferenceId], @IntegrationTypeId = [IntegrationTypeId],
 			@PartNumber = PartNumber,@ManufacturerId = ManufacturerId,@mMasterCompanyId = MasterCompanyId,@CreatedBy = CreatedBy,
 			@UpdatedBy = UpdatedBy,@CreatedDate = CreatedDate,@IsActive = IsActive,@IsDeleted = IsDeleted
 	FROM [dbo].ItemMaster WITH(NOLOCK) WHERE ItemMasterId = @Id
@@ -207,10 +208,10 @@ BEGIN
 
 		EXEC dbo.UpdateItemMasterDetail @Id
 
-		EXEC [dbo].[QuickBooks_UpdateModuleCountDetails] @MasterCompanyId, @AccountingModuleId
+		--EXEC [dbo].[QuickBooks_UpdateModuleCountDetails] @MasterCompanyId, @AccountingModuleId
 
 	END
-	SELECT @MasterPartId AS [MasterPartId];
+	SELECT @MasterPartId AS [MasterPartId],@QuickBooksReferenceId AS [QuickBooksReferenceId], @IntegrationTypeId AS [IntegrationTypeId]
   COMMIT TRANSACTION
   END TRY
   BEGIN CATCH

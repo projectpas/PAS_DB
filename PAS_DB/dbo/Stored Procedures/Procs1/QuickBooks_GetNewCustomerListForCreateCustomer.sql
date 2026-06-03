@@ -16,6 +16,7 @@
 	3    10-Jan-2025    Devendra Shekh	Modified(Added MasterCompanyId To Param)
 	4    21-Feb-2025    Devendra Shekh	Modified(Added new fields Fax, TermQuickBooksReferenceId)
 	5    12-March-2025  Devendra Shekh	Modified(Changes for Billing/Shipping Address Details)
+	6    26-May-2026	Abhishek Jirawla Modified(Added Xero Integration Type)
      
  EXECUTE [QuickBooks_GetNewCustomerListForCreateCustomer] 1,1
 **************************************************************/ 
@@ -29,6 +30,12 @@ BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED	
 	BEGIN TRY
 
+		DECLARE @QBIntegrationTypeId INT=1, @NSIntegrationTypeId INT=2, @XeroIntegrationTypeId INT=3
+
+		SELECT @QBIntegrationTypeId = [IntegrationTypeId] FROM [dbo].[AccountingIntegrationType] WITH(NOLOCK) WHERE [IntegrationType] = 'QuickBooks';
+		SELECT @NSIntegrationTypeId = [IntegrationTypeId] FROM [dbo].[AccountingIntegrationType] WITH(NOLOCK) WHERE [IntegrationType] = 'NetSuite';
+		SELECT @XeroIntegrationTypeId = [IntegrationTypeId] FROM [dbo].[AccountingIntegrationType] WITH(NOLOCK) WHERE [IntegrationType] = 'Xero';
+
 		IF OBJECT_ID('tempdb..#CustomerResults') IS NOT NULL
 			DROP TABLE #CustomerResults
 
@@ -37,7 +44,7 @@ BEGIN
 			[CustomerId] BIGINT NULL,
 			[CustomerCode] VARCHAR(100) NULL,
 			[MasterCompanyId] INT NULL,
-			[FullName] VARCHAR(200) NULL,
+			[Name] VARCHAR(200) NULL,
 			[FirstName] VARCHAR(100) NULL,
 			[LastName] VARCHAR(50) NULL,
 			[MiddleName] VARCHAR(50) NULL,
@@ -72,13 +79,13 @@ BEGIN
 		);
 
 		-- FOR QuickBooks
-		IF(ISNULL(@IntegrationTypeId, 0) = 1) 
+		IF(ISNULL(@IntegrationTypeId, 0) = @QBIntegrationTypeId) 
 		BEGIN
 			
-			INSERT INTO #CustomerResults ([CompanyName], [CustomerId], [CustomerCode], [FullName], [FirstName], [LastName], [MiddleName], [Prefix], [Suffix], [Email], [CustomerPhone], 
+			INSERT INTO #CustomerResults ([CompanyName], [CustomerId], [CustomerCode], [Name], [FirstName], [LastName], [MiddleName], [Prefix], [Suffix], [Email], [CustomerPhone], 
 						[ContactTitle], [Fax], [Notes], [Tag], [UpdatedBy], [MasterCompanyId], [CustomerURL], [TermQuickBooksReferenceId])
 			SELECT C.[Name] As CompanyName, C.CustomerId, C.CustomerCode,
-					CON.FirstName + ' ' + CON.LastName AS FullName,
+					CON.FirstName + ' ' + CON.LastName AS [Name],
 					CON.FirstName,
 					CON.LastName,
 					CON.MiddleName,
@@ -102,7 +109,7 @@ BEGIN
 					C.UpdatedBy,
 					C.MasterCompanyId,
 					ISNULL(C.CustomerURL, '') AS CustomerURL,
-					CDT.QuickBooksReferenceId as TermQuickBooksReferenceId
+					C.QuickBooksReferenceId as TermQuickBooksReferenceId
 			FROM dbo.Customer C WITH(NOLOCK) 
 				JOIN dbo.CustomerContact CO WITH(NOLOCK) ON C.CustomerId = CO.CustomerId AND CO.IsDefaultContact = 1
 				JOIN dbo.Contact CON WITH(NOLOCK) ON CO.ContactId = CON.ContactId
@@ -110,7 +117,7 @@ BEGIN
 				--LEFT JOIN dbo.Countries CT WITH (NOLOCK) ON CT.countries_id = AD.CountryId
 				LEFT JOIN dbo.[CustomerFinancial] CF WITH (NOLOCK) ON CF.CustomerId = C.CustomerId
 				LEFT JOIN dbo.[CreditTerms] CDT WITH (NOLOCK) ON CDT.CreditTermsId = CF.CreditTermsId
-			WHERE ISNULL(C.QuickBooksReferenceId, 0) = 0 AND ISNULL(C.IsUpdated, 0) = 1 AND C.MasterCompanyId = @MasterCompanyId 
+			WHERE ISNULL(C.QuickBooksReferenceId, '') = '' AND ISNULL(C.IsUpdated, 0) = 1 AND C.MasterCompanyId = @MasterCompanyId 
 
 			--Updating Customer Primary Billing Address Details
 			UPDATE CUST
@@ -144,6 +151,47 @@ BEGIN
 			LEFT JOIN [dbo].[Address] AD WITH(NOLOCK) ON CDS.AddressId = AD.AddressId
 			LEFT JOIN [dbo].[Countries] CT WITH(NOLOCK) ON AD.CountryId = CT.countries_id
 
+			SELECT * FROM #CustomerResults
+		END
+		ELSE IF (ISNULL(@IntegrationTypeId, 0) = @XeroIntegrationTypeId) 
+		BEGIN
+			INSERT INTO #CustomerResults ([CompanyName], [CustomerId], [CustomerCode], [Name], [FirstName], [LastName], [MiddleName], [Email], [CustomerPhone], 
+						[UpdatedBy], [MasterCompanyId], [CustomerURL], [TermQuickBooksReferenceId])
+			SELECT C.[Name] As CompanyName, C.CustomerId, C.CustomerCode,
+					CON.FirstName + ' ' + CON.LastName AS [Name],
+					CON.FirstName,
+					CON.LastName,
+					CON.MiddleName,
+					CON.Email,
+					CON.WorkPhone AS CustomerPhone,
+					C.UpdatedBy,
+					C.MasterCompanyId,
+					ISNULL(C.CustomerURL, '') AS CustomerURL,
+					C.QuickBooksReferenceId as TermQuickBooksReferenceId
+			FROM dbo.Customer C WITH(NOLOCK) 
+				JOIN dbo.CustomerContact CO WITH(NOLOCK) ON C.CustomerId = CO.CustomerId AND CO.IsDefaultContact = 1
+				JOIN dbo.Contact CON WITH(NOLOCK) ON CO.ContactId = CON.ContactId
+				--JOIN dbo.[Address] AD WITH (NOLOCK) ON C.AddressId = AD.AddressId
+				--LEFT JOIN dbo.Countries CT WITH (NOLOCK) ON CT.countries_id = AD.CountryId
+				LEFT JOIN dbo.[CustomerFinancial] CF WITH (NOLOCK) ON CF.CustomerId = C.CustomerId
+				LEFT JOIN dbo.[CreditTerms] CDT WITH (NOLOCK) ON CDT.CreditTermsId = CF.CreditTermsId
+			WHERE ISNULL(C.QuickBooksReferenceId, '') = '' AND ISNULL(C.IsUpdated, 0) = 1 AND C.MasterCompanyId = @MasterCompanyId 
+			
+			--Updating Customer Primary Billing Address Details
+			UPDATE CUST
+			SET	
+				CUST.BillCountry = UPPER(CT.countries_name),
+				CUST.BillState = UPPER(AD.StateOrProvince),
+				CUST.BillCity = UPPER(AD.City),
+				CUST.BillPostalCode = (AD.PostalCode),
+				CUST.BillAddressLine1 = UPPER(AD.Line1),
+				CUST.BillAddressLine2 = UPPER(AD.Line2),
+				CUST.BillAddressLine3 = UPPER(AD.Line3)
+			FROM #CustomerResults CUST
+			LEFT JOIN [dbo].[CustomerBillingAddress] CBA WITH(NOLOCK) ON CUST.CustomerId = CBA.CustomerId AND CBA.IsPrimary = 1
+			LEFT JOIN [dbo].[Address] AD WITH(NOLOCK) ON CBA.AddressId = AD.AddressId
+			LEFT JOIN [dbo].[Countries] CT WITH(NOLOCK) ON AD.CountryId = CT.countries_id
+			
 			SELECT * FROM #CustomerResults
 		END
 	END TRY    

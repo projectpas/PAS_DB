@@ -7,8 +7,8 @@
     [CompletionDate]         DATETIME2 (7)   NULL,
     [Cost]                   NUMERIC (18, 2) NULL,
     [Duration]               INT             NULL,
-    [Provider]               VARCHAR (30)    NULL,
-    [IndustryCode]           VARCHAR (30)    NULL,
+    [Provider]               VARCHAR (256)   NULL,
+    [IndustryCode]           VARCHAR (256)   NULL,
     [ExpirationDate]         DATETIME2 (7)   NULL,
     [MasterCompanyId]        INT             NOT NULL,
     [CreatedBy]              VARCHAR (256)   NOT NULL,
@@ -39,6 +39,8 @@
     CONSTRAINT [FK_EmployeeTraining_EmployeeTrainingType] FOREIGN KEY ([EmployeeTrainingTypeId]) REFERENCES [dbo].[EmployeeTrainingType] ([EmployeeTrainingTypeId]),
     CONSTRAINT [FK_EmployeeTraining_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId])
 );
+
+
 
 
 

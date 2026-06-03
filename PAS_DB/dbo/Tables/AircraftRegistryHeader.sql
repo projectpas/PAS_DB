@@ -20,6 +20,8 @@
     [AircraftStatus]         VARCHAR (100)   NULL,
     [MaintenanceStatusId]    BIGINT          NULL,
     [MaintenanceStatus]      VARCHAR (100)   NULL,
+    [CustomerId]             BIGINT          NULL,
+    [CustomerName]           VARCHAR (100)   NULL,
     [Memo]                   VARCHAR (MAX)   NULL,
     [StockLineId]            BIGINT          NULL,
     [IsActive]               BIT             CONSTRAINT [DF_AircraftRegistry_IsActive] DEFAULT ((1)) NOT NULL,
@@ -33,11 +35,16 @@
     [LastMaintenanceDate]    DATETIME        NULL,
     [TotalTSNMM]             DECIMAL (18, 6) NULL,
     [TotalCSNMM]             DECIMAL (18, 6) NULL,
+    [LastFlownDate]          DATETIME2 (7)   NULL,
     CONSTRAINT [PK_AircraftRegistry] PRIMARY KEY CLUSTERED ([AircraftRegistryId] ASC),
     CONSTRAINT [FK_AircraftRegistry_AircraftStatus] FOREIGN KEY ([AircraftStatusId]) REFERENCES [dbo].[AircraftStatus] ([AircraftStatusId]),
     CONSTRAINT [FK_AircraftRegistry_MaintenanceStatus] FOREIGN KEY ([MaintenanceStatusId]) REFERENCES [dbo].[MaintenanceStatus] ([MaintenanceStatusId]),
     CONSTRAINT [FK_AircraftRegistry_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId])
 );
+
+
+
+
 
 
 GO

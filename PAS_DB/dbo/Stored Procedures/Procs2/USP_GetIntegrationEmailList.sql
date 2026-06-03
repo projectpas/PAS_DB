@@ -98,10 +98,12 @@ BEGIN
 		  ,ISNULL(IE.[IsRead],0) [IsRead]
 		  ,IE.[EmailPath]
 		  ,CR.[RfqId]
-		  ,TPR.[RfqId] AS [VendorRfqId]
+		  --,TPR.[RfqId] AS [VendorRfqId]
+		  ,ISNULL(TPR.[RfqId], VRFQPO.[VendorRFQPurchaseOrderNumber]) AS [VendorRfqId]
   FROM [dbo].[IntegrationEmail] IE WITH(NOLOCK)	    
   LEFT JOIN [dbo].[CustomerRfq] CR WITH(NOLOCK) ON IE.[CustomerRfqId] = CR.[CustomerRfqId]
   LEFT JOIN [dbo].[ThirdPartyRFQ] TPR WITH(NOLOCK) ON IE.[ThirdPartyRFQId] = TPR.[ThirdPartyRFQId]
+  LEFT JOIN [dbo].[VendorRFQPurchaseOrder] VRFQPO WITH(NOLOCK) ON IE.[ThirdPartyRFQId] = VRFQPO.[VendorRFQPurchaseOrderId]
   WHERE ((IE.MasterCompanyId = @MasterCompanyId) 
     AND (IE.IsDeleted = 0) 	
 	AND (IE.[IsActive] = 1)

@@ -22,8 +22,9 @@
 	9	 05/12/2025	  Ayushi Patel			Added new fields SalesOrderQuoteId,SalesOrderQuoteNumber
 	10	 06/03/2026	  Amit Ghediya			Remove PurchaseOrder open status (PN-15673)
 	12	 08/05/2026	  Priyansh Patel 		Added Ac tail number (PN-16231)
+	16   02/06/2026   Nakul Chandigra       Merge UAT Changes
 ************************************************************************/
-CREATE       PROCEDURE [dbo].[SP_AddUpdatePurchaseOrderParts]
+CREATE     PROCEDURE [dbo].[SP_AddUpdatePurchaseOrderParts]
 	@userName varchar(50) = NULL,
 	@masterCompanyId bigint = NULL,
 	@tbl_PurchaseOrderPartType PurchaseOrderPartType READONLY,
@@ -117,7 +118,7 @@ BEGIN
 										SL.IsKitType = CASE WHEN ISNULL(PT.WorkOrderMaterialsId,0) = 0 THEN 0 ELSE PT.IsKit END,
 										SL.IsSubWOType = CASE WHEN ISNULL(PT.WorkOrderMaterialsId,0) = 0 THEN 0 ELSE PT.IsFromSubWorkOrder END,
 										SL.WorkOrderMaterialsId = CASE WHEN PT.WorkOrderMaterialsId = 0  THEN NULL ELSE PT.WorkOrderMaterialsId END,
-									SL.UpdatedBy = @userName,SL.UpdatedDate = GETUTCDATE()
+									SL.UpdatedBy = @userName,SL.UpdatedDate = GETUTCDATE(), SL.AircraftTailNumber = PT.ACTailNum
 								FROM DBO.StockLineDraft SL
 								JOIN #tmpPoPartList PT ON SL.PurchaseOrderPartRecordId = PT.PurchaseOrderPartRecordId
 								WHERE PT.PurchaseOrderPartRecordId = @PurchaseOrderPartRecordId AND ISNULL(SL.StockLineId,0) = 0

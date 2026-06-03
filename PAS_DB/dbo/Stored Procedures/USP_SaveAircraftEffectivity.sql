@@ -11,7 +11,7 @@
 ** 2    15/05/2026  Amit Ghediya    Added ToSerialNumber/FromSerialNumber
 ** 3    20/05/2026  Amit Ghediya    Removed Part Validation
 ** 4    29/05/2026  Amit Ghediya    Fixed Serial Range Insert
-** 5    02/06/2026  Amit Ghediya    Fixed alphanumeric serial (no dash) range insert e.g. AC454245 -> AC454247 with allow duplicate for same pub.
+** 5    02/06/2026  Amit Ghediya    Fixed alphanumeric serial (no dash) range insert e.g. AC454245 -> AC454247 with allow duplicate for other pub.
 **************************************************************/
  
 CREATE PROCEDURE [dbo].[USP_SaveAircraftEffectivity]

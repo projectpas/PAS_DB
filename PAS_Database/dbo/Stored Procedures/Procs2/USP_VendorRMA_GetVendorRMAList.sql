@@ -29,7 +29,8 @@
 	13   22/07/2024   Amit Ghediya		    Optimization sp.
 	14   22-07-2024   Shrey Chandegara      Modify For date filter issue(use this function @CurrntEmpTimeZoneDesc )
 	15   06-04-2026	  Amit Ghediya			UOM Conversion Changes [PN-15140]  
-     
+	16   03-06-2026	  Priyansh Patel		UOM Conversion Changes for extended cost [PN-16610]  
+
  EXECUTE USP_VendorRMA_GetVendorRMAList 
 **************************************************************/
 CREATE    PROCEDURE [dbo].[USP_VendorRMA_GetVendorRMAList]  
@@ -131,7 +132,7 @@ BEGIN
 			IM.[PartDescription] AS 'PartDescriptionType',
 			([dbo].[fn_ConvertUOM](ISNULL(RMAD.[Qty], 0),IM.[StockUnitOfMeasure], IM.[PurchaseUnitOfMeasure],0,IM.[MasterCompanyId])) AS 'QtyType',
 			([dbo].[fn_ConvertUOM](ISNULL(RMAD.[UnitCost], 0),IM.[StockUnitOfMeasure], IM.[PurchaseUnitOfMeasure],1,IM.[MasterCompanyId])) AS 'UnitCostType',
-			RMAD.[ExtendedCost] AS 'ExtendedCostType',
+			([dbo].[fn_ConvertUOM](ISNULL(RMAD.[ExtendedCost], 0),IM.[StockUnitOfMeasure], IM.[PurchaseUnitOfMeasure],1,IM.[MasterCompanyId])) AS 'ExtendedCostType',
 			RMAD.[ReferenceId] AS 'ReferenceIdType',
 			RMAD.RevisedStocklineId,
 			'' AS 'ReplacementDate',

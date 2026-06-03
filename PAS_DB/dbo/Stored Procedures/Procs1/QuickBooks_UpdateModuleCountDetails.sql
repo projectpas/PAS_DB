@@ -237,6 +237,7 @@ BEGIN
 
 		IF @ModuleId = @BillModuleId
 		BEGIN
+			--------------------------------- QuickBooks ---------------------------------
 			UPDATE ACI
 			SET 
 				SyncRecords = ISNULL(NonPOInvoiceData.NonPOInvoiceCount, 0),
@@ -248,7 +249,7 @@ BEGIN
 			LEFT JOIN (
 				SELECT MasterCompanyId, COUNT(QuickBooksReferenceId) AS NonPOInvoiceCount
 				FROM dbo.NonPOInvoiceHeader  WITH(NOLOCK)
-				WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(QuickBooksReferenceId, 0) > 0
+				WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(QuickBooksReferenceId, '') <> '' AND [IntegrationTypeId] = @QBIntegrationTypeId
 				GROUP BY MasterCompanyId
 			) AS NonPOInvoiceData ON NonPOInvoiceData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @BillModuleId
 
@@ -256,7 +257,7 @@ BEGIN
 			LEFT JOIN (
 				SELECT MasterCompanyId, COUNT(IsUpdated) AS NonPOInvoiceCount
 				FROM dbo.NonPOInvoiceHeader  WITH(NOLOCK)
-				WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(IsUpdated, 0) = 1
+				WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(IsUpdated, 0) = 1 AND [IntegrationTypeId] = @QBIntegrationTypeId
 				GROUP BY MasterCompanyId
 			) AS PendingNonPOInvoiceData ON PendingNonPOInvoiceData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @BillModuleId
 
@@ -264,10 +265,44 @@ BEGIN
 			LEFT JOIN (
 				SELECT MasterCompanyId, COUNT(NonPOInvoiceId) AS NonPOInvoiceCount
 				FROM dbo.NonPOInvoiceHeader  WITH(NOLOCK)
-				WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0
+				WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND [IntegrationTypeId] = @QBIntegrationTypeId
 				GROUP BY MasterCompanyId
 			) AS AllNonPOInvoiceData ON AllNonPOInvoiceData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @BillModuleId
 			WHERE ACI.ModuleId = @BillModuleId
+			
+			--------------------------------- Xero Accounting ---------------------------------
+			UPDATE ACI
+			SET 
+				SyncRecords = ISNULL(NonPOInvoiceData.NonPOInvoiceCount, 0),
+				PendingSyncRecords = ISNULL(PendingNonPOInvoiceData.NonPOInvoiceCount, 0),
+				TotalRecords = ISNULL(AllNonPOInvoiceData.NonPOInvoiceCount, 0)
+			FROM dbo.AccountingIntegrationSettings ACI
+
+			-- NonPOInvoice Data
+			LEFT JOIN (
+				SELECT MasterCompanyId, COUNT(QuickBooksReferenceId) AS NonPOInvoiceCount
+				FROM dbo.NonPOInvoiceHeader  WITH(NOLOCK)
+				WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(QuickBooksReferenceId, '') <> '' AND [IntegrationTypeId] = @XeroIntegrationTypeId
+				GROUP BY MasterCompanyId
+			) AS NonPOInvoiceData ON NonPOInvoiceData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @BillModuleId
+
+			-- Pending NonPOInvoice Data
+			LEFT JOIN (
+				SELECT MasterCompanyId, COUNT(IsUpdated) AS NonPOInvoiceCount
+				FROM dbo.NonPOInvoiceHeader  WITH(NOLOCK)
+				WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(IsUpdated, 0) = 1 AND [IntegrationTypeId] = @XeroIntegrationTypeId
+				GROUP BY MasterCompanyId
+			) AS PendingNonPOInvoiceData ON PendingNonPOInvoiceData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @BillModuleId
+
+			-- All NonPOInvoice Data
+			LEFT JOIN (
+				SELECT MasterCompanyId, COUNT(NonPOInvoiceId) AS NonPOInvoiceCount
+				FROM dbo.NonPOInvoiceHeader  WITH(NOLOCK)
+				WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND [IntegrationTypeId] = @XeroIntegrationTypeId
+				GROUP BY MasterCompanyId
+			) AS AllNonPOInvoiceData ON AllNonPOInvoiceData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @BillModuleId
+			WHERE ACI.ModuleId = @BillModuleId
+
 		END
 
 		---------------CreditTerms Insert
@@ -824,6 +859,8 @@ BEGIN
 
 		IF @ModuleId = @BillPaymentModuleId
 		BEGIN
+			--------------------------------- QuickBooks ---------------------------------
+
 			UPDATE ACI
 			SET 
 				SyncRecords = ISNULL(VendorReadyToPayDetailsData.VendorReadyToPayDetailsCount, 0),
@@ -835,7 +872,7 @@ BEGIN
 			LEFT JOIN (
 				SELECT MasterCompanyId, COUNT(QuickBooksReferenceId) AS VendorReadyToPayDetailsCount
 				FROM dbo.VendorReadyToPayDetails  WITH(NOLOCK)
-				WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(QuickBooksReferenceId, 0) > 0
+				WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(QuickBooksReferenceId, '') <> '' AND [IntegrationTypeId] = @QBIntegrationTypeId
 				GROUP BY MasterCompanyId
 			) AS VendorReadyToPayDetailsData ON VendorReadyToPayDetailsData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @BillPaymentModuleId
 
@@ -843,7 +880,7 @@ BEGIN
 			LEFT JOIN (
 				SELECT MasterCompanyId, COUNT(IsUpdated) AS VendorReadyToPayDetailsCount
 				FROM dbo.VendorReadyToPayDetails  WITH(NOLOCK)
-				WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(IsUpdated, 0) = 1
+				WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(IsUpdated, 0) = 1 AND [IntegrationTypeId] = @QBIntegrationTypeId
 				GROUP BY MasterCompanyId
 			) AS PendingVendorReadyToPayDetailsData ON PendingVendorReadyToPayDetailsData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @BillPaymentModuleId
 
@@ -851,12 +888,46 @@ BEGIN
 			LEFT JOIN (
 				SELECT MasterCompanyId, COUNT(ReadyToPayDetailsId) AS VendorReadyToPayDetailsCount
 				FROM dbo.VendorReadyToPayDetails  WITH(NOLOCK)
-				WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0
+				WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND [IntegrationTypeId] = @QBIntegrationTypeId
 				GROUP BY MasterCompanyId
 			) AS AllVendorReadyToPayDetailsData ON AllVendorReadyToPayDetailsData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @BillPaymentModuleId
 			WHERE ACI.ModuleId = @BillPaymentModuleId
-		END
 
+			--------------------------------- Xero Accounting ---------------------------------
+
+			UPDATE ACI
+			SET 
+				SyncRecords = ISNULL(VendorReadyToPayDetailsData.VendorReadyToPayDetailsCount, 0),
+				PendingSyncRecords = ISNULL(PendingVendorReadyToPayDetailsData.VendorReadyToPayDetailsCount, 0),
+				TotalRecords = ISNULL(AllVendorReadyToPayDetailsData.VendorReadyToPayDetailsCount, 0)
+			FROM dbo.AccountingIntegrationSettings ACI
+
+			-- VendorReadyToPayDetails Data
+			LEFT JOIN (
+				SELECT MasterCompanyId, COUNT(QuickBooksReferenceId) AS VendorReadyToPayDetailsCount
+				FROM dbo.VendorReadyToPayDetails  WITH(NOLOCK)
+				WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(QuickBooksReferenceId, '') <> '' AND [IntegrationTypeId] = @XeroIntegrationTypeId
+				GROUP BY MasterCompanyId
+			) AS VendorReadyToPayDetailsData ON VendorReadyToPayDetailsData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @BillPaymentModuleId
+
+			-- Pending VendorReadyToPayDetails Data
+			LEFT JOIN (
+				SELECT MasterCompanyId, COUNT(IsUpdated) AS VendorReadyToPayDetailsCount
+				FROM dbo.VendorReadyToPayDetails  WITH(NOLOCK)
+				WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(IsUpdated, 0) = 1 AND [IntegrationTypeId] = @XeroIntegrationTypeId
+				GROUP BY MasterCompanyId
+			) AS PendingVendorReadyToPayDetailsData ON PendingVendorReadyToPayDetailsData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @BillPaymentModuleId
+
+			-- All VendorReadyToPayDetails Data
+			LEFT JOIN (
+				SELECT MasterCompanyId, COUNT(ReadyToPayDetailsId) AS VendorReadyToPayDetailsCount
+				FROM dbo.VendorReadyToPayDetails  WITH(NOLOCK)
+				WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND [IntegrationTypeId] = @XeroIntegrationTypeId
+				GROUP BY MasterCompanyId
+			) AS AllVendorReadyToPayDetailsData ON AllVendorReadyToPayDetailsData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @BillPaymentModuleId
+			WHERE ACI.ModuleId = @BillPaymentModuleId
+
+		END
 
 	END TRY    
 	BEGIN CATCH      

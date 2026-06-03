@@ -37,7 +37,7 @@ BEGIN
 		BEGIN TRANSACTION
 			-- Replace the DECLARE block -- add @ContactId:
 			DECLARE
-				@VendorId                     BIGINT,
+				@VendorId                     BIGINT = NULL,
 				@VendorContactId              BIGINT        = NULL,
 				@ContactId                    BIGINT,           -- NEW
 				@PriorityId                   BIGINT,
@@ -65,10 +65,106 @@ BEGIN
 				  )
 			ORDER BY CASE WHEN VendorEmail = @VendorEmail THEN 0 ELSE 1 END;
 
+			DECLARE @VendorCode VARCHAR(100) = NULL;
+
 			-- 2. Create vendor if not found
 			IF @VendorId IS NULL
 			BEGIN
-				-- ... address + vendor INSERT unchanged ...
+				IF @VendorCode IS NULL OR @VendorCode = 'VEN' OR @VendorCode = 'Creating'
+				BEGIN
+					DECLARE @Number BIGINT = 0;
+					DECLARE @CodePrefixId BIGINT = 0;
+					DECLARE @CodePrefix VARCHAR(50) = '', @CodeSufix VARCHAR(50) = '';
+
+					SELECT 
+						@Number = ISNULL(CP.CurrentNummber, CP.StartsFrom), 
+						@CodePrefixId = CP.CodePrefixId,
+						@CodePrefix = CP.CodePrefix,
+						@CodeSufix = CP.CodeSufix
+					FROM dbo.CodeTypes CT WITH (NOLOCK)
+					INNER JOIN dbo.CodePrefixes CP WITH (NOLOCK) ON CT.CodeTypeId = CP.CodeTypeId
+					WHERE 
+						CT.IsActive = 1 AND CT.IsDeleted = 0 AND
+						CP.IsActive = 1 AND CP.IsDeleted = 0 AND
+						CP.MasterCompanyId = @MasterCompanyId AND
+						CT.CodeType = 'Vendor';
+
+					SET @VendorCode = (SELECT * FROM [DBO].[udfGenerateCodeNumberWithOutDash](CAST(@Number AS BIGINT) + 1, @codePrefix,@codeSufix));
+					
+					UPDATE CodePrefixes
+					SET CurrentNummber = @Number + 1
+					WHERE CodePrefixId = @CodePrefixId;
+				END
+
+				SELECT TOP 1 @CountryId = countries_id
+				FROM dbo.Countries WITH (NOLOCK)
+				WHERE countries_name = @Country AND MasterCompanyId = @MasterCompanyId;
+
+				IF (ISNULL(@CountryId, 0) = 0)
+				BEGIN
+					SELECT TOP 1 @CountryId = countries_id
+					FROM dbo.Countries WITH (NOLOCK)
+					WHERE UPPER(countries_name) = 'UNITED STATES' AND MasterCompanyId = @MasterCompanyId;
+				END
+
+				-- Create Address
+				INSERT INTO dbo.Address
+				(
+					Line1, Line2, City, StateOrProvince,
+					PostalCode, CountryId,
+					MasterCompanyId,
+					CreatedBy, UpdatedBy,
+					CreatedDate, UpdatedDate,
+					IsActive, IsDeleted
+				)
+				VALUES
+				(
+					ISNULL(@Address1, 'N/A'), ISNULL(@Address2, 'N/A'), ISNULL(@City, 'N/A'), ISNULL(@StateProvince, 'N/A'),
+					ISNULL(@PostalCode, 'N/A'), @CountryId,
+					@MasterCompanyId,
+					@CreatedBy, @CreatedBy,
+					@Now, @Now,
+					1, 0
+				);
+
+				SET @AddressId = SCOPE_IDENTITY();
+
+				-- Create Vendor
+				INSERT INTO dbo.Vendor
+				(
+					VendorName,
+					VendorCode,
+					VendorEmail,
+					VendorPhone,
+					VendorTypeId,
+					AddressId,
+					MasterCompanyId,
+					CreatedBy,
+					UpdatedBy,
+					CreatedDate,
+					UpdatedDate,
+					IsActive,
+					IsDeleted,
+					Is1099Required
+				)
+				VALUES
+				(
+					@VendorName,
+					@VendorCode,
+					@VendorEmail,
+					@VendorPhone,
+					2,
+					@AddressId,
+					@MasterCompanyId,
+					@CreatedBy,
+					@CreatedBy,
+					@Now,
+					@Now,
+					1,
+					0,
+					0
+				);
+
 				SET @VendorId = SCOPE_IDENTITY();
 			END
 			ELSE
@@ -438,7 +534,7 @@ BEGIN
 	   ,@DatabaseName VARCHAR(100) = db_name()
 	   -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
 	   ,@AdhocComments VARCHAR(150) = 'usp_CreateVendorRFQPOFromEmail'
-	   ,@ProcedureParameters VARCHAR(3000) = '@Parameter1 = ''' + CAST(ISNULL(@IntegrationEmailID, '') AS varchar(100))			  			                                           
+	   ,@ProcedureParameters VARCHAR(3000) = '@Parameter1 = ''' + ISNULL(CAST(@IntegrationEmailID AS VARCHAR(100)), '') + ''''
 	   ,@ApplicationName VARCHAR(100) = 'PAS'
 		-----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------
 		EXEC spLogException @DatabaseName = @DatabaseName

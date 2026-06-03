@@ -9,11 +9,14 @@
  **************************************************************           
  ** PR   Date				Author				Change Description            
  ** --   -------------		----------------	--------------------------------          
-    1    11-September-2025		Divyesh Kathiriya	Created	
+  1    11-September-2025  Divyesh Kathiriya	Created
+	2    26-Mar-2026        Sahdev Saliya       Added [LifeLimitedPart] :-([IsFlightHoursAvailable], [IsFlightCyclesAvailable], [IsLandingsAvailable], [IsStartsAvailable], [IsCalendarTimeAvailable], [FlightHours], [FlightMinutes], [FlightCycles], [Landings], [Starts], [CalendarDate]) (PN-15833, PN-16649_65)
+	3    03-Apr-2026        Sahdev Saliya       Remove LifeLimitedPart (PN-15833, PN-16649_65)
+	4    04-May-2026		    Moin Bloch	        Moved TO API SIDE PN-16014
     
  -- EXEC [USP_AddItemMasterGeneralInfo] 
 **************************************************************/
-Create   PROCEDURE [DBO].[USP_AddItemMasterGeneralInfo]
+CREATE   PROCEDURE [dbo].[USP_AddItemMasterGeneralInfo]
 @tbl_ItemMasterTableType [DBO].[ItemMasterTableType] READONLY
 AS
 BEGIN
@@ -87,7 +90,13 @@ BEGIN
 				[Item], [UNCode], [InventoryGLSettingId], [GoodsReceivedNotInvoicesGLAccId], [WorkInProgressGLAccId], [InventoryToBillGLAccId], [FinishedGoodsGLAccId], [InventoryExchAgreementGLAccId], [InventoryReserveGLAccId], [COGS_WorkOrderGLAccId],
 				[COGS_SalesOrderGLAccId], [COGS_QtyVarianceGLAccId], [COGS_UnitCostVarianceGLAccId], [RevenueMroGLAccId], [RevenueSoGLAccId], [RevenueExchGLAccId], [COGS_ExchSalesOrderGLAccId], [GoodsReceivedNotInvoicesGLAccName], [WorkInProgressGLAccName], [InventoryToBillGLAccName],
 				[FinishedGoodsGLAccName], [InventoryExchAgreementGLAccName], [InventoryReserveGLAccName], [COGS_WorkOrderGLAccName], [COGS_SalesOrderGLAccName], [COGS_QtyVarianceGLAccName], [COGS_UnitCostVarianceGLAccName], [RevenueMroGLAccName], [RevenueSoGLAccName], [RevenueExchGLAccName],
-				[COGS_ExchSalesOrderGLAccName], [IsUpdated], [WorkOrderFormTypeId])
+				[COGS_ExchSalesOrderGLAccName], [IsUpdated], [WorkOrderFormTypeId],
+				[IsFlightHoursAvailable],
+				[IsFlightCyclesAvailable],
+				[IsLandingsAvailable],
+				[IsStartsAvailable],
+				[IsCalendarTimeAvailable],
+				[FlightHours], [FlightMinutes], [FlightCycles], [Landings], [Starts], [CalendarDate])
 			SELECT
 				[ItemTypeId], [PartAlternatePartId], [ItemGroupId], [ItemClassificationId], [IsHazardousMaterial], [IsExpirationDateAvailable], [ExpirationDate], [IsReceivedDateAvailable], [DaysReceived], [IsManufacturingDateAvailable],
 				[ManufacturingDays], [IsTagDateAvailable], [TagDays], [IsOpenDateAvailable], [OpenDays], [IsShippedDateAvailable], [ShippedDays], [IsOtherDateAvailable], [OtherDays], 
@@ -103,7 +112,13 @@ BEGIN
 				[Item], [UNCode], [InventoryGLSettingId], [GoodsReceivedNotInvoicesGLAccId], [WorkInProgressGLAccId], [InventoryToBillGLAccId], [FinishedGoodsGLAccId], [InventoryExchAgreementGLAccId], [InventoryReserveGLAccId], [COGS_WorkOrderGLAccId],
 				[COGS_SalesOrderGLAccId], [COGS_QtyVarianceGLAccId], [COGS_UnitCostVarianceGLAccId], [RevenueMroGLAccId], [RevenueSoGLAccId], [RevenueExchGLAccId], [COGS_ExchSalesOrderGLAccId], [GoodsReceivedNotInvoicesGLAccName], [WorkInProgressGLAccName], [InventoryToBillGLAccName],
 				[FinishedGoodsGLAccName], [InventoryExchAgreementGLAccName], [InventoryReserveGLAccName], [COGS_WorkOrderGLAccName], [COGS_SalesOrderGLAccName], [COGS_QtyVarianceGLAccName], [COGS_UnitCostVarianceGLAccName], [RevenueMroGLAccName], [RevenueSoGLAccName], [RevenueExchGLAccName],
-				[COGS_ExchSalesOrderGLAccName], [IsUpdated], [WorkOrderFormTypeId]
+				[COGS_ExchSalesOrderGLAccName], [IsUpdated], [WorkOrderFormTypeId],
+				[IsFlightHoursAvailable],
+				[IsFlightCyclesAvailable],
+				[IsLandingsAvailable],
+				[IsStartsAvailable],
+				[IsCalendarTimeAvailable],
+				[FlightHours], [FlightMinutes], [FlightCycles], [Landings], [Starts], [CalendarDate]
 			FROM @tbl_ItemMasterTableType;
 
 			SET @ItemMasterId = SCOPE_IDENTITY();
@@ -126,7 +141,7 @@ BEGIN
 
 			EXEC [DBO].[UpdateItemMasterDetail] @ItemMasterId;				
 
-			EXEC [DBO].[QuickBooks_UpdateModuleCountDetails] @MasterCompanyId, @ItemMasterModuleId; 
+			--EXEC [DBO].[QuickBooks_UpdateModuleCountDetails] @MasterCompanyId, @ItemMasterModuleId; 
 
 		END
 		ELSE

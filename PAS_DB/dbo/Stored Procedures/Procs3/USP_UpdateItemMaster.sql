@@ -11,9 +11,11 @@
 ** --    --------     -------           -------------------------------          
 ** 1     19-Nov-2025   Bhargav Saliya   Created  
 ** 2     09-Mar-2026   Vishal Suthar    Handled UnitOfMeasureId to have NULL instead of 0 which will throw foreignkey constraint
+** 3     26-Mar-2026   Sahdev Saliya    Added [LifeLimitedPart] :-([IsFlightHoursAvailable], [IsFlightCyclesAvailable], [IsLandingsAvailable], [IsStartsAvailable], [IsCalendarTimeAvailable], [FlightHours], [FlightMinutes], [FlightCycles], [Landings], [Starts], [CalendarDate]) (PN-15833, PN-16649_65)
+** 4     03-Apr-2026   Sahdev Saliya    Remove LifeLimitedPart (PN-15833, PN-16649_65)
 
 **************************************************************/
-CREATE     PROCEDURE [dbo].[USP_UpdateItemMaster]
+create       PROCEDURE [dbo].[USP_UpdateItemMaster]
     @tbl_ItemMasterUpdateType [TBL_ItemMasterUpdateType] readonly,
     @tbl_BigInt [TVP_BigInt] readonly,
 	@Id BIGINT,
@@ -28,14 +30,14 @@ BEGIN
 	DECLARE @imItemMasterId BIGINT ,@imManufacturerId BIGINT,@imPartNumber VARCHAR(256),@MasterCompanyId INT, @AccountingModuleId BIGINT;
 
 	--MasterParts TABLE variables Declaration--
-	DECLARE @mItemMasterId BIGINT,@MasterPartId BIGINT,@PartDescription VARCHAR(256),@PartNumber VARCHAR(256),@ManufacturerId BIGINT,
+	DECLARE @mItemMasterId BIGINT,@MasterPartId BIGINT,@PartDescription VARCHAR(256),@PartNumber VARCHAR(256),@ManufacturerId BIGINT,@QuickBooksReferenceId VARCHAR(200),@IntegrationTypeId INT,
 			@mMasterCompanyId BIGINT,@CreatedBy VARCHAR(200),@UpdatedBy VARCHAR(200),@CreatedDate DATETIME2,@IsActive BIT,@IsDeleted BIT;
 
 	SELECT @MasterCompanyId = MasterCompanyId,@imManufacturerId = ManufacturerId,@imPartNumber = PartNumber FROM @tbl_ItemMasterUpdateType tempTbl where  tempTbl.ItemMasterId = @Id
 
 	SELECT @AccountingModuleId = AccountingModuleId FROM dbo.AccountingModule WITH(NOLOCK) WHERE AccountingModuleName = 'ItemMaster' 
 
-	SELECT	@mItemMasterId = ItemMasterId,@MasterPartId = MasterPartId,@PartDescription = PartDescription,
+	SELECT	@mItemMasterId = ItemMasterId,@MasterPartId = MasterPartId,@PartDescription = PartDescription, @QuickBooksReferenceId = [QuickBooksReferenceId], @IntegrationTypeId = [IntegrationTypeId],
 			@PartNumber = PartNumber,@ManufacturerId = ManufacturerId,@mMasterCompanyId = MasterCompanyId,@CreatedBy = CreatedBy,
 			@UpdatedBy = UpdatedBy,@CreatedDate = CreatedDate,@IsActive = IsActive,@IsDeleted = IsDeleted
 	FROM [dbo].ItemMaster WITH(NOLOCK) WHERE ItemMasterId = @Id
@@ -177,6 +179,17 @@ BEGIN
 		,i.COGS_ExchSalesOrderGLAccName = PST.COGS_ExchSalesOrderGLAccName
 		,i.IsUpdated = 1
 		,i.WorkOrderFormTypeId = PST.WorkOrderFormTypeId
+		,i.IsFlightHoursAvailable = PST.IsFlightHoursAvailable
+		,i.IsFlightCyclesAvailable = PST.IsFlightCyclesAvailable
+		,i.IsLandingsAvailable = PST.IsLandingsAvailable
+		,i.IsStartsAvailable = PST.IsStartsAvailable
+		,i.IsCalendarTimeAvailable = PST.IsCalendarTimeAvailable
+		,i.FlightHours = PST.FlightHours
+		,i.FlightMinutes = PST.FlightMinutes
+		,i.FlightCycles = PST.FlightCycles
+		,i.Landings = PST.Landings
+		,i.Starts = PST.Starts
+		,i.CalendarDate = PST.CalendarDate
 		FROM dbo.ItemMaster i WITH(NOLOCK)
 		JOIN @tbl_ItemMasterUpdateType PST ON i.ItemMasterId = PST.ItemMasterId AND i.MasterCompanyId = PST.MasterCompanyId
 		WHERE i.ItemMasterId = @Id;
@@ -207,10 +220,10 @@ BEGIN
 
 		EXEC dbo.UpdateItemMasterDetail @Id
 
-		EXEC [dbo].[QuickBooks_UpdateModuleCountDetails] @MasterCompanyId, @AccountingModuleId
+		--EXEC [dbo].[QuickBooks_UpdateModuleCountDetails] @MasterCompanyId, @AccountingModuleId
 
 	END
-	SELECT @MasterPartId AS [MasterPartId];
+	SELECT @MasterPartId AS [MasterPartId],@QuickBooksReferenceId AS [QuickBooksReferenceId], @IntegrationTypeId AS [IntegrationTypeId]
   COMMIT TRANSACTION
   END TRY
   BEGIN CATCH

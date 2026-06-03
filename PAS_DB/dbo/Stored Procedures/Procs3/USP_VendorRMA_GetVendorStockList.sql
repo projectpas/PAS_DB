@@ -13,7 +13,7 @@
     1    06/12/2023			Moin Bloch			Created
     2    12-July-2023		Devendra SHekh     added condition to for @IsVCMAdd
     3    07-Nov-2023		Devendra SHekh     added case for vendorData
-
+    4    02-JUN-2026		Rajesh Gami		   Handle IsNull (ISNULL(StockLineId,0)) While getting data from VendorCreditMemoDetail [PN-16521]
 *******************************************************************************
 *******************************************************************************/
 CREATE   PROCEDURE [dbo].[USP_VendorRMA_GetVendorStockList] 
@@ -193,7 +193,7 @@ BEGIN
 			WHERE ISNULL(SL.[IsDeleted],0) = 0 AND ISNULL(SL.[IsActive],1) = 1 AND SL.[MasterCompanyId] = @MasterCompanyId AND SL.[IsParent] = 1
 			AND SL.[QuantityOnHand] > 0 AND SL.[QuantityAvailable] > 0 AND (@VendorId = 0 OR SL.[VendorId] = @VendorId) AND (SL.[PurchaseOrderId] > 0 OR SL.[RepairOrderId] > 0) 
 			AND SL.StockLineId NOT IN 
-			(SELECT StockLineId FROM VendorCreditMemoDetail vcmd WITH(NOLOCK)
+			(SELECT ISNULL(StockLineId,0) FROM VendorCreditMemoDetail vcmd WITH(NOLOCK)
 			LEFT JOIN [dbo].[VendorCreditMemo] vcm WITH(NOLOCK) ON vcmd.VendorCreditMemoId = vcm.VendorCreditMemoId 
 			WHERE vcmd.VendorRMAId = 0 AND vcm.VendorCreditMemoStatusId != (SELECT Id FROM CreditMemoStatus WHERE [Name] = 'Closed'))
 		), ResultCount AS(SELECT COUNT([StockLineId]) AS totalItems FROM Result) 

@@ -17,6 +17,7 @@
 	7    20/05/2026	    Moin Bloch			    Added @IsMtceRecordUpdated [PN-16449]
     8    22/05/2026     Ayushi Patel            [PN-16553] Save MaintenanceType from WorkScope table
     9    01/06/2026     Ayushi Patel            [PN-16657] Save MaintenanceType from VW_WorkScopeType table
+   10    02/06/2026     Abhishek Jirawla        Added IsScheduled [PN-16679]
 **************************************************************/
 CREATE PROCEDURE [dbo].[USP_CreateUpdateAircraftMaintenanceProgram]
     @ProgramId                  BIGINT,
@@ -39,7 +40,8 @@ CREATE PROCEDURE [dbo].[USP_CreateUpdateAircraftMaintenanceProgram]
     @IsVersionIncrease          BIT             = 0,
 	@TailNumber      VARCHAR(50)     = NULL,
     @MtcCategoryId          BIGINT,
-	@IsMtceRecordUpdated    BIT          = NULL
+	@IsMtceRecordUpdated    BIT          = NULL,
+	@IsScheduled    BIT          = NULL
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -208,7 +210,8 @@ BEGIN
 				IsDeleted       = @IsDeleted,
 				UpdatedBy       = @UpdatedBy,
 				UpdatedDate     = GETUTCDATE(),
-                MtcCategoryId = @MtcCategoryId
+                MtcCategoryId = @MtcCategoryId,
+                IsScheduled = @IsScheduled
 			WHERE ProgramId = @ProgramId 
 			AND MasterCompanyId = @MasterCompanyId;
         END
@@ -228,7 +231,7 @@ BEGIN
                 CyclesLimit, TimeLimit, LandingsLimit, EngineStartsLimit,
                 FlightHoursRemainingHours,FlightHoursRemainingMinutes,CyclesRemaining,
                 IsActive, IsDeleted, MasterCompanyId,
-                CreatedBy, UpdatedBy, CreatedDate, UpdatedDate,MtcCategoryId,IsMtceRecordUpdated
+                CreatedBy, UpdatedBy, CreatedDate, UpdatedDate,MtcCategoryId,IsMtceRecordUpdated, IsScheduled
             )
             VALUES
             (
@@ -240,7 +243,7 @@ BEGIN
                 @CyclesLimit, @TimeLimit, @LandingsLimit, @EngineStartsLimit,
                 @FlightHoursLimitHours, @FlightHoursLimitMinutes, @CyclesLimit,
                 ISNULL(@IsActive, 1), ISNULL(@IsDeleted, 0), @MasterCompanyId,
-                @CreatedBy, @UpdatedBy, GETUTCDATE(), GETUTCDATE(),@MtcCategoryId, @IsMtceRecordUpdated
+                @CreatedBy, @UpdatedBy, GETUTCDATE(), GETUTCDATE(),@MtcCategoryId, @IsMtceRecordUpdated, @IsScheduled
             );
 
             SET @ProgramId = SCOPE_IDENTITY();

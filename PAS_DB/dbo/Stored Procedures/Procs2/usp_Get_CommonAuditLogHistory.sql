@@ -23,6 +23,7 @@
     7       10-MAR-2026     NAKUL CHANDIGRA         Add a condition of IgnoreColumn In '@sql = N';WITH S AS' to prevent Getting dublicate row (PN-15590)
     8       29-MAR-2026     Amit Ghediya            get aircraft data.(PN-16154)
     9 	    15-MAY-2026	    DIVYESH KATHIRIYA       Combine Aircraft Hour and Minitues Like HH:MM. [PN-16398]
+    12      02-JUN-2026     DIVYESH KATHIRIYA       Filter Aircraft Cycle History Noise From EngineName and metadata-only rows.[PN-16634]
 
     EXEC usp_Get_CommonAuditLogHistory @ModuleId=87,@PK_Key=N'AircraftCycleTimeMappingsId',@PK_Value=8,@EmployeeId=236, @SubModuleId=88, @SubPK_Key = '',@SubPK_Value=0
 **********************/ 
@@ -181,7 +182,7 @@ BEGIN
 				FROM AircraftEngineStartsMappings
 			WHERE AircraftCycleTimeMappingsId = @PK_Value;
 
-			SET @sql = N';WITH S AS
+			SET @sql = N';WITH RawS AS
 						(
 							SELECT
 								AuditId,
@@ -216,7 +217,35 @@ BEGIN
 							  AND (@StartAt IS NULL OR ChangedAt >= @StartAt)
 							  AND (@EndAt   IS NULL OR ChangedAt <  @EndAt)
 							  AND TRY_CONVERT(INT, JSON_VALUE(PKJson, ''$.aircraftenginestartsmappingsid'')) IN (SELECT value FROM STRING_SPLIT(@DetailId, '',''))
-						),';
+						),
+                        FilterData AS
+						(
+							SELECT DISTINCT
+								TableName,
+								PKJson,
+								ChangedAt,
+								[Action]
+							FROM RawS
+							WHERE ColumnName NOT IN (''UpdatedBy'', ''UpdatedDate'', ''CreatedBy'', ''CreatedDate'')
+							  AND NOT (
+									TableName = @SubModule
+									AND ColumnName = ''EngineName''
+									AND (
+										(OldValue IS NULL AND NewValue IS NULL)
+										OR (OldValue IS NOT NULL AND NewValue IS NOT NULL AND OldValue = NewValue)
+									)
+							  )
+						),
+						S AS
+						(
+							SELECT AL.*
+							FROM RawS AL
+							INNER JOIN FilterData FD
+								ON FD.TableName = AL.TableName
+								AND FD.PKJson = AL.PKJson
+								AND FD.ChangedAt = AL.ChangedAt
+								AND FD.[Action] = AL.[Action]                        
+                        ),';
         END
         ELSE
         BEGIN
@@ -278,6 +307,8 @@ BEGIN
                 GROUP BY TableName, PKJson, ChangedAt, [Action]
             )
             SELECT
+                p.TableName AS AuditTableName,
+                p.PKJson AS AuditPKJson,
                 CASE 
                     WHEN @CurrntEmpTimeZoneDesc IS NULL OR LEN(@CurrntEmpTimeZoneDesc) = 0
                             THEN COALESCE(p.[UpdatedDate], p.ChangedAt)

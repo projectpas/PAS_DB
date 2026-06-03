@@ -22,6 +22,8 @@
     [AircraftStatus]      VARCHAR (100)   NULL,
     [MaintenanceStatusId] BIGINT          NULL,
     [MaintenanceStatus]   VARCHAR (100)   NULL,
+    [CustomerId]          BIGINT          NULL,
+    [CustomerName]        VARCHAR (100)   NULL,
     [Memo]                VARCHAR (MAX)   NULL,
     [IsActive]            BIT             NULL,
     [IsDeleted]           BIT             NULL,

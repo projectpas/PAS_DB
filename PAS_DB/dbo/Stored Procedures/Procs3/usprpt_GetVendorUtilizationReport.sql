@@ -17,6 +17,7 @@
 	2    16-JUNE-2023   Devendra Shekh      made changes TO DO TOTAL
 	3    29-MARCH-2024  Ekta Chandegra      IsDeleted and IsActive flag is added
 	4	 11/05/2024		Vishal Suthar		Modified to make use of new SO Part tables
+  5	 02/06/2024		Sumit Kumar		Modified to correct Extended amount value
 **************************************************************/
 
 CREATE      PROCEDURE [dbo].[usprpt_GetVendorUtilizationReport]  
@@ -162,7 +163,7 @@ UPPER(MSD.Level8Name) AS level8,    UPPER(MSD.Level9Name) AS level9,    UPPER(MS
 		ISNULL(STL.UnitCost ,0) AS 'unitcost',
         UPPER(POP.functionalcurrency) 'currency',  
         --STL.PurchaseOrderExtendedCost 'extamount', 
-		ISNULL(STL.PurchaseOrderExtendedCost , 0) AS 'extamount',
+		ISNULL(POP.QuantityOrdered, 0) * ISNULL(STL.UnitCost, 0) AS 'extamount',
         'N/A' 'localamount',  
         FORMAT (POP.NeedByDate, 'MM/dd/yyyy hh:mm:tt') 'requestdate',  
         UPPER(ISNULL(POP.workorderno,'')) 'wonum',  

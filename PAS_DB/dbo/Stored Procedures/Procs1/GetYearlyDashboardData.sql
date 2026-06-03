@@ -22,6 +22,7 @@
 	8	 26-June-2025	Devendra Shekh				Billing Table Changes
 	9	 30-June-2025	Devendra Shekh				SO Billing Table Changes
 	10	 03 NOV 2025	HEMANT SALIYA				Corrected Dashbord MRO Billing Last 12 month trend Reports
+	11	 02 JUNE 2026	RAJESH GAMI					Fixed : Amount related issues for the SO
 **********************/
 /*************************************************************
 EXEC [dbo].[GetYearlyDashboardData] 1, 2, 2, '2025-06-24 00:00:00'
@@ -138,13 +139,11 @@ BEGIN
 					;WITH cte(Total, Mnth) AS (
 						SELECT SUM(Quantity), @Month FROM DBO.ReceivingCustomerWork RC WITH (NOLOCK)
 							INNER JOIN #tmpRCWorkOrderUserRole TMP ON TMP.ReferenceID = RC.ReceivingCustomerWorkId
-							--INNER JOIN dbo.WorkOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @RecevingModuleID AND MSD.ReferenceID = RC.ReceivingCustomerWorkId
-							--INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON RC.ManagementStructureId = RMS.EntityStructureId
-							--INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
 						WHERE 
 							MONTH(Cast(DATEADD(SECOND, @BaseUtcOffsetSec, ReceivedDate) as Date)) = @Month 
 							AND YEAR(Cast(DATEADD(SECOND, @BaseUtcOffsetSec, ReceivedDate) as Date)) = @Year
 							AND RC.MasterCompanyId = @MasterCompanyId
+							AND ISNULL(RC.IsDeleted,0) = 0 AND ISNULL(RC.IsActive,0) = 1
 					)
 
 					SELECT @Cnts = SUM(Total) FROM cte GROUP BY Mnth
@@ -157,22 +156,19 @@ BEGIN
 					DECLARE @Amt DECIMAL(18, 2) = 0;
 
 					;WITH cte(Total, Mnth) AS (
-						--SELECT CASE WHEN WOBI.CostPlusType = 'Flat Rate' THEN ISNULL(SUM(wobii.UnitPrice),0) ELSE ISNULL(SUM(wobii.GrandTotal),0) END , @Month Total
-						SELECT --(ISNULL(SUM(WOBI.GrandTotal),0) - (ISNULL(SUM(WOBI.SalesTax),0) + ISNULL(SUM(WOBI.OtherTax),0))) AS GrandTotal
+						SELECT 
 						CASE WHEN wobii.CostPlusType = 'Flat Rate' AND ISNULL(SUM(wobii.GrandTotal),0) > 0 THEN (ISNULL(SUM(wobii.GrandTotal),0) - (ISNULL(SUM(wobii.SalesTax),0) + ISNULL(SUM(wobii.OtherTax),0))) ELSE CASE WHEN ISNULL(SUM(wobii.GrandTotal),0) > 0 THEN (ISNULL(SUM(wobii.GrandTotal), 0) - (ISNULL(Sum(wobii.SalesTax), 0) + ISNULL(SUM(wobii.OtherTax), 0))) WHEN ISNULL(SUM(wobii.SubTotal),0) > 0 THEN ISNULL(SUM(wobii.SubTotal),0) ELSE ISNULL(SUM(wobii.UnitPrice),0) END END AS GrandTotal,   
 						@Month Total
 						FROM DBO.BillingInvoicing WOBI WITH (NOLOCK) 
 							LEFT JOIN DBO.BillingInvoicingItems wobii WITH(NOLOCK) on wobi.BillingInvoicingId = wobii.BillingInvoicingId AND ISNULL(wobii.IsVersionIncrease, 0) = 0 AND ISNULL(wobii.IsPerformaInvoice, 0) = 0 AND wobii.SubModuleId = @SubModuleId
 							INNER JOIN DBO.WorkOrderPartNumber wop WITH(NOLOCK) on wop.ID = wobii.SubReferenceId
 							INNER JOIN #tmpWorkOrderUserRole TMP ON TMP.ReferenceID = wop.ID
-							--INNER JOIN dbo.WorkOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @wopartModuleID AND MSD.ReferenceID = wop.ID
-							--INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON WOBI.ManagementStructureId = RMS.EntityStructureId
-							--INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
+							
 						WHERE ISNULL(WOBI.IsVersionIncrease, 0) = 0 
 							AND MONTH(Cast(DATEADD(SECOND, @BaseUtcOffsetSec,InvoiceDate) as Date)) = @Month AND YEAR(Cast(DATEADD(SECOND, @BaseUtcOffsetSec, InvoiceDate) as Date)) = @Year
 							AND WOBI.MasterCompanyId = @MasterCompanyId
 							AND ISNULL(wobii.IsPerformaInvoice, 0) = 0
-							AND WOBI.ModuleId = @WOModuleId
+							AND WOBI.ModuleId = @WOModuleId 	AND ISNULL(wop.IsDeleted,0) = 0 AND ISNULL(wop.IsActive,0) = 1
 						GROUP BY wobii.CostPlusType
 					)
 
@@ -189,10 +185,8 @@ BEGIN
 						SELECT ISNULL(SUM(GrandTotal),0) - (ISNULL(SUM(SalesTax),0) + ISNULL(SUM(OtherTax),0)), @Month FROM DBO.BillingInvoicing SOBI WITH (NOLOCK) 
 							INNER JOIN dbo.SalesOrder SO WITH (NOLOCK) ON SO.SalesOrderId = SOBI.ReferenceId
 							INNER JOIN #tmpSalesOrderUserRole MSD WITH (NOLOCK) ON MSD.ReferenceID = SO.SalesOrderId
-							--INNER JOIN dbo.SalesOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @SalesOrderModuleID AND MSD.ReferenceID = SO.SalesOrderId
-							--INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON SO.ManagementStructureId = RMS.EntityStructureId
-							--INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
-						WHERE 
+						WHERE
+						ISNULL(SO.IsDeleted,0) = 0 AND ISNULL(SO.IsActive,0) = 1 AND
 						MONTH(Cast(DATEADD(SECOND, @BaseUtcOffsetSec, InvoiceDate) as Date)) = @Month AND YEAR(Cast(DATEADD(SECOND, @BaseUtcOffsetSec, InvoiceDate) as Date)) = @Year
 							AND SOBI.MasterCompanyId = @MasterCompanyId AND ISNULL(SOBI.IsPerformaInvoice,0) = 0 AND ISNULL(SOBI.IsVersionIncrease,0) = 0 AND SOBI.ModuleId = @SOModuleId
 					)

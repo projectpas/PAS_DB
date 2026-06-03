@@ -17,6 +17,7 @@
  **	1							
  **	2		20-Jan-2025		Devendra Shekh		Added IsQuickBookEnabled to select and formatted the SP
  **	3		10-JUL-2025		Moin Bloch  		Added IsBillingMultipleMPN 
+ **	4		06-MAY-2026		Moin Bloch  		Added IsXeroAccountingEnabled
 
  EXEC [usp_GetcompanyDetails] 20
 **************************************************************/    
@@ -32,7 +33,7 @@ BEGIN
   
 	  SELECT	MasterCompanyId, MasterCompanyCode, CompanyName, TaxId, EmailAddress, companylogo,
 				Line1, Line2, City, StateOrProvince, PostalCode, CountryId, PhoneNumber, ISNULL(IsQuickBookEnabled, 0) AS IsQuickBookEnabled, 
-				ISNULL(IsBillingMultipleMPN, 0) AS IsBillingMultipleMPN 
+				ISNULL(IsBillingMultipleMPN, 0) AS IsBillingMultipleMPN, ISNULL([IsXeroAccountingEnabled], 0) AS [IsXeroAccountingEnabled]  
 	  FROM [dbo].[MasterCompany] WITH(NOLOCK) WHERE MasterCompanyId = @mastercompanyid
 
     COMMIT TRANSACTION  

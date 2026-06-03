@@ -16,7 +16,7 @@
  ** --   --------			-------			--------------------------------          
 	1	22-June-2023		Devendra			created
 	2    07-Nov-2023	    Devendra Shekh		added new columns for select 
-     
+    3    02-JUN-2026		Rajesh Gami			return IsAdhoc [PN-16521]   
 EXECUTE   [dbo].[USP_GetVendorCreditMemoDetails_ById] 63
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_GetVendorCreditMemoDetails_ById]
@@ -61,7 +61,8 @@ BEGIN
 					vcm.OpenDate,
 					vcm.RequestedBy,
 					ISNULL(vcm.Notes, '') AS Notes,
-					v.VendorCode
+					v.VendorCode,
+					ISNULL(vcm.IsAdhoc,0) as IsAdhoc
 				FROM [DBO].[VendorCreditMemo] vcm WITH (NOLOCK)	
 				LEFT JOIN [dbo].[Currency] cu WITH(NOLOCK) on vcm.CurrencyId = cu.CurrencyId
 				LEFT JOIN [dbo].[VendorRMA] vrm WITH(NOLOCK) on vcm.VendorRMAId = vrm.VendorRMAId
@@ -98,7 +99,8 @@ BEGIN
 					vcm.OpenDate,
 					vcm.RequestedBy,
 					ISNULL(vcm.Notes, '') AS Notes,
-					v.VendorCode
+					v.VendorCode,
+					ISNULL(vcm.IsAdhoc,0) as IsAdhoc
 				FROM [DBO].[VendorCreditMemo] vcm WITH (NOLOCK)	
 				LEFT JOIN [dbo].[VendorCreditMemoDetail] vcmd WITH(NOLOCK) on vcm.VendorCreditMemoId = vcmd.VendorCreditMemoId
 				LEFT JOIN [dbo].[Currency] cu WITH(NOLOCK) on vcm.CurrencyId = cu.CurrencyId

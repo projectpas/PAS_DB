@@ -198,8 +198,8 @@ BEGIN
 						INNER JOIN [dbo].[Vendor] VN WITH(NOLOCK) ON PO.VendorId = VN.VendorId					
 						LEFT JOIN [dbo].[AllAddress] AA WITH(NOLOCK) ON AA.ModuleId = @POModuleId AND AA.ReffranceId = PO.PurchaseOrderId AND AA.IsShippingAdd = 1
 					WHERE ISNULL(PO.QuickBooksReferenceId, '') = ''
-					  AND ISNULL(PO.IsUpdated, 0) = 1 
-					  --AND PO.PurchaseOrderId = @ReferenceId 
+					  AND ISNULL(PO.IsUpdated, 0) = 1 					  
+					  AND (@ReferenceId IS NULL OR @ReferenceId = 0 OR PO.PurchaseOrderId = @ReferenceId) 
 					  AND PO.MasterCompanyId = @MasterCompanyId
 					  AND PO.IsActive = 1
 					  AND PO.IsDeleted = 0
@@ -220,11 +220,55 @@ BEGIN
 						LEFT JOIN [dbo].[ItemMaster] IM WITH(NOLOCK) ON IM.ItemMasterId = POP.ItemMasterId
 						LEFT JOIN [dbo].[GLAccount] GL WITH(NOLOCK) ON GL.GLAccountId = @POGlAccountId
 					WHERE ISNULL(PO.QuickBooksReferenceId, '') = '' AND 
-						  ISNULL(PO.IsUpdated, 0) = 1 AND 
-						  --PO.PurchaseOrderId = @ReferenceId AND 
+						  ISNULL(PO.IsUpdated, 0) = 1 AND 						  
+						  (@ReferenceId IS NULL OR @ReferenceId = 0 OR PO.PurchaseOrderId = @ReferenceId) AND  
 						  PO.MasterCompanyId = @MasterCompanyId AND		
 						  POP.IsActive = 1 AND
 						  POP.IsDeleted = 0
+			END
+			IF(ISNULL(@ReferenceModuleId, 0) = ISNULL(@ROModuleId, 0)) 
+			BEGIN
+				 SELECT RO.RepairOrderId AS ReferenceId,
+						RO.RepairOrderNumber AS ReferenceNumber,
+						VN.QuickBooksReferenceId AS ContactID,
+						VN.VendorName AS VendorName,	
+						RO.VendorContactEmail,
+						RO.OpenDate,
+						RO.NeedByDate,
+						DeliveryAddress = (SELECT dbo.FN_ValidatePDFAddress(AA.[Line1],AA.[Line2],NULL,AA.[City],AA.[StateOrProvince],AA.[PostalCode],ISNULL(AA.[Country], ''),NULL,NULL,NULL)),
+						AA.ContactPhoneNo,				
+						RO.MasterCompanyId,
+						RO.UpdatedBy					
+					FROM [dbo].[RepairOrder] RO WITH(NOLOCK)
+						INNER JOIN [dbo].[Vendor] VN WITH(NOLOCK) ON RO.VendorId = VN.VendorId					
+						LEFT JOIN [dbo].[AllAddress] AA WITH(NOLOCK) ON AA.ModuleId = @ROModuleId AND AA.ReffranceId = RO.RepairOrderId AND AA.IsShippingAdd = 1
+					WHERE ISNULL(RO.QuickBooksReferenceId, '') = ''
+					  AND ISNULL(RO.IsUpdated, 0) = 1 					  
+					  AND (@ReferenceId IS NULL OR @ReferenceId = 0 OR RO.RepairOrderId = @ReferenceId) 
+					  AND RO.MasterCompanyId = @MasterCompanyId
+					  AND RO.IsActive = 1
+					  AND RO.IsDeleted = 0
+				
+					SELECT RO.[RepairOrderId] AS ReferenceId,										
+						  ROP.[RepairOrderPartRecordId],
+						   IM.[QuickBooksReferenceId] AS [ItemID],
+						  ROP.[ItemMasterId],
+						  ROP.[PartNumber] + ' ' + ROP.[PartDescription] [Description],
+						  ROP.[UnitCost],
+						  ROP.[QuantityOrdered],				
+						   GL.[AccountName] AS ROAPAccountName,
+						   RO.[QuickBooksReferenceId] AS ROAPAccountValue						   
+					FROM [dbo].[RepairOrder] RO WITH(NOLOCK)
+					   INNER JOIN [dbo].[Vendor] VN WITH(NOLOCK) ON RO.VendorId = VN.VendorId
+						LEFT JOIN [dbo].[RepairOrderPart] ROP WITH(NOLOCK) ON ROP.RepairOrderId = RO.RepairOrderId
+						LEFT JOIN [dbo].[ItemMaster] IM WITH(NOLOCK) ON IM.ItemMasterId = ROP.ItemMasterId
+						LEFT JOIN [dbo].[GLAccount] GL WITH(NOLOCK) ON GL.GLAccountId = @ROGlAccountId
+					WHERE ISNULL(RO.QuickBooksReferenceId, '') = '' AND 
+						  ISNULL(RO.IsUpdated, 0) = 1 AND 						  
+						  (@ReferenceId IS NULL OR @ReferenceId = 0 OR RO.RepairOrderId = @ReferenceId) AND  
+						  RO.MasterCompanyId = @MasterCompanyId AND		
+						  ROP.IsActive = 1 AND
+						  ROP.IsDeleted = 0
 			END
 		END
 

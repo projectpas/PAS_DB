@@ -17,6 +17,8 @@
 	2    16-JUNE-2023   Devendra Shekh      made changes TO DO TOTAL
 	3    29-MARCH-2024  Ekta Chandegra      IsDeleted and IsActive flag is added
 	4	 11/05/2024		Vishal Suthar		Modified to make use of new SO Part tables
+	5	 03/06/2026		Priyansh Patel 		Uom releted changes [PN-15917]
+
 **************************************************************/
 
 CREATE      PROCEDURE [dbo].[usprpt_GetVendorUtilizationReport]  
@@ -225,7 +227,9 @@ UPPER(MSD.Level8Name) AS level8,    UPPER(MSD.Level9Name) AS level9,    UPPER(MS
 				GROUP BY masterCompanyId)
 
 			  SELECT COUNT(2) OVER () AS TotalRecordsCount, level1, level2, level3, level4, level5, level6, level7, level8, level9, level10, ponum,
-					podate, pn, pndescription, itemtype, stocktype, status, vendorname, vendorcode, uom, qty, PurchaseOrderId,
+					podate, pn, pndescription, itemtype, stocktype, status, vendorname, vendorcode, uom, 
+                    
+                    FORMAT(ISNULL(qty, 0), 'N', 'en-us') 'qty', PurchaseOrderId,
 					FORMAT(ISNULL(unitcost,0) , 'N', 'en-us') 'unitcost', 
 					currency,
 					FORMAT(ISNULL(extamount,0) , 'N', 'en-us') 'extamount',    

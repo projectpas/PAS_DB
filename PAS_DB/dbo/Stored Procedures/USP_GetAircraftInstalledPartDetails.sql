@@ -1,5 +1,4 @@
-﻿
-/*********************
+﻿/*********************
 ** File:        [USP_GetAircraftInstalledPartDetails]
 ** Description:
 ** Purpose:
@@ -23,13 +22,14 @@
 ** 10   2026-05-07	 Priyansh Patel		Fixed the Remaining time calculation [PN-16306]
 ** 11   2026-05-04   Amit Ghediya		ATA Chapter level shows “-” when no data exists [PN-16249]
 ** 12   2026-05-07	 Abhishek Jirawla	Adding Make Type and Model [PN-16282]
-** 13   05-12-2026   Amit Ghediya       Added item InstallFlightHours,InstalledTime,InstalledCycles,. (PN-16382)
-** 13   05-13-2026   Amit Ghediya       Added item PO,RO,WO Num. (PN-16415)
-** 14   18-05-2026   Ayushi Patel       Return WorksheetNumber from worksheetheader table [PN-16454]
-** 14   05-13-2026   Amit Ghediya       Added item PO,RO,WO Num. (PN-16415)
-** 15   05-18-2026   Abhishek Jirawla   Added item PO,RO,WO Id. (PN-16464)
-** 16   05-20-2026   Priyansh Patel     Fix the WorksheetNumber to return the latest [PN-16408]
-** 17   05-26-2026   Priyansh Patel     Added Worksheet Header Id [PN-16537]
+** 13   2026-05-12   Amit Ghediya       Added item InstallFlightHours,InstalledTime,InstalledCycles,. (PN-16382)
+** 13   2026-05-13   Amit Ghediya       Added item PO,RO,WO Num. (PN-16415)
+** 14   2026-05-18   Ayushi Patel       Return WorksheetNumber from worksheetheader table [PN-16454]
+** 14   2026-05-13   Amit Ghediya       Added item PO,RO,WO Num. (PN-16415)
+** 15   2026-05-18   Abhishek Jirawla   Added item PO,RO,WO Id. (PN-16464)
+** 16   2026-05-20   Priyansh Patel     Fix the WorksheetNumber to return the latest [PN-16408]
+** 17   2026-05-26   Priyansh Patel     Added Worksheet Header Id [PN-16537]
+** 18   2026-06-03   Amit Ghediya       Added Worksheet Header Id [PN-16699]
 
 
 *********************/
@@ -182,8 +182,6 @@ BEGIN
 			LEFT JOIN dbo.PurchaseOrder PO WITH (NOLOCK) ON PO.PurchaseOrderId = POP.PurchaseOrderId
 			LEFT JOIN dbo.RepairOrderPart ROP WITH (NOLOCK) ON ROP.AircraftInstalledPartDetailsId = AIPD.AircraftInstalledPartDetailsId
 			LEFT JOIN dbo.RepairOrder RO WITH (NOLOCK) ON RO.RepairOrderId = ROP.RepairOrderId
-			LEFT JOIN dbo.WorkOrderPartNumber WOP WITH (NOLOCK) ON WOP.AircraftInstalledPartDetailsId = AIPD.AircraftInstalledPartDetailsId
-			LEFT JOIN dbo.WorkOrder WO WITH (NOLOCK) ON WO.WorkOrderId = WOP.WorkOrderId
 			LEFT JOIN (SELECT *, ROW_NUMBER() OVER (PARTITION BY AircraftInstalledPartDetailsId ORDER BY CreatedDate DESC) AS RN FROM dbo.WorksheetHeader WITH (NOLOCK)) WSH ON WSH.AircraftInstalledPartDetailsId = AIPD.AircraftInstalledPartDetailsId AND WSH.RN = 1
 			CROSS JOIN (
 					SELECT MAX(SequenceNum) AS LastSequence
@@ -191,6 +189,12 @@ BEGIN
 					WHERE (@AircraftRegistryId IS NULL OR @AircraftRegistryId = 0 OR AircraftRegistryId = @AircraftRegistryId)
 					AND MasterCompanyId = @MasterCompanyId
 			) LS
+			OUTER APPLY (SELECT TOP 1 WOP_inner.WorkOrderId,WOP_inner.ID AS WOPartNumberId
+				FROM dbo.WorkOrderPartNumber WOP_inner WITH (NOLOCK)
+				WHERE WOP_inner.AircraftInstalledPartDetailsId = AIPD.AircraftInstalledPartDetailsId
+				ORDER BY WOP_inner.ID DESC 
+			) AS WOP
+			LEFT JOIN dbo.WorkOrder WO WITH (NOLOCK) ON WO.WorkOrderId = WOP.WorkOrderId
             WHERE (@AircraftRegistryId IS NULL OR @AircraftRegistryId = 0 OR AIPD.AircraftRegistryId = @AircraftRegistryId) AND AIPD.MasterCompanyId = @MasterCompanyId
         ), ResultCount AS(SELECT COUNT(AircraftInstalledPartDetailsId) AS totalItems FROM Result)
 			SELECT * INTO #TempResult FROM  Result

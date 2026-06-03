@@ -74,13 +74,13 @@ BEGIN
 				ASS.[Name] AS AircraftStatus,
                 AR.IsActive,
                 AR.CreatedDate,
-                C.Name AS Custname,
+                C.[Name] AS Custname,
                 COUNT(1) OVER () AS TotalRecords
             FROM [dbo].[AircraftRegistryHeader] AS AR WITH (NOLOCK)
 			LEFT JOIN [dbo].[AircraftStatus] ASS WITH (NOLOCK) ON AR.[AircraftStatusId] = ASS.[AircraftStatusId]
 			LEFT JOIN [dbo].[MaintenanceStatus] AMS WITH (NOLOCK) ON AR.[MaintenanceStatusId] = AMS.[MaintenanceStatusId]
-            LEFT JOIN [dbo].[StockLine] SL WITH (NOLOCK) ON AR.StockLineId = SL.StockLineId
-            LEFT JOIN [dbo].[Customer] C WITH (NOLOCK) ON SL.CustomerId = C.CustomerId
+            --LEFT JOIN [dbo].[StockLine] SL WITH (NOLOCK) ON AR.StockLineId = SL.StockLineId
+            LEFT JOIN [dbo].[Customer] C WITH (NOLOCK) ON AR.CustomerId = C.CustomerId
             WHERE
                 AR.MasterCompanyId = @MasterCompanyId
                 AND (@IsDeleted IS NULL OR AR.IsDeleted = @IsDeleted)
@@ -91,7 +91,7 @@ BEGIN
                     OR AR.TailNum        LIKE '%' + @GlobalFilter + '%'
                     OR AR.SerialNum      LIKE '%' + @GlobalFilter + '%'
                     OR AR.AircraftStatus LIKE '%' + @GlobalFilter + '%'
-                    OR SL.CustomerName LIKE '%' + @GlobalFilter + '%'
+                    OR C.[Name] LIKE '%' + @GlobalFilter + '%'
                 )
                 AND (@MakeType          IS NULL OR AR.MakeType         LIKE '%' + @MakeType         + '%')
                 AND (@AircraftModel     IS NULL OR AR.AircraftModel    LIKE '%' + @AircraftModel    + '%')
@@ -111,7 +111,7 @@ BEGIN
                 AND (@NextScheduled     IS NULL OR CAST(AR.NextScheduled AS DATE) = CAST(@NextScheduled AS DATE))
                 AND (@MEL               IS NULL OR AR.MEL              LIKE '%' + @MEL              + '%')
                 AND (@AircraftStatusId  IS NULL OR AR.AircraftStatusId = @AircraftStatusId)
-                AND (@Custname          IS NULL OR SL.CustomerName LIKE '%' + @Custname + '%')
+                AND (@Custname          IS NULL OR C.[Name] LIKE '%' + @Custname + '%')
         )
         SELECT
             AircraftRegistryId,

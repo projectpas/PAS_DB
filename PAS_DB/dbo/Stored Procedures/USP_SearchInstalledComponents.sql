@@ -11,6 +11,7 @@
 ** --   ----------   -------------      --------------------------------
 ** 1    21/04/2026   Priyansh Patel     Created [PN-16140]
 ** 2    06/05/2026   Priyansh Patel     Created [PN-16303]
+** 3    03/06/2026   Nakul Chandigra    Added [TotalTSNMM] field for select [PN-16691]
 
 *************************************************************/
 --EXEC [dbo].[USP_SearchInstalledComponents] @MasterCompanyId =1
@@ -66,7 +67,8 @@ BEGIN
             FORMAT(ISNULL([AIPD].[FlightHours], 0), '0') + ' : ' + FORMAT(ISNULL([AIPD].[FlightMinutes], 0), '00') AS [FlightHours],
             [AIPD].[Cycles],
             [ARH].[LastMaintenanceDate]                                                     AS [LastMaintenance],
-            [ARH].[NextScheduled]                                                           AS [NextMaintenance]
+            [ARH].[NextScheduled]                                                           AS [NextMaintenance],
+            [ARH].[TotalTSNMM]
         FROM [dbo].[AircraftInstalledPartDetails] AIPD WITH (NOLOCK)
              LEFT JOIN [dbo].[ItemMasterAircraftMapping] IMAM WITH (NOLOCK) ON AIPD.ATAChapterId = IMAM.ItemMasterAircraftMappingId
              LEFT JOIN [dbo].[AircraftRegistryHeader] ARH WITH (NOLOCK) ON ARH.AircraftRegistryId = AIPD.AircraftRegistryId

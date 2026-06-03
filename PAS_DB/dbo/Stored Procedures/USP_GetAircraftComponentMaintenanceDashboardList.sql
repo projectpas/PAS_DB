@@ -153,7 +153,7 @@ BEGIN
                 LWO_I.WorkOrderId                                                  AS woId,
                 CAST(NULL AS DATETIME)                                             AS nextSchdMtce,
                 AIPD.DateInstalled                                                 AS installedDate,
-                CAST(ISNULL(AIPD.[Hours], 0) AS VARCHAR(10)) + ':' + RIGHT('00' + CAST(ISNULL(AIPD.[Minutes], 0) AS VARCHAR(5)), 2) AS installedTime,
+                CAST(ISNULL(CAST(AIPD.InstallFlightHours AS INT), 0) AS VARCHAR(10)) + ':' + RIGHT('00' + CAST(ISNULL(CAST(AIPD.InstallFlightTime AS INT), 0) AS VARCHAR(5)), 2) AS installedTime,
                 CAST(AIPD.InstallCycles AS BIGINT)                                 AS installedCycle,
                 CAST(AIPD.PartCycles AS BIGINT)                                    AS limitCycles,
                 CAST(NULL AS BIGINT)                                               AS limitTime,

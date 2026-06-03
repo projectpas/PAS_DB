@@ -12,7 +12,7 @@
 ** 3    06/05/2026   Amit Ghediya    GET Maintenance/Aircraft Status [PN-16296]
 ** 4    22/05/2026   Amit Ghediya    GET TSN/CSN H/M [PN-16533]
 ** 5    29/05/2026   Sahdev Saliya   Removed TotalCSNHHMM [PN-16621]
-** 5    01/06/2026   Ayushi Patel    GET CustomerName from stockline [PN-16660]
+** 5    01/06/2026   Ayushi Patel    GET CustomerName from stockline [PN-16660] 
 
 ********************/
 CREATE PROCEDURE [dbo].[USP_GetAircraftRegistryList]
@@ -91,7 +91,7 @@ BEGIN
                     OR AR.TailNum        LIKE '%' + @GlobalFilter + '%'
                     OR AR.SerialNum      LIKE '%' + @GlobalFilter + '%'
                     OR AR.AircraftStatus LIKE '%' + @GlobalFilter + '%'
-                    OR SL.CustomerName LIKE '%' + @GlobalFilter + '%'
+                    OR C.Name LIKE '%' + @GlobalFilter + '%'
                 )
                 AND (@MakeType          IS NULL OR AR.MakeType         LIKE '%' + @MakeType         + '%')
                 AND (@AircraftModel     IS NULL OR AR.AircraftModel    LIKE '%' + @AircraftModel    + '%')
@@ -111,7 +111,7 @@ BEGIN
                 AND (@NextScheduled     IS NULL OR CAST(AR.NextScheduled AS DATE) = CAST(@NextScheduled AS DATE))
                 AND (@MEL               IS NULL OR AR.MEL              LIKE '%' + @MEL              + '%')
                 AND (@AircraftStatusId  IS NULL OR AR.AircraftStatusId = @AircraftStatusId)
-                AND (@Custname          IS NULL OR SL.CustomerName LIKE '%' + @Custname + '%')
+                AND (@Custname          IS NULL OR C.Name LIKE '%' + @Custname + '%')
         )
         SELECT
             AircraftRegistryId,

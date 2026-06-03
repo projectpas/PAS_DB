@@ -59,7 +59,8 @@ BEGIN
 			SELECT  @TransferredInCost = ISNULL(SUM(ISNULL(LCD.TransferredInCost,0)),0)
 				   FROM 
 					DBO.LotCalculationDetails LCD WITH(NOLOCK)
-					WHERE LCD.LotId = @LotId AND ISNULL(IsFromPreCostStk,0) = 0 AND UPPER(REPLACE([Type],' ','')) IN (UPPER(REPLACE('Trans In (Lot)',' ','')),UPPER(REPLACE('Trans In (PO)',' ','')) ) AND LCD.LotCalculationId NOT IN(SELECT TOP 1 LC.LotCalculationId FROM DBO.LotCalculationDetails LC WITH(NOLOCK) WHERE LC.LotId = @LotId AND UPPER(REPLACE([Type],' ','')) = UPPER(REPLACE('Trans In (PO)',' ','') )   ) 
+					WHERE LCD.LotId = @LotId AND ISNULL(IsFromPreCostStk,0) = 0 AND UPPER(REPLACE([Type],' ','')) IN (UPPER(REPLACE('Trans In (Lot)',' ',''))) 
+					--AND LCD.LotCalculationId NOT IN(SELECT TOP 1 LC.LotCalculationId FROM DBO.LotCalculationDetails LC WITH(NOLOCK) WHERE LC.LotId = @LotId AND UPPER(REPLACE([Type],' ','')) = UPPER(REPLACE('Trans In (PO)',' ','') )   ) 
 					--AND (SELECT ISNULL(LT.IsStockLineUnitCost,0) FROM DBO.LotTransInOutDetails LT WITH(NOLOCK) WHERE LT.LotTransInOutId = LCD.LotTransInOutId ) = 1
 			
 			SELECT @RepairCost = SUM(ISNULL(RepairCost,0))

@@ -13,6 +13,7 @@
     [IsDeleted]           BIT            NOT NULL,
     [RevNum]              INT            NULL,
     [IsDefault]           BIT            CONSTRAINT [DEFAULT_DocumentTypeAuditIsDefault] DEFAULT ((0)) NULL,
+    [Code]                VARCHAR (50)   NULL,
     CONSTRAINT [PK_DocumentTypeAudit] PRIMARY KEY CLUSTERED ([AuditDocumentTypeId] ASC)
 );
 

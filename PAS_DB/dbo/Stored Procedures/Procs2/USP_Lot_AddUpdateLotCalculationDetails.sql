@@ -14,6 +14,7 @@
     1    04/10/2023  Rajesh Gami    Created
 	2    10/16/2024	 Abhishek Jirawla	Implemented the new tables for SalesOrder related tables
     3   07-Aug-2025  RAJESH GAMI       New SO Shipping and Invoiced status related change(PN-8302)
+	4   03-June-2026  RAJESH GAMI      [PN-16687] Original Cost Should Include All PO-Received Stocklines
 -- EXEC USP_Lot_AddUpdateLotCalculationDetails
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[USP_Lot_AddUpdateLotCalculationDetails]
@@ -142,11 +143,15 @@ BEGIN
 				BEGIN
 					SELECT @IsInitialPO = ISNULL(IsInitialPO,0) FROM DBO.LOT WITH(NOLOCK) WHERE LotId = @LotId;
 					IF(UPPER(@Type) = UPPER('Trans In (PO)'))
-					BEGIN						
+					BEGIN		
+							SELECT Top 1 @InitialPOCost =TransferredInCost,@InitialPOId = ReferenceId from #tmpLotCalculationDetailsType WITH(NOLOCK)
 							IF(@IsInitialPO = 0)
 							BEGIN
-								SELECT Top 1 @InitialPOCost =TransferredInCost,@InitialPOId = ReferenceId from #tmpLotCalculationDetailsType WITH(NOLOCK)
-								UPDATE LOT Set IsInitialPO = 1, InitialPOCost = @InitialPOCost,InitialPOId =@InitialPOId WHERE LOTID = @LotId;
+								UPDATE LOT Set IsInitialPO = 1, InitialPOCost = ISNULL(InitialPOCost,0) + @InitialPOCost,InitialPOId =@InitialPOId WHERE LOTID = @LotId;
+							END
+							ELSE
+							BEGIN
+								UPDATE LOT Set InitialPOCost = ISNULL(InitialPOCost,0) + @InitialPOCost WHERE LOTID = @LotId;
 							END
 							Update dbo.Stockline set LotNumber = @lotNumber, LotDescription = @lotDesc WHERE StockLineId = @LastStockLineId
 							EXEC USP_AddUpdateStocklineHistory @LastStockLineId, @lotModuleId, @LotId, NULL, NULL, 1, @LastQty, @UpdatedBy;

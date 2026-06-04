@@ -13,6 +13,7 @@
 	1    11/04/2024	   Vishal Suthar		Modified to make use of new SO Part tables
 	2    04-15-2025	   Amit Ghediya			Added qtyShipped,qtyRemaining for shipping details
 	3    14-May-2025   Divyesh Kathiriya	Added AWB Field. [PN-16424]
+	4    03-Jun-2026   Sumit Kumar      Added RO and Vendor RMA shipping entries to dashboard
 
 -- EXEC [dbo].[SearchShippingDashboardData] @PageSize=10,@PageNumber=1,@SortColumn=NULL,@SortOrder=1,@StatusID=0,@GlobalFilter=N'',@Module=NULL,@RefId=0,
 											@Reference=NULL,@Customer=NULL,@PartNumber=NULL,@PartDescription=NULL,@PromisedDate=NULL,@Priority=NULL,@Carrier=NULL,@ShippingMethod=NULL,
@@ -181,7 +182,73 @@ BEGIN
 						--and sop.ExchangeSalesOrderPartId not in(SELECT ExchangeSalesOrderPartId FROM DBO.ExchangeSalesOrderShippingItem WOBI 
 						--				WHERE WOBI.IsDeleted = 0) 
 						GROUP BY sopt.SOPickTicketId,so.CustomerId,sop.ExchangeSalesOrderPartId,so.ExchangeSalesOrderNumber,imt.partnumber,imt.PartDescription, imt.ItemMasterId,
-		                sop.ExchangeSalesOrderId,EOSI.QtyShipped,sop.QtyRequested,so.CreatedDate, EOS.AirwayBill --,sop.SalesOrderPartId--, sop.ItemNo;						
+		                sop.ExchangeSalesOrderId,EOSI.QtyShipped,sop.QtyRequested,so.CreatedDate, EOS.AirwayBill --,sop.SalesOrderPartId--, sop.ItemNo;
+
+						UNION
+
+						SELECT  rop.RepairOrderId as RefId,
+						rop.RepairOrderPartRecordId as RefPartId,
+						ro.RepairOrderNumber as RefNumber,
+						ropt.ROPickTicketId as PickTicketId,
+						Max(ro.VendorName) as Customer,
+						ro.VendorId as CustomerId,
+						'RO' AS 'Module',
+						imt.partnumber,
+						imt.PartDescription,
+						Max(rop.EstRecordDate) as PromisedDate,
+						Max(ISNULL(P.Description, rop.Priority)) as Priority,
+						Max(VS.ShipVia) as Carrier,
+						'' as ShippingMethod,
+						CASE WHEN ISNULL(ROSI.QtyShipped,0) > 0 THEN 'Shipped' ELSE 'Ready to ship' END as 'Status',
+						Max(ropt.ConfirmedDate) as timeHrs,
+						ISNULL(ROSI.QtyShipped,0) AS QtyShipped,
+						ISNULL(ropt.QtyToShip,0) - ISNULL(ROSI.QtyShipped,0) AS QtyRemaining,
+						ro.CreatedDate AS CreatedDate,
+						ROS.AirwayBill AS AirwayBill
+				        FROM DBO.ROPickTicket ropt WITH (NOLOCK)
+						INNER JOIN DBO.RepairOrderPart rop WITH (NOLOCK) ON ropt.RepairOrderId = rop.RepairOrderId AND ropt.RepairOrderPartId = rop.RepairOrderPartRecordId AND ropt.StocklineId = rop.StockLineId
+						INNER JOIN DBO.RepairOrder ro WITH (NOLOCK) ON ro.RepairOrderId = rop.RepairOrderId
+						LEFT JOIN DBO.ItemMaster imt WITH (NOLOCK) on imt.ItemMasterId = rop.ItemMasterId
+						LEFT JOIN DBO.Priority P WITH (NOLOCK) ON P.PriorityId = rop.PriorityId
+						LEFT JOIN DBO.VendorShipping VS WITH (NOLOCK) ON VS.VendorId = ro.VendorId and VS.IsPrimary=1
+						LEFT JOIN DBO.RepairOrderShippingItem ROSI WITH (NOLOCK) ON ROSI.RepairOrderPartId = ropt.RepairOrderPartId AND ROSI.ROPickTicketId = ropt.ROPickTicketId
+						LEFT JOIN DBO.RepairOrderShipping ROS WITH (NOLOCK) ON ROSI.RepairOrderShippingId = ROS.RepairOrderShippingId
+				        WHERE ropt.IsDeleted = 0 and ropt.MasterCompanyId= @MasterCompanyId and ro.IsDeleted = 0 and ropt.IsConfirmed=1
+						GROUP BY ropt.ROPickTicketId,ro.VendorId,ro.RepairOrderNumber,rop.RepairOrderPartRecordId,imt.partnumber,
+						imt.PartDescription,rop.RepairOrderId,ROSI.QtyShipped,ropt.QtyToShip,ro.CreatedDate,ROS.AirwayBill
+
+						UNION
+
+						SELECT  rma.VendorRMAId as RefId,
+						rmad.VendorRMADetailId as RefPartId,
+						rma.RMANumber as RefNumber,
+						rmpt.RMAPickTicketId as PickTicketId,
+						Max(V.VendorName) as Customer,
+						rma.VendorId as CustomerId,
+						'VRMA' AS 'Module',
+						imt.partnumber,
+						imt.PartDescription,
+						Max(rma.OpenDate) as PromisedDate,
+						'' as Priority,
+						Max(VS.ShipVia) as Carrier,
+						'' as ShippingMethod,
+						CASE WHEN ISNULL(RMSI.QtyShipped,0) > 0 THEN 'Shipped' ELSE 'Ready to ship' END as 'Status',
+						Max(rmpt.ConfirmedDate) as timeHrs,
+						ISNULL(RMSI.QtyShipped,0) AS QtyShipped,
+						ISNULL(rmpt.QtyToShip,0) - ISNULL(RMSI.QtyShipped,0) AS QtyRemaining,
+						rma.CreatedDate AS CreatedDate,
+						RMS.AirwayBill AS AirwayBill
+				        FROM DBO.RMAPickTicket rmpt WITH (NOLOCK)
+						INNER JOIN DBO.VendorRMADetail rmad WITH (NOLOCK) ON rmpt.VendorRMAId = rmad.VendorRMAId AND rmpt.VendorRMADetailId = rmad.VendorRMADetailId
+						INNER JOIN DBO.VendorRMA rma WITH (NOLOCK) ON rma.VendorRMAId = rmad.VendorRMAId
+						INNER JOIN DBO.Vendor V WITH (NOLOCK) ON V.VendorId = rma.VendorId
+						LEFT JOIN DBO.ItemMaster imt WITH (NOLOCK) ON imt.ItemMasterId = rmad.ItemMasterId
+						LEFT JOIN DBO.VendorShipping VS WITH (NOLOCK) ON VS.VendorId = rma.VendorId and VS.IsPrimary=1
+						LEFT JOIN DBO.RMAShippingItem RMSI WITH (NOLOCK) ON RMSI.VendorRMADetailId = rmpt.VendorRMADetailId AND RMSI.RMAPickTicketId = rmpt.RMAPickTicketId
+						LEFT JOIN DBO.RMAShipping RMS WITH (NOLOCK) ON RMSI.RMAShippingId = RMS.RMAShippingId
+				        WHERE rmpt.IsDeleted = 0 and rmpt.MasterCompanyId= @MasterCompanyId and rma.IsDeleted = 0 and rmpt.IsConfirmed=1
+						GROUP BY rmpt.RMAPickTicketId,rma.VendorId,rma.RMANumber,rmad.VendorRMADetailId,imt.partnumber,
+						imt.PartDescription,rma.VendorRMAId,RMSI.QtyShipped,rmpt.QtyToShip,rma.CreatedDate,RMS.AirwayBill
 				),
 				FinalResult AS (
 				SELECT Module, RefId, RefPartId, RefNumber,PickTicketId,Customer,CustomerId, PartNumber, PartDescription, Carrier, ShippingMethod, 

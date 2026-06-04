@@ -21,6 +21,7 @@
     3    05/06/2026   Abhishek Jirawla     Adding Data Validation & Restrictions [PN-16292] 
 	4    22/06/2026   Amit Ghediya		   Adding TTSN H/M & TCSN H/M [PN-16533]
 	5    02/06/2026   Abhishek Jirawla	   Adding CustomerId and CustomerName [PN-16679]
+	6    04/06/2026   Amit Ghediya		   Adding Header data in History module [PN-16581]
 **************************************************************/
 CREATE     PROCEDURE [dbo].[USP_CreateAircraftRegistryHeader]
     @tbl_AircraftRegistryHeaderType dbo.AircraftRegistryTableType READONLY
@@ -201,10 +202,39 @@ BEGIN
                 GETUTCDATE(),
 			    @AircraftRegistryNum
             FROM @tbl_AircraftRegistryHeaderType T
-	    END
-	    SET @AircraftRegistryId = SCOPE_IDENTITY();
-	    SELECT 1 AS Status, 'Saved successfully' AS Message, * FROM dbo.[AircraftRegistryHeader] WITH(NOLOCK) WHERE AircraftRegistryId = @AircraftRegistryId
 
+			SET @AircraftRegistryId = SCOPE_IDENTITY();
+			SELECT 1 AS Status, 'Saved successfully' AS Message, * FROM dbo.[AircraftRegistryHeader] WITH(NOLOCK) WHERE AircraftRegistryId = @AircraftRegistryId
+	    END   
+
+		-- =====================================================
+        -- HISTORY BLOCK 
+        -- =====================================================
+		DECLARE @TemplateCode VARCHAR(50)='AddAircraftRegistry',@TemplateBody VARCHAR(MAX)='',
+				@CreatedBy VARCHAR(100) = NULL,@AcTailNum VARCHAR(50) = NULL,@AcMake VARCHAR(100) = NULL,
+				@AcModel   VARCHAR(100) = NULL,@SerialNum VARCHAR(100) = NULL;
+
+		SELECT @AcTailNum = T.TailNum,@AcMake = T.MakeType,@AcModel = T.AircraftModel,@SerialNum = T.SerialNum, @CreatedBy = T.CreatedBy,@MasterCompanyId = T.MasterCompanyId FROM @tbl_AircraftRegistryHeaderType T;
+
+		SELECT TOP 1 @TemplateBody = [TemplateBody] FROM [dbo].[AircraftHistoryTemplate] WITH(NOLOCK) WHERE [TemplateCode] = @TemplateCode;
+
+		SET @TemplateBody = REPLACE(@TemplateBody, '##AcTailNum##', @AcTailNum)
+		SET @TemplateBody = REPLACE(@TemplateBody, '##AcMake##', @AcMake)
+		SET @TemplateBody = REPLACE(@TemplateBody, '##AcModel##', @AcModel)
+		SET @TemplateBody = REPLACE(@TemplateBody, '##SerialNum##', @SerialNum)
+		SET @TemplateBody = REPLACE(@TemplateBody, '##CreatedBy##', @CreatedBy)
+		SET @TemplateBody = REPLACE(@TemplateBody, '##CreatedDate##', GETUTCDATE())
+
+        -- ── Call usp_SaveAircraftHistory only if rows exist ───
+        IF ISNULL(LTRIM(RTRIM(@TemplateBody)), '') <> ''
+		BEGIN
+			EXEC [dbo].[USP_SaveAircraftHistory] @ModuleId = 1,@ModuleName = 'Aircraft Registry',@RefferenceId = @AircraftRegistryId,@FieldsName = NULL,
+												 @OldValue = NULL,@NewValue = NULL,@HistoryText = @TemplateBody,@Activity = NULL,@MasterCompanyId = @MasterCompanyId,
+												 @CreatedBy = @CreatedBy;
+		END
+
+        -- ── END HISTORY BLOCK ─────────────────────────────────
+		
     END
 
     END TRY      

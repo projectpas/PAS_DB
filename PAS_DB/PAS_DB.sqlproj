@@ -4690,6 +4690,9 @@
     <Build Include="dbo\Stored Procedures\USP_UpdateAccountingIntegrationStatus.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetCreditMemoDetailsForXero.sql" />
     <Build Include="dbo\Stored Procedures\QuickBooks_GetNewCreditMemoListForCreateCreditMemo.sql" />
+    <Build Include="dbo\Tables\AircraftHistoryTemplate.sql" />
+    <Build Include="dbo\Tables\AircraftHistory.sql" />
+    <Build Include="dbo\Stored Procedures\USP_SaveAircraftHistory.sql" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Snapshots\PAS_DB_20220518_07-53-10.dacpac" />

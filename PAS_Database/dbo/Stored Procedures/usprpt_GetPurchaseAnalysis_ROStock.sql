@@ -16,6 +16,7 @@
  ** --   --------         -------          --------------------------------            
     1    20-AUG-2024     Rajesh Gami       Created  
 	2    05-NOV-2025     Amit Ghediya      Update for Avg price
+	3    03-JUNE-2026    Priyansh Patel    Uom releted changes [PN-15917]
 
 **************************************************************/  
 CREATE PROCEDURE [dbo].[usprpt_GetPurchaseAnalysis_ROStock]
@@ -258,9 +259,9 @@ FROM (
 --SELECT * FROM #tmpFinalAnalysis;
 
 		SELECT * INTO #tmpFinalResult FROM
-		 (SELECT condition,pn,avgROCost,pnDescription,manufacturer,ItemMasterId,uom,lastUnitPrice,lastPurchaseDate, CONVERT(INT,ROUND((SUM(CONVERT (DECIMAL(10,2),(dateAge)))/MAX(MaxRow_Number)),0)) as avgAge
+		 (SELECT condition,pn,avgROCost,pnDescription,manufacturer,ItemMasterId,uom, FORMAT(ISNULL(lastUnitPrice, 0), 'N', 'en-us') as lastUnitPrice ,lastPurchaseDate, CONVERT(INT,ROUND((SUM(CONVERT (DECIMAL(10,2),(dateAge)))/MAX(MaxRow_Number)),0)) as avgAge
 		 ,totalROs AS MaxRow_Number
-		 ,SUM(qty) qty, oem
+		 ,FORMAT(ISNULL(SUM(qty), 0), 'N', 'en-us') as qty , oem
 		 FROM #tmpFinalAnalysis GROUP BY pn,avgROCost,pnDescription,condition,ItemMasterId,lastUnitPrice,uom,lastPurchaseDate,totalROs,oem,manufacturer) as result
 
 		SET @totalResult = (SELECT COUNT(*) FROM #tmpFinalResult)

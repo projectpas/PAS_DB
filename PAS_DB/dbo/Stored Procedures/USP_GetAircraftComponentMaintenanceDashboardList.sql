@@ -1,5 +1,4 @@
-﻿
-/****************************************************************************************************
+﻿/****************************************************************************************************
 ** File:        [USP_GetAircraftComponentMaintenanceDashboardList]
 ** Description: Dashboard list with optional column-level and dashboard-level filters.
 **                @TailNumber        - column filter, LIKE (contains) search
@@ -14,8 +13,9 @@
 ** 2    01/06/2026   Abhishek Jirawla     Added @SearchTailNumber, @SectionId, @IsScheduled [PN-16598]
 ** 3    03/06/2026   Abhishek Jirawla     Fixed @TailNumber to LIKE; @SectionId and @IsScheduled
 **                                        now use direct column values from CTE [PN-16598]
+** 4    04/06/2026   Amit Ghediya         Get isllp & isserialized flag for bind [PN-16741]
 *****************************************************************************************************/
-CREATE PROCEDURE [dbo].[USP_GetAircraftComponentMaintenanceDashboardList]
+CREATE       PROCEDURE [dbo].[USP_GetAircraftComponentMaintenanceDashboardList]
 (
     @PageNumber         INT           = 1,
     @PageSize           INT           = 10,
@@ -103,7 +103,9 @@ BEGIN
                 ARH.StockLineId                                                    AS stockLineId,
                 CASE WHEN STK.IsCustomerStock = 1 THEN 'Yes' ELSE 'No' END        AS isCustomerStock,
                 WS_M.WorksheetTypeId                                               AS sectionId,    -- from the same row driving the section column
-                AMP.IsScheduled                                                    AS isScheduled   -- direct column value
+                AMP.IsScheduled                                                    AS isScheduled,   -- direct column value
+				0 AS isLLP,
+				0 AS isSerialized
             FROM [dbo].[AircraftMaintenanceProgram] AMP WITH (NOLOCK)
             LEFT JOIN [dbo].[AircraftRegistryHeader] ARH WITH (NOLOCK)
                 ON AMP.AircraftRegistryId = ARH.AircraftRegistryId AND ARH.MasterCompanyId = @MasterCompanyId
@@ -195,7 +197,9 @@ BEGIN
                 AIPD.StockLineId                                                   AS stockLineId,
                 CASE WHEN STK.IsCustomerStock = 1 THEN 'Yes' ELSE 'No' END        AS isCustomerStock,
                 WS_I.WorksheetTypeId                                               AS sectionId,    -- from the same row driving the section column
-                CAST(NULL AS BIT)                                                  AS isScheduled   -- installed parts have no schedule concept
+                CAST(NULL AS BIT)                                                 AS isScheduled,   -- installed parts have no schedule concept
+				AIPD.isLLP,
+				AIPD.isSerialized
             FROM dbo.AircraftInstalledPartDetails AIPD WITH (NOLOCK)
             LEFT JOIN dbo.ItemMasterAircraftMapping IMAM WITH (NOLOCK) ON AIPD.ATAChapterId = IMAM.ItemMasterAircraftMappingId
             INNER JOIN dbo.AircraftRegistryHeader ARH WITH (NOLOCK) ON ARH.AircraftRegistryId = AIPD.AircraftRegistryId

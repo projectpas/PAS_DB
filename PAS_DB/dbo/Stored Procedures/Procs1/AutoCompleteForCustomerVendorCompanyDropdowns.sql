@@ -13,15 +13,11 @@
  **************************************************************           
   ** Change History           
  **************************************************************           
- ** PR   Date         Author		     Change Description            
- ** --   --------     -------		 --------------------------------          
+ ** PR   Date         Author		Change Description            
+ ** --   --------     -------		--------------------------------          
     1    05/22/2025   Abhishek Jirawla		Created
-    2    04/06/2026   Bhargav saliya		[PN-16717]:Resolved OwnerName,TracableToName,ObtainFromName Data Binding Issue
 
 --select * from dbo.Employee    
- exec [AutoCompleteForCustomerVendorCompanyDropdowns] null,"1287,1,2460",1
- exec [AutoCompleteForCustomerVendorCompanyDropdowns] null,"7,13",1
-
 **************************************************************/
 CREATE     PROCEDURE [dbo].[AutoCompleteForCustomerVendorCompanyDropdowns] 
 	--@TableName VARCHAR(50) = NULL, 
@@ -78,7 +74,7 @@ AS BEGIN
 
         WITH Ranked AS (
 		SELECT *,
-           ROW_NUMBER() OVER (PARTITION BY Label, ModuleId ORDER BY (SELECT NULL)) AS rn
+           ROW_NUMBER() OVER (PARTITION BY Label ORDER BY (SELECT NULL)) AS rn
 			FROM #TempTable
 		)
 		SELECT Value, Label, ModuleId, MasterCompanyId

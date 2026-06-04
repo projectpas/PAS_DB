@@ -2,9 +2,9 @@
     [VendorProformaInvoicePartDetailsId] BIGINT          IDENTITY (1, 1) NOT NULL,
     [VendorProformaInvoiceId]            BIGINT          NOT NULL,
     [EntryDate]                          DATETIME2 (7)   NOT NULL,
-    [Amount]                             DECIMAL (18, 2) NULL,
+    [Amount]                             DECIMAL (18, 6) NULL,
     [CurrencyId]                         BIGINT          NULL,
-    [FXRate]                             DECIMAL (18, 2) NULL,
+    [FXRate]                             DECIMAL (18, 6) NULL,
     [GlAccountId]                        BIGINT          NOT NULL,
     [InvoiceNumber]                      VARCHAR (256)   NULL,
     [InvoiceDate]                        DATETIME2 (7)   NULL,
@@ -16,8 +16,8 @@
     [Item]                               VARCHAR (250)   NULL,
     [Description]                        VARCHAR (500)   NULL,
     [UnitOfMeasureId]                    BIGINT          NULL,
-    [Qty]                                BIGINT          NULL,
-    [ExtendedPrice]                      DECIMAL (18, 2) NULL,
+    [Qty]                                DECIMAL (18, 6) NULL,
+    [ExtendedPrice]                      DECIMAL (18, 6) NULL,
     [TaxTypeId]                          BIGINT          NULL,
     [MasterCompanyId]                    INT             NOT NULL,
     [CreatedBy]                          VARCHAR (100)   NOT NULL,
@@ -29,6 +29,8 @@
     CONSTRAINT [PK_VendorProformaInvoicePartDetails] PRIMARY KEY CLUSTERED ([VendorProformaInvoicePartDetailsId] ASC),
     CONSTRAINT [FK_VendorProformaInvoicePartDetails_VendorProformaInvoiceHeader] FOREIGN KEY ([VendorProformaInvoiceId]) REFERENCES [dbo].[VendorProformaInvoiceHeader] ([VendorProformaInvoiceId])
 );
+
+
 
 
 GO

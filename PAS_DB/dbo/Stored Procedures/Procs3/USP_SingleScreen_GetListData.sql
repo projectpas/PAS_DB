@@ -17,6 +17,7 @@
 	6	 01/04/2025   Devendra Shekh	Modified (For Task SS - Order By Description ASC)
 	7	 09/04/2025   Divyesh Kathiriya	Modified (For Aircraft Model SS - Order By Model Names ASC)
     8    04/05/2025   Nakul Chnadigra   Removed ISNULL Condition from the Filter (PN-16272) 
+    9    03/06/2025   Ayushi Patel      [PN-16697]Added generic BIT column filter support to handle boolean field filtering (true/false/yes/no/1/0).False/0/no also returns NULL values for BIT columns.
 **********************/
 CREATE   PROCEDURE [dbo].[USP_SingleScreen_GetListData] 
 	@PageNumber INT = NULL,
@@ -30,7 +31,7 @@ CREATE   PROCEDURE [dbo].[USP_SingleScreen_GetListData]
 	@EmployeeId BIGINT 
 
 AS
-BEGIN
+BEGIN 
   SET NOCOUNT ON;
   SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
   BEGIN TRY
@@ -92,22 +93,36 @@ BEGIN
               WHEN LOWER(FieldValue) = 'false' THEN 't.isDeleted = 0'
               ELSE 't.isDeleted = 1'
             END)
-		  WHEN FieldName = 'createdDate' THEN ' And ' + 
-			CASE 
-				WHEN  @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' 
-				THEN 'CAST(DBO.ConvertUTCtoLocal(t.CreatedDate, ''' + @CurrntEmpTimeZoneDesc + ''') AS DATE) = ''' + FieldValue + ''''
-				ELSE 'CAST(t.CreatedDate AS DATE) = ''' + FieldValue + ''''
-			END
-		  WHEN FieldName = 'updatedDate' THEN ' And ' +
-			CASE
-				WHEN @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != ''  
-				THEN 'CAST(DBO.ConvertUTCtoLocal(t.UpdatedDate, ''' + @CurrntEmpTimeZoneDesc + ''') AS DATE) = ''' + FieldValue + ''''
-				ELSE 'CAST(t.UpdatedDate AS DATE) = ''' + FieldValue + ''''
-			END
+          WHEN FieldName = 'createdDate' THEN ' And ' + 
+            CASE 
+                WHEN @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != '' 
+                THEN 'CAST(DBO.ConvertUTCtoLocal(t.CreatedDate, ''' + @CurrntEmpTimeZoneDesc + ''') AS DATE) = ''' + FieldValue + ''''
+                ELSE 'CAST(t.CreatedDate AS DATE) = ''' + FieldValue + ''''
+            END
+          WHEN FieldName = 'updatedDate' THEN ' And ' +
+            CASE
+                WHEN @EmployeeId != 0 AND @CurrntEmpTimeZoneDesc != ''  
+                THEN 'CAST(DBO.ConvertUTCtoLocal(t.UpdatedDate, ''' + @CurrntEmpTimeZoneDesc + ''') AS DATE) = ''' + FieldValue + ''''
+                ELSE 'CAST(t.UpdatedDate AS DATE) = ''' + FieldValue + ''''
+            END
           WHEN LOWER(FieldName) = 'createdby' THEN ' And (ISNULL(createdby, '''') = '''' OR createdby LIKE ''%' + FieldValue + '%'')'
           WHEN LOWER(FieldName) = 'updatedby' THEN ' And (ISNULL(updatedby, '''') = '''' OR updatedby LIKE ''%' + FieldValue + '%'')'
+          
+          WHEN EXISTS (
+            SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS 
+            WHERE TABLE_NAME = @PageName 
+            AND COLUMN_NAME = FieldName 
+            AND DATA_TYPE = 'bit'
+        ) THEN 
+            CASE 
+                WHEN LOWER(FieldValue) IN ('true', '1', 'yes') 
+                    THEN ' And t.' + FieldName + ' = 1'
+                WHEN LOWER(FieldValue) IN ('false', '0', 'no') 
+                    THEN ' And (t.' + FieldName + ' = 0 OR t.' + FieldName + ' IS NULL)'
+                ELSE 
+                    ' And t.' + FieldName + ' = 1'
+            END
           ELSE ' And t.' + FieldName + ' LIKE ''%' + FieldValue + '%'''
-
         END)
       FROM #tmpFilterData
       FOR xml PATH (''))

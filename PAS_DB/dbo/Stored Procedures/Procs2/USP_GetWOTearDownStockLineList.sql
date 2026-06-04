@@ -22,6 +22,7 @@
     10   25/02/2025   BHARGAV SALIYA			Added @GenerateReleaseForm Para. For Filter [PN-16504]
     11   26/02/2025   BHARGAV SALIYA			Added @Condition Para. For Filter
 	12   02/June/2026 Vishal Suthar				Uncommented @DocumentTypeId condition and add document type name (FAA 8130 CERT)
+	13   03/June/2026 Ayushi Patel				[PN-16684] Modified logic to return @DocumentTypeId based on the Code (FAA8130CERT) from the DocumentType table
 exec USP_GetWOTearDownStockLineList 
 @PageNumber=1,@PageSize=10,@SortColumn=N'CreatedDate',@SortOrder=-1,@GlobalFilter=N'',@StatusId=1,@PartNumber=NULL,@PartDescription=NULL,
 @Manufacturer=NULL,@StockLineNumber=NULL,@SerialNumber=NULL,@ControlNumber=NULL,@IdNumber=NULL,@UnitCost=NULL,@QtyOnHand=NULL,
@@ -68,7 +69,7 @@ BEGIN
 		DECLARE @DocumentTypeId INT;
 		DECLARE @AttStockLineModuleId INT;	
 		SELECT  @AttStockLineModuleId = [AttachmentModuleId] FROM [dbo].[AttachmentModule] WITH(NOLOCK) WHERE [Name] = 'StockLine'
-		SELECT  @DocumentTypeId = [DocumentTypeId] FROM [dbo].[DocumentType] WITH(NOLOCK) WHERE [Name] = 'FAA 8130 CERT' AND [MasterCompanyId] = @MasterCompanyId;
+		SELECT  @DocumentTypeId = [DocumentTypeId] FROM [dbo].[DocumentType] WITH(NOLOCK) WHERE [Code] = 'FAA8130CERT' AND [MasterCompanyId] = @MasterCompanyId;
 		
 		DECLARE @RecordFrom INT;		
 		DECLARE @Count INT;

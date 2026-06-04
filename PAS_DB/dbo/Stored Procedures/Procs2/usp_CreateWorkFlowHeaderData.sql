@@ -1,6 +1,4 @@
-﻿
-
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [usp_CreateWorkFlowHeaderData]           
  ** Author:   HEMANT SALIYA
  ** Description: This stored procedure is used to Create Work Order Quote
@@ -16,10 +14,11 @@
     1    04-April-2025   BHARGAV SALIYA    Created
     2    02-Sep-2025     SAHDEV SALIYA     Added New Field Verified, VerifiedBy And VerifiedDate
 	3	 17-APR-2026     PRIYANSH PATEL    Added AC Template Fields [PN-15968]
+	4    03-JUN-2026     Amit Ghediya      Added AC Template releted Fields MaintenanceClassId [PN-16668]
 
 --   EXEC [usp_SaveWorkFlowData] 
 **************************************************************/
-CREATE     PROCEDURE [dbo].[usp_CreateWorkFlowHeaderData]
+CREATE       PROCEDURE [dbo].[usp_CreateWorkFlowHeaderData]
 @MasterCompanyId INT,
 @VersionNum VARCHAR(256),
 @IsVersionIncrease BIT = NULL,
@@ -108,7 +107,8 @@ BEGIN
 			[MakeTypeId] INT NULL,
 			[TemplateType] INT  NULL,
 			[MaintenanceTypeId] BIGINT NULL,
-
+			[MaintenanceClassId] BIGINT NULL,
+			[AircraftRegistryId] BIGINT NULL
 		);
 
 		-- Generate Work Flow version
@@ -180,7 +180,7 @@ BEGIN
 			[ChangedPartNumberId], [PercentageOfMaterial], [PercentageOfExpertise], [PercentageOfCharges], [PercentageOfOthers],
 			[PercentageOfTotal], [RevisedPartNumber], [ChangedPartNumberDescription], [ChangedPartNumber], [WorkScope],
 			[Currency], [WFParentId], [IsVersionIncrease], [Verified], [VerifiedBy], [VerifiedDate],
-			[TailNum],[SerialNum] ,[AircraftModelId] ,[MakeTypeId] ,[TemplateType], [MaintenanceTypeId]   
+			[TailNum],[SerialNum] ,[AircraftModelId] ,[MakeTypeId] ,[TemplateType], [MaintenanceTypeId], [MaintenanceClassId], [AircraftRegistryId]  
 		)
 		SELECT 
 			[WorkflowDescription], @NewVersionNum, [WorkScopeId], [ItemMasterId],
@@ -193,7 +193,7 @@ BEGIN
 			[ChangedPartNumberId], [PercentageOfMaterial], [PercentageOfExpertise], [PercentageOfCharges], [PercentageOfOthers],
 			[PercentageOfTotal], [RevisedPartNumber], [ChangedPartNumberDescription], [ChangedPartNumber], [WorkScope],
 			[Currency], [WFParentId], [IsVersionIncrease], [Verified], [VerifiedBy], [VerifiedDate], 
-			[TailNum],[SerialNum] ,[AircraftModelId] ,[MakeTypeId] ,[TemplateType] ,  [MaintenanceTypeId]     
+			[TailNum],[SerialNum] ,[AircraftModelId] ,[MakeTypeId] ,[TemplateType] ,  [MaintenanceTypeId], [MaintenanceClassId], [AircraftRegistryId]     
 		FROM @tbl_WorkFloaddItemsType temp where temp.[WorkflowId] = 0;  
 
 		set @WorkFlowid = SCOPE_IDENTITY();

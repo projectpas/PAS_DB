@@ -13,9 +13,10 @@
 	3    04-Nov-2025       Moin Bloch               Changed Logic For Version Increase
 	4    04-Feb-2026       Vishal Suthar            Added a logic to copy WorkFlowTask into new version as well
 	5    17-APR-2026       Priyansh Patel           Added AC Template releted Fields [PN-15968]
+	6    03-JUN-2026       Amit Ghediya             Added AC Template releted Fields MaintenanceClassId [PN-16668]
 
 **************************************************************/
-CREATE     PROCEDURE [dbo].[USP_AddUpdateTemplateDetails]
+CREATE       PROCEDURE [dbo].[USP_AddUpdateTemplateDetails]
 	@tbl_WorkFlowType WorkFlowType READONLY,
 	@tbl_WorkflowChargesListType WorkflowChargesListType READONLY,
 	@tbl_WorkflowDirectionType WorkflowDirectionType READONLY,
@@ -172,13 +173,15 @@ BEGIN
 					[Target].[AircraftModelId] = [Source].[AircraftModelId],
 					[Target].[MakeTypeId] = [Source].[MakeTypeId],
 					[Target].[TemplateType] = [Source].[TemplateType],
-					[Target].[MaintenanceTypeId] = [Source].[MaintenanceTypeId]
+					[Target].[MaintenanceTypeId] = [Source].[MaintenanceTypeId],
+					[Target].[MaintenanceClassId] = [Source].[MaintenanceClassId],
+					[Target].[AircraftRegistryId] = [Source].[AircraftRegistryId]
 			WHEN NOT MATCHED THEN
 				INSERT (
 					[WorkflowDescription], [Version], [WorkScopeId], [ItemMasterId], [PartNumberDescription], [CustomerId], [CurrencyId], [WorkflowExpirationDate], [IsCalculatedBERThreshold], [IsFixedAmount], [FixedAmount], [IsPercentageOfNew], [CostOfNew],
 					[PercentageOfNew], [IsPercentageOfReplacement], [CostOfReplacement], [PercentageOfReplacement], [Memo], [ManagementStructureId], [MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted],
 					[PartNumber], [CustomerName], [FlatRate], [BERThresholdAmount], [WorkOrderNumber], [CustomerCode], [OtherCost], [WorkflowCreateDate], [ChangedPartNumberId], [PercentageOfMaterial], [PercentageOfExpertise], [PercentageOfCharges], 
-					[PercentageOfOthers], [PercentageOfTotal], [RevisedPartNumber], [ChangedPartNumberDescription], [ChangedPartNumber], [WorkScope], [Currency], [WFParentId], [IsVersionIncrease], [Verified], [VerifiedBy], [VerifiedDate],[TailNum], [SerialNum], [AircraftModelId], [MakeTypeId], [TemplateType], [MaintenanceTypeId]
+					[PercentageOfOthers], [PercentageOfTotal], [RevisedPartNumber], [ChangedPartNumberDescription], [ChangedPartNumber], [WorkScope], [Currency], [WFParentId], [IsVersionIncrease], [Verified], [VerifiedBy], [VerifiedDate],[TailNum], [SerialNum], [AircraftModelId], [MakeTypeId], [TemplateType], [MaintenanceTypeId],[MaintenanceClassId],[AircraftRegistryId]
 				)
 				VALUES (
 					[Source].[WorkflowDescription], @Version, [Source].[WorkScopeId], [Source].[ItemMasterId], [Source].[PartNumberDescription], [Source].[CustomerId], [Source].[CurrencyId], [Source].[WorkflowExpirationDate],
@@ -187,7 +190,7 @@ BEGIN
 					[Source].[BERThresholdAmount], @WorkFlowNumber, [Source].[CustomerCode], [Source].[OtherCost], [Source].[WorkflowCreateDate], [Source].[ChangedPartNumberId], [Source].[PercentageOfMaterial], [Source].[PercentageOfExpertise],
 					[Source].[PercentageOfCharges], [Source].[PercentageOfOthers], [Source].[PercentageOfTotal], [Source].[RevisedPartNumber], [Source].[ChangedPartNumberDescription], [Source].[ChangedPartNumber], @WorkScopeCode, @CurrencyCode,
 					[Source].[WFParentId], 0, [Source].[Verified], [Source].[VerifiedBy], [Source].[VerifiedDate],
-					[Source].[TailNum], [Source].[SerialNum], [Source].[AircraftModelId], [Source].[MakeTypeId], [Source].[TemplateType], [Source].[MaintenanceTypeId]
+					[Source].[TailNum], [Source].[SerialNum], [Source].[AircraftModelId], [Source].[MakeTypeId], [Source].[TemplateType], [Source].[MaintenanceTypeId], [Source].[MaintenanceClassId], [Source].[AircraftRegistryId]
 				);
 
 				SET @NewWorkFlowMainId = SCOPE_IDENTITY();

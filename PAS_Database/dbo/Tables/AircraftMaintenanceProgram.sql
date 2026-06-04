@@ -47,3 +47,130 @@
     CONSTRAINT [FK_AMP_Workflow] FOREIGN KEY ([TemplateId]) REFERENCES [dbo].[Workflow] ([WorkflowId])
 );
 
+
+GO
+CREATE TRIGGER [dbo].[trg_Audit_dbo_AircraftMaintenanceProgram]
+ON [dbo].[AircraftMaintenanceProgram]
+AFTER INSERT, UPDATE, DELETE
+AS
+BEGIN
+    SET NOCOUNT ON;
+    ;WITH
+    d AS (SELECT d.[ProgramId],d.[AircraftRegistryId],d.[VersionNumber],d.[TailNumber],d.[AircraftMake],d.[AircraftModel],d.[SerialNumber],d.[MaintenanceType],d.[NextScheduledMaintenance],d.[TemplateId],d.[TemplateVersionNumber],d.[FlightHoursLimitHours],d.[FlightHoursLimitMinutes],d.[CyclesLimit],d.[TimeLimit],d.[LandingsLimit],d.[EngineStartsLimit],d.[FlightHoursRecordedHours],d.[FlightHoursRecordedMinutes],d.[CyclesRecorded],d.[TimeRecorded],d.[LandingsRecorded],d.[EngineStartsRecorded],d.[FlightHoursRemainingHours],d.[FlightHoursRemainingMinutes],d.[CyclesRemaining],d.[TimeRemaining],d.[LandingsRemaining],d.[EngineStartsRemaining],d.[MasterCompanyId],d.[CreatedBy],d.[UpdatedBy],d.[CreatedDate],d.[UpdatedDate],d.[IsActive],d.[IsDeleted],d.[MaintenanceTypeId],d.[MaintenanceClassId],d.[MtcCategoryId],d.[IsMtceRecordUpdated] FROM deleted d),
+    i AS (SELECT i.[ProgramId],i.[AircraftRegistryId],i.[VersionNumber],i.[TailNumber],i.[AircraftMake],i.[AircraftModel],i.[SerialNumber],i.[MaintenanceType],i.[NextScheduledMaintenance],i.[TemplateId],i.[TemplateVersionNumber],i.[FlightHoursLimitHours],i.[FlightHoursLimitMinutes],i.[CyclesLimit],i.[TimeLimit],i.[LandingsLimit],i.[EngineStartsLimit],i.[FlightHoursRecordedHours],i.[FlightHoursRecordedMinutes],i.[CyclesRecorded],i.[TimeRecorded],i.[LandingsRecorded],i.[EngineStartsRecorded],i.[FlightHoursRemainingHours],i.[FlightHoursRemainingMinutes],i.[CyclesRemaining],i.[TimeRemaining],i.[LandingsRemaining],i.[EngineStartsRemaining],i.[MasterCompanyId],i.[CreatedBy],i.[UpdatedBy],i.[CreatedDate],i.[UpdatedDate],i.[IsActive],i.[IsDeleted],i.[MaintenanceTypeId],i.[MaintenanceClassId],i.[MtcCategoryId],i.[IsMtceRecordUpdated] FROM inserted i),
+    paired AS (
+        SELECT
+            COALESCE(i.ProgramId, d.ProgramId ) AS ProgramId,
+            (SELECT d.* FOR JSON PATH, WITHOUT_ARRAY_WRAPPER) AS old_row_json,
+            (SELECT i.* FOR JSON PATH, WITHOUT_ARRAY_WRAPPER) AS new_row_json, 
+            CASE
+                WHEN i.ProgramId IS NOT NULL AND d.ProgramId IS NOT NULL THEN 'U'
+                WHEN i.ProgramId IS NOT NULL AND d.ProgramId IS NULL     THEN 'I'
+                WHEN i.ProgramId IS NULL     AND d.ProgramId IS NOT NULL THEN 'D'
+            END AS Action,
+
+            (SELECT COALESCE(i.ProgramId, d.ProgramId) AS ProgramId
+                FOR JSON PATH, WITHOUT_ARRAY_WRAPPER) AS PKJson
+        FROM d
+        FULL OUTER JOIN i
+            ON i.ProgramId = d.ProgramId
+    ),
+
+    oldv AS (
+        SELECT
+            p.PKJson,
+            p.ProgramId,
+            v.[key]  AS ColumnName,
+            v.value  AS OldValue
+        FROM paired p
+        CROSS APPLY OPENJSON(p.old_row_json) v
+        WHERE NOT EXISTS (
+            SELECT 1
+            FROM dbo.IgnoreColumn ign WITH(NOLOCK)
+            WHERE ign.SchemaName = N'dbo'
+                AND ign.TableName  = N'AircraftMaintenanceProgram'
+                AND ign.ColumnName = N'ProgramId'
+        )),
+    newv AS (
+        SELECT
+            p.PKJson,
+            p.ProgramId ,
+            v.[key]  AS ColumnName,
+            v.value  AS NewValue
+        FROM paired p
+        CROSS APPLY OPENJSON(p.new_row_json) v
+        WHERE NOT EXISTS (
+            SELECT 1
+            FROM dbo.IgnoreColumn ign WITH(NOLOCK)
+            WHERE ign.SchemaName = N'dbo'
+                AND ign.TableName  = N'AircraftMaintenanceProgram'
+                AND ign.ColumnName = N'ProgramId'
+        )),
+    merged AS (
+        SELECT
+            COALESCE(n.PKJson, o.PKJson)                AS PKJson,
+            COALESCE(n.ColumnName, o.ColumnName)        AS ColumnName,
+            o.OldValue,
+            n.NewValue,
+            p.Action
+        FROM paired p
+        LEFT JOIN oldv o
+            ON o.ProgramId = p.ProgramId
+        LEFT JOIN newv n
+            ON n.ProgramId = p.ProgramId
+            AND n.ColumnName = o.ColumnName
+        UNION ALL
+        SELECT
+            n.PKJson,
+            n.ColumnName,
+            NULL AS OldValue,
+            n.NewValue,
+            p.Action
+        FROM paired p
+        LEFT JOIN newv n
+            ON n.ProgramId = p.ProgramId
+        WHERE NOT EXISTS (
+            SELECT 1
+            FROM oldv o2
+            WHERE o2.ProgramId = p.ProgramId
+                AND o2.ColumnName    = n.ColumnName
+        )
+    )
+    INSERT dbo.AuditLog (SchemaName, TableName, PKJson, ColumnName, Action, OldValue, NewValue)
+    SELECT
+        N'dbo' AS SchemaName,
+        N'AircraftMaintenanceProgram' AS TableName,
+        m.PKJson,
+        m.ColumnName,
+        m.Action,
+        CASE             
+            WHEN m.ColumnName = 'TemplateId' THEN wfOld.WorkOrderNumber 
+            WHEN m.ColumnName = 'WorksheetNumber' THEN wsOld.WorksheetNumber
+            ELSE m.OldValue
+        END AS OldValue,        
+        CASE            
+            WHEN m.ColumnName = 'TemplateId' THEN wfNew.WorkOrderNumber
+            WHEN m.ColumnName = 'WorksheetNumber' THEN wsNew.WorksheetNumber   
+            ELSE m.NewValue
+        END AS NewValue
+    FROM merged m
+    LEFT JOIN [dbo].[Workflow] wfOld WITH(NOLOCK) ON m.ColumnName = 'TemplateId' AND TRY_CAST(m.OldValue AS BIGINT) = wfOld.WorkflowId
+    LEFT JOIN [dbo].[Workflow] wfNew WITH(NOLOCK) ON m.ColumnName = 'TemplateId' AND TRY_CAST(m.NewValue AS BIGINT) = wfNew.WorkflowId
+    LEFT JOIN [dbo].[WorksheetHeader] wsOld WITH(NOLOCK) ON m.ColumnName = 'WorksheetNumber' AND TRY_CAST(m.OldValue AS BIGINT) = wsOld.ProgramId
+    LEFT JOIN [dbo].[WorksheetHeader] wsNew WITH(NOLOCK) ON m.ColumnName = 'WorksheetNumber' AND TRY_CAST(m.NewValue AS BIGINT) = wsNew.ProgramId
+
+
+    --select * from [WorksheetHeader]
+     --LEFT JOIN (SELECT *, ROW_NUMBER() OVER (PARTITION BY ProgramId ORDER BY CreatedDate DESC) AS RN FROM [dbo].[WorksheetHeader] WITH (NOLOCK)) WSH ON AMP.ProgramId = WSH.ProgramId AND WSH.RN = 1
+    WHERE       
+        (m.Action = 'U' AND (
+               (m.OldValue IS NULL AND m.NewValue IS NOT NULL)
+            OR (m.OldValue IS NOT NULL AND m.NewValue IS NULL)
+            OR (m.OldValue <> m.NewValue)
+        ))
+        OR
+        (m.Action = 'I' AND m.NewValue IS NOT NULL)
+        OR
+        (m.Action = 'D' AND m.OldValue IS NOT NULL);
+END;
+GO

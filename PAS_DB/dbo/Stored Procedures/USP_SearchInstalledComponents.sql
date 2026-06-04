@@ -12,6 +12,7 @@
 ** 1    21/04/2026   Priyansh Patel     Created [PN-16140]
 ** 2    06/05/2026   Priyansh Patel     Created [PN-16303]
 ** 3    03/06/2026   Nakul Chandigra    Added [TotalTSNMM] field for select [PN-16691]
+** 3    04/06/2026   Sumit Kumar        Added missing fields for the view PN-16214.
 
 *************************************************************/
 --EXEC [dbo].[USP_SearchInstalledComponents] @MasterCompanyId =1
@@ -51,6 +52,7 @@ BEGIN
 
     ;WITH Result AS (
         SELECT
+            [AIPD].[AircraftInstalledPartDetailsId],
             [AIPD].[AircraftRegistryId]                                                     AS [AircraftRegistryId],
             [AIPD].[ItemMasterId]                                                           AS [ItemMasterId],
             [AIPD].[PartNumber]                                                             AS [PartNumber],
@@ -68,10 +70,30 @@ BEGIN
             [AIPD].[Cycles],
             [ARH].[LastMaintenanceDate]                                                     AS [LastMaintenance],
             [ARH].[NextScheduled]                                                           AS [NextMaintenance],
-            [ARH].[TotalTSNMM]
+            [ARH].[TotalTSNMM],
+            [AIPD].[SequenceNum],
+            [AIPD].[IsLLP],
+			[AIPD].[IsSerialized],
+            [AIPD].[Quantity],
+            [AIPD].[PositionCode],
+            [AIPD].[InstallCycles],
+            [AIPD].[InstallFlightHours],
+			[AIPD].[InstallFlightTime] AS 'InstallFlightMinutes',
+            [AIPD].[PartEngineStarts] AS EngineStarts,
+            [AIPD].[ATAChapterId],
+            CONCAT_WS(' - ',
+				NULLIF(IMAM.Level1, ''),
+				NULLIF(IMAM.Level2, ''),
+				NULLIF(IMAM.Level3, '')
+			) AS AtaChapter,
+            [STK].Condition,
+			[STK].StockLineNumber,
+			[STK].ControlNumber,
+			[STK].SerialNumber
         FROM [dbo].[AircraftInstalledPartDetails] AIPD WITH (NOLOCK)
              LEFT JOIN [dbo].[ItemMasterAircraftMapping] IMAM WITH (NOLOCK) ON AIPD.ATAChapterId = IMAM.ItemMasterAircraftMappingId
              LEFT JOIN [dbo].[AircraftRegistryHeader] ARH WITH (NOLOCK) ON ARH.AircraftRegistryId = AIPD.AircraftRegistryId
+             LEFT JOIN [dbo].[Stockline] STK WITH (NOLOCK) ON STK.StockLineId = AIPD.StockLineId
             WHERE AIPD.MasterCompanyId = @MasterCompanyId
             AND (@ItemMasterId      IS NULL OR @ItemMasterId = 0  OR AIPD.ItemMasterId = @ItemMasterId)
             AND (@PartDescription   IS NULL OR AIPD.PartDescription LIKE '%' + @PartDescription + '%')

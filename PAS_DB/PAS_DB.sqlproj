@@ -4688,6 +4688,8 @@
     <Build Include="dbo\Stored Procedures\USP_GetCommonBillingInvoicingItemsByInvoiceIdForXeroAccounting.sql" />
     <Build Include="dbo\Functions\fn_TransformSelectList.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdateAccountingIntegrationStatus.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetCreditMemoDetailsForXero.sql" />
+    <Build Include="dbo\Stored Procedures\QuickBooks_GetNewCreditMemoListForCreateCreditMemo.sql" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Snapshots\PAS_DB_20220518_07-53-10.dacpac" />

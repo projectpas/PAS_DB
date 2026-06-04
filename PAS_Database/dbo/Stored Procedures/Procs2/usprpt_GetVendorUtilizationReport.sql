@@ -18,6 +18,7 @@
 	3    29-MARCH-2024  Ekta Chandegra      IsDeleted and IsActive flag is added
 	4	 11/05/2024		Vishal Suthar		Modified to make use of new SO Part tables
 	5	 03/06/2026		Priyansh Patel 		Uom releted changes [PN-15917]
+    6	 03/06/2026		Priyansh Patel		Modified to correct Extended amount value [PN-16739]
 
 **************************************************************/
 
@@ -164,7 +165,7 @@ UPPER(MSD.Level8Name) AS level8,    UPPER(MSD.Level9Name) AS level9,    UPPER(MS
 		ISNULL(STL.UnitCost ,0) AS 'unitcost',
         UPPER(POP.functionalcurrency) 'currency',  
         --STL.PurchaseOrderExtendedCost 'extamount', 
-		ISNULL(STL.PurchaseOrderExtendedCost , 0) AS 'extamount',
+        ISNULL(POP.QuantityOrdered, 0) * ISNULL(STL.UnitCost, 0) AS 'extamount',
         'N/A' 'localamount',  
         FORMAT (POP.NeedByDate, 'MM/dd/yyyy hh:mm:tt') 'requestdate',  
         UPPER(ISNULL(POP.workorderno,'')) 'wonum',  

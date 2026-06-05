@@ -36,9 +36,12 @@
     [LastSyncDate]           DATETIME2 (7) NULL,
     [SyncToken]              VARCHAR (200) NULL,
     [DueDate]                DATETIME2 (7) NULL,
+    [IntegrationTypeId]      INT           NULL,
     CONSTRAINT [PK_NonPOInvoiceHeader] PRIMARY KEY CLUSTERED ([NonPOInvoiceId] ASC),
     CONSTRAINT [FK_NonPOInvoiceHeader_Vendor] FOREIGN KEY ([VendorId]) REFERENCES [dbo].[Vendor] ([VendorId])
 );
+
+
 
 
 

@@ -46,6 +46,7 @@
     [LastSyncDate]                  DATETIME2 (7)   NULL,
     [SyncToken]                     VARCHAR (200)   NULL,
     [ManualJournalHeaderId]         BIGINT          NULL,
+    [IntegrationTypeId]             INT             NULL,
     CONSTRAINT [PK_VendorReadyToPayDetailsAudit] PRIMARY KEY CLUSTERED ([ReadyToPayDetailsAuditId] ASC)
 );
 

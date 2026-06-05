@@ -33,9 +33,9 @@
     [StockUnitOfMeasureId]              BIGINT          NULL,
     [ConsumeUnitOfMeasureId]            BIGINT          NULL,
     [LeadTimeDays]                      INT             CONSTRAINT [ItemMaster_LeadTimeDays] DEFAULT ((0)) NOT NULL,
-    [ReorderPoint]                      INT             CONSTRAINT [ItemMaster_ReorderPoint] DEFAULT ((0)) NOT NULL,
-    [ReorderQuantiy]                    INT             CONSTRAINT [ItemMaster_ReorderQuantiy] DEFAULT ((0)) NOT NULL,
-    [MinimumOrderQuantity]              INT             CONSTRAINT [ItemMaster_MinimumOrderQuantity] DEFAULT ((0)) NOT NULL,
+    [ReorderPoint]                      DECIMAL (18, 6) CONSTRAINT [ItemMaster_ReorderPoint] DEFAULT ((0)) NOT NULL,
+    [ReorderQuantiy]                    DECIMAL (18, 6) CONSTRAINT [ItemMaster_ReorderQuantiy] DEFAULT ((0)) NOT NULL,
+    [MinimumOrderQuantity]              DECIMAL (18, 6) CONSTRAINT [ItemMaster_MinimumOrderQuantity] DEFAULT ((0)) NOT NULL,
     [PartListPrice]                     DECIMAL (18, 6) NULL,
     [PriorityId]                        BIGINT          NULL,
     [WarningId]                         BIGINT          NULL,
@@ -211,6 +211,8 @@
     CONSTRAINT [FK_ItemMaster_Warning] FOREIGN KEY ([WarningId]) REFERENCES [dbo].[Warning] ([WarningId]),
     CONSTRAINT [UC_ItemMaster_partnumber_manufacturerId] UNIQUE NONCLUSTERED ([partnumber] ASC, [ManufacturerId] ASC, [MasterCompanyId] ASC)
 );
+
+
 
 
 

@@ -10,6 +10,8 @@
  ** PR   Date				Author				Change Description            
  ** --   -------------		----------------	-------------------         
 	1	02-12-2025           Nakul Chandigra     Created 
+	2	05-06-2026           Priyansh Patel     Uom changes of ReorderQuantiy int to decimal [PN-16746]
+
 
 	EXEC [USP_GetPartDetailsWithId] 'Part9,part,199999,test',1 
 	EXEC [USP_GetPartDetailsWithId] 'a',1
@@ -55,7 +57,7 @@ BEGIN
 		PartDescription NVARCHAR(max) NULL,
 		ManufacturerId BIGINT NULL,
 		Manufacturer VARCHAR(250) NULL,
-		ReorderQuantiy INT NULL,
+		ReorderQuantiy DECIMAL(18,6) NULL,
 		ItemTypeId INT NULL,
 		ItemMasterId BIGINT NULL,
 		IsHazardousMaterial BIT NULL,

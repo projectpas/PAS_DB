@@ -19,7 +19,7 @@
 	2    02-April-2026		Amit Ghediya		UOM Conversion Changes [PN-15140]  
     3    08/05/2026         Ayushi Patel        Return QtyShipped as it is from table [PN-15140]
 	4    15-May-2026        Sahdev Saliya       Added ControlNumber, UnitOfMeasure, QuantityAvailable, UnitCost, ExtendedCost [PN-16205]
-    5	 04-Jun-2026		Ayushi Patel	    [PN-16716]Return unitcost , quantityAvailable , unitOfMeasure as a PurchaseUOM  
+	5    05-June-2026       Sahdev Saliya       Added Searching and sorting functionality for ControlNumber, UnitOfMeasure, QuantityAvailable, UnitCost, ExtendedCost [PN-16578]
 
  exec USP_VendorRMA_CreditMeMo_GetVendorRMAList 
 @PageNumber=1,@PageSize=10,@SortColumn=NULL,@SortOrder=-1,@GlobalFilter=N'',
@@ -45,7 +45,12 @@ CREATE   PROCEDURE [dbo].[USP_VendorRMA_CreditMeMo_GetVendorRMAList]
  @VendorRMADetailStatusId  INT=NULL,
  @VendorRMAId BIGINT=NULL,
  @VendorName VARCHAR(100) NULL,
- @QtyShipped varchar(50)=NULL
+ @QtyShipped varchar(50)=NULL,
+ @ControlNumber varchar(50)=NULL,
+ @UnitOfMeasure VARCHAR(100)=NULL,
+ @QuantityAvailable decimal=NULL,
+ @UnitCost decimal=NULL,
+ @ExtendedCost decimal=NULL
 AS  
 BEGIN  
  SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED  
@@ -118,7 +123,12 @@ BEGIN
        (PartDescriptionType like '%' +@GlobalFilter+'%') OR  
 	   (VendorName like '%' +@GlobalFilter+'%') OR  
        (CreatedDate like '%' +@GlobalFilter+'%') OR  
-       (UpdatedDate like '%' +@GlobalFilter+'%') 
+       (UpdatedDate like '%' +@GlobalFilter+'%') OR
+	   (ControlNumber like '%' +@GlobalFilter+'%') OR
+	   (UnitOfMeasure like '%' +@GlobalFilter+'%') OR
+	   (QuantityAvailable like '%' +@GlobalFilter+'%') OR
+	   (UnitCost like '%' +@GlobalFilter+'%') OR
+	   (ExtendedCost like '%' +@GlobalFilter+'%') 
        ))  
        OR     
        (@GlobalFilter='' AND (IsNull(@RMANumber,'') ='' OR RMANumber like  '%'+ @RMANumber+'%') and   
@@ -128,7 +138,12 @@ BEGIN
 	   (IsNull(@VendorName,'') ='' OR VendorName like '%'+@VendorName+'%') and  
 	   (ISNULL(@QtyShipped,'') ='' OR CAST(QtyShipped AS varchar(10)) LIKE '%' + CAST(@QtyShipped AS VARCHAR(10))+ '%') AND
        (IsNull(@CreatedDate,'') ='' OR Cast(CreatedDate as Date)=Cast(@CreatedDate as date)) and  
-       (IsNull(@UpdatedDate,'') ='' OR Cast(UpdatedDate as date)=Cast(@UpdatedDate as date))
+       (IsNull(@UpdatedDate,'') ='' OR Cast(UpdatedDate as date)=Cast(@UpdatedDate as date)) and
+	   (IsNull(@ControlNumber,'') ='' OR ControlNumber like '%'+ @ControlNumber +'%') and
+	   (IsNull(@UnitOfMeasure,'') ='' OR UnitOfMeasure like '%'+ @UnitOfMeasure +'%') and
+	   (ISNULL(CAST(@QuantityAvailable AS VARCHAR(50)), '') = '' OR CAST(QuantityAvailable AS VARCHAR(50)) LIKE '%' + CAST(@QuantityAvailable AS VARCHAR(50)) + '%') and
+	   (ISNULL(CAST(@UnitCost AS VARCHAR(50)), '') = '' OR CAST(UnitCost AS VARCHAR(50)) LIKE '%' + CAST(@UnitCost AS VARCHAR(50)) + '%') and
+	   (ISNULL(CAST(@ExtendedCost AS VARCHAR(50)), '') = '' OR CAST(ExtendedCost AS VARCHAR(50)) LIKE '%' + CAST(@ExtendedCost AS VARCHAR(50)) + '%')
 	   )  
        )),  
       ResultCount AS (Select COUNT(VendorRMAId) AS NumberOfItems FROM FinalResult)  
@@ -145,7 +160,12 @@ BEGIN
       CASE WHEN (@SortOrder=1 and @SortColumn='CREATEDDATE')  THEN CreatedDate END ASC,  
       CASE WHEN (@SortOrder=1 and @SortColumn='UPDATEDDATE')  THEN UpdatedDate END ASC,  
       CASE WHEN (@SortOrder=1 and @SortColumn='CREATEDBY')  THEN CreatedBy END ASC,  
-      CASE WHEN (@SortOrder=1 and @SortColumn='UPDATEDBY')  THEN UpdatedBy END ASC, 
+      CASE WHEN (@SortOrder=1 and @SortColumn='UPDATEDBY')  THEN UpdatedBy END ASC,
+	  CASE WHEN (@SortOrder=1 and @SortColumn='CONTROLNUMBER')  THEN ControlNumber END ASC,
+	  CASE WHEN (@SortOrder=1 and @SortColumn='UNITOFMEASURE')  THEN UnitOfMeasure END ASC, 
+	  CASE WHEN (@SortOrder=1 and @SortColumn='QUANTITYAVAILABLE')  THEN QuantityAvailable END ASC, 
+	  CASE WHEN (@SortOrder=1 and @SortColumn='UNITCOST')  THEN UnitCost END ASC, 
+	  CASE WHEN (@SortOrder=1 and @SortColumn='EXTENDEDCOST')  THEN ExtendedCost END ASC, 
   	  
       CASE WHEN (@SortOrder=-1 and @SortColumn='VENDORRMAID')  THEN VendorRMAId END DESC,  
       CASE WHEN (@SortOrder=-1 and @SortColumn='RMANUMBER')  THEN RMANumber END DESC,  
@@ -156,7 +176,12 @@ BEGIN
       CASE WHEN (@SortOrder=-1 and @SortColumn='CREATEDDATE')  THEN CreatedDate END DESC,  
       CASE WHEN (@SortOrder=-1 and @SortColumn='UPDATEDDATE')  THEN UpdatedDate END DESC,  
       CASE WHEN (@SortOrder=-1 and @SortColumn='CREATEDBY')  THEN CreatedBy END DESC,  
-      CASE WHEN (@SortOrder=-1 and @SortColumn='UPDATEDBY')  THEN UpdatedBy END DESC
+      CASE WHEN (@SortOrder=-1 and @SortColumn='UPDATEDBY')  THEN UpdatedBy END DESC,
+	  CASE WHEN (@SortOrder=-1 and @SortColumn='CONTROLNUMBER')  THEN ControlNumber END DESC,
+	  CASE WHEN (@SortOrder=-1 and @SortColumn='UNITOFMEASURE')  THEN UnitOfMeasure END DESC,  
+      CASE WHEN (@SortOrder=-1 and @SortColumn='QUANTITYAVAILABLE')  THEN QuantityAvailable END DESC,  
+      CASE WHEN (@SortOrder=-1 and @SortColumn='UNITCOST')  THEN UnitCost END DESC,
+	  CASE WHEN (@SortOrder=-1 and @SortColumn='EXTENDEDCOST')  THEN ExtendedCost END DESC  
      OFFSET @RecordFrom ROWS   
      FETCH NEXT @PageSize ROWS ONLY  
 	END

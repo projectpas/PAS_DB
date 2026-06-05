@@ -22,6 +22,8 @@
  4 24/08/2023   BHARGAV SALIYA   Convert Dates UTC To LegalEntity Time Zone
  5 18/04/2025   Ayushi Added the condition for pn , pndescription , serialnum
  6 19/08/2025   Fixed the arrangement of inserted values
+ 5 04/06/2026   Priyansh Patel      UOM changes the decimal to 2 [PN-16305]
+
 EXECUTE   [dbo].[usprpt_GetWorkOrderBacklogReport] 'WO Opened','','','','1','1,4,43,44,45,80,84,88','46,47,66','48,49,50,58,59,67,68,69','51,52,53,54,55,56,57,60'    
 **************************************************************/    
 CREATE      PROCEDURE [dbo].[usprpt_GetWorkOrderBacklogReport]     
@@ -249,8 +251,13 @@ BEGIN
     FROM FinalCTE  
     GROUP BY masterCompanyId)  
     
-    SELECT COUNT(2) OVER () AS TotalRecordsCount, WorkOrderId, customername, pn, pndescription, wonum, serialnum, wotype, stagecode, statuscode, receiveddate, approvedamount , opendate, unitcost, StocklineId, partscost, laborcost, overheadcost,  
-    misccharge, othercost, fc.total, netwip, transferredout, transferredtowo, transferredtoinventory, wodayscount, techname, level1, level2, level3, level4, level5, level6, level7, level8,  
+    SELECT COUNT(2) OVER () AS TotalRecordsCount, WorkOrderId, customername, pn, pndescription, wonum, serialnum, wotype, stagecode, statuscode, receiveddate, 
+    FORMAT(approvedamount, 'N', 'en-us')  AS approvedamount,
+    opendate, FORMAT(unitcost, 'N', 'en-us')        AS unitcost,  StocklineId, FORMAT(partscost, 'N', 'en-us')       AS partscost,   FORMAT(laborcost, 'N', 'en-us')       AS laborcost, 
+    FORMAT(overheadcost, 'N', 'en-us')    AS overheadcost,  
+    FORMAT(misccharge, 'N', 'en-us')      AS misccharge, 
+    FORMAT(othercost, 'N', 'en-us')       AS othercost,   FORMAT(fc.total, 'N', 'en-us')        AS total, 
+    FORMAT(netwip, 'N', 'en-us')          AS netwip,  transferredout, transferredtowo, transferredtoinventory, wodayscount, techname, level1, level2, level3, level4, level5, level6, level7, level8,  
     level9, level10,   
     WC.TotalApprovedAmount,  
     WC.TotalUnitCost,  

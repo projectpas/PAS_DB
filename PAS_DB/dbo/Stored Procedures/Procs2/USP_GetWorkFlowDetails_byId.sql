@@ -13,6 +13,7 @@
 	3    12-Feb-2026        Amit Ghediya            Added New Field Provision (PN-15390)
 	4	 17-APR-2026		Priyansh Patel			Added Templatetype field in select [PN-15968]
 	5	 05-May-2026		Priyansh Patel			Added AC Template Field [PN-16164]
+	6    03-JUN-2026        Amit Ghediya            Added AC Template releted Fields MaintenanceClassId [PN-16668]
 
 EXEC [USP_GetWorkFlowDetails_byId] 5242, 2
 **************************************************************/
@@ -45,7 +46,7 @@ BEGIN
 					[CostOfNew], [PercentageOfNew], [IsPercentageOfReplacement], [CostOfReplacement], [PercentageOfReplacement], [Memo], [ManagementStructureId], [MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted],
 					[PartNumber], [CustomerName], [FlatRate], [BERThresholdAmount], [WorkOrderNumber], [CustomerCode], [OtherCost], [WorkflowCreateDate], [ChangedPartNumberId], [PercentageOfMaterial], [PercentageOfExpertise], [PercentageOfCharges], 
 					[PercentageOfOthers], [PercentageOfTotal], [RevisedPartNumber], [changedPartNumberDescription], [ChangedPartNumber], [Currency], [WFParentId], [IsVersionIncrease], @Symbol AS [CurrencySymbol], @Code AS [CurrencyText], @IGDescription AS [ItemGroup], [Verified], [VerifiedBy], [VerifiedDate]
-					,[TailNum],[SerialNum] ,[AircraftModelId] ,[MakeTypeId] ,[TemplateType], [MaintenanceTypeId],
+					,[TailNum],[SerialNum] ,[AircraftModelId] ,[MakeTypeId] ,[TemplateType], [MaintenanceTypeId], [MaintenanceClassId],CAST(NULL AS VARCHAR(256)) AS [MaintenanceClassName],[AircraftRegistryId],CAST(NULL AS VARCHAR(256)) AS [AircraftRegistryNumber],
 					 CAST(NULL AS VARCHAR(100)) AS [AircraftModel],   CAST(NULL AS VARCHAR(250)) AS [AircraftMake],   CAST(NULL AS VARCHAR(256)) AS [MaintenanceType]  
 			INTO #tmpWorkFLow FROM [dbo].[Workflow] WITH(NOLOCK) WHERE [WorkflowId] = @WorkflowId;
 
@@ -57,7 +58,9 @@ BEGIN
 				TMP.CurrencyText = CY.[Code],
 				TMP.AircraftModel = ACM.[ModelName],
 				TMP.AircraftMake = ACT.[Description],
-				TMP.MaintenanceType = MT.[Description]
+				TMP.MaintenanceType = MT.[Description],
+				TMP.MaintenanceClassName = MC.[Name],
+				TMP.AircraftRegistryNumber = ARH.[AircraftRegistryNumber]
 			FROM #tmpWorkFLow TMP
 			LEFT JOIN [dbo].[ItemMaster] IM WITH(NOLOCK) ON TMP.ItemMasterId = IM.ItemMasterId
 			LEFT JOIN [dbo].[ItemGroup] IG WITH(NOLOCK) ON IM.ItemGroupId = IG.ItemGroupId
@@ -66,6 +69,9 @@ BEGIN
 			LEFT JOIN [dbo].[AircraftModel] ACM WITH (NOLOCK) on ACM.AircraftModelId =  TMP.AircraftModelId
 			LEFT JOIN [dbo].[AircraftType] ACT WITH (NOLOCK) on ACT.AircraftTypeId =  TMP.MakeTypeId
 			LEFT JOIN [dbo].[MaintenanceType] MT WITH (NOLOCK) on MT.MaintenanceTypeId =  TMP.MaintenanceTypeId
+			LEFT JOIN [dbo].[MaintenanceClass] MC WITH (NOLOCK) on MC.MaintenanceClassId =  TMP.MaintenanceClassId
+			LEFT JOIN [dbo].[AircraftRegistryHeader] ARH WITH (NOLOCK) on ARH.AircraftRegistryId =  TMP.AircraftRegistryId
+
 			
 			SELECT @WFItemMasterId = [ItemMasterId], @WFWorkScopeId = [WorkScopeId] FROM #tmpWorkFLow WHERE [WorkflowId] = @WorkflowId;
 

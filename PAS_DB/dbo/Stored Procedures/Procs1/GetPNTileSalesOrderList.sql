@@ -151,9 +151,9 @@ BEGIN
 				(ISNULL(@OpenDate,'') ='' OR CAST(OpenDate AS DATE) = CAST(@OpenDate AS DATE)) AND	
 				(ISNULL(@CustomerReference,'') ='' OR CustomerReference LIKE '%' + @CustomerReference + '%') AND
 				(ISNULL(@UnitSalesPrice,'') ='' OR CAST(UnitSalesPrice AS decimal(9,2)) LIKE '%'+ @UnitSalesPrice +'%') AND 
-				(ISNULL(@UnitCost,'') ='' OR CAST(UnitCost AS NVARCHAR(10)) LIKE '%'+ @UnitCost+'%') AND 
+				(ISNULL(@UnitCost,'') ='' OR CAST(UnitCost AS NVARCHAR(100)) LIKE '%'+ @UnitCost+'%') AND 
 				(ISNULL(@Qty,'') ='' OR CAST(Qty AS NVARCHAR(10)) LIKE '%'+ @Qty+'%') AND 
-				(ISNULL(@UnitCostExtended,'') ='' OR CAST(UnitCostExtended AS NVARCHAR(10)) LIKE '%'+ @UnitCostExtended+'%') AND 
+				(ISNULL(@UnitCostExtended,'') ='' OR CAST(UnitCostExtended AS NVARCHAR(100)) LIKE '%'+ @UnitCostExtended+'%') AND 
 				(ISNULL(@ConditionName,'') ='' OR ConditionName LIKE '%' + @ConditionName + '%') AND
 				(ISNULL(@SalesPersonName,'') ='' OR SalesPersonName LIKE '%' + @SalesPersonName + '%') AND
 				(ISNULL(@ShipDate,'') ='' OR CAST(ShipDate AS DATE) = CAST(@ShipDate AS DATE)) AND	

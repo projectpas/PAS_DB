@@ -67,6 +67,17 @@ BEGIN
 
 			DECLARE @VendorCode VARCHAR(100) = NULL;
 
+			DECLARE @DefaultEmployeeId BIGINT;
+
+			SELECT @DefaultEmployeeId = EmployeeId FROM dbo.Employee
+			WHERE MasterCompanyId = @MasterCompanyId AND IsActive = 1 AND IsDeleted = 0
+			AND FirstName = 'ADMIN';
+
+			DECLARE @DefaultCurrencyId BIGINT;
+
+			SELECT TOP 1 @DefaultCurrencyId = CurrencyId FROM dbo.Currency
+			WHERE MasterCompanyId = @MasterCompanyId AND IsActive = 1 AND IsDeleted = 0;
+
 			-- 2. Create vendor if not found
 			IF @VendorId IS NULL
 			BEGIN
@@ -272,14 +283,16 @@ BEGIN
 				 StatusId, OpenDate, NeedByDate, CreditLimit,
 				 ManagementStructureId, Notes, MasterCompanyId,
 				 CreatedBy, UpdatedBy, CreatedDate, UpdatedDate,
-				 IsActive, IsDeleted, Resale, DeferredReceiver, IsFromBulkPO, SourceBy)
+				 IsActive, IsDeleted, Resale, DeferredReceiver, IsFromBulkPO, SourceBy,
+				 FunctionalCurrencyId, ReportCurrencyId, ForeignExchangeRate)
 			SELECT
 				@VendorRFQPurchaseOrderNumber, @VendorId, v.VendorName, v.VendorCode,
-				@VendorContactId, @PriorityId, @PriorityName, @EmployeeId,
+				@VendorContactId, @PriorityId, @PriorityName, CASE WHEN ISNULL(@EmployeeId, 0) = 0 THEN @DefaultEmployeeId ELSE @EmployeeId END,
 				1 /*Open*/, @Now, @NeedByDate, ISNULL(v.CreditLimit, 0),
 				@ManagementStructureId, 'Auto-created from email', @MasterCompanyId,
 				@CreatedBy, @CreatedBy, @Now, @Now,
-				1, 0, 0, 0, 0, 'Email'
+				1, 0, 0, 0, 0, 'Email',
+				@DefaultCurrencyId, @DefaultCurrencyId, 1
 			FROM dbo.Vendor v
 			WHERE v.VendorId = @VendorId;
 
@@ -307,6 +320,7 @@ BEGIN
 			INSERT INTO dbo.ItemMaster
 			(
 				ItemTypeId,
+				ItemGroupId,
 				ItemClassificationId,
 				IsHazardousMaterial,
 				IsExpirationDateAvailable,
@@ -331,6 +345,8 @@ BEGIN
 				ManufacturerId,
 				GLAccountId,
 				PurchaseUnitOfMeasureId,
+				StockUnitOfMeasureId,
+				ConsumeUnitOfMeasureId,
 				LeadTimeDays,
 				ReorderPoint,
 				ReorderQuantiy,
@@ -368,10 +384,39 @@ BEGIN
 				PartDescription,
 				IsActive,
 				IsDeleted,
-				InventoryGLSettingId
+				InventoryGLSettingId,
+				GoodsReceivedNotInvoicesGLAccId,
+				WorkInProgressGLAccId,
+				InventoryToBillGLAccId,
+				FinishedGoodsGLAccId,
+				InventoryExchAgreementGLAccId,
+				InventoryReserveGLAccId,
+				COGS_WorkOrderGLAccId,
+				COGS_SalesOrderGLAccId,
+				COGS_QtyVarianceGLAccId,
+				COGS_UnitCostVarianceGLAccId,
+				RevenueMroGLAccId,
+				RevenueSoGLAccId,
+				RevenueExchGLAccId,
+				COGS_ExchSalesOrderGLAccId,
+				GoodsReceivedNotInvoicesGLAccName,
+				WorkInProgressGLAccName,
+				InventoryToBillGLAccName,
+				FinishedGoodsGLAccName,
+				InventoryExchAgreementGLAccName,
+				InventoryReserveGLAccName,
+				COGS_WorkOrderGLAccName,
+				COGS_SalesOrderGLAccName,
+				COGS_QtyVarianceGLAccName,
+				COGS_UnitCostVarianceGLAccName,
+				RevenueMroGLAccName,
+				RevenueSoGLAccName,
+				RevenueExchGLAccName,
+				COGS_ExchSalesOrderGLAccName
 			)
 			SELECT
 				im.ItemTypeId,
+				im.ItemGroupId,
 				im.ItemClassificationId,
 				im.IsHazardousMaterial,
 				im.IsExpirationDateAvailable,
@@ -396,6 +441,8 @@ BEGIN
 				im.ManufacturerId,
 				im.GLAccountId,
 				im.PurchaseUnitOfMeasureId,
+				im.StockUnitOfMeasureId,
+				im.ConsumeUnitOfMeasureId,
 				im.LeadTimeDays,
 				im.ReorderPoint,
 				im.ReorderQuantiy,
@@ -430,10 +477,38 @@ BEGIN
 				im.REP,
 				im.SVC,
 				LTRIM(RTRIM(p.PartNumber)),
-				p.Description,
+				ISNULL(p.Description, 'N/A'),
 				1,
 				0,
-				im.InventoryGLSettingId
+				im.InventoryGLSettingId,
+				im.GoodsReceivedNotInvoicesGLAccId,
+				im.WorkInProgressGLAccId,
+				im.InventoryToBillGLAccId,
+				im.FinishedGoodsGLAccId,
+				im.InventoryExchAgreementGLAccId,
+				im.InventoryReserveGLAccId,
+				im.COGS_WorkOrderGLAccId,
+				im.COGS_SalesOrderGLAccId,
+				im.COGS_QtyVarianceGLAccId,
+				im.COGS_UnitCostVarianceGLAccId,
+				im.RevenueMroGLAccId,
+				im.RevenueSoGLAccId,
+				im.RevenueExchGLAccId,
+				im.COGS_ExchSalesOrderGLAccId,
+				im.GoodsReceivedNotInvoicesGLAccName,
+				im.WorkInProgressGLAccName,
+				im.InventoryToBillGLAccName,
+				im.FinishedGoodsGLAccName,
+				im.InventoryExchAgreementGLAccName,
+				im.InventoryReserveGLAccName,
+				im.COGS_WorkOrderGLAccName,
+				im.COGS_SalesOrderGLAccName,
+				im.COGS_QtyVarianceGLAccName,
+				im.COGS_UnitCostVarianceGLAccName,
+				im.RevenueMroGLAccName,
+				im.RevenueSoGLAccName,
+				im.RevenueExchGLAccName,
+				im.COGS_ExchSalesOrderGLAccName
 			FROM @tbl_EmailParts p
 			CROSS JOIN dbo.ItemMaster im
 			WHERE im.ItemMasterId = @TemplateItemMasterId
@@ -486,6 +561,7 @@ BEGIN
 				   ON im.MasterCompanyId = @MasterCompanyId
 				  AND im.IsActive = 1 AND im.IsDeleted = 0
 				  AND im.PartNumber = LTRIM(RTRIM(p.PartNumber))
+				  AND im.PartDescription = LTRIM(RTRIM(p.Description))
 			WHERE LTRIM(RTRIM(ISNULL(p.PartNumber, ''))) <> '';
 
 			-- 7a. Save part management structure details into PurchaseOrderManagementStructureDetails (ModuleId = 21 = VendorRFQPOPart)

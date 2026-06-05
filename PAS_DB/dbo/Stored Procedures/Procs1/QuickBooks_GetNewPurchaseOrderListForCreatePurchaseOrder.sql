@@ -212,7 +212,7 @@ BEGIN
 						  POP.[UnitCost],
 						  POP.[QuantityOrdered],				
 						   GL.[AccountName] AS POAPAccountName,
-						   PO.[QuickBooksReferenceId] AS POAPAccountValue	
+						   GL.[QuickBooksReferenceId] AS POAPAccountValue	
 					   
 					FROM [dbo].[PurchaseOrder] PO WITH(NOLOCK)
 					   INNER JOIN [dbo].[Vendor] VN WITH(NOLOCK) ON PO.VendorId = VN.VendorId

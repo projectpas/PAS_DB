@@ -14,6 +14,7 @@
 	4    28-Feb-2025	Devendra Shekh		Modified (changes for create new WorkFlowTask)
 	5    17-Sep-2025	Vishal Suthar		Fixed and issue with mismatch in number of columns for Workflow table
 	6    05-May-2026	Priyansh Patel		Added AC columns in workflow table [PN-16276]
+	7    03-JUN-2026    Amit Ghediya        Added AC Template releted Fields MaintenanceClassId [PN-16668]
      
 EXEC [dbo].[CopyWorkFlowRecord] 3053, 'ADMIN Admin', 0
 **************************************************************/ 
@@ -93,15 +94,15 @@ BEGIN
 				END
 
 				SELECT WorkflowDescription, Version, WorkScopeId, ItemMasterId, PartNumberDescription, CustomerId, CurrencyId, WorkflowExpirationDate, IsCalculatedBERThreshold, IsFixedAmount, FixedAmount, IsPercentageOfNew, CostOfNew, PercentageOfNew, IsPercentageOfReplacement, CostOfReplacement, PercentageOfReplacement, Memo, ManagementStructureId, MasterCompanyId, CreatedBy, UpdatedBy, CreatedDate, UpdatedDate, IsActive, IsDeleted, PartNumber, CustomerName, FlatRate, BERThresholdAmount, @WorkFlowNumber As WorkOrderNumber, CustomerCode, OtherCost, WorkflowCreateDate, ChangedPartNumberId, PercentageOfMaterial, PercentageOfExpertise, PercentageOfCharges, PercentageOfOthers, PercentageOfTotal, RevisedPartNumber, changedPartNumberDescription, ChangedPartNumber, WorkScope, Currency, WFParentId, IsVersionIncrease, Verified, VerifiedBy, VerifiedDate,
-				 TemplateType, TailNum, SerialNum, AircraftModelId, MakeTypeId, MaintenanceTypeId INTO #tempTable FROM dbo.Workflow WITH (NOLOCK) WHERE WorkflowId = @WorkflowId
+				 TemplateType, TailNum, SerialNum, AircraftModelId, MakeTypeId, MaintenanceTypeId, MaintenanceClassId, AircraftRegistryId INTO #tempTable FROM dbo.Workflow WITH (NOLOCK) WHERE WorkflowId = @WorkflowId
 
 				UPDATE #tempTable SET CreatedBy = @CreatedBy,UpdatedBy =@CreatedBy, CreatedDate = GETUTCDATE(), UpdatedDate = GETUTCDATE()
 				INSERT INTO dbo.Workflow (
 				WorkflowDescription, Version, WorkScopeId, ItemMasterId, PartNumberDescription, CustomerId, CurrencyId, WorkflowExpirationDate, IsCalculatedBERThreshold, IsFixedAmount, FixedAmount, IsPercentageOfNew, CostOfNew, PercentageOfNew, IsPercentageOfReplacement, CostOfReplacement, PercentageOfReplacement, Memo, ManagementStructureId, MasterCompanyId, CreatedBy, UpdatedBy, CreatedDate, UpdatedDate, IsActive, IsDeleted, PartNumber, CustomerName, FlatRate, BERThresholdAmount,  WorkOrderNumber, CustomerCode, OtherCost, WorkflowCreateDate, ChangedPartNumberId, PercentageOfMaterial, PercentageOfExpertise, PercentageOfCharges, PercentageOfOthers, PercentageOfTotal, RevisedPartNumber, changedPartNumberDescription, ChangedPartNumber, WorkScope, Currency, WFParentId, IsVersionIncrease, Verified, VerifiedBy, VerifiedDate,
-				 TemplateType, TailNum, SerialNum, AircraftModelId, MakeTypeId, MaintenanceTypeId
+				 TemplateType, TailNum, SerialNum, AircraftModelId, MakeTypeId, MaintenanceTypeId, MaintenanceClassId, AircraftRegistryId
 				 )
 				SELECT WorkflowDescription, Version, WorkScopeId, ItemMasterId, PartNumberDescription, CustomerId, CurrencyId, WorkflowExpirationDate, IsCalculatedBERThreshold, IsFixedAmount, FixedAmount, IsPercentageOfNew, CostOfNew, PercentageOfNew, IsPercentageOfReplacement, CostOfReplacement, PercentageOfReplacement, Memo, ManagementStructureId, MasterCompanyId, CreatedBy, UpdatedBy, CreatedDate, UpdatedDate, IsActive, IsDeleted, PartNumber, CustomerName, FlatRate, BERThresholdAmount,  WorkOrderNumber, CustomerCode, OtherCost, WorkflowCreateDate, ChangedPartNumberId, PercentageOfMaterial, PercentageOfExpertise, PercentageOfCharges, PercentageOfOthers, PercentageOfTotal, RevisedPartNumber, changedPartNumberDescription, ChangedPartNumber, WorkScope, Currency, WFParentId, IsVersionIncrease, Verified, VerifiedBy, VerifiedDate,
-				 TemplateType, TailNum, SerialNum, AircraftModelId, MakeTypeId, MaintenanceTypeId  FROM #tempTable
+				 TemplateType, TailNum, SerialNum, AircraftModelId, MakeTypeId, MaintenanceTypeId, MaintenanceClassId, AircraftRegistryId  FROM #tempTable
 				
 				SET @newWorkFlowId=SCOPE_IDENTITY()
 				

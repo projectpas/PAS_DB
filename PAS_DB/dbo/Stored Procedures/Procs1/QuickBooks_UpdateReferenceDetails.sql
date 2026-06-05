@@ -23,6 +23,7 @@
 	10	 12-Feb-2024   Devendra Shekh	Modified (added Change for CreditMemo)
     11   07-07-2025    Moin Bloch       Modified Changed Old To New Billing Table
 	12   21-04-2026    Moin Bloch       Modified Added Xero Accounting Changes PN-16008
+	13   04-06-2026    Abhishek Jirawla Modified Added Xero Accounting Changes For Customer Payments(Cash Reciept)
  EXECUTE [QuickBooks_UpdateCustomerReferenceDetails] 1, 10, '150'
 **************************************************************/ 
 CREATE PROCEDURE [dbo].[QuickBooks_UpdateReferenceDetails]
@@ -162,9 +163,14 @@ BEGIN
 		BEGIN
 			UPDATE [dbo].[ExchangeSalesOrderBillingInvoicing] SET [QuickBooksReferenceId] = @QuickBooksReferenceId, [IsUpdated] = 0, [LastSyncDate] = GETUTCDATE(), [SyncToken] = @SyncToken, [IntegrationTypeId] = @IntegrationTypeId WHERE [SOBillingInvoicingId] = @ReferenceId;
 		END
+		ELSE IF (ISNULL(@IntegrationTypeId, 0) = @XeroIntegrationTypeId AND @ModuleId = @CustomerPaymentModuleId)
+		BEGIN
+			UPDATE [dbo].[CustomerPaymentDetails] SET [QuickBooksReferenceId] = @QuickBooksReferenceId, IsUpdated = 0, LastSyncDate = GETUTCDATE(), SyncToken = @SyncToken, [IntegrationTypeId] = @IntegrationTypeId WHERE CustomerPaymentDetailsId = @ReferenceId;
+		END
 
 		-- FIX 3: Guard the settings update — only run it when the module/integration combo actually exists
-		UPDATE [dbo].[AccountingIntegrationSettings] SET [LastRun] = GETUTCDATE(), [UpdatedDate] = GETUTCDATE()
+		UPDATE [dbo].[AccountingIntegrationSettings]
+		SET [LastRun] = GETUTCDATE(), [UpdatedDate] = GETUTCDATE()
 		WHERE [ModuleId] = @ModuleId AND [IntegrationId] = @IntegrationTypeId
 		  AND EXISTS (SELECT 1 FROM [dbo].[AccountingIntegrationSettings] WITH(NOLOCK) WHERE [ModuleId] = @ModuleId AND [IntegrationId] = @IntegrationTypeId);
 

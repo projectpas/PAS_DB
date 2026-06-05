@@ -21,6 +21,8 @@
 	3    07/27/2023   Vishal Suthar Showing both issued and reserved qty WOM stockline
 	4    12/06/2023   Jevik Raiyani add @statusValue 
 	5    03/11/2025   Bhargav Saliya Added New Field [Stage]
+	6    05/06/2026   Priyansh Patel Fixed the issue related to uom conversion [PN-16746]
+
 **************************************************************/
 CREATE  PROCEDURE [dbo].[GetPNTileWOMaterialHistoryList]
 	@PageNumber int = 1,
@@ -174,9 +176,9 @@ BEGIN
 					(MPN LIKE '%' + @GlobalFilter +'%') OR
 					(MPNDescription LIKE '%' + @GlobalFilter +'%') OR
 					(WorkScope LIKE '%' + @GlobalFilter +'%') OR
-					(UnitCost LIKE '%' + @GlobalFilter +'%') OR
-					(ReqQty LIKE '%' + @GlobalFilter +'%') OR
-					(ExtendedUnitCost LIKE '%' + @GlobalFilter +'%') OR
+					(CAST(UnitCost AS VARCHAR(50)) LIKE '%' + @GlobalFilter +'%') OR
+					(CAST(ReqQty AS VARCHAR(50)) LIKE '%' + @GlobalFilter +'%') OR
+					(CAST(ExtendedUnitCost AS VARCHAR(50)) LIKE '%' + @GlobalFilter +'%') OR
 					(StocklineNum LIKE '%' + @GlobalFilter +'%') OR
 					(ControlNum LIKE '%' + @GlobalFilter +'%') OR
 					(ControlID LIKE '%' + @GlobalFilter +'%') OR 
@@ -194,7 +196,7 @@ BEGIN
 					(ISNULL(CAST(@ExtendedUnitCost AS VARCHAR(50)),'') ='' OR CAST(ExtendedUnitCost AS VARCHAR(50)) LIKE '%' + CAST(@ExtendedUnitCost AS VARCHAR(50)) + '%') AND
 					(ISNULL(@StocklineNum,'') ='' OR StocklineNum LIKE '%' + @StocklineNum + '%') AND
 					(ISNULL(@ControlNum,'') ='' OR ControlNum LIKE '%' + @ControlNum + '%') AND
-					(IsNull(@RequestedQty, 0) = 0 OR CAST(ReqQty as VARCHAR(10)) like @RequestedQty) AND
+					(IsNull(@RequestedQty, 0) = 0 OR CAST(ReqQty as VARCHAR(50)) like @RequestedQty) AND
 					(ISNULL(@ControlID,'') ='' OR ControlID LIKE '%' + @ControlID + '%') AND
 					(ISNULL(@Stage,'') ='' OR Stage LIKE '%' + @Stage + '%'))))	 	
 			SELECT @Count = COUNT(WorkOrderId) FROM #TempResult			
@@ -240,12 +242,12 @@ BEGIN
 	END TRY    
 	BEGIN CATCH      
 		IF @@trancount > 0
-			PRINT 'ROLLBACK'
 			ROLLBACK TRAN;
+
 			DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name() 
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
             , @AdhocComments     VARCHAR(150)    = 'GetPNTileWOMaterialHistoryList' 
-            , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = '''+ ISNULL(@ItemMasterId, '') + ''
+            , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = '''+ ISNULL(CAST(@ItemMasterId AS VARCHAR(20)), '') + ''
             , @ApplicationName VARCHAR(100) = 'PAS'
 -----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------
             exec spLogException 

@@ -36,7 +36,7 @@
     [ReorderPoint]                      INT             CONSTRAINT [ItemMaster_ReorderPoint] DEFAULT ((0)) NOT NULL,
     [ReorderQuantiy]                    INT             CONSTRAINT [ItemMaster_ReorderQuantiy] DEFAULT ((0)) NOT NULL,
     [MinimumOrderQuantity]              INT             CONSTRAINT [ItemMaster_MinimumOrderQuantity] DEFAULT ((0)) NOT NULL,
-    [PartListPrice]                     DECIMAL (18, 2) NULL,
+    [PartListPrice]                     DECIMAL (18, 6) NULL,
     [PriorityId]                        BIGINT          NULL,
     [WarningId]                         BIGINT          NULL,
     [Memo]                              NVARCHAR (MAX)  NULL,
@@ -74,8 +74,8 @@
     [ManagementStructureId]             BIGINT          NULL,
     [ShelfLife]                         BIT             CONSTRAINT [ItemMaster_ShelfLife] DEFAULT ((0)) NOT NULL,
     [DiscountPurchasePercent]           TINYINT         NULL,
-    [UnitCost]                          DECIMAL (18, 2) NULL,
-    [ListPrice]                         DECIMAL (18, 2) NULL,
+    [UnitCost]                          DECIMAL (18, 6) NULL,
+    [ListPrice]                         DECIMAL (18, 6) NULL,
     [PriceDate]                         DATETIME2 (7)   NULL,
     [ItemNonStockClassificationId]      BIGINT          NULL,
     [StockLevel]                        INT             CONSTRAINT [ItemMaster_StockLevel] DEFAULT ((0)) NOT NULL,
@@ -211,6 +211,8 @@
     CONSTRAINT [FK_ItemMaster_Warning] FOREIGN KEY ([WarningId]) REFERENCES [dbo].[Warning] ([WarningId]),
     CONSTRAINT [UC_ItemMaster_partnumber_manufacturerId] UNIQUE NONCLUSTERED ([partnumber] ASC, [ManufacturerId] ASC, [MasterCompanyId] ASC)
 );
+
+
 
 
 

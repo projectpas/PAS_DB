@@ -17,7 +17,7 @@
 	5    15-May-2026        Sahdev Saliya       Added UnitOfMeasure, ExtendedCost [PN-16205]
     6    02-JUN-2026		Rajesh Gami		   Handle IsNull (ISNULL(StockLineId,0)) While getting data from VendorCreditMemoDetail [PN-16521]
 	7    05-Jun-2026        Sahdev Saliya      Added Searching and sorting functionality for ControlNumber, UnitOfMeasure, QuantityAvailable, UnitCost, ExtendedCost [PN-16578]
-
+	8	 04-Jun-2026		Ayushi Patel	    [PN-16716]Return unitcost , quantityAvailable , unitOfMeasure as a STOCKUOM from stockline table when @IsVCMAdd=1 
 *******************************************************************************
 *******************************************************************************/
 CREATE   PROCEDURE [dbo].[USP_VendorRMA_GetVendorStockList] 

@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*********************           
  ** File:   [USP_VendorRMA_CreditMeMo_GetVendorRMAList]          
  ** Author:   Devendra Shekh
  ** Description: This stored procedure is used to get vendorrma for credit memo create
@@ -10,9 +9,9 @@
          
  ** RETURN VALUE:           
   
- **************************************************************           
+ **********************           
   ** Change History           
- **************************************************************           
+ **********************           
  ** PR   Date         Author					Change Description            
  ** --   --------     -------				--------------------------------          
     1    07/05/2023   Devendra Shekh			Created
@@ -20,6 +19,7 @@
     3    08/05/2026         Ayushi Patel        Return QtyShipped as it is from table [PN-15140]
 	4    15-May-2026        Sahdev Saliya       Added ControlNumber, UnitOfMeasure, QuantityAvailable, UnitCost, ExtendedCost [PN-16205]
 	5    05-June-2026       Sahdev Saliya       Added Searching and sorting functionality for ControlNumber, UnitOfMeasure, QuantityAvailable, UnitCost, ExtendedCost [PN-16578]
+    6	 04-Jun-2026		Ayushi Patel	    [PN-16716]Return unitcost , quantityAvailable , unitOfMeasure as a PurchaseUOM 
 
  exec USP_VendorRMA_CreditMeMo_GetVendorRMAList 
 @PageNumber=1,@PageSize=10,@SortColumn=NULL,@SortOrder=-1,@GlobalFilter=N'',
@@ -27,7 +27,7 @@
 @MasterCompanyId=1,@ViewType=N'detailview',@vendorRMADetailStatusId=3,
 @VendorRMAId=0,@VendorName=NULL,@QtyShipped=NULL
 
-**************************************************************/
+**********************/
 CREATE   PROCEDURE [dbo].[USP_VendorRMA_CreditMeMo_GetVendorRMAList]  
  @PageNumber INT,  
  @PageSize INT,  
@@ -94,11 +94,10 @@ BEGIN
 			RMA.RMANumber as 'VendorRMANumber',
 			RMAD.ModuleId,
             ([dbo].[fn_ConvertUOM](ISNULL(RMS.QtyShipped, 0),SL.[StockUnitOfMeasure], PurchaseUom.[ShortName],0,IM.[MasterCompanyId])) AS QtyShipped,
-			--RMS.QtyShipped,
             RMAD.VendorRMADetailId,
 			SL.[ControlNumber],
 			PurchaseUom.[ShortName] as UnitOfMeasure,
-            ([dbo].[fn_ConvertUOM](ISNULL(SL.QuantityAvailable, 0),SL.[StockUnitOfMeasure], PurchaseUom.[ShortName],0,IM.[MasterCompanyId])) AS QuantityAvailable,
+			([dbo].[fn_ConvertUOM](ISNULL(SL.QuantityAvailable, 0),SL.[StockUnitOfMeasure], PurchaseUom.[ShortName],0,IM.[MasterCompanyId])) AS QuantityAvailable,
             ([dbo].[fn_ConvertUOM](ISNULL(SL.UnitCost, 0),SL.[StockUnitOfMeasure], PurchaseUom.[ShortName],1,IM.[MasterCompanyId])) AS UnitCost,
 			CASE  WHEN SL.[PurchaseOrderId] > 0 THEN (ISNULL(SL.QuantityAvailable,0) * SL.UnitCost) WHEN SL.[RepairOrderId] > 0 THEN (ISNULL(SL.QuantityAvailable,0) * SL.UnitCost) ELSE 0 END AS ExtendedCost
 		FROM [DBO].[VendorRMA] RMA WITH (NOLOCK)

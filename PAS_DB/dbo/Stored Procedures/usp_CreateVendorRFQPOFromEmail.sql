@@ -55,15 +55,25 @@ BEGIN
                 @Now                          DATETIME2     = GETUTCDATE(),
                 @NeedByDate                   DATETIME2     = DATEADD(DAY, 30, GETUTCDATE());
 
-            -- 1. Lookup vendor by email first, then by name
-            SELECT TOP 1 @VendorId = VendorId
-            FROM dbo.Vendor WITH (NOLOCK)
-            WHERE MasterCompanyId = @MasterCompanyId AND IsActive = 1 AND IsDeleted = 0
-              AND (
-                    (@VendorEmail IS NOT NULL AND VendorEmail = @VendorEmail)
-                 OR (@VendorName  IS NOT NULL AND VendorName LIKE '%' + @VendorName + '%')
-                  )
-            ORDER BY CASE WHEN VendorEmail = @VendorEmail THEN 0 ELSE 1 END;
+            ------------------------------------------------------------
+			-- 1. Try exact match on BOTH email AND name (most confident)
+			------------------------------------------------------------
+			SELECT TOP 1 @VendorId = VendorId
+			FROM dbo.Vendor WITH (NOLOCK)
+			WHERE MasterCompanyId = @MasterCompanyId AND IsActive = 1 AND IsDeleted = 0
+			  AND VendorEmail = @VendorEmail
+			  AND VendorName LIKE '%' + @VendorName + '%';
+
+			------------------------------------------------------------
+			-- 2. If no exact match, try name only
+			------------------------------------------------------------
+			IF ISNULL(@VendorId, 0) = 0
+			BEGIN
+				SELECT TOP 1 @VendorId = VendorId
+				FROM dbo.Vendor WITH (NOLOCK)
+				WHERE MasterCompanyId = @MasterCompanyId AND IsActive = 1 AND IsDeleted = 0
+				  AND VendorName LIKE '%' + @VendorName + '%';
+			END
 
             DECLARE @VendorCode       VARCHAR(100) = NULL;
             DECLARE @DefaultEmployeeId BIGINT;

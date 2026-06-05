@@ -18,7 +18,7 @@
  ** --   --------     -------			--------------------------------          
     1    09/16/2021   Hemant Saliya		Created
     1    01/01/2024   Devendra Shekh	update for SerialNumber
-     
+ 	3    05/JUNE/2026 Rajesh Gami		Skip the IsFinishGood = 1 condition when the Work Order type is Teardown.[PN-16719]    
 --EXEC [sp_GetPickTicketApproveList_MainPart] 5,0
 **************************************************************/
 
@@ -34,6 +34,9 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 	BEGIN TRY
 	BEGIN TRANSACTION
 		BEGIN
+			DECLARE @IsTearDownWO BIT = 0,@WorkOrderId BIGINT = @referenceId,@WorkOrderTypeId INT, @TearDownWOTypeId INT = (SELECT TOP 1 ID FROM dbo.WorkOrderType WHERE Description = 'Internal Teardown');
+			SELECT TOP 1 @WorkOrderTypeId = [WorkOrderTypeId] FROM [dbo].[WorkOrder] WITH(NOLOCK) WHERE [WorkOrderId] = @WorkOrderId;
+			SET @IsTearDownWO = CASE WHEN @WorkOrderTypeId = @TearDownWOTypeId THEN 1 ELSE 0 END
 			SELECT 
 				wowf.WorkOrderPartNoId as OrderPartId, 
 				wop.WorkOrderId as referenceId,
@@ -60,7 +63,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 				LEFT JOIN WorkOrder wo WITH (NOLOCK) on wo.WorkOrderId = wop.WorkOrderId
 				LEFT JOIN WOPickTicket wopt WITH (NOLOCK) on wopt.WorkorderId = wop.WorkOrderId and wopt.OrderPartId = wop.ID
 				LEFT JOIN Customer cr WITH (NOLOCK) on cr.CustomerId = wo.CustomerId
-			WHERE wowf.WorkOrderId = @referenceId AND wop.IsFinishGood = 1
+			WHERE wowf.WorkOrderId = @referenceId AND (@IsTearDownWO = 1 OR wop.IsFinishGood = 1)
 				AND (wop.Quantity > 0 OR wopt.WorkFlowWorkOrderId IS NOT NULL)
 			GROUP BY wowf.WorkOrderPartNoId,wop.WorkOrderId,imt.PartNumber,imt.PartDescription, wop.Quantity,sl.SerialNumber,
 				sl.QuantityAvailable,wo.WorkOrderNum,wop.ItemMasterId,sl.ConditionId,cr.[Name],cr.CustomerCode,sl.isSerialized,wop.RevisedItemmasterid,wop.RevisedPartNumber,wop.RevisedPartDescription,wop.RevisedSerialNumber;

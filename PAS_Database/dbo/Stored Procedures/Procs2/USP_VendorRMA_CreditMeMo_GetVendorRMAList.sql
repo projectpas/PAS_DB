@@ -19,6 +19,7 @@
 	2    02-April-2026		Amit Ghediya		UOM Conversion Changes [PN-15140]  
     3    08/05/2026         Ayushi Patel        Return QtyShipped as it is from table [PN-15140]
 	4    15-May-2026        Sahdev Saliya       Added ControlNumber, UnitOfMeasure, QuantityAvailable, UnitCost, ExtendedCost [PN-16205]
+    5	 04-Jun-2026		Ayushi Patel	    [PN-16716]Return unitcost , quantityAvailable , unitOfMeasure as a PurchaseUOM  
 
  exec USP_VendorRMA_CreditMeMo_GetVendorRMAList 
 @PageNumber=1,@PageSize=10,@SortColumn=NULL,@SortOrder=-1,@GlobalFilter=N'',
@@ -87,12 +88,13 @@ BEGIN
 			VS.VendorRMAStatus as 'VendorRMADetailStatus',
 			RMA.RMANumber as 'VendorRMANumber',
 			RMAD.ModuleId,
-			RMS.QtyShipped,
+            ([dbo].[fn_ConvertUOM](ISNULL(RMS.QtyShipped, 0),SL.[StockUnitOfMeasure], PurchaseUom.[ShortName],0,IM.[MasterCompanyId])) AS QtyShipped,
+			--RMS.QtyShipped,
             RMAD.VendorRMADetailId,
 			SL.[ControlNumber],
-			SL.[UnitOfMeasure],
-			CASE WHEN SL.[PurchaseOrderId] > 0 THEN ISNULL(SL.QuantityAvailable,0) WHEN SL.[RepairOrderId] > 0 THEN ISNULL(SL.QuantityAvailable,0) ELSE 0 END AS QuantityAvailable,
-			CASE WHEN SL.[PurchaseOrderId] > 0 THEN ISNULL(SL.UnitCost,0) WHEN SL.[RepairOrderId] > 0 THEN ISNULL(SL.UnitCost,0) ELSE 0 END AS UnitCost,
+			PurchaseUom.[ShortName] as UnitOfMeasure,
+            ([dbo].[fn_ConvertUOM](ISNULL(SL.QuantityAvailable, 0),SL.[StockUnitOfMeasure], PurchaseUom.[ShortName],0,IM.[MasterCompanyId])) AS QuantityAvailable,
+            ([dbo].[fn_ConvertUOM](ISNULL(SL.UnitCost, 0),SL.[StockUnitOfMeasure], PurchaseUom.[ShortName],1,IM.[MasterCompanyId])) AS UnitCost,
 			CASE  WHEN SL.[PurchaseOrderId] > 0 THEN (ISNULL(SL.QuantityAvailable,0) * SL.UnitCost) WHEN SL.[RepairOrderId] > 0 THEN (ISNULL(SL.QuantityAvailable,0) * SL.UnitCost) ELSE 0 END AS ExtendedCost
 		FROM [DBO].[VendorRMA] RMA WITH (NOLOCK)
 		INNER JOIN [DBO].[Vendor] V WITH (NOLOCK) ON RMA.VendorId = V.VendorId
@@ -102,6 +104,7 @@ BEGIN
 		LEFT JOIN [DBO].[VendorCreditMemo] VCM WITH (NOLOCK) ON VCM.VendorRMAId = RMA.VendorRMAId
 		LEFT JOIN [DBO].[VendorRMAStatus] VS WITH (NOLOCK) ON RMAD.VendorRMAStatusId = VS.VendorRMAStatusId
 		LEFT JOIN [DBO].[RMAShippingItem] RMS WITH (NOLOCK) ON RMAD.VendorRMADetailId = RMS.VendorRMADetailId
+        LEFT JOIN [DBO].[UnitOfMeasure] PurchaseUom WITH (NOLOCK) ON SL.PurchaseUnitOfMeasureId = PurchaseUom.UnitOfMeasureId
 		WHERE RMA.[VendorRMAId] = CASE WHEN @VendorRMAId != 0 and @VendorRMAId is not null THEN @VendorRMAId ELSE RMAD.[VendorRMAId] END
 		AND VS.VendorRMAStatusId = @VendorRMADetailStatusId AND RMA.VendorRMAId NOT IN (SELECT ISNULL(VendorRMAId,0) VendorRMAId FROM VendorCreditMemo WHERE MasterCompanyId = @MasterCompanyId)
 		),

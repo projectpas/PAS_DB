@@ -15,7 +15,8 @@
     3    07-Nov-2023		Devendra SHekh     added case for vendorData
 	4    02-April-2026		Amit Ghediya		UOM Conversion Changes [PN-15140]  
 	5    15-May-2026        Sahdev Saliya       Added UnitOfMeasure, ExtendedCost [PN-16205]
-    6    02-JUN-2026		Rajesh Gami		   Handle IsNull (ISNULL(StockLineId,0)) While getting data from VendorCreditMemoDetail [PN-16521]
+	6    02-JUN-2026		Rajesh Gami		   Handle IsNull (ISNULL(StockLineId,0)) While getting data from VendorCreditMemoDetail [PN-16521]
+	7	 04-Jun-2026		Ayushi Patel	    [PN-16716]Return unitcost , quantityAvailable , unitOfMeasure as a STOCKUOM from stockline table when @IsVCMAdd=1 
 *******************************************************************************
 *******************************************************************************/
 CREATE   PROCEDURE [dbo].[USP_VendorRMA_GetVendorStockList] 
@@ -174,10 +175,8 @@ BEGIN
 			   ,IM.[partnumber] 'PartNumber'
 			   ,IM.[PartDescription]
 			   ,SL.[SerialNumber]
-			   --,SL.[QuantityAvailable]
-			   ,([dbo].[fn_ConvertUOM](ISNULL(SL.[QuantityAvailable], 0),IM.[StockUnitOfMeasure], IM.[ConsumeUnitOfMeasure],0,IM.[MasterCompanyId])) AS QuantityAvailable
-			   --,SL.[UnitCost]
-			   ,([dbo].[fn_ConvertUOM](ISNULL(SL.[UnitCost], 0),IM.[StockUnitOfMeasure], IM.[ConsumeUnitOfMeasure],1,IM.[MasterCompanyId])) AS UnitCost
+			   ,SL.[QuantityAvailable]
+			   ,SL.[UnitCost]
 			   ,CASE WHEN ISNULL(SL.[VendorId], 0) <> 0 THEN VO.[VendorName]
 			    WHEN SL.[PurchaseOrderId] > 0  THEN (SELECT POV.VendorName FROM [dbo].[PurchaseOrder] POV WITH(NOLOCK) INNER JOIN [dbo].[Vendor] V WITH(NOLOCK) ON POV.VendorId = V.VendorId WHERE SL.PurchaseOrderId = POV.PurchaseOrderId)
 			    WHEN SL.[RepairOrderId] > 0  THEN (SELECT ROV.VendorName FROM [dbo].[RepairOrder] ROV WITH(NOLOCK) INNER JOIN [dbo].[Vendor] V WITH(NOLOCK) ON ROV.VendorId = V.VendorId WHERE SL.RepairOrderId = ROV.RepairOrderId)
@@ -193,7 +192,7 @@ BEGIN
 			   ,CAST(SL.[ReceivedDate] AS DATE) AS [ReceivedDate]
 			   ,SL.[CreatedDate]
 			   ,0 AS [IsSelected]
-			   ,SL.[UnitOfMeasure]
+			   ,SL.[StockUnitOfMeasure] as UnitOfMeasure
 			   ,CASE  WHEN SL.[PurchaseOrderId] > 0 THEN (ISNULL(SL.QuantityAvailable,0) * SL.UnitCost) WHEN SL.[RepairOrderId] > 0 THEN (ISNULL(SL.QuantityAvailable,0) * SL.UnitCost) ELSE 0 END AS ExtendedCost
 		  FROM [dbo].[Stockline] SL WITH (NOLOCK)
 		  INNER JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON SL.[ItemMasterId] = IM.[ItemMasterId]

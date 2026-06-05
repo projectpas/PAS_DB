@@ -661,7 +661,7 @@ BEGIN
 			LEFT JOIN (
 				SELECT MasterCompanyId, COUNT(QuickBooksReferenceId) AS CustomerPaymentDetailsCount
 				FROM dbo.CustomerPaymentDetails  WITH(NOLOCK)
-				WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(QuickBooksReferenceId, 0) > 0
+				WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(QuickBooksReferenceId, '') <> '' AND [IntegrationTypeId] = @QBIntegrationTypeId
 				GROUP BY MasterCompanyId
 			) AS CustomerPaymentDetailsData ON CustomerPaymentDetailsData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @CPModuleId
 
@@ -669,7 +669,7 @@ BEGIN
 			LEFT JOIN (
 				SELECT MasterCompanyId, COUNT(IsUpdated) AS CustomerPaymentDetailsCount
 				FROM dbo.CustomerPaymentDetails  WITH(NOLOCK)
-				WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(IsUpdated, 0) = 1
+				WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(IsUpdated, 0) = 1 AND [IntegrationTypeId] = @QBIntegrationTypeId
 				GROUP BY MasterCompanyId
 			) AS PendingCustomerPaymentDetailsData ON PendingCustomerPaymentDetailsData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @CPModuleId
 
@@ -677,7 +677,41 @@ BEGIN
 			LEFT JOIN (
 				SELECT MasterCompanyId, COUNT(CustomerPaymentDetailsId) AS CustomerPaymentDetailsCount
 				FROM dbo.CustomerPaymentDetails  WITH(NOLOCK)
-				WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0
+				WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND [IntegrationTypeId] = @QBIntegrationTypeId
+				GROUP BY MasterCompanyId
+			) AS AllCustomerPaymentDetailsData ON AllCustomerPaymentDetailsData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @CPModuleId
+
+			WHERE ACI.ModuleId = @CPModuleId
+
+
+			UPDATE ACI
+			SET 
+				SyncRecords = ISNULL(CustomerPaymentDetailsData.CustomerPaymentDetailsCount, 0),
+				PendingSyncRecords = ISNULL(PendingCustomerPaymentDetailsData.CustomerPaymentDetailsCount, 0),
+				TotalRecords = ISNULL(AllCustomerPaymentDetailsData.CustomerPaymentDetailsCount, 0)
+			FROM dbo.AccountingIntegrationSettings ACI
+
+			-- CustomerPaymentDetails Data
+			LEFT JOIN (
+				SELECT MasterCompanyId, COUNT(QuickBooksReferenceId) AS CustomerPaymentDetailsCount
+				FROM dbo.CustomerPaymentDetails  WITH(NOLOCK)
+				WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(QuickBooksReferenceId, '') <> '' AND [IntegrationTypeId] = @XeroIntegrationTypeId
+				GROUP BY MasterCompanyId
+			) AS CustomerPaymentDetailsData ON CustomerPaymentDetailsData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @CPModuleId
+
+			-- Pending CustomerPaymentDetails Data
+			LEFT JOIN (
+				SELECT MasterCompanyId, COUNT(IsUpdated) AS CustomerPaymentDetailsCount
+				FROM dbo.CustomerPaymentDetails  WITH(NOLOCK)
+				WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(IsUpdated, 0) = 1 AND [IntegrationTypeId] = @XeroIntegrationTypeId
+				GROUP BY MasterCompanyId
+			) AS PendingCustomerPaymentDetailsData ON PendingCustomerPaymentDetailsData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @CPModuleId
+
+			-- All CustomerPaymentDetails Data
+			LEFT JOIN (
+				SELECT MasterCompanyId, COUNT(CustomerPaymentDetailsId) AS CustomerPaymentDetailsCount
+				FROM dbo.CustomerPaymentDetails  WITH(NOLOCK)
+				WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND [IntegrationTypeId] = @XeroIntegrationTypeId
 				GROUP BY MasterCompanyId
 			) AS AllCustomerPaymentDetailsData ON AllCustomerPaymentDetailsData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @CPModuleId
 

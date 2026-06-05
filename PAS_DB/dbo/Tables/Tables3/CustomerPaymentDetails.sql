@@ -22,7 +22,7 @@
     [PaymentRef]                          VARCHAR (100)   NULL,
     [Amount]                              DECIMAL (18, 2) NULL,
     [AmountRem]                           DECIMAL (18, 2) NULL,
-    [Ismiscellaneous]                     BIT             DEFAULT ((0)) NOT NULL,
+    [Ismiscellaneous]                     BIT             CONSTRAINT [DF__CustomerP__Ismis__7A436B98] DEFAULT ((0)) NOT NULL,
     [AppliedAmount]                       DECIMAL (20, 2) NULL,
     [InvoiceAmount]                       DECIMAL (20, 2) NULL,
     [LegalEntityId]                       BIGINT          NULL,
@@ -33,9 +33,12 @@
     [IsUpdated]                           BIT             NULL,
     [LastSyncDate]                        DATETIME2 (7)   NULL,
     [SyncToken]                           VARCHAR (200)   NULL,
-    [IsNonInvoicePayment]                 BIT             DEFAULT ((0)) NULL,
+    [IntegrationTypeId]                   INT             NULL,
+    [IsNonInvoicePayment]                 BIT             CONSTRAINT [DF__CustomerP__IsNon__7B378FD1] DEFAULT ((0)) NULL,
     CONSTRAINT [PK_CustomerPaymentDetails] PRIMARY KEY CLUSTERED ([CustomerPaymentDetailsId] ASC)
 );
+
+
 
 
 

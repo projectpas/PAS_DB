@@ -23,6 +23,7 @@
 	10   09 Jul 2025   RAJESH GAMI		Deposit amount getting from the item level instead of invoice in SO
 	11   30-10-2025    Moin Bloch       Added CreditMemoHeaderId 
 	12   24-APR-2026   RAJESH			Added ModuleId Condition In WO Billing [PN-16192]
+	13   05/JUNE/2026 Rajesh Gami		Skip the IsFinishGood = 1 condition when the Work Order type is Teardown.[PN-16719]   
 **************************************************************/ 
 --   EXEC [dbo].[GetCommonBillingInvoiceChildListNew] 9728,9831,1,15
 
@@ -137,10 +138,12 @@ BEGIN
 				IsSerialized BIT DEFAULT 0,
 				[CreditMemoHeaderId] BIGINT NULL,
 			)
-		
+			DECLARE @IsTearDownWO BIT = 0,@WorkOrderTypeId INT, @TearDownWOTypeId INT = (SELECT TOP 1 ID FROM dbo.WorkOrderType WHERE Description = 'Internal Teardown');
 			IF(@ModuleId = @WOModuleId) /*********START: WORK ORDER ********/
 			BEGIN
-	
+				SELECT TOP 1 @WorkOrderTypeId = [WorkOrderTypeId] FROM [dbo].[WorkOrder] WITH(NOLOCK) WHERE [WorkOrderId] = @ReferenceId;
+				SET @IsTearDownWO = CASE WHEN @WorkOrderTypeId = @TearDownWOTypeId THEN 1 ELSE 0 END
+				
 				DECLARE @IsInvoiceBeforeShippingAllowed BIT;
 				DECLARE @ActionId INT;
 				SET @ActionId = 10; -- Re-OpenFinishedGood
@@ -391,7 +394,7 @@ BEGIN
 						 LEFT JOIN [dbo].[WorkOrderShippingItem] wosi WITH(NOLOCK) ON wop.WorkOrderId = wos.WorkOrderId AND wop.ID = wosi.WorkOrderPartNumId
 						 LEFT JOIN [dbo].[InvoiceType] INV WITH(NOLOCK) ON INV.InvoiceTypeId = wobi.InvoiceTypeId
 						WHERE wop.WorkOrderId = @ReferenceId AND wop.ID = @SubReferenceId 						
-						  AND (ISNULL(wop.IsFinishGood, 0) = 1 OR wobi.BillingInvoicingId IS NOT NULL)
+						  AND (@IsTearDownWO = 1 OR ISNULL(wop.IsFinishGood, 0) = 1 OR wobi.BillingInvoicingId IS NOT NULL)
 						GROUP BY wobi.BillingInvoicingId, wobi.InvoiceDate, wobi.InvoiceNo,  wos.WOShippingNum, wos.AirwayBill,
 							wo.WorkOrderNum, imt.partnumber, imt.PartDescription, sl.StockLineNumber,
 							sl.SerialNumber, cr.[Name], wop.WorkOrderId, wop.ID, wobi.InvoiceStatus,
@@ -493,7 +496,7 @@ BEGIN
 							LEFT JOIN dbo.WorkOrderWorkFlow NWOF WITH(NOLOCK) ON NWOP.WorkOrderId = NWOF.WorkOrderId AND NWOF.WorkOrderPartNoId = @SubReferenceId
 							LEFT JOIN DBO.BillingInvoicingItems NWOBII WITH(NOLOCK) ON Nwobii.SubReferenceId = @SubReferenceId AND Nwobii.ModuleId = @WOModuleId AND ISNULL(NWOBII.IsPerformaInvoice, 0) = 0
 							LEFT JOIN DBO.BillingInvoicing NWOBI WITH(NOLOCK) ON NWOBI.BillingInvoicingId = NWOBII.BillingInvoicingId AND Nwobi.ModuleId = @WOModuleId AND NWOBI.ReferenceId = NWOF.WorkOrderId AND ISNULL(NWOBI.IsPerformaInvoice, 0) = 0
-							WHERE NWOP.WorkOrderId = @ReferenceId AND NWOP.ID = @SubReferenceId AND (ISNULL(NWOP.IsFinishGood, 0) = 1) AND ISNULL(NWOBII.IsVersionIncrease, 0) = 0 GROUP BY NWOP.WorkOrderId, NWOP.Id,NWOBI.InvoiceStatus) woBillData
+							WHERE NWOP.WorkOrderId = @ReferenceId AND NWOP.ID = @SubReferenceId AND (ISNULL(NWOP.IsFinishGood, 0) = 1 OR   @IsTearDownWO = 1) AND ISNULL(NWOBII.IsVersionIncrease, 0) = 0 GROUP BY NWOP.WorkOrderId, NWOP.Id,NWOBI.InvoiceStatus) woBillData
 						OUTER APPLY
 							(SELECT PWOP.WorkOrderId, PWOP.Id,PWOSSN.WorkOrderShippingId  FROM DBO.WorkOrderPartNumber PWOP WITH(NOLOCK)							
 							LEFT JOIN dbo.WorkOrderWorkFlow PWOF WITH(NOLOCK) ON PWOP.WorkOrderId = PWOF.WorkOrderId AND PWOF.WorkOrderPartNoId = @SubReferenceId
@@ -501,7 +504,7 @@ BEGIN
 							LEFT JOIN DBO.BillingInvoicing PWOBI WITH(NOLOCK) ON PWOBI.BillingInvoicingId = PWOBII.BillingInvoicingId AND Pwobi.ModuleId = @WOModuleId AND PWOBI.ReferenceId = PWOF.WorkOrderId AND ISNULL(PWOBI.IsPerformaInvoice, 0) = 1
 						    LEFT JOIN DBO.WorkOrderShippingItem PWOSISN WITH(NOLOCK) ON PWOSISN.WorkOrderPartNumId = PWOP.ID AND PWOSISN.WorkOrderPartNumId = @SubReferenceId
 							LEFT JOIN DBO.WorkOrderShipping PWOSSN WITH(NOLOCK) ON PWOSISN.WorkOrderShippingId = PWOSSN.WorkOrderShippingId
-							WHERE PWOP.WorkOrderId = @ReferenceId AND PWOP.ID = @SubReferenceId AND (ISNULL(PWOP.IsFinishGood, 0) = 1) AND ISNULL(PWOBII.IsVersionIncrease, 0) = 0 GROUP BY PWOP.WorkOrderId, PWOP.Id,PWOSSN.WorkOrderShippingId) woProfomaBillData
+							WHERE PWOP.WorkOrderId = @ReferenceId AND PWOP.ID = @SubReferenceId AND (ISNULL(PWOP.IsFinishGood, 0) = 1 OR @IsTearDownWO = 1) AND ISNULL(PWOBII.IsVersionIncrease, 0) = 0 GROUP BY PWOP.WorkOrderId, PWOP.Id,PWOSSN.WorkOrderShippingId) woProfomaBillData
 					WHERE wop.WorkOrderId = @ReferenceId AND wop.ID = @SubReferenceId 
 					GROUP BY wobi.BillingInvoicingId, wobi.InvoiceDate, wobi.InvoiceNo, 
 						wo.WorkOrderNum, imt.partnumber, imt.PartDescription, sl.StockLineNumber,
@@ -1453,6 +1456,7 @@ BEGIN
 						DELETE FROM #InvoiceMainDetails WHERE ISNULL(IsLastInserted,0) = 0
 					
 			END /*********END: SALES ORDER ********/
+			UPDATE #InvoiceMainDetails SET IsFinishGood = (CASE WHEN @IsTearDownWO =  1 THEN 1 ELSE IsFinishGood END)
 			SELECT * FROM #InvoiceMainDetails ORDER BY IsProformaInvoice ASC, BillingInvoicingId DESC,InvoiceNo DESC, VersionNo DESC;	
 		END TRY    
 		BEGIN CATCH      

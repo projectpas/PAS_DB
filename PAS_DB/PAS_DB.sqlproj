@@ -4693,6 +4693,8 @@
     <Build Include="dbo\Tables\AircraftHistoryTemplate.sql" />
     <Build Include="dbo\Tables\AircraftHistory.sql" />
     <Build Include="dbo\Stored Procedures\USP_SaveAircraftHistory.sql" />
+    <Build Include="dbo\Stored Procedures\USP_SaveCustomerAging.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetXeroCustomerList.sql" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Snapshots\PAS_DB_20220518_07-53-10.dacpac" />

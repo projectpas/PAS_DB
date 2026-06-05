@@ -1,4 +1,5 @@
-﻿/*************************************************************             
+﻿
+/*************************************************************             
  ** File:   [USP_UpdateStockLineWorkOrderPart]            
  ** Author:    Priyansh Patel  
  ** Description: This stored procedure is used to add/update stockline history 
@@ -12,7 +13,7 @@
  ** --   --------     -------			-----------------------
     1    04/11/2025   Priyansh Patel	Created
 	2    25/11/2025   Moin Bloch		Format SP
-	
+	3    04/JUNE/2026 Rajesh Gami		Restrict decreasing the quantity when the Work Order type is Teardown.[PN-16719]
  EXEC [dbo].[USP_UpdateStockLineWorkOrderPart] 1052,'ADMIN',2,4,6,5,6,1,1
 **************************************************************/
 CREATE PROCEDURE [dbo].[USP_UpdateStockLineWorkOrderPart]
@@ -36,8 +37,8 @@ BEGIN
     BEGIN TRANSACTION  
     BEGIN
 
-    DECLARE @StockLineId BIGINT;
-    DECLARE @WorkOrderId BIGINT;
+    DECLARE @StockLineId BIGINT, @IsTearDownWO BIT = 0;
+    DECLARE @WorkOrderId BIGINT,@WorkOrderTypeId INT, @TearDownWOTypeId INT = (SELECT TOP 1 ID FROM dbo.WorkOrderType WHERE Description = 'Internal Teardown');
 
     -- Get WorkOrderPartNumber info
      SELECT @StockLineId = ISNULL(WOP.StockLineId, 0),
@@ -46,14 +47,16 @@ BEGIN
 	   INNER JOIN [dbo].[MasterCompany] MC WITH(NOLOCK) ON MC.[MasterCompanyId] = WOP.[MasterCompanyId]
        WHERE WOP.[ID] = @WorkOrderPartNoId AND WOP.[MasterCompanyId] = @MasterCompanyId;
 
+	   SELECT TOP 1 @WorkOrderTypeId = [WorkOrderTypeId] FROM [dbo].[WorkOrder] WITH(NOLOCK) WHERE [WorkOrderId] = @WorkOrderId	AND [MasterCompanyId] = @MasterCompanyId;
+	   SET @IsTearDownWO = CASE WHEN @WorkOrderTypeId = @TearDownWOTypeId THEN 1 ELSE 0 END
     -- Update StockLine
 		UPDATE SL
 		SET SL.[WorkOrderId] = @WorkOrderId,
 			SL.[WorkOrderPartNoId] = @WorkOrderPartNoId,
 			SL.[UpdatedDate] = GETUTCDATE(),
 			SL.[UpdatedBy] = @UpdatedBy,
-			SL.[QuantityAvailable] = CASE WHEN ISNULL(SL.[QuantityAvailable], 0) > 0 THEN ISNULL(SL.[QuantityAvailable], 0) - ISNULL(@NPMStockQTY, 0) ELSE ISNULL(SL.[QuantityAvailable], 0) END,
-			SL.[QuantityOnHand] = CASE WHEN ISNULL(SL.[QuantityOnHand], 0) > 0 THEN ISNULL(SL.[QuantityOnHand], 0) - ISNULL(@NPMStockQTY, 0) ELSE ISNULL(SL.[QuantityOnHand], 0) END
+			SL.[QuantityAvailable] = CASE WHEN ISNULL(SL.[QuantityAvailable], 0) > 0 AND @IsTearDownWO = 0 THEN ISNULL(SL.[QuantityAvailable], 0) - ISNULL(@NPMStockQTY, 0) ELSE ISNULL(SL.[QuantityAvailable], 0) END,
+			SL.[QuantityOnHand] = CASE WHEN ISNULL(SL.[QuantityOnHand], 0) > 0 AND @IsTearDownWO = 0  THEN ISNULL(SL.[QuantityOnHand], 0) - ISNULL(@NPMStockQTY, 0) ELSE ISNULL(SL.[QuantityOnHand], 0) END
 		 FROM [dbo].[StockLine] SL
 		 INNER JOIN [dbo].[MasterCompany] MC WITH(NOLOCK) ON MC.[MasterCompanyId] = SL.[MasterCompanyId]
 		 WHERE SL.[StockLineId] = @StockLineId AND SL.[MasterCompanyId] = @MasterCompanyId;

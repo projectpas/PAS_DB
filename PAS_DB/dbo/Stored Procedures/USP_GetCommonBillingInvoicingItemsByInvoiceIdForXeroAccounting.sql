@@ -10,8 +10,9 @@
  ******************************************************************************************           
  ** PR   Date         Author		    Change Description            
  ** --   --------     -------		 --------------------------------          
-    1    19/05/2025   Moin Bloch        Created
+    1    19/05/2026   Moin Bloch        Created
     2    29/05/2026   Bhargav Saliya    Added @IsSync Case
+	3    05/06/2026   Moin Bloch        Fix Discription 
 
 	EXEC [dbo].[USP_GetCommonBillingInvoicingItemsByInvoiceIdForXeroAccounting] null,15,1
 ********************************************************************************************/
@@ -83,7 +84,7 @@ BEGIN
 				  ,ISNULL(BII.[OtherTaxPercent],0) [OtherTaxPercent]
 				  ,ISNULL(BII.[GrandTotal],0) [GrandTotal]
 				  ,ITM.[QuickBooksReferenceId] [LineItemID]				
-				  ,'INVOICE GENERATED FOR ' + WO.[WorkOrderNum] +' ' + ITM.[partnumber] + ' ' + WO.[CustomerName]  [Notes]
+				  ,ITM.[PartDescription]  [Notes]
 				  ---------- TAX TYPE ----------
 				  -- INPUT	0.00	TAX ON PURCHASES
 				  -- OUTPUT	0.00	TAX ON SALES	
@@ -157,8 +158,8 @@ BEGIN
 				  ,ISNULL(BII.[SalesTaxPercent],0) [SalesTaxPercent]
 				  ,ISNULL(BII.[OtherTaxPercent],0) [OtherTaxPercent]
 				  ,ISNULL(BII.[GrandTotal],0) [GrandTotal]
-				  ,ITM.[QuickBooksReferenceId] [LineItemID]				
-				  ,'INVOICE GENERATED FOR ' + SO.[SalesOrderNumber] +' ' + ITM.[partnumber] + ' ' + SO.[CustomerName]  [Notes]
+				  ,ITM.[QuickBooksReferenceId] [LineItemID]								  
+				  ,ITM.[PartDescription]  [Notes]
 				  ---------- TAX TYPE ----------
 				  -- INPUT	0.00	TAX ON PURCHASES
 				  -- OUTPUT	0.00	TAX ON SALES	
@@ -207,7 +208,7 @@ BEGIN
 			SELECT ISNULL(SOBII.[UnitPrice], 0) AS [UnitPrice]
 			       ,SSBI.[Qty] AS [QtyBilled]
 			       ,IM.[QuickBooksReferenceId] [LineItemID]
-				   ,'INVOICE GENERATED FOR ' + SO.[ExchangeSalesOrderNumber] +' ' + IM.[partnumber] + ' ' + SO.[CustomerName]  [Notes]					 
+				   ,IM.[PartDescription]  [Notes] 					 
 				   ,ISNULL(SOBII.[UnitPrice], 0) AS [TotalBillingCostPlus]						
 				   ,ISNULL(SOBI.SalesTax, 0) AS [SalesTax]
 				   ,ISNULL(SOBI.OtherTax, 0) AS [OtherTax]

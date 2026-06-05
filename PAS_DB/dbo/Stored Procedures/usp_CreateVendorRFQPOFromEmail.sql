@@ -298,6 +298,45 @@ BEGIN
 
 			SET @VendorRFQPurchaseOrderId = SCOPE_IDENTITY();
 
+			------------------------------------------------------------
+			-- LOOKUP OR CREATE MANUFACTURER 'N/A'
+			------------------------------------------------------------
+			DECLARE @ManufacturerId BIGINT;
+
+			SELECT TOP 1 @ManufacturerId = ManufacturerId
+			FROM dbo.Manufacturer WITH (NOLOCK)
+			WHERE UPPER(Name) = 'N/A' AND MasterCompanyId = @MasterCompanyId AND IsActive = 1 AND IsDeleted = 0;
+
+			IF ISNULL(@ManufacturerId, 0) = 0
+			BEGIN
+				INSERT INTO dbo.Manufacturer
+				(
+					Name,
+					Comments,
+					MasterCompanyId,
+					CreatedBy,
+					UpdatedBy,
+					CreatedDate,
+					UpdatedDate,
+					IsActive,
+					IsDeleted
+				)
+				VALUES
+				(
+					'N/A',
+					'',
+					@MasterCompanyId,
+					@CreatedBy,
+					@CreatedBy,
+					@Now,
+					@Now,
+					1,
+					0
+				);
+
+				SET @ManufacturerId = SCOPE_IDENTITY();
+			END
+
 			 -- 6a. Save header management structure details (ModuleId = 20 = VendorRFQPOHeader)
 			DECLARE @MSHeaderId BIGINT;
 			EXEC dbo.[PROCAddPOMSData]
@@ -438,7 +477,7 @@ BEGIN
 				im.RPHours,
 				im.TestHours,
 				im.RFQTracking,
-				im.ManufacturerId,
+				@ManufacturerId,
 				im.GLAccountId,
 				im.PurchaseUnitOfMeasureId,
 				im.StockUnitOfMeasureId,
@@ -540,7 +579,7 @@ BEGIN
 				ISNULL(c.ConditionId, 0),
 				c.Description,
 				im.ManufacturerId,
-				im.ManufacturerName,
+				ISNULL(im.ManufacturerName, 'N/A'),
 				ISNULL(p.RequestedQty, ISNULL(p.Qty, 0)),
 				ISNULL(p.Price, 0),
 				ISNULL(p.Price, 0) * ISNULL(p.RequestedQty, ISNULL(p.Qty, 0)),
@@ -561,7 +600,7 @@ BEGIN
 				   ON im.MasterCompanyId = @MasterCompanyId
 				  AND im.IsActive = 1 AND im.IsDeleted = 0
 				  AND im.PartNumber = LTRIM(RTRIM(p.PartNumber))
-				  AND im.PartDescription = LTRIM(RTRIM(p.Description))
+				  AND im.PartDescription = ISNULL(LTRIM(RTRIM(p.Description)), 'N/A')
 			WHERE LTRIM(RTRIM(ISNULL(p.PartNumber, ''))) <> '';
 
 			-- 7a. Save part management structure details into PurchaseOrderManagementStructureDetails (ModuleId = 21 = VendorRFQPOPart)

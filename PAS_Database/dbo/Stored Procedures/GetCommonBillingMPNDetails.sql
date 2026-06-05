@@ -30,7 +30,7 @@
 	18	 02/09/2025   Vishal Suthar		Added DISTINCT in the SELECT Statement
 	19	 29/09/2025   Moin Bloch		Added [ApprovalActionId]
 	20   14/05/2026   Bhargav Saliya	Added UOM Changes [PN-15067]
-
+	21   05/JUNE/2026 Rajesh Gami		Skip the IsFinishGood = 1 condition when the Work Order type is Teardown.[PN-16719]
 --  EXEC [dbo].[GetCommonBillingMPNDetails] 926,1166,'1166',10,0,1
     EXEC [dbo].[GetCommonBillingMPNDetails] 1162,1830,'1830',10,1,0
 ************************************************************************/
@@ -134,7 +134,7 @@ BEGIN
 			[FlatFreightStkId] BIGINT NULL,
 			[ApprovalActionId] BIGINT NULL,
 		)
-			
+		DECLARE @IsTearDownWO BIT = 0, @TearDownWOTypeId INT = (SELECT TOP 1 ID FROM dbo.WorkOrderType WHERE Description = 'Internal Teardown');
 		IF(@ModuleId = @WOModuleId) /*START: WORK ORDER ********/
 		BEGIN
 			SELECT @WorkOrderMPNMSModuleEnum = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] = 'WorkOrderMPN'
@@ -142,6 +142,8 @@ BEGIN
 			SELECT @CustomerId = WO.[CustomerId],@WorkOrderTypeId = [WorkOrderTypeId], @MasterCompanyId = WO.[MasterCompanyId] FROM [dbo].[WorkOrder] WO WITH(NOLOCK) WHERE WO.[WorkOrderId] = @ReferenceId;
 			
 			SELECT @AllowInvoiceBeforeShipping = ISNULL([AllowInvoiceBeforeShipping],0) FROM [dbo].[WorkOrderSettings] WITH(NOLOCK) WHERE [WorkOrderTypeId]=@WorkOrderTypeId AND [MasterCompanyId]=@MasterCompanyId
+			
+			SET @IsTearDownWO = CASE WHEN @WorkOrderTypeId = @TearDownWOTypeId THEN 1 ELSE 0 END
 			
 			DECLARE @FinalCondCert INT
 				SELECT @FinalCondCert = [WorkOrderSettlementId] FROM [dbo].[WorkOrderSettlement] WITH(NOLOCK) WHERE [WorkOrderSettlementName] = 'Final Cond/Cert'
@@ -174,7 +176,7 @@ BEGIN
 					 LEFT JOIN [dbo].[BillingInvoicingItems] boi WITH(NOLOCK) ON wop.[ID] = boi.[SubReferenceId] AND wop.[WorkOrderId] = boi.[ReferenceId] AND ISNULL(boi.[IsVersionIncrease],0) = 0 AND ISNULL(boi.[IsPerformaInvoice],0) = @IsProformaInvoice AND boi.[ModuleId] = @WOModuleId  
 					 LEFT JOIN [dbo].[BillingInvoicing] bi WITH(NOLOCK) ON bi.[BillingInvoicingId] = boi.[BillingInvoicingId] 
 					WHERE wop.[WorkOrderId] = @ReferenceId 
-					AND ISNULL([IsFinishGood], 0) = 1					  
+					AND (@IsTearDownWO = 1 OR ISNULL([IsFinishGood], 0) = 1)					  
 					AND (NOT EXISTS (SELECT 1 FROM [dbo].[BillingInvoicing] WITH(NOLOCK) WHERE [ReferenceId] = @ReferenceId AND [ModuleId] = @WOModuleId) OR ISNULL(bi.InvoiceStatusId, -1) <> @InvoiceStatusId)
 					AND (@SubReferenceIds IS NULL OR [ID] IN (SELECT Item FROM DBO.SPLITSTRING(@SubReferenceIds,',')))                
 					AND wop.[IsDeleted] = 0 
@@ -202,7 +204,7 @@ BEGIN
 						LEFT JOIN [dbo].[WorkOrderSettlementDetails] WOS WITH(NOLOCK) ON WOP.[ID] = wos.[workOrderPartNoId] AND WOS.[WorkOrderSettlementId] = @FinalCondCert
 						LEFT JOIN [dbo].[Condition] COND WITH(NOLOCK) ON WOP.[RevisedConditionId] = COND.[ConditionId]
 						WHERE wop.[WorkOrderId] = @ReferenceId 
-						  AND ISNULL([IsFinishGood], 0) = 1					  
+						  AND (@IsTearDownWO = 1 OR ISNULL([IsFinishGood], 0) = 1)				  
 						  AND (NOT EXISTS (SELECT 1 FROM [dbo].[BillingInvoicing] WITH(NOLOCK) WHERE [ReferenceId] = @ReferenceId AND [ModuleId] = @WOModuleId) OR ISNULL(bi.InvoiceStatusId, -1) <> @InvoiceStatusId)
 						  AND (@SubReferenceIds IS NULL OR [ID] IN (SELECT Item FROM DBO.SPLITSTRING(@SubReferenceIds,',')))                
 						  AND wop.[IsDeleted] = 0 
@@ -229,7 +231,7 @@ BEGIN
 						 LEFT JOIN [dbo].[WorkOrderSettlementDetails] WOSD WITH(NOLOCK) ON WOP.[ID] = wosd.[workOrderPartNoId] AND WOSD.[WorkOrderSettlementId] = @FinalCondCert
 						 LEFT JOIN [dbo].[Condition] COND WITH(NOLOCK) ON WOP.[RevisedConditionId] = COND.[ConditionId]
 						WHERE wop.[WorkOrderId] = @ReferenceId 
-						  AND ISNULL([IsFinishGood], 0) = 1					
+						  AND (@IsTearDownWO = 1 OR ISNULL([IsFinishGood], 0) = 1)				
 						  AND (NOT EXISTS (SELECT 1 FROM [dbo].[BillingInvoicingItems] WITH(NOLOCK) WHERE [ReferenceId] = @ReferenceId AND [ModuleId] = @WOModuleId) OR ISNULL(bi.InvoiceStatusId, -1) <> @InvoiceStatusId)
 						  AND (@SubReferenceIds IS NULL OR [ID] IN (SELECT Item FROM DBO.SPLITSTRING(@SubReferenceIds,',')))                
 						  AND wop.[IsDeleted] = 0 

@@ -378,7 +378,7 @@ BEGIN
                 ManufacturerId,                 -- per-part manufacturer
                 GLAccountId, PurchaseUnitOfMeasureId, StockUnitOfMeasureId, ConsumeUnitOfMeasureId,
                 LeadTimeDays, ReorderPoint, ReorderQuantiy, MinimumOrderQuantity,
-                PurchaseCurrencyId, SalesCurrencyId,
+                CurrencyId, PurchaseCurrencyId, SalesCurrencyId,
                 MasterCompanyId, CreatedBy, UpdatedBy, CreatedDate, UpdatedDate,
                 TurnTimeOverhaulHours, TurnTimeRepairHours, isTimeLife, isSerialized,
                 ShelfLife, StockLevel, ShelfLifeAvailable, mfgHours, IsPma,
@@ -407,9 +407,9 @@ BEGIN
                 pm.ManufacturerId,              -- per-part manufacturer from @PartManufacturers
                 im.GLAccountId, im.PurchaseUnitOfMeasureId, im.StockUnitOfMeasureId, im.ConsumeUnitOfMeasureId,
                 im.LeadTimeDays, im.ReorderPoint, im.ReorderQuantiy, im.MinimumOrderQuantity,
-                im.PurchaseCurrencyId, im.SalesCurrencyId,
+                im.CurrencyId, im.PurchaseCurrencyId, im.SalesCurrencyId,
                 @MasterCompanyId, @CreatedBy, @CreatedBy, @Now, @Now,
-                im.TurnTimeOverhaulHours, im.TurnTimeRepairHours, im.isTimeLife, im.isSerialized,
+                im.TurnTimeOverhaulHours, im.TurnTimeRepairHours, 0, im.isSerialized,
                 im.ShelfLife, im.StockLevel, im.ShelfLifeAvailable, im.mfgHours, im.IsPma,
                 im.turnTimeMfg, im.turnTimeBenchTest, im.SiteId, im.ItemMasterAssetTypeId,
                 im.IsHotItem, im.IsAcquiredMethodBuy, im.IsOEM, im.MTBUR,
@@ -467,7 +467,7 @@ BEGIN
                  ConditionId, Condition, ManufacturerId, Manufacturer, QuantityOrdered, UnitCost, ExtendedCost,
                  PriorityId, Priority, NeedByDate, PromisedDate, ManagementStructureId, Memo,
                  MasterCompanyId, CreatedBy, UpdatedBy, CreatedDate, UpdatedDate,
-                 IsActive, IsDeleted, IsNoQuote)
+                 IsActive, IsDeleted, IsNoQuote, UOMId)
             SELECT
                 @VendorRFQPurchaseOrderId,
                 im.ItemMasterId,
@@ -488,7 +488,8 @@ BEGIN
                 p.Notes,
                 @MasterCompanyId,
                 @CreatedBy, @CreatedBy, @Now, @Now,
-                1, 0, 0
+                1, 0, 0,
+				im.PurchaseUnitOfMeasureId
             FROM @tbl_EmailParts p
             INNER JOIN @PartManufacturers pm
                     ON pm.PartNumber = LTRIM(RTRIM(p.PartNumber))

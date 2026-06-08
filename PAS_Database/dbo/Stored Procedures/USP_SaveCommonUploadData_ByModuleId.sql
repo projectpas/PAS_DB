@@ -43,6 +43,7 @@
 	35   22-APR-2026		Nakul Chandigra			Removed Handled Description code for  Item Classification and  Item Group (PN-15952)
 	36   13-MAY-2026		Ayushi Patel			PN-16321 handled new WorkOrderMaterial module
 	37   05-JUN-2026        Ayushi Patel            PN-15888 Fixed PriceMaster/PurchaseSales upload: PP_PurchaseDiscPerc and SP_CalSPByPP_MarkUpPercOnListPrice were storing PercentId instead of PercentValue. Resolved actual percent values from [Percent] table before discount and markup calculations.
+	38   05-JUN-2026        Ayushi Patel            Added ParentTable insted of ParentTableRereneceTypeId for IsModuleTableColumn = 0 to support dynamic parent table insert functionality for upload module.
 	exec USP_SaveCommonUploadData_ByModuleId @ModuleId=4,@UserName=N'VICTOR ADMAS',@MasterCompanyId=1, @EmployeeId = 236;
 **************************************************************/
 CREATE PROCEDURE [dbo].[USP_SaveCommonUploadData_ByModuleId]
@@ -225,7 +226,7 @@ BEGIN
 
 			SELECT	IMF.ImportModuleFieldMasterId, IMF.ModuleId, IMF.FieldName, IMF.HeaderName, IMF.FieldType, IMF.IsRequired,  IMF.IsAutoGenerate, IMF.IsModuleTableColumn,
 						IMF.DropdownListType, IMF.DropdownListTable, IMF.DropdownListId, IMF.DropdownListValue, IMF.DropdownListValueId,
-						IMF.IsMultiValue, TMP.RecordId, TMP.FieldValue, TMP.RecordStatus, IMF.ParentTableRereneceTypeId
+						IMF.IsMultiValue, TMP.RecordId, TMP.FieldValue, TMP.RecordStatus, IMF.ParentTableRereneceTypeId , IMF.ParentTable
 			INTO #ImportFields
 			FROM [DBO].[ImportModuleFieldMaster] IMF WITH(NOLOCK)
 			LEFT JOIN #DynamicKeyValue TMP ON TMP.FieldName = IMF.FieldName
@@ -667,7 +668,7 @@ BEGIN
 				--SET @FieldValue = CAST(@ModuleTableId AS VARCHAR) + ','
 
 				-- Add fields where IsModuleTableColumn is NULL or something specific for parent (adjust condition if needed)
-				SELECT @RefFieldName = COALESCE(@RefFieldName + ',  ' + FieldName, FieldName) FROM #ImportFields WHERE ISNULL(IsModuleTableColumn, 0) = 0 AND  ParentTableRereneceTypeId = @ModuleParentTable;
+				SELECT @RefFieldName = COALESCE(@RefFieldName + ',  ' + FieldName, FieldName) FROM #ImportFields WHERE ISNULL(IsModuleTableColumn, 0) = 0 AND  ParentTable = @ModuleParentTable;
 
 				SELECT @FieldValue = COALESCE(@FieldValue + ' ' +        
 					(CASE	WHEN FieldType = 'string' THEN '''' + ISNULL(REPLACE(FieldValue, '''', ''''''), '') + ''','        
@@ -688,7 +689,7 @@ BEGIN
 							WHEN FieldType = 'dropdown' THEN CASE WHEN ISNULL(FieldValue,'') = '' THEN 'NULL' ELSE FieldValue END + ','   
 							WHEN ISNULL(FieldType,'') = '' THEN FieldValue + ',' END))        
 				FROM #ImportFields        
-				WHERE ISNULL(IsModuleTableColumn, 0) = 0 AND  ParentTableRereneceTypeId = @ModuleParentTable
+				WHERE ISNULL(IsModuleTableColumn, 0) = 0 AND  ParentTable = @ModuleParentTable
 
 				-- Add audit trail
 				SET @RefFieldName += ', MasterCompanyId, CreatedBy, UpdatedBy'

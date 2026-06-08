@@ -361,6 +361,16 @@ BEGIN
             FROM dbo.ItemMaster WITH (NOLOCK)
             WHERE MasterCompanyId = @MasterCompanyId AND IsActive = 1 AND IsDeleted = 0;
 
+			------------------------------------------------------------
+            -- GET DEFAULT UNIT OF MEASURE
+            ------------------------------------------------------------
+			DECLARE @DefaultUnitOfMeasureId BIGINT;
+
+            SELECT TOP 1 @DefaultUnitOfMeasureId = UnitOfMeasureId
+            FROM dbo.UnitOfMeasure WITH (NOLOCK) 
+			WHERE MasterCompanyId = @MasterCompanyId AND UPPER([Description]) = 'EA' 
+			AND IsActive = 1 AND IsDeleted = 0;
+
             ------------------------------------------------------------
             -- INSERT NEW ITEM MASTERS (only for parts that don't exist yet)
             -- Uses per-part ManufacturerId from @PartManufacturers
@@ -405,7 +415,7 @@ BEGIN
                 im.IsOtherDateAvailable, im.OtherDays, im.IsDER, im.IsSchematic, im.OverhaulHours,
                 im.RPHours, im.TestHours, im.RFQTracking,
                 pm.ManufacturerId,              -- per-part manufacturer from @PartManufacturers
-                im.GLAccountId, im.PurchaseUnitOfMeasureId, im.StockUnitOfMeasureId, im.ConsumeUnitOfMeasureId,
+                im.GLAccountId, @DefaultUnitOfMeasureId, @DefaultUnitOfMeasureId, @DefaultUnitOfMeasureId,
                 im.LeadTimeDays, im.ReorderPoint, im.ReorderQuantiy, im.MinimumOrderQuantity,
                 im.CurrencyId, im.PurchaseCurrencyId, im.SalesCurrencyId,
                 @MasterCompanyId, @CreatedBy, @CreatedBy, @Now, @Now,

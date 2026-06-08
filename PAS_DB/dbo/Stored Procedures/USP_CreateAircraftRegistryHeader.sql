@@ -90,8 +90,6 @@ BEGIN
                 AR.AircraftStatus = T.AircraftStatus,
                 AR.MaintenanceStatusId = T.MaintenanceStatusId,
                 AR.MaintenanceStatus = T.MaintenanceStatus,
-                AR.CustomerId = T.CustomerId,
-                AR.CustomerName = T.CustomerName,
                 AR.Memo = T.Memo,
                 AR.IsActive = ISNULL(T.IsActive, AR.IsActive),
                 AR.IsDeleted = ISNULL(T.IsDeleted, AR.IsDeleted),

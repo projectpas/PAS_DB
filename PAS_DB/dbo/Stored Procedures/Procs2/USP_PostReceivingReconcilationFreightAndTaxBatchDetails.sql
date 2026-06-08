@@ -16,6 +16,7 @@
 	4    12/26/2023   Moin Bloch    Change the logic of Batch Entry
 	5    13/02/2026   Amit Ghediya  Update gl to get it from line level for tax (PN-15443)
 	6    03/09/2024   Moin Bloch    Batch: Duplicate JE Number generated for multiple entries on same day PN-15921
+	7    08/06/2026   Moin Bloch    Added ReferenceNumber, ReferenceName, LocalCurrency to all CommonBatchDetails inserts
 
 	EXEC USP_PostReceivingReconcilationFreightAndTaxBatchDetails 173
 
@@ -67,8 +68,6 @@ BEGIN
 			DECLARE @TotalDebit decimal(18, 2) = 0;
 			DECLARE @TotalCredit decimal(18, 2) = 0;
 			DECLARE @TransactionDate DATETIME2(7)
-			--DECLARE @currentNo AS BIGINT = 0;
-			--DECLARE @JournalTypeNumber VARCHAR(50)
 			DECLARE @CodeTypeId AS BIGINT = 74;
 			DECLARE @StlQtyAvailGlobal INT  = 0
 			DECLARE @StlQtyUsedGlobal INT  = 0
@@ -94,20 +93,10 @@ BEGIN
 			DECLARE @StkGlAccountName VARCHAR(250)='';			
 			DECLARE @Flag INT = 0;
 			DECLARE @StkFlag INT = 0;
+			DECLARE @LocalCurrencyCode VARCHAR(20) = '';
+			DECLARE @ReferenceModule VARCHAR(100) = 'RECONCILIATION';
 
 			SELECT @AccountMSModuleId = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] ='Accounting';
-					
-			--SELECT @currentNo = CASE WHEN CP.[CurrentNummber] > 0 THEN CAST(CP.[CurrentNummber] AS BIGINT) + 1 
-			--			             ELSE CAST([StartsFROM] AS BIGINT) + 1 END 
-			--	FROM dbo.CodePrefixes CP WITH(NOLOCK) JOIN dbo.CodeTypes CT ON CP.CodeTypeId = CT.CodeTypeId
-			--WHERE CT.CodeTypeId IN (@CodeTypeId) AND CP.MasterCompanyId = @MasterCompanyId AND CP.IsActive = 1 AND CP.IsDeleted = 0;
-
-			--SET @JournalTypeNumber = 
-			--(SELECT * FROM dbo.udfGenerateCodeNumber(@currentNo,
-			--(SELECT CodePrefix FROM dbo.CodePrefixes CP WITH(NOLOCK) JOIN dbo.CodeTypes CT ON CP.CodeTypeId = CT.CodeTypeId
-			--WHERE CT.CodeTypeId IN (@CodeTypeId) AND CP.MasterCompanyId = @MasterCompanyId AND CP.IsActive = 1 AND CP.IsDeleted = 0),
-			--(SELECT CodeSufix FROM dbo.CodePrefixes CP WITH(NOLOCK) JOIN dbo.CodeTypes CT ON CP.CodeTypeId = CT.CodeTypeId
-			--WHERE CT.CodeTypeId IN (@CodeTypeId) AND CP.MasterCompanyId = @MasterCompanyId AND CP.IsActive = 1 AND CP.IsDeleted = 0)))
 					
 			IF OBJECT_ID(N'tempdb..#RRFreightAndTaxPostType') IS NOT NULL    
 			BEGIN    
@@ -138,11 +127,13 @@ BEGIN
 			  FROM [dbo].[ReceivingReconciliationDetails] 
 			 WHERE [ReceivingReconciliationId] = @ReceivingReconciliationId;
 
-			 SELECT @VendorId = [VendorId], 
-					@VendorName = [VendorName], 
-					@TransactionDate = [InvoiceDate],
-					@ReceivingReconciliationNumber = [ReceivingReconciliationNumber]
-			   FROM [dbo].[ReceivingReconciliationHeader] WITH(NOLOCK) 
+			 SELECT @VendorId = RRH.[VendorId], 
+					@VendorName = RRH.[VendorName], 
+					@TransactionDate = RRH.[InvoiceDate],
+					@ReceivingReconciliationNumber = RRH.[ReceivingReconciliationNumber],
+					@LocalCurrencyCode = ISNULL(CU.Code,'')
+			   FROM [dbo].[ReceivingReconciliationHeader] RRH WITH(NOLOCK) 
+			   LEFT JOIN [dbo].[Currency] CU WITH(NOLOCK) ON CU.CurrencyId = RRH.CurrencyId
 			  WHERE [ReceivingReconciliationId] = @ReceivingReconciliationId;
 
 			SELECT TOP 1 @FreightGLId = [GlAccountId], 
@@ -297,7 +288,6 @@ BEGIN
 					END	
 					
 					SET @FreightInvCost += (ISNULL(@StlQtyAvail, 0) * ISNULL(@FreightAdjustmentPerUnit, 0))
-					--SET @FreightInvCogs += ((ISNULL(@ReceivedQty, 0) - ISNULL(@StlQtyAvail, 0) ) * ISNULL(@FreightAdjustmentPerUnit, 0))
 					SET @FreightInvCogs += @FreightAdjustment - (ISNULL(@StlQtyAvail, 0) * ISNULL(@FreightAdjustmentPerUnit, 0))
 										
 					SET @TaxInvCost += (ISNULL(@StlQtyAvail, 0) * ISNULL(@TaxAdjustmentPerUnit, 0))
@@ -364,7 +354,7 @@ BEGIN
 							    [JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName],[TransactionDate],
 								[EntryDate],[JournalTypeId],[JournalTypeName],[IsDebit],[DebitAmount],[CreditAmount],[ManagementStructureId],
 								[ModuleName],[LastMSLevel],[AllMSlevels],[MasterCompanyId],[CreatedBy],[UpdatedBy],
-								[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[ReferenceId])
+								[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[ReferenceId],[ReferenceNumber],[ReferenceName],[LocalCurrency],[ReferenceModule])
 						VALUES (@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,
 						        @JournalBatchHeaderId,1 ,ISNULL(@GlAccountId,0),@GlAccountNumber ,@GlAccountName,@TransactionDate,
 								GETUTCDATE(),@JournalTypeId ,@JournalTypename, 
@@ -372,7 +362,7 @@ BEGIN
 								CASE WHEN @CrDrType = 1 THEN @TotalFreight ELSE 0 END,
 								CASE WHEN @CrDrType = 1 THEN 0 ELSE @TotalFreight END,@ManagementStructureId,
 								@ModuleName,@LastMSLevel,@AllMSlevels ,@MasterCompanyId,@UpdateBy,@UpdateBy,
-								GETUTCDATE(),GETUTCDATE(),1,0,@ReceivingReconciliationId)
+								GETUTCDATE(),GETUTCDATE(),1,0,@ReceivingReconciliationId,@ReceivingReconciliationNumber,@VendorName,@LocalCurrencyCode,@ReferenceModule)
 
 					SET @CommonJournalBatchDetailId = SCOPE_IDENTITY();
 
@@ -389,7 +379,7 @@ BEGIN
 						        NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
 								NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,@StockType,
 								@CommonJournalBatchDetailId,@ReceivingReconciliationId,1,@ReceivingReconciliationNumber);
-
+					
 					-----  RECONCILIATION PO STOCK INVENTORY  -----			
 					
 					IF(@FreightInvCogs <= 0)
@@ -431,7 +421,7 @@ BEGIN
 									[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName],[TransactionDate],
 									[EntryDate],[JournalTypeId],[JournalTypeName],[IsDebit],[DebitAmount],[CreditAmount],
 									[ManagementStructureId],[ModuleName],[LastMSLevel],[AllMSlevels],[MasterCompanyId],[CreatedBy],
-									[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive] ,[IsDeleted],[ReferenceId])
+									[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive] ,[IsDeleted],[ReferenceId],[ReferenceNumber],[ReferenceName],[LocalCurrency],[ReferenceModule])
 							VALUES (@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,
 									@JournalBatchHeaderId,1,ISNULL(@FreightGLId,0),@FreightGlAccountNumber,@FreightGlAccountName,@TransactionDate,										
 									GETUTCDATE(),@JournalTypeId,@JournalTypename,
@@ -439,7 +429,7 @@ BEGIN
 									CASE WHEN @CrDrType = 1 THEN ROUND((@FreightInvCost),2)  ELSE 0 END,
 									CASE WHEN @CrDrType = 1 THEN 0 ELSE ROUND((@FreightInvCost),2) END,
 									@ManagementStructureId,@ModuleName,@LastMSLevel,@AllMSlevels,@MasterCompanyId, @UpdateBy,
-									@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@ReceivingReconciliationId);
+									@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@ReceivingReconciliationId,@ReceivingReconciliationNumber,@VendorName,@LocalCurrencyCode,@ReferenceModule);
 
 						SET @CommonJournalBatchDetailId = SCOPE_IDENTITY()
 									
@@ -474,7 +464,7 @@ BEGIN
 									[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName],[TransactionDate],
 									[EntryDate],[JournalTypeId],[JournalTypeName],[IsDebit],[DebitAmount],[CreditAmount],
 									[ManagementStructureId],[ModuleName],[LastMSLevel],[AllMSlevels],[MasterCompanyId],[CreatedBy],
-									[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive] ,[IsDeleted],[ReferenceId])
+									[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive] ,[IsDeleted],[ReferenceId],[ReferenceNumber],[ReferenceName],[LocalCurrency],[ReferenceModule])
 							VALUES (@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,
 									@JournalBatchHeaderId,1,@FreightGLId,@FreightGlAccountNumber,@FreightGlAccountName,@TransactionDate,										
 									GETUTCDATE(),@JournalTypeId,@JournalTypename,								
@@ -482,7 +472,7 @@ BEGIN
 									CASE WHEN @CrDrType = 1 THEN ROUND((@FreightInvCogs),2)  ELSE 0 END,
 									CASE WHEN @CrDrType = 1 THEN 0 ELSE ROUND((@FreightInvCogs),2) END,
 									@ManagementStructureId,@ModuleName,@LastMSLevel,@AllMSlevels,@MasterCompanyId, @UpdateBy,
-									@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@ReceivingReconciliationId);
+									@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@ReceivingReconciliationId,@ReceivingReconciliationNumber,@VendorName,@LocalCurrencyCode,@ReferenceModule);
 													
 						SET @CommonJournalBatchDetailId = SCOPE_IDENTITY()
 
@@ -509,7 +499,7 @@ BEGIN
 							    [JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName],[TransactionDate],
 								[EntryDate],[JournalTypeId],[JournalTypeName],[IsDebit],[DebitAmount],[CreditAmount],[ManagementStructureId],
 								[ModuleName],[LastMSLevel],[AllMSlevels],[MasterCompanyId],[CreatedBy],[UpdatedBy],
-								[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[ReferenceId])
+								[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[ReferenceId],[ReferenceNumber],[ReferenceName],[LocalCurrency],[ReferenceModule])
 						VALUES (@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,
 						        @JournalBatchHeaderId,1 ,ISNULL(@FreightGLId,0),@FreightGlAccountNumber,@FreightGlAccountName,@TransactionDate,
 								GETUTCDATE(),@JournalTypeId ,@JournalTypename, 
@@ -517,7 +507,7 @@ BEGIN
 								CASE WHEN @CrDrType = 1 THEN @TotalFreight ELSE 0 END,
 								CASE WHEN @CrDrType = 1 THEN 0 ELSE @TotalFreight END,@ManagementStructureId,
 								@ModuleName,@LastMSLevel,@AllMSlevels ,@MasterCompanyId,@UpdateBy,@UpdateBy,
-								GETUTCDATE(),GETUTCDATE(),1,0,@ReceivingReconciliationId)
+								GETUTCDATE(),GETUTCDATE(),1,0,@ReceivingReconciliationId,@ReceivingReconciliationNumber,@VendorName,@LocalCurrencyCode,@ReferenceModule)
 
 					SET @CommonJournalBatchDetailId = SCOPE_IDENTITY();
 
@@ -551,7 +541,7 @@ BEGIN
 									[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName],[TransactionDate],
 									[EntryDate],[JournalTypeId],[JournalTypeName],[IsDebit],[DebitAmount],[CreditAmount],
 									[ManagementStructureId],[ModuleName],[LastMSLevel],[AllMSlevels],[MasterCompanyId],[CreatedBy],
-									[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive] ,[IsDeleted],[ReferenceId])
+									[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive] ,[IsDeleted],[ReferenceId],[ReferenceNumber],[ReferenceName],[LocalCurrency],[ReferenceModule])
 							VALUES (@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,
 									@JournalBatchHeaderId,1,@FreightGLId,@FreightGlAccountNumber,@FreightGlAccountName,@TransactionDate,										
 									GETUTCDATE(),@JournalTypeId,@JournalTypename,
@@ -559,7 +549,7 @@ BEGIN
 									CASE WHEN @CrDrType = 1 THEN ROUND((@TotalFreight),2)  ELSE 0 END,
 									CASE WHEN @CrDrType = 1 THEN 0 ELSE ROUND((@TotalFreight),2) END,
 									@ManagementStructureId,@ModuleName,@LastMSLevel,@AllMSlevels,@MasterCompanyId, @UpdateBy,
-									@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@ReceivingReconciliationId);
+									@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@ReceivingReconciliationId,@ReceivingReconciliationNumber,@VendorName,@LocalCurrencyCode,@ReferenceModule);
 
 						SET @CommonJournalBatchDetailId = SCOPE_IDENTITY()
 									
@@ -597,7 +587,7 @@ BEGIN
 							    [JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName],[TransactionDate],
 								[EntryDate],[JournalTypeId],[JournalTypeName],[IsDebit],[DebitAmount],[CreditAmount],[ManagementStructureId],
 								[ModuleName],[LastMSLevel],[AllMSlevels],[MasterCompanyId],[CreatedBy],[UpdatedBy],
-								[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[ReferenceId])
+								[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[ReferenceId],[ReferenceNumber],[ReferenceName],[LocalCurrency],[ReferenceModule])
 						VALUES (@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,
 						        @JournalBatchHeaderId,1 ,ISNULL(@GlAccountId,0),@GlAccountNumber,@GlAccountName,@TransactionDate,
 								GETUTCDATE(),@JournalTypeId ,@JournalTypename, 
@@ -605,7 +595,7 @@ BEGIN
 								CASE WHEN @CrDrType = 1 THEN @TotalTax ELSE 0 END,
 								CASE WHEN @CrDrType = 1 THEN 0 ELSE @TotalTax END,@ManagementStructureId,
 								@ModuleName,@LastMSLevel,@AllMSlevels ,@MasterCompanyId,@UpdateBy,@UpdateBy,
-								GETUTCDATE(),GETUTCDATE(),1,0,@ReceivingReconciliationId)
+								GETUTCDATE(),GETUTCDATE(),1,0,@ReceivingReconciliationId,@ReceivingReconciliationNumber,@VendorName,@LocalCurrencyCode,@ReferenceModule)
 
 					SET @CommonJournalBatchDetailId = SCOPE_IDENTITY();
 
@@ -664,7 +654,7 @@ BEGIN
 									[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName],[TransactionDate],
 									[EntryDate],[JournalTypeId],[JournalTypeName],[IsDebit],[DebitAmount],[CreditAmount],
 									[ManagementStructureId],[ModuleName],[LastMSLevel],[AllMSlevels],[MasterCompanyId],[CreatedBy],
-									[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive] ,[IsDeleted],[ReferenceId])
+									[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive] ,[IsDeleted],[ReferenceId],[ReferenceNumber],[ReferenceName],[LocalCurrency],[ReferenceModule])
 							VALUES (@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,
 									@JournalBatchHeaderId,1,ISNULL(@TaxGLId,0),@TaxGlAccountNumber ,@TaxGlAccountName,@TransactionDate,										
 									GETUTCDATE(),@JournalTypeId,@JournalTypename,
@@ -672,7 +662,7 @@ BEGIN
 									CASE WHEN @CrDrType = 1 THEN ROUND((@TaxInvCost),2)  ELSE 0 END,
 									CASE WHEN @CrDrType = 1 THEN 0 ELSE ROUND((@TaxInvCost),2) END,
 									@ManagementStructureId,@ModuleName,@LastMSLevel,@AllMSlevels,@MasterCompanyId, @UpdateBy,
-									@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@ReceivingReconciliationId);
+									@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@ReceivingReconciliationId,@ReceivingReconciliationNumber,@VendorName,@LocalCurrencyCode,@ReferenceModule);
 
 						SET @CommonJournalBatchDetailId = SCOPE_IDENTITY()
 									
@@ -707,7 +697,7 @@ BEGIN
 									[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName],[TransactionDate],
 									[EntryDate],[JournalTypeId],[JournalTypeName],[IsDebit],[DebitAmount],[CreditAmount],
 									[ManagementStructureId],[ModuleName],[LastMSLevel],[AllMSlevels],[MasterCompanyId],[CreatedBy],
-									[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive] ,[IsDeleted],[ReferenceId])
+									[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive] ,[IsDeleted],[ReferenceId],[ReferenceNumber],[ReferenceName],[LocalCurrency],[ReferenceModule])
 							VALUES (@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,
 									@JournalBatchHeaderId,1,@TaxGLId,@TaxGlAccountNumber,@TaxGlAccountName,@TransactionDate,										
 									GETUTCDATE(),@JournalTypeId,@JournalTypename,																	
@@ -715,7 +705,7 @@ BEGIN
 									CASE WHEN @CrDrType = 1 THEN ROUND((@TaxInvCogs),2)  ELSE 0 END,
 									CASE WHEN @CrDrType = 1 THEN 0 ELSE ROUND((@TaxInvCogs),2) END,
 									@ManagementStructureId,@ModuleName,@LastMSLevel,@AllMSlevels,@MasterCompanyId, @UpdateBy,
-									@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@ReceivingReconciliationId);
+									@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@ReceivingReconciliationId,@ReceivingReconciliationNumber,@VendorName,@LocalCurrencyCode,@ReferenceModule);
 													
 						SET @CommonJournalBatchDetailId = SCOPE_IDENTITY()
 
@@ -756,7 +746,7 @@ BEGIN
 							    [JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName],[TransactionDate],
 								[EntryDate],[JournalTypeId],[JournalTypeName],[IsDebit],[DebitAmount],[CreditAmount],[ManagementStructureId],
 								[ModuleName],[LastMSLevel],[AllMSlevels],[MasterCompanyId],[CreatedBy],[UpdatedBy],
-								[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[ReferenceId])
+								[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[ReferenceId],[ReferenceNumber],[ReferenceName],[LocalCurrency],[ReferenceModule])
 						VALUES (@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,
 						        @JournalBatchHeaderId,1 ,ISNULL(@TaxGLId,0),@TaxGlAccountNumber ,@TaxGlAccountName,@TransactionDate,
 								GETUTCDATE(),@JournalTypeId ,@JournalTypename, 
@@ -764,7 +754,7 @@ BEGIN
 								CASE WHEN @CrDrType = 1 THEN @TotalTax ELSE 0 END,
 								CASE WHEN @CrDrType = 1 THEN 0 ELSE @TotalTax END,@ManagementStructureId,
 								@ModuleName,@LastMSLevel,@AllMSlevels ,@MasterCompanyId,@UpdateBy,@UpdateBy,
-								GETUTCDATE(),GETUTCDATE(),1,0,@ReceivingReconciliationId)
+								GETUTCDATE(),GETUTCDATE(),1,0,@ReceivingReconciliationId,@ReceivingReconciliationNumber,@VendorName,@LocalCurrencyCode,@ReferenceModule)
 
 					SET @CommonJournalBatchDetailId = SCOPE_IDENTITY();
 
@@ -798,7 +788,7 @@ BEGIN
 									[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName],[TransactionDate],
 									[EntryDate],[JournalTypeId],[JournalTypeName],[IsDebit],[DebitAmount],[CreditAmount],
 									[ManagementStructureId],[ModuleName],[LastMSLevel],[AllMSlevels],[MasterCompanyId],[CreatedBy],
-									[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive] ,[IsDeleted],[ReferenceId])
+									[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive] ,[IsDeleted],[ReferenceId],[ReferenceNumber],[ReferenceName],[LocalCurrency],[ReferenceModule])
 							VALUES (@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,
 									@JournalBatchHeaderId,1,@TaxGLId,@TaxGlAccountNumber,@TaxGlAccountName,@TransactionDate,										
 									GETUTCDATE(),@JournalTypeId,@JournalTypename,
@@ -806,7 +796,7 @@ BEGIN
 									CASE WHEN @CrDrType = 1 THEN ROUND((@TotalTax),2)  ELSE 0 END,
 									CASE WHEN @CrDrType = 1 THEN 0 ELSE ROUND((@TotalTax),2) END,
 									@ManagementStructureId,@ModuleName,@LastMSLevel,@AllMSlevels,@MasterCompanyId, @UpdateBy,
-									@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@ReceivingReconciliationId);
+									@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@ReceivingReconciliationId,@ReceivingReconciliationNumber,@VendorName,@LocalCurrencyCode,@ReferenceModule);
 
 						SET @CommonJournalBatchDetailId = SCOPE_IDENTITY()
 									
@@ -842,7 +832,7 @@ BEGIN
 							    [JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName],[TransactionDate],
 								[EntryDate],[JournalTypeId],[JournalTypeName],[IsDebit],[DebitAmount],[CreditAmount],[ManagementStructureId],
 								[ModuleName],[LastMSLevel],[AllMSlevels],[MasterCompanyId],[CreatedBy],[UpdatedBy],
-								[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[ReferenceId])
+								[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[ReferenceId],[ReferenceNumber],[ReferenceName],[LocalCurrency],[ReferenceModule])
 						VALUES (@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,
 						        @JournalBatchHeaderId,1 ,ISNULL(@GlAccountId,0),@GlAccountNumber ,@GlAccountName,@TransactionDate,
 								GETUTCDATE(),@JournalTypeId ,@JournalTypename, 
@@ -850,7 +840,7 @@ BEGIN
 								CASE WHEN @CrDrType = 1 THEN @TotalMisc ELSE 0 END,
 								CASE WHEN @CrDrType = 1 THEN 0 ELSE @TotalMisc END,@ManagementStructureId,
 								@ModuleName,@LastMSLevel,@AllMSlevels ,@MasterCompanyId,@UpdateBy,@UpdateBy,
-								GETUTCDATE(),GETUTCDATE(),1,0,@ReceivingReconciliationId)
+								GETUTCDATE(),GETUTCDATE(),1,0,@ReceivingReconciliationId,@ReceivingReconciliationNumber,@VendorName,@LocalCurrencyCode,@ReferenceModule)
 
 					SET @CommonJournalBatchDetailId = SCOPE_IDENTITY();
 
@@ -886,7 +876,7 @@ BEGIN
 									[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName],[TransactionDate],
 									[EntryDate],[JournalTypeId],[JournalTypeName],[IsDebit],[DebitAmount],[CreditAmount],
 									[ManagementStructureId],[ModuleName],[LastMSLevel],[AllMSlevels],[MasterCompanyId],[CreatedBy],
-									[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive] ,[IsDeleted],[ReferenceId])
+									[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive] ,[IsDeleted],[ReferenceId],[ReferenceNumber],[ReferenceName],[LocalCurrency],[ReferenceModule])
 							VALUES (@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,
 									@JournalBatchHeaderId,1,@MiscGLId,@MiscGlAccountNumber,@MISCGlAccountName,@TransactionDate,										
 									GETUTCDATE(),@JournalTypeId,@JournalTypename,								
@@ -894,7 +884,7 @@ BEGIN
 									CASE WHEN @CrDrType = 1 THEN 0 ELSE  @TotalMisC END,
 									CASE WHEN @CrDrType = 1 THEN @TotalMisc ELSE 0 END,
 									@ManagementStructureId,@ModuleName,@LastMSLevel,@AllMSlevels,@MasterCompanyId, @UpdateBy,
-									@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@ReceivingReconciliationId);
+									@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@ReceivingReconciliationId,@ReceivingReconciliationNumber,@VendorName,@LocalCurrencyCode,@ReferenceModule);
 													
 						SET @CommonJournalBatchDetailId = SCOPE_IDENTITY()
 
@@ -927,11 +917,6 @@ BEGIN
 					   [UpdatedDate] = GETUTCDATE(),
 					   [UpdatedBy] = @UpdateBy   
 				 WHERE [JournalBatchDetailId] = @JournalBatchDetailId;
-				
-				--UPDATE [dbo].[CodePrefixes] 
-				--   SET [CurrentNummber] = @currentNo
-				-- WHERE [CodeTypeId] = @CodeTypeId 
-				--   AND [MasterCompanyId] = @MasterCompanyId;   
 			END
 
 			IF(UPPER(@ModuleName) = UPPER('ReconciliationRO') AND (@TotalFreight > 0 OR @TotalTax > 0 OR @TotalMisc > 0))
@@ -985,7 +970,7 @@ BEGIN
 							    [JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName],[TransactionDate],
 								[EntryDate],[JournalTypeId],[JournalTypeName],[IsDebit],[DebitAmount],[CreditAmount],[ManagementStructureId],
 								[ModuleName],[LastMSLevel],[AllMSlevels],[MasterCompanyId],[CreatedBy],[UpdatedBy],
-								[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[ReferenceId])
+								[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[ReferenceId],[ReferenceNumber],[ReferenceName],[LocalCurrency],[ReferenceModule])
 						VALUES (@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,
 						        @JournalBatchHeaderId,1 ,ISNULL(@GlAccountId,0),@GlAccountNumber ,@GlAccountName,@TransactionDate,
 								GETUTCDATE(),@JournalTypeId ,@JournalTypename, 
@@ -993,7 +978,7 @@ BEGIN
 								CASE WHEN @CrDrType = 1 THEN @TotalFreight ELSE 0 END,
 								CASE WHEN @CrDrType = 1 THEN 0 ELSE @TotalFreight END,@ManagementStructureId,
 								@ModuleName,@LastMSLevel,@AllMSlevels ,@MasterCompanyId,@UpdateBy,@UpdateBy,
-								GETUTCDATE(),GETUTCDATE(),1,0,@ReceivingReconciliationId)
+								GETUTCDATE(),GETUTCDATE(),1,0,@ReceivingReconciliationId,@ReceivingReconciliationNumber,@VendorName,@LocalCurrencyCode,@ReferenceModule)
 
 					SET @CommonJournalBatchDetailId = SCOPE_IDENTITY();
 
@@ -1052,7 +1037,7 @@ BEGIN
 									[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName],[TransactionDate],
 									[EntryDate],[JournalTypeId],[JournalTypeName],[IsDebit],[DebitAmount],[CreditAmount],
 									[ManagementStructureId],[ModuleName],[LastMSLevel],[AllMSlevels],[MasterCompanyId],[CreatedBy],
-									[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive] ,[IsDeleted],[ReferenceId])
+									[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive] ,[IsDeleted],[ReferenceId],[ReferenceNumber],[ReferenceName],[LocalCurrency],[ReferenceModule])
 							VALUES (@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,
 									@JournalBatchHeaderId,1,ISNULL(@FreightGLId,0),@FreightGlAccountNumber,@FreightGlAccountName,@TransactionDate,										
 									GETUTCDATE(),@JournalTypeId,@JournalTypename,
@@ -1060,7 +1045,7 @@ BEGIN
 									CASE WHEN @CrDrType = 1 THEN ROUND((@FreightInvCost),2)  ELSE 0 END,
 									CASE WHEN @CrDrType = 1 THEN 0 ELSE ROUND((@FreightInvCost),2) END,
 									@ManagementStructureId,@ModuleName,@LastMSLevel,@AllMSlevels,@MasterCompanyId, @UpdateBy,
-									@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@ReceivingReconciliationId);
+									@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@ReceivingReconciliationId,@ReceivingReconciliationNumber,@VendorName,@LocalCurrencyCode,@ReferenceModule);
 
 						SET @CommonJournalBatchDetailId = SCOPE_IDENTITY()
 									
@@ -1095,7 +1080,7 @@ BEGIN
 									[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName],[TransactionDate],
 									[EntryDate],[JournalTypeId],[JournalTypeName],[IsDebit],[DebitAmount],[CreditAmount],
 									[ManagementStructureId],[ModuleName],[LastMSLevel],[AllMSlevels],[MasterCompanyId],[CreatedBy],
-									[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive] ,[IsDeleted],[ReferenceId])
+									[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive] ,[IsDeleted],[ReferenceId],[ReferenceNumber],[ReferenceName],[LocalCurrency],[ReferenceModule])
 							VALUES (@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,
 									@JournalBatchHeaderId,1,@FreightGLId,@FreightGlAccountNumber,@FreightGlAccountName,@TransactionDate,										
 									GETUTCDATE(),@JournalTypeId,@JournalTypename,
@@ -1103,7 +1088,7 @@ BEGIN
 									CASE WHEN @CrDrType = 1 THEN ROUND((@FreightInvCogs),2)  ELSE 0 END,
 									CASE WHEN @CrDrType = 1 THEN 0 ELSE ROUND((@FreightInvCogs),2) END,
 									@ManagementStructureId,@ModuleName,@LastMSLevel,@AllMSlevels,@MasterCompanyId, @UpdateBy,
-									@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@ReceivingReconciliationId);
+									@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@ReceivingReconciliationId,@ReceivingReconciliationNumber,@VendorName,@LocalCurrencyCode,@ReferenceModule);
 													
 						SET @CommonJournalBatchDetailId = SCOPE_IDENTITY()
 
@@ -1131,7 +1116,7 @@ BEGIN
 							    [JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName],[TransactionDate],
 								[EntryDate],[JournalTypeId],[JournalTypeName],[IsDebit],[DebitAmount],[CreditAmount],[ManagementStructureId],
 								[ModuleName],[LastMSLevel],[AllMSlevels],[MasterCompanyId],[CreatedBy],[UpdatedBy],
-								[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[ReferenceId])
+								[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[ReferenceId],[ReferenceNumber],[ReferenceName],[LocalCurrency],[ReferenceModule])
 						VALUES (@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,
 						        @JournalBatchHeaderId,1 ,ISNULL(@FreightGLId,0),@FreightGlAccountNumber,@FreightGlAccountName,@TransactionDate,
 								GETUTCDATE(),@JournalTypeId ,@JournalTypename, 
@@ -1139,7 +1124,7 @@ BEGIN
 								CASE WHEN @CrDrType = 1 THEN @TotalFreight ELSE 0 END,
 								CASE WHEN @CrDrType = 1 THEN 0 ELSE @TotalFreight END,@ManagementStructureId,
 								@ModuleName,@LastMSLevel,@AllMSlevels ,@MasterCompanyId,@UpdateBy,@UpdateBy,
-								GETUTCDATE(),GETUTCDATE(),1,0,@ReceivingReconciliationId)
+								GETUTCDATE(),GETUTCDATE(),1,0,@ReceivingReconciliationId,@ReceivingReconciliationNumber,@VendorName,@LocalCurrencyCode,@ReferenceModule)
 
 					SET @CommonJournalBatchDetailId = SCOPE_IDENTITY();
 
@@ -1173,7 +1158,7 @@ BEGIN
 									[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName],[TransactionDate],
 									[EntryDate],[JournalTypeId],[JournalTypeName],[IsDebit],[DebitAmount],[CreditAmount],
 									[ManagementStructureId],[ModuleName],[LastMSLevel],[AllMSlevels],[MasterCompanyId],[CreatedBy],
-									[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive] ,[IsDeleted],[ReferenceId])
+									[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive] ,[IsDeleted],[ReferenceId],[ReferenceNumber],[ReferenceName],[LocalCurrency],[ReferenceModule])
 							VALUES (@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,
 									@JournalBatchHeaderId,1,@FreightGLId,@FreightGlAccountNumber,@FreightGlAccountName,@TransactionDate,										
 									GETUTCDATE(),@JournalTypeId,@JournalTypename,
@@ -1181,7 +1166,7 @@ BEGIN
 									CASE WHEN @CrDrType = 1 THEN ROUND((@TotalFreight),2)  ELSE 0 END,
 									CASE WHEN @CrDrType = 1 THEN 0 ELSE ROUND((@TotalFreight),2) END,
 									@ManagementStructureId,@ModuleName,@LastMSLevel,@AllMSlevels,@MasterCompanyId, @UpdateBy,
-									@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@ReceivingReconciliationId);
+									@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@ReceivingReconciliationId,@ReceivingReconciliationNumber,@VendorName,@LocalCurrencyCode,@ReferenceModule);
 
 						SET @CommonJournalBatchDetailId = SCOPE_IDENTITY()
 									
@@ -1218,7 +1203,7 @@ BEGIN
 							    [JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName],[TransactionDate],
 								[EntryDate],[JournalTypeId],[JournalTypeName],[IsDebit],[DebitAmount],[CreditAmount],[ManagementStructureId],
 								[ModuleName],[LastMSLevel],[AllMSlevels],[MasterCompanyId],[CreatedBy],[UpdatedBy],
-								[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[ReferenceId])
+								[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[ReferenceId],[ReferenceNumber],[ReferenceName],[LocalCurrency],[ReferenceModule])
 						VALUES (@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,
 						        @JournalBatchHeaderId,1 ,ISNULL(@GlAccountId,0),@GlAccountNumber ,@GlAccountName,@TransactionDate,
 								GETUTCDATE(),@JournalTypeId ,@JournalTypename, 
@@ -1226,7 +1211,7 @@ BEGIN
 								CASE WHEN @CrDrType = 1 THEN @TotalTax ELSE 0 END,
 								CASE WHEN @CrDrType = 1 THEN 0 ELSE @TotalTax END,@ManagementStructureId,
 								@ModuleName,@LastMSLevel,@AllMSlevels ,@MasterCompanyId,@UpdateBy,@UpdateBy,
-								GETUTCDATE(),GETUTCDATE(),1,0,@ReceivingReconciliationId)
+								GETUTCDATE(),GETUTCDATE(),1,0,@ReceivingReconciliationId,@ReceivingReconciliationNumber,@VendorName,@LocalCurrencyCode,@ReferenceModule)
 
 					SET @CommonJournalBatchDetailId = SCOPE_IDENTITY();
 
@@ -1285,7 +1270,7 @@ BEGIN
 									[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName],[TransactionDate],
 									[EntryDate],[JournalTypeId],[JournalTypeName],[IsDebit],[DebitAmount],[CreditAmount],
 									[ManagementStructureId],[ModuleName],[LastMSLevel],[AllMSlevels],[MasterCompanyId],[CreatedBy],
-									[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive] ,[IsDeleted],[ReferenceId])
+									[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive] ,[IsDeleted],[ReferenceId],[ReferenceNumber],[ReferenceName],[LocalCurrency],[ReferenceModule])
 							VALUES (@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,
 									@JournalBatchHeaderId,1,ISNULL(@TaxGLId,0),@TaxGlAccountNumber ,@TaxGlAccountName,@TransactionDate,										
 									GETUTCDATE(),@JournalTypeId,@JournalTypename,
@@ -1293,7 +1278,7 @@ BEGIN
 									CASE WHEN @CrDrType = 1 THEN ROUND((@TaxInvCost),2)  ELSE 0 END,
 									CASE WHEN @CrDrType = 1 THEN 0 ELSE ROUND((@TaxInvCost),2) END,
 									@ManagementStructureId,@ModuleName,@LastMSLevel,@AllMSlevels,@MasterCompanyId, @UpdateBy,
-									@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@ReceivingReconciliationId);
+									@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@ReceivingReconciliationId,@ReceivingReconciliationNumber,@VendorName,@LocalCurrencyCode,@ReferenceModule);
 
 						SET @CommonJournalBatchDetailId = SCOPE_IDENTITY()
 									
@@ -1328,7 +1313,7 @@ BEGIN
 									[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName],[TransactionDate],
 									[EntryDate],[JournalTypeId],[JournalTypeName],[IsDebit],[DebitAmount],[CreditAmount],
 									[ManagementStructureId],[ModuleName],[LastMSLevel],[AllMSlevels],[MasterCompanyId],[CreatedBy],
-									[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive] ,[IsDeleted],[ReferenceId])
+									[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive] ,[IsDeleted],[ReferenceId],[ReferenceNumber],[ReferenceName],[LocalCurrency],[ReferenceModule])
 							VALUES (@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,
 									@JournalBatchHeaderId,1,@TaxGLId,@TaxGlAccountNumber,@TaxGlAccountName,@TransactionDate,										
 									GETUTCDATE(),@JournalTypeId,@JournalTypename,
@@ -1336,7 +1321,7 @@ BEGIN
 									CASE WHEN @CrDrType = 1 THEN ROUND((@TaxInvCogs),2)  ELSE 0 END,
 									CASE WHEN @CrDrType = 1 THEN 0 ELSE ROUND((@TaxInvCogs),2) END,
 									@ManagementStructureId,@ModuleName,@LastMSLevel,@AllMSlevels,@MasterCompanyId, @UpdateBy,
-									@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@ReceivingReconciliationId);
+									@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@ReceivingReconciliationId,@ReceivingReconciliationNumber,@VendorName,@LocalCurrencyCode,@ReferenceModule);
 													
 						SET @CommonJournalBatchDetailId = SCOPE_IDENTITY()
 
@@ -1377,7 +1362,7 @@ BEGIN
 							    [JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName],[TransactionDate],
 								[EntryDate],[JournalTypeId],[JournalTypeName],[IsDebit],[DebitAmount],[CreditAmount],[ManagementStructureId],
 								[ModuleName],[LastMSLevel],[AllMSlevels],[MasterCompanyId],[CreatedBy],[UpdatedBy],
-								[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[ReferenceId])
+								[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[ReferenceId],[ReferenceNumber],[ReferenceName],[LocalCurrency],[ReferenceModule])
 						VALUES (@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,
 						        @JournalBatchHeaderId,1 ,ISNULL(@GlAccountId,0),@GlAccountNumber ,@GlAccountName,@TransactionDate,
 								GETUTCDATE(),@JournalTypeId ,@JournalTypename, 
@@ -1385,7 +1370,7 @@ BEGIN
 								CASE WHEN @CrDrType = 1 THEN @TotalTax ELSE 0 END,
 								CASE WHEN @CrDrType = 1 THEN 0 ELSE @TotalTax END,@ManagementStructureId,
 								@ModuleName,@LastMSLevel,@AllMSlevels ,@MasterCompanyId,@UpdateBy,@UpdateBy,
-								GETUTCDATE(),GETUTCDATE(),1,0,@ReceivingReconciliationId)
+								GETUTCDATE(),GETUTCDATE(),1,0,@ReceivingReconciliationId,@ReceivingReconciliationNumber,@VendorName,@LocalCurrencyCode,@ReferenceModule)
 
 					SET @CommonJournalBatchDetailId = SCOPE_IDENTITY();
 
@@ -1419,7 +1404,7 @@ BEGIN
 									[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName],[TransactionDate],
 									[EntryDate],[JournalTypeId],[JournalTypeName],[IsDebit],[DebitAmount],[CreditAmount],
 									[ManagementStructureId],[ModuleName],[LastMSLevel],[AllMSlevels],[MasterCompanyId],[CreatedBy],
-									[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive] ,[IsDeleted],[ReferenceId])
+									[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive] ,[IsDeleted],[ReferenceId],[ReferenceNumber],[ReferenceName],[LocalCurrency],[ReferenceModule])
 							VALUES (@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,
 									@JournalBatchHeaderId,1,@TaxGLId,@TaxGlAccountNumber,@TaxGlAccountName,@TransactionDate,										
 									GETUTCDATE(),@JournalTypeId,@JournalTypename,
@@ -1427,7 +1412,7 @@ BEGIN
 									CASE WHEN @CrDrType = 1 THEN ROUND((@TotalTax),2)  ELSE 0 END,
 									CASE WHEN @CrDrType = 1 THEN 0 ELSE ROUND((@TotalTax),2) END,
 									@ManagementStructureId,@ModuleName,@LastMSLevel,@AllMSlevels,@MasterCompanyId, @UpdateBy,
-									@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@ReceivingReconciliationId);
+									@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@ReceivingReconciliationId,@ReceivingReconciliationNumber,@VendorName,@LocalCurrencyCode,@ReferenceModule);
 
 						SET @CommonJournalBatchDetailId = SCOPE_IDENTITY()
 									
@@ -1463,7 +1448,7 @@ BEGIN
 							    [JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName],[TransactionDate],
 								[EntryDate],[JournalTypeId],[JournalTypeName],[IsDebit],[DebitAmount],[CreditAmount],[ManagementStructureId],
 								[ModuleName],[LastMSLevel],[AllMSlevels],[MasterCompanyId],[CreatedBy],[UpdatedBy],
-								[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[ReferenceId])
+								[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[ReferenceId],[ReferenceNumber],[ReferenceName],[LocalCurrency],[ReferenceModule])
 						VALUES (@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,
 						        @JournalBatchHeaderId,1 ,ISNULL(@GlAccountId,0),@GlAccountNumber ,@GlAccountName,@TransactionDate,
 								GETUTCDATE(),@JournalTypeId ,@JournalTypename, 
@@ -1471,7 +1456,7 @@ BEGIN
 								CASE WHEN @CrDrType = 1 THEN @TotalMisc ELSE 0 END,
 								CASE WHEN @CrDrType = 1 THEN 0 ELSE @TotalMisc END,@ManagementStructureId,
 								@ModuleName,@LastMSLevel,@AllMSlevels ,@MasterCompanyId,@UpdateBy,@UpdateBy,
-								GETUTCDATE(),GETUTCDATE(),1,0,@ReceivingReconciliationId)
+								GETUTCDATE(),GETUTCDATE(),1,0,@ReceivingReconciliationId,@ReceivingReconciliationNumber,@VendorName,@LocalCurrencyCode,@ReferenceModule)
 
 					SET @CommonJournalBatchDetailId = SCOPE_IDENTITY();
 
@@ -1508,7 +1493,7 @@ BEGIN
 									[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName],[TransactionDate],
 									[EntryDate],[JournalTypeId],[JournalTypeName],[IsDebit],[DebitAmount],[CreditAmount],
 									[ManagementStructureId],[ModuleName],[LastMSLevel],[AllMSlevels],[MasterCompanyId],[CreatedBy],
-									[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive] ,[IsDeleted],[ReferenceId])
+									[UpdatedBy],[CreatedDate],[UpdatedDate],[IsActive] ,[IsDeleted],[ReferenceId],[ReferenceNumber],[ReferenceName],[LocalCurrency],[ReferenceModule])
 							VALUES (@JournalBatchDetailId,@JournalTypeNumber,@currentNo,@DistributionSetupId,@DistributionName,
 									@JournalBatchHeaderId,1,@MiscGLId,@MiscGlAccountNumber,@MISCGlAccountName,@TransactionDate,										
 									GETUTCDATE(),@JournalTypeId,@JournalTypename,								
@@ -1516,7 +1501,7 @@ BEGIN
 									CASE WHEN @CrDrType = 1 THEN 0 ELSE @TotalMisc END,
 									CASE WHEN @CrDrType = 1 THEN @TotalMisc ELSE 0 END,
 									@ManagementStructureId,@ModuleName,@LastMSLevel,@AllMSlevels,@MasterCompanyId, @UpdateBy,
-									@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@ReceivingReconciliationId);
+									@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@ReceivingReconciliationId,@ReceivingReconciliationNumber,@VendorName,@LocalCurrencyCode,@ReferenceModule);
 													
 						SET @CommonJournalBatchDetailId = SCOPE_IDENTITY()
 
@@ -1549,12 +1534,6 @@ BEGIN
 					   [UpdatedDate] = GETUTCDATE(),
 					   [UpdatedBy] = @UpdateBy   
 				 WHERE [JournalBatchDetailId] = @JournalBatchDetailId;
-				
-				--UPDATE [dbo].[CodePrefixes] 
-				--   SET [CurrentNummber] = @currentNo
-				-- WHERE [CodeTypeId] = @CodeTypeId 
-				--   AND [MasterCompanyId] = @MasterCompanyId;    				
-				
 			END
 
 			IF OBJECT_ID(N'tempdb..#RRFreightAndTaxPostType') IS NOT NULL

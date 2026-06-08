@@ -13,7 +13,7 @@
     1    11/02/2026   Priyansh Patel      Created  for Initial Requirements	
 	2    24/02/2026   Hemant Saliya       Corrected balance missmatch for WIP
 	3    26/02/2026   Priyansh Patel      Added IsAccountByPass condition
-	4    30/04/2026   Hemant Saliya       Corrected balance missmatch for WIP Labor
+	4    01/05/2026   Hemant Saliya       Corrected balance missmatch for WIP Labor
 
 exec USP_WIPReportsReconciliation @mastercompanyid=21,@id='2026-01-01 00:00:00',@id2='2026-04-30 00:00:00',@id3=''
 
@@ -40,11 +40,13 @@ BEGIN
         DECLARE @WIPMaterialCategoryId    INT,
                 @WIPDirectLaborCategoryId INT,
                 @WIPOverheadCategoryId    INT,
+				@WIPFGoodsCategoryId      INT,
                 @WorkOrderModuleId        INT = 15,
                 @InvoiceStatusId          INT = 3,
                 @PostedStatusId           INT,
                 @OpenStatusId             INT,
                 @IsShowReconcile          BIT = 0,
+				@CompleteTaskStatusId			  INT,
                 @TaskStatus               VARCHAR(20) = 'COMPLETED';
 
         -- Batch single-row lookups together
@@ -56,12 +58,15 @@ BEGIN
           AND ISNULL(IsDeleted, 0) = 0
           AND ISNULL(IsActive,  0) = 1;
 
+		SELECT @CompleteTaskStatusId = TaskStatusId FROM dbo.[TaskStatus] WITH (NOLOCK) WHERE StatusCode = @TaskStatus
+
         SELECT 
-            @WIPMaterialCategoryId    = MAX(CASE WHEN WIPCategory = 'WIP Material'      THEN WIPCategoryId END),
-            @WIPDirectLaborCategoryId = MAX(CASE WHEN WIPCategory = 'WIP Direct Labor'  THEN WIPCategoryId END),
-            @WIPOverheadCategoryId    = MAX(CASE WHEN WIPCategory = 'WIP Overhead'      THEN WIPCategoryId END)
+            @WIPMaterialCategoryId    = MAX(CASE WHEN WIPCategory = 'WIP Material'			THEN WIPCategoryId END),
+			@WIPFGoodsCategoryId	  = MAX(CASE WHEN WIPCategory = 'WIP Finished Goods'    THEN WIPCategoryId END),
+            @WIPDirectLaborCategoryId = MAX(CASE WHEN WIPCategory = 'WIP Direct Labor'		THEN WIPCategoryId END),
+            @WIPOverheadCategoryId    = MAX(CASE WHEN WIPCategory = 'WIP Overhead'			THEN WIPCategoryId END)
         FROM [dbo].[WIPCategory] WITH (NOLOCK)
-        WHERE WIPCategory IN ('WIP Material', 'WIP Direct Labor', 'WIP Overhead')
+        WHERE WIPCategory IN ('WIP Material', 'WIP Direct Labor', 'WIP Overhead', 'WIP Finished Goods')
           AND ISNULL(IsDeleted, 0) = 0
           AND ISNULL(IsActive,  0) = 1
           AND MasterCompanyId = @mastercompanyid;
@@ -143,7 +148,8 @@ BEGIN
         -- Scalar aggregates – collapsed into one query
         -- each per domain (Charges, Freight, Labor)
         -- =============================================
-        DECLARE @TotalOtherCost  DECIMAL(18,2) = 0,
+        
+		DECLARE @TotalOtherCost  DECIMAL(18,2) = 0,
                 @TotalMiscCost   DECIMAL(18,2) = 0;
 
         SELECT 
@@ -169,8 +175,28 @@ BEGIN
               AND ISNULL(WOWF.IsDeleted,0) = 0 AND ISNULL(WOWF.IsActive,0) = 1
         ) X;
 
+		-- =============================================
+        -- Posted labor / overhead Which Pending Finished Goods
+        -- =============================================
+
         DECLARE @TotalDirectLaborCost DECIMAL(18,2) = 0,
                 @TotalOHCost          DECIMAL(18,2) = 0;
+
+		SELECT  @TotalDirectLaborCost  = SUM(ISNULL(WOL.DirectLaborOHCost,0) * ISNULL(WOL.AdjustedHours,0)),
+				@TotalOHCost  = SUM(ISNULL(WOL.BurdenRateAmount,0) * ISNULL(WOL.AdjustedHours,0))
+        FROM [dbo].[WorkOrderLabor]				WOL  WITH (NOLOCK) 
+			JOIN [dbo].[WorkOrderLaborHeader]   WOLH WITH (NOLOCK) ON WOL.WorkOrderLaborHeaderId  = WOLH.WorkOrderLaborHeaderId
+			JOIN [dbo].[WorkOrderWorkFlow]      WOWF WITH (NOLOCK) ON WOLH.WorkFlowWorkOrderId    = WOWF.WorkFlowWorkOrderId
+			JOIN [dbo].[WorkOrderPartNumber]    WOP  WITH (NOLOCK) ON WOWF.WorkOrderPartNoId      = WOP.ID --AND ISNULL(WOP.IsClosed, 0) = 0
+			JOIN [dbo].[WorkOrder]				WO   WITH (NOLOCK) ON WOP.WorkOrderId =  WO.WorkOrderId
+        WHERE WOL.MasterCompanyId   = @mastercompanyid AND ISNULL(WOL.TotalCost,0) <> 0 AND WOP.IsFinishGood = 0 
+		  AND ISNULL(WO.IsDeleted,0) = 0
+		  AND ISNULL(WO.IsActive,0) = 1
+		  AND WOL.TaskStatusId = @CompleteTaskStatusId
+          AND ISNULL(WOL.IsDeleted,0) = 0
+          AND ISNULL(WOL.IsActive, 0) = 1
+          AND ISNULL(WOP.IsDeleted, 0) = 0
+          AND ISNULL(WOP.IsActive,  0) = 1
 
         --SELECT 
         --    @TotalDirectLaborCost = ISNULL(SUM(ISNULL(WCD.LaborCost,0) - ISNULL(WCD.OverHeadCost,0)), 0),
@@ -216,11 +242,40 @@ BEGIN
         WHERE ISNULL(WOL.IsDeleted,0) = 0
           AND ISNULL(WOL.IsActive, 0) = 1;
 
+		-- =============================================
+        -- Finished Goods 
+        -- =============================================
+        DECLARE @TotalFinishedGoodsCost DECIMAL(18,2) = 0;
+
+		--Select * FROM [dbo].[WorkOrderCostDetails] WCD WITH (NOLOCK)
+
+		SELECT 
+            @TotalFinishedGoodsCost = SUM(ISNULL(WCD.PartsCost,0) + ISNULL(WCD.LaborCost,0) + ISNULL(WCD.OverHeadCost,0))
+        FROM [dbo].[WorkOrderCostDetails] WCD WITH (NOLOCK)
+        JOIN [dbo].[WorkOrder] WO WITH (NOLOCK) ON WO.WorkOrderId = WCD.WorkOrderId
+        JOIN [dbo].[WorkOrderPartNumber] WOP WITH (NOLOCK) 
+            ON WOP.WorkOrderId = WO.WorkOrderId
+           AND ISNULL(WOP.IsClosed, 0) = 0 AND WOP.IsFinishGood = 1 
+        WHERE WO.MasterCompanyId   = @mastercompanyid
+          AND ISNULL(WO.IsDeleted, 0) = 0
+          AND ISNULL(WO.IsActive,  0) = 1
+          AND CAST(WO.OpenDate AS DATE) BETWEEN CAST(@FromDate AS DATE) AND CAST(@ToDate AS DATE)
+          AND (@id3 IS NULL OR WOP.ItemMasterId = @id3)
+          AND NOT EXISTS (                          -- replaces LEFT JOIN … IS NULL
+                SELECT 1
+                FROM [dbo].[BillingInvoicing] BI WITH (NOLOCK)
+                WHERE BI.ReferenceId      = WOP.WorkOrderId
+                  AND BI.ModuleId         = @WorkOrderModuleId
+                  AND BI.InvoiceStatusId  = @InvoiceStatusId  -- billed/posted rows
+          );
+
         -- =============================================
         -- GL Aggregates – all 6 buckets in ONE query
         -- =============================================
         DECLARE @TotalWIPMaterialWIPPostedGL   DECIMAL(18,2) = 0,
                 @TotalWIPMaterialWIPUnpostedGL DECIMAL(18,2) = 0,
+				@TotalWIPFGPostedGL			   DECIMAL(18,2) = 0,
+                @TotalWIPFGUnpostedGL		   DECIMAL(18,2) = 0,
                 @TotalDirectLaborPostedGL      DECIMAL(18,2) = 0,
                 @TotalDirectLaborUnpostedGL    DECIMAL(18,2) = 0,
                 @TotalWIPOverheadPostedGL      DECIMAL(18,2) = 0,
@@ -229,7 +284,9 @@ BEGIN
         SELECT
             @TotalWIPMaterialWIPPostedGL   = SUM(CASE WHEN BD.StatusId = @PostedStatusId AND WIP.WIPCategoryId = @WIPMaterialCategoryId    THEN ISNULL(CBD.DebitAmount,0) - ISNULL(CBD.CreditAmount,0) ELSE 0 END),
             @TotalWIPMaterialWIPUnpostedGL = SUM(CASE WHEN BD.StatusId = @OpenStatusId   AND WIP.WIPCategoryId = @WIPMaterialCategoryId    THEN ISNULL(CBD.DebitAmount,0) - ISNULL(CBD.CreditAmount,0) ELSE 0 END),
-            @TotalDirectLaborPostedGL      = SUM(CASE WHEN BD.StatusId = @PostedStatusId AND WIP.WIPCategoryId = @WIPDirectLaborCategoryId THEN ISNULL(CBD.DebitAmount,0) - ISNULL(CBD.CreditAmount,0) ELSE 0 END),
+            @TotalWIPFGPostedGL			   = SUM(CASE WHEN BD.StatusId = @PostedStatusId AND WIP.WIPCategoryId = @WIPFGoodsCategoryId	   THEN ISNULL(CBD.DebitAmount,0) - ISNULL(CBD.CreditAmount,0) ELSE 0 END),
+            @TotalWIPFGUnpostedGL		   = SUM(CASE WHEN BD.StatusId = @OpenStatusId   AND WIP.WIPCategoryId = @WIPFGoodsCategoryId	   THEN ISNULL(CBD.DebitAmount,0) - ISNULL(CBD.CreditAmount,0) ELSE 0 END),
+			@TotalDirectLaborPostedGL      = SUM(CASE WHEN BD.StatusId = @PostedStatusId AND WIP.WIPCategoryId = @WIPDirectLaborCategoryId THEN ISNULL(CBD.DebitAmount,0) - ISNULL(CBD.CreditAmount,0) ELSE 0 END),
             @TotalDirectLaborUnpostedGL    = SUM(CASE WHEN BD.StatusId = @OpenStatusId   AND WIP.WIPCategoryId = @WIPDirectLaborCategoryId THEN ISNULL(CBD.DebitAmount,0) - ISNULL(CBD.CreditAmount,0) ELSE 0 END),
             @TotalWIPOverheadPostedGL      = SUM(CASE WHEN BD.StatusId = @PostedStatusId AND WIP.WIPCategoryId = @WIPOverheadCategoryId    THEN ISNULL(CBD.DebitAmount,0) - ISNULL(CBD.CreditAmount,0) ELSE 0 END),
             @TotalWIPOverheadUnPostedGL    = SUM(CASE WHEN BD.StatusId = @OpenStatusId   AND WIP.WIPCategoryId = @WIPOverheadCategoryId    THEN ISNULL(CBD.DebitAmount,0) - ISNULL(CBD.CreditAmount,0) ELSE 0 END)
@@ -241,7 +298,7 @@ BEGIN
         LEFT JOIN [dbo].[WorkOrderPartNumber]   WOP  WITH (NOLOCK) ON WOP.ID					= WBD.MPNPartId
         WHERE WIP.MasterCompanyId = @mastercompanyid
           AND BD.StatusId   IN (@PostedStatusId, @OpenStatusId)
-          AND WIP.WIPCategoryId IN (@WIPMaterialCategoryId, @WIPDirectLaborCategoryId, @WIPOverheadCategoryId)
+          AND WIP.WIPCategoryId IN (@WIPMaterialCategoryId, @WIPDirectLaborCategoryId, @WIPOverheadCategoryId, @WIPFGoodsCategoryId)
           AND BD.IsDeleted  = 0
           AND CBD.IsDeleted = 0
           AND CAST(CBD.EntryDate AS DATE) BETWEEN CAST(@FromDate AS DATE) AND CAST(@ToDate AS DATE)
@@ -256,6 +313,7 @@ BEGIN
             ISNULL(@TotalOHCost, 0)                                                  AS TotalOHCost,
             ISNULL(@TotalMiscCost, 0)                                                AS TotalMiscCost,
             ISNULL(@TotalOtherCost, 0)                                               AS TotalOtherCost,
+			ISNULL(@TotalFinishedGoodsCost, 0)                                       AS TotalFinishedGoodsCost,
             ISNULL(MAX(pc.TotalPartsCost), 0)
               + ISNULL(@TotalDirectLaborCost, 0)
               + ISNULL(@TotalOHCost, 0)
@@ -265,6 +323,8 @@ BEGIN
             ISNULL(@TotalUnpostedOverheadCost, 0)                                    AS TotalUnpostedOverheadCost,
             ISNULL(@TotalWIPMaterialWIPPostedGL, 0)                                  AS TotalWIPMaterialWIPPostedGL,
             ISNULL(@TotalWIPMaterialWIPUnpostedGL, 0)                                AS TotalWIPMaterialWIPUnpostedGL,
+			ISNULL(@TotalWIPFGPostedGL, 0)											 AS TotalWIPFGPostedGL,
+            ISNULL(@TotalWIPFGUnpostedGL, 0)										 AS TotalWIPFGUnpostedGL,
             ISNULL(@TotalDirectLaborPostedGL, 0)                                     AS TotalDirectLaborPostedGL,
             ISNULL(@TotalDirectLaborUnpostedGL, 0)                                   AS TotalDirectLaborUnpostedGL,
             ISNULL(@TotalWIPOverheadPostedGL, 0)                                     AS TotalWIPOverheadPostedGL,

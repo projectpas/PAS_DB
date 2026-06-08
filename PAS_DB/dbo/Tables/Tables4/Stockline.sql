@@ -283,6 +283,8 @@
 
 
 
+
+
 GO
 
 GO
@@ -397,31 +399,3 @@ CREATE     TRIGGER [dbo].[trg_Audit_dbo_Stockline]
                 (m.Action = 'D' AND m.OldValue IS NOT NULL));
         END;
 GO
-
-
-
-----------------------------------------------
-
-CREATE TRIGGER [dbo].[Trg_StockLineAudit]
-
-   ON  [dbo].[Stockline]
-
-   AFTER INSERT,UPDATE
-
-AS 
-
-BEGIN
-
-
-
-	--INSERT INTO PAS_UAT_logs.[dbo].[StockLineAudit]
-
-	--SELECT * FROM INSERTED
-
-
-
-	SET NOCOUNT ON;
-
-
-
-END

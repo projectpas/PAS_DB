@@ -23,6 +23,11 @@
     [RequestedBy]              BIGINT          NULL,
     [Notes]                    VARCHAR (MAX)   NULL,
     [IsAdhoc]                  BIT             NULL,
+    [QuickBooksReferenceId]    VARCHAR (200)   NULL,
+    [IsUpdated]                BIT             NULL,
+    [LastSyncDate]             DATETIME2 (7)   NULL,
+    [SyncToken]                VARCHAR (200)   NULL,
+    [IntegrationTypeId]        INT             NULL,
     CONSTRAINT [PK_VendorCreditMemo] PRIMARY KEY CLUSTERED ([VendorCreditMemoId] ASC),
     CONSTRAINT [FK_VendorCreditMemo_VendorRMA] FOREIGN KEY ([VendorRMAId]) REFERENCES [dbo].[VendorRMA] ([VendorRMAId])
 );

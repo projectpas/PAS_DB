@@ -1,18 +1,19 @@
-﻿/*****************************************************************************************           
- ** File:   [[USP_GetCommonBillingInvoicingItemsByInvoiceIdForXeroAccounting]]           
- ** Author:   Moin Bloch 
+﻿/*****************************************************************************************
+ ** File:   [[USP_GetCommonBillingInvoicingItemsByInvoiceIdForXeroAccounting]]
+ ** Author:   Moin Bloch
  ** Description: This stored procedure is used to Get Common Billing Invoicing Items
- ** Purpose:         
- ** Date:   19/05/2025      
- ** RETURN VALUE:           
- ******************************************************************************************           
- ** Change History           
- ******************************************************************************************           
- ** PR   Date         Author		    Change Description            
- ** --   --------     -------		 --------------------------------          
+ ** Purpose:
+ ** Date:   19/05/2025
+ ** RETURN VALUE:
+ ******************************************************************************************
+ ** Change History
+ ******************************************************************************************
+ ** PR   Date         Author		    Change Description
+ ** --   --------     -------		 --------------------------------
     1    19/05/2026   Moin Bloch        Created
     2    29/05/2026   Bhargav Saliya    Added @IsSync Case
-	3    05/06/2026   Moin Bloch        Fix Discription 
+	3    05/06/2026   Moin Bloch        Fix Discription
+	4    08/06/2026   Abhishek Jirawla  Adding ItemMasterId
 
 	EXEC [dbo].[USP_GetCommonBillingInvoicingItemsByInvoiceIdForXeroAccounting] null,15,1
 ********************************************************************************************/
@@ -27,35 +28,35 @@ BEGIN
 	BEGIN TRY
 
 	DECLARE @WOModuleId INT,@SOModuleId INT,@EXModuleId INT
-	
+
 	SELECT @WOModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'WorkOrder';
 	SELECT @SOModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'SalesOrder';
 	SELECT @EXModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'ExchangeSalesOrder';
-	
+
 		IF(@ModuleId = @WOModuleId) /*********START: WORK ORDER ********/
-		BEGIN					
-			SELECT BII.[InvoiceNo], 
-				   BII.[BillingInvoicingId], 
+		BEGIN
+			SELECT BII.[InvoiceNo],
+				   BII.[BillingInvoicingId],
 			       CST.[QuickBooksReferenceId] [ContactId],
-				   BII.[InvoiceDate],	
+				   BII.[InvoiceDate],
 				   DATEADD(DAY,WO.NetDays,BII.[InvoiceDate]) DueDate,
-				   CRR.[Code]		
+				   CRR.[Code]
 				  ---------- LINEAMOUNT TYPES ----------
-				  --Exclusive	Line items are exclusive of tax , 
+				  --Exclusive	Line items are exclusive of tax ,
 				  --Inclusive	Line items are inclusive tax,
 				  --NoTax	    Line have no tax
-				  ,'Exclusive' LineAmountTypes  
-			   FROM [dbo].[BillingInvoicing] BII WITH(NOLOCK) 
-			  INNER JOIN [dbo].[WorkOrder] WO WITH(NOLOCK) ON BII.[ReferenceId] = WO.[WorkOrderId]			  
+				  ,'Exclusive' LineAmountTypes
+			   FROM [dbo].[BillingInvoicing] BII WITH(NOLOCK)
+			  INNER JOIN [dbo].[WorkOrder] WO WITH(NOLOCK) ON BII.[ReferenceId] = WO.[WorkOrderId]
 			  INNER JOIN [dbo].[Customer] CST WITH(NOLOCK) ON CST.[CustomerId] = WO.[CustomerId]
-			  INNER JOIN [dbo].[Currency] CRR WITH(NOLOCK) ON BII.[CurrencyId] = CRR.[CurrencyId]			  
-			   WHERE ISNULL(BII.[IsVersionIncrease],0) = 0 AND ISNULL(BII.[IsPerformaInvoice],0) = 0	
+			  INNER JOIN [dbo].[Currency] CRR WITH(NOLOCK) ON BII.[CurrencyId] = CRR.[CurrencyId]
+			   WHERE ISNULL(BII.[IsVersionIncrease],0) = 0 AND ISNULL(BII.[IsPerformaInvoice],0) = 0
 			   AND (
                     (@IsSync = 0 AND BII.BillingInvoicingId = @BillingInvoicingId)  -- Single invoice
                 OR  (@IsSync = 1 AND ISNULL(BII.QuickBooksReferenceId, '') = ''
                      AND ISNULL(BII.IsUpdated, 0) = 1)                              -- All unsynced
 				)
-			   
+
   			SELECT ISNULL(BII.[UnitPrice],0) [UnitPrice]
 				  ,ISNULL(BII.[QtyBilled],0) [QtyBilled]
 				  ,ISNULL(BII.[PartCost],0) [PartCost]
@@ -72,31 +73,32 @@ BEGIN
 				  ,ISNULL(BII.[LaborCostPercent],0) [LaborCostPercent]
 				  ,ISNULL(BII.[LaborCostPlus],0) [LaborCostPlus]
 				  ,ISNULL(BII.[IsFreightCheck],0) [IsFreightCheck]
-				  ,ISNULL(BII.[Freight],0) [Freight] 
+				  ,ISNULL(BII.[Freight],0) [Freight]
 				  ,ISNULL(BII.[FreightCostPercent],0) [FreightCostPercent]
 				  ,ISNULL(BII.[FreightCostPlus],0) [FreightCostPlus]
 				  ,ISNULL(BII.[IsMiscChargesCheck],0) [IsMiscChargesCheck]
 				  ,ISNULL(BII.[MiscCharges],0) [MiscCharges]
 				  ,ISNULL(BII.[MiscChargesCostPercent],0) [MiscChargesCostPercent]
 				  ,ISNULL(BII.[MiscChargesCostPlus],0) [MiscChargesCostPlus]
-				  ,ISNULL(BII.[SubTotal],0) [SubTotal] 
+				  ,ISNULL(BII.[SubTotal],0) [SubTotal]
 				  ,ISNULL(BII.[SalesTaxPercent],0) [SalesTaxPercent]
 				  ,ISNULL(BII.[OtherTaxPercent],0) [OtherTaxPercent]
 				  ,ISNULL(BII.[GrandTotal],0) [GrandTotal]
-				  ,ITM.[QuickBooksReferenceId] [LineItemID]				
+				  ,ITM.[QuickBooksReferenceId] [LineItemID]
 				  ,ITM.[PartDescription]  [Notes]
 				  ---------- TAX TYPE ----------
 				  -- INPUT	0.00	TAX ON PURCHASES
-				  -- OUTPUT	0.00	TAX ON SALES	
+				  -- OUTPUT	0.00	TAX ON SALES
 				  ,'OUTPUT' [TaxType]
 				  ,'200' [AccountCode]
 				  ,'' [AccountID]
-				  ,BII.[BillingInvoicingId]          
-				  ,ISNULL(BII.[SalesTax],0) [SalesTax]      
+				  ,BII.[BillingInvoicingId]
+				  ,ISNULL(BII.[SalesTax],0) [SalesTax]
 				  ,ISNULL(BII.[OtherTax],0) [OtherTax]
 				  ,ISNULL(BII.[MiscChargesCostPlus],0) [MiscChargesCostPlus]
 				  ,ISNULL(BII.[FreightCostPlus],0)   [FreightCostPlus]
-			   FROM [dbo].[BillingInvoicingItems] BII WITH(NOLOCK) 
+				  ,ISNULL(BII.[ItemMasterId],0) [ItemMasterId]
+			   FROM [dbo].[BillingInvoicingItems] BII WITH(NOLOCK)
 			  INNER JOIN [dbo].[WorkOrder] WO WITH(NOLOCK) ON BII.[ReferenceId] = WO.[WorkOrderId]
 			  INNER JOIN [dbo].[ItemMaster] ITM WITH(NOLOCK) ON ITM.[ItemMasterId] = BII.[ItemMasterId]
 			  INNER JOIN [dbo].[BillingInvoicing] BI WITH(NOLOCK) ON BI.[BillingInvoicingId] = BII.[BillingInvoicingId]
@@ -106,25 +108,25 @@ BEGIN
                 OR  (@IsSync = 1 AND ISNULL(BI.QuickBooksReferenceId, '') = ''
                      AND ISNULL(BI.IsUpdated, 0) = 1)
               )
-		END 
+		END
 		IF(@ModuleId = @SOModuleId) /*********START: SALES ORDER ********/
-		BEGIN	
-			SELECT BII.[InvoiceNo], 
-				   BII.[BillingInvoicingId], 
+		BEGIN
+			SELECT BII.[InvoiceNo],
+				   BII.[BillingInvoicingId],
 			       CST.[QuickBooksReferenceId] [ContactId],
-				   BII.[InvoiceDate],	
+				   BII.[InvoiceDate],
 				   DATEADD(DAY,SO.NetDays,BII.[InvoiceDate]) DueDate,
-				   CRR.[Code]		
+				   CRR.[Code]
 				  ---------- LINEAMOUNT TYPES ----------
-				  --Exclusive	Line items are exclusive of tax , 
+				  --Exclusive	Line items are exclusive of tax ,
 				  --Inclusive	Line items are inclusive tax,
 				  --NoTax	    Line have no tax
-				  ,'Exclusive' LineAmountTypes  
-			   FROM [dbo].[BillingInvoicing] BII WITH(NOLOCK) 
-			  INNER JOIN [dbo].[SalesOrder] SO WITH(NOLOCK) ON BII.[ReferenceId] = SO.[SalesOrderId]			  
+				  ,'Exclusive' LineAmountTypes
+			   FROM [dbo].[BillingInvoicing] BII WITH(NOLOCK)
+			  INNER JOIN [dbo].[SalesOrder] SO WITH(NOLOCK) ON BII.[ReferenceId] = SO.[SalesOrderId]
 			  INNER JOIN [dbo].[Customer] CST WITH(NOLOCK) ON CST.[CustomerId] = SO.[CustomerId]
-			  INNER JOIN [dbo].[Currency] CRR WITH(NOLOCK) ON BII.[CurrencyId] = CRR.[CurrencyId]			  
-			   WHERE ISNULL(BII.[IsVersionIncrease],0) = 0 AND ISNULL(BII.[IsPerformaInvoice],0) = 0		
+			  INNER JOIN [dbo].[Currency] CRR WITH(NOLOCK) ON BII.[CurrencyId] = CRR.[CurrencyId]
+			   WHERE ISNULL(BII.[IsVersionIncrease],0) = 0 AND ISNULL(BII.[IsPerformaInvoice],0) = 0
 			   AND (
                     (@IsSync = 0 AND BII.BillingInvoicingId = @BillingInvoicingId)
                 OR  (@IsSync = 1 AND ISNULL(BII.QuickBooksReferenceId, '') = ''
@@ -147,35 +149,36 @@ BEGIN
 				  ,ISNULL(BII.[LaborCostPercent],0) [LaborCostPercent]
 				  ,ISNULL(BII.[LaborCostPlus],0) [LaborCostPlus]
 				  ,ISNULL(BII.[IsFreightCheck],0) [IsFreightCheck]
-				  ,ISNULL(BII.[Freight],0) [Freight] 
+				  ,ISNULL(BII.[Freight],0) [Freight]
 				  ,ISNULL(BII.[FreightCostPercent],0) [FreightCostPercent]
 				  ,ISNULL(BII.[FreightCostPlus],0) [FreightCostPlus]
 				  ,ISNULL(BII.[IsMiscChargesCheck],0) [IsMiscChargesCheck]
 				  ,ISNULL(BII.[MiscCharges],0) [MiscCharges]
 				  ,ISNULL(BII.[MiscChargesCostPercent],0) [MiscChargesCostPercent]
 				  ,ISNULL(BII.[MiscChargesCostPlus],0) [MiscChargesCostPlus]
-				  ,ISNULL(BII.[SubTotal],0) [SubTotal] 
+				  ,ISNULL(BII.[SubTotal],0) [SubTotal]
 				  ,ISNULL(BII.[SalesTaxPercent],0) [SalesTaxPercent]
 				  ,ISNULL(BII.[OtherTaxPercent],0) [OtherTaxPercent]
 				  ,ISNULL(BII.[GrandTotal],0) [GrandTotal]
-				  ,ITM.[QuickBooksReferenceId] [LineItemID]								  
+				  ,ITM.[QuickBooksReferenceId] [LineItemID]
 				  ,ITM.[PartDescription]  [Notes]
 				  ---------- TAX TYPE ----------
 				  -- INPUT	0.00	TAX ON PURCHASES
-				  -- OUTPUT	0.00	TAX ON SALES	
+				  -- OUTPUT	0.00	TAX ON SALES
 				  ,'OUTPUT' [TaxType]
 				  ,'200' [AccountCode]
 				  ,'' [AccountID]
-				  ,BII.[BillingInvoicingId]          
-				  ,ISNULL(BII.[SalesTax],0) [SalesTax]      
+				  ,BII.[BillingInvoicingId]
+				  ,ISNULL(BII.[SalesTax],0) [SalesTax]
 				  ,ISNULL(BII.[OtherTax],0) [OtherTax]
 				  ,ISNULL(BII.[MiscChargesCostPlus],0) [MiscChargesCostPlus]
 				  ,ISNULL(BII.[FreightCostPlus],0)   [FreightCostPlus]
-			   FROM [dbo].[BillingInvoicingItems] BII WITH(NOLOCK) 
+				  ,ISNULL(BII.[ItemMasterId],0) [ItemMasterId]
+			   FROM [dbo].[BillingInvoicingItems] BII WITH(NOLOCK)
 				  INNER JOIN [dbo].[SalesOrder] SO WITH(NOLOCK) ON BII.[ReferenceId] = SO.[SalesOrderId]
 				  INNER JOIN [dbo].[ItemMaster] ITM WITH(NOLOCK) ON ITM.[ItemMasterId] = BII.[ItemMasterId]
 				  INNER JOIN [dbo].[BillingInvoicing] BI WITH(NOLOCK) ON BI.[BillingInvoicingId] = BII.[BillingInvoicingId]
-			   WHERE ISNULL(BII.[IsVersionIncrease],0) = 0 AND ISNULL(BII.[IsPerformaInvoice],0) = 0	
+			   WHERE ISNULL(BII.[IsVersionIncrease],0) = 0 AND ISNULL(BII.[IsPerformaInvoice],0) = 0
 			   AND (
                     (@IsSync = 0 AND BII.BillingInvoicingId = @BillingInvoicingId)
                 OR  (@IsSync = 1 AND ISNULL(BI.QuickBooksReferenceId, '') = ''
@@ -184,21 +187,21 @@ BEGIN
 		END
 		IF(@ModuleId = @EXModuleId) /*********START:EXCHANGE SALES ORDER ********/
 		BEGIN
-			SELECT BII.[InvoiceNo], 
+			SELECT BII.[InvoiceNo],
 			       CST.[QuickBooksReferenceId] [ContactId],
-				   BII.[InvoiceDate],	
+				   BII.[InvoiceDate],
 				   DATEADD(DAY,ISNULL(ESO.NetDays,0),BII.[InvoiceDate]) [DueDate],
-				   CRR.[Code]		
+				   CRR.[Code]
 				  ---------- LINEAMOUNT TYPES ----------
-				  --Exclusive	Line items are exclusive of tax , 
+				  --Exclusive	Line items are exclusive of tax ,
 				  --Inclusive	Line items are inclusive tax,
 				  --NoTax	    Line have no tax
-				  ,'Exclusive' [LineAmountTypes] 
+				  ,'Exclusive' [LineAmountTypes]
 				  ,BII.[SOBillingInvoicingId] [BillingInvoicingId]
-			   FROM [dbo].[ExchangeSalesOrderBillingInvoicing] BII WITH(NOLOCK) 
-			  INNER JOIN [dbo].[ExchangeSalesOrder] ESO WITH(NOLOCK) ON BII.[ExchangeSalesOrderId] = ESO.[ExchangeSalesOrderId]			  
+			   FROM [dbo].[ExchangeSalesOrderBillingInvoicing] BII WITH(NOLOCK)
+			  INNER JOIN [dbo].[ExchangeSalesOrder] ESO WITH(NOLOCK) ON BII.[ExchangeSalesOrderId] = ESO.[ExchangeSalesOrderId]
 			  INNER JOIN [dbo].[Customer] CST WITH(NOLOCK) ON CST.[CustomerId] = ESO.[CustomerId]
-			   LEFT JOIN [dbo].[Currency] CRR WITH(NOLOCK) ON BII.[CurrencyId] = CRR.[CurrencyId]			  
+			   LEFT JOIN [dbo].[Currency] CRR WITH(NOLOCK) ON BII.[CurrencyId] = CRR.[CurrencyId]
 			   WHERE (
                     (@IsSync = 0 AND BII.SOBillingInvoicingId = @BillingInvoicingId)
                 OR  (@IsSync = 1 AND ISNULL(BII.QuickBooksReferenceId, '') = ''
@@ -208,23 +211,24 @@ BEGIN
 			SELECT ISNULL(SOBII.[UnitPrice], 0) AS [UnitPrice]
 			       ,SSBI.[Qty] AS [QtyBilled]
 			       ,IM.[QuickBooksReferenceId] [LineItemID]
-				   ,IM.[PartDescription]  [Notes] 					 
-				   ,ISNULL(SOBII.[UnitPrice], 0) AS [TotalBillingCostPlus]						
+				   ,IM.[PartDescription]  [Notes]
+				   ,ISNULL(SOBII.[UnitPrice], 0) AS [TotalBillingCostPlus]
 				   ,ISNULL(SOBI.SalesTax, 0) AS [SalesTax]
 				   ,ISNULL(SOBI.OtherTax, 0) AS [OtherTax]
 				   ,(ISNULL(SOBI.OtherTax, 0) + ISNULL(SOBI.SalesTax, 0)) AS [TotalTax]
 				   ,ISNULL(SOBI.SubTotal, 0) AS [SubTotal]
-				   ,ISNULL(SOBI.GrandTotal, 0) AS [GrandTotal]						
+				   ,ISNULL(SOBI.GrandTotal, 0) AS [GrandTotal]
 				   ,ISNULL(SOBII.MiscCharges, 0) [MiscChargesCostPlus]
 				   ,ISNULL(SOBII.Freight, 0) [FreightCostPlus]
 				   -- INPUT	0.00	TAX ON PURCHASES
-				   -- OUTPUT	0.00	TAX ON SALES	
+				   -- OUTPUT	0.00	TAX ON SALES
 				   ,'OUTPUT' [TaxType]
 				   ,'200' [AccountCode]
-				   ,'' [AccountID]	
+				   ,'' [AccountID]
 				   ,SOBII.[SOBillingInvoicingId] [BillingInvoicingId]
-				FROM [dbo].[ExchangeSalesOrderBillingInvoicingItem] SOBII WITH(NOLOCK) 
-					INNER JOIN [dbo].[ExchangeSalesOrderBillingInvoicing] SOBI WITH(NOLOCK) ON SOBI.SOBillingInvoicingId = SOBII.SOBillingInvoicingId					
+				   ,ISNULL(SOBII.[ItemMasterId], 0) [ItemMasterId]
+				FROM [dbo].[ExchangeSalesOrderBillingInvoicingItem] SOBII WITH(NOLOCK)
+					INNER JOIN [dbo].[ExchangeSalesOrderBillingInvoicing] SOBI WITH(NOLOCK) ON SOBI.SOBillingInvoicingId = SOBII.SOBillingInvoicingId
 					INNER JOIN [dbo].[ExchangeSalesOrder] SO WITH(NOLOCK) ON SO.ExchangeSalesOrderId= SOBI.ExchangeSalesOrderId AND ISNULL(SO.IsVendor, 0) = 0
 					LEFT JOIN [dbo].[ExchangeSalesOrderScheduleBilling] SSBI WITH(NOLOCK) ON SSBI.ExchangeSalesOrderScheduleBillingId = SOBII.ExchangeSalesOrderScheduleBillingId
 					LEFT JOIN [dbo].[ItemMaster] IM WITH(NOLOCK) ON IM.ItemMasterId= SOBII.ItemMasterId
@@ -234,17 +238,17 @@ BEGIN
                      AND ISNULL(SOBI.IsUpdated, 0) = 1)
               )
 		END
-		
-	END TRY    
-	BEGIN CATCH      
+
+	END TRY
+	BEGIN CATCH
 		IF @@trancount > 0
-              DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name() 
+              DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name()
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
-              , @AdhocComments     VARCHAR(150)    = '[USP_GetCommonBillingInvoicingItemsByInvoiceIdForXeroAccounting]' 
+              , @AdhocComments     VARCHAR(150)    = '[USP_GetCommonBillingInvoicingItemsByInvoiceIdForXeroAccounting]'
 			  , @ProcedureParameters VARCHAR(3000) = '@Parameter1 = ''' + CAST(ISNULL(@BillingInvoicingId, '') AS VARCHAR(100))
               , @ApplicationName VARCHAR(100) = 'PAS'
 -----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------
-              exec spLogException 
+              exec spLogException
                        @DatabaseName           = @DatabaseName
                      , @AdhocComments          = @AdhocComments
                      , @ProcedureParameters = @ProcedureParameters
@@ -252,5 +256,5 @@ BEGIN
                      , @ErrorLogID                    = @ErrorLogID OUTPUT ;
               RAISERROR ('Unexpected Error Occured in the database. Please let the support team know of the error number : %d', 16, 1,@ErrorLogID)
               RETURN(1);
-        END CATCH     
+        END CATCH
 END

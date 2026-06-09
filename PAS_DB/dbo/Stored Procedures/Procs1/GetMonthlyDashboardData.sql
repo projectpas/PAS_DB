@@ -32,7 +32,7 @@ EXEC [dbo].[GetMonthlyDashboardData] 11, 2, 98, '12-03-2025 00:00:00'
 EXEC [dbo].[GetMonthlyDashboardData] 11, 2, 98, '03-12-2025 00:00:00'
 EXEC [dbo].[GetMonthlyDashboardData] 1, 2, 2, '2025-06-24 00:00:00'
 **************************************************************/ 
-ALTER   PROCEDURE [dbo].[GetMonthlyDashboardData]
+CREATE   PROCEDURE [dbo].[GetMonthlyDashboardData]
 	@MasterCompanyId BIGINT = NULL,
 	@ChartType INT = NULL,
 	@EmployeeId BIGINT = NULL,

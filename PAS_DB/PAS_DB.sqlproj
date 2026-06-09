@@ -4696,6 +4696,9 @@
     <Build Include="dbo\Stored Procedures\USP_SaveCustomerAging.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetXeroCustomerList.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetAircraftHistory.sql" />
+    <Build Include="dbo\Stored Procedures\USP_SaveXeroInboundPayment.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetXeroSyncedBillingInvoices.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetKnownXeroPaymentIds.sql" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Snapshots\PAS_DB_20220518_07-53-10.dacpac" />

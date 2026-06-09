@@ -39,6 +39,7 @@
     [IsMultipleRows]            BIT            DEFAULT ((0)) NOT NULL,
     [MultiValueQuery]           NVARCHAR (MAX) NULL,
     [IsUseJoinCondition]        BIT            CONSTRAINT [DF_ImportModuleFieldMaster_IsUseJoinCondition] DEFAULT ((0)) NULL,
+    [ParentTable]               VARCHAR (150)  NULL,
     CONSTRAINT [PK_ImportModuleFieldMaster] PRIMARY KEY CLUSTERED ([ImportModuleFieldMasterId] ASC)
 );
 

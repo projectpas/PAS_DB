@@ -1,5 +1,4 @@
-﻿
-/*************************************************************             
+﻿/*************************************************************             
  ** File:   [USP_CreateUpdateWorksheetHeader]          
  ** Author:   
  ** Description: This stored procedure is used to Create/Update a record in [WorksheetHeader].
@@ -14,14 +13,15 @@
  **************************************************************             
   ** Change History             
  **************************************************************             
- ** PR   Date         Author              Change Description              
- ** --   --------     -------            --------------------------------     
-    1    14/05/2026   Priyansh Patel     Created [PN-16408]
-    2    19/05/2026   Priyansh Patel     Added Duplicate inspection fields [PN-16408]
+ ** PR   Date           Author                  Change Description              
+ ** --   --------       -------                 --------------------------------     
+    1    14/05/2026     Priyansh Patel          Created [PN-16408]
+    2    19/05/2026     Priyansh Patel          Added Duplicate inspection fields [PN-16408]
+    3    08-June-2026   Divyesh Kathiriya       Update WorksheetNumber on AircraftMaintenanceProgram Table [PN-16704]
 
 **************************************************************/
 
-CREATE   PROCEDURE [dbo].[USP_CreateUpdateWorksheetHeader]
+CREATE    PROCEDURE [dbo].[USP_CreateUpdateWorksheetHeader]
     @tbl_WorksheetHeaderType dbo.WorksheetHeaderTableType READONLY
 AS
 BEGIN
@@ -300,6 +300,16 @@ BEGIN
                 FROM @tbl_WorksheetHeaderType T;
 
                 SET @WorksheetHeaderId = SCOPE_IDENTITY();
+
+                UPDATE AMP
+                SET
+                    AMP.WorksheetNumber = @WorksheetNum,
+                    AMP.UpdatedBy       = T.UpdatedBy,
+                    AMP.UpdatedDate     = GETUTCDATE()
+                FROM [dbo].[AircraftMaintenanceProgram] AMP
+                INNER JOIN @tbl_WorksheetHeaderType T ON AMP.ProgramId = T.ProgramId AND AMP.MasterCompanyId = T.MasterCompanyId
+                WHERE ISNULL(T.ProgramId, 0) > 0
+                  AND ISNULL(AMP.WorksheetNumber, '') <> ISNULL(@WorksheetNum, '');
 
                 SELECT 1 AS Status, 'Saved successfully' AS Message,
                        *

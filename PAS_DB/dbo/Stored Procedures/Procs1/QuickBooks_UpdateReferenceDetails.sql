@@ -24,6 +24,7 @@
     11   07-07-2025    Moin Bloch       Modified Changed Old To New Billing Table
 	12   21-04-2026    Moin Bloch       Modified Added Xero Accounting Changes PN-16008
 	13   04-06-2026    Abhishek Jirawla Modified Added Xero Accounting Changes For Customer Payments(Cash Reciept)
+	14   05-06-2026    Bhargav Saliya   Added Xero Case For Credit Memo
  EXECUTE [QuickBooks_UpdateCustomerReferenceDetails] 1, 10, '150'
 **************************************************************/ 
 CREATE PROCEDURE [dbo].[QuickBooks_UpdateReferenceDetails]
@@ -41,7 +42,7 @@ BEGIN
 		DECLARE @CustomerModuleId INT;
 		DECLARE @VendorModuleId INT;
 		DECLARE @InvModuleId INT = 0, @WOModuleId INT = 0, @SOModuleId INT = 0, @ExchModuleId INT = 0, @NonPOModuleId INT = 0, @PurchaseOrderModuleId INT = 0, @RepairOrderModuleId INT = 0;
-		DECLARE @CustomerPaymentModuleId INT, @CreditTermModuleId INT, @GLAccountModuleId INT, @BillModuleId INT, @POModuleId INT, @ItemModuleId INT, @CreditMemoModuleId INT;
+		DECLARE @CustomerPaymentModuleId INT, @CreditTermModuleId INT, @GLAccountModuleId INT, @BillModuleId INT, @POModuleId INT, @ItemModuleId INT, @CreditMemoModuleId INT,@VendorCreditMemoModuleId INT;
 		DECLARE @QBIntegrationTypeId INT = 1, @NSIntegrationTypeId INT = 2, @XeroIntegrationTypeId INT = 3;
 
 		-- FIX 1: Consolidate all AccountingIntegrationSettings lookups into a single table scan
@@ -55,7 +56,8 @@ BEGIN
 			@BillModuleId            = MAX(CASE WHEN UPPER([ModuleName]) = 'BILL'            THEN [ModuleId] END),
 			@POModuleId              = MAX(CASE WHEN UPPER([ModuleName]) = 'PURCHASEORDER'   THEN [ModuleId] END),
 			@ItemModuleId            = MAX(CASE WHEN UPPER([ModuleName]) = 'ITEMMASTER'      THEN [ModuleId] END),
-			@CreditMemoModuleId      = MAX(CASE WHEN UPPER([ModuleName]) = 'CREDITMEMO'      THEN [ModuleId] END)
+			@CreditMemoModuleId      = MAX(CASE WHEN UPPER([ModuleName]) = 'CREDITMEMO'      THEN [ModuleId] END),
+			@VendorCreditMemoModuleId      = MAX(CASE WHEN UPPER([ModuleName]) = 'VENDORCREDITMEMO'      THEN [ModuleId] END)
 		FROM [dbo].[AccountingIntegrationSettings] WITH(NOLOCK);
 
 		-- FIX 1: Consolidate all Module lookups into a single table scan
@@ -167,6 +169,14 @@ BEGIN
 		BEGIN
 			UPDATE [dbo].[CustomerPaymentDetails] SET [QuickBooksReferenceId] = @QuickBooksReferenceId, IsUpdated = 0, LastSyncDate = GETUTCDATE(), SyncToken = @SyncToken, [IntegrationTypeId] = @IntegrationTypeId WHERE CustomerPaymentDetailsId = @ReferenceId;
 		END
+		ELSE IF(ISNULL(@IntegrationTypeId, 0) = @XeroIntegrationTypeId AND @ModuleId = @CreditMemoModuleId) 
+		BEGIN
+			UPDATE [dbo].[CreditMemo] SET [QuickBooksReferenceId] = @QuickBooksReferenceId, [IsUpdated] = 0, [LastSyncDate] = GETUTCDATE(), [SyncToken] = @SyncToken, [IntegrationTypeId] = @IntegrationTypeId WHERE [CreditMemoHeaderId] = @ReferenceId
+		END	
+		ELSE IF(ISNULL(@IntegrationTypeId, 0) = @XeroIntegrationTypeId AND @ModuleId = @VendorCreditMemoModuleId) 
+		BEGIN
+			UPDATE [dbo].[VendorCreditMemo] SET [QuickBooksReferenceId] = @QuickBooksReferenceId, [IsUpdated] = 0, [LastSyncDate] = GETUTCDATE(), [SyncToken] = @SyncToken, [IntegrationTypeId] = @IntegrationTypeId WHERE [VendorCreditMemoId] = @ReferenceId
+		END	
 
 		-- FIX 3: Guard the settings update — only run it when the module/integration combo actually exists
 		UPDATE [dbo].[AccountingIntegrationSettings]

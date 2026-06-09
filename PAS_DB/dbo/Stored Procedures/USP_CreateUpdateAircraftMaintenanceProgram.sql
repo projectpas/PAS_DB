@@ -58,22 +58,22 @@ BEGIN
 
         -- ── OLD value holders (capture BEFORE update) ─────────
         DECLARE @Old_MaintenanceType            VARCHAR(200),
-                @Old_NextScheduledMaintenance   VARCHAR(30),
-                @Old_FlightHours                VARCHAR(20),    -- stored as "HH : MM"
-                @Old_CyclesLimit                VARCHAR(50),
-                @Old_TimeLimit                  VARCHAR(50),
-                @Old_LandingsLimit              VARCHAR(50),
-                @Old_EngineStartsLimit          VARCHAR(50),
+                @Old_NextScheduledMaintenance   VARCHAR(250),
+                @Old_FlightHours                VARCHAR(250),    -- stored as "HH : MM"
+                @Old_CyclesLimit                VARCHAR(250),
+                @Old_TimeLimit                  VARCHAR(250),
+                @Old_LandingsLimit              VARCHAR(250),
+                @Old_EngineStartsLimit          VARCHAR(250),
                 @Old_IsActive                   VARCHAR(10);
 
         -- ── NEW value holders (populated from params) ─────────
         DECLARE @New_MaintenanceType            VARCHAR(200),
-                @New_NextScheduledMaintenance   VARCHAR(30),
-                @New_FlightHours                VARCHAR(20),
-                @New_CyclesLimit                VARCHAR(50),
-                @New_TimeLimit                  VARCHAR(50),
-                @New_LandingsLimit              VARCHAR(50),
-                @New_EngineStartsLimit          VARCHAR(50),
+                @New_NextScheduledMaintenance   VARCHAR(300),
+                @New_FlightHours                VARCHAR(250),
+                @New_CyclesLimit                VARCHAR(250),
+                @New_TimeLimit                  VARCHAR(250),
+                @New_LandingsLimit              VARCHAR(250),
+                @New_EngineStartsLimit          VARCHAR(250),
                 @New_IsActive                   VARCHAR(10);
 
         DECLARE @IsUpdate INT = 0;
@@ -138,7 +138,7 @@ BEGIN
             -- ── STEP 1: Read OLD values BEFORE update ─────────
             SELECT
                 @Old_MaintenanceType          = AMP.MaintenanceType,
-                @Old_NextScheduledMaintenance = ISNULL(CONVERT(VARCHAR(30), AMP.NextScheduledMaintenance, 103), ''),
+                @Old_NextScheduledMaintenance = ISNULL(CONVERT(VARCHAR(30), CAST(AMP.NextScheduledMaintenance AS DATE), 103), ''),--ISNULL(CONVERT(VARCHAR(30), AMP.NextScheduledMaintenance, 103), ''),
                 @Old_FlightHours              = CAST(ISNULL(AMP.FlightHoursLimitHours, 0) AS VARCHAR)
                                               + ' : '
                                               + RIGHT('00' + CAST(ISNULL(AMP.FlightHoursLimitMinutes, 0) AS VARCHAR), 2),
@@ -307,7 +307,7 @@ BEGIN
 
         -- Build NEW value strings from params
         SET @New_MaintenanceType          = ISNULL(@MaintenanceType, '');
-        SET @New_NextScheduledMaintenance = ISNULL(CONVERT(VARCHAR(30), @NextScheduledMaintenance, 103), '');
+		SET @New_NextScheduledMaintenance = ISNULL(CONVERT(VARCHAR(250), CAST(@NextScheduledMaintenance AS DATE), 103), '');
         SET @New_FlightHours              = CAST(ISNULL(@FlightHoursLimitHours,   0) AS VARCHAR)
                                           + ' : '
                                           + RIGHT('00' + CAST(ISNULL(@FlightHoursLimitMinutes, 0) AS VARCHAR), 2);
@@ -381,13 +381,6 @@ BEGIN
 
 			IF CAST(ISNULL(@New_EngineStartsLimit,'0') AS BIGINT) > 0
 				SET @TemplateBody += 'Engine Starts Limit: '  + @New_EngineStartsLimit        + ' | ';
-
-			--SET @TemplateBody += 'Tail No.: '    + ISNULL(@TailNumber,    '') + ' | ';
-			--SET @TemplateBody += 'Make: '        + ISNULL(@AircraftMake,  '') + ' | ';
-			--SET @TemplateBody += 'Model: '       + ISNULL(@AircraftModel, '') + ' | ';
-			--SET @TemplateBody += 'Serial No.: '  + ISNULL(@SerialNumber,  '') + ' | ';
-			--SET @TemplateBody += 'Created By: '  + ISNULL(@CreatedBy,     '') + ' | ';
-			--SET @TemplateBody += 'Created Date: '+ CONVERT(VARCHAR(30), GETUTCDATE(), 103);
 
 			-- Remove trailing ' | ' if last line also has one
 			IF RIGHT(RTRIM(@TemplateBody), 3) = ' | '

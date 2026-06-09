@@ -50,27 +50,27 @@ BEGIN
 
     BEGIN TRY
         BEGIN TRANSACTION;
-        --DECLARE @PostedStatusId TINYINT;
-        --SELECT @PostedStatusId = Id FROM MasterCustomerPaymentStatus WHERE Name = 'Posted'
+        DECLARE @PostedStatusId TINYINT;
+        SELECT @PostedStatusId = Id FROM MasterCustomerPaymentStatus WHERE Name = 'Posted'
 
-        ---- ── 0. Resolve Xero IntegrationTypeId ────────────────────────
-        --DECLARE @XeroIntegrationTypeId INT;
-        --SELECT @XeroIntegrationTypeId = IntegrationTypeId
-        --FROM   dbo.AccountingIntegrationType WITH (NOLOCK)
-        --WHERE  IntegrationType = 'Xero';
+        -- ── 0. Resolve Xero IntegrationTypeId ────────────────────────
+        DECLARE @XeroIntegrationTypeId INT;
+        SELECT @XeroIntegrationTypeId = IntegrationTypeId
+        FROM   dbo.AccountingIntegrationType WITH (NOLOCK)
+        WHERE  IntegrationType = 'Xero';
 
-        ---- ── Guard: skip if this Xero PaymentID was already imported ───
-        --IF EXISTS (
-        --    SELECT 1
-        --    FROM   dbo.CustomerPaymentDetails WITH (NOLOCK)
-        --    WHERE  QuickBooksReferenceId = @XeroPaymentId
-        --      AND  IntegrationTypeId     = @XeroIntegrationTypeId
-        --      AND  ISNULL(IsDeleted, 0)  = 0
-        --)
-        --BEGIN
-        --    ROLLBACK TRANSACTION;
-        --    RETURN 0;
-        --END
+        -- ── Guard: skip if this Xero PaymentID was already imported ───
+        IF EXISTS (
+            SELECT 1
+            FROM   dbo.CustomerPaymentDetails WITH (NOLOCK)
+            WHERE  QuickBooksReferenceId = @XeroPaymentId
+              AND  IntegrationTypeId     = @XeroIntegrationTypeId
+              AND  ISNULL(IsDeleted, 0)  = 0
+        )
+        BEGIN
+            ROLLBACK TRANSACTION;
+            RETURN 0;
+        END
 
         -- ── 1. Look up context from BillingInvoicing ──────────────────
         DECLARE @ManagementStructureId  BIGINT
@@ -92,133 +92,133 @@ BEGIN
                ON  ms.ManagementStructureId = bi.ManagementStructureId
         WHERE  bi.BillingInvoicingId = @BillingInvoicingId;
 
-        --IF @ManagementStructureId IS NULL
-        --BEGIN
-        --    ROLLBACK TRANSACTION;
-        --    RAISERROR('BillingInvoicingId %d not found.', 16, 1, @BillingInvoicingId);
-        --    RETURN 1;
-        --END
+        IF @ManagementStructureId IS NULL
+        BEGIN
+            ROLLBACK TRANSACTION;
+            RAISERROR('BillingInvoicingId %d not found.', 16, 1, @BillingInvoicingId);
+            RETURN 1;
+        END
 
-        ---- ── 2. Generate ReceiptNo from CodePrefixes (CodeTypeId = 41 = CR) ──
-        ----      Mirrors PASCommon.GenerateCodeNumber(currentNo, CodePrefix, CodeSufix)
-        --DECLARE @CodePrefixId BIGINT
-        --      , @CodePrefix   NVARCHAR(50)
-        --      , @CodeSufix    NVARCHAR(50)
-        --      , @CurrentNo    BIGINT
-        --      , @StartsFrom   BIGINT
-        --      , @ReceiptNo    NVARCHAR(100);
+        -- ── 2. Generate ReceiptNo from CodePrefixes (CodeTypeId = 41 = CR) ──
+        --      Mirrors PASCommon.GenerateCodeNumber(currentNo, CodePrefix, CodeSufix)
+        DECLARE @CodePrefixId BIGINT
+              , @CodePrefix   NVARCHAR(50)
+              , @CodeSufix    NVARCHAR(50)
+              , @CurrentNo    BIGINT
+              , @StartsFrom   BIGINT
+              , @ReceiptNo    NVARCHAR(100);
 
-        --SELECT
-        --    @CodePrefixId = CodePrefixId,
-        --    @CodePrefix   = ISNULL(CodePrefix, ''),
-        --    @CodeSufix    = ISNULL(CodeSufix, ''),
-        --    @CurrentNo    = ISNULL(CurrentNummber, 0),
-        --    @StartsFrom   = ISNULL(StartsFrom, 0)
-        --FROM   dbo.CodePrefixes WITH (UPDLOCK)  -- row lock prevents concurrent duplicate numbers
-        --WHERE  CodePrefix      = 'cR'             -- CodePrefixEnum.CR
-        --  AND  MasterCompanyId = @MasterCompanyId
-        --  AND  IsActive        = 1
-        --  AND  IsDeleted       = 0;
+        SELECT
+            @CodePrefixId = CodePrefixId,
+            @CodePrefix   = ISNULL(CodePrefix, ''),
+            @CodeSufix    = ISNULL(CodeSufix, ''),
+            @CurrentNo    = ISNULL(CurrentNummber, 0),
+            @StartsFrom   = ISNULL(StartsFrom, 0)
+        FROM   dbo.CodePrefixes WITH (UPDLOCK)  -- row lock prevents concurrent duplicate numbers
+        WHERE  CodePrefix      = 'cR'             -- CodePrefixEnum.CR
+          AND  MasterCompanyId = @MasterCompanyId
+          AND  IsActive        = 1
+          AND  IsDeleted       = 0;
 
-        --SET @CurrentNo = CASE WHEN @CurrentNo <> 0
-        --                      THEN @CurrentNo + 1
-        --                      ELSE @StartsFrom + 1
-        --                 END;
+        SET @CurrentNo = CASE WHEN @CurrentNo <> 0
+                              THEN @CurrentNo + 1
+                              ELSE @StartsFrom + 1
+                         END;
 
-        --SET @ReceiptNo = @CodePrefix
-        --               + RIGHT(REPLICATE('0', 6) + CAST(@CurrentNo AS VARCHAR(20)), 6)
-        --               + @CodeSufix;
+        SET @ReceiptNo = @CodePrefix
+                       + RIGHT(REPLICATE('0', 6) + CAST(@CurrentNo AS VARCHAR(20)), 6)
+                       + @CodeSufix;
 
-        --UPDATE dbo.CodePrefixes
-        --SET    CurrentNummber = @CurrentNo
-        --WHERE  CodePrefixId   = @CodePrefixId;
+        UPDATE dbo.CodePrefixes
+        SET    CurrentNummber = @CurrentNo
+        WHERE  CodePrefixId   = @CodePrefixId;
 
-        ---- ── 3. Insert CustomerPayments receipt ────────────────────────
-        ----      AmtApplied / AmtRemaining start at 0 / Amount.
-        ----      UpdatePaymentPrice (step 7) will correct them from
-        ----      CustomerPaymentDetails.Amount.
-        --DECLARE @NewReceiptId BIGINT;
+        -- ── 3. Insert CustomerPayments receipt ────────────────────────
+        --      AmtApplied / AmtRemaining start at 0 / Amount.
+        --      UpdatePaymentPrice (step 7) will correct them from
+        --      CustomerPaymentDetails.Amount.
+        DECLARE @NewReceiptId BIGINT;
 
-        --INSERT INTO dbo.CustomerPayments
-        --(
-        --    ReceiptNo,    DepositDate,
-        --    Amount,       AmtApplied,  AmtRemaining,
-        --    Reference,    ManagementStructureId,  LegalEntityId,
-        --    OpenDate,     StatusId,    PostedDate,
-        --    EmployeeId,   Memo,
-        --    MasterCompanyId, CreatedBy,  CreatedDate,
-        --    UpdatedBy,    UpdatedDate, IsActive,  IsDeleted
-        --)
-        --VALUES
-        --(
-        --    @ReceiptNo,   @PaymentDate,
-        --    @Amount,      0,           @Amount,
-        --    @Reference,   @ManagementStructureId, @LegalEntityId,
-        --    GETUTCDATE(), @PostedStatusId,           GETUTCDATE(),   -- StatusId = 2 (Posted)
-        --    2,            'Imported from Xero',
-        --    @MasterCompanyId, @CreatedBy, GETUTCDATE(),
-        --    @CreatedBy,   GETUTCDATE(), 1,        0
-        --);
+        INSERT INTO dbo.CustomerPayments
+        (
+            ReceiptNo,    DepositDate,
+            Amount,       AmtApplied,  AmtRemaining,
+            Reference,    ManagementStructureId,  LegalEntityId,
+            OpenDate,     StatusId,    PostedDate,
+            EmployeeId,   Memo,
+            MasterCompanyId, CreatedBy,  CreatedDate,
+            UpdatedBy,    UpdatedDate, IsActive,  IsDeleted
+        )
+        VALUES
+        (
+            @ReceiptNo,   @PaymentDate,
+            @Amount,      0,           @Amount,
+            @Reference,   @ManagementStructureId, @LegalEntityId,
+            GETUTCDATE(), @PostedStatusId,           GETUTCDATE(),   -- StatusId = 2 (Posted)
+            2,            'Imported from Xero',
+            @MasterCompanyId, @CreatedBy, GETUTCDATE(),
+            @CreatedBy,   GETUTCDATE(), 1,        0
+        );
 
-        --SET @NewReceiptId = SCOPE_IDENTITY();
+        SET @NewReceiptId = SCOPE_IDENTITY();
 
-        ---- ── 4. Insert CustomerPaymentDetails ─────────────────────────
-        ----      QuickBooksReferenceId = Xero Payment GUID.
-        ----      UpdatePaymentPrice sums CustomerPaymentDetails.Amount
-        ----      to compute CustomerPayments.AmtApplied, so Amount must
-        ----      be set correctly here.
-        --DECLARE @NewDetailsId BIGINT;
+        -- ── 4. Insert CustomerPaymentDetails ─────────────────────────
+        --      QuickBooksReferenceId = Xero Payment GUID.
+        --      UpdatePaymentPrice sums CustomerPaymentDetails.Amount
+        --      to compute CustomerPayments.AmtApplied, so Amount must
+        --      be set correctly here.
+        DECLARE @NewDetailsId BIGINT;
 
-        --INSERT INTO dbo.CustomerPaymentDetails
-        --(
-        --    ReceiptId,    CustomerId,   LegalEntityId,
-        --    Amount,       AmountRem,    AppliedAmount,  InvoiceAmount,
-        --    IsMultiplePaymentMethod,    PaymentMode,
-        --    QuickBooksReferenceId,      IntegrationTypeId,
-        --    IsUpdated,    LastSyncDate, SyncToken,
-        --    MasterCompanyId, CreatedBy, CreatedDate,
-        --    UpdatedBy,    UpdatedDate, IsActive,  IsDeleted
-        --)
-        --VALUES
-        --(
-        --    @NewReceiptId, @CustomerId, @LegalEntityId,
-        --    @Amount,       0,          @Amount,        @Amount,
-        --    0,             1,                          -- PaymentMode 1 = default
-        --    @XeroPaymentId, @XeroIntegrationTypeId,
-        --    0,             GETUTCDATE(), NULL,
-        --    @MasterCompanyId, @CreatedBy, GETUTCDATE(),
-        --    @CreatedBy,    GETUTCDATE(), 1,        0
-        --);
+        INSERT INTO dbo.CustomerPaymentDetails
+        (
+            ReceiptId,    CustomerId,   LegalEntityId,
+            Amount,       AmountRem,    AppliedAmount,  InvoiceAmount,
+            IsMultiplePaymentMethod,    PaymentMode,
+            QuickBooksReferenceId,      IntegrationTypeId,
+            IsUpdated,    LastSyncDate, SyncToken,
+            MasterCompanyId, CreatedBy, CreatedDate,
+            UpdatedBy,    UpdatedDate, IsActive,  IsDeleted
+        )
+        VALUES
+        (
+            @NewReceiptId, @CustomerId, @LegalEntityId,
+            @Amount,       0,          @Amount,        @Amount,
+            0,             1,                          -- PaymentMode 1 = default
+            @XeroPaymentId, @XeroIntegrationTypeId,
+            0,             GETUTCDATE(), NULL,
+            @MasterCompanyId, @CreatedBy, GETUTCDATE(),
+            @CreatedBy,    GETUTCDATE(), 1,        0
+        );
 
-        --SET @NewDetailsId = SCOPE_IDENTITY();
+        SET @NewDetailsId = SCOPE_IDENTITY();
 
-        ---- ── 5. Insert InvoicePayments ─────────────────────────────────
-        ----      RemainingAmount = invoice balance AFTER this payment
-        ----      (mirrors SaveAndPostPayments: inv.RemainingAmount -= paymentAmount)
-        --INSERT INTO dbo.InvoicePayments
-        --(
-        --    CustomerId,  SOBillingInvoicingId,  ReceiptId,
-        --    PaymentAmount, OriginalAmount,
-        --    RemainingAmount,                    -- remaining AFTER payment
-        --    IsMultiplePaymentMethod, InvoiceType,
-        --    CustomerPaymentDetailsId,
-        --    MasterCompanyId, CreatedBy,  CreatedDate,
-        --    UpdatedBy,   UpdatedDate,    IsActive, IsDeleted
-        --)
-        --VALUES
-        --(
-        --    @CustomerId,  @BillingInvoicingId,  @NewReceiptId,
-        --    @Amount,      @InvoiceGrandTotal,
-        --    @InvoiceRemainingAmount - @Amount,  -- post-payment remaining
-        --    0,            @BillingModuleId,
-        --    @NewDetailsId,
-        --    @MasterCompanyId, @CreatedBy, GETUTCDATE(),
-        --    @CreatedBy,   GETUTCDATE(),  1,     0
-        --);
+        -- ── 5. Insert InvoicePayments ─────────────────────────────────
+        --      RemainingAmount = invoice balance AFTER this payment
+        --      (mirrors SaveAndPostPayments: inv.RemainingAmount -= paymentAmount)
+        INSERT INTO dbo.InvoicePayments
+        (
+            CustomerId,  SOBillingInvoicingId,  ReceiptId,
+            PaymentAmount, OriginalAmount,
+            RemainingAmount,                    -- remaining AFTER payment
+            IsMultiplePaymentMethod, InvoiceType,
+            CustomerPaymentDetailsId,
+            MasterCompanyId, CreatedBy,  CreatedDate,
+            UpdatedBy,   UpdatedDate,    IsActive, IsDeleted
+        )
+        VALUES
+        (
+            @CustomerId,  @BillingInvoicingId,  @NewReceiptId,
+            @Amount,      @InvoiceGrandTotal,
+            @InvoiceRemainingAmount - @Amount,  -- post-payment remaining
+            0,            @BillingModuleId,
+            @NewDetailsId,
+            @MasterCompanyId, @CreatedBy, GETUTCDATE(),
+            @CreatedBy,   GETUTCDATE(),  1,     0
+        );
 
-        ---- ── 6. Reduce BillingInvoicing.RemainingAmount ───────────────
-        ----      Opr = 1 deducts (@PaymentAmount + disc + fee + other).
-        ----      Disc/fee/other all 0 for a straight Xero payment.
+        -- ── 6. Reduce BillingInvoicing.RemainingAmount ───────────────
+        --      Opr = 1 deducts (@PaymentAmount + disc + fee + other).
+        --      Disc/fee/other all 0 for a straight Xero payment.
         EXEC dbo.USP_UpdateBillingPayments
              @BillingInvoicingId = @BillingInvoicingId,
              @PaymentAmount      = @Amount,
@@ -229,12 +229,12 @@ BEGIN
              @ModuleId           = @BillingModuleId,
              @Opr                = 1;
 
-        ---- ── 7. Recalculate CustomerPayments.AmtApplied / AmtRemaining ─
-        ----      Reads SUM(CustomerPaymentDetails.Amount) WHERE ReceiptId = @NewReceiptId
-        ----      and sets AmtApplied / AmtRemaining on CustomerPayments.
-        ----      NOTE: use @ReceiptId (actual param name), not @p0 (EF alias).
-        --EXEC dbo.UpdatePaymentPrice
-        --     @ReceiptId = @NewReceiptId;
+        -- ── 7. Recalculate CustomerPayments.AmtApplied / AmtRemaining ─
+        --      Reads SUM(CustomerPaymentDetails.Amount) WHERE ReceiptId = @NewReceiptId
+        --      and sets AmtApplied / AmtRemaining on CustomerPayments.
+        --      NOTE: use @ReceiptId (actual param name), not @p0 (EF alias).
+        EXEC dbo.UpdatePaymentPrice
+             @ReceiptId = @NewReceiptId;
 
         COMMIT TRANSACTION;
         RETURN 0;

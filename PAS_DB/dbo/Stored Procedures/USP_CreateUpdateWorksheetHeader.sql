@@ -1,6 +1,4 @@
-﻿
-
-/*************************************************************             
+﻿/*************************************************************             
  ** File:   [USP_CreateUpdateWorksheetHeader]          
  ** Author:   
  ** Description: This stored procedure is used to Create/Update a record in [WorksheetHeader].
@@ -19,6 +17,7 @@
  ** --   --------     -------            --------------------------------     
     1    14/05/2026   Priyansh Patel     Created [PN-16408]
     2    19/05/2026   Priyansh Patel     Added Duplicate inspection fields [PN-16408]
+	3    8/06/2026    Amit Ghediya     Adding Header data in History module [PN-16581]
 
 **************************************************************/
 
@@ -49,6 +48,14 @@ BEGIN
             FROM   [dbo].[CodeTypes] WITH (NOLOCK)
             WHERE  [CodeType] = 'WorksheetNumber'
         );
+
+		-- ── NEW value holders ─────────────────────────────────
+        DECLARE @New_MakeType                   VARCHAR(200),
+                @New_AircraftModel              VARCHAR(200),
+                @New_WorksheetType              VARCHAR(100),
+				@New_TailNum                    VARCHAR(50),
+				@New_SerialNum                  VARCHAR(100),
+                @New_IsActive                   VARCHAR(10);
 
         SELECT TOP 1
             @CodePrefix = [CodePrefix],
@@ -306,6 +313,48 @@ BEGIN
                        *
                 FROM   dbo.[WorksheetHeader] WITH (NOLOCK)
                 WHERE  WorksheetHeaderId = @WorksheetHeaderId;
+
+				-- ══════════════════════════════════════════════════
+				-- HISTORY BLOCK
+				-- Same pattern as USP_CreateAircraftRegistryHeader
+				-- ══════════════════════════════════════════════════
+				DECLARE @TemplateBody   VARCHAR(MAX)    = '',
+						@Activity       VARCHAR(MAX)    = NULL,
+						@HistCreatedBy  VARCHAR(256)    = NULL,
+						@WorksheetStr   VARCHAR(50)     = NULL;
+
+			    SET @WorksheetStr = 'Worksheet Num.: ' + @WorksheetNum;
+
+				-- Read NEW values from TVP
+				SELECT
+					@New_MakeType                  = ISNULL(T.MakeType, ''),
+					@New_AircraftModel             = ISNULL(T.AircraftModel, ''),
+					@New_WorksheetType             = ISNULL(T.WorksheetType, ''),
+					@New_TailNum                   = ISNULL(T.TailNum,   ISNULL(@TailNum,  '')),
+					@New_SerialNum                 = ISNULL(T.SerialNum, ISNULL(@SerialNum, '')),
+					@New_IsActive                  = CASE WHEN ISNULL(T.IsActive, 1) = 1 THEN 'Active' ELSE 'Inactive' END,
+					@HistCreatedBy                 = ISNULL(T.UpdatedBy, T.CreatedBy)
+				FROM @tbl_WorksheetHeaderType T;
+
+				SET @Activity = 'New Worksheet Added';
+
+                IF @New_MakeType                 <> '' SET @TemplateBody += 'Make/Type: '                 + @New_MakeType                 + ' | ';
+                IF @New_AircraftModel            <> '' SET @TemplateBody += 'Aircraft Model: '            + @New_AircraftModel            + ' | ';
+                IF @New_WorksheetType            <> '' SET @TemplateBody += 'Worksheet Type: '            + @New_WorksheetType            + ' | ';
+                IF @New_TailNum                  <> '' SET @TemplateBody += 'Tail No.: '                  + @New_TailNum                  + ' | ';
+                IF @New_SerialNum                <> '' SET @TemplateBody += 'Serial No.: '                + @New_SerialNum                + ' | ';
+                SET @TemplateBody += 'Created By: ' + ISNULL(@HistCreatedBy,'') + ' | ';
+                SET @TemplateBody += 'Created Date: '+ CONVERT(VARCHAR(30), GETUTCDATE(), 103);
+
+				-- Call usp_SaveAircraftHistory once
+				IF ISNULL(LTRIM(RTRIM(@TemplateBody)), '') <> ''
+				BEGIN
+
+					EXEC [dbo].[USP_SaveAircraftHistory] @ModuleId = 2,@ModuleName = 'Aircraft Worksheet',@RefferenceId = @AircraftRegistryId,@FieldsName = NULL,
+												 @OldValue = NULL,@NewValue = @WorksheetStr,@HistoryText = @TemplateBody,@Activity = @Activity,@MasterCompanyId = @MasterCompanyId,
+												 @CreatedBy = @HistCreatedBy;
+				END
+				-- ── END HISTORY BLOCK ─────────────────────────────
             END
         END
 

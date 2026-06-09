@@ -22,7 +22,7 @@ CREATE   PROCEDURE [dbo].[USP_SaveAircraftHistory]
     @OldValue           VARCHAR(MAX),
     @NewValue           VARCHAR(MAX),
     @HistoryText        VARCHAR(MAX),
-    @Activity           VARCHAR(10),
+    @Activity           VARCHAR(MAX),
     @MasterCompanyId    INT,
     @CreatedBy          VARCHAR(256)    = NULL
 AS

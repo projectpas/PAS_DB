@@ -371,7 +371,7 @@ BEGIN
 		ELSE
 		BEGIN
 		     SET @TemplateCode = 'AddAircraftRegistry';
-			 SET @Activity = 'New Added';
+			 SET @Activity = 'New Registry Added';
 
 			 SELECT TOP 1 @TemplateBody = [TemplateBody] FROM [dbo].[AircraftHistoryTemplate] WITH(NOLOCK) WHERE [TemplateCode] = @TemplateCode;
 

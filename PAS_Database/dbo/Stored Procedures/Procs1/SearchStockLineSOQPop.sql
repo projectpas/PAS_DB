@@ -19,6 +19,7 @@
 	3    05-01-2025			ABHISHEK JIRAWLA Allow Repair Management Customer Stock Stockline
 	4    05-30-2025			ABHISHEK JIRAWLA Adding Traceability Changes
 	5    07/01/2026			Rajesh Gami		 Added MasterCompanyId Parameter While Calling UOM Conversion Function     
+	6    09/06/2026			Bhargav Saliya	 Get ShortName Of UOM   
  EXEC [dbo].[SearchStockLineSOQPop] '115640', 2, 90,-1,NULL
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[SearchStockLineSOQPop]
@@ -53,7 +54,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 			,im.ItemMasterId As ItemMasterId
 			,im.PartDescription AS Description
 			,sl.PurchaseUnitOfMeasureId  AS unitOfMeasureId
-			,suom.Description AS unitOfMeasure
+			,suom.ShortName AS unitOfMeasure
 			,ig.Description AS ItemGroup
 			,mf.Name AS Manufacturer
 			,ISNULL(im.ManufacturerId, -1) AS ManufacturerId
@@ -159,7 +160,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 			,im.ItemMasterId As ItemMasterId
 			,im.PartDescription AS Description
 			,sl.PurchaseUnitOfMeasureId  AS unitOfMeasureId
-			,suom.Description AS unitOfMeasure
+			,suom.ShortName AS unitOfMeasure
 			,ig.Description AS ItemGroup
 			,mf.Name AS Manufacturer
 			,ISNULL(im.ManufacturerId, -1) AS ManufacturerId

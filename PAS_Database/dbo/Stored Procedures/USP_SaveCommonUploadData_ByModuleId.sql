@@ -42,6 +42,8 @@
 	35   09-APR-2026		Ayushi Patel			PN-15988 Handled QuantityOnHand As decimal 
 	35   22-APR-2026		Nakul Chandigra			Removed Handled Description code for  Item Classification and  Item Group (PN-15952)
 	36   13-MAY-2026		Ayushi Patel			PN-16321 handled new WorkOrderMaterial module
+	37   05-JUN-2026        Ayushi Patel            PN-15888 Fixed PriceMaster/PurchaseSales upload: PP_PurchaseDiscPerc and SP_CalSPByPP_MarkUpPercOnListPrice were storing PercentId instead of PercentValue. Resolved actual percent values from [Percent] table before discount and markup calculations.
+	38   05-JUN-2026        Ayushi Patel            Added ParentTable insted of ParentTableRereneceTypeId for IsModuleTableColumn = 0 to support dynamic parent table insert functionality for upload module.
 	exec USP_SaveCommonUploadData_ByModuleId @ModuleId=4,@UserName=N'VICTOR ADMAS',@MasterCompanyId=1, @EmployeeId = 236;
 **************************************************************/
 CREATE PROCEDURE [dbo].[USP_SaveCommonUploadData_ByModuleId]
@@ -224,12 +226,12 @@ BEGIN
 
 			SELECT	IMF.ImportModuleFieldMasterId, IMF.ModuleId, IMF.FieldName, IMF.HeaderName, IMF.FieldType, IMF.IsRequired,  IMF.IsAutoGenerate, IMF.IsModuleTableColumn,
 						IMF.DropdownListType, IMF.DropdownListTable, IMF.DropdownListId, IMF.DropdownListValue, IMF.DropdownListValueId,
-						IMF.IsMultiValue, TMP.RecordId, TMP.FieldValue, TMP.RecordStatus, IMF.ParentTableRereneceTypeId
+						IMF.IsMultiValue, TMP.RecordId, TMP.FieldValue, TMP.RecordStatus, IMF.ParentTableRereneceTypeId , IMF.ParentTable
 			INTO #ImportFields
 			FROM [DBO].[ImportModuleFieldMaster] IMF WITH(NOLOCK)
 			LEFT JOIN #DynamicKeyValue TMP ON TMP.FieldName = IMF.FieldName
 			WHERE IMF.[ModuleId] = @ModuleId  AND NOT ((@ModuleId = @PriceMasterModule OR @ModuleId = @PurchaseSalesModule OR @ModuleId = @MROPriceMasterModule  OR @ModuleId = @MROPriceMasterListModule) AND IMF.FieldName = 'ManufacturerId' );			
-			
+
 			--DECLARE @Qty AS INT;
 			DECLARE @Qty AS DECIMAL(18,6);
 			DECLARE @PurchaseUOMId AS BIGINT;
@@ -666,7 +668,7 @@ BEGIN
 				--SET @FieldValue = CAST(@ModuleTableId AS VARCHAR) + ','
 
 				-- Add fields where IsModuleTableColumn is NULL or something specific for parent (adjust condition if needed)
-				SELECT @RefFieldName = COALESCE(@RefFieldName + ',  ' + FieldName, FieldName) FROM #ImportFields WHERE ISNULL(IsModuleTableColumn, 0) = 0 AND  ParentTableRereneceTypeId = @ModuleParentTable;
+				SELECT @RefFieldName = COALESCE(@RefFieldName + ',  ' + FieldName, FieldName) FROM #ImportFields WHERE ISNULL(IsModuleTableColumn, 0) = 0 AND  ParentTable = @ModuleParentTable;
 
 				SELECT @FieldValue = COALESCE(@FieldValue + ' ' +        
 					(CASE	WHEN FieldType = 'string' THEN '''' + ISNULL(REPLACE(FieldValue, '''', ''''''), '') + ''','        
@@ -687,7 +689,7 @@ BEGIN
 							WHEN FieldType = 'dropdown' THEN CASE WHEN ISNULL(FieldValue,'') = '' THEN 'NULL' ELSE FieldValue END + ','   
 							WHEN ISNULL(FieldType,'') = '' THEN FieldValue + ',' END))        
 				FROM #ImportFields        
-				WHERE ISNULL(IsModuleTableColumn, 0) = 0 AND  ParentTableRereneceTypeId = @ModuleParentTable
+				WHERE ISNULL(IsModuleTableColumn, 0) = 0 AND  ParentTable = @ModuleParentTable
 
 				-- Add audit trail
 				SET @RefFieldName += ', MasterCompanyId, CreatedBy, UpdatedBy'
@@ -976,7 +978,12 @@ BEGIN
 				--	Update #DynamicKeyValue  SET FieldValue = @SP_CalSPByPP_MarkUpPercOnListPrice WHERE FieldName = 'SP_CalSPByPP_MarkUpPercOnListPrice';
 				--END
 				--DECLARE @SP_FSP_FlatPriceAmount DECIMAL(10,2) = CASE WHEN (SELECT ISNULL(FieldValue,0) FROM #DynamicKeyValue WHERE FieldName = 'SP_CalSPByPP_UnitSalePrice') = '' THEN '0' ELSE (SELECT ISNULL(FieldValue,0) FROM #DynamicKeyValue WHERE FieldName = 'SP_CalSPByPP_UnitSalePrice') END;
-				SET @SalePriceSelectId = (CASE WHEN (SELECT ISNULL(FieldValue,0) FROM #DynamicKeyValue WHERE FieldName = 'SalePriceSelectName') = 'Flat' THEN '1' WHEN (SELECT ISNULL(FieldValue,0) FROM #DynamicKeyValue WHERE FieldName = 'SalePriceSelectName') = 'Calculated' THEN '2' ELSE '0' END);
+				--SET @SalePriceSelectId = (CASE WHEN (SELECT ISNULL(FieldValue,0) FROM #DynamicKeyValue WHERE FieldName = 'SalePriceSelectName') = 'Flat' THEN '1' WHEN (SELECT ISNULL(FieldValue,0) FROM #DynamicKeyValue WHERE FieldName = 'SalePriceSelectName') = 'Calculated' THEN '2' ELSE '0' END);
+				SET @SalePriceSelectId = (CASE 
+				WHEN LOWER((SELECT ISNULL(FieldValue,'') FROM #DynamicKeyValue WHERE FieldName = 'SalePriceSelectName')) = 'flat' THEN '1' 
+				WHEN LOWER((SELECT ISNULL(FieldValue,'') FROM #DynamicKeyValue WHERE FieldName = 'SalePriceSelectName')) = 'calculated' THEN '2' 
+				ELSE '0' END);
+
 				DECLARE @PC_ConditionId BIGINT = (SELECT FieldValue FROM #DynamicKeyValue WHERE FieldName = 'ConditionId');
 				SET @ItemMasterId = (SELECT FieldValue FROM #DynamicKeyValue WHERE FieldName = 'ItemMasterId')
 				SELECT TOP 1 @PartNumber =  ISNULL(partnumber,'') FROM ItemMaster WITH (NOLOCK) WHERE ItemMasterId = @ItemMasterId
@@ -1281,15 +1288,29 @@ BEGIN
 					BEGIN
 						EXEC sp_executesql @RefQuery, N'@ModuleTableId BIGINT OUTPUT', @ModuleTableId OUTPUT;
 					END
-
+					DECLARE @PP_DiscPercId BIGINT = (
+						SELECT ISNULL(TRY_CAST(NULLIF(FieldValue, '') AS BIGINT), 0) 
+						FROM #DynamicKeyValue 
+						WHERE FieldName = 'PP_PurchaseDiscPerc'
+					);
+					DECLARE @PP_DiscPercValue DECIMAL(18,2) = ISNULL((
+						SELECT PercentValue 
+						FROM DBO.[Percent] WITH(NOLOCK) 
+						WHERE PercentId = @PP_DiscPercId 
+						  AND MasterCompanyId = @MasterCompanyId 
+						  AND ISNULL(IsDeleted,0) = 0 
+						  AND ISNULL(IsActive,1) = 1
+					), 0);
 					if(@ModuleTableId > 0)
 					BEGIN	
-					    SET  @SP_CalSPByPP_MarkUpPercOnListPrice = (SELECT TOP 1 PercentId FROM DBO.[Percent] WITH(NOLOCK) WHERE PercentValue = CAST(@SP_CalSPByPP_MarkUpPercOnListPriceValue as DECIMAL(10,2)) AND MasterCompanyId = @MasterCompanyId AND ISNULL(IsDeleted,0) = 0 AND ISNULL(IsActive,0) = 1);
+					    SET  @SP_CalSPByPP_MarkUpPercOnListPrice = (SELECT TOP 1 PercentValue FROM DBO.[Percent] WITH(NOLOCK) WHERE PercentValue = CAST(@SP_CalSPByPP_MarkUpPercOnListPriceValue as DECIMAL(10,2)) AND MasterCompanyId = @MasterCompanyId AND ISNULL(IsDeleted,0) = 0 AND ISNULL(IsActive,0) = 1);
 						
 						UPDATE DBO.ItemMasterPurchaseSale 
-							SET PP_PurchaseDiscAmount = CAST((ISNULL(PP_VendorListPrice, 0) * ISNULL(PP_PurchaseDiscPerc, 0) / 100.00) AS DECIMAL(18, 2)),
-								PP_UnitPurchasePrice = ISNULL(PP_VendorListPrice,0) - (CAST((ISNULL(PP_VendorListPrice, 0) * ISNULL(PP_PurchaseDiscPerc, 0) / 100.00) AS DECIMAL(18, 2))),
-								PP_PurchaseDiscPercValue = PP_PurchaseDiscPerc,SP_CalSPByPP_MarkUpPercOnListPriceValue = @SP_CalSPByPP_MarkUpPercOnListPriceValue,
+							SET PP_PurchaseDiscAmount = CAST((ISNULL(PP_VendorListPrice, 0) * @PP_DiscPercValue / 100.00) AS DECIMAL(18, 2)),
+								PP_UnitPurchasePrice  = ISNULL(PP_VendorListPrice,0) - (CAST((ISNULL(PP_VendorListPrice, 0) * @PP_DiscPercValue / 100.00) AS DECIMAL(18, 2))),
+								PP_PurchaseDiscPercValue = @PP_DiscPercValue,
+								PP_PurchaseDiscPerc = @PP_DiscPercValue,
+								SP_CalSPByPP_MarkUpPercOnListPriceValue = @SP_CalSPByPP_MarkUpPercOnListPriceValue,
 								SP_CalSPByPP_MarkUpPercOnListPrice = @SP_CalSPByPP_MarkUpPercOnListPrice,
 								PP_LastListPriceDate = @employeeGetDate,
 								PP_LastPurchaseDiscDate = @employeeGetDate

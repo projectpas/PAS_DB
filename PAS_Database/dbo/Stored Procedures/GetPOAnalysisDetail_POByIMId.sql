@@ -15,6 +15,7 @@
  ** S NO   Date            Author          Change Description              
  ** --   --------         -------          --------------------------------            
     1    21-AUG-2024      Rajesh Gami       Created  
+    2    08-JUNE-2026     Priyansh Patel    uom changes [PN-16756]
 
 **************************************************************/  
 CREATE    PROCEDURE [dbo].[GetPOAnalysisDetail_POByIMId] 
@@ -46,7 +47,7 @@ BEGIN
 		@Level9 VARCHAR(MAX) = NULL,
 		@Level10 VARCHAR(MAX) = NULL,
 		@IsDownload BIT = NULL,
-		@selectedItemMasterId varchar(40) = NULL, @totalQty Int =0, @totalUnitCost decimal(18,2)=0, @totalExtCost decimal(18,2)=0
+		@selectedItemMasterId varchar(40) = NULL, @totalQty decimal(18,6)=0, @totalUnitCost decimal(18,6)=0, @totalExtCost decimal(18,6)=0
 
   
   BEGIN TRY  
@@ -95,66 +96,68 @@ BEGIN
 	  SET @PageSize = CASE WHEN NULLIF(@PageSize,0) IS NULL THEN 10 ELSE @PageSize END
 	  SET @PageNumber = CASE WHEN NULLIF(@PageNumber,0) IS NULL THEN 1 ELSE @PageNumber END
 	  
-	  SELECT * INTO #TempPOAnalysisTbl FROM
-      (SELECT DISTINCT
-			UPPER(V.VendorName) 'vendor',  
-			V.VendorId VendorId,
-			ROW_NUMBER() OVER(Partition by STK.ItemMasterId ORDER BY STK.CreatedDate) AS Row_Number,
-			IM.ItemMasterId,
-			UPPER(IM.PartNumber) 'pn',  
-			UPPER(IM.PartDescription) 'pnDescription',  
-			UPPER(CN.Description) 'condition',  
-			--UPPER(POP.UnitOfMeasure) 'uom',
-			UPPER(stk.UnitOfMeasure) 'uom',
-			(CASE WHEN ISNULL(STK.OEM,0) = 1 THEN 'OEM' ELSE 'PMA' END) AS 'oem',
-			UPPER(IM.ManufacturerName) 'manufacturer',
-			ISNULL(stk.Quantity,0) AS 'qtys', 
-			--ISNULL(POP.UnitCost,0) AS 'unitCost', 
-			ISNULL(stk.UnitCost,0) AS 'unitCost',
-			--(ISNULL(stk.Quantity,0) * ISNULL(POP.UnitCost,0)) 'extCosts',
-			(ISNULL(stk.Quantity,0) * ISNULL(stk.UnitCost,0)) 'extCosts',
-			CAST(stk.CreatedDate as Date) AS 'receivedDate',
-			UPPER(MSD.Level1Name) AS level1,  
-			UPPER(MSD.Level2Name) AS level2, 
-			UPPER(MSD.Level3Name) AS level3, 
-			UPPER(MSD.Level4Name) AS level4, 
-			UPPER(MSD.Level5Name) AS level5, 
-			UPPER(MSD.Level6Name) AS level6, 
-			UPPER(MSD.Level7Name) AS level7, 
-			UPPER(MSD.Level8Name) AS level8, 
-			UPPER(MSD.Level9Name) AS level9, 
-			UPPER(MSD.Level10Name) AS level10,
-			PO.OpenDate 'openDate',
-			Stk.CreatedBy as 'requester',
-			Po.PurchaseOrderNumber as 'refNumber',
-			Stk.ReceiverNumber as  receiverNum,
-			PO.PurchaseOrderId 'poroAnalysisId',
-			1 as 'isPurchaseOrder'
-        FROM 
-			DBO.PurchaseOrder AS PO WITH (NOLOCK)  
-			--INNER JOIN DBO.PurchaseOrderPart AS POP WITH (NOLOCK) ON PO.PurchaseOrderId = POP.PurchaseOrderId
-			INNER JOIN DBO.Stockline STK WITH (NOLOCK) on PO.PurchaseOrderId = STK.PurchaseOrderId  --AND POP.ItemMasterId = stk.ItemMasterId
-			INNER JOIN dbo.PurchaseOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = stk.PurchaseOrderPartRecordId --POP.PurchaseOrderPartRecordId
-			INNER JOIN DBO.ItemMaster IM WITH (NOLOCK) ON stk.itemmasterId = IM.itemmasterId --POP.itemmasterId = IM.itemmasterId
-			LEFT JOIN DBO.EntityStructureSetup ES ON ES.EntityStructureId=MSD.EntityMSID
-			LEFT JOIN DBO.Vendor V WITH (NOLOCK) ON PO.VendorId = V.VendorId  
-			LEFT JOIN DBO.Condition AS CN WITH (NOLOCK) ON STK.ConditionId = CN.ConditionId 
-		  
-		  WHERE ISNULL(PO.IsDeleted,0) = 0 AND ISNULL(STK.IsParent,0) = 1 AND
-				PO.VendorId=ISNULL(@vendorId,PO.VendorId)    AND stk.ItemMasterId = ISNULL(@selectedItemMasterId,stk.ItemMasterId)  -- POP.ItemMasterId = ISNULL(@selectedItemMasterId,POP.ItemMasterId)  
-					AND CAST(STK.CreatedDate AS DATE) BETWEEN CAST(@fromdate AS DATE) AND CAST(@todate AS DATE) AND PO.mastercompanyid = @mastercompanyid
-					AND (ISNULL(@conditionIds,'')='' OR Stk.ConditionId IN(SELECT value FROM String_split(ISNULL(@conditionIds,''), ',')))
-					AND  (ISNULL(@Level1,'') ='' OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,',')))
-					AND  (ISNULL(@Level2,'') ='' OR MSD.[Level2Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,',')))
-					AND  (ISNULL(@Level3,'') ='' OR MSD.[Level3Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level3,',')))
-					AND  (ISNULL(@Level4,'') ='' OR MSD.[Level4Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level4,',')))
-					AND  (ISNULL(@Level5,'') ='' OR MSD.[Level5Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level5,',')))
-					AND  (ISNULL(@Level6,'') ='' OR MSD.[Level6Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level6,',')))
-					AND  (ISNULL(@Level7,'') ='' OR MSD.[Level7Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level7,',')))
-					AND  (ISNULL(@Level8,'') ='' OR MSD.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,',')))
-					AND  (ISNULL(@Level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))
-					AND  (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))
-		) as a
+	 SELECT * INTO #TempPOAnalysisTbl FROM
+        (SELECT DISTINCT
+                UPPER(V.VendorName) 'vendor',  
+                V.VendorId VendorId,
+                ROW_NUMBER() OVER(PARTITION BY STK.ItemMasterId ORDER BY STK.CreatedDate) AS Row_Number,
+                IM.ItemMasterId,
+                UPPER(IM.PartNumber) 'pn',  
+                UPPER(IM.PartDescription) 'pnDescription',  
+                UPPER(CN.Description) 'condition',  
+                UPPER(IM.PurchaseUnitOfMeasure) 'uom',
+                (CASE WHEN ISNULL(STK.OEM,0) = 1 THEN 'OEM' ELSE 'PMA' END) AS 'oem',
+                UPPER(IM.ManufacturerName) 'manufacturer',
+                calc.qty AS 'qtys',
+                calc.unitCost AS 'unitCost',
+                calc.qty * calc.unitCost AS 'extCosts',
+                CAST(stk.CreatedDate AS Date) AS 'receivedDate',
+                UPPER(MSD.Level1Name) AS level1,  
+                UPPER(MSD.Level2Name) AS level2, 
+                UPPER(MSD.Level3Name) AS level3, 
+                UPPER(MSD.Level4Name) AS level4, 
+                UPPER(MSD.Level5Name) AS level5, 
+                UPPER(MSD.Level6Name) AS level6, 
+                UPPER(MSD.Level7Name) AS level7, 
+                UPPER(MSD.Level8Name) AS level8, 
+                UPPER(MSD.Level9Name) AS level9, 
+                UPPER(MSD.Level10Name) AS level10,
+                PO.OpenDate 'openDate',
+                STK.CreatedBy AS 'requester',
+                PO.PurchaseOrderNumber AS 'refNumber',
+                STK.ReceiverNumber AS receiverNum,
+                PO.PurchaseOrderId 'poroAnalysisId',
+                1 AS 'isPurchaseOrder'
+        FROM DBO.PurchaseOrder AS PO WITH (NOLOCK)  
+            INNER JOIN DBO.Stockline STK WITH (NOLOCK) ON PO.PurchaseOrderId = STK.PurchaseOrderId
+            INNER JOIN dbo.PurchaseOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = STK.PurchaseOrderPartRecordId
+            INNER JOIN DBO.ItemMaster IM WITH (NOLOCK) ON STK.ItemMasterId = IM.ItemMasterId
+            LEFT JOIN DBO.EntityStructureSetup ES ON ES.EntityStructureId = MSD.EntityMSID
+            LEFT JOIN DBO.Vendor V WITH (NOLOCK) ON PO.VendorId = V.VendorId  
+            LEFT JOIN DBO.Condition AS CN WITH (NOLOCK) ON STK.ConditionId = CN.ConditionId
+            CROSS APPLY (
+                SELECT 
+                    ROUND(dbo.fn_ConvertUOM(ISNULL(STK.Quantity, 0), IM.StockUnitOfMeasure, IM.PurchaseUnitOfMeasure, 0, PO.MasterCompanyId), 2) AS qty,
+                    ROUND(dbo.fn_ConvertUOM(ISNULL(STK.UnitCost,  0), IM.StockUnitOfMeasure, IM.PurchaseUnitOfMeasure, 1, PO.MasterCompanyId), 2) AS unitCost
+            ) AS calc
+        WHERE ISNULL(PO.IsDeleted,0) = 0 
+            AND ISNULL(STK.IsParent,0) = 1
+            AND PO.VendorId = ISNULL(@vendorId, PO.VendorId)
+            AND STK.ItemMasterId = ISNULL(@selectedItemMasterId, STK.ItemMasterId)
+            AND CAST(STK.CreatedDate AS DATE) BETWEEN CAST(@fromdate AS DATE) AND CAST(@todate AS DATE)
+            AND PO.MasterCompanyId = @mastercompanyid
+            AND (ISNULL(@conditionIds,'') = '' OR STK.ConditionId IN (SELECT value FROM STRING_SPLIT(ISNULL(@conditionIds,''), ',')))
+            AND (ISNULL(@Level1,'')  = '' OR MSD.Level1Id  IN (SELECT Item FROM DBO.SPLITSTRING(@Level1,  ',')))
+            AND (ISNULL(@Level2,'')  = '' OR MSD.Level2Id  IN (SELECT Item FROM DBO.SPLITSTRING(@Level2,  ',')))
+            AND (ISNULL(@Level3,'')  = '' OR MSD.Level3Id  IN (SELECT Item FROM DBO.SPLITSTRING(@Level3,  ',')))
+            AND (ISNULL(@Level4,'')  = '' OR MSD.Level4Id  IN (SELECT Item FROM DBO.SPLITSTRING(@Level4,  ',')))
+            AND (ISNULL(@Level5,'')  = '' OR MSD.Level5Id  IN (SELECT Item FROM DBO.SPLITSTRING(@Level5,  ',')))
+            AND (ISNULL(@Level6,'')  = '' OR MSD.Level6Id  IN (SELECT Item FROM DBO.SPLITSTRING(@Level6,  ',')))
+            AND (ISNULL(@Level7,'')  = '' OR MSD.Level7Id  IN (SELECT Item FROM DBO.SPLITSTRING(@Level7,  ',')))
+            AND (ISNULL(@Level8,'')  = '' OR MSD.Level8Id  IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,  ',')))
+            AND (ISNULL(@Level9,'')  = '' OR MSD.Level9Id  IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,  ',')))
+            AND (ISNULL(@Level10,'') = '' OR MSD.Level10Id IN (SELECT Item FROM DBO.SPLITSTRING(@Level10, ',')))
+        ) AS a
 
 		--Select * from #TempPOAnalysisTbl
 		SELECT *

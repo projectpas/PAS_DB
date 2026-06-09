@@ -43,16 +43,16 @@
     [PDFPath]                        NVARCHAR (100)  NULL,
     [VendorRFQPurchaseOrderId]       BIGINT          NULL,
     [FreightBilingMethodId]          INT             NULL,
-    [TotalFreight]                   DECIMAL (18, 2) NULL,
+    [TotalFreight]                   DECIMAL (18, 6) NULL,
     [ChargesBilingMethodId]          INT             NULL,
-    [TotalCharges]                   DECIMAL (18, 2) NULL,
+    [TotalCharges]                   DECIMAL (18, 6) NULL,
     [IsFromBulkPO]                   BIT             NULL,
     [IsLotAssigned]                  BIT             NULL,
     [LotId]                          BIGINT          NULL,
     [VendorContactEmail]             VARCHAR (50)    NULL,
     [FunctionalCurrencyId]           INT             NULL,
     [ReportCurrencyId]               INT             NULL,
-    [ForeignExchangeRate]            DECIMAL (18, 2) NULL,
+    [ForeignExchangeRate]            DECIMAL (18, 6) NULL,
     [DepositAmount]                  DECIMAL (18, 2) NULL,
     [VendorProformaInvoiceNo]        VARCHAR (150)   NULL,
     [VendorProformaInvoiceId]        BIGINT          NULL,
@@ -72,6 +72,8 @@
     CONSTRAINT [FK_PurchaseOrder_Vendor] FOREIGN KEY ([VendorId]) REFERENCES [dbo].[Vendor] ([VendorId]),
     CONSTRAINT [FK_PurchaseOrder_VendorContact] FOREIGN KEY ([VendorContactId]) REFERENCES [dbo].[VendorContact] ([VendorContactId])
 );
+
+
 
 
 

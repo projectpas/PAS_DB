@@ -17,8 +17,9 @@
 	4    21-07-2025   Moin Bloch        Added BillingAmount IN SO PartList
 	5    28-07-2025   Moin Bloch        Modified Fix for performa not comming due to same ItemMasterId
 	6    30-10-2025   Moin Bloch        Added CreditMemoHeaderId
-	4    10/03/2026   Rajesh Gami	    UOM Conversion Changes [PN-14832]  
-	5    12/05/2026   Bhargav Saliya	UOM Conversion Changes [PN-15067]  
+	7    10/03/2026   Rajesh Gami	    UOM Conversion Changes [PN-14832]  
+	8    12/05/2026   Bhargav Saliya	UOM Conversion Changes [PN-15067]  
+	9    05/JUNE/2026 Rajesh Gami		Skip the IsFinishGood = 1 condition when the Work Order type is Teardown.[PN-16719]     
 **************************************************************/ 
 --   EXEC [dbo].[GetCommonBillingInvoiceListNew] 1162, 0,10
 CREATE     PROCEDURE [dbo].[GetCommonBillingInvoiceListNew]
@@ -65,7 +66,9 @@ BEGIN
 		IF(@ModuleId = @WOModuleId) /*********START: WORK ORDER ********/
 		BEGIN
 			DECLARE @IsInvoiceBeforeShippingAllowed BIT;
-
+			DECLARE @IsTearDownWO BIT = 0,@WorkOrderTypeId INT, @TearDownWOTypeId INT = (SELECT TOP 1 ID FROM dbo.WorkOrderType WHERE Description = 'Internal Teardown');
+			SELECT TOP 1 @WorkOrderTypeId = [WorkOrderTypeId] FROM [dbo].[WorkOrder] WITH(NOLOCK) WHERE [WorkOrderId] = @ReferenceId;
+			SET @IsTearDownWO = CASE WHEN @WorkOrderTypeId = @TearDownWOTypeId THEN 1 ELSE 0 END
 			SELECT @IsInvoiceBeforeShippingAllowed = ISNULL(WOPN.[AllowInvoiceBeforeShipping], 0) FROM [dbo].[WorkOrderPartNumber] WOPN WITH(NOLOCK) WHERE WOPN.WorkOrderId = @ReferenceId;
 								
 			IF (@IsInvoiceBeforeShippingAllowed = 0)
@@ -182,7 +185,7 @@ BEGIN
 					LEFT JOIN [dbo].[BillingInvoicing] wobi WITH(NOLOCK) ON wobii.[BillingInvoicingId] = wobi.[BillingInvoicingId] AND ISNULL(wobi.[IsVersionIncrease],0) = 0 AND wobi.[ModuleId] = @WOModuleId
 					AND wobii.[SubReferenceId] = wop.[ID] AND wobii.[QtyBilled] = wop.[Quantity] --wopick.QtyToShip
 					WHERE wop.[WorkOrderId] = @ReferenceId
-					AND (ISNULL(wop.[IsFinishGood], 0) = 1 OR wobi.[BillingInvoicingId] IS NOT NULL)
+					AND (@IsTearDownWO = 1 OR ISNULL(wop.[IsFinishGood], 0) = 1 OR wobi.[BillingInvoicingId] IS NOT NULL)
 					GROUP BY wo.[WorkOrderNum],wop.[ID],imt.[partnumber],imt.[PartDescription],wo.[WorkOrderId],wop.[WorkOrderId],
 					        imt.[ItemMasterId],wop.[RevisedItemmasterid],wop.[RevisedPartNumber],wop.[RevisedPartDescription]
 				END

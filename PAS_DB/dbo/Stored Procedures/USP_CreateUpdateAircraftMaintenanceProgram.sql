@@ -354,7 +354,7 @@ BEGIN
         ELSE
         BEGIN
             SET @TemplateCode = 'AddAircraftMaintenance';
-			SET @Activity     = 'New Added';
+			SET @Activity     = 'New Maintenance Added';
 
 			SET @ProgramIdStr = 'Program ID: ' + CAST(ISNULL(@ProgramId, 0) AS VARCHAR(20));
 

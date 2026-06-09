@@ -13,7 +13,8 @@
  ** --   --------		-------				--------------------------------          
 	1    29/05/2026		Moin Bloch			Updated
 	2    02/06/2026		Amit Ghediya		Update for get CustomerId from AircraftRegistryHeader [PN-16679]
-	3    08-June-2026   Divyesh Kathiriya   Update WorkOrderNum on AircraftMaintenanceProgram Table [PN-16704]
+	3    8/06/2026		Divyesh Kathiriya   Update WorkOrderNum on AircraftMaintenanceProgram Table [PN-16704]
+	4    02/06/2026     Amit Ghediya		Update for get CustomerId from AircraftRegistryHeader [PN-16679]
 
 **************************************************************/
 CREATE    PROCEDURE [dbo].[USP_CreateWorkOrderFromAircraft]
@@ -323,6 +324,7 @@ BEGIN
 
 			-- Retrieve the new WorkOrderId
 			SELECT @WorkOrderId = [WorkOrderId] FROM @Result
+			
 			SELECT @WorkOrderNum = WO.WorkOrderNum FROM [dbo].[WorkOrder] WO WITH(NOLOCK) WHERE WO.WorkOrderId = @WorkOrderId;
 
 			UPDATE AMP
@@ -334,6 +336,48 @@ BEGIN
 			WHERE AMP.ProgramId = @ProgramId
 			  AND AMP.MasterCompanyId = @MasterCompanyId
 			  AND ISNULL(AMP.WorkOrderNum, '') <> ISNULL(@WorkOrderNum, '');
+
+			
+			-- ══════════════════════════════════════════════════
+			-- HISTORY BLOCK
+			-- Same pattern as USP_CreateAircraftRegistryHeader
+			-- ══════════════════════════════════════════════════
+			DECLARE @TemplateBody   VARCHAR(MAX)    = '',
+					@Activity       VARCHAR(MAX)    = NULL,
+					@HistCreatedBy  VARCHAR(256)    = NULL,
+					@WorkOrderStr   VARCHAR(50)     = NULL;
+
+			-- ── NEW value holders ─────────────────────────────────
+			DECLARE @New_PartNumbers                   VARCHAR(200),
+					@New_PartDescription                   VARCHAR(200),
+					@New_IsActive                   VARCHAR(10);
+
+			SELECT @WorkOrderStr = WorkOrderNum FROM DBO.Workorder WITH(NOLOCK) WHERE workorderid= @WorkOrderId;
+
+			SET @WorkOrderStr = 'WorkOrder Num.: ' + @WorkOrderStr;
+
+			-- Read NEW values from TVP
+			SELECT
+				@New_PartNumbers                  = @PartNumber,
+				@New_PartDescription             = @PartDescription,
+				@New_IsActive                  = 'Active';
+
+			SET @Activity = 'New WorkOrder Added';
+
+               IF @New_PartNumbers                 <> '' SET @TemplateBody += 'Part Num.: '                 + @New_PartNumbers                 + ' | ';
+               IF @New_PartDescription            <> '' SET @TemplateBody += 'Part Desc.: '            + @New_PartDescription            + ' | ';
+               SET @TemplateBody += 'Created By: ' + ISNULL(@HistCreatedBy,'') + ' | ';
+               SET @TemplateBody += 'Created Date: '+ CONVERT(VARCHAR(30), GETUTCDATE(), 103);
+
+			-- Call usp_SaveAircraftHistory once
+			IF ISNULL(LTRIM(RTRIM(@TemplateBody)), '') <> ''
+			BEGIN
+
+				EXEC [dbo].[USP_SaveAircraftHistory] @ModuleId = 2,@ModuleName = 'Aircraft WorkOrder',@RefferenceId = @AircraftRegistryId,@FieldsName = NULL,
+											 @OldValue = NULL,@NewValue = @WorkOrderStr,@HistoryText = @TemplateBody,@Activity = @Activity,@MasterCompanyId = @MasterCompanyId,
+											 @CreatedBy = @CreatedBy;
+			END
+			-- ── END HISTORY BLOCK ─────────────────────────────
 	END
 
 	SELECT @WorkOrderId AS [WorkOrderId]

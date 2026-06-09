@@ -32,7 +32,7 @@ EXEC [dbo].[GetMonthlyDashboardData] 11, 2, 98, '12-03-2025 00:00:00'
 EXEC [dbo].[GetMonthlyDashboardData] 11, 2, 98, '03-12-2025 00:00:00'
 EXEC [dbo].[GetMonthlyDashboardData] 1, 2, 2, '2025-06-24 00:00:00'
 **************************************************************/ 
-CREATE   PROCEDURE [dbo].[GetMonthlyDashboardData]
+ALTER   PROCEDURE [dbo].[GetMonthlyDashboardData]
 	@MasterCompanyId BIGINT = NULL,
 	@ChartType INT = NULL,
 	@EmployeeId BIGINT = NULL,
@@ -165,6 +165,7 @@ BEGIN
 						SELECT DISTINCT RC.ReceivingCustomerWorkId 
 						FROM DBO.ReceivingCustomerWork RC WITH (NOLOCK)
 							INNER JOIN #tmpRCWorkOrderUserRole TMP ON TMP.ReferenceID = RC.ReceivingCustomerWorkId
+						WHERE CAST(RC.ReceivedDate as Date) = CAST(@SelectedDate AS DATE) 
 							AND RC.MasterCompanyId = @MasterCompanyId
 							AND ISNULL(RC.IsDeleted,0) = 0 AND ISNULL(RC.IsActive,0) = 1
 					)

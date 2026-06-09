@@ -12,7 +12,8 @@
  ** PR   Date			Author				Change Description            
  ** --   --------		-------				--------------------------------          
 	1    01/06/2026		Moin Bloch			Created
-	2    08-June-2026   Divyesh Kathiriya   Update WorkOrderNum on AircraftMaintenanceProgram Table [PN-16704]
+	2    8/06/2026		Divyesh Kathiriya   Update WorkOrderNum on AircraftMaintenanceProgram Table [PN-16704]
+	3    02/06/2026     Amit Ghediya		Update for get CustomerId from AircraftRegistryHeader [PN-16679]
 
 **************************************************************/
 CREATE    PROCEDURE [dbo].[USP_UpdateWorkOrderFromAircraft]
@@ -56,6 +57,33 @@ BEGIN
 		DECLARE @PartNumber VARCHAR(200) = NULL,@ItemMasterId BIGINT=0,@CustomerId  BIGINT=0
 		DECLARE @DefaultPriorityId BIGINT=0,@DefaultStageCodeId BIGINT=0,@DefaultStatusId BIGINT=0
 
+		-- ── OLD value holders (capture BEFORE update) ─────────
+        DECLARE @Old_PartNumber         VARCHAR(200),
+                @Old_PartDescription    NVARCHAR(MAX),
+                @Old_WorkOrderStatus    VARCHAR(100),
+                @Old_SerialNumber       VARCHAR(100),
+                @Old_ACTailNum          VARCHAR(500),
+                @Old_WorkOrderScopeId   VARCHAR(50),
+                @Old_StockLineId        VARCHAR(50),
+                @Old_ProgramId          VARCHAR(50),
+                @Old_WorkOrderNum       VARCHAR(250);
+
+        -- ── Read OLD values from existing WO BEFORE update ────
+        SELECT
+            @Old_PartNumber         = WPN.PartNumber,
+            @Old_PartDescription    = WPN.PartDescription,
+            @Old_WorkOrderStatus    = WPN.WorkOrderStatus,
+            @Old_SerialNumber       = WPN.CurrentSerialNumber,
+            @Old_ACTailNum          = WPN.ACTailNum,
+            @Old_WorkOrderScopeId   = CAST(ISNULL(WPN.WorkOrderScopeId, 0) AS VARCHAR),
+            @Old_StockLineId        = CAST(ISNULL(WPN.StockLineId, 0) AS VARCHAR),
+            @Old_ProgramId          = CAST(ISNULL(WPN.ProgramId, 0) AS VARCHAR),
+            @Old_WorkOrderNum		= CAST(ISNULL(WO.WorkOrderNum, 0) AS VARCHAR)
+        FROM dbo.WorkOrder WO WITH(NOLOCK)
+        INNER JOIN dbo.WorkOrderPartNumber WPN WITH(NOLOCK)
+            ON WO.WorkOrderId = WPN.WorkOrderId
+        WHERE WO.WorkOrderId    = @WorkOrderId
+          AND WO.MasterCompanyId = @MasterCompanyId;
 
 		SELECT @Customer = [Id] FROM [dbo].[WorkOrderType] WITH(NOLOCK) WHERE [Description]='Customer';	
 		SELECT @Internal = [Id] FROM [dbo].[WorkOrderType] WITH(NOLOCK) WHERE [Description]='Internal Repair';	
@@ -296,20 +324,76 @@ BEGIN
             @AllowInvoiceBeforeShipping = 0,
             @MtcCategoryId              = @MtcCategoryId,
 			@WorksheetId                = @WorksheetHeaderId,
-            @tbl_WorkOrderPartNumberType = @tbl_WorkOrderPartNumberType;
-       
-        
-		SELECT @WorkOrderNum = WO.WorkOrderNum FROM [dbo].[WorkOrder] WO WITH(NOLOCK) WHERE WO.WorkOrderId = @WorkOrderId;
+            @tbl_WorkOrderPartNumberType = @tbl_WorkOrderPartNumberType;  
 
-        UPDATE AMP
-        SET
-            AMP.WorkOrderNum = @WorkOrderNum,
-            AMP.UpdatedBy    = @CreatedBy,
-            AMP.UpdatedDate  = GETUTCDATE()
-        FROM [dbo].[AircraftMaintenanceProgram] AMP
-        WHERE AMP.ProgramId = @ProgramId
-          AND AMP.MasterCompanyId = @MasterCompanyId
-          AND ISNULL(AMP.WorkOrderNum, '') <> ISNULL(@WorkOrderNum, ''); 
+			SELECT @WorkOrderNum = WO.WorkOrderNum FROM [dbo].[WorkOrder] WO WITH(NOLOCK) WHERE WO.WorkOrderId = @WorkOrderId;
+
+			UPDATE AMP
+			SET
+				AMP.WorkOrderNum = @WorkOrderNum,
+				AMP.UpdatedBy    = @CreatedBy,
+				AMP.UpdatedDate  = GETUTCDATE()
+			FROM [dbo].[AircraftMaintenanceProgram] AMP
+			WHERE AMP.ProgramId = @ProgramId
+			  AND AMP.MasterCompanyId = @MasterCompanyId
+			  AND ISNULL(AMP.WorkOrderNum, '') <> ISNULL(@WorkOrderNum, ''); 
+
+			-- ══════════════════════════════════════════════════════
+			-- HISTORY BLOCK
+			-- Same pattern as USP_CreateWorkOrderFromAircraft
+			-- ══════════════════════════════════════════════════════
+			DECLARE @TemplateBody   VARCHAR(MAX)  = '',
+					@Activity       VARCHAR(MAX)  = 'Existing WorkOrder Added',
+					@HistCreatedBy  VARCHAR(256)  = @CreatedBy,
+					@WorkOrderStr   VARCHAR(100)  = NULL;
+
+			-- Get WO number for NewValue label
+			SELECT @WorkOrderStr = 'WorkOrder Num.: ' + ISNULL(WorkOrderNum,'')
+			FROM dbo.WorkOrder WITH(NOLOCK)
+			WHERE WorkOrderId = @WorkOrderId;
+
+			-- NEW values after update
+			DECLARE @New_PartNumber         VARCHAR(200)    = ISNULL(@PartNumber,''),
+					@New_PartDescription    NVARCHAR(MAX)   = ISNULL(@PartDescription,''),
+					@New_SerialNumber       VARCHAR(100)    = ISNULL(@SerialNumber,''),
+					@New_ACTailNum          VARCHAR(500)    = ISNULL(@ACTailNum,''),
+					@New_WorkOrderScopeId   VARCHAR(50)     = CAST(ISNULL(@WorkOrderScopeId,0) AS VARCHAR),
+					@New_StockLineId        VARCHAR(50)     = CAST(ISNULL(@StockLineId,0) AS VARCHAR),
+					@New_ProgramId          VARCHAR(50)     = CAST(ISNULL(@ProgramId,0) AS VARCHAR);
+
+			-- Diff old vs new — only changed fields appended
+			IF ISNULL(@Old_PartNumber,'')        <> @New_PartNumber        AND @New_PartNumber        <> ''
+				SET @TemplateBody += 'Part Num.: '         + ISNULL(@Old_PartNumber,'')       + ' to ' + @New_PartNumber        + ' | ';
+
+			IF ISNULL(@Old_PartDescription,'')   <> @New_PartDescription   AND @New_PartDescription   <> ''
+				SET @TemplateBody += 'Part Desc.: '        + ISNULL(@Old_PartDescription,'')  + ' to ' + @New_PartDescription   + ' | ';
+
+			IF ISNULL(@Old_SerialNumber,'')      <> @New_SerialNumber      AND @New_SerialNumber      <> ''
+				SET @TemplateBody += 'Serial No.: '        + ISNULL(@Old_SerialNumber,'')     + ' to ' + @New_SerialNumber      + ' | ';
+
+			IF ISNULL(@Old_ACTailNum,'')         <> @New_ACTailNum         AND @New_ACTailNum         <> ''
+				SET @TemplateBody += 'AC Tail No.: '       + ISNULL(@Old_ACTailNum,'')        + ' to ' + @New_ACTailNum         + ' | ';
+
+			IF ISNULL(@Old_WorkOrderScopeId,'0') <> @New_WorkOrderScopeId  AND @New_WorkOrderScopeId  <> '0'
+				SET @TemplateBody += 'Work Scope: '        + ISNULL(@Old_WorkOrderScopeId,'') + ' to ' + @New_WorkOrderScopeId  + ' | ';
+
+			SET @TemplateBody += 'Updated By: ' + ISNULL(@CreatedBy,'') + ' | ';
+			SET @TemplateBody += 'Updated Date: ' + CONVERT(VARCHAR(30), GETUTCDATE(), 103);
+
+			-- Remove trailing ' | ' if present
+			IF RIGHT(RTRIM(@TemplateBody), 3) = ' | '
+				SET @TemplateBody = LEFT(@TemplateBody, LEN(@TemplateBody) - 3);
+
+			-- Call usp_SaveAircraftHistory once
+			IF ISNULL(LTRIM(RTRIM(@TemplateBody)), '') <> ''
+			BEGIN
+				DECLARE @WorkOrderIdStr VARCHAR(50) = CAST(ISNULL(@WorkOrderId, 0) AS VARCHAR(50));
+
+				EXEC [dbo].[USP_SaveAircraftHistory] @ModuleId = 2,@ModuleName = 'Aircraft WorkOrder',@RefferenceId = @AircraftRegistryId,@FieldsName = NULL,
+											 @OldValue = NULL,@NewValue = @WorkOrderStr,@HistoryText = @TemplateBody,@Activity = @Activity,@MasterCompanyId = @MasterCompanyId,
+											 @CreatedBy = @CreatedBy;
+			END
+			-- ── END HISTORY BLOCK ─────────────────────────────────
 
 	COMMIT  TRANSACTION
 

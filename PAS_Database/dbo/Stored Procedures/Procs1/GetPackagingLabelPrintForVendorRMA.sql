@@ -13,6 +13,7 @@
     1					unknown			Created
 	3	02/1/2024		AMIT GHEDIYA	added isperforma Flage for SO
 	4   07-07-2025      Moin Bloch      Changed Old To New Billing Table
+	5   09-06-2026      Priyansh Patel  UOM changes releted to qtyshipped [PN-16778]
 
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[GetPackagingLabelPrintForVendorRMA]
@@ -29,11 +30,13 @@ BEGIN
 	    DECLARE @SOModuleId INT
 		SELECT @SOModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'SalesOrder';
 
-		SELECT SPB.PackagingSlipId, SPB.PackagingSlipNo, sopt.VendorRMAId, sl.StockLineNumber, sop.Qty, sopt.QtyToShip as QtyPicked, 
+		SELECT SPB.PackagingSlipId, SPB.PackagingSlipNo, sopt.VendorRMAId, sl.StockLineNumber, 
+		FORMAT(ISNULL(sop.Qty,0), 'N', 'en-us') AS Qty, 
+		FORMAT(ISNULL(sopt.QtyToShip,0), 'N', 'en-us') AS QtyToShip,
 		imt.partnumber as PartNumber,imt.PartDescription, sopt.RMAPickTicketNumber,
 		sl.SerialNumber, sl.ControlNumber, sl.IdNumber, co.[Description] as ConditionDescription,
 		so.RMANumber,uom.ShortName as UOM, 
-		(SELECT top 1 QtyShipped FROM DBO.RMAShippingItem SOSI WITH(NOLOCK) Where SOSI.VendorRMADetailId = sopt.VendorRMADetailId AND sopt.RMAPickTicketId = SOSI.RMAPickTicketId) AS QtyShipped,
+		FORMAT(ISNULL((SELECT TOP 1 QtyShipped FROM DBO.RMAShippingItem SOSI WITH(NOLOCK) WHERE SOSI.VendorRMADetailId = sopt.VendorRMADetailId AND sopt.RMAPickTicketId = SOSI.RMAPickTicketId), 0), 'N', 'en-us') AS QtyShipped,
 		(SELECT top 1 NoOfContainer FROM DBO.RMAShippingItem SOSI WITH(NOLOCK) LEFT JOIN DBO.RMAShipping SOS WITH(NOLOCK) ON SOS.RMAShippingId = SOSI.RMAShippingId
 		Where SOSI.VendorRMADetailId = sopt.VendorRMADetailId AND sopt.RMAPickTicketId = SOSI.RMAPickTicketId) AS NoOfContainer,
 		(SELECT top 1 InvoiceNo FROM DBO.BillingInvoicing SOBI WITH(NOLOCK) Where SOBI.ReferenceId = SOS.VendorRMAId AND SOBI.[ModuleId] = @SOModuleId AND ISNULL(SOBI.IsPerformaInvoice,0) = 0) AS InvoiceNo,

@@ -22,6 +22,8 @@
 	 6    09-APR-2025		RAJESH GAMI			Resolved the Extend cost and receivied Qty(Exclude the Adustment Qty from the calculation)
 	 7    22-DEC-2025       SAHDEV SALIYA       Remove the tag type and add the vendor name.
 	 8    31-MAR-2026       Sahdev Saliya       Added Condition (PN-15844)
+	 8    09-JUNE-2026      Priyansh Patel      UOM changes, Changed the decimals to 2 [PN-16778]
+
 
 EXECUTE   [dbo].[usprpt_GetReceivingLogReport] '','2020-06-15','2021-06-15','1','1,4,43,44,45,80,84,88','46,47,66','48,49,50,58,59,67,68,69','51,52,53,54,55,56,57,60,61,62,64,70,71,72'  
 **************************************************************/  
@@ -408,10 +410,14 @@ SELECT COUNT(1) OVER () AS TotalRecordsCount,* FROM(
 				FROM FinalCTE
 				GROUP BY masterCompanyId)
 
-			  SELECT COUNT(2) OVER () AS TotalRecordsCount, pn, pndescription, recnum, vendorName, orderdate, rcvddate, poronum, porostatus, ctrlnum, idnum, slnum, sernum, stocktype, altequiv, manufacturer, itemtype, qtyord, qtyrcvd,
+			  SELECT COUNT(2) OVER () AS TotalRecordsCount, pn, pndescription, recnum, vendorName, orderdate, rcvddate, poronum, porostatus, ctrlnum, idnum, slnum, sernum, stocktype, altequiv, manufacturer, itemtype, 
+					FORMAT(ISNULL(CAST(qtyord       AS DECIMAL(18,6)), 0), 'N', 'en-us') AS qtyord,
+					FORMAT(ISNULL(CAST(qtyrcvd      AS DECIMAL(18,6)), 0), 'N', 'en-us') AS qtyrcvd,
 					FORMAT(ISNULL(unitcost,0) , 'N', 'en-us') 'unitcost',    
-					FORMAT(ISNULL(extcost,0) , 'N', 'en-us') 'extcost',    
-					qtyrej, qtyonbacklog, receivedby, requestor, approver, site, warehouse, location, shelf, bin, level1, level2, level3, level4, level5, level6, level7, level8, level9, level10,
+					FORMAT(ISNULL(extcost,0) , 'N', 'en-us') 'extcost', 
+					FORMAT(ISNULL(CAST(qtyrej       AS DECIMAL(18,6)), 0), 'N', 'en-us') AS qtyrej,
+					FORMAT(ISNULL(CAST(qtyonbacklog AS DECIMAL(18,6)), 0), 'N', 'en-us') AS qtyonbacklog,
+					receivedby, requestor, approver, site, warehouse, location, shelf, bin, level1, level2, level3, level4, level5, level6, level7, level8, level9, level10,
 					level9, level10,
 					condition,
 					WC.TotalUnitCost,

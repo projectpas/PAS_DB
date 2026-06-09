@@ -342,7 +342,7 @@ BEGIN
 
 			-- Read NEW values from TVP
 			SELECT
-				@New_PartNumbers                  = @PartNumbers,
+				@New_PartNumbers                  = @PartNumber,
 				@New_PartDescription             = @PartDescription,
 				@New_IsActive                  = 'Active';
 

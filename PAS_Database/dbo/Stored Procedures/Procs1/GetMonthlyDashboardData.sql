@@ -165,9 +165,10 @@ BEGIN
 						SELECT DISTINCT RC.ReceivingCustomerWorkId 
 						FROM DBO.ReceivingCustomerWork RC WITH (NOLOCK)
 							INNER JOIN #tmpRCWorkOrderUserRole TMP ON TMP.ReferenceID = RC.ReceivingCustomerWorkId
+						WHERE CAST(RC.ReceivedDate as Date) = CAST(@SelectedDate AS DATE) 
 							AND RC.MasterCompanyId = @MasterCompanyId
 							AND ISNULL(RC.IsDeleted,0) = 0 AND ISNULL(RC.IsActive,0) = 1
-							WHERE CAST(RC.ReceivedDate as Date) = CAST(@SelectedDate AS DATE) 
+						
 					)
 					SELECT @Cnts = COUNT(ReceivingCustomerWorkId) FROM tmpReceivingCustomerWork
 

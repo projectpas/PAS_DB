@@ -13,15 +13,16 @@
  **************************************************************             
   ** Change History             
  **************************************************************             
- ** PR   Date         Author              Change Description              
- ** --   --------     -------            --------------------------------     
-    1    14/05/2026   Priyansh Patel     Created [PN-16408]
-    2    19/05/2026   Priyansh Patel     Added Duplicate inspection fields [PN-16408]
-	3    8/06/2026    Amit Ghediya     Adding Header data in History module [PN-16581]
+ ** PR   Date           Author                  Change Description              
+ ** --   --------       -------                 --------------------------------     
+    1    14/05/2026     Priyansh Patel          Created [PN-16408]
+    2    19/05/2026     Priyansh Patel          Added Duplicate inspection fields [PN-16408]
+    3    8/06/2026     Divyesh Kathiriya       Update WorksheetNumber on AircraftMaintenanceProgram Table [PN-16704]
+    4    8/06/2026     Amit Ghediya            Adding Header data in History module [PN-16581]
 
 **************************************************************/
 
-CREATE   PROCEDURE [dbo].[USP_CreateUpdateWorksheetHeader]
+CREATE    PROCEDURE [dbo].[USP_CreateUpdateWorksheetHeader]
     @tbl_WorksheetHeaderType dbo.WorksheetHeaderTableType READONLY
 AS
 BEGIN
@@ -308,6 +309,16 @@ BEGIN
                 FROM @tbl_WorksheetHeaderType T;
 
                 SET @WorksheetHeaderId = SCOPE_IDENTITY();
+
+                UPDATE AMP
+                SET
+                    AMP.WorksheetNumber = @WorksheetNum,
+                    AMP.UpdatedBy       = T.UpdatedBy,
+                    AMP.UpdatedDate     = GETUTCDATE()
+                FROM [dbo].[AircraftMaintenanceProgram] AMP
+                INNER JOIN @tbl_WorksheetHeaderType T ON AMP.ProgramId = T.ProgramId AND AMP.MasterCompanyId = T.MasterCompanyId
+                WHERE ISNULL(T.ProgramId, 0) > 0
+                  AND ISNULL(AMP.WorksheetNumber, '') <> ISNULL(@WorksheetNum, '');
 
                 SELECT 1 AS Status, 'Saved successfully' AS Message,
                        *

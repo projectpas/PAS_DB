@@ -9,12 +9,14 @@
  **************************************************************           
  ** Change History           
  **************************************************************           
- ** PR   Date         Author		Change Description            
- ** --   --------     -------		--------------------------------          
-	1    01/06/2026   Moin Bloch       Created
+ ** PR   Date			Author				Change Description            
+ ** --   --------		-------				--------------------------------          
+	1    01/06/2026		Moin Bloch			Created
+	2    8/06/2026		Divyesh Kathiriya   Update WorkOrderNum on AircraftMaintenanceProgram Table [PN-16704]
+	3    02/06/2026     Amit Ghediya		Update for get CustomerId from AircraftRegistryHeader [PN-16679]
 
 **************************************************************/
-CREATE   PROCEDURE [dbo].[USP_UpdateWorkOrderFromAircraft]
+CREATE    PROCEDURE [dbo].[USP_UpdateWorkOrderFromAircraft]
 @AircraftInstalledPartDetailsId BIGINT = NULL,
 @AircraftRegistryId             BIGINT = NULL,
 @ProgramId                      BIGINT = NULL,
@@ -42,6 +44,7 @@ BEGIN
                 @CreditTermId INT = NULL,@IsManualForm BIT = NULL,@PercentId BIGINT = NULL,@Days INT = NULL,@NetDays INT = NULL,@WorkOrderType VARCHAR(50) = NULL,
                 @FunctionalCurrencyId INT = NULL,@ReportCurrencyId INT = NULL,@ForeignExchangeRate DECIMAL(18,2) = NULL,@WorkOrderFormTypeId BIT = NULL,@IsWoAlwaysOrOndemandId BIT = NULL, 
                 @PartNumbers NVARCHAR(MAX)=NULL,@IsTraveler BIT=NULL,@AllowInvoiceBeforeShipping BIT=NULL
+		DECLARE @WorkOrderNum VARCHAR(30);
 
         -- PART DETAILS			
 		DECLARE @WorkOrderScopeId BIGINT = NULL
@@ -322,6 +325,18 @@ BEGIN
             @MtcCategoryId              = @MtcCategoryId,
 			@WorksheetId                = @WorksheetHeaderId,
             @tbl_WorkOrderPartNumberType = @tbl_WorkOrderPartNumberType;  
+
+			SELECT @WorkOrderNum = WO.WorkOrderNum FROM [dbo].[WorkOrder] WO WITH(NOLOCK) WHERE WO.WorkOrderId = @WorkOrderId;
+
+			UPDATE AMP
+			SET
+				AMP.WorkOrderNum = @WorkOrderNum,
+				AMP.UpdatedBy    = @CreatedBy,
+				AMP.UpdatedDate  = GETUTCDATE()
+			FROM [dbo].[AircraftMaintenanceProgram] AMP
+			WHERE AMP.ProgramId = @ProgramId
+			  AND AMP.MasterCompanyId = @MasterCompanyId
+			  AND ISNULL(AMP.WorkOrderNum, '') <> ISNULL(@WorkOrderNum, ''); 
 
 			-- ══════════════════════════════════════════════════════
 			-- HISTORY BLOCK

@@ -57,6 +57,7 @@
     [IsUpdated]             BIT             NULL,
     [LastSyncDate]          DATETIME2 (7)   NULL,
     [SyncToken]             VARCHAR (200)   NULL,
+    [IntegrationTypeId]     INT             NULL,
     CONSTRAINT [PK_CreditMemo] PRIMARY KEY CLUSTERED ([CreditMemoHeaderId] ASC),
     CONSTRAINT [FK_CreditMemo_ApproverId] FOREIGN KEY ([ApproverId]) REFERENCES [dbo].[Employee] ([EmployeeId]),
     CONSTRAINT [FK_CREDITMEMO_CUSTOMER] FOREIGN KEY ([CustomerId]) REFERENCES [dbo].[Customer] ([CustomerId]),
@@ -64,6 +65,8 @@
     CONSTRAINT [FK_CREDITMEMO_RequestedById] FOREIGN KEY ([RequestedById]) REFERENCES [dbo].[Employee] ([EmployeeId]),
     CONSTRAINT [FK_CreditMemo_Status] FOREIGN KEY ([StatusId]) REFERENCES [dbo].[CreditMemoStatus] ([Id])
 );
+
+
 
 
 GO

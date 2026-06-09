@@ -9,13 +9,15 @@
  **************************************************************           
  ** Change History           
  **************************************************************           
- ** PR   Date         Author		Change Description            
- ** --   --------     -------		--------------------------------          
-	1    29/05/2026   Moin Bloch       Updated
-	2    02/06/2026   Amit Ghediya     Update for get CustomerId from AircraftRegistryHeader [PN-16679]
+ ** PR   Date			Author				Change Description            
+ ** --   --------		-------				--------------------------------          
+	1    29/05/2026		Moin Bloch			Updated
+	2    02/06/2026		Amit Ghediya		Update for get CustomerId from AircraftRegistryHeader [PN-16679]
+	3    8/06/2026		Divyesh Kathiriya   Update WorkOrderNum on AircraftMaintenanceProgram Table [PN-16704]
+	4    02/06/2026     Amit Ghediya		Update for get CustomerId from AircraftRegistryHeader [PN-16679]
 
 **************************************************************/
-CREATE   PROCEDURE [dbo].[USP_CreateWorkOrderFromAircraft]
+CREATE    PROCEDURE [dbo].[USP_CreateWorkOrderFromAircraft]
 @AircraftInstalledPartDetailsId BIGINT = NULL,
 @AircraftRegistryId             BIGINT = NULL,
 @ProgramId                      BIGINT = NULL,
@@ -48,6 +50,7 @@ BEGIN
 			DECLARE @CustomerType VARCHAR(200) = NULL, @CustomerAffiliation VARCHAR(50) = NULL,@CustomerAffiliationId  BIGINT = NULL,@IsActive BIT=1,@IsDeleted BIT=0,@WorkOrderStatus VARCHAR(50)=''
 			DECLARE  @ExternalCustomerType VARCHAR(50) = 'External'
 			DECLARE @DefaultPriorityId BIGINT=0,@DefaultStageCodeId BIGINT=0,@DefaultStatusId BIGINT=0,@ModuleEnumCustomer INT=1
+			DECLARE @WorkOrderNum VARCHAR(30)
 
 			SELECT @CustomerId = [CustomerId],@ConditionId = [ConditionId] FROM [dbo].[StockLine] WITH(NOLOCK) WHERE [StockLineId] = @StockLineId;
 			IF(ISNULL(@CustomerId,0) = 0)
@@ -265,7 +268,7 @@ BEGIN
 
 			DECLARE @Result TABLE ([WorkOrderId] BIGINT)
 			DECLARE @WorkOrderId BIGINT
-
+			
 			INSERT INTO @Result ([WorkOrderId])
 			EXEC [dbo].[USP_CreateWorkOrder]
 				@WorkOrderId                 = 0,
@@ -320,7 +323,20 @@ BEGIN
 				@tbl_WorkOrderPartNumberType = @tbl_Parts    
 
 			-- Retrieve the new WorkOrderId
-			SELECT @WorkOrderId = [WorkOrderId] FROM @Result	
+			SELECT @WorkOrderId = [WorkOrderId] FROM @Result
+			
+			SELECT @WorkOrderNum = WO.WorkOrderNum FROM [dbo].[WorkOrder] WO WITH(NOLOCK) WHERE WO.WorkOrderId = @WorkOrderId;
+
+			UPDATE AMP
+			SET
+				AMP.WorkOrderNum = @WorkOrderNum,
+				AMP.UpdatedBy    = @CreatedBy,
+				AMP.UpdatedDate  = GETUTCDATE()
+			FROM [dbo].[AircraftMaintenanceProgram] AMP
+			WHERE AMP.ProgramId = @ProgramId
+			  AND AMP.MasterCompanyId = @MasterCompanyId
+			  AND ISNULL(AMP.WorkOrderNum, '') <> ISNULL(@WorkOrderNum, '');
+
 			
 			-- ══════════════════════════════════════════════════
 			-- HISTORY BLOCK

@@ -15,10 +15,11 @@
 	2	 27-Mar-2025   Abhishek Jirawla Adding proper DB standards
 	3	 19-Jun-2025   Moin Bloch       Replaced Old To New Table For Billing Invoicing
     4    21-Apr-2026   Moin Bloch       Modified Added Xero Accounting Changes PN-16008
+	5    05-06-2026    Bhargav Saliya   Added Xero Case For Credit Memo
      
  EXECUTE [QuickBooks_UpdateModuleCountDetails] 1, 1
 **************************************************************/ 
-CREATE     PROCEDURE [dbo].[QuickBooks_UpdateModuleCountDetails]
+CREATE      PROCEDURE [dbo].[QuickBooks_UpdateModuleCountDetails]
 	@MasterCompanyId INT = NULL,
 	@ModuleId BIGINT = NULL
 AS
@@ -28,7 +29,7 @@ BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED	
 	BEGIN TRY
 
-		DECLARE @CustomerModuleId INT, @VendorModuleId INT, @StocklineModuleId INT, @InvModuleId INT, @CPModuleId INT, @CreditTermsModuleId INT, @GLAccountModuleId INT, @BillModuleId INT, @BillPaymentModuleId INT, @ItemMasterModuleId INT, @CreditMemoModuleId INT, @PurchaseOrderModuleId INT;		
+		DECLARE @CustomerModuleId INT, @VendorModuleId INT, @StocklineModuleId INT, @InvModuleId INT, @CPModuleId INT, @CreditTermsModuleId INT, @GLAccountModuleId INT, @BillModuleId INT, @BillPaymentModuleId INT, @ItemMasterModuleId INT, @CreditMemoModuleId INT, @PurchaseOrderModuleId INT,@VendorCreditMemoModuleId INT;		
 		DECLARE @QBIntegrationTypeId INT=1,@NSIntegrationTypeId INT=2,@XeroIntegrationTypeId INT=3
 		DECLARE @WOModuleId BIGINT, @SOModuleId BIGINT, @ExchModuleId BIGINT;
 
@@ -44,6 +45,7 @@ BEGIN
 		SELECT @ItemMasterModuleId = [AccountingModuleId] FROM dbo.[AccountingModule] WITH(NOLOCK) WHERE UPPER([AccountingModuleName]) = 'ITEMMASTER';
 		SELECT @CreditMemoModuleId = [AccountingModuleId] FROM dbo.[AccountingModule] WITH(NOLOCK) WHERE UPPER([AccountingModuleName]) = 'CREDITMEMO';
 		SELECT @PurchaseOrderModuleId = [AccountingModuleId] FROM dbo.[AccountingModule] WITH(NOLOCK) WHERE UPPER([AccountingModuleName]) = 'PURCHASEORDER';
+		SELECT @VendorCreditMemoModuleId = [AccountingModuleId] FROM dbo.[AccountingModule] WITH(NOLOCK) WHERE UPPER([AccountingModuleName]) = 'VENDORCREDITMEMO'
 
 		SELECT @WOModuleId = ModuleId FROM [dbo].[Module] WITH(NOLOCK) WHERE UPPER([ModuleName]) = 'WORKORDER';
 		SELECT @SOModuleId = ModuleId FROM [dbo].[Module] WITH(NOLOCK) WHERE UPPER([ModuleName]) = 'SALESORDER';
@@ -449,6 +451,51 @@ BEGIN
 				WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0
 				GROUP BY MasterCompanyId
 			) AS AllCreditMemoData ON AllCreditMemoData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @CreditMemoModuleId
+			WHERE ACI.ModuleId = @CreditMemoModuleId
+
+			--------------------------------- Xero Accounting ---------------------------------
+			UPDATE ACI
+			SET 
+				SyncRecords        = ISNULL(CreditMemoData.CreditMemoCount, 0),
+				PendingSyncRecords = ISNULL(PendingCreditMemoData.CreditMemoCount, 0),
+				TotalRecords       = ISNULL(AllCreditMemoData.CreditMemoCount, 0)
+			FROM dbo.AccountingIntegrationSettings ACI
+
+			-- Synced CreditMemo Data
+			LEFT JOIN (
+				SELECT MasterCompanyId, COUNT(QuickBooksReferenceId) AS CreditMemoCount
+				FROM dbo.CreditMemo WITH(NOLOCK)
+				WHERE ISNULL(IsActive, 0) = 1 
+				  AND ISNULL(IsDeleted, 0) = 0 
+				  AND ISNULL(QuickBooksReferenceId, '') <> ''
+				  AND [IntegrationTypeId] = @XeroIntegrationTypeId
+				GROUP BY MasterCompanyId
+			) AS CreditMemoData ON CreditMemoData.MasterCompanyId = ACI.MasterCompanyId 
+				AND ACI.ModuleId = @CreditMemoModuleId
+
+			-- Pending CreditMemo Data
+			LEFT JOIN (
+				SELECT MasterCompanyId, COUNT(IsUpdated) AS CreditMemoCount
+				FROM dbo.CreditMemo WITH(NOLOCK)
+				WHERE ISNULL(IsActive, 0) = 1 
+				  AND ISNULL(IsDeleted, 0) = 0 
+				  AND ISNULL(IsUpdated, 0) = 1
+				  AND [IntegrationTypeId] = @XeroIntegrationTypeId
+				GROUP BY MasterCompanyId
+			) AS PendingCreditMemoData ON PendingCreditMemoData.MasterCompanyId = ACI.MasterCompanyId 
+				AND ACI.ModuleId = @CreditMemoModuleId
+
+			-- All CreditMemo Data
+			LEFT JOIN (
+				SELECT MasterCompanyId, COUNT(CreditMemoHeaderId) AS CreditMemoCount
+				FROM dbo.CreditMemo WITH(NOLOCK)
+				WHERE ISNULL(IsActive, 0) = 1 
+				  AND ISNULL(IsDeleted, 0) = 0
+				  AND [IntegrationTypeId] = @XeroIntegrationTypeId
+				GROUP BY MasterCompanyId
+			) AS AllCreditMemoData ON AllCreditMemoData.MasterCompanyId = ACI.MasterCompanyId 
+				AND ACI.ModuleId = @CreditMemoModuleId
+
 			WHERE ACI.ModuleId = @CreditMemoModuleId
 		END
 
@@ -961,6 +1008,56 @@ BEGIN
 			) AS AllVendorReadyToPayDetailsData ON AllVendorReadyToPayDetailsData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @BillPaymentModuleId
 			WHERE ACI.ModuleId = @BillPaymentModuleId
 
+		END
+
+		--------------- VendorCreditMemo Insert
+
+		IF @ModuleId = @VendorCreditMemoModuleId
+		BEGIN
+			--------------------------------- Xero Accounting ---------------------------------
+			UPDATE ACI
+			SET 
+				SyncRecords        = ISNULL(VendorCreditMemoData.VendorCreditMemoCount, 0),
+				PendingSyncRecords = ISNULL(PendingVendorCreditMemoData.VendorCreditMemoCount, 0),
+				TotalRecords       = ISNULL(AllVendorCreditMemoData.VendorCreditMemoCount, 0)
+			FROM dbo.AccountingIntegrationSettings ACI
+
+			-- Synced VendorCreditMemo Data
+			LEFT JOIN (
+				SELECT MasterCompanyId, COUNT(QuickBooksReferenceId) AS VendorCreditMemoCount
+				FROM dbo.VendorCreditMemo WITH(NOLOCK)
+				WHERE ISNULL(IsActive, 0) = 1 
+				  AND ISNULL(IsDeleted, 0) = 0 
+				  AND ISNULL(QuickBooksReferenceId, '') <> ''
+				  AND [IntegrationTypeId] = @XeroIntegrationTypeId
+				GROUP BY MasterCompanyId
+			) AS VendorCreditMemoData ON VendorCreditMemoData.MasterCompanyId = ACI.MasterCompanyId 
+				AND ACI.ModuleId = @VendorCreditMemoModuleId
+
+			-- Pending VendorCreditMemo Data
+			LEFT JOIN (
+				SELECT MasterCompanyId, COUNT(IsUpdated) AS VendorCreditMemoCount
+				FROM dbo.VendorCreditMemo WITH(NOLOCK)
+				WHERE ISNULL(IsActive, 0) = 1 
+				  AND ISNULL(IsDeleted, 0) = 0 
+				  AND ISNULL(IsUpdated, 0) = 1
+				  AND [IntegrationTypeId] = @XeroIntegrationTypeId
+				GROUP BY MasterCompanyId
+			) AS PendingVendorCreditMemoData ON PendingVendorCreditMemoData.MasterCompanyId = ACI.MasterCompanyId 
+				AND ACI.ModuleId = @VendorCreditMemoModuleId
+
+			-- All VendorCreditMemo Data
+			LEFT JOIN (
+				SELECT MasterCompanyId, COUNT(VendorCreditMemoId) AS VendorCreditMemoCount
+				FROM dbo.VendorCreditMemo WITH(NOLOCK)
+				WHERE ISNULL(IsActive, 0) = 1 
+				  AND ISNULL(IsDeleted, 0) = 0
+				  AND [IntegrationTypeId] = @XeroIntegrationTypeId
+				GROUP BY MasterCompanyId
+			) AS AllVendorCreditMemoData ON AllVendorCreditMemoData.MasterCompanyId = ACI.MasterCompanyId 
+				AND ACI.ModuleId = @VendorCreditMemoModuleId
+
+			WHERE ACI.ModuleId = @VendorCreditMemoModuleId
 		END
 
 	END TRY    

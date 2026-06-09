@@ -159,6 +159,7 @@ BEGIN
 			DECLARE @ManagementStructureTypeId BIGINT = 0;
 			DECLARE @Level1 VARCHAR(100) = '';
 			DECLARE @DefaultUserId AS BIGINT;
+			DECLARE @DefaultCurrencyId AS BIGINT;
 
 			DECLARE @FoundError BIT = 0;
 			DECLARE @ErrorMsg VARCHAR(MAX) = '';
@@ -173,7 +174,7 @@ BEGIN
 			SELECT @CompanyModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'Company';
 
 			SELECT @VendorId =  V.[VendorId], @VendorName =  V.[VendorName], @VendorCode = V.[VendorCode], @CreditLimit = V.[CreditLimit] FROM [dbo].[Vendor] V WITH(NOLOCK) WHERE UPPER(V.VendorCode) IN (SELECT UPPER(CMP.COMPANY_CODE) FROM [Quantum_Staging_BETA].DBO.Vendors CMP WHERE CMP.VendorId = @CMP_AUTO_KEY) AND [MasterCompanyId] = @FromMasterComanyID;
-			PRINT @CMP_AUTO_KEY;
+			
 		    SELECT @VendorContactId = V.[VendorContactId], @ContactId = V.[ContactId] FROM [dbo].[VendorContact] V WITH(NOLOCK) WHERE V.[VendorId] = @VendorId AND V.[IsDefaultContact] = 1 AND [MasterCompanyId] = @FromMasterComanyID;
 		    SELECT @VendorContactName = (C.[FirstName] + ' ' + C.[LastName]),  @VendorContactPhone = C.[WorkPhone] FROM DBO.[Contact] C WITH(NOLOCK) WHERE C.[ContactId] = @ContactId AND [MasterCompanyId] = @FromMasterComanyID;
 		    SELECT @CreditTermsId = [CreditTermsId], @TemrsName = CT.[Name] FROM dbo.[CreditTerms] CT WITH(NOLOCK) WHERE UPPER(CT.Name) IN (SELECT UPPER(T.TermCode) FROM [Quantum_Staging_BETA].DBO.Term_Codes T Where T.TermCodesId = @TMC_AUTO_KEY) AND MasterCompanyId = @FromMasterComanyID;
@@ -185,6 +186,7 @@ BEGIN
 
 			SELECT @DefaultUserId = U.EmployeeId FROM DBO.AspNetUsers U WHERE UserName like 'BAG-ADMIN' AND MasterCompanyId = @FromMasterComanyID;
 			SELECT @countries_id = [countries_id] FROM [dbo].[Countries] WITH(NOLOCK) WHERE [MasterCompanyId] = @FromMasterComanyID AND [countries_name] = 'UNITED STATES';
+			SELECT @DefaultCurrencyId = [CurrencyId] FROM [dbo].Currency WITH(NOLOCK) WHERE [MasterCompanyId] = @FromMasterComanyID AND Code = 'USD';
 
 			IF (ISNULL(@ManagementStructureId, 0) = 0)
 			BEGIN
@@ -228,12 +230,12 @@ BEGIN
 					   ,[Requisitioner],[StatusId],[Status],[StatusChangeDate],[Resale],[DeferredReceiver],[RoMemo],[Notes],[ApproverId],[ApprovedBy]
                        ,[ApprovedDate],[ManagementStructureId],[Level1],[Level2] ,[Level3],[Level4],[MasterCompanyId],[CreatedBy],[UpdatedBy]
                        ,[CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[IsEnforce],[PDFPath],[VendorRFQRepairOrderId],[FreightBilingMethodId]
-                       ,[TotalFreight],[ChargesBilingMethodId],[TotalCharges])
+                       ,[TotalFreight],[ChargesBilingMethodId],[TotalCharges],[FunctionalCurrencyId],[ReportCurrencyId],[ForeignExchangeRate])
 					SELECT RO.RONumber,CASE WHEN RO.EntryDate IS NOT NULL THEN CAST(RO.EntryDate AS datetime2) ELSE GETDATE() END,NULL,CASE WHEN RO.OutDate IS NOT NULL THEN CAST(RO.OutDate AS datetime2) ELSE GETDATE() END,(SELECT [PriorityId] FROM [dbo].[Priority] WITH (NOLOCK) WHERE [MasterCompanyId] = @FromMasterComanyID AND UPPER([Description]) = 'ROUTINE'),'ROUTINE',@VendorId,@VendorName
 					   ,@VendorCode,@VendorContactId,@VendorContactName,@VendorContactPhone,@CreditTermsId,@TemrsName,@CreditLimit,@DefaultUserId
 					   ,@UserName,CASE WHEN RO.OpenFlag = 'T' THEN @OpenStatusId ELSE @ClosedStatusId END, CASE WHEN RO.OpenFlag = 'T' THEN 'Open' ELSE 'Closed' END, CASE WHEN RO.DateCreated IS NOT NULL THEN CAST(RO.DateCreated AS datetime2) ELSE NULL END,(CASE WHEN ISNULL(RO.ResaleFlag, 'F') = 'T' THEN 1 ELSE 0 END),(CASE WHEN ISNULL(RO.DeferredRec, 'F') = 'T' THEN 1 ELSE 0 END),NULL,RO.NOTES,NULL,NULL
 					   ,NULL, @ManagementStructureId,NULL,NULL,NULL,NULL,@FromMasterComanyID,@UserName,@UserName,
-					   GETDATE(),GETDATE(),1,0,NULL,NULL,NULL,NULL,NULL,NULL,NULL
+					   GETDATE(),GETDATE(),1,0,NULL,NULL,NULL,NULL,NULL,NULL,NULL,@DefaultCurrencyId,@DefaultCurrencyId,1
 					FROM #TempROHeader AS RO WHERE ID = @LoopID;
 
 					SELECT @InsertedRepairOrderId = SCOPE_IDENTITY();

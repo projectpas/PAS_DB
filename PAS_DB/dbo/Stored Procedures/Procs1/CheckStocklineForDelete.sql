@@ -14,6 +14,7 @@
 	1    18-12-2024   Moin Bloch   Created
 	2    31-12-2024   Moin Bloch   Added Freight And Charges For WO/SO
 	3    02-01-2025   Moin Bloch   Added Labor Completed Condition
+	4    02-01-2025   Moin Bloch   Teardown WO: Deleting WO Causes negative Qty Reserved  PN-16702	
     
 -- EXEC [dbo].[CheckStocklineForDelete] 4724,15,'Jim Roberts'  
 **************************************************************/ 
@@ -86,9 +87,12 @@ BEGIN
 			[StockLineId] BIGINT
 		)	
 
-		DECLARE @MasterCompanyId INT = 0;
+		DECLARE @MasterCompanyId INT = 0,@TearDown INT,@WorkOrderTypeId BIGINT = NULL
 
-		SELECT @MasterCompanyId = [MasterCompanyId] FROM [dbo].[WorkOrder] WITH(NOLOCK) WHERE [WorkOrderId] = @ReferenceId AND [IsDeleted] = 0;
+		SELECT @TearDown = [Id] FROM [dbo].[WorkOrderType] WITH(NOLOCK) WHERE [Description]='Internal Teardown';
+
+
+		SELECT @MasterCompanyId = [MasterCompanyId],@WorkOrderTypeId = [WorkOrderTypeId] FROM [dbo].[WorkOrder] WITH(NOLOCK) WHERE [WorkOrderId] = @ReferenceId AND [IsDeleted] = 0;
 		
 		SELECT @QtyReserved = ISNULL(SUM(WOMS.QtyReserved),0)
 		  FROM [dbo].[WorkOrderMaterials] WOM WITH(NOLOCK) INNER JOIN [dbo].[WorkOrderMaterialStockLine] WOMS WITH(NOLOCK) ON WOM.[WorkOrderMaterialsId] = WOMS.[WorkOrderMaterialsId]
@@ -150,28 +154,49 @@ BEGIN
 							DECLARE @StockLineId BIGINT=0;
 							DECLARE @QuantityAvailable INT=0;
 							DECLARE @QuantityReserved INT=0;
-							DECLARE	@ActionId INT=0;
+							DECLARE @QuantityIssued INT=0;	
+							DECLARE @QuantityOnHand INT=0;	
+							DECLARE	@ActionId INT=0,@UnIssueActionId INT=0 
 
 							SET @ActionId = (SELECT [ActionId] FROM DBO.[StklineHistory_Action] ITH  WITH(NOLOCK) WHERE [Type] = 'UnReserve');
-						
+
+							SET @UnIssueActionId = (SELECT [ActionId] FROM DBO.[StklineHistory_Action] ITH  WITH(NOLOCK) WHERE [Type] = 'UnIssue');
+													
 							SELECT @StockLineId = [StockLineId] FROM #WOPartNumberDetailForDelete WHERE ID = @LoopID;
 						
 							IF(@StockLineId > 0)
 							BEGIN
 								SELECT @QuantityAvailable = ISNULL([QuantityAvailable],0),
-									   @QuantityReserved = ISNULL([QuantityReserved],0)
+									   @QuantityReserved = ISNULL([QuantityReserved],0),
+									   @QuantityIssued  = ISNULL([QuantityIssued],0),
+									   @QuantityOnHand  = ISNULL([QuantityOnHand],0)
 								  FROM [dbo].[Stockline] WITH(NOLOCK) 
 								 WHERE [StockLineId] = @StockLineId;
 
-								 UPDATE [dbo].[Stockline] 
-									SET [QuantityAvailable] = @QuantityAvailable + 1,
-										[QuantityReserved] = @QuantityReserved - 1,
-										[UpdatedBy] = @UpdatedBy,
-										[UpdatedDate] = GETUTCDATE()									
-								  WHERE [StockLineId] = @StockLineId;
+								 IF(@WorkOrderTypeId = @TearDown)
+								 BEGIN
+									UPDATE [dbo].[Stockline] 
+									   SET [QuantityAvailable] = @QuantityAvailable + 1,
+										   [QuantityOnHand] = @QuantityOnHand + 1,											 
+										   [QuantityIssued] = @QuantityIssued - 1,
+										   [UpdatedBy] = @UpdatedBy,
+										   [UpdatedDate] = GETUTCDATE()									
+									 WHERE [StockLineId] = @StockLineId;
 
-								  EXEC [dbo].[USP_AddUpdateStocklineHistory] @StockLineId,@WOModuleId,@ReferenceId,NULL,NULL,@ActionId,1,@UpdatedBy;
-							END						
+									 EXEC [dbo].[USP_AddUpdateStocklineHistory] @StockLineId,@WOModuleId,@ReferenceId,NULL,NULL,@UnIssueActionId,1,@UpdatedBy;									
+								 END
+								 ELSE
+								 BEGIN
+									UPDATE [dbo].[Stockline] 
+										SET [QuantityAvailable] = @QuantityAvailable + 1,
+											[QuantityReserved] = @QuantityReserved - 1,
+											[UpdatedBy] = @UpdatedBy,
+											[UpdatedDate] = GETUTCDATE()									
+									  WHERE [StockLineId] = @StockLineId;
+
+									   EXEC [dbo].[USP_AddUpdateStocklineHistory] @StockLineId,@WOModuleId,@ReferenceId,NULL,NULL,@ActionId,1,@UpdatedBy;
+								 END
+							 END						
 							SET @LoopID = @LoopID + 1;
 						END
 					

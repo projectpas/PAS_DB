@@ -14,6 +14,7 @@
 ** 3    03/06/2026   Abhishek Jirawla     Fixed @TailNumber to LIKE; @SectionId and @IsScheduled
 **                                        now use direct column values from CTE [PN-16598]
 ** 4    04/06/2026   Amit Ghediya         Get isllp & isserialized flag for bind [PN-16741]
+** 5    10/06/2026   Amit Ghediya         Get ATAChapterId flag for bind [PN-16802]
 *****************************************************************************************************/
 CREATE       PROCEDURE [dbo].[USP_GetAircraftComponentMaintenanceDashboardList]
 (
@@ -65,6 +66,7 @@ BEGIN
                 CAST(ISNULL(STK.QuantityAvailable, 0) AS DECIMAL(18,4))           AS qty,
                 CAST(ARH.CustomerName AS NVARCHAR(200))                                        AS customerName,
                 CAST(NULL AS NVARCHAR(200))                                        AS ataChpt,
+				0																   AS ATAChapterId,
                 AMP.UpdatedDate                                                    AS lastMtced,
                 LWO.WorkOrderNum                                                   AS woNum,
                 LWO.WorkOrderId                                                    AS woId,
@@ -150,6 +152,7 @@ BEGIN
                 CAST(ISNULL(AIPD.Quantity, 0) AS DECIMAL(18,4))                   AS qty,
                 CAST(ARH.CustomerName AS NVARCHAR(200))                                        AS customerName,
                 CONCAT_WS(' - ', NULLIF(IMAM.Level1,''), NULLIF(IMAM.Level2,''), NULLIF(IMAM.Level3,'')) AS ataChpt,
+				AIPD.ATAChapterId												   AS ATAChapterId,
                 AIPD.UpdatedDate                                                   AS lastMtced,
                 LWO_I.WorkOrderNum                                                 AS woNum,
                 LWO_I.WorkOrderId                                                  AS woId,

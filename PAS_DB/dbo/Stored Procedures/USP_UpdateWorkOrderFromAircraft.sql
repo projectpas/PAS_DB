@@ -15,9 +15,10 @@
 	2    8/06/2026		Divyesh Kathiriya   Update WorkOrderNum on AircraftMaintenanceProgram Table [PN-16704]
 	3    02/06/2026     Amit Ghediya		Update for get CustomerId from AircraftRegistryHeader [PN-16679]
 	4    09/06/2026     Amit Ghediya		Adding Header data in History module [PN-16581]
+	5    10/06/2026     Divyesh Kathiriya   Update WorkOrderNum on AircraftInstalledPartDetails Table [PN-16780]
 
 **************************************************************/
-CREATE    PROCEDURE [dbo].[USP_UpdateWorkOrderFromAircraft]
+CREATE   PROCEDURE [dbo].[USP_UpdateWorkOrderFromAircraft]
 @AircraftInstalledPartDetailsId BIGINT = NULL,
 @AircraftRegistryId             BIGINT = NULL,
 @ProgramId                      BIGINT = NULL,
@@ -338,6 +339,16 @@ BEGIN
 			WHERE AMP.ProgramId = @ProgramId
 			  AND AMP.MasterCompanyId = @MasterCompanyId
 			  AND ISNULL(AMP.WorkOrderNum, '') <> ISNULL(@WorkOrderNum, ''); 
+
+			UPDATE AIPD
+			SET
+				AIPD.WorkOrderNum = @WorkOrderNum,
+				AIPD.UpdatedBy    = @CreatedBy,
+				AIPD.UpdatedDate  = GETUTCDATE()
+			FROM [dbo].[AircraftInstalledPartDetails] AIPD
+			WHERE AIPD.AircraftInstalledPartDetailsId = @AircraftInstalledPartDetailsId
+			  AND AIPD.MasterCompanyId = @MasterCompanyId
+			  AND ISNULL(AIPD.WorkOrderNum, '') <> ISNULL(@WorkOrderNum, '');
 
 			-- ══════════════════════════════════════════════════════
 			-- HISTORY BLOCK

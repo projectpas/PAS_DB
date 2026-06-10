@@ -14,8 +14,9 @@
     2    29/05/2026   Bhargav Saliya    Added @IsSync Case
 	3    05/06/2026   Moin Bloch        Fix Discription
 	4    08/06/2026   Abhishek Jirawla  Adding ItemMasterId
+	5    09/06/2026   Moin Bloch        Fix For Due Date PN-16784
 
-	EXEC [dbo].[USP_GetCommonBillingInvoicingItemsByInvoiceIdForXeroAccounting] null,15,1
+	EXEC [dbo].[USP_GetCommonBillingInvoicingItemsByInvoiceIdForXeroAccounting] 12682,15,0
 ********************************************************************************************/
 CREATE PROCEDURE [dbo].[USP_GetCommonBillingInvoicingItemsByInvoiceIdForXeroAccounting]
 @BillingInvoicingId BIGINT = NULL,
@@ -39,7 +40,7 @@ BEGIN
 				   BII.[BillingInvoicingId],
 			       CST.[QuickBooksReferenceId] [ContactId],
 				   BII.[InvoiceDate],
-				   DATEADD(DAY,WO.NetDays,BII.[InvoiceDate]) DueDate,
+				   DATEADD(DAY,ISNULL(WO.NetDays,0),BII.[InvoiceDate]) DueDate,
 				   CRR.[Code]
 				  ---------- LINEAMOUNT TYPES ----------
 				  --Exclusive	Line items are exclusive of tax ,
@@ -115,7 +116,7 @@ BEGIN
 				   BII.[BillingInvoicingId],
 			       CST.[QuickBooksReferenceId] [ContactId],
 				   BII.[InvoiceDate],
-				   DATEADD(DAY,SO.NetDays,BII.[InvoiceDate]) DueDate,
+				   DATEADD(DAY,ISNULL(SO.NetDays,0),BII.[InvoiceDate]) DueDate,
 				   CRR.[Code]
 				  ---------- LINEAMOUNT TYPES ----------
 				  --Exclusive	Line items are exclusive of tax ,

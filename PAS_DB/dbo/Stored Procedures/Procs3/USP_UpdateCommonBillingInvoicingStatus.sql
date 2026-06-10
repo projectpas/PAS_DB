@@ -19,6 +19,7 @@
 	7    09/07/2025   Moin Bloch		Fix For Deposit Amount
 	8    23/07/2025   Rajesh Gami		Remove Transaction
 	9    27/03/2026   Moin Bloch	    Rename Internal To Internal Repair   PN-15850
+	10   09/06/2026   Rajesh Gami	    [IsStandardInvoicePosted] = 1 Update for the proforma invoice while Standard Invoice being INVOICED   PN-16775
     EXEC [dbo].[USP_UpdateCommonBillingInvoicingStatus] 10157,8998,0,3,15,'ADMIN User',1
 
 **********************/ 
@@ -377,6 +378,12 @@ BEGIN
 						   [UpdatedBy] = @UpdatedBy,
 						   IsInvoicePosted = 1,IsUpdated =1
 					 WHERE [BillingInvoicingId] = @BillingInvoicingId
+					 
+					 UPDATE [dbo].[BillingInvoicing] 
+					    SET [IsStandardInvoicePosted] = 1
+					  WHERE [ReferenceId] = @ReferenceId 
+					    AND [ModuleId] = @ModuleId 
+						AND [IsPerformaInvoice] = 1
 				END				 
 			END
 			BEGIN

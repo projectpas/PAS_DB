@@ -25,6 +25,7 @@
 	12   27-Aug-2025  RAJESH GAMI       Remove Duplicate Stockline from the 'ViewAllPN' (PN-14039)
 	13   22-MAY-2026  RAJESH GAMI       Added IsVersionIncrease condition for billing invoicing [PN-16565]
 	14   27-MAY-2026  RAJESH GAMI       Added LotNumber In Every Type [PN-16571]
+	15   09-JUNE-2026 RAJESH GAMI       Fixed: Duplicate data for the RO [PN-16680]
 -- EXEC USP_Lot_GetAllLotViewsByLotId_Filter 7,'ViewAllPN',1
 -- EXEC USP_Lot_GetAllLotViewsByLotId 67,'ViewAllPN',1
 ************************************************************************/
@@ -783,6 +784,16 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 					 LEFT JOIN DBO.Vendor ven WITH(NOLOCK) ON sl.VendorId = ven.VendorId	 LEFT JOIN dbo.LotManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID IN (SELECT Item FROM DBO.SPLITSTRING(@AppModuleId,',')) AND MSD.ReferenceID = lot.LotId	AND MSD.EntityMSID = Lot.ManagementStructureId
 				 WHERE lot.LotId = @LotId AND lot.MasterCompanyId = @MasterCompanyId AND ISNULL(sl.QuantityOnHand,0) > 0 AND (UPPER(REPLACE(ltCal.Type,' ','')) NOT IN (UPPER(REPLACE(@LOT_SO_Shipped,' ','')),UPPER(REPLACE(@LOT_TransOut_SO,' ','')), UPPER(REPLACE(@LOT_TransOut_RO,' ','')),UPPER(REPLACE(@LOT_TransOut_LOT,' ','')))) 
 				 AND (ISNULL(sl.QuantityAvailable,0) >= @AvailableQty)
+				 AND NOT (
+						  UPPER(REPLACE(ltCal.Type,' ','')) = UPPER(REPLACE(@LOT_TransIn_LOT,' ',''))
+						  AND EXISTS (
+							  SELECT 1 
+							  FROM DBO.LotCalculationDetails ltCal2 WITH(NOLOCK)
+							  WHERE ltCal2.LotTransInOutId = ltCal.LotTransInOutId
+								AND UPPER(REPLACE(ltCal2.Type,' ','')) = UPPER(REPLACE(@LOT_TransIn_RO,' ',''))
+						  )
+					  )
+
 				 ), ResultCount AS(Select COUNT(*) AS totalItems FROM Result) 
 
 					SELECT * INTO #PNInStockTbl FROM  Result

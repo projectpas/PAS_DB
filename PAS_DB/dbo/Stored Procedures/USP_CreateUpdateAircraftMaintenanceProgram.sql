@@ -320,7 +320,7 @@ BEGIN
         IF (@IsUpdate = 1)
         BEGIN
             SET @TemplateCode = 'UpdateAircraftMaintenance';
-            SET @Activity     = 'Updated';
+            SET @Activity     = 'Maintenance Updated';
 
             -- Build ONE combined TemplateBody — only changed fields
             IF ISNULL(@Old_MaintenanceType,'')          <> @New_MaintenanceType          AND ISNULL(@New_MaintenanceType,'')          <> ''
@@ -347,9 +347,15 @@ BEGIN
             IF ISNULL(@Old_IsActive,'')                 <> @New_IsActive                 AND ISNULL(@New_IsActive,'')                 <> ''
                 SET @TemplateBody += 'Status: '                  + ISNULL(@Old_IsActive,'')                 + ' to ' + @New_IsActive                 + ' | ';
 
-            -- Remove trailing ' | '
-            IF LEN(@TemplateBody) > 3
-                SET @TemplateBody = LEFT(@TemplateBody, LEN(@TemplateBody) - 3);
+            -- Remove trailing ' | ' safely without touching the value
+			SET @TemplateBody = RTRIM(@TemplateBody);
+
+			IF RIGHT(@TemplateBody, 3) = ' | '
+				SET @TemplateBody = LEFT(@TemplateBody, LEN(@TemplateBody) - 3);
+			ELSE IF RIGHT(@TemplateBody, 2) = ' |'
+				SET @TemplateBody = LEFT(@TemplateBody, LEN(@TemplateBody) - 2);
+			ELSE IF RIGHT(@TemplateBody, 1) = '|'
+				SET @TemplateBody = LEFT(@TemplateBody, LEN(@TemplateBody) - 1);
         END
         ELSE
         BEGIN
@@ -382,9 +388,15 @@ BEGIN
 			IF CAST(ISNULL(@New_EngineStartsLimit,'0') AS BIGINT) > 0
 				SET @TemplateBody += 'Engine Starts Limit: '  + @New_EngineStartsLimit        + ' | ';
 
-			-- Remove trailing ' | ' if last line also has one
-			IF RIGHT(RTRIM(@TemplateBody), 3) = ' | '
+			-- Remove trailing ' | ' safely without touching the value
+			SET @TemplateBody = RTRIM(@TemplateBody);
+
+			IF RIGHT(@TemplateBody, 3) = ' | '
 				SET @TemplateBody = LEFT(@TemplateBody, LEN(@TemplateBody) - 3);
+			ELSE IF RIGHT(@TemplateBody, 2) = ' |'
+				SET @TemplateBody = LEFT(@TemplateBody, LEN(@TemplateBody) - 2);
+			ELSE IF RIGHT(@TemplateBody, 1) = '|'
+				SET @TemplateBody = LEFT(@TemplateBody, LEN(@TemplateBody) - 1);
         END
 
         -- Call usp_SaveAircraftHistory once

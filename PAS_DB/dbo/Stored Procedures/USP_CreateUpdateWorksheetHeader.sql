@@ -17,8 +17,9 @@
  ** --   --------       -------                 --------------------------------     
     1    14/05/2026     Priyansh Patel          Created [PN-16408]
     2    19/05/2026     Priyansh Patel          Added Duplicate inspection fields [PN-16408]
-    3    8/06/2026     Divyesh Kathiriya       Update WorksheetNumber on AircraftMaintenanceProgram Table [PN-16704]
-    4    8/06/2026     Amit Ghediya            Adding Header data in History module [PN-16581]
+    3    8/06/2026      Divyesh Kathiriya       Update WorksheetNumber on AircraftMaintenanceProgram Table [PN-16704]
+    4    8/06/2026      Amit Ghediya            Adding Header data in History module [PN-16581]
+    5    10/06/2026     Divyesh Kathiriya       Update WorksheetNumber on AircraftInstalledPartDetails Table [PN-16780]
 
 **************************************************************/
 
@@ -319,6 +320,16 @@ BEGIN
                 INNER JOIN @tbl_WorksheetHeaderType T ON AMP.ProgramId = T.ProgramId AND AMP.MasterCompanyId = T.MasterCompanyId
                 WHERE ISNULL(T.ProgramId, 0) > 0
                   AND ISNULL(AMP.WorksheetNumber, '') <> ISNULL(@WorksheetNum, '');
+
+                UPDATE AIPD
+                SET
+                    AIPD.WorksheetNumber = @WorksheetNum,
+                    AIPD.UpdatedBy       = T.UpdatedBy,
+                    AIPD.UpdatedDate     = GETUTCDATE()
+                FROM [dbo].[AircraftInstalledPartDetails] AIPD
+                INNER JOIN @tbl_WorksheetHeaderType T ON AIPD.AircraftInstalledPartDetailsId = T.AircraftInstalledPartDetailsId AND AIPD.MasterCompanyId = T.MasterCompanyId
+                WHERE ISNULL(T.AircraftInstalledPartDetailsId, 0) > 0
+                  AND ISNULL(AIPD.WorksheetNumber, '') <> ISNULL(@WorksheetNum, '');
 
                 SELECT 1 AS Status, 'Saved successfully' AS Message,
                        *

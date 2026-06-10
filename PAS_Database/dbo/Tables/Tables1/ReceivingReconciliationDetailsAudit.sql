@@ -30,7 +30,7 @@
     [GlAccountName]                        VARCHAR (200)   NULL,
     [Type]                                 INT             NULL,
     [StockType]                            VARCHAR (50)    NULL,
-    [RemainingRRQty]                       INT             NULL,
+    [RemainingRRQty]                       DECIMAL (18, 6) NULL,
     [FreightAdjustment]                    DECIMAL (18, 2) NULL,
     [TaxAdjustment]                        DECIMAL (18, 2) NULL,
     [FreightAdjustmentPerUnit]             DECIMAL (18, 2) NULL,
@@ -41,8 +41,4 @@
     [VendorProformaInvoiceId]              BIGINT          NULL,
     CONSTRAINT [PK_ReceivingReconciliationDetailsAudit] PRIMARY KEY CLUSTERED ([AuditReceivingReconciliationDetailId] ASC)
 );
-
-
-
-
 

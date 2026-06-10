@@ -19,8 +19,10 @@
 	8	 28/05/2025				 Devendra Shekh						added InvoiceStatus Field
 	9	 27/06/2025				 Rajesh Gami						Modified as per new Billing Invoice Table Structure & also implemented SO & fix the Currency related issue for the SO
 	10   04-12-2025				 Amit Ghediya						Added qtyShipped,qtyRemaining for shipping details
+	11   09-06-2026              Priyansh Patel						UOM changes releted to qtyshipped,qtyRemaining [PN-16778]
+
 **************************************************************/ 
-CREATE      PROCEDURE [dbo].[SearchShippingListData] 
+CREATE       PROCEDURE [dbo].[SearchShippingListData] 
 	@PageNumber int,
 	@PageSize int,
 	@SortColumn varchar(50) = null,
@@ -582,8 +584,11 @@ BEGIN
 								ResultCount AS (Select COUNT(RefId) AS NumberOfItems FROM FinalResult)
 
 
-								SELECT RefId,RefNumber,PartNumber,PartDescription,Customer,CustomerId,[Priority],[Status],ShipVia,ShipDate,AWB,ModuleName,PartId,PickTicketId,ShippingId,QtyShipped,
-										PackagingSlipId,VendorRMADetailId,InvoiceNumber,InvoiceAmount,InvoiceDate,Currency,InvoiceStatus,qtyRemaining,NumberOfItems
+								SELECT RefId,RefNumber,PartNumber,PartDescription,Customer,CustomerId,[Priority],[Status],ShipVia,ShipDate,AWB,ModuleName,PartId,PickTicketId,ShippingId,
+										FORMAT(ISNULL(QtyShipped,0), 'N', 'en-us') AS QtyShipped,
+								
+										PackagingSlipId,VendorRMADetailId,InvoiceNumber,InvoiceAmount,InvoiceDate,Currency,InvoiceStatus,
+										FORMAT(ISNULL(qtyRemaining,0), 'N', 'en-us') AS qtyRemaining,NumberOfItems
 					
 								FROM FinalResult, ResultCount
 
@@ -868,8 +873,8 @@ BEGIN
 								ResultCount AS (Select COUNT(RefId) AS NumberOfItems FROM FinalResult)
 
 
-								SELECT RefId,RefNumber,PartNumber,PartDescription,Customer,CustomerId,[Priority],[Status],ShipVia,ShipDate,AWB,ModuleName,PartId,PickTicketId,ShippingId,QtyShipped,
-										PackagingSlipId,VendorRMADetailId,InvoiceNumber,InvoiceAmount,InvoiceDate,Currency,InvoiceStatus,qtyRemaining,NumberOfItems
+								SELECT RefId,RefNumber,PartNumber,PartDescription,Customer,CustomerId,[Priority],[Status],ShipVia,ShipDate,AWB,ModuleName,PartId,PickTicketId,ShippingId,FORMAT(ISNULL(QtyShipped,0), 'N', 'en-us') AS QtyShipped,
+										PackagingSlipId,VendorRMADetailId,InvoiceNumber,InvoiceAmount,InvoiceDate,Currency,InvoiceStatus,FORMAT(ISNULL(qtyRemaining,0), 'N', 'en-us') AS qtyRemaining,NumberOfItems
 					
 								FROM FinalResult, ResultCount
 

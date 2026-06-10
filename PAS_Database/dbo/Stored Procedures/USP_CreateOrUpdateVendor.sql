@@ -11,6 +11,7 @@
 ** --    --------     -------           -------------------------------          
 ** 1     07-07-2025   Ayushi Patel      Created  
 ** 2     08-APR-2026   Hemant Saliya     Corrected to Get customer type Id based on name  
+** 3     09-JUNE-2026  Priyansh Patel    Fixed the issue with the @ExistingCustomerId [PN-16747]
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_CreateOrUpdateVendor]
     @VendorId BIGINT OUTPUT,
@@ -172,7 +173,7 @@ BEGIN
         IF @IsVendorAlsoCustomer = 1
         BEGIN
             DECLARE @ExistingCustomerId BIGINT;
-            SELECT TOP 1 @ExistingCustomerId = CustomerId FROM Customer WITH(NOLOCK) WHERE LOWER(Name) = LOWER(@VendorName);
+            SELECT TOP 1 @ExistingCustomerId = RelatedCustomerId  FROM Vendor WITH(NOLOCK) WHERE VendorId = @VendorId;
 
             IF @ExistingCustomerId IS NULL
             BEGIN

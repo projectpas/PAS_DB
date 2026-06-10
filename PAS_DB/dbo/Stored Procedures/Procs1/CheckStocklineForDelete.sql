@@ -175,36 +175,15 @@ BEGIN
 
 								 IF(@WorkOrderTypeId = @TearDown)
 								 BEGIN
-									 IF(@QuantityReserved > 0)
-									 BEGIN
-										UPDATE [dbo].[Stockline] 
-										   SET [QuantityReserved] = @QuantityReserved - 1																						   							
-										 WHERE [StockLineId] = @StockLineId;
-										 
-										 EXEC [dbo].[USP_AddUpdateStocklineHistory] @StockLineId,@WOModuleId,@ReferenceId,NULL,NULL,@ActionId,1,@UpdatedBy;
+									UPDATE [dbo].[Stockline] 
+									   SET [QuantityAvailable] = @QuantityAvailable + 1,
+										   [QuantityOnHand] = @QuantityOnHand + 1,											 
+										   [QuantityIssued] = @QuantityIssued - 1,
+										   [UpdatedBy] = @UpdatedBy,
+										   [UpdatedDate] = GETUTCDATE()									
+									 WHERE [StockLineId] = @StockLineId;
 
-										  UPDATE [dbo].[Stockline] 
-											SET [QuantityAvailable] = @QuantityAvailable + 1,
-												[QuantityOnHand] = @QuantityOnHand + 1,											 
-												[QuantityIssued] = @QuantityIssued - 1,
-												[UpdatedBy] = @UpdatedBy,
-												[UpdatedDate] = GETUTCDATE()									
-										  WHERE [StockLineId] = @StockLineId;
-
-										  EXEC [dbo].[USP_AddUpdateStocklineHistory] @StockLineId,@WOModuleId,@ReferenceId,NULL,NULL,@UnIssueActionId,1,@UpdatedBy;
-									 END
-									 ELSE
-									 BEGIN
-										 UPDATE [dbo].[Stockline] 
-											SET [QuantityAvailable] = @QuantityAvailable + 1,
-												[QuantityOnHand] = @QuantityOnHand + 1,											 
-												[QuantityIssued] = @QuantityIssued - 1,
-												[UpdatedBy] = @UpdatedBy,
-												[UpdatedDate] = GETUTCDATE()									
-										  WHERE [StockLineId] = @StockLineId;
-
-										  EXEC [dbo].[USP_AddUpdateStocklineHistory] @StockLineId,@WOModuleId,@ReferenceId,NULL,NULL,@UnIssueActionId,1,@UpdatedBy;
-									END
+									 EXEC [dbo].[USP_AddUpdateStocklineHistory] @StockLineId,@WOModuleId,@ReferenceId,NULL,NULL,@UnIssueActionId,1,@UpdatedBy;									
 								 END
 								 ELSE
 								 BEGIN

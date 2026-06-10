@@ -12,6 +12,7 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    29/05/2025   Moin Bloch    Created
+	2    10/06/2026   Amit Ghediya  Update get @SequenceNumber to cast due to varchar [PN-16785]
      
 --   EXEC [dbo].[CreateWorkOrderTasksForWorksheet]
 **************************************************************/
@@ -31,7 +32,9 @@ BEGIN
 	BEGIN TRY
 	BEGIN TRANSACTION
 	BEGIN	
-		DECLARE @TotalRecord INT = 0,@MinId BIGINT = 1
+		DECLARE @TotalRecord INT = 0,@MinId BIGINT = 1,@SequenceNumber INT =0 ;
+		DECLARE @WorkFlowWorkOrderId BIGINT = NULL,@WorkOrderTaskId BIGINT = NULL
+		DECLARE @DefectDescription [varchar](500) = NULL,@TaskId BIGINT = NULL;
 			
 		IF OBJECT_ID(N'tempdb..#tempCreateWorkOrderTasksForCreateWO') IS NOT NULL
 		BEGIN
@@ -52,8 +55,12 @@ BEGIN
 
 		WHILE @MinId <= @TotalRecord
 		BEGIN
-			DECLARE @WorkFlowWorkOrderId BIGINT = NULL,@WorkOrderTaskId BIGINT = NULL
-			DECLARE @DefectDescription [varchar](500) = NULL,@TaskId BIGINT = NULL,@SequenceNumber INT =0 
+			-- Reset variables at the TOP of each iteration
+			SET @WorkFlowWorkOrderId = NULL;
+			SET @WorkOrderTaskId     = NULL;
+			SET @DefectDescription   = NULL;
+			SET @TaskId              = NULL;
+			SET @SequenceNumber      = 0;
 		
 			SELECT @DefectDescription = [DefectDescription] FROM #tempCreateWorkOrderTasksForCreateWO WHERE [PKID] = @MinId
 
@@ -67,7 +74,7 @@ BEGIN
 							
 			SELECT TOP 1 @WorkFlowWorkOrderId = [WorkFlowWorkOrderId] FROM [dbo].[WorkOrderWorkFlow] WITH(NOLOCK) WHERE [WorkOrderPartNoId] = @WorkOrderPartNoId;
 			
-			SELECT @SequenceNumber = ISNULL(MAX([SequenceNumber]),0) FROM [dbo].[WorkOrderTask] WHERE [WorkOrderId] = @WorkOrderId AND [WorkFlowWorkOrderId] = @WorkFlowWorkOrderId
+			SELECT @SequenceNumber = ISNULL(MAX(CAST([SequenceNumber] AS INT)), 0) FROM [dbo].[WorkOrderTask] WHERE [WorkOrderId] = @WorkOrderId AND [WorkFlowWorkOrderId] = @WorkFlowWorkOrderId
 			
 			SET @SequenceNumber = @SequenceNumber + 1;
 

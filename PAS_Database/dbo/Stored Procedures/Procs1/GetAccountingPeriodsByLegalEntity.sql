@@ -17,6 +17,7 @@
 	4    18/01/2024   Bhargav Saliya	Added [label],[value] Field
 	5    31/01/2024   Hemnat Saliya		Handle ADJ - Period case
 	6    30/05/2025   Hemnat Saliya		Handle From To Accounting Periaod Validation using Ranking function
+	7    10/06/2026   Sumit Kumar		Restricted Accounting Periods to the TOP 24 months by most recent month.
 
 ************************************************************************
 EXEC [GetAccountingPeriodsByLegalEntity] 1
@@ -28,7 +29,8 @@ BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 	SET NOCOUNT ON
 	BEGIN TRY
-			SELECT DISTINCT AC.[AccountingCalendarId],
+			SELECT DISTINCT TOP 24
+							AC.[AccountingCalendarId],
 							AC.[AccountingCalendarId] AS [value],
 			                AC.[PeriodName], 
 							AC.[PeriodName] AS [label], 
@@ -55,7 +57,7 @@ BEGIN
 				JOIN [dbo].[AccountingCalendar] AC WITH(NOLOCK) ON MSL.[LegalEntityId] = AC.[LegalEntityId] --AND ISNULL(IsAdjustPeriod, 0) = 0 
 			WHERE AC.[LegalEntityId] = @LegalEntityId AND AC.[IsDeleted] = 0 --AND AC.FiscalYear >= YEAR(GETDATE()) 
 			GROUP BY AC.[AccountingCalendarId], AC.[PeriodName], AC.[FromDate], AC.[ToDate], AC.[FiscalName], AC.[FiscalYear], AC.[Period],AC.[IsAdjustPeriod],AC.[isacpStatusName],AC.[isaccStatusName],AC.[isacrStatusName],AC.[isassetStatusName],AC.[isinventoryStatusName]			
-			ORDER BY AC.[FiscalYear] DESC, AC.[Period] ASC;
+			ORDER BY AC.[FiscalYear] DESC, AC.[Period] DESC;
 	END TRY    
 		BEGIN CATCH
 				DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name() 

@@ -9,7 +9,7 @@
     [VendorRanking]             INT             NOT NULL,
     [IsPMA]                     BIT             NOT NULL,
     [IsDER]                     BIT             NOT NULL,
-    [Cost]                      DECIMAL (18, 2) NULL,
+    [Cost]                      DECIMAL (18, 6) NULL,
     [TAT]                       INT             NULL,
     [Memo]                      NVARCHAR (MAX)  NULL,
     [MasterCompanyId]           INT             NOT NULL,

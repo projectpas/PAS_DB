@@ -1,4 +1,4 @@
-CREATE TABLE [dbo].[VendorCapability] (
+﻿CREATE TABLE [dbo].[VendorCapability] (
     [VendorCapabilityId]        BIGINT          IDENTITY (1, 1) NOT NULL,
     [VendorId]                  BIGINT          NOT NULL,
     [CapabilityTypeId]          INT             NOT NULL,
@@ -8,7 +8,7 @@ CREATE TABLE [dbo].[VendorCapability] (
     [VendorRanking]             INT             NOT NULL,
     [IsPMA]                     BIT             CONSTRAINT [DF__VendorCap__IsPMA__597119F2] DEFAULT ((0)) NOT NULL,
     [IsDER]                     BIT             CONSTRAINT [DF__VendorCap__IsDER__5A653E2B] DEFAULT ((0)) NOT NULL,
-    [Cost]                      DECIMAL (18, 2) NULL,
+    [Cost]                      DECIMAL (18, 6) NULL,
     [TAT]                       INT             NULL,
     [Memo]                      NVARCHAR (MAX)  NULL,
     [MasterCompanyId]           INT             NOT NULL,
@@ -34,6 +34,8 @@ CREATE TABLE [dbo].[VendorCapability] (
     CONSTRAINT [FK_VendorCapabiliy_Vendor] FOREIGN KEY ([VendorId]) REFERENCES [dbo].[Vendor] ([VendorId]),
     CONSTRAINT [Unique_VendorCapability] UNIQUE NONCLUSTERED ([VendorId] ASC, [CapabilityTypeId] ASC, [ItemMasterId] ASC, [MasterCompanyId] ASC, [IsPMA] ASC, [IsDER] ASC)
 );
+
+
 
 
 

@@ -25,7 +25,7 @@
     [EDIDescription]          VARCHAR (100)   NULL,
     [AeroExchange]            BIT             CONSTRAINT [Vendor_DC_AeroExchange] DEFAULT ((0)) NOT NULL,
     [AeroExchangeDescription] VARCHAR (100)   NULL,
-    [CreditLimit]             DECIMAL (18, 2) NULL,
+    [CreditLimit]             DECIMAL (18, 6) NULL,
     [CreditTermsId]           INT             NULL,
     [CurrencyId]              INT             NULL,
     [DiscountId]              BIGINT          NULL,
@@ -65,6 +65,8 @@
     CONSTRAINT [FK_Vendor_VendorType] FOREIGN KEY ([VendorTypeId]) REFERENCES [dbo].[VendorType] ([VendorTypeId]),
     CONSTRAINT [Unique_VendorCode] UNIQUE NONCLUSTERED ([VendorCode] ASC, [MasterCompanyId] ASC)
 );
+
+
 
 
 

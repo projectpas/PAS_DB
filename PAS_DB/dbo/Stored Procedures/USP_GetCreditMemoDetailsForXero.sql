@@ -62,7 +62,7 @@ BEGIN
                 CMD.UnitPrice           AS UnitAmount,
                 GA.QuickBooksReferenceId AS GLAccountReferenceId,
                 --GA.AccountCode,
-                '200' as AccountCode,
+                '610' as AccountCode,
                 GA.AccountName,
                 IM.ItemMasterId
             FROM dbo.CreditMemoDetails CMD WITH(NOLOCK)
@@ -102,7 +102,7 @@ BEGIN
                 VCMD.UnitCost                   AS UnitAmount,
                 GA.QuickBooksReferenceId        AS GLAccountReferenceId,
                 --GA.AccountCode,
-                '310' as AccountCode,
+                '800' as AccountCode,
                 GA.AccountName,
                 IM.ItemMasterId
             FROM dbo.VendorCreditMemoDetail VCMD WITH(NOLOCK)

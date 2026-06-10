@@ -17,6 +17,7 @@
 	4     15/08/2025      Moin Bloch            Added @SoqId OUTPUT Param
 	5     18/08/2025      Moin Bloch            Added @LeadSourceId For SOQ
 	6     28/08/2025      Devendra Shekh		removed Text (Created From AI)
+	7     09/06/2026      Amit Ghediya			Get latest from mgn stc table [PN-16491]
 *********************************************************************************************/   
 CREATE   PROCEDURE [dbo].[USP_CreateSalesOrderQuoteFromAI]
 	@tbl_IlsRfqQuoteDetailsType IlsRfqQuoteDetailsType READONLY,
@@ -195,10 +196,15 @@ BEGIN
 				WHERE CustomerWarningId = ISNULL(@CustomerWarningId,0);				
 
 				-- Fetch Management Structure Name
+				SELECT TOP 1 @ManagementStructureId = [EntityStructureId] FROM [dbo].[EntityStructureSetup] WITH(NOLOCK) WHERE MasterCompanyId = @MasterCompanyId;
+
 				SELECT TOP 1
 				@ManagementStructureName = Code+'-'+Name
 				FROM [dbo].[ManagementStructure] WITH(NOLOCK)
-				WHERE ManagementStructureId = ISNULL(@ManagementStructureId,0)
+				WHERE ManagementStructureId = ISNULL(@ManagementStructureId,0);
+
+				
+				
 
 				DECLARE @StatusId BIGINT;
 				select @StatusId = Id from MasterSalesOrderStatus where Name = 'Open';

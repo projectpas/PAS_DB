@@ -24,7 +24,7 @@ CREATE   PROCEDURE [dbo].[USP_CreateSalesOrderQuoteFromAI]
 	@CustomerId BIGINT,
 	@MasterCompanyId INT,
 	@CreatedBy VARCHAR(256),
-	@EmployeeId BIGINT = 2,
+	@EmployeeId BIGINT = NULL,
 	@CustomerRfqId BIGINT,
 	@ItemMasterId BIGINT, --For part data,
 	@UnitSalesPriceTotal DECIMAL(18,2),
@@ -81,7 +81,7 @@ BEGIN
 				DECLARE @QuoteExpireDate DATETIME;
 				DECLARE @CurrencyId INT = 0;
 				DECLARE @ForeignExchangeRate DECIMAL(18,2) = 1;
-				DECLARE @ManagementStructureId BIGINT = 1;
+				DECLARE @ManagementStructureId BIGINT = 0;
 				DECLARE @Type VARCHAR(50)=NULL
 
 				SET @OpenDate = (SELECT CAST(GETUTCDATE() AS DATE));
@@ -183,6 +183,12 @@ BEGIN
 				FROM [dbo].[LeadSource] WITH(NOLOCK)
 				WHERE LeadSourceId = ISNULL(@LeadSourceId,0)
 
+				-- Get EmployeeId if not exists
+				IF(ISNULL(@ManagementStructureId,0) = 0)
+				BEGIN
+					SELECT TOP 1 @EmployeeId = ISNULL([EmployeeId],0),@ManagementStructureId = [ManagementStructureId] FROM [dbo].[Employee] WITH(NOLOCK)  WHERE [FirstName]='TBD' AND [MasterCompanyId] = @MasterCompanyId;
+				END
+
 				-- Fetch Employee Name
 				SELECT TOP 1
 				@EmployeeName = FirstName+' '+LastName
@@ -196,7 +202,8 @@ BEGIN
 				WHERE CustomerWarningId = ISNULL(@CustomerWarningId,0);				
 
 				-- Fetch Management Structure Name
-				SELECT TOP 1 @ManagementStructureId = [EntityStructureId] FROM [dbo].[EntityStructureSetup] WITH(NOLOCK) WHERE MasterCompanyId = @MasterCompanyId;
+				--SELECT TOP 1 @ManagementStructureId = [EntityStructureId] FROM [dbo].[EntityStructureSetup] WITH(NOLOCK) WHERE MasterCompanyId = @MasterCompanyId;
+				
 
 				SELECT TOP 1
 				@ManagementStructureName = Code+'-'+Name

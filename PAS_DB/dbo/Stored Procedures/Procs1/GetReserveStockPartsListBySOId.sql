@@ -22,7 +22,7 @@
 	6    01/24/2025   AMIT GHEDIYA		Fixed for get Reserved list after qty adjust.
 	7    01/27/2025   Vishal Suthar		Fixed for issue when Qty is adjusted.
 	8    05-01-2025	  ABHISHEK JIRAWLA  Allow Repair Management Customer Stock Stockline
-     
+   	9    10-06-2026	  Rajesh Gami		Getting LOTID from the Stockline instead of PART PN-[16681]  
  exec DBO.GetReserveStockPartsListBySOId @SalesOrderId=898
 **************************************************************/
 CREATE     PROC [dbo].[GetReserveStockPartsListBySOId]
@@ -99,8 +99,8 @@ BEGIN
 			ELSE 'OEM' 
 		END AS StockType,
 		SO.MasterCompanyId,
-		SOP.LotId,
-		SOP.IsLotAssigned AS IsLotQty
+		SL.LotId,
+		CASE WHEN ISNULL(SL.LotId,0) > 0 THEN 1 ELSE 0 END AS IsLotQty
 		FROM DBO.SalesOrder SO WITH (NOLOCK)
 		LEFT JOIN SalesOrderPartsWithTotalQtyOrder SOP ON SO.SalesOrderId = SOP.SalesOrderId
 		LEFT JOIN DBO.SalesOrderStocklineV1 Stk WITH (NOLOCK) ON SOP.SalesOrderPartId = Stk.SalesOrderPartId
@@ -145,8 +145,7 @@ BEGIN
 		SOR.IsEquPart, 
 		SOR.AltPartMasterPartId, 
 		SOR.EquPartMasterPartId,
-		SOP.LotId,
-		SOP.IsLotAssigned,
+		SL.LotId,
 		SOP.TotalQtyOrder)
 
 		,FinalReserveList AS(

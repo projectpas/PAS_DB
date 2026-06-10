@@ -61,8 +61,10 @@ BEGIN
                 CMD.Qty,
                 CMD.UnitPrice           AS UnitAmount,
                 GA.QuickBooksReferenceId AS GLAccountReferenceId,
-                GA.AccountCode,
-                GA.AccountName
+                --GA.AccountCode,
+                '1200' as AccountCode,
+                GA.AccountName,
+                IM.ItemMasterId
             FROM dbo.CreditMemoDetails CMD WITH(NOLOCK)
             INNER JOIN dbo.CreditMemo CM WITH(NOLOCK) ON CM.CreditMemoHeaderId = CMD.CreditMemoHeaderId
             LEFT JOIN dbo.ItemMaster IM WITH(NOLOCK) ON IM.ItemMasterId = CMD.ItemMasterId
@@ -99,8 +101,10 @@ BEGIN
                 VCMD.Qty,
                 VCMD.UnitCost                   AS UnitAmount,
                 GA.QuickBooksReferenceId        AS GLAccountReferenceId,
-                GA.AccountCode,
-                GA.AccountName
+                --GA.AccountCode,
+                '2000' as AccountCode,
+                GA.AccountName,
+                IM.ItemMasterId
             FROM dbo.VendorCreditMemoDetail VCMD WITH(NOLOCK)
             INNER JOIN dbo.VendorCreditMemo VCM WITH(NOLOCK) ON VCM.VendorCreditMemoId = VCMD.VendorCreditMemoId
             LEFT JOIN Stockline sl WITH (NOLOCK) ON VCMD.StockLineId = sl.StockLineId

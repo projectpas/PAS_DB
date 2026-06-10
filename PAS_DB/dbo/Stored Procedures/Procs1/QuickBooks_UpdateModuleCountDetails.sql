@@ -432,7 +432,7 @@ BEGIN
 			LEFT JOIN (
 				SELECT MasterCompanyId, COUNT(QuickBooksReferenceId) AS CreditMemoCount
 				FROM dbo.CreditMemo  WITH(NOLOCK)
-				WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(QuickBooksReferenceId, 0) > 0
+				WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(QuickBooksReferenceId, '') <> '' AND [IntegrationTypeId] = @QBIntegrationTypeId
 				GROUP BY MasterCompanyId
 			) AS CreditMemoData ON CreditMemoData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @CreditMemoModuleId
 
@@ -440,7 +440,7 @@ BEGIN
 			LEFT JOIN (
 				SELECT MasterCompanyId, COUNT(IsUpdated) AS CreditMemoCount
 				FROM dbo.CreditMemo  WITH(NOLOCK)
-				WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(IsUpdated, 0) = 1
+				WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(IsUpdated, 0) = 1 AND [IntegrationTypeId] = @QBIntegrationTypeId
 				GROUP BY MasterCompanyId
 			) AS PendingCreditMemoData ON PendingCreditMemoData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @CreditMemoModuleId
 
@@ -448,7 +448,7 @@ BEGIN
 			LEFT JOIN (
 				SELECT MasterCompanyId, COUNT(CreditMemoHeaderId) AS CreditMemoCount
 				FROM dbo.CreditMemo  WITH(NOLOCK)
-				WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0
+				WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND [IntegrationTypeId] = @QBIntegrationTypeId
 				GROUP BY MasterCompanyId
 			) AS AllCreditMemoData ON AllCreditMemoData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @CreditMemoModuleId
 			WHERE ACI.ModuleId = @CreditMemoModuleId

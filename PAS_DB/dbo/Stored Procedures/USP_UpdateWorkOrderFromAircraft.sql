@@ -14,6 +14,7 @@
 	1    01/06/2026		Moin Bloch			Created
 	2    8/06/2026		Divyesh Kathiriya   Update WorkOrderNum on AircraftMaintenanceProgram Table [PN-16704]
 	3    02/06/2026     Amit Ghediya		Update for get CustomerId from AircraftRegistryHeader [PN-16679]
+	4    09/06/2026     Amit Ghediya		Adding Header data in History module [PN-16581]
 
 **************************************************************/
 CREATE    PROCEDURE [dbo].[USP_UpdateWorkOrderFromAircraft]
@@ -348,9 +349,7 @@ BEGIN
 					@WorkOrderStr   VARCHAR(100)  = NULL;
 
 			-- Get WO number for NewValue label
-			SELECT @WorkOrderStr = 'WorkOrder Num.: ' + ISNULL(WorkOrderNum,'')
-			FROM dbo.WorkOrder WITH(NOLOCK)
-			WHERE WorkOrderId = @WorkOrderId;
+			SELECT @WorkOrderStr = 'WorkOrder Num.: ' + ISNULL(WorkOrderNum,'') FROM dbo.WorkOrder WITH(NOLOCK) WHERE WorkOrderId = @WorkOrderId;
 
 			-- NEW values after update
 			DECLARE @New_PartNumber         VARCHAR(200)    = ISNULL(@PartNumber,''),
@@ -380,15 +379,19 @@ BEGIN
 			SET @TemplateBody += 'Updated By: ' + ISNULL(@CreatedBy,'') + ' | ';
 			SET @TemplateBody += 'Updated Date: ' + CONVERT(VARCHAR(30), GETUTCDATE(), 103);
 
-			-- Remove trailing ' | ' if present
-			IF RIGHT(RTRIM(@TemplateBody), 3) = ' | '
+			-- Remove trailing ' | ' safely without touching the value
+			SET @TemplateBody = RTRIM(@TemplateBody);
+
+			IF RIGHT(@TemplateBody, 3) = ' | '
 				SET @TemplateBody = LEFT(@TemplateBody, LEN(@TemplateBody) - 3);
+			ELSE IF RIGHT(@TemplateBody, 2) = ' |'
+				SET @TemplateBody = LEFT(@TemplateBody, LEN(@TemplateBody) - 2);
+			ELSE IF RIGHT(@TemplateBody, 1) = '|'
+				SET @TemplateBody = LEFT(@TemplateBody, LEN(@TemplateBody) - 1);
 
 			-- Call usp_SaveAircraftHistory once
 			IF ISNULL(LTRIM(RTRIM(@TemplateBody)), '') <> ''
 			BEGIN
-				DECLARE @WorkOrderIdStr VARCHAR(50) = CAST(ISNULL(@WorkOrderId, 0) AS VARCHAR(50));
-
 				EXEC [dbo].[USP_SaveAircraftHistory] @ModuleId = 2,@ModuleName = 'Aircraft WorkOrder',@RefferenceId = @AircraftRegistryId,@FieldsName = NULL,
 											 @OldValue = NULL,@NewValue = @WorkOrderStr,@HistoryText = @TemplateBody,@Activity = @Activity,@MasterCompanyId = @MasterCompanyId,
 											 @CreatedBy = @CreatedBy;

@@ -5,7 +5,7 @@
     [CalibrationFrequencyMonths]        INT             NULL,
     [CalibrationFrequencyDays]          BIGINT          NULL,
     [CalibrationDefaultVendorId]        BIGINT          NULL,
-    [CalibrationDefaultCost]            DECIMAL (18, 2) NULL,
+    [CalibrationDefaultCost]            DECIMAL (18, 6) NULL,
     [CalibrationCurrencyId]             INT             NULL,
     [CalibrationGlAccountId]            BIGINT          NULL,
     [CalibrationMemo]                   NVARCHAR (MAX)  NULL,
@@ -20,14 +20,14 @@
     [CertificationFrequencyMonths]      INT             NULL,
     [CertificationFrequencyDays]        BIGINT          NULL,
     [CertificationDefaultVendorId]      BIGINT          NULL,
-    [CertificationDefaultCost]          DECIMAL (18, 2) NULL,
+    [CertificationDefaultCost]          DECIMAL (18, 6) NULL,
     [CertificationCurrencyId]           INT             NULL,
     [CertificationGlAccountId]          BIGINT          NULL,
     [CertificationMemo]                 NVARCHAR (MAX)  NULL,
     [InspectionRequired]                BIT             CONSTRAINT [AssetCalibration_InspectionRequired] DEFAULT ((0)) NULL,
     [InspectionFrequencyMonths]         INT             NULL,
     [InspectionFrequencyDays]           BIGINT          NULL,
-    [InspectionDefaultCost]             DECIMAL (18, 2) NULL,
+    [InspectionDefaultCost]             DECIMAL (18, 6) NULL,
     [InspectionCurrencyId]              INT             NULL,
     [InspectionDefaultVendorId]         BIGINT          NULL,
     [InspectionGlaAccountId]            BIGINT          NULL,
@@ -35,7 +35,7 @@
     [VerificationRequired]              BIT             CONSTRAINT [AssetCalibration_VerificationRequired] DEFAULT ((0)) NULL,
     [VerificationFrequencyMonths]       INT             NULL,
     [VerificationFrequencyDays]         BIGINT          NULL,
-    [VerificationDefaultCost]           DECIMAL (18, 2) NULL,
+    [VerificationDefaultCost]           DECIMAL (18, 6) NULL,
     [VerificationCurrencyId]            INT             NULL,
     [VerificationDefaultVendorId]       BIGINT          NULL,
     [VerificationGlAccountId]           BIGINT          NULL,
@@ -68,6 +68,8 @@
     CONSTRAINT [FK_AssetCalibration_VerificationDefaultVendorId] FOREIGN KEY ([VerificationDefaultVendorId]) REFERENCES [dbo].[Vendor] ([VendorId]),
     CONSTRAINT [FK_AssetCalibration_VerificationGlAccountId] FOREIGN KEY ([VerificationGlAccountId]) REFERENCES [dbo].[GLAccount] ([GLAccountId])
 );
+
+
 
 
 

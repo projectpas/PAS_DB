@@ -39,22 +39,27 @@
     [InstallFlightTime]              DECIMAL (18, 6) NULL,
     [InstallCycles]                  DECIMAL (18, 6) NULL,
     [LastFlownDate]                  DATETIME2 (7)   NULL,
+    [PurchaseOrderNumber]            VARCHAR (50)    NULL,
+    [RepairOrderNumber]              VARCHAR (50)    NULL,
+    [WorksheetNumber]                VARCHAR (50)    NULL,
+    [WorkOrderNum]                   VARCHAR (30)    NULL,
     PRIMARY KEY CLUSTERED ([AircraftInstalledPartDetailsId] ASC),
     CONSTRAINT [FK_AircraftInstalledPartDetails_AircraftRegistryId] FOREIGN KEY ([AircraftRegistryId]) REFERENCES [dbo].[AircraftRegistryHeader] ([AircraftRegistryId]),
     CONSTRAINT [FK_AircraftInstalledPartDetails_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId])
 );
 
-GO
 
-CREATE TRIGGER [dbo].[trg_Audit_dbo_AircraftInstalledPartDetails]
+
+GO
+CREATE   TRIGGER [dbo].[trg_Audit_dbo_AircraftInstalledPartDetails]
 ON [dbo].[AircraftInstalledPartDetails]
 AFTER INSERT, UPDATE, DELETE
 AS
 BEGIN
     SET NOCOUNT ON;
     ;WITH
-    d AS (SELECT d.[AircraftInstalledPartDetailsId],d.[AircraftRegistryId],d.[ATAChapterId],d.[ItemMasterId],d.[PartNumber],d.[PartDescription],d.[IsLLP],d.[IsSerialized],d.[SerialNumber],d.[DateInstalled],d.[PositionCode],d.[Hours],d.[Minutes],d.[FlightHours],d.[Cycles],d.[Landings],d.[EngineStarts],d.[Memo],d.[MasterCompanyId],d.[CreatedBy],d.[UpdatedBy],d.[CreatedDate],d.[UpdatedDate],d.[IsActive],d.[IsDeleted],d.[StockLineId],d.[ConditionId],d.[Quantity],d.[PositionCodeId],d.[SequenceNum],d.[partFlightHours],d.[partCycles],d.[partLandings],d.[partEngineStarts],d.[PartFlightMinutes],d.[FlightMinutes],d.[InstallFlightHours],d.[InstallFlightTime],d.[InstallCycles],d.[LastFlownDate] FROM deleted d),
-    i AS (SELECT i.[AircraftInstalledPartDetailsId],i.[AircraftRegistryId],i.[ATAChapterId],i.[ItemMasterId],i.[PartNumber],i.[PartDescription],i.[IsLLP],i.[IsSerialized],i.[SerialNumber],i.[DateInstalled],i.[PositionCode],i.[Hours],i.[Minutes],i.[FlightHours],i.[Cycles],i.[Landings],i.[EngineStarts],i.[Memo],i.[MasterCompanyId],i.[CreatedBy],i.[UpdatedBy],i.[CreatedDate],i.[UpdatedDate],i.[IsActive],i.[IsDeleted],i.[StockLineId],i.[ConditionId],i.[Quantity],i.[PositionCodeId],i.[SequenceNum],i.[partFlightHours],i.[partCycles],i.[partLandings],i.[partEngineStarts],i.[PartFlightMinutes],i.[FlightMinutes],i.[InstallFlightHours],i.[InstallFlightTime],i.[InstallCycles],i.[LastFlownDate] FROM inserted i),
+    d AS (SELECT d.[AircraftInstalledPartDetailsId],d.[AircraftRegistryId],d.[ATAChapterId],d.[ItemMasterId],d.[PartNumber],d.[PartDescription],d.[IsLLP],d.[IsSerialized],d.[SerialNumber],d.[DateInstalled],d.[PositionCode],d.[Hours],d.[Minutes],d.[FlightHours],d.[Cycles],d.[Landings],d.[EngineStarts],d.[Memo],d.[MasterCompanyId],d.[CreatedBy],d.[UpdatedBy],d.[CreatedDate],d.[UpdatedDate],d.[IsActive],d.[IsDeleted],d.[StockLineId],d.[ConditionId],d.[Quantity],d.[PositionCodeId],d.[SequenceNum],d.[partFlightHours],d.[partCycles],d.[partLandings],d.[partEngineStarts],d.[PartFlightMinutes],d.[FlightMinutes],d.[InstallFlightHours],d.[InstallFlightTime],d.[InstallCycles],d.[LastFlownDate],d.[PurchaseOrderNumber],d.[RepairOrderNumber],d.[WorksheetNumber],d.[WorkOrderNum] FROM deleted d),
+    i AS (SELECT i.[AircraftInstalledPartDetailsId],i.[AircraftRegistryId],i.[ATAChapterId],i.[ItemMasterId],i.[PartNumber],i.[PartDescription],i.[IsLLP],i.[IsSerialized],i.[SerialNumber],i.[DateInstalled],i.[PositionCode],i.[Hours],i.[Minutes],i.[FlightHours],i.[Cycles],i.[Landings],i.[EngineStarts],i.[Memo],i.[MasterCompanyId],i.[CreatedBy],i.[UpdatedBy],i.[CreatedDate],i.[UpdatedDate],i.[IsActive],i.[IsDeleted],i.[StockLineId],i.[ConditionId],i.[Quantity],i.[PositionCodeId],i.[SequenceNum],i.[partFlightHours],i.[partCycles],i.[partLandings],i.[partEngineStarts],i.[PartFlightMinutes],i.[FlightMinutes],i.[InstallFlightHours],i.[InstallFlightTime],i.[InstallCycles],i.[LastFlownDate],i.[PurchaseOrderNumber],i.[RepairOrderNumber],i.[WorksheetNumber],i.[WorkOrderNum] FROM inserted i),
     paired AS (
         SELECT
             COALESCE(i.AircraftInstalledPartDetailsId, d.AircraftInstalledPartDetailsId ) AS AircraftInstalledPartDetailsId,
@@ -160,22 +165,22 @@ BEGIN
         SELECT pkjson,
                'LimitsFlightHoursMinutes' AS columnname,
                CASE
-                   WHEN MIN(CASE WHEN columnname = 'PartFlightHours' THEN oldvalue END) IS NULL
+                   WHEN MIN(CASE WHEN columnname = 'partFlightHours' THEN oldvalue END) IS NULL
                         AND MIN(CASE WHEN columnname = 'PartFlightMinutes' THEN oldvalue END) IS NULL
                    THEN NULL
-                   ELSE CONCAT(CAST(COALESCE(CAST(CAST(MIN(CASE WHEN columnname = 'PartFlightHours' THEN oldvalue END) AS DECIMAL(18,6)) AS INT), 0) AS VARCHAR(10)), ':',
+                   ELSE CONCAT(CAST(COALESCE(CAST(CAST(MIN(CASE WHEN columnname = 'partFlightHours' THEN oldvalue END) AS DECIMAL(18,6)) AS INT), 0) AS VARCHAR(10)), ':',
                                CAST(COALESCE(CAST(CAST(MIN(CASE WHEN columnname = 'PartFlightMinutes' THEN oldvalue END) AS DECIMAL(18,6)) AS INT), 0) AS VARCHAR(10)))
                END AS oldvalue,
                CASE
-                   WHEN MIN(CASE WHEN columnname = 'PartFlightHours' THEN newvalue END) IS NULL
+                   WHEN MIN(CASE WHEN columnname = 'partFlightHours' THEN newvalue END) IS NULL
                         AND MIN(CASE WHEN columnname = 'PartFlightMinutes' THEN newvalue END) IS NULL
                    THEN NULL
-                   ELSE CONCAT(CAST(COALESCE(CAST(CAST(MIN(CASE WHEN columnname = 'PartFlightHours' THEN newvalue END) AS DECIMAL(18,6)) AS INT), 0) AS VARCHAR(10)), ':',
+                   ELSE CONCAT(CAST(COALESCE(CAST(CAST(MIN(CASE WHEN columnname = 'partFlightHours' THEN newvalue END) AS DECIMAL(18,6)) AS INT), 0) AS VARCHAR(10)), ':',
                                CAST(COALESCE(CAST(CAST(MIN(CASE WHEN columnname = 'PartFlightMinutes' THEN newvalue END) AS DECIMAL(18,6)) AS INT), 0) AS VARCHAR(10)))
                END AS newvalue,
                action
         FROM merged
-        WHERE columnname IN ('PartFlightHours', 'PartFlightMinutes')
+        WHERE columnname IN ('partFlightHours', 'PartFlightMinutes')
         GROUP BY pkjson, action
     ),
     recordedhourminutes_changes AS (
@@ -222,6 +227,107 @@ BEGIN
         WHERE columnname IN ('FlightHoursRemainingHours', 'FlightHoursRemainingMinutes')
         GROUP BY pkjson, action
     ),
+    remaining_calculations AS (
+        SELECT
+            COALESCE(i.AircraftInstalledPartDetailsId, d.AircraftInstalledPartDetailsId) AS AircraftInstalledPartDetailsId,
+            (SELECT COALESCE(i.AircraftInstalledPartDetailsId, d.AircraftInstalledPartDetailsId) AS AircraftInstalledPartDetailsId
+                FOR JSON PATH, WITHOUT_ARRAY_WRAPPER) AS pkjson,
+            CASE
+                WHEN i.AircraftInstalledPartDetailsId IS NOT NULL AND d.AircraftInstalledPartDetailsId IS NOT NULL THEN 'U'
+                WHEN i.AircraftInstalledPartDetailsId IS NOT NULL AND d.AircraftInstalledPartDetailsId IS NULL     THEN 'I'
+                WHEN i.AircraftInstalledPartDetailsId IS NULL     AND d.AircraftInstalledPartDetailsId IS NOT NULL THEN 'D'
+            END AS action,
+            CASE
+                WHEN d.AircraftInstalledPartDetailsId IS NULL THEN NULL
+                WHEN ISNULL(d.PartFlightHours,0) = 0 AND ISNULL(d.PartFlightMinutes,0) = 0 THEN 0
+                WHEN oldFlight.RemainingTotalMinutes < 0 THEN 0
+                ELSE oldFlight.RemainingTotalMinutes / 60
+            END AS OldRemainingFlightHours,
+            CASE
+                WHEN d.AircraftInstalledPartDetailsId IS NULL THEN NULL
+                WHEN ISNULL(d.PartFlightHours,0) = 0 AND ISNULL(d.PartFlightMinutes,0) = 0 THEN 0
+                WHEN oldFlight.RemainingTotalMinutes < 0 THEN 0
+                ELSE oldFlight.RemainingTotalMinutes % 60
+            END AS OldRemainingFlightMinutes,
+            CASE
+                WHEN i.AircraftInstalledPartDetailsId IS NULL THEN NULL
+                WHEN ISNULL(i.PartFlightHours,0) = 0 AND ISNULL(i.PartFlightMinutes,0) = 0 THEN 0
+                WHEN newFlight.RemainingTotalMinutes < 0 THEN 0
+                ELSE newFlight.RemainingTotalMinutes / 60
+            END AS NewRemainingFlightHours,
+            CASE
+                WHEN i.AircraftInstalledPartDetailsId IS NULL THEN NULL
+                WHEN ISNULL(i.PartFlightHours,0) = 0 AND ISNULL(i.PartFlightMinutes,0) = 0 THEN 0
+                WHEN newFlight.RemainingTotalMinutes < 0 THEN 0
+                ELSE newFlight.RemainingTotalMinutes % 60
+            END AS NewRemainingFlightMinutes,
+            CASE
+                WHEN d.AircraftInstalledPartDetailsId IS NULL THEN NULL
+                WHEN ISNULL(d.PartCycles,0) > 0 THEN ISNULL(d.PartCycles,0) - ISNULL(d.InstallCycles,0) - ISNULL(d.Cycles,0)
+                ELSE 0
+            END AS OldRemainingCycles,
+            CASE
+                WHEN i.AircraftInstalledPartDetailsId IS NULL THEN NULL
+                WHEN ISNULL(i.PartCycles,0) > 0 THEN ISNULL(i.PartCycles,0) - ISNULL(i.InstallCycles,0) - ISNULL(i.Cycles,0)
+                ELSE 0
+            END AS NewRemainingCycles,
+            CASE
+                WHEN d.AircraftInstalledPartDetailsId IS NULL THEN NULL
+                WHEN ISNULL(d.PartLandings,0) > 0 THEN ISNULL(d.PartLandings,0) - ISNULL(d.Landings,0)
+                ELSE 0
+            END AS OldRemainingLandings,
+            CASE
+                WHEN i.AircraftInstalledPartDetailsId IS NULL THEN NULL
+                WHEN ISNULL(i.PartLandings,0) > 0 THEN ISNULL(i.PartLandings,0) - ISNULL(i.Landings,0)
+                ELSE 0
+            END AS NewRemainingLandings,
+            CASE
+                WHEN d.AircraftInstalledPartDetailsId IS NULL THEN NULL
+                WHEN ISNULL(d.PartEngineStarts,0) > 0 THEN ISNULL(d.PartEngineStarts,0) - ISNULL(d.EngineStarts,0)
+                ELSE 0
+            END AS OldRemainingEngineStarts,
+            CASE
+                WHEN i.AircraftInstalledPartDetailsId IS NULL THEN NULL
+                WHEN ISNULL(i.PartEngineStarts,0) > 0 THEN ISNULL(i.PartEngineStarts,0) - ISNULL(i.EngineStarts,0)
+                ELSE 0
+            END AS NewRemainingEngineStarts
+        FROM d
+        FULL OUTER JOIN i
+            ON i.AircraftInstalledPartDetailsId = d.AircraftInstalledPartDetailsId
+        CROSS APPLY (VALUES (
+            (CAST(ISNULL(d.PartFlightHours,0) AS INT) * 60 + CAST(ISNULL(d.PartFlightMinutes,0) AS INT))
+            - (CAST(ISNULL(d.InstallFlightHours,0) AS INT) * 60 + CAST(ISNULL(d.InstallFlightTime,0) AS INT))
+            - (CAST(ISNULL(d.FlightHours,0) AS INT) * 60 + CAST(ISNULL(d.FlightMinutes,0) AS INT))
+        )) oldFlight(RemainingTotalMinutes)
+        CROSS APPLY (VALUES (
+            (CAST(ISNULL(i.PartFlightHours,0) AS INT) * 60 + CAST(ISNULL(i.PartFlightMinutes,0) AS INT))
+            - (CAST(ISNULL(i.InstallFlightHours,0) AS INT) * 60 + CAST(ISNULL(i.InstallFlightTime,0) AS INT))
+            - (CAST(ISNULL(i.FlightHours,0) AS INT) * 60 + CAST(ISNULL(i.FlightMinutes,0) AS INT))
+        )) newFlight(RemainingTotalMinutes)
+    ),
+    remaining_changes AS (
+        SELECT
+            rc.pkjson,
+            v.columnname,
+            v.oldvalue,
+            v.newvalue,
+            rc.action
+        FROM remaining_calculations rc
+        CROSS APPLY (VALUES
+            ('RemainingFlightHoursMinutes',
+                CASE WHEN rc.action = 'I' THEN NULL ELSE CONCAT(CAST(rc.OldRemainingFlightHours AS VARCHAR(10)), ':', CAST(rc.OldRemainingFlightMinutes AS VARCHAR(10))) END,
+                CASE WHEN rc.action = 'D' THEN NULL ELSE CONCAT(CAST(rc.NewRemainingFlightHours AS VARCHAR(10)), ':', CAST(rc.NewRemainingFlightMinutes AS VARCHAR(10))) END),
+            ('RemainingCycles',
+                CASE WHEN rc.action = 'I' THEN NULL ELSE CAST(rc.OldRemainingCycles AS VARCHAR(50)) END,
+                CASE WHEN rc.action = 'D' THEN NULL ELSE CAST(rc.NewRemainingCycles AS VARCHAR(50)) END),
+            ('RemainingLandings',
+                CASE WHEN rc.action = 'I' THEN NULL ELSE CAST(rc.OldRemainingLandings AS VARCHAR(50)) END,
+                CASE WHEN rc.action = 'D' THEN NULL ELSE CAST(rc.NewRemainingLandings AS VARCHAR(50)) END),
+            ('RemainingEngineStarts',
+                CASE WHEN rc.action = 'I' THEN NULL ELSE CAST(rc.OldRemainingEngineStarts AS VARCHAR(50)) END,
+                CASE WHEN rc.action = 'D' THEN NULL ELSE CAST(rc.NewRemainingEngineStarts AS VARCHAR(50)) END)
+        ) v(columnname, oldvalue, newvalue)
+    ),
     other_changes AS (
         SELECT
             pkjson,
@@ -233,14 +339,10 @@ BEGIN
         WHERE columnname NOT IN (
             'InstallFlightHours',
             'InstallFlightTime',
-            'PartFlightHours',
+            'partFlightHours',
             'PartFlightMinutes',
-
             'FlightHours',
-            'FlightMinutes',
-
-            'FlightHoursRemainingHours',
-            'FlightHoursRemainingMinutes'
+            'FlightMinutes'
         )
     ),
     all_changes AS (
@@ -250,7 +352,7 @@ BEGIN
         UNION ALL
         SELECT * FROM recordedhourminutes_changes
         UNION ALL
-        SELECT * FROM remaininghourminutes_changes
+        SELECT * FROM remaining_changes
         UNION ALL
         SELECT * FROM other_changes
     )
@@ -262,14 +364,12 @@ BEGIN
         m.ColumnName,
         m.Action,
          CASE            
-            WHEN m.ColumnName = 'ATAChapterId' THEN NULLIF(CONCAT_WS(' - ', NULLIF(imamOld.Level1, ''), NULLIF(imamOld.Level2, ''), NULLIF(imamOld.Level3, '')), '')
-            --WHEN m.ColumnName = 'ConditionId' THEN cOld.[Description]
+            WHEN m.ColumnName = 'ATAChapterId' THEN NULLIF(CONCAT_WS(' - ', NULLIF(imamOld.Level1, ''), NULLIF(imamOld.Level2, ''), NULLIF(imamOld.Level3, '')), '')            
             WHEN m.ColumnName = 'StockLineId' THEN stOld.StockLineNumber 
             ELSE m.OldValue
         END AS OldValue,
         CASE
-            WHEN m.ColumnName = 'ATAChapterId' THEN NULLIF(CONCAT_WS(' - ', NULLIF(imamNew.Level1, ''), NULLIF(imamNew.Level2, ''), NULLIF(imamNew.Level3, '')), '')
-            --WHEN m.ColumnName = 'ConditionId' THEN cNew.[Description]          
+            WHEN m.ColumnName = 'ATAChapterId' THEN NULLIF(CONCAT_WS(' - ', NULLIF(imamNew.Level1, ''), NULLIF(imamNew.Level2, ''), NULLIF(imamNew.Level3, '')), '')                   
             WHEN m.ColumnName = 'StockLineId' THEN stNew.StockLineNumber
             ELSE m.NewValue
         END AS NewValue
@@ -277,9 +377,7 @@ BEGIN
     LEFT JOIN dbo.ItemMasterAircraftMapping imamOld WITH(NOLOCK) ON m.ColumnName = 'ATAChapterId' AND TRY_CAST(m.OldValue AS BIGINT) = imamOld.ItemMasterAircraftMappingId
     LEFT JOIN dbo.ItemMasterAircraftMapping imamNew WITH(NOLOCK) ON m.ColumnName = 'ATAChapterId' AND TRY_CAST(m.NewValue AS BIGINT) = imamNew.ItemMasterAircraftMappingId
     LEFT JOIN dbo.Stockline stOld WITH(NOLOCK) ON m.ColumnName = 'StockLineId' AND TRY_CAST(m.OldValue AS BIGINT) = stOld.StockLineId
-    LEFT JOIN dbo.Stockline stNew WITH(NOLOCK) ON m.ColumnName = 'StockLineId' AND TRY_CAST(m.NewValue AS BIGINT) = stNew.StockLineId
-    --LEFT JOIN dbo.Condition cOld WITH(NOLOCK) ON m.ColumnName = 'ConditionId' AND TRY_CAST(m.OldValue AS BIGINT) = cOld.ConditionId
-    --LEFT JOIN dbo.Condition cNew WITH(NOLOCK) ON m.ColumnName = 'ConditionId' AND TRY_CAST(m.NewValue AS BIGINT) = cNew.ConditionId
+    LEFT JOIN dbo.Stockline stNew WITH(NOLOCK) ON m.ColumnName = 'StockLineId' AND TRY_CAST(m.NewValue AS BIGINT) = stNew.StockLineId   
     WHERE 
         m.ColumnName <> 'AircraftInstalledPartDetailsId' and (
         (m.Action = 'U' AND (

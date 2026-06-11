@@ -117,8 +117,8 @@ BEGIN
 			 DECLARE @commonBatchDetailsId BIGINT;
 			 DECLARE @BDetailsId BIGINT;
 			 DECLARE @manualentry BIT;
-			 DECLARE @DAmount DECIMAL(18,2)=0;
-			 DECLARE @CAmount DECIMAL(18,2)=0;
+			 DECLARE @DAmount DECIMAL(18,6)=0;
+			 DECLARE @CAmount DECIMAL(18,6)=0;
 			 DECLARE @isdebit BIT;
 			 SET @commonBatchDetailsId = (SELECT TOP 1 [CommonJournalBatchDetailId] FROM @tbl_CommonJournalBatchDetails)
 
@@ -128,9 +128,9 @@ BEGIN
 			 
 			 UPDATE [dbo].[BatchDetails] set DebitAmount=@DAmount,CreditAmount=@CAmount,IsDebit=@isdebit,UpdatedDate=GETUTCDATE() WHERE [JournalBatchDetailId] = @BDetailsId
 			 		     
-			 DECLARE @TotalDebit DECIMAL(18,2)=0
-	         DECLARE @TotalCredit DECIMAL(18,2)=0
-	         DECLARE @TotalBalance DECIMAL(18,2)=0
+			 DECLARE @TotalDebit DECIMAL(18,6)=0
+	         DECLARE @TotalCredit DECIMAL(18,6)=0
+	         DECLARE @TotalBalance DECIMAL(18,6)=0
 			 DECLARE @JournalBatchHeaderId BIGINT 
 			 DECLARE @MasterCompanyId BIGINT 
 

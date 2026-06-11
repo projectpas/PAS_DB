@@ -41,13 +41,13 @@
     [WarningId]                         BIGINT          NULL,
     [Memo]                              NVARCHAR (MAX)  NULL,
     [ExportCountryId]                   SMALLINT        NULL,
-    [ExportValue]                       NUMERIC (18, 2) NULL,
+    [ExportValue]                       DECIMAL (18, 6) NULL,
     [ExportCurrencyId]                  INT             NULL,
-    [ExportWeight]                      NUMERIC (18, 2) NULL,
+    [ExportWeight]                      DECIMAL (18, 6) NULL,
     [ExportWeightUnit]                  VARCHAR (30)    NULL,
-    [ExportSizeLength]                  NUMERIC (18, 2) NULL,
-    [ExportSizeWidth]                   NUMERIC (18, 2) NULL,
-    [ExportSizeHeight]                  NUMERIC (18, 2) NULL,
+    [ExportSizeLength]                  DECIMAL (18, 6) NULL,
+    [ExportSizeWidth]                   DECIMAL (18, 6) NULL,
+    [ExportSizeHeight]                  DECIMAL (18, 6) NULL,
     [ExportSizeUnit]                    VARCHAR (30)    NULL,
     [ExportClassificationId]            TINYINT         NULL,
     [PurchaseCurrencyId]                INT             NOT NULL,
@@ -81,11 +81,11 @@
     [StockLevel]                        INT             CONSTRAINT [ItemMaster_StockLevel] DEFAULT ((0)) NOT NULL,
     [ExportECCN]                        VARCHAR (200)   NULL,
     [ITARNumber]                        VARCHAR (200)   NULL,
-    [ShelfLifeAvailable]                NUMERIC (18, 2) CONSTRAINT [ItemMaster_ShelfLifeAvailable] DEFAULT ((0)) NOT NULL,
-    [mfgHours]                          NUMERIC (18, 2) CONSTRAINT [ItemMaster_mfgHours] DEFAULT ((0)) NOT NULL,
+    [ShelfLifeAvailable]                DECIMAL (18, 6) CONSTRAINT [ItemMaster_ShelfLifeAvailable] DEFAULT ((0)) NULL,
+    [mfgHours]                          DECIMAL (18, 6) CONSTRAINT [ItemMaster_mfgHours] DEFAULT ((0)) NULL,
     [IsPma]                             BIT             CONSTRAINT [ItemMaster_IsPma] DEFAULT ((0)) NOT NULL,
-    [turnTimeMfg]                       NUMERIC (18, 2) CONSTRAINT [ItemMaster_turnTimeMfg] DEFAULT ((0)) NOT NULL,
-    [turnTimeBenchTest]                 NUMERIC (18, 2) CONSTRAINT [ItemMaster_turnTimeBenchTest] DEFAULT ((0)) NOT NULL,
+    [turnTimeMfg]                       DECIMAL (18, 6) CONSTRAINT [ItemMaster_turnTimeMfg] DEFAULT ((0)) NULL,
+    [turnTimeBenchTest]                 DECIMAL (18, 6) CONSTRAINT [ItemMaster_turnTimeBenchTest] DEFAULT ((0)) NULL,
     [IsExportUnspecified]               BIT             NULL,
     [IsExportNONMilitary]               BIT             NULL,
     [IsExportMilitary]                  BIT             NULL,
@@ -211,6 +211,8 @@
     CONSTRAINT [FK_ItemMaster_Warning] FOREIGN KEY ([WarningId]) REFERENCES [dbo].[Warning] ([WarningId]),
     CONSTRAINT [UC_ItemMaster_partnumber_manufacturerId] UNIQUE NONCLUSTERED ([partnumber] ASC, [ManufacturerId] ASC, [MasterCompanyId] ASC)
 );
+
+
 
 
 

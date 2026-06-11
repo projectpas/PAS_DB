@@ -19,7 +19,7 @@
     [IsMaterialCheck]             BIT             NULL,
     [MaterialCost]                DECIMAL (18, 6) NULL,
     [MaterialCostPercent]         BIGINT          NULL,
-    [MaterialCostPlus]            DECIMAL (18, 2) NULL,
+    [MaterialCostPlus]            DECIMAL (18, 6) NULL,
     [IsLaborCheck]                BIT             NULL,
     [LaborCost]                   DECIMAL (18, 6) NULL,
     [LaborCostPercent]            BIGINT          NULL,

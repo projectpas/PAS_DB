@@ -12,13 +12,15 @@
  **************************************************************           
   ** Change History           
  **************************************************************           
- ** PR   Date         Author		Change Description            
- ** --   --------     -------		--------------------------------          
-    1    09/20/2024   Vishal Suthar Created
-    2    12/03/2024   Vishal Suthar Handled null values
-    3    12/09/2024   Vishal Suthar Fix for qty issue when stockline is not added
+ ** PR   Date         Author			Change Description            
+ ** --   --------     -------			--------------------------------          
+    1    09/20/2024   Vishal Suthar		Created
+    2    12/03/2024   Vishal Suthar		Handled null values
+    3    12/09/2024   Vishal Suthar		Fix for qty issue when stockline is not added
   	4    19-SEP-2025  RAJESH GAMI	    Added return field: netSalesPricePerUnit        
 	5    05-NOV-2025  RAJESH GAMI	    Added return field: TotalPartCost 
+	6    11-JUNE-2025 Vishal Suthar	    Added/Fixed Order By to keep the sequence same.
+
  -- EXEC DBO.GetSalesOrderQuoteParts 1300
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[GetSalesOrderQuoteParts]
@@ -163,8 +165,7 @@ BEGIN
 		LEFT JOIN DBO.[Priority] pri WITH (NOLOCK) ON part.PriorityId = pri.PriorityId
 		LEFT JOIN DBO.SalesOrderQuote soq WITH (NOLOCK) ON part.SalesOrderQuoteId = soq.SalesOrderQuoteId
 		LEFT JOIN DBO.Currency fcu WITH (NOLOCK) ON part.CurrencyId = fcu.CurrencyId
-		WHERE part.SalesOrderQuoteId = @SalesQuoteId AND part.IsDeleted = 0
-		ORDER BY part.SalesOrderQuotePartId;
+		WHERE part.SalesOrderQuoteId = @SalesQuoteId AND part.IsDeleted = 0;
 
 
 		;WITH CTE_Cost AS (
@@ -180,7 +181,8 @@ BEGIN
 			(((main.QtyRequested - ISNULL(c.TotalQtyQuoted, 0)) * ISNULL(main.MainUnitSalesPrice, 0))
 			  + ISNULL(c.TotalNetSalePriceExtended, 0)) AS TotalPartCost
 		FROM #tmpSOPartTblView main
-		LEFT JOIN CTE_Cost c ON main.SalesOrderQuotePartId = c.SalesOrderQuotePartId;
+		LEFT JOIN CTE_Cost c ON main.SalesOrderQuotePartId = c.SalesOrderQuotePartId
+		ORDER BY main.SalesOrderQuotePartId;
 
 	END TRY
 	BEGIN CATCH

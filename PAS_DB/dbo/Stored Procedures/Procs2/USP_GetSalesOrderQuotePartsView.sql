@@ -16,10 +16,11 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
 	1    12/04/2024   Vishal Suthar Created
+	2    06/11/2026   Vishal Suthar Added/Fixed Order By to keep the sequence same. 
 
   EXEC [dbo].[USP_GetSalesOrderQuotePartsView] 701
 **************************************************************/
-CREATE   PROCEDURE [DBO].[USP_GetSalesOrderQuotePartsView]
+CREATE   PROCEDURE [dbo].[USP_GetSalesOrderQuotePartsView]
     @SalesQuoteId INT,
 	@CurrencyDisplayName VARCHAR(200)
 AS
@@ -155,7 +156,7 @@ BEGIN
     LEFT JOIN DBO.Priority AS pri WITH (NOLOCK) ON part.PriorityId = pri.PriorityId
     INNER JOIN DBO.SalesOrderQuote AS soq WITH (NOLOCK) ON part.SalesOrderQuoteId = soq.SalesOrderQuoteId
     WHERE part.SalesOrderQuoteId = @SalesQuoteId AND part.IsDeleted = 0
-    ORDER BY ItemNo;
+    ORDER BY part.SalesOrderQuotePartId;
 
 	COMMIT  TRANSACTION  
   END TRY      

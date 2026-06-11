@@ -10,11 +10,11 @@
     [DepreciationFrequency] VARCHAR (20)    NULL,
     [AssetId]               VARCHAR (20)    NULL,
     [AssetInventoryId]      BIGINT          NULL,
-    [InstalledCost]         DECIMAL (18, 2) NULL,
-    [DepreciationAmount]    DECIMAL (18, 2) NULL,
-    [AccumlatedDepr]        DECIMAL (18, 2) NULL,
-    [NetBookValue]          DECIMAL (18, 2) NULL,
-    [NBVAfterDepreciation]  DECIMAL (18, 2) NULL,
+    [InstalledCost]         DECIMAL (18, 6) NULL,
+    [DepreciationAmount]    DECIMAL (18, 6) NULL,
+    [AccumlatedDepr]        DECIMAL (18, 6) NULL,
+    [NetBookValue]          DECIMAL (18, 6) NULL,
+    [NBVAfterDepreciation]  DECIMAL (18, 6) NULL,
     [LastDeprRunPeriod]     VARCHAR (30)    NULL,
     [AccountingCalenderId]  BIGINT          NULL,
     [MasterCompanyId]       INT             NOT NULL,
@@ -27,12 +27,4 @@
     [DepreciationStartDate] DATETIME        NULL,
     CONSTRAINT [PK_ID] PRIMARY KEY CLUSTERED ([ID] ASC)
 );
-
-
-
-
-
-
-
-
 

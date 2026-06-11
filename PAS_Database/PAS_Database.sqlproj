@@ -4550,10 +4550,9 @@
     <Build Include="dbo\Stored Procedures\USP_GetWorksheetHeaderByIdSSRS.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetAircraftInfoHeaderDetailsByItemMasterId.sql" />
     <Build Include="dbo\Views\VW_WorkScopeType.sql" />
-    <Build Include="dbo\Tables\LocationLabelMapping.sql" />
-    <Build Include="dbo\Tables\LocationLabel.sql" />
+    <Build Include="dbo\Tables\LocationLabelSetting.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetLocationLabelSettingData.sql" />
-    <Build Include="dbo\Stored Procedures\USP_Add_LocationLabelMapping.sql" />
+    <Build Include="dbo\Stored Procedures\USP_AddUpdateLocationLabelSetting.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

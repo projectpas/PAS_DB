@@ -2,7 +2,7 @@
 /*********************     
 ** Author:  <Sumit Kumar>    
 ** Create date: <10/06/2026>    
-** Description: <get Location Label Mapping(Setting) by mastercompanyId>    
+** Description: <get Location Label (Setting) by mastercompanyId>    
     
 EXEC [USP_GetLocationLabelSettingData]   
 **********************   
@@ -28,9 +28,7 @@ BEGIN
 			BEGIN 
 				
 				SELECT 
-					LocationLabelMappingId,
-					LocationLabelId,
-					Description,
+					LocationLabelSettingId,
 					MasterCompanyId,
 					FieldWidth,
 					FieldHeight,
@@ -38,9 +36,8 @@ BEGIN
 					MarginLeft,
 					MarginRight,
 					MarginTop,
-					MarginBottom,
-					AllLocationLabelSelected
-				FROM [DBO].[LocationLabelMapping] 
+					MarginBottom
+				FROM [DBO].[LocationLabelSetting] 
 				WHERE MasterCompanyId = @MasterCompanyId
                 
 			END

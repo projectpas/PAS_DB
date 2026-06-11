@@ -20,7 +20,7 @@
 	9    03/04/2026   Moin Bloch      Added Pagination PN-15886
 	10   06/04/2026   Moin Bloch      Added @Balance Field PN-15886
 	11   06/04/2026   Moin Bloch      Fix For Future data comming PN-15990
-
+    12   10-06-2026   Bhargav Saliya  Added Description Field
  **************************************************************
 
  EXEC [USP_GetTrailBalanceJournalBatchData] '1','1','134', 2, @xmlFilter = N'
@@ -57,7 +57,8 @@ CREATE PROCEDURE [dbo].[USP_GetTrailBalanceJournalBatchData]
     @id                    VARCHAR(50)  = NULL,
     @GlAccId               BIGINT,
     @xmlFilter             XML,
-	@EmployeeId BIGINT = NULL
+	@EmployeeId BIGINT = NULL,
+    @Description VARCHAR(150) = NULL
 )
 AS
 BEGIN
@@ -210,7 +211,8 @@ BEGIN
             BD.AccountingPeriod                         AS PeriodName,
             BD.JournalTypeNumber                        AS JournalNumber,
             ISNULL(CBD.ReferenceNumber, '')             AS ReferenceNumber,
-            CBD.JournalTypeName
+            CBD.JournalTypeName,
+            ISNULL(MJD.Description, '') AS Description
 		INTO #TempResults
         FROM       dbo.CommonBatchDetails                              CBD WITH (NOLOCK)
         INNER JOIN dbo.BatchDetails                                    BD  WITH (NOLOCK) ON CBD.JournalBatchDetailId       = BD.JournalBatchDetailId
@@ -226,6 +228,7 @@ BEGIN
 			WHERE RCMP.[CustomerRefundId] = RFCM.[CustomerRefundId]
 		) AND CMBD.ModuleId = @CustomerRefundModuleId
 		LEFT JOIN  dbo.CreditMemo CM WITH (NOLOCK) ON CM.CreditMemoHeaderId = RFCM.CreditMemoHeaderId
+        LEFT JOIN dbo.ManualJournalDetails MJD WITH (NOLOCK) ON CBD.GlAccountId = MJD.GlAccountId AND MJD.ManualJournalHeaderId = CBD.ReferenceId
         WHERE BD.AccountingPeriodId IN (SELECT AccountingCalendarId FROM #AccPeriodTable)
           AND CBD.GlAccountId                    = @GlAccId
           AND CBD.MasterCompanyId                = @masterCompanyId
@@ -249,6 +252,7 @@ BEGIN
           AND (NOT EXISTS (SELECT 1 FROM #L8)  OR MSD.[Level8Id]  IN (SELECT Item FROM #L8))
           AND (NOT EXISTS (SELECT 1 FROM #L9)  OR MSD.[Level9Id]  IN (SELECT Item FROM #L9))
           AND (NOT EXISTS (SELECT 1 FROM #L10) OR MSD.[Level10Id] IN (SELECT Item FROM #L10))
+          AND (ISNULL(@Description,'') ='' OR MJD.Description LIKE '%' + @Description+'%') 
         GROUP BY
             CBD.GlAccountId,
 			CBD.ReferenceId,
@@ -259,7 +263,8 @@ BEGIN
             GL.AccountCode,
             GL.AccountName,
             CBD.ReferenceNumber,
-            CBD.JournalTypeName
+            CBD.JournalTypeName,
+            MJD.Description
 			HAVING
 			(
 				CAST(ISNULL(@Balance,'') AS VARCHAR) = ''

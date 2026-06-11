@@ -21,6 +21,7 @@
 	9    12/09/2024   Hemant Saliya	 Updated For ASSET
     10   26/09/2024   AMIT GHEDIYA	 Updated For STOCKLINE / VENDOR RMA /CM
 	11   03/12/2024   Moin Bloch     Added CYCLE COUNT 
+	12   10-06-2026   Bhargav Saliya Added Description Field
 **************************************************************/  
 
 /*************************************************************             
@@ -485,6 +486,7 @@ BEGIN
 			AllMSlevels VARCHAR(MAX) null,
 			IsManualJournal BIT,
 			IsStandAloneCM BIT null,
+			Description VARCHAR(MAX) NULL,
 		  )
 
 		  DECLARE @COUNT AS INT;
@@ -495,8 +497,8 @@ BEGIN
 
 			  SELECT  @AccountcalMonth = PeriodName, @AccountcalID = AccountcalID,@INITIALENDDATE = ToDate FROM #AccPeriodTable where ID = @COUNT AND ID NOT IN(9999999)		  
 			  
-			  INSERT INTO #AccTrendTable(LeafNodeId, NodeName, GLAccountId, GLAccountCode, GLAccountName, JournalNumber, JournalBatchDetailId, CreditAmount, DebitAmount, AccountingPeriodId, AccountingPeriod, PeriodName, EntryDate, IsManualJournal,IsStandAloneCM) --, ReferenceId, DistributionSetupCode)
-			  SELECT T.LeafNodeId, T.[Name] , GL.GLAccountId, GLA.AccountCode, GLA.AccountName, JournalNumber, JournalBatchDetailId, GL.CreaditAmount, DebitAmount, GL.AccountingPeriodId, AP.PeriodName, REPLACE(AP.PeriodName ,' - ',' '), EntryDate, ISNULL(GL.IsManualJournal, 0),NULL  --CBD.ReferenceId, CBD.DistributionSetupCode, EntryDate 
+			  INSERT INTO #AccTrendTable(LeafNodeId, NodeName, GLAccountId, GLAccountCode, GLAccountName, JournalNumber, JournalBatchDetailId, CreditAmount, DebitAmount, AccountingPeriodId, AccountingPeriod, PeriodName, EntryDate, IsManualJournal,IsStandAloneCM,Description) --, ReferenceId, DistributionSetupCode)
+			  SELECT T.LeafNodeId, T.[Name] , GL.GLAccountId, GLA.AccountCode, GLA.AccountName, JournalNumber, JournalBatchDetailId, GL.CreaditAmount, DebitAmount, GL.AccountingPeriodId, AP.PeriodName, REPLACE(AP.PeriodName ,' - ',' '), EntryDate, ISNULL(GL.IsManualJournal, 0),NULL, NULL  --CBD.ReferenceId, CBD.DistributionSetupCode, EntryDate 
 			  FROM #TempTable T  
 				  JOIN #GLBalance GL ON T.LeafNodeId = GL.LeafNodeId AND T.periodNameDistinct = REPLACE(GL.periodNameDistinct ,' - ','') 
 				  JOIN dbo.GLAccount GLA WITH (NOLOCK) ON GLA.GLAccountId = GL.GLAccountId
@@ -666,7 +668,8 @@ BEGIN
 						ReferenceName = CASE WHEN tmp.IsManualJournal = 1 THEN MJH.JournalNumber ELSE ReferenceName END,
 						Referenceid = CASE WHEN tmp.IsManualJournal = 1 THEN MJD.ManualJournalHeaderId ELSE tmp.Referenceid END,
 						LastMSLevel = CASE WHEN ISNULL(tmp.IsManualJournal, 0) = 1 THEN  MJD.LastMSLevel ELSE MJD.LastMSLevel END,
-						AllMSlevels = CASE WHEN ISNULL(tmp.IsManualJournal, 0) = 1 THEN MJD.AllMSlevels ELSE MJD.AllMSlevels END						
+						AllMSlevels = CASE WHEN ISNULL(tmp.IsManualJournal, 0) = 1 THEN MJD.AllMSlevels ELSE MJD.AllMSlevels END,
+						Description = CASE WHEN ISNULL(tmp.IsManualJournal, 0) = 1 THEN MJD.Description ELSE NULL END
 			 FROM #AccTrendTable tmp 
 			 JOIN dbo.ManualJournalHeader MJH WITH (NOLOCK) ON MJH.ManualJournalHeaderId = tmp.JournalBatchDetailId
 			 JOIN dbo.ManualJournalDetails MJD WITH (NOLOCK) ON MJH.ManualJournalHeaderId = MJD.ManualJournalHeaderId
@@ -688,23 +691,23 @@ BEGIN
 			(
 			   SELECT LeafNodeId, NodeName, GLAccountId, GLAccountCode , GLAccountName , JournalNumber, LastMSLevel, AllMSlevels,
 				CreditAmount, DebitAmount, AccountingPeriodId, AccountingPeriod, PeriodName , ReferenceModule, ReferenceName, ReferenceId, CustomerId, DistributionSetupCode, EntryDate, 
-				SUM(ISNULL(CreditAmount, 0) - ISNULL(DebitAmount, 0)) Amount , IsManualJournal ,IsStandAloneCM
+				SUM(ISNULL(CreditAmount, 0) - ISNULL(DebitAmount, 0)) Amount , IsManualJournal ,IsStandAloneCM,Description
 			   FROM #AccTrendTable
 			   GROUP BY LeafNodeId, NodeName, GLAccountId, GLAccountCode , GLAccountName , JournalNumber, LastMSLevel,  AllMSlevels,
-				CreditAmount, DebitAmount, AccountingPeriodId, AccountingPeriod, PeriodName , ReferenceModule, ReferenceName, ReferenceId, CustomerId, DistributionSetupCode, EntryDate, IsManualJournal,IsStandAloneCM 
+				CreditAmount, DebitAmount, AccountingPeriodId, AccountingPeriod, PeriodName , ReferenceModule, ReferenceName, ReferenceId, CustomerId, DistributionSetupCode, EntryDate, IsManualJournal,IsStandAloneCM,Description 
 
 			), cteRanked AS
 			(
 			   SELECT Amount, LeafNodeId, NodeName, GLAccountId, GLAccountCode , GLAccountName , JournalNumber, LastMSLevel,  AllMSlevels,
 				CreditAmount, DebitAmount, AccountingPeriodId, AccountingPeriod, PeriodName , ReferenceModule, ReferenceName, ReferenceId, CustomerId, DistributionSetupCode, EntryDate, 
 				ROW_NUMBER() OVER(ORDER BY LeafNodeId, NodeName, GLAccountId, GLAccountCode , GLAccountName , JournalNumber, LastMSLevel,  AllMSlevels,
-				CreditAmount, DebitAmount, AccountingPeriodId, AccountingPeriod, PeriodName , ReferenceModule, ReferenceName, ReferenceId, CustomerId, DistributionSetupCode, EntryDate) rownum, IsManualJournal ,IsStandAloneCM
+				CreditAmount, DebitAmount, AccountingPeriodId, AccountingPeriod, PeriodName , ReferenceModule, ReferenceName, ReferenceId, CustomerId, DistributionSetupCode, EntryDate) rownum, IsManualJournal ,IsStandAloneCM,Description
 			   FROM cte
 			) 
 			SELECT (SELECT SUM(Amount) FROM cteRanked c2 WHERE c2.rownum <= c1.rownum) AS Amount,
 			  LeafNodeId, UPPER(NodeName) AS NodeName, GLAccountId, (UPPER(GLAccountCode) + '-' + UPPER(GLAccountName)) AS GLAccount, UPPER(JournalNumber) AS JournalNumber, LastMSLevel,  AllMSlevels,
 				CreditAmount, DebitAmount, AccountingPeriodId, UPPER(AccountingPeriod) AS AccountingPeriod, UPPER(PeriodName) AS PeriodName, ReferenceModule, ReferenceName, ReferenceId, CustomerId, DistributionSetupCode, 
-				Cast(DBO.ConvertUTCtoLocal(EntryDate, @CurrntEmpTimeZoneDesc) as datetime) AS EntryDate, IsManualJournal ,IsStandAloneCM				
+				Cast(DBO.ConvertUTCtoLocal(EntryDate, @CurrntEmpTimeZoneDesc) as datetime) AS EntryDate, IsManualJournal ,IsStandAloneCM,Description				
 			FROM cteRanked c1 
 			WHERE GLAccountId IS NOT NULL
 			ORDER BY AccountingPeriodId, JournalNumber;

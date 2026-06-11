@@ -16,6 +16,7 @@
 ** 4    22/05/2026	 Moin Bloch			Fixed Duplicate Issue [PN-16449]
 ** 5    22/05/2026	 Amit Ghediya	    Get WSheet & wo data [PN-16546]
 ** 6    22/05/2026	 Bhargav Saliya		Added MtceRecordUpdated Filter [PN-16567]
+** 7    10/06/2026	 Amit Ghediya		Update name WorksheetNumber to WorksheetNum due to use in other [PN-16797]
 *******************************************************************************/
 --EXEC dbo.USP_GetAircraftTechnicalRecordList @PageNumber=1,@PageSize=20,@SortColumn=NULL,@SortOrder=N'ASC',
 --@GlobalFilter=NULL,@TailNumber=NULL,@AircraftMake=NULL,@AircraftModel=NULL,@SerialNumber=NULL,@PubDate=NULL,
@@ -94,7 +95,7 @@ BEGIN
                     LEFT JOIN dbo.WorksheetHeader WSH WITH(NOLOCK)
                         ON WSH.ProgramId = AMP.ProgramId
                     WHERE AMP.AircraftRegistryId = ARH.AircraftRegistryId
-                ) AS WorksheetNumber,
+                ) AS WorksheetNum,
                 (
                     SELECT TOP 1 WSH.CreatedDate
                     FROM dbo.AircraftMaintenanceProgram AMP WITH(NOLOCK)
@@ -166,7 +167,7 @@ BEGIN
             OR PublicationType LIKE '%' + @GlobalFilter + '%'
             OR PubNum LIKE '%' + @GlobalFilter + '%'
             OR RevisionNum LIKE '%' + @GlobalFilter + '%'
-            OR ISNULL(WorksheetNumber,'') LIKE '%' + @GlobalFilter + '%'
+            OR ISNULL(WorksheetNum,'') LIKE '%' + @GlobalFilter + '%'
             OR ISNULL(WorkSheetCompletedBy,'') LIKE '%' + @GlobalFilter + '%'
             OR ISNULL(WorkOrderNo,'') LIKE '%' + @GlobalFilter + '%'
             OR ISNULL(WorkOrderStatus,'') LIKE '%' + @GlobalFilter + '%'
@@ -181,7 +182,7 @@ BEGIN
         AND (NULLIF(@PubNum,'') IS NULL OR PubNum LIKE '%' + @PubNum + '%')
         AND (NULLIF(@RevisionNum,'') IS NULL OR RevisionNum LIKE '%' + @RevisionNum + '%')
         AND (NULLIF(@PublishedBy,'') IS NULL OR PublishedBy LIKE '%' + @PublishedBy + '%')
-        AND (NULLIF(@WorksheetNumber,'') IS NULL OR ISNULL(WorksheetNumber,'') LIKE '%' + @WorksheetNumber + '%')
+        AND (NULLIF(@WorksheetNumber,'') IS NULL OR ISNULL(WorksheetNum,'') LIKE '%' + @WorksheetNumber + '%')
 		AND (@InspectionDate  IS NULL OR CAST(InspectionDate AS DATE) = CAST(@InspectionDate AS DATE))
 		AND (@OpenDate  IS NULL OR CAST(OpenDate AS DATE) = CAST(@OpenDate AS DATE))
         AND (NULLIF(@WorkSheetCompletedBy,'') IS NULL OR ISNULL(WorkSheetCompletedBy,'') LIKE '%' + @WorkSheetCompletedBy + '%')
@@ -203,8 +204,8 @@ BEGIN
             CASE WHEN @SortColumn = 'SerialNumber' AND @SortOrder = 'ASC' THEN SerialNumber END ASC,
             CASE WHEN @SortColumn = 'SerialNumber' AND @SortOrder = 'DESC' THEN SerialNumber END DESC,
 
-            CASE WHEN @SortColumn = 'WorksheetNumber' AND @SortOrder = 'ASC' THEN WorksheetNumber END ASC,
-            CASE WHEN @SortColumn = 'WorksheetNumber' AND @SortOrder = 'DESC' THEN WorksheetNumber END DESC,
+            CASE WHEN @SortColumn = 'WorksheetNum' AND @SortOrder = 'ASC' THEN WorksheetNum END ASC,
+            CASE WHEN @SortColumn = 'WorksheetNum' AND @SortOrder = 'DESC' THEN WorksheetNum END DESC,
 
 			CASE WHEN @SortColumn = 'InspectionDate' AND @SortOrder = 'ASC' THEN InspectionDate END ASC,
             CASE WHEN @SortColumn = 'InspectionDate' AND @SortOrder = 'DESC' THEN InspectionDate END DESC,

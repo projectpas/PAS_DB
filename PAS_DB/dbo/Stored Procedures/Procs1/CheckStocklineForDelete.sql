@@ -157,10 +157,10 @@ BEGIN
 							DECLARE @QuantityIssued INT=0;	
 							DECLARE @QuantityOnHand INT=0;	
 							DECLARE	@ActionId INT=0,@UnIssueActionId INT=0 
-
+							
 							SET @ActionId = (SELECT [ActionId] FROM DBO.[StklineHistory_Action] ITH  WITH(NOLOCK) WHERE [Type] = 'UnReserve');
 
-							SET @UnIssueActionId = (SELECT [ActionId] FROM DBO.[StklineHistory_Action] ITH  WITH(NOLOCK) WHERE [Type] = 'UnIssue');
+							SET @UnIssueActionId = (SELECT [ActionId] FROM DBO.[StklineHistory_Action] ITH  WITH(NOLOCK) WHERE [Type] = 'UnIssueUnReserve');
 													
 							SELECT @StockLineId = [StockLineId] FROM #WOPartNumberDetailForDelete WHERE ID = @LoopID;
 						

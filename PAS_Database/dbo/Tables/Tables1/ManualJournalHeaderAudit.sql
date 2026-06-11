@@ -18,7 +18,7 @@
     [ReportingCurrencyId]         BIGINT          NULL,
     [ConversionCurrencyDate]      DATETIME        NULL,
     [ConvertionTypeId]            INT             NULL,
-    [ConversionRate]              DECIMAL (18, 2) NULL,
+    [ConversionRate]              DECIMAL (18, 6) NULL,
     [ManagementStructureId]       BIGINT          NULL,
     [EmployeeId]                  BIGINT          NULL,
     [MasterCompanyId]             INT             NOT NULL,

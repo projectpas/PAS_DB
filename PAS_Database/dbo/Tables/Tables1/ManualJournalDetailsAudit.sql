@@ -3,8 +3,8 @@
     [ManualJournalDetailsId]      BIGINT          NOT NULL,
     [ManualJournalHeaderId]       BIGINT          NULL,
     [GlAccountId]                 BIGINT          NULL,
-    [Debit]                       DECIMAL (18, 2) NULL,
-    [Credit]                      DECIMAL (18, 2) NULL,
+    [Debit]                       DECIMAL (18, 6) NULL,
+    [Credit]                      DECIMAL (18, 6) NULL,
     [Description]                 VARCHAR (MAX)   NULL,
     [ManagementStructureId]       BIGINT          NULL,
     [LastMSLevel]                 VARCHAR (200)   NULL,
@@ -23,8 +23,4 @@
     [IsVendorPayment]             BIT             NULL,
     CONSTRAINT [PK_ManualJournalDetailsAudit] PRIMARY KEY CLUSTERED ([AuditManualJournalDetailsId] ASC)
 );
-
-
-
-
 

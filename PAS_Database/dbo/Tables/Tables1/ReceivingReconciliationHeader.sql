@@ -9,11 +9,11 @@
     [CurrencyId]                    INT             NULL,
     [CurrencyName]                  VARCHAR (50)    NULL,
     [OpenDate]                      DATETIME        NULL,
-    [OriginalTotal]                 DECIMAL (18, 2) NULL,
-    [RRTotal]                       DECIMAL (18, 2) NULL,
-    [InvoiceTotal]                  DECIMAL (18, 2) NULL,
-    [DIfferenceAmount]              DECIMAL (18, 2) NULL,
-    [TotalAdjustAmount]             DECIMAL (18, 2) NULL,
+    [OriginalTotal]                 DECIMAL (18, 6) NULL,
+    [RRTotal]                       DECIMAL (18, 6) NULL,
+    [InvoiceTotal]                  DECIMAL (18, 6) NULL,
+    [DIfferenceAmount]              DECIMAL (18, 6) NULL,
+    [TotalAdjustAmount]             DECIMAL (18, 6) NULL,
     [MasterCompanyId]               INT             NULL,
     [CreatedBy]                     VARCHAR (256)   NOT NULL,
     [UpdatedBy]                     VARCHAR (256)   NOT NULL,
@@ -27,10 +27,12 @@
     [ManagementStructureId]         BIGINT          NULL,
     [LegalEntityId]                 BIGINT          NULL,
     [ControlNumber]                 VARCHAR (150)   NULL,
-    [VendorProformaAmount]          DECIMAL (18, 2) NULL,
+    [VendorProformaAmount]          DECIMAL (18, 6) NULL,
     [DueDate]                       DATETIME        NULL,
     CONSTRAINT [PK_ReceivingReconciliationHeader] PRIMARY KEY CLUSTERED ([ReceivingReconciliationId] ASC)
 );
+
+
 
 
 

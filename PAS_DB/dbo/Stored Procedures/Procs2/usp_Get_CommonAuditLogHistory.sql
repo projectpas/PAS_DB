@@ -24,11 +24,13 @@
     8       29-MAR-2026     Amit Ghediya            get aircraft data.(PN-16154)
     9 	    15-MAY-2026	    DIVYESH KATHIRIYA       Combine Aircraft Hour and Minitues Like HH:MM. [PN-16398]
     12      02-JUN-2026     DIVYESH KATHIRIYA       Filter Aircraft Cycle History Noise From EngineName and metadata-only rows.[PN-16634]
+    13      11-JUN-2026     DIVYESH KATHIRIYA       Add New 'WorksheetHeader' Module.[PN-16806]
 
-    EXEC usp_Get_CommonAuditLogHistory @ModuleId=87,@PK_Key=N'AircraftCycleTimeMappingsId',@PK_Value=8,@EmployeeId=236, @SubModuleId=88, @SubPK_Key = '',@SubPK_Value=0
+
+    EXEC usp_Get_CommonAuditLogHistory @ModuleId=94, @PK_Key=N'WorksheetHeaderId', @PK_Value=36,@EmployeeId=212, @SubModuleId=95, @SubPK_Key = 'WorksheetPartId', @SubPK_Value=29
 **********************/ 
 
-CREATE    PROCEDURE [dbo].[usp_Get_CommonAuditLogHistory]
+CREATE     PROCEDURE [dbo].[usp_Get_CommonAuditLogHistory]
     @ModuleId     BIGINT       = NULL,       -- e.g. '1 => Customer' / 'Vendor' (maps to TableName)
     @PK_Key     nvarchar(128) = NULL,       -- e.g. 'CustomerId'
     @PK_Value   nvarchar(128) = NULL,       -- e.g. '7' (compared as NVARCHAR)
@@ -47,11 +49,13 @@ BEGIN
     BEGIN TRY 
 
     DECLARE @sql nvarchar(MAX);
+    DECLARE @cols nvarchar(MAX);    
     DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
     DECLARE @Module VARCHAR(100);
     DECLARE @SubModule VARCHAR(100) = NULL;
     DECLARE @DetailId VARCHAR(100);
     DECLARE @AircraftCycleTimeModule AS INT;
+    DECLARE @AircraftWorksheetHeaderModule AS INT;
 
 
     -- Validate sort dir
@@ -61,6 +65,7 @@ BEGIN
     SET @SubModule = (SELECT [HistoryModuleName] FROM [dbo].[HistoryModule] WITH (NOLOCK) WHERE [HistoryModuleId] = @SubModuleId);
     
     SET @AircraftCycleTimeModule = (SELECT [HistoryModuleId] FROM [dbo].[HistoryModule] WITH(NOLOCK) WHERE [HistoryModuleName] = 'AircraftCycleTimeMappings');
+    SET @AircraftWorksheetHeaderModule = (SELECT [HistoryModuleId] FROM [dbo].[HistoryModule] WITH(NOLOCK) WHERE [HistoryModuleName] = 'WorksheetHeader');
 
 
     SELECT @CurrntEmpTimeZoneDesc = COALESCE(ETZ.[Description], LTZ.[Description])
@@ -74,10 +79,7 @@ BEGIN
     -- Build dynamic column list from ColumnName in the filtered scope
     -- (ensures only relevant fields appear as pivoted columns)
     ----------------------------------------------------------------
-    DECLARE @cols nvarchar(MAX);
-
-
-
+    
     IF (@ModuleId = @AircraftCycleTimeModule)
     BEGIN 
 		SELECT @DetailId = STRING_AGG(CAST(AircraftEngineStartsMappingsId AS VARCHAR(50)), ',')
@@ -115,6 +117,47 @@ BEGIN
 					AND ic.ColumnName = AL.ColumnName
 			)
         ) AS c;
+    END
+    ELSE IF (@ModuleId = @AircraftWorksheetHeaderModule)
+    BEGIN    
+        SELECT @cols =
+                STRING_AGG(QUOTENAME(ColumnName), ',')
+            FROM (
+                SELECT DISTINCT ColumnName
+                FROM [dbo].[AuditLog] AL WITH (NOLOCK)
+                WHERE (
+                        -- MAIN MODULE FILTER
+                        (@Module IS NULL OR TableName = @Module
+                            AND (
+                                    @PK_Key IS NULL OR @PK_Value IS NULL
+                                    OR TRY_CONVERT(nvarchar(128),
+                                        JSON_VALUE(PKJson, CONCAT('$.', @PK_Key))) = @PK_Value
+                                )
+                        )
+                        OR
+                        -- SUB-MODULE FILTER (WorksheetHeader ? WorksheetPart)
+                        (@Module IS NULL OR @Module = 'WorksheetHeader'
+                            AND TableName = @SubModule
+                            AND (
+                                    @SubPK_Key   IS NOT NULL
+                                AND @SubPK_Value IS NOT NULL
+                                AND TRY_CONVERT(nvarchar(128),
+                                    JSON_VALUE(PKJson, CONCAT('$.', @SubPK_Key))) = @SubPK_Value
+                            )                
+                        )
+                    )
+                  AND (@StartAt IS NULL OR ChangedAt >= @StartAt)
+                  AND (@EndAt   IS NULL OR ChangedAt <  @EndAt)
+                  AND ColumnName IS NOT NULL
+                  AND ColumnName <> ''
+                  AND LEN(ColumnName) <= 128         -- QUOTENAME limit
+                  AND NOT EXISTS (            
+                  SELECT 1
+                  FROM dbo.IgnoreColumn ic WITH (NOLOCK)
+                  WHERE ic.TableName = @Module
+                    AND ic.ColumnName = AL.ColumnName
+            )
+            ) AS c;
     END
     ELSE
     BEGIN
@@ -177,75 +220,119 @@ BEGIN
     --  - Include a compact Actions string (e.g., 'I', 'U', 'D' or combination)
     ----------------------------------------------------------------
     IF (@ModuleId = @AircraftCycleTimeModule)
+    BEGIN 
+		SELECT @DetailId = STRING_AGG(CAST(AircraftEngineStartsMappingsId AS VARCHAR(50)), ',')
+		FROM AircraftEngineStartsMappings
+		WHERE AircraftCycleTimeMappingsId = @PK_Value;
+
+		SET @sql = N';WITH RawS AS
+					(
+						SELECT
+							AuditId,
+							TableName,
+							PKJson,
+							ColumnName,
+							[Action],
+							OldValue,
+							NewValue,
+							ChangedBy,
+							ChangedAt  
+						FROM [dbo].[AuditLog] WITH (NOLOCK)
+						WHERE (@Module IS NULL OR TableName = @Module) 
+							AND (@StartAt IS NULL OR ChangedAt >= @StartAt)
+							AND (@EndAt   IS NULL OR ChangedAt <  @EndAt)
+							AND TRY_CONVERT(INT, JSON_VALUE(PKJson, ''$.AircraftCycleTimeMappingsId'')) = @PK_Value
+
+						UNION ALL
+
+						SELECT
+							AuditId,
+							TableName,
+							PKJson,
+							ColumnName,
+							[Action],
+							OldValue,
+							NewValue,
+							ChangedBy,
+							ChangedAt  
+						FROM [dbo].[AuditLog] WITH (NOLOCK)
+						WHERE (@SubModule IS NULL OR TableName = @SubModule) 
+							AND (@StartAt IS NULL OR ChangedAt >= @StartAt)
+							AND (@EndAt   IS NULL OR ChangedAt <  @EndAt)
+							AND TRY_CONVERT(INT, JSON_VALUE(PKJson, ''$.aircraftenginestartsmappingsid'')) IN (SELECT value FROM STRING_SPLIT(@DetailId, '',''))
+					),
+                    FilterData AS
+					(
+						SELECT DISTINCT
+							TableName,
+							PKJson,
+							ChangedAt,
+							[Action]
+						FROM RawS
+						WHERE ColumnName NOT IN (''UpdatedBy'', ''UpdatedDate'', ''CreatedBy'', ''CreatedDate'')
+							AND NOT (
+								TableName = @SubModule
+								AND ColumnName = ''EngineName''
+								AND (
+									(OldValue IS NULL AND NewValue IS NULL)
+									OR (OldValue IS NOT NULL AND NewValue IS NOT NULL AND OldValue = NewValue)
+								)
+							)
+					),
+					S AS
+					(
+						SELECT AL.*
+						FROM RawS AL
+						INNER JOIN FilterData FD
+							ON FD.TableName = AL.TableName
+							AND FD.PKJson = AL.PKJson
+							AND FD.ChangedAt = AL.ChangedAt
+							AND FD.[Action] = AL.[Action]                        
+                    ),';
+        END
+        ELSE IF (@ModuleId = @AircraftWorksheetHeaderModule)
         BEGIN 
-			SELECT @DetailId = STRING_AGG(CAST(AircraftEngineStartsMappingsId AS VARCHAR(50)), ',')
-				FROM AircraftEngineStartsMappings
-			WHERE AircraftCycleTimeMappingsId = @PK_Value;
+            SET @sql =N';WITH S AS
+                        (
+                            SELECT
+                                AuditId,
+                                TableName,
+                                PKJson,
+                                ColumnName,
+                                [Action],
+                                OldValue,
+                                NewValue,
+                                ChangedBy,
+                                ChangedAt
+                            FROM [dbo].[AuditLog] WITH (NOLOCK)
+                            WHERE 1=1              
+                              AND (
+                                    -- MAIN MODULE FILTER
+                                    (@Module  IS NULL OR TableName = @Module
+                                        AND (
+                                                @PK_Key IS NULL OR @PK_Value IS NULL
+                                                OR TRY_CONVERT(nvarchar(128),
+                                                   JSON_VALUE(PKJson, CONCAT(''$.'' , @PK_Key))) = @PK_Value
+                                            )
+                                    )
 
-			SET @sql = N';WITH RawS AS
-						(
-							SELECT
-								AuditId,
-								TableName,
-								PKJson,
-								ColumnName,
-								[Action],
-								OldValue,
-								NewValue,
-								ChangedBy,
-								ChangedAt  
-							FROM [dbo].[AuditLog] WITH (NOLOCK)
-							WHERE (@Module IS NULL OR TableName = @Module) 
-							  AND (@StartAt IS NULL OR ChangedAt >= @StartAt)
-							  AND (@EndAt   IS NULL OR ChangedAt <  @EndAt)
-							  AND TRY_CONVERT(INT, JSON_VALUE(PKJson, ''$.AircraftCycleTimeMappingsId'')) = @PK_Value
+                                    OR
 
-							UNION ALL
-
-							SELECT
-								AuditId,
-								TableName,
-								PKJson,
-								ColumnName,
-								[Action],
-								OldValue,
-								NewValue,
-								ChangedBy,
-								ChangedAt  
-							FROM [dbo].[AuditLog] WITH (NOLOCK)
-							WHERE (@SubModule IS NULL OR TableName = @SubModule) 
-							  AND (@StartAt IS NULL OR ChangedAt >= @StartAt)
-							  AND (@EndAt   IS NULL OR ChangedAt <  @EndAt)
-							  AND TRY_CONVERT(INT, JSON_VALUE(PKJson, ''$.aircraftenginestartsmappingsid'')) IN (SELECT value FROM STRING_SPLIT(@DetailId, '',''))
-						),
-                        FilterData AS
-						(
-							SELECT DISTINCT
-								TableName,
-								PKJson,
-								ChangedAt,
-								[Action]
-							FROM RawS
-							WHERE ColumnName NOT IN (''UpdatedBy'', ''UpdatedDate'', ''CreatedBy'', ''CreatedDate'')
-							  AND NOT (
-									TableName = @SubModule
-									AND ColumnName = ''EngineName''
-									AND (
-										(OldValue IS NULL AND NewValue IS NULL)
-										OR (OldValue IS NOT NULL AND NewValue IS NOT NULL AND OldValue = NewValue)
-									)
-							  )
-						),
-						S AS
-						(
-							SELECT AL.*
-							FROM RawS AL
-							INNER JOIN FilterData FD
-								ON FD.TableName = AL.TableName
-								AND FD.PKJson = AL.PKJson
-								AND FD.ChangedAt = AL.ChangedAt
-								AND FD.[Action] = AL.[Action]                        
-                        ),';
+                                    -- SUB-MODULE FILTER (WorksheetHeader ? WorksheetPArt)
+                                    (@Module  IS NULL OR @Module = ''WorksheetHeader''
+                                        AND TableName = ''' + ISNULL(@SubModule,'') + '''
+                                        AND (
+                                                @SubPK_Key   IS NOT NULL
+                                            AND @SubPK_Value IS NOT NULL
+                                            AND TRY_CONVERT(nvarchar(128),
+                                                JSON_VALUE(PKJson, CONCAT(''$.'' , @SubPK_Key))) = @SubPK_Value
+                                        )
+                                    )
+                                 )
+                                  AND (@StartAt IS NULL OR ChangedAt >= @StartAt)
+                                  AND (@EndAt   IS NULL OR ChangedAt <  @EndAt)
+              
+                        ),'
         END
         ELSE
         BEGIN
@@ -273,6 +360,9 @@ BEGIN
                                 AND NOT EXISTS ( SELECT 1 FROM dbo.IgnoreColumn ic WITH (NOLOCK) WHERE ic.TableName = @Module AND ic.ColumnName = AL.ColumnName )
                         ),'
         END   
+
+
+
 
 
         IF (@ModuleId = @AircraftCycleTimeModule)
@@ -345,7 +435,7 @@ BEGIN
                 AND a.PKJson    = p.PKJson
                 AND a.ChangedAt = p.ChangedAt
             ORDER BY p.ChangedAt ' + @SortDir + N', p.TableName, p.PKJson;';
-		END
+		END        
         ELSE
         BEGIN
             SET @sql += N'Dedup AS
@@ -419,8 +509,8 @@ BEGIN
 
     EXEC sp_executesql
         @sql,
-        N'@Module sysname, @SubModule sysname, @DetailId nvarchar(128), @StartAt datetime2(3), @EndAt datetime2(3), @PK_Key nvarchar(128), @PK_Value nvarchar(128), @CurrntEmpTimeZoneDesc varchar(100)',
-        @Module=@Module, @SubModule=@SubModule, @DetailId = @DetailId, @StartAt=@StartAt, @EndAt=@EndAt, @PK_Key=@PK_Key, @PK_Value=@PK_Value,@CurrntEmpTimeZoneDesc = @CurrntEmpTimeZoneDesc;
+        N'@Module sysname, @SubModule sysname, @DetailId nvarchar(128), @StartAt datetime2(3), @EndAt datetime2(3), @PK_Key nvarchar(128), @PK_Value nvarchar(128), @SubPK_Key nvarchar(128), @SubPK_Value nvarchar(128), @CurrntEmpTimeZoneDesc varchar(100)',
+        @Module=@Module, @SubModule=@SubModule, @DetailId = @DetailId,  @StartAt=@StartAt,     @EndAt=@EndAt,       @PK_Key=@PK_Key,       @PK_Value=@PK_Value,     @SubPK_Key=@SubPK_Key,    @SubPK_Value=@SubPK_Value,  @CurrntEmpTimeZoneDesc = @CurrntEmpTimeZoneDesc;
     END TRY    
   
     BEGIN CATCH  

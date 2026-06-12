@@ -4553,6 +4553,7 @@
     <Build Include="dbo\Tables\LocationLabelSetting.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetLocationLabelSettingData.sql" />
     <Build Include="dbo\Stored Procedures\USP_AddUpdateLocationLabelSetting.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetLocationLabelPrintList.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

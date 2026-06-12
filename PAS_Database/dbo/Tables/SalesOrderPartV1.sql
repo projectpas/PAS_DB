@@ -36,20 +36,22 @@
     [IsLotAssigned]         BIT             NULL,
     [ECCN]                  VARCHAR (200)   NULL,
     [HSCODE]                VARCHAR (200)   NULL,
-    [Weight]                DECIMAL (10, 2) NULL,
-    [SizeLength]            DECIMAL (10, 2) NULL,
-    [SizeWidth]             DECIMAL (10, 2) NULL,
-    [SizeHeight]            DECIMAL (10, 2) NULL,
+    [Weight]                DECIMAL (18, 6) NULL,
+    [SizeLength]            DECIMAL (18, 6) NULL,
+    [SizeWidth]             DECIMAL (18, 6) NULL,
+    [SizeHeight]            DECIMAL (18, 6) NULL,
     [AltOrEqType]           VARCHAR (50)    NULL,
     [UnitSalesPrice]        DECIMAL (18, 6) NULL,
     CONSTRAINT [PK_SalesOrderPartV1] PRIMARY KEY CLUSTERED ([SalesOrderPartId] ASC),
-    CONSTRAINT [FK_SalesOrderPartV1_SalesOrder] FOREIGN KEY ([SalesOrderId]) REFERENCES [dbo].[SalesOrder] ([SalesOrderId]),
-    CONSTRAINT [FK_SalesOrderPartV1_ItemMaster] FOREIGN KEY ([ItemMasterId]) REFERENCES [dbo].[ItemMaster] ([ItemMasterId]),
     CONSTRAINT [FK_SalesOrderPartV1_Condition] FOREIGN KEY ([ConditionId]) REFERENCES [dbo].[Condition] ([ConditionId]),
     CONSTRAINT [FK_SalesOrderPartV1_Currency] FOREIGN KEY ([CurrencyId]) REFERENCES [dbo].[Currency] ([CurrencyId]),
+    CONSTRAINT [FK_SalesOrderPartV1_ItemMaster] FOREIGN KEY ([ItemMasterId]) REFERENCES [dbo].[ItemMaster] ([ItemMasterId]),
     CONSTRAINT [FK_SalesOrderPartV1_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId]),
-    CONSTRAINT [FK_SalesOrderPartV1_Priority] FOREIGN KEY ([PriorityId]) REFERENCES [dbo].[Priority] ([PriorityId])
+    CONSTRAINT [FK_SalesOrderPartV1_Priority] FOREIGN KEY ([PriorityId]) REFERENCES [dbo].[Priority] ([PriorityId]),
+    CONSTRAINT [FK_SalesOrderPartV1_SalesOrder] FOREIGN KEY ([SalesOrderId]) REFERENCES [dbo].[SalesOrder] ([SalesOrderId])
 );
+
+
 
 
 

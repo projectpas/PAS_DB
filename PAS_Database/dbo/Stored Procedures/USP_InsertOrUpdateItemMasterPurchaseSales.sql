@@ -53,8 +53,8 @@ BEGIN
 					[ItemMasterId] [bigint] NULL,
 					[ConditionId] [bigint] NULL,
 					[MasterCompanyId] [bigint] NULL,
-					[UnitSalePrice] [decimal](18, 2) NULL,
-					[UnitPurchasePrice] [decimal](18, 2) NULL
+					[UnitSalePrice] [decimal](18, 6) NULL,
+					[UnitPurchasePrice] [decimal](18, 6) NULL
 				)
 
 				INSERT INTO #ItemMasterPurchaseSalesType
@@ -75,8 +75,8 @@ BEGIN
 					DECLARE @ItemMasterId BIGINT;
 					DECLARE @ConditionId BIGINT;
 					DECLARE @MasterCompanyId BIGINT;
-					DECLARE @UnitSalePrice DECIMAL(18,2);
-					DECLARE @UnitPurchasePrice DECIMAL(18,2);
+					DECLARE @UnitSalePrice DECIMAL(18,6);
+					DECLARE @UnitPurchasePrice DECIMAL(18,6);
 
                 SELECT @ItemMasterId = ItemMasterId ,
 					   @ConditionId = ConditionId ,
@@ -97,26 +97,26 @@ BEGIN
 					[PartNumber] [varchar](50)  NULL,
 					[PP_UOMId] [bigint]  NULL,
 					[PP_CurrencyId] [int]  NULL,
-					[PP_FXRatePerc] [decimal](18, 2)  NULL,
-					[PP_VendorListPrice] [decimal](18, 2) NULL,
+					[PP_FXRatePerc] [decimal](18, 6)  NULL,
+					[PP_VendorListPrice] [decimal](18, 6) NULL,
 					[PP_LastListPriceDate] [datetime2](7) NULL,
 					[PP_PurchaseDiscPerc] [int] NULL,
-					[PP_PurchaseDiscAmount] [decimal](18, 2) NULL,
+					[PP_PurchaseDiscAmount] [decimal](18, 6) NULL,
 					[PP_LastPurchaseDiscDate] [datetime2](7) NULL,
-					[PP_UnitPurchasePrice] [decimal](18, 2) NULL,
+					[PP_UnitPurchasePrice] [decimal](18, 6) NULL,
 					[SP_FSP_UOMId] [bigint] NULL,
 					[SP_FSP_CurrencyId] [int] NULL,
-					[SP_FSP_FXRatePerc] [decimal](18, 2)  NULL,
-					[SP_FSP_FlatPriceAmount] [decimal](18, 2) NULL,
+					[SP_FSP_FXRatePerc] [decimal](18, 6)  NULL,
+					[SP_FSP_FlatPriceAmount] [decimal](18, 6) NULL,
 					[SP_FSP_LastFlatPriceDate] [datetime2](7) NULL,
 					[SP_CalSPByPP_MarkUpPercOnListPrice] [int] NULL,
-					[SP_CalSPByPP_MarkUpAmount] [decimal](18, 2) NULL,
+					[SP_CalSPByPP_MarkUpAmount] [decimal](18, 6) NULL,
 					[SP_CalSPByPP_LastMarkUpDate] [datetime2](7) NULL,
-					[SP_CalSPByPP_BaseSalePrice] [decimal](18, 2) NULL,
+					[SP_CalSPByPP_BaseSalePrice] [decimal](18, 6) NULL,
 					[SP_CalSPByPP_SaleDiscPerc] [int] NULL,
-					[SP_CalSPByPP_SaleDiscAmount] [decimal](18, 2) NULL,
+					[SP_CalSPByPP_SaleDiscAmount] [decimal](18, 6) NULL,
 					[SP_CalSPByPP_LastSalesDiscDate] [datetime2](7) NULL,
-					[SP_CalSPByPP_UnitSalePrice] [decimal](18, 2) NULL,
+					[SP_CalSPByPP_UnitSalePrice] [decimal](18, 6) NULL,
 					[MasterCompanyId] [int]  NULL,
 					[CreatedBy] [varchar](256)  NULL,
 					[UpdatedBy] [varchar](256)  NULL,
@@ -132,9 +132,9 @@ BEGIN
 					[SP_FSP_UOMName] [varchar](200) NULL,
 					[PP_CurrencyName] [varchar](200) NULL,
 					[SP_FSP_CurrencyName] [varchar](200) NULL,
-					[PP_PurchaseDiscPercValue] [decimal](18, 2) NULL,
-					[SP_CalSPByPP_SaleDiscPercValue] [decimal](18, 2) NULL,
-					[SP_CalSPByPP_MarkUpPercOnListPriceValue] [decimal](18, 2) NULL,
+					[PP_PurchaseDiscPercValue] [decimal](18, 6) NULL,
+					[SP_CalSPByPP_SaleDiscPercValue] [decimal](18, 6) NULL,
+					[SP_CalSPByPP_MarkUpPercOnListPriceValue] [decimal](18, 6) NULL,
 					[SalePriceSelectName] [varchar](200) NULL,
 				)
 				

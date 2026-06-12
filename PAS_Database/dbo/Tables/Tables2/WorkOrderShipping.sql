@@ -12,7 +12,7 @@
     [AirwayBill]                         VARCHAR (50)    NULL,
     [HouseAirwayBill]                    VARCHAR (50)    NULL,
     [TrackingNum]                        VARCHAR (50)    NULL,
-    [Weight]                             DECIMAL (10, 2) NOT NULL,
+    [Weight]                             DECIMAL (18, 6) NULL,
     [SoldToName]                         VARCHAR (256)   NOT NULL,
     [SoldToAddress1]                     VARCHAR (256)   NOT NULL,
     [SoldToAddress2]                     VARCHAR (256)   NULL,
@@ -52,9 +52,9 @@
     [OriginCountryName]                  VARCHAR (256)   DEFAULT ('') NOT NULL,
     [OriginSiteId]                       BIGINT          DEFAULT ((0)) NOT NULL,
     [IsSameForShipTo]                    BIT             NULL,
-    [ShipSizeLength]                     DECIMAL (10, 2) CONSTRAINT [DF_WorkOrderShipping_ShipSizeLength] DEFAULT ((0)) NULL,
-    [ShipSizeWidth]                      DECIMAL (10, 2) CONSTRAINT [DF_WorkOrderShipping_ShipSizeWidth] DEFAULT ((0)) NULL,
-    [ShipSizeHeight]                     DECIMAL (10, 2) CONSTRAINT [DF_WorkOrderShipping_ShipSizeHeight] DEFAULT ((0)) NULL,
+    [ShipSizeLength]                     DECIMAL (18, 6) CONSTRAINT [DF_WorkOrderShipping_ShipSizeLength] DEFAULT ((0)) NULL,
+    [ShipSizeWidth]                      DECIMAL (18, 6) CONSTRAINT [DF_WorkOrderShipping_ShipSizeWidth] DEFAULT ((0)) NULL,
+    [ShipSizeHeight]                     DECIMAL (18, 6) CONSTRAINT [DF_WorkOrderShipping_ShipSizeHeight] DEFAULT ((0)) NULL,
     [ShipWeightUnit]                     BIGINT          NULL,
     [ShipSizeUnitOfMeasureId]            BIGINT          NULL,
     [PickTicketId]                       BIGINT          NULL,
@@ -88,6 +88,8 @@
     CONSTRAINT [FK_WorkOrderShipping_WorkOrder] FOREIGN KEY ([WorkOrderId]) REFERENCES [dbo].[WorkOrder] ([WorkOrderId]),
     CONSTRAINT [FK_WorkOrderShipping_WorkOrderPartNo] FOREIGN KEY ([WorkOrderPartNoId]) REFERENCES [dbo].[WorkOrderPartNumber] ([ID])
 );
+
+
 
 
 

@@ -84,13 +84,13 @@ BEGIN
     DECLARE @IssueQty bigint=0  
     DECLARE @laborType varchar(200)='DIRECTLABOR'  
     DECLARE @issued bit=1  
-    DECLARE @Amount decimal(18,2)  
+    DECLARE @Amount decimal(18,6)  
     DECLARE @ModuleName varchar(200)='WO'  
     DECLARE @UpdateBy varchar(200)  
     DECLARE @InternalWorkOrderTypeId INT;  
     DECLARE @WorkOrderTypeId INT;  
-    DECLARE @MaterialsCost DECIMAL(18,2);  
-    DECLARE @LaborCost DECIMAL(18,2); 
+    DECLARE @MaterialsCost DECIMAL(18,6);  
+    DECLARE @LaborCost DECIMAL(18,6); 
 	DECLARE @WOTypeId INT= 0;
 	DECLARE @CustomerWOTypeId INT= 0;
 	DECLARE @InternalWOTypeId INT= 0;

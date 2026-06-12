@@ -14,7 +14,7 @@
     [CustomerSeviceRepId]      BIGINT          NULL,
     [ProbabilityId]            BIGINT          NULL,
     [LeadSourceId]             INT             NULL,
-    [CreditLimit]              DECIMAL (18, 2) NULL,
+    [CreditLimit]              DECIMAL (18, 6) NULL,
     [CreditTermId]             INT             NULL,
     [EmployeeId]               BIGINT          NOT NULL,
     [RestrictPMA]              BIT             CONSTRAINT [SalesOrderQuote_RestrictPMA] DEFAULT ((0)) NOT NULL,
@@ -66,13 +66,13 @@
     [ManagementStructureName4] VARCHAR (50)    NULL,
     [EnforceEffectiveDate]     DATETIME2 (7)   NULL,
     [IsEnforceApproval]        BIT             NULL,
-    [TotalFreight]             DECIMAL (20, 2) NULL,
-    [TotalCharges]             DECIMAL (20, 2) NULL,
+    [TotalFreight]             DECIMAL (18, 6) NULL,
+    [TotalCharges]             DECIMAL (18, 6) NULL,
     [FreightBilingMethodId]    INT             NULL,
     [ChargesBilingMethodId]    INT             NULL,
     [FunctionalCurrencyId]     INT             NULL,
     [ReportCurrencyId]         INT             NULL,
-    [ForeignExchangeRate]      DECIMAL (18, 2) NULL,
+    [ForeignExchangeRate]      DECIMAL (18, 6) NULL,
     [LotId]                    BIGINT          NULL,
     [IsLotAssigned]            BIT             NULL,
     [SourceBy]                 VARCHAR (50)    NULL,
@@ -93,6 +93,8 @@
     CONSTRAINT [FK_SalesOrderQuote_MasterSalesOrderQuoteTypes] FOREIGN KEY ([QuoteTypeId]) REFERENCES [dbo].[MasterSalesOrderQuoteTypes] ([Id]),
     CONSTRAINT [FK_SalesOrderQuote_Percent] FOREIGN KEY ([ProbabilityId]) REFERENCES [dbo].[Percent] ([PercentId])
 );
+
+
 
 
 

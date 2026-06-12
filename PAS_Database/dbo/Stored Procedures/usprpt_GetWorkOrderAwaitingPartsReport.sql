@@ -16,6 +16,7 @@
  ** S NO   DateAuthor   Change Description 
  ** --   ---------------  --------------------------------
 	1	22-10-2024		Abhishek Jirawla	CREATED  
+	2	11-06-2026	    Priyansh Patel       UOM changes [PN-16829]
 **************************************************************/
 CREATE   PROCEDURE [dbo].[usprpt_GetWorkOrderAwaitingPartsReport]
  @PageNumber INT = 1,
@@ -131,17 +132,17 @@ BEGIN TRANSACTION
 			condition VARCHAR(256) NULL,
 			manufacturer VARCHAR(250) NULL,
 			uom VARCHAR(100) NULL,
-			approvedamount DECIMAL(18, 2) NULL, 
+			approvedamount DECIMAL(18, 6) NULL, 
 			openDate DATETIME2 NULL, 
 			requestDate DATETIME2 NULL, 
 			estimatedShipDate DATETIME2 NULL, 
 			workOrderMaterialsId BIGINT NULL,
-			quantityRequested INT NULL, 
-			quantityReserved INT NULL, 
-			quantityIssued INT NULL, 
-			quantityAvailable INT NULL,
-			backlog INT NULL,
-			customerStock INT NULL,
+			quantityRequested DECIMAL(18, 6) NULL, 
+			quantityReserved DECIMAL(18, 6) NULL, 
+			quantityIssued DECIMAL(18, 6) NULL, 
+			quantityAvailable DECIMAL(18, 6) NULL, 
+			backlog DECIMAL(18, 6) NULL, 
+			customerStock DECIMAL(18, 6) NULL, 
 			customerApprovedDate DATETIME2 NULL,
 			level1 VARCHAR(MAX) NULL, 
 			level2 VARCHAR(MAX) NULL, 
@@ -164,9 +165,9 @@ BEGIN TRANSACTION
 			[WorkOrderId] [BIGINT] NULL,						 
 			[ItemMasterId] [BIGINT] NULL,
 			[ConditionId] [BIGINT] NOT NULL,
-			[Quantity] [INT] NULL, 
-			[QuantityReserved] [INT] NULL,
-			[QuantityIssued] [INT] NULL
+			[Quantity] DECIMAL(18, 6) NULL, 
+			[QuantityReserved]  DECIMAL(18, 6) NULL, 
+			[QuantityIssued]  DECIMAL(18, 6) NULL
 		)
 
 		CREATE TABLE #tmpMultipleWOMStocklineKit
@@ -176,9 +177,9 @@ BEGIN TRANSACTION
 			[WorkOrderId] [BIGINT] NULL,						 
 			[ItemMasterId] [BIGINT] NULL,
 			[ConditionId] [BIGINT] NOT NULL,
-			[Quantity] [INT] NULL, 
-			[QuantityReserved] [INT] NULL,
-			[QuantityIssued] [INT] NULL
+			[Quantity]  DECIMAL(18, 6) NULL, 
+			[QuantityReserved]  DECIMAL(18, 6) NULL, 
+			[QuantityIssued]  DECIMAL(18, 6) NULL
 		)
 
 		INSERT INTO #tmpMultipleWOMStockline 

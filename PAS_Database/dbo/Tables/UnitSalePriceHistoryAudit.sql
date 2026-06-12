@@ -2,7 +2,7 @@
     [UnitSalePriceHistoryAuditId] BIGINT          IDENTITY (1, 1) NOT NULL,
     [StockLineId]                 BIGINT          NOT NULL,
     [StocklineNumber]             VARCHAR (50)    NULL,
-    [UnitSalesPrice]              DECIMAL (18, 2) NULL,
+    [UnitSalesPrice]              DECIMAL (18, 6) NULL,
     [SalesPriceExpiryDate]        DATETIME        NULL,
     [MasterCompanyId]             INT             NULL,
     [CreatedBy]                   VARCHAR (256)   NOT NULL,

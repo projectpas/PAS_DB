@@ -64,18 +64,18 @@ BEGIN
 		DECLARE @StartsFrom varchar(200)='00';
 		DECLARE @GlAccountName varchar(200);
 		DECLARE @GlAccountNumber varchar(200); 
-		DECLARE @ExtAmount DECIMAL(18,2);
+		DECLARE @ExtAmount DECIMAL(18,6);
 		DECLARE @BankId INT =0;
 		DECLARE @ManagementStructureId BIGINT;
 		DECLARE @ManualJorManagementStructureId BIGINT;
-		DECLARE @Debit DECIMAL(18, 2) = 0;
-		DECLARE @Credit DECIMAL(18, 2) = 0;
+		DECLARE @Debit DECIMAL(18, 6) = 0;
+		DECLARE @Credit DECIMAL(18, 6) = 0;
 		DECLARE @LastMSLevel varchar(200);
 		DECLARE @AllMSlevels varchar(max);
 		DECLARE @ModuleId INT;
-		DECLARE @TotalDebit decimal(18, 2) =0;
-		DECLARE @TotalCredit decimal(18, 2) =0;
-		DECLARE @TotalBalance decimal(18, 2) =0;
+		DECLARE @TotalDebit decimal(18, 6) =0;
+		DECLARE @TotalCredit decimal(18, 6) =0;
+		DECLARE @TotalBalance decimal(18, 6) =0;
 		DECLARE @ExtNumber VARCHAR(20);
 		DECLARE @VendorName VARCHAR(50);
 		DECLARE @ExtDate Datetime;
@@ -83,10 +83,10 @@ BEGIN
 		DECLARE @DistributionCodeName VARCHAR(100);
 		DECLARE @CrDrType int=0;
 		DECLARE @CodePrefix VARCHAR(50);
-		DECLARE @Amount DECIMAL(18, 2) =0;
+		DECLARE @Amount DECIMAL(18, 6) =0;
 		DECLARE @MasterLoopID INT;
 		DECLARE @ManualJournalDetailsId BIGINT;
-		DECLARE @AdjustmentAmount DECIMAL(18, 2) =0;
+		DECLARE @AdjustmentAmount DECIMAL(18, 6) =0;
 		DECLARE @StockLineId BIGINT;
 		DECLARE @BulkStatusName varchar(200);  
 		DECLARE @ManualJournalModuleID  BIGINT;
@@ -272,8 +272,8 @@ BEGIN
 					[ID] INT IDENTITY,
 					[ManualJournalDetailsId] [bigint] NULL,
 					[GlAccountId] [bigint] NOT NULL,
-					[Debit] [decimal](18,2) NULL,
-					[Credit] [decimal](18,2) NULL,
+					[Debit] [decimal](18,6) NULL,
+					[Credit] [decimal](18,6) NULL,
 					[ManagementStructureId] [bigint] NULL,
 					[LastMSLevel] [varchar](200) NULL,
 					[AllMSlevels] [varchar](MAX) NULL,

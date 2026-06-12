@@ -75,7 +75,7 @@ BEGIN
     [Priority] [nvarchar](max) NULL,    
     [ConditionId] [bigint] NULL,    
     [Condition] [varchar](256) NULL,    
-    [Quantity] [decimal](18,2) NULL,    
+    [Quantity] [decimal](18,6) NULL,    
     [UnitCost] [decimal](18,6) NULL,    
     [VendorId] [bigint] NULL,    
     [VendorName] [varchar](100) NULL,    

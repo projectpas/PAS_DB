@@ -86,7 +86,7 @@ BEGIN
     DECLARE @WorkOrderNum VARCHAR(50);  
     DECLARE @ExtStlNo VARCHAR(50);  
     DECLARE @SubWorkOrderStatusId BIGINT;  
-    DECLARE @UnitCost DECIMAL(18,2);  
+    DECLARE @UnitCost DECIMAL(18,6);  
     DECLARE @SubWorkOrderNum VARCHAR(50);  
     DECLARE @CustomerAffiliationId INT;  
 	DECLARE @issued bit=1
@@ -97,7 +97,7 @@ BEGIN
     DECLARE @RevisedPartNoId BIGINT;  
     DECLARE @IsCustStock BIT;  
 
-	DECLARE @TotalSubWorkOrderCost DECIMAL(18,2);
+	DECLARE @TotalSubWorkOrderCost DECIMAL(18,6);
 	DECLARE @DistributionMasterId bigint
 	DECLARE @SubWorkOrderQty int = 1   --------------   SubworkOrder Qty Always 1 For Accounting Batch Entry        
     DECLARE @ModuleName varchar(200)='SWOP-PartsIssued'

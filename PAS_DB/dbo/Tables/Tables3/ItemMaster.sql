@@ -286,7 +286,7 @@ CREATE     TRIGGER [dbo].[trg_Audit_dbo_ItemMaster]
                     FROM dbo.IgnoreColumn ign
                     WHERE ign.SchemaName = N'dbo'
                       AND ign.TableName  = N'ItemMaster'
-                      AND ign.ColumnName = N'ItemMasterId'
+                      AND ign.ColumnName COLLATE DATABASE_DEFAULT = v.[key] COLLATE DATABASE_DEFAULT
                 )),
             newv AS (
                 SELECT
@@ -301,7 +301,7 @@ CREATE     TRIGGER [dbo].[trg_Audit_dbo_ItemMaster]
                     FROM dbo.IgnoreColumn ign
                     WHERE ign.SchemaName = N'dbo'
                       AND ign.TableName  = N'ItemMaster'
-                      AND ign.ColumnName = N'ItemMasterId'
+                      AND ign.ColumnName COLLATE DATABASE_DEFAULT = v.[key] COLLATE DATABASE_DEFAULT
                 )),
             merged AS (
                 SELECT

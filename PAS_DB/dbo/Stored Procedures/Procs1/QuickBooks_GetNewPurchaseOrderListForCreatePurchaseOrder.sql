@@ -13,9 +13,10 @@
  ** --   --------		-------			--------------------------------          
     1    07-Feb-2025   Abhishek Jirawla	Created
 	2    06-MAY-2026   Moin Bloch       Added Xero PN-16011
-	2    29/05/2026   Bhargav Saliya    Added Case For PO 
+	3    29/05/2026    Bhargav Saliya   Added Case For PO 
+    4    11/06/2026    Moin Bloch       Fixed PO Creation Issue
      
- EXECUTE [QuickBooks_GetNewPurchaseOrderListForCreatePurchaseOrder] 3,1,2613,13
+ EXECUTE [QuickBooks_GetNewPurchaseOrderListForCreatePurchaseOrder] 3,1,2768,13
 **************************************************************/ 
 CREATE     PROCEDURE [dbo].[QuickBooks_GetNewPurchaseOrderListForCreatePurchaseOrder]
 	@IntegrationTypeId INT = NULL,
@@ -197,8 +198,8 @@ BEGIN
 					FROM [dbo].[PurchaseOrder] PO WITH(NOLOCK)
 						INNER JOIN [dbo].[Vendor] VN WITH(NOLOCK) ON PO.VendorId = VN.VendorId					
 						LEFT JOIN [dbo].[AllAddress] AA WITH(NOLOCK) ON AA.ModuleId = @POModuleId AND AA.ReffranceId = PO.PurchaseOrderId AND AA.IsShippingAdd = 1
-					WHERE ISNULL(PO.QuickBooksReferenceId, '') = ''
-					  AND ISNULL(PO.IsUpdated, 0) = 1 					  
+					WHERE ISNULL(PO.QuickBooksReferenceId, '') = ''					  
+					  AND ISNULL(PO.IsUpdated, 1) = 1
 					  AND (@ReferenceId IS NULL OR @ReferenceId = 0 OR PO.PurchaseOrderId = @ReferenceId) 
 					  AND PO.MasterCompanyId = @MasterCompanyId
 					  AND PO.IsActive = 1
@@ -220,7 +221,7 @@ BEGIN
 						LEFT JOIN [dbo].[ItemMaster] IM WITH(NOLOCK) ON IM.ItemMasterId = POP.ItemMasterId
 						LEFT JOIN [dbo].[GLAccount] GL WITH(NOLOCK) ON GL.GLAccountId = @POGlAccountId
 					WHERE ISNULL(PO.QuickBooksReferenceId, '') = '' AND 
-						  ISNULL(PO.IsUpdated, 0) = 1 AND 						  
+						  ISNULL(PO.IsUpdated, 1) = 1 AND
 						  (@ReferenceId IS NULL OR @ReferenceId = 0 OR PO.PurchaseOrderId = @ReferenceId) AND  
 						  PO.MasterCompanyId = @MasterCompanyId AND		
 						  POP.IsActive = 1 AND
@@ -243,7 +244,7 @@ BEGIN
 						INNER JOIN [dbo].[Vendor] VN WITH(NOLOCK) ON RO.VendorId = VN.VendorId					
 						LEFT JOIN [dbo].[AllAddress] AA WITH(NOLOCK) ON AA.ModuleId = @ROModuleId AND AA.ReffranceId = RO.RepairOrderId AND AA.IsShippingAdd = 1
 					WHERE ISNULL(RO.QuickBooksReferenceId, '') = ''
-					  AND ISNULL(RO.IsUpdated, 0) = 1 					  
+					  AND ISNULL(RO.IsUpdated, 1) = 1 					  
 					  AND (@ReferenceId IS NULL OR @ReferenceId = 0 OR RO.RepairOrderId = @ReferenceId) 
 					  AND RO.MasterCompanyId = @MasterCompanyId
 					  AND RO.IsActive = 1
@@ -264,7 +265,7 @@ BEGIN
 						LEFT JOIN [dbo].[ItemMaster] IM WITH(NOLOCK) ON IM.ItemMasterId = ROP.ItemMasterId
 						LEFT JOIN [dbo].[GLAccount] GL WITH(NOLOCK) ON GL.GLAccountId = @ROGlAccountId
 					WHERE ISNULL(RO.QuickBooksReferenceId, '') = '' AND 
-						  ISNULL(RO.IsUpdated, 0) = 1 AND 						  
+						  ISNULL(RO.IsUpdated, 1) = 1 AND 						  
 						  (@ReferenceId IS NULL OR @ReferenceId = 0 OR RO.RepairOrderId = @ReferenceId) AND  
 						  RO.MasterCompanyId = @MasterCompanyId AND		
 						  ROP.IsActive = 1 AND

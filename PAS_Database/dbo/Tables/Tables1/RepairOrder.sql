@@ -14,7 +14,7 @@
     [VendorContactPhone]             VARCHAR (100)   NULL,
     [CreditTermsId]                  INT             NULL,
     [Terms]                          VARCHAR (100)   NULL,
-    [CreditLimit]                    DECIMAL (18, 2) NULL,
+    [CreditLimit]                    DECIMAL (18, 6) NULL,
     [RequisitionerId]                BIGINT          NOT NULL,
     [Requisitioner]                  VARCHAR (100)   NULL,
     [StatusId]                       BIGINT          NOT NULL,
@@ -52,7 +52,7 @@
     [FunctionalCurrencyId]           INT             NULL,
     [ReportCurrencyId]               INT             NULL,
     [ForeignExchangeRate]            DECIMAL (18, 6) NULL,
-    [DepositAmount]                  DECIMAL (18, 2) NULL,
+    [DepositAmount]                  DECIMAL (18, 6) NULL,
     [VendorProformaInvoiceNo]        VARCHAR (150)   NULL,
     [VendorProformaInvoiceId]        BIGINT          NULL,
     [QuickBooksReferenceId]          VARCHAR (200)   NULL,
@@ -73,6 +73,8 @@
     CONSTRAINT [FK_RepairOrder_VendorContact] FOREIGN KEY ([VendorContactId]) REFERENCES [dbo].[VendorContact] ([VendorContactId]),
     CONSTRAINT [FK_RepairOrder_VendorId] FOREIGN KEY ([VendorId]) REFERENCES [dbo].[Vendor] ([VendorId])
 );
+
+
 
 
 

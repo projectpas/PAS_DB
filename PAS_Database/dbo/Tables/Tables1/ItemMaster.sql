@@ -241,36 +241,10 @@
 
 
 
+
+
 GO
 
-
-
-
-
-
-create TRIGGER [dbo].[Trg_ItemMasterAudit]
-
-   ON  [dbo].[ItemMaster]
-
-   AFTER INSERT,DELETE,UPDATE
-
-AS 
-
-BEGIN
-
-
-
-	INSERT INTO [dbo].[ItemMasterAudit]
-
-	SELECT * FROM INSERTED
-
-
-
-	SET NOCOUNT ON;
-
-
-
-END
 GO
 CREATE     TRIGGER [dbo].[trg_Audit_dbo_ItemMaster]
         ON [dbo].[ItemMaster]
@@ -312,7 +286,7 @@ CREATE     TRIGGER [dbo].[trg_Audit_dbo_ItemMaster]
                     FROM dbo.IgnoreColumn ign
                     WHERE ign.SchemaName = N'dbo'
                       AND ign.TableName  = N'ItemMaster'
-                      AND ign.ColumnName = N'ItemMasterId'
+                      AND ign.ColumnName COLLATE DATABASE_DEFAULT = v.[key] COLLATE DATABASE_DEFAULT
                 )),
             newv AS (
                 SELECT
@@ -327,7 +301,7 @@ CREATE     TRIGGER [dbo].[trg_Audit_dbo_ItemMaster]
                     FROM dbo.IgnoreColumn ign
                     WHERE ign.SchemaName = N'dbo'
                       AND ign.TableName  = N'ItemMaster'
-                      AND ign.ColumnName = N'ItemMasterId'
+                      AND ign.ColumnName COLLATE DATABASE_DEFAULT = v.[key] COLLATE DATABASE_DEFAULT
                 )),
             merged AS (
                 SELECT

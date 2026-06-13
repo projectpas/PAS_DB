@@ -1,147 +1,111 @@
-﻿
-/****************************************************************************************************************************************************************************/
-
-/****** Object:  UserDefinedFunction [dbo].[fn_ConvertUOM]    Script Date: 12/2/2025 3:39:07 PM ******/
-CREATE   FUNCTION [dbo].[fn_ConvertUOM]
-(    
-    @Qty        DECIMAL(18,8),
-    @FromUOM    VARCHAR(50),
-    @ToUOM      VARCHAR(50),
-    @IsCost     BIT = 0,
-	@MasterCompanyId INT 
+﻿CREATE FUNCTION [dbo].[fn_ConvertUOM]
+(
+    @Qty DECIMAL(18,8),
+    @FromUOM VARCHAR(50),
+    @ToUOM VARCHAR(50),
+    @IsCost BIT = 0,
+    @MasterCompanyId INT
 )
 RETURNS DECIMAL(18,6)
 AS
 BEGIN
-	-- Same UOM Return Same Qty / Cost
-	IF(@MasterCompanyId IS NULL OR @MasterCompanyId =0)
-	BEGIN
-		SET @MasterCompanyId = (SELECT TOP 1 MasterCompanyId FROM dbo.MasterCompany WITH(NOLOCK) WHERE ISNULL(IsActive,0) = 1)
-	END
 
-    IF(@FromUOM = @ToUOM)
-	BEGIN
-		RETURN ROUND(@Qty, 6);
-	END
-	
-	DECLARE @Factor DECIMAL(18,8), @IsMultiply BIT = 0;
-	    -- Case 1: Exact From → To conversion exists
-    SELECT @Factor = Factor, @IsMultiply = IsMultiply
-    FROM dbo.UOMConversion WITH (NOLOCK)
-    WHERE FromUOM = @FromUOM
-      AND ToUOM   = @ToUOM
-	  AND MasterCompanyId = @MasterCompanyId;
-
-    IF (@IsCost = 1)
+    IF (ISNULL(@MasterCompanyId,0) = 0)
     BEGIN
-        IF (@Factor IS NOT NULL)
-        BEGIN
-            IF (@IsMultiply = 1)
-                RETURN ROUND(@Qty / @Factor, 6);
-            ELSE
-                RETURN ROUND(@Qty * @Factor, 6);
-        END
-
-        -- Reverse conversion
-        SELECT @Factor = Factor, @IsMultiply = IsMultiply
-        FROM dbo.UOMConversion WITH (NOLOCK)
-        WHERE FromUOM = @ToUOM
-          AND ToUOM   = @FromUOM AND MasterCompanyId = @MasterCompanyId;
-
-        IF (@Factor IS NOT NULL)
-        BEGIN
-            IF (@IsMultiply = 1)
-                RETURN ROUND(@Qty / @Factor, 6);
-            ELSE
-                RETURN ROUND(@Qty * @Factor, 6);
-        END
+        SELECT TOP 1 @MasterCompanyId = MasterCompanyId
+        FROM dbo.MasterCompany WITH(NOLOCK)
+        WHERE ISNULL(IsActive,0) = 1;
     END
-    ELSE
+
+    IF(ISNULL(@FromUOM,'') = ISNULL(@ToUOM,''))
     BEGIN
-        -- Quantity conversion
-        IF (@Factor IS NOT NULL)
-            RETURN ROUND(@Qty * @Factor, 6);
+        RETURN ROUND(@Qty,6);
+    END
 
-        SELECT @Factor = Factor
-        FROM dbo.UOMConversion WITH (NOLOCK)
+    DECLARE
+        @Factor DECIMAL(18,8) = NULL,
+        @IsMultiply BIT = 0,
+        @IsReverse BIT = 0;
+
+    -- Direct conversion
+    SELECT TOP 1
+        @Factor = Factor,
+        @IsMultiply = IsMultiply,
+        @IsReverse = 0
+    FROM dbo.UOMConversion WITH(NOLOCK)
+    WHERE FromUOM = @FromUOM
+      AND ToUOM = @ToUOM
+      AND MasterCompanyId = @MasterCompanyId;
+
+    -- Reverse conversion
+    IF @Factor IS NULL
+    BEGIN
+        SELECT TOP 1
+            @Factor = Factor,
+            @IsMultiply = IsMultiply,
+            @IsReverse = 1
+        FROM dbo.UOMConversion WITH(NOLOCK)
         WHERE FromUOM = @ToUOM
-          AND ToUOM   = @FromUOM AND MasterCompanyId = @MasterCompanyId;
-
-        IF (@Factor IS NOT NULL)
-            RETURN ROUND(@Qty / @Factor, 6);
+          AND ToUOM = @FromUOM
+          AND MasterCompanyId = @MasterCompanyId;
     END
 
     -- No conversion found
-    RETURN ROUND(@Qty, 6);
+    IF @Factor IS NULL
+    BEGIN
+        RETURN ROUND(@Qty,6);
+    END
+
+    ----------------------------------------------------------
+    -- Quantity Conversion
+    ----------------------------------------------------------
+    IF @IsCost = 0
+    BEGIN
+        IF @IsReverse = 0
+        BEGIN
+            RETURN ROUND(
+                CASE
+                    WHEN @IsMultiply = 1 THEN @Qty * @Factor
+                    ELSE @Qty / @Factor
+                END
+            ,6);
+        END
+        ELSE
+        BEGIN
+            RETURN ROUND(
+                CASE
+                    WHEN @IsMultiply = 1 THEN @Qty / @Factor
+                    ELSE @Qty * @Factor
+                END
+            ,6);
+        END
+    END
+
+    ----------------------------------------------------------
+    -- Cost / Price Conversion
+    ----------------------------------------------------------
+    IF @IsCost = 1
+    BEGIN
+        IF @IsReverse = 0
+        BEGIN
+            RETURN ROUND(
+                CASE
+                    WHEN @IsMultiply = 1 THEN @Qty / @Factor
+                    ELSE @Qty * @Factor
+                END
+            ,6);
+        END
+        ELSE
+        BEGIN
+            RETURN ROUND(
+                CASE
+                    WHEN @IsMultiply = 1 THEN @Qty * @Factor
+                    ELSE @Qty / @Factor
+                END
+            ,6);
+        END
+    END
+
+    RETURN ROUND(@Qty,6);
+
 END
-
-
---CREATE OR ALTER   FUNCTION [dbo].[fn_ConvertUOM]
---(    
---    @Qty        DECIMAL(18,6),
---    @FromUOM    VARCHAR(50),
---    @ToUOM      VARCHAR(50),
---	@IsCost    BIT = 0
---)
---RETURNS DECIMAL(18,6)
---AS
---BEGIN
---    DECLARE @Factor DECIMAL(18,6), @IsMultiply BIT =0;
-
---    -- Case 1: Exact From → To conversion exists
---    SELECT @Factor = factor, @IsMultiply = IsMultiply
---    FROM [dbo].[UOMConversion] WITH(NOLOCK)
---    WHERE FromUOM = @FromUOM
---      AND ToUOM   = @ToUOM;
-
---	IF(@IsCost = 1)
---	BEGIN
---		IF(@IsMultiply = 1)
---		BEGIN
---			IF (@Factor IS NOT NULL)
---			RETURN @Qty / @Factor;
---		END
---		ELSE
---		BEGIN
---			IF (@Factor IS NOT NULL)
---			RETURN @Qty * @Factor;
---		END 
-
---		SELECT @Factor = factor ,@IsMultiply = IsMultiply
---		FROM [dbo].[UOMConversion] WITH(NOLOCK)
---		WHERE FromUOM = @ToUOM
---		  AND ToUOM   = @FromUOM;
-
---		IF(@IsMultiply = 1)
---		BEGIN
---			IF (@Factor IS NOT NULL)
---			RETURN @Qty / @Factor;
---		END
---		ELSE
---		BEGIN
---			IF (@Factor IS NOT NULL)
---			RETURN @Qty * @Factor;
---		END 
---	END
---	ELSE 
---	BEGIN -- For the QTY
---		IF (@Factor IS NOT NULL)
---			RETURN @Qty * @Factor;
-
---		-- Case 2: Reverse conversion exists (To → From)
---		SELECT @Factor = factor
---		FROM [dbo].[UOMConversion] WITH(NOLOCK)
---		WHERE FromUOM = @ToUOM
---		  AND ToUOM   = @FromUOM;
-
---		IF (@Factor IS NOT NULL)
---			RETURN @Qty / @Factor;
---	END
-
---    -- Case 3: No conversion found - return original qty
---    RETURN @Qty;
---END
-/****************************************************************************************************************************************************************************/
-
---EXEC sp_help 'Stockline';
---EXEC sp_help 'StocklineAudit';

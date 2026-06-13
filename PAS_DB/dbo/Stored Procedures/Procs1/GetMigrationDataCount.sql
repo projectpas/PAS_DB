@@ -151,6 +151,36 @@ BEGIN
 			
 			SELECT @ProcessedCnts AS Processed, @MigratedCnts AS Migrated, @FailedCnts AS Failed, @ExistsCnts AS Exist;
 		END
+		ELSE IF (@ModuleId = 7) -- Sales Order Quote
+		BEGIN
+			SELECT @ProcessedCnts = COUNT(V.SalesOrderQuoteHeaderId) FROM Quantum_Staging_BETA.DBO.SalesOrderQuoteHeaders V WITH (NOLOCK) WHERE V.MasterCompanyId = @MasterCompanyId;
+
+			SELECT @MigratedCnts = COUNT(V.SalesOrderQuoteHeaderId) FROM Quantum_Staging_BETA.DBO.SalesOrderQuoteHeaders V WITH (NOLOCK)
+			WHERE V.Migrated_Id IS NOT NULL AND V.MasterCompanyId = @MasterCompanyId;
+
+			SELECT @FailedCnts = COUNT(V.SalesOrderQuoteHeaderId) FROM Quantum_Staging_BETA.DBO.SalesOrderQuoteHeaders V WITH (NOLOCK)
+			WHERE V.Migrated_Id IS NULL AND (V.ErrorMsg IS NOT NULL AND V.ErrorMsg NOT like '%SOQ already exists%') AND V.MasterCompanyId = @MasterCompanyId;
+
+			SELECT @ExistsCnts = COUNT(V.SalesOrderQuoteHeaderId) FROM Quantum_Staging_BETA.DBO.SalesOrderQuoteHeaders V WITH (NOLOCK)
+			WHERE V.ErrorMsg like '%SOQ already exists%' AND V.MasterCompanyId = @MasterCompanyId;
+			
+			SELECT @ProcessedCnts AS Processed, @MigratedCnts AS Migrated, @FailedCnts AS Failed, @ExistsCnts AS Exist;
+		END
+		ELSE IF (@ModuleId = 10) -- Sales Order
+		BEGIN
+			SELECT @ProcessedCnts = COUNT(V.SalesOrderHeaderId) FROM Quantum_Staging_BETA.DBO.SalesOrderHeaders V WITH (NOLOCK) WHERE V.MasterCompanyId = @MasterCompanyId;
+
+			SELECT @MigratedCnts = COUNT(V.SalesOrderHeaderId) FROM Quantum_Staging_BETA.DBO.SalesOrderHeaders V WITH (NOLOCK)
+			WHERE V.Migrated_Id IS NOT NULL AND V.MasterCompanyId = @MasterCompanyId;
+
+			SELECT @FailedCnts = COUNT(V.SalesOrderHeaderId) FROM Quantum_Staging_BETA.DBO.SalesOrderHeaders V WITH (NOLOCK)
+			WHERE V.Migrated_Id IS NULL AND (V.ErrorMsg IS NOT NULL AND V.ErrorMsg NOT like '%Vendor already exists%') AND V.MasterCompanyId = @MasterCompanyId;
+
+			SELECT @ExistsCnts = COUNT(V.SalesOrderHeaderId) FROM Quantum_Staging_BETA.DBO.SalesOrderHeaders V WITH (NOLOCK)
+			WHERE V.ErrorMsg like '%SO already exists%' AND V.MasterCompanyId = @MasterCompanyId;
+			
+			SELECT @ProcessedCnts AS Processed, @MigratedCnts AS Migrated, @FailedCnts AS Failed, @ExistsCnts AS Exist;
+		END
 	END
 	END TRY    
 	BEGIN CATCH      

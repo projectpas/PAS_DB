@@ -8,22 +8,23 @@
  **************************************************************           
   ** Change History           
  **************************************************************           
- ** PR   Date         Author  		Change Description            
- ** --   --------     -------		---------------------------     
-    1    03/04/2023   Rajesh Gami     Created
-	2    10/16/2024	 Abhishek Jirawla	Implemented the new tables for SalesOrder related tables
-	3    19/02/2025   Ayushi Patel      converted the date into utc (created) , Added a case to get timeZone
-	4    28 May 2026  Rajesh Gami     Added VendorName [PN-16601]
+ ** PR   Date			 Author  				Change Description            
+ ** --   --------		 -------				---------------------------     
+    1    03/04/2023		 Rajesh Gami			Created
+	2    10/16/2024		 Abhishek Jirawla		Implemented the new tables for SalesOrder related tables
+	3    19/02/2025		 Ayushi Patel			converted the date into utc (created) , Added a case to get timeZone
+	4    28 May 2026	 Rajesh Gami			Added VendorName [PN-16601]
+	5    12 June 2026    Rajesh Gami			Fixed the Amount related issue (PN-16799)
 **************************************************************
 **************************************************************/
-CREATE   PROCEDURE [dbo].[USP_Lot_GetLotList] 
+CREATE PROCEDURE [dbo].[USP_Lot_GetLotList]
 	@PageNumber int = 1,
 	@PageSize int = 10,
 	@SortColumn varchar(50)=NULL,
 	@SortOrder int = NULL,
 	@LotStatusId int = 1,
 	@StatusName varchar(50) = 'Open',
-	@GlobalFilter varchar(50) = '',	
+	@GlobalFilter varchar(50) = '',
 	@LotNumber varchar(50) = NULL,
 	@LotName varchar(200) = NULL,
 	@ReferenceNumber varchar(100) = NULL,
@@ -54,56 +55,52 @@ BEGIN
 		DECLARE @Count Int;
 		DECLARE @RecordFrom int;
 		DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
-		
-				SELECT 
-						@CurrntEmpTimeZoneDesc = COALESCE(
-							ETZ.[Description],  -- Prefer Employee's TimeZone description if available
-							LTZ.[Description]   -- Fallback to LegalEntity's TimeZone description
-						)
-					FROM 
-						dbo.Employee E WITH (NOLOCK) 
-					LEFT JOIN 
-						dbo.TimeZone ETZ WITH (NOLOCK) 
-						ON E.TimeZoneId = ETZ.TimeZoneId
-					LEFT JOIN 
-						dbo.LegalEntity LE WITH (NOLOCK) 
-						ON E.LegalEntityId = LE.LegalEntityId
-					LEFT JOIN 
-						dbo.TimeZone LTZ WITH (NOLOCK) 
-						ON LE.TimeZoneId = LTZ.TimeZoneId
-					WHERE 
-						E.EmployeeId = @EmployeeId; -- Use appropriate filter for the specific employee
+ 
+		SELECT
+				@CurrntEmpTimeZoneDesc = COALESCE(
+					ETZ.[Description],
+					LTZ.[Description]
+				)
+			FROM
+				dbo.Employee E WITH (NOLOCK)
+			LEFT JOIN
+				dbo.TimeZone ETZ WITH (NOLOCK)
+				ON E.TimeZoneId = ETZ.TimeZoneId
+			LEFT JOIN
+				dbo.LegalEntity LE WITH (NOLOCK)
+				ON E.LegalEntityId = LE.LegalEntityId
+			LEFT JOIN
+				dbo.TimeZone LTZ WITH (NOLOCK)
+				ON LE.TimeZoneId = LTZ.TimeZoneId
+			WHERE
+				E.EmployeeId = @EmployeeId;
+ 
 		SET @RecordFrom = (@PageNumber-1)*@PageSize;
-
 		IF @SortColumn IS NULL
 		BEGIN
 			SET @SortColumn = Upper('CreatedDate')
 			SET @SortOrder = -1
-		END 
+		END
 		ELSE
-		BEGIN 
+		BEGIN
 			Set @SortColumn = Upper(@SortColumn)
 		END
-
-		-- LotId,LotNumber,LotName,VendorId,ReferenceNumber,OpenDate,OriginalCost,LotStatusId,StatusName,ConsignmentId,ConsignmentNumber,ConsigneeName,EmployeeId,ObtainFromId,ObtainFromTypeId,TraceableToId,TraceableToTypeId,ManagementStructureId,MasterCompanyId,CreatedBy,UpdatedBy,CreatedDate,UpdatedDate,AcqusitionCost,RemainingCost,RemainingPercentage,Revenue,MarginAmount,Margin
-		;WITH Result AS (	
+ 
+		;WITH Result AS (
 			SELECT DISTINCT
 				LT.[LotId] LotId
 			   ,UPPER(LT.LotNumber) LotNumber
 			   ,UPPER(LT.LotName) LotName
-			   --,LT.VendorId VendorId
-			   --,UPPER(LT.ReferenceNumber)ReferenceNumber
 			   ,ISNULL((Select top 1 ISNULL(VendorId,0) from dbo.PurchaseOrder po WITH(NOLOCK) Where po.LotId = Lt.LotId AND ISNULL(po.IsDeleted,0) = 0),0) AS VendorId
 			   ,(Select top 1 ISNULL(ven.VendorName,'') from dbo.PurchaseOrder po WITH(NOLOCK) INNER JOIN dbo.Vendor ven WITH(NOLOCK) on po.VendorId = ven.VendorId Where po.LotId = Lt.LotId AND ISNULL(po.IsDeleted,0) = 0) AS VendorName
 			   ,ISNULL((Select top 1 ISNULL(PurchaseOrderNumber,'') from dbo.PurchaseOrder po WITH(NOLOCK) Where po.LotId = Lt.LotId AND ISNULL(po.IsDeleted,0) = 0),'') AS ReferenceNumber
-			   --,LT.[CreatedDate] OpenDate
-			   , case when CAST(LT.[CreatedDate] as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(LT.[CreatedDate], @CurrntEmpTimeZoneDesc) as Date))end OpenDate
-			   ,ISNULL(LT.OriginalCost,0.00)OriginalCost
+			   ,case when CAST(LT.[CreatedDate] as date) = CAST('0001-01-01 00:00:00' as date) then null else (Cast(DBO.ConvertUTCtoLocal(LT.[CreatedDate], @CurrntEmpTimeZoneDesc) as Date)) end OpenDate
+			   ,ISNULL(LT.OriginalCost,0.00) OriginalCost
 			   ,LT.LotStatusId
 			   ,S.StatusName
 			   ,LT.ConsignmentId
-			   ,UPPER(LC.ConsignmentNumber)ConsignmentNumber
-			   ,UPPER(LC.ConsigneeName)ConsigneeName
+			   ,UPPER(LC.ConsignmentNumber) ConsignmentNumber
+			   ,UPPER(LC.ConsigneeName) ConsigneeName
 			   ,LT.EmployeeId
 			   ,LT.ObtainFromId
 			   ,LT.ObtainFromTypeId
@@ -116,55 +113,143 @@ BEGIN
 			   ,LT.[CreatedDate]
 			   ,LT.[UpdatedDate]
 			   ,(
-				--ISNULL((SELECT ISNULL(SUM(POP.ExtendedCost),0) FROM dbo.PurchaseOrder PO WITH(NOLOCK) INNER JOIN dbo.PurchaseOrderPart POP WITH(NOLOCK) 
-				--			  on PO.PurchaseOrderId = POP.PurchaseOrderId AND PO.LotId = POP.LotId AND po.LotId = LT.LotId
-				--			  WHERE POP.LotId = LT.LotId AND PO.StatusId not in(1,2,3)),0)+
-				ISNULL((SELECT ISNULL(SUM(POF.Amount),0) FROM dbo.PurchaseOrder PO WITH(NOLOCK) 
-							  LEFT JOIN dbo.PurchaseOrderFreight POF WITH(NOLOCK) on PO.PurchaseOrderId = POF.PurchaseOrderId
-							  WHERE po.LotId = LT.LotId AND PO.StatusId not in(1,2,3)),0)+
-				ISNULL((SELECT ISNULL(SUM(POC.ExtendedCost),0)  FROM dbo.PurchaseOrder PO WITH(NOLOCK) 
-							  LEFT JOIN dbo.PurchaseOrderCharges POC WITH(NOLOCK) on PO.PurchaseOrderId = POC.PurchaseOrderId
-							  WHERE PO.LotId = LT.LotId AND PO.StatusId not in(1,2,3)),0)) 
-							  + ISNULL((SELECT SUM(ISNULL(RepairCost,0)) FROM dbo.LotCalculationDetails LCD WITH(NOLOCK) WHERE LotId = LT.LotId AND ISNULL(LCD.IsFromPreCostStk,0) != 1 AND  UPPER(REPLACE(LCD.Type,' ','')) = UPPER(REPLACE('Trans In(RO)',' ',''))),0) 
-							  + ISNULL((SELECT SUM(ISNULL(OtherCost,0)) FROM dbo.LotCalculationDetails LCD WITH(NOLOCK) WHERE LotId = LT.LotId AND ISNULL(LCD.IsFromPreCostStk,0) != 1 AND  UPPER(REPLACE(LCD.Type,' ','')) = UPPER(REPLACE('Trans In(RO)',' ',''))),0) 
-							  + ISNULL((SELECT ISNULL(SUM(TransferredInCost),0) FROM DBO.LotCalculationDetails LCD WITH(NOLOCK) WHERE LCD.LotId = LT.LotId AND ISNULL(LCD.IsFromPreCostStk,0) != 1 AND (UPPER(ISNULL(REPLACE(LCD.Type,' ',''),'')) = UPPER(REPLACE('Trans In(Lot)',' ','')) OR UPPER(ISNULL(REPLACE(LCD.Type,' ',''),'')) = UPPER(REPLACE('Trans In(PO)',' ','')))),0)
-							  AS AcqusitionCost
-			    ,(((
-				--ISNULL((SELECT ISNULL(SUM(POP.ExtendedCost),0) FROM dbo.PurchaseOrder PO WITH(NOLOCK) INNER JOIN dbo.PurchaseOrderPart POP WITH(NOLOCK) 
-				--			  on PO.PurchaseOrderId = POP.PurchaseOrderId AND PO.LotId = POP.LotId AND po.LotId = LT.LotId
-				--			  WHERE POP.LotId = LT.LotId AND PO.StatusId not in(1,2,3)),0)+
-				ISNULL((SELECT ISNULL(SUM(POF.Amount),0) FROM dbo.PurchaseOrder PO WITH(NOLOCK) 
-							  LEFT JOIN dbo.PurchaseOrderFreight POF WITH(NOLOCK) on PO.PurchaseOrderId = POF.PurchaseOrderId
-							  WHERE po.LotId = LT.LotId AND PO.StatusId not in(1,2,3)),0)+
-				ISNULL((SELECT ISNULL(SUM(POC.ExtendedCost),0)  FROM dbo.PurchaseOrder PO WITH(NOLOCK) 
-							  LEFT JOIN dbo.PurchaseOrderCharges POC WITH(NOLOCK) on PO.PurchaseOrderId = POC.PurchaseOrderId
-							  WHERE PO.LotId = LT.LotId AND PO.StatusId not in(1,2,3)),0)) 
-							  + (SELECT SUM(ISNULL(sl.Adjustment,0)* ISNULL(sl.QuantityOnHand, 0)) from 
-					DBO.LOT lot WITH(NOLOCK) 
-					INNER JOIN DBO.LotTransInOutDetails ltin WITH(NOLOCK) on lot.LotId = ltin.LotId
-					INNER JOIN DBO.Stockline sl WITH(NOLOCK) on ltin.StockLineId = sl.StockLineId
-					Where  lot.LotId = LT.LotId)
-							  + ISNULL((SELECT SUM(ISNULL(RepairCost,0)) FROM dbo.LotCalculationDetails LCD WITH(NOLOCK) WHERE LotId = LT.LotId AND ISNULL(LCD.IsFromPreCostStk,0) != 1 AND  UPPER(REPLACE(LCD.Type,' ','')) = UPPER(REPLACE('Trans In(RO)',' ',''))),0) 
-							  + ISNULL((SELECT SUM(ISNULL(OtherCost,0)) FROM dbo.LotCalculationDetails LCD WITH(NOLOCK) WHERE LotId = LT.LotId AND ISNULL(LCD.IsFromPreCostStk,0) != 1 AND  UPPER(REPLACE(LCD.Type,' ','')) = UPPER(REPLACE('Trans In(RO)',' ',''))),0)
-							  + ISNULL((SELECT ISNULL(SUM(TransferredInCost),0) FROM DBO.LotCalculationDetails LCD WITH(NOLOCK) WHERE  LCD.LotId = LT.LotId AND ISNULL(LCD.IsFromPreCostStk,0) != 1 AND (UPPER(ISNULL(REPLACE(LCD.Type,' ',''),'')) = UPPER(REPLACE('Trans In(Lot)',' ','')) OR UPPER(ISNULL(REPLACE(LCD.Type,' ',''),'')) = UPPER(REPLACE('Trans In(PO)',' ','')))),0) 							) 
-							  - ((ISNULL((SELECT ISNULL(SUM(TransferredOutCost),0) FROM DBO.LotCalculationDetails LCD WITH(NOLOCK) WHERE LCD.LotId = LT.LotId AND ISNULL(LCD.IsFromPreCostStk,0) != 1 AND UPPER(REPLACE(LCD.[Type],' ','')) = UPPER(REPLACE('Trans Out(Lot)',' ','')) ),0)) + (ISNULL((SELECT ISNULL(SUM(ISNULL(SOPC.UnitCost,0) * ISNULL(LCD.Qty,0)),0) FROM DBO.LotCalculationDetails LCD WITH(NOLOCK) INNER JOIN DBO.SalesOrder SO WITH(NOLOCK) on LCD.ReferenceId = SO.SalesOrderId INNER JOIN DBO.SalesOrderPartV1 SOP WITH(NOLOCK) on So.SalesOrderId = SOP.SalesOrderId AND LCD.ChildId = SOP.SalesOrderPartId INNER JOIN DBO.SalesOrderPartCost SOPC WITH(NOLOCK) on SOP.SalesOrderId = SOPC.SalesOrderId AND LCD.ChildId = SOP.SalesOrderPartId AND SOPC.IsDeleted = 0 WHERE LCD.LotId = LT.LotId  AND UPPER(REPLACE(LCD.[Type],' ','')) = UPPER(REPLACE('Trans Out(SO)',' ','')) ),0)) ) ) AS RemainingCost
-			   --,(ISNULL((SELECT ISNULL(SUM(POP.ExtendedCost),0) FROM dbo.PurchaseOrder PO WITH(NOLOCK) INNER JOIN dbo.PurchaseOrderPart POP WITH(NOLOCK) 
-						--	  on PO.PurchaseOrderId = POP.PurchaseOrderId AND PO.LotId = POP.LotId
-						--	  WHERE POP.LotId = LT.LotId),0) 
-						--	  + ISNULL((SELECT TOP 1 ISNULL(SUM(TransferredInCost),0) FROM DBO.LotCalculationDetails LCD WITH(NOLOCK) WHERE LCD.LotId = LT.LotId ORDER BY 1 DESC),0) 
-						--	  + ISNULL((SELECT TOP 1 ISNULL(SUM(RepairCost),0) FROM DBO.LotCalculationDetails LCD WITH(NOLOCK) WHERE LCD.LotId = LT.LotId ORDER BY 1 DESC ),0)) 
-						--	  - ISNULL((SELECT TOP 1 ISNULL(SUM(TransferredOutCost),0) FROM DBO.LotCalculationDetails LCD WITH(NOLOCK) WHERE LCD.LotId = LT.LotId ORDER BY 1 DESC),0) AS RemainingCost
-			   ,ISNULL((SELECT SUM(ISNULL(LOC.ExtSalesUnitPrice,0)) FROM DBo.LotCalculationDetails LOC WITH(NOLOCK) WHERE LOC.LotId = LT.LotId AND UPPER(REPLACE(LOC.Type,' ','')) = UPPER(REPLACE('Trans Out(SO)',' ',''))),0) AS Revenue
-			   ,ISNULL((SELECT SUM(ISNULL(LOC.MarginAmount,0)) FROM DBo.LotCalculationDetails LOC WITH(NOLOCK) WHERE LOC.LotId = LT.LotId AND UPPER(REPLACE(LOC.Type,' ','')) = UPPER(REPLACE('Trans Out(SO)',' ',''))),0) MarginAmount
-				FROM [dbo].[Lot] LT WITH(NOLOCK) 
-				INNER JOIN dbo.LotDetail LD WITH(NOLOCK) on LT.LotId = LD.LotId
-				INNER JOIN [dbo].[LotStatus] S WITH(NOLOCK) ON LT.[LotStatusId] = S.[LotStatusId]
-				LEFT JOIN [dbo].[LotConsignment] LC WITH (NOLOCK) ON LT.ConsignmentId = LC.ConsignmentId
- 			WHERE ISNULL(LT.IsDeleted,0) = 0 AND ISNULL(LT.IsActive,1) = 1 And Lt.MasterCompanyId = @MasterCompanyId
-		  	) , ResultCount AS(Select COUNT(LotId) AS totalItems FROM Result) 
-			SELECT *,CONVERT(DECIMAL(18,2),(CASE WHEN Revenue > 0 THEN  ((ISNULL(MarginAmount,0)/ISNULL(Revenue,0))*100) ELSE 0 END)) AS Margin,Convert(DECIMAL(18,2),(CASE WHEN ISNULL(AcqusitionCost,0) > 0 THEN ((ISNULL(RemainingCost,0)/ISNULL(AcqusitionCost,0))*100) ELSE 0 END)) AS RemainingPercentage INTO #TempTblLot FROM  Result 
-		SELECT * INTO #TempResult FROM  #TempTblLot 
-			WHERE 
+			       -- OriginalCost: InitialPOCost from Lot table
+			       ISNULL(LT.InitialPOCost, 0)
+ 
+			       -- RepairCost: SUM of ALL RepairCost rows in LotCalculationDetails
+			       + ISNULL((
+			           SELECT SUM(ISNULL(RepairCost, 0))
+			           FROM dbo.LotCalculationDetails LCD WITH(NOLOCK)
+			           WHERE LCD.LotId = LT.LotId
+			       ), 0)
+ 
+			       -- TransferredInCost: only 'Trans In (Lot)' type, IsFromPreCostStk = 0
+			       + ISNULL((
+			           SELECT SUM(ISNULL(TransferredInCost, 0))
+			           FROM DBO.LotCalculationDetails LCD WITH(NOLOCK)
+			           WHERE LCD.LotId = LT.LotId
+			             AND ISNULL(LCD.IsFromPreCostStk, 0) = 0
+			             AND UPPER(REPLACE(LCD.[Type], ' ', '')) = UPPER(REPLACE('Trans In (Lot)', ' ', ''))
+			       ), 0)
+ 
+			       -- OtherCost (PO): Freight at part-record level
+			       + ISNULL((
+			           SELECT SUM(ISNULL(PF.Amount, 0))
+			           FROM dbo.PurchaseOrder PO WITH(NOLOCK)
+			           INNER JOIN dbo.PurchaseOrderPart PP WITH(NOLOCK) ON PP.PurchaseOrderId = PO.PurchaseOrderId
+			           INNER JOIN dbo.PurchaseOrderFreight PF WITH(NOLOCK) ON PF.PurchaseOrderPartRecordId = PP.PurchaseOrderPartRecordId
+			           WHERE PO.LotId = LT.LotId AND ISNULL(PF.IsDeleted, 0) = 0
+			       ), 0)
+ 
+			       -- OtherCost (PO): Charges at part-record level
+			       + ISNULL((
+			           SELECT SUM(ISNULL(PC.ExtendedCost, 0))
+			           FROM dbo.PurchaseOrder PO WITH(NOLOCK)
+			           INNER JOIN dbo.PurchaseOrderPart PP WITH(NOLOCK) ON PP.PurchaseOrderId = PO.PurchaseOrderId
+			           INNER JOIN dbo.PurchaseOrderCharges PC WITH(NOLOCK) ON PC.PurchaseOrderPartRecordId = PP.PurchaseOrderPartRecordId
+			           WHERE PO.LotId = LT.LotId AND ISNULL(PC.IsDeleted, 0) = 0
+			       ), 0)
+ 
+			       -- OtherCost (RO): Freight at part-record level
+			       + ISNULL((
+			           SELECT SUM(ISNULL(RF.Amount, 0))
+			           FROM dbo.RepairOrderPart RP WITH(NOLOCK)
+			           INNER JOIN dbo.RepairOrderFreight RF WITH(NOLOCK) ON RF.RepairOrderPartRecordId = RP.RepairOrderPartRecordId
+			           WHERE RP.LotId = LT.LotId AND ISNULL(RF.IsDeleted, 0) = 0
+			       ), 0)
+ 
+			       -- OtherCost (RO): Charges at part-record level
+			       + ISNULL((
+			           SELECT SUM(ISNULL(RC.ExtendedCost, 0))
+			           FROM dbo.RepairOrderPart RP WITH(NOLOCK)
+			           INNER JOIN dbo.RepairOrderCharges RC WITH(NOLOCK) ON RC.RepairOrderPartRecordId = RP.RepairOrderPartRecordId
+			           WHERE RP.LotId = LT.LotId AND ISNULL(RC.IsDeleted, 0) = 0
+			       ), 0)
+ 
+			       -- AdjustmentAmount: Adjustment * QuantityOnHand per Stockline
+			       + ISNULL((
+			           SELECT SUM(ISNULL(sl.Adjustment, 0) * ISNULL(sl.QuantityOnHand, 0))
+			           FROM DBO.LotTransInOutDetails ltin WITH(NOLOCK)
+			           INNER JOIN DBO.Stockline sl WITH(NOLOCK) ON ltin.StockLineId = sl.StockLineId
+			           WHERE ltin.LotId = LT.LotId
+			       ), 0)
+			   ) AS AcqusitionCost
+ 
+			   /*
+			    * TransferredOutCost (intermediate — used to compute RemainingCost in Result2 CTE)
+			    */
+			   ,ISNULL((
+			       SELECT SUM(ISNULL(TransferredOutCost, 0))
+			       FROM DBO.LotCalculationDetails LCD WITH(NOLOCK)
+			       WHERE LCD.LotId = LT.LotId
+			         AND UPPER(REPLACE(LCD.[Type], ' ', '')) = UPPER(REPLACE('Trans Out(Lot)', ' ', ''))
+			   ), 0) AS _TransferredOutCost
+ 
+			   /*
+			    * SoldCost (intermediate — used to compute RemainingCost in Result2 CTE)
+			    * Join on SalesOrderPartId (not SalesOrderId) to match USP_Lot_GetLotSummaryByLotId
+			    */
+			   ,ISNULL((
+			       SELECT SUM(ISNULL(SOPC.UnitCost, 0) * ISNULL(LCD.Qty, 0))
+			       FROM DBO.LotCalculationDetails LCD WITH(NOLOCK)
+			       INNER JOIN DBO.SalesOrder SO WITH(NOLOCK) ON LCD.ReferenceId = SO.SalesOrderId
+			       INNER JOIN DBO.SalesOrderPartV1 SOP WITH(NOLOCK) ON SO.SalesOrderId = SOP.SalesOrderId AND LCD.ChildId = SOP.SalesOrderPartId
+			       INNER JOIN DBO.SalesOrderPartCost SOPC WITH(NOLOCK) ON SOPC.SalesOrderPartId = SOP.SalesOrderPartId AND SOPC.IsDeleted = 0
+			       WHERE LCD.LotId = LT.LotId
+			         AND UPPER(REPLACE(LCD.[Type], ' ', '')) = UPPER(REPLACE('Trans Out(SO)', ' ', ''))
+			   ), 0) AS _SoldCost
+ 
+			   -- Revenue = SUM(ExtSalesUnitPrice) for Trans Out(SO)
+			   ,ISNULL((
+			       SELECT SUM(ISNULL(LOC.ExtSalesUnitPrice, 0))
+			       FROM DBo.LotCalculationDetails LOC WITH(NOLOCK)
+			       WHERE LOC.LotId = LT.LotId
+			         AND UPPER(REPLACE(LOC.Type, ' ', '')) = UPPER(REPLACE('Trans Out(SO)', ' ', ''))
+			   ), 0) AS Revenue
+ 
+			   -- MarginAmount = SUM(MarginAmount) for Trans Out(SO)
+			   ,ISNULL((
+			       SELECT SUM(ISNULL(LOC.MarginAmount, 0))
+			       FROM DBo.LotCalculationDetails LOC WITH(NOLOCK)
+			       WHERE LOC.LotId = LT.LotId
+			         AND UPPER(REPLACE(LOC.Type, ' ', '')) = UPPER(REPLACE('Trans Out(SO)', ' ', ''))
+			   ), 0) AS MarginAmount
+ 
+			FROM [dbo].[Lot] LT WITH(NOLOCK)
+			INNER JOIN dbo.LotDetail LD WITH(NOLOCK) on LT.LotId = LD.LotId
+			INNER JOIN [dbo].[LotStatus] S WITH(NOLOCK) ON LT.[LotStatusId] = S.[LotStatusId]
+			LEFT JOIN [dbo].[LotConsignment] LC WITH (NOLOCK) ON LT.ConsignmentId = LC.ConsignmentId
+		 	WHERE ISNULL(LT.IsDeleted,0) = 0 AND ISNULL(LT.IsActive,1) = 1 And Lt.MasterCompanyId = @MasterCompanyId
+		)
+		/*
+		 * Result2: compute RemainingCost from the intermediate columns, then drop them.
+		 * RemainingCost = MAX(0, AcqusitionCost - TransferredOutCost - SoldCost)
+		 *   matches LotCostRemaining in USP_Lot_GetLotSummaryByLotId
+		 */
+		,Result2 AS (
+		    SELECT
+		        LotId, LotNumber, LotName, VendorId, VendorName, ReferenceNumber,
+		        OpenDate, OriginalCost, LotStatusId, StatusName, ConsignmentId,
+		        ConsignmentNumber, ConsigneeName, EmployeeId, ObtainFromId, ObtainFromTypeId,
+		        TraceableToId, TraceableToTypeId, ManagementStructureId, MasterCompanyId,
+		        CreatedBy, UpdatedBy, CreatedDate, UpdatedDate,
+		        AcqusitionCost,
+		        -- RemainingCost = LotCostRemaining, floored at 0
+		        CASE WHEN AcqusitionCost - _TransferredOutCost - _SoldCost < 0
+		             THEN CONVERT(DECIMAL(18,2), 0)
+		             ELSE CONVERT(DECIMAL(18,2), AcqusitionCost - _TransferredOutCost - _SoldCost)
+		        END AS RemainingCost,
+		        Revenue,
+		        MarginAmount
+		    FROM Result
+		)
+		SELECT *,
+		    CONVERT(DECIMAL(18,2), (CASE WHEN Revenue > 0 THEN ((ISNULL(MarginAmount,0)/ISNULL(Revenue,0))*100) ELSE 0 END)) AS Margin,
+		    CONVERT(DECIMAL(18,2), (CASE WHEN ISNULL(AcqusitionCost,0) > 0 THEN ((ISNULL(RemainingCost,0)/ISNULL(AcqusitionCost,0))*100) ELSE 0 END)) AS RemainingPercentage
+		INTO #TempTblLot FROM Result2
+ 
+		SELECT * INTO #TempResult FROM #TempTblLot
+			WHERE
 			 ((@GlobalFilter <>'' AND ((LotNumber LIKE '%' + @GlobalFilter + '%') OR
 					(LotName LIKE '%' + @GlobalFilter + '%') OR
 					(ReferenceNumber LIKE '%' + @GlobalFilter + '%') OR
@@ -181,7 +266,6 @@ BEGIN
 					(CAST(Margin AS NVARCHAR(10)) LIKE '%' + @GlobalFilter + '%') OR
 					(CreatedBy like '%' + @GlobalFilter + '%') OR
 					(CreatedDate like '%' + @GlobalFilter + '%') OR
-					(UpdatedBy like '%' + @GlobalFilter + '%') OR
 					(UpdatedBy like '%' + @GlobalFilter + '%') OR
 					(UpdatedDate like '%' + @GlobalFilter + '%')))
 					OR
@@ -202,48 +286,45 @@ BEGIN
 					(ISNULL(@CreatedBy, '') = '' OR CreatedBy  like '%'+ @CreatedBy + '%') AND
 					(ISNULL(@CreatedDate,'') ='' OR CAST(CreatedDate AS Date) = CAST(CreatedDate AS date)))
 				  )
-
-			SELECT @Count = COUNT(LotId) FROM #TempResult			
-
-			--SELECT LotId,LotNumber,LotName,VendorId,ReferenceNumber,OpenDate,OriginalCost,LotStatusId,StatusName,ConsignmentId,ConsignmentNumber,ConsigneeName,EmployeeId,ObtainFromId,ObtainFromTypeId,TraceableToId,TraceableToTypeId,ManagementStructureId,MasterCompanyId,CreatedBy,UpdatedBy,CreatedDate,UpdatedDate,AcqusitionCost,RemainingCost,(CASE WHEN AcqusitionCost > 0 THEN (RemainingCost/AcqusitionCost) ELSE 0 END) AS RemainingPercentage,Revenue,MarginAmount,Margin, @Count AS NumberOfItems FROM #TempResult
-			SELECT *, @Count AS NumberOfItems FROM #TempResult
-			ORDER BY  
-			CASE WHEN (@SortOrder=1  AND @SortColumn='LotNumber')  THEN LotNumber END ASC,
-			CASE WHEN (@SortOrder=-1 AND @SortColumn='LotNumber')  THEN LotNumber END DESC,
-			CASE WHEN (@SortOrder=1  AND @SortColumn='LotName')  THEN LotName END ASC,
-			CASE WHEN (@SortOrder=-1 AND @SortColumn='LotName')  THEN LotName END DESC,
-			CASE WHEN (@SortOrder=1  AND @SortColumn='ReferenceNumber')  THEN ReferenceNumber END ASC,
-			CASE WHEN (@SortOrder=-1 AND @SortColumn='ReferenceNumber')  THEN ReferenceNumber END DESC,
-			CASE WHEN (@SortOrder=1  AND @SortColumn='OpenDate')  THEN OpenDate END ASC,
-			CASE WHEN (@SortOrder=-1 AND @SortColumn='OpenDate')  THEN OpenDate END DESC,			
-			CASE WHEN (@SortOrder=1  AND @SortColumn='OriginalCost')  THEN OriginalCost END ASC,
-			CASE WHEN (@SortOrder=-1 AND @SortColumn='OriginalCost')  THEN OriginalCost END DESC,
-			CASE WHEN (@SortOrder=1  AND @SortColumn='ConsignmentNumber')  THEN ConsignmentNumber END ASC,
-			CASE WHEN (@SortOrder=-1 AND @SortColumn='ConsignmentNumber')  THEN ConsignmentNumber END DESC,           
-			CASE WHEN (@SortOrder=1  AND @SortColumn='ConsigneeName')  THEN ConsigneeName END ASC,
-			CASE WHEN (@SortOrder=-1 AND @SortColumn='ConsigneeName')  THEN ConsigneeName END DESC,
-			CASE WHEN (@SortOrder=1  AND @SortColumn='VendorName')  THEN VendorName END ASC,
-			CASE WHEN (@SortOrder=-1 AND @SortColumn='VendorName')  THEN VendorName END DESC,
-			CASE WHEN (@SortOrder=1  AND @SortColumn='AcqusitionCost')  THEN AcqusitionCost END ASC,
-			CASE WHEN (@SortOrder=-1 AND @SortColumn='AcqusitionCost')  THEN AcqusitionCost END DESC,
-			CASE WHEN (@SortOrder=1  AND @SortColumn='RemainingCost')  THEN RemainingCost END ASC,
-			CASE WHEN (@SortOrder=-1 AND @SortColumn='RemainingCost')  THEN RemainingCost END DESC,
-			CASE WHEN (@SortOrder=1  AND @SortColumn='RemainingPercentage')  THEN RemainingPercentage END ASC,
-			CASE WHEN (@SortOrder=-1 AND @SortColumn='RemainingPercentage')  THEN RemainingPercentage END DESC,
-			CASE WHEN (@SortOrder=1 and @SortColumn='Revenue')  THEN Revenue END ASC,
-			CASE WHEN (@SortOrder=-1 and @SortColumn='Revenue')  THEN Revenue END DESC,
-			CASE WHEN (@SortOrder=1 and @SortColumn='MarginAmount')  THEN MarginAmount END ASC,
-			CASE WHEN (@SortOrder=-1 and @SortColumn='MarginAmount')  THEN MarginAmount END DESC,
-			CASE WHEN (@SortOrder=1 and @SortColumn='Margin')  THEN Margin END ASC,
-			CASE WHEN (@SortOrder=-1 and @SortColumn='Margin')  THEN Margin END DESC,
-			CASE WHEN (@SortOrder=1 and @SortColumn='CreatedBy')  THEN CreatedBy END ASC,
-			CASE WHEN (@SortOrder=-1 and @SortColumn='CreatedBy')  THEN CreatedBy END DESC,
-			CASE WHEN (@SortOrder=1 and @SortColumn='CreatedDate')  THEN CreatedDate END ASC,
-			CASE WHEN (@SortOrder=-1 and @SortColumn='CreatedDate')  THEN CreatedDate END DESC
-			OFFSET @RecordFrom ROWS 
-			FETCH NEXT @PageSize ROWS ONLY
+		SELECT @Count = COUNT(LotId) FROM #TempResult
+		SELECT *, @Count AS NumberOfItems FROM #TempResult
+		ORDER BY
+		CASE WHEN (@SortOrder=1  AND @SortColumn='LotNumber')  THEN LotNumber END ASC,
+		CASE WHEN (@SortOrder=-1 AND @SortColumn='LotNumber')  THEN LotNumber END DESC,
+		CASE WHEN (@SortOrder=1  AND @SortColumn='LotName')  THEN LotName END ASC,
+		CASE WHEN (@SortOrder=-1 AND @SortColumn='LotName')  THEN LotName END DESC,
+		CASE WHEN (@SortOrder=1  AND @SortColumn='ReferenceNumber')  THEN ReferenceNumber END ASC,
+		CASE WHEN (@SortOrder=-1 AND @SortColumn='ReferenceNumber')  THEN ReferenceNumber END DESC,
+		CASE WHEN (@SortOrder=1  AND @SortColumn='OpenDate')  THEN OpenDate END ASC,
+		CASE WHEN (@SortOrder=-1 AND @SortColumn='OpenDate')  THEN OpenDate END DESC,
+		CASE WHEN (@SortOrder=1  AND @SortColumn='OriginalCost')  THEN OriginalCost END ASC,
+		CASE WHEN (@SortOrder=-1 AND @SortColumn='OriginalCost')  THEN OriginalCost END DESC,
+		CASE WHEN (@SortOrder=1  AND @SortColumn='ConsignmentNumber')  THEN ConsignmentNumber END ASC,
+		CASE WHEN (@SortOrder=-1 AND @SortColumn='ConsignmentNumber')  THEN ConsignmentNumber END DESC,
+		CASE WHEN (@SortOrder=1  AND @SortColumn='ConsigneeName')  THEN ConsigneeName END ASC,
+		CASE WHEN (@SortOrder=-1 AND @SortColumn='ConsigneeName')  THEN ConsigneeName END DESC,
+		CASE WHEN (@SortOrder=1  AND @SortColumn='VendorName')  THEN VendorName END ASC,
+		CASE WHEN (@SortOrder=-1 AND @SortColumn='VendorName')  THEN VendorName END DESC,
+		CASE WHEN (@SortOrder=1  AND @SortColumn='AcqusitionCost')  THEN AcqusitionCost END ASC,
+		CASE WHEN (@SortOrder=-1 AND @SortColumn='AcqusitionCost')  THEN AcqusitionCost END DESC,
+		CASE WHEN (@SortOrder=1  AND @SortColumn='RemainingCost')  THEN RemainingCost END ASC,
+		CASE WHEN (@SortOrder=-1 AND @SortColumn='RemainingCost')  THEN RemainingCost END DESC,
+		CASE WHEN (@SortOrder=1  AND @SortColumn='RemainingPercentage')  THEN RemainingPercentage END ASC,
+		CASE WHEN (@SortOrder=-1 AND @SortColumn='RemainingPercentage')  THEN RemainingPercentage END DESC,
+		CASE WHEN (@SortOrder=1 and @SortColumn='Revenue')  THEN Revenue END ASC,
+		CASE WHEN (@SortOrder=-1 and @SortColumn='Revenue')  THEN Revenue END DESC,
+		CASE WHEN (@SortOrder=1 and @SortColumn='MarginAmount')  THEN MarginAmount END ASC,
+		CASE WHEN (@SortOrder=-1 and @SortColumn='MarginAmount')  THEN MarginAmount END DESC,
+		CASE WHEN (@SortOrder=1 and @SortColumn='Margin')  THEN Margin END ASC,
+		CASE WHEN (@SortOrder=-1 and @SortColumn='Margin')  THEN Margin END DESC,
+		CASE WHEN (@SortOrder=1 and @SortColumn='CreatedBy')  THEN CreatedBy END ASC,
+		CASE WHEN (@SortOrder=-1 and @SortColumn='CreatedBy')  THEN CreatedBy END DESC,
+		CASE WHEN (@SortOrder=1 and @SortColumn='CreatedDate')  THEN CreatedDate END ASC,
+		CASE WHEN (@SortOrder=-1 and @SortColumn='CreatedDate')  THEN CreatedDate END DESC
+		OFFSET @RecordFrom ROWS
+		FETCH NEXT @PageSize ROWS ONLY
 	END
-	COMMIT  TRANSACTION
+	COMMIT TRANSACTION
   END TRY
   BEGIN CATCH
 		IF @@trancount > 0
@@ -251,11 +332,9 @@ BEGIN
 			ROLLBACK TRAN;
 		DECLARE @ErrorLogID int,
             @DatabaseName varchar(100) = DB_NAME()
-            -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
             ,@AdhocComments varchar(150) = '[USP_Lot_GetLotList]',
             @ProcedureParameters varchar(3000) = '@MasterCompanyId = ''' + CAST(ISNULL(@MasterCompanyId, '') AS varchar(100)),
             @ApplicationName varchar(100) = 'PAS'
-    -----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------
     EXEC spLogException @DatabaseName = @DatabaseName,
                         @AdhocComments = @AdhocComments,
                         @ProcedureParameters = @ProcedureParameters,

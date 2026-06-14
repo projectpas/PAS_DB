@@ -1,5 +1,4 @@
-﻿
-/************************************************************
+﻿/************************************************************
 ** File:        [USP_GetWorksheetList]
 ** Author:      
 ** Description: Get Worksheet list from WorksheetHeader and WorksheetPart
@@ -13,6 +12,7 @@
 ** 3    21/05/2026    Priyansh Patel    Added MaintenanceTime minutes [PN-16509]
 ** 4    22/05/2026    Priyansh Patel    Fixed the employee and time filters [PN-16536]
 ** 5    26/05/2026    Priyansh Patel    Fixed the issue with time [PN-16588]
+** 6    15/06/2026    Amit Ghediya		bind Wo Num [PN-16694]
 
 
 ************************************************************/
@@ -60,7 +60,8 @@ BEGIN
                 WH.WorksheetHeaderId,
                 WH.WorksheetNumber,
                 ACS.Section AS WorksheetType,
-                WH.WorkOrderNo,
+                CASE WHEN ISNULL(WH.AircraftInstalledPartDetailsId,0) > 0 THEN WO.WorkOrderNum ELSE LWO.WorkOrderNum END AS WorkOrderNo,
+				CASE WHEN ISNULL(WH.AircraftInstalledPartDetailsId,0) > 0 THEN WO.WorkOrderId ELSE LWO.WorkOrderId END AS WorkOrderId,
                 WH.MakeTypeId,
                 WH.MakeType,
                 WH.AircraftModelId,
@@ -93,10 +94,22 @@ BEGIN
             LEFT JOIN [dbo].[WorksheetPart] WP WITH (NOLOCK) ON WP.WorksheetHeaderId = WH.WorksheetHeaderId AND WP.IsDeleted = 0
             LEFT JOIN [dbo].[AircraftSection] ACS WITH (NOLOCK) ON WH.WorksheetTypeId = ACS.AircraftSectionId AND ACS.IsDeleted = 0
             LEFT JOIN [dbo].[MaintenanceType] MT WITH (NOLOCK) ON MT.MaintenanceTypeId = WH.InspectionType AND MT.IsDeleted = 0
-            LEFT JOIN dbo.Employee em WITH(NOLOCK) ON em.EmployeeId = wp.MechBy AND em.MasterCompanyId = @MasterCompanyId
-            LEFT JOIN dbo.Employee ei WITH(NOLOCK) ON ei.EmployeeId = wp.InspBy AND ei.MasterCompanyId = @MasterCompanyId
-
-				
+            LEFT JOIN [dbo].[Employee] em WITH(NOLOCK) ON em.EmployeeId = wp.MechBy AND em.MasterCompanyId = @MasterCompanyId
+            LEFT JOIN [dbo].[Employee] ei WITH(NOLOCK) ON ei.EmployeeId = wp.InspBy AND ei.MasterCompanyId = @MasterCompanyId
+			LEFT JOIN [dbo].[AircraftInstalledPartDetails] AIPD WITH(NOLOCK) ON AIPD.AircraftInstalledPartDetailsId = WH.AircraftInstalledPartDetailsId
+			OUTER APPLY (SELECT TOP 1 WOP_inner.WorkOrderId,WOP_inner.ID AS WOPartNumberId
+				FROM dbo.WorkOrderPartNumber WOP_inner WITH (NOLOCK)
+				WHERE WOP_inner.AircraftInstalledPartDetailsId = AIPD.AircraftInstalledPartDetailsId
+				ORDER BY WOP_inner.ID DESC 
+			) AS WOP
+			LEFT JOIN dbo.WorkOrder WO WITH (NOLOCK) ON WO.WorkOrderId = WOP.WorkOrderId
+			LEFT JOIN [dbo].[AircraftMaintenanceProgram] AMP WITH(NOLOCK) ON AMP.[ProgramId] = WH.[ProgramId]
+			LEFT JOIN (
+                    SELECT WOP.[ProgramId], WO.[WorkOrderId], WO.[WorkOrderNum],
+                           ROW_NUMBER() OVER (PARTITION BY WOP.[ProgramId] ORDER BY WO.[WorkOrderId] DESC) AS rn
+                    FROM [dbo].[WorkOrderPartNumber] WOP WITH (NOLOCK)
+                    JOIN [dbo].[WorkOrder] WO WITH (NOLOCK) ON WOP.[WorkOrderId] = WO.[WorkOrderId]
+                ) LWO ON LWO.[ProgramId] = AMP.[ProgramId] AND LWO.rn = 1
 
             WHERE
                 WH.MasterCompanyId = @MasterCompanyId
@@ -119,7 +132,7 @@ BEGIN
                 -- Row-level column filters
                 AND (@WorksheetNumber            IS NULL OR WH.WorksheetNumber           LIKE '%' + @WorksheetNumber           + '%')
                 AND (@WorksheetType              IS NULL OR ACS.Section             LIKE '%' + @WorksheetType             + '%')
-                AND (@WorkOrderNo                IS NULL OR WH.WorkOrderNo               LIKE '%' + @WorkOrderNo               + '%')
+                AND (@WorkOrderNo                IS NULL OR CASE WHEN ISNULL(WH.AircraftInstalledPartDetailsId,0) > 0 THEN WO.WorkOrderNum ELSE LWO.WorkOrderNum END               LIKE '%' + @WorkOrderNo               + '%')
                 AND (@MakeType                   IS NULL OR WH.MakeType                  LIKE '%' + @MakeType                  + '%')
                 AND (@AircraftModel              IS NULL OR WH.AircraftModel             LIKE '%' + @AircraftModel             + '%')
                 AND (@AFHours                    IS NULL OR WH.AFHours                   LIKE '%' + @AFHours                   + '%')
@@ -145,6 +158,7 @@ BEGIN
             WorksheetNumber,
             WorksheetType,
             WorkOrderNo,
+			WorkOrderId,
             MakeTypeId,
             MakeType,
             AircraftModelId,

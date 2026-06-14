@@ -12,7 +12,7 @@
 ** 3    21/05/2026    Priyansh Patel    Added MaintenanceTime minutes [PN-16509]
 ** 4    22/05/2026    Priyansh Patel    Fixed the employee and time filters [PN-16536]
 ** 5    26/05/2026    Priyansh Patel    Fixed the issue with time [PN-16588]
-** 6    15/06/2026    Amit Ghediya		bind Wo Num [PN-16694]
+** 6    15/06/2026    Amit Ghediya		bind Wo Num, Ws Status [PN-16694]
 
 
 ************************************************************/
@@ -26,6 +26,7 @@ CREATE   PROCEDURE [dbo].[USP_GetWorksheetList]
     @WorksheetNumber                VARCHAR(50)     = NULL,
     @WorksheetType                  VARCHAR(50)     = NULL,
     @WorkOrderNo                    VARCHAR(50)     = NULL,
+	@PNNum							VARCHAR(50)     = NULL,
     @MakeType                       VARCHAR(100)    = NULL,
     @AircraftModel                  VARCHAR(100)    = NULL,
     @AFHours                        VARCHAR(50)     = NULL,
@@ -42,12 +43,14 @@ CREATE   PROCEDURE [dbo].[USP_GetWorksheetList]
     -- WorksheetPart filters
     @DefectDescription              VARCHAR(500)    = NULL,
     @MaintenanceAction              VARCHAR(500)    = NULL,
+	@WSStatus                       VARCHAR(100)     = NULL,
     @MaintenanceTime                VARCHAR(20)     = NULL,
     @MechBy                         VARCHAR(100)    = NULL,
     @InspBy                         VARCHAR(100)    = NULL,
     -- Standard
     @IsDeleted                      BIT             = 0,
-    @MasterCompanyId                INT
+    @MasterCompanyId                INT,
+	@IsShowPN                       BIT             = 0
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -62,6 +65,7 @@ BEGIN
                 ACS.Section AS WorksheetType,
                 CASE WHEN ISNULL(WH.AircraftInstalledPartDetailsId,0) > 0 THEN WO.WorkOrderNum ELSE LWO.WorkOrderNum END AS WorkOrderNo,
 				CASE WHEN ISNULL(WH.AircraftInstalledPartDetailsId,0) > 0 THEN WO.WorkOrderId ELSE LWO.WorkOrderId END AS WorkOrderId,
+				CASE WHEN ISNULL(@IsShowPN,0) = 0 THEN '' ELSE AIPD.[PartNumber] END AS PNNum,
                 WH.MakeTypeId,
                 WH.MakeType,
                 WH.AircraftModelId,
@@ -82,6 +86,20 @@ BEGIN
                 WP.SignedBy,
                 WP.DefectDescription,
                 WP.MaintenanceAction,
+				--CASE WHEN ISNULL(WH.AircraftInstalledPartDetailsId,0) = 0 THEN 'Open' ELSE 'InProgress' END AS WSStatus,
+				CASE
+					WHEN ISNULL(WH.AircraftInstalledPartDetailsId, 0) = 0
+						 AND LWO.WorkOrderId IS NULL
+					THEN 'Open'
+					WHEN ISNULL(
+							CASE
+								WHEN ISNULL(WH.AircraftInstalledPartDetailsId, 0) > 0
+								THEN WOP.WorkOrderStatusId      
+								ELSE LWO.WorkOrderStatusId     
+							END, 0) = 2
+					THEN 'Closed'
+					ELSE 'In Process'
+				END AS WSStatus,
                 CASE 
                     WHEN ISNULL(WP.MaintenanceTime, 0) = 0 AND ISNULL(WP.MaintenanceTimeMinutes, 0) = 0 
                     THEN NULL
@@ -97,7 +115,7 @@ BEGIN
             LEFT JOIN [dbo].[Employee] em WITH(NOLOCK) ON em.EmployeeId = wp.MechBy AND em.MasterCompanyId = @MasterCompanyId
             LEFT JOIN [dbo].[Employee] ei WITH(NOLOCK) ON ei.EmployeeId = wp.InspBy AND ei.MasterCompanyId = @MasterCompanyId
 			LEFT JOIN [dbo].[AircraftInstalledPartDetails] AIPD WITH(NOLOCK) ON AIPD.AircraftInstalledPartDetailsId = WH.AircraftInstalledPartDetailsId
-			OUTER APPLY (SELECT TOP 1 WOP_inner.WorkOrderId,WOP_inner.ID AS WOPartNumberId
+			OUTER APPLY (SELECT TOP 1 WOP_inner.WorkOrderId,WOP_inner.ID AS WOPartNumberId,WOP_inner.WorkOrderStatusId
 				FROM dbo.WorkOrderPartNumber WOP_inner WITH (NOLOCK)
 				WHERE WOP_inner.AircraftInstalledPartDetailsId = AIPD.AircraftInstalledPartDetailsId
 				ORDER BY WOP_inner.ID DESC 
@@ -105,7 +123,7 @@ BEGIN
 			LEFT JOIN dbo.WorkOrder WO WITH (NOLOCK) ON WO.WorkOrderId = WOP.WorkOrderId
 			LEFT JOIN [dbo].[AircraftMaintenanceProgram] AMP WITH(NOLOCK) ON AMP.[ProgramId] = WH.[ProgramId]
 			LEFT JOIN (
-                    SELECT WOP.[ProgramId], WO.[WorkOrderId], WO.[WorkOrderNum],
+                    SELECT WOP.[ProgramId], WO.[WorkOrderId], WO.[WorkOrderNum],WOP.WorkOrderStatusId,
                            ROW_NUMBER() OVER (PARTITION BY WOP.[ProgramId] ORDER BY WO.[WorkOrderId] DESC) AS rn
                     FROM [dbo].[WorkOrderPartNumber] WOP WITH (NOLOCK)
                     JOIN [dbo].[WorkOrder] WO WITH (NOLOCK) ON WOP.[WorkOrderId] = WO.[WorkOrderId]
@@ -120,6 +138,7 @@ BEGIN
                     OR WH.WorksheetNumber   LIKE '%' + @GlobalFilter + '%'
                     OR WH.WorksheetType     LIKE '%' + @GlobalFilter + '%'
                     OR WH.WorkOrderNo       LIKE '%' + @GlobalFilter + '%'
+					OR CASE WHEN ISNULL(@IsShowPN,0) = 0 THEN '' ELSE AIPD.[PartNumber] END	LIKE '%' + @GlobalFilter + '%'
                     OR WH.MakeType          LIKE '%' + @GlobalFilter + '%'
                     OR WH.AircraftModel     LIKE '%' + @GlobalFilter + '%'
                     OR WH.InspectionType    LIKE '%' + @GlobalFilter + '%'
@@ -133,6 +152,7 @@ BEGIN
                 AND (@WorksheetNumber            IS NULL OR WH.WorksheetNumber           LIKE '%' + @WorksheetNumber           + '%')
                 AND (@WorksheetType              IS NULL OR ACS.Section             LIKE '%' + @WorksheetType             + '%')
                 AND (@WorkOrderNo                IS NULL OR CASE WHEN ISNULL(WH.AircraftInstalledPartDetailsId,0) > 0 THEN WO.WorkOrderNum ELSE LWO.WorkOrderNum END               LIKE '%' + @WorkOrderNo               + '%')
+				AND (@PNNum						 IS NULL OR CASE WHEN ISNULL(@IsShowPN,0) = 0 THEN '' ELSE AIPD.[PartNumber] END               LIKE '%' + @PNNum               + '%')
                 AND (@MakeType                   IS NULL OR WH.MakeType                  LIKE '%' + @MakeType                  + '%')
                 AND (@AircraftModel              IS NULL OR WH.AircraftModel             LIKE '%' + @AircraftModel             + '%')
                 AND (@AFHours                    IS NULL OR WH.AFHours                   LIKE '%' + @AFHours                   + '%')
@@ -159,6 +179,7 @@ BEGIN
             WorksheetType,
             WorkOrderNo,
 			WorkOrderId,
+			PNNum,
             MakeTypeId,
             MakeType,
             AircraftModelId,
@@ -179,11 +200,16 @@ BEGIN
             SignedBy,
             DefectDescription,
             MaintenanceAction,
+			WSStatus,
             MaintenanceTime,
             MechBy,
             InspBy,
             TotalRecords
         FROM CTE
+		WHERE (
+			@WSStatus IS NULL
+			OR REPLACE(LOWER(WSStatus), ' ', '') LIKE '%' + REPLACE(LOWER(@WSStatus), ' ', '') + '%'
+		)
         ORDER BY
             CASE WHEN @SortColumn = 'WorksheetNumber'              AND @SortOrder = 'ASC'  THEN WorksheetNumber              END ASC,
             CASE WHEN @SortColumn = 'WorksheetNumber'              AND @SortOrder = 'DESC' THEN WorksheetNumber              END DESC,
@@ -191,6 +217,8 @@ BEGIN
             CASE WHEN @SortColumn = 'WorksheetType'                AND @SortOrder = 'DESC' THEN WorksheetType                END DESC,
             CASE WHEN @SortColumn = 'WorkOrderNo'                  AND @SortOrder = 'ASC'  THEN WorkOrderNo                  END ASC,
             CASE WHEN @SortColumn = 'WorkOrderNo'                  AND @SortOrder = 'DESC' THEN WorkOrderNo                  END DESC,
+			CASE WHEN @SortColumn = 'PNNum'						   AND @SortOrder = 'ASC'  THEN PNNum                        END ASC,
+            CASE WHEN @SortColumn = 'PNNum'                        AND @SortOrder = 'DESC' THEN PNNum                        END DESC,
             CASE WHEN @SortColumn = 'MakeType'                     AND @SortOrder = 'ASC'  THEN MakeType                     END ASC,
             CASE WHEN @SortColumn = 'MakeType'                     AND @SortOrder = 'DESC' THEN MakeType                     END DESC,
             CASE WHEN @SortColumn = 'AircraftModel'                AND @SortOrder = 'ASC'  THEN AircraftModel                END ASC,
@@ -217,6 +245,8 @@ BEGIN
             CASE WHEN @SortColumn = 'DefectDescription'            AND @SortOrder = 'DESC' THEN DefectDescription            END DESC,
             CASE WHEN @SortColumn = 'MaintenanceAction'            AND @SortOrder = 'ASC'  THEN MaintenanceAction            END ASC,
             CASE WHEN @SortColumn = 'MaintenanceAction'            AND @SortOrder = 'DESC' THEN MaintenanceAction            END DESC,
+			 CASE WHEN @SortColumn = 'WSStatus'            AND @SortOrder = 'ASC'  THEN WSStatus            END ASC,
+            CASE WHEN @SortColumn = 'WSStatus'            AND @SortOrder = 'DESC' THEN WSStatus            END DESC,
             CASE WHEN @SortColumn = 'MaintenanceTime'              AND @SortOrder = 'ASC'  THEN MaintenanceTime                         END ASC,
             CASE WHEN @SortColumn = 'MaintenanceTime'              AND @SortOrder = 'DESC' THEN MaintenanceTime                         END DESC,
             CASE WHEN @SortColumn = 'MechBy'                       AND @SortOrder = 'ASC'  THEN MechBy                       END ASC,

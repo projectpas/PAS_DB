@@ -78,8 +78,8 @@ BEGIN
 				[IsSerialized] [bit] NULL,
 				[SerialNumber] [varchar](100) NULL,
 				[Quantity] [int] NULL,
-				[UnitCost] [decimal](18,2) NULL,
-				[ExtendedCost] [decimal](18,2) NULL,
+				[UnitCost] [decimal](18,6) NULL,
+				[ExtendedCost] [decimal](18,6) NULL,
 				[ConditionId] [bigint] NULL,
 				[SiteId] [bigint] NULL,
 				[WarehouseId] [bigint] NULL,
@@ -661,7 +661,7 @@ BEGIN
 								@InvoiceId BIGINT = @ReceivingCustomerWorkId,
 								@DistributionStocklineId BIGINT = 0,
 								@Qty INT = 0,
-								@Amount DECIMAL(18,2) = 0.0,
+								@Amount DECIMAL(18,6) = 0.0,
 								@ModuleName NVARCHAR(50) = 'ExchangeSO';  -- DistributionMasterConstant.ExchangeSO
 
 
@@ -1004,7 +1004,7 @@ BEGIN
 								@UpdateInvoiceId BIGINT = @ReceivingCustomerWorkId,
 								@UpdateDistributionStocklineId BIGINT = 0,
 								@UpdateQty INT = 0,
-								@UpdateAmount DECIMAL(18,2) = 0.0,
+								@UpdateAmount DECIMAL(18,6) = 0.0,
 								@UpdateModuleName NVARCHAR(50) = 'ExchangeSO';  -- DistributionMasterConstant.ExchangeSO
 
 

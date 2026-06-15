@@ -17,6 +17,7 @@
 ** 5    22/05/2026	 Amit Ghediya	    Get WSheet & wo data [PN-16546]
 ** 6    22/05/2026	 Bhargav Saliya		Added MtceRecordUpdated Filter [PN-16567]
 ** 7    10/06/2026	 Amit Ghediya		Update name WorksheetNumber to WorksheetNum due to use in other [PN-16797]
+** 8    15/06/2026	 Amit Ghediya		Update TotalRecords when filter not worked.
 *******************************************************************************/
 --EXEC dbo.USP_GetAircraftTechnicalRecordList @PageNumber=1,@PageSize=20,@SortColumn=NULL,@SortOrder=N'ASC',
 --@GlobalFilter=NULL,@TailNumber=NULL,@AircraftMake=NULL,@AircraftModel=NULL,@SerialNumber=NULL,@PubDate=NULL,
@@ -144,8 +145,7 @@ BEGIN
                 ARH.CreatedBy,
                 ARH.MasterCompanyId,
                 CASE WHEN EXISTS (SELECT 1 FROM dbo.AircraftMaintenanceProgram AMP WITH(NOLOCK) WHERE AMP.AircraftRegistryId = ARH.AircraftRegistryId AND ISNULL(AMP.IsMtceRecordUpdated, 0) = 1)
-                THEN 'YES' ELSE 'NO' END AS MtceRecordUpdated,
-                COUNT(1) OVER() AS TotalRecords
+                THEN 'YES' ELSE 'NO' END AS MtceRecordUpdated
              FROM [dbo].[AircraftRegistryHeader] ARH WITH(NOLOCK) 			
 			INNER JOIN [dbo].[AircraftEffectivity] ACE WITH(NOLOCK) ON ARH.[MakeTypeId] = ACE.[MakeTypeId] AND ARH.[SerialNum] = ACE.[SerialNum]
 			INNER JOIN [dbo].[AircraftPublication] PUB WITH(NOLOCK) ON ACE.[AircraftPublicationId] = PUB.[AircraftPublicationId]
@@ -155,7 +155,8 @@ BEGIN
             WHERE ARH.MasterCompanyId = @MasterCompanyId  AND (@IsDeleted IS NULL OR ARH.IsDeleted = @IsDeleted)
         )
 
-        SELECT *
+        SELECT *,
+			COUNT(1) OVER() AS TotalRecords
         FROM CTE
         WHERE
         (

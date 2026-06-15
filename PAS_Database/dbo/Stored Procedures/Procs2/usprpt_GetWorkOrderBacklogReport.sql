@@ -23,7 +23,7 @@
  5 18/04/2025   Ayushi Added the condition for pn , pndescription , serialnum
  6 19/08/2025   Fixed the arrangement of inserted values
  5 04/06/2026   Priyansh Patel      UOM changes the decimal to 2 [PN-16305]
- 5 12/06/2026   Priyansh Patel      Fix UOM changes regarding round up [PN-16825]
+ 6 15/06/2026   Priyansh Patel      UOM changes regarding round up and removed the Freight billing cost from approvedamount  [PN-16825]
 
 
 EXECUTE   [dbo].[usprpt_GetWorkOrderBacklogReport] 'WO Opened','','','','1','1,4,43,44,45,80,84,88','46,47,66','48,49,50,58,59,67,68,69','51,52,53,54,55,56,57,60'    
@@ -166,7 +166,7 @@ BEGIN
     UPPER(WOSS.Description) 'statuscode',    
     CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(WOPN.ReceivedDate, 'MM/dd/yyyy') ELSE convert(VARCHAR(50), WOPN.ReceivedDate, 107) END 'receiveddate',     
     CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT((select [dbo].[ConvertUTCtoLocal] (WO.OpenDate,TZ.Description)), 'MM/dd/yyyy') ELSE convert(VARCHAR(50), (select [dbo].[ConvertUTCtoLocal] (WO.OpenDate,TZ.Description)), 107) END 'opendate',    
-    CASE WHEN ISNULL(WQD.QuoteMethod,0) = 0 THEN ISNULL((WQD.MaterialFlatBillingAmount + WQD.LaborFlatBillingAmount + WQD.ChargesFlatBillingAmount + WQD.FreightFlatBillingAmount),0.00) ELSE ISNULL(WQD.CommonFlatRate,0.00)  END 'approvedamount',  
+    CASE WHEN ISNULL(WQD.QuoteMethod,0) = 0 THEN ISNULL((WQD.MaterialFlatBillingAmount + WQD.LaborFlatBillingAmount + WQD.ChargesFlatBillingAmount),0.00) ELSE ISNULL(WQD.CommonFlatRate,0.00)  END 'approvedamount',  
     ISNULL(SL.purchaseorderunitcost, 0) 'unitcost',    
     RCW.StocklineId,    
     CASE WHEN ISNULL(@IsDownload,0) = 0 THEN ISNULL(WOC.partscost, 0) ELSE CAST(ISNULL(WOC.partscost, 0) AS VARCHAR(20)) END 'partscost',     

@@ -57,6 +57,7 @@
 	47   15-May-2026		Ayushi Patel			PN-16321 Updated duplicate validation call to support 3-field combination for WorkOrderMaterials module 
 	48   20-May-2026        Ayushi Patel            PN-16321 Handled duplicate record validation from excel uploded data 
 	49   21-May-2026        Bhargav Saliya          Fixed the parameter sequence issue and add and add case  @MaintenanceCategoryModule
+	50   11-June-2026       Nakul Chandigra         Added validation for RFQTraceability table.(PN-16803)
 
 declare @p4 dbo.UploadModuleDataTableType
 insert into @p4 values(4,N'VICTOR ADMAS',1,N'{
@@ -234,6 +235,7 @@ BEGIN
 		DECLARE @AircraftSectionModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'AircraftSection');
 		DECLARE @WorkOrderMaterialsModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'WorkOrderMaterials');
 		DECLARE @MaintenanceCategoryModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'MaintenanceCategory');
+		DECLARE @RFQTraceabilityModule AS BIGINT = (SELECT ImportModuleId FROM [DBO].[ImportModule] WITH(NOLOCK) WHERE [ModuleName] = 'RFQTraceability');
 
 		DECLARE @DropdownListTable VARCHAR(100) = NULL, 
 		@DropdownListId VARCHAR(100) = NULL, 
@@ -1253,6 +1255,8 @@ BEGIN
 															THEN 'Entered Part And Condition Already Exits!'
 														WHEN @ModuleId = @MaintenanceCategoryModule
 															THEN 'Entered Maintenance Category Already Exits!'
+														WHEN @ModuleId = @RFQTraceabilityModule
+															THEN 'Entered Traceability Already Exits!'
 														ELSE '' END
 						WHERE ImportModuleFieldMasterId = @CurrentRow;
 					END

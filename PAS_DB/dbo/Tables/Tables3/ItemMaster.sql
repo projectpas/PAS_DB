@@ -216,36 +216,6 @@
 
 
 GO
-
-
-
-
-
-
-create TRIGGER [dbo].[Trg_ItemMasterAudit]
-
-   ON  [dbo].[ItemMaster]
-
-   AFTER INSERT,DELETE,UPDATE
-
-AS 
-
-BEGIN
-
-
-
-	INSERT INTO [dbo].[ItemMasterAudit]
-
-	SELECT * FROM INSERTED
-
-
-
-	SET NOCOUNT ON;
-
-
-
-END
-GO
 CREATE     TRIGGER [dbo].[trg_Audit_dbo_ItemMaster]
         ON [dbo].[ItemMaster]
         AFTER INSERT, UPDATE, DELETE

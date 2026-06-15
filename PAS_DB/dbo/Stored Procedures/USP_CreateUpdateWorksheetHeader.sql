@@ -20,10 +20,11 @@
     3    8/06/2026      Divyesh Kathiriya       Update WorksheetNumber on AircraftMaintenanceProgram Table [PN-16704]
     4    8/06/2026      Amit Ghediya            Adding Header data in History module [PN-16581]
     5    10/06/2026     Divyesh Kathiriya       Update WorksheetNumber on AircraftInstalledPartDetails Table [PN-16780]
+	6    15/06/2026     Amit Ghediya			Added MtcCategoryId in WorksheetHeader Table [PN-16839]
 
 **************************************************************/
 
-CREATE    PROCEDURE [dbo].[USP_CreateUpdateWorksheetHeader]
+CREATE      PROCEDURE [dbo].[USP_CreateUpdateWorksheetHeader]
     @tbl_WorksheetHeaderType dbo.WorksheetHeaderTableType READONLY
 AS
 BEGIN
@@ -103,6 +104,7 @@ BEGIN
                     WH.AircraftModel                 = T.AircraftModel,
                     WH.WorksheetType                 = T.WorksheetType,
                     WH.WorksheetTypeId               = T.WorksheetTypeId,
+					WH.MtcCategoryId				 = T.MtcCategoryId,
                     WH.TailNum                      = T.TailNum,
                     WH.SerialNum                    = T.SerialNum,
                     WH.WorkOrderNo                   = T.WorkOrderNo,
@@ -222,9 +224,10 @@ BEGIN
                     AircraftModel,
                     WorksheetType,
                     WorksheetTypeId,
+					MtcCategoryId,
                     WorkOrderNo,
-                     TailNum,
-                SerialNum,
+                    TailNum,
+					SerialNum,
                     AFHours,
                     InspectionType,
                     InspectionDate,
@@ -269,6 +272,7 @@ BEGIN
                     T.AircraftModel,
                     T.WorksheetType,
                     T.WorksheetTypeId,
+					T.MtcCategoryId,
                     T.WorkOrderNo,
                     ISNULL(@TailNum, T.TailNum),
                     ISNULL(@SerialNum, T.SerialNum),

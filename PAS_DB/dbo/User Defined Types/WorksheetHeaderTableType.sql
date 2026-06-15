@@ -22,6 +22,7 @@
     [CalmSysWO]                      VARCHAR (100)  NULL,
     [CertificationStatement]         VARCHAR (2000) NULL,
     [InspectionType]                 BIGINT         NULL,
+    [MtcCategoryId]                  BIGINT         NULL,
     [QualitySafetyDeptSignOutBy]     BIGINT         NULL,
     [QualitySafetyDeptSignInBy]      BIGINT         NULL,
     [ReleaseToServiceBy]             BIGINT         NULL,

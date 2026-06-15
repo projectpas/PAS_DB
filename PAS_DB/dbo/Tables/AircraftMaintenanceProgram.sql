@@ -159,71 +159,51 @@ BEGIN
                 (m.Action = 'D' AND m.OldValue IS NOT NULL)
           
     ),    
-    limithourminutes_changes AS (
-        SELECT pkjson,
-               'FlightHoursLimit' AS columnname,
-               CASE
-                   WHEN MIN(CASE WHEN columnname = 'FlightHoursLimitHours' THEN oldvalue END) IS NULL
-                        AND MIN(CASE WHEN columnname = 'FlightHoursLimitMinutes' THEN oldvalue END) IS NULL
-                   THEN NULL
-                   ELSE CONCAT(CAST(COALESCE(CAST(CAST(MIN(CASE WHEN columnname = 'FlightHoursLimitHours' THEN oldvalue END) AS DECIMAL(18,6)) AS INT), 0) AS VARCHAR(10)), ':',
-                               CAST(COALESCE(CAST(CAST(MIN(CASE WHEN columnname = 'FlightHoursLimitMinutes' THEN oldvalue END) AS DECIMAL(18,6)) AS INT), 0) AS VARCHAR(10)))
-               END AS oldvalue,
-               CASE
-                   WHEN MIN(CASE WHEN columnname = 'FlightHoursLimitHours' THEN newvalue END) IS NULL
-                        AND MIN(CASE WHEN columnname = 'FlightHoursLimitMinutes' THEN newvalue END) IS NULL
-                   THEN NULL
-                   ELSE CONCAT(CAST(COALESCE(CAST(CAST(MIN(CASE WHEN columnname = 'FlightHoursLimitHours' THEN newvalue END) AS DECIMAL(18,6)) AS INT), 0) AS VARCHAR(10)), ':',
-                               CAST(COALESCE(CAST(CAST(MIN(CASE WHEN columnname = 'FlightHoursLimitMinutes' THEN newvalue END) AS DECIMAL(18,6)) AS INT), 0) AS VARCHAR(10)))
-               END AS newvalue,
-               action
-        FROM changed
-        WHERE columnname IN ('FlightHoursLimitHours', 'FlightHoursLimitMinutes')
-        GROUP BY pkjson, action
-    ),
-    recordedhourminutes_changes AS (
-        SELECT pkjson,
-               'FlightHoursRecorded' AS columnname,
-               CASE
-                   WHEN MIN(CASE WHEN columnname = 'FlightHoursRecordedHours' THEN oldvalue END) IS NULL
-                        AND MIN(CASE WHEN columnname = 'FlightHoursRecordedMinutes' THEN oldvalue END) IS NULL
-                   THEN NULL
-                   ELSE CONCAT(CAST(COALESCE(CAST(CAST(MIN(CASE WHEN columnname = 'FlightHoursRecordedHours' THEN oldvalue END) AS DECIMAL(18,6)) AS INT), 0) AS VARCHAR(10)), ':',
-                               CAST(COALESCE(CAST(CAST(MIN(CASE WHEN columnname = 'FlightHoursRecordedMinutes' THEN oldvalue END) AS DECIMAL(18,6)) AS INT), 0) AS VARCHAR(10)))
-               END AS oldvalue,
-               CASE
-                   WHEN MIN(CASE WHEN columnname = 'FlightHoursRecordedHours' THEN newvalue END) IS NULL
-                        AND MIN(CASE WHEN columnname = 'FlightHoursRecordedMinutes' THEN newvalue END) IS NULL
-                   THEN NULL
-                   ELSE CONCAT(CAST(COALESCE(CAST(CAST(MIN(CASE WHEN columnname = 'FlightHoursRecordedHours' THEN newvalue END) AS DECIMAL(18,6)) AS INT), 0) AS VARCHAR(10)), ':',
-                               CAST(COALESCE(CAST(CAST(MIN(CASE WHEN columnname = 'FlightHoursRecordedMinutes' THEN newvalue END) AS DECIMAL(18,6)) AS INT), 0) AS VARCHAR(10)))
-               END AS newvalue,
-               action
-        FROM changed
-        WHERE columnname IN ('FlightHoursRecordedHours', 'FlightHoursRecordedMinutes')
-        GROUP BY pkjson, action
-    ),
-    remaininghourminutes_changes AS (
-        SELECT pkjson,
-               'FlightHoursRemaining' AS columnname,
-               CASE
-                   WHEN MIN(CASE WHEN columnname = 'FlightHoursRemainingHours' THEN oldvalue END) IS NULL
-                        AND MIN(CASE WHEN columnname = 'FlightHoursRemainingMinutes' THEN oldvalue END) IS NULL
-                   THEN NULL
-                   ELSE CONCAT(CAST(COALESCE(CAST(CAST(MIN(CASE WHEN columnname = 'FlightHoursRemainingHours' THEN oldvalue END) AS DECIMAL(18,6)) AS INT), 0) AS VARCHAR(10)), ':',
-                               CAST(COALESCE(CAST(CAST(MIN(CASE WHEN columnname = 'FlightHoursRemainingMinutes' THEN oldvalue END) AS DECIMAL(18,6)) AS INT), 0) AS VARCHAR(10)))
-               END AS oldvalue,
-               CASE
-                   WHEN MIN(CASE WHEN columnname = 'FlightHoursRemainingHours' THEN newvalue END) IS NULL
-                        AND MIN(CASE WHEN columnname = 'FlightHoursRemainingMinutes' THEN newvalue END) IS NULL
-                   THEN NULL
-                   ELSE CONCAT(CAST(COALESCE(CAST(CAST(MIN(CASE WHEN columnname = 'FlightHoursRemainingHours' THEN newvalue END) AS DECIMAL(18,6)) AS INT), 0) AS VARCHAR(10)), ':',
-                               CAST(COALESCE(CAST(CAST(MIN(CASE WHEN columnname = 'FlightHoursRemainingMinutes' THEN newvalue END) AS DECIMAL(18,6)) AS INT), 0) AS VARCHAR(10)))
-               END AS newvalue,
-               action
-        FROM changed
-        WHERE columnname IN ('FlightHoursRemainingHours', 'FlightHoursRemainingMinutes')
-        GROUP BY pkjson, action
+    hourminute_changes AS (
+        SELECT
+            p.PKJson AS pkjson,
+            hm.ColumnName AS columnname,
+            CASE
+                WHEN hm.OldHours IS NULL AND hm.OldMinutes IS NULL THEN NULL
+                ELSE CONCAT(CAST(COALESCE(TRY_CAST(hm.OldHours AS INT), 0) AS VARCHAR(10)), ':',
+                            RIGHT('00' + CAST(COALESCE(TRY_CAST(hm.OldMinutes AS INT), 0) AS VARCHAR(10)), 2))
+            END AS oldvalue,
+            CASE
+                WHEN hm.NewHours IS NULL AND hm.NewMinutes IS NULL THEN NULL
+                ELSE CONCAT(CAST(COALESCE(TRY_CAST(hm.NewHours AS INT), 0) AS VARCHAR(10)), ':',
+                            RIGHT('00' + CAST(COALESCE(TRY_CAST(hm.NewMinutes AS INT), 0) AS VARCHAR(10)), 2))
+            END AS newvalue,
+            p.Action AS action
+        FROM paired p
+        CROSS APPLY (VALUES
+            (N'FlightHoursLimit',
+             JSON_VALUE(p.old_row_json, '$.FlightHoursLimitHours'),
+             JSON_VALUE(p.old_row_json, '$.FlightHoursLimitMinutes'),
+             JSON_VALUE(p.new_row_json, '$.FlightHoursLimitHours'),
+             JSON_VALUE(p.new_row_json, '$.FlightHoursLimitMinutes'),
+             N'FlightHoursLimitHours',
+             N'FlightHoursLimitMinutes'),
+            (N'FlightHoursRecorded',
+             JSON_VALUE(p.old_row_json, '$.FlightHoursRecordedHours'),
+             JSON_VALUE(p.old_row_json, '$.FlightHoursRecordedMinutes'),
+             JSON_VALUE(p.new_row_json, '$.FlightHoursRecordedHours'),
+             JSON_VALUE(p.new_row_json, '$.FlightHoursRecordedMinutes'),
+             N'FlightHoursRecordedHours',
+             N'FlightHoursRecordedMinutes'),
+            (N'FlightHoursRemaining',
+             JSON_VALUE(p.old_row_json, '$.FlightHoursRemainingHours'),
+             JSON_VALUE(p.old_row_json, '$.FlightHoursRemainingMinutes'),
+             JSON_VALUE(p.new_row_json, '$.FlightHoursRemainingHours'),
+             JSON_VALUE(p.new_row_json, '$.FlightHoursRemainingMinutes'),
+             N'FlightHoursRemainingHours',
+             N'FlightHoursRemainingMinutes')
+        ) hm(ColumnName, OldHours, OldMinutes, NewHours, NewMinutes, HoursColumnName, MinutesColumnName)
+        WHERE EXISTS (
+            SELECT 1
+            FROM changed c
+            WHERE c.ProgramId = p.ProgramId
+              AND c.ColumnName IN (hm.HoursColumnName, hm.MinutesColumnName)
+        )
     ),
     other_changes AS (
         SELECT
@@ -243,11 +223,7 @@ BEGIN
         )
     ),
     all_changes AS (
-        SELECT * FROM limithourminutes_changes
-        UNION ALL
-        SELECT * FROM recordedhourminutes_changes
-        UNION ALL
-        SELECT * FROM remaininghourminutes_changes
+        SELECT * FROM hourminute_changes
         UNION ALL
         SELECT * FROM other_changes
     )

@@ -35,81 +35,43 @@ BEGIN
 
         ;WITH LocationLabelPrintData AS
         (
-            -- Case 1: @PrintBin = 1 (Fetch Bins. Since they must have Shelf and Location, inner joins are used)
             SELECT DISTINCT
-                CASE WHEN @PrintLocation = 1 THEN L.LocationId ELSE CAST(NULL AS BIGINT) END AS LocationId,
-                CASE WHEN @PrintLocation = 1 THEN L.Name ELSE CAST(NULL AS VARCHAR(50)) END AS LocationName,
-                CASE WHEN @PrintShelf = 1 THEN Sh.ShelfId ELSE CAST(NULL AS BIGINT) END AS ShelfId,
-                CASE WHEN @PrintShelf = 1 THEN Sh.Name ELSE CAST(NULL AS VARCHAR(50)) END AS ShelfName,
-                B.BinId AS BinId,
-                B.Name AS BinName,
+                CASE WHEN @PrintLocation = 1 THEN L.LocationId END AS LocationId,
+                CASE WHEN @PrintLocation = 1 THEN L.Name END AS LocationName,
+
+                CASE WHEN @PrintShelf = 1 THEN Sh.ShelfId END AS ShelfId,
+                CASE WHEN @PrintShelf = 1 THEN Sh.Name END AS ShelfName,
+
+                CASE WHEN @PrintBin = 1 THEN B.BinId END AS BinId,
+                CASE WHEN @PrintBin = 1 THEN B.Name END AS BinName,
+
                 W.WarehouseId,
                 W.Name AS WarehouseName,
                 S.SiteId,
                 S.Name AS SiteName,
                 S.LegalEntityId,
-                ISNULL(LE.Name, '') AS LegalEntityName
-            FROM dbo.Bin B WITH (NOLOCK)
-            INNER JOIN dbo.Shelf Sh WITH (NOLOCK) ON B.ShelfId = Sh.ShelfId AND Sh.IsDeleted = 0 AND Sh.IsActive = 1
-            INNER JOIN dbo.Location L WITH (NOLOCK) ON Sh.LocationId = L.LocationId AND L.IsDeleted = 0 AND L.IsActive = 1
-            INNER JOIN dbo.Warehouse W WITH (NOLOCK) ON L.WarehouseId = W.WarehouseId AND W.MasterCompanyId = @MasterCompanyId AND W.IsDeleted = 0 AND W.IsActive = 1
-            INNER JOIN dbo.Site S WITH (NOLOCK) ON W.SiteId = S.SiteId AND S.MasterCompanyId = @MasterCompanyId AND S.IsDeleted = 0 AND S.IsActive = 1
-            LEFT JOIN dbo.LegalEntity LE WITH (NOLOCK) ON S.LegalEntityId = LE.LegalEntityId
-            WHERE @PrintBin = 1
-              AND B.MasterCompanyId = @MasterCompanyId
-              AND B.IsDeleted = 0
-              AND B.IsActive = 1
+                ISNULL(LE.Name,'') AS LegalEntityName
+            FROM dbo.Location L WITH(NOLOCK) INNER JOIN dbo.Warehouse W WITH(NOLOCK) ON L.WarehouseId = W.WarehouseId
+            INNER JOIN dbo.Site S WITH(NOLOCK) ON W.SiteId = S.SiteId
+            LEFT JOIN dbo.Shelf Sh WITH(NOLOCK) ON Sh.LocationId = L.LocationId AND Sh.IsDeleted = 0 AND Sh.IsActive = 1
+            LEFT JOIN dbo.Bin B WITH(NOLOCK) ON B.ShelfId = Sh.ShelfId AND B.IsDeleted = 0 AND B.IsActive = 1
+            LEFT JOIN dbo.LegalEntity LE WITH(NOLOCK) ON S.LegalEntityId = LE.LegalEntityId
+            WHERE
+                L.MasterCompanyId = @MasterCompanyId
+                AND L.IsDeleted = 0
+                AND L.IsActive = 1
+                AND W.MasterCompanyId = @MasterCompanyId
+                AND W.IsDeleted = 0
+                AND W.IsActive = 1
+                AND S.MasterCompanyId = @MasterCompanyId
+                AND S.IsDeleted = 0
+                AND S.IsActive = 1
 
-            UNION ALL
-
-            -- Case 2: @PrintBin = 0 AND @PrintShelf = 1 (Fetch Shelves. Since they must have Location, inner joins are used)
-            SELECT DISTINCT
-                CASE WHEN @PrintLocation = 1 THEN L.LocationId ELSE CAST(NULL AS BIGINT) END AS LocationId,
-                CASE WHEN @PrintLocation = 1 THEN L.Name ELSE CAST(NULL AS VARCHAR(50)) END AS LocationName,
-                Sh.ShelfId AS ShelfId,
-                Sh.Name AS ShelfName,
-                CAST(NULL AS BIGINT) AS BinId,
-                CAST(NULL AS VARCHAR(50)) AS BinName,
-                W.WarehouseId,
-                W.Name AS WarehouseName,
-                S.SiteId,
-                S.Name AS SiteName,
-                S.LegalEntityId,
-                ISNULL(LE.Name, '') AS LegalEntityName
-            FROM dbo.Shelf Sh WITH (NOLOCK)
-            INNER JOIN dbo.Location L WITH (NOLOCK) ON Sh.LocationId = L.LocationId AND L.IsDeleted = 0 AND L.IsActive = 1
-            INNER JOIN dbo.Warehouse W WITH (NOLOCK) ON L.WarehouseId = W.WarehouseId AND W.MasterCompanyId = @MasterCompanyId AND W.IsDeleted = 0 AND W.IsActive = 1
-            INNER JOIN dbo.Site S WITH (NOLOCK) ON W.SiteId = S.SiteId AND S.MasterCompanyId = @MasterCompanyId AND S.IsDeleted = 0 AND S.IsActive = 1
-            LEFT JOIN dbo.LegalEntity LE WITH (NOLOCK) ON S.LegalEntityId = LE.LegalEntityId
-            WHERE @PrintBin = 0 AND @PrintShelf = 1
-              AND Sh.MasterCompanyId = @MasterCompanyId
-              AND Sh.IsDeleted = 0
-              AND Sh.IsActive = 1
-
-            UNION ALL
-
-            -- Case 3: @PrintBin = 0 AND @PrintShelf = 0 AND @PrintLocation = 1 (Fetch Locations only)
-            SELECT DISTINCT
-                L.LocationId AS LocationId,
-                L.Name AS LocationName,
-                CAST(NULL AS BIGINT) AS ShelfId,
-                CAST(NULL AS VARCHAR(50)) AS ShelfName,
-                CAST(NULL AS BIGINT) AS BinId,
-                CAST(NULL AS VARCHAR(50)) AS BinName,
-                W.WarehouseId,
-                W.Name AS WarehouseName,
-                S.SiteId,
-                S.Name AS SiteName,
-                S.LegalEntityId,
-                ISNULL(LE.Name, '') AS LegalEntityName
-            FROM dbo.Location L WITH (NOLOCK)
-            INNER JOIN dbo.Warehouse W WITH (NOLOCK) ON L.WarehouseId = W.WarehouseId AND W.MasterCompanyId = @MasterCompanyId AND W.IsDeleted = 0 AND W.IsActive = 1
-            INNER JOIN dbo.Site S WITH (NOLOCK) ON W.SiteId = S.SiteId AND S.MasterCompanyId = @MasterCompanyId AND S.IsDeleted = 0 AND S.IsActive = 1
-            LEFT JOIN dbo.LegalEntity LE WITH (NOLOCK) ON S.LegalEntityId = LE.LegalEntityId
-            WHERE @PrintBin = 0 AND @PrintShelf = 0 AND @PrintLocation = 1
-              AND L.MasterCompanyId = @MasterCompanyId
-              AND L.IsDeleted = 0
-              AND L.IsActive = 1
+                AND (
+                        (@PrintBin = 1 AND B.BinId IS NOT NULL)
+                    OR (@PrintBin = 0 AND @PrintShelf = 1 AND Sh.ShelfId IS NOT NULL)
+                    OR (@PrintBin = 0 AND @PrintShelf = 0 AND @PrintLocation = 1)
+                    )
         )
         SELECT * INTO #TempResults FROM LocationLabelPrintData;
 

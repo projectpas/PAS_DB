@@ -47,6 +47,7 @@
     [istechnicaldatacurandavail]           INT            NULL,
     [actiontaken]                          NVARCHAR (MAX) NULL,
     [iscustomernotified]                   INT            NULL,
+    [inspectiontraceabilityverified]       INT            NULL,
     CONSTRAINT [PK_WOInspectionChecklistAudit] PRIMARY KEY CLUSTERED ([WOInspectionAuditId] ASC)
 );
 

@@ -86,7 +86,6 @@ BEGIN
                 WP.SignedBy,
                 WP.DefectDescription,
                 WP.MaintenanceAction,
-				--CASE WHEN ISNULL(WH.AircraftInstalledPartDetailsId,0) = 0 THEN 'Open' ELSE 'InProgress' END AS WSStatus,
 				CASE
 					WHEN ISNULL(WH.AircraftInstalledPartDetailsId, 0) = 0
 						 AND LWO.WorkOrderId IS NULL
@@ -136,12 +135,12 @@ BEGIN
                 AND (
                     @GlobalFilter IS NULL
                     OR WH.WorksheetNumber   LIKE '%' + @GlobalFilter + '%'
-                    OR WH.WorksheetType     LIKE '%' + @GlobalFilter + '%'
-                    OR WH.WorkOrderNo       LIKE '%' + @GlobalFilter + '%'
+                    OR ACS.Section     LIKE '%' + @GlobalFilter + '%'
+                    OR CASE WHEN ISNULL(WH.AircraftInstalledPartDetailsId,0) > 0 THEN WO.WorkOrderNum ELSE LWO.WorkOrderNum END       LIKE '%' + @GlobalFilter + '%'
 					OR CASE WHEN ISNULL(@IsShowPN,0) = 0 THEN '' ELSE AIPD.[PartNumber] END	LIKE '%' + @GlobalFilter + '%'
                     OR WH.MakeType          LIKE '%' + @GlobalFilter + '%'
                     OR WH.AircraftModel     LIKE '%' + @GlobalFilter + '%'
-                    OR WH.InspectionType    LIKE '%' + @GlobalFilter + '%'
+                    OR MT.MaintenanceType    LIKE '%' + @GlobalFilter + '%'
                     OR WP.DefectDescription LIKE '%' + @GlobalFilter + '%'
                     OR WP.MaintenanceAction LIKE '%' + @GlobalFilter + '%'
                     OR ISNULL(em.FirstName,'') + CASE WHEN ISNULL(em.LastName,'') <> '' THEN ' ' + em.LastName ELSE '' END LIKE '%' + @GlobalFilter + '%'

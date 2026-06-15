@@ -359,14 +359,25 @@ BEGIN
 				SET @TemplateBody += 'Maintenance Status: ' + ISNULL(@Old_MaintenanceStatus,'')  + ' to ' + @New_MaintenanceStatus  + ' | ';
 
 			IF ISNULL(@Old_Memo,'')               <> @New_Memo
+			BEGIN
+				SET @Old_Memo = CAST(CAST(REPLACE(@Old_Memo, '&', '&amp;') AS XML).value('.', 'NVARCHAR(MAX)') AS NVARCHAR(MAX));
+				SET @New_Memo = CAST(CAST(REPLACE(@New_Memo, '&', '&amp;') AS XML).value('.', 'NVARCHAR(MAX)') AS NVARCHAR(MAX));
+
 				SET @TemplateBody += 'Memo: '               + ISNULL(@Old_Memo,'')               + ' to ' + @New_Memo               + ' | ';
+			END
 
 			IF ISNULL(@Old_IsActive,'')           <> @New_IsActive
 				SET @TemplateBody += 'Status: '             + ISNULL(@Old_IsActive,'')           + ' to ' + @New_IsActive           + ' | ';
 			 
-			 -- Remove trailing ' | '
-			 IF LEN(@TemplateBody) > 3
-			 	SET @TemplateBody = LEFT(@TemplateBody, LEN(@TemplateBody) - 3);
+			 -- Remove trailing ' | ' safely without touching the value
+			SET @TemplateBody = RTRIM(@TemplateBody);
+
+			IF RIGHT(@TemplateBody, 3) = ' | '
+				SET @TemplateBody = LEFT(@TemplateBody, LEN(@TemplateBody) - 3);
+			ELSE IF RIGHT(@TemplateBody, 2) = ' |'
+				SET @TemplateBody = LEFT(@TemplateBody, LEN(@TemplateBody) - 2);
+			ELSE IF RIGHT(@TemplateBody, 1) = '|'
+				SET @TemplateBody = LEFT(@TemplateBody, LEN(@TemplateBody) - 1);
 		END
 		ELSE
 		BEGIN
@@ -380,7 +391,7 @@ BEGIN
 			 SET @TemplateBody = REPLACE(@TemplateBody, '##AcModel##', @AcModel)
 			 SET @TemplateBody = REPLACE(@TemplateBody, '##SerialNum##', @SerialNum)
 			 SET @TemplateBody = REPLACE(@TemplateBody, '##CreatedBy##', @CreatedBy)
-			 SET @TemplateBody = REPLACE(@TemplateBody, '##CreatedDate##', GETUTCDATE())
+			 SET @TemplateBody = REPLACE(@TemplateBody, '##CreatedDate##', ISNULL(CONVERT(VARCHAR(30), GETUTCDATE(),   103), ''))
 		END
 
         -- ── Call usp_SaveAircraftHistory only if rows exist ───

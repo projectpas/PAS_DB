@@ -31,6 +31,7 @@ CREATE   PROCEDURE [dbo].[USP_GetWorksheetList]
     @AircraftModel                  VARCHAR(100)    = NULL,
     @AFHours                        VARCHAR(50)     = NULL,
     @InspectionType                 VARCHAR(100)    = NULL,
+	@MaintenanceCategory            VARCHAR(100)    = NULL,
     @InspectionDate                 DATETIME        = NULL,
     @QualitySafetyDeptSignOutBy     VARCHAR(100)    = NULL,
     @QualitySafetyDeptSignOutDate   DATETIME        = NULL,
@@ -72,6 +73,7 @@ BEGIN
                 WH.AircraftModel,
                 WH.AFHours,
                 MT.MaintenanceType AS InspectionType,
+				MC.MtcCategory AS MaintenanceCategory,
                 WH.InspectionDate,
                 WH.QualitySafetyDeptSignOutBy,
                 WH.QualitySafetyDeptSignOutDate,
@@ -111,6 +113,7 @@ BEGIN
             LEFT JOIN [dbo].[WorksheetPart] WP WITH (NOLOCK) ON WP.WorksheetHeaderId = WH.WorksheetHeaderId AND WP.IsDeleted = 0
             LEFT JOIN [dbo].[AircraftSection] ACS WITH (NOLOCK) ON WH.WorksheetTypeId = ACS.AircraftSectionId AND ACS.IsDeleted = 0
             LEFT JOIN [dbo].[MaintenanceType] MT WITH (NOLOCK) ON MT.MaintenanceTypeId = WH.InspectionType AND MT.IsDeleted = 0
+			LEFT JOIN [dbo].[MaintenanceCategory] MC WITH (NOLOCK) ON MC.MtcCategoryId = WH.MtcCategoryId AND MC.IsDeleted = 0
             LEFT JOIN [dbo].[Employee] em WITH(NOLOCK) ON em.EmployeeId = wp.MechBy AND em.MasterCompanyId = @MasterCompanyId
             LEFT JOIN [dbo].[Employee] ei WITH(NOLOCK) ON ei.EmployeeId = wp.InspBy AND ei.MasterCompanyId = @MasterCompanyId
 			LEFT JOIN [dbo].[AircraftInstalledPartDetails] AIPD WITH(NOLOCK) ON AIPD.AircraftInstalledPartDetailsId = WH.AircraftInstalledPartDetailsId
@@ -141,6 +144,7 @@ BEGIN
                     OR WH.MakeType          LIKE '%' + @GlobalFilter + '%'
                     OR WH.AircraftModel     LIKE '%' + @GlobalFilter + '%'
                     OR MT.MaintenanceType    LIKE '%' + @GlobalFilter + '%'
+					OR MC.MtcCategory		LIKE '%' + @GlobalFilter + '%'
                     OR WP.DefectDescription LIKE '%' + @GlobalFilter + '%'
                     OR WP.MaintenanceAction LIKE '%' + @GlobalFilter + '%'
                     OR ISNULL(em.FirstName,'') + CASE WHEN ISNULL(em.LastName,'') <> '' THEN ' ' + em.LastName ELSE '' END LIKE '%' + @GlobalFilter + '%'
@@ -156,6 +160,7 @@ BEGIN
                 AND (@AircraftModel              IS NULL OR WH.AircraftModel             LIKE '%' + @AircraftModel             + '%')
                 AND (@AFHours                    IS NULL OR WH.AFHours                   LIKE '%' + @AFHours                   + '%')
                 AND (@InspectionType             IS NULL OR MT.MaintenanceType            LIKE '%' + @InspectionType            + '%')
+				AND (@MaintenanceCategory        IS NULL OR MC.MtcCategory            LIKE '%' + @MaintenanceCategory            + '%')
                 AND (@InspectionDate             IS NULL OR CAST(WH.InspectionDate             AS DATE) = CAST(@InspectionDate             AS DATE))
                 AND (@QualitySafetyDeptSignOutBy IS NULL OR WH.QualitySafetyDeptSignOutBy LIKE '%' + @QualitySafetyDeptSignOutBy + '%')
                 AND (@QualitySafetyDeptSignOutDate IS NULL OR CAST(WH.QualitySafetyDeptSignOutDate AS DATE) = CAST(@QualitySafetyDeptSignOutDate AS DATE))
@@ -185,6 +190,7 @@ BEGIN
             AircraftModel,
             AFHours,
             InspectionType,
+			MaintenanceCategory,
             InspectionDate,
             QualitySafetyDeptSignOutBy,
             QualitySafetyDeptSignOutDate,
@@ -226,6 +232,8 @@ BEGIN
             CASE WHEN @SortColumn = 'AFHours'                      AND @SortOrder = 'DESC' THEN AFHours                      END DESC,
             CASE WHEN @SortColumn = 'InspectionType'               AND @SortOrder = 'ASC'  THEN InspectionType               END ASC,
             CASE WHEN @SortColumn = 'InspectionType'               AND @SortOrder = 'DESC' THEN InspectionType               END DESC,
+			CASE WHEN @SortColumn = 'MaintenanceCategory'          AND @SortOrder = 'ASC'  THEN MaintenanceCategory          END ASC,
+            CASE WHEN @SortColumn = 'MaintenanceCategory'          AND @SortOrder = 'DESC' THEN MaintenanceCategory          END DESC,
             CASE WHEN @SortColumn = 'InspectionDate'               AND @SortOrder = 'ASC'  THEN InspectionDate               END ASC,
             CASE WHEN @SortColumn = 'InspectionDate'               AND @SortOrder = 'DESC' THEN InspectionDate               END DESC,
             CASE WHEN @SortColumn = 'QualitySafetyDeptSignOutBy'   AND @SortOrder = 'ASC'  THEN QualitySafetyDeptSignOutBy   END ASC,

@@ -358,12 +358,39 @@ BEGIN
 			IF ISNULL(@Old_MaintenanceStatus,'')  <> @New_MaintenanceStatus
 				SET @TemplateBody += 'Maintenance Status: ' + ISNULL(@Old_MaintenanceStatus,'')  + ' to ' + @New_MaintenanceStatus  + ' | ';
 
-			IF ISNULL(@Old_Memo,'')               <> @New_Memo
+			IF ISNULL(@Old_Memo,'') <> @New_Memo
 			BEGIN
-				SET @Old_Memo = CAST(CAST(REPLACE(@Old_Memo, '&', '&amp;') AS XML).value('.', 'NVARCHAR(MAX)') AS NVARCHAR(MAX));
-				SET @New_Memo = CAST(CAST(REPLACE(@New_Memo, '&', '&amp;') AS XML).value('.', 'NVARCHAR(MAX)') AS NVARCHAR(MAX));
+				DECLARE @CleanOld NVARCHAR(MAX) = ISNULL(@Old_Memo,'');
+				DECLARE @CleanNew NVARCHAR(MAX) = ISNULL(@New_Memo,'');
 
-				SET @TemplateBody += 'Memo: '               + ISNULL(@Old_Memo,'')               + ' to ' + @New_Memo               + ' | ';
+				-- Strip HTML tags from OLD
+				WHILE CHARINDEX('<', @CleanOld) > 0
+				BEGIN
+					DECLARE @S INT = CHARINDEX('<', @CleanOld);
+					DECLARE @E INT = CHARINDEX('>', @CleanOld, @S);
+					IF @E > 0
+						SET @CleanOld = STUFF(@CleanOld, @S, @E - @S + 1, '');
+					ELSE
+						BREAK;
+				END
+
+				-- Strip HTML tags from NEW
+				WHILE CHARINDEX('<', @CleanNew) > 0
+				BEGIN
+					DECLARE @S2 INT = CHARINDEX('<', @CleanNew);
+					DECLARE @E2 INT = CHARINDEX('>', @CleanNew, @S2);
+					IF @E2 > 0
+						SET @CleanNew = STUFF(@CleanNew, @S2, @E2 - @S2 + 1, '');
+					ELSE
+						BREAK;
+				END
+
+				-- Clean up extra spaces and line breaks
+				SET @CleanOld = LTRIM(RTRIM(REPLACE(REPLACE(@CleanOld, CHAR(13), ''), CHAR(10), ' ')));
+				SET @CleanNew = LTRIM(RTRIM(REPLACE(REPLACE(@CleanNew, CHAR(13), ''), CHAR(10), ' ')));
+
+				IF @CleanOld <> @CleanNew AND @CleanNew <> ''
+					SET @TemplateBody += 'Memo: ' + @CleanOld + ' to ' + @CleanNew + ' | ';
 			END
 
 			IF ISNULL(@Old_IsActive,'')           <> @New_IsActive

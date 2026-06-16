@@ -4552,6 +4552,10 @@
     <Build Include="dbo\Views\VW_WorkScopeType.sql" />
     <Build Include="dbo\Tables\RFQTraceability.sql" />
     <Build Include="dbo\Views\vw_RFQTraceability.sql" />
+    <Build Include="dbo\Tables\LocationLabelSetting.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetLocationLabelSettingData.sql" />
+    <Build Include="dbo\Stored Procedures\USP_AddUpdateLocationLabelSetting.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetLocationLabelListForPrint.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

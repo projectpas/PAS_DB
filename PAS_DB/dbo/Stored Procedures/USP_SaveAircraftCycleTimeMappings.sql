@@ -31,6 +31,7 @@ Exec [USP_SaveAircraftCycleTimeMappings]
                                         Perf: Collapse multi-scan of AMP into single pass;
                                         Perf: Remove READ UNCOMMITTED from write transaction.
   12    02/06/2026  Amit Ghediya        Update logic for AircraftMaintenanceProgram for currunt HH:mm update for hr & cycle [PN-16650].
+  13	16/06/2026  Amit Ghediya        Update minute logic for AircraftInstalledPartDetails [PN-16887]
 **************************************************************/   
 CREATE PROCEDURE [dbo].[USP_SaveAircraftCycleTimeMappings]  
     @CycleData  NVARCHAR(MAX),
@@ -182,32 +183,59 @@ BEGIN
         -------------------------------------------------------
         -- UPDATE AircraftInstalledPartDetails (ADD values)
         -------------------------------------------------------
-        UPDATE AIPD
-        SET 
-            AIPD.FlightHours    = CASE 
-									WHEN ISNULL(C.[Hours], 0) > 0 
-									THEN ISNULL(AIPD.FlightHours,   0) + ISNULL(C.[Hours],  0)
-									ELSE ISNULL(C.[CumulativeHours], 0)
-								  END,
-            AIPD.FlightMinutes  = CASE 
-									WHEN ISNULL(C.[Minutes], 0) > 0 
-									THEN ISNULL(AIPD.FlightMinutes, 0) + ISNULL(C.[Minutes],0)
-									ELSE ISNULL(C.[CumulativeMinutes], 0)
-								  END,
-            AIPD.Cycles         = CASE 
-									WHEN ISNULL(C.[Cycles], 0) > 0 
-									THEN ISNULL(AIPD.Cycles,        0) + ISNULL(C.[Cycles], 0)
-									ELSE ISNULL(C.[CumulativeCycles], 0)
-								  END,
-            AIPD.UpdatedBy      = C.UpdatedBy,
-            AIPD.UpdatedDate    = GETUTCDATE(),
-            AIPD.LastFlownDate  = CASE 
-                                      WHEN ISNULL(C.AddUpdated, 0) = 1 
-                                      THEN CAST(GETUTCDATE() AS DATE)
-                                      ELSE AIPD.LastFlownDate
-                                  END
-        FROM dbo.AircraftInstalledPartDetails AIPD
-        INNER JOIN @CycleTable C ON AIPD.AircraftRegistryId = C.RefrenceId;
+		UPDATE AIPD
+		SET
+			-- Hours: accumulate + carry overflow from minutes
+			AIPD.FlightHours =
+			CASE WHEN ISNULL(C.[Hours], 0) > 0
+			THEN
+				FLOOR(
+					FLOOR(ISNULL(AIPD.FlightHours, 0))
+					+ FLOOR(ISNULL(C.[Hours], 0))
+					+ (
+						(FLOOR(ISNULL(AIPD.FlightMinutes, 0))
+						 + FLOOR(ISNULL(C.[Minutes], 0)))
+						/ 60
+					  )
+				)
+			ELSE
+				FLOOR(
+					FLOOR(ISNULL(C.[CumulativeHours], 0))
+					+ (FLOOR(ISNULL(C.[CumulativeMinutes], 0)) / 60)
+				)
+			END,
+
+			-- Minutes: keep only remainder after carrying into hours
+			AIPD.FlightMinutes =
+				CASE WHEN ISNULL(C.[Minutes], 0) > 0
+				THEN
+					(FLOOR(ISNULL(AIPD.FlightMinutes, 0))
+					 + FLOOR(ISNULL(C.[Minutes], 0)))
+					% 60
+				ELSE
+					FLOOR(ISNULL(C.[CumulativeMinutes], 0)) % 60
+				END,
+
+			-- Cycles: accumulate or set from cumulative
+			AIPD.Cycles =
+				CASE WHEN ISNULL(C.[Cycles], 0) > 0
+				THEN ISNULL(AIPD.Cycles, 0) + ISNULL(C.[Cycles], 0)
+				ELSE ISNULL(C.[CumulativeCycles], 0)
+				END,
+
+			AIPD.UpdatedBy   = C.UpdatedBy,
+			AIPD.UpdatedDate = GETUTCDATE(),
+
+			-- LastFlownDate: only update when AddUpdated = 1 (add cycle, not edit)
+			AIPD.LastFlownDate =
+				CASE
+					WHEN ISNULL(C.AddUpdated, 0) = 1
+					THEN CAST(GETUTCDATE() AS DATE)
+					ELSE AIPD.LastFlownDate
+				END
+
+		FROM dbo.AircraftInstalledPartDetails AIPD
+		INNER JOIN @CycleTable C ON AIPD.AircraftRegistryId = C.RefrenceId;
 
         -------------------------------------------------------
         -- UPDATE / INSERT AircraftMaintenanceProgram

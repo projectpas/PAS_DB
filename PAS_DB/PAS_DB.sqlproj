@@ -4704,6 +4704,7 @@
     <Build Include="dbo\Stored Procedures\USP_UpdateBillingInvoiceDepositFromXero.sql" />
     <Build Include="dbo\Stored Procedures\USP_SaveVendorAging.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetXeroVendorList.sql" />
+    <Build Include="dbo\Stored Procedures\USP_UpdateWorksheetState.sql" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Snapshots\PAS_DB_20220518_07-53-10.dacpac" />

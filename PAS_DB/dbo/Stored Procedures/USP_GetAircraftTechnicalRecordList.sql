@@ -18,6 +18,7 @@
 ** 6    22/05/2026	 Bhargav Saliya		Added MtceRecordUpdated Filter [PN-16567]
 ** 7    10/06/2026	 Amit Ghediya		Update name WorksheetNumber to WorksheetNum due to use in other [PN-16797]
 ** 8    15/06/2026	 Amit Ghediya		Update TotalRecords when filter not worked.
+** 9    16/06/2026	 Amit Ghediya		Get AircraftPublicationId [PN-16797]
 *******************************************************************************/
 --EXEC dbo.USP_GetAircraftTechnicalRecordList @PageNumber=1,@PageSize=20,@SortColumn=NULL,@SortOrder=N'ASC',
 --@GlobalFilter=NULL,@TailNumber=NULL,@AircraftMake=NULL,@AircraftModel=NULL,@SerialNumber=NULL,@PubDate=NULL,
@@ -43,7 +44,7 @@ CREATE   PROCEDURE [dbo].[USP_GetAircraftTechnicalRecordList]
 @InspectionDate  DATETIME        = NULL,
 @WorksheetNumber VARCHAR(100)    = NULL,
 @WorkSheetCompletedBy VARCHAR(100) = NULL,
-@WorkOrderNo VARCHAR(100) = NULL,
+@WorkOrderNum VARCHAR(100) = NULL,
 @WorkOrderStatus VARCHAR(100) = NULL,
 @OpenDate  DATETIME        = NULL,
 @MtceRecordUpdated VARCHAR(50)     = NULL
@@ -78,13 +79,14 @@ BEGIN
                         THEN ISNULL(V.VendorName,'')
                     ELSE ISNULL(PUB.PublishedByOthers,'')
                 END AS PublishedBy,
+				PUB.AircraftPublicationId,
                 CASE
                     WHEN EXISTS
                     (
                         SELECT 1
                         FROM dbo.AircraftMaintenanceProgram AMP WITH(NOLOCK)
                         WHERE AMP.AircraftRegistryId = ARH.AircraftRegistryId
-                        AND ISNULL(AMP.IsMtceRecordUpdated,0) = 1
+                        AND ISNULL(AMP.IsMtceRecordUpdated,0) = 1 AND AMP.AircraftPublicationId = PUB.AircraftPublicationId
                     )
                     THEN 1
                     ELSE 0
@@ -95,21 +97,21 @@ BEGIN
                     FROM dbo.AircraftMaintenanceProgram AMP WITH(NOLOCK)
                     LEFT JOIN dbo.WorksheetHeader WSH WITH(NOLOCK)
                         ON WSH.ProgramId = AMP.ProgramId
-                    WHERE AMP.AircraftRegistryId = ARH.AircraftRegistryId
+                    WHERE AMP.AircraftRegistryId = ARH.AircraftRegistryId AND AMP.AircraftPublicationId = PUB.AircraftPublicationId
                 ) AS WorksheetNum,
                 (
                     SELECT TOP 1 WSH.CreatedDate
                     FROM dbo.AircraftMaintenanceProgram AMP WITH(NOLOCK)
                     LEFT JOIN dbo.WorksheetHeader WSH WITH(NOLOCK)
                         ON WSH.ProgramId = AMP.ProgramId
-                    WHERE AMP.AircraftRegistryId = ARH.AircraftRegistryId
+                    WHERE AMP.AircraftRegistryId = ARH.AircraftRegistryId AND AMP.AircraftPublicationId = PUB.AircraftPublicationId
                 ) AS InspectionDate,
                 (
                     SELECT TOP 1 WSH.CreatedBy
                     FROM dbo.AircraftMaintenanceProgram AMP WITH(NOLOCK)
                     LEFT JOIN dbo.WorksheetHeader WSH WITH(NOLOCK)
                         ON WSH.ProgramId = AMP.ProgramId
-                    WHERE AMP.AircraftRegistryId = ARH.AircraftRegistryId
+                    WHERE AMP.AircraftRegistryId = ARH.AircraftRegistryId AND AMP.AircraftPublicationId = PUB.AircraftPublicationId
                 ) AS WorkSheetCompletedBy,
                 '' AS WorkSheetStatus,
                 (
@@ -119,8 +121,8 @@ BEGIN
                         ON WOPN.ProgramId = AMP.ProgramId
                     LEFT JOIN dbo.WorkOrder WO WITH(NOLOCK)
                         ON WO.WorkOrderId = WOPN.WorkOrderId
-                    WHERE AMP.AircraftRegistryId = ARH.AircraftRegistryId
-                ) AS WorkOrderNo,
+                    WHERE AMP.AircraftRegistryId = ARH.AircraftRegistryId AND AMP.AircraftPublicationId = PUB.AircraftPublicationId
+                ) AS WorkOrderNum,
                 (
                     SELECT TOP 1 WO.OpenDate
                     FROM dbo.AircraftMaintenanceProgram AMP WITH(NOLOCK)
@@ -128,14 +130,14 @@ BEGIN
                         ON WOPN.ProgramId = AMP.ProgramId
 					LEFT JOIN dbo.WorkOrder WO WITH(NOLOCK)
                         ON WO.WorkOrderId = WOPN.WorkOrderId
-                    WHERE AMP.AircraftRegistryId = ARH.AircraftRegistryId
+                    WHERE AMP.AircraftRegistryId = ARH.AircraftRegistryId AND AMP.AircraftPublicationId = PUB.AircraftPublicationId
                 ) AS OpenDate,
                 (
                     SELECT TOP 1 WOPN.WorkOrderStatus
                     FROM dbo.AircraftMaintenanceProgram AMP WITH(NOLOCK)
                     LEFT JOIN dbo.WorkOrderPartNumber WOPN WITH(NOLOCK)
                         ON WOPN.ProgramId = AMP.ProgramId
-                    WHERE AMP.AircraftRegistryId = ARH.AircraftRegistryId
+                    WHERE AMP.AircraftRegistryId = ARH.AircraftRegistryId AND AMP.AircraftPublicationId = PUB.AircraftPublicationId
                 ) AS WorkOrderStatus,
                 ARH.IsActive,
                 ARH.IsDeleted,
@@ -170,7 +172,7 @@ BEGIN
             OR RevisionNum LIKE '%' + @GlobalFilter + '%'
             OR ISNULL(WorksheetNum,'') LIKE '%' + @GlobalFilter + '%'
             OR ISNULL(WorkSheetCompletedBy,'') LIKE '%' + @GlobalFilter + '%'
-            OR ISNULL(WorkOrderNo,'') LIKE '%' + @GlobalFilter + '%'
+            OR ISNULL(WorkOrderNum,'') LIKE '%' + @GlobalFilter + '%'
             OR ISNULL(WorkOrderStatus,'') LIKE '%' + @GlobalFilter + '%'
             OR PublishedBy LIKE '%' + @GlobalFilter + '%'
         )
@@ -187,7 +189,7 @@ BEGIN
 		AND (@InspectionDate  IS NULL OR CAST(InspectionDate AS DATE) = CAST(@InspectionDate AS DATE))
 		AND (@OpenDate  IS NULL OR CAST(OpenDate AS DATE) = CAST(@OpenDate AS DATE))
         AND (NULLIF(@WorkSheetCompletedBy,'') IS NULL OR ISNULL(WorkSheetCompletedBy,'') LIKE '%' + @WorkSheetCompletedBy + '%')
-        AND (NULLIF(@WorkOrderNo,'') IS NULL OR ISNULL(WorkOrderNo,'') LIKE '%' + @WorkOrderNo + '%')
+        AND (NULLIF(@WorkOrderNum,'') IS NULL OR ISNULL(WorkOrderNum,'') LIKE '%' + @WorkOrderNum + '%')
         AND (NULLIF(@WorkOrderStatus,'') IS NULL OR ISNULL(WorkOrderStatus,'') LIKE '%' + @WorkOrderStatus + '%')
         AND (ISNULL(@MtceRecordUpdated, '') = '' OR (CASE WHEN ISNULL([IsMtceRecordUpdated],0) = 1 THEN 'YES' ELSE 'NO' END) LIKE '%' + @MtceRecordUpdated + '%' )
 
@@ -217,8 +219,8 @@ BEGIN
             CASE WHEN @SortColumn = 'WorkSheetCompletedBy' AND @SortOrder = 'ASC' THEN WorkSheetCompletedBy END ASC,
             CASE WHEN @SortColumn = 'WorkSheetCompletedBy' AND @SortOrder = 'DESC' THEN WorkSheetCompletedBy END DESC,
 
-            CASE WHEN @SortColumn = 'WorkOrderNo' AND @SortOrder = 'ASC' THEN WorkOrderNo END ASC,
-            CASE WHEN @SortColumn = 'WorkOrderNo' AND @SortOrder = 'DESC' THEN WorkOrderNo END DESC,
+            CASE WHEN @SortColumn = 'WorkOrderNum' AND @SortOrder = 'ASC' THEN WorkOrderNum END ASC,
+            CASE WHEN @SortColumn = 'WorkOrderNum' AND @SortOrder = 'DESC' THEN WorkOrderNum END DESC,
 
             CASE WHEN @SortColumn = 'WorkOrderStatus' AND @SortOrder = 'ASC' THEN WorkOrderStatus END ASC,
             CASE WHEN @SortColumn = 'WorkOrderStatus' AND @SortOrder = 'DESC' THEN WorkOrderStatus END DESC,

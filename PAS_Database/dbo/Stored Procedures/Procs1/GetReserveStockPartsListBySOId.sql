@@ -25,6 +25,7 @@
 	8    05-01-2025	  ABHISHEK JIRAWLA  Allow Repair Management Customer Stock Stockline
 	9    12/31/2025   Moin Bloch		UOM Related Changes
    	10    07/01/2026   Rajesh Gami		Added MasterCompanyId Parameter While Calling UOM Conversion Function  
+	11   10-06-2026	  Rajesh Gami		Getting LOTID from the Stockline instead of PART PN-[16681]  
  exec DBO.GetReserveStockPartsListBySOId @SalesOrderId=10851
 **************************************************************/
 CREATE     PROC [dbo].[GetReserveStockPartsListBySOId]
@@ -131,8 +132,8 @@ BEGIN
 			ELSE 'OEM' 
 		END AS StockType,
 		SO.MasterCompanyId,
-		SOP.LotId,
-		SOP.IsLotAssigned AS IsLotQty
+		SL.LotId,
+		CASE WHEN ISNULL(SL.LotId,0) > 0 THEN 1 ELSE 0 END AS IsLotQty
 		FROM [dbo].[SalesOrder] SO WITH (NOLOCK)
 		 LEFT JOIN SalesOrderPartsWithTotalQtyOrder SOP  WITH (NOLOCK) ON SO.SalesOrderId = SOP.SalesOrderId
 		 LEFT JOIN [dbo].[SalesOrderStocklineV1] Stk WITH (NOLOCK) ON SOP.SalesOrderPartId = Stk.SalesOrderPartId
@@ -177,8 +178,7 @@ BEGIN
 		SOR.IsEquPart, 
 		SOR.AltPartMasterPartId, 
 		SOR.EquPartMasterPartId,
-		SOP.LotId,
-		SOP.IsLotAssigned,
+		SL.LotId,
 		SOP.TotalQtyOrder,
 		sl.[StockUnitOfMeasure],
 		sl.[ConsumeUnitOfMeasure]

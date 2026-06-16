@@ -19,7 +19,7 @@
 	2    06/25/2020   Hemant  Saliya Added Transation & Content Management
 	3    07/16/2024   Devendra Shekh Added Case For Status
 	4    07/28/2025   Moin Bloch     Added Condition For Enforce Mpn Pick Ticket Confirmation
-     
+  	5    05/JUNE/2026 Rajesh Gami	 Skip the IsFinishGood = 1 condition when the Work Order type is Teardown.[PN-16719]        
  EXECUTE [sp_GetWOShippingParentList] 19769, 39
 **************************************************************/
 CREATE     Procedure [dbo].[sp_GetWOShippingParentList]
@@ -36,6 +36,9 @@ BEGIN
 			BEGIN
 			   
 				DECLARE @EnforceMpnPickTicketConfirmation BIT
+				DECLARE @IsTearDownWO BIT = 0,@WorkOrderTypeId INT, @TearDownWOTypeId INT = (SELECT TOP 1 ID FROM dbo.WorkOrderType WHERE Description = 'Internal Teardown');
+				SELECT TOP 1 @WorkOrderTypeId = [WorkOrderTypeId] FROM [dbo].[WorkOrder] WITH(NOLOCK) WHERE [WorkOrderId] = @WorkOrderId;
+				SET @IsTearDownWO = CASE WHEN @WorkOrderTypeId = @TearDownWOTypeId THEN 1 ELSE 0 END
 
 				SELECT @EnforceMpnPickTicketConfirmation = ISNULL(wo.[EnforceMpnPickTicketConfirmation],0)
 				FROM [dbo].[WorkOrder] wo WITH(NOLOCK) WHERE wo.[WorkOrderId] = @WorkOrderId 
@@ -65,7 +68,7 @@ BEGIN
 					LEFT JOIN DBO.ShippingStatus SS WITH(NOLOCK) ON wos.WOShippingStatusId = SS.ShippingStatusId
 				WHERE wop.[WorkOrderId] = @WorkOrderId 
 				--AND wopt.IsConfirmed = 1
-				AND wop.[IsFinishGood] = 1 --and wop.ID=@WorkOrderPartId
+				AND (@IsTearDownWO = 1 OR wop.[IsFinishGood] = 1) --and wop.ID=@WorkOrderPartId
 				AND (
 				   @EnforceMpnPickTicketConfirmation = 0 
 				   OR wopt.[IsConfirmed] = 1                 

@@ -118,7 +118,7 @@
     [Level4]                            VARCHAR (200)   NULL,
     [ManufactureName]                   VARCHAR (100)   NULL,
     [LocationName]                      VARCHAR (100)   NULL,
-    [Qty]                               DECIMAL (18, 6) NULL,
+    [Qty]                               INT             NULL,
     [StklineNumber]                     VARCHAR (100)   NULL,
     [AvailStatus]                       VARCHAR (100)   NULL,
     [PartNumber]                        VARCHAR (100)   NULL,

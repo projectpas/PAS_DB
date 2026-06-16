@@ -22,10 +22,10 @@
     [IsRecurring]                   BIT             CONSTRAINT [JournalManual_DC_IsRecurring] DEFAULT ((0)) NOT NULL,
     [RecurringDate]                 DATETIME        NULL,
     [MasterCompanyId]               INT             NOT NULL,
-    [LocalDebitCurrency]            NUMERIC (18, 2) NULL,
-    [LocalCreditCurrency]           NUMERIC (18, 2) NULL,
-    [ReportingDebitCurrency]        NUMERIC (18, 2) NULL,
-    [ReportingCreditCurrency]       NUMERIC (18, 2) NULL,
+    [LocalDebitCurrency]            NUMERIC (18, 6) NULL,
+    [LocalCreditCurrency]           NUMERIC (18, 6) NULL,
+    [ReportingDebitCurrency]        NUMERIC (18, 6) NULL,
+    [ReportingCreditCurrency]       NUMERIC (18, 6) NULL,
     [Description]                   VARCHAR (50)    NULL,
     [ManagementStructureEntityId]   BIGINT          NULL,
     [CreatedBy]                     VARCHAR (256)   NOT NULL,
@@ -34,7 +34,7 @@
     [UpdatedDate]                   DATETIME2 (7)   CONSTRAINT [JournalManual_DC_UDate] DEFAULT (getdate()) NOT NULL,
     [IsActive]                      BIT             DEFAULT ((1)) NOT NULL,
     [IsDeleted]                     BIT             DEFAULT ((0)) NOT NULL,
-    [CurrencyRate]                  DECIMAL (18)    NULL,
+    [CurrencyRate]                  DECIMAL (18, 6) NULL,
     CONSTRAINT [PK_JournalManual] PRIMARY KEY CLUSTERED ([ID] ASC),
     CONSTRAINT [FK_JournalManual_AccountingCalendar] FOREIGN KEY ([AccountingCalendarId]) REFERENCES [dbo].[AccountingCalendar] ([AccountingCalendarId]),
     CONSTRAINT [FK_JournalManual_BalanceType] FOREIGN KEY ([BalanceTypeId]) REFERENCES [dbo].[BalanceType] ([ID]),
@@ -47,6 +47,8 @@
     CONSTRAINT [FK_JournalManual_ReportingCurrency] FOREIGN KEY ([ReportingCurrencyId]) REFERENCES [dbo].[Currency] ([CurrencyId]),
     CONSTRAINT [Unique_JournalManual] UNIQUE NONCLUSTERED ([BatchName] ASC, [MasterCompanyId] ASC)
 );
+
+
 
 
 GO

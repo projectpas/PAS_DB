@@ -23,10 +23,10 @@
     [IsRecurring]                   BIT             NOT NULL,
     [RecurringDate]                 DATETIME        NULL,
     [MasterCompanyId]               INT             NOT NULL,
-    [LocalDebitCurrency]            NUMERIC (18, 2) NULL,
-    [LocalCreditCurrency]           NUMERIC (18, 2) NULL,
-    [ReportingDebitCurrency]        NUMERIC (18, 2) NULL,
-    [ReportingCreditCurrency]       NUMERIC (18, 2) NULL,
+    [LocalDebitCurrency]            NUMERIC (18, 6) NULL,
+    [LocalCreditCurrency]           NUMERIC (18, 6) NULL,
+    [ReportingDebitCurrency]        NUMERIC (18, 6) NULL,
+    [ReportingCreditCurrency]       NUMERIC (18, 6) NULL,
     [Description]                   VARCHAR (50)    NULL,
     [ManagementStructureEntityId]   BIGINT          NULL,
     [CreatedBy]                     VARCHAR (256)   NOT NULL,
@@ -35,7 +35,7 @@
     [UpdatedDate]                   DATETIME2 (7)   NOT NULL,
     [IsActive]                      BIT             NOT NULL,
     [IsDeleted]                     BIT             NOT NULL,
-    [CurrencyRate]                  DECIMAL (18)    NULL,
+    [CurrencyRate]                  DECIMAL (18, 6) NULL,
     CONSTRAINT [PK_JournalManualAudit] PRIMARY KEY CLUSTERED ([AuditJournalManualId] ASC)
 );
 

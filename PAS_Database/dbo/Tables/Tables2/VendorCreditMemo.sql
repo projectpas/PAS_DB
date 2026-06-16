@@ -22,6 +22,7 @@
     [OpenDate]                 DATETIME2 (7)   NULL,
     [RequestedBy]              BIGINT          NULL,
     [Notes]                    VARCHAR (MAX)   NULL,
+    [IsAdhoc]                  BIT             NULL,
     CONSTRAINT [PK_VendorCreditMemo] PRIMARY KEY CLUSTERED ([VendorCreditMemoId] ASC),
     CONSTRAINT [FK_VendorCreditMemo_VendorRMA] FOREIGN KEY ([VendorRMAId]) REFERENCES [dbo].[VendorRMA] ([VendorRMAId])
 );

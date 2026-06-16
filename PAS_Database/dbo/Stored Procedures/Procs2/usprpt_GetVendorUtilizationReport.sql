@@ -17,6 +17,9 @@
 	2    16-JUNE-2023   Devendra Shekh      made changes TO DO TOTAL
 	3    29-MARCH-2024  Ekta Chandegra      IsDeleted and IsActive flag is added
 	4	 11/05/2024		Vishal Suthar		Modified to make use of new SO Part tables
+	5	 03/06/2026		Priyansh Patel 		Uom releted changes [PN-15917]
+    6	 09/06/2026		Priyansh Patel		uom conversion for unit cost and Extended amount value [PN-16758]
+
 **************************************************************/
 
 CREATE      PROCEDURE [dbo].[usprpt_GetVendorUtilizationReport]  
@@ -158,11 +161,9 @@ UPPER(MSD.Level8Name) AS level8,    UPPER(MSD.Level9Name) AS level9,    UPPER(MS
         UPPER(POP.unitofmeasure) 'uom',  
         POP.QuantityOrdered 'qty',  
         POP.PurchaseOrderId,  
-        --STL.UnitCost 'unitcost', 
-		ISNULL(STL.UnitCost ,0) AS 'unitcost',
+        ROUND(CASE WHEN STL.UnitCost IS NULL THEN ISNULL(POP.UnitCost, 0) ELSE dbo.fn_ConvertUOM(STL.UnitCost, STL.StockUnitOfMeasure, POP.UnitOfMeasure, 1, @mastercompanyid) END, 2) AS unitcost,
         UPPER(POP.functionalcurrency) 'currency',  
-        --STL.PurchaseOrderExtendedCost 'extamount', 
-		ISNULL(STL.PurchaseOrderExtendedCost , 0) AS 'extamount',
+        ISNULL(POP.QuantityOrdered, 0) * ROUND(CASE WHEN STL.UnitCost IS NULL THEN ISNULL(POP.UnitCost, 0) ELSE dbo.fn_ConvertUOM(STL.UnitCost, STL.StockUnitOfMeasure, POP.UnitOfMeasure, 1, @mastercompanyid) END, 2) AS extamount,
         'N/A' 'localamount',  
         FORMAT (POP.NeedByDate, 'MM/dd/yyyy hh:mm:tt') 'requestdate',  
         UPPER(ISNULL(POP.workorderno,'')) 'wonum',  
@@ -206,7 +207,7 @@ UPPER(MSD.Level8Name) AS level8,    UPPER(MSD.Level9Name) AS level9,    UPPER(MS
      PO.PurchaseOrderNumber, FORMAT (PO.OpenDate, 'MM/dd/yyyy hh:mm:tt'), IM.partnumber,IM.PartDescription,STL.itemtype,  
    CASE WHEN stl.isPma = 1 AND stl.IsDER = 1 THEN 'PMA&DER' WHEN stl.isPma = 1 AND (stl.IsDER IS NULL OR stl.IsDER = 0) THEN 'PMA'  
      WHEN (stl.isPma = 0 OR stl.isPma IS NULL) AND stl.IsDER = 1 THEN 'DER' ELSE 'OEM' END,  
-     PO.status,PO.VendorName,PO.VendorCode,POP.unitofmeasure, POP.QuantityOrdered, POP.PurchaseOrderId, STL.UnitCost ,POP.functionalcurrency, FORMAT (POP.NeedByDate, 'MM/dd/yyyy hh:mm:tt'),  
+     PO.status,PO.VendorName,PO.VendorCode,POP.unitofmeasure, POP.QuantityOrdered, POP.PurchaseOrderId, STL.UnitCost , POP.UnitCost, STL.StockUnitOfMeasure, POP.functionalcurrency, FORMAT (POP.NeedByDate, 'MM/dd/yyyy hh:mm:tt'),  
      STL.PurchaseOrderExtendedCost,POP.workorderno,IM1.partnumber,IM1.partdescription,POP.salesorderno,IM2.partnumber,IM2.partnumber,IM2.partdescription,WO.CustomerName,  
      MSD.Level1Name,MSD.Level2Name,MSD.Level3Name,MSD.Level4Name,MSD.Level5Name,MSD.Level6Name,MSD.Level7Name,MSD.Level8Name,MSD.Level9Name,MSD.Level10Name, POP.MasterCompanyId
 	 )
@@ -225,7 +226,9 @@ UPPER(MSD.Level8Name) AS level8,    UPPER(MSD.Level9Name) AS level9,    UPPER(MS
 				GROUP BY masterCompanyId)
 
 			  SELECT COUNT(2) OVER () AS TotalRecordsCount, level1, level2, level3, level4, level5, level6, level7, level8, level9, level10, ponum,
-					podate, pn, pndescription, itemtype, stocktype, status, vendorname, vendorcode, uom, qty, PurchaseOrderId,
+					podate, pn, pndescription, itemtype, stocktype, status, vendorname, vendorcode, uom, 
+                    
+                    FORMAT(ISNULL(qty, 0), 'N', 'en-us') 'qty', PurchaseOrderId,
 					FORMAT(ISNULL(unitcost,0) , 'N', 'en-us') 'unitcost', 
 					currency,
 					FORMAT(ISNULL(extamount,0) , 'N', 'en-us') 'extamount',    

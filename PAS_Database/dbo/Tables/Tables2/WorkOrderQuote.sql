@@ -10,7 +10,7 @@
     [CustomerId]                BIGINT          NOT NULL,
     [CurrencyId]                INT             NOT NULL,
     [DSO]                       VARCHAR (256)   NULL,
-    [AccountsReceivableBalance] DECIMAL (20, 3) NULL,
+    [AccountsReceivableBalance] DECIMAL (18, 6) NULL,
     [SalesPersonId]             BIGINT          NULL,
     [EmployeeId]                BIGINT          NOT NULL,
     [MasterCompanyId]           INT             NOT NULL,
@@ -31,10 +31,10 @@
     [Notes]                     NVARCHAR (MAX)  NULL,
     [CustomerName]              VARCHAR (200)   NULL,
     [CustomerContact]           VARCHAR (200)   NULL,
-    [CreditLimit]               DECIMAL (18, 2) NULL,
+    [CreditLimit]               DECIMAL (18, 6) NULL,
     [CreditTerms]               VARCHAR (200)   NULL,
     [ReportCurrencyId]          INT             NULL,
-    [ForeignExchangeRate]       DECIMAL (18, 2) NULL,
+    [ForeignExchangeRate]       DECIMAL (18, 6) NULL,
     [IsPrintCorrectiveAction]   BIT             NULL,
     [ShipToSiteId]              BIGINT          NULL,
     [ShipToSiteName]            VARCHAR (100)   NULL,
@@ -55,6 +55,8 @@
     CONSTRAINT [FK_WorkOrderQuote_WorkOrder] FOREIGN KEY ([WorkOrderId]) REFERENCES [dbo].[WorkOrder] ([WorkOrderId]),
     CONSTRAINT [FK_WorkOrderQuote_WorkOrderQuoteStatus] FOREIGN KEY ([QuoteStatusId]) REFERENCES [dbo].[WorkOrderQuoteStatus] ([WorkOrderQuoteStatusId])
 );
+
+
 
 
 

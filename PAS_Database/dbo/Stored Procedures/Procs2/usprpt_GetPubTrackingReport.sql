@@ -17,6 +17,8 @@
     1    06-May-2022    Mahesh Sorathiya   Created  
 	2    01-SEPT-2023   Ekta Chandegra	   Convert text into uppercase
 	3	 04-12-2024     Shrey Chandegara   Modified due to add some new column and add filter
+	4    11-Jun-2026    Sahdev Saliya      Added PublicationType [PN-15971]
+	5    15-Jun-2026    Sahdev Saliya      Multi-select dropdown has been added in Publication Type.[PN-16971]
 
 exec usprpt_GetPubTrackingReport @PageNumber=1,@PageSize=20,@SortColumn=NULL,@SortOrder=-1,@GlobalFilter=N'',@strFilter=N'1,5,6,52,84!2,7,8,9!3,11,10!4,13,12!!!!!!',@PublicationRecordId=0,
 @PublicationId=NULL,@PartNumber=NULL,@PartDescription=NULL,@PublicationDescription=NULL,@VerifiedStatus=N'0',@DayToExpiry=NULL,@RedIndicator=0,@GreenIndicator=0,@YellowIndicator=0,@ExpirationStatus=N'0',
@@ -66,7 +68,8 @@ CREATE   PROCEDURE [dbo].[usprpt_GetPubTrackingReport]
 @level8Str VARCHAR(MAX) = NULL,
 @level9Str VARCHAR(MAX) = NULL,
 @level10Str VARCHAR(MAX) = NULL,
-@MasterCompanyId INT
+@MasterCompanyId INT,
+@PublicationType VARCHAR(256) = NULL
  
 AS  
 BEGIN  
@@ -182,12 +185,13 @@ BEGIN
 		  level7 VARCHAR(MAX)  NULL,
 		  level8 VARCHAR(MAX)  NULL,
 		  level9 VARCHAR(MAX)  NULL,
-		  level10 VARCHAR(MAX) NULL
+		  level10 VARCHAR(MAX) NULL,
+		  PublicationType VARCHAR(256) NULL
 		 )    
 
 		 INSERT INTO #tmpPublication (PublicationRecordId,PublicationId, PartNumber, PartDescription, PublicationDescription, Verified, RedIndicator,YellowIndicator,GreenIndicator, DaysToExpiration,DaysToExp, RevNumber,
 										VerifiedBy, Manufacturer, Source,Location, EntryDate, NextRevDate, RevDate, ExpirationDate, VerifiedDate, level1, level2, level3,
-										level4, level5, level6, level7, level8, level9, level10) 
+										level4, level5, level6, level7, level8, level9, level10, PublicationType) 
 
 		 SELECT 
 			 PUB.PublicationRecordId,
@@ -226,7 +230,8 @@ BEGIN
 			 UPPER(MSD.Level7Name) AS level7, 
 			 UPPER(MSD.Level8Name) AS level8, 
 			 UPPER(MSD.Level9Name) AS level9, 
-			 UPPER(MSD.Level10Name) AS level10
+			 UPPER(MSD.Level10Name) AS level10,
+			 PT.Name AS PublicationType
 
 		 FROM [dbo].[Publication] PUB WITH (NOLOCK)
 			 INNER JOIN DBO.PublicationItemMasterMapping PIMM WITH (NOLOCK) ON PUB.PublicationRecordId = PIMM.PublicationRecordId AND PIMM.IsActive = 1 AND PIMM.IsDeleted = 0
@@ -237,6 +242,7 @@ BEGIN
 			 LEFT JOIN DBO.Location LC WITH (NOLOCK) ON PUB.LocationId = LC.LocationId
 			 LEFT JOIN DBO.Employee E WITH (NOLOCK) ON PUB.VerifiedBy = E.EmployeeId
 			 LEFT JOIN PublicationSettings STS WITH (NOLOCK) ON STS.MasterCompanyId =@MasterCompanyId
+			 LEFT JOIN PublicationType PT WITH (NOLOCK) ON PUB.PublicationTypeId = PT.PublicationTypeId
 		 WHERE PUB.entrydate BETWEEN (@FromEntryDate) AND (@ToEntryDate) AND PUB.MasterCompanyId = @MasterCompanyId AND PUB.IsActive = 1 AND PUB.IsDeleted = 0
 			   AND PUB.VerifiedStatus IN (SELECT * FROM DBO.SplitString(@VerStatus,','))
 			   AND ( @ExpirationStatus = @ExpireStatus AND ISNULL(CAST(PUB.ExpirationDate AS DATE),'') < @DefaultDate OR
@@ -284,7 +290,8 @@ BEGIN
 			 (ISNULL(@NextRevDate, '') = '' OR CAST([NextRevDate] AS DATE) =  CAST(@NextRevDate AS DATE) ) AND 
 			 (ISNULL(@RevDate, '') = '' OR CAST([RevDate] AS DATE) =  CAST(@RevDate AS DATE)) AND 
 			 (ISNULL(@ExpirationDate, '') = '' OR CAST([ExpirationDate] AS DATE) = CAST(@ExpirationDate AS DATE)) AND 
-			 (ISNULL(@VerifiedDate, '') = '' OR CAST([VerifiedDate] AS DATE) =  CAST(@VerifiedDate AS DATE))
+			 (ISNULL(@VerifiedDate, '') = '' OR CAST([VerifiedDate] AS DATE) =  CAST(@VerifiedDate AS DATE)) AND
+			 ( ISNULL(@PublicationType, '') = '' OR EXISTS (SELECT 1 FROM STRING_SPLIT(@PublicationType, ',') pt WHERE UPPER([PublicationType]) LIKE '%' + UPPER(LTRIM(RTRIM(pt.value))) + '%'))
 			 )
 
 		 SET @Total = (SELECT TOP 1 COUNT(1) OVER () AS TotalRecordsCount FROM #finalResult);
@@ -341,7 +348,9 @@ BEGIN
 			CASE WHEN (@SortOrder = 1 AND @SortColumn = 'LEVEL9') THEN [Level9] END ASC,
 			CASE WHEN (@SortOrder = -1 AND @SortColumn = 'LEVEL9') THEN [Level9] END DESC,
 			CASE WHEN (@SortOrder = 1 AND @SortColumn = 'LEVEL10') THEN [Level10] END ASC,
-			CASE WHEN (@SortOrder = -1 AND @SortColumn = 'LEVEL10') THEN [Level10] END DESC
+			CASE WHEN (@SortOrder = -1 AND @SortColumn = 'LEVEL10') THEN [Level10] END DESC,
+			CASE WHEN (@SortOrder = 1  AND @SortColumn = 'PublicationType') THEN [PublicationType] END ASC,
+            CASE WHEN (@SortOrder = -1 AND @SortColumn = 'PublicationType') THEN [PublicationType] END DESC
 			OFFSET @RecordFrom ROWS 
    			FETCH NEXT @PageSize ROWS ONLY
 

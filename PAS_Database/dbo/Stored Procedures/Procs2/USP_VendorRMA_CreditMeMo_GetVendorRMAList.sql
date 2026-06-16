@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*********************           
  ** File:   [USP_VendorRMA_CreditMeMo_GetVendorRMAList]          
  ** Author:   Devendra Shekh
  ** Description: This stored procedure is used to get vendorrma for credit memo create
@@ -10,15 +9,17 @@
          
  ** RETURN VALUE:           
   
- **************************************************************           
+ **********************           
   ** Change History           
- **************************************************************           
+ **********************           
  ** PR   Date         Author					Change Description            
  ** --   --------     -------				--------------------------------          
     1    07/05/2023   Devendra Shekh			Created
 	2    02-April-2026		Amit Ghediya		UOM Conversion Changes [PN-15140]  
     3    08/05/2026         Ayushi Patel        Return QtyShipped as it is from table [PN-15140]
 	4    15-May-2026        Sahdev Saliya       Added ControlNumber, UnitOfMeasure, QuantityAvailable, UnitCost, ExtendedCost [PN-16205]
+	5    05-June-2026       Sahdev Saliya       Added Searching and sorting functionality for ControlNumber, UnitOfMeasure, QuantityAvailable, UnitCost, ExtendedCost [PN-16578]
+    6	 04-Jun-2026		Ayushi Patel	    [PN-16716]Return unitcost , quantityAvailable , unitOfMeasure as a PurchaseUOM 
 
  exec USP_VendorRMA_CreditMeMo_GetVendorRMAList 
 @PageNumber=1,@PageSize=10,@SortColumn=NULL,@SortOrder=-1,@GlobalFilter=N'',
@@ -26,7 +27,7 @@
 @MasterCompanyId=1,@ViewType=N'detailview',@vendorRMADetailStatusId=3,
 @VendorRMAId=0,@VendorName=NULL,@QtyShipped=NULL
 
-**************************************************************/
+**********************/
 CREATE   PROCEDURE [dbo].[USP_VendorRMA_CreditMeMo_GetVendorRMAList]  
  @PageNumber INT,  
  @PageSize INT,  
@@ -44,7 +45,12 @@ CREATE   PROCEDURE [dbo].[USP_VendorRMA_CreditMeMo_GetVendorRMAList]
  @VendorRMADetailStatusId  INT=NULL,
  @VendorRMAId BIGINT=NULL,
  @VendorName VARCHAR(100) NULL,
- @QtyShipped varchar(50)=NULL
+ @QtyShipped varchar(50)=NULL,
+ @ControlNumber varchar(50)=NULL,
+ @UnitOfMeasure VARCHAR(100)=NULL,
+ @QuantityAvailable decimal=NULL,
+ @UnitCost decimal=NULL,
+ @ExtendedCost decimal=NULL
 AS  
 BEGIN  
  SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED  
@@ -87,12 +93,12 @@ BEGIN
 			VS.VendorRMAStatus as 'VendorRMADetailStatus',
 			RMA.RMANumber as 'VendorRMANumber',
 			RMAD.ModuleId,
-			RMS.QtyShipped,
+            ([dbo].[fn_ConvertUOM](ISNULL(RMS.QtyShipped, 0),SL.[StockUnitOfMeasure], PurchaseUom.[ShortName],0,IM.[MasterCompanyId])) AS QtyShipped,
             RMAD.VendorRMADetailId,
 			SL.[ControlNumber],
-			SL.[UnitOfMeasure],
-			CASE WHEN SL.[PurchaseOrderId] > 0 THEN ISNULL(SL.QuantityAvailable,0) WHEN SL.[RepairOrderId] > 0 THEN ISNULL(SL.QuantityAvailable,0) ELSE 0 END AS QuantityAvailable,
-			CASE WHEN SL.[PurchaseOrderId] > 0 THEN ISNULL(SL.UnitCost,0) WHEN SL.[RepairOrderId] > 0 THEN ISNULL(SL.UnitCost,0) ELSE 0 END AS UnitCost,
+			PurchaseUom.[ShortName] as UnitOfMeasure,
+			([dbo].[fn_ConvertUOM](ISNULL(SL.QuantityAvailable, 0),SL.[StockUnitOfMeasure], PurchaseUom.[ShortName],0,IM.[MasterCompanyId])) AS QuantityAvailable,
+            ([dbo].[fn_ConvertUOM](ISNULL(SL.UnitCost, 0),SL.[StockUnitOfMeasure], PurchaseUom.[ShortName],1,IM.[MasterCompanyId])) AS UnitCost,
 			CASE  WHEN SL.[PurchaseOrderId] > 0 THEN (ISNULL(SL.QuantityAvailable,0) * SL.UnitCost) WHEN SL.[RepairOrderId] > 0 THEN (ISNULL(SL.QuantityAvailable,0) * SL.UnitCost) ELSE 0 END AS ExtendedCost
 		FROM [DBO].[VendorRMA] RMA WITH (NOLOCK)
 		INNER JOIN [DBO].[Vendor] V WITH (NOLOCK) ON RMA.VendorId = V.VendorId
@@ -102,6 +108,7 @@ BEGIN
 		LEFT JOIN [DBO].[VendorCreditMemo] VCM WITH (NOLOCK) ON VCM.VendorRMAId = RMA.VendorRMAId
 		LEFT JOIN [DBO].[VendorRMAStatus] VS WITH (NOLOCK) ON RMAD.VendorRMAStatusId = VS.VendorRMAStatusId
 		LEFT JOIN [DBO].[RMAShippingItem] RMS WITH (NOLOCK) ON RMAD.VendorRMADetailId = RMS.VendorRMADetailId
+        LEFT JOIN [DBO].[UnitOfMeasure] PurchaseUom WITH (NOLOCK) ON SL.PurchaseUnitOfMeasureId = PurchaseUom.UnitOfMeasureId
 		WHERE RMA.[VendorRMAId] = CASE WHEN @VendorRMAId != 0 and @VendorRMAId is not null THEN @VendorRMAId ELSE RMAD.[VendorRMAId] END
 		AND VS.VendorRMAStatusId = @VendorRMADetailStatusId AND RMA.VendorRMAId NOT IN (SELECT ISNULL(VendorRMAId,0) VendorRMAId FROM VendorCreditMemo WHERE MasterCompanyId = @MasterCompanyId)
 		),
@@ -115,7 +122,12 @@ BEGIN
        (PartDescriptionType like '%' +@GlobalFilter+'%') OR  
 	   (VendorName like '%' +@GlobalFilter+'%') OR  
        (CreatedDate like '%' +@GlobalFilter+'%') OR  
-       (UpdatedDate like '%' +@GlobalFilter+'%') 
+       (UpdatedDate like '%' +@GlobalFilter+'%') OR
+	   (ControlNumber like '%' +@GlobalFilter+'%') OR
+	   (UnitOfMeasure like '%' +@GlobalFilter+'%') OR
+	   (QuantityAvailable like '%' +@GlobalFilter+'%') OR
+	   (UnitCost like '%' +@GlobalFilter+'%') OR
+	   (ExtendedCost like '%' +@GlobalFilter+'%') 
        ))  
        OR     
        (@GlobalFilter='' AND (IsNull(@RMANumber,'') ='' OR RMANumber like  '%'+ @RMANumber+'%') and   
@@ -125,7 +137,12 @@ BEGIN
 	   (IsNull(@VendorName,'') ='' OR VendorName like '%'+@VendorName+'%') and  
 	   (ISNULL(@QtyShipped,'') ='' OR CAST(QtyShipped AS varchar(10)) LIKE '%' + CAST(@QtyShipped AS VARCHAR(10))+ '%') AND
        (IsNull(@CreatedDate,'') ='' OR Cast(CreatedDate as Date)=Cast(@CreatedDate as date)) and  
-       (IsNull(@UpdatedDate,'') ='' OR Cast(UpdatedDate as date)=Cast(@UpdatedDate as date))
+       (IsNull(@UpdatedDate,'') ='' OR Cast(UpdatedDate as date)=Cast(@UpdatedDate as date)) and
+	   (IsNull(@ControlNumber,'') ='' OR ControlNumber like '%'+ @ControlNumber +'%') and
+	   (IsNull(@UnitOfMeasure,'') ='' OR UnitOfMeasure like '%'+ @UnitOfMeasure +'%') and
+	   (ISNULL(CAST(@QuantityAvailable AS VARCHAR(50)), '') = '' OR CAST(QuantityAvailable AS VARCHAR(50)) LIKE '%' + CAST(@QuantityAvailable AS VARCHAR(50)) + '%') and
+	   (ISNULL(CAST(@UnitCost AS VARCHAR(50)), '') = '' OR CAST(UnitCost AS VARCHAR(50)) LIKE '%' + CAST(@UnitCost AS VARCHAR(50)) + '%') and
+	   (ISNULL(CAST(@ExtendedCost AS VARCHAR(50)), '') = '' OR CAST(ExtendedCost AS VARCHAR(50)) LIKE '%' + CAST(@ExtendedCost AS VARCHAR(50)) + '%')
 	   )  
        )),  
       ResultCount AS (Select COUNT(VendorRMAId) AS NumberOfItems FROM FinalResult)  
@@ -142,7 +159,12 @@ BEGIN
       CASE WHEN (@SortOrder=1 and @SortColumn='CREATEDDATE')  THEN CreatedDate END ASC,  
       CASE WHEN (@SortOrder=1 and @SortColumn='UPDATEDDATE')  THEN UpdatedDate END ASC,  
       CASE WHEN (@SortOrder=1 and @SortColumn='CREATEDBY')  THEN CreatedBy END ASC,  
-      CASE WHEN (@SortOrder=1 and @SortColumn='UPDATEDBY')  THEN UpdatedBy END ASC, 
+      CASE WHEN (@SortOrder=1 and @SortColumn='UPDATEDBY')  THEN UpdatedBy END ASC,
+	  CASE WHEN (@SortOrder=1 and @SortColumn='CONTROLNUMBER')  THEN ControlNumber END ASC,
+	  CASE WHEN (@SortOrder=1 and @SortColumn='UNITOFMEASURE')  THEN UnitOfMeasure END ASC, 
+	  CASE WHEN (@SortOrder=1 and @SortColumn='QUANTITYAVAILABLE')  THEN QuantityAvailable END ASC, 
+	  CASE WHEN (@SortOrder=1 and @SortColumn='UNITCOST')  THEN UnitCost END ASC, 
+	  CASE WHEN (@SortOrder=1 and @SortColumn='EXTENDEDCOST')  THEN ExtendedCost END ASC, 
   	  
       CASE WHEN (@SortOrder=-1 and @SortColumn='VENDORRMAID')  THEN VendorRMAId END DESC,  
       CASE WHEN (@SortOrder=-1 and @SortColumn='RMANUMBER')  THEN RMANumber END DESC,  
@@ -153,7 +175,12 @@ BEGIN
       CASE WHEN (@SortOrder=-1 and @SortColumn='CREATEDDATE')  THEN CreatedDate END DESC,  
       CASE WHEN (@SortOrder=-1 and @SortColumn='UPDATEDDATE')  THEN UpdatedDate END DESC,  
       CASE WHEN (@SortOrder=-1 and @SortColumn='CREATEDBY')  THEN CreatedBy END DESC,  
-      CASE WHEN (@SortOrder=-1 and @SortColumn='UPDATEDBY')  THEN UpdatedBy END DESC
+      CASE WHEN (@SortOrder=-1 and @SortColumn='UPDATEDBY')  THEN UpdatedBy END DESC,
+	  CASE WHEN (@SortOrder=-1 and @SortColumn='CONTROLNUMBER')  THEN ControlNumber END DESC,
+	  CASE WHEN (@SortOrder=-1 and @SortColumn='UNITOFMEASURE')  THEN UnitOfMeasure END DESC,  
+      CASE WHEN (@SortOrder=-1 and @SortColumn='QUANTITYAVAILABLE')  THEN QuantityAvailable END DESC,  
+      CASE WHEN (@SortOrder=-1 and @SortColumn='UNITCOST')  THEN UnitCost END DESC,
+	  CASE WHEN (@SortOrder=-1 and @SortColumn='EXTENDEDCOST')  THEN ExtendedCost END DESC  
      OFFSET @RecordFrom ROWS   
      FETCH NEXT @PageSize ROWS ONLY  
 	END

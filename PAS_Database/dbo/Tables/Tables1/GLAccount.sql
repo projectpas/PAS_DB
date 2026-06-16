@@ -20,7 +20,7 @@
     [LedgerName]                  VARCHAR (30)    NULL,
     [InterCompany]                BIT             CONSTRAINT [GLAccount_DC_InterCompany] DEFAULT ((0)) NOT NULL,
     [Category1099Id]              BIGINT          NULL,
-    [Threshold]                   DECIMAL (18, 2) NULL,
+    [Threshold]                   DECIMAL (18, 6) NULL,
     [IsManualJEReference]         BIT             NULL,
     [ReferenceTypeId]             INT             NULL,
     [SubLedgerId]                 INT             NULL,
@@ -36,6 +36,8 @@
     CONSTRAINT [FK_GLAccount_poroCategory] FOREIGN KEY ([POROCategoryId]) REFERENCES [dbo].[POROCategory] ([POROCategoryId]),
     CONSTRAINT [Unique_GLAccount] UNIQUE NONCLUSTERED ([AccountCode] ASC, [MasterCompanyId] ASC)
 );
+
+
 
 
 

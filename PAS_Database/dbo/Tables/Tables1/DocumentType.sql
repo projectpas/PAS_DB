@@ -12,10 +12,13 @@
     [IsDeleted]       BIT            CONSTRAINT [DocumentType_DC_Delete] DEFAULT ((0)) NOT NULL,
     [RevNum]          INT            CONSTRAINT [DF_DocumentType_RevNum] DEFAULT ((0)) NOT NULL,
     [IsDefault]       BIT            CONSTRAINT [DEFAULT_IsDefault] DEFAULT ((0)) NOT NULL,
+    [Code]            VARCHAR (50)   NULL,
     CONSTRAINT [PK_DocumentType] PRIMARY KEY CLUSTERED ([DocumentTypeId] ASC),
     CONSTRAINT [FK_DocumentType_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId]),
     CONSTRAINT [Unique_DocumentType] UNIQUE NONCLUSTERED ([Name] ASC, [MasterCompanyId] ASC)
 );
+
+
 
 
 GO

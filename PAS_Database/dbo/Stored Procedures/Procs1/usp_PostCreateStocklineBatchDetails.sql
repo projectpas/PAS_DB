@@ -28,6 +28,8 @@
 	17	 02/06/2025	  Abhishek Jirawla	   Fixed Name concat read script
 	18   24/07/2025   Moin Bloch		   Modify(Fixed For Amount 0 then getting Error at the time of Receiving) 
 	19   27/04/2025   Bhargav Saliya	   [PN-16170](UOM-Fixed Amount Issue)
+	20   11/06/2026   Priyansh Patel	   UOM Changes decimal to (18,6) [PN-16807]
+
 **************************************************************/
 
 CREATE     PROCEDURE [dbo].[usp_PostCreateStocklineBatchDetails]
@@ -43,7 +45,7 @@ BEGIN
 	BEGIN
 		DECLARE @StocklineId BIGINT = 0;
 		DECLARE @Qty DECIMAL(18, 6) = 0;
-		DECLARE @Amount DECIMAL(18, 2) = 0;
+		DECLARE @Amount DECIMAL(18, 6) = 0;
 		DECLARE @ModuleName VARCHAR(256) = 0;
 		DECLARE @UpdateBy VARCHAR(256) = 0;
 		DECLARE @MasterCompanyId INT = 0;
@@ -53,9 +55,9 @@ BEGIN
 		DECLARE @JournalTypeNumber VARCHAR(100);
 		DECLARE @JournalBatchDetailId BIGINT=0;
 		DECLARE @JlBatchHeaderId BIGINT=0;
-		DECLARE @TotalDebit DECIMAL(18, 2) =0;
-		DECLARE @TotalCredit DECIMAL(18, 2) =0;
-		DECLARE @TotalBalance DECIMAL(18, 2) =0;
+		DECLARE @TotalDebit DECIMAL(18, 6) =0;
+		DECLARE @TotalCredit DECIMAL(18, 6) =0;
+		DECLARE @TotalBalance DECIMAL(18, 6) =0;
 		DECLARE @INPUTMethod VARCHAR(100);
 		DECLARE @jlTypeId BIGINT;
 		DECLARE @jlTypeName VARCHAR(100);
@@ -85,10 +87,10 @@ BEGIN
 		DECLARE @PieceItemmasterId BIGINT
 		DECLARE @CustRefNumber VARCHAR(200)
 		DECLARE @LineNumber INT=1
-		DECLARE @UnitPrice DECIMAL(18,2)=0
-		DECLARE @LaborHrs DECIMAL(18,2)=0
-		DECLARE @DirectLaborCost DECIMAL(18,2)=0
-		DECLARE @OverheadCost DECIMAL(18,2)=0
+		DECLARE @UnitPrice DECIMAL(18,6)=0
+		DECLARE @LaborHrs DECIMAL(18,6)=0
+		DECLARE @DirectLaborCost DECIMAL(18,6)=0
+		DECLARE @OverheadCost DECIMAL(18,6)=0
 		DECLARE @partId BIGINT=0
 		DECLARE @batch VARCHAR(100)
 		DECLARE @AccountingPeriod VARCHAR(100)
@@ -99,16 +101,16 @@ BEGIN
 		DECLARE @AllMSlevels NVARCHAR(MAX)
 		DECLARE @DistributionSetupId INT=0
 		DECLARE @DistributionCode VARCHAR(200)
-		DECLARE @InvoiceTotalCost DECIMAL(18,2)=0
-		DECLARE @MaterialCost DECIMAL(18,2)=0
-		DECLARE @LaborOverHeadCost DECIMAL(18,2)=0
-		DECLARE @FreightCost DECIMAL(18,2)=0
-		DECLARE @SalesTax DECIMAL(18,2)=0
+		DECLARE @InvoiceTotalCost DECIMAL(18,6)=0
+		DECLARE @MaterialCost DECIMAL(18,6)=0
+		DECLARE @LaborOverHeadCost DECIMAL(18,6)=0
+		DECLARE @FreightCost DECIMAL(18,6)=0
+		DECLARE @SalesTax DECIMAL(18,6)=0
 		DECLARE @InvoiceNo VARCHAR(100)
-		DECLARE @MiscChargesCost DECIMAL(18,2)=0
-		DECLARE @LaborCost DECIMAL(18,2)=0
-		DECLARE @InvoiceLaborCost DECIMAL(18,2)=0
-		DECLARE @RevenuWO DECIMAL(18,2)=0
+		DECLARE @MiscChargesCost DECIMAL(18,6)=0
+		DECLARE @LaborCost DECIMAL(18,6)=0
+		DECLARE @InvoiceLaborCost DECIMAL(18,6)=0
+		DECLARE @RevenuWO DECIMAL(18,6)=0
 		DECLARE @CurrentManagementStructureId BIGINT=0			  
 		DECLARE @DistributionMasterId BIGINT;
 		DECLARE @VendorId BIGINT;
@@ -163,7 +165,7 @@ BEGIN
 		    [ID] BIGINT NOT NULL IDENTITY,
 			[StocklineId] [BIGINT] NOT NULL,
 			[Qty] [DECIMAL](18, 6) NOT NULL,
-			[Amount] [DECIMAL](18, 2) NULL,
+			[Amount] [DECIMAL](18, 6) NULL,
 			[ModuleName] [VARCHAR](256) NULL,
 			[UpdateBy] [VARCHAR](256) NULL,
 			[MasterCompanyId] [INT] NULL,

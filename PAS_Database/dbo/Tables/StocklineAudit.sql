@@ -176,7 +176,7 @@
     [IsLotAssigned]                       BIT             NULL,
     [LOTQty]                              DECIMAL (18, 6) NULL,
     [LOTQtyReserve]                       DECIMAL (18, 6) NULL,
-    [OriginalCost]                        DECIMAL (18, 2) NULL,
+    [OriginalCost]                        DECIMAL (18, 6) NULL,
     [POOriginalCost]                      DECIMAL (18, 6) NULL,
     [ROOriginalCost]                      DECIMAL (18, 6) NULL,
     [VendorRMAId]                         BIGINT          NULL,
@@ -246,10 +246,11 @@
     [TransferredFromLotNumber]            VARCHAR (200)   NULL,
     [AircraftInstalledPartDetailsId]      BIGINT          NULL,
     [AircraftSN]                          VARCHAR (30)    NULL,
-    [TotalTSN]                            DECIMAL (18, 2) NULL,
-    [TotalCSN]                            DECIMAL (18, 2) NULL,
+    [TotalTSN]                            DECIMAL (18, 6) NULL,
+    [TotalCSN]                            DECIMAL (18, 6) NULL,
     [TotalTSNMM]                          DECIMAL (18, 6) NULL,
     [TotalCSNMM]                          DECIMAL (18, 6) NULL,
+    [Model]                               VARCHAR (200)   NULL,
     CONSTRAINT [PK_StocklineAudit] PRIMARY KEY CLUSTERED ([AuditStockLineId] ASC)
 );
 

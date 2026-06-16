@@ -14,6 +14,7 @@
  ** --   --------         -------          --------------------------------            
     1    31-10-2025    Sahdev Saliya       Created  
 	2    10 DEc @025   Rajesh Gami		   Return DecimalPlaces from UnitOfMeasure
+	3    03-06-2026    Sahdev Saliya       Added Model [PN-16667]
 	exec [dbo].[USP_GetCommonForStocklineByItemMasterId]
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_GetCommonForStocklineByItemMasterId]
@@ -85,7 +86,8 @@ BEGIN
 			ISNULL(uom.Class,'Decimal') as Class,
 			ISNULL(uom.DecimalPlaces,2) as DecimalPlaces,
 			ISNULL(iM.StockUnitOfMeasureId,0) StockUnitOfMeasureId,
-			ISNULL(iM.ConsumeUnitOfMeasureId,0) ConsumeUnitOfMeasureId
+			ISNULL(iM.ConsumeUnitOfMeasureId,0) ConsumeUnitOfMeasureId,
+			iM.Model
     FROM [DBO].[ItemMaster] iM WITH (NOLOCK)
         LEFT JOIN [DBO].[ItemMaster] rPart WITH (NOLOCK) ON iM.RevisedPartId = rPart.ItemMasterId
         LEFT JOIN [DBO].[ItemMasterExchangeLoan] imxl WITH (NOLOCK) ON iM.ItemMasterId = imxl.ItemMasterId

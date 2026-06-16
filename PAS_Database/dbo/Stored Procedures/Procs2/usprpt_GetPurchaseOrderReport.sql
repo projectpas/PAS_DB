@@ -21,7 +21,9 @@
 	4    10-APRL-2024   Shrey Chandegara   poage changes   ( DATEDIFF(DAY, PO.OpenDate, GETDATE()) to DATEDIFF(DAY, PO.OpenDate, PO.ClosedDate) )
 	5    05-AUG-2024   Shrey Chandegara   Changes for PO View AND PN View.
 	6    06-aug-2024   Shrey Chandegara  MOdify due to chek isnull in closedateand when it is null then use getDate() as ClosedDate.
-	7    23 Apr 2025   RAJESH GAMI         Get only parent parts (Exclude the split part inthe report)
+	7    23-Apr-2025   RAJESH GAMI         Get only parent parts (Exclude the split part inthe report)
+	8	 03-JUNE-2026	Priyansh Patel 		Uom releted changes [PN-15917]
+
 EXECUTE   [dbo].[usprpt_GetPurchaseOrderReport] '','','2020-06-15','2021-06-15','1','1,4,43,44,45,80,84,88','46,47,66','48,49,50,58,59,67,68,69','51,52,53,54,55,56,57,60,61,62,64,70,71,72'
 **************************************************************/
 CREATE   PROCEDURE [dbo].[usprpt_GetPurchaseOrderReport] 
@@ -161,7 +163,7 @@ BEGIN
 				UPPER(POP.unitofmeasure) 'uom',
 				UPPER(PO.Approvedby) 'Approver',
 				UPPER(PO.Requisitioner) 'requisitioner',
-				UPPER(POP.QuantityOrdered) 'qty',
+				ISNULL(POP.QuantityOrdered,0) 'qty',
 				ISNULL(POP.UnitCost,0) 'unitcost',
 				UPPER(POP.functionalcurrency) 'curr',
 				ISNULL(POP.ExtendedCost ,0) 'extamt',
@@ -216,7 +218,8 @@ BEGIN
 				GROUP BY masterCompanyId)
 
 			  SELECT COUNT(2) OVER () AS TotalRecordsCount, ponum, podate, pn, pndescription, itemtype, stocktype, status, poage, vendorname,
-					vendorcode, uom, Approver, requisitioner, qty,
+					vendorcode, uom, Approver, requisitioner,
+					FORMAT(ISNULL(qty, 0), 'N', 'en-us') 'qty',
 					FORMAT(ISNULL(unitcost,0) , 'N', 'en-us') 'unitcost',    
 					FORMAT(ISNULL(extamt,0) , 'N', 'en-us') 'extamt',    
 					curr, needby, prmsddate, nextdeldate, level1, level2, level3, level4, level5, level6, level7, level8,
@@ -298,7 +301,8 @@ BEGIN
 						GROUP BY masterCompanyId)
 
 					  SELECT COUNT(2) OVER () AS TotalRecordsCount, ponum, podate, status, poage, vendorname,
-							vendorcode, Approver, requisitioner, qty,
+							vendorcode, Approver, requisitioner,
+							FORMAT(ISNULL(qty, 0), 'N', 'en-us') 'qty',
 							FORMAT(ISNULL(unitcost,0) , 'N', 'en-us') 'unitcost',    
 							FORMAT(ISNULL(extamt,0) , 'N', 'en-us') 'extamt'    
 							,level1, level2, level3, level4, level5, level6, level7, level8,

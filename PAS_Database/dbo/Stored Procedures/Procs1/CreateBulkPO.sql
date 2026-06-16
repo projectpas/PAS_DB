@@ -87,7 +87,7 @@ BEGIN
 				[ConditionId] [bigint] NULL,
 				[Condition] [varchar](256) NULL,
 				[Quantity] [int] NULL,
-				[UnitCost] [decimal](18,2) NULL,
+				[UnitCost] [decimal](18, 6) NULL,
 				[VendorId] [bigint] NULL,
 				[VendorName] [varchar](100) NULL,
 				[VendorCode] [varchar](100) NULL,

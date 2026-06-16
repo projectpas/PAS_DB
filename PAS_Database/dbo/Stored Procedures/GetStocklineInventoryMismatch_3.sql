@@ -16,8 +16,10 @@
 	4    30-08-2024   Rajesh Gami 			Add ISNULL
 	5    30-08-2024   Rajesh Gami 			Add SUM of ChildQtyOnHand
 	6    02-12-2025   Moin Bloch 			Modified Added MasterCompanyId Parameter 
+	7    16-06-2026   Priyansh Patel 		Removed the ChildStockline Table [PN-16124]
 
-	EXEC [GetStocklineInventoryMismatch]
+
+	EXEC [GetStocklineInventoryMismatch] 1
 **************************************************************/
 
 CREATE PROC [dbo].[GetStocklineInventoryMismatch]
@@ -33,17 +35,17 @@ BEGIN
 			sl.PartNumber, sl.PNDescription,sl.Manufacturer,
 			con.Description  As 'Condition',sl.MasterCompanyId, sl.StocklineNumber , sl.ControlNumber ,
 			sl.IdNumber,sl.SerialNumber , ISNULL(sl.QuantityIssued,0) As 'QtyIssued', ISNULL(sl.QuantityReserved,0) As 'QtyReserved',
-			ISNULL(sl.QuantityAvailable,0) As 'QtyAvail', ISNULL(sl.QuantityOnHand,0) As 'QtyOnHand',
-			SUM(ISNULL(child.QuantityOnHand,0)) As 'ChildQtyOnHand'
+			ISNULL(sl.QuantityAvailable,0) As 'QtyAvail', ISNULL(sl.QuantityOnHand,0) As 'QtyOnHand'
+			--,SUM(ISNULL(child.QuantityOnHand,0)) As 'ChildQtyOnHand'
 		FROM [dbo].[StockLine] sl WITH (NOLOCK)
 		INNER JOIN [dbo].[ItemMaster] im WITH (NOLOCK) ON sl.ItemMasterId = im.ItemMasterId
 		INNER JOIN [dbo].[Condition] con WITH (NOLOCK) ON sl.conditionId = con.conditionId
-		INNER JOIN [dbo].[ChildStockline] child WITH (NOLOCK) ON sl.StockLineId = child.StockLineId
+		--INNER JOIN [dbo].[ChildStockline] child WITH (NOLOCK) ON sl.StockLineId = child.StockLineId
 		WHERE sl.[MasterCompanyId] = @MasterCompanyId AND sl.isActive = 1 AND sl.isDeleted = 0 AND sl.IsParent = 1
 		AND (ISNULL(sl.QuantityOnHand,0) + ISNULL(sl.QuantityIssued,0)) <> (ISNULL(sl.QuantityReserved,0) + ISNULL(sl.QuantityAvailable,0) + ISNULL(sl.QuantityIssued,0))
 		GROUP BY sl.StockLineId, sl.PartNumber, sl.PNDescription,sl.Manufacturer, sl.QuantityOnHand, con.Description, sl.MasterCompanyId, sl.StocklineNumber , sl.ControlNumber,
 		sl.IdNumber,sl.SerialNumber, sl.QuantityIssued, sl.QuantityReserved, sl.QuantityAvailable
-		HAVING SUM(ISNULL(child.QuantityOnHand,0)) <> ISNULL(sl.QuantityOnHand,0)
+		--HAVING SUM(ISNULL(child.QuantityOnHand,0)) <> ISNULL(sl.QuantityOnHand,0)
 		ORDER BY sl.StockLineId DESC
 	END
 	END TRY    

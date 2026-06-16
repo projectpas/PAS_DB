@@ -121,9 +121,9 @@ BEGIN
 					(VendorRFQRepairOrderNumber LIKE '%' +@GlobalFilter+'%') OR	
 					(RepairOrderNumber LIKE '%' +@GlobalFilter+'%') OR	
 					(ConditionName LIKE '%' +@GlobalFilter+'%') OR	
-					(CAST(UnitCost AS VARCHAR(20)) LIKE '%' +@GlobalFilter+'%') OR					
-					(CAST(QuantityOrdered AS VARCHAR(20)) LIKE '%' +@GlobalFilter+'%') OR
-					(CAST(ExtendedCost AS VARCHAR(20)) LIKE '%' +@GlobalFilter+'%') OR
+					(CAST(UnitCost AS VARCHAR(50)) LIKE '%' +@GlobalFilter+'%') OR					
+					(CAST(QuantityOrdered AS VARCHAR(50)) LIKE '%' +@GlobalFilter+'%') OR
+					(CAST(ExtendedCost AS VARCHAR(50)) LIKE '%' +@GlobalFilter+'%') OR
 					(ReceiverNumber LIKE '%' +@GlobalFilter+'%') OR
 					(VendorName LIKE '%' +@GlobalFilter+'%') OR
 					(TraceableTo LIKE '%' +@GlobalFilter+'%') OR
@@ -138,9 +138,9 @@ BEGIN
 					(ISNULL(@RepairOrderNumber,'') ='' OR RepairOrderNumber LIKE '%' + @RepairOrderNumber + '%') AND
 					(ISNULL(@OpenDate,'') ='' OR CAST(OpenDate AS DATE) = CAST(@OpenDate AS DATE)) AND	
 					(ISNULL(@ConditionName,'') ='' OR ConditionName LIKE '%' + @ConditionName + '%') AND
-					(ISNULL(@UnitCost,'') ='' OR CAST(UnitCost AS NVARCHAR(10)) LIKE '%'+ @UnitCost+'%') AND 
-					(ISNULL(@QuantityOrdered,'') ='' OR CAST(QuantityOrdered AS NVARCHAR(10)) LIKE '%'+ @QuantityOrdered+'%') AND 
-					(ISNULL(@ExtendedCost,'') ='' OR CAST(ExtendedCost AS NVARCHAR(10)) LIKE '%'+ @ExtendedCost+'%') AND 
+					(ISNULL(@UnitCost,'') ='' OR CAST(UnitCost AS NVARCHAR(50)) LIKE '%'+ @UnitCost+'%') AND 
+					(ISNULL(@QuantityOrdered,'') ='' OR CAST(QuantityOrdered AS NVARCHAR(50)) LIKE '%'+ @QuantityOrdered+'%') AND 
+					(ISNULL(@ExtendedCost,'') ='' OR CAST(ExtendedCost AS NVARCHAR(50)) LIKE '%'+ @ExtendedCost+'%') AND 
 					(ISNULL(@ReceivedDate,'') ='' OR CAST(ReceivedDate AS DATE) = CAST(@ReceivedDate AS DATE)) AND	
 					(ISNULL(@ReceiverNumber,'') ='' OR ReceiverNumber LIKE '%' + @ReceiverNumber + '%') AND
 					(ISNULL(@VendorName,'') ='' OR VendorName LIKE '%' + @VendorName + '%') AND

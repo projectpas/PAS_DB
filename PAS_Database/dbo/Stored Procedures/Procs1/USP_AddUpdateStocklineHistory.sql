@@ -20,6 +20,8 @@
 	2    6 Nov 2023  Rajesh Gami        SalesPrice Expriry Date And UnitSalesPrice related change
 	3    12/08/2024  Moin Bloch         Convert @StocklineId To varchar for Errolog
  	4	 25/11/2025		Rajesh Gami		Change the stockline Quantiy related fields datatype INT to DECIMAL 
+	5    16/06/2026   Priyansh Patel 	Removed the ChildStockline Sp call [PN-16124]
+
  EXEC [dbo].[USP_AddUpdateStocklineHistory] 163201, 16, 259, NULL, NULL, 16, 0, 'Admin User'
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_AddUpdateStocklineHistory]
@@ -86,10 +88,10 @@ BEGIN
 		BEGIN
 			PRINT '';
 		END
-		ELSE
-		BEGIN
-			EXEC DBO.USP_AddUpdateChildStockline @StocklineId = @StocklineId, @ActionId = @ActionId, @QtyOnAction = @Qty, @ModuleName = @ModuleName, @ReferenceNumber = @ReferenceNumber, @SubModuleName = @SubModuleName, @SubReferenceNumber = @SubReferenceNumber, @UpdatedBy = @UpdatedBy;
-		END
+		--ELSE
+		--BEGIN
+		--	EXEC DBO.USP_AddUpdateChildStockline @StocklineId = @StocklineId, @ActionId = @ActionId, @QtyOnAction = @Qty, @ModuleName = @ModuleName, @ReferenceNumber = @ReferenceNumber, @SubModuleName = @SubModuleName, @SubReferenceNumber = @SubReferenceNumber, @UpdatedBy = @UpdatedBy;
+		--END
 	END
     COMMIT TRANSACTION
   END TRY

@@ -27,7 +27,8 @@
 	10	 11/05/2024	  Devendra Shekh	  Added ReferenceId, ReferenceModule For [CommonBatchDetails]
 	11	 16/01/2025   AMIT GHEDIYA		  Modify(get Distribution based on new settings from stockline level)
 	12	 02/06/2025	  Abhishek Jirawla	  Fixed Name concat read script
- 	14   19/12/2025   RAJESH GAMI		Change the INT to DECIMAL (QTY related fields) & Cost related fields change the decimal places 4 to 6     
+ 	14   19/12/2025   RAJESH GAMI		Change the INT to DECIMAL (QTY related fields) & Cost related fields change the decimal places 4 to 6   
+	15   16/06/2026   Priyansh Patel 	Removed the ChildStockline logic  [PN-16124]	
 **************************************************************/
 
 CREATE   PROCEDURE [dbo].[USP_BulkStockLineAdjustmentCustomerStockTransfer_PostCheckBatchDetails]
@@ -358,7 +359,7 @@ BEGIN
 					EXEC dbo.USP_CreateStockline_For_CustStockTransfer @StockLineId,@BulkStockLineAdjustmentDetailsId,@UpdateBy,@MasterCompanyId,@Stockline OUTPUT;
 
 					UPDATE dbo.Stockline set UnitCost = @NewUnitCostTotransfer,UpdatedBy = @UpdateBy,UpdatedDate = GETUTCDATE() WHERE StockLineId = @Stockline
-					UPDATE dbo.ChildStockline set UnitCost = @NewUnitCostTotransfer WHERE ParentId = @Stockline
+					--UPDATE dbo.ChildStockline set UnitCost = @NewUnitCostTotransfer WHERE ParentId = @Stockline
 					----- START: Inventory-Stock--------
 					SELECT TOP 1 @DistributionSetupId=ID,
 					             @DistributionName=Name,

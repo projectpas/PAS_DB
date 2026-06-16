@@ -15,6 +15,7 @@
 	4    10/01/2024   Devendra Shekh	     Modified (changes for [QtyToTender] and for where case to select result)
 	5    14/11/2025   Bhargav Saliya	     Get TaskName
 	6    21/05/2026   Priyansh Patel	     Added For Stock ProvisionId [PN-16357]
+	6    21/05/2026   Priyansh Patel	     UOM Chnages releted to quantity [PN-16840]
 
 exec USP_GetTenderMultipleStockLineList @PageSize=10,@PageNumber=1,@SortColumn=NULL,@SortOrder=1,@WorkOrderId=4390,@WorkFlowWorkOrderId=3917,@MasterCompanyId=1
 exec dbo.USP_GetTenderMultipleStockLineList @PageNumber=1,@PageSize=10,@SortColumn=default,@SortOrder=1,@WorkOrderId=4404,@WorkFlowWorkOrderId=3925,@MasterCompanyId=1
@@ -68,7 +69,7 @@ BEGIN
 			[PartDescription] [varchar](MAX) NULL,
 			[UOM] [varchar](100) NULL,
 			[Condition] [varchar](256) NULL,
-			[Quantity] [int] NULL,
+			[Quantity]  DECIMAL(18,6) NULL,
 			[CustomerName] [varchar](100) NULL,
 			[CustomerCode] [varchar](100) NULL,
 			[IsSerialized] [bit] NULL, 
@@ -98,8 +99,8 @@ BEGIN
 			[ShelfId] [bigint] NULL,
 			[BinId] [bigint] NULL,
 			[MasterCompanyId] [int] NULL,
-			[TenderedQuantity] [int] NULL,
-			[QtyToTender] [int] NULL,
+			[TenderedQuantity]  DECIMAL(18,6) NULL,
+			[QtyToTender]  DECIMAL(18,6) NULL,
 			[TaskName] [varchar](50) NULL
 		)
 
@@ -111,7 +112,7 @@ BEGIN
 			[PartDescription] [varchar](MAX) NULL,
 			[UOM] [varchar](100) NULL,
 			[Condition] [varchar](256) NULL,
-			[Quantity] [int] NULL,
+			[Quantity]  DECIMAL(18,6) NULL,
 			[CustomerName] [varchar](100) NULL,
 			[CustomerCode] [varchar](100) NULL,
 			[IsSerialized] [bit] NULL, 
@@ -141,8 +142,8 @@ BEGIN
 			[ShelfId] [bigint] NULL,
 			[BinId] [bigint] NULL,
 			[MasterCompanyId] [int] NULL,
-			[TenderedQuantity] [int] NULL,
-			[QtyToTender] [int] NULL,
+			[TenderedQuantity]  DECIMAL(18,6) NULL,
+			[QtyToTender]  DECIMAL(18,6) NULL,
 			[PartRowIndex] [int] NULL,
 			[TaskName] [varchar](50) NULL
 		)
@@ -152,9 +153,9 @@ BEGIN
 			ID BIGINT NOT NULL IDENTITY, 						 
 			[WorkOrderMaterialsId] [bigint] NULL,
 			[ConditionId] [bigint] NOT NULL,
-			[TotalQuantityTurnIn] [int] NULL,
-			[TotalReservedQty] [int] NULL,
-			[TotalIssuedQty] [int] NULL,
+			[TotalQuantityTurnIn] DECIMAL(18,6) NULL,
+			[TotalReservedQty] DECIMAL(18,6) NULL,
+			[TotalIssuedQty] DECIMAL(18,6) NULL,
 		)
 
 		CREATE TABLE #tmpWOMStocklineKit
@@ -162,15 +163,15 @@ BEGIN
 			ID BIGINT NOT NULL IDENTITY, 						 
 			[WorkOrderMaterialsId] [bigint] NULL,
 			[ConditionId] [bigint] NOT NULL,
-			[TotalQuantityTurnIn] [int] NULL,
-			[TotalReservedQty] [int] NULL,
-			[TotalIssuedQty] [int] NULL,
+			[TotalQuantityTurnIn] DECIMAL(18,6) NULL,
+			[TotalReservedQty] DECIMAL(18,6) NULL,
+			[TotalIssuedQty] DECIMAL(18,6) NULL,
 		)
 
 		CREATE TABLE #tmpWOMQtyResult
 		(
 			ResID BIGINT NOT NULL IDENTITY, 						 
-			[Qty] [int] NULL,
+			[Qty] DECIMAL(18,6) NULL,
 		)		 
 			
 		IF @SortColumn IS NULL
@@ -255,7 +256,8 @@ BEGIN
 					AND (WOM.ProvisionId = @RepairProvisionId  OR WOM.ProvisionId = @ForStockProvisionId) AND (ISNULL(WOM.Quantity, 0) - (ISNULL(tmpWOMKit.TotalQuantityTurnIn, 0) + ISNULL(tmpWOMKit.TotalReservedQty, 0) + ISNULL(tmpWOMKit.TotalIssuedQty, 0)) > 0);
 
 		DECLARE @WOMMaxQty INT;
-		SELECT @WOMMaxQty = MAX(ISNULL(Quantity,0)) FROM #TenderMultipleStkListData;
+		--SELECT @WOMMaxQty = MAX(ISNULL(Quantity,0)) FROM #TenderMultipleStkListData;
+		SELECT @WOMMaxQty = CEILING(MAX(ISNULL(Quantity,0))) FROM #TenderMultipleStkListData;
 
 		;WITH Numbers AS (
 			SELECT 1 AS Number

@@ -10,6 +10,8 @@
 ** 1	09/12/2024		Devendra Shekh			Created
 ** 2	27/09/2024		Devendra Shekh			Commented USP_CreateChildStockline
 ** 3    26/03/2026      Moin Bloch	            Rename TearDown To Internal Teardown PN-15850
+** 4    15/06/2026      Priyansh Patel	        fix issue with @TearDownWorkOrderTypeId reset in loop [PN-16840]
+	
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[USP_SaveTurnInMultipleWorkOrderMaterils]
 	@tbl_SaveAndTenderMultipleStocklineType [SaveAndTenderMultipleStocklineType] READONLY
@@ -28,7 +30,7 @@ BEGIN
 							@TraceableToTypeId INT, @TraceableTo BIGINT, @TraceableToName VARCHAR(500), @Memo VARCHAR(MAX), @WorkOrderId BIGINT, @WorkOrderNumber VARCHAR(50), @ManufacturerId BIGINT,
 							@InspectedById BIGINT, @InspectedDate DATETIME2(7), @ReceiverNumber VARCHAR(500), @ReceivedDate DATETIME2(7), @ManagementStructureId BIGINT,
 							@SiteId BIGINT, @WarehouseId BIGINT, @LocationId BIGINT, @ShelfId BIGINT, @BinId BIGINT, @MasterCompanyId BIGINT, @UpdatedBy VARCHAR(100), @WorkOrderMaterialsId BIGINT, @IsKitType BIT,
-							@Unitcost DECIMAL(18,2), @ProvisionId INT, @EvidenceId INT, @CtrlNumCodeTypeId BIGINT, @StkCodeTypeId BIGINT, @IdNumCodeTypeId BIGINT;
+							@Unitcost DECIMAL(18,6), @ProvisionId INT, @EvidenceId INT, @CtrlNumCodeTypeId BIGINT, @StkCodeTypeId BIGINT, @IdNumCodeTypeId BIGINT;
 
 					DECLARE @PartNumber VARCHAR(500), @SLCurrentNummber BIGINT, @StockLineNumber VARCHAR(50), @CNCurrentNummber BIGINT, @ControlNumber VARCHAR(50), @IDCurrentNummber BIGINT, 
 							@IDNumber VARCHAR(50), @NewWorkOrderMaterialsId BIGINT, @StockLineId BIGINT, @WorkOrderWorkflowId BIGINT, @MSModuleID INT = 2, @IsPMA BIT = 0, @IsDER BIT = 0, 
@@ -116,7 +118,7 @@ BEGIN
 						[UpdatedBy] VARCHAR(100) NULL,
 						[WorkOrderMaterialsId] BIGINT NULL,
 						[IsKitType] BIT NULL,
-						[Unitcost] DECIMAL(18,2) NULL,
+						[Unitcost] DECIMAL(18,6) NULL,
 						[ProvisionId] INT NULL,
 						[EvidenceId] INT NULL
 					);					   
@@ -154,7 +156,7 @@ BEGIN
 						SET @IsOHUpdated = 0;  
 						SET @AddHistoryForNonSerialized = 0; 
 
-						SELECT	@QtyTendered = 0, @QtyToTendered = 0, @TotalStlQtyReq = 0, @WorkOrderTypeId = 0, @TearDownWorkOrderTypeId = 0, @WorkOrderPartNoId = 0,
+						SELECT	@QtyTendered = 0, @QtyToTendered = 0, @TotalStlQtyReq = 0, @WorkOrderTypeId = 0,  @WorkOrderPartNoId = 0,
 								@isExchange =  (CASE WHEN UPPER((SELECT StatusCode FROM DBO.Provision WHERE ProvisionId = @ProvisionId)) = 'EXCHANGE' THEN 1 ELSE 0 END); 
 
 						SELECT	@PartNumber = partnumber, @IsPMA = IsPMA, @IsDER = IsDER, @IsOemPNId = IsOemPNId, @IsOEM = IsOEM, @OEMPNNumber = OEMPN,@GLAccountId=GLAccountId, @IsTimeLife = isTimeLife  
@@ -279,16 +281,16 @@ BEGIN
 							UPDATE dbo.Stockline SET WorkOrderMaterialsId = @WorkOrderMaterialsId WHEre StockLineId = @StockLineId
 						END
 
-						IF(@WorkOrderTypeId = @TearDownWorkOrderTypeId)  
-						BEGIN  
-							UPDATE [dbo].[WorkOrderPartNumber] SET [TendorStocklineCost] = ISNULL(TendorStocklineCost,0) + ISNULL((@Quantity * @Unitcost),0) WHERE ID = @WorkOrderPartNoId;            
+						--IF(@WorkOrderTypeId = @TearDownWorkOrderTypeId)  
+						--BEGIN  
+						--	UPDATE [dbo].[WorkOrderPartNumber] SET [TendorStocklineCost] = ISNULL(TendorStocklineCost,0) + ISNULL((@Quantity * @Unitcost),0) WHERE ID = @WorkOrderPartNoId;            
   
-							SET @OLDStockLineId = (SELECT [StockLineId] FROM [dbo].[WorkOrderPartNumber] WITH(NOLOCK) WHERE [ID] = @WorkOrderPartNoId);  
+						--	SET @OLDStockLineId = (SELECT [StockLineId] FROM [dbo].[WorkOrderPartNumber] WITH(NOLOCK) WHERE [ID] = @WorkOrderPartNoId);  
   
-							UPDATE [dbo].[Stockline] SET [Memo] = 'This Stockline cost is updated using turn-in to work order number ' + @WorkOrderNumber + ' new stockline is ' + @StockLineNumber,  
-								[UnitCost] -= @Unitcost, [PurchaseOrderUnitCost] -= @Unitcost  
-							WHERE [StockLineId] = @OLDStockLineId;  
-						END 
+						--	UPDATE [dbo].[Stockline] SET [Memo] = 'This Stockline cost is updated using turn-in to work order number ' + @WorkOrderNumber + ' new stockline is ' + @StockLineNumber,  
+						--		[UnitCost] -= @Unitcost, [PurchaseOrderUnitCost] -= @Unitcost  
+						--	WHERE [StockLineId] = @OLDStockLineId;  
+						--END 
 
 						--: Around 4 Seconds
 						--WHILE @count >= @slcount  

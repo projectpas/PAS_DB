@@ -1,6 +1,4 @@
-﻿
-
-/*************************************************************             
+﻿/*************************************************************             
  ** File:   [[USP_GetWorksheetHeaderById]]          
  ** Author:   
  ** Description: This stored procedure is used to get records from [WorksheetHeader].
@@ -15,6 +13,7 @@
  ** --   --------     -------            --------------------------------     
     1    14/05/2026   Priyansh Patel     Created [PN-16408]
     2    19/05/2026   Priyansh Patel     Added Duplicate inspection fields [PN-16408]
+	3    15/06/2026   Amit Ghediya		 Added MtcCategoryId Get [PN-16839]
 **************************************************************/
 
 CREATE PROCEDURE [dbo].[USP_GetWorksheetHeaderById]
@@ -35,6 +34,7 @@ BEGIN
             WH.AircraftModel,
             WH.WorksheetType,
             WH.WorksheetTypeId,
+			WH.MtcCategoryId,
             WH.WorkOrderNo,
             WH.TailNum,
             WH.SerialNum,

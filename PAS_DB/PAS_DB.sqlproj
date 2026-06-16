@@ -4700,6 +4700,10 @@
     <Build Include="dbo\Stored Procedures\USP_GetXeroSyncedBillingInvoices.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetKnownXeroPaymentIds.sql" />
     <Build Include="dbo\Tables\XeroAccountingGLConfig.sql" />
+    <Build Include="dbo\Tables\VendorAging.sql" />
+    <Build Include="dbo\Stored Procedures\USP_UpdateBillingInvoiceDepositFromXero.sql" />
+    <Build Include="dbo\Stored Procedures\USP_SaveVendorAging.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetXeroVendorList.sql" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Snapshots\PAS_DB_20220518_07-53-10.dacpac" />

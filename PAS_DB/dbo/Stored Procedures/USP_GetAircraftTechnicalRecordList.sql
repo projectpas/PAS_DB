@@ -46,6 +46,7 @@ CREATE   PROCEDURE [dbo].[USP_GetAircraftTechnicalRecordList]
 @WorkSheetCompletedBy VARCHAR(100) = NULL,
 @WorkOrderNum VARCHAR(100) = NULL,
 @WorkOrderStatus VARCHAR(100) = NULL,
+@WorkSheetStatus VARCHAR(100) = NULL,
 @OpenDate  DATETIME        = NULL,
 @MtceRecordUpdated VARCHAR(50)     = NULL
 AS
@@ -113,7 +114,44 @@ BEGIN
                         ON WSH.ProgramId = AMP.ProgramId
                     WHERE AMP.AircraftRegistryId = ARH.AircraftRegistryId AND AMP.AircraftPublicationId = PUB.AircraftPublicationId
                 ) AS WorkSheetCompletedBy,
-                '' AS WorkSheetStatus,
+				(
+					SELECT TOP 1
+						CASE
+							WHEN AMP.ProgramId IS NULL OR WSH.WorksheetHeaderId IS NULL
+							THEN NULL
+
+							-- No worksheet created → Open
+							WHEN WSH.WorksheetHeaderId IS NULL
+							THEN 'Open'
+
+							-- Worksheet exists but no Work Order linked → Open
+							WHEN WOP2.WorkOrderId IS NULL
+							THEN 'Open'
+
+							-- Work Order exists and status = 2 → Closed
+							WHEN ISNULL(WO2.WorkOrderStatusId, 0) = 2
+							THEN 'Closed'
+
+							WHEN UPPER(ISNULL(WOP2.WorkOrderStatus, '')) = 'CLOSED'
+							THEN 'Closed'
+
+							WHEN ISNULL(
+									CASE
+										WHEN ISNULL(WSH.AircraftInstalledPartDetailsId, 0) > 0
+										THEN WOP2.WorkOrderStatusId
+										ELSE WO2.WorkOrderStatusId
+									END, 0) = 2
+							THEN 'Closed'
+
+							-- Work Order exists and not closed → In Process
+							ELSE 'In Process'
+						END
+					FROM dbo.AircraftMaintenanceProgram AMP WITH(NOLOCK)
+					LEFT JOIN dbo.WorksheetHeader WSH WITH(NOLOCK) ON WSH.ProgramId = AMP.ProgramId
+					LEFT JOIN [dbo].[WorkOrderPartNumber] WOP2 WITH(NOLOCK) ON WOP2.ProgramId = AMP.ProgramId
+					LEFT JOIN [dbo].[WorkOrder] WO2 WITH(NOLOCK) ON WO2.WorkOrderId = WOP2.WorkOrderId
+					WHERE AMP.AircraftRegistryId = ARH.AircraftRegistryId AND AMP.AircraftPublicationId = PUB.AircraftPublicationId
+				) AS WorkSheetStatus,
                 (
                     SELECT TOP 1 WO.WorkOrderNum
                     FROM dbo.AircraftMaintenanceProgram AMP WITH(NOLOCK)
@@ -174,6 +212,7 @@ BEGIN
             OR ISNULL(WorkSheetCompletedBy,'') LIKE '%' + @GlobalFilter + '%'
             OR ISNULL(WorkOrderNum,'') LIKE '%' + @GlobalFilter + '%'
             OR ISNULL(WorkOrderStatus,'') LIKE '%' + @GlobalFilter + '%'
+			OR ISNULL(WorkSheetStatus,'') LIKE '%' + @GlobalFilter + '%'
             OR PublishedBy LIKE '%' + @GlobalFilter + '%'
         )
 
@@ -191,6 +230,7 @@ BEGIN
         AND (NULLIF(@WorkSheetCompletedBy,'') IS NULL OR ISNULL(WorkSheetCompletedBy,'') LIKE '%' + @WorkSheetCompletedBy + '%')
         AND (NULLIF(@WorkOrderNum,'') IS NULL OR ISNULL(WorkOrderNum,'') LIKE '%' + @WorkOrderNum + '%')
         AND (NULLIF(@WorkOrderStatus,'') IS NULL OR ISNULL(WorkOrderStatus,'') LIKE '%' + @WorkOrderStatus + '%')
+		AND (NULLIF(@WorkSheetStatus,'') IS NULL OR ISNULL(WorkSheetStatus,'') LIKE '%' + @WorkSheetStatus + '%')
         AND (ISNULL(@MtceRecordUpdated, '') = '' OR (CASE WHEN ISNULL([IsMtceRecordUpdated],0) = 1 THEN 'YES' ELSE 'NO' END) LIKE '%' + @MtceRecordUpdated + '%' )
 
         ORDER BY
@@ -224,6 +264,9 @@ BEGIN
 
             CASE WHEN @SortColumn = 'WorkOrderStatus' AND @SortOrder = 'ASC' THEN WorkOrderStatus END ASC,
             CASE WHEN @SortColumn = 'WorkOrderStatus' AND @SortOrder = 'DESC' THEN WorkOrderStatus END DESC,
+
+			CASE WHEN @SortColumn = 'WorkSheetStatus' AND @SortOrder = 'ASC' THEN WorkSheetStatus END ASC,
+            CASE WHEN @SortColumn = 'WorkSheetStatus' AND @SortOrder = 'DESC' THEN WorkSheetStatus END DESC,
 
             CASE WHEN @SortColumn = 'MtceRecordUpdated' AND @SortOrder = 'ASC'  THEN [MtceRecordUpdated] END ASC,
             CASE WHEN @SortColumn = 'MtceRecordUpdated' AND @SortOrder = 'DESC' THEN [MtceRecordUpdated] END DESC,

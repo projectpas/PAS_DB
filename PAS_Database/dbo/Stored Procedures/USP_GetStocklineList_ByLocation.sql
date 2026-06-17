@@ -10,7 +10,8 @@
  ** PR   Date        Author          Change Description
  ** --   --------    -------         --------------------------------
  ** 1    17/06/2026  Sumit Kumar     Created get stockline list filtered by exact Location, Shelf, or Bin label value
- **************************************************************/   
+ **************************************************************/
+ 
 CREATE PROCEDURE [dbo].[USP_GetStocklineList_ByLocation]
 	@PageNumber int = NULL,        
 	@PageSize int = NULL,        

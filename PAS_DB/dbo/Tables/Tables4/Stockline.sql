@@ -1,4 +1,4 @@
-﻿CREATE TABLE [dbo].[Stockline] (
+CREATE TABLE [dbo].[Stockline] (
     [StockLineId]                         BIGINT          IDENTITY (1, 1) NOT NULL,
     [PartNumber]                          VARCHAR (50)    NOT NULL,
     [StockLineNumber]                     VARCHAR (50)    NULL,
@@ -285,6 +285,8 @@
 
 
 
+
+
 GO
 
 GO
@@ -399,3 +401,7 @@ CREATE     TRIGGER [dbo].[trg_Audit_dbo_Stockline]
                 (m.Action = 'D' AND m.OldValue IS NOT NULL));
         END;
 GO
+CREATE NONCLUSTERED INDEX [IX_Stockline_TaggedByName]
+    ON [dbo].[Stockline]([TaggedByName] ASC)
+    INCLUDE([TaggedByType], [TaggedByTypeName], [MasterCompanyId]) WHERE ([TaggedByName] IS NOT NULL);
+

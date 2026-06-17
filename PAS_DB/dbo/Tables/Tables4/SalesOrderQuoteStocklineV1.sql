@@ -26,6 +26,8 @@
 );
 
 
+
+
 GO
 Create TRIGGER [dbo].[Trg_SalesOrderQuoteStocklineV1Audit]
    ON  [dbo].[SalesOrderQuoteStocklineV1]
@@ -36,3 +38,8 @@ BEGIN
 	SELECT * FROM INSERTED
 	SET NOCOUNT ON;
 END
+GO
+CREATE NONCLUSTERED INDEX [IX_SOQStocklineV1_PartId]
+    ON [dbo].[SalesOrderQuoteStocklineV1]([SalesOrderQuotePartId] ASC)
+    INCLUDE([SalesOrderQuoteStocklineId], [QtyQuoted]);
+

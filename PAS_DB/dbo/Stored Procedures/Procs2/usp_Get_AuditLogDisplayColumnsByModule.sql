@@ -18,7 +18,8 @@
     1      18-DEC-2025    AYUSHI PATEL        Created
     2      13-MAR-2026    DIVYESH KATHIRIYA   Set New HistoryModule Table.[PN-15761]
     3      29-APRIL-2026  Amit Ghediya        Aadded New SubModuleId.
-	4 	   15-MAY-2026	  DIVYESH KATHIRIYA   Aadded New "FieldAlign" Field. [PN-16398]
+	4 	   15-MAY-2026	  DIVYESH KATHIRIYA   Added New "FieldAlign" Field. [PN-16398]
+	5 	   17-JUN-2026	  DIVYESH KATHIRIYA   Added New "FieldWidth" Field. [PN-16875]
 
     EXEC usp_Get_AuditLogDisplayColumnsByModule @ModuleId=85,@SubModuleId=86
 **********************/
@@ -59,7 +60,8 @@ BEGIN
 			ColumnName,
 			DisplayName,
 			SeqNo,
-			FieldAlign
+			FieldAlign,
+			FieldWidth
 		FROM dbo.AuditLogDisplayColumns WITH (NOLOCK)
 		WHERE TableName IN (SELECT value FROM STRING_SPLIT(@TableName, ','))
 		ORDER BY SeqNo;
@@ -84,7 +86,8 @@ BEGIN
 			ColumnName,
 			DisplayName,
 			SeqNo,
-			FieldAlign
+			FieldAlign,
+			FieldWidth
 		FROM dbo.AuditLogDisplayColumns WITH (NOLOCK)
 		WHERE TableName = @TableName 
 		ORDER BY SeqNo;

@@ -16,7 +16,7 @@
     [IsMargin]           BIT             NULL,
     [IsFixedAmount]      BIT             NULL,
     [PercentId]          BIGINT          NULL,
-    [PerAmount]          DECIMAL (18, 2) NULL,
+    [PerAmount]          DECIMAL (18, 6) NULL,
     [ConsigneeTypeId]    INT             NULL,
     [ConsigneeId]        BIGINT          NULL,
     [IsRevenueSplit]     BIT             NULL,

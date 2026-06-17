@@ -17,6 +17,7 @@
 	4    21-Feb-2025    Devendra Shekh	Modified(Added new fields Fax, TermQuickBooksReferenceId)
 	5    12-March-2025  Devendra Shekh	Modified(Changes for Billing/Shipping Address Details)
 	6    26-May-2026	Abhishek Jirawla Modified(Added Xero Integration Type)
+	7    12-Jun-2026	Bhargav Saliya  Modified(Get CustomerName Instead of ContactName )
      
  EXECUTE [QuickBooks_GetNewCustomerListForCreateCustomer] 1,1
 **************************************************************/ 
@@ -158,12 +159,12 @@ BEGIN
 			INSERT INTO #CustomerResults ([CompanyName], [CustomerId], [CustomerCode], [Name], [FirstName], [LastName], [MiddleName], [Email], [CustomerPhone], 
 						[UpdatedBy], [MasterCompanyId], [CustomerURL], [TermQuickBooksReferenceId])
 			SELECT C.[Name] As CompanyName, C.CustomerId, C.CustomerCode,
-					CON.FirstName + ' ' + CON.LastName AS [Name],
-					CON.FirstName,
-					CON.LastName,
-					CON.MiddleName,
-					CON.Email,
-					CON.WorkPhone AS CustomerPhone,
+					C.Name AS [Name],
+					C.Name AS FirstName,
+					'' AS LastName,
+					'' AS MiddleName,
+					C.Email,
+					C.CustomerPhone AS CustomerPhone,
 					C.UpdatedBy,
 					C.MasterCompanyId,
 					ISNULL(C.CustomerURL, '') AS CustomerURL,

@@ -45,10 +45,13 @@
     [DupInspSignatory2By]            BIGINT         NULL,
     [DupInspSignatory2LicAppNo]      VARCHAR (50)   NULL,
     [DupInspSignatory2Time]          VARCHAR (20)   NULL,
+    [MtcCategoryId]                  BIGINT         NULL,
     CONSTRAINT [PK_WorksheetHeader] PRIMARY KEY CLUSTERED ([WorksheetHeaderId] ASC),
     CONSTRAINT [FK_WorksheetHeader_AircraftModel] FOREIGN KEY ([AircraftModelId]) REFERENCES [dbo].[AircraftModel] ([AircraftModelId]),
     CONSTRAINT [FK_WorksheetHeader_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId])
 );
+
+
 
 
 GO

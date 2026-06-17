@@ -16,6 +16,7 @@
 	3    10-Jan-2025	Devendra Shekh	Modified(Added MasterCompanyId To Param)
 	4    21-Feb-2025    Devendra Shekh	Modified(Added new field TermQuickBooksReferenceId)
 	5    27-May-2026    Bhargav Saliya	Get Vendor Data For Xero Integration 
+	6    12-Jun-2026	Bhargav Saliya  Modified(Get VendorName Instead of ContactName )
      
  EXECUTE [QuickBooks_GetNewVendorListForCreateVendor] 2,1
 **************************************************************/ 
@@ -76,14 +77,14 @@ BEGIN
 		IF(ISNULL(@IntegrationTypeId, 0) = @XeroIntegrationTypeId) 
 		BEGIN
 			SELECT [VendorName] As CompanyName, V.VendorId, V.VendorCode, V.MasterCompanyId,
-						CON.FirstName + ' ' + CON.LastName AS FullName,
-						CON.FirstName,
-						CON.LastName,
-						CON.MiddleName,
+						V.VendorName AS FullName,
+						V.VendorName AS FirstName,
+						'' AS LastName,
+						'' AS MiddleName,
 						CON.Prefix,
 						CON.Suffix,
 						CON.Email,
-						CON.WorkPhone AS VendorPhone,
+						V.VendorPhone AS VendorPhone,
 						V.VendorEmail AS Email,
 						CON.ContactTitle,
 						CON.Fax, 

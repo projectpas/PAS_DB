@@ -358,15 +358,53 @@ BEGIN
 			IF ISNULL(@Old_MaintenanceStatus,'')  <> @New_MaintenanceStatus
 				SET @TemplateBody += 'Maintenance Status: ' + ISNULL(@Old_MaintenanceStatus,'')  + ' to ' + @New_MaintenanceStatus  + ' | ';
 
-			IF ISNULL(@Old_Memo,'')               <> @New_Memo
-				SET @TemplateBody += 'Memo: '               + ISNULL(@Old_Memo,'')               + ' to ' + @New_Memo               + ' | ';
+			IF ISNULL(@Old_Memo,'') <> @New_Memo
+			BEGIN
+				DECLARE @CleanOld NVARCHAR(MAX) = ISNULL(@Old_Memo,'');
+				DECLARE @CleanNew NVARCHAR(MAX) = ISNULL(@New_Memo,'');
+
+				-- Strip HTML tags from OLD
+				WHILE CHARINDEX('<', @CleanOld) > 0
+				BEGIN
+					DECLARE @S INT = CHARINDEX('<', @CleanOld);
+					DECLARE @E INT = CHARINDEX('>', @CleanOld, @S);
+					IF @E > 0
+						SET @CleanOld = STUFF(@CleanOld, @S, @E - @S + 1, '');
+					ELSE
+						BREAK;
+				END
+
+				-- Strip HTML tags from NEW
+				WHILE CHARINDEX('<', @CleanNew) > 0
+				BEGIN
+					DECLARE @S2 INT = CHARINDEX('<', @CleanNew);
+					DECLARE @E2 INT = CHARINDEX('>', @CleanNew, @S2);
+					IF @E2 > 0
+						SET @CleanNew = STUFF(@CleanNew, @S2, @E2 - @S2 + 1, '');
+					ELSE
+						BREAK;
+				END
+
+				-- Clean up extra spaces and line breaks
+				SET @CleanOld = LTRIM(RTRIM(REPLACE(REPLACE(@CleanOld, CHAR(13), ''), CHAR(10), ' ')));
+				SET @CleanNew = LTRIM(RTRIM(REPLACE(REPLACE(@CleanNew, CHAR(13), ''), CHAR(10), ' ')));
+
+				IF @CleanOld <> @CleanNew AND @CleanNew <> ''
+					SET @TemplateBody += 'Memo: ' + @CleanOld + ' to ' + @CleanNew + ' | ';
+			END
 
 			IF ISNULL(@Old_IsActive,'')           <> @New_IsActive
 				SET @TemplateBody += 'Status: '             + ISNULL(@Old_IsActive,'')           + ' to ' + @New_IsActive           + ' | ';
 			 
-			 -- Remove trailing ' | '
-			 IF LEN(@TemplateBody) > 3
-			 	SET @TemplateBody = LEFT(@TemplateBody, LEN(@TemplateBody) - 3);
+			 -- Remove trailing ' | ' safely without touching the value
+			SET @TemplateBody = RTRIM(@TemplateBody);
+
+			IF RIGHT(@TemplateBody, 3) = ' | '
+				SET @TemplateBody = LEFT(@TemplateBody, LEN(@TemplateBody) - 3);
+			ELSE IF RIGHT(@TemplateBody, 2) = ' |'
+				SET @TemplateBody = LEFT(@TemplateBody, LEN(@TemplateBody) - 2);
+			ELSE IF RIGHT(@TemplateBody, 1) = '|'
+				SET @TemplateBody = LEFT(@TemplateBody, LEN(@TemplateBody) - 1);
 		END
 		ELSE
 		BEGIN
@@ -380,7 +418,7 @@ BEGIN
 			 SET @TemplateBody = REPLACE(@TemplateBody, '##AcModel##', @AcModel)
 			 SET @TemplateBody = REPLACE(@TemplateBody, '##SerialNum##', @SerialNum)
 			 SET @TemplateBody = REPLACE(@TemplateBody, '##CreatedBy##', @CreatedBy)
-			 SET @TemplateBody = REPLACE(@TemplateBody, '##CreatedDate##', GETUTCDATE())
+			 SET @TemplateBody = REPLACE(@TemplateBody, '##CreatedDate##', ISNULL(CONVERT(VARCHAR(30), GETUTCDATE(),   103), ''))
 		END
 
         -- ── Call usp_SaveAircraftHistory only if rows exist ───

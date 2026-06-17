@@ -26,6 +26,7 @@
 	14   14/04/2025   Devendra Shekh	removed duplicate AltPartNumber field for WOInv Select
 	16   07/04/2025   Moin Bloch        Changed Old To New Billing Tables
 	17   07-07-2025   Moin Bloch        Changed Old To New Billing Table
+	18 	 16-Jun-2026  Bhargav Saliya    Select SOBII.UnitPrice as PartsUnitCost insted of SOBII.PartCost
  -- exec sp_GetCustomerRMAPartsDetails 216,0,0,1,1   
 **************************************************************/ 
 CREATE    PROCEDURE [dbo].[sp_GetCustomerRMAPartsDetails]
@@ -132,9 +133,9 @@ BEGIN
 						IM.ItemMasterId [ItemMasterId],IM.partnumber [PartNumber], IM.PartDescription [PartDescription],'' as CustPartNumber,
 						SO.CustomerReference [CustomerReference],ST.SerialNumber [SerialNumber],ST.StocklineNumber as StocklineNumber ,st.Stocklineid as StocklineId,
 						ST.ControlNumber as ControlNumber,ST.IdNumber as ControlId, SOBII.QtyBilled as Qty, 
-						--SOBII.UnitPrice As [PartsUnitCost],
+						SOBII.UnitPrice As [PartsUnitCost],
 						--CASE WHEN ISNULL(SOBII.NoofPieces,0) > 0 THEN (SOBII.GrandTotal / SOBII.NoofPieces) ELSE SOBII.GrandTotal END As [PartsUnitCost],
-						ISNULL(SOBII.PartCost, 0) As [PartsUnitCost],
+						--ISNULL(SOBII.PartCost, 0) As [PartsUnitCost],
 						(SOBII.PartCost * -1) As [PartsRevenue], 
 						0 AS [LaborRevenue], 
 						(SOBII.MiscCharges * -1) AS [MiscRevenue], 

@@ -272,7 +272,7 @@ BEGIN
 				FETCH NEXT @PageSize ROWS ONLY
 			END
 		END
-		IF (@ModuleName = 'Vendor')
+		ELSE IF (@ModuleName = 'Vendor')
 		BEGIN
 			IF (@TypeId = 1)
 			BEGIN
@@ -2449,6 +2449,126 @@ BEGIN
 				CASE WHEN (@SortOrder=-1 AND @SortColumn='StocklineUnitCost')  THEN StocklineUnitCost END DESC,
 				CASE WHEN (@SortOrder=1  AND @SortColumn='CreatedDate')  THEN CreatedDate END ASC,
 				CASE WHEN (@SortOrder=-1 AND @SortColumn='CreatedDate')  THEN CreatedDate END DESC
+				OFFSET @RecordFrom ROWS 
+				FETCH NEXT @PageSize ROWS ONLY
+			END
+		END
+		ELSE IF (@ModuleName = 'SOQ')
+		BEGIN
+			IF (@TypeId = 1)
+			BEGIN
+				;WITH Result AS (
+				SELECT DISTINCT 
+					Vs.Migrated_Id,
+					Vs.SalesOrderQuoteHeaderId,
+                    Vs.SalesQuoteNum SalesQuoteNum,
+                    C.[Name] CustomerName,               
+					Vs.DateCreated CreatedDate,
+                    0 IsDeleted,
+					1 IsActive,
+					SuccessMsg,
+					ErrorMsg
+				FROM [Quantum_Staging_BETA].dbo.SalesOrderQuoteHeaders Vs WITH (NOLOCK)
+				LEFT JOIN dbo.SalesOrderQuote SOQ WITH (NOLOCK) ON SOQ.SalesOrderQuoteId = Vs.Migrated_Id
+				LEFT JOIN dbo.Customer C WITH (NOLOCK) ON C.CustomerId = SOQ.CustomerId
+		 		  WHERE Vs.MasterCompanyId = @MasterCompanyId
+				), ResultCount AS(Select COUNT(SalesOrderQuoteHeaderId) AS totalItems FROM Result)
+				SELECT * INTO #TempResultSOQV1 FROM  Result
+
+				SELECT @Count = COUNT(SalesOrderQuoteHeaderId) FROM #TempResultSOQV1			
+
+				SELECT *, @Count AS NumberOfItems FROM #TempResultSOQV1 ORDER BY  
+				CASE WHEN (@SortOrder=1  AND @SortColumn='VendorCode')  THEN SalesQuoteNum END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='VendorCode')  THEN SalesQuoteNum END DESC,
+			CASE WHEN (@SortOrder=1  AND @SortColumn='CreatedDate')  THEN CreatedDate END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='CreatedDate')  THEN CreatedDate END DESC	
+				OFFSET @RecordFrom ROWS 
+				FETCH NEXT @PageSize ROWS ONLY
+			END
+			ELSE IF (@TypeId = 2)
+			BEGIN
+				;WITH Result AS (
+				SELECT DISTINCT Vs.Migrated_Id,
+					Vs.SalesOrderQuoteHeaderId,
+                    Vs.SalesQuoteNum SalesQuoteNum,
+                    C.[Name] CustomerName,               
+					Vs.DateCreated CreatedDate,
+                    0 IsDeleted,
+					1 IsActive,
+					SuccessMsg,
+					ErrorMsg
+				FROM [Quantum_Staging_BETA].dbo.SalesOrderQuoteHeaders Vs WITH (NOLOCK)
+				LEFT JOIN dbo.SalesOrderQuote SOQ WITH (NOLOCK) ON SOQ.SalesOrderQuoteId = Vs.Migrated_Id
+				LEFT JOIN dbo.Customer C WITH (NOLOCK) ON C.CustomerId = SOQ.CustomerId
+		 		  WHERE Vs.Migrated_Id IS NOT NULL AND Vs.MasterCompanyId = @MasterCompanyId
+				), ResultCount AS(Select COUNT(SalesOrderQuoteHeaderId) AS totalItems FROM Result)
+				SELECT * INTO #TempResultSOQV2 FROM  Result
+
+				SELECT @Count = COUNT(SalesOrderQuoteHeaderId) FROM #TempResultSOQV2			
+
+				SELECT *, @Count AS NumberOfItems FROM #TempResultSOQV2 ORDER BY  
+				CASE WHEN (@SortOrder=1  AND @SortColumn='VendorCode')  THEN SalesQuoteNum END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='VendorCode')  THEN SalesQuoteNum END DESC,
+			CASE WHEN (@SortOrder=1  AND @SortColumn='CreatedDate')  THEN CreatedDate END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='CreatedDate')  THEN CreatedDate END DESC
+				OFFSET @RecordFrom ROWS 
+				FETCH NEXT @PageSize ROWS ONLY
+			END
+			ELSE IF (@TypeId = 3)
+			BEGIN
+				;WITH Result AS (
+				SELECT DISTINCT Vs.Migrated_Id,
+					Vs.SalesOrderQuoteHeaderId,
+                    Vs.SalesQuoteNum SalesQuoteNum,
+                    C.[Name] CustomerName,               
+					Vs.DateCreated CreatedDate,
+                    0 IsDeleted,
+					1 IsActive,
+					SuccessMsg,
+					ErrorMsg
+				FROM [Quantum_Staging_BETA].dbo.SalesOrderQuoteHeaders Vs WITH (NOLOCK)
+				LEFT JOIN dbo.SalesOrderQuote SOQ WITH (NOLOCK) ON SOQ.SalesOrderQuoteId = Vs.Migrated_Id
+				LEFT JOIN dbo.Customer C WITH (NOLOCK) ON C.CustomerId = SOQ.CustomerId
+		 		  WHERE Vs.Migrated_Id IS NULL AND (Vs.ErrorMsg IS NOT NULL AND Vs.ErrorMsg NOT like '%SOQ already exists%') AND Vs.MasterCompanyId = @MasterCompanyId
+				), ResultCount AS(Select COUNT(SalesOrderQuoteHeaderId) AS totalItems FROM Result)
+				SELECT * INTO #TempResultSOQV3 FROM  Result
+
+				SELECT @Count = COUNT(SalesOrderQuoteHeaderId) FROM #TempResultSOQV3
+
+				SELECT *, @Count AS NumberOfItems FROM #TempResultSOQV3 ORDER BY  
+				CASE WHEN (@SortOrder=1  AND @SortColumn='VendorCode')  THEN SalesQuoteNum END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='VendorCode')  THEN SalesQuoteNum END DESC,
+			CASE WHEN (@SortOrder=1  AND @SortColumn='CreatedDate')  THEN CreatedDate END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='CreatedDate')  THEN CreatedDate END DESC	
+				OFFSET @RecordFrom ROWS 
+				FETCH NEXT @PageSize ROWS ONLY
+			END
+			ELSE IF (@TypeId = 4)
+			BEGIN
+				;WITH Result AS (
+				SELECT DISTINCT Vs.Migrated_Id,
+					Vs.SalesOrderQuoteHeaderId,
+                    Vs.SalesQuoteNum SalesQuoteNum,
+                    C.[Name] CustomerName,               
+					Vs.DateCreated CreatedDate,
+                    0 IsDeleted,
+					1 IsActive,
+					SuccessMsg,
+					ErrorMsg
+				FROM [Quantum_Staging_BETA].dbo.SalesOrderQuoteHeaders Vs WITH (NOLOCK)
+				LEFT JOIN dbo.SalesOrderQuote SOQ WITH (NOLOCK) ON SOQ.SalesOrderQuoteId = Vs.Migrated_Id
+				LEFT JOIN dbo.Customer C WITH (NOLOCK) ON C.CustomerId = SOQ.CustomerId
+		 		  WHERE Vs.Migrated_Id IS NULL AND (Vs.ErrorMsg IS NOT NULL AND Vs.ErrorMsg like '%SOQ already exists%') AND Vs.MasterCompanyId = @MasterCompanyId
+				), ResultCount AS(Select COUNT(SalesOrderQuoteHeaderId) AS totalItems FROM Result)
+				SELECT * INTO #TempResultSOQV4 FROM  Result
+
+				SELECT @Count = COUNT(SalesOrderQuoteHeaderId) FROM #TempResultSOQV4			
+
+				SELECT *, @Count AS NumberOfItems FROM #TempResultSOQV4 ORDER BY  
+				CASE WHEN (@SortOrder=1  AND @SortColumn='VendorCode')  THEN SalesQuoteNum END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='VendorCode')  THEN SalesQuoteNum END DESC,
+			CASE WHEN (@SortOrder=1  AND @SortColumn='CreatedDate')  THEN CreatedDate END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='CreatedDate')  THEN CreatedDate END DESC	
 				OFFSET @RecordFrom ROWS 
 				FETCH NEXT @PageSize ROWS ONLY
 			END

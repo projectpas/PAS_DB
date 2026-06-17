@@ -1,5 +1,4 @@
-﻿
-/****************************************************************************************************
+﻿/****************************************************************************************************
 ** File:        [USP_GetAircraftMaintenanceList]
 ** Description:
 ** Purpose:
@@ -64,9 +63,9 @@ CREATE  PROCEDURE [dbo].[USP_GetAircraftMaintenanceList]
     @AircraftRegistryId      BIGINT,
     @MasterCompanyId         INT,
     @WorksheetNumber         VARCHAR(50) = NULL,
-    @MtcCategory    VARCHAR(256) = NULL,
-    @WoNumber    VARCHAR(256) = NULL
-
+    @MtcCategory			 VARCHAR(256) = NULL,
+    @WoNumber				 VARCHAR(256) = NULL,
+	@LastMtced				 DATETIME     = NULL
 
 AS
 BEGIN
@@ -127,6 +126,7 @@ BEGIN
                 ISNULL(STK.[QuantityAvailable],0) [QuantityAvailable],
                 ISNULL(STK.[QuantityOnHand],0) [QuantityOnHand],
                 WSH.WorksheetHeaderId,
+				AMP.UpdatedDate AS lastMtced,
                 COUNT(1) OVER () AS TotalRecords
             FROM [dbo].[AircraftMaintenanceProgram] AMP WITH (NOLOCK)
             LEFT JOIN [dbo].[AircraftRegistryHeader] ARH WITH (NOLOCK) ON AMP.AircraftRegistryId = ARH.AircraftRegistryId  AND ARH.MasterCompanyId = @MasterCompanyId 
@@ -160,6 +160,7 @@ BEGIN
                 AND (@TemplateIdNumber IS NULL OR WF.WorkOrderNumber LIKE '%' + @TemplateIdNumber + '%')
                 AND (@IsActive        IS NULL OR AMP.IsActive = @IsActive)
                 AND (@NextScheduled   IS NULL OR CAST(AMP.NextScheduledMaintenance AS DATE) = CAST(@NextScheduled AS DATE))
+				AND (@LastMtced   IS NULL OR CAST(AMP.UpdatedDate AS DATE) = CAST(@LastMtced AS DATE))
                 AND (@MaintenanceClassName IS NULL  OR MC.[Name] LIKE '%' + @MaintenanceClassName + '%')
                 -- Flight Hours (string compare since formatted HH:mm)
                 AND (@FlightHoursLimit IS NULL OR  (CAST(AMP.FlightHoursLimitHours AS VARCHAR) + ':' + RIGHT('00' + CAST(ISNULL(AMP.FlightHoursLimitMinutes,0) AS VARCHAR),2)) LIKE '%' + @FlightHoursLimit + '%')
@@ -208,6 +209,8 @@ BEGIN
             CASE WHEN @SortColumn = 'TemplateVersionNumber'   AND @SortOrder = 'DESC' THEN TemplateVersionNumber END DESC,
             CASE WHEN @SortColumn = 'NextScheduledMaintenance' AND @SortOrder = 'ASC'  THEN NextScheduledMaintenance END ASC,
             CASE WHEN @SortColumn = 'NextScheduledMaintenance' AND @SortOrder = 'DESC' THEN NextScheduledMaintenance END DESC,
+			CASE WHEN @SortColumn = 'UpdatedDate' AND @SortOrder = 'ASC'  THEN UpdatedDate END ASC,
+            CASE WHEN @SortColumn = 'UpdatedDate' AND @SortOrder = 'DESC' THEN UpdatedDate END DESC,
             CASE WHEN @SortColumn = 'MaintenanceClassName' AND @SortOrder = 'ASC' THEN MaintenanceClassName END ASC,
             CASE WHEN @SortColumn = 'MaintenanceClassName' AND @SortOrder = 'DESC' THEN MaintenanceClassName END DESC,
             CASE WHEN @SortColumn = 'FlightHoursLimit' AND @SortOrder = 'ASC'THEN FlightHoursLimitHours END ASC,

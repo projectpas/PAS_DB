@@ -19,6 +19,7 @@
     9    01/06/2026     Ayushi Patel            [PN-16657] Save MaintenanceType from VW_WorkScopeType table
    10    02/06/2026     Abhishek Jirawla        Added IsScheduled [PN-16679]
    11	 08/06/2026		Amit Ghediya		    Adding Header data in History module [PN-16581]
+   12    16/06/2026	    Amit Ghediya			Added @AircraftPublicationId [PN-16797]
 **************************************************************/
 CREATE PROCEDURE [dbo].[USP_CreateUpdateAircraftMaintenanceProgram]
     @ProgramId                  BIGINT,
@@ -42,6 +43,7 @@ CREATE PROCEDURE [dbo].[USP_CreateUpdateAircraftMaintenanceProgram]
     @TailNumber                 VARCHAR(50)     = NULL,
     @MtcCategoryId              BIGINT,
     @IsMtceRecordUpdated        BIT             = NULL,
+	@AircraftPublicationId		BIGINT          = NULL,
     @IsScheduled                BIT             = NULL
 AS
 BEGIN
@@ -273,7 +275,7 @@ BEGIN
                 FlightHoursRemainingHours, FlightHoursRemainingMinutes, CyclesRemaining,
                 IsActive, IsDeleted, MasterCompanyId,
                 CreatedBy, UpdatedBy, CreatedDate, UpdatedDate,
-                MtcCategoryId, IsMtceRecordUpdated, IsScheduled
+                MtcCategoryId, IsMtceRecordUpdated, AircraftPublicationId, IsScheduled
             )
             VALUES
             (
@@ -286,7 +288,7 @@ BEGIN
                 @FlightHoursLimitHours, @FlightHoursLimitMinutes, @CyclesLimit,
                 ISNULL(@IsActive, 1), ISNULL(@IsDeleted, 0), @MasterCompanyId,
                 @CreatedBy, @UpdatedBy, GETUTCDATE(), GETUTCDATE(),
-                @MtcCategoryId, @IsMtceRecordUpdated, @IsScheduled
+                @MtcCategoryId, @IsMtceRecordUpdated, @AircraftPublicationId, @IsScheduled
             );
 
             SET @ProgramId = SCOPE_IDENTITY();

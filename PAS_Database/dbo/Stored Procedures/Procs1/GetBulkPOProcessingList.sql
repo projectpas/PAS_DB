@@ -622,7 +622,7 @@ BEGIN
 
 
 			-- =====================================================================
-			-- SO - 8 : Sales Order Parts with NO Bulk PO yet (Pending - show shortage)
+			-- SO - 8 : Sales Order Parts with NO Bulk PO-RFQ yet (Pending - show shortage)
 			-- =====================================================================
 			INSERT INTO #TEMPBulkPORecords(
 				[OrderNo],[ItemMasterId],[StatusId],[StatusName],[poRfqNo],[PurchaseOrderId],
@@ -722,6 +722,12 @@ BEGIN
 																			  AND POP.SalesOrderId   = SO.SalesOrderId
 				LEFT  JOIN [dbo].[PurchaseOrder]          PO    WITH (NOLOCK) ON PO.PurchaseOrderId  = POP.PurchaseOrderId
 																			  AND PO.IsFromBulkPO    = 1
+				
+				LEFT JOIN [dbo].[VendorRFQPurchaseOrderPart] RPOP WITH (NOLOCK) ON RPOP.ItemMasterId  = SOP.ItemMasterId
+																				 AND RPOP.SalesOrderId = SO.SalesOrderId
+																				 AND RPOP.ConditionId  = SOP.ConditionId
+				LEFT JOIN [dbo].[VendorRFQPurchaseOrder]  RPO   WITH (NOLOCK) ON RPO.VendorRFQPurchaseOrderId = RPOP.VendorRFQPurchaseOrderId
+																			   AND RPO.IsFromBulkPO   = 1
 
 			WHERE
 				SO.MasterCompanyId   = @MasterCompanyId
@@ -733,7 +739,7 @@ BEGIN
 				AND ISNULL(SOP.QtyReserved, 0) < ISNULL(SOP.QtyRequested, 0)
 
 				-- No Bulk PO exists yet for this SO part
-				AND (ISNULL(PO.IsFromBulkPO, 0) = 0)
+				AND (ISNULL(PO.IsFromBulkPO, 0) = 0) AND (ISNULL(RPO.IsFromBulkPO, 0) = 0) 
 
 				-- AC1 / AC2: shortage exists (stockline available < requested)
 				AND (
@@ -1453,7 +1459,7 @@ BEGIN
 
 
 			-- =====================================================================
-			-- SO - 8 (ELSE): Sales Order Parts with NO Bulk PO yet (Pending)
+			-- SO - 8 (ELSE): Sales Order Parts with NO Bulk PO-RFQ yet (Pending)
 			-- =====================================================================
 			INSERT INTO #TEMPBulkPORecords(
 				[OrderNo],[ItemMasterId],[StatusId],[StatusName],[poRfqNo],[PurchaseOrderId],
@@ -1552,6 +1558,11 @@ BEGIN
 																			  AND POP.SalesOrderId   = SO.SalesOrderId
 				LEFT  JOIN [dbo].[PurchaseOrder]          PO    WITH (NOLOCK) ON PO.PurchaseOrderId  = POP.PurchaseOrderId
 																			  AND PO.IsFromBulkPO    = 1
+				LEFT JOIN [dbo].[VendorRFQPurchaseOrderPart] RPOP WITH (NOLOCK) ON RPOP.ItemMasterId  = SOP.ItemMasterId
+																				 AND RPOP.SalesOrderId = SO.SalesOrderId
+																				 AND RPOP.ConditionId  = SOP.ConditionId
+				LEFT JOIN [dbo].[VendorRFQPurchaseOrder]  RPO   WITH (NOLOCK) ON RPO.VendorRFQPurchaseOrderId = RPOP.VendorRFQPurchaseOrderId
+																			   AND RPO.IsFromBulkPO   = 1
 
 			WHERE
 				SO.MasterCompanyId          = @MasterCompanyId
@@ -1561,7 +1572,7 @@ BEGIN
 				-- AC3: not fully reserved
 				AND ISNULL(SOP.QtyReserved, 0) < ISNULL(SOP.QtyRequested, 0)
 				-- No Bulk PO exists yet
-				AND ISNULL(PO.IsFromBulkPO, 0) = 0
+				AND ISNULL(PO.IsFromBulkPO, 0) = 0  AND (ISNULL(RPO.IsFromBulkPO, 0) = 0)
 				-- AC1/AC2: shortage exists
 				AND (
 					(ISNULL(SOP.QtyRequested, 0) - ISNULL(SOP.QtyReserved, 0))

@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [GetSalesOrderPartView]           
  ** Author:   Vishal Suthar
  ** Description: This stored procedure is used to get Sales Order Quote Part Data
@@ -36,6 +35,7 @@
 	22    20-NOV-2025  RAJESH GAMI	    Fixed TotalPartCost Issue
 	23    07/01/2026   Rajesh Gami		Added MasterCompanyId Parameter While Calling UOM Conversion Function
 	24    13/05/2026   Bhargav Saliya	Modified UOM Changes [pn-15067]
+	25    14/06/2026   Bhargav Saliya	Select Consume UOM [PN-16224]
 -- EXEC [DBO].[GetSalesOrderPartView] 10850,0
 **************************************************************/
 CREATE   PROCEDURE [dbo].[GetSalesOrderPartView]
@@ -176,7 +176,7 @@ BEGIN
         ISNULL(SO.SalesOrderQuoteId, '') AS CustomerReference,
         --ISNULL(imx.ExportECCN, '') AS ECCN,
         ISNULL(imx.ITARNumber, '') AS ITAR,
-        ISNULL(um.ShortName, '') AS UomName,
+        ISNULL(iu.ShortName, '') AS UomName,
         part.CustomerRequestDate,
         part.PromisedDate,
         part.EstimatedShipDate,
@@ -322,7 +322,7 @@ BEGIN
 	LEFT JOIN DBO.SalesOrderQuotePartV1 SOQP WITH (NOLOCK) ON SOQP.SalesOrderQuotePartId = part.SalesOrderQuotePartId
     LEFT JOIN DBO.SalesOrderQuote q WITH (NOLOCK) ON SOQP.SalesOrderQuoteId = q.SalesOrderQuoteId
     LEFT JOIN DBO.UnitOfMeasure iu WITH (NOLOCK) ON itemMaster.ConsumeUnitOfMeasureId = iu.UnitOfMeasureId
-    LEFT JOIN DBO.UnitOfMeasure um WITH (NOLOCK) ON itemMaster.PurchaseUnitOfMeasureId = um.UnitOfMeasureId
+    --LEFT JOIN DBO.UnitOfMeasure um WITH (NOLOCK) ON itemMaster.PurchaseUnitOfMeasureId = um.UnitOfMeasureId
     LEFT JOIN DBO.PurchaseOrder po WITH (NOLOCK) ON qs.PurchaseOrderId = po.PurchaseOrderId
     LEFT JOIN DBO.RepairOrder ro WITH (NOLOCK) ON qs.RepairOrderId = ro.RepairOrderId
     LEFT JOIN DBO.[Priority] pri WITH (NOLOCK) ON part.PriorityId = pri.PriorityId

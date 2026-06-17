@@ -31,6 +31,7 @@ Exec [USP_SaveAircraftCycleTimeMappings]
                                         Perf: Collapse multi-scan of AMP into single pass;
                                         Perf: Remove READ UNCOMMITTED from write transaction.
   12    02/06/2026  Amit Ghediya        Update logic for AircraftMaintenanceProgram for currunt HH:mm update for hr & cycle [PN-16650].
+  13	16/06/2026  Amit Ghediya        Update minute logic for AircraftInstalledPartDetails [PN-16887]
 **************************************************************/   
 CREATE PROCEDURE [dbo].[USP_SaveAircraftCycleTimeMappings]  
     @CycleData  NVARCHAR(MAX),
@@ -103,7 +104,9 @@ BEGIN
         -------------------------------------------------------
         -- DECLARE @CycleId for return
         -------------------------------------------------------
-        DECLARE @CycleId BIGINT, @AircraftRegistryId BIGINT = 0;		
+        DECLARE @CycleId BIGINT, @AircraftRegistryId BIGINT = 0;	
+		
+		SELECT TOP 1 @AircraftRegistryId = RefrenceId FROM @CycleTable;
 
         -------------------------------------------------------
         -- CHECK INSERT OR UPDATE
@@ -182,32 +185,145 @@ BEGIN
         -------------------------------------------------------
         -- UPDATE AircraftInstalledPartDetails (ADD values)
         -------------------------------------------------------
-        UPDATE AIPD
-        SET 
-            AIPD.FlightHours    = CASE 
-									WHEN ISNULL(C.[Hours], 0) > 0 
-									THEN ISNULL(AIPD.FlightHours,   0) + ISNULL(C.[Hours],  0)
-									ELSE ISNULL(C.[CumulativeHours], 0)
-								  END,
-            AIPD.FlightMinutes  = CASE 
-									WHEN ISNULL(C.[Minutes], 0) > 0 
-									THEN ISNULL(AIPD.FlightMinutes, 0) + ISNULL(C.[Minutes],0)
-									ELSE ISNULL(C.[CumulativeMinutes], 0)
-								  END,
-            AIPD.Cycles         = CASE 
-									WHEN ISNULL(C.[Cycles], 0) > 0 
-									THEN ISNULL(AIPD.Cycles,        0) + ISNULL(C.[Cycles], 0)
-									ELSE ISNULL(C.[CumulativeCycles], 0)
-								  END,
-            AIPD.UpdatedBy      = C.UpdatedBy,
-            AIPD.UpdatedDate    = GETUTCDATE(),
-            AIPD.LastFlownDate  = CASE 
-                                      WHEN ISNULL(C.AddUpdated, 0) = 1 
-                                      THEN CAST(GETUTCDATE() AS DATE)
-                                      ELSE AIPD.LastFlownDate
-                                  END
-        FROM dbo.AircraftInstalledPartDetails AIPD
+
+		-------------------------------------------------------
+        -- READ OLD VALUES before UPDATE AIPD
+        -------------------------------------------------------
+        DECLARE @Old_FlightHours    VARCHAR(50) = '',
+                @Old_FlightMinutes  VARCHAR(50) = '',
+                @Old_Cycles         VARCHAR(50) = '',
+                @Old_FlightHrsMin   VARCHAR(50) = '', -- HH:MM format
+                @AircraftRegistryId_Hist BIGINT  = 0,
+                @UpdatedBy_Hist     VARCHAR(256) = '',
+                @MasterCompanyId_Hist INT        = 0;
+
+        SELECT TOP 1
+            @AircraftRegistryId_Hist = C.RefrenceId,
+            @UpdatedBy_Hist          = C.UpdatedBy,
+            @MasterCompanyId_Hist    = C.MasterCompanyId
+        FROM @CycleTable C;
+
+        SELECT
+            @Old_FlightHours   = CONVERT(VARCHAR(20), CONVERT(BIGINT, ISNULL(AIPD.FlightHours,   0))),
+            @Old_FlightMinutes = CONVERT(VARCHAR(20), CONVERT(BIGINT, ISNULL(AIPD.FlightMinutes, 0))),
+            @Old_Cycles        = CONVERT(VARCHAR(20), CONVERT(BIGINT, ISNULL(AIPD.Cycles,        0))),
+            @Old_FlightHrsMin  = CONVERT(VARCHAR(20), CONVERT(BIGINT, ISNULL(AIPD.FlightHours,   0)))
+                               + ' : '
+                               + RIGHT('00' + CONVERT(VARCHAR(2), CONVERT(BIGINT, ISNULL(AIPD.FlightMinutes, 0))), 2)
+        FROM dbo.AircraftInstalledPartDetails AIPD WITH(NOLOCK)
         INNER JOIN @CycleTable C ON AIPD.AircraftRegistryId = C.RefrenceId;
+
+
+		UPDATE AIPD
+		SET
+			-- Hours: accumulate + carry overflow from minutes
+			AIPD.FlightHours =
+			CASE WHEN ISNULL(C.[Hours], 0) > 0
+			THEN
+				FLOOR(
+					FLOOR(ISNULL(AIPD.FlightHours, 0))
+					+ FLOOR(ISNULL(C.[Hours], 0))
+					+ (
+						(FLOOR(ISNULL(AIPD.FlightMinutes, 0))
+						 + FLOOR(ISNULL(C.[Minutes], 0)))
+						/ 60
+					  )
+				)
+			ELSE
+				FLOOR(
+					FLOOR(ISNULL(C.[CumulativeHours], 0))
+					+ (FLOOR(ISNULL(C.[CumulativeMinutes], 0)) / 60)
+				)
+			END,
+
+			-- Minutes: keep only remainder after carrying into hours
+			AIPD.FlightMinutes =
+				CASE WHEN ISNULL(C.[Minutes], 0) > 0
+				THEN
+					(FLOOR(ISNULL(AIPD.FlightMinutes, 0))
+					 + FLOOR(ISNULL(C.[Minutes], 0)))
+					% 60
+				ELSE
+					FLOOR(ISNULL(C.[CumulativeMinutes], 0)) % 60
+				END,
+
+			-- Cycles: accumulate or set from cumulative
+			AIPD.Cycles =
+				CASE WHEN ISNULL(C.[Cycles], 0) > 0
+				THEN ISNULL(AIPD.Cycles, 0) + ISNULL(C.[Cycles], 0)
+				ELSE ISNULL(C.[CumulativeCycles], 0)
+				END,
+
+			AIPD.UpdatedBy   = C.UpdatedBy,
+			AIPD.UpdatedDate = GETUTCDATE(),
+
+			-- LastFlownDate: only update when AddUpdated = 1 (add cycle, not edit)
+			AIPD.LastFlownDate =
+				CASE
+					WHEN ISNULL(C.AddUpdated, 0) = 1
+					THEN CAST(GETUTCDATE() AS DATE)
+					ELSE AIPD.LastFlownDate
+				END
+
+		FROM dbo.AircraftInstalledPartDetails AIPD
+		INNER JOIN @CycleTable C ON AIPD.AircraftRegistryId = C.RefrenceId;
+
+		-------------------------------------------------------
+        -- READ NEW VALUES after UPDATE AIPD
+        -------------------------------------------------------
+        DECLARE @New_FlightHours    VARCHAR(50) = '',
+                @New_FlightMinutes  VARCHAR(50) = '',
+                @New_Cycles         VARCHAR(50) = '',
+                @New_FlightHrsMin   VARCHAR(50) = ''; -- HH:MM format
+
+        SELECT
+            @New_FlightHours   = CONVERT(VARCHAR(20), CONVERT(BIGINT, ISNULL(AIPD.FlightHours,   0))),
+            @New_FlightMinutes = CONVERT(VARCHAR(20), CONVERT(BIGINT, ISNULL(AIPD.FlightMinutes, 0))),
+            @New_Cycles        = CONVERT(VARCHAR(20), CONVERT(BIGINT, ISNULL(AIPD.Cycles,        0))),
+            @New_FlightHrsMin  = CONVERT(VARCHAR(20), CONVERT(BIGINT, ISNULL(AIPD.FlightHours,   0)))
+                               + ' : '
+                               + RIGHT('00' + CONVERT(VARCHAR(2), CONVERT(BIGINT, ISNULL(AIPD.FlightMinutes, 0))), 2)
+        FROM dbo.AircraftInstalledPartDetails AIPD WITH(NOLOCK)
+        INNER JOIN @CycleTable C ON AIPD.AircraftRegistryId = C.RefrenceId;
+
+		-------------------------------------------------------
+        -- HISTORY BLOCK for AIPD cycle update
+        -- Same pattern as USP_InsertUpdateAircraftInstalledPartDetails
+        -------------------------------------------------------
+        DECLARE @AIPD_TemplateBody  VARCHAR(MAX) = '',
+                @AIPD_Activity      VARCHAR(100) = 'Cycle Time Updated',
+                @AIPD_PartIdStr     VARCHAR(100) = NULL;
+
+        -- Get part number for NewValue label
+        SELECT TOP 1
+            @AIPD_PartIdStr = 'Part: ' + ISNULL(AIPD.PartNumber, '')
+        FROM dbo.AircraftInstalledPartDetails AIPD WITH(NOLOCK)
+        INNER JOIN @CycleTable C ON AIPD.AircraftRegistryId = C.RefrenceId;
+
+        -- Diff old vs new — only changed fields
+        IF @Old_FlightHrsMin <> @New_FlightHrsMin AND @New_FlightHrsMin <> '0 : 00'
+            SET @AIPD_TemplateBody += 'Flight Hours (HH:MM): ' + @Old_FlightHrsMin + ' to ' + @New_FlightHrsMin + ' | ';
+
+        IF @Old_Cycles <> @New_Cycles AND @New_Cycles <> '0'
+            SET @AIPD_TemplateBody += 'Cycles: ' + @Old_Cycles + ' to ' + @New_Cycles + ' | ';
+
+        -- Remove trailing ' | '
+        SET @AIPD_TemplateBody = RTRIM(@AIPD_TemplateBody);
+        IF RIGHT(@AIPD_TemplateBody, 3) = ' | '
+            SET @AIPD_TemplateBody = LEFT(@AIPD_TemplateBody, LEN(@AIPD_TemplateBody) - 3);
+        ELSE IF RIGHT(@AIPD_TemplateBody, 2) = ' |'
+            SET @AIPD_TemplateBody = LEFT(@AIPD_TemplateBody, LEN(@AIPD_TemplateBody) - 2);
+        ELSE IF RIGHT(@AIPD_TemplateBody, 1) = '|'
+            SET @AIPD_TemplateBody = LEFT(@AIPD_TemplateBody, LEN(@AIPD_TemplateBody) - 1);
+
+        -- Save history if anything changed
+        IF ISNULL(LTRIM(RTRIM(@AIPD_TemplateBody)), '') <> ''
+        BEGIN
+			EXEC [dbo].[USP_SaveAircraftHistory] @ModuleId = 2,@ModuleName = 'Cycle Time Updated',@RefferenceId = @AircraftRegistryId,@FieldsName = NULL,
+												 @OldValue = NULL,@NewValue = NULL,@HistoryText = @AIPD_TemplateBody,@Activity = @AIPD_Activity,@MasterCompanyId = @MasterCompanyId_Hist,
+												 @CreatedBy = @UpdatedBy_Hist;
+        END
+        -- ── END HISTORY BLOCK for AIPD ────────────────────────
 
         -------------------------------------------------------
         -- UPDATE / INSERT AircraftMaintenanceProgram
@@ -491,8 +607,7 @@ BEGIN
                 1, 0
             );
 
-		-----------------------Add LastFlownDate--------------------
-		SELECT TOP 1 @AircraftRegistryId = RefrenceId FROM @CycleTable;
+		-----------------------Add LastFlownDate--------------------		
 
 		UPDATE dbo.AircraftRegistryHeader SET LastFlownDate = CAST(GETUTCDATE() AS DATE) WHERE AircraftRegistryId  = @AircraftRegistryId;
 

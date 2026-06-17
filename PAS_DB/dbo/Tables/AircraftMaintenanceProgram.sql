@@ -39,6 +39,7 @@
     [MaintenanceTypeId]           BIGINT        NULL,
     [MaintenanceClassId]          BIGINT        NULL,
     [MtcCategoryId]               BIGINT        NULL,
+    [AircraftPublicationId]       BIGINT        NULL,
     [IsMtceRecordUpdated]         BIT           CONSTRAINT [DF__AircraftM__IsMtc__1F89FEE0] DEFAULT ((0)) NULL,
     [WorksheetNumber]             VARCHAR (50)  NULL,
     [WorkOrderNum]                VARCHAR (30)  NULL,
@@ -49,6 +50,8 @@
     CONSTRAINT [FK_AMP_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId]),
     CONSTRAINT [FK_AMP_Workflow] FOREIGN KEY ([TemplateId]) REFERENCES [dbo].[Workflow] ([WorkflowId])
 );
+
+
 
 
 GO

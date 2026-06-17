@@ -72,7 +72,7 @@ BEGIN
                 WH.AircraftModelId,
                 WH.AircraftModel,
                 WH.AFHours,
-                MT.MaintenanceType AS InspectionType,
+                MT.WorkScopeCode AS InspectionType,
 				MC.MtcCategory AS MaintenanceCategory,
                 WH.InspectionDate,
                 WH.QualitySafetyDeptSignOutBy,
@@ -112,7 +112,8 @@ BEGIN
             FROM [dbo].[WorksheetHeader] WH WITH (NOLOCK)
             LEFT JOIN [dbo].[WorksheetPart] WP WITH (NOLOCK) ON WP.WorksheetHeaderId = WH.WorksheetHeaderId AND WP.IsDeleted = 0
             LEFT JOIN [dbo].[AircraftSection] ACS WITH (NOLOCK) ON WH.WorksheetTypeId = ACS.AircraftSectionId AND ACS.IsDeleted = 0
-            LEFT JOIN [dbo].[MaintenanceType] MT WITH (NOLOCK) ON MT.MaintenanceTypeId = WH.InspectionType AND MT.IsDeleted = 0
+            --LEFT JOIN [dbo].[MaintenanceType] MT WITH (NOLOCK) ON MT.MaintenanceTypeId = WH.InspectionType AND MT.IsDeleted = 0
+			LEFT JOIN [dbo].[VW_WorkScopeType] MT WITH (NOLOCK) ON MT.WorkScopeId = WH.InspectionType AND MT.IsDeleted = 0
 			LEFT JOIN [dbo].[MaintenanceCategory] MC WITH (NOLOCK) ON MC.MtcCategoryId = WH.MtcCategoryId AND MC.IsDeleted = 0
             LEFT JOIN [dbo].[Employee] em WITH(NOLOCK) ON em.EmployeeId = wp.MechBy AND em.MasterCompanyId = @MasterCompanyId
             LEFT JOIN [dbo].[Employee] ei WITH(NOLOCK) ON ei.EmployeeId = wp.InspBy AND ei.MasterCompanyId = @MasterCompanyId
@@ -143,7 +144,7 @@ BEGIN
 					OR CASE WHEN ISNULL(@IsShowPN,0) = 0 THEN '' ELSE AIPD.[PartNumber] END	LIKE '%' + @GlobalFilter + '%'
                     OR WH.MakeType          LIKE '%' + @GlobalFilter + '%'
                     OR WH.AircraftModel     LIKE '%' + @GlobalFilter + '%'
-                    OR MT.MaintenanceType    LIKE '%' + @GlobalFilter + '%'
+                    OR MT.WorkScopeCode    LIKE '%' + @GlobalFilter + '%'
 					OR MC.MtcCategory		LIKE '%' + @GlobalFilter + '%'
                     OR WP.DefectDescription LIKE '%' + @GlobalFilter + '%'
                     OR WP.MaintenanceAction LIKE '%' + @GlobalFilter + '%'
@@ -159,7 +160,7 @@ BEGIN
                 AND (@MakeType                   IS NULL OR WH.MakeType                  LIKE '%' + @MakeType                  + '%')
                 AND (@AircraftModel              IS NULL OR WH.AircraftModel             LIKE '%' + @AircraftModel             + '%')
                 AND (@AFHours                    IS NULL OR WH.AFHours                   LIKE '%' + @AFHours                   + '%')
-                AND (@InspectionType             IS NULL OR MT.MaintenanceType            LIKE '%' + @InspectionType            + '%')
+                AND (@InspectionType             IS NULL OR MT.WorkScopeCode            LIKE '%' + @InspectionType            + '%')
 				AND (@MaintenanceCategory        IS NULL OR MC.MtcCategory            LIKE '%' + @MaintenanceCategory            + '%')
                 AND (@InspectionDate             IS NULL OR CAST(WH.InspectionDate             AS DATE) = CAST(@InspectionDate             AS DATE))
                 AND (@QualitySafetyDeptSignOutBy IS NULL OR WH.QualitySafetyDeptSignOutBy LIKE '%' + @QualitySafetyDeptSignOutBy + '%')

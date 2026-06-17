@@ -133,28 +133,37 @@ BEGIN
 		BEGIN
 			-- STEP 1: Read OLD values BEFORE update
             SELECT
-                @Old_ATAChapterId       = CAST(ISNULL(ATAChapterId, 0)               AS VARCHAR),
-                @Old_SequenceNum        = CAST(ISNULL(SequenceNum, 0)                AS VARCHAR),
-                @Old_PartNumber         = ISNULL(PartNumber, ''),
-                @Old_PartDescription    = ISNULL(PartDescription, ''),
-                @Old_IsLLP              = CASE WHEN IsLLP = 1 THEN 'Yes' ELSE 'No' END,
-                @Old_IsSerialized       = CASE WHEN IsSerialized = 1 THEN 'Yes' ELSE 'No' END,
-                @Old_SerialNumber       = ISNULL(SerialNumber, ''),
-                @Old_DateInstalled      = ISNULL(CONVERT(VARCHAR(10), CAST(DateInstalled AS DATE), 103), ''),
-                @Old_PositionCode       = ISNULL(PositionCode, ''),
-                @Old_Quantity           = CONVERT(VARCHAR(20), CONVERT(BIGINT, ISNULL(Quantity,0))),--CAST(ISNULL(Quantity, 0)                   AS VARCHAR),
-			    @Old_StockLineId_Hist	= StockLineId,
-                @Old_EngineStarts       = CAST(ISNULL(EngineStarts, 0)              AS VARCHAR),
-                @Old_Memo               = ISNULL(Memo, ''),
-                @Old_PartFlightHours    = CONVERT(VARCHAR(20), CONVERT(BIGINT, ISNULL(PartFlightHours,    0))),
-				@Old_PartFlightMinutes  = CONVERT(VARCHAR(20), CONVERT(BIGINT, ISNULL(PartFlightMinutes,  0))),
-				@Old_PartCycles         = CONVERT(VARCHAR(20), CONVERT(BIGINT, ISNULL(PartCycles,         0))),
-				@Old_PartLandings       = CONVERT(VARCHAR(20), CONVERT(BIGINT, ISNULL(PartLandings,       0))),
-				@Old_PartEngineStarts   = CONVERT(VARCHAR(20), CONVERT(BIGINT, ISNULL(PartEngineStarts,   0))),
-				@Old_InstallFlightHours = CONVERT(VARCHAR(20), CONVERT(BIGINT, ISNULL(InstallFlightHours, 0))),
-				@Old_InstallFlightTime  = CONVERT(VARCHAR(20), CONVERT(BIGINT, ISNULL(InstallFlightTime,  0))),
-				@Old_InstallCycles      = CONVERT(VARCHAR(20), CONVERT(BIGINT, ISNULL(InstallCycles,      0)))
-            FROM DBO.AircraftInstalledPartDetails WITH(NOLOCK)
+                @Old_ATAChapterId       = CAST(ISNULL( CONCAT_WS(' - ',
+										   NULLIF(IMAM.Level1, ''),
+										   NULLIF(IMAM.Level2, ''),
+										   NULLIF(IMAM.Level3, '')
+									   ), 0)               AS VARCHAR),
+                @Old_SequenceNum        = CAST(ISNULL(AIP.SequenceNum, 0)                AS VARCHAR),
+                @Old_PartNumber         = ISNULL(AIP.PartNumber, ''),
+                @Old_PartDescription    = ISNULL(AIP.PartDescription, ''),
+                @Old_IsLLP              = CASE WHEN AIP.IsLLP = 1 THEN 'Yes' ELSE 'No' END,
+                @Old_IsSerialized       = CASE WHEN AIP.IsSerialized = 1 THEN 'Yes' ELSE 'No' END,
+                @Old_SerialNumber       = ISNULL(AIP.SerialNumber, ''),
+                @Old_DateInstalled      = ISNULL(CONVERT(VARCHAR(10), CAST(AIP.DateInstalled AS DATE), 103), ''),
+                @Old_PositionCode       = ISNULL(AIP.PositionCode, ''),
+                @Old_Quantity           = CONVERT(VARCHAR(20), CONVERT(BIGINT, ISNULL(AIP.Quantity,0))),--CAST(ISNULL(Quantity, 0)                   AS VARCHAR),
+			    @Old_StockLineId_Hist	= AIP.StockLineId,
+                @Old_EngineStarts       = CAST(ISNULL(AIP.EngineStarts, 0)              AS VARCHAR),
+                @Old_Memo               = ISNULL(AIP.Memo, ''),
+				@Old_PartFlightHours    = CONVERT(VARCHAR(20), CONVERT(BIGINT, ISNULL(PartFlightHours,   0)))
+											+ ' : '
+											+ RIGHT('00' + CONVERT(VARCHAR(2), CONVERT(BIGINT, ISNULL(AIP.PartFlightMinutes,  0))), 2),
+				@Old_PartFlightMinutes  = NULL,
+				@Old_PartCycles         = CONVERT(VARCHAR(20), CONVERT(BIGINT, ISNULL(AIP.PartCycles,         0))),
+				@Old_PartLandings       = CONVERT(VARCHAR(20), CONVERT(BIGINT, ISNULL(AIP.PartLandings,       0))),
+				@Old_PartEngineStarts   = CONVERT(VARCHAR(20), CONVERT(BIGINT, ISNULL(AIP.PartEngineStarts,   0))),
+				@Old_InstallFlightHours = CONVERT(VARCHAR(20), CONVERT(BIGINT, ISNULL(AIP.InstallFlightHours, 0)))
+										+ ' : '
+										+ RIGHT('00' + CONVERT(VARCHAR(2), CONVERT(BIGINT, ISNULL(AIP.InstallFlightTime,   0))), 2),
+				@Old_InstallFlightTime  = NULL, 
+				@Old_InstallCycles      = CONVERT(VARCHAR(20), CONVERT(BIGINT, ISNULL(AIP.InstallCycles,      0)))
+            FROM DBO.AircraftInstalledPartDetails AIP WITH(NOLOCK)
+			LEFT JOIN dbo.ItemMasterAircraftMapping IMAM WITH(NOLOCK) ON IMAM.ItemMasterAircraftMappingId = AIP.ATAChapterId
             WHERE AircraftInstalledPartDetailsId = @AircraftInstalledPartDetailsId;
 
 			SELECT @Old_StockLine = ISNULL(StockLineNumber, '')  FROM dbo.StockLine WITH(NOLOCK)
@@ -308,12 +317,19 @@ BEGIN
         -- ══════════════════════════════════════════════════════
         DECLARE @TemplateBody   VARCHAR(MAX) = '',
                 @Activity       VARCHAR(100) = NULL,
-                @PartIdStr      VARCHAR(50)  = NULL;
+                @PartIdStr      VARCHAR(50)  = NULL,
+				@ATAChapter     VARCHAR(100) = NULL;
 
 		SELECT @New_StockLine = ISNULL(StockLineNumber, '')  FROM dbo.StockLine WITH(NOLOCK) WHERE StockLineId = ISNULL(@StockLineId, 0);
 
+		SELECT @ATAChapter = CONCAT_WS(' - ',
+				   NULLIF(IMAM.Level1, ''),
+				   NULLIF(IMAM.Level2, ''),
+				   NULLIF(IMAM.Level3, '')
+			   )  FROM dbo.ItemMasterAircraftMapping IMAM WITH(NOLOCK) WHERE ItemMasterAircraftMappingId = ISNULL(@ATAChapterId, 0);
+
         -- Build NEW value strings from params
-        SET @New_ATAChapterId       = CAST(ISNULL(@ATAChapterId, 0)                                             AS VARCHAR);
+        SET @New_ATAChapterId       = CAST(ISNULL(@ATAChapter, 0)                                             AS VARCHAR);
         SET @New_SequenceNum        = CAST(ISNULL(@SequenceNum, 0)                                              AS VARCHAR);
         SET @New_PartNumber         = ISNULL(@PartNumber, '');
         SET @New_PartDescription    = ISNULL(@PartDescription, '');
@@ -325,13 +341,17 @@ BEGIN
         SET @New_Quantity           = CONVERT(VARCHAR(20), CONVERT(BIGINT, ISNULL(@Quantity, 0)));--CAST(ISNULL(@Quantity, 0)                                                 AS VARCHAR);
         SET @New_EngineStarts       = CAST(ISNULL(@EngineStarts, 0)                                            AS VARCHAR);
         SET @New_Memo               = ISNULL(@Memo, '');
-        SET @New_PartFlightHours    = CONVERT(VARCHAR(20), CONVERT(BIGINT, ISNULL(@PartFlightHours,    0)));
-		SET @New_PartFlightMinutes  = CONVERT(VARCHAR(20), CONVERT(BIGINT, ISNULL(@PartFlightMinutes,  0)));
+		SET @New_PartFlightHours    = CONVERT(VARCHAR(20), CONVERT(BIGINT, ISNULL(@PartFlightHours,   0)))
+										+ ' : '
+										+ RIGHT('00' + CONVERT(VARCHAR(2), CONVERT(BIGINT, ISNULL(@PartFlightMinutes,  0))), 2);
+		SET @New_PartFlightMinutes  = NULL;
 		SET @New_PartCycles         = CONVERT(VARCHAR(20), CONVERT(BIGINT, ISNULL(@PartCycles,         0)));
 		SET @New_PartLandings       = CONVERT(VARCHAR(20), CONVERT(BIGINT, ISNULL(@PartLandings,       0)));
 		SET @New_PartEngineStarts   = CONVERT(VARCHAR(20), CONVERT(BIGINT, ISNULL(@PartEngineStarts,   0)));
-		SET @New_InstallFlightHours = CONVERT(VARCHAR(20), CONVERT(BIGINT, ISNULL(@InstallFlightHours, 0)));
-		SET @New_InstallFlightTime  = CONVERT(VARCHAR(20), CONVERT(BIGINT, ISNULL(@InstallFlightTime,  0)));
+		SET @New_InstallFlightHours = CONVERT(VARCHAR(20), CONVERT(BIGINT, ISNULL(@InstallFlightHours, 0)))
+										+ ' : '
+										+ RIGHT('00' + CONVERT(VARCHAR(2), CONVERT(BIGINT, ISNULL(@InstallFlightTime,   0))), 2);
+		SET @New_InstallFlightTime  = NULL;
 		SET @New_InstallCycles      = CONVERT(VARCHAR(20), CONVERT(BIGINT, ISNULL(@InstallCycles,      0)));
 
         -- ── UPDATE: only changed fields ───────────────────────
@@ -378,11 +398,8 @@ BEGIN
             IF ISNULL(@Old_Memo,'')                <> @New_Memo                AND @New_Memo                <> ''
                 SET @TemplateBody += 'Memo: '                 + @Old_Memo                + ' to ' + @New_Memo                + ' | ';
 
-            IF ISNULL(@Old_PartFlightHours,'0')    <> @New_PartFlightHours     AND @New_PartFlightHours     <> '0'
-                SET @TemplateBody += 'Part Flight Hours: '    + @Old_PartFlightHours     + ' to ' + @New_PartFlightHours     + ' | ';
-
-            IF ISNULL(@Old_PartFlightMinutes,'0')  <> @New_PartFlightMinutes   AND @New_PartFlightMinutes   <> '0'
-                SET @TemplateBody += 'Part Flight Minutes: '  + @Old_PartFlightMinutes   + ' to ' + @New_PartFlightMinutes   + ' | ';
+			IF ISNULL(@Old_PartFlightHours,'0 : 00')  <> @New_PartFlightHours  AND @New_PartFlightHours  <> '0 : 00'
+				SET @TemplateBody += 'Part Flight Hours (HH:MM): '    + @Old_PartFlightHours  + ' to ' + @New_PartFlightHours  + ' | ';			
 
             IF ISNULL(@Old_PartCycles,'0')         <> @New_PartCycles          AND @New_PartCycles          <> '0'
                 SET @TemplateBody += 'Part Cycles: '          + @Old_PartCycles          + ' to ' + @New_PartCycles          + ' | ';
@@ -393,11 +410,8 @@ BEGIN
             IF ISNULL(@Old_PartEngineStarts,'0')   <> @New_PartEngineStarts    AND @New_PartEngineStarts    <> '0'
                 SET @TemplateBody += 'Part Engine Starts: '   + @Old_PartEngineStarts    + ' to ' + @New_PartEngineStarts    + ' | ';
 
-            IF ISNULL(@Old_InstallFlightHours,'0') <> @New_InstallFlightHours  AND @New_InstallFlightHours  <> '0'
-                SET @TemplateBody += 'Install Flight Hours: ' + @Old_InstallFlightHours  + ' to ' + @New_InstallFlightHours  + ' | ';
-
-            IF ISNULL(@Old_InstallFlightTime,'0')  <> @New_InstallFlightTime   AND @New_InstallFlightTime   <> '0'
-                SET @TemplateBody += 'Install Flight Time: '  + @Old_InstallFlightTime   + ' to ' + @New_InstallFlightTime   + ' | ';
+			IF ISNULL(@Old_InstallFlightHours,'0 : 00') <> @New_InstallFlightHours AND @New_InstallFlightHours <> '0 : 00'
+				SET @TemplateBody += 'Install Flight Hours (HH:MM): ' + @Old_InstallFlightHours + ' to ' + @New_InstallFlightHours + ' | ';
 
             IF ISNULL(@Old_InstallCycles,'0')      <> @New_InstallCycles       AND @New_InstallCycles       <> '0'
                 SET @TemplateBody += 'Install Cycles: '       + @Old_InstallCycles       + ' to ' + @New_InstallCycles       + ' | ';
@@ -432,13 +446,11 @@ BEGIN
             IF @New_Quantity          <> '0' SET @TemplateBody += 'Quantity: '             + @New_Quantity          + ' | ';
             IF @New_StockLine         <> '0' SET @TemplateBody += 'Stock Line: '           + @New_StockLine       + ' | ';
             IF @New_EngineStarts      <> '0' SET @TemplateBody += 'Engine Starts: '        + @New_EngineStarts      + ' | ';
-            IF @New_PartFlightHours   <> '0' SET @TemplateBody += 'Part Flight Hours: '    + @New_PartFlightHours   + ' | ';
-            IF @New_PartFlightMinutes <> '0' SET @TemplateBody += 'Part Flight Minutes: '  + @New_PartFlightMinutes + ' | ';
+            IF @New_PartFlightHours   <> '0' SET @TemplateBody += 'Part Flight Hours (HH:MM): '    + @New_PartFlightHours   + ' | ';
             IF @New_PartCycles        <> '0' SET @TemplateBody += 'Part Cycles: '          + @New_PartCycles        + ' | ';
             IF @New_PartLandings      <> '0' SET @TemplateBody += 'Part Landings: '        + @New_PartLandings      + ' | ';
             IF @New_PartEngineStarts  <> '0' SET @TemplateBody += 'Part Engine Starts: '   + @New_PartEngineStarts  + ' | ';
-            IF @New_InstallFlightHours <> '0' SET @TemplateBody += 'Install Flight Hours: '+ @New_InstallFlightHours + ' | ';
-            IF @New_InstallFlightTime  <> '0' SET @TemplateBody += 'Install Flight Time: ' + @New_InstallFlightTime  + ' | ';
+            IF @New_InstallFlightHours <> '0' SET @TemplateBody += 'Install Flight Hours (HH:MM): '+ @New_InstallFlightHours + ' | ';
             IF @New_InstallCycles      <> '0' SET @TemplateBody += 'Install Cycles: '      + @New_InstallCycles      + ' | ';
             IF @New_Memo               <> ''  SET @TemplateBody += 'Memo: '                + @New_Memo               + ' | ';
 

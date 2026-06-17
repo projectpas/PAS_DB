@@ -319,23 +319,6 @@ BEGIN
         -- Save history if anything changed
         IF ISNULL(LTRIM(RTRIM(@AIPD_TemplateBody)), '') <> ''
         BEGIN
-            --EXEC [dbo].[USP_SaveAircraftHistory]
-            --    @ModuleId        = 3,
-            --    @ModuleName      = 'Installed Components',
-            --    @RefferenceId    = @AircraftRegistryId_Hist,
-            --    @SubRefferenceId = NULL,
-            --    @SubModuleName   = 'Cycle Time',
-            --    @FieldsName      = 'CycleTimeMappings',
-            --    @OldValue        = '',
-            --    @NewValue        = @AIPD_PartIdStr,
-            --    @HistoryText     = @AIPD_TemplateBody,
-            --    @Activity        = @AIPD_Activity,
-            --    @AcTailNum       = NULL,
-            --    @AcMake          = NULL,
-            --    @AcModel         = NULL,
-            --    @SerialNum       = NULL,
-            --    @MasterCompanyId = @MasterCompanyId_Hist,
-            --    @CreatedBy       = @UpdatedBy_Hist;
 			EXEC [dbo].[USP_SaveAircraftHistory] @ModuleId = 2,@ModuleName = 'Cycle Time Updated',@RefferenceId = @AircraftRegistryId,@FieldsName = NULL,
 												 @OldValue = NULL,@NewValue = NULL,@HistoryText = @AIPD_TemplateBody,@Activity = @AIPD_Activity,@MasterCompanyId = @MasterCompanyId_Hist,
 												 @CreatedBy = @UpdatedBy_Hist;

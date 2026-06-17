@@ -15,6 +15,7 @@
 	2    06-MAY-2026   Moin Bloch       Added Xero PN-16011
 	3    29/05/2026    Bhargav Saliya   Added Case For PO 
     4    11/06/2026    Moin Bloch       Fixed PO Creation Issue
+    5    16/06/2026    Bhargav Saliya   Fixed Description
      
  EXECUTE [QuickBooks_GetNewPurchaseOrderListForCreatePurchaseOrder] 3,1,2768,13
 **************************************************************/ 
@@ -209,7 +210,7 @@ BEGIN
 						  POP.[PurchaseOrderPartRecordId],
 						   IM.[QuickBooksReferenceId] AS [ItemID],
 						  POP.[ItemMasterId],
-						  POP.[PartNumber] + ' ' + POP.[PartDescription] [Description],
+						  POP.[PartDescription] [Description],
 						  POP.[UnitCost],
 						  POP.[QuantityOrdered],				
 						   GL.[AccountName] AS POAPAccountName,
@@ -254,7 +255,7 @@ BEGIN
 						  ROP.[RepairOrderPartRecordId],
 						   IM.[QuickBooksReferenceId] AS [ItemID],
 						  ROP.[ItemMasterId],
-						  ROP.[PartNumber] + ' ' + ROP.[PartDescription] [Description],
+						  ROP.[PartDescription] [Description],
 						  ROP.[UnitCost],
 						  ROP.[QuantityOrdered],				
 						   GL.[AccountName] AS ROAPAccountName,

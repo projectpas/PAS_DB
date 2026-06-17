@@ -28,6 +28,8 @@
 	12	 02/06/2025	  Abhishek Jirawla  Fixed Name concat read script
 	13   27/11/2025   AMIT GHEDIYA		update for get glaccount from setup.
  	14   19/12/2025   RAJESH GAMI		Change the INT to DECIMAL (QTY related fields) & Cost related fields change the decimal places 4 to 6    
+	15   16/06/2026   Priyansh Patel 	Removed the ChildStockline logic [PN-16124]
+
 **************************************************************/
 
 CREATE   PROCEDURE [dbo].[USP_BulkStockLineAdjustmentUnitCost_PostCheckBatchDetails]
@@ -455,9 +457,9 @@ BEGIN
 					WHERE StockLineId = @StockLineId;
 
 					--Child stockline
-					UPDATE [dbo].[ChildStockline] 
-						   SET [UnitCost] = @tmpUnitCost
-					WHERE StockLineId = @StockLineId AND QuantityAvailable > 0;
+					--UPDATE [dbo].[ChildStockline] 
+					--	   SET [UnitCost] = @tmpUnitCost
+					--WHERE StockLineId = @StockLineId AND QuantityAvailable > 0;
 
 
 					SET @FreightAdjustment = 0;

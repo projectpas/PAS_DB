@@ -13,7 +13,7 @@
 ** 4    15/06/2026      Priyansh Patel	        fix issue with @TearDownWorkOrderTypeId reset in loop [PN-16840]
 	
 **************************************************************/ 
-CREATE   PROCEDURE [dbo].[USP_SaveTurnInMultipleWorkOrderMaterils]
+CREATE    PROCEDURE [dbo].[USP_SaveTurnInMultipleWorkOrderMaterils]
 	@tbl_SaveAndTenderMultipleStocklineType [SaveAndTenderMultipleStocklineType] READONLY
 AS
 BEGIN
@@ -281,16 +281,16 @@ BEGIN
 							UPDATE dbo.Stockline SET WorkOrderMaterialsId = @WorkOrderMaterialsId WHEre StockLineId = @StockLineId
 						END
 
-						--IF(@WorkOrderTypeId = @TearDownWorkOrderTypeId)  
-						--BEGIN  
-						--	UPDATE [dbo].[WorkOrderPartNumber] SET [TendorStocklineCost] = ISNULL(TendorStocklineCost,0) + ISNULL((@Quantity * @Unitcost),0) WHERE ID = @WorkOrderPartNoId;            
+						IF(@WorkOrderTypeId = @TearDownWorkOrderTypeId)  
+						BEGIN  
+							UPDATE [dbo].[WorkOrderPartNumber] SET [TendorStocklineCost] = ISNULL(TendorStocklineCost,0) + ISNULL((@Quantity * @Unitcost),0) WHERE ID = @WorkOrderPartNoId;            
   
-						--	SET @OLDStockLineId = (SELECT [StockLineId] FROM [dbo].[WorkOrderPartNumber] WITH(NOLOCK) WHERE [ID] = @WorkOrderPartNoId);  
+							SET @OLDStockLineId = (SELECT [StockLineId] FROM [dbo].[WorkOrderPartNumber] WITH(NOLOCK) WHERE [ID] = @WorkOrderPartNoId);  
   
-						--	UPDATE [dbo].[Stockline] SET [Memo] = 'This Stockline cost is updated using turn-in to work order number ' + @WorkOrderNumber + ' new stockline is ' + @StockLineNumber,  
-						--		[UnitCost] -= @Unitcost, [PurchaseOrderUnitCost] -= @Unitcost  
-						--	WHERE [StockLineId] = @OLDStockLineId;  
-						--END 
+							UPDATE [dbo].[Stockline] SET [Memo] = 'This Stockline cost is updated using turn-in to work order number ' + @WorkOrderNumber + ' new stockline is ' + @StockLineNumber  
+								--,[UnitCost] -= @Unitcost, [PurchaseOrderUnitCost] -= @Unitcost  
+							WHERE [StockLineId] = @OLDStockLineId;  
+						END 
 
 						--: Around 4 Seconds
 						--WHILE @count >= @slcount  

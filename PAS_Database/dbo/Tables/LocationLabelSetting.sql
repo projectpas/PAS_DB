@@ -1,14 +1,14 @@
 ﻿CREATE TABLE [dbo].[LocationLabelSetting] (
     [LocationLabelSettingId] BIGINT IDENTITY(1,1) NOT NULL,
 
-    [FieldWidth]              DECIMAL(18,2) NULL,
-    [FieldHeight]             DECIMAL(18,2) NULL,
-    [FieldDPI]                DECIMAL(18,2) NULL,
+    [FieldWidth]              DECIMAL(18,6) NULL,
+    [FieldHeight]             DECIMAL(18,6) NULL,
+    [FieldDPI]                DECIMAL(18,6) NULL,
    
-    [MarginLeft]              DECIMAL(18,2) NULL,
-    [MarginRight]             DECIMAL(18,2) NULL,
-    [MarginTop]               DECIMAL(18,2) NULL,
-    [MarginBottom]            DECIMAL(18,2) NULL,
+    [MarginLeft]              DECIMAL(18,6) NULL,
+    [MarginRight]             DECIMAL(18,6) NULL,
+    [MarginTop]               DECIMAL(18,6) NULL,
+    [MarginBottom]            DECIMAL(18,6) NULL,
    
     [MasterCompanyId]         INT NOT NULL,
    

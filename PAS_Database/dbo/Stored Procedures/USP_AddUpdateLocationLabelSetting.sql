@@ -8,6 +8,7 @@
 ** PR   Date        Author          Change Description
 ** --   --------    -------         --------------------------------
 ** 1    10/06/2026  Sumit Kumar     Created Add/Update Location Label Settings
+** 2    16/06/2026  Sumit Kumar     Changed Field Precision to (18,6) 
 **********************/
 
 CREATE PROCEDURE [dbo].[USP_AddUpdateLocationLabelSetting]
@@ -15,13 +16,13 @@ CREATE PROCEDURE [dbo].[USP_AddUpdateLocationLabelSetting]
 	@CreatedBy VARCHAR(50),
 	@UpdatedBy VARCHAR(50),
 	@MasterCompanyId BIGINT,
-	@FieldHeight DECIMAL(18,2),
-	@FieldWidth DECIMAL(18,2),
-	@FieldDPI DECIMAL(18,2),
-	@MarginLeft DECIMAL(18,2),
-	@MarginRight DECIMAL(18,2),
-	@MarginTop DECIMAL(18,2),
-	@MarginBottom DECIMAL(18,2)
+	@FieldHeight DECIMAL(18,6),
+	@FieldWidth DECIMAL(18,6),
+	@FieldDPI DECIMAL(18,6),
+	@MarginLeft DECIMAL(18,6),
+	@MarginRight DECIMAL(18,6),
+	@MarginTop DECIMAL(18,6),
+	@MarginBottom DECIMAL(18,6)
 )
 AS
 BEGIN

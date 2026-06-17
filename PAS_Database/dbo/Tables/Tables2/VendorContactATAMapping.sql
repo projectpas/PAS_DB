@@ -26,10 +26,12 @@
 
 
 
+
+
 GO
 
 GO
-     CREATE     TRIGGER [dbo].[trg_Audit_dbo_VendorContactATAMapping]
+CREATE     TRIGGER [dbo].[trg_Audit_dbo_VendorContactATAMapping]
         ON [dbo].[VendorContactATAMapping]
         AFTER INSERT, UPDATE, DELETE
         AS
@@ -115,6 +117,21 @@ GO
                     WHERE o2.VendorContactATAMappingId = p.VendorContactATAMappingId
                       AND o2.ColumnName    = n.ColumnName
                 )
+            ),
+
+            chapter AS (
+                SELECT 
+                    m.PKJson,
+                    m.Action,
+                    MAX(CASE WHEN m.ColumnName = 'Level1' THEN m.OldValue END) AS OldL1,
+                    MAX(CASE WHEN m.ColumnName = 'Level2' THEN m.OldValue END) AS OldL2,
+                    MAX(CASE WHEN m.ColumnName = 'Level3' THEN m.OldValue END) AS OldL3,
+                    MAX(CASE WHEN m.ColumnName = 'Level1' THEN m.NewValue END) AS NewL1,
+                    MAX(CASE WHEN m.ColumnName = 'Level2' THEN m.NewValue END) AS NewL2,
+                    MAX(CASE WHEN m.ColumnName = 'Level3' THEN m.NewValue END) AS NewL3
+                FROM merged m
+                WHERE m.ColumnName IN ('Level1','Level2','Level3')
+                GROUP BY m.PKJson, m.Action
             )
             INSERT dbo.AuditLog (SchemaName, TableName, PKJson, ColumnName, Action, OldValue, NewValue)
             SELECT
@@ -154,26 +171,15 @@ GO
             SELECT
                 N'dbo',
                 N'VendorContactATAMapping',
-                m.PKJson,
-                x.ColumnName,
-                m.Action,
-                x.OldValue,
-                x.NewValue
-            FROM merged m
-            LEFT JOIN dbo.VendorContactATAMapping VCOld WITH (NOLOCK) ON TRY_CAST(m.OldValue AS BIGINT) = VCOld.VendorContactATAMappingId
-            LEFT JOIN dbo.VendorContactATAMapping VCNew WITH (NOLOCK) ON TRY_CAST(m.NewValue AS BIGINT) = VCNew.VendorContactATAMappingId
-           
-            CROSS APPLY (
-                VALUES
-                ('ATAChapter', LTRIM(RTRIM(ISNULL(VCOld.Level1,'') + '-' + ISNULL(VCOld.Level2,'')+ '-' + ISNULL(VCOld.Level3,''))), LTRIM(RTRIM(ISNULL(VCNew.Level1,'') + '-' + ISNULL(VCNew.Level2,'')+ '-' + ISNULL(VCNew.Level3,''))))
-                
-            ) x (ColumnName, OldValue, NewValue)
-
-            WHERE m.ColumnName = 'VendorContactATAMappingId'
-                AND (
-                    (x.OldValue IS NULL AND x.NewValue IS NOT NULL)
-                    OR (x.OldValue IS NOT NULL AND x.NewValue IS NULL)
-                    OR (x.OldValue <> x.NewValue)
-                );
+                c.PKJson,
+                'ATAChapter',
+                c.Action,
+                LTRIM(RTRIM(ISNULL(c.OldL1,'') + '-' + ISNULL(c.OldL2,'') + '-' + ISNULL(c.OldL3,''))) AS OldValue,
+                LTRIM(RTRIM(ISNULL(c.NewL1,'') + '-' + ISNULL(c.NewL2,'') + '-' + ISNULL(c.NewL3,''))) AS NewValue
+            FROM chapter c
+            WHERE
+                LTRIM(RTRIM(ISNULL(c.OldL1,'') + '-' + ISNULL(c.OldL2,'') + '-' + ISNULL(c.OldL3,'')))
+                <>
+                LTRIM(RTRIM(ISNULL(c.NewL1,'') + '-' + ISNULL(c.NewL2,'') + '-' + ISNULL(c.NewL3,'')));
 
         END;

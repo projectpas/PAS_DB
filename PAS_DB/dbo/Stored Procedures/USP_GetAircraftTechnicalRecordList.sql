@@ -18,7 +18,7 @@
 ** 6    22/05/2026	 Bhargav Saliya		Added MtceRecordUpdated Filter [PN-16567]
 ** 7    10/06/2026	 Amit Ghediya		Update name WorksheetNumber to WorksheetNum due to use in other [PN-16797]
 ** 8    15/06/2026	 Amit Ghediya		Update TotalRecords when filter not worked.
-** 9    16/06/2026	 Amit Ghediya		Get AircraftPublicationId [PN-16797]
+** 9    16/06/2026	 Amit Ghediya		Get AircraftPublicationId for records [PN-16797]
 *******************************************************************************/
 --EXEC dbo.USP_GetAircraftTechnicalRecordList @PageNumber=1,@PageSize=20,@SortColumn=NULL,@SortOrder=N'ASC',
 --@GlobalFilter=NULL,@TailNumber=NULL,@AircraftMake=NULL,@AircraftModel=NULL,@SerialNumber=NULL,@PubDate=NULL,
@@ -184,7 +184,7 @@ BEGIN
                 ARH.CreatedDate,
                 ARH.CreatedBy,
                 ARH.MasterCompanyId,
-                CASE WHEN EXISTS (SELECT 1 FROM dbo.AircraftMaintenanceProgram AMP WITH(NOLOCK) WHERE AMP.AircraftRegistryId = ARH.AircraftRegistryId AND ISNULL(AMP.IsMtceRecordUpdated, 0) = 1)
+                CASE WHEN EXISTS (SELECT 1 FROM dbo.AircraftMaintenanceProgram AMP WITH(NOLOCK) WHERE AMP.AircraftRegistryId = ARH.AircraftRegistryId AND AMP.AircraftPublicationId = PUB.AircraftPublicationId AND ISNULL(AMP.IsMtceRecordUpdated, 0) = 1)
                 THEN 'YES' ELSE 'NO' END AS MtceRecordUpdated
              FROM [dbo].[AircraftRegistryHeader] ARH WITH(NOLOCK) 			
 			INNER JOIN [dbo].[AircraftEffectivity] ACE WITH(NOLOCK) ON ARH.[MakeTypeId] = ACE.[MakeTypeId] AND ARH.[SerialNum] = ACE.[SerialNum]

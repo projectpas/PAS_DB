@@ -19,6 +19,7 @@
 	3	 04-12-2024     Shrey Chandegara   Modified due to add some new column and add filter
 	4    11-Jun-2026    Sahdev Saliya      Added PublicationType [PN-15971]
 	5    15-Jun-2026    Sahdev Saliya      Multi-select dropdown has been added in Publication Type.[PN-16971]
+	6    16-Jun-2026    Sahdev Saliya      Added PublicationTypeGloble [PN-15971]
 
 exec usprpt_GetPubTrackingReport @PageNumber=1,@PageSize=20,@SortColumn=NULL,@SortOrder=-1,@GlobalFilter=N'',@strFilter=N'1,5,6,52,84!2,7,8,9!3,11,10!4,13,12!!!!!!',@PublicationRecordId=0,
 @PublicationId=NULL,@PartNumber=NULL,@PartDescription=NULL,@PublicationDescription=NULL,@VerifiedStatus=N'0',@DayToExpiry=NULL,@RedIndicator=0,@GreenIndicator=0,@YellowIndicator=0,@ExpirationStatus=N'0',
@@ -69,7 +70,8 @@ CREATE   PROCEDURE [dbo].[usprpt_GetPubTrackingReport]
 @level9Str VARCHAR(MAX) = NULL,
 @level10Str VARCHAR(MAX) = NULL,
 @MasterCompanyId INT,
-@PublicationType VARCHAR(256) = NULL
+@PublicationType VARCHAR(256) = NULL,
+@PublicationTypeGloble VARCHAR(100) = NULL
  
 AS  
 BEGIN  
@@ -291,7 +293,8 @@ BEGIN
 			 (ISNULL(@RevDate, '') = '' OR CAST([RevDate] AS DATE) =  CAST(@RevDate AS DATE)) AND 
 			 (ISNULL(@ExpirationDate, '') = '' OR CAST([ExpirationDate] AS DATE) = CAST(@ExpirationDate AS DATE)) AND 
 			 (ISNULL(@VerifiedDate, '') = '' OR CAST([VerifiedDate] AS DATE) =  CAST(@VerifiedDate AS DATE)) AND
-			 ( ISNULL(@PublicationType, '') = '' OR EXISTS (SELECT 1 FROM STRING_SPLIT(@PublicationType, ',') pt WHERE UPPER([PublicationType]) LIKE '%' + UPPER(LTRIM(RTRIM(pt.value))) + '%'))
+			 ( ISNULL(@PublicationType, '') = '' OR EXISTS (SELECT 1 FROM STRING_SPLIT(@PublicationType, ',') pt WHERE UPPER([PublicationType]) LIKE '%' + UPPER(LTRIM(RTRIM(pt.value))) + '%')) AND
+			 ( ISNULL(@PublicationTypeGloble, '') = '' OR EXISTS (SELECT 1 FROM STRING_SPLIT(@PublicationTypeGloble, ',') pt WHERE UPPER([PublicationType]) = UPPER(LTRIM(RTRIM(pt.value)))))
 			 )
 
 		 SET @Total = (SELECT TOP 1 COUNT(1) OVER () AS TotalRecordsCount FROM #finalResult);

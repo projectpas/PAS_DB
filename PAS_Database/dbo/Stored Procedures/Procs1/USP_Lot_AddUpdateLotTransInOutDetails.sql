@@ -15,10 +15,12 @@
     1    04/07/2023  Amit Ghediya    Created
     2    08 Apr 2025 RAJESH GAMI     Implement Reference Number    
 	3    27/05/2026  Nakul Chandigra      Sync the stored procedure from PROD to UAT.
+	4    17/06/2026  Priyansh Patel     uom changes  [PN-16771]
+
 
 -- EXEC USP_Lot_AddUpdateLotTransInOutDetails
 ************************************************************************/
-CREATE   PROCEDURE [dbo].[USP_Lot_AddUpdateLotTransInOutDetails]
+CREATE    PROCEDURE [dbo].[USP_Lot_AddUpdateLotTransInOutDetails]
 	@tbl_LotTransInOutDetailsType LotTransInOutDetailsType READONLY,
 	@LotTransInOutId BIGINT = NULL,
 	@MasterCompanyId INT,
@@ -54,10 +56,10 @@ BEGIN
 			[LotTransInOutId] BIGINT NULL,
 			[StockLineId] BIGINT NULL,
 			[LotId] BIGINT NULL,
-			[QtyToTransIn] INT NULL,
-			[QtyToTransOut] INT NULL,
-			[UnitCost] DECIMAL(18,2) NULL,
-			[ExtCost] DECIMAL(18,2) NULL,
+			[QtyToTransIn]  DECIMAL(18,6) NULL,
+			[QtyToTransOut] DECIMAL(18,6) NULL,
+			[UnitCost] DECIMAL(18,6) NULL,
+			[ExtCost]  DECIMAL(18,6) NULL,
 			[TransInMemo] VARCHAR(256) NULL,	
 			[TransOutMemo] VARCHAR(256) NULL,
 			[RemainingQty] int NULL

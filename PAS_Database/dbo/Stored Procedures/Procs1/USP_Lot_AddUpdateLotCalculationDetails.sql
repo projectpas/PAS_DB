@@ -13,11 +13,13 @@
  ** --   --------    ---------		--------------------------------          
     1    04/10/2023  Rajesh Gami    Created
 	2    10/16/2024	 Abhishek Jirawla	Implemented the new tables for SalesOrder related tables
-    3   07-Aug-2025  RAJESH GAMI       New SO Shipping and Invoiced status related change(PN-8302)
-	4   03-June-2026  RAJESH GAMI      [PN-16687] Original Cost Should Include All PO-Received Stocklines
+    3    07-Aug-2025  RAJESH GAMI       New SO Shipping and Invoiced status related change(PN-8302)
+	4    03-June-2026  RAJESH GAMI      [PN-16687] Original Cost Should Include All PO-Received Stocklines
+	4    17-June-2026  Priyansh Patel     uom changes  [PN-16771]
+
 -- EXEC USP_Lot_AddUpdateLotCalculationDetails
 ************************************************************************/
-CREATE   PROCEDURE [dbo].[USP_Lot_AddUpdateLotCalculationDetails]
+CREATE     PROCEDURE [dbo].[USP_Lot_AddUpdateLotCalculationDetails]
 	@tbl_LotCalculationDetailsType LotCalculationDetailsType READONLY,
 	@LotCalculationId BIGINT = NULL,
 	@LotId BIGINT = NULL,
@@ -56,30 +58,30 @@ BEGIN
 			[Type] VARCHAR(100) NULL,
 			[ReferenceId] BIGINT NULL,
 			[ChildId] BIGINT NULL,
-			[OriginalCost] DECIMAL(18, 2) NULL,
-			[RepairCost] DECIMAL(18, 2) NULL,
-			[AdjustedLotCost] DECIMAL(18, 2) NULL,
-			[RepCost] DECIMAL(18, 2) NULL,
-			[Qty] INT NULL,
-			[TransferredInCost] DECIMAL(18, 2) NULL,
-			[TransferredOutCost] DECIMAL(18, 2) NULL,
-			[RemainingCost] DECIMAL(18, 2) NULL,
-			[OtherCost] DECIMAL(18, 2) NULL,
-			[TotalLotCost] DECIMAL(18, 2) NULL,
-			[Revenue] DECIMAL(18, 2) NULL,
-			[CogsPartsCost] DECIMAL(18, 2) NULL,
-			[CommissionExpense] DECIMAL(18, 2) NULL,
-			[TotalExpense] DECIMAL(18, 2) NULL,
-			[MarginAmt] DECIMAL(18, 2) NULL,
-			[MarginPercent] [decimal](18, 2) NULL,
-			[FreightCost] [decimal](18, 2) NULL,
-			[InsuranceCost] [decimal](18, 2) NULL,
-			[HandlingCost] [decimal](18, 2) NULL,
-			[TeardownCost] [decimal](18, 2) NULL,
-			[SoldCost] [decimal](18, 2) NULL,
-			[SalesUnitPrice] [decimal](18, 2) NULL,
-			[PreCostStocklinePrice] [decimal](18, 2) NULL,
-			[ExtPreCostStocklinePrice] [decimal](18, 2) NULL,
+			[OriginalCost] DECIMAL(18, 6) NULL,
+			[RepairCost] DECIMAL(18, 6) NULL,
+			[AdjustedLotCost] DECIMAL(18, 6) NULL,
+			[RepCost] DECIMAL(18, 6) NULL,
+			[Qty] DECIMAL(18, 6) NULL,
+			[TransferredInCost] DECIMAL(18, 6) NULL,
+			[TransferredOutCost] DECIMAL(18, 6) NULL,
+			[RemainingCost] DECIMAL(18, 6) NULL,
+			[OtherCost] DECIMAL(18, 6) NULL,
+			[TotalLotCost] DECIMAL(18, 6) NULL,
+			[Revenue] DECIMAL(18, 6) NULL,
+			[CogsPartsCost] DECIMAL(18, 6) NULL,
+			[CommissionExpense] DECIMAL(18, 6) NULL,
+			[TotalExpense] DECIMAL(18, 6) NULL,
+			[MarginAmt] DECIMAL(18, 6) NULL,
+			[MarginPercent] [decimal](18, 6) NULL,
+			[FreightCost] [decimal](18, 6) NULL,
+			[InsuranceCost] [decimal](18, 6) NULL,
+			[HandlingCost] [decimal](18, 6) NULL,
+			[TeardownCost] [decimal](18, 6) NULL,
+			[SoldCost] [decimal](18, 6) NULL,
+			[SalesUnitPrice] [decimal](18, 6) NULL,
+			[PreCostStocklinePrice] [decimal](18, 6) NULL,
+			[ExtPreCostStocklinePrice] [decimal](18, 6) NULL,
 			[IsFromPreCostStk][bit] NULL
 		)
 		

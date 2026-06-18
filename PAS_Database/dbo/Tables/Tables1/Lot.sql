@@ -5,7 +5,7 @@
     [VendorId]              BIGINT          NOT NULL,
     [ReferenceNumber]       VARCHAR (50)    NULL,
     [OpenDate]              DATETIME2 (7)   NOT NULL,
-    [OriginalCost]          DECIMAL (18, 2) NULL,
+    [OriginalCost]          DECIMAL (18, 6) NULL,
     [LotStatusId]           INT             NULL,
     [ObtainFromTypeId]      INT             NULL,
     [ObtainFromId]          BIGINT          NULL,
@@ -24,13 +24,9 @@
     [IsDeleted]             BIT             CONSTRAINT [DF_Lot_IsDeleted] DEFAULT ((0)) NOT NULL,
     [IsInitialPO]           BIT             NULL,
     [InitialPOId]           BIGINT          NULL,
-    [InitialPOCost]         DECIMAL (18, 2) NULL,
-    [StocklineTotalCost]    DECIMAL (18, 2) NULL,
+    [InitialPOCost]         DECIMAL (18, 6) NULL,
+    [StocklineTotalCost]    DECIMAL (18, 6) NULL,
     CONSTRAINT [PK_Lot] PRIMARY KEY CLUSTERED ([LotId] ASC),
     CONSTRAINT [FK_Lot_Employee] FOREIGN KEY ([EmployeeId]) REFERENCES [dbo].[Employee] ([EmployeeId])
 );
-
-
-
-
 

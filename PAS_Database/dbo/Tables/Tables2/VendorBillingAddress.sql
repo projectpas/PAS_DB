@@ -24,6 +24,8 @@
 
 
 
+
+
 GO
 
 
@@ -140,7 +142,7 @@ GO
                       AND o2.ColumnName    = n.ColumnName
                 )
             )
-            INSERT dbo.AuditLog (SchemaName, TableName, PKJson, ColumnName, Action, OldValue, NewValue)
+            INSERT dbo.AuditLog (SchemaName, TableName, PKJson, ColumnName, Action, OldValue, NewValue, ReferenceId)
             SELECT
                 N'dbo' AS SchemaName,
                 N'VendorBillingAddress' AS TableName,
@@ -149,22 +151,25 @@ GO
                 m.Action,
                  CASE             
                     WHEN m.ColumnName = 'ContactTagId' THEN contOld.TagName
-                    WHEN m.ColumnName = 'AddressId' THEN ctOld.countries_name
+                    --WHEN m.ColumnName = 'AddressId' THEN ctOld.countries_name
 
                 ELSE m.OldValue
                 END AS OldValue,        
                 CASE 
                     WHEN m.ColumnName = 'ContactTagId' THEN contNew.TagName
-                    WHEN m.ColumnName = 'AddressId' THEN ctNew.countries_name
+                    --WHEN m.ColumnName = 'AddressId' THEN ctNew.countries_name
                     ELSE m.NewValue
-                END AS NewValue
+                END AS NewValue,
+                COALESCE(i2.AddressId, d2.AddressId) AS ReferenceId
             FROM merged m
             LEFT JOIN DBO.ContactTag contOld WITH (NOLOCK) ON m.ColumnName = 'ContactTagId'AND TRY_CAST(m.OldValue AS bigint)  = contOld.ContactTagId
             LEFT JOIN DBO.ContactTag contNew WITH (NOLOCK) ON m.ColumnName = 'ContactTagId'AND TRY_CAST(m.NewValue AS bigint)  = contNew.ContactTagId
-            LEFT JOIN DBO.Address adOld WITH (NOLOCK) ON m.ColumnName = 'AddressId'AND TRY_CAST(m.OldValue AS bigint)  = adOld.AddressId
-            LEFT JOIN DBO.Countries ctOld WITH (NOLOCK) ON adOld.CountryId  = ctOld.countries_id
-            LEFT JOIN DBO.Address adNew WITH (NOLOCK) ON m.ColumnName = 'AddressId'AND TRY_CAST(m.NewValue AS bigint)  = adNew.AddressId
-            LEFT JOIN DBO.Countries ctNew WITH (NOLOCK) ON adNew.CountryId = ctNew.countries_id
+            --LEFT JOIN DBO.Address adOld WITH (NOLOCK) ON m.ColumnName = 'AddressId'AND TRY_CAST(m.OldValue AS bigint)  = adOld.AddressId
+            --LEFT JOIN DBO.Countries ctOld WITH (NOLOCK) ON adOld.CountryId  = ctOld.countries_id
+            --LEFT JOIN DBO.Address adNew WITH (NOLOCK) ON m.ColumnName = 'AddressId'AND TRY_CAST(m.NewValue AS bigint)  = adNew.AddressId
+            --LEFT JOIN DBO.Countries ctNew WITH (NOLOCK) ON adNew.CountryId = ctNew.countries_id
+            LEFT JOIN inserted i2 ON i2.VendorBillingAddressId = TRY_CAST(JSON_VALUE(m.PKJson, '$.VendorBillingAddressId') AS BIGINT)
+            LEFT JOIN deleted d2 ON d2.VendorBillingAddressId = TRY_CAST(JSON_VALUE(m.PKJson, '$.VendorBillingAddressId') AS BIGINT)
             WHERE
                 (m.Action = 'U' AND (
                      (m.OldValue IS NULL AND m.NewValue IS NOT NULL)
@@ -184,19 +189,30 @@ GO
                 m.PKJson,
                 x.ColumnName,
                 m.Action,
-                x.OldValue,
-                x.NewValue
+                CASE             
+                    WHEN m.ColumnName = 'CountryId' THEN ctOld.countries_name
+                    ELSE m.OldValue
+                END AS OldValue,  
+                CASE 
+                    WHEN m.ColumnName = 'CountryId' THEN ctNew.countries_name
+                    ELSE x.NewValue
+                END AS NewValue,
+                COALESCE(i2.AddressId, d2.AddressId) AS ReferenceId
             FROM merged m
             LEFT JOIN DBO.Address adOld WITH (NOLOCK) ON m.ColumnName = 'AddressId'AND TRY_CAST(m.OldValue AS bigint)  = adOld.AddressId
+            LEFT JOIN DBO.Countries ctOld WITH (NOLOCK) ON adOld.CountryId  = ctOld.countries_id
             LEFT JOIN DBO.Address adNew WITH (NOLOCK) ON m.ColumnName = 'AddressId'AND TRY_CAST(m.NewValue AS bigint)  = adNew.AddressId
-           
+            LEFT JOIN DBO.Countries ctNew WITH (NOLOCK) ON adNew.CountryId = ctNew.countries_id
+            LEFT JOIN inserted i2 ON i2.VendorBillingAddressId = TRY_CAST(JSON_VALUE(m.PKJson, '$.VendorBillingAddressId') AS BIGINT)
+            LEFT JOIN deleted d2 ON d2.VendorBillingAddressId = TRY_CAST(JSON_VALUE(m.PKJson, '$.VendorBillingAddressId') AS BIGINT)
             CROSS APPLY (
                 VALUES
                 ('Line1', adOld.Line1, adNew.Line1),
                 ('Line2', adOld.Line2, adNew.Line2),
                 ('City', adOld.City, adNew.City),
                 ('StateOrProvince', adOld.StateOrProvince, adNew.StateOrProvince),
-                ('PostalCode', adOld.PostalCode, adNew.PostalCode)
+                ('PostalCode', adOld.PostalCode, adNew.PostalCode),
+                ('CountryId',ctOld.countries_name ,ctNew.countries_name)
             ) x (ColumnName, OldValue, NewValue)
 
             WHERE m.ColumnName = 'AddressId'

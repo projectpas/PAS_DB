@@ -11,6 +11,7 @@
  ** --   --------			-------				--------------------------------            
     1    2025-05-29		  Ayushi Patel				Created
 	1    2025-06-16		  Ayushi Patel				Set IsPrimary false when we add new billing address which is set to be primary
+    3    18-06-2026       Nkaul Chandigra           Removed unnecessary column updates because they were also updating the value of the previous IsPrimary row.(PN-15976)
 	EXEC USP_CreateOrUpdateVendorBillingAddress 0,4791,0,CAROLINA,1,'41410 ARNULFO RUN','S','','73396','VIRGINIA',1,'AYUSHI P','AYUSHI P',FALSE,TRUE,'TYREEK AUER',NULL,'',FALSE
 *************************************************************/
 CREATE PROCEDURE [dbo].[USP_CreateOrUpdateVendorBillingAddress]
@@ -98,8 +99,6 @@ BEGIN
 			PRINT (@ContactTagId);
                 UPDATE VB
                 SET IsPrimary = 0,
-                    ContactTagId = @ContactTagId,
-                    Attention = @Attention,
                     UpdatedBy = @CreatedBy,
                     UpdatedDate = @Now
                 FROM DBO.VendorBillingAddress VB
@@ -126,8 +125,6 @@ BEGIN
 				PRINT (@ContactTagId);
 					UPDATE VB
 					SET IsPrimary = 0,
-						ContactTagId = @ContactTagId,
-						Attention = @Attention,
 						UpdatedBy = @CreatedBy,
 						UpdatedDate = @Now
 					FROM DBO.VendorBillingAddress VB

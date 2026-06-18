@@ -4705,6 +4705,10 @@
     <Build Include="dbo\Stored Procedures\USP_SaveVendorAging.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetXeroVendorList.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdateWorksheetState.sql" />
+    <Build Include="dbo\Tables\BulkStockScrapCertificate.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetBulkStockScrapCertificateForPDF.sql" />
+    <Build Include="dbo\Tables\RFQTraceability.sql" />
+    <Build Include="dbo\Views\vw_RFQTraceability.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetAircraftRegistryDropdownList.sql" />
   </ItemGroup>
   <ItemGroup>

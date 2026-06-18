@@ -36,6 +36,8 @@
 );
 
 
+
+
 GO
 CREATE TRIGGER [dbo].[Trg_SalesOrderManagementStructureDetailsAudit]
    ON  [dbo].[SalesOrderManagementStructureDetails]
@@ -49,3 +51,7 @@ SELECT * FROM INSERTED
 SET NOCOUNT ON;
 
 END
+GO
+CREATE NONCLUSTERED INDEX [IX_SOMSD_Module_Ref]
+    ON [dbo].[SalesOrderManagementStructureDetails]([ModuleID] ASC, [ReferenceID] ASC);
+

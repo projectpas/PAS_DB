@@ -14,7 +14,8 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    09/04/2025  Ayushi Patel     Created
-    2    16/04/2025  Vishal Suthar    Added IsEnforcePickTicket flag
+    2    16/04/2025  Vishal Suthar    Added IsEnforcePickTicket 
+    3    17/06/2025  Abhishek Jirawla Added HasCustomerSuppliedParts flag
 
  EXEC [USP_GetROHeaderDetails] 2554
 ************************************************************************/
@@ -79,7 +80,8 @@ BEGIN
             ISNULL(ro.ReportCurrencyId, 0) AS ReportCurrencyId,
             ISNULL(ro.ForeignExchangeRate, 0) AS ForeignExchangeRate,
 			ISNULL(ro.IsEnforcePickTicket, 0) AS IsEnforcePickTicket,
-			ISNULL(ro.EnforcePickTicketConfirmation, 0) AS EnforcePickTicketConfirmation
+			ISNULL(ro.EnforcePickTicketConfirmation, 0) AS EnforcePickTicketConfirmation,
+			ISNULL(ro.HasCustomerSuppliedParts, 0) AS HasCustomerSuppliedParts
         FROM dbo.RepairOrder ro WITH (NOLOCK)
         LEFT JOIN dbo.RepairOrderManagementStructureDetails msd WITH (NOLOCK)
             ON ro.RepairOrderId = msd.ReferenceID 

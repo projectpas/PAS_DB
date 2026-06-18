@@ -55,6 +55,7 @@
     [IsMigrated]                       BIT             NULL,
     [IsFromAircraft]                   BIT             NULL,
     [MtcCategoryId]                    BIGINT          NULL,
+    [HasCustomerSuppliedParts]         BIT             CONSTRAINT [DF_WorkOrder_HasCSP] DEFAULT ((0)) NOT NULL,
     CONSTRAINT [PK_WorkOrder] PRIMARY KEY CLUSTERED ([WorkOrderId] ASC),
     CONSTRAINT [FK_WorkOrder_CSR] FOREIGN KEY ([CSRId]) REFERENCES [dbo].[Employee] ([EmployeeId]),
     CONSTRAINT [FK_WorkOrder_Customer] FOREIGN KEY ([CustomerId]) REFERENCES [dbo].[Customer] ([CustomerId]),
@@ -67,6 +68,8 @@
     CONSTRAINT [FK_WorkOrder_WorkOrderType] FOREIGN KEY ([WorkOrderTypeId]) REFERENCES [dbo].[WorkOrderType] ([Id]),
     CONSTRAINT [Unique_WorkOrder] UNIQUE NONCLUSTERED ([WorkOrderNum] ASC, [MasterCompanyId] ASC)
 );
+
+
 
 
 

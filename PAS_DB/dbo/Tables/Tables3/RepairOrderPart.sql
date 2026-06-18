@@ -111,6 +111,7 @@
     [AircraftRegistryNumber]         VARCHAR (30)    NULL,
     [IsFromAircraft]                 BIT             NULL,
     [AircraftInstalledPartDetailsId] BIGINT          NULL,
+    [IsPiecePart]                    BIT             CONSTRAINT [DF_RepairOrderPart_IsPiecePart] DEFAULT ((0)) NOT NULL,
     CONSTRAINT [PK_RepairOrderpart] PRIMARY KEY CLUSTERED ([RepairOrderPartRecordId] ASC),
     CONSTRAINT [FK_RepairOrderPart_FunctionalCurrency] FOREIGN KEY ([FunctionalCurrencyId]) REFERENCES [dbo].[Currency] ([CurrencyId]),
     CONSTRAINT [FK_RepairOrderPart_GlAccount] FOREIGN KEY ([GlAccountId]) REFERENCES [dbo].[GLAccount] ([GLAccountId]),
@@ -122,6 +123,8 @@
     CONSTRAINT [FK_RepairOrderPart_SubWorkOrderId] FOREIGN KEY ([SubWorkOrderId]) REFERENCES [dbo].[SubWorkOrder] ([SubWorkOrderId]),
     CONSTRAINT [FK_RepairOrderPart_WorkOrderId] FOREIGN KEY ([WorkOrderId]) REFERENCES [dbo].[WorkOrder] ([WorkOrderId])
 );
+
+
 
 
 

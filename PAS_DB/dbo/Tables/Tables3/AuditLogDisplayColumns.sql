@@ -5,6 +5,6 @@
     [DisplayName]              VARCHAR (256) NOT NULL,
     [SeqNo]                    INT           NULL,
     [FieldAlign]               INT           NULL,
+    [FieldWidth]               VARCHAR (10)  NULL,
     PRIMARY KEY CLUSTERED ([AuditLogDisplayColumnsId] ASC)
 );
-

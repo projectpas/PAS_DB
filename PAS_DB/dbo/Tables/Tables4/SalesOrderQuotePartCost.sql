@@ -31,6 +31,8 @@
 );
 
 
+
+
 GO
 CREATE TRIGGER [dbo].[Trg_SalesOrderQuotePartCostAudit]
    ON  [dbo].[SalesOrderQuotePartCost]
@@ -41,3 +43,8 @@ BEGIN
 	SELECT * FROM INSERTED
 	SET NOCOUNT ON;
 END
+GO
+CREATE NONCLUSTERED INDEX [IX_SOQPartCost_PartId]
+    ON [dbo].[SalesOrderQuotePartCost]([SalesOrderQuotePartId] ASC)
+    INCLUDE([NetSaleAmount]);
+

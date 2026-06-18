@@ -20,6 +20,7 @@
     4    09-DEC-2025	Vishal Suthar	Fixed: added IsDeleted = 0 in join for AllAddress table
     5    17-DEC-2025	Devendra Shekh	added cont.ContactId, ContactEmail
 	6    08-JUN-2026    Ayushi Patel    [PN-16030]Added logic to return ContactEmail and CustomerContactEmail in lowercase for A2Z Master Company.
+	7    17-JUN-2026    Amit Ghediya    Get MarketplaceRef for view [PN-16886].
 
  -- EXEC DBO.GetSalesOrderQuoteById 771
 **************************************************************/ 
@@ -169,7 +170,8 @@ BEGIN
 				WHEN @MasterCompanyCodeAll = @A2ZMasterCompanyCode 
 					THEN LOWER(ISNULL(cont.Email, ''))
 				ELSE ISNULL(cont.Email, '')
-			END AS ContactEmail
+			END AS ContactEmail,
+			ISNULL(SOQ.MarketplaceRef,'') MarketplaceRef
 		FROM DBO.SalesOrderQuote soq WITH (NOLOCK)
 		INNER JOIN DBO.MasterSalesOrderQuoteStatus MST WITH (NOLOCK) on SOQ.StatusId = MST.Id
 		LEFT JOIN DBO.ManagementStructure mn WITH (NOLOCK) ON soq.ManagementStructureId = mn.ManagementStructureId

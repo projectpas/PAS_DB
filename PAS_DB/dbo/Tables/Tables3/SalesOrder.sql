@@ -104,6 +104,8 @@
 );
 
 
+
+
 GO
 
 
@@ -130,3 +132,8 @@ BEGIN
 
 
 END
+GO
+CREATE NONCLUSTERED INDEX [IX_SalesOrder_QuoteId]
+    ON [dbo].[SalesOrder]([SalesOrderQuoteId] ASC)
+    INCLUDE([SalesOrderId], [SalesOrderNumber]);
+

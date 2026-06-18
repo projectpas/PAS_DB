@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [dbo].[GetBillingInvoiceByShipping]          
  ** Author:   Deep Patel
  ** Description: Get Billing Data based on Shipping id.
@@ -19,6 +18,7 @@
 	8    12/10/2024	  BHARGAV SALIA   Get SalesTotal,Freight,MiscCharges,SubTotal,SalesTax,OtherTax,GrandTotal for the standerd proforma view
 	9    01/july/2025 RAJESH GAMI	 Change the table as per new Billing Structure
 	10   02/july/2025 RAJESH GAMI	 Make changes for origin country id
+	11   18/06/2026   Bhargav Saliya UOM Changes with Added Case For Skip UOM Function If FROM uom and TO uom Both are Same [PN-15067]
 **************************************************************/ 
 CREATE    PROCEDURE [dbo].[GetBillingInvoiceByShipping]
 	@SalesOrderShippingId bigint,
@@ -48,13 +48,13 @@ SET NOCOUNT ON;
 					sobi.SignEmpId AS SignEmpId,
 					sobi.SignEmpDate AS SignEmpDate,
 					sobi.InvoiceNo,
-					ISNULL(sobii.PartCost,0) AS SalesTotal,
+					(CASE WHEN im.[StockUnitOfMeasure] = im.[ConsumeUnitOfMeasure] THEN ISNULL(sobii.PartCost, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(sobii.PartCost, 0),im.[StockUnitOfMeasure],im.[ConsumeUnitOfMeasure],1,so.MasterCompanyId) END) AS SalesTotal,
 					ISNULL(sobii.Freight,0) AS Freight,
 					ISNULL(sobii.MiscCharges,0) AS MiscCharges,
-					ISNULL(sobi.SubTotal,0) AS SubTotal,
+					(CASE WHEN im.[StockUnitOfMeasure] = im.[ConsumeUnitOfMeasure] THEN ISNULL(sobi.SubTotal, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(sobi.SubTotal, 0),im.[StockUnitOfMeasure],im.[ConsumeUnitOfMeasure],1,so.MasterCompanyId) END) AS SubTotal,
 					ISNULL(sobi.SalesTax,0) AS SalesTax,
 					ISNULL(sobi.OtherTax,0) AS OtherTax,
-					ISNULL(sobi.GrandTotal,0) AS GrandTotal
+					(CASE WHEN im.[StockUnitOfMeasure] = im.[ConsumeUnitOfMeasure] THEN ISNULL(sobi.GrandTotal, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(sobi.GrandTotal, 0),im.[StockUnitOfMeasure],im.[ConsumeUnitOfMeasure],1,so.MasterCompanyId) END) AS GrandTotal
 				FROM DBO.SalesOrderPartV1 sop WITH (NOLOCK)
 				INNER JOIN DBO.SalesOrder so WITH (NOLOCK) ON so.SalesOrderId = sop.SalesOrderId
 				INNER JOIN DBO.Customer co WITH (NOLOCK) ON co.CustomerId = so.CustomerId

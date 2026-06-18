@@ -20,9 +20,9 @@
 	5    31/12/2025	  Bhargav Saliya		Fixed an issue (PN-15053)
 	6    26/02/2026   Priyansh Patel		changed NVARCHAR(10) to NVARCHAR(20) for quatity and cost
 	7    16-Apr-026   Bhargav Saliya        UOM Changes
-
+	8    18/06/2026   Bhargav Saliya	Added Case For Skip UOM Function If FROM uom and TO uom Both are Same
 **************************************************************/
-CREATE       PROCEDURE [dbo].[GetPNTileSalesOrderQuoteList]
+CREATE PROCEDURE [dbo].[GetPNTileSalesOrderQuoteList]
 	@PageNumber int = 1,
 	@PageSize int = 10,
 	@SortColumn varchar(50)=NULL,
@@ -85,10 +85,13 @@ BEGIN
 		            SOD.[SalesOrderNumber],
 					SOQ.[OpenDate],
 					SOQ.[CustomerReference],
-					(([dbo].[fn_ConvertUOM](ISNULL(SPC.NetSaleAmount, 0),IM.[StockUnitOfMeasure] ,IM.[ConsumeUnitOfMeasure],0,SP.MasterCompanyId)) / ([dbo].[fn_ConvertUOM](ISNULL(SP.[QtyRequested], 0),IM.[StockUnitOfMeasure] ,IM.[ConsumeUnitOfMeasure],0,SP.MasterCompanyId))) AS [UnitSalesPrice],
-					([dbo].[fn_ConvertUOM](ISNULL(SPC.[UnitCost], 0),IM.[StockUnitOfMeasure] ,IM.[ConsumeUnitOfMeasure],0,SP.MasterCompanyId)) AS [UnitCost],
-					([dbo].[fn_ConvertUOM](ISNULL(SP.[QtyRequested], 0),IM.[StockUnitOfMeasure] ,IM.[ConsumeUnitOfMeasure],0,SP.MasterCompanyId)) AS [Qty],
-					([dbo].[fn_ConvertUOM](ISNULL(SPC.[UnitCostExtended], 0),IM.[StockUnitOfMeasure] ,IM.[ConsumeUnitOfMeasure],0,SP.MasterCompanyId)) AS [UnitCostExtended],
+					(
+						(CASE WHEN IM.[StockUnitOfMeasure] = IM.[ConsumeUnitOfMeasure] THEN ISNULL(SPC.NetSaleAmount, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(SPC.NetSaleAmount, 0),IM.[StockUnitOfMeasure],IM.[ConsumeUnitOfMeasure],1,SP.MasterCompanyId) END)
+						/ NULLIF((CASE WHEN IM.[StockUnitOfMeasure] = IM.[ConsumeUnitOfMeasure] THEN ISNULL(SP.[QtyRequested], 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(SP.[QtyRequested], 0),IM.[StockUnitOfMeasure],IM.[ConsumeUnitOfMeasure],0,SP.MasterCompanyId) END), 0)
+					) AS [UnitSalesPrice],
+					(CASE WHEN IM.[StockUnitOfMeasure] = IM.[ConsumeUnitOfMeasure] THEN ISNULL(SPC.[UnitCost], 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(SPC.[UnitCost], 0),IM.[StockUnitOfMeasure],IM.[ConsumeUnitOfMeasure],1,SP.MasterCompanyId) END) AS [UnitCost],
+					(CASE WHEN IM.[StockUnitOfMeasure] = IM.[ConsumeUnitOfMeasure] THEN ISNULL(SP.[QtyRequested], 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(SP.[QtyRequested], 0),IM.[StockUnitOfMeasure],IM.[ConsumeUnitOfMeasure],0,SP.MasterCompanyId) END) AS [Qty],
+					(CASE WHEN IM.[StockUnitOfMeasure] = IM.[ConsumeUnitOfMeasure] THEN ISNULL(SPC.[UnitCostExtended], 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(SPC.[UnitCostExtended], 0),IM.[StockUnitOfMeasure],IM.[ConsumeUnitOfMeasure],1,SP.MasterCompanyId) END) AS [UnitCostExtended],
 					CO.[Description] AS [ConditionName],
 					SP.ConditionId,
 					SOQ.[SalesPersonName],

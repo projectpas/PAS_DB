@@ -20,7 +20,9 @@
 	3    05-JAN-2023		Hemant Saliya	Allow Same Customer stockline use in WO
 	4    12-May-2025        Devendra Shekh  checking isActive and isDeleted for Alternate Part Select
 	5    23-Dec-2025        Devendra Shekh  added UOM Changes
-	6    07/01/2026   Rajesh Gami		Added MasterCompanyId Parameter While Calling UOM Conversion Function     
+	6    07/01/2026			Rajesh Gami		Added MasterCompanyId Parameter While Calling UOM Conversion Function  
+	7    18/06/2026			Priyansh Patel	Changed the purchase and sale UOM Conversion to purchase to consume uom [PN-16894]    
+	
  EXECUTE [SearchItemMasterByCustomerRestrictionForAddPN] 303, 1, 1,'','0',1
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[SearchItemMasterByCustomerRestrictionForAddPN]
@@ -68,8 +70,8 @@ BEGIN
 						ELSE 'OEM'
 						END AS Oempmader
 					,@MappingType AS MappingType
-					,ISNULL(dbo.fn_ConvertUOM(imps.PP_UnitPurchasePrice, im.StockUnitOfMeasure, im.ConsumeUnitOfMeasure,1,im.MasterCompanyId), 0) AS UnitCost
-					,ISNULL(dbo.fn_ConvertUOM(imps.SP_CalSPByPP_UnitSalePrice, im.StockUnitOfMeasure, im.ConsumeUnitOfMeasure,1,im.MasterCompanyId), 0) AS UnitSalePrice
+					,ISNULL(dbo.fn_ConvertUOM(imps.PP_UnitPurchasePrice, im.PurchaseUnitOfMeasure, im.ConsumeUnitOfMeasure,1,im.MasterCompanyId), 0) AS UnitCost
+					,ISNULL(dbo.fn_ConvertUOM(imps.SP_CalSPByPP_UnitSalePrice, im.PurchaseUnitOfMeasure, im.ConsumeUnitOfMeasure,1,im.MasterCompanyId), 0) AS UnitSalePrice
 					,imps.PP_FXRatePerc AS FixRate
 					,im.ConsumeUnitOfMeasure
 					,im.StockUnitOfMeasure

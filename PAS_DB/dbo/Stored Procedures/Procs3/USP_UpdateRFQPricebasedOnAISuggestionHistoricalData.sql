@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [USP_UpdateRFQPricebasedOnAISuggestionHistoricalData]           
  ** Author:   HEMANT SALIYA
  ** Description: Update RFQ Price Details based on AI suggestions
@@ -14,6 +13,7 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    30/06/2025   HEMANT SALIYA    Created (Update RFQ Price Details based on AI suggestions)
+	2    19/06/2026   Moin Bloch       Fixed Error Log Errors PN-16924
 
 EXEC USP_UpdateRFQPricebasedOnAISuggestionHistoricalData '','',1
 **************************************************************/ 
@@ -220,8 +220,8 @@ BEGIN
 			DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name() 
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
               , @AdhocComments     VARCHAR(150)    = 'USP_UpdateRFQPricebasedOnAISuggestionHistoricalData'             
-			   ,@ProcedureParameters VARCHAR(3000) = '@Parameter1 = ''' + CAST(ISNULL(@MasterCompanyId, '') AS VARCHAR(100))			                                      
-												   + '@Parameter2 = ''' + CAST(ISNULL(@IntegrationTypeId, '') AS VARCHAR(100)) 
+			   ,@ProcedureParameters VARCHAR(3000) = '@Parameter1 = ''' + CAST(ISNULL(@MasterCompanyId, 0) AS VARCHAR(100))			                                      
+												   + '@Parameter2 = ''' + CAST(ISNULL(@IntegrationTypeId, 0) AS VARCHAR(100)) 
               , @ApplicationName VARCHAR(100) = 'PAS'
 -----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------
 

@@ -17,9 +17,10 @@
 	3	 01/05/2026	  Moin Bloch	Modified Added UOM changes
 	4    07/01/2026   Rajesh Gami		Added MasterCompanyId Parameter While Calling UOM Conversion Function
 	5    14/05/2026   Bhargav Saliya		Modified UOM Changes [PN-15067]
+	6    18/06/2026   Bhargav Saliya	Added Case For Skip UOM Function If FROM uom and TO uom Both are Same
+
 --EXEC [SalesOrderSummarizedHistoryByCustomer] 115640, 1
 **************************************************************/
-
 CREATE      PROCEDURE [dbo].[SalesOrderSummarizedHistoryByCustomer]
 @ItemMasterId BIGINT,
 @IsTwelveMonth BIT = 1
@@ -50,9 +51,9 @@ BEGIN
 						0 AS CustApproved,
 						C.Code AS CurrencyName,
 						--((ISNULL(SOPC.NetSaleAmount, 0)) + ISNULL(Charges.BillingAmount, 0)) AS Revenue,
-						ISNULL([dbo].[fn_ConvertUOM](ISNULL(SOPC.NetSaleAmount, 0),IM.[StockUnitOfMeasure], IM.[ConsumeUnitOfMeasure],0,SOP.MasterCompanyId)  + ISNULL(Charges.BillingAmount, 0),0) AS Revenue,
+						ISNULL((CASE WHEN IM.[StockUnitOfMeasure] = IM.[ConsumeUnitOfMeasure] THEN ISNULL(SOPC.NetSaleAmount, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(SOPC.NetSaleAmount, 0),IM.[StockUnitOfMeasure], IM.[ConsumeUnitOfMeasure],1,SOP.MasterCompanyId) END) + ISNULL(Charges.BillingAmount, 0),0) AS Revenue,
 						--((ISNULL(SOPC.UnitCost, 0) * ISNULL(SOP.QtyOrder, 0)) + ISNULL(Charges.BillingAmount, 0)) AS DirectCost,
-						ISNULL([dbo].[fn_ConvertUOM](ISNULL(SOPC.UnitCost, 0),IM.[StockUnitOfMeasure], IM.[ConsumeUnitOfMeasure],1,SOP.MasterCompanyId) * [dbo].[fn_ConvertUOM](ISNULL(SOP.[QtyOrder],0),IM.[StockUnitOfMeasure], IM.[ConsumeUnitOfMeasure],0,SOP.MasterCompanyId),0) + ISNULL(Charges.BillingAmount, 0) AS DirectCost,										
+						ISNULL((CASE WHEN IM.[StockUnitOfMeasure] = IM.[ConsumeUnitOfMeasure] THEN ISNULL(SOPC.UnitCost, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(SOPC.UnitCost, 0),IM.[StockUnitOfMeasure], IM.[ConsumeUnitOfMeasure],1,SOP.MasterCompanyId) END) * (CASE WHEN IM.[StockUnitOfMeasure] = IM.[ConsumeUnitOfMeasure] THEN ISNULL(SOP.[QtyOrder],0) ELSE [dbo].[fn_ConvertUOM](ISNULL(SOP.[QtyOrder],0),IM.[StockUnitOfMeasure], IM.[ConsumeUnitOfMeasure],0,SOP.MasterCompanyId) END),0) + ISNULL(Charges.BillingAmount, 0) AS DirectCost,										
 						SO.SalesOrderNumber,
 						SOQ.SalesOrderQuoteNumber,
 						SO.VersionNumber,

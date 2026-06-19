@@ -15,11 +15,11 @@
     1    07/13/2021   Vishal Suthar Created
     2    11/04/2024   Vishal Suthar Modified to make use of new tables
 	3    16-Apr-026   Bhargav Saliya  UOM Changes
-     
+    4    18/06/2026   Bhargav Saliya	Added Case For Skip UOM Function If FROM uom and TO uom Both are Same
 --EXEC [SalesOrderQuoteSummarizedHistoryByCustomer] 125, 1
 **************************************************************/
 
-CREATE      PROCEDURE [dbo].[SalesOrderQuoteSummarizedHistoryByCustomer]
+CREATE PROCEDURE [dbo].[SalesOrderQuoteSummarizedHistoryByCustomer]
 @ItemMasterId BIGINT,
 @IsTwelveMonth BIT = 1
 AS
@@ -48,8 +48,14 @@ BEGIN
 						Cond.Description AS Condition,
 						CASE WHEN ISNULL(APPR.ApprovalActionId, 0) = 5 THEN 1 ELSE 0 END AS CustApproved,
 						C.Code AS CurrencyName,
-						((([dbo].[fn_ConvertUOM](ISNULL(SOQPC.UnitSalesPrice, 0),IM.[StockUnitOfMeasure] ,IM.[ConsumeUnitOfMeasure],0,SOQP.MasterCompanyId)) * ([dbo].[fn_ConvertUOM](ISNULL(SOQP.QtyQuoted, 0),IM.[StockUnitOfMeasure] ,IM.[ConsumeUnitOfMeasure],0,SOQP.MasterCompanyId))) + ISNULL(SUM(Charges.BillingAmount), 0)) AS Revenue,
-						((([dbo].[fn_ConvertUOM](ISNULL(SOQPC.UnitCost, 0),IM.[StockUnitOfMeasure] ,IM.[ConsumeUnitOfMeasure],0,SOQP.MasterCompanyId)) * ([dbo].[fn_ConvertUOM](ISNULL(SOQP.QtyQuoted, 0),IM.[StockUnitOfMeasure] ,IM.[ConsumeUnitOfMeasure],0,SOQP.MasterCompanyId))) + ISNULL(SUM(Charges.BillingAmount), 0)) AS DirectCost,
+						(
+							(CASE WHEN IM.[StockUnitOfMeasure] = IM.[ConsumeUnitOfMeasure] THEN ISNULL(SOQPC.UnitSalesPrice, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(SOQPC.UnitSalesPrice, 0),IM.[StockUnitOfMeasure],IM.[ConsumeUnitOfMeasure],1,SOQP.MasterCompanyId) END)
+							* (CASE WHEN IM.[StockUnitOfMeasure] = IM.[ConsumeUnitOfMeasure] THEN ISNULL(SOQP.QtyQuoted, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(SOQP.QtyQuoted, 0),IM.[StockUnitOfMeasure],IM.[ConsumeUnitOfMeasure],0,SOQP.MasterCompanyId) END)
+						) + ISNULL(SUM(Charges.BillingAmount), 0) AS Revenue,
+						(
+							(CASE WHEN IM.[StockUnitOfMeasure] = IM.[ConsumeUnitOfMeasure] THEN ISNULL(SOQPC.UnitCost, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(SOQPC.UnitCost, 0),IM.[StockUnitOfMeasure],IM.[ConsumeUnitOfMeasure],1,SOQP.MasterCompanyId) END)
+							* (CASE WHEN IM.[StockUnitOfMeasure] = IM.[ConsumeUnitOfMeasure] THEN ISNULL(SOQP.QtyQuoted, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(SOQP.QtyQuoted, 0),IM.[StockUnitOfMeasure],IM.[ConsumeUnitOfMeasure],0,SOQP.MasterCompanyId) END)
+						) + ISNULL(SUM(Charges.BillingAmount), 0) AS DirectCost,
 						SOQ.SalesOrderQuoteNumber,
 						SOQ.VersionNumber,
 						SOQ.OpenDate AS SOQDate,

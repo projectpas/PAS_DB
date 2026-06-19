@@ -26,8 +26,8 @@
    10       29-MAR-2026     Amit Ghediya            get aircraft data.(PN-16154)
    11 	    15-MAY-2026	    DIVYESH KATHIRIYA       Combine Aircraft Hour and Minitues Like HH:MM. [PN-16398]
    12       02-JUN-2026     DIVYESH KATHIRIYA       Filter Aircraft Cycle History Noise From EngineName and metadata-only rows.[PN-16634]
-
- EXEC usp_Get_CommonAuditLogHistory @ModuleId=87,@PK_Key=N'AircraftCycleTimeMappingsId',@PK_Value=8,@EmployeeId=236, @SubModuleId=88, @SubPK_Key = '',@SubPK_Value=0
+   13       18-JUN-2026     NAKUL CHANDIGRA         Add a condition in the dynamic SQL to prevent getting duplicate rows for VendorBillingAddress  Module.(PN-15976)
+exec usp_Get_CommonAuditLogHistory @ModuleId=80,@PK_Key=N'VendorBillingAddressId',@PK_Value=8505,@EmployeeId=2,@SubModuleId=0,@SubPK_Key=NULL,@SubPK_Value=0
 **********************/ 
 
 CREATE PROC [dbo].[usp_Get_CommonAuditLogHistory]
@@ -58,10 +58,7 @@ BEGIN
 		DECLARE @AircraftCycleTimeModule AS INT
         DECLARE @RefId BIGINT;
 		DECLARE @DetailId VARCHAR(100);
-
-        SELECT @RefId = ContactId
-        FROM [dbo].[VendorContact]
-        WHERE VendorContactId = TRY_CAST(@PK_Value AS BIGINT);
+       DECLARE @VendorBillingAddress AS INT;
 
         -- Validate sort dir
         IF @SortDir NOT IN (N'ASC', N'DESC') SET @SortDir = N'DESC';
@@ -72,6 +69,17 @@ BEGIN
         SET @CustomerContactModule = (SELECT [HistoryModuleId] FROM [dbo].[HistoryModule] WITH(NOLOCK) WHERE [HistoryModuleName] = 'CustomerContact');
         SET @VendorContactModule = (SELECT [HistoryModuleId] FROM [dbo].[HistoryModule] WITH(NOLOCK) WHERE [HistoryModuleName] = 'VendorContact');
 		SET @AircraftCycleTimeModule = (SELECT [HistoryModuleId] FROM [dbo].[HistoryModule] WITH(NOLOCK) WHERE [HistoryModuleName] = 'AircraftCycleTimeMappings');
+        SET @VendorBillingAddress = (SELECT [HistoryModuleId] FROM [dbo].[HistoryModule] WITH(NOLOCK) WHERE [HistoryModuleName] = 'VendorBillingAddress');
+
+        IF (@ModuleId = @VendorContactModule)
+            SELECT @RefId = ContactId
+            FROM [dbo].[VendorContact]
+            WHERE VendorContactId = TRY_CAST(@PK_Value AS BIGINT);
+        ELSE IF (@ModuleId = @VendorBillingAddress)
+            SELECT @RefId = AddressId
+            FROM [dbo].[VendorBillingAddress]
+            WHERE VendorBillingAddressId = TRY_CAST(@PK_Value AS BIGINT);
+
        
         SELECT @CurrntEmpTimeZoneDesc = COALESCE(ETZ.[Description], LTZ.[Description])
         FROM dbo.Employee E WITH (NOLOCK)
@@ -127,7 +135,7 @@ BEGIN
             )
             ) AS c;
         END
-        ELSE IF (@ModuleId = @VendorContactModule)
+        ELSE IF (@ModuleId = @VendorContactModule OR @ModuleId = @VendorBillingAddress)
         BEGIN 
             SELECT @cols =
                 STRING_AGG(QUOTENAME(ColumnName), ',')
@@ -388,6 +396,28 @@ BEGIN
 								AND FD.[Action] = AL.[Action]
 						),';
         END
+        ELSE IF (@ModuleId = @VendorBillingAddress)
+        BEGIN 
+            SET @sql = N';WITH S AS
+            (
+                SELECT
+                    AuditId,
+                    TableName,
+                    PKJson,
+                    ColumnName,
+                    [Action],
+                    OldValue,
+                    NewValue,
+                    ChangedBy,
+                    ChangedAt,
+                    ReferenceId   
+                FROM [dbo].[AuditLog] WITH (NOLOCK)
+                WHERE ReferenceId = @RefId  
+                  AND TableName in (''VendorBillingAddress'',''Address'')
+                  AND (@StartAt IS NULL OR ChangedAt >= @StartAt)
+                  AND (@EndAt   IS NULL OR ChangedAt <  @EndAt)
+            ),'
+        END
         ELSE
         BEGIN
             SET @sql = N';WITH S AS
@@ -428,6 +458,122 @@ BEGIN
                 FROM dbo.AuditLog WITH (NOLOCK)
                 WHERE ReferenceId = @RefId
                     AND TableName IN (''VendorContact'',''Contact'')
+                    AND (@StartAt IS NULL OR ChangedAt >= @StartAt)
+                    AND (@EndAt IS NULL OR ChangedAt < @EndAt)
+            ),
+
+            S2 AS
+            (
+                SELECT AuditId, TableName, PKJson, ColumnName, [Action],
+                       OldValue, NewValue, ChangedBy, ChangedAt, ReferenceId,
+                       CAST(ChangedAt AS datetime2(0)) AS ChangedAtGrp
+                FROM S
+            ),
+
+            Dedup AS
+            (
+                SELECT
+                    ReferenceId,
+                    ChangedAtGrp,
+                    ChangedBy,
+                    ColumnName,
+                    [Action],
+                    CONVERT(nvarchar(max), ' + @valExpr + N') AS ValToPivot,
+                    ROW_NUMBER() OVER (
+                        PARTITION BY ReferenceId, ChangedAtGrp, ColumnName
+                        ORDER BY AuditId DESC
+                    ) AS rn
+                FROM S2
+            ),
+
+            FinalSource AS
+            (
+                SELECT
+                    ReferenceId,
+                    ChangedAtGrp,
+                    ChangedBy,
+                    ColumnName,
+                    [Action],
+                    ValToPivot
+                FROM Dedup
+                WHERE rn = 1
+            ),
+
+            Agg AS
+            (
+                SELECT
+                    ReferenceId,
+                    ChangedAtGrp,
+                    MIN(ChangedBy) AS ChangedBy,
+                    STRING_AGG([Action], '''') AS Actions
+                FROM S2
+                GROUP BY ReferenceId, ChangedAtGrp
+            )
+
+            SELECT
+                p.ReferenceId,
+                p.ChangedAtGrp,
+
+                CASE 
+                    WHEN @CurrntEmpTimeZoneDesc IS NULL OR LEN(@CurrntEmpTimeZoneDesc) = 0
+                        THEN COALESCE(TRY_CAST(p.[UpdatedDate] AS datetime2(3)), p.ChangedAtGrp)
+
+                    WHEN TRY_CAST(p.[UpdatedDate] AS datetime2(3)) IS NULL
+                        OR TRY_CAST(p.[UpdatedDate] AS date) = ''0001-01-01''
+                        THEN CAST(dbo.ConvertUTCtoLocal(p.ChangedAtGrp, @CurrntEmpTimeZoneDesc) AS datetime2(3))
+
+                    ELSE CAST(dbo.ConvertUTCtoLocal(TRY_CAST(p.[UpdatedDate] AS datetime2(3)), @CurrntEmpTimeZoneDesc) AS datetime2(3))
+                END AS UpdatedDate,
+
+                CASE 
+                    WHEN @CurrntEmpTimeZoneDesc IS NULL OR LEN(@CurrntEmpTimeZoneDesc) = 0
+                        THEN TRY_CAST(p.[CreatedDate] AS datetime2(3))
+
+                    WHEN TRY_CAST(p.[CreatedDate] AS datetime2(3)) IS NULL
+                        OR TRY_CAST(p.[CreatedDate] AS date) = ''0001-01-01''
+                        THEN NULL
+
+                    ELSE CAST(dbo.ConvertUTCtoLocal(TRY_CAST(p.[CreatedDate] AS datetime2(3)), @CurrntEmpTimeZoneDesc) AS datetime2(3))
+                END AS CreatedDate,
+
+                a.Actions,
+                a.ChangedBy'
+    
+                + CASE 
+                    WHEN ISNULL(@cols_out,'') <> '' 
+                    THEN ', ' + REPLACE(@cols_out, '],[', '], p.[')
+                    ELSE '' 
+                  END + N'
+
+            FROM
+            (
+                SELECT ReferenceId, ChangedAtGrp, ColumnName, ValToPivot
+                FROM FinalSource
+            ) src
+
+            PIVOT
+            (
+                MAX(ValToPivot)
+                FOR ColumnName IN (' + @cols + N')
+            ) p
+
+            JOIN Agg a
+                ON a.ReferenceId = p.ReferenceId
+                AND a.ChangedAtGrp = p.ChangedAtGrp
+
+            ORDER BY p.ChangedAtGrp ' + @SortDir + N';
+            ';
+        END
+        ELSE IF (@ModuleId = @VendorBillingAddress)
+        BEGIN
+            SET @sql = N'
+            WITH S AS
+            (
+                SELECT AuditId, TableName, PKJson, ColumnName, [Action],
+                       OldValue, NewValue, ChangedBy, ChangedAt, ReferenceId
+                FROM dbo.AuditLog WITH (NOLOCK)
+                WHERE ReferenceId = @RefId
+                    AND TableName IN (''VendorBillingAddress'',''Address'')
                     AND (@StartAt IS NULL OR ChangedAt >= @StartAt)
                     AND (@EndAt IS NULL OR ChangedAt < @EndAt)
             ),

@@ -54,16 +54,18 @@
 
 
 
+
+
 GO
-CREATE   TRIGGER [dbo].[trg_Audit_dbo_WorksheetHeader]
+CREATE TRIGGER [dbo].[trg_Audit_dbo_WorksheetHeader]
 ON [dbo].[WorksheetHeader]
 AFTER INSERT, UPDATE, DELETE
 AS
 BEGIN
     SET NOCOUNT ON;
     ;WITH
-    d AS (SELECT d.[WorksheetHeaderId],d.[WorksheetNumber],d.[MakeTypeId],d.[MakeType],d.[AircraftModelId],d.[AircraftModel],d.[WorksheetType],d.[WorkOrderNo],d.[AFHours],d.[InspectionType],d.[InspectionDate],d.[QualitySafetyDeptSignOutBy],d.[QualitySafetyDeptSignOutDate],d.[QualitySafetyDeptSignInBy],d.[QualitySafetyDeptSignInDate],d.[ReleaseToServiceBy],d.[ReleaseDate],d.[CreatedBy],d.[CreatedDate],d.[MasterCompanyId],d.[IsActive],d.[IsDeleted],d.[UpdatedBy],d.[UpdatedDate],d.[AMONumber],d.[TechnicalRecordsWO],d.[CalmSysWO],d.[AircraftReg],d.[CertificationStatement],d.[ReleaseLicenseNumber],d.[WorksheetTypeId],d.[TailNum],d.[SerialNum],d.[AircraftInstalledPartDetailsId],d.[ProgramId],d.[AircraftRegistryId],d.[DupInspSysDescription],d.[DupInspDefectWorkNo],d.[DupInspDate],d.[DupInspStation],d.[DupInspSignatory1By],d.[DupInspSignatory1LicAppNo],d.[DupInspSignatory1Time],d.[DupInspSignatory2By],d.[DupInspSignatory2LicAppNo],d.[DupInspSignatory2Time] FROM deleted d),
-    i AS (SELECT i.[WorksheetHeaderId],i.[WorksheetNumber],i.[MakeTypeId],i.[MakeType],i.[AircraftModelId],i.[AircraftModel],i.[WorksheetType],i.[WorkOrderNo],i.[AFHours],i.[InspectionType],i.[InspectionDate],i.[QualitySafetyDeptSignOutBy],i.[QualitySafetyDeptSignOutDate],i.[QualitySafetyDeptSignInBy],i.[QualitySafetyDeptSignInDate],i.[ReleaseToServiceBy],i.[ReleaseDate],i.[CreatedBy],i.[CreatedDate],i.[MasterCompanyId],i.[IsActive],i.[IsDeleted],i.[UpdatedBy],i.[UpdatedDate],i.[AMONumber],i.[TechnicalRecordsWO],i.[CalmSysWO],i.[AircraftReg],i.[CertificationStatement],i.[ReleaseLicenseNumber],i.[WorksheetTypeId],i.[TailNum],i.[SerialNum],i.[AircraftInstalledPartDetailsId],i.[ProgramId],i.[AircraftRegistryId],i.[DupInspSysDescription],i.[DupInspDefectWorkNo],i.[DupInspDate],i.[DupInspStation],i.[DupInspSignatory1By],i.[DupInspSignatory1LicAppNo],i.[DupInspSignatory1Time],i.[DupInspSignatory2By],i.[DupInspSignatory2LicAppNo],i.[DupInspSignatory2Time] FROM inserted i),
+    d AS (SELECT d.[WorksheetHeaderId],d.[WorksheetNumber],d.[MakeTypeId],d.[MakeType],d.[AircraftModelId],d.[AircraftModel],d.[WorksheetType],d.[WorkOrderNo],d.[AFHours],d.[InspectionType],d.[InspectionDate],d.[QualitySafetyDeptSignOutBy],d.[QualitySafetyDeptSignOutDate],d.[QualitySafetyDeptSignInBy],d.[QualitySafetyDeptSignInDate],d.[ReleaseToServiceBy],d.[ReleaseDate],d.[CreatedBy],d.[CreatedDate],d.[MasterCompanyId],d.[IsActive],d.[IsDeleted],d.[UpdatedBy],d.[UpdatedDate],d.[AMONumber],d.[TechnicalRecordsWO],d.[CalmSysWO],d.[AircraftReg],d.[CertificationStatement],d.[ReleaseLicenseNumber],d.[WorksheetTypeId],d.[TailNum],d.[SerialNum],d.[AircraftInstalledPartDetailsId],d.[ProgramId],d.[AircraftRegistryId],d.[DupInspSysDescription],d.[DupInspDefectWorkNo],d.[DupInspDate],d.[DupInspStation],d.[DupInspSignatory1By],d.[DupInspSignatory1LicAppNo],d.[DupInspSignatory1Time],d.[DupInspSignatory2By],d.[DupInspSignatory2LicAppNo],d.[DupInspSignatory2Time],d.[MtcCategoryId] FROM deleted d),
+    i AS (SELECT i.[WorksheetHeaderId],i.[WorksheetNumber],i.[MakeTypeId],i.[MakeType],i.[AircraftModelId],i.[AircraftModel],i.[WorksheetType],i.[WorkOrderNo],i.[AFHours],i.[InspectionType],i.[InspectionDate],i.[QualitySafetyDeptSignOutBy],i.[QualitySafetyDeptSignOutDate],i.[QualitySafetyDeptSignInBy],i.[QualitySafetyDeptSignInDate],i.[ReleaseToServiceBy],i.[ReleaseDate],i.[CreatedBy],i.[CreatedDate],i.[MasterCompanyId],i.[IsActive],i.[IsDeleted],i.[UpdatedBy],i.[UpdatedDate],i.[AMONumber],i.[TechnicalRecordsWO],i.[CalmSysWO],i.[AircraftReg],i.[CertificationStatement],i.[ReleaseLicenseNumber],i.[WorksheetTypeId],i.[TailNum],i.[SerialNum],i.[AircraftInstalledPartDetailsId],i.[ProgramId],i.[AircraftRegistryId],i.[DupInspSysDescription],i.[DupInspDefectWorkNo],i.[DupInspDate],i.[DupInspStation],i.[DupInspSignatory1By],i.[DupInspSignatory1LicAppNo],i.[DupInspSignatory1Time],i.[DupInspSignatory2By],i.[DupInspSignatory2LicAppNo],i.[DupInspSignatory2Time],i.[MtcCategoryId] FROM inserted i),
     paired AS (
         SELECT
             COALESCE(i.WorksheetHeaderId, d.WorksheetHeaderId ) AS WorksheetHeaderId,
@@ -151,19 +153,23 @@ BEGIN
         m.Action,
         CASE            
             WHEN m.ColumnName = 'WorksheetTypeId' THEN asOld.Section
-            WHEN m.ColumnName = 'InspectionType' THEN mtOld.MaintenanceType 
+            WHEN m.ColumnName = 'InspectionType' THEN wsOld.WorkScopeCode
+            WHEN m.ColumnName = 'MtcCategoryId' THEN mcOld.MtcCategory
             ELSE m.OldValue
         END AS OldValue,
         CASE
             WHEN m.ColumnName = 'WorksheetTypeId' THEN asNew.Section
-            WHEN m.ColumnName = 'InspectionType' THEN mtNew.MaintenanceType
+            WHEN m.ColumnName = 'InspectionType' THEN wsNew.WorkScopeCode
+            WHEN m.ColumnName = 'MtcCategoryId' THEN mcNew.MtcCategory
             ELSE m.NewValue
         END AS NewValue
     FROM merged m
     LEFT JOIN [dbo].[AircraftSection] asOld WITH(NOLOCK) ON m.ColumnName = 'WorksheetTypeId' AND TRY_CAST(m.OldValue AS BIGINT) = asOld.AircraftSectionId
     LEFT JOIN [dbo].[AircraftSection] asNew WITH(NOLOCK) ON m.ColumnName = 'WorksheetTypeId' AND TRY_CAST(m.NewValue AS BIGINT) = asNew.AircraftSectionId
-    LEFT JOIN [dbo].[MaintenanceType] mtOld WITH(NOLOCK) ON m.ColumnName = 'InspectionType' AND TRY_CAST(m.OldValue AS BIGINT) = mtOld.MaintenanceTypeId
-    LEFT JOIN [dbo].[MaintenanceType] mtNew WITH(NOLOCK) ON m.ColumnName = 'InspectionType' AND TRY_CAST(m.NewValue AS BIGINT) = mtNew.MaintenanceTypeId   
+    LEFT JOIN [dbo].[WorkScope] wsOld WITH(NOLOCK) ON m.ColumnName = 'InspectionType' AND TRY_CAST(m.OldValue AS BIGINT) = wsOld.WorkScopeId
+    LEFT JOIN [dbo].[WorkScope] wsNew WITH(NOLOCK) ON m.ColumnName = 'InspectionType' AND TRY_CAST(m.NewValue AS BIGINT) = wsNew.WorkScopeId
+    LEFT JOIN [dbo].[MaintenanceCategory] mcOld WITH(NOLOCK) ON m.ColumnName = 'MtcCategoryId' AND TRY_CAST(m.OldValue AS BIGINT) = mcOld.MtcCategoryId
+    LEFT JOIN [dbo].[MaintenanceCategory] mcNew WITH(NOLOCK) ON m.ColumnName = 'MtcCategoryId' AND TRY_CAST(m.NewValue AS BIGINT) = mcNew.MtcCategoryId
     WHERE        
         (m.Action = 'U' AND (
                (m.OldValue IS NULL AND m.NewValue IS NOT NULL)

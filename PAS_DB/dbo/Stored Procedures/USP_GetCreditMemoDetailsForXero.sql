@@ -91,8 +91,8 @@ BEGIN
                 CMD.PartNumber,
                 CMD.PartDescription     AS Description,
                 CMD.Qty,
-                CMD.UnitPrice           AS UnitAmount,
-                -- ✅ From Config Table
+                CMD.COGSPartsUnitCost           AS UnitAmount,
+                --From Config Table
                 @CustXeroGUID           AS GLAccountReferenceId,
                 @CustAccountCode        AS AccountCode,
                 IM.ItemMasterId

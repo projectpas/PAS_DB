@@ -25,8 +25,7 @@
 
 
 GO
-
-create TRIGGER [dbo].[trg_Audit_dbo_AircraftEngineStartsMappings] 
+CREATE TRIGGER [dbo].[trg_Audit_dbo_AircraftEngineStartsMappings]
 ON [dbo].[AircraftEngineStartsMappings]
 AFTER INSERT, UPDATE, DELETE 
 AS 
@@ -226,7 +225,7 @@ BEGIN
                 newvalue,
                 action
         FROM   merged
-        WHERE  columnname NOT IN ('EngineAddHours', 'EngineAddMinutes', 'EngineCurrentHours', 'EngineCurrentMinutes', 'EngineUpdatedHours', 'EngineUpdatedMinutes', 'AircraftEngineStartsMappingsId')
+        WHERE  columnname IN ('EngineAddStarts', 'EngineCurrentStarts', 'EngineUpdatedStarts')
     ),
     all_changes AS (
         SELECT * FROM engineaddhoursminutes_changes
@@ -236,6 +235,53 @@ BEGIN
         SELECT * FROM engineupdatedhoursminutes_changes
         UNION ALL
         SELECT * FROM other_changes
+    ),
+    changed_engine_rows AS (
+        SELECT pkjson,
+               action
+        FROM merged
+        GROUP BY pkjson, action
+        HAVING
+            (
+                action = 'U'
+                AND
+                (
+                    MAX(CASE
+                            WHEN columnname IN ('EngineAddHours', 'EngineAddMinutes', 'EngineAddStarts')
+                                AND ISNULL(TRY_CONVERT(DECIMAL(18,6), newvalue), 0) <> 0
+                            THEN 1 ELSE 0
+                        END) = 1
+                    OR
+                    MAX(CASE
+                            WHEN columnname IN ('EngineCurrentHours', 'EngineCurrentMinutes', 'EngineCurrentStarts', 'EngineUpdatedHours', 'EngineUpdatedMinutes', 'EngineUpdatedStarts')
+                                AND
+                                (
+                                    (oldvalue IS NULL AND newvalue IS NOT NULL)
+                                    OR (oldvalue IS NOT NULL AND newvalue IS NULL)
+                                    OR (oldvalue <> newvalue)
+                                )
+                            THEN 1 ELSE 0
+                        END) = 1
+                )
+            )
+            OR
+            (
+                action = 'I'
+                AND MAX(CASE
+                            WHEN columnname IN ('EngineAddHours', 'EngineAddMinutes', 'EngineAddStarts', 'EngineCurrentHours', 'EngineCurrentMinutes', 'EngineCurrentStarts', 'EngineUpdatedHours', 'EngineUpdatedMinutes', 'EngineUpdatedStarts')
+                                AND ISNULL(TRY_CONVERT(DECIMAL(18,6), newvalue), 0) <> 0
+                            THEN 1 ELSE 0
+                        END) = 1
+            )
+            OR
+            (
+                action = 'D'
+                AND MAX(CASE
+                            WHEN columnname IN ('EngineAddHours', 'EngineAddMinutes', 'EngineAddStarts', 'EngineCurrentHours', 'EngineCurrentMinutes', 'EngineCurrentStarts', 'EngineUpdatedHours', 'EngineUpdatedMinutes', 'EngineUpdatedStarts')
+                                AND ISNULL(TRY_CONVERT(DECIMAL(18,6), oldvalue), 0) <> 0
+                            THEN 1 ELSE 0
+                        END) = 1
+            )
     )
     INSERT INTO dbo.AuditLog
             (
@@ -252,40 +298,23 @@ BEGIN
             a.pkjson,
             a.columnname,
             a.action,
-            CASE
-                WHEN a.ColumnName = 'EngineName' THEN 
-                    CASE 
-                        WHEN a.OldValue = 'ENGINE1' THEN 'ENGINE 1' 
-                        WHEN a.OldValue = 'ENGINE2' THEN 'ENGINE 2' 
-                        WHEN a.OldValue = 'ENGINE3' THEN 'ENGINE 3'
-                        WHEN a.OldValue = 'ENGINE4' THEN 'ENGINE 4' 
-                        ELSE a.OldValue
-                    END            
-                ELSE a.OldValue
-            END AS OldValue,        
-            CASE 
-                WHEN a.ColumnName = 'EngineName' THEN 
-                    CASE 
-                        WHEN a.NewValue = 'ENGINE1' THEN 'ENGINE 1' 
-                        WHEN a.NewValue = 'ENGINE2' THEN 'ENGINE 2' 
-                        WHEN a.NewValue = 'ENGINE3' THEN 'ENGINE 3'
-                        WHEN a.NewValue = 'ENGINE4' THEN 'ENGINE 4' 
-                        ELSE a.NewValue
-                    END            
-                ELSE a.NewValue
-            END AS NewValue
-    FROM   all_changes a
-    WHERE  a.columnname <> 'AircraftEngineStartsMappingsId'
+            a.OldValue,
+            a.NewValue            
+    FROM all_changes a
+   INNER JOIN changed_engine_rows cer
+        ON cer.pkjson = a.pkjson
+        AND cer.action = a.action
+    WHERE  a.columnname IN
+            (
+                'EngineAddHoursMinutes',
+                'EngineAddStarts',
+                'EngineCurrentHoursMinutes',
+                'EngineCurrentStarts',
+                'EngineUpdatedHoursMinutes',
+                'EngineUpdatedStarts'
+            )
             AND (
-                    (
-                        a.action = 'U'
-                        AND (
-                                (a.oldvalue IS NULL AND a.newvalue IS NOT NULL)
-                                OR (a.oldvalue IS NOT NULL AND a.newvalue IS NULL)
-                                OR (a.oldvalue <> a.newvalue)
-                                OR (a.columnname = 'EngineName')
-                            )
-                    )
+                    (a.action = 'U' AND a.newvalue IS NOT NULL)
                     OR (a.action = 'I' AND a.newvalue IS NOT NULL)
                     OR (a.action = 'D' AND a.oldvalue IS NOT NULL)
                 );

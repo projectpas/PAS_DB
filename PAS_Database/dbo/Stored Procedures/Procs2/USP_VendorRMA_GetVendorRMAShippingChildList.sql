@@ -16,6 +16,7 @@
  ** --   --------     -------				--------------------------------          
     1    06/27/2023   Amit Ghediya			Created
 	2    06-03-2026	  Amit Ghediya			UOM Conversion Changes [PN-15140]
+	3   19-06-2026	  Priyansh Patel		Add Condition to skip fn_ConvertUOM call [PN-16911]
      
  EXECUTE USP_VendorRMA_GetVendorRMAShippingChildList 
 **************************************************************/
@@ -34,10 +35,10 @@ BEGIN
   SELECT DISTINCT sopt.RMAPickTicketId, sos.RMAShippingId, CASE WHEN sosi.VendorRMADetailId	 IS NOT NULL THEN sos.ShipDate ELSE NULL END AS ShipDate,  
 	  CASE WHEN sosi.VendorRMADetailId IS NOT NULL THEN sos.RMAShippingNum ELSE NULL END AS RMAShippingNum,  
 	  sopt.RMAPickTicketNumber,
-	  ([dbo].[fn_ConvertUOM](ISNULL(sopt.QtyToShip, 0),imt.[StockUnitOfMeasure],imt.[PurchaseUnitOfMeasure],0,imt.[MasterCompanyId])) AS QtyToShip,
+	(CASE WHEN imt.[StockUnitOfMeasure] = imt.[PurchaseUnitOfMeasure] THEN ISNULL(sopt.QtyToShip, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(sopt.QtyToShip, 0),imt.[StockUnitOfMeasure],imt.[PurchaseUnitOfMeasure],0,imt.[MasterCompanyId]) END) AS QtyToShip,
 	  so.RMANumber, imt.partnumber, imt.PartDescription, sl.StockLineNumber,  
 	  sl.SerialNumber, cr.[VendorName] as CustomerName, soc.CustomsValue, soc.CommodityCode, 
-	  ([dbo].[fn_ConvertUOM](ISNULL(sosi.QtyShipped, 0),imt.[StockUnitOfMeasure],imt.[PurchaseUnitOfMeasure],0,imt.[MasterCompanyId])) AS QtyShipped,
+	  (CASE WHEN imt.[StockUnitOfMeasure] = imt.[PurchaseUnitOfMeasure] THEN ISNULL(sosi.QtyShipped, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(sosi.QtyShipped, 0),imt.[StockUnitOfMeasure],imt.[PurchaseUnitOfMeasure],0,imt.[MasterCompanyId]) END) AS QtyShipped,
 	  sos.VendorRMAId, (CASE WHEN sosi.VendorRMADetailId IS NOT NULL THEN sosi.VendorRMADetailId ELSE sop.VendorRMADetailId END) VendorRMADetailId,  
 	  sos.AirwayBill, SPB.PackagingSlipNo, SPB.PackagingSlipId,   
 	  CASE WHEN sos.RMAShippingId IS NOT NULL THEN sos.SmentNum ELSE 0 END AS 'SmentNo',  

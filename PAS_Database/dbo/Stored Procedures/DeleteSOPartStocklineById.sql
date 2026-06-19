@@ -15,6 +15,7 @@
  ** --   --------     -------			--------------------------------          
     1    11/14/2024   Vishal Suthar     Created
 	2    15-09-2025	  Amit Ghediya		Update for Reset Approval Process
+	3    08-05-2026	  Bhargav Saliya	Change The table Squence For Delete
      
 -- EXEC DeleteSOPartStocklineById 425
 ************************************************************************/
@@ -34,8 +35,8 @@ BEGIN
 		SELECT @SalesOrderPartId = SalesOrderPartId, @CreatedBy = CreatedBy, @MasterCompanyId = MasterCompanyId FROM DBO.[SalesOrderStocklineV1] WITH (NOLOCK) WHERE SalesOrderStocklineId = @SalesOrderStocklineId;
 		SELECT @SalesOrderId = SalesOrderId FROM DBO.[SalesOrderPartV1] WITH (NOLOCK) WHERE SalesOrderPartId = @SalesOrderPartId;
 
-		DELETE FROM [dbo].[SalesOrderStocklineV1] WHERE SalesOrderStocklineId = @SalesOrderStocklineId;
 		DELETE FROM [dbo].[SalesOrderStocklineCost]  WHERE SalesOrderStocklineId = @SalesOrderStocklineId;
+		DELETE FROM [dbo].[SalesOrderStocklineV1] WHERE SalesOrderStocklineId = @SalesOrderStocklineId;
 
 		EXEC [dbo].[USP_UpdateSOPartCostDetails] @SalesOrderId, @SalesOrderPartId, @CreatedBy, @MasterCompanyId;
 

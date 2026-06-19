@@ -22,6 +22,7 @@
 	5    12/19/2023   Devendra Shekh        changes for kit part added
 	6    12/21/2023   Devendra Shekh        QTY issue resolved
  ***7    16/Mar/2026  Rajesh Gami			Added UOM Changes [PN-15714]   
+	8	 19/06/2026	  Ayushi				[PN-16911]Skip fn_ConvertUOM call when ToUOM = FromUOM
 -- EXEC [sp_saveSubWOPickTicketItemInterface_WO] 46, 23, 343, 0  
   
 exec sp_saveSubWOPickTicketItemInterface_WO @WOPickTicketId=0,@WOPickTicketNumber=N'PTWO-001038',@WorkOrderId=60,@CreatedBy=N'Admin Admin',@UpdatedBy=N'Admin Admin',  
@@ -76,13 +77,15 @@ BEGIN
 					LEFT JOIN DBO.UnitOfMeasure cu WITH (NOLOCK) ON sl.ConsumeUnitOfMeasureId = cu.UnitOfMeasureId
 				WHERE sl.StockLineId = @StocklineId;
 
-				IF (@ConsumeUnitOfMeasure IS NOT NULL AND @StockUnitOfMeasure IS NOT NULL)
+				IF (@ConsumeUnitOfMeasure IS NOT NULL 
+					AND @StockUnitOfMeasure IS NOT NULL
+					AND ISNULL(@ConsumeUnitOfMeasure,'') <> ISNULL(@StockUnitOfMeasure,''))
 				BEGIN
 					IF (@Qty > 0)
 						SET @Qty = dbo.fn_ConvertUOM(@Qty, @ConsumeUnitOfMeasure, @StockUnitOfMeasure, 0, @MasterCompanyId);
 
 					IF (@QtyToShip > 0)
-						SET @QtyToShip = dbo.fn_ConvertUOM(@QtyToShip, @ConsumeUnitOfMeasure, @StockUnitOfMeasure,0, @MasterCompanyId);
+						SET @QtyToShip = dbo.fn_ConvertUOM(@QtyToShip, @ConsumeUnitOfMeasure, @StockUnitOfMeasure, 0, @MasterCompanyId);
 				END
 			END			
 			/************ END: UOM Changes Logic *************/

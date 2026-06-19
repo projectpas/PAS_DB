@@ -18,10 +18,9 @@
     [RefreshToken]             VARCHAR (MAX)  NULL,
     [TokenExpiresIn]           INT            NULL,
     [TokenCreatedAt]           DATETIME2 (7)  NULL,
+    [ClientId]                 VARCHAR (500)  NULL,
+    [TenantId]                 VARCHAR (500)  NULL,
+    [ClientSecret]             VARCHAR (500)  NULL,
     CONSTRAINT [PK_IntegrationEmailSmtpConfigration] PRIMARY KEY CLUSTERED ([IntegrationEmailConfigId] ASC)
 );
-
-
-
-
 

@@ -17,10 +17,11 @@
     4    26/01/2026     Ayushi Patel            Enhancement: Added ViewType-based data handling (SUMMARY / DETAILS).
 	5    22/04/2026     Rajesh Gami				Getting proper value of Quantity and UnitCost for the details type [PN-15728]
 	6    09/06/2026     Sahdev Saliya           Added AdjustmentReasonId and AdjustmentReason [PN-16773]
+    7    19/06/2026     Divyesh Kathiriya       Handle delete item not seen list. [PN-16885]
 
 -- EXEC USP_SearchBulkStockData
 ************************************************************************/  
-CREATE    PROCEDURE [dbo].[USP_SearchBulkStockData]
+CREATE PROCEDURE [dbo].[USP_SearchBulkStockData]
 	@PageNumber int = NULL,
 	@PageSize int = NULL,
 	@SortColumn varchar(50)=NULL,
@@ -193,7 +194,7 @@ BEGIN
                     ON BSAD.AdjustmentReasonId = SAR.AdjustmentReasonId
                 WHERE
                     bsadj.MasterCompanyId = @MasterCompanyId
-                    AND ISNULL(bsadj.IsDeleted, 0) = 0
+                    AND ISNULL(BSAD.IsDeleted, 0) = 0
                     AND (@StatusId IS NULL OR bsadj.StatusId = @StatusId )
             ),
             FinalResult AS

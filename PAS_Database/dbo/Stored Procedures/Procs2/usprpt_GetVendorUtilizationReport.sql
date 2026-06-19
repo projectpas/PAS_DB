@@ -161,9 +161,11 @@ UPPER(MSD.Level8Name) AS level8,    UPPER(MSD.Level9Name) AS level9,    UPPER(MS
         UPPER(POP.unitofmeasure) 'uom',  
         POP.QuantityOrdered 'qty',  
         POP.PurchaseOrderId,  
-        ROUND(CASE WHEN STL.UnitCost IS NULL THEN ISNULL(POP.UnitCost, 0) ELSE dbo.fn_ConvertUOM(STL.UnitCost, STL.StockUnitOfMeasure, POP.UnitOfMeasure, 1, @mastercompanyid) END, 2) AS unitcost,
+        ROUND(CASE WHEN STL.UnitCost IS NULL THEN ISNULL(POP.UnitCost, 0) WHEN STL.StockUnitOfMeasure = POP.UnitOfMeasure THEN STL.UnitCost
+        ELSE dbo.fn_ConvertUOM(STL.UnitCost, STL.StockUnitOfMeasure, POP.UnitOfMeasure, 1, @mastercompanyid) END, 2) AS unitcost,
         UPPER(POP.functionalcurrency) 'currency',  
-        ISNULL(POP.QuantityOrdered, 0) * ROUND(CASE WHEN STL.UnitCost IS NULL THEN ISNULL(POP.UnitCost, 0) ELSE dbo.fn_ConvertUOM(STL.UnitCost, STL.StockUnitOfMeasure, POP.UnitOfMeasure, 1, @mastercompanyid) END, 2) AS extamount,
+        ISNULL(POP.QuantityOrdered, 0) * ROUND(CASE WHEN STL.UnitCost IS NULL THEN ISNULL(POP.UnitCost, 0) 
+        WHEN STL.StockUnitOfMeasure = POP.UnitOfMeasure THEN STL.UnitCost ELSE dbo.fn_ConvertUOM(STL.UnitCost, STL.StockUnitOfMeasure, POP.UnitOfMeasure, 1, @mastercompanyid) END, 2) AS extamount,
         'N/A' 'localamount',  
         FORMAT (POP.NeedByDate, 'MM/dd/yyyy hh:mm:tt') 'requestdate',  
         UPPER(ISNULL(POP.workorderno,'')) 'wonum',  

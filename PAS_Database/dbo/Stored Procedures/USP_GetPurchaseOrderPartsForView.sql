@@ -17,7 +17,7 @@
     2    16/04/2026   Priyansh Patel    For Quantity above 500 change the receive to Stockline PN-15960
 	3    23/04/2026   Ayushi Patel		[PN-15960] changed the uom convertion for Quantity from 'stock to purchase' TO 'purchase to stock' ,
 										also returned StockUnitOfMeasure insted of PurchaseUnitOfMeasure (UnitOfMeasure)
-     
+    4	 19/06/2026	  Ayushi		    [PN-16911]Skip fn_ConvertUOM call when ToUOM = FromUOM 
 --  EXEC [dbo].[USP_GetPurchaseOrderPartsForView] 6732,1
 --  EXEC [dbo].[USP_GetPurchaseOrderPartsForView] 6743,12853,0,1
 --  EXEC [dbo].[USP_GetPurchaseOrderPartsForView] 6743,12855,0,3
@@ -178,13 +178,17 @@ BEGIN
 			SL.[ControlNumber],
 			SL.[IdNumber],
             SL.[SerialNumber],		
-			CASE  WHEN [SL].[IsSerialized] = 1 THEN [SL].[Quantity]
-			WHEN EXISTS ( SELECT 1 FROM dbo.StocklineDraft x WITH(NOLOCK) WHERE x.PurchaseOrderId = SL.PurchaseOrderId AND x.PurchaseOrderPartRecordId = SL.PurchaseOrderPartRecordId AND x.StockLineId = SL.StockLineId )
-			THEN ( SELECT dbo.fn_ConvertUOM( SUM(x.Quantity), [itm].PurchaseUnitOfMeasure,[itm].StockUnitOfMeasure,0,SL.MasterCompanyId)
-			FROM dbo.StocklineDraft x WITH(NOLOCK) WHERE x.PurchaseOrderId = SL.PurchaseOrderId AND x.PurchaseOrderPartRecordId = SL.PurchaseOrderPartRecordId AND x.StockLineId = SL.StockLineId )
-			WHEN EXISTS ( SELECT 1 FROM dbo.StocklineDraft x WITH(NOLOCK) WHERE x.PurchaseOrderId = SL.PurchaseOrderId AND x.PurchaseOrderPartRecordId = SL.PurchaseOrderPartRecordId AND x.Quantity >= @MaxStockDraftQuantity )
-			THEN SL.Quantity
-			ELSE SL.Quantity
+			CASE
+				WHEN SL.IsSerialized = 1 THEN SL.Quantity
+				WHEN EXISTS (SELECT 1 FROM dbo.StocklineDraft x WITH(NOLOCK) WHERE x.PurchaseOrderId = SL.PurchaseOrderId AND x.PurchaseOrderPartRecordId = SL.PurchaseOrderPartRecordId AND x.StockLineId = SL.StockLineId)
+				THEN (SELECT CASE WHEN ISNULL(itm.PurchaseUnitOfMeasure,'') = ISNULL(itm.StockUnitOfMeasure,'') THEN SUM(x.Quantity) ELSE dbo.fn_ConvertUOM(SUM(x.Quantity), itm.PurchaseUnitOfMeasure, itm.StockUnitOfMeasure, 0, SL.MasterCompanyId) END
+					  FROM dbo.StocklineDraft x WITH(NOLOCK)
+					  WHERE x.PurchaseOrderId = SL.PurchaseOrderId
+						AND x.PurchaseOrderPartRecordId = SL.PurchaseOrderPartRecordId
+						AND x.StockLineId = SL.StockLineId)
+				WHEN EXISTS (SELECT 1 FROM dbo.StocklineDraft x WITH(NOLOCK) WHERE x.PurchaseOrderId = SL.PurchaseOrderId AND x.PurchaseOrderPartRecordId = SL.PurchaseOrderPartRecordId AND x.Quantity >= @MaxStockDraftQuantity)
+				THEN SL.Quantity
+				ELSE SL.Quantity
 			END AS [Quantity],
 			ISNULL(SL.[PurchaseOrderUnitCost],0) [PurchaseOrderUnitCost],
 			SL.[PurchaseOrderExtendedCost],

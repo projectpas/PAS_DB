@@ -17,6 +17,7 @@
     3    11/05/2024	  Vishal Suthar		Modified to make use of new SO Part tables
     4    03/26/2024	  Vishal Suthar		Modified the issue with SO Part Qty and also modified Switch case to IF-ELSE
     5    20/Apr/2026  Rajesh Gami		Manaual Mapping for PO Part Qty	(UOM Conversion wise) [PN-16076]
+	4	 19/06/2026	  Ayushi		    [PN-16911]Skip fn_ConvertUOM call when ToUOM = FromUOM 
  EXECUTE USP_GetReqQtyFromPart 6691, 12684, 751, 3
 **************************************************************/         
 CREATE      PROCEDURE [dbo].[USP_GetReqQtyFromPart]
@@ -92,7 +93,7 @@ BEGIN
 			WHERE POP.PurchaseOrderPartRecordId = @PurchaseOrderPartRecordId 
 			GROUP BY POP.ItemMasterId, POP.ConditionId,uomStock.ShortName,uom.ShortName,POP.MasterCompanyId)
 			)
-			SELECT ReqQty = (dbo.fn_ConvertUOM(ISNULL(ReqQty, 0), UOMStock, UOMPurchase,0,[MasterCompanyId])) FROM BaseDataMain
+			SELECT ReqQty = CASE WHEN ISNULL(UOMStock,'') = ISNULL(UOMPurchase,'') THEN ISNULL(ReqQty,0) ELSE dbo.fn_ConvertUOM(ISNULL(ReqQty,0), UOMStock, UOMPurchase,0,[MasterCompanyId]) END FROM BaseDataMain
 
 		END
 		ELSE IF @ModuleId = 5
@@ -114,7 +115,8 @@ BEGIN
 			LEFT JOIN [dbo].[UnitOfMeasure] uomStock WITH(NOLOCK) ON uomStock.UnitOfMeasureId = im.StockUnitOfMeasureId
 			LEFT JOIN [dbo].[UnitOfMeasure] uom WITH(NOLOCK) ON uom.UnitOfMeasureId = im.PurchaseUnitOfMeasureId
             WHERE POP.PurchaseOrderPartRecordId = @PurchaseOrderPartRecordId))
-			SELECT ReqQty = (dbo.fn_ConvertUOM(ISNULL(ReqQty, 0), UOMStock, UOMPurchase,0,[MasterCompanyId])) FROM BaseDataMain
+			SELECT ReqQty = CASE WHEN ISNULL(UOMStock,'') = ISNULL(UOMPurchase,'') THEN ISNULL(ReqQty,0) ELSE dbo.fn_ConvertUOM(ISNULL(ReqQty,0), UOMStock, UOMPurchase, 0, [MasterCompanyId]) END
+			FROM BaseDataMain
 		END
 		ELSE IF @ModuleId = 4
 		BEGIN

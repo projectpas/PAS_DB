@@ -14,7 +14,7 @@
  ** PR   Date			 Author			Change Description              
  ** --   --------		-------			--------------------------------
     1    11/25/2025		VISHAL SUTHAR	Created
-
+	2    06/19/2026		Moin Bloch    	Added IsActive,IsDeleted Flags
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[GetTBDUserFromEachCompany]
 AS
@@ -23,8 +23,12 @@ BEGIN
 	SET NOCOUNT ON;   
 	BEGIN TRY
 		SELECT MC.MasterCompanyId, MC.TokenUserName, MC.TokenPassword
-		FROM DBO.MasterCompany MC WITH (NOLOCK)
-		WHERE MC.MasterCompanyId NOT IN (2, 3, 4, 5, 6, 7, 8, 9, 10, 17);
+		FROM [dbo].[MasterCompany] MC WITH (NOLOCK)
+		WHERE MC.MasterCompanyId NOT IN (3, 4, 5, 6, 8, 9, 10, 13, 14, 15, 16, 17) 
+		  AND ISNULL(MC.IsActive,0) = 1 
+		  AND ISNULL(MC.IsDeleted,0) = 0 
+		  AND ISNULL(MC.TokenUserName,'') <> '' 
+		  AND ISNULL(MC.TokenPassword,'') <> ''
 	END TRY
 	BEGIN CATCH
 		DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name() 

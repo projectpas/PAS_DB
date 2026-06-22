@@ -1,4 +1,6 @@
-﻿/***************************************************************  
+﻿
+
+/***************************************************************  
  ** File:   [USP_AddUpdateSalesOrderPart]
  ** Author:   Vishal Suthar
  ** Description: This stored procedure is used add or update sales order part details
@@ -20,6 +22,7 @@
 	6    15-09-2025	  Amit Ghediya		Update for Reset Approval Process
 	7    20-11-2025	  Rajesh Gami		Added UnitSalesPrice in SalesOrderPartV1 table
 	8    07/01/2026   Rajesh Gami		Added MasterCompanyId Parameter While Calling UOM Conversion Function
+	9	 19/06/2026	  Ayushi			[PN-16911]Skip fn_ConvertUOM call when ToUOM = FromUOM
 declare @p1 dbo.SOPartListType
 insert into @p1 values(497,1269,216,12,2,178289,NULL,1,5,2,NULL,NULL,3,1,1200,0,0,1200,0,670,330.00,NULL,NULL,NULL,600.00,0,0,1200,335,44.17,0,NULL,N'',NULL,1,N'Jim Roberts')
 insert into @p1 values(501,1269,264,2,2,NULL,NULL,1,3,0,NULL,NULL,3,1,0,0,0,0,0,0,0,NULL,NULL,NULL,300.00,0,0,900,0,100.00,0,NULL,N'',NULL,1,N'Jim Roberts')
@@ -27,7 +30,7 @@ insert into @p1 values(501,1269,264,2,2,NULL,NULL,1,3,0,NULL,NULL,3,1,0,0,0,0,0,
 exec USP_AddUpdateSalesOrderPart @tbl_SalesOrderPartList=@p1
 
 **************************************************************/
-CREATE      PROCEDURE [dbo].[USP_AddUpdateSalesOrderPart]
+CREATE        PROCEDURE [dbo].[USP_AddUpdateSalesOrderPart]
 	@tbl_SalesOrderPartList SOPartListType READONLY
 AS
 BEGIN
@@ -191,15 +194,17 @@ BEGIN
 		END
         
    	    --  UOM Conversion  --
-		SET @QtyRequested = ([dbo].[fn_ConvertUOM](ISNULL(@QtyRequested, 0),@ConsumeUnitOfMeasure, @StockUnitOfMeasure,0,@MasterCompanyId));
-		SET @QtyOrder = ([dbo].[fn_ConvertUOM](ISNULL(@QtyOrder, 0),@ConsumeUnitOfMeasure, @StockUnitOfMeasure,0,@MasterCompanyId));
-		SET @UnitSalesPrice = ([dbo].[fn_ConvertUOM](ISNULL(@UnitSalesPrice, 0),@ConsumeUnitOfMeasure, @StockUnitOfMeasure,1,@MasterCompanyId));
-		SET @MarkUpAmount = ([dbo].[fn_ConvertUOM](ISNULL(@MarkUpAmount, 0),@ConsumeUnitOfMeasure, @StockUnitOfMeasure,1,@MasterCompanyId));
-		SET @DiscountAmount = ([dbo].[fn_ConvertUOM](ISNULL(@DiscountAmount, 0),@ConsumeUnitOfMeasure, @StockUnitOfMeasure,1,@MasterCompanyId));
-		SET @TaxAmount = ([dbo].[fn_ConvertUOM](ISNULL(@TaxAmount, 0),@ConsumeUnitOfMeasure, @StockUnitOfMeasure,1,@MasterCompanyId));
-			
-		SET @MarginAmount = ([dbo].[fn_ConvertUOM](ISNULL(@MarginAmount, 0),@ConsumeUnitOfMeasure, @StockUnitOfMeasure,1,@MasterCompanyId));
+		IF (ISNULL(@ConsumeUnitOfMeasure,'') <> ISNULL(@StockUnitOfMeasure,''))
+		BEGIN
+			SET @QtyRequested   = dbo.fn_ConvertUOM(ISNULL(@QtyRequested,0),@ConsumeUnitOfMeasure,@StockUnitOfMeasure,0,@MasterCompanyId);
+			SET @QtyOrder       = dbo.fn_ConvertUOM(ISNULL(@QtyOrder,0),@ConsumeUnitOfMeasure,@StockUnitOfMeasure,0,@MasterCompanyId);
 
+			SET @UnitSalesPrice = dbo.fn_ConvertUOM(ISNULL(@UnitSalesPrice,0),@ConsumeUnitOfMeasure,@StockUnitOfMeasure,1,@MasterCompanyId);
+			SET @MarkUpAmount   = dbo.fn_ConvertUOM(ISNULL(@MarkUpAmount,0),@ConsumeUnitOfMeasure,@StockUnitOfMeasure,1,@MasterCompanyId);
+			SET @DiscountAmount = dbo.fn_ConvertUOM(ISNULL(@DiscountAmount,0),@ConsumeUnitOfMeasure,@StockUnitOfMeasure,1,@MasterCompanyId);
+			SET @TaxAmount      = dbo.fn_ConvertUOM(ISNULL(@TaxAmount,0),@ConsumeUnitOfMeasure,@StockUnitOfMeasure,1,@MasterCompanyId);
+			SET @MarginAmount   = dbo.fn_ConvertUOM(ISNULL(@MarginAmount,0),@ConsumeUnitOfMeasure,@StockUnitOfMeasure,1,@MasterCompanyId);
+		END
 		IF (ISNULL(@SalesOrderPartId, 0) = 0) -- Add New Part
 		BEGIN
 			SELECT @SOPartStatus = SOPartStatusId FROM [DBO].[SOPartStatus] WITH (NOLOCK) WHERE [PartStatus] = 'Open';

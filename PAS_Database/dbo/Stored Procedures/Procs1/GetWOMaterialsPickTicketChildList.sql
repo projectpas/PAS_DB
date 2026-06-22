@@ -18,6 +18,7 @@
     1    05/10/2021		Vishal Suthar		Created
 	2    05/24/2021		Hemant Saliya		Updated Stockline Condition and Add Content Managment
    	3    25/Feb/2026	Rajesh Gami			Added UOM Changes 
+	4	 18/06/2026	    Ayushi			    [PN-16911]Skip fn_ConvertUOM call when ToUOM = FromUOM
 --EXEC [GetWOMaterialsPickTicketChildList] 343,768
 **************************************************************/
 CREATE   PROCEDURE [dbo].[GetWOMaterialsPickTicketChildList]
@@ -31,7 +32,7 @@ BEGIN
 	BEGIN TRY
 		BEGIN TRANSACTION
 			SELECT DISTINCT wopt.PickTicketNumber as PickTicketNumber,
-					CASE WHEN SL.StockLineId > 0 THEN  dbo.fn_ConvertUOM(wopt.QtyToShip, uomStock.ShortName, uomConsume.ShortName,0,SL.MasterCompanyId) ELSE wopt.QtyToShip END  AS  QtyToShip,
+					CASE WHEN SL.StockLineId > 0 THEN (CASE WHEN ISNULL(uomStock.ShortName,'') = ISNULL(uomConsume.ShortName,'') THEN wopt.QtyToShip ELSE dbo.fn_ConvertUOM(wopt.QtyToShip,uomStock.ShortName,uomConsume.ShortName,0,SL.MasterCompanyId) END) ELSE wopt.QtyToShip END AS QtyToShip,
 					sl.SerialNumber,
 					sl.StockLineNumber,
 					wopt.CreatedDate as PickedDate,
@@ -58,7 +59,7 @@ BEGIN
 			UNION ALL
 
 			SELECT DISTINCT wopt.PickTicketNumber as PickTicketNumber,
-					CASE WHEN SL.StockLineId > 0 THEN  dbo.fn_ConvertUOM(wopt.QtyToShip, uomStock.ShortName, uomConsume.ShortName,0,SL.MasterCompanyId) ELSE wopt.QtyToShip END  AS  QtyToShip,
+					CASE WHEN SL.StockLineId > 0 THEN (CASE WHEN ISNULL(uomStock.ShortName,'') = ISNULL(uomConsume.ShortName,'') THEN wopt.QtyToShip ELSE dbo.fn_ConvertUOM(wopt.QtyToShip,uomStock.ShortName,uomConsume.ShortName,0,SL.MasterCompanyId) END) ELSE wopt.QtyToShip END AS QtyToShip,
 					sl.SerialNumber,
 					sl.StockLineNumber,
 					wopt.CreatedDate as PickedDate,

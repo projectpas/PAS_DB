@@ -19,6 +19,8 @@ EXEC [USP_AutoReserveAllWorkOrderMaterials]
 ** 8    03/19/2025	Devendra Shekh	 Updated For Checking PMA/DER Restrict Parts
 ** 9    02/24/2026	Rajesh Gami		 Added UOM Changes
 ** 10   03/17/2026	Moin Bloch	     Updated For Checking REPLACE Provision For WorkOrderMaterial Level
+** 11	19/06/2026	Ayushi		     [PN-16911]Skip fn_ConvertUOM call when ToUOM = FromUOM
+
 EXEC USP_PreviewAutoReserveAllWorkOrderMaterials 10289,0,0,2,0
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[USP_PreviewAutoReserveAllWorkOrderMaterials]
@@ -2141,11 +2143,12 @@ BEGIN
 					SELECT DENSE_RANK() OVER (ORDER BY ISNULL(wom.StockLineId,0) DESC) AS RowNumber , 
 						wom.[ID], wom.[WorkOrderMaterialsId],wom.[WorkOrderMaterialsKITId],[WorkOrderMaterialsKitMappingId],wom.[WorkOrderId],[WorkFlowWorkOrderId],wom.[ItemMasterId],
 						wom.[ConditionId],
-						dbo.fn_ConvertUOM(wom.Quantity, uomStock.ShortName, uomConsume.ShortName,0,@MasterCompanyId)as [Quantity],
-						wom.[UnitCost],[ExtendedCost]
-						,wom.[QuantityReserved],
+						CASE WHEN ISNULL(uomStock.ShortName,'') = ISNULL(uomConsume.ShortName,'') THEN ISNULL(wom.Quantity,0) ELSE dbo.fn_ConvertUOM(wom.Quantity,uomStock.ShortName,uomConsume.ShortName,0,@MasterCompanyId) END AS [Quantity],
+						wom.[UnitCost],
+						[ExtendedCost],
+						wom.[QuantityReserved],
 						wom.[QuantityIssued],
-						dbo.fn_ConvertUOM([QuantityShort], uomStock.ShortName, uomConsume.ShortName,0,@MasterCompanyId)as [QuantityShort],
+						CASE WHEN ISNULL(uomStock.ShortName,'') = ISNULL(uomConsume.ShortName,'') THEN ISNULL([QuantityShort],0) ELSE dbo.fn_ConvertUOM([QuantityShort],uomStock.ShortName,uomConsume.ShortName,0,@MasterCompanyId) END AS [QuantityShort],
 						[IsAltPart],[AltPartMasterPartId],
 						[PartStatusId],
 						[UnReservedQty],
@@ -2163,7 +2166,7 @@ BEGIN
 						UPPER([Figure]) AS [Figure],UPPER([Item]) AS [Item],[EquPartMasterPartId],[ReservedDate],wom.[UnitOfMeasureId],[TaskId],[WOMStockLineId], ISNULL(wom.StockLineId,NULL) AS [StockLineId],[StkItemMasterId],
 						[StkConditionId],
 						[StkQuantity],
-						dbo.fn_ConvertUOM(wom.[QtyReserved], uomStock.ShortName, uomConsume.ShortName,0,@MasterCompanyId) as  [QtyReserved],
+						CASE WHEN ISNULL(uomStock.ShortName,'') = ISNULL(uomConsume.ShortName,'') THEN ISNULL(wom.[QtyReserved],0) ELSE dbo.fn_ConvertUOM(wom.[QtyReserved],uomStock.ShortName,uomConsume.ShortName,0,@MasterCompanyId) END AS [QtyReserved],
 						wom.[QtyIssued],
 						[StkQuantityShort],[StkAltPartMasterPartId],[StkEquPartMasterPartId],[StkIsAltPart],
 						[StkIsEquPart],[StkUnitCost],[StkExtendedCost],[stkProvisionId],
@@ -2177,8 +2180,8 @@ BEGIN
 						UPPER(wom.[Condition]) AS [Condition], UPPER([stkCondition]) AS [stkCondition],
 						UPPER([SerialNo]) AS [SerialNo],UPPER([StocklineNo]) AS [StocklineNo],UPPER([ControlNo]) AS [ControlNo],
 						UPPER([ControlId]) AS [ControlId],UPPER(uomConsume.ShortCode) AS [UOM],UPPER([Priority]) AS [Priority],
-						dbo.fn_ConvertUOM([QtyAvail], uomStock.ShortName, uomConsume.ShortName,0,@MasterCompanyId) as [QtyAvail],
-						dbo.fn_ConvertUOM([QtyOH] , uomStock.ShortName, uomConsume.ShortName,0,@MasterCompanyId)as[QtyOH],	
+						CASE WHEN ISNULL(uomStock.ShortName,'') = ISNULL(uomConsume.ShortName,'') THEN ISNULL([QtyAvail],0) ELSE dbo.fn_ConvertUOM([QtyAvail],uomStock.ShortName,uomConsume.ShortName,0,@MasterCompanyId) END AS [QtyAvail],
+						CASE WHEN ISNULL(uomStock.ShortName,'') = ISNULL(uomConsume.ShortName,'') THEN ISNULL([QtyOH],0) ELSE dbo.fn_ConvertUOM([QtyOH],uomStock.ShortName,uomConsume.ShortName,0,@MasterCompanyId) END AS [QtyOH],
 						UPPER(wom.[Location]) AS [Location],UPPER([Wherehouse]) AS [Wherehouse], UPPER(wom.[Shelf]) AS [Shelf], UPPER(wom.[Bin]) AS [Bin], [IsMaterials]
 					FROM #WorkOrderMaterials wom
 					LEFT JOIN DBO.Stockline SL ON wom.StockLineId = SL.StockLineId

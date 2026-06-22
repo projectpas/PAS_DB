@@ -46,6 +46,7 @@
 	29   27-APR-2026  Priyansh patel 	Updated Aircraftpartdetails with New StocklineId [PN-16177]
 	30   04-May-2026  RAJESH GAMI       Insert Stock,NonStock,Asset InventoryId In the DRAFT Table when Order QTY more than 500 (Where IsParent = 1) [PN-16244]
 	31   20-May-2026  Amit Ghediya  	Updated Aircraftpartdetails with New StocklineId for part wise not header wise [PN-16232]
+    32	 19/06/2026	  Ayushi			[PN-16911]Skip fn_ConvertUOM call when ToUOM = FromUOM
 declare @p2 dbo.POPartsToReceive  insert into @p2 values(2371,4051,2)    
 exec dbo.USP_CreateStocklineForReceivingPO @PurchaseOrderId=2371,@tbl_POPartsToReceive=@p2,@UpdatedBy=N'ADMIN User',@MasterCompanyId=1  
 **************************************************************/
@@ -561,11 +562,22 @@ BEGIN
 						WHERE iM.ItemMasterId = @ItemMasterId AND iM.MasterCompanyId = @MasterCompanyId AND mp.IntegrationPortalId IS NOT NULL
 						GROUP BY iM.ItemMasterId
 						
-						SET @QtyToReceiveAfterConversion =  dbo.fn_ConvertUOM(@QtyToReceive, @POUnitOfMeasure, @StockUnitOfMeasure,0,@MasterCompanyId)
-						SELECT @DraftQty = Quantity, @DraftUnitCost = PurchaseOrderUnitCost  FROM #tmpStocklineDraft WHERE StockLineDraftId = @SelectedStockLineDraftId
-						SET @QtyAfterConversion = dbo.fn_ConvertUOM(@DraftQty, @POUnitOfMeasure, @StockUnitOfMeasure,0,@MasterCompanyId)
-						SET @UnitCostAfterConversion= dbo.fn_ConvertUOM(@DraftUnitCost, @POUnitOfMeasure, @StockUnitOfMeasure,1,@MasterCompanyId)
+						SET @QtyToReceiveAfterConversion = ISNULL(@QtyToReceive,0);
 
+                        SELECT @DraftQty = Quantity,
+                               @DraftUnitCost = PurchaseOrderUnitCost
+                        FROM #tmpStocklineDraft
+                        WHERE StockLineDraftId = @SelectedStockLineDraftId;
+
+                        SET @QtyAfterConversion = ISNULL(@DraftQty,0);
+                        SET @UnitCostAfterConversion = ISNULL(@DraftUnitCost,0);
+
+                        IF (ISNULL(@POUnitOfMeasure,'') <> ISNULL(@StockUnitOfMeasure,''))
+                        BEGIN
+                            SET @QtyToReceiveAfterConversion = dbo.fn_ConvertUOM(@QtyToReceive, @POUnitOfMeasure, @StockUnitOfMeasure, 0, @MasterCompanyId);
+                            SET @QtyAfterConversion = dbo.fn_ConvertUOM(@DraftQty, @POUnitOfMeasure, @StockUnitOfMeasure, 0, @MasterCompanyId);
+                            SET @UnitCostAfterConversion = dbo.fn_ConvertUOM(@DraftUnitCost, @POUnitOfMeasure, @StockUnitOfMeasure, 1, @MasterCompanyId);
+                        END
                         INSERT INTO DBO.Stockline
                         ([PartNumber],[StockLineNumber],[StocklineMatchKey],[ControlNumber],[ItemMasterId],[Quantity],[ConditionId],[SerialNumber],[ShelfLife],[ShelfLifeExpirationDate],[WarehouseId],
 						[LocationId],[ObtainFrom],[Owner],[TraceableTo],[ManufacturerId],[Manufacturer],[ManufacturerLotNumber],[ManufacturingDate],[ManufacturingBatchNumber],[PartCertificationNumber],

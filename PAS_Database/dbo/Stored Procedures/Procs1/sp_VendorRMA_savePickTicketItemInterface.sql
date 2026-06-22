@@ -13,7 +13,7 @@
 	3    06/28/2023   Devendra Shekh	added @QtyRemaining for insert and update
 	4    07/08/2025   Vishal Suthar		Bypass Vendor RMA Pickticket Confirmation When Config Flag is Enabled
 	5    02-03-2026	  Amit Ghediya		UOM Conversion Changes [PN-15140]
-
+	6	 19/06/2026	  Ayushi		    [PN-16911]Skip fn_ConvertUOM call when ToUOM = FromUOM
 **************************************************************/
 CREATE   PROCEDURE [dbo].[sp_VendorRMA_savePickTicketItemInterface]
 (    
@@ -61,7 +61,30 @@ BEGIN
 		IF(@RMAPickTicketId = 0)
 		BEGIN
 
-		SELECT @QtyRemaining = (ISNULL(vra.Qty, 0) - ([dbo].[fn_ConvertUOM](ISNULL(@QtyToShip, 0),@PurchaseUnitOfMeasure,@StockUnitOfMeasure,0,@MasterCompanyId)) - SUM(ISNULL(([dbo].[fn_ConvertUOM](ISNULL(rmp.QtyToShip, 0),@PurchaseUnitOfMeasure,@StockUnitOfMeasure,0,@MasterCompanyId)), 0))) 
+		SELECT @QtyRemaining =
+		(
+			ISNULL(vra.Qty,0)
+			-
+			(
+				CASE
+					WHEN ISNULL(@PurchaseUnitOfMeasure,'') = ISNULL(@StockUnitOfMeasure,'')
+						THEN ISNULL(@QtyToShip,0)
+					ELSE [dbo].[fn_ConvertUOM](ISNULL(@QtyToShip,0),@PurchaseUnitOfMeasure,@StockUnitOfMeasure,0,@MasterCompanyId)
+				END
+			)
+			-
+			SUM
+			(
+				ISNULL
+				(
+					CASE
+						WHEN ISNULL(@PurchaseUnitOfMeasure,'') = ISNULL(@StockUnitOfMeasure,'')
+							THEN ISNULL(rmp.QtyToShip,0)
+						ELSE [dbo].[fn_ConvertUOM](ISNULL(rmp.QtyToShip,0),@PurchaseUnitOfMeasure,@StockUnitOfMeasure,0,@MasterCompanyId)
+					END,
+				0)
+			)
+		)
 		FROM VendorRMADetail vra WITH(NOLOCK)
 		--INNER JOIN SalesOrderReserveParts sorpp WITH(NOLOCK) ON vra.VendorRMAId = sorpp.SalesOrderId AND vra.ved = sorpp.SalesOrderPartId   
 		LEFT JOIN RMAPickTicket rmp WITH(NOLOCK) ON vra.VendorRMAId = rmp.VendorRMAId and vra.VendorRMADetailId = rmp.VendorRMADetailId
@@ -69,12 +92,19 @@ BEGIN
 		WHERE vra.VendorRMAId = @VendorRMAId AND vra.VendorRMADetailId = @VendorRMADetailId GROUP BY vra.Qty,IM.[PurchaseUnitOfMeasure],IM.[StockUnitOfMeasure],IM.[MasterCompanyId]
 
 			INSERT INTO [dbo].[RMAPickTicket]
-					([RMAPickTicketNumber], [VendorRMAId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive],
-					[IsDeleted], [VendorRMADetailId], [Qty], [QtyToShip], [MasterCompanyId], [Status],
-					[PickedById], [ConfirmedById], [Memo], [IsConfirmed], [QtyRemaining])
-			VALUES(@RMAPickTicketNumber, @VendorRMAId, @CreatedBy, @UpdatedBy, GETDATE(), GETDATE(), @IsActive, @IsDeleted, 
-					@VendorRMADetailId,
-					([dbo].[fn_ConvertUOM](ISNULL(@Qty, 0),@PurchaseUnitOfMeasure,@StockUnitOfMeasure,0,@MasterCompanyId)), ([dbo].[fn_ConvertUOM](ISNULL(@QtyToShip, 0),@PurchaseUnitOfMeasure,@StockUnitOfMeasure,0,@MasterCompanyId)), @MasterCompanyId, @Status, @PickedById, @ConfirmedById, @Memo, @IsConfirmed, @QtyRemaining);
+			(
+				[RMAPickTicketNumber], [VendorRMAId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive],
+				[IsDeleted], [VendorRMADetailId], [Qty], [QtyToShip], [MasterCompanyId], [Status],
+				[PickedById], [ConfirmedById], [Memo], [IsConfirmed], [QtyRemaining]
+			)
+			VALUES
+			(
+				@RMAPickTicketNumber, @VendorRMAId, @CreatedBy, @UpdatedBy, GETDATE(), GETDATE(), @IsActive, @IsDeleted,
+				@VendorRMADetailId,
+				CASE WHEN ISNULL(@PurchaseUnitOfMeasure,'') = ISNULL(@StockUnitOfMeasure,'') THEN ISNULL(@Qty,0) ELSE [dbo].[fn_ConvertUOM](ISNULL(@Qty,0),@PurchaseUnitOfMeasure,@StockUnitOfMeasure,0,@MasterCompanyId) END,
+				CASE WHEN ISNULL(@PurchaseUnitOfMeasure,'') = ISNULL(@StockUnitOfMeasure,'') THEN ISNULL(@QtyToShip,0) ELSE [dbo].[fn_ConvertUOM](ISNULL(@QtyToShip,0),@PurchaseUnitOfMeasure,@StockUnitOfMeasure,0,@MasterCompanyId) END,
+				@MasterCompanyId,@Status,@PickedById,@ConfirmedById,@Memo,@IsConfirmed,@QtyRemaining
+			);
 
 			SELECT @RMAPickTicketId = SCOPE_IDENTITY();
 
@@ -90,16 +120,57 @@ BEGIN
 		END
 		ELSE IF(@RMAPickTicketId > 0 AND @IsConfirmed = 0)
 		BEGIN
-			UPDATE [dbo].[RMAPickTicket] SET QtyToShip = ([dbo].[fn_ConvertUOM](ISNULL(@QtyToShip, 0),@PurchaseUnitOfMeasure,@StockUnitOfMeasure,0,@MasterCompanyId)),UpdatedBy = @UpdatedBy, UpdatedDate = GETDATE() WHERE RMAPickTicketId = @RMAPickTicketId;
+			UPDATE [dbo].[RMAPickTicket]
+			SET QtyToShip =
+				CASE WHEN ISNULL(@PurchaseUnitOfMeasure,'') = ISNULL(@StockUnitOfMeasure,'')
+					 THEN ISNULL(@QtyToShip,0)
+					 ELSE [dbo].[fn_ConvertUOM](ISNULL(@QtyToShip,0),@PurchaseUnitOfMeasure,@StockUnitOfMeasure,0,@MasterCompanyId)
+				END,
+				UpdatedBy = @UpdatedBy,
+				UpdatedDate = GETDATE()
+			WHERE RMAPickTicketId = @RMAPickTicketId;
 
-			SELECT @QtyRemaining = (([dbo].[fn_ConvertUOM](ISNULL(vra.Qty, 0),@PurchaseUnitOfMeasure,@StockUnitOfMeasure,0,@MasterCompanyId)) - SUM(ISNULL(([dbo].[fn_ConvertUOM](ISNULL(rmp.QtyToShip, 0),@PurchaseUnitOfMeasure,@StockUnitOfMeasure,0,@MasterCompanyId)), 0))) 
+			SELECT @QtyRemaining =
+			(
+				(
+					CASE WHEN ISNULL(@PurchaseUnitOfMeasure,'') = ISNULL(@StockUnitOfMeasure,'')
+						 THEN ISNULL(vra.Qty,0)
+						 ELSE [dbo].[fn_ConvertUOM](ISNULL(vra.Qty,0),@PurchaseUnitOfMeasure,@StockUnitOfMeasure,0,@MasterCompanyId)
+					END
+				)
+				-
+				SUM
+				(
+					ISNULL
+					(
+						CASE WHEN ISNULL(@PurchaseUnitOfMeasure,'') = ISNULL(@StockUnitOfMeasure,'')
+							 THEN ISNULL(rmp.QtyToShip,0)
+							 ELSE [dbo].[fn_ConvertUOM](ISNULL(rmp.QtyToShip,0),@PurchaseUnitOfMeasure,@StockUnitOfMeasure,0,@MasterCompanyId)
+						END,
+					0)
+				)
+			)
 			FROM VendorRMADetail vra WITH(NOLOCK)
-			--INNER JOIN SalesOrderReserveParts sorpp WITH(NOLOCK) ON vra.VendorRMAId = sorpp.SalesOrderId AND vra.ved = sorpp.SalesOrderPartId   
-			LEFT JOIN RMAPickTicket rmp WITH(NOLOCK) ON vra.VendorRMAId = rmp.VendorRMAId and vra.VendorRMADetailId = rmp.VendorRMADetailId
-			WHERE vra.VendorRMADetailId = @VendorRMADetailId GROUP BY vra.Qty
+			LEFT JOIN RMAPickTicket rmp WITH(NOLOCK)
+				ON vra.VendorRMAId = rmp.VendorRMAId
+			   AND vra.VendorRMADetailId = rmp.VendorRMADetailId
+			WHERE vra.VendorRMADetailId = @VendorRMADetailId
+			GROUP BY vra.Qty;
 
-			UPDATE [dbo].[RMAPickTicket] SET QtyToShip = ([dbo].[fn_ConvertUOM](ISNULL(@QtyToShip, 0),@PurchaseUnitOfMeasure,@StockUnitOfMeasure,0,@MasterCompanyId)),UpdatedBy = @UpdatedBy, UpdatedDate = GETDATE(), [QtyRemaining] = ([dbo].[fn_ConvertUOM](ISNULL(@QtyRemaining, 0),@PurchaseUnitOfMeasure,@StockUnitOfMeasure,0,@MasterCompanyId)) WHERE RMAPickTicketId = @RMAPickTicketId;
-
+			UPDATE [dbo].[RMAPickTicket]
+			SET QtyToShip =
+				CASE WHEN ISNULL(@PurchaseUnitOfMeasure,'') = ISNULL(@StockUnitOfMeasure,'')
+					 THEN ISNULL(@QtyToShip,0)
+					 ELSE [dbo].[fn_ConvertUOM](ISNULL(@QtyToShip,0),@PurchaseUnitOfMeasure,@StockUnitOfMeasure,0,@MasterCompanyId)
+				END,
+				UpdatedBy = @UpdatedBy,
+				UpdatedDate = GETDATE(),
+				QtyRemaining =
+				CASE WHEN ISNULL(@PurchaseUnitOfMeasure,'') = ISNULL(@StockUnitOfMeasure,'')
+					 THEN ISNULL(@QtyRemaining,0)
+					 ELSE [dbo].[fn_ConvertUOM](ISNULL(@QtyRemaining,0),@PurchaseUnitOfMeasure,@StockUnitOfMeasure,0,@MasterCompanyId)
+				END
+			WHERE RMAPickTicketId = @RMAPickTicketId;
 			--Update [dbo].[VendorRMADetail] SET VendorRMAStatusId = (SELECT VendorRMAStatusId FROM DBO.VendorRMAHeaderStatus WITH (NOLOCK) WHERE Code = 'Pending') --(SELECT VendorRMAStatusId FROM DBO.VendorRMAStatus WITH (NOLOCK) WHERE Code = 'RS') 
 			--WHERE VendorRMADetailId = @VendorRMADetailId;
 

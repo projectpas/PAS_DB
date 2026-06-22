@@ -27,6 +27,7 @@
 	9    08/01/2026   Rajesh Gami		 Added MasterCompanyId Parameter While Calling UOM Conversion Function
 	10   09/04/2026   Ayushi Patel	     PN-15909 resolved uom convertion issue for UnitPrice 
 	11   24/04/2026   Ayushi Patel		 PN-15982 Removed ROUND , as it was causing the mismatch in unitPrice
+	12	 19/06/2026	  Ayushi		     [PN-16911]Skip fn_ConvertUOM call when ToUOM = FromUOM
 -- EXEC [USP_GetWorkOrderQuoteMaterial] 1575,4,0,0
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_GetWorkOrderQuoteMaterial]
@@ -64,7 +65,7 @@ BEGIN
                         im.ManufacturerName,
 						'' as AltPartNumber,
 						CASE WHEN wq.BuildMethodId = 1 THEN 'WF' WHEN wq.BuildMethodId = 2  THEN 'WO'  WHEN wq.BuildMethodId = 3  THEN 'WF' ELSE 'Third Party' END Source,
-						dbo.fn_ConvertUOM(wom.Quantity, uomStock.ShortName, uomConsume.ShortName,0,wom.MasterCompanyId) as Quantity,
+						CASE WHEN ISNULL(uomStock.ShortName,'') = ISNULL(uomConsume.ShortName,'') THEN ISNULL(wom.Quantity,0) ELSE dbo.fn_ConvertUOM(wom.Quantity,uomStock.ShortName,uomConsume.ShortName,0,wom.MasterCompanyId) END AS Quantity,
 						1 as Partqty,
                         --wom.UnitOfMeasureId,
                         --uom.ShortName as UOM,
@@ -77,7 +78,7 @@ BEGIN
 					                     WHEN im.IsPma = 0 AND im.IsDER = 1  THEN 'DER' 
 										 ELSE 'OEM'
 									END)  as StockType,
-						dbo.fn_ConvertUOM(wom.UnitCost, uomStock.ShortName, uomConsume.ShortName,1,wom.MasterCompanyId) as UnitCost,
+						CASE WHEN ISNULL(uomStock.ShortName,'') = ISNULL(uomConsume.ShortName,'') THEN ISNULL(wom.UnitCost,0) ELSE dbo.fn_ConvertUOM(wom.UnitCost,uomStock.ShortName,uomConsume.ShortName,1,wom.MasterCompanyId) END AS UnitCost,
                         wom.MarkupPercentageId,
                         wom.WorkOrderQuoteDetailsId,
                         wom.WorkOrderQuoteMaterialId,
@@ -137,14 +138,14 @@ BEGIN
                         '' as ManufacturerName,
 						'' as AltPartNumber,
 						case when wq.BuildMethodId = 1 then 'WF' when wq.BuildMethodId = 2  then 'WO'  when wq.BuildMethodId = 3  then 'WF' else 'Third Party' end Source,
-						dbo.fn_ConvertUOM(wom.Quantity, uomStock.ShortName, uomConsume.ShortName,0,wom.MasterCompanyId) as Quantity,
-						dbo.fn_ConvertUOM(wom.Quantity, uomStock.ShortName, uomConsume.ShortName,0,wom.MasterCompanyId) as Partqty,
-                        im.ConsumeUnitOfMeasureId as UnitOfMeasureId,
-                        '' as UOM,
-                        0 as ConditionCodeId,
-                        '' as Condition,
-					    ''  as StockType,
-						dbo.fn_ConvertUOM(wom.UnitCost, uomStock.ShortName, uomConsume.ShortName,1,wom.MasterCompanyId)  AS UnitCost,
+						CASE WHEN ISNULL(uomStock.ShortName,'') = ISNULL(uomConsume.ShortName,'') THEN ISNULL(wom.Quantity,0) ELSE dbo.fn_ConvertUOM(wom.Quantity,uomStock.ShortName,uomConsume.ShortName,0,wom.MasterCompanyId) END AS Quantity,
+						CASE WHEN ISNULL(uomStock.ShortName,'') = ISNULL(uomConsume.ShortName,'') THEN ISNULL(wom.Quantity,0) ELSE dbo.fn_ConvertUOM(wom.Quantity,uomStock.ShortName,uomConsume.ShortName,0,wom.MasterCompanyId) END AS Partqty,
+						im.ConsumeUnitOfMeasureId as UnitOfMeasureId,
+						'' as UOM,
+						0 as ConditionCodeId,
+						'' as Condition,
+						'' as StockType,
+						CASE WHEN ISNULL(uomStock.ShortName,'') = ISNULL(uomConsume.ShortName,'') THEN ISNULL(wom.UnitCost,0) ELSE dbo.fn_ConvertUOM(wom.UnitCost,uomStock.ShortName,uomConsume.ShortName,1,wom.MasterCompanyId) END AS UnitCost,
                         wom.MarkupPercentageId,
                         wq.WorkOrderQuoteDetailsId as WorkOrderQuoteDetailsId,
                         0 as WorkOrderQuoteMaterialId,

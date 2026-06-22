@@ -21,7 +21,9 @@
 	3    06/07/2021   Hemant Saliya			Updated For Update WO Work Flow ID
 	4    08/11/2023	  Devendra Shekh		changes for ReadyToPick
 	5    10/05/2023   Hemant Saliya			Condition Group Changes
-  	6    25/Feb/2026  Rajesh Gami			Modify the SP for UOM Changes (Added CTE and accordingly change)-  PN-14832     
+  	6    25/Feb/2026  Rajesh Gami			Modify the SP for UOM Changes (Added CTE and accordingly change)-  PN-14832
+	7	 18/06/2026	  Ayushi				[PN-16911]Skip fn_ConvertUOM call when ToUOM = FromUOM
+
  EXECUTE GetWOMaterialsPickTicketApproveList 3555, 3019
 
 **************************************************************/ 
@@ -118,18 +120,18 @@ SET NOCOUNT ON
 					cte.PartNumber,
 					cte.PartDescription,
 					cte.Manufacturer,
-					CASE WHEN SL.StockLineId > 0 THEN dbo.fn_ConvertUOM(Qty, uomStock.ShortName, uomConsume.ShortName,0,SL.MasterCompanyId) ELSE cte.Qty END AS Qty,
+					CASE WHEN SL.StockLineId > 0 THEN (CASE WHEN ISNULL(uomStock.ShortName,'') = ISNULL(uomConsume.ShortName,'') THEN Qty ELSE dbo.fn_ConvertUOM(Qty,uomStock.ShortName,uomConsume.ShortName,0,SL.MasterCompanyId) END) ELSE cte.Qty END AS Qty,
 					cte.OrderNumber,
 					OrderQuoteNumber,
 					cte.ItemMasterId,
 					cte.ConditionId,
 					cte.CustomerName,
 					cte.CustomerCode,
-					CASE WHEN SL.StockLineId > 0 THEN  dbo.fn_ConvertUOM(cte.QuantityAvailable, uomStock.ShortName, uomConsume.ShortName,0,SL.MasterCompanyId) ELSE cte.QuantityAvailable END AS QuantityAvailable,
-					CASE WHEN SL.StockLineId > 0 THEN  dbo.fn_ConvertUOM(cte.QtyToShip, uomStock.ShortName, uomConsume.ShortName,0,SL.MasterCompanyId) ELSE cte.QtyToShip END AS QtyToShip,
-					CASE WHEN SL.StockLineId > 0 THEN  dbo.fn_ConvertUOM(cte.QtyToPick, uomStock.ShortName, uomConsume.ShortName,0,SL.MasterCompanyId) ELSE cte.QtyToPick END AS QtyToPick,
+					CASE WHEN SL.StockLineId > 0 THEN (CASE WHEN ISNULL(uomStock.ShortName,'') = ISNULL(uomConsume.ShortName,'') THEN cte.QuantityAvailable ELSE dbo.fn_ConvertUOM(cte.QuantityAvailable,uomStock.ShortName,uomConsume.ShortName,0,SL.MasterCompanyId) END) ELSE cte.QuantityAvailable END AS QuantityAvailable,
+					CASE WHEN SL.StockLineId > 0 THEN (CASE WHEN ISNULL(uomStock.ShortName,'') = ISNULL(uomConsume.ShortName,'') THEN cte.QtyToShip ELSE dbo.fn_ConvertUOM(cte.QtyToShip,uomStock.ShortName,uomConsume.ShortName,0,SL.MasterCompanyId) END) ELSE cte.QtyToShip END AS QtyToShip,
+					CASE WHEN SL.StockLineId > 0 THEN (CASE WHEN ISNULL(uomStock.ShortName,'') = ISNULL(uomConsume.ShortName,'') THEN cte.QtyToPick ELSE dbo.fn_ConvertUOM(cte.QtyToPick,uomStock.ShortName,uomConsume.ShortName,0,SL.MasterCompanyId) END) ELSE cte.QtyToPick END AS QtyToPick,
 					cte.Status,
-					CASE WHEN SL.StockLineId > 0 THEN  dbo.fn_ConvertUOM(cte.ReadyToPick, uomStock.ShortName, uomConsume.ShortName,0,SL.MasterCompanyId) ELSE cte.QtyToPick END AS ReadyToPick,
+					CASE WHEN SL.StockLineId > 0 THEN (CASE WHEN ISNULL(uomStock.ShortName,'') = ISNULL(uomConsume.ShortName,'') THEN cte.ReadyToPick ELSE dbo.fn_ConvertUOM(cte.ReadyToPick,uomStock.ShortName,uomConsume.ShortName,0,SL.MasterCompanyId) END) ELSE cte.QtyToPick END AS ReadyToPick,
 					cte.IsKitType,
 					cte.StockLineId
 				FROM tmpCTE cte

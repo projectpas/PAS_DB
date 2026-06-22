@@ -20,6 +20,7 @@
 	4    15-May-2026        Sahdev Saliya       Added ControlNumber, UnitOfMeasure, QuantityAvailable, UnitCost, ExtendedCost [PN-16205]
 	5    05-June-2026       Sahdev Saliya       Added Searching and sorting functionality for ControlNumber, UnitOfMeasure, QuantityAvailable, UnitCost, ExtendedCost [PN-16578]
     6	 04-Jun-2026		Ayushi Patel	    [PN-16716]Return unitcost , quantityAvailable , unitOfMeasure as a PurchaseUOM 
+    7	 19/06/2026	        Ayushi			    [PN-16911]Skip fn_ConvertUOM call when ToUOM = FromUOM
 
  exec USP_VendorRMA_CreditMeMo_GetVendorRMAList 
 @PageNumber=1,@PageSize=10,@SortColumn=NULL,@SortOrder=-1,@GlobalFilter=N'',
@@ -93,12 +94,12 @@ BEGIN
 			VS.VendorRMAStatus as 'VendorRMADetailStatus',
 			RMA.RMANumber as 'VendorRMANumber',
 			RMAD.ModuleId,
-            ([dbo].[fn_ConvertUOM](ISNULL(RMS.QtyShipped, 0),SL.[StockUnitOfMeasure], PurchaseUom.[ShortName],0,IM.[MasterCompanyId])) AS QtyShipped,
+            CASE WHEN ISNULL(SL.[StockUnitOfMeasure],'') = ISNULL(PurchaseUom.[ShortName],'') THEN ISNULL(RMS.QtyShipped,0) ELSE dbo.fn_ConvertUOM(ISNULL(RMS.QtyShipped,0),SL.[StockUnitOfMeasure],PurchaseUom.[ShortName],0,IM.[MasterCompanyId]) END AS QtyShipped,
             RMAD.VendorRMADetailId,
-			SL.[ControlNumber],
-			PurchaseUom.[ShortName] as UnitOfMeasure,
-			([dbo].[fn_ConvertUOM](ISNULL(SL.QuantityAvailable, 0),SL.[StockUnitOfMeasure], PurchaseUom.[ShortName],0,IM.[MasterCompanyId])) AS QuantityAvailable,
-            ([dbo].[fn_ConvertUOM](ISNULL(SL.UnitCost, 0),SL.[StockUnitOfMeasure], PurchaseUom.[ShortName],1,IM.[MasterCompanyId])) AS UnitCost,
+            SL.[ControlNumber],
+            PurchaseUom.[ShortName] AS UnitOfMeasure,
+            CASE WHEN ISNULL(SL.[StockUnitOfMeasure],'') = ISNULL(PurchaseUom.[ShortName],'') THEN ISNULL(SL.QuantityAvailable,0) ELSE dbo.fn_ConvertUOM(ISNULL(SL.QuantityAvailable,0),SL.[StockUnitOfMeasure],PurchaseUom.[ShortName],0,IM.[MasterCompanyId]) END AS QuantityAvailable,
+            CASE WHEN ISNULL(SL.[StockUnitOfMeasure],'') = ISNULL(PurchaseUom.[ShortName],'') THEN ISNULL(SL.UnitCost,0) ELSE dbo.fn_ConvertUOM(ISNULL(SL.UnitCost,0),SL.[StockUnitOfMeasure],PurchaseUom.[ShortName],1,IM.[MasterCompanyId]) END AS UnitCost,
 			CASE  WHEN SL.[PurchaseOrderId] > 0 THEN (ISNULL(SL.QuantityAvailable,0) * SL.UnitCost) WHEN SL.[RepairOrderId] > 0 THEN (ISNULL(SL.QuantityAvailable,0) * SL.UnitCost) ELSE 0 END AS ExtendedCost
 		FROM [DBO].[VendorRMA] RMA WITH (NOLOCK)
 		INNER JOIN [DBO].[Vendor] V WITH (NOLOCK) ON RMA.VendorId = V.VendorId

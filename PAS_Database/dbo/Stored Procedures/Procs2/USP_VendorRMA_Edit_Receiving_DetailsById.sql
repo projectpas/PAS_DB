@@ -12,6 +12,7 @@
  ** --   --------     -------		---------------------------     
     1    06/23/2023   Moin Bloch     Created
 	2    06/05/2026   Ayushi Patel   UOM Changes RMA [PN-15140]
+	3	 19/06/2026	  Ayushi		 [PN-16911]Skip fn_ConvertUOM call when ToUOM = FromUOM
 *******************************************************************************
 EXEC USP_VendorRMA_Edit_Receiving_DetailsById 39,64,2
 *******************************************************************************/
@@ -56,8 +57,21 @@ BEGIN
 				  ,IM.[PartDescription]
 				--,VD.[Qty] AS [QuantityOrdered]
 				--,[QuantityBackOrdered] = (VD.[Qty] - (SELECT ISNULL(SUM(ISNULL(SL.[Quantity],0)),0) FROM [dbo].[StockLine] SL WITH (NOLOCK) WHERE SL.[VendorRMADetailId] = VD.[VendorRMADetailId] AND SL.[IsDeleted] = 0 AND SL.[IsParent] = 1))
-				  ,([dbo].[fn_ConvertUOM](ISNULL(VD.[QtyShipped], 0),IM.[StockUnitOfMeasure], IM.[PurchaseUnitOfMeasure],0,IM.[MasterCompanyId])) AS QuantityOrdered
-				  ,[dbo].[fn_ConvertUOM]((VD.[QtyShipped] - (SELECT ISNULL(SUM(ISNULL(SL.[Quantity], 0)), 0) FROM [dbo].[StockLine] SL WITH (NOLOCK) WHERE SL.[VendorRMADetailId] = VD.[VendorRMADetailId] AND SL.[IsDeleted] = 0 AND SL.[IsParent] = 1)),
+				  ,CASE WHEN ISNULL(IM.[StockUnitOfMeasure],'') = ISNULL(IM.[PurchaseUnitOfMeasure],'') 
+						  THEN ISNULL(VD.[QtyShipped],0)
+						  ELSE dbo.fn_ConvertUOM(ISNULL(VD.[QtyShipped],0),IM.[StockUnitOfMeasure],IM.[PurchaseUnitOfMeasure],0,IM.[MasterCompanyId])
+				   END AS QuantityOrdered
+
+				   ,[dbo].[fn_ConvertUOM](
+						(
+							VD.[QtyShipped] - (
+								SELECT ISNULL(SUM(ISNULL(SL.[Quantity],0)),0)
+								FROM [dbo].[StockLine] SL WITH (NOLOCK)
+								WHERE SL.[VendorRMADetailId] = VD.[VendorRMADetailId]
+								  AND SL.[IsDeleted] = 0
+								  AND SL.[IsParent] = 1
+							)
+						),
 				   IM.[StockUnitOfMeasure],IM.[PurchaseUnitOfMeasure], 0,IM.[MasterCompanyId]) AS QuantityBackOrdered
 				  ,SL.[ManufacturerId]
 				  ,SL.[Manufacturer] AS [ManufacturerName]
@@ -67,7 +81,10 @@ BEGIN
 				  ,SL.[PurchaseUnitOfMeasureId] AS [UOMId]		
 				  ,UM.[ShortName] AS [UomText]
 				  --,VD.[UnitCost]
-				  ,([dbo].[fn_ConvertUOM](ISNULL(VD.[UnitCost], 0),IM.[StockUnitOfMeasure], IM.[PurchaseUnitOfMeasure],1,IM.[MasterCompanyId])) AS UnitCost
+				  ,CASE WHEN ISNULL(IM.[StockUnitOfMeasure],'') = ISNULL(IM.[PurchaseUnitOfMeasure],'')
+						  THEN ISNULL(VD.[UnitCost],0)
+						  ELSE dbo.fn_ConvertUOM(ISNULL(VD.[UnitCost],0),IM.[StockUnitOfMeasure],IM.[PurchaseUnitOfMeasure],1,IM.[MasterCompanyId])
+				   END AS UnitCost
 				  ,VD.[ExtendedCost]
 				  ,VD.[SerialNumber]
 				  ,0 AS [DiscountPerUnit]  --> Default SET 0  

@@ -16,7 +16,7 @@
  ** --   --------   -------   --------------------------------            
  1	  27-June-2023	  Devendra		    created  
  2    06-04-2026	  Amit Ghediya		UOM Conversion Changes [PN-15140]
-       
+ 3	  19/06/2026	  Ayushi			[PN-16911]Skip fn_ConvertUOM call when ToUOM = FromUOM      
 EXECUTE   [dbo].[USP_GetVendorRMAPartsDetails_ById] 37,1  
 **************************************************************/  
 CREATE   PROCEDURE [dbo].[USP_GetVendorRMAPartsDetails_ById]  
@@ -55,15 +55,15 @@ BEGIN
      im.PartDescription,  
      sl.StockLineNumber,  
      sl.SerialNumber,  
-     --ISNULL(vrmd.Qty, 0) AS 'Qty', 
-	 ([dbo].[fn_ConvertUOM](ISNULL(vrmd.Qty, 0),im.[StockUnitOfMeasure], im.[PurchaseUnitOfMeasure],0,im.[MasterCompanyId])) AS 'Qty',
-     vrmd.ItemMasterId,  
-     vrmd.StockLineId,  
-     vrmd.VendorRMADetailId,
-	 --ISNULL(sl.UnitCost, 0) AS 'UnitCost',
-	 ([dbo].[fn_ConvertUOM](ISNULL(sl.UnitCost, 0),im.[StockUnitOfMeasure], im.[PurchaseUnitOfMeasure],1,im.[MasterCompanyId])) AS 'UnitCost',
-	 --(vrmd.Qty * sl.UnitCost) as 'ExtendedCost'
-	 ([dbo].[fn_ConvertUOM](ISNULL(vrmd.Qty, 0),im.[StockUnitOfMeasure], im.[PurchaseUnitOfMeasure],0,im.[MasterCompanyId])) * ([dbo].[fn_ConvertUOM](ISNULL(sl.UnitCost, 0),im.[StockUnitOfMeasure], im.[PurchaseUnitOfMeasure],1,im.[MasterCompanyId])) as 'ExtendedCost'
+    --ISNULL(vrmd.Qty, 0) AS 'Qty',
+    CASE WHEN ISNULL(im.StockUnitOfMeasure,'') = ISNULL(im.PurchaseUnitOfMeasure,'') THEN ISNULL(vrmd.Qty,0) ELSE dbo.fn_ConvertUOM(ISNULL(vrmd.Qty,0),im.StockUnitOfMeasure,im.PurchaseUnitOfMeasure,0,im.MasterCompanyId) END AS 'Qty',
+    vrmd.ItemMasterId,
+    vrmd.StockLineId,
+    vrmd.VendorRMADetailId,
+    --ISNULL(sl.UnitCost, 0) AS 'UnitCost',
+    CASE WHEN ISNULL(im.StockUnitOfMeasure,'') = ISNULL(im.PurchaseUnitOfMeasure,'') THEN ISNULL(sl.UnitCost,0) ELSE dbo.fn_ConvertUOM(ISNULL(sl.UnitCost,0),im.StockUnitOfMeasure,im.PurchaseUnitOfMeasure,1,im.MasterCompanyId) END AS 'UnitCost',
+    --(vrmd.Qty * sl.UnitCost) as 'ExtendedCost'
+    (CASE WHEN ISNULL(im.StockUnitOfMeasure,'') = ISNULL(im.PurchaseUnitOfMeasure,'') THEN ISNULL(vrmd.Qty,0) ELSE dbo.fn_ConvertUOM(ISNULL(vrmd.Qty,0),im.StockUnitOfMeasure,im.PurchaseUnitOfMeasure,0,im.MasterCompanyId) END) * (CASE WHEN ISNULL(im.StockUnitOfMeasure,'') = ISNULL(im.PurchaseUnitOfMeasure,'') THEN ISNULL(sl.UnitCost,0) ELSE dbo.fn_ConvertUOM(ISNULL(sl.UnitCost,0),im.StockUnitOfMeasure,im.PurchaseUnitOfMeasure,1,im.MasterCompanyId) END) AS 'ExtendedCost'
     FROM [DBO].[VendorCreditMemo] vcm WITH (NOLOCK)   
     LEFT JOIN [dbo].[Currency] cu WITH(NOLOCK) on vcm.CurrencyId = cu.CurrencyId  
     LEFT JOIN [dbo].[VendorRMA] vrm WITH(NOLOCK) on vcm.VendorRMAId = vrm.VendorRMAId  

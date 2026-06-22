@@ -33,12 +33,12 @@ BEGIN
 	--BEGIN
 		SELECT DISTINCT imt.ItemMasterId AS SalesOrderPartId,sop.SalesOrderPartId AS SOPartId, sop.ConditionId, 0 AS ItemNo, so.SalesOrderNumber, imt.partnumber, imt.PartDescription, 
 		--SUM(ISNULL(sopt.QtyToShip, 0)) AS QtyToShip,
-		ISNULL((CASE WHEN sl.[StockUnitOfMeasure] = sl.[ConsumeUnitOfMeasure] THEN SUM(ISNULL(sopt.[QtyToShip],0)) ELSE [dbo].[fn_ConvertUOM](SUM(ISNULL(sopt.[QtyToShip],0)),sl.[StockUnitOfMeasure], sl.[ConsumeUnitOfMeasure],0,so.[MasterCompanyId]) END),0) AS QtyToShip,
+		ISNULL((CASE WHEN ISNULL(sl.[StockUnitOfMeasure],'') = ISNULL(sl.[ConsumeUnitOfMeasure],'') THEN SUM(ISNULL(sopt.[QtyToShip],0)) ELSE [dbo].[fn_ConvertUOM](SUM(ISNULL(sopt.[QtyToShip],0)),sl.[StockUnitOfMeasure], sl.[ConsumeUnitOfMeasure],0,so.[MasterCompanyId]) END),0) AS QtyToShip,
 		--SUM(ISNULL(sosi.QtyShipped, 0)) AS QtyShipped,
-		ISNULL((CASE WHEN sl.[StockUnitOfMeasure] = sl.[ConsumeUnitOfMeasure] THEN SUM(ISNULL(sosi.[QtyShipped],0)) ELSE [dbo].[fn_ConvertUOM](SUM(ISNULL(sosi.[QtyShipped],0)),sl.[StockUnitOfMeasure], sl.[ConsumeUnitOfMeasure],0,so.[MasterCompanyId]) END),0) AS QtyShipped,
+		ISNULL((CASE WHEN ISNULL(sl.[StockUnitOfMeasure],'') = ISNULL(sl.[ConsumeUnitOfMeasure],'') THEN SUM(ISNULL(sosi.[QtyShipped],0)) ELSE [dbo].[fn_ConvertUOM](SUM(ISNULL(sosi.[QtyShipped],0)),sl.[StockUnitOfMeasure], sl.[ConsumeUnitOfMeasure],0,so.[MasterCompanyId]) END),0) AS QtyShipped,
 		sop.SalesOrderId,
 		--SUM(ISNULL(sopt.QtyToShip, 0)) - SUM(ISNULL(sosi.QtyShipped, 0)) AS QtyRemaining,
-		(ISNULL((CASE WHEN sl.[StockUnitOfMeasure] = sl.[ConsumeUnitOfMeasure] THEN SUM(ISNULL(sopt.[QtyToShip],0)) ELSE [dbo].[fn_ConvertUOM](SUM(ISNULL(sopt.[QtyToShip],0)),sl.[StockUnitOfMeasure], sl.[ConsumeUnitOfMeasure],0,so.[MasterCompanyId]) END),0)	- ISNULL((CASE WHEN sl.[StockUnitOfMeasure] = sl.[ConsumeUnitOfMeasure] THEN SUM(ISNULL(sosi.[QtyShipped],0)) ELSE [dbo].[fn_ConvertUOM](SUM(ISNULL(sosi.[QtyShipped],0)),sl.[StockUnitOfMeasure], sl.[ConsumeUnitOfMeasure],0,so.[MasterCompanyId]) END),0)) AS QtyRemaining,		
+		(ISNULL((CASE WHEN ISNULL(sl.[StockUnitOfMeasure],'') = ISNULL(sl.[ConsumeUnitOfMeasure],'') THEN SUM(ISNULL(sopt.[QtyToShip],0)) ELSE [dbo].[fn_ConvertUOM](SUM(ISNULL(sopt.[QtyToShip],0)),sl.[StockUnitOfMeasure], sl.[ConsumeUnitOfMeasure],0,so.[MasterCompanyId]) END),0)	- ISNULL((CASE WHEN ISNULL(sl.[StockUnitOfMeasure],'') = ISNULL(sl.[ConsumeUnitOfMeasure],'') THEN SUM(ISNULL(sosi.[QtyShipped],0)) ELSE [dbo].[fn_ConvertUOM](SUM(ISNULL(sosi.[QtyShipped],0)),sl.[StockUnitOfMeasure], sl.[ConsumeUnitOfMeasure],0,so.[MasterCompanyId]) END),0)) AS QtyRemaining,		
 		CASE WHEN ISNULL(SUM(sopt.[QtyToShip]), 0) = ISNULL(SUM(sosi.[QtyShipped]), 0) THEN 'Shipped'
 		ELSE 'Shipping' END AS [Status]
 		FROM [dbo].[SalesOrderPartV1] sop WITH (NOLOCK)

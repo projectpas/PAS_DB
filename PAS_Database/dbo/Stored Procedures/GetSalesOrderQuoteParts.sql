@@ -44,17 +44,17 @@ BEGIN
 			qs.StockLineNumber,
 			part.FxRate,
 			CASE WHEN SOQSC.SalesOrderQuoteStocklineId IS NOT NULL
-				THEN (CASE WHEN itemMaster.[StockUnitOfMeasure] = itemMaster.[ConsumeUnitOfMeasure] THEN ISNULL(stk.QtyQuoted, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(stk.QtyQuoted, 0), itemMaster.[StockUnitOfMeasure], itemMaster.[ConsumeUnitOfMeasure], 0, part.MasterCompanyId) END)
+				THEN (CASE WHEN ISNULL(itemMaster.[StockUnitOfMeasure],'') = ISNULL(itemMaster.[ConsumeUnitOfMeasure],'') THEN ISNULL(stk.QtyQuoted, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(stk.QtyQuoted, 0), itemMaster.[StockUnitOfMeasure], itemMaster.[ConsumeUnitOfMeasure], 0, part.MasterCompanyId) END)
 				ELSE (CASE WHEN
-					(CASE WHEN itemMaster.[StockUnitOfMeasure] = itemMaster.[ConsumeUnitOfMeasure] THEN ISNULL(part.QtyQuoted, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(part.QtyQuoted, 0), itemMaster.[StockUnitOfMeasure], itemMaster.[ConsumeUnitOfMeasure], 0, part.MasterCompanyId) END) = 0
-					THEN (CASE WHEN itemMaster.[StockUnitOfMeasure] = itemMaster.[ConsumeUnitOfMeasure] THEN ISNULL(part.QtyRequested, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(part.QtyRequested, 0), itemMaster.[StockUnitOfMeasure], itemMaster.[ConsumeUnitOfMeasure], 0, part.MasterCompanyId) END)
-					ELSE (CASE WHEN itemMaster.[StockUnitOfMeasure] = itemMaster.[ConsumeUnitOfMeasure] THEN ISNULL(part.QtyQuoted, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(part.QtyQuoted, 0), itemMaster.[StockUnitOfMeasure], itemMaster.[ConsumeUnitOfMeasure], 0, part.MasterCompanyId) END)
+					(CASE WHEN ISNULL(itemMaster.[StockUnitOfMeasure],'') = ISNULL(itemMaster.[ConsumeUnitOfMeasure],'') THEN ISNULL(part.QtyQuoted, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(part.QtyQuoted, 0), itemMaster.[StockUnitOfMeasure], itemMaster.[ConsumeUnitOfMeasure], 0, part.MasterCompanyId) END) = 0
+					THEN (CASE WHEN ISNULL(itemMaster.[StockUnitOfMeasure],'') = ISNULL(itemMaster.[ConsumeUnitOfMeasure],'') THEN ISNULL(part.QtyRequested, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(part.QtyRequested, 0), itemMaster.[StockUnitOfMeasure], itemMaster.[ConsumeUnitOfMeasure], 0, part.MasterCompanyId) END)
+					ELSE (CASE WHEN ISNULL(itemMaster.[StockUnitOfMeasure],'') = ISNULL(itemMaster.[ConsumeUnitOfMeasure],'') THEN ISNULL(part.QtyQuoted, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(part.QtyQuoted, 0), itemMaster.[StockUnitOfMeasure], itemMaster.[ConsumeUnitOfMeasure], 0, part.MasterCompanyId) END)
 				END)
 			END QtyQuoted,
-			(CASE WHEN itemMaster.[StockUnitOfMeasure] = itemMaster.[ConsumeUnitOfMeasure] THEN ISNULL(part.QtyRequested, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(part.QtyRequested, 0), itemMaster.[StockUnitOfMeasure], itemMaster.[ConsumeUnitOfMeasure], 0, part.MasterCompanyId) END) AS QtyRequested,
+			(CASE WHEN ISNULL(itemMaster.[StockUnitOfMeasure],'') = ISNULL(itemMaster.[ConsumeUnitOfMeasure],'') THEN ISNULL(part.QtyRequested, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(part.QtyRequested, 0), itemMaster.[StockUnitOfMeasure], itemMaster.[ConsumeUnitOfMeasure], 0, part.MasterCompanyId) END) AS QtyRequested,
 			CASE WHEN SOQSC.SalesOrderQuoteStocklineId IS NOT NULL
-				THEN (CASE WHEN itemMaster.[StockUnitOfMeasure] = itemMaster.[ConsumeUnitOfMeasure] THEN ISNULL(SOQSC.UnitSalesPrice, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(SOQSC.UnitSalesPrice, 0), itemMaster.[StockUnitOfMeasure], itemMaster.[ConsumeUnitOfMeasure], 1, part.MasterCompanyId) END)
-				ELSE (CASE WHEN itemMaster.[StockUnitOfMeasure] = itemMaster.[ConsumeUnitOfMeasure] THEN ISNULL(SOQPC.UnitSalesPrice, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(SOQPC.UnitSalesPrice, 0), itemMaster.[StockUnitOfMeasure], itemMaster.[ConsumeUnitOfMeasure], 1, part.MasterCompanyId) END)
+				THEN (CASE WHEN ISNULL(itemMaster.[StockUnitOfMeasure],'') = ISNULL(itemMaster.[ConsumeUnitOfMeasure],'') THEN ISNULL(SOQSC.UnitSalesPrice, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(SOQSC.UnitSalesPrice, 0), itemMaster.[StockUnitOfMeasure], itemMaster.[ConsumeUnitOfMeasure], 1, part.MasterCompanyId) END)
+				ELSE (CASE WHEN ISNULL(itemMaster.[StockUnitOfMeasure],'') = ISNULL(itemMaster.[ConsumeUnitOfMeasure],'') THEN ISNULL(SOQPC.UnitSalesPrice, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(SOQPC.UnitSalesPrice, 0), itemMaster.[StockUnitOfMeasure], itemMaster.[ConsumeUnitOfMeasure], 1, part.MasterCompanyId) END)
 			END UnitSalePrice,
 			CASE WHEN SOQSC.SalesOrderQuoteStocklineId IS NOT NULL THEN ISNULL(SOQSC.MarkUpPercentage, 0) ELSE ISNULL(SOQPC.MarkUpPercentage, 0) END MarkUpPercentage,
 			0 SalesBeforeDiscount,
@@ -82,8 +82,8 @@ BEGIN
 			ISNULL(qs.SerialNumber, '') AS SerialNumber,
 			ISNULL(qs.ControlNumber, '') AS ControlNumber,
 			CASE WHEN SOQSC.SalesOrderQuoteStocklineId IS NOT NULL
-				THEN (CASE WHEN itemMaster.[StockUnitOfMeasure] = itemMaster.[ConsumeUnitOfMeasure] THEN ISNULL(SOQSC.UnitCost, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(SOQSC.UnitCost, 0), itemMaster.[StockUnitOfMeasure], itemMaster.[ConsumeUnitOfMeasure], 1, part.MasterCompanyId) END)
-				ELSE (CASE WHEN itemMaster.[StockUnitOfMeasure] = itemMaster.[ConsumeUnitOfMeasure] THEN ISNULL(SOQPC.UnitCost, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(SOQPC.UnitCost, 0), itemMaster.[StockUnitOfMeasure], itemMaster.[ConsumeUnitOfMeasure], 1, part.MasterCompanyId) END)
+				THEN (CASE WHEN ISNULL(itemMaster.[StockUnitOfMeasure],'') = ISNULL(itemMaster.[ConsumeUnitOfMeasure],'') THEN ISNULL(SOQSC.UnitCost, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(SOQSC.UnitCost, 0), itemMaster.[StockUnitOfMeasure], itemMaster.[ConsumeUnitOfMeasure], 1, part.MasterCompanyId) END)
+				ELSE (CASE WHEN ISNULL(itemMaster.[StockUnitOfMeasure],'') = ISNULL(itemMaster.[ConsumeUnitOfMeasure],'') THEN ISNULL(SOQPC.UnitCost, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(SOQPC.UnitCost, 0), itemMaster.[StockUnitOfMeasure], itemMaster.[ConsumeUnitOfMeasure], 1, part.MasterCompanyId) END)
 			END UnitCost,
 			CASE WHEN SOQSC.SalesOrderQuoteStocklineId IS NOT NULL
 				THEN ISNULL(SOQSC.UnitSalesPriceExtended, 0)
@@ -106,15 +106,15 @@ BEGIN
 				ELSE ISNULL(SOQPC.UnitCostExtended, 0)
 			END UnitCostExtended,
 			CASE WHEN SOQSC.SalesOrderQuoteStocklineId IS NOT NULL
-				THEN (CASE WHEN itemMaster.[StockUnitOfMeasure] = itemMaster.[ConsumeUnitOfMeasure] THEN ISNULL(SOQSC.MarginAmount, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(SOQSC.MarginAmount, 0), itemMaster.[StockUnitOfMeasure], itemMaster.[ConsumeUnitOfMeasure], 1, part.MasterCompanyId) END)
-				ELSE (CASE WHEN itemMaster.[StockUnitOfMeasure] = itemMaster.[ConsumeUnitOfMeasure] THEN ISNULL(SOQPC.MarginAmount, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(SOQPC.MarginAmount, 0), itemMaster.[StockUnitOfMeasure], itemMaster.[ConsumeUnitOfMeasure], 1, part.MasterCompanyId) END)
+				THEN (CASE WHEN ISNULL(itemMaster.[StockUnitOfMeasure],'') = ISNULL(itemMaster.[ConsumeUnitOfMeasure],'') THEN ISNULL(SOQSC.MarginAmount, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(SOQSC.MarginAmount, 0), itemMaster.[StockUnitOfMeasure], itemMaster.[ConsumeUnitOfMeasure], 1, part.MasterCompanyId) END)
+				ELSE (CASE WHEN ISNULL(itemMaster.[StockUnitOfMeasure],'') = ISNULL(itemMaster.[ConsumeUnitOfMeasure],'') THEN ISNULL(SOQPC.MarginAmount, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(SOQPC.MarginAmount, 0), itemMaster.[StockUnitOfMeasure], itemMaster.[ConsumeUnitOfMeasure], 1, part.MasterCompanyId) END)
 			END MarginAmount,
 			ISNULL((
 				(CASE WHEN SOQSC.SalesOrderQuoteStocklineId IS NOT NULL
-					THEN (CASE WHEN itemMaster.[StockUnitOfMeasure] = itemMaster.[ConsumeUnitOfMeasure] THEN ISNULL(SOQSC.MarginAmount, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(SOQSC.MarginAmount, 0), itemMaster.[StockUnitOfMeasure], itemMaster.[ConsumeUnitOfMeasure], 1, part.MasterCompanyId) END)
-					ELSE (CASE WHEN itemMaster.[StockUnitOfMeasure] = itemMaster.[ConsumeUnitOfMeasure] THEN ISNULL(SOQPC.MarginAmount, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(SOQPC.MarginAmount, 0), itemMaster.[StockUnitOfMeasure], itemMaster.[ConsumeUnitOfMeasure], 1, part.MasterCompanyId) END)
+					THEN (CASE WHEN ISNULL(itemMaster.[StockUnitOfMeasure],'') = ISNULL(itemMaster.[ConsumeUnitOfMeasure],'') THEN ISNULL(SOQSC.MarginAmount, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(SOQSC.MarginAmount, 0), itemMaster.[StockUnitOfMeasure], itemMaster.[ConsumeUnitOfMeasure], 1, part.MasterCompanyId) END)
+					ELSE (CASE WHEN ISNULL(itemMaster.[StockUnitOfMeasure],'') = ISNULL(itemMaster.[ConsumeUnitOfMeasure],'') THEN ISNULL(SOQPC.MarginAmount, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(SOQPC.MarginAmount, 0), itemMaster.[StockUnitOfMeasure], itemMaster.[ConsumeUnitOfMeasure], 1, part.MasterCompanyId) END)
 				END)
-				* (CASE WHEN itemMaster.[StockUnitOfMeasure] = itemMaster.[ConsumeUnitOfMeasure] THEN ISNULL(stk.QtyQuoted, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(stk.QtyQuoted, 0), itemMaster.[StockUnitOfMeasure], itemMaster.[ConsumeUnitOfMeasure], 0, part.MasterCompanyId) END)
+				* (CASE WHEN ISNULL(itemMaster.[StockUnitOfMeasure],'') = ISNULL(itemMaster.[ConsumeUnitOfMeasure],'') THEN ISNULL(stk.QtyQuoted, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(stk.QtyQuoted, 0), itemMaster.[StockUnitOfMeasure], itemMaster.[ConsumeUnitOfMeasure], 0, part.MasterCompanyId) END)
 			), 0) MarginAmountExtended,
 			CASE WHEN SOQSC.SalesOrderQuoteStocklineId IS NOT NULL THEN ISNULL(SOQSC.MarginPercentage, 0) ELSE ISNULL(SOQPC.MarginPercentage, 0) END MarginPercentage,
 			COALESCE(fcu.Code, '') AS CurrencyDescription,
@@ -154,10 +154,10 @@ BEGIN
 			SOQPC.TaxPercentage TaxPercentage,
 			'' TaxType,
 			CASE WHEN SOQSC.SalesOrderQuoteStocklineId IS NOT NULL
-				THEN (CASE WHEN itemMaster.[StockUnitOfMeasure] = itemMaster.[ConsumeUnitOfMeasure] THEN ISNULL(SOQPC.TaxAmount, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(SOQPC.TaxAmount, 0), itemMaster.[StockUnitOfMeasure], itemMaster.[ConsumeUnitOfMeasure], 1, part.MasterCompanyId) END)
-				ELSE (CASE WHEN itemMaster.[StockUnitOfMeasure] = itemMaster.[ConsumeUnitOfMeasure] THEN ISNULL(SOQPC.TaxAmount, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(SOQPC.TaxAmount, 0), itemMaster.[StockUnitOfMeasure], itemMaster.[ConsumeUnitOfMeasure], 1, part.MasterCompanyId) END)
+				THEN (CASE WHEN ISNULL(itemMaster.[StockUnitOfMeasure],'') = ISNULL(itemMaster.[ConsumeUnitOfMeasure],'') THEN ISNULL(SOQPC.TaxAmount, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(SOQPC.TaxAmount, 0), itemMaster.[StockUnitOfMeasure], itemMaster.[ConsumeUnitOfMeasure], 1, part.MasterCompanyId) END)
+				ELSE (CASE WHEN ISNULL(itemMaster.[StockUnitOfMeasure],'') = ISNULL(itemMaster.[ConsumeUnitOfMeasure],'') THEN ISNULL(SOQPC.TaxAmount, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(SOQPC.TaxAmount, 0), itemMaster.[StockUnitOfMeasure], itemMaster.[ConsumeUnitOfMeasure], 1, part.MasterCompanyId) END)
 			END TaxAmount,
-			(CASE WHEN itemMaster.[StockUnitOfMeasure] = itemMaster.[ConsumeUnitOfMeasure] THEN ISNULL(part.QtyQuoted, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(part.QtyQuoted, 0), itemMaster.[StockUnitOfMeasure], itemMaster.[ConsumeUnitOfMeasure], 0, part.MasterCompanyId) END) AS QtyPrevQuoted,
+			(CASE WHEN ISNULL(itemMaster.[StockUnitOfMeasure],'') = ISNULL(itemMaster.[ConsumeUnitOfMeasure],'') THEN ISNULL(part.QtyQuoted, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(part.QtyQuoted, 0), itemMaster.[StockUnitOfMeasure], itemMaster.[ConsumeUnitOfMeasure], 0, part.MasterCompanyId) END) AS QtyPrevQuoted,
 			'' AltOrEqType,
 			COALESCE(
 				(SELECT SUM(BillingAmount)
@@ -186,8 +186,8 @@ BEGIN
 			part.IsConvertedToSalesOrder,
 			0 AS ItemNo,
 			CASE WHEN SOQSC.SalesOrderQuoteStocklineId IS NOT NULL
-				THEN (ISNULL(SOQSC.NetSaleAmount, 0) / NULLIF(CASE WHEN itemMaster.[StockUnitOfMeasure] = itemMaster.[ConsumeUnitOfMeasure] THEN ISNULL(Stk.QtyQuoted, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(Stk.QtyQuoted, 0), itemMaster.[StockUnitOfMeasure], itemMaster.[ConsumeUnitOfMeasure], 0, part.MasterCompanyId) END, 0))
-				ELSE (ISNULL(SOQPC.NetSaleAmount, 0) / NULLIF(CASE WHEN itemMaster.[StockUnitOfMeasure] = itemMaster.[ConsumeUnitOfMeasure] THEN ISNULL(CASE WHEN part.QtyQuoted > 0 THEN part.QtyQuoted ELSE part.QtyRequested END, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(CASE WHEN part.QtyQuoted > 0 THEN part.QtyQuoted ELSE part.QtyRequested END, 0), itemMaster.[StockUnitOfMeasure], itemMaster.[ConsumeUnitOfMeasure], 0, part.MasterCompanyId) END, 0))
+				THEN (ISNULL(SOQSC.NetSaleAmount, 0) / NULLIF(CASE WHEN ISNULL(itemMaster.[StockUnitOfMeasure],'') = ISNULL(itemMaster.[ConsumeUnitOfMeasure],'') THEN ISNULL(Stk.QtyQuoted, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(Stk.QtyQuoted, 0), itemMaster.[StockUnitOfMeasure], itemMaster.[ConsumeUnitOfMeasure], 0, part.MasterCompanyId) END, 0))
+				ELSE (ISNULL(SOQPC.NetSaleAmount, 0) / NULLIF(CASE WHEN ISNULL(itemMaster.[StockUnitOfMeasure],'') = ISNULL(itemMaster.[ConsumeUnitOfMeasure],'') THEN ISNULL(CASE WHEN part.QtyQuoted > 0 THEN part.QtyQuoted ELSE part.QtyRequested END, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(CASE WHEN part.QtyQuoted > 0 THEN part.QtyQuoted ELSE part.QtyRequested END, 0), itemMaster.[StockUnitOfMeasure], itemMaster.[ConsumeUnitOfMeasure], 0, part.MasterCompanyId) END, 0))
 			END UnitSalesPricePerUnit,
 			itemMaster.ItemClassificationName,
 			itemMaster.ItemGroup,
@@ -195,10 +195,10 @@ BEGIN
 			part.SalesPriceExpiryDate,
 			part.IsNoQuote,
 			CASE WHEN SOQSC.SalesOrderQuoteStocklineId IS NOT NULL
-				THEN (CASE WHEN itemMaster.[StockUnitOfMeasure] = itemMaster.[ConsumeUnitOfMeasure] THEN ISNULL(SOQSC.NetSaleAmountPerUnit, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(SOQSC.NetSaleAmountPerUnit, 0), itemMaster.[StockUnitOfMeasure], itemMaster.[ConsumeUnitOfMeasure], 1, part.MasterCompanyId) END)
-				ELSE (CASE WHEN itemMaster.[StockUnitOfMeasure] = itemMaster.[ConsumeUnitOfMeasure] THEN ISNULL(SOQPC.NetSaleAmountPerUnit, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(SOQPC.NetSaleAmountPerUnit, 0), itemMaster.[StockUnitOfMeasure], itemMaster.[ConsumeUnitOfMeasure], 1, part.MasterCompanyId) END)
+				THEN (CASE WHEN ISNULL(itemMaster.[StockUnitOfMeasure],'') = ISNULL(itemMaster.[ConsumeUnitOfMeasure],'') THEN ISNULL(SOQSC.NetSaleAmountPerUnit, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(SOQSC.NetSaleAmountPerUnit, 0), itemMaster.[StockUnitOfMeasure], itemMaster.[ConsumeUnitOfMeasure], 1, part.MasterCompanyId) END)
+				ELSE (CASE WHEN ISNULL(itemMaster.[StockUnitOfMeasure],'') = ISNULL(itemMaster.[ConsumeUnitOfMeasure],'') THEN ISNULL(SOQPC.NetSaleAmountPerUnit, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(SOQPC.NetSaleAmountPerUnit, 0), itemMaster.[StockUnitOfMeasure], itemMaster.[ConsumeUnitOfMeasure], 1, part.MasterCompanyId) END)
 			END netSalesPricePerUnit,
-			(CASE WHEN itemMaster.[StockUnitOfMeasure] = itemMaster.[ConsumeUnitOfMeasure] THEN ISNULL(SOQPC.UnitSalesPrice, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(SOQPC.UnitSalesPrice, 0), itemMaster.[StockUnitOfMeasure], itemMaster.[ConsumeUnitOfMeasure], 1, part.MasterCompanyId) END) MainUnitSalesPrice,
+			(CASE WHEN ISNULL(itemMaster.[StockUnitOfMeasure],'') = ISNULL(itemMaster.[ConsumeUnitOfMeasure],'') THEN ISNULL(SOQPC.UnitSalesPrice, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(SOQPC.UnitSalesPrice, 0), itemMaster.[StockUnitOfMeasure], itemMaster.[ConsumeUnitOfMeasure], 1, part.MasterCompanyId) END) MainUnitSalesPrice,
 			ISNULL(CASE WHEN SOQSC.SalesOrderQuoteStocklineId IS NOT NULL
 				THEN ISNULL(SOQSC.NetSaleAmount, 0)
 				ELSE ISNULL(SOQPC.NetSaleAmount, 0)

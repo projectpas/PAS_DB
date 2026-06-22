@@ -35,10 +35,10 @@ BEGIN
 			soqs.StockLineId as stockLineId,
 			qs.StockLineNumber AS stockLineNumber,
 			part.FxRate as fxRate,
-			(CASE WHEN im.StockUnitOfMeasure = im.ConsumeUnitOfMeasure THEN ISNULL(part.QtyQuoted, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(part.QtyQuoted, 0), im.StockUnitOfMeasure, im.ConsumeUnitOfMeasure, 0, part.MasterCompanyId) END) as qtyQuoted,
+			(CASE WHEN ISNULL(im.StockUnitOfMeasure,'') = ISNULL(im.ConsumeUnitOfMeasure,'') THEN ISNULL(part.QtyQuoted, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(part.QtyQuoted, 0), im.StockUnitOfMeasure, im.ConsumeUnitOfMeasure, 0, part.MasterCompanyId) END) as qtyQuoted,
 			CASE WHEN ISNULL(soqs.StockLineId, 0) > 0
-				THEN (CASE WHEN im.StockUnitOfMeasure = im.ConsumeUnitOfMeasure THEN ISNULL(soqsc.UnitSalesPrice, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(soqsc.UnitSalesPrice, 0), im.StockUnitOfMeasure, im.ConsumeUnitOfMeasure, 1, part.MasterCompanyId) END)
-				ELSE (CASE WHEN im.StockUnitOfMeasure = im.ConsumeUnitOfMeasure THEN ISNULL(soqc.UnitSalesPrice, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(soqc.UnitSalesPrice, 0), im.StockUnitOfMeasure, im.ConsumeUnitOfMeasure, 1, part.MasterCompanyId) END)
+				THEN (CASE WHEN ISNULL(im.StockUnitOfMeasure,'') = ISNULL(im.ConsumeUnitOfMeasure,'') THEN ISNULL(soqsc.UnitSalesPrice, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(soqsc.UnitSalesPrice, 0), im.StockUnitOfMeasure, im.ConsumeUnitOfMeasure, 1, part.MasterCompanyId) END)
+				ELSE (CASE WHEN ISNULL(im.StockUnitOfMeasure,'') = ISNULL(im.ConsumeUnitOfMeasure,'') THEN ISNULL(soqc.UnitSalesPrice, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(soqc.UnitSalesPrice, 0), im.StockUnitOfMeasure, im.ConsumeUnitOfMeasure, 1, part.MasterCompanyId) END)
 			END AS 'unitSalePrice',
 			CASE WHEN ISNULL(soqs.StockLineId, 0) > 0 THEN soqsc.MarkUpPercentage ELSE soqc.MarkUpPercentage END AS 'markUpPercentage',
 			'' AS salesBeforeDiscount,
@@ -63,8 +63,8 @@ BEGIN
 			CASE WHEN ISNULL(soqs.StockLineId, 0) > 0 THEN qs.SerialNumber ELSE '' END 'serialNumber',
 			CASE WHEN ISNULL(soqs.StockLineId, 0) > 0 THEN qs.ControlNumber ELSE '' END 'controlNumber',
 			CASE WHEN ISNULL(soqs.StockLineId, 0) > 0
-				THEN (CASE WHEN im.StockUnitOfMeasure = im.ConsumeUnitOfMeasure THEN ISNULL(soqsc.UnitCost, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(soqsc.UnitCost, 0), im.StockUnitOfMeasure, im.ConsumeUnitOfMeasure, 1, part.MasterCompanyId) END)
-				ELSE (CASE WHEN im.StockUnitOfMeasure = im.ConsumeUnitOfMeasure THEN ISNULL(soqc.UnitCost, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(soqc.UnitCost, 0), im.StockUnitOfMeasure, im.ConsumeUnitOfMeasure, 1, part.MasterCompanyId) END)
+				THEN (CASE WHEN ISNULL(im.StockUnitOfMeasure,'') = ISNULL(im.ConsumeUnitOfMeasure,'') THEN ISNULL(soqsc.UnitCost, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(soqsc.UnitCost, 0), im.StockUnitOfMeasure, im.ConsumeUnitOfMeasure, 1, part.MasterCompanyId) END)
+				ELSE (CASE WHEN ISNULL(im.StockUnitOfMeasure,'') = ISNULL(im.ConsumeUnitOfMeasure,'') THEN ISNULL(soqc.UnitCost, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(soqc.UnitCost, 0), im.StockUnitOfMeasure, im.ConsumeUnitOfMeasure, 1, part.MasterCompanyId) END)
 			END AS 'unitCost',
 			CASE WHEN ISNULL(soqs.StockLineId, 0) > 0
 				THEN ISNULL(soqsc.UnitSalesPriceExtended, 0)
@@ -78,8 +78,8 @@ BEGIN
 				ELSE ISNULL(soqc.UnitCostExtended, 0)
 			END AS 'unitCostExtended',
 			CASE WHEN ISNULL(soqs.StockLineId, 0) > 0
-				THEN (CASE WHEN im.StockUnitOfMeasure = im.ConsumeUnitOfMeasure THEN ISNULL(soqsc.MarginAmount, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(soqsc.MarginAmount, 0), im.StockUnitOfMeasure, im.ConsumeUnitOfMeasure, 1, part.MasterCompanyId) END)
-				ELSE (CASE WHEN im.StockUnitOfMeasure = im.ConsumeUnitOfMeasure THEN ISNULL(soqc.MarginAmount, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(soqc.MarginAmount, 0), im.StockUnitOfMeasure, im.ConsumeUnitOfMeasure, 1, part.MasterCompanyId) END)
+				THEN (CASE WHEN ISNULL(im.StockUnitOfMeasure,'') = ISNULL(im.ConsumeUnitOfMeasure,'') THEN ISNULL(soqsc.MarginAmount, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(soqsc.MarginAmount, 0), im.StockUnitOfMeasure, im.ConsumeUnitOfMeasure, 1, part.MasterCompanyId) END)
+				ELSE (CASE WHEN ISNULL(im.StockUnitOfMeasure,'') = ISNULL(im.ConsumeUnitOfMeasure,'') THEN ISNULL(soqc.MarginAmount, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(soqc.MarginAmount, 0), im.StockUnitOfMeasure, im.ConsumeUnitOfMeasure, 1, part.MasterCompanyId) END)
 			END AS 'marginAmount',
 			'' AS marginAmountExtended,
 			CASE WHEN ISNULL(soqs.StockLineId, 0) > 0 THEN soqsc.MarginPercentage ELSE soqc.MarginPercentage END AS 'marginPercentage',

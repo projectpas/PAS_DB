@@ -52,7 +52,7 @@ BEGIN
 
 		'' AS SerialNumber, 
 		--(SELECT SUM(QuantityAvailable)  
-		(SELECT (CASE WHEN MAX(sll.[StockUnitOfMeasure]) = MAX(sll.[ConsumeUnitOfMeasure]) THEN ISNULL(SUM(sll.[QuantityAvailable]), 0) ELSE [dbo].[fn_ConvertUOM](SUM(sll.[QuantityAvailable]), MAX(sll.[StockUnitOfMeasure]), MAX(sll.[ConsumeUnitOfMeasure]), 0, (sll.[MasterCompanyId])) END)
+		(SELECT (CASE WHEN ISNULL(MAX(sll.[StockUnitOfMeasure]),'') = ISNULL(MAX(sll.[ConsumeUnitOfMeasure]),'') THEN ISNULL(SUM(sll.[QuantityAvailable]), 0) ELSE [dbo].[fn_ConvertUOM](SUM(sll.[QuantityAvailable]), MAX(sll.[StockUnitOfMeasure]), MAX(sll.[ConsumeUnitOfMeasure]), 0, (sll.[MasterCompanyId])) END)
 			FROM dbo.StockLine sll WITH(NOLOCK) 
 			WHERE sll.ItemMasterId = sop.ItemMasterId AND sll.ConditionId = sop.ConditionId
 			GROUP BY sll.[MasterCompanyId]
@@ -73,7 +73,7 @@ BEGIN
 			INNER JOIN [dbo].[ItemMaster] IM WITH(NOLOCK) ON IM.ItemMasterId = SPV1.ItemMasterId
 			Where SPV1.SalesOrderId = @SalesOrderId AND SPV1.ItemMasterId = sop.ItemMasterId AND SPV1.ConditionId = sop.ConditionId) - 
 			--SUM(ISNULL(sopt.QtyToShip,0)))
-			ISNULL((CASE WHEN imt.[StockUnitOfMeasure] = imt.[ConsumeUnitOfMeasure] THEN ISNULL(SUM(ISNULL(sopt.QtyToShip,0)), 0) ELSE [dbo].[fn_ConvertUOM](SUM(ISNULL(sopt.QtyToShip,0)), imt.[StockUnitOfMeasure], imt.[ConsumeUnitOfMeasure], 0, imt.[MasterCompanyId]) END), 0)) AS QtyToPick,
+			ISNULL((CASE WHEN ISNULL(imt.[StockUnitOfMeasure],'') = ISNULL(imt.[ConsumeUnitOfMeasure],'') THEN ISNULL(SUM(ISNULL(sopt.QtyToShip,0)), 0) ELSE [dbo].[fn_ConvertUOM](SUM(ISNULL(sopt.QtyToShip,0)), imt.[StockUnitOfMeasure], imt.[ConsumeUnitOfMeasure], 0, imt.[MasterCompanyId]) END), 0)) AS QtyToPick,
 		'' as [Status], 
 		sop.ConditionId, 
 		(SELECT ((ISNULL(SUM(agg.QtyReserved), 0) 
@@ -85,7 +85,7 @@ BEGIN
 		(
 			SELECT sopp.SalesOrderPartId, 
 			--SUM(sos.QtyReserved) AS QtyReserved
-			ISNULL((CASE WHEN sl.[StockUnitOfMeasure] = sl.[ConsumeUnitOfMeasure] THEN ISNULL(SUM(ISNULL(sos.QtyReserved,0)), 0) ELSE [dbo].[fn_ConvertUOM](SUM(ISNULL(sos.QtyReserved,0)), sl.[StockUnitOfMeasure], sl.[ConsumeUnitOfMeasure], 0, sl.[MasterCompanyId]) END), 0) AS QtyReserved
+			ISNULL((CASE WHEN ISNULL(sl.[StockUnitOfMeasure],'') = ISNULL(sl.[ConsumeUnitOfMeasure],'') THEN ISNULL(SUM(ISNULL(sos.QtyReserved,0)), 0) ELSE [dbo].[fn_ConvertUOM](SUM(ISNULL(sos.QtyReserved,0)), sl.[StockUnitOfMeasure], sl.[ConsumeUnitOfMeasure], 0, sl.[MasterCompanyId]) END), 0) AS QtyReserved
 			FROM [dbo].[SalesOrderPartV1] sopp WITH(NOLOCK) 
 			INNER JOIN [dbo].[SalesOrderStocklineV1] sos WITH(NOLOCK) ON sos.SalesOrderPartId = sopp.SalesOrderPartId
 			 LEFT JOIN [dbo].[StockLine] sl WITH(NOLOCK) ON sl.StockLineId = sos.StockLineId
@@ -96,7 +96,7 @@ BEGIN
 		(
 			SELECT ship_item.SalesOrderPartId, 
 			--SUM(ship_item.QtyShipped) AS QtyShipped
-			ISNULL((CASE WHEN sl.[StockUnitOfMeasure] = sl.[ConsumeUnitOfMeasure] THEN ISNULL(SUM(ISNULL(ship_item.QtyShipped,0)), 0) ELSE [dbo].[fn_ConvertUOM](SUM(ISNULL(ship_item.QtyShipped,0)), sl.[StockUnitOfMeasure], sl.[ConsumeUnitOfMeasure], 0, sl.[MasterCompanyId]) END), 0) AS QtyShipped
+			ISNULL((CASE WHEN ISNULL(sl.[StockUnitOfMeasure],'') = ISNULL(sl.[ConsumeUnitOfMeasure],'') THEN ISNULL(SUM(ISNULL(ship_item.QtyShipped,0)), 0) ELSE [dbo].[fn_ConvertUOM](SUM(ISNULL(ship_item.QtyShipped,0)), sl.[StockUnitOfMeasure], sl.[ConsumeUnitOfMeasure], 0, sl.[MasterCompanyId]) END), 0) AS QtyShipped
 			FROM [dbo].[SalesOrderShippingItem] ship_item WITH(NOLOCK) 
 			INNER JOIN [dbo].[SalesOrderShipping] ship WITH(NOLOCK) ON ship.SalesOrderShippingId = ship_item.SalesOrderShippingId
 			WHERE ship.SalesOrderId = @SalesOrderId
@@ -106,7 +106,7 @@ BEGIN
 		(
 			SELECT sopps.SalesOrderPartId, 
 			--SUM(sopt.QtyToShip) AS QtyToShip
-			ISNULL((CASE WHEN sl.[StockUnitOfMeasure] = sl.[ConsumeUnitOfMeasure] THEN ISNULL(SUM(ISNULL(sopt.QtyToShip,0)), 0) ELSE [dbo].[fn_ConvertUOM](SUM(ISNULL(sopt.QtyToShip,0)), sl.[StockUnitOfMeasure], sl.[ConsumeUnitOfMeasure], 0, sl.[MasterCompanyId]) END), 0) AS QtyToShip
+			ISNULL((CASE WHEN ISNULL(sl.[StockUnitOfMeasure],'') = ISNULL(sl.[ConsumeUnitOfMeasure],'') THEN ISNULL(SUM(ISNULL(sopt.QtyToShip,0)), 0) ELSE [dbo].[fn_ConvertUOM](SUM(ISNULL(sopt.QtyToShip,0)), sl.[StockUnitOfMeasure], sl.[ConsumeUnitOfMeasure], 0, sl.[MasterCompanyId]) END), 0) AS QtyToShip
 			FROM [dbo].[SOPickTicket] sopt WITH(NOLOCK)
 			INNER JOIN [dbo].[SalesOrderStocklineV1] sopps WITH(NOLOCK) ON sopps.SalesOrderStocklineId = sopt.SalesOrderPartStocklineId
 			WHERE sopt.SalesOrderId = @SalesOrderId
@@ -120,7 +120,7 @@ BEGIN
 			(
 				SELECT sopp.SalesOrderPartId, 
 				--SUM(sos.QtyReserved) AS QtyReserved
-				ISNULL((CASE WHEN sl.[StockUnitOfMeasure] = sl.[ConsumeUnitOfMeasure] THEN ISNULL(SUM(ISNULL(sos.QtyReserved,0)), 0) ELSE [dbo].[fn_ConvertUOM](SUM(ISNULL(sos.QtyReserved,0)), sl.[StockUnitOfMeasure], sl.[ConsumeUnitOfMeasure], 0, sl.[MasterCompanyId]) END), 0) AS QtyReserved
+				ISNULL((CASE WHEN ISNULL(sl.[StockUnitOfMeasure],'') = ISNULL(sl.[ConsumeUnitOfMeasure],'') THEN ISNULL(SUM(ISNULL(sos.QtyReserved,0)), 0) ELSE [dbo].[fn_ConvertUOM](SUM(ISNULL(sos.QtyReserved,0)), sl.[StockUnitOfMeasure], sl.[ConsumeUnitOfMeasure], 0, sl.[MasterCompanyId]) END), 0) AS QtyReserved
 				FROM DBO.SalesOrderPartV1 sopp WITH(NOLOCK)
 				LEFT JOIN DBO.SalesOrderStocklineV1 sos WITH(NOLOCK) ON sos.SalesOrderPartId = sopp.SalesOrderPartId				
 				WHERE sopp.SalesOrderId = @SalesOrderId AND sopp.ItemMasterId = sop.ItemMasterId AND sopp.ConditionId = sop.ConditionId
@@ -130,7 +130,7 @@ BEGIN
 			(
 				SELECT ship_item.SalesOrderPartId, 
 				--SUM(ship_item.QtyShipped) AS QtyShipped
-				ISNULL((CASE WHEN sl.[StockUnitOfMeasure] = sl.[ConsumeUnitOfMeasure] THEN ISNULL(SUM(ISNULL(ship_item.QtyShipped,0)), 0) ELSE [dbo].[fn_ConvertUOM](SUM(ISNULL(ship_item.QtyShipped,0)), sl.[StockUnitOfMeasure], sl.[ConsumeUnitOfMeasure], 0, sl.[MasterCompanyId]) END), 0) AS QtyShipped
+				ISNULL((CASE WHEN ISNULL(sl.[StockUnitOfMeasure],'') = ISNULL(sl.[ConsumeUnitOfMeasure],'') THEN ISNULL(SUM(ISNULL(ship_item.QtyShipped,0)), 0) ELSE [dbo].[fn_ConvertUOM](SUM(ISNULL(ship_item.QtyShipped,0)), sl.[StockUnitOfMeasure], sl.[ConsumeUnitOfMeasure], 0, sl.[MasterCompanyId]) END), 0) AS QtyShipped
 				FROM DBO.SalesOrderShippingItem ship_item WITH(NOLOCK) 
 				INNER JOIN DBO.SalesOrderShipping ship WITH(NOLOCK) ON ship.SalesOrderShippingId = ship_item.SalesOrderShippingId
 				WHERE ship.SalesOrderId = @SalesOrderId
@@ -140,7 +140,7 @@ BEGIN
 			(
 				SELECT sopt.SalesOrderPartStocklineId, 
 				--SUM(sopt.QtyToShip) AS QtyToShip
-				ISNULL((CASE WHEN sl.[StockUnitOfMeasure] = sl.[ConsumeUnitOfMeasure] THEN ISNULL(SUM(ISNULL(sopt.QtyToShip,0)), 0) ELSE [dbo].[fn_ConvertUOM](SUM(ISNULL(sopt.QtyToShip,0)), sl.[StockUnitOfMeasure], sl.[ConsumeUnitOfMeasure], 0, sl.[MasterCompanyId]) END), 0) AS QtyToShip
+				ISNULL((CASE WHEN ISNULL(sl.[StockUnitOfMeasure],'') = ISNULL(sl.[ConsumeUnitOfMeasure],'') THEN ISNULL(SUM(ISNULL(sopt.QtyToShip,0)), 0) ELSE [dbo].[fn_ConvertUOM](SUM(ISNULL(sopt.QtyToShip,0)), sl.[StockUnitOfMeasure], sl.[ConsumeUnitOfMeasure], 0, sl.[MasterCompanyId]) END), 0) AS QtyToShip
 				FROM DBO.SOPickTicket sopt WITH(NOLOCK)
 				WHERE sopt.SalesOrderId = @SalesOrderId
 				GROUP BY sopt.SalesOrderPartStocklineId

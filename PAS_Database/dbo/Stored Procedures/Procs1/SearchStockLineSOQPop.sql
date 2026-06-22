@@ -76,10 +76,10 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 			,sl.ControlNumber
 			,sl.IdNumber
 			,uom.ShortName AS UomDescription
-			,(CASE WHEN sl.[StockUnitOfMeasure] = sl.[ConsumeUnitOfMeasure] THEN ISNULL(sl.[QuantityAvailable], 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(sl.[QuantityAvailable], 0),sl.[StockUnitOfMeasure],sl.[ConsumeUnitOfMeasure],0,im.MasterCompanyId) END) AS QtyAvailable
-			,(CASE WHEN sl.[StockUnitOfMeasure] = sl.[ConsumeUnitOfMeasure] THEN ISNULL(sl.[QuantityOnHand], 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(sl.[QuantityOnHand], 0),sl.[StockUnitOfMeasure],sl.[ConsumeUnitOfMeasure],0,im.MasterCompanyId) END) AS QtyOnHand
-			,(CASE WHEN sl.[StockUnitOfMeasure] = sl.[ConsumeUnitOfMeasure] THEN ISNULL(sl.UnitCost, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(sl.UnitCost, 0),sl.[StockUnitOfMeasure],sl.[ConsumeUnitOfMeasure],1,im.MasterCompanyId) END) AS unitCost
-			,(CASE WHEN sl.[StockUnitOfMeasure] = sl.[ConsumeUnitOfMeasure] THEN ISNULL(sl.UnitSalesPrice, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(sl.UnitSalesPrice, 0),sl.[StockUnitOfMeasure],sl.[ConsumeUnitOfMeasure],1,im.MasterCompanyId) END) AS unitSalePrice
+			,(CASE WHEN ISNULL(sl.[StockUnitOfMeasure],'') = ISNULL(sl.[ConsumeUnitOfMeasure],'') THEN ISNULL(sl.[QuantityAvailable], 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(sl.[QuantityAvailable], 0),sl.[StockUnitOfMeasure],sl.[ConsumeUnitOfMeasure],0,im.MasterCompanyId) END) AS QtyAvailable
+			,(CASE WHEN ISNULL(sl.[StockUnitOfMeasure],'') = ISNULL(sl.[ConsumeUnitOfMeasure],'') THEN ISNULL(sl.[QuantityOnHand], 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(sl.[QuantityOnHand], 0),sl.[StockUnitOfMeasure],sl.[ConsumeUnitOfMeasure],0,im.MasterCompanyId) END) AS QtyOnHand
+			,(CASE WHEN ISNULL(sl.[StockUnitOfMeasure],'') = ISNULL(sl.[ConsumeUnitOfMeasure],'') THEN ISNULL(sl.UnitCost, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(sl.UnitCost, 0),sl.[StockUnitOfMeasure],sl.[ConsumeUnitOfMeasure],1,im.MasterCompanyId) END) AS unitCost
+			,(CASE WHEN ISNULL(sl.[StockUnitOfMeasure],'') = ISNULL(sl.[ConsumeUnitOfMeasure],'') THEN ISNULL(sl.UnitSalesPrice, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(sl.UnitSalesPrice, 0),sl.[StockUnitOfMeasure],sl.[ConsumeUnitOfMeasure],1,im.MasterCompanyId) END) AS unitSalePrice
 			,sl.TraceableToName AS TracableToName
 			,sl.OwnerName AS OwnerName
 			,sl.ObtainFromName AS ObtainFromName			
@@ -176,10 +176,10 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 			,sl.ControlNumber
 			,sl.IdNumber
 			,uom.ShortName AS UomDescription
-			,(CASE WHEN sl.[StockUnitOfMeasure] = sl.[ConsumeUnitOfMeasure] THEN ISNULL(sl.[QuantityAvailable], 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(sl.[QuantityAvailable], 0),sl.[StockUnitOfMeasure],sl.[ConsumeUnitOfMeasure],0,im.MasterCompanyId) END) AS QtyAvailable
-			,(CASE WHEN sl.[StockUnitOfMeasure] = sl.[ConsumeUnitOfMeasure] THEN ISNULL(sl.[QuantityOnHand], 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(sl.[QuantityOnHand], 0),sl.[StockUnitOfMeasure],sl.[ConsumeUnitOfMeasure],0,im.MasterCompanyId) END) AS QtyOnHand
-			,(CASE WHEN sl.[StockUnitOfMeasure] = sl.[ConsumeUnitOfMeasure] THEN ISNULL(sl.UnitCost, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(sl.UnitCost, 0),sl.[StockUnitOfMeasure],sl.[ConsumeUnitOfMeasure],1,im.MasterCompanyId) END) AS unitCost
-			,(CASE WHEN sl.[StockUnitOfMeasure] = sl.[ConsumeUnitOfMeasure] THEN ISNULL(sl.UnitSalesPrice, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(sl.UnitSalesPrice, 0),sl.[StockUnitOfMeasure],sl.[ConsumeUnitOfMeasure],1,im.MasterCompanyId) END) AS unitSalePrice
+			,(CASE WHEN ISNULL(sl.[StockUnitOfMeasure],'') = ISNULL(sl.[ConsumeUnitOfMeasure],'') THEN ISNULL(sl.[QuantityAvailable], 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(sl.[QuantityAvailable], 0),sl.[StockUnitOfMeasure],sl.[ConsumeUnitOfMeasure],0,im.MasterCompanyId) END) AS QtyAvailable
+			,(CASE WHEN ISNULL(sl.[StockUnitOfMeasure],'') = ISNULL(sl.[ConsumeUnitOfMeasure],'') THEN ISNULL(sl.[QuantityOnHand], 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(sl.[QuantityOnHand], 0),sl.[StockUnitOfMeasure],sl.[ConsumeUnitOfMeasure],0,im.MasterCompanyId) END) AS QtyOnHand
+			,(CASE WHEN ISNULL(sl.[StockUnitOfMeasure],'') = ISNULL(sl.[ConsumeUnitOfMeasure],'') THEN ISNULL(sl.UnitCost, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(sl.UnitCost, 0),sl.[StockUnitOfMeasure],sl.[ConsumeUnitOfMeasure],1,im.MasterCompanyId) END) AS unitCost
+			,(CASE WHEN ISNULL(sl.[StockUnitOfMeasure],'') = ISNULL(sl.[ConsumeUnitOfMeasure],'') THEN ISNULL(sl.UnitSalesPrice, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(sl.UnitSalesPrice, 0),sl.[StockUnitOfMeasure],sl.[ConsumeUnitOfMeasure],1,im.MasterCompanyId) END) AS unitSalePrice
 			,CASE WHEN sl.TraceableToType = 1 THEN cusTraceble.Name
 					WHEN sl.TraceableToType = 2 THEN vTraceble.VendorName
 					WHEN sl.TraceableToType = 9 THEN leTraceble.Name

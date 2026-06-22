@@ -545,8 +545,8 @@ BEGIN
 				                SELECT Sop.SalesOrderId,Sop.[SalesOrderPartId],SOP.[ItemMasterId],STK.[StockLineId],CASE WHEN ISNULL(STK.SalesOrderStocklineId,0) = 0 THEN SOP.ConditionId ELSE STK.[ConditionId] END 
 								, CASE WHEN ISNULL(STK.SalesOrderStocklineId,0) = 0 THEN con.[Description] ELSE COND.[Description] END,
 						SOP.[PartNumber],[PartDescription],SL.[Manufacturer],SL.[SerialNumber],STK.SalesOrderStocklineId,
-						CASE WHEN ISNULL(STK.SalesOrderStocklineId,0) = 0 THEN (CASE WHEN sl.[StockUnitOfMeasure] = sl.[ConsumeUnitOfMeasure] THEN ISNULL(SOP.QtyOrder, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(SOP.QtyOrder, 0),sl.[StockUnitOfMeasure], sl.[ConsumeUnitOfMeasure],0,sl.MasterCompanyId) END) 
-						ELSE (CASE WHEN sl.[StockUnitOfMeasure] = sl.[ConsumeUnitOfMeasure] THEN ISNULL(STK.QtyOrder, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(STK.QtyOrder, 0),sl.[StockUnitOfMeasure], sl.[ConsumeUnitOfMeasure],0,sl.MasterCompanyId) END) END,Sl.StockLineNumber,SHIPPINGINFO.SalesOrderShippingId
+						CASE WHEN ISNULL(STK.SalesOrderStocklineId,0) = 0 THEN (CASE WHEN ISNULL(sl.[StockUnitOfMeasure],'') = ISNULL(sl.[ConsumeUnitOfMeasure],'') THEN ISNULL(SOP.QtyOrder, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(SOP.QtyOrder, 0),sl.[StockUnitOfMeasure], sl.[ConsumeUnitOfMeasure],0,sl.MasterCompanyId) END) 
+						ELSE (CASE WHEN ISNULL(sl.[StockUnitOfMeasure],'') = ISNULL(sl.[ConsumeUnitOfMeasure],'') THEN ISNULL(STK.QtyOrder, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(STK.QtyOrder, 0),sl.[StockUnitOfMeasure], sl.[ConsumeUnitOfMeasure],0,sl.MasterCompanyId) END) END,Sl.StockLineNumber,SHIPPINGINFO.SalesOrderShippingId
 			FROM [dbo].[SalesOrderPartV1] SOP WITH(NOLOCK) 
 				 LEFT JOIN dbo.SalesOrderPartCost PC WITH (NOLOCK) ON SOP.SalesOrderPartId = PC.SalesOrderPartId 
 				 LEFT JOIN dbo.SalesOrderStocklineV1 STK WITH (NOLOCK) ON STK.SalesOrderPartId = SOP.SalesOrderPartId 
@@ -624,11 +624,11 @@ BEGIN
 					IF(ISNULL(@SOStocklineId,0) >0)
 					BEGIN
 						SELECT  TOP 1 @DiscountPercentage=  SUM(ISNULL(DiscountPercentage,0)), @MarkUpPercentage=  SUM(ISNULL(MarkUpPercentage,0)),
-							@MarkUpAmount=  SUM(CASE WHEN sl.StockUnitOfMeasure = sl.ConsumeUnitOfMeasure THEN ISNULL(ssc.MarkUpAmount, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(ssc.MarkUpAmount, 0),sl.StockUnitOfMeasure, SL.ConsumeUnitOfMeasure,1,@MasterCompanyId) END),
-							@DiscountAmount =  SUM(CASE WHEN sl.StockUnitOfMeasure = sl.ConsumeUnitOfMeasure THEN ISNULL(ssc.DiscountAmount, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(ssc.DiscountAmount, 0),sl.StockUnitOfMeasure, SL.ConsumeUnitOfMeasure,1,@MasterCompanyId) END),
-							@UnitSalesPrice=  SUM(CASE WHEN sl.StockUnitOfMeasure = sl.ConsumeUnitOfMeasure THEN ISNULL(ssc.UnitSalesPrice, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(ssc.UnitSalesPrice, 0),sl.StockUnitOfMeasure, SL.ConsumeUnitOfMeasure,1,@MasterCompanyId) END),
-							@UnitCost = SUM(CASE WHEN sl.StockUnitOfMeasure = sl.ConsumeUnitOfMeasure THEN ISNULL(ssc.NetSaleAmount, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(ssc.NetSaleAmount, 0),sl.StockUnitOfMeasure, SL.ConsumeUnitOfMeasure,1,@MasterCompanyId) END),
-							@UnitCostExt = SUM(CASE WHEN sl.StockUnitOfMeasure = sl.ConsumeUnitOfMeasure THEN ISNULL(ssc.NetSaleAmount, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(ssc.NetSaleAmount, 0),sl.StockUnitOfMeasure, SL.ConsumeUnitOfMeasure,1,@MasterCompanyId) END)
+							@MarkUpAmount=  SUM(CASE WHEN ISNULL(sl.StockUnitOfMeasure,'') = ISNULL(sl.ConsumeUnitOfMeasure,'') THEN ISNULL(ssc.MarkUpAmount, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(ssc.MarkUpAmount, 0),sl.StockUnitOfMeasure, SL.ConsumeUnitOfMeasure,1,@MasterCompanyId) END),
+							@DiscountAmount =  SUM(CASE WHEN ISNULL(sl.StockUnitOfMeasure,'') = ISNULL(sl.ConsumeUnitOfMeasure,'') THEN ISNULL(ssc.DiscountAmount, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(ssc.DiscountAmount, 0),sl.StockUnitOfMeasure, SL.ConsumeUnitOfMeasure,1,@MasterCompanyId) END),
+							@UnitSalesPrice=  SUM(CASE WHEN ISNULL(sl.StockUnitOfMeasure,'') = ISNULL(sl.ConsumeUnitOfMeasure,'') THEN ISNULL(ssc.UnitSalesPrice, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(ssc.UnitSalesPrice, 0),sl.StockUnitOfMeasure, SL.ConsumeUnitOfMeasure,1,@MasterCompanyId) END),
+							@UnitCost = SUM(CASE WHEN ISNULL(sl.StockUnitOfMeasure,'') = ISNULL(sl.ConsumeUnitOfMeasure,'') THEN ISNULL(ssc.NetSaleAmount, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(ssc.NetSaleAmount, 0),sl.StockUnitOfMeasure, SL.ConsumeUnitOfMeasure,1,@MasterCompanyId) END),
+							@UnitCostExt = SUM(CASE WHEN ISNULL(sl.StockUnitOfMeasure,'') = ISNULL(sl.ConsumeUnitOfMeasure,'') THEN ISNULL(ssc.NetSaleAmount, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(ssc.NetSaleAmount, 0),sl.StockUnitOfMeasure, SL.ConsumeUnitOfMeasure,1,@MasterCompanyId) END)
 						FROM dbo.SalesOrderStocklineCost ssc
 							INNER JOIN dbo.SalesOrderStocklineV1 stk WITH(NOLOCK) on ssc.SalesOrderPartId = stk.SalesOrderPartId and ssc.SalesOrderStocklineId = stk.SalesOrderStocklineId
 							LEFT JOIN dbo.Stockline sl with(nolock) on sl.StockLineId = stk.StockLineId
@@ -654,7 +654,7 @@ BEGIN
 																INNER JOIN DBO.SalesOrderPartV1 SP WITH(NOLOCK) ON SOS.SalesOrderPartId = SP.SalesOrderPartId
 																LEFT JOIN DBO.ItemMaster IM WITH(NOLOCK) ON SP.ItemMasterId = im.ItemMasterId
 															Where SOS.SalesOrderPartId =  @ID AND  SOS.IsActive = 1 AND ISNULL(SOS.IsDeleted,0) = 0 AND  SOPIC.SalesOrderPartStocklineId = @SOStocklineId),0.0)
-				DECLARE @stkReservedQty decimal(10,6) =  ISNULL((Select TOP 1 (CASE WHEN sl.StockUnitOfMeasure = sl.ConsumeUnitOfMeasure THEN ISNULL(stk.QtyReserved, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(stk.QtyReserved, 0),sl.StockUnitOfMeasure, sl.ConsumeUnitOfMeasure,0,@MasterCompanyId) END) 
+				DECLARE @stkReservedQty decimal(10,6) =  ISNULL((Select TOP 1 (CASE WHEN ISNULL(sl.StockUnitOfMeasure,'') = ISNULL(sl.ConsumeUnitOfMeasure,'') THEN ISNULL(stk.QtyReserved, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(stk.QtyReserved, 0),sl.StockUnitOfMeasure, sl.ConsumeUnitOfMeasure,0,@MasterCompanyId) END) 
 																 From dbo.SalesOrderStocklineV1 stk WITH(NOLOCK)
 																	LEFT JOIN dbo.Stockline sl with(nolock) on stk.StockLineId = sl.StockLineId
 																 Where stk.StockLineId = @stocklineID AND stk.SalesOrderPartId =  @ID),0.0)

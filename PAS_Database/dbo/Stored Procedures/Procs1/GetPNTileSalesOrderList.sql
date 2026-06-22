@@ -101,7 +101,7 @@ BEGIN
 				--ISNULL(SP.[QtyOrder], 0) AS [Qty],
 				ISNULL((CASE WHEN IM.[StockUnitOfMeasure] = IM.[ConsumeUnitOfMeasure] THEN ISNULL(SP.[QtyOrder],0) ELSE [dbo].[fn_ConvertUOM](ISNULL(SP.[QtyOrder],0),IM.[StockUnitOfMeasure], IM.[ConsumeUnitOfMeasure],0,@MasterCompanyId) END),0) AS [Qty],
 				--ISNULL(SPC.[UnitCostExtended], 0) AS [UnitCostExtended],
-				ISNULL((CASE WHEN IM.[StockUnitOfMeasure] = IM.[ConsumeUnitOfMeasure] THEN ISNULL(SPC.[UnitCostExtended], 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(SPC.[UnitCostExtended], 0),IM.[StockUnitOfMeasure], IM.[ConsumeUnitOfMeasure],1,@MasterCompanyId) END),0) AS [UnitCostExtended],
+				ISNULL(SPC.[UnitCostExtended], 0) AS [UnitCostExtended],
 				CO.[Description] AS [ConditionName],
 				SO.[SalesPersonName],
 				CAST(SOS.[ShipDate] AS Date) AS ShipDate,

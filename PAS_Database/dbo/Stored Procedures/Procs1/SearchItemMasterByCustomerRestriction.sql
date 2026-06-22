@@ -46,8 +46,8 @@ BEGIN
 					,im.ConsumeUnitOfMeasure AS unitOfMeasure
 					,im.IsPma
 					,im.IsDER
-					,SUM(CASE WHEN sl.[StockUnitOfMeasure] = sl.[ConsumeUnitOfMeasure] THEN ISNULL(sl.[QuantityAvailable], 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(sl.[QuantityAvailable], 0),sl.[StockUnitOfMeasure],sl.[ConsumeUnitOfMeasure],0,im.MasterCompanyId) END) AS QtyAvailable
-					,SUM(CASE WHEN sl.[StockUnitOfMeasure] = sl.[ConsumeUnitOfMeasure] THEN ISNULL(sl.[QuantityOnHand], 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(sl.[QuantityOnHand], 0),sl.[StockUnitOfMeasure],sl.[ConsumeUnitOfMeasure],0,im.MasterCompanyId) END) AS QtyOnHand
+					,SUM(CASE WHEN ISNULL(sl.[StockUnitOfMeasure],'') = ISNULL(sl.[ConsumeUnitOfMeasure],'') THEN ISNULL(sl.[QuantityAvailable], 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(sl.[QuantityAvailable], 0),sl.[StockUnitOfMeasure],sl.[ConsumeUnitOfMeasure],0,im.MasterCompanyId) END) AS QtyAvailable
+					,SUM(CASE WHEN ISNULL(sl.[StockUnitOfMeasure],'') = ISNULL(sl.[ConsumeUnitOfMeasure],'') THEN ISNULL(sl.[QuantityOnHand], 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(sl.[QuantityOnHand], 0),sl.[StockUnitOfMeasure],sl.[ConsumeUnitOfMeasure],0,im.MasterCompanyId) END) AS QtyOnHand
 					,ig.[Description] AS ItemGroup
 					,mf.[Name] Manufacturer
 					,ISNULL(im.ManufacturerId, -1) AS ManufacturerId
@@ -68,9 +68,9 @@ BEGIN
 						ELSE 'OEM'
 						END AS Oempmader
 					,@MappingType AS MappingType
-					,(CASE WHEN im.[PurchaseUnitOfMeasure] = im.[ConsumeUnitOfMeasure] THEN ISNULL(imps.PP_UnitPurchasePrice, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(imps.PP_UnitPurchasePrice, 0),im.[PurchaseUnitOfMeasure],im.[ConsumeUnitOfMeasure],1,im.MasterCompanyId) END) AS UnitCost
-					,(CASE WHEN im.[PurchaseUnitOfMeasure] = im.[ConsumeUnitOfMeasure] THEN ISNULL(imps.SP_CalSPByPP_UnitSalePrice, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(imps.SP_CalSPByPP_UnitSalePrice, 0),im.[PurchaseUnitOfMeasure],im.[ConsumeUnitOfMeasure],1,im.MasterCompanyId) END) AS UnitSalePrice
-					,(CASE WHEN im.[StockUnitOfMeasure] = im.[ConsumeUnitOfMeasure] THEN ISNULL(imps.PP_FXRatePerc, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(imps.PP_FXRatePerc, 0),im.[StockUnitOfMeasure],im.[ConsumeUnitOfMeasure],1,im.MasterCompanyId) END) AS FixRate
+					,(CASE WHEN ISNULL(im.[PurchaseUnitOfMeasure],'') = ISNULL(im.[ConsumeUnitOfMeasure],'') THEN ISNULL(imps.PP_UnitPurchasePrice, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(imps.PP_UnitPurchasePrice, 0),im.[PurchaseUnitOfMeasure],im.[ConsumeUnitOfMeasure],1,im.MasterCompanyId) END) AS UnitCost
+					,(CASE WHEN ISNULL(im.[PurchaseUnitOfMeasure],'') = ISNULL(im.[ConsumeUnitOfMeasure],'') THEN ISNULL(imps.SP_CalSPByPP_UnitSalePrice, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(imps.SP_CalSPByPP_UnitSalePrice, 0),im.[PurchaseUnitOfMeasure],im.[ConsumeUnitOfMeasure],1,im.MasterCompanyId) END) AS UnitSalePrice
+					,(CASE WHEN ISNULL(im.[StockUnitOfMeasure],'') = ISNULL(im.[ConsumeUnitOfMeasure],'') THEN ISNULL(imps.PP_FXRatePerc, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(imps.PP_FXRatePerc, 0),im.[StockUnitOfMeasure],im.[ConsumeUnitOfMeasure],1,im.MasterCompanyId) END) AS FixRate
 					,ime.ExportECCN AS ECCN
 					,ime.HSCode AS HSCODE
 					,ime.ExportWeight AS [Weight]

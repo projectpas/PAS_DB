@@ -24,281 +24,283 @@ EXEC [dbo].[USP_GetSOQApprovalList] 866
 **************************************************************/
 CREATE PROCEDURE [dbo].[USP_GetSOQApprovalList] 
 (
-    @SalesOrderQuoteId BIGINT = NULL
+        @SalesOrderQuoteId BIGINT = NULL
 )
 AS
 BEGIN
 
-  SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
-  SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
+    SET NOCOUNT ON
 
-    BEGIN TRY
-    BEGIN TRANSACTION
-      BEGIN
-      /*
-		IF OBJECT_ID(N'tempdb..#tmpSalesOrderQuotePart') IS NOT NULL
-		BEGIN
-			DROP TABLE #tmpSalesOrderQuotePart
-		END
+        BEGIN TRY
+        BEGIN TRANSACTION
+            BEGIN
+            /*
+	        IF OBJECT_ID(N'tempdb..#tmpSalesOrderQuotePart') IS NOT NULL
+	        BEGIN
+	        	DROP TABLE #tmpSalesOrderQuotePart
+	        END
 
-		CREATE TABLE #tmpSalesOrderQuotePart (
-			SalesOrderQuotePartId BIGINT,
-			SalesOrderQuoteId BIGINT, 
-			ItemMasterId BIGINT, 
-			ConditionId BIGINT, 
-			Qty INT,
-			UnitSalePrice NUMERIC(9, 2),
-			MarkUpPercentage INT,
-			SalesBeforeDiscount  NUMERIC(9, 2),
-			Discount INT,
-			DiscountAmount  NUMERIC(9, 2),
-			NetSales  NUMERIC(9, 2),
-			UnitCost  NUMERIC(9, 2),
-			SalesPriceExtended  NUMERIC(9, 2),
-			MarkupExtended  NUMERIC(9, 2),
-			SalesDiscountExtended  NUMERIC(9, 2),
-			NetSalePriceExtended  NUMERIC(9, 2),
-			UnitCostExtended  NUMERIC(9, 2),
-			MarginAmount  NUMERIC(9, 2),
-			MarginAmountExtended NUMERIC(9, 2),
-			MarginPercentage  NUMERIC(9, 2),
-			TaxAmount  NUMERIC(9, 2),
-			TaxPercentage  NUMERIC(9, 2),
-			TotalSales  NUMERIC(9, 2))
+	        CREATE TABLE #tmpSalesOrderQuotePart (
+	        		SalesOrderQuotePartId BIGINT,
+	        		SalesOrderQuoteId BIGINT, 
+	        		ItemMasterId BIGINT, 
+	        		ConditionId BIGINT, 
+	        		Qty INT,
+	        		UnitSalePrice NUMERIC(9, 2),
+	        		MarkUpPercentage INT,
+	        		SalesBeforeDiscount   NUMERIC(9, 2),
+	        		Discount INT,
+	        		DiscountAmount   NUMERIC(9, 2),
+	        		NetSales   NUMERIC(9, 2),
+	        		UnitCost   NUMERIC(9, 2),
+	        		SalesPriceExtended   NUMERIC(9, 2),
+	        		MarkupExtended   NUMERIC(9, 2),
+	        		SalesDiscountExtended   NUMERIC(9, 2),
+	        		NetSalePriceExtended   NUMERIC(9, 2),
+	        		UnitCostExtended   NUMERIC(9, 2),
+	        		MarginAmount   NUMERIC(9, 2),
+	        		MarginAmountExtended NUMERIC(9, 2),
+	        		MarginPercentage   NUMERIC(9, 2),
+	        		TaxAmount   NUMERIC(9, 2),
+	        		TaxPercentage   NUMERIC(9, 2),
+	        		TotalSales   NUMERIC(9, 2))
 
-		;WITH cte AS
-		(
-			SELECT MIN(SalesOrderQuotePartId) SalesOrderQuotePartId, SalesOrderQuoteId, ItemMasterId, ConditionId, SUM(QtyQuoted) Qty,
-			SUM(UnitSalePrice) UnitSalePrice,
-			SUM(MarkUpPercentage) MarkUpPercentage,
-			SUM(SalesBeforeDiscount) SalesBeforeDiscount,
-			SUM(Discount) Discount,
-			SUM(DiscountAmount) DiscountAmount,
-			SUM(NetSales) NetSales,
-			SUM(UnitCost) UnitCost,
-			SUM(SalesPriceExtended) SalesPriceExtended,
-			SUM(MarkupExtended) MarkupExtended,
-			SUM(SalesDiscountExtended) SalesDiscountExtended,
-			SUM(NetSalePriceExtended) NetSalePriceExtended,
-			SUM(UnitCostExtended) UnitCostExtended,
-			SUM(MarginAmount) MarginAmount,
-			SUM(MarginAmountExtended) MarginAmountExtended,
-			SUM(MarginPercentage) MarginPercentage,
-			SUM(TaxAmount) TaxAmount,
-			SUM(TaxPercentage) TaxPercentage,
-			SUM(soqp.NetSales) + SUM(soqp.TaxAmount) + 
-			0 AS TotalSales
-			FROM DBO.SalesOrderQuotePart soqp WITH (NOLOCK) WHERE IsActive = 1 AND IsDeleted = 0 AND SalesOrderQuoteId = @SalesOrderQuoteId
-			GROUP BY ItemMasterId, ConditionId, SalesOrderQuoteId
-		)  
-		INSERT INTO #tmpSalesOrderQuotePart
-		SELECT SalesOrderQuotePartId, SalesOrderQuoteId, ItemMasterId, ConditionId, Qty,
-			UnitSalePrice,
-			MarkUpPercentage,
-			SalesBeforeDiscount,
-			Discount,
-			DiscountAmount,
-			NetSales,
-			UnitCost,
-			SalesPriceExtended,
-			MarkupExtended,
-			SalesDiscountExtended,
-			NetSalePriceExtended,
-			UnitCostExtended,
-			MarginAmount,
-			MarginAmountExtended,
-			MarginPercentage,
-			TaxAmount,
-			TaxPercentage,
-			TotalSales
-		FROM cte
+	        ;WITH cte AS
+	        (
+	        	SELECT MIN(SalesOrderQuotePartId) SalesOrderQuotePartId, SalesOrderQuoteId, ItemMasterId, ConditionId, SUM(QtyQuoted) Qty,
+	        	SUM(UnitSalePrice) UnitSalePrice,
+	        	SUM(MarkUpPercentage) MarkUpPercentage,
+	        	SUM(SalesBeforeDiscount) SalesBeforeDiscount,
+	        	SUM(Discount) Discount,
+	        	SUM(DiscountAmount) DiscountAmount,
+	        	SUM(NetSales) NetSales,
+	        	SUM(UnitCost) UnitCost,
+	        	SUM(SalesPriceExtended) SalesPriceExtended,
+	        	SUM(MarkupExtended) MarkupExtended,
+	        	SUM(SalesDiscountExtended) SalesDiscountExtended,
+	        	SUM(NetSalePriceExtended) NetSalePriceExtended,
+	        	SUM(UnitCostExtended) UnitCostExtended,
+	        	SUM(MarginAmount) MarginAmount,
+	        	SUM(MarginAmountExtended) MarginAmountExtended,
+	        	SUM(MarginPercentage) MarginPercentage,
+	        	SUM(TaxAmount) TaxAmount,
+	        	SUM(TaxPercentage) TaxPercentage,
+	        	SUM(soqp.NetSales) + SUM(soqp.TaxAmount) + 
+	        	0 AS TotalSales
+	        	FROM DBO.SalesOrderQuotePart soqp WITH (NOLOCK) WHERE IsActive = 1 AND IsDeleted = 0 AND SalesOrderQuoteId = @SalesOrderQuoteId
+	        	GROUP BY ItemMasterId, ConditionId, SalesOrderQuoteId
+	        )   
+	        INSERT INTO #tmpSalesOrderQuotePart
+	        SELECT SalesOrderQuotePartId, SalesOrderQuoteId, ItemMasterId, ConditionId, Qty,
+	        	UnitSalePrice,
+	        	MarkUpPercentage,
+	        	SalesBeforeDiscount,
+	        	Discount,
+	        	DiscountAmount,
+	        	NetSales,
+	        	UnitCost,
+	        	SalesPriceExtended,
+	        	MarkupExtended,
+	        	SalesDiscountExtended,
+	        	NetSalePriceExtended,
+	        	UnitCostExtended,
+	        	MarginAmount,
+	        	MarginAmountExtended,
+	        	MarginPercentage,
+	        	TaxAmount,
+	        	TaxPercentage,
+	        	TotalSales
+	        FROM cte
 
-		SELECT soq.SalesOrderQuoteId,
-			soq.SalesOrderQuoteNumber,
-			soq.Version,
-			soq.CustomerId,
-			soqp.SalesOrderQuotePartId AS SalesOrderQuotePartId,
-			sop.ItemMasterId AS ItemMasterId,
-			im.PartNumber AS PartNumber,
-			im.PartDescription AS PartDescription,
-			soq.OpenDate,
-			soq.CreatedDate,
-			soq.ApprovedDate,
-			soq.StatusChangeDate,
-			sop.StockLineId AS StockLineId,
-			sop.MethodType AS MethodType,
-			sqp.InternalApprovedDate,
-			sqp.InternalSentDate,
-			app.FirstName + ' ' + app. LastName AS InternalApprovedBy,
-			sqp.CustomerApprovedDate,
-			sqp.CustomerSentDate,
-			con.FirstName + ' ' + con.LastName AS CustomerApprovedBy,
-			sqp.SalesOrderQuoteApprovalId AS SalesOrderQuoteApprovalId,
-			sqp.InternalApprovedById AS InternalApprovedById,
-			sqp.CustomerApprovedById AS CustomerApprovedById,
-			sqp.RejectedById,
-			sqp.RejectedByName,
-			sqp.RejectedDate,
-			sqp.InternalRejectedById,
-			sqp.InternalRejectedByName,
-			sqp.InternalRejectedDate,
-			sqp.InternalSentToId,
-			sqp.InternalSentToName,
-			sqp.InternalSentById,
-			sqp.InternalMemo,
-			sqp.CustomerMemo,
-			sqp.CreatedBy,
-			sqp.UpdatedBy,
-			sqp.UpdatedDate,
-			1 AS IsActive,
-			0 AS IsDeleted,
-			sqp.ApprovalActionId AS ApprovalActionId,
-			sqp.ApprovalActionId AS ActionStatus,
-			sqp.InternalStatusId AS InternalStatusId,
-			CASE WHEN sqp.CustomerStatusId IS null THEN 1 ELSE sqp.CustomerStatusId END AS CustomerStatusId,
-			1 AS IsInternalApprove,
-			soqp.Qty,
-			soqp.UnitSalePrice,
-			soqp.MarkUpPercentage,
-			soqp.SalesBeforeDiscount,
-			soqp.Discount,
-			soqp.DiscountAmount,
-			soqp.NetSales,
-			soqp.UnitCost,
-			soqp.SalesPriceExtended,
-			soqp.MarkupExtended,
-			soqp.SalesDiscountExtended,
-			soqp.NetSalePriceExtended,
-			soqp.UnitCostExtended,
-			soqp.MarginAmount,
-			soqp.MarginAmountExtended,
-			soqp.MarginPercentage,
-			soqp.TaxAmount,
-			soqp.TaxPercentage,
-			sop.TaxType,
-			soqp.NetSales + soqp.TaxAmount + 
-			(CASE WHEN
-			(SELECT SUM(BillingAmount) FROM DBO.SalesOrderQuoteCharges WITH (NOLOCK) WHERE SalesOrderQuoteId = soq.SalesOrderQuoteId AND IsActive = 1 AND IsDeleted = 0 AND SalesOrderQuotePartId = soqp.SalesOrderQuotePartId) IS NULL THEN 
-			0 ELSE 
-			(SELECT SUM(BillingAmount) FROM DBO.SalesOrderQuoteCharges WITH (NOLOCK) WHERE SalesOrderQuoteId = soq.SalesOrderQuoteId AND IsActive = 1 AND IsDeleted = 0 AND SalesOrderQuotePartId = soqp.SalesOrderQuotePartId) END) AS TotalSales,
-			soq.IsEnforceApproval,
-			soq.EnforceEffectiveDate
-		FROM SalesOrderQuote soq WITH (NOLOCK)
-		INNER JOIN #tmpSalesOrderQuotePart soqp ON soq.SalesOrderQuoteId = soqp.SalesOrderQuoteId
-		INNER JOIN SalesOrderQuotePart sop WITH (NOLOCK) ON sop.SalesOrderQuotePartId = soqp.SalesOrderQuotePartId
-		LEFT JOIN SalesOrderQuoteApproval sqp WITH (NOLOCK) ON soqp.SalesOrderQuotePartId = sqp.SalesOrderQuotePartId
-		LEFT JOIN ItemMaster im WITH (NOLOCK) ON soqp.ItemMasterId = im.ItemMasterId
-		LEFT JOIN Employee app WITH (NOLOCK) ON sqp.InternalApprovedById = app.EmployeeId
-		LEFT JOIN Contact con WITH (NOLOCK) ON sqp.CustomerApprovedById = con.ContactId
-		WHERE soq.IsDeleted = 0 AND sop.IsDeleted = 0 AND soq.SalesOrderQuoteId = @SalesOrderQuoteId
-		*/
-        SELECT soq.SalesOrderQuoteId,
-            soq.SalesOrderQuoteNumber,
-            soq.Version,
-            soq.CustomerId,
-            soqp.SalesOrderQuotePartId AS SalesOrderQuotePartId,
-            soqp.ItemMasterId AS ItemMasterId,
-            im.PartNumber AS PartNumber,
-            im.PartDescription AS PartDescription,
-            NULL AS StocklineId,
-            soq.OpenDate,
-            soq.CreatedDate,
-            soq.ApprovedDate,
-            soq.StatusChangeDate,
-            'I' AS MethodType,
-            sqp.InternalApprovedDate,
-            sqp.InternalSentDate,
-            app.FirstName + ' ' + app.LastName AS InternalApprovedBy,
-            sqp.CustomerApprovedDate,
-            sqp.CustomerSentDate,
-            con.FirstName + ' ' + con.LastName AS CustomerApprovedBy,
-            sqp.SalesOrderQuoteApprovalId AS SalesOrderQuoteApprovalId,
-            sqp.InternalApprovedById AS InternalApprovedById,
-            sqp.CustomerApprovedById AS CustomerApprovedById,
-            sqp.RejectedById,
-            sqp.RejectedByName,
-            sqp.RejectedDate,
-            sqp.InternalRejectedById,
-            sqp.InternalRejectedByName,
-            sqp.InternalRejectedDate,
-            sqp.InternalSentToId,
-            sqp.InternalSentToName,
-            sqp.InternalSentById,
-            sqp.InternalMemo,
-            sqp.CustomerMemo,
-            sqp.CreatedBy,
-            sqp.UpdatedBy,
-            sqp.UpdatedDate,
-            1 AS IsActive,
-            0 AS IsDeleted,
-            sqp.ApprovalActionId AS ApprovalActionId,
-            sqp.ApprovalActionId AS ActionStatus,
-            sqp.InternalStatusId AS InternalStatusId,
-            CASE WHEN sqp.CustomerStatusId IS NULL THEN 1 ELSE sqp.CustomerStatusId END AS CustomerStatusId,
-            1 AS IsInternalApprove,
-            CASE WHEN ISNULL(soqp.QtyQuoted, 0) > 0
-                THEN (CASE WHEN im.[StockUnitOfMeasure] = im.[ConsumeUnitOfMeasure] THEN ISNULL(soqp.QtyQuoted, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(soqp.QtyQuoted, 0),im.[StockUnitOfMeasure],im.[ConsumeUnitOfMeasure],0,soq.MasterCompanyId) END)
-                ELSE (CASE WHEN im.[StockUnitOfMeasure] = im.[ConsumeUnitOfMeasure] THEN ISNULL(soqp.[QtyRequested], 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(soqp.[QtyRequested], 0),im.[StockUnitOfMeasure],im.[ConsumeUnitOfMeasure],0,soq.MasterCompanyId) END)
-            END AS Qty,
-            (CASE WHEN im.[StockUnitOfMeasure] = im.[ConsumeUnitOfMeasure] THEN ISNULL(soqpc.UnitSalesPrice, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(soqpc.UnitSalesPrice, 0),im.[StockUnitOfMeasure],im.[ConsumeUnitOfMeasure],1,soq.MasterCompanyId) END) AS UnitSalePrice,
-            soqpc.MarkUpPercentage,
-            0 SalesBeforeDiscount,
-            (CASE WHEN im.[StockUnitOfMeasure] = im.[ConsumeUnitOfMeasure] THEN ISNULL(soqpc.DiscountPercentage, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(soqpc.DiscountPercentage, 0),im.[StockUnitOfMeasure],im.[ConsumeUnitOfMeasure],0,soq.MasterCompanyId) END) Discount,
-            (CASE WHEN im.[StockUnitOfMeasure] = im.[ConsumeUnitOfMeasure] THEN ISNULL(soqpc.DiscountAmount, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(soqpc.DiscountAmount, 0),im.[StockUnitOfMeasure],im.[ConsumeUnitOfMeasure],1,soq.MasterCompanyId) END) DiscountAmount,
-            (CASE WHEN im.[StockUnitOfMeasure] = im.[ConsumeUnitOfMeasure] THEN ISNULL(soqpc.NetSaleAmount, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(soqpc.NetSaleAmount, 0),im.[StockUnitOfMeasure],im.[ConsumeUnitOfMeasure],1,soq.MasterCompanyId) END) AS NetSales,
-            (CASE WHEN im.[StockUnitOfMeasure] = im.[ConsumeUnitOfMeasure] THEN ISNULL(soqpc.UnitCost, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(soqpc.UnitCost, 0),im.[StockUnitOfMeasure],im.[ConsumeUnitOfMeasure],1,soq.MasterCompanyId) END) AS UnitCost,
-            (CASE WHEN im.[StockUnitOfMeasure] = im.[ConsumeUnitOfMeasure] THEN ISNULL(soqpc.UnitSalesPriceExtended, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(soqpc.UnitSalesPriceExtended, 0),im.[StockUnitOfMeasure],im.[ConsumeUnitOfMeasure],1,soq.MasterCompanyId) END) SalesPriceExtended,
-            (CASE WHEN im.[StockUnitOfMeasure] = im.[ConsumeUnitOfMeasure] THEN ISNULL(soqpc.MarkUpAmount, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(soqpc.MarkUpAmount, 0),im.[StockUnitOfMeasure],im.[ConsumeUnitOfMeasure],1,soq.MasterCompanyId) END) MarkupExtended,
-            (CASE WHEN im.[StockUnitOfMeasure] = im.[ConsumeUnitOfMeasure] THEN ISNULL(soqpc.DiscountAmount, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(soqpc.DiscountAmount, 0),im.[StockUnitOfMeasure],im.[ConsumeUnitOfMeasure],1,soq.MasterCompanyId) END) SalesDiscountExtended,
-            (CASE WHEN im.[StockUnitOfMeasure] = im.[ConsumeUnitOfMeasure] THEN ISNULL(soqpc.NetSaleAmount, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(soqpc.NetSaleAmount, 0),im.[StockUnitOfMeasure],im.[ConsumeUnitOfMeasure],1,soq.MasterCompanyId) END) AS NetSalePriceExtended,
-            (CASE WHEN im.[StockUnitOfMeasure] = im.[ConsumeUnitOfMeasure] THEN ISNULL(soqpc.UnitCostExtended, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(soqpc.UnitCostExtended, 0),im.[StockUnitOfMeasure],im.[ConsumeUnitOfMeasure],1,soq.MasterCompanyId) END) AS UnitCostExtended,
-            (CASE WHEN im.[StockUnitOfMeasure] = im.[ConsumeUnitOfMeasure] THEN ISNULL(soqpc.MarginAmount, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(soqpc.MarginAmount, 0),im.[StockUnitOfMeasure],im.[ConsumeUnitOfMeasure],1,soq.MasterCompanyId) END) AS MarginAmount,
-            (CASE WHEN im.[StockUnitOfMeasure] = im.[ConsumeUnitOfMeasure] THEN ISNULL(soqpc.MarginAmount, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(soqpc.MarginAmount, 0),im.[StockUnitOfMeasure],im.[ConsumeUnitOfMeasure],1,soq.MasterCompanyId) END) AS MarginAmountExtended,
-            soqpc.MarginPercentage,
-            soqpc.TaxAmount,
-            soqpc.TaxPercentage,
-            '' AS TaxType,
-            (CASE WHEN im.[StockUnitOfMeasure] = im.[ConsumeUnitOfMeasure] THEN ISNULL(soqpc.NetSaleAmount, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(soqpc.NetSaleAmount, 0),im.[StockUnitOfMeasure],im.[ConsumeUnitOfMeasure],1,soq.MasterCompanyId) END)
-            + soqpc.TaxAmount
-            + (CASE WHEN
-                (SELECT SUM(BillingAmount) FROM DBO.SalesOrderQuoteCharges WITH (NOLOCK) WHERE SalesOrderQuoteId = soq.SalesOrderQuoteId AND IsActive = 1 AND IsDeleted = 0 AND SalesOrderQuotePartId = soqp.SalesOrderQuotePartId) IS NULL
-                THEN 0
-                ELSE (SELECT SUM(BillingAmount) FROM DBO.SalesOrderQuoteCharges WITH (NOLOCK) WHERE SalesOrderQuoteId = soq.SalesOrderQuoteId AND IsActive = 1 AND IsDeleted = 0 AND SalesOrderQuotePartId = soqp.SalesOrderQuotePartId)
-               END) AS TotalSales,
-            soq.IsEnforceApproval,
-            soq.EnforceEffectiveDate,
-            ISNULL(UPPER(um.ShortName), '') AS UomName,
-            ISNULL(UPPER(cond.[Description]), '') AS Condition
-        FROM DBO.SalesOrderQuote soq WITH (NOLOCK)
-        INNER JOIN DBO.SalesOrderQuotePartV1 soqp ON soq.SalesOrderQuoteId = soqp.SalesOrderQuoteId
-        INNER JOIN DBO.SalesOrderQuotePartCost soqpc ON soqpc.SalesOrderQuotePartId = soqp.SalesOrderQuotePartId
-        LEFT JOIN DBO.SalesOrderQuoteApproval sqp WITH (NOLOCK) ON soqp.SalesOrderQuotePartId = sqp.SalesOrderQuotePartId AND sqp.SalesOrderQuoteId = @SalesOrderQuoteId
-        LEFT JOIN DBO.ItemMaster im WITH (NOLOCK) ON soqp.ItemMasterId = im.ItemMasterId
-        LEFT JOIN DBO.UnitOfMeasure um WITH (NOLOCK) ON im.PurchaseUnitOfMeasureId = um.UnitOfMeasureId
-        LEFT JOIN DBO.Employee app WITH (NOLOCK) ON sqp.InternalApprovedById = app.EmployeeId
-        LEFT JOIN DBO.Contact con WITH (NOLOCK) ON sqp.CustomerApprovedById = con.ContactId
-        LEFT JOIN DBO.Condition cond WITH (NOLOCK) ON soqp.ConditionId = cond.ConditionId
-        WHERE soq.IsDeleted = 0 AND soqp.IsDeleted = 0 AND soq.SalesOrderQuoteId = @SalesOrderQuoteId;
+	        SELECT soq.SalesOrderQuoteId,
+	        		soq.SalesOrderQuoteNumber,
+	        		soq.Version,
+	        		soq.CustomerId,
+	        		soqp.SalesOrderQuotePartId AS SalesOrderQuotePartId,
+	        		sop.ItemMasterId AS ItemMasterId,
+	        		im.PartNumber AS PartNumber,
+	        		im.PartDescription AS PartDescription,
+	        		soq.OpenDate,
+	        		soq.CreatedDate,
+	        		soq.ApprovedDate,
+	        		soq.StatusChangeDate,
+	        		sop.StockLineId AS StockLineId,
+	        		sop.MethodType AS MethodType,
+	        		sqp.InternalApprovedDate,
+	        		sqp.InternalSentDate,
+	        		app.FirstName + ' ' + app. LastName AS InternalApprovedBy,
+	        		sqp.CustomerApprovedDate,
+	        		sqp.CustomerSentDate,
+	        		con.FirstName + ' ' + con.LastName AS CustomerApprovedBy,
+	        		sqp.SalesOrderQuoteApprovalId AS SalesOrderQuoteApprovalId,
+	        		sqp.InternalApprovedById AS InternalApprovedById,
+	        		sqp.CustomerApprovedById AS CustomerApprovedById,
+	        		sqp.RejectedById,
+	        		sqp.RejectedByName,
+	        		sqp.RejectedDate,
+	        		sqp.InternalRejectedById,
+	        		sqp.InternalRejectedByName,
+	        		sqp.InternalRejectedDate,
+	        		sqp.InternalSentToId,
+	        		sqp.InternalSentToName,
+	        		sqp.InternalSentById,
+	        		sqp.InternalMemo,
+	        		sqp.CustomerMemo,
+	        		sqp.CreatedBy,
+	        		sqp.UpdatedBy,
+	        		sqp.UpdatedDate,
+	        		1 AS IsActive,
+	        		0 AS IsDeleted,
+	        		sqp.ApprovalActionId AS ApprovalActionId,
+	        		sqp.ApprovalActionId AS ActionStatus,
+	        		sqp.InternalStatusId AS InternalStatusId,
+	        		CASE WHEN sqp.CustomerStatusId IS null THEN 1 ELSE sqp.CustomerStatusId END AS CustomerStatusId,
+	        		1 AS IsInternalApprove,
+	        		soqp.Qty,
+	        		soqp.UnitSalePrice,
+	        		soqp.MarkUpPercentage,
+	        		soqp.SalesBeforeDiscount,
+	        		soqp.Discount,
+	        		soqp.DiscountAmount,
+	        		soqp.NetSales,
+	        		soqp.UnitCost,
+	        		soqp.SalesPriceExtended,
+	        		soqp.MarkupExtended,
+	        		soqp.SalesDiscountExtended,
+	        		soqp.NetSalePriceExtended,
+	        		soqp.UnitCostExtended,
+	        		soqp.MarginAmount,
+	        		soqp.MarginAmountExtended,
+	        		soqp.MarginPercentage,
+	        		soqp.TaxAmount,
+	        		soqp.TaxPercentage,
+	        		sop.TaxType,
+	        		soqp.NetSales + soqp.TaxAmount + 
+	        		(CASE WHEN
+	        		(SELECT SUM(BillingAmount) FROM DBO.SalesOrderQuoteCharges WITH (NOLOCK) WHERE SalesOrderQuoteId = soq.SalesOrderQuoteId AND IsActive = 1 AND IsDeleted = 0 AND SalesOrderQuotePartId = soqp.SalesOrderQuotePartId) IS NULL THEN 
+	        		0 ELSE 
+	        		(SELECT SUM(BillingAmount) FROM DBO.SalesOrderQuoteCharges WITH (NOLOCK) WHERE SalesOrderQuoteId = soq.SalesOrderQuoteId AND IsActive = 1 AND IsDeleted = 0 AND SalesOrderQuotePartId = soqp.SalesOrderQuotePartId) END) AS TotalSales,
+	        		soq.IsEnforceApproval,
+	        		soq.EnforceEffectiveDate
+	        	FROM SalesOrderQuote soq WITH (NOLOCK)
+	        	INNER JOIN SalesOrderQuotePart sop WITH (NOLOCK) ON sop.SalesOrderQuotePartId = soqp.SalesOrderQuotePartId
+	        	LEFT JOIN SalesOrderQuoteApproval sqp WITH (NOLOCK) ON soqp.SalesOrderQuotePartId = sqp.SalesOrderQuotePartId
+	        	LEFT JOIN ItemMaster im WITH (NOLOCK) ON soqp.ItemMasterId = im.ItemMasterId
+	        	LEFT JOIN Employee app WITH (NOLOCK) ON sqp.InternalApprovedById = app.EmployeeId
+	        	LEFT JOIN Contact con WITH (NOLOCK) ON sqp.CustomerApprovedById = con.ContactId
+	        	WHERE soq.IsDeleted = 0 AND sop.IsDeleted = 0 AND soq.SalesOrderQuoteId = @SalesOrderQuoteId
+	        */
+                SELECT soq.SalesOrderQuoteId,
+                        soq.SalesOrderQuoteNumber,
+                        soq.Version,
+                        soq.CustomerId,
+                        soqp.SalesOrderQuotePartId AS SalesOrderQuotePartId,
+                        soqp.ItemMasterId AS ItemMasterId,
+                        im.PartNumber AS PartNumber,
+                        im.PartDescription AS PartDescription,
+                        NULL AS StocklineId,
+                        soq.OpenDate,
+                        soq.CreatedDate,
+                        soq.ApprovedDate,
+                        soq.StatusChangeDate,
+                        'I' AS MethodType,
+                        sqp.InternalApprovedDate,
+                        sqp.InternalSentDate,
+                        app.FirstName + ' ' + app.LastName AS InternalApprovedBy,
+                        sqp.CustomerApprovedDate,
+                        sqp.CustomerSentDate,
+                        con.FirstName + ' ' + con.LastName AS CustomerApprovedBy,
+                        sqp.SalesOrderQuoteApprovalId AS SalesOrderQuoteApprovalId,
+                        sqp.InternalApprovedById AS InternalApprovedById,
+                        sqp.CustomerApprovedById AS CustomerApprovedById,
+                        sqp.RejectedById,
+                        sqp.RejectedByName,
+                        sqp.RejectedDate,
+                        sqp.InternalRejectedById,
+                        sqp.InternalRejectedByName,
+                        sqp.InternalRejectedDate,
+                        sqp.InternalSentToId,
+                        sqp.InternalSentToName,
+                        sqp.InternalSentById,
+                        sqp.InternalMemo,
+                        sqp.CustomerMemo,
+                        sqp.CreatedBy,
+                        sqp.UpdatedBy,
+                        sqp.UpdatedDate,
+                        1 AS IsActive,
+                        0 AS IsDeleted,
+                        sqp.ApprovalActionId AS ApprovalActionId,
+                        sqp.ApprovalActionId AS ActionStatus,
+                        sqp.InternalStatusId AS InternalStatusId,
+                        CASE WHEN sqp.CustomerStatusId IS NULL THEN 1 ELSE sqp.CustomerStatusId END AS CustomerStatusId,
+                        1 AS IsInternalApprove,
+                        CASE WHEN ISNULL(soqp.QtyQuoted, 0) > 0
+                                THEN (CASE WHEN ISNULL(im.[StockUnitOfMeasure],'') = ISNULL(im.[ConsumeUnitOfMeasure],'') THEN ISNULL(soqp.QtyQuoted, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(soqp.QtyQuoted, 0), im.[StockUnitOfMeasure], im.[ConsumeUnitOfMeasure], 0, soq.MasterCompanyId) END)
+                                ELSE (CASE WHEN ISNULL(im.[StockUnitOfMeasure],'') = ISNULL(im.[ConsumeUnitOfMeasure],'') THEN ISNULL(soqp.[QtyRequested], 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(soqp.[QtyRequested], 0), im.[StockUnitOfMeasure], im.[ConsumeUnitOfMeasure], 0, soq.MasterCompanyId) END)
+                        END AS Qty,
+                        (CASE WHEN ISNULL(im.[StockUnitOfMeasure],'') = ISNULL(im.[ConsumeUnitOfMeasure],'') THEN ISNULL(soqpc.UnitSalesPrice, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(soqpc.UnitSalesPrice, 0), im.[StockUnitOfMeasure], im.[ConsumeUnitOfMeasure], 1, soq.MasterCompanyId) END) AS UnitSalePrice,
+                        soqpc.MarkUpPercentage,
+                        0 SalesBeforeDiscount,
+                        ISNULL(soqpc.DiscountPercentage, 0) Discount,
+                        ISNULL(soqpc.DiscountAmount, 0) DiscountAmount,
+                        ISNULL(soqpc.NetSaleAmount, 0) AS NetSales,
+                        (CASE WHEN ISNULL(im.[StockUnitOfMeasure],'') = ISNULL(im.[ConsumeUnitOfMeasure],'') THEN ISNULL(soqpc.UnitCost, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(soqpc.UnitCost, 0), im.[StockUnitOfMeasure], im.[ConsumeUnitOfMeasure], 1, soq.MasterCompanyId) END) AS UnitCost,
+                        ISNULL(soqpc.UnitSalesPriceExtended, 0) SalesPriceExtended,
+                        ISNULL(soqpc.MarkUpAmount, 0) MarkupExtended,
+                        ISNULL(soqpc.DiscountAmount, 0) SalesDiscountExtended,
+                        ISNULL(soqpc.NetSaleAmount, 0) AS NetSalePriceExtended,
+                        ISNULL(soqpc.UnitCostExtended, 0) AS UnitCostExtended,
+                        (CASE WHEN ISNULL(im.[StockUnitOfMeasure],'') = ISNULL(im.[ConsumeUnitOfMeasure],'') THEN ISNULL(soqpc.MarginAmount, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(soqpc.MarginAmount, 0), im.[StockUnitOfMeasure], im.[ConsumeUnitOfMeasure], 1, soq.MasterCompanyId) END) AS MarginAmount,
+                        ISNULL((
+                            (CASE WHEN ISNULL(im.[StockUnitOfMeasure],'') = ISNULL(im.[ConsumeUnitOfMeasure],'') THEN ISNULL(soqpc.MarginAmount, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(soqpc.MarginAmount, 0), im.[StockUnitOfMeasure], im.[ConsumeUnitOfMeasure], 1, soq.MasterCompanyId) END)
+                            * (CASE WHEN ISNULL(im.[StockUnitOfMeasure],'') = ISNULL(im.[ConsumeUnitOfMeasure],'') THEN ISNULL(CASE WHEN ISNULL(soqp.QtyQuoted, 0) > 0 THEN soqp.QtyQuoted ELSE soqp.QtyRequested END, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(CASE WHEN ISNULL(soqp.QtyQuoted, 0) > 0 THEN soqp.QtyQuoted ELSE soqp.QtyRequested END, 0), im.[StockUnitOfMeasure], im.[ConsumeUnitOfMeasure], 0, soq.MasterCompanyId) END)
+                        ), 0) AS MarginAmountExtended,
+                        soqpc.MarginPercentage,
+                        soqpc.TaxAmount,
+                        soqpc.TaxPercentage,
+                        '' AS TaxType,
+                        ISNULL(soqpc.NetSaleAmount, 0)
+                        + soqpc.TaxAmount
+                        + (CASE WHEN
+                                (SELECT SUM(BillingAmount) FROM DBO.SalesOrderQuoteCharges WITH (NOLOCK) WHERE SalesOrderQuoteId = soq.SalesOrderQuoteId AND IsActive = 1 AND IsDeleted = 0 AND SalesOrderQuotePartId = soqp.SalesOrderQuotePartId) IS NULL
+                                THEN 0
+                                ELSE (SELECT SUM(BillingAmount) FROM DBO.SalesOrderQuoteCharges WITH (NOLOCK) WHERE SalesOrderQuoteId = soq.SalesOrderQuoteId AND IsActive = 1 AND IsDeleted = 0 AND SalesOrderQuotePartId = soqp.SalesOrderQuotePartId)
+                              END) AS TotalSales,
+                        soq.IsEnforceApproval,
+                        soq.EnforceEffectiveDate,
+                        ISNULL(UPPER(um.ShortName), '') AS UomName,
+                        ISNULL(UPPER(cond.[Description]), '') AS Condition
+                FROM DBO.SalesOrderQuote soq WITH (NOLOCK)
+                INNER JOIN DBO.SalesOrderQuotePartV1 soqp ON soq.SalesOrderQuoteId = soqp.SalesOrderQuoteId
+                INNER JOIN DBO.SalesOrderQuotePartCost soqpc ON soqpc.SalesOrderQuotePartId = soqp.SalesOrderQuotePartId
+                LEFT JOIN DBO.SalesOrderQuoteApproval sqp WITH (NOLOCK) ON soqp.SalesOrderQuotePartId = sqp.SalesOrderQuotePartId AND sqp.SalesOrderQuoteId = @SalesOrderQuoteId
+                LEFT JOIN DBO.ItemMaster im WITH (NOLOCK) ON soqp.ItemMasterId = im.ItemMasterId
+                LEFT JOIN DBO.UnitOfMeasure um WITH (NOLOCK) ON im.PurchaseUnitOfMeasureId = um.UnitOfMeasureId
+                LEFT JOIN DBO.Employee app WITH (NOLOCK) ON sqp.InternalApprovedById = app.EmployeeId
+                LEFT JOIN DBO.Contact con WITH (NOLOCK) ON sqp.CustomerApprovedById = con.ContactId
+                LEFT JOIN DBO.Condition cond WITH (NOLOCK) ON soqp.ConditionId = cond.ConditionId
+                WHERE soq.IsDeleted = 0 AND soqp.IsDeleted = 0 AND soq.SalesOrderQuoteId = @SalesOrderQuoteId;
 
-      END
-    COMMIT TRANSACTION
+            END
+        COMMIT TRANSACTION
 
-  END TRY
-  BEGIN CATCH
-    IF @@trancount > 0
+    END TRY
+    BEGIN CATCH
+        IF @@trancount > 0
 		ROLLBACK TRAN;
 		DECLARE @ErrorLogID int
-		,@DatabaseName varchar(100) = DB_NAME()
-        -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE---------------------------------------
-		,@AdhocComments varchar(150) = 'USP_GetSOQApprovalList'
-		,@ProcedureParameters varchar(3000) = '@Parameter1 = ' + ISNULL(@SalesOrderQuoteId, '') + ''
-		,@ApplicationName varchar(100) = 'PAS'
-		-----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------
+		, @DatabaseName varchar(100) = DB_NAME()
+                ----------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE---------
+		, @AdhocComments varchar(150) = 'USP_GetSOQApprovalList'
+		, @ProcedureParameters varchar(3000) = '@Parameter1 = ' + ISNULL(@SalesOrderQuoteId, '')  + ''
+		, @ApplicationName varchar(100) = 'PAS'
+		---------PLEASE DO NOT EDIT BELOW---------
 		EXEC spLogException @DatabaseName = @DatabaseName,
-            @AdhocComments = @AdhocComments,
-            @ProcedureParameters = @ProcedureParameters,
-            @ApplicationName = @ApplicationName,
-            @ErrorLogID = @ErrorLogID OUTPUT;
+                        @AdhocComments = @AdhocComments,
+                        @ProcedureParameters = @ProcedureParameters,
+                        @ApplicationName = @ApplicationName,
+                        @ErrorLogID = @ErrorLogID OUTPUT;
 		RAISERROR ('Unexpected Error Occured in the database. Please let the support team know of the error number : %d', 16, 1, @ErrorLogID)
 		RETURN (1);
 	END CATCH

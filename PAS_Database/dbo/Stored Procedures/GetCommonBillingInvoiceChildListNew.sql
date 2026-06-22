@@ -575,7 +575,7 @@ BEGIN
 					--sobi.InvoiceTypeId,
 					(CASE WHEN  @DefaultInvoiceTypeId > 0 THEN @DefaultInvoiceTypeId ELSE sobi.InvoiceTypeId END) As InvoiceTypeId,
 					sos.SOShippingNum, 
-					(CASE WHEN imt.[StockUnitOfMeasure] = imt.[ConsumeUnitOfMeasure] THEN ISNULL(sosi.QtyShipped,0) ELSE [dbo].[fn_ConvertUOM](ISNULL(sosi.QtyShipped,0),imt.[StockUnitOfMeasure], imt.[ConsumeUnitOfMeasure],0,imt.[MasterCompanyId]) END) as QtyToBill,   
+					(CASE WHEN ISNULL(imt.[StockUnitOfMeasure],'') = ISNULL(imt.[ConsumeUnitOfMeasure],'') THEN ISNULL(sosi.QtyShipped,0) ELSE [dbo].[fn_ConvertUOM](ISNULL(sosi.QtyShipped,0),imt.[StockUnitOfMeasure], imt.[ConsumeUnitOfMeasure],0,imt.[MasterCompanyId]) END) as QtyToBill,   
 					so.SalesOrderNumber, 
 					imt.partnumber, 
 					imt.ItemMasterId,
@@ -585,7 +585,7 @@ BEGIN
 					CASE WHEN sobii.SerialNumber IS NOT NULL THEN sobii.SerialNumber ELSE sl.SerialNumber END SerialNumber, 
 					cr.[Name] as CustomerName,   
 					stk.StockLineId,  
-					(SELECT TOP 1 (CASE WHEN imt.[StockUnitOfMeasure] = imt.[ConsumeUnitOfMeasure] THEN ISNULL(b.QtyBilled,0) ELSE [dbo].[fn_ConvertUOM](ISNULL(b.QtyBilled,0),imt.[StockUnitOfMeasure], imt.[ConsumeUnitOfMeasure],0,imt.[MasterCompanyId]) END)
+					(SELECT TOP 1 (CASE WHEN ISNULL(imt.[StockUnitOfMeasure],'') = ISNULL(imt.[ConsumeUnitOfMeasure],'') THEN ISNULL(b.QtyBilled,0) ELSE [dbo].[fn_ConvertUOM](ISNULL(b.QtyBilled,0),imt.[StockUnitOfMeasure], imt.[ConsumeUnitOfMeasure],0,imt.[MasterCompanyId]) END)
 					FROM dbo.BillingInvoicing a WITH (NOLOCK) 
 						INNER JOIN dbo.BillingInvoicingItems b WITH (NOLOCK) ON a.BillingInvoicingId = b.BillingInvoicingId 
 						WHERE a.ReferenceId = @ReferenceId AND b.ItemMasterId = sop.ItemMasterId  AND b.ModuleId = @SOModuleId
@@ -598,12 +598,12 @@ BEGIN
 					stk.SalesOrderStocklineId,
 					cond.Description as 'Condition',   
 					CASE WHEN currb.Code IS NOT NULL THEN currb.Code ELSE curr.Code END AS 'CurrencyCode',
-					CASE WHEN ISNULL(sobii.BillingInvoicingId, 0) > 0 THEN (CASE WHEN imt.[StockUnitOfMeasure] = imt.[ConsumeUnitOfMeasure] THEN ISNULL(sobi.GrandTotal,0) ELSE [dbo].[fn_ConvertUOM](ISNULL(sobi.GrandTotal,0),imt.[StockUnitOfMeasure], imt.[ConsumeUnitOfMeasure],1,imt.[MasterCompanyId]) END) ELSE 
-					(((CASE WHEN imt.[StockUnitOfMeasure] = imt.[ConsumeUnitOfMeasure] THEN ISNULL(SOSC.NetSaleAmount, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(SOSC.NetSaleAmount, 0),imt.[StockUnitOfMeasure], imt.[ConsumeUnitOfMeasure],1,imt.[MasterCompanyId]) END) / NULLIF((CASE WHEN imt.[StockUnitOfMeasure] = imt.[ConsumeUnitOfMeasure] THEN ISNULL(STK.QtyOrder, 1) ELSE [dbo].[fn_ConvertUOM](ISNULL(STK.QtyOrder, 1),imt.[StockUnitOfMeasure], imt.[ConsumeUnitOfMeasure],0,imt.[MasterCompanyId]) END), 0)) * (CASE WHEN imt.[StockUnitOfMeasure] = imt.[ConsumeUnitOfMeasure] THEN ISNULL(sosi.QtyShipped,0) ELSE [dbo].[fn_ConvertUOM](ISNULL(sosi.QtyShipped,0),imt.[StockUnitOfMeasure], imt.[ConsumeUnitOfMeasure],0,imt.[MasterCompanyId]) END))
+					CASE WHEN ISNULL(sobii.BillingInvoicingId, 0) > 0 THEN (CASE WHEN ISNULL(imt.[StockUnitOfMeasure],'') = ISNULL(imt.[ConsumeUnitOfMeasure],'') THEN ISNULL(sobi.GrandTotal,0) ELSE [dbo].[fn_ConvertUOM](ISNULL(sobi.GrandTotal,0),imt.[StockUnitOfMeasure], imt.[ConsumeUnitOfMeasure],1,imt.[MasterCompanyId]) END) ELSE 
+					(((CASE WHEN ISNULL(imt.[StockUnitOfMeasure],'') = ISNULL(imt.[ConsumeUnitOfMeasure],'') THEN ISNULL(SOSC.NetSaleAmount, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(SOSC.NetSaleAmount, 0),imt.[StockUnitOfMeasure], imt.[ConsumeUnitOfMeasure],1,imt.[MasterCompanyId]) END) / NULLIF((CASE WHEN ISNULL(imt.[StockUnitOfMeasure],'') = ISNULL(imt.[ConsumeUnitOfMeasure],'') THEN ISNULL(STK.QtyOrder, 1) ELSE [dbo].[fn_ConvertUOM](ISNULL(STK.QtyOrder, 1),imt.[StockUnitOfMeasure], imt.[ConsumeUnitOfMeasure],0,imt.[MasterCompanyId]) END), 0)) * (CASE WHEN ISNULL(imt.[StockUnitOfMeasure],'') = ISNULL(imt.[ConsumeUnitOfMeasure],'') THEN ISNULL(sosi.QtyShipped,0) ELSE [dbo].[fn_ConvertUOM](ISNULL(sosi.QtyShipped,0),imt.[StockUnitOfMeasure], imt.[ConsumeUnitOfMeasure],0,imt.[MasterCompanyId]) END))
 					END 
 					as 'TotalSales',  
 			
-					(((CASE WHEN imt.[StockUnitOfMeasure] = imt.[ConsumeUnitOfMeasure] THEN ISNULL(SOSC.NetSaleAmount, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(SOSC.NetSaleAmount, 0),imt.[StockUnitOfMeasure], imt.[ConsumeUnitOfMeasure],1,imt.[MasterCompanyId]) END) / NULLIF((CASE WHEN imt.[StockUnitOfMeasure] = imt.[ConsumeUnitOfMeasure] THEN ISNULL(STK.QtyOrder, 1) ELSE [dbo].[fn_ConvertUOM](ISNULL(STK.QtyOrder, 1),imt.[StockUnitOfMeasure], imt.[ConsumeUnitOfMeasure],0,imt.[MasterCompanyId]) END), 0)) * (CASE WHEN imt.[StockUnitOfMeasure] = imt.[ConsumeUnitOfMeasure] THEN ISNULL(sosi.QtyShipped,0) ELSE [dbo].[fn_ConvertUOM](ISNULL(sosi.QtyShipped,0),imt.[StockUnitOfMeasure], imt.[ConsumeUnitOfMeasure],0,imt.[MasterCompanyId]) END)) AS TotalUnitCost,
+					(((CASE WHEN ISNULL(imt.[StockUnitOfMeasure],'') = ISNULL(imt.[ConsumeUnitOfMeasure],'') THEN ISNULL(SOSC.NetSaleAmount, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(SOSC.NetSaleAmount, 0),imt.[StockUnitOfMeasure], imt.[ConsumeUnitOfMeasure],1,imt.[MasterCompanyId]) END) / NULLIF((CASE WHEN ISNULL(imt.[StockUnitOfMeasure],'') = ISNULL(imt.[ConsumeUnitOfMeasure],'') THEN ISNULL(STK.QtyOrder, 1) ELSE [dbo].[fn_ConvertUOM](ISNULL(STK.QtyOrder, 1),imt.[StockUnitOfMeasure], imt.[ConsumeUnitOfMeasure],0,imt.[MasterCompanyId]) END), 0)) * (CASE WHEN ISNULL(imt.[StockUnitOfMeasure],'') = ISNULL(imt.[ConsumeUnitOfMeasure],'') THEN ISNULL(sosi.QtyShipped,0) ELSE [dbo].[fn_ConvertUOM](ISNULL(sosi.QtyShipped,0),imt.[StockUnitOfMeasure], imt.[ConsumeUnitOfMeasure],0,imt.[MasterCompanyId]) END)) AS TotalUnitCost,
 					(SELECT ISNULL(SUM(BillingAmount), 0) FROM dbo.SalesOrderFreight sof WITH (NOLOCK) 
 					 WHERE sof.SalesOrderId = @ReferenceId 			  
 						AND sof.ItemMasterId = sop.ItemMasterId 
@@ -724,7 +724,7 @@ BEGIN
 							AS SOShippingNum, 
 				
 							CASE WHEN sobii.IsVersionIncrease = 1 THEN 0 
-							     ELSE (SELECT SUM((CASE WHEN sl.[StockUnitOfMeasure] = sl.[ConsumeUnitOfMeasure] THEN ISNULL(SOSI.QtyShipped,0) ELSE [dbo].[fn_ConvertUOM](ISNULL(SOSI.QtyShipped,0),sl.[StockUnitOfMeasure], sl.[ConsumeUnitOfMeasure],0,sl.[MasterCompanyId]) END)) 
+							     ELSE (SELECT SUM((CASE WHEN ISNULL(sl.[StockUnitOfMeasure],'') = ISNULL(sl.[ConsumeUnitOfMeasure],'') THEN ISNULL(SOSI.QtyShipped,0) ELSE [dbo].[fn_ConvertUOM](ISNULL(SOSI.QtyShipped,0),sl.[StockUnitOfMeasure], sl.[ConsumeUnitOfMeasure],0,sl.[MasterCompanyId]) END)) 
 							FROM DBO.SalesOrderShipping SOS WITH (NOLOCK) 
 							INNER JOIN DBO.SalesOrderShippingItem SOSI WITH (NOLOCK) ON SOS.SalesOrderShippingId = SOSI.SalesOrderShippingId
 							INNER JOIN DBO.SOPickTicket SOPT WITH (NOLOCK) ON SOPT.SOPickTicketId = SOSI.SOPickTicketId
@@ -738,7 +738,7 @@ BEGIN
 							CASE WHEN sobii.SerialNumber IS NOT NULL THEN sobii.SerialNumber ELSE sl.SerialNumber END SerialNumber,
 							cr.[Name] as CustomerName,   
 							stk.StockLineId,  
-							ISNULL((SELECT (CASE WHEN imt.[StockUnitOfMeasure] = imt.[ConsumeUnitOfMeasure] THEN ISNULL(b.QtyBilled,0) ELSE [dbo].[fn_ConvertUOM](ISNULL(b.QtyBilled,0),imt.[StockUnitOfMeasure], imt.[ConsumeUnitOfMeasure],0,imt.[MasterCompanyId]) END) FROM dbo.BillingInvoicing a WITH (NOLOCK) 
+							ISNULL((SELECT (CASE WHEN ISNULL(imt.[StockUnitOfMeasure],'') = ISNULL(imt.[ConsumeUnitOfMeasure],'') THEN ISNULL(b.QtyBilled,0) ELSE [dbo].[fn_ConvertUOM](ISNULL(b.QtyBilled,0),imt.[StockUnitOfMeasure], imt.[ConsumeUnitOfMeasure],0,imt.[MasterCompanyId]) END) FROM dbo.BillingInvoicing a WITH (NOLOCK) 
 								INNER JOIN dbo.BillingInvoicingItems b WITH (NOLOCK) ON a.BillingInvoicingId = b.BillingInvoicingId 
 								WHERE b.BillingInvoicingItemId = SOBII.BillingInvoicingItemId AND b.StockLineId = SOBII.StockLineId
 								AND a.ReferenceId = @ReferenceId AND a.ModuleId = @SOModuleId
@@ -746,7 +746,7 @@ BEGIN
 							0 AS ItemNo, 
 							sop.SalesOrderId, sop.SalesOrderPartId, stk.SalesOrderStocklineId, cond.Description as 'Condition',   
 							CASE WHEN currb.Code IS NOT NULL THEN currb.Code ELSE curr.Code END AS 'CurrencyCode',
-							CASE WHEN ISNULL(sobi.BillingInvoicingId, 0) = 0 THEN (((CASE WHEN imt.[StockUnitOfMeasure] = imt.[ConsumeUnitOfMeasure] THEN ISNULL(SOSC.NetSaleAmount, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(SOSC.NetSaleAmount, 0),imt.[StockUnitOfMeasure], imt.[ConsumeUnitOfMeasure],1,imt.[MasterCompanyId]) END) / NULLIF((CASE WHEN imt.[StockUnitOfMeasure] = imt.[ConsumeUnitOfMeasure] THEN ISNULL(STK.QtyOrder, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(STK.QtyOrder, 0),imt.[StockUnitOfMeasure], imt.[ConsumeUnitOfMeasure],0,imt.[MasterCompanyId]) END), 0)) * ((SELECT SUM((CASE WHEN sl.[StockUnitOfMeasure] = sl.[ConsumeUnitOfMeasure] THEN ISNULL(SOSI.QtyShipped,0) ELSE [dbo].[fn_ConvertUOM](ISNULL(SOSI.QtyShipped,0),sl.[StockUnitOfMeasure], sl.[ConsumeUnitOfMeasure],0,sl.[MasterCompanyId]) END)) 
+							CASE WHEN ISNULL(sobi.BillingInvoicingId, 0) = 0 THEN (((CASE WHEN ISNULL(imt.[StockUnitOfMeasure],'') = ISNULL(imt.[ConsumeUnitOfMeasure],'') THEN ISNULL(SOSC.NetSaleAmount, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(SOSC.NetSaleAmount, 0),imt.[StockUnitOfMeasure], imt.[ConsumeUnitOfMeasure],1,imt.[MasterCompanyId]) END) / NULLIF((CASE WHEN ISNULL(imt.[StockUnitOfMeasure],'') = ISNULL(imt.[ConsumeUnitOfMeasure],'') THEN ISNULL(STK.QtyOrder, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(STK.QtyOrder, 0),imt.[StockUnitOfMeasure], imt.[ConsumeUnitOfMeasure],0,imt.[MasterCompanyId]) END), 0)) * ((SELECT SUM((CASE WHEN ISNULL(sl.[StockUnitOfMeasure],'') = ISNULL(sl.[ConsumeUnitOfMeasure],'') THEN ISNULL(SOSI.QtyShipped,0) ELSE [dbo].[fn_ConvertUOM](ISNULL(SOSI.QtyShipped,0),sl.[StockUnitOfMeasure], sl.[ConsumeUnitOfMeasure],0,sl.[MasterCompanyId]) END)) 
 							FROM DBO.SalesOrderShipping SOS WITH (NOLOCK) 
 							INNER JOIN DBO.SalesOrderShippingItem SOSI WITH (NOLOCK) ON SOS.SalesOrderShippingId = SOSI.SalesOrderShippingId
 							INNER JOIN DBO.SOPickTicket SOPT WITH (NOLOCK) ON SOPT.SOPickTicketId = SOSI.SOPickTicketId
@@ -756,8 +756,8 @@ BEGIN
 							AND SOSI.SOPickTicketId = SOPPick.SOPickTicketId)))
 							ELSE sobii.GrandTotal END as 'TotalSales',  
 
-							(((CASE WHEN imt.[StockUnitOfMeasure] = imt.[ConsumeUnitOfMeasure] THEN ISNULL(SOSC.NetSaleAmount, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(SOSC.NetSaleAmount, 0),imt.[StockUnitOfMeasure], imt.[ConsumeUnitOfMeasure],1,imt.[MasterCompanyId]) END) / NULLIF((CASE WHEN imt.[StockUnitOfMeasure] = imt.[ConsumeUnitOfMeasure] THEN ISNULL(STK.QtyOrder, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(STK.QtyOrder, 0),imt.[StockUnitOfMeasure], imt.[ConsumeUnitOfMeasure],0,imt.[MasterCompanyId]) END), 0)) * 
-							(ISNULL((SELECT SUM((CASE WHEN itm.[StockUnitOfMeasure] = itm.[ConsumeUnitOfMeasure] THEN ISNULL(SOSI.QtyShipped,0) ELSE [dbo].[fn_ConvertUOM](ISNULL(SOSI.QtyShipped,0),itm.[StockUnitOfMeasure], itm.[ConsumeUnitOfMeasure],0,itm.[MasterCompanyId]) END)) 
+							(((CASE WHEN ISNULL(imt.[StockUnitOfMeasure],'') = ISNULL(imt.[ConsumeUnitOfMeasure],'') THEN ISNULL(SOSC.NetSaleAmount, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(SOSC.NetSaleAmount, 0),imt.[StockUnitOfMeasure], imt.[ConsumeUnitOfMeasure],1,imt.[MasterCompanyId]) END) / NULLIF((CASE WHEN ISNULL(imt.[StockUnitOfMeasure],'') = ISNULL(imt.[ConsumeUnitOfMeasure],'') THEN ISNULL(STK.QtyOrder, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(STK.QtyOrder, 0),imt.[StockUnitOfMeasure], imt.[ConsumeUnitOfMeasure],0,imt.[MasterCompanyId]) END), 0)) * 
+							(ISNULL((SELECT SUM((CASE WHEN ISNULL(itm.[StockUnitOfMeasure],'') = ISNULL(itm.[ConsumeUnitOfMeasure],'') THEN ISNULL(SOSI.QtyShipped,0) ELSE [dbo].[fn_ConvertUOM](ISNULL(SOSI.QtyShipped,0),itm.[StockUnitOfMeasure], itm.[ConsumeUnitOfMeasure],0,itm.[MasterCompanyId]) END)) 
 							FROM DBO.SalesOrderShipping SOS WITH (NOLOCK) 
 							INNER JOIN DBO.SalesOrderShippingItem SOSI WITH (NOLOCK) ON SOS.SalesOrderShippingId = SOSI.SalesOrderShippingId
 							INNER JOIN DBO.SOPickTicket SOPT WITH (NOLOCK) ON SOPT.SOPickTicketId = SOSI.SOPickTicketId
@@ -840,7 +840,7 @@ BEGIN
 								sobi.InvoiceNo AS InvoiceNo,
 							(CASE WHEN  @DefaultInvoiceTypeId > 0 THEN @DefaultInvoiceTypeId ELSE sobi.InvoiceTypeId END) As InvoiceTypeId,
 								'' AS SOShippingNum,
-								(CASE WHEN imt.[StockUnitOfMeasure] = imt.[ConsumeUnitOfMeasure] THEN ISNULL(SOR.QtyToReserve,0) ELSE [dbo].[fn_ConvertUOM](ISNULL(SOR.QtyToReserve,0),imt.[StockUnitOfMeasure], imt.[ConsumeUnitOfMeasure],0,imt.[MasterCompanyId]) END) AS QtyToBill,
+								(CASE WHEN ISNULL(imt.[StockUnitOfMeasure],'') = ISNULL(imt.[ConsumeUnitOfMeasure],'') THEN ISNULL(SOR.QtyToReserve,0) ELSE [dbo].[fn_ConvertUOM](ISNULL(SOR.QtyToReserve,0),imt.[StockUnitOfMeasure], imt.[ConsumeUnitOfMeasure],0,imt.[MasterCompanyId]) END) AS QtyToBill,
 								so.SalesOrderNumber,
 								imt.partnumber, 
 								imt.ItemMasterId,
@@ -850,22 +850,22 @@ BEGIN
 								CASE WHEN sobii.SerialNumber IS NOT NULL THEN sobii.SerialNumber ELSE sl.SerialNumber END AS SerialNumber, 
 								cr.[Name] as CustomerName,   
 								stk.StockLineId,
-								(CASE WHEN imt.[StockUnitOfMeasure] = imt.[ConsumeUnitOfMeasure] THEN ISNULL(sobii.QtyBilled,0) ELSE [dbo].[fn_ConvertUOM](ISNULL(sobii.QtyBilled,0),imt.[StockUnitOfMeasure], imt.[ConsumeUnitOfMeasure],0,imt.[MasterCompanyId]) END) AS QtyBilled,
+								(CASE WHEN ISNULL(imt.[StockUnitOfMeasure],'') = ISNULL(imt.[ConsumeUnitOfMeasure],'') THEN ISNULL(sobii.QtyBilled,0) ELSE [dbo].[fn_ConvertUOM](ISNULL(sobii.QtyBilled,0),imt.[StockUnitOfMeasure], imt.[ConsumeUnitOfMeasure],0,imt.[MasterCompanyId]) END) AS QtyBilled,
 								0 AS ItemNo,  
 								sop.SalesOrderId, 
 								sop.SalesOrderPartId, 
 								stk.SalesOrderStocklineId,
 								cond.Description as 'Condition',   
 								CASE WHEN currb.Code IS NOT NULL THEN currb.Code ELSE curr.Code END AS 'CurrencyCode',
-								(((CASE WHEN imt.[StockUnitOfMeasure] = imt.[ConsumeUnitOfMeasure] THEN ISNULL(SOSC.NetSaleAmount, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(SOSC.NetSaleAmount, 0),imt.[StockUnitOfMeasure], imt.[ConsumeUnitOfMeasure],1,imt.[MasterCompanyId]) END) / NULLIF((CASE WHEN imt.[StockUnitOfMeasure] = imt.[ConsumeUnitOfMeasure] THEN STK.QtyOrder ELSE [dbo].[fn_ConvertUOM](STK.QtyOrder,imt.[StockUnitOfMeasure], imt.[ConsumeUnitOfMeasure],0,imt.[MasterCompanyId]) END), 0)) * SOR.QtyToReserve) AS 'TotalSales',
-								(((CASE WHEN imt.[StockUnitOfMeasure] = imt.[ConsumeUnitOfMeasure] THEN ISNULL(SOSC.NetSaleAmount, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(SOSC.NetSaleAmount, 0),imt.[StockUnitOfMeasure], imt.[ConsumeUnitOfMeasure],1,imt.[MasterCompanyId]) END) / NULLIF((CASE WHEN imt.[StockUnitOfMeasure] = imt.[ConsumeUnitOfMeasure] THEN STK.QtyOrder ELSE [dbo].[fn_ConvertUOM](STK.QtyOrder,imt.[StockUnitOfMeasure], imt.[ConsumeUnitOfMeasure],0,imt.[MasterCompanyId]) END), 0)) * (ISNULL((SELECT SUM((CASE WHEN itm.[StockUnitOfMeasure] = itm.[ConsumeUnitOfMeasure] THEN ISNULL(SOSI.QtyShipped,0) ELSE [dbo].[fn_ConvertUOM](ISNULL(SOSI.QtyShipped,0),itm.[StockUnitOfMeasure], itm.[ConsumeUnitOfMeasure],0,itm.[MasterCompanyId]) END)) 
+								(((CASE WHEN ISNULL(imt.[StockUnitOfMeasure],'') = ISNULL(imt.[ConsumeUnitOfMeasure],'') THEN ISNULL(SOSC.NetSaleAmount, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(SOSC.NetSaleAmount, 0),imt.[StockUnitOfMeasure], imt.[ConsumeUnitOfMeasure],1,imt.[MasterCompanyId]) END) / NULLIF((CASE WHEN ISNULL(imt.[StockUnitOfMeasure],'') = ISNULL(imt.[ConsumeUnitOfMeasure],'') THEN STK.QtyOrder ELSE [dbo].[fn_ConvertUOM](STK.QtyOrder,imt.[StockUnitOfMeasure], imt.[ConsumeUnitOfMeasure],0,imt.[MasterCompanyId]) END), 0)) * SOR.QtyToReserve) AS 'TotalSales',
+								(((CASE WHEN ISNULL(imt.[StockUnitOfMeasure],'') = ISNULL(imt.[ConsumeUnitOfMeasure],'') THEN ISNULL(SOSC.NetSaleAmount, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(SOSC.NetSaleAmount, 0),imt.[StockUnitOfMeasure], imt.[ConsumeUnitOfMeasure],1,imt.[MasterCompanyId]) END) / NULLIF((CASE WHEN ISNULL(imt.[StockUnitOfMeasure],'') = ISNULL(imt.[ConsumeUnitOfMeasure],'') THEN STK.QtyOrder ELSE [dbo].[fn_ConvertUOM](STK.QtyOrder,imt.[StockUnitOfMeasure], imt.[ConsumeUnitOfMeasure],0,imt.[MasterCompanyId]) END), 0)) * (ISNULL((SELECT SUM((CASE WHEN ISNULL(itm.[StockUnitOfMeasure],'') = ISNULL(itm.[ConsumeUnitOfMeasure],'') THEN ISNULL(SOSI.QtyShipped,0) ELSE [dbo].[fn_ConvertUOM](ISNULL(SOSI.QtyShipped,0),itm.[StockUnitOfMeasure], itm.[ConsumeUnitOfMeasure],0,itm.[MasterCompanyId]) END)) 
 								FROM DBO.SalesOrderShipping SOS WITH (NOLOCK) 
 								INNER JOIN DBO.SalesOrderShippingItem SOSI WITH (NOLOCK) ON SOS.SalesOrderShippingId = SOSI.SalesOrderShippingId
 								INNER JOIN DBO.SOPickTicket SOPT WITH (NOLOCK) ON SOPT.SOPickTicketId = SOSI.SOPickTicketId
 								INNER JOIN DBO.SalesOrderPartV1 SOPI WITH (NOLOCK) on SOPI.SalesOrderId = SOS.SalesOrderId AND SOPI.SalesOrderPartId = SOSI.SalesOrderPartId
 								LEFT JOIN dbo.ItemMaster itm with(nolock) on SOPI.ItemMasterId = itm.ItemMasterId
 								WHERE SOS.SalesOrderId = @ReferenceId AND SOPT.SalesOrderPartStocklineId = stk.SalesOrderStocklineId
-								), 0) + (CASE WHEN imt.[StockUnitOfMeasure] = imt.[ConsumeUnitOfMeasure] THEN ISNULL(SOR.QtyToReserve,0) ELSE [dbo].[fn_ConvertUOM](ISNULL(SOR.QtyToReserve,0),imt.[StockUnitOfMeasure], imt.[ConsumeUnitOfMeasure],0,imt.[MasterCompanyId]) END))) AS TotalUnitCost,
+								), 0) + (CASE WHEN ISNULL(imt.[StockUnitOfMeasure],'') = ISNULL(imt.[ConsumeUnitOfMeasure],'') THEN ISNULL(SOR.QtyToReserve,0) ELSE [dbo].[fn_ConvertUOM](ISNULL(SOR.QtyToReserve,0),imt.[StockUnitOfMeasure], imt.[ConsumeUnitOfMeasure],0,imt.[MasterCompanyId]) END))) AS TotalUnitCost,
 								0 AS TotalFreight,
 								0 AS TotalFlatFreight,
 								0 AS TotalCharges,
@@ -1075,7 +1075,7 @@ BEGIN
 							cond.Description as 'Condition',   
 							CASE WHEN currb.Code IS NOT NULL THEN currb.Code ELSE curr.Code END AS 'CurrencyCode',
 							0 AS 'SmentNo',
-							(CASE WHEN imt.[StockUnitOfMeasure] = imt.[ConsumeUnitOfMeasure] THEN ISNULL(SOSC.NetSaleAmount,0) ELSE [dbo].[fn_ConvertUOM](ISNULL(SOSC.NetSaleAmount,0),imt.[StockUnitOfMeasure], imt.[ConsumeUnitOfMeasure],1,imt.[MasterCompanyId]) END) AS TotalUnitCost,
+							(CASE WHEN ISNULL(imt.[StockUnitOfMeasure],'') = ISNULL(imt.[ConsumeUnitOfMeasure],'') THEN ISNULL(SOSC.NetSaleAmount,0) ELSE [dbo].[fn_ConvertUOM](ISNULL(SOSC.NetSaleAmount,0),imt.[StockUnitOfMeasure], imt.[ConsumeUnitOfMeasure],1,imt.[MasterCompanyId]) END) AS TotalUnitCost,
 							sobii.VersionNo,
 							(CASE WHEN sobi.IsVersionIncrease = 1 then 0 else 1 end) IsVersionIncrease,
 							CASE WHEN sobi.BillingInvoicingId IS NULL THEN 1 ELSE 0 END AS IsNewInvoice,
@@ -1111,7 +1111,7 @@ BEGIN
 						AND SOR.QtyToReserve > 0
 
 						UPDATE  #InvoiceMainDetails SET QtyToBill = tmpcash.QtyToBill
-									FROM( SELECT (CASE WHEN i.[StockUnitOfMeasure] = i.[ConsumeUnitOfMeasure] THEN ISNULL(SORR.QtyToReserve,0) ELSE [dbo].[fn_ConvertUOM](ISNULL(SORR.QtyToReserve,0),i.[StockUnitOfMeasure], i.[ConsumeUnitOfMeasure],0,i.[MasterCompanyId]) END)  QtyToBill, tmpSOBI.StockLineId
+									FROM( SELECT (CASE WHEN ISNULL(i.[StockUnitOfMeasure],'') = ISNULL(i.[ConsumeUnitOfMeasure],'') THEN ISNULL(SORR.QtyToReserve,0) ELSE [dbo].[fn_ConvertUOM](ISNULL(SORR.QtyToReserve,0),i.[StockUnitOfMeasure], i.[ConsumeUnitOfMeasure],0,i.[MasterCompanyId]) END)  QtyToBill, tmpSOBI.StockLineId
 											FROM DBO.SalesOrderReserveParts SORR WITH (NOLOCK)
 											JOIN #InvoiceMainDetails tmpSOBI ON SORR.SalesOrderPartId = tmpSOBI.SalesOrderPartId 
 											LEFT JOIN dbo.[ItemMaster] i WITH (NOLOCK) on SORR.ItemMasterId = i.ItemMasterId
@@ -1120,7 +1120,7 @@ BEGIN
 									) tmpcash WHERE tmpcash.StockLineId = #InvoiceMainDetails.StockLineId
 
 						UPDATE  #InvoiceMainDetails SET QtyBilled = tmpcash.QtyBilled
-									FROM( SELECT (CASE WHEN i.[StockUnitOfMeasure] = i.[ConsumeUnitOfMeasure] THEN ISNULL(b.QtyBilled,0) ELSE [dbo].[fn_ConvertUOM](ISNULL(b.QtyBilled,0),i.[StockUnitOfMeasure], i.[ConsumeUnitOfMeasure],0,i.[MasterCompanyId]) END) as QtyBilled, b.SubReferenceId, b.StockLineId
+									FROM( SELECT (CASE WHEN ISNULL(i.[StockUnitOfMeasure],'') = ISNULL(i.[ConsumeUnitOfMeasure],'') THEN ISNULL(b.QtyBilled,0) ELSE [dbo].[fn_ConvertUOM](ISNULL(b.QtyBilled,0),i.[StockUnitOfMeasure], i.[ConsumeUnitOfMeasure],0,i.[MasterCompanyId]) END) as QtyBilled, b.SubReferenceId, b.StockLineId
 										FROM dbo.BillingInvoicingItems b WITH (NOLOCK) 
 												JOIN #InvoiceMainDetails tmpSOBI ON tmpSOBI.BillingInvoicingItemId = b.BillingInvoicingItemId
 												LEFT JOIN dbo.[ItemMaster] i WITH (NOLOCK) on b.ItemMasterId = i.ItemMasterId
@@ -1130,8 +1130,8 @@ BEGIN
 						
 						UPDATE  #InvoiceMainDetails SET TotalSales = ISNULL(tmpcash.TotalSales, 0)
 						FROM( SELECT 
-								CASE WHEN ISNULL(tmpSOBI.BillingInvoicingId, 0) = 0 THEN (CASE WHEN i.[StockUnitOfMeasure] = i.[ConsumeUnitOfMeasure] THEN ISNULL(SOSC.NetSaleAmount,0) ELSE [dbo].[fn_ConvertUOM](ISNULL(SOSC.NetSaleAmount,0),i.[StockUnitOfMeasure], i.[ConsumeUnitOfMeasure],1,i.[MasterCompanyId]) END)
-								ELSE (CASE WHEN i.[StockUnitOfMeasure] = i.[ConsumeUnitOfMeasure] THEN ISNULL(SOBII.GrandTotal, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(SOBII.GrandTotal, 0),i.[StockUnitOfMeasure], i.[ConsumeUnitOfMeasure],1,i.[MasterCompanyId]) END) END as 'TotalSales',
+								CASE WHEN ISNULL(tmpSOBI.BillingInvoicingId, 0) = 0 THEN (CASE WHEN ISNULL(i.[StockUnitOfMeasure],'') = ISNULL(i.[ConsumeUnitOfMeasure],'') THEN ISNULL(SOSC.NetSaleAmount,0) ELSE [dbo].[fn_ConvertUOM](ISNULL(SOSC.NetSaleAmount,0),i.[StockUnitOfMeasure], i.[ConsumeUnitOfMeasure],1,i.[MasterCompanyId]) END)
+								ELSE (CASE WHEN ISNULL(i.[StockUnitOfMeasure],'') = ISNULL(i.[ConsumeUnitOfMeasure],'') THEN ISNULL(SOBII.GrandTotal, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(SOBII.GrandTotal, 0),i.[StockUnitOfMeasure], i.[ConsumeUnitOfMeasure],1,i.[MasterCompanyId]) END) END as 'TotalSales',
 								tmpSOBI.BillingInvoicingItemId
 							FROM dbo.SalesOrderPartV1 SOP WITH (NOLOCK) 
 								INNER JOIN dbo.SalesOrderPartCost SOPC WITH (NOLOCK) ON SOPC.SalesOrderPartId = SOP.SalesOrderPartId
@@ -1150,8 +1150,8 @@ BEGIN
 						UPDATE  #InvoiceMainDetails SET TotalSales = ISNULL(tmpcash.TotalSales, 0)
 						FROM( SELECT 
 								CASE WHEN ISNULL(tmpSOBI.BillingInvoicingId, 0) = 0 THEN 
-								(((CASE WHEN i.[StockUnitOfMeasure] = i.[ConsumeUnitOfMeasure] THEN ISNULL(SOSC.NetSaleAmount, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(SOSC.NetSaleAmount, 0),i.[StockUnitOfMeasure], i.[ConsumeUnitOfMeasure],1,i.[MasterCompanyId]) END) / NULLIF((CASE WHEN i.[StockUnitOfMeasure] = i.[ConsumeUnitOfMeasure] THEN ISNULL(STK.QtyOrder, 1) ELSE [dbo].[fn_ConvertUOM](ISNULL(STK.QtyOrder, 1),i.[StockUnitOfMeasure], i.[ConsumeUnitOfMeasure],0,i.[MasterCompanyId]) END), 0)) * ISNULL(STK.QtyReserved, 1))
-								ELSE (CASE WHEN i.[StockUnitOfMeasure] = i.[ConsumeUnitOfMeasure] THEN ISNULL(SOBII.GrandTotal, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(SOBII.GrandTotal, 0),i.[StockUnitOfMeasure], i.[ConsumeUnitOfMeasure],1,i.[MasterCompanyId]) END) END as 'TotalSales',
+								(((CASE WHEN ISNULL(i.[StockUnitOfMeasure],'') = ISNULL(i.[ConsumeUnitOfMeasure],'') THEN ISNULL(SOSC.NetSaleAmount, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(SOSC.NetSaleAmount, 0),i.[StockUnitOfMeasure], i.[ConsumeUnitOfMeasure],1,i.[MasterCompanyId]) END) / NULLIF((CASE WHEN ISNULL(i.[StockUnitOfMeasure],'') = ISNULL(i.[ConsumeUnitOfMeasure],'') THEN ISNULL(STK.QtyOrder, 1) ELSE [dbo].[fn_ConvertUOM](ISNULL(STK.QtyOrder, 1),i.[StockUnitOfMeasure], i.[ConsumeUnitOfMeasure],0,i.[MasterCompanyId]) END), 0)) * ISNULL(STK.QtyReserved, 1))
+								ELSE (CASE WHEN ISNULL(i.[StockUnitOfMeasure],'') = ISNULL(i.[ConsumeUnitOfMeasure],'') THEN ISNULL(SOBII.GrandTotal, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(SOBII.GrandTotal, 0),i.[StockUnitOfMeasure], i.[ConsumeUnitOfMeasure],1,i.[MasterCompanyId]) END) END as 'TotalSales',
 								STK.SalesOrderStocklineId,
 								tmpSOBI.BillingInvoicingId
 							FROM dbo.SalesOrderPartV1 SOP WITH (NOLOCK) 
@@ -1241,20 +1241,20 @@ BEGIN
 						sobi.InvoiceNo AS InvoiceNo,
 						sobi.InvoiceTypeId,
 						'' AS SOShippingNum, 
-						(CASE WHEN imt.[StockUnitOfMeasure] = imt.[ConsumeUnitOfMeasure] THEN ISNULL(stk.QtyOrder,0) ELSE [dbo].[fn_ConvertUOM](ISNULL(stk.QtyOrder,0),imt.[StockUnitOfMeasure], imt.[ConsumeUnitOfMeasure],0,imt.[MasterCompanyId]) END) AS QtyToBill, 
+						(CASE WHEN ISNULL(imt.[StockUnitOfMeasure],'') = ISNULL(imt.[ConsumeUnitOfMeasure],'') THEN ISNULL(stk.QtyOrder,0) ELSE [dbo].[fn_ConvertUOM](ISNULL(stk.QtyOrder,0),imt.[StockUnitOfMeasure], imt.[ConsumeUnitOfMeasure],0,imt.[MasterCompanyId]) END) AS QtyToBill, 
 						so.SalesOrderNumber, imt.partnumber, imt.ItemMasterId, sop.ConditionId, imt.PartDescription, sl.StockLineNumber,  
 						--sl.SerialNumber, 
 						CASE WHEN sobii.SerialNumber IS NOT NULL THEN sobii.SerialNumber ELSE sl.SerialNumber END AS SerialNumber,
 						cr.[Name] AS CustomerName,   
 						stk.StockLineId,  
-						ISNULL((SELECT (CASE WHEN imt.[StockUnitOfMeasure] = imt.[ConsumeUnitOfMeasure] THEN ISNULL(b.QtyBilled,0) ELSE [dbo].[fn_ConvertUOM](ISNULL(b.QtyBilled,0),imt.[StockUnitOfMeasure], imt.[ConsumeUnitOfMeasure],0,imt.[MasterCompanyId]) END)
+						ISNULL((SELECT (CASE WHEN ISNULL(imt.[StockUnitOfMeasure],'') = ISNULL(imt.[ConsumeUnitOfMeasure],'') THEN ISNULL(b.QtyBilled,0) ELSE [dbo].[fn_ConvertUOM](ISNULL(b.QtyBilled,0),imt.[StockUnitOfMeasure], imt.[ConsumeUnitOfMeasure],0,imt.[MasterCompanyId]) END)
 							FROM dbo.BillingInvoicing a WITH (NOLOCK) 
 							INNER JOIN dbo.BillingInvoicingItems b WITH (NOLOCK) ON a.BillingInvoicingId = b.BillingInvoicingId 
 							WHERE b.BillingInvoicingItemId = SOBII.BillingInvoicingItemId  AND a.ModuleId = @SOModuleId AND ISNULL(b.IsPerformaInvoice,0) = 1 AND ISNULL(a.IsPerformaInvoice,0) = 1), 0) AS QtyBilled,  
 						0 AS ItemNo,  
 						sop.SalesOrderId, sop.SalesOrderPartId, stk.SalesOrderStocklineId, cond.Description AS 'Condition',   
 						CASE WHEN currb.Code IS NOT NULL THEN currb.Code ELSE curr.Code END AS 'CurrencyCode',
-						(CASE WHEN imt.[StockUnitOfMeasure] = imt.[ConsumeUnitOfMeasure] THEN ISNULL(sobii.GrandTotal, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(sobii.GrandTotal, 0),imt.[StockUnitOfMeasure], imt.[ConsumeUnitOfMeasure],1,imt.[MasterCompanyId]) END) as 'TotalSales',  
+						(CASE WHEN ISNULL(imt.[StockUnitOfMeasure],'') = ISNULL(imt.[ConsumeUnitOfMeasure],'') THEN ISNULL(sobii.GrandTotal, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(sobii.GrandTotal, 0),imt.[StockUnitOfMeasure], imt.[ConsumeUnitOfMeasure],1,imt.[MasterCompanyId]) END) as 'TotalSales',  
 						(SELECT a.InvoiceStatus FROM DBO.BillingInvoicing a WITH (NOLOCK) 
 							INNER JOIN dbo.BillingInvoicingItems b WITH (NOLOCK) ON a.BillingInvoicingId = b.BillingInvoicingId 
 							Where a.ReferenceId = @ReferenceId 
@@ -1274,7 +1274,7 @@ BEGIN
 						0 AS BillSizeLength,
 						0 AS BillSizeWidth,
 						0 AS BillSizeHeight,
-						CASE WHEN SOSC.[SalesOrderStocklineId] > 0 THEN (CASE WHEN imt.[StockUnitOfMeasure] = imt.[ConsumeUnitOfMeasure] THEN ISNULL(SOSC.NetSaleAmount,0) ELSE [dbo].[fn_ConvertUOM](ISNULL(SOSC.NetSaleAmount,0),imt.[StockUnitOfMeasure], imt.[ConsumeUnitOfMeasure],1,imt.[MasterCompanyId]) END) ELSE (CASE WHEN imt.[StockUnitOfMeasure] = imt.[ConsumeUnitOfMeasure] THEN ISNULL(spc.NetSaleAmount,0) ELSE [dbo].[fn_ConvertUOM](ISNULL(spc.NetSaleAmount,0),imt.[StockUnitOfMeasure], imt.[ConsumeUnitOfMeasure],1,imt.[MasterCompanyId]) END) END AS TotalUnitCost,
+						CASE WHEN SOSC.[SalesOrderStocklineId] > 0 THEN (CASE WHEN ISNULL(imt.[StockUnitOfMeasure],'') = ISNULL(imt.[ConsumeUnitOfMeasure],'') THEN ISNULL(SOSC.NetSaleAmount,0) ELSE [dbo].[fn_ConvertUOM](ISNULL(SOSC.NetSaleAmount,0),imt.[StockUnitOfMeasure], imt.[ConsumeUnitOfMeasure],1,imt.[MasterCompanyId]) END) ELSE (CASE WHEN ISNULL(imt.[StockUnitOfMeasure],'') = ISNULL(imt.[ConsumeUnitOfMeasure],'') THEN ISNULL(spc.NetSaleAmount,0) ELSE [dbo].[fn_ConvertUOM](ISNULL(spc.NetSaleAmount,0),imt.[StockUnitOfMeasure], imt.[ConsumeUnitOfMeasure],1,imt.[MasterCompanyId]) END) END AS TotalUnitCost,
 						(SELECT ISNULL(SUM(BillingAmount), 0) FROM dbo.SalesOrderFreight sof WITH (NOLOCK) 
 							WHERE sof.SalesOrderId = @ReferenceId 			  
 							AND sof.ItemMasterId = sop.ItemMasterId 

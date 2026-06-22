@@ -14,6 +14,7 @@
  ** PR   Date            Author                 Change Description              
  ** --   --------       -----------				--------------------------------            
     1    16/06/2026     Moin Bloch			Created
+	2    22/06/2026     Moin Bloch			Added More Fields PN-16955
        
 -- EXEC USP_GetBulkStockScrapCertificateForPDF 1
   
@@ -45,6 +46,7 @@ BEGIN
         c.IsActive,
         c.IsDeleted,
         ISNULL(sl.PartNumber, '')            AS PartNumber,
+		ISNULL(sl.PNDescription, '')         AS PNDescription,		
         ISNULL(sl.SerialNumber, '')          AS SerialNumber,
         ISNULL(sl.StockLineNumber, '')       AS StockLineNumber,
         sl.ManagementStructureId,           
@@ -54,15 +56,26 @@ BEGIN
         ISNULL(v.VendorName, '')            AS ScrapedByVendor,
         ISNULL(certEmp.FirstName + ' ' + certEmp.LastName, '') AS CertifiedBy,
 		ISNULL(sl.ControlNumber,'') AS ControlNumber,
-		ISNULL(bs.BulkStkLineAdjNumber,'') AS BulkStkLineAdjNumber
+		ISNULL(bs.BulkStkLineAdjNumber,'') AS BulkStkLineAdjNumber,
+		'' AS CustomerName,
+		CASE WHEN sl.PurchaseOrderId > 0 THEN po.PurchaseOrderNumber 
+		     WHEN sl.RepairOrderId > 0   THEN ro.RepairOrderNumber 
+			 ELSE '' END RefrenceNum,		
+		ABS(ISNULL(ba.QtyAdjustment, 0)) QtyAdjustment,
+		ISNULL(sl.LotNumber,'') LotNumber,
+		ISNULL(sl.WorkOrderNumber,'') WorkOrderNumber,
+		'' CorrectiveAction		
     FROM [dbo].[BulkStockScrapCertificate] c WITH(NOLOCK)
 	LEFT JOIN [dbo].[BulkStockLineAdjustment]   bs      WITH(NOLOCK) ON bs.BulkStkLineAdjId  = c.BulkStkLineAdjId
+	LEFT JOIN [dbo].[BulkStockLineAdjustmentDetails] ba WITH(NOLOCK) ON ba.BulkStkLineAdjDetailsId  = c.BulkStkLineAdjDetailsId	
     LEFT JOIN [dbo].[StockLine]   sl                    WITH(NOLOCK) ON sl.StockLineId  =      c.StockLineId
     LEFT JOIN [dbo].[ScrapReason] sr                    WITH(NOLOCK) ON sr.Id           =      c.ScrapReasonId
 	LEFT JOIN [dbo].[Manufacturer] MF                   WITH(NOLOCK) ON sl.ManufacturerId =    MF.ManufacturerId
     LEFT JOIN [dbo].[Employee]    emp                   WITH(NOLOCK) ON emp.EmployeeId  =      c.ScrapedByEmployeeId
     LEFT JOIN [dbo].[Vendor]      v                     WITH(NOLOCK) ON v.VendorId      =      c.ScrapedByVendorId
     LEFT JOIN [dbo].[Employee]    certEmp               WITH(NOLOCK) ON certEmp.EmployeeId =   c.CertifiedById
+	LEFT JOIN [dbo].[PurchaseOrder]  po                 WITH(NOLOCK) ON sl.PurchaseOrderId =   po.PurchaseOrderId
+	LEFT JOIN [dbo].[RepairOrder]    ro                 WITH(NOLOCK) ON sl.RepairOrderId =     ro.RepairOrderId
     WHERE c.BulkStockScrapCertificateId = @BulkStockScrapCertificateId
       AND c.IsDeleted = 0;
 	

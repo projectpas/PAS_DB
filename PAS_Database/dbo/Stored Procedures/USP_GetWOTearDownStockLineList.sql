@@ -23,6 +23,7 @@
     11   26/02/2025   BHARGAV SALIYA			Added @Condition Para. For Filter
 	12   02/June/2026 Vishal Suthar				Uncommented @DocumentTypeId condition and add document type name (FAA 8130 CERT)
 	13   03/June/2026 Ayushi Patel				[PN-16684] Modified logic to return @DocumentTypeId based on the Code (FAA8130CERT) from the DocumentType table
+	14    22/06/2026   Sumit Kumar            	Selected Stockline Lot number [PN-16570]
 exec USP_GetWOTearDownStockLineList 
 @PageNumber=1,@PageSize=10,@SortColumn=N'CreatedDate',@SortOrder=-1,@GlobalFilter=N'',@StatusId=1,@PartNumber=NULL,@PartDescription=NULL,
 @Manufacturer=NULL,@StockLineNumber=NULL,@SerialNumber=NULL,@ControlNumber=NULL,@IdNumber=NULL,@UnitCost=NULL,@QtyOnHand=NULL,
@@ -130,7 +131,8 @@ BEGIN
 				               WHERE ATT.ReferenceId = SL.StockLineId 
 							     AND ATT.ModuleId = @AttStockLineModuleId ORDER BY ATT.AttachmentId DESC),0) AS AttachmentId,
 						SL.Condition,
-						CASE WHEN ISNULL(SL.IsGenerateReleaseForm,0) = 1 THEN 'YES' ELSE 'NO' END AS GenerateReleaseForm
+						CASE WHEN ISNULL(SL.IsGenerateReleaseForm,0) = 1 THEN 'YES' ELSE 'NO' END AS GenerateReleaseForm,
+						SL.LotNumber
 			   FROM [dbo].[Stockline] SL WITH (NOLOCK)
 				INNER JOIN [dbo].[WorkOrder] WO WITH (NOLOCK) ON WO.WorkOrderId = SL.WorkOrderId
 				INNER JOIN [dbo].[WorkOrderPartNumber] WOP WITH (NOLOCK) ON WO.WorkOrderId = WOP.WorkOrderId AND WOP.ID = @WorkOrderPartNumberId
@@ -211,7 +213,9 @@ BEGIN
 			CASE WHEN (@SortOrder=1  AND @SortColumn='GenerateReleaseForm')  THEN GenerateReleaseForm END ASC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='GenerateReleaseForm')  THEN GenerateReleaseForm END DESC,
 			CASE WHEN (@SortOrder=1  AND @SortColumn='Condition')  THEN Condition END ASC,
-			CASE WHEN (@SortOrder=-1 AND @SortColumn='Condition')  THEN Condition END DESC
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='Condition')  THEN Condition END DESC,
+			CASE WHEN (@SortOrder=1  AND @SortColumn='LotNumber')  THEN LotNumber END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='LotNumber')  THEN LotNumber END DESC
 			OFFSET @RecordFrom ROWS 
    			FETCH NEXT @PageSize ROWS ONLY
 

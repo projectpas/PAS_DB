@@ -11,7 +11,8 @@
  **************************************************************           
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
-	2    26-Dec-2024   RAJESH GAMI    CREATED 
+	2    26-Dec-2024   RAJESH GAMI    CREATED 	
+	3    19-Jun-2026   Abhishek Jirawla  Adding IsPiecePart condition in RepairOrderPart table 
      
 --  EXEC [AutoCompleteDropdownsForPOAndRONumberByVendorId] '','30','',1,3653
 
@@ -79,7 +80,7 @@ BEGIN
 			   @ROModuleName AS ReferenceModuleName,RO.CreatedDate
 			   ,RO.FunctionalCurrencyId as CurrencyId
 		  FROM [dbo].[RepairOrder] RO WITH(NOLOCK) 
-          JOIN [dbo].[RepairOrderPart] ROP WITH(NOLOCK) ON RO.[RepairOrderId] = ROP.[RepairOrderId] 			
+          JOIN [dbo].[RepairOrderPart] ROP WITH(NOLOCK) ON RO.[RepairOrderId] = ROP.[RepairOrderId]  AND ISNULL(ROP.[IsPiecePart], 0) = 0			
 		 WHERE RO.[MasterCompanyId] = @MasterCompanyId 
 		   AND RO.[StatusId] != @ROCloseStatusId AND RO.VendorId = @VendorId 
 		   AND (RO.[IsActive] = 1 AND ISNULL(RO.[IsDeleted],0) = 0 
@@ -95,7 +96,7 @@ BEGIN
 			   @ROModuleName AS ReferenceModuleName,RO.CreatedDate
 			   ,RO.FunctionalCurrencyId as CurrencyId
 		  FROM [dbo].[RepairOrder] RO WITH(NOLOCK) 
-          JOIN [dbo].[RepairOrderPart] ROP WITH(NOLOCK) ON RO.RepairOrderId = ROP.RepairOrderId 
+          JOIN [dbo].[RepairOrderPart] ROP WITH(NOLOCK) ON RO.RepairOrderId = ROP.RepairOrderId  AND ISNULL(ROP.[IsPiecePart], 0) = 0
 		 WHERE RO.[MasterCompanyId] = @MasterCompanyId  
 		   AND RO.[StatusId] != @ROCloseStatusId AND RO.VendorId = @VendorId  
 		   AND RO.[RepairOrderId] IN (SELECT Item FROM DBO.SPLITSTRING(@Idlist, ','))    

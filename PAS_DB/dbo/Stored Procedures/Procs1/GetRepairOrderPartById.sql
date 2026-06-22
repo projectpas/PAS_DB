@@ -13,6 +13,7 @@
  ** --   --------     -------		--------------------------------          
     1    11/10/2022  Deep Patel     Created
 	2	 09/05/2024  Abhishek Jirawla Combine queries by removing union and returning 1 result set with proper order as needed.
+	3    19/06/2026  Abhishek Jirawla Adding IsPiecePart condition in RepairOrderPart table 
 -- EXEC GetRepairOrderPartById 303
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[GetRepairOrderPartById]
@@ -63,6 +64,7 @@ BEGIN
 	WHERE pop.RepairOrderId = @RepairOrderId 
 		AND pop.isParent = 1 
 		AND pop.IsDeleted = 0
+		AND ISNULL(POP.[IsPiecePart], 0) = 0
 		AND (pop.ItemTypeId IN (@STOCKTYPE, @NONSTOCKTYPE, @ASSETTYPE));
 
   END TRY    

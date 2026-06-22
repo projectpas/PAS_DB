@@ -18,6 +18,7 @@
 	4    08/12/2023   Jevik Raiyani		    add @statusValue
 	5    08/12/2023   Amit Ghediya          Modify(Added Traceable & Tagged fields)
 	6    04-12-2025	  Amit Ghediya			Added qtyShipped,qtyRemaining for shipping details
+	7    19-Jun-2026  Abhishek Jirawla		Adding IsPiecePart condition in RepairOrderPart table 
 
 **************************************************************/
 CREATE  PROCEDURE [dbo].[GetPNTileRepairOrderList]
@@ -115,7 +116,7 @@ BEGIN
 			 INNER JOIN [dbo].[RepairOrderManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ModuleID = @MSModuleID AND MSD.ReferenceID = RO.RepairOrderId
 			 INNER JOIN [dbo].[RoleManagementStructure] RMS WITH (NOLOCK) ON RO.ManagementStructureId = RMS.EntityStructureId
 			 INNER JOIN [dbo].[EmployeeUserRole] EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
-			 INNER JOIN [dbo].[RepairOrderPart] ROP WITH (NOLOCK) ON ROP.RepairOrderId = RO.RepairOrderId AND ROP.isParent=1
+			 INNER JOIN [dbo].[RepairOrderPart] ROP WITH (NOLOCK) ON ROP.RepairOrderId = RO.RepairOrderId AND ROP.isParent=1 AND ISNULL(ROP.[IsPiecePart], 0) = 0
 			 LEFT JOIN (
 				SELECT 
 					RepairOrderPartId,

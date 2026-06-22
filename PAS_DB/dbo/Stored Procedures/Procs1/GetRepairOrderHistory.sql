@@ -19,6 +19,7 @@
     3    02-07-2024   Sahdev Saliya     Added Global Filters and Sorting (UnitCost)
 	4    18-07-2024   Shrey Chandegara  Modified( use this function @CurrntEmpTimeZoneDesc for date issue.)
 	5    01-04-2025   Amit Ghediya      Update role query for duplicate records.
+	6    19/06/2026   Abhishek Jirawla	Adding IsPiecePart condition in RepairOrderPart table 
 **********************/
 CREATE   PROCEDURE [dbo].[GetRepairOrderHistory]
 @PageNumber int = 1,
@@ -117,7 +118,7 @@ BEGIN
 						ORDER BY ST.ReceivedDate ASC
 					) F
 					--WHERE POP.ItemMasterId=@ItemMasterId AND (PO.IsDeleted = 0) --AND EMS.EmployeeId = 	@EmployeeId
-					WHERE (@ItemMasterId = 0 OR POP.ItemMasterId=@ItemMasterId) AND (PO.IsDeleted = 0) AND POP.isParent=1 --AND EMS.EmployeeId = 	@EmployeeId
+					WHERE (@ItemMasterId = 0 OR POP.ItemMasterId=@ItemMasterId) AND (PO.IsDeleted = 0) AND POP.isParent=1 AND ISNULL(POP.[IsPiecePart], 0) = 0 --AND EMS.EmployeeId = 	@EmployeeId
 					AND PO.MasterCompanyId = @MasterCompanyId
 					AND PO.OpenDate between @FromDate  AND  @ToDate
 			), ResultCount AS(Select COUNT(RepairOrderId) AS totalItems FROM Result)
@@ -175,7 +176,7 @@ BEGIN
 				INNER JOIN ItemMaster IM WITH (NOLOCK) ON IM.ItemMasterId = POP.ItemMasterId
 				INNER JOIN Vendor VN WITH (NOLOCK) ON VN.VendorId = PO.VendorId
 				LEFT JOIN RepairOrder P WITH (NOLOCK) ON P.RepairOrderId = POP.RepairOrderId
-				LEFT JOIN RepairOrderPart VRFQPO WITH (NOLOCK) ON POP.ItemMasterId = VRFQPO.ItemMasterId AND P.RepairOrderId = VRFQPO.RepairOrderId AND POP.ConditionId = VRFQPO.ConditionId
+				LEFT JOIN RepairOrderPart VRFQPO WITH (NOLOCK) ON POP.ItemMasterId = VRFQPO.ItemMasterId AND P.RepairOrderId = VRFQPO.RepairOrderId AND POP.ConditionId = VRFQPO.ConditionId AND ISNULL(VRFQPO.[IsPiecePart], 0) = 0
 				INNER JOIN Condition CN WITH (NOLOCK) ON CN.ConditionId = POP.ConditionId
 				--INNER JOIN dbo.RepairOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @VendorRFQRO AND MSD.ReferenceID = PO.VendorRFQRepairOrderId
 			 --   INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON PO.ManagementStructureId = RMS.EntityStructureId

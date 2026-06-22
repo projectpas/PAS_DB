@@ -23,7 +23,8 @@
 	6    10/02/2026   Amit Ghediya   Added WorkOrderNumber for Stockline lines where the part line is associated to a WO (PN-15419)
 	7    20/02/2026   Amit Ghediya   Added RO NUM,SerialNumber , TenderedQTY (PN-15533)
 	8    23/02/2026   Amit Ghediya   Added RO NUM,SerialNumber , TenderedQTY (PN-15533)
-    9    06/04/2026   Ayushi Patel	 PN-15908 Update (Added UOM Changes)  
+    9    06/04/2026   Ayushi Patel	 PN-15908 Update (Added UOM Changes)
+	7	 18/06/2026	  Ayushi		 [PN-16911]Skip fn_ConvertUOM call when ToUOM = FromUOM
 --EXEC [GetWorkOrderPrintMateriallist] 10148,10350,10212
 ********/
 CREATE   PROCEDURE [dbo].[GetWorkOrderPrintMateriallist]
@@ -41,9 +42,9 @@ BEGIN
 		BEGIN TRANSACTION
 			BEGIN  
 				SELECT  --SUM(WOMS.Quantity) AS Quantity,
-						ISNULL([dbo].[fn_ConvertUOM](SUM(WOMS.Quantity),STk.[StockUnitOfMeasure], STk.[ConsumeUnitOfMeasure],0,STk.[MasterCompanyId]),0) AS Quantity,	
-				        --SUM(WOMS.QtyIssued) AS QuantityIssued,
-						ISNULL([dbo].[fn_ConvertUOM](SUM(WOMS.QtyIssued),STk.[StockUnitOfMeasure], STk.[ConsumeUnitOfMeasure],0,STk.[MasterCompanyId]),0) AS QuantityIssued,	
+						ISNULL((CASE WHEN ISNULL(STk.StockUnitOfMeasure,'') = ISNULL(STk.ConsumeUnitOfMeasure,'') THEN SUM(WOMS.Quantity) ELSE dbo.fn_ConvertUOM(SUM(WOMS.Quantity),STk.StockUnitOfMeasure,STk.ConsumeUnitOfMeasure,0,STk.MasterCompanyId) END),0) AS Quantity,
+						--SUM(WOMS.QtyIssued) AS QuantityIssued,
+						ISNULL((CASE WHEN ISNULL(STk.StockUnitOfMeasure,'') = ISNULL(STk.ConsumeUnitOfMeasure,'') THEN SUM(WOMS.QtyIssued) ELSE dbo.fn_ConvertUOM(SUM(WOMS.QtyIssued),STk.StockUnitOfMeasure,STk.ConsumeUnitOfMeasure,0,STk.MasterCompanyId) END),0) AS QuantityIssued,
 						imt.partnumber AS partnumber,
 						imt.PartDescription AS PartDescription,
 						CASE WHEN 
@@ -60,7 +61,7 @@ BEGIN
 						CASE WHEN ISNULL(STK.[IsTurnIn],0) = 1 THEN ISNULL(STK.[WorkOrderNumber],'') ELSE '' END AS WorkOrderNumber,
 						STK.SerialNumber,
 						--WOMS.QuantityTurnIn AS TenderedQTY
-						ISNULL([dbo].[fn_ConvertUOM](ISNULL(WOMS.QuantityTurnIn,0),ISNULL(STk.[StockUnitOfMeasure], 0),ISNULL(STk.[ConsumeUnitOfMeasure], 0),0,ISNULL(STk.[MasterCompanyId], 0)),0) AS TenderedQTY
+						ISNULL((CASE WHEN ISNULL(ISNULL(STk.StockUnitOfMeasure,''),'') = ISNULL(ISNULL(STk.ConsumeUnitOfMeasure,''),'') THEN ISNULL(WOMS.QuantityTurnIn,0) ELSE dbo.fn_ConvertUOM(ISNULL(WOMS.QuantityTurnIn,0),ISNULL(STk.StockUnitOfMeasure,''),ISNULL(STk.ConsumeUnitOfMeasure,''),0,ISNULL(STk.MasterCompanyId,0)) END),0) AS TenderedQTY
 				FROM [dbo].[WorkOrderMaterialStockLine] WOMS WITH(NOLOCK)
 				INNER JOIN [dbo].[WorkOrderMaterials] WOM WITH(NOLOCK) ON WOM.WorkOrderMaterialsId = WOMS.WorkOrderMaterialsId
 				INNER JOIN [dbo].[Stockline] STK WITH(NOLOCK) ON STk.StockLineId = WOMS.StockLineId
@@ -73,9 +74,9 @@ BEGIN
 				UNION ALL
 
 				SELECT  --SUM(WOMS.Quantity) AS Quantity,
-						ISNULL([dbo].[fn_ConvertUOM](SUM(WOMS.Quantity),STk.[StockUnitOfMeasure], STk.[ConsumeUnitOfMeasure],0,STk.[MasterCompanyId]),0) AS Quantity,	
-				        --SUM(WOMS.QtyIssued) AS QuantityIssued,
-						ISNULL([dbo].[fn_ConvertUOM](SUM(WOMS.QtyIssued),STk.[StockUnitOfMeasure], STk.[ConsumeUnitOfMeasure],0,STk.[MasterCompanyId]),0) AS QuantityIssued,	
+						ISNULL((CASE WHEN ISNULL(STk.StockUnitOfMeasure,'') = ISNULL(STk.ConsumeUnitOfMeasure,'') THEN SUM(WOMS.Quantity) ELSE dbo.fn_ConvertUOM(SUM(WOMS.Quantity),STk.StockUnitOfMeasure,STk.ConsumeUnitOfMeasure,0,STk.MasterCompanyId) END),0) AS Quantity,
+						--SUM(WOMS.QtyIssued) AS QuantityIssued,
+						ISNULL((CASE WHEN ISNULL(STk.StockUnitOfMeasure,'') = ISNULL(STk.ConsumeUnitOfMeasure,'') THEN SUM(WOMS.QtyIssued) ELSE dbo.fn_ConvertUOM(SUM(WOMS.QtyIssued),STk.StockUnitOfMeasure,STk.ConsumeUnitOfMeasure,0,STk.MasterCompanyId) END),0) AS QuantityIssued,
 						imt.partnumber AS partnumber,
 						imt.PartDescription AS PartDescription,
 						CASE WHEN 
@@ -92,7 +93,7 @@ BEGIN
 						CASE WHEN ISNULL(STK.[IsTurnIn],0) = 1 THEN ISNULL(STK.[WorkOrderNumber],'') ELSE '' END AS WorkOrderNumber,
 						STK.SerialNumber,
 						--WOMS.QuantityTurnIn AS TenderedQTY
-						ISNULL([dbo].[fn_ConvertUOM](ISNULL(WOMS.QuantityTurnIn,0),ISNULL(STk.[StockUnitOfMeasure], 0),ISNULL(STk.[ConsumeUnitOfMeasure], 0),0,ISNULL(STk.[MasterCompanyId], 0)),0) AS TenderedQTY
+						ISNULL((CASE WHEN ISNULL(ISNULL(STk.StockUnitOfMeasure,''),'') = ISNULL(ISNULL(STk.ConsumeUnitOfMeasure,''),'') THEN ISNULL(WOMS.QuantityTurnIn,0) ELSE dbo.fn_ConvertUOM(ISNULL(WOMS.QuantityTurnIn,0),ISNULL(STk.StockUnitOfMeasure,''),ISNULL(STk.ConsumeUnitOfMeasure,''),0,ISNULL(STk.MasterCompanyId,0)) END),0) AS TenderedQTY
 				FROM [dbo].[WorkOrderMaterialStockLineKit] WOMS WITH(NOLOCK)
 				INNER JOIN [dbo].[WorkOrderMaterialsKit] WOM WITH(NOLOCK) ON WOM.WorkOrderMaterialsKitId= WOMS.WorkOrderMaterialsKitId
 				INNER JOIN [dbo].[Stockline] STK WITH(NOLOCK) ON STk.StockLineId = WOMS.StockLineId

@@ -21,6 +21,7 @@ EXEC [GetSubWorkorderReleaseFromData]
 ** 7	14/APR/2025 RAJESH GAMI	     Change the traveler number logic: Get from the WO Partnumber table if available else get from the traveler_setup
 ** 8	22/JAN/2026 Priyansh Patel   Added CSN and TSN values
 ** 9    06/04/2026  Ayushi Patel	 PN-15908 Update (Added UOM Changes)
+** 7	18/06/2026	Ayushi		     [PN-16911]Skip fn_ConvertUOM call when ToUOM = FromUOM
 EXEC GetWorkOrderPrintPdfData 10248,10466
 
 **************************************************************/
@@ -53,13 +54,7 @@ BEGIN
 		wo.CustomerId,              
 		UPPER(wo.CustomerName) as CustomerName,              
 		--wop.Quantity,  
-		ISNULL([dbo].[fn_ConvertUOM](
-            ISNULL(wop.Quantity,0),
-            ISNULL(sl.[StockUnitOfMeasure], imt.[StockUnitOfMeasure]),
-            ISNULL(sl.[ConsumeUnitOfMeasure], imt.[ConsumeUnitOfMeasure]),
-            0,
-            ISNULL(sl.[MasterCompanyId], imt.[MasterCompanyId])
-        ),0) AS Quantity,
+		ISNULL((CASE WHEN ISNULL(ISNULL(sl.StockUnitOfMeasure,imt.StockUnitOfMeasure),'') = ISNULL(ISNULL(sl.ConsumeUnitOfMeasure,imt.ConsumeUnitOfMeasure),'') THEN ISNULL(wop.Quantity,0) ELSE dbo.fn_ConvertUOM(ISNULL(wop.Quantity,0),ISNULL(sl.StockUnitOfMeasure,imt.StockUnitOfMeasure),ISNULL(sl.ConsumeUnitOfMeasure,imt.ConsumeUnitOfMeasure),0,ISNULL(sl.MasterCompanyId,imt.MasterCompanyId)) END),0) AS Quantity,
 		woq.QuoteNumber,              
 		woq.OpenDate as qouteDate,              
 		'1' as NoofItem,              

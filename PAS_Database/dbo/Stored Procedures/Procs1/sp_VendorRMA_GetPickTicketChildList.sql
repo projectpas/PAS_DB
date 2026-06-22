@@ -1,4 +1,4 @@
-/*************************************************************
+﻿/*************************************************************
  ** File:   [sp_VendorRMA_GetPickTicketChildList]
  ** Author:   Amit Ghediya
  ** Description: Retrieve pick ticket child listing (STK details) for Vendor RMA
@@ -7,6 +7,7 @@
  ** 1    06/19/2023   Amit Ghediya    Created
  ** 2    02/03/2026   Amit Ghediya    UOM Conversion Changes [PN-15140]
  ** 3    [today]      [Hemant]        Performance & readability optimization
+ ** 4	 19/06/2026	  Ayushi		  [PN-16911]Skip fn_ConvertUOM call when ToUOM = FromUOM
 **************************************************************/
 CREATE PROCEDURE [dbo].[sp_VendorRMA_GetPickTicketChildList]
     @VendorRMAId        BIGINT,
@@ -27,13 +28,17 @@ BEGIN
             sopt.IsConfirmed,
             sopt.ConfirmedDate,
             sopt.CreatedDate                                                AS PickedDate,
-            [dbo].[fn_ConvertUOM](
-                ISNULL(sopt.QtyToShip, 0),
-                im.StockUnitOfMeasure,
-                im.PurchaseUnitOfMeasure,
-                0,
-                im.MasterCompanyId
-            )                                                               AS QtyToShip,
+            CASE 
+                WHEN ISNULL(im.StockUnitOfMeasure,'') = ISNULL(im.PurchaseUnitOfMeasure,'')
+                    THEN ISNULL(sopt.QtyToShip,0)
+                ELSE [dbo].[fn_ConvertUOM](
+                        ISNULL(sopt.QtyToShip,0),
+                        im.StockUnitOfMeasure,
+                        im.PurchaseUnitOfMeasure,
+                        0,
+                        im.MasterCompanyId
+                     )
+            END AS QtyToShip,
             sl.SerialNumber,
             sl.StockLineNumber,
             sl.StockLineId,

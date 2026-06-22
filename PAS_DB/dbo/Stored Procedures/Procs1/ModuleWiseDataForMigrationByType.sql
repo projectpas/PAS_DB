@@ -1,5 +1,5 @@
 ﻿/* 
-[dbo].[ModuleWiseDataForMigrationByType] 1, 10, 'CreatedDate', -1, 'PO', 2, 1
+[dbo].[ModuleWiseDataForMigrationByType] 1, 10, 'CreatedDate', -1, 'VRFQPO', 2, 25
 */
 CREATE   PROCEDURE [dbo].[ModuleWiseDataForMigrationByType]
 	@PageNumber INT = NULL,
@@ -2567,6 +2567,249 @@ BEGIN
 				SELECT *, @Count AS NumberOfItems FROM #TempResultSOQV4 ORDER BY  
 				CASE WHEN (@SortOrder=1  AND @SortColumn='VendorCode')  THEN SalesQuoteNum END ASC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='VendorCode')  THEN SalesQuoteNum END DESC,
+			CASE WHEN (@SortOrder=1  AND @SortColumn='CreatedDate')  THEN CreatedDate END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='CreatedDate')  THEN CreatedDate END DESC	
+				OFFSET @RecordFrom ROWS 
+				FETCH NEXT @PageSize ROWS ONLY
+			END
+		END
+		ELSE IF (@ModuleName = 'VRFQPO')
+		BEGIN
+			IF (@TypeId = 1)
+			BEGIN
+				;WITH Result AS (
+				SELECT DISTINCT 
+					Vs.Migrated_Id,
+					Vs.VQHHeaderId,
+                    Vs.RFQNumber VendorQuoteNum,
+                    V.VendorName,               
+					Vs.EntryDate CreatedDate,
+                    0 IsDeleted,
+					1 IsActive,
+					SuccessMsg,
+					ErrorMsg
+				FROM [Quantum_Staging_BETA].dbo.PurchaseOrderQuoteHeaders Vs WITH (NOLOCK)
+				LEFT JOIN dbo.VendorRFQPurchaseOrder VRFQPO WITH (NOLOCK) ON VRFQPO.VendorRFQPurchaseOrderId = Vs.Migrated_Id
+				LEFT JOIN dbo.Vendor V WITH (NOLOCK) ON V.VendorId = VRFQPO.VendorId
+		 		  WHERE Vs.MasterCompanyId = @MasterCompanyId
+				), ResultCount AS(Select COUNT(VQHHeaderId) AS totalItems FROM Result)
+				SELECT * INTO #TempResultVRFQPOV1 FROM  Result
+
+				SELECT @Count = COUNT(VQHHeaderId) FROM #TempResultVRFQPOV1			
+
+				SELECT *, @Count AS NumberOfItems FROM #TempResultVRFQPOV1 ORDER BY  
+				CASE WHEN (@SortOrder=1  AND @SortColumn='VendorQuoteNum')  THEN VendorQuoteNum END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='VendorQuoteNum')  THEN VendorQuoteNum END DESC,
+			CASE WHEN (@SortOrder=1  AND @SortColumn='CreatedDate')  THEN CreatedDate END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='CreatedDate')  THEN CreatedDate END DESC	
+				OFFSET @RecordFrom ROWS 
+				FETCH NEXT @PageSize ROWS ONLY
+			END
+			ELSE IF (@TypeId = 2)
+			BEGIN
+				;WITH Result AS (
+				SELECT DISTINCT Vs.Migrated_Id,
+					Vs.VQHHeaderId,
+                    Vs.RFQNumber VendorQuoteNum,
+                    V.VendorName,               
+					Vs.EntryDate CreatedDate,
+                    0 IsDeleted,
+					1 IsActive,
+					SuccessMsg,
+					ErrorMsg
+				FROM [Quantum_Staging_BETA].dbo.PurchaseOrderQuoteHeaders Vs WITH (NOLOCK)
+				LEFT JOIN dbo.VendorRFQPurchaseOrder VRFQPO WITH (NOLOCK) ON VRFQPO.VendorRFQPurchaseOrderId = Vs.Migrated_Id
+				LEFT JOIN dbo.Vendor V WITH (NOLOCK) ON V.VendorId = VRFQPO.VendorId
+		 		  WHERE Vs.Migrated_Id IS NOT NULL AND Vs.MasterCompanyId = @MasterCompanyId
+				), ResultCount AS(Select COUNT(VQHHeaderId) AS totalItems FROM Result)
+				SELECT * INTO #TempResultVRFQPOV2 FROM  Result
+
+				SELECT @Count = COUNT(VQHHeaderId) FROM #TempResultVRFQPOV2			
+
+				SELECT *, @Count AS NumberOfItems FROM #TempResultVRFQPOV2 ORDER BY  
+				CASE WHEN (@SortOrder=1  AND @SortColumn='VendorQuoteNum')  THEN VendorQuoteNum END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='VendorQuoteNum')  THEN VendorQuoteNum END DESC,
+			CASE WHEN (@SortOrder=1  AND @SortColumn='CreatedDate')  THEN CreatedDate END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='CreatedDate')  THEN CreatedDate END DESC
+				OFFSET @RecordFrom ROWS 
+				FETCH NEXT @PageSize ROWS ONLY
+			END
+			ELSE IF (@TypeId = 3)
+			BEGIN
+				;WITH Result AS (
+				SELECT DISTINCT Vs.Migrated_Id,
+					Vs.VQHHeaderId,
+                    Vs.RFQNumber VendorQuoteNum,
+                    V.VendorName,               
+					Vs.EntryDate CreatedDate,
+                    0 IsDeleted,
+					1 IsActive,
+					SuccessMsg,
+					ErrorMsg
+				FROM [Quantum_Staging_BETA].dbo.PurchaseOrderQuoteHeaders Vs WITH (NOLOCK)
+				LEFT JOIN dbo.VendorRFQPurchaseOrder VRFQPO WITH (NOLOCK) ON VRFQPO.VendorRFQPurchaseOrderId = Vs.Migrated_Id
+				LEFT JOIN dbo.Vendor V WITH (NOLOCK) ON V.VendorId = VRFQPO.VendorId
+		 		  WHERE Vs.Migrated_Id IS NULL AND (Vs.ErrorMsg IS NOT NULL AND Vs.ErrorMsg NOT like '%Vendor RFQ PO already exists%') AND Vs.MasterCompanyId = @MasterCompanyId
+				), ResultCount AS(Select COUNT(VQHHeaderId) AS totalItems FROM Result)
+				SELECT * INTO #TempResultVRFQPOV3 FROM  Result
+
+				SELECT @Count = COUNT(VQHHeaderId) FROM #TempResultVRFQPOV3
+
+				SELECT *, @Count AS NumberOfItems FROM #TempResultVRFQPOV3 ORDER BY  
+				CASE WHEN (@SortOrder=1  AND @SortColumn='VendorQuoteNum')  THEN VendorQuoteNum END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='VendorQuoteNum')  THEN VendorQuoteNum END DESC,
+			CASE WHEN (@SortOrder=1  AND @SortColumn='CreatedDate')  THEN CreatedDate END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='CreatedDate')  THEN CreatedDate END DESC	
+				OFFSET @RecordFrom ROWS 
+				FETCH NEXT @PageSize ROWS ONLY
+			END
+			ELSE IF (@TypeId = 4)
+			BEGIN
+				;WITH Result AS (
+				SELECT DISTINCT Vs.Migrated_Id,
+					Vs.VQHHeaderId,
+                    Vs.RFQNumber VendorQuoteNum,
+                    V.VendorName,               
+					Vs.EntryDate CreatedDate,
+                    0 IsDeleted,
+					1 IsActive,
+					SuccessMsg,
+					ErrorMsg
+				FROM [Quantum_Staging_BETA].dbo.PurchaseOrderQuoteHeaders Vs WITH (NOLOCK)
+				LEFT JOIN dbo.VendorRFQPurchaseOrder VRFQPO WITH (NOLOCK) ON VRFQPO.VendorRFQPurchaseOrderId = Vs.Migrated_Id
+				LEFT JOIN dbo.Vendor V WITH (NOLOCK) ON V.VendorId = VRFQPO.VendorId
+		 		  WHERE Vs.Migrated_Id IS NULL AND (Vs.ErrorMsg IS NOT NULL AND Vs.ErrorMsg like '%Vendor RFQ PO already exists%') AND Vs.MasterCompanyId = @MasterCompanyId
+				), ResultCount AS(Select COUNT(VQHHeaderId) AS totalItems FROM Result)
+				SELECT * INTO #TempResultVRFQPOV4 FROM  Result
+
+				SELECT @Count = COUNT(VQHHeaderId) FROM #TempResultVRFQPOV4			
+
+				SELECT *, @Count AS NumberOfItems FROM #TempResultVRFQPOV4 ORDER BY  
+				CASE WHEN (@SortOrder=1  AND @SortColumn='VendorQuoteNum')  THEN VendorQuoteNum END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='VendorQuoteNum')  THEN VendorQuoteNum END DESC,
+			CASE WHEN (@SortOrder=1  AND @SortColumn='CreatedDate')  THEN CreatedDate END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='CreatedDate')  THEN CreatedDate END DESC	
+				OFFSET @RecordFrom ROWS 
+				FETCH NEXT @PageSize ROWS ONLY
+			END
+		END
+		ELSE IF (@ModuleName = 'VRFQRO')
+		BEGIN
+			IF (@TypeId = 1)
+			BEGIN
+				;WITH Result AS (
+				SELECT DISTINCT 
+					Vs.Migrated_Id,
+					Vs.VQHHeaderId,
+                    Vs.RFQNumber VendorQuoteNum,
+                    V.VendorName,               
+					Vs.EntryDate CreatedDate,
+                    0 IsDeleted,
+					1 IsActive,
+					SuccessMsg,
+					ErrorMsg
+				FROM [Quantum_Staging_BETA].dbo.RepairOrderQuoteHeaders Vs WITH (NOLOCK)
+				LEFT JOIN dbo.VendorRFQRepairOrder VRFQRO WITH (NOLOCK) ON VRFQRO.VendorRFQRepairOrderId = Vs.Migrated_Id
+				LEFT JOIN dbo.Vendor V WITH (NOLOCK) ON V.VendorId = VRFQRO.VendorId
+		 		  WHERE Vs.MasterCompanyId = @MasterCompanyId
+				), ResultCount AS(Select COUNT(VQHHeaderId) AS totalItems FROM Result)
+				SELECT * INTO #TempResultVRFQROV1 FROM  Result
+
+				SELECT @Count = COUNT(VQHHeaderId) FROM #TempResultVRFQROV1			
+
+				SELECT *, @Count AS NumberOfItems FROM #TempResultVRFQROV1 ORDER BY  
+				CASE WHEN (@SortOrder=1  AND @SortColumn='VendorQuoteNum')  THEN VendorQuoteNum END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='VendorQuoteNum')  THEN VendorQuoteNum END DESC,
+			CASE WHEN (@SortOrder=1  AND @SortColumn='CreatedDate')  THEN CreatedDate END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='CreatedDate')  THEN CreatedDate END DESC	
+				OFFSET @RecordFrom ROWS 
+				FETCH NEXT @PageSize ROWS ONLY
+			END
+			ELSE IF (@TypeId = 2)
+			BEGIN
+				;WITH Result AS (
+				SELECT DISTINCT 
+					Vs.Migrated_Id,
+					Vs.VQHHeaderId,
+                    Vs.RFQNumber VendorQuoteNum,
+                    V.VendorName,               
+					Vs.EntryDate CreatedDate,
+                    0 IsDeleted,
+					1 IsActive,
+					SuccessMsg,
+					ErrorMsg
+				FROM [Quantum_Staging_BETA].dbo.RepairOrderQuoteHeaders Vs WITH (NOLOCK)
+				LEFT JOIN dbo.VendorRFQRepairOrder VRFQRO WITH (NOLOCK) ON VRFQRO.VendorRFQRepairOrderId = Vs.Migrated_Id
+				LEFT JOIN dbo.Vendor V WITH (NOLOCK) ON V.VendorId = VRFQRO.VendorId
+		 		  WHERE Vs.Migrated_Id IS NOT NULL AND Vs.MasterCompanyId = @MasterCompanyId
+				), ResultCount AS(Select COUNT(VQHHeaderId) AS totalItems FROM Result)
+				SELECT * INTO #TempResultVRFQROV2 FROM  Result
+
+				SELECT @Count = COUNT(VQHHeaderId) FROM #TempResultVRFQROV2			
+
+				SELECT *, @Count AS NumberOfItems FROM #TempResultVRFQROV2 ORDER BY  
+				CASE WHEN (@SortOrder=1  AND @SortColumn='VendorQuoteNum')  THEN VendorQuoteNum END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='VendorQuoteNum')  THEN VendorQuoteNum END DESC,
+			CASE WHEN (@SortOrder=1  AND @SortColumn='CreatedDate')  THEN CreatedDate END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='CreatedDate')  THEN CreatedDate END DESC
+				OFFSET @RecordFrom ROWS 
+				FETCH NEXT @PageSize ROWS ONLY
+			END
+			ELSE IF (@TypeId = 3)
+			BEGIN
+				;WITH Result AS (
+				SELECT DISTINCT 
+					Vs.Migrated_Id,
+					Vs.VQHHeaderId,
+                    Vs.RFQNumber VendorQuoteNum,
+                    V.VendorName,               
+					Vs.EntryDate CreatedDate,
+                    0 IsDeleted,
+					1 IsActive,
+					SuccessMsg,
+					ErrorMsg
+				FROM [Quantum_Staging_BETA].dbo.RepairOrderQuoteHeaders Vs WITH (NOLOCK)
+				LEFT JOIN dbo.VendorRFQRepairOrder VRFQRO WITH (NOLOCK) ON VRFQRO.VendorRFQRepairOrderId = Vs.Migrated_Id
+				LEFT JOIN dbo.Vendor V WITH (NOLOCK) ON V.VendorId = VRFQRO.VendorId
+		 		  WHERE Vs.Migrated_Id IS NULL AND (Vs.ErrorMsg IS NOT NULL AND Vs.ErrorMsg NOT like '%Vendor RFQ RO already exists%') AND Vs.MasterCompanyId = @MasterCompanyId
+				), ResultCount AS(Select COUNT(VQHHeaderId) AS totalItems FROM Result)
+				SELECT * INTO #TempResultVRFQROV3 FROM  Result
+
+				SELECT @Count = COUNT(VQHHeaderId) FROM #TempResultVRFQROV3
+
+				SELECT *, @Count AS NumberOfItems FROM #TempResultVRFQROV3 ORDER BY  
+				CASE WHEN (@SortOrder=1  AND @SortColumn='VendorQuoteNum')  THEN VendorQuoteNum END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='VendorQuoteNum')  THEN VendorQuoteNum END DESC,
+			CASE WHEN (@SortOrder=1  AND @SortColumn='CreatedDate')  THEN CreatedDate END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='CreatedDate')  THEN CreatedDate END DESC	
+				OFFSET @RecordFrom ROWS 
+				FETCH NEXT @PageSize ROWS ONLY
+			END
+			ELSE IF (@TypeId = 4)
+			BEGIN
+				;WITH Result AS (
+				SELECT DISTINCT 
+					Vs.Migrated_Id,
+					Vs.VQHHeaderId,
+                    Vs.RFQNumber VendorQuoteNum,
+                    V.VendorName,               
+					Vs.EntryDate CreatedDate,
+                    0 IsDeleted,
+					1 IsActive,
+					SuccessMsg,
+					ErrorMsg
+				FROM [Quantum_Staging_BETA].dbo.RepairOrderQuoteHeaders Vs WITH (NOLOCK)
+				LEFT JOIN dbo.VendorRFQRepairOrder VRFQRO WITH (NOLOCK) ON VRFQRO.VendorRFQRepairOrderId = Vs.Migrated_Id
+				LEFT JOIN dbo.Vendor V WITH (NOLOCK) ON V.VendorId = VRFQRO.VendorId
+		 		  WHERE Vs.Migrated_Id IS NULL AND (Vs.ErrorMsg IS NOT NULL AND Vs.ErrorMsg like '%Vendor RFQ RO already exists%') AND Vs.MasterCompanyId = @MasterCompanyId
+				), ResultCount AS(Select COUNT(VQHHeaderId) AS totalItems FROM Result)
+				SELECT * INTO #TempResultVRFQROV4 FROM  Result
+
+				SELECT @Count = COUNT(VQHHeaderId) FROM #TempResultVRFQROV4			
+
+				SELECT *, @Count AS NumberOfItems FROM #TempResultVRFQROV4 ORDER BY  
+				CASE WHEN (@SortOrder=1  AND @SortColumn='VendorQuoteNum')  THEN VendorQuoteNum END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='VendorQuoteNum')  THEN VendorQuoteNum END DESC,
 			CASE WHEN (@SortOrder=1  AND @SortColumn='CreatedDate')  THEN CreatedDate END ASC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='CreatedDate')  THEN CreatedDate END DESC	
 				OFFSET @RecordFrom ROWS 

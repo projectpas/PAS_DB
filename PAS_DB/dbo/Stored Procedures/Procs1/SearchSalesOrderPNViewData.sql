@@ -19,6 +19,7 @@
 	6    27-06-2025  Bhargav Saliya		Add New Fields @NumberOfItemCount 
 	7    19-11-2025  RAJESH GAMI		Added SO Amount
 	10   20-11-2025  Rajesh Gami		Correct the SO Amount
+	11   19/JUN/2026 AMIT GHEDIYA		Get [MarketplaceRef] data [PN-16922]
 ************************************************************************/  
 CREATE   PROCEDURE [dbo].[SearchSalesOrderPNViewData]  
 	@PageNumber int,  
@@ -53,7 +54,8 @@ CREATE   PROCEDURE [dbo].[SearchSalesOrderPNViewData]
 	@ManufacturerType varchar(50)=null,
 	@ContractReference varchar(50)=null,
 	@NumberOfItemCount varchar(50)=null,
-	@SoAmount NUMERIC(18,4) = NULL
+	@SoAmount NUMERIC(18,4) = NULL,
+	@MarketplaceRef varchar(100)=null
 AS  
 BEGIN  
  -- SET NOCOUNT ON added to prevent extra result sets from  
@@ -130,7 +132,7 @@ BEGIN
     ISNULL(SO.ShippedDate, '0001-01-01') as 'ShippedDate',   
     SO.IsDeleted, SOQ.VersionNumber,ISNULL(COUNT(SP.SalesOrderPartId),0) AS 'NumberOfItemCount' ,
 	ISNULL(SPC.NetSaleAmount, 0) AS soAmount,
-	SP.SalesOrderPartId, SP.QtyRequested ,sp.QtyOrder,SP.UnitSalesPrice MainUnitSalesPrice
+	SP.SalesOrderPartId, SP.QtyRequested ,sp.QtyOrder,SP.UnitSalesPrice MainUnitSalesPrice,SO.MarketplaceRef
     FROM DBO.SalesOrder SO WITH (NOLOCK)
     INNER JOIN DBO.MasterSalesOrderQuoteStatus MST WITH (NOLOCK) on SO.StatusId = MST.Id
     LEFT JOIN DBO.SalesOrderPartV1 SP WITH (NOLOCK) on SO.SalesOrderId = SP.SalesOrderId and SP.IsDeleted = 0
@@ -147,12 +149,12 @@ BEGIN
     GROUP BY SO.SalesOrderId, SalesOrderNumber, SalesOrderQuoteNumber, SO.OpenDate,SO.ContractReference, SOQ.OpenDate, SO.CustomerId, SO.CustomerName,
     MST.Name, SPC.NetSaleAmount, SPC.UnitCost, SP.CustomerRequestDate, SO.StatusId, SO.CustomerReference,
     SP.PriorityName, E.FirstName, E.LastName, IM.partnumber,M.Name, IM.PartDescription, SOQ.VersionNumber,
-    SO.CreatedDate, SO.UpdatedDate, SO.UpdatedBy, SO.CreatedBy, SP.EstimatedShipDate, SP.PromisedDate, SO.ShippedDate, SO.IsDeleted, SO.Version,SP.QtyRequested ,sp.QtyOrder,SP.UnitSalesPrice,SP.SalesOrderPartId),
+    SO.CreatedDate, SO.UpdatedDate, SO.UpdatedBy, SO.CreatedBy, SP.EstimatedShipDate, SP.PromisedDate, SO.ShippedDate, SO.IsDeleted, SO.Version,SP.QtyRequested ,sp.QtyOrder,SP.UnitSalesPrice,SP.SalesOrderPartId,SO.MarketplaceRef),
     FinalResult AS (
     SELECT SalesOrderId, SalesOrderNumber, SalesOrderQuoteNumber, VersionNumber, OpenDate,ContractReference, CustomerId, CustomerName, CustomerReference, Priority,
       PriorityType, QuoteAmount, UnitCost, RequestedDate, RequestedDateType, QuoteDate, EstimatedShipDate, EstimatedShipDateType, PromisedDate,
       ShippedDate, SalesPerson, Status, StatusId, PartNumber,ManufacturerType, PartNumberType, PartDescription, PartDescriptionType,
-      CreatedDate, UpdatedDate, CreatedBy, UpdatedBy,NumberOfItemCount,soAmount,SalesOrderPartId,QtyRequested,QtyOrder,MainUnitSalesPrice FROM Result
+      CreatedDate, UpdatedDate, CreatedBy, UpdatedBy,NumberOfItemCount,soAmount,SalesOrderPartId,QtyRequested,QtyOrder,MainUnitSalesPrice,MarketplaceRef FROM Result
     WHERE (
      (@GlobalFilter <>'' AND ((SalesOrderQuoteNumber LIKE '%' +@GlobalFilter+'%' ) OR
        (SalesOrderNumber LIKE '%' +@GlobalFilter+'%') OR
@@ -196,6 +198,7 @@ BEGIN
        (ISNULL(@PartDescriptionType,'') ='' OR PartDescriptionType LIKE '%'+@PartDescriptionType+'%') AND  
        (ISNULL(@CreatedBy,'') ='' OR CreatedBy LIKE '%'+ @CreatedBy+'%') AND  
        (ISNULL(@UpdatedBy,'') ='' OR UpdatedBy LIKE '%'+ @UpdatedBy+'%') AND  
+	   (ISNULL(@MarketplaceRef,'') ='' OR MarketplaceRef LIKE '%'+ @MarketplaceRef+'%') AND  
        (ISNULL(@CreatedDate,'') ='' OR CAST(CreatedDate AS DATE) = CAST(@CreatedDate AS DATE)) AND  
        (ISNULL(@UpdatedDate,'') ='' OR CAST(UpdatedDate AS DATE) = CAST(@UpdatedDate AS DATE)) AND  
        (ISNULL(@Status,'') ='' OR Status LIKE  '%'+@Status+'%') AND
@@ -204,7 +207,7 @@ BEGIN
      SELECT SalesOrderId, UPPER(SalesOrderNumber) 'SalesOrderNumber',UPPER(ContractReference) 'ContractReference', UPPER(SalesOrderQuoteNumber) 'SalesOrderQuoteNumber', UPPER(VersionNumber) 'VersionNumber', OpenDate, CustomerId, UPPER(CustomerName) 'CustomerName', UPPER(CustomerReference) 'CustomerReference' , UPPER(Priority) 'Priority',   
      UPPER(PriorityType) 'PriorityType', QuoteAmount, UnitCost, RequestedDate, RequestedDateType, QuoteDate, EstimatedShipDate, EstimatedShipDateType, PromisedDate,   
      ShippedDate, UPPER(SalesPerson) 'SalesPerson', UPPER(Status) 'Status', StatusId, UPPER(PartNumber) 'PartNumber',UPPER(ManufacturerType) 'ManufacturerType', UPPER(PartNumberType) 'PartNumberType', UPPER(PartDescription) 'PartDescription', UPPER(PartDescriptionType) 'PartDescriptionType',  
-     CreatedDate, UpdatedDate, UPPER(CreatedBy) 'CreatedBy', UPPER(UpdatedBy) 'UpdatedBy',NumberOfItemCount, (Select COUNT(*) FROM FinalResult) AS NumberOfItems,soAmount,SalesOrderPartId,QtyRequested,QtyOrder,MainUnitSalesPrice INTO #tmpSOPartTblData FROM FinalResult
+     CreatedDate, UpdatedDate, UPPER(CreatedBy) 'CreatedBy', UPPER(UpdatedBy) 'UpdatedBy',MarketplaceRef,NumberOfItemCount, (Select COUNT(*) FROM FinalResult) AS NumberOfItems,soAmount,SalesOrderPartId,QtyRequested,QtyOrder,MainUnitSalesPrice INTO #tmpSOPartTblData FROM FinalResult
      ORDER BY
      CASE WHEN (@SortOrder=1 AND @SortColumn='SALESORDERID')  THEN SalesOrderId END DESC,  
      CASE WHEN (@SortOrder=1 AND @SortColumn='SALESORDERNUMBER')  THEN SalesOrderNumber END ASC,  
@@ -225,6 +228,7 @@ BEGIN
      CASE WHEN (@SortOrder=1 AND @SortColumn='CREATEDDATE')  THEN CreatedDate END ASC,  
      CASE WHEN (@SortOrder=1 AND @SortColumn='UPDATEDDATE')  THEN UpdatedDate END ASC,  
      CASE WHEN (@SortOrder=1 AND @SortColumn='CREATEDBY')  THEN CreatedBy END ASC,  
+	 CASE WHEN (@SortOrder=1 AND @SortColumn='MarketplaceRef')  THEN MarketplaceRef END ASC,  
      CASE WHEN (@SortOrder=1 AND @SortColumn='UPDATEDBY')  THEN UpdatedBy END ASC,  
 	 CASE WHEN (@SortOrder=1 AND @SortColumn='REQUESTEDDATETYPE')  THEN RequestedDateType END ASC,  
 	 CASE WHEN (@SortOrder=1 AND @SortColumn='ESTIMATEDSHIPDATETYPE')  THEN EstimatedShipDateType END ASC,
@@ -249,6 +253,7 @@ BEGIN
      CASE WHEN (@SortOrder=-1 AND @SortColumn='CREATEDDATE')  THEN CreatedDate END DESC,  
      CASE WHEN (@SortOrder=-1 AND @SortColumn='UPDATEDDATE')  THEN UpdatedDate END DESC,  
      CASE WHEN (@SortOrder=-1 AND @SortColumn='CREATEDBY')  THEN CreatedBy END DESC,  
+	 CASE WHEN (@SortOrder=-1 AND @SortColumn='MarketplaceRef')  THEN MarketplaceRef END DESC,  
      CASE WHEN (@SortOrder=-1 AND @SortColumn='UPDATEDBY')  THEN UpdatedBy END DESC ,
 	 CASE WHEN (@SortOrder=-1 AND @SortColumn='REQUESTEDDATETYPE')  THEN RequestedDateType END DESC,
 	 CASE WHEN (@SortOrder=-1 AND @SortColumn='ESTIMATEDSHIPDATETYPE')  THEN EstimatedShipDateType END DESC ,

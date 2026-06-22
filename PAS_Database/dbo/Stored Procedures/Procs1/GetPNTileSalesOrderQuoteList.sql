@@ -87,10 +87,10 @@ BEGIN
 				SOQ.[CustomerReference],
 				(
 					ISNULL(SPC.NetSaleAmount, 0)
-					/ NULLIF((CASE WHEN IM.[StockUnitOfMeasure] = IM.[ConsumeUnitOfMeasure] THEN ISNULL(SP.[QtyRequested], 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(SP.[QtyRequested], 0), IM.[StockUnitOfMeasure], IM.[ConsumeUnitOfMeasure], 0, SP.MasterCompanyId) END), 0)
+					/ NULLIF((CASE WHEN ISNULL(IM.[StockUnitOfMeasure],'') = ISNULL(IM.[ConsumeUnitOfMeasure],'') THEN ISNULL(SP.[QtyRequested], 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(SP.[QtyRequested], 0), IM.[StockUnitOfMeasure], IM.[ConsumeUnitOfMeasure], 0, SP.MasterCompanyId) END), 0)
 				) AS [UnitSalesPrice],
-				(CASE WHEN IM.[StockUnitOfMeasure] = IM.[ConsumeUnitOfMeasure] THEN ISNULL(SPC.[UnitCost], 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(SPC.[UnitCost], 0), IM.[StockUnitOfMeasure], IM.[ConsumeUnitOfMeasure], 1, SP.MasterCompanyId) END) AS [UnitCost],
-				(CASE WHEN IM.[StockUnitOfMeasure] = IM.[ConsumeUnitOfMeasure] THEN ISNULL(SP.[QtyRequested], 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(SP.[QtyRequested], 0), IM.[StockUnitOfMeasure], IM.[ConsumeUnitOfMeasure], 0, SP.MasterCompanyId) END) AS [Qty],
+				(CASE WHEN ISNULL(IM.[StockUnitOfMeasure],'') = ISNULL(IM.[ConsumeUnitOfMeasure],'') THEN ISNULL(SPC.[UnitCost], 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(SPC.[UnitCost], 0), IM.[StockUnitOfMeasure], IM.[ConsumeUnitOfMeasure], 1, SP.MasterCompanyId) END) AS [UnitCost],
+				(CASE WHEN ISNULL(IM.[StockUnitOfMeasure],'') = ISNULL(IM.[ConsumeUnitOfMeasure],'') THEN ISNULL(SP.[QtyRequested], 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(SP.[QtyRequested], 0), IM.[StockUnitOfMeasure], IM.[ConsumeUnitOfMeasure], 0, SP.MasterCompanyId) END) AS [Qty],
 				ISNULL(SPC.[UnitCostExtended], 0) AS [UnitCostExtended],
 				CO.[Description] AS [ConditionName],
 				SP.ConditionId,

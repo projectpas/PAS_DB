@@ -43,6 +43,7 @@
 	27   12/27/2025   HEMANT SALIYA	    Handle ALT & EQU part reservation issue fix.
 	28   03/16/2026   AMIT GHEDIYA		Allow AR condition to reserve (PN-15562)
 	29   21-APR-2026  Rajesh Gami		UOM Conversion Issue Resolved [PN-16128]
+	30	 19/06/2026	  Ayushi			[PN-16911]Skip fn_ConvertUOM call when ToUOM = FromUOM
 exec dbo.USP_ReserveStocklineForReceivingPO @PurchaseOrderId=7671,@SelectedPartsToReserve=N'8963,8964,8965,8969',@UpdatedBy=N'Alex Torres',@AllowAutoIssue=default
 **************************************************************/  
 CREATE PROCEDURE [dbo].[USP_ReserveStocklineForReceivingPO]
@@ -123,9 +124,9 @@ BEGIN
 			POPR.[PurchaseOrderPartId],
 			POPR.[ModuleId],
 			POPR.[ReferenceId],
-			dbo.fn_ConvertUOM(POPR.[Qty], UOM.ShortName, stockUOM.ShortName,0,POPR.[MasterCompanyId]),
-			dbo.fn_ConvertUOM(POPR.[RequestedQty], UOM.ShortName, stockUOM.ShortName,0,POPR.[MasterCompanyId]),
-			dbo.fn_ConvertUOM(POPR.[ReservedQty], UOM.ShortName, stockUOM.ShortName,0,POPR.[MasterCompanyId]),
+			CASE WHEN ISNULL(UOM.ShortName,'') = ISNULL(stockUOM.ShortName,'') THEN ISNULL(POPR.[Qty],0) ELSE dbo.fn_ConvertUOM(POPR.[Qty],UOM.ShortName,stockUOM.ShortName,0,POPR.[MasterCompanyId]) END,
+			CASE WHEN ISNULL(UOM.ShortName,'') = ISNULL(stockUOM.ShortName,'') THEN ISNULL(POPR.[RequestedQty],0) ELSE dbo.fn_ConvertUOM(POPR.[RequestedQty],UOM.ShortName,stockUOM.ShortName,0,POPR.[MasterCompanyId]) END,
+			CASE WHEN ISNULL(UOM.ShortName,'') = ISNULL(stockUOM.ShortName,'') THEN ISNULL(POPR.[ReservedQty],0) ELSE dbo.fn_ConvertUOM(POPR.[ReservedQty],UOM.ShortName,stockUOM.ShortName,0,POPR.[MasterCompanyId]) END,
 			POPR.[MasterCompanyId],
 			POPR.[CreatedBy],
 			POPR.[UpdatedBy],
@@ -2280,7 +2281,13 @@ BEGIN
 				--WHERE PurchaseOrderPartReferenceId = @SelectedPurchaseOrderPartReferenceId;
 
 				UPDATE POPR
-					SET POPR.ReservedQty = ISNULL(POPR.ReservedQty, 0) + (dbo.fn_ConvertUOM(ISNULL(@QuantityReservedForPoPart, 0), stockUOM.ShortName,UOM.ShortName,0,POPR.[MasterCompanyId]))
+					SET POPR.ReservedQty = ISNULL(POPR.ReservedQty,0) + (
+						CASE 
+							WHEN ISNULL(stockUOM.ShortName,'') = ISNULL(UOM.ShortName,'')
+								THEN ISNULL(@QuantityReservedForPoPart,0)
+							ELSE dbo.fn_ConvertUOM(ISNULL(@QuantityReservedForPoPart,0),stockUOM.ShortName,UOM.ShortName,0,POPR.[MasterCompanyId])
+						END
+					)
 					FROM DBO.PurchaseOrderPartReference AS POPR WITH (NOLOCK)
 					INNER JOIN DBO.PurchaseOrderPart POP WITH (NOLOCK) ON POPR.PurchaseOrderPartId = POP.PurchaseOrderPartRecordId
 					INNER JOIN DBO.ItemMaster IM WITH (NOLOCK) ON POP.ItemMasterId = IM.ItemMasterId

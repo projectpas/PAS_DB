@@ -1,5 +1,22 @@
-﻿    
-CREATE   PROCEDURE [dbo].[CreateVendorRFQPOPartRefFromBulkPO]    
+﻿/*************************************************************           
+ ** File:     [CreateVendorRFQPOPartRefFromBulkPO]           
+ ** Author:	   
+ ** Description:
+ ** Purpose:         
+ ** Date:       [mm/dd/yyyy]    
+ ** PARAMETERS:       
+ ** RETURN VALUE:     
+ **************************************************************    
+ ** Change History           
+ **************************************************************           
+ ** PR   	Date			Author					Change Description            
+ ** --   	--------		-------					--------------------------------     
+	1			-				-					-
+	2	   13/May/2026		RAJESH GAMI				Implemented : Bulk PO For Sales Order [PN-16401]
+	
+--- exec CreateVendorRFQPOPartRefFromBulkPO  214
+**************************************************************/     
+CREATE     PROCEDURE [dbo].[CreateVendorRFQPOPartRefFromBulkPO]    
  @PurchaseOrderRFQId bigint = 0,
  @updatedByName varchar(50) = NULL
 AS    
@@ -10,7 +27,7 @@ BEGIN
   BEGIN TRY    
   BEGIN TRANSACTION    
   BEGIN    
-   DECLARE @PriorityId bigint;    
+   DECLARE @PriorityId bigint, @WOPartRefModuleId INT = 1, @SOPartRefModuleId INT = 3;    
    DECLARE @IsResale bit;    
    DECLARE @totalPartCount int     
    DECLARE @newPartLoopId int        
@@ -51,9 +68,10 @@ BEGIN
            ,[IsDeleted])  
 			SELECT  
 		   @PurchaseOrderRFQId  
-		   ,@PORFQPartId,1,VRPP.WorkOrderId  
+		   ,@PORFQPartId,CASE WHEN ISNULL(SOP.SalesOrderId,0) = 0 THEN @WOPartRefModuleId ELSE @SOPartRefModuleId END,CASE WHEN ISNULL(SOP.SalesOrderId,0) = 0 THEN VRPP.WorkOrderId ELSE VRPP.SalesOrderId END   
 		   ,ISNULL(VRPP.[QuantityOrdered],0)  
-		   ,((((ISNULL(SUM(WOM.Quantity),0))-((ISNULL(SUM(WOM.TotalReserved),0))+(ISNULL(SUM(WOM.TotalIssued),0))))+(ISNULL(SUM(WOMK.Quantity),0)))) as RequestedQty  
+		   ,CASE WHEN ISNULL(SOP.SalesOrderId,0) = 0 THEN ((((ISNULL(SUM(WOM.Quantity),0))-((ISNULL(SUM(WOM.TotalReserved),0))+(ISNULL(SUM(WOM.TotalIssued),0))))+(ISNULL(SUM(WOMK.Quantity),0)))) 
+		   ELSE (ISNULL(SUM(SOP.QtyOrder),0) - ISNULL(SUM(SOP.QtyReserved),0) ) END as RequestedQty  
 		   , RFQP.MasterCompanyId  
 		   ,@updatedByName  
 		   ,@updatedByName  
@@ -65,10 +83,11 @@ BEGIN
 		 INNER JOIN dbo.VendorRFQPurchaseOrder RFQP with (NOLOCK) on VRPP.VendorRFQPurchaseOrderId = RFQP.VendorRFQPurchaseOrderId   
 		 LEFT JOIN DBO.[WorkOrderMaterials] WOM ON WOM.WorkOrderId = VRPP.WorkOrderId AND WOM.ItemMasterId = VRPP.ItemMasterId AND WOM.ConditionCodeId = VRPP.ConditionId    
 		 LEFT JOIN [DBO].[WorkOrderMaterialsKit] WOMK WITH (NOLOCK) ON WOMK.ItemMasterId =  VRPP.ItemMasterId AND WOMK.ConditionCodeId = VRPP.ConditionId AND WOMK.WorkOrderId = WOM.WorkOrderId    
+		 LEFT JOIN DBO.[SalesOrderPartV1] SOP ON SOP.SalesOrderId = VRPP.SalesOrderId AND SOP.ItemMasterId = VRPP.ItemMasterId AND SOP.ConditionId = VRPP.ConditionId    
 		 WHERE VRPP.VendorRFQPOPartRecordId = @PORFQPartId AND VRPP.VendorRFQPurchaseOrderId = @PurchaseOrderRFQId  
 		 GROUP BY   
 		 VRPP.WorkOrderId,  
-		 VRPP.[QuantityOrdered],RFQP.MasterCompanyId
+		 VRPP.[QuantityOrdered],RFQP.MasterCompanyId,VRPP.SalesOrderId,SOP.SalesOrderId
 
 		set @totalPartCount = @totalPartCount - 1    
         set @newPartLoopId = @newPartLoopId+1

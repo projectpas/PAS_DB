@@ -15,7 +15,9 @@
  ** S NO   Date            Author          Change Description              
  ** --   --------         -------          --------------------------------            
     1    26-Sep-2025	  Amit Ghediya	   Created 
-       
+    2    11-06-2026       Ayushi Patel     [PN-16811] UOM CHNAGES
+	3	 17-06-2026		  Ayushi Patel	   Revert The UOM Changes 
+	
 EXECUTE   [dbo].[usprpt_GetCustomerPOFulfillingReport] '2025-10-07','2025-11-25',1,1,'','',2,''
 **************************************************************/  
   
@@ -68,12 +70,40 @@ BEGIN
 					--	ELSE IM.PartDescription
 					--END AS PNDescription,
 					IM.PartDescription AS PNDescription,
-					ISNULL(IU.ShortName, '') AS UOM,
+					ISNULL(IUS.ShortName, '') AS UOM,
 					--CASE WHEN ISNULL(SST.StockLineId,0) > 0 THEN SUM(SST.QtyOrder) ELSE SUM(SOP.QtyOrder) END AS TotalQty,
 					--CASE WHEN ISNULL(SST.StockLineId,0) > 0 THEN MAX(STKC.NetSaleAmountPerUnit) ELSE SUM(SOPC.NetSaleAmountPerUnit) END AS UnitPrice,
 					--CASE WHEN ISNULL(SST.StockLineId,0) > 0 THEN SUM(SST.QtyOrder * STKC.NetSaleAmountPerUnit) ELSE SUM((SOP.QtyOrder * SOPC.NetSaleAmountPerUnit)) END AS TotalAmount,
 					CASE WHEN ISNULL(SST.StockLineId,0) > 0 THEN SST.QtyOrder ELSE SOP.QtyOrder END AS TotalQty,
+					--dbo.fn_ConvertUOM(
+					--	CASE 
+					--		WHEN ISNULL(SST.StockLineId,0) > 0 
+					--			THEN SST.QtyOrder
+					--		ELSE SOP.QtyOrder
+					--	END,
+					--	IUS.ShortName,
+					--	IUC.ShortName,
+					--	0,
+					--	IM.MasterCompanyId
+					--) AS TotalQty,
 					CASE WHEN ISNULL(SST.StockLineId,0) > 0 THEN MAX(STKC.NetSaleAmountPerUnit) ELSE SUM(SOPC.NetSaleAmountPerUnit) END AS UnitPrice,
+					--CASE 
+					--	WHEN ISNULL(SST.StockLineId,0) > 0 
+					--	THEN dbo.fn_ConvertUOM(
+					--			MAX(STKC.NetSaleAmountPerUnit),
+					--			IUS.ShortName,
+					--			IUC.ShortName,
+					--			1,
+					--			IM.MasterCompanyId
+					--		 )
+					--	ELSE dbo.fn_ConvertUOM(
+					--			SUM(SOPC.NetSaleAmountPerUnit),
+					--			IUS.ShortName,
+					--			IUC.ShortName,
+					--			1,
+					--			IM.MasterCompanyId
+					--		 )
+					--END AS UnitPrice,
 					CASE WHEN ISNULL(SST.StockLineId,0) > 0 THEN SST.QtyOrder * STKC.NetSaleAmountPerUnit ELSE SOP.QtyOrder * SOPC.NetSaleAmountPerUnit END AS TotalAmount,
 					STRING_AGG(STK.StocklineNumber, '') AS StocklineNumbers,
 					STK.SerialNumber AS SerialNumbers,
@@ -86,7 +116,8 @@ BEGIN
 				INNER JOIN [DBO].[SalesOrderPartV1] SOP WITH(NOLOCK) ON SOP.SalesOrderId = SO.SalesOrderId
 				LEFT JOIN [DBO].[SalesOrderPartCost] SOPC WITH(NOLOCK) ON SOPC.SalesOrderPartId = SOP.SalesOrderPartId
 				INNER JOIN [DBO].[ItemMaster] IM WITH(NOLOCK) ON SOP.ItemMasterId = IM.ItemMasterId
-				LEFT JOIN [DBO].[UnitOfMeasure] IU WITH(NOLOCK) ON IM.ConsumeUnitOfMeasureId = IU.UnitOfMeasureId
+				LEFT JOIN [DBO].[UnitOfMeasure] IUC WITH(NOLOCK) ON IM.ConsumeUnitOfMeasureId = IUC.UnitOfMeasureId
+				LEFT JOIN [DBO].[UnitOfMeasure] IUS WITH(NOLOCK) ON IM.StockUnitOfMeasureId = IUS.UnitOfMeasureId
 				LEFT JOIN [DBO].[SalesOrderStocklineV1] SST WITH(NOLOCK) ON SST.SalesOrderPartId = SOP.SalesOrderPartId
 				LEFT JOIN [DBO].[Stockline] STK WITH(NOLOCK) ON STK.StockLineId = SST.StockLineId
 				LEFT JOIN [DBO].[SalesOrderStockLineCost] STKC WITH(NOLOCK) ON STKC.SalesOrderPartId = SST.SalesOrderPartId AND STKC.SalesOrderStocklineId = SST.SalesOrderStocklineId
@@ -119,14 +150,17 @@ BEGIN
 					RO.[Status],
 					IM.PartNumber,
 					IM.PartDescription,
-					IU.ShortName,
+					IUC.ShortName,
 					SST.QtyOrder,
 					SOP.QtyOrder,
 					STKC.NetSaleAmountPerUnit,
 					SOPC.NetSaleAmountPerUnit,
 					STK.SerialNumber,
 					SO.CreditTermName,
-					SOS.AirwayBill
+					SOS.AirwayBill,
+					IUC.ShortName,
+					IUS.ShortName,
+					IM.MasterCompanyId
 				ORDER BY SO.SalesOrderId DESC;
 		END
 		ELSE
@@ -149,9 +183,37 @@ BEGIN
 					STK.StocklineNumber,
 					STK.SerialNumber,
 					SOP.ConditionName,
-					ISNULL(IU.ShortName, '') AS UOM,
+					ISNULL(IUS.ShortName, '') AS UOM,
 					CASE WHEN ISNULL(SST.StockLineId,0) > 0 THEN SUM(SST.QtyOrder) ELSE SUM(SOP.QtyOrder) END AS TotalQty,
+					--dbo.fn_ConvertUOM(
+					--	CASE 
+					--		WHEN ISNULL(SST.StockLineId,0) > 0 
+					--			THEN SUM(SST.QtyOrder)
+					--		ELSE SUM(SOP.QtyOrder)
+					--	END,
+					--	IUS.ShortName,
+					--	IUC.ShortName,
+					--	0,
+					--	IM.MasterCompanyId
+					--) AS TotalQty,
 					CASE WHEN ISNULL(SST.StockLineId,0) > 0 THEN SUM(STKC.NetSaleAmountPerUnit) ELSE SUM(SOPC.NetSaleAmountPerUnit) END AS UnitPrice,
+					--CASE 
+					--	WHEN ISNULL(SST.StockLineId,0) > 0 
+					--	THEN dbo.fn_ConvertUOM(
+					--			SUM(STKC.NetSaleAmountPerUnit),
+					--			IUS.ShortName,
+					--			IUC.ShortName,
+					--			1,
+					--			IM.MasterCompanyId
+					--		 )
+					--	ELSE dbo.fn_ConvertUOM(
+					--			SUM(SOPC.NetSaleAmountPerUnit),
+					--			IUS.ShortName,
+					--			IUC.ShortName,
+					--			1,
+					--			IM.MasterCompanyId
+					--		 )
+					--END AS UnitPrice,
 					CASE WHEN ISNULL(SST.StockLineId,0) > 0 THEN SUM(SST.QtyOrder * STKC.NetSaleAmountPerUnit) ELSE SUM((SOP.QtyOrder * SOPC.NetSaleAmountPerUnit)) END AS TotalAmount,
 					BI.InvoiceNo,
 					SOS.ShipDate,
@@ -162,7 +224,8 @@ BEGIN
 				INNER JOIN [DBO].[SalesOrderPartV1] SOP WITH(NOLOCK) ON SOP.SalesOrderId = SO.SalesOrderId
 				LEFT JOIN [DBO].[SalesOrderPartCost] SOPC WITH(NOLOCK) ON SOPC.SalesOrderPartId = SOP.SalesOrderPartId
 				INNER JOIN [DBO].[ItemMaster] IM WITH(NOLOCK) ON SOP.ItemMasterId = IM.ItemMasterId
-				LEFT JOIN [DBO].[UnitOfMeasure] IU WITH(NOLOCK) ON IM.ConsumeUnitOfMeasureId = IU.UnitOfMeasureId
+				LEFT JOIN [DBO].[UnitOfMeasure] IUC WITH(NOLOCK) ON IM.ConsumeUnitOfMeasureId = IUC.UnitOfMeasureId
+				LEFT JOIN [DBO].[UnitOfMeasure] IUS WITH(NOLOCK) ON IM.StockUnitOfMeasureId = IUS.UnitOfMeasureId
 				LEFT JOIN [DBO].[SalesOrderStocklineV1] SST WITH(NOLOCK) ON SST.SalesOrderPartId = SOP.SalesOrderPartId
 				LEFT JOIN [DBO].[Stockline] STK WITH(NOLOCK) ON STK.StockLineId = SST.StockLineId
 				LEFT JOIN [DBO].[SalesOrderStockLineCost] STKC WITH(NOLOCK) ON STKC.SalesOrderPartId = SST.SalesOrderPartId 
@@ -194,7 +257,7 @@ BEGIN
 					SO.OpenDate,
 					SO.CustomerName,
 					SO.CustomerServiceRepName,
-					IU.ShortName,
+					IUC.ShortName,
 					SOP.ConditionName,
 					SO.SalesOrderNumber,
 					MSOS.[Name],
@@ -206,7 +269,10 @@ BEGIN
 					BI.InvoiceNo,
 					SOS.ShipDate,
 					SO.CreditTermName,
-					SOS.AirwayBill
+					SOS.AirwayBill,
+					IUC.ShortName,
+					IUS.ShortName,
+					IM.MasterCompanyId
 			)
 			, AggregatedSales AS
 			(

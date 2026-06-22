@@ -16,6 +16,9 @@
 	4    02-April-2026		Amit Ghediya		UOM Conversion Changes [PN-15140]  
 	5    15-May-2026        Sahdev Saliya       Added UnitOfMeasure, ExtendedCost [PN-16205]
     6    02-JUN-2026		Rajesh Gami		   Handle IsNull (ISNULL(StockLineId,0)) While getting data from VendorCreditMemoDetail [PN-16521]
+	7    05-Jun-2026        Sahdev Saliya      Added Searching and sorting functionality for ControlNumber, UnitOfMeasure, QuantityAvailable, UnitCost, ExtendedCost [PN-16578]
+	8	 04-Jun-2026		Ayushi Patel	    [PN-16716]Return unitcost , quantityAvailable , unitOfMeasure as a STOCKUOM from stockline table when @IsVCMAdd=1 
+	9   19-Jun-2026			Priyansh Patel		Add Condition to skip fn_ConvertUOM call [PN-16911]
 *******************************************************************************
 *******************************************************************************/
 CREATE   PROCEDURE [dbo].[USP_VendorRMA_GetVendorStockList] 
@@ -33,7 +36,12 @@ CREATE   PROCEDURE [dbo].[USP_VendorRMA_GetVendorStockList]
 @MasterCompanyId BIGINT = NULL,
 @EmployeeId BIGINT = NULL,
 @VendorId BIGINT = NULL,
-@IsVCMAdd BIT = NULL
+@IsVCMAdd BIT = NULL,
+@ControlNumber varchar(50)=NULL,
+@UnitOfMeasure VARCHAR(100)=NULL,
+@QuantityAvailable decimal=NULL,
+@UnitCost decimal=NULL,
+@ExtendedCost decimal=NULL
 AS
 BEGIN
   SET NOCOUNT ON;
@@ -90,9 +98,10 @@ BEGIN
 			   ,IM.[PartDescription]
 			   ,SL.[SerialNumber]
 			   --,SL.[QuantityAvailable]
-			   ,([dbo].[fn_ConvertUOM](ISNULL(SL.[QuantityAvailable], 0),IM.[StockUnitOfMeasure], IM.[PurchaseUnitOfMeasure],0,IM.[MasterCompanyId])) AS QuantityAvailable
+			   
+			   ,(CASE WHEN IM.[StockUnitOfMeasure] = IM.[PurchaseUnitOfMeasure] THEN ISNULL(SL.[QuantityAvailable], 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(SL.[QuantityAvailable], 0),IM.[StockUnitOfMeasure], IM.[PurchaseUnitOfMeasure],0,IM.[MasterCompanyId]) END) AS QuantityAvailable
 			   --,SL.[UnitCost]
-			   ,([dbo].[fn_ConvertUOM](ISNULL(SL.[UnitCost], 0),IM.[StockUnitOfMeasure], IM.[PurchaseUnitOfMeasure],1,IM.[MasterCompanyId])) AS UnitCost
+			   ,(CASE WHEN IM.[StockUnitOfMeasure] = IM.[PurchaseUnitOfMeasure] THEN ISNULL(SL.[UnitCost], 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(SL.[UnitCost], 0),IM.[StockUnitOfMeasure], IM.[PurchaseUnitOfMeasure],1,IM.[MasterCompanyId]) END) AS UnitCost
 			   ,CASE WHEN ISNULL(SL.[VendorId], 0) <> 0 THEN VO.[VendorName]
 			    WHEN SL.[PurchaseOrderId] > 0  THEN (SELECT POV.VendorName FROM [dbo].[PurchaseOrder] POV WITH(NOLOCK) INNER JOIN [dbo].[Vendor] V WITH(NOLOCK) ON POV.VendorId = V.VendorId WHERE SL.PurchaseOrderId = POV.PurchaseOrderId)
 			    WHEN SL.[RepairOrderId] > 0  THEN (SELECT ROV.VendorName FROM [dbo].[RepairOrder] ROV WITH(NOLOCK) INNER JOIN [dbo].[Vendor] V WITH(NOLOCK) ON ROV.VendorId = V.VendorId WHERE SL.RepairOrderId = ROV.RepairOrderId)
@@ -115,27 +124,35 @@ BEGIN
 		  LEFT JOIN [dbo].[RepairOrder] RO WITH (NOLOCK) ON SL.[RepairOrderId] = RO.[RepairOrderId]
 		  LEFT JOIN [dbo].[Vendor] VO WITH (NOLOCK) ON SL.[VendorId] = VO.[VendorId]
 			WHERE ISNULL(SL.[IsDeleted],0) = 0 AND ISNULL(SL.[IsActive],1) = 1 AND SL.[MasterCompanyId] = @MasterCompanyId AND SL.[IsParent] = 1
-			AND SL.[QuantityOnHand] > 0 AND SL.[QuantityAvailable] > 0 AND (@VendorId = 0 OR SL.[VendorId] = @VendorId) AND (SL.[PurchaseOrderId] > 0 OR SL.[RepairOrderId] > 0) 
-		), ResultCount AS(SELECT COUNT([StockLineId]) AS totalItems FROM Result) 
+			AND SL.[QuantityOnHand] > 0 AND SL.[QuantityAvailable] > 0 AND (@VendorId = 0 OR SL.[VendorId] = @VendorId) AND (SL.[PurchaseOrderId] > 0 OR SL.[RepairOrderId] > 0))
 		
-		SELECT * INTO #TempResult FROM  Result 
-			WHERE 
-			 ((@GlobalFilter <>'' AND (([ReferenceNumber] LIKE '%' + @GlobalFilter + '%') OR
-					([PartNumber] LIKE '%' + @GlobalFilter + '%') OR
-					([SerialNumber] LIKE '%' + @GlobalFilter + '%') OR
-					([VendorName] LIKE '%' + @GlobalFilter + '%') OR
-					([StockLineNumber] LIKE '%' + @GlobalFilter + '%')))					
-					OR
-					(@GlobalFilter = '' AND (ISNULL(@ReferenceNumber, '') = '' OR [ReferenceNumber] LIKE '%' + @ReferenceNumber + '%') AND
-					(ISNULL(@PartNumber, '') = '' OR [PartNumber] LIKE '%' + @PartNumber + '%') AND
-					(ISNULL(@SerialNumber, '') = '' OR [SerialNumber] LIKE '%' + @SerialNumber + '%') AND
-					(ISNULL(@VendorName, '') = '' OR [VendorName] LIKE '%' + @VendorName + '%') AND
+			SELECT * INTO #TempResult FROM Result 
+		      WHERE
+				((@GlobalFilter <> '' AND (([ReferenceNumber] LIKE '%' + @GlobalFilter + '%') OR
+					([PartNumber]      LIKE '%' + @GlobalFilter + '%') OR
+					([SerialNumber]    LIKE '%' + @GlobalFilter + '%') OR
+					([VendorName]      LIKE '%' + @GlobalFilter + '%') OR
+					([StockLineNumber] LIKE '%' + @GlobalFilter + '%') OR
+					(ControlNumber     LIKE '%' + @GlobalFilter + '%') OR
+					(UnitOfMeasure     LIKE '%' + @GlobalFilter + '%') OR
+					(CAST(QuantityAvailable AS VARCHAR(50)) LIKE '%' + @GlobalFilter + '%') OR
+					(CAST(UnitCost          AS VARCHAR(50)) LIKE '%' + @GlobalFilter + '%') OR
+					(CAST(ExtendedCost      AS VARCHAR(50)) LIKE '%' + @GlobalFilter + '%')
+				))
+				OR
+				(@GlobalFilter = '' AND (ISNULL(@ReferenceNumber, '') = '' OR [ReferenceNumber] LIKE '%' + @ReferenceNumber + '%') AND
+					(ISNULL(@PartNumber, '')      = '' OR [PartNumber]      LIKE '%' + @PartNumber      + '%') AND
+					(ISNULL(@SerialNumber, '')    = '' OR [SerialNumber]    LIKE '%' + @SerialNumber    + '%') AND
+					(ISNULL(@VendorName, '')      = '' OR [VendorName]      LIKE '%' + @VendorName      + '%') AND
 					(ISNULL(@StockLineNumber, '') = '' OR [StockLineNumber] LIKE '%' + @StockLineNumber + '%') AND
-					(ISNULL(@ReceivedDate,'') ='' OR CAST(DBO.ConvertUTCtoLocal([ReceivedDate], @CurrntEmpTimeZoneDesc) AS DATE) = CAST(@ReceivedDate AS DATE)))   
-				  --(ISNULL(@ReceivedDate,'') ='' OR CAST([ReceivedDate] AS DATE) = CAST(@ReceivedDate AS DATE)))
-				  )
+					(ISNULL(@ReceivedDate, '') = '' OR CAST(DBO.ConvertUTCtoLocal([ReceivedDate], @CurrntEmpTimeZoneDesc) AS DATE) = CAST(@ReceivedDate AS DATE)) AND
+					(ISNULL(@ControlNumber, '')  = '' OR ControlNumber  LIKE '%' + @ControlNumber  + '%') AND
+					(ISNULL(@UnitOfMeasure, '')  = '' OR UnitOfMeasure  LIKE '%' + @UnitOfMeasure  + '%') AND
+					(ISNULL(CAST(@QuantityAvailable AS VARCHAR(50)), '') = '' OR @QuantityAvailable = 0 OR CAST(QuantityAvailable AS VARCHAR(50)) LIKE '%' + CAST(@QuantityAvailable AS VARCHAR(50)) + '%') AND
+					(ISNULL(CAST(@UnitCost          AS VARCHAR(50)), '') = '' OR @UnitCost          = 0 OR CAST(UnitCost          AS VARCHAR(50)) LIKE '%' + CAST(@UnitCost          AS VARCHAR(50)) + '%') AND
+					(ISNULL(CAST(@ExtendedCost      AS VARCHAR(50)), '') = '' OR @ExtendedCost      = 0 OR CAST(ExtendedCost      AS VARCHAR(50)) LIKE '%' + CAST(@ExtendedCost      AS VARCHAR(50)) + '%')))
 
-			SELECT @Count = COUNT([StockLineId]) FROM #TempResult			
+		    SELECT @Count = COUNT([StockLineId]) FROM #TempResult				
 
 			SELECT @Count AS NumberOfItems, [StockLineId],[VendorId],[PurchaseOrderId],[RepairOrderId],[ReferenceNumber],[ReferenceId],[ModuleId],[ItemMasterId],[PartNumber],[PartDescription],[SerialNumber],[QuantityAvailable],[UnitCost],[VendorName],[VendorCode],[StockLineNumber],[IdNumber],[ControlNumber],[ReceivedDate],[CreatedDate],[IsSelected],[UnitOfMeasure],[ExtendedCost], @Count AS NumberOfItems FROM #TempResult WHERE [ModuleId] > 0
 			ORDER BY  
@@ -152,7 +169,17 @@ BEGIN
 			CASE WHEN (@SortOrder = 1  AND @SortColumn='ReceivedDate') THEN ReceivedDate END ASC,
 			CASE WHEN (@SortOrder = -1 and @SortColumn='ReceivedDate') THEN ReceivedDate END DESC,  
 			CASE WHEN (@SortOrder = 1 and @SortColumn='CreatedDate')  THEN CreatedDate END ASC,
-			CASE WHEN (@SortOrder = -1 and @SortColumn='CreatedDate')  THEN CreatedDate END DESC
+			CASE WHEN (@SortOrder = -1 and @SortColumn='CreatedDate')  THEN CreatedDate END DESC,
+			CASE WHEN (@SortOrder=1 and @SortColumn='CONTROLNUMBER')  THEN ControlNumber END ASC,
+		    CASE WHEN (@SortOrder=-1 and @SortColumn='CONTROLNUMBER')  THEN ControlNumber END DESC,
+			CASE WHEN (@SortOrder=1 and @SortColumn='UNITOFMEASURE')  THEN UnitOfMeasure END ASC, 
+			CASE WHEN (@SortOrder=-1 and @SortColumn='UNITOFMEASURE')  THEN UnitOfMeasure END DESC,  
+			CASE WHEN (@SortOrder=1 and @SortColumn='QUANTITYAVAILABLE')  THEN QuantityAvailable END ASC, 
+			CASE WHEN (@SortOrder=-1 and @SortColumn='QUANTITYAVAILABLE')  THEN QuantityAvailable END DESC,  
+			CASE WHEN (@SortOrder=1 and @SortColumn='UNITCOST')  THEN UnitCost END ASC, 
+			CASE WHEN (@SortOrder=-1 and @SortColumn='UNITCOST')  THEN UnitCost END DESC,
+			CASE WHEN (@SortOrder=1 and @SortColumn='EXTENDEDCOST')  THEN ExtendedCost END ASC, 
+			CASE WHEN (@SortOrder=-1 and @SortColumn='EXTENDEDCOST')  THEN ExtendedCost END DESC  
 			OFFSET @RecordFrom ROWS 
 			FETCH NEXT @PageSize ROWS ONLY	
 		END
@@ -174,10 +201,8 @@ BEGIN
 			   ,IM.[partnumber] 'PartNumber'
 			   ,IM.[PartDescription]
 			   ,SL.[SerialNumber]
-			   --,SL.[QuantityAvailable]
-			   ,([dbo].[fn_ConvertUOM](ISNULL(SL.[QuantityAvailable], 0),IM.[StockUnitOfMeasure], IM.[ConsumeUnitOfMeasure],0,IM.[MasterCompanyId])) AS QuantityAvailable
-			   --,SL.[UnitCost]
-			   ,([dbo].[fn_ConvertUOM](ISNULL(SL.[UnitCost], 0),IM.[StockUnitOfMeasure], IM.[ConsumeUnitOfMeasure],1,IM.[MasterCompanyId])) AS UnitCost
+			   ,SL.[QuantityAvailable]
+			   ,SL.[UnitCost]
 			   ,CASE WHEN ISNULL(SL.[VendorId], 0) <> 0 THEN VO.[VendorName]
 			    WHEN SL.[PurchaseOrderId] > 0  THEN (SELECT POV.VendorName FROM [dbo].[PurchaseOrder] POV WITH(NOLOCK) INNER JOIN [dbo].[Vendor] V WITH(NOLOCK) ON POV.VendorId = V.VendorId WHERE SL.PurchaseOrderId = POV.PurchaseOrderId)
 			    WHEN SL.[RepairOrderId] > 0  THEN (SELECT ROV.VendorName FROM [dbo].[RepairOrder] ROV WITH(NOLOCK) INNER JOIN [dbo].[Vendor] V WITH(NOLOCK) ON ROV.VendorId = V.VendorId WHERE SL.RepairOrderId = ROV.RepairOrderId)
@@ -193,7 +218,7 @@ BEGIN
 			   ,CAST(SL.[ReceivedDate] AS DATE) AS [ReceivedDate]
 			   ,SL.[CreatedDate]
 			   ,0 AS [IsSelected]
-			   ,SL.[UnitOfMeasure]
+			   ,SL.[StockUnitOfMeasure] as UnitOfMeasure
 			   ,CASE  WHEN SL.[PurchaseOrderId] > 0 THEN (ISNULL(SL.QuantityAvailable,0) * SL.UnitCost) WHEN SL.[RepairOrderId] > 0 THEN (ISNULL(SL.QuantityAvailable,0) * SL.UnitCost) ELSE 0 END AS ExtendedCost
 		  FROM [dbo].[Stockline] SL WITH (NOLOCK)
 		  INNER JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON SL.[ItemMasterId] = IM.[ItemMasterId]
@@ -205,27 +230,34 @@ BEGIN
 			AND SL.StockLineId NOT IN 
 			(SELECT ISNULL(StockLineId,0) FROM VendorCreditMemoDetail vcmd WITH(NOLOCK)
 			LEFT JOIN [dbo].[VendorCreditMemo] vcm WITH(NOLOCK) ON vcmd.VendorCreditMemoId = vcm.VendorCreditMemoId 
-			WHERE vcmd.VendorRMAId = 0 AND vcm.VendorCreditMemoStatusId != (SELECT Id FROM CreditMemoStatus WHERE [Name] = 'Closed'))
-		), ResultCount AS(SELECT COUNT([StockLineId]) AS totalItems FROM Result) 
+			WHERE vcmd.VendorRMAId = 0 AND vcm.VendorCreditMemoStatusId != (SELECT Id FROM CreditMemoStatus WHERE [Name] = 'Closed')))
 		
-		SELECT * INTO #TempResultData FROM  Result 
-			WHERE 
-			 ((@GlobalFilter <>'' AND (([ReferenceNumber] LIKE '%' + @GlobalFilter + '%') OR
-					([PartNumber] LIKE '%' + @GlobalFilter + '%') OR
-					([SerialNumber] LIKE '%' + @GlobalFilter + '%') OR
-					([VendorName] LIKE '%' + @GlobalFilter + '%') OR
-					([StockLineNumber] LIKE '%' + @GlobalFilter + '%')))					
-					OR
-					(@GlobalFilter = '' AND (ISNULL(@ReferenceNumber, '') = '' OR [ReferenceNumber] LIKE '%' + @ReferenceNumber + '%') AND
-					(ISNULL(@PartNumber, '') = '' OR [PartNumber] LIKE '%' + @PartNumber + '%') AND
-					(ISNULL(@SerialNumber, '') = '' OR [SerialNumber] LIKE '%' + @SerialNumber + '%') AND
-					(ISNULL(@VendorName, '') = '' OR [VendorName] LIKE '%' + @VendorName + '%') AND
+		SELECT * INTO #TempResultData FROM Result 
+			 WHERE
+				((@GlobalFilter <> '' AND (([ReferenceNumber] LIKE '%' + @GlobalFilter + '%') OR
+					([PartNumber]      LIKE '%' + @GlobalFilter + '%') OR
+					([SerialNumber]    LIKE '%' + @GlobalFilter + '%') OR
+					([VendorName]      LIKE '%' + @GlobalFilter + '%') OR
+					([StockLineNumber] LIKE '%' + @GlobalFilter + '%') OR
+					(ControlNumber     LIKE '%' + @GlobalFilter + '%') OR
+					(UnitOfMeasure     LIKE '%' + @GlobalFilter + '%') OR
+					(CAST(QuantityAvailable AS VARCHAR(50)) LIKE '%' + @GlobalFilter + '%') OR
+					(CAST(UnitCost          AS VARCHAR(50)) LIKE '%' + @GlobalFilter + '%') OR
+					(CAST(ExtendedCost      AS VARCHAR(50)) LIKE '%' + @GlobalFilter + '%')))
+				    OR
+				    (@GlobalFilter = '' AND	(ISNULL(@ReferenceNumber, '') = '' OR [ReferenceNumber] LIKE '%' + @ReferenceNumber + '%') AND
+					(ISNULL(@PartNumber, '')      = '' OR [PartNumber]      LIKE '%' + @PartNumber      + '%') AND
+					(ISNULL(@SerialNumber, '')    = '' OR [SerialNumber]    LIKE '%' + @SerialNumber    + '%') AND
+					(ISNULL(@VendorName, '')      = '' OR [VendorName]      LIKE '%' + @VendorName      + '%') AND
 					(ISNULL(@StockLineNumber, '') = '' OR [StockLineNumber] LIKE '%' + @StockLineNumber + '%') AND
-					(ISNULL(@ReceivedDate,'') ='' OR CAST(DBO.ConvertUTCtoLocal([ReceivedDate], @CurrntEmpTimeZoneDesc) AS DATE) = CAST(@ReceivedDate AS DATE)))   
-				  --(ISNULL(@ReceivedDate,'') ='' OR CAST([ReceivedDate] AS DATE) = CAST(@ReceivedDate AS DATE)))
-				  )
+					(ISNULL(@ReceivedDate, '') = '' OR CAST(DBO.ConvertUTCtoLocal([ReceivedDate], @CurrntEmpTimeZoneDesc) AS DATE) = CAST(@ReceivedDate AS DATE)) AND
+					(ISNULL(@ControlNumber, '')  = '' OR ControlNumber  LIKE '%' + @ControlNumber  + '%') AND
+					(ISNULL(@UnitOfMeasure, '')  = '' OR UnitOfMeasure  LIKE '%' + @UnitOfMeasure  + '%') AND
+					(ISNULL(CAST(@QuantityAvailable AS VARCHAR(50)), '') = '' OR @QuantityAvailable = 0 OR CAST(QuantityAvailable AS VARCHAR(50)) LIKE '%' + CAST(@QuantityAvailable AS VARCHAR(50)) + '%') AND
+					(ISNULL(CAST(@UnitCost          AS VARCHAR(50)), '') = '' OR @UnitCost          = 0 OR CAST(UnitCost          AS VARCHAR(50)) LIKE '%' + CAST(@UnitCost          AS VARCHAR(50)) + '%') AND
+					(ISNULL(CAST(@ExtendedCost      AS VARCHAR(50)), '') = '' OR @ExtendedCost      = 0 OR CAST(ExtendedCost      AS VARCHAR(50)) LIKE '%' + CAST(@ExtendedCost      AS VARCHAR(50)) + '%')))
 
-			SELECT @Count = COUNT([StockLineId]) FROM #TempResultData			
+		    SELECT @Count = COUNT([StockLineId]) FROM #TempResultData			
 
 			SELECT @Count AS NumberOfItems, [StockLineId],[VendorId],[PurchaseOrderId],[RepairOrderId],[ReferenceNumber],[ReferenceId],[ModuleId],[ItemMasterId],[PartNumber],[PartDescription],[SerialNumber],[QuantityAvailable],[UnitCost],[VendorName],[VendorCode],[StockLineNumber],[IdNumber],[ControlNumber],[ReceivedDate],[CreatedDate],[IsSelected],[UnitOfMeasure],[ExtendedCost] FROM #TempResultData WHERE [ModuleId] > 0
 			ORDER BY  
@@ -242,7 +274,17 @@ BEGIN
 			CASE WHEN (@SortOrder = 1  AND @SortColumn='ReceivedDate') THEN ReceivedDate END ASC,
 			CASE WHEN (@SortOrder = -1 and @SortColumn='ReceivedDate') THEN ReceivedDate END DESC,  
 			CASE WHEN (@SortOrder = 1 and @SortColumn='CreatedDate')  THEN CreatedDate END ASC,
-			CASE WHEN (@SortOrder = -1 and @SortColumn='CreatedDate')  THEN CreatedDate END DESC
+			CASE WHEN (@SortOrder = -1 and @SortColumn='CreatedDate')  THEN CreatedDate END DESC,
+			 CASE WHEN (@SortOrder=1 and @SortColumn='CONTROLNUMBER')  THEN ControlNumber END ASC,
+		    CASE WHEN (@SortOrder=-1 and @SortColumn='CONTROLNUMBER')  THEN ControlNumber END DESC,
+			CASE WHEN (@SortOrder=1 and @SortColumn='UNITOFMEASURE')  THEN UnitOfMeasure END ASC, 
+			CASE WHEN (@SortOrder=-1 and @SortColumn='UNITOFMEASURE')  THEN UnitOfMeasure END DESC,  
+			CASE WHEN (@SortOrder=1 and @SortColumn='QUANTITYAVAILABLE')  THEN QuantityAvailable END ASC, 
+			CASE WHEN (@SortOrder=-1 and @SortColumn='QUANTITYAVAILABLE')  THEN QuantityAvailable END DESC,  
+			CASE WHEN (@SortOrder=1 and @SortColumn='UNITCOST')  THEN UnitCost END ASC, 
+			CASE WHEN (@SortOrder=-1 and @SortColumn='UNITCOST')  THEN UnitCost END DESC,
+			CASE WHEN (@SortOrder=1 and @SortColumn='EXTENDEDCOST')  THEN ExtendedCost END ASC, 
+			CASE WHEN (@SortOrder=-1 and @SortColumn='EXTENDEDCOST')  THEN ExtendedCost END DESC
 			OFFSET @RecordFrom ROWS 
 			FETCH NEXT @PageSize ROWS ONLY	
 		END

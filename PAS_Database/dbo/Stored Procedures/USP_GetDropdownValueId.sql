@@ -15,6 +15,7 @@
 	5	 31-Oct-2025		Priyansh Patel			Updated the conditions for the MRO price master
 	6	 10-Nov-2025		Priyansh Patel			Added Delimiter logic for item master SiteId
 	7	 22-Apr-2026		Nakul Chandigra			Added condition for CustomerSettingsModule (PN-15950)
+	7    15-Jun-2026        Ayushi Patel            Added FieldValue sanitization to standardize apostrophe characters for accurate dropdown value matching
 
 DECLARE @FieldValueId VARCHAR(50);
 
@@ -51,7 +52,17 @@ BEGIN
 	BEGIN TRY    
 	
 	BEGIN TRANSACTION
-
+	IF(ISNULL(@FieldValue,'') != '')
+	BEGIN
+		SET @FieldValue =
+			REPLACE(
+				REPLACE(
+					REPLACE(
+						REPLACE(@FieldValue, '''', N'’'),
+					N'‘', N'’'),
+				N'ʼ', N'’'),
+			N'＇', N'’');
+	END
     DECLARE @RefQuery AS NVARCHAR(MAX) = '';
 	DECLARE @ActiveConditions NVARCHAR(MAX) = N'';
 

@@ -21,6 +21,7 @@
 	3    09/28/2023   Hemant Saliya			Updated Qty Remaining
 	4    01/01/2024   Devendra Shekh		updated for serialnumber for MPN
     5    06/04/2026   Ayushi Patel	        PN-15908 Update (Added UOM Changes)
+	6	 18/06/2026	  Ayushi				[PN-16911]Skip fn_ConvertUOM call when ToUOM = FromUOM
 --EXEC [GetPickTicketPrint_WO_MainPart] 5,0
 **************************************************************/
 CREATE   PROCEDURE [dbo].[GetPickTicketPrint_WO_MainPart]
@@ -52,21 +53,10 @@ BEGIN
 						bn.[Name] as BinName,
 						po.PurchaseOrderNumber as PONumber,
 						--sl.QuantityOnHand,
-						ISNULL([dbo].[fn_ConvertUOM](
-							ISNULL(sl.QuantityOnHand,0),
-							ISNULL(sl.[StockUnitOfMeasure], imt.[StockUnitOfMeasure]),
-							ISNULL(sl.[ConsumeUnitOfMeasure], imt.[ConsumeUnitOfMeasure]),
-							0,
-							ISNULL(sl.[MasterCompanyId], imt.[MasterCompanyId])
-						),0) AS QuantityOnHand,
+						ISNULL((CASE WHEN ISNULL(ISNULL(sl.StockUnitOfMeasure,imt.StockUnitOfMeasure),'') = ISNULL(ISNULL(sl.ConsumeUnitOfMeasure,imt.ConsumeUnitOfMeasure),'') THEN ISNULL(sl.QuantityOnHand,0) ELSE dbo.fn_ConvertUOM(ISNULL(sl.QuantityOnHand,0),ISNULL(sl.StockUnitOfMeasure,imt.StockUnitOfMeasure),ISNULL(sl.ConsumeUnitOfMeasure,imt.ConsumeUnitOfMeasure),0,ISNULL(sl.MasterCompanyId,imt.MasterCompanyId)) END),0) AS QuantityOnHand,
+
 						--sl.QuantityAvailable as QtyAvailable,
-						ISNULL([dbo].[fn_ConvertUOM](
-							ISNULL(sl.QuantityAvailable,0),
-							ISNULL(sl.[StockUnitOfMeasure], imt.[StockUnitOfMeasure]),
-							ISNULL(sl.[ConsumeUnitOfMeasure], imt.[ConsumeUnitOfMeasure]),
-							0,
-							ISNULL(sl.[MasterCompanyId], imt.[MasterCompanyId])
-						),0) AS QtyAvailable,
+						ISNULL((CASE WHEN ISNULL(ISNULL(sl.StockUnitOfMeasure,imt.StockUnitOfMeasure),'') = ISNULL(ISNULL(sl.ConsumeUnitOfMeasure,imt.ConsumeUnitOfMeasure),'') THEN ISNULL(sl.QuantityAvailable,0) ELSE dbo.fn_ConvertUOM(ISNULL(sl.QuantityAvailable,0),ISNULL(sl.StockUnitOfMeasure,imt.StockUnitOfMeasure),ISNULL(sl.ConsumeUnitOfMeasure,imt.ConsumeUnitOfMeasure),0,ISNULL(sl.MasterCompanyId,imt.MasterCompanyId)) END),0) AS QtyAvailable,
 						wowf.Memo AS Notes,
 						(wop.Quantity - cte.TotalQtyToShip) as ReadyToPick,
 						wopt.QtyRemaining,

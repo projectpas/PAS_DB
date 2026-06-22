@@ -18,6 +18,8 @@
 	2   25-Aug-2023     Bhargav Saliya      Conver Dates UTC to Legal Entity Time Zone
 	3   12-Sept-2024    Shrey Chandegara	Modified due to add TotalQuoteAmount and TotalQuoteApprovalAmount
 	4   18/04/2025      Ayushi Added        the condition for pn , pndescription , serialnum
+	5   04/06/2026      Priyansh Patel      UOM changes the decimal to 2 [PN-16305]
+
 **************************************************************/
 CREATE   PROCEDURE [dbo].[usprpt_GetWorkOrderStageMonitoringReport]
 	@PageNumber INT = 1,
@@ -265,7 +267,7 @@ BEGIN
 					GROUP BY MasterCompanyId)  
 
 					SELECT COUNT(2) OVER () AS TotalRecordsCount, workorderPartId, customername, pn, partNos, pndescription, serialnum, workscope, workOrderId, wonum, workOrderNum, fromstage, tostage, employee,
-					currentstage, recdate, opendate, quotedate, quotenum, quoteamount, quoteapprovalamount, level1, level2, level3, level4, level5, level6, level7, level8, level9, level10
+					currentstage, recdate, opendate, quotedate, quotenum,  FORMAT(quoteamount, 'N', 'en-us')      AS quoteamount, FORMAT(quoteapprovalamount, 'N', 'en-us') AS quoteapprovalamount, level1, level2, level3, level4, level5, level6, level7, level8, level9, level10
 					,Sequence,CurrentStageId,WC.TotalQuoteAmount,WC.TotalQuoteApprovalAmount
 					FROM FinalCTE FC  
 					 INNER JOIN WithTotal WC ON FC.masterCompanyId = WC.masterCompanyId  

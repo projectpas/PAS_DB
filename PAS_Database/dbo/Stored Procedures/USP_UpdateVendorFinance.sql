@@ -16,7 +16,7 @@ CREATE   PROCEDURE [dbo].[USP_UpdateVendorFinance]
     @EDIDescription VARCHAR(500),
     @AeroExchange BIT,
     @AeroExchangeDescription VARCHAR(500),
-    @CreditLimit DECIMAL(18, 2),
+    @CreditLimit DECIMAL(18, 6),
     @CreditTermsId BIGINT,
     @CurrencyId BIGINT,
     @Is1099Required BIT,

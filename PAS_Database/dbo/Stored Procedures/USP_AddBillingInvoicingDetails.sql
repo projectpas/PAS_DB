@@ -31,6 +31,8 @@
 	18   09/01/2026   Vishal Suthar  Added SerialNumber column in BillingInvoicingDetails for SA
 	19   15/01/2026   Vishal Suthar  Issue with new version created for SA
 	20   14/05/2026   Bhargav Saliya	Added UOM Changes [PN-15067]
+	21   18/06/2026   Bhargav Saliya	Added Case For Skip UOM Function If FROM uom and TO uom Both are Same
+
 -- EXEC USP_AddBillingInvoicingDetails 
 ************************************************************************/  
   
@@ -450,14 +452,14 @@ BEGIN
 
 			UPDATE TEMP_TABLE
 			SET 
-				[UnitPrice] = ([dbo].[fn_ConvertUOM](ISNULL([UnitPrice], 0),IM.[ConsumeUnitOfMeasure],IM.[StockUnitOfMeasure] ,0,TEMP_TABLE.MasterCompanyId)),
-				[QtyBilled] = ([dbo].[fn_ConvertUOM](ISNULL([QtyBilled], 0),IM.[ConsumeUnitOfMeasure],IM.[StockUnitOfMeasure] ,0,TEMP_TABLE.MasterCompanyId)),
-				[PartCost] = ([dbo].[fn_ConvertUOM](ISNULL([PartCost], 0),IM.[ConsumeUnitOfMeasure],IM.[StockUnitOfMeasure] ,0,TEMP_TABLE.MasterCompanyId)),
-				[SubTotal] = ([dbo].[fn_ConvertUOM](ISNULL([SubTotal], 0),IM.[ConsumeUnitOfMeasure],IM.[StockUnitOfMeasure] ,0,TEMP_TABLE.MasterCompanyId)),
-				[GrandTotal] = ([dbo].[fn_ConvertUOM](ISNULL([GrandTotal], 0),IM.[ConsumeUnitOfMeasure],IM.[StockUnitOfMeasure] ,0,TEMP_TABLE.MasterCompanyId)),
-				[UnitSalePrice] = ([dbo].[fn_ConvertUOM](ISNULL([UnitSalePrice], 0),IM.[ConsumeUnitOfMeasure],IM.[StockUnitOfMeasure] ,0,TEMP_TABLE.MasterCompanyId)),
-				[MarkUpAmount] = ([dbo].[fn_ConvertUOM](ISNULL([MarkUpAmount], 0),IM.[ConsumeUnitOfMeasure],IM.[StockUnitOfMeasure] ,0,TEMP_TABLE.MasterCompanyId)),
-				[DiscountAmount] = ([dbo].[fn_ConvertUOM](ISNULL([DiscountAmount], 0),IM.[ConsumeUnitOfMeasure],IM.[StockUnitOfMeasure] ,0,TEMP_TABLE.MasterCompanyId))
+				[UnitPrice] = (CASE WHEN ISNULL(IM.[ConsumeUnitOfMeasure],'') = ISNULL(IM.[StockUnitOfMeasure],'') THEN ISNULL([UnitPrice], 0) ELSE [dbo].[fn_ConvertUOM](ISNULL([UnitPrice], 0),IM.[ConsumeUnitOfMeasure],IM.[StockUnitOfMeasure],1,TEMP_TABLE.MasterCompanyId) END),
+				[QtyBilled] = (CASE WHEN ISNULL(IM.[ConsumeUnitOfMeasure],'') = ISNULL(IM.[StockUnitOfMeasure],'') THEN ISNULL([QtyBilled], 0) ELSE [dbo].[fn_ConvertUOM](ISNULL([QtyBilled], 0),IM.[ConsumeUnitOfMeasure],IM.[StockUnitOfMeasure],0,TEMP_TABLE.MasterCompanyId) END),
+				[PartCost] = (CASE WHEN ISNULL(IM.[ConsumeUnitOfMeasure],'') = ISNULL(IM.[StockUnitOfMeasure],'') THEN ISNULL([PartCost], 0) ELSE [dbo].[fn_ConvertUOM](ISNULL([PartCost], 0),IM.[ConsumeUnitOfMeasure],IM.[StockUnitOfMeasure],1,TEMP_TABLE.MasterCompanyId) END),
+				[SubTotal] = (CASE WHEN ISNULL(IM.[ConsumeUnitOfMeasure],'') = ISNULL(IM.[StockUnitOfMeasure],'') THEN ISNULL([SubTotal], 0) ELSE [dbo].[fn_ConvertUOM](ISNULL([SubTotal], 0),IM.[ConsumeUnitOfMeasure],IM.[StockUnitOfMeasure],1,TEMP_TABLE.MasterCompanyId) END),
+				[GrandTotal] = (CASE WHEN ISNULL(IM.[ConsumeUnitOfMeasure],'') = ISNULL(IM.[StockUnitOfMeasure],'') THEN ISNULL([GrandTotal], 0) ELSE [dbo].[fn_ConvertUOM](ISNULL([GrandTotal], 0),IM.[ConsumeUnitOfMeasure],IM.[StockUnitOfMeasure],1,TEMP_TABLE.MasterCompanyId) END),
+				[UnitSalePrice] = (CASE WHEN ISNULL(IM.[ConsumeUnitOfMeasure],'') = ISNULL(IM.[StockUnitOfMeasure],'') THEN ISNULL([UnitSalePrice], 0) ELSE [dbo].[fn_ConvertUOM](ISNULL([UnitSalePrice], 0),IM.[ConsumeUnitOfMeasure],IM.[StockUnitOfMeasure],1,TEMP_TABLE.MasterCompanyId) END),
+				[MarkUpAmount] = (CASE WHEN ISNULL(IM.[ConsumeUnitOfMeasure],'') = ISNULL(IM.[StockUnitOfMeasure],'') THEN ISNULL([MarkUpAmount], 0) ELSE [dbo].[fn_ConvertUOM](ISNULL([MarkUpAmount], 0),IM.[ConsumeUnitOfMeasure],IM.[StockUnitOfMeasure],1,TEMP_TABLE.MasterCompanyId) END),
+				[DiscountAmount] = (CASE WHEN ISNULL(IM.[ConsumeUnitOfMeasure],'') = ISNULL(IM.[StockUnitOfMeasure],'') THEN ISNULL([DiscountAmount], 0) ELSE [dbo].[fn_ConvertUOM](ISNULL([DiscountAmount], 0),IM.[ConsumeUnitOfMeasure],IM.[StockUnitOfMeasure],1,TEMP_TABLE.MasterCompanyId) END)
 			FROM #tmprAddBillingInvoicingDetailsTemp TEMP_TABLE
 			JOIN dbo.ItemMaster IM WITH(NOLOCK) ON TEMP_TABLE.ItemMasterId = IM.ItemMasterId
 			WHERE [PKID] = @MinId 

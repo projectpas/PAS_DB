@@ -13,7 +13,8 @@
     2    11/18/2024		 Devendra Shekh				Modified (handled null value for @ARConditionId)
 	3    03/19/2025		 Devendra Shekh				Updated For Checking PMA/DER Restrict Parts
 	4    03/16/2026		 AMIT GHEDIYA				Allow AR condition to reserve (PN-15562)
- **5    18/Mar/2026	 Rajesh Gami				Added UOM Changes [PN-15714]        
+ ** 5   18/Mar/2026	     Rajesh Gami				Added UOM Changes [PN-15714]   
+	6	 19/06/2026		 Ayushi				        [PN-16911]Skip fn_ConvertUOM call when ToUOM = FromUOM
 EXECUTE USP_GetWorkOrdMaterialsStocklineListForReserve 3847,0,0,3399,0
 
 exec dbo.USP_GetWOMStocklineListForReserve @PageNumber=1,@PageSize=10,@SortColumn=default,@SortOrder=1,@WorkFlowWorkOrderId=3847,@ItemMasterId=0,@WorkOrderMaterialsId=16483,@KitId=0,@IncludeCustomerStock=0
@@ -982,29 +983,30 @@ SET NOCOUNT ON
 				END
 
 				SELECT [WorkOrderId], [WorkFlowWorkOrderId], [WorkOrderMaterialsId], [WOMStockLineId], [ItemMasterId],
-									[AltPartMasterPartId], [EquPartMasterPartId], [ConditionId], [StocklineConditionId], [ConditionGroup], [MasterCompanyId], 
-									dbo.fn_ConvertUOM([Quantity], StockUOM, ConsumeUOM,0,[MasterCompanyId]) [Quantity], 
-									dbo.fn_ConvertUOM([QuantityReserved], StockUOM, ConsumeUOM,0,[MasterCompanyId]) [QuantityReserved], 
-									dbo.fn_ConvertUOM([QuantityIssued], StockUOM, ConsumeUOM,0,[MasterCompanyId]) [QuantityIssued], 
-									dbo.fn_ConvertUOM([QuantityOnOrder], StockUOM, ConsumeUOM,0,[MasterCompanyId]) [QuantityOnOrder], 
-									dbo.fn_ConvertUOM([QtyToBeReserved], StockUOM, ConsumeUOM,0,[MasterCompanyId]) [QtyToBeReserved], 
-									dbo.fn_ConvertUOM(UnitCost, StockUOM, ConsumeUOM,1,[MasterCompanyId]) [UnitCost], 
-									dbo.fn_ConvertUOM([ExtendedCost], StockUOM, ConsumeUOM,1,[MasterCompanyId]) [ExtendedCost], 
-									[TaskId], [ProvisionId], [PartNumber], [PartDescription], [MainPartNumber],[MainPartDescription], [MainManufacturer], [MainCondition], [StocklineId],
-									[Condition], [StockLineNumber], [ControlNo], [ControlId], [Manufacturer], [SerialNumber], 
-									dbo.fn_ConvertUOM([QuantityAvailable], StockUOM, ConsumeUOM,0,[MasterCompanyId]) [QuantityAvailable], 
-									dbo.fn_ConvertUOM([QuantityOnHand], StockUOM, ConsumeUOM,0,[MasterCompanyId]) [QuantityOnHand], 
-									[CreatedDate], 
-									dbo.fn_ConvertUOM([StocklineQuantityOnOrder], StockUOM, ConsumeUOM,0,[MasterCompanyId]) [StocklineQuantityOnOrder], 
-									dbo.fn_ConvertUOM([StocklineQuantityTurnIn], StockUOM, ConsumeUOM,0,[MasterCompanyId]) [StocklineQuantityTurnIn],
-									[UnitOfMeasure], [Provision], [ProvisionStatusCode], [StockType], 
-									dbo.fn_ConvertUOM([MSQuantityRequsted], StockUOM, ConsumeUOM,0,[MasterCompanyId]) [MSQuantityRequsted], 
-									dbo.fn_ConvertUOM([MSQuantityReserved], StockUOM, ConsumeUOM,0,[MasterCompanyId]) [MSQuantityReserved], 
-									dbo.fn_ConvertUOM([MSQuantityIssued], StockUOM, ConsumeUOM,0,[MasterCompanyId]) [MSQuantityIssued], 
-									dbo.fn_ConvertUOM([StocklineUnitCost], StockUOM, ConsumeUOM,1,[MasterCompanyId])  [StocklineUnitCost], 
-									dbo.fn_ConvertUOM([MSQunatityRemaining], StockUOM, ConsumeUOM,0,[MasterCompanyId]) [MSQunatityRemaining], 
-									[StocklineProvision], 
-									[StocklineProvisionCode], [IsStocklineAdded], [IsAltPart], [IsEquPart], [TaskName],StockUOM,ConsumeUOM, @Count AS NumberOfItems FROM #finalReserveMaterialListResult
+						[AltPartMasterPartId], [EquPartMasterPartId], [ConditionId], [StocklineConditionId], [ConditionGroup], [MasterCompanyId],
+						CASE WHEN ISNULL(StockUOM,'') = ISNULL(ConsumeUOM,'') THEN ISNULL([Quantity],0) ELSE dbo.fn_ConvertUOM([Quantity],StockUOM,ConsumeUOM,0,[MasterCompanyId]) END AS [Quantity],
+						CASE WHEN ISNULL(StockUOM,'') = ISNULL(ConsumeUOM,'') THEN ISNULL([QuantityReserved],0) ELSE dbo.fn_ConvertUOM([QuantityReserved],StockUOM,ConsumeUOM,0,[MasterCompanyId]) END AS [QuantityReserved],
+						CASE WHEN ISNULL(StockUOM,'') = ISNULL(ConsumeUOM,'') THEN ISNULL([QuantityIssued],0) ELSE dbo.fn_ConvertUOM([QuantityIssued],StockUOM,ConsumeUOM,0,[MasterCompanyId]) END AS [QuantityIssued],
+						CASE WHEN ISNULL(StockUOM,'') = ISNULL(ConsumeUOM,'') THEN ISNULL([QuantityOnOrder],0) ELSE dbo.fn_ConvertUOM([QuantityOnOrder],StockUOM,ConsumeUOM,0,[MasterCompanyId]) END AS [QuantityOnOrder],
+						CASE WHEN ISNULL(StockUOM,'') = ISNULL(ConsumeUOM,'') THEN ISNULL([QtyToBeReserved],0) ELSE dbo.fn_ConvertUOM([QtyToBeReserved],StockUOM,ConsumeUOM,0,[MasterCompanyId]) END AS [QtyToBeReserved],
+						CASE WHEN ISNULL(StockUOM,'') = ISNULL(ConsumeUOM,'') THEN ISNULL([UnitCost],0) ELSE dbo.fn_ConvertUOM([UnitCost],StockUOM,ConsumeUOM,1,[MasterCompanyId]) END AS [UnitCost],
+						CASE WHEN ISNULL(StockUOM,'') = ISNULL(ConsumeUOM,'') THEN ISNULL([ExtendedCost],0) ELSE dbo.fn_ConvertUOM([ExtendedCost],StockUOM,ConsumeUOM,1,[MasterCompanyId]) END AS [ExtendedCost],
+						[TaskId], [ProvisionId], [PartNumber], [PartDescription], [MainPartNumber],[MainPartDescription], [MainManufacturer], [MainCondition], [StocklineId],
+						[Condition], [StockLineNumber], [ControlNo], [ControlId], [Manufacturer], [SerialNumber],
+						CASE WHEN ISNULL(StockUOM,'') = ISNULL(ConsumeUOM,'') THEN ISNULL([QuantityAvailable],0) ELSE dbo.fn_ConvertUOM([QuantityAvailable],StockUOM,ConsumeUOM,0,[MasterCompanyId]) END AS [QuantityAvailable],
+						CASE WHEN ISNULL(StockUOM,'') = ISNULL(ConsumeUOM,'') THEN ISNULL([QuantityOnHand],0) ELSE dbo.fn_ConvertUOM([QuantityOnHand],StockUOM,ConsumeUOM,0,[MasterCompanyId]) END AS [QuantityOnHand],
+						[CreatedDate],
+						CASE WHEN ISNULL(StockUOM,'') = ISNULL(ConsumeUOM,'') THEN ISNULL([StocklineQuantityOnOrder],0) ELSE dbo.fn_ConvertUOM([StocklineQuantityOnOrder],StockUOM,ConsumeUOM,0,[MasterCompanyId]) END AS [StocklineQuantityOnOrder],
+						CASE WHEN ISNULL(StockUOM,'') = ISNULL(ConsumeUOM,'') THEN ISNULL([StocklineQuantityTurnIn],0) ELSE dbo.fn_ConvertUOM([StocklineQuantityTurnIn],StockUOM,ConsumeUOM,0,[MasterCompanyId]) END AS [StocklineQuantityTurnIn],
+						[UnitOfMeasure], [Provision], [ProvisionStatusCode], [StockType],
+						CASE WHEN ISNULL(StockUOM,'') = ISNULL(ConsumeUOM,'') THEN ISNULL([MSQuantityRequsted],0) ELSE dbo.fn_ConvertUOM([MSQuantityRequsted],StockUOM,ConsumeUOM,0,[MasterCompanyId]) END AS [MSQuantityRequsted],
+						CASE WHEN ISNULL(StockUOM,'') = ISNULL(ConsumeUOM,'') THEN ISNULL([MSQuantityReserved],0) ELSE dbo.fn_ConvertUOM([MSQuantityReserved],StockUOM,ConsumeUOM,0,[MasterCompanyId]) END AS [MSQuantityReserved],
+						CASE WHEN ISNULL(StockUOM,'') = ISNULL(ConsumeUOM,'') THEN ISNULL([MSQuantityIssued],0) ELSE dbo.fn_ConvertUOM([MSQuantityIssued],StockUOM,ConsumeUOM,0,[MasterCompanyId]) END AS [MSQuantityIssued],
+						CASE WHEN ISNULL(StockUOM,'') = ISNULL(ConsumeUOM,'') THEN ISNULL([StocklineUnitCost],0) ELSE dbo.fn_ConvertUOM([StocklineUnitCost],StockUOM,ConsumeUOM,1,[MasterCompanyId]) END AS [StocklineUnitCost],
+						CASE WHEN ISNULL(StockUOM,'') = ISNULL(ConsumeUOM,'') THEN ISNULL([MSQunatityRemaining],0) ELSE dbo.fn_ConvertUOM([MSQunatityRemaining],StockUOM,ConsumeUOM,0,[MasterCompanyId]) END AS [MSQunatityRemaining],
+						[StocklineProvision],
+						[StocklineProvisionCode], [IsStocklineAdded], [IsAltPart], [IsEquPart], [TaskName], StockUOM, ConsumeUOM, @Count AS NumberOfItems
+						FROM #finalReserveMaterialListResult
 				ORDER BY    
 					CASE WHEN (@SortOrder=1 and @SortColumn='TaskName')  THEN TaskName END ASC,
 					CASE WHEN (@SortOrder=1 and @SortColumn='PartNumber')  THEN PartNumber END ASC,  

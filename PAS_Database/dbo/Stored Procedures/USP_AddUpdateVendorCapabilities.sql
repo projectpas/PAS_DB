@@ -11,6 +11,7 @@
 ** --   ----------   ------------   --------------------------------
 ** 1    02-07-2025   Ayushi Patel   Created
 ** 2    05-12-2025   Moin Bloch     Added CapabilityTypeName
+** 3    09-06-2026   Ayushi Patel   [PN-16782]UOM Changes 
 
 -- EXEC USP_AddUpdateVendorCapabilities 4797
 **************************************************************/
@@ -61,7 +62,7 @@ BEGIN
                 @VendorRanking INT,
                 @IsPMA BIT,
                 @IsDER BIT,
-                @Cost DECIMAL(18,2),
+                @Cost DECIMAL(18,6),
                 @TAT NVARCHAR(100),
                 @Memo NVARCHAR(MAX),
                 @IsActive BIT,

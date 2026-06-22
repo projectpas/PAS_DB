@@ -26,7 +26,7 @@
     [EDIDescription]          VARCHAR (100)   NULL,
     [AeroExchange]            BIT             NOT NULL,
     [AeroExchangeDescription] VARCHAR (100)   NULL,
-    [CreditLimit]             DECIMAL (18, 2) NULL,
+    [CreditLimit]             DECIMAL (18, 6) NULL,
     [CreditTermsId]           INT             NULL,
     [CurrencyId]              INT             NULL,
     [DiscountId]              BIGINT          NULL,

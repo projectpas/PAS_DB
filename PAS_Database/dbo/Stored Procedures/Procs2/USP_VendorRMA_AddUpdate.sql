@@ -16,7 +16,7 @@
 	4    07/23/2024   Vishal Suthar		Updating EnforcePickTicketConfirmation column from VendorRMASettings
 	5    02-03-2026	  Amit Ghediya		UOM Conversion Changes [PN-15140]
 	6    02-06-2026	  Ayushi Patel		UOM Conversion Changes [PN-16604]
-
+	7	 19/06/2026	  Ayushi			[PN-16911]Skip fn_ConvertUOM call when ToUOM = FromUOM
 *******************************************************************************/
 CREATE    PROCEDURE [dbo].[USP_VendorRMA_AddUpdate]
 	@VendorRMAId BIGINT,
@@ -95,20 +95,37 @@ BEGIN
 				
 			INSERT INTO [dbo].[VendorRMADetail]([VendorRMAId],[RMANum],[StockLineId],[ReferenceId],[ItemMasterId],[SerialNumber],[Qty],[UnitCost],[ExtendedCost]
 				,[VendorRMAReturnReasonId],[VendorRMAStatusId],[VendorShippingAddressId],[Notes],[MasterCompanyId],[CreatedBy]
-                ,[CreatedDate],[UpdatedBy],[UpdatedDate],[IsActive],[IsDeleted],[QuantityBackOrdered],[QuantityRejected],[ModuleId],[QtyShipped]
+				,[CreatedDate],[UpdatedBy],[UpdatedDate],[IsActive],[IsDeleted],[QuantityBackOrdered],[QuantityRejected],[ModuleId],[QtyShipped]
 				,[ReferenceNumber])
-			SELECT @VendorRMAId,[RMANum],VR.[StockLineId],VR.[ReferenceId],VR.[ItemMasterId],VR.[SerialNumber],([dbo].[fn_ConvertUOM](ISNULL(VR.[Qty], 0),IM.[PurchaseUnitOfMeasure],IM.[StockUnitOfMeasure],0,IM.[MasterCompanyId])),([dbo].[fn_ConvertUOM](ISNULL(VR.[UnitCost], 0),IM.[PurchaseUnitOfMeasure],IM.[StockUnitOfMeasure],1,IM.[MasterCompanyId])),([dbo].[fn_ConvertUOM](ISNULL(VR.[ExtendedCost], 0),IM.[PurchaseUnitOfMeasure],IM.[StockUnitOfMeasure],1,IM.[MasterCompanyId]))
-				,VR.[VendorRMAReturnReasonId],VR.[VendorRMAStatusId],VR.[VendorShippingAddressId],VR.[Notes],@MasterCompanyId,@CreatedBy
-				,GETUTCDATE(),@UpdatedBy,GETUTCDATE(),1,0,([dbo].[fn_ConvertUOM](ISNULL(VR.[Qty], 0),IM.[PurchaseUnitOfMeasure],IM.[StockUnitOfMeasure],0,IM.[MasterCompanyId])),0,VR.[ModuleId],0,
+			SELECT @VendorRMAId,[RMANum],VR.[StockLineId],VR.[ReferenceId],VR.[ItemMasterId],VR.[SerialNumber],
+			CASE WHEN ISNULL(IM.PurchaseUnitOfMeasure,'') = ISNULL(IM.StockUnitOfMeasure,'') THEN ISNULL(VR.[Qty],0) ELSE dbo.fn_ConvertUOM(ISNULL(VR.[Qty],0),IM.[PurchaseUnitOfMeasure],IM.[StockUnitOfMeasure],0,IM.[MasterCompanyId]) END,
+			CASE WHEN ISNULL(IM.PurchaseUnitOfMeasure,'') = ISNULL(IM.StockUnitOfMeasure,'') THEN ISNULL(VR.[UnitCost],0) ELSE dbo.fn_ConvertUOM(ISNULL(VR.[UnitCost],0),IM.[PurchaseUnitOfMeasure],IM.[StockUnitOfMeasure],1,IM.[MasterCompanyId]) END,
+			CASE WHEN ISNULL(IM.PurchaseUnitOfMeasure,'') = ISNULL(IM.StockUnitOfMeasure,'') THEN ISNULL(VR.[ExtendedCost],0) ELSE dbo.fn_ConvertUOM(ISNULL(VR.[ExtendedCost],0),IM.[PurchaseUnitOfMeasure],IM.[StockUnitOfMeasure],1,IM.[MasterCompanyId]) END,
+				 VR.[VendorRMAReturnReasonId],VR.[VendorRMAStatusId],VR.[VendorShippingAddressId],VR.[Notes],@MasterCompanyId,@CreatedBy
+				,GETUTCDATE(),@UpdatedBy,GETUTCDATE(),1,0,
+			CASE WHEN ISNULL(IM.PurchaseUnitOfMeasure,'') = ISNULL(IM.StockUnitOfMeasure,'') THEN ISNULL(VR.[Qty],0) ELSE dbo.fn_ConvertUOM(ISNULL(VR.[Qty],0),IM.[PurchaseUnitOfMeasure],IM.[StockUnitOfMeasure],0,IM.[MasterCompanyId]) END,
+			0,VR.[ModuleId],0,
 				(@StkReserveRefNumber + ' PN -' + ST.PartNumber + ' StockId -' + ST.StockLineNumber)
 			FROM @VendorRMADetail VR
 			INNER JOIN [dbo].[Stockline] ST WITH (NOLOCK) ON ST.[StockLineId] = VR.[StockLineId]
 			INNER JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON ST.[ItemMasterId] = IM.[ItemMasterId];
 
-			UPDATE  [dbo].[Stockline]
-			SET [QuantityAvailable] -= ([dbo].[fn_ConvertUOM](ISNULL(VR.[Qty], 0),IM.[PurchaseUnitOfMeasure],IM.[StockUnitOfMeasure],0,IM.[MasterCompanyId])),
-				[QuantityReserved] += ([dbo].[fn_ConvertUOM](ISNULL(VR.[Qty], 0),IM.[PurchaseUnitOfMeasure],IM.[StockUnitOfMeasure],0,IM.[MasterCompanyId]))
-				,[Memo] = 'StockLine Added into RMA ' + VR.RMANum				  
+			UPDATE [dbo].[Stockline]
+			SET [QuantityAvailable] -= (
+					CASE 
+						WHEN ISNULL(IM.PurchaseUnitOfMeasure,'') = ISNULL(IM.StockUnitOfMeasure,'')
+							THEN ISNULL(VR.[Qty],0)
+						ELSE dbo.fn_ConvertUOM(ISNULL(VR.[Qty],0),IM.[PurchaseUnitOfMeasure],IM.[StockUnitOfMeasure],0,IM.[MasterCompanyId])
+					END
+				),
+				[QuantityReserved] += (
+					CASE 
+						WHEN ISNULL(IM.PurchaseUnitOfMeasure,'') = ISNULL(IM.StockUnitOfMeasure,'')
+							THEN ISNULL(VR.[Qty],0)
+						ELSE dbo.fn_ConvertUOM(ISNULL(VR.[Qty],0),IM.[PurchaseUnitOfMeasure],IM.[StockUnitOfMeasure],0,IM.[MasterCompanyId])
+					END
+				),
+				[Memo] = 'StockLine Added into RMA ' + VR.RMANum
 			FROM @VendorRMADetail VR
 			INNER JOIN [dbo].[Stockline] ST WITH (NOLOCK) ON ST.[StockLineId] = VR.[StockLineId]
 			INNER JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON ST.[ItemMasterId] = IM.[ItemMasterId]
@@ -121,7 +138,15 @@ BEGIN
 			INSERT INTO #tmpReturnVendorRMAId ([VendorRMAId]) VALUES (@VendorRMAId);
 
 			INSERT INTO #tmpReturnVendorRMACreate ([VendorRMADetailId],[Qty],[StockLineId],IsDeleted) 
-			SELECT VR.[VendorRMADetailId],([dbo].[fn_ConvertUOM](ISNULL(VR.[Qty], 0),IM.[PurchaseUnitOfMeasure],IM.[StockUnitOfMeasure],0,IM.[MasterCompanyId])),VR.[StockLineId],VR.IsDeleted 
+			SELECT 
+				VR.[VendorRMADetailId],
+				CASE 
+					WHEN ISNULL(IM.PurchaseUnitOfMeasure,'') = ISNULL(IM.StockUnitOfMeasure,'')
+						THEN ISNULL(VR.[Qty],0)
+					ELSE dbo.fn_ConvertUOM(ISNULL(VR.[Qty],0),IM.[PurchaseUnitOfMeasure],IM.[StockUnitOfMeasure],0,IM.[MasterCompanyId])
+				END,
+				VR.[StockLineId],
+				VR.IsDeleted
 			FROM @VendorRMADetail VR
 			INNER JOIN [dbo].[Stockline] ST WITH (NOLOCK) ON ST.[StockLineId] = VR.[StockLineId]
 			INNER JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON ST.[ItemMasterId] = IM.[ItemMasterId];
@@ -147,7 +172,14 @@ BEGIN
 						
 			INSERT INTO #tmpReturnVendorRMAUpdate 
 			([VendorRMADetailId],[Qty]) 
-			SELECT t.[VendorRMADetailId],([dbo].[fn_ConvertUOM](ISNULL(t.[Qty], 0),IM.[PurchaseUnitOfMeasure],IM.[StockUnitOfMeasure],0,IM.[MasterCompanyId])) FROM @VendorRMADetail t 
+			SELECT 
+				t.[VendorRMADetailId],
+				CASE 
+					WHEN ISNULL(IM.PurchaseUnitOfMeasure,'') = ISNULL(IM.StockUnitOfMeasure,'')
+						THEN ISNULL(t.[Qty],0)
+					ELSE dbo.fn_ConvertUOM(ISNULL(t.[Qty],0),IM.[PurchaseUnitOfMeasure],IM.[StockUnitOfMeasure],0,IM.[MasterCompanyId])
+				END
+			FROM @VendorRMADetail t 
 			INNER JOIN [dbo].[Stockline] ST WITH (NOLOCK) ON ST.[StockLineId] = t.[StockLineId]
 			INNER JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON ST.[ItemMasterId] = IM.[ItemMasterId]
 			WHERE t.[VendorRMADetailId] > 0 AND t.[IsDeleted] = 0;
@@ -160,8 +192,15 @@ BEGIN
 
 				SELECT @VendorRMADetailId = [VendorRMADetailId], @Qty = [Qty] FROM #tmpReturnVendorRMAUpdate WHERE [ID] = @MasterLoopID;
 
-				SELECT @OldQty = ([dbo].[fn_ConvertUOM](ISNULL(VR.[Qty], 0),IM.[PurchaseUnitOfMeasure],IM.[StockUnitOfMeasure],0,IM.[MasterCompanyId])), @StockLineId = VR.[StockLineId], @RMANum = [RMANum] 
-				FROM [dbo].[VendorRMADetail] VR WITH (NOLOCK) 
+				SELECT 
+					@OldQty = CASE 
+								  WHEN ISNULL(IM.[PurchaseUnitOfMeasure],'') = ISNULL(IM.[StockUnitOfMeasure],'')
+									  THEN ISNULL(VR.[Qty],0)
+								  ELSE dbo.fn_ConvertUOM(ISNULL(VR.[Qty],0),IM.[PurchaseUnitOfMeasure],IM.[StockUnitOfMeasure],0,IM.[MasterCompanyId])
+							  END,
+					@StockLineId = VR.[StockLineId],
+					@RMANum = [RMANum]
+				FROM [dbo].[VendorRMADetail] VR WITH (NOLOCK)
 				INNER JOIN [dbo].[Stockline] ST WITH (NOLOCK) ON ST.[StockLineId] = VR.[StockLineId]
 				INNER JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON ST.[ItemMasterId] = IM.[ItemMasterId]
 				WHERE VR.[VendorRMADetailId] = @VendorRMADetailId;
@@ -204,8 +243,16 @@ BEGIN
                   ,[VendorRMAReturnReasonId] = t.[VendorRMAReturnReasonId]              
                   ,[VendorShippingAddressId] = t.[VendorShippingAddressId]
                   ,[Notes] = t.[Notes]   
-				  ,[Qty] = ([dbo].[fn_ConvertUOM](ISNULL(t.[Qty], 0),IM.[PurchaseUnitOfMeasure],IM.[StockUnitOfMeasure],0,IM.[MasterCompanyId]))
-				  ,[UnitCost] = ([dbo].[fn_ConvertUOM](ISNULL(t.[UnitCost], 0),IM.[PurchaseUnitOfMeasure],IM.[StockUnitOfMeasure],1,IM.[MasterCompanyId]))
+				  ,[Qty] = CASE 
+							  WHEN ISNULL(IM.[PurchaseUnitOfMeasure],'') = ISNULL(IM.[StockUnitOfMeasure],'')
+								  THEN ISNULL(t.[Qty],0)
+							  ELSE dbo.fn_ConvertUOM(ISNULL(t.[Qty],0),IM.[PurchaseUnitOfMeasure],IM.[StockUnitOfMeasure],0,IM.[MasterCompanyId])
+						  END
+				  ,[UnitCost] = CASE 
+								   WHEN ISNULL(IM.[PurchaseUnitOfMeasure],'') = ISNULL(IM.[StockUnitOfMeasure],'')
+									   THEN ISNULL(t.[UnitCost],0)
+								   ELSE dbo.fn_ConvertUOM(ISNULL(t.[UnitCost],0),IM.[PurchaseUnitOfMeasure],IM.[StockUnitOfMeasure],1,IM.[MasterCompanyId])
+							   END
 				  ,[ReferenceNumber] = (@StkUnReserveRefNumber + ' PN -' + ST.PartNumber + ' StockId -' + ST.StockLineNumber)
 				  ,[ExtendedCost] = t.[ExtendedCost]
                   ,[UpdatedBy] = t.[UpdatedBy]
@@ -216,44 +263,81 @@ BEGIN
              WHERE t.[VendorRMADetailId] > 0;	
 
 			INSERT INTO [dbo].[VendorRMADetail]([VendorRMAId],[RMANum],[StockLineId],[ReferenceId],[ItemMasterId],[SerialNumber],[Qty],[UnitCost],[ExtendedCost]
-										   ,[VendorRMAReturnReasonId],[VendorRMAStatusId],[VendorShippingAddressId],[Notes],[MasterCompanyId],[CreatedBy]
-                                           ,[CreatedDate],[UpdatedBy],[UpdatedDate],[IsActive],[IsDeleted],[QuantityBackOrdered],[QuantityRejected],[ModuleId],[QtyShipped]
-										   ,[ReferenceNumber])
-							         SELECT @VendorRMAId,t.[RMANum],t.[StockLineId],t.[ReferenceId],t.[ItemMasterId],t.[SerialNumber],([dbo].[fn_ConvertUOM](ISNULL(t.[Qty], 0),IM.[PurchaseUnitOfMeasure],IM.[StockUnitOfMeasure],0,IM.[MasterCompanyId])),([dbo].[fn_ConvertUOM](ISNULL(t.[UnitCost], 0),IM.[PurchaseUnitOfMeasure],IM.[StockUnitOfMeasure],1,IM.[MasterCompanyId])),([dbo].[fn_ConvertUOM](ISNULL(t.[ExtendedCost], 0),IM.[PurchaseUnitOfMeasure],IM.[StockUnitOfMeasure],1,IM.[MasterCompanyId]))
-										   ,t.[VendorRMAReturnReasonId],t.[VendorRMAStatusId],t.[VendorShippingAddressId],t.[Notes],@MasterCompanyId,@CreatedBy
-                                           ,GETUTCDATE(),@UpdatedBy,GETUTCDATE(),1,0,([dbo].[fn_ConvertUOM](ISNULL([Qty], 0),IM.[PurchaseUnitOfMeasure],IM.[StockUnitOfMeasure],0,IM.[MasterCompanyId])),0,[ModuleId],0
-										   ,(@StkReserveRefNumber + ' PN -' + ST.PartNumber + ' StockId -' + ST.StockLineNumber)
-			FROM @VendorRMADetail t 
-			INNER JOIN [dbo].[Stockline] ST WITH (NOLOCK) ON ST.[StockLineId] = t.[StockLineId]
-			INNER JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON ST.[ItemMasterId] = IM.[ItemMasterId]
-			WHERE t.[VendorRMADetailId] = 0;
+											   ,[VendorRMAReturnReasonId],[VendorRMAStatusId],[VendorShippingAddressId],[Notes],[MasterCompanyId],[CreatedBy]
+											   ,[CreatedDate],[UpdatedBy],[UpdatedDate],[IsActive],[IsDeleted],[QuantityBackOrdered],[QuantityRejected],[ModuleId],[QtyShipped]
+											   ,[ReferenceNumber])
+										 SELECT @VendorRMAId,t.[RMANum],t.[StockLineId],t.[ReferenceId],t.[ItemMasterId],t.[SerialNumber],
+											   CASE WHEN ISNULL(IM.[PurchaseUnitOfMeasure],'') = ISNULL(IM.[StockUnitOfMeasure],'') THEN ISNULL(t.[Qty],0) ELSE dbo.fn_ConvertUOM(ISNULL(t.[Qty],0),IM.[PurchaseUnitOfMeasure],IM.[StockUnitOfMeasure],0,IM.[MasterCompanyId]) END,
+											   CASE WHEN ISNULL(IM.[PurchaseUnitOfMeasure],'') = ISNULL(IM.[StockUnitOfMeasure],'') THEN ISNULL(t.[UnitCost],0) ELSE dbo.fn_ConvertUOM(ISNULL(t.[UnitCost],0),IM.[PurchaseUnitOfMeasure],IM.[StockUnitOfMeasure],1,IM.[MasterCompanyId]) END,
+											   CASE WHEN ISNULL(IM.[PurchaseUnitOfMeasure],'') = ISNULL(IM.[StockUnitOfMeasure],'') THEN ISNULL(t.[ExtendedCost],0) ELSE dbo.fn_ConvertUOM(ISNULL(t.[ExtendedCost],0),IM.[PurchaseUnitOfMeasure],IM.[StockUnitOfMeasure],1,IM.[MasterCompanyId]) END,
+											   t.[VendorRMAReturnReasonId],t.[VendorRMAStatusId],t.[VendorShippingAddressId],t.[Notes],@MasterCompanyId,@CreatedBy
+											   ,GETUTCDATE(),@UpdatedBy,GETUTCDATE(),1,0,
+											   CASE WHEN ISNULL(IM.[PurchaseUnitOfMeasure],'') = ISNULL(IM.[StockUnitOfMeasure],'') THEN ISNULL([Qty],0) ELSE dbo.fn_ConvertUOM(ISNULL([Qty],0),IM.[PurchaseUnitOfMeasure],IM.[StockUnitOfMeasure],0,IM.[MasterCompanyId]) END,
+											   0,[ModuleId],0
+											   ,(@StkReserveRefNumber + ' PN -' + ST.PartNumber + ' StockId -' + ST.StockLineNumber)
+					FROM @VendorRMADetail t 
+					INNER JOIN [dbo].[Stockline] ST WITH (NOLOCK) ON ST.[StockLineId] = t.[StockLineId]
+					INNER JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON ST.[ItemMasterId] = IM.[ItemMasterId]
+					WHERE t.[VendorRMADetailId] = 0;
 
 			-- Add New Part On Update
-	        UPDATE  [dbo].[Stockline]
-				SET [QuantityAvailable] -= ([dbo].[fn_ConvertUOM](ISNULL(VR.[Qty], 0),IM.[PurchaseUnitOfMeasure],IM.[StockUnitOfMeasure],0,IM.[MasterCompanyId])),
-				    [QuantityReserved] += ([dbo].[fn_ConvertUOM](ISNULL(VR.[Qty], 0),IM.[PurchaseUnitOfMeasure],IM.[StockUnitOfMeasure],0,IM.[MasterCompanyId]))
-				   ,[Memo] = 'StockLine Added into RMA ' + VR.RMANum				  
+			UPDATE [dbo].[Stockline]
+			SET [QuantityAvailable] -= (
+					CASE 
+						WHEN ISNULL(IM.[PurchaseUnitOfMeasure],'') = ISNULL(IM.[StockUnitOfMeasure],'')
+							THEN ISNULL(VR.[Qty],0)
+						ELSE dbo.fn_ConvertUOM(ISNULL(VR.[Qty],0),IM.[PurchaseUnitOfMeasure],IM.[StockUnitOfMeasure],0,IM.[MasterCompanyId])
+					END
+				),
+				[QuantityReserved] += (
+					CASE 
+						WHEN ISNULL(IM.[PurchaseUnitOfMeasure],'') = ISNULL(IM.[StockUnitOfMeasure],'')
+							THEN ISNULL(VR.[Qty],0)
+						ELSE dbo.fn_ConvertUOM(ISNULL(VR.[Qty],0),IM.[PurchaseUnitOfMeasure],IM.[StockUnitOfMeasure],0,IM.[MasterCompanyId])
+					END
+				),
+				[Memo] = 'StockLine Added into RMA ' + VR.RMANum
 			FROM @VendorRMADetail VR
-			INNER JOIN [dbo].[Stockline] ST WITH (NOLOCK) ON ST.[StockLineId] = VR.[StockLineId]	
+			INNER JOIN [dbo].[Stockline] ST WITH (NOLOCK) ON ST.[StockLineId] = VR.[StockLineId]
 			INNER JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON ST.[ItemMasterId] = IM.[ItemMasterId]
 			WHERE VR.[VendorRMADetailId] = 0;
 
 			-- DELETE PART
-		    UPDATE  [dbo].[Stockline] 
-				SET [QuantityAvailable] += ([dbo].[fn_ConvertUOM](ISNULL(VR.[Qty], 0),IM.[PurchaseUnitOfMeasure],IM.[StockUnitOfMeasure],0,IM.[MasterCompanyId])), 
-				    [QuantityReserved] -= ([dbo].[fn_ConvertUOM](ISNULL(VR.[Qty], 0),IM.[PurchaseUnitOfMeasure],IM.[StockUnitOfMeasure],0,IM.[MasterCompanyId]))
-				   ,[Memo] = 'StockLine DELETED FROM RMA ' + VR.RMANum	
-			FROM @VendorRMADetail VR 
+			UPDATE [dbo].[Stockline]
+			SET [QuantityAvailable] += (
+					CASE 
+						WHEN ISNULL(IM.[PurchaseUnitOfMeasure],'') = ISNULL(IM.[StockUnitOfMeasure],'')
+							THEN ISNULL(VR.[Qty],0)
+						ELSE dbo.fn_ConvertUOM(ISNULL(VR.[Qty],0),IM.[PurchaseUnitOfMeasure],IM.[StockUnitOfMeasure],0,IM.[MasterCompanyId])
+					END
+				),
+				[QuantityReserved] -= (
+					CASE 
+						WHEN ISNULL(IM.[PurchaseUnitOfMeasure],'') = ISNULL(IM.[StockUnitOfMeasure],'')
+							THEN ISNULL(VR.[Qty],0)
+						ELSE dbo.fn_ConvertUOM(ISNULL(VR.[Qty],0),IM.[PurchaseUnitOfMeasure],IM.[StockUnitOfMeasure],0,IM.[MasterCompanyId])
+					END
+				),
+				[Memo] = 'StockLine DELETED FROM RMA ' + VR.RMANum
+			FROM @VendorRMADetail VR
 			INNER JOIN [dbo].[Stockline] ST WITH (NOLOCK) ON ST.[StockLineId] = VR.[StockLineId]
 			INNER JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON ST.[ItemMasterId] = IM.[ItemMasterId]
 			WHERE VR.[VendorRMADetailId] > 0 AND VR.[IsDeleted] = 1;
 			
 			DELETE FROM #tmpReturnVendorRMACreate;
 
-			INSERT INTO #tmpReturnVendorRMACreate ([VendorRMADetailId],[Qty],[StockLineId],IsDeleted) 
-			SELECT VR.[VendorRMADetailId],([dbo].[fn_ConvertUOM](ISNULL(VR.[Qty], 0),IM.[PurchaseUnitOfMeasure],IM.[StockUnitOfMeasure],0,IM.[MasterCompanyId])),VR.[StockLineId],VR.IsDeleted 
-			FROM @VendorRMADetail VR 
-			INNER JOIN [dbo].[Stockline] ST WITH (NOLOCK) ON ST.[StockLineId] = VR.[StockLineId]	
+			INSERT INTO #tmpReturnVendorRMACreate ([VendorRMADetailId],[Qty],[StockLineId],IsDeleted)
+			SELECT 
+				VR.[VendorRMADetailId],
+				CASE 
+					WHEN ISNULL(IM.[PurchaseUnitOfMeasure],'') = ISNULL(IM.[StockUnitOfMeasure],'')
+						THEN ISNULL(VR.[Qty],0)
+					ELSE dbo.fn_ConvertUOM(ISNULL(VR.[Qty],0),IM.[PurchaseUnitOfMeasure],IM.[StockUnitOfMeasure],0,IM.[MasterCompanyId])
+				END,
+				VR.[StockLineId],
+				VR.IsDeleted
+			FROM @VendorRMADetail VR
+			INNER JOIN [dbo].[Stockline] ST WITH (NOLOCK) ON ST.[StockLineId] = VR.[StockLineId]
 			INNER JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON ST.[ItemMasterId] = IM.[ItemMasterId];
 
 			SELECT  @MasterLoopID = MAX(ID) FROM #tmpReturnVendorRMACreate

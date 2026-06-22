@@ -16,6 +16,7 @@
 	2    29/01/2026     Moin Bloch		Getting Quantity From PickTicket Insted of Stockline PN-15111
 	3    27/Feb/2026    Rajesh Gami		Added UOM Changes - PN-14832    
 	4    15/Apr/2026	Ayushi Patel	Added UOM Changes [PN-15910]
+	5	 19/06/2026	    Ayushi			[PN-16911]Skip fn_ConvertUOM call when ToUOM = FromUOM
 --EXEC [USP_GetStocklinePrintDataByStockLineId] 
 **************************************************************/
 CREATE PROCEDURE [dbo].[USP_GetStocklinePrintDataByStockLineId]
@@ -50,7 +51,12 @@ BEGIN
 			stl.Bin AS binName,
 			ISNULL(ve.VendorName, '') AS VendorName,
 			CASE 
-				WHEN ISNULL(stl.QuantityOnHand, 0) > 0 THEN dbo.fn_ConvertUOM(stl.QuantityOnHand, uomStock.ShortName, uomConsume.ShortName,0,stl.MasterCompanyId)
+				WHEN ISNULL(stl.QuantityOnHand,0) > 0 
+					THEN CASE 
+							 WHEN ISNULL(uomStock.ShortName,'') = ISNULL(uomConsume.ShortName,'')
+								 THEN ISNULL(stl.QuantityOnHand,0)
+							 ELSE dbo.fn_ConvertUOM(stl.QuantityOnHand,uomStock.ShortName,uomConsume.ShortName,0,stl.MasterCompanyId)
+						 END
 				ELSE 0
 			END AS Quantity,
 			stl.IdNumber AS ControlId,
@@ -102,7 +108,7 @@ BEGIN
             stl.Shelf AS shelfName,
             stl.Bin AS binName,
             ISNULL(ve.VendorName, '') AS VendorName,
-            dbo.fn_ConvertUOM(ISNULL(stl.QuantityOnHand, 0), uomStock.ShortName, uomConsume.ShortName,0,stl.MasterCompanyId)  AS Quantity,
+            CASE WHEN ISNULL(uomStock.ShortName,'') = ISNULL(uomConsume.ShortName,'') THEN ISNULL(stl.QuantityOnHand,0) ELSE dbo.fn_ConvertUOM(ISNULL(stl.QuantityOnHand,0),uomStock.ShortName,uomConsume.ShortName,0,stl.MasterCompanyId) END AS Quantity,
             stl.IdNumber AS ControlId,
             ISNULL(po.PurchaseOrderNumber, '') AS PurchaseOrderNumber,
             stl.ExpirationDate,
@@ -157,7 +163,7 @@ BEGIN
 				stl.Bin AS binName,
 				ISNULL(ve.VendorName, '') AS VendorName,
 				--ISNULL(stl.QuantityOnHand, 0) AS Quantity,
-				dbo.fn_ConvertUOM(ISNULL(wopt.QtyToShip,0), uomStock.ShortName, uomConsume.ShortName,0,stl.MasterCompanyId) AS Quantity,
+				CASE WHEN ISNULL(uomStock.ShortName,'') = ISNULL(uomConsume.ShortName,'') THEN ISNULL(wopt.QtyToShip,0) ELSE dbo.fn_ConvertUOM(ISNULL(wopt.QtyToShip,0),uomStock.ShortName,uomConsume.ShortName,0,stl.MasterCompanyId) END AS Quantity,
 				stl.IdNumber AS ControlId,
 				ISNULL(po.PurchaseOrderNumber, '') AS PurchaseOrderNumber,
 				stl.ExpirationDate,
@@ -213,7 +219,7 @@ BEGIN
 				stl.Bin AS binName,
 				ISNULL(ve.VendorName, '') AS VendorName,
 				--CASE WHEN stl.QuantityOnHand > 0 THEN CAST(stl.QuantityOnHand AS INT) ELSE 0 END AS Quantity,
-				dbo.fn_ConvertUOM(ISNULL(wopt.QtyToShip,0), uomStock.ShortName, uomConsume.ShortName,0,stl.MasterCompanyId) AS Quantity,
+				CASE WHEN ISNULL(uomStock.ShortName,'') = ISNULL(uomConsume.ShortName,'') THEN ISNULL(wopt.QtyToShip,0) ELSE dbo.fn_ConvertUOM(ISNULL(wopt.QtyToShip,0),uomStock.ShortName,uomConsume.ShortName,0,stl.MasterCompanyId) END AS Quantity,
 				stl.IdNumber AS ControlId,
 				ISNULL(po.PurchaseOrderNumber, '') AS PurchaseOrderNumber,
 				stl.ExpirationDate,
@@ -272,7 +278,7 @@ BEGIN
 				stl.Shelf AS shelfName,
 				stl.Bin AS binName,
 				ISNULL(ve.VendorName, '') AS VendorName,
-				dbo.fn_ConvertUOM(ISNULL(stl.QuantityOnHand, 0) , uomStock.ShortName, uomConsume.ShortName,0,stl.MasterCompanyId) AS Quantity,
+				CASE WHEN ISNULL(uomStock.ShortName,'') = ISNULL(uomConsume.ShortName,'') THEN ISNULL(stl.QuantityOnHand,0) ELSE dbo.fn_ConvertUOM(ISNULL(stl.QuantityOnHand,0),uomStock.ShortName,uomConsume.ShortName,0,stl.MasterCompanyId) END AS Quantity,
 				stl.IdNumber AS ControlId,
 				ISNULL(po.PurchaseOrderNumber, '') AS PurchaseOrderNumber,
 				stl.ExpirationDate,
@@ -327,7 +333,7 @@ BEGIN
 				stl.Shelf AS shelfName,
 				stl.Bin AS binName,
 				ISNULL(ve.VendorName, '') AS VendorName,
-				dbo.fn_ConvertUOM(ISNULL(stl.QuantityOnHand, 0) , uomStock.ShortName, uomConsume.ShortName,0,stl.MasterCompanyId) AS Quantity,
+				CASE WHEN ISNULL(uomStock.ShortName,'') = ISNULL(uomConsume.ShortName,'') THEN ISNULL(stl.QuantityOnHand,0) ELSE dbo.fn_ConvertUOM(ISNULL(stl.QuantityOnHand,0),uomStock.ShortName,uomConsume.ShortName,0,stl.MasterCompanyId) END AS Quantity,
 				stl.IdNumber AS ControlId,
 				ISNULL(po.PurchaseOrderNumber, '') AS PurchaseOrderNumber,
 				stl.ExpirationDate,

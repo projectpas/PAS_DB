@@ -29,7 +29,10 @@
 	13   22/07/2024   Amit Ghediya		    Optimization sp.
 	14   22-07-2024   Shrey Chandegara      Modify For date filter issue(use this function @CurrntEmpTimeZoneDesc )
 	15   06-04-2026	  Amit Ghediya			UOM Conversion Changes [PN-15140]  
-     
+	16   03-06-2026	  Priyansh Patel		UOM Conversion Changes for extended cost [PN-16610]  
+	17   19-06-2026	  Priyansh Patel		Add Condition to skip fn_ConvertUOM call [PN-16911]
+    
+
  EXECUTE USP_VendorRMA_GetVendorRMAList 
 **************************************************************/
 CREATE    PROCEDURE [dbo].[USP_VendorRMA_GetVendorRMAList]  
@@ -129,9 +132,9 @@ BEGIN
 			SL.[StockLineId] AS 'StockLineIdType',
 			SL.[StockLineNumber] AS 'StockLineNumberType',
 			IM.[PartDescription] AS 'PartDescriptionType',
-			([dbo].[fn_ConvertUOM](ISNULL(RMAD.[Qty], 0),IM.[StockUnitOfMeasure], IM.[PurchaseUnitOfMeasure],0,IM.[MasterCompanyId])) AS 'QtyType',
-			([dbo].[fn_ConvertUOM](ISNULL(RMAD.[UnitCost], 0),IM.[StockUnitOfMeasure], IM.[PurchaseUnitOfMeasure],1,IM.[MasterCompanyId])) AS 'UnitCostType',
-			RMAD.[ExtendedCost] AS 'ExtendedCostType',
+			(CASE WHEN IM.[StockUnitOfMeasure] = IM.[PurchaseUnitOfMeasure] THEN ISNULL(RMAD.[Qty], 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(RMAD.[Qty], 0),IM.[StockUnitOfMeasure], IM.[PurchaseUnitOfMeasure],0,IM.[MasterCompanyId]) END) AS 'QtyType',
+			(CASE WHEN IM.[StockUnitOfMeasure] = IM.[PurchaseUnitOfMeasure] THEN ISNULL(RMAD.[UnitCost], 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(RMAD.[UnitCost], 0),IM.[StockUnitOfMeasure], IM.[PurchaseUnitOfMeasure],1,IM.[MasterCompanyId]) END) AS 'UnitCostType',
+			(CASE WHEN IM.[StockUnitOfMeasure] = IM.[PurchaseUnitOfMeasure] THEN ISNULL(RMAD.[ExtendedCost], 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(RMAD.[ExtendedCost], 0),IM.[StockUnitOfMeasure], IM.[PurchaseUnitOfMeasure],1,IM.[MasterCompanyId]) END) AS 'ExtendedCostType',
 			RMAD.[ReferenceId] AS 'ReferenceIdType',
 			RMAD.RevisedStocklineId,
 			'' AS 'ReplacementDate',
@@ -147,16 +150,16 @@ BEGIN
 			VS.VendorRMAStatus as 'VendorRMADetailStatus',
 			RMA.RMANumber as 'VendorRMANumber',
 			RMAD.ModuleId,
-			([dbo].[fn_ConvertUOM](ISNULL(RMS.QtyShipped, 0),IM.[StockUnitOfMeasure], IM.[PurchaseUnitOfMeasure],0,IM.[MasterCompanyId])) AS 'QtyShipped',
+			(CASE WHEN IM.[StockUnitOfMeasure] = IM.[PurchaseUnitOfMeasure] THEN ISNULL(RMS.QtyShipped, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(RMS.QtyShipped, 0),IM.[StockUnitOfMeasure], IM.[PurchaseUnitOfMeasure],0,IM.[MasterCompanyId]) END) AS 'QtyShipped',
 			RMAD.VendorRMADetailId,
-			(SELECT ISNULL(SUM(ISNULL(([dbo].[fn_ConvertUOM](ISNULL(SL.[Quantity], 0),IM.[StockUnitOfMeasure], IM.[PurchaseUnitOfMeasure],0,IM.[MasterCompanyId])),0)),0) 
-				FROM [dbo].[Stockline] SL WITH(NOLOCK)
-				LEFT JOIN [DBO].[ItemMaster] IM WITH (NOLOCK) ON SL.[ItemMasterId] = IM.[ItemMasterId]
-				WHERE SL.[VendorRMAId] = RMA.[VendorRMAId]
-				AND SL.[VendorRMADetailId] = RMAD.[VendorRMADetailId]
-				AND SL.[IsParent] = 1
-				AND SL.[IsDeleted] = 0
-			)AS QuantityReceived,
+			(SELECT ISNULL(SUM(ISNULL((CASE WHEN IM.[StockUnitOfMeasure] = IM.[PurchaseUnitOfMeasure] THEN ISNULL(SL.[Quantity], 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(SL.[Quantity], 0),IM.[StockUnitOfMeasure], IM.[PurchaseUnitOfMeasure],0,IM.[MasterCompanyId]) END),0)),0) 
+			FROM [dbo].[Stockline] SL WITH(NOLOCK)
+			LEFT JOIN [DBO].[ItemMaster] IM WITH (NOLOCK) ON SL.[ItemMasterId] = IM.[ItemMasterId]
+			WHERE SL.[VendorRMAId] = RMA.[VendorRMAId]
+			AND SL.[VendorRMADetailId] = RMAD.[VendorRMADetailId]
+			AND SL.[IsParent] = 1
+			AND SL.[IsDeleted] = 0
+			) AS QuantityReceived,
 			SL.Condition
 		FROM [DBO].[VendorRMA] RMA WITH (NOLOCK)
 		INNER JOIN [DBO].[Vendor] V WITH (NOLOCK) ON RMA.VendorId = V.VendorId

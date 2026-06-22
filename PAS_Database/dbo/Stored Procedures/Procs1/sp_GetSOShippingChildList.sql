@@ -26,6 +26,8 @@
     7    12/01/2026    Vishal Suthar     Fixed duplicate shipping records for same stockline (SA multi-invoice)
     8    31/03/2026    Moin Bloch        Added UOM changes PN-15067
     9	 25 APR 2026   RAJESH GAMI       Added MastercompanyId in the condition
+    10	 19/06/2026	   Ayushi		     [PN-16911]Skip fn_ConvertUOM call when ToUOM = FromUOM
+
  EXEC [dbo].[sp_GetSOShippingChildList] 1272, 318, 7  
 **********************/
 CREATE PROCEDURE [dbo].[sp_GetSOShippingChildList]
@@ -56,13 +58,7 @@ BEGIN
             sopt.SOPickTicketNumber,
 
             -- QtyToShip converted to consume UOM
-            ISNULL([dbo].[fn_ConvertUOM](
-                ISNULL(sopt.QtyToShip, 0),
-                imt.StockUnitOfMeasure,
-                imt.ConsumeUnitOfMeasure,
-                0,
-                so.MasterCompanyId
-            ), 0)                                                             AS QtyToShip,
+            ISNULL(CASE WHEN ISNULL(imt.StockUnitOfMeasure,'') = ISNULL(imt.ConsumeUnitOfMeasure,'') THEN ISNULL(sopt.QtyToShip,0) ELSE [dbo].[fn_ConvertUOM](ISNULL(sopt.QtyToShip,0),imt.StockUnitOfMeasure,imt.ConsumeUnitOfMeasure,0,so.MasterCompanyId) END,0) AS QtyToShip,
 
             so.SalesOrderNumber,
             imt.PartNumber,
@@ -74,13 +70,7 @@ BEGIN
             soc.CommodityCode,
 
             -- QtyShipped converted to consume UOM
-            ISNULL([dbo].[fn_ConvertUOM](
-                ISNULL(sosi.QtyShipped, 0),
-                imt.StockUnitOfMeasure,
-                imt.ConsumeUnitOfMeasure,
-                0,
-                so.MasterCompanyId
-            ), 0)                                                             AS QtyShipped,
+            ISNULL(CASE WHEN ISNULL(imt.StockUnitOfMeasure,'') = ISNULL(imt.ConsumeUnitOfMeasure,'') THEN ISNULL(sosi.QtyShipped,0) ELSE [dbo].[fn_ConvertUOM](ISNULL(sosi.QtyShipped,0),imt.StockUnitOfMeasure,imt.ConsumeUnitOfMeasure,0,so.MasterCompanyId) END,0) AS QtyShipped,
 
             0                                                                 AS ItemNo,  -- sop.ItemNo intentionally hardcoded
 

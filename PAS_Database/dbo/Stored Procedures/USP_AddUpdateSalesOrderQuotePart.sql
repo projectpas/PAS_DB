@@ -17,6 +17,7 @@
 	6    15-09-2025	  Amit Ghediya		 Update for Reset Approval Process
 	7    20-11-2025	  Rajesh Gami		Added UnitSalesPrice in SalesOrderQuotePartV1 table
 	8    10-Apr-026   Bhargav Saliya	 UOM Changes 
+	9    18/06/2026   Bhargav Saliya	Added Case For Skip UOM Function If FROM uom and TO uom Both are Same
 declare @p1 dbo.SOQPartListType
 insert into @p1 values(909,871,318,7,3,NULL,3,NULL,1,3,3,NULL,NULL,1,1.000000,378.2,5,6.12,348.84,0,0,348.84,'2024-11-06 00:00:00','2024-11-07 00:00:00',NULL,120.00,2,2.4,360.00,0,100,0,NULL,N'',NULL,1,N'admin')
 insert into @p1 values(910,871,20753,9,3,NULL,3,NULL,1,3,3,NULL,NULL,NULL,1.000000,6.0,5,105.57,0,0,0,0,NULL,NULL,'2024-11-05 00:00:00',230.00,2,2.0,105.57,0,0,0,NULL,N'',NULL,1,N'admin')
@@ -24,9 +25,8 @@ insert into @p1 values(910,871,20753,9,3,NULL,3,NULL,1,3,3,NULL,NULL,NULL,1.0000
 exec USP_AddUpdateSalesOrderQuotePart @tbl_SalesOrderQuotePartList=@p1
 
 ***************************************************************/
-CREATE   PROCEDURE [dbo].[USP_AddUpdateSalesOrderQuotePart]
+CREATE PROCEDURE [dbo].[USP_AddUpdateSalesOrderQuotePart]
 	@tbl_SalesOrderQuotePartList SOQPartListType READONLY
-	--@tbl_SalesOrderQuoteStocklineList SOQStockLineListType READONLY
 AS
 BEGIN
   SET NOCOUNT ON;
@@ -97,7 +97,7 @@ BEGIN
 	FROM @tbl_SalesOrderQuotePartList;
 
 	SELECT @SOQPartLoopID = MAX(ID) FROM #SOQPartDetails;
-	select @MinsoqId = MIN(ID) FROM #SOQPartDetails;
+	SELECT @MinsoqId = MIN(ID) FROM #SOQPartDetails;
 
 	WHILE (@MinsoqId <= @SOQPartLoopID)
 	BEGIN
@@ -127,24 +127,25 @@ BEGIN
 		DECLARE @IsNoQuote AS BIT = NULL;
 		DECLARE @IsLotAssigned AS BIT = NULL;
 		DECLARE @LotId AS BIGINT = 0;
-		DECLARE @PriorityId BIGINT = 0,@StocklineCount INT =0;
+		DECLARE @PriorityId BIGINT = 0, @StocklineCount INT = 0;
 
 		UPDATE TEMP_TABLE
-		SET QuantityQuote =  ([dbo].[fn_ConvertUOM](ISNULL(QuantityQuote, 0),IM.[ConsumeUnitOfMeasure],IM.[StockUnitOfMeasure] ,0,TEMP_TABLE.MasterCompanyId)),
-		QtyRequested =  ([dbo].[fn_ConvertUOM](ISNULL(QtyRequested, 0),IM.[ConsumeUnitOfMeasure],IM.[StockUnitOfMeasure] ,0,TEMP_TABLE.MasterCompanyId)),
-		QtyQuoted =  ([dbo].[fn_ConvertUOM](ISNULL(QtyQuoted, 0),IM.[ConsumeUnitOfMeasure],IM.[StockUnitOfMeasure] ,0,TEMP_TABLE.MasterCompanyId)),
-		QtyAvailable =  ([dbo].[fn_ConvertUOM](ISNULL(QtyAvailable, 0),IM.[ConsumeUnitOfMeasure],IM.[StockUnitOfMeasure] ,0,TEMP_TABLE.MasterCompanyId)),
-		QtyOH =  ([dbo].[fn_ConvertUOM](ISNULL(QtyOH, 0),IM.[ConsumeUnitOfMeasure],IM.[StockUnitOfMeasure] ,0,TEMP_TABLE.MasterCompanyId)),
-		GrossSaleAmount =  ([dbo].[fn_ConvertUOM](ISNULL(GrossSaleAmount, 0),IM.[ConsumeUnitOfMeasure],IM.[StockUnitOfMeasure] ,1,TEMP_TABLE.MasterCompanyId)),
-		DiscountAmount =  ([dbo].[fn_ConvertUOM](ISNULL(DiscountAmount, 0),IM.[ConsumeUnitOfMeasure],IM.[StockUnitOfMeasure] ,1,TEMP_TABLE.MasterCompanyId)),
-		NetSaleAmount =  ([dbo].[fn_ConvertUOM](ISNULL(NetSaleAmount, 0),IM.[ConsumeUnitOfMeasure],IM.[StockUnitOfMeasure] ,1,TEMP_TABLE.MasterCompanyId)),
-		TaxAmount =  ([dbo].[fn_ConvertUOM](ISNULL(TaxAmount, 0),IM.[ConsumeUnitOfMeasure],IM.[StockUnitOfMeasure] ,1,TEMP_TABLE.MasterCompanyId)),
-		UnitCostExtended =  ([dbo].[fn_ConvertUOM](ISNULL(UnitCostExtended, 0),IM.[ConsumeUnitOfMeasure],IM.[StockUnitOfMeasure] ,1,TEMP_TABLE.MasterCompanyId)),
-		MarginAmount =  ([dbo].[fn_ConvertUOM](ISNULL(MarginAmount, 0),IM.[ConsumeUnitOfMeasure],IM.[StockUnitOfMeasure] ,1,TEMP_TABLE.MasterCompanyId)),
-		UnitSalesPrice =  ([dbo].[fn_ConvertUOM](ISNULL(UnitSalesPrice, 0),IM.[ConsumeUnitOfMeasure],IM.[StockUnitOfMeasure] ,1,TEMP_TABLE.MasterCompanyId)),
-		MarkUpAmount =  ([dbo].[fn_ConvertUOM](ISNULL(MarkUpAmount, 0),IM.[ConsumeUnitOfMeasure],IM.[StockUnitOfMeasure] ,1,TEMP_TABLE.MasterCompanyId)),
-		SalesPriceExtended =  ([dbo].[fn_ConvertUOM](ISNULL(SalesPriceExtended, 0),IM.[ConsumeUnitOfMeasure],IM.[StockUnitOfMeasure] ,1,TEMP_TABLE.MasterCompanyId)),
-		TEMP_TABLE.UnitCost =  ([dbo].[fn_ConvertUOM](ISNULL(TEMP_TABLE.UnitCost, 0),IM.[ConsumeUnitOfMeasure],IM.[StockUnitOfMeasure] ,1,TEMP_TABLE.MasterCompanyId))
+		SET
+		QuantityQuote    = (CASE WHEN ISNULL(IM.[ConsumeUnitOfMeasure],'') = ISNULL(IM.[StockUnitOfMeasure],'') THEN ISNULL(QuantityQuote, 0)    ELSE [dbo].[fn_ConvertUOM](ISNULL(QuantityQuote, 0),   IM.[ConsumeUnitOfMeasure], IM.[StockUnitOfMeasure], 0, TEMP_TABLE.MasterCompanyId) END),
+		QtyRequested     = (CASE WHEN ISNULL(IM.[ConsumeUnitOfMeasure],'') = ISNULL(IM.[StockUnitOfMeasure],'') THEN ISNULL(QtyRequested, 0)     ELSE [dbo].[fn_ConvertUOM](ISNULL(QtyRequested, 0),    IM.[ConsumeUnitOfMeasure], IM.[StockUnitOfMeasure], 0, TEMP_TABLE.MasterCompanyId) END),
+		QtyQuoted        = (CASE WHEN ISNULL(IM.[ConsumeUnitOfMeasure],'') = ISNULL(IM.[StockUnitOfMeasure],'') THEN ISNULL(QtyQuoted, 0)        ELSE [dbo].[fn_ConvertUOM](ISNULL(QtyQuoted, 0),       IM.[ConsumeUnitOfMeasure], IM.[StockUnitOfMeasure], 0, TEMP_TABLE.MasterCompanyId) END),
+		QtyAvailable     = (CASE WHEN ISNULL(IM.[ConsumeUnitOfMeasure],'') = ISNULL(IM.[StockUnitOfMeasure],'') THEN ISNULL(QtyAvailable, 0)     ELSE [dbo].[fn_ConvertUOM](ISNULL(QtyAvailable, 0),    IM.[ConsumeUnitOfMeasure], IM.[StockUnitOfMeasure], 0, TEMP_TABLE.MasterCompanyId) END),
+		QtyOH            = (CASE WHEN ISNULL(IM.[ConsumeUnitOfMeasure],'') = ISNULL(IM.[StockUnitOfMeasure],'') THEN ISNULL(QtyOH, 0)            ELSE [dbo].[fn_ConvertUOM](ISNULL(QtyOH, 0),           IM.[ConsumeUnitOfMeasure], IM.[StockUnitOfMeasure], 0, TEMP_TABLE.MasterCompanyId) END),
+		GrossSaleAmount  = (CASE WHEN ISNULL(IM.[ConsumeUnitOfMeasure],'') = ISNULL(IM.[StockUnitOfMeasure],'') THEN ISNULL(GrossSaleAmount, 0)  ELSE [dbo].[fn_ConvertUOM](ISNULL(GrossSaleAmount, 0), IM.[ConsumeUnitOfMeasure], IM.[StockUnitOfMeasure], 1, TEMP_TABLE.MasterCompanyId) END),
+		DiscountAmount   = (CASE WHEN ISNULL(IM.[ConsumeUnitOfMeasure],'') = ISNULL(IM.[StockUnitOfMeasure],'') THEN ISNULL(DiscountAmount, 0)   ELSE [dbo].[fn_ConvertUOM](ISNULL(DiscountAmount, 0),  IM.[ConsumeUnitOfMeasure], IM.[StockUnitOfMeasure], 1, TEMP_TABLE.MasterCompanyId) END),
+		NetSaleAmount    = (CASE WHEN ISNULL(IM.[ConsumeUnitOfMeasure],'') = ISNULL(IM.[StockUnitOfMeasure],'') THEN ISNULL(NetSaleAmount, 0)    ELSE [dbo].[fn_ConvertUOM](ISNULL(NetSaleAmount, 0),   IM.[ConsumeUnitOfMeasure], IM.[StockUnitOfMeasure], 1, TEMP_TABLE.MasterCompanyId) END),
+		TaxAmount        = (CASE WHEN ISNULL(IM.[ConsumeUnitOfMeasure],'') = ISNULL(IM.[StockUnitOfMeasure],'') THEN ISNULL(TaxAmount, 0)        ELSE [dbo].[fn_ConvertUOM](ISNULL(TaxAmount, 0),       IM.[ConsumeUnitOfMeasure], IM.[StockUnitOfMeasure], 1, TEMP_TABLE.MasterCompanyId) END),
+		UnitCostExtended = (CASE WHEN ISNULL(IM.[ConsumeUnitOfMeasure],'') = ISNULL(IM.[StockUnitOfMeasure],'') THEN ISNULL(UnitCostExtended, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(UnitCostExtended, 0),IM.[ConsumeUnitOfMeasure], IM.[StockUnitOfMeasure], 1, TEMP_TABLE.MasterCompanyId) END),
+		MarginAmount     = (CASE WHEN ISNULL(IM.[ConsumeUnitOfMeasure],'') = ISNULL(IM.[StockUnitOfMeasure],'') THEN ISNULL(MarginAmount, 0)     ELSE [dbo].[fn_ConvertUOM](ISNULL(MarginAmount, 0),    IM.[ConsumeUnitOfMeasure], IM.[StockUnitOfMeasure], 1, TEMP_TABLE.MasterCompanyId) END),
+		UnitSalesPrice   = (CASE WHEN ISNULL(IM.[ConsumeUnitOfMeasure],'') = ISNULL(IM.[StockUnitOfMeasure],'') THEN ISNULL(UnitSalesPrice, 0)   ELSE [dbo].[fn_ConvertUOM](ISNULL(UnitSalesPrice, 0),  IM.[ConsumeUnitOfMeasure], IM.[StockUnitOfMeasure], 1, TEMP_TABLE.MasterCompanyId) END),
+		MarkUpAmount     = (CASE WHEN ISNULL(IM.[ConsumeUnitOfMeasure],'') = ISNULL(IM.[StockUnitOfMeasure],'') THEN ISNULL(MarkUpAmount, 0)     ELSE [dbo].[fn_ConvertUOM](ISNULL(MarkUpAmount, 0),    IM.[ConsumeUnitOfMeasure], IM.[StockUnitOfMeasure], 1, TEMP_TABLE.MasterCompanyId) END),
+		SalesPriceExtended = (CASE WHEN ISNULL(IM.[ConsumeUnitOfMeasure],'') = ISNULL(IM.[StockUnitOfMeasure],'') THEN ISNULL(SalesPriceExtended, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(SalesPriceExtended, 0), IM.[ConsumeUnitOfMeasure], IM.[StockUnitOfMeasure], 1, TEMP_TABLE.MasterCompanyId) END),
+		TEMP_TABLE.UnitCost = (CASE WHEN ISNULL(IM.[ConsumeUnitOfMeasure],'') = ISNULL(IM.[StockUnitOfMeasure],'') THEN ISNULL(TEMP_TABLE.UnitCost, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(TEMP_TABLE.UnitCost, 0), IM.[ConsumeUnitOfMeasure], IM.[StockUnitOfMeasure], 1, TEMP_TABLE.MasterCompanyId) END)
 		FROM #SOQPartDetails TEMP_TABLE
 		JOIN dbo.ItemMaster IM WITH(NOLOCK) ON TEMP_TABLE.ItemMasterId = IM.ItemMasterId
 		WHERE ID = @MinsoqId;
@@ -153,8 +154,8 @@ BEGIN
 		@SalesOrderQuoteStocklineId = SalesOrderQuoteStocklineId, @MasterCompanyId = MasterCompanyId, @UnitSalesPrice = UnitSalesPrice, @MarkUpAmount = MarkUpAmount, @DiscountAmount = DiscountAmount, @QtyQuoted = QtyQuoted,
 		@CreatedBy = CreatedBy, @MarkUpPercentage = MarkUpPercentage, @UnitCost = UnitCost, @MarginAmount = MarginAmount, @MarginPercentage = MarginPercentage,
 		@DiscountPercentage = DiscountPercentage, @QtyRequested = QtyRequested, @QuantityToQuote = QuantityQuote, @Notes = Notes, 
-		@CustomerRequestDate = CustomerRequestDate, @PromisedDate = PromisedDate, @EstimatedShipDate = EstimatedShipDate,@IsNoQuote = IsNoQuote,
-		@IsLotAssigned = IsLotAssigned,@LotId = LotId,@PriorityId = PriorityId
+		@CustomerRequestDate = CustomerRequestDate, @PromisedDate = PromisedDate, @EstimatedShipDate = EstimatedShipDate, @IsNoQuote = IsNoQuote,
+		@IsLotAssigned = IsLotAssigned, @LotId = LotId, @PriorityId = PriorityId
 		FROM #SOQPartDetails WHERE ID = @MinsoqId;
 
 		IF (ISNULL(@SalesOrderQuotePartId, 0) = 0) -- Add New Part
@@ -173,7 +174,7 @@ BEGIN
 				WHERE SOQ.SalesOrderQuoteId = @SalesOrderQuoteId;
 
 				INSERT INTO [dbo].[SalesOrderQuotePartV1] ([SalesOrderQuoteId],[ItemMasterId],[ConditionId],[QtyRequested],[QtyQuoted],[CurrencyId],[FxRate],[PriorityId],[StatusId],[CustomerRequestDate],[PromisedDate],[EstimatedShipDate],[Notes],[MasterCompanyId],[CreatedBy],[CreatedDate],[UpdatedBy],[UpdatedDate],[IsActive],[IsDeleted],[IsLotAssigned],[LotId],UnitSalesPrice)
-				SELECT SalesOrderQuoteId, ItemMasterId, ConditionId, QtyRequested, QtyQuoted, CurrencyId, FxRate, PriorityId, @SOQPartStatus, CustomerRequestDate, PromisedDate, EstimatedShipDate, Notes, MasterCompanyId, CreatedBy, GETUTCDATE(), CreatedBy, GETUTCDATE(), 1, 0,IsLotAssigned,LotId,UnitSalesPrice
+				SELECT SalesOrderQuoteId, ItemMasterId, ConditionId, QtyRequested, QtyQuoted, CurrencyId, FxRate, PriorityId, @SOQPartStatus, CustomerRequestDate, PromisedDate, EstimatedShipDate, Notes, MasterCompanyId, CreatedBy, GETUTCDATE(), CreatedBy, GETUTCDATE(), 1, 0, IsLotAssigned, LotId, UnitSalesPrice
 				FROM #SOQPartDetails WHERE ID = @MinsoqId;
 
 				SET @SalesOrderQuotePartId = SCOPE_IDENTITY();
@@ -224,7 +225,6 @@ BEGIN
 				INSERT INTO [dbo].[SalesOrderQuoteStockLineCost] ([SalesOrderQuoteId], [SalesOrderQuotePartId], [SalesOrderQuoteStocklineId], [UnitSalesPrice], [UnitSalesPriceExtended], [MarkUpPercentage], [MarkUpAmount], [NetSaleAmount],
 				[UnitCost], [UnitCostExtended], [MarginAmount], [MarginPercentage], [DiscountPercentage], [DiscountAmount],
 				[MasterCompanyId], [CreatedBy], [CreatedDate], [UpdatedBy], [UpdatedDate], [IsActive], [IsDeleted], [NetSaleAmountPerUnit])
-				
 				SELECT @SalesOrderQuoteId, @SalesOrderQuotePartId, @InsertedSalesOrderQuoteStocklineId, @UnitSalesPrice, ISNULL((@UnitSalesPrice * @QuantityToQuote), 0), @MarkUpPercentage, ISNULL((@MarkUpAmount * @QtyQuoted), 0), @NetSalesAmt,
 				@UnitCost, ISNULL((@UnitCost * @QuantityToQuote), 0), @MarginAmount, @MarginPercentage, @DiscountPercentage, ISNULL((@DiscountAmount * @QtyQuoted), 0), 
 				@MasterCompanyId, @CreatedBy, GETUTCDATE(), @CreatedBy, GETUTCDATE(), 1, 0, @NetSalesPerUnitAmt
@@ -233,28 +233,28 @@ BEGIN
 			END
 
 			--Update Reset Approve Process
-			EXEC [dbo].[USP_SOQResetApprovalProcess] @SalesOrderQuoteId, @SalesOrderQuotePartId,@MasterCompanyId
+			EXEC [dbo].[USP_SOQResetApprovalProcess] @SalesOrderQuoteId, @SalesOrderQuotePartId, @MasterCompanyId
 		END
 		ELSE
 		BEGIN
-			DECLARE @IsQtyRequestedModified BIT,@IsPriorityModified BIT,@IsUnitSalesModified BIT;;
-			DECLARE @ExistingQtyReq DECIMAL(18,6),@ExistingPriority INT,@ExistingUnitSales DECIMAL(18,6);;
+			DECLARE @IsQtyRequestedModified BIT, @IsPriorityModified BIT, @IsUnitSalesModified BIT;
+			DECLARE @ExistingQtyReq DECIMAL(18,6), @ExistingPriority INT, @ExistingUnitSales DECIMAL(18,6);
 
-			SELECT @ExistingQtyReq = SOP.QtyRequested,@ExistingPriority = SOP.PriorityId FROM [DBO].[SalesOrderQuotePartV1] SOP WITH (NOLOCK) WHERE SOP.SalesOrderQuotePartId = @SalesOrderQuotePartId;
+			SELECT @ExistingQtyReq = SOP.QtyRequested, @ExistingPriority = SOP.PriorityId FROM [DBO].[SalesOrderQuotePartV1] SOP WITH (NOLOCK) WHERE SOP.SalesOrderQuotePartId = @SalesOrderQuotePartId;
 			
-			IF(@SalesOrderQuoteStocklineId > 0)
+			IF (@SalesOrderQuoteStocklineId > 0)
 			BEGIN
-				 SELECT @ExistingUnitSales = SOPC.UnitSalesPrice  FROM [DBO].[SalesOrderQuoteStockLineCost] SOPC WITH (NOLOCK) WHERE SOPC.SalesOrderQuoteStocklineId = @SalesOrderQuoteStocklineId;
+				SELECT @ExistingUnitSales = SOPC.UnitSalesPrice FROM [DBO].[SalesOrderQuoteStockLineCost] SOPC WITH (NOLOCK) WHERE SOPC.SalesOrderQuoteStocklineId = @SalesOrderQuoteStocklineId;
 			END
 			ELSE
 			BEGIN
-			     SELECT @ExistingUnitSales = SOPC.UnitSalesPrice  FROM [DBO].[SalesOrderQuotePartCost] SOPC WITH (NOLOCK) WHERE SOPC.SalesOrderQuotePartId = @SalesOrderQuotePartId;
+				SELECT @ExistingUnitSales = SOPC.UnitSalesPrice FROM [DBO].[SalesOrderQuotePartCost] SOPC WITH (NOLOCK) WHERE SOPC.SalesOrderQuotePartId = @SalesOrderQuotePartId;
 			END
 
 			SET @IsQtyRequestedModified = CASE WHEN @ExistingQtyReq <> @QtyRequested THEN 1 ELSE 0 END;
 			SET @IsPriorityModified = CASE WHEN @ExistingPriority <> @PriorityId THEN 1 ELSE 0 END;
 			SET @IsUnitSalesModified = CASE WHEN @ExistingUnitSales <> CAST(ROUND(@UnitSalesPrice, 0) AS INT) THEN 1 ELSE 0 END;
-			SET @StocklineCount = ISNULL((SELECT COUNT(SalesOrderQuotePartId) FROM #SOQPartDetails WHERE SalesOrderQuotePartId = @SalesOrderQuotePartId AND ISNULL(StocklineId,0) > 0),0)
+			SET @StocklineCount = ISNULL((SELECT COUNT(SalesOrderQuotePartId) FROM #SOQPartDetails WHERE SalesOrderQuotePartId = @SalesOrderQuotePartId AND ISNULL(StocklineId,0) > 0), 0)
 
 			UPDATE [DBO].[SalesOrderQuotePartV1]
 			SET 
@@ -270,7 +270,6 @@ BEGIN
 
 			-- Update Part Details
 			DECLARE @QtyQuoted_U AS DECIMAL(18,6) = 0;
-
 			DECLARE @SalesPrice_U AS decimal(18,6);
 			DECLARE @MarkUpAmt_U AS decimal(18,6);
 			DECLARE @DiscAmt_U AS decimal(18,6);
@@ -338,9 +337,9 @@ BEGIN
 			END
 			
 			--Reset Approval Process
-			IF(@IsQtyRequestedModified > 0 OR @IsPriorityModified > 0 OR @IsUnitSalesModified > 0)
+			IF (@IsQtyRequestedModified > 0 OR @IsPriorityModified > 0 OR @IsUnitSalesModified > 0)
 			BEGIN
-				 EXEC [dbo].[USP_SOQResetApprovalProcess] @SalesOrderQuoteId, @SalesOrderQuotePartId,@MasterCompanyId
+				EXEC [dbo].[USP_SOQResetApprovalProcess] @SalesOrderQuoteId, @SalesOrderQuotePartId, @MasterCompanyId
 			END
 		END
 
@@ -351,7 +350,7 @@ BEGIN
 		SET @MinsoqId = @MinsoqId + 1;
 	END
 
-	COMMIT  TRANSACTION
+	COMMIT TRANSACTION
   END TRY
   BEGIN CATCH
   SELECT

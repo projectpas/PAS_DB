@@ -30,6 +30,8 @@
 	14	 03/02/2025	  Amit Ghediya			Modify(get Distribution based on new settings from stockline level)
 	15	 06/02/2025	  Abhishek Jirawla		Fixed Name concat read script
 	16   06-03-2026	  Amit Ghediya			UOM Conversion Changes [PN-15140]
+	17   03-06-2026   Priyansh Patel		Fixed the issue with the Extended Cost [PN-16610]
+	18   19-06-2026	  Priyansh Patel		Add Condition to skip fn_ConvertUOM call [PN-16911]
 
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_VendorRMA_PostCheckBatchDetails]
@@ -135,7 +137,7 @@ BEGIN
 			SET @tmpVendorRMADetailId = @VendorRMADetailId;
 			SELECT @VendorRMADetailId = VCM.VendorRMADetailId, 
 			       @VendorRMAId = VCM.VendorRMAId,
-				   @ExtAmount = ISNULL(([dbo].[fn_ConvertUOM](ISNULL(VCM.ApplierdAmt, 0),imt.[StockUnitOfMeasure],imt.[PurchaseUnitOfMeasure],0,imt.[MasterCompanyId])),0), 
+				   @ExtAmount = ISNULL((CASE WHEN imt.[StockUnitOfMeasure] = imt.[PurchaseUnitOfMeasure] THEN VCM.ApplierdAmt ELSE [dbo].[fn_ConvertUOM](ISNULL(VCM.ApplierdAmt, 0),imt.[StockUnitOfMeasure],imt.[PurchaseUnitOfMeasure],1,imt.[MasterCompanyId]) END),0),
 				   @VendorCreditMemoId = VCM.VendorCreditMemoId
 			FROM [DBO].[VendorCreditMemoDetail] VCM WITH(NOLOCK) 
 			LEFT JOIN [DBO].[VendorRMADetail] VRM WITH(NOLOCK) ON VRM.VendorRMADetailId = VCM.VendorRMADetailId
@@ -147,7 +149,9 @@ BEGIN
 		END
 		ELSE
 		BEGIN
-			SELECT @ExtAmount = ISNULL(([dbo].[fn_ConvertUOM](ISNULL(VRM.ExtendedCost, 0),imt.[StockUnitOfMeasure],imt.[PurchaseUnitOfMeasure],0,imt.[MasterCompanyId])),0),@VendorCreditMemoId = VRM.VendorRMAId 
+			SELECT 
+			@ExtAmount = ISNULL((CASE WHEN imt.[StockUnitOfMeasure] = imt.[PurchaseUnitOfMeasure] THEN VRM.ExtendedCost ELSE [dbo].[fn_ConvertUOM](ISNULL(VRM.ExtendedCost, 0),imt.[StockUnitOfMeasure],imt.[PurchaseUnitOfMeasure],1,imt.[MasterCompanyId]) END),0)
+			,@VendorCreditMemoId = VRM.VendorRMAId 
 			FROM [DBO].[VendorRMADetail] VRM WITH(NOLOCK) 
 			LEFT JOIN DBO.ItemMaster imt WITH (NOLOCK) ON imt.ItemMasterId = VRM.ItemMasterId 
 			WHERE  VRM.VendorRMADetailId = @VendorRMADetailId;

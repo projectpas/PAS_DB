@@ -16,9 +16,12 @@
 	3	 09/04/2025	    Ekta Chandegra	        Convert date using dbo.ConvertUTCtoLocal
     4    26/01/2026     Ayushi Patel            Enhancement: Added ViewType-based data handling (SUMMARY / DETAILS).
 	5    22/04/2026     Rajesh Gami				Getting proper value of Quantity and UnitCost for the details type [PN-15728]
+	6    09/06/2026     Sahdev Saliya           Added AdjustmentReasonId and AdjustmentReason [PN-16773]
+    7    19/06/2026     Divyesh Kathiriya       Handle delete item not seen list. [PN-16885]
+
 -- EXEC USP_SearchBulkStockData
 ************************************************************************/  
-CREATE    PROCEDURE [dbo].[USP_SearchBulkStockData]
+CREATE PROCEDURE [dbo].[USP_SearchBulkStockData]
 	@PageNumber int = NULL,
 	@PageSize int = NULL,
 	@SortColumn varchar(50)=NULL,
@@ -43,7 +46,9 @@ CREATE    PROCEDURE [dbo].[USP_SearchBulkStockData]
     @QtyAdjustment     VARCHAR(50) = NULL,
     @NewUnitCost      VARCHAR(50) = NULL,
     @LastMSLevel   VARCHAR(200) = NULL,
-    @AllMSLevels   VARCHAR(500) = NULL
+    @AllMSLevels   VARCHAR(500) = NULL,
+	@AdjustmentReasonId bigint = NULL,
+	@AdjustmentReason VARCHAR(200) = NULL
 
 AS
 BEGIN  
@@ -173,7 +178,9 @@ BEGIN
                     STL.[Condition],
                     STL.StockLineNumber,
                     STL.ControlNumber,
-                    bsadj.StatusId
+                    bsadj.StatusId,
+					BSAD.AdjustmentReasonId,
+					SAR.[Description] AS AdjustmentReason
                 FROM dbo.BulkStockLineAdjustment bsadj WITH (NOLOCK)
                 INNER JOIN dbo.StockLineAdjustmentType stadt
                     ON bsadj.StockLineAdjustmentTypeId = stadt.StockLineAdjustmentTypeId
@@ -183,9 +190,11 @@ BEGIN
                     ON BSAD.StockLineId = STL.StockLineId
                 INNER JOIN dbo.ItemMaster IM WITH (NOLOCK)
                     ON STL.ItemMasterId = IM.ItemMasterId
+				LEFT JOIN dbo.StocklineAdjustmentReason SAR WITH (NOLOCK)
+                    ON BSAD.AdjustmentReasonId = SAR.AdjustmentReasonId
                 WHERE
                     bsadj.MasterCompanyId = @MasterCompanyId
-                    AND ISNULL(bsadj.IsDeleted, 0) = 0
+                    AND ISNULL(BSAD.IsDeleted, 0) = 0
                     AND (@StatusId IS NULL OR bsadj.StatusId = @StatusId )
             ),
             FinalResult AS
@@ -204,7 +213,9 @@ BEGIN
                     [Condition],
                     StockLineNumber,
                     ControlNumber,
-                    StatusId
+                    StatusId,
+					AdjustmentReasonId,
+					AdjustmentReason
                 FROM Result
                 WHERE
                 (
@@ -220,6 +231,7 @@ BEGIN
                         OR LOWER(AllMSLevels) LIKE '%' + LOWER(@GlobalFilter) + '%'
                         OR CAST(NewQty AS VARCHAR(50)) LIKE '%' + @GlobalFilter + '%'
                         OR CAST(UnitCost AS VARCHAR(50)) LIKE '%' + @GlobalFilter + '%'
+						OR LOWER(AdjustmentReason) LIKE '%' + LOWER(@GlobalFilter) + '%'
                     )
                 )
                 OR
@@ -236,6 +248,7 @@ BEGIN
                     AND (ISNULL(@AllMSLevels, '') = '' OR AllMSLevels LIKE '%' + @AllMSLevels + '%')
                     AND (ISNULL(@QtyAdjustment, '') = '' OR CAST(NewQty AS VARCHAR(50)) LIKE '%' + @QtyAdjustment + '%')
                     AND (ISNULL(@NewUnitCost, '') = '' OR CAST(UnitCost AS VARCHAR(50)) LIKE '%' + @NewUnitCost + '%')
+					AND (ISNULL(@AdjustmentReason, '') = '' OR AdjustmentReason LIKE '%' + @AdjustmentReason + '%')
                 )
             ),
             ResultCount AS
@@ -257,7 +270,9 @@ BEGIN
                 StockLineNumber,
                 ControlNumber,
                 StatusId,
-                NumberOfItems
+                NumberOfItems,
+				AdjustmentReasonId,
+				AdjustmentReason
             FROM FinalResult, ResultCount
             ORDER BY
                 CASE WHEN (@SortOrder = 1 AND @SortColumn = 'ADJUSTMENTTYPE') THEN AdjustmentType END ASC,
@@ -294,7 +309,10 @@ BEGIN
                 CASE WHEN (@SortOrder = -1 AND @SortColumn = 'LASTMSLEVEL') THEN LastMSLevel END DESC,
 
                 CASE WHEN (@SortOrder = 1 AND @SortColumn = 'ALLMSLEVELS') THEN AllMSLevels END ASC,
-                CASE WHEN (@SortOrder = -1 AND @SortColumn = 'ALLMSLEVELS') THEN AllMSLevels END DESC
+                CASE WHEN (@SortOrder = -1 AND @SortColumn = 'ALLMSLEVELS') THEN AllMSLevels END DESC,
+
+				CASE WHEN (@SortOrder = 1 AND @SortColumn = 'ADJUSTMENTREASON') THEN AdjustmentReason END ASC,
+                CASE WHEN (@SortOrder = -1 AND @SortColumn = 'ADJUSTMENTREASON') THEN AdjustmentReason END DESC
 
 
             OFFSET @RecordFrom ROWS

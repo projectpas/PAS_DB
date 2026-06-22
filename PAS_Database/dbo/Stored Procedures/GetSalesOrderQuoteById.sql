@@ -19,8 +19,10 @@
     3    15-07-2025		Rajesh Gami		Fixed: showing proper status
     4    09-DEC-2025	Vishal Suthar	Fixed: added IsDeleted = 0 in join for AllAddress table
     5    17-DEC-2025	Devendra Shekh	added cont.ContactId, ContactEmail
+	6    08-JUN-2026    Ayushi Patel    [PN-16030]Added logic to return ContactEmail and CustomerContactEmail in lowercase for A2Z Master Company.
+	7    17-JUN-2026    Amit Ghediya    Get MarketplaceRef for view [PN-16886].
 
- -- EXEC DBO.GetSalesOrderQuoteById 1484
+ -- EXEC DBO.GetSalesOrderQuoteById 771
 **************************************************************/ 
 CREATE    PROCEDURE [dbo].[GetSalesOrderQuoteById]
     @SalesOrderQuoteId INT
@@ -31,6 +33,14 @@ BEGIN
 	BEGIN TRY
 		DECLARE @SalesQuoteModuleId BIGINT = 7;
 		DECLARE @SalesQuoteManagementStructureModuleId BIGINT = 18;
+
+		DECLARE @A2ZMasterCompanyCode VARCHAR(50);
+		DECLARE @MasterCompanyCodeAll VARCHAR(50);
+		DECLARE @CompanyId BIGINT;
+		SELECT @CompanyId = ModuleId FROM Module WHERE ModuleName = 'Company';
+		SELECT @MasterCompanyCodeAll = mc.MasterCompanyCode FROM DBO.SalesOrderQuote soq WITH(NOLOCK) INNER JOIN DBO.MasterCompany mc WITH(NOLOCK) ON soq.MasterCompanyId = mc.MasterCompanyId WHERE soq.SalesOrderQuoteId = @SalesOrderQuoteId;
+		SELECT @A2ZMasterCompanyCode = MasterCompanyCode FROM DBO.MasterCompany WITH(NOLOCK) WHERE UPPER(MasterCompanyCode) = 'A2Z';
+
 
 		SELECT 
 			ISNULL(leg.Name, '') AS CompanyName,
@@ -54,7 +64,11 @@ BEGIN
 			soq.CustomerContactId,
 			cust.CustomerPhone,
 			CONCAT(ISNULL(cont.FirstName, ''), ' ', ISNULL(cont.LastName, ''), ' ', ISNULL(cont.WorkPhone, '')) AS CustomerContactName,
-			soq.CustomerContactEmail,
+			CASE 
+				WHEN @MasterCompanyCodeAll = @A2ZMasterCompanyCode 
+					THEN LOWER(ISNULL(soq.CustomerContactEmail, ''))
+				ELSE ISNULL(soq.CustomerContactEmail, '')
+			END AS CustomerContactEmail,
 			CASE WHEN LOWER(soq.StatusName) = 'closed' THEN so.CustomerReference ELSE soq.CustomerReference END AS CustomerReference,
 			soq.ContractReference,
 			soq.SalesPersonName,
@@ -111,7 +125,12 @@ BEGIN
 			soq.StatusChangeDate,
 			soq.ManagementStructureId,
 			sAddress.UserTypeName AS ShipToUserType,
-			sAddress.UserName AS ShipToUser,
+			CASE 
+				WHEN sAddress.UserType = @CompanyId 
+				AND UPPER(@MasterCompanyCodeAll) = UPPER(@A2ZMasterCompanyCode)
+				THEN ISNULL(sAddress.UserName, '')
+				ELSE UPPER(ISNULL(sAddress.UserName, ''))
+			END AS ShipToUser,
 			bAddress.UserTypeName AS BillToUserType,
 			bAddress.UserName AS BillToUser,
 			soq.Version,
@@ -147,7 +166,12 @@ BEGIN
 			ISNULL(rcu.Code, '') AS ReportCurrency,
 			CASE WHEN soq.ForeignExchangeRate > 0 THEN soq.ForeignExchangeRate ELSE 0 END AS ForeignExchangeRate,
 			cont.ContactId,
-			cont.Email AS ContactEmail
+			CASE 
+				WHEN @MasterCompanyCodeAll = @A2ZMasterCompanyCode 
+					THEN LOWER(ISNULL(cont.Email, ''))
+				ELSE ISNULL(cont.Email, '')
+			END AS ContactEmail,
+			ISNULL(SOQ.MarketplaceRef,'') MarketplaceRef
 		FROM DBO.SalesOrderQuote soq WITH (NOLOCK)
 		INNER JOIN DBO.MasterSalesOrderQuoteStatus MST WITH (NOLOCK) on SOQ.StatusId = MST.Id
 		LEFT JOIN DBO.ManagementStructure mn WITH (NOLOCK) ON soq.ManagementStructureId = mn.ManagementStructureId

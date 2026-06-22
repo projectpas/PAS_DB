@@ -17,6 +17,8 @@
 	5    18/07/2025   RAJESH GAMI	sale tax related issue fix for the SO & WO
 	6    19/08/2025   Moin Bloch    Added Percent value for view
 	7    15/May/2026   Bhargav Saliya	UOM Changes [PN-15067]
+	9    18/06/2026   Bhargav Saliya	Added Case For Skip UOM Function If FROM uom and TO uom Both are Same
+
 --   EXEC [dbo].[USP_GetCommonBillingInvoicingItems] 20070,15
 ********************************************************************************************/
 CREATE PROCEDURE [dbo].[USP_GetCommonBillingInvoicingItems]
@@ -241,9 +243,9 @@ BEGIN
 				  ,BII.[StocklineId]
 				  ,BII.[ConditionId]
 				  ,BII.[CostPlusType]
-				  ,([dbo].[fn_ConvertUOM](ISNULL(BII.[UnitPrice], 0),IM.[StockUnitOfMeasure],IM.[ConsumeUnitOfMeasure] ,0,WO.MasterCompanyId)) [UnitPrice]
-				  ,([dbo].[fn_ConvertUOM](ISNULL(BII.[QtyBilled], 0),IM.[StockUnitOfMeasure],IM.[ConsumeUnitOfMeasure] ,0,WO.MasterCompanyId)) [QtyBilled]
-				  ,([dbo].[fn_ConvertUOM](ISNULL(BII.[PartCost], 0),IM.[StockUnitOfMeasure],IM.[ConsumeUnitOfMeasure] ,0,WO.MasterCompanyId)) [PartCost]
+				  ,(CASE WHEN IM.[StockUnitOfMeasure] = IM.[ConsumeUnitOfMeasure] THEN ISNULL(BII.[UnitPrice], 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(BII.[UnitPrice], 0),IM.[StockUnitOfMeasure],IM.[ConsumeUnitOfMeasure],1,WO.MasterCompanyId) END) [UnitPrice]
+				  ,(CASE WHEN IM.[StockUnitOfMeasure] = IM.[ConsumeUnitOfMeasure] THEN ISNULL(BII.[QtyBilled], 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(BII.[QtyBilled], 0),IM.[StockUnitOfMeasure],IM.[ConsumeUnitOfMeasure],0,WO.MasterCompanyId) END) [QtyBilled]
+				  ,(CASE WHEN IM.[StockUnitOfMeasure] = IM.[ConsumeUnitOfMeasure] THEN ISNULL(BII.[PartCost], 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(BII.[PartCost], 0),IM.[StockUnitOfMeasure],IM.[ConsumeUnitOfMeasure],1,WO.MasterCompanyId) END) [PartCost]
 				  ,ISNULL(BII.[IsTotalCheck],0) [IsTotalCheck]
 				  ,ISNULL(BII.[TotalBillingCost],0) [TotalBillingCost]
 				  ,ISNULL(BII.[TotalBillingCostPercent],0) [TotalBillingCostPercent]
@@ -264,12 +266,12 @@ BEGIN
 				  ,ISNULL(BII.[MiscCharges],0) [MiscCharges]
 				  ,ISNULL(BII.[MiscChargesCostPercent],0) [MiscChargesCostPercent]
 				  ,ISNULL(BII.[MiscChargesCostPlus],0) [MiscChargesCostPlus]
-				  ,([dbo].[fn_ConvertUOM](ISNULL(BII.[SubTotal], 0),IM.[StockUnitOfMeasure],IM.[ConsumeUnitOfMeasure] ,0,WO.MasterCompanyId)) [SubTotal] 
+				  ,(CASE WHEN IM.[StockUnitOfMeasure] = IM.[ConsumeUnitOfMeasure] THEN ISNULL(BII.[SubTotal], 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(BII.[SubTotal], 0),IM.[StockUnitOfMeasure],IM.[ConsumeUnitOfMeasure],1,WO.MasterCompanyId) END) [SubTotal] 
 				  ,ISNULL(salePer.PercentValue,0) [SalesTaxPercent]
 				  ,ISNULL(BII.[SalesTax],0) [SalesTax]
 				  ,ISNULL(otherPer.PercentValue,0) [OtherTaxPercent]
 				  ,ISNULL(BII.[OtherTax],0) [OtherTax]
-				  ,([dbo].[fn_ConvertUOM](ISNULL(BII.[GrandTotal], 0),IM.[StockUnitOfMeasure],IM.[ConsumeUnitOfMeasure] ,0,WO.MasterCompanyId)) [GrandTotal]
+				  ,(CASE WHEN IM.[StockUnitOfMeasure] = IM.[ConsumeUnitOfMeasure] THEN ISNULL(BII.[GrandTotal], 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(BII.[GrandTotal], 0),IM.[StockUnitOfMeasure],IM.[ConsumeUnitOfMeasure],1,WO.MasterCompanyId) END) [GrandTotal]
 				  ,BII.[PDFPath]
 				  ,BII.[VersionNo]
 				  ,ISNULL(BII.[IsVersionIncrease],0) [IsVersionIncrease]

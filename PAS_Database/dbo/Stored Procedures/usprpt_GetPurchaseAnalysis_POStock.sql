@@ -15,6 +15,8 @@
  ** --   --------         -------          --------------------------------            
     1    20-AUG-2024     Rajesh Gami       Created  
 	2    05-NOV-2025     Amit Ghediya      Update for Avg price & totalPOs count fix
+	3    08-JUNE-2026    Priyansh Patel    Uom releted changes for quantity and cost [PN-16756]
+
 **************************************************************/  
 CREATE   PROCEDURE [dbo].[usprpt_GetPurchaseAnalysis_POStock]
 @PageNumber int = 1,
@@ -102,9 +104,11 @@ BEGIN
 			UPPER(stk.UnitOfMeasure) AS uoms,
 			(CASE WHEN ISNULL(STK.OEM,0)=1 THEN 'OEM' ELSE 'PMA' END) AS oems,
 			UPPER(IM.ManufacturerName) AS manufacturers,
-			ISNULL(stk.Quantity,0) AS qty, 
-			ISNULL(stk.UnitCost,0) AS lastUnitPrice, 
-			(ISNULL(stk.Quantity,0)*ISNULL(stk.UnitCost,0)) AS avgPOCost, 
+			ISNULL(STK.Quantity, 0) AS qty,
+			ISNULL(STK.UnitCost,  0) AS lastUnitPrice,
+			--calc.qty ,
+			--calc.lastUnitPrice,
+			ISNULL(STK.Quantity, 0) * ISNULL(STK.UnitCost,  0) AS avgPOCost,
 			CAST(stk.CreatedDate AS Date) AS lastPurchaseDates,
 			(CASE WHEN ISNULL(PO.IsEnforce,0)=1 
 				  THEN (CASE WHEN PO.DateApproved IS NOT NULL AND STK.ReceivedDate IS NOT NULL 
@@ -136,6 +140,12 @@ BEGIN
 			LEFT JOIN DBO.EntityStructureSetup ES ON ES.EntityStructureId=MSD.EntityMSID
 			LEFT JOIN DBO.Vendor V WITH (NOLOCK) ON PO.VendorId = V.VendorId  
 			LEFT JOIN DBO.Condition AS CN WITH (NOLOCK) ON STK.ConditionId = CN.ConditionId
+			--CROSS APPLY (
+			--SELECT
+			--	ROUND(dbo.fn_ConvertUOM(ISNULL(STK.Quantity, 0), STK.StockUnitOfMeasure, POP.UnitOfMeasure, 0, PO.MasterCompanyId), 2) AS qty,
+			--	ROUND(dbo.fn_ConvertUOM(ISNULL(STK.UnitCost,  0), STK.StockUnitOfMeasure, POP.UnitOfMeasure, 1, PO.MasterCompanyId), 2) AS lastUnitPrice
+			--) AS calc
+
 		WHERE ISNULL(PO.IsDeleted,0)=0 
 			  AND ISNULL(STK.IsParent,0)=1
 			  AND PO.VendorId=ISNULL(@vendorId,PO.VendorId) 

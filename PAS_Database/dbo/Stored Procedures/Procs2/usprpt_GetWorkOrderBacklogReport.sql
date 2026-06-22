@@ -22,6 +22,10 @@
  4 24/08/2023   BHARGAV SALIYA   Convert Dates UTC To LegalEntity Time Zone
  5 18/04/2025   Ayushi Added the condition for pn , pndescription , serialnum
  6 19/08/2025   Fixed the arrangement of inserted values
+ 5 04/06/2026   Priyansh Patel      UOM changes the decimal to 2 [PN-16305]
+ 6 15/06/2026   Priyansh Patel      UOM changes regarding round up and removed the Freight billing cost from approvedamount  [PN-16825]
+
+
 EXECUTE   [dbo].[usprpt_GetWorkOrderBacklogReport] 'WO Opened','','','','1','1,4,43,44,45,80,84,88','46,47,66','48,49,50,58,59,67,68,69','51,52,53,54,55,56,57,60'    
 **************************************************************/    
 CREATE      PROCEDURE [dbo].[usprpt_GetWorkOrderBacklogReport]     
@@ -162,7 +166,7 @@ BEGIN
     UPPER(WOSS.Description) 'statuscode',    
     CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT(WOPN.ReceivedDate, 'MM/dd/yyyy') ELSE convert(VARCHAR(50), WOPN.ReceivedDate, 107) END 'receiveddate',     
     CASE WHEN ISNULL(@IsDownload,0) = 0 THEN FORMAT((select [dbo].[ConvertUTCtoLocal] (WO.OpenDate,TZ.Description)), 'MM/dd/yyyy') ELSE convert(VARCHAR(50), (select [dbo].[ConvertUTCtoLocal] (WO.OpenDate,TZ.Description)), 107) END 'opendate',    
-    CASE WHEN ISNULL(WQD.QuoteMethod,0) = 0 THEN ISNULL((WQD.MaterialFlatBillingAmount + WQD.LaborFlatBillingAmount + WQD.ChargesFlatBillingAmount + WQD.FreightFlatBillingAmount),0.00) ELSE ISNULL(WQD.CommonFlatRate,0.00)  END 'approvedamount',  
+    CASE WHEN ISNULL(WQD.QuoteMethod,0) = 0 THEN ISNULL((WQD.MaterialFlatBillingAmount + WQD.LaborFlatBillingAmount + WQD.ChargesFlatBillingAmount),0.00) ELSE ISNULL(WQD.CommonFlatRate,0.00)  END 'approvedamount',  
     ISNULL(SL.purchaseorderunitcost, 0) 'unitcost',    
     RCW.StocklineId,    
     CASE WHEN ISNULL(@IsDownload,0) = 0 THEN ISNULL(WOC.partscost, 0) ELSE CAST(ISNULL(WOC.partscost, 0) AS VARCHAR(20)) END 'partscost',     
@@ -237,20 +241,25 @@ BEGIN
   
     ,WithTotal (masterCompanyId, TotalApprovedAmount, TotalUnitCost, TotalPartsCost, TotalLaborCost, TotalMisccharge, TotalOverHeadcost, TotalOtherCost, TotalCost, TotalNetwip)   
      AS (SELECT masterCompanyId,   
-    FORMAT(SUM(approvedamount), 'N', 'en-us') TotalApprovedAmount,  
-    FORMAT(SUM(unitcost), 'N', 'en-us') TotalUnitCost,  
-    FORMAT(SUM(partscost), 'N', 'en-us') TotalPartsCost,  
-    FORMAT(SUM(laborcost), 'N', 'en-us') TotalLaborCost,  
-    FORMAT(SUM(misccharge), 'N', 'en-us') TotalMisccharge,  
-    FORMAT(SUM(overheadcost), 'N', 'en-us') TotalOverHeadcost,  
-    FORMAT(SUM(othercost), 'N', 'en-us') TotalOtherCost,  
-    FORMAT(SUM(total), 'N', 'en-us') TotalCost,  
-    FORMAT(SUM(netwip), 'N', 'en-us') TotalNetwip  
+    FORMAT(ROUND(SUM(approvedamount), 2, 1), 'N2', 'en-us') TotalApprovedAmount,  
+    FORMAT(ROUND(SUM(unitcost), 2, 1), 'N2', 'en-us') TotalUnitCost,  
+    FORMAT(ROUND(SUM(partscost), 2, 1), 'N2', 'en-us') TotalPartsCost,  
+    FORMAT(ROUND(SUM(laborcost), 2, 1), 'N2', 'en-us') TotalLaborCost,  
+    FORMAT(ROUND(SUM(misccharge), 2, 1), 'N2', 'en-us') TotalMisccharge,  
+    FORMAT(ROUND(SUM(overheadcost), 2, 1), 'N2', 'en-us') TotalOverHeadcost,  
+    FORMAT(ROUND(SUM(othercost), 2, 1), 'N2', 'en-us') TotalOtherCost,  
+    FORMAT(ROUND(SUM(total), 2, 1), 'N2', 'en-us') TotalCost,  
+    FORMAT(ROUND(SUM(netwip), 2, 1), 'N2', 'en-us') TotalNetwip  
     FROM FinalCTE  
-    GROUP BY masterCompanyId)  
-    
-    SELECT COUNT(2) OVER () AS TotalRecordsCount, WorkOrderId, customername, pn, pndescription, wonum, serialnum, wotype, stagecode, statuscode, receiveddate, approvedamount , opendate, unitcost, StocklineId, partscost, laborcost, overheadcost,  
-    misccharge, othercost, fc.total, netwip, transferredout, transferredtowo, transferredtoinventory, wodayscount, techname, level1, level2, level3, level4, level5, level6, level7, level8,  
+    GROUP BY masterCompanyId) 
+
+    SELECT COUNT(2) OVER () AS TotalRecordsCount, WorkOrderId, customername, pn, pndescription, wonum, serialnum, wotype, stagecode, statuscode, receiveddate, 
+    FORMAT(ROUND(approvedamount, 2, 1), 'N2', 'en-us') AS approvedamount,
+    opendate, FORMAT(ROUND(unitcost, 2, 1), 'N2', 'en-us') AS unitcost, StocklineId, FORMAT(ROUND(partscost, 2, 1), 'N2', 'en-us') AS partscost, FORMAT(ROUND(laborcost, 2, 1), 'N2', 'en-us') AS laborcost, 
+    FORMAT(ROUND(overheadcost, 2, 1), 'N2', 'en-us') AS overheadcost,  
+    FORMAT(ROUND(misccharge, 2, 1), 'N2', 'en-us') AS misccharge, 
+    FORMAT(ROUND(othercost, 2, 1), 'N2', 'en-us') AS othercost, FORMAT(ROUND(fc.total, 2, 1), 'N2', 'en-us') AS total, 
+    FORMAT(ROUND(netwip, 2, 1), 'N2', 'en-us') AS netwip, transferredout, transferredtowo, transferredtoinventory, wodayscount, techname, level1, level2, level3, level4, level5, level6, level7, level8,  
     level9, level10,   
     WC.TotalApprovedAmount,  
     WC.TotalUnitCost,  
@@ -262,10 +271,10 @@ BEGIN
     WC.TotalCost,  
     WC.TotalNetwip  
     FROM finalCTE FC  
-     INNER JOIN WithTotal WC ON FC.masterCompanyId = WC.masterCompanyId  
+    INNER JOIN WithTotal WC ON FC.masterCompanyId = WC.masterCompanyId  
     ORDER BY WorkOrderId DESC  
-    OFFSET((@PageNumber-1) * @pageSize) ROWS FETCH NEXT @pageSize ROWS ONLY;    
-    
+    OFFSET((@PageNumber-1) * @pageSize) ROWS FETCH NEXT @pageSize ROWS ONLY;
+
     COMMIT TRANSACTION    
   END TRY    
     

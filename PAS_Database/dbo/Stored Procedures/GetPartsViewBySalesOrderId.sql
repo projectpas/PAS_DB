@@ -26,29 +26,30 @@
 	10   19-SEP-2025  RAJESH GAMI	    Added return field: netSalesPricePerUnit
 	11   30-SEP-2025  Vishal Suthar	    Fix for showing Freight Cost in Freight
 	12   12-MAY-2026   Bhargav Saliya	UOM Changes [PN-15067]
+	13   18/06/2026   Bhargav Saliya	Added Case For Skip UOM Function If FROM uom and TO uom Both are Same
 
 EXEC [dbo].[GetPartsViewBySalesOrderId]  879
 **************************************************************/
-CREATE   PROCEDURE [dbo].[GetPartsViewBySalesOrderId]
-    @SalesOrderId INT
+CREATE PROCEDURE [dbo].[GetPartsViewBySalesOrderId]
+        @SalesOrderId INT
 AS
 BEGIN
-  SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
-  SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
+    SET NOCOUNT ON
 
-    BEGIN TRY
-    BEGIN TRANSACTION
-      BEGIN	
-	  	
+        BEGIN TRY
+        BEGIN TRANSACTION
+            BEGIN 	
+     	  
 		DECLARE @SOModuleId INT; 
 		SELECT @SOModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'SalesOrder';
 		DECLARE @IsInvoiceGenerated BIT = CASE WHEN (SELECT TOP 1 BillingInvoicingId FROM DBO.BillingInvoicing WITH(NOLOCK) WHERE ModuleId = @SOModuleId AND ReferenceId = @SalesOrderId AND ISNULL(IsVersionIncrease,0) = 0 AND ISNULL(IsPerformaInvoice,0) = 0 ) > 0 THEN 1 ELSE 0 END
 		DECLARE @SentForInternalApproval INT = 1
-        DECLARE @SubmitInternalApproval INT = 2
-        DECLARE @SentForCustomerApproval INT = 3
-        DECLARE @SubmitCustomerApproval INT = 4
-        DECLARE @Approved INT = 5
-		
+                DECLARE @SubmitInternalApproval INT = 2
+                DECLARE @SentForCustomerApproval INT = 3
+                DECLARE @SubmitCustomerApproval INT = 4
+                DECLARE @Approved INT = 5
+		  
 		CREATE TABLE #ProcedureOutput (
 			SalesTax DECIMAL(18, 2),
 			OtherTax DECIMAL(18, 2),
@@ -112,14 +113,15 @@ BEGIN
 			stk.StockLineId stockLineId,
 			ISNULL(qs.StockLineNumber, '') AS stockLineNumber,
 			part.FxRate fxRate,
-			CASE WHEN stk.SalesOrderStocklineId IS NOT NULL THEN ([dbo].[fn_ConvertUOM](ISNULL(stk.QtyOrder,0),itemMaster.[StockUnitOfMeasure], itemMaster.[ConsumeUnitOfMeasure],0,part.[MasterCompanyId])) ELSE ([dbo].[fn_ConvertUOM](ISNULL(part.QtyOrder,0),itemMaster.[StockUnitOfMeasure], itemMaster.[ConsumeUnitOfMeasure],0,part.[MasterCompanyId])) END qty,
-			CASE WHEN SOSC.SalesOrderStocklineId IS NOT NULL THEN ([dbo].[fn_ConvertUOM](ISNULL(SOSC.UnitSalesPrice,0),itemMaster.[StockUnitOfMeasure], itemMaster.[ConsumeUnitOfMeasure],0,part.[MasterCompanyId])) ELSE ([dbo].[fn_ConvertUOM](ISNULL(SOPC.UnitSalesPrice,0),itemMaster.[StockUnitOfMeasure], itemMaster.[ConsumeUnitOfMeasure],0,part.[MasterCompanyId])) END AS unitSalePrice,
+			CASE WHEN stk.SalesOrderStocklineId IS NOT NULL THEN (CASE WHEN ISNULL(itemMaster.[StockUnitOfMeasure],'') = ISNULL(itemMaster.[ConsumeUnitOfMeasure],'') THEN ISNULL(stk.QtyOrder,0) ELSE [dbo].[fn_ConvertUOM](ISNULL(stk.QtyOrder,0), itemMaster.[StockUnitOfMeasure], itemMaster.[ConsumeUnitOfMeasure], 0, part.[MasterCompanyId]) END) ELSE (CASE WHEN ISNULL(itemMaster.[StockUnitOfMeasure],'') = ISNULL(itemMaster.[ConsumeUnitOfMeasure],'') THEN ISNULL(part.QtyOrder,0) ELSE [dbo].[fn_ConvertUOM](ISNULL(part.QtyOrder,0), itemMaster.[StockUnitOfMeasure], itemMaster.[ConsumeUnitOfMeasure], 0, part.[MasterCompanyId]) END) END qty,
+			CASE WHEN SOSC.SalesOrderStocklineId IS NOT NULL THEN (CASE WHEN ISNULL(itemMaster.[StockUnitOfMeasure],'') = ISNULL(itemMaster.[ConsumeUnitOfMeasure],'') THEN ISNULL(SOSC.UnitSalesPrice,0) ELSE [dbo].[fn_ConvertUOM](ISNULL(SOSC.UnitSalesPrice,0), itemMaster.[StockUnitOfMeasure], itemMaster.[ConsumeUnitOfMeasure], 1, part.[MasterCompanyId]) END) ELSE (CASE WHEN ISNULL(itemMaster.[StockUnitOfMeasure],'') = ISNULL(itemMaster.[ConsumeUnitOfMeasure],'') THEN ISNULL(SOPC.UnitSalesPrice,0) ELSE [dbo].[fn_ConvertUOM](ISNULL(SOPC.UnitSalesPrice,0), itemMaster.[StockUnitOfMeasure], itemMaster.[ConsumeUnitOfMeasure], 1, part.[MasterCompanyId]) END) END AS unitSalePrice,
 			CASE WHEN SOSC.SalesOrderStocklineId IS NOT NULL THEN SOSC.MarkUpPercentage ELSE SOPC.MarkUpPercentage END markUpPercentage,
 			0 AS salesBeforeDiscount,
 			CASE WHEN SOSC.SalesOrderStocklineId IS NOT NULL THEN SOSC.DiscountPercentage ELSE SOPC.DiscountPercentage END discount,
-			CASE WHEN SOSC.SalesOrderStocklineId IS NOT NULL THEN ([dbo].[fn_ConvertUOM](ISNULL(SOSC.DiscountAmount,0),itemMaster.[StockUnitOfMeasure], itemMaster.[ConsumeUnitOfMeasure],0,part.[MasterCompanyId])) 
-			ELSE ([dbo].[fn_ConvertUOM](ISNULL(SOPC.DiscountAmount,0),itemMaster.[StockUnitOfMeasure], itemMaster.[ConsumeUnitOfMeasure],0,part.[MasterCompanyId])) END discountAmount,
-			CASE WHEN SOSC.SalesOrderStocklineId IS NOT NULL THEN ([dbo].[fn_ConvertUOM](ISNULL(SOSC.NetSaleAmount,0),itemMaster.[StockUnitOfMeasure], itemMaster.[ConsumeUnitOfMeasure],0,part.[MasterCompanyId])) ELSE ([dbo].[fn_ConvertUOM](ISNULL(SOPC.NetSaleAmount,0),itemMaster.[StockUnitOfMeasure], itemMaster.[ConsumeUnitOfMeasure],0,part.[MasterCompanyId])) END netSales,
+			CASE WHEN SOSC.SalesOrderStocklineId IS NOT NULL THEN ISNULL(SOSC.DiscountAmount, 0)
+			ELSE ISNULL(SOPC.DiscountAmount, 0) END discountAmount,
+			CASE WHEN SOSC.SalesOrderStocklineId IS NOT NULL THEN ISNULL(SOSC.NetSaleAmount, 0)
+			ELSE ISNULL(SOPC.NetSaleAmount, 0) END netSales,
 			part.MasterCompanyId masterCompanyId,
 			part.CreatedBy createdBy,
 			part.CreatedDate createdDate,
@@ -142,15 +144,29 @@ BEGIN
 			t.SalesTaxPercentage AS taxPercentage,
 			'' AS taxType,
 			SOPC.TaxAmount AS taxAmount,
-			CASE WHEN SOSC.SalesOrderStocklineId IS NOT NULL THEN ([dbo].[fn_ConvertUOM](ISNULL(SOSC.MarginAmount,0),itemMaster.[StockUnitOfMeasure], itemMaster.[ConsumeUnitOfMeasure],0,part.[MasterCompanyId])) ELSE ([dbo].[fn_ConvertUOM](ISNULL(SOPC.MarginAmount,0),itemMaster.[StockUnitOfMeasure], itemMaster.[ConsumeUnitOfMeasure],0,part.[MasterCompanyId])) END markupPerUnit,
-			CASE WHEN SOSC.SalesOrderStocklineId IS NOT NULL THEN ([dbo].[fn_ConvertUOM](ISNULL(SOSC.UnitCost,0),itemMaster.[StockUnitOfMeasure], itemMaster.[ConsumeUnitOfMeasure],0,part.[MasterCompanyId])) ELSE ([dbo].[fn_ConvertUOM](ISNULL(SOPC.UnitCost,0),itemMaster.[StockUnitOfMeasure], itemMaster.[ConsumeUnitOfMeasure],0,part.[MasterCompanyId])) END AS unitCost,
-			CASE WHEN SOSC.SalesOrderStocklineId IS NOT NULL THEN ([dbo].[fn_ConvertUOM](ISNULL(SOSC.UnitSalesPriceExtended,0),itemMaster.[StockUnitOfMeasure], itemMaster.[ConsumeUnitOfMeasure],0,part.[MasterCompanyId])) ELSE ([dbo].[fn_ConvertUOM](ISNULL(SOPC.UnitSalesPriceExtended,0),itemMaster.[StockUnitOfMeasure], itemMaster.[ConsumeUnitOfMeasure],0,part.[MasterCompanyId])) END salesPriceExtended,
-			CASE WHEN SOSC.SalesOrderStocklineId IS NOT NULL THEN ([dbo].[fn_ConvertUOM](ISNULL(SOSC.MarkUpAmount,0),itemMaster.[StockUnitOfMeasure], itemMaster.[ConsumeUnitOfMeasure],0,part.[MasterCompanyId])) ELSE ([dbo].[fn_ConvertUOM](ISNULL(SOPC.MarkUpAmount,0),itemMaster.[StockUnitOfMeasure], itemMaster.[ConsumeUnitOfMeasure],0,part.[MasterCompanyId])) END markupExtended,
+			CASE WHEN SOSC.SalesOrderStocklineId IS NOT NULL THEN (CASE WHEN ISNULL(itemMaster.[StockUnitOfMeasure],'') = ISNULL(itemMaster.[ConsumeUnitOfMeasure],'') THEN ISNULL(SOSC.MarginAmount,0) ELSE [dbo].[fn_ConvertUOM](ISNULL(SOSC.MarginAmount,0), itemMaster.[StockUnitOfMeasure], itemMaster.[ConsumeUnitOfMeasure], 1, part.[MasterCompanyId]) END) ELSE (CASE WHEN ISNULL(itemMaster.[StockUnitOfMeasure],'') = ISNULL(itemMaster.[ConsumeUnitOfMeasure],'') THEN ISNULL(SOPC.MarginAmount,0) ELSE [dbo].[fn_ConvertUOM](ISNULL(SOPC.MarginAmount,0), itemMaster.[StockUnitOfMeasure], itemMaster.[ConsumeUnitOfMeasure], 1, part.[MasterCompanyId]) END) END markupPerUnit,
+			CASE WHEN SOSC.SalesOrderStocklineId IS NOT NULL THEN (CASE WHEN ISNULL(itemMaster.[StockUnitOfMeasure],'') = ISNULL(itemMaster.[ConsumeUnitOfMeasure],'') THEN ISNULL(SOSC.UnitCost,0) ELSE [dbo].[fn_ConvertUOM](ISNULL(SOSC.UnitCost,0), itemMaster.[StockUnitOfMeasure], itemMaster.[ConsumeUnitOfMeasure], 1, part.[MasterCompanyId]) END) ELSE (CASE WHEN ISNULL(itemMaster.[StockUnitOfMeasure],'') = ISNULL(itemMaster.[ConsumeUnitOfMeasure],'') THEN ISNULL(SOPC.UnitCost,0) ELSE [dbo].[fn_ConvertUOM](ISNULL(SOPC.UnitCost,0), itemMaster.[StockUnitOfMeasure], itemMaster.[ConsumeUnitOfMeasure], 1, part.[MasterCompanyId]) END) END AS unitCost,
+			CASE WHEN SOSC.SalesOrderStocklineId IS NOT NULL THEN ISNULL(SOSC.UnitSalesPriceExtended, 0)
+			ELSE ISNULL(SOPC.UnitSalesPriceExtended, 0) END salesPriceExtended,
+			CASE WHEN SOSC.SalesOrderStocklineId IS NOT NULL THEN ISNULL(SOSC.MarkUpAmount, 0)
+			ELSE ISNULL(SOPC.MarkUpAmount, 0) END markupExtended,
 			0 salesDiscountExtended,
-			CASE WHEN SOSC.SalesOrderStocklineId IS NOT NULL THEN ([dbo].[fn_ConvertUOM](ISNULL(SOSC.NetSaleAmount,0),itemMaster.[StockUnitOfMeasure], itemMaster.[ConsumeUnitOfMeasure],0,part.[MasterCompanyId])) ELSE ([dbo].[fn_ConvertUOM](ISNULL(SOPC.NetSaleAmount,0),itemMaster.[StockUnitOfMeasure], itemMaster.[ConsumeUnitOfMeasure],0,part.[MasterCompanyId])) END netSalePriceExtended,
-			CASE WHEN SOSC.SalesOrderStocklineId IS NOT NULL THEN ([dbo].[fn_ConvertUOM](ISNULL(SOSC.UnitCostExtended,0),itemMaster.[StockUnitOfMeasure], itemMaster.[ConsumeUnitOfMeasure],0,part.[MasterCompanyId])) ELSE ([dbo].[fn_ConvertUOM](ISNULL(SOPC.UnitCostExtended,0),itemMaster.[StockUnitOfMeasure], itemMaster.[ConsumeUnitOfMeasure],0,part.[MasterCompanyId])) END AS unitCostExtended,
-			CASE WHEN SOSC.SalesOrderStocklineId IS NOT NULL THEN ([dbo].[fn_ConvertUOM](ISNULL(SOSC.MarginAmount,0),itemMaster.[StockUnitOfMeasure], itemMaster.[ConsumeUnitOfMeasure],0,part.[MasterCompanyId])) ELSE ([dbo].[fn_ConvertUOM](ISNULL(SOPC.MarginAmount,0),itemMaster.[StockUnitOfMeasure], itemMaster.[ConsumeUnitOfMeasure],0,part.[MasterCompanyId])) END AS marginAmount,
-			CASE WHEN SOSC.SalesOrderStocklineId IS NOT NULL THEN ([dbo].[fn_ConvertUOM](ISNULL(SOSC.MarginAmount,0),itemMaster.[StockUnitOfMeasure], itemMaster.[ConsumeUnitOfMeasure],0,part.[MasterCompanyId])) ELSE ([dbo].[fn_ConvertUOM](ISNULL(SOPC.MarginAmount,0),itemMaster.[StockUnitOfMeasure], itemMaster.[ConsumeUnitOfMeasure],0,part.[MasterCompanyId])) END marginAmountExtended,
+			CASE WHEN SOSC.SalesOrderStocklineId IS NOT NULL THEN ISNULL(SOSC.NetSaleAmount, 0)
+			ELSE ISNULL(SOPC.NetSaleAmount, 0) END netSalePriceExtended,
+			CASE WHEN SOSC.SalesOrderStocklineId IS NOT NULL THEN ISNULL(SOSC.UnitCostExtended, 0)
+			ELSE ISNULL(SOPC.UnitCostExtended, 0) END AS unitCostExtended,
+			CASE WHEN SOSC.SalesOrderStocklineId IS NOT NULL THEN (CASE WHEN ISNULL(itemMaster.[StockUnitOfMeasure],'') = ISNULL(itemMaster.[ConsumeUnitOfMeasure],'') THEN ISNULL(SOSC.MarginAmount,0) ELSE [dbo].[fn_ConvertUOM](ISNULL(SOSC.MarginAmount,0), itemMaster.[StockUnitOfMeasure], itemMaster.[ConsumeUnitOfMeasure], 1, part.[MasterCompanyId]) END) ELSE (CASE WHEN ISNULL(itemMaster.[StockUnitOfMeasure],'') = ISNULL(itemMaster.[ConsumeUnitOfMeasure],'') THEN ISNULL(SOPC.MarginAmount,0) ELSE [dbo].[fn_ConvertUOM](ISNULL(SOPC.MarginAmount,0), itemMaster.[StockUnitOfMeasure], itemMaster.[ConsumeUnitOfMeasure], 1, part.[MasterCompanyId]) END) END AS marginAmount,
+			ISNULL((
+				CASE WHEN SOSC.SalesOrderStocklineId IS NOT NULL
+					THEN (CASE WHEN ISNULL(itemMaster.[StockUnitOfMeasure],'') = ISNULL(itemMaster.[ConsumeUnitOfMeasure],'') THEN ISNULL(SOSC.MarginAmount,0) ELSE [dbo].[fn_ConvertUOM](ISNULL(SOSC.MarginAmount,0), itemMaster.[StockUnitOfMeasure], itemMaster.[ConsumeUnitOfMeasure], 1, part.[MasterCompanyId]) END)
+					ELSE (CASE WHEN ISNULL(itemMaster.[StockUnitOfMeasure],'') = ISNULL(itemMaster.[ConsumeUnitOfMeasure],'') THEN ISNULL(SOPC.MarginAmount,0) ELSE [dbo].[fn_ConvertUOM](ISNULL(SOPC.MarginAmount,0), itemMaster.[StockUnitOfMeasure], itemMaster.[ConsumeUnitOfMeasure], 1, part.[MasterCompanyId]) END)
+				END
+				*
+				CASE WHEN stk.SalesOrderStocklineId IS NOT NULL
+					THEN (CASE WHEN ISNULL(itemMaster.[StockUnitOfMeasure],'') = ISNULL(itemMaster.[ConsumeUnitOfMeasure],'') THEN ISNULL(stk.QtyOrder,0) ELSE [dbo].[fn_ConvertUOM](ISNULL(stk.QtyOrder,0), itemMaster.[StockUnitOfMeasure], itemMaster.[ConsumeUnitOfMeasure], 0, part.[MasterCompanyId]) END)
+					ELSE (CASE WHEN ISNULL(itemMaster.[StockUnitOfMeasure],'') = ISNULL(itemMaster.[ConsumeUnitOfMeasure],'') THEN ISNULL(part.QtyOrder,0) ELSE [dbo].[fn_ConvertUOM](ISNULL(part.QtyOrder,0), itemMaster.[StockUnitOfMeasure], itemMaster.[ConsumeUnitOfMeasure], 0, part.[MasterCompanyId]) END)
+				END
+			), 0) marginAmountExtended,
 			CASE WHEN SOSC.SalesOrderStocklineId IS NOT NULL THEN SOSC.MarginPercentage ELSE SOPC.MarginPercentage END AS marginPercentage,
 			ISNULL(cur.Code, '') AS currency,
 			part.ConditionId conditionId,
@@ -159,16 +175,16 @@ BEGIN
 			so.SalesOrderNumber salesOrderNumber,
 			ISNULL(q.SalesOrderQuoteNumber, '') AS salesOrderQuoteNumber,
 			ISNULL(CONVERT(VARCHAR, q.OpenDate), '') AS quoteDate,
-			([dbo].[fn_ConvertUOM](ISNULL(qs.QuantityAvailable,0),itemMaster.[StockUnitOfMeasure], itemMaster.[ConsumeUnitOfMeasure],0,part.[MasterCompanyId])) AS qtyAvailable,
+			(CASE WHEN ISNULL(itemMaster.[StockUnitOfMeasure],'') = ISNULL(itemMaster.[ConsumeUnitOfMeasure],'') THEN ISNULL(qs.QuantityAvailable,0) ELSE [dbo].[fn_ConvertUOM](ISNULL(qs.QuantityAvailable,0), itemMaster.[StockUnitOfMeasure], itemMaster.[ConsumeUnitOfMeasure], 0, part.[MasterCompanyId]) END) AS qtyAvailable,
 			ISNULL(iu.ShortName, '') AS uom,
-			--ISNULL(rPart.QtyToReserve, NULL) AS qtyReserved,
-			([dbo].[fn_ConvertUOM](ISNULL(stk.QtyReserved,NULL),itemMaster.[StockUnitOfMeasure], itemMaster.[ConsumeUnitOfMeasure],0,part.[MasterCompanyId])) AS qtyReserved,
-			--ISNULL(st.Name, '') AS [status],			
-			CASE WHEN sp.ApprovalActionId =  @SentForInternalApproval THEN 'Send for Internal Approval'
-			     WHEN sp.ApprovalActionId =  @SubmitInternalApproval THEN 'Submitted for Internal Approval'
-				 WHEN sp.ApprovalActionId =  @SentForCustomerApproval THEN 'Send for Customer Approval'
-				 WHEN sp.ApprovalActionId =  @SubmitCustomerApproval THEN 'Submitted for Cust Approval'
-				 WHEN sp.ApprovalActionId =  @Approved THEN 'Approved'
+			-- ISNULL(rPart.QtyToReserve, NULL) AS qtyReserved,
+			(CASE WHEN ISNULL(itemMaster.[StockUnitOfMeasure],'') = ISNULL(itemMaster.[ConsumeUnitOfMeasure],'') THEN ISNULL(stk.QtyReserved,0) ELSE [dbo].[fn_ConvertUOM](ISNULL(stk.QtyReserved, NULL), itemMaster.[StockUnitOfMeasure], itemMaster.[ConsumeUnitOfMeasure], 0, part.[MasterCompanyId]) END) AS qtyReserved,
+			-- ISNULL(st.Name, '') AS [status], 	
+			CASE WHEN sp.ApprovalActionId =   @SentForInternalApproval THEN 'Send for Internal Approval'
+			          WHEN sp.ApprovalActionId =   @SubmitInternalApproval THEN 'Submitted for Internal Approval'
+				  WHEN sp.ApprovalActionId =   @SentForCustomerApproval THEN 'Send for Customer Approval'
+				  WHEN sp.ApprovalActionId =   @SubmitCustomerApproval THEN 'Submitted for Cust Approval'
+				  WHEN sp.ApprovalActionId =   @Approved THEN 'Approved'
 			ELSE 'PENDING' END AS [status],
 			CASE WHEN so.StatusId = 2 THEN 1 ELSE 0 END AS isApproved, -- Assuming 2 is Approved status (replace with appropriate constant)
 			so.CustomerReference AS customerReference,
@@ -181,27 +197,28 @@ BEGIN
 			so.VersionNumber AS versionNumber,
 			CASE WHEN sob.BillingInvoicingItemId > 0 THEN ISNULL(sob.MiscChargesCostPlus,0) ELSE SOPC.MiscCharges END AS misc,
 			CASE WHEN sob.BillingInvoicingItemId > 0 THEN ISNULL(sob.MiscChargesCostPlus,0) ELSE CASE WHEN so.ChargesBilingMethodId = 3 THEN 0 ELSE (SELECT ISNULL(SUM(SOCC.ExtendedCost), 0) FROM DBO.SalesOrderCharges SOCC WHERE SOCC.SalesOrderPartId = part.SalesOrderPartId) END END AS miscCost,
-			--(part.QtyOrder * part.UnitSalesPricePerUnit) + part.TaxAmount + ISNULL(SUM(ch.BillingAmount), 0) AS TotalSales,
-			CASE WHEN SOSC.SalesOrderStocklineId IS NOT NULL THEN ([dbo].[fn_ConvertUOM](ISNULL(SOSC.NetSaleAmount,0),itemMaster.[StockUnitOfMeasure], itemMaster.[ConsumeUnitOfMeasure],0,part.[MasterCompanyId])) ELSE ([dbo].[fn_ConvertUOM](ISNULL(SOPC.NetSaleAmount,0),itemMaster.[StockUnitOfMeasure], itemMaster.[ConsumeUnitOfMeasure],0,part.[MasterCompanyId])) END AS totalSales,
-			CASE WHEN sob.BillingInvoicingItemId > 0 THEN ISNULL(sob.FreightCostPlus,0)  ELSE CASE WHEN so.FreightBilingMethodId = 3 THEN 0 ELSE (SELECT ISNULL(SUM(SOFF.Amount), 0) FROM DBO.SalesOrderFreight SOFF WHERE SOFF.SalesOrderPartId = part.SalesOrderPartId) END END AS freightCost,
-			CASE WHEN SOSC.SalesOrderStocklineId IS NOT NULL THEN ([dbo].[fn_ConvertUOM](ISNULL(SOSC.UnitSalesPrice,0),itemMaster.[StockUnitOfMeasure], itemMaster.[ConsumeUnitOfMeasure],0,part.[MasterCompanyId])) ELSE ([dbo].[fn_ConvertUOM](ISNULL(SOPC.UnitSalesPrice,0),itemMaster.[StockUnitOfMeasure], itemMaster.[ConsumeUnitOfMeasure],0,part.[MasterCompanyId])) END unitSalesPricePerUnit,
+			-- (part.QtyOrder * part.UnitSalesPricePerUnit) + part.TaxAmount + ISNULL(SUM(ch.BillingAmount), 0) AS TotalSales,
+			CASE WHEN SOSC.SalesOrderStocklineId IS NOT NULL THEN ISNULL(SOSC.NetSaleAmount, 0)
+			ELSE ISNULL(SOPC.NetSaleAmount, 0) END AS totalSales,
+			CASE WHEN sob.BillingInvoicingItemId > 0 THEN ISNULL(sob.FreightCostPlus,0)   ELSE CASE WHEN so.FreightBilingMethodId = 3 THEN 0 ELSE (SELECT ISNULL(SUM(SOFF.Amount), 0) FROM DBO.SalesOrderFreight SOFF WHERE SOFF.SalesOrderPartId = part.SalesOrderPartId) END END AS freightCost,
+			CASE WHEN SOSC.SalesOrderStocklineId IS NOT NULL THEN (CASE WHEN ISNULL(itemMaster.[StockUnitOfMeasure],'') = ISNULL(itemMaster.[ConsumeUnitOfMeasure],'') THEN ISNULL(SOSC.UnitSalesPrice,0) ELSE [dbo].[fn_ConvertUOM](ISNULL(SOSC.UnitSalesPrice,0), itemMaster.[StockUnitOfMeasure], itemMaster.[ConsumeUnitOfMeasure], 1, part.[MasterCompanyId]) END) ELSE (CASE WHEN ISNULL(itemMaster.[StockUnitOfMeasure],'') = ISNULL(itemMaster.[ConsumeUnitOfMeasure],'') THEN ISNULL(SOPC.UnitSalesPrice,0) ELSE [dbo].[fn_ConvertUOM](ISNULL(SOPC.UnitSalesPrice,0), itemMaster.[StockUnitOfMeasure], itemMaster.[ConsumeUnitOfMeasure], 1, part.[MasterCompanyId]) END) END unitSalesPricePerUnit,
 			CASE WHEN sob.BillingInvoicingItemId > 0 THEN ISNULL(sob.MiscChargesCostPlus,0) ELSE so.TotalCharges END totalCharges,
-			CASE WHEN sob.BillingInvoicingItemId > 0 THEN ISNULL(sob.FreightCostPlus,0) ELSE  so.TotalFreight END totalFreight,
+			CASE WHEN sob.BillingInvoicingItemId > 0 THEN ISNULL(sob.FreightCostPlus,0) ELSE   so.TotalFreight END totalFreight,
 			so.ChargesBilingMethodId chargesBilingMethodId,
 			so.FreightBilingMethodId freightBilingMethodId,
-			--CASE WHEN sob.BillingInvoicingItemId IS NOT NULL THEN ISNULL(sob.FreightCostPlus, 0) ELSE 
-			--	CASE 
-			--		WHEN so.FreightBilingMethodId = 3 THEN 0 
-			--		ELSE ISNULL((SELECT SUM(b.Amount)
-			--					FROM DBO.SalesOrderFreight b WITH (NOLOCK)
-			--					WHERE b.SalesOrderId = @SalesOrderId AND b.IsActive = 1 AND b.IsDeleted = 0
-			--						AND b.ItemMasterId = part.ItemMasterId AND b.ConditionId = part.ConditionId), 0)
-			--		END
-			--	END AS freight,
+			-- CASE WHEN sob.BillingInvoicingItemId IS NOT NULL THEN ISNULL(sob.FreightCostPlus, 0) ELSE 
+			-- 	CASE 
+			-- 		WHEN so.FreightBilingMethodId = 3 THEN 0 
+			-- 		ELSE ISNULL((SELECT SUM(b.Amount)
+			-- 				FROM DBO.SalesOrderFreight b WITH (NOLOCK)
+			-- 				WHERE b.SalesOrderId = @SalesOrderId AND b.IsActive = 1 AND b.IsDeleted = 0
+			-- 					AND b.ItemMasterId = part.ItemMasterId AND b.ConditionId = part.ConditionId), 0)
+			-- 		END
+			-- 	END AS freight,
 			ISNULL((SELECT SUM(b.Amount) FROM DBO.SalesOrderFreight b WITH (NOLOCK) WHERE b.SalesOrderId = @SalesOrderId AND b.IsActive = 1 AND b.IsDeleted = 0 AND b.ItemMasterId = part.ItemMasterId AND b.ConditionId = part.ConditionId), 0) AS freight,
 			0 AS sobillingInvoicingItemId,
 			@IsInvoiceGenerated isInvoiceGenerated,
-			CASE WHEN SOSC.SalesOrderStocklineId IS NOT NULL THEN ([dbo].[fn_ConvertUOM](ISNULL(SOSC.NetSaleAmountPerUnit,0),itemMaster.[StockUnitOfMeasure], itemMaster.[ConsumeUnitOfMeasure],0,part.[MasterCompanyId])) ELSE ([dbo].[fn_ConvertUOM](ISNULL(SOPC.NetSaleAmountPerUnit,0),itemMaster.[StockUnitOfMeasure], itemMaster.[ConsumeUnitOfMeasure],0,part.[MasterCompanyId])) END AS netSalesPricePerUnit
+			CASE WHEN SOSC.SalesOrderStocklineId IS NOT NULL THEN (CASE WHEN ISNULL(itemMaster.[StockUnitOfMeasure],'') = ISNULL(itemMaster.[ConsumeUnitOfMeasure],'') THEN ISNULL(SOSC.NetSaleAmountPerUnit,0) ELSE [dbo].[fn_ConvertUOM](ISNULL(SOSC.NetSaleAmountPerUnit,0), itemMaster.[StockUnitOfMeasure], itemMaster.[ConsumeUnitOfMeasure], 1, part.[MasterCompanyId]) END) ELSE (CASE WHEN ISNULL(itemMaster.[StockUnitOfMeasure],'') = ISNULL(itemMaster.[ConsumeUnitOfMeasure],'') THEN ISNULL(SOPC.NetSaleAmountPerUnit,0) ELSE [dbo].[fn_ConvertUOM](ISNULL(SOPC.NetSaleAmountPerUnit,0), itemMaster.[StockUnitOfMeasure], itemMaster.[ConsumeUnitOfMeasure], 1, part.[MasterCompanyId]) END) END AS netSalesPricePerUnit
 		FROM DBO.SalesOrder so WITH(NOLOCK)
 		INNER JOIN DBO.SalesOrderPartV1 part WITH(NOLOCK) ON so.SalesOrderId = part.SalesOrderId
 		LEFT JOIN DBO.SalesOrderStocklineV1 stk WITH(NOLOCK) ON stk.SalesOrderPartId = part.SalesOrderPartId
@@ -221,8 +238,8 @@ BEGIN
 		LEFT JOIN DBO.CustomerFinancial cf WITH (NOLOCK) ON so.CustomerId = cf.CustomerId
 		LEFT JOIN DBO.Currency cur WITH (NOLOCK) ON part.CurrencyId = cur.CurrencyId
 		LEFT JOIN DBO.MasterSalesOrderQuoteStatus st WITH (NOLOCK) ON so.StatusId = st.Id
-	    LEFT JOIN DBO.SalesOrderApproval sp WITH (NOLOCK) ON part.SalesOrderPartId = sp.SalesOrderPartId AND sp.SalesOrderId = @SalesOrderId AND sp.IsDeleted = 0 AND sp.IsActive =1
-		LEFT JOIN DBO.BillingInvoicingItems sob WITH (NOLOCK) ON part.SalesOrderPartId = sob.SubReferenceId AND stk.StockLineId = sob.StockLineId AND ISNULL(sob.IsVersionIncrease,0) = 0 AND ISNULL(sob.IsPerformaInvoice,0) = 0  AND sob.[ModuleId] =@SOModuleId
+		        LEFT JOIN DBO.SalesOrderApproval sp WITH (NOLOCK) ON part.SalesOrderPartId = sp.SalesOrderPartId AND sp.SalesOrderId = @SalesOrderId AND sp.IsDeleted = 0 AND sp.IsActive =1
+		LEFT JOIN DBO.BillingInvoicingItems sob WITH (NOLOCK) ON part.SalesOrderPartId = sob.SubReferenceId AND stk.StockLineId = sob.StockLineId AND ISNULL(sob.IsVersionIncrease,0) = 0 AND ISNULL(sob.IsPerformaInvoice,0) = 0   AND sob.[ModuleId] =@SOModuleId
 		LEFT JOIN DBO.BillingInvoicing sbi WITH (NOLOCK) ON sob.BillingInvoicingId = sbi.BillingInvoicingId AND sbi.ReferenceId = @SalesOrderId AND ISNULL(sbi.IsPerformaInvoice,0) = 0 AND sbi.[ModuleId] =@SOModuleId
 		LEFT JOIN DBO.SalesOrderFreight f WITH (NOLOCK) ON so.SalesOrderId = f.SalesOrderId AND f.ItemMasterId = part.ItemMasterId AND f.ConditionId = part.ConditionId AND f.IsActive = 1 AND f.IsDeleted = 0
 		LEFT JOIN DBO.SalesOrderCharges ch WITH (NOLOCK) ON so.SalesOrderId = ch.SalesOrderId AND ch.ItemMasterId = part.ItemMasterId AND ch.ConditionId = part.ConditionId AND ch.IsActive = 1 AND ch.IsDeleted = 0
@@ -231,29 +248,29 @@ BEGIN
 	END
 COMMIT TRANSACTION
 
-  END TRY
-  BEGIN CATCH
-  SELECT
-    ERROR_NUMBER() AS ErrorNumber,
-    ERROR_STATE() AS ErrorState,
-    ERROR_SEVERITY() AS ErrorSeverity,
-    ERROR_PROCEDURE() AS ErrorProcedure,
-    ERROR_LINE() AS ErrorLine,
-    ERROR_MESSAGE() AS ErrorMessage;
-    IF @@trancount > 0
+    END TRY
+    BEGIN CATCH
+    SELECT
+        ERROR_NUMBER() AS ErrorNumber,
+        ERROR_STATE() AS ErrorState,
+        ERROR_SEVERITY() AS ErrorSeverity,
+        ERROR_PROCEDURE() AS ErrorProcedure,
+        ERROR_LINE() AS ErrorLine,
+        ERROR_MESSAGE() AS ErrorMessage;
+        IF @@trancount > 0
 		ROLLBACK TRAN;
 		DECLARE @ErrorLogID int
-		,@DatabaseName varchar(100) = DB_NAME()
-        -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE---------------------------------------
-		,@AdhocComments varchar(150) = 'GetPartsViewBySalesOrderId'
-		,@ProcedureParameters varchar(3000) = '@Parameter1 = ' + ISNULL(@SalesOrderId, '') + ''
-		,@ApplicationName varchar(100) = 'PAS'
-		-----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------
+		, @DatabaseName varchar(100) = DB_NAME()
+                ----------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE---------
+		, @AdhocComments varchar(150) = 'GetPartsViewBySalesOrderId'
+		, @ProcedureParameters varchar(3000) = '@Parameter1 = ' + ISNULL(@SalesOrderId, '') + ''
+		, @ApplicationName varchar(100) = 'PAS'
+		---------PLEASE DO NOT EDIT BELOW---------
 		EXEC spLogException @DatabaseName = @DatabaseName,
-            @AdhocComments = @AdhocComments,
-            @ProcedureParameters = @ProcedureParameters,
-            @ApplicationName = @ApplicationName,
-            @ErrorLogID = @ErrorLogID OUTPUT;
+                        @AdhocComments = @AdhocComments,
+                        @ProcedureParameters = @ProcedureParameters,
+                        @ApplicationName = @ApplicationName,
+                        @ErrorLogID = @ErrorLogID OUTPUT;
 		RAISERROR ('Unexpected Error Occured in the database. Please let the support team know of the error number : %d', 16, 1, @ErrorLogID)
 		RETURN (1);
 	END CATCH

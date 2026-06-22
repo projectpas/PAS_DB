@@ -13,7 +13,7 @@
     1    03/03/2026   Priyansh Patel      Created 
     2    12/03/2026   Priyansh Patel      Changed uom conversion for units sale price PN-15711 
     3    20/03/2026   Priyansh Patel      Added change to handle the item master detail without purchase records [PN-15730]
-
+    4	 19/06/2026	  Ayushi		      [PN-16911]Skip fn_ConvertUOM call when ToUOM = FromUOM
 exec USP_GetPriceDetailsByCondId  97659, 79, 1 
 
 *************************************************************/   
@@ -55,7 +55,7 @@ BEGIN
                 IM.PurchaseUnitOfMeasure,
                 IM.StockUnitOfMeasure,
                 IM.ConsumeUnitOfMeasure,
-                [dbo].[fn_ConvertUOM](ISNULL(IPS.PP_UnitPurchasePrice, 0), IM.PurchaseUnitOfMeasure,IM.StockUnitOfMeasure, @IsCost, ISNULL(@MasterCompanyId,1)) AS unitCostUOM,
+                CASE WHEN ISNULL(IM.PurchaseUnitOfMeasure,'') = ISNULL(IM.StockUnitOfMeasure,'') THEN ISNULL(IPS.PP_UnitPurchasePrice,0) ELSE [dbo].[fn_ConvertUOM](ISNULL(IPS.PP_UnitPurchasePrice,0),IM.PurchaseUnitOfMeasure,IM.StockUnitOfMeasure,@IsCost,ISNULL(@MasterCompanyId,1)) END AS unitCostUOM,
                 ISNULL(IPS.SP_CalSPByPP_UnitSalePrice, 0) AS unitSalesPriceUOM
 
         FROM [dbo].[ItemMaster] IM WITH (NOLOCK)

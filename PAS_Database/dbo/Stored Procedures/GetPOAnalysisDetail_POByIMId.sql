@@ -16,6 +16,7 @@
  ** --   --------         -------          --------------------------------            
     1    21-AUG-2024      Rajesh Gami       Created  
     2    08-JUNE-2026     Priyansh Patel    uom changes [PN-16756]
+    3	 18/06/2026	      Ayushi			[PN-16911]Skip fn_ConvertUOM call when ToUOM = FromUOM
 
 **************************************************************/  
 CREATE    PROCEDURE [dbo].[GetPOAnalysisDetail_POByIMId] 
@@ -137,8 +138,8 @@ BEGIN
             LEFT JOIN DBO.Condition AS CN WITH (NOLOCK) ON STK.ConditionId = CN.ConditionId
             CROSS APPLY (
                 SELECT 
-                    ROUND(dbo.fn_ConvertUOM(ISNULL(STK.Quantity, 0), IM.StockUnitOfMeasure, IM.PurchaseUnitOfMeasure, 0, PO.MasterCompanyId), 2) AS qty,
-                    ROUND(dbo.fn_ConvertUOM(ISNULL(STK.UnitCost,  0), IM.StockUnitOfMeasure, IM.PurchaseUnitOfMeasure, 1, PO.MasterCompanyId), 2) AS unitCost
+                    ROUND(CASE WHEN ISNULL(IM.StockUnitOfMeasure,'') = ISNULL(IM.PurchaseUnitOfMeasure,'') THEN ISNULL(STK.Quantity,0) ELSE dbo.fn_ConvertUOM(ISNULL(STK.Quantity,0),IM.StockUnitOfMeasure,IM.PurchaseUnitOfMeasure,0,PO.MasterCompanyId) END, 2) AS qty,
+                    ROUND(CASE WHEN ISNULL(IM.StockUnitOfMeasure,'') = ISNULL(IM.PurchaseUnitOfMeasure,'') THEN ISNULL(STK.UnitCost,0) ELSE dbo.fn_ConvertUOM(ISNULL(STK.UnitCost,0),IM.StockUnitOfMeasure,IM.PurchaseUnitOfMeasure,1,PO.MasterCompanyId) END, 2) AS unitCost
             ) AS calc
         WHERE ISNULL(PO.IsDeleted,0) = 0 
             AND ISNULL(STK.IsParent,0) = 1

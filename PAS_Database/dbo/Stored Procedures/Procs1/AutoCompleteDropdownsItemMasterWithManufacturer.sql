@@ -22,6 +22,7 @@
 	7    30/01/2025   Shrey Chandegara  Modified due to add itemgroup
 	8    06/01/2026   Rajesh Gami		UOM Conversion: Return related fields (Stock,Consume Qty and Cost)
 	9    08/01/2026   Rajesh Gami		Added MasterCompanyId Parameter While Calling UOM Conversion Function
+	10   18/06/2026   Ayushi			[PN-16911]Skip fn_ConvertUOM call when ToUOM = FromUOM
 --EXEC [AutoCompleteDropdownsItemMasterWithManufacturer] '725',1,20,'',18  
 EXEC [AutoCompleteDropdownsItemMasterWithManufacturer] 'Gal',1,50,'',1  
 **************************************************************/
@@ -343,7 +344,16 @@ BEGIN
     WHERE Im.ItemMasterId in (SELECT Item FROM DBO.SPLITSTRING(@Idlist, ','))  
     ORDER BY Label   
    END  
-   UPDATE #TempTable_DropDown SET ConsumeUnitCost = dbo.fn_ConvertUOM(UnitCost, UnitOfMeasure, ConsumeUnitOfMeasure,1,0), ConsumeQuanity = dbo.fn_ConvertUOM(1, UnitOfMeasure, ConsumeUnitOfMeasure,0,0)
+   UPDATE #TempTable_DropDown SET ConsumeUnitCost = CASE 
+														WHEN ISNULL(UnitOfMeasure, '') = ISNULL(ConsumeUnitOfMeasure, '') 
+														THEN UnitCost
+														ELSE dbo.fn_ConvertUOM(UnitCost, UnitOfMeasure, ConsumeUnitOfMeasure, 1, 0)
+													END,
+								  ConsumeQuanity  = CASE 
+														WHEN ISNULL(UnitOfMeasure, '') = ISNULL(ConsumeUnitOfMeasure, '') 
+														THEN 1
+														ELSE dbo.fn_ConvertUOM(1, UnitOfMeasure, ConsumeUnitOfMeasure, 0, 0)
+													END
    Select * from #TempTable_DropDown
  END TRY   
  BEGIN CATCH       

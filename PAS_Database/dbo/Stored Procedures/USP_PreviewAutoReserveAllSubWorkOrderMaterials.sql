@@ -14,6 +14,7 @@ EXEC [USP_AutoReserveAllWorkOrderMaterials]
 ** 3    16/Mar/2026	Rajesh Gami		 Added UOM Changes [PN-15714]
 ** 4    15/Apr/2026	Ayushi Patel	 Added UOM Changes [PN-15910]
 ** 5    16/Apr/2026 Ayushi Patel     Resolved QtyShort Issue [PN-16098]
+** 6	19/06/2026	Ayushi		     [PN-16911]Skip fn_ConvertUOM call when ToUOM = FromUOM
 EXEC USP_PreviewAutoReserveAllSubWorkOrderMaterials 160,1,0,2,0
 exec USP_PreviewAutoReserveAllSubWorkOrderMaterials @SubWOPartNoId=270,@IncludeAlternate=1,@IncludeEquiv=1,@EmployeeId=2,@IncludeCustomerStock=1
 **************************************************************/ 
@@ -2176,7 +2177,7 @@ BEGIN
 					SELECT DENSE_RANK() OVER (ORDER BY ISNULL(wom.StockLineId,0) DESC) AS RowNumber , 
 						[ID], wom.[SubWorkOrderMaterialsId],wom.[SubWorkOrderMaterialsKITId],[SubWorkOrderMaterialsKitMappingId],wom.[WorkOrderId],wom.[SubWorkOrderId],wom.[SubWOPartNoId],wom.[ItemMasterId],
 						wom.[ConditionId],
-						dbo.fn_ConvertUOM(wom.Quantity, uomStock.ShortName, uomConsume.ShortName,0,@MasterCompanyId) AS [Quantity],
+						CASE WHEN ISNULL(uomStock.ShortName,'') = ISNULL(uomConsume.ShortName,'') THEN ISNULL(wom.Quantity,0) ELSE dbo.fn_ConvertUOM(wom.Quantity,uomStock.ShortName,uomConsume.ShortName,0,@MasterCompanyId) END AS [Quantity],
 						wom.[UnitCost],
 						[ExtendedCost],
 						wom.[QuantityReserved],
@@ -2187,7 +2188,7 @@ BEGIN
 						[TotalUnReserved],[TotalUnIssued],[ProvisionId],[MaterialMandatoriesId],[WOPartNoId],[TotalStocklineQtyReq],[QtyOnOrder],[QtyOnBkOrder],
 						[QtyToTurnIn],UPPER([Figure]) AS [Figure],UPPER([Item]) AS [Item],[EquPartMasterPartId],[ReservedDate],wom.[UnitOfMeasureId],[TaskId],[WOMStockLineId],wom.[StockLineId],[StkItemMasterId],
 						[StkConditionId],[StkQuantity],
-						dbo.fn_ConvertUOM(wom.[QtyReserved], uomStock.ShortName, uomConsume.ShortName,0,@MasterCompanyId) as [QtyReserved],
+						CASE WHEN ISNULL(uomStock.ShortName,'') = ISNULL(uomConsume.ShortName,'') THEN ISNULL(wom.[QtyReserved],0) ELSE dbo.fn_ConvertUOM(wom.[QtyReserved],uomStock.ShortName,uomConsume.ShortName,0,@MasterCompanyId) END AS [QtyReserved],
 						wom.[QtyIssued],[StkQuantityShort],[StkAltPartMasterPartId],[StkEquPartMasterPartId],[StkIsAltPart],
 						[StkIsEquPart],[StkUnitCost],[StkExtendedCost],[stkProvisionId],wom.[QuantityTurnIn],UPPER([stkFigure]) AS [stkFigure],UPPER([stkItem]) AS [stkItem],UPPER(wom.[PartNumber]) AS [PartNumber],
 						CASE WHEN ISNULL(StkIsAltPart, 0) > 0 THEN UPPER([StkPartNumber]) + ' (ALT)' 

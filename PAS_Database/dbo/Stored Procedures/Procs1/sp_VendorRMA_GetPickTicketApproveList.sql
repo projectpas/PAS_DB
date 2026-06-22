@@ -8,6 +8,7 @@
  ** 1    06/19/2023   Amit Ghediya    Created
  ** 2    07/04/2023   Amit Ghediya    Get RMANum from Part level
  ** 3    02/03/2026   Amit Ghediya    UOM Conversion Changes [PN-15140]
+ ** 4	 19/06/2026	  Ayushi		  [PN-16911]Skip fn_ConvertUOM call when ToUOM = FromUOM
 **************************************************************/
 CREATE   PROCEDURE [dbo].[sp_VendorRMA_GetPickTicketApproveList]
     @VendorRMAId BIGINT
@@ -17,54 +18,67 @@ BEGIN
 
     BEGIN TRY
 
-        -- Step 1: Compute converted Qty once per VendorRMADetailId
         ;WITH ConvertedQty AS (
-            SELECT
-                VR.VendorRMADetailId,
-                VR.ItemMasterId,
-                [dbo].[fn_ConvertUOM](
-                    ISNULL(VR.Qty, 0),
-                    IM.StockUnitOfMeasure,
-                    IM.PurchaseUnitOfMeasure,
-                    0,
-                    IM.MasterCompanyId
-                ) AS ConvertedQty
-            FROM VendorRMADetail VR WITH(NOLOCK)
-            INNER JOIN Stockline ST WITH(NOLOCK) ON ST.StockLineId = VR.StockLineId
-            INNER JOIN ItemMaster IM WITH(NOLOCK) ON ST.ItemMasterId = IM.ItemMasterId
-            WHERE VR.VendorRMAId = @VendorRMAId
-        ),
+        SELECT
+            VR.VendorRMADetailId,
+            VR.ItemMasterId,
+            CASE
+                WHEN ISNULL(IM.StockUnitOfMeasure,'') = ISNULL(IM.PurchaseUnitOfMeasure,'')
+                    THEN ISNULL(VR.Qty,0)
+                ELSE [dbo].[fn_ConvertUOM](
+                        ISNULL(VR.Qty,0),
+                        IM.StockUnitOfMeasure,
+                        IM.PurchaseUnitOfMeasure,
+                        0,
+                        IM.MasterCompanyId
+                     )
+            END AS ConvertedQty
+        FROM VendorRMADetail VR WITH(NOLOCK)
+        INNER JOIN Stockline ST WITH(NOLOCK) ON ST.StockLineId = VR.StockLineId
+        INNER JOIN ItemMaster IM WITH(NOLOCK) ON ST.ItemMasterId = IM.ItemMasterId
+        WHERE VR.VendorRMAId = @VendorRMAId
+    ),
 
-        -- Step 2: Compute QtyToShip per detail line
-        ShippedQty AS (
-            SELECT
-                SP.VendorRMADetailId,
-                SUM([dbo].[fn_ConvertUOM](
-                    ISNULL(SP.QtyToShip, 0),
-                    IM.StockUnitOfMeasure,
-                    IM.PurchaseUnitOfMeasure,
-                    0,
-                    IM.MasterCompanyId
-                )) AS QtyToShip
-            FROM RMAPickTicket SP WITH(NOLOCK)
-            INNER JOIN VendorRMADetail SO_P WITH(NOLOCK) ON SP.VendorRMADetailId = SO_P.VendorRMADetailId
-            INNER JOIN Stockline ST WITH(NOLOCK) ON ST.StockLineId = SO_P.StockLineId
-            INNER JOIN ItemMaster IM WITH(NOLOCK) ON ST.ItemMasterId = IM.ItemMasterId
-            WHERE SP.VendorRMAId = @VendorRMAId
-            GROUP BY SP.VendorRMADetailId
-        ),
+    ShippedQty AS (
+        SELECT
+            SP.VendorRMADetailId,
+            SUM(
+                CASE
+                    WHEN ISNULL(IM.StockUnitOfMeasure,'') = ISNULL(IM.PurchaseUnitOfMeasure,'')
+                        THEN ISNULL(SP.QtyToShip,0)
+                    ELSE [dbo].[fn_ConvertUOM](
+                            ISNULL(SP.QtyToShip,0),
+                            IM.StockUnitOfMeasure,
+                            IM.PurchaseUnitOfMeasure,
+                            0,
+                            IM.MasterCompanyId
+                         )
+                END
+            ) AS QtyToShip
+        FROM RMAPickTicket SP WITH(NOLOCK)
+        INNER JOIN VendorRMADetail SO_P WITH(NOLOCK) ON SP.VendorRMADetailId = SO_P.VendorRMADetailId
+        INNER JOIN Stockline ST WITH(NOLOCK) ON ST.StockLineId = SO_P.StockLineId
+        INNER JOIN ItemMaster IM WITH(NOLOCK) ON ST.ItemMasterId = IM.ItemMasterId
+        WHERE SP.VendorRMAId = @VendorRMAId
+        GROUP BY SP.VendorRMADetailId
+    ),
 
-        -- Step 3: Compute QuantityAvailable per ItemMaster
-        AvailableQty AS (
-            SELECT
-                sp.ItemMasterId,
-                SUM([dbo].[fn_ConvertUOM](
-                    ISNULL(sll.QuantityAvailable, 0),
-                    IM.StockUnitOfMeasure,
-                    IM.PurchaseUnitOfMeasure,
-                    0,
-                    IM.MasterCompanyId
-                )) AS QuantityAvailable
+    AvailableQty AS (
+        SELECT
+            sp.ItemMasterId,
+            SUM(
+                CASE
+                    WHEN ISNULL(IM.StockUnitOfMeasure,'') = ISNULL(IM.PurchaseUnitOfMeasure,'')
+                        THEN ISNULL(sll.QuantityAvailable,0)
+                    ELSE [dbo].[fn_ConvertUOM](
+                            ISNULL(sll.QuantityAvailable,0),
+                            IM.StockUnitOfMeasure,
+                            IM.PurchaseUnitOfMeasure,
+                            0,
+                            IM.MasterCompanyId
+                         )
+                END
+            ) AS QuantityAvailable
             FROM StockLine sll WITH(NOLOCK)
             INNER JOIN VendorRMADetail sp WITH(NOLOCK) ON sll.StockLineId = sp.StockLineId
             INNER JOIN Stockline ST WITH(NOLOCK) ON ST.StockLineId = sp.StockLineId

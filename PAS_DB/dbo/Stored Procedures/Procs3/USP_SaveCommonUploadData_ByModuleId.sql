@@ -44,7 +44,7 @@
 	37   05-JUN-2026        Ayushi Patel            PN-15888 Fixed PriceMaster/PurchaseSales upload: PP_PurchaseDiscPerc and SP_CalSPByPP_MarkUpPercOnListPrice were storing PercentId instead of PercentValue. Resolved actual percent values from [Percent] table before discount and markup calculations.
 	38   05-JUN-2026        Ayushi Patel            Added ParentTable insted of ParentTableRereneceTypeId for IsModuleTableColumn = 0 to support dynamic parent table insert functionality for upload module.
 	39   19-JUN-2026		Moin Bloch			    Fixed Error Log Error For Address PN-16924
-
+	40   22-JUN-2026		Ayushi Patel			Set The Default GLAccountID For ItemMaster Module 
 exec USP_SaveCommonUploadData_ByModuleId @ModuleId=4,@UserName=N'VICTOR ADMAS',@MasterCompanyId=1, @EmployeeId = 236;
 **************************************************************/
 CREATE PROCEDURE [dbo].[USP_SaveCommonUploadData_ByModuleId]
@@ -904,13 +904,14 @@ BEGIN
 			END
 			ELSE IF(@ModuleId = @ItemMasterModule)
 			BEGIN
+				DECLARE @DefaultGLId varchar (100) = 	(SELECT TOP 1 GLAccountId FROM DBO.GLACCOUNT WITH(NOLOCK) WHERE MasterCompanyId =@MasterCompanyId AND ISNULL(ISDELETED,0) = 0 AND ISNULL(ISACTIVE,0) = 1)
 				--SET @RefFieldName += ' , ItemTypeId,IsHazardousMaterial,IsExpirationDateAvailable,IsReceivedDateAvailable,DaysReceived,IsManufacturingDateAvailable,
 				--ManufacturingDays,IsTagDateAvailable,TagDays,IsOpenDateAvailable,OpenDays,IsShippedDateAvailable,ShippedDays,IsOtherDateAvailable,
 				--OtherDays,IsSchematic,OverhaulHours,RPHours,TestHours,RFQTracking,GLAccountId,LeadTimeDays,ReorderPoint,ReorderQuantiy,MinimumOrderQuantity,
 				--TurnTimeOverhaulHours,TurnTimeRepairHours,isTimeLife,isSerialized,ShelfLife,StockLevel,ShelfLifeAvailable,mfgHours,turnTimeMfg,turnTimeBenchTest,
 				--ItemMasterAssetTypeId,IsHotItem,IsAcquiredMethodBuy,MTBUR,NE,NS,OH,REP,SVC,MasterCompanyId,CreatedBy, UpdatedBy'
 				--SET @FieldValue += '1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,13,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, '
-
+				
 				SET @RefFieldName += ' ,ItemTypeId, IsReceivedDateAvailable, DaysReceived, IsManufacturingDateAvailable, ManufacturingDays, 
 										IsTagDateAvailable, TagDays, IsOpenDateAvailable, OpenDays, IsShippedDateAvailable, 
 										ShippedDays, IsOtherDateAvailable, OtherDays, IsSchematic, OverhaulHours, 
@@ -922,7 +923,7 @@ BEGIN
 				SET @FieldValue += '1, 0, 0, 0, 0, 
 									0, 0, 0, 0, 0, 
 									0, 0, 0, 0, 0, 
-									0, 0, 13,  
+									0, 0, '+@DefaultGLId+',  
 									0, 0, 0,
 									0, 0, 0, 0, 
 									0, 0, 0, 0, 

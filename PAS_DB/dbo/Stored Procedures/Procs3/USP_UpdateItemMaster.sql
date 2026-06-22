@@ -13,9 +13,10 @@
 ** 2     09-Mar-2026   Vishal Suthar    Handled UnitOfMeasureId to have NULL instead of 0 which will throw foreignkey constraint
 ** 3     26-Mar-2026   Sahdev Saliya    Added [LifeLimitedPart] :-([IsFlightHoursAvailable], [IsFlightCyclesAvailable], [IsLandingsAvailable], [IsStartsAvailable], [IsCalendarTimeAvailable], [FlightHours], [FlightMinutes], [FlightCycles], [Landings], [Starts], [CalendarDate]) (PN-15833, PN-16649_65)
 ** 4     03-Apr-2026   Sahdev Saliya    Remove LifeLimitedPart (PN-15833, PN-16649_65)
+** 5     19-Jun-2026   Moin Bloch       Fixed for Error Log PN-16924
 
 **************************************************************/
-create       PROCEDURE [dbo].[USP_UpdateItemMaster]
+CREATE       PROCEDURE [dbo].[USP_UpdateItemMaster]
     @tbl_ItemMasterUpdateType [TBL_ItemMasterUpdateType] readonly,
     @tbl_BigInt [TVP_BigInt] readonly,
 	@Id BIGINT,
@@ -54,7 +55,7 @@ BEGIN
 		UPDATE i
 		SET 
 		i.PartAlternatePartId = PST.PartAlternatePartId
-		,i.ItemGroupId = PST.ItemGroupId
+		,i.ItemGroupId = CASE WHEN PST.ItemGroupId = 0 THEN NULL ELSE PST.ItemGroupId END
 		,i.ItemClassificationId = PST.ItemClassificationId
 		,i.IsHazardousMaterial = PST.IsHazardousMaterial
 		,i.IsExpirationDateAvailable = PST.IsExpirationDateAvailable
@@ -232,7 +233,7 @@ BEGIN
             @DatabaseName varchar(100) = DB_NAME()
             -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
             ,@AdhocComments varchar(150) = '[USP_UpdateItemMaster]',
-            @ProcedureParameters varchar(3000) = '@ItemMasterId = ''' + CAST(ISNULL(@Id, '') AS varchar(100)),
+            @ProcedureParameters varchar(3000) = '@ItemMasterId = ''' + CAST(ISNULL(@Id, 0) AS varchar(100)),
             @ApplicationName varchar(100) = 'PAS'
     -----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------
     EXEC spLogException @DatabaseName = @DatabaseName,

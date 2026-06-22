@@ -17,7 +17,7 @@
     01  06/08/2024		Ayushi Patel    Created      
 	02  04/11/2024		Vishal Suthar	Modified to make use of new SO Part tables
 	03  09/04/2025		Vishal Suthar	Fixed issue with QtyReserved which was providing duplicate result
-	05  09/04/2025		Bhargav Saliya	Resolved Issue [PN-16940]
+	04  22/06/2026		Bhargav Saliya	Resolved Issue [PN-16940]
  
 -- EXEC [dbo].[GetSOConfirmationList] 1,20,'',-1,'',0,'',null,0,'','','','',0,null,'','','','pnview',1
    
@@ -341,13 +341,13 @@ BEGIN
 			   + '@Parameter5 = ''' + ISNULL(@GlobalFilter, '')
 			   + '@Parameter6 = ''' + CAST(ISNULL(@SOConformationNumber, 0) AS varchar(100))
 			   + '@Parameter7 = ''' + ISNULL(@SalesOrderNumber, '')
-			   + '@Parameter8 = ''' + CAST(ISNULL(@OpenDate, '1900-01-01') AS varchar(100))
+			   + '@Parameter8 = ''' + CAST(ISNULL(@OpenDate, '') AS varchar(100))
 			   + '@Parameter9 = ''' + ISNULL(@PartNumber, '')
 			   + '@Parameter10 = ''' + ISNULL(@PartDescription, '')
 			   + '@Parameter11 = ''' + ISNULL(@SerialNumber, '')
 			   + '@Parameter12 = ''' + ISNULL(@UOM, '')
 			   + '@Parameter13 = ''' + CAST(ISNULL(@QtyReserved, 0) AS varchar(100))
-			   + '@Parameter14 = ''' + CAST(ISNULL(@estimatedShipDate, '1900-01-01') AS varchar(100))
+			   + '@Parameter14 = ''' + CAST(ISNULL(@estimatedShipDate, '') AS varchar(100))
 			   + '@Parameter15 = ''' + ISNULL(@customerName, '')
 			   + '@Parameter16 = ''' + ISNULL(@ConfirmedBy, '')
 			   + '@Parameter17 = ''' + ISNULL(@CustomerMemo, '')

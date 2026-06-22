@@ -24,6 +24,8 @@
 	 8    31-MAR-2026       Sahdev Saliya       Added Condition (PN-15844)
 	 9    09-JUNE-2026      Priyansh Patel      UOM changes, Changed the decimals to 2 [PN-16778]
 	 10   16-JUNE-2026      Priyansh Patel      converted purchase order quantity to stock uom [PN-16860]
+	 11   19-JUNE-2026      Priyansh Patel      Add Condition to skip fn_ConvertUOM call [PN-16911]
+
 
 
 EXECUTE   [dbo].[usprpt_GetReceivingLogReport] '','2020-06-15','2021-06-15','1','1,4,43,44,45,80,84,88','46,47,66','48,49,50,58,59,67,68,69','51,52,53,54,55,56,57,60,61,62,64,70,71,72'  
@@ -114,19 +116,12 @@ BEGIN
 				UPPER(POP.AltEquiPartNumber) 'altequiv',  
 				UPPER(POP.manufacturer) 'manufacturer',  
 				UPPER(POP.itemtype) 'itemtype',  
-				CASE WHEN POP.UnitOfMeasure = STL.StockUnitOfMeasure THEN ISNULL(POP.QuantityOrdered, 0)
-				ELSE dbo.fn_ConvertUOM(ISNULL(POP.QuantityOrdered, 0), POP.UnitOfMeasure, STL.StockUnitOfMeasure, 0, STL.mastercompanyid) END 'qtyord',
-				(CASE WHEN ISNULL(STL.isSerialized,0) = 1 THEN 1 
-				WHEN POP.UnitOfMeasure = STL.StockUnitOfMeasure THEN ISNULL(SD.TotalQtyDraft, 0)
-				ELSE dbo.fn_ConvertUOM(ISNULL(SD.TotalQtyDraft, 0), POP.UnitOfMeasure, STL.StockUnitOfMeasure, 0, STL.mastercompanyid) END) 'qtyrcvd',
+				dbo.fn_ConvertUOM(ISNULL(POP.QuantityOrdered, 0), POP.UnitOfMeasure, STL.StockUnitOfMeasure, 0, STL.mastercompanyid) 'qtyord',
+				(CASE WHEN ISNULL(STL.isSerialized,0) = 1 THEN 1 ELSE dbo.fn_ConvertUOM(ISNULL(SD.TotalQtyDraft, 0), POP.UnitOfMeasure, STL.StockUnitOfMeasure, 0, STL.mastercompanyid) END) 'qtyrcvd',
 				UPPER(ISNULL(STL.UnitCost, 0)) 'unitcost',  
-				((CASE WHEN ISNULL(STL.isSerialized,0) = 1 THEN 1 
-				WHEN POP.UnitOfMeasure = STL.StockUnitOfMeasure THEN ISNULL(SD.TotalQtyDraft, 0)
-				ELSE dbo.fn_ConvertUOM(ISNULL(SD.TotalQtyDraft, 0), POP.UnitOfMeasure, STL.StockUnitOfMeasure, 0, STL.mastercompanyid) END) * (ISNULL(STL.UnitCost, 0))) 'extcost',
-				CASE WHEN POP.UnitOfMeasure = STL.StockUnitOfMeasure THEN ISNULL(POP.QuantityRejected, 0)
-				ELSE dbo.fn_ConvertUOM(ISNULL(POP.QuantityRejected, 0), POP.UnitOfMeasure, STL.StockUnitOfMeasure, 0, STL.mastercompanyid) END 'qtyrej',
-				CASE WHEN POP.UnitOfMeasure = STL.StockUnitOfMeasure THEN ISNULL(POP.QuantityBackOrdered, 0)
-				ELSE dbo.fn_ConvertUOM(ISNULL(POP.QuantityBackOrdered, 0), POP.UnitOfMeasure, STL.StockUnitOfMeasure, 0, STL.mastercompanyid) END 'qtyonbacklog',
+				((CASE WHEN ISNULL(STL.isSerialized,0) = 1 THEN 1 ELSE dbo.fn_ConvertUOM(ISNULL(SD.TotalQtyDraft, 0), POP.UnitOfMeasure, STL.StockUnitOfMeasure, 0, STL.mastercompanyid) END) * (ISNULL(STL.UnitCost, 0))) 'extcost',
+				dbo.fn_ConvertUOM(ISNULL(POP.QuantityRejected, 0), POP.UnitOfMeasure, STL.StockUnitOfMeasure, 0, STL.mastercompanyid) 'qtyrej',
+				dbo.fn_ConvertUOM(ISNULL(POP.QuantityBackOrdered, 0), POP.UnitOfMeasure, STL.StockUnitOfMeasure, 0, STL.mastercompanyid) 'qtyonbacklog',
 				UPPER(STL.CreatedBy) 'receivedby',  
 				UPPER(PO.Requisitioner) 'requestor',  
 				UPPER(PO.approvedby) 'approver',  

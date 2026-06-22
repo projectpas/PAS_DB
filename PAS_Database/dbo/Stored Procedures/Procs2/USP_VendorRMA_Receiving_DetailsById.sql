@@ -12,6 +12,8 @@
  ** --   --------     -------		---------------------------     
     1    06/20/2023   Moin Bloch     Created
 	2    06-04-2026	  Amit Ghediya		UOM Conversion Changes [PN-15140]
+	3    19-06-2026	  Priyansh Patel	Add Condition to skip fn_ConvertUOM call [PN-16911]
+
 *******************************************************************************
 EXEC USP_VendorRMA_Receiving_DetailsById 34
 *******************************************************************************/
@@ -28,18 +30,31 @@ BEGIN
 				  ,1 AS [ItemTypeId]
 				  ,0 AS [QuantityRejected]          --> Default SET 0   
 				  --,VD.[Qty] AS [QuantityOrdered]				  
-				  ,([dbo].[fn_ConvertUOM](ISNULL(VD.[QtyShipped], 0),IM.[StockUnitOfMeasure], IM.[PurchaseUnitOfMeasure],0,IM.[MasterCompanyId])) AS [QuantityOrdered]
+				  ,(CASE WHEN IM.[StockUnitOfMeasure] = IM.[PurchaseUnitOfMeasure] THEN ISNULL(VD.[QtyShipped], 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(VD.[QtyShipped], 0),IM.[StockUnitOfMeasure], IM.[PurchaseUnitOfMeasure],0,IM.[MasterCompanyId]) END) AS [QuantityOrdered]
   			    --,[QuantityBackOrdered] = (VD.[Qty] - (SELECT ISNULL(SUM(ISNULL(SL.[Quantity],0)),0) FROM [dbo].[StockLine] SL WITH (NOLOCK) WHERE SL.[VendorRMADetailId] = VD.[VendorRMADetailId] AND SL.[IsDeleted] = 0 AND SL.[IsParent] = 1))
-				  ,[QuantityBackOrdered] = (([dbo].[fn_ConvertUOM](ISNULL(VD.[QtyShipped], 0),IM.[StockUnitOfMeasure], IM.[PurchaseUnitOfMeasure],0,IM.[MasterCompanyId])) - (SELECT ISNULL(SUM(ISNULL(([dbo].[fn_ConvertUOM](ISNULL(SL.[Quantity], 0),IM.[StockUnitOfMeasure], IM.[PurchaseUnitOfMeasure],0,IM.[MasterCompanyId])),0)),0) FROM [dbo].[StockLine] SL WITH (NOLOCK) INNER JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON SL.[ItemMasterId] = IM.[ItemMasterId] WHERE SL.[VendorRMADetailId] = VD.[VendorRMADetailId] AND SL.[IsDeleted] = 0 AND SL.[IsParent] = 1))
-				  ,[QuantityDrafted] = (SELECT ISNULL(SUM(ISNULL(([dbo].[fn_ConvertUOM](ISNULL(SD.[Quantity], 0),IM.[StockUnitOfMeasure], IM.[PurchaseUnitOfMeasure],0,IM.[MasterCompanyId])),0)),0) FROM [dbo].[StockLineDraft] SD WITH (NOLOCK) INNER JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON SD.[ItemMasterId] = IM.[ItemMasterId] WHERE SD.[VendorRMADetailId] = VD.[VendorRMADetailId] AND SD.[IsDeleted] = 0 AND SD.[IsParent] = 1 AND ISNULL(SD.[StockLineId],0) = 0)
-				  ,[QuantityReceived] = (SELECT ISNULL(SUM(ISNULL(([dbo].[fn_ConvertUOM](ISNULL(SL.[Quantity], 0),IM.[StockUnitOfMeasure], IM.[PurchaseUnitOfMeasure],0,IM.[MasterCompanyId])),0)),0) FROM [dbo].[StockLine] SL WITH (NOLOCK) INNER JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON SL.[ItemMasterId] = IM.[ItemMasterId] WHERE SL.[VendorRMADetailId] = VD.[VendorRMADetailId] AND SL.[IsDeleted] = 0 AND SL.[IsParent] = 1)
+					,[QuantityBackOrdered] = (
+					(CASE WHEN IM.[StockUnitOfMeasure] = IM.[PurchaseUnitOfMeasure] THEN ISNULL(VD.[QtyShipped], 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(VD.[QtyShipped], 0),IM.[StockUnitOfMeasure], IM.[PurchaseUnitOfMeasure],0,IM.[MasterCompanyId]) END)
+					- (SELECT ISNULL(SUM(ISNULL((CASE WHEN IM.[StockUnitOfMeasure] = IM.[PurchaseUnitOfMeasure] THEN SL.[Quantity] ELSE [dbo].[fn_ConvertUOM](ISNULL(SL.[Quantity], 0),IM.[StockUnitOfMeasure], IM.[PurchaseUnitOfMeasure],0,IM.[MasterCompanyId]) END),0)),0) 
+					FROM [dbo].[StockLine] SL WITH (NOLOCK) 
+					INNER JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON SL.[ItemMasterId] = IM.[ItemMasterId] 
+					WHERE SL.[VendorRMADetailId] = VD.[VendorRMADetailId] AND SL.[IsDeleted] = 0 AND SL.[IsParent] = 1)
+					)
+					,[QuantityDrafted] = (SELECT ISNULL(SUM(ISNULL((CASE WHEN IM.[StockUnitOfMeasure] = IM.[PurchaseUnitOfMeasure] THEN SD.[Quantity] ELSE [dbo].[fn_ConvertUOM](ISNULL(SD.[Quantity], 0),IM.[StockUnitOfMeasure], IM.[PurchaseUnitOfMeasure],0,IM.[MasterCompanyId]) END),0)),0) 
+					FROM [dbo].[StockLineDraft] SD WITH (NOLOCK) 
+					INNER JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON SD.[ItemMasterId] = IM.[ItemMasterId] 
+					WHERE SD.[VendorRMADetailId] = VD.[VendorRMADetailId] AND SD.[IsDeleted] = 0 AND SD.[IsParent] = 1 AND ISNULL(SD.[StockLineId],0) = 0)
+					,[QuantityReceived] = (SELECT ISNULL(SUM(ISNULL((CASE WHEN IM.[StockUnitOfMeasure] = IM.[PurchaseUnitOfMeasure] THEN SL.[Quantity] ELSE [dbo].[fn_ConvertUOM](ISNULL(SL.[Quantity], 0),IM.[StockUnitOfMeasure], IM.[PurchaseUnitOfMeasure],0,IM.[MasterCompanyId]) END),0)),0) 
+					FROM [dbo].[StockLine] SL WITH (NOLOCK) 
+					INNER JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON SL.[ItemMasterId] = IM.[ItemMasterId] 
+					WHERE SL.[VendorRMADetailId] = VD.[VendorRMADetailId] AND SL.[IsDeleted] = 0 AND SL.[IsParent] = 1)
 				  ,VD.[SerialNumber]
 				  ,SL.[ConditionId]
 				  ,SL.[Condition]
 				  ,0 AS [DiscountAmount]   --> Default SET 0  
 				  ,0 AS [DiscountPercent]  --> Default SET 0  
 				  ,0 AS [DiscountPerUnit]  --> Default SET 0  				  
-				  ,([dbo].[fn_ConvertUOM](ISNULL(VD.[ExtendedCost], 0),IM.[StockUnitOfMeasure], IM.[PurchaseUnitOfMeasure],1,IM.[MasterCompanyId])) AS ExtendedCost
+				  ,(CASE WHEN IM.[StockUnitOfMeasure] = IM.[PurchaseUnitOfMeasure] THEN ISNULL(VD.[ExtendedCost], 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(VD.[ExtendedCost], 0),IM.[StockUnitOfMeasure], IM.[PurchaseUnitOfMeasure],1,IM.[MasterCompanyId]) END) AS ExtendedCost
+
 				  ,0 AS [ForeignExchangeRate]
 				  ,NULL AS [FunctionalCurrencyId] --> Default SET NULL 
 				  ,SL.[GLAccountId]

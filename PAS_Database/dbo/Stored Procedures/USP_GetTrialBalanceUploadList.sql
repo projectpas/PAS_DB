@@ -3,13 +3,13 @@
  ** Author:		 Divyesh Kathiriya
  ** Description: This Stored Procedure Is Used To Get Trial Balance Upload List Data.
  ** Purpose:         
- ** Date:   01-JUNE-2026
+ ** Date:   23-JUNE-2026
  **************************************************************           
  ** Change History           
  **************************************************************           
  ** PR   Date				Author				Change Description            
  ** --   -------------		----------------	--------------------------------          
-    1    01-JUNE-2026		Divyesh Kathiriya	Created
+    1    23-JUNE-2026		Divyesh Kathiriya	Created
     
  -- EXEC [USP_GetTrialBalanceUploadList] @MasterCompanyId=1,@EmployeeId=236
 **************************************************************/

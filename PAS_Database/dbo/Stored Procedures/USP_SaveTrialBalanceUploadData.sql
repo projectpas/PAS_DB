@@ -1,15 +1,15 @@
 ﻿/*************************************************************           
  ** File:		 [USP_SaveTrialBalanceUploadData]           
  ** Author:		 Divyesh Kathiriya
- ** Description: This Stored Procedure Is Used To Save Trial Balance Upload Data.
+ ** Description: This Stored Procedure Is Used To Save Trial Balance Upload Data List.
  ** Purpose:         
- ** Date:   01-JUNE-2026 
+ ** Date:   23-JUNE-2026 
  **************************************************************           
  ** Change History           
  **************************************************************           
  ** PR   Date				Author				Change Description            
  ** --   -------------		----------------	--------------------------------          
-    1    01-JUNE-2026		Divyesh Kathiriya	Created
+    1    23-JUNE-2026		Divyesh Kathiriya	Created
     
  -- EXEC [USP_SaveTrialBalanceUploadData] @Status=N'Uploaded',@TotalRecords=2,@ErrorDetails=N'',@FilePath=N'UAT_FILES/1/UploadFiles/TrialBalanceUpload/Import_TrialBalance_Blank_Template.xlsm',
                                           @CreatedBy=N'dane park',@UpdatedBy=N'dane park',@CreatedDate='2026-06-01 13:42:49.403',@UpdatedDate='2026-06-01 13:42:49.403',@MasterCompanyId=1,@IsActive=1,@IsDeleted=0

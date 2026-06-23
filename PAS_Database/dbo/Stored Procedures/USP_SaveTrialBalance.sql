@@ -1,16 +1,16 @@
 ﻿/*************************************************************             
  ** File:   [USP_SaveTrialBalance]             
  ** Author: Divyesh Kathiriya  
- ** Description: This stored procedure is used to Save Trial Balance.
+ ** Description: This stored procedure is used to Save Trial Balance Upload Data.
  ** Purpose:           
- ** Date:   01-JUNE-2026
+ ** Date:   23-JUNE-2026
          
  **************************************************************             
   ** Change History             
  **************************************************************             
  S NO	Date				Author					Change Description              
  ----	-----------			-------------------		-------------------------------            
-  1		01-JUNE-2026		Divyesh Kathiriya		Created 
+  1		23-JUNE-2026		Divyesh Kathiriya		Created 
 	
 **************************************************************/  
 
@@ -24,8 +24,7 @@ BEGIN
 		
 		DECLARE @CurrentNumber INT;
 		DECLARE @CurrentNo BIGINT = 0;
-		DECLARE @Currentbatch VARCHAR(100);
-		DECLARE @CurrentPeriodId BIGINT = 0; 
+		DECLARE @Currentbatch VARCHAR(100);		 
 
 		DECLARE @GlAccountNumber varchar(200);
 		DECLARE @GlAccountName varchar(200);
@@ -37,8 +36,7 @@ BEGIN
 		DECLARE @JournalBatchHeaderId BIGINT;
 		DECLARE @JournalBatchDetailId BIGINT=0;		
 
-		DECLARE @DistributionMasterId BIGINT;
-		DECLARE @DistributionCode VARCHAR(200);
+		DECLARE @DistributionMasterId BIGINT;		
 		DECLARE @DistributionCodeName VARCHAR(100);
 		DECLARE @DistributionSetupCode VARCHAR(100);
 		DECLARE @DistributionSetupId INT=0;
@@ -56,26 +54,22 @@ BEGIN
 		DECLARE @GlAccountId BIGINT;
 		DECLARE @MasterCompanyId INT;
 		DECLARE @EmployeeId BIGINT;
-		DECLARE @batch VARCHAR(100);		
-		DECLARE @IsBatchGenerated INT = 0;	
-		DECLARE @Amount DECIMAL(18, 2) = 0;
+		DECLARE @batch VARCHAR(100);
 		DECLARE @Debit DECIMAL(18, 2) = 0;
 		DECLARE @Credit DECIMAL(18, 2) = 0;
 		DECLARE @TotalDebit DECIMAL(18, 2) = 0;
 		DECLARE @TotalCredit DECIMAL(18, 2) = 0;
 		DECLARE @TotalBalance DECIMAL(18, 2) = 0;
 		DECLARE @LineNumber INT=1;
-		DECLARE @CodeTypeId BIGINT;
-		DECLARE @CrDrType INT=0;
+		DECLARE @CodeTypeId BIGINT;		
 		DECLARE @LastMSLevel VARCHAR(200);
-		DECLARE @AllMSlevels VARCHAR(max);
-	
+		DECLARE @AllMSlevels VARCHAR(max);	
 		DECLARE @TotalRecords BIGINT = 0; 
 		DECLARE @CurrentRecord BIGINT = 0;		
 
 		SET @DistributionCodeName = 'ManualJournal';
 		SET @DistributionSetupCode = 'ManualJouralDebit';
-		SET @DistributionSetupCodeCredit = 'ManualJouralDebit';
+		SET @DistributionSetupCodeCredit = 'ManualJouralCredit'	
 		SET @Status = 'Open';
 
 		-- === POPULATE VARIABLES FROM INPUT TABLE PARAMETER ===
@@ -110,28 +104,6 @@ BEGIN
 		INSERT INTO #tmpTrialBalanceDetails ([GlAccountId], [AccountCode], [Debit], [Credit], [TransactionDate], [EntryDate])
 		SELECT [GlAccountId], [AccountCode], [Debit], [Credit], [TransactionDate], [EntryDate]
 		FROM @tbl_SaveTrialBalanceUploadType;
-		
-		-- === SET LASTMSLEVEL AND ALLMSLEVELS ===
-
-		--IF OBJECT_ID('tempdb..#tmpMS') IS NOT NULL
-		--BEGIN
-		--	DROP TABLE #tmpMS;
-		--END
-
-		--CREATE TABLE #tmpMS (
-		--	LastMSLevel VARCHAR(200),
-		--	AllMSlevels VARCHAR(MAX)
-		--);
-
-		--INSERT INTO #tmpMS (LastMSLevel, AllMSlevels)
-		--EXEC dbo.USP_GetAllEntityManagementStructureList
-		--	@EmployeeId = @EmployeeId,
-		--	@MasterCompanyId = @MasterCompanyId;
-
-		--SELECT TOP 1
-		--	@LastMSLevel = LastMSLevel,
-		--	@AllMSlevels = AllMSlevels
-		--FROM #tmpMS;
 
 		-- === GET ACCOUNTING PERIOD ===		
 		SELECT @AccountingPeriodId = [AccountingCalendarId], @AccountingPeriod = [PeriodName]
@@ -143,8 +115,7 @@ BEGIN
 		-- === CALCULATE TOTAL AMOUNT ===
 		SELECT @TotalDebit = SUM(ISNULL([Debit],0)) FROM #tmpTrialBalanceDetails;
 		SELECT @TotalCredit = SUM(ISNULL([Credit],0)) FROM #tmpTrialBalanceDetails;
-		SELECT @TotalBalance = SUM(ISNULL([Debit],0) - ISNULL([Credit],0)) FROM #tmpTrialBalanceDetails;	
-
+		SELECT @TotalBalance = SUM(ISNULL([Debit],0) - ISNULL([Credit],0)) FROM #tmpTrialBalanceDetails;
 
 		IF OBJECT_ID(N'tempdb..#tmpCodePrefixes') IS NOT NULL
 		BEGIN
@@ -163,7 +134,7 @@ BEGIN
 		)    
 
 		-- === GET DISTRIBUTION AND JOURNAL TYPE INFO ===
-		SELECT @DistributionMasterId = ID, @DistributionCode = DistributionCode 
+		SELECT @DistributionMasterId = ID
 		FROM [DBO].[DistributionMaster] WITH(NOLOCK) 
 		WHERE UPPER(DistributionCode) = UPPER(@DistributionCodeName);		
 
@@ -196,6 +167,10 @@ BEGIN
 			(SELECT CodePrefix FROM #tmpCodePrefixes WHERE CodeTypeId = @CodeTypeId), 
 			(SELECT CodeSufix FROM #tmpCodePrefixes WHERE CodeTypeId = @CodeTypeId)
 		));
+
+		UPDATE [dbo].[CodePrefixes]
+		SET [CurrentNummber] = @CurrentNo 
+		WHERE [CodeTypeId] = @CodeTypeId AND [MasterCompanyId] = @MasterCompanyId;
 
 		-- === INSERT INTO BATCHHEADER ===
 		IF NOT EXISTS(
@@ -243,9 +218,7 @@ BEGIN
 			FROM [DBO].[BatchHeader] WITH(NOLOCK)  
 			WHERE JournalTypeId = @JournalTypeId 
 			AND StatusId = @StatusId 
-			AND AccountingPeriodId = @AccountingPeriodId;
-
-			SET @IsBatchGenerated = 1;
+			AND AccountingPeriodId = @AccountingPeriodId;			
 		END
 
 		-- === INSERT INTO BATCHDETAILS ===
@@ -260,9 +233,7 @@ BEGIN
 			@JournalTypeId, @JournalTypename, 1, @TotalDebit, @TotalCredit, @ManagementStructureId, @DistributionCodeName, @LastMSLevel, @AllMSlevels,
 			@MasterCompanyId, @UpdateBy, @UpdateBy, GETUTCDATE(), GETUTCDATE(), 1, 0, @AccountingPeriodId, @AccountingPeriod);
 	
-		SET @JournalBatchDetailId = SCOPE_IDENTITY();
-
-		
+		SET @JournalBatchDetailId = SCOPE_IDENTITY();		
 
 		SELECT @TotalRecords = MAX(ID), @CurrentRecord = MIN(ID) FROM #tmpTrialBalanceDetails;	
 
@@ -284,8 +255,7 @@ BEGIN
 			IF(ISNULL(@Debit, 0) > 0)
 			BEGIN
 				SELECT TOP 1 
-					@DistributionSetupId = ID, @DistributionName = Name, @JournalTypeId = JournalTypeId, 
-					@CrDrType = CRDRType
+					@DistributionSetupId = ID, @DistributionName = Name, @JournalTypeId = JournalTypeId
 				FROM [DBO].[DistributionSetup] WITH(NOLOCK)  
 				WHERE UPPER(DistributionSetupCode) = UPPER(@DistributionSetupCode)
 				AND MasterCompanyId = @MasterCompanyId 
@@ -294,22 +264,23 @@ BEGIN
 			ELSE
 			BEGIN
 				SELECT TOP 1 
-					@DistributionSetupId = ID, @DistributionName = Name, @JournalTypeId = JournalTypeId, 
-					@CrDrType = CRDRType 
+					@DistributionSetupId = ID, @DistributionName = Name, @JournalTypeId = JournalTypeId
 				FROM [DBO].[DistributionSetup] WITH(NOLOCK)  
 				WHERE UPPER(DistributionSetupCode) = UPPER(@DistributionSetupCodeCredit)
 				AND MasterCompanyId = @MasterCompanyId 
 				AND DistributionMasterId = @DistributionMasterId;
-			END
-				
+			END			
 			-- === INSERT INTO COMMONBATCHDETAILS ===
 			INSERT INTO [dbo].[CommonBatchDetails]
-				(JournalBatchDetailId, JournalTypeNumber, CurrentNumber, DistributionSetupId, DistributionName, [JournalBatchHeaderId], [LineNumber],
+				([JournalBatchDetailId], [JournalTypeNumber], [CurrentNumber], [DistributionSetupId], [DistributionName], [JournalBatchHeaderId], [LineNumber],
 				[GlAccountId], [GlAccountNumber], [GlAccountName], [TransactionDate], [EntryDate], [JournalTypeId], [JournalTypeName],
 				[IsDebit], [DebitAmount], [CreditAmount], [ManagementStructureId], [ModuleName], [LastMSLevel], [AllMSlevels], [MasterCompanyId],
 				[CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted])
 			VALUES	
-				(@JournalBatchDetailId, @JournalTypeNumber, @CurrentNo, @DistributionSetupId, @DistributionName, @JournalBatchHeaderId, @LineNumber,
+				(@JournalBatchDetailId, @JournalTypeNumber, @CurrentNo,
+				@DistributionSetupId,
+				@DistributionName,
+				@JournalBatchHeaderId, @LineNumber,
 				@GlAccountId, @GlAccountNumber, @GlAccountName, @TransactionDate, @EntryDate, @JournalTypeId, @JournalTypename,
 				CASE WHEN ISNULL(@Debit, 0) > 0 THEN 1 ELSE 0 END,
 				CASE WHEN ISNULL(@Debit, 0) > 0 THEN @Debit ELSE 0 END,

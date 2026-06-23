@@ -55,11 +55,11 @@ BEGIN
 		DECLARE @MasterCompanyId INT;
 		DECLARE @EmployeeId BIGINT;
 		DECLARE @batch VARCHAR(100);
-		DECLARE @Debit DECIMAL(18, 2) = 0;
-		DECLARE @Credit DECIMAL(18, 2) = 0;
-		DECLARE @TotalDebit DECIMAL(18, 2) = 0;
-		DECLARE @TotalCredit DECIMAL(18, 2) = 0;
-		DECLARE @TotalBalance DECIMAL(18, 2) = 0;
+		DECLARE @Debit DECIMAL(18, 6) = 0;
+		DECLARE @Credit DECIMAL(18, 6) = 0;
+		DECLARE @TotalDebit DECIMAL(18, 6) = 0;
+		DECLARE @TotalCredit DECIMAL(18, 6) = 0;
+		DECLARE @TotalBalance DECIMAL(18, 6) = 0;
 		DECLARE @LineNumber INT=1;
 		DECLARE @CodeTypeId BIGINT;		
 		DECLARE @LastMSLevel VARCHAR(200);
@@ -95,8 +95,8 @@ BEGIN
 			[ID] INT IDENTITY(1,1) NOT NULL,			
 			[GlAccountId] [bigint] NULL,
 			[AccountCode] [varchar](50) NULL,	
-			[Debit] [decimal](18, 2) NULL,
-			[Credit] [decimal](18, 2) NULL,
+			[Debit] [decimal](18, 6) NULL,
+			[Credit] [decimal](18, 6) NULL,
 			[TransactionDate] [datetime2] NULL,
 			[EntryDate] [datetime2] NULL						
 		);

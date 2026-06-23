@@ -34,8 +34,8 @@ BEGIN
 			[RowNumber] BIGINT IDENTITY(1,1),   
 			[GlAccountId] BIGINT NULL,
 			[AccountCode] VARCHAR(50) NULL,
-			[Debit] DECIMAL(18,2) NULL,
-			[Credit] DECIMAL(18,2) NULL,
+			[Debit] DECIMAL(18,6) NULL,
+			[Credit] DECIMAL(18,6) NULL,
 			[TransactionDate] VARCHAR(50) NULL,
 			[EntryDate] VARCHAR(50) NULL,
 			[Message] VARCHAR(MAX) NULL
@@ -52,8 +52,8 @@ BEGIN
 			DECLARE @GlAccId BIGINT = 0;
 			DECLARE @GlAccountId BIGINT = 0;
 			DECLARE @AccountCode VARCHAR(50);
-			DECLARE @DebitAmout DECIMAL(18,2) = 0;
-			DECLARE @CreditAmout DECIMAL(18,2) = 0;
+			DECLARE @DebitAmout DECIMAL(18,6) = 0;
+			DECLARE @CreditAmout DECIMAL(18,6) = 0;
 			DECLARE @TransactionDateText VARCHAR(50);
 			DECLARE @EntryDateText VARCHAR(50);
 			DECLARE @TransactionDate DATE;

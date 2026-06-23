@@ -104,9 +104,11 @@ BEGIN
 			UPPER(stk.UnitOfMeasure) AS uoms,
 			(CASE WHEN ISNULL(STK.OEM,0)=1 THEN 'OEM' ELSE 'PMA' END) AS oems,
 			UPPER(IM.ManufacturerName) AS manufacturers,
-            calc.qty,
-			calc.lastUnitPrice,
-			calc.qty * calc.lastUnitPrice AS avgPOCost,
+			ISNULL(STK.Quantity, 0) AS qty,
+			ISNULL(STK.UnitCost,  0) AS lastUnitPrice,
+			--calc.qty ,
+			--calc.lastUnitPrice,
+			ISNULL(STK.Quantity, 0) * ISNULL(STK.UnitCost,  0) AS avgPOCost,
 			CAST(stk.CreatedDate AS Date) AS lastPurchaseDates,
 			(CASE WHEN ISNULL(PO.IsEnforce,0)=1 
 				  THEN (CASE WHEN PO.DateApproved IS NOT NULL AND STK.ReceivedDate IS NOT NULL 
@@ -138,11 +140,11 @@ BEGIN
 			LEFT JOIN DBO.EntityStructureSetup ES ON ES.EntityStructureId=MSD.EntityMSID
 			LEFT JOIN DBO.Vendor V WITH (NOLOCK) ON PO.VendorId = V.VendorId  
 			LEFT JOIN DBO.Condition AS CN WITH (NOLOCK) ON STK.ConditionId = CN.ConditionId
-			CROSS APPLY (
-			SELECT
-				ROUND(dbo.fn_ConvertUOM(ISNULL(STK.Quantity, 0), STK.StockUnitOfMeasure, POP.UnitOfMeasure, 0, PO.MasterCompanyId), 2) AS qty,
-				ROUND(dbo.fn_ConvertUOM(ISNULL(STK.UnitCost,  0), STK.StockUnitOfMeasure, POP.UnitOfMeasure, 1, PO.MasterCompanyId), 2) AS lastUnitPrice
-			) AS calc
+			--CROSS APPLY (
+			--SELECT
+			--	ROUND(dbo.fn_ConvertUOM(ISNULL(STK.Quantity, 0), STK.StockUnitOfMeasure, POP.UnitOfMeasure, 0, PO.MasterCompanyId), 2) AS qty,
+			--	ROUND(dbo.fn_ConvertUOM(ISNULL(STK.UnitCost,  0), STK.StockUnitOfMeasure, POP.UnitOfMeasure, 1, PO.MasterCompanyId), 2) AS lastUnitPrice
+			--) AS calc
 
 		WHERE ISNULL(PO.IsDeleted,0)=0 
 			  AND ISNULL(STK.IsParent,0)=1

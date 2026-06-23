@@ -22,7 +22,8 @@
     9    24-09-2025  Sahdev Saliya       Added New Dropdown Filter Lead Source
 	10   20-11-2025  Rajesh Gami		 Correct the QuoteAmount
 	11   16-Apr-026  Bhargav Saliya	     UOM Changes
-	12   21-MAY-2026  Rajesh Gami		 PN-16508 : Fix the duplicate issue when Single SOQ have muliple SO Converted
+	12   21-MAY-2026 Rajesh Gami		 PN-16508 : Fix the duplicate issue when Single SOQ have muliple SO Converted
+    13   19/06/2026  Bhargav Saliya	     Revert UOM Changes No need to convert extended price
 **************************************************************/ 
 CREATE PROCEDURE [dbo].[SearchPNViewData]  
  @PageNumber int,  
@@ -132,7 +133,8 @@ BEGIN
 	END
 
    ;WITH Result AS (
-    SELECT DISTINCT SOQ.SalesOrderQuoteId,SOQ.SalesOrderQuoteNumber,SOQ.OpenDate AS 'QuoteDate',SOQ.CustomerId,SOQ.CustomerName AS 'CustomerName', MST.Name AS 'Status', ([dbo].[fn_ConvertUOM](ISNULL(SPC.NetSaleAmount, 0),IM.[StockUnitOfMeasure] ,IM.[ConsumeUnitOfMeasure],0,@MasterCompanyId)) AS 'QuoteAmount',  
+    SELECT DISTINCT SOQ.SalesOrderQuoteId,SOQ.SalesOrderQuoteNumber,SOQ.OpenDate AS 'QuoteDate',SOQ.CustomerId,SOQ.CustomerName AS 'CustomerName', MST.Name AS 'Status',
+	ISNULL(SPC.NetSaleAmount, 0) AS 'QuoteAmount', 
 	SOQ.IsNewVersionCreated,SOQ.StatusId,SOQ.CustomerReference,IsNull(SP.PriorityName,'') AS 'Priority',ISNULL(SP.PriorityName, '') AS 'PriorityType', (E.FirstName + ' ' + E.LastName) AS SalesPerson,  
     ISNULL(IM.partnumber,'') AS 'PartNumber',M.Name AS 'ManufacturerType',IsNull(IM.partnumber,'') AS 'PartNumberType', ISNULL(im.PartDescription, '') AS 'PartDescription', ISNULL(im.PartDescription, '') AS 'PartDescriptionType',  
     SOQ.AccountTypeName AS 'CustomerType',

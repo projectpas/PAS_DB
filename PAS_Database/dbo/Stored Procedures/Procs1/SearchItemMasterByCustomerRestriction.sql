@@ -21,6 +21,7 @@
 	5    05-01-2025		ABHISHEK JIRAWLA Allow Repair Management Customer Stock Stockline
 	6    07/01/2026   Rajesh Gami		Added MasterCompanyId Parameter While Calling UOM Conversion Function     
 	7    10/04/2026   Bhargav Saliya	Change to    [StockUnitOfMeasure] to [PurchaseUnitOfMeasure] For UnitCost and UnitPost
+	8    18/06/2026   Bhargav Saliya	Added Case For Skip UOM Function If FROMuom and TOuom Both are Same
  EXECUTE [SearchItemMasterByCustomerRestriction] 11, 7, 77,-1
 **************************************************************/ 
 CREATE PROCEDURE [dbo].[SearchItemMasterByCustomerRestriction]
@@ -42,14 +43,11 @@ BEGIN
 					,im.ItemMasterId As ItemMasterId
 					,im.PartDescription AS Description
 					,im.PurchaseUnitOfMeasureId  AS unitOfMeasureId
-					--,im.PurchaseUnitOfMeasure AS unitOfMeasure
 					,im.ConsumeUnitOfMeasure AS unitOfMeasure
 					,im.IsPma
 					,im.IsDER
-					--,SUM(ISNULL(sl.QuantityAvailable, 0)) AS QtyAvailable
-					,SUM([dbo].[fn_ConvertUOM](ISNULL(sl.[QuantityAvailable], 0),sl.[StockUnitOfMeasure], sl.[ConsumeUnitOfMeasure],0,im.MasterCompanyId)) AS QtyAvailable 					
-					--,SUM(ISNULL(sl.QuantityOnHand, 0)) AS QtyOnHand
-					,SUM([dbo].[fn_ConvertUOM](ISNULL(sl.[QuantityOnHand], 0),sl.[StockUnitOfMeasure] ,sl.[ConsumeUnitOfMeasure],0,im.MasterCompanyId)) AS QtyOnHand 
+					,SUM(CASE WHEN ISNULL(sl.[StockUnitOfMeasure],'') = ISNULL(sl.[ConsumeUnitOfMeasure],'') THEN ISNULL(sl.[QuantityAvailable], 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(sl.[QuantityAvailable], 0),sl.[StockUnitOfMeasure],sl.[ConsumeUnitOfMeasure],0,im.MasterCompanyId) END) AS QtyAvailable
+					,SUM(CASE WHEN ISNULL(sl.[StockUnitOfMeasure],'') = ISNULL(sl.[ConsumeUnitOfMeasure],'') THEN ISNULL(sl.[QuantityOnHand], 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(sl.[QuantityOnHand], 0),sl.[StockUnitOfMeasure],sl.[ConsumeUnitOfMeasure],0,im.MasterCompanyId) END) AS QtyOnHand
 					,ig.[Description] AS ItemGroup
 					,mf.[Name] Manufacturer
 					,ISNULL(im.ManufacturerId, -1) AS ManufacturerId
@@ -70,12 +68,9 @@ BEGIN
 						ELSE 'OEM'
 						END AS Oempmader
 					,@MappingType AS MappingType
-				    --,imps.PP_UnitPurchasePrice AS UnitCost
-					,([dbo].[fn_ConvertUOM](ISNULL(imps.PP_UnitPurchasePrice, 0),im.[PurchaseUnitOfMeasure], im.[ConsumeUnitOfMeasure],1,im.MasterCompanyId)) AS UnitCost
-					--,imps.SP_CalSPByPP_UnitSalePrice AS UnitSalePrice
-					,([dbo].[fn_ConvertUOM](ISNULL(imps.SP_CalSPByPP_UnitSalePrice, 0),im.[PurchaseUnitOfMeasure], im.[ConsumeUnitOfMeasure],1,im.MasterCompanyId)) AS UnitSalePrice
-					--,imps.PP_FXRatePerc AS FixRate
-					,([dbo].[fn_ConvertUOM](ISNULL(imps.PP_FXRatePerc, 0),im.[StockUnitOfMeasure], im.[ConsumeUnitOfMeasure],1,im.MasterCompanyId)) AS FixRate
+					,(CASE WHEN ISNULL(im.[PurchaseUnitOfMeasure],'') = ISNULL(im.[ConsumeUnitOfMeasure],'') THEN ISNULL(imps.PP_UnitPurchasePrice, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(imps.PP_UnitPurchasePrice, 0),im.[PurchaseUnitOfMeasure],im.[ConsumeUnitOfMeasure],1,im.MasterCompanyId) END) AS UnitCost
+					,(CASE WHEN ISNULL(im.[PurchaseUnitOfMeasure],'') = ISNULL(im.[ConsumeUnitOfMeasure],'') THEN ISNULL(imps.SP_CalSPByPP_UnitSalePrice, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(imps.SP_CalSPByPP_UnitSalePrice, 0),im.[PurchaseUnitOfMeasure],im.[ConsumeUnitOfMeasure],1,im.MasterCompanyId) END) AS UnitSalePrice
+					,(CASE WHEN ISNULL(im.[StockUnitOfMeasure],'') = ISNULL(im.[ConsumeUnitOfMeasure],'') THEN ISNULL(imps.PP_FXRatePerc, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(imps.PP_FXRatePerc, 0),im.[StockUnitOfMeasure],im.[ConsumeUnitOfMeasure],1,im.MasterCompanyId) END) AS FixRate
 					,ime.ExportECCN AS ECCN
 					,ime.HSCode AS HSCODE
 					,ime.ExportWeight AS [Weight]
@@ -90,7 +85,7 @@ BEGIN
 							(sl.IsRepairManagement = 1) OR 
 							((sl.IsRepairManagement = 0 OR sl.IsRepairManagement IS NULL) AND sl.IsCustomerStock = 0)
 						)
-					--AND (sl.IsCustomerStock = 0 OR (sl.IsCustomerStock = 1 AND sl.CustomerId = @CustomerId))
+					--AND (sl.IsCustomerStock = 0 OR (sl.IsCustomerStock = 1 AND sl.CustomerId = @CustomerId))	
 				LEFT JOIN [dbo].[ItemGroup] ig WITH (NOLOCK) ON im.ItemGroupId = ig.ItemGroupId
 				LEFT JOIN [dbo].[Manufacturer] mf WITH (NOLOCK) ON im.ManufacturerId = mf.ManufacturerId
 				LEFT JOIN [dbo].[ItemClassification] ic WITH (NOLOCK) ON im.ItemClassificationId = ic.ItemClassificationId
@@ -130,7 +125,7 @@ BEGIN
 					,im.[ConsumeUnitOfMeasure],im.MasterCompanyId
 				ORDER BY 9 DESC
 			END
-		COMMIT  TRANSACTION
+		COMMIT TRANSACTION
 
 		END TRY    
 		BEGIN CATCH      

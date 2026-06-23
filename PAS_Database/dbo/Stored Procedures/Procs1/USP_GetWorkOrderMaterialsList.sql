@@ -39,7 +39,7 @@
 	20   26/03/2026   Moin Bloch	    Rename TearDown To Internal Teardown PN-15850
 	21   07/04/2026   Priyansh Patel	Quantity conversion from stock uom to consume uom PN-15915
 	22   15/04/2026   Priyansh Patel	unit cost and uom conversion from stock uom to consume uom PN-15982
-	
+	23	 19/06/2026	  Ayushi		    [PN-16911]Skip fn_ConvertUOM call when ToUOM = FromUOM
  EXECUTE [dbo].[USP_GetWorkOrderMaterialsList] 3731,3200, 0
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_GetWorkOrderMaterialsList]
@@ -706,9 +706,9 @@ SET NOCOUNT ON
 						END AS ItemType,
 						C.Description AS Condition,
 						Stk_C.Description AS StocklineCondition,
-						dbo.fn_ConvertUOM(ISNULL(WOM.UnitCost,0), IM.StockUnitOfMeasure, IM.ConsumeUnitOfMeasure,1,@MasterCompanyId)  AS UnitCost,
+						CASE WHEN ISNULL(IM.StockUnitOfMeasure,'') = ISNULL(IM.ConsumeUnitOfMeasure,'') THEN ISNULL(WOM.UnitCost,0) ELSE dbo.fn_ConvertUOM(ISNULL(WOM.UnitCost,0),IM.StockUnitOfMeasure,IM.ConsumeUnitOfMeasure,1,@MasterCompanyId) END AS UnitCost,
 						IMPS.PP_UnitPurchasePrice AS ItemMasterUnitCost,
-						dbo.fn_ConvertUOM(ISNULL(WOM.ExtendedCost,0), IM.StockUnitOfMeasure, IM.ConsumeUnitOfMeasure,1,@MasterCompanyId)  AS ExtendedCost,
+						CASE WHEN ISNULL(IM.StockUnitOfMeasure,'') = ISNULL(IM.ConsumeUnitOfMeasure,'') THEN ISNULL(WOM.ExtendedCost,0) ELSE dbo.fn_ConvertUOM(ISNULL(WOM.ExtendedCost,0),IM.StockUnitOfMeasure,IM.ConsumeUnitOfMeasure,1,@MasterCompanyId) END AS ExtendedCost,
 						WOM.TotalStocklineQtyReq,
 						MSTL.UnitCost StocklineUnitCost,
 						MSTL.ExtendedCost StocklineExtendedCost,
@@ -807,7 +807,7 @@ SET NOCOUNT ON
 						SL.ReceivedDate,
 						WOM.POId,
 					--	WOM.Quantity,
-						dbo.fn_ConvertUOM(ISNULL(WOM.Quantity,0), IM.StockUnitOfMeasure, IM.ConsumeUnitOfMeasure,0,@MasterCompanyId)  AS Quantity,
+						CASE WHEN ISNULL(IM.StockUnitOfMeasure,'') = ISNULL(IM.ConsumeUnitOfMeasure,'') THEN ISNULL(WOM.Quantity,0) ELSE dbo.fn_ConvertUOM(ISNULL(WOM.Quantity,0),IM.StockUnitOfMeasure,IM.ConsumeUnitOfMeasure,0,@MasterCompanyId) END AS Quantity,
 						MSTL.Quantity AS StocklineQuantity,
 						(CASE WHEN  @IsTeardownWO = 1 THEN (CASE WHEN ISNULL(WOM.Quantity,0) = 0 THEN 0 ELSE ISNULL(WOM.Quantity,0) - ISNULL((SELECT SUM(ISNULL(SL.QuantityTurnIn,0)) FROM  dbo.WorkOrderPartNumber WOP  WITH(NOLOCK) 
 													 JOIN dbo.Stockline SL ON WOP.WorkOrderId = SL.WorkOrderId AND WOP.ID = SL.WorkOrderPartNoId AND Sl.WorkOrderId = @WorkOrderId AND ISNULL(SL.isActive,0) = 1 AND ISNULL(SL.isDeleted,0) = 0
@@ -937,9 +937,9 @@ SET NOCOUNT ON
 						END AS ItemType,
 						C.Description AS Condition,
 						Stk_C.Description AS StocklineCondition,
-						dbo.fn_ConvertUOM(ISNULL(WOM.UnitCost,0), IM.StockUnitOfMeasure, IM.ConsumeUnitOfMeasure,1,@MasterCompanyId)  AS UnitCost,
+						CASE WHEN ISNULL(IM.StockUnitOfMeasure,'') = ISNULL(IM.ConsumeUnitOfMeasure,'') THEN ISNULL(WOM.UnitCost,0) ELSE dbo.fn_ConvertUOM(ISNULL(WOM.UnitCost,0),IM.StockUnitOfMeasure,IM.ConsumeUnitOfMeasure,1,@MasterCompanyId) END AS UnitCost,
 						IMPS.PP_UnitPurchasePrice AS ItemMasterUnitCost,
-						dbo.fn_ConvertUOM(ISNULL(WOM.ExtendedCost,0), IM.StockUnitOfMeasure, IM.ConsumeUnitOfMeasure,1,@MasterCompanyId)  AS ExtendedCost,
+						CASE WHEN ISNULL(IM.StockUnitOfMeasure,'') = ISNULL(IM.ConsumeUnitOfMeasure,'') THEN ISNULL(WOM.ExtendedCost,0) ELSE dbo.fn_ConvertUOM(ISNULL(WOM.ExtendedCost,0),IM.StockUnitOfMeasure,IM.ConsumeUnitOfMeasure,1,@MasterCompanyId) END AS ExtendedCost,
 						WOM.TotalStocklineQtyReq,
 						MSTL.UnitCost StocklineUnitCost,
 						MSTL.ExtendedCost StocklineExtendedCost,
@@ -1033,7 +1033,7 @@ SET NOCOUNT ON
 						SL.ReceivedDate,
 						WOM.POId,
 						--WOM.Quantity,
-						dbo.fn_ConvertUOM(ISNULL(WOM.Quantity,0), IM.StockUnitOfMeasure, IM.ConsumeUnitOfMeasure,0,@MasterCompanyId)  AS Quantity,
+						CASE WHEN ISNULL(IM.StockUnitOfMeasure,'') = ISNULL(IM.ConsumeUnitOfMeasure,'') THEN ISNULL(WOM.Quantity,0) ELSE dbo.fn_ConvertUOM(ISNULL(WOM.Quantity,0),IM.StockUnitOfMeasure,IM.ConsumeUnitOfMeasure,0,@MasterCompanyId) END AS Quantity,
 						MSTL.Quantity AS StocklineQuantity,
 						WOM.QtyToTurnIn AS PartQtyToTurnIn,
 						--Roll Back Changes

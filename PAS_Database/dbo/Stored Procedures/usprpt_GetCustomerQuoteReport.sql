@@ -72,34 +72,14 @@ BEGIN
 				--CASE WHEN ISNULL(SST.StockLineId,0) > 0 THEN MAX(STKC.NetSaleAmountPerUnit) ELSE SUM(SOPC.NetSaleAmountPerUnit) END AS UnitPrice,
 				--CASE WHEN ISNULL(SST.StockLineId,0) > 0 THEN SUM(SST.QtyQuoted * STKC.NetSaleAmountPerUnit) ELSE SUM((SOP.QtyRequested * SOPC.NetSaleAmountPerUnit)) END AS TotalAmount,
 				--CASE WHEN ISNULL(SST.StockLineId,0) > 0 THEN SST.QtyQuoted ELSE SOP.QtyRequested END AS TotalQty,
-				dbo.fn_ConvertUOM(
-					CASE 
-						WHEN ISNULL(SST.StockLineId,0) > 0 
-							THEN SST.QtyQuoted
-						ELSE SOP.QtyRequested
-					END,
-					IUS.ShortName,      
-					IUC.ShortName,     
-					0,
-					IM.MasterCompanyId
-				) AS TotalQty,
+
+				CASE WHEN IUS.ShortName = IUC.ShortName THEN CASE WHEN ISNULL(SST.StockLineId,0) > 0 THEN SST.QtyQuoted ELSE SOP.QtyRequested END
+				ELSE dbo.fn_ConvertUOM(CASE WHEN ISNULL(SST.StockLineId,0) > 0 THEN SST.QtyQuoted ELSE SOP.QtyRequested END,IUS.ShortName,IUC.ShortName,0,IM.MasterCompanyId) END AS TotalQty,
 				--CASE WHEN ISNULL(SST.StockLineId,0) > 0 THEN MAX(STKC.NetSaleAmountPerUnit) ELSE SUM(SOPC.NetSaleAmountPerUnit) END AS UnitPrice,
-				CASE 
-					WHEN ISNULL(SST.StockLineId,0) > 0 
-					THEN dbo.fn_ConvertUOM(
-							MAX(STKC.NetSaleAmountPerUnit),
-							IUS.ShortName,
-							IUC.ShortName,
-							1,
-							IM.MasterCompanyId
-						 )
-					ELSE dbo.fn_ConvertUOM(
-							SUM(SOPC.NetSaleAmountPerUnit),
-							IUS.ShortName,
-							IUC.ShortName,
-							1,
-							IM.MasterCompanyId
-						 )
+				CASE WHEN ISNULL(SST.StockLineId,0) > 0 THEN CASE WHEN IUS.ShortName = IUC.ShortName THEN MAX(STKC.NetSaleAmountPerUnit) ELSE dbo.fn_ConvertUOM(MAX(STKC.NetSaleAmountPerUnit),IUS.ShortName,IUC.ShortName,1,IM.MasterCompanyId)
+				END
+				ELSE CASE WHEN IUS.ShortName = IUC.ShortName THEN SUM(SOPC.NetSaleAmountPerUnit) ELSE dbo.fn_ConvertUOM(SUM(SOPC.NetSaleAmountPerUnit),IUS.ShortName,IUC.ShortName,1,IM.MasterCompanyId)
+				END
 				END AS UnitPrice,
 				CASE WHEN ISNULL(SST.StockLineId,0) > 0 THEN SST.QtyQuoted * STKC.NetSaleAmountPerUnit ELSE SOP.QtyRequested * SOPC.NetSaleAmountPerUnit END AS TotalAmount,
 				SO.SalesOrderNumber AS SONum,
@@ -178,34 +158,41 @@ BEGIN
 					ISNULL(IUC.ShortName, '') AS UOM,
 					SOP.ConditionName AS Cond,
 					--CASE WHEN ISNULL(SST.StockLineId,0) > 0 THEN SUM(SST.QtyQuoted) ELSE SUM(SOP.QtyRequested) END AS TotalQty,
-					dbo.fn_ConvertUOM(
-						CASE 
-							WHEN ISNULL(SST.StockLineId,0) > 0 
-								THEN SUM(SST.QtyQuoted)
-							ELSE SUM(SOP.QtyRequested)
-						END,
-						IUS.ShortName,
-						IUC.ShortName,
-						0,
-						IM.MasterCompanyId
-					) AS TotalQty,
+					CASE WHEN IUS.ShortName = IUC.ShortName 
+						THEN CASE WHEN ISNULL(SST.StockLineId,0) > 0 THEN SUM(SST.QtyQuoted) ELSE SUM(SOP.QtyRequested) END
+						ELSE dbo.fn_ConvertUOM(
+								CASE 
+									WHEN ISNULL(SST.StockLineId,0) > 0 
+										THEN SUM(SST.QtyQuoted)
+									ELSE SUM(SOP.QtyRequested)
+								END,
+								IUS.ShortName,
+								IUC.ShortName,
+								0,
+								IM.MasterCompanyId
+							)
+					END AS TotalQty,
 					--CASE WHEN ISNULL(SST.StockLineId,0) > 0 THEN SUM(STKC.NetSaleAmountPerUnit) ELSE SUM(SOPC.NetSaleAmountPerUnit) END AS UnitPrice,
 					CASE 
 						WHEN ISNULL(SST.StockLineId,0) > 0 
-						THEN dbo.fn_ConvertUOM(
-								SUM(STKC.NetSaleAmountPerUnit),
-								IUS.ShortName,
-								IUC.ShortName,
-								1,
-								IM.MasterCompanyId
-							 )
-						ELSE dbo.fn_ConvertUOM(
-								SUM(SOPC.NetSaleAmountPerUnit),
-								IUS.ShortName,
-								IUC.ShortName,
-								1,
-								IM.MasterCompanyId
-							 )
+							THEN CASE WHEN IUS.ShortName = IUC.ShortName THEN SUM(STKC.NetSaleAmountPerUnit)
+								ELSE dbo.fn_ConvertUOM(
+										SUM(STKC.NetSaleAmountPerUnit),
+										IUS.ShortName,
+										IUC.ShortName,
+										1,
+										IM.MasterCompanyId
+									 )
+								END
+						ELSE CASE WHEN IUS.ShortName = IUC.ShortName THEN SUM(SOPC.NetSaleAmountPerUnit)
+								ELSE dbo.fn_ConvertUOM(
+										SUM(SOPC.NetSaleAmountPerUnit),
+										IUS.ShortName,
+										IUC.ShortName,
+										1,
+										IM.MasterCompanyId
+									 )
+								END
 					END AS UnitPrice,
 					CASE WHEN ISNULL(SST.StockLineId,0) > 0 THEN SUM(SST.QtyQuoted * STKC.NetSaleAmountPerUnit) ELSE SUM((SOP.QtyRequested * SOPC.NetSaleAmountPerUnit)) END AS TotalAmount,
 					SO.SalesOrderNumber AS SONum,

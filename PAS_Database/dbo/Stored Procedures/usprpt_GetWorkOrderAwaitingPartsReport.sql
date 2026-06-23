@@ -18,7 +18,7 @@
 	1	22-10-2024		Abhishek Jirawla	CREATED  
 	2	15-06-2026	    Priyansh Patel      uom changes related to quantity field [PN-16829]
 **************************************************************/
-CREATE   PROCEDURE [dbo].[usprpt_GetWorkOrderAwaitingPartsReport]
+CREATE     PROCEDURE [dbo].[usprpt_GetWorkOrderAwaitingPartsReport]
  @PageNumber INT = 1,
  @PageSize INT = NULL,
  @mastercompanyid INT,
@@ -215,13 +215,14 @@ BEGIN TRANSACTION
 		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN CAST(MAX(WOPN.CustomerRequestDate) AS DATETIME) ELSE CAST(MAX(WOPN.CustomerRequestDate) AS DATETIME) END 'requestdate',
 		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN CAST(MAX(WOPN.EstimatedShipDate) AS DATETIME) ELSE CAST(MAX(WOPN.EstimatedShipDate) AS DATETIME) END 'estimatedShipDate',  
 		tmpWOM.WorkOrderMaterialsId 'workOrderMaterialsId',
-		dbo.fn_ConvertUOM(ISNULL(tmpWOM.Quantity, 0), IMWOM.StockUnitOfMeasure, IMWOM.ConsumeUnitOfMeasure, 0, IMWOM.MasterCompanyId) 'quantityRequested',
-		dbo.fn_ConvertUOM(ISNULL(tmpWOM.QuantityReserved, 0), IMWOM.StockUnitOfMeasure, IMWOM.ConsumeUnitOfMeasure, 0, IMWOM.MasterCompanyId) 'quantityReserved',
-		dbo.fn_ConvertUOM(ISNULL(tmpWOM.QuantityIssued, 0), IMWOM.StockUnitOfMeasure, IMWOM.ConsumeUnitOfMeasure, 0, IMWOM.MasterCompanyId) 'quantityIssued',
-		dbo.fn_ConvertUOM(ISNULL(STK.QuantityAvailable, 0), IMWOM.StockUnitOfMeasure, IMWOM.ConsumeUnitOfMeasure, 0, IMWOM.MasterCompanyId) 'quantityAvailable',
+		CASE WHEN NULLIF(IMWOM.StockUnitOfMeasure, '') IS NULL OR NULLIF(IMWOM.ConsumeUnitOfMeasure, '') IS NULL OR IMWOM.StockUnitOfMeasure = IMWOM.ConsumeUnitOfMeasure THEN ISNULL(tmpWOM.Quantity, 0) ELSE dbo.fn_ConvertUOM(ISNULL(tmpWOM.Quantity, 0), IMWOM.StockUnitOfMeasure, IMWOM.ConsumeUnitOfMeasure, 0, IMWOM.MasterCompanyId) END 'quantityRequested',
+		CASE WHEN NULLIF(IMWOM.StockUnitOfMeasure, '') IS NULL OR NULLIF(IMWOM.ConsumeUnitOfMeasure, '') IS NULL OR IMWOM.StockUnitOfMeasure = IMWOM.ConsumeUnitOfMeasure THEN ISNULL(tmpWOM.QuantityReserved, 0) ELSE dbo.fn_ConvertUOM(ISNULL(tmpWOM.QuantityReserved, 0), IMWOM.StockUnitOfMeasure, IMWOM.ConsumeUnitOfMeasure, 0, IMWOM.MasterCompanyId) END 'quantityReserved',
+		CASE WHEN NULLIF(IMWOM.StockUnitOfMeasure, '') IS NULL OR NULLIF(IMWOM.ConsumeUnitOfMeasure, '') IS NULL OR IMWOM.StockUnitOfMeasure = IMWOM.ConsumeUnitOfMeasure THEN ISNULL(tmpWOM.QuantityIssued, 0) ELSE dbo.fn_ConvertUOM(ISNULL(tmpWOM.QuantityIssued, 0), IMWOM.StockUnitOfMeasure, IMWOM.ConsumeUnitOfMeasure, 0, IMWOM.MasterCompanyId) END 'quantityIssued',
+		CASE WHEN NULLIF(IMWOM.StockUnitOfMeasure, '') IS NULL OR NULLIF(IMWOM.ConsumeUnitOfMeasure, '') IS NULL OR IMWOM.StockUnitOfMeasure = IMWOM.ConsumeUnitOfMeasure THEN ISNULL(STK.QuantityAvailable, 0) ELSE dbo.fn_ConvertUOM(ISNULL(STK.QuantityAvailable, 0), IMWOM.StockUnitOfMeasure, IMWOM.ConsumeUnitOfMeasure, 0, IMWOM.MasterCompanyId) END 'quantityAvailable',
 		--ISNULL(POPData.Backlog, 0) 'backlog',
 		0 'backlog',
-		dbo.fn_ConvertUOM(ISNULL(STKCS.QuantityAvailable, 0), IMWOM.StockUnitOfMeasure, IMWOM.ConsumeUnitOfMeasure, 0, IMWOM.MasterCompanyId) 'customerStock',
+		CASE WHEN NULLIF(IMWOM.StockUnitOfMeasure, '') IS NULL OR NULLIF(IMWOM.ConsumeUnitOfMeasure, '') IS NULL OR IMWOM.StockUnitOfMeasure = IMWOM.ConsumeUnitOfMeasure THEN ISNULL
+		(STKCS.QuantityAvailable, 0) ELSE dbo.fn_ConvertUOM(ISNULL(STKCS.QuantityAvailable, 0), IMWOM.StockUnitOfMeasure, IMWOM.ConsumeUnitOfMeasure, 0, IMWOM.MasterCompanyId) END 'customerStock',
 		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN CAST(MAX(WOQ.ApprovedDate) AS DATETIME) ELSE CAST(MAX(WOQ.ApprovedDate) AS DATETIME) END 'customerApprovedDate',
 		UPPER(MSD.Level1Name) AS level1, 
 		UPPER(MSD.Level2Name) AS level2,
@@ -399,13 +400,13 @@ BEGIN TRANSACTION
 		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN CAST(MAX(WOPN.CustomerRequestDate) AS DATETIME) ELSE CAST(MAX(WOPN.CustomerRequestDate) AS DATETIME) END 'requestdate',
 		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN CAST(MAX(WOPN.EstimatedShipDate) AS DATETIME) ELSE CAST(MAX(WOPN.EstimatedShipDate) AS DATETIME) END 'estimatedShipDate',
 		tmpWOM.WorkOrderMaterialsId 'workOrderMaterialsId',
-		dbo.fn_ConvertUOM(ISNULL(tmpWOM.Quantity, 0), IMWOM.StockUnitOfMeasure, IMWOM.ConsumeUnitOfMeasure, 0, IMWOM.MasterCompanyId) 'quantityRequested',
-		dbo.fn_ConvertUOM(ISNULL(tmpWOM.QuantityReserved, 0), IMWOM.StockUnitOfMeasure, IMWOM.ConsumeUnitOfMeasure, 0, IMWOM.MasterCompanyId) 'quantityReserved',
-		dbo.fn_ConvertUOM(ISNULL(tmpWOM.QuantityIssued, 0), IMWOM.StockUnitOfMeasure, IMWOM.ConsumeUnitOfMeasure, 0, IMWOM.MasterCompanyId) 'quantityIssued',
-		dbo.fn_ConvertUOM(ISNULL(STK.QuantityAvailable, 0), IMWOM.StockUnitOfMeasure, IMWOM.ConsumeUnitOfMeasure, 0, IMWOM.MasterCompanyId) 'quantityAvailable',
+		CASE WHEN NULLIF(IMWOM.StockUnitOfMeasure, '') IS NULL OR NULLIF(IMWOM.ConsumeUnitOfMeasure, '') IS NULL OR IMWOM.StockUnitOfMeasure = IMWOM.ConsumeUnitOfMeasure THEN ISNULL(tmpWOM.Quantity, 0) ELSE dbo.fn_ConvertUOM(ISNULL(tmpWOM.Quantity, 0), IMWOM.StockUnitOfMeasure, IMWOM.ConsumeUnitOfMeasure, 0, IMWOM.MasterCompanyId) END 'quantityRequested',
+		CASE WHEN NULLIF(IMWOM.StockUnitOfMeasure, '') IS NULL OR NULLIF(IMWOM.ConsumeUnitOfMeasure, '') IS NULL OR IMWOM.StockUnitOfMeasure = IMWOM.ConsumeUnitOfMeasure THEN ISNULL(tmpWOM.QuantityReserved, 0) ELSE dbo.fn_ConvertUOM(ISNULL(tmpWOM.QuantityReserved, 0), IMWOM.StockUnitOfMeasure, IMWOM.ConsumeUnitOfMeasure, 0, IMWOM.MasterCompanyId) END 'quantityReserved',
+		CASE WHEN NULLIF(IMWOM.StockUnitOfMeasure, '') IS NULL OR NULLIF(IMWOM.ConsumeUnitOfMeasure, '') IS NULL OR IMWOM.StockUnitOfMeasure = IMWOM.ConsumeUnitOfMeasure THEN ISNULL(tmpWOM.QuantityIssued, 0) ELSE dbo.fn_ConvertUOM(ISNULL(tmpWOM.QuantityIssued, 0), IMWOM.StockUnitOfMeasure, IMWOM.ConsumeUnitOfMeasure, 0, IMWOM.MasterCompanyId) END 'quantityIssued',
+		CASE WHEN NULLIF(IMWOM.StockUnitOfMeasure, '') IS NULL OR NULLIF(IMWOM.ConsumeUnitOfMeasure, '') IS NULL OR IMWOM.StockUnitOfMeasure = IMWOM.ConsumeUnitOfMeasure THEN ISNULL(STK.QuantityAvailable, 0) ELSE dbo.fn_ConvertUOM(ISNULL(STK.QuantityAvailable, 0), IMWOM.StockUnitOfMeasure, IMWOM.ConsumeUnitOfMeasure, 0, IMWOM.MasterCompanyId) END 'quantityAvailable',
 		--ISNULL(POPData.Backlog, 0) 'backlog',
 		0 'backlog',
-		dbo.fn_ConvertUOM(ISNULL(STKCS.QuantityAvailable, 0), IMWOM.StockUnitOfMeasure, IMWOM.ConsumeUnitOfMeasure, 0, IMWOM.MasterCompanyId) 'customerStock',
+		CASE WHEN NULLIF(IMWOM.StockUnitOfMeasure, '') IS NULL OR NULLIF(IMWOM.ConsumeUnitOfMeasure, '') IS NULL OR IMWOM.StockUnitOfMeasure = IMWOM.ConsumeUnitOfMeasure THEN ISNULL(STKCS.QuantityAvailable, 0) ELSE dbo.fn_ConvertUOM(ISNULL(STKCS.QuantityAvailable, 0), IMWOM.StockUnitOfMeasure, IMWOM.ConsumeUnitOfMeasure, 0, IMWOM.MasterCompanyId) END 'customerStock',
 		CASE WHEN ISNULL(@IsDownload,0) = 0 THEN CAST(MAX(WOQ.ApprovedDate) AS DATETIME) ELSE CAST(MAX(WOQ.ApprovedDate) AS DATETIME) END 'customerApprovedDate',
 		UPPER(MSD.Level1Name) AS level1, 
 		UPPER(MSD.Level2Name) AS level2,

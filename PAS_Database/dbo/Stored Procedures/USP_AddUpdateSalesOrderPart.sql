@@ -20,6 +20,8 @@
 	6    15-09-2025	  Amit Ghediya		Update for Reset Approval Process
 	7    20-11-2025	  Rajesh Gami		Added UnitSalesPrice in SalesOrderPartV1 table
 	8    07/01/2026   Rajesh Gami		Added MasterCompanyId Parameter While Calling UOM Conversion Function
+	9    18/06/2026   Bhargav Saliya	Added Case For Skip UOM Function If FROM uom and TO uom Both are Same
+
 declare @p1 dbo.SOPartListType
 insert into @p1 values(497,1269,216,12,2,178289,NULL,1,5,2,NULL,NULL,3,1,1200,0,0,1200,0,670,330.00,NULL,NULL,NULL,600.00,0,0,1200,335,44.17,0,NULL,N'',NULL,1,N'Jim Roberts')
 insert into @p1 values(501,1269,264,2,2,NULL,NULL,1,3,0,NULL,NULL,3,1,0,0,0,0,0,0,0,NULL,NULL,NULL,300.00,0,0,900,0,100.00,0,NULL,N'',NULL,1,N'Jim Roberts')
@@ -27,7 +29,7 @@ insert into @p1 values(501,1269,264,2,2,NULL,NULL,1,3,0,NULL,NULL,3,1,0,0,0,0,0,
 exec USP_AddUpdateSalesOrderPart @tbl_SalesOrderPartList=@p1
 
 **************************************************************/
-CREATE      PROCEDURE [dbo].[USP_AddUpdateSalesOrderPart]
+CREATE PROCEDURE [dbo].[USP_AddUpdateSalesOrderPart]
 	@tbl_SalesOrderPartList SOPartListType READONLY
 AS
 BEGIN
@@ -138,8 +140,8 @@ BEGIN
 		DECLARE @SizeHeight AS decimal(18, 6) = 0;
 		DECLARE @TaxAmount AS DECIMAL(18, 6) = 0;
 		DECLARE @PriorityId BIGINT = 0, @StocklineCount int = 0;
-		DECLARE @PurchaseUnitOfMeasureId BIGINT = 0,  @StockUnitOfMeasureId BIGINT = 0,@ConsumeUnitOfMeasureId BIGINT = 0
-		DECLARE @POUnitOfMeasure VARCHAR(100), @StockUnitOfMeasure VARCHAR(100),@ConsumeUnitOfMeasure VARCHAR(100)
+		DECLARE @PurchaseUnitOfMeasureId BIGINT = 0, @StockUnitOfMeasureId BIGINT = 0, @ConsumeUnitOfMeasureId BIGINT = 0
+		DECLARE @POUnitOfMeasure VARCHAR(100), @StockUnitOfMeasure VARCHAR(100), @ConsumeUnitOfMeasure VARCHAR(100)
 
 		SELECT @SalesOrderPartId = SalesOrderPartId, 
 		@SalesOrderId = SalesOrderId, 
@@ -174,7 +176,7 @@ BEGIN
 		@TaxAmount = ISNULL(TaxAmount,0)
 		FROM #SOPartDetails WHERE ID = @SOMInID;
 
-		SELECT @PurchaseUnitOfMeasureId = [PurchaseUnitOfMeasureId],@StockUnitOfMeasureId =[StockUnitOfMeasureId], @ConsumeUnitOfMeasureId = [ConsumeUnitOfMeasureId] FROM [dbo].[ItemMaster] WITH(NOLOCK) WHERE [ItemMasterId] = @ItemMasterId;
+		SELECT @PurchaseUnitOfMeasureId = [PurchaseUnitOfMeasureId], @StockUnitOfMeasureId = [StockUnitOfMeasureId], @ConsumeUnitOfMeasureId = [ConsumeUnitOfMeasureId] FROM [dbo].[ItemMaster] WITH(NOLOCK) WHERE [ItemMasterId] = @ItemMasterId;
 		SET @POUnitOfMeasure = (SELECT [ShortCode] FROM [dbo].[UnitOfMeasure] WITH(NOLOCK) WHERE [UnitOfMeasureId] = @PurchaseUnitOfMeasureId)
 		SET @StockUnitOfMeasure = (SELECT [ShortCode] FROM [dbo].[UnitOfMeasure] WITH(NOLOCK) WHERE [UnitOfMeasureId] = @StockUnitOfMeasureId)
 		SET @ConsumeUnitOfMeasure = (SELECT [ShortCode] FROM [dbo].[UnitOfMeasure] WITH(NOLOCK) WHERE [UnitOfMeasureId] = @ConsumeUnitOfMeasureId)
@@ -191,14 +193,13 @@ BEGIN
 		END
         
    	    --  UOM Conversion  --
-		SET @QtyRequested = ([dbo].[fn_ConvertUOM](ISNULL(@QtyRequested, 0),@ConsumeUnitOfMeasure, @StockUnitOfMeasure,0,@MasterCompanyId));
-		SET @QtyOrder = ([dbo].[fn_ConvertUOM](ISNULL(@QtyOrder, 0),@ConsumeUnitOfMeasure, @StockUnitOfMeasure,0,@MasterCompanyId));
-		SET @UnitSalesPrice = ([dbo].[fn_ConvertUOM](ISNULL(@UnitSalesPrice, 0),@ConsumeUnitOfMeasure, @StockUnitOfMeasure,1,@MasterCompanyId));
-		SET @MarkUpAmount = ([dbo].[fn_ConvertUOM](ISNULL(@MarkUpAmount, 0),@ConsumeUnitOfMeasure, @StockUnitOfMeasure,1,@MasterCompanyId));
-		SET @DiscountAmount = ([dbo].[fn_ConvertUOM](ISNULL(@DiscountAmount, 0),@ConsumeUnitOfMeasure, @StockUnitOfMeasure,1,@MasterCompanyId));
-		SET @TaxAmount = ([dbo].[fn_ConvertUOM](ISNULL(@TaxAmount, 0),@ConsumeUnitOfMeasure, @StockUnitOfMeasure,1,@MasterCompanyId));
-			
-		SET @MarginAmount = ([dbo].[fn_ConvertUOM](ISNULL(@MarginAmount, 0),@ConsumeUnitOfMeasure, @StockUnitOfMeasure,1,@MasterCompanyId));
+		SET @QtyRequested  = (CASE WHEN ISNULL(@ConsumeUnitOfMeasure,'') = ISNULL(@StockUnitOfMeasure,'') THEN ISNULL(@QtyRequested, 0)  ELSE [dbo].[fn_ConvertUOM](ISNULL(@QtyRequested, 0), @ConsumeUnitOfMeasure, @StockUnitOfMeasure, 0, @MasterCompanyId) END);
+		SET @QtyOrder      = (CASE WHEN ISNULL(@ConsumeUnitOfMeasure,'') = ISNULL(@StockUnitOfMeasure,'') THEN ISNULL(@QtyOrder, 0)      ELSE [dbo].[fn_ConvertUOM](ISNULL(@QtyOrder, 0),      @ConsumeUnitOfMeasure, @StockUnitOfMeasure, 0, @MasterCompanyId) END);
+		SET @UnitSalesPrice = (CASE WHEN ISNULL(@ConsumeUnitOfMeasure,'') = ISNULL(@StockUnitOfMeasure,'') THEN ISNULL(@UnitSalesPrice, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(@UnitSalesPrice, 0), @ConsumeUnitOfMeasure, @StockUnitOfMeasure, 1, @MasterCompanyId) END);
+		SET @MarkUpAmount   = (CASE WHEN ISNULL(@ConsumeUnitOfMeasure,'') = ISNULL(@StockUnitOfMeasure,'') THEN ISNULL(@MarkUpAmount, 0)   ELSE [dbo].[fn_ConvertUOM](ISNULL(@MarkUpAmount, 0),   @ConsumeUnitOfMeasure, @StockUnitOfMeasure, 1, @MasterCompanyId) END);
+		SET @DiscountAmount  = (CASE WHEN ISNULL(@ConsumeUnitOfMeasure,'') = ISNULL(@StockUnitOfMeasure,'') THEN ISNULL(@DiscountAmount, 0)  ELSE [dbo].[fn_ConvertUOM](ISNULL(@DiscountAmount, 0),  @ConsumeUnitOfMeasure, @StockUnitOfMeasure, 1, @MasterCompanyId) END);
+		SET @TaxAmount      = (CASE WHEN ISNULL(@ConsumeUnitOfMeasure,'') = ISNULL(@StockUnitOfMeasure,'') THEN ISNULL(@TaxAmount, 0)      ELSE [dbo].[fn_ConvertUOM](ISNULL(@TaxAmount, 0),      @ConsumeUnitOfMeasure, @StockUnitOfMeasure, 1, @MasterCompanyId) END);
+		SET @MarginAmount   = (CASE WHEN ISNULL(@ConsumeUnitOfMeasure,'') = ISNULL(@StockUnitOfMeasure,'') THEN ISNULL(@MarginAmount, 0)   ELSE [dbo].[fn_ConvertUOM](ISNULL(@MarginAmount, 0),   @ConsumeUnitOfMeasure, @StockUnitOfMeasure, 1, @MasterCompanyId) END);
 
 		IF (ISNULL(@SalesOrderPartId, 0) = 0) -- Add New Part
 		BEGIN
@@ -276,21 +277,21 @@ BEGIN
 			END
 
 			--Update Reset Approve Process
-			EXEC [dbo].[USP_SOResetApprovalProcess] @SalesOrderId, @SalesOrderPartId,@MasterCompanyId
+			EXEC [dbo].[USP_SOResetApprovalProcess] @SalesOrderId, @SalesOrderPartId, @MasterCompanyId
 		END
 		ELSE
 		BEGIN		
-			DECLARE @IsQtyRequestedModified BIT,@IsPriorityModified BIT,@IsUnitSalesModified BIT;
-			DECLARE @ExistingQtyReq DECIMAL(18, 6),@ExistingPriority INT,@ExistingUnitSales DECIMAL;
+			DECLARE @IsQtyRequestedModified BIT, @IsPriorityModified BIT, @IsUnitSalesModified BIT;
+			DECLARE @ExistingQtyReq DECIMAL(18, 6), @ExistingPriority INT, @ExistingUnitSales DECIMAL;
 
-			SELECT @ExistingQtyReq = SOP.QtyRequested,@ExistingPriority = PriorityId  FROM [DBO].[SalesOrderPartV1] SOP WITH (NOLOCK) WHERE SOP.SalesOrderPartId = @SalesOrderPartId;
-			IF(@SalesOrderStocklineId > 0)
+			SELECT @ExistingQtyReq = SOP.QtyRequested, @ExistingPriority = PriorityId FROM [DBO].[SalesOrderPartV1] SOP WITH (NOLOCK) WHERE SOP.SalesOrderPartId = @SalesOrderPartId;
+			IF (@SalesOrderStocklineId > 0)
 			BEGIN
-				 SELECT @ExistingUnitSales = SOPC.UnitSalesPrice  FROM [DBO].[SalesOrderStockLineCost] SOPC WITH (NOLOCK) WHERE SOPC.SalesOrderStocklineId = @SalesOrderStocklineId;
+				SELECT @ExistingUnitSales = SOPC.UnitSalesPrice FROM [DBO].[SalesOrderStockLineCost] SOPC WITH (NOLOCK) WHERE SOPC.SalesOrderStocklineId = @SalesOrderStocklineId;
 			END
 			ELSE
 			BEGIN
-			     SELECT @ExistingUnitSales = SOPC.UnitSalesPrice  FROM [DBO].[SalesOrderPartCost] SOPC WITH (NOLOCK) WHERE SOPC.SalesOrderPartId = @SalesOrderPartId;
+				SELECT @ExistingUnitSales = SOPC.UnitSalesPrice FROM [DBO].[SalesOrderPartCost] SOPC WITH (NOLOCK) WHERE SOPC.SalesOrderPartId = @SalesOrderPartId;
 			END
 			SET @StocklineCount = ISNULL((SELECT COUNT(SalesOrderPartId) FROM #SOPartDetails WHERE SalesOrderPartId = @SalesOrderPartId AND ISNULL(StocklineId,0) > 0),0)
 								   
@@ -299,7 +300,7 @@ BEGIN
 			CustomerRequestDate = @CustomerRequestDate,
 			PromisedDate = @PromisedDate,
 			EstimatedShipDate = @EstimatedShipDate,
-			StatusId =  CASE WHEN StatusId != @SOPartStatus AND ISNULL(@SOPartStatus,0) != 0 THEN @SOPartStatus ELSE StatusId END,			
+			StatusId = CASE WHEN StatusId != @SOPartStatus AND ISNULL(@SOPartStatus,0) != 0 THEN @SOPartStatus ELSE StatusId END,			
 			ECCN = @ECCN,
 			HSCODE = @HSCODE,
 			[Weight] = @Weight,
@@ -311,7 +312,7 @@ BEGIN
 			WHERE SalesOrderPartId = @SalesOrderPartId;
 
 			UPDATE [DBO].[SalesOrderPartV1]
-			SET  PriorityId = @PriorityId
+			SET PriorityId = @PriorityId
 			WHERE SalesOrderPartId = @SalesOrderPartId AND ItemMasterId = @ItemMasterId;
 
 			-- Update Part Details
@@ -398,12 +399,12 @@ BEGIN
 				INNER JOIN QuotedSums QS ON SOP.SalesOrderPartId = QS.SalesOrderPartId
 			WHERE SOP.SalesOrderPartId = @SalesOrderPartId;
 
-			IF EXISTS(SELECT * FROM #SOPartDetails WHERE  SalesOrderPartId = @SalesOrderPartId)
+			IF EXISTS(SELECT * FROM #SOPartDetails WHERE SalesOrderPartId = @SalesOrderPartId)
 			BEGIN
 				;WITH QuotedSumsNoStockline AS (
 					SELECT SOP.SalesOrderPartId, SUM(ISNULL(SOS.QtyOrder, 0)) AS TotalQtyQuoted
 					FROM [DBO].[SalesOrderPartV1] SOP WITH (NOLOCK)
-						INNER JOIN #SOPartDetails AS SPD  WITH (NOLOCK) ON  SPD.SalesOrderPartId = SOP.SalesOrderPartId
+						INNER JOIN #SOPartDetails AS SPD WITH (NOLOCK) ON SPD.SalesOrderPartId = SOP.SalesOrderPartId
 						LEFT JOIN [DBO].[SalesOrderStocklineV1] SOS WITH (NOLOCK) ON SOP.SalesOrderPartId = SOS.SalesOrderPartId
 					WHERE SOS.SalesOrderPartId IS NULL
 					GROUP BY SOP.SalesOrderPartId
@@ -428,7 +429,7 @@ BEGIN
 			--Reset Approval Process
 			IF(@IsQtyRequestedModified > 0 OR @IsPriorityModified > 0 OR @IsUnitSalesModified > 0)
 			BEGIN
-				 EXEC [dbo].[USP_SOResetApprovalProcess] @SalesOrderId, @SalesOrderPartId,@MasterCompanyId
+				EXEC [dbo].[USP_SOResetApprovalProcess] @SalesOrderId, @SalesOrderPartId, @MasterCompanyId
 			END
 			
 		END
@@ -440,7 +441,7 @@ BEGIN
 		SET @SOMInID = @SOMInID + 1;
 	END
 
-	COMMIT  TRANSACTION
+	COMMIT TRANSACTION
   END TRY
   BEGIN CATCH
 	IF @@trancount > 0

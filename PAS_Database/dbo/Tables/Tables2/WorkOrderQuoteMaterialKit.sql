@@ -7,7 +7,7 @@
     [ConditionId]             BIGINT          NOT NULL,
     [UOMId]                   BIGINT          NOT NULL,
     [Qty]                     DECIMAL (18, 6) NULL,
-    [UnitCost]                DECIMAL (18, 2) NULL,
+    [UnitCost]                DECIMAL (18, 6) NULL,
     [PartNumber]              VARCHAR (100)   NULL,
     [PartDescription]         VARCHAR (MAX)   NULL,
     [Manufacturer]            VARCHAR (256)   NULL,

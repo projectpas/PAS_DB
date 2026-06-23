@@ -30,6 +30,8 @@
 	14   12/12/2025   Devendra Shekh	Added SP usp_MapRFQReferences For PO Part Reference Mapping
 	15   28/04/2026   BHARGAV SALIYA	[PN-16221] When Convert SOQ to SO Save ShipTO BillTO Address in SO
 	15   21/May/2026  Rajesh Gami	    [PN-16507] SOQ to SO: SOQ status should not change to Closed until all parts are converted to SO
+	16   17/JUN/2026  AMIT GHEDIYA	    Save ContractReference data move soq to so [PN-16119] 
+	17   19/JUN/2026  AMIT GHEDIYA	    Save [SourceBy],[MarketplaceRef] data move soq to so [PN-16922]
 declare @p13 bigint
 set @p13=NULL
 declare @p14 bigint
@@ -170,16 +172,16 @@ BEGIN
 	[EmployeeName],[CurrencyName],[CustomerWarningName],[ManagementStructureName],[CreditLimit],[CreditTermId],[CreditLimitName],[CreditTermName],
 	[VersionNumber],[TotalFreight],[TotalCharges],[FreightBilingMethodId],[ChargesBilingMethodId],[EnforceEffectiveDate],[IsEnforceApproval],
 	[Level1],[Level2],[Level3],[Level4],[ATAPDFPath],[LotId],[IsLotAssigned],[AllowInvoiceBeforeShipping],[PercentId],[Days],[NetDays],[COCManufacturingPDFPath],
-	[FunctionalCurrencyId],[ReportCurrencyId],[ForeignExchangeRate])
+	[FunctionalCurrencyId],[ReportCurrencyId],[ForeignExchangeRate],[MarketplaceRef])
 	SELECT 1, SOQ.QuoteTypeId, cast(GETUTCDATE() as date), NULL, 0, SOQ.[AccountTypeId], SOQ.[CustomerId], SOQ.[CustomerContactId],
 	CASE WHEN @CustomerReference IS NULL THEN SOQ.CustomerReference ELSE @CustomerReference END, SOQ.[CurrencyId], 0, 0 , 0, 0, SOQ.SalesPersonId, SOQ.[AgentId], SOQ.[CustomerSeviceRepId],
 	SOQ.[EmployeeId], NULL, NULL, CASE WHEN @TransferMemos = 1 THEN SOQ.Memo ELSE '' END, @FulfillingStatusId, GETUTCDATE(), CASE WHEN @TransferNotes = 1 THEN SOQ.Notes ELSE '' END, SOQ.[RestrictPMA], SOQ.[RestrictDER], SOQ.[ManagementStructureId],
 	NULL, SOQ.[CreatedBy], GETUTCDATE(), SOQ.[UpdatedBy], GETUTCDATE(), SOQ.[MasterCompanyId], 0, @SalesOrderQuoteId, 0, 0,
-	@SalesOrderNumber, 1, NULL, NULL, NULL, NULL, NULL, NULL,
+	@SalesOrderNumber, 1, SOQ.[ContractReference], NULL, NULL, NULL, NULL, NULL,
 	NULL, NULL, NULL, NULL, @CreditLimit, @CreditTermsId, NULL, @CreditTermsName,
 	NULL, SOQ.[TotalFreight], SOQ.[TotalCharges], SOQ.[FreightBilingMethodId], SOQ.[ChargesBilingMethodId], NULL, NULL,
 	NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
-	[FunctionalCurrencyId],[ReportCurrencyId],[ForeignExchangeRate]
+	[FunctionalCurrencyId],[ReportCurrencyId],[ForeignExchangeRate],[MarketplaceRef]
 	FROM DBO.SalesOrderQuote SOQ WITH (NOLOCK) WHERE SOQ.SalesOrderQuoteId = @SalesOrderQuoteId;
 	
 	SELECT @SalesOrderId = SCOPE_IDENTITY();

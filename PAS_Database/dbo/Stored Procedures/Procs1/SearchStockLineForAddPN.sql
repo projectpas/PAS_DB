@@ -21,6 +21,7 @@
  ** 7    23/12/2025	  Devendra Shekh  added UOM Changes
 	8    07/01/2026   Rajesh Gami	  Added MasterCompanyId Parameter While Calling UOM Conversion Function  
 	9    09/01/2026   Rajesh Gami	  Resolved Issue For Stock and Consume related (Qty and Cost)
+	10	 18/06/2026	  Ayushi		  [PN-16911]Skip fn_ConvertUOM call when ToUOM = FromUOM
 -- EXEC [dbo].[SearchStockLineForAddPN] '2', 33, 10,-1,NULL  
 **************************************************************/   
   
@@ -158,10 +159,10 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 			,sl.ControlNumber  
 			,sl.IdNumber  
 			,uom.ShortName AS UomDescription  
-			,ISNULL(dbo.fn_ConvertUOM(sl.QuantityAvailable, uomStock.ShortName, uomConsume.ShortName,0,im.MasterCompanyId), 0) AS QtyAvailable
-			,ISNULL(dbo.fn_ConvertUOM(sl.QuantityOnHand, uomStock.ShortName, uomConsume.ShortName,0,im.MasterCompanyId), 0) AS QtyOnHand
-			,ISNULL(dbo.fn_ConvertUOM(sl.UnitCost, uomStock.ShortName,uomConsume.ShortName,1,im.MasterCompanyId), 0) AS unitCost
-			,ISNULL(dbo.fn_ConvertUOM(sl.UnitSalesPrice, uomStock.ShortName, uomConsume.ShortName,1,im.MasterCompanyId), 0) AS unitSalePrice
+			,ISNULL((CASE WHEN ISNULL(uomStock.ShortName,'') = ISNULL(uomConsume.ShortName,'') THEN ISNULL(sl.QuantityAvailable,0) ELSE dbo.fn_ConvertUOM(sl.QuantityAvailable,uomStock.ShortName,uomConsume.ShortName,0,im.MasterCompanyId) END),0) AS QtyAvailable
+			,ISNULL((CASE WHEN ISNULL(uomStock.ShortName,'') = ISNULL(uomConsume.ShortName,'') THEN ISNULL(sl.QuantityOnHand,0) ELSE dbo.fn_ConvertUOM(sl.QuantityOnHand,uomStock.ShortName,uomConsume.ShortName,0,im.MasterCompanyId) END),0) AS QtyOnHand
+			,ISNULL((CASE WHEN ISNULL(uomStock.ShortName,'') = ISNULL(uomConsume.ShortName,'') THEN ISNULL(sl.UnitCost,0) ELSE dbo.fn_ConvertUOM(sl.UnitCost,uomStock.ShortName,uomConsume.ShortName,1,im.MasterCompanyId) END),0) AS unitCost
+			,ISNULL((CASE WHEN ISNULL(uomStock.ShortName,'') = ISNULL(uomConsume.ShortName,'') THEN ISNULL(sl.UnitSalesPrice,0) ELSE dbo.fn_ConvertUOM(sl.UnitSalesPrice,uomStock.ShortName,uomConsume.ShortName,1,im.MasterCompanyId) END),0) AS unitSalePrice
 			--,CASE WHEN sl.TraceableToType = 1 THEN sl.TraceableToName  
 			--  WHEN sl.TraceableToType = 2 THEN sl.TraceableToName
 			--  WHEN sl.TraceableToType = 9 THEN sl.TraceableToName
@@ -275,10 +276,10 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 			,sl.ControlNumber  
 			,sl.IdNumber  
 			,uom.ShortName AS UomDescription  
-			,ISNULL(dbo.fn_ConvertUOM(sl.QuantityAvailable, uomStock.ShortName, uomConsume.ShortName,0,im.MasterCompanyId), 0) AS QtyAvailable
-			,ISNULL(dbo.fn_ConvertUOM(sl.QuantityOnHand, uomStock.ShortName, uomConsume.ShortName,0,im.MasterCompanyId), 0) AS QtyOnHand
-			,ISNULL(dbo.fn_ConvertUOM(sl.UnitCost, uomStock.ShortName,uomConsume.ShortName,1,im.MasterCompanyId), 0) AS unitCost
-			,ISNULL(dbo.fn_ConvertUOM(sl.UnitSalesPrice, uomStock.ShortName, uomConsume.ShortName,1,im.MasterCompanyId), 0) AS unitSalePrice
+			,ISNULL((CASE WHEN ISNULL(uomStock.ShortName,'') = ISNULL(uomConsume.ShortName,'') THEN ISNULL(sl.QuantityAvailable,0) ELSE dbo.fn_ConvertUOM(sl.QuantityAvailable,uomStock.ShortName,uomConsume.ShortName,0,im.MasterCompanyId) END),0) AS QtyAvailable
+			,ISNULL((CASE WHEN ISNULL(uomStock.ShortName,'') = ISNULL(uomConsume.ShortName,'') THEN ISNULL(sl.QuantityOnHand,0) ELSE dbo.fn_ConvertUOM(sl.QuantityOnHand,uomStock.ShortName,uomConsume.ShortName,0,im.MasterCompanyId) END),0) AS QtyOnHand
+			,ISNULL((CASE WHEN ISNULL(uomStock.ShortName,'') = ISNULL(uomConsume.ShortName,'') THEN ISNULL(sl.UnitCost,0) ELSE dbo.fn_ConvertUOM(sl.UnitCost,uomStock.ShortName,uomConsume.ShortName,1,im.MasterCompanyId) END),0) AS unitCost
+			,ISNULL((CASE WHEN ISNULL(uomStock.ShortName,'') = ISNULL(uomConsume.ShortName,'') THEN ISNULL(sl.UnitSalesPrice,0) ELSE dbo.fn_ConvertUOM(sl.UnitSalesPrice,uomStock.ShortName,uomConsume.ShortName,1,im.MasterCompanyId) END),0) AS unitSalePrice
 			,CASE WHEN sl.TraceableToType = 1 THEN cusTraceble.Name  
 			  WHEN sl.TraceableToType = 2 THEN vTraceble.VendorName  
 			  WHEN sl.TraceableToType = 9 THEN leTraceble.Name  

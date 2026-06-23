@@ -15,6 +15,7 @@
  ** PR   Date         Author			Change Description
  ** --   --------     -------			-----------------------
     1    11/24/2023   Vishal Suthar		Created
+	2    06/16/2026   Priyansh Patel 	Removed the ChildStockline Sp call [PN-16124]
   
 
 declare @p5 int
@@ -276,7 +277,7 @@ BEGIN
 
 					SELECT @QtyCreated = ISNULL(ST.QTY_AVAILABLE, 0) FROM #TempStockline AS ST WHERE ID = @LoopID;
 
-					EXEC DBO.USP_AddUpdateChildStockline @StocklineId = @InsertedStocklineId, @ActionId = 1, @QtyOnAction = @QtyCreated, @ModuleName = 'Migration', @ReferenceNumber = NULL, @SubModuleName = NULL, @SubReferenceNumber = NULL, @UpdatedBy = @UserName;
+					--EXEC DBO.USP_AddUpdateChildStockline @StocklineId = @InsertedStocklineId, @ActionId = 1, @QtyOnAction = @QtyCreated, @ModuleName = 'Migration', @ReferenceNumber = NULL, @SubModuleName = NULL, @SubReferenceNumber = NULL, @UpdatedBy = @UserName;
 
 					INSERT INTO [dbo].[Stkline_History] ([StocklineId],[ModuleId],[RefferenceId],[RefferenceNumber],[SubModuleId],[SubRefferenceId],[SubRefferenceNumber],[ActionId],[Type],
 						[QtyOH],[QtyAvailable],[QtyReserved],[QtyIssued],[QtyOnAction],[Notes],[UpdatedBy],[UpdatedDate],UnitSalesPrice,SalesPriceExpiryDate)

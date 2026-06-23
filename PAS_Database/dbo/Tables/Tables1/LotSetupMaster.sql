@@ -7,7 +7,7 @@
     [IsCostToPN]         BIT             NULL,
     [IsReturnCoreToLot]  BIT             NULL,
     [IsMaintainStkLine]  BIT             NULL,
-    [CommissionCost]     DECIMAL (18, 2) NULL,
+    [CommissionCost]     DECIMAL (18, 6) NULL,
     [MasterCompanyId]    INT             CONSTRAINT [DF_LotSetupMaster_MasterCompanyId] DEFAULT ((1)) NOT NULL,
     [CreatedBy]          VARCHAR (256)   NOT NULL,
     [UpdatedBy]          VARCHAR (256)   NOT NULL,

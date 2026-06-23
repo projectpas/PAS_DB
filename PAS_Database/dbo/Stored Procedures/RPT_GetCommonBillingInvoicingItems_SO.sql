@@ -18,6 +18,7 @@
 	6    17/JUL/2025   VISHAL SUTHAR	Trimming the Notes field with "<p></p>" tag in the beginning and end.
 	7    12/Jan/2026   VISHAL SUTHAR	Use Serial Number from BillingInvoicingItems if exists
 	8    15/May/2026   Bhargav Saliya	UOM Changes [PN-15067]
+	9    18/06/2026    Bhargav Saliya	Added Case For Skip UOM Function If FROM uom and TO uom Both are Same
 
 --   EXEC [dbo].[RPT_GetCommonBillingInvoicingItems_SO] 9328,10
 ********************************************************************************************/
@@ -75,10 +76,10 @@ BEGIN
 					END,
 					UOM = UPPER(im.PurchaseUnitOfMeasure),
 					Cond = UPPER(c.Description),
-					QtyShipped = ([dbo].[fn_ConvertUOM](ISNULL(BII.QtyBilled, 0),im.[StockUnitOfMeasure],im.[ConsumeUnitOfMeasure] ,0,so.MasterCompanyId)),
-					QTYOnBACKOrder = ([dbo].[fn_ConvertUOM](ISNULL(sop.QtyRequested, 0),im.[StockUnitOfMeasure],im.[ConsumeUnitOfMeasure] ,0,so.MasterCompanyId)) - ([dbo].[fn_ConvertUOM](ISNULL(BII.QtyBilled, 0),im.[StockUnitOfMeasure],im.[ConsumeUnitOfMeasure] ,0,so.MasterCompanyId)),
-					UnitPrice = ([dbo].[fn_ConvertUOM](ISNULL(BII.UnitPrice, 0),im.[StockUnitOfMeasure],im.[ConsumeUnitOfMeasure] ,0,so.MasterCompanyId)),
-					Amount = ([dbo].[fn_ConvertUOM](ISNULL(BII.PartCost, 0),im.[StockUnitOfMeasure],im.[ConsumeUnitOfMeasure] ,0,so.MasterCompanyId)),
+					QtyShipped = (CASE WHEN ISNULL(im.[StockUnitOfMeasure],'') = ISNULL(im.[ConsumeUnitOfMeasure],'') THEN ISNULL(BII.QtyBilled, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(BII.QtyBilled, 0),im.[StockUnitOfMeasure],im.[ConsumeUnitOfMeasure],0,so.MasterCompanyId) END),
+					QTYOnBACKOrder = (CASE WHEN ISNULL(im.[StockUnitOfMeasure],'') = ISNULL(im.[ConsumeUnitOfMeasure],'') THEN ISNULL(sop.QtyRequested, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(sop.QtyRequested, 0),im.[StockUnitOfMeasure],im.[ConsumeUnitOfMeasure],0,so.MasterCompanyId) END) - (CASE WHEN ISNULL(im.[StockUnitOfMeasure],'') = ISNULL(im.[ConsumeUnitOfMeasure],'') THEN ISNULL(BII.QtyBilled, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(BII.QtyBilled, 0),im.[StockUnitOfMeasure],im.[ConsumeUnitOfMeasure],0,so.MasterCompanyId) END),
+					UnitPrice = (CASE WHEN ISNULL(im.[StockUnitOfMeasure],'') = ISNULL(im.[ConsumeUnitOfMeasure],'') THEN ISNULL(BII.UnitPrice, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(BII.UnitPrice, 0),im.[StockUnitOfMeasure],im.[ConsumeUnitOfMeasure],1,so.MasterCompanyId) END),
+					Amount = (CASE WHEN ISNULL(im.[StockUnitOfMeasure],'') = ISNULL(im.[ConsumeUnitOfMeasure],'') THEN ISNULL(BII.PartCost, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(BII.PartCost, 0),im.[StockUnitOfMeasure],im.[ConsumeUnitOfMeasure],1,so.MasterCompanyId) END),
 					StockLineId = sl.StockLineId,
 					ISNULL(UPPER(SOP.ECCN),'-')ExportECCN,
 					ISNULL(UPPER(SOP.HSCODE),'-')HSCode,

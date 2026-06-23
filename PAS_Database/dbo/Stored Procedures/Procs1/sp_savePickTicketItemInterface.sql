@@ -19,7 +19,7 @@
 ** 9    12/10/2024		Moin Bloch			    Modified fixed dublicate Pickticket issue
 ** 10   03/06/2025		Vishal Suthar			Fixed issue with Qty Picked and Qty Remaining calculation
 ** 11   30/30/2026		Moin Bloch			    UOM Changes PN-15067
-
+** 12	19/06/2026	    Ayushi					[PN-16911]Skip fn_ConvertUOM call when ToUOM = FromUOM
 exec sp_savePickTicketItemInterface @SOPickTicketId=0,@SOPickTicketNumber=N'PT(SO)-000742',@SalesOrderId=1570,@CreatedBy=N'Jim Roberts',@UpdatedBy=N'Jim Roberts',@IsActive=1,@IsDeleted=0,@SalesOrderPartId=1973,@SalesOrderStocklineId=2517,@Qty=0,@QtyToShip=1,@MasterCompanyId=1,@Status=1,@PickedById=55,@ConfirmedById=0,@Memo=default,@IsConfirmed=0,@CodePrefixId=17,@CurrentNummber=742
 ********************************************************************************/
 CREATE      PROCEDURE [dbo].[sp_savePickTicketItemInterface]      
@@ -67,9 +67,18 @@ BEGIN
 	 SET @ConsumeUnitOfMeasure = (SELECT [ShortCode] FROM [dbo].[UnitOfMeasure] WITH(NOLOCK) WHERE [UnitOfMeasureId] = @ConsumeUnitOfMeasureId)
 
   IF (@Qty > 0)
-	SET @Qty = [dbo].[fn_ConvertUOM](@Qty, @ConsumeUnitOfMeasure, @StockUnitOfMeasure, 0, @MasterCompanyId);
+    SET @Qty = CASE 
+                   WHEN ISNULL(@ConsumeUnitOfMeasure,'') = ISNULL(@StockUnitOfMeasure,'')
+                       THEN @Qty
+                   ELSE [dbo].[fn_ConvertUOM](@Qty, @ConsumeUnitOfMeasure, @StockUnitOfMeasure, 0, @MasterCompanyId)
+               END;
+
   IF (@QtyToShip > 0)
-	SET @QtyToShip = [dbo].[fn_ConvertUOM](@QtyToShip, @ConsumeUnitOfMeasure, @StockUnitOfMeasure,0, @MasterCompanyId);
+    SET @QtyToShip = CASE 
+                         WHEN ISNULL(@ConsumeUnitOfMeasure,'') = ISNULL(@StockUnitOfMeasure,'')
+                             THEN @QtyToShip
+                         ELSE [dbo].[fn_ConvertUOM](@QtyToShip, @ConsumeUnitOfMeasure, @StockUnitOfMeasure, 0, @MasterCompanyId)
+                     END;
 
   IF(@SOPickTicketId = 0)  
   BEGIN  

@@ -17,11 +17,12 @@
     01  06/08/2024		Ayushi Patel    Created      
 	02  04/11/2024		Vishal Suthar	Modified to make use of new SO Part tables
 	03  09/04/2025		Vishal Suthar	Fixed issue with QtyReserved which was providing duplicate result
+	04  22/06/2026		Bhargav Saliya	Resolved Issue [PN-16940]
  
 -- EXEC [dbo].[GetSOConfirmationList] 1,20,'',-1,'',0,'',null,0,'','','','',0,null,'','','','pnview',1
    
 **************************************************************/     
-CREATE    PROCEDURE [dbo].[GetSOConfirmationList]
+CREATE PROCEDURE [dbo].[GetSOConfirmationList]
 @PageNumber int = 1,
 @PageSize int = 20,
 @SortColumn varchar(50)=NULL,
@@ -30,12 +31,12 @@ CREATE    PROCEDURE [dbo].[GetSOConfirmationList]
 @SOConformationNumber bigint = NULL,
 @SalesOrderNumber varchar(50) = NULL,
 @OpenDate datetime = NULL,
-@Qty int = NULL,
+@Qty varchar(50) = NULL,
 @PartNumber varchar(50) = NULL,
 @PartDescription varchar(50) = NULL,
 @SerialNumber varchar(50) = NULL,
 @UOM varchar(50) = NULL,
-@QtyReserved int = NULL,
+@QtyReserved varchar(50) = NULL,
 @estimatedShipDate datetime = NULL,
 @customerName varchar(50) = NULL,
 @ConfirmedBy varchar(50) = NULL,
@@ -78,7 +79,7 @@ BEGIN
 			ISNULL(cust.Name, '') AS CustomerName,
 			ISNULL(qs.StockLineNumber, '') AS StockLineNumber,
 			part.FxRate,
-			part.QtyOrder Qty,
+			CASE WHEN ISNULL(uomStock.ShortName,'') = ISNULL(iu.ShortName,'') THEN part.QtyOrder ELSE [dbo].[fn_ConvertUOM](part.QtyOrder, uomStock.ShortName, iu.ShortName, 0, part.MasterCompanyId) END AS Qty,
 			part.CreatedBy,
 			part.CreatedDate,
 			part.UpdatedBy,
@@ -91,7 +92,7 @@ BEGIN
 			ISNULL(qs.ControlNumber, '') AS ControlNumber,
 			ISNULL(cp.Description, '') AS ConditionDescription,
 			ISNULL(iu.ShortName, '') AS UOM,
-			ISNULL(part.QtyReserved, 0) AS QtyReserved,
+			CASE WHEN ISNULL(uomStock.ShortName,'') = ISNULL(iu.ShortName,'') THEN ISNULL(part.QtyReserved, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(part.QtyReserved, 0), uomStock.ShortName, iu.ShortName, 0, part.MasterCompanyId) END AS QtyReserved,
 			CASE WHEN soc.CustomerStatusId = 2 THEN 1 ELSE 0 END AS IsApproved,
 			ISNULL(so.CustomerReference, '') AS CustomerReference,
 			ISNULL(st.Name, '') AS StatusName,
@@ -112,6 +113,7 @@ BEGIN
 		LEFT JOIN dbo.UnitOfMeasure iu WITH (NOLOCK) ON itemMaster.ConsumeUnitOfMeasureId = iu.UnitOfMeasureId
 		--LEFT JOIN dbo.SalesOrderReserveParts rPart WITH (NOLOCK) ON part.SalesOrderPartId = rPart.SalesOrderPartId
 		LEFT JOIN dbo.UnitOfMeasure um WITH (NOLOCK) ON itemMaster.PurchaseUnitOfMeasureId = um.UnitOfMeasureId
+		LEFT JOIN dbo.UnitOfMeasure uomStock WITH (NOLOCK) ON itemMaster.StockUnitOfMeasureId = uomStock.UnitOfMeasureId
 		LEFT JOIN dbo.MasterSalesOrderQuoteStatus st WITH (NOLOCK) ON part.StatusId = st.Id
 		LEFT JOIN dbo.Contact con WITH (NOLOCK) ON soc.CustomerApprovedById = con.ContactId
     WHERE 
@@ -123,27 +125,27 @@ BEGIN
 			
 			SELECT * INTO #TempResult FROM  Result r
 			
-			 WHERE ((@GlobalFilter <>'' AND ((SOConformationNumber LIKE '%' +@GlobalFilter+'%') OR
-			        (SalesOrderNumber LIKE '%' +@GlobalFilter+'%') OR	
-					(Qty LIKE '%' +@GlobalFilter+'%') OR					
-					(PartNumber LIKE '%' +@GlobalFilter+'%') OR						
-					(PartDescription LIKE '%' +@GlobalFilter+'%') OR						
-					(SerialNumber LIKE '%' +@GlobalFilter+'%') OR										
+			 WHERE ((@GlobalFilter <>'' AND ((CAST(SOConformationNumber AS NVARCHAR(20)) LIKE '%' +@GlobalFilter+'%') OR
+			        (SalesOrderNumber LIKE '%' +@GlobalFilter+'%') OR
+					(CAST(CAST(Qty AS FLOAT) AS NVARCHAR(50)) LIKE '%' + @GlobalFilter + '%') OR
+					(PartNumber LIKE '%' +@GlobalFilter+'%') OR
+					(PartDescription LIKE '%' +@GlobalFilter+'%') OR
+					(SerialNumber LIKE '%' +@GlobalFilter+'%') OR
 					(UOM LIKE '%' +@GlobalFilter+'%') OR
-					(QtyReserved LIKE '%' +@GlobalFilter+'%') OR
+					(CAST(CAST(QtyReserved AS FLOAT) AS NVARCHAR(50)) LIKE '%' + @GlobalFilter + '%') OR
 					(customerName LIKE '%' +@GlobalFilter+'%') OR
 					(ConfirmedBy LIKE '%' +@GlobalFilter+'%') OR
-					(CustomerMemo LIKE '%' +@GlobalFilter+'%')))	
-					OR   
-					(@GlobalFilter='' AND (ISNULL(@SOConformationNumber,'') ='' OR SOConformationNumber LIKE '%' + @SOConformationNumber+'%') AND
+					(CustomerMemo LIKE '%' +@GlobalFilter+'%')))
+					OR
+					(@GlobalFilter='' AND (ISNULL(@SOConformationNumber, 0) = 0 OR CAST(SOConformationNumber AS VARCHAR(20)) LIKE '%' + CAST(@SOConformationNumber AS VARCHAR(20)) + '%') AND
 					(ISNULL(@SalesOrderNumber,'') ='' OR SalesOrderNumber LIKE '%' + @SalesOrderNumber + '%') AND
 					(ISNULL(@OpenDate,'') ='' OR CAST(OpenDate AS Date)=CAST(@OpenDate AS date)) AND
-					(ISNULL(@Qty,'') ='' OR Qty LIKE '%' + @Qty + '%') AND
+					(ISNULL(@Qty, '') = '' OR CAST(CAST(Qty AS FLOAT) AS VARCHAR(50)) LIKE '%' + @Qty + '%') AND
 					(ISNULL(@PartNumber,'') ='' OR PartNumber LIKE '%' + @PartNumber + '%') AND
 					(ISNULL(@PartDescription,'') ='' OR PartDescription LIKE '%' + @PartDescription + '%') AND
-					(ISNULL(@SerialNumber,'') ='' OR SerialNumber LIKE '%' + @SerialNumber + '%') AND				
+					(ISNULL(@SerialNumber,'') ='' OR SerialNumber LIKE '%' + @SerialNumber + '%') AND
 					(ISNULL(@UOM,'') ='' OR UOM LIKE '%' + @UOM + '%') AND
-					(ISNULL(@QtyReserved,'') ='' OR QtyReserved LIKE '%' + @QtyReserved + '%') AND
+					(ISNULL(@QtyReserved, '') = '' OR CAST(CAST(QtyReserved AS FLOAT) AS VARCHAR(50)) LIKE '%' + @QtyReserved + '%')  AND
 					(ISNULL(@estimatedShipDate,'') ='' OR CAST(estimatedShipDate AS Date)=CAST(@estimatedShipDate AS date)) AND
 					(ISNULL(@customerName,'') ='' OR customerName LIKE '%' + @customerName + '%') AND
 					(ISNULL(@ConfirmedBy,'') ='' OR ConfirmedBy LIKE '%' + @ConfirmedBy + '%') AND
@@ -200,7 +202,7 @@ BEGIN
         ISNULL(cust.Name, '') AS CustomerName,
         ISNULL(qs.StockLineNumber, '') AS StockLineNumber,
         part.FxRate,
-        part.QtyOrder Qty,
+        CASE WHEN ISNULL(uomStock.ShortName,'') = ISNULL(iu.ShortName,'') THEN part.QtyOrder ELSE [dbo].[fn_ConvertUOM](part.QtyOrder, uomStock.ShortName, iu.ShortName, 0, part.MasterCompanyId) END AS Qty,
         part.CreatedBy,
 		part.EstimatedShipDate,
         CONVERT(VARCHAR(19), part.CreatedDate, 120) AS CreatedDate,
@@ -213,7 +215,7 @@ BEGIN
         ISNULL(qs.ControlNumber, '') AS ControlNumber,
         ISNULL(cp.Description, '') AS ConditionDescription,
         ISNULL(iu.ShortName, '') AS UOM,
-        ISNULL(part.QtyReserved, 0) AS QtyReserved,
+        CASE WHEN ISNULL(uomStock.ShortName,'') = ISNULL(iu.ShortName,'') THEN ISNULL(part.QtyReserved, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(part.QtyReserved, 0), uomStock.ShortName, iu.ShortName, 0, part.MasterCompanyId) END AS QtyReserved,
         CASE WHEN soc.CustomerStatusId = 2 THEN 1 ELSE 0 END AS IsApproved, -- Assuming 2 is the ID for 'Approved'
         ISNULL(so.CustomerReference, '') AS CustomerReference,
         ISNULL(st.Name, '') AS StatusName,
@@ -234,6 +236,7 @@ BEGIN
         LEFT JOIN UnitOfMeasure iu ON itemMaster.ConsumeUnitOfMeasureId = iu.UnitOfMeasureId
         --LEFT JOIN SalesOrderReserveParts rPart ON part.SalesOrderPartId = rPart.SalesOrderPartId
         LEFT JOIN UnitOfMeasure um ON itemMaster.PurchaseUnitOfMeasureId = um.UnitOfMeasureId
+        LEFT JOIN UnitOfMeasure uomStock ON itemMaster.StockUnitOfMeasureId = uomStock.UnitOfMeasureId
         LEFT JOIN MasterSalesOrderQuoteStatus st ON part.StatusId = st.Id
         LEFT JOIN Contact con ON soc.CustomerApprovedById = con.ContactId
     WHERE
@@ -246,34 +249,28 @@ BEGIN
 			SELECT * INTO #TempResultPn FROM  Result r
 			
 			 WHERE ((@GlobalFilter <>'' AND (
-					--(SOConformationNumber LIKE '%' +@GlobalFilter+'%') OR
-					(CAST(SOConformationNumber AS NVARCHAR(10)) LIKE '%' + @GlobalFilter + '%') OR
-			        (SalesOrderNumber LIKE '%' +@GlobalFilter+'%') OR	
-					--(Qty LIKE '%' +@GlobalFilter+'%') OR
-					(CAST(Qty AS NVARCHAR(10)) LIKE '%' + @GlobalFilter + '%') OR
-					(PartNumber LIKE '%' +@GlobalFilter+'%') OR						
-					(PartDescription LIKE '%' +@GlobalFilter+'%') OR						
-					(SerialNumber LIKE '%' +@GlobalFilter+'%') OR										
+					(CAST(SOConformationNumber AS NVARCHAR(20)) LIKE '%' + @GlobalFilter + '%') OR
+			        (SalesOrderNumber LIKE '%' +@GlobalFilter+'%') OR
+					(CAST(CAST(Qty AS FLOAT) AS NVARCHAR(50)) LIKE '%' + @GlobalFilter + '%') OR
+					(PartNumber LIKE '%' +@GlobalFilter+'%') OR
+					(PartDescription LIKE '%' +@GlobalFilter+'%') OR
+					(SerialNumber LIKE '%' +@GlobalFilter+'%') OR
 					(UOM LIKE '%' +@GlobalFilter+'%') OR
-					--(QtyReserved LIKE '%' +@GlobalFilter+'%') OR
-					(CAST(QtyReserved AS NVARCHAR(10)) LIKE '%' + @GlobalFilter + '%') OR
+					(CAST(CAST(QtyReserved AS FLOAT) AS NVARCHAR(50)) LIKE '%' + @GlobalFilter + '%') OR
 					(customerName LIKE '%' +@GlobalFilter+'%') OR
 					(ConfirmedBy LIKE '%' +@GlobalFilter+'%') OR
 					(CustomerMemo LIKE '%' +@GlobalFilter+'%')))	
 					OR   
 					(@GlobalFilter='' AND 
-					--(ISNULL(@SOConformationNumber,'') ='' OR SOConformationNumber LIKE '%' + @SOConformationNumber+'%') AND
 					(IsNull(@SOConformationNumber, 0) = 0 OR CAST(SOConformationNumber as VARCHAR(10)) like @SOConformationNumber) AND
 					(ISNULL(@SalesOrderNumber,'') ='' OR SalesOrderNumber LIKE '%' + @SalesOrderNumber + '%') AND
 					(ISNULL(@OpenDate,'') ='' OR CAST(OpenDate AS Date)=CAST(@OpenDate AS date)) AND
-					--(ISNULL(@Qty,'') ='' OR Qty LIKE '%' + @Qty + '%') AND
-					(IsNull(@Qty, 0) = 0 OR CAST(Qty as VARCHAR(10)) like @Qty) AND
+					(ISNULL(@Qty, '') = '' OR CAST(CAST(Qty AS FLOAT) AS VARCHAR(50)) LIKE '%' + @Qty + '%') AND
 					(ISNULL(@PartNumber,'') ='' OR PartNumber LIKE '%' + @PartNumber + '%') AND
 					(ISNULL(@PartDescription,'') ='' OR PartDescription LIKE '%' + @PartDescription + '%') AND
 					(ISNULL(@SerialNumber,'') ='' OR SerialNumber LIKE '%' + @SerialNumber + '%') AND				
 					(ISNULL(@UOM,'') ='' OR UOM LIKE '%' + @UOM + '%') AND
-					--(ISNULL(@QtyReserved,'') ='' OR QtyReserved LIKE '%' + @QtyReserved + '%') AND
-					(IsNull(@QtyReserved, 0) = 0 OR CAST(QtyReserved as VARCHAR(10)) like @QtyReserved) AND
+					(ISNULL(@QtyReserved, '') = '' OR CAST(CAST(QtyReserved AS FLOAT) AS VARCHAR(50)) LIKE '%' + @QtyReserved + '%') AND
 					(ISNULL(@estimatedShipDate,'') ='' OR CAST(estimatedShipDate AS Date)=CAST(@estimatedShipDate AS date)) AND
 					(ISNULL(@customerName,'') ='' OR customerName LIKE '%' + @customerName + '%') AND
 					(ISNULL(@ConfirmedBy,'') ='' OR ConfirmedBy LIKE '%' + @ConfirmedBy + '%') AND
@@ -337,24 +334,24 @@ BEGIN
 			,@DatabaseName VARCHAR(100) = db_name()
 			-----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
 			,@AdhocComments VARCHAR(150) = 'ProceEmployeeList'
-			,@ProcedureParameters VARCHAR(3000) = '@Parameter1 = ''' + CAST(ISNULL(@PageNumber, '') AS varchar(100))
-			   + '@Parameter2 = ''' + CAST(ISNULL(@PageSize, '') AS varchar(100)) 
-			   + '@Parameter3 = ''' + CAST(ISNULL(@SortColumn, '') AS varchar(100))
-			   + '@Parameter4 = ''' + CAST(ISNULL(@SortOrder, '') AS varchar(100))
-			   + '@Parameter5 = ''' + CAST(ISNULL(@GlobalFilter, '') AS varchar(100))
-			   + '@Parameter6 = ''' + CAST(ISNULL(@SOConformationNumber, '') AS varchar(100))
-			   + '@Parameter7 = ''' + CAST(ISNULL(@SalesOrderNumber, '') AS varchar(100))
+			,@ProcedureParameters VARCHAR(3000) = '@Parameter1 = ''' + CAST(ISNULL(@PageNumber, 0) AS varchar(100))
+			   + '@Parameter2 = ''' + CAST(ISNULL(@PageSize, 0) AS varchar(100))
+			   + '@Parameter3 = ''' + ISNULL(@SortColumn, '')
+			   + '@Parameter4 = ''' + CAST(ISNULL(@SortOrder, 0) AS varchar(100))
+			   + '@Parameter5 = ''' + ISNULL(@GlobalFilter, '')
+			   + '@Parameter6 = ''' + CAST(ISNULL(@SOConformationNumber, 0) AS varchar(100))
+			   + '@Parameter7 = ''' + ISNULL(@SalesOrderNumber, '')
 			   + '@Parameter8 = ''' + CAST(ISNULL(@OpenDate, '') AS varchar(100))
-			   + '@Parameter9 = ''' + CAST(ISNULL(@PartNumber , '') AS varchar(100))
-			   + '@Parameter10 = ''' + CAST(ISNULL(@PartDescription , '') AS varchar(100))
-			   + '@Parameter11 = ''' + CAST(ISNULL(@SerialNumber, '') AS varchar(100))
-			   + '@Parameter12 = ''' + CAST(ISNULL(@UOM, '') AS varchar(100))
-			  + '@Parameter13 = ''' + CAST(ISNULL(@QtyReserved, '') AS varchar(100))
-			  + '@Parameter14 = ''' + CAST(ISNULL(@estimatedShipDate, '') AS varchar(100))
-			  + '@Parameter15 = ''' + CAST(ISNULL(@customerName , '') AS varchar(100))		  
-			  + '@Parameter16 = ''' + CAST(ISNULL(@ConfirmedBy , '') AS varchar(100))
-			  + '@Parameter17 = ''' + CAST(ISNULL(@CustomerMemo , '') AS varchar(100))
-			  + '@Parameter18 = ''' + CAST(ISNULL(@MasterCompanyId, '') AS varchar(100))  			                                           
+			   + '@Parameter9 = ''' + ISNULL(@PartNumber, '')
+			   + '@Parameter10 = ''' + ISNULL(@PartDescription, '')
+			   + '@Parameter11 = ''' + ISNULL(@SerialNumber, '')
+			   + '@Parameter12 = ''' + ISNULL(@UOM, '')
+			   + '@Parameter13 = ''' + CAST(ISNULL(@QtyReserved, 0) AS varchar(100))
+			   + '@Parameter14 = ''' + CAST(ISNULL(@estimatedShipDate, '') AS varchar(100))
+			   + '@Parameter15 = ''' + ISNULL(@customerName, '')
+			   + '@Parameter16 = ''' + ISNULL(@ConfirmedBy, '')
+			   + '@Parameter17 = ''' + ISNULL(@CustomerMemo, '')
+			   + '@Parameter18 = ''' + CAST(ISNULL(@MasterCompanyId, 0) AS varchar(100))  			                                           
 			,@ApplicationName VARCHAR(100) = 'PAS'
 
 		-----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------

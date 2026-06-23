@@ -21,7 +21,7 @@
  5    09/18/2023    Devendra Shekh        pick ticket qty issue resovled 
  6    26/Feb/2026   Rajesh Gami			Added UOM Changes - PN-14832    
  7	  19/03/2026	Priyansh Patel		Added the @IsAutoConfirmPickTicket logic [PN-15606]
-
+ 8	  19/06/2026	Ayushi				[PN-16911]Skip fn_ConvertUOM call when ToUOM = FromUOM
  EXECUTE sp_savePickTicketItemInterface_WO 828,0  
 **************************************************************/   
 CREATE   PROCEDURE [dbo].[sp_savePickTicketItemInterface_WO]  
@@ -74,13 +74,15 @@ BEGIN
 					LEFT JOIN DBO.UnitOfMeasure cu WITH (NOLOCK) ON sl.ConsumeUnitOfMeasureId = cu.UnitOfMeasureId
 				WHERE sl.StockLineId = @StocklineId;
 
-				IF (@ConsumeUnitOfMeasure IS NOT NULL AND @StockUnitOfMeasure IS NOT NULL)
+				IF (@ConsumeUnitOfMeasure IS NOT NULL 
+					AND @StockUnitOfMeasure IS NOT NULL
+					AND ISNULL(@ConsumeUnitOfMeasure,'') <> ISNULL(@StockUnitOfMeasure,''))
 				BEGIN
 					IF (@Qty > 0)
 						SET @Qty = dbo.fn_ConvertUOM(@Qty, @ConsumeUnitOfMeasure, @StockUnitOfMeasure, 0, @MasterCompanyId);
 
 					IF (@QtyToShip > 0)
-						SET @QtyToShip = dbo.fn_ConvertUOM(@QtyToShip, @ConsumeUnitOfMeasure, @StockUnitOfMeasure,0, @MasterCompanyId);
+						SET @QtyToShip = dbo.fn_ConvertUOM(@QtyToShip, @ConsumeUnitOfMeasure, @StockUnitOfMeasure, 0, @MasterCompanyId);
 				END
 			END			
 			/************ END: UOM Changes Logic *************/

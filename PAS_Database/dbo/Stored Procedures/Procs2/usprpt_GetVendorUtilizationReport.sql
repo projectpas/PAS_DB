@@ -19,10 +19,12 @@
 	4	 11/05/2024		Vishal Suthar		Modified to make use of new SO Part tables
 	5	 03/06/2026		Priyansh Patel 		Uom releted changes [PN-15917]
     6	 09/06/2026		Priyansh Patel		uom conversion for unit cost and Extended amount value [PN-16758]
+	7    19/06/2026	    Priyansh Patel      Add Condition to skip fn_ConvertUOM call [PN-16911]
+
 
 **************************************************************/
 
-CREATE      PROCEDURE [dbo].[usprpt_GetVendorUtilizationReport]  
+CREATE       PROCEDURE [dbo].[usprpt_GetVendorUtilizationReport]  
 @PageNumber int = 1,  
 @PageSize int = NULL,  
 @mastercompanyid int,  
@@ -161,9 +163,9 @@ UPPER(MSD.Level8Name) AS level8,    UPPER(MSD.Level9Name) AS level9,    UPPER(MS
         UPPER(POP.unitofmeasure) 'uom',  
         POP.QuantityOrdered 'qty',  
         POP.PurchaseOrderId,  
-        ROUND(CASE WHEN STL.UnitCost IS NULL THEN ISNULL(POP.UnitCost, 0) ELSE dbo.fn_ConvertUOM(STL.UnitCost, STL.StockUnitOfMeasure, POP.UnitOfMeasure, 1, @mastercompanyid) END, 2) AS unitcost,
-        UPPER(POP.functionalcurrency) 'currency',  
-        ISNULL(POP.QuantityOrdered, 0) * ROUND(CASE WHEN STL.UnitCost IS NULL THEN ISNULL(POP.UnitCost, 0) ELSE dbo.fn_ConvertUOM(STL.UnitCost, STL.StockUnitOfMeasure, POP.UnitOfMeasure, 1, @mastercompanyid) END, 2) AS extamount,
+        ROUND(CASE WHEN STL.UnitCost IS NULL THEN ISNULL(POP.UnitCost, 0) ELSE CASE WHEN NULLIF(STL.StockUnitOfMeasure, '') IS NULL OR NULLIF(POP.UnitOfMeasure, '') IS NULL OR STL.StockUnitOfMeasure = POP.UnitOfMeasure THEN STL.UnitCost ELSE dbo.fn_ConvertUOM(STL.UnitCost, STL.StockUnitOfMeasure, POP.UnitOfMeasure, 1, @mastercompanyid) END END, 2) AS unitcost,
+        UPPER(POP.functionalcurrency) 'currency',
+        ISNULL(POP.QuantityOrdered, 0) * ROUND(CASE WHEN STL.UnitCost IS NULL THEN ISNULL(POP.UnitCost, 0) ELSE CASE WHEN NULLIF(STL.StockUnitOfMeasure, '') IS NULL OR NULLIF(POP.UnitOfMeasure, '') IS NULL OR STL.StockUnitOfMeasure = POP.UnitOfMeasure THEN STL.UnitCost ELSE dbo.fn_ConvertUOM(STL.UnitCost, STL.StockUnitOfMeasure, POP.UnitOfMeasure, 1, @mastercompanyid) END END, 2) AS extamount,
         'N/A' 'localamount',  
         FORMAT (POP.NeedByDate, 'MM/dd/yyyy hh:mm:tt') 'requestdate',  
         UPPER(ISNULL(POP.workorderno,'')) 'wonum',  

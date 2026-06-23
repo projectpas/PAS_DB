@@ -17,7 +17,8 @@
 	1    10/15/2024   Vishal Suthar Modified SP to get Pick ticket child table list from new SO Part tables
 	2    03/03/2025   Ayushi Patel    converted the date into utc (PickedDate , ConfirmedDate) , Added a case to get timeZone
 	3    08/01/2026   Moin Bloch	  Update (Added UOM Changes)
-     
+    4	 19/06/2026	  Ayushi		  [PN-16911]Skip fn_ConvertUOM call when ToUOM = FromUOM
+	
 	-- EXEC [dbo].[sp_GetPickTicketChildList] 1271, 10, 7
 **************************************************************/
 CREATE  Procedure [dbo].[sp_GetPickTicketChildList]
@@ -56,7 +57,7 @@ BEGIN
 
 		SELECT DISTINCT sopt.SOPickTicketNumber, 
 		                --sopt.QtyToShip, 
-						ISNULL([dbo].[fn_ConvertUOM](ISNULL(sopt.QtyToShip,0),sl.[StockUnitOfMeasure], sl.[ConsumeUnitOfMeasure],0,sopt.[MasterCompanyId]),0) AS QtyToShip,
+						ISNULL(CASE WHEN ISNULL(sl.StockUnitOfMeasure,'') = ISNULL(sl.ConsumeUnitOfMeasure,'') THEN ISNULL(sopt.QtyToShip,0) ELSE dbo.fn_ConvertUOM(ISNULL(sopt.QtyToShip,0),sl.StockUnitOfMeasure,sl.ConsumeUnitOfMeasure,0,sopt.MasterCompanyId) END,0) AS QtyToShip,
 					    sl.SerialNumber, 
 					    sl.StockLineNumber,
 						CASE WHEN CAST(sopt.CreatedDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE)THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(sopt.CreatedDate, @CurrntEmpTimeZoneDesc) AS DATE))END PickedDate,

@@ -14,6 +14,7 @@
 	3    07-JAN-2025   Rajesh Gami			UOM Conversion Related Change (Make Cost and QTY from Consume to Purchase UOM)
 	4    07/01/2026	   Rajesh Gami			Added MasterCompanyId Parameter While Calling UOM Conversion Function
 	5    09/04/2026    Ayushi Patel	        PN-15909 resolved uom convertion issue for UnitPrice
+	6	 19/06/2026	   Ayushi			    [PN-16911]Skip fn_ConvertUOM call when ToUOM = FromUOM
 **************************************************************/
 CREATE     PROCEDURE [dbo].[USP_CreateWorkOrderQuoteMaterial]
 @tbl_WorkOrderQuoteDetailsType [WorkOrderQuoteDetailsType] READONLY,
@@ -73,8 +74,17 @@ BEGIN
 						LEFT JOIN dbo.[Percent] p WITH(NOLOCK) ON p.PercentId = tb.MarkupPercentageId
 						CROSS APPLY (
 							SELECT 
-								dbo.fn_ConvertUOM(tb.UnitCost, uomStock.ShortName, uomConsume.ShortName, 0,@MasterCompanyId) AS ConvUnitCost,
-								dbo.fn_ConvertUOM(tb.Quantity, uomConsume.ShortName, uomStock.ShortName, 0,@MasterCompanyId) AS ConvQty
+								CASE 
+									WHEN ISNULL(uomStock.ShortName,'') = ISNULL(uomConsume.ShortName,'')
+										THEN tb.UnitCost
+									ELSE dbo.fn_ConvertUOM(tb.UnitCost, uomStock.ShortName, uomConsume.ShortName, 0, @MasterCompanyId)
+								END AS ConvUnitCost,
+
+								CASE 
+									WHEN ISNULL(uomConsume.ShortName,'') = ISNULL(uomStock.ShortName,'')
+										THEN tb.Quantity
+									ELSE dbo.fn_ConvertUOM(tb.Quantity, uomConsume.ShortName, uomStock.ShortName, 0, @MasterCompanyId)
+								END AS ConvQty
 						) calc;
 
 		SELECT	ROW_NUMBER() OVER (ORDER BY (SELECT NULL)) AS RowId, [WorkOrderQuoteMaterialId], [WorkOrderQuoteDetailsId], [ItemMasterId], [ConditionCodeId], [ItemClassificationId], [Quantity], [UnitOfMeasureId], [UnitCost], [ExtendedCost], [Memo], [IsDefered],

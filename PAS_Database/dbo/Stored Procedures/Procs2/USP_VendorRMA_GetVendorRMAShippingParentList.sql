@@ -17,10 +17,11 @@
     1    06/27/2023   Amit Ghediya			Created
 	2    07/04/2023   Amit Ghediya			Updated for get RMANum from PArt lavel.
 	3    06-03-2026	  Amit Ghediya			UOM Conversion Changes [PN-15140]
+	3   19-06-2026	  Priyansh Patel		Add Condition to skip fn_ConvertUOM call [PN-16911]
      
  EXECUTE USP_VendorRMA_GetVendorRMAShippingParentList 41
 **************************************************************/
-CREATE       Procedure [dbo].[USP_VendorRMA_GetVendorRMAShippingParentList]
+CREATE        Procedure [dbo].[USP_VendorRMA_GetVendorRMAShippingParentList]
 @VendorRMAId  bigint
 AS
 BEGIN
@@ -30,24 +31,28 @@ BEGIN
 	BEGIN TRY
 	BEGIN TRANSACTION
 	BEGIN
-		SELECT DISTINCT imt.ItemMasterId AS VendorRMADetailId, sl.ConditionId, 0 AS ItemNo, sop.RMANum AS RMANumber, imt.partnumber, imt.PartDescription, 
-			SUM(ISNULL(([dbo].[fn_ConvertUOM](ISNULL(sopt.QtyToShip, 0),imt.[StockUnitOfMeasure],imt.[PurchaseUnitOfMeasure],0,imt.[MasterCompanyId])),0)) AS QtyToShip,
-			SUM(ISNULL(([dbo].[fn_ConvertUOM](ISNULL(sosi.QtyShipped, 0),imt.[StockUnitOfMeasure],imt.[PurchaseUnitOfMeasure],0,imt.[MasterCompanyId])),0)) AS QtyShipped,
-			sop.VendorRMAId,
-			SUM(ISNULL([dbo].[fn_ConvertUOM](ISNULL(sopt.QtyToShip, 0),imt.[StockUnitOfMeasure],imt.[PurchaseUnitOfMeasure],0,imt.[MasterCompanyId]),0)) - SUM(ISNULL(([dbo].[fn_ConvertUOM](ISNULL(sosi.QtyShipped, 0),imt.[StockUnitOfMeasure],imt.[PurchaseUnitOfMeasure],0,imt.[MasterCompanyId])), 0)) AS QtyRemaining,
-			CASE WHEN SUM(ISNULL(([dbo].[fn_ConvertUOM](ISNULL(sopt.QtyToShip, 0),imt.[StockUnitOfMeasure],imt.[PurchaseUnitOfMeasure],0,imt.[MasterCompanyId])),0)) = SUM(ISNULL(([dbo].[fn_ConvertUOM](ISNULL(sosi.QtyShipped, 0),imt.[StockUnitOfMeasure],imt.[PurchaseUnitOfMeasure],0,imt.[MasterCompanyId])), 0)) THEN 'Shipped'
-			ELSE 'Shipping' END AS [Status]
-			FROM DBO.VendorRMADetail sop WITH (NOLOCK)
-			LEFT JOIN DBO.VendorRMA so WITH (NOLOCK) ON so.VendorRMAId = sop.VendorRMAId
-			INNER JOIN DBO.RMAPickTicket sopt WITH (NOLOCK) ON sopt.VendorRMAId = sop.VendorRMAId AND sopt.VendorRMADetailId = sop.VendorRMADetailId
-			LEFT JOIN DBO.ItemMaster imt WITH (NOLOCK) ON imt.ItemMasterId = sop.ItemMasterId
-			LEFT JOIN DBO.Stockline sl WITH (NOLOCK) ON sl.StockLineId = sop.StockLineId --AND sl.ConditionId = sop.ConditionId
-			LEFT JOIN DBO.RMAShippingItem sosi WITH (NOLOCK) ON sosi.VendorRMADetailId = sop.VendorRMADetailId 
-						AND sosi.RMAPickTicketId = sopt.RMAPickTicketId
-			LEFT JOIN DBO.RMAShipping sos WITH (NOLOCK) ON sos.RMAShippingId = sosi.RMAShippingId 
-						AND sos.VendorRMAId = sopt.VendorRMAId
-			WHERE sop.VendorRMAId = @VendorRMAId AND sopt.IsConfirmed = 1
-			GROUP BY sop.RMANum, imt.partnumber, imt.PartDescription, imt.ItemMasterId, sop.VendorRMAId, sl.ConditionId
+			SELECT DISTINCT imt.ItemMasterId AS VendorRMADetailId, sl.ConditionId, 0 AS ItemNo, sop.RMANum AS RMANumber, imt.partnumber, imt.PartDescription, 
+		SUM(ISNULL((CASE WHEN uom.SameUOM = 1 THEN ISNULL(sopt.QtyToShip, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(sopt.QtyToShip, 0),imt.[StockUnitOfMeasure],imt.[PurchaseUnitOfMeasure],0,imt.[MasterCompanyId]) END),0)) AS QtyToShip,
+		SUM(ISNULL((CASE WHEN uom.SameUOM = 1 THEN ISNULL(sosi.QtyShipped, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(sosi.QtyShipped, 0),imt.[StockUnitOfMeasure],imt.[PurchaseUnitOfMeasure],0,imt.[MasterCompanyId]) END),0)) AS QtyShipped,
+		sop.VendorRMAId,
+		SUM(ISNULL((CASE WHEN uom.SameUOM = 1 THEN ISNULL(sopt.QtyToShip, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(sopt.QtyToShip, 0),imt.[StockUnitOfMeasure],imt.[PurchaseUnitOfMeasure],0,imt.[MasterCompanyId]) END),0))
+		- SUM(ISNULL((CASE WHEN uom.SameUOM = 1 THEN ISNULL(sosi.QtyShipped, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(sosi.QtyShipped, 0),imt.[StockUnitOfMeasure],imt.[PurchaseUnitOfMeasure],0,imt.[MasterCompanyId]) END),0)) AS QtyRemaining,
+		CASE WHEN 
+		SUM(ISNULL((CASE WHEN uom.SameUOM = 1 THEN ISNULL(sopt.QtyToShip, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(sopt.QtyToShip, 0),imt.[StockUnitOfMeasure],imt.[PurchaseUnitOfMeasure],0,imt.[MasterCompanyId]) END),0))
+		= SUM(ISNULL((CASE WHEN uom.SameUOM = 1 THEN ISNULL(sosi.QtyShipped, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(sosi.QtyShipped, 0),imt.[StockUnitOfMeasure],imt.[PurchaseUnitOfMeasure],0,imt.[MasterCompanyId]) END),0))
+		THEN 'Shipped' ELSE 'Shipping' END AS [Status]
+		FROM DBO.VendorRMADetail sop WITH (NOLOCK)
+		LEFT JOIN DBO.VendorRMA so WITH (NOLOCK) ON so.VendorRMAId = sop.VendorRMAId
+		INNER JOIN DBO.RMAPickTicket sopt WITH (NOLOCK) ON sopt.VendorRMAId = sop.VendorRMAId AND sopt.VendorRMADetailId = sop.VendorRMADetailId
+		LEFT JOIN DBO.ItemMaster imt WITH (NOLOCK) ON imt.ItemMasterId = sop.ItemMasterId
+		LEFT JOIN DBO.Stockline sl WITH (NOLOCK) ON sl.StockLineId = sop.StockLineId
+		LEFT JOIN DBO.RMAShippingItem sosi WITH (NOLOCK) ON sosi.VendorRMADetailId = sop.VendorRMADetailId 
+					AND sosi.RMAPickTicketId = sopt.RMAPickTicketId
+		LEFT JOIN DBO.RMAShipping sos WITH (NOLOCK) ON sos.RMAShippingId = sosi.RMAShippingId 
+					AND sos.VendorRMAId = sopt.VendorRMAId
+		CROSS APPLY (SELECT CASE WHEN NULLIF(imt.[StockUnitOfMeasure], '') IS NULL OR NULLIF(imt.[PurchaseUnitOfMeasure], '') IS NULL OR imt.[StockUnitOfMeasure] = imt.[PurchaseUnitOfMeasure] THEN 1 ELSE 0 END AS SameUOM) uom
+		WHERE sop.VendorRMAId = @VendorRMAId AND sopt.IsConfirmed = 1
+		GROUP BY sop.RMANum, imt.partnumber, imt.PartDescription, imt.ItemMasterId, sop.VendorRMAId, sl.ConditionId
 	END
 	COMMIT  TRANSACTION
 

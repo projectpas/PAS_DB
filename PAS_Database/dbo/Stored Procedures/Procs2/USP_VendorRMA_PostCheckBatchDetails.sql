@@ -34,7 +34,7 @@
 	18   19-06-2026	  Priyansh Patel		Add Condition to skip fn_ConvertUOM call [PN-16911]
 
 **************************************************************/
-CREATE   PROCEDURE [dbo].[USP_VendorRMA_PostCheckBatchDetails]
+CREATE     PROCEDURE [dbo].[USP_VendorRMA_PostCheckBatchDetails]
 (
 	@VendorRMADetailId BIGINT,
 	@VendorRMAId BIGINT,
@@ -137,7 +137,7 @@ BEGIN
 			SET @tmpVendorRMADetailId = @VendorRMADetailId;
 			SELECT @VendorRMADetailId = VCM.VendorRMADetailId, 
 			       @VendorRMAId = VCM.VendorRMAId,
-				   @ExtAmount = ISNULL((CASE WHEN imt.[StockUnitOfMeasure] = imt.[PurchaseUnitOfMeasure] THEN VCM.ApplierdAmt ELSE [dbo].[fn_ConvertUOM](ISNULL(VCM.ApplierdAmt, 0),imt.[StockUnitOfMeasure],imt.[PurchaseUnitOfMeasure],1,imt.[MasterCompanyId]) END),0),
+				   @ExtAmount = ISNULL((CASE WHEN NULLIF(imt.[StockUnitOfMeasure], '') IS NULL OR NULLIF(imt.[PurchaseUnitOfMeasure], '') IS NULL OR imt.[StockUnitOfMeasure] = imt.[PurchaseUnitOfMeasure] THEN VCM.ApplierdAmt ELSE [dbo].[fn_ConvertUOM](ISNULL(VCM.ApplierdAmt, 0),imt.[StockUnitOfMeasure],imt.[PurchaseUnitOfMeasure],1,imt.[MasterCompanyId]) END),0),
 				   @VendorCreditMemoId = VCM.VendorCreditMemoId
 			FROM [DBO].[VendorCreditMemoDetail] VCM WITH(NOLOCK) 
 			LEFT JOIN [DBO].[VendorRMADetail] VRM WITH(NOLOCK) ON VRM.VendorRMADetailId = VCM.VendorRMADetailId
@@ -150,7 +150,7 @@ BEGIN
 		ELSE
 		BEGIN
 			SELECT 
-			@ExtAmount = ISNULL((CASE WHEN imt.[StockUnitOfMeasure] = imt.[PurchaseUnitOfMeasure] THEN VRM.ExtendedCost ELSE [dbo].[fn_ConvertUOM](ISNULL(VRM.ExtendedCost, 0),imt.[StockUnitOfMeasure],imt.[PurchaseUnitOfMeasure],1,imt.[MasterCompanyId]) END),0)
+			@ExtAmount = ISNULL((CASE WHEN NULLIF(imt.[StockUnitOfMeasure], '') IS NULL OR NULLIF(imt.[PurchaseUnitOfMeasure], '') IS NULL OR imt.[StockUnitOfMeasure] = imt.[PurchaseUnitOfMeasure] THEN VRM.ExtendedCost ELSE [dbo].[fn_ConvertUOM](ISNULL(VRM.ExtendedCost, 0),imt.[StockUnitOfMeasure],imt.[PurchaseUnitOfMeasure],1,imt.[MasterCompanyId]) END),0)
 			,@VendorCreditMemoId = VRM.VendorRMAId 
 			FROM [DBO].[VendorRMADetail] VRM WITH(NOLOCK) 
 			LEFT JOIN DBO.ItemMaster imt WITH (NOLOCK) ON imt.ItemMasterId = VRM.ItemMasterId 

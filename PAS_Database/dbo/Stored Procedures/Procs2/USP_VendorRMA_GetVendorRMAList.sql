@@ -35,7 +35,7 @@
 
  EXECUTE USP_VendorRMA_GetVendorRMAList 
 **************************************************************/
-CREATE    PROCEDURE [dbo].[USP_VendorRMA_GetVendorRMAList]  
+CREATE     PROCEDURE [dbo].[USP_VendorRMA_GetVendorRMAList]  
 @PageNumber INT,  
 @PageSize INT,  
 @SortColumn VARCHAR(50)=null,  
@@ -132,9 +132,9 @@ BEGIN
 			SL.[StockLineId] AS 'StockLineIdType',
 			SL.[StockLineNumber] AS 'StockLineNumberType',
 			IM.[PartDescription] AS 'PartDescriptionType',
-			(CASE WHEN IM.[StockUnitOfMeasure] = IM.[PurchaseUnitOfMeasure] THEN ISNULL(RMAD.[Qty], 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(RMAD.[Qty], 0),IM.[StockUnitOfMeasure], IM.[PurchaseUnitOfMeasure],0,IM.[MasterCompanyId]) END) AS 'QtyType',
-			(CASE WHEN IM.[StockUnitOfMeasure] = IM.[PurchaseUnitOfMeasure] THEN ISNULL(RMAD.[UnitCost], 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(RMAD.[UnitCost], 0),IM.[StockUnitOfMeasure], IM.[PurchaseUnitOfMeasure],1,IM.[MasterCompanyId]) END) AS 'UnitCostType',
-			(CASE WHEN IM.[StockUnitOfMeasure] = IM.[PurchaseUnitOfMeasure] THEN ISNULL(RMAD.[ExtendedCost], 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(RMAD.[ExtendedCost], 0),IM.[StockUnitOfMeasure], IM.[PurchaseUnitOfMeasure],1,IM.[MasterCompanyId]) END) AS 'ExtendedCostType',
+			(CASE WHEN NULLIF(IM.[StockUnitOfMeasure], '') IS NULL OR NULLIF(IM.[PurchaseUnitOfMeasure], '') IS NULL OR IM.[StockUnitOfMeasure] = IM.[PurchaseUnitOfMeasure] THEN ISNULL(RMAD.[Qty], 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(RMAD.[Qty], 0),IM.[StockUnitOfMeasure],IM.[PurchaseUnitOfMeasure],0,IM.[MasterCompanyId]) END) AS 'QtyType',
+			(CASE WHEN NULLIF(IM.[StockUnitOfMeasure], '') IS NULL OR NULLIF(IM.[PurchaseUnitOfMeasure], '') IS NULL OR IM.[StockUnitOfMeasure] = IM.[PurchaseUnitOfMeasure] THEN ISNULL(RMAD.[UnitCost], 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(RMAD.[UnitCost], 0),IM.[StockUnitOfMeasure],IM.[PurchaseUnitOfMeasure],1,IM.[MasterCompanyId]) END) AS 'UnitCostType',
+			(CASE WHEN NULLIF(IM.[StockUnitOfMeasure], '') IS NULL OR NULLIF(IM.[PurchaseUnitOfMeasure], '') IS NULL OR IM.[StockUnitOfMeasure] = IM.[PurchaseUnitOfMeasure] THEN ISNULL(RMAD.[ExtendedCost], 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(RMAD.[ExtendedCost], 0),IM.[StockUnitOfMeasure],IM.[PurchaseUnitOfMeasure],1,IM.[MasterCompanyId]) END) AS 'ExtendedCostType',
 			RMAD.[ReferenceId] AS 'ReferenceIdType',
 			RMAD.RevisedStocklineId,
 			'' AS 'ReplacementDate',
@@ -150,9 +150,9 @@ BEGIN
 			VS.VendorRMAStatus as 'VendorRMADetailStatus',
 			RMA.RMANumber as 'VendorRMANumber',
 			RMAD.ModuleId,
-			(CASE WHEN IM.[StockUnitOfMeasure] = IM.[PurchaseUnitOfMeasure] THEN ISNULL(RMS.QtyShipped, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(RMS.QtyShipped, 0),IM.[StockUnitOfMeasure], IM.[PurchaseUnitOfMeasure],0,IM.[MasterCompanyId]) END) AS 'QtyShipped',
+		(CASE WHEN NULLIF(IM.[StockUnitOfMeasure], '') IS NULL OR NULLIF(IM.[PurchaseUnitOfMeasure], '') IS NULL OR IM.[StockUnitOfMeasure] = IM.[PurchaseUnitOfMeasure] THEN ISNULL(RMS.QtyShipped, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(RMS.QtyShipped, 0),IM.[StockUnitOfMeasure],IM.[PurchaseUnitOfMeasure],0,IM.[MasterCompanyId]) END) AS 'QtyShipped',
 			RMAD.VendorRMADetailId,
-			(SELECT ISNULL(SUM(ISNULL((CASE WHEN IM.[StockUnitOfMeasure] = IM.[PurchaseUnitOfMeasure] THEN ISNULL(SL.[Quantity], 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(SL.[Quantity], 0),IM.[StockUnitOfMeasure], IM.[PurchaseUnitOfMeasure],0,IM.[MasterCompanyId]) END),0)),0) 
+			(SELECT ISNULL(SUM(ISNULL((CASE WHEN NULLIF(IM.[StockUnitOfMeasure], '') IS NULL OR NULLIF(IM.[PurchaseUnitOfMeasure], '') IS NULL OR IM.[StockUnitOfMeasure] = IM.[PurchaseUnitOfMeasure] THEN ISNULL(SL.[Quantity], 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(SL.[Quantity], 0),IM.[StockUnitOfMeasure],IM.[PurchaseUnitOfMeasure],0,IM.[MasterCompanyId]) END),0)),0)
 			FROM [dbo].[Stockline] SL WITH(NOLOCK)
 			LEFT JOIN [DBO].[ItemMaster] IM WITH (NOLOCK) ON SL.[ItemMasterId] = IM.[ItemMasterId]
 			WHERE SL.[VendorRMAId] = RMA.[VendorRMAId]

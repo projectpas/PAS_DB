@@ -132,7 +132,7 @@ BEGIN
 							     AND ATT.ModuleId = @AttStockLineModuleId ORDER BY ATT.AttachmentId DESC),0) AS AttachmentId,
 						SL.Condition,
 						CASE WHEN ISNULL(SL.IsGenerateReleaseForm,0) = 1 THEN 'YES' ELSE 'NO' END AS GenerateReleaseForm,
-						SL.LotNumber
+						(SELECT TOP 1 L.LotNumber FROM [dbo].[Lot] L WITH (NOLOCK) WHERE L.LotId = SL.LotId) AS LotNumber
 			   FROM [dbo].[Stockline] SL WITH (NOLOCK)
 				INNER JOIN [dbo].[WorkOrder] WO WITH (NOLOCK) ON WO.WorkOrderId = SL.WorkOrderId
 				INNER JOIN [dbo].[WorkOrderPartNumber] WOP WITH (NOLOCK) ON WO.WorkOrderId = WOP.WorkOrderId AND WOP.ID = @WorkOrderPartNumberId

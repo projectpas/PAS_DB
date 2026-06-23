@@ -43,7 +43,7 @@ BEGIN
                      ,ISNULL(WOPC.LaborCost,0) AS LaborCost
                      ,ISNULL(WOPC.OtherCost,0) AS OtherCost
                      ,(Isnull(WOP.StocklineCost,0) + ISNULL(WOPC.PartsCost,0) + ISNULL(WOPC.LaborCost,0) + ISNULL(WOPC.OtherCost,0)) AS TotalCost
-                     ,SL.LotNumber
+                     ,(SELECT TOP 1 L.LotNumber FROM [dbo].[Lot] L WITH (NOLOCK) WHERE L.LotId = SL.LotId) AS LotNumber
                FROM [dbo].[WorkOrderPartNumber] WOP WITH(NOLOCK) 
                 LEFT JOIN [dbo].[WorkOrderMPNCostDetails] WOPC WITH(NOLOCK) ON WOP.ID = WOPC.WOPartNoId
                INNER JOIN [dbo].[ItemMaster]  IM WITH(NOLOCK) ON WOP.ItemMasterId=IM.ItemMasterId

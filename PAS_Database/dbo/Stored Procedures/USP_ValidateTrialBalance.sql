@@ -51,8 +51,8 @@ BEGIN
 			[AccountCode] VARCHAR(50) NULL,
 			[Debit] DECIMAL(18,2) NULL,
 			[Credit] DECIMAL(18,2) NULL,
-			[TransactionDate] DATETIME2 NULL,
-			[EntryDate] DATETIME2 NULL,
+			[TransactionDate] VARCHAR(50) NULL,
+			[EntryDate] VARCHAR(50) NULL,
 			[Message] VARCHAR(MAX) NULL
 			
 			--[AccountName] VARCHAR(100) NULL,
@@ -86,8 +86,6 @@ BEGIN
 		
 		--SELECT @MaxLevel = [ManagementStructureLevel] FROM [dbo].[MasterCompany] WITH(NOLOCK) WHERE [MasterCompanyId] = @MasterCompanyId
 
-SELECT * FROM #temptable
-
 		SELECT @TotalRecord = COUNT(*), @MinId = MIN([RowNumber]) FROM #temptable     
 
 		WHILE @MinId <= @TotalRecord  
@@ -97,8 +95,10 @@ SELECT * FROM #temptable
 			DECLARE @AccountCode VARCHAR(50);
 			DECLARE @DebitAmout DECIMAL(18,2) = 0;
 			DECLARE @CreditAmout DECIMAL(18,2) = 0;
-			DECLARE @TransactionDate DATETIME2;
-			DECLARE @EntryDate DATETIME2;
+			DECLARE @TransactionDateText VARCHAR(50);
+			DECLARE @EntryDateText VARCHAR(50);
+			DECLARE @TransactionDate DATE;
+			DECLARE @EntryDate DATE;
 
 			DECLARE @EntityStructureId BIGINT = 0;
 
@@ -139,8 +139,8 @@ SELECT * FROM #temptable
 				   @AccountCode = [AccountCode],
 				   @DebitAmout = ISNULL([Debit],0),
 				   @CreditAmout = ISNULL([Credit],0),
-				   @TransactionDate = [TransactionDate],
-				   @EntryDate = [EntryDate]
+				   @TransactionDateText = [TransactionDate],
+				   @EntryDateText = [EntryDate]
 				   
 				   --@AccountName = [AccountName],
 				   --@ReferenceId = ISNULL([ReferenceId],0),
@@ -211,14 +211,37 @@ SELECT * FROM #temptable
 				INSERT INTO #tmpmsg(msg)VALUES('Enter Amount in Either Credit or Debit.');
 			END
 
-			IF(@TransactionDate IS NULL)
+			SET @TransactionDateText = LTRIM(RTRIM(ISNULL(@TransactionDateText, '')));
+			SET @EntryDateText = LTRIM(RTRIM(ISNULL(@EntryDateText, '')));
+			SET @TransactionDate = TRY_CONVERT(DATE, @TransactionDateText, 101);
+			SET @EntryDate = TRY_CONVERT(DATE, @EntryDateText, 101);
+
+			IF(@TransactionDateText = '')
 			BEGIN
-				INSERT INTO #tmpmsg(msg)VALUES('Transaction Date is required and must be in MM/DD/YYYY format.');
+				INSERT INTO #tmpmsg(msg)VALUES('Transaction Date is required.');
+			END
+			ELSE IF(@TransactionDateText NOT LIKE '[0-9][0-9]/[0-9][0-9]/[0-9][0-9][0-9][0-9]'
+				OR @TransactionDate IS NULL)
+			BEGIN
+				INSERT INTO #tmpmsg(msg)VALUES('Transaction Date is must be in MM/DD/YYYY format.');
+			END
+			ELSE
+			BEGIN
+				UPDATE #temptable SET [TransactionDate] = CONVERT(VARCHAR(10), @TransactionDate, 101) WHERE [RowNumber] = @MinId;
 			END
 
-			IF(@EntryDate IS NULL)
+			IF(@EntryDateText = '')
 			BEGIN
-				INSERT INTO #tmpmsg(msg)VALUES('Entry Date is required and must be in MM/DD/YYYY format.');
+				INSERT INTO #tmpmsg(msg)VALUES('Entry Date is required.');
+			END
+			ELSE IF(@EntryDateText NOT LIKE '[0-9][0-9]/[0-9][0-9]/[0-9][0-9][0-9][0-9]'
+				OR @EntryDate IS NULL)
+			BEGIN
+				INSERT INTO #tmpmsg(msg)VALUES('Entry Date is must be in MM/DD/YYYY format.');
+			END
+			ELSE
+			BEGIN
+				UPDATE #temptable SET [EntryDate] = CONVERT(VARCHAR(10), @EntryDate, 101) WHERE [RowNumber] = @MinId;
 			END
 
 			--IF(ISNULL(@MaxLevel,0) >= 1)

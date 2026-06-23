@@ -21,7 +21,8 @@
 	4    12-May-2025        Devendra Shekh  checking isActive and isDeleted for Alternate Part Select
 	5    23-Dec-2025        Devendra Shekh  added UOM Changes
 	6    07/01/2026			Rajesh Gami		Added MasterCompanyId Parameter While Calling UOM Conversion Function  
-	7    18/06/2026			Priyansh Patel	Changed the purchase and sale UOM Conversion to purchase to consume uom [PN-16894]    
+	7    18/06/2026			Priyansh Patel	Changed the purchase and sale UOM Conversion to purchase to consume uom [PN-16894] 
+	8    23/06/2026			Priyansh Patel	Changed the ItemGroup to ItemGroupCode instead of  Description [PN-16920]    
 	
  EXECUTE [SearchItemMasterByCustomerRestrictionForAddPN] 303, 1, 1,'','0',1
 **************************************************************/ 
@@ -50,7 +51,7 @@ BEGIN
 					,im.IsDER
 					,SUM(ISNULL(dbo.fn_ConvertUOM(sl.QuantityAvailable, im.StockUnitOfMeasure, im.ConsumeUnitOfMeasure,0,im.MasterCompanyId), 0)) AS QtyAvailable
 					,SUM(ISNULL(dbo.fn_ConvertUOM(sl.QuantityOnHand, im.StockUnitOfMeasure, im.ConsumeUnitOfMeasure,0,im.MasterCompanyId), 0)) AS QtyOnHand
-					,ig.Description AS ItemGroup
+					,ig.ItemGroupCode AS ItemGroup
 					,mf.Name Manufacturer
 					,ISNULL(im.ManufacturerId, -1) AS ManufacturerId
 					,ic.ItemClassificationCode
@@ -93,7 +94,7 @@ BEGIN
 					,im.PurchaseUnitOfMeasure
 					,im.ItemMasterId 
 					,im.PartDescription
-					,ig.Description 
+					,ig.ItemGroupCode 
 					,mf.Name 
 					,im.ManufacturerId
 					,ic.ItemClassificationCode

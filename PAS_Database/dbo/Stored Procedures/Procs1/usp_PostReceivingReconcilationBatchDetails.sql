@@ -38,6 +38,8 @@
 	26	 19/02/2026   HEMANT SALIYA		  Resolved RO Batch Post when Stl Qty is 0 and RO cost is 0
 	27   03/09/2024   Moin Bloch          Batch: Duplicate JE Number generated for multiple entries on same day PN-15921
 	28   03/09/2024   Moin Bloch          Batch: Duplicate JE Number generated for multiple entries on same day PN-15921
+	29   12/06/2026   Priyansh Patel      UOM conversion issue for @InvoicedQty PN-16941
+
 **************************************************************/  
 CREATE   PROCEDURE [dbo].[usp_PostReceivingReconcilationBatchDetails]
 @tbl_PostRRBatchType PostRRBatchType READONLY,
@@ -51,8 +53,8 @@ BEGIN
 		--BEGIN TRANSACTION
 		BEGIN
 			DECLARE @StocklineId bigint = 0;
-			DECLARE @InvoicedQty int = 0;
-			DECLARE @InvoicedUnitCost decimal(18, 2) = 0;
+			DECLARE @InvoicedQty  decimal(18, 6) = 0;
+			DECLARE @InvoicedUnitCost decimal(18, 6) = 0;
 			DECLARE @JournalTypeName varchar(256) = 0;
 			DECLARE @CreatedBy varchar(256) = 0;
 			DECLARE @Module varchar(256) = 0;
@@ -71,13 +73,13 @@ BEGIN
 			DECLARE @JournalBatchDetailId BIGINT=0;
 			DECLARE @UpdateBy varchar(100);
 			DECLARE @JlBatchHeaderId bigint=0;
-			DECLARE @TotalDebit decimal(18, 2) =0;
-			DECLARE @TotalCredit decimal(18, 2) =0;
-			DECLARE @TotalBalance decimal(18, 2) =0;
+			DECLARE @TotalDebit decimal(18, 6) =0;
+			DECLARE @TotalCredit decimal(18, 6) =0;
+			DECLARE @TotalBalance decimal(18, 6) =0;
 			DECLARE @INPUTMethod varchar(100);
 			DECLARE @jlTypeId BIGINT;
 			DECLARE @jlTypeName varchar(100);
-			DECLARE @TotalAmt DECIMAL(18,2);
+			DECLARE @TotalAmt DECIMAL(18,6);
 			DECLARE @batch VARCHAR(100)
 			DECLARE @AccountingPeriod VARCHAR(100)
 			DECLARE @AccountingPeriodId BIGINT=0
@@ -125,8 +127,8 @@ BEGIN
 			(    
 				[RecordId] [bigint] IDENTITY(1,1) NOT NULL,
 				[StocklineId] [bigint] NOT NULL,
-				[InvoicedQty] [int] NULL,
-				[InvoicedUnitCost] [decimal](18, 2) NULL,
+				[InvoicedQty] [decimal](18, 6) NULL,
+				[InvoicedUnitCost] [decimal](18, 6) NULL,
 				[JournalTypeName] [varchar](256) NULL,
 				[CreatedBy] [varchar](256) NULL,
 				[Module] [varchar](256) NULL,
@@ -166,8 +168,8 @@ BEGIN
 				[JournalTypeId] [bigint] NULL,
 				[JournalTypeName] [varchar](200) NULL,
 				[IsDebit] [bit] NULL,
-				[DebitAmount] [decimal](18, 2) NULL,
-				[CreditAmount] [decimal](18, 2) NULL,
+				[DebitAmount] [decimal](18, 6) NULL,
+				[CreditAmount] [decimal](18, 6) NULL,
 				[ManagementStructureId] [bigint] NULL,
 				[ModuleName] [varchar](200) NULL,
 				[MasterCompanyId] [int] NULL,
@@ -421,18 +423,18 @@ BEGIN
 						DECLARE @VendorName varchar(50);
 						DECLARE @STKMSModuleID bigint=2;
 						DECLARE @EMPMSModuleID bigint=47;
-						DECLARE @ReceivedQty BIGINT=0;
-						DECLARE @StocklineQtyOH BIGINT=0;
-						DECLARE @StocklineQtyAvail BIGINT=0;
-						DECLARE @StocklineQtyreserved BIGINT=0;
-						DECLARE @POStocklineUnitPrice DECIMAL(18, 2) =0;
-						DECLARE @ROStocklineUnitPrice DECIMAL(18, 2) =0;
-						DECLARE @StocklineUnitPrice DECIMAL(18, 2) =0;
-						DECLARE @POROUnitPrice DECIMAL(18, 2) =0;
-						DECLARE @RRUnitPrice DECIMAL(18, 2) =0;
-						DECLARE @APTotalPrice DECIMAL(18, 2) =0;
-						DECLARE @Amount DECIMAL(18,2) =0;
-						DECLARE @Qty INT=0;
+						DECLARE @ReceivedQty DECIMAL(18, 6) =0;
+						DECLARE @StocklineQtyOH DECIMAL(18, 6) =0;
+						DECLARE @StocklineQtyAvail DECIMAL(18, 6) =0;
+						DECLARE @StocklineQtyreserved DECIMAL(18, 6) =0;
+						DECLARE @POStocklineUnitPrice DECIMAL(18, 6) =0;
+						DECLARE @ROStocklineUnitPrice DECIMAL(18, 6) =0;
+						DECLARE @StocklineUnitPrice DECIMAL(18, 6) =0;
+						DECLARE @POROUnitPrice DECIMAL(18,6) =0;
+						DECLARE @RRUnitPrice DECIMAL(18, 6) =0;
+						DECLARE @APTotalPrice DECIMAL(18,6) =0;
+						DECLARE @Amount DECIMAL(18,6) =0;
+						DECLARE @Qty  DECIMAL(18,6) = 0;
 						DECLARE @RRId BIGINT=0;
 						DECLARE @CommonJournalBatchDetailId BIGINT=0;
 						DECLARE @ModuleName VARCHAR(256);
@@ -442,13 +444,13 @@ BEGIN
 						DECLARE @MiscGlAccountNumber VARCHAR(200);
 						DECLARE @MiscGlAccountName VARCHAR(200);
 
-						DECLARE @FreightAdjustment DECIMAL(18,2) =0;
-						DECLARE @TaxAdjustment DECIMAL(18,2) =0;
-						DECLARE @FreightAdjustmentPerUnit DECIMAL(18,2) =0;
-						DECLARE @TaxAdjustmentPerUnit DECIMAL(18,2) =0;
+						DECLARE @FreightAdjustment DECIMAL(18,6) =0;
+						DECLARE @TaxAdjustment DECIMAL(18,6) =0;
+						DECLARE @FreightAdjustmentPerUnit DECIMAL(18,6) =0;
+						DECLARE @TaxAdjustmentPerUnit DECIMAL(18,6) =0;
 
-						DECLARE @QtyVariance DECIMAL(18,2) = 0;
-						DECLARE @PriceVariance DECIMAL(18,2) = 0;
+						DECLARE @QtyVariance DECIMAL(18,6) = 0;
+						DECLARE @PriceVariance DECIMAL(18,6) = 0;
 
 						SET @IsStockTypeChange = CASE WHEN @RecordId = 1 THEN 1 ELSE CASE WHEN @OLD_StockType != @StockType THEN 1 ELSE 0 END END;
 
@@ -2404,8 +2406,8 @@ BEGIN
 					[JournalTypeId] [bigint] NULL,
 					[JournalTypeName] [varchar](200) NULL,
 					[IsDebit] [bit] NULL,
-					[DebitAmount] [decimal](18, 2) NULL,
-					[CreditAmount] [decimal](18, 2) NULL,
+					[DebitAmount] [decimal](18, 6) NULL,
+					[CreditAmount] [decimal](18, 6) NULL,
 					[ManagementStructureId] [bigint] NULL,
 					[ModuleName] [varchar](200) NULL,
 					[MasterCompanyId] [int] NULL,
@@ -2444,7 +2446,7 @@ BEGIN
 					[RecordId] [bigint] IDENTITY(1,1) NOT NULL,
 					[VendorProformaInvoiceId] [bigint] NULL,
 					[ReferenceId] [bigint] NULL,
-					[ProformaAmount] [decimal](18, 2) NULL,
+					[ProformaAmount] [decimal](18, 6) NULL,
 					[StockType] [varchar](150) NULL,
 					[Type] [int] NULL,
 				)
@@ -2774,9 +2776,9 @@ BEGIN
 				/**************END: Update Stk Batch Detail Columns with Id by StocklineId **********/
 
 				-- FREIGHT AND TAX BATCH DETAIL --
-				DECLARE @TotalFreight DECIMAL(18,2) = 0;
-				DECLARE @TotalTax DECIMAL(18,2) = 0;
-				DECLARE @TotalMisc DECIMAL(18,2) = 0;
+				DECLARE @TotalFreight DECIMAL(18,6) = 0;
+				DECLARE @TotalTax DECIMAL(18,6) = 0;
+				DECLARE @TotalMisc DECIMAL(18,6) = 0;
 				
 				----- Total Freight -----
 				SELECT @TotalFreight = SUM(ISNULL([InvoicedUnitCost],0)) FROM [dbo].[ReceivingReconciliationDetails] WITH(NOLOCK) WHERE [ReceivingReconciliationId] = @ReceivingReconciliationId AND [IsManual] = 1 AND [PackagingId] = 1;			

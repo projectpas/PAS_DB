@@ -21,7 +21,7 @@
 	9   19-Jun-2026			Priyansh Patel		Add Condition to skip fn_ConvertUOM call [PN-16911]
 *******************************************************************************
 *******************************************************************************/
-CREATE   PROCEDURE [dbo].[USP_VendorRMA_GetVendorStockList] 
+CREATE    PROCEDURE [dbo].[USP_VendorRMA_GetVendorStockList] 
 @PageNumber INT = 1,
 @PageSize INT = 10,
 @SortColumn VARCHAR(50)=NULL,
@@ -99,9 +99,9 @@ BEGIN
 			   ,SL.[SerialNumber]
 			   --,SL.[QuantityAvailable]
 			   
-			   ,(CASE WHEN IM.[StockUnitOfMeasure] = IM.[PurchaseUnitOfMeasure] THEN ISNULL(SL.[QuantityAvailable], 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(SL.[QuantityAvailable], 0),IM.[StockUnitOfMeasure], IM.[PurchaseUnitOfMeasure],0,IM.[MasterCompanyId]) END) AS QuantityAvailable
-			   --,SL.[UnitCost]
-			   ,(CASE WHEN IM.[StockUnitOfMeasure] = IM.[PurchaseUnitOfMeasure] THEN ISNULL(SL.[UnitCost], 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(SL.[UnitCost], 0),IM.[StockUnitOfMeasure], IM.[PurchaseUnitOfMeasure],1,IM.[MasterCompanyId]) END) AS UnitCost
+				,(CASE WHEN NULLIF(IM.[StockUnitOfMeasure], '') IS NULL OR NULLIF(IM.[PurchaseUnitOfMeasure], '') IS NULL OR IM.[StockUnitOfMeasure] = IM.[PurchaseUnitOfMeasure] THEN ISNULL(SL.[QuantityAvailable], 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(SL.[QuantityAvailable], 0),IM.[StockUnitOfMeasure],IM.[PurchaseUnitOfMeasure],0,IM.[MasterCompanyId]) END) AS QuantityAvailable
+				--,SL.[UnitCost]
+				,(CASE WHEN NULLIF(IM.[StockUnitOfMeasure], '') IS NULL OR NULLIF(IM.[PurchaseUnitOfMeasure], '') IS NULL OR IM.[StockUnitOfMeasure] = IM.[PurchaseUnitOfMeasure] THEN ISNULL(SL.[UnitCost], 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(SL.[UnitCost], 0),IM.[StockUnitOfMeasure],IM.[PurchaseUnitOfMeasure],1,IM.[MasterCompanyId]) END) AS UnitCost
 			   ,CASE WHEN ISNULL(SL.[VendorId], 0) <> 0 THEN VO.[VendorName]
 			    WHEN SL.[PurchaseOrderId] > 0  THEN (SELECT POV.VendorName FROM [dbo].[PurchaseOrder] POV WITH(NOLOCK) INNER JOIN [dbo].[Vendor] V WITH(NOLOCK) ON POV.VendorId = V.VendorId WHERE SL.PurchaseOrderId = POV.PurchaseOrderId)
 			    WHEN SL.[RepairOrderId] > 0  THEN (SELECT ROV.VendorName FROM [dbo].[RepairOrder] ROV WITH(NOLOCK) INNER JOIN [dbo].[Vendor] V WITH(NOLOCK) ON ROV.VendorId = V.VendorId WHERE SL.RepairOrderId = ROV.RepairOrderId)

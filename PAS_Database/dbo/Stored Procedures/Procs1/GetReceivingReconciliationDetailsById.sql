@@ -18,6 +18,7 @@
     7    18/12/2024   Devendra Shekh	Added QtyVariance,PriceVariance Field
 	8    12/31/2024   RAJESH GAMI   Getting Vendor Proforma Invoice Amount From the PO/RO 
 	9    03/01/2025   RAJESH GAMI   Modified logic for get the VEndorproforma Invoice Amount
+	10   22/06/2026   Priyansh Patel  Added Stock and Purchase uom properties [PN-16939]
 
 	
 --  EXEC GetReceivingReconciliationDetailsById 321
@@ -42,8 +43,10 @@ BEGIN
 					 ,JBD.[PartDescription]
 					 ,JBD.[SerialNumber]
 					 ,JBD.[POReference]
+					 ,IM.[StockUnitOfMeasure]
 					 ,JBD.[POQtyOrder]
 					 ,JBD.[ReceivedQty]
+					 ,IM.[PurchaseUnitOfMeasure]
 					 ,JBD.[POUnitCost]
 					 ,JBD.[POExtCost]
 					 ,JBD.[InvoicedQty]
@@ -113,7 +116,9 @@ BEGIN
 					(CASE WHEN [Type] = 1 THEN ISNULL(Po.VendorProformaInvoiceId,0) ELSE ISNULL(RO.VendorProformaInvoiceId,0) END) AS VendorProformaInvoiceId
 
 				 FROM [dbo].[ReceivingReconciliationDetails] JBD WITH(NOLOCK)
-					 INNER JOIN [dbo].[ReceivingReconciliationHeader] JBH WITH(NOLOCK) ON JBD.ReceivingReconciliationId=JBH.ReceivingReconciliationId					 
+					 INNER JOIN [dbo].[ReceivingReconciliationHeader] JBH WITH(NOLOCK) ON JBD.ReceivingReconciliationId=JBH.ReceivingReconciliationId	
+					 INNER JOIN [dbo].[ItemMaster] IM WITH(NOLOCK) ON IM.ItemMasterId= JBD.[ItemMasterId]					 
+					 
 					  LEFT JOIN [dbo].[Stockline] SLI WITH(NOLOCK) ON SLI.[StockLineId] = JBD.[StockLineId] AND UPPER(JBD.StockType)= 'STOCK'						
 					  LEFT JOIN [dbo].[NonStockInventory] NSI WITH(NOLOCK) ON NSI.[NonStockInventoryId] = JBD.[StockLineId] AND UPPER(JBD.StockType)= 'NONSTOCK'					  
 					  LEFT JOIN [dbo].[AssetInventory] ASI WITH(NOLOCK) ON ASI.[AssetInventoryId] = JBD.[StockLineId] AND UPPER(JBD.StockType)= 'ASSET'

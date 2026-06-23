@@ -27,10 +27,12 @@
 	14   22-MAY-2026  RAJESH GAMI       Added IsVersionIncrease condition for billing invoicing [PN-16565]
 	15   27-MAY-2026  RAJESH GAMI       Added LotNumber In Every Type [PN-16571]
 	16   09-JUNE-2026 RAJESH GAMI       Fixed: Duplicate data for the RO [PN-16680]
+	17   22-JUNE-2026 Priyansh Patel    Added StockUnitOfMeasure And ConsumeUnitOfMeasure  [PN-16771]
+
 -- EXEC USP_Lot_GetAllLotViewsByLotId_Filter 7,'ViewAllPN',1
 -- EXEC USP_Lot_GetAllLotViewsByLotId 67,'ViewAllPN',1
 ************************************************************************/
-CREATE   PROCEDURE [dbo].[USP_Lot_GetAllLotViewsByLotId_Filter]
+CREATE    PROCEDURE [dbo].[USP_Lot_GetAllLotViewsByLotId_Filter]
 	@PageNumber int = 1,
 	@PageSize int = 10,
 	@SortColumn varchar(50)=NULL,
@@ -216,6 +218,8 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 				,ig.Description AS ItemGroup
 				,c.Description AS Condition
 				,UPPER(sl.UnitOfMeasure) AS Uom
+				,UPPER(im.StockUnitOfMeasure) AS StockUnitOfMeasure
+				,UPPER(im.ConsumeUnitOfMeasure) AS ConsumeUnitOfMeasure
 				,(CASE WHEN UPPER(REPLACE(ltCal.Type,' ','')) = UPPER(REPLACE(@LOT_TransOut_SO,' ','')) THEN 'INVOICED'
 					   WHEN UPPER(REPLACE(ltCal.Type,' ','')) = UPPER(REPLACE(@LOT_TransOut_RO,' ','')) THEN 'RO Created'
 					   WHEN UPPER(REPLACE(ltCal.Type,' ','')) = UPPER(REPLACE(@LOT_TransIn_RO,' ','')) THEN 'RO Completed'
@@ -739,7 +743,9 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 				,sl.IdNumber
 				,im.ManufacturerName
 				,sl.itemType
-				,UPPER(sl.UnitOfMeasure) AS Uom		
+				,UPPER(sl.UnitOfMeasure) AS Uom	
+				,UPPER(im.StockUnitOfMeasure) AS StockUnitOfMeasure
+				,UPPER(im.ConsumeUnitOfMeasure) AS ConsumeUnitOfMeasure
 				--,per.PercentValue
 				,(CASE WHEN SL.TraceableToType = @AppModuleCustomerId THEN (SELECT CUT.[Name] FROM [dbo].[Customer] CUT WHERE CUT.CustomerId = SL.[TraceableTo] )
 						    WHEN SL.TraceableToType = @AppModuleVendorId THEN (SELECT VET.[VendorName] FROM [dbo].[Vendor] VET WHERE VET.[VendorId] = SL.[TraceableTo])

@@ -41,7 +41,8 @@ BEGIN
 		Select @pickTicketNo = RMAPickTicketNumber, @masterCompanyId = MasterCompanyId FROM DBO.RMAPickTicket WITH (NOLOCK) WHERE RMAPickTicketId = @RMAPickTicketId;
 
 		;WITH cte as(
-				SELECT SUM(CASE WHEN IM.[StockUnitOfMeasure] = IM.[PurchaseUnitOfMeasure] THEN ISNULL(QtyToShip, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(QtyToShip, 0),IM.[StockUnitOfMeasure],IM.[PurchaseUnitOfMeasure],0,IM.[MasterCompanyId]) END) AS TotalQtyToShip, SOPick.VendorRMAId, SOPick.VendorRMADetailId
+				SELECT SUM(CASE WHEN NULLIF(IM.[StockUnitOfMeasure], '') IS NULL OR NULLIF(IM.[PurchaseUnitOfMeasure], '') IS NULL OR IM.[StockUnitOfMeasure] = IM.[PurchaseUnitOfMeasure] THEN ISNULL(QtyToShip, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(QtyToShip, 0),IM.[StockUnitOfMeasure],IM.[PurchaseUnitOfMeasure],0,IM.[MasterCompanyId]) END) AS TotalQtyToShip,
+				SOPick.VendorRMAId, SOPick.VendorRMADetailId
 				from DBO.RMAPickTicket SOPick WITH(NOLOCK) 
 				JOIN dbo.VendorRMADetail SOP WITH (NOLOCK) ON SOP.VendorRMADetailId = SOPick.VendorRMADetailId
 				INNER JOIN [dbo].[Stockline] ST WITH (NOLOCK) ON ST.[StockLineId] = SOP.[StockLineId]
@@ -52,7 +53,7 @@ BEGIN
 		)
 		--result as(
 		select sopt.RMAPickTicketId, sopt.CreatedDate as RMAPickTicketDate, sopt.VendorRMAId, sl.StockLineNumber, 
-		(CASE WHEN imt.[StockUnitOfMeasure] = imt.[PurchaseUnitOfMeasure] THEN ISNULL(sop.Qty, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(sop.Qty, 0),imt.[StockUnitOfMeasure],imt.[PurchaseUnitOfMeasure],0,imt.[MasterCompanyId]) END) AS Qty,
+		(CASE WHEN NULLIF(imt.[StockUnitOfMeasure], '') IS NULL OR NULLIF(imt.[PurchaseUnitOfMeasure], '') IS NULL OR imt.[StockUnitOfMeasure] = imt.[PurchaseUnitOfMeasure] THEN ISNULL(sop.Qty, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(sop.Qty, 0),imt.[StockUnitOfMeasure],imt.[PurchaseUnitOfMeasure],0,imt.[MasterCompanyId]) END) AS Qty,
 		--sopt.QtyToShip as QtyShipped, 
 		cte.TotalQtyToShip as QtyShipped, 
 		imt.partnumber as PartNumber, imt.PartDescription, sopt.RMAPickTicketNumber,
@@ -63,8 +64,9 @@ BEGIN
 		po.PurchaseOrderNumber as PONumber,
 		sl.QuantityOnHand, sl.QuantityAvailable as QtyAvailable, sop.Notes, 
 		--(sop.QtyRequested - cte.TotalQtyToShip) as QtyToPick 
-		(CASE WHEN imt.[StockUnitOfMeasure] = imt.[PurchaseUnitOfMeasure] THEN ISNULL(QtyToShip, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(QtyToShip, 0),imt.[StockUnitOfMeasure],imt.[PurchaseUnitOfMeasure],0,imt.[MasterCompanyId]) END) AS QtyToPick,
-		(CASE WHEN imt.[StockUnitOfMeasure] = imt.[PurchaseUnitOfMeasure] THEN ISNULL(sopt.QtyRemaining, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(sopt.QtyRemaining, 0),imt.[StockUnitOfMeasure],imt.[PurchaseUnitOfMeasure],0,imt.[MasterCompanyId]) END) AS QtyRemaining
+		(CASE WHEN NULLIF(imt.[StockUnitOfMeasure], '') IS NULL OR NULLIF(imt.[PurchaseUnitOfMeasure], '') IS NULL OR imt.[StockUnitOfMeasure] = imt.[PurchaseUnitOfMeasure] THEN ISNULL(QtyToShip, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(QtyToShip, 0),imt.[StockUnitOfMeasure],imt.[PurchaseUnitOfMeasure],0,imt.[MasterCompanyId]) END) AS QtyToPick,
+		(CASE WHEN NULLIF(imt.[StockUnitOfMeasure], '') IS NULL OR NULLIF(imt.[PurchaseUnitOfMeasure], '') IS NULL OR imt.[StockUnitOfMeasure] = imt.[PurchaseUnitOfMeasure] THEN ISNULL(sopt.QtyRemaining, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(sopt.QtyRemaining, 0),imt.[StockUnitOfMeasure],imt.[PurchaseUnitOfMeasure],0,imt.[MasterCompanyId]) END) AS QtyRemaining
+
 		from RMAPickTicket sopt WITH(NOLOCK)
 		INNER JOIN cte WITH(NOLOCK) ON cte.VendorRMAId = sopt.VendorRMAId AND cte.VendorRMADetailId = sopt.VendorRMADetailId
 		INNER JOIN VendorRMADetail sop WITH(NOLOCK) ON sop.VendorRMAId = sopt.VendorRMAId AND sop.VendorRMADetailId = sopt.VendorRMADetailId

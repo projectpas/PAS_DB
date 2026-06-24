@@ -12,8 +12,8 @@
  ** PR   Date				Author				Change Description                
  ** --   --------			-------				--------------------------------              
     1    07-October-2025	Devendra Shekh		Created    
-        
-exec usprpt_GetVendorQuoteReportSSRS @mastercompanyid=1,@id='01-01-2025',@id2='06-10-2025',@id3='',@id4='',@id5='',@strFilter='1,5,6!2,7,8,9!3,11,10!4,12,13!!!!!!'
+    2	 23-06-2026         Ayushi Patel		[PN-16927]UOM changes    
+exec usprpt_GetVendorQuoteReportSSRS @mastercompanyid=1,@id='2026-06-23',@id2='2026-06-23',@id3='',@id4='',@id5='',@strFilter='1,5,6!2,7,8,9!3,11,10!4,12,13!!!!!!'
 ************************************************************************/ 
 CREATE   PROCEDURE [dbo].[usprpt_GetVendorQuoteReportSSRS]
 	@mastercompanyid INT,
@@ -59,9 +59,9 @@ BEGIN TRY
 		[SourceRef] [varchar](50) NULL,
 		[UOM] [varchar](50) NULL,
 		[Condition] [varchar](256) NULL,
-		[Qty] [int] NULL,
-		[UnitCost] [decimal](18, 2) NULL,
-		[Amount] [decimal](18, 2) NULL,
+		[Qty] [decimal](18, 6) NULL,
+		[UnitCost] [decimal](18, 6) NULL,
+		[Amount] [decimal](18, 6) NULL,
 		[ReferenceNum] [varchar](100) NULL,
 		[ReferenceStatus] [varchar](50) NULL,
 		[Notes] [varchar](MAX) NULL,

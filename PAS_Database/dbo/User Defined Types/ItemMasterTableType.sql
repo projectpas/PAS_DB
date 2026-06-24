@@ -55,7 +55,7 @@
     [isTimeLife]                        BIT             NOT NULL,
     [isSerialized]                      BIT             NOT NULL,
     [ShelfLife]                         BIT             NOT NULL,
-    [StockLevel]                        INT             NOT NULL,
+    [StockLevel]                        DECIMAL (18, 6) NOT NULL,
     [ShelfLifeAvailable]                NUMERIC (18, 2) NOT NULL,
     [mfgHours]                          NUMERIC (18, 2) NOT NULL,
     [IsPma]                             BIT             NOT NULL,

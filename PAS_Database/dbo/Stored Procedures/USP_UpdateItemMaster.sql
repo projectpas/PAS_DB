@@ -15,6 +15,7 @@
 ** 4     03-Apr-2026   Sahdev Saliya		Remove LifeLimitedPart (PN-15833)
 ** 5     07-May-2026   Divyesh Kathiriya    Update "IsTimeLife" in stockline table based on ItemMaster Id. [PN-16327]
 ** 6     27-May-2026   Sahdev Saliya        Added Model [PN-16353]
+** 7     16-June-2026  Rajesh Gami			Update the Stockline's UOM fields While ItemMaster Update that particular UOM fields [PN-16878]
 
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_UpdateItemMaster]
@@ -30,7 +31,6 @@ BEGIN
   BEGIN TRANSACTION
 	SET @RetMessage = '';
 	DECLARE @imItemMasterId BIGINT ,@imManufacturerId BIGINT,@imPartNumber VARCHAR(256),@MasterCompanyId INT, @AccountingModuleId BIGINT;
-
 	--MasterParts TABLE variables Declaration--
 	DECLARE @mItemMasterId BIGINT,@MasterPartId BIGINT,@PartDescription VARCHAR(256),@PartNumber VARCHAR(256),@ManufacturerId BIGINT,
 			@mMasterCompanyId BIGINT,@CreatedBy VARCHAR(200),@UpdatedBy VARCHAR(200),@CreatedDate DATETIME2,@IsActive BIT,@IsDeleted BIT;
@@ -53,6 +53,53 @@ BEGIN
 	END
 	ELSE
 	BEGIN
+		/******** Check any of UOM fields modified or not in the ItemMaster **********/
+		DECLARE @IsUOMEdited BIT = 0,
+        @IsPOUOMEdited BIT = 0,
+        @IsStockUOMEdited BIT = 0,
+        @IsConsumeUOMEdited BIT = 0,
+		@ExistingPOUOMId BIGINT = 0,@ExistingConsumeUOMId BIGINT = 0,@ExistingStockUOMId BIGINT =0;
+			SELECT
+			@ExistingPOUOMId = i.PurchaseUnitOfMeasureId,
+			@ExistingConsumeUOMId =i.ConsumeUnitOfMeasureId,
+			@ExistingStockUOMId = i.StockUnitOfMeasureId,
+				@IsPOUOMEdited =
+					CASE
+						WHEN ISNULL(i.PurchaseUnitOfMeasureId, 0)
+							 <> ISNULL(NULLIF(PST.PurchaseUnitOfMeasureId, 0), 0)
+						THEN 1 ELSE 0
+					END,
+
+				@IsStockUOMEdited =
+					CASE
+						WHEN ISNULL(i.StockUnitOfMeasureId, 0)
+							 <> ISNULL(NULLIF(PST.StockUnitOfMeasureId, 0), 0)
+						THEN 1 ELSE 0
+					END,
+
+				@IsConsumeUOMEdited =
+					CASE
+						WHEN ISNULL(i.ConsumeUnitOfMeasureId, 0)
+							 <> ISNULL(NULLIF(PST.ConsumeUnitOfMeasureId, 0), 0)
+						THEN 1 ELSE 0
+					END,
+
+				@IsUOMEdited =
+					CASE
+						WHEN ISNULL(i.PurchaseUnitOfMeasureId, 0)
+							 <> ISNULL(NULLIF(PST.PurchaseUnitOfMeasureId, 0), 0)
+						  OR ISNULL(i.StockUnitOfMeasureId, 0)
+							 <> ISNULL(NULLIF(PST.StockUnitOfMeasureId, 0), 0)
+						  OR ISNULL(i.ConsumeUnitOfMeasureId, 0)
+							 <> ISNULL(NULLIF(PST.ConsumeUnitOfMeasureId, 0), 0)
+						THEN 1 ELSE 0
+					END
+			FROM dbo.ItemMaster i
+			JOIN @tbl_ItemMasterUpdateType PST
+				ON i.ItemMasterId = PST.ItemMasterId
+				AND i.MasterCompanyId = PST.MasterCompanyId
+			WHERE i.ItemMasterId = @Id;
+
 		UPDATE i
 		SET 
 		i.PartAlternatePartId = PST.PartAlternatePartId
@@ -220,12 +267,29 @@ BEGIN
 			MP.[UpdatedDate] = GETUTCDATE()
 		FROM dbo.MasterParts MP WITH(NOLOCK)
 		WHERE MP.MasterPartId = @MasterPartId AND MP.[MasterCompanyId] = @mMasterCompanyId	
-
-		UPDATE [dbo].[Stockline]
-		SET [IsStkTimeLife] = IM.[IsTimeLife]
-		FROM [dbo].[Stockline] sl
-		INNER JOIN @tbl_ItemMasterUpdateType IM ON sl.[ItemMasterId] = IM.[ItemMasterId]
-		WHERE sl.[ItemMasterId] = @Id;
+		PRINT @IsUOMEdited
+		PRINT '>>@IsUOMEdited = 1'
+		IF(@IsUOMEdited = 1)
+		BEGIN
+		PRINT '@IsUOMEdited = 1'
+			   DECLARE @PurchaseUnitOfMeasureId  BIGINT,
+                    @StockUnitOfMeasureId     BIGINT,
+                    @ConsumeUnitOfMeasureId   BIGINT,@IsStkTimeLife BIT;
+				SELECT TOP 1 @PurchaseUnitOfMeasureId = PurchaseUnitOfMeasureId, @StockUnitOfMeasureId = StockUnitOfMeasureId,@ConsumeUnitOfMeasureId = ConsumeUnitOfMeasureId, @IsStkTimeLife = IsTimeLife  FROM @tbl_ItemMasterUpdateType
+				PRINT @PurchaseUnitOfMeasureId
+				PRINT @StockUnitOfMeasureId
+				PRINT @ConsumeUnitOfMeasureId
+				EXEC [dbo].[USP_UpdateStocklineUOMByItemMasterId] @Id ,@MasterCompanyId,@PurchaseUnitOfMeasureId,@StockUnitOfMeasureId,@ConsumeUnitOfMeasureId,@IsPOUOMEdited,@IsStockUOMEdited,@IsConsumeUOMEdited,@ExistingPOUOMId,@ExistingStockUOMId,@ExistingConsumeUOMId,@IsStkTimeLife
+		END
+		ELSE
+		BEGIN
+			UPDATE [dbo].[Stockline]
+			SET [IsStkTimeLife] = IM.[IsTimeLife]
+			FROM [dbo].[Stockline] sl
+			INNER JOIN @tbl_ItemMasterUpdateType IM ON sl.[ItemMasterId] = IM.[ItemMasterId]
+			WHERE sl.[ItemMasterId] = @Id;
+		END
+		
 
 		EXEC dbo.UpdateItemMasterDetail @Id
 
@@ -237,6 +301,13 @@ BEGIN
   END TRY
   BEGIN CATCH
   ROLLBACK TRANSACTION
+    SELECT
+    ERROR_NUMBER() AS ErrorNumber,
+    ERROR_STATE() AS ErrorState,
+    ERROR_SEVERITY() AS ErrorSeverity,
+    ERROR_PROCEDURE() AS ErrorProcedure,
+    ERROR_LINE() AS ErrorLine,
+    ERROR_MESSAGE() AS ErrorMessage;
 		DECLARE @ErrorLogID int,
             @DatabaseName varchar(100) = DB_NAME()
             -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------

@@ -47,7 +47,7 @@
     [IsSchematic]                       BIT             NULL,
     [GLAccountId]                       BIGINT          NULL,
     [LeadTimeDays]                      INT             NULL,
-    [StockLevel]                        INT             NULL,
+    [StockLevel]                        DECIMAL (18, 6) NULL,
     [ReorderPoint]                      DECIMAL (18, 6) NULL,
     [ReorderQuantiy]                    DECIMAL (18, 6) NULL,
     [MinimumOrderQuantity]              DECIMAL (18, 6) NULL,

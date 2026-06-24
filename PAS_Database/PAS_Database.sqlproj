@@ -4558,6 +4558,13 @@
     <Build Include="dbo\Stored Procedures\USP_GetLocationLabelListForPrint.sql" />
     <Build Include="dbo\Stored Procedures\usp_GetCustomersDataForReport.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetStocklineList_ByLocation.sql" />
+    <Build Include="dbo\Tables\TrialBalanceUpload.sql" />
+    <Build Include="dbo\Stored Procedures\USP_ValidateTrialBalance.sql" />
+    <Build Include="dbo\Stored Procedures\USP_SaveTrialBalanceUploadData.sql" />
+    <Build Include="dbo\Stored Procedures\USP_SaveTrialBalance.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetTrialBalanceUploadList.sql" />
+    <Build Include="dbo\User Defined Types\ValidateTrialBalanceUploadType.sql" />
+    <Build Include="dbo\User Defined Types\SaveTrialBalanceUploadType.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

@@ -106,7 +106,7 @@ BEGIN
                                                 WHERE PercentId = SP_CalSPByPP_MarkUpPercOnListPrice)
                                              / 100.0
                                          AS DECIMAL(28,6))
-                                ELSE CAST(ISNULL(PP_UnitPurchasePrice, 0) AS DECIMAL(28,6))
+                                ELSE 0
                             END)
                             * @DefaultConsumeUOMCostValue
                         AS DECIMAL(28,6))
@@ -128,7 +128,7 @@ BEGIN
                                                     WHERE PercentId = SP_CalSPByPP_MarkUpPercOnListPrice)
                                                  / 100.0
                                              AS DECIMAL(28,6))
-                                    ELSE CAST(ISNULL(PP_UnitPurchasePrice, 0) AS DECIMAL(28,6))
+                                    ELSE 0
                                 END)
                                 * @DefaultConsumeUOMCostValue
                             AS DECIMAL(28,6))

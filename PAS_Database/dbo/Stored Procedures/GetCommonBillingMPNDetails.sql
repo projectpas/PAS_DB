@@ -35,6 +35,7 @@
 
 --  EXEC [dbo].[GetCommonBillingMPNDetails] 926,1166,'1166',10,0,1
     EXEC [dbo].[GetCommonBillingMPNDetails] 1162,1830,'1830',10,1,0
+	exec dbo.GetCommonBillingMPNDetails @ReferenceId=1211,@SubReferenceId=1884,@SubReferenceIds=N'1884',@ModuleId=10,@IsCreatedFromQuote=1,@IsProformaInvoice=0
 ************************************************************************/
 CREATE PROCEDURE [dbo].[GetCommonBillingMPNDetails]
 @ReferenceId BIGINT=NULL,
@@ -102,8 +103,8 @@ BEGIN
 			[ConditionId] BIGINT NULL,
 			[ConditionName] NVARCHAR(200) NULL,
 			[UnitSalePrice] DECIMAL(18,6) NULL,	 
-			[MarkUpPercentage] DECIMAL(18,2) NULL, 
-			[DiscountPercentage] DECIMAL(18,2) NULL, 
+			[MarkUpPercentage] DECIMAL(18,6) NULL, 
+			[DiscountPercentage] DECIMAL(18,6) NULL, 
 			[MarkUpAmount] DECIMAL(18,6) NULL, 
 			[DiscountAmount] DECIMAL(18,6) NULL, 			
 			[UnitPrice] DECIMAL(18,6) NULL,	 
@@ -119,10 +120,10 @@ BEGIN
 			[FreightCost] DECIMAL(18,6) NULL,
 			[TotalCost] DECIMAL(18,6) NULL, 
 			[SalesTaxPercent] BIGINT NULL,				
-			[SalesTax] DECIMAL(18,2) NULL, 
+			[SalesTax] DECIMAL(18,6) NULL, 
 			[SalesTaxAmount] DECIMAL(18,6) NULL, 
 			[OtherTaxPercent] BIGINT NULL,
-			[OtherTax] DECIMAL(18,2) NULL, 
+			[OtherTax] DECIMAL(18,6) NULL, 
 			[OtherTaxAmount] DECIMAL(18,6) NULL,
 			[GrandTotal] DECIMAL(18,6) NULL,
 			[SOStockLineId] BIGINT NULL,
@@ -573,10 +574,10 @@ BEGIN
 
 			WHILE @MinId <= @TotalRecords
 			BEGIN
-				DECLARE @SOFlatRate DECIMAL(18,2) = 0; 
+				DECLARE @SOFlatRate DECIMAL(18,6) = 0; 
 				DECLARE @stocklineID BIGINT = 0,@SOStocklineId BIGINT = 0;
-				DECLARE @SOChargesAmount  DECIMAL(18,2) = CASE WHEN @SoChargesBillingMethodId = @FlatBillingMethodId THEN @SoTotalCharges ELSE 0 END;
-				DECLARE @SOFreightAmount  DECIMAL(18,2) = CASE WHEN @SoFreightBillingMethodId = @FlatBillingMethodId THEN @SoTotalFreight ELSE 0 END;
+				DECLARE @SOChargesAmount  DECIMAL(18,6) = CASE WHEN @SoChargesBillingMethodId = @FlatBillingMethodId THEN @SoTotalCharges ELSE 0 END;
+				DECLARE @SOFreightAmount  DECIMAL(18,6) = CASE WHEN @SoFreightBillingMethodId = @FlatBillingMethodId THEN @SoTotalFreight ELSE 0 END;
 
 				SET @BillingInvoicingId = 0;
 				SET @BillingInvoicingItemId = 0;
@@ -597,8 +598,8 @@ BEGIN
 				CREATE TABLE #tblSalesTaxAndOtherTaxDetails
 				(
 					[ID] BIGINT NOT NULL IDENTITY,
-					[SalesTax] DECIMAL(18,2) NULL,
-					[OtherTax]  DECIMAL(18,2) NULL				
+					[SalesTax] DECIMAL(18,6) NULL,
+					[OtherTax]  DECIMAL(18,6) NULL				
 				)	
 				
 				SELECT @ID = [SubReferenceId], @stocklineID = StockLineId,@SOStocklineId = SOStockLineId FROM #TempCommonPartNumberDetailsForBilling WHERE [PKID] = @MinId;	
@@ -648,17 +649,17 @@ BEGIN
 						WHERE SPC.SalesOrderPartId = @ID AND SPC.SalesOrderId = @ReferenceId
 					END
 		
-				DECLARE @stkShipped decimal(10,6) = ISNULL((Select SUM(CASE WHEN IM.StockUnitOfMeasure = IM.ConsumeUnitOfMeasure THEN ISNULL(QtyShipped, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(QtyShipped, 0),IM.StockUnitOfMeasure, IM.ConsumeUnitOfMeasure,0,@MasterCompanyId) END) 
+				DECLARE @stkShipped decimal(18,6) = ISNULL((Select SUM(CASE WHEN IM.StockUnitOfMeasure = IM.ConsumeUnitOfMeasure THEN ISNULL(QtyShipped, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(QtyShipped, 0),IM.StockUnitOfMeasure, IM.ConsumeUnitOfMeasure,0,@MasterCompanyId) END) 
 															From dbo.SalesOrderShippingItem SOS WITH(NOLOCK) 
 																INNER JOIN dbo.SOPickTicket SOPIC WITH(NOLOCK) ON SOS.SOPickTicketId = SOPIC.SOPickTicketId
 																INNER JOIN DBO.SalesOrderPartV1 SP WITH(NOLOCK) ON SOS.SalesOrderPartId = SP.SalesOrderPartId
 																LEFT JOIN DBO.ItemMaster IM WITH(NOLOCK) ON SP.ItemMasterId = im.ItemMasterId
 															Where SOS.SalesOrderPartId =  @ID AND  SOS.IsActive = 1 AND ISNULL(SOS.IsDeleted,0) = 0 AND  SOPIC.SalesOrderPartStocklineId = @SOStocklineId),0.0)
-				DECLARE @stkReservedQty decimal(10,6) =  ISNULL((Select TOP 1 (CASE WHEN ISNULL(sl.StockUnitOfMeasure,'') = ISNULL(sl.ConsumeUnitOfMeasure,'') THEN ISNULL(stk.QtyReserved, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(stk.QtyReserved, 0),sl.StockUnitOfMeasure, sl.ConsumeUnitOfMeasure,0,@MasterCompanyId) END) 
+				DECLARE @stkReservedQty decimal(18,6) =  ISNULL((Select TOP 1 (CASE WHEN ISNULL(sl.StockUnitOfMeasure,'') = ISNULL(sl.ConsumeUnitOfMeasure,'') THEN ISNULL(stk.QtyReserved, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(stk.QtyReserved, 0),sl.StockUnitOfMeasure, sl.ConsumeUnitOfMeasure,0,@MasterCompanyId) END) 
 																 From dbo.SalesOrderStocklineV1 stk WITH(NOLOCK)
 																	LEFT JOIN dbo.Stockline sl with(nolock) on stk.StockLineId = sl.StockLineId
 																 Where stk.StockLineId = @stocklineID AND stk.SalesOrderPartId =  @ID),0.0)
-				DECLARE @totalQtyShippedReserved decimal(10,6) = ISNULL(@stkShipped,0.0) + ISNULL(@stkReservedQty,0.0)
+				DECLARE @totalQtyShippedReserved decimal(18,6) = ISNULL(@stkShipped,0.0) + ISNULL(@stkReservedQty,0.0)
 		
 				--SET @PartsCost = CASE WHEN @IsProformaInvoice = 1 AND @BillingInvoicingItemId >0 THEN @itemProformaGrandTotal WHEN @IsProformaInvoice = 1 AND ISNULL(@BillingInvoicingItemId,0)  = 0  THEN @UnitCostExt ELSE ISNULL(@UnitCost,0.0) * @totalQtyShippedReserved END
 				SET @PartsCost = CASE WHEN @IsProformaInvoice = 1  THEN @UnitCostExt ELSE ISNULL(@UnitCost,0.0) * @totalQtyShippedReserved END

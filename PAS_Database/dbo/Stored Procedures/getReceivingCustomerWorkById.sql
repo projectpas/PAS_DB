@@ -18,7 +18,7 @@
 	3	 16-JUL-2025        Moin Bloch   		    Added IsBatchStock And Batch Number
 	4	 20-JAN-2026        Priyansh Patel  		Added CSN, TSN, CSO, TSO fields
 	5	 24-FEB-2026        Moin Bloch   		    Added OutGoingItemMasterId And OutGoingPartNumber
-	6    23-JUN-2026		Nakul Chandigra			Replaced PurchaseUnitOfMeasureId with StockUnitOfMeasureId.
+	6    23-JUN-2026		Nakul Chandigra		    Added StockUnitOfMeasureId in select (PN-16914)
  --exec dbo.getReceivingCustomerWorkById 5837
       
 **************************************************************/    
@@ -55,9 +55,9 @@ AS BEGIN
 				rc.Bin,
 				rc.WorkScope AS workScopeName,
 				rc.Condition,
-				--It gets ItemMaster StockUnitOfMeasureId in PurchaseUnitOfMeasureId
-				im.StockUnitOfMeasureId as PurchaseUnitOfMeasureId,
-				ISNULL(uom.ShortName, '') AS PurchaseUnitOfMeasure,
+				im.PurchaseUnitOfMeasureId,
+				im.StockUnitOfMeasureId,
+				ISNULL(uom.ShortName, '') AS StockUnitOfMeasure,
 				rc.RemovalReasonId,
 				rc.RemovalReasons,
 				rc.RemovalReasonsMemo,

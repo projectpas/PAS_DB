@@ -79,7 +79,7 @@
     [ListPrice]                         DECIMAL (18, 6) NULL,
     [PriceDate]                         DATETIME2 (7)   NULL,
     [ItemNonStockClassificationId]      BIGINT          NULL,
-    [StockLevel]                        INT             CONSTRAINT [DF_ItemMasterAudit_StockLevel_1] DEFAULT ((0)) NOT NULL,
+    [StockLevel]                        DECIMAL (18, 6) CONSTRAINT [DF_ItemMasterAudit_StockLevel_1] DEFAULT ((0)) NULL,
     [ExportECCN]                        VARCHAR (200)   NULL,
     [ITARNumber]                        VARCHAR (200)   NULL,
     [ShelfLifeAvailable]                DECIMAL (18, 6) CONSTRAINT [DF_ItemMasterAudit_ShelfLifeAvailable_1] DEFAULT ((0)) NULL,

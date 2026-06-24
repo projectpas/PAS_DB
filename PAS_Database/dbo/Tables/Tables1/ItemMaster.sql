@@ -78,7 +78,7 @@
     [ListPrice]                         DECIMAL (18, 6) NULL,
     [PriceDate]                         DATETIME2 (7)   NULL,
     [ItemNonStockClassificationId]      BIGINT          NULL,
-    [StockLevel]                        INT             CONSTRAINT [ItemMaster_StockLevel] DEFAULT ((0)) NOT NULL,
+    [StockLevel]                        DECIMAL (18, 6) CONSTRAINT [ItemMaster_StockLevel] DEFAULT ((0)) NULL,
     [ExportECCN]                        VARCHAR (200)   NULL,
     [ITARNumber]                        VARCHAR (200)   NULL,
     [ShelfLifeAvailable]                DECIMAL (18, 6) CONSTRAINT [ItemMaster_ShelfLifeAvailable] DEFAULT ((0)) NULL,
@@ -211,6 +211,8 @@
     CONSTRAINT [FK_ItemMaster_Warning] FOREIGN KEY ([WarningId]) REFERENCES [dbo].[Warning] ([WarningId]),
     CONSTRAINT [UC_ItemMaster_partnumber_manufacturerId] UNIQUE NONCLUSTERED ([partnumber] ASC, [ManufacturerId] ASC, [MasterCompanyId] ASC)
 );
+
+
 
 
 

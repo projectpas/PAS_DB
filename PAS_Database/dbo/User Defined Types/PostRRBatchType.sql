@@ -1,7 +1,7 @@
 ﻿CREATE TYPE [dbo].[PostRRBatchType] AS TABLE (
     [StocklineId]                     BIGINT          NOT NULL,
-    [InvoicedQty]                     INT             NOT NULL,
-    [InvoicedUnitCost]                DECIMAL (18, 2) NULL,
+    [InvoicedQty]                     DECIMAL (18, 6) NOT NULL,
+    [InvoicedUnitCost]                DECIMAL (18, 6) NULL,
     [JournalTypeName]                 VARCHAR (256)   NULL,
     [CreatedBy]                       VARCHAR (256)   NULL,
     [Module]                          VARCHAR (256)   NULL,

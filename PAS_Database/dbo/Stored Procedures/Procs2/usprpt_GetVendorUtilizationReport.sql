@@ -160,12 +160,12 @@ UPPER(MSD.Level8Name) AS level8,    UPPER(MSD.Level9Name) AS level9,    UPPER(MS
         UPPER(PO.status) 'status',  
         UPPER(PO.VendorName) 'vendorname',  
         UPPER(PO.VendorCode) 'vendorcode',  
-        UPPER(POP.unitofmeasure) 'uom',  
-        POP.QuantityOrdered 'qty',  
-        POP.PurchaseOrderId,  
-        ROUND(CASE WHEN STL.UnitCost IS NULL THEN ISNULL(POP.UnitCost, 0) ELSE CASE WHEN NULLIF(STL.StockUnitOfMeasure, '') IS NULL OR NULLIF(POP.UnitOfMeasure, '') IS NULL OR STL.StockUnitOfMeasure = POP.UnitOfMeasure THEN STL.UnitCost ELSE dbo.fn_ConvertUOM(STL.UnitCost, STL.StockUnitOfMeasure, POP.UnitOfMeasure, 1, @mastercompanyid) END END, 2) AS unitcost,
+        UPPER(IM.StockUnitOfMeasure) 'uom',  
+        CASE WHEN NULLIF(POP.UnitOfMeasure, '') IS NULL OR NULLIF(STL.StockUnitOfMeasure, '') IS NULL OR POP.UnitOfMeasure = STL.StockUnitOfMeasure THEN POP.QuantityOrdered ELSE dbo.fn_ConvertUOM(POP.QuantityOrdered, POP.UnitOfMeasure, STL.StockUnitOfMeasure, 0, @mastercompanyid) END 'qty',
+        POP.PurchaseOrderId,
+        ROUND(CASE WHEN STL.UnitCost IS NULL THEN CASE WHEN NULLIF(POP.UnitOfMeasure, '') IS NULL OR NULLIF(STL.StockUnitOfMeasure, '') IS NULL OR POP.UnitOfMeasure = STL.StockUnitOfMeasure THEN ISNULL(POP.UnitCost, 0) ELSE dbo.fn_ConvertUOM(ISNULL(POP.UnitCost, 0), POP.UnitOfMeasure, STL.StockUnitOfMeasure, 1, @mastercompanyid) END ELSE STL.UnitCost END, 2) AS unitcost,
         UPPER(POP.functionalcurrency) 'currency',
-        ISNULL(POP.QuantityOrdered, 0) * ROUND(CASE WHEN STL.UnitCost IS NULL THEN ISNULL(POP.UnitCost, 0) ELSE CASE WHEN NULLIF(STL.StockUnitOfMeasure, '') IS NULL OR NULLIF(POP.UnitOfMeasure, '') IS NULL OR STL.StockUnitOfMeasure = POP.UnitOfMeasure THEN STL.UnitCost ELSE dbo.fn_ConvertUOM(STL.UnitCost, STL.StockUnitOfMeasure, POP.UnitOfMeasure, 1, @mastercompanyid) END END, 2) AS extamount,
+        ISNULL(CASE WHEN NULLIF(POP.UnitOfMeasure, '') IS NULL OR NULLIF(STL.StockUnitOfMeasure, '') IS NULL OR POP.UnitOfMeasure = STL.StockUnitOfMeasure THEN POP.QuantityOrdered ELSE dbo.fn_ConvertUOM(POP.QuantityOrdered, POP.UnitOfMeasure, STL.StockUnitOfMeasure, 0, @mastercompanyid) END, 0) * ROUND(CASE WHEN STL.UnitCost IS NULL THEN CASE WHEN NULLIF(POP.UnitOfMeasure, '') IS NULL OR NULLIF(STL.StockUnitOfMeasure, '') IS NULL OR POP.UnitOfMeasure = STL.StockUnitOfMeasure THEN ISNULL(POP.UnitCost, 0) ELSE dbo.fn_ConvertUOM(ISNULL(POP.UnitCost, 0), POP.UnitOfMeasure, STL.StockUnitOfMeasure, 1, @mastercompanyid) END ELSE STL.UnitCost END, 2) AS extamount,
         'N/A' 'localamount',  
         FORMAT (POP.NeedByDate, 'MM/dd/yyyy hh:mm:tt') 'requestdate',  
         UPPER(ISNULL(POP.workorderno,'')) 'wonum',  
@@ -209,7 +209,7 @@ UPPER(MSD.Level8Name) AS level8,    UPPER(MSD.Level9Name) AS level9,    UPPER(MS
      PO.PurchaseOrderNumber, FORMAT (PO.OpenDate, 'MM/dd/yyyy hh:mm:tt'), IM.partnumber,IM.PartDescription,STL.itemtype,  
    CASE WHEN stl.isPma = 1 AND stl.IsDER = 1 THEN 'PMA&DER' WHEN stl.isPma = 1 AND (stl.IsDER IS NULL OR stl.IsDER = 0) THEN 'PMA'  
      WHEN (stl.isPma = 0 OR stl.isPma IS NULL) AND stl.IsDER = 1 THEN 'DER' ELSE 'OEM' END,  
-     PO.status,PO.VendorName,PO.VendorCode,POP.unitofmeasure, POP.QuantityOrdered, POP.PurchaseOrderId, STL.UnitCost , POP.UnitCost, STL.StockUnitOfMeasure, POP.functionalcurrency, FORMAT (POP.NeedByDate, 'MM/dd/yyyy hh:mm:tt'),  
+     PO.status,PO.VendorName,PO.VendorCode,POP.unitofmeasure, POP.QuantityOrdered, POP.PurchaseOrderId, STL.UnitCost , POP.UnitCost, STL.StockUnitOfMeasure,IM.StockUnitOfMeasure, POP.functionalcurrency, FORMAT (POP.NeedByDate, 'MM/dd/yyyy hh:mm:tt'),  
      STL.PurchaseOrderExtendedCost,POP.workorderno,IM1.partnumber,IM1.partdescription,POP.salesorderno,IM2.partnumber,IM2.partnumber,IM2.partdescription,WO.CustomerName,  
      MSD.Level1Name,MSD.Level2Name,MSD.Level3Name,MSD.Level4Name,MSD.Level5Name,MSD.Level6Name,MSD.Level7Name,MSD.Level8Name,MSD.Level9Name,MSD.Level10Name, POP.MasterCompanyId
 	 )

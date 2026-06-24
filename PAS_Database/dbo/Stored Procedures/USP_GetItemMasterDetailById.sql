@@ -20,7 +20,7 @@
 	9    26-Mar-2026    Sahdev Saliya       Added [LifeLimitedPart] :-([IsFlightHoursAvailable], [IsFlightCyclesAvailable], [IsLandingsAvailable], [IsStartsAvailable], [IsCalendarTimeAvailable], [FlightHours], [FlightMinutes], [FlightCycles], [Landings], [Starts], [CalendarDate]) (PN-15833)
     10   03-Apr-2026    Sahdev Saliya       Remove LifeLimitedPart (PN-15833)
 	11   27-May-2026    Sahdev Saliya       Added Model [PN-16353]
-
+	12   23-June-2026   Rajesh Gami	        Getting return IsStocklineCreated is any stockline is created or not for this part [PN-16878]
 **************************************************************
  EXEC USP_GetItemMasterDetailById 96978
 **************************************************************/
@@ -35,7 +35,8 @@ BEGIN
 	BEGIN
 		IF (@ItemMasterId >0)
 		BEGIN
-			WITH CTE_IntegrationPortal AS (
+			DECLARE @isStocklineCreated BIT = CASE WHEN EXISTS (SELECT 1 FROM dbo.Stockline WITH(NOLOCK) WHERE ItemMasterId = @ItemMasterId AND ISNULL(isDeleted, 0) = 0 AND ISNULL(isActive,  0) = 1 ) THEN 1 ELSE 0 END
+			;WITH CTE_IntegrationPortal AS (
 				SELECT
 					iM.ItemMasterId,
 					STRING_AGG(CAST(R.[Description] AS NVARCHAR(MAX)), ',') AS Ranking,
@@ -202,7 +203,8 @@ BEGIN
 						iM.Landings,
 						iM.Starts,
 						iM.CalendarDate,
-						iM.Model
+						iM.Model,
+						@isStocklineCreated as  IsStocklineCreated
 					FROM dbo.ItemMaster iM WITH(NOLOCK)
 					LEFT JOIN CTE_IntegrationPortal itp ON iM.ItemMasterId = itp.ItemMasterId
 					LEFT JOIN CTE_InventoryGLSetting its ON iM.InventoryGLSettingId = its.InventoryGLSettingId

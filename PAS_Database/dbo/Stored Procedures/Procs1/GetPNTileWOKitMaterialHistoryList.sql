@@ -18,6 +18,7 @@
  ** --   --------     -------		--------------------------------          
 	1    08/02/2023   Vishal Suthar Created
     2    12/06/202    Jevik Raiyani added @statusValue
+	3	 24/06/2026   Ayushi Patel  [PN-16963]UOM Changes 
 **************************************************************/
 CREATE   PROCEDURE [dbo].[GetPNTileWOKitMaterialHistoryList]
 	@PageNumber int = 1,
@@ -80,9 +81,12 @@ BEGIN
 					Cond.Code AS [Condition],
 					WO.[WorkOrderNum],
 					WPN.[WorkScope],
-					WOMS.QtyReserved AS ResQty,
-					WOMS.QtyIssued AS IssueQty,
-					WOMS.UnitCost,
+					--WOMS.QtyReserved AS ResQty,
+					--WOMS.QtyIssued AS IssueQty,
+					--WOMS.UnitCost,
+					[dbo].[fn_ConvertUOM](WOMS.QtyReserved, IM.StockUnitOfMeasure, IM.ConsumeUnitOfMeasure, 0, IM.MasterCompanyId) AS ResQty,
+					[dbo].[fn_ConvertUOM](WOMS.QtyIssued, IM.StockUnitOfMeasure, IM.ConsumeUnitOfMeasure, 0, IM.MasterCompanyId) AS IssueQty,
+					[dbo].[fn_ConvertUOM](WOMS.UnitCost, IM.StockUnitOfMeasure, IM.ConsumeUnitOfMeasure, 1, IM.MasterCompanyId) AS UnitCost,
 					WOMS.ExtendedCost AS ExtendedUnitCost,
 					Stk.StockLineNumber AS StocklineNum,
 					Stk.ControlNumber AS ControlNum,

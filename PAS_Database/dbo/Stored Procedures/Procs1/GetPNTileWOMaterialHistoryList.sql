@@ -22,6 +22,7 @@
 	4    12/06/2023   Jevik Raiyani add @statusValue 
 	5    03/11/2025   Bhargav Saliya Added New Field [Stage]
 	6    05/06/2026   Priyansh Patel Fixed the issue related to uom conversion [PN-16746]
+	7	 24/06/2026   Ayushi Patel   [PN-16963]UOM Changes 
 
 **************************************************************/
 CREATE  PROCEDURE [dbo].[GetPNTileWOMaterialHistoryList]
@@ -85,9 +86,19 @@ BEGIN
 					(CASE WHEN WOMS.WOMStockLineId is null THEN matCon.Description ELSE Cond.Description END) AS Condition,
 					WO.[WorkOrderNum],
 					WPN.[WorkScope],
-					WOM.Quantity AS ReqQty,
-					(CASE WHEN WOMS.WOMStockLineId is null THEN WOM.TotalReserved ELSE WOMS.QtyReserved END) AS ResQty,
-					(CASE WHEN WOMS.WOMStockLineId is null THEN WOM.TotalIssued ELSE WOMS.QtyIssued END) AS IssueQty,
+					--WOM.Quantity AS ReqQty,
+					([dbo].[fn_ConvertUOM](WOM.Quantity, IM.StockUnitOfMeasure, IM.ConsumeUnitOfMeasure, 0, IM.MasterCompanyId)) AS ReqQty,
+
+					--(CASE WHEN WOMS.WOMStockLineId is null THEN WOM.TotalReserved ELSE WOMS.QtyReserved END) AS ResQty,
+					([dbo].[fn_ConvertUOM](
+						(CASE WHEN WOMS.WOMStockLineId IS NULL THEN WOM.TotalReserved ELSE WOMS.QtyReserved END),
+						IM.StockUnitOfMeasure,IM.ConsumeUnitOfMeasure,0,IM.MasterCompanyId
+					)) AS ResQty,
+					--(CASE WHEN WOMS.WOMStockLineId is null THEN WOM.TotalIssued ELSE WOMS.QtyIssued END) AS IssueQty,
+					([dbo].[fn_ConvertUOM](
+						(CASE WHEN WOMS.WOMStockLineId IS NULL THEN WOM.TotalIssued ELSE WOMS.QtyIssued END),
+						IM.StockUnitOfMeasure,IM.ConsumeUnitOfMeasure,0,IM.MasterCompanyId
+					)) AS IssueQty,
 					(CASE WHEN WOMS.WOMStockLineId is null THEN WOM.UnitCost ELSE WOMS.UnitCost END) AS UnitCost,
 					(CASE WHEN WOMS.WOMStockLineId is null THEN WOM.ExtendedCost ELSE WOMS.ExtendedCost END) AS ExtendedUnitCost,
 					Stk.StockLineNumber AS StocklineNum,
@@ -130,10 +141,12 @@ BEGIN
 					(CASE WHEN WOMS.WorkOrderMaterialStockLineKitId is null THEN matCon.Code ELSE Cond.Code END) AS Condition,
 					WO.[WorkOrderNum],
 					WPN.[WorkScope],
-					WOM.Quantity AS RequestedQty,
-
-					(CASE WHEN WOMS.WorkOrderMaterialStockLineKitId is null THEN WOM.TotalReserved ELSE WOMS.QtyReserved END) AS ResQty,
-					(CASE WHEN WOMS.WorkOrderMaterialStockLineKitId is null THEN WOM.TotalIssued ELSE WOMS.QtyIssued END) AS IssueQty,
+					--WOM.Quantity AS RequestedQty,
+					[dbo].[fn_ConvertUOM](WOM.Quantity, IM.StockUnitOfMeasure, IM.ConsumeUnitOfMeasure, 0, IM.MasterCompanyId) AS RequestedQty,
+					[dbo].[fn_ConvertUOM]((CASE WHEN WOMS.WorkOrderMaterialStockLineKitId IS NULL THEN WOM.TotalReserved ELSE WOMS.QtyReserved END), IM.StockUnitOfMeasure, IM.ConsumeUnitOfMeasure, 0, IM.MasterCompanyId) AS ResQty,
+					[dbo].[fn_ConvertUOM]((CASE WHEN WOMS.WorkOrderMaterialStockLineKitId IS NULL THEN WOM.TotalIssued ELSE WOMS.QtyIssued END), IM.StockUnitOfMeasure, IM.ConsumeUnitOfMeasure, 0, IM.MasterCompanyId) AS IssueQty,
+					--(CASE WHEN WOMS.WorkOrderMaterialStockLineKitId is null THEN WOM.TotalReserved ELSE WOMS.QtyReserved END) AS ResQty,
+					--(CASE WHEN WOMS.WorkOrderMaterialStockLineKitId is null THEN WOM.TotalIssued ELSE WOMS.QtyIssued END) AS IssueQty,
 					(CASE WHEN WOMS.WorkOrderMaterialStockLineKitId is null THEN WOM.UnitCost ELSE WOMS.UnitCost END) AS UnitCost,
 					(CASE WHEN WOMS.WorkOrderMaterialStockLineKitId is null THEN WOM.ExtendedCost ELSE WOMS.ExtendedCost END) AS ExtendedUnitCost,
 					Stk.StockLineNumber AS StocklineNum,

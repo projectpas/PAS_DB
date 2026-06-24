@@ -21,6 +21,7 @@
 	5    05-NOV-2025  RAJESH GAMI	    Added return field: TotalPartCost 
 	6    16-Apr-026   Bhargav Saliya    UOM Changes
 	7    18/06/2026   Bhargav Saliya	Added Case For Skip UOM Function If FROM uom and TO uom Both are Same
+	7    23/06/2026   Bhargav Saliya	Get Consume UOM 
  -- EXEC DBO.GetSalesOrderQuoteParts 1300
 **************************************************************/ 
 CREATE PROCEDURE [dbo].[GetSalesOrderQuoteParts]
@@ -213,7 +214,7 @@ BEGIN
 		LEFT JOIN DBO.ItemMaster itemMaster WITH (NOLOCK) ON part.ItemMasterId = itemMaster.ItemMasterId
 		LEFT JOIN DBO.Condition cp WITH (NOLOCK) ON part.ConditionId = cp.ConditionId
 		LEFT JOIN DBO.Manufacturer mf WITH (NOLOCK) ON itemMaster.ManufacturerId = mf.ManufacturerId
-		LEFT JOIN DBO.UnitOfMeasure um WITH (NOLOCK) ON itemMaster.PurchaseUnitOfMeasureId = um.UnitOfMeasureId
+		LEFT JOIN DBO.UnitOfMeasure um WITH (NOLOCK) ON itemMaster.ConsumeUnitOfMeasureId = um.UnitOfMeasureId
 		LEFT JOIN DBO.PurchaseOrder po WITH (NOLOCK) ON qs.PurchaseOrderId = po.PurchaseOrderId
 		LEFT JOIN DBO.RepairOrder ro WITH (NOLOCK) ON qs.RepairOrderId = ro.RepairOrderId
 		LEFT JOIN DBO.[Priority] pri WITH (NOLOCK) ON part.PriorityId = pri.PriorityId

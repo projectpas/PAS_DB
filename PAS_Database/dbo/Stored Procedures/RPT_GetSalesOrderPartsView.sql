@@ -18,10 +18,11 @@ EXEC [RPT_GetSalesOrderPartsView]
    7	12/04/2024	Vishal Suthar	Fixed an issue with fetching Notes from stockline
    8	06/03/2025	Vishal Suthar	Removed truncation for PN Description Field
    9	04/03/2026  Ayushi Patel	Return ItemNo for print
+   10	23/06/2026  Bhargav Saliya	UOM Changes [PN-16959]
 EXEC RPT_GetSalesOrderPartsView 1472
 
 **************************************************************/
-CREATE      PROCEDURE [dbo].[RPT_GetSalesOrderPartsView]              
+CREATE PROCEDURE [dbo].[RPT_GetSalesOrderPartsView]              
 	@salesOrderId BIGINT            
 AS              
 BEGIN              
@@ -43,13 +44,17 @@ BEGIN
 			stk.StockLineId,
 			UPPER(ISNULL(sl.StockLineNumber, '')) AS StockLineNumber,
 			sp.FxRate,
-			CASE WHEN stk.SalesOrderStocklineId IS NOT NULL THEN stk.QtyOrder ELSE sp.QtyOrder END Qty,
+			CASE WHEN stk.SalesOrderStocklineId IS NOT NULL THEN
+				CASE WHEN ISNULL(uomStock.ShortName,'') = ISNULL(iu.ShortName,'') THEN stk.QtyOrder ELSE [dbo].[fn_ConvertUOM](stk.QtyOrder, uomStock.ShortName, iu.ShortName, 0, sp.MasterCompanyId) END
+			ELSE
+				CASE WHEN ISNULL(uomStock.ShortName,'') = ISNULL(iu.ShortName,'') THEN sp.QtyOrder ELSE [dbo].[fn_ConvertUOM](sp.QtyOrder, uomStock.ShortName, iu.ShortName, 0, sp.MasterCompanyId) END
+			END Qty,
 			sp.QtyRequested,
 			sopc.NetSaleAmount UnitSalePrice,
 			sopc.MarkUpPercentage MarkUpPercentage,
 			0 SalesBeforeDiscount,
 			sopc.DiscountPercentage Discount,
-			sopc.DiscountAmount,
+			CASE WHEN ISNULL(uomStock.ShortName,'') = ISNULL(iu.ShortName,'') THEN sopc.DiscountAmount ELSE [dbo].[fn_ConvertUOM](sopc.DiscountAmount, uomStock.ShortName, iu.ShortName, 1, sp.MasterCompanyId) END AS DiscountAmount,
 			ISNULL(CAST(sopc.NetSaleAmount AS decimal), 0) AS NetSales,
 			sp.MasterCompanyId,
 			sp.CreatedBy,
@@ -78,7 +83,7 @@ BEGIN
 			sl.IsSerialized,
 			ISNULL(sl.SerialNumber, '') AS SerialNumber,
 			ISNULL(sl.ControlNumber, '') AS ControlNumber,
-			sopc.UnitCost,
+			CASE WHEN ISNULL(uomStock.ShortName,'') = ISNULL(iu.ShortName,'') THEN sopc.UnitCost ELSE [dbo].[fn_ConvertUOM](sopc.UnitCost, uomStock.ShortName, iu.ShortName, 1, sp.MasterCompanyId) END AS UnitCost,
 			--sp.Qty * ISNULL(sp.UnitSalesPricePerUnit, 0) AS SalesPriceExtended,
 			--CONVERT(varchar, CAST(ISNULL(ISNULL(sp.QtyOrder,0) * ISNULL(sopc.NetSaleAmount, 0), 0) AS money), 1) AS SalesPriceExtended,
 			CASE WHEN stk.SalesOrderStocklineId IS NOT NULL THEN
@@ -86,12 +91,12 @@ BEGIN
 			ELSE 
 				CONVERT(varchar, CAST(ISNULL(ISNULL(sopc.NetSaleAmount, 0), 0) AS money), 1) END
 			AS SalesPriceExtended,
-			sopc.MarginAmount MarkupExtended,
-			sopc.DiscountAmount SalesDiscountExtended,
+			CASE WHEN ISNULL(uomStock.ShortName,'') = ISNULL(iu.ShortName,'') THEN sopc.MarginAmount ELSE [dbo].[fn_ConvertUOM](sopc.MarginAmount, uomStock.ShortName, iu.ShortName, 1, sp.MasterCompanyId) END MarkupExtended,
+			CASE WHEN ISNULL(uomStock.ShortName,'') = ISNULL(iu.ShortName,'') THEN sopc.DiscountAmount ELSE [dbo].[fn_ConvertUOM](sopc.DiscountAmount, uomStock.ShortName, iu.ShortName, 1, sp.MasterCompanyId) END SalesDiscountExtended,
 			sopc.NetSaleAmount NetSalePriceExtended,
 			sopc.UnitCostExtended,
-			sopc.MarginAmount,
-			sopc.MarginAmount MarginAmountExtended,
+			CASE WHEN ISNULL(uomStock.ShortName,'') = ISNULL(iu.ShortName,'') THEN sopc.MarginAmount ELSE [dbo].[fn_ConvertUOM](sopc.MarginAmount, uomStock.ShortName, iu.ShortName, 1, sp.MasterCompanyId) END AS MarginAmount,
+			CASE WHEN ISNULL(uomStock.ShortName,'') = ISNULL(iu.ShortName,'') THEN sopc.MarginAmount ELSE [dbo].[fn_ConvertUOM](sopc.MarginAmount, uomStock.ShortName, iu.ShortName, 1, sp.MasterCompanyId) END MarginAmountExtended,
 			sopc.MarginPercentage,
 			--COALESCE(currencyDisplayName, '') AS CurrencyDescription,
 			sp.ConditionId,
@@ -112,7 +117,7 @@ BEGIN
 			ISNULL(sl.QuantityAvailable, 0) AS QtyAvailable,
 			ISNULL(sl.QuantityOnHand, 0) AS QuantityOnHand,
 			UPPER(ISNULL(iu.ShortName, '')) AS UOM,
-			ISNULL(rPart.QtyToReserve, 0) AS QtyReserved,
+			CASE WHEN ISNULL(uomStock.ShortName,'') = ISNULL(iu.ShortName,'') THEN ISNULL(rPart.QtyToReserve, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(rPart.QtyToReserve, 0), uomStock.ShortName, iu.ShortName, 0, sp.MasterCompanyId) END AS QtyReserved,
 			CASE WHEN (
 				SELECT COUNT(*)
 				FROM dbo.SalesOrderQuoteApproval WITH(NOLOCK)
@@ -148,7 +153,7 @@ BEGIN
 			), 0) AS QtyToShip,
 			ISNULL(REPLACE(REPLACE(ISNULL(CASE WHEN stk.SalesOrderStocklineId IS NOT NULL THEN stk.Notes ELSE sp.Notes END,''), '<p>', ''),'</p>',''), '') AS Notes,
 			ISNULL(REPLACE(REPLACE(ISNULL(so.Notes,''), '<p>', ''),'</p>',''), '') AS NotesHeader,
-			ISNULL(sopc.MarkUpAmount, 0) AS MarkupPerUnit,
+			CASE WHEN ISNULL(uomStock.ShortName,'') = ISNULL(iu.ShortName,'') THEN ISNULL(sopc.MarkUpAmount, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(sopc.MarkUpAmount, 0), uomStock.ShortName, iu.ShortName, 1, sp.MasterCompanyId) END AS MarkupPerUnit,
 			--ISNULL(sopc.GrossSalePricePerUnit, 0) AS GrossSalePricePerUnit,
 			0 AS GrossSalePricePerUnit,
 			--ISNULL(sopc.GrossSalePrice, 0) AS GrossSalePrice,
@@ -191,9 +196,9 @@ BEGIN
 			ISNULL(rop.EstRecordDate, NULL) AS EstRecordDate,
 			--ISNULL(sp.UnitSalesPricePerUnit, 0) AS UnitSalesPricePerUnit,
 			CASE WHEN stk.SalesOrderStocklineId IS NOT NULL THEN 
-				CONVERT(varchar, CAST(ISNULL(sosc.NetSaleAmount, 0) / stk.QtyOrder AS money), 1) 
+				CONVERT(varchar, CAST(ISNULL(sosc.NetSaleAmount, 0) / NULLIF(CASE WHEN ISNULL(uomStock.ShortName,'') = ISNULL(iu.ShortName,'') THEN stk.QtyOrder ELSE [dbo].[fn_ConvertUOM](stk.QtyOrder, uomStock.ShortName, iu.ShortName, 0, sp.MasterCompanyId) END, 0) AS money), 1) 
 			ELSE
-				CONVERT(varchar, CAST(ISNULL(sopc.NetSaleAmount, 0) / sp.QtyOrder AS money), 1) END
+				CONVERT(varchar, CAST(ISNULL(sopc.NetSaleAmount, 0) / NULLIF(CASE WHEN ISNULL(uomStock.ShortName,'') = ISNULL(iu.ShortName,'') THEN sp.QtyOrder ELSE [dbo].[fn_ConvertUOM](sp.QtyOrder, uomStock.ShortName, iu.ShortName, 0, sp.MasterCompanyId) END, 0) AS money), 1) END
 			AS UnitSalesPricePerUnit,
 			ISNULL(im.ItemClassificationName, '') AS ItemClassification,
 			ISNULL(im.ItemGroup, '') AS ItemGroup,
@@ -323,6 +328,7 @@ BEGIN
 			LEFT JOIN dbo.UnitOfMeasure iu WITH(NOLOCK) ON im.ConsumeUnitOfMeasureId = iu.UnitOfMeasureId
 			LEFT JOIN dbo.SalesOrderReserveParts rPart WITH(NOLOCK) ON sp.SalesOrderPartId = rPart.SalesOrderPartId AND rPart.StockLineId = stk.StockLineId
 			LEFT JOIN dbo.UnitOfMeasure um WITH(NOLOCK) ON im.PurchaseUnitOfMeasureId = um.UnitOfMeasureId
+			LEFT JOIN dbo.UnitOfMeasure uomStock WITH(NOLOCK) ON im.StockUnitOfMeasureId = uomStock.UnitOfMeasureId
 			LEFT JOIN dbo.PurchaseOrder po WITH(NOLOCK) ON sl.PurchaseOrderId = po.PurchaseOrderId
 			LEFT JOIN dbo.RepairOrder ro WITH(NOLOCK) ON sl.RepairOrderId = ro.RepairOrderId
 			LEFT JOIN dbo.Priority pri WITH(NOLOCK) ON sp.PriorityId = pri.PriorityId

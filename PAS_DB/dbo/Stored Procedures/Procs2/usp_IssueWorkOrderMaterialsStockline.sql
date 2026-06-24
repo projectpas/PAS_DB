@@ -24,6 +24,8 @@ EXEC [usp_IssueWorkOrderMaterialsStockline]
 ** 13	04/24/2025		Devendra Shekh    Modify (Added [IsManualText] check for DistributionSetup)
 ** 14	02/02/2026		HEMANT SALIYA     Modify to Get Stockline unit cost from stockline insted of Work Order materials stockline so, latest cost will reflacts
 ** 15   27/03/2026      Moin Bloch	      Rename Internal To Internal Repair   PN-15850
+** 16   23/06/2026      Moin Bloch	      Added Teardown WO Issue Accounting Entry
+
 DECLARE @p1 dbo.ReserveWOMaterialsStocklineType
 
 insert into @p1 values(924,945,1458,79728,3,7,1,1,2,N'NEW',N'0856AE15',N'PITOT STATIC TUBE',1,0,0,1,0,0,N'CNTL-001062',N'ID_NUM-000001',N'STL-000087',N'',N'ADMIN User',1,0,0,0,0,0)
@@ -115,6 +117,7 @@ BEGIN
 					DECLARE @WOTypeId INT= 0;
 					DECLARE @CustomerWOTypeId INT= 0;
 					DECLARE @InternalWOTypeId INT= 0;
+					DECLARE @TeardownWOTypeId INT= 0;
 
 					IF OBJECT_ID(N'tempdb..#tmpIssueWOMaterialsStockline') IS NOT NULL
 					BEGIN
@@ -241,6 +244,7 @@ BEGIN
 
 					SELECT TOP 1 @CustomerWOTypeId =Id FROM dbo.WorkOrderType WITH (NOLOCK) WHERE [Description] = 'Customer'
 					SELECT TOP 1 @InternalWOTypeId =Id FROM dbo.WorkOrderType WITH (NOLOCK) WHERE [Description] = 'Internal Repair'
+					SELECT TOP 1 @TeardownWOTypeId =Id FROM dbo.WorkOrderType WITH (NOLOCK) WHERE [Description] = 'Internal Teardown'
 
 					PRINT 'Hem-1'
 
@@ -508,6 +512,18 @@ BEGIN
 							PRINT '8.1'
 						END
 
+						IF(ISNULL(@WOTypeId,0) = @TeardownWOTypeId AND ISNULL(@IsAccountByPass, 0) = 0)
+						BEGIN
+							PRINT '7'
+							IF NOT EXISTS(SELECT 1 FROM dbo.DistributionSetup WITH(NOLOCK) WHERE DistributionMasterId =@DistributionMasterId AND MasterCompanyId=@MasterCompanyId AND ISNULL(GlAccountId,0) = 0 AND ISNULL([IsManualText],0) = 0)
+							BEGIN
+								PRINT '7.1.1'
+								 INSERT INTO @WOBatchTriggerType VALUES
+								(@DistributionMasterId,@ReferenceId,@ReferencePartId,@ReferencePieceId,@InvoiceId,@StocklineId,@IssueQty,@laborType,@issued,@Amount,@ModuleName,@MasterCompanyId,@UpdateBy)
+							END
+							PRINT '7.1'
+						END
+
 						SET @slcount = @slcount + 1;
 					END;
 
@@ -539,6 +555,17 @@ BEGIN
 						END
 						PRINT '10.1'
 					END
+
+					IF(ISNULL(@WOTypeId,0) = @TeardownWOTypeId AND ISNULL(@IsAccountByPassNew, 0) = 0 AND @WOBatchCount > 0)
+					BEGIN
+						PRINT '9'
+						IF NOT EXISTS(SELECT 1 FROM dbo.DistributionSetup WITH(NOLOCK) WHERE DistributionMasterId =@DistributionMasterId AND MasterCompanyId=@MasterCompanyId AND ISNULL(GlAccountId,0) = 0 AND ISNULL([IsManualText],0) = 0)
+						BEGIN
+							EXEC [USP_BatchTriggerBasedonDistributionForWO] @WOBatchTriggerType;
+						END
+						PRINT '9.1'
+					END
+
 					/*** Same JE Changes : End ***/
 
 					SELECT * FROM #tmpIgnoredStockline

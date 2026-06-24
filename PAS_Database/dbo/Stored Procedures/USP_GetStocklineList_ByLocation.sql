@@ -160,6 +160,7 @@ BEGIN
                AND (@Location IS NULL OR @Location = '' OR stl.Location = @Location)
                AND (@Shelf IS NULL OR @Shelf = '' OR stl.Shelf = @Shelf)
                AND (@Bin IS NULL OR @Bin = '' OR stl.Bin = @Bin)
+               AND stl.QuantityOnHand > 0
          ), ResultCount AS(Select COUNT(StockLineId) AS totalItems FROM Result)        
          SELECT *,
              (SELECT TOP 1 wos.Status FROM DBO.WorkOrder wo WITH (NOLOCK) inner join DBO.WorkOrderStatus wos WITH (NOLOCK) on wo.WorkOrderStatusId=wos.Id where wo.WorkOrderId=WorkOrderId) as WorkOrderStatus,        

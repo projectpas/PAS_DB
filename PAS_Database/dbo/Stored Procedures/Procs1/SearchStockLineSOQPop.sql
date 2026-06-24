@@ -21,7 +21,7 @@
 	5    07/01/2026			Rajesh Gami		 Added MasterCompanyId Parameter While Calling UOM Conversion Function     
 	6    09/06/2026			Bhargav Saliya	 Get ShortName Of UOM   
 	7    18/06/2026         Bhargav Saliya	 Added Case For Skip UOM Function If FROM uom and TO uom Both are Same
-	8    18/06/2026         Bhargav Saliya   No need to convert UnitSalesPrice; we have save this price to consume in Stockline
+	8    18/06/2026         Bhargav Saliya   No need to convert UnitSalesPrice; it's already saved to consume in Stockline
  EXEC [dbo].[SearchStockLineSOQPop] '115640', 2, 90,-1,NULL
 **************************************************************/ 
 CREATE PROCEDURE [dbo].[SearchStockLineSOQPop]

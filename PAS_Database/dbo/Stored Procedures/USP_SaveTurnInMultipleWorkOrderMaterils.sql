@@ -12,6 +12,8 @@
 ** 3    26/03/2026      Moin Bloch	            Rename TearDown To Internal Teardown PN-15850
 ** 4    15/06/2026      Priyansh Patel	        fix issue with @TearDownWorkOrderTypeId reset in loop [PN-16840]
 ** 4    22/06/2026      Sumit Kumar	            Added Lot support for multiple stockline tendering [PN-16570]
+** 5    24/06/2026      Priyansh Patel	        Added Accounting Entries for multiple stockline tendering for teardowntype [PN-16960]
+
 	
 **************************************************************/ 
 CREATE    PROCEDURE [dbo].[USP_SaveTurnInMultipleWorkOrderMaterils]
@@ -38,7 +40,8 @@ BEGIN
 							@IsOemPNId BIGINT, @IsOEM BIT = 0, @OEMPNNumber VARCHAR(500), @count INT, @slcount INT, @IsAddUpdate BIT, @ExecuteParentChild BIT, @UpdateQuantities BIT, @IsOHUpdated BIT, @AddHistoryForNonSerialized BIT,
 							@ReferenceId BIGINT, @SubReferenceId BIGINT, @IsSerialised BIT, @ModuleId BIGINT, @SubModuleId BIGINT, @stockLineQty INT, @stockLineQtyAvailable INT, @GLAccountId INT, @IsTimeLife BIT,
 							@QtyTendered INT = 0, @QtyToTendered INT = 0, @TotalStlQtyReq INT = 0, @WorkOrderTypeId INT = 0, @TearDownWorkOrderTypeId INT = 0, @WorkOrderPartNoId BIGINT = 0, @isExchange BIT,
-							@ActionId INT = 0, @HistoryModuleId INT = 0, @WOMStockLineId BIGINT = 0, @WorkOrderMaterialsKitMappingId BIGINT = NULL, @OLDStockLineId BIGINT = 0;
+							@ActionId INT = 0, @HistoryModuleId INT = 0, @WOMStockLineId BIGINT = 0, @WorkOrderMaterialsKitMappingId BIGINT = NULL, @OLDStockLineId BIGINT = 0,
+							@DistributionMasterId BIGINT  = NULL;
 					
 					DECLARE @currentNo BIGINT, @stockLineCurrentNo BIGINT; 
 
@@ -305,6 +308,11 @@ BEGIN
 							UPDATE [dbo].[Stockline] SET [Memo] = 'This Stockline cost is updated using turn-in to work order number ' + @WorkOrderNumber + ' new stockline is ' + @StockLineNumber  
 								--,[UnitCost] -= @Unitcost, [PurchaseOrderUnitCost] -= @Unitcost  
 							WHERE [StockLineId] = @OLDStockLineId;  
+
+							   -- Teardown accounting entry
+							SELECT @DistributionMasterId = [ID] FROM [dbo].[DistributionMaster] WITH(NOLOCK) WHERE DistributionCode = 'TENDERINGSTOCKLINETWO';
+							EXEC [dbo].[USP_TearDownWOBatchTriggerBasedonDistribution] @DistributionMasterId, @WorkOrderId, @WorkOrderPartNoId,@StockLineId, @MasterCompanyId, @UpdatedBy;
+
 						END 
 
 						--: Around 4 Seconds

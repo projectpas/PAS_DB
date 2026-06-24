@@ -1,5 +1,4 @@
-﻿
-/***************************************************************************************************************************************             
+﻿/***************************************************************************************************************************************             
   ** Change History             
  ***************************************************************************************************************************************             
  ** PR   Date						 Author							Change Description              
@@ -16,6 +15,7 @@
 	10   07/11/2024              RAJESH GAMI						Latet generated PO/RFQ on the top (Generated in last 10 mins)
 	11   26/11/2024              RAJESH GAMI						Set by default SORT BY OrderNo
 	12   12/May/2026             RAJESH GAMI						Implemented : Bulk PO For Sales Order [PN-16401]
+	13   26/June/2026            RAJESH GAMI						Fixes for the LastPONumber [PN-16964]
 ****************************************************************************************************************************************/ 
 
 CREATE      PROCEDURE [dbo].[GetBulkPOProcessingList]
@@ -851,17 +851,44 @@ BEGIN
 				AND PO.IsFromBulkPO          = 1
 			;
 
-			
-			UPDATE #TEMPBulkPORecords SET [LastPurchasePrice] = ISNULL(tmpcash.[PurchaseOrderUnitCost],0),
-		                                 [LastPONumber] = ISNULL(tmpcash.[PurchaseOrderNumber],''),
-										 [LastPODate] = [EntryDate],
-										 [SerialNum] = [SerialNumber]
-			FROM (SELECT TOP 1 Stk.[PurchaseOrderUnitCost],PO.[PurchaseOrderNumber],Stk.[EntryDate],Stk.[ItemMasterId],Stk.[ConditionId],Stk.[SerialNumber]
-					FROM [dbo].[Stockline] Stk WITH (NOLOCK) 
-					JOIN #TEMPBulkPORecords temp ON temp.ItemMasterId = Stk.ItemMasterId AND temp.ConditionId = Stk.ConditionId	
-					LEFT JOIN [dbo].[PurchaseOrder] PO WITH (NOLOCK) ON Stk.PurchaseOrderId = PO.PurchaseOrderId
-					ORDER BY Stk.[CreatedDate] DESC					
-			)tmpcash WHERE tmpcash.ItemMasterId = #TEMPBulkPORecords.ItemMasterId AND tmpcash.ConditionId = #TEMPBulkPORecords.ConditionId
+			UPDATE t
+				SET t.[LastPurchasePrice] = ISNULL(tmpcash.[PurchaseOrderUnitCost], 0),
+					t.[LastPONumber]      = ISNULL(tmpcash.[PurchaseOrderNumber], ''),
+					t.[LastPODate]        = tmpcash.[EntryDate],
+					t.[SerialNum]         = tmpcash.[SerialNumber]
+				FROM #TEMPBulkPORecords t
+				JOIN (
+					SELECT 
+						Stk.[PurchaseOrderUnitCost],
+						PO.[PurchaseOrderNumber],
+						Stk.[EntryDate],
+						Stk.[ItemMasterId],
+						Stk.[ConditionId],
+						Stk.[SerialNumber],
+						ROW_NUMBER() OVER (
+							PARTITION BY Stk.ItemMasterId, Stk.ConditionId 
+							ORDER BY Stk.CreatedDate DESC
+						) AS rn
+					FROM [dbo].[Stockline] Stk WITH (NOLOCK)
+					JOIN #TEMPBulkPORecords temp 
+						ON temp.ItemMasterId = Stk.ItemMasterId 
+						AND temp.ConditionId = Stk.ConditionId
+					JOIN [dbo].[PurchaseOrder] PO WITH (NOLOCK) 
+						ON Stk.PurchaseOrderId = PO.PurchaseOrderId
+				) tmpcash 
+					ON t.ItemMasterId = tmpcash.ItemMasterId 
+					AND t.ConditionId = tmpcash.ConditionId
+					AND tmpcash.rn = 1;
+			--UPDATE #TEMPBulkPORecords SET [LastPurchasePrice] = ISNULL(tmpcash.[PurchaseOrderUnitCost],0),
+		 --                                [LastPONumber] = ISNULL(tmpcash.[PurchaseOrderNumber],''),
+			--							 [LastPODate] = [EntryDate],
+			--							 [SerialNum] = [SerialNumber]
+			--FROM (SELECT TOP 1 Stk.[PurchaseOrderUnitCost],PO.[PurchaseOrderNumber],Stk.[EntryDate],Stk.[ItemMasterId],Stk.[ConditionId],Stk.[SerialNumber]
+			--		FROM [dbo].[Stockline] Stk WITH (NOLOCK) 
+			--		JOIN #TEMPBulkPORecords temp ON temp.ItemMasterId = Stk.ItemMasterId AND temp.ConditionId = Stk.ConditionId	
+			--		JOIN [dbo].[PurchaseOrder] PO WITH (NOLOCK) ON Stk.PurchaseOrderId = PO.PurchaseOrderId
+			--		ORDER BY Stk.[CreatedDate] DESC					
+			--)tmpcash WHERE #TEMPBulkPORecords.ItemMasterId = tmpcash.ItemMasterId   AND #TEMPBulkPORecords.ConditionId = tmpcash.ConditionId
 			
 			UPDATE #TEMPBulkPORecords SET [VendorName] = CASE WHEN ISNULL(tmpcash.IsFromBulkPO,0) = 0 THEN ISNULL(tmpcash.[VendorName],'')  ELSE ISNULL(tmpcash.POVendorName,'') END,  
 			                              [VendorCode] = CASE WHEN ISNULL(tmpcash.IsFromBulkPO,0) = 0 THEN ISNULL(tmpcash.[VendorCode],'')  ELSE ISNULL(tmpcash.POVendorCode,'') END  
@@ -1692,16 +1719,44 @@ BEGIN
 					END = @filterAsStatus
 			;
 
-			UPDATE #TEMPBulkPORecords SET [LastPurchasePrice] = ISNULL(tmpcash.[PurchaseOrderUnitCost],0),
-		                                 [LastPONumber] = ISNULL(tmpcash.[PurchaseOrderNumber],''),
-										 [LastPODate] = [EntryDate],
-										 [SerialNum] = [SerialNumber]
-			FROM (SELECT TOP 1 Stk.[PurchaseOrderUnitCost],PO.[PurchaseOrderNumber],Stk.[EntryDate],Stk.[ItemMasterId],Stk.[ConditionId],Stk.[SerialNumber]
-					FROM [dbo].[Stockline] Stk WITH (NOLOCK) 
-					JOIN #TEMPBulkPORecords temp ON temp.ItemMasterId = Stk.ItemMasterId AND temp.ConditionId = Stk.ConditionId	
-					LEFT JOIN [dbo].[PurchaseOrder] PO WITH (NOLOCK) ON Stk.PurchaseOrderId = PO.PurchaseOrderId
-					ORDER BY Stk.[CreatedDate] DESC					
-			)tmpcash WHERE tmpcash.ItemMasterId = #TEMPBulkPORecords.ItemMasterId AND tmpcash.ConditionId = #TEMPBulkPORecords.ConditionId
+			UPDATE t
+					SET t.[LastPurchasePrice] = ISNULL(tmpcash.[PurchaseOrderUnitCost], 0),
+						t.[LastPONumber]      = ISNULL(tmpcash.[PurchaseOrderNumber], ''),
+						t.[LastPODate]        = tmpcash.[EntryDate],
+						t.[SerialNum]         = tmpcash.[SerialNumber]
+					FROM #TEMPBulkPORecords t
+					JOIN (
+						SELECT 
+							Stk.[PurchaseOrderUnitCost],
+							PO.[PurchaseOrderNumber],
+							Stk.[EntryDate],
+							Stk.[ItemMasterId],
+							Stk.[ConditionId],
+							Stk.[SerialNumber],
+							ROW_NUMBER() OVER (
+								PARTITION BY Stk.ItemMasterId, Stk.ConditionId 
+								ORDER BY Stk.CreatedDate DESC
+							) AS rn
+						FROM [dbo].[Stockline] Stk WITH (NOLOCK)
+						JOIN #TEMPBulkPORecords temp 
+							ON temp.ItemMasterId = Stk.ItemMasterId 
+							AND temp.ConditionId = Stk.ConditionId
+						LEFT JOIN [dbo].[PurchaseOrder] PO WITH (NOLOCK) 
+							ON Stk.PurchaseOrderId = PO.PurchaseOrderId
+					) tmpcash 
+						ON t.ItemMasterId = tmpcash.ItemMasterId 
+						AND t.ConditionId = tmpcash.ConditionId
+						AND tmpcash.rn = 1;
+			--UPDATE #TEMPBulkPORecords SET [LastPurchasePrice] = ISNULL(tmpcash.[PurchaseOrderUnitCost],0),
+		 --                                [LastPONumber] = ISNULL(tmpcash.[PurchaseOrderNumber],''),
+			--							 [LastPODate] = [EntryDate],
+			--							 [SerialNum] = [SerialNumber]
+			--FROM (SELECT TOP 1 Stk.[PurchaseOrderUnitCost],PO.[PurchaseOrderNumber],Stk.[EntryDate],Stk.[ItemMasterId],Stk.[ConditionId],Stk.[SerialNumber]
+			--		FROM [dbo].[Stockline] Stk WITH (NOLOCK) 
+			--		JOIN #TEMPBulkPORecords temp ON temp.ItemMasterId = Stk.ItemMasterId AND temp.ConditionId = Stk.ConditionId	
+			--		LEFT JOIN [dbo].[PurchaseOrder] PO WITH (NOLOCK) ON Stk.PurchaseOrderId = PO.PurchaseOrderId
+			--		ORDER BY Stk.[CreatedDate] DESC					
+			--)tmpcash WHERE tmpcash.ItemMasterId = #TEMPBulkPORecords.ItemMasterId AND tmpcash.ConditionId = #TEMPBulkPORecords.ConditionId
 			
 			UPDATE #TEMPBulkPORecords SET [VendorName] = CASE WHEN ISNULL(tmpcash.IsFromBulkPO,0) = 0 THEN ISNULL(tmpcash.[VendorName],'')  ELSE ISNULL(tmpcash.POVendorName,'') END,  
 			                              [VendorCode] = CASE WHEN ISNULL(tmpcash.IsFromBulkPO,0) = 0 THEN ISNULL(tmpcash.[VendorCode],'')  ELSE ISNULL(tmpcash.POVendorCode,'') END  

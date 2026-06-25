@@ -146,7 +146,7 @@ BEGIN
         SELECT
             @QtyShipped      = QuantityOrdered,
             @QtyRemainingNow = ISNULL(QuantityBackOrdered, 0)
-        FROM dbo.RepairOrderPart
+        FROM dbo.RepairOrderPart WITH (NOLOCK)
         WHERE RepairOrderPartRecordId = @RepairOrderPartRecordId;
 
         DECLARE @Status NVARCHAR(50) =
@@ -216,7 +216,7 @@ BEGIN
                 @PartUnitCost = ISNULL(UnitCost, 0),
                 @PartNumber   = PartNumber,
                 @PartDesc     = PartDescription
-            FROM dbo.RepairOrderPart
+            FROM dbo.RepairOrderPart WITH (NOLOCK)
             WHERE RepairOrderPartRecordId = @RepairOrderPartRecordId;
 
             /* 4a. RepairOrderCharges line on the consuming RO */
@@ -225,7 +225,7 @@ BEGIN
                 DECLARE @NextLineNum INT;
 
                 SELECT @NextLineNum = ISNULL(MAX(LineNum), 0) + 1
-                FROM dbo.RepairOrderCharges
+                FROM dbo.RepairOrderCharges WITH (NOLOCK)
                 WHERE RepairOrderId = @ConsumedRepairOrderId
                   AND IsDeleted     = 0;
 
@@ -276,8 +276,8 @@ BEGIN
             SELECT TOP 1
                 @MainStockLineId = sl.StockLineId,
                 @MainPartQty     = ISNULL(NULLIF(sl.Quantity, 0), 1)
-            FROM dbo.RepairOrderPart rop
-            JOIN dbo.StockLine sl ON sl.RepairOrderPartRecordId = rop.RepairOrderPartRecordId
+            FROM dbo.RepairOrderPart rop WITH (NOLOCK)
+            JOIN dbo.StockLine sl WITH (NOLOCK) ON sl.RepairOrderPartRecordId = rop.RepairOrderPartRecordId
             WHERE rop.RepairOrderId          = @ConsumedRepairOrderId
               AND ISNULL(rop.IsPiecePart, 0) = 0
               AND sl.IsParent                = 1
@@ -327,8 +327,8 @@ BEGIN
                     @WOMId  = wom.WorkOrderMaterialsId,
                     @WOId   = wom.WorkOrderId,
                     @WFWOId = wom.WorkFlowWorkOrderId
-                FROM dbo.WorkOrderMaterialStockLine womsl
-                JOIN dbo.WorkOrderMaterials wom
+                FROM dbo.WorkOrderMaterialStockLine womsl WITH (NOLOCK)
+                JOIN dbo.WorkOrderMaterials wom WITH (NOLOCK)
                     ON wom.WorkOrderMaterialsId = womsl.WorkOrderMaterialsId
                 WHERE womsl.StockLineId = @MainStockLineId
                   AND womsl.IsDeleted   = 0;
@@ -339,12 +339,12 @@ BEGIN
                         @WOMId  = swom.SubWorkOrderMaterialsId,
                         @WOId   = swom.WorkOrderId,
                         @WFWOId = wm.WorkFlowWorkOrderId
-                    FROM dbo.SubWorkOrderMaterialStockLine swomsl
-                    JOIN dbo.SubWorkOrderMaterials swom
+                    FROM dbo.SubWorkOrderMaterialStockLine swomsl WITH (NOLOCK)
+                    JOIN dbo.SubWorkOrderMaterials swom WITH (NOLOCK)
                         ON swom.SubWorkOrderMaterialsId = swomsl.SubWorkOrderMaterialsId
-                    JOIN dbo.SubWorkOrder swo
+                    JOIN dbo.SubWorkOrder swo WITH (NOLOCK)
                         ON swo.SubWorkOrderId = swom.SubWorkOrderId
-                    JOIN dbo.WorkOrderMaterials wm
+                    JOIN dbo.WorkOrderMaterials wm WITH (NOLOCK)
                         ON wm.WorkOrderMaterialsId = swo.WorkOrderMaterialsId
                     WHERE swomsl.StockLineId = @MainStockLineId
                       AND swomsl.IsDeleted   = 0;
@@ -357,8 +357,8 @@ BEGIN
                     @SOStocklineId = sosv1.SalesOrderStocklineId,
                     @SOPartId      = sosv1.SalesOrderPartId,
                     @SOId          = sop.SalesOrderId
-                FROM dbo.SalesOrderStocklineV1 sosv1
-                JOIN dbo.SalesOrderPartV1 sop ON sop.SalesOrderPartId = sosv1.SalesOrderPartId
+                FROM dbo.SalesOrderStocklineV1 sosv1 WITH (NOLOCK)
+                JOIN dbo.SalesOrderPartV1 sop WITH (NOLOCK) ON sop.SalesOrderPartId = sosv1.SalesOrderPartId
                 WHERE sosv1.StocklineId          = @MainStockLineId
                   AND ISNULL(sosv1.IsDeleted, 0) = 0;
 
@@ -401,10 +401,10 @@ BEGIN
             @MainStockLineId            AS MainStockLineId,
             @PiecePartCostPerUnit       AS PiecePartCostPerUnit,
             @MainPartQty                AS MainPartQty
-        FROM  dbo.PiecePartReconciliation  ppr
-        JOIN  dbo.RepairOrder  srcRO ON srcRO.RepairOrderId = ppr.SourceRepairOrderId
-        LEFT JOIN dbo.RepairOrder conRO ON conRO.RepairOrderId = ppr.ConsumedRepairOrderId
-        JOIN  dbo.StockLine    sl    ON sl.StockLineId      = ppr.StockLineId
+        FROM  dbo.PiecePartReconciliation  ppr WITH (NOLOCK)
+        JOIN  dbo.RepairOrder  srcRO WITH (NOLOCK) ON srcRO.RepairOrderId = ppr.SourceRepairOrderId
+        LEFT JOIN dbo.RepairOrder conRO WITH (NOLOCK) ON conRO.RepairOrderId = ppr.ConsumedRepairOrderId
+        JOIN  dbo.StockLine    sl WITH (NOLOCK)    ON sl.StockLineId      = ppr.StockLineId
         WHERE ppr.PiecePartReconciliationId = @NewReconciliationId;
 
         COMMIT TRANSACTION;

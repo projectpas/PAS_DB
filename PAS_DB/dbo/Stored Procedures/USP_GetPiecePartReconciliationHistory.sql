@@ -60,10 +60,10 @@ BEGIN
         ppr.CreatedDate,
         ppr.UpdatedBy,
         ppr.UpdatedDate
-    FROM  dbo.PiecePartReconciliation  ppr
-    JOIN  dbo.RepairOrderPart          rop   ON rop.RepairOrderPartRecordId = ppr.RepairOrderPartRecordId
-    JOIN  dbo.RepairOrder              srcRO ON srcRO.RepairOrderId         = ppr.SourceRepairOrderId
-    LEFT JOIN dbo.RepairOrder          conRO ON conRO.RepairOrderId         = ppr.ConsumedRepairOrderId
+    FROM  dbo.PiecePartReconciliation  ppr WITH (NOLOCK)
+    JOIN  dbo.RepairOrderPart          rop   WITH (NOLOCK) ON rop.RepairOrderPartRecordId = ppr.RepairOrderPartRecordId
+    JOIN  dbo.RepairOrder              srcRO WITH (NOLOCK) ON srcRO.RepairOrderId         = ppr.SourceRepairOrderId
+    LEFT JOIN dbo.RepairOrder          conRO WITH (NOLOCK) ON conRO.RepairOrderId         = ppr.ConsumedRepairOrderId
     WHERE ppr.RepairOrderPartRecordId = @RepairOrderPartRecordId
       AND ppr.MasterCompanyId         = @MasterCompanyId
       AND ppr.IsDeleted               = 0

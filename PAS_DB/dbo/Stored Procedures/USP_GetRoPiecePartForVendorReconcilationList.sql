@@ -65,7 +65,7 @@ BEGIN
             -- Total pieces the customer sent in
             ISNULL((
                 SELECT SUM(rcw.Quantity)
-                FROM   dbo.ReceivingCustomerWork rcw
+                FROM   dbo.ReceivingCustomerWork rcw WITH (NOLOCK)
                 WHERE  rcw.RepairOrderPartRecordId = rop.RepairOrderPartRecordId
                   AND  rcw.IsPiecePart = 1
                   AND  rcw.IsDeleted   = 0
@@ -76,13 +76,13 @@ BEGIN
 
             (
                 SELECT MIN(rsh.ShipDate)
-                FROM   dbo.RepairOrderShipping rsh
+                FROM   dbo.RepairOrderShipping rsh WITH (NOLOCK)
                 WHERE  rsh.RepairOrderId = ro.RepairOrderId
             )                                               AS DateShipped,
 
             (
                 SELECT MAX(rcw.ReceivedDate)
-                FROM   dbo.ReceivingCustomerWork rcw
+                FROM   dbo.ReceivingCustomerWork rcw WITH (NOLOCK)
                 WHERE  rcw.RepairOrderPartRecordId = rop.RepairOrderPartRecordId
                   AND  rcw.IsPiecePart = 1
                   AND  rcw.IsDeleted   = 0
@@ -96,11 +96,11 @@ BEGIN
 
             ISNULL(rop.QuantityBackOrdered, 0)              AS QuantityBackOrdered
 
-        FROM  dbo.RepairOrderPart  rop
-        JOIN  dbo.RepairOrder       ro  ON  ro.RepairOrderId   = rop.RepairOrderId
-        LEFT JOIN dbo.StockLine     sl  ON  sl.StockLineId     = rop.StockLineId
-        LEFT JOIN dbo.WorkOrder     wo  ON  wo.WorkOrderId     = rop.WorkOrderId
-        LEFT JOIN dbo.ItemMaster    im  ON  im.ItemMasterId    = rop.ItemMasterId
+        FROM  dbo.RepairOrderPart  rop WITH (NOLOCK)
+        JOIN  dbo.RepairOrder       ro WITH (NOLOCK)  ON  ro.RepairOrderId   = rop.RepairOrderId
+        LEFT JOIN dbo.StockLine     sl  WITH (NOLOCK) ON  sl.StockLineId     = rop.StockLineId
+        LEFT JOIN dbo.WorkOrder     wo  WITH (NOLOCK) ON  wo.WorkOrderId     = rop.WorkOrderId
+        LEFT JOIN dbo.ItemMaster    im  WITH (NOLOCK) ON  im.ItemMasterId    = rop.ItemMasterId
 
         WHERE rop.IsPiecePart       = 1
           AND rop.IsDeleted         = ISNULL(@IsDeleted, 0)
@@ -161,8 +161,8 @@ BEGIN
             ppr.ConsumedRepairOrderId,
             conRO.RepairOrderNumber                                              AS ConsumedByRONumber,
             CASE WHEN ppr.QtyConsumed > 0 THEN 'Consumed' ELSE 'Returned' END   AS ReconciliationStatus
-        FROM  BasePieceParts bp
-        JOIN  dbo.PiecePartReconciliation ppr
+        FROM  BasePieceParts bp WITH (NOLOCK)
+        JOIN  dbo.PiecePartReconciliation ppr WITH (NOLOCK)
               ON  ppr.RepairOrderPartRecordId = bp.RepairOrderPartRecordId
               AND ppr.IsDeleted = 0
         LEFT JOIN dbo.RepairOrder conRO
@@ -204,7 +204,7 @@ BEGIN
             CAST(NULL AS BIGINT)            AS ConsumedRepairOrderId,
             CAST(NULL AS NVARCHAR(100))     AS ConsumedByRONumber,
             'Pending'                       AS ReconciliationStatus
-        FROM  BasePieceParts bp
+        FROM  BasePieceParts bp WITH (NOLOCK)
         WHERE bp.QuantityBackOrdered > 0
     ),
 
@@ -215,9 +215,9 @@ BEGIN
     ──────────────────────────────────────────────────────────────────── */
     Combined AS
     (
-        SELECT * FROM ReconciliationRows
+        SELECT * FROM ReconciliationRows WITH (NOLOCK)
         UNION ALL
-        SELECT * FROM PendingRows
+        SELECT * FROM PendingRows WITH (NOLOCK)
     )
 
     SELECT
@@ -249,7 +249,7 @@ BEGIN
         ConsumedByRONumber,
         ReconciliationStatus,
         COUNT(1) OVER ()                AS NumberOfItems
-    FROM  Combined
+    FROM  Combined WITH (NOLOCK)
     WHERE (
         @ReconciliationStatus IS NULL
         OR ReconciliationStatus = @ReconciliationStatus

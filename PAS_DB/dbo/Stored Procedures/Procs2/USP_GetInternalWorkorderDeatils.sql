@@ -18,6 +18,7 @@
     1    05/24/2023   Subhash Saliya		Created
 	2    06/07/2023   MOIN BLOCH            REMOVED TRANSACTION AND MAKES CAPITAL RESERVED KEY WORDS  
 	3    06/07/2023   MOIN BLOCH            Added IsDeleted Flag
+       4    22/06/2026   Sumit Kumar            Selected Stockline Lot number [PN-16570]
      
 -- EXEC [USP_GetInternalWorkorderDeatils] 2940
 **************************************************************/
@@ -42,10 +43,12 @@ BEGIN
                      ,ISNULL(WOPC.LaborCost,0) AS LaborCost
                      ,ISNULL(WOPC.OtherCost,0) AS OtherCost
                      ,(Isnull(WOP.StocklineCost,0) + ISNULL(WOPC.PartsCost,0) + ISNULL(WOPC.LaborCost,0) + ISNULL(WOPC.OtherCost,0)) AS TotalCost
+                     ,L.LotNumber
                FROM [dbo].[WorkOrderPartNumber] WOP WITH(NOLOCK) 
                 LEFT JOIN [dbo].[WorkOrderMPNCostDetails] WOPC WITH(NOLOCK) ON WOP.ID = WOPC.WOPartNoId
                INNER JOIN [dbo].[ItemMaster]  IM WITH(NOLOCK) ON WOP.ItemMasterId=IM.ItemMasterId
-               INNER JOIN [dbo].[Stockline]  SL WITH(NOLOCK) ON WOP.StockLineId=SL.StockLineId AND SL.isDeleted = 0             
+               INNER JOIN [dbo].[Stockline]  SL WITH(NOLOCK) ON WOP.StockLineId=SL.StockLineId AND SL.isDeleted = 0
+               LEFT JOIN [dbo].[Lot] L WITH (NOLOCK) ON L.LotId = SL.LotId             
                WHERE WOP.ID = @WorkOrderPartNoId;
                 
 		--	END

@@ -17,6 +17,7 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    12/29/2020   Subhash Saliya Created
+	2    06/19/2026  Abhishek Jirawla  Adding IsPiecePart condition in RepairOrderPart table 
      
 --EXEC [AutoCompleteDropdownsAsset] '',1,200,'108,109,11'
 **************************************************************/
@@ -44,7 +45,7 @@ BEGIN
 						 ro.RepairOrderId as value,
                          ro.RepairOrderNumber as label
 					FROM dbo.RepairOrder ro WITH(NOLOCK) 
-                     JOIN dbo.RepairOrderPart rop WITH(NOLOCK) ON ro.RepairOrderId = rop.RepairOrderId and rop.ItemTypeId=1
+                     JOIN dbo.RepairOrderPart rop WITH(NOLOCK) ON ro.RepairOrderId = rop.RepairOrderId and rop.ItemTypeId=1 AND ISNULL(ROP.[IsPiecePart], 0) = 0
 					 JOIN dbo.ItemMaster im WITH(NOLOCK) ON im.ItemMasterId = rop.ItemMasterId
 					WHERE (ro.IsActive = 1 AND ISNULL(ro.IsDeleted,0) = 0 AND (im.ItemMasterId = @itemmasterid)
 						AND (ro.RepairOrderNumber LIKE @StartWith + '%') )
@@ -53,7 +54,7 @@ BEGIN
 			             ro.RepairOrderId as value,
                          ro.RepairOrderNumber as label
 					FROM dbo.RepairOrder ro WITH(NOLOCK) 
-                    JOIN dbo.RepairOrderPart rop WITH(NOLOCK) ON ro.RepairOrderId = rop.RepairOrderId and rop.ItemTypeId=1
+                    JOIN dbo.RepairOrderPart rop WITH(NOLOCK) ON ro.RepairOrderId = rop.RepairOrderId and rop.ItemTypeId=1 AND ISNULL(ROP.[IsPiecePart], 0) = 0
 					JOIN dbo.ItemMaster im WITH(NOLOCK) ON im.ItemMasterId = rop.ItemMasterId
 					WHERE ro.RepairOrderId IN (SELECT Item FROM DBO.SPLITSTRING(@Idlist, ','))    
 				ORDER BY RepairOrderNumber

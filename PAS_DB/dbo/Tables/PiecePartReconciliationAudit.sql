@@ -1,0 +1,23 @@
+﻿CREATE TABLE [dbo].[PiecePartReconciliationAudit] (
+    [PiecePartReconciliationAuditId] BIGINT         IDENTITY (1, 1) NOT NULL,
+    [PiecePartReconciliationId]      BIGINT         NOT NULL,
+    [RepairOrderPartRecordId]        BIGINT         NOT NULL,
+    [SourceRepairOrderId]            BIGINT         NOT NULL,
+    [ConsumedRepairOrderId]          BIGINT         NULL,
+    [StockLineId]                    BIGINT         NOT NULL,
+    [QtyShipped]                     INT            DEFAULT ((0)) NOT NULL,
+    [QtyConsumed]                    INT            DEFAULT ((0)) NOT NULL,
+    [QtyReturned]                    INT            DEFAULT ((0)) NOT NULL,
+    [QtyRemaining]                   INT            DEFAULT ((0)) NOT NULL,
+    [ReconciliationStatus]           NVARCHAR (50)  DEFAULT ('Pending') NOT NULL,
+    [Memo]                           NVARCHAR (500) NULL,
+    [MasterCompanyId]                INT            NOT NULL,
+    [CreatedBy]                      NVARCHAR (256) NOT NULL,
+    [CreatedDate]                    DATETIME       CONSTRAINT [DF_PPRA_CreatedDate] DEFAULT (getutcdate()) NOT NULL,
+    [UpdatedBy]                      NVARCHAR (256) NOT NULL,
+    [UpdatedDate]                    DATETIME       CONSTRAINT [DF_PPRA_UpdatedDate] DEFAULT (getutcdate()) NOT NULL,
+    [IsActive]                       BIT            CONSTRAINT [DF_PPRA_IsActive] DEFAULT ((1)) NOT NULL,
+    [IsDeleted]                      BIT            CONSTRAINT [DF_PPRA_IsDeleted] DEFAULT ((0)) NOT NULL,
+    CONSTRAINT [PK_PiecePartReconciliationAudit] PRIMARY KEY CLUSTERED ([PiecePartReconciliationAuditId] ASC)
+);
+

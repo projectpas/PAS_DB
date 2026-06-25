@@ -11,6 +11,7 @@
  ** PR  Date		Author			Change Description            
  ** --  --------	-------			--------------------------------          
     1	05/15/2025	VISHAL SUTHAR	Created
+	2   06/19/2026  Abhishek JirawlaAdding IsPiecePart condition in RepairOrderPart table 
 	
 EXEC GetROPackagingLabelPrint 2601, 1
 ************************************************************************/
@@ -38,7 +39,7 @@ BEGIN
 		LEFT JOIN DBO.RepairOrderPackaginSlipItems SPI WITH(NOLOCK) ON sopt.ROPickTicketId = SPI.ROPickTicketId AND SPI.RepairOrderPartId = sopt.RepairOrderPartId
 		LEFT JOIN DBO.RepairOrderPackaginSlipHeader SPB WITH(NOLOCK) ON SPB.PackagingSlipId = SPI.PackagingSlipId
 		LEFT JOIN DBO.RepairOrderShippingItem SSI WITH(NOLOCK) ON SSI.ROPickTicketId = sopt.ROPickTicketId
-		INNER JOIN RepairOrderPart sop WITH(NOLOCK) on sop.RepairOrderId = sopt.RepairOrderId AND sop.RepairOrderPartRecordId = sopt.RepairOrderPartId
+		INNER JOIN RepairOrderPart sop WITH(NOLOCK) on sop.RepairOrderId = sopt.RepairOrderId AND sop.RepairOrderPartRecordId = sopt.RepairOrderPartId AND ISNULL(SOP.[IsPiecePart], 0) = 0
 		INNER JOIN RepairOrder so WITH(NOLOCK) on so.RepairOrderId = sop.RepairOrderId
 		LEFT JOIN Stockline sl WITH(NOLOCK) on sl.StockLineId = sop.StockLineId
 		LEFT JOIN ItemMaster imt WITH(NOLOCK) on imt.ItemMasterId = sop.ItemMasterId

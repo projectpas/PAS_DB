@@ -33,6 +33,7 @@
 	20   19-SEP-2025  RAJESH GAMI	    Added return field: netSalesPricePerUnit
 	21   05-NOV-2025  RAJESH GAMI	    Added return field: TotalPartCost
 	22    20-NOV-2025  RAJESH GAMI	    Fixed TotalPartCost Issue
+	23    19/06/2026  Abhishek Jirawla	Adding IsPiecePart condition in RepairOrderPart table 
 -- EXEC [DBO].[GetSalesOrderPartView] 706,0
 **************************************************************/
 CREATE   PROCEDURE [dbo].[GetSalesOrderPartView]
@@ -224,7 +225,7 @@ BEGIN
     LEFT JOIN DBO.RepairOrder ro WITH (NOLOCK) ON qs.RepairOrderId = ro.RepairOrderId
     LEFT JOIN DBO.[Priority] pri WITH (NOLOCK) ON part.PriorityId = pri.PriorityId
     LEFT JOIN DBO.[Priority] prit WITH (NOLOCK) ON prit.PriorityId = Stk.PriorityId
-    LEFT JOIN DBO.RepairOrderPart rop WITH (NOLOCK) ON qs.RepairOrderPartRecordId = rop.RepairOrderPartRecordId
+    LEFT JOIN DBO.RepairOrderPart rop WITH (NOLOCK) ON qs.RepairOrderPartRecordId = rop.RepairOrderPartRecordId AND ISNULL(ROP.[IsPiecePart], 0) = 0
     LEFT JOIN DBO.Currency fcu WITH (NOLOCK) ON part.CurrencyId = fcu.CurrencyId AND fcu.IsActive = 1 AND fcu.IsDeleted = 0
     WHERE part.SalesOrderId = @SalesOrderId 
 	AND (@SoPartId IS NULL OR part.SalesOrderPartId = @SoPartId)

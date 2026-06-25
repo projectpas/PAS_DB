@@ -10,6 +10,7 @@
  ** PR   Date				Author  				Change Description              
  ** --   --------			-------				--------------------------------            
     1    2025-05-26		  Ayushi Patel				Created
+	2    24-06-2026       Sahdev Saliya             Added Notes [PN-16968]
 
 	exec [USP_GetVendorDataById] 4787
 *************************************************************/ 
@@ -61,6 +62,7 @@ BEGIN
             cont.countries_name AS Country,
             cont.countries_id AS CountryId,
             v.VendorParentId,
+			v.Notes,
 
             VendorClassificationNames = (
                 SELECT STRING_AGG(vc.ClassificationName, ',')

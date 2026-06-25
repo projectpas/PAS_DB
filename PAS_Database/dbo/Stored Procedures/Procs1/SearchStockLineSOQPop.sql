@@ -21,6 +21,7 @@
 	5    07/01/2026			Rajesh Gami		 Added MasterCompanyId Parameter While Calling UOM Conversion Function     
 	6    09/06/2026			Bhargav Saliya	 Get ShortName Of UOM   
 	7    18/06/2026         Bhargav Saliya	 Added Case For Skip UOM Function If FROM uom and TO uom Both are Same
+	8    18/06/2026         Bhargav Saliya   No need to convert UnitSalesPrice; it's already saved to consume in Stockline
  EXEC [dbo].[SearchStockLineSOQPop] '115640', 2, 90,-1,NULL
 **************************************************************/ 
 CREATE PROCEDURE [dbo].[SearchStockLineSOQPop]
@@ -79,7 +80,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 			,(CASE WHEN ISNULL(sl.[StockUnitOfMeasure],'') = ISNULL(sl.[ConsumeUnitOfMeasure],'') THEN ISNULL(sl.[QuantityAvailable], 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(sl.[QuantityAvailable], 0),sl.[StockUnitOfMeasure],sl.[ConsumeUnitOfMeasure],0,im.MasterCompanyId) END) AS QtyAvailable
 			,(CASE WHEN ISNULL(sl.[StockUnitOfMeasure],'') = ISNULL(sl.[ConsumeUnitOfMeasure],'') THEN ISNULL(sl.[QuantityOnHand], 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(sl.[QuantityOnHand], 0),sl.[StockUnitOfMeasure],sl.[ConsumeUnitOfMeasure],0,im.MasterCompanyId) END) AS QtyOnHand
 			,(CASE WHEN ISNULL(sl.[StockUnitOfMeasure],'') = ISNULL(sl.[ConsumeUnitOfMeasure],'') THEN ISNULL(sl.UnitCost, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(sl.UnitCost, 0),sl.[StockUnitOfMeasure],sl.[ConsumeUnitOfMeasure],1,im.MasterCompanyId) END) AS unitCost
-			,(CASE WHEN ISNULL(sl.[StockUnitOfMeasure],'') = ISNULL(sl.[ConsumeUnitOfMeasure],'') THEN ISNULL(sl.UnitSalesPrice, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(sl.UnitSalesPrice, 0),sl.[StockUnitOfMeasure],sl.[ConsumeUnitOfMeasure],1,im.MasterCompanyId) END) AS unitSalePrice
+			,sl.UnitSalesPrice AS unitSalePrice
 			,sl.TraceableToName AS TracableToName
 			,sl.OwnerName AS OwnerName
 			,sl.ObtainFromName AS ObtainFromName			

@@ -12,6 +12,7 @@
 ** 1     09-07-2025   Ayushi Patel      Created  
 ** 2     08-Dec-2025  Bhargav Saliya    Add SP [USP_UpdateVendorContact] for Updat Vendor Contact Detail
 ** 3     09-JUNE-2026  Priyansh Patel   Added Flow to create Customer if not available [PN-16747]
+** 4     24-June-2026  Sahdev Saliya    Added Notes [PN-16968]
 
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_UpdateVendor]
@@ -51,7 +52,8 @@ CREATE   PROCEDURE [dbo].[USP_UpdateVendor]
     @CountryId BIGINT,
     @IsActive BIT,
     @VendorClassificationIds TVP_BigInt READONLY,
-    @IntegrationPortalIds TVP_BigInt READONLY
+    @IntegrationPortalIds TVP_BigInt READONLY,
+	@Notes NVARCHAR(MAX) = NULL
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -106,7 +108,8 @@ BEGIN
             IsTrackScoreCard = @IsTrackScoreCard,
             IsVendorOnHold = @IsVendorOnHold,
             IsWarningRestriction = @IsWarningRestriction,
-            IsActive = @IsActive
+            IsActive = @IsActive,
+			Notes = @Notes
         WHERE VendorId = @VendorId;
 
         -- Update Vendor Shipping/Billing Address

@@ -22,6 +22,7 @@
 	6    07/01/2026   Rajesh Gami		Added MasterCompanyId Parameter While Calling UOM Conversion Function     
 	7    10/04/2026   Bhargav Saliya	Change to    [StockUnitOfMeasure] to [PurchaseUnitOfMeasure] For UnitCost and UnitPost
 	8    18/06/2026   Bhargav Saliya	Added Case For Skip UOM Function If FROMuom and TOuom Both are Same
+	9    24/06/2026   Bhargav Saliya	No need to convert UnitSalesPrice; it's already save to consume in Item Purchase and sales
  EXECUTE [SearchItemMasterByCustomerRestriction] 11, 7, 77,-1
 **************************************************************/ 
 CREATE PROCEDURE [dbo].[SearchItemMasterByCustomerRestriction]
@@ -69,7 +70,7 @@ BEGIN
 						END AS Oempmader
 					,@MappingType AS MappingType
 					,(CASE WHEN ISNULL(im.[PurchaseUnitOfMeasure],'') = ISNULL(im.[ConsumeUnitOfMeasure],'') THEN ISNULL(imps.PP_UnitPurchasePrice, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(imps.PP_UnitPurchasePrice, 0),im.[PurchaseUnitOfMeasure],im.[ConsumeUnitOfMeasure],1,im.MasterCompanyId) END) AS UnitCost
-					,(CASE WHEN ISNULL(im.[PurchaseUnitOfMeasure],'') = ISNULL(im.[ConsumeUnitOfMeasure],'') THEN ISNULL(imps.SP_CalSPByPP_UnitSalePrice, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(imps.SP_CalSPByPP_UnitSalePrice, 0),im.[PurchaseUnitOfMeasure],im.[ConsumeUnitOfMeasure],1,im.MasterCompanyId) END) AS UnitSalePrice
+					,ISNULL(imps.SP_CalSPByPP_UnitSalePrice, 0) AS UnitSalePrice
 					,(CASE WHEN ISNULL(im.[StockUnitOfMeasure],'') = ISNULL(im.[ConsumeUnitOfMeasure],'') THEN ISNULL(imps.PP_FXRatePerc, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(imps.PP_FXRatePerc, 0),im.[StockUnitOfMeasure],im.[ConsumeUnitOfMeasure],1,im.MasterCompanyId) END) AS FixRate
 					,ime.ExportECCN AS ECCN
 					,ime.HSCode AS HSCODE

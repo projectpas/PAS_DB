@@ -18,6 +18,7 @@
 	3	 16-JUL-2025        Moin Bloch   		    Added IsBatchStock And Batch Number
 	4	 20-JAN-2026        Priyansh Patel  		Added CSN, TSN, CSO, TSO fields
 	5	 24-FEB-2026        Moin Bloch   		    Added OutGoingItemMasterId And OutGoingPartNumber
+	6    23-JUN-2026		Nakul Chandigra		    Added StockUnitOfMeasureId in select (PN-16914)
  --exec dbo.getReceivingCustomerWorkById 5837
       
 **************************************************************/    
@@ -55,7 +56,8 @@ AS BEGIN
 				rc.WorkScope AS workScopeName,
 				rc.Condition,
 				im.PurchaseUnitOfMeasureId,
-				ISNULL(uom.ShortName, '') AS PurchaseUnitOfMeasure,
+				im.StockUnitOfMeasureId,
+				ISNULL(uom.ShortName, '') AS StockUnitOfMeasure,
 				rc.RemovalReasonId,
 				rc.RemovalReasons,
 				rc.RemovalReasonsMemo,
@@ -209,7 +211,7 @@ AS BEGIN
 			LEFT JOIN [dbo].[ItemGroup] ig WITH(NOLOCK) ON im.ItemGroupId = ig.ItemGroupId
 			LEFT JOIN [dbo].[WOInspectionChecklist] woi WITH(NOLOCK) ON rc.ReceivingCustomerWorkId = woi.ReceivingCustomerWorkId
 			LEFT JOIN [dbo].[ExchangeSalesOrder] eso WITH(NOLOCK) ON rc.ExchangeSalesOrderId = eso.ExchangeSalesOrderId
-			LEFT JOIN [dbo].[UnitOfMeasure] uom WITH(NOLOCK) ON im.PurchaseUnitOfMeasureId = uom.UnitOfMeasureId
+			LEFT JOIN [dbo].[UnitOfMeasure] uom WITH(NOLOCK) ON im.StockUnitOfMeasureId = uom.UnitOfMeasureId
 			LEFT JOIN [dbo].[Stockline] stk WITH(NOLOCK) ON rc.StockLineId = stk.StockLineId
 			WHERE rc.ReceivingCustomerWorkId = @ReceivingCustomerWorkId;
 

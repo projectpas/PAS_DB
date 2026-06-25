@@ -24,10 +24,11 @@
 	9	 24-FEB-2026   Moin Bloch 		    Added OutGoingItemMasterId And OutGoingPartNumber PN-15427
 	10	 09-MAR-2026   Moin Bloch 		    Added OutGoingItemMasterId And OutGoingPartNumber ON UPDATE Receiving Customer PN-15681
 	11   05-MAY-2026   Sahdev Saliya        Added CustReqDate Fiield In Update ReceivingCustomerWork Table (PN-16257)
+	12   23-JUN-2026   Nakul Chandigra		Added StockUnitOfMeasureId for StockLine insert and update operations.(PN-16914)
 
  EXECUTE [USP_GetWorkOrderPartsView] 1
 **************************************************************/ 
-CREATE   PROCEDURE [dbo].[CreateUpdateReceivingCustomerWork]  
+CREATE     PROCEDURE [dbo].[CreateUpdateReceivingCustomerWork]  
 @ReceivingCustomerWorkId [bigint] NULL,
 @MasterCompanyId [int] NULL,
 @IsRepairManagement [bit] NULL,
@@ -198,7 +199,8 @@ BEGIN
 				[CSO] [varchar](50) NULL,
 				[TSO] [varchar](50) NULL,
 				[OutGoingItemMasterId] [bigint] NULL,
-				[OutGoingPartNumber] [varchar](50) NULL
+				[OutGoingPartNumber] [varchar](50) NULL,
+				[StockUnitOfMeasureId] [bigint] NULL
 			)
 	
 		INSERT INTO #tmprReceiveCustomer ([ReceivingCustomerWorkId],[EmployeeId],[CustomerId],[ReceivingNumber],[CustomerContactId],
@@ -213,7 +215,7 @@ BEGIN
 				        [CustReqTagTypeId],[CustReqTagType],[CustReqCertTypeId],[CustReqCertType],[RepairOrderPartRecordId],[IsExchangeBatchEntry],[ShippingViaId],[EngineSerialNumber],[ShippingAccount],
 						[ShippingReference],[TimeLifeDetailsNotProvided],[PurchaseUnitOfMeasureId],[GlAccountName],[CyclesRemaining],[CyclesSinceNew],[CyclesSinceOVH],[CyclesSinceInspection],
                         [CyclesSinceRepair],[TimeRemaining],[TimeSinceNew],[TimeSinceOVH],[TimeSinceInspection],[TimeSinceRepair],[LastSinceNew],[LastSinceOVH],[LastSinceInspection],[IsSkipShippingReference],[IsBatchStock],[BatchNumber],
-						[CSN],[TSN],[CSO],[TSO],[OutGoingItemMasterId],[OutGoingPartNumber])
+						[CSN],[TSN],[CSO],[TSO],[OutGoingItemMasterId],[OutGoingPartNumber],[StockUnitOfMeasureId])
 			     SELECT [ReceivingCustomerWorkId],[EmployeeId],[CustomerId],[ReceivingNumber],[CustomerContactId],
 						[ItemMasterId],[ManufacturerId],[RevisePartId],[IsSerialized],[SerialNumber],[Quantity],[UnitCost],[ExtendedCost],[ConditionId],[SiteId],[WarehouseId],[LocationId],[ShelfId],[BinId],[OwnerTypeId],
 						[Owner],[IsCustomerStock],[TraceableToTypeId],[TraceableTo],[ObtainFromTypeId],[ObtainFrom],[IsMFGDate],[MFGDate],[MFGTrace],[MFGLotNo],[MFGBatchNo],[IsExpDate],
@@ -226,7 +228,7 @@ BEGIN
 				        [CustReqTagTypeId],[CustReqTagType],[CustReqCertTypeId],[CustReqCertType],[RepairOrderPartRecordId],[IsExchangeBatchEntry],[ShippingViaId],[EngineSerialNumber],[ShippingAccount], 
 						[ShippingReference],[TimeLifeDetailsNotProvided],[PurchaseUnitOfMeasureId],[GlAccountName],[CyclesRemaining],[CyclesSinceNew],[CyclesSinceOVH],[CyclesSinceInspection],
                         [CyclesSinceRepair],[TimeRemaining],[TimeSinceNew],[TimeSinceOVH],[TimeSinceInspection],[TimeSinceRepair],[LastSinceNew],[LastSinceOVH],[LastSinceInspection],[IsSkipShippingReference],[IsBatchStock],[BatchNumber],
-						[CSN],[TSN],[CSO],[TSO],[OutGoingItemMasterId],[OutGoingPartNumber]
+						[CSN],[TSN],[CSO],[TSO],[OutGoingItemMasterId],[OutGoingPartNumber],[StockUnitOfMeasureId]
 				   FROM @tbl_ReceivingCustomerWorkType
 
 		SELECT @TotalRecord = MIN(Quantity), @MinId = MIN(ID) FROM #tmprReceiveCustomer    
@@ -516,7 +518,7 @@ BEGIN
 						   ,[RRQty],[SubWorkOrderNumber],[IsManualEntry],[WorkOrderMaterialsKitId],[LotId],[IsLotAssigned],[LOTQty],[LOTQtyReserve],[OriginalCost],[POOriginalCost]
 						   ,[ROOriginalCost],[VendorRMAId],[VendorRMADetailId],[LotMainStocklineId],[IsFromInitialPO],[LotSourceId],[Adjustment],[SalesOrderPartId]
 						   ,[FreightAdjustment],[TaxAdjustment],[IsStkTimeLife],[SalesPriceExpiryDate],[SubWorkOrderMaterialsId],[SubWorkOrderMaterialsKitId],[EvidenceId]
-						   ,[IsGenerateReleaseForm],[ExistingCustomerId],[RepairOrderNumber],[ExistingCustomer],[QuickBooksReferenceId],[IsUpdated],[LastSyncDate], [IntegrationPortal], [IsPiecePart], [IsRepairManagement],[IsBatchStock],[BatchNumber])                       
+						   ,[IsGenerateReleaseForm],[ExistingCustomerId],[RepairOrderNumber],[ExistingCustomer],[QuickBooksReferenceId],[IsUpdated],[LastSyncDate], [IntegrationPortal], [IsPiecePart], [IsRepairManagement],[IsBatchStock],[BatchNumber],[StockUnitOfMeasureId])                       
 				     SELECT [PartNumber],@StockLineNumber,'',@ControlNumber,[ItemMasterId],1,[ConditionId],ISNULL([SerialNumber],''),						   
 						    0,NULL,[WarehouseId],[LocationId],[ObtainFrom],[Owner],[TraceableTo],[ManufacturerId],ISNULL([ManufacturerName],''),ISNULL([MFGLotNo],''),
 							[MFGDate],ISNULL([MFGBatchNo],''),ISNULL([PartCertificationNumber],''),ISNULL([CertifiedBy],''),[CertifiedDate],[TagDate],ISNULL([TagType],''),NULL,
@@ -539,7 +541,7 @@ BEGIN
 							0,'',0,NULL,NULL,NULL,0,0,0,0,
 							0,NULL,NULL,NULL,0,NULL,0,NULL,
 							0,0,ISNULL([IsTimeLife],0),NULL,NULL,NULL,NULL,
-						    0,NULL,Reference,'','',0,GETUTCDATE(), @IntegrationPortal, 0, ISNULL(@IsRepairManagement, 0),@IsBatchStock,@CSBReceiverNumber FROM #tmprReceiveCustomer WHERE ID = @MinId
+						    0,NULL,Reference,'','',0,GETUTCDATE(), @IntegrationPortal, 0, ISNULL(@IsRepairManagement, 0),@IsBatchStock,@CSBReceiverNumber,StockUnitOfMeasureId FROM #tmprReceiveCustomer WHERE ID = @MinId
 
 					SELECT @NewStocklineId = SCOPE_IDENTITY();                                                 
 					
@@ -791,6 +793,7 @@ BEGIN
 						  ,ST.[RepairOrderNumber] = TR.Reference
 						  ,ST.[IsUpdated] = 1
 						  ,ST.[LastSyncDate] = GETUTCDATE()
+						  ,ST.[StockUnitOfMeasureId] = TR.[StockUnitOfMeasureId]
 					     FROM [dbo].[Stockline] ST WITH(NOLOCK) INNER JOIN #tmprReceiveCustomer TR ON ST.[StockLineId] = TR.[StockLineId]
 				     WHERE ST.[StockLineId] = @StocklineId;
 

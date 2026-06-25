@@ -25,6 +25,7 @@
 	12   08/25/2025   Moin Bloch     Updated For Get [FormStatus]
 	13   10/10/2025   Moin Bloch     Updated For Get VersionNo & IsVersionIncrease Flag
 	14   14/10/2025   Moin Bloch     Updated For Type Wise Order
+	15   24/06/2026   Amit Ghediya   Updated For get LogBook Label data [PN-16471]
 	
 
  EXECUTE [sp_workOrderReleaseFromListData] 4655,4218
@@ -61,73 +62,134 @@ BEGIN
 
 				IF(ISNULL(@ReleaseFromId,0) = 0)
 				BEGIN
-				 SELECT 
-					   wro.[ReleaseFromId]
-					  ,wro.[WorkorderId]
-					  ,wro.[workOrderPartNoId]
-					  ,wro.[Country]
-					  ,wro.[OrganizationName]
-					  ,wro.[InvoiceNo]
-					  ,wro.[ItemName]
-					  ,CASE WHEN ISNULL(wop.RevisedItemmasterid,0) > 0 THEN  UPPER(ims.partnumber) ELSE UPPER(im.partnumber) END AS [PartNumber]
-					  ,CASE WHEN ISNULL(wop.RevisedItemmasterid,0) > 0 THEN  UPPER(ims.PartDescription) ELSE UPPER(im.PartDescription) END AS [Description]
-					  ,wro.[Reference]
-					  ,wro.[Quantity]
-					  ,CASE WHEN ISNULL(wop.RevisedSerialNumber , '') != '' THEN UPPER(wop.RevisedSerialNumber) 
-								ELSE CASE WHEN ISNULL(wro.[Batchnumber], '') != '' THEN UPPER(wro.[Batchnumber])
-									   ELSE CASE WHEN ISNULL(sl.SerialNumber,'') != '' THEN UPPER(sl.SerialNumber) ELSE '' END 
-								END
-						END AS Batchnumber
-					  ,CASE WHEN ISNULL(wop.RevisedConditionId,0) > 0 THEN C.Memo ELSE wosc.conditionName END AS [status]
-					  ,wro.[Remarks]
-					  ,wro.[Certifies]
-					  ,wro.[approved]
-					  ,wro.[Nonapproved]
-					  ,wro.[AuthorisedSign]
-					  ,UPPER(CASE WHEN wro.[is8130from] = 1 THEN le.FAALicense ELSE le.EASALicense END) AS [AuthorizationNo]
-					  ,wro.[PrintedName]
-					  ,wro.[Date]
-					  ,wro.[AuthorisedSign2]
-					  ,UPPER(CASE WHEN wro.[is8130from] = 1 THEN le.FAALicense ELSE le.EASALicense END) AS [ApprovalCertificate]
-					  ,wro.[PrintedName2]
-					  ,wro.[Date2]
-					  ,wro.[CFR]
-					  ,wro.[Otherregulation]
-					  ,wro.[MasterCompanyId]
-					  ,wro.[CreatedBy]
-					  ,wro.[UpdatedBy]
-					  ,CASE WHEN CAST(wro.CreatedDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE)THEN NULL ELSE (Cast(DBO.ConvertUTCtoLocal(wro.CreatedDate, @CurrntEmpTimeZoneDesc) AS DATE))END CreatedDate
-					  ,CASE WHEN CAST(wro.UpdatedDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE)THEN NULL ELSE (Cast(DBO.ConvertUTCtoLocal(wro.UpdatedDate, @CurrntEmpTimeZoneDesc) AS DATE))END UpdatedDate
-					  ,wro.[IsActive]
-					  ,wro.[IsDeleted]
-					  ,wro.[trackingNo]
-					  ,wro.[OrganizationAddress]
-					  ,wro.[is8130from]
-					  ,wro.[IsClosed]
+					 SELECT 
+						   wro.[ReleaseFromId]
+						  ,wro.[WorkorderId]
+						  ,wro.[workOrderPartNoId]
+						  ,wro.[Country]
+						  ,wro.[OrganizationName]
+						  ,wro.[InvoiceNo]
+						  ,wro.[ItemName]
+						  ,CASE WHEN ISNULL(wop.RevisedItemmasterid,0) > 0 THEN  UPPER(ims.partnumber) ELSE UPPER(im.partnumber) END AS [PartNumber]
+						  ,CASE WHEN ISNULL(wop.RevisedItemmasterid,0) > 0 THEN  UPPER(ims.PartDescription) ELSE UPPER(im.PartDescription) END AS [Description]
+						  ,wro.[Reference]
+						  ,wro.[Quantity]
+						  ,CASE WHEN ISNULL(wop.RevisedSerialNumber , '') != '' THEN UPPER(wop.RevisedSerialNumber) 
+									ELSE CASE WHEN ISNULL(wro.[Batchnumber], '') != '' THEN UPPER(wro.[Batchnumber])
+										   ELSE CASE WHEN ISNULL(sl.SerialNumber,'') != '' THEN UPPER(sl.SerialNumber) ELSE '' END 
+									END
+							END AS Batchnumber
+						  ,CASE WHEN ISNULL(wop.RevisedConditionId,0) > 0 THEN C.Memo ELSE wosc.conditionName END AS [status]
+						  ,wro.[Remarks]
+						  ,wro.[Certifies]
+						  ,wro.[approved]
+						  ,wro.[Nonapproved]
+						  ,wro.[AuthorisedSign]
+						  ,UPPER(CASE WHEN wro.[is8130from] = 1 THEN le.FAALicense ELSE le.EASALicense END) AS [AuthorizationNo]
+						  ,wro.[PrintedName]
+						  ,wro.[Date]
+						  ,wro.[AuthorisedSign2]
+						  ,UPPER(CASE WHEN wro.[is8130from] = 1 THEN le.FAALicense ELSE le.EASALicense END) AS [ApprovalCertificate]
+						  ,wro.[PrintedName2]
+						  ,wro.[Date2]
+						  ,wro.[CFR]
+						  ,wro.[Otherregulation]
+						  ,wro.[MasterCompanyId]
+						  ,wro.[CreatedBy]
+						  ,wro.[UpdatedBy]
+						  ,CASE WHEN CAST(wro.CreatedDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE)THEN NULL ELSE (Cast(DBO.ConvertUTCtoLocal(wro.CreatedDate, @CurrntEmpTimeZoneDesc) AS DATE))END CreatedDate
+						  ,CASE WHEN CAST(wro.UpdatedDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE)THEN NULL ELSE (Cast(DBO.ConvertUTCtoLocal(wro.UpdatedDate, @CurrntEmpTimeZoneDesc) AS DATE))END UpdatedDate
+						  ,wro.[IsActive]
+						  ,wro.[IsDeleted]
+						  ,wro.[trackingNo]
+						  ,wro.[OrganizationAddress]
+						  ,wro.[is8130from]
+						  ,wro.[IsClosed]
+						  ,wop.ReceivedDate
+						  ,wro.[islocked]
+						  ,wro.[IsEASALicense]
+						  ,CASE WHEN wro.[is8130from] = 1 THEN '8130 Certificate' ELSE '9130 Form' END AS FormType 
+						  ,wop.[ManagementStructureId]
+						  ,wro.[EmployeeId]
+						  ,wro.[FormTypeId]
+						  ,CASE WHEN wro.[FormTypeId] = 1 THEN '8130 ONLY' WHEN wro.[FormTypeId] = 2 THEN 'EASA' WHEN wro.[FormTypeId] = 3 THEN 'UK-CAA' ELSE '' END WOFormType
+						  ,wro.Is813013aeOr14ae
+						  ,CASE WHEN wro.[IsLocked] = 1 THEN 'Locked' ELSE 'Unlock' END AS [FormStatus]
+						  ,wro.[VersionNo]
+						  ,ISNULL(wro.[IsVersionIncrease],0) [IsVersionIncrease]
+						  ,0 AS [IsFromLogBook]
+					FROM [dbo].[Work_ReleaseFrom_8130] wro WITH(NOLOCK)
+						  LEFT JOIN [dbo].[WorkOrderPartNumber] wop WITH(NOLOCK) ON wro.workOrderPartNoId = wop.Id
+						  LEFT JOIN [dbo].[Stockline] sl  WITH(NOLOCK) ON sl.StockLineId = wop.StockLineId  
+						  LEFT JOIN [dbo].[ItemMaster] im  WITH(NOLOCK) ON im.ItemMasterId = wop.ItemMasterId  
+						  LEFT JOIN [dbo].[ItemMaster] ims WITH(NOLOCK) ON ims.ItemMasterId = wop.RevisedItemmasterid  
+						  LEFT JOIN [dbo].[WorkOrderSettlementDetails] wosc WITH(NOLOCK) ON wop.WorkOrderId = wosc.WorkOrderId AND wop.ID = wosc.workOrderPartNoId AND wosc.WorkOrderSettlementId = @WorkOrderSettlementId
+						  LEFT JOIN [dbo].[WorkOrderManagementStructureDetails] MSD  WITH(NOLOCK) ON MSD.ModuleID = @MSModuleId AND MSD.ReferenceID = wop.Id
+						  LEFT JOIN [dbo].[ManagementStructurelevel] MSL WITH(NOLOCK) ON MSL.ID = MSD.Level1Id
+						  LEFT JOIN [dbo].[LegalEntity]  le  WITH(NOLOCK) ON le.LegalEntityId   = MSL.LegalEntityId 
+						  LEFT JOIN [dbo].[Condition] C WITH(NOLOCK) ON C.ConditionId = wop.RevisedConditionId
+					WHERE wro.[WorkOrderId]=@WorkorderId AND wro.[workOrderPartNoId] =@workOrderPartNoId  
+						--ORDER BY [WOFormType],wro.[ReleaseFromId] DESC;
+
+					UNION ALL
+
+					SELECT
+					   lcf.[LogbookCertificateFromId] AS ReleaseFromId                                
+					  ,lcf.[WorkorderId]
+					  ,lcf.[workOrderPartNoId]
+					  ,lcf.[Country]
+					  ,lcf.[OrganizationName]
+					  ,lcf.[InvoiceNo]
+					  ,lcf.[ItemName]
+					  ,UPPER(lcf.[PartNumber]) AS [PartNumber]
+					  ,UPPER(lcf.[Description]) AS [Description]
+					  ,lcf.[Reference]
+					  ,lcf.[Quantity]
+					  ,NULL AS Batchnumber                                              
+					  ,lcf.[status] AS [status]
+					  ,lcf.[Remarks]
+					  ,lcf.[Certifies]
+					  ,NULL AS [approved]
+					  ,NULL AS [Nonapproved]
+					  ,lcf.[AuthorisedSign]
+					  ,UPPER(lcf.[AuthorizationNo]) AS [AuthorizationNo]
+					  ,lcf.[PrintedName]
+					  ,lcf.[Date]
+					  ,lcf.[AuthorisedSign2]
+					  ,UPPER(lcf.[ApprovalCertificate]) AS [ApprovalCertificate]
+					  ,lcf.[PrintedName2]
+					  ,lcf.[Date2]
+					  ,NULL AS [CFR]
+					  ,NULL AS [Otherregulation]
+					  ,lcf.[MasterCompanyId]
+					  ,lcf.[CreatedBy]
+					  ,lcf.[UpdatedBy]
+					  ,CASE WHEN CAST(lcf.CreatedDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(lcf.CreatedDate, @CurrntEmpTimeZoneDesc) AS DATE)) END CreatedDate
+					  ,CASE WHEN CAST(lcf.UpdatedDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(lcf.UpdatedDate, @CurrntEmpTimeZoneDesc) AS DATE)) END UpdatedDate
+					  ,lcf.[IsActive]
+					  ,lcf.[IsDeleted]
+					  ,NULL AS [trackingNo]
+					  ,lcf.[OrganizationAddress]
+					  ,NULL AS [is8130from]
+					  ,NULL AS [IsClosed]
 					  ,wop.ReceivedDate
-					  ,wro.[islocked]
-					  ,wro.[IsEASALicense]
-					  ,CASE WHEN wro.[is8130from] = 1 THEN '8130 Certificate' ELSE '9130 Form' END AS FormType 
+					  ,NULL AS [islocked]
+					  ,NULL AS [IsEASALicense]
+					  ,'Logbook Label' AS FormType
 					  ,wop.[ManagementStructureId]
-					  ,wro.[EmployeeId]
-					  ,wro.[FormTypeId]
-					  ,CASE WHEN wro.[FormTypeId] = 1 THEN '8130 ONLY' WHEN wro.[FormTypeId] = 2 THEN 'EASA' WHEN wro.[FormTypeId] = 3 THEN 'UK-CAA' ELSE '' END WOFormType
-				      ,wro.Is813013aeOr14ae
-					  ,CASE WHEN wro.[IsLocked] = 1 THEN 'Locked' ELSE 'Unlock' END AS [FormStatus]
-					  ,wro.[VersionNo]
-					  ,ISNULL(wro.[IsVersionIncrease],0) [IsVersionIncrease]
-				FROM [dbo].[Work_ReleaseFrom_8130] wro WITH(NOLOCK)
-				      LEFT JOIN [dbo].[WorkOrderPartNumber] wop WITH(NOLOCK) ON wro.workOrderPartNoId = wop.Id
-					  LEFT JOIN [dbo].[Stockline] sl  WITH(NOLOCK) ON sl.StockLineId = wop.StockLineId  
-					  LEFT JOIN [dbo].[ItemMaster] im  WITH(NOLOCK) ON im.ItemMasterId = wop.ItemMasterId  
-					  LEFT JOIN [dbo].[ItemMaster] ims WITH(NOLOCK) ON ims.ItemMasterId = wop.RevisedItemmasterid  
-					  LEFT JOIN [dbo].[WorkOrderSettlementDetails] wosc WITH(NOLOCK) ON wop.WorkOrderId = wosc.WorkOrderId AND wop.ID = wosc.workOrderPartNoId AND wosc.WorkOrderSettlementId = @WorkOrderSettlementId
-				      LEFT JOIN [dbo].[WorkOrderManagementStructureDetails] MSD  WITH(NOLOCK) ON MSD.ModuleID = @MSModuleId AND MSD.ReferenceID = wop.Id
-					  LEFT JOIN [dbo].[ManagementStructurelevel] MSL WITH(NOLOCK) ON MSL.ID = MSD.Level1Id
-					  LEFT JOIN [dbo].[LegalEntity]  le  WITH(NOLOCK) ON le.LegalEntityId   = MSL.LegalEntityId 
-					  LEFT JOIN [dbo].[Condition] C WITH(NOLOCK) ON C.ConditionId = wop.RevisedConditionId
-				WHERE wro.[WorkOrderId]=@WorkorderId AND wro.[workOrderPartNoId] =@workOrderPartNoId  
-					ORDER BY [WOFormType],wro.[ReleaseFromId] DESC
+					  ,lcf.[EmployeeId]
+					  ,CASE WHEN ISNULL(lcf.IsAircraftLogBook,0) > 0 THEN 4 ELSE 5 END AS [FormTypeId]
+					  ,CASE WHEN ISNULL(lcf.IsAircraftLogBook,0) > 0 THEN 'Aircraft Logbook Label' ELSE 'Engine Logbook Label' END AS WOFormType
+					  ,NULL AS Is813013aeOr14ae
+					  ,NULL AS [FormStatus]
+					  ,NULL AS [VersionNo]
+					  ,NULL AS [IsVersionIncrease]
+					  ,1 AS [IsFromLogBook]
+					FROM [dbo].[Work_LogbookCertificateFrom] lcf WITH(NOLOCK)
+						  LEFT JOIN [dbo].[WorkOrderPartNumber] wop WITH(NOLOCK) ON wop.Id = lcf.workOrderPartNoId
+					WHERE lcf.[WorkorderId] = @WorkorderId AND lcf.[workOrderPartNoId] = @workOrderPartNoId
+ 
+					ORDER BY [CreatedDate] DESC   
 				END
 				ELSE
 				BEGIN
@@ -186,6 +248,7 @@ BEGIN
 					  ,CASE WHEN wro.[IsLocked] = 1 THEN 'Locked' ELSE 'Unlock' END AS [FormStatus]
 					  ,wro.[VersionNo]
 					  ,ISNULL(wro.[IsVersionIncrease],0) [IsVersionIncrease]
+					  ,0 AS [IsFromLogBook]
 				FROM [dbo].[Work_ReleaseFrom_8130] wro WITH(NOLOCK)
 				      LEFT JOIN [dbo].[WorkOrderPartNumber] wop WITH(NOLOCK) ON wro.workOrderPartNoId = wop.Id
 					  LEFT JOIN [dbo].[Stockline] sl  WITH(NOLOCK) ON sl.StockLineId = wop.StockLineId  
@@ -198,8 +261,70 @@ BEGIN
 					  LEFT JOIN [dbo].[Condition] C WITH(NOLOCK) ON C.ConditionId = wop.RevisedConditionId
 				WHERE wro.[WorkOrderId]=@WorkorderId 
 				  AND wro.[workOrderPartNoId] =@workOrderPartNoId 
-				  AND wro.[ReleaseFromId] = @ReleaseFromId				 
-				  ORDER BY [WOFormType],wro.[ReleaseFromId] DESC
+				  AND wro.[ReleaseFromId] = @ReleaseFromId		
+				  
+				  UNION ALL
+
+				SELECT
+					   lcf.[LogbookCertificateFromId] AS ReleaseFromId                                  
+					  ,lcf.[WorkorderId]
+					  ,lcf.[workOrderPartNoId]
+					  ,lcf.[Country]
+					  ,lcf.[OrganizationName]
+					  ,lcf.[InvoiceNo]
+					  ,lcf.[ItemName]
+					  ,UPPER(lcf.[PartNumber]) AS [PartNumber]
+					  ,UPPER(lcf.[Description]) AS [Description]
+					  ,lcf.[Reference]
+					  ,lcf.[Quantity]
+					  ,NULL AS Batchnumber                                              
+					  ,lcf.[status] AS [status]
+					  ,lcf.[Remarks]
+					  ,lcf.[Certifies]
+					  ,NULL AS [approved]
+					  ,NULL AS [Nonapproved]
+					  ,lcf.[AuthorisedSign]
+					  ,UPPER(lcf.[AuthorizationNo]) AS [AuthorizationNo]
+					  ,lcf.[PrintedName]
+					  ,lcf.[Date]
+					  ,lcf.[AuthorisedSign2]
+					  ,UPPER(lcf.[ApprovalCertificate]) AS [ApprovalCertificate]
+					  ,lcf.[PrintedName2]
+					  ,lcf.[Date2]
+					  ,NULL AS [CFR]
+					  ,NULL AS [Otherregulation]
+					  ,lcf.[MasterCompanyId]
+					  ,lcf.[CreatedBy]
+					  ,lcf.[UpdatedBy]
+					  ,CASE WHEN CAST(lcf.CreatedDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(lcf.CreatedDate, @CurrntEmpTimeZoneDesc) AS DATE)) END CreatedDate
+					  ,CASE WHEN CAST(lcf.UpdatedDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL ELSE (CAST(DBO.ConvertUTCtoLocal(lcf.UpdatedDate, @CurrntEmpTimeZoneDesc) AS DATE)) END UpdatedDate
+					  ,lcf.[IsActive]
+					  ,lcf.[IsDeleted]
+					  ,NULL AS [trackingNo]
+					  ,lcf.[OrganizationAddress]
+					  ,NULL AS [is8130from]
+					  ,NULL AS [IsClosed]
+					  ,wop.ReceivedDate
+					  ,NULL AS [islocked]
+					  ,NULL AS [IsEASALicense]
+					  ,'Logbook Certificate Label' AS FormType
+					  ,wop.[ManagementStructureId]
+					  ,lcf.[EmployeeId]
+					  ,CASE WHEN ISNULL(lcf.IsAircraftLogBook,0) > 0 THEN 4 ELSE 5 END AS [FormTypeId]
+					  ,CASE WHEN ISNULL(lcf.IsAircraftLogBook,0) > 0 THEN 'Aircraft Logbook Label' ELSE 'Engine Logbook Label' END AS WOFormType
+					  ,NULL AS Is813013aeOr14ae
+					  ,NULL AS [FormStatus]
+					  ,NULL AS [VersionNo]
+					  ,NULL AS [IsVersionIncrease]
+					  ,1 AS [IsFromLogBook]
+				FROM [dbo].[Work_LogbookCertificateFrom] lcf WITH(NOLOCK)
+					  LEFT JOIN [dbo].[WorkOrderPartNumber] wop WITH(NOLOCK) ON wop.Id = lcf.workOrderPartNoId
+				WHERE lcf.[WorkorderId] = @WorkorderId
+				  AND lcf.[workOrderPartNoId] = @workOrderPartNoId
+				  AND lcf.[LogbookCertificateFromId] = @ReleaseFromId
+
+				ORDER BY [CreatedDate] DESC
+				  --ORDER BY [WOFormType],wro.[ReleaseFromId] DESC
 				END
 		END TRY    
 		BEGIN CATCH      

@@ -18,7 +18,7 @@
 	6    19/08/2025   Moin Bloch    Added Percent value for view
 	7    15/May/2026   Bhargav Saliya	UOM Changes [PN-15067]
 	9    18/06/2026   Bhargav Saliya	Added Case For Skip UOM Function If FROM uom and TO uom Both are Same
-
+	10   25/06/2026   Bhargav Saliya    So Incoice View UOM Changes 
 --   EXEC [dbo].[USP_GetCommonBillingInvoicingItems] 20070,15
 ********************************************************************************************/
 CREATE PROCEDURE [dbo].[USP_GetCommonBillingInvoicingItems]

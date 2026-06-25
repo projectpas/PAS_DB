@@ -11,6 +11,7 @@
  ** --   --------			-------				--------------------------------            
     1    2025-05-26		  Ayushi Patel				Created
 	2    2026-04-22		  Moin Bloch				Added QuickBooksReferenceId PN-16009
+    3    25-06-2026       Sahdev Saliya             Added Notes [PN-16968]
 
 	exec [USP_GetVendorDataById] 4787
 *************************************************************/ 
@@ -62,6 +63,7 @@ BEGIN
             cont.countries_name AS Country,
             cont.countries_id AS CountryId,
             v.VendorParentId,
+			v.Notes,
 
             VendorClassificationNames = (
                 SELECT STRING_AGG(vc.ClassificationName, ',')
@@ -104,6 +106,7 @@ BEGIN
         LEFT JOIN [dbo].[Countries] cont WITH (NOLOCK) ON ad.CountryId = cont.countries_id
         LEFT JOIN [dbo].[VendorType] vt WITH (NOLOCK) ON v.VendorTypeId = vt.VendorTypeId
         LEFT JOIN [dbo].[Vendor] vp1 WITH (NOLOCK) ON v.VendorParentId = vp1.VendorId
+
         WHERE v.VendorId = @VendorId
 
     END TRY

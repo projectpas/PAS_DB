@@ -127,6 +127,7 @@ BEGIN
                  stl.LotNumber,
                  Stl.Site,
                  Stl.SiteId,
+                 Stl.Warehouse,
                  stl.CustomerName 'CustomerName',
                  ISNULL(stl.CustomerId,0) as CustomerId,
                  '' as WorkOrderStage,

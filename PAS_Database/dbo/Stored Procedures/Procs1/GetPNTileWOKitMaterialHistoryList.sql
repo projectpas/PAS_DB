@@ -84,9 +84,23 @@ BEGIN
 					--WOMS.QtyReserved AS ResQty,
 					--WOMS.QtyIssued AS IssueQty,
 					--WOMS.UnitCost,
-					[dbo].[fn_ConvertUOM](WOMS.QtyReserved, IM.StockUnitOfMeasure, IM.ConsumeUnitOfMeasure, 0, IM.MasterCompanyId) AS ResQty,
-					[dbo].[fn_ConvertUOM](WOMS.QtyIssued, IM.StockUnitOfMeasure, IM.ConsumeUnitOfMeasure, 0, IM.MasterCompanyId) AS IssueQty,
-					[dbo].[fn_ConvertUOM](WOMS.UnitCost, IM.StockUnitOfMeasure, IM.ConsumeUnitOfMeasure, 1, IM.MasterCompanyId) AS UnitCost,
+					CASE 
+						WHEN ISNULL(IM.StockUnitOfMeasure,'') = ISNULL(IM.ConsumeUnitOfMeasure,'')
+							THEN WOMS.QtyReserved
+						ELSE [dbo].[fn_ConvertUOM](WOMS.QtyReserved, IM.StockUnitOfMeasure, IM.ConsumeUnitOfMeasure, 0, IM.MasterCompanyId)
+					END AS ResQty,
+
+					CASE 
+						WHEN ISNULL(IM.StockUnitOfMeasure,'') = ISNULL(IM.ConsumeUnitOfMeasure,'')
+							THEN WOMS.QtyIssued
+						ELSE [dbo].[fn_ConvertUOM](WOMS.QtyIssued, IM.StockUnitOfMeasure, IM.ConsumeUnitOfMeasure, 0, IM.MasterCompanyId)
+					END AS IssueQty,
+
+					CASE 
+						WHEN ISNULL(IM.StockUnitOfMeasure,'') = ISNULL(IM.ConsumeUnitOfMeasure,'')
+							THEN WOMS.UnitCost
+						ELSE [dbo].[fn_ConvertUOM](WOMS.UnitCost, IM.StockUnitOfMeasure, IM.ConsumeUnitOfMeasure, 1, IM.MasterCompanyId)
+					END AS UnitCost,
 					WOMS.ExtendedCost AS ExtendedUnitCost,
 					Stk.StockLineNumber AS StocklineNum,
 					Stk.ControlNumber AS ControlNum,

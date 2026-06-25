@@ -275,7 +275,7 @@ BEGIN
 						@TraceableTo, @TraceableToName, @Memo, @WorkOrderId, @WorkOrderNumber, @ManufacturerId, @InspectedById, @InspectedDate, @ReceiverNumber, 1, 0,0,0,0,0,0,0,0,0,@WorkOrderPartNoId,  
 						@ReceivedDate, @ManagementStructureId, @SiteId, @WarehouseId, @LocationId, @ShelfId, @BinId, @UpdatedBy, @UpdatedBy, GETUTCDATE(),GETUTCDATE(),1,0, @MasterCompanyId, 1,  
 						@IsOEM,@IsPMA, @IsDER,@IsOemPNId, @OEMPNNumber,@GLAccountId, @IsTimeLife,@EvidenceId,
-						@SourceLotId, CASE WHEN ISNULL(@SourceLotId, 0) > 0 THEN 1 ELSE 0 END, @Quantity); -- Lot support values
+						NULLIF(@SourceLotId, 0), CASE WHEN ISNULL(@SourceLotId, 0) > 0 THEN 1 ELSE 0 END, CASE WHEN ISNULL(@SourceLotId, 0) > 0 THEN @Quantity ELSE NULL END); -- Lot support values
        
 						SELECT @StockLineId = SCOPE_IDENTITY();
 

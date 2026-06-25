@@ -13,8 +13,9 @@
  ** --   --------		-------			--------------------------------          
     1    05-06-2026     Moin Bloch   	Created
 	2    19-06-2026     Moin Bloch      Fixed Error Log Errors PN-16924
+	3    19-06-2026     Moin Bloch      Fixed Error Log Errors PN-16924
 
- EXECUTE [USP_SaveCustomerAging] 
+ EXECUTE [USP_SaveCustomerAging] 13617,'DivyesXero','C000278','2026-06-06 11:49:55.8000000',0,2982.000000,2982.000000,1,'ADMIN User','ADMIN User'
 **************************************************************/
 CREATE PROCEDURE [dbo].[USP_SaveCustomerAging]
 @CustomerId        BIGINT,
@@ -38,7 +39,8 @@ BEGIN
         DECLARE @CreditTermsId  INT             = NULL,
                 @CreditTermName VARCHAR(50)     = NULL,
                 @NetDays        TINYINT         = NULL,
-                @CreditLimit    DECIMAL(18,2)   = NULL;
+                @CreditLimit    DECIMAL(18,2)   = NULL,
+				@AsOfDateOnly DATE = CAST(@AsOfDate AS DATE);
 
         SELECT  @CreditTermsId  = CF.[CreditTermsId],
                 @CreditTermName = CT.[Name],
@@ -53,7 +55,7 @@ BEGIN
           AND CST.[IsDeleted]       = 0;
 
         -- Only INSERT if record does not already exist
-        IF NOT EXISTS (SELECT 1 FROM [dbo].[CustomerAging] WITH(NOLOCK) WHERE [CustomerId] = @CustomerId AND [AsOfDate] = @AsOfDate AND [MasterCompanyId] = @MasterCompanyId)
+        IF NOT EXISTS (SELECT 1 FROM [dbo].[CustomerAging] WITH(NOLOCK) WHERE [CustomerId] = @CustomerId AND [AsOfDate] = @AsOfDateOnly AND [MasterCompanyId] = @MasterCompanyId)
         BEGIN
             INSERT INTO [dbo].[CustomerAging] (
                 [CustomerId],       [CustomerName],     [CustomerCode],
@@ -68,7 +70,7 @@ BEGIN
             VALUES (
                 @CustomerId,        @CustomerName,      @CustomerCode,
                 @CreditTermsId,     @CreditTermName,    @NetDays,
-                @CreditLimit,       @AsOfDate,          @TotalInvoices,
+                @CreditLimit,       @AsOfDateOnly,          @TotalInvoices,
                 @TotalOutstanding,  @CurrentAmount,
                 @CurrentAmount,     0,                  0,
                 0,                  0,

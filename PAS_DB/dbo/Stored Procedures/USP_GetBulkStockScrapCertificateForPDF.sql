@@ -15,6 +15,8 @@
  ** --   --------       -----------				--------------------------------            
     1    16/06/2026     Moin Bloch			Created
 	2    22/06/2026     Moin Bloch			Added More Fields PN-16955
+	3    24/06/2026     Moin Bloch			Added Customer Field PN-16973
+	
        
 -- EXEC USP_GetBulkStockScrapCertificateForPDF 1
   
@@ -57,7 +59,7 @@ BEGIN
         ISNULL(certEmp.FirstName + ' ' + certEmp.LastName, '') AS CertifiedBy,
 		ISNULL(sl.ControlNumber,'') AS ControlNumber,
 		ISNULL(bs.BulkStkLineAdjNumber,'') AS BulkStkLineAdjNumber,
-		'' AS CustomerName,
+		ISNULL(cst.[Name], '')              AS CustomerName,
 		CASE WHEN sl.PurchaseOrderId > 0 THEN po.PurchaseOrderNumber 
 		     WHEN sl.RepairOrderId > 0   THEN ro.RepairOrderNumber 
 			 ELSE '' END RefrenceNum,		
@@ -76,6 +78,7 @@ BEGIN
     LEFT JOIN [dbo].[Employee]    certEmp               WITH(NOLOCK) ON certEmp.EmployeeId =   c.CertifiedById
 	LEFT JOIN [dbo].[PurchaseOrder]  po                 WITH(NOLOCK) ON sl.PurchaseOrderId =   po.PurchaseOrderId
 	LEFT JOIN [dbo].[RepairOrder]    ro                 WITH(NOLOCK) ON sl.RepairOrderId =     ro.RepairOrderId
+	LEFT JOIN [dbo].[Customer]    cst                   WITH(NOLOCK) ON sl.CustomerId    =     cst.CustomerId
     WHERE c.BulkStockScrapCertificateId = @BulkStockScrapCertificateId
       AND c.IsDeleted = 0;
 	

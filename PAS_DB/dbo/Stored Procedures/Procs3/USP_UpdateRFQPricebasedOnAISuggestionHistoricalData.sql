@@ -14,6 +14,7 @@
  ** --   --------     -------		--------------------------------          
     1    30/06/2025   HEMANT SALIYA    Created (Update RFQ Price Details based on AI suggestions)
 	2    19/06/2026   Moin Bloch       Fixed Error Log Errors PN-16924
+	3    24/06/2026   Moin Bloch       Fixed Error Log Errors PN-16924
 
 EXEC USP_UpdateRFQPricebasedOnAISuggestionHistoricalData '','',1
 **************************************************************/ 
@@ -34,7 +35,7 @@ BEGIN
 		DECLARE @MasterLoopID INT = 0,
 				--@PartNumber NVARCHAR(200) = '0856AE15',
 				@CustomerRfqId BIGINT = 0,
-				@RfqId BIGINT = 0,
+				@RfqId NVARCHAR(400) = NULL,
 				@Condition VARCHAR(256),
 				@ConditionId BIGINT,
 				@CustomerRfqQuoteId BIGINT = 0,
@@ -61,7 +62,7 @@ BEGIN
 		(
 			ID BIGINT NOT NULL IDENTITY, 
 			CustomerRfqId BIGINT NULL,
-			RfqId BIGINT NULL,
+			RfqId NVARCHAR(400) NULL,
 			Condition VARCHAR(256),
 			PartNumber VARCHAR(200) NULL,
 			BuyerCompanyName VARCHAR(200) NULL,

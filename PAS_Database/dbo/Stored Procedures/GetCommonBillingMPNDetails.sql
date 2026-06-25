@@ -32,6 +32,7 @@
 	20   14/05/2026   Bhargav Saliya	Added UOM Changes [PN-15067]
 	21   05/JUNE/2026 Rajesh Gami		Skip the IsFinishGood = 1 condition when the Work Order type is Teardown.[PN-16719]
 	22    18/06/2026   Bhargav Saliya	Added Case For Skip UOM Function If FROM uom and TO uom Both are Same
+	23    19/06/2026   Bhargav Saliya	Revert UOM Changes For NetSalesPrice and Added Decimal(18,6) 
 
 --  EXEC [dbo].[GetCommonBillingMPNDetails] 926,1166,'1166',10,0,1
     EXEC [dbo].[GetCommonBillingMPNDetails] 1162,1830,'1830',10,1,0
@@ -56,13 +57,13 @@ BEGIN
 		SELECT @WOModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'WorkOrder';
 		SELECT @SOModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'SalesOrder';
 		SELECT @EXModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'ExchangeSalesOrder';
-		DECLARE @SoFreightBillingMethodId INT = 0, @SoChargesBillingMethodId INT = 0, @SoTotalCharges DECIMAL(10,2) = 0, @SoTotalFreight DECIMAL(10,2) = 0,@itemProformaGrandTotal DECIMAL(10,6) = 0
+		DECLARE @SoFreightBillingMethodId INT = 0, @SoChargesBillingMethodId INT = 0, @SoTotalCharges DECIMAL(18,6) = 0, @SoTotalFreight DECIMAL(18,6) = 0,@itemProformaGrandTotal DECIMAL(18,6) = 0
 		DECLARE @TotalRecords INT = 0,@MinId INT = 1,@WorkOrderMPNMSModuleEnum INT=12   			 
 		DECLARE @ID BIGINT = 0, @CustomerId BIGINT = 0,@MasterCompanyId INT = 0;			
 		DECLARE @Partnumber VARCHAR(50)='',@ManufacturerName VARCHAR(250)='',@PartDescription NVARCHAR(MAX)='',@SerialNumber VARCHAR(100)=''
-		DECLARE @WorkFlowWorkOrderId BIGINT = 0, @BillingInvoicingId BIGINT = 0, @BillingInvoicingItemId BIGINT = 0, @LabourCost DECIMAL(18,2) = 0,@UnitCostExt DECIMAL(18,6) = 0,@UnitSalesPrice DECIMAL(18,6) = 0, @UnitCost DECIMAL(18,6) = 0,@PartsCost DECIMAL(18,6) = 0, @MicCharges DECIMAL(18,2) = 0, @FreightCost DECIMAL(18,2) = 0;
-		DECLARE @MarkUpPercentage  DECIMAL(18,2) = 0,@DiscountPercentage  DECIMAL(18,2) = 0, @MarkUpAmount  DECIMAL(18,6) = 0,@DiscountAmount  DECIMAL(18,6) = 0
-		DECLARE @TotalCost DECIMAL(18,6) = 0, @SalesTax DECIMAL(18,2) = 0, @OtherTax DECIMAL(18,2) = 0, @SalesTaxPercent BIGINT = 0, @OtherTaxPercent BIGINT = 0, @SalesTaxAmount DECIMAL(18,6) = 0, @OtherTaxAmount DECIMAL(18,6) = 0, @GrandTotal DECIMAL(18,6) = 0;
+		DECLARE @WorkFlowWorkOrderId BIGINT = 0, @BillingInvoicingId BIGINT = 0, @BillingInvoicingItemId BIGINT = 0, @LabourCost DECIMAL(18,6) = 0,@UnitCostExt DECIMAL(18,6) = 0,@UnitSalesPrice DECIMAL(18,6) = 0, @UnitCost DECIMAL(18,6) = 0,@PartsCost DECIMAL(18,6) = 0, @MicCharges DECIMAL(18,6) = 0, @FreightCost DECIMAL(18,6) = 0;
+		DECLARE @MarkUpPercentage  DECIMAL(18,6) = 0,@DiscountPercentage  DECIMAL(18,6) = 0, @MarkUpAmount  DECIMAL(18,6) = 0,@DiscountAmount  DECIMAL(18,6) = 0
+		DECLARE @TotalCost DECIMAL(18,6) = 0, @SalesTax DECIMAL(18,6) = 0, @OtherTax DECIMAL(18,6) = 0, @SalesTaxPercent BIGINT = 0, @OtherTaxPercent BIGINT = 0, @SalesTaxAmount DECIMAL(18,6) = 0, @OtherTaxAmount DECIMAL(18,6) = 0, @GrandTotal DECIMAL(18,6) = 0;
 		DECLARE @WorkOrderTypeId INT=0,@AllowInvoiceBeforeShipping BIT=0,@WorkOrderShippingId BIGINT = 0 , @InvoiceStatusName varchar(50)='';
 		DECLARE @InvoiceStatusId BIGINT=0,@WorkOrderQuoteStatusId INT=0
 		
@@ -245,8 +246,8 @@ BEGIN
 			ELSE
 			BEGIN
 				INSERT INTO #TempCommonPartNumberDetailsForBilling([ReferenceId],[SubReferenceId],[ItemMasterId],[StockLineId],[ConditionId],[ConditionName],[PartNumber],[PartDescription],[ManufacturerName],[SerialNumber]) 
-															   SELECT wop.[WorkOrderId],wop.[ID],wop.[ItemMasterId],wop.[StockLineId],wop.[ConditionId],
-															   CASE WHEN Boi.[ConditionId] IS NOT NULL THEN 
+																   SELECT wop.[WorkOrderId],wop.[ID],wop.[ItemMasterId],wop.[StockLineId],wop.[ConditionId],
+																   CASE WHEN Boi.[ConditionId] IS NOT NULL THEN 
 						(SELECT TOP 1 CASE WHEN c.[Memo] <> '' THEN c.[Memo] ELSE c.[Code] END FROM  [dbo].[Condition] c WITH(NOLOCK) 
 						   WHERE c.[ConditionId] = Boi.[ConditionId] AND c.[MasterCompanyId] = Boi.[MasterCompanyId])
 						WHEN WOS.[WorkOrderSettlementId] IS NOT NULL THEN WOS.[conditionName]
@@ -295,8 +296,8 @@ BEGIN
 				CREATE TABLE #SalesTaxAndOtherTaxDetails
 				(
 					[ID] BIGINT NOT NULL IDENTITY,
-					[SalesTax] DECIMAL(18,2) NULL,
-					[OtherTax]  DECIMAL(18,2) NULL				
+					[SalesTax] DECIMAL(18,6) NULL,
+					[OtherTax]  DECIMAL(18,6) NULL				
 				)				
 
 				SELECT @ID = [SubReferenceId] FROM #TempCommonPartNumberDetailsForBilling WHERE [PKID] = @MinId;	
@@ -398,11 +399,11 @@ BEGIN
 				ELSE
 				BEGIN
 					DECLARE @QuoteMethod BIT = 0; 
-					DECLARE @FlatRate DECIMAL(18,2) = 0;
-					DECLARE @MaterialFlatBillingAmount DECIMAL(18,2) = 0;
-					DECLARE @LaborFlatBillingAmount    DECIMAL(18,2) = 0;
-					DECLARE @ChargesFlatBillingAmount  DECIMAL(18,2) = 0;
-					DECLARE @FreightFlatBillingAmount  DECIMAL(18,2) = 0;
+					DECLARE @FlatRate DECIMAL(18,6) = 0;
+					DECLARE @MaterialFlatBillingAmount DECIMAL(18,6) = 0;
+					DECLARE @LaborFlatBillingAmount    DECIMAL(18,6) = 0;
+					DECLARE @ChargesFlatBillingAmount  DECIMAL(18,6) = 0;
+					DECLARE @FreightFlatBillingAmount  DECIMAL(18,6) = 0;
 
 					SELECT 
 					 @PartNumber = IM.[PartNumber],					
@@ -628,8 +629,8 @@ BEGIN
 							@MarkUpAmount=  SUM(CASE WHEN ISNULL(sl.StockUnitOfMeasure,'') = ISNULL(sl.ConsumeUnitOfMeasure,'') THEN ISNULL(ssc.MarkUpAmount, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(ssc.MarkUpAmount, 0),sl.StockUnitOfMeasure, SL.ConsumeUnitOfMeasure,1,@MasterCompanyId) END),
 							@DiscountAmount =  SUM(CASE WHEN ISNULL(sl.StockUnitOfMeasure,'') = ISNULL(sl.ConsumeUnitOfMeasure,'') THEN ISNULL(ssc.DiscountAmount, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(ssc.DiscountAmount, 0),sl.StockUnitOfMeasure, SL.ConsumeUnitOfMeasure,1,@MasterCompanyId) END),
 							@UnitSalesPrice=  SUM(CASE WHEN ISNULL(sl.StockUnitOfMeasure,'') = ISNULL(sl.ConsumeUnitOfMeasure,'') THEN ISNULL(ssc.UnitSalesPrice, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(ssc.UnitSalesPrice, 0),sl.StockUnitOfMeasure, SL.ConsumeUnitOfMeasure,1,@MasterCompanyId) END),
-							@UnitCost = SUM(CASE WHEN ISNULL(sl.StockUnitOfMeasure,'') = ISNULL(sl.ConsumeUnitOfMeasure,'') THEN ISNULL(ssc.NetSaleAmount, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(ssc.NetSaleAmount, 0),sl.StockUnitOfMeasure, SL.ConsumeUnitOfMeasure,1,@MasterCompanyId) END),
-							@UnitCostExt = SUM(CASE WHEN ISNULL(sl.StockUnitOfMeasure,'') = ISNULL(sl.ConsumeUnitOfMeasure,'') THEN ISNULL(ssc.NetSaleAmount, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(ssc.NetSaleAmount, 0),sl.StockUnitOfMeasure, SL.ConsumeUnitOfMeasure,1,@MasterCompanyId) END)
+							@UnitCost = SUM(CASE WHEN ISNULL(sl.StockUnitOfMeasure,'') = ISNULL(sl.ConsumeUnitOfMeasure,'') THEN (ISNULL(ssc.NetSaleAmount, 0) / NULLIF(stk.QtyOrder, 1)) ELSE [dbo].[fn_ConvertUOM]((ISNULL(ssc.NetSaleAmount, 0) / NULLIF(stk.QtyOrder, 1)),sl.StockUnitOfMeasure, SL.ConsumeUnitOfMeasure,1,@MasterCompanyId) END),
+							@UnitCostExt = SUM(ISNULL(ssc.NetSaleAmount, 0))
 						FROM dbo.SalesOrderStocklineCost ssc
 							INNER JOIN dbo.SalesOrderStocklineV1 stk WITH(NOLOCK) on ssc.SalesOrderPartId = stk.SalesOrderPartId and ssc.SalesOrderStocklineId = stk.SalesOrderStocklineId
 							LEFT JOIN dbo.Stockline sl with(nolock) on sl.StockLineId = stk.StockLineId
@@ -641,8 +642,8 @@ BEGIN
 							@MarkUpAmount=  SUM(CASE WHEN IM.StockUnitOfMeasure = IM.ConsumeUnitOfMeasure THEN ISNULL(SPC.MarkUpAmount, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(SPC.MarkUpAmount, 0),IM.StockUnitOfMeasure, IM.ConsumeUnitOfMeasure,1,@MasterCompanyId) END),
 							@DiscountAmount =  SUM(CASE WHEN IM.StockUnitOfMeasure = IM.ConsumeUnitOfMeasure THEN ISNULL(SPC.DiscountAmount, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(SPC.DiscountAmount, 0),IM.StockUnitOfMeasure, IM.ConsumeUnitOfMeasure,1,@MasterCompanyId) END),
 							@UnitSalesPrice=  SUM(CASE WHEN IM.StockUnitOfMeasure = IM.ConsumeUnitOfMeasure THEN ISNULL(SPC.UnitSalesPrice, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(SPC.UnitSalesPrice, 0),IM.StockUnitOfMeasure, IM.ConsumeUnitOfMeasure,1,@MasterCompanyId) END),
-							@UnitCost = SUM(CASE WHEN IM.StockUnitOfMeasure = IM.ConsumeUnitOfMeasure THEN ISNULL(SPC.NetSaleAmount, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(SPC.NetSaleAmount, 0),IM.StockUnitOfMeasure, IM.ConsumeUnitOfMeasure,1,@MasterCompanyId) END),
-							@UnitCostExt = SUM(CASE WHEN IM.StockUnitOfMeasure = IM.ConsumeUnitOfMeasure THEN ISNULL(SPC.NetSaleAmount, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(SPC.NetSaleAmount, 0),IM.StockUnitOfMeasure, IM.ConsumeUnitOfMeasure,1,@MasterCompanyId) END)
+							@UnitCost = SUM(CASE WHEN IM.StockUnitOfMeasure = IM.ConsumeUnitOfMeasure THEN (ISNULL(SPC.NetSaleAmount, 0) / NULLIF(SP.QtyOrder, 1)) ELSE [dbo].[fn_ConvertUOM]((ISNULL(SPC.NetSaleAmount, 0) / NULLIF(SP.QtyOrder, 1)),IM.StockUnitOfMeasure, IM.ConsumeUnitOfMeasure,1,@MasterCompanyId) END),
+							@UnitCostExt = SUM(ISNULL(SPC.NetSaleAmount, 0))
 						FROM dbo.SalesOrderPartCost SPC
 							INNER JOIN dbo.SalesOrderPartV1 SP WITH(NOLOCK) on SPC.SalesOrderId = SP.SalesOrderId and SPC.SalesOrderPartId = SP.SalesOrderPartId
 							LEFT JOIN dbo.ItemMaster IM with(nolock) on IM.ItemMasterId = SP.ItemMasterId

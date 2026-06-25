@@ -190,7 +190,7 @@ BEGIN
 			so.CustomerReference AS customerReference,
 			ISNULL(imx.ExportECCN, '') AS eccn,
 			ISNULL(imx.ITARNumber, '') AS itar,
-			ISNULL(um.ShortName, '') AS uomName,
+			ISNULL(iu.ShortName, '') AS uomName,
 			part.Notes notes,
 			-- Handle VersionNumber logic with appropriate SQL
 			--dbo.GenerateVersionNumber(so.Version) AS VersionNumber,
@@ -232,7 +232,6 @@ BEGIN
 		LEFT JOIN DBO.SalesOrderQuote q WITH (NOLOCK) ON SOQP.SalesOrderQuoteId = q.SalesOrderQuoteId
 		LEFT JOIN DBO.UnitOfMeasure iu WITH (NOLOCK) ON itemMaster.ConsumeUnitOfMeasureId = iu.UnitOfMeasureId
 		LEFT JOIN DBO.SalesOrderReserveParts rPart WITH (NOLOCK) ON part.SalesOrderPartId = rPart.SalesOrderPartId
-		LEFT JOIN DBO.UnitOfMeasure um WITH (NOLOCK) ON itemMaster.PurchaseUnitOfMeasureId = um.UnitOfMeasureId
 		LEFT JOIN DBO.PurchaseOrder po WITH (NOLOCK) ON qs.PurchaseOrderId = po.PurchaseOrderId
 		LEFT JOIN DBO.RepairOrder ro WITH (NOLOCK) ON qs.RepairOrderId = ro.RepairOrderId
 		LEFT JOIN DBO.CustomerFinancial cf WITH (NOLOCK) ON so.CustomerId = cf.CustomerId

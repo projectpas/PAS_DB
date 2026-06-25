@@ -88,7 +88,7 @@ BEGIN
 			ISNULL(iM.StockUnitOfMeasureId,0) StockUnitOfMeasureId,
 			ISNULL(iM.ConsumeUnitOfMeasureId,0) ConsumeUnitOfMeasureId,
 			iM.Model
-    FROM [DBO].[ItemMaster] iM WITH (NOLOCK)
+	    FROM [DBO].[ItemMaster] iM WITH (NOLOCK)
         LEFT JOIN [DBO].[ItemMaster] rPart WITH (NOLOCK) ON iM.RevisedPartId = rPart.ItemMasterId
         LEFT JOIN [DBO].[ItemMasterExchangeLoan] imxl WITH (NOLOCK) ON iM.ItemMasterId = imxl.ItemMasterId
         LEFT JOIN [DBO].[ItemMasterPurchaseSale] imps WITH (NOLOCK) ON iM.ItemMasterId = imps.ItemMasterId

@@ -20,6 +20,7 @@
    10    02/06/2026     Abhishek Jirawla        Added IsScheduled [PN-16679]
    11	 08/06/2026		Amit Ghediya		    Adding Header data in History module [PN-16581]
    12    16/06/2026	    Amit Ghediya			Added @AircraftPublicationId [PN-16797]
+   13    25/06/2026	    Amit Ghediya			Added @LastInspectedDate,@Description,@LastinspectedById [PN-17000]
 **************************************************************/
 CREATE PROCEDURE [dbo].[USP_CreateUpdateAircraftMaintenanceProgram]
     @ProgramId                  BIGINT,
@@ -44,7 +45,11 @@ CREATE PROCEDURE [dbo].[USP_CreateUpdateAircraftMaintenanceProgram]
     @MtcCategoryId              BIGINT,
     @IsMtceRecordUpdated        BIT             = NULL,
 	@AircraftPublicationId		BIGINT          = NULL,
-    @IsScheduled                BIT             = NULL
+    @IsScheduled                BIT             = NULL,
+
+	@LastInspectedDate			DATETIME2(7)    = NULL,
+	@Description				VARCHAR(256)    = NULL,
+	@LastinspectedById			BIGINT			= NULL
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -250,7 +255,11 @@ BEGIN
                 UpdatedBy       = @UpdatedBy,
                 UpdatedDate     = GETUTCDATE(),
                 MtcCategoryId   = @MtcCategoryId,
-                IsScheduled     = @IsScheduled
+                IsScheduled     = @IsScheduled,
+
+				LastInspectedDate     = @LastInspectedDate,
+				[Description]     = @Description,
+				LastinspectedById     = @LastinspectedById
             WHERE ProgramId       = @ProgramId
               AND MasterCompanyId = @MasterCompanyId;
 
@@ -275,7 +284,8 @@ BEGIN
                 FlightHoursRemainingHours, FlightHoursRemainingMinutes, CyclesRemaining,
                 IsActive, IsDeleted, MasterCompanyId,
                 CreatedBy, UpdatedBy, CreatedDate, UpdatedDate,
-                MtcCategoryId, IsMtceRecordUpdated, AircraftPublicationId, IsScheduled
+                MtcCategoryId, IsMtceRecordUpdated, AircraftPublicationId, IsScheduled,
+				LastInspectedDate , [Description], LastinspectedById
             )
             VALUES
             (
@@ -288,7 +298,8 @@ BEGIN
                 @FlightHoursLimitHours, @FlightHoursLimitMinutes, @CyclesLimit,
                 ISNULL(@IsActive, 1), ISNULL(@IsDeleted, 0), @MasterCompanyId,
                 @CreatedBy, @UpdatedBy, GETUTCDATE(), GETUTCDATE(),
-                @MtcCategoryId, @IsMtceRecordUpdated, @AircraftPublicationId, @IsScheduled
+                @MtcCategoryId, @IsMtceRecordUpdated, @AircraftPublicationId, @IsScheduled,
+				@LastInspectedDate, @Description, @LastinspectedById
             );
 
             SET @ProgramId = SCOPE_IDENTITY();

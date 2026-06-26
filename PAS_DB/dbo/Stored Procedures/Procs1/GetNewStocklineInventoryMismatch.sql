@@ -12,12 +12,13 @@
  ** --   --------     -------				--------------------------------          
     1    23-12-2024   HEMNAT SALIYA			Created
 	2    02-12-2025   Moin Bloch 			Modified Added MasterCompanyId Parameter 
+	3    19-06-2026   Abhishek Jirawla		Adding IsPiecePart condition in RepairOrderPart table 
 	
 	EXEC [GetNewStocklineInventoryMismatch]
 **************************************************************/
 
 CREATE   PROCEDURE [dbo].[GetNewStocklineInventoryMismatch]
-@MasterCompanyId INT = NULL
+	@MasterCompanyId INT = NULL
 AS
 BEGIN
     SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
@@ -258,6 +259,7 @@ BEGIN
 					AND ISNULL(ROP.IsDeleted,0) = 0 AND ISNULL(ROP.IsParent,0) = 1
 					AND ISNULL(ROP.QuantityReserved,0) > 0  AND ISNULL(ROP.IsDeleted,0) = 0  
 					AND ISNULL(RO.StatusId,0) != @ROClosedStatusId AND ISNULL(RO.StatusId,0) != @ROCancelStatusId 
+					AND ISNULL(ROP.[IsPiecePart], 0) = 0
 						
 				--* END: RepairOrder For Reserve *--
 

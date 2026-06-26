@@ -13,6 +13,7 @@
  ** --   --------     -------		--------------------------------          
     1    11-01-2024   Moin Bloch     Created
 	2    12-03-2024   RAJESH GAMI    Modified to return ReferenceModuleName and IsPurchaseOrder 
+	3    19-06-2026   Abhishek Jirawla  Adding IsPiecePart condition in RepairOrderPart table 
      
 --  EXEC [AutoCompleteDropdownsForPOAndRONumber] 'PO-00001','10','108',1
 
@@ -77,7 +78,7 @@ BEGIN
 			   0 as IsPurchaseOrder,
 			   @ROModuleName AS ReferenceModuleName
 		  FROM [dbo].[RepairOrder] RO WITH(NOLOCK) 
-          JOIN [dbo].[RepairOrderPart] ROP WITH(NOLOCK) ON RO.[RepairOrderId] = ROP.[RepairOrderId] 			
+          JOIN [dbo].[RepairOrderPart] ROP WITH(NOLOCK) ON RO.[RepairOrderId] = ROP.[RepairOrderId] AND ISNULL(ROP.[IsPiecePart], 0) = 0			
 		 WHERE RO.[MasterCompanyId] = @MasterCompanyId 
 		   AND RO.[StatusId] = @ROOpenStatusId   
 		   AND (RO.[IsActive] = 1 AND ISNULL(RO.[IsDeleted],0) = 0 
@@ -92,7 +93,7 @@ BEGIN
 			   0 as IsPurchaseOrder,
 			   @ROModuleName AS ReferenceModuleName
 		  FROM [dbo].[RepairOrder] RO WITH(NOLOCK) 
-          JOIN [dbo].[RepairOrderPart] ROP WITH(NOLOCK) ON RO.RepairOrderId = ROP.RepairOrderId 
+          JOIN [dbo].[RepairOrderPart] ROP WITH(NOLOCK) ON RO.RepairOrderId = ROP.RepairOrderId AND ISNULL(ROP.[IsPiecePart], 0) = 0	
 		 WHERE RO.[MasterCompanyId] = @MasterCompanyId  
 		   AND RO.[StatusId] = @ROOpenStatusId  
 		   AND RO.[RepairOrderId] IN (SELECT Item FROM DBO.SPLITSTRING(@Idlist, ','))    

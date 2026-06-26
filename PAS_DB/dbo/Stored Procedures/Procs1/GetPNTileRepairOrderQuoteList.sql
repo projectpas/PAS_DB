@@ -9,6 +9,7 @@
  ** PR   Date         Author				Change Description            
  ** --   --------     -------				--------------------------------          
 	1    08/12/2023   Amit Ghediya          Modify(Added Traceable & Tagged fields)
+	2    19/06/2026   Abhishek Jirawla		Adding IsPiecePart condition in RepairOrderPart table 
 
 --   EXEC [GetPNTileRepairOrderQuoteList]
 **************************************************************/ 

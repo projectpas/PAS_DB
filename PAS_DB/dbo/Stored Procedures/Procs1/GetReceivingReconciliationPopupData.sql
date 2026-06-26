@@ -8,6 +8,7 @@
 	3    07/11/2023		 Moin Bloch  		Implementing Searching, Sorting & Paging Functionality
 	4    21/12/2023		 Moin Bloch  		Added ReferenceNumber
 	5	 19/12/2024		 Abhishek Jirawla	Switching between Po view and PN view
+	6    19/06/2026		 Abhishek Jirawla	Adding IsPiecePart condition in RepairOrderPart table 
 	
 	EXEC GetReceivingReconciliationPopupData 1,10,NULL,-1,'',NULL,NULL,NULL,NULL,1,59
 **************************************************************/ 
@@ -219,7 +220,7 @@ BEGIN
 								2 AS 'Type',		
 								0 AS IsSelected 
 						   FROM [dbo].[RepairOrder] po WITH(NOLOCK)
-								INNER JOIN [dbo].[RepairOrderPart] pop WITH(NOLOCK) ON po.RepairOrderId = pop.RepairOrderId AND pop.isParent=1 --AND pop.ItemType='Stock'
+								INNER JOIN [dbo].[RepairOrderPart] pop WITH(NOLOCK) ON po.RepairOrderId = pop.RepairOrderId AND pop.isParent=1  AND ISNULL(POP.[IsPiecePart], 0) = 0--AND pop.ItemType='Stock'
 								INNER JOIN [dbo].[Stockline] stk WITH(NOLOCK) ON po.RepairOrderId = stk.RepairOrderId and stk.IsParent=1 AND stk.RRQty > 0 -- AND pop.RepairOrderPartRecordId = stk.RepairOrderPartRecordId
 								OUTER APPLY (
 									SELECT 
@@ -229,7 +230,7 @@ BEGIN
 										MAX(RepairOrderPartRecordId) AS MaxPurchaseOrderPartRecordId
 									FROM [dbo].[RepairOrderPart] pop WITH(NOLOCK)
 									WHERE pop.RepairOrderId = po.RepairOrderId 
-									  AND pop.isParent = 1
+									  AND pop.isParent = 1 AND ISNULL(POP.[IsPiecePart], 0) = 0
 								) AS partData
 							WHERE po.VendorId=@VendorId AND POP.ItemTypeId = @StockTypeId AND po.MasterCompanyId = @MasterCompanyId
 							GROUP BY po.[RepairOrderId],
@@ -251,7 +252,7 @@ BEGIN
 								2 AS 'Type',		
 								0 AS IsSelected 
 						   FROM [dbo].[RepairOrder] po WITH(NOLOCK)
-								INNER JOIN [dbo].[RepairOrderPart] pop WITH(NOLOCK) ON po.RepairOrderId = pop.RepairOrderId AND pop.isParent=1 --AND pop.ItemType='Stock'
+								INNER JOIN [dbo].[RepairOrderPart] pop WITH(NOLOCK) ON po.RepairOrderId = pop.RepairOrderId AND pop.isParent=1 AND ISNULL(POP.[IsPiecePart], 0) = 0 --AND pop.ItemType='Stock'
 								INNER JOIN [dbo].[AssetInventory] stk WITH(NOLOCK) ON po.RepairOrderId = stk.RepairOrderId and pop.RepairOrderPartRecordId = stk.RepairOrderPartRecordId AND stk.RRQty > 0
 								OUTER APPLY (
 									SELECT 
@@ -261,7 +262,7 @@ BEGIN
 										MAX(RepairOrderPartRecordId) AS MaxPurchaseOrderPartRecordId
 									FROM [dbo].[RepairOrderPart] pop WITH(NOLOCK)
 									WHERE pop.RepairOrderId = po.RepairOrderId 
-									  AND pop.isParent = 1
+									  AND pop.isParent = 1 AND ISNULL(POP.[IsPiecePart], 0) = 0
 								) AS partData
 							WHERE po.VendorId=@VendorId AND POP.ItemTypeId = @AssetTypeId AND po.MasterCompanyId = @MasterCompanyId
 							GROUP BY po.[RepairOrderId],
@@ -383,7 +384,7 @@ BEGIN
 								2 AS 'Type',		
 								0 AS IsSelected 
 						   FROM [dbo].[RepairOrder] po WITH(NOLOCK)
-				INNER JOIN [dbo].[RepairOrderPart] pop WITH(NOLOCK) ON po.RepairOrderId = pop.RepairOrderId AND pop.isParent=1 --AND pop.ItemType='Stock'
+				INNER JOIN [dbo].[RepairOrderPart] pop WITH(NOLOCK) ON po.RepairOrderId = pop.RepairOrderId AND pop.isParent=1 AND ISNULL(POP.[IsPiecePart], 0) = 0 --AND pop.ItemType='Stock'
 				INNER JOIN [dbo].[Stockline] stk WITH(NOLOCK) ON po.RepairOrderId = stk.RepairOrderId and stk.IsParent=1 AND stk.RRQty > 0 -- AND pop.RepairOrderPartRecordId = stk.RepairOrderPartRecordId
 				WHERE po.VendorId=@VendorId AND POP.ItemTypeId = @StockTypeId AND po.MasterCompanyId = @MasterCompanyId
 		
@@ -398,7 +399,7 @@ BEGIN
 								2 AS 'Type',		
 								0 AS IsSelected 
 						   FROM [dbo].[RepairOrder] po WITH(NOLOCK)
-				INNER JOIN [dbo].[RepairOrderPart] pop WITH(NOLOCK) ON po.RepairOrderId = pop.RepairOrderId AND pop.isParent=1 --AND pop.ItemType='Stock'
+				INNER JOIN [dbo].[RepairOrderPart] pop WITH(NOLOCK) ON po.RepairOrderId = pop.RepairOrderId AND pop.isParent=1 AND ISNULL(POP.[IsPiecePart], 0) = 0 --AND pop.ItemType='Stock'
 				INNER JOIN [dbo].[AssetInventory] stk WITH(NOLOCK) ON po.RepairOrderId = stk.RepairOrderId and pop.RepairOrderPartRecordId = stk.RepairOrderPartRecordId AND stk.RRQty > 0
 				WHERE po.VendorId=@VendorId AND POP.ItemTypeId = @AssetTypeId AND po.MasterCompanyId = @MasterCompanyId
 			), ResultCount AS(SELECT COUNT(PurchaseOrderId) AS totalItems FROM Result)

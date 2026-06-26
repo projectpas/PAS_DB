@@ -21,6 +21,7 @@
 	 5    29-MAR-2024		Ekta Chandegra		IsDeleted and IsActive flag is added
 	 6    09-APR-2025		RAJESH GAMI			Resolved the Extend cost and receivied Qty(Exclude the Adustment Qty from the calculation)
 	 7    22-DEC-2025       SAHDEV SALIYA       Remove the tag type and add the vendor name.
+	 8	  22/06/2026		Abhishek Jirawla	Adding IsPiecePart condition in RepairOrderPart table
 
 EXECUTE   [dbo].[usprpt_GetReceivingLogReport] '','2020-06-15','2021-06-15','1','1,4,43,44,45,80,84,88','46,47,66','48,49,50,58,59,67,68,69','51,52,53,54,55,56,57,60,61,62,64,70,71,72'  
 **************************************************************/  
@@ -208,7 +209,7 @@ BEGIN
 				UPPER(MSD.Level9Name) AS level9, 
 				UPPER(MSD.Level10Name) AS level10  
 			  FROM DBO.RepairOrder PO WITH (NOLOCK)  
-				INNER JOIN DBO.RepairOrderPart POP WITH (NOLOCK) ON PO.RepairOrderId = POP.RepairOrderId and POP.isParent=1  
+				INNER JOIN DBO.RepairOrderPart POP WITH (NOLOCK) ON PO.RepairOrderId = POP.RepairOrderId and POP.isParent=1 AND ISNULL(POP.[IsPiecePart], 0) = 0
 				INNER JOIN DBO.Stockline STL WITH (NOLOCK) ON STL.RepairOrderPartRecordId = POP.RepairOrderPartRecordId and STL.IsParent=1     
 				INNER JOIN dbo.RepairOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = 24 AND MSD.ReferenceID = PO.RepairOrderId  
 				INNER JOIN (
@@ -364,7 +365,7 @@ SELECT COUNT(1) OVER () AS TotalRecordsCount,* FROM(
 		UPPER(MSD.Level10Name) AS level10,
 		PO.MasterCompanyId
       FROM DBO.RepairOrder PO WITH (NOLOCK)  
-        INNER JOIN DBO.RepairOrderPart POP WITH (NOLOCK) ON PO.RepairOrderId = POP.RepairOrderId and POP.isParent=1  
+        INNER JOIN DBO.RepairOrderPart POP WITH (NOLOCK) ON PO.RepairOrderId = POP.RepairOrderId and POP.isParent=1   AND ISNULL(POP.[IsPiecePart], 0) = 0
         INNER JOIN DBO.Stockline STL WITH (NOLOCK) ON STL.RepairOrderPartRecordId = POP.RepairOrderPartRecordId and STL.IsParent=1     
 	    INNER JOIN dbo.RepairOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = 24 AND MSD.ReferenceID = PO.RepairOrderId  
 					INNER JOIN (

@@ -23,7 +23,7 @@
 	5    02/06/2026   Abhishek Jirawla	   Adding CustomerId and CustomerName [PN-16679]
 	6    04/06/2026   Amit Ghediya		   Adding Header data in History module [PN-16581]
 **************************************************************/
-CREATE     PROCEDURE [dbo].[USP_CreateAircraftRegistryHeader]
+CREATE       PROCEDURE [dbo].[USP_CreateAircraftRegistryHeader]
     @tbl_AircraftRegistryHeaderType dbo.AircraftRegistryTableType READONLY
 AS
 BEGIN
@@ -159,7 +159,8 @@ BEGIN
                 AR.IsDeleted = ISNULL(T.IsDeleted, AR.IsDeleted),
                 AR.MasterCompanyId = T.MasterCompanyId,
                 AR.UpdatedBy = T.UpdatedBy,
-                AR.UpdatedDate = GETUTCDATE()
+                AR.UpdatedDate = GETUTCDATE(),
+				AR.[Description] = T.[Description]
             FROM dbo.[AircraftRegistryHeader] AR
             INNER JOIN @tbl_AircraftRegistryHeaderType T ON AR.AircraftRegistryId = T.AircraftRegistryId
             WHERE T.AircraftRegistryId IS NOT NULL;
@@ -254,7 +255,8 @@ BEGIN
                 UpdatedBy,
                 CreatedDate,
                 UpdatedDate,
-			    AircraftRegistryNumber
+			    AircraftRegistryNumber,
+				[Description]
             )
             SELECT
                 T.MakeTypeId,
@@ -289,7 +291,8 @@ BEGIN
                 T.UpdatedBy,
                 GETUTCDATE(),
                 GETUTCDATE(),
-			    @AircraftRegistryNum
+			    @AircraftRegistryNum,
+				T.[Description]
             FROM @tbl_AircraftRegistryHeaderType T
 
 			SET @AircraftRegistryId = SCOPE_IDENTITY();

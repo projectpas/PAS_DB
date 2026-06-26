@@ -4442,6 +4442,10 @@
     <Build Include="dbo\Stored Procedures\USP_UpdateNonPOInvoicePartMemo.sql" />
     <Build Include="dbo\Stored Procedures\usprpt_CustomerInvoiceReportList_SSRS.sql" />
     <Build Include="dbo\Stored Procedures\usprpt_CustomerInvoiceReportList.sql" />
+    <Build Include="dbo\Tables\LocationLabelSetting.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetLocationLabelSettingData.sql" />
+    <Build Include="dbo\Stored Procedures\USP_AddUpdateLocationLabelSetting.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetLocationLabelListForPrint.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

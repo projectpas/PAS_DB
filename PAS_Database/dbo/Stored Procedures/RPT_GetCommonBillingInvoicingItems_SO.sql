@@ -19,7 +19,7 @@
 	7    12/Jan/2026   VISHAL SUTHAR	Use Serial Number from BillingInvoicingItems if exists
 	8    15/May/2026   Bhargav Saliya	UOM Changes [PN-15067]
 	9    18/06/2026    Bhargav Saliya	Added Case For Skip UOM Function If FROM uom and TO uom Both are Same
-
+	10   25/06/2026    Bhargav saliya   Get Consume UOM
 --   EXEC [dbo].[RPT_GetCommonBillingInvoicingItems_SO] 9328,10
 ********************************************************************************************/
 CREATE   PROCEDURE [dbo].[RPT_GetCommonBillingInvoicingItems_SO]
@@ -74,7 +74,7 @@ BEGIN
 					  THEN SUBSTRING(ISNULL(stock.Notes, sop.Notes), 4, LEN(ISNULL(stock.Notes, sop.Notes)) - 7)
 					  ELSE ISNULL(stock.Notes, sop.Notes)
 					END,
-					UOM = UPPER(im.PurchaseUnitOfMeasure),
+					UOM = UPPER(im.ConsumeUnitOfMeasure),
 					Cond = UPPER(c.Description),
 					QtyShipped = (CASE WHEN ISNULL(im.[StockUnitOfMeasure],'') = ISNULL(im.[ConsumeUnitOfMeasure],'') THEN ISNULL(BII.QtyBilled, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(BII.QtyBilled, 0),im.[StockUnitOfMeasure],im.[ConsumeUnitOfMeasure],0,so.MasterCompanyId) END),
 					QTYOnBACKOrder = (CASE WHEN ISNULL(im.[StockUnitOfMeasure],'') = ISNULL(im.[ConsumeUnitOfMeasure],'') THEN ISNULL(sop.QtyRequested, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(sop.QtyRequested, 0),im.[StockUnitOfMeasure],im.[ConsumeUnitOfMeasure],0,so.MasterCompanyId) END) - (CASE WHEN ISNULL(im.[StockUnitOfMeasure],'') = ISNULL(im.[ConsumeUnitOfMeasure],'') THEN ISNULL(BII.QtyBilled, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(BII.QtyBilled, 0),im.[StockUnitOfMeasure],im.[ConsumeUnitOfMeasure],0,so.MasterCompanyId) END),

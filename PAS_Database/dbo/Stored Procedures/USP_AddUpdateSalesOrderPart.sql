@@ -21,7 +21,7 @@
 	7    20-11-2025	  Rajesh Gami		Added UnitSalesPrice in SalesOrderPartV1 table
 	8    07/01/2026   Rajesh Gami		Added MasterCompanyId Parameter While Calling UOM Conversion Function
 	9    18/06/2026   Bhargav Saliya	Added Case For Skip UOM Function If FROM uom and TO uom Both are Same
-
+	10   25/06/2026   Bhargav Saliya    Resolved issue [PN-17001]
 declare @p1 dbo.SOPartListType
 insert into @p1 values(497,1269,216,12,2,178289,NULL,1,5,2,NULL,NULL,3,1,1200,0,0,1200,0,670,330.00,NULL,NULL,NULL,600.00,0,0,1200,335,44.17,0,NULL,N'',NULL,1,N'Jim Roberts')
 insert into @p1 values(501,1269,264,2,2,NULL,NULL,1,3,0,NULL,NULL,3,1,0,0,0,0,0,0,0,NULL,NULL,NULL,300.00,0,0,900,0,100.00,0,NULL,N'',NULL,1,N'Jim Roberts')
@@ -188,8 +188,10 @@ BEGIN
 		END
 		ELSE
 		BEGIN
-			SELECT @UnitCost = ISNULL([PP_UnitPurchasePrice],0) FROM [dbo].[ItemMasterPurchaseSale] WITH(NOLOCK) WHERE [ItemMasterId] = @ItemMasterId AND [ConditionId] = @ConditionId
-			--SET @UnitCost = ([dbo].[fn_ConvertUOM](ISNULL(@UnitCost, 0),@ConsumeUnitOfMeasure, @StockUnitOfMeasure,1));	
+			SELECT @UnitCost = (CASE WHEN ISNULL(im.[PurchaseUnitOfMeasure],'') = ISNULL(im.[StockUnitOfMeasure],'') THEN ISNULL(imps.PP_UnitPurchasePrice, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(imps.PP_UnitPurchasePrice, 0),im.[PurchaseUnitOfMeasure],im.[StockUnitOfMeasure],1,im.MasterCompanyId) END)
+			FROM [dbo].[ItemMaster] im WITH (NOLOCK)
+			LEFT JOIN [dbo].[ItemMasterPurchaseSale] imps WITH (NOLOCK) ON imps.ItemMasterId = im.ItemMasterId 
+			where im.ItemMasterId = @ItemMasterId AND imps.ConditionId = @ConditionId
 		END
         
    	    --  UOM Conversion  --

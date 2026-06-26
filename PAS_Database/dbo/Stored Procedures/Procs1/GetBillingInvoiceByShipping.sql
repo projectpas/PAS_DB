@@ -48,13 +48,13 @@ SET NOCOUNT ON;
 					sobi.SignEmpId AS SignEmpId,
 					sobi.SignEmpDate AS SignEmpDate,
 					sobi.InvoiceNo,
-					(CASE WHEN ISNULL(im.[StockUnitOfMeasure],'') = ISNULL(im.[ConsumeUnitOfMeasure],'') THEN ISNULL(sobii.PartCost, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(sobii.PartCost, 0),im.[StockUnitOfMeasure],im.[ConsumeUnitOfMeasure],1,so.MasterCompanyId) END) AS SalesTotal,
+					ISNULL(sobii.PartCost, 0) AS SalesTotal,
 					ISNULL(sobii.Freight,0) AS Freight,
 					ISNULL(sobii.MiscCharges,0) AS MiscCharges,
-					(CASE WHEN ISNULL(im.[StockUnitOfMeasure],'') = ISNULL(im.[ConsumeUnitOfMeasure],'') THEN ISNULL(sobi.SubTotal, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(sobi.SubTotal, 0),im.[StockUnitOfMeasure],im.[ConsumeUnitOfMeasure],1,so.MasterCompanyId) END) AS SubTotal,
+					ISNULL(sobi.SubTotal, 0) AS SubTotal,
 					ISNULL(sobi.SalesTax,0) AS SalesTax,
 					ISNULL(sobi.OtherTax,0) AS OtherTax,
-					(CASE WHEN ISNULL(im.[StockUnitOfMeasure],'') = ISNULL(im.[ConsumeUnitOfMeasure],'') THEN ISNULL(sobi.GrandTotal, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(sobi.GrandTotal, 0),im.[StockUnitOfMeasure],im.[ConsumeUnitOfMeasure],1,so.MasterCompanyId) END) AS GrandTotal
+					ISNULL(sobi.GrandTotal, 0) AS GrandTotal
 				FROM DBO.SalesOrderPartV1 sop WITH (NOLOCK)
 				INNER JOIN DBO.SalesOrder so WITH (NOLOCK) ON so.SalesOrderId = sop.SalesOrderId
 				INNER JOIN DBO.Customer co WITH (NOLOCK) ON co.CustomerId = so.CustomerId

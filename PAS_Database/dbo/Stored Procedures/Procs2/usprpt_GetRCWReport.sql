@@ -17,6 +17,8 @@
     1		15-APR-2022		HEMANT SALIYA			Created  
 	2		16-JUNE-2023     Devendra Shekh			made changes to do total
 	3		29-MARCH-2024    Ekta Chandegra			IsActive and IsDeleted flag is added
+	4		25-JUNE-2026    Priyansh Patel			Removed freight charges from estimatedrevenue [PN-16999]
+
   
        
 --EXECUTE   [dbo].[usprpt_GetRCWReport] '','2021-06-15','2022-06-15','1','1,4,43,44,45,80,84,88','46,47,66','48,49,50,58,59,67,68,69','51,52,53,54,55,56,57,60,61,62,64,70,71,72'  
@@ -152,7 +154,7 @@ BEGIN
    UPPER(WOS.code + '-' + stage) 'stagecode',  
    UPPER(WOSS.Description) 'status',  
    WOPN.NTE 'nte',     
-   ISNULL(WOQD.MaterialRevenue + WOQD.LaborRevenue + WOQD.ChargesRevenue + WOQD.FreightRevenue,0) 'estimatedrevenue',  
+   ISNULL(WOQD.MaterialRevenue + WOQD.LaborRevenue + WOQD.ChargesRevenue ,0) 'estimatedrevenue',  
    UPPER(WOT.Description) 'wotype',  
    UPPER(E1.FirstName + ' ' + E1.LastName) 'salesperson',  
    UPPER(E2.FirstName + ' ' + E2.LastName) 'csr',  

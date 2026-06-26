@@ -15,6 +15,7 @@
     2    25-June-2025		Devendra Shekh		Remarks Breaks Issue Resolved
 	3    10/10/2025         Moin Bloch          Updated For Get VersionNo & IsVersionIncrease Flag
 	4    14/10/2025         Moin Bloch          Updated For Get VersionNo
+	5    24/06/2026         Amit Ghediya         Updated For get LogBook Label data [PN-16471]
 
  EXECUTE [USP_WorkOrderReleaseFromListData_ByWOId] 8992,2
 **************************************************************/ 
@@ -94,7 +95,8 @@ BEGIN
 		[WOFormType] [varchar](50) NULL,
 		[Is813013aeOr14ae] [bit] NULL,
 		[VersionNo] [varchar](50) NULL,
-		[IsVersionIncrease] [bit] NULL
+		[IsVersionIncrease] [bit] NULL,
+		[IsAircraftLogBook] [bit] NULL
 	);
 
 	SELECT @MSModuleId = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE UPPER([ModuleName]) = 'WORKORDERMPN';
@@ -117,7 +119,7 @@ BEGIN
 			,CASE WHEN ISNULL(wro.Remarks, '') = '' THEN '' ELSE LTRIM(RTRIM(
 																	TRY_CAST(REPLACE(wro.Remarks, '&nbsp;', ' ') AS XML).value('.', 'NVARCHAR(MAX)')
 																)) END AS [Remarks]
-			,ISNULL(wro.[VersionNo],'')	[VersionNo]												
+			,ISNULL(wro.[VersionNo],'')	[VersionNo]	
 		FROM [dbo].[Work_ReleaseFrom_8130] wro WITH(NOLOCK)
 				LEFT JOIN [dbo].[WorkOrderPartNumber] wop WITH(NOLOCK) ON wro.workOrderPartNoId = wop.Id
 				LEFT JOIN [dbo].[Stockline] sl  WITH(NOLOCK) ON sl.StockLineId = wop.StockLineId  
@@ -191,7 +193,8 @@ BEGIN
 										END,
 			TMP.Is813013aeOr14ae      = wro.Is813013aeOr14ae,
 			--TMP.[VersionNo]           = wro.[VersionNo],
-			TMP.[IsVersionIncrease]   = ISNULL(wro.[IsVersionIncrease],0)
+			TMP.[IsVersionIncrease]   = ISNULL(wro.[IsVersionIncrease],0),
+			TMP.[IsAircraftLogBook]   = 0
 		FROM #tmpWork_ReleaseForm TMP
 		JOIN [Work_ReleaseFrom_8130] wro ON TMP.ReleaseFromId = wro.ReleaseFromId AND ISNULL(wro.[IsVersionIncrease],0) = 0
 		LEFT JOIN [dbo].[WorkOrderPartNumber] wop WITH(NOLOCK) ON wro.workOrderPartNoId = wop.Id
@@ -202,13 +205,80 @@ BEGIN
 		LEFT JOIN [dbo].[WorkOrderManagementStructureDetails] MSD  WITH(NOLOCK) ON MSD.ModuleID = @MSModuleId AND MSD.ReferenceID = wop.Id
 		LEFT JOIN [dbo].[ManagementStructurelevel] MSL WITH(NOLOCK) ON MSL.ID = MSD.Level1Id
 		LEFT JOIN [dbo].[LegalEntity]  le  WITH(NOLOCK) ON le.LegalEntityId   = MSL.LegalEntityId 
-		LEFT JOIN [dbo].[Condition] C WITH(NOLOCK) ON C.ConditionId = wop.RevisedConditionId
+		LEFT JOIN [dbo].[Condition] C WITH(NOLOCK) ON C.ConditionId = wop.RevisedConditionId;
+
+		INSERT INTO #tmpWork_ReleaseForm
+			([ReleaseFromId], [WorkorderId], [workOrderPartNoId], [Country], [OrganizationName], [InvoiceNo], [ItemName],
+			 [PartNumber], [Description], [Reference], [Quantity], [Batchnumber], [status], [Remarks], [Certifies],
+			 [approved], [Nonapproved], [AuthorisedSign], [AuthorizationNo], [PrintedName], [Date], [AuthorisedSign2],
+			 [ApprovalCertificate], [PrintedName2], [Date2], [CFR], [Otherregulation], [MasterCompanyId], [CreatedBy],
+			 [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted], [trackingNo], [OrganizationAddress],
+			 [is8130from], [IsClosed], [ReceivedDate], [islocked], [IsEASALicense], [FormType], [ManagementStructureId],
+			 [EmployeeId], [FormTypeId], [WOFormType], [Is813013aeOr14ae], [VersionNo], [IsVersionIncrease], [IsAircraftLogBook])
+		SELECT
+			 lcf.[LogbookCertificateFromId]                                  -- ReleaseFromId
+			,lcf.[WorkorderId]
+			,lcf.[workOrderPartNoId]
+			,lcf.[Country]
+			,lcf.[OrganizationName]
+			,lcf.[InvoiceNo]
+			,lcf.[ItemName]
+			,UPPER(lcf.[PartNumber])
+			,UPPER(lcf.[Description])
+			,lcf.[Reference]
+			,1                                                               -- Quantity (no rollup on logbook)
+			,NULL                                                            -- Batchnumber
+			,lcf.[status]
+			,CASE WHEN ISNULL(lcf.Remarks, '') = '' THEN '' ELSE LTRIM(RTRIM(
+					TRY_CAST(REPLACE(lcf.Remarks, '&nbsp;', ' ') AS XML).value('.', 'NVARCHAR(MAX)')
+				)) END
+			,lcf.[Certifies]
+			,NULL                                                            -- approved
+			,NULL                                                            -- Nonapproved
+			,lcf.[AuthorisedSign]
+			,UPPER(lcf.[AuthorizationNo])
+			,lcf.[PrintedName]
+			,lcf.[Date]
+			,lcf.[AuthorisedSign2]
+			,UPPER(lcf.[ApprovalCertificate])
+			,lcf.[PrintedName2]
+			,lcf.[Date2]
+			,NULL                                                            -- CFR
+			,NULL                                                            -- Otherregulation
+			,lcf.[MasterCompanyId]
+			,lcf.[CreatedBy]
+			,lcf.[UpdatedBy]
+			,CASE WHEN CAST(lcf.CreatedDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL
+				  ELSE CAST(DBO.ConvertUTCtoLocal(lcf.CreatedDate, @CurrntEmpTimeZoneDesc) AS DATE) END
+			,CASE WHEN CAST(lcf.UpdatedDate AS DATE) = CAST('0001-01-01 00:00:00' AS DATE) THEN NULL
+				  ELSE CAST(DBO.ConvertUTCtoLocal(lcf.UpdatedDate, @CurrntEmpTimeZoneDesc) AS DATE) END
+			,lcf.[IsActive]
+			,lcf.[IsDeleted]
+			,NULL                                                            -- trackingNo
+			,lcf.[OrganizationAddress]
+			,NULL                                                            -- is8130from (logbook is neither)
+			,NULL                                                            -- IsClosed
+			,wop.ReceivedDate                                                 -- ReceivedDate
+			,NULL                                                            -- islocked
+			,NULL                                                            -- IsEASALicense
+			,'Logbook Certificate'                                           -- FormType
+			,wop.ManagementStructureId                                                            -- ManagementStructureId
+			,lcf.[EmployeeId]
+			,CASE WHEN ISNULL(lcf.IsAircraftLogBook,0) > 0 THEN 4 ELSE 5 END 
+			,CASE WHEN ISNULL(lcf.IsAircraftLogBook,0) > 0 THEN 'Aircraft Logbook Label' ELSE 'Engine Logbook Label' END                                                       -- WOFormType
+			,NULL                                                            -- Is813013aeOr14ae
+			,NULL                                                            -- VersionNo
+			,NULL                                                            -- IsVersionIncrease
+			,lcf.IsAircraftLogBook
+		FROM [dbo].[Work_LogbookCertificateFrom] lcf WITH(NOLOCK)
+		LEFT JOIN [dbo].[WorkOrderPartNumber] wop WITH(NOLOCK) ON lcf.workOrderPartNoId = wop.Id
+		WHERE lcf.[WorkorderId] = @WorkorderId;
 
 		-- Final Result Select
 		SELECT	[ReleaseFromId], [WorkorderId], [workOrderPartNoId], [Country], [OrganizationName], [InvoiceNo], [ItemName], [PartNumber], [Description], [Reference], [Quantity], [Batchnumber], [status], [Remarks],
 				[Certifies], [approved], [Nonapproved], [AuthorisedSign], [AuthorizationNo], [PrintedName], [Date], [AuthorisedSign2], [ApprovalCertificate], [PrintedName2], [Date2], [CFR], [Otherregulation],
 				[MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted], [trackingNo], [OrganizationAddress], [is8130from], [IsClosed], [ReceivedDate], [islocked], [IsEASALicense],
-				[FormType], [ManagementStructureId], [EmployeeId], [FormTypeId], [WOFormType], [Is813013aeOr14ae], [VersionNo], [IsVersionIncrease]
+				[FormType], [ManagementStructureId], [EmployeeId], [FormTypeId], [WOFormType], [Is813013aeOr14ae], [VersionNo], [IsVersionIncrease], [IsAircraftLogBook]
 		FROM #tmpWork_ReleaseForm
 				 
 	END TRY    

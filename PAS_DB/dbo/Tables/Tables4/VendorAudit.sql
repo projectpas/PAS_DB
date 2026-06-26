@@ -56,7 +56,7 @@
     [IsWarningRestriction]    INT             NULL,
     [IntegrationTypeId]       INT             NULL,
     [ResaleNumber]            VARCHAR (200)   NULL,
-    [Notes]                   NVARCHAR (MAX)  NULL
+    [Notes]                   NVARCHAR (MAX)  NULL,
     CONSTRAINT [PK_VendorAudit] PRIMARY KEY CLUSTERED ([AuditVendorId] ASC),
     CONSTRAINT [FK_VendorAudit_Vendor] FOREIGN KEY ([VendorId]) REFERENCES [dbo].[Vendor] ([VendorId])
 );

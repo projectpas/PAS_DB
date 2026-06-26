@@ -31,5 +31,6 @@
     [CreatedBy]           VARCHAR (256)   NULL,
     [UpdatedBy]           VARCHAR (256)   NULL,
     [CreatedDate]         DATETIME2 (7)   NULL,
-    [UpdatedDate]         DATETIME2 (7)   NULL);
+    [UpdatedDate]         DATETIME2 (7)   NULL,
+    [Description]         VARCHAR (256)   NULL);
 

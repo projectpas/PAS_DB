@@ -18,6 +18,7 @@
     [UpdatedDate]                    DATETIME       CONSTRAINT [DF_PPRA_UpdatedDate] DEFAULT (getutcdate()) NOT NULL,
     [IsActive]                       BIT            CONSTRAINT [DF_PPRA_IsActive] DEFAULT ((1)) NOT NULL,
     [IsDeleted]                      BIT            CONSTRAINT [DF_PPRA_IsDeleted] DEFAULT ((0)) NOT NULL,
+    [QtyDamagedLost]                 INT            DEFAULT ((0)) NOT NULL,
     CONSTRAINT [PK_PiecePartReconciliationAudit] PRIMARY KEY CLUSTERED ([PiecePartReconciliationAuditId] ASC)
 );
 

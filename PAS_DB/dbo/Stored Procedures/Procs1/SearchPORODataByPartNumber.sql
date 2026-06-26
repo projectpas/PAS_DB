@@ -17,11 +17,12 @@
  **************************************************************           
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
-    1    02/05/20221   Subhash Saliya		Created
-     
+    1    02/05/20221   Subhash Saliya		Created     
+	2    22/06/2026   Abhishek Jirawla	Adding IsPiecePart condition in RepairOrderPart table 
+
 -- EXEC [SearchPORODataByPartNumber] 44
 **************************************************************/
-Create   PROCEDURE [dbo].[SearchPORODataByPartNumber]
+CREATE   PROCEDURE [dbo].[SearchPORODataByPartNumber]
 	@PageNumber int,
 	@PageSize int,
 	@SortColumn varchar(50) = null,
@@ -104,7 +105,7 @@ BEGIN
 	            INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON ROP.ManagementStructureId = RMS.EntityStructureId
 	            INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
 				Where ROP.ItemMasterId=@ItemMasterid
-				AND (RO.IsDeleted = @IsDeleted)
+				AND (RO.IsDeleted = @IsDeleted) AND ISNULL(ROP.[IsPiecePart], 0) = 0
 				AND RO.MasterCompanyId = @MasterCompanyId),
 				FinalResult AS (
 				SELECT Module, RefId, POROId, PORO, OpenDate, PartNumber, PartDescription, Requisitioner, Age, 

@@ -14,7 +14,7 @@
 	3    17/05/2024   Abhishek Jirawla Remove SelectedCompanyIds from queries so it can be inserted in the tables.
 	4.   27/05/2024   Amit Ghediya     Update for set Default Site.
 	5    10/11/2025   Sahdev Saliya    New field named “IsDefault” and a Sequence have been added to the Single Screen Default Message.
-
+    6    25/06/2026   Nakul Chandigra  Added a Case for null in Update
 
 declare @p5 dbo.SingleScreenColumnType
 insert into @p5 values(N'Description',N'TEST',N'string',N'')
@@ -153,8 +153,8 @@ BEGIN
             END)    
           WHEN LOWER(FieldType) = 'datetime' OR    
             LOWER(FieldType) = 'date' THEN 'CONVERT(DATETIME,''' + REPLACE(FieldValue, '''', '''''') + ''',101),'    
-          WHEN FieldType = 'integer' OR FieldType = 'int' OR FieldType = 'number' THEN (CASE WHEN FieldName = 'OverheadburdenPercentId' AND FieldValue = '0' THEN 'NULL' ELSE FieldValue END) + ','    
-        END),    
+          WHEN FieldType = 'integer' OR FieldType = 'int' OR FieldType = 'number' THEN (CASE WHEN FieldName = 'OverheadburdenPercentId' AND FieldValue = '0' THEN 'NULL'
+                                                                                             WHEN FieldName = 'SequenceNo' AND (@PageName=N'aircraftstatus'OR @PageName=N'maintenancestatus') AND ISNULL(LTRIM(RTRIM(FieldValue)), '') = '' THEN  'NULL' ELSE FieldValue END) + ','            END),    
         (CASE    
           WHEN FieldType = 'string' THEN '''' + ISNULL(REPLACE(FieldValue, '''', ''''''), '') + ''','    
           WHEN FieldType = 'boolean' THEN (CASE    
@@ -239,16 +239,15 @@ BEGIN
           WHEN FieldType = 'string' THEN FieldName + '=' + '''' + ISNULL(REPLACE(FieldValue, '''', ''''''), '') + ''','    
           WHEN FieldType = 'boolean' THEN FieldName + '=' + (CASE WHEN LOWER(REPLACE(FieldValue, '''', '''''')) = 'true' THEN '1,' ELSE '0,'  END)    
           WHEN LOWER(FieldType) = 'datetime' OR LOWER(FieldType) = 'date' THEN FieldName + '= CONVERT(DATETIME,''' + REPLACE(FieldValue, '''', '''''') + ''',101),'    
-          WHEN FieldType = 'integer' THEN FieldName + ' = ' + FieldValue + ',' ELSE CASE
-									 WHEN FieldType = 'number' THEN FieldName + ' = ' + FieldValue + ',' ELSE '' end
+          WHEN FieldType = 'integer' THEN FieldName + ' = ' + (CASE WHEN FieldName = 'SequenceNo' AND (@PageName=N'aircraftstatus'OR @PageName=N'maintenancestatus') AND ISNULL(LTRIM(RTRIM(FieldValue)), '') = '' THEN 'NULL' WHEN FieldValue IS NULL THEN 'NULL' ELSE FieldValue END) + ',' ELSE CASE									 WHEN FieldType = 'number' THEN FieldName + ' = ' + FieldValue + ',' ELSE '' end
 		  END)
 		  , 
 		  (CASE WHEN FieldType = 'string' THEN FieldName + '=' + '''' + ISNULL(REPLACE(FieldValue, '''', ''''''), '') + ''','    
 				WHEN FieldType = 'boolean' THEN FieldName + '=' + (CASE WHEN LOWER(REPLACE(FieldValue, '''', '''''')) = 'true' THEN '1,' ELSE '0,' END)    
 				WHEN	LOWER(FieldType) = 'datetime' OR    
 						LOWER(FieldType) = 'date' THEN FieldName + '= CONVERT(DATETIME,''' + REPLACE(FieldValue, '''', '''''') + ''',101),'    
-				WHEN FieldType = 'integer' OR FieldType = 'int' OR FieldType = 'number' THEN FieldName + '=' + REPLACE(FieldValue, '''', '''''') + ','    
-				ELSE '' END))    
+				WHEN FieldType = 'integer' OR FieldType = 'int' OR FieldType = 'number' THEN FieldName + '=' + (CASE WHEN FieldName = 'SequenceNo' AND (@PageName=N'aircraftstatus'OR @PageName=N'maintenancestatus') AND ISNULL(LTRIM(RTRIM(FieldValue)), '') = '' THEN 'NULL'ELSE REPLACE(FieldValue, '''', '''''') END) + ','   
+				ELSE '' END),@FieldValue)    
       FROM @Fields WHERE ISNULL(ReferenceTable, '') = ''    
     
       SET @FieldValue = SUBSTRING(@FieldValue, 1, LEN(@FieldValue) - 1)  

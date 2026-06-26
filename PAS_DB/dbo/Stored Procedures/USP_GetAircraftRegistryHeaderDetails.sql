@@ -17,6 +17,7 @@
  ** --   --------     -------			--------------------------------          
     1    27-Mar-2026  Bhargav Saliya		CREATED	
 	2    22/06/2026   Amit Ghediya		    Adding TTSN H/M & TCSN H/M [PN-16533]
+	3    25/06/2026	  Amit Ghediya			Added Description,Hobbs [PN-17000]
  
 EXEC [dbo].[USP_GetAircraftRegistryHeaderDetails] 61501 ,10242  
 **************************************************************/
@@ -58,7 +59,8 @@ BEGIN
 				AR.MaintenanceStatus,
 				AR.MasterCompanyId,
 				AR.Memo,
-				AR.AircraftRegistryNumber
+				AR.AircraftRegistryNumber,
+				AR.[Description]
 			FROM dbo.[AircraftRegistryHeader] AR WITH(NOLOCK) 
 			WHERE AR.AircraftRegistryId = @AircraftRegistryId AND AR.MasterCompanyId = @MasterCompanyId 
 		END

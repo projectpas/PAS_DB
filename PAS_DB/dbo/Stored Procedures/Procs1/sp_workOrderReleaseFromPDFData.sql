@@ -25,11 +25,13 @@
 	8    13/10/2025   Moin Bloch     Updated to Dynamic VersionNo
 	9    12/11/2025   Moin Bloch     Updated trackingNo For PAR Company
 	10   14/May/2026  Rajesh Gami	 Return EmployeeId [PN-16405 :  Generate Multiple Release Forms for Teardown Work Orders]     
+	12   24/06/2026   Amit Ghediya   Get LogBook Label data [PN-16471]  
  EXECUTE [sp_workOrderReleaseFromPDFData] 482
 **************************************************************/ 
 
 CREATE   Procedure [dbo].[sp_workOrderReleaseFromPDFData]
-@ReleaseFromId bigint
+	@IsFromLogBook BIT = 0,
+	@ReleaseFromId BIGINT
 AS
 BEGIN
 
@@ -39,27 +41,34 @@ BEGIN
 		BEGIN TRY
 			BEGIN  
 			    DECLARE @MSModuleId INT,@MasterCompanyId INT;
-				DECLARE @MasterCompanyCode VARCHAR(100)='', @PARMasterCompanyCode VARCHAR(100)=''
+				DECLARE @MasterCompanyCode VARCHAR(100)='', @PARMasterCompanyCode VARCHAR(100)='';
+				DECLARE @VersionNo VARCHAR(50) = NULL;
+				DECLARE @VerCodePrefix NVARCHAR(50),@VerCode INT;
 				
 				SET @MSModuleId = 12 ; -- For WO PART NUMBER
 
-				SELECT @MasterCompanyId = [MasterCompanyId] FROM [DBO].[Work_ReleaseFrom_8130] CTT WITH(NOLOCK) WHERE [ReleaseFromId]=@ReleaseFromId;
+				IF(ISNULL(@IsFromLogBook,0) > 0)
+				BEGIN
+					 SELECT @MasterCompanyId = [MasterCompanyId] FROM [DBO].[Work_LogbookCertificateFrom] CTT WITH(NOLOCK) WHERE [LogbookCertificateFromId]=@ReleaseFromId;
+				END
+				ELSE
+				BEGIN
+					 SELECT @MasterCompanyId = [MasterCompanyId] FROM [DBO].[Work_ReleaseFrom_8130] CTT WITH(NOLOCK) WHERE [ReleaseFromId]=@ReleaseFromId;
+
+					 SET @VersionNo = (SELECT * FROM [dbo].[udfGenerateCodeNumber](1, ISNULL(@VerCodePrefix,''),''));
+				END
 
 				SELECT @MasterCompanyCode = [MasterCompanyCode] FROM [DBO].[MasterCompany] WITH(NOLOCK) WHERE [MasterCompanyId] = @MasterCompanyId;
 				-- PAR COMPANY
 				SELECT @PARMasterCompanyCode = [MasterCompanyCode] FROM [DBO].[MasterCompany] WITH(NOLOCK) WHERE [MasterCompanyCode] = 'PAR';				
 
-				DECLARE @VerCodePrefix NVARCHAR(50),@VerCode INT
-
 				SELECT @VerCode  = [CodeTypeId] FROM [dbo].[CodeTypes] WITH(NOLOCK) WHERE [CodeType]='Version';
 		
 				SELECT TOP 1 @VerCodePrefix = [CodePrefix] FROM [dbo].[CodePrefixes] WITH(NOLOCK) WHERE [IsActive] = 1 AND [IsDeleted] = 0 AND [CodeTypeId] = @VerCode AND [MasterCompanyId] = @MasterCompanyId;
-
-				DECLARE @VersionNo VARCHAR(50) = NULL
-
-				SET @VersionNo = (SELECT * FROM [dbo].[udfGenerateCodeNumber](1, ISNULL(@VerCodePrefix,''),''));
-
-				 SELECT 
+				
+				IF(ISNULL(@IsFromLogBook,0) = 0)
+				BEGIN
+					SELECT 
 					   wro.[ReleaseFromId]
 					  ,wro.[WorkorderId]
 					  ,wro.[workOrderPartNoId]
@@ -113,6 +122,7 @@ BEGIN
 					  ,ISNULL(wro.[VersionNo],@VersionNo) VersionNo
 					  ,ISNULL(wro.[IsVersionIncrease],0) IsVersionIncrease
 					  ,wro.[EmployeeId]
+					  ,0 as IsAircraftLogBook
 				FROM [dbo].[Work_ReleaseFrom_8130] wro WITH(NOLOCK)
 				      LEFT JOIN [dbo].[WorkOrderPartNumber] wop WITH(NOLOCK) on wro.workOrderPartNoId = wop.Id
 					  LEFT JOIN [dbo].[Stockline] sl  WITH(NOLOCK) ON sl.StockLineId = wop.StockLineId  
@@ -124,6 +134,66 @@ BEGIN
 					  LEFT JOIN [dbo].[LegalEntity]  le  WITH(NOLOCK) ON le.LegalEntityId   = MSL.LegalEntityId 
 					  LEFT JOIN [dbo].[Condition] C WITH(NOLOCK) ON C.ConditionId = wop.RevisedConditionId
 				WHERE wro.[ReleaseFromId]=@ReleaseFromId
+				END
+				ELSE
+				BEGIN
+					SELECT 
+					   lcf.[LogbookCertificateFromId] AS [ReleaseFromId]
+					  ,lcf.[WorkorderId]
+					  ,lcf.[workOrderPartNoId]
+					  ,lcf.[Country]
+					  ,lcf.[OrganizationName]
+					  ,lcf.[InvoiceNo]
+					  ,lcf.[ItemName]
+					  ,UPPER(lcf.[PartNumber]) AS PartNumber
+					  ,UPPER(lcf.[Description]) AS Description
+					  ,lcf.[Reference]
+					  ,lcf.[Quantity]
+					  ,CASE WHEN ISNULL(wop.RevisedSerialNumber,'') != '' THEN UPPER(wop.RevisedSerialNumber)
+							ELSE CASE WHEN ISNULL(sl.SerialNumber,'') != '' THEN UPPER(sl.SerialNumber) ELSE '' END
+						END AS Batchnumber
+					  ,lcf.[status] AS [status]
+					  ,lcf.[Remarks]
+					  ,lcf.[Certifies]
+					  ,NULL AS [approved]
+					  ,NULL AS [Nonapproved]
+					  ,lcf.[AuthorisedSign]
+					  ,UPPER(lcf.[AuthorizationNo]) AS [AuthorizationNo]
+					  ,lcf.[PrintedName]
+					  ,lcf.[Date]
+					  ,lcf.[AuthorisedSign2]
+					  ,UPPER(lcf.[ApprovalCertificate]) AS [ApprovalCertificate]
+					  ,lcf.[PrintedName2]
+					  ,lcf.[Date2]
+					  ,NULL AS [CFR]
+					  ,NULL AS [Otherregulation]
+					  ,lcf.[MasterCompanyId]
+					  ,lcf.[CreatedBy]
+					  ,lcf.[UpdatedBy]
+					  ,lcf.[CreatedDate]
+					  ,lcf.[UpdatedDate]
+					  ,lcf.[IsActive]
+					  ,lcf.[IsDeleted]
+					  ,CASE WHEN @MasterCompanyCode = @PARMasterCompanyCode THEN lcf.[InvoiceNo] ELSE NULL END AS [trackingNo]
+					  ,lcf.[OrganizationAddress]
+					  ,CAST(0 AS BIT) AS [is8130from]                     
+					  ,NULL AS [IsClosed]
+					  ,wop.ReceivedDate
+					  ,wop.[islocked]
+					  ,lcf.[PDFPath]
+					  ,wop.[IsFinishGood] AS IsFinishGood
+					  ,'Aircraft Logbook Label' AS FormType
+					  ,wop.ManagementStructureId AS ManagementStructureId
+					  ,1 AS Is813013aeOr14ae                              
+					  ,@VersionNo AS VersionNo                            
+					  ,CAST(0 AS BIT) AS IsVersionIncrease
+					  ,lcf.[EmployeeId]
+					  ,lcf.IsAircraftLogBook
+					FROM [dbo].[Work_LogbookCertificateFrom] lcf WITH(NOLOCK)
+						  LEFT JOIN [dbo].[WorkOrderPartNumber] wop WITH(NOLOCK) ON wop.Id = lcf.workOrderPartNoId
+						  LEFT JOIN [dbo].[Stockline] sl WITH(NOLOCK) ON sl.StockLineId = wop.StockLineId
+					WHERE lcf.[LogbookCertificateFromId] = @ReleaseFromId
+				END
 			END
 
 		END TRY    

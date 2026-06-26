@@ -13,8 +13,7 @@
 ** 2     08-APR-2026   Hemant Saliya     Corrected to Get customer type Id based on name  
 ** 3     22-APR-2026   Moin Bloch        Moved to API Due TO Xero Accounting Changes PN-16009
 ** 4     09-JUNE-2026  Priyansh Patel    Fixed the issue with the @ExistingCustomerId [PN-16747]
-
-
+** 5     25-June-2026  Sahdev Saliya     Added Notes [PN-16968]
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_CreateOrUpdateVendor]
     @VendorId BIGINT OUTPUT,
@@ -65,7 +64,8 @@ CREATE   PROCEDURE [dbo].[USP_CreateOrUpdateVendor]
 	@CreditLimit DECIMAL(18,2) = NULL,
 	@CurrencyId INT = NULL,
 	@DiscountId BIGINT = NULL,
-	@Is1099Required BIT
+	@Is1099Required BIT,
+	@Notes NVARCHAR(MAX) = NULL
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -118,7 +118,7 @@ BEGIN
 			IsAllowNettingAPAR, IsTradeRestricted, TradeRestrictedMemo, IsTrackScoreCard,
 			IsVendorOnHold, IsUpdated, IsWarningRestriction,
 			Is1099Required, EDI, EDIDescription, AeroExchange, AeroExchangeDescription,
-			CreditLimit, CurrencyId, DiscountId, IsAllow, IsWarning, IsRestrict
+			CreditLimit, CurrencyId, DiscountId, IsAllow, IsWarning, IsRestrict, Notes
 		)
 		VALUES (
 			@VendorName, @LicenseNumber, @VendorPhone, @VendorPhoneExt, @VendorTypeId, @IsPreferredVendor,
@@ -129,7 +129,7 @@ BEGIN
 			@IsAllowNettingAPAR, @IsTradeRestricted, @TradeRestrictedMemo, @IsTrackScoreCard,
 			@IsVendorOnHold, 1, @IsWarningRestriction,
 			@Is1099Required, @EDI, @EDIDescription, @AeroExchange, @AeroExchangeDescription,
-			@CreditLimit, @CurrencyId, @DiscountId, 1, 0, 0
+			@CreditLimit, @CurrencyId, @DiscountId, 1, 0, 0, @Notes
 		);
 
         SET @VendorId = SCOPE_IDENTITY();

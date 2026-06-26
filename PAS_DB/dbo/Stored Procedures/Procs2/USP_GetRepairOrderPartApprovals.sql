@@ -12,6 +12,7 @@
  ** --   --------     -------		---------------------------     
     1    30/03/2023   Rajesh Gami     Created
 	2    14-04-2025   Shrey Chandegara Updated Due to change Actionstatus ( @SentForCustomerApproval --> @SentForInternalApprovalId as per LINQ code)
+	3    22/06/2026   Abhishek Jirawla	Adding IsPiecePart condition in RepairOrderPart table 
 **************************************************************
 exec USP_GetRepairOrderPartApprovals @RepairOrderId=2553,@IsInternalApprove=0
 **************************************************************/
@@ -90,6 +91,7 @@ BEGIN
 			LEFT JOIN dbo.RepairOrderApproval roa WITH(NOLOCK) ON rop.RepairOrderPartRecordId = roa.RepairOrderPartId
 			WHERE 
 				rop.RepairOrderId = @RepairOrderId 	AND ISNULL(rop.IsDeleted,0) = 0	AND ISNULL(rop.IsParent,0) = 1	AND ISNULL(rop.QuantityOrdered,0) > 0
+				AND ISNULL(ROP.[IsPiecePart], 0) = 0
   END TRY
   BEGIN CATCH
 		IF @@trancount > 0

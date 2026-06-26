@@ -55,7 +55,7 @@
     [IsWarningRestriction]    INT             NULL,
     [IntegrationTypeId]       INT             NULL,
     [ResaleNumber]            VARCHAR (200)   NULL,
-    [Memo]                    NVARCHAR (MAX)  NULL,
+    [Notes]                   NVARCHAR (MAX)  NULL
     CONSTRAINT [PK_Vendor] PRIMARY KEY CLUSTERED ([VendorId] ASC),
     CONSTRAINT [FK_Vendor_Address] FOREIGN KEY ([AddressId]) REFERENCES [dbo].[Address] ([AddressId]),
     CONSTRAINT [FK_Vendor_CreditTerms] FOREIGN KEY ([CreditTermsId]) REFERENCES [dbo].[CreditTerms] ([CreditTermsId]),

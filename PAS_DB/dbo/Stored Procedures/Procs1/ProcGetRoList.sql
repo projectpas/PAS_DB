@@ -27,6 +27,7 @@
 	11   13-05-2025     Bhargav Saliya      MULTIPLE checking for  WO and SO Number was improper so corrected it
 	12   04-12-2025     Amit Ghediya        Added qtyShipped,qtyRemaining for shipping details
 	13   14-05-2026     Bhargav Saliya      Remove The VendoreId Condition [PN-16416]
+	14	 22/06/2026		Abhishek Jirawla	Adding IsPiecePart condition in RepairOrderPart table
      
 -- exec ProcGetRoList @PageNumber=1,@PageSize=20,@SortColumn=N'CreatedDate',@SortOrder=-1,@StatusID=6,@GlobalFilter=N'',@RepairOrderNumber=NULL,@OpenDate=NULL,@ClosedDate=NULL,@VendorName=NULL,@VendorCode=NULL,@Status=N'open',@ApprovedBy=NULL,@RequestedBy=NULL,@CreatedDate=NULL,@UpdatedDate=NULL,@CreatedBy=NULL,@UpdatedBy=NULL,@IsDeleted=0,@EmployeeId=223,@MasterCompanyId=1,@VendorId=NULL,@ViewType=N'roview',@PartNumberType=NULL,@PartDescription=NULL,@EstDeliveryType=NULL,@ManufacturerType=NULL,@SalesOrderNumberType=NULL,@WorkOrderNumType=NULL,@IsUpdated=0
 **************************************************************/
@@ -141,7 +142,7 @@ BEGIN
 					MAX(ROP.SalesOrderNo) AS MaxSalesOrderNo,
 					SUM(ROP.QuantityOrdered) AS QuantityOrdered
 				FROM dbo.RepairOrderPart ROP WITH (NOLOCK)
-				WHERE ROP.IsParent = 1
+				WHERE ROP.IsParent = 1 AND ISNULL(ROP.[IsPiecePart], 0) = 0
 				GROUP BY ROP.RepairOrderId
 			)
 
@@ -210,7 +211,7 @@ BEGIN
 						ISNULL(SUM(ROSI.QtyShipped),0) AS QtyShipped
 					FROM DBO.RepairOrderPart rop WITH (NOLOCK) 
 					LEFT JOIN DBO.RepairOrderShippingItem ROSI WITH (NOLOCK) ON ROSI.RepairOrderPartId = rop.RepairOrderPartRecordId
-					WHERE rop.RepairOrderId = TMP1.RepairOrderId) 
+					WHERE rop.RepairOrderId = TMP1.RepairOrderId AND ISNULL(ROP.[IsPiecePart], 0) = 0) 
 				AS result
 
 			;WITH ResultData AS(

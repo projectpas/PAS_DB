@@ -21,6 +21,7 @@
 ** 9    22/05/2026   Moin Bloch         Added  [StockLineId],[IsCustomerStock] PN-16469
 ** 10   26/05/2026   Priyansh Patel     Added Worsheet Header Id [PN-16537]
 ** 11   02/06/2026   Abhishek Jirawla   Added IsScheduled [PN-16679]
+** 12   25/06/2026	 Amit Ghediya	    Added @LastInspectedDate,@Description,@LastinspectedById [PN-17000]
 
 
 *****************************************************************************************************/
@@ -65,8 +66,11 @@ CREATE  PROCEDURE [dbo].[USP_GetAircraftMaintenanceList]
     @WorksheetNumber         VARCHAR(50) = NULL,
     @MtcCategory			 VARCHAR(256) = NULL,
     @WoNumber				 VARCHAR(256) = NULL,
-	@LastMtced				 DATETIME     = NULL
+	@LastMtced				 DATETIME     = NULL,
 
+	@LastInspectedDate		 DATETIME     = NULL,
+	@Description			 VARCHAR(256) = NULL,
+	@LastinspectedBy		 VARCHAR(256) = NULL
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -127,6 +131,10 @@ BEGIN
                 ISNULL(STK.[QuantityOnHand],0) [QuantityOnHand],
                 WSH.WorksheetHeaderId,
 				AMP.UpdatedDate AS lastMtced,
+				AMP.LastInspectedDate,
+				AMP.[Description],
+				EMP.EmployeeId AS LastinspectedById,
+				EMP.EmployeeName AS LastinspectedBy,
                 COUNT(1) OVER () AS TotalRecords
             FROM [dbo].[AircraftMaintenanceProgram] AMP WITH (NOLOCK)
             LEFT JOIN [dbo].[AircraftRegistryHeader] ARH WITH (NOLOCK) ON AMP.AircraftRegistryId = ARH.AircraftRegistryId  AND ARH.MasterCompanyId = @MasterCompanyId 
@@ -134,6 +142,7 @@ BEGIN
             LEFT JOIN [dbo].[Workflow] WF WITH (NOLOCK)  ON AMP.TemplateId = WF.WorkflowId AND WF.TemplateType = @ACTemplateType
             LEFT JOIN [dbo].[MaintenanceCategory] mtc WITH (NOLOCK) ON AMP.[MtcCategoryId] = mtc.[MtcCategoryId]
             LEFT JOIN [dbo].[Stockline] STK WITH (NOLOCK) ON STK.[StockLineId] = ARH.[StockLineId]           
+			LEFT JOIN [dbo].[View_Employee_Cert] EMP WITH (NOLOCK) ON EMP.EmployeeId = AMP.LastinspectedById          
             LEFT JOIN (SELECT *, ROW_NUMBER() OVER (PARTITION BY ProgramId ORDER BY CreatedDate DESC) AS RN FROM [dbo].[WorksheetHeader] WITH (NOLOCK)) WSH ON AMP.ProgramId = WSH.ProgramId AND WSH.RN = 1
             LEFT JOIN (
                     SELECT WOP.[ProgramId], WO.[WorkOrderId], WO.[WorkOrderNum],
@@ -161,6 +170,8 @@ BEGIN
                 AND (@IsActive        IS NULL OR AMP.IsActive = @IsActive)
                 AND (@NextScheduled   IS NULL OR CAST(AMP.NextScheduledMaintenance AS DATE) = CAST(@NextScheduled AS DATE))
 				AND (@LastMtced   IS NULL OR CAST(AMP.UpdatedDate AS DATE) = CAST(@LastMtced AS DATE))
+				AND (@LastInspectedDate   IS NULL OR CAST(AMP.LastInspectedDate AS DATE) = CAST(@LastInspectedDate AS DATE))
+				AND (@LastinspectedBy    IS NULL OR EMP.EmployeeName   LIKE '%' + @LastinspectedBy   + '%')
                 AND (@MaintenanceClassName IS NULL  OR MC.[Name] LIKE '%' + @MaintenanceClassName + '%')
                 -- Flight Hours (string compare since formatted HH:mm)
                 AND (@FlightHoursLimit IS NULL OR  (CAST(AMP.FlightHoursLimitHours AS VARCHAR) + ':' + RIGHT('00' + CAST(ISNULL(AMP.FlightHoursLimitMinutes,0) AS VARCHAR),2)) LIKE '%' + @FlightHoursLimit + '%')
@@ -249,8 +260,14 @@ BEGIN
             CASE WHEN @SortColumn = 'WorksheetNumber' AND @SortOrder = 'DESC' THEN WorksheetNumber END DESC,
             CASE WHEN @SortColumn = 'MtcCategory'       AND @SortOrder = 'ASC'  THEN MtcCategory END ASC,
             CASE WHEN @SortColumn = 'MtcCategory'       AND @SortOrder = 'DESC' THEN MtcCategory END DESC,
-             CASE WHEN @SortColumn = 'woNumber'       AND @SortOrder = 'ASC'  THEN WorkOrderNum END ASC,
+            CASE WHEN @SortColumn = 'woNumber'       AND @SortOrder = 'ASC'  THEN WorkOrderNum END ASC,
             CASE WHEN @SortColumn = 'woNumber'       AND @SortOrder = 'DESC' THEN WorkOrderNum END DESC,
+
+			CASE WHEN @SortColumn = 'LastInspectedDate'       AND @SortOrder = 'ASC'  THEN LastInspectedDate END ASC,
+            CASE WHEN @SortColumn = 'LastInspectedDate'       AND @SortOrder = 'DESC' THEN LastInspectedDate END DESC,
+			CASE WHEN @SortColumn = 'LastinspectedBy'       AND @SortOrder = 'ASC'  THEN LastinspectedBy END ASC,
+            CASE WHEN @SortColumn = 'LastinspectedBy'       AND @SortOrder = 'DESC' THEN LastinspectedBy END DESC,
+
             ProgramId DESC
 
         OFFSET (@PageNumber - 1) * @PageSize ROWS

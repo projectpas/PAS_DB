@@ -13,6 +13,7 @@
  ** PR   Date         Author			Change	Description                
  ** --   --------     -------			--------------------------------              
     1    05/15/2025   VISHAL SUTHAR     Created
+	2    06/19/2026   Abhishek Jirawla	Adding IsPiecePart condition in RepairOrderPart table 
          
 -- EXEC [dbo].[GetROPackagingLabel] 2614, 4769
 **************************************************************/  
@@ -67,7 +68,7 @@ BEGIN
         '' vendorReference
     FROM [dbo].[ROPickTicket] ropkt WITH(NOLOCK)
     JOIN [dbo].RepairOrder roq WITH(NOLOCK) ON ropkt.RepairOrderId = roq.RepairOrderId
-    LEFT JOIN [dbo].[RepairOrderPart] part WITH(NOLOCK) ON roq.RepairOrderId = part.SalesOrderId
+    LEFT JOIN [dbo].[RepairOrderPart] part WITH(NOLOCK) ON roq.RepairOrderId = part.SalesOrderId AND ISNULL(part.[IsPiecePart], 0) = 0
     LEFT JOIN [dbo].[Vendor] cust WITH(NOLOCK) ON roq.VendorId = cust.VendorId
     LEFT JOIN [dbo].[Address] cuad WITH(NOLOCK) ON cust.AddressId = cuad.AddressId
     LEFT JOIN [dbo].[Countries] ccnty WITH(NOLOCK) ON cuad.CountryId = ccnty.countries_id

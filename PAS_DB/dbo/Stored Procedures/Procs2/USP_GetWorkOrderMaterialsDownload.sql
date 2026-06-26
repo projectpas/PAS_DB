@@ -13,6 +13,7 @@
 	2	11/03/2025		Moin Bloch			    Fixed Issue For Duplicate Records
 	3	18/04/2025		Devendra Shekh			Fixed Issue For Duplicate Records for Alt/Equ Part for parent Download
 	4   26/03/2026      Moin Bloch	            Rename TearDown To Internal Teardown PN-15850
+	5   22/06/2026		Abhishek Jirawla		Adding IsPiecePart condition in RepairOrderPart table 
 
  EXECUTE [dbo].[USP_GetWorkOrderMaterialsDownload] 4257,3782, 0
  exec dbo.USP_GetWorkOrderMaterialsDownload 8354,7964,1,1
@@ -625,7 +626,7 @@ SET NOCOUNT ON
 						 LEFT JOIN [dbo].[SubWorkOrder] SWO WITH (NOLOCK) ON SWO.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId AND SWO.StockLineId = MSTL.StockLineId
 						 LEFT JOIN [dbo].[RepairOrder] RO WITH (NOLOCK) ON SL.RepairOrderId = RO.RepairOrderId
 						 LEFT JOIN [dbo].[RepairOrder] WOMS_RO WITH (NOLOCK) ON MSTL.RepairOrderId = WOMS_RO.RepairOrderId
-						 LEFT JOIN [dbo].[RepairOrderPart] ROP WITH (NOLOCK) ON ROP.RepairOrderId = WOMS_RO.RepairOrderId AND ROP.ItemMasterId = MSTL.ItemMasterId--SL.RepairOrderPartRecordId = ROP.RepairOrderPartRecordId
+						 LEFT JOIN [dbo].[RepairOrderPart] ROP WITH (NOLOCK) ON ROP.RepairOrderId = WOMS_RO.RepairOrderId AND ROP.ItemMasterId = MSTL.ItemMasterId AND ISNULL(ROP.[IsPiecePart], 0) = 0--SL.RepairOrderPartRecordId = ROP.RepairOrderPartRecordId
 						 LEFT JOIN [dbo].[ItemMaster] IMS WITH (NOLOCK) ON IMS.ItemMasterId = MSTL.ItemMasterId
 					WHERE WOM.[IsDeleted] = 0 AND WOM.[WorkFlowWorkOrderId] = @WorkFlowWorkOrderId
 					AND (ISNULL(WOM.[Quantity],0) - ISNULL(WOM.[QuantityIssued],0) > 0)
@@ -694,7 +695,7 @@ SET NOCOUNT ON
 						 LEFT JOIN [dbo].[SubWorkOrder] SWO WITH (NOLOCK) ON SWO.WorkOrderMaterialsId = WOM.WorkOrderMaterialsKitId AND SWO.StockLineId = MSTL.StockLineId
 						 LEFT JOIN [dbo].[RepairOrder] RO WITH (NOLOCK) ON SL.RepairOrderId = RO.RepairOrderId
 						 LEFT JOIN [dbo].[RepairOrder] WOMS_RO WITH (NOLOCK) ON MSTL.RepairOrderId = WOMS_RO.RepairOrderId
-						 LEFT JOIN [dbo].[RepairOrderPart] ROP WITH (NOLOCK) ON ROP.RepairOrderId = WOMS_RO.RepairOrderId AND ROP.ItemMasterId = MSTL.ItemMasterId--SL.RepairOrderPartRecordId = ROP.RepairOrderPartRecordId
+						 LEFT JOIN [dbo].[RepairOrderPart] ROP WITH (NOLOCK) ON ROP.RepairOrderId = WOMS_RO.RepairOrderId AND ROP.ItemMasterId = MSTL.ItemMasterId AND ISNULL(ROP.[IsPiecePart], 0) = 0--SL.RepairOrderPartRecordId = ROP.RepairOrderPartRecordId
 						 LEFT JOIN [dbo].[ItemMaster] IMS WITH (NOLOCK) ON IMS.ItemMasterId = MSTL.ItemMasterId
 					WHERE WOM.[IsDeleted] = 0 AND WOM.[WorkFlowWorkOrderId] = @WorkFlowWorkOrderId
 						AND (ISNULL(WOM.[Quantity],0) - ISNULL(WOM.[QuantityIssued],0) > 0)
@@ -768,7 +769,7 @@ SET NOCOUNT ON
 						 LEFT JOIN [dbo].[SubWorkOrder] SWO WITH (NOLOCK) ON SWO.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId AND SWO.StockLineId = MSTL.StockLineId
 						 LEFT JOIN [dbo].[RepairOrder] RO WITH (NOLOCK) ON SL.RepairOrderId = RO.RepairOrderId
 						 LEFT JOIN [dbo].[RepairOrder] WOMS_RO WITH (NOLOCK) ON MSTL.RepairOrderId = WOMS_RO.RepairOrderId
-						 LEFT JOIN [dbo].[RepairOrderPart] ROP WITH (NOLOCK) ON ROP.RepairOrderId = WOMS_RO.RepairOrderId AND ROP.ItemMasterId = MSTL.ItemMasterId--SL.RepairOrderPartRecordId = ROP.RepairOrderPartRecordId
+						 LEFT JOIN [dbo].[RepairOrderPart] ROP WITH (NOLOCK) ON ROP.RepairOrderId = WOMS_RO.RepairOrderId AND ROP.ItemMasterId = MSTL.ItemMasterId AND ISNULL(ROP.[IsPiecePart], 0) = 0--SL.RepairOrderPartRecordId = ROP.RepairOrderPartRecordId
 						 LEFT JOIN [dbo].[ItemMaster] IMS WITH (NOLOCK) ON IMS.ItemMasterId = MSTL.ItemMasterId
 					WHERE WOM.[IsDeleted] = 0 AND WOM.[WorkFlowWorkOrderId] = @WorkFlowWorkOrderId
 					
@@ -835,7 +836,7 @@ SET NOCOUNT ON
 						 LEFT JOIN [dbo].[SubWorkOrder] SWO WITH (NOLOCK) ON SWO.WorkOrderMaterialsId = WOM.WorkOrderMaterialsKitId AND SWO.StockLineId = MSTL.StockLineId
 						 LEFT JOIN [dbo].[RepairOrder] RO WITH (NOLOCK) ON SL.RepairOrderId = RO.RepairOrderId
 						 LEFT JOIN [dbo].[RepairOrder] WOMS_RO WITH (NOLOCK) ON MSTL.RepairOrderId = WOMS_RO.RepairOrderId
-						 LEFT JOIN [dbo].[RepairOrderPart] ROP WITH (NOLOCK) ON ROP.RepairOrderId = WOMS_RO.RepairOrderId AND ROP.ItemMasterId = MSTL.ItemMasterId--SL.RepairOrderPartRecordId = ROP.RepairOrderPartRecordId						
+						 LEFT JOIN [dbo].[RepairOrderPart] ROP WITH (NOLOCK) ON ROP.RepairOrderId = WOMS_RO.RepairOrderId AND ROP.ItemMasterId = MSTL.ItemMasterId AND ISNULL(ROP.[IsPiecePart], 0) = 0--SL.RepairOrderPartRecordId = ROP.RepairOrderPartRecordId						
 						 LEFT JOIN [dbo].[ItemMaster] IMS WITH (NOLOCK) ON IMS.ItemMasterId = MSTL.ItemMasterId
 					WHERE WOM.[IsDeleted] = 0 AND WOM.[WorkFlowWorkOrderId] = @WorkFlowWorkOrderId			
 				)

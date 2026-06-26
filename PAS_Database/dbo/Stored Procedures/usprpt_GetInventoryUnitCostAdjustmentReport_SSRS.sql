@@ -12,6 +12,7 @@
   ** S NO   Date            Author				Change Description              
  ** --   --------			-------				--------------------------------            
     1    30-Jan-2026		Devendra Shekh        created
+	2    26-Jun-2026        Bhargav Saliya        Added Decimal Range (18,6)
 
 **************************************************************/
 CREATE   PROCEDURE [dbo].[usprpt_GetInventoryUnitCostAdjustmentReport_SSRS]     
@@ -100,8 +101,8 @@ BEGIN
 		ISNULL(stl.[QuantityOnHand], 0) 'qtyoh',
 		ISNULL(stladj.[ChangedFrom], 0) 'origunitcost',
 		ISNULL(stladj.[ChangedTo], 0) 'newunitcost',
-		(ISNULL(CAST(stladj.[ChangedTo] AS DECIMAL), 0) - ISNULL(CAST(stladj.[ChangedFrom] AS DECIMAL), 0)) AS 'unitcostchange',
-		(ISNULL(stl.[QuantityOnHand], 0) * (ISNULL(CAST(stladj.[ChangedTo] AS DECIMAL), 0) - ISNULL(CAST(stladj.[ChangedFrom] AS DECIMAL), 0))) 'unitcostadjustmentamount',
+		(ISNULL(CAST(stladj.[ChangedTo] AS DECIMAL(18,6)), 0) - ISNULL(CAST(stladj.[ChangedFrom] AS DECIMAL(18,6)), 0)) AS 'unitcostchange',
+		(ISNULL(stl.[QuantityOnHand], 0) * (ISNULL(CAST(stladj.[ChangedTo] AS DECIMAL(18,6)), 0) - ISNULL(CAST(stladj.[ChangedFrom] AS DECIMAL(18,6)), 0))) 'unitcostadjustmentamount',
 		sar.[Description] 'reasoncode',
 		UPPER(uom.[ShortName]) 'uom',
 		UPPER(pox.[PurchaseOrderNumber]) 'ponum',

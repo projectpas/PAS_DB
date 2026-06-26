@@ -15,6 +15,7 @@
 	2    14-05-2025     Amit Ghediya		added Adjusted By filed.
 	3    09-06-2025     Amit Ghediya		decimal format.
 	4    29-01-2026     Devendra Shekh		Modified to Handle Column Filters
+	5    26-06-2026     Bhargav Saliya      Added Decimal Range (18,6)
 
 **************************************************************/
 CREATE   PROCEDURE [dbo].[usprpt_GetInventoryQuantityAdjustmentReport]     
@@ -156,12 +157,12 @@ BEGIN
         UPPER(stl.[stocklineNumber]) 'slnum',
 		UPPER(stl.[ControlNumber]) 'ctrlnum',   
 		ISNULL(stl.[UnitCost], 0) 'unitcost',   
-		ISNULL(CAST(stladj.[ChangedFrom] AS DECIMAL), 0) 'origqty',
-		ISNULL(CAST(stladj.[ChangedTo] AS DECIMAL), 0) 'newqty',       
-		CASE WHEN stladj.StocklineAdjustmentDataTypeId = @IncType THEN (ISNULL(CAST(stladj.[ChangedTo] AS DECIMAL), 0) - ISNULL(CAST(stladj.[ChangedFrom] AS DECIMAL), 0))
-		     ELSE (ISNULL(CAST(stladj.[ChangedFrom] AS DECIMAL), 0) - ISNULL(CAST(stladj.[ChangedTo] AS DECIMAL), 0)) * (-1) END 'qtychange',
-		CASE WHEN stladj.StocklineAdjustmentDataTypeId = @IncType THEN (ISNULL(stl.[UnitCost], 0) * (ISNULL(CAST(stladj.[ChangedTo] AS DECIMAL), 0) - ISNULL(CAST(stladj.[ChangedFrom] AS DECIMAL), 0)))
-		     ELSE (ISNULL(stl.[UnitCost], 0) * (ISNULL(CAST(stladj.[ChangedFrom] AS DECIMAL), 0) - ISNULL(CAST(stladj.[ChangedTo] AS DECIMAL), 0))) * (-1) END 'qtyadjustmentamount',		
+		ISNULL(CAST(stladj.[ChangedFrom] AS DECIMAL(18,6)), 0) 'origqty',
+		ISNULL(CAST(stladj.[ChangedTo] AS DECIMAL(18,6)), 0) 'newqty',       
+		CASE WHEN stladj.StocklineAdjustmentDataTypeId = @IncType THEN (ISNULL(CAST(stladj.[ChangedTo] AS DECIMAL(18,6)), 0) - ISNULL(CAST(stladj.[ChangedFrom] AS DECIMAL(18,6)), 0))
+		     ELSE (ISNULL(CAST(stladj.[ChangedFrom] AS DECIMAL(18,6)), 0) - ISNULL(CAST(stladj.[ChangedTo] AS DECIMAL(18,6)), 0)) * (-1) END 'qtychange',
+		CASE WHEN stladj.StocklineAdjustmentDataTypeId = @IncType THEN (ISNULL(stl.[UnitCost], 0) * (ISNULL(CAST(stladj.[ChangedTo] AS DECIMAL(18,6)), 0) - ISNULL(CAST(stladj.[ChangedFrom] AS DECIMAL(18,6)), 0)))
+		     ELSE (ISNULL(stl.[UnitCost], 0) * (ISNULL(CAST(stladj.[ChangedFrom] AS DECIMAL(18,6)), 0) - ISNULL(CAST(stladj.[ChangedTo] AS DECIMAL(18,6)), 0))) * (-1) END 'qtyadjustmentamount',		
 		sar.[Description] 'reasoncode',
 		UPPER(uom.[ShortName]) 'uom',
 		UPPER(pox.[PurchaseOrderNumber]) 'ponum',    

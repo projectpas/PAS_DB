@@ -4710,6 +4710,9 @@
     <Build Include="dbo\Tables\RFQTraceability.sql" />
     <Build Include="dbo\Views\vw_RFQTraceability.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetAircraftRegistryDropdownList.sql" />
+    <Build Include="dbo\Tables\Work_LogbookCertificateFrom.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetAircraftDataByWorkOrderId.sql" />
+    <Build Include="dbo\Stored Procedures\USP_CreateUpdateLogbookCertificateForm.sql" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Snapshots\PAS_DB_20220518_07-53-10.dacpac" />

@@ -26,6 +26,7 @@
 	12	 30-June-2025	Devendra Shekh				SO Billing Table Changes
 	13	 03 NOV 2025	HEMANT SALIYA				Corrected Dashbord Reports Issue for Multiple MPN
 	14	 02 JUNE 2026	RAJESH GAMI					Fixed : Amount related issues for the SO
+	15   25-JUNE-2026   Ayushi Patel				UOM Changes [PN-16963]
 **********************/
 /*************************************************************
 EXEC [dbo].[GetMonthlyDashboardData] 11, 2, 98, '12-03-2025 00:00:00'
@@ -177,7 +178,7 @@ BEGIN
 				END
 				ELSE IF (@ChartType = 2)
 				BEGIN
-					DECLARE @Amt DECIMAL(18, 2) = 0;
+					DECLARE @Amt DECIMAL(18, 6) = 0;
 					;WITH InvoiceResult AS (
 					SELECT ISNULL(SUM(wobii.GrandTotal),0) - (ISNULL(SUM(wobii.SalesTax),0) + ISNULL(SUM(wobii.OtherTax),0)) as GrandTotal
 
@@ -195,7 +196,7 @@ BEGIN
 				END
 				ELSE IF (@ChartType = 3)
 				BEGIN
-					DECLARE @SOAmt DECIMAL(18, 2) = 0;
+					DECLARE @SOAmt DECIMAL(18, 6) = 0;
 					
 					;WITH InvoiceResult AS (
 						SELECT ISNULL(SUM(SOBI.GrandTotal),0) - (ISNULL(SUM(SOBI.SalesTax),0) + ISNULL(SUM(SOBI.OtherTax),0)) as GrandTotal

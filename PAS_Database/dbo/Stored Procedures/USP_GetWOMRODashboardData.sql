@@ -17,7 +17,7 @@
 	6	 03 NOV 2025		HEMANT SALIYA			Corrected Dashbord Reports Issue for Multiple MPN
 	7    05 NOV 2025        Moin Bloch              Exclude Credit Memo Condition 
 	8    14 NOV 2025        Moin Bloch              Fix For Partial Credit Memo 
-	
+	9    25-June-2026       Ayushi Patel			UOM Changes [PN-16963]
 	EXEC dbo.[USP_GetWOMRODashboardData] @MasterCompanyId=1,@StartDate='2024-10-17 00:00:00',@EmployeeId=2,@ManagementStructureId=1
 *********************************************************************************************/
 CREATE   PROCEDURE [dbo].[USP_GetWOMRODashboardData]
@@ -36,13 +36,13 @@ BEGIN
 		
 		DECLARE @WOReceiptUnits AS INT;
 		DECLARE @WOQuotedUnits AS INT;
-		DECLARE @WOQuotedAmount AS DECIMAL(20, 2);
+		DECLARE @WOQuotedAmount AS DECIMAL(18, 6);
 		DECLARE @WOApprovalUnits AS INT;
-		DECLARE @WOApprovalAmount AS DECIMAL(20, 2);
+		DECLARE @WOApprovalAmount AS DECIMAL(18, 6);
 		DECLARE @WOBillingUnits AS INT;
-		DECLARE @WOBillingAmount AS DECIMAL(20, 2);
+		DECLARE @WOBillingAmount AS DECIMAL(18, 6);
 		DECLARE @WOMTDUnits AS INT;
-		DECLARE @WOMTDAmount AS DECIMAL(20, 2);
+		DECLARE @WOMTDAmount AS DECIMAL(18, 6);
 		DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '', @BaseUtcOffsetSec BIGINT = 0;
 
 		DECLARE @RecevingModuleID AS BIGINT = (SELECT [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH (NOLOCK) WHERE [ModuleName] = 'RecevingCustomer');

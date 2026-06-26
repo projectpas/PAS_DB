@@ -217,7 +217,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 				,ic.ItemClassificationCode ItemClassfication
 				,ig.Description AS ItemGroup
 				,c.Description AS Condition
-				,UPPER(sl.UnitOfMeasure) AS Uom
+				,UPPER(sl.StockUnitOfMeasure) AS Uom
 				,UPPER(im.StockUnitOfMeasure) AS StockUnitOfMeasure
 				,UPPER(im.ConsumeUnitOfMeasure) AS ConsumeUnitOfMeasure
 				,(CASE WHEN UPPER(REPLACE(ltCal.Type,' ','')) = UPPER(REPLACE(@LOT_TransOut_SO,' ','')) THEN 'INVOICED'
@@ -743,7 +743,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 				,sl.IdNumber
 				,im.ManufacturerName
 				,sl.itemType
-				,UPPER(sl.UnitOfMeasure) AS Uom	
+				,UPPER(sl.StockUnitOfMeasure) AS Uom	
 				,UPPER(im.StockUnitOfMeasure) AS StockUnitOfMeasure
 				,UPPER(im.ConsumeUnitOfMeasure) AS ConsumeUnitOfMeasure
 				--,per.PercentValue
@@ -1610,7 +1610,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 				,ic.ItemClassificationCode ItemClassfication
 				,ig.Description AS ItemGroup
 				,c.Description AS Condition
-				,UPPER(sl.UnitOfMeasure) AS Uom
+				,UPPER(sl.StockUnitOfMeasure) AS Uom
 				,ltCal.Qty Qty
 				,ISNULL(sl.PurchaseOrderUnitCost,0.00) AS UnitPrice
 				--,(ISNULL(sl.UnitCost,0) * (CASE WHEN ISNULL(ltin.QtyToTransIn,0) = 0 THEN ISNULL(ltin.QtyToTransOut,0) ELSE ISNULL(ltin.QtyToTransIn,0) END)) AS ExtendedPrice

@@ -14,7 +14,7 @@
 	3    20/05/2026          Nakul Chandigra    Added fields 
 	4    22/05/2026          Bhargav Saliya     Added [SiteId] 
 	5    29/05/2026          Bhargav Saliya     Added field [MaintenanceTypeId]
-	6    29/06/2026          Divyesh Kathiriya  Added field ConditionId [PN-17041]
+	6    29/06/2026          Divyesh Kathiriya  Added field ConditionId and WorkScopeId. [PN-17041]
 
 	exec [USP_GetAircraftSetup] 1
 **************************************************************/
@@ -48,7 +48,7 @@
 			AR.[IsActive],
 			AR.[IsDeleted],
 			AR.[SiteId],
-			AR.[MaintenanceTypeId] AS AircraftMaintenanceTypeId,
+			AR.[WorkScopeId],
 			AR.[ConditionId]
 		FROM [dbo].[AircraftSetup] AR WITH (NOLOCK)
 		LEFT JOIN [dbo].[MaintenanceStatus] MS WITH (NOLOCK) ON MS.MaintenanceStatusId = AR.MaintenanceStatusId

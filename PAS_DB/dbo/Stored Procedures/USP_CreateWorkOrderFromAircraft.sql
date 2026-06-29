@@ -17,6 +17,7 @@
 	4    02/06/2026     Amit Ghediya		Update for get CustomerId from AircraftRegistryHeader [PN-16679]
 	5    10/06/2026     Divyesh Kathiriya   Update WorkOrderNum on AircraftInstalledPartDetails Table [PN-16780]
 	6    26/06/2026     Divyesh Kathiriya   Update WorksheetStatusId Fields [PN-16897]
+	7    29/06/2026     Divyesh Kathiriya   Update field 'MaintenanceTypeId' to 'WorkScopeId' [PN-17041]
 
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_CreateWorkOrderFromAircraft]
@@ -151,7 +152,7 @@ BEGIN
 			END
 			ELSE 
 			BEGIN
-				SET @WorkOrderScopeId = (SELECT TOP 1 [MaintenanceTypeId] FROM [dbo].[AircraftSetup] WITH(NOLOCK) WHERE [MasterCompanyId] = @MasterCompanyId)				
+				SET @WorkOrderScopeId = (SELECT TOP 1 [WorkScopeId] FROM [dbo].[AircraftSetup] WITH(NOLOCK) WHERE [MasterCompanyId] = @MasterCompanyId)				
 			END
 
 			SELECT TOP 1 @WorkflowId = CASE WHEN  wf.[WorkflowId] = 0 THEN NULL ELSE wf.[WorkflowId] END					 

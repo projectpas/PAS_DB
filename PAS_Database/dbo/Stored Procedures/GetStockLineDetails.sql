@@ -31,7 +31,7 @@
 	11   22/05/2026  Nakul Chandigra	Added new field 'ExchangeSalesOrderNumber '(PN-16315)
 	12   26/05/2026  Priyansh Patel 	Added new field 'TTSN, TCSN '(PN-16477)
 	13   03/06/2026  Sahdev Saliya      Added new field Model [PN-16667]
-
+	14   29/06/2026  Nakul Chandigra    Added new field 'Note' [Note] [PN-17012]
 
     EXEC dbo.GetStockLineDetails  179632  180170
 ***********************************************************************************************/
@@ -352,7 +352,8 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 			stl.AircraftSN,
 			ES.ExchangeSalesOrderNumber,
 			stl.TotalTSN, stl.TotalCSN, stl.TotalTSNMM, stl.TotalCSNMM,
-			stl.Model
+			stl.Model,
+			stl.Note
 		FROM [dbo].[StockLine] stl WITH(NOLOCK)
 		INNER JOIN [dbo].[ItemMaster] im WITH(NOLOCK) ON stl.[ItemMasterId] = im.[ItemMasterId]
 		INNER JOIN [dbo].[StocklineManagementStructureDetails] msd WITH(NOLOCK) ON stl.[StockLineId] = msd.[ReferenceID] AND msd.[ModuleID] = @StocklineMSModuleId 

@@ -17,6 +17,7 @@
 	4    26/MAY/2026   Priyansh Patel 	Added new field 'TTSN, TCSN '(PN-16477)
 	5    27/05/2026    Ayushi Patel     [PN-16476]Sync CSN, CSO, TSN, TSO in WorkOrderPartNumber on StockLine TimeLife update
 	6    03/06/2026    Sahdev Saliya    Added new field Model [PN-16667]
+	7    29/06/2026    Nakul Chandigra  Added new field 'Note' [Note] [PN-17012]
 
 --   EXEC [USP_CreateStockLine] 
 **************************************************************/
@@ -271,7 +272,9 @@ CREATE   PROCEDURE [dbo].[USP_CreateStockLine]
 @TotalCSN DECIMAL(18,2) = NULL,
 @TotalTSNMM DECIMAL(18,6) = NULL,
 @TotalCSNMM DECIMAL(18,6) = NULL,
-@Model VARCHAR(200) = NULL
+@Model VARCHAR(200) = NULL,
+@Note NVARCHAR(MAX) = NULL
+
 AS
 BEGIN
 
@@ -484,7 +487,7 @@ BEGIN
 			   ,[COGS_SalesOrderGLAccName],[COGS_QtyVarianceGLAccId],[COGS_QtyVarianceGLAccName],[COGS_UnitCostVarianceGLAccId],[COGS_UnitCostVarianceGLAccName],[RevenueMroGLAccId]
 			   ,[RevenueMroGLAccName],[RevenueSoGLAccId],[RevenueSoGLAccName],[RevenueExchGLAccId],[RevenueExchGLAccName],[COGS_ExchSalesOrderGLAccId],[COGS_ExchSalesOrderGLAccName]			   
 			   ,[QuantityAdjustment],[IsPiecePart],[IsRepairManagement],[IsDocument],[PurchaseOrderNumber],[IsBatchStock],[BatchNumber],StockUnitOfMeasureId,ConsumeUnitOfMeasureId,[PoPartUnitCost]
-			   ,[TotalTSN], [TotalCSN], [TotalTSNMM], [TotalCSNMM], [Model])
+			   ,[TotalTSN], [TotalCSN], [TotalTSNMM], [TotalCSNMM], [Model],[Note])
 	     SELECT @PartNumber,@StockLineNumber,@StocklineMatchKey,@ControlNumber,@ItemMasterId,@QuantityOnHand,@ConditionId,@SerialNumber,@ShelfLife,@ShelfLifeExpirationDate
                ,@WarehouseId,@LocationId,@ObtainFrom,@Owner,@TraceableTo,@ManufacturerId,@Manufacturer,@ManufacturerLotNumber,@ManufacturingDate,@ManufacturingBatchNumber,@PartCertificationNumber
                ,@CertifiedBy,@CertifiedDate,@TagDate,@TagType,@CertifiedDueDate,@CalibrationMemo,@OrderDate,@PurchaseOrderId,@PurchaseOrderUnitCost,@InventoryUnitCost,@RepairOrderId,@RepairOrderUnitCost
@@ -509,7 +512,7 @@ BEGIN
                ,@COGS_SalesOrderGLAccName,@COGS_QtyVarianceGLAccId,@COGS_QtyVarianceGLAccName,@COGS_UnitCostVarianceGLAccId,@COGS_UnitCostVarianceGLAccName,@RevenueMroGLAccId
                ,@RevenueMroGLAccName,@RevenueSoGLAccId,@RevenueSoGLAccName,@RevenueExchGLAccId,@RevenueExchGLAccName,@COGS_ExchSalesOrderGLAccId,@COGS_ExchSalesOrderGLAccName
                ,@QuantityAdjustment,@IsPiecePart,@IsRepairManagement,@IsDocument,@PurchaseOrderNumber,@IsBatchStock,@BatchNumber,@StockUnitOfMeasureId,@ConsumeUnitOfMeasureId,@PoPartUnitCost,
-			    @TotalTSN, @TotalCSN, @TotalTSNMM,@TotalCSNMM,@Model
+			    @TotalTSN, @TotalCSN, @TotalTSNMM,@TotalCSNMM,@Model,@Note
 
 			SELECT @StockLineId = SCOPE_IDENTITY();
 
@@ -729,7 +732,8 @@ BEGIN
 			   [TotalCSN]= ISNULL(@TotalCSN,0),
 			   [TotalTSNMM] = ISNULL(@TotalTSNMM ,0),
 			   [TotalCSNMM] = ISNULL(@TotalCSNMM,0),
-			   [Model] = @Model
+			   [Model] = @Model,
+			   [Note] = @Note
 	     WHERE [MasterCompanyId] = @MasterCompanyId AND [StockLineId] = @StockLineId
 		 
 		EXEC [dbo].[USP_UpdateSLMSDetails] @StkManagementStructureModuleId,@StockLineId,@ManagementStructureId,@UpdatedBy;

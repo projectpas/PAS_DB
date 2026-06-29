@@ -13,6 +13,7 @@
 ** 2     08-APR-2026   Hemant Saliya     Corrected to Get customer type Id based on name  
 ** 3     09-JUNE-2026  Priyansh Patel    Fixed the issue with the @ExistingCustomerId [PN-16747]
 ** 4     24-June-2026  Sahdev Saliya     Added Notes [PN-16968]
+** 5     26-June-2026  Sahdev Saliya     Fixed the issue with the @Notes [PN-17015]
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_CreateOrUpdateVendor]
     @VendorId BIGINT OUTPUT,
@@ -293,7 +294,7 @@ BEGIN
 										NULL, -- QuickBooksReferenceId not available
 										NULL, -- IsUpdated default true
 										NULL, -- LastSyncDate
-										NULL, -- Memo
+										@Notes, -- Memo
 										NULL  -- SyncToken
 									);
 

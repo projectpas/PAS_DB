@@ -13,7 +13,8 @@
  **************************************************************             
  ** PR   Date			 Author			Change Description              
  ** --   --------		-------			--------------------------------            
-    1    10/12/2024		EKTA CHANDEGRA	 Created  
+    1    10/12/2024		EKTA CHANDEGRA	 Created 
+	2    29/06/2026     Sahdev Saliya    Added Physical Resale [PN-17018]
 
  EXEC GetCustomerRowById 3409
 ************************************************************************/  
@@ -76,7 +77,8 @@ BEGIN
 			t.IsStageChange,
 			t.IsCommunicationPreference,
 			t.IsCustomerShipping,
-			t.Memo
+			t.Memo,
+			t.PhysicalResale
 		FROM 
 			[dbo].[Customer] t WITH(NOLOCK)
 		LEFT JOIN [dbo].[Address] ad WITH(NOLOCK) ON t.AddressId = ad.AddressId

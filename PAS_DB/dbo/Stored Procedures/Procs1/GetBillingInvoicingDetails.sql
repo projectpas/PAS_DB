@@ -22,7 +22,7 @@
 	8    31 JUL 2025   BHARGAV Saliya  Handle [IsCustomerShipping] flage and Get AccountNo In SO
 	9    05 Aug 2025   BHARGAV Saliya Fixed ShippingTerms Issue PN_13778
 	10   26/03/2026    Moin Bloch	  Rename TearDown To Internal Teardown PN-15850
-
+	11   29/06/2026    BHARGAV Saliya 	  get Terms and Id From WO Table [PN-17040]
    EXEC [dbo].[GetBillingInvoicingDetails] 845,1334,2,10,0,9003
    EXEC [dbo].[GetBillingInvoicingDetails] 9800,9938,2,15,0,0
 **************************************************************/ 
@@ -103,7 +103,7 @@ BEGIN
 				--END AS [CustomerDomensticShippingShipViaId],
 				[wosh].[ShipviaId] ShipViaId,
 				ISNULL([cf].[CreditLimit], 0) AS [CreditLimit],
-				ISNULL([cf].[CreditTermsId], 0) AS [CreditTermsId],
+				ISNULL([wo].[CreditTermId], 0) AS [CreditTermsId],
 				[wo].[CreditTerms] AS [CreditTerm],
 				ISNULL([wo].[FunctionalCurrencyId], 0) AS [CurrencyId],
 				ISNULL([fcu].[Code], '') AS [Currency],
@@ -181,8 +181,8 @@ BEGIN
 					ISNULL([cust_shipVia].[ShippingAccountinfo], '') AS [ShipAccountInfo],
 					ISNULL([cust_shipVia].[ShipViaId], 0) AS ShipViaId,
 					ISNULL([cf].[CreditLimit], 0) AS [CreditLimit],
-					ISNULL([cf].[CreditTermsId], 0) AS [CreditTermsId],
-					[ct].[Name] AS [CreditTerm],
+					ISNULL([wo].[CreditTermId], 0) AS [CreditTermsId],
+					[wo].[CreditTerms] AS [CreditTerm],
 					ISNULL([wo].[FunctionalCurrencyId], 0) AS [CurrencyId],
 					ISNULL([fcu].[Code], '') AS [Currency],
 					[wo].[CustomerId] AS [SoldToCustomerId],
@@ -260,8 +260,8 @@ BEGIN
 					ISNULL([cust_shipVia].[ShippingAccountinfo], '') AS [ShipAccountInfo],
 					ISNULL([cust_shipVia].[ShipViaId], 0) AS ShipViaId,
 					ISNULL([cf].[CreditLimit], 0) AS [CreditLimit],
-					ISNULL([cf].[CreditTermsId], 0) AS [CreditTermsId],
-					[ct].[Name] AS [CreditTerm],
+					ISNULL([wo].[CreditTermId], 0) AS [CreditTermsId],
+					[wo].[CreditTerms] AS [CreditTerm],
 					ISNULL([wo].[FunctionalCurrencyId], 0) AS [CurrencyId],
 					ISNULL([fcu].[Code], '') AS [Currency],
 					[wo].[CustomerId] AS [SoldToCustomerId],
@@ -342,8 +342,8 @@ BEGIN
 					--END AS [CustomerDomensticShippingShipViaId],
 					wosh.ShipviaId ShipViaId,
 					ISNULL([cf].[CreditLimit], 0) AS [CreditLimit],
-					ISNULL([cf].[CreditTermsId], 0) AS [CreditTermsId],
-					[ct].[Name] AS [CreditTerm],
+					ISNULL([wo].[CreditTermId], 0) AS [CreditTermsId],
+					[wo].[CreditTerms] AS [CreditTerm],
 					ISNULL([cf].[CurrencyId], 0) AS [CurrencyId],
 					ISNULL([cr].[Code], '') AS [Currency],
 					[wo].[CustomerId] AS [SoldToCustomerId],

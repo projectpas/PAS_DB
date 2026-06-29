@@ -23,6 +23,7 @@
     10   13-02-2025    Ayushi Patel     converted the date into utc (RESERVED,ISSUED,RESERVEISSUE) , Added a case to get timeZone
     11   12-02-2026    Moin Bloch		Modified Added TearDown Work Order Issue Operation PN-15435
 	12   26-03-2026    Moin Bloch	    Rename TearDown To Internal Teardown PN-15850
+	13	 26-06-2026	   Abhishek Jirawla Added Repair Order Piece part listing and calculations in the SP.
 
 	EXEC [dbo].[GetStocklineReservedIssuedReportByStocklineId] 183296,1,1
 
@@ -37,8 +38,8 @@ BEGIN
   SET NOCOUNT ON;
   SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 
-	  DECLARE @WOModule varchar(50) = 'WorkOrder',  @SubWorkOrderModule varchar(50) = 'SubWorkOrder',@SOModule varchar(50) = 'SalesOrder',
-	  @ROModule varchar(50) = 'RepairOrder',  @ExchangeModule varchar(50) = 'Exchange',  @RMAModule varchar(50) = 'RMA',  @BulkAdjModule varchar(50) = 'BulkAdjustments';
+	  DECLARE @WOModule varchar(50) = 'WorkOrder',  @SubWorkOrderModule varchar(50) = 'SubWorkOrder',@SOModule varchar(50) = 'SalesOrder', @OModule varchar(50) = 'SalesOrder',
+		@ROModule varchar(50) = 'RepairOrder',  @ExchangeModule varchar(50) = 'Exchange',  @RMAModule varchar(50) = 'RMA',  @BulkAdjModule varchar(50) = 'BulkAdjustments';
       DECLARE @RecordFrom INT;
 	  DECLARE @Total int;
 	  DECLARE @Count INT;
@@ -244,11 +245,12 @@ BEGIN
 					INNER JOIN [dbo].[RepairOrder] RO WITH(NOLOCK) ON RO.RepairOrderId = ROP.RepairOrderId
 					INNER JOIN [dbo].[Stockline] SL WITH(NOLOCK) ON SL.StockLineId = ROP.StockLineId
 					INNER JOIN [dbo].[StocklineManagementStructureDetails] SLM WITH(NOLOCK) ON SLM.ReferenceID = SL.StockLineId AND ROP.MasterCompanyId = SLM.MasterCompanyId
-					WHERE ROP.MasterCompanyId = @MasterCompanyId AND ROP.StockLineId = @StocklineId 
+					WHERE ROP.MasterCompanyId = @MasterCompanyId AND ROP.StockLineId = @StocklineId
 					AND ISNULL(RO.IsActive,0) = 1 AND ISNULL(ROP.IsActive,0) = 1
 					AND ISNULL(ROP.IsDeleted,0) = 0 AND ISNULL(RO.IsDeleted,0) = 0 AND ISNULL(ROP.IsParent,0) = 1
-					AND ISNULL(ROP.QuantityReserved,0) > 0  AND ISNULL(ROP.IsDeleted,0) = 0  
-					AND ISNULL(RO.StatusId,0) != @ROClosedStatusId AND ISNULL(RO.StatusId,0) != @ROCancelStatusId 
+					AND ISNULL(ROP.QuantityReserved,0) > 0  AND ISNULL(ROP.IsDeleted,0) = 0
+					AND ISNULL(RO.StatusId,0) != @ROClosedStatusId AND ISNULL(RO.StatusId,0) != @ROCancelStatusId
+					AND ISNULL(ROP.IsPiecePart, 0) = 0
 						
 				--* END: RepairOrder For Reserve *--
 
@@ -665,7 +667,58 @@ BEGIN
 					AND (ISNULL(SWOP.IsFinishGood,0) != 1 OR ISNULL(SWOP.IsClosed,0) != 1 OR ISNULL(SWOP.SubWorkOrderStatusId,0) != @WOCloseStatusId OR ISNULL(SWO.SubWorkOrderStatusId,0) != @WOCloseStatusId)
 					
 				--* END: SubWorkOrderMaterialStocklineKit For Reserve *--
-				
+
+				--* Start: Repair Order Part For Issued (Incase of piece part) *--
+				 INSERT INTO #tmptmpStockline (PartNumber,PartDescription,Condition,StocklineNumber,ControlNumber,IdNumber,QuantityReserved,QuantityIssued,Module,ReferenceNumber,
+												  level1,level2,level3,level4,level5,level6,level7,level8,level9,level10,ReservationDate,ReservedBy,IssuedDate,IssuedBy,Quantity,
+											  QuantityOnHand,QuantityAvailable,[Location],SerialNumber,Comments,ReferenceId,Manufacturer,ReservedIssuedDate,ReservedIssuedBy,StlQtyReserved,StlQtyIssued)
+						SELECT
+							SL.PartNumber,
+							SL.PNDescription,
+							SL.Condition,
+							SL.StockLineNumber,
+							SL.ControlNumber,
+							SL.IdNumber,
+							ROP.QuantityReserved,
+							SL.QuantityIssued,
+							@ROModule AS Module,
+							RO.RepairOrderNumber,
+							UPPER(SLM.Level1Name) AS level1,  
+							UPPER(SLM.Level2Name) AS level2, 
+							UPPER(SLM.Level3Name) AS level3, 
+							UPPER(SLM.Level4Name) AS level4, 
+							UPPER(SLM.Level5Name) AS level5, 
+							UPPER(SLM.Level6Name) AS level6, 
+							UPPER(SLM.Level7Name) AS level7, 
+							UPPER(SLM.Level8Name) AS level8, 
+							UPPER(SLM.Level9Name) AS level9, 
+							UPPER(SLM.Level10Name) AS level10,
+							ROP.UpdatedDate  ReservationDate,
+							ROP.UpdatedBy ReservedBy,
+							ROP.UpdatedDate  IssuedDate,
+							ROP.UpdatedBy IssuedBy,
+							ISNULL(SL.Quantity,0) as Quantity,
+							ISNULL(SL.QuantityOnHand,0) as QuantityOnHand,
+							ISNULL(SL.QuantityAvailable,0) as QuantityAvailable,
+							SL.[Location] as [Location],
+							SL.SerialNumber SerialNumber,
+							'' as Comments,
+							RO.RepairOrderId as ReferenceId,
+							SL.Manufacturer,
+							ROP.UpdatedDate  ReservedIssuedDate,
+							ROP.UpdatedBy ReservedIssuedBy,SL.QuantityReserved,SL.QuantityIssued
+						FROM dbo.[RepairOrderPart] ROP  WITH(NOLOCK)
+							INNER JOIN [dbo].[Stockline] SL  WITH(NOLOCK) ON SL.StockLineId = ROP.StockLineId
+							INNER JOIN [dbo].[StocklineManagementStructureDetails] SLM  WITH(NOLOCK) ON SLM.ReferenceID = SL.StockLineId AND ROP.MasterCompanyId = SLM.MasterCompanyId
+							INNER JOIN [dbo].[RepairOrder] RO WITH(NOLOCK) ON RO.RepairOrderId = ROP.RepairOrderId
+							--INNER JOIN [dbo].[Employee] EM  WITH(NOLOCK) ON EM.EmployeeId = WM.IssuedById
+						WHERE ROP.MasterCompanyId = @MasterCompanyId AND ROP.StockLineId = @StocklineId
+						AND ISNULL(RO.IsActive,0) = 1 AND ISNULL(ROP.IsActive,0) = 1 AND ISNULL(ROP.IsDeleted,0) = 0 AND ISNULL(RO.IsDeleted,0) = 0 
+						AND ISNULL(ROP.QuantityReserved,0) > 0
+						AND ISNULL(ROP.IsPiecePart, 0) = 1
+
+				--* END: Repair Order Part For Issued (Incase of piece part) *--
+
 		 END
 		 ELSE IF(@DisplayType = 2)
 		 BEGIN
@@ -939,6 +992,57 @@ BEGIN
 
 				--* END: TearDown WorkOrder For Issued *--
 
+				--* Start: Repair Order Part For Issued (Incase of piece part) *--
+				 INSERT INTO #tmptmpStockline (PartNumber,PartDescription,Condition,StocklineNumber,ControlNumber,IdNumber,QuantityReserved,QuantityIssued,Module,ReferenceNumber,
+												  level1,level2,level3,level4,level5,level6,level7,level8,level9,level10,ReservationDate,ReservedBy,IssuedDate,IssuedBy,Quantity,
+											  QuantityOnHand,QuantityAvailable,[Location],SerialNumber,Comments,ReferenceId,Manufacturer,ReservedIssuedDate,ReservedIssuedBy,StlQtyReserved,StlQtyIssued)
+						SELECT
+							SL.PartNumber,
+							SL.PNDescription,
+							SL.Condition,
+							SL.StockLineNumber,
+							SL.ControlNumber,
+							SL.IdNumber,
+							ROP.QuantityReserved,
+							SL.QuantityIssued,
+							@ROModule AS Module,
+							RO.RepairOrderNumber,
+							UPPER(SLM.Level1Name) AS level1,  
+							UPPER(SLM.Level2Name) AS level2, 
+							UPPER(SLM.Level3Name) AS level3, 
+							UPPER(SLM.Level4Name) AS level4, 
+							UPPER(SLM.Level5Name) AS level5, 
+							UPPER(SLM.Level6Name) AS level6, 
+							UPPER(SLM.Level7Name) AS level7, 
+							UPPER(SLM.Level8Name) AS level8, 
+							UPPER(SLM.Level9Name) AS level9, 
+							UPPER(SLM.Level10Name) AS level10,
+							ROP.UpdatedDate  ReservationDate,
+							ROP.UpdatedBy ReservedBy,
+							ROP.UpdatedDate  IssuedDate,
+							ROP.UpdatedBy IssuedBy,
+							ISNULL(SL.Quantity,0) as Quantity,
+							ISNULL(SL.QuantityOnHand,0) as QuantityOnHand,
+							ISNULL(SL.QuantityAvailable,0) as QuantityAvailable,
+							SL.[Location] as [Location],
+							SL.SerialNumber SerialNumber,
+							'' as Comments,
+							RO.RepairOrderId as ReferenceId,
+							SL.Manufacturer,
+							ROP.UpdatedDate  ReservedIssuedDate,
+							ROP.UpdatedBy ReservedIssuedBy,SL.QuantityReserved,SL.QuantityIssued
+						FROM dbo.[RepairOrderPart] ROP  WITH(NOLOCK)
+							INNER JOIN [dbo].[Stockline] SL  WITH(NOLOCK) ON SL.StockLineId = ROP.StockLineId
+							INNER JOIN [dbo].[StocklineManagementStructureDetails] SLM  WITH(NOLOCK) ON SLM.ReferenceID = SL.StockLineId AND ROP.MasterCompanyId = SLM.MasterCompanyId
+							INNER JOIN [dbo].[RepairOrder] RO WITH(NOLOCK) ON RO.RepairOrderId = ROP.RepairOrderId
+							--INNER JOIN [dbo].[Employee] EM  WITH(NOLOCK) ON EM.EmployeeId = WM.IssuedById
+						WHERE ROP.MasterCompanyId = @MasterCompanyId AND ROP.StockLineId = @StocklineId
+						AND ISNULL(RO.IsActive,0) = 1 AND ISNULL(ROP.IsActive,0) = 1 AND ISNULL(ROP.IsDeleted,0) = 0 AND ISNULL(RO.IsDeleted,0) = 0 
+						AND ISNULL(SL.QuantityIssued,0) > 0 
+						AND ISNULL(ROP.IsPiecePart, 0) = 1
+							
+				--* END: Repair Order Part For Issued (Incase of piece part) *--
+
 		 END		 
 		 ELSE IF(@DisplayType = 3)
 		 BEGIN
@@ -1209,6 +1313,57 @@ BEGIN
 						AND ISNULL(SL.[QuantityIssued],0) > 0 
 
 				--* END: TearDown WorkOrder For Issued *--
+
+				--* Start: Repair Order Part For Issued (Incase of piece part) *--
+				 INSERT INTO #tmptmpStockline (PartNumber,PartDescription,Condition,StocklineNumber,ControlNumber,IdNumber,QuantityReserved,QuantityIssued,Module,ReferenceNumber,
+												  level1,level2,level3,level4,level5,level6,level7,level8,level9,level10,ReservationDate,ReservedBy,IssuedDate,IssuedBy,Quantity,
+											  QuantityOnHand,QuantityAvailable,[Location],SerialNumber,Comments,ReferenceId,Manufacturer,ReservedIssuedDate,ReservedIssuedBy,StlQtyReserved,StlQtyIssued)
+						SELECT
+							SL.PartNumber,
+							SL.PNDescription,
+							SL.Condition,
+							SL.StockLineNumber,
+							SL.ControlNumber,
+							SL.IdNumber,
+							ROP.QuantityReserved,
+							SL.QuantityIssued,
+							@ROModule AS Module,
+							RO.RepairOrderNumber,
+							UPPER(SLM.Level1Name) AS level1,  
+							UPPER(SLM.Level2Name) AS level2, 
+							UPPER(SLM.Level3Name) AS level3, 
+							UPPER(SLM.Level4Name) AS level4, 
+							UPPER(SLM.Level5Name) AS level5, 
+							UPPER(SLM.Level6Name) AS level6, 
+							UPPER(SLM.Level7Name) AS level7, 
+							UPPER(SLM.Level8Name) AS level8, 
+							UPPER(SLM.Level9Name) AS level9, 
+							UPPER(SLM.Level10Name) AS level10,
+							ROP.UpdatedDate  ReservationDate,
+							ROP.UpdatedBy ReservedBy,
+							ROP.UpdatedDate  IssuedDate,
+							ROP.UpdatedBy IssuedBy,
+							ISNULL(SL.Quantity,0) as Quantity,
+							ISNULL(SL.QuantityOnHand,0) as QuantityOnHand,
+							ISNULL(SL.QuantityAvailable,0) as QuantityAvailable,
+							SL.[Location] as [Location],
+							SL.SerialNumber SerialNumber,
+							'' as Comments,
+							RO.RepairOrderId as ReferenceId,
+							SL.Manufacturer,
+							ROP.UpdatedDate  ReservedIssuedDate,
+							ROP.UpdatedBy ReservedIssuedBy,SL.QuantityReserved,SL.QuantityIssued
+						FROM dbo.[RepairOrderPart] ROP  WITH(NOLOCK)
+							INNER JOIN [dbo].[Stockline] SL  WITH(NOLOCK) ON SL.StockLineId = ROP.StockLineId
+							INNER JOIN [dbo].[StocklineManagementStructureDetails] SLM  WITH(NOLOCK) ON SLM.ReferenceID = SL.StockLineId AND ROP.MasterCompanyId = SLM.MasterCompanyId
+							INNER JOIN [dbo].[RepairOrder] RO WITH(NOLOCK) ON RO.RepairOrderId = ROP.RepairOrderId
+							--INNER JOIN [dbo].[Employee] EM  WITH(NOLOCK) ON EM.EmployeeId = WM.IssuedById
+						WHERE ROP.MasterCompanyId = @MasterCompanyId AND ROP.StockLineId = @StocklineId
+						AND ISNULL(RO.IsActive,0) = 1 AND ISNULL(ROP.IsActive,0) = 1 AND ISNULL(ROP.IsDeleted,0) = 0 AND ISNULL(RO.IsDeleted,0) = 0 
+						AND (ISNULL(ROP.QuantityReserved,0) > 0 OR ISNULL(SL.QuantityIssued,0) > 0)
+						AND ISNULL(ROP.IsPiecePart, 0) = 1
+							
+				--* END: Repair Order Part For Issued (Incase of piece part) *--
 
 		 END
 		 SELECT * INTO #finalResult

@@ -9,11 +9,13 @@
  **************************************************************           
  ** PR   Date				Author				Change Description            
  ** --   -------------		----------------	--------------------------------          
-	1	 15/05/2026          Nakul Chandigra     Created 
+	1	 15/05/2026          Nakul Chandigra    Created 
 	2    19/05/2026          Nakul Chandigra    Added fields 
 	3    20/05/2026          Nakul Chandigra    Added fields 
 	4    22/05/2026          Bhargav Saliya     Added [SiteId] 
-	5    29/05/2026          Bhargav Saliya    Added field [MaintenanceTypeId] 
+	5    29/05/2026          Bhargav Saliya     Added field [MaintenanceTypeId]
+	6    29/06/2026          Divyesh Kathiriya  Added field ConditionId [PN-17041]
+
 	exec [USP_GetAircraftSetup] 1
 **************************************************************/
 	CREATE     PROCEDURE [dbo].[USP_GetAircraftSetup]
@@ -46,7 +48,8 @@
 			AR.[IsActive],
 			AR.[IsDeleted],
 			AR.[SiteId],
-			AR.[MaintenanceTypeId] AS AircraftMaintenanceTypeId
+			AR.[MaintenanceTypeId] AS AircraftMaintenanceTypeId,
+			AR.[ConditionId]
 		FROM [dbo].[AircraftSetup] AR WITH (NOLOCK)
 		LEFT JOIN [dbo].[MaintenanceStatus] MS WITH (NOLOCK) ON MS.MaintenanceStatusId = AR.MaintenanceStatusId
 		LEFT JOIN [dbo].[AircraftStatus] ARS WITH (NOLOCK) ON ARS.AircraftStatusId = AR.AircraftStatusId

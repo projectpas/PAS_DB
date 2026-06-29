@@ -25,6 +25,6 @@
     [ItemgroupId]          BIGINT        NULL,
     [SiteId]               BIGINT        NULL,
     [MaintenanceTypeId]    BIGINT        NULL,
+    [ConditionId]          BIGINT        NULL,    
     CONSTRAINT [PK_AircraftSetup] PRIMARY KEY CLUSTERED ([AircraftSetupId] ASC)
 );
-

@@ -23,7 +23,7 @@
 	7    07/01/2026   Rajesh Gami		Added MasterCompanyId Parameter While Calling UOM Conversion Function
 	8    11/05/2026   Bhargav Saliya	Modified UOM Related Changes [PN-16192]
 	9    18/06/2026   Bhargav Saliya	Added Case For Skip UOM Function If FROM uom and TO uom Both are Same
-	10   29/06/2026   Bhargav saliya    already save extended margin amt in table so no neet to calculate with qty
+	10   29/06/2026   Bhargav saliya    Already saved extended margin amt in table so no need to calculate with qty
 EXEC [dbo].[USP_GetSOApprovalList]  1266
 **************************************************************/
 CREATE PROCEDURE [dbo].[USP_GetSOApprovalList] 

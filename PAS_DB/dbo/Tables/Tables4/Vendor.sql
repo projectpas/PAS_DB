@@ -54,6 +54,7 @@
     [SyncToken]               VARCHAR (200)   NULL,
     [IsWarningRestriction]    INT             NULL,
     [IntegrationTypeId]       INT             NULL,
+    [ResaleNumber]            VARCHAR (200)   NULL,
     [Notes]                   NVARCHAR (MAX)  NULL,
     CONSTRAINT [PK_Vendor] PRIMARY KEY CLUSTERED ([VendorId] ASC),
     CONSTRAINT [FK_Vendor_Address] FOREIGN KEY ([AddressId]) REFERENCES [dbo].[Address] ([AddressId]),

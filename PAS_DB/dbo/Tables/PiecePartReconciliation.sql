@@ -17,11 +17,14 @@
     [UpdatedDate]               DATETIME       CONSTRAINT [DF_PPR_UpdatedDate] DEFAULT (getutcdate()) NOT NULL,
     [IsActive]                  BIT            CONSTRAINT [DF_PPR_IsActive] DEFAULT ((1)) NOT NULL,
     [IsDeleted]                 BIT            CONSTRAINT [DF_PPR_IsDeleted] DEFAULT ((0)) NOT NULL,
+    [QtyDamagedLost]            INT            DEFAULT ((0)) NOT NULL,
     CONSTRAINT [PK_PiecePartReconciliation] PRIMARY KEY CLUSTERED ([PiecePartReconciliationId] ASC),
     CONSTRAINT [FK_PPR_RepairOrderPart] FOREIGN KEY ([RepairOrderPartRecordId]) REFERENCES [dbo].[RepairOrderPart] ([RepairOrderPartRecordId]),
     CONSTRAINT [FK_PPR_SourceRO] FOREIGN KEY ([SourceRepairOrderId]) REFERENCES [dbo].[RepairOrder] ([RepairOrderId]),
     CONSTRAINT [FK_PPR_StockLine] FOREIGN KEY ([StockLineId]) REFERENCES [dbo].[Stockline] ([StockLineId])
 );
+
+
 
 
 GO

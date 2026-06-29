@@ -1,21 +1,21 @@
-﻿/*************************************************************             
- ** File:   [USP_ReconcilePiecePart]             
- ** Author:   Abhishek Jirawla   
+﻿/*************************************************************
+ ** File:   [USP_ReconcilePiecePart]
+ ** Author:   Abhishek Jirawla
  ** Description: Reconcile Piece Part
- ** Purpose:           
- ** Date:   22/06/2026	       
-            
- ** PARAMETERS:             
-     
- ** RETURN VALUE:             
-    
- **************************************************************             
-  ** Change History             
- **************************************************************             
-  ** S NO   Date            Author				Change Description              
-  ** --   --------			-------				--------------------------------            
+ ** Purpose:
+ ** Date:   22/06/2026
+
+ ** PARAMETERS:
+
+ ** RETURN VALUE:
+
+ **************************************************************
+  ** Change History
+ **************************************************************
+  ** S NO   Date            Author				Change Description
+  ** --   --------			-------				--------------------------------
      1    22/06/2026		Abhishek Jirawla	Created
- **************************************************************/  
+ **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_ReconcilePiecePart]
     @RepairOrderPartRecordId    BIGINT,
     @SourceRepairOrderId        BIGINT,
@@ -23,6 +23,7 @@ CREATE   PROCEDURE [dbo].[USP_ReconcilePiecePart]
     @StockLineId                BIGINT,
     @QtyConsumed                INT             = 0,
     @QtyReturned                INT             = 0,
+    @QtyDamagedLost             INT             = 0,
     @Memo                       NVARCHAR(500)   = NULL,
     @UpdatedBy                  NVARCHAR(256),
     @MasterCompanyId            INT,
@@ -31,9 +32,9 @@ AS
 BEGIN
     SET NOCOUNT ON;
 
-    IF ISNULL(@QtyConsumed, 0) = 0 AND ISNULL(@QtyReturned, 0) = 0
+    IF ISNULL(@QtyConsumed, 0) = 0 AND ISNULL(@QtyReturned, 0) = 0 AND ISNULL(@QtyDamagedLost, 0) = 0
     BEGIN
-        RAISERROR('QtyConsumed and QtyReturned cannot both be zero.', 16, 1);
+        RAISERROR('At least one of QtyConsumed, QtyReturned, or QtyDamagedLost must be greater than zero.', 16, 1);
         RETURN;
     END
 
@@ -64,8 +65,20 @@ BEGIN
     DECLARE @SOPartId               BIGINT;
     DECLARE @SOStocklineId          BIGINT;
 
+    -- Stockline history
+    DECLARE @HistoryModuleId        INT;
+    DECLARE @HistoryActionId        INT;
+    DECLARE @HistoryDamagedActionId INT;
+
+    DECLARE @SourceRONumber         NVARCHAR(100);
+
     BEGIN TRANSACTION;
     BEGIN TRY
+
+        SELECT @HistoryModuleId         = ModuleId FROM dbo.Module WITH (NOLOCK) WHERE ModuleId = 14; -- RepairOrder
+        SELECT @HistoryActionId         = ActionId FROM dbo.StklineHistory_Action WITH (NOLOCK) WHERE [Type] = 'Issue';
+        SELECT @HistoryDamagedActionId  = ActionId FROM dbo.StklineHistory_Action WITH (NOLOCK) WHERE [Type] = 'DamagedLost';
+        SELECT @SourceRONumber          = RepairOrderNumber FROM dbo.RepairOrder WITH (NOLOCK) WHERE RepairOrderId = @SourceRepairOrderId;
 
         /* ────────────────────────────────────────────────────────────────
            1. QTY CONSUMED
@@ -87,6 +100,16 @@ BEGIN
                 UpdatedBy         = @UpdatedBy,
                 UpdatedDate       = @Now
             WHERE StockLineId     = @StockLineId;
+
+            EXEC [dbo].[USP_AddUpdateStocklineHistory]
+                @StocklineId     = @StockLineId,
+                @ModuleId        = @HistoryModuleId,
+                @ReferenceId     = @SourceRepairOrderId,
+                @SubModuleId     = NULL,
+                @SubRefferenceId = @RepairOrderPartRecordId,
+                @ActionId        = @HistoryActionId,
+                @Qty             = @QtyConsumed,
+                @UpdatedBy       = @UpdatedBy;
 
             UPDATE dbo.RepairOrderPart
             SET
@@ -120,6 +143,10 @@ BEGIN
                                          ELSE ISNULL(QuantityReserved, 0) END,
                 QuantityReserved  = CASE WHEN QuantityReserved - @QtyReturned < 0 THEN 0
                                          ELSE QuantityReserved - @QtyReturned END,
+                Memo              = CASE
+                                        WHEN ISNULL(Memo, '') = '' THEN 'PiecePart returned from RO# ' + ISNULL(@SourceRONumber, '')
+                                        ELSE Memo + '; PiecePart returned from RO# ' + ISNULL(@SourceRONumber, '')
+                                    END,
                 UpdatedBy         = @UpdatedBy,
                 UpdatedDate       = @Now
             WHERE StockLineId     = @StockLineId;
@@ -132,6 +159,46 @@ BEGIN
                                            ELSE QuantityBackOrdered - @QtyReturned END,
                 QuantityReserved    = CASE WHEN QuantityReserved    - @QtyReturned < 0 THEN 0
                                            ELSE QuantityReserved    - @QtyReturned END,
+                UpdatedBy           = @UpdatedBy,
+                UpdatedDate         = @Now
+            WHERE RepairOrderPartRecordId = @RepairOrderPartRecordId;
+        END
+
+        /* ────────────────────────────────────────────────────────────────
+           2b. QTY DAMAGED / LOST
+               Parts are physically gone (write-off) — reduce OnHand/Available/Reserved.
+               QuantityIssued is NOT incremented: these were not issued for repair work.
+        ──────────────────────────────────────────────────────────────── */
+        IF ISNULL(@QtyDamagedLost, 0) > 0
+        BEGIN
+            UPDATE dbo.StockLine
+            SET
+                QuantityOnHand    = CASE WHEN QuantityOnHand    - @QtyDamagedLost < 0 THEN 0
+                                         ELSE QuantityOnHand    - @QtyDamagedLost END,
+                QuantityAvailable = CASE WHEN QuantityAvailable - @QtyDamagedLost < 0 THEN 0
+                                         ELSE QuantityAvailable - @QtyDamagedLost END,
+                QuantityReserved  = CASE WHEN QuantityReserved  - @QtyDamagedLost < 0 THEN 0
+                                         ELSE QuantityReserved  - @QtyDamagedLost END,
+                UpdatedBy         = @UpdatedBy,
+                UpdatedDate       = @Now
+            WHERE StockLineId     = @StockLineId;
+
+            EXEC [dbo].[USP_AddUpdateStocklineHistory]
+                @StocklineId     = @StockLineId,
+                @ModuleId        = @HistoryModuleId,
+                @ReferenceId     = @SourceRepairOrderId,
+                @SubModuleId     = NULL,
+                @SubRefferenceId = @RepairOrderPartRecordId,
+                @ActionId        = @HistoryDamagedActionId,
+                @Qty             = @QtyDamagedLost,
+                @UpdatedBy       = @UpdatedBy;
+
+            UPDATE dbo.RepairOrderPart
+            SET
+                QuantityBackOrdered = CASE WHEN QuantityBackOrdered - @QtyDamagedLost < 0 THEN 0
+                                           ELSE QuantityBackOrdered - @QtyDamagedLost END,
+                QuantityReserved    = CASE WHEN QuantityReserved    - @QtyDamagedLost < 0 THEN 0
+                                           ELSE QuantityReserved    - @QtyDamagedLost END,
                 UpdatedBy           = @UpdatedBy,
                 UpdatedDate         = @Now
             WHERE RepairOrderPartRecordId = @RepairOrderPartRecordId;
@@ -166,6 +233,7 @@ BEGIN
             QtyShipped,
             QtyConsumed,
             QtyReturned,
+            QtyDamagedLost,
             QtyRemaining,
             ReconciliationStatus,
             Memo,
@@ -186,6 +254,7 @@ BEGIN
             @QtyShipped,
             ISNULL(@QtyConsumed, 0),
             ISNULL(@QtyReturned, 0),
+            ISNULL(@QtyDamagedLost, 0),
             @QtyRemainingNow,
             @Status,
             @Memo,
@@ -205,9 +274,10 @@ BEGIN
               4a: insert a RepairOrderCharges line on the consumed RO
                   (only when caller provides a ChargesTypeId).
               4b: absorb cost into the repaired main-part stockline and
-                  propagate to WorkOrder / SubWorkOrder material stocklines,
-                  mirroring what USP_CreateWOStocklineFromRO does for
-                  regular RO parts.
+                  propagate to WorkOrder / SubWorkOrder material stocklines
+                  and Sales Order stockline cost, mirroring what
+                  USP_CreateWOStocklineFromRO / USP_CreateSOStocklineFromRO
+                  do for regular RO parts.
         ──────────────────────────────────────────────────────────────── */
         IF ISNULL(@QtyConsumed, 0) > 0
         BEGIN
@@ -298,7 +368,9 @@ BEGIN
                     UpdatedDate         = @Now
                 WHERE StockLineId = @MainStockLineId;
 
-                -- Propagate to WorkOrderMaterialStockLine (main WO case)
+                -- Propagate to WorkOrderMaterialStockLine (main WO case).
+                -- IsPiecePart = 1:    piece part cost has been consumed and absorbed into this stockline.
+                -- IsNewPartAdded = 1: a new piece part has been added to the repair order for this stockline.
                 UPDATE dbo.WorkOrderMaterialStockLine
                 SET
                     UnitCost     = ISNULL(UnitCost, 0) + @PiecePartCostPerUnit,
@@ -390,6 +462,7 @@ BEGIN
             ppr.QtyShipped,
             ppr.QtyConsumed,
             ppr.QtyReturned,
+            ppr.QtyDamagedLost,
             ppr.QtyRemaining,
             ppr.ReconciliationStatus,
             ppr.Memo,
@@ -401,10 +474,10 @@ BEGIN
             @MainStockLineId            AS MainStockLineId,
             @PiecePartCostPerUnit       AS PiecePartCostPerUnit,
             @MainPartQty                AS MainPartQty
-        FROM  dbo.PiecePartReconciliation  ppr WITH (NOLOCK)
+        FROM  dbo.PiecePartReconciliation  ppr  WITH (NOLOCK)
         JOIN  dbo.RepairOrder  srcRO WITH (NOLOCK) ON srcRO.RepairOrderId = ppr.SourceRepairOrderId
         LEFT JOIN dbo.RepairOrder conRO WITH (NOLOCK) ON conRO.RepairOrderId = ppr.ConsumedRepairOrderId
-        JOIN  dbo.StockLine    sl WITH (NOLOCK)    ON sl.StockLineId      = ppr.StockLineId
+        JOIN  dbo.StockLine    sl    WITH (NOLOCK) ON sl.StockLineId      = ppr.StockLineId
         WHERE ppr.PiecePartReconciliationId = @NewReconciliationId;
 
         COMMIT TRANSACTION;
@@ -458,23 +531,23 @@ BEGIN
             ROLLBACK TRANSACTION;
 
 
-        DECLARE @ErrorLogID int,  
-            @DatabaseName varchar(100) = DB_NAME()  
-            -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------  
-            ,  
-            @AdhocComments varchar(150) = '[USP_ReconcilePiecePart]',  
+        DECLARE @ErrorLogID int,
+            @DatabaseName varchar(100) = DB_NAME()
+            -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
+            ,
+            @AdhocComments varchar(150) = '[USP_ReconcilePiecePart]',
             @ProcedureParameters varchar(3000) = '@Parameter1 = ''' + CAST(ISNULL(@RepairOrderPartRecordId, '') AS varchar(100)),
-            @ApplicationName varchar(100) = 'PAS' 
-        -----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------  
-        EXEC Splogexception @DatabaseName = @DatabaseName,  
-                            @AdhocComments = @AdhocComments,  
-                            @ProcedureParameters = @ProcedureParameters,  
-                            @ApplicationName = @ApplicationName,  
-                            @ErrorLogID = @ErrorLogID OUTPUT;  
-  
-        RAISERROR ('Unexpected Error Occured in the database. Please let the support team know of the error number : %d', 16, 1, @ErrorLogID)  
-  
-        RETURN (1);  
+            @ApplicationName varchar(100) = 'PAS'
+        -----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------
+        EXEC Splogexception @DatabaseName = @DatabaseName,
+                            @AdhocComments = @AdhocComments,
+                            @ProcedureParameters = @ProcedureParameters,
+                            @ApplicationName = @ApplicationName,
+                            @ErrorLogID = @ErrorLogID OUTPUT;
+
+        RAISERROR ('Unexpected Error Occured in the database. Please let the support team know of the error number : %d', 16, 1, @ErrorLogID)
+
+        RETURN (1);
     END CATCH
 
 END

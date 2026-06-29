@@ -127,11 +127,12 @@ BEGIN
     ),
 
     /* ────────────────────────────────────────────────────────────────────
-       ReconciliationRows — one row per PiecePartReconciliation event.
-       These represent pieces already consumed (against a specific RO)
-       or already returned.
+       AggregatedParts — one row per piece part with cumulative quantities
+       summed from all PiecePartReconciliation events.
+       QtyRemaining comes from QuantityBackOrdered (the live running balance
+       decremented by USP_ReconcilePiecePart on every reconcile call).
     ──────────────────────────────────────────────────────────────────── */
-    ReconciliationRows AS
+    AggregatedParts AS
     (
         SELECT
             bp.RepairOrderPartRecordId,
@@ -146,10 +147,10 @@ BEGIN
             bp.ControlNumber,
             bp.ControlId,
             bp.QtyShipped,
-            ppr.QtyConsumed,
-            ppr.QtyReturned,
-            ppr.QtyDamagedLost,
-            ppr.QtyRemaining,
+            ISNULL(SUM(ppr.QtyConsumed),    0) AS QtyConsumed,
+            ISNULL(SUM(ppr.QtyReturned),    0) AS QtyReturned,
+            ISNULL(SUM(ppr.QtyDamagedLost), 0) AS QtyDamagedLost,
+            bp.QuantityBackOrdered             AS QtyRemaining,
             bp.UnitCost,
             bp.ExtendedCost,
             bp.DateShipped,
@@ -158,26 +159,20 @@ BEGIN
             bp.WONumber,
             bp.MPN,
             bp.MPNDescription,
-            ppr.PiecePartReconciliationId,
-            ppr.ConsumedRepairOrderId,
-            conRO.RepairOrderNumber                                              AS ConsumedByRONumber,
-            CASE WHEN ppr.QtyConsumed > 0 THEN 'Consumed' ELSE 'Returned' END   AS ReconciliationStatus
-        FROM  BasePieceParts bp WITH (NOLOCK)
-        JOIN  dbo.PiecePartReconciliation ppr WITH (NOLOCK)
+            CAST(NULL AS BIGINT)               AS PiecePartReconciliationId,
+            CAST(NULL AS BIGINT)               AS ConsumedRepairOrderId,
+            CAST(NULL AS NVARCHAR(100))        AS ConsumedByRONumber,
+            CASE
+                WHEN bp.QtyShipped = 0                      THEN 'No Qty'
+                WHEN bp.QuantityBackOrdered = 0             THEN 'Fully Consumed'
+                WHEN bp.QuantityBackOrdered < bp.QtyShipped THEN 'Partially Consumed'
+                ELSE                                             'Pending'
+            END                                AS ReconciliationStatus
+        FROM  BasePieceParts bp
+        LEFT JOIN dbo.PiecePartReconciliation ppr WITH (NOLOCK)
               ON  ppr.RepairOrderPartRecordId = bp.RepairOrderPartRecordId
               AND ppr.IsDeleted = 0
-        LEFT JOIN dbo.RepairOrder conRO
-              ON  conRO.RepairOrderId = ppr.ConsumedRepairOrderId
-    ),
-
-    /* ────────────────────────────────────────────────────────────────────
-       PendingRows — one Pending row per piece part that still has
-       remaining qty (QuantityBackOrdered > 0). This appears whether or
-       not some qty has already been reconciled.
-    ──────────────────────────────────────────────────────────────────── */
-    PendingRows AS
-    (
-        SELECT
+        GROUP BY
             bp.RepairOrderPartRecordId,
             bp.RepairOrderId,
             bp.VendorName,
@@ -190,10 +185,7 @@ BEGIN
             bp.ControlNumber,
             bp.ControlId,
             bp.QtyShipped,
-            0                               AS QtyConsumed,
-            0                               AS QtyReturned,
-            0                               AS QtyDamagedLost,
-            bp.QuantityBackOrdered          AS QtyRemaining,
+            bp.QuantityBackOrdered,
             bp.UnitCost,
             bp.ExtendedCost,
             bp.DateShipped,
@@ -201,25 +193,7 @@ BEGIN
             bp.RONumber,
             bp.WONumber,
             bp.MPN,
-            bp.MPNDescription,
-            CAST(NULL AS BIGINT)            AS PiecePartReconciliationId,
-            CAST(NULL AS BIGINT)            AS ConsumedRepairOrderId,
-            CAST(NULL AS NVARCHAR(100))     AS ConsumedByRONumber,
-            'Pending'                       AS ReconciliationStatus
-        FROM  BasePieceParts bp WITH (NOLOCK)
-        WHERE bp.QuantityBackOrdered > 0
-    ),
-
-    /* ────────────────────────────────────────────────────────────────────
-       Combined — all rows together before filtering and paging.
-       ReconciliationStatus filter is applied here (after UNION ALL) so
-       it works for all three values: Consumed / Returned / Pending.
-    ──────────────────────────────────────────────────────────────────── */
-    Combined AS
-    (
-        SELECT * FROM ReconciliationRows WITH (NOLOCK)
-        UNION ALL
-        SELECT * FROM PendingRows WITH (NOLOCK)
+            bp.MPNDescription
     )
 
     SELECT
@@ -252,11 +226,11 @@ BEGIN
         ConsumedByRONumber,
         ReconciliationStatus,
         COUNT(1) OVER ()                AS NumberOfItems
-    FROM  Combined WITH (NOLOCK)
+    FROM  AggregatedParts
     WHERE (
         @ReconciliationStatus IS NULL
         OR ReconciliationStatus = @ReconciliationStatus
-        OR (@ReconciliationStatus = 'Consumed' AND ReconciliationStatus = 'Returned')
+        OR (@ReconciliationStatus = 'Consumed' AND ReconciliationStatus IN ('Fully Consumed', 'Partially Consumed'))
     )
     ORDER BY
         -- User-selected sort column
@@ -276,10 +250,8 @@ BEGIN
         CASE WHEN @SortOrder = -1 AND @SortColumn = 'ReconciliationStatus' THEN ReconciliationStatus END DESC,
         CASE WHEN @SortOrder =  1 AND @SortColumn = 'DateShipped'          THEN DateShipped          END ASC,
         CASE WHEN @SortOrder = -1 AND @SortColumn = 'DateShipped'          THEN DateShipped          END DESC,
-        -- Secondary: group by piece part, consumed rows first, pending row last
-        RepairOrderPartRecordId DESC,
-        CASE ReconciliationStatus WHEN 'Pending' THEN 2 WHEN 'Returned' THEN 1 ELSE 0 END ASC,
-        PiecePartReconciliationId ASC
+        -- Secondary stable sort
+        RepairOrderPartRecordId DESC
     OFFSET (@PageNumber - 1) * @PageSize ROWS
     FETCH  NEXT @PageSize ROWS ONLY;
   

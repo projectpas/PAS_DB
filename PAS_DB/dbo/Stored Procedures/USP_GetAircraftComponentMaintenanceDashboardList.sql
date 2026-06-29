@@ -15,6 +15,7 @@
 **                                        now use direct column values from CTE [PN-16598]
 ** 4    04/06/2026   Amit Ghediya         Get isllp & isserialized flag for bind [PN-16741]
 ** 5    10/06/2026   Amit Ghediya         Get ATAChapterId flag for bind [PN-16802]
+** 6    25/06/2026	 Amit Ghediya		  Added @LastInspectedDate,@Description,@LastinspectedById [PN-17000]
 *****************************************************************************************************/
 CREATE       PROCEDURE [dbo].[USP_GetAircraftComponentMaintenanceDashboardList]
 (
@@ -40,7 +41,11 @@ CREATE       PROCEDURE [dbo].[USP_GetAircraftComponentMaintenanceDashboardList]
     @NextScheduled      DATETIME      = NULL,
     @SearchTailNumber   VARCHAR(50)   = NULL,
     @SectionId          INT           = NULL,
-    @IsScheduled        BIT           = NULL
+    @IsScheduled        BIT           = NULL,
+
+	@LastInspectedDate		 DATETIME     = NULL,
+	@Description			 VARCHAR(256) = NULL,
+	@LastinspectedBy		 VARCHAR(256) = NULL
 )
 AS
 BEGIN
@@ -107,7 +112,11 @@ BEGIN
                 WS_M.WorksheetTypeId                                               AS sectionId,    -- from the same row driving the section column
                 AMP.IsScheduled                                                    AS isScheduled,   -- direct column value
 				0 AS isLLP,
-				0 AS isSerialized
+				0 AS isSerialized,
+				AMP.LastInspectedDate,
+				AMP.[Description],
+				EMP.EmployeeId AS LastinspectedById,
+				EMP.EmployeeName AS LastinspectedBy
             FROM [dbo].[AircraftMaintenanceProgram] AMP WITH (NOLOCK)
             LEFT JOIN [dbo].[AircraftRegistryHeader] ARH WITH (NOLOCK)
                 ON AMP.AircraftRegistryId = ARH.AircraftRegistryId AND ARH.MasterCompanyId = @MasterCompanyId
@@ -132,6 +141,7 @@ BEGIN
                 INNER JOIN [dbo].[AircraftSection] ASEC WITH (NOLOCK)
                     ON ASEC.AircraftSectionId = WSH.WorksheetTypeId
             ) WS_M ON WS_M.AircraftRegistryId = ARH.AircraftRegistryId AND WS_M.rn = 1
+			LEFT JOIN [dbo].[View_Employee_Cert] EMP WITH (NOLOCK) ON EMP.EmployeeId = AMP.LastinspectedById          
             WHERE AMP.MasterCompanyId = @MasterCompanyId AND AMP.IsDeleted = 0
 
             UNION ALL
@@ -202,7 +212,11 @@ BEGIN
                 WS_I.WorksheetTypeId                                               AS sectionId,    -- from the same row driving the section column
                 CAST(NULL AS BIT)                                                 AS isScheduled,   -- installed parts have no schedule concept
 				AIPD.isLLP,
-				AIPD.isSerialized
+				AIPD.isSerialized,
+				NULL AS LastInspectedDate,
+				NULL AS [Description],
+				0 AS LastinspectedById,
+				NULL AS LastinspectedBy
             FROM dbo.AircraftInstalledPartDetails AIPD WITH (NOLOCK)
             LEFT JOIN dbo.ItemMasterAircraftMapping IMAM WITH (NOLOCK) ON AIPD.ATAChapterId = IMAM.ItemMasterAircraftMappingId
             INNER JOIN dbo.AircraftRegistryHeader ARH WITH (NOLOCK) ON ARH.AircraftRegistryId = AIPD.AircraftRegistryId
@@ -237,7 +251,8 @@ BEGIN
                     OR pnNum         LIKE '%'+@GlobalFilter+'%'
                     OR pnDescription LIKE '%'+@GlobalFilter+'%'
                     OR ataChpt       LIKE '%'+@GlobalFilter+'%'
-                    OR woNum         LIKE '%'+@GlobalFilter+'%')
+                    OR woNum         LIKE '%'+@GlobalFilter+'%'
+					OR LastinspectedBy         LIKE '%'+@GlobalFilter+'%')
                 -- column-level filters
                 AND (ISNULL(@TailNumber,    '')='' OR LOWER(acTailNum)     LIKE '%' + LOWER(@TailNumber)    + '%')  -- LIKE (contains)
                 AND (ISNULL(@AircraftMake,  '')='' OR acMake               LIKE '%' + @AircraftMake         + '%')
@@ -253,6 +268,8 @@ BEGIN
                 AND (@LastMaintained  IS NULL OR CAST(lastMtced    AS DATE) = CAST(@LastMaintained  AS DATE))
                 AND (ISNULL(@WONumber,      '')='' OR woNum                LIKE '%' + @WONumber              + '%')
                 AND (@NextScheduled   IS NULL OR CAST(nextSchdMtce AS DATE) = CAST(@NextScheduled   AS DATE))
+				AND (@LastInspectedDate   IS NULL OR CAST(LastInspectedDate AS DATE) = CAST(@LastInspectedDate AS DATE))
+				AND (@LastinspectedBy    IS NULL OR LastinspectedBy   LIKE '%' + @LastinspectedBy   + '%')
                 -- dashboard-level dropdown filters
                 AND (ISNULL(@SearchTailNumber, '') = '' OR LOWER(acTailNum) = LOWER(@SearchTailNumber))  -- exact match
                 AND (@SectionId    IS NULL OR sectionId    = @SectionId)                                 -- direct match on CTE column
@@ -291,7 +308,10 @@ BEGIN
             CASE WHEN @SortColumn='REMAININGLANDINGS'     AND @SortOrder='ASC'  THEN remainingLandings END ASC, CASE WHEN @SortColumn='REMAININGLANDINGS' AND @SortOrder='DESC' THEN remainingLandings END DESC,
             CASE WHEN @SortColumn='REMAININGENGINESTARTS' AND @SortOrder='ASC'  THEN remainingEngineStarts END ASC, CASE WHEN @SortColumn='REMAININGENGINESTARTS' AND @SortOrder='DESC' THEN remainingEngineStarts END DESC,
             CASE WHEN @SortColumn='REMAININGFLIGHTHOURS'  AND @SortOrder='ASC'  THEN RemainingFlightHoursHours END ASC, CASE WHEN @SortColumn='REMAININGFLIGHTHOURS' AND @SortOrder='DESC' THEN RemainingFlightHoursHours END DESC,
-            acTailNum ASC
+            CASE WHEN @SortColumn='LastInspectedDate'     AND @SortOrder='ASC'  THEN LastInspectedDate END ASC, CASE WHEN @SortColumn='LastInspectedDate'  AND @SortOrder='DESC' THEN LastInspectedDate END DESC,
+			CASE WHEN @SortColumn='LastinspectedBy'     AND @SortOrder='ASC'  THEN LastinspectedBy END ASC, CASE WHEN @SortColumn='LastinspectedBy'  AND @SortOrder='DESC' THEN LastinspectedBy END DESC,
+
+		   acTailNum ASC
         OFFSET (@PageNumber - 1) * @PageSize ROWS FETCH NEXT @PageSize ROWS ONLY
         OPTION (RECOMPILE);
     END TRY

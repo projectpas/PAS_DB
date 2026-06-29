@@ -29,38 +29,71 @@ BEGIN
 
     BEGIN TRY
 
+        /* Compute running remaining balance ordered oldest-first, then display newest-first. */
+        ;WITH RankedHistory AS
+        (
+            SELECT
+                ppr.PiecePartReconciliationId,
+                ppr.RepairOrderPartRecordId,
+                ppr.SourceRepairOrderId,
+                srcRO.RepairOrderNumber         AS SourceRONumber,
+                ppr.ConsumedRepairOrderId,
+                conRO.RepairOrderNumber         AS ConsumedRONumber,
+                rop.PartNumber,
+                rop.PartDescription,
+                rop.Condition,
+                srcRO.VendorName,
+                srcRO.VendorCode,
+                ppr.QtyShipped,
+                ppr.QtyConsumed,
+                ppr.QtyReturned,
+                ppr.QtyDamagedLost,
+                -- Running remaining = QtyShipped minus all qty consumed/returned/damaged up to this row
+                ppr.QtyShipped
+                    - SUM(ppr.QtyConsumed + ppr.QtyReturned + ppr.QtyDamagedLost)
+                      OVER (
+                          PARTITION BY ppr.RepairOrderPartRecordId
+                          ORDER BY ppr.CreatedDate ASC, ppr.PiecePartReconciliationId ASC
+                          ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+                      )                         AS QtyRemaining,
+                ppr.ReconciliationStatus,
+                ppr.Memo,
+                ppr.CreatedBy,
+                ppr.CreatedDate
+            FROM  dbo.PiecePartReconciliation  ppr  WITH (NOLOCK)
+            JOIN  dbo.RepairOrderPart          rop  WITH (NOLOCK)
+                  ON  rop.RepairOrderPartRecordId = ppr.RepairOrderPartRecordId
+            JOIN  dbo.RepairOrder              srcRO WITH (NOLOCK)
+                  ON  srcRO.RepairOrderId         = ppr.SourceRepairOrderId
+            LEFT JOIN dbo.RepairOrder          conRO WITH (NOLOCK)
+                  ON  conRO.RepairOrderId         = ppr.ConsumedRepairOrderId
+            WHERE ppr.RepairOrderPartRecordId = @RepairOrderPartRecordId
+              AND ppr.MasterCompanyId         = @MasterCompanyId
+              AND ISNULL(ppr.IsDeleted, 0)    = 0
+        )
         SELECT
-            ppr.PiecePartReconciliationId,
-            ppr.RepairOrderPartRecordId,
-            ppr.SourceRepairOrderId,
-            srcRO.RepairOrderNumber         AS SourceRONumber,
-            ppr.ConsumedRepairOrderId,
-            conRO.RepairOrderNumber         AS ConsumedRONumber,
-            rop.PartNumber,
-            rop.PartDescription,
-            rop.Condition,
-            srcRO.VendorName,
-            srcRO.VendorCode,
-            ppr.QtyShipped,
-            ppr.QtyConsumed,
-            ppr.QtyReturned,
-            ppr.QtyDamagedLost,
-            ppr.QtyRemaining,
-            ppr.ReconciliationStatus,
-            ppr.Memo,
-            ppr.CreatedBy,
-            ppr.CreatedDate
-        FROM  dbo.PiecePartReconciliation  ppr  WITH (NOLOCK)
-        JOIN  dbo.RepairOrderPart          rop  WITH (NOLOCK)
-              ON  rop.RepairOrderPartRecordId = ppr.RepairOrderPartRecordId
-        JOIN  dbo.RepairOrder              srcRO WITH (NOLOCK)
-              ON  srcRO.RepairOrderId         = ppr.SourceRepairOrderId
-        LEFT JOIN dbo.RepairOrder          conRO WITH (NOLOCK)
-              ON  conRO.RepairOrderId         = ppr.ConsumedRepairOrderId
-        WHERE ppr.RepairOrderPartRecordId = @RepairOrderPartRecordId
-          AND ppr.MasterCompanyId         = @MasterCompanyId
-          AND ISNULL(ppr.IsDeleted, 0)    = 0
-        ORDER BY ppr.CreatedDate DESC;
+            PiecePartReconciliationId,
+            RepairOrderPartRecordId,
+            SourceRepairOrderId,
+            SourceRONumber,
+            ConsumedRepairOrderId,
+            ConsumedRONumber,
+            PartNumber,
+            PartDescription,
+            Condition,
+            VendorName,
+            VendorCode,
+            QtyShipped,
+            QtyConsumed,
+            QtyReturned,
+            QtyDamagedLost,
+            QtyRemaining,
+            ReconciliationStatus,
+            Memo,
+            CreatedBy,
+            CreatedDate
+        FROM  RankedHistory
+        ORDER BY CreatedDate DESC, PiecePartReconciliationId DESC;
 
     END TRY
     BEGIN CATCH

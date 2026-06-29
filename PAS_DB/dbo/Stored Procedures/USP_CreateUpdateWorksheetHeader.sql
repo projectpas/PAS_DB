@@ -21,10 +21,11 @@
     4    8/06/2026      Amit Ghediya            Adding Header data in History module [PN-16581]
     5    10/06/2026     Divyesh Kathiriya       Update WorksheetNumber on AircraftInstalledPartDetails Table [PN-16780]
 	6    15/06/2026     Amit Ghediya			Added MtcCategoryId in WorksheetHeader Table [PN-16839]
+    7    26/06/2026     Divyesh Kathiriya       Update WorksheetStatus fields [PN-16897]
 
 **************************************************************/
 
-CREATE      PROCEDURE [dbo].[USP_CreateUpdateWorksheetHeader]
+CREATE PROCEDURE [dbo].[USP_CreateUpdateWorksheetHeader]
     @tbl_WorksheetHeaderType dbo.WorksheetHeaderTableType READONLY
 AS
 BEGIN
@@ -45,6 +46,8 @@ BEGIN
         DECLARE @SerialNum          VARCHAR(50)  = NULL;
         DECLARE @AircraftModelId    BIGINT  = NULL;
         DECLARE @MakeTypeId         BIGINT  = NULL;
+        DECLARE @WorksheetStatusId  INT     = 1;
+        DECLARE @WorksheetStatus    VARCHAR(20)  = 'Open';
 
         DECLARE @WorksheetCodePrefix INT = (
             SELECT [CodeTypeId]
@@ -104,10 +107,10 @@ BEGIN
                     WH.AircraftModel                 = T.AircraftModel,
                     WH.WorksheetType                 = T.WorksheetType,
                     WH.WorksheetTypeId               = T.WorksheetTypeId,
-					WH.MtcCategoryId				 = T.MtcCategoryId,
+                    WH.MtcCategoryId				 = T.MtcCategoryId,
                     WH.TailNum                      = T.TailNum,
                     WH.SerialNum                    = T.SerialNum,
-                    WH.WorkOrderNo                   = T.WorkOrderNo,
+                    WH.WorkOrderNo                   = T.WorkOrderNo,                    
                     WH.AFHours                       = T.AFHours,
                     WH.InspectionType                = T.InspectionType,
                     WH.InspectionDate                = T.InspectionDate,
@@ -226,6 +229,8 @@ BEGIN
                     WorksheetTypeId,
 					MtcCategoryId,
                     WorkOrderNo,
+                    WorksheetStatusId,
+                    WorksheetStatus,
                     TailNum,
 					SerialNum,
                     AFHours,
@@ -274,6 +279,8 @@ BEGIN
                     T.WorksheetTypeId,
 					T.MtcCategoryId,
                     T.WorkOrderNo,
+                    @WorksheetStatusId,
+                    @WorksheetStatus,
                     ISNULL(@TailNum, T.TailNum),
                     ISNULL(@SerialNum, T.SerialNum),
                     T.AFHours,

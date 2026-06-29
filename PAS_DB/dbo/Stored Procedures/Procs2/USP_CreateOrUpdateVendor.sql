@@ -14,6 +14,8 @@
 ** 3     22-APR-2026   Moin Bloch        Moved to API Due TO Xero Accounting Changes PN-16009
 ** 4     09-JUNE-2026  Priyansh Patel    Fixed the issue with the @ExistingCustomerId [PN-16747]
 ** 5     25-June-2026  Sahdev Saliya     Added Notes [PN-16968]
+** 6     26-June-2026  Sahdev Saliya     Fixed the issue with the @Notes [PN-16968]
+
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_CreateOrUpdateVendor]
     @VendorId BIGINT OUTPUT,
@@ -294,7 +296,7 @@ BEGIN
 										NULL, -- QuickBooksReferenceId not available
 										NULL, -- IsUpdated default true
 										NULL, -- LastSyncDate
-										NULL, -- Memo
+										@Notes, -- Memo
 										NULL  -- SyncToken
 									);
 

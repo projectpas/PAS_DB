@@ -19,6 +19,7 @@
 	8    12/31/2024   RAJESH GAMI   Getting Vendor Proforma Invoice Amount From the PO/RO 
 	9    03/01/2025   RAJESH GAMI   Modified logic for get the VEndorproforma Invoice Amount
 	10   22/06/2026   Priyansh Patel  Added Stock and Purchase uom properties [PN-16939]
+	11   26/06/2026   Priyansh Patel  Convert RemainingRRQty from Stock to Purchase uom  [PN-16941]
 
 	
 --  EXEC GetReceivingReconciliationDetailsById 321
@@ -43,10 +44,11 @@ BEGIN
 					 ,JBD.[PartDescription]
 					 ,JBD.[SerialNumber]
 					 ,JBD.[POReference]
-					 ,IM.[StockUnitOfMeasure]
+					 ,CASE WHEN JBD.[Type] = 1 AND PO.PurchaseOrderId IS NOT NULL THEN IM.[PurchaseUnitOfMeasure]
+						   WHEN JBD.[Type] = 2 AND RO.RepairOrderId IS NOT NULL THEN IM.[StockUnitOfMeasure]
+						   ELSE '' END AS UnitOfMeasure
 					 ,JBD.[POQtyOrder]
 					 ,JBD.[ReceivedQty]
-					 ,IM.[PurchaseUnitOfMeasure]
 					 ,JBD.[POUnitCost]
 					 ,JBD.[POExtCost]
 					 ,JBD.[InvoicedQty]
@@ -67,9 +69,9 @@ BEGIN
 					 ,ISNULL([QtyVariance], 0) AS [QtyVariance]
 					 ,ISNULL([PriceVariance], 0) AS [PriceVariance]
 					 --,[RemainingRRQty]
-					 ,CASE WHEN UPPER(JBD.[StockType])= 'STOCK' THEN UPPER(SLI.RRQty) 
-						   WHEN UPPER(JBD.[StockType])= 'NONSTOCK' THEN UPPER(NSI.RRQty) 
-						   WHEN UPPER(JBD.[StockType])= 'ASSET' THEN UPPER(ASI.RRQty) ELSE NULL END AS RemainingRRQty
+					,CASE WHEN UPPER(JBD.[StockType])= 'STOCK' THEN CASE WHEN NULLIF(IM.StockUnitOfMeasure, '') IS NULL OR NULLIF(IM.PurchaseUnitOfMeasure, '') IS NULL OR IM.StockUnitOfMeasure = IM.PurchaseUnitOfMeasure THEN SLI.RRQty ELSE dbo.fn_ConvertUOM(SLI.RRQty, IM.StockUnitOfMeasure, IM.PurchaseUnitOfMeasure, 0, IM.MasterCompanyId) END
+					WHEN UPPER(JBD.[StockType])= 'NONSTOCK' THEN NSI.RRQty
+					WHEN UPPER(JBD.[StockType])= 'ASSET' THEN ASI.RRQty ELSE NULL END AS RemainingRRQty
 					 ,CASE WHEN UPPER(JBD.[StockType])= 'STOCK' THEN SLI.isSerialized 
 						   WHEN UPPER(JBD.[StockType])= 'NONSTOCK' THEN NSI.isSerialized 
 						   WHEN UPPER(JBD.[StockType])= 'ASSET' THEN ASI.isSerialized ELSE 0 END AS IsSerialized

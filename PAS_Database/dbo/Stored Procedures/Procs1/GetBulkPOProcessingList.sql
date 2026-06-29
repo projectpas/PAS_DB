@@ -1,4 +1,5 @@
-﻿/***************************************************************************************************************************************             
+﻿
+/***************************************************************************************************************************************             
   ** Change History             
  ***************************************************************************************************************************************             
  ** PR   Date						 Author							Change Description              
@@ -16,6 +17,7 @@
 	11   26/11/2024              RAJESH GAMI						Set by default SORT BY OrderNo
 	12   12/May/2026             RAJESH GAMI						Implemented : Bulk PO For Sales Order [PN-16401]
 	13   26/June/2026            RAJESH GAMI						Fixes for the LastPONumber [PN-16964]
+	14   29/June/2026            Ayushi Patel						UOM Changes [PN-16708]
 ****************************************************************************************************************************************/ 
 
 CREATE      PROCEDURE [dbo].[GetBulkPOProcessingList]
@@ -32,10 +34,10 @@ CREATE      PROCEDURE [dbo].[GetBulkPOProcessingList]
 @PNDescription VARCHAR(200) = NULL,
 @Manufacturer VARCHAR(200) = NULL,
 @Condition VARCHAR(100) = NULL,
-@Quantity INT = NULL,
-@UnitCost DECIMAL(18,2) = NULL,
-@ExtendedCost DECIMAL(18,2) = NULL,
-@LastPurchasePrice DECIMAL(18,2) = NULL,
+@Quantity DECIMAL(18,6) = NULL,
+@UnitCost DECIMAL(18,6) = NULL,
+@ExtendedCost DECIMAL(18,6) = NULL,
+@LastPurchasePrice DECIMAL(18,6) = NULL,
 @LastPONumber VARCHAR(50) = NULL,
 @lastPODate DATETIME = NULL,
 @VendorId BIGINT = NULL,
@@ -95,10 +97,10 @@ BEGIN
 				[PNDescription] NVARCHAR(MAX) NULL,
 				[Condition]	VARCHAR(MAX) NULL,
 				[ConditionId] BIGINT NULL,
-				[Quantity] INT NULL,
-				[UnitCost] DECIMAL(18,2) NULL,
-				[ExtendedCost] DECIMAL(18,2) NULL,
-				[LastPurchasePrice]	DECIMAL(18,2) NULL, 
+				[Quantity] DECIMAL(18,6) NULL,
+				[UnitCost] DECIMAL(18,6) NULL,
+				[ExtendedCost] DECIMAL(18,6) NULL,
+				[LastPurchasePrice]	DECIMAL(18,6) NULL, 
 				[LastPONumber] VARCHAR(50) NULL,
 				[LastPODate] DATETIME NULL,
 				[VendorName] VARCHAR(200) NULL,
@@ -122,7 +124,10 @@ BEGIN
 				[SalesOrderId]       BIGINT NULL,
 				[SONum]              VARCHAR(50) NULL,
 				[SalesOrderPartId]   BIGINT NULL,
-				[SourceType]         VARCHAR(10) NULL   -- 'WO' or 'SO'
+				[SourceType]         VARCHAR(10) NULL,   -- 'WO' or 'SO'
+				[PurchaseUnitOfMeasure] VARCHAR(50) NULL,
+				[ConsumeUnitOfMeasure] VARCHAR(50) NULL,
+				[StockUnitOfMeasure] VARCHAR(50) NULL
 			) 
 
 		IF @SortColumn IS NULL
@@ -157,7 +162,7 @@ BEGIN
 			-- 1
 			INSERT INTO #TEMPBulkPORecords([OrderNo],[ItemMasterId],[StatusId],[StatusName],[poRfqNo],[PurchaseOrderId],[PN],[PNDescription],[Condition],[ConditionId],[Quantity],
 				[UnitCost],[ExtendedCost],[LastPurchasePrice],[LastPONumber],[LastPODate],[VendorName],[VendorId],[VendorCode],[WorkOrderId],[WONum],[MPN],
-				[MPNDescription],[SerialNum],[Customer],[Manufacturer],[MinimumOrderQuantity],[IsFromBulkPO],[NeedBy],[EstReceivedDate],[VendorRFQPOPartRecordId],[CreatedDate],[WorkOrderMaterialsId],[WorkOrderMaterialsKitId],SourceType)
+				[MPNDescription],[SerialNum],[Customer],[Manufacturer],[MinimumOrderQuantity],[IsFromBulkPO],[NeedBy],[EstReceivedDate],[VendorRFQPOPartRecordId],[CreatedDate],[WorkOrderMaterialsId],[WorkOrderMaterialsKitId],SourceType,PurchaseUnitOfMeasure,ConsumeUnitOfMeasure,StockUnitOfMeasure)
 		 
 		   	 SELECT 
 				2 AS OrderNo,
@@ -194,7 +199,10 @@ BEGIN
 				PO.CreatedDate,
 				ISNULL(WOM.WorkOrderMaterialsId,0) WorkOrderMaterialsId,
 				0 as WorkOrderMaterialsKitId,
-				'WO' as SourceType
+				'WO' as SourceType,
+				IM_ITM.PurchaseUnitOfMeasure,
+				IM_ITM.ConsumeUnitOfMeasure,
+				IM_ITM.StockUnitOfMeasure
 			FROM [dbo].[WorkOrderMaterials] WOM WITH (NOLOCK)
 				INNER JOIN [dbo].[WorkOrderWorkFlow] WOWF WITH (NOLOCK) ON WOM.WorkFlowWorkOrderId = WOWF.WorkFlowWorkOrderId	
 				INNER JOIN [dbo].[WorkOrderPartNumber] WOP WITH (NOLOCK) ON WOWF.WorkOrderPartNoId = WOP.ID	
@@ -212,7 +220,7 @@ BEGIN
 		   --2
 			INSERT INTO #TEMPBulkPORecords([OrderNo],[ItemMasterId],[StatusId],[StatusName],[poRfqNo],[PurchaseOrderId],[PN],[PNDescription],[Condition],[ConditionId],[Quantity],
 				[UnitCost],[ExtendedCost],[LastPurchasePrice],[LastPONumber],[LastPODate],[VendorName],[VendorId],[VendorCode],[WorkOrderId],[WONum],[MPN],
-				[MPNDescription],[SerialNum],[Customer],[Manufacturer],[MinimumOrderQuantity],[IsFromBulkPO],[NeedBy],[EstReceivedDate],[VendorRFQPOPartRecordId],[CreatedDate],[WorkOrderMaterialsId],[WorkOrderMaterialsKitId],SourceType)
+				[MPNDescription],[SerialNum],[Customer],[Manufacturer],[MinimumOrderQuantity],[IsFromBulkPO],[NeedBy],[EstReceivedDate],[VendorRFQPOPartRecordId],[CreatedDate],[WorkOrderMaterialsId],[WorkOrderMaterialsKitId],SourceType,PurchaseUnitOfMeasure,ConsumeUnitOfMeasure,StockUnitOfMeasure)
 			 SELECT 
 			 	1 AS OrderNo,	
 				WOM.ItemMasterId,
@@ -245,10 +253,14 @@ BEGIN
 				NULL,
 				NULL,
 				0,
-				DATEADD(day, 1, GETDATE()),
+				--DATEADD(day, 1, GETDATE()),
+				WOM.CreatedDate,
 				ISNULL(WOM.WorkOrderMaterialsId,0) WorkOrderMaterialsId,
 				0 as WorkOrderMaterialsKitId,
-				'WO' as SourceType
+				'WO' as SourceType,
+				IM_ITM.PurchaseUnitOfMeasure,
+				IM_ITM.ConsumeUnitOfMeasure,
+				IM_ITM.StockUnitOfMeasure
 				FROM [dbo].[WorkOrderMaterials] WOM WITH (NOLOCK)
 					INNER JOIN [dbo].[WorkOrderWorkFlow] WOWF WITH (NOLOCK) ON	WOM.WorkFlowWorkOrderId = WOWF.WorkFlowWorkOrderId				
 					INNER JOIN [dbo].[WorkOrderPartNumber] WOP WITH (NOLOCK) ON WOWF.WorkOrderPartNoId = WOP.ID
@@ -265,11 +277,11 @@ BEGIN
 					  AND (CASE WHEN  ISNULL(PO.IsFromBulkPO,0) = 1 OR  ISNULL(PORFQ.IsFromBulkPO,0) = 1 THEN 1 ELSE ISNULL(PO.IsFromBulkPO,0)END) != 1 
 					  AND (CASE WHEN  ISNULL(PORFQ.IsFromBulkPO,0) = 1 OR ISNULL(PO.IsFromBulkPO,0) = 1  THEN 1 ELSE ISNULL(PORFQ.IsFromBulkPO,0)END) != 1 
 					  AND ISNULL(WO.IsDeleted,0) = 0  AND ISNULL(WOM.IsDeleted,0) = 0  AND Cond.Code != @ARConditionCode
-		
+			 ORDER BY WOM.CreatedDate DESC;
 			--3
 			INSERT INTO #TEMPBulkPORecords([OrderNo],[ItemMasterId],[StatusId],[StatusName],[poRfqNo],[PurchaseOrderId],[PN],[PNDescription],[Condition],[ConditionId],[Quantity],
 				[UnitCost],[ExtendedCost],[LastPurchasePrice],[LastPONumber],[LastPODate],[VendorName],[VendorId],[VendorCode],[WorkOrderId],[WONum],[MPN],
-				[MPNDescription],[SerialNum],[Customer],[Manufacturer],[MinimumOrderQuantity],[IsFromBulkPO],[NeedBy],[EstReceivedDate],[VendorRFQPOPartRecordId],[CreatedDate],[WorkOrderMaterialsId],[WorkOrderMaterialsKitId],SourceType)
+				[MPNDescription],[SerialNum],[Customer],[Manufacturer],[MinimumOrderQuantity],[IsFromBulkPO],[NeedBy],[EstReceivedDate],[VendorRFQPOPartRecordId],[CreatedDate],[WorkOrderMaterialsId],[WorkOrderMaterialsKitId],SourceType,PurchaseUnitOfMeasure,ConsumeUnitOfMeasure,StockUnitOfMeasure)
 			  SELECT 
 			  	2 AS OrderNo,
 				WOM.ItemMasterId,
@@ -305,7 +317,10 @@ BEGIN
 				,PO.CreatedDate,
 				ISNULL(WOM.WorkOrderMaterialsId,0) WorkOrderMaterialsId,
 				0 as WorkOrderMaterialsKitId,
-				'WO' as SourceType
+				'WO' as SourceType,
+				IM_ITM.PurchaseUnitOfMeasure,
+				IM_ITM.ConsumeUnitOfMeasure,
+				IM_ITM.StockUnitOfMeasure
 				FROM [dbo].[WorkOrderMaterials] WOM  WITH (NOLOCK)
 					INNER JOIN [dbo].[WorkOrderWorkFlow] WOWF WITH (NOLOCK) ON WOM.WorkFlowWorkOrderId = WOWF.WorkFlowWorkOrderId	
 					INNER JOIN [dbo].[WorkOrderPartNumber] WOP WITH (NOLOCK) ON  WOWF.WorkOrderPartNoId = WOP.ID			
@@ -322,7 +337,7 @@ BEGIN
 			--4
 			INSERT INTO #TEMPBulkPORecords([OrderNo],[ItemMasterId],[StatusId],[StatusName],[poRfqNo],[PurchaseOrderId],[PN],[PNDescription],[Condition],[ConditionId],[Quantity],
 				[UnitCost],[ExtendedCost],[LastPurchasePrice],[LastPONumber],[LastPODate],[VendorName],[VendorId],[VendorCode],[WorkOrderId],[WONum],[MPN],
-				[MPNDescription],[SerialNum],[Customer],[Manufacturer],[MinimumOrderQuantity],[IsFromBulkPO],[NeedBy],[EstReceivedDate],[VendorRFQPOPartRecordId],[CreatedDate],[WorkOrderMaterialsId],[WorkOrderMaterialsKitId],SourceType)
+				[MPNDescription],[SerialNum],[Customer],[Manufacturer],[MinimumOrderQuantity],[IsFromBulkPO],[NeedBy],[EstReceivedDate],[VendorRFQPOPartRecordId],[CreatedDate],[WorkOrderMaterialsId],[WorkOrderMaterialsKitId],SourceType,PurchaseUnitOfMeasure,ConsumeUnitOfMeasure,StockUnitOfMeasure)
 			 SELECT 
 			   	2 AS OrderNo,
 				WOM.ItemMasterId,
@@ -358,7 +373,10 @@ BEGIN
 				PO.CreatedDate,
 				0 as WorkOrderMaterialsId,
 				ISNULL(WOM.WorkOrderMaterialsKitId,0) as WorkOrderMaterialsKitId,
-				'WO' as SourceType
+				'WO' as SourceType,
+				IM_ITM.PurchaseUnitOfMeasure,
+				IM_ITM.ConsumeUnitOfMeasure,
+				IM_ITM.StockUnitOfMeasure
 				FROM[dbo].[WorkOrderMaterialsKit] WOM  WITH (NOLOCK)
 					INNER JOIN [dbo].[WorkOrderWorkFlow] WOWF WITH (NOLOCK) ON WOM.WorkFlowWorkOrderId = WOWF.WorkFlowWorkOrderId		
 					INNER JOIN [dbo].[WorkOrderPartNumber] WOP WITH (NOLOCK) ON WOWF.WorkOrderPartNoId = WOP.ID		
@@ -376,7 +394,7 @@ BEGIN
 			--5
 			INSERT INTO #TEMPBulkPORecords([OrderNo],[ItemMasterId],[StatusId],[StatusName],[poRfqNo],[PurchaseOrderId],[PN],[PNDescription],[Condition],[ConditionId],[Quantity],
 				[UnitCost],[ExtendedCost],[LastPurchasePrice],[LastPONumber],[LastPODate],[VendorName],[VendorId],[VendorCode],[WorkOrderId],[WONum],[MPN],
-				[MPNDescription],[SerialNum],[Customer],[Manufacturer],[MinimumOrderQuantity],[IsFromBulkPO],[NeedBy],[EstReceivedDate],[VendorRFQPOPartRecordId],[CreatedDate],[WorkOrderMaterialsId],[WorkOrderMaterialsKitId],SourceType)			
+				[MPNDescription],[SerialNum],[Customer],[Manufacturer],[MinimumOrderQuantity],[IsFromBulkPO],[NeedBy],[EstReceivedDate],[VendorRFQPOPartRecordId],[CreatedDate],[WorkOrderMaterialsId],[WorkOrderMaterialsKitId],SourceType,PurchaseUnitOfMeasure,ConsumeUnitOfMeasure,StockUnitOfMeasure)			
 			SELECT 
 			 	1 AS OrderNo,		
 				WOM.ItemMasterId,
@@ -409,10 +427,14 @@ BEGIN
 				NULL,
 				NULL,
 				0 VendorRFQPOPartRecordId,
-				DATEADD(DAY, 1, GETDATE()),
+				--DATEADD(DAY, 1, GETDATE()),
+				WOM.CreatedDate,
 				0 as WorkOrderMaterialsId,
 				ISNULL(WOM.WorkOrderMaterialsKitId,0) as WorkOrderMaterialsKitId,
-				'WO' as SourceType
+				'WO' as SourceType,
+				IM_ITM.PurchaseUnitOfMeasure,
+				IM_ITM.ConsumeUnitOfMeasure,
+				IM_ITM.StockUnitOfMeasure
 				FROM [dbo].[WorkOrderMaterialsKit] WOM WITH (NOLOCK)
 					INNER JOIN [dbo].[WorkOrderWorkFlow] WOWF WITH (NOLOCK) ON WOM.WorkFlowWorkOrderId = WOWF.WorkFlowWorkOrderId		
 					INNER JOIN [dbo].[WorkOrderPartNumber] WOP WITH (NOLOCK) ON  WOWF.WorkOrderPartNoId = WOP.ID	
@@ -429,11 +451,11 @@ BEGIN
 			  AND (CASE WHEN  ISNULL(PO.IsFromBulkPO,0) = 1 OR  ISNULL(PORFQ.IsFromBulkPO,0) = 1 THEN 1 ELSE ISNULL(PO.IsFromBulkPO,0)END) != 1 
 			  AND (CASE WHEN  ISNULL(PORFQ.IsFromBulkPO,0) = 1 OR ISNULL(PO.IsFromBulkPO,0) = 1  THEN 1 ELSE ISNULL(PORFQ.IsFromBulkPO,0)END) != 1 
 			   AND ISNULL(WO.IsDeleted,0) = 0  AND ISNULL(WOM.IsDeleted,0) = 0  AND Cond.Code != @ARConditionCode
-			
+			  ORDER BY WOM.CreatedDate DESC;
 			--6
 			INSERT INTO #TEMPBulkPORecords([OrderNo],[ItemMasterId],[StatusId],[StatusName],[poRfqNo],[PurchaseOrderId],[PN],[PNDescription],[Condition],[ConditionId],[Quantity],
 				[UnitCost],[ExtendedCost],[LastPurchasePrice],[LastPONumber],[LastPODate],[VendorName],[VendorId],[VendorCode],[WorkOrderId],[WONum],[MPN],
-				[MPNDescription],[SerialNum],[Customer],[Manufacturer],[MinimumOrderQuantity],[IsFromBulkPO],[NeedBy],[EstReceivedDate],[VendorRFQPOPartRecordId],[CreatedDate],[WorkOrderMaterialsId],[WorkOrderMaterialsKitId],SourceType)
+				[MPNDescription],[SerialNum],[Customer],[Manufacturer],[MinimumOrderQuantity],[IsFromBulkPO],[NeedBy],[EstReceivedDate],[VendorRFQPOPartRecordId],[CreatedDate],[WorkOrderMaterialsId],[WorkOrderMaterialsKitId],SourceType,PurchaseUnitOfMeasure,ConsumeUnitOfMeasure,StockUnitOfMeasure)
 			SELECT 
 			  	2 AS OrderNo,
 				WOM.ItemMasterId,
@@ -469,7 +491,10 @@ BEGIN
 				,PO.CreatedDate,
 				0 as WorkOrderMaterialsId,
 				ISNULL(WOM.WorkOrderMaterialsKitId,0) as WorkOrderMaterialsKitId,
-				'WO' as SourceType
+				'WO' as SourceType,
+				IM_ITM.PurchaseUnitOfMeasure,
+				IM_ITM.ConsumeUnitOfMeasure,
+				IM_ITM.StockUnitOfMeasure
 				FROM [dbo].[WorkOrderMaterialsKit] WOM WITH (NOLOCK)
 					INNER JOIN [dbo].[WorkOrderWorkFlow] WOWF WITH (NOLOCK) ON WOM.WorkFlowWorkOrderId = WOWF.WorkFlowWorkOrderId				
 					INNER JOIN [dbo].[WorkOrderPartNumber] WOP WITH (NOLOCK) ON WOWF.WorkOrderPartNoId = WOP.ID		
@@ -496,7 +521,7 @@ BEGIN
 				[MPN],[MPNDescription],[SerialNum],[Customer],[Manufacturer],
 				[MinimumOrderQuantity],[IsFromBulkPO],[NeedBy],[EstReceivedDate],
 				[VendorRFQPOPartRecordId],[CreatedDate],[WorkOrderMaterialsId],[WorkOrderMaterialsKitId],
-				[SalesOrderId],[SONum],[SalesOrderPartId],[SourceType]
+				[SalesOrderId],[SONum],[SalesOrderPartId],[SourceType],PurchaseUnitOfMeasure,ConsumeUnitOfMeasure,StockUnitOfMeasure
 			)
 			SELECT
 				2 AS OrderNo,
@@ -595,7 +620,10 @@ BEGIN
 				SO.SalesOrderId,
 				SO.SalesOrderNumber,
 				SOP.SalesOrderPartId,
-				'SO' AS SourceType
+				'SO' AS SourceType,
+				IM.PurchaseUnitOfMeasure,
+				IM.ConsumeUnitOfMeasure,
+				IM.StockUnitOfMeasure
 
 			FROM [dbo].[SalesOrderPartV1] SOP WITH (NOLOCK)
 				INNER JOIN [dbo].[SalesOrder]            SO     WITH (NOLOCK) ON SO.SalesOrderId      = SOP.SalesOrderId
@@ -633,7 +661,7 @@ BEGIN
 				[MPN],[MPNDescription],[SerialNum],[Customer],[Manufacturer],
 				[MinimumOrderQuantity],[IsFromBulkPO],[NeedBy],[EstReceivedDate],
 				[VendorRFQPOPartRecordId],[CreatedDate],[WorkOrderMaterialsId],[WorkOrderMaterialsKitId],
-				[SalesOrderId],[SONum],[SalesOrderPartId],[SourceType]
+				[SalesOrderId],[SONum],[SalesOrderPartId],[SourceType],PurchaseUnitOfMeasure,ConsumeUnitOfMeasure,StockUnitOfMeasure
 			)
 			SELECT
 				1 AS OrderNo,   -- Pending (no PO yet) = top priority
@@ -701,14 +729,18 @@ BEGIN
 				NULL AS NeedBy,
 				NULL AS EstReceivedDate,
 				0 AS VendorRFQPOPartRecordId,
-				DATEADD(DAY, 1, GETDATE()),
+				--DATEADD(DAY, 1, GETDATE()),
+				SO.CreatedDate,
 				0 AS WorkOrderMaterialsId,
 				0 AS WorkOrderMaterialsKitId,
 
 				SO.SalesOrderId,
 				SO.SalesOrderNumber,
 				SOP.SalesOrderPartId,
-				'SO' AS SourceType
+				'SO' AS SourceType,
+				IM.PurchaseUnitOfMeasure,
+				IM.ConsumeUnitOfMeasure,
+				IM.StockUnitOfMeasure
 
 			FROM [dbo].[SalesOrderPartV1] SOP WITH (NOLOCK)
 				INNER JOIN [dbo].[SalesOrder]             SO    WITH (NOLOCK) ON SO.SalesOrderId    = SOP.SalesOrderId
@@ -755,8 +787,7 @@ BEGIN
 						  AND Stk.isActive        = 1
 					)
 				) > 0
-			;
-
+			ORDER BY SOP.CreatedDate DESC;
 			-- =====================================================================
 			-- SO - 9 : Sales Order Parts with existing Bulk RFQ PO (Already Generated)
 			-- =====================================================================
@@ -769,7 +800,7 @@ BEGIN
 				[MPN],[MPNDescription],[SerialNum],[Customer],[Manufacturer],
 				[MinimumOrderQuantity],[IsFromBulkPO],[NeedBy],[EstReceivedDate],
 				[VendorRFQPOPartRecordId],[CreatedDate],[WorkOrderMaterialsId],[WorkOrderMaterialsKitId],
-				[SalesOrderId],[SONum],[SalesOrderPartId],[SourceType]
+				[SalesOrderId],[SONum],[SalesOrderPartId],[SourceType],PurchaseUnitOfMeasure,ConsumeUnitOfMeasure,StockUnitOfMeasure
 			)
 			SELECT
 				2 AS OrderNo,
@@ -832,7 +863,10 @@ BEGIN
 				SO.SalesOrderId,
 				SO.SalesOrderNumber,
 				SOP.SalesOrderPartId,
-				'SO' AS SourceType
+				'SO' AS SourceType,
+				IM.PurchaseUnitOfMeasure,
+				IM.ConsumeUnitOfMeasure,
+				IM.StockUnitOfMeasure
 			FROM [dbo].[SalesOrderPartV1] SOP WITH (NOLOCK)
 				INNER JOIN [dbo].[SalesOrder]              SO    WITH (NOLOCK) ON SO.SalesOrderId    = SOP.SalesOrderId
 				INNER JOIN [dbo].[ItemMaster]              IM    WITH (NOLOCK) ON IM.ItemMasterId     = SOP.ItemMasterId
@@ -886,9 +920,9 @@ BEGIN
 			--FROM (SELECT TOP 1 Stk.[PurchaseOrderUnitCost],PO.[PurchaseOrderNumber],Stk.[EntryDate],Stk.[ItemMasterId],Stk.[ConditionId],Stk.[SerialNumber]
 			--		FROM [dbo].[Stockline] Stk WITH (NOLOCK) 
 			--		JOIN #TEMPBulkPORecords temp ON temp.ItemMasterId = Stk.ItemMasterId AND temp.ConditionId = Stk.ConditionId	
-			--		JOIN [dbo].[PurchaseOrder] PO WITH (NOLOCK) ON Stk.PurchaseOrderId = PO.PurchaseOrderId
+			--		LEFT JOIN [dbo].[PurchaseOrder] PO WITH (NOLOCK) ON Stk.PurchaseOrderId = PO.PurchaseOrderId
 			--		ORDER BY Stk.[CreatedDate] DESC					
-			--)tmpcash WHERE #TEMPBulkPORecords.ItemMasterId = tmpcash.ItemMasterId   AND #TEMPBulkPORecords.ConditionId = tmpcash.ConditionId
+			--)tmpcash WHERE tmpcash.ItemMasterId = #TEMPBulkPORecords.ItemMasterId AND tmpcash.ConditionId = #TEMPBulkPORecords.ConditionId
 			
 			UPDATE #TEMPBulkPORecords SET [VendorName] = CASE WHEN ISNULL(tmpcash.IsFromBulkPO,0) = 0 THEN ISNULL(tmpcash.[VendorName],'')  ELSE ISNULL(tmpcash.POVendorName,'') END,  
 			                              [VendorCode] = CASE WHEN ISNULL(tmpcash.IsFromBulkPO,0) = 0 THEN ISNULL(tmpcash.[VendorCode],'')  ELSE ISNULL(tmpcash.POVendorCode,'') END  
@@ -1005,7 +1039,7 @@ BEGIN
 
 			INSERT INTO #TEMPBulkPORecords([OrderNo],[ItemMasterId],[StatusId],[StatusName],[poRfqNo],[PurchaseOrderId],[PN],[PNDescription],[Condition],[ConditionId],[Quantity],
 				[UnitCost],[ExtendedCost],[LastPurchasePrice],[LastPONumber],[LastPODate],[VendorName],[VendorId],[VendorCode],[WorkOrderId],[WONum],[MPN],
-				[MPNDescription],[SerialNum],[Customer],[Manufacturer],[MinimumOrderQuantity],[IsFromBulkPO],[NeedBy],[EstReceivedDate],[VendorRFQPOPartRecordId],[CreatedDate],[WorkOrderMaterialsId],[WorkOrderMaterialsKitId],[SourceType])
+				[MPNDescription],[SerialNum],[Customer],[Manufacturer],[MinimumOrderQuantity],[IsFromBulkPO],[NeedBy],[EstReceivedDate],[VendorRFQPOPartRecordId],[CreatedDate],[WorkOrderMaterialsId],[WorkOrderMaterialsKitId],[SourceType],PurchaseUnitOfMeasure,ConsumeUnitOfMeasure,StockUnitOfMeasure)
 		 
 		   	 SELECT 
 				2 AS OrderNo,
@@ -1042,7 +1076,10 @@ BEGIN
 				PO.CreatedDate,
 				ISNULL(WOM.WorkOrderMaterialsId,0) WorkOrderMaterialsId,
 				0 as WorkOrderMaterialsKitId,
-				'WO' AS SourceType
+				'WO' AS SourceType,
+				IM_ITM.PurchaseUnitOfMeasure,
+				IM_ITM.ConsumeUnitOfMeasure,
+				IM_ITM.StockUnitOfMeasure
 			FROM [dbo].[WorkOrderMaterials] WOM WITH (NOLOCK)
 				INNER JOIN [dbo].[WorkOrderWorkFlow] WOWF WITH (NOLOCK) ON WOM.WorkFlowWorkOrderId = WOWF.WorkFlowWorkOrderId	
 				INNER JOIN [dbo].[WorkOrderPartNumber] WOP WITH (NOLOCK) ON WOWF.WorkOrderPartNoId = WOP.ID	
@@ -1061,7 +1098,7 @@ BEGIN
 
 			INSERT INTO #TEMPBulkPORecords([OrderNo],[ItemMasterId],[StatusId],[StatusName],[poRfqNo],[PurchaseOrderId],[PN],[PNDescription],[Condition],[ConditionId],[Quantity],
 				[UnitCost],[ExtendedCost],[LastPurchasePrice],[LastPONumber],[LastPODate],[VendorName],[VendorId],[VendorCode],[WorkOrderId],[WONum],[MPN],
-				[MPNDescription],[SerialNum],[Customer],[Manufacturer],[MinimumOrderQuantity],[IsFromBulkPO],[NeedBy],[EstReceivedDate],[VendorRFQPOPartRecordId],[CreatedDate],[WorkOrderMaterialsId],[WorkOrderMaterialsKitId],[SourceType])
+				[MPNDescription],[SerialNum],[Customer],[Manufacturer],[MinimumOrderQuantity],[IsFromBulkPO],[NeedBy],[EstReceivedDate],[VendorRFQPOPartRecordId],[CreatedDate],[WorkOrderMaterialsId],[WorkOrderMaterialsKitId],[SourceType],PurchaseUnitOfMeasure,ConsumeUnitOfMeasure,StockUnitOfMeasure)
 			 SELECT 
 			 	1 AS OrderNo,	
 				WOM.ItemMasterId,
@@ -1094,10 +1131,14 @@ BEGIN
 				NULL,
 				NULL,
 				0,
-				DATEADD(day, 1, GETDATE()),
+				--DATEADD(day, 1, GETDATE()),
+				WOM.CreatedDate,
 				ISNULL(WOM.WorkOrderMaterialsId,0) WorkOrderMaterialsId,
 				0 as WorkOrderMaterialsKitId,
-				'WO' AS SourceType
+				'WO' AS SourceType,
+				IM_ITM.PurchaseUnitOfMeasure,
+				IM_ITM.ConsumeUnitOfMeasure,
+				IM_ITM.StockUnitOfMeasure
 				FROM [dbo].[WorkOrderMaterials] WOM WITH (NOLOCK)
 					INNER JOIN [dbo].[WorkOrderWorkFlow] WOWF WITH (NOLOCK) ON	WOM.WorkFlowWorkOrderId = WOWF.WorkFlowWorkOrderId				
 					INNER JOIN [dbo].[WorkOrderPartNumber] WOP WITH (NOLOCK) ON WOWF.WorkOrderPartNoId = WOP.ID
@@ -1116,12 +1157,13 @@ BEGIN
 					  AND (CASE WHEN  ISNULL(PO.IsFromBulkPO,0) = 1 OR  ISNULL(PORFQ.IsFromBulkPO,0) = 1 THEN 1 ELSE ISNULL(PO.IsFromBulkPO,0)END) != 1 
 					  AND (CASE WHEN  ISNULL(PORFQ.IsFromBulkPO,0) = 1 OR ISNULL(PO.IsFromBulkPO,0) = 1  THEN 1 ELSE ISNULL(PORFQ.IsFromBulkPO,0)END) != 1 
 					  AND CASE WHEN ISNULL(PO.IsFromBulkPO,0) = 1 THEN (SELECT TOP 1 [Status] FROM dbo.PoStatus WITH (NOLOCK)  WHERE POStatusId = PO.StatusId) ELSE @POOpenStatus END  = @filterAsStatus
-					   AND ISNULL(WO.IsDeleted,0) = 0  AND ISNULL(WOM.IsDeleted,0) = 0  AND Cond.Code != @ARConditionCode	 		
+					   AND ISNULL(WO.IsDeleted,0) = 0  AND ISNULL(WOM.IsDeleted,0) = 0  AND Cond.Code != @ARConditionCode	
+			   ORDER BY WOM.CreatedDate DESC;
 			--3
 
 			INSERT INTO #TEMPBulkPORecords([OrderNo],[ItemMasterId],[StatusId],[StatusName],[poRfqNo],[PurchaseOrderId],[PN],[PNDescription],[Condition],[ConditionId],[Quantity],
 				[UnitCost],[ExtendedCost],[LastPurchasePrice],[LastPONumber],[LastPODate],[VendorName],[VendorId],[VendorCode],[WorkOrderId],[WONum],[MPN],
-				[MPNDescription],[SerialNum],[Customer],[Manufacturer],[MinimumOrderQuantity],[IsFromBulkPO],[NeedBy],[EstReceivedDate],[VendorRFQPOPartRecordId],[CreatedDate],[WorkOrderMaterialsId],[WorkOrderMaterialsKitId],[SourceType])
+				[MPNDescription],[SerialNum],[Customer],[Manufacturer],[MinimumOrderQuantity],[IsFromBulkPO],[NeedBy],[EstReceivedDate],[VendorRFQPOPartRecordId],[CreatedDate],[WorkOrderMaterialsId],[WorkOrderMaterialsKitId],[SourceType],PurchaseUnitOfMeasure,ConsumeUnitOfMeasure,StockUnitOfMeasure)
 			  SELECT 
 			  	2 AS OrderNo,
 				WOM.ItemMasterId,
@@ -1157,7 +1199,10 @@ BEGIN
 				,PO.CreatedDate,
 				ISNULL(WOM.WorkOrderMaterialsId,0) WorkOrderMaterialsId,
 				0 as WorkOrderMaterialsKitId,
-				'WO' AS SourceType
+				'WO' AS SourceType,
+				IM_ITM.PurchaseUnitOfMeasure,
+				IM_ITM.ConsumeUnitOfMeasure,
+				IM_ITM.StockUnitOfMeasure
 				FROM [dbo].[WorkOrderMaterials] WOM  WITH (NOLOCK)
 					INNER JOIN [dbo].[WorkOrderWorkFlow] WOWF WITH (NOLOCK) ON WOM.WorkFlowWorkOrderId = WOWF.WorkFlowWorkOrderId	
 					INNER JOIN [dbo].[WorkOrderPartNumber] WOP WITH (NOLOCK) ON  WOWF.WorkOrderPartNoId = WOP.ID			
@@ -1178,7 +1223,7 @@ BEGIN
 
 			INSERT INTO #TEMPBulkPORecords([OrderNo],[ItemMasterId],[StatusId],[StatusName],[poRfqNo],[PurchaseOrderId],[PN],[PNDescription],[Condition],[ConditionId],[Quantity],
 				[UnitCost],[ExtendedCost],[LastPurchasePrice],[LastPONumber],[LastPODate],[VendorName],[VendorId],[VendorCode],[WorkOrderId],[WONum],[MPN],
-				[MPNDescription],[SerialNum],[Customer],[Manufacturer],[MinimumOrderQuantity],[IsFromBulkPO],[NeedBy],[EstReceivedDate],[VendorRFQPOPartRecordId],[CreatedDate],[WorkOrderMaterialsId],[WorkOrderMaterialsKitId],[SourceType])
+				[MPNDescription],[SerialNum],[Customer],[Manufacturer],[MinimumOrderQuantity],[IsFromBulkPO],[NeedBy],[EstReceivedDate],[VendorRFQPOPartRecordId],[CreatedDate],[WorkOrderMaterialsId],[WorkOrderMaterialsKitId],[SourceType],PurchaseUnitOfMeasure,ConsumeUnitOfMeasure,StockUnitOfMeasure)
 			 SELECT 
 			   	2 AS OrderNo,
 				WOM.ItemMasterId,
@@ -1214,7 +1259,10 @@ BEGIN
 				PO.CreatedDate,
 				0 as WorkOrderMaterialsId,
 				ISNULL(WOM.WorkOrderMaterialsKitId,0) as WorkOrderMaterialsKitId,
-				'WO' AS SourceType
+				'WO' AS SourceType,
+				IM_ITM.PurchaseUnitOfMeasure,
+				IM_ITM.ConsumeUnitOfMeasure,
+				IM_ITM.StockUnitOfMeasure
 				FROM[dbo].[WorkOrderMaterialsKit] WOM  WITH (NOLOCK)
 					INNER JOIN [dbo].[WorkOrderWorkFlow] WOWF WITH (NOLOCK) ON WOM.WorkFlowWorkOrderId = WOWF.WorkFlowWorkOrderId		
 					INNER JOIN [dbo].[WorkOrderPartNumber] WOP WITH (NOLOCK) ON WOWF.WorkOrderPartNoId = WOP.ID		
@@ -1233,7 +1281,7 @@ BEGIN
 		
 			INSERT INTO #TEMPBulkPORecords([OrderNo],[ItemMasterId],[StatusId],[StatusName],[poRfqNo],[PurchaseOrderId],[PN],[PNDescription],[Condition],[ConditionId],[Quantity],
 				[UnitCost],[ExtendedCost],[LastPurchasePrice],[LastPONumber],[LastPODate],[VendorName],[VendorId],[VendorCode],[WorkOrderId],[WONum],[MPN],
-				[MPNDescription],[SerialNum],[Customer],[Manufacturer],[MinimumOrderQuantity],[IsFromBulkPO],[NeedBy],[EstReceivedDate],[VendorRFQPOPartRecordId],[CreatedDate],[WorkOrderMaterialsId],[WorkOrderMaterialsKitId],[SourceType])			
+				[MPNDescription],[SerialNum],[Customer],[Manufacturer],[MinimumOrderQuantity],[IsFromBulkPO],[NeedBy],[EstReceivedDate],[VendorRFQPOPartRecordId],[CreatedDate],[WorkOrderMaterialsId],[WorkOrderMaterialsKitId],[SourceType],PurchaseUnitOfMeasure,ConsumeUnitOfMeasure,StockUnitOfMeasure)			
 			SELECT 
 			 	1 AS OrderNo,		
 				WOM.ItemMasterId,
@@ -1266,10 +1314,14 @@ BEGIN
 				NULL,
 				NULL,
 				0 VendorRFQPOPartRecordId,
-				DATEADD(DAY, 1, GETDATE()),
+				--DATEADD(DAY, 1, GETDATE()),
+				WOM.CreatedDate,
 				0 as WorkOrderMaterialsId,
 				ISNULL(WOM.WorkOrderMaterialsKitId,0) as WorkOrderMaterialsKitId,
-				'WO' AS SourceType
+				'WO' AS SourceType,
+				IM_ITM.PurchaseUnitOfMeasure,
+				IM_ITM.ConsumeUnitOfMeasure,
+				IM_ITM.StockUnitOfMeasure
 				FROM [dbo].[WorkOrderMaterialsKit] WOM WITH (NOLOCK)
 					INNER JOIN [dbo].[WorkOrderWorkFlow] WOWF WITH (NOLOCK) ON WOM.WorkFlowWorkOrderId = WOWF.WorkFlowWorkOrderId		
 					INNER JOIN [dbo].[WorkOrderPartNumber] WOP WITH (NOLOCK) ON  WOWF.WorkOrderPartNoId = WOP.ID	
@@ -1287,12 +1339,12 @@ BEGIN
 			  AND (CASE WHEN  ISNULL(PORFQ.IsFromBulkPO,0) = 1 OR ISNULL(PO.IsFromBulkPO,0) = 1  THEN 1 ELSE ISNULL(PORFQ.IsFromBulkPO,0)END) != 1 
 			  AND CASE WHEN ISNULL(PO.IsFromBulkPO,0) = 1 THEN (SELECT TOP 1 [Status] FROM dbo.PoStatus WITH (NOLOCK)  WHERE POStatusId = PO.StatusId) ELSE @POOpenStatus END  = @filterAsStatus
 			   AND ISNULL(WO.IsDeleted,0) = 0  AND ISNULL(WOM.IsDeleted,0) = 0  AND Cond.Code != @ARConditionCode
-			  			
+			 ORDER BY WOM.CreatedDate DESC;		
 			--6
 
 			INSERT INTO #TEMPBulkPORecords([OrderNo],[ItemMasterId],[StatusId],[StatusName],[poRfqNo],[PurchaseOrderId],[PN],[PNDescription],[Condition],[ConditionId],[Quantity],
 				[UnitCost],[ExtendedCost],[LastPurchasePrice],[LastPONumber],[LastPODate],[VendorName],[VendorId],[VendorCode],[WorkOrderId],[WONum],[MPN],
-				[MPNDescription],[SerialNum],[Customer],[Manufacturer],[MinimumOrderQuantity],[IsFromBulkPO],[NeedBy],[EstReceivedDate],[VendorRFQPOPartRecordId],[CreatedDate],[WorkOrderMaterialsId],[WorkOrderMaterialsKitId],[SourceType])
+				[MPNDescription],[SerialNum],[Customer],[Manufacturer],[MinimumOrderQuantity],[IsFromBulkPO],[NeedBy],[EstReceivedDate],[VendorRFQPOPartRecordId],[CreatedDate],[WorkOrderMaterialsId],[WorkOrderMaterialsKitId],[SourceType],PurchaseUnitOfMeasure,ConsumeUnitOfMeasure,StockUnitOfMeasure)
 			SELECT 
 			  	2 AS OrderNo,
 				WOM.ItemMasterId,
@@ -1328,7 +1380,10 @@ BEGIN
 				,PO.CreatedDate,
 				0 as WorkOrderMaterialsId,
 				ISNULL(WOM.WorkOrderMaterialsKitId,0) as WorkOrderMaterialsKitId,
-				'WO' AS SourceType
+				'WO' AS SourceType,
+				IM_ITM.PurchaseUnitOfMeasure,
+				IM_ITM.ConsumeUnitOfMeasure,
+				IM_ITM.StockUnitOfMeasure
 				FROM [dbo].[WorkOrderMaterialsKit] WOM WITH (NOLOCK)
 					INNER JOIN [dbo].[WorkOrderWorkFlow] WOWF WITH (NOLOCK) ON WOM.WorkFlowWorkOrderId = WOWF.WorkFlowWorkOrderId				
 					INNER JOIN [dbo].[WorkOrderPartNumber] WOP WITH (NOLOCK) ON WOWF.WorkOrderPartNoId = WOP.ID		
@@ -1356,7 +1411,7 @@ BEGIN
 				[MPN],[MPNDescription],[SerialNum],[Customer],[Manufacturer],
 				[MinimumOrderQuantity],[IsFromBulkPO],[NeedBy],[EstReceivedDate],
 				[VendorRFQPOPartRecordId],[CreatedDate],[WorkOrderMaterialsId],[WorkOrderMaterialsKitId],
-				[SalesOrderId],[SONum],[SalesOrderPartId],[SourceType]
+				[SalesOrderId],[SONum],[SalesOrderPartId],[SourceType],PurchaseUnitOfMeasure,ConsumeUnitOfMeasure,StockUnitOfMeasure
 			)
 			SELECT
 				2 AS OrderNo,
@@ -1454,7 +1509,10 @@ BEGIN
 				SO.SalesOrderId,
 				SO.SalesOrderNumber,
 				SOP.SalesOrderPartId,
-				'SO' AS SourceType
+				'SO' AS SourceType,
+				IM.PurchaseUnitOfMeasure,
+				IM.ConsumeUnitOfMeasure,
+				IM.StockUnitOfMeasure
 
 			FROM [dbo].[SalesOrderPartV1] SOP WITH (NOLOCK)
 				INNER JOIN [dbo].[SalesOrder]             SO    WITH (NOLOCK) ON SO.SalesOrderId     = SOP.SalesOrderId
@@ -1497,7 +1555,7 @@ BEGIN
 				[MPN],[MPNDescription],[SerialNum],[Customer],[Manufacturer],
 				[MinimumOrderQuantity],[IsFromBulkPO],[NeedBy],[EstReceivedDate],
 				[VendorRFQPOPartRecordId],[CreatedDate],[WorkOrderMaterialsId],[WorkOrderMaterialsKitId],
-				[SalesOrderId],[SONum],[SalesOrderPartId],[SourceType]
+				[SalesOrderId],[SONum],[SalesOrderPartId],[SourceType],PurchaseUnitOfMeasure,ConsumeUnitOfMeasure,StockUnitOfMeasure
 			)
 			SELECT
 				1 AS OrderNo,
@@ -1565,14 +1623,18 @@ BEGIN
 				NULL AS NeedBy,
 				NULL AS EstReceivedDate,
 				0  AS VendorRFQPOPartRecordId,
-				DATEADD(DAY, 1, GETDATE()),
+				--DATEADD(DAY, 1, GETDATE()),
+				SO.CreatedDate,
 				0 AS WorkOrderMaterialsId,
 				0  AS WorkOrderMaterialsKitId,
 
 				SO.SalesOrderId,
 				SO.SalesOrderNumber,
 				SOP.SalesOrderPartId,
-				'SO' AS SourceType
+				'SO' AS SourceType,
+				IM.PurchaseUnitOfMeasure,
+				IM.ConsumeUnitOfMeasure,
+				IM.StockUnitOfMeasure
 
 			FROM [dbo].[SalesOrderPartV1] SOP WITH (NOLOCK)
 				INNER JOIN [dbo].[SalesOrder]             SO    WITH (NOLOCK) ON SO.SalesOrderId    = SOP.SalesOrderId
@@ -1618,7 +1680,7 @@ BEGIN
 				-- SO-8 has no PO, so its status is always Open
 				-- only show when filter matches Open status
 				AND @POOpenStatus = @filterAsStatus
-			;
+			 ORDER BY SOP.CreatedDate DESC;
 
 			-- =====================================================================
 			-- SO - 9 (ELSE): Sales Order Parts with existing Bulk RFQ PO + status filter
@@ -1632,7 +1694,7 @@ BEGIN
 				[MPN],[MPNDescription],[SerialNum],[Customer],[Manufacturer],
 				[MinimumOrderQuantity],[IsFromBulkPO],[NeedBy],[EstReceivedDate],
 				[VendorRFQPOPartRecordId],[CreatedDate],[WorkOrderMaterialsId],[WorkOrderMaterialsKitId],
-				[SalesOrderId],[SONum],[SalesOrderPartId],[SourceType]
+				[SalesOrderId],[SONum],[SalesOrderPartId],[SourceType],PurchaseUnitOfMeasure,ConsumeUnitOfMeasure,StockUnitOfMeasure
 			)
 			SELECT
 				2 AS OrderNo,
@@ -1695,7 +1757,10 @@ BEGIN
 				SO.SalesOrderId,
 				SO.SalesOrderNumber,
 				SOP.SalesOrderPartId,
-				'SO' AS SourceType
+				'SO' AS SourceType,
+				IM.PurchaseUnitOfMeasure,
+				IM.ConsumeUnitOfMeasure,
+				IM.StockUnitOfMeasure
 			FROM [dbo].[SalesOrderPartV1] SOP WITH (NOLOCK)
 				INNER JOIN [dbo].[SalesOrder]              SO    WITH (NOLOCK) ON SO.SalesOrderId    = SOP.SalesOrderId
 				INNER JOIN [dbo].[ItemMaster]              IM    WITH (NOLOCK) ON IM.ItemMasterId     = SOP.ItemMasterId

@@ -75,7 +75,7 @@ BEGIN
                  (ISNULL(stl.Manufacturer,'')) 'Manufacturer',          
                  (ISNULL(RevicedPNNumber,'')) 'RevisedPN',                  
                  (ISNULL(stl.ItemGroup,'')) 'ItemGroup',         
-                 (ISNULL(uom.ShortName,'')) 'UnitOfMeasure',
+                 (ISNULL(stl.UnitOfMeasure,'')) 'UnitOfMeasure',
                  CAST(stl.QuantityOnHand AS varchar) 'QuantityOnHand',        
                  stl.QuantityOnHand as QuantityOnHandnew,        
                  CAST(stl.QuantityAvailable AS varchar) 'QuantityAvailable',        
@@ -140,21 +140,20 @@ BEGIN
                  ISNULL(stl.[IsBatchStock],0) [IsBatchStock],
                  stl.[BatchNumber],
                  stl.[UnitCost] UnitCost,
-                 ISNULL(uom.DecimalPlaces,2) DecimalPlaces,
-                 ISNULL(uom.Class,'Decimal') Class,
+                 -- ISNULL(uom.DecimalPlaces,2) DecimalPlaces,
+                 -- ISNULL(uom.Class,'Decimal') Class,
                  stl.[InventoryGLAccName] AS 'GLAccount',
                  CASE 
                      WHEN stl.[IsPMA] = 1 THEN 'PMA'
                      WHEN stl.[IsDER] = 1 THEN 'DER'
                      WHEN stl.[OEM] = 1 THEN 'OEM'
                      ELSE ''
-                 END AS 'PNSource',
-                 stl.Model
+                 END AS 'PNSource'
+                 -- stl.Model
              FROM DBO.StockLine stl WITH (NOLOCK)    
              INNER JOIN dbo.StocklineManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @MSModuelId AND MSD.ReferenceID = stl.StockLineId        
              INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON stl.ManagementStructureId = RMS.EntityStructureId
              INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
-             LEFT JOIN DBO.UnitOfMeasure uom WITH (NOLOCK) ON stl.StockUnitOfMeasureId = uom.UnitOfMeasureId 
              WHERE stl.MasterCompanyId = @MasterCompanyId 
                AND ISNULL(stl.IsParent, 0) = 1 
                AND ISNULL(stl.IsDeleted, 0) = 0
@@ -277,9 +276,9 @@ BEGIN
              CASE WHEN (@SortOrder=1 AND @SortColumn='GLAccount') THEN GLAccount END ASC,        
              CASE WHEN (@SortOrder=-1 AND @SortColumn='GLAccount') THEN GLAccount END DESC,
              CASE WHEN (@SortOrder=1 AND @SortColumn='PNSource') THEN PNSource END ASC,        
-             CASE WHEN (@SortOrder=-1 AND @SortColumn='PNSource') THEN PNSource END DESC,
-             CASE WHEN (@SortOrder=1 AND @SortColumn='Model') THEN Model END ASC,        
-             CASE WHEN (@SortOrder=-1 AND @SortColumn='Model') THEN Model END DESC
+             CASE WHEN (@SortOrder=-1 AND @SortColumn='PNSource') THEN PNSource END DESC
+             -- CASE WHEN (@SortOrder=1 AND @SortColumn='Model') THEN Model END ASC,        
+             -- CASE WHEN (@SortOrder=-1 AND @SortColumn='Model') THEN Model END DESC
              
          OFFSET @RecordFROM ROWS         
          FETCH NEXT @PageSize ROWS ONLY        

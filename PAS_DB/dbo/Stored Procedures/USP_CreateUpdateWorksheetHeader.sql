@@ -21,11 +21,11 @@
     4    8/06/2026      Amit Ghediya            Adding Header data in History module [PN-16581]
     5    10/06/2026     Divyesh Kathiriya       Update WorksheetNumber on AircraftInstalledPartDetails Table [PN-16780]
 	6    15/06/2026     Amit Ghediya			Added MtcCategoryId in WorksheetHeader Table [PN-16839]
-    7    26/06/2026     Divyesh Kathiriya       Update WorksheetStatus fields [PN-16897]
+    7    30/06/2026     Divyesh Kathiriya       Added WorkSheetStatusId fields [PN-16897]
 
 **************************************************************/
 
-CREATE PROCEDURE [dbo].[USP_CreateUpdateWorksheetHeader]
+CREATE   PROCEDURE [dbo].[USP_CreateUpdateWorksheetHeader]
     @tbl_WorksheetHeaderType dbo.WorksheetHeaderTableType READONLY
 AS
 BEGIN
@@ -46,8 +46,7 @@ BEGIN
         DECLARE @SerialNum          VARCHAR(50)  = NULL;
         DECLARE @AircraftModelId    BIGINT  = NULL;
         DECLARE @MakeTypeId         BIGINT  = NULL;
-        DECLARE @WorksheetStatusId  INT     = 1;
-        DECLARE @WorksheetStatus    VARCHAR(20)  = 'Open';
+        DECLARE @WorkSheetStatusId  INT     = 1;       
 
         DECLARE @WorksheetCodePrefix INT = (
             SELECT [CodeTypeId]
@@ -229,8 +228,7 @@ BEGIN
                     WorksheetTypeId,
 					MtcCategoryId,
                     WorkOrderNo,
-                    WorksheetStatusId,
-                    WorksheetStatus,
+                    WorkSheetStatusId,                    
                     TailNum,
 					SerialNum,
                     AFHours,
@@ -279,8 +277,7 @@ BEGIN
                     T.WorksheetTypeId,
 					T.MtcCategoryId,
                     T.WorkOrderNo,
-                    @WorksheetStatusId,
-                    @WorksheetStatus,
+                    @WorkSheetStatusId,
                     ISNULL(@TailNum, T.TailNum),
                     ISNULL(@SerialNum, T.SerialNum),
                     T.AFHours,

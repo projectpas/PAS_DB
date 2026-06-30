@@ -16,7 +16,7 @@
 	3    8/06/2026		Divyesh Kathiriya   Update WorkOrderNum on AircraftMaintenanceProgram Table [PN-16704]
 	4    02/06/2026     Amit Ghediya		Update for get CustomerId from AircraftRegistryHeader [PN-16679]
 	5    10/06/2026     Divyesh Kathiriya   Update WorkOrderNum on AircraftInstalledPartDetails Table [PN-16780]
-	6    26/06/2026     Divyesh Kathiriya   Update WorksheetStatusId Fields [PN-16897]
+    6    30/06/2026     Divyesh Kathiriya   Added WorkSheetStatusId fields [PN-16897]
 
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_CreateWorkOrderFromAircraft]
@@ -53,8 +53,7 @@ BEGIN
 			DECLARE  @ExternalCustomerType VARCHAR(50) = 'External'
 			DECLARE @DefaultPriorityId BIGINT=0,@DefaultStageCodeId BIGINT=0,@DefaultStatusId BIGINT=0,@ModuleEnumCustomer INT=1
 			DECLARE @WorkOrderNum VARCHAR(30)
-			DECLARE @WorksheetStatusId  INT = 2;
-			DECLARE @WorksheetStatus VARCHAR(20) = 'In Process';
+			DECLARE @WorkSheetStatusId INT = 2;			
 
 			SELECT @CustomerId = [CustomerId],@ConditionId = [ConditionId] FROM [dbo].[StockLine] WITH(NOLOCK) WHERE [StockLineId] = @StockLineId;
 			IF(ISNULL(@CustomerId,0) = 0)
@@ -353,8 +352,7 @@ BEGIN
 
 			UPDATE WH
 			SET
-				WH.WorksheetStatusId = @WorkSheetStatusId,
-				WH.WorksheetStatus = @WorkSheetStatus,
+				WH.WorkSheetStatusId = @WorkSheetStatusId,				
 				WH.UpdatedBy    = @CreatedBy,
 				WH.UpdatedDate  = GETUTCDATE()
 			FROM [dbo].[WorksheetHeader] WH

@@ -16,7 +16,7 @@
 	3    02/06/2026     Amit Ghediya		Update for get CustomerId from AircraftRegistryHeader [PN-16679]
 	4    09/06/2026     Amit Ghediya		Adding Header data in History module [PN-16581]
 	5    10/06/2026     Divyesh Kathiriya   Update WorkOrderNum on AircraftInstalledPartDetails Table [PN-16780]
-	6    26/06/2026     Divyesh Kathiriya   Update WorksheetStatus Fields [PN-16897]
+    6    30/06/2026     Divyesh Kathiriya   Added WorkSheetStatusId fields [PN-16897]
 
 **************************************************************/
 CREATE PROCEDURE [dbo].[USP_UpdateWorkOrderFromAircraft]
@@ -48,8 +48,7 @@ BEGIN
                 @FunctionalCurrencyId INT = NULL,@ReportCurrencyId INT = NULL,@ForeignExchangeRate DECIMAL(18,2) = NULL,@WorkOrderFormTypeId BIT = NULL,@IsWoAlwaysOrOndemandId BIT = NULL, 
                 @PartNumbers NVARCHAR(MAX)=NULL,@IsTraveler BIT=NULL,@AllowInvoiceBeforeShipping BIT=NULL
 		DECLARE @WorkOrderNum VARCHAR(30);
-		DECLARE @WorksheetStatusId  INT = 2;
-		DECLARE @WorksheetStatus VARCHAR(20) = 'In Process';
+		DECLARE @WorkSheetStatusId  INT = 2;		
 
         -- PART DETAILS			
 		DECLARE @WorkOrderScopeId BIGINT = NULL
@@ -355,8 +354,7 @@ BEGIN
 
 			UPDATE WH
 			SET
-				WH.WorksheetStatusId = @WorkSheetStatusId,
-				WH.WorksheetStatus = @WorkSheetStatus,
+				WH.WorkSheetStatusId = @WorkSheetStatusId,				
 				WH.UpdatedBy    = @CreatedBy,
 				WH.UpdatedDate  = GETUTCDATE()
 			FROM [dbo].[WorksheetHeader] WH

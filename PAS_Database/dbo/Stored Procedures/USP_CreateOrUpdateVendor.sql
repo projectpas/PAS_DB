@@ -14,6 +14,7 @@
 ** 3     09-JUNE-2026  Priyansh Patel    Fixed the issue with the @ExistingCustomerId [PN-16747]
 ** 4     24-June-2026  Sahdev Saliya     Added Notes [PN-16968]
 ** 5     26-June-2026  Sahdev Saliya     Fixed the issue with the @Notes [PN-17015]
+** 6     29-June-2026  Sahdev Saliya     Added Physical Resale [PN-17018]
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_CreateOrUpdateVendor]
     @VendorId BIGINT OUTPUT,
@@ -65,7 +66,8 @@ CREATE   PROCEDURE [dbo].[USP_CreateOrUpdateVendor]
 	@CurrencyId INT = NULL,
 	@DiscountId BIGINT = NULL,
 	@Is1099Required BIT,
-	@Notes NVARCHAR(MAX) = NULL
+	@Notes NVARCHAR(MAX) = NULL,
+	@PhysicalResale VARCHAR(100) = NULL
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -118,7 +120,7 @@ BEGIN
 			IsAllowNettingAPAR, IsTradeRestricted, TradeRestrictedMemo, IsTrackScoreCard,
 			IsVendorOnHold, IsUpdated, IsWarningRestriction,
 			Is1099Required, EDI, EDIDescription, AeroExchange, AeroExchangeDescription,
-			CreditLimit, CurrencyId, DiscountId, IsAllow, IsWarning, IsRestrict, Notes
+			CreditLimit, CurrencyId, DiscountId, IsAllow, IsWarning, IsRestrict, Notes, PhysicalResale
 		)
 		VALUES (
 			@VendorName, @LicenseNumber, @VendorPhone, @VendorPhoneExt, @VendorTypeId, @IsPreferredVendor,
@@ -129,7 +131,7 @@ BEGIN
 			@IsAllowNettingAPAR, @IsTradeRestricted, @TradeRestrictedMemo, @IsTrackScoreCard,
 			@IsVendorOnHold, 1, @IsWarningRestriction,
 			@Is1099Required, @EDI, @EDIDescription, @AeroExchange, @AeroExchangeDescription,
-			@CreditLimit, @CurrencyId, @DiscountId, 1, 0, 0, @Notes
+			@CreditLimit, @CurrencyId, @DiscountId, 1, 0, 0, @Notes, @PhysicalResale
 		);
 
         SET @VendorId = SCOPE_IDENTITY();
@@ -249,7 +251,8 @@ BEGIN
 										IsUpdated,
 										LastSyncDate,
 										Memo,
-										SyncToken
+										SyncToken,
+										PhysicalResale
 									)
 									VALUES (
 										@VendorTypeId,
@@ -295,7 +298,8 @@ BEGIN
 										NULL, -- IsUpdated default true
 										NULL, -- LastSyncDate
 										@Notes, -- Memo
-										NULL  -- SyncToken
+										NULL,  -- SyncToken
+										@PhysicalResale -- PhysicalResale
 									);
 
                 SET @RelatedCustomerId = SCOPE_IDENTITY();

@@ -13,6 +13,7 @@
 ** 2     08-Dec-2025  Bhargav Saliya    Add SP [USP_UpdateVendorContact] for Updat Vendor Contact Detail
 ** 3     09-JUNE-2026  Priyansh Patel   Added Flow to create Customer if not available [PN-16747]
 ** 4     24-June-2026  Sahdev Saliya    Added Notes [PN-16968]
+** 5     26-June-2026  Sahdev Saliya    Added Physical Resale [PN-17018]
 
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_UpdateVendor]
@@ -53,7 +54,8 @@ CREATE   PROCEDURE [dbo].[USP_UpdateVendor]
     @IsActive BIT,
     @VendorClassificationIds TVP_BigInt READONLY,
     @IntegrationPortalIds TVP_BigInt READONLY,
-	@Notes NVARCHAR(MAX) = NULL
+	@Notes NVARCHAR(MAX) = NULL,
+	@PhysicalResale VARCHAR(100) = NULL
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -109,7 +111,8 @@ BEGIN
             IsVendorOnHold = @IsVendorOnHold,
             IsWarningRestriction = @IsWarningRestriction,
             IsActive = @IsActive,
-			Notes = @Notes
+			Notes = @Notes,
+			PhysicalResale = @PhysicalResale
         WHERE VendorId = @VendorId;
 
         -- Update Vendor Shipping/Billing Address
@@ -210,7 +213,9 @@ BEGIN
                     UpdatedBy = @UpdatedBy,
                     IsActive = 1,
                     IsDeleted = 0,
-                    AddressId = @AddressId
+                    AddressId = @AddressId,
+					Memo = @Notes,
+					PhysicalResale = @PhysicalResale
                 WHERE CustomerId = @RelatedCustomerId;
 
                 IF @IsAddressForShipping = 1
@@ -322,7 +327,8 @@ BEGIN
 										IsUpdated,
 										LastSyncDate,
 										Memo,
-										SyncToken
+										SyncToken,
+										PhysicalResale
 									)
 									VALUES (
 										@VendorTypeId,
@@ -367,8 +373,9 @@ BEGIN
 										NULL, -- QuickBooksReferenceId not available
 										NULL, -- IsUpdated default true
 										NULL, -- LastSyncDate
-										NULL, -- Memo
-										NULL  -- SyncToken
+										@Notes, -- Memo
+										NULL,  -- SyncToken
+										@PhysicalResale -- PhysicalResale
 									);
 
                 SET @RelatedCustomerId = SCOPE_IDENTITY();

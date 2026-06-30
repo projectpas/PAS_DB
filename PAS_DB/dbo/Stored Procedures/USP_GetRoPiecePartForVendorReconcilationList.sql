@@ -89,7 +89,7 @@ BEGIN
             )                                               AS DateReturned,
 
             ro.RepairOrderNumber                            AS RONumber,
-            ISNULL(rop.WorkOrderNo, wo.WorkOrderNum)        AS WONumber,
+            ISNULL(rop.WorkOrderNo, wo.WorkOrderNum)        AS WorkOrderNumber,
 
             rop.ManufacturerPN                              AS MPN,
             im.PartDescription                              AS MPNDescription,
@@ -156,7 +156,7 @@ BEGIN
             bp.DateShipped,
             bp.DateReturned,
             bp.RONumber,
-            bp.WONumber,
+            bp.WorkOrderNumber,
             bp.MPN,
             bp.MPNDescription,
             CAST(NULL AS BIGINT)               AS PiecePartReconciliationId,
@@ -191,7 +191,7 @@ BEGIN
             bp.DateShipped,
             bp.DateReturned,
             bp.RONumber,
-            bp.WONumber,
+            bp.WorkOrderNumber,
             bp.MPN,
             bp.MPNDescription
     )
@@ -218,7 +218,7 @@ BEGIN
         DateShipped,
         DateReturned,
         RONumber,
-        WONumber,
+        WorkOrderNumber,
         MPN,
         MPNDescription,
         PiecePartReconciliationId,
@@ -244,8 +244,8 @@ BEGIN
         CASE WHEN @SortOrder = -1 AND @SortColumn = 'PartDescription'      THEN PartDescription      END DESC,
         CASE WHEN @SortOrder =  1 AND @SortColumn = 'RONumber'             THEN RONumber             END ASC,
         CASE WHEN @SortOrder = -1 AND @SortColumn = 'RONumber'             THEN RONumber             END DESC,
-        CASE WHEN @SortOrder =  1 AND @SortColumn = 'WONumber'             THEN WONumber             END ASC,
-        CASE WHEN @SortOrder = -1 AND @SortColumn = 'WONumber'             THEN WONumber             END DESC,
+        CASE WHEN @SortOrder =  1 AND @SortColumn = 'WorkOrderNumber'       THEN WorkOrderNumber      END ASC,
+        CASE WHEN @SortOrder = -1 AND @SortColumn = 'WorkOrderNumber'       THEN WorkOrderNumber      END DESC,
         CASE WHEN @SortOrder =  1 AND @SortColumn = 'ReconciliationStatus' THEN ReconciliationStatus END ASC,
         CASE WHEN @SortOrder = -1 AND @SortColumn = 'ReconciliationStatus' THEN ReconciliationStatus END DESC,
         CASE WHEN @SortOrder =  1 AND @SortColumn = 'DateShipped'          THEN DateShipped          END ASC,

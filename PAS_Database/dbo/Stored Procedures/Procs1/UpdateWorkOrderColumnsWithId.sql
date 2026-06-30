@@ -22,6 +22,7 @@
 	5    12/30/2024   Devendra Shekh	added Missing Fields for WPN update
 	5    04/30/2025   Rajesh Gami	    added Missing Fields for WPN update (Revised Part Number and Description)  
 	6    02/09/2026   Moin Bloch	    added CreditTermId 
+	7    29/06/2026   Bhargav Saliya	Get Terms and Id From WO Table [PN-17040]
 
 -- EXEC [UpdateWorkOrderColumnsWithId] 8792
 **************************************************************/
@@ -40,14 +41,13 @@ BEGIN
 					WO.CustomerName = C.[Name],
 					WO.CustomerType = CA.[AccountType],
 					WO.CreditLimit = CF.[CreditLimit],
-					WO.CreditTerms = CT.[Name],
-					WO.CreditTermId = CT.[CreditTermsId],
+					WO.CreditTerms = WO.[CreditTerms],
+					WO.CreditTermId = WO.[CreditTermId],
 					WO.WorkOrderType = WT.[Description]
 				FROM [dbo].[WorkOrder] WO WITH(NOLOCK)
 					INNER JOIN [dbo].[Customer] C WITH(NOLOCK) ON WO.CustomerId = C.CustomerId
 					INNER JOIN [dbo].[CustomerAffiliation] CA WITH(NOLOCK) ON C.CustomerAffiliationId = CA.CustomerAffiliationId
 					 LEFT JOIN [dbo].[CustomerFinancial] CF  WITH(NOLOCK) ON C.CustomerId = CF.CustomerId
-					 LEFT JOIN [dbo].[CreditTerms] CT WITH(NOLOCK) ON CF.CreditTermsId = CT.CreditTermsId
 					 LEFT JOIN [dbo].[WorkOrderType] WT WITH(NOLOCK) ON WO.WorkOrderTypeId = WT.Id  
 				WHERE WO.WorkOrderId = @WorkOrderId
 

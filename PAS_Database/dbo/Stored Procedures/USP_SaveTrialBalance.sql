@@ -70,7 +70,7 @@ BEGIN
 		SET @DistributionCodeName = 'ManualJournal';
 		SET @DistributionSetupCode = 'ManualJouralDebit';
 		SET @DistributionSetupCodeCredit = 'ManualJouralCredit'	
-		SET @Status = 'Open';
+		SET @Status = 'Posted';
 
 		-- === POPULATE VARIABLES FROM INPUT TABLE PARAMETER ===
 		SET @CodeTypeId = (SELECT [CodeTypeId] FROM [DBO].[CodeTypes] WITH(NOLOCK) WHERE [CodeType] = 'JournalType');

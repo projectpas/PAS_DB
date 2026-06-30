@@ -23,7 +23,7 @@
 	7    07/01/2026   Rajesh Gami		Added MasterCompanyId Parameter While Calling UOM Conversion Function
 	8    11/05/2026   Bhargav Saliya	Modified UOM Related Changes [PN-16192]
 	9    18/06/2026   Bhargav Saliya	Added Case For Skip UOM Function If FROM uom and TO uom Both are Same
-
+	10   29/06/2026   Bhargav saliya    Already saved extended margin amt in table so no need to calculate with qty
 EXEC [dbo].[USP_GetSOApprovalList]  1266
 **************************************************************/
 CREATE PROCEDURE [dbo].[USP_GetSOApprovalList] 
@@ -268,10 +268,7 @@ BEGIN
 				--sopc.MarginAmount,
 				ISNULL((CASE WHEN ISNULL(im.[StockUnitOfMeasure],'') = ISNULL(im.[ConsumeUnitOfMeasure],'') THEN ISNULL(sopc.[MarginAmount],0) ELSE [dbo].[fn_ConvertUOM](ISNULL(sopc.[MarginAmount],0), im.[StockUnitOfMeasure], im.[ConsumeUnitOfMeasure], 1, so.MasterCompanyId) END),0) MarginAmount,
 				--sopc.MarginAmount AS MarginAmountExtended,
-				ISNULL((
-					(CASE WHEN ISNULL(im.[StockUnitOfMeasure],'') = ISNULL(im.[ConsumeUnitOfMeasure],'') THEN ISNULL(sopc.[MarginAmount],0) ELSE [dbo].[fn_ConvertUOM](ISNULL(sopc.[MarginAmount],0), im.[StockUnitOfMeasure], im.[ConsumeUnitOfMeasure], 1, so.MasterCompanyId) END)
-					* (CASE WHEN ISNULL(im.[StockUnitOfMeasure],'') = ISNULL(im.[ConsumeUnitOfMeasure],'') THEN ISNULL(sop.[QtyOrder],0) ELSE [dbo].[fn_ConvertUOM](ISNULL(sop.[QtyOrder],0), im.[StockUnitOfMeasure], im.[ConsumeUnitOfMeasure], 0, so.MasterCompanyId) END)
-				), 0) MarginAmountExtended,
+				ISNULL((CASE WHEN ISNULL(im.[StockUnitOfMeasure],'') = ISNULL(im.[ConsumeUnitOfMeasure],'') THEN ISNULL(sopc.[MarginAmount],0) ELSE [dbo].[fn_ConvertUOM](ISNULL(sopc.[MarginAmount],0), im.[StockUnitOfMeasure], im.[ConsumeUnitOfMeasure], 1, so.MasterCompanyId) END), 0) MarginAmountExtended,
 				sopc.MarginPercentage,
 				--sopc.TaxAmount,
 				ISNULL((CASE WHEN ISNULL(im.[StockUnitOfMeasure],'') = ISNULL(im.[ConsumeUnitOfMeasure],'') THEN ISNULL(sopc.[TaxAmount],0) ELSE [dbo].[fn_ConvertUOM](ISNULL(sopc.[TaxAmount],0), im.[StockUnitOfMeasure], im.[ConsumeUnitOfMeasure], 1, so.MasterCompanyId) END),0) TaxAmount,

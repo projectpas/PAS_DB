@@ -17,6 +17,7 @@
 	3    27/Feb/2026    Rajesh Gami		Added UOM Changes - PN-14832    
 	4    15/Apr/2026	Ayushi Patel	Added UOM Changes [PN-15910]
 	5	 19/06/2026	    Ayushi			[PN-16911]Skip fn_ConvertUOM call when ToUOM = FromUOM
+	6	 30/06/2026	    Sumit			[PN-17058] Selected the Stockline Lot number and EngineSerialNumber
 --EXEC [USP_GetStocklinePrintDataByStockLineId] 
 **************************************************************/
 CREATE PROCEDURE [dbo].[USP_GetStocklinePrintDataByStockLineId]
@@ -78,7 +79,9 @@ BEGIN
 			CAST(0 AS BIT) AS IsFromSubWO,
 			'' Figure,
             '' Item,
-			'' MPNDesc
+			'' MPNDesc,
+			stl.LotNumber,
+			stl.EngineSerialNumber
 		FROM [dbo].[Stockline] stl WITH(NOLOCK)
 			INNER JOIN [dbo].[ItemMaster] im WITH(NOLOCK)ON stl.ItemMasterId = im.ItemMasterId
 			LEFT JOIN [dbo].[PurchaseOrder] po WITH(NOLOCK) ON stl.PurchaseOrderId = po.PurchaseOrderId
@@ -129,7 +132,9 @@ BEGIN
             im.PartDescription AS MPNDesc,
             mst.Figure,
             mst.Item,
-            1 AS IsFromSubWO
+            1 AS IsFromSubWO,
+			stl.LotNumber,
+			stl.EngineSerialNumber
         FROM [dbo].[Stockline] stl WITH(NOLOCK)
 			INNER JOIN [dbo].[ItemMaster] im WITH(NOLOCK) ON stl.ItemMasterId = im.ItemMasterId
 			LEFT JOIN [dbo].[PurchaseOrder] po WITH(NOLOCK) ON stl.PurchaseOrderId = po.PurchaseOrderId
@@ -183,7 +188,9 @@ BEGIN
 				CAST(0 AS BIT) AS IsFromSubWO,
 				stl.TraceableToName,
 				--stl.UnitOfMeasure AS UnitOfMeasureName
-				uomConsume.ShortName AS UnitOfMeasureName
+				uomConsume.ShortName AS UnitOfMeasureName,
+				stl.LotNumber,
+				stl.EngineSerialNumber
 			FROM [dbo].[Stockline] stl WITH(NOLOCK)
 				INNER JOIN [dbo].[ItemMaster] im WITH(NOLOCK) ON stl.ItemMasterId = im.ItemMasterId
 				LEFT JOIN [dbo].[PurchaseOrder] po WITH(NOLOCK) ON stl.PurchaseOrderId = po.PurchaseOrderId
@@ -239,7 +246,9 @@ BEGIN
 				CAST(0 AS BIT) AS IsFromSubWO,
 				stl.TraceableToName,
 				--stl.UnitOfMeasure AS UnitOfMeasureName
-				uomConsume.ShortName AS UnitOfMeasureName
+				uomConsume.ShortName AS UnitOfMeasureName,
+				stl.LotNumber,
+				stl.EngineSerialNumber
 			FROM [dbo].[Stockline] stl WITH(NOLOCK)
 				INNER JOIN [dbo].[ItemMaster] im WITH(NOLOCK) ON stl.ItemMasterId = im.ItemMasterId
 				LEFT JOIN [dbo].[PurchaseOrder] po WITH(NOLOCK) ON stl.PurchaseOrderId = po.PurchaseOrderId
@@ -298,7 +307,9 @@ BEGIN
 				0 AS IsFromSubWO,
 				stl.TraceableToName,
 				--stl.UnitOfMeasure AS UnitOfMeasureName
-				uomConsume.ShortName AS UnitOfMeasureName
+				uomConsume.ShortName AS UnitOfMeasureName,
+				stl.LotNumber,
+				stl.EngineSerialNumber
 			FROM [dbo].[Stockline] stl WITH(NOLOCK)
 				INNER JOIN [dbo].[ItemMaster] im WITH(NOLOCK) ON stl.ItemMasterId = im.ItemMasterId
 				LEFT JOIN [dbo].[PurchaseOrder] po WITH(NOLOCK) ON stl.PurchaseOrderId = po.PurchaseOrderId
@@ -353,7 +364,9 @@ BEGIN
 				0 AS IsFromSubWO,
 				stl.TraceableToName,
 				--stl.UnitOfMeasure AS UnitOfMeasureName
-				uomConsume.ShortName AS UnitOfMeasureName
+				uomConsume.ShortName AS UnitOfMeasureName,
+				stl.LotNumber,
+				stl.EngineSerialNumber
 			FROM [dbo].[Stockline] stl WITH(NOLOCK)
 				INNER JOIN [dbo].[ItemMaster] im WITH(NOLOCK) ON stl.ItemMasterId = im.ItemMasterId
 				LEFT JOIN [dbo].[PurchaseOrder] po WITH(NOLOCK) ON stl.PurchaseOrderId = po.PurchaseOrderId

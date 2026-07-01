@@ -4724,6 +4724,11 @@
     <Build Include="dbo\Stored Procedures\USP_GetLocationLabelSettingData.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetLocationLabelListForPrint.sql" />
     <Build Include="dbo\Stored Procedures\USP_AddUpdateLocationLabelSetting.sql" />
+    <Build Include="dbo\Tables\EngineRegistryHeader.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetEngineRegistryHeaderDetails.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetEngineList.sql" />
+    <Build Include="dbo\Stored Procedures\USP_CreateEngineRegistryHeader.sql" />
+    <Build Include="dbo\User Defined Types\EngineRegistryTableType.sql" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Snapshots\PAS_DB_20220518_07-53-10.dacpac" />

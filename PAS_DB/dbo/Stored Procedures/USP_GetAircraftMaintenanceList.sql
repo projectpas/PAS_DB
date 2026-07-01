@@ -1,13 +1,13 @@
-﻿/**********************************
+﻿/****************************************************************************************************
 ** File:        [USP_GetAircraftMaintenanceList]
 ** Description:
 ** Purpose:
 ** Date:
 **
 ** RETURN VALUE:
-***********************************
+*****************************************************************************************************
 ** Change History
-***********************************
+*****************************************************************************************************
 ** PR   Date         Author				Change Description
 ** --   ----------   -------------		--------------------------------
 ** 1    10/04/2026   Priyansh Patel     Created [PN-16016]
@@ -23,9 +23,10 @@
 ** 11   02/06/2026   Abhishek Jirawla   Added IsScheduled [PN-16679]
 ** 12   25/06/2026	 Amit Ghediya	    Added @LastInspectedDate,@Description,@LastinspectedById [PN-17000]
 ** 13   22/05/2026   Moin Bloch         Added @FlightHoursLimitDays PN-17043
+** 14   30/06/2026	 Amit Ghediya	    Update for Engine data [PN-17075]
 
 
-***********************************/
+*****************************************************************************************************/
 -- EXEC [dbo].[USP_GetAircraftMaintenanceList] @MasterCompanyId = 1 @AircraftRegistryId = 22;
 CREATE  PROCEDURE [dbo].[USP_GetAircraftMaintenanceList]
     @PageNumber              INT             = 1,
@@ -68,9 +69,11 @@ CREATE  PROCEDURE [dbo].[USP_GetAircraftMaintenanceList]
     @MtcCategory			 VARCHAR(256) = NULL,
     @WoNumber				 VARCHAR(256) = NULL,
 	@LastMtced				 DATETIME     = NULL,
+
 	@LastInspectedDate		 DATETIME     = NULL,
 	@Description			 VARCHAR(256) = NULL,
-	@LastinspectedBy		 VARCHAR(256) = NULL	
+	@LastinspectedBy		 VARCHAR(256) = NULL,
+	@IsFromAircraft          BIT          = NULL
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -83,11 +86,13 @@ BEGIN
             SELECT
                 AMP.ProgramId,AMP.AircraftRegistryId,ARH.AircraftRegistryNumber,AMP.VersionNumber,AMP.MaintenanceType, AMP.MaintenanceTypeId,AMP.NextScheduledMaintenance,
 				AMP.TemplateId AS TemplateId,
-               WF.WorkOrderNumber AS TemplateIdNumber,AMP.TemplateVersionNumber,
-                ARH.TailNum AS TailNumber,
-                ARH.MakeType AS AircraftMake,
-                ARH.AircraftModel,
-                ARH.SerialNum AS SerialNumber,
+                WF.WorkOrderNumber AS TemplateIdNumber,AMP.TemplateVersionNumber,
+                CASE WHEN ISNULL(@IsFromAircraft,0) = 1 THEN ARH.TailNum ELSE ERH.TailNum END AS TailNumber,
+                CASE WHEN ISNULL(@IsFromAircraft,0) = 1 THEN ARH.MakeType ELSE ERH.MakeType END AS AircraftMake,
+               -- ARH.AircraftModel,
+			    CASE WHEN ISNULL(@IsFromAircraft,0) = 1 THEN ARH.AircraftModel ELSE ERH.EngineModel END AS AircraftModel,
+                --ARH.SerialNum AS SerialNumber,
+				CASE WHEN ISNULL(@IsFromAircraft,0) = 1 THEN ARH.SerialNum ELSE ERH.SerialNum END AS SerialNumber,
                 MC.[Name] AS MaintenanceClassName,
                 AMP.FlightHoursLimitHours,
                 AMP.FlightHoursLimitMinutes,
@@ -126,7 +131,8 @@ BEGIN
                 AMP.MtcCategoryId,
                 LWO.WorkOrderNum,
                 LWO.WorkOrderId ,
-                ARH.StockLineId,				
+                --ARH.StockLineId,	
+				CASE WHEN ISNULL(@IsFromAircraft,0) = 1 THEN ARH.StockLineId ELSE ERH.StockLineId END AS StockLineId,
                 CASE WHEN STK.[IsCustomerStock] = 1 THEN 'Yes' ELSE 'No' END AS [IsCustomerStock], 
                 ISNULL(STK.[QuantityAvailable],0) [QuantityAvailable],
                 ISNULL(STK.[QuantityOnHand],0) [QuantityOnHand],
@@ -138,11 +144,12 @@ BEGIN
 				EMP.EmployeeName AS LastinspectedBy,
                 COUNT(1) OVER () AS TotalRecords
             FROM [dbo].[AircraftMaintenanceProgram] AMP WITH (NOLOCK)
-            LEFT JOIN [dbo].[AircraftRegistryHeader] ARH WITH (NOLOCK) ON AMP.AircraftRegistryId = ARH.AircraftRegistryId  AND ARH.MasterCompanyId = @MasterCompanyId 
+            LEFT JOIN [dbo].[AircraftRegistryHeader] ARH WITH (NOLOCK) ON ISNULL(@IsFromAircraft,0) = 1 AND AMP.AircraftRegistryId = ARH.AircraftRegistryId  AND ARH.MasterCompanyId = @MasterCompanyId 
+			LEFT JOIN [dbo].[EngineRegistryHeader] ERH WITH (NOLOCK) ON ISNULL(@IsFromAircraft,0) = 0 AND AMP.AircraftRegistryId = ERH.EngineRegistryId  AND ERH.MasterCompanyId = @MasterCompanyId 
             LEFT JOIN [dbo].[MaintenanceClass] MC WITH (NOLOCK)  ON AMP.MaintenanceClassId = MC.MaintenanceClassId
             LEFT JOIN [dbo].[Workflow] WF WITH (NOLOCK)  ON AMP.TemplateId = WF.WorkflowId AND WF.TemplateType = @ACTemplateType
             LEFT JOIN [dbo].[MaintenanceCategory] mtc WITH (NOLOCK) ON AMP.[MtcCategoryId] = mtc.[MtcCategoryId]
-            LEFT JOIN [dbo].[Stockline] STK WITH (NOLOCK) ON STK.[StockLineId] = ARH.[StockLineId]           
+            LEFT JOIN [dbo].[Stockline] STK WITH (NOLOCK) ON STK.[StockLineId] = ISNULL(ARH.[StockLineId], ERH.[StockLineId])      
 			LEFT JOIN [dbo].[View_Employee_Cert] EMP WITH (NOLOCK) ON EMP.EmployeeId = AMP.LastinspectedById          
             LEFT JOIN (SELECT *, ROW_NUMBER() OVER (PARTITION BY ProgramId ORDER BY CreatedDate DESC) AS RN FROM [dbo].[WorksheetHeader] WITH (NOLOCK)) WSH ON AMP.ProgramId = WSH.ProgramId AND WSH.RN = 1
             LEFT JOIN (
@@ -151,7 +158,14 @@ BEGIN
                     FROM [dbo].[WorkOrderPartNumber] WOP WITH (NOLOCK)
                     JOIN [dbo].[WorkOrder] WO WITH (NOLOCK) ON WOP.[WorkOrderId] = WO.[WorkOrderId]
                 ) LWO ON LWO.[ProgramId] = AMP.[ProgramId] AND LWO.rn = 1
-            WHERE (@AircraftRegistryId IS NULL OR @AircraftRegistryId = 0 OR AMP.AircraftRegistryId = @AircraftRegistryId) --AMP.AircraftRegistryId = @AircraftRegistryId  
+            WHERE
+			 AMP.IsFromAircraft = ISNULL(@IsFromAircraft, 1)
+			  AND (
+					@AircraftRegistryId IS NULL OR @AircraftRegistryId = 0
+					OR (ISNULL(@IsFromAircraft,0) = 1 AND AMP.AircraftRegistryId = @AircraftRegistryId)
+					OR (ISNULL(@IsFromAircraft,0) = 0 AND AMP.EngineRegistryId   = @AircraftRegistryId)
+				  )
+			--(@AircraftRegistryId IS NULL OR @AircraftRegistryId = 0 OR AMP.AircraftRegistryId = @AircraftRegistryId) --AMP.AircraftRegistryId = @AircraftRegistryId  
 			AND AMP.MasterCompanyId = @MasterCompanyId  AND (@IsDeleted IS NULL OR AMP.IsDeleted = @IsDeleted)
                 -- Global Filter
                 AND ( @GlobalFilter IS NULL OR AMP.TailNumber       LIKE '%' + @GlobalFilter + '%' OR CAST(AMP.ProgramId AS VARCHAR(50))   LIKE '%' + @GlobalFilter + '%' OR
@@ -177,8 +191,9 @@ BEGIN
                 -- Flight Hours (string compare since formatted HH:mm)
                 AND (@FlightHoursLimit IS NULL OR  (CAST(AMP.FlightHoursLimitHours AS VARCHAR) + ':' + RIGHT('00' + CAST(ISNULL(AMP.FlightHoursLimitMinutes,0) AS VARCHAR),2)) LIKE '%' + @FlightHoursLimit + '%')
                 AND (@FlightHoursRecorded IS NULL OR   (CAST(AMP.FlightHoursRecordedHours AS VARCHAR) + ':' +  RIGHT('00' + CAST(ISNULL(AMP.FlightHoursRecordedMinutes,0) AS VARCHAR),2)) LIKE '%' + @FlightHoursRecorded + '%')
-                AND (@FlightHoursRemaining IS NULL OR  (CAST(AMP.FlightHoursRemainingHours AS VARCHAR) + ':' + RIGHT('00' + CAST(ISNULL(AMP.FlightHoursRemainingMinutes,0) AS VARCHAR),2)) LIKE '%' + @FlightHoursRemaining + '%')               			                   
-				AND (@CyclesLimit IS NULL OR CAST(AMP.CyclesLimit AS VARCHAR) LIKE '%' + @CyclesLimit + '%')
+                AND (@FlightHoursRemaining IS NULL OR  (CAST(AMP.FlightHoursRemainingHours AS VARCHAR) + ':' + RIGHT('00' + CAST(ISNULL(AMP.FlightHoursRemainingMinutes,0) AS VARCHAR),2)) LIKE '%' + @FlightHoursRemaining + '%')
+               
+                AND (@CyclesLimit IS NULL OR CAST(AMP.CyclesLimit AS VARCHAR) LIKE '%' + @CyclesLimit + '%')
                 AND (@TimeLimit IS NULL OR CAST(AMP.TimeLimit AS VARCHAR) LIKE '%' + @TimeLimit + '%')
                 AND (@LandingsLimit IS NULL OR CAST(AMP.LandingsLimit AS VARCHAR) LIKE '%' + @LandingsLimit + '%')
                 AND (@EngineStartsLimit IS NULL OR CAST(AMP.EngineStartsLimit AS VARCHAR) LIKE '%' + @EngineStartsLimit + '%')
@@ -262,6 +277,7 @@ BEGIN
             CASE WHEN @SortColumn = 'MtcCategory'       AND @SortOrder = 'DESC' THEN MtcCategory END DESC,
             CASE WHEN @SortColumn = 'woNumber'       AND @SortOrder = 'ASC'  THEN WorkOrderNum END ASC,
             CASE WHEN @SortColumn = 'woNumber'       AND @SortOrder = 'DESC' THEN WorkOrderNum END DESC,
+
 			CASE WHEN @SortColumn = 'LastInspectedDate'       AND @SortOrder = 'ASC'  THEN LastInspectedDate END ASC,
             CASE WHEN @SortColumn = 'LastInspectedDate'       AND @SortOrder = 'DESC' THEN LastInspectedDate END DESC,
 			CASE WHEN @SortColumn = 'LastinspectedBy'       AND @SortOrder = 'ASC'  THEN LastinspectedBy END ASC,

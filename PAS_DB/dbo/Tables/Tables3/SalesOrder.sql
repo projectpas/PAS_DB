@@ -87,7 +87,7 @@
     [CSRSalesMargin]                BIGINT          NULL,
     [AgentSalesRevenue]             BIGINT          NULL,
     [AgentSalesMargin]              BIGINT          NULL,
-    [HasCustomerSuppliedParts]      BIT             CONSTRAINT [DF_SalesOrder_HasCSP] DEFAULT ((0)) NOT NULL,
+    [HasPieceParts]                 BIT             CONSTRAINT [DF_SalesOrder_HasCSP] DEFAULT ((0)) NOT NULL,
     [SourceBy]                      VARCHAR (30)    NULL,
     [MarketplaceRef]                VARCHAR (50)    NULL,
     CONSTRAINT [PK_SalesOrder] PRIMARY KEY CLUSTERED ([SalesOrderId] ASC),
@@ -105,6 +105,8 @@
     CONSTRAINT [FK_SalesOrder_SalesPersonId] FOREIGN KEY ([SalesPersonId]) REFERENCES [dbo].[Employee] ([EmployeeId]),
     CONSTRAINT [FK_SalesOrder_StatusId] FOREIGN KEY ([StatusId]) REFERENCES [dbo].[MasterSalesOrderQuoteStatus] ([Id])
 );
+
+
 
 
 

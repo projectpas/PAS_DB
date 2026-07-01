@@ -1,13 +1,13 @@
-﻿/****************************************************************************************************
+﻿/**********************************
 ** File:        [USP_GetAircraftMaintenanceList]
 ** Description:
 ** Purpose:
 ** Date:
 **
 ** RETURN VALUE:
-*****************************************************************************************************
+***********************************
 ** Change History
-*****************************************************************************************************
+***********************************
 ** PR   Date         Author				Change Description
 ** --   ----------   -------------		--------------------------------
 ** 1    10/04/2026   Priyansh Patel     Created [PN-16016]
@@ -22,9 +22,10 @@
 ** 10   26/05/2026   Priyansh Patel     Added Worsheet Header Id [PN-16537]
 ** 11   02/06/2026   Abhishek Jirawla   Added IsScheduled [PN-16679]
 ** 12   25/06/2026	 Amit Ghediya	    Added @LastInspectedDate,@Description,@LastinspectedById [PN-17000]
+** 13   22/05/2026   Moin Bloch         Added @FlightHoursLimitDays PN-17043
 
 
-*****************************************************************************************************/
+***********************************/
 -- EXEC [dbo].[USP_GetAircraftMaintenanceList] @MasterCompanyId = 1 @AircraftRegistryId = 22;
 CREATE  PROCEDURE [dbo].[USP_GetAircraftMaintenanceList]
     @PageNumber              INT             = 1,
@@ -67,10 +68,9 @@ CREATE  PROCEDURE [dbo].[USP_GetAircraftMaintenanceList]
     @MtcCategory			 VARCHAR(256) = NULL,
     @WoNumber				 VARCHAR(256) = NULL,
 	@LastMtced				 DATETIME     = NULL,
-
 	@LastInspectedDate		 DATETIME     = NULL,
 	@Description			 VARCHAR(256) = NULL,
-	@LastinspectedBy		 VARCHAR(256) = NULL
+	@LastinspectedBy		 VARCHAR(256) = NULL	
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -91,6 +91,7 @@ BEGIN
                 MC.[Name] AS MaintenanceClassName,
                 AMP.FlightHoursLimitHours,
                 AMP.FlightHoursLimitMinutes,
+				AMP.FlightHoursLimitMonthsOrDays,
                 AMP.FlightHoursRecordedHours,
                 AMP.FlightHoursRecordedMinutes,
                 AMP.FlightHoursRemainingHours,
@@ -176,9 +177,8 @@ BEGIN
                 -- Flight Hours (string compare since formatted HH:mm)
                 AND (@FlightHoursLimit IS NULL OR  (CAST(AMP.FlightHoursLimitHours AS VARCHAR) + ':' + RIGHT('00' + CAST(ISNULL(AMP.FlightHoursLimitMinutes,0) AS VARCHAR),2)) LIKE '%' + @FlightHoursLimit + '%')
                 AND (@FlightHoursRecorded IS NULL OR   (CAST(AMP.FlightHoursRecordedHours AS VARCHAR) + ':' +  RIGHT('00' + CAST(ISNULL(AMP.FlightHoursRecordedMinutes,0) AS VARCHAR),2)) LIKE '%' + @FlightHoursRecorded + '%')
-                AND (@FlightHoursRemaining IS NULL OR  (CAST(AMP.FlightHoursRemainingHours AS VARCHAR) + ':' + RIGHT('00' + CAST(ISNULL(AMP.FlightHoursRemainingMinutes,0) AS VARCHAR),2)) LIKE '%' + @FlightHoursRemaining + '%')
-               
-                AND (@CyclesLimit IS NULL OR CAST(AMP.CyclesLimit AS VARCHAR) LIKE '%' + @CyclesLimit + '%')
+                AND (@FlightHoursRemaining IS NULL OR  (CAST(AMP.FlightHoursRemainingHours AS VARCHAR) + ':' + RIGHT('00' + CAST(ISNULL(AMP.FlightHoursRemainingMinutes,0) AS VARCHAR),2)) LIKE '%' + @FlightHoursRemaining + '%')               			                   
+				AND (@CyclesLimit IS NULL OR CAST(AMP.CyclesLimit AS VARCHAR) LIKE '%' + @CyclesLimit + '%')
                 AND (@TimeLimit IS NULL OR CAST(AMP.TimeLimit AS VARCHAR) LIKE '%' + @TimeLimit + '%')
                 AND (@LandingsLimit IS NULL OR CAST(AMP.LandingsLimit AS VARCHAR) LIKE '%' + @LandingsLimit + '%')
                 AND (@EngineStartsLimit IS NULL OR CAST(AMP.EngineStartsLimit AS VARCHAR) LIKE '%' + @EngineStartsLimit + '%')
@@ -262,7 +262,6 @@ BEGIN
             CASE WHEN @SortColumn = 'MtcCategory'       AND @SortOrder = 'DESC' THEN MtcCategory END DESC,
             CASE WHEN @SortColumn = 'woNumber'       AND @SortOrder = 'ASC'  THEN WorkOrderNum END ASC,
             CASE WHEN @SortColumn = 'woNumber'       AND @SortOrder = 'DESC' THEN WorkOrderNum END DESC,
-
 			CASE WHEN @SortColumn = 'LastInspectedDate'       AND @SortOrder = 'ASC'  THEN LastInspectedDate END ASC,
             CASE WHEN @SortColumn = 'LastInspectedDate'       AND @SortOrder = 'DESC' THEN LastInspectedDate END DESC,
 			CASE WHEN @SortColumn = 'LastinspectedBy'       AND @SortOrder = 'ASC'  THEN LastinspectedBy END ASC,

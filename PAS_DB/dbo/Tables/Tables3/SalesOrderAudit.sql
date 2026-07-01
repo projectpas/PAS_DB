@@ -88,7 +88,7 @@
     [CSRSalesMargin]                BIGINT          NULL,
     [AgentSalesRevenue]             BIGINT          NULL,
     [AgentSalesMargin]              BIGINT          NULL,
-    [HasCustomerSuppliedParts]      BIT             CONSTRAINT [DF_SalesOrderAudit_HasCSP] DEFAULT ((0)) NOT NULL,
+    [HasPieceParts]                 BIT             CONSTRAINT [DF_SalesOrderAudit_HasCSP] DEFAULT ((0)) NOT NULL,
     [SourceBy]                      VARCHAR (30)    NULL,
     [MarketplaceRef]                VARCHAR (50)    NULL,
     CONSTRAINT [PK_SalesOrderAudit] PRIMARY KEY CLUSTERED ([AuditSalesOrderId] ASC),

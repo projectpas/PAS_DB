@@ -4718,6 +4718,12 @@
     <Build Include="dbo\Tables\Work_LogbookCertificateFrom.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetAircraftDataByWorkOrderId.sql" />
     <Build Include="dbo\Stored Procedures\USP_CreateUpdateLogbookCertificateForm.sql" />
+    <Build Include="dbo\Tables\WorkSheetStatus.sql" />
+    <Build Include="dbo\Tables\LocationLabelSetting.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetStocklineList_ByLocation.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetLocationLabelSettingData.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetLocationLabelListForPrint.sql" />
+    <Build Include="dbo\Stored Procedures\USP_AddUpdateLocationLabelSetting.sql" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Snapshots\PAS_DB_20220518_07-53-10.dacpac" />

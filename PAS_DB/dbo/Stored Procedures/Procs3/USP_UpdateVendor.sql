@@ -14,6 +14,7 @@
 ** 3     22-APR-2026  Moin Bloch        Moved to API Due TO Xero Accounting Changes PN-16009
 ** 4     09-JUNE-2026  Priyansh Patel   Added Flow to create Customer if not available [PN-16747]
 ** 5     25-June-2026  Sahdev Saliya    Added Notes [PN-16968]
+** 6     29-June-2026  Sahdev Saliya    Fixed the issue with the @Notes [PN-17015]
 
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_UpdateVendor]
@@ -208,7 +209,8 @@ BEGIN
                     UpdatedBy = @UpdatedBy,
                     IsActive = 1,
                     IsDeleted = 0,
-                    AddressId = @AddressId
+                    AddressId = @AddressId,
+					Memo = @Notes
                 WHERE CustomerId = @RelatedCustomerId;
 
                 IF @IsAddressForShipping = 1
@@ -365,7 +367,7 @@ BEGIN
 										NULL, -- QuickBooksReferenceId not available
 										NULL, -- IsUpdated default true
 										NULL, -- LastSyncDate
-										NULL, -- Memo
+										@Notes, -- Memo
 										NULL  -- SyncToken
 									);
 

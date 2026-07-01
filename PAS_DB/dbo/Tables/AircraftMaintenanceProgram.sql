@@ -46,14 +46,17 @@
     [LastinspectedById]            BIGINT        NULL,
     [Description]                  VARCHAR (256) NULL,
     [LastInspectedDate]            DATETIME2 (7) NULL,
+    [IsFromAircraft]               BIT           NULL,
+    [EngineRegistryId]             BIGINT        NULL,
     [FlightHoursLimitMonthsOrDays] INT           NULL,
     CONSTRAINT [PK_AircraftMaintenanceProgram] PRIMARY KEY CLUSTERED ([ProgramId] ASC),
     CONSTRAINT [CK_AMP_Minutes] CHECK (([FlightHoursLimitMinutes] IS NULL OR [FlightHoursLimitMinutes]>=(0) AND [FlightHoursLimitMinutes]<=(59)) AND ([FlightHoursRecordedMinutes] IS NULL OR [FlightHoursRecordedMinutes]>=(0) AND [FlightHoursRecordedMinutes]<=(59)) AND ([FlightHoursRemainingMinutes] IS NULL OR [FlightHoursRemainingMinutes]>=(0) AND [FlightHoursRemainingMinutes]<=(59))),
-    CONSTRAINT [FK_AircraftMaintenanceProgram_AircraftRegistry] FOREIGN KEY ([AircraftRegistryId]) REFERENCES [dbo].[AircraftRegistryHeader] ([AircraftRegistryId]),
     CONSTRAINT [FK_AMP_MaintenanceClass] FOREIGN KEY ([MaintenanceClassId]) REFERENCES [dbo].[MaintenanceClass] ([MaintenanceClassId]),
     CONSTRAINT [FK_AMP_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId]),
     CONSTRAINT [FK_AMP_Workflow] FOREIGN KEY ([TemplateId]) REFERENCES [dbo].[Workflow] ([WorkflowId])
 );
+
+
 
 
 

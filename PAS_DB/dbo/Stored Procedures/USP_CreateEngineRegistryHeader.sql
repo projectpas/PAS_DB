@@ -1,10 +1,10 @@
 ﻿/*************************************************************             
- ** File:   [USP_CreateAircraftRegistryHeader]          
- ** Author:   Bhargav Saliya 
- ** Description: This stored procedure is used to add a record in [AircraftRegistryHeader].
- ** Jira Id: PN-15843
+ ** File:   [USP_CreateEngineRegistryHeader]          
+ ** Author:   Amit Ghediya 
+ ** Description: This stored procedure is used to add a record in [EngineRegistryHeader].
+ ** Jira Id: PN-17037
  ** Purpose:           
- ** Date:  [26-Mar-2026] 
+ ** Date:  29/06/2026
             
  ** PARAMETERS:             
  @UserType varchar(60)     
@@ -16,56 +16,53 @@
  **************************************************************             
  ** PR   Date         Author              Change Description              
  ** --   --------     -------          --------------------------------     
-    1    26/03/2026   Bhargav Saliya       PN-15456: Created
-    2    31/03/2026   Bhargav Saliya       Modified - Added CodePrefix
-    3    05/06/2026   Abhishek Jirawla     Adding Data Validation & Restrictions [PN-16292] 
-	4    22/06/2026   Amit Ghediya		   Adding TTSN H/M & TCSN H/M [PN-16533]
-	5    02/06/2026   Abhishek Jirawla	   Adding CustomerId and CustomerName [PN-16679]
-	6    04/06/2026   Amit Ghediya		   Adding Header data in History module [PN-16581]
-	7    01/07/2026   Amit Ghediya		   Update for Engine data [PN-17075]
+ ** 1    29/06/2026   Amit Ghediya		Created [PN-17037]
+
+
 **************************************************************/
-CREATE   PROCEDURE [dbo].[USP_CreateAircraftRegistryHeader]
-    @tbl_AircraftRegistryHeaderType dbo.AircraftRegistryTableType READONLY
+CREATE   PROCEDURE [dbo].[USP_CreateEngineRegistryHeader]
+    @tbl_EngineRegistryHeaderType dbo.EngineRegistryTableType READONLY
 AS
 BEGIN
     SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED  
 	SET NOCOUNT ON;  
 	BEGIN TRY  
 
-	DECLARE @AircraftRegistryId BIGINT = (SELECT AircraftRegistryId FROM @tbl_AircraftRegistryHeaderType);
-	DECLARE @CodePrefix NVARCHAR(50),@CodeSuffix NVARCHAR(50),@AircraftRegistryNum VARCHAR(30) = NULL;
+	DECLARE @EngineRegistryId BIGINT = (SELECT EngineRegistryId FROM @tbl_EngineRegistryHeaderType);
+	DECLARE @CodePrefix NVARCHAR(50),@CodeSuffix NVARCHAR(50),@EngineRegistryNum VARCHAR(30) = NULL;
 	DECLARE @CurrentNo INT = 0, @IsUpdate INT = 0;
-	DECLARE @AircraftRegistryCodePrefix INT = (SELECT [CodeTypeId] FROM [dbo].[CodeTypes] WITH(NOLOCK) WHERE [CodeType]='AircraftRegistryNumber');
-	DECLARE @MasterCompanyId INT = (SELECT [MasterCompanyId] FROM @tbl_AircraftRegistryHeaderType);
-	SELECT TOP 1 @CodePrefix = [CodePrefix], @CodeSuffix = [CodeSufix] FROM [dbo].[CodePrefixes] WITH(NOLOCK) WHERE [IsActive] = 1 AND [IsDeleted] = 0 AND [CodeTypeId] = @AircraftRegistryCodePrefix AND [MasterCompanyId] = @MasterCompanyId;
+	DECLARE @EngineRegistryCodePrefix INT = (SELECT [CodeTypeId] FROM [dbo].[CodeTypes] WITH(NOLOCK) WHERE [CodeType]='EngineRegistryNumber');
+	DECLARE @MasterCompanyId INT = (SELECT [MasterCompanyId] FROM @tbl_EngineRegistryHeaderType);
+	SELECT TOP 1 @CodePrefix = [CodePrefix], @CodeSuffix = [CodeSufix] FROM [dbo].[CodePrefixes] WITH(NOLOCK) WHERE [IsActive] = 1 AND [IsDeleted] = 0 AND [CodeTypeId] = @EngineRegistryCodePrefix AND [MasterCompanyId] = @MasterCompanyId;
 
-    IF EXISTS ( SELECT 1 FROM dbo.AircraftRegistryHeader AR WITH (NOLOCK) INNER JOIN @tbl_AircraftRegistryHeaderType T ON AR.TailNum = T.TailNum
+		--IF EXISTS ( SELECT 1 FROM dbo.EngineRegistryHeader AR WITH (NOLOCK) INNER JOIN @tbl_EngineRegistryHeaderType T ON AR.TailNum = T.TailNum
+  --                  AND AR.MasterCompanyId = T.MasterCompanyId
+  --                  AND AR.IsDeleted = 0
+  --                  AND AR.EngineRegistryId <> ISNULL(T.EngineRegistryId,0)
+  --      )
+  --      BEGIN
+		--	IF @@TRANCOUNT > 0
+  --              ROLLBACK TRANSACTION;
+
+  --          SELECT 0 AS Status, 'Engine Tail Num for this AC type already exist' AS Message;
+  --          RETURN;
+  --      END
+		--ELSE 
+		IF EXISTS ( SELECT 1 FROM dbo.EngineRegistryHeader AR WITH (NOLOCK) INNER JOIN @tbl_EngineRegistryHeaderType T ON AR.SerialNum = T.SerialNum
                     AND AR.MasterCompanyId = T.MasterCompanyId
                     AND AR.IsDeleted = 0
-                    AND AR.AircraftRegistryId <> ISNULL(T.AircraftRegistryId,0)
+                    AND AR.EngineRegistryId <> ISNULL(T.EngineRegistryId,0)
         )
         BEGIN
 			IF @@TRANCOUNT > 0
                 ROLLBACK TRANSACTION;
 
-            SELECT 0 AS Status, 'AC Tail Num for this AC type already exist' AS Message;
-            RETURN;
-        END
-	ELSE IF EXISTS ( SELECT 1 FROM dbo.AircraftRegistryHeader AR WITH (NOLOCK) INNER JOIN @tbl_AircraftRegistryHeaderType T ON AR.SerialNum = T.SerialNum
-                    AND AR.MasterCompanyId = T.MasterCompanyId
-                    AND AR.IsDeleted = 0
-                    AND AR.AircraftRegistryId <> ISNULL(T.AircraftRegistryId,0)
-        )
-        BEGIN
-			IF @@TRANCOUNT > 0
-                ROLLBACK TRANSACTION;
-
-            SELECT 0 AS Status, 'AC Serial Num for this AC type already exist' AS Message;
+            SELECT 0 AS Status, 'Engine Serial Num for this AC type already exist' AS Message;
             RETURN;
         END
 	ELSE
 	BEGIN
-	    IF(@AircraftRegistryId > 0)
+	    IF(@EngineRegistryId > 0)
 	    BEGIN
 			-- Declare OLD value holders
 			DECLARE @Old_MakeType           VARCHAR(200),
@@ -111,8 +108,8 @@ BEGIN
 			-- Read current DB values BEFORE updated
 			SELECT
 					@Old_MakeType           = AR.MakeType,
-					@Old_AircraftModel      = AR.AircraftModel,
-					@Old_AircraftSubModel   = ISNULL(AR.AircraftSubModel, ''),
+					@Old_AircraftModel      = AR.EngineModel,
+					@Old_AircraftSubModel   = ISNULL(AR.EngineSubModel, ''),
 					@Old_NumOfEngines       = CAST(ISNULL(AR.NumOfEngines, 0) AS VARCHAR),
 					@Old_TailNum            = AR.TailNum,
 					@Old_SerialNum          = AR.SerialNum,
@@ -121,23 +118,23 @@ BEGIN
 					@Old_TotalTSN           = CAST(CAST(ISNULL(AR.TotalTSN,   0) AS INT) AS VARCHAR) + ' : ' + RIGHT('00' + CAST(CAST(ISNULL(AR.TotalTSNMM, 0) AS INT) AS VARCHAR), 2),
 					@Old_TotalCSN           = CAST(ISNULL(AR.TotalCSN, 0) AS VARCHAR),
 					@Old_Hobbs              = CAST(ISNULL(AR.Hobbs, 0) AS VARCHAR),
-					@Old_AircraftLocation   = ISNULL(AR.AircraftLocation, ''),
+					@Old_AircraftLocation   = ISNULL(AR.EngineLocation, ''),
 					@Old_NextScheduled      = ISNULL(CONVERT(VARCHAR(30), AR.NextScheduled, 103), ''),
-					@Old_AircraftStatus     = ISNULL(AR.AircraftStatus, ''),
+					@Old_AircraftStatus     = ISNULL(AR.EngineStatus, ''),
 					@Old_MaintenanceStatus  = ISNULL(AR.MaintenanceStatus, ''),
 					@Old_Memo               = ISNULL(AR.Memo, ''),
 					@Old_IsActive           = CASE WHEN AR.IsActive = 1 THEN 'Active' ELSE 'Inactive' END
-			FROM dbo.[AircraftRegistryHeader] AR WITH (NOLOCK)
-			WHERE AR.AircraftRegistryId = @AircraftRegistryId
+			FROM dbo.[EngineRegistryHeader] AR WITH (NOLOCK)
+			WHERE AR.EngineRegistryId = @EngineRegistryId
 			AND AR.MasterCompanyId    = @MasterCompanyId;
 
 		    UPDATE AR
             SET
                 AR.MakeTypeId = T.MakeTypeId,
                 AR.MakeType = T.MakeType,
-                AR.AircraftModelId = T.AircraftModelId,
-                AR.AircraftModel = T.AircraftModel,
-                AR.AircraftSubModel = T.AircraftSubModel,
+                AR.EngineModelId = T.EngineModelId,
+                AR.EngineModel = T.EngineModel,
+                AR.EngineSubModel = T.EngineSubModel,
                 AR.NumOfEngines = T.NumOfEngines,
                 AR.TailNum = T.TailNum,
                 AR.SerialNum = T.SerialNum,
@@ -148,11 +145,11 @@ BEGIN
                 AR.TotalCSN = T.TotalCSN,
 				AR.TotalCSNMM = T.TotalCSNMM,
                 AR.Hobbs = T.Hobbs,
-                AR.AircraftLocation = T.AircraftLocation,
+                AR.EngineLocation = T.EngineLocation,
                 AR.NextScheduled = T.NextScheduled,
                 AR.MEL = T.MEL,
-                AR.AircraftStatusId = T.AircraftStatusId,
-                AR.AircraftStatus = T.AircraftStatus,
+                AR.EngineStatusId = T.EngineStatusId,
+                AR.EngineStatus = T.EngineStatus,
                 AR.MaintenanceStatusId = T.MaintenanceStatusId,
                 AR.MaintenanceStatus = T.MaintenanceStatus,
                 AR.Memo = T.Memo,
@@ -161,17 +158,16 @@ BEGIN
                 AR.MasterCompanyId = T.MasterCompanyId,
                 AR.UpdatedBy = T.UpdatedBy,
                 AR.UpdatedDate = GETUTCDATE(),
-				AR.[Description] = T.[Description],
-				AR.[EngineRegistryId] = T.[EngineRegistryId]
-            FROM dbo.[AircraftRegistryHeader] AR
-            INNER JOIN @tbl_AircraftRegistryHeaderType T ON AR.AircraftRegistryId = T.AircraftRegistryId
-            WHERE T.AircraftRegistryId IS NOT NULL;
+				AR.[Description] = T.[Description]
+            FROM dbo.[EngineRegistryHeader] AR
+            INNER JOIN @tbl_EngineRegistryHeaderType T ON AR.EngineRegistryId = T.EngineRegistryId
+            WHERE T.EngineRegistryId IS NOT NULL;
 
 			-- Read new values from updated
 			SELECT
 					@New_MakeType           = ISNULL(T.MakeType, ''),
-					@New_AircraftModel      = ISNULL(T.AircraftModel, ''),
-					@New_AircraftSubModel   = ISNULL(T.AircraftSubModel, ''),
+					@New_AircraftModel      = ISNULL(T.EngineModel, ''),
+					@New_AircraftSubModel   = ISNULL(T.EngineSubModel, ''),
 					@New_NumOfEngines       = CAST(ISNULL(T.NumOfEngines, 0) AS VARCHAR),
 					@New_TailNum            = ISNULL(T.TailNum, ''),
 					@New_SerialNum          = ISNULL(T.SerialNum, ''),
@@ -180,21 +176,21 @@ BEGIN
 					@New_TotalTSN           = CAST(CAST(ISNULL(T.TotalTSN,   0) AS INT) AS VARCHAR) + ' : ' + RIGHT('00' + CAST(CAST(ISNULL(T.TotalTSNMM, 0) AS INT) AS VARCHAR), 2),
 					@New_TotalCSN           = CAST(ISNULL(T.TotalCSN, 0) AS VARCHAR(20)),
 					@New_Hobbs              = CAST(ISNULL(T.Hobbs, 0) AS VARCHAR),
-					@New_AircraftLocation   = ISNULL(T.AircraftLocation, ''),
+					@New_AircraftLocation   = ISNULL(T.EngineLocation, ''),
 					@New_NextScheduled      = ISNULL(CONVERT(VARCHAR(30), T.NextScheduled, 103), ''),
-					@New_AircraftStatus     = ISNULL(T.AircraftStatus, ''),
+					@New_AircraftStatus     = ISNULL(T.EngineStatus, ''),
 					@New_MaintenanceStatus  = ISNULL(T.MaintenanceStatus, ''),
 					@New_Memo               = ISNULL(T.Memo, ''),
 					@New_IsActive           = CASE WHEN ISNULL(T.IsActive, 1) = 1 THEN 'Active' ELSE 'Inactive' END,
 					@Hist_UpdatedBy         = T.UpdatedBy,
 					@Hist_TailNum           = T.TailNum,
 					@Hist_Make              = T.MakeType,
-					@Hist_Model             = T.AircraftModel,
+					@Hist_Model             = T.EngineModel,
 					@Hist_SerialNum         = T.SerialNum
-				FROM @tbl_AircraftRegistryHeaderType T;
+				FROM @tbl_EngineRegistryHeaderType T;
 
 			SET @IsUpdate = 1;
-            SELECT 1 AS Status, 'Saved successfully' AS Message, * FROM dbo.[AircraftRegistryHeader] WITH(NOLOCK) WHERE AircraftRegistryId = @AircraftRegistryId
+            SELECT 1 AS Status, 'Saved successfully' AS Message, * FROM dbo.[EngineRegistryHeader] WITH(NOLOCK) WHERE EngineRegistryId = @EngineRegistryId
 	    END
 	    ELSE
 	    BEGIN
@@ -216,20 +212,20 @@ BEGIN
 				    WHERE [CodePrefix] = @CodePrefix AND [MasterCompanyId] = @MasterCompanyId;
 			    END
 			    -- Generate Aircraft Registry Number
-			    SET @AircraftRegistryNum = (SELECT * FROM dbo.udfGenerateCodeNumberWithOutDash(@CurrentNo, ISNULL(@CodePrefix,''),ISNULL(@CodeSuffix, '')))
+			    SET @EngineRegistryNum = (SELECT * FROM dbo.udfGenerateCodeNumberWithOutDash(@CurrentNo, ISNULL(@CodePrefix,''),ISNULL(@CodeSuffix, '')))
 		    END
 		    ELSE
 		    BEGIN
 			    -- Generate Aircraft Registry Number
-			    SET @AircraftRegistryNum = (SELECT * FROM dbo.udfGenerateCodeNumberWithOutDash(@CurrentNo, '',''))
+			    SET @EngineRegistryNum = (SELECT * FROM dbo.udfGenerateCodeNumberWithOutDash(@CurrentNo, '',''))
 		    END
-            INSERT INTO [AircraftRegistryHeader]
+            INSERT INTO [EngineRegistryHeader]
             (
                 MakeTypeId,
                 MakeType,
-                AircraftModelId,
-                AircraftModel,
-                AircraftSubModel,
+                EngineModelId,
+                EngineModel,
+                EngineSubModel,
                 NumOfEngines,
                 TailNum,
                 SerialNum,
@@ -240,11 +236,11 @@ BEGIN
                 TotalCSN,
 				TotalCSNMM,
                 Hobbs,
-                AircraftLocation,
+                EngineLocation,
                 NextScheduled,
                 MEL,
-                AircraftStatusId,
-                AircraftStatus,
+                EngineStatusId,
+                EngineStatus,
                 MaintenanceStatusId,
                 MaintenanceStatus,
                 CustomerId,
@@ -257,16 +253,15 @@ BEGIN
                 UpdatedBy,
                 CreatedDate,
                 UpdatedDate,
-			    AircraftRegistryNumber,
-				[Description],
-				[EngineRegistryId]
+			    EngineRegistryNumber,
+				[Description]
             )
             SELECT
                 T.MakeTypeId,
                 T.MakeType,
-                T.AircraftModelId,
-                T.AircraftModel,
-                T.AircraftSubModel,
+                T.EngineModelId,
+                T.EngineModel,
+                T.EngineSubModel,
                 T.NumOfEngines,
                 T.TailNum,
                 T.SerialNum,
@@ -277,11 +272,11 @@ BEGIN
                 T.TotalCSN,
 				T.TotalCSNMM,
                 T.Hobbs,
-                T.AircraftLocation,
+                T.EngineLocation,
                 T.NextScheduled,
                 T.MEL,
-                T.AircraftStatusId,
-                T.AircraftStatus,
+                T.EngineStatusId,
+                T.EngineStatus,
                 T.MaintenanceStatusId,
                 T.MaintenanceStatus,
                 T.CustomerId,
@@ -294,13 +289,12 @@ BEGIN
                 T.UpdatedBy,
                 GETUTCDATE(),
                 GETUTCDATE(),
-			    @AircraftRegistryNum,
-				T.[Description],
-				T.[EngineRegistryId]
-            FROM @tbl_AircraftRegistryHeaderType T
+			    @EngineRegistryNum,
+				T.[Description]
+            FROM @tbl_EngineRegistryHeaderType T
 
-			SET @AircraftRegistryId = SCOPE_IDENTITY();
-			SELECT 1 AS Status, 'Saved successfully' AS Message, * FROM dbo.[AircraftRegistryHeader] WITH(NOLOCK) WHERE AircraftRegistryId = @AircraftRegistryId
+			SET @EngineRegistryId = SCOPE_IDENTITY();
+			SELECT 1 AS Status, 'Saved successfully' AS Message, * FROM dbo.[EngineRegistryHeader] WITH(NOLOCK) WHERE EngineRegistryId = @EngineRegistryId
 	    END   
 
 		-- =====================================================
@@ -310,11 +304,11 @@ BEGIN
 				@CreatedBy VARCHAR(100) = NULL,@AcTailNum VARCHAR(50) = NULL,@AcMake VARCHAR(100) = NULL,
 				@AcModel   VARCHAR(100) = NULL,@SerialNum VARCHAR(100) = NULL,@Activity VARCHAR(100) = NULL;
 
-		SELECT @AcTailNum = T.TailNum,@AcMake = T.MakeType,@AcModel = T.AircraftModel,@SerialNum = T.SerialNum, @CreatedBy = T.CreatedBy,@MasterCompanyId = T.MasterCompanyId FROM @tbl_AircraftRegistryHeaderType T;
+		SELECT @AcTailNum = T.TailNum,@AcMake = T.MakeType,@AcModel = T.EngineModel,@SerialNum = T.SerialNum, @CreatedBy = T.CreatedBy,@MasterCompanyId = T.MasterCompanyId FROM @tbl_EngineRegistryHeaderType T;
 
 		IF(@IsUpdate = 1)
 		BEGIN
-			 SET @TemplateCode = 'UpdateAircraftRegistry';
+			 SET @TemplateCode = 'UpdateEngineRegistry';
 			 SET @Activity = 'Updated';
 
 			 -- Build ONE combined HistoryText — appends only changed fields
@@ -415,8 +409,8 @@ BEGIN
 		END
 		ELSE
 		BEGIN
-		     SET @TemplateCode = 'AddAircraftRegistry';
-			 SET @Activity = 'New Registry Added';
+		     SET @TemplateCode = 'AddEngineRegistry';
+			 SET @Activity = 'New Engine Registry Added';
 
 			 SELECT TOP 1 @TemplateBody = [TemplateBody] FROM [dbo].[AircraftHistoryTemplate] WITH(NOLOCK) WHERE [TemplateCode] = @TemplateCode;
 
@@ -431,8 +425,8 @@ BEGIN
         -- ── Call usp_SaveAircraftHistory only if rows exist ───
         IF ISNULL(LTRIM(RTRIM(@TemplateBody)), '') <> ''
 		BEGIN
-			EXEC [dbo].[USP_SaveAircraftHistory] @ModuleId = 1,@ModuleName = 'Aircraft Registry',@RefferenceId = @AircraftRegistryId,@FieldsName = NULL,
-												 @OldValue = NULL,@NewValue = @AircraftRegistryNum,@HistoryText = @TemplateBody,@Activity = @Activity,@MasterCompanyId = @MasterCompanyId,
+			EXEC [dbo].[USP_SaveAircraftHistory] @ModuleId = 1,@ModuleName = 'Aircraft Registry',@RefferenceId = @EngineRegistryId,@FieldsName = NULL,
+												 @OldValue = NULL,@NewValue = @EngineRegistryNum,@HistoryText = @TemplateBody,@Activity = @Activity,@MasterCompanyId = @MasterCompanyId,
 												 @CreatedBy = @CreatedBy;
 		END
 

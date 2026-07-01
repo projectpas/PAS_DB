@@ -15,9 +15,10 @@ Exec [usp_SaveTurnInAircraftMaterials]
    4	21/05/2026  Abhishek Jirawla	Added stockline Id to AircraftRegistryHeader  (PN-16523)
    5	22/05/2026  Abhishek Jirawla	Added @IsCustomer Stock based on customer
    6	26/05/2026  Priyansh Patel	    Added new field 'TTSN, TCSN '(PN-16477)
+   7	30/06/2026  Amit Ghediya	    Update for Engine data [PN-17075]
 
 **************************************************************/   
-CREATE     PROCEDURE [dbo].[usp_SaveTurnInAircraftMaterials]  
+CREATE      PROCEDURE [dbo].[usp_SaveTurnInAircraftMaterials]  
 	@IsCustomerStock BIT = 0,  
 	@IsCustomerstockType BIT,  
 	@ItemMasterId BIGINT,  
@@ -61,8 +62,8 @@ CREATE     PROCEDURE [dbo].[usp_SaveTurnInAircraftMaterials]
 	@TotalTSN DECIMAL(18,2) = NULL,
 	@TotalCSN DECIMAL(18,2) = NULL,
 	@TotalTSNMM DECIMAL(18,6) = NULL,
-	@TotalCSNMM DECIMAL(18,6) = NULL
-
+	@TotalCSNMM DECIMAL(18,6) = NULL,
+	@IsFromAircraft  BIT = NULL
 AS  
 BEGIN  
    
@@ -169,7 +170,14 @@ BEGIN
   
 		 SELECT @PurchaseUOMId = PurchaseUnitOfMeasureId, @PartNumber = partnumber, @IsPMA = IsPMA, @IsDER = IsDER, @IsOemPNId = IsOemPNId, @IsOEM = IsOEM, @OEMPNNumber = OEMPN,@GLAccountId=GLAccountId, @IsTimeLife = isTimeLife, @ItemClassificationId = [ItemClassificationId]   FROM dbo.ItemMaster WITH(NOLOCK) WHERE ItemMasterId = @ItemMasterId;  
      
-		 SELECT @AircraftRegistryNumber = [AircraftRegistryNumber] FROM [dbo].[AircraftRegistryHeader] WITH(NOLOCK) WHERE [AircraftRegistryId] = @AircraftRegistryId 
+		 IF(ISNULL(@IsFromAircraft,0) = 1)
+		 BEGIN
+			 SELECT @AircraftRegistryNumber = [AircraftRegistryNumber] FROM [dbo].[AircraftRegistryHeader] WITH(NOLOCK) WHERE [AircraftRegistryId] = @AircraftRegistryId 
+		 END
+		 ELSE
+		 BEGIN
+			 SELECT @AircraftRegistryNumber = [EngineRegistryNumber] FROM [dbo].[EngineRegistryHeader] WITH(NOLOCK) WHERE [EngineRegistryId] = @AircraftRegistryId 
+		 END
 
 		 INSERT INTO #tmpCodePrefixes_Parent (CodePrefixId,CodeTypeId,CurrentNummber, CodePrefix, CodeSufix, StartsFrom)   
 		 SELECT CodePrefixId, CP.CodeTypeId, CurrentNummber, CodePrefix, CodeSufix, StartsFrom   
@@ -251,7 +259,15 @@ BEGIN
        
 		 UPDATE [dbo].[Stockline] SET Memo = 'This Stockline is created using turn-in from ' + @AircraftRegistryNumber,Unitcost= @Unitcost WHERE [StockLineId] = @StockLineId  
 		 
-		 UPDATE [dbo].[AircraftRegistryHeader] SET StockLineId = @StockLineId WHERE [AircraftRegistryId] = @AircraftRegistryId;
+		 IF(ISNULL(@IsFromAircraft,0) = 1)
+		 BEGIN
+			  UPDATE [dbo].[AircraftRegistryHeader] SET StockLineId = @StockLineId WHERE [AircraftRegistryId] = @AircraftRegistryId;
+		 END
+		 ELSE
+		 BEGIN
+			  UPDATE [dbo].[EngineRegistryHeader] SET StockLineId = @StockLineId WHERE [EngineRegistryId] = @AircraftRegistryId;
+		 END
+		 
 	 
 		 UPDATE [dbo].[AircraftInstalledPartDetails] SET StockLineId = @StockLineId,ConditionId = @ConditionId,Quantity = @Quantity WHERE [AircraftInstalledPartDetailsId] = @AircraftInstalledPartDetailsId;
 	 

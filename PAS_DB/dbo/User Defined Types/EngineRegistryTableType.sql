@@ -1,10 +1,10 @@
-﻿CREATE TYPE [dbo].[AircraftRegistryTableType] AS TABLE (
-    [AircraftRegistryId]  BIGINT          NULL,
+﻿CREATE TYPE [dbo].[EngineRegistryTableType] AS TABLE (
+    [EngineRegistryId]    BIGINT          NULL,
     [MakeTypeId]          BIGINT          NULL,
     [MakeType]            VARCHAR (100)   NULL,
-    [AircraftModelId]     BIGINT          NULL,
-    [AircraftModel]       VARCHAR (100)   NULL,
-    [AircraftSubModel]    VARCHAR (100)   NULL,
+    [EngineModelId]       BIGINT          NULL,
+    [EngineModel]         VARCHAR (100)   NULL,
+    [EngineSubModel]      VARCHAR (100)   NULL,
     [NumOfEngines]        INT             NULL,
     [TailNum]             VARCHAR (50)    NULL,
     [SerialNum]           VARCHAR (100)   NULL,
@@ -15,11 +15,11 @@
     [TotalCSN]            DECIMAL (18, 2) NULL,
     [TotalCSNMM]          DECIMAL (18, 6) NULL,
     [Hobbs]               DECIMAL (18, 2) NULL,
-    [AircraftLocation]    VARCHAR (200)   NULL,
+    [EngineLocation]      VARCHAR (200)   NULL,
     [NextScheduled]       DATETIME2 (7)   NULL,
     [MEL]                 VARCHAR (100)   NULL,
-    [AircraftStatusId]    BIGINT          NULL,
-    [AircraftStatus]      VARCHAR (100)   NULL,
+    [EngineStatusId]      BIGINT          NULL,
+    [EngineStatus]        VARCHAR (100)   NULL,
     [MaintenanceStatusId] BIGINT          NULL,
     [MaintenanceStatus]   VARCHAR (100)   NULL,
     [CustomerId]          BIGINT          NULL,
@@ -32,6 +32,5 @@
     [UpdatedBy]           VARCHAR (256)   NULL,
     [CreatedDate]         DATETIME2 (7)   NULL,
     [UpdatedDate]         DATETIME2 (7)   NULL,
-    [Description]         VARCHAR (256)   NULL,
-    [EngineRegistryId]    BIGINT          NULL);
+    [Description]         VARCHAR (256)   NULL);
 

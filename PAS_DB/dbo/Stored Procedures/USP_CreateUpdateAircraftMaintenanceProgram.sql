@@ -66,6 +66,7 @@ BEGIN
         DECLARE @AircraftMake    VARCHAR(100)    = NULL;
         DECLARE @AircraftModel   VARCHAR(100)    = NULL;
         DECLARE @SerialNumber    VARCHAR(100)    = NULL;
+		DECLARE @EngineTailNumber VARCHAR(100)    = NULL;
 
         -- ── OLD value holders (capture BEFORE update) ─────────
         DECLARE @Old_MaintenanceType            VARCHAR(200),
@@ -226,6 +227,12 @@ BEGIN
                 FROM dbo.AircraftMaintenanceProgram WITH(NOLOCK)
                 WHERE ProgramId = @ProgramId AND [MasterCompanyId] = @MasterCompanyId;
             END
+
+			--Update engine maintance records
+			IF(ISNULL(@TailNumber,'') = '' AND ISNULL(@IsFromAircraft,0) = 0)
+			BEGIN
+				 SELECT @TailNumber = [TailNum] FROM dbo.EngineRegistryHeader WHERE [EngineRegistryId] = @AircraftRegistryId;
+			END
 
             -- ── Main UPDATE ───────────────────────────────────
             UPDATE dbo.AircraftMaintenanceProgram

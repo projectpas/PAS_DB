@@ -69,11 +69,11 @@ CREATE  PROCEDURE [dbo].[USP_GetAircraftMaintenanceList]
     @MtcCategory			 VARCHAR(256) = NULL,
     @WoNumber				 VARCHAR(256) = NULL,
 	@LastMtced				 DATETIME     = NULL,
-
 	@LastInspectedDate		 DATETIME     = NULL,
 	@Description			 VARCHAR(256) = NULL,
 	@LastinspectedBy		 VARCHAR(256) = NULL,
-	@IsFromAircraft          BIT          = NULL
+	@IsFromAircraft          BIT          = NULL,
+	@SequenceNo				 BIGINT       = NULL
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -142,6 +142,7 @@ BEGIN
 				AMP.[Description],
 				EMP.EmployeeId AS LastinspectedById,
 				EMP.EmployeeName AS LastinspectedBy,
+				AMP.SequenceNo,
                 COUNT(1) OVER () AS TotalRecords
             FROM [dbo].[AircraftMaintenanceProgram] AMP WITH (NOLOCK)
             LEFT JOIN [dbo].[AircraftRegistryHeader] ARH WITH (NOLOCK) ON ISNULL(@IsFromAircraft,0) = 1 AND AMP.AircraftRegistryId = ARH.AircraftRegistryId  AND ARH.MasterCompanyId = @MasterCompanyId 
@@ -209,7 +210,8 @@ BEGIN
                 AND (ISNULL(@WorksheetNumber,'') ='' OR WSH.WorksheetNumber LIKE '%' + @WorksheetNumber + '%')
                 AND (ISNULL(@MtcCategory,'') ='' OR mtc.MtcCategory LIKE '%' + @MtcCategory + '%')
                 AND (ISNULL(@WoNumber,'') ='' OR LWO.WorkOrderNum LIKE '%' + @WoNumber + '%')
-
+				AND (ISNULL(@Description,'') ='' OR AMP.[Description] LIKE '%' + @Description + '%')
+				AND (@SequenceNo IS NULL OR CAST(AMP.SequenceNo AS VARCHAR(50)) LIKE '%' + CAST(@SequenceNo AS VARCHAR(50)) + '%')
         )
 
         SELECT *
@@ -277,11 +279,14 @@ BEGIN
             CASE WHEN @SortColumn = 'MtcCategory'       AND @SortOrder = 'DESC' THEN MtcCategory END DESC,
             CASE WHEN @SortColumn = 'woNumber'       AND @SortOrder = 'ASC'  THEN WorkOrderNum END ASC,
             CASE WHEN @SortColumn = 'woNumber'       AND @SortOrder = 'DESC' THEN WorkOrderNum END DESC,
-
 			CASE WHEN @SortColumn = 'LastInspectedDate'       AND @SortOrder = 'ASC'  THEN LastInspectedDate END ASC,
             CASE WHEN @SortColumn = 'LastInspectedDate'       AND @SortOrder = 'DESC' THEN LastInspectedDate END DESC,
 			CASE WHEN @SortColumn = 'LastinspectedBy'       AND @SortOrder = 'ASC'  THEN LastinspectedBy END ASC,
             CASE WHEN @SortColumn = 'LastinspectedBy'       AND @SortOrder = 'DESC' THEN LastinspectedBy END DESC,
+			CASE WHEN @SortColumn = 'Description'       AND @SortOrder = 'ASC'  THEN Description END ASC,
+            CASE WHEN @SortColumn = 'Description'       AND @SortOrder = 'DESC' THEN Description END DESC,
+			CASE WHEN @SortColumn = 'SequenceNo'        AND @SortOrder = 'ASC'  THEN SequenceNo END ASC,
+            CASE WHEN @SortColumn = 'SequenceNo'        AND @SortOrder = 'DESC' THEN SequenceNo END DESC,
 
             ProgramId DESC
 

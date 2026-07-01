@@ -21,7 +21,7 @@
 	3    12/08/2024  Moin Bloch         Convert @StocklineId To varchar for Errolog
  	4	 25/11/2025		Rajesh Gami		Change the stockline Quantiy related fields datatype INT to DECIMAL 
 	5    16/06/2026   Priyansh Patel 	Removed the ChildStockline Sp call [PN-16124]
-
+	6    01/07/2026   Ayushi Patel		[PN-17083]Added @StockOldUOM/@StockNewUOM for UOM-Update history template
  EXEC [dbo].[USP_AddUpdateStocklineHistory] 163201, 16, 259, NULL, NULL, 16, 0, 'Admin User'
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_AddUpdateStocklineHistory]
@@ -33,7 +33,9 @@ CREATE   PROCEDURE [dbo].[USP_AddUpdateStocklineHistory]
 	@SubRefferenceId BIGINT = NULL,
 	@ActionId INT = NULL,
 	@Qty decimal(18,6) = NULL,
-	@UpdatedBy VARCHAR(100) = NULL
+	@UpdatedBy VARCHAR(100) = NULL,
+	@StockOldUOM VARCHAR(250) = NULL,
+	@StockNewUOM VARCHAR(250) = NULL
 )
 AS
 BEGIN
@@ -72,6 +74,9 @@ BEGIN
 
 		SET @HistoryNote = REPLACE(@HistoryNote, '#ModuleName#', @ModuleName);
 		SET @HistoryNote = REPLACE(@HistoryNote, '#RefferenceNum#', @ReferenceNumber);
+
+		SET @HistoryNote = REPLACE(@HistoryNote, '#StockOldUOM#', ISNULL(@StockOldUOM, ''));
+		SET @HistoryNote = REPLACE(@HistoryNote, '#StockNewUOM#', ISNULL(@StockNewUOM, ''));
 
 		INSERT INTO [dbo].[Stkline_History] ([StocklineId],[ModuleId],[RefferenceId],[RefferenceNumber],[SubModuleId],[SubRefferenceId],[SubRefferenceNumber],[ActionId],[Type],
 			[QtyOH],[QtyAvailable],[QtyReserved],[QtyIssued],[QtyOnAction],[Notes],[UpdatedBy],[UpdatedDate],UnitSalesPrice,SalesPriceExpiryDate)

@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [AutoCompleteDropdownsCreditTerm]           
  ** Author:   Subhash Saliya
  ** Description: This SP is used retrieve CreditTerm List for Auto Complete Dropdown With Code
@@ -17,6 +16,7 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    06/24/2022   Subhash Saliya Created
+	2    30-Jun-2026  Sahdev Saliya  Removed Credit Terms dropdown limit to show all available records.[PN-16789]
      
 --EXEC [AutoCompleteDropdownsCreditTerm] '',1,20,'0',4
 **************************************************************/
@@ -41,7 +41,7 @@ BEGIN
 		END	
 		IF(@IsActive = 1)
 			BEGIN		
-					SELECT DISTINCT TOP 20 
+					SELECT DISTINCT 
 						C.CreditTermsId AS Value, 
 						C.Name AS Label,		
 						C.Code AS StatusCode
@@ -59,7 +59,7 @@ BEGIN
 			End
 			ELSE
 			BEGIN
-				SELECT DISTINCT TOP 20 
+				SELECT DISTINCT
 						C.CreditTermsId AS Value, 
 						C.Name AS Label,		
 						C.Code AS StatusCode

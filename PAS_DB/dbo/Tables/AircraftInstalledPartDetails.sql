@@ -43,10 +43,13 @@
     [RepairOrderNumber]              VARCHAR (50)    NULL,
     [WorksheetNumber]                VARCHAR (50)    NULL,
     [WorkOrderNum]                   VARCHAR (30)    NULL,
+    [IsFromAircraft]                 BIT             NULL,
+    [EngineRegistryId]               BIGINT          NULL,
     PRIMARY KEY CLUSTERED ([AircraftInstalledPartDetailsId] ASC),
-    CONSTRAINT [FK_AircraftInstalledPartDetails_AircraftRegistryId] FOREIGN KEY ([AircraftRegistryId]) REFERENCES [dbo].[AircraftRegistryHeader] ([AircraftRegistryId]),
     CONSTRAINT [FK_AircraftInstalledPartDetails_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId])
 );
+
+
 
 
 

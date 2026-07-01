@@ -1,9 +1,9 @@
 ﻿/*************************************************************           
- ** File:   [USP_GetAircraftRegistryHeaderDetails]           
- ** Author: Bhargav Saliya
- ** Description: This stored procedure is used to Get repair Order Cost Details for WO Materials.
+ ** File:   [USP_GetEngineRegistryHeaderDetails]           
+ ** Author: Amit Ghediya 
+ ** Description: 
  ** Purpose:         
- ** jira id :  PN-15843       
+ ** jira id :  PN-17037       
  ** Date:   03/23/2026
 
  ** PARAMETERS:           
@@ -15,16 +15,14 @@
  **************************************************************           
  ** PR   Date         Author			Change Description            
  ** --   --------     -------			--------------------------------          
-    1    27-Mar-2026  Bhargav Saliya		CREATED	
-	2    22/06/2026   Amit Ghediya		    Adding TTSN H/M & TCSN H/M [PN-16533]
-	3    25/06/2026	  Amit Ghediya			Added Description,Hobbs [PN-17000]
-	4    01/07/2026   Amit Ghediya		   Update for Engine data [PN-17075]
+ ** 1    29/06/2026   Amit Ghediya		Created [PN-17037]
  
-EXEC [dbo].[USP_GetAircraftRegistryHeaderDetails] 61501 ,10242  
+ 
+EXEC [dbo].[USP_GetEngineRegistryHeaderDetails] 61501 ,10242  
 **************************************************************/
-CREATE    PROCEDURE [dbo].[USP_GetAircraftRegistryHeaderDetails]
+CREATE    PROCEDURE [dbo].[USP_GetEngineRegistryHeaderDetails]
 (
-	@AircraftRegistryId BIGINT,
+	@EngineRegistryId BIGINT,
 	@MasterCompanyId BIGINT
 )
 AS
@@ -35,12 +33,12 @@ BEGIN
 		BEGIN TRANSACTION
 		BEGIN
 			SELECT
-				AR.AircraftRegistryId,
+				AR.EngineRegistryId,
 				AR.MakeTypeId,
 				AR.MakeType,
-				AR.AircraftModelId,
-				AR.AircraftModel,
-				AR.AircraftSubModel,
+				AR.EngineModelId,
+				AR.EngineModel,
+				AR.EngineSubModel,
 				AR.NumOfEngines,
 				AR.TailNum,
 				AR.SerialNum,
@@ -51,20 +49,19 @@ BEGIN
 				AR.TotalCSN,
 				AR.TotalCSNMM,
 				AR.Hobbs,
-				AR.AircraftLocation,
+				AR.EngineLocation,
 				AR.NextScheduled,
 				AR.MEL,
-				AR.AircraftStatusId,
-				AR.AircraftStatus,
+				AR.EngineStatusId,
+				AR.EngineStatus,
 				AR.MaintenanceStatusId,
 				AR.MaintenanceStatus,
 				AR.MasterCompanyId,
 				AR.Memo,
-				AR.AircraftRegistryNumber,
-				AR.[Description],
-				AR.EngineRegistryId
-			FROM dbo.[AircraftRegistryHeader] AR WITH(NOLOCK) 
-			WHERE AR.AircraftRegistryId = @AircraftRegistryId AND AR.MasterCompanyId = @MasterCompanyId 
+				AR.EngineRegistryNumber,
+				AR.[Description]
+			FROM dbo.[EngineRegistryHeader] AR WITH(NOLOCK) 
+			WHERE AR.EngineRegistryId = @EngineRegistryId AND AR.MasterCompanyId = @MasterCompanyId 
 		END
 	COMMIT  TRANSACTION
 	END TRY
@@ -74,8 +71,8 @@ BEGIN
 		ROLLBACK TRAN;
 		DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name() 
 		-----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
-              , @AdhocComments     VARCHAR(150)    = 'USP_GetAircraftRegistryHeaderDetails' 
-              , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = '''+ ISNULL(@AircraftRegistryId, '') + ''', @Parameter2 = ' + ISNULL(@MasterCompanyId,'') + ''
+              , @AdhocComments     VARCHAR(150)    = 'USP_GetEngineRegistryHeaderDetails' 
+              , @ProcedureParameters VARCHAR(3000)  = '@Parameter1 = '''+ ISNULL(@EngineRegistryId, '') + ''', @Parameter2 = ' + ISNULL(@MasterCompanyId,'') + ''
               , @ApplicationName VARCHAR(100) = 'PAS'
 		-----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------
               exec spLogException 

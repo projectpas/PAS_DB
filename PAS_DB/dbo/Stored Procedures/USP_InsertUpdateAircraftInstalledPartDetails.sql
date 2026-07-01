@@ -17,6 +17,7 @@
  **  5   05-12-2026   Amit Ghediya      Added item InstallFlightHours,InstalledTime,InstalledCycles,. (PN-16382)
  **  6   05-15-2026   Abhishek Jirawla  Added Tail Number in Params. (PN-16384)
  **  7   09/06/2026   Amit Ghediya		Adding Header data in History module [PN-16581]
+ **  8   30/06/2026	  Amit Ghediya	    Update for Engine data [PN-17075]
  ************************************************************************/
 CREATE    PROCEDURE [dbo].[USP_InsertUpdateAircraftInstalledPartDetails]
 (
@@ -52,7 +53,8 @@ CREATE    PROCEDURE [dbo].[USP_InsertUpdateAircraftInstalledPartDetails]
 	@TailNumber VARCHAR(30) = NULL,
 	@InstallFlightHours DECIMAL(18,6) = NULL,
 	@InstallFlightTime DECIMAL(18,6) = NULL,
-	@InstallCycles DECIMAL(18,6) = NULL
+	@InstallCycles DECIMAL(18,6) = NULL,
+	@IsFromAircraft BIT = NULL
 )
 AS
 BEGIN
@@ -115,14 +117,30 @@ BEGIN
                 @New_InstallCycles      VARCHAR(256);
 
 		--GET AC Details
-		IF(ISNULL(@TailNumber,'') != '')
+		IF(ISNULL(@IsFromAircraft,0) = 1)
 		BEGIN
-			 SELECT @AircraftRegistryId = AircraftRegistryId
-			 FROM dbo.AircraftRegistryHeader WITH(NOLOCK) WHERE UPPER(LTRIM(RTRIM(TailNum))) = UPPER(LTRIM(RTRIM(@TailNumber)))
+			IF(ISNULL(@TailNumber,'') != '')
+			BEGIN
+				 SELECT @AircraftRegistryId = AircraftRegistryId
+				 FROM dbo.AircraftRegistryHeader WITH(NOLOCK) WHERE UPPER(LTRIM(RTRIM(TailNum))) = UPPER(LTRIM(RTRIM(@TailNumber)))
+			END
+
+			-- Get TailNum
+			SELECT @TailNumber = [TailNum] FROM DBO.AircraftRegistryHeader WITH(NOLOCK) WHERE [AircraftRegistryId] = @AircraftRegistryId;
+		END
+		ELSE
+		BEGIN
+			IF(ISNULL(@TailNumber,'') != '')
+			BEGIN
+				 SELECT @AircraftRegistryId = EngineRegistryId
+				 FROM dbo.EngineRegistryHeader WITH(NOLOCK) WHERE UPPER(LTRIM(RTRIM(TailNum))) = UPPER(LTRIM(RTRIM(@TailNumber)))
+			END
+
+			-- Get TailNum
+			SELECT @TailNumber = [TailNum] FROM DBO.EngineRegistryHeader WITH(NOLOCK) WHERE [EngineRegistryId] = @AircraftRegistryId;
 		END
 
-		-- Get TailNum
-		SELECT @TailNumber = [TailNum] FROM DBO.AircraftRegistryHeader WITH(NOLOCK) WHERE [AircraftRegistryId] = @AircraftRegistryId;
+		
 
 		-- CHECK IF RECORD EXISTS
 		IF EXISTS (
@@ -224,6 +242,8 @@ BEGIN
 			INSERT INTO AircraftInstalledPartDetails
 			(
 				AircraftRegistryId,
+				EngineRegistryId,
+				IsFromAircraft,
 				ATAChapterId,
 				SequenceNum,
 				ItemMasterId,
@@ -262,6 +282,8 @@ BEGIN
 			VALUES
 			(
 				@AircraftRegistryId,
+				CASE WHEN ISNULL(@IsFromAircraft,0) = 1 THEN NULL ELSE  @AircraftRegistryId END,
+				CASE WHEN ISNULL(@IsFromAircraft,0) = 1 THEN 1 ELSE  0 END,
 				@ATAChapterId,
 				@SequenceNum,
 				@ItemMasterId,

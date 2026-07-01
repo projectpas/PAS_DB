@@ -57,7 +57,7 @@ BEGIN
         DECLARE @StockLineModuleID INT=0
         SELECT @StockLineModuleID = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName]='StockLine';
 
-        -- NEW: capture the exact set of stocklines that will be updated, before the UPDATE runs
+        --: capture the exact set of stocklines that will be updated, before the UPDATE runs
         IF OBJECT_ID('tempdb..#TempStocklineForUOMHistory') IS NOT NULL
             DROP TABLE #TempStocklineForUOMHistory;
 
@@ -204,7 +204,7 @@ BEGIN
             AND ISNULL(QuantityIssued,   0) = 0;
 
         -----------------------------------------------------------------------
-        --Step 4: Log Stockline History for the UOM-Update action              -- NEW
+        --Step 4: Log Stockline History for the UOM-Update action              
         -----------------------------------------------------------------------
         IF (@IsStockUOMEdited = 1)
         BEGIN
@@ -245,7 +245,7 @@ BEGIN
             END
         END
 
-        IF OBJECT_ID('tempdb..#TempStocklineForUOMHistory') IS NOT NULL     -- NEW
+        IF OBJECT_ID('tempdb..#TempStocklineForUOMHistory') IS NOT NULL     
             DROP TABLE #TempStocklineForUOMHistory;
 
         COMMIT TRANSACTION;

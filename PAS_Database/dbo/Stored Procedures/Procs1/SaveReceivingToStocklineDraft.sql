@@ -33,6 +33,8 @@
 	17   16-03-2026   Vishal Suthar		Increased max qty to 500 from 200
 	18   10-APR-2026  Rajesh Gami		UOM Conversion Changes [PN-15733]
 	19   12-MAY-2026  Priyansh Patel	Added Ac tail number [PN-16231]
+	20   30-06-2026	  Priyansh Patel 	Set max quantity threshold to 0 (was 500) to prevent StocklineDraft entries from being created [PN-16893]
+
 
  EXEC [SaveReceivingToStocklineDraft] 2281, 'ADMIN User'    
 **********************/    
@@ -166,7 +168,7 @@ BEGIN
 	DECLARE @QuantityAvailable DECIMAL(18,6) = 1;    
 	DECLARE @QuantityOnHand DECIMAL(18,6) = 1;  
 	DECLARE @QuantityToReceive DECIMAL(18,6) = 1;  
-	IF ISNULL(@IsSerialized, 0) = 0 AND ISNULL(@LoopID_Qty, 0) >= 500
+	IF ISNULL(@IsSerialized, 0) = 0 AND ISNULL(@LoopID_Qty, 0) > 0
 	BEGIN
 	      
 		IF (EXISTS (SELECT 1 FROM #tmpCodePrefixes WHERE CodeTypeId = @IdCodeTypeId))    
@@ -668,7 +670,7 @@ BEGIN
 	 DECLARE @NewNonStocklineDraftId BIGINT;    
 	 DECLARE @IsParent_NonStock BIT = 1;    
 
-	IF ISNULL(@IsSerialized, 0) = 0 AND ISNULL(@LoopID_Qty, 0) >= 500
+	IF ISNULL(@IsSerialized, 0) = 0 AND ISNULL(@LoopID_Qty, 0) > 0
 	BEGIN
 		
           

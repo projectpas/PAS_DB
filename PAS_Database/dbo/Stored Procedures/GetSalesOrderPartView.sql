@@ -37,7 +37,7 @@
 	24    13/05/2026   Bhargav Saliya	Modified UOM Changes [pn-15067]
 	25    14/06/2026   Bhargav Saliya	Select Consume UOM [PN-16224]
 	26    18/06/2026   Bhargav Saliya	Added Case For Skip UOM Function If FROM uom and TO uom Both are Same
-
+	27    30/Jun/2026  Bhargav Saliya   Already save Extended Margin Amount In table so no need to Multiply with Qty
 -- EXEC [DBO].[GetSalesOrderPartView] 10850,0
 **************************************************************/
 CREATE PROCEDURE [dbo].[GetSalesOrderPartView]
@@ -142,8 +142,7 @@ BEGIN
 		ISNULL(((CASE WHEN SC.SalesOrderStocklineId IS NOT NULL 
 		THEN (CASE WHEN ISNULL(qs.[StockUnitOfMeasure],'') = ISNULL(qs.[ConsumeUnitOfMeasure],'') THEN ISNULL(SC.MarginAmount, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(SC.MarginAmount, 0), qs.[StockUnitOfMeasure], qs.[ConsumeUnitOfMeasure], 1, part.MasterCompanyId) END)
 		ELSE (CASE WHEN ISNULL(itemMaster.[StockUnitOfMeasure],'') = ISNULL(itemMaster.[ConsumeUnitOfMeasure],'') THEN ISNULL(PS.MarginAmount, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(PS.MarginAmount, 0), itemMaster.[StockUnitOfMeasure], itemMaster.[ConsumeUnitOfMeasure], 1, part.MasterCompanyId) END) END)
-		* (CASE WHEN ISNULL(qs.[StockUnitOfMeasure],'') = ISNULL(qs.[ConsumeUnitOfMeasure],'') THEN ISNULL(stk.[QtyOrder], 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(stk.[QtyOrder],0), qs.[StockUnitOfMeasure], qs.[ConsumeUnitOfMeasure], 0, part.MasterCompanyId) END)), 0)
-		[MarginAmountExtended], 	
+		), 0) [MarginAmountExtended], 	
 		-- NEED TO DISCUSS --
 		CASE WHEN SC.SalesOrderStocklineId IS NOT NULL THEN ISNULL(SC.MarginPercentage, 0) ELSE ISNULL(PS.MarginPercentage, 0) END AS MarginPercentage,
                 ISNULL(fcu.Code, '') AS CurrencyDescription,

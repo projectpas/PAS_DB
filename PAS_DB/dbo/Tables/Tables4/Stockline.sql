@@ -1,4 +1,4 @@
-CREATE TABLE [dbo].[Stockline] (
+﻿CREATE TABLE [dbo].[Stockline] (
     [StockLineId]                         BIGINT          IDENTITY (1, 1) NOT NULL,
     [PartNumber]                          VARCHAR (50)    NOT NULL,
     [StockLineNumber]                     VARCHAR (50)    NULL,
@@ -247,6 +247,7 @@ CREATE TABLE [dbo].[Stockline] (
     [PoPartUnitCost]                      DECIMAL (18, 6) NULL,
     [TransferredFromLotId]                BIGINT          NULL,
     [TransferredFromLotNumber]            VARCHAR (200)   NULL,
+    [Note]                                NVARCHAR (MAX)  NULL,
     CONSTRAINT [PK_Stockline] PRIMARY KEY CLUSTERED ([StockLineId] ASC),
     CONSTRAINT [FK_StockLine_AcquistionType] FOREIGN KEY ([AcquistionTypeId]) REFERENCES [dbo].[AssetAcquisitionType] ([AssetAcquisitionTypeId]),
     CONSTRAINT [FK_StockLine_Bin] FOREIGN KEY ([BinId]) REFERENCES [dbo].[Bin] ([BinId]),
@@ -287,6 +288,8 @@ CREATE TABLE [dbo].[Stockline] (
 
 
 
+
+
 GO
 
 GO
@@ -297,8 +300,8 @@ CREATE     TRIGGER [dbo].[trg_Audit_dbo_Stockline]
         BEGIN
             SET NOCOUNT ON;
             ;WITH
-            d AS (SELECT d.[StockLineId],d.[PartNumber],d.[PNDescription],d.[Manufacturer],d.[RevicedPNNumber],d.[UnitOfMeasure],d.[Condition],d.[Location],d.[QuantityOnHand],d.[QuantityReserved],d.[QuantityAvailable],d.[QuantityAdjustment],d.[UnitCost],d.[IsCustomerStock],d.[IsRepairManagement],d.[IsStkTimeLife],d.[IsDocument],d.[StockLineNumber],d.[ControlNumber],d.[ReceivedDate],d.[ExpirationDate],d.[PurchaseOrderNumber],d.[RepairOrderNumber],d.[ReceiverNumber],d.[TraceableTo],d.[ObtainFrom],d.[TagType],d.[TaggedBy],d.[TagDate],d.[PartCertificationNumber],d.[CertifiedBy],d.[CertifiedDate],d.[UpdatedBy],d.[UpdatedDate],d.[WorkOrderNumber],d.[LotNumber],d.[CustomerName],d.[BatchNumber],d.[SerialNumber],d.[QuantityIssued],d.[itemGroup],d.[PurchaseOrderUnitCost],d.[RepairOrderUnitCost],d.[Adjustment],d.[Memo],d.[CreatedBy],d.[CreatedDate],d.[IsActive],d.[IsDeleted] FROM deleted d),
-            i AS (SELECT i.[StockLineId],i.[PartNumber],i.[PNDescription],i.[Manufacturer],i.[RevicedPNNumber],i.[UnitOfMeasure],i.[Condition],i.[Location],i.[QuantityOnHand],i.[QuantityReserved],i.[QuantityAvailable],i.[QuantityAdjustment],i.[UnitCost],i.[IsCustomerStock],i.[IsRepairManagement],i.[IsStkTimeLife],i.[IsDocument],i.[StockLineNumber],i.[ControlNumber],i.[ReceivedDate],i.[ExpirationDate],i.[PurchaseOrderNumber],i.[RepairOrderNumber],i.[ReceiverNumber],i.[TraceableTo],i.[ObtainFrom],i.[TagType],i.[TaggedBy],i.[TagDate],i.[PartCertificationNumber],i.[CertifiedBy],i.[CertifiedDate],i.[UpdatedBy],i.[UpdatedDate],i.[WorkOrderNumber],i.[LotNumber],i.[CustomerName],i.[BatchNumber],i.[SerialNumber],i.[QuantityIssued],i.[itemGroup],i.[PurchaseOrderUnitCost],i.[RepairOrderUnitCost],i.[Adjustment],i.[Memo],i.[CreatedBy],i.[CreatedDate],i.[IsActive],i.[IsDeleted] FROM inserted i),
+            d AS (SELECT d.[StockLineId],d.[PartNumber],d.[PNDescription],d.[Manufacturer],d.[RevicedPNNumber],d.[UnitOfMeasure],d.[Condition],d.[Location],d.[QuantityOnHand],d.[QuantityReserved],d.[QuantityAvailable],d.[QuantityAdjustment],d.[UnitCost],d.[IsCustomerStock],d.[IsRepairManagement],d.[IsStkTimeLife],d.[IsDocument],d.[StockLineNumber],d.[ControlNumber],d.[ReceivedDate],d.[ExpirationDate],d.[PurchaseOrderNumber],d.[RepairOrderNumber],d.[ReceiverNumber],d.[TraceableTo],d.[ObtainFrom],d.[TagType],d.[TaggedBy],d.[TagDate],d.[PartCertificationNumber],d.[CertifiedBy],d.[CertifiedDate],d.[UpdatedBy],d.[UpdatedDate],d.[WorkOrderNumber],d.[LotNumber],d.[CustomerName],d.[BatchNumber],d.[SerialNumber],d.[QuantityIssued],d.[itemGroup],d.[PurchaseOrderUnitCost],d.[RepairOrderUnitCost],d.[Adjustment],d.[Memo],d.[CreatedBy],d.[CreatedDate],d.[IsActive],d.[IsDeleted],d.[Note] FROM deleted d),
+            i AS (SELECT i.[StockLineId],i.[PartNumber],i.[PNDescription],i.[Manufacturer],i.[RevicedPNNumber],i.[UnitOfMeasure],i.[Condition],i.[Location],i.[QuantityOnHand],i.[QuantityReserved],i.[QuantityAvailable],i.[QuantityAdjustment],i.[UnitCost],i.[IsCustomerStock],i.[IsRepairManagement],i.[IsStkTimeLife],i.[IsDocument],i.[StockLineNumber],i.[ControlNumber],i.[ReceivedDate],i.[ExpirationDate],i.[PurchaseOrderNumber],i.[RepairOrderNumber],i.[ReceiverNumber],i.[TraceableTo],i.[ObtainFrom],i.[TagType],i.[TaggedBy],i.[TagDate],i.[PartCertificationNumber],i.[CertifiedBy],i.[CertifiedDate],i.[UpdatedBy],i.[UpdatedDate],i.[WorkOrderNumber],i.[LotNumber],i.[CustomerName],i.[BatchNumber],i.[SerialNumber],i.[QuantityIssued],i.[itemGroup],i.[PurchaseOrderUnitCost],i.[RepairOrderUnitCost],i.[Adjustment],i.[Memo],i.[CreatedBy],i.[CreatedDate],i.[IsActive],i.[IsDeleted],i.[Note] FROM inserted i),
 
             paired AS (
                 SELECT

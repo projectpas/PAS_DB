@@ -47,7 +47,7 @@ BEGIN
 					[PartNumber], [CustomerName], [FlatRate], [BERThresholdAmount], [WorkOrderNumber], [CustomerCode], [OtherCost], [WorkflowCreateDate], [ChangedPartNumberId], [PercentageOfMaterial], [PercentageOfExpertise], [PercentageOfCharges], 
 					[PercentageOfOthers], [PercentageOfTotal], [RevisedPartNumber], [changedPartNumberDescription], [ChangedPartNumber], [Currency], [WFParentId], [IsVersionIncrease], @Symbol AS [CurrencySymbol], @Code AS [CurrencyText], @IGDescription AS [ItemGroup], [Verified], [VerifiedBy], [VerifiedDate]
 					,[TailNum],[SerialNum] ,[AircraftModelId] ,[MakeTypeId] ,[TemplateType], [MaintenanceTypeId], [MaintenanceClassId],CAST(NULL AS VARCHAR(256)) AS [MaintenanceClassName],[AircraftRegistryId],CAST(NULL AS VARCHAR(256)) AS [AircraftRegistryNumber],
-					 CAST(NULL AS VARCHAR(100)) AS [AircraftModel],   CAST(NULL AS VARCHAR(250)) AS [AircraftMake],   CAST(NULL AS VARCHAR(256)) AS [MaintenanceType]  
+					 CAST(NULL AS VARCHAR(100)) AS [AircraftModel],   CAST(NULL AS VARCHAR(250)) AS [AircraftMake],[MaintenanceType]  
 			INTO #tmpWorkFLow FROM [dbo].[Workflow] WITH(NOLOCK) WHERE [WorkflowId] = @WorkflowId;
 
 			UPDATE	TMP
@@ -58,7 +58,7 @@ BEGIN
 				TMP.CurrencyText = CY.[Code],
 				TMP.AircraftModel = ACM.[ModelName],
 				TMP.AircraftMake = ACT.[Description],
-				TMP.MaintenanceType = MT.[Description],
+				--TMP.MaintenanceType = MT.[Description],
 				TMP.MaintenanceClassName = MC.[Name],
 				TMP.AircraftRegistryNumber = ARH.[AircraftRegistryNumber]
 			FROM #tmpWorkFLow TMP
@@ -68,7 +68,7 @@ BEGIN
 			LEFT JOIN [dbo].[Currency] CY WITH(NOLOCK) ON TMP.CurrencyId = CY.CurrencyId
 			LEFT JOIN [dbo].[AircraftModel] ACM WITH (NOLOCK) on ACM.AircraftModelId =  TMP.AircraftModelId
 			LEFT JOIN [dbo].[AircraftType] ACT WITH (NOLOCK) on ACT.AircraftTypeId =  TMP.MakeTypeId
-			LEFT JOIN [dbo].[MaintenanceType] MT WITH (NOLOCK) on MT.MaintenanceTypeId =  TMP.MaintenanceTypeId
+			--LEFT JOIN [dbo].[MaintenanceType] MT WITH (NOLOCK) on MT.MaintenanceTypeId =  TMP.MaintenanceTypeId
 			LEFT JOIN [dbo].[MaintenanceClass] MC WITH (NOLOCK) on MC.MaintenanceClassId =  TMP.MaintenanceClassId
 			LEFT JOIN [dbo].[AircraftRegistryHeader] ARH WITH (NOLOCK) on ARH.AircraftRegistryId =  TMP.AircraftRegistryId
 

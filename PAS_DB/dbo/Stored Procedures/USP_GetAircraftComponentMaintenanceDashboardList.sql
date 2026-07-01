@@ -1,4 +1,4 @@
-﻿/****************************************************************************************************
+﻿/**********************************
 ** File:        [USP_GetAircraftComponentMaintenanceDashboardList]
 ** Description: Dashboard list with optional column-level and dashboard-level filters.
 **                @TailNumber        - column filter, LIKE (contains) search
@@ -6,7 +6,7 @@
 **                @SectionId         - matches WorksheetHeader.WorksheetTypeId of the displayed row
 **                @IsScheduled       - matches AircraftMaintenanceProgram.IsScheduled directly
 ** Change History
-*****************************************************************************************************
+***********************************
 ** PR   Date         Author               Change Description
 ** --   ----------   ----------------     --------------------------------
 ** 1    29/05/2026   Abhishek Jirawla     Created [PN-16598]
@@ -16,7 +16,9 @@
 ** 4    04/06/2026   Amit Ghediya         Get isllp & isserialized flag for bind [PN-16741]
 ** 5    10/06/2026   Amit Ghediya         Get ATAChapterId flag for bind [PN-16802]
 ** 6    25/06/2026	 Amit Ghediya		  Added @LastInspectedDate,@Description,@LastinspectedById [PN-17000]
-*****************************************************************************************************/
+** 7    30/06/2026	 Moin Bloch  		  Added @CreatedDate For Order by PN-17043
+
+***********************************/
 CREATE       PROCEDURE [dbo].[USP_GetAircraftComponentMaintenanceDashboardList]
 (
     @PageNumber         INT           = 1,
@@ -51,7 +53,7 @@ AS
 BEGIN
     SET NOCOUNT ON;
     BEGIN TRY
-        SET @SortColumn = UPPER(ISNULL(@SortColumn, 'ACTAILNUM'));
+        SET @SortColumn = UPPER(ISNULL(@SortColumn, 'CREATEDDATE'));
 
         ;WITH Combined AS
         (
@@ -72,6 +74,7 @@ BEGIN
                 CAST(ARH.CustomerName AS NVARCHAR(200))                                        AS customerName,
                 CAST(NULL AS NVARCHAR(200))                                        AS ataChpt,
 				0																   AS ATAChapterId,
+				AMP.CreatedDate,
                 AMP.UpdatedDate                                                    AS lastMtced,
                 LWO.WorkOrderNum                                                   AS woNum,
                 LWO.WorkOrderId                                                    AS woId,
@@ -163,6 +166,7 @@ BEGIN
                 CAST(ARH.CustomerName AS NVARCHAR(200))                                        AS customerName,
                 CONCAT_WS(' - ', NULLIF(IMAM.Level1,''), NULLIF(IMAM.Level2,''), NULLIF(IMAM.Level3,'')) AS ataChpt,
 				AIPD.ATAChapterId												   AS ATAChapterId,
+				AIPD.CreatedDate,
                 AIPD.UpdatedDate                                                   AS lastMtced,
                 LWO_I.WorkOrderNum                                                 AS woNum,
                 LWO_I.WorkOrderId                                                  AS woId,
@@ -311,7 +315,7 @@ BEGIN
             CASE WHEN @SortColumn='LastInspectedDate'     AND @SortOrder='ASC'  THEN LastInspectedDate END ASC, CASE WHEN @SortColumn='LastInspectedDate'  AND @SortOrder='DESC' THEN LastInspectedDate END DESC,
 			CASE WHEN @SortColumn='LastinspectedBy'     AND @SortOrder='ASC'  THEN LastinspectedBy END ASC, CASE WHEN @SortColumn='LastinspectedBy'  AND @SortOrder='DESC' THEN LastinspectedBy END DESC,
 
-		   acTailNum ASC
+		   CreatedDate DESC
         OFFSET (@PageNumber - 1) * @PageSize ROWS FETCH NEXT @PageSize ROWS ONLY
         OPTION (RECOMPILE);
     END TRY

@@ -15,7 +15,7 @@
     2    02-Sep-2025     SAHDEV SALIYA     Added New Field Verified, VerifiedBy And VerifiedDate
 	3	 17-APR-2026     PRIYANSH PATEL    Added AC Template Fields [PN-15968]
 	4    03-JUN-2026     Amit Ghediya      Added AC Template releted Fields MaintenanceClassId [PN-16668]
-
+	5    29-JUN-2026	 Moin Bloch		   Added MaintenanceType PN-17043
 --   EXEC [usp_SaveWorkFlowData] 
 **************************************************************/
 CREATE       PROCEDURE [dbo].[usp_CreateWorkFlowHeaderData]
@@ -108,7 +108,8 @@ BEGIN
 			[TemplateType] INT  NULL,
 			[MaintenanceTypeId] BIGINT NULL,
 			[MaintenanceClassId] BIGINT NULL,
-			[AircraftRegistryId] BIGINT NULL
+			[AircraftRegistryId] BIGINT NULL,
+			[MaintenanceType] VARCHAR(MAX) NULL
 		);
 
 		-- Generate Work Flow version
@@ -180,10 +181,10 @@ BEGIN
 			[ChangedPartNumberId], [PercentageOfMaterial], [PercentageOfExpertise], [PercentageOfCharges], [PercentageOfOthers],
 			[PercentageOfTotal], [RevisedPartNumber], [ChangedPartNumberDescription], [ChangedPartNumber], [WorkScope],
 			[Currency], [WFParentId], [IsVersionIncrease], [Verified], [VerifiedBy], [VerifiedDate],
-			[TailNum],[SerialNum] ,[AircraftModelId] ,[MakeTypeId] ,[TemplateType], [MaintenanceTypeId], [MaintenanceClassId], [AircraftRegistryId]  
+			[TailNum],[SerialNum] ,[AircraftModelId] ,[MakeTypeId] ,[TemplateType], [MaintenanceTypeId], [MaintenanceClassId], [AircraftRegistryId],[MaintenanceType]  
 		)
 		SELECT 
-			[WorkflowDescription], @NewVersionNum, [WorkScopeId], [ItemMasterId],
+			[WorkflowDescription], @NewVersionNum, CASE When [WorkScopeId] = 0 THEN NULL ELSE [WorkScopeId] END, [ItemMasterId],
 			[PartNumberDescription], [CustomerId], [CurrencyId], [WorkflowExpirationDate], [IsCalculatedBERThreshold],
 			[IsFixedAmount], [FixedAmount], [IsPercentageOfNew], [CostOfNew], [PercentageOfNew],
 			[IsPercentageOfReplacement], [CostOfReplacement], [PercentageOfReplacement], [Memo], [ManagementStructureId],
@@ -193,10 +194,10 @@ BEGIN
 			[ChangedPartNumberId], [PercentageOfMaterial], [PercentageOfExpertise], [PercentageOfCharges], [PercentageOfOthers],
 			[PercentageOfTotal], [RevisedPartNumber], [ChangedPartNumberDescription], [ChangedPartNumber], [WorkScope],
 			[Currency], [WFParentId], [IsVersionIncrease], [Verified], [VerifiedBy], [VerifiedDate], 
-			[TailNum],[SerialNum] ,[AircraftModelId] ,[MakeTypeId] ,[TemplateType] ,  [MaintenanceTypeId], [MaintenanceClassId], [AircraftRegistryId]     
+			[TailNum],[SerialNum] ,[AircraftModelId] ,[MakeTypeId] ,[TemplateType] ,  [MaintenanceTypeId], [MaintenanceClassId], [AircraftRegistryId],[MaintenanceType]     
 		FROM @tbl_WorkFloaddItemsType temp where temp.[WorkflowId] = 0;  
 
-		set @WorkFlowid = SCOPE_IDENTITY();
+		SET @WorkFlowid = SCOPE_IDENTITY();
 
 		--Update UpdateWorkFlowColumnsWithId
 		EXEC UpdateWorkFlowColumnsWithId @WorkFlowid

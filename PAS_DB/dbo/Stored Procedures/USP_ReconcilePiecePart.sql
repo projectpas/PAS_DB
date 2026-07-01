@@ -172,19 +172,17 @@ BEGIN
 
         /* ────────────────────────────────────────────────────────────────
            2b. QTY DAMAGED / LOST
-               Parts are physically gone (write-off) — reduce OnHand/Available/Reserved.
-               QuantityIssued is NOT incremented: these were not issued for repair work.
+               Parts are physically gone (write-off) — reduce OnHand and Reserved only.
+               QuantityAvailable and QuantityIssued are NOT changed.
         ──────────────────────────────────────────────────────────────── */
         IF ISNULL(@QtyDamagedLost, 0) > 0
         BEGIN
             UPDATE dbo.StockLine
             SET
-                QuantityOnHand    = CASE WHEN QuantityOnHand    - @QtyDamagedLost < 0 THEN 0
-                                         ELSE QuantityOnHand    - @QtyDamagedLost END,
-                QuantityAvailable = CASE WHEN QuantityAvailable - @QtyDamagedLost < 0 THEN 0
-                                         ELSE QuantityAvailable - @QtyDamagedLost END,
-                QuantityReserved  = CASE WHEN QuantityReserved  - @QtyDamagedLost < 0 THEN 0
-                                         ELSE QuantityReserved  - @QtyDamagedLost END,
+                QuantityOnHand    = CASE WHEN QuantityOnHand   - @QtyDamagedLost < 0 THEN 0
+                                         ELSE QuantityOnHand   - @QtyDamagedLost END,
+                QuantityReserved  = CASE WHEN QuantityReserved - @QtyDamagedLost < 0 THEN 0
+                                         ELSE QuantityReserved - @QtyDamagedLost END,
                 UpdatedBy         = @UpdatedBy,
                 UpdatedDate       = @Now
             WHERE StockLineId     = @StockLineId;

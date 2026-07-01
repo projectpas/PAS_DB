@@ -19,6 +19,7 @@
 	7    15/May/2026   Bhargav Saliya	UOM Changes [PN-15067]
 	9    18/06/2026   Bhargav Saliya	Added Case For Skip UOM Function If FROM uom and TO uom Both are Same
 	10   25/06/2026   Bhargav Saliya    So Incoice View UOM Changes 
+	11   30/06/2025   Bhargav Saliya    Resolved Billing Issue[PN-17030]
 --   EXEC [dbo].[USP_GetCommonBillingInvoicingItems] 20070,15
 ********************************************************************************************/
 CREATE PROCEDURE [dbo].[USP_GetCommonBillingInvoicingItems]
@@ -245,7 +246,7 @@ BEGIN
 				  ,BII.[CostPlusType]
 				  ,(CASE WHEN ISNULL(IM.[StockUnitOfMeasure],'') = ISNULL(IM.[ConsumeUnitOfMeasure],'') THEN ISNULL(BII.[UnitPrice], 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(BII.[UnitPrice], 0),IM.[StockUnitOfMeasure],IM.[ConsumeUnitOfMeasure],1,WO.MasterCompanyId) END) [UnitPrice]
 				  ,(CASE WHEN ISNULL(IM.[StockUnitOfMeasure],'') = ISNULL(IM.[ConsumeUnitOfMeasure],'') THEN ISNULL(BII.[QtyBilled], 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(BII.[QtyBilled], 0),IM.[StockUnitOfMeasure],IM.[ConsumeUnitOfMeasure],0,WO.MasterCompanyId) END) [QtyBilled]
-				  ,ISNULL(BII.[PartCost], 0) [PartCost]
+				  ,(CASE WHEN ISNULL(IM.[StockUnitOfMeasure],'') = ISNULL(IM.[ConsumeUnitOfMeasure],'') THEN ISNULL(BII.[PartCost], 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(BII.[PartCost], 0),IM.[StockUnitOfMeasure],IM.[ConsumeUnitOfMeasure],1,WO.MasterCompanyId) END) [PartCost]
 				  ,ISNULL(BII.[IsTotalCheck],0) [IsTotalCheck]
 				  ,ISNULL(BII.[TotalBillingCost],0) [TotalBillingCost]
 				  ,ISNULL(BII.[TotalBillingCostPercent],0) [TotalBillingCostPercent]

@@ -66,18 +66,20 @@ BEGIN
     DECLARE @SOStocklineId          BIGINT;
 
     -- Stockline history
-    DECLARE @HistoryModuleId        INT;
-    DECLARE @HistoryActionId        INT;
-    DECLARE @HistoryDamagedActionId INT;
+    DECLARE @HistoryModuleId          INT;
+    DECLARE @HistoryActionId          INT;
+    DECLARE @HistoryDamagedActionId   INT;
+    DECLARE @HistoryUnreserveActionId INT;
 
     DECLARE @SourceRONumber         NVARCHAR(100);
 
     BEGIN TRANSACTION;
     BEGIN TRY
 
-        SELECT @HistoryModuleId         = ModuleId FROM dbo.Module WITH (NOLOCK) WHERE ModuleId = 14; -- RepairOrder
-        SELECT @HistoryActionId         = ActionId FROM dbo.StklineHistory_Action WITH (NOLOCK) WHERE [Type] = 'Issue';
-        SELECT @HistoryDamagedActionId  = ActionId FROM dbo.StklineHistory_Action WITH (NOLOCK) WHERE [Type] = 'DamagedLost';
+        SELECT @HistoryModuleId           = ModuleId FROM dbo.Module WITH (NOLOCK) WHERE ModuleId = 14; -- RepairOrder
+        SELECT @HistoryActionId           = ActionId FROM dbo.StklineHistory_Action WITH (NOLOCK) WHERE [Type] = 'Issue';
+        SELECT @HistoryDamagedActionId    = ActionId FROM dbo.StklineHistory_Action WITH (NOLOCK) WHERE [Type] = 'DamagedLost';
+        SELECT @HistoryUnreserveActionId  = ActionId FROM dbo.StklineHistory_Action WITH (NOLOCK) WHERE [Type] = 'Unreserve';
         SELECT @SourceRONumber          = RepairOrderNumber FROM dbo.RepairOrder WITH (NOLOCK) WHERE RepairOrderId = @SourceRepairOrderId;
 
         /* ────────────────────────────────────────────────────────────────
@@ -90,12 +92,10 @@ BEGIN
         BEGIN
             UPDATE dbo.StockLine
             SET
-                QuantityOnHand    = CASE WHEN QuantityOnHand    - @QtyConsumed < 0 THEN 0
-                                         ELSE QuantityOnHand    - @QtyConsumed END,
-                QuantityAvailable = CASE WHEN QuantityAvailable - @QtyConsumed < 0 THEN 0
-                                         ELSE QuantityAvailable - @QtyConsumed END,
-                QuantityReserved  = CASE WHEN QuantityReserved  - @QtyConsumed < 0 THEN 0
-                                         ELSE QuantityReserved  - @QtyConsumed END,
+                QuantityOnHand    = CASE WHEN QuantityOnHand   - @QtyConsumed < 0 THEN 0
+                                         ELSE QuantityOnHand   - @QtyConsumed END,
+                QuantityReserved  = CASE WHEN QuantityReserved - @QtyConsumed < 0 THEN 0
+                                         ELSE QuantityReserved - @QtyConsumed END,
                 QuantityIssued    = ISNULL(QuantityIssued, 0) + @QtyConsumed,
                 UpdatedBy         = @UpdatedBy,
                 UpdatedDate       = @Now
@@ -143,13 +143,19 @@ BEGIN
                                          ELSE ISNULL(QuantityReserved, 0) END,
                 QuantityReserved  = CASE WHEN QuantityReserved - @QtyReturned < 0 THEN 0
                                          ELSE QuantityReserved - @QtyReturned END,
-                Memo              = CASE
-                                        WHEN ISNULL(Memo, '') = '' THEN 'PiecePart returned from RO# ' + ISNULL(@SourceRONumber, '')
-                                        ELSE Memo + '; PiecePart returned from RO# ' + ISNULL(@SourceRONumber, '')
-                                    END,
                 UpdatedBy         = @UpdatedBy,
                 UpdatedDate       = @Now
             WHERE StockLineId     = @StockLineId;
+
+            EXEC [dbo].[USP_AddUpdateStocklineHistory]
+                @StocklineId     = @StockLineId,
+                @ModuleId        = @HistoryModuleId,
+                @ReferenceId     = @SourceRepairOrderId,
+                @SubModuleId     = NULL,
+                @SubRefferenceId = @RepairOrderPartRecordId,
+                @ActionId        = @HistoryUnreserveActionId,
+                @Qty             = @QtyReturned,
+                @UpdatedBy       = @UpdatedBy;
 
             -- QuantityReceived is unchanged: this is not a new vendor receipt,
             -- it is previously received inventory being released from reservation.

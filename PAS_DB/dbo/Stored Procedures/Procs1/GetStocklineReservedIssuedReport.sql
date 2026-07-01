@@ -22,6 +22,7 @@
 	6    18-12-2024   RAJESH GAMI			handle QtyAdjustment in bulkadjustment
 	7    19-12-2024   RAJESH GAMI		    Add MastercompanyId in the managementstructure JOIN
 	8    26-12-2024   RAJESH GAMI		    Modified WPN to check RO is closed or not
+
 exec GetStocklineReservedIssuedReport @PageNumber=1,@PageSize=20,@SortColumn=NULL,@SortOrder=1,@GlobalFilter=N'',@strFilter=N'1,5,6,52,84!2,7,8,9!3,11,10!4,13,12!!!!!!',@ViewType=N'1',@StockLineId=0,@PartNumber=N'0856AE15',@PartDescription=NULL,@Condition=NULL,@StocklineNumber=NULL,@ControlNumber=NULL,@IdNumber=NULL,@QuantityReserved=NULL,@QuantityIssued=NULL,@Module=NULL,@ReferenceNumber=NULL,@level1Str=NULL,@level2Str=NULL,@level3Str=NULL,@level4Str=NULL,@level5Str=NULL,@level6Str=NULL,@level7Str=NULL,@level8Str=NULL,@level9Str=NULL,@level10Str=NULL,@MasterCompanyId=1    
 **************************************************************/    
 CREATE   PROCEDURE [dbo].[GetStocklineReservedIssuedReport]

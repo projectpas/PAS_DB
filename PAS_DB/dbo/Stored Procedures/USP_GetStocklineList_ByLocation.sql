@@ -1,4 +1,4 @@
-/*************************************************************               
+﻿/*************************************************************               
  ** File:   [USP_GetStocklineList_ByLocation]               
  ** Author:   Sumit Kumar
  ** Description: Stored procedure to get stockline list filtered by exact Location, Shelf, or Bin label value

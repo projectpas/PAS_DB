@@ -18,7 +18,7 @@
     1    27-Mar-2026  Bhargav Saliya		CREATED	
 	2    22/06/2026   Amit Ghediya		    Adding TTSN H/M & TCSN H/M [PN-16533]
 	3    25/06/2026	  Amit Ghediya			Added Description,Hobbs [PN-17000]
-	4    01/07/2026   Amit Ghediya		   Update for Engine data [PN-17075]
+	4    01/07/2026   Amit Ghediya		   Update for Engine data  [PN-17075]
  
 EXEC [dbo].[USP_GetAircraftRegistryHeaderDetails] 61501 ,10242  
 **************************************************************/
@@ -62,7 +62,7 @@ BEGIN
 				AR.Memo,
 				AR.AircraftRegistryNumber,
 				AR.[Description],
-				AR.EngineRegistryId
+				AR.EngineRegistryIds
 			FROM dbo.[AircraftRegistryHeader] AR WITH(NOLOCK) 
 			WHERE AR.AircraftRegistryId = @AircraftRegistryId AND AR.MasterCompanyId = @MasterCompanyId 
 		END

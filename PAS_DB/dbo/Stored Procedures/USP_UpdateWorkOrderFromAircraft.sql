@@ -16,10 +16,12 @@
 	3    02/06/2026     Amit Ghediya		Update for get CustomerId from AircraftRegistryHeader [PN-16679]
 	4    09/06/2026     Amit Ghediya		Adding Header data in History module [PN-16581]
 	5    10/06/2026     Divyesh Kathiriya   Update WorkOrderNum on AircraftInstalledPartDetails Table [PN-16780]
-    6    30/06/2026     Divyesh Kathiriya   Added WorkSheetStatusId fields [PN-16897]
+	6    26/06/2026     Divyesh Kathiriya   Update WorksheetStatus Fields [PN-16897]
+	7    29/06/2026     Divyesh Kathiriya   Update field 'MaintenanceTypeId' to 'WorkScopeId' [PN-17041]
+	8    01/07/2026     Moin Bloch          Set Default 'WorkScopeId' From Aircraft [PN-17041]
 
 **************************************************************/
-CREATE PROCEDURE [dbo].[USP_UpdateWorkOrderFromAircraft]
+CREATE   PROCEDURE [dbo].[USP_UpdateWorkOrderFromAircraft]
 @AircraftInstalledPartDetailsId BIGINT = NULL,
 @AircraftRegistryId             BIGINT = NULL,
 @ProgramId                      BIGINT = NULL,
@@ -48,8 +50,8 @@ BEGIN
                 @FunctionalCurrencyId INT = NULL,@ReportCurrencyId INT = NULL,@ForeignExchangeRate DECIMAL(18,2) = NULL,@WorkOrderFormTypeId BIT = NULL,@IsWoAlwaysOrOndemandId BIT = NULL, 
                 @PartNumbers NVARCHAR(MAX)=NULL,@IsTraveler BIT=NULL,@AllowInvoiceBeforeShipping BIT=NULL
 		DECLARE @WorkOrderNum VARCHAR(30);
-		DECLARE @WorkSheetStatusId  INT = 2;		
-
+		DECLARE @WorkSheetStatusId  INT = 2;
+		
         -- PART DETAILS			
 		DECLARE @WorkOrderScopeId BIGINT = NULL
 		DECLARE @EstimatedShipDate DATETIME2(7) = NULL,@CustomerRequestDate DATETIME2(7) = GETUTCDATE(),@PromisedDate DATETIME2(7) = NULL,@ReceivedDate DATETIME2(7) = NULL
@@ -161,14 +163,14 @@ BEGIN
 
 		SELECT @ACTailNum = [TailNum], @AirCraftSerialNumber = [SerialNum],@AircraftRegistryNumber = [AircraftRegistryNumber] FROM [dbo].[AircraftRegistryHeader] WITH(NOLOCK) WHERE [AircraftRegistryId] = @AircraftRegistryId
 
-		IF(@MaintenanceTypeId > 0)
-		BEGIN
-			SET @WorkOrderScopeId = @MaintenanceTypeId
-		END
-		ELSE 
-		BEGIN
-			SET @WorkOrderScopeId = (SELECT TOP 1 [MaintenanceTypeId] FROM [dbo].[AircraftSetup] WITH(NOLOCK) WHERE [MasterCompanyId] = @MasterCompanyId)				
-		END
+		--IF(@MaintenanceTypeId > 0)
+		--BEGIN
+		--	SET @WorkOrderScopeId = @MaintenanceTypeId
+		--END
+		--ELSE 
+		--BEGIN
+			SET @WorkOrderScopeId = (SELECT TOP 1 [WorkScopeId] FROM [dbo].[AircraftSetup] WITH(NOLOCK) WHERE [MasterCompanyId] = @MasterCompanyId)				
+		--END
 
 		SELECT TOP 1 @WorkflowId = CASE WHEN  wf.[WorkflowId] = 0 THEN NULL ELSE wf.[WorkflowId] END					 
 			FROM [dbo].[Workflow] wf  WITH(NOLOCK)

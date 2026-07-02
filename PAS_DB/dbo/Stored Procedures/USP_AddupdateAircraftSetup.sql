@@ -9,12 +9,14 @@
  **************************************************************           
  ** PR   Date				Author				Change Description            
  ** --   -------------		----------------	--------------------------------          
-	1	 15/05/2026          Nakul Chandigra     Created 
+	1	 15/05/2026          Nakul Chandigra    Created 
     2    20/05/2026          Nakul Chandigra    Added fields 
-    3    22/05/2026          Bhargav Saliya    Added field [SiteId] 
-    4    29/05/2026          Bhargav Saliya    Added field [MaintenanceTypeId] 
+    3    22/05/2026          Bhargav Saliya     Added field [SiteId] 
+    4    29/05/2026          Bhargav Saliya     Added field [MaintenanceTypeId]
+    5    29/06/2026          Divyesh Kathiriya  Added field ConditionId and WorkScopeId. [PN-17041]
+    
 **************************************************************/
-CREATE   PROCEDURE [dbo].[USP_AddupdateAircraftSetup]
+Create   PROCEDURE [dbo].[USP_AddupdateAircraftSetup]
 (
     @tblType_AircraftSetupType [AircraftSetupType] READONLY,
     @AircraftSetupId BIGINT,
@@ -43,7 +45,8 @@ BEGIN
                 T.UpdatedBy = S.UpdatedBy,
                 T.UpdatedDate = GETUTCDATE(),
                 T.SiteId = S.SiteId,
-                T.[MaintenanceTypeId] = S.[MaintenanceTypeId]
+                T.[WorkScopeId] = S.[WorkScopeId],
+                T.[ConditionId] = S.[ConditionId]
             FROM dbo.AircraftSetup T
             CROSS APPLY
             (
@@ -60,7 +63,8 @@ BEGIN
                     ItemgroupId,
                     UpdatedBy,
                     SiteId,
-                    [MaintenanceTypeId]
+                    [WorkScopeId],
+                    [ConditionId]
                 FROM @tblType_AircraftSetupType
             ) S
             WHERE T.AircraftSetupId = @AircraftSetupId;
@@ -87,7 +91,8 @@ BEGIN
                 IsDeleted,
                 MasterCompanyId,
                 SiteId,
-                [MaintenanceTypeId]
+                [WorkScopeId],
+                [ConditionId]
             )
             SELECT TOP 1
                 MaintenanceStatusId,
@@ -108,7 +113,8 @@ BEGIN
                 IsDeleted,
                 MasterCompanyId,
                 SiteId,
-                [MaintenanceTypeId]
+                [WorkScopeId],
+                [ConditionId]
             FROM @tblType_AircraftSetupType;
         END
     END TRY

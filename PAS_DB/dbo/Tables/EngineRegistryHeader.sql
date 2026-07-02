@@ -37,6 +37,7 @@
     [TotalCSNMM]           DECIMAL (18, 6) NULL,
     [LastFlownDate]        DATETIME2 (7)   NULL,
     [Description]          VARCHAR (256)   NULL,
+    [EngineName]           VARCHAR (256)   NULL,
     CONSTRAINT [PK_EngineRegistry] PRIMARY KEY CLUSTERED ([EngineRegistryId] ASC),
     CONSTRAINT [FK_EngineRegistry_MaintenanceStatus] FOREIGN KEY ([MaintenanceStatusId]) REFERENCES [dbo].[MaintenanceStatus] ([MaintenanceStatusId]),
     CONSTRAINT [FK_EngineRegistry_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId])

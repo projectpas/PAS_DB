@@ -119,7 +119,7 @@ BEGIN
 		--GET AC Details
 		IF(ISNULL(@IsFromAircraft,0) = 1)
 		BEGIN
-			IF(ISNULL(@TailNumber,'') != '')
+			IF(ISNULL(@TailNumber,'') != '' AND ISNULL(@AircraftRegistryId,0) = 0)
 			BEGIN
 				 SELECT @AircraftRegistryId = AircraftRegistryId
 				 FROM dbo.AircraftRegistryHeader WITH(NOLOCK) WHERE UPPER(LTRIM(RTRIM(TailNum))) = UPPER(LTRIM(RTRIM(@TailNumber)))
@@ -130,7 +130,7 @@ BEGIN
 		END
 		ELSE
 		BEGIN
-			IF(ISNULL(@TailNumber,'') != '')
+			IF(ISNULL(@TailNumber,'') != '' AND ISNULL(@AircraftRegistryId,0) = 0)
 			BEGIN
 				 SELECT @AircraftRegistryId = EngineRegistryId
 				 FROM dbo.EngineRegistryHeader WITH(NOLOCK) WHERE UPPER(LTRIM(RTRIM(TailNum))) = UPPER(LTRIM(RTRIM(@TailNumber)))

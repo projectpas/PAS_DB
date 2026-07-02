@@ -87,12 +87,16 @@ BEGIN
                 AMP.ProgramId,AMP.AircraftRegistryId,AMP.EngineRegistryId,ARH.AircraftRegistryNumber,AMP.VersionNumber,AMP.MaintenanceType, AMP.MaintenanceTypeId,AMP.NextScheduledMaintenance,
 				AMP.TemplateId AS TemplateId,
                 WF.WorkOrderNumber AS TemplateIdNumber,AMP.TemplateVersionNumber,
-                CASE WHEN ISNULL(@IsFromAircraft,0) = 1 THEN ARH.TailNum ELSE ERH.TailNum END AS TailNumber,
-                CASE WHEN ISNULL(@IsFromAircraft,0) = 1 THEN ARH.MakeType ELSE ERH.MakeType END AS AircraftMake,
-               -- ARH.AircraftModel,
-			    CASE WHEN ISNULL(@IsFromAircraft,0) = 1 THEN ARH.AircraftModel ELSE ERH.EngineModel END AS AircraftModel,
-                --ARH.SerialNum AS SerialNumber,
-				CASE WHEN ISNULL(@IsFromAircraft,0) = 1 THEN ARH.SerialNum ELSE ERH.SerialNum END AS SerialNumber,
+    --            CASE WHEN ISNULL(@IsFromAircraft,0) = 1 THEN ARH.TailNum ELSE ERH.TailNum END AS TailNumber,
+    --            CASE WHEN ISNULL(@IsFromAircraft,0) = 1 THEN ARH.MakeType ELSE ERH.MakeType END AS AircraftMake,
+			 --   CASE WHEN ISNULL(@IsFromAircraft,0) = 1 THEN ARH.AircraftModel ELSE ERH.EngineModel END AS AircraftModel,
+				--CASE WHEN ISNULL(@IsFromAircraft,0) = 1 THEN ARH.SerialNum ELSE ERH.SerialNum END AS SerialNumber,
+
+				CASE WHEN ISNULL(AMP.IsFromAircraft,0) = 1 THEN ARH.TailNum ELSE ERH.TailNum END AS TailNumber,
+                CASE WHEN ISNULL(AMP.IsFromAircraft,0) = 1 THEN ARH.MakeType ELSE ERH.MakeType END AS AircraftMake,
+			    CASE WHEN ISNULL(AMP.IsFromAircraft,0) = 1 THEN ARH.AircraftModel ELSE ERH.EngineModel END AS AircraftModel,
+				CASE WHEN ISNULL(AMP.IsFromAircraft,0) = 1 THEN ARH.SerialNum ELSE ERH.SerialNum END AS SerialNumber,
+
                 MC.[Name] AS MaintenanceClassName,
                 AMP.FlightHoursLimitHours,
                 AMP.FlightHoursLimitMinutes,
@@ -142,6 +146,7 @@ BEGIN
 				EMP.EmployeeId AS LastinspectedById,
 				EMP.EmployeeName AS LastinspectedBy,
 				AMP.SequenceNo,
+				AMP.IsFromAircraft,
                 COUNT(1) OVER () AS TotalRecords
             FROM [dbo].[AircraftMaintenanceProgram] AMP WITH (NOLOCK)
             LEFT JOIN [dbo].[AircraftRegistryHeader] ARH WITH (NOLOCK) ON AMP.AircraftRegistryId = ARH.AircraftRegistryId  AND ARH.MasterCompanyId = @MasterCompanyId 
@@ -164,35 +169,27 @@ BEGIN
 				  AND (@IsDeleted IS NULL OR AMP.IsDeleted = @IsDeleted)
 				  AND (
 						@AircraftRegistryId IS NULL OR @AircraftRegistryId = 0
-
-						-- AIRCRAFT MODE (=1): the aircraft's own program + all its engines' programs
 						OR ( ISNULL(@IsFromAircraft,0) = 1
 							 AND (
-								   AMP.AircraftRegistryId = @AircraftRegistryId
-								   OR AMP.EngineRegistryId IN (
-										SELECT TRY_CONVERT(BIGINT, LTRIM(RTRIM(s.value)))
-										FROM dbo.AircraftRegistryHeader ARH2 WITH (NOLOCK)
-										CROSS APPLY STRING_SPLIT(ARH2.EngineRegistryIds, ',') s
-										WHERE ARH2.AircraftRegistryId = @AircraftRegistryId
-										  AND ARH2.MasterCompanyId = @MasterCompanyId
-										  AND ISNULL(s.value,'') <> ''
-									  )
+								   ( AMP.AircraftRegistryId = @AircraftRegistryId
+									 AND ISNULL(AMP.IsFromAircraft,0) = 1 )
+								   OR ( ISNULL(AMP.IsFromAircraft,0) = 0
+										AND AMP.EngineRegistryId IS NOT NULL
+										AND EXISTS (
+											 SELECT 1
+											 FROM dbo.AircraftRegistryHeader ARH2 WITH (NOLOCK)
+											 CROSS APPLY STRING_SPLIT(ARH2.EngineRegistryIds, ',') s
+											 WHERE ARH2.AircraftRegistryId = @AircraftRegistryId
+											   AND ARH2.MasterCompanyId = @MasterCompanyId
+											   AND TRY_CONVERT(BIGINT, LTRIM(RTRIM(s.value))) = AMP.EngineRegistryId
+										   ) )
 								 )
 						   )
 
-						-- ENGINE MODE (0/NULL): only the selected engine's program
-						OR ( ISNULL(@IsFromAircraft,0) = 0 AND AMP.EngineRegistryId = @AircraftRegistryId )
+						OR ( ISNULL(@IsFromAircraft,0) = 0
+							 AND ISNULL(AMP.IsFromAircraft,0) = 0
+							 AND AMP.EngineRegistryId = @AircraftRegistryId )
 					  )
-			 --AMP.IsFromAircraft = ISNULL(@IsFromAircraft, 1)
-			  --AND (
-					--@AircraftRegistryId IS NULL OR @AircraftRegistryId = 0
-					--OR (ISNULL(@IsFromAircraft,0) = 1 AND AMP.AircraftRegistryId = @AircraftRegistryId)
-					--OR (ISNULL(@IsFromAircraft,0) = 0 AND AMP.EngineRegistryId   = @AircraftRegistryId)
-				 -- )
-			--(@AircraftRegistryId IS NULL OR @AircraftRegistryId = 0 OR AMP.AircraftRegistryId = @AircraftRegistryId) --AMP.AircraftRegistryId = @AircraftRegistryId  
-			--AND AMP.MasterCompanyId = @MasterCompanyId  
-			--AND (@IsDeleted IS NULL OR AMP.IsDeleted = @IsDeleted)
-                -- Global Filter
                 AND ( @GlobalFilter IS NULL OR AMP.TailNumber       LIKE '%' + @GlobalFilter + '%' OR CAST(AMP.ProgramId AS VARCHAR(50))   LIKE '%' + @GlobalFilter + '%' OR
                     AMP.MaintenanceType  LIKE '%' + @GlobalFilter + '%'
                 )

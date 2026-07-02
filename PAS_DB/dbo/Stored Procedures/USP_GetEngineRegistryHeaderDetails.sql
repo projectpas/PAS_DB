@@ -59,7 +59,8 @@ BEGIN
 				AR.MasterCompanyId,
 				AR.Memo,
 				AR.EngineRegistryNumber,
-				AR.[Description]
+				AR.[Description],
+				AR.[EngineName]
 			FROM dbo.[EngineRegistryHeader] AR WITH(NOLOCK) 
 			WHERE AR.EngineRegistryId = @EngineRegistryId AND AR.MasterCompanyId = @MasterCompanyId 
 		END

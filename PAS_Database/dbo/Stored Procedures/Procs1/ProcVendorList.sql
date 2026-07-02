@@ -19,7 +19,7 @@
 	8	 17-06-2025     Bhargav Saliya      select Is Vendor also a customer Flag and Customer Name
 	9	 30-07-2025     AMIT GHEDIYA		VendorId for select vendor data by id.
 	10   24-06-2026     Sahdev Saliya       Added Notes [PN-16968]
-	11   29-06-2026     Sahdev Saliya       Added Physical Resale [PN-17018]
+	11   02-07-2026     Sahdev Saliya       Added Resale Number [PN-17018]
 
 **************************************************************/ 
 CREATE       PROCEDURE [dbo].[ProcVendorList]
@@ -54,7 +54,7 @@ CREATE       PROCEDURE [dbo].[ProcVendorList]
 @CustomerName varchar(100)= NULL,
 @IsVendorCust  varchar(20)=null,
 @Notes NVARCHAR(MAX) = NULL,
-@PhysicalResale VARCHAR(100) = NULL
+@ResaleNumber VARCHAR(200) = NULL
 AS
 BEGIN	
 	    SET NOCOUNT ON;
@@ -143,7 +143,7 @@ BEGIN
 					C.[Name] AS CustomerName,
 					CASE WHEN ISNULL(V.IsVendorAlsoCustomer,'') != '' THEN 'YES' ELSE 'NO' END AS 'IsVendorCust',
 					V.Notes,
-					V.PhysicalResale
+					V.ResaleNumber
 			   FROM dbo.Vendor V  WITH (NOLOCK) INNER JOIN  dbo.[Address] AD WITH (NOLOCK) ON V.AddressId=AD.AddressId
 			                 LEFT JOIN   dbo.VendorType VT WITH (NOLOCK) ON V.VendorTypeId = VT.VendorTypeId
 							 LEFT JOIN   dbo.VendorContact CC WITH (NOLOCK) ON V.VendorId = CC.VendorId AND CC.IsDefaultContact = 1
@@ -176,7 +176,7 @@ BEGIN
 					([CustomerName] LIKE '%' +@GlobalFilter+'%') OR
 					(IsVendorCust LIKE '%' +@GlobalFilter+'%') OR
 					(Notes LIKE '%' +@GlobalFilter+'%') OR
-					(PhysicalResale LIKE '%' +@GlobalFilter+'%')))
+					(ResaleNumber LIKE '%' +@GlobalFilter+'%')))
 					OR   
 					(@GlobalFilter='' AND (ISNULL(@VendorCode,'') ='' OR VendorCode LIKE '%' + @VendorCode+'%') AND
 					(ISNULL(@VendorName,'') ='' OR VendorName LIKE '%' + @VendorName + '%') AND
@@ -196,8 +196,8 @@ BEGIN
 					(ISNULL(@UpdatedDate,'') ='' OR CAST(UpdatedDate AS date)=CAST(@UpdatedDate AS date)) AND 
 					(ISNULL(@CustomerName,'') ='' OR CustomerName LIKE '%' + @CustomerName+'%') AND
 					(ISNULL(@IsVendorCust,'') ='' OR IsVendorCust LIKE '%' + @IsVendorCust+'%') AND
-					(ISNULL(@PhysicalResale,'') ='' OR PhysicalResale LIKE '%' + @PhysicalResale+'%') AND
-					(ISNULL(@PhysicalResale,'') ='' OR PhysicalResale LIKE '%' + @PhysicalResale+'%'))
+					(ISNULL(@Notes,'') ='' OR Notes LIKE '%' + @Notes+'%') AND
+					(ISNULL(@ResaleNumber,'') ='' OR ResaleNumber LIKE '%' + @ResaleNumber+'%'))
 				   )
 
 		SELECT @Count = COUNT(VendorId) FROM #TempResult			
@@ -242,8 +242,8 @@ BEGIN
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='IsVendorCust')  THEN IsVendorCust END DESC,
 			CASE WHEN (@SortOrder=1  AND @SortColumn='Notes')  THEN Notes END ASC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='Notes')  THEN Notes END DESC,
-			CASE WHEN (@SortOrder=1  AND @SortColumn='PhysicalResale')  THEN PhysicalResale END ASC,
-			CASE WHEN (@SortOrder=-1 AND @SortColumn='PhysicalResale')  THEN PhysicalResale END DESC
+			CASE WHEN (@SortOrder=1  AND @SortColumn='ResaleNumber')  THEN ResaleNumber END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='ResaleNumber')  THEN ResaleNumber END DESC
 			OFFSET @RecordFrom ROWS 
 			FETCH NEXT @PageSize ROWS ONLY
 

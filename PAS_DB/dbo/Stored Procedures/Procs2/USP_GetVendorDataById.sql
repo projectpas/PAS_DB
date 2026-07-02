@@ -10,8 +10,9 @@
  ** PR   Date				Author  				Change Description              
  ** --   --------			-------				--------------------------------            
     1    2025-05-26		  Ayushi Patel				Created
-	2    2026-04-22		  Moin Bloch				Added QuickBooksReferenceId PN-16009
-    3    25-06-2026       Sahdev Saliya             Added Notes [PN-16968]
+    2    2026-04-22		  Moin Bloch				Added QuickBooksReferenceId PN-16009
+	3    24-06-2026       Sahdev Saliya             Added Notes [PN-16968]
+	4    02-07-2026       Sahdev Saliya             Added Physical Resale [PN-17018]
 
 	exec [USP_GetVendorDataById] 4787
 *************************************************************/ 
@@ -64,6 +65,7 @@ BEGIN
             cont.countries_id AS CountryId,
             v.VendorParentId,
 			v.Notes,
+			v.PhysicalResale,
 
             VendorClassificationNames = (
                 SELECT STRING_AGG(vc.ClassificationName, ',')
@@ -101,11 +103,11 @@ BEGIN
             ISNULL(v.IsWarningRestriction,0) as IsWarningRestriction,
 			v.QuickBooksReferenceId,
 			v.IntegrationTypeId
-        FROM [dbo].[Vendor] v WITH (NOLOCK)
-        LEFT JOIN [dbo].[Address] ad WITH (NOLOCK) ON v.AddressId = ad.AddressId
-        LEFT JOIN [dbo].[Countries] cont WITH (NOLOCK) ON ad.CountryId = cont.countries_id
-        LEFT JOIN [dbo].[VendorType] vt WITH (NOLOCK) ON v.VendorTypeId = vt.VendorTypeId
-        LEFT JOIN [dbo].[Vendor] vp1 WITH (NOLOCK) ON v.VendorParentId = vp1.VendorId
+		FROM [dbo].[Vendor] v WITH (NOLOCK)
+		LEFT JOIN [dbo].[Address] ad WITH (NOLOCK) ON v.AddressId = ad.AddressId
+		LEFT JOIN [dbo].[Countries] cont WITH (NOLOCK) ON ad.CountryId = cont.countries_id
+		LEFT JOIN [dbo].[VendorType] vt WITH (NOLOCK) ON v.VendorTypeId = vt.VendorTypeId
+		LEFT JOIN [dbo].[Vendor] vp1 WITH (NOLOCK) ON v.VendorParentId = vp1.VendorId
 
         WHERE v.VendorId = @VendorId
 

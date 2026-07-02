@@ -47,6 +47,8 @@
 	30   04-May-2026  RAJESH GAMI       Insert Stock,NonStock,Asset InventoryId In the DRAFT Table when Order QTY more than 500 (Where IsParent = 1) [PN-16244]
 	31   20-May-2026  Amit Ghediya  	Updated Aircraftpartdetails with New StocklineId for part wise not header wise [PN-16232]
     32	 19/06/2026	  Ayushi			[PN-16911]Skip fn_ConvertUOM call when ToUOM = FromUOM
+    33	 30/06/2026	  Priyansh Patel	Reduced @maxQtyLimit from 499 to 0 [PN-16893]
+
 declare @p2 dbo.POPartsToReceive  insert into @p2 values(2371,4051,2)    
 exec dbo.USP_CreateStocklineForReceivingPO @PurchaseOrderId=2371,@tbl_POPartsToReceive=@p2,@UpdatedBy=N'ADMIN User',@MasterCompanyId=1  
 **************************************************************/
@@ -74,7 +76,7 @@ BEGIN
 			DECLARE @p2 dbo.PostStocklineBatchType;
 			DECLARE @p3 dbo.PostStocklineBatchType;
 			DECLARE @p4 dbo.PostStocklineBatchType;
-			DECLARE @maxQtyLimit INT = 499
+			DECLARE @maxQtyLimit INT = 0
             IF OBJECT_ID(N'tempdb..#POPartsToReceive') IS NOT NULL
             BEGIN
                 DROP TABLE #POPartsToReceive

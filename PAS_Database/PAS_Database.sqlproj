@@ -4566,6 +4566,10 @@
     <Build Include="dbo\Stored Procedures\USP_GetTrialBalanceUploadList.sql" />
     <Build Include="dbo\User Defined Types\ValidateTrialBalanceUploadType.sql" />
     <Build Include="dbo\User Defined Types\SaveTrialBalanceUploadType.sql" />
+    <Build Include="dbo\Stored Procedures\USP_UpdateStocklineRRQty.sql" />
+    <Build Include="dbo\Stored Procedures\USP_BulkCreateReceivingReconciliationDetails.sql" />
+    <Build Include="dbo\User Defined Types\ReceivingReconciliationDetailsType.sql" />
+    <Build Include="dbo\User Defined Types\ReceivingReconciliationDetailsBulkType.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

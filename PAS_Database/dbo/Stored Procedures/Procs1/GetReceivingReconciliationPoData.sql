@@ -24,7 +24,9 @@
 	11   08/01/2025   Moin Bloch     Modify (removed duplicate asset inventory list for RO)
 	12   16/02/2025   Moin Bloch     Modify (Above 200 Qty We are not storing StocklineId in StocklineDraft So not able to get above 200Qty Record in Receiving Reconciliation) PN-15483
 	13   23-Feb-2025  Rajesh Gami	 Resolved Getting records issue
-	14	 26-JUNE=2026 Priyansh Patel  Uom conversion [PN-16939]
+	14	 26/06/2026   Priyansh Patel  Uom conversion [PN-16939]
+	11   01/07/2026   Priyansh Patel  Stock to pirchase conversion for purchase Order  [PN-16941]
+
 
 	EXEC GetReceivingReconciliationPoData 2598,'Multiple',1
 **************************************************************/  
@@ -42,44 +44,57 @@ BEGIN
 			IF(@Type = 1)
 			BEGIN
 				SELECT stk.StockLineNumber,
-					stk.ControlNumber,
-					stk.StockLineId,
-					CASE WHEN stk.isSerialized IS NULL THEN 0 ELSE stk.isSerialized END AS isSerialized,
-					pop.ItemMasterId,
-					pop.PartNumber,
-					pop.PartDescription,
-					stk.SerialNumber,
-					po.PurchaseOrderId,
-					po.PurchaseOrderNumber AS 'POReference',
-					pop.UnitOfMeasure AS 'UnitOfMeasure',
-					pop.QuantityOrdered AS 'POQtyOrder',
-					SUM(ISNULL(stkdf.QuantityOnHand,0)) AS 'ReceivedQty',
-					pop.UnitCost AS 'POUnitCost',
-					(pop.UnitCost * CASE WHEN NULLIF(pop.UnitOfMeasure, '') IS NULL OR NULLIF(stk.StockUnitOfMeasure, '') IS NULL OR pop.UnitOfMeasure = stk.StockUnitOfMeasure THEN stk.RRQty ELSE dbo.fn_ConvertUOM(stk.RRQty, stk.StockUnitOfMeasure, pop.UnitOfMeasure, 0, po.MasterCompanyId) END) AS 'POExtCost',
-					CASE WHEN NULLIF(pop.UnitOfMeasure, '') IS NULL OR NULLIF(stk.StockUnitOfMeasure, '') IS NULL OR pop.UnitOfMeasure = stk.StockUnitOfMeasure THEN stk.RRQty ELSE dbo.fn_ConvertUOM(stk.RRQty, stk.StockUnitOfMeasure, pop.UnitOfMeasure, 0, po.MasterCompanyId) END AS 'InvoicedQty',
-					CASE WHEN NULLIF(pop.UnitOfMeasure, '') IS NULL OR NULLIF(stk.StockUnitOfMeasure, '') IS NULL OR pop.UnitOfMeasure = stk.StockUnitOfMeasure THEN stk.UnitCost ELSE dbo.fn_ConvertUOM(stk.UnitCost, stk.StockUnitOfMeasure, pop.UnitOfMeasure, 1, po.MasterCompanyId) END AS 'InvoicedUnitCost',
-					(CASE WHEN NULLIF(pop.UnitOfMeasure, '') IS NULL OR NULLIF(stk.StockUnitOfMeasure, '') IS NULL OR pop.UnitOfMeasure = stk.StockUnitOfMeasure THEN stk.UnitCost ELSE dbo.fn_ConvertUOM(stk.UnitCost, stk.StockUnitOfMeasure, pop.UnitOfMeasure, 1, po.MasterCompanyId) END)
-					*
-					(CASE WHEN NULLIF(pop.UnitOfMeasure, '') IS NULL OR NULLIF(stk.StockUnitOfMeasure, '') IS NULL OR pop.UnitOfMeasure = stk.StockUnitOfMeasure THEN stk.RRQty ELSE dbo.fn_ConvertUOM(stk.RRQty, stk.StockUnitOfMeasure, pop.UnitOfMeasure, 0, po.MasterCompanyId) END) AS 'InvoicedExtCost',
-					CASE WHEN NULLIF(pop.UnitOfMeasure, '') IS NULL OR NULLIF(stk.StockUnitOfMeasure, '') IS NULL OR pop.UnitOfMeasure = stk.StockUnitOfMeasure THEN stk.RRQty ELSE dbo.fn_ConvertUOM(stk.RRQty, stk.StockUnitOfMeasure, pop.UnitOfMeasure, 0, po.MasterCompanyId) END AS 'RemainingRRQty',
-
-					pop.PurchaseOrderPartRecordId,
-					1 AS 'Type',
-					'STOCK' AS 'StockType' ,
-					ISNULL(po.DepositAmount,0) AS VendorProformaAmount,
-					Po.vendorProformaInvoiceNo As vendorProformaInvoiceNo,
-					ISNULL(po.VendorProformaInvoiceId,0) AS VendorProformaInvoiceId
+				stk.ControlNumber,
+				stk.StockLineId,
+				CASE WHEN stk.isSerialized IS NULL THEN 0 ELSE stk.isSerialized END AS isSerialized,
+				pop.ItemMasterId,
+				pop.PartNumber,
+				pop.PartDescription,
+				stk.SerialNumber,
+				po.PurchaseOrderId,
+				po.PurchaseOrderNumber AS 'POReference',
+				pop.UnitOfMeasure AS 'UnitOfMeasure',
+				pop.QuantityOrdered AS 'POQtyOrder',
+				SUM(ISNULL(CV.ConvertedQty,0)) AS 'ReceivedQty',
+				pop.UnitCost AS 'POUnitCost',
+				(pop.UnitCost * CV.ConvertedRRQty) AS 'POExtCost',
+				CV.ConvertedRRQty AS 'InvoicedQty',
+				CV.ConvertedUnitCost AS 'InvoicedUnitCost',
+				(CV.ConvertedUnitCost * CV.ConvertedRRQty) AS 'InvoicedExtCost',
+				CV.ConvertedRRQty AS 'RemainingRRQty',
+				pop.PurchaseOrderPartRecordId,
+				1 AS 'Type',
+				'STOCK' AS 'StockType',
+				ISNULL(po.DepositAmount,0) AS VendorProformaAmount,
+				po.vendorProformaInvoiceNo AS vendorProformaInvoiceNo,
+				ISNULL(po.VendorProformaInvoiceId,0) AS VendorProformaInvoiceId
 				FROM dbo.PurchaseOrder po WITH(NOLOCK)
-					INNER JOIN dbo.PurchaseOrderPart pop WITH(NOLOCK) ON po.PurchaseOrderId = pop.PurchaseOrderId
-					INNER JOIN dbo.Stockline stk WITH(NOLOCK) ON stk.PurchaseOrderPartRecordId=pop.PurchaseOrderPartRecordId and stk.IsParent=1 AND stk.RRQty > 0 -- AND  
-				  --INNER JOIN dbo.StocklineDraft stkdf WITH(NOLOCK) ON stk.StockLineId = stkdf.StockLineId
-					INNER JOIN dbo.StocklineDraft stkdf WITH(NOLOCK) ON stk.StockLineNumber = stkdf.StockLineNumber AND stk.StocklineId = stkdf.StocklineId-- AND stk.ControlNumber = stkdf.ControlNumber
-				WHERE po.PurchaseOrderId = @PurchaseOrderId 
-					AND pop.PurchaseOrderPartRecordId = CAST(@PurchaseOrderPartRecordId AS BIGINT) AND POP.isParent  = 1
-					AND ISNULL((SELECT COUNT(POS.PurchaseOrderPartRecordId) FROM dbo.PurchaseOrderPart POS  WITH(NOLOCK) WHERE POS.ParentId = CAST(@PurchaseOrderPartRecordId AS BIGINT) ),0) = 0
-				GROUP BY stk.StockLineNumber,stk.ControlNumber,stk.StockLineId,stk.isSerialized,pop.ItemMasterId,pop.PartNumber,pop.PartDescription,
-					stk.SerialNumber,po.PurchaseOrderId,po.PurchaseOrderNumber,pop.QuantityOrdered, pop.UnitCost,stk.UnitCost,stk.RRQty,pop.PurchaseOrderPartRecordId,po.DepositAmount,Po.vendorProformaInvoiceNo,po.VendorProformaInvoiceId
-					,pop.UnitOfMeasure,stk.StockUnitOfMeasure, po.MasterCompanyId
+				INNER JOIN dbo.PurchaseOrderPart pop WITH(NOLOCK) ON po.PurchaseOrderId = pop.PurchaseOrderId
+				INNER JOIN dbo.Stockline stk WITH(NOLOCK) ON stk.PurchaseOrderPartRecordId = pop.PurchaseOrderPartRecordId AND stk.IsParent = 1 AND stk.RRQty > 0
+				CROSS APPLY (
+				SELECT IsSameUOM     = CASE WHEN NULLIF(pop.UnitOfMeasure,'') IS NULL OR NULLIF(stk.StockUnitOfMeasure,'') IS NULL OR pop.UnitOfMeasure = stk.StockUnitOfMeasure THEN 1 ELSE 0 END,
+				ConvertedQty    = CASE WHEN NULLIF(pop.UnitOfMeasure,'') IS NULL OR NULLIF(stk.StockUnitOfMeasure,'') IS NULL OR pop.UnitOfMeasure = stk.StockUnitOfMeasure
+				THEN stk.Quantity
+				ELSE dbo.fn_ConvertUOM(stk.Quantity, stk.StockUnitOfMeasure, pop.UnitOfMeasure, 0, po.MasterCompanyId)
+				END,
+				ConvertedRRQty  = CASE WHEN NULLIF(pop.UnitOfMeasure,'') IS NULL OR NULLIF(stk.StockUnitOfMeasure,'') IS NULL OR pop.UnitOfMeasure = stk.StockUnitOfMeasure
+				THEN stk.RRQty
+				ELSE dbo.fn_ConvertUOM(stk.RRQty, stk.StockUnitOfMeasure, pop.UnitOfMeasure, 0, po.MasterCompanyId)
+				END,
+				ConvertedUnitCost = CASE WHEN NULLIF(pop.UnitOfMeasure,'') IS NULL OR NULLIF(stk.StockUnitOfMeasure,'') IS NULL OR pop.UnitOfMeasure = stk.StockUnitOfMeasure
+					THEN stk.UnitCost
+					ELSE dbo.fn_ConvertUOM(stk.UnitCost, stk.StockUnitOfMeasure, pop.UnitOfMeasure, 1, po.MasterCompanyId)
+				END
+				) CV
+				WHERE po.PurchaseOrderId = @PurchaseOrderId
+				AND pop.PurchaseOrderPartRecordId = CAST(@PurchaseOrderPartRecordId AS BIGINT)
+				AND pop.isParent = 1
+				AND NOT EXISTS (SELECT 1 FROM dbo.PurchaseOrderPart POS WITH(NOLOCK) WHERE POS.ParentId = CAST(@PurchaseOrderPartRecordId AS BIGINT))
+				GROUP BY stk.StockLineNumber, stk.ControlNumber, stk.StockLineId, stk.isSerialized, pop.ItemMasterId, pop.PartNumber, pop.PartDescription,
+				stk.SerialNumber, po.PurchaseOrderId, po.PurchaseOrderNumber, pop.QuantityOrdered, pop.UnitCost, stk.UnitCost, stk.RRQty, pop.PurchaseOrderPartRecordId,
+				po.DepositAmount, po.vendorProformaInvoiceNo, po.VendorProformaInvoiceId, pop.UnitOfMeasure, stk.StockUnitOfMeasure, po.MasterCompanyId,
+				CV.ConvertedRRQty, CV.ConvertedUnitCost
+				,pop.UnitOfMeasure,stk.StockUnitOfMeasure, po.MasterCompanyId,pop.QuantityReceived
 					 
 				UNION ALL
 
@@ -95,7 +110,6 @@ BEGIN
 					po.PurchaseOrderNumber AS 'POReference',
 					pop.UnitOfMeasure AS 'UnitOfMeasure',
 					pop.QuantityOrdered AS 'POQtyOrder',
-					--stkdf.QuantityOnHand AS 'ReceivedQty',
 					SUM(ISNULL(stkdf.QuantityOnHand,0)) AS 'ReceivedQty',
 					pop.UnitCost AS 'POUnitCost',
 					(pop.UnitCost * stk.RRQty) AS 'POExtCost',
@@ -111,7 +125,6 @@ BEGIN
 				FROM dbo.PurchaseOrder po WITH(NOLOCK)
 					INNER JOIN dbo.PurchaseOrderPart pop WITH(NOLOCK) ON po.PurchaseOrderId = pop.PurchaseOrderId AND pop.ParentId = CAST(@PurchaseOrderPartRecordId AS BIGINT)
 					INNER JOIN dbo.Stockline stk WITH(NOLOCK) ON pop.PurchaseOrderPartRecordId = stk.PurchaseOrderPartRecordId and stk.IsParent=1 AND stk.RRQty > 0 -- AND stk.PurchaseOrderPartRecordId=pop.PurchaseOrderPartRecordId 
-				  --INNER JOIN dbo.StocklineDraft stkdf WITH(NOLOCK) ON stk.StockLineId = stkdf.StockLineId
 					INNER JOIN dbo.StocklineDraft stkdf WITH(NOLOCK) ON stk.StockLineNumber = stkdf.StockLineNumber AND stk.StocklineId = stkdf.StocklineId-- AND stk.ControlNumber = stkdf.ControlNumber
 				WHERE po.PurchaseOrderId = @PurchaseOrderId
 				GROUP BY stk.StockLineNumber,stk.ControlNumber,stk.StockLineId,stk.isSerialized,pop.ItemMasterId,pop.PartNumber,pop.PartDescription,
@@ -422,7 +435,7 @@ BEGIN
 					po.PurchaseOrderNumber AS 'POReference',
 					pop.UnitOfMeasure AS 'PurchaseUnitOfMeasure',
 					pop.QuantityOrdered AS 'POQtyOrder',
-					SUM(ISNULL(stkdf.QuantityOnHand,0)) AS 'ReceivedQty',
+					SUM(ISNULL(stk.Quantity,0)) AS 'ReceivedQty',
 					pop.UnitCost AS 'POUnitCost',
 					(pop.UnitCost * stk.RRQty) AS 'POExtCost',
 					stk.RRQty AS 'InvoicedQty',
@@ -439,7 +452,7 @@ BEGIN
 					INNER JOIN dbo.PurchaseOrderPart pop WITH(NOLOCK) ON po.PurchaseOrderId = pop.PurchaseOrderId
 					INNER JOIN dbo.Stockline stk WITH(NOLOCK) ON stk.PurchaseOrderPartRecordId=pop.PurchaseOrderPartRecordId and stk.IsParent=1 AND stk.RRQty > 0 -- AND  
 				  --INNER JOIN dbo.StocklineDraft stkdf WITH(NOLOCK) ON stk.StockLineId = stkdf.StockLineId
-					INNER JOIN dbo.StocklineDraft stkdf WITH(NOLOCK) ON stk.StockLineNumber = stkdf.StockLineNumber AND stk.StocklineId = stkdf.StocklineId-- AND stk.ControlNumber = stkdf.ControlNumber
+					 --INNER JOIN dbo.StocklineDraft stkdf WITH(NOLOCK) ON stk.StockLineNumber = stkdf.StockLineNumber AND stk.StocklineId = stkdf.StocklineId-- AND stk.ControlNumber = stkdf.ControlNumber
 				WHERE po.PurchaseOrderId = @PurchaseOrderId 
 					--AND pop.PurchaseOrderPartRecordId = CAST(@PurchaseOrderPartRecordId AS BIGINT) AND POP.isParent  = 1
 					--AND ISNULL((SELECT COUNT(POS.PurchaseOrderPartRecordId) FROM dbo.PurchaseOrderPart POS  WITH(NOLOCK) WHERE POS.ParentId = CAST(@PurchaseOrderPartRecordId AS BIGINT) ),0) = 0

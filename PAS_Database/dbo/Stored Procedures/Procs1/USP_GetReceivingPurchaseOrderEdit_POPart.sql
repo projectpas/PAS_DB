@@ -23,6 +23,8 @@
     7    27/04/2026   Ayushi Patel      For Quantity 500 and above change the receive to Stockline PN-16201 (For QuantityReceived)
 	8    04-May-2026  RAJESH GAMI       QTY more than 500 Handle fro all types inventory, Asset, NonStock and Stock Inventory [PN-16244]
     9    11-May-2026  Priyansh Patel    Added and Modified the  Ac tail number (PN-16231)
+    10   30-06-2026   Priyansh Patel    QuantityBackOrdered calculate from PurchaseOrderPart instead of StocklineDraft, to fix partial receiving quantity issues [PN-16893]
+
         
 EXEC [dbo].[USP_GetReceivingPurchaseOrderEdit_POPart] 8233    
 **************************************************************/        
@@ -36,7 +38,7 @@ BEGIN
   SET NOCOUNT ON          
   BEGIN TRY        
       
- DECLARE @MaxStockDraftQuantity DECIMAL(18,6) = 500;
+ DECLARE @MaxStockDraftQuantity DECIMAL(18,6) = 0;
 
   SELECT DISTINCT      
   part.PurchaseOrderId,      
@@ -63,11 +65,11 @@ BEGIN
         --END AS [QuantityBackOrdered],       
 
 		 ((part.QuantityOrdered) - (CASE WHEN part.ItemTypeId = 1 THEN    
-            (SELECT ISNULL(SUM(STKD.[Quantity]),0) FROM [dbo].[StocklineDraft] STKD WITH (NOLOCK) WHERE STKD.[StockLineId] > 0 AND STKD.[PurchaseOrderPartRecordId] = part.[PurchaseOrderPartRecordId] AND STKD.[PurchaseOrderId] = @PurchaseOrderId AND STKD.[isDeleted] = 0)
+             ISNULL(part.[QuantityReceived],0) 			
 	            WHEN part.ItemTypeId = 11 THEN
             (SELECT ISNULL(SUM(STKD.[Qty]),0) FROM [dbo].[AssetInventoryDraft] STKD WITH (NOLOCK) WHERE STKD.[AssetInventoryId] > 0 AND STKD.[PurchaseOrderPartRecordId] = part.[PurchaseOrderPartRecordId] AND STKD.[PurchaseOrderId] = @PurchaseOrderId AND STKD.[isDeleted] = 0)
 	            WHEN part.ItemTypeId = 2 THEN
-            (SELECT ISNULL(SUM(STKD.[Quantity]),0) FROM [dbo].[NonStockInventoryDraft] STKD WITH (NOLOCK) WHERE STKD.[NonStockInventoryId] > 0 AND STKD.[PurchaseOrderPartRecordId] = part.[PurchaseOrderPartRecordId] AND STKD.[PurchaseOrderId] = @PurchaseOrderId AND STKD.[isDeleted] = 0)
+                 ISNULL(part.[QuantityReceived],0)
 	            ELSE
             (SELECT ISNULL(SUM(STKD.[Quantity]),0) FROM [dbo].[StocklineDraft] STKD WITH (NOLOCK) WHERE STKD.[StockLineId] > 0 AND STKD.[PurchaseOrderPartRecordId] = part.[PurchaseOrderPartRecordId] AND STKD.[PurchaseOrderId] = @PurchaseOrderId AND STKD.[isDeleted] = 0)
             END)

@@ -4,16 +4,13 @@
  ** Author: Rajesh Gami
  ** Description: This stored procedure is used to Update Stockline UOM By ItemMasterId
  ** Date:   16/June/2026
- ** PARAMETERS:           
- ** RETURN VALUE:
  **************************************************************           
   ** Change History           
  **************************************************************           
  ** PR   Date				Author  			Change Description            
  ** --   --------			-------				---------------------------     
     1    16/June/2026		Rajesh Gami			Created [PN-16878]
-**************************************************************
- EXEC USP_UpdateStocklineUOMByItemMasterId 97800,1,3,5,125,1,1,1,3,125,125,0
+    2    01/July/2026		Ayushi Patel		[PN-17083]Added Stockline history log for UOM-Update action
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_UpdateStocklineUOMByItemMasterId]
     @ItemMasterId             BIGINT,
@@ -27,7 +24,8 @@ CREATE   PROCEDURE [dbo].[USP_UpdateStocklineUOMByItemMasterId]
     @ExistingPOUOMId          BIGINT,
     @ExistingStockUOMId       BIGINT,
     @ExistingConsumeUOMId     BIGINT,
-    @IsStkTimeLife            BIT
+    @IsStkTimeLife            BIT,
+    @UpdatedBy                VARCHAR(200)
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -40,7 +38,8 @@ BEGIN
                 @ConsumeUOM     VARCHAR(250),
                 @OldPurchaseUOM VARCHAR(250),
                 @OldStockUOM    VARCHAR(250),
-                @OldConsumeUOM  VARCHAR(250);
+                @OldConsumeUOM  VARCHAR(250),
+                @UOMUpdateActionId BIGINT = NULL;   
 
         SELECT @PurchaseUOM    = ShortName FROM [dbo].[UnitOfMeasure] WITH(NOLOCK) WHERE UnitOfMeasureId = @PurchaseUnitOfMeasureId;
         SELECT @StockUOM       = ShortName FROM [dbo].[UnitOfMeasure] WITH(NOLOCK) WHERE UnitOfMeasureId = @StockUnitOfMeasureId;
@@ -55,6 +54,33 @@ BEGIN
         DECLARE @DefaultStockUOMCostValue   DECIMAL(18,6) = CAST(CASE WHEN @IsStockUOMEdited   = 1 THEN dbo.fn_ConvertUOM(1, @OldStockUOM,    @StockUOM,   1, @MasterCompanyId) ELSE 1 END AS DECIMAL(18,6));
         DECLARE @DefaultConsumeUOMQtyValue  DECIMAL(18,6) = CAST(CASE WHEN @IsConsumeUOMEdited = 1 THEN dbo.fn_ConvertUOM(1, @OldConsumeUOM,  @ConsumeUOM, 0, @MasterCompanyId) ELSE 1 END AS DECIMAL(18,6));
         DECLARE @DefaultConsumeUOMCostValue DECIMAL(18,6) = CAST(CASE WHEN @IsConsumeUOMEdited = 1 THEN dbo.fn_ConvertUOM(1, @OldConsumeUOM,  @ConsumeUOM, 1, @MasterCompanyId) ELSE 1 END AS DECIMAL(18,6));
+        DECLARE @StockLineModuleID INT=0
+        SELECT @StockLineModuleID = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName]='StockLine';
+
+        --: capture the exact set of stocklines that will be updated, before the UPDATE runs
+        IF OBJECT_ID('tempdb..#TempStocklineForUOMHistory') IS NOT NULL
+            DROP TABLE #TempStocklineForUOMHistory;
+
+        CREATE TABLE #TempStocklineForUOMHistory
+        (
+            RowId       INT IDENTITY(1,1),
+            StockLineId BIGINT
+        );
+
+        IF (@IsStockUOMEdited = 1)
+        BEGIN
+            INSERT INTO #TempStocklineForUOMHistory (StockLineId)
+            SELECT StockLineId
+            FROM [dbo].[Stockline] WITH(NOLOCK)
+            WHERE
+                ItemMasterId              = @ItemMasterId
+                AND MasterCompanyId       = @MasterCompanyId
+                AND ISNULL(isDeleted,  0) = 0
+                AND ISNULL(isActive,   0) = 1
+                AND ISNULL(QuantityOnHand,   0) > 0
+                AND ISNULL(QuantityReserved, 0) = 0
+                AND ISNULL(QuantityIssued,   0) = 0;
+        END
 
         -- -----------------------------------------------------------------------
         -- Step 1: Update purchase price fields
@@ -177,45 +203,50 @@ BEGIN
             AND ISNULL(QuantityReserved, 0) = 0
             AND ISNULL(QuantityIssued,   0) = 0;
 
+        -----------------------------------------------------------------------
+        --Step 4: Log Stockline History for the UOM-Update action              
+        -----------------------------------------------------------------------
+        IF (@IsStockUOMEdited = 1)
+        BEGIN
+            SELECT @UOMUpdateActionId = ActionId
+            FROM [dbo].[StklineHistory_Action] WITH(NOLOCK)
+            WHERE [Type] = 'UOM-Update';
 
-		 --SELECT 
-   --         [PurchaseUnitOfMeasureId] = @PurchaseUnitOfMeasureId,
-   --         [StockUnitOfMeasureId]    = @StockUnitOfMeasureId,
-   --         [ConsumeUnitOfMeasureId]  = @ConsumeUnitOfMeasureId,
-   --         [UnitOfMeasure]           = @PurchaseUOM,
-   --         [StockUnitOfMeasure]      = @StockUOM,
-   --         [ConsumeUnitOfMeasure]    = @ConsumeUOM,
-   --         [IsStkTimeLife]           = @IsStkTimeLife,
-   --         [UpdatedDate]             = GETUTCDATE(),
+            IF (@UOMUpdateActionId IS NOT NULL)
+            BEGIN
+                DECLARE @HistRowId BIGINT, @MaxRowId BIGINT,
+                        @HistStockLineId BIGINT, @HistQty DECIMAL(18,6);
 
-   --         Quantity          = CAST(@DefaultStockUOMQtyValue  * Quantity          AS DECIMAL(28,6)),
-   --         QuantityOnHand    = CAST(@DefaultStockUOMQtyValue  * QuantityOnHand    AS DECIMAL(28,6)),
-   --         QuantityReserved  = QuantityReserved,
-   --         QuantityIssued    = QuantityIssued,
-   --         QuantityAvailable = CAST(@DefaultStockUOMQtyValue  * QuantityAvailable AS DECIMAL(28,6)),
+                SELECT @HistRowId = MIN(RowId), @MaxRowId = MAX(RowId)
+                FROM #TempStocklineForUOMHistory;
 
-   --         UnitCost              = CAST(UnitCost              * @DefaultStockUOMCostValue   AS DECIMAL(28,6)),
-   --         PurchaseOrderUnitCost = CAST(PurchaseOrderUnitCost * @DefaultStockUOMCostValue   AS DECIMAL(28,6)),
-   --         RepairOrderUnitCost   = CAST(RepairOrderUnitCost   * @DefaultStockUOMCostValue   AS DECIMAL(28,6)),
-   --         PoPartUnitCost        = CAST(PoPartUnitCost        * @DefaultPOUOMCostValue      AS DECIMAL(28,6)),
-   --         UnitSalesPrice        = CAST(UnitSalesPrice        * @DefaultConsumeUOMCostValue AS DECIMAL(28,6)),
+                WHILE (@HistRowId IS NOT NULL AND @HistRowId <= @MaxRowId)
+                BEGIN
+                    SELECT @HistStockLineId = StockLineId
+                    FROM #TempStocklineForUOMHistory
+                    WHERE RowId = @HistRowId;
 
-   --         PurchaseOrderExtendedCost =
-   --             CAST(
-   --                 CAST(@DefaultStockUOMQtyValue  * QuantityOnHand           AS DECIMAL(28,6))
-   --                 * CAST(PurchaseOrderUnitCost   * @DefaultStockUOMCostValue AS DECIMAL(28,6))
-   --             AS DECIMAL(28,6))
+                    SELECT @HistQty = ISNULL(QuantityOnHand, 0)
+                    FROM [dbo].[Stockline] WITH(NOLOCK)
+                    WHERE StockLineId = @HistStockLineId;
 
-			--	FROM Stockline
-   --     WHERE
-   --         ItemMasterId              = @ItemMasterId
-   --         AND MasterCompanyId       = @MasterCompanyId
-   --         AND ISNULL(isDeleted,  0) = 0
-   --         AND ISNULL(isActive,   0) = 1
-   --         AND ISNULL(QuantityOnHand,   0) > 0
-   --         AND ISNULL(QuantityReserved, 0) = 0
-   --         AND ISNULL(QuantityIssued,   0) = 0;
+                    EXEC [dbo].[USP_AddUpdateStocklineHistory]
+                         @StocklineId  = @HistStockLineId,
+                         @ModuleId     = @StockLineModuleID,
+                         @ReferenceId  = @HistStockLineId,
+                         @ActionId     = @UOMUpdateActionId,
+                         @Qty          = @HistQty,
+                         @UpdatedBy    = @UpdatedBy,
+                         @StockOldUOM  = @OldStockUOM,
+                         @StockNewUOM  = @StockUOM;
 
+                    SET @HistRowId = @HistRowId + 1;
+                END
+            END
+        END
+
+        IF OBJECT_ID('tempdb..#TempStocklineForUOMHistory') IS NOT NULL     
+            DROP TABLE #TempStocklineForUOMHistory;
 
         COMMIT TRANSACTION;
     END TRY

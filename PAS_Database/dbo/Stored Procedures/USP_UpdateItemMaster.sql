@@ -16,7 +16,7 @@
 ** 5     07-May-2026   Divyesh Kathiriya    Update "IsTimeLife" in stockline table based on ItemMaster Id. [PN-16327]
 ** 6     27-May-2026   Sahdev Saliya        Added Model [PN-16353]
 ** 7     16-June-2026  Rajesh Gami			Update the Stockline's UOM fields While ItemMaster Update that particular UOM fields [PN-16878]
-
+** 8	 01-July-2026  Ayushi Patel         passed updatedby into USP_UpdateStocklineUOMByItemMasterId [PN-17083]
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_UpdateItemMaster]
     @tbl_ItemMasterUpdateType [TBL_ItemMasterUpdateType] readonly,
@@ -279,7 +279,7 @@ BEGIN
 				PRINT @PurchaseUnitOfMeasureId
 				PRINT @StockUnitOfMeasureId
 				PRINT @ConsumeUnitOfMeasureId
-				EXEC [dbo].[USP_UpdateStocklineUOMByItemMasterId] @Id ,@MasterCompanyId,@PurchaseUnitOfMeasureId,@StockUnitOfMeasureId,@ConsumeUnitOfMeasureId,@IsPOUOMEdited,@IsStockUOMEdited,@IsConsumeUOMEdited,@ExistingPOUOMId,@ExistingStockUOMId,@ExistingConsumeUOMId,@IsStkTimeLife
+				EXEC [dbo].[USP_UpdateStocklineUOMByItemMasterId] @Id ,@MasterCompanyId,@PurchaseUnitOfMeasureId,@StockUnitOfMeasureId,@ConsumeUnitOfMeasureId,@IsPOUOMEdited,@IsStockUOMEdited,@IsConsumeUOMEdited,@ExistingPOUOMId,@ExistingStockUOMId,@ExistingConsumeUOMId,@IsStkTimeLife,@UpdatedBy
 		END
 		ELSE
 		BEGIN

@@ -66,7 +66,6 @@ BEGIN
         DECLARE @AircraftMake    VARCHAR(100)    = NULL;
         DECLARE @AircraftModel   VARCHAR(100)    = NULL;
         DECLARE @SerialNumber    VARCHAR(100)    = NULL;
-		DECLARE @EngineTailNumber VARCHAR(100)    = NULL;
 
         -- ── OLD value holders (capture BEFORE update) ─────────
         DECLARE @Old_MaintenanceType            VARCHAR(200),

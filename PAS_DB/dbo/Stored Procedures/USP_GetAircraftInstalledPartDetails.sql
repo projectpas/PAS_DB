@@ -103,6 +103,7 @@ BEGIN
 				AIPD.SequenceNum,
 				AIPD.ItemMasterId,
 				ISNULL(ARH.AircraftRegistryId, ERH.EngineRegistryId) AS AircraftRegistryId,
+				ERH.EngineRegistryId,
 				COALESCE(ARH.AircraftRegistryNumber, ERH.EngineRegistryNumber, '') AS AircraftRegistryNumber,
 				STK.Condition,
 				STK.ConditionId,
@@ -177,7 +178,7 @@ BEGIN
             FROM dbo.AircraftInstalledPartDetails AS AIPD WITH (NOLOCK)
 			LEFT JOIN dbo.ItemMasterAircraftMapping IMAM WITH (NOLOCK) ON AIPD.ATAChapterId = IMAM.ItemMasterAircraftMappingId
 			LEFT JOIN dbo.AircraftRegistryHeader ARH WITH (NOLOCK) ON ARH.AircraftRegistryId = AIPD.AircraftRegistryId AND ARH.MasterCompanyId = @MasterCompanyId
-			LEFT JOIN dbo.EngineRegistryHeader ERH WITH (NOLOCK) ON ERH.EngineRegistryId = AIPD.AircraftRegistryId AND ERH.MasterCompanyId = @MasterCompanyId
+			LEFT JOIN dbo.EngineRegistryHeader ERH WITH (NOLOCK) ON ERH.EngineRegistryId = AIPD.EngineRegistryId AND ERH.MasterCompanyId = @MasterCompanyId
 			INNER JOIN dbo.ItemMaster IM WITH (NOLOCK) ON AIPD.ItemMasterId = IM.ItemMasterId
 			LEFT JOIN dbo.AircraftStatus AST WITH (NOLOCK) ON AST.AircraftStatusId = ARH.AircraftStatusId
 			LEFT JOIN dbo.Stockline STK WITH (NOLOCK) ON STK.StockLineId = AIPD.StockLineId

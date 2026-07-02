@@ -12,7 +12,7 @@
     1    2025-05-26		  Ayushi Patel				Created
     2    2026-04-22		  Moin Bloch				Added QuickBooksReferenceId PN-16009
 	3    24-06-2026       Sahdev Saliya             Added Notes [PN-16968]
-	4    02-07-2026       Sahdev Saliya             Added Physical Resale [PN-17018]
+	4    02-07-2026       Sahdev Saliya             Added Resale Number [PN-17018]
 
 	exec [USP_GetVendorDataById] 4787
 *************************************************************/ 
@@ -65,7 +65,7 @@ BEGIN
             cont.countries_id AS CountryId,
             v.VendorParentId,
 			v.Notes,
-			v.PhysicalResale,
+			v.ResaleNumber,
 
             VendorClassificationNames = (
                 SELECT STRING_AGG(vc.ClassificationName, ',')

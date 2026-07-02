@@ -15,7 +15,7 @@
 ** 4     09-JUNE-2026  Priyansh Patel   Added Flow to create Customer if not available [PN-16747]
 ** 5     24-June-2026  Sahdev Saliya    Added Notes [PN-16968]
 ** 6     29-June-2026  Sahdev Saliya    Fixed the issue with the @Notes [PN-17015]
-** 7     02-July-2026  Sahdev Saliya    Added Physical Resale [PN-17018]
+** 7     02-July-2026  Sahdev Saliya    Added Resale Number [PN-17018]
 
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_UpdateVendor]
@@ -57,7 +57,7 @@ CREATE   PROCEDURE [dbo].[USP_UpdateVendor]
     @VendorClassificationIds TVP_BigInt READONLY,
     @IntegrationPortalIds TVP_BigInt READONLY,
 	@Notes NVARCHAR(MAX) = NULL,
-	@PhysicalResale VARCHAR(100) = NULL
+	@ResaleNumber VARCHAR(200) = NULL
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -114,7 +114,7 @@ BEGIN
             IsWarningRestriction = @IsWarningRestriction,
             IsActive = @IsActive,
 			Notes = @Notes,
-			PhysicalResale = @PhysicalResale
+			ResaleNumber = @ResaleNumber
         WHERE VendorId = @VendorId;
 
         -- Update Vendor Shipping/Billing Address
@@ -214,7 +214,7 @@ BEGIN
                     IsDeleted = 0,
                     AddressId = @AddressId,
 					Memo = @Notes,
-					PhysicalResale = @PhysicalResale
+					ResaleNumber = @ResaleNumber
                 WHERE CustomerId = @RelatedCustomerId;
 
                 IF @IsAddressForShipping = 1
@@ -327,7 +327,7 @@ BEGIN
 										LastSyncDate,
 										Memo,
 										SyncToken,
-										PhysicalResale
+										ResaleNumber
 									)
 									VALUES (
 										@VendorTypeId,
@@ -374,7 +374,7 @@ BEGIN
 										NULL, -- LastSyncDate
 										@Notes, -- Memo
 										NULL,  -- SyncToken
-										@PhysicalResale -- PhysicalResale
+										@ResaleNumber -- ResaleNumber
 									);
 
                 SET @RelatedCustomerId = SCOPE_IDENTITY();

@@ -1,5 +1,4 @@
-﻿
-/*************************************************************
+﻿/*************************************************************
  ** File:   [GetCustomerList]
  ** Author:   Ameet Prajapati
  ** Description: Get Search Data for Customer List
@@ -23,6 +22,7 @@
 	6    06-03-2025   Shrey Chandegara     Modified due to add view in Accouting Integration List's PendingSync(Add @IsUpdated parameter)
 	7	 17-06-2025   Bhargav Saliya      Select Is Customer also a vendor flag and vendor Name
 	8    03-03-2026   Sahdev Saliya   Added Memo (PN-15567)
+	9    02-07-2026   Sahdev Saliya   Added Physical Resale [PN-17018] 
 
  EXECUTE [GetCustomerList] 1, 10, null, -1, 1, '', 'uday', 'CUS-00','','HYD'
 **************************************************************/
@@ -58,7 +58,8 @@ CREATE   PROCEDURE [dbo].[GetCustomerList]
 	@IsCustomerAlsoVendor BIT = NULL,
 	@IsCustVendor  varchar(20)=null,
 	@VendorName varchar(100)=null,
-	@Memo varchar(max) = NULL
+	@Memo varchar(max) = NULL,
+	@PhysicalResale varchar(100) = null
 
 AS
 BEGIN
@@ -148,7 +149,8 @@ BEGIN
 					C.LastSyncDate,
 					CASE WHEN ISNULL(C.IsCustomerAlsoVendor,0) = 1 THEN 'YES' ELSE 'NO' END AS 'IsCustVendor',
 					V.VendorName,
-					C.Memo
+					C.Memo,
+					C.PhysicalResale
 					FROM dbo.Customer C WITH (NOLOCK)
 					INNER JOIN dbo.CustomerType CT  WITH (NOLOCK) ON C.CustomerTypeId=CT.CustomerTypeId
 					INNER JOIN dbo.CustomerAffiliation CA  WITH (NOLOCK) ON C.CustomerAffiliationId=CA.CustomerAffiliationId
@@ -179,7 +181,8 @@ BEGIN
 					(IsCustVendor LIKE '%' +@GlobalFilter+'%') OR
 					(UpdatedBy LIKE '%' +@GlobalFilter+'%') OR
 					(VendorName LIKE '%' +@GlobalFilter+'%') OR
-					(Memo LIKE '%' +@GlobalFilter+'%')
+					(Memo LIKE '%' +@GlobalFilter+'%') OR
+					(PhysicalResale LIKE '%' +@GlobalFilter+'%')
 					))
 					OR
 					(@GlobalFilter='' AND (ISNULL(@Name,'') ='' OR Name LIKE '%' + @Name+'%') AND
@@ -200,6 +203,7 @@ BEGIN
 					(ISNULL(@IsCustVendor,'') ='' OR IsCustVendor LIKE '%' + @IsCustVendor+'%') AND
 					(ISNULL(@VendorName,'') ='' OR VendorName LIKE '%' + @VendorName+'%') AND
 					(ISNULL(@Memo,'') ='' OR Memo LIKE '%' + @Memo+'%') AND
+					(ISNULL(@PhysicalResale,'') ='' OR PhysicalResale LIKE '%' + @PhysicalResale+'%') AND
 					(ISNULL(@CreatedDate,'') ='' OR CAST(CreatedDate as Date)=CAST(@CreatedDate as date)) AND
 					(ISNULL(@UpdatedDate,'') ='' OR CAST(UpdatedDate as date)=CAST(@UpdatedDate as date)))
 					)
@@ -228,6 +232,7 @@ BEGIN
 			CASE WHEN (@SortOrder=1 AND @SortColumn='ISCUSTVENDOR')  THEN IsCustVendor END ASC,
 			CASE WHEN (@SortOrder=1 AND @SortColumn='VENDORNAME')  THEN VendorName END ASC,
 			CASE WHEN (@SortOrder=1 AND @SortColumn='Memo')  THEN Memo END ASC,
+			CASE WHEN (@SortOrder=1 AND @SortColumn='PhysicalResale')  THEN PhysicalResale END ASC,
 
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='EMAIL')  THEN Email END DESC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='City')  THEN City END DESC,
@@ -248,7 +253,8 @@ BEGIN
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='LASTSYNCDATE')  THEN LastSyncDate END DESC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='ISCUSTVENDOR')  THEN IsCustVendor END DESC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='VENDORNAME')  THEN VendorName END DESC,
-		    CASE WHEN (@SortOrder=-1 AND @SortColumn='Memo')  THEN Memo END DESC
+		    CASE WHEN (@SortOrder=-1 AND @SortColumn='Memo')  THEN Memo END DESC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='PhysicalResale')  THEN PhysicalResale END DESC
 
 			OFFSET @RecordFrom ROWS
 			FETCH NEXT @PageSize ROWS ONLY

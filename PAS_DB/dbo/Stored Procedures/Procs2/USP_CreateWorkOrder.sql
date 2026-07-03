@@ -1,5 +1,4 @@
-﻿
-/*************************************************************           
+﻿/*************************************************************           
  ** File:   [USP_CreateWorkOrder]           
  ** Author:   HEMANT SALIYA
  ** Description: This stored procedure is used to Create Work Order Quote
@@ -485,10 +484,12 @@ BEGIN
 		SET @WorkOrderNum = (SELECT * FROM dbo.udfGenerateCodeNumberWithOutDash(@CurrentNo, '',''))
 	END
 
-	IF(@CustomerFinancialId > 0 AND @CreditTermsId > 0)
-	BEGIN			
-		SELECT @PercentId=[PercentId],@Days=[Days],@NetDays=[NetDays] FROM [dbo].[CreditTerms] WITH(NOLOCK) WHERE [CreditTermsId]=@CreditTermsId AND [MasterCompanyId]=@MasterCompanyId AND [IsActive]=1 AND [IsDeleted]=0;
-	END
+	--IF(@CustomerFinancialId > 0 AND @CreditTermsId > 0)
+	--BEGIN			
+	--	SELECT @PercentId=[PercentId],@Days=[Days],@NetDays=[NetDays] FROM [dbo].[CreditTerms] WITH(NOLOCK) WHERE [CreditTermsId]=@CreditTermsId AND [MasterCompanyId]=@MasterCompanyId AND [IsActive]=1 AND [IsDeleted]=0;
+	--END
+
+	SELECT @PercentId=[PercentId],@Days=[Days],@NetDays=[NetDays] FROM [dbo].[CreditTerms] WITH(NOLOCK) WHERE [CreditTermsId]=@CreditTermId AND [MasterCompanyId]=@MasterCompanyId
 
     -- Insert or Update WorkOrder table (simplified)   
 

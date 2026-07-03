@@ -55,7 +55,7 @@
     [SyncToken]               VARCHAR (200)   NULL,
     [IsWarningRestriction]    INT             NULL,
     [Notes]                   NVARCHAR (MAX)  NULL,
-    [PhysicalResale]          VARCHAR (100)   NULL,
+    [ResaleNumber]            VARCHAR (200)   NULL,
     CONSTRAINT [PK_VendorAudit] PRIMARY KEY CLUSTERED ([AuditVendorId] ASC),
     CONSTRAINT [FK_VendorAudit_Vendor] FOREIGN KEY ([VendorId]) REFERENCES [dbo].[Vendor] ([VendorId])
 );

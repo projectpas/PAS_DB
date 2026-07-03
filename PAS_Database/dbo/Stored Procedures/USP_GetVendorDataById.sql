@@ -11,7 +11,7 @@
  ** --   --------			-------				--------------------------------            
     1    2025-05-26		  Ayushi Patel				Created
 	2    24-06-2026       Sahdev Saliya             Added Notes [PN-16968]
-	3    29-06-2026       Sahdev Saliya             Added Physical Resale [PN-17018]
+	3    02-07-2026       Sahdev Saliya             Added Resale Number [PN-17018]
 
 	exec [USP_GetVendorDataById] 4787
 *************************************************************/ 
@@ -64,7 +64,7 @@ BEGIN
             cont.countries_id AS CountryId,
             v.VendorParentId,
 			v.Notes,
-			v.PhysicalResale,
+			v.ResaleNumber,
 
             VendorClassificationNames = (
                 SELECT STRING_AGG(vc.ClassificationName, ',')
@@ -100,12 +100,11 @@ BEGIN
             ISNULL(v.IsVendorOnHold,0) as IsVendorOnHold,
             v.CreditTermsId,
             ISNULL(v.IsWarningRestriction,0) as IsWarningRestriction
-
-        FROM DBO.Vendor v WITH (NOLOCK)
-        LEFT JOIN DBO.Address ad WITH (NOLOCK) ON v.AddressId = ad.AddressId
-        LEFT JOIN DBO.Countries cont WITH (NOLOCK) ON ad.CountryId = cont.countries_id
-        LEFT JOIN DBO.VendorType vt WITH (NOLOCK) ON v.VendorTypeId = vt.VendorTypeId
-        LEFT JOIN DBO.Vendor vp1 WITH (NOLOCK) ON v.VendorParentId = vp1.VendorId
+		FROM DBO.Vendor v WITH (NOLOCK)
+		LEFT JOIN DBO.Address ad WITH (NOLOCK) ON v.AddressId = ad.AddressId
+		LEFT JOIN DBO.Countries cont WITH (NOLOCK) ON ad.CountryId = cont.countries_id
+		LEFT JOIN DBO.VendorType vt WITH (NOLOCK) ON v.VendorTypeId = vt.VendorTypeId
+		LEFT JOIN DBO.Vendor vp1 WITH (NOLOCK) ON v.VendorParentId = vp1.VendorId
 
         WHERE v.VendorId = @VendorId
 

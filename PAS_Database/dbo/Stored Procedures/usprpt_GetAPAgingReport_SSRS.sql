@@ -28,6 +28,7 @@
 	12   12-MAR-2026    Amit Ghediya        Updated for get isactive records (PN-15588)
 	13   04-MAY-2026    Hemant Saliya       Re-Structure the SP to change the days calculation
 	14   25-JUN-2026    Moin Bloch         Added PO Number PN-16991
+	15   02-JUL-2026    Moin Bloch         Fix For Distinct PO Number PN-17059
 
   --[dbo].[usprpt_GetAPAgingReport_SSRS] 21,'2026-01-28',3654,2,null,null
 exec usprpt_GetAPAgingReport_SSRS @mastercompanyid=21,@id='2026-01-03 00:00:00.176883244',@id2='5192',@id3='2',@id5='',@id6='',@strFilter='70!71!!!!!!!!',@id7=1
@@ -792,8 +793,8 @@ BEGIN
                   vpd.PaymentMade                                       AS InvoicePaidAmount,
                   CASE WHEN DATEDIFF(DAY, CAST(rrh.DueDate AS DATE), GETUTCDATE()) > 0
                        THEN DATEDIFF(DAY, CAST(rrh.DueDate AS DATE), GETUTCDATE())
-                       ELSE 0 END                                       AS DaysPastDue,
-				  ISNULL((SELECT STRING_AGG(po.POReference, ', ') FROM [dbo].[ReceivingReconciliationDetails] po WITH (NOLOCK) WHERE po.[ReceivingReconciliationId] = rrh.[ReceivingReconciliationId] AND po.[Type] > 0), '') AS poReference
+                       ELSE 0 END                                       AS DaysPastDue,				  
+				  ISNULL((SELECT STRING_AGG(d.POReference, ', ')	FROM (SELECT DISTINCT po.POReference FROM [dbo].[ReceivingReconciliationDetails] po WITH (NOLOCK) WHERE po.[ReceivingReconciliationId] = rrh.[ReceivingReconciliationId] AND po.[Type] > 0) d), '') AS poReference			
               FROM [dbo].[ReceivingReconciliationHeader]           rrh  WITH (NOLOCK)       
               INNER JOIN [dbo].[ReceivingReconciliationDetails]    rrd  WITH (NOLOCK) ON rrh.ReceivingReconciliationId = rrd.ReceivingReconciliationId AND rrd.[Type] > 0       
               INNER JOIN [dbo].[VendorPaymentDetails]              vpd  WITH (NOLOCK) ON rrh.ReceivingReconciliationId = vpd.ReceivingReconciliationId      

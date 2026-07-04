@@ -3042,6 +3042,7 @@
     <Build Include="dbo\Stored Procedures\QuickBooks_UpdateCustomerReferenceDetails.sql" />
     <Build Include="dbo\Stored Procedures\QuickBooks_GetNewCustomerListForCreateCustomer.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetXeroCustomerList.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetXeroVendorList.sql" />
     <Build Include="dbo\Stored Procedures\QuickBooks_GetCustomerListForUpdateCustomer.sql" />
     <Build Include="dbo\Views\vw_EmployeeTrainingType_Audit.sql" />
     <Build Include="dbo\Views\vw_AssetStatusAudit.sql" />
@@ -4526,6 +4527,8 @@
     <Build Include="dbo\User Defined Types\AircraftEffectivityTableType.sql" />
     <Build Include="dbo\Tables\CustomerAging_1.sql" />
     <Build Include="dbo\Stored Procedures\USP_SaveCustomerAging.sql" />
+    <Build Include="dbo\Tables\VendorAging.sql" />
+    <Build Include="dbo\Stored Procedures\USP_SaveVendorAging.sql" />
     <Build Include="dbo\Stored Procedures\uspbatch_UpdateCustomerARAgingBalance_1.sql" />
     <Build Include="dbo\Stored Procedures\USP_deleteSalesOrderStockLineCost.sql" />
     <Build Include="dbo\Functions\fn_TransformSelectList.sql" />
@@ -4585,6 +4588,7 @@
     <Build Include="dbo\Tables\UserTwoFactorVerification.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetCommonBillingInvoicingItemsByInvoiceId.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetCommonBillingInvoicingItemsByInvoiceIdForXeroAccounting.sql" />
+    <Build Include="dbo\Stored Procedures\USP_UpdateBillingInvoiceDepositFromXero.sql" />
     <Build Include="dbo\Stored Procedures\USP_searchgetAircraftMappingDataByMultiTypeIdModelIDDashID.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdatePublicationStatus.sql" />
     <Build Include="dbo\Stored Procedures\USP_DeletePublicationById.sql" />

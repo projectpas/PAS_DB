@@ -1,7 +1,7 @@
 ﻿CREATE TABLE [dbo].[TaskAudit] (
     [TaskAuditId]       BIGINT         IDENTITY (1, 1) NOT NULL,
     [TaskId]            BIGINT         NULL,
-    [Description]       VARCHAR (200)  NULL,
+    [Description]       VARCHAR (500)  NULL,
     [Memo]              NVARCHAR (MAX) NULL,
     [MasterCompanyId]   INT            NULL,
     [CreatedBy]         VARCHAR (256)  NULL,

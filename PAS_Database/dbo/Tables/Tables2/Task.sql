@@ -1,6 +1,6 @@
 ﻿CREATE TABLE [dbo].[Task] (
     [TaskId]            BIGINT         IDENTITY (1, 1) NOT NULL,
-    [Description]       VARCHAR (200)  NULL,
+    [Description]       VARCHAR (500)  NULL,
     [Memo]              NVARCHAR (MAX) NULL,
     [MasterCompanyId]   INT            NULL,
     [CreatedBy]         VARCHAR (256)  NULL,

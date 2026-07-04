@@ -22,125 +22,175 @@
     9    11-Feb-2025   Abhishek Jirawla	Modified (added Change for Item Master)
 	10	 12-Feb-2024   Devendra Shekh	Modified (added Change for CreditMemo)
     11   07-07-2025    Moin Bloch       Modified Changed Old To New Billing Table
+	12   21-04-2026    Moin Bloch       Modified Added Xero Accounting Changes PN-16008
+	13   04-06-2026    Abhishek Jirawla Modified Added Xero Accounting Changes For Customer Payments(Cash Reciept)
+	14   05-06-2026    Bhargav Saliya   Added Xero Case For Credit Memo
  EXECUTE [QuickBooks_UpdateCustomerReferenceDetails] 1, 10, '150'
 **************************************************************/ 
-CREATE   PROCEDURE [dbo].[QuickBooks_UpdateReferenceDetails]
+CREATE PROCEDURE [dbo].[QuickBooks_UpdateReferenceDetails]
 @IntegrationTypeId INT = NULL,
 @ModuleId BIGINT = NULL,
 @ReferenceId BIGINT = NULL,
 @QuickBooksReferenceId VARCHAR(100),
 @SyncToken VARCHAR(200) = NULL,
 @ReferenceModuleId BIGINT = NULL
-
 AS
 BEGIN
-	
 	SET NOCOUNT ON;
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED	
 	BEGIN TRY
 		DECLARE @CustomerModuleId INT;
 		DECLARE @VendorModuleId INT;
 		DECLARE @InvModuleId INT = 0, @WOModuleId INT = 0, @SOModuleId INT = 0, @ExchModuleId INT = 0, @NonPOModuleId INT = 0, @PurchaseOrderModuleId INT = 0, @RepairOrderModuleId INT = 0;
-		DECLARE @CustomerPaymentModuleId INT, @CreditTermModuleId INT, @GLAccountModuleId INT, @BillModuleId INT, @POModuleId INT, @ItemModuleId INT, @CreditMemoModuleId INT;
+		DECLARE @CustomerPaymentModuleId INT, @CreditTermModuleId INT, @GLAccountModuleId INT, @BillModuleId INT, @POModuleId INT, @ItemModuleId INT, @CreditMemoModuleId INT,@VendorCreditMemoModuleId INT;
+		DECLARE @QBIntegrationTypeId INT = 1, @NSIntegrationTypeId INT = 2, @XeroIntegrationTypeId INT = 3;
 
-		SELECT @CustomerModuleId = ModuleId FROM dbo.AccountingIntegrationSettings WITH(NOLOCK) WHERE UPPER(ModuleName) = 'CUSTOMER';
-		SELECT @VendorModuleId = ModuleId FROM dbo.AccountingIntegrationSettings WITH(NOLOCK) WHERE UPPER(ModuleName) = 'VENDOR';
-		SELECT @InvModuleId = ModuleId FROM dbo.AccountingIntegrationSettings WITH(NOLOCK) WHERE UPPER(ModuleName) = 'INVOICE';
-		SELECT @CustomerPaymentModuleId = ModuleId FROM dbo.AccountingIntegrationSettings WITH(NOLOCK) WHERE UPPER(ModuleName) = 'CUSTOMERPAYMENT';
-		SELECT @CreditTermModuleId = ModuleId FROM dbo.AccountingIntegrationSettings WITH(NOLOCK) WHERE UPPER(ModuleName) = 'CREDITTERM';
-		SELECT @GLAccountModuleId = ModuleId FROM dbo.AccountingIntegrationSettings WITH(NOLOCK) WHERE UPPER(ModuleName) = 'GLACCOUNT';
-		SELECT @BillModuleId = ModuleId FROM dbo.AccountingIntegrationSettings WITH(NOLOCK) WHERE UPPER(ModuleName) = 'BILL';
-		SELECT @POModuleId = ModuleId FROM dbo.AccountingIntegrationSettings WITH(NOLOCK) WHERE UPPER(ModuleName) = 'PURCHASEORDER';
-		SELECT @ItemModuleId = ModuleId FROM dbo.AccountingIntegrationSettings WITH(NOLOCK) WHERE UPPER(ModuleName) = 'ITEMMASTER';
-		SELECT @CreditMemoModuleId = ModuleId FROM dbo.AccountingIntegrationSettings WITH(NOLOCK) WHERE UPPER(ModuleName) = 'CREDITMEMO';
+		-- FIX 1: Consolidate all AccountingIntegrationSettings lookups into a single table scan
+		SELECT
+			@CustomerModuleId        = MAX(CASE WHEN UPPER([ModuleName]) = 'CUSTOMER'        THEN [ModuleId] END),
+			@VendorModuleId          = MAX(CASE WHEN UPPER([ModuleName]) = 'VENDOR'          THEN [ModuleId] END),
+			@InvModuleId             = ISNULL(MAX(CASE WHEN UPPER([ModuleName]) = 'INVOICE'          THEN [ModuleId] END), 0),
+			@CustomerPaymentModuleId = MAX(CASE WHEN UPPER([ModuleName]) = 'CUSTOMERPAYMENT' THEN [ModuleId] END),
+			@CreditTermModuleId      = MAX(CASE WHEN UPPER([ModuleName]) = 'CREDITTERM'      THEN [ModuleId] END),
+			@GLAccountModuleId       = MAX(CASE WHEN UPPER([ModuleName]) = 'GLACCOUNT'       THEN [ModuleId] END),
+			@BillModuleId            = MAX(CASE WHEN UPPER([ModuleName]) = 'BILL'            THEN [ModuleId] END),
+			@POModuleId              = MAX(CASE WHEN UPPER([ModuleName]) = 'PURCHASEORDER'   THEN [ModuleId] END),
+			@ItemModuleId            = MAX(CASE WHEN UPPER([ModuleName]) = 'ITEMMASTER'      THEN [ModuleId] END),
+			@CreditMemoModuleId      = MAX(CASE WHEN UPPER([ModuleName]) = 'CREDITMEMO'      THEN [ModuleId] END),
+			@VendorCreditMemoModuleId      = MAX(CASE WHEN UPPER([ModuleName]) = 'VENDORCREDITMEMO'      THEN [ModuleId] END)
+		FROM [dbo].[AccountingIntegrationSettings] WITH(NOLOCK);
 
-		SELECT @WOModuleId = ISNULL(ModuleId, 0) FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'WorkOrder';
-		SELECT @SOModuleId = ISNULL(ModuleId, 0) FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'SalesOrder';
-		SELECT @ExchModuleId = ISNULL(ModuleId, 0) FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'ExchangeSalesOrder';
+		-- FIX 1: Consolidate all Module lookups into a single table scan
+		SELECT
+			@WOModuleId             = ISNULL(MAX(CASE WHEN [ModuleName] = 'WorkOrder'         THEN [ModuleId] END), 0),
+			@SOModuleId             = ISNULL(MAX(CASE WHEN [ModuleName] = 'SalesOrder'        THEN [ModuleId] END), 0),
+			@ExchModuleId           = ISNULL(MAX(CASE WHEN [ModuleName] = 'ExchangeSalesOrder' THEN [ModuleId] END), 0),
+			@NonPOModuleId          = ISNULL(MAX(CASE WHEN [ModuleName] = 'NonPOInvoice'      THEN [ModuleId] END), 0),
+			@PurchaseOrderModuleId  = ISNULL(MAX(CASE WHEN [ModuleName] = 'PurchaseOrder'     THEN [ModuleId] END), 0),
+			@RepairOrderModuleId    = ISNULL(MAX(CASE WHEN [ModuleName] = 'RepairOrder'       THEN [ModuleId] END), 0)
+		FROM [dbo].[Module] WITH(NOLOCK);
 
-		SELECT @NonPOModuleId = ISNULL(ModuleId, 0) FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'NonPOInvoice';
-		SELECT @PurchaseOrderModuleId = ISNULL(ModuleId, 0) FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'PurchaseOrder';
-		SELECT @RepairOrderModuleId = ISNULL(ModuleId, 0) FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'RepairOrder';
-		SET @ReferenceModuleId =  ISNULL(@ReferenceModuleId, 0);
+		SET @ReferenceModuleId = ISNULL(@ReferenceModuleId, 0);
 
-		-- FOR QuickBooks
-		IF(ISNULL(@IntegrationTypeId, 0) = 1 AND @ModuleId = @CustomerModuleId) 
+		-- FIX 1: Consolidate all AccountingIntegrationType lookups into a single table scan
+		SELECT
+			@QBIntegrationTypeId   = MAX(CASE WHEN [IntegrationType] = 'QuickBooks' THEN [IntegrationTypeId] END),
+			@NSIntegrationTypeId   = MAX(CASE WHEN [IntegrationType] = 'NetSuite'   THEN [IntegrationTypeId] END),
+			@XeroIntegrationTypeId = MAX(CASE WHEN [IntegrationType] = 'Xero'       THEN [IntegrationTypeId] END)
+		FROM [dbo].[AccountingIntegrationType] WITH(NOLOCK);
+
+		-- FIX 2: Use IF/ELSE IF chain so only ONE branch executes and only ONE UPDATE plan runs
+		IF (ISNULL(@IntegrationTypeId, 0) = @QBIntegrationTypeId AND @ModuleId = @CustomerModuleId)
 		BEGIN
-			UPDATE [dbo].[Customer] SET QuickBooksReferenceId =  @QuickBooksReferenceId, IsUpdated = 0, LastSyncDate = GETUTCDATE(), SyncToken = @SyncToken WHERE CustomerId = @ReferenceId			
+			UPDATE [dbo].[Customer] SET [QuickBooksReferenceId] = @QuickBooksReferenceId, [IsUpdated] = 0, [LastSyncDate] = GETUTCDATE(), [SyncToken] = @SyncToken, [IntegrationTypeId] = @IntegrationTypeId WHERE [CustomerId] = @ReferenceId;
 		END
-
-		IF(ISNULL(@IntegrationTypeId, 0) = 1 AND @ModuleId = @VendorModuleId) 
+		ELSE IF (ISNULL(@IntegrationTypeId, 0) = @QBIntegrationTypeId AND @ModuleId = @VendorModuleId)
 		BEGIN
-			UPDATE [dbo].[Vendor] SET QuickBooksReferenceId =  @QuickBooksReferenceId, IsUpdated = 0, LastSyncDate = GETUTCDATE(), SyncToken = @SyncToken WHERE VendorId = @ReferenceId			
-		END		 
-
-		IF(ISNULL(@IntegrationTypeId, 0) = 1 AND @ModuleId = @InvModuleId AND @WOModuleId = @ReferenceModuleId) 
-		BEGIN
-			UPDATE [dbo].[BillingInvoicing] SET QuickBooksReferenceId =  @QuickBooksReferenceId, IsUpdated = 0, LastSyncDate = GETUTCDATE(), SyncToken = @SyncToken WHERE BillingInvoicingId = @ReferenceId	AND [ModuleId] = @WOModuleId 		
+			UPDATE [dbo].[Vendor] SET [QuickBooksReferenceId] = @QuickBooksReferenceId, [IsUpdated] = 0, [LastSyncDate] = GETUTCDATE(), [SyncToken] = @SyncToken, [IntegrationTypeId] = @IntegrationTypeId WHERE [VendorId] = @ReferenceId;
 		END
-
-		IF(ISNULL(@IntegrationTypeId, 0) = 1 AND @ModuleId = @InvModuleId AND @SOModuleId = @ReferenceModuleId) 
+		ELSE IF (ISNULL(@IntegrationTypeId, 0) = @QBIntegrationTypeId AND @ModuleId = @InvModuleId AND @WOModuleId = @ReferenceModuleId)
 		BEGIN
-			UPDATE [dbo].[BillingInvoicing] SET QuickBooksReferenceId =  @QuickBooksReferenceId, IsUpdated = 0, LastSyncDate = GETUTCDATE(), SyncToken = @SyncToken WHERE BillingInvoicingId = @ReferenceId	AND [ModuleId] = @SOModuleId		
+			UPDATE [dbo].[BillingInvoicing] SET [QuickBooksReferenceId] = @QuickBooksReferenceId, IsUpdated = 0, LastSyncDate = GETUTCDATE(), SyncToken = @SyncToken, [IntegrationTypeId] = @IntegrationTypeId WHERE BillingInvoicingId = @ReferenceId AND [ModuleId] = @WOModuleId;
 		END
-
-		IF(ISNULL(@IntegrationTypeId, 0) = 1 AND @ModuleId = @InvModuleId AND @ExchModuleId = @ReferenceModuleId) 
+		ELSE IF (ISNULL(@IntegrationTypeId, 0) = @QBIntegrationTypeId AND @ModuleId = @InvModuleId AND @SOModuleId = @ReferenceModuleId)
 		BEGIN
-			UPDATE [dbo].[ExchangeSalesOrderBillingInvoicing] SET QuickBooksReferenceId =  @QuickBooksReferenceId, IsUpdated = 0, LastSyncDate = GETUTCDATE(), SyncToken = @SyncToken WHERE SOBillingInvoicingId = @ReferenceId			
+			UPDATE [dbo].[BillingInvoicing] SET [QuickBooksReferenceId] = @QuickBooksReferenceId, IsUpdated = 0, LastSyncDate = GETUTCDATE(), SyncToken = @SyncToken, [IntegrationTypeId] = @IntegrationTypeId WHERE BillingInvoicingId = @ReferenceId AND [ModuleId] = @SOModuleId;
 		END
-
-		IF(ISNULL(@IntegrationTypeId, 0) = 1 AND @ModuleId = @BillModuleId AND @NonPOModuleId = @ReferenceModuleId) 
+		ELSE IF (ISNULL(@IntegrationTypeId, 0) = @QBIntegrationTypeId AND @ModuleId = @InvModuleId AND @ExchModuleId = @ReferenceModuleId)
 		BEGIN
-			UPDATE [dbo].[NonPOInvoiceHeader] SET QuickBooksReferenceId = @QuickBooksReferenceId, IsUpdated = 0, LastSyncDate = GETUTCDATE(), SyncToken = @SyncToken WHERE NonPOInvoiceId = @ReferenceId			
+			UPDATE [dbo].[ExchangeSalesOrderBillingInvoicing] SET [QuickBooksReferenceId] = @QuickBooksReferenceId, IsUpdated = 0, LastSyncDate = GETUTCDATE(), SyncToken = @SyncToken WHERE SOBillingInvoicingId = @ReferenceId;
 		END
-
-		IF(ISNULL(@IntegrationTypeId, 0) = 1 AND @ModuleId = @CustomerPaymentModuleId) 
+		ELSE IF (ISNULL(@IntegrationTypeId, 0) = @QBIntegrationTypeId AND @ModuleId = @BillModuleId AND @NonPOModuleId = @ReferenceModuleId)
 		BEGIN
-			UPDATE [dbo].[CustomerPaymentDetails] SET QuickBooksReferenceId =  @QuickBooksReferenceId, IsUpdated = 0, LastSyncDate = GETUTCDATE(), SyncToken = @SyncToken WHERE CustomerPaymentDetailsId = @ReferenceId			
+			UPDATE [dbo].[NonPOInvoiceHeader] SET [QuickBooksReferenceId] = @QuickBooksReferenceId, IsUpdated = 0, LastSyncDate = GETUTCDATE(), SyncToken = @SyncToken WHERE NonPOInvoiceId = @ReferenceId;
 		END
-
-		IF(ISNULL(@IntegrationTypeId, 0) = 1 AND @ModuleId = @CreditTermModuleId) 
+		ELSE IF (ISNULL(@IntegrationTypeId, 0) = @QBIntegrationTypeId AND @ModuleId = @CustomerPaymentModuleId)
 		BEGIN
-			UPDATE [dbo].[CreditTerms] SET QuickBooksReferenceId =  @QuickBooksReferenceId, IsUpdated = 0, LastSyncDate = GETUTCDATE(), SyncToken = @SyncToken WHERE CreditTermsId = @ReferenceId	
+			UPDATE [dbo].[CustomerPaymentDetails] SET [QuickBooksReferenceId] = @QuickBooksReferenceId, IsUpdated = 0, LastSyncDate = GETUTCDATE(), SyncToken = @SyncToken WHERE CustomerPaymentDetailsId = @ReferenceId;
 		END
-
-		IF(ISNULL(@IntegrationTypeId, 0) = 1 AND @ModuleId = @GLAccountModuleId) 
+		ELSE IF (ISNULL(@IntegrationTypeId, 0) = @QBIntegrationTypeId AND @ModuleId = @CreditTermModuleId)
 		BEGIN
-			UPDATE [dbo].[GLAccount] SET QuickBooksReferenceId =  @QuickBooksReferenceId, IsUpdated = 0, LastSyncDate = GETUTCDATE(), SyncToken = @SyncToken WHERE GLAccountId = @ReferenceId			
+			UPDATE [dbo].[CreditTerms] SET [QuickBooksReferenceId] = @QuickBooksReferenceId, IsUpdated = 0, LastSyncDate = GETUTCDATE(), SyncToken = @SyncToken WHERE CreditTermsId = @ReferenceId;
 		END
-
-		IF(ISNULL(@IntegrationTypeId, 0) = 1 AND @ModuleId = @POModuleId AND @PurchaseOrderModuleId = @ReferenceModuleId) 
+		ELSE IF (ISNULL(@IntegrationTypeId, 0) = @QBIntegrationTypeId AND @ModuleId = @GLAccountModuleId)
 		BEGIN
-			UPDATE PurchaseOrder SET QuickBooksReferenceId =  @QuickBooksReferenceId, IsUpdated = 0, LastSyncDate = GETUTCDATE(), SyncToken = @SyncToken WHERE PurchaseOrderId = @ReferenceId			
+			UPDATE [dbo].[GLAccount] SET [QuickBooksReferenceId] = @QuickBooksReferenceId, IsUpdated = 0, LastSyncDate = GETUTCDATE(), SyncToken = @SyncToken WHERE GLAccountId = @ReferenceId;
 		END
-
-		IF(ISNULL(@IntegrationTypeId, 0) = 1 AND @ModuleId = @POModuleId AND @RepairOrderModuleId = @ReferenceModuleId) 
+		ELSE IF (ISNULL(@IntegrationTypeId, 0) = @QBIntegrationTypeId AND @ModuleId = @POModuleId AND @PurchaseOrderModuleId = @ReferenceModuleId)
 		BEGIN
-			UPDATE RepairOrder SET QuickBooksReferenceId =  @QuickBooksReferenceId, IsUpdated = 0, LastSyncDate = GETUTCDATE(), SyncToken = @SyncToken WHERE RepairOrderId = @ReferenceId			
+			UPDATE PurchaseOrder SET [QuickBooksReferenceId] = @QuickBooksReferenceId, IsUpdated = 0, LastSyncDate = GETUTCDATE(), SyncToken = @SyncToken WHERE PurchaseOrderId = @ReferenceId;
 		END
-
-		IF(ISNULL(@IntegrationTypeId, 0) = 1 AND @ModuleId = @ItemModuleId) 
+		ELSE IF (ISNULL(@IntegrationTypeId, 0) = @QBIntegrationTypeId AND @ModuleId = @POModuleId AND @RepairOrderModuleId = @ReferenceModuleId)
 		BEGIN
-			UPDATE [dbo].[ItemMaster] SET QuickBooksReferenceId =  @QuickBooksReferenceId, IsUpdated = 0, LastSyncDate = GETUTCDATE(), SyncToken = @SyncToken WHERE ItemMasterId = @ReferenceId
+			UPDATE RepairOrder SET [QuickBooksReferenceId] = @QuickBooksReferenceId, IsUpdated = 0, LastSyncDate = GETUTCDATE(), SyncToken = @SyncToken WHERE RepairOrderId = @ReferenceId;
 		END
-
-		IF(ISNULL(@IntegrationTypeId, 0) = 1 AND @ModuleId = @CreditMemoModuleId) 
+		ELSE IF (ISNULL(@IntegrationTypeId, 0) = @QBIntegrationTypeId AND @ModuleId = @ItemModuleId)
 		BEGIN
-			UPDATE [dbo].[CreditMemo] SET QuickBooksReferenceId =  @QuickBooksReferenceId, IsUpdated = 0, LastSyncDate = GETUTCDATE(), SyncToken = @SyncToken WHERE CreditMemoHeaderId = @ReferenceId			
+			UPDATE [dbo].[ItemMaster] SET [QuickBooksReferenceId] = @QuickBooksReferenceId, IsUpdated = 0, LastSyncDate = GETUTCDATE(), SyncToken = @SyncToken WHERE ItemMasterId = @ReferenceId;
 		END
+		ELSE IF (ISNULL(@IntegrationTypeId, 0) = @QBIntegrationTypeId AND @ModuleId = @CreditMemoModuleId)
+		BEGIN
+			UPDATE [dbo].[CreditMemo] SET [QuickBooksReferenceId] = @QuickBooksReferenceId, IsUpdated = 0, LastSyncDate = GETUTCDATE(), SyncToken = @SyncToken WHERE CreditMemoHeaderId = @ReferenceId;
+		END
+		-- Xero
+		ELSE IF (ISNULL(@IntegrationTypeId, 0) = @XeroIntegrationTypeId AND @ModuleId = @CustomerModuleId)
+		BEGIN
+			UPDATE [dbo].[Customer] SET [QuickBooksReferenceId] = @QuickBooksReferenceId, [IsUpdated] = 0, [LastSyncDate] = GETUTCDATE(), [SyncToken] = @SyncToken, [IntegrationTypeId] = @IntegrationTypeId WHERE [CustomerId] = @ReferenceId;
+		END
+		ELSE IF (ISNULL(@IntegrationTypeId, 0) = @XeroIntegrationTypeId AND @ModuleId = @VendorModuleId)
+		BEGIN
+			UPDATE [dbo].[Vendor] SET [QuickBooksReferenceId] = @QuickBooksReferenceId, [IsUpdated] = 0, [LastSyncDate] = GETUTCDATE(), [SyncToken] = @SyncToken, [IntegrationTypeId] = @IntegrationTypeId WHERE [VendorId] = @ReferenceId;
+		END
+		ELSE IF (ISNULL(@IntegrationTypeId, 0) = @XeroIntegrationTypeId AND @ModuleId = @GLAccountModuleId)
+		BEGIN
+			UPDATE [dbo].[GLAccount] SET [QuickBooksReferenceId] = @QuickBooksReferenceId, [IsUpdated] = 0, [LastSyncDate] = GETUTCDATE(), [SyncToken] = @SyncToken, [IntegrationTypeId] = @IntegrationTypeId WHERE [GLAccountId] = @ReferenceId;
+		END
+		ELSE IF (ISNULL(@IntegrationTypeId, 0) = @XeroIntegrationTypeId AND @ModuleId = @ItemModuleId)
+		BEGIN
+			UPDATE [dbo].[ItemMaster] SET [QuickBooksReferenceId] = @QuickBooksReferenceId, [IsUpdated] = 0, [LastSyncDate] = GETUTCDATE(), [SyncToken] = @SyncToken, [IntegrationTypeId] = @IntegrationTypeId WHERE [ItemMasterId] = @ReferenceId;
+		END
+		ELSE IF (ISNULL(@IntegrationTypeId, 0) = @XeroIntegrationTypeId AND @ModuleId = @POModuleId)
+		BEGIN
+			UPDATE [dbo].[PurchaseOrder] SET [QuickBooksReferenceId] = @QuickBooksReferenceId, [IsUpdated] = 0, [LastSyncDate] = GETUTCDATE(), [SyncToken] = @SyncToken, [IntegrationTypeId] = @IntegrationTypeId WHERE [PurchaseOrderId] = @ReferenceId;
+		END
+		ELSE IF (ISNULL(@IntegrationTypeId, 0) = @XeroIntegrationTypeId AND @ModuleId = @InvModuleId AND @WOModuleId = @ReferenceModuleId)
+		BEGIN
+			UPDATE [dbo].[BillingInvoicing] SET [QuickBooksReferenceId] = @QuickBooksReferenceId, [IsUpdated] = 0, [LastSyncDate] = GETUTCDATE(), [SyncToken] = @SyncToken, [IntegrationTypeId] = @IntegrationTypeId WHERE [BillingInvoicingId] = @ReferenceId AND [ModuleId] = @WOModuleId;
+		END
+		ELSE IF (ISNULL(@IntegrationTypeId, 0) = @XeroIntegrationTypeId AND @ModuleId = @InvModuleId AND @SOModuleId = @ReferenceModuleId)
+		BEGIN
+			UPDATE [dbo].[BillingInvoicing] SET [QuickBooksReferenceId] = @QuickBooksReferenceId, [IsUpdated] = 0, [LastSyncDate] = GETUTCDATE(), [SyncToken] = @SyncToken, [IntegrationTypeId] = @IntegrationTypeId WHERE [BillingInvoicingId] = @ReferenceId AND [ModuleId] = @SOModuleId;
+		END
+		ELSE IF (ISNULL(@IntegrationTypeId, 0) = @XeroIntegrationTypeId AND @ModuleId = @InvModuleId AND @ExchModuleId = @ReferenceModuleId)
+		BEGIN
+			UPDATE [dbo].[ExchangeSalesOrderBillingInvoicing] SET [QuickBooksReferenceId] = @QuickBooksReferenceId, [IsUpdated] = 0, [LastSyncDate] = GETUTCDATE(), [SyncToken] = @SyncToken, [IntegrationTypeId] = @IntegrationTypeId WHERE [SOBillingInvoicingId] = @ReferenceId;
+		END
+		ELSE IF (ISNULL(@IntegrationTypeId, 0) = @XeroIntegrationTypeId AND @ModuleId = @CustomerPaymentModuleId)
+		BEGIN
+			UPDATE [dbo].[CustomerPaymentDetails] SET [QuickBooksReferenceId] = @QuickBooksReferenceId, IsUpdated = 0, LastSyncDate = GETUTCDATE(), SyncToken = @SyncToken, [IntegrationTypeId] = @IntegrationTypeId WHERE CustomerPaymentDetailsId = @ReferenceId;
+		END
+		ELSE IF(ISNULL(@IntegrationTypeId, 0) = @XeroIntegrationTypeId AND @ModuleId = @CreditMemoModuleId) 
+		BEGIN
+			UPDATE [dbo].[CreditMemo] SET [QuickBooksReferenceId] = @QuickBooksReferenceId, [IsUpdated] = 0, [LastSyncDate] = GETUTCDATE(), [SyncToken] = @SyncToken, [IntegrationTypeId] = @IntegrationTypeId WHERE [CreditMemoHeaderId] = @ReferenceId
+		END	
+		ELSE IF(ISNULL(@IntegrationTypeId, 0) = @XeroIntegrationTypeId AND @ModuleId = @VendorCreditMemoModuleId) 
+		BEGIN
+			UPDATE [dbo].[VendorCreditMemo] SET [QuickBooksReferenceId] = @QuickBooksReferenceId, [IsUpdated] = 0, [LastSyncDate] = GETUTCDATE(), [SyncToken] = @SyncToken, [IntegrationTypeId] = @IntegrationTypeId WHERE [VendorCreditMemoId] = @ReferenceId
+		END	
 
-		UPDATE dbo.AccountingIntegrationSettings SET [LastRun] = GETUTCDATE(), [UpdatedDate] = GETUTCDATE() WHERE [ModuleId] = @ModuleId AND [IntegrationId] = @IntegrationTypeId;
+		-- FIX 3: Guard the settings update — only run it when the module/integration combo actually exists
+		UPDATE [dbo].[AccountingIntegrationSettings]
+		SET [LastRun] = GETUTCDATE(), [UpdatedDate] = GETUTCDATE()
+		WHERE [ModuleId] = @ModuleId AND [IntegrationId] = @IntegrationTypeId
+		  AND EXISTS (SELECT 1 FROM [dbo].[AccountingIntegrationSettings] WITH(NOLOCK) WHERE [ModuleId] = @ModuleId AND [IntegrationId] = @IntegrationTypeId);
 
 	END TRY    
 	BEGIN CATCH      
-
-	         DECLARE @ErrorLogID INT
+		DECLARE @ErrorLogID INT
 			,@DatabaseName VARCHAR(100) = db_name()
-			-----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
-			,@AdhocComments VARCHAR(150) = 'QuickBooks_UpdateCustomerReferenceDetails'
+			,@AdhocComments VARCHAR(150) = 'QuickBooks_UpdateReferenceDetails'
 			,@ProcedureParameters VARCHAR(3000) = '@Parameter1 = ''' + CAST(ISNULL(@IntegrationTypeId, '') AS varchar(100))  			                                           
 			,@ApplicationName VARCHAR(100) = 'PAS'
-		-----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------
 		EXEC spLogException @DatabaseName = @DatabaseName
 			,@AdhocComments = @AdhocComments
 			,@ProcedureParameters = @ProcedureParameters
@@ -148,7 +198,6 @@ BEGIN
 			,@ErrorLogID = @ErrorLogID OUTPUT;
 
 		RAISERROR ('Unexpected Error Occured in the database. Please let the support team know of the error number : %d', 16, 1, @ErrorLogID)
-
 		RETURN (1);           
 	END CATCH
 END

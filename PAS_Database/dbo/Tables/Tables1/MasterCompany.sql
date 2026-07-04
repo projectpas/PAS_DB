@@ -28,6 +28,7 @@
     [ConnectionString]         NVARCHAR (MAX) NULL,
     [TokenUserName]            VARCHAR (100)  NULL,
     [TokenPassword]            VARCHAR (100)  NULL,
+    [IsXeroAccountingEnabled]  BIT            NULL,
     CONSTRAINT [PK_MasterCompany] PRIMARY KEY CLUSTERED ([MasterCompanyId] ASC)
 );
 

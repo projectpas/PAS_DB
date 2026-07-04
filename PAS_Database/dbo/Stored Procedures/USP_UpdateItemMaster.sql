@@ -313,7 +313,7 @@ BEGIN
             @DatabaseName varchar(100) = DB_NAME()
             -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
             ,@AdhocComments varchar(150) = '[USP_UpdateItemMaster]',
-            @ProcedureParameters varchar(3000) = '@ItemMasterId = ''' + CAST(ISNULL(@Id, '') AS varchar(100)),
+            @ProcedureParameters varchar(3000) = '@ItemMasterId = ''' + CAST(ISNULL(@Id, 0) AS varchar(100)),
             @ApplicationName varchar(100) = 'PAS'
     -----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------
     EXEC spLogException @DatabaseName = @DatabaseName,

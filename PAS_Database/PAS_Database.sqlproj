@@ -3121,6 +3121,7 @@
     <Build Include="dbo\Stored Procedures\QuickBooks_GetVendorListForUpdateVendor.sql" />
     <Build Include="dbo\Stored Procedures\QuickBooks_GetNewVendorListForCreateVendor.sql" />
     <Build Include="dbo\Tables\AccountingIntegrationSetupAudit.sql" />
+    <Build Include="dbo\Tables\AccountingIntegrationType.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetQuickBookSetupHistory_ById.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetQuickBookSetupDetails_ById.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetQuickBookSetup_List.sql" />

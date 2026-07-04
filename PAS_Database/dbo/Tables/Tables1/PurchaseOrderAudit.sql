@@ -65,6 +65,7 @@
     [MarketplaceRef]                 VARCHAR (50)    NULL,
     [IsFromAircraft]                 BIT             NULL,
     [AircraftInstalledPartDetailsId] BIGINT          NULL,
+    [IntegrationTypeId]              INT             NULL,
     CONSTRAINT [PK_PurchaseOrderAudit] PRIMARY KEY CLUSTERED ([PurchaseOrderAuditId] ASC)
 );
 

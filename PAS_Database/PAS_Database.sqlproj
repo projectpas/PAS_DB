@@ -2216,6 +2216,8 @@
     <Build Include="dbo\Stored Procedures\Procs1\USP_GetBalanceSheetReport_ColumnName.sql" />
     <Build Include="dbo\Stored Procedures\Procs1\USP_GetBalanceSheetReportData.sql" />
     <Build Include="dbo\Stored Procedures\Procs1\USP_GetbulkstocklineadjustmentById.sql" />
+    <Build Include="dbo\Tables\BulkStockScrapCertificate.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetBulkStockScrapCertificateForPDF.sql" />
     <Build Include="dbo\Stored Procedures\Procs1\USP_GetCageCode_ByLegalEntityId.sql" />
     <Build Include="dbo\Stored Procedures\Procs1\usp_GetCapabilitiesReport.sql" />
     <Build Include="dbo\Stored Procedures\Procs1\USP_GetChekPartandAddress.sql" />

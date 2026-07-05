@@ -3564,6 +3564,7 @@
     <Build Include="dbo\Tables\ByPassRequestUrl.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetVendorScoreCardSettingsAudit.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdateWorkOrder.sql" />
+    <Build Include="dbo\Stored Procedures\CreateWorkOrderTasksForWorksheet.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetPublicationNameByWOId_OR_WOPartId.sql" />
     <Build Include="dbo\Stored Procedures\GetVendorScorcardInfo.sql" />
     <Build Include="dbo\Stored Procedures\DeleteSubWorkOrderTask.sql" />

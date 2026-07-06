@@ -15,6 +15,7 @@
 ** 4     24-June-2026  Sahdev Saliya     Added Notes [PN-16968]
 ** 5     26-June-2026  Sahdev Saliya     Fixed the issue with the @Notes [PN-17015]
 ** 6     02-July-2026  Sahdev Saliya     Added Resale Number [PN-17018]
+** 7     22-APR-2026   Moin Bloch        Moved to API Due TO Xero Accounting Changes PN-16009
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_CreateOrUpdateVendor]
     @VendorId BIGINT OUTPUT,
@@ -337,7 +338,7 @@ BEGIN
             SET VendorId = @VendorId, UpdatedDate = GETUTCDATE(), UpdatedBy = @UpdatedBy
             WHERE CustomerCreditPaymentDetailId = @CustomerCreditPaymentDetailId;
         END
-          EXEC QuickBooks_UpdateModuleCountDetails @MasterCompanyId, @VendorAccountingModuleId;
+        --EXEC QuickBooks_UpdateModuleCountDetails @MasterCompanyId, @VendorAccountingModuleId;
         COMMIT;
     END TRY
       BEGIN CATCH

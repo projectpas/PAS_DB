@@ -13,6 +13,7 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    30/06/2025   HEMANT SALIYA    Created (Update RFQ Price Details based on AI suggestions)
+	2    24/06/2026   Moin Bloch       Fixed Error Log Errors PN-16924
 
 EXEC USP_UpdateRFQPricebasedOnAISuggestionHistoricalData_WOQ '','',1
 **************************************************************/ 
@@ -32,7 +33,7 @@ BEGIN
 	
 		DECLARE @MasterLoopID INT = 0,
 				@CustomerRfqId BIGINT = 0,
-				@RfqId BIGINT = 0,
+				@RfqId NVARCHAR(400) = NULL,
 				@CustomerRfqQuoteId BIGINT = 0,
 				@PartNumber NVARCHAR(200) = NULL,
 				@SalesOrderQuoteId BIGINT = 0,
@@ -60,7 +61,7 @@ BEGIN
 		(
 			ID BIGINT NOT NULL IDENTITY, 
 			CustomerRfqId BIGINT NULL,
-			RfqId BIGINT NULL,
+			RfqId NVARCHAR(400) NULL,
 			PartNumber VARCHAR(200) NULL,
 			MasterCompanyId BIGINT NULL,
 			Condition VARCHAR(256),

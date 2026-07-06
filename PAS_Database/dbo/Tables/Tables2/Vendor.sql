@@ -53,6 +53,7 @@
     [LastSyncDate]            DATETIME2 (7)   NULL,
     [SyncToken]               VARCHAR (200)   NULL,
     [IsWarningRestriction]    INT             NULL,
+    [IntegrationTypeId]       INT             NULL,
     [Notes]                   NVARCHAR (MAX)  NULL,
     [ResaleNumber]            VARCHAR (200)   NULL,
     CONSTRAINT [PK_Vendor] PRIMARY KEY CLUSTERED ([VendorId] ASC),

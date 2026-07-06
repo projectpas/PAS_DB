@@ -34,6 +34,7 @@
     [IsUpdated]                           BIT             NULL,
     [LastSyncDate]                        DATETIME2 (7)   NULL,
     [SyncToken]                           VARCHAR (200)   NULL,
+    [IntegrationTypeId]                   INT             NULL,
     [IsNonInvoicePayment]                 BIT             DEFAULT ((0)) NULL,
     CONSTRAINT [PK_CustomerPaymentDetailsAudit] PRIMARY KEY CLUSTERED ([AuditCustomerPaymentDetailsId] ASC)
 );

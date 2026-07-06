@@ -17,6 +17,7 @@
 ** 6     27-May-2026   Sahdev Saliya        Added Model [PN-16353]
 ** 7     16-June-2026  Rajesh Gami			Update the Stockline's UOM fields While ItemMaster Update that particular UOM fields [PN-16878]
 ** 8	 01-July-2026  Ayushi Patel         passed updatedby into USP_UpdateStocklineUOMByItemMasterId [PN-17083]
+** 9	 19-Jun-2026   Moin Bloch           Fixed for Error Log PN-16924
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_UpdateItemMaster]
     @tbl_ItemMasterUpdateType [TBL_ItemMasterUpdateType] readonly,
@@ -32,14 +33,14 @@ BEGIN
 	SET @RetMessage = '';
 	DECLARE @imItemMasterId BIGINT ,@imManufacturerId BIGINT,@imPartNumber VARCHAR(256),@MasterCompanyId INT, @AccountingModuleId BIGINT;
 	--MasterParts TABLE variables Declaration--
-	DECLARE @mItemMasterId BIGINT,@MasterPartId BIGINT,@PartDescription VARCHAR(256),@PartNumber VARCHAR(256),@ManufacturerId BIGINT,
+	DECLARE @mItemMasterId BIGINT,@MasterPartId BIGINT,@PartDescription VARCHAR(256),@PartNumber VARCHAR(256),@ManufacturerId BIGINT,@QuickBooksReferenceId VARCHAR(200),@IntegrationTypeId INT,
 			@mMasterCompanyId BIGINT,@CreatedBy VARCHAR(200),@UpdatedBy VARCHAR(200),@CreatedDate DATETIME2,@IsActive BIT,@IsDeleted BIT;
 
 	SELECT @MasterCompanyId = MasterCompanyId,@imManufacturerId = ManufacturerId,@imPartNumber = PartNumber FROM @tbl_ItemMasterUpdateType tempTbl where  tempTbl.ItemMasterId = @Id
 
 	SELECT @AccountingModuleId = AccountingModuleId FROM dbo.AccountingModule WITH(NOLOCK) WHERE AccountingModuleName = 'ItemMaster' 
 
-	SELECT	@mItemMasterId = ItemMasterId,@MasterPartId = MasterPartId,@PartDescription = PartDescription,
+	SELECT	@mItemMasterId = ItemMasterId,@MasterPartId = MasterPartId,@PartDescription = PartDescription, @QuickBooksReferenceId = [QuickBooksReferenceId], @IntegrationTypeId = [IntegrationTypeId],
 			@PartNumber = PartNumber,@ManufacturerId = ManufacturerId,@mMasterCompanyId = MasterCompanyId,@CreatedBy = CreatedBy,
 			@UpdatedBy = UpdatedBy,@CreatedDate = CreatedDate,@IsActive = IsActive,@IsDeleted = IsDeleted
 	FROM [dbo].ItemMaster WITH(NOLOCK) WHERE ItemMasterId = @Id
@@ -103,7 +104,7 @@ BEGIN
 		UPDATE i
 		SET 
 		i.PartAlternatePartId = PST.PartAlternatePartId
-		,i.ItemGroupId = PST.ItemGroupId
+		,i.ItemGroupId = CASE WHEN PST.ItemGroupId = 0 THEN NULL ELSE PST.ItemGroupId END
 		,i.ItemClassificationId = PST.ItemClassificationId
 		,i.IsHazardousMaterial = PST.IsHazardousMaterial
 		,i.IsExpirationDateAvailable = PST.IsExpirationDateAvailable
@@ -293,10 +294,10 @@ BEGIN
 
 		EXEC dbo.UpdateItemMasterDetail @Id
 
-		EXEC [dbo].[QuickBooks_UpdateModuleCountDetails] @MasterCompanyId, @AccountingModuleId
+		--EXEC [dbo].[QuickBooks_UpdateModuleCountDetails] @MasterCompanyId, @AccountingModuleId
 
 	END
-	SELECT @MasterPartId AS [MasterPartId];
+	SELECT @MasterPartId AS [MasterPartId],@QuickBooksReferenceId AS [QuickBooksReferenceId], @IntegrationTypeId AS [IntegrationTypeId]
   COMMIT TRANSACTION
   END TRY
   BEGIN CATCH
@@ -312,7 +313,7 @@ BEGIN
             @DatabaseName varchar(100) = DB_NAME()
             -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
             ,@AdhocComments varchar(150) = '[USP_UpdateItemMaster]',
-            @ProcedureParameters varchar(3000) = '@ItemMasterId = ''' + CAST(ISNULL(@Id, '') AS varchar(100)),
+            @ProcedureParameters varchar(3000) = '@ItemMasterId = ''' + CAST(ISNULL(@Id, 0) AS varchar(100)),
             @ApplicationName varchar(100) = 'PAS'
     -----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------
     EXEC spLogException @DatabaseName = @DatabaseName,

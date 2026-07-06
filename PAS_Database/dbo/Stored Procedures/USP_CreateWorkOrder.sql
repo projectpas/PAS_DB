@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿
+/*************************************************************           
  ** File:   [USP_CreateWorkOrder]           
  ** Author:   HEMANT SALIYA
  ** Description: This stored procedure is used to Create Work Order Quote
@@ -85,6 +86,7 @@ CREATE     PROCEDURE [dbo].[USP_CreateWorkOrder]
 @AllowInvoiceBeforeShipping BIT=NULL,
 @IsFromLot BIT=NULL,
 @MtcCategoryId BIGINT = NULL,
+@WorksheetId BIGINT = NULL,
 @tbl_WorkOrderPartNumberType WorkOrderMPNType READONLY
 AS
 BEGIN
@@ -488,7 +490,9 @@ BEGIN
 	--BEGIN			
 	--	SELECT @PercentId=[PercentId],@Days=[Days],@NetDays=[NetDays] FROM [dbo].[CreditTerms] WITH(NOLOCK) WHERE [CreditTermsId]=@CreditTermsId AND [MasterCompanyId]=@MasterCompanyId AND [IsActive]=1 AND [IsDeleted]=0;
 	--END
+
 	SELECT @PercentId=[PercentId],@Days=[Days],@NetDays=[NetDays] FROM [dbo].[CreditTerms] WITH(NOLOCK) WHERE [CreditTermsId]=@CreditTermId AND [MasterCompanyId]=@MasterCompanyId
+
 
     -- Insert or Update WorkOrder table (simplified)   
 
@@ -1095,8 +1099,20 @@ BEGIN
 	-- CREATING STOCK LINE HISTORY TO RESERVE STOCKLINE 
 	-- EXEC [dbo].[CreateStockLineHistory] @WorkOrderParts,@WorkOrderId,@CreatedBy,@CreatedDate,@MasterCompanyId;
 
+	-- WORKSHEET Entry
+	IF(@WorksheetId > 0)
+	BEGIN
+		DECLARE @WorkOrderPartNoId BIGINT = 0 
+		SELECT TOP 1 @WorkOrderPartNoId  = [ID] FROM @WorkOrderParts 
+
+		EXEC [dbo].[CreateWorkOrderTasksForWorksheet] @WorkOrderParts,@WorkOrderId,@WorkOrderPartNoId,@WorkOrderTypeId,@CreatedBy,@CreatedDate,@MasterCompanyId,@WorksheetId	
+	END
+
 	--*************** CREATE A WORK ORDER MATERIALS FOR SUB ASSY : BY RAJESH ***************
-	EXEC [dbo].[CreateWorkOrderMaterialsforSubAssy] @WorkOrderParts,@WorkOrderId,@WorkOrderTypeId,@CreatedBy,@CreatedDate,@MasterCompanyId,@WorkOrderFormTypeId
+	IF(ISNULL(@WorksheetId,0) = 0)
+	BEGIN
+		EXEC [dbo].[CreateWorkOrderMaterialsforSubAssy] @WorkOrderParts,@WorkOrderId,@WorkOrderTypeId,@CreatedBy,@CreatedDate,@MasterCompanyId,@WorkOrderFormTypeId
+	END
 
 	-- TEARDOWN WORK ORDER ACCOUNTING ENTRY
 	IF @WorkOrderTypeId = @TearDown -- TearDown

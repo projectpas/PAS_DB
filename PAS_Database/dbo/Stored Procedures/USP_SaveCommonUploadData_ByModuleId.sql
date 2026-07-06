@@ -44,7 +44,9 @@
 	36   13-MAY-2026		Ayushi Patel			PN-16321 handled new WorkOrderMaterial module
 	37   05-JUN-2026        Ayushi Patel            PN-15888 Fixed PriceMaster/PurchaseSales upload: PP_PurchaseDiscPerc and SP_CalSPByPP_MarkUpPercOnListPrice were storing PercentId instead of PercentValue. Resolved actual percent values from [Percent] table before discount and markup calculations.
 	38   05-JUN-2026        Ayushi Patel            Added ParentTable insted of ParentTableRereneceTypeId for IsModuleTableColumn = 0 to support dynamic parent table insert functionality for upload module.
-	exec USP_SaveCommonUploadData_ByModuleId @ModuleId=4,@UserName=N'VICTOR ADMAS',@MasterCompanyId=1, @EmployeeId = 236;
+	39   19-JUN-2026		Moin Bloch			    Fixed Error Log Error For Address PN-16924
+	40   22-JUN-2026		Ayushi Patel			Set The Default GLAccountID For ItemMaster Module
+exec USP_SaveCommonUploadData_ByModuleId @ModuleId=4,@UserName=N'VICTOR ADMAS',@MasterCompanyId=1, @EmployeeId = 236;
 **************************************************************/
 CREATE PROCEDURE [dbo].[USP_SaveCommonUploadData_ByModuleId]
 	@ModuleId BIGINT = NULL,    
@@ -660,6 +662,15 @@ BEGIN
 			
 			IF(ISNULL(@ModuleParentTable, '') != '')
 			BEGIN
+				-- Default Address Line1 if not provided
+				IF @ModuleParentTable = 'Address'
+				BEGIN
+					UPDATE #ImportFields
+					SET FieldValue = ISNULL(NULLIF(LTRIM(RTRIM([FieldValue])), ''), 'N/A')
+					WHERE [FieldName] = 'Line1'
+					  AND ISNULL(LTRIM(RTRIM(FieldValue)), '') = '';
+				END
+
 				SET @RefFieldName = '' -- reset for parent
 				SET @FieldValue = ''   -- reset for parent
 	
@@ -894,6 +905,7 @@ BEGIN
 			END
 			ELSE IF(@ModuleId = @ItemMasterModule)
 			BEGIN
+				DECLARE @DefaultGLId varchar (100) = 	(SELECT TOP 1 GLAccountId FROM DBO.GLACCOUNT WITH(NOLOCK) WHERE MasterCompanyId =@MasterCompanyId AND ISNULL(ISDELETED,0) = 0 AND ISNULL(ISACTIVE,0) = 1)
 				--SET @RefFieldName += ' , ItemTypeId,IsHazardousMaterial,IsExpirationDateAvailable,IsReceivedDateAvailable,DaysReceived,IsManufacturingDateAvailable,
 				--ManufacturingDays,IsTagDateAvailable,TagDays,IsOpenDateAvailable,OpenDays,IsShippedDateAvailable,ShippedDays,IsOtherDateAvailable,
 				--OtherDays,IsSchematic,OverhaulHours,RPHours,TestHours,RFQTracking,GLAccountId,LeadTimeDays,ReorderPoint,ReorderQuantiy,MinimumOrderQuantity,
@@ -912,7 +924,7 @@ BEGIN
 				SET @FieldValue += '1, 0, 0, 0, 0, 
 									0, 0, 0, 0, 0, 
 									0, 0, 0, 0, 0, 
-									0, 0, 13,  
+									0, 0, '+@DefaultGLId+',
 									0, 0, 0,
 									0, 0, 0, 0, 
 									0, 0, 0, 0, 
@@ -1685,8 +1697,8 @@ BEGIN
 			@DatabaseName varchar(100) = DB_NAME()    
 			-----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------    
 			,@AdhocComments varchar(150) = 'USP_SaveCommonUploadData_ByModuleId',    
-			@ProcedureParameters varchar(3000) = '@ModuleId = ''' + CAST(ISNULL(@ModuleId, '') AS varchar(100))    
-			+ '@MasterCompanyId = ''' + CAST(ISNULL(@MasterCompanyId, '') AS varchar(100)),    
+			@ProcedureParameters varchar(3000) = '@ModuleId = ''' + CAST(ISNULL(@ModuleId, 0) AS varchar(100))
+			+ '@MasterCompanyId = ''' + CAST(ISNULL(@MasterCompanyId, 0) AS varchar(100)),
 			@ApplicationName varchar(100) = 'PAS'    
 		-----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------    
 			EXEC spLogException @DatabaseName = @DatabaseName,    

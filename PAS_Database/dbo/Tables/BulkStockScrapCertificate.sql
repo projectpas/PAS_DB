@@ -1,0 +1,20 @@
+﻿CREATE TABLE [dbo].[BulkStockScrapCertificate] (
+    [BulkStockScrapCertificateId] BIGINT        IDENTITY (1, 1) NOT NULL,
+    [BulkStkLineAdjId]            BIGINT        NOT NULL,
+    [BulkStkLineAdjDetailsId]     BIGINT        NOT NULL,
+    [StockLineId]                 BIGINT        NULL,
+    [IsExternal]                  BIT           NULL,
+    [ScrapedByEmployeeId]         BIGINT        NULL,
+    [ScrapedByVendorId]           BIGINT        NULL,
+    [CertifiedById]               BIGINT        NULL,
+    [ScrapReasonId]               BIGINT        NULL,
+    [ScrapCertificateDate]        DATETIME2 (7) NULL,
+    [MasterCompanyId]             INT           NOT NULL,
+    [CreatedBy]                   VARCHAR (256) NOT NULL,
+    [UpdatedBy]                   VARCHAR (256) NOT NULL,
+    [CreatedDate]                 DATETIME2 (7) CONSTRAINT [DF_BulkStockScrapCertificate_CreatedDate] DEFAULT (getdate()) NOT NULL,
+    [UpdatedDate]                 DATETIME2 (7) CONSTRAINT [DF_BulkStockScrapCertificate_UpdatedDate] DEFAULT (getdate()) NOT NULL,
+    [IsActive]                    BIT           CONSTRAINT [DF_BulkStockScrapCertificate_IsActive] DEFAULT ((1)) NOT NULL,
+    [IsDeleted]                   BIT           CONSTRAINT [DF_BulkStockScrapCertificate_IsDeleted] DEFAULT ((0)) NOT NULL,
+    CONSTRAINT [PK_BulkStockScrapCertificate] PRIMARY KEY CLUSTERED ([BulkStockScrapCertificateId] ASC)
+);

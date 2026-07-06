@@ -2216,6 +2216,8 @@
     <Build Include="dbo\Stored Procedures\Procs1\USP_GetBalanceSheetReport_ColumnName.sql" />
     <Build Include="dbo\Stored Procedures\Procs1\USP_GetBalanceSheetReportData.sql" />
     <Build Include="dbo\Stored Procedures\Procs1\USP_GetbulkstocklineadjustmentById.sql" />
+    <Build Include="dbo\Tables\BulkStockScrapCertificate.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetBulkStockScrapCertificateForPDF.sql" />
     <Build Include="dbo\Stored Procedures\Procs1\USP_GetCageCode_ByLegalEntityId.sql" />
     <Build Include="dbo\Stored Procedures\Procs1\usp_GetCapabilitiesReport.sql" />
     <Build Include="dbo\Stored Procedures\Procs1\USP_GetChekPartandAddress.sql" />
@@ -3041,6 +3043,8 @@
     <Build Include="dbo\Stored Procedures\USP_DuplicateSalesOrderQuote.sql" />
     <Build Include="dbo\Stored Procedures\QuickBooks_UpdateCustomerReferenceDetails.sql" />
     <Build Include="dbo\Stored Procedures\QuickBooks_GetNewCustomerListForCreateCustomer.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetXeroCustomerList.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetXeroVendorList.sql" />
     <Build Include="dbo\Stored Procedures\QuickBooks_GetCustomerListForUpdateCustomer.sql" />
     <Build Include="dbo\Views\vw_EmployeeTrainingType_Audit.sql" />
     <Build Include="dbo\Views\vw_AssetStatusAudit.sql" />
@@ -3121,6 +3125,8 @@
     <Build Include="dbo\Stored Procedures\QuickBooks_GetVendorListForUpdateVendor.sql" />
     <Build Include="dbo\Stored Procedures\QuickBooks_GetNewVendorListForCreateVendor.sql" />
     <Build Include="dbo\Tables\AccountingIntegrationSetupAudit.sql" />
+    <Build Include="dbo\Tables\AccountingIntegrationType.sql" />
+    <Build Include="dbo\Tables\XeroTokens.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetQuickBookSetupHistory_ById.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetQuickBookSetupDetails_ById.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetQuickBookSetup_List.sql" />
@@ -3422,6 +3428,7 @@
     <Build Include="dbo\Functions\CalculateTotalTime.sql" />
     <Build Include="dbo\Stored Procedures\QuickBooks_GetUpdateSyncPendingGLAccountList.sql" />
     <Build Include="dbo\Stored Procedures\QuickBooks_GetNewGLAccountSyncPendingListForCreate.sql" />
+    <Build Include="dbo\Stored Procedures\Xero_GetNewGLAccountListForCreateAccount.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetDateTimeByTimeZone.sql" />
     <Build Include="dbo\Stored Procedures\GetEmployeeTimeZone.sql" />
     <Build Include="dbo\Tables\AccountingModule.sql" />
@@ -3557,6 +3564,7 @@
     <Build Include="dbo\Tables\ByPassRequestUrl.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetVendorScoreCardSettingsAudit.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdateWorkOrder.sql" />
+    <Build Include="dbo\Stored Procedures\CreateWorkOrderTasksForWorksheet.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetPublicationNameByWOId_OR_WOPartId.sql" />
     <Build Include="dbo\Stored Procedures\GetVendorScorcardInfo.sql" />
     <Build Include="dbo\Stored Procedures\DeleteSubWorkOrderTask.sql" />
@@ -3574,6 +3582,7 @@
     <Build Include="dbo\Stored Procedures\USP_AddSubWorkOrderTaskHistory.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetCustomerDomesticShippingDetails.sql" />
     <Build Include="dbo\Stored Procedures\QuickBooks_UpdateIntegrationStatus_ByModuleId.sql" />
+    <Build Include="dbo\Stored Procedures\USP_UpdateAccountingIntegrationStatus.sql" />
     <Build Include="dbo\Tables\EmployeeCertifyingStaff.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdateWOVersionNum.sql" />
     <Build Include="dbo\Stored Procedures\SP_CreateWorkOrderBillingPerformaInvoicing.sql" />
@@ -4520,6 +4529,9 @@
     <Build Include="dbo\Stored Procedures\USP_GetAircraftEffectivity.sql" />
     <Build Include="dbo\User Defined Types\AircraftEffectivityTableType.sql" />
     <Build Include="dbo\Tables\CustomerAging_1.sql" />
+    <Build Include="dbo\Stored Procedures\USP_SaveCustomerAging.sql" />
+    <Build Include="dbo\Tables\VendorAging.sql" />
+    <Build Include="dbo\Stored Procedures\USP_SaveVendorAging.sql" />
     <Build Include="dbo\Stored Procedures\uspbatch_UpdateCustomerARAgingBalance_1.sql" />
     <Build Include="dbo\Stored Procedures\USP_deleteSalesOrderStockLineCost.sql" />
     <Build Include="dbo\Functions\fn_TransformSelectList.sql" />
@@ -4578,6 +4590,8 @@
     <Build Include="dbo\Stored Procedures\USP_LegalEntityShippingAddressStatus.sql" />
     <Build Include="dbo\Tables\UserTwoFactorVerification.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetCommonBillingInvoicingItemsByInvoiceId.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetCommonBillingInvoicingItemsByInvoiceIdForXeroAccounting.sql" />
+    <Build Include="dbo\Stored Procedures\USP_UpdateBillingInvoiceDepositFromXero.sql" />
     <Build Include="dbo\Stored Procedures\USP_searchgetAircraftMappingDataByMultiTypeIdModelIDDashID.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdatePublicationStatus.sql" />
     <Build Include="dbo\Stored Procedures\USP_DeletePublicationById.sql" />

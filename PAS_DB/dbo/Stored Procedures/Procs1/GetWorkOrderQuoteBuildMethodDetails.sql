@@ -18,6 +18,7 @@
     1    05/25/2021   Hemant Saliya Created  
 	2    11/12/2025   Moin Bloch    Updated For MRO Price Flag   
 	3    13/12/2025  Moin Bloch     Updated (Added Opr)
+	4    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
        
 -- EXEC [GetWorkOrderQuoteBuildMethodDetails] 29871  
 **************************************************************/  
@@ -79,7 +80,7 @@ BEGIN
 		CASE WHEN @UnitPrice > 0 THEN 1 ELSE 0 END [IsMroPrice]
     FROM DBO.WorkOrderQuoteDetails WQD WITH (NOLOCK)  
      LEFT JOIN dbo.ItemMaster IM WITH (NOLOCK) ON IM.ItemMasterId = WQD.ItemMasterId  
-    WHERE WQD.WorkflowWorkOrderId = @workflowWorkorderId AND ISNULL(IsVersionIncrease,0) = 0  
+     AND ISNULL(IM.IsNonStock,0) = 0 WHERE WQD.WorkflowWorkOrderId = @workflowWorkorderId AND ISNULL(IsVersionIncrease,0) = 0  
 
    END  
   COMMIT  TRANSACTION  

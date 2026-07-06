@@ -23,6 +23,7 @@
 	7   22/04/2025      Amit Ghediya        Update for task table baseed on wo type.
 	8   09/12/2025      Amit Ghediya        Added Task filter
 	9   18/12/2025      Sahdev Saliya       pnDescription has been updated. 
+	10    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 **************************************************************/
 CREATE     PROCEDURE [dbo].[usprpt_GetWorkOrderLaborTrackingReport] 
 @PageNumber INT = 1,
@@ -145,7 +146,7 @@ BEGIN
 					AND (ISNULL(@Level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))
 					AND  (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))
 
-			END
+			 AND ISNULL(IM.IsNonStock,0) = 0 END
 
 			SET @PageSize = CASE WHEN NULLIF(@PageSize,0) IS NULL THEN 10 ELSE @PageSize END
 			SET @PageNumber = CASE WHEN NULLIF(@PageNumber,0) IS NULL THEN 1 ELSE @PageNumber END
@@ -188,7 +189,7 @@ BEGIN
 					INNER JOIN dbo.WorkOrderPartNumber WPN WITH(NOLOCK) ON WOF.WorkOrderPartNoId = WPN.ID  
 					INNER JOIN dbo.ItemMaster IM WITH(NOLOCK) ON IM.ItemMasterId = WPN.ItemMasterId
 					LEFT JOIN [dbo].[ItemMaster] RIM WITH (NOLOCK) ON WPN.RevisedItemmasterid = RIM.ItemMasterId
-					INNER JOIN dbo.WorkOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = WPN.ID
+					 AND ISNULL(RIM.IsNonStock,0) = 0 INNER JOIN dbo.WorkOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = WPN.ID
 					LEFT JOIN dbo.Task T WITH(NOLOCK) on WOL.TaskId = T.TaskId
 					LEFT JOIN dbo.WorkOrderTask WT WITH(NOLOCK) on WOL.TaskId = WT.WorkOrderTaskId
 					LEFT JOIN dbo.TaskStatus TS WITH(NOLOCK) ON WOL.TaskStatusId = TS.TaskStatusId
@@ -218,7 +219,7 @@ BEGIN
 					AND (ISNULL(@Level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))
 					AND  (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))
 			
-			UNION ALL 
+			 AND ISNULL(IM.IsNonStock,0) = 0 UNION ALL 
 
 			SELECT 
 			--COUNT(1) OVER () AS TotalRecordsCount,
@@ -255,7 +256,7 @@ BEGIN
 					INNER JOIN dbo.WorkOrderPartNumber WPN WITH(NOLOCK) ON WOF.WorkOrderPartNoId = WPN.ID  
 					INNER JOIN dbo.ItemMaster IM WITH(NOLOCK) ON IM.ItemMasterId = WPN.ItemMasterId
 					LEFT JOIN [dbo].[ItemMaster] RIM WITH (NOLOCK) ON WPN.RevisedItemmasterid = RIM.ItemMasterId
-					INNER JOIN dbo.WorkOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = WPN.ID
+					 AND ISNULL(RIM.IsNonStock,0) = 0 INNER JOIN dbo.WorkOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = WPN.ID
 					LEFT JOIN dbo.Task T WITH(NOLOCK) on WOL.TaskId = T.TaskId
 					LEFT JOIN dbo.WorkOrderTask WT WITH(NOLOCK) on WOL.TaskId = WT.WorkOrderTaskId
 					LEFT JOIN dbo.TaskStatus TS WITH(NOLOCK) ON WOL.TaskStatusId = TS.TaskStatusId
@@ -288,7 +289,7 @@ BEGIN
 
 		--ORDER BY IM.partnumber
 		--OFFSET((@PageNumber-1) * @PageSize) ROWS FETCH NEXT @PageSize ROWS ONLY
-		)
+		 AND ISNULL(IM.IsNonStock,0) = 0 )
 		Select * INTO #tmpLaborTracking from  Result  
 
 	SELECT DISTINCT COUNT(1) OVER () AS TotalRecordsCount, * FROM #tmpLaborTracking

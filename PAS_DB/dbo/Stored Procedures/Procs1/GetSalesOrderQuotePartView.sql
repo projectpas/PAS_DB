@@ -23,6 +23,7 @@
 	10   20-NOV-2025  Vishal Suthar	    Fixed Order By clause with order it based on SalesOrderQuotePartId
 	10   20-MAY-2025  RAJESH GAMI	    Fixed: Get the CustomerStatusId from ApprovalStatus Table instead of Static  [PN-16505]
 	11   29/05/2026   Ayushi Patel      [PN-16645]Added default value for @CurrencyDisplayName to handle null currency
+	12    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
  EXEC [DBO].[GetSalesOrderQuotePartView] 1653, 'USD'
 **************************************************************/
 CREATE PROCEDURE [dbo].[GetSalesOrderQuotePartView]
@@ -183,7 +184,7 @@ BEGIN
 		LEFT JOIN DBO.SOPartStatus st WITH (NOLOCK) ON part.StatusId = st.SOPartStatusId
 		LEFT JOIN DBO.Currency fcu WITH (NOLOCK) ON part.CurrencyId = fcu.CurrencyId AND fcu.IsActive = 1 AND fcu.IsDeleted = 0
 		WHERE part.SalesOrderQuoteId = @SalesQuoteId AND part.IsDeleted = 0
-		ORDER BY part.SalesOrderQuotePartId;
+		 AND ISNULL(itemMaster.IsNonStock,0) = 0 ORDER BY part.SalesOrderQuotePartId;
 
 	/****** Total Part Wise COST Calculation ******/
 		;WITH CTE_Cost AS (

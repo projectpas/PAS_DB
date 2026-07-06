@@ -10,6 +10,7 @@
  ** PR   Date				Author  				Change Description              
  ** --   --------			-------				--------------------------------            
     1    2025-06-03		  Ayushi Patel				Created
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
  ***************************************************************/ 
 CREATE   PROCEDURE [dbo].[USP_GetAircraftMappingDataByFilters]
     @PublicationID BIGINT,
@@ -98,7 +99,7 @@ BEGIN
                 (NOT EXISTS (SELECT 1 FROM #AircraftTypeIds) OR imap.AircraftTypeId IN (SELECT Id FROM #AircraftTypeIds)) AND
                 (NOT EXISTS (SELECT 1 FROM #AircraftModelIds) OR imap.AircraftModelId IN (SELECT Id FROM #AircraftModelIds)) AND
                 (NOT EXISTS (SELECT 1 FROM #DashNumberIds) OR imap.DashNumberId IN (SELECT Id FROM #DashNumberIds))
-            );
+            ) AND ISNULL(im.IsNonStock,0) = 0 ;
 
 
     END TRY

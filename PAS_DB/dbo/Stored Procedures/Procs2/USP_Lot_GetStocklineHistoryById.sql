@@ -12,6 +12,7 @@
  ** PR   Date         Author		Change Description              
  ** --   --------     -------		---------------------------       
     1   27/Aug/2025  RAJESH GAMI     Created  
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 **************************************************************  
 EXEC USP_Lot_GetStocklineHistoryById 34,207818,1,245  
 **************************************************************/  
@@ -150,7 +151,7 @@ BEGIN
 					 LEFT JOIN DBO.Condition c WITH(NOLOCK) ON c.ConditionId = sl.ConditionId
 					 LEFT JOIN DBO.Vendor ven WITH(NOLOCK) ON sl.VendorId = ven.VendorId
 				WHERE lot.LotId = @LotId AND ltin.StockLineId = @StockLineId AND lot.MasterCompanyId = @MasterCompanyId
-				), ResultCount AS(Select COUNT(*) AS totalItems FROM Result) 			
+				 AND ISNULL(im.IsNonStock,0) = 0 ), ResultCount AS(Select COUNT(*) AS totalItems FROM Result) 			
 				SELECT * FROM Result ORDER BY UpdatedDate DESC	
 
  END  

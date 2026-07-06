@@ -27,6 +27,7 @@
 	9    29/05/2026  Nakul Chandigra  Added AircraftSN,ExchangeSalesOrderNumber fields
 	10   29/05/2026  Priyansh Patel 	Added new field 'TTSN, TCSN '(PN-16477)
 	14   30/06/2026  Nakul Chandigra    Added new field 'Note' [Note] [PN-17012]
+	15    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 
     EXEC dbo.GetStockLineDetails  179632  180170
 ***********************************************************************************************/
@@ -297,7 +298,8 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
               ,ISNULL(stl.[TaxAdjustment], 0) AS TaxAdjustment
 			  ,'' AS TaxAdjustmentAmounts
 			  ,ISNULL(stl.[IsStkTimeLife], im.[IsTimeLife]) AS isTimeLife
-			  ,CASE WHEN stl.[IsSerialized] = 1 AND (stl.[SerialNumber] IS NULL OR stl.[SerialNumber] = '') THEN 1 ELSE 0 END AS IsSkipSerialNo
+			  ,CASE WHEN stl.[IsSerialized] = 1 AND (stl.[SerialNumber] IS NULL OR stl.[SerialNumber] = '') THEN 1  WHERE ISNULL(v.IsNonStock,0) = 0
+ELSE 0 END AS IsSkipSerialNo
 			  ,stl.[RepairOrderNumber] RONumber
 			,stl.InventoryGLSettingId      
 			,igls.[StockInventoryName]      
@@ -357,7 +359,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 			LEFT JOIN dbo.ItemMasterIntegrationPortal mp WITH(NOLOCK) ON iM.ItemMasterId = mp.ItemMasterId
 			LEFT JOIN dbo.IntegrationPortal ip WITH(NOLOCK) ON mp.IntegrationPortalId = ip.IntegrationPortalId
 			WHERE mp.IntegrationPortalId IS NOT NULL
-			GROUP BY iM.ItemMasterId
+			 AND ISNULL(iM.IsNonStock,0) = 0 GROUP BY iM.ItemMasterId
 		) AS ipAgg ON stl.ItemMasterId = ipAgg.ItemMasterId
 		 LEFT JOIN [dbo].[InventoryGLSetting] igls WITH(NOLOCK) ON igls.InventoryGLSettingId=stl.InventoryGLSettingId
 		 LEFT JOIN [dbo].[ItemMasterExportInfo] imx WITH(NOLOCK) ON im.[ItemMasterId] = imx.[ItemMasterId]
@@ -365,11 +367,11 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 		 LEFT JOIN [dbo].[RepairOrder] ro WITH(NOLOCK) ON stl.[RepairOrderId] = ro.[RepairOrderId]
 		 LEFT JOIN [dbo].[TimeLife] ti WITH(NOLOCK) ON stl.[StockLineId] = ti.[StockLineId]
 		 LEFT JOIN [dbo].[ItemMaster] oempnpart WITH(NOLOCK) ON stl.[IsOemPNId] = oempnpart.[ItemMasterId]
-		 LEFT JOIN [dbo].[AssetAcquisitionType] iaty WITH(NOLOCK) ON stl.[AcquistionTypeId] = iaty.[AssetAcquisitionTypeId]
+		  AND ISNULL(oempnpart.IsNonStock,0) = 0 LEFT JOIN [dbo].[AssetAcquisitionType] iaty WITH(NOLOCK) ON stl.[AcquistionTypeId] = iaty.[AssetAcquisitionTypeId]
 		 LEFT JOIN [dbo].[Employee] empr WITH(NOLOCK) ON stl.[RequestorId] = empr.[EmployeeId]
 		 LEFT JOIN [dbo].[Employee] empi WITH(NOLOCK) ON stl.[InspectionBy] = empi.[EmployeeId]
 		 LEFT JOIN [dbo].[ItemMaster] rPart WITH(NOLOCK) ON im.[RevisedPartId] = rPart.[ItemMasterId]
-		 LEFT JOIN [dbo].[Vendor] ve WITH(NOLOCK) ON stl.[VendorId] = ve.[VendorId]
+		  AND ISNULL(rPart.IsNonStock,0) = 0 LEFT JOIN [dbo].[Vendor] ve WITH(NOLOCK) ON stl.[VendorId] = ve.[VendorId]
 		 LEFT JOIN [dbo].[TagType] tt WITH(NOLOCK) ON stl.[TagTypeId] = tt.[TagTypeId]
 		 LEFT JOIN [dbo].[Customer] ct WITH(NOLOCK) ON stl.[CustomerId] = ct.[CustomerId]
 		 LEFT JOIN [dbo].[ReceivingInspection] rc WITH(NOLOCK) ON stl.[StockLineId] = rc.StockLineId
@@ -385,7 +387,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 		 LEFT JOIN DBO.ExchangeSalesOrder ES WITH (NOLOCK) ON stl.ExchangeSalesOrderId = ES.ExchangeSalesOrderId
 		WHERE stl.[IsDeleted] = 0 AND stl.[StockLineId] = @StockLineId
 
-	END TRY    
+	 AND ISNULL(im.IsNonStock,0) = 0 END TRY    
 	BEGIN CATCH 
 	DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name() 
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------

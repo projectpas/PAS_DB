@@ -11,6 +11,7 @@
     1    06/22/2023   Amit Ghediya   created
 	2    06/23/2023   Amit Ghediya   Get Data Based on ItemMasterId.
 	3    07/04/2023   Amit Ghediya   Updated for get Qty base ticket.
+	4    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 
 -- EXEC [dbo].[sp_VendorRMA_SearchStockLinePickTicket] 330,1,42,0
 -- EXEC [dbo].[sp_VendorRMA_SearchStockLinePickTicket] 1,1,42,1
@@ -96,7 +97,7 @@ BEGIN
 					--((
 					--(SELECT ISNULL(SUM(ship_item.QtyShipped), 0) FROM DBO.RMAShipping ship WITH(NOLOCK) LEFT JOIN RMAShippingItem ship_item WITH(NOLOCK) on ship_item.RMAShippingId = ship.RMAShippingId AND ship.VendorRMAId = @VendorRMAId and ship_item.VendorRMADetailId = sop.VendorRMADetailId)) - 
 					--(SELECT ISNULL(SUM(QtyToShip), 0) FROM RMAPickTicket s WITH(NOLOCK) Where s.VendorRMAId = @VendorRMAId AND s.VendorRMADetailId = sop.VendorRMADetailId)) > 0
-				GROUP BY sop.VendorRMADetailId,im.PartNumber,sl.StockLineId,im.ItemMasterId ,im.ItemMasterId,im.PartDescription ,ig.Description ,mf.Name,im.ManufacturerId,sl.ConditionId
+				 AND ISNULL(im.IsNonStock,0) = 0 GROUP BY sop.VendorRMADetailId,im.PartNumber,sl.StockLineId,im.ItemMasterId ,im.ItemMasterId,im.PartDescription ,ig.Description ,mf.Name,im.ManufacturerId,sl.ConditionId
 					,sl.StockLineNumber ,sl.SerialNumber,sl.ControlNumber,sl.IdNumber,sl.QuantityAvailable,sl.QuantityOnHand,im.IsPma,im.IsDER,so.VendorRMAId ,sop.ItemMasterId,sl.PurchaseOrderUnitCost
 					,sl.TraceableToType,cusTraceble.Name,vTraceble.VendorName,leTraceble.Name,sl.TraceableTo,sl.TagType,sl.TagDate,sl.CertifiedBy,sl.CertifiedDate,sl.Memo,Smf.Name
 		END
@@ -174,7 +175,7 @@ BEGIN
 					--(((SELECT ISNULL(SUM(ship_item.QtyShipped), 0) FROM DBO.RMAShipping ship WITH(NOLOCK) LEFT JOIN RMAShippingItem ship_item WITH(NOLOCK) on ship_item.RMAShippingId = ship.RMAShippingId AND ship.VendorRMAId = @VendorRMAId and ship_item.VendorRMADetailId = sop.VendorRMADetailId)) - 
 					--(SELECT ISNULL(SUM(QtyToShip), 0) FROM RMAPickTicket s WITH(NOLOCK) Where s.VendorRMAId = @VendorRMAId AND s.VendorRMADetailId = sop.VendorRMADetailId)
 					--) > 0
-				GROUP BY sop.VendorRMADetailId,im.PartNumber,sl.StockLineId,im.ItemMasterId ,im.ItemMasterId,im.PartDescription ,ig.Description ,mf.Name,im.ManufacturerId,sl.ConditionId
+				 AND ISNULL(im.IsNonStock,0) = 0 GROUP BY sop.VendorRMADetailId,im.PartNumber,sl.StockLineId,im.ItemMasterId ,im.ItemMasterId,im.PartDescription ,ig.Description ,mf.Name,im.ManufacturerId,sl.ConditionId
 					,sl.StockLineNumber ,sl.SerialNumber,sl.ControlNumber,sl.IdNumber,sl.QuantityAvailable,sl.QuantityOnHand,im.IsPma,im.IsDER,so.VendorRMAId ,sop.ItemMasterId,sl.PurchaseOrderUnitCost
 					,sl.TraceableToType,cusTraceble.Name,vTraceble.VendorName,leTraceble.Name,sl.TraceableTo,sl.TagType,sl.TagDate,sl.CertifiedBy,sl.CertifiedDate,sl.Memo,Smf.Name
 					

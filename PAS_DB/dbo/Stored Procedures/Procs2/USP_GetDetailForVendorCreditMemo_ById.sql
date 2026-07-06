@@ -15,6 +15,7 @@
  ** S NO   Date				 Author  			Change Description            
  ** --   --------			-------			--------------------------------          
 	1	21-June-2023		Devendra		Get Data to create vendor credit memo from vendorRMA data
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
      
 EXECUTE   [dbo].[USP_GetDetailForVendorCreditMemo_ById] 23
 **************************************************************/
@@ -43,7 +44,7 @@ BEGIN
 				LEFT JOIN [dbo].[VendorRMADetail] rmad WITH(NOLOCK) ON vra.VendorRMAId = rmad.VendorRMAId
 				LEFT JOIN [dbo].[VendorRMAStatus] vrs WITH(NOLOCK) ON vra.VendorRMAStatusId = vrs.VendorRMAStatusId
 				LEFT JOIN [dbo].[ItemMaster] im WITH(NOLOCK) ON rmad.ItemMasterId = im.ItemMasterId
-				LEFT JOIN [dbo].[Vendor] vr WITH(NOLOCK) ON vra.VendorId = vr.VendorId
+				 AND ISNULL(im.IsNonStock,0) = 0 LEFT JOIN [dbo].[Vendor] vr WITH(NOLOCK) ON vra.VendorId = vr.VendorId
 				LEFT JOIN [dbo].[VendorPayment] vrp WITH(NOLOCK) ON vr.VendorId = vrp.VendorId
 				LEFT JOIN [dbo].[VendorPaymentDetails] vrpd WITH(NOLOCK) ON vrp.VendorPaymentId = vrpd.VendorPaymentDetailsId
 				WHERE vra.VendorRMAId = @VRMAId

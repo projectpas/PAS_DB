@@ -9,6 +9,7 @@
  ** PR   Date         Author			Change Description            
  ** --   --------     -------			--------------------------------          
     1    04/14/2025   Vishal Suthar		Created
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 
 EXEC [dbo].[SearchStockLinePickTicketPopForRO] 20751, 1, 2547, 0
 **************************************************************/ 
@@ -95,7 +96,7 @@ BEGIN
 					--	INNER JOIN ROPickTicket sopi with(nolock) on ship_item.SOPickTicketId = sopi.SOPickTicketId and sopi.SOPickTicketId = Pick.SOPickTicketId)
 					) - 
 					(SELECT ISNULL(SUM(QtyToShip), 0) FROM ROPickTicket s WITH(NOLOCK) Where s.RepairOrderId = @RepairOrderId AND s.StocklineId = sl.StocklineId)) > 0
-		END
+		 AND ISNULL(im.IsNonStock,0) = 0 END
 		ELSE
 		BEGIN
 			SELECT DISTINCT
@@ -172,7 +173,7 @@ BEGIN
 					) - 
 					(SELECT ISNULL(SUM(QtyToShip), 0) FROM ROPickTicket s WITH(NOLOCK) Where s.RepairOrderId = @RepairOrderId AND s.StocklineId = sl.StocklineId)
 					) > 0
-		END
+		 AND ISNULL(im.IsNonStock,0) = 0 END
 
 				
 	END

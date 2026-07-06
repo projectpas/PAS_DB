@@ -13,6 +13,7 @@
  ** --   --------		-------			--------------------------------          
     1    08-APR-2025   Abhishek Jirawla Created
 	2    26-12-2025    Nakul Chandigra  removed Formate from the Opendate 
+	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
      
  EXECUTE [GetSOConfirmationListExport] 1, pnview
 **************************************************************/ 
@@ -101,7 +102,7 @@ BEGIN
 
 			WHERE part.IsDeleted = 0
 			  AND part.MasterCompanyId = @MasterCompanyId
-		END
+		 AND ISNULL(itemMaster.IsNonStock,0) = 0 END
 		ELSE IF @ListViewType = @SoView -- SO View
 		BEGIN
 			SELECT 
@@ -158,7 +159,7 @@ BEGIN
 
 			WHERE part.IsDeleted = 0
 			  AND part.MasterCompanyId = @MasterCompanyId
-		END
+		 AND ISNULL(itemMaster.IsNonStock,0) = 0 END
 
 		
 

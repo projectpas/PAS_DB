@@ -28,6 +28,7 @@ INSERT INTO @p1 values(65,72,10099,512,15,34,2,14,6,N'INSPECTED',N'AIR-MAZE',N'A
 INSERT INTO @p1 values(65,72,10099,513,15,34,2,14,6,N'INSPECTED',N'AIR-MAZE',N'AIR-MAZE U2-849 AERONCA AIR FILTER',10,7,1,N'CNTL-000311',N'ID_NUM-000001',N'STL-000072',N'',N'ADMIN ADMIN',0)
 
 EXEC dbo.usp_IssueSubWorkOrderMaterialsStockline @tbl_MaterialsStocklineType=@p1
+	1    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[usp_IssueSubWorkOrderMaterialsStockline]
 @tbl_MaterialsStocklineType SubWOMaterialsStocklineType READONLY
@@ -446,7 +447,7 @@ BEGIN
 
 						SELECT @ItemMasterId = SWOP.ItemMasterId, @MPNPartnumber = IM.partnumber FROM dbo.SubWorkOrderPartNumber AS SWOP WITH(NOLOCK)
 							JOIN dbo.ItemMaster IM WITH(NOLOCK) ON IM.ItemMasterId = SWOP.ItemMasterId
-						 WHERE SubWOPartNoId = @SubWorkOrderPartNoId;
+						 WHERE SubWOPartNoId = @SubWorkOrderPartNoId AND ISNULL(IM.IsNonStock,0) = 0 ;
 						
 						SELECT @SubWorkOrderNum = SubWorkOrderNo FROM dbo.SubWorkOrder WITH(NOLOCK) WHERE SubWorkOrderId = @historysUBWorkOrderId;
 						SELECT @ConditionCode = Code FROM dbo.Condition WITH(NOLOCK) WHERE ConditionId = @ConditionId;

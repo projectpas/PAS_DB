@@ -16,6 +16,7 @@
  ** 5       03-Oct-2025     Devendra Shekh			Added [IsCustomerStock] for Stk
  
 EXECUTE [dbo].[usp_GetMultipleRFQbyId] '880'
+	1    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 **************************************************************/  
 CREATE     PROCEDURE [dbo].[usp_GetMultipleRFQbyId]
 @CustomerRfqId VARCHAR(MAX) = NULL
@@ -78,7 +79,7 @@ SET NOCOUNT ON
 				SELECT MAX(RIM.ItemMasterId) AS ItemMasterId, RIM.partnumber AS partnumber, MAX(RIM.PartDescription) AS PartDescription, RIM.MasterCompanyId 
 				FROM [dbo].[ItemMaster] RIM WITH(NOLOCK) 
 				WHERE RIM.[MasterCompanyId] = @MasterCompanyId AND RIM.IsActive = 1 AND RIM.IsDeleted = 0
-				GROUP BY RIM.partnumber, RIM.MasterCompanyId
+				 AND ISNULL(RIM.IsNonStock,0) = 0 GROUP BY RIM.partnumber, RIM.MasterCompanyId
 			),	
 			StkResult AS (
 				SELECT  MAX(STK.StockLineId) AS StockLineId, STK.ItemMasterId, STK.MasterCompanyId  

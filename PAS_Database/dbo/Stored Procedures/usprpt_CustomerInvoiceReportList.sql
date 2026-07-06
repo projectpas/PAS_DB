@@ -15,6 +15,7 @@
  ** SrNO Date			Author  			Change Description            
  ** --   --------		-------				--------------------------------          
 	1	 10-FEB-2026	Vishal Suthar  		CREATED
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 
 exec usprpt_CustomerInvoiceReportList @PageNumber=1,@PageSize=20,@SortColumn=N'InvoiceDate',@SortOrder=-1,@GlobalFilter=N'',@ViewType=N'Details',
 @FromDate='2026-01-11 00:00:00',@ToDate='2026-02-11 00:00:00',@CustomerId=NULL,@strFilter=N'1,5,6!2,7,8,9!3,11,10!4,12,13!!!!!!',@CustomerName=NULL,
@@ -245,7 +246,7 @@ BEGIN
 					LEFT JOIN dbo.CustomerRMAHeader CRM WITH (NOLOCK) ON CRM.InvoiceId = WOBI.BillingInvoicingId AND ISNULL(CRM.isWorkOrder, 0) = 1
 					LEFT JOIN dbo.Stockline SL WITH (NOLOCK) ON SL.StockLineId = WOPN.StockLineId
 					LEFT JOIN dbo.ItemMaster I WITH (NOLOCK) On WOBII.ItemMasterId = I.ItemMasterId
-					INNER JOIN [dbo].[Currency] CR WITH(NOLOCK) ON CR.CurrencyId = WOBI.CurrencyId
+					 AND ISNULL(I.IsNonStock,0) = 0 INNER JOIN [dbo].[Currency] CR WITH(NOLOCK) ON CR.CurrencyId = WOBI.CurrencyId
 					LEFT JOIN [dbo].ManagementStructureLevel MSL WITH(NOLOCK) ON M.[Level1Id] = MSL.ID
 					LEFT JOIN  [dbo].[CustomerFinancial] cf WITH(NOLOCK) ON WOBI.CustomerId = cf.CustomerId AND ISNULL(cf.IsDeleted,0) = 0
 					LEFT JOIN  [dbo].[CreditTerms] ctm WITH(NOLOCK) ON cf.CreditTermsId = ctm.CreditTermsId
@@ -367,7 +368,7 @@ BEGIN
 				LEFT JOIN dbo.CustomerRMAHeader CRM WITH (NOLOCK) ON CRM.InvoiceId=SOBI.BillingInvoicingId and CRM.isWorkOrder=0
 				LEFT JOIN dbo.SalesOrderManagementStructureDetails SMS WITH (NOLOCK) ON SMS.ReferenceID = SO.SalesOrderId AND SMS.ModuleID = @SOModuleID 
 				LEFT JOIN dbo.ItemMaster I WITH (NOLOCK) On SOBII.ItemMasterId=I.ItemMasterId
-				INNER JOIN [dbo].[Currency] CR WITH(NOLOCK) ON CR.CurrencyId = SOBI.CurrencyId
+				 AND ISNULL(I.IsNonStock,0) = 0 INNER JOIN [dbo].[Currency] CR WITH(NOLOCK) ON CR.CurrencyId = SOBI.CurrencyId
 				LEFT JOIN [dbo].ManagementStructureLevel MSL WITH(NOLOCK) ON SMS.[Level1Id] = MSL.ID
 				LEFT JOIN  [dbo].[CustomerFinancial] cf WITH(NOLOCK) ON SOBI.CustomerId = cf.CustomerId AND ISNULL(cf.IsDeleted,0) = 0
 				LEFT JOIN  [dbo].[CreditTerms] ctm WITH(NOLOCK) ON cf.CreditTermsId = ctm.CreditTermsId
@@ -472,7 +473,7 @@ BEGIN
 				LEFT JOIN dbo.Stockline ST WITH (NOLOCK) ON ST.StockLineId=SOPN.StockLineId
 				LEFT JOIN dbo.ExchangeManagementStructureDetails SMS WITH (NOLOCK) ON SMS.ReferenceID = SO.ExchangeSalesOrderId AND SMS.ModuleID = @ExchSOModuleID 
 				LEFT JOIN dbo.ItemMaster I WITH (NOLOCK) On SOBII.ItemMasterId=I.ItemMasterId
-				INNER JOIN [dbo].[Currency] CR WITH(NOLOCK) ON CR.CurrencyId = SOBI.CurrencyId
+				 AND ISNULL(I.IsNonStock,0) = 0 INNER JOIN [dbo].[Currency] CR WITH(NOLOCK) ON CR.CurrencyId = SOBI.CurrencyId
 				LEFT JOIN [dbo].ManagementStructureLevel MSL WITH(NOLOCK) ON SMS.[Level1Id] = MSL.ID
 				LEFT JOIN  [dbo].[CustomerFinancial] cf WITH(NOLOCK) ON SOBI.CustomerId = cf.CustomerId AND ISNULL(cf.IsDeleted,0) = 0
 				LEFT JOIN  [dbo].[CreditTerms] ctm WITH(NOLOCK) ON cf.CreditTermsId = ctm.CreditTermsId
@@ -581,7 +582,7 @@ BEGIN
 				INNER JOIN [dbo].[ManagementStructureLevel] MSL WITH (NOLOCK) ON ES.Level1Id = MSL.ID
 				INNER JOIN [dbo].[LegalEntity] LE WITH (NOLOCK) ON MSL.LegalEntityId = LE.LegalEntityId 
 				 LEFT JOIN [dbo].[ItemMaster] I WITH (NOLOCK) ON CMD.ItemMasterId = I.ItemMasterId  
-				 LEFT JOIN [dbo].ManagementStructureLevel MNSL WITH(NOLOCK) ON MSD.[Level1Id] = MNSL.ID
+				  AND ISNULL(I.IsNonStock,0) = 0 LEFT JOIN [dbo].ManagementStructureLevel MNSL WITH(NOLOCK) ON MSD.[Level1Id] = MNSL.ID
 			WHERE CM.MasterCompanyId = @MasterCompanyid AND CM.IsActive = 1 AND CM.IsDeleted = 0
 				GROUP BY CM.[CreditMemoHeaderId],CM.[CreditMemoNumber],CM.[Status],C.[Name],C.CustomerCode, CT.[CustomerTypeName],CMD.[Amount],CM.[CreatedDate], 
 						 CMD.[SOWONum],CMD.[ReferenceNo],MSD.[LastMSLevel],MSD.[AllMSlevels],C.[CustomerId],MSD.[EntityMSID],I.[ItemMasterId],CM.IsStandAloneCM,MNSL.Code,
@@ -797,7 +798,7 @@ BEGIN
 					LEFT JOIN dbo.CustomerRMAHeader CRM WITH (NOLOCK) ON CRM.InvoiceId = WOBI.BillingInvoicingId AND ISNULL(CRM.isWorkOrder, 0) = 1
 					LEFT JOIN dbo.Stockline SL WITH (NOLOCK) ON SL.StockLineId = WOPN.StockLineId
 					LEFT JOIN dbo.ItemMaster I WITH (NOLOCK) On WOBII.ItemMasterId = I.ItemMasterId
-					INNER JOIN [dbo].[Currency] CR WITH(NOLOCK) ON CR.CurrencyId = WOBI.CurrencyId
+					 AND ISNULL(I.IsNonStock,0) = 0 INNER JOIN [dbo].[Currency] CR WITH(NOLOCK) ON CR.CurrencyId = WOBI.CurrencyId
 					LEFT JOIN [dbo].ManagementStructureLevel MSL WITH(NOLOCK) ON M.[Level1Id] = MSL.ID
 					LEFT JOIN  [dbo].[CustomerFinancial] cf WITH(NOLOCK) ON WOBI.CustomerId = cf.CustomerId AND ISNULL(cf.IsDeleted,0) = 0
 					LEFT JOIN  [dbo].[CreditTerms] ctm WITH(NOLOCK) ON cf.CreditTermsId = ctm.CreditTermsId
@@ -919,7 +920,7 @@ BEGIN
 				LEFT JOIN dbo.CustomerRMAHeader CRM WITH (NOLOCK) ON CRM.InvoiceId=SOBI.BillingInvoicingId and CRM.isWorkOrder=0
 				LEFT JOIN dbo.SalesOrderManagementStructureDetails SMS WITH (NOLOCK) ON SMS.ReferenceID = SO.SalesOrderId AND SMS.ModuleID = @SOModuleID 
 				LEFT JOIN dbo.ItemMaster I WITH (NOLOCK) On SOBII.ItemMasterId=I.ItemMasterId
-				INNER JOIN [dbo].[Currency] CR WITH(NOLOCK) ON CR.CurrencyId = SOBI.CurrencyId
+				 AND ISNULL(I.IsNonStock,0) = 0 INNER JOIN [dbo].[Currency] CR WITH(NOLOCK) ON CR.CurrencyId = SOBI.CurrencyId
 				LEFT JOIN [dbo].ManagementStructureLevel MSL WITH(NOLOCK) ON SMS.[Level1Id] = MSL.ID
 				LEFT JOIN  [dbo].[CustomerFinancial] cf WITH(NOLOCK) ON SOBI.CustomerId = cf.CustomerId AND ISNULL(cf.IsDeleted,0) = 0
 				LEFT JOIN  [dbo].[CreditTerms] ctm WITH(NOLOCK) ON cf.CreditTermsId = ctm.CreditTermsId
@@ -1025,7 +1026,7 @@ BEGIN
 				LEFT JOIN dbo.Stockline ST WITH (NOLOCK) ON ST.StockLineId=SOPN.StockLineId
 				LEFT JOIN dbo.ExchangeManagementStructureDetails SMS WITH (NOLOCK) ON SMS.ReferenceID = SO.ExchangeSalesOrderId AND SMS.ModuleID = @ExchSOModuleID 
 				LEFT JOIN dbo.ItemMaster I WITH (NOLOCK) On SOBII.ItemMasterId=I.ItemMasterId
-				INNER JOIN [dbo].[Currency] CR WITH(NOLOCK) ON CR.CurrencyId = SOBI.CurrencyId
+				 AND ISNULL(I.IsNonStock,0) = 0 INNER JOIN [dbo].[Currency] CR WITH(NOLOCK) ON CR.CurrencyId = SOBI.CurrencyId
 				LEFT JOIN [dbo].ManagementStructureLevel MSL WITH(NOLOCK) ON SMS.[Level1Id] = MSL.ID
 				LEFT JOIN  [dbo].[CustomerFinancial] cf WITH(NOLOCK) ON SOBI.CustomerId = cf.CustomerId AND ISNULL(cf.IsDeleted,0) = 0
 				LEFT JOIN  [dbo].[CreditTerms] ctm WITH(NOLOCK) ON cf.CreditTermsId = ctm.CreditTermsId
@@ -1135,7 +1136,7 @@ BEGIN
 				INNER JOIN [dbo].[ManagementStructureLevel] MSL WITH (NOLOCK) ON ES.Level1Id = MSL.ID
 				INNER JOIN [dbo].[LegalEntity] LE WITH (NOLOCK) ON MSL.LegalEntityId = LE.LegalEntityId 
 				 LEFT JOIN [dbo].[ItemMaster] I WITH (NOLOCK) ON CMD.ItemMasterId = I.ItemMasterId  
-				 LEFT JOIN [dbo].ManagementStructureLevel MNSL WITH(NOLOCK) ON MSD.[Level1Id] = MNSL.ID
+				  AND ISNULL(I.IsNonStock,0) = 0 LEFT JOIN [dbo].ManagementStructureLevel MNSL WITH(NOLOCK) ON MSD.[Level1Id] = MNSL.ID
 			WHERE CM.MasterCompanyId = @MasterCompanyid AND CM.IsActive = 1 AND CM.IsDeleted = 0
 				GROUP BY CM.[CreditMemoHeaderId],CM.[CreditMemoNumber],CM.[Status],C.[Name],C.CustomerCode, CT.[CustomerTypeName],CMD.[Amount],CM.[CreatedDate], 
 						 CMD.[SOWONum],CMD.[ReferenceNo],MSD.[LastMSLevel],MSD.[AllMSlevels],C.[CustomerId],MSD.[EntityMSID],I.[ItemMasterId],CM.IsStandAloneCM,MNSL.Code,
@@ -1452,7 +1453,7 @@ BEGIN
 				LEFT JOIN dbo.WorkOrderQuoteDetails WQD WITH (NOLOCK) ON WQD.WOPartNoId = WOBII.SubReferenceId AND WQD.WorkOrderQuoteId=WQ.WorkOrderQuoteId
 				LEFT JOIN dbo.CustomerType CT WITH (NOLOCK) ON C.CustomerTypeId=CT.CustomerTypeId
 				LEFT JOIN dbo.ItemMaster IM WITH (NOLOCK) ON WOBII.ItemMasterId=IM.ItemMasterId
-				LEFT JOIN dbo.Stockline ST WITH (NOLOCK) ON ST.StockLineId=WOPN.StockLineId
+				 AND ISNULL(IM.IsNonStock,0) = 0 LEFT JOIN dbo.Stockline ST WITH (NOLOCK) ON ST.StockLineId=WOPN.StockLineId
 				LEFT JOIN dbo.CustomerRMAHeader CRM WITH (NOLOCK) ON CRM.InvoiceId=WOBI.BillingInvoicingId AND ISNULL(CRM.isWorkOrder, 0) = 1
 				LEFT JOIN dbo.WorkorderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ReferenceID = WOPN.ID AND MSD.ModuleID = @ModuleID
 				INNER JOIN [dbo].[Currency] CR WITH(NOLOCK) ON CR.CurrencyId = wobi.CurrencyId
@@ -1539,7 +1540,7 @@ BEGIN
 				LEFT JOIN dbo.SalesOrderQuote SQP WITH (NOLOCK) ON SQP.SalesOrderQuoteId = SQPart.SalesOrderQuoteId
 				LEFT JOIN dbo.CustomerType CT WITH (NOLOCK) ON C.CustomerTypeId=CT.CustomerTypeId
 				LEFT JOIN dbo.ItemMaster IM WITH (NOLOCK) ON SOBII.ItemMasterId=IM.ItemMasterId
-				LEFT JOIN dbo.Stockline ST WITH (NOLOCK) ON ST.StockLineId=SOPS.StockLineId
+				 AND ISNULL(IM.IsNonStock,0) = 0 LEFT JOIN dbo.Stockline ST WITH (NOLOCK) ON ST.StockLineId=SOPS.StockLineId
 				LEFT JOIN dbo.CustomerRMAHeader CRM WITH (NOLOCK) ON CRM.InvoiceId=SOBI.BillingInvoicingId and CRM.isWorkOrder=0
 				LEFT JOIN dbo.SalesOrderManagementStructureDetails SMS WITH (NOLOCK) ON SMS.ReferenceID = SO.SalesOrderId AND SMS.ModuleID = @SOModuleID 
 				INNER JOIN [dbo].[Currency] CR WITH(NOLOCK) ON CR.CurrencyId = SOBI.CurrencyId
@@ -1632,7 +1633,7 @@ BEGIN
 				LEFT JOIN [dbo].[Stockline] ST WITH (NOLOCK) ON ST.StockLineId=SOPN.StockLineId
 				LEFT JOIN [dbo].[ExchangeManagementStructureDetails] SMS WITH (NOLOCK) ON SMS.ReferenceID = SO.ExchangeSalesOrderId AND SMS.ModuleID = @ExchSOModuleID 		
 				LEFT JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON SOBII.ItemMasterId = IM.ItemMasterId
-				INNER JOIN [dbo].[Currency] CR WITH(NOLOCK) ON CR.CurrencyId = SOBI.CurrencyId
+				 AND ISNULL(IM.IsNonStock,0) = 0 INNER JOIN [dbo].[Currency] CR WITH(NOLOCK) ON CR.CurrencyId = SOBI.CurrencyId
 				LEFT JOIN [dbo].ManagementStructureLevel MNSL WITH(NOLOCK) ON SMS.[Level1Id] = MNSL.ID
 				LEFT JOIN [dbo].[CustomerFinancial] CF WITH (NOLOCK) ON SOBI.CustomerId = CF.CustomerId    
 			    LEFT JOIN [dbo].[CreditTerms] CTM WITH(NOLOCK) ON CTM.CreditTermsId = CF.CreditTermsId  
@@ -1714,7 +1715,7 @@ BEGIN
 				INNER JOIN [dbo].[ManagementStructureLevel] MSL WITH (NOLOCK) ON ES.Level1Id = MSL.ID
 				INNER JOIN [dbo].[LegalEntity] LE WITH (NOLOCK) ON MSL.LegalEntityId = LE.LegalEntityId 
 				 LEFT JOIN [dbo].[ItemMaster] I WITH (NOLOCK) ON CMD.ItemMasterId = I.ItemMasterId  
-				 LEFT JOIN [dbo].ManagementStructureLevel MNSL WITH(NOLOCK) ON MSD.[Level1Id] = MNSL.ID
+				  AND ISNULL(I.IsNonStock,0) = 0 LEFT JOIN [dbo].ManagementStructureLevel MNSL WITH(NOLOCK) ON MSD.[Level1Id] = MNSL.ID
 			WHERE CM.MasterCompanyId = @MasterCompanyid AND CM.IsActive = 1 AND CM.IsDeleted = 0
 
 			),

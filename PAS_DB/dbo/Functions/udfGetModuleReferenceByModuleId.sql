@@ -119,11 +119,11 @@ BEGIN
 		END
 		IF (@SubModuleName = 'WorkOrderMaterials')
 		BEGIN
-			SELECT @ReferenceNumber = IM.partnumber FROM DBO.WorkOrderMaterials WOM WITH (NOLOCK) INNER JOIN DBO.ItemMaster IM WITH (NOLOCK) ON WOM.ItemMasterId = IM.ItemMasterId WHERE WOM.WorkOrderMaterialsId = @ReferenceId;
+			SELECT @ReferenceNumber = IM.partnumber FROM DBO.WorkOrderMaterials WOM WITH (NOLOCK) INNER JOIN DBO.ItemMaster IM WITH (NOLOCK) ON WOM.ItemMasterId = IM.ItemMasterId WHERE WOM.WorkOrderMaterialsId = @ReferenceId AND ISNULL(IM.IsNonStock,0) = 0 ;
 		END
 		IF (@SubModuleName = 'SubWorkOrderMaterials')
 		BEGIN
-			SELECT @ReferenceNumber = IM.partnumber FROM DBO.SubWorkOrderMaterials SWOM WITH (NOLOCK) INNER JOIN DBO.ItemMaster IM WITH (NOLOCK) ON SWOM.ItemMasterId = IM.ItemMasterId WHERE SWOM.SubWorkOrderMaterialsId = @ReferenceId;
+			SELECT @ReferenceNumber = IM.partnumber FROM DBO.SubWorkOrderMaterials SWOM WITH (NOLOCK) INNER JOIN DBO.ItemMaster IM WITH (NOLOCK) ON SWOM.ItemMasterId = IM.ItemMasterId WHERE SWOM.SubWorkOrderMaterialsId = @ReferenceId AND ISNULL(IM.IsNonStock,0) = 0 ;
 		END
 		IF (@SubModuleName = 'SalesOrderShipping')
 		BEGIN

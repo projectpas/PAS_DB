@@ -22,6 +22,7 @@
  4 24/08/2023   BHARGAV SALIYA   Convert Dates UTC To LegalEntity Time Zone
  5 18/04/2025   Ayushi Added the condition for pn , pndescription , serialnum
  6 19/08/2025   Fixed the arrangement of inserted values
+	7    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 EXECUTE   [dbo].[usprpt_GetWorkOrderBacklogReport] 'WO Opened','','','','1','1,4,43,44,45,80,84,88','46,47,66','48,49,50,58,59,67,68,69','51,52,53,54,55,56,57,60'    
 **************************************************************/    
 CREATE      PROCEDURE [dbo].[usprpt_GetWorkOrderBacklogReport]     
@@ -142,7 +143,7 @@ BEGIN
       AND (ISNULL(@Level8,'') ='' OR MSD.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,',')))    
       AND (ISNULL(@Level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))    
       AND  (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))    
-      END    
+       AND ISNULL(IM.IsNonStock,0) = 0 END    
     
     SET @PageSize = CASE WHEN NULLIF(@PageSize,0) IS NULL THEN 10 ELSE @PageSize END    
     SET @PageNumber = CASE WHEN NULLIF(@PageNumber,0) IS NULL THEN 1 ELSE @PageNumber END    
@@ -193,7 +194,7 @@ BEGIN
     INNER JOIN DBO.WorkOrderPartNumber WOPN WITH (NOLOCK) ON WOWF.WorkOrderPartNoId = WOPN.ID    
     INNER JOIN DBO.ItemMaster AS IM WITH (NOLOCK) ON WOPN.ItemMasterId = IM.ItemMasterId 
 	LEFT JOIN [dbo].[ItemMaster] RIM WITH (NOLOCK) ON WOPN.RevisedItemmasterid = RIM.ItemMasterId
-    INNER JOIN dbo.WorkOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = WOPN.ID    
+     AND ISNULL(RIM.IsNonStock,0) = 0 INNER JOIN dbo.WorkOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = WOPN.ID    
     LEFT JOIN DBO.WorkOrderQuote WOQ WITH (NOLOCK) ON WO.WorkOrderId = WOQ.WorkOrderId   
     LEFT JOIN DBO.WorkOrderQuoteDetails WQD WITH (NOLOCK) ON WOQ.WorkOrderQuoteId = WQD.WorkOrderQuoteId  
     LEFT JOIN DBO.Customer C WITH (NOLOCK) ON C.CustomerId = WO.CustomerId  
@@ -226,7 +227,7 @@ BEGIN
     AND (ISNULL(@Level8,'') ='' OR MSD.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,',')))    
     AND (ISNULL(@Level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))    
     AND  (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))  
-     )  
+      AND ISNULL(IM.IsNonStock,0) = 0 )  
     
     ,finalCTE (WorkOrderId,customername, pn, pndescription, wonum, serialnum, wotype, stagecode, statuscode, receiveddate, opendate, approvedamount, unitcost, StocklineId, partscost, laborcost, overheadcost,  
     misccharge, othercost, total, netwip, transferredout, transferredtowo, transferredtoinventory, wodayscount, techname, level1, level2, level3, level4, level5, level6, level7, level8,  

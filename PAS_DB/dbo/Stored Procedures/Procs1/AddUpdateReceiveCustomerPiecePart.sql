@@ -17,6 +17,7 @@
 	3	 18/04/2025	  ABHISHEK JIRAWLA Updated Receiving Number for Receiving Customer Work
 	4	 30/04/2025	  ABHISHEK JIRAWLA Adding IsPiecePart and IsRepairManagement to the Stockline
 	5    12/05/2026   Nakul Chandigra  Added OutGoingItemMasterId And OutGoingPartNumber
+	6    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	
 -- EXEC AddUpdateReceiveCustomerPiecePart 
 ************************************************************************/    
@@ -256,7 +257,7 @@ BEGIN
 					   @IsDER = [IsDER],
 					   @OEM = [IsOEM], 
 					   @RevicedPNId = [RevisedPartId]					  
-				  FROM [dbo].[ItemMaster] WITH(NOLOCK) WHERE [ItemMasterId] = @ItemMasterId;
+				  FROM [dbo].[ItemMaster] WITH(NOLOCK) WHERE [ItemMasterId] = @ItemMasterId AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 ;
 
 				SELECT TOP 1 @NHAItemMasterId = [MappingItemMasterId]  FROM [dbo].[Nha_Tla_Alt_Equ_ItemMapping] WITH(NOLOCK) WHERE [ItemMasterId] = @ItemMasterId AND [MappingType] = @NHAMappingType;
                 SELECT TOP 1 @TLAItemMasterId = [MappingItemMasterId]  FROM [dbo].[Nha_Tla_Alt_Equ_ItemMapping] WITH(NOLOCK) WHERE [ItemMasterId] = @ItemMasterId AND [MappingType] = @TLAMappingType;                 
@@ -375,7 +376,8 @@ BEGIN
                        
 					/* PN Manufacturer Combination Stockline logic */
 
-					DELETE FROM #tmpCodePrefixes;
+					 WHERE ISNULL(IM.IsNonStock,0) = 0
+DELETE FROM #tmpCodePrefixes;
 
 					INSERT INTO #tmpCodePrefixes([CodePrefixId],[CodeTypeId],[CurrentNumber],[CodePrefix],[CodeSufix],[StartsFrom])
 					SELECT [CodePrefixId],CP.[CodeTypeId],[CurrentNummber],[CodePrefix],[CodeSufix],[StartsFrom] FROM dbo.CodePrefixes CP WITH (NOLOCK)
@@ -425,7 +427,7 @@ BEGIN
 					LEFT JOIN dbo.ItemMasterIntegrationPortal mp WITH(NOLOCK) ON iM.ItemMasterId = mp.ItemMasterId
 					LEFT JOIN dbo.IntegrationPortal ip WITH(NOLOCK) ON mp.IntegrationPortalId = ip.IntegrationPortalId
 					WHERE iM.ItemMasterId = @ItemMasterId AND iM.MasterCompanyId = @MasterCompanyId AND mp.IntegrationPortalId IS NOT NULL
-					GROUP BY iM.ItemMasterId
+					 AND ISNULL(iM.IsNonStock,0) = 0 GROUP BY iM.ItemMasterId
 
 					INSERT INTO [dbo].[Stockline]([PartNumber],[StockLineNumber],[StocklineMatchKey],[ControlNumber],[ItemMasterId],[Quantity],[ConditionId],[SerialNumber]						   
 						   ,[ShelfLife],[ShelfLifeExpirationDate],[WarehouseId],[LocationId],[ObtainFrom],[Owner],[TraceableTo],[ManufacturerId],[Manufacturer],[ManufacturerLotNumber]	                       

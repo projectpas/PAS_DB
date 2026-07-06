@@ -18,6 +18,7 @@
 	2   25-Aug-2023     Bhargav Saliya      Conver Dates UTC to Legal Entity Time Zone
 	3   12-Sept-2024    Shrey Chandegara	Modified due to add TotalQuoteAmount and TotalQuoteApprovalAmount
 	4   18/04/2025      Ayushi Added        the condition for pn , pndescription , serialnum
+	5    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 **************************************************************/
 CREATE   PROCEDURE [dbo].[usprpt_GetWorkOrderStageMonitoringReport]
 	@PageNumber INT = 1,
@@ -136,7 +137,7 @@ BEGIN
 				AND (ISNULL(@Level8,'') ='' OR MSD.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,',')))
 				AND (ISNULL(@Level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))
 				AND  (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))
-			END
+			 AND ISNULL(IM.IsNonStock,0) = 0 END
 
 			SET @PageSize = CASE WHEN NULLIF(@PageSize,0) IS NULL THEN 10 ELSE @PageSize END
 			SET @PageNumber = CASE WHEN NULLIF(@PageNumber,0) IS NULL THEN 1 ELSE @PageNumber END
@@ -215,7 +216,7 @@ BEGIN
 					LEFT JOIN dbo.WorkOrderQuoteDetails woq WITH (NOLOCK) ON woq.WOPartNoId = WPN.ID  
 					JOIN dbo.ItemMaster IM WITH (NOLOCK) ON IM.ItemMasterId = WPN.ItemMasterId  
 					LEFT JOIN [dbo].[ItemMaster] RIM WITH (NOLOCK) ON WPN.RevisedItemmasterid = RIM.ItemMasterId
-					LEFT JOIN dbo.Stockline STL WITH (NOLOCK) ON WPN.StockLineId = STL.StockLineId
+					 AND ISNULL(RIM.IsNonStock,0) = 0 LEFT JOIN dbo.Stockline STL WITH (NOLOCK) ON WPN.StockLineId = STL.StockLineId
 					LEFT JOIN dbo.WorkOrderStage WOSG_Old WITH (NOLOCK) ON WTT.OldStageId = WOSG_Old.WorkOrderStageId  
 					LEFT JOIN dbo.WorkOrderStage WOSG WITH (NOLOCK) ON WTT.CurrentStageId = WOSG.WorkOrderStageId  
 					LEFT JOIN dbo.WorkOrderStage WOSG_Curr WITH (NOLOCK) ON WPN.WorkOrderStageId = WOSG_Curr.WorkOrderStageId
@@ -242,7 +243,7 @@ BEGIN
 					  AND (ISNULL(@Level8, '') = '' OR MSD.Level8Id IN (SELECT Item FROM DBO.SPLITSTRING(@Level8, ',')))
 					  AND (ISNULL(@Level9, '') = '' OR MSD.Level9Id IN (SELECT Item FROM DBO.SPLITSTRING(@Level9, ',')))
 					  AND (ISNULL(@Level10, '') = '' OR MSD.Level10Id IN (SELECT Item FROM DBO.SPLITSTRING(@Level10, ',')))
-					GROUP BY WPN.ID,
+					 AND ISNULL(IM.IsNonStock,0) = 0 GROUP BY WPN.ID,
 					  CASE WHEN ISNULL(@IgnoreDuplicate, '') = 'true' OR ISNULL(@IgnoreDuplicate, '') = '1' THEN WTT.WOTATId ELSE '' END,  
 					  WTT.OldStageId, WTT.CurrentStageId
 				)

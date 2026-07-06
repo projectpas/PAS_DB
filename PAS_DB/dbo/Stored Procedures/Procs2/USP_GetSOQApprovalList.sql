@@ -18,6 +18,7 @@
 	2    09/12/2024   Moin Bloch		Alter set QtyRequested When stk line is null
 	3    21/jul/2025  Bhargav Saliya	Select UOM
 	4    22/Aug/2025  Amit Ghediya		Select Condition
+	5    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 
 EXEC [dbo].[USP_GetSOQApprovalList] 866
 **************************************************************/
@@ -187,7 +188,7 @@ BEGIN
 		INNER JOIN SalesOrderQuotePart sop WITH (NOLOCK) ON sop.SalesOrderQuotePartId = soqp.SalesOrderQuotePartId
 		LEFT JOIN SalesOrderQuoteApproval sqp WITH (NOLOCK) ON soqp.SalesOrderQuotePartId = sqp.SalesOrderQuotePartId
 		LEFT JOIN ItemMaster im WITH (NOLOCK) ON soqp.ItemMasterId = im.ItemMasterId
-		LEFT JOIN Employee app WITH (NOLOCK) ON sqp.InternalApprovedById = app.EmployeeId
+		 AND ISNULL(im.IsNonStock,0) = 0 LEFT JOIN Employee app WITH (NOLOCK) ON sqp.InternalApprovedById = app.EmployeeId
 		LEFT JOIN Contact con WITH (NOLOCK) ON sqp.CustomerApprovedById = con.ContactId
 		WHERE soq.IsDeleted = 0 AND sop.IsDeleted = 0 AND soq.SalesOrderQuoteId = @SalesOrderQuoteId
 		*/
@@ -271,7 +272,7 @@ BEGIN
 		INNER JOIN DBO.SalesOrderQuotePartCost soqpc ON soqpc.SalesOrderQuotePartId = soqp.SalesOrderQuotePartId
 		LEFT JOIN DBO.SalesOrderQuoteApproval sqp WITH (NOLOCK) ON soqp.SalesOrderQuotePartId = sqp.SalesOrderQuotePartId AND sqp.SalesOrderQuoteId = @SalesOrderQuoteId
 		LEFT JOIN DBO.ItemMaster im WITH (NOLOCK) ON soqp.ItemMasterId = im.ItemMasterId
-		LEFT JOIN DBO.UnitOfMeasure um WITH (NOLOCK) ON im.PurchaseUnitOfMeasureId = um.UnitOfMeasureId
+		 AND ISNULL(im.IsNonStock,0) = 0 LEFT JOIN DBO.UnitOfMeasure um WITH (NOLOCK) ON im.PurchaseUnitOfMeasureId = um.UnitOfMeasureId
 		LEFT JOIN DBO.Employee app WITH (NOLOCK) ON sqp.InternalApprovedById = app.EmployeeId
 		LEFT JOIN DBO.Contact con WITH (NOLOCK) ON sqp.CustomerApprovedById = con.ContactId
 		LEFT JOIN DBO.Condition cond WITH (NOLOCK) ON soqp.ConditionId = cond.ConditionId

@@ -15,6 +15,7 @@
 	5    04-Dec-2025		Devendra Shekh		  Modified (added CreatedDate)
 	5    05-Dec-2025		Devendra Shekh		  Modified (defined #tmpResult for multiple insert)
 	6    09-Dec-2025		Devendra Shekh		  Modified (added [IntegrationEmailID], [HasAttachments])
+	7    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[usp_SaveVendorRFQPartDetails] (
@@ -173,7 +174,7 @@ SET NOCOUNT ON
 		INNER JOIN @tbl_VendorRFQPartType TMP ON VRFQ.ItemId = TMP.ItemId AND VRFQ.ItemSupplierPartId = TMP.ItemSupplierPartId AND VRFQ.ILSRFQDetailId = TMP.ILSRFQDetailId AND VRFQ.MasterCompanyId = TMP.MasterCompanyId
 		LEFT JOIN dbo.ItemMaster IM WITH(NOLOCK) ON LOWER(TRIM(VRFQ.[PartNumber])) = LOWER(TRIM(IM.[partnumber])) AND VRFQ.[MasterCompanyId] = IM.[MasterCompanyId] AND IM.IsActive = 1 AND IM.IsDeleted = 0
 
-		SELECT TOP 1 @ILSRFQDetailId = [ILSRFQDetailId] FROM #tmpResult;
+		 AND ISNULL(IM.IsNonStock,0) = 0 SELECT TOP 1 @ILSRFQDetailId = [ILSRFQDetailId] FROM #tmpResult;
 
 		INSERT INTO #tmpResult (
 			[VendorRFQPartId], [ILSRFQDetailId], [ItemId], [ItemSupplierPartId], [VendorName], [VendorId], [Email], [Phone], [PartNumber], [RfqId], [Description], [AltPartNumber], [ReferenceNumber], [Traceability], [UnitOfMeasure], [Price], [PriceType], [LeadTime], [Qty], [RequestedQty], [MinQuantity], 
@@ -186,7 +187,7 @@ SET NOCOUNT ON
 				, @ReferenceNumber AS VendorRFQPurchaseOrderNumber, 0 AS RFQReferenceId, 0 AS RFQModuleId, VRFQ.IntegrationEmailID, IE.HasAttachments
 		FROM [dbo].[VendorRFQPart] VRFQ WITH(NOLOCK) 
 		LEFT JOIN dbo.ItemMaster IM WITH(NOLOCK) ON LOWER(TRIM(VRFQ.[PartNumber])) = LOWER(TRIM(IM.[partnumber])) AND VRFQ.[MasterCompanyId] = IM.[MasterCompanyId] AND IM.IsActive = 1 AND IM.IsDeleted = 0
-		LEFT JOIN [dbo].[IntegrationEmail] IE WITH(NOLOCK) ON IE.IntegrationEmailID = VRFQ.IntegrationEmailID
+		 AND ISNULL(IM.IsNonStock,0) = 0 LEFT JOIN [dbo].[IntegrationEmail] IE WITH(NOLOCK) ON IE.IntegrationEmailID = VRFQ.IntegrationEmailID
 		WHERE VRFQ.ILSRFQDetailId = @ILSRFQDetailId AND VRFQ.VendorRFQPartId NOT IN (SELECT VendorRFQPartId FROM #tmpResult);
 
 		UPDATE TMP

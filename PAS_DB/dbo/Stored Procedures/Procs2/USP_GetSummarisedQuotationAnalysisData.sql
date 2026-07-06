@@ -11,10 +11,17 @@
     1    21-04-2025		Hemnat Saliya			Created  		
     2    16-06-2025		Devendra Shekh			Modified Calculation for MarginPercentage	
 	3    11-07-2025     Devendra Shekh			added PartNumberLabel
+	1    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 		
 	exec dbo.USP_GetSummarisedQuotationAnalysisData 8941
 **************************************************************/
 
+/***************************************************************************************************************************************
+  ** Change History
+ ***************************************************************************************************************************************
+ ** PR   Date						 Author							Change Description
+ ** --   --------					 -------						-------------------------------
+****************************************************************************************************************************************/
 CREATE   PROCEDURE [dbo].[USP_GetSummarisedQuotationAnalysisData]
     @WorkOrderId INT
 AS
@@ -98,7 +105,7 @@ BEGIN
 			LEFT JOIN  [dbo].StockLine sl WITH(NOLOCK) ON wop.StockLineId = sl.StockLineId
 		WHERE wo.WorkOrderId = @WorkOrderId
 		--ORDER BY wop.ID
-		)
+		 AND ISNULL(im.IsNonStock,0) = 0 )
 		SELECT *, CASE WHEN ISNULL(Margin, 0) <> 0 AND ISNULL(Revenue, 0) <> 0 THEN CAST((Margin/Revenue) AS FLOAT) * 100.00 ELSE 0 END AS MarginPercentage
 		FROM AnalysisResult ORDER BY ID;
 	END TRY      

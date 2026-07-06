@@ -15,6 +15,7 @@
  ** PR   Date         Author			Change Description
  ** --   --------     -------			-----------------------
     1    12/12/2023   Vishal Suthar		Created
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
   
 
 declare @p5 int
@@ -156,15 +157,15 @@ BEGIN
 			SELECT @Part_NUMBER = IM.PN, @Part_Desc = IM.DESCRIPTION FROM [BEACH].QCTL1.PARTS_MASTER IM WHERE IM.PNM_AUTO_KEY = @PNM_AUTO_KEY;
 			SELECT @ALT_Part_NUMBER = IM.PN, @ALT_Part_Desc = IM.DESCRIPTION FROM [BEACH].QCTL1.PARTS_MASTER IM WHERE IM.PNM_AUTO_KEY = @ALT_PNM_AUTO_KEY;
 			SELECT @ConditionCode = CC.CONDITION_CODE FROM [BEACH].QCTL1.PART_CONDITION_CODES CC WHERE CC.PCC_AUTO_KEY = @PCC_AUTO_KEY;
-			SELECT @ItemMaster_Id = IM.ItemMasterId FROM DBO.ItemMaster IM WHERE UPPER(IM.partnumber) = UPPER(@Part_NUMBER) AND IM.MasterCompanyId = @FromMasterComanyID;
-			SELECT @ALT_ItemMaster_Id = IM.ItemMasterId FROM DBO.ItemMaster IM WHERE UPPER(IM.partnumber) = UPPER(@ALT_Part_NUMBER) AND UPPER(IM.PartDescription) = UPPER(@ALT_Part_Desc);
+			SELECT @ItemMaster_Id = IM.ItemMasterId FROM DBO.ItemMaster IM WHERE UPPER(IM.partnumber) = UPPER(@Part_NUMBER) AND IM.MasterCompanyId = @FromMasterComanyID AND ISNULL(IM.IsNonStock,0) = 0 ;
+			SELECT @ALT_ItemMaster_Id = IM.ItemMasterId FROM DBO.ItemMaster IM WHERE UPPER(IM.partnumber) = UPPER(@ALT_Part_NUMBER) AND UPPER(IM.PartDescription) = UPPER(@ALT_Part_Desc) AND ISNULL(IM.IsNonStock,0) = 0 ;
 
 			PRINT '@ItemMaster_Id'
 			PRINT @ItemMaster_Id
 
 			SELECT TOP 1 @ManagementStructureId = MS.EntityStructureId FROM DBO.EntityStructureSetup MS WHERE [MasterCompanyId] = @FromMasterComanyID;
 
-			SELECT @Part_NUMBER = IM.partnumber, @Part_Desc = IM.PartDescription, @IsPMA = IM.IsPma, @IsDER = IM.IsDER, @ManufacturerId = IM.ManufacturerId, @ManufacturerName = IM.ManufacturerName, @GLAccountId = GLAccountId, @GLAccount = GLAccount FROM DBO.ItemMaster IM WHERE IM.ItemMasterId = @ItemMaster_Id AND MasterCompanyId = @FromMasterComanyID;
+			SELECT @Part_NUMBER = IM.partnumber, @Part_Desc = IM.PartDescription, @IsPMA = IM.IsPma, @IsDER = IM.IsDER, @ManufacturerId = IM.ManufacturerId, @ManufacturerName = IM.ManufacturerName, @GLAccountId = GLAccountId, @GLAccount = GLAccount FROM DBO.ItemMaster IM WHERE IM.ItemMasterId = @ItemMaster_Id AND MasterCompanyId = @FromMasterComanyID AND ISNULL(IM.IsNonStock,0) = 0 ;
 			SELECT @PriorityId = PriorityId, @Priority = [Priority], @NeedByDate = NeedByDate FROM DBO.PurchaseOrder PO WHERE PO.PurchaseOrderNumber = @PO_NUMBER AND MasterCompanyId = @FromMasterComanyID;
 
 			IF (ISNULL(@ManufacturerId, 0) = 0)
@@ -225,8 +226,8 @@ BEGIN
 					DECLARE @ManagementStructureTypeId BIGINT = 0;
 					DECLARE @POPartModuleId BIGINT;
 
-					SELECT @Part_NUMBER = IM.partnumber, @Part_Desc = IM.PartDescription, @IsPMA = IM.IsPma, @IsDER = IM.IsDER, @ManufacturerId = IM.ManufacturerId, @ManufacturerName = IM.ManufacturerName, @GLAccountId = GLAccountId, @GLAccount = GLAccount FROM DBO.ItemMaster IM WHERE IM.ItemMasterId = @ItemMaster_Id AND MasterCompanyId = @FromMasterComanyID;
-					SELECT @ALT_Part_NUMBER = IM.partnumber, @ALT_Part_Desc = IM.PartDescription FROM DBO.ItemMaster IM WHERE IM.ItemMasterId = @ALT_ItemMaster_Id AND MasterCompanyId = @FromMasterComanyID;
+					SELECT @Part_NUMBER = IM.partnumber, @Part_Desc = IM.PartDescription, @IsPMA = IM.IsPma, @IsDER = IM.IsDER, @ManufacturerId = IM.ManufacturerId, @ManufacturerName = IM.ManufacturerName, @GLAccountId = GLAccountId, @GLAccount = GLAccount FROM DBO.ItemMaster IM WHERE IM.ItemMasterId = @ItemMaster_Id AND MasterCompanyId = @FromMasterComanyID AND ISNULL(IM.IsNonStock,0) = 0 ;
+					SELECT @ALT_Part_NUMBER = IM.partnumber, @ALT_Part_Desc = IM.PartDescription FROM DBO.ItemMaster IM WHERE IM.ItemMasterId = @ALT_ItemMaster_Id AND MasterCompanyId = @FromMasterComanyID AND ISNULL(IM.IsNonStock,0) = 0 ;
 					SELECT @ConditionId = ConditionId FROM DBO.Condition Cond WHERE UPPER(Cond.Code) = UPPER(@ConditionCode) AND MasterCompanyId = @FromMasterComanyID;
 					SELECT @CurrencyId = CurrencyId FROM DBO.[Currency] C WHERE UPPER(Code) = 'USD' AND MasterCompanyId = @FromMasterComanyID;
 					SELECT @ItemTypeId = ItemTypeId FROM DBO.[ItemType] IT WHERE UPPER([Name]) = 'STOCK';

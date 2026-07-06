@@ -19,6 +19,7 @@
 	3    04-03-2025  Shrey Chandegara		Modified due to timezone issue ( Add @CurrntEmpTimeZoneDesc)
 	4    04-03-2025  Shrey Chandegara		Modified due to SortOrder Issue
 	5    28-03-2025  Shrey Chandegara		Modified Due to Filter Issue.
+	6    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 
 ************************************************************************/
 
@@ -156,7 +157,7 @@ BEGIN
 	  --INNER JOIN dbo.AssetManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID IN (SELECT Item FROM DBO.SPLITSTRING(@ModuleID,',')) AND MSD.ReferenceID = asm.AssetRecordId
 	  --INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON asm.ManagementStructureId = RMS.EntityStructureId
 	  --INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId	
-     WHERE ((asm.IsDeleted = @IsDeleted) and (asm.MasterCompanyId = @MasterCompanyId) AND (@IsActive is null or ISNULL(asm.IsActive,1) = @IsActive))  
+      AND ISNULL(IM.IsNonStock,0) = 0 WHERE ((asm.IsDeleted = @IsDeleted) and (asm.MasterCompanyId = @MasterCompanyId) AND (@IsActive is null or ISNULL(asm.IsActive,1) = @IsActive))  
    ), ResultCount AS(SELECT COUNT(AssetRecordId) AS totalItems FROM Result)  
    SELECT * INTO #TempResult from  Result  
    WHERE (  

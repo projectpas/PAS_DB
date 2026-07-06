@@ -1,4 +1,11 @@
 ﻿
+/***************************************************************************************************************************************
+  ** Change History
+ ***************************************************************************************************************************************
+ ** PR   Date						 Author							Change Description
+ ** --   --------					 -------						-------------------------------
+	1    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+****************************************************************************************************************************************/
 CREATE   PROCEDURE [dbo].[GetVendorCapesList]
 	-- Add the parameters for the stored procedure here
 	@PageNumber int,
@@ -122,7 +129,7 @@ BEGIN
 					FROM dbo.VendorCapability vc  WITH (NOLOCK)
 					INNER JOIN dbo.Vendor v  WITH (NOLOCK) ON v.VendorId = vc.VendorId
 					LEFT JOIN dbo.ItemMaster im  WITH (NOLOCK) ON vc.ItemMasterId = im.ItemMasterId
-					LEFT JOIN dbo.Manufacturer m  WITH (NOLOCK) ON im.ManufacturerId = m.ManufacturerId
+					 AND ISNULL(im.IsNonStock,0) = 0 LEFT JOIN dbo.Manufacturer m  WITH (NOLOCK) ON im.ManufacturerId = m.ManufacturerId
 					LEFT JOIN dbo.capabilityType ct  WITH (NOLOCK) ON vc.CapabilityTypeId = ct.CapabilityTypeId
 					WHERE ((vc.IsDeleted=@IsDeleted) AND (@IsActive IS NULL OR vc.IsActive=@IsActive))
 					    AND vc.MasterCompanyId = @MasterCompanyId

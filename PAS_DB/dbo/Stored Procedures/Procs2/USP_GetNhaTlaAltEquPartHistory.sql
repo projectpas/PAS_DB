@@ -13,6 +13,7 @@
  ** S NO   Date            Author          Change Description              
  ** --   --------         -------          --------------------------------            
     1    31-10-2025    Sahdev Saliya       Created  
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 
 	exec [dbo].[USP_GetNhaTlaAltEquPartHistory]
 **************************************************************/
@@ -74,7 +75,7 @@ BEGIN
 			LEFT JOIN dbo.Customer cust WITH (NOLOCK) ON alt.CustomerId = cust.CustomerId
 		WHERE alt.ItemMappingId = @ItemMappingId
       
-	END
+	 AND ISNULL(im.IsNonStock,0) = 0 AND ISNULL(im1.IsNonStock,0) = 0 END
 	IF (@Opr = 2)
 	BEGIN
 		SELECT AD.[AttachmentDetailId]

@@ -33,6 +33,7 @@
 ** 19   30/06/2026	 Amit Ghediya	    Update for Engine data [PN-17075]
 
 
+	1    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 *********************/
 CREATE       PROCEDURE [dbo].[USP_GetAircraftInstalledPartDetails]
 (
@@ -212,7 +213,7 @@ BEGIN
 							  OR (ISNULL(@IsFromAircraft,0) = 0 AND AIPD.EngineRegistryId   = @AircraftRegistryId) )
 			--(@AircraftRegistryId IS NULL OR @AircraftRegistryId = 0 OR AIPD.AircraftRegistryId = @AircraftRegistryId)
 			AND AIPD.MasterCompanyId = @MasterCompanyId
-        ), ResultCount AS(SELECT COUNT(AircraftInstalledPartDetailsId) AS totalItems FROM Result)
+         AND ISNULL(IM.IsNonStock,0) = 0 ), ResultCount AS(SELECT COUNT(AircraftInstalledPartDetailsId) AS totalItems FROM Result)
 			SELECT * INTO #TempResult FROM  Result
 			 WHERE ((@GlobalFilter <>'' AND ((AircraftRegistryNumber LIKE '%' +@GlobalFilter+'%') OR
 					(MakeType LIKE '%' +@GlobalFilter+'%') OR

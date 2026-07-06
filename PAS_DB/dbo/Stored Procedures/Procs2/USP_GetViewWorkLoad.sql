@@ -18,6 +18,7 @@
  ** --   --------     -------		--------------------------------          
     1    08/12/2021   Subhash Saliya Created
 	2    03/04/2025   Ekta Chandegra    Convert date using dbo.ConvertUTCtoLocal
+	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
      
  EXECUTE USP_GetViewWorkLoad 1,20,'', -1,'', '2021-07-25 18:30:00.000', '2021-09-25 18:30:00.000',5,'CWO100010-2020'
 
@@ -173,7 +174,7 @@ SET NOCOUNT ON
 										LEFT JOIN dbo.Employee emp WITH (NOLOCK) ON emp.EmployeeId = wl.EmployeeId
 										LEFT JOIN dbo.EmployeeStation emps WITH (NOLOCK) ON emps.EmployeeStationId = wop.TechStationId
 									WHERE wo.MasterCompanyId= @MasterCompanyId AND ISNULL(wlh.IsDeleted,0) = 0 AND ISNULL(wlh.IsActive,1) = 1 --AND wl.EmployeeId=@technicalid 
-						), ResultCount AS(SELECT COUNT(WorkOrderLaborId) AS totalItems FROM Result)
+						 AND ISNULL(im.IsNonStock,0) = 0 ), ResultCount AS(SELECT COUNT(WorkOrderLaborId) AS totalItems FROM Result)
 			
 						SELECT * INTO #TempResult3 from  Result
 						WHERE (
@@ -326,7 +327,7 @@ SET NOCOUNT ON
 									LEFT JOIN dbo.EmployeeStation emps WITH (NOLOCK) ON emps.EmployeeStationId = wop.TechStationId
 									LEFT JOIN dbo.EmployeeManagementStructure EMS WITH (NOLOCK) ON EMS.EmployeeId = emp.EmployeeId	
 								WHERE wo.MasterCompanyId= @MasterCompanyId AND EMS.ManagementStructureId =@ManagementStructureId AND CAST(wop.ReceivedDate as date) >= CAST(@FromRecieveddate as date) AND CAST(wop.ReceivedDate as date)  <= CAST(@ToRecieveddate as date) AND ISNULL(wlh.IsDeleted,0) = 0 AND ISNULL(wlh.IsActive,1) = 1
-					), ResultCount AS(SELECT COUNT(WorkOrderLaborId) AS totalItems FROM Result)
+					 AND ISNULL(im.IsNonStock,0) = 0 ), ResultCount AS(SELECT COUNT(WorkOrderLaborId) AS totalItems FROM Result)
 			
 					SELECT * INTO #TempResult from  Result
 					WHERE (
@@ -477,7 +478,7 @@ SET NOCOUNT ON
 									LEFT JOIN dbo.EmployeeStation emps WITH (NOLOCK) ON emps.EmployeeStationId = wop.TechStationId
 									LEFT JOIN dbo.EmployeeManagementStructure EMS WITH (NOLOCK) ON EMS.EmployeeId = emp.EmployeeId	
 								WHERE wo.MasterCompanyId= @MasterCompanyId AND EMS.ManagementStructureId =@ManagementStructureId AND CAST(wop.ReceivedDate as date) >= CAST(@FromRecieveddate as DATE) AND CAST(wop.ReceivedDate as DATE) <= CAST(@ToRecieveddate as date) AND ISNULL(wlh.IsDeleted,0) = 0 AND ISNULL(wlh.IsActive,1) = 1 
-					AND wo.WorkOrderNum = @workOrderNumber), ResultCount AS(SELECT COUNT(WorkOrderLaborId) AS totalItems FROM Result)
+					AND wo.WorkOrderNum = @workOrderNumber AND ISNULL(im.IsNonStock,0) = 0 ), ResultCount AS(SELECT COUNT(WorkOrderLaborId) AS totalItems FROM Result)
 					SELECT * INTO #TempResult1 from  Result
 					WHERE (
 										(@GlobalFilter <>'' AND (

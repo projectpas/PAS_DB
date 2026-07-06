@@ -14,6 +14,7 @@
  ** PR   Date         Author			Change Description                
  ** --   --------     -------		--------------------------------              
     1    28/02/2025  Ekta Chandegra		Created    
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
          
 -- EXEC GetSalesOrderFreightList 915 ,0
 ************************************************************************/   
@@ -66,7 +67,7 @@ BEGIN
 			FROM [dbo].[SalesOrderQuoteFreight] sf WITH(NOLOCK)
 			LEFT JOIN [dbo].[SalesOrderQuotePartV1] part WITH(NOLOCK) ON sf.SalesOrderQuotePartId = part.SalesOrderQuotePartId
 			LEFT JOIN [dbo].[ItemMaster] im WITH(NOLOCK) ON sf.ItemMasterId = im.ItemMasterId
-			INNER JOIN [dbo].[Condition] cond WITH(NOLOCK) ON sf.ConditionId = cond.ConditionId
+			 AND ISNULL(im.IsNonStock,0) = 0 INNER JOIN [dbo].[Condition] cond WITH(NOLOCK) ON sf.ConditionId = cond.ConditionId
 			WHERE ISNULL(sf.IsDeleted,0) = @IsDeleted
 			AND sf.SalesOrderQuoteId = @SalesOrderQuoteId;
 		END

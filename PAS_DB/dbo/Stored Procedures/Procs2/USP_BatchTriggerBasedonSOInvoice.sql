@@ -18,6 +18,7 @@
     3    11/05/2024	 Vishal Suthar	Modified to make use of new SO Part tables
 	4	 02/06/2025	 Abhishek Jirawla  Fixed Name concat read script
 	5    07-07-2025  Moin Bloch        Changed Old To New Billing Table
+	6    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 -- EXEC USP_BatchTriggerBasedonSOInvoice 3
    EXEC [dbo].[USP_BatchTriggerBasedonSOInvoice] 1,267,283,385,0,52712,1,'fff',0,90,'wo',1,'admin'
 ************************************************************************/
@@ -125,7 +126,7 @@ BEGIN
 					  SET @partId = @ReferencePartId;
 	                  select @ItemmasterId=ItemMasterId from SalesOrderPartV1 WITH(NOLOCK)  where SalesOrderId=@ReferenceId and SalesOrderPartId=@partId
 	                  select @MPNName = partnumber from ItemMaster WITH(NOLOCK)  where ItemMasterId=@ItemmasterId 
-	                  select @LastMSLevel=LastMSLevel,@AllMSlevels=AllMSlevels from SalesOrderManagementStructureDetails  where ReferenceID=@ReferenceId
+	                   AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 select @LastMSLevel=LastMSLevel,@AllMSlevels=AllMSlevels from SalesOrderManagementStructureDetails  where ReferenceID=@ReferenceId
 					  select @StocklineNumber=StockLineNumber from Stockline  where StockLineId=@StockLineId
 					  select top 1  @AccountingPeriodId=acc.AccountingCalendarId,@AccountingPeriod=PeriodName from EntityStructureSetup est WITH(NOLOCK) 
 					  inner join ManagementStructureLevel msl WITH(NOLOCK) on est.Level1Id = msl.ID 

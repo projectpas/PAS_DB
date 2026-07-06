@@ -12,6 +12,7 @@
  ** PR   Date			Author			Change Description            
  ** --   --------		-------			--------------------------------          
     1    18-08-2025	   Amit Ghediya       Created
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	
 -- EXEC USP_UpdateQuoteDetails
 ************************************************************************/
@@ -169,7 +170,7 @@ BEGIN
 					 FROM [dbo].[SalesOrderQuotePartV1] SOQP WITH(NOLOCK) 
 					 INNER JOIN [dbo].[itemmaster] IM WITH(NOLOCK) ON IM.ItemMasterId = SOQP.ItemMasterId
 					 WHERE LOWER(TRIM(IM.[PartNumber])) = LOWER(TRIM(@LinePartNumber))
-					 AND SOQP.[ConditionId] = @ConditionId;
+					 AND SOQP.[ConditionId] = @ConditionId AND ISNULL(IM.IsNonStock,0) = 0 ;
 					
 					 IF(ISNULL(@RefrenceId,0) > 0 AND @RFQModuleId = @ModuleId)
 					 BEGIN		 		

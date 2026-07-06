@@ -22,6 +22,7 @@
 	7    09-JAN-2025  Divyesh Kathiriya		Fix Duplicate Value Due To ManagementStructure JOIN
 	8	 30-Jun-2025  Devendra Shekh		Modified(SO Billing Table Changes)
 	9	 02 JUNE 2026	RAJESH GAMI					Fixed : Amount related issues for the SO
+	10    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 EXEC GetSOSOQPartsMonthlyYearlyDashboardData 1, 2, '11/29/2024', 10
 ************************************************************************/
 CREATE  PROCEDURE [dbo].[GetSOSOQPartsMonthlyYearlyDashboardData]
@@ -513,7 +514,7 @@ BEGIN
 					AND MONTH(SOQ.OpenDate) = @CurrentMonth 
 					AND CAST(SOQ.OpenDate AS DATE) <= CAST(@StartDate AS DATE)
 					AND SOQP.MasterCompanyId = @MasterCompanyId AND SOQP.IsDeleted = 0
-					GROUP BY 
+					 AND ISNULL(IM.IsNonStock,0) = 0 GROUP BY 
 						IM.partnumber, 
 						IM.ItemMasterId
 					)
@@ -563,7 +564,7 @@ BEGIN
 						AND CAST(SOBI.InvoiceDate AS DATE) <= CAST(@StartDate AS DATE)
 						AND BillingInvoicingItemId IS NOT NULL AND SOBI.InvoiceStatus = @PostedStatusId))
 						AND SOP.MasterCompanyId = @MasterCompanyId AND ISNULL(SOP.IsDeleted,0) = 0 AND ISNULL(SO.IsDeleted,0) = 0 AND ISNULL(SO.IsActive,0) = 1
-						GROUP BY
+						 AND ISNULL(IM.IsNonStock,0) = 0 GROUP BY
 							IM.partnumber, 
 							IM.ItemMasterId
 					)

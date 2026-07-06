@@ -45,6 +45,7 @@
 	38   05-JUN-2026        Ayushi Patel            Added ParentTable insted of ParentTableRereneceTypeId for IsModuleTableColumn = 0 to support dynamic parent table insert functionality for upload module.
 	39   19-JUN-2026		Moin Bloch			    Fixed Error Log Error For Address PN-16924
 	40   22-JUN-2026		Ayushi Patel			Set The Default GLAccountID For ItemMaster Module 
+	41    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 exec USP_SaveCommonUploadData_ByModuleId @ModuleId=4,@UserName=N'VICTOR ADMAS',@MasterCompanyId=1, @EmployeeId = 236;
 **************************************************************/
 CREATE PROCEDURE [dbo].[USP_SaveCommonUploadData_ByModuleId]
@@ -381,7 +382,8 @@ BEGIN
 				ON CSTL.StockLineId = STL.StockLineId
                 /* PN Manufacturer Combination Stockline logic */
 				
-				SELECT @currentNo = ISNULL(CurrentStlNo, 0) FROM #tmpPNManufacturer WHERE ItemMasterId = @ItemMasterId AND ManufacturerId = @ManufacturerId;
+				 WHERE ISNULL(IM.IsNonStock,0) = 0
+SELECT @currentNo = ISNULL(CurrentStlNo, 0) FROM #tmpPNManufacturer WHERE ItemMasterId = @ItemMasterId AND ManufacturerId = @ManufacturerId;
 				
 				IF (@currentNo <> 0)
                 BEGIN
@@ -470,7 +472,7 @@ BEGIN
 					SET FieldValue = '0'  -- Set isSerialized to 0
 					WHERE FieldName = 'isSerialized';
 				END
-				SELECT @PurchaseUOMId = PurchaseUnitOfMeasureId FROM DBO.ItemMaster WITH (NOLOCK) WHERE ItemMasterId = @ItemMasterId;
+				SELECT @PurchaseUOMId = PurchaseUnitOfMeasureId FROM DBO.ItemMaster WITH (NOLOCK) WHERE ItemMasterId = @ItemMasterId AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 ;
 				SELECT TOP 1 @ManagementStructureId = ManagementStructureId FROM DBO.ManagementStructure WITH (NOLOCK) WHERE MasterCompanyId = @MasterCompanyId;
 			END
 			IF(@ModuleId = @ItemMasterModule)
@@ -996,7 +998,7 @@ BEGIN
 				DECLARE @PC_ConditionId BIGINT = (SELECT FieldValue FROM #DynamicKeyValue WHERE FieldName = 'ConditionId');
 				SET @ItemMasterId = (SELECT FieldValue FROM #DynamicKeyValue WHERE FieldName = 'ItemMasterId')
 				SELECT TOP 1 @PartNumber =  ISNULL(partnumber,'') FROM ItemMaster WITH (NOLOCK) WHERE ItemMasterId = @ItemMasterId
-				SET @ItemMasterPurchaseSaleId = ISNULL((SELECT TOP  1 ItemMasterPurchaseSaleId FROM dbo.ItemMasterPurchaseSale WITH(NOLOCK) WHERE ItemMasterId = @ItemMasterId AND ConditionId = @PC_ConditionId AND MasterCompanyId = @MasterCompanyId AND ISNULL(IsDeleted,0) = 0),0)
+				 AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 SET @ItemMasterPurchaseSaleId = ISNULL((SELECT TOP  1 ItemMasterPurchaseSaleId FROM dbo.ItemMasterPurchaseSale WITH(NOLOCK) WHERE ItemMasterId = @ItemMasterId AND ConditionId = @PC_ConditionId AND MasterCompanyId = @MasterCompanyId AND ISNULL(IsDeleted,0) = 0),0)
 				SET @isPriceDataExist = (CASE WHEN @ItemMasterPurchaseSaleId > 0 THEN 1 ELSE 0 END);
 				SET @RefFieldName += ' , PartNumber,IsActive, IsDeleted,SP_CalSPByPP_SaleDiscAmount,SP_CalSPByPP_BaseSalePrice,PP_PurchaseDiscAmount,SP_FSP_FXRatePerc, PP_FXRatePerc,PP_LastListPriceDate,PP_LastPurchaseDiscDate, CreatedDate, UpdatedDate,SP_FSP_UOMId,SP_FSP_CurrencyId,SalePriceSelectId,SP_FSP_LastFlatPriceDate, MasterCompanyId, CreatedBy, UpdatedBy ';
 				SET @FieldValue += '''' + @PartNumber + ''',1,0,0,0,0,1.00,1.00, '''
@@ -1023,7 +1025,7 @@ BEGIN
 			DECLARE @UomId BIGINT;
 			SELECT TOP 1 @ItemClassificationId = IM.ItemClassificationId,@UomId = IM.PurchaseUnitOfMeasureId FROM dbo.ItemMaster IM WITH(NOLOCK) WHERE IM.ItemMasterId=@ItemMasterId
 				
-				SET @RefFieldName += ',MaterialMandatoriesId, ItemClassificationId, UnitOfMeasureId,WorkOrderId,WorkFlowWorkOrderId,ExtendedCost,MasterCompanyId, CreatedBy, UpdatedBy';
+				 AND ISNULL(IM.IsNonStock,0) = 0 SET @RefFieldName += ',MaterialMandatoriesId, ItemClassificationId, UnitOfMeasureId,WorkOrderId,WorkFlowWorkOrderId,ExtendedCost,MasterCompanyId, CreatedBy, UpdatedBy';
 
 				SET @FieldValue += '1'+',' + CAST(ISNULL(@ItemClassificationId,0) AS VARCHAR(20)) + ',' + CAST(ISNULL(@UomId,0) AS VARCHAR(20)) + ',' + CAST(ISNULL(@WMWorkOrderId,0) AS VARCHAR(20)) + ',' + CAST(ISNULL(@WMWorkFlowWorkOrderId,0) AS VARCHAR(20)) + ','+ CAST(ISNULL(@WMExtendedCost,0) AS VARCHAR(20)) + ','
 

@@ -19,6 +19,7 @@
     2    12/19/2023		 Devendra Shekh				changes for customerid select
 	3    12/19/2023		 HEMANT SALIYA				Updated for Customer stock check box not validating
 	4    03/21/2025		 Devendra Shekh				Updated For Checking PMA/DER Restrict Parts
+	5    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
      
  EXECUTE USP_GetSubWorkOrdMaterialsStocklineListForManualReserve 3118,0,0,3375,0
 **************************************************************/ 
@@ -130,20 +131,20 @@ SET NOCOUNT ON
 				
 				--- FOR OEM
 				INSERT INTO #AllowItemMasterIds([ItemMasterId])SELECT [ItemMasterId] FROM [dbo].[ItemMaster] IM WITH(NOLOCK) WHERE IM.IsActive = 1 AND IM.IsDeleted = 0 AND IM.ItemTypeId = @StkItemTypeId
-				AND IM.MasterCompanyId = @MasterCompanyId AND ISNULL(IM.IsOEM ,0) = 1 AND ISNULL(IsDER ,0) = 0;
+				AND IM.MasterCompanyId = @MasterCompanyId AND ISNULL(IM.IsOEM ,0) = 1 AND ISNULL(IsDER ,0) = 0 AND ISNULL(IM.IsNonStock,0) = 0 ;
 
 				--FOR PMA
 				IF(ISNULL(@RestrictPMA, 0) <> 1)
 				BEGIN
 					INSERT INTO #AllowItemMasterIds([ItemMasterId])SELECT [ItemMasterId] FROM [dbo].[ItemMaster] IM WITH(NOLOCK) WHERE IM.IsActive = 1 AND IM.IsDeleted = 0 AND IM.ItemTypeId = @StkItemTypeId
-					AND IM.MasterCompanyId = @MasterCompanyId AND ISNULL(IM.IsPma ,0) = 1 AND ISNULL(IsDER ,0) = 0;
+					AND IM.MasterCompanyId = @MasterCompanyId AND ISNULL(IM.IsPma ,0) = 1 AND ISNULL(IsDER ,0) = 0 AND ISNULL(IM.IsNonStock,0) = 0 ;
 				END
 
 				--FOR DER
 				IF(ISNULL(@RestrictDER, 0) <> 1)
 				BEGIN
 					INSERT INTO #AllowItemMasterIds([ItemMasterId])SELECT [ItemMasterId] FROM [dbo].[ItemMaster] IM WITH(NOLOCK) WHERE IM.IsActive = 1 AND IM.IsDeleted = 0 AND IM.ItemTypeId = @StkItemTypeId
-					AND IM.MasterCompanyId = @MasterCompanyId AND ISNULL(IM.IsDER ,0) = 1;
+					AND IM.MasterCompanyId = @MasterCompanyId AND ISNULL(IM.IsDER ,0) = 1 AND ISNULL(IM.IsNonStock,0) = 0 ;
 				END
 
 				--Except Parts
@@ -159,7 +160,7 @@ SET NOCOUNT ON
 					FROM dbo.SubWorkOrderMaterials WOM WITH (NOLOCK)  
 						LEFT JOIN dbo.Nha_Tla_Alt_Equ_ItemMapping AS NhaTla WITH (NOLOCK) ON NhaTla.ItemMasterId = WOM.ItemMasterId AND NhaTla.MappingType = 1 AND NhaTla.IsActive = 1 AND NhaTla.IsDeleted = 0
 						LEFT JOIN dbo.ItemMaster IM_NhaTla WITH (NOLOCK) ON IM_NhaTla.ItemMasterId = NhaTla.MappingItemMasterId
-					WHERE WOM.SubWOPartNoId = @SubWOPartNoId AND WOM.ConditionCodeId <> @ARConditionId
+					 AND ISNULL(IM_NhaTla.IsNonStock,0) = 0 WHERE WOM.SubWOPartNoId = @SubWOPartNoId AND WOM.ConditionCodeId <> @ARConditionId
 					AND NhaTla.MappingItemMasterId IN (SELECT [ItemMasterId] FROM #AllowItemMasterIds)
 
 					INSERT INTO #EquPartList
@@ -168,7 +169,7 @@ SET NOCOUNT ON
 					FROM dbo.SubWorkOrderMaterials WOM WITH (NOLOCK)  
 						LEFT JOIN dbo.Nha_Tla_Alt_Equ_ItemMapping AS NhaTla WITH (NOLOCK) ON NhaTla.ItemMasterId = WOM.ItemMasterId AND NhaTla.MappingType = 2 AND NhaTla.IsActive = 1 AND NhaTla.IsDeleted = 0
 						LEFT JOIN dbo.ItemMaster IM_NhaTla WITH (NOLOCK) ON IM_NhaTla.ItemMasterId = NhaTla.MappingItemMasterId
-					WHERE WOM.SubWOPartNoId = @SubWOPartNoId AND WOM.ConditionCodeId <> @ARConditionId
+					 AND ISNULL(IM_NhaTla.IsNonStock,0) = 0 WHERE WOM.SubWOPartNoId = @SubWOPartNoId AND WOM.ConditionCodeId <> @ARConditionId
 					AND NhaTla.MappingItemMasterId IN (SELECT [ItemMasterId] FROM #AllowItemMasterIds)
 
 					IF(ISNULL(@SubWorkOrderMaterialsId, 0) > 0)
@@ -274,7 +275,7 @@ SET NOCOUNT ON
 							AND (@SubWorkOrderMaterialsId IS NULL OR WOM.SubWorkOrderMaterialsId = @SubWorkOrderMaterialsId)
 							AND WOM.ItemMasterId IN (SELECT [ItemMasterId] FROM #AllowItemMasterIds)
 
-					UNION ALL
+					 AND ISNULL(IM.IsNonStock,0) = 0 UNION ALL
 
 					SELECT  WOM.WorkOrderId,
 							WOM.SubWorkOrderId,
@@ -342,7 +343,7 @@ SET NOCOUNT ON
 							JOIN dbo.Stockline SL WITH (NOLOCK) ON Alt.AltItemMasterId = SL.ItemMasterId AND SL.ConditionId IN (SELECT ConditionId FROM #ConditionGroup WHERE SubWorkOrderMaterialsId = WOM.SubWorkOrderMaterialsId) AND SL.StockLineId NOT IN (SELECT WOMS.StockLineId FROM dbo.SubWorkOrderMaterialStockLine WOMS WITH (NOLOCK) WHERE WOMS.SubWorkOrderMaterialsId = WOM.SubWorkOrderMaterialsId AND WOMS.ProvisionId != @ProvisionId)
 							LEFT JOIN dbo.Condition C WITH (NOLOCK) ON WOM.ConditionCodeId = C.ConditionId
 							LEFT JOIN dbo.ItemMaster IM_AltMain WITH (NOLOCK) ON IM_AltMain.ItemMasterId = Alt.ItemMasterId
-							LEFT JOIN dbo.SubWorkOrderMaterialStockLine WOMS WITH (NOLOCK) ON WOMS.SubWorkOrderMaterialsId = WOM.SubWorkOrderMaterialsId AND SL.StockLineId = WOMS.StockLineId AND WOMS.ProvisionId = @ProvisionId
+							 AND ISNULL(IM_AltMain.IsNonStock,0) = 0 LEFT JOIN dbo.SubWorkOrderMaterialStockLine WOMS WITH (NOLOCK) ON WOMS.SubWorkOrderMaterialsId = WOM.SubWorkOrderMaterialsId AND SL.StockLineId = WOMS.StockLineId AND WOMS.ProvisionId = @ProvisionId
 							LEFT JOIN dbo.Provision P WITH (NOLOCK) ON P.ProvisionId = WOM.ProvisionId
 							LEFT JOIN dbo.Provision SP WITH (NOLOCK) ON SP.ProvisionId = WOMS.ProvisionId 
 							LEFT JOIN dbo.UnitOfMeasure UOM WITH (NOLOCK) ON UOM.UnitOfMeasureId = WOM.UnitOfMeasureId
@@ -355,7 +356,7 @@ SET NOCOUNT ON
 							AND (@SubWorkOrderMaterialsId IS NULL OR WOM.SubWorkOrderMaterialsId = @SubWorkOrderMaterialsId)
 							AND WOM.ItemMasterId IN (SELECT [ItemMasterId] FROM #AllowItemMasterIds)
 
-					UNION ALL
+					 AND ISNULL(IM.IsNonStock,0) = 0 UNION ALL
 
 					SELECT  WOM.WorkOrderId,
 							WOM.SubWorkOrderId,
@@ -422,7 +423,7 @@ SET NOCOUNT ON
 							JOIN dbo.ItemMaster IM WITH (NOLOCK) ON IM.ItemMasterId = Equ.EquItemMasterId
 							JOIN dbo.Stockline SL WITH (NOLOCK) ON Equ.EquItemMasterId = SL.ItemMasterId AND SL.ConditionId IN (SELECT ConditionId FROM #ConditionGroup WHERE SubWorkOrderMaterialsId = WOM.SubWorkOrderMaterialsId) AND SL.StockLineId NOT IN (SELECT WOMS.StockLineId FROM dbo.SubWorkOrderMaterialStockLine WOMS WITH (NOLOCK) WHERE WOMS.SubWorkOrderMaterialsId = WOM.SubWorkOrderMaterialsId AND WOMS.ProvisionId != @ProvisionId)
 							LEFT JOIN dbo.ItemMaster IM_EquMain WITH (NOLOCK) ON IM_EquMain.ItemMasterId = Equ.ItemMasterId
-							LEFT JOIN dbo.Condition C WITH (NOLOCK) ON WOM.ConditionCodeId = C.ConditionId
+							 AND ISNULL(IM_EquMain.IsNonStock,0) = 0 LEFT JOIN dbo.Condition C WITH (NOLOCK) ON WOM.ConditionCodeId = C.ConditionId
 							LEFT JOIN dbo.SubWorkOrderMaterialStockLine WOMS WITH (NOLOCK) ON WOMS.SubWorkOrderMaterialsId = WOM.SubWorkOrderMaterialsId AND SL.StockLineId = WOMS.StockLineId AND WOMS.ProvisionId = @ProvisionId
 							LEFT JOIN dbo.Provision P WITH (NOLOCK) ON P.ProvisionId = WOM.ProvisionId
 							LEFT JOIN dbo.Provision SP WITH (NOLOCK) ON SP.ProvisionId = WOMS.ProvisionId 
@@ -434,7 +435,7 @@ SET NOCOUNT ON
 							AND (@ItemMasterId IS NULL OR im.ItemMasterId = @ItemMasterId OR IM_EquMain.ItemMasterId = @ItemMasterId) AND (WOM.ProvisionId = @ProvisionId OR WOM.ProvisionId = @SubWOProvisionId)
 							AND (@SubWorkOrderMaterialsId IS NULL OR WOM.SubWorkOrderMaterialsId = @SubWorkOrderMaterialsId)
 							AND WOM.ItemMasterId IN (SELECT [ItemMasterId] FROM #AllowItemMasterIds)
-				END
+				 AND ISNULL(IM.IsNonStock,0) = 0 END
 				ELSE
 				BEGIN
 
@@ -444,7 +445,7 @@ SET NOCOUNT ON
 					FROM dbo.SubWorkOrderMaterialsKit WOM WITH (NOLOCK)  
 						LEFT JOIN dbo.Nha_Tla_Alt_Equ_ItemMapping AS NhaTla WITH (NOLOCK) ON NhaTla.ItemMasterId = WOM.ItemMasterId AND NhaTla.MappingType = 1 AND NhaTla.IsActive = 1 AND NhaTla.IsDeleted = 0
 						LEFT JOIN dbo.ItemMaster IM_NhaTla WITH (NOLOCK) ON IM_NhaTla.ItemMasterId = NhaTla.MappingItemMasterId
-						JOIN dbo.SubWorkOrderMaterialsKitMapping WOMKM WITH (NOLOCK) ON WOMKM.SubWorkOrderMaterialsKitMappingId = WOM.SubWorkOrderMaterialsKitMappingId
+						 AND ISNULL(IM_NhaTla.IsNonStock,0) = 0 JOIN dbo.SubWorkOrderMaterialsKitMapping WOMKM WITH (NOLOCK) ON WOMKM.SubWorkOrderMaterialsKitMappingId = WOM.SubWorkOrderMaterialsKitMappingId
 					WHERE (@KitId IS NULL OR WOMKM.KitId = @KitId) AND WOM.SubWOPartNoId = @SubWOPartNoId AND WOM.ConditionCodeId <> @ARConditionId
 					AND NhaTla.MappingItemMasterId IN (SELECT [ItemMasterId] FROM #AllowItemMasterIds)
 
@@ -454,7 +455,7 @@ SET NOCOUNT ON
 					FROM dbo.SubWorkOrderMaterialsKit WOM WITH (NOLOCK)  
 						LEFT JOIN dbo.Nha_Tla_Alt_Equ_ItemMapping AS NhaTla WITH (NOLOCK) ON NhaTla.ItemMasterId = WOM.ItemMasterId AND NhaTla.MappingType = 2 AND NhaTla.IsActive = 1 AND NhaTla.IsDeleted = 0
 						LEFT JOIN dbo.ItemMaster IM_NhaTla WITH (NOLOCK) ON IM_NhaTla.ItemMasterId = NhaTla.MappingItemMasterId
-						JOIN dbo.SubWorkOrderMaterialsKitMapping WOMKM WITH (NOLOCK) ON WOMKM.SubWorkOrderMaterialsKitMappingId = WOM.SubWorkOrderMaterialsKitMappingId
+						 AND ISNULL(IM_NhaTla.IsNonStock,0) = 0 JOIN dbo.SubWorkOrderMaterialsKitMapping WOMKM WITH (NOLOCK) ON WOMKM.SubWorkOrderMaterialsKitMappingId = WOM.SubWorkOrderMaterialsKitMappingId
 					WHERE (@KitId IS NULL OR WOMKM.KitId = @KitId) AND WOM.SubWOPartNoId = @SubWOPartNoId AND WOM.ConditionCodeId <> @ARConditionId
 					AND NhaTla.MappingItemMasterId IN (SELECT [ItemMasterId] FROM #AllowItemMasterIds)
 
@@ -545,7 +546,7 @@ SET NOCOUNT ON
 							AND (@KitId IS NULL OR WOMKM.KitId = @KitId)
 							AND WOM.ItemMasterId IN (SELECT [ItemMasterId] FROM #AllowItemMasterIds)
 
-					UNION ALL
+					 AND ISNULL(IM.IsNonStock,0) = 0 UNION ALL
 
 					SELECT  DISTINCT WOM.WorkOrderId,
 							WOM.SubWorkOrderId,
@@ -626,7 +627,7 @@ SET NOCOUNT ON
 							AND (@KitId IS NULL OR WOMKM.KitId = @KitId)
 							AND WOM.ItemMasterId IN (SELECT [ItemMasterId] FROM #AllowItemMasterIds)
 
-					UNION ALL
+					 AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(IM_AltMain.IsNonStock,0) = 0 UNION ALL
 
 					SELECT  DISTINCT WOM.WorkOrderId,
 							WOM.SubWorkOrderId,
@@ -705,7 +706,7 @@ SET NOCOUNT ON
 							AND (@ItemMasterId IS NULL OR im.ItemMasterId = @ItemMasterId OR IM_EquMain.ItemMasterId = @ItemMasterId) AND (WOM.ProvisionId = @ProvisionId OR WOM.ProvisionId = @SubWOProvisionId)
 							AND (@KitId IS NULL OR WOMKM.KitId = @KitId)
 							AND WOM.ItemMasterId IN (SELECT [ItemMasterId] FROM #AllowItemMasterIds)
-				END
+				 AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(IM_EquMain.IsNonStock,0) = 0 END
 
 			END
 		COMMIT  TRANSACTION

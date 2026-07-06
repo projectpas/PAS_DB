@@ -18,6 +18,7 @@
 	2    11-25-2024			Amit Ghediya	Get ECCN,HSCODE,Weight,LWH for billing.
 	3    05-01-2025			ABHISHEK JIRAWLA Allow Repair Management Customer Stock Stockline
 	4    05-30-2025			ABHISHEK JIRAWLA Adding Traceability Changes
+	5    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
      
  EXEC [dbo].[SearchStockLineSOQPop] '2', 33, 10,-1,NULL
 **************************************************************/ 
@@ -126,7 +127,8 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 			JOIN DBO.StockLine sl WITH(NOLOCK) ON im.ItemMasterId = sl.ItemMasterId 
 				AND sl.isActive = 1 AND sl.IsDeleted = 0 
 				AND sl.ConditionId = CASE WHEN @ConditionId  IS NOT NULL 
-										THEN @ConditionId ELSE sl.ConditionId 
+										THEN @ConditionId  WHERE ISNULL(im.IsNonStock,0) = 0
+ELSE sl.ConditionId 
 										END
 			LEFT JOIN DBO.Condition c WITH(NOLOCK) ON c.ConditionId = sl.ConditionId
 			LEFT JOIN DBO.PurchaseOrder po WITH(NOLOCK) ON po.PurchaseOrderId = sl.PurchaseOrderId 
@@ -250,7 +252,8 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 			JOIN DBO.StockLine sl WITH(NOLOCK) ON im.ItemMasterId = sl.ItemMasterId 
 				AND sl.isActive = 1 AND sl.IsDeleted = 0 
 				AND sl.ConditionId = CASE WHEN @ConditionId  IS NOT NULL 
-										THEN @ConditionId ELSE sl.ConditionId 
+										THEN @ConditionId  WHERE ISNULL(im.IsNonStock,0) = 0
+ELSE sl.ConditionId 
 										END
 			LEFT JOIN DBO.Condition c WITH(NOLOCK) ON c.ConditionId = sl.ConditionId
 			LEFT JOIN DBO.PurchaseOrder po WITH(NOLOCK) ON po.PurchaseOrderId = sl.PurchaseOrderId 

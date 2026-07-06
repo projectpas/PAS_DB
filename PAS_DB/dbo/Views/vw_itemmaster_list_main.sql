@@ -8,4 +8,4 @@ FROM            dbo.ItemMaster INNER JOIN
                          dbo.ItemClassification ON dbo.ItemMaster.ItemClassificationId = dbo.ItemClassification.ItemClassificationId INNER JOIN
                          dbo.ItemGroup ON dbo.ItemMaster.ItemGroupId = dbo.ItemGroup.ItemGroupId INNER JOIN
                          dbo.Manufacturer ON dbo.ItemMaster.ManufacturerId = dbo.Manufacturer.ManufacturerId
-WHERE        (dbo.ItemMaster.IsDeleted = 0)
+WHERE        (dbo.ItemMaster.IsDeleted = 0) AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0

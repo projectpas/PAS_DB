@@ -21,6 +21,7 @@
 	5    12/27/2024   Hemnat Saliya		Update for Modify Work Order cost analysis Summary
 	6    01/27/2025   Hemant Saliya		Update OH Cost analysis Summary
 	7    04/28/2025   Hemant Saliya		Handle OutSide Service Cost Calculation
+	8    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 
 EXEC [dbo].[USP_SubWorkOrder_GetSubWorkOrderandCostAnalysisDetails] 4324, 641, false, 627     
 exec USP_SubWorkOrder_GetSubWorkOrderandCostAnalysisDetails @WorkOrderWorkflowId=4324,@WorkOrderId=4776,@IsSubWOFromWo=1,@SubWOPartNoId=0
@@ -74,7 +75,7 @@ BEGIN
 
 			SET @woNumber = (SELECT STRING_AGG([SubWorkOrderNo], ', ') FROM [DBO].[SubWorkOrder] WITH(NOLOCK) WHERE [WorkOrderId] = @WorkOrderId);
 			SET @subItemMasterIds = (SELECT STRING_AGG([ItemMasterId], ', ') FROM [DBO].[SubWorkOrderPartNumber] WITH(NOLOCK) WHERE [WorkOrderId] = @WorkOrderId);
-			SELECT @subPartNumber = STRING_AGG([partnumber], ', '), @subPartNumberDesc = STRING_AGG([PartDescription], ', ') FROM [DBO].[ItemMaster] WITH(NOLOCK) WHERE [ItemMasterId] IN(SELECT Item FROM dbo.SplitString(@subItemMasterIds, ','));
+			SELECT @subPartNumber = STRING_AGG([partnumber], ', '), @subPartNumberDesc = STRING_AGG([PartDescription], ', ') FROM [DBO].[ItemMaster] WITH(NOLOCK) WHERE [ItemMasterId] IN(SELECT Item FROM dbo.SplitString(@subItemMasterIds, ',')) AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 ;
 		END
 		ELSE
 		BEGIN 
@@ -82,12 +83,12 @@ BEGIN
 			IF(ISNULL(@SubWOPartNoId,0) = 0)
 			BEGIN 
 				SET @subItemMasterIds = (SELECT STRING_AGG([ItemMasterId], ', ') FROM [DBO].[SubWorkOrderPartNumber] WITH(NOLOCK) WHERE [SubWorkOrderId] = @WorkOrderId);
-				SELECT @subPartNumber = STRING_AGG([partnumber], ', '), @subPartNumberDesc = STRING_AGG([PartDescription], ', ') FROM [DBO].[ItemMaster] WITH(NOLOCK) WHERE [ItemMasterId] IN(SELECT Item FROM dbo.SplitString(@subItemMasterIds, ','));
+				SELECT @subPartNumber = STRING_AGG([partnumber], ', '), @subPartNumberDesc = STRING_AGG([PartDescription], ', ') FROM [DBO].[ItemMaster] WITH(NOLOCK) WHERE [ItemMasterId] IN(SELECT Item FROM dbo.SplitString(@subItemMasterIds, ',')) AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 ;
 			END
 			ELSE
 			BEGIN
 				SET @subItemMasterId = (SELECT [ItemMasterId] FROM [DBO].[SubWorkOrderPartNumber] WITH(NOLOCK) WHERE [SubWorkOrderId] = @WorkOrderId AND [SubWOPartNoId] = @SubWOPartNoId);
-				SELECT @subPartNumber = [partnumber], @subPartNumberDesc = [PartDescription] FROM [DBO].[ItemMaster] WITH(NOLOCK) WHERE [ItemMasterId] = @subItemMasterId;
+				SELECT @subPartNumber = [partnumber], @subPartNumberDesc = [PartDescription] FROM [DBO].[ItemMaster] WITH(NOLOCK) WHERE [ItemMasterId] = @subItemMasterId AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 ;
 			END
 			
 		END

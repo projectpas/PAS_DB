@@ -35,6 +35,7 @@ EXEC dbo.usp_IssueWorkOrderMaterialsStockline @tbl_MaterialsStocklineType=@p1
 declare @p1 dbo.ReserveWOMaterialsStocklineType
 insert into @p1 values(4226,3748,16233,179044,318,7,1,10,2,N'NE',N'100865',N'BATTERY POWER SUPPLY',1,0,0,1,0,0,N'CNTL-000614',N'ID_NUM-000001',N'STL000073',N'',N'ADMIN User',1,0,0,0,0,0)
 exec dbo.usp_IssueWorkOrderMaterialsStockline @tbl_MaterialsStocklineType=@p1
+	1    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[usp_IssueWorkOrderMaterialsStockline]
 	@tbl_MaterialsStocklineType ReserveWOMaterialsStocklineType READONLY
@@ -460,7 +461,7 @@ BEGIN
 						SELECT @WorkFlowWorkOrderId = WorkFlowWorkOrderId FROM dbo.WorkOrderMaterials WITH(NOLOCK) WHERE WorkOrderMaterialsId = @HistoryWorkOrderMaterialsId;
 						SELECT @WorkOrderPartNoId = WorkOrderPartNoId,@historyWorkOrderId = WorkOrderId FROM dbo.WorkOrderWorkFlow WITH(NOLOCK) WHERE WorkFlowWorkOrderId = @WorkFlowWorkOrderId;
 						SELECT @ItemMasterId = ItemMasterId FROM dbo.WorkOrderPartNumber WITH(NOLOCK) WHERE ID = @WorkOrderPartNoId;
-						SELECT @MPNPartnumber = partnumber FROM dbo.ItemMaster WITH(NOLOCK) WHERE ItemMasterId = @ItemMasterId;
+						SELECT @MPNPartnumber = partnumber FROM dbo.ItemMaster WITH(NOLOCK) WHERE ItemMasterId = @ItemMasterId AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 ;
 
 						SELECT @WorkOrderNum = WorkOrderNum FROM dbo.WorkOrder WITH(NOLOCK) WHERE WorkOrderId = @historyWorkOrderId;
 						SELECT @ConditionCode = Code FROM dbo.Condition WITH(NOLOCK) WHERE ConditionId = @ConditionId;

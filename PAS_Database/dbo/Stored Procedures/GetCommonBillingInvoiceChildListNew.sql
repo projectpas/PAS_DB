@@ -22,6 +22,7 @@
 	9    07 JUL 2025   RAJESH GAMI		added @DefaultInvoiceTypeId for if any STANDARD or COMMERCIAL invoice are there then it should be by default 
 	10   09 Jul 2025   RAJESH GAMI		Deposit amount getting from the item level instead of invoice in SO
 	11   30-10-2025    Moin Bloch       Added CreditMemoHeaderId 
+	12    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 **************************************************************/ 
 --   EXEC [dbo].[GetCommonBillingInvoiceChildListNew] 9728,9831,1,15
 
@@ -197,7 +198,7 @@ BEGIN
 						LEFT JOIN [dbo].[WorkOrderSettlementDetails] wosc WITH(NOLOCK) ON wop.WorkOrderId = wosc.WorkOrderId AND wop.ID = wosc.workOrderPartNoId AND wosc.WorkOrderSettlementId = 9
 						LEFT JOIN [dbo].[ItemMaster] imt WITH(NOLOCK) ON imt.ItemMasterId = wop.ItemMasterId
 					 --LEFT JOIN [dbo].[ItemMaster] imv WITH(NOLOCK) ON imv.ItemMasterId = wobi.ItemMasterId
-						LEFT JOIN [dbo].[Stockline] sl WITH(NOLOCK) ON sl.StockLineId = wop.StockLineId
+						 AND ISNULL(imv.IsNonStock,0) = 0  AND ISNULL(imt.IsNonStock,0) = 0 LEFT JOIN [dbo].[Stockline] sl WITH(NOLOCK) ON sl.StockLineId = wop.StockLineId
 						LEFT JOIN [dbo].[WorkOrderCustomsInfo] woc WITH(NOLOCK) ON woc.WorkOrderShippingId = wos.WorkOrderShippingId
 						LEFT JOIN [dbo].[Customer] cr WITH(NOLOCK) ON cr.CustomerId = wo.CustomerId
 						LEFT JOIN [dbo].[Condition] cond  WITH(NOLOCK) ON cond.ConditionId = wosc.ConditionId
@@ -292,7 +293,7 @@ BEGIN
 							 LEFT JOIN [dbo].[WorkOrderSettlementDetails] wosc WITH(NOLOCK) ON wop.WorkOrderId = wosc.WorkOrderId AND wop.ID = wosc.workOrderPartNoId AND wosc.WorkOrderSettlementId = 9
 							 LEFT JOIN [dbo].[ItemMaster] imt WITH(NOLOCK) ON imt.ItemMasterId = wop.ItemMasterId
 							--LEFT JOIN DBO.ItemMaster imv WITH(NOLOCK) ON imv.ItemMasterId = wobi.ItemMasterId
-							 LEFT JOIN [dbo].[Stockline] sl WITH(NOLOCK) ON sl.StockLineId = wop.StockLineId
+							  AND ISNULL(imv.IsNonStock,0) = 0  AND ISNULL(imt.IsNonStock,0) = 0 LEFT JOIN [dbo].[Stockline] sl WITH(NOLOCK) ON sl.StockLineId = wop.StockLineId
 							 LEFT JOIN [dbo].[WorkOrderCustomsInfo] woc WITH(NOLOCK) ON woc.WorkOrderShippingId = wos.WorkOrderShippingId
 							 LEFT JOIN [dbo].[Customer] cr WITH(NOLOCK) ON cr.CustomerId = wo.CustomerId
 							 LEFT JOIN [dbo].[Condition] cond  WITH(NOLOCK) ON cond.ConditionId = wosc.ConditionId
@@ -382,7 +383,7 @@ BEGIN
 						INNER JOIN [dbo].[WorkOrder] wo WITH(NOLOCK) ON wo.WorkOrderId = wop.WorkOrderId
 						 LEFT JOIN [dbo].[WorkOrderSettlementDetails] wosc WITH(NOLOCK) ON wop.WorkOrderId = wosc.WorkOrderId AND wop.ID = wosc.workOrderPartNoId AND wosc.WorkOrderSettlementId = 9
 						 LEFT JOIN [dbo].[ItemMaster] imt WITH(NOLOCK) ON imt.ItemMasterId = wop.ItemMasterId
-						 LEFT JOIN [dbo].[Stockline] sl WITH(NOLOCK) ON sl.StockLineId = wop.StockLineId
+						  AND ISNULL(imt.IsNonStock,0) = 0 LEFT JOIN [dbo].[Stockline] sl WITH(NOLOCK) ON sl.StockLineId = wop.StockLineId
 						 LEFT JOIN [dbo].[Customer] cr WITH(NOLOCK) ON cr.CustomerId = wo.CustomerId
 						 LEFT JOIN [dbo].[Condition] cond  WITH(NOLOCK) ON cond.ConditionId = wosc.ConditionId
 						 LEFT JOIN [dbo].[Currency] curr WITH(NOLOCK) ON curr.CurrencyId = wobi.CurrencyId
@@ -479,7 +480,7 @@ BEGIN
 					INNER JOIN [dbo].[WorkOrder] wo WITH(NOLOCK) ON wo.WorkOrderId = wop.WorkOrderId
 					 LEFT JOIN [dbo].[ItemMaster] imt WITH(NOLOCK) ON imt.ItemMasterId = wop.ItemMasterId
 					--LEFT JOIN DBO.ItemMaster imv WITH(NOLOCK) ON imv.ItemMasterId = wobi.ItemMasterId
-					 LEFT JOIN [dbo].[Stockline] sl WITH(NOLOCK) ON sl.StockLineId = wop.StockLineId
+					  AND ISNULL(imv.IsNonStock,0) = 0  AND ISNULL(imt.IsNonStock,0) = 0 LEFT JOIN [dbo].[Stockline] sl WITH(NOLOCK) ON sl.StockLineId = wop.StockLineId
 					 LEFT JOIN [dbo].[Customer] cr WITH(NOLOCK) ON cr.CustomerId = wo.CustomerId
 					 LEFT JOIN [dbo].[Condition] cond  WITH(NOLOCK) ON cond.ConditionId = wobii.ConditionId
 					 LEFT JOIN [dbo].[Currency] curr WITH(NOLOCK) ON curr.CurrencyId = wobi.CurrencyId
@@ -652,7 +653,7 @@ BEGIN
 					LEFT JOIN DBO.BillingInvoicing sobi WITH (NOLOCK) on sobi.BillingInvoicingId = sobii.BillingInvoicingId AND ISNULL(sobi.IsPerformaInvoice,0) = 0  AND SOBI.ModuleId = @SOModuleId
 					INNER JOIN DBO.SalesOrder so WITH (NOLOCK) on so.SalesOrderId = sop.SalesOrderId  
 					LEFT JOIN DBO.ItemMaster imt WITH (NOLOCK) on imt.ItemMasterId = sop.ItemMasterId  
-					LEFT JOIN DBO.Stockline sl WITH (NOLOCK) on sl.StockLineId = stk.StockLineId  
+					 AND ISNULL(imt.IsNonStock,0) = 0 LEFT JOIN DBO.Stockline sl WITH (NOLOCK) on sl.StockLineId = stk.StockLineId  
 					LEFT JOIN DBO.SalesOrderCustomsInfo soc WITH (NOLOCK) on soc.SalesOrderShippingId = sos.SalesOrderShippingId  
 					LEFT JOIN DBO.Customer cr WITH (NOLOCK) on cr.CustomerId = so.CustomerId  
 					LEFT JOIN DBO.Condition cond WITH (NOLOCK) on cond.ConditionId = sop.ConditionId  
@@ -810,7 +811,7 @@ BEGIN
 							LEFT JOIN DBO.BillingInvoicingItems sobii WITH (NOLOCK) on sobii.ShippingId = SOSI.SalesOrderShippingId AND sobii.StockLineId = stk.StockLineId AND ISNULL(sobii.IsPerformaInvoice,0) = 0  AND SOBII.ModuleId = @SOModuleId
 							LEFT JOIN DBO.BillingInvoicing sobi WITH (NOLOCK) on sobi.BillingInvoicingId = sobii.BillingInvoicingId  AND ISNULL(sobi.IsPerformaInvoice,0) = 0 AND sobi.ReferenceId = @ReferenceId AND SOBI.ModuleId = @SOModuleId
 							LEFT JOIN DBO.ItemMaster imt WITH (NOLOCK) on imt.ItemMasterId = sop.ItemMasterId  
-							LEFT JOIN DBO.Stockline sl WITH (NOLOCK) on sl.StockLineId = stk.StockLineId  
+							 AND ISNULL(imt.IsNonStock,0) = 0 LEFT JOIN DBO.Stockline sl WITH (NOLOCK) on sl.StockLineId = stk.StockLineId  
 							LEFT JOIN DBO.Customer cr WITH (NOLOCK) on cr.CustomerId = so.CustomerId  
 							LEFT JOIN DBO.Condition cond WITH (NOLOCK) on cond.ConditionId = sop.ConditionId  
 							LEFT JOIN DBO.Currency curr WITH (NOLOCK) on curr.CurrencyId = imt.PurchaseCurrencyId  
@@ -886,7 +887,7 @@ BEGIN
 								LEFT JOIN DBO.BillingInvoicingItems sobii WITH (NOLOCK) on sobii.SubReferenceId = sop.SalesOrderPartId AND sobii.StockLineId = stk.StockLineId AND ISNULL(sobii.IsPerformaInvoice,0) = 0  AND SOBII.ModuleId = @SOModuleId
 								LEFT JOIN DBO.BillingInvoicing sobi WITH (NOLOCK) on sobi.BillingInvoicingId = sobii.BillingInvoicingId AND ISNULL(sobi.IsPerformaInvoice,0) = 0 AND sobi.ReferenceId = @ReferenceId  AND SOBI.ModuleId = @SOModuleId
 								LEFT JOIN DBO.ItemMaster imt WITH (NOLOCK) on imt.ItemMasterId = sop.ItemMasterId  
-								LEFT JOIN DBO.Stockline sl WITH (NOLOCK) on sl.StockLineId = stk.StockLineId  
+								 AND ISNULL(imt.IsNonStock,0) = 0 LEFT JOIN DBO.Stockline sl WITH (NOLOCK) on sl.StockLineId = stk.StockLineId  
 								LEFT JOIN DBO.Customer cr WITH (NOLOCK) on cr.CustomerId = so.CustomerId  
 								LEFT JOIN DBO.Condition cond WITH (NOLOCK) on cond.ConditionId = sop.ConditionId  
 								LEFT JOIN DBO.Currency curr WITH (NOLOCK) on curr.CurrencyId = so.FunctionalCurrencyId  
@@ -1088,7 +1089,7 @@ BEGIN
 							LEFT JOIN DBO.BillingInvoicingItems sobii WITH (NOLOCK) on sobii.SubReferenceId = sop.SalesOrderPartId AND sobii.StockLineId = stk.StockLineId AND ISNULL(sobii.IsPerformaInvoice,0) = 0 AND SOBII.ModuleId = @SOModuleId
 							LEFT JOIN DBO.BillingInvoicing sobi WITH (NOLOCK) on sobi.BillingInvoicingId = sobii.BillingInvoicingId AND ISNULL(sobi.IsPerformaInvoice,0) = 0 AND sobi.ReferenceId = @ReferenceId AND SOBI.ModuleId = @SOModuleId
 							LEFT JOIN DBO.ItemMaster imt WITH (NOLOCK) on imt.ItemMasterId = sop.ItemMasterId  
-							LEFT JOIN DBO.Stockline sl WITH (NOLOCK) on sl.StockLineId = stk.StockLineId  
+							 AND ISNULL(imt.IsNonStock,0) = 0 LEFT JOIN DBO.Stockline sl WITH (NOLOCK) on sl.StockLineId = stk.StockLineId  
 							LEFT JOIN DBO.Customer cr WITH (NOLOCK) on cr.CustomerId = so.CustomerId  
 							LEFT JOIN DBO.Condition cond WITH (NOLOCK) on cond.ConditionId = sop.ConditionId  
 							LEFT JOIN DBO.Currency curr WITH (NOLOCK) on curr.CurrencyId = so.FunctionalCurrencyId  
@@ -1290,7 +1291,7 @@ BEGIN
 						LEFT JOIN DBO.BillingInvoicing sobi WITH (NOLOCK) ON sobi.BillingInvoicingId = sobii.BillingInvoicingId  AND ISNULL(sobi.IsPerformaInvoice,0) = 1 AND sobi.ReferenceId = @ReferenceId AND SOBI.ModuleId = @SOModuleId
 						INNER JOIN DBO.SalesOrder so WITH (NOLOCK) ON so.SalesOrderId = sop.SalesOrderId  
 						LEFT JOIN DBO.ItemMaster imt WITH (NOLOCK) ON imt.ItemMasterId = sop.ItemMasterId  
-						LEFT JOIN DBO.Stockline sl WITH (NOLOCK) ON sl.StockLineId = stk.StockLineId  
+						 AND ISNULL(imt.IsNonStock,0) = 0 LEFT JOIN DBO.Stockline sl WITH (NOLOCK) ON sl.StockLineId = stk.StockLineId  
 						LEFT JOIN DBO.Customer cr WITH (NOLOCK) ON cr.CustomerId = so.CustomerId  
 						LEFT JOIN DBO.Condition cond WITH (NOLOCK) ON cond.ConditionId = sop.ConditionId  
 						LEFT JOIN DBO.Currency curr WITH (NOLOCK) ON curr.CurrencyId = so.FunctionalCurrencyId 
@@ -1482,4 +1483,4 @@ BEGIN
               RAISERROR ('Unexpected Error Occured in the database. Please let the support team know of the error number : %d', 16, 1,@ErrorLogID)
               RETURN(1);
 		END CATCH
-END
+END                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        

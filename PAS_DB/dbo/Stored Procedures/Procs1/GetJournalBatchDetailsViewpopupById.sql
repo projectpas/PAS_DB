@@ -58,6 +58,7 @@
  42	  25/08/2025  Moin Bloch		     added Some Remaining Fields For Common API
  43	  10/02/2026  Moin Bloch		     added TWO
  44	  06/03/2026  AMIT GHEDIYA		     added added IsReversedJE Flag for NPO (PN-15580)
+	45    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 
  EXEC [GetJournalBatchDetailsViewpopupById] 1045,0,'ManualJournal'  
  exec dbo.GetJournalBatchDetailsViewpopupById @JournalBatchDetailId=5944,@IsDeleted=0,@Module=N'CKS'
@@ -857,7 +858,7 @@ BEGIN
 					 INNER JOIN [dbo].[BatchHeader] JBH WITH(NOLOCK) ON BTD.[JournalBatchHeaderId] = JBH.[JournalBatchHeaderId]       
 					 LEFT JOIN [dbo].[ExchangeBatchDetails] SBD WITH(NOLOCK) ON JBD.[CommonJournalBatchDetailId] = SBD.[CommonJournalBatchDetailId]  
 					 LEFT JOIN [dbo].[ItemMaster] ITM WITH(NOLOCK) ON SBD.[ItemMasterId] = ITM.[ItemMasterId]  
-					 LEFT JOIN [dbo].[Customer] CST WITH(NOLOCK) ON SBD.[CustomerId] = CST.[CustomerId]  
+					  AND ISNULL(ITM.IsNonStock,0) = 0 LEFT JOIN [dbo].[Customer] CST WITH(NOLOCK) ON SBD.[CustomerId] = CST.[CustomerId]  
 					 LEFT JOIN [dbo].[ExchangeManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.[ModuleID] = @EXSOHeaderMSModuleId AND MSD.[ReferenceID] = SBD.ExchangeSalesOrderId        
 					 LEFT JOIN [dbo].[GLAccount] GLA WITH(NOLOCK) ON GLA.[GLAccountId] = JBD.[GLAccountId]	
 					 LEFT JOIN [dbo].[GLAccountClass] GLC WITH(NOLOCK) ON GLC.GLAccountClassId=GLA.GLAccountTypeId 

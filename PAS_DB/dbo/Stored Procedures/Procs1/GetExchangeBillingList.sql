@@ -15,6 +15,7 @@
  ** --   --------     -------			--------------------------------          
     1    06/09/2025   Ekta Chandegra     Created
 	2    06/20/2025   Ekta Chandegra     Get correct billing amount when flat rates are added
+	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 
 
  EXEC GetExchangeBillingList @ExchangeSalesOrderId=188
@@ -58,7 +59,7 @@ BEGIN
 		LEFT JOIN [dbo].[ExchangeSalesOrderPart] part WITH(NOLOCK) ON sqe.ExchangeSalesOrderPartId = part.ExchangeSalesOrderPartId
 		LEFT JOIN [dbo].[ExchangeSalesOrder] eso WITH(NOLOCK) ON part.ExchangeSalesOrderId = eso.ExchangeSalesOrderId
 		LEFT JOIN [dbo].[ItemMaster] itemMaster WITH(NOLOCK) ON part.ItemMasterId = itemMaster.ItemMasterId
-		LEFT JOIN [dbo].[UnitOfMeasure] um WITH(NOLOCK) ON itemMaster.PurchaseUnitOfMeasureId = um.UnitOfMeasureId
+		 AND ISNULL(itemMaster.IsNonStock,0) = 0 LEFT JOIN [dbo].[UnitOfMeasure] um WITH(NOLOCK) ON itemMaster.PurchaseUnitOfMeasureId = um.UnitOfMeasureId
 		LEFT JOIN [dbo].[ExchangeBillingType] ebt WITH(NOLOCK) ON sqe.BillingTypeId = ebt.ExchangeBillingTypeId
 		LEFT JOIN [dbo].[ExchangeSalesOrderShipping] essp WITH(NOLOCK) ON sqe.ExchangeSalesOrderId = essp.ExchangeSalesOrderId
 		LEFT JOIN [dbo].[ExchangeSalesOrderBillingInvoicingItem] esbii WITH(NOLOCK) ON sqe.ExchangeSalesOrderScheduleBillingId = esbii.ExchangeSalesOrderScheduleBillingId AND ISNULL(esbii.IsDeleted,0) = 0

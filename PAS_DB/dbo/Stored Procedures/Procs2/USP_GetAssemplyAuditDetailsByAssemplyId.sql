@@ -15,6 +15,7 @@
     1    22 Nov 2023   BHARGAV SALIYA               Created
     2    24 Nov 2023   BHARGAV SALIYA               Part Description issue  Resolve 
 	3    05/02/2025	   Ayushi Patel					converted the date into utc (created , updated) , Added a case to get timeZone
+	4    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 **************************************************************/
 CREATE     PROCEDURE [dbo].[USP_GetAssemplyAuditDetailsByAssemplyId]
 @AssemplyId bigint,
@@ -78,7 +79,7 @@ BEGIN
 				LEFT JOIN [dbo].[Provision] PS WITH (NOLOCK) ON PS.ProvisionId = APL.ProvisionId
 
 				WHERE APL.AssemplyId = @AssemplyId
-				ORDER BY APL.AssemplyAuditId DESC
+				 AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(IMP.IsNonStock,0) = 0 ORDER BY APL.AssemplyAuditId DESC
 		
 
 	END

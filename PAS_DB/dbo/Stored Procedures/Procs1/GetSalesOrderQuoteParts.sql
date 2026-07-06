@@ -20,6 +20,7 @@
   	4    19-SEP-2025  RAJESH GAMI	    Added return field: netSalesPricePerUnit        
 	5    05-NOV-2025  RAJESH GAMI	    Added return field: TotalPartCost 
 	6    11-JUNE-2025 Vishal Suthar	    Added/Fixed Order By to keep the sequence same.
+	7    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 
  -- EXEC DBO.GetSalesOrderQuoteParts 1300
 **************************************************************/ 
@@ -157,7 +158,7 @@ BEGIN
 		LEFT JOIN DBO.SalesOrderQuotePartCost SOQPC WITH (NOLOCK) ON SOQPC.SalesOrderQuotePartId = part.SalesOrderQuotePartId
 		LEFT JOIN DBO.SalesOrderQuoteStockLineCost SOQSC WITH (NOLOCK) ON SOQSC.SalesOrderQuoteStocklineId = Stk.SalesOrderQuoteStocklineId
 		LEFT JOIN DBO.ItemMaster itemMaster WITH (NOLOCK) ON part.ItemMasterId = itemMaster.ItemMasterId
-		LEFT JOIN DBO.Condition cp WITH (NOLOCK) ON part.ConditionId = cp.ConditionId
+		 AND ISNULL(itemMaster.IsNonStock,0) = 0 LEFT JOIN DBO.Condition cp WITH (NOLOCK) ON part.ConditionId = cp.ConditionId
 		LEFT JOIN DBO.Manufacturer mf WITH (NOLOCK) ON itemMaster.ManufacturerId = mf.ManufacturerId
 		LEFT JOIN DBO.UnitOfMeasure um WITH (NOLOCK) ON itemMaster.PurchaseUnitOfMeasureId = um.UnitOfMeasureId
 		LEFT JOIN DBO.PurchaseOrder po WITH (NOLOCK) ON qs.PurchaseOrderId = po.PurchaseOrderId

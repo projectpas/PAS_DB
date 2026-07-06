@@ -23,6 +23,7 @@
 	5    11/27/2023   Hemant Saliya		Add Kit in Sub WOM 
 	6    12/07/2023   Devendra Shekh	Added filter for showing only qty remaining
 	7    12/19/2023   Devendra Shekh	Added changes to select for alter,eqp parts 
+	8    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
        
  EXECUTE USP_GetSubWorkOrderMaterialsList 123  
   
@@ -347,7 +348,7 @@ SET NOCOUNT ON
 								END
 							ELSE MSTL.AltPartMasterPartId
 							END)
-						) AS AlterPartNumber
+						 AND ISNULL(IM.IsNonStock,0) = 0 ) AS AlterPartNumber
 				FROM dbo.SubWorkOrderMaterials WOM WITH (NOLOCK)    
 					JOIN dbo.WorkOrder W WITH (NOLOCK) ON W.WorkOrderId = WOM.WorkOrderId  
 					JOIN dbo.ItemMaster IM WITH (NOLOCK) ON IM.ItemMasterId = WOM.ItemMasterId  
@@ -367,10 +368,10 @@ SET NOCOUNT ON
 					LEFT JOIN dbo.RepairOrderPart ROP WITH (NOLOCK) ON SL.RepairOrderPartRecordId = ROP.RepairOrderPartRecordId  
 					LEFT JOIN dbo.RepairOrder RO WITH (NOLOCK) ON SL.RepairOrderId = RO.RepairOrderId  
 					LEFT JOIN dbo.ItemMaster IMS WITH (NOLOCK) ON IMS.ItemMasterId = MSTL.ItemMasterId
-				WHERE WOM.IsDeleted = 0 AND WOM.SubWOPartNoId = @subWOPartNoId AND ISNULL(WOM.IsAltPart, 0) = 0 AND ISNULL(WOM.IsEquPart, 0) = 0 
+				 AND ISNULL(IMS.IsNonStock,0) = 0 WHERE WOM.IsDeleted = 0 AND WOM.SubWOPartNoId = @subWOPartNoId AND ISNULL(WOM.IsAltPart, 0) = 0 AND ISNULL(WOM.IsEquPart, 0) = 0 
 				AND (ISNULL(WOM.Quantity,0) - ISNULL(WOM.QuantityIssued,0) > 0)
 
-				UNION ALL
+				 AND ISNULL(IM.IsNonStock,0) = 0 UNION ALL
 
 				SELECT DISTINCT   
 					IM.PartNumber,  
@@ -536,7 +537,7 @@ SET NOCOUNT ON
 								END
 							ELSE MSTL.AltPartMasterPartId
 							END)
-						) AS AlterPartNumber
+						 AND ISNULL(IM.IsNonStock,0) = 0 ) AS AlterPartNumber
 				FROM dbo.SubWorkOrderMaterialsKit WOM WITH (NOLOCK)    
 					JOIN dbo.WorkOrder W WITH (NOLOCK) ON W.WorkOrderId = WOM.WorkOrderId  
 					JOIN dbo.ItemMaster IM WITH (NOLOCK) ON IM.ItemMasterId = WOM.ItemMasterId  
@@ -557,8 +558,8 @@ SET NOCOUNT ON
 					LEFT JOIN dbo.RepairOrder RO WITH (NOLOCK) ON SL.RepairOrderId = RO.RepairOrderId  
 					LEFT JOIN [dbo].[SubWorkOrderMaterialsKitMapping] WOMKM WITH (NOLOCK) ON WOMKM.SubWOPartNoId = wo.SubWOPartNoId AND WOMKM.SubWorkOrderMaterialsKitMappingId = WOM.SubWorkOrderMaterialsKitMappingId
 					LEFT JOIN dbo.ItemMaster IMS WITH (NOLOCK) ON IMS.ItemMasterId = MSTL.ItemMasterId
-				WHERE WOM.IsDeleted = 0 AND WOM.SubWOPartNoId = @subWOPartNoId AND ISNULL(WOM.IsAltPart, 0) = 0 AND ISNULL(WOM.IsEquPart, 0) = 0
-				AND (ISNULL(WOM.Quantity,0) - ISNULL(WOM.QuantityIssued,0) > 0);
+				 AND ISNULL(IMS.IsNonStock,0) = 0 WHERE WOM.IsDeleted = 0 AND WOM.SubWOPartNoId = @subWOPartNoId AND ISNULL(WOM.IsAltPart, 0) = 0 AND ISNULL(WOM.IsEquPart, 0) = 0
+				AND (ISNULL(WOM.Quantity,0) - ISNULL(WOM.QuantityIssued,0) > 0) AND ISNULL(IM.IsNonStock,0) = 0 ;
 		END
 		ELSE
 		BEGIN
@@ -728,7 +729,7 @@ SET NOCOUNT ON
 							END
 						ELSE MSTL.AltPartMasterPartId
 						END)
-					) AS AlterPartNumber
+					 AND ISNULL(IM.IsNonStock,0) = 0 ) AS AlterPartNumber
 			 FROM dbo.SubWorkOrderMaterials WOM WITH (NOLOCK)    
 				  JOIN dbo.WorkOrder W WITH (NOLOCK) ON W.WorkOrderId = WOM.WorkOrderId  
 				  JOIN dbo.ItemMaster IM WITH (NOLOCK) ON IM.ItemMasterId = WOM.ItemMasterId  
@@ -748,9 +749,9 @@ SET NOCOUNT ON
 				  LEFT JOIN dbo.RepairOrderPart ROP WITH (NOLOCK) ON SL.RepairOrderPartRecordId = ROP.RepairOrderPartRecordId  
 				  LEFT JOIN dbo.RepairOrder RO WITH (NOLOCK) ON SL.RepairOrderId = RO.RepairOrderId  
 				  LEFT JOIN dbo.ItemMaster IMS WITH (NOLOCK) ON IMS.ItemMasterId = MSTL.ItemMasterId
-			 WHERE WOM.IsDeleted = 0 AND WOM.SubWOPartNoId = @subWOPartNoId AND ISNULL(WOM.IsAltPart, 0) = 0 AND ISNULL(WOM.IsEquPart, 0) = 0 
+			  AND ISNULL(IMS.IsNonStock,0) = 0 WHERE WOM.IsDeleted = 0 AND WOM.SubWOPartNoId = @subWOPartNoId AND ISNULL(WOM.IsAltPart, 0) = 0 AND ISNULL(WOM.IsEquPart, 0) = 0 
 
-			 UNION ALL
+			  AND ISNULL(IM.IsNonStock,0) = 0 UNION ALL
 
 			 SELECT DISTINCT   
 				  IM.PartNumber,  
@@ -916,7 +917,7 @@ SET NOCOUNT ON
 							END
 						ELSE MSTL.AltPartMasterPartId
 						END)
-					) AS AlterPartNumber
+					 AND ISNULL(IM.IsNonStock,0) = 0 ) AS AlterPartNumber
 			 FROM dbo.SubWorkOrderMaterialsKit WOM WITH (NOLOCK)    
 				  JOIN dbo.WorkOrder W WITH (NOLOCK) ON W.WorkOrderId = WOM.WorkOrderId  
 				  JOIN dbo.ItemMaster IM WITH (NOLOCK) ON IM.ItemMasterId = WOM.ItemMasterId  
@@ -937,7 +938,7 @@ SET NOCOUNT ON
 				  LEFT JOIN dbo.RepairOrder RO WITH (NOLOCK) ON SL.RepairOrderId = RO.RepairOrderId  
 				  LEFT JOIN [dbo].[SubWorkOrderMaterialsKitMapping] WOMKM WITH (NOLOCK) ON WOMKM.SubWOPartNoId = wo.SubWOPartNoId AND WOMKM.SubWorkOrderMaterialsKitMappingId = WOM.SubWorkOrderMaterialsKitMappingId
 				  LEFT JOIN dbo.ItemMaster IMS WITH (NOLOCK) ON IMS.ItemMasterId = MSTL.ItemMasterId
-			 WHERE WOM.IsDeleted = 0 AND WOM.SubWOPartNoId = @subWOPartNoId AND ISNULL(WOM.IsAltPart, 0) = 0 AND ISNULL(WOM.IsEquPart, 0) = 0;  
+			  AND ISNULL(IMS.IsNonStock,0) = 0 WHERE WOM.IsDeleted = 0 AND WOM.SubWOPartNoId = @subWOPartNoId AND ISNULL(WOM.IsAltPart, 0) = 0 AND ISNULL(WOM.IsEquPart, 0) = 0 AND ISNULL(IM.IsNonStock,0) = 0 ;  
 		END
     END  
    COMMIT  TRANSACTION  

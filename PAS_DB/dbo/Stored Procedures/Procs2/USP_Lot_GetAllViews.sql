@@ -13,6 +13,7 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    15/04/2023  Rajesh Gami   Created
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
      
 -- EXEC USP_Lot_GetAllViews 2,'ALL',1
 ************************************************************************/
@@ -85,7 +86,8 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 					 LEFT JOIN DBO.RepairOrder ro WITH(NOLOCK) ON sl.RepairOrderId = ro.RepairOrderId 
 					 LEFT JOIN DBO.WorkOrder wo WITH(NOLOCK) ON sl.WorkOrderId = wo.WorkOrderId 
 					 LEFT JOIN DBO.Vendor ven WITH(NOLOCK) ON sl.VendorId = ven.VendorId
-			END
+			 WHERE ISNULL(im.IsNonStock,0) = 0
+END
 			ELSE IF(UPPER(@Type) = UPPER('PNSTOCKVIEW'))
 			BEGIN
 				SELECT DISTINCT
@@ -129,7 +131,8 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 					 LEFT JOIN DBO.RepairOrder ro WITH(NOLOCK) ON sl.RepairOrderId = ro.RepairOrderId 
 					 LEFT JOIN DBO.WorkOrder wo WITH(NOLOCK) ON sl.WorkOrderId = wo.WorkOrderId 
 					 LEFT JOIN DBO.Vendor ven WITH(NOLOCK) ON sl.VendorId = ven.VendorId
-			END
+			 WHERE ISNULL(im.IsNonStock,0) = 0
+END
 		END
 	COMMIT  TRANSACTION
 		END TRY    

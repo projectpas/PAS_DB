@@ -16,6 +16,7 @@
  ** S NO   DateAuthor   Change Description 
  ** --   ---------------  --------------------------------
 	1	22-10-2024		Abhishek Jirawla	CREATED  
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 **************************************************************/
 CREATE   PROCEDURE [dbo].[usprpt_GetWorkOrderAwaitingPartsReport]
  @PageNumber INT = 1,
@@ -249,7 +250,7 @@ BEGIN TRANSACTION
 		LEFT JOIN [dbo].TimeZone TZ WITH(NOLOCK) ON le.TimeZoneId = TZ.TimeZoneId
 		LEFT JOIN #tmpMultipleWOMStockline tmpWOM WITH (NOLOCK) ON tmpWOM.[WorkOrderId] = WO.[WorkOrderId]
 		LEFT JOIN DBO.ItemMaster AS IMWOM WITH (NOLOCK) ON tmpWOM.ItemMasterId = IMWOM.ItemMasterId
-		LEFT JOIN DBO.WorkOrderMaterials AS WOM WITH (NOLOCK) ON tmpWOM.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId
+		 AND ISNULL(IMWOM.IsNonStock,0) = 0 LEFT JOIN DBO.WorkOrderMaterials AS WOM WITH (NOLOCK) ON tmpWOM.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId
 		LEFT JOIN DBO.UnitOfMeasure AS UOM WITH (NOLOCK) ON UOM.UnitOfMeasureId = WOM.UnitOfMeasureId
 		LEFT JOIN (
 			SELECT 
@@ -287,7 +288,7 @@ BEGIN TRANSACTION
 			INNER JOIN DBO.WorkOrderWorkFlow WOWF WITH (NOLOCK) ON WOPN.ID = WOWF.WorkOrderPartNoId
 			LEFT JOIN DBO.Condition CDTN WITH (NOLOCK) ON tmpWOM.ConditionId = CDTN.ConditionId
 			WHERE WOWF.WorkFlowWorkOrderId = WOM.WorkFlowWorkOrderId
-		) AS MPNData
+		 AND ISNULL(IMWOPN.IsNonStock,0) = 0 ) AS MPNData
 		OUTER APPLY (
 			SELECT 
 				MAX(
@@ -330,7 +331,7 @@ BEGIN TRANSACTION
 		AND (ISNULL(@Level8,'') ='' OR MSD.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,',')))
 		AND (ISNULL(@Level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))
 		AND  (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))  
-	GROUP BY WO.WorkOrderId, WQD.QuoteMethod, tmpWOM.Quantity, tmpWOM.[QuantityReserved], tmpWOM.[QuantityIssued],
+	 AND ISNULL(IMWOPN.IsNonStock,0) = 0 GROUP BY WO.WorkOrderId, WQD.QuoteMethod, tmpWOM.Quantity, tmpWOM.[QuantityReserved], tmpWOM.[QuantityIssued],
 		STK.QuantityAvailable,
 		STKCS.QuantityAvailable,
 		UPPER(WO.WorkOrderNum),
@@ -431,7 +432,7 @@ BEGIN TRANSACTION
 		LEFT JOIN [dbo].TimeZone TZ WITH(NOLOCK) ON le.TimeZoneId = TZ.TimeZoneId
 		LEFT JOIN #tmpMultipleWOMStocklineKit tmpWOM WITH (NOLOCK) ON tmpWOM.[WorkOrderId] = WO.[WorkOrderId]
 		LEFT JOIN DBO.ItemMaster AS IMWOM WITH (NOLOCK) ON tmpWOM.ItemMasterId = IMWOM.ItemMasterId
-		LEFT JOIN DBO.WorkOrderMaterialsKit AS WOM WITH (NOLOCK) ON tmpWOM.WorkOrderMaterialsId = WOM.WorkOrderMaterialsKitId
+		 AND ISNULL(IMWOM.IsNonStock,0) = 0 LEFT JOIN DBO.WorkOrderMaterialsKit AS WOM WITH (NOLOCK) ON tmpWOM.WorkOrderMaterialsId = WOM.WorkOrderMaterialsKitId
 		LEFT JOIN DBO.UnitOfMeasure AS UOM WITH (NOLOCK) ON UOM.UnitOfMeasureId = WOM.UnitOfMeasureId
 		LEFT JOIN (
 			SELECT 
@@ -469,7 +470,7 @@ BEGIN TRANSACTION
 			INNER JOIN DBO.WorkOrderWorkFlow WOWF WITH (NOLOCK) ON WOPN.ID = WOWF.WorkOrderPartNoId
 			LEFT JOIN DBO.Condition CDTN WITH (NOLOCK) ON tmpWOM.ConditionId = CDTN.ConditionId
 			WHERE WOWF.WorkFlowWorkOrderId = WOM.WorkFlowWorkOrderId
-		) AS MPNData
+		 AND ISNULL(IMWOPN.IsNonStock,0) = 0 ) AS MPNData
 		OUTER APPLY (
 			SELECT 
 				MAX(
@@ -512,7 +513,7 @@ BEGIN TRANSACTION
 		AND (ISNULL(@Level8,'') ='' OR MSD.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,',')))
 		AND (ISNULL(@Level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))
 		AND  (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))  
-	GROUP BY WO.WorkOrderId, WQD.QuoteMethod, tmpWOM.Quantity, tmpWOM.[QuantityReserved], tmpWOM.[QuantityIssued],
+	 AND ISNULL(IMWOPN.IsNonStock,0) = 0 GROUP BY WO.WorkOrderId, WQD.QuoteMethod, tmpWOM.Quantity, tmpWOM.[QuantityReserved], tmpWOM.[QuantityIssued],
 		STK.QuantityAvailable,
 		STKCS.QuantityAvailable,
 		UPPER(WO.WorkOrderNum),

@@ -18,6 +18,7 @@
  ** --   --------         -------          --------------------------------            
     1    19-Mar-2024  Rajesh Gami   Created  
 	2    03-07-2025   Moin Bloch    Changed Old To New Billing Table
+	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 ***********************************************************************/  
 CREATE   PROCEDURE [dbo].[usprpt_GetWOOperatingMetricReport_HMarginUnitUnit] 
 @PageNumber int = 1,
@@ -159,7 +160,7 @@ BEGIN
 			LEFT JOIN DBO.EntityStructureSetup ES ON ES.EntityStructureId=MSD.EntityMSID
 			LEFT JOIN DBO.Customer WITH (NOLOCK) ON WO.CustomerId = Customer.CustomerId  
 			LEFT JOIN DBO.ItemMaster IM WITH (NOLOCK) ON WOPN.itemmasterId = IM.itemmasterId  
-			LEFT JOIN DBO.Condition AS CN WITH (NOLOCK) ON WOPN.RevisedConditionId = CN.ConditionId 
+			 AND ISNULL(IM.IsNonStock,0) = 0 LEFT JOIN DBO.Condition AS CN WITH (NOLOCK) ON WOPN.RevisedConditionId = CN.ConditionId 
 			--LEFT JOIN DBO.WorkScope AS WS WITH (NOLOCK) ON WOPN.WorkOrderScopeId = WS.WorkScopeId 
 		  
 		  WHERE WBI.InvoiceStatus = 'Invoiced' AND ISNULL(WO.IsDeleted,0) = 0 AND WBI.[ModuleId] = @WOModuleId AND

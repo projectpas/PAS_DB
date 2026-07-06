@@ -17,6 +17,7 @@
  ** --   --------     -------		--------------------------------          
     1                 Swetha Created
 	2	        	  Swetha Added Transaction & NO LOCK
+	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
      
 EXECUTE   [dbo].[usp_GetPurchaseOrderSSRSDashboard] 
 **************************************************************/
@@ -87,7 +88,7 @@ BEGIN
 
 		  where PO.MasterCompanyId = @mastercompanyid
 
-    COMMIT TRANSACTION
+     AND ISNULL(IM.IsNonStock,0) = 0 COMMIT TRANSACTION
   END TRY
 
   BEGIN CATCH

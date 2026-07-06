@@ -13,6 +13,7 @@
  ** --   --------     -------		--------------------------------          
     1    23-Dec-2020   Vishal Suthar   Created         
     2    04-Apr-2024   Bhargav Saliya	Credit Terms Changes
+	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 
 	EXEC [dbo].[UpdateSOQNameColumnsWithId] 31
 **************************************************************/ 
@@ -74,7 +75,7 @@ BEGIN
 		FROM [dbo].[SalesOrderQuotePartV1] soqp WITH (NOLOCK)
 		LEFT JOIN DBO.SalesOrderQuoteStocklineV1 stk WITH (NOLOCK) ON stk.SalesOrderQuotePartId = soqp.SalesOrderQuotePartId
 		LEFT JOIN DBO.ItemMaster im WITH (NOLOCK) ON soqp.ItemMasterId = im.ItemMasterId
-		LEFT JOIN DBO.Stockline sl WITH (NOLOCK) ON stk.StockLineId = sl.StockLineId
+		 AND ISNULL(im.IsNonStock,0) = 0 LEFT JOIN DBO.Stockline sl WITH (NOLOCK) ON stk.StockLineId = sl.StockLineId
 		LEFT JOIN DBO.Currency Curr WITH (NOLOCK) ON Curr.CurrencyId = soqp.CurrencyId
 		LEFT JOIN DBO.Condition c WITH (NOLOCK) ON soqp.ConditionId = c.ConditionId
 		LEFT JOIN DBO.MasterSalesOrderQuoteStatus st WITH (NOLOCK) ON soqp.StatusId = st.Id

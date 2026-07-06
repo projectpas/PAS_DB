@@ -1,4 +1,11 @@
-﻿CREATE PROCEDURE [dbo].[UpdateVendorRFQRepairOrderDetail]
+﻿/***************************************************************************************************************************************
+  ** Change History
+ ***************************************************************************************************************************************
+ ** PR   Date						 Author							Change Description
+ ** --   --------					 -------						-------------------------------
+	1    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+****************************************************************************************************************************************/
+CREATE PROCEDURE [dbo].[UpdateVendorRFQRepairOrderDetail]
 @VendorRFQRepairOrderId  bigint
 AS
 BEGIN
@@ -137,13 +144,13 @@ BEGIN
 			  LEFT JOIN SubWorkOrder SWO WITH (NOLOCK) ON SWO.SubWorkOrderId = ROP.SubWorkOrderId	  
 			  LEFT JOIN SalesOrder SO WITH (NOLOCK) ON SO.SalesOrderId = ROP.SalesOrderId
 			  LEFT JOIN ItemMaster AIM WITH (NOLOCK) ON AIM.ItemMasterId = ROP.AltEquiPartNumberId			  
-			  LEFT JOIN ItemMaster ST WITH (NOLOCK) ON ST.ItemMasterId=ROP.ItemMasterId	
-			  LEFT JOIN ItemType IT WITH (NOLOCK) ON IM.ItemTypeId = IT.ItemTypeId				 
+			   AND ISNULL(AIM.IsNonStock,0) = 0 LEFT JOIN ItemMaster ST WITH (NOLOCK) ON ST.ItemMasterId=ROP.ItemMasterId	
+			   AND ISNULL(ST.IsNonStock,0) = 0 LEFT JOIN ItemType IT WITH (NOLOCK) ON IM.ItemTypeId = IT.ItemTypeId				 
 			  LEFT JOIN ItemMaster RIM WITH (NOLOCK) ON ROP.RevisedPartId=RIM.ItemMasterId	
 			  --LEFT JOIN WorkPerformed WP WITH (NOLOCK) ON ROP.WorkPerformedId=WP.WorkPerformedId	
-			  LEFT JOIN CapabilityType WP WITH (NOLOCK) ON ROP.WorkPerformedId=WP.CapabilityTypeId
+			   AND ISNULL(RIM.IsNonStock,0) = 0 LEFT JOIN CapabilityType WP WITH (NOLOCK) ON ROP.WorkPerformedId=WP.CapabilityTypeId
 
-		WHERE ROP.VendorRFQRepairOrderId = @VendorRFQRepairOrderId; 
+		WHERE ROP.VendorRFQRepairOrderId = @VendorRFQRepairOrderId AND ISNULL(IM.IsNonStock,0) = 0 ; 
 		
 		SELECT VendorRFQRepairOrderNumber AS value FROM dbo.VendorRFQRepairOrder PO WITH (NOLOCK) WHERE VendorRFQRepairOrderId = @VendorRFQRepairOrderId
 	END

@@ -18,6 +18,7 @@
  2 25/08/2023   BHARGAV SALIYA   Convert Dates UTC To LegalEntity Time Zone       
  3 08/04/2024   Devendra Shekh   added customerReference     
  4 18/04/2025   Ayushi			Added the condition for pn , pndescription , serialnum 
+	5    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 EXECUTE   [dbo].[USP_GetScrapReportList] 'krunal','','','1','1,4,43,44,45,80,84,88','46,47,66','48,49,50,59','51,52,53'  
 **************************************************************/  
 CREATE   PROCEDURE [dbo].[USP_GetScrapReportList]   
@@ -100,7 +101,7 @@ BEGIN
     INNER JOIN Stockline ST WITH (NOLOCK) ON ST.StockLineId=WOPN.StockLineId AND ST.IsParent = 1  
     INNER JOIN ScrapCertificate SC WITH (NOLOCK) ON SC.WorkOrderId=WO.WorkOrderId AND WOPN.ID=SC.workOrderPartNoId  
     LEFT JOIN DBO.ItemMaster imt WITH(NOLOCK) on imt.ItemMasterId = WOPN.ItemMasterId  
-    INNER JOIN dbo.WorkOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = WOPN.ID  
+     AND ISNULL(imt.IsNonStock,0) = 0 INNER JOIN dbo.WorkOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = WOPN.ID  
     LEFT JOIN DBO.EntityStructureSetup ES ON ES.EntityStructureId=MSD.EntityMSID  
     LEFT JOIN ScrapReason SR WITH (NOLOCK) ON SR.Id=SC.ScrapReasonId   
     LEFT JOIN vendor vo WITH (NOLOCK) ON vo.vendorid=SC.ScrapedByVendorId   
@@ -118,7 +119,7 @@ BEGIN
      AND (ISNULL(@Level8,'') ='' OR MSD.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,',')))  
      AND (ISNULL(@Level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))  
      AND  (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))  
-   END  
+    AND ISNULL(IM.IsNonStock,0) = 0 END  
   
    SET @PageSize = CASE WHEN NULLIF(@PageSize,0) IS NULL THEN 10 ELSE @PageSize END  
    SET @PageNumber = CASE WHEN NULLIF(@PageNumber,0) IS NULL THEN 1 ELSE @PageNumber END  
@@ -142,10 +143,10 @@ BEGIN
     INNER JOIN WorkOrderPartNumber WOPN WITH (NOLOCK) ON WOPN.WorkOrderId =WO.WorkOrderId  
     INNER JOIN ItemMaster IM WITH (NOLOCK) ON WOPN.ItemMasterId=IM.ItemMasterId  
 	LEFT JOIN [dbo].[ItemMaster] RIM WITH (NOLOCK) ON WOPN.RevisedItemmasterid = RIM.ItemMasterId
-    INNER JOIN Stockline ST WITH (NOLOCK) ON ST.StockLineId=WOPN.StockLineId AND ST.IsParent = 1  
+     AND ISNULL(RIM.IsNonStock,0) = 0 INNER JOIN Stockline ST WITH (NOLOCK) ON ST.StockLineId=WOPN.StockLineId AND ST.IsParent = 1  
     INNER JOIN ScrapCertificate SC WITH (NOLOCK) ON SC.WorkOrderId=WO.WorkOrderId AND WOPN.ID=SC.workOrderPartNoId  
     LEFT JOIN DBO.ItemMaster imt WITH(NOLOCK) on imt.ItemMasterId = WOPN.ItemMasterId  
-    INNER JOIN dbo.WorkOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = WOPN.ID  
+     AND ISNULL(imt.IsNonStock,0) = 0 INNER JOIN dbo.WorkOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = WOPN.ID  
     LEFT JOIN DBO.EntityStructureSetup ES ON ES.EntityStructureId=MSD.EntityMSID  
     LEFT JOIN ScrapReason SR WITH (NOLOCK) ON SR.Id=SC.ScrapReasonId   
     LEFT JOIN vendor vo WITH (NOLOCK) ON vo.vendorid=SC.ScrapedByVendorId   
@@ -167,7 +168,7 @@ BEGIN
     AND (ISNULL(@Level8,'') ='' OR MSD.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,',')))  
     AND (ISNULL(@Level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))  
     AND  (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))  
-   ORDER BY IM.partnumber  
+    AND ISNULL(IM.IsNonStock,0) = 0 ORDER BY IM.partnumber  
    OFFSET((@PageNumber-1) * @pageSize) ROWS FETCH NEXT @pageSize ROWS ONLY;  
   
    SELECT DISTINCT * FROM #tmpBilling  

@@ -18,6 +18,7 @@
 	2	 02/1/2024	  AMIT GHEDIYA	added isperforma Flage for SO
 	3    10/16/2024	  Abhishek Jirawla	Implemented the new tables for SalesOrderQuotePart related tables
     4    07-07-2025   Moin Bloch        Changed Old To New Billing Table
+	5    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 -- EXEC [GetWOSOByCustomerDashboardCount] 1
 **************************************************************/
 CREATE   PROCEDURE [dbo].[GetWOSOByCustomerDashboardCount]
@@ -41,7 +42,7 @@ BEGIN
 				LEFT JOIN DBO.SalesOrderPartV1 SOP WITH (NOLOCK) ON SOP.SalesOrderId = SO.SalesOrderId
 				LEFT JOIN DBO.SalesOrderPartCost SOPC WITH (NOLOCK) ON SOPC.SalesOrderPartId=SOP.SalesOrderPartId and SOPC.IsDeleted=0
 				LEFT JOIN DBO.ItemMaster IM WITH (NOLOCK) ON SOP.ItemMasterId = IM.ItemMasterId
-				LEFT JOIN DBO.Condition CON WITH (NOLOCK) ON SOP.ConditionId = CON.ConditionId
+				 AND ISNULL(IM.IsNonStock,0) = 0 LEFT JOIN DBO.Condition CON WITH (NOLOCK) ON SOP.ConditionId = CON.ConditionId
 				LEFT JOIN DBO.Customer C WITH (NOLOCK) ON SO.CustomerId = C.CustomerId
 				LEFT JOIN DBO.BillingInvoicing SOB WITH (NOLOCK) ON SOB.ReferenceId = SOP.SalesOrderId AND ISNULL(SOB.IsPerformaInvoice,0) = 0  AND SOB.[ModuleId] = @SOModuleId
 				Where SO.MasterCompanyId = @MasterCompanyId

@@ -11,6 +11,7 @@
  ** --   --------     -------				--------------------------------          
     1	08/05/2024    Abhishek Jirawla		Created 
 	2   22/06/2026    Abhishek Jirawla		Adding IsPiecePart condition in RepairOrderPart table 
+	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_GetRepairOrderMaterialsListNew]
@@ -206,7 +207,7 @@ SET NOCOUNT ON
 					ISNULL(
 					CASE WHEN pop.isAsset = 1 
 						THEN (SELECT AssetId FROM Asset WHERE AssetRecordId = pop.ItemMasterId)
-						ELSE (SELECT PartNumber FROM ItemMaster WHERE ItemMasterId = pop.ItemMasterId)
+						ELSE (SELECT PartNumber FROM ItemMaster WHERE ItemMasterId = pop.ItemMasterId AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 )
 					END, '') AS PartNumber,
 					pop.SerialNumber,
 					pop.ManufacturerPN,
@@ -293,7 +294,7 @@ SET NOCOUNT ON
 								SELECT PartNumber
 								FROM ItemMaster
 								WHERE ItemMasterId = pop.RevisedPartId
-							)
+							 AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 )
 						END
 					), '') AS RevisedPartNumber,
 					pop.WorkPerformedId,

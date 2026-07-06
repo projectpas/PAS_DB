@@ -15,6 +15,7 @@
  ** PR   Date         Author			Change Description
  ** --   --------     -------			-----------------------
     1    02/05/2024   Vishal Suthar		Created
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
   
 
 declare @p5 int
@@ -153,7 +154,7 @@ BEGIN
 			SELECT @RO_Id = RO.[RepairOrderId] FROM dbo.[RepairOrder] RO WITH(NOLOCK) WHERE RO.[RepairOrderNumber] = @RO_NUMBER;
 			SELECT @Part_NUMBER = IM.PN, @Part_Desc = IM.[DESCRIPTION] FROM [Quantum].[QCTL_NEW_3].[PARTS_MASTER] IM  WITH(NOLOCK) WHERE IM.PNM_AUTO_KEY = @PNM_AUTO_KEY;
 			SELECT @ConditionCode = CC.CONDITION_CODE FROM [Quantum].QCTL_NEW_3.[PART_CONDITION_CODES] CC WITH(NOLOCK) WHERE CC.PCC_AUTO_KEY = @PCC_AUTO_KEY;
-			SELECT @ItemMaster_Id = IM.ItemMasterId FROM [dbo].[ItemMaster] IM WITH(NOLOCK) WHERE UPPER(IM.partnumber) = UPPER(@Part_NUMBER) AND UPPER(IM.PartDescription) = UPPER(@Part_Desc);
+			SELECT @ItemMaster_Id = IM.ItemMasterId FROM [dbo].[ItemMaster] IM WITH(NOLOCK) WHERE UPPER(IM.partnumber) = UPPER(@Part_NUMBER) AND UPPER(IM.PartDescription) = UPPER(@Part_Desc) AND ISNULL(IM.IsNonStock,0) = 0 ;
 
 			IF EXISTS (SELECT TOP 1 1 FROM [dbo].[RepairOrderPart] WITH(NOLOCK) WHERE [RepairOrderId] = @RO_Id AND [ItemMasterId] = @ItemMaster_Id AND [MasterCompanyId] = @FromMasterComanyID)
 			BEGIN

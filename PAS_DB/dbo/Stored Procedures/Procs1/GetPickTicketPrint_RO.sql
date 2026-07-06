@@ -15,6 +15,7 @@
  ** PR  Date			Author				Change Description            
  ** --  --------		-------				--------------------------------          
 	1	04/15/2025		Vishal Suthar		Created
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
      
 -- EXEC [dbo].[GetPickTicketPrint_RO] 2561, 4686, 1
 **************************************************************/
@@ -95,7 +96,7 @@ BEGIN
 		LEFT JOIN [dbo].[PurchaseOrder] po WITH(NOLOCK) ON po.PurchaseOrderId = sl.PurchaseOrderId
 		LEFT JOIN TResrvePart WITH(NOLOCK) ON TResrvePart.RepairOrderId = ropt.RepairOrderId
 		WHERE ro.RepairOrderId = @RepairOrderId AND ropt.ROPickTicketNumber = @pickTicketNo
-		ORDER BY ropt.ROPickTicketId ASC
+		 AND ISNULL(imt.IsNonStock,0) = 0 ORDER BY ropt.ROPickTicketId ASC
 	END TRY    
 	BEGIN CATCH      
 		IF @@trancount > 0

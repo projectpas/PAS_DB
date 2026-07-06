@@ -9,6 +9,7 @@
  ** PR   Date         Author			Change Description            
  ** --   --------     -------		--------------------------------          
 	1    12/16/2024   BHARGAV SALIA	     Created
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 **************************************************************/ 
 CREATE   PROCEDURE [USP_GetSalesOrderQuotePrintData]
     @SalesOrderId INT
@@ -69,7 +70,7 @@ BEGIN
 		LEFT JOIN [dbo].SalesOrderQuoteStocklineV1 stk WITH (NOLOCK) ON sop.SalesOrderQuotePartId = stk.SalesOrderQuotePartId
 		LEFT JOIN [dbo].SalesOrderQuotePartCost partc WITH (NOLOCK) ON sop.SalesOrderQuotePartId = partc.SalesOrderQuotePartId
 		LEFT JOIN [dbo].ItemMaster itemMaster WITH (NOLOCK) ON sop.ItemMasterId = itemMaster.ItemMasterId
-		LEFT JOIN [dbo].UnitOfMeasure iu WITH (NOLOCK) ON itemMaster.ConsumeUnitOfMeasureId = iu.UnitOfMeasureId
+		 AND ISNULL(itemMaster.IsNonStock,0) = 0 LEFT JOIN [dbo].UnitOfMeasure iu WITH (NOLOCK) ON itemMaster.ConsumeUnitOfMeasureId = iu.UnitOfMeasureId
 		LEFT JOIN [dbo].Condition cp WITH (NOLOCK) ON sop.ConditionId = cp.ConditionId
 		LEFT JOIN [dbo].Customer cust WITH (NOLOCK) ON so.CustomerId = cust.CustomerId
 		LEFT JOIN [dbo].Address custAddress WITH (NOLOCK) ON cust.AddressId = custAddress.AddressId

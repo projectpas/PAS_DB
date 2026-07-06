@@ -12,6 +12,7 @@
  ** PR   Date          Author  		 Change Description            
  ** --   --------      -------		 ---------------------------     
     1    21 MAR 2025   Rajesh Gami     Created
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 **************************************************************
  EXEC SP_GetSubWorkOrderMPNsById 246
  **************************************************************/
@@ -94,7 +95,7 @@ BEGIN
 				LEFT JOIN dbo.Shelf sh WITH(NOLOCK) ON sl.ShelfId = sh.ShelfId
 				LEFT JOIN dbo.Bin bi WITH(NOLOCK) ON sl.BinId = bi.BinId
 				LEFT JOIN dbo.Employee emp WITH(NOLOCK) ON wop.TechnicianId = emp.EmployeeId
-				WHERE wop.SubWorkOrderId = @SubWorkOrderId;
+				WHERE wop.SubWorkOrderId = @SubWorkOrderId AND ISNULL(im.IsNonStock,0) = 0 ;
 		END
 		
 	END

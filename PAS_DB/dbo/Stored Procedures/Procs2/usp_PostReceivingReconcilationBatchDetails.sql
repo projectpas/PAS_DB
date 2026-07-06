@@ -38,6 +38,7 @@
 	25	 19/02/2026   HEMANT SALIYA		  Resolved RO Batch Post when Stl Qty is 0 and RO cost is 0
 	26   03/09/2024   Moin Bloch          Batch: Duplicate JE Number generated for multiple entries on same day PN-15921
 	27   03/09/2024   Moin Bloch          Batch: Duplicate JE Number generated for multiple entries on same day PN-15921
+	28    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 
 **************************************************************/  
 CREATE  PROCEDURE [dbo].[usp_PostReceivingReconcilationBatchDetails]
@@ -535,13 +536,13 @@ BEGIN
 
 							END
 
-							SELECT @MPNName = partnumber FROM dbo.ItemMaster WITH(NOLOCK)  WHERE ItemMasterId=@ItemmasterId;
+							SELECT @MPNName = partnumber FROM dbo.ItemMaster WITH(NOLOCK)  WHERE ItemMasterId=@ItemmasterId AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 ;
 							SELECT @VendorName =VendorName FROM dbo.Vendor WITH(NOLOCK)  WHERE VendorId= @VendorId;
 							SELECT @PurchaseOrderNumber=PurchaseOrderNumber FROM dbo.PurchaseOrder WITH(NOLOCK)  WHERE PurchaseOrderId= @PurchaseOrderId;
 							SELECT @PiecePN = partnumber FROM dbo.ItemMaster WITH(NOLOCK)  WHERE ItemMasterId=@PieceItemmasterId 
 							
 								-- Reconciliation PO
-							SELECT @LastMSLevel=LastMSLevel, @AllMSlevels=AllMSlevels FROM dbo.StocklineManagementStructureDetails WITH(NOLOCK) WHERE ReferenceID=@StockLineId AND ModuleID=@STKMSModuleID;
+							 AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 SELECT @LastMSLevel=LastMSLevel, @AllMSlevels=AllMSlevels FROM dbo.StocklineManagementStructureDetails WITH(NOLOCK) WHERE ReferenceID=@StockLineId AND ModuleID=@STKMSModuleID;
 
 							SET @Desc='Receiving PO-'+@PurchaseOrderNumber+'  PN-'+@MPNName+'  SL-'+@StocklineNumber
 							SET @Amount=(ISNULL(@StocklineQtyAvail, 0) * @Amount);
@@ -1487,14 +1488,14 @@ BEGIN
 								SELECT @PieceItemmasterId=MasterPartId  FROM dbo.AssetInventory WITH(NOLOCK) WHERE AssetInventoryId=@StocklineId
 							END
 
-							SELECT @MPNName = partnumber FROM dbo.ItemMaster WITH(NOLOCK)  WHERE ItemMasterId=@ItemmasterId;
+							SELECT @MPNName = partnumber FROM dbo.ItemMaster WITH(NOLOCK)  WHERE ItemMasterId=@ItemmasterId AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 ;
 							SELECT @VendorName =VendorName FROM dbo.Vendor WITH(NOLOCK)  WHERE VendorId= @VendorId;
 							SELECT @RepairOrderNumber=RepairOrderNumber FROM dbo.RepairOrder WITH(NOLOCK)  WHERE RepairOrderId= @RepairOrderId;
 
 							SELECT @PieceItemmasterId=ItemMasterId FROM dbo.Stockline  WHERE StockLineId=@StocklineId
 							SELECT @PiecePN = partnumber FROM dbo.ItemMaster WITH(NOLOCK)  WHERE ItemMasterId=@PieceItemmasterId 
 								
-							SELECT @LastMSLevel=LastMSLevel, @AllMSlevels=AllMSlevels FROM dbo.StocklineManagementStructureDetails WITH(NOLOCK) WHERE ReferenceID=@StockLineId AND ModuleID=@STKMSModuleID;
+							 AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 SELECT @LastMSLevel=LastMSLevel, @AllMSlevels=AllMSlevels FROM dbo.StocklineManagementStructureDetails WITH(NOLOCK) WHERE ReferenceID=@StockLineId AND ModuleID=@STKMSModuleID;
 
 							SET @Desc='Receiving RO-'+@RepairOrderNumber+'  PN-'+@MPNName+'  SL-'+@StocklineNumber
 							SET @Amount=(ISNULL(@StocklineQtyAvail, 0)* @Amount);

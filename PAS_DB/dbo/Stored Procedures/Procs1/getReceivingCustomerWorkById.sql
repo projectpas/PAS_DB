@@ -18,6 +18,7 @@
 	3	 16-JUL-2025        Moin Bloch   		    Added IsBatchStock And Batch Number
 	4	 20-JAN-2026        Priyansh Patel  		Added CSN, TSN, CSO, TSO fields
 	5	 24-FEB-2026        Moin Bloch   		    Added OutGoingItemMasterId And OutGoingPartNumber
+	6    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
  --exec dbo.getReceivingCustomerWorkById 5837
       
 **************************************************************/    
@@ -205,13 +206,13 @@ AS BEGIN
 			INNER JOIN [dbo].[Manufacturer] man WITH(NOLOCK) ON im.ManufacturerId = man.ManufacturerId
 			INNER JOIN [dbo].[WorkOrderManagementStructureDetails] msd WITH(NOLOCK) ON rc.ReceivingCustomerWorkId = msd.ReferenceID AND msd.ModuleID = @ModuleId 
 			LEFT JOIN [dbo].[ItemMaster] rp WITH(NOLOCK) ON im.ItemMasterId = rp.RevisedPartId
-			LEFT JOIN [dbo].[WorkOrder] wo WITH(NOLOCK) ON rc.WorkOrderId = wo.WorkOrderId
+			 AND ISNULL(rp.IsNonStock,0) = 0 LEFT JOIN [dbo].[WorkOrder] wo WITH(NOLOCK) ON rc.WorkOrderId = wo.WorkOrderId
 			LEFT JOIN [dbo].[ItemGroup] ig WITH(NOLOCK) ON im.ItemGroupId = ig.ItemGroupId
 			LEFT JOIN [dbo].[WOInspectionChecklist] woi WITH(NOLOCK) ON rc.ReceivingCustomerWorkId = woi.ReceivingCustomerWorkId
 			LEFT JOIN [dbo].[ExchangeSalesOrder] eso WITH(NOLOCK) ON rc.ExchangeSalesOrderId = eso.ExchangeSalesOrderId
 			LEFT JOIN [dbo].[UnitOfMeasure] uom WITH(NOLOCK) ON im.PurchaseUnitOfMeasureId = uom.UnitOfMeasureId
 			LEFT JOIN [dbo].[Stockline] stk WITH(NOLOCK) ON rc.StockLineId = stk.StockLineId
-			WHERE rc.ReceivingCustomerWorkId = @ReceivingCustomerWorkId;
+			WHERE rc.ReceivingCustomerWorkId = @ReceivingCustomerWorkId AND ISNULL(im.IsNonStock,0) = 0 ;
 
 
 		COMMIT  TRANSACTION

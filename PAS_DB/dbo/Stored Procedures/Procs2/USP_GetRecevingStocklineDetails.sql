@@ -13,6 +13,7 @@
  ** S NO   Date            Author          Change Description              
  ** --   --------         -------          --------------------------------            
     1    05-11-2025    Sahdev Saliya       Created  
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 
     exec [dbo].[USP_GetRecevingStocklineDetails]
 **************************************************************/
@@ -39,7 +40,7 @@ BEGIN
         WHERE st.ItemMasterId = @ItemMasterId
 	      AND st.ConditionId = @ConditionId
 		  AND st.PurchaseOrderId > 0
-        ORDER BY st.StockLineId DESC;
+         AND ISNULL(im.IsNonStock,0) = 0 ORDER BY st.StockLineId DESC;
 
     END TRY
     BEGIN CATCH

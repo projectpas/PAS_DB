@@ -15,6 +15,7 @@
 	4    04/12/2024   HEMANT SALIYA   Updated Status Id 
 	5	 11/04/2024	  Vishal Suthar	  Modified to make use of new SO Part tables
 	6    26/06/2025	  AMIT GHEDIYA	  Modified to make use of new common Billing tables
+	7    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	
  --  EXEC RPT_GetCreditMemoPartsForPrint 546,1,190
 **************************************************************/ 
@@ -63,7 +64,7 @@ BEGIN
 					LEFT JOIN  dbo.SalesOrder SO WITH (NOLOCK) ON SO.SalesOrderId = SOBI.ReferenceId
 					LEFT JOIN  dbo.Condition CO WITH (NOLOCK) ON CO.ConditionId = SOPN.ConditionId
 					LEFT JOIN  dbo.ItemMaster IM WITH (NOLOCK) ON CM.ItemMasterId = IM.ItemMasterId
-				WHERE CM.InvoiceId = @InvoicingId AND CM.CreditMemoHeaderId=@CreditMemoHeaderId AND SOBI.ModuleId = @SOModuleId;
+				 AND ISNULL(IM.IsNonStock,0) = 0 WHERE CM.InvoiceId = @InvoicingId AND CM.CreditMemoHeaderId=@CreditMemoHeaderId AND SOBI.ModuleId = @SOModuleId;
 		END
 		ELSE 
 		BEGIN
@@ -91,7 +92,7 @@ BEGIN
 					LEFT JOIN  dbo.WorkOrderPartNumber WOPN WITH (NOLOCK) ON WOPN.WorkOrderId = WOBI.ReferenceId AND WOPN.ID = WOBII.SubReferenceId AND CM.StocklineId = WOPN.StockLineId				
 					LEFT JOIN  dbo.Condition CO WITH (NOLOCK) ON CO.ConditionId = WOPN.RevisedConditionId
 					LEFT JOIN  dbo.ItemMaster IM WITH (NOLOCK) ON WOBII.ItemMasterId=IM.ItemMasterId				
-				WHERE CM.InvoiceId = @InvoicingId AND CM.CreditMemoHeaderId = @CreditMemoHeaderId AND WOBI.ModuleId = @WOModuleId;
+				 AND ISNULL(IM.IsNonStock,0) = 0 WHERE CM.InvoiceId = @InvoicingId AND CM.CreditMemoHeaderId = @CreditMemoHeaderId AND WOBI.ModuleId = @WOModuleId;
 		END
 	END TRY    
 	BEGIN CATCH      

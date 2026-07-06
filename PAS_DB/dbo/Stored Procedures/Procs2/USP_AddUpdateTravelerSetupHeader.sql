@@ -20,6 +20,7 @@
     1    12/22/2023   Subhash Saliya  Created
 	2    05/22/2023   Satish Gohil    Update Code prefix function
 	3    01/09/2025   Moin Bloch      Changed [WorkScope] Discription to [WorkScopeCode]
+	4    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
        
 -- EXEC [USP_AddUpdateTravelerSetupHeader] 44  
 **************************************************************/  
@@ -55,7 +56,7 @@ BEGIN
                 SELECT TOP 1 @PartNumber=partnumber from [dbo].[ItemMaster] WITH(NOLOCK) WHERE  ItemMasterId=@ItemMasterId   
                  
   
-                IF OBJECT_ID(N'tempdb..#tmpCodePrefixes') IS NOT NULL  
+                 AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 IF OBJECT_ID(N'tempdb..#tmpCodePrefixes') IS NOT NULL  
 				BEGIN  
 					DROP TABLE #tmpCodePrefixes  
 				END  

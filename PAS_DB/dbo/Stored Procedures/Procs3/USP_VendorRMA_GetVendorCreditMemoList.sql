@@ -17,6 +17,7 @@
     1    23/06/2023   Shrey Chandegara  Created  
 	2    29/06/2023   Devendra Shekh    Added list filter by vendorRMAId  
 	3    18/07/2023   Amit Ghediya		updated filter for status all not working. 
+	4    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
  
 **************************************************************/  
 CREATE     PROCEDURE [dbo].[USP_VendorRMA_GetVendorCreditMemoList]
@@ -115,7 +116,7 @@ BEGIN
 				--LEFT JOIN dbo.[VendorCreditMemoDetail] vcmdl WITH (NOLOCK) ON vcm.VendorCreditMemoId = vcmd.VendorCreditMemoId
 				LEFT JOIN dbo.[VendorRMADetail] vrd WITH (NOLOCK) ON vcmd.VendorRMADetailId = vrd.VendorRMADetailId
 				LEFT JOIN dbo.[ItemMaster] im WITH (NOLOCK) ON im.ItemMasterId = vrd.ItemMasterId
-				LEFT JOIN dbo.[Currency] c WITH (NOLOCK) ON c.CurrencyId = vcm.CurrencyId									
+				 AND ISNULL(im.IsNonStock,0) = 0 LEFT JOIN dbo.[Currency] c WITH (NOLOCK) ON c.CurrencyId = vcm.CurrencyId									
 				LEFT JOIN dbo.[CreditMemoStatus] cms WITH (NOLOCK) ON vcm.VendorCreditMemoStatusId = cms.Id
 
 		 	  WHERE ((vcm.IsDeleted=@IsDeleted) AND (@IsActive IS NULL OR vcm.IsActive=@IsActive) AND (@Status IS NULL OR vcm.VendorCreditMemoStatusId=CAST(@Status AS INT)))		     
@@ -227,12 +228,12 @@ BEGIN
 				LEFT JOIN dbo.[Vendor] ve WITH (NOLOCK) ON vcm.VendorId = ve.VendorId
 				LEFT JOIN dbo.[VendorRMADetail] vrd WITH (NOLOCK) ON vcmd.VendorRMADetailId = vrd.VendorRMADetailId
 				LEFT JOIN dbo.[ItemMaster] im WITH (NOLOCK) ON im.ItemMasterId = vrd.ItemMasterId
-				LEFT JOIN dbo.[Currency] c WITH (NOLOCK) ON c.CurrencyId = vcm.CurrencyId									
+				 AND ISNULL(im.IsNonStock,0) = 0 LEFT JOIN dbo.[Currency] c WITH (NOLOCK) ON c.CurrencyId = vcm.CurrencyId									
 				LEFT JOIN dbo.[CreditMemoStatus] cms WITH (NOLOCK) ON vcm.VendorCreditMemoStatusId = cms.Id
 				LEFT JOIN dbo.[Stockline] sl WITH (NOLOCK) ON sl.StockLineId = vcmd.StockLineId
 				LEFT JOIN dbo.[ItemMaster] imd WITH (NOLOCK) ON sl.ItemMasterId = imd.ItemMasterId
 
-		 	  WHERE ((vcm.IsDeleted=@IsDeleted) AND (@IsActive IS NULL OR vcm.IsActive=@IsActive) AND (@Status IS NULL OR vcm.VendorCreditMemoStatusId=CAST(@Status AS INT)))		     
+		 	   AND ISNULL(imd.IsNonStock,0) = 0 WHERE ((vcm.IsDeleted=@IsDeleted) AND (@IsActive IS NULL OR vcm.IsActive=@IsActive) AND (@Status IS NULL OR vcm.VendorCreditMemoStatusId=CAST(@Status AS INT)))		     
 					AND vcm.MasterCompanyId=@MasterCompanyId	
 					--AND vcm.VendorRMAId = CASE 
 					--		WHEN @VendorRMAId IS NOT NULL THEN  @VendorRMAId 

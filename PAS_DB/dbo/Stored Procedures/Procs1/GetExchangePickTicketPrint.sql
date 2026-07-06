@@ -18,6 +18,7 @@
 	2    08/14/2023	  Devendra SHekh		added ReadyToPick to result 
 	2    08/16/2023	  Devendra SHekh		changes temptable to result for data
 	2    08/18/2023	  Devendra SHekh		commneted ReadyToPick and added QtyRemaining to result
+	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
      
 -- EXEC [dbo].[GetExchangePickTicketPrint] 107, 101, 76
 
@@ -76,7 +77,7 @@ BEGIN
   LEFT JOIN Bin bn WITH(NOLOCK) on bn.BinId = sl.BinId  
   LEFT JOIN PurchaseOrder po WITH(NOLOCK) on po.PurchaseOrderId = sl.PurchaseOrderId  
   LEFT JOIN [Priority] p WITH(NOLOCK) ON sop.PriorityId = p.PriorityId
-  WHERE sopt.SOPickTicketId = @SOPickTicketId;
+  WHERE sopt.SOPickTicketId = @SOPickTicketId AND ISNULL(imt.IsNonStock,0) = 0 ;
 
 	--SELECT DISTINCT cte.SOPickTicketId, cte.SOPickTicketDate, cte.ExchangeSalesOrderId, cte.StockLineNumber,cte.Qty, QtyShipped,PartNumber, PartDescription,
 	--	cte.SOPickTicketNumber, cte.SerialNumber, cte.ControlNumber, cte.IdNumber, cte.ConditionDescription, cte.ExchangeSalesOrderNumber, cte.UOM,

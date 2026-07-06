@@ -16,6 +16,7 @@
 	6	 01/22/2025	  Abhishek Jirawla	Fixed issue related to pick ticket display calculation
 	7	 03/13/2025	  Vishal Suthar		Fixed issue with displaying picked records also in the multiple pick ticket create popup
 	8    31/10/2025   Amit Ghediya		added for location
+	9    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 
 EXEC [dbo].[SearchStockLinePickTicketPop] 82050, 1, 1318, 0
 **************************************************************/ 
@@ -107,7 +108,7 @@ BEGIN
 						INNER JOIN SalesOrderShippingItem ship_item WITH(NOLOCK) on ship_item.SalesOrderShippingId = ship.SalesOrderShippingId AND ship.SalesOrderId = @SalesOrderId and ship_item.SalesOrderPartId = sop.SalesOrderPartId
 						INNER JOIN SOPickTicket sopi with(nolock) on ship_item.SOPickTicketId = sopi.SOPickTicketId and sopi.SOPickTicketId = Pick.SOPickTicketId)) - 
 					(SELECT ISNULL(SUM(QtyToShip), 0) FROM SOPickTicket s WITH(NOLOCK) Where s.SalesOrderId = @SalesOrderId AND s.SalesOrderPartStocklineId = stk.SalesOrderStocklineId)) > 0
-		END
+		 AND ISNULL(im.IsNonStock,0) = 0 END
 		ELSE
 		BEGIN
 			SELECT DISTINCT
@@ -182,7 +183,7 @@ BEGIN
 						INNER JOIN SOPickTicket sopi with(nolock) on ship_item.SOPickTicketId = sopi.SOPickTicketId and sopi.SOPickTicketId = Pick.SOPickTicketId)) - 
 					(SELECT ISNULL(SUM(QtyToShip), 0) FROM SOPickTicket s WITH(NOLOCK) Where s.SalesOrderId = @SalesOrderId AND s.SalesOrderPartStocklineId = stk.SalesOrderStocklineId)
 					) > 0
-		END
+		 AND ISNULL(im.IsNonStock,0) = 0 END
 
 				
 	END

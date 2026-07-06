@@ -15,6 +15,7 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    11/04/2024   Vishal Suthar Updated to make use of new SOQ Part tables
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
      
 **************************************************************/
 CREATE    PROCEDURE [dbo].[GetSalesQuoteResponse]
@@ -68,7 +69,7 @@ BEGIN
     LEFT JOIN DBO.SalesOrderQuoteStocklineV1 stk WITH(NOLOCK) ON stk.SalesOrderQuotePartId = sop.SalesOrderQuotePartId
     LEFT JOIN DBO.SalesOrderQuotePartCost sopc WITH(NOLOCK) ON sopc.SalesOrderQuotePartId = sop.SalesOrderQuotePartId
     LEFT JOIN DBO.ItemMaster itemMaster WITH(NOLOCK) ON sop.ItemMasterId = itemMaster.ItemMasterId
-    LEFT JOIN DBO.UnitOfMeasure iu WITH(NOLOCK) ON itemMaster.ConsumeUnitOfMeasureId = iu.UnitOfMeasureId
+     AND ISNULL(itemMaster.IsNonStock,0) = 0 LEFT JOIN DBO.UnitOfMeasure iu WITH(NOLOCK) ON itemMaster.ConsumeUnitOfMeasureId = iu.UnitOfMeasureId
     LEFT JOIN DBO.Condition cp WITH(NOLOCK) ON sop.ConditionId = cp.ConditionId
     LEFT JOIN DBO.Customer cust WITH(NOLOCK) ON so.CustomerId = cust.CustomerId
     LEFT JOIN DBO.Address custAddress WITH(NOLOCK) ON cust.AddressId = custAddress.AddressId

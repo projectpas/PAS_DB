@@ -17,6 +17,7 @@
     1    01/17/2025			Vishal Suthar		Created
     2    05-March-2025		Devendra Shekh		Changes For New Fields(PartDescription, UnitOfMeasure, Condition, Quantity)
     3    06-March-2025		Devendra Shekh		Modified (UOM issue resolved)
+	4    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 
 EXEC [dbo].[USP_GetWOTaskMaterialsByWOTaskId] 831
 **************************************************************/
@@ -50,7 +51,7 @@ BEGIN
 			LEFT JOIN dbo.UnitOfMeasure SUOM WITH (NOLOCK) ON SUOM.UnitOfMeasureId = SL.PurchaseUnitOfMeasureId
 			WHERE WOM.IsDeleted = 0 AND WOT.WorkOrderTaskId = @WorkOrderTaskId
     
-			UNION ALL
+			 AND ISNULL(IM.IsNonStock,0) = 0 UNION ALL
     
 			SELECT 
 				IM.PartNumber,
@@ -70,7 +71,7 @@ BEGIN
 			LEFT JOIN dbo.UnitOfMeasure SUOM WITH (NOLOCK) ON SUOM.UnitOfMeasureId = SL.PurchaseUnitOfMeasureId
 			LEFT JOIN dbo.Condition Stk_C WITH (NOLOCK) ON Stk_C.ConditionId = SL.ConditionId
 			WHERE WOMKIT.IsDeleted = 0 AND WOT.WorkOrderTaskId = @WorkOrderTaskId
-		) AS Parts;
+		 AND ISNULL(IM.IsNonStock,0) = 0 ) AS Parts;
 	END TRY
 	BEGIN CATCH
 	DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name()

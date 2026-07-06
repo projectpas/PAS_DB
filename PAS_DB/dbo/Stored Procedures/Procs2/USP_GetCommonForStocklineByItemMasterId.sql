@@ -13,6 +13,7 @@
  ** S NO   Date            Author          Change Description              
  ** --   --------         -------          --------------------------------            
     1    31-10-2025    Sahdev Saliya       Created  
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 
 	exec [dbo].[USP_GetCommonForStocklineByItemMasterId]
 **************************************************************/
@@ -45,14 +46,14 @@ BEGIN
 				INNER JOIN [DBO].ItemMasterIntegrationPortal mp WITH (NOLOCK) ON v.ItemMasterId = mp.ItemMasterId
 				INNER JOIN [DBO].IntegrationPortal inte WITH (NOLOCK) ON mp.IntegrationPortalId = inte.IntegrationPortalId
 				WHERE v.ItemMasterId = iM.ItemMasterId
-			) AS IntegrationPortal,
+			 AND ISNULL(v.IsNonStock,0) = 0 ) AS IntegrationPortal,
 
 			(SELECT STRING_AGG(CAST(inte.IntegrationPortalId AS VARCHAR(20)), ',')
 				FROM [DBO].[ItemMaster] v WITH (NOLOCK)
 				INNER JOIN [DBO].ItemMasterIntegrationPortal mp WITH (NOLOCK) ON v.ItemMasterId = mp.ItemMasterId
 				INNER JOIN [DBO].IntegrationPortal inte WITH (NOLOCK) ON mp.IntegrationPortalId = inte.IntegrationPortalId
 				WHERE v.ItemMasterId = iM.ItemMasterId
-			) AS IntegrationPortalIds,
+			 AND ISNULL(v.IsNonStock,0) = 0 ) AS IntegrationPortalIds,
 			iM.ShelfLife,
 			iM.ExpirationDate,
 			iM.IsSerialized,
@@ -85,11 +86,11 @@ BEGIN
 
     FROM [DBO].[ItemMaster] iM WITH (NOLOCK)
         LEFT JOIN [DBO].[ItemMaster] rPart WITH (NOLOCK) ON iM.RevisedPartId = rPart.ItemMasterId
-        LEFT JOIN [DBO].[ItemMasterExchangeLoan] imxl WITH (NOLOCK) ON iM.ItemMasterId = imxl.ItemMasterId
+         AND ISNULL(rPart.IsNonStock,0) = 0 LEFT JOIN [DBO].[ItemMasterExchangeLoan] imxl WITH (NOLOCK) ON iM.ItemMasterId = imxl.ItemMasterId
         LEFT JOIN [DBO].[ItemMasterPurchaseSale] imps WITH (NOLOCK) ON iM.ItemMasterId = imps.ItemMasterId
         LEFT JOIN [DBO].[ItemMasterExportInfo] imx WITH (NOLOCK) ON iM.ItemMasterId = imx.ItemMasterId
         LEFT JOIN [DBO].[GLAccount] gl WITH (NOLOCK) ON iM.GLAccountId = gl.GLAccountId
-    WHERE iM.ItemMasterId = @ItemMasterId;
+    WHERE iM.ItemMasterId = @ItemMasterId AND ISNULL(iM.IsNonStock,0) = 0 ;
     END TRY 
 
     BEGIN CATCH

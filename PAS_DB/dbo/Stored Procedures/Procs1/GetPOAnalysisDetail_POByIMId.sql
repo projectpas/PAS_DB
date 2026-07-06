@@ -15,6 +15,7 @@
  ** S NO   Date            Author          Change Description              
  ** --   --------         -------          --------------------------------            
     1    21-AUG-2024      Rajesh Gami       Created  
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 
 **************************************************************/  
 CREATE    PROCEDURE [dbo].[GetPOAnalysisDetail_POByIMId] 
@@ -154,7 +155,7 @@ BEGIN
 					AND  (ISNULL(@Level8,'') ='' OR MSD.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,',')))
 					AND  (ISNULL(@Level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))
 					AND  (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))
-		) as a
+		 AND ISNULL(IM.IsNonStock,0) = 0 ) as a
 
 		--Select * from #TempPOAnalysisTbl
 		SELECT *

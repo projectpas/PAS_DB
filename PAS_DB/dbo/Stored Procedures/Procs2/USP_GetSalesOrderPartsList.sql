@@ -17,6 +17,7 @@
  ** --   --------     -------			--------------------------------          
     1    03/22/2023   Hemant Saliya		Created
 	2    10/17/2024   Vishal Suthar		Modified to make use of new SO tables
+	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
      
  EXECUTE USP_GetSalesOrderPartsList 254
 **************************************************************/
@@ -36,7 +37,7 @@ SET NOCOUNT ON
 				FROM dbo.SalesOrderPartV1 SOP  WITH(NOLOCK) 
 				JOIN dbo.ItemMaster IM WITH(NOLOCK)  ON SOP.ItemMasterId = IM.ItemMasterId
 				WHERE SOP.SalesOrderId = @SalesOrderId
-				GROUP BY SOP.ItemMasterId, SalesOrderPartId, IM.partnumber
+				 AND ISNULL(IM.IsNonStock,0) = 0 GROUP BY SOP.ItemMasterId, SalesOrderPartId, IM.partnumber
 				END
 			COMMIT  TRANSACTION
 		END TRY    

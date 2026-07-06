@@ -18,6 +18,7 @@
 	2					Swetha		Added Transaction & NO LOCK
 	3	30-Nov-2021		Hemant		Updated Managment Structure Details and Date filter Condition
 	4	01/31/2024		Devendra Shekh	added isperforma Flage for WO 
+	5    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
      
 EXECUTE   [dbo].[usp_GetWorkOrderQuotesReport] '','2020-04-25','2021-09-25','4','4','','',''
 **************************************************************/
@@ -126,7 +127,7 @@ BEGIN
           ON WO.WorkOrderId = WOPN.WorkOrderId
         LEFT JOIN DBO.ItemMaster IM WITH (NOLOCK)
           ON WOPN.itemmasterId = IM.ItemMasterId
-        INNER JOIN DBO.WorkScope AS WS WITH (NOLOCK)
+         AND ISNULL(IM.IsNonStock,0) = 0 INNER JOIN DBO.WorkScope AS WS WITH (NOLOCK)
           ON WOPN.WorkOrderScopeId = WS.WorkScopeId
         LEFT JOIN DBO.CustomerContact CC WITH (NOLOCK)
           ON WO.CustomercontactId = CC.CustomerContactId

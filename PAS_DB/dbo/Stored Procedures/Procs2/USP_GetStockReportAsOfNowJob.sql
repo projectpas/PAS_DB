@@ -12,6 +12,7 @@
  ** S NO   Date         Author  			Change Description            
  ** --   --------		-------				--------------------------------          
 	1	 12-09-2025		Moin Bloch		     Created
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
    
    EXEC USP_GetStockReportAsOfNowJob @mastercompanyid=1, @id=N'09/09/2025',@id2=N'', @id3=1, @id5='2,7,17,24!!!!', @id6=0,@id8 = '', @strFilter=N'1,5,6!2,7,8,9!3,11,10!4,12,13!!!!!!' 
    EXEC USP_GetStockReportAsOfNowJob @StartDate = '2025-08-16',@EndDate='2025-09-16',@mastercompanyid=1
@@ -217,7 +218,7 @@ BEGIN
 	 AND  (ISNULL(@ExcludedLocations,'') = '' OR stl.[LocationId] NOT IN (SELECT Item FROM DBO.SPLITSTRING(@ExcludedLocations,',')))
 	   
 	/* Reduce Received Items from AsOfNow till Today */
-	IF OBJECT_ID(N'tempdb..#TEMPStocklineReceivedDate') IS NOT NULL    
+	 AND ISNULL(im.IsNonStock,0) = 0 IF OBJECT_ID(N'tempdb..#TEMPStocklineReceivedDate') IS NOT NULL    
 	BEGIN    
 		DROP TABLE #TEMPStocklineReceivedDate
 	END

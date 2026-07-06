@@ -16,6 +16,7 @@
 	1    16/01/2024   Devendra Shekh		Created
 	2    15/02/2024   Ekta Chandegra        @IsVendor parameter is added
 	3    16/02/2024   Ekta Chandegra        Filter is added on @IsVendor 
+	4    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 
 
 **************************************************************/
@@ -111,7 +112,7 @@ BEGIN
 			   INNER JOIN [dbo].[EmployeeUserRole] EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
 			   LEFT JOIN [dbo].[ExchangeSalesOrderPart] SP WITH (NOLOCK) ON SO.ExchangeSalesOrderId = SP.ExchangeSalesOrderId and SP.IsDeleted = 0
 			   LEFT JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON IM.ItemMasterId = SP.ItemMasterId
-			   LEFT JOIN [dbo].[Condition] CO WITH (NOLOCK) ON CO.ConditionId = SP.ConditionId
+			    AND ISNULL(IM.IsNonStock,0) = 0 LEFT JOIN [dbo].[Condition] CO WITH (NOLOCK) ON CO.ConditionId = SP.ConditionId
 			   LEFT JOIN [dbo].[ExchangeSalesOrderShippingItem] SOI WITH (NOLOCK) ON SOI.ExchangeSalesOrderPartId = SP.ExchangeSalesOrderPartId
 			   LEFT JOIN [dbo].[ExchangeSalesOrderShipping] SOS WITH (NOLOCK) ON SOI.ExchangeSalesOrderShippingId = SOS.ExchangeSalesOrderShippingId	
 			   LEFT JOIN [dbo].[Stockline] STL WITH(NOLOCK) ON SP.StockLineId = STL.StockLineId	

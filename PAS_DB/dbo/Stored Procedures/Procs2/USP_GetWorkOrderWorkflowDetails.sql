@@ -14,6 +14,7 @@
     2    29-04-2025   Vishal Suthar			Fixed issue with using revisedpartnumber instead of partnumber
 	3    30-04-2025   HEMANT SALIYA			UPDATED for revisedpartnumber
     4    14/11/2025   Sahdev Saliya         Added New Field : RevisedCondition
+	5    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 
 EXEC USP_GetWorkOrderWorkflowDetails 8736
 **************************************************************/
@@ -104,7 +105,7 @@ BEGIN
 		WHERE wop.IsDeleted = 0 
 		  AND w.WorkOrderId = @WorkOrderId 
 		  AND wop.WorkOrderId = @WorkOrderId 
-		  AND wop.WorkOrderStatusId != 3; -- Not Cancelled
+		  AND wop.WorkOrderStatusId != 3 AND ISNULL(im.IsNonStock,0) = 0 ; -- Not Cancelled
 
 		DROP TABLE #QuoteList;
 	END TRY 

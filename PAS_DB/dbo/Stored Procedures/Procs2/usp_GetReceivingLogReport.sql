@@ -18,6 +18,7 @@
     1                 Swetha Created
 	2	        	  Swetha Added Transaction & NO LOCK
 	3	13-Dec 2021	  Hemant Added Updated for Upper Case
+	4    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
      
 EXECUTE   [dbo].[usp_GetReceivingLogReport] '','2020-06-15','2021-06-15','1','1,4,43,44,45,80,84,88','46,47,66','48,49,50,58,59,67,68,69','51,52,53,54,55,56,57,60,61,62,64,70,71,72'
 **************************************************************/
@@ -136,7 +137,7 @@ BEGIN
 	  AND CAST(STL.receiveddate AS DATE) BETWEEN CAST(@Fromdate AS DATE)  AND CAST(@Todate AS DATE)
       AND STL.mastercompanyid = @mastercompanyid 
 
-    COMMIT TRANSACTION
+     AND ISNULL(im.IsNonStock,0) = 0 COMMIT TRANSACTION
   END TRY
 
   BEGIN CATCH

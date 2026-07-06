@@ -22,6 +22,7 @@
 	6    05/20/2025   Vishal Suthar		Fixed issue with readytopick which is populating wrong when qdjusted the qty
 	7    08/07/2025   Vishal Suthar		Added a check for approval of the part before generating pick ticket
 	8    26/12/2025   Amit Ghediya		Update condition for ReadyToPick
+	9    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
      
 -- EXEC [dbo].[sp_GetPickTicketApproveList] 851
 **************************************************************/
@@ -123,7 +124,7 @@ BEGIN
           AND sao.SalesOrderPartId = sop.SalesOrderPartId
           AND sao.ApprovalActionId = 5
         )
-		group by sop.SalesOrderId,imt.PartNumber,imt.PartDescription,
+		 AND ISNULL(imt.IsNonStock,0) = 0 group by sop.SalesOrderId,imt.PartNumber,imt.PartDescription,
 		so.SalesOrderNumber,soq.SalesOrderQuoteNumber,sop.ItemMasterId,
 		sl.ConditionId, cr.[Name],cr.CustomerCode, sop.ConditionId
 		,sl.isSerialized, imt.ItemMasterId)

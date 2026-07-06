@@ -6,13 +6,15 @@
  ** Purpose:         
  ** Date:   04/12/2023      
           
- ** RETURN VALUE:           
+ **  WHERE ISNULL(dbo.ItemMaster.IsNonStock,0) = 0
+RETURN VALUE:           
  **************************************************************           
  ** Change History           
  **************************************************************           
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    04/12/2023  Amit Ghediya    Created
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
      
 -- EXEC USP_Lot_ProcStockListFromLotId
 ************************************************************************/
@@ -103,7 +105,7 @@ BEGIN
 					INNER JOIN DBO.Lot lt WITH(NOLOCK) on lin.LotId = lt.LotId
 					LEFT JOIN [dbo].[StockLine] stl WITH (NOLOCK) ON lin.StockLineId = stl.StockLineId
 					LEFT JOIN [dbo].[ItemMaster] im WITH (NOLOCK) ON stl.ItemMasterId = im.ItemMasterId 
-					LEFT JOIN [dbo].[StocklineManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ReferenceID = stl.StockLineId AND MSD.ModuleID = @MSModuelId
+					 AND ISNULL(im.IsNonStock,0) = 0 LEFT JOIN [dbo].[StocklineManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ReferenceID = stl.StockLineId AND MSD.ModuleID = @MSModuelId
 					LEFT JOIN [dbo].[PurchaseOrder] po WITH (NOLOCK) ON stl.PurchaseOrderId = po.PurchaseOrderId
 					WHERE lin.LotId = @LotId AND im.ItemMasterId = @ItemMasterId 
 					AND ISNULL(lin.QtyToTransIn,0) >0 AND ISNULL(stl.QuantityAvailable,0) >0 AND ( (REPLACE(cal.Type,' ','')  ='Trans In(RO)' AND ISNULL(lin.QtyToTransIn,0) >ISNULL(lin.QtyToTransOut,0)) OR (REPLACE(cal.Type,' ','') = REPLACE('Trans Out(SO)',' ','') AND ISNULL(lin.QtyToTransIn,0) >ISNULL(lin.QtyToTransOut,0))

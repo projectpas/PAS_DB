@@ -14,6 +14,7 @@
  ** PR   Date         Author			Change Description            
  ** --   --------     -------			--------------------------------          
     1    07/11/2025   Ekta Chandegra     Created
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
      
   EXEC USP_GetExchangeQuotePartView @ExchangeQuoteId = 113
 
@@ -88,7 +89,7 @@ BEGIN
 		LEFT JOIN [dbo].[Condition] cond WITH(NOLOCK) ON part.ConditionId = cond.ConditionId
 		INNER JOIN [dbo].[ExchangeQuote] soq WITH(NOLOCK) ON part.ExchangeQuoteId = soq.ExchangeQuoteId
 		LEFT JOIN [dbo].[UnitOfMeasure] uom WITH(NOLOCK) ON im.PurchaseUnitOfMeasureId = uom.UnitOfMeasureId
-		WHERE part.ExchangeQuoteId = @ExchangeQuoteId AND ISNULL(part.IsDeleted,0) = 0;
+		WHERE part.ExchangeQuoteId = @ExchangeQuoteId AND ISNULL(part.IsDeleted,0) = 0 AND ISNULL(im.IsNonStock,0) = 0 ;
 
 		-------------------------------
 		-- 2. Retrieve ExchangeQuoteScheduleBilling details

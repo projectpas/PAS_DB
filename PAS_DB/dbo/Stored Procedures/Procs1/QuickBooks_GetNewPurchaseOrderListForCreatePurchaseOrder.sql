@@ -16,6 +16,7 @@
 	3    29/05/2026    Bhargav Saliya   Added Case For PO 
     4    11/06/2026    Moin Bloch       Fixed PO Creation Issue
     5    16/06/2026    Bhargav Saliya   Fixed Description
+	6    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
      
  EXECUTE [QuickBooks_GetNewPurchaseOrderListForCreatePurchaseOrder] 3,1,2768,13
 **************************************************************/ 
@@ -86,7 +87,7 @@ BEGIN
 					INNER JOIN [dbo].[Vendor] VN WITH(NOLOCK) ON PO.VendorId = VN.VendorId
 					LEFT JOIN [dbo].[PurchaseOrderPart] POP WITH(NOLOCK) ON POP.PurchaseOrderId = PO.PurchaseOrderId
 					LEFT JOIN [dbo].[ItemMaster] IM WITH(NOLOCK) ON IM.ItemMasterId = POP.ItemMasterId
-					LEFT JOIN [dbo].[GLAccount] GL WITH(NOLOCK) ON GL.GLAccountId = @POGlAccountId
+					 AND ISNULL(IM.IsNonStock,0) = 0 LEFT JOIN [dbo].[GLAccount] GL WITH(NOLOCK) ON GL.GLAccountId = @POGlAccountId
 					LEFT JOIN [dbo].[AllAddress] AA WITH(NOLOCK) ON AA.ModuleId = @POModuleId AND AA.ReffranceId = PO.PurchaseOrderId AND AA.IsShippingAdd = 1
 				WHERE ISNULL(PO.QuickBooksReferenceId, '') = '' AND ISNULL(PO.IsUpdated, 0) = 1 AND PO.PurchaseOrderId = @ReferenceId AND PO.MasterCompanyId = @MasterCompanyId
 				GROUP BY PO.PurchaseOrderId,
@@ -151,7 +152,7 @@ BEGIN
 					INNER JOIN [dbo].[Vendor] VN WITH(NOLOCK) ON RO.VendorId = VN.VendorId
 					LEFT JOIN [dbo].[RepairOrderPart] ROP WITH(NOLOCK) ON ROP.RepairOrderId = RO.RepairOrderId
 					LEFT JOIN [dbo].[ItemMaster] IM WITH(NOLOCK) ON IM.ItemMasterId = ROP.ItemMasterId
-					LEFT JOIN [dbo].[GLAccount] GL WITH(NOLOCK) ON GL.GLAccountId = @ROGlAccountId
+					 AND ISNULL(IM.IsNonStock,0) = 0 LEFT JOIN [dbo].[GLAccount] GL WITH(NOLOCK) ON GL.GLAccountId = @ROGlAccountId
 					LEFT JOIN [dbo].[AllAddress] AA WITH(NOLOCK) ON AA.ModuleId = @ROModuleId AND AA.ReffranceId = RO.RepairOrderId AND AA.IsShippingAdd = 1
 				WHERE ISNULL(RO.QuickBooksReferenceId, '') = '' AND ISNULL(RO.IsUpdated, 0) = 1 AND RO.RepairOrderId = @ReferenceId AND RO.MasterCompanyId = @MasterCompanyId
 				GROUP BY RO.RepairOrderId,
@@ -220,7 +221,7 @@ BEGIN
 					   INNER JOIN [dbo].[Vendor] VN WITH(NOLOCK) ON PO.VendorId = VN.VendorId
 						LEFT JOIN [dbo].[PurchaseOrderPart] POP WITH(NOLOCK) ON POP.PurchaseOrderId = PO.PurchaseOrderId
 						LEFT JOIN [dbo].[ItemMaster] IM WITH(NOLOCK) ON IM.ItemMasterId = POP.ItemMasterId
-						LEFT JOIN [dbo].[GLAccount] GL WITH(NOLOCK) ON GL.GLAccountId = @POGlAccountId
+						 AND ISNULL(IM.IsNonStock,0) = 0 LEFT JOIN [dbo].[GLAccount] GL WITH(NOLOCK) ON GL.GLAccountId = @POGlAccountId
 					WHERE ISNULL(PO.QuickBooksReferenceId, '') = '' AND 
 						  ISNULL(PO.IsUpdated, 1) = 1 AND
 						  (@ReferenceId IS NULL OR @ReferenceId = 0 OR PO.PurchaseOrderId = @ReferenceId) AND  
@@ -264,7 +265,7 @@ BEGIN
 					   INNER JOIN [dbo].[Vendor] VN WITH(NOLOCK) ON RO.VendorId = VN.VendorId
 						LEFT JOIN [dbo].[RepairOrderPart] ROP WITH(NOLOCK) ON ROP.RepairOrderId = RO.RepairOrderId
 						LEFT JOIN [dbo].[ItemMaster] IM WITH(NOLOCK) ON IM.ItemMasterId = ROP.ItemMasterId
-						LEFT JOIN [dbo].[GLAccount] GL WITH(NOLOCK) ON GL.GLAccountId = @ROGlAccountId
+						 AND ISNULL(IM.IsNonStock,0) = 0 LEFT JOIN [dbo].[GLAccount] GL WITH(NOLOCK) ON GL.GLAccountId = @ROGlAccountId
 					WHERE ISNULL(RO.QuickBooksReferenceId, '') = '' AND 
 						  ISNULL(RO.IsUpdated, 1) = 1 AND 						  
 						  (@ReferenceId IS NULL OR @ReferenceId = 0 OR RO.RepairOrderId = @ReferenceId) AND  

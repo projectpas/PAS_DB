@@ -1,4 +1,11 @@
-﻿CREATE PROCEDURE [dbo].[SearchStockLineExchangePickTicketPop]
+﻿/***************************************************************************************************************************************
+  ** Change History
+ ***************************************************************************************************************************************
+ ** PR   Date						 Author							Change Description
+ ** --   --------					 -------						-------------------------------
+	1    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+****************************************************************************************************************************************/
+CREATE PROCEDURE [dbo].[SearchStockLineExchangePickTicketPop]
 @ItemMasterIdlist bigint, 
 @ConditionId BIGINT,
 @ExchangeSalesOrderId bigint
@@ -56,7 +63,8 @@ BEGIN
 		JOIN DBO.StockLine sl WITH(NOLOCK) ON im.ItemMasterId = sl.ItemMasterId AND sl.IsDeleted = 0 
 		LEFT JOIN DBO.ExchangeSalesOrderPart sop WITH(NOLOCK) on sop.StockLineId = sl.StockLineId
 			AND sop.ConditionId = CASE WHEN @ConditionId  IS NOT NULL 
-									THEN @ConditionId ELSE sl.ConditionId 
+									THEN @ConditionId  WHERE ISNULL(im.IsNonStock,0) = 0
+ELSE sl.ConditionId 
 									END
 		LEFT JOIN DBO.ExchangeSalesOrder so WITH(NOLOCK) on so.ExchangeSalesOrderId = sop.ExchangeSalesOrderId
 		INNER JOIN DBO.ExchangeSalesOrderReserveParts sor WITH(NOLOCK) on sor.ExchangeSalesOrderId = so.ExchangeSalesOrderId AND sor.ExchangeSalesOrderPartId = sop.ExchangeSalesOrderPartId

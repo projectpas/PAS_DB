@@ -23,6 +23,7 @@
 	6    12/03/2025   Sahdev Saliya    Added a case to get timeZone
 	7    10/11/2025   Bhargav Saliya   Get Notes which has been newly added
 	8    13/11/2025   Bhargav Saliya   Get Notes From The Mapping Tab
+	9    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
      
 EXECUTE [GetPublicationViewList] 1,100, null, -1, '', null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,1,0,null,null,4,4
 **************************************************************/ 
@@ -178,7 +179,7 @@ BEGIN
 						(SELECT TOP 1 I.partnumber
 								FROM [dbo].[PublicationItemMasterMapping] S2 WITH (NOLOCK)
 								Left Join [dbo].[ItemMaster] I WITH (NOLOCK) On S2.ItemMasterId=I.ItemMasterId
-								Where S.PublicationRecordId = S2.PublicationRecordId AND S2.IsActive = 1 AND S2.IsDeleted = 0
+								 AND ISNULL(I.IsNonStock,0) = 0 Where S.PublicationRecordId = S2.PublicationRecordId AND S2.IsActive = 1 AND S2.IsDeleted = 0
 								) PartNumber
 							--END AS PartNumber
                     FROM [dbo].[PublicationItemMasterMapping] S WITH (NOLOCK)
@@ -198,7 +199,7 @@ BEGIN
 										(SELECT TOP 1 I.PartDescription
 												FROM [dbo].[PublicationItemMasterMapping] S2 WITH (NOLOCK)
 												Left Join [dbo].[ItemMaster] I WITH (NOLOCK) On S2.ItemMasterId=I.ItemMasterId
-												Where S.PublicationRecordId = S2.PublicationRecordId AND S2.IsActive = 1 AND S2.IsDeleted = 0
+												 AND ISNULL(I.IsNonStock,0) = 0 Where S.PublicationRecordId = S2.PublicationRecordId AND S2.IsActive = 1 AND S2.IsDeleted = 0
 												) PartDescription
 									FROM [dbo].[PublicationItemMasterMapping] S WITH (NOLOCK)
 									GROUP BY S.PublicationRecordId
@@ -217,7 +218,7 @@ BEGIN
 										(SELECT TOP 1 MF.[Name]
 												FROM [dbo].[PublicationItemMasterMapping] S2 WITH (NOLOCK)
 												Left Join [dbo].[ItemMaster] I WITH (NOLOCK) On S2.ItemMasterId=I.ItemMasterId
-												LEFT JOIN [dbo].[Manufacturer] MF WITH (NOLOCK) On I.ManufacturerId = MF.ManufacturerId
+												 AND ISNULL(I.IsNonStock,0) = 0 LEFT JOIN [dbo].[Manufacturer] MF WITH (NOLOCK) On I.ManufacturerId = MF.ManufacturerId
 												Where S.PublicationRecordId = S2.PublicationRecordId AND S2.IsActive = 1 AND S2.IsDeleted = 0
 												) Manufacturer
 								FROM [dbo].[PublicationItemMasterMapping] S WITH (NOLOCK)

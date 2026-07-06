@@ -16,6 +16,7 @@
 	4    26/MAY/2026   Priyansh Patel 	Added new field 'TTSN, TCSN '(PN-16477)
 	5    27/05/2026    Ayushi Patel     [PN-16476]Sync CSN, CSO, TSN, TSO in WorkOrderPartNumber on StockLine TimeLife update
 	7    30/06/2026    Nakul Chandigra  Added new field 'Note' [Note] [PN-17012]
+	8    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 --   EXEC [USP_CreateStockLine] 
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_CreateStockLine]
@@ -326,7 +327,7 @@ BEGIN
 			RETURN;
 		END
 
-		SELECT @UniqItemMasterId = [ItemMasterId],@IsTimeLife = [IsTimeLife] FROM [dbo].[ItemMaster] WITH(NOLOCK) WHERE [MasterCompanyId] = @MasterCompanyId AND [ItemMasterId] = @ItemMasterId;
+		SELECT @UniqItemMasterId = [ItemMasterId],@IsTimeLife = [IsTimeLife] FROM [dbo].[ItemMaster] WITH(NOLOCK) WHERE [MasterCompanyId] = @MasterCompanyId AND [ItemMasterId] = @ItemMasterId AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 ;
 		IF(@UniqItemMasterId > 0)
 		BEGIN
 			SET @IsStkTimeLife = @IsTimeLife;
@@ -552,7 +553,7 @@ BEGIN
 	  BEGIN
 	    DECLARE @OldUnitCost DECIMAL(18,2) = 0
         SELECT @OldUnitCost = ISNULL([UnitCost],0) FROM [dbo].[StockLine] WITH(NOLOCK) WHERE [StockLineId] = @StockLineId
-		SELECT @UniqItemMasterId = [ItemMasterId],@IsTimeLife = [IsTimeLife] FROM [dbo].[ItemMaster] WITH(NOLOCK) WHERE [MasterCompanyId] = @MasterCompanyId AND [ItemMasterId] = @ItemMasterId;
+		SELECT @UniqItemMasterId = [ItemMasterId],@IsTimeLife = [IsTimeLife] FROM [dbo].[ItemMaster] WITH(NOLOCK) WHERE [MasterCompanyId] = @MasterCompanyId AND [ItemMasterId] = @ItemMasterId AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 ;
 		IF(@UniqItemMasterId > 0)
 		BEGIN
 			SET @IsStkTimeLife = CASE WHEN @IsStkTimeLife IS NOT NULL THEN @IsStkTimeLife ELSE @IsTimeLife END;

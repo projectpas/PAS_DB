@@ -15,6 +15,7 @@
  ** --   --------     -------			--------------------------------            
     1    28/04/2025  Amit Ghediya			Created 
 	2    04/09/2025  Moin Bloch		    Updated Added History
+	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
        
 -- EXEC USP_DeleteWorkOrderMaterialStockline 129,194091,'AMIT GHEDIYA'  
 ************************************************************************/  
@@ -48,7 +49,7 @@ BEGIN
 
 			SELECT @WOPartNoId = [WorkOrderPartNoId] FROM [dbo].[WorkOrderWorkFlow] WITH(NOLOCK) WHERE [WorkFlowWorkOrderId] = @WorkFlowWorkOrderId
 	
-			SELECT @PartNumber = [PartNumber] FROM [dbo].[ItemMaster] WITH(NOLOCK) WHERE [ItemMasterId] = @ItemMasterId;
+			SELECT @PartNumber = [PartNumber] FROM [dbo].[ItemMaster] WITH(NOLOCK) WHERE [ItemMasterId] = @ItemMasterId AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 ;
 
 			SELECT @StockLineNumber = [StockLineNumber], @MasterCompanyId = [MasterCompanyId] FROM [dbo].[Stockline] WITH(NOLOCK) WHERE [StockLineId] = @StocklineId;
 					

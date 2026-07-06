@@ -22,6 +22,7 @@
 	11  03-07-2025      Moin Bloch          Changed Old To New Billing Table
 	12	20/02/2026		Moin Bloch   		Modify (Added Reverse Entry Logic For Work Order Labor)
 	13  30-03-2026      Moin Bloch          Tempararly Commented @TotalAmount to handle adjustment task sum is zero
+	14    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[USP_BatchTriggerForInternalWOBasedonDistribution]
@@ -244,7 +245,7 @@ BEGIN
 				[dbo].[ItemMaster] WITH(NOLOCK) 
 				WHERE ItemMasterId=@ItemmasterId 
 
-				SELECT @LastMSLevel=LastMSLevel,
+				 AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 SELECT @LastMSLevel=LastMSLevel,
 					   @AllMSlevels=AllMSlevels 
 				  FROM [dbo].[WorkOrderManagementStructureDetails] WITH(NOLOCK) 
 				  WHERE ReferenceID=@partId
@@ -315,7 +316,7 @@ BEGIN
 
 					SELECT @PiecePN = partnumber FROM ItemMaster WITH(NOLOCK)  WHERE ItemMasterId=@PieceItemmasterId
 				
-					SELECT TOP 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName,@CrDrType = CRDRType,@IsAutoPost = ISNULL(IsAutoPost,0)
+					 AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 SELECT TOP 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName,@CrDrType = CRDRType,@IsAutoPost = ISNULL(IsAutoPost,0)
 					FROM DistributionSetup WITH(NOLOCK)  WHERE UPPER(DistributionSetupCode) =UPPER('WIPPARTS') and DistributionMasterId =@DistributionMasterId AND MasterCompanyId=@MasterCompanyId
 
 					--GL Selection Saved At StockLine 

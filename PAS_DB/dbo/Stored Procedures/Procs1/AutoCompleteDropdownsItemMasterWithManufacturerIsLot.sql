@@ -17,6 +17,7 @@
 	3    12/07/2023   Rajesh Gami   LOT condition change
 	4    06/14/2024   Vishal Suthar	Increased Limit of records from 20 to 50 for Item Master Module
 	5    12 Mar 2025  RAJESH GAMI 	Getting the data by module wise    
+	6    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 --EXEC [AutoCompleteDropdownsItemMasterWithManufacturerIsLot] '',1,100,'',1  
 **************************************************************/
 CREATE   PROCEDURE [dbo].[AutoCompleteDropdownsItemMasterWithManufacturerIsLot]  
@@ -47,7 +48,7 @@ BEGIN
 		  Im.ItemMasterId,  
 		  Im.ItemMasterId AS Value,   
 		  Im.partnumber AS PartNumber,   
-		  im.partnumber + (CASE WHEN (SELECT COUNT(ISNULL(SD.[ManufacturerId], 0)) FROM [dbo].[ItemMaster]  SD WITH(NOLOCK)  WHERE im.partnumber = SD.partnumber AND SD.MasterCompanyId = @MasterCompanyId) > 1 then ' - '+ M.[Name] ELSE '' END) AS Label,  
+		  im.partnumber + (CASE WHEN (SELECT COUNT(ISNULL(SD.[ManufacturerId], 0)) FROM [dbo].[ItemMaster]  SD WITH(NOLOCK)  WHERE im.partnumber = SD.partnumber AND SD.MasterCompanyId = @MasterCompanyId AND ISNULL(SD.IsNonStock,0) = 0 ) > 1 then ' - '+ M.[Name] ELSE '' END) AS Label,  
 			 Im.PartDescription,   
 		  Im.ItemClassificationId,   
 		  Im.ManufacturerId,   
@@ -70,14 +71,14 @@ BEGIN
 		 FROM dbo.ItemMaster Im WITH(NOLOCK)   
 		  INNER JOIN dbo.Stockline stl WITH(NOLOCK) ON Im.ItemMasterId = stl.ItemMasterId AND ISNULL(stl.LotId,0) >0 AND stl.StockLineId in(SELECT Item FROM dbo.SplitString(@StockLineId, ','))
 		  LEFT JOIN dbo.ItemMaster rp WITH(NOLOCK)  ON Im.ItemMasterId =  rp.ItemMasterId  
-		  LEFT JOIN dbo.Manufacturer M WITH(NOLOCK) ON Im.ManufacturerId = M.ManufacturerId 
+		   AND ISNULL(rp.IsNonStock,0) = 0 LEFT JOIN dbo.Manufacturer M WITH(NOLOCK) ON Im.ManufacturerId = M.ManufacturerId 
 		  LEFT JOIN dbo.ItemClassification Ic WITH(NOLOCK) ON Ic.ItemClassificationId = Im.ItemClassificationId
 		 WHERE (Im.IsActive = 1 AND ISNULL(Im.IsDeleted, 0) = 0 AND IM.MasterCompanyId = @MasterCompanyId AND (Im.partnumber LIKE @StartWith + '%' OR Im.partnumber  LIKE '%' + @StartWith + '%'))      
-		  UNION       
+		   AND ISNULL(Im.IsNonStock,0) = 0 UNION       
 		 SELECT DISTINCT Im.ItemMasterId,  
 		  Im.ItemMasterId AS Value,   
 		  Im.partnumber AS PartNumber,   
-		  im.partnumber + (CASE WHEN (SELECT COUNT(ISNULL(SD.[ManufacturerId], 0)) FROM [dbo].[ItemMaster]  SD WITH(NOLOCK)  WHERE im.partnumber = SD.partnumber AND SD.MasterCompanyId = @MasterCompanyId) > 1 then ' - '+ M.[Name] ELSE '' END) AS Label,  
+		  im.partnumber + (CASE WHEN (SELECT COUNT(ISNULL(SD.[ManufacturerId], 0)) FROM [dbo].[ItemMaster]  SD WITH(NOLOCK)  WHERE im.partnumber = SD.partnumber AND SD.MasterCompanyId = @MasterCompanyId AND ISNULL(SD.IsNonStock,0) = 0 ) > 1 then ' - '+ M.[Name] ELSE '' END) AS Label,  
 			 Im.PartDescription,   
 		  Im.ItemClassificationId,   
 		  Im.ManufacturerId,   
@@ -100,10 +101,10 @@ BEGIN
 		 FROM dbo.ItemMaster Im WITH(NOLOCK)   
 		  INNER JOIN dbo.Stockline stl WITH(NOLOCK) ON Im.ItemMasterId = stl.ItemMasterId AND ISNULL(stl.LotId,0) >0 AND stl.StockLineId in(SELECT Item FROM dbo.SplitString(@StockLineId, ','))
 		  LEFT JOIN dbo.ItemMaster rp WITH(NOLOCK) ON Im.ItemMasterId =  rp.ItemMasterId  
-		  LEFT JOIN dbo.Manufacturer M WITH(NOLOCK) ON Im.ManufacturerId = M.ManufacturerId  
+		   AND ISNULL(rp.IsNonStock,0) = 0 LEFT JOIN dbo.Manufacturer M WITH(NOLOCK) ON Im.ManufacturerId = M.ManufacturerId  
 		  LEFT JOIN dbo.ItemClassification Ic WITH(NOLOCK) ON Ic.ItemClassificationId = Im.ItemClassificationId
 		 WHERE im.ItemMasterId in (SELECT Item FROM DBO.SPLITSTRING(@Idlist, ','))      
-		ORDER BY Label      
+		 AND ISNULL(Im.IsNonStock,0) = 0 ORDER BY Label      
 	   End  
 	   ELSE  
 	   BEGIN  
@@ -111,7 +112,7 @@ BEGIN
 		  Im.ItemMasterId,  
 		  Im.ItemMasterId AS Value,   
 		  Im.partnumber AS PartNumber,    
-		  im.partnumber + (CASE WHEN (SELECT COUNT(ISNULL(SD.[ManufacturerId], 0)) FROM [dbo].[ItemMaster]  SD WITH(NOLOCK)  WHERE im.partnumber = SD.partnumber AND SD.MasterCompanyId = @MasterCompanyId) > 1 then ' - '+ M.[Name] ELSE '' END) AS Label,  
+		  im.partnumber + (CASE WHEN (SELECT COUNT(ISNULL(SD.[ManufacturerId], 0)) FROM [dbo].[ItemMaster]  SD WITH(NOLOCK)  WHERE im.partnumber = SD.partnumber AND SD.MasterCompanyId = @MasterCompanyId AND ISNULL(SD.IsNonStock,0) = 0 ) > 1 then ' - '+ M.[Name] ELSE '' END) AS Label,  
 			 Im.PartDescription,   
 		  Im.ItemClassificationId,   
 		  Im.ManufacturerId,   
@@ -133,14 +134,14 @@ BEGIN
 		  INNER JOIN dbo.Stockline stl WITH(NOLOCK) ON Im.ItemMasterId = stl.ItemMasterId AND ISNULL(stl.LotId,0) >0 AND stl.RepairOrderId = @ReferenceId
 		  LEFT JOIN dbo.ItemClassification Ic WITH(NOLOCK) ON Ic.ItemClassificationId = Im.ItemClassificationId
 		  LEFT JOIN dbo.ItemMaster rp WITH(NOLOCK)  ON Im.ItemMasterId =  rp.ItemMasterId  
-		  LEFT JOIN dbo.Manufacturer M WITH(NOLOCK) ON Im.ManufacturerId = M.ManufacturerId  
-		WHERE Im.IsActive = 1 AND ISNULL(Im.IsDeleted, 0) = 0 AND IM.MasterCompanyId = @MasterCompanyId AND Im.partnumber LIKE '%' + @StartWith + '%' OR Im.partnumber  LIKE '%' + @StartWith + '%'  
-		UNION   
+		   AND ISNULL(rp.IsNonStock,0) = 0 LEFT JOIN dbo.Manufacturer M WITH(NOLOCK) ON Im.ManufacturerId = M.ManufacturerId  
+		WHERE ISNULL(Im.IsNonStock,0) = 0 AND ( Im.IsActive = 1 AND ISNULL(Im.IsDeleted, 0) = 0 AND IM.MasterCompanyId = @MasterCompanyId AND Im.partnumber LIKE '%' + @StartWith + '%' OR Im.partnumber  LIKE '%' + @StartWith + '%'  
+		) UNION   
 		SELECT DISTINCT TOP 50   
 		  Im.ItemMasterId,  
 		  Im.ItemMasterId AS Value,    
 		  Im.partnumber AS PartNumber,  
-		  im.partnumber + (CASE WHEN (SELECT COUNT(ISNULL(SD.[ManufacturerId], 0)) FROM [dbo].[ItemMaster]  SD WITH(NOLOCK)  WHERE im.partnumber = SD.partnumber AND SD.MasterCompanyId = @MasterCompanyId) > 1 then ' - '+ M.[Name] ELSE '' END) AS Label,  
+		  im.partnumber + (CASE WHEN (SELECT COUNT(ISNULL(SD.[ManufacturerId], 0)) FROM [dbo].[ItemMaster]  SD WITH(NOLOCK)  WHERE im.partnumber = SD.partnumber AND SD.MasterCompanyId = @MasterCompanyId AND ISNULL(SD.IsNonStock,0) = 0 ) > 1 then ' - '+ M.[Name] ELSE '' END) AS Label,  
 			 Im.PartDescription,   
 		  Im.ItemClassificationId,   
 		  Im.ManufacturerId,   
@@ -161,10 +162,10 @@ BEGIN
 		 FROM dbo.ItemMaster Im WITH(NOLOCK)    
 		  INNER JOIN dbo.Stockline stl WITH(NOLOCK) ON Im.ItemMasterId = stl.ItemMasterId AND ISNULL(stl.LotId,0) >0 AND stl.RepairOrderId = @ReferenceId
 		  LEFT JOIN dbo.ItemMaster rp WITH(NOLOCK)  ON Im.ItemMasterId =  rp.ItemMasterId  
-		  LEFT JOIN dbo.ItemClassification Ic WITH(NOLOCK) ON Ic.ItemClassificationId = Im.ItemClassificationId
+		   AND ISNULL(rp.IsNonStock,0) = 0 LEFT JOIN dbo.ItemClassification Ic WITH(NOLOCK) ON Ic.ItemClassificationId = Im.ItemClassificationId
 		  LEFT JOIN dbo.Manufacturer M WITH(NOLOCK) ON Im.ManufacturerId = M.ManufacturerId  
 		WHERE Im.ItemMasterId in (SELECT Item FROM DBO.SPLITSTRING(@Idlist, ','))  
-		ORDER BY Label  
+		 AND ISNULL(Im.IsNonStock,0) = 0 ORDER BY Label  
 	 END
   END
   ELSE IF(UPPER(@ModuleName) = @SalesModule)
@@ -183,7 +184,7 @@ BEGIN
 		  Im.ItemMasterId,  
 		  Im.ItemMasterId AS Value,   
 		  Im.partnumber AS PartNumber,   
-		  im.partnumber + (CASE WHEN (SELECT COUNT(ISNULL(SD.[ManufacturerId], 0)) FROM [dbo].[ItemMaster]  SD WITH(NOLOCK)  WHERE im.partnumber = SD.partnumber AND SD.MasterCompanyId = @MasterCompanyId) > 1 then ' - '+ M.[Name] ELSE '' END) AS Label,  
+		  im.partnumber + (CASE WHEN (SELECT COUNT(ISNULL(SD.[ManufacturerId], 0)) FROM [dbo].[ItemMaster]  SD WITH(NOLOCK)  WHERE im.partnumber = SD.partnumber AND SD.MasterCompanyId = @MasterCompanyId AND ISNULL(SD.IsNonStock,0) = 0 ) > 1 then ' - '+ M.[Name] ELSE '' END) AS Label,  
 			 Im.PartDescription,   
 		  Im.ItemClassificationId,   
 		  Im.ManufacturerId,   
@@ -206,14 +207,14 @@ BEGIN
 		 FROM dbo.ItemMaster Im WITH(NOLOCK)   
 		  INNER JOIN dbo.Stockline stl WITH(NOLOCK) ON Im.ItemMasterId = stl.ItemMasterId AND ISNULL(stl.LotId,0) >0 AND stl.StockLineId in(SELECT Item FROM dbo.SplitString(@StockLineId, ','))
 		  LEFT JOIN dbo.ItemMaster rp WITH(NOLOCK)  ON Im.ItemMasterId =  rp.ItemMasterId  
-		  LEFT JOIN dbo.Manufacturer M WITH(NOLOCK) ON Im.ManufacturerId = M.ManufacturerId 
+		   AND ISNULL(rp.IsNonStock,0) = 0 LEFT JOIN dbo.Manufacturer M WITH(NOLOCK) ON Im.ManufacturerId = M.ManufacturerId 
 		  LEFT JOIN dbo.ItemClassification Ic WITH(NOLOCK) ON Ic.ItemClassificationId = Im.ItemClassificationId
 		 WHERE (Im.IsActive = 1 AND ISNULL(Im.IsDeleted, 0) = 0 AND IM.MasterCompanyId = @MasterCompanyId AND (Im.partnumber LIKE @StartWith + '%' OR Im.partnumber  LIKE '%' + @StartWith + '%'))      
-		  UNION       
+		   AND ISNULL(Im.IsNonStock,0) = 0 UNION       
 		 SELECT DISTINCT Im.ItemMasterId,  
 		  Im.ItemMasterId AS Value,   
 		  Im.partnumber AS PartNumber,   
-		  im.partnumber + (CASE WHEN (SELECT COUNT(ISNULL(SD.[ManufacturerId], 0)) FROM [dbo].[ItemMaster]  SD WITH(NOLOCK)  WHERE im.partnumber = SD.partnumber AND SD.MasterCompanyId = @MasterCompanyId) > 1 then ' - '+ M.[Name] ELSE '' END) AS Label,  
+		  im.partnumber + (CASE WHEN (SELECT COUNT(ISNULL(SD.[ManufacturerId], 0)) FROM [dbo].[ItemMaster]  SD WITH(NOLOCK)  WHERE im.partnumber = SD.partnumber AND SD.MasterCompanyId = @MasterCompanyId AND ISNULL(SD.IsNonStock,0) = 0 ) > 1 then ' - '+ M.[Name] ELSE '' END) AS Label,  
 			 Im.PartDescription,   
 		  Im.ItemClassificationId,   
 		  Im.ManufacturerId,   
@@ -236,10 +237,10 @@ BEGIN
 		 FROM dbo.ItemMaster Im WITH(NOLOCK)   
 		  INNER JOIN dbo.Stockline stl WITH(NOLOCK) ON Im.ItemMasterId = stl.ItemMasterId AND ISNULL(stl.LotId,0) >0 AND stl.StockLineId in(SELECT Item FROM dbo.SplitString(@StockLineId, ','))
 		  LEFT JOIN dbo.ItemMaster rp WITH(NOLOCK) ON Im.ItemMasterId =  rp.ItemMasterId  
-		  LEFT JOIN dbo.Manufacturer M WITH(NOLOCK) ON Im.ManufacturerId = M.ManufacturerId  
+		   AND ISNULL(rp.IsNonStock,0) = 0 LEFT JOIN dbo.Manufacturer M WITH(NOLOCK) ON Im.ManufacturerId = M.ManufacturerId  
 		  LEFT JOIN dbo.ItemClassification Ic WITH(NOLOCK) ON Ic.ItemClassificationId = Im.ItemClassificationId
 		 WHERE im.ItemMasterId in (SELECT Item FROM DBO.SPLITSTRING(@Idlist, ','))      
-		ORDER BY Label   
+		 AND ISNULL(Im.IsNonStock,0) = 0 ORDER BY Label   
   END
 
 

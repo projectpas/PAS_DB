@@ -29,6 +29,7 @@
 	12	 30/JUL/2025	RAJESH GAMI			Fixed the DirectCost and their related issue
 	13	 11/SEP/2025	Vishal Suthar		PN-14126 - Fixed the Revenue to exclude taxes
 	14	 11/SEP/2025	Vishal Suthar		PN-14127 - Fixed the DirectCost to exclude Charges & Freight
+	15    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 
 EXECUTE [dbo].[usprpt_GetSalesOrderGMReport] '','2020-06-15','2021-06-15','1','1,4,43,44,45,80,84,88','46,47,66','48,49,50,58,59,67,68,69','51,52,53,54,55,56,57,60,61,62,64,70,71,72'  
 **************************************************************/  
@@ -137,7 +138,7 @@ BEGIN
 		  AND (ISNULL(@Level8, '') = '' OR MSD.[Level8Id] IN (SELECT Item FROM dbo.SPLITSTRING(@Level8, ',')))
 		  AND (ISNULL(@Level9, '') = '' OR MSD.[Level9Id] IN (SELECT Item FROM dbo.SPLITSTRING(@Level9, ',')))
 		  AND (ISNULL(@Level10, '') = '' OR MSD.[Level10Id] IN (SELECT Item FROM dbo.SPLITSTRING(@Level10, ',')))	
-			GROUP BY 
+			 AND ISNULL(IM.IsNonStock,0) = 0 GROUP BY 
 				C.NAME,C.customercode,IM.partnumber,IM.partdescription,CDTN.description,SO.salesordernumber,FORMAT (STL.receiveddate, 'MM/dd/yyyy'),
 				FORMAT (SO.opendate, 'MM/dd/yyyy'),SOBI.invoiceno,SOP.QtyOrder,SOPC.UnitSalesPrice,SOBI.salestax,
 			SOQ.salesorderquotenumber,FORMAT (SOQ.OpenDate, 'MM/dd/yyyy'),CASE  WHEN soq.statusid IN(2,4) THEN FORMAT (soq.ApprovedDate, 'MM/dd/yyyy') END,
@@ -275,7 +276,7 @@ BEGIN
 	  AND (ISNULL(@Level9, '') = '' OR MSD.[Level9Id] IN (SELECT Item FROM dbo.SPLITSTRING(@Level9, ',')))
 	  AND (ISNULL(@Level10, '') = '' OR MSD.[Level10Id] IN (SELECT Item FROM dbo.SPLITSTRING(@Level10, ',')))
 			  
-	UNION ALL
+	 AND ISNULL(IM.IsNonStock,0) = 0 UNION ALL
 
 	SELECT DISTINCT
 		COUNT(1) OVER () AS TotalRecordsCount,    

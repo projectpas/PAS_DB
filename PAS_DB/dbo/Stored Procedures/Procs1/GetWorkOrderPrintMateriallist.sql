@@ -23,6 +23,7 @@
 	6    10/02/2026   Amit Ghediya   Added WorkOrderNumber for Stockline lines where the part line is associated to a WO (PN-15419)
 	7    20/02/2026   Amit Ghediya   Added RO NUM,SerialNumber , TenderedQTY (PN-15533)
 	8    23/02/2026   Amit Ghediya   Added RO NUM,SerialNumber , TenderedQTY (PN-15533)
+	9    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
      
 --EXEC [GetWorkOrderPrintMateriallist] 10148,10350,10212
 ********/
@@ -62,7 +63,7 @@ BEGIN
 				INNER JOIN [dbo].[WorkOrderMaterials] WOM WITH(NOLOCK) ON WOM.WorkOrderMaterialsId = WOMS.WorkOrderMaterialsId
 				INNER JOIN [dbo].[Stockline] STK WITH(NOLOCK) ON STk.StockLineId = WOMS.StockLineId
 				LEFT JOIN  [dbo].[ItemMaster] imt WITH(NOLOCK) ON imt.ItemMasterId = WOMS.ItemMasterId
-				LEFT JOIN  [dbo].[RepairOrder] RO WITH(NOLOCK) ON RO.RepairOrderId = WOMS.RepairOrderId
+				 AND ISNULL(imt.IsNonStock,0) = 0 LEFT JOIN  [dbo].[RepairOrder] RO WITH(NOLOCK) ON RO.RepairOrderId = WOMS.RepairOrderId
 				WHERE WOM.WorkFlowWorkOrderId = @workFlowWorkOrderId AND WOMS.IsDeleted = 0 AND WOMS.ProvisionId <> @ProvisionId
 				GROUP BY WOMS.RepairOrderId,STK.PurchaseOrderNumber,imt.partnumber,imt.PartDescription,STK.StockLineNumber,
 						 STK.ControlNumber,STK.IsTurnIn,STK.WorkOrderNumber,STK.SerialNumber,STK.RepairOrderId,STK.RepairOrderNumber,RO.RepairOrderNumber,WOMS.QuantityTurnIn
@@ -91,7 +92,7 @@ BEGIN
 				INNER JOIN [dbo].[WorkOrderMaterialsKit] WOM WITH(NOLOCK) ON WOM.WorkOrderMaterialsKitId= WOMS.WorkOrderMaterialsKitId
 				INNER JOIN [dbo].[Stockline] STK WITH(NOLOCK) ON STk.StockLineId = WOMS.StockLineId
 				LEFT JOIN [dbo].[ItemMaster] imt WITH(NOLOCK) ON imt.ItemMasterId = WOMS.ItemMasterId
-				LEFT JOIN  [dbo].[RepairOrder] RO WITH(NOLOCK) ON RO.RepairOrderId = WOMS.RepairOrderId
+				 AND ISNULL(imt.IsNonStock,0) = 0 LEFT JOIN  [dbo].[RepairOrder] RO WITH(NOLOCK) ON RO.RepairOrderId = WOMS.RepairOrderId
 				WHERE WOM.WorkFlowWorkOrderId = @workFlowWorkOrderId AND WOMS.IsDeleted = 0
 				GROUP BY WOMS.RepairOrderId,STK.PurchaseOrderNumber,imt.partnumber,imt.PartDescription,STK.StockLineNumber,
 						 STK.ControlNumber,STK.IsTurnIn,STK.WorkOrderNumber,STK.SerialNumber,STK.RepairOrderId,STK.RepairOrderNumber,RO.RepairOrderNumber,WOMS.QuantityTurnIn

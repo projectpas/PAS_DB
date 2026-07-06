@@ -20,6 +20,7 @@
 	4    03/13/2025   Vishal Suthar		Changed DataType OF ReceivedDate From DATETIME to DATE
 	5    14/04/2025   Moin Bloch        Modify(Update Qty Logic)
     6    26 SEP 2025  RAJESH GAMI		Added EmployeeId
+	7    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 -- EXEC GetReceiverStockROPNLabel 2553,'0',1,1,'RecNo-000009'
 
 exec dbo.GetReceiverStockROPNLabel @RepairOrderId=1190,@isParentData=N'0',@ItemMasterId=1,@ConditionId=1,@ReceiverNumber=N'RecNo-000002'
@@ -61,7 +62,7 @@ BEGIN
 			SELECT sl.ReceiverNumber,(case when CAST(sl.ReceivedDate as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(sl.ReceivedDate, @CurrntEmpTimeZoneDesc) as Date))end) AS ReceivedDate FROM [dbo].[Stockline] sl WITH(NOLOCK)
 			INNER JOIN [dbo].[ItemMaster] i WITH(NOLOCK) ON i.ItemMasterId = sl.ItemMasterId
 			WHERE RepairOrderId=@RepairOrderId and IsParent=1
-			GROUP BY sl.ReceiverNumber,(case when CAST(sl.ReceivedDate as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(sl.ReceivedDate, @CurrntEmpTimeZoneDesc) as Date))end)
+			 AND ISNULL(i.IsNonStock,0) = 0 GROUP BY sl.ReceiverNumber,(case when CAST(sl.ReceivedDate as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(sl.ReceivedDate, @CurrntEmpTimeZoneDesc) as Date))end)
 
 			UNION
 
@@ -112,7 +113,7 @@ BEGIN
 			WHERE sl.RepairOrderId=@RepairOrderId 			
 			AND sl.ReceiverNumber = @ReceiverNumber AND sl.IsParent=1
 
-			UNION
+			 AND ISNULL(i.IsNonStock,0) = 0 UNION
 
 			SELECT i.ItemMasterId,
 				  sl.ConditionId,
@@ -153,7 +154,7 @@ BEGIN
 			WHERE sl.RepairOrderId=@RepairOrderId 		
 			AND sl.ReceiverNumber = @ReceiverNumber AND sl.IsParent=1 AND sd.ForStockQty > 0
 
-			UNION
+			 AND ISNULL(i.IsNonStock,0) = 0 UNION
 
 			SELECT sl.AssetRecordId AS ItemMasterId,
 				    0 AS ConditionId,

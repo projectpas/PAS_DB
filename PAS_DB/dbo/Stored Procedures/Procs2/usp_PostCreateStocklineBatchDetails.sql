@@ -27,6 +27,7 @@
 	16	 30/01/2025   AMIT GHEDIYA		   Modify(get Distribution based on new settings from stockline level)
 	17	 02/06/2025	  Abhishek Jirawla	   Fixed Name concat read script
 	18   24/07/2025   Moin Bloch		   Modify(Fixed For Amount 0 then getting Error at the time of Receiving) 
+	19    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 **************************************************************/
 
 CREATE   PROCEDURE [dbo].[usp_PostCreateStocklineBatchDetails]
@@ -388,13 +389,13 @@ BEGIN
 							SET @Amount = (@Qty * @Amount);
 							SELECT @MPNName = partnumber FROM ItemMaster WITH(NOLOCK)  WHERE ItemMasterId=@ItemmasterId 
 							
-							SELECT @LastMSLevel = (SELECT LastMSName  FROM DBO.udfGetAllEntityMSLevelString(@ManagementStructureId))
+							 AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 SELECT @LastMSLevel = (SELECT LastMSName  FROM DBO.udfGetAllEntityMSLevelString(@ManagementStructureId))
 							SELECT @AllMSlevels = (SELECT AllMSlevels  FROM DBO.udfGetAllEntityMSLevelString(@ManagementStructureId))
 
 							Set @ReferencePartId =@partId	
 
 							SELECT @PiecePN = partnumber FROM ItemMaster WITH(NOLOCK)  WHERE ItemMasterId=@PieceItemmasterId 
-							SET @Desc = 'Receiving PO-' + @PurchaseOrderNumber + '  PN-' + @MPNName + '  SL-' + @StocklineNumber
+							 AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 SET @Desc = 'Receiving PO-' + @PurchaseOrderNumber + '  PN-' + @MPNName + '  SL-' + @StocklineNumber
 							
 							SELECT TOP 1 @DistributionSetupId=ID,
 							             @DistributionName=Name,
@@ -517,7 +518,7 @@ BEGIN
 							SELECT @MPNName = partnumber FROM ItemMaster WITH(NOLOCK)  WHERE ItemMasterId=@ItemmasterId 
 							
 							--SELECT TOP 1 @LastMSLevel=LastMSLevel,@AllMSlevels=AllMSlevels FROM dbo.NonStocklineManagementStructureDetails WITH(NOLOCK) WHERE ReferenceID=@StockLineId AND ModuleID=@NONStockMSModuleID
-							SELECT @LastMSLevel = (SELECT LastMSName  FROM DBO.udfGetAllEntityMSLevelString(@ManagementStructureId))
+							 AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 SELECT @LastMSLevel = (SELECT LastMSName  FROM DBO.udfGetAllEntityMSLevelString(@ManagementStructureId))
 							SELECT @AllMSlevels = (SELECT AllMSlevels  FROM DBO.udfGetAllEntityMSLevelString(@ManagementStructureId))
 
 							SET @ReferencePartId=@partId	
@@ -525,7 +526,7 @@ BEGIN
 
 							SELECT @PieceItemmasterId=MasterPartId FROM NonStockInventory WITH(NOLOCK) WHERE NonStockInventoryId=@StocklineId
 							SELECT @PiecePN = partnumber FROM ItemMaster WITH(NOLOCK)  WHERE ItemMasterId=@PieceItemmasterId 
-							SET @Desc = 'Receiving PO-' + @PurchaseOrderNumber + '  PN-' + @MPNName + '  SL-' + @StocklineNumber
+							 AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 SET @Desc = 'Receiving PO-' + @PurchaseOrderNumber + '  PN-' + @MPNName + '  SL-' + @StocklineNumber
 							
 							-----NonStock - Inventory--------
 							SELECT TOP 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@GlAccountId=GlAccountId,
@@ -636,7 +637,7 @@ BEGIN
 
 							SELECT @WorkOrderNumber=InventoryNumber,@partId=PurchaseOrderPartRecordId,@ItemMasterId=MasterPartId,@ManagementStructureId=ManagementStructureId FROM AssetInventory WITH(NOLOCK) WHERE AssetInventoryId=@StocklineId;
 							SELECT @MPNName = partnumber FROM ItemMaster WITH(NOLOCK)  WHERE ItemMasterId=@ItemmasterId 
-							SELECT @LastMSLevel = (SELECT LastMSName  FROM DBO.udfGetAllEntityMSLevelString(@ManagementStructureId))
+							 AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 SELECT @LastMSLevel = (SELECT LastMSName  FROM DBO.udfGetAllEntityMSLevelString(@ManagementStructureId))
 							SELECT @AllMSlevels = (SELECT AllMSlevels  FROM DBO.udfGetAllEntityMSLevelString(@ManagementStructureId))
 
 							Set @ReferencePartId=@partId	
@@ -644,7 +645,7 @@ BEGIN
 							SELECT @PieceItemmasterId=MasterPartId FROM AssetInventory WITH(NOLOCK) WHERE AssetInventoryId=@StocklineId
 							SELECT @PiecePN = partnumber FROM ItemMaster WITH(NOLOCK)  WHERE ItemMasterId=@PieceItemmasterId 
 							
-							SELECT TOP 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@CrDrType=CRDRType, @IsAutoPost = ISNULL(IsAutoPost,0)
+							 AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 SELECT TOP 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@CrDrType=CRDRType, @IsAutoPost = ISNULL(IsAutoPost,0)
 							FROM DistributionSetup WITH(NOLOCK)  WHERE UPPER(DistributionSetupCode) =UPPER('FIXEDASSETAC') AND
 							DistributionMasterId=@DistributionMasterId AND MasterCompanyId =@MasterCompanyId
 

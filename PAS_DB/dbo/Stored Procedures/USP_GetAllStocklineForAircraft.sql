@@ -11,6 +11,7 @@
 ** PR   Date         Author         Change Description
 ** --   ----------   -------------  --------------------------------
 ** 1    2026-04-08   Amit Ghediya   Created
+	1    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 *************************************************************/
 create     PROCEDURE [dbo].[USP_GetAllStocklineForAircraft]
 (
@@ -66,7 +67,7 @@ BEGIN
 			AND sl.MasterCompanyId = @MasterCompanyId
 			AND sl.QuantityAvailable > 0
 			AND sl.IsParent = 1
-    END TRY
+     AND ISNULL(im.IsNonStock,0) = 0 END TRY
     BEGIN CATCH
         DECLARE
             @ErrorLogID INT,

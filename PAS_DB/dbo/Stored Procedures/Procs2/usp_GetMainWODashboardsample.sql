@@ -16,6 +16,7 @@
  ** --   --------     -------		--------------------------------          
     1                 Swetha Created
 	2	        	  Swetha Added Transaction & NO LOCK
+	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
      
 EXECUTE   [dbo].[usp_GetMainWODashboardsample] 
 **************************************************************/
@@ -58,7 +59,7 @@ BEGIN
           ON WOPN.WorkOrderStatusId = WOST.Id
         LEFT JOIN dbo.ItemMaster AS IM WITH (NOLOCK)
           ON WOPN.itemmasterId = IM.ItemMasterId
-        LEFT JOIN dbo.ItemGroup AS IG WITH (NOLOCK)
+         AND ISNULL(IM.IsNonStock,0) = 0 LEFT JOIN dbo.ItemGroup AS IG WITH (NOLOCK)
           ON IM.ItemGroupId = IG.ItemGroupId
 
     COMMIT TRANSACTION

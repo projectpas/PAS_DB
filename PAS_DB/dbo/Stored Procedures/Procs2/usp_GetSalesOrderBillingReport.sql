@@ -21,6 +21,7 @@
 	4	02-FEB 2024	    AMIT GHEDIYA	     added isperforma Flage for SO
     5   11/04/2024		Vishal Suthar		 Modified to make use of new SO Part tables
 	6   07-07-2025      Moin Bloch           Changed Old To New Billing Table
+	7    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 
 EXECUTE   [dbo].[usp_GetSalesOrderBillingReport] '','2020-06-15','2021-06-15','1','1,4,43,44,45,80,84,88','46,47,66','48,49,50,58,59,67,68,69','51,52,53,54,55,56,57,60,61,62,64,70,71,72'
 **************************************************************/
@@ -130,7 +131,7 @@ BEGIN
           ON SOBI.customerid = C.customerid
         LEFT JOIN dbo.itemmaster IM WITH (NOLOCK)
           ON SOP.itemmasterid = IM.itemmasterid
-        LEFT JOIN dbo.stockline STL WITH (NOLOCK)
+         AND ISNULL(IM.IsNonStock,0) = 0 LEFT JOIN dbo.stockline STL WITH (NOLOCK)
           ON SOPS.stocklineid = STL.stocklineid and stl.IsParent=1
         LEFT JOIN dbo.workorder WO WITH (NOLOCK)
           ON STL.workorderid = WO.workorderid

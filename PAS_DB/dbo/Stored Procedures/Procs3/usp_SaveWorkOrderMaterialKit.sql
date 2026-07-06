@@ -21,6 +21,7 @@
 	4	 01/13/2024	  Moin Bloch			Modified (Added WorkOrderTask Table For conditionally check table for Task)
 	5	 01/16/2024	  Moin Bloch			Modified (Added TaskId In Type)
 	6    17/11/2024	  Ayuhi Patel			Added logic to set @ProvisionId
+	7    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 **************************************************************/ 
 CREATE    PROCEDURE [dbo].[usp_SaveWorkOrderMaterialKit]
 	@tbl_WorkOrderMaterialKitType WorkOrderMaterialKitType READONLY
@@ -188,7 +189,7 @@ BEGIN
 					END
 
 					SELECT @ItemMasterId = [ItemMasterId], @Qty = Qty, @UOMId = UOMId, @UnitCost = StocklineUnitCost FROM #KitItemMasterMapping WHERE ID = @LoopID;
-					SELECT @ItemClassificationId = IM.ItemClassificationId FROM [DBO].[ItemMaster] IM WHERE ItemMasterId = @ItemMasterId;
+					SELECT @ItemClassificationId = IM.ItemClassificationId FROM [DBO].[ItemMaster] IM WHERE ItemMasterId = @ItemMasterId AND ISNULL(IM.IsNonStock,0) = 0 ;
 					
 					SELECT @ProvisionId = PROV.ProvisionId
 					FROM [DBO].[KitMaster] PROV

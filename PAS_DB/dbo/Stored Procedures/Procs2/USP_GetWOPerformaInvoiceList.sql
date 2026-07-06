@@ -16,6 +16,7 @@
  ** --   --------     -------			--------------------------------     
 	1    01/30/2024   Devendra Shekh		created
 	2    07-07-2025   Moin Bloch            Changed Old To New Billing Table SP NOT IN USE
+	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 
  -- EXEC [dbo].[USP_GetWOPerformaInvoiceList] 4177, 3668, 0
 **************************************************************/ 
@@ -83,7 +84,7 @@ BEGIN
 						LEFT JOIN DBO.WorkOrderShipping wos WITH(NOLOCK) on wos.WorkOrderId = wop.WorkOrderId
 						LEFT JOIN DBO.WorkOrderShippingItem wosi WITH(NOLOCK) on wos.WorkOrderShippingId = wosi.WorkOrderShippingId AND wosi.WorkOrderPartNumId = wop.ID
 						LEFT JOIN DBO.ItemMaster imt WITH(NOLOCK) on imt.ItemMasterId = wop.ItemMasterId
-						LEFT JOIN DBO.Stockline sl WITH(NOLOCK) on sl.StockLineId = wop.StockLineId
+						 AND ISNULL(imt.IsNonStock,0) = 0 LEFT JOIN DBO.Stockline sl WITH(NOLOCK) on sl.StockLineId = wop.StockLineId
 						LEFT JOIN DBO.BillingInvoicingItems wobii WITH(NOLOCK) on wop.ID = wobii.SubReferenceId AND ISNULL(wobii.IsPerformaInvoice, 0) = 1
 						LEFT JOIN DBO.BillingInvoicing wobi WITH(NOLOCK) on wobii.BillingInvoicingId = wobi.BillingInvoicingId and wobi.IsVersionIncrease=0
 						AND wobii.SubReferenceId = wop.ID AND wobii.QtyBilled = wop.Quantity AND ISNULL(wobii.IsPerformaInvoice, 0) = 1

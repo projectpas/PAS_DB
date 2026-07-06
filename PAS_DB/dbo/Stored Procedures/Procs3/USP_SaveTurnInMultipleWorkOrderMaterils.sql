@@ -12,6 +12,7 @@
 ** 3    26/03/2026      Moin Bloch	            Rename TearDown To Internal Teardown PN-15850
 ** 4    22/06/2026      Sumit Kumar	            Added Lot support for multiple stockline tendering [PN-16570]
 	
+	1    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[USP_SaveTurnInMultipleWorkOrderMaterils]
 	@tbl_SaveAndTenderMultipleStocklineType [SaveAndTenderMultipleStocklineType] READONLY
@@ -168,7 +169,7 @@ BEGIN
 								@isExchange =  (CASE WHEN UPPER((SELECT StatusCode FROM DBO.Provision WHERE ProvisionId = @ProvisionId)) = 'EXCHANGE' THEN 1 ELSE 0 END); 
 
 						SELECT	@PartNumber = partnumber, @IsPMA = IsPMA, @IsDER = IsDER, @IsOemPNId = IsOemPNId, @IsOEM = IsOEM, @OEMPNNumber = OEMPN,@GLAccountId=GLAccountId, @IsTimeLife = isTimeLife  
-								FROM dbo.ItemMaster WITH(NOLOCK) WHERE ItemMasterId = @ItemMasterId;  
+								FROM dbo.ItemMaster WITH(NOLOCK) WHERE ItemMasterId = @ItemMasterId AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 ;  
 						SELECT @WorkOrderTypeId = WorkOrderTypeId FROM dbo.WorkOrder WITH(NOLOCK) WHERE WorkOrderId = @WorkOrderId;
 
 						IF(ISNULL(@IsKitType, 0) = 0)
@@ -208,7 +209,8 @@ BEGIN
 							 FROM CTE_Stockline CSTL WITH(NOLOCK)
 							 INNER JOIN DBO.Stockline STL WITH(NOLOCK) INNER JOIN DBO.ItemMaster IM WITH(NOLOCK) ON STL.ItemMasterId = IM.ItemMasterId AND STL.ManufacturerId = IM.ManufacturerId ON CSTL.StockLineId = STL.StockLineId  
 							 /* PN Manufacturer Combination Stockline logic */
-						END
+						 WHERE ISNULL(IM.IsNonStock,0) = 0
+END
 
 						IF(ISNULL(@CurrentWOM, 0) = 1)
 						BEGIN

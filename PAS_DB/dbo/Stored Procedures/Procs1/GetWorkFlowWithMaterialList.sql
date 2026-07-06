@@ -15,6 +15,7 @@
  **  S NO   Date         Author    Change Description                
  **  --   --------      --------  --------------------------------              
       1  07-April-2025   Ayushi   created      
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
   
 -- EXEC GetWorkFlowWithMaterialList 80
 **************************************************************/
@@ -117,7 +118,8 @@ BEGIN
 			ELSE 'OEM'
 		END
     FROM #MaterialList ml
-    INNER JOIN DBO.ItemMaster im WITH (NOLOCK) ON ml.ItemMasterId = im.ItemMasterId;
+    INNER JOIN DBO.ItemMaster im WITH (NOLOCK) ON ml.ItemMasterId = im.ItemMasterId WHERE ISNULL(im.IsNonStock,0) = 0
+;
 
     UPDATE ml
     SET ml.ItemClassificationCode = ic.ItemClassificationCode
@@ -169,7 +171,8 @@ BEGIN
 	ml.UnitOfMeasure,
 	ml.ConditionName FROM #MaterialList ml;
 
-    SELECT im.ItemMasterId,im.partnumber FROM DBO.ItemMaster im WITH (NOLOCK) inner join #tempWF twf ON twf.ItemMasterId = im.ItemMasterId ;
+    SELECT im.ItemMasterId,im.partnumber FROM DBO.ItemMaster im WITH (NOLOCK) inner join #tempWF twf ON twf.ItemMasterId = im.ItemMasterId  WHERE ISNULL(im.IsNonStock,0) = 0
+;
     SELECT ws.WorkScopeId,ws.Description,ws.WorkScopeCode FROM DBO.WorkScope ws WITH (NOLOCK) inner join #tempWF twf ON twf.WorkScopeId = ws.WorkScopeId ;
     
 END;

@@ -3,6 +3,13 @@
 
 
 --EXEC spGETPO  'open','2019-12-10 00:00:00.0000000','2020-12-10 00:00:00.0000000'
+/***************************************************************************************************************************************
+  ** Change History
+ ***************************************************************************************************************************************
+ ** PR   Date						 Author							Change Description
+ ** --   --------					 -------						-------------------------------
+	1    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+****************************************************************************************************************************************/
 CREATE Procedure [dbo].[spGETPO]
 	@status varchar(10),
 	@vendorname varchar(20)=null,
@@ -55,7 +62,7 @@ BEGIN
 		LEFT join  ManagementStructure level2 WITH (NOLOCK) on level3.ParentId = level2.ManagementStructureId 
 		LEFT join  ManagementStructure level1 WITH (NOLOCK) on level2.ParentId = level1.ManagementStructureId
 		WHERE PO.Status = @status and PO.OpenDate between @Fromdate and @Todate 		
-	END TRY    
+	 AND ISNULL(IM.IsNonStock,0) = 0 END TRY    
 	BEGIN CATCH      
 		DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name() 
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------

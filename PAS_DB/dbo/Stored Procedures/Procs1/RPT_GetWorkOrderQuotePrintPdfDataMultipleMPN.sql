@@ -25,6 +25,7 @@
 	11	 02-March-2026   Ayushi Patel		PN-15745 Retuen ItemNo  , Added OrderBY ID
 	12   17-March-2026	 Ayushi Patel		PN-15746 Return CustomerReference Partwise
 	13   23-March-2026	 BHARGAV SALIYA		PN-15822 Added CustomerReference field in Group By clause
+	14    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 --EXEC [RPT_GetWorkOrderQuotePrintPdfDataMultipleMPN] 2304,'3823,3824,3825',0  
 exec RPT_GetWorkOrderQuotePrintPdfDataMultipleMPN @WorkOrderQuoteId=2303,@workOrderPartNoIds=N'3820,3821,3822',@isByPartIds=1
 **************************************************************/  
@@ -331,13 +332,13 @@ BEGIN
 				 INNER JOIN dbo.WorkOrderWorkFlow wf WITH(NOLOCK) ON  wop.ID = wf.WorkOrderPartNoId
 				 INNER JOIN dbo.ItemMaster im WITH(NOLOCK) ON wop.ItemMasterId = im.ItemMasterId  
 				 LEFT JOIN dbo.ItemMaster im1 WITH(NOLOCK) ON im.RevisedPartId = im1.ItemMasterId  
-				 INNER JOIN dbo.WorkScope s WITH(NOLOCK) ON wop.WorkOrderScopeId = s.WorkScopeId  
+				  AND ISNULL(im1.IsNonStock,0) = 0 INNER JOIN dbo.WorkScope s WITH(NOLOCK) ON wop.WorkOrderScopeId = s.WorkScopeId  
 				 INNER JOIN dbo.StockLine sl WITH(NOLOCK) ON wop.StockLineId = sl.StockLineId  
 				 INNER JOIN dbo.Customer cust WITH(NOLOCK)  ON woq.CustomerId = cust.CustomerId
 				 LEFT JOIN #tmpResult tmp ON tmp.WorkOrderQuoteId = woq.WorkOrderQuoteId AND tmp.WorkOrderPartNoId = wop.ID
 			WHERE woq.WorkOrderQuoteId = @WorkOrderQuoteId AND wop.ID IN (SELECT value FROM STRING_SPLIT(@workOrderPartNoIds, ','))
 				 AND woq.IsActive = 1 AND woq.IsDeleted = 0  
-			GROUP BY im.PartNumber, wop.ID, wop.RevisedPartNumber, wop.RevisedPartDescription,
+			 AND ISNULL(im.IsNonStock,0) = 0 GROUP BY im.PartNumber, wop.ID, wop.RevisedPartNumber, wop.RevisedPartDescription,
 				 im.PartDescription, im1.ItemMasterId, im1.PartNumber,im.ItemMasterId, wop.PublicationNotes, tmp.[Remarks],
 				 sl.StockLineNumber, wop.RevisedSerialNumber, wop.CurrentSerialNumber, wop.Quantity, wqd.QuoteMethod, wqd.CommonFlatRate, TATDaysStandard,wqd.EvalFees, cust.CustomerId,wf.WorkFlowWorkOrderId,woq.IsPrintCorrectiveAction,wop.EstimatedShipDate,wop.CustomerReference),
 			AfterTax AS (SELECT *, CAST(((Ct.subtotalfortax * Ct.TAXRates) / 100) AS DECIMAL(18, 2)) AS SalesTaxAmount, CAST(((Ct.subtotalfortax * Ct.Othertax) / 100) AS DECIMAL(18, 2)) AS OtherTaxAmount FROM WOQPartCte Ct)
@@ -459,13 +460,13 @@ BEGIN
 				 --LEFT JOIN dbo.CommonWorkOrderTearDown ctd WITH(NOLOCK) ON wf.WorkFlowWorkOrderId = ctd.WorkFlowWorkOrderId
 				 INNER JOIN dbo.ItemMaster im WITH(NOLOCK) ON wop.ItemMasterId = im.ItemMasterId  
 				 LEFT JOIN dbo.ItemMaster im1 WITH(NOLOCK) ON im.RevisedPartId = im1.ItemMasterId  
-				 INNER JOIN dbo.WorkScope s WITH(NOLOCK) ON wop.WorkOrderScopeId = s.WorkScopeId  
+				  AND ISNULL(im1.IsNonStock,0) = 0 INNER JOIN dbo.WorkScope s WITH(NOLOCK) ON wop.WorkOrderScopeId = s.WorkScopeId  
 				 INNER JOIN dbo.StockLine sl WITH(NOLOCK) ON wop.StockLineId = sl.StockLineId  
 				 INNER JOIN dbo.Customer cust WITH(NOLOCK)  ON woq.CustomerId = cust.CustomerId
 				 LEFT JOIN #tmpResult tmp ON tmp.WorkOrderQuoteId = woq.WorkOrderQuoteId AND tmp.WorkOrderPartNoId = wop.ID
 			WHERE woq.WorkOrderQuoteId = @WorkOrderQuoteId 
 				 AND woq.IsActive = 1 AND woq.IsDeleted = 0  
-			GROUP BY im.PartNumber,  wop.ID, wop.RevisedPartNumber, wop.RevisedPartDescription,
+			 AND ISNULL(im.IsNonStock,0) = 0 GROUP BY im.PartNumber,  wop.ID, wop.RevisedPartNumber, wop.RevisedPartDescription,
 				 im.PartDescription, im1.ItemMasterId, im1.PartNumber, im.ItemMasterId, wop.PublicationNotes, tmp.[Remarks],
 				 sl.StockLineNumber, wop.RevisedSerialNumber, wop.CurrentSerialNumber, wop.Quantity, wqd.QuoteMethod, wqd.CommonFlatRate, TATDaysStandard,wqd.EvalFees, cust.CustomerId,wf.WorkFlowWorkOrderId,woq.IsPrintCorrectiveAction,wop.EstimatedShipDate,wop.CustomerReference),
 			AfterTax AS (SELECT *, CAST(((Ct.subtotalfortax * Ct.TAXRates) / 100) AS DECIMAL(18, 2)) AS SalesTaxAmount, CAST(((Ct.subtotalfortax * Ct.Othertax) / 100) AS DECIMAL(18, 2)) AS OtherTaxAmount FROM WOQPartCte Ct)

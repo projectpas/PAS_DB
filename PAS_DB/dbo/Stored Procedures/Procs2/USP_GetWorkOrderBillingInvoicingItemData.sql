@@ -13,6 +13,7 @@
     1    27/03/2025   Moin Bloch		Created
     2    22/04/2025   Devendra Shekh	Added WorkOrderPartNoId,WorkFlowWorkOrderId to select
     3    03-07-2025   Moin Bloch        Changed Old To New Billing Table
+	4    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 
 --   EXEC [dbo].[USP_GetWorkOrderBillingInvoicingItemData] 7929,1,3193
 --   EXEC [dbo].[USP_GetWorkOrderBillingInvoicingItemData] 8829,1,10155
@@ -104,12 +105,12 @@ BEGIN
 		INNER JOIN [dbo].[ItemMaster] IM WITH(NOLOCK) ON WOP.[ItemMasterId] = IM.[ItemMasterId]
 		 LEFT JOIN [dbo].[UnitOfMeasure] IU WITH(NOLOCK) ON IM.[ConsumeUnitOfMeasureId] = IU.[UnitOfMeasureId]
 		 LEFT JOIN [dbo].[ItemMaster] IMT WITH(NOLOCK) ON WOP.[RevisedItemmasterid] = IMT.[ItemMasterId]
-		 LEFT JOIN [dbo].[UnitOfMeasure] IUR WITH(NOLOCK) ON IMT.[ConsumeUnitOfMeasureId] = IUR.[UnitOfMeasureId]
+		  AND ISNULL(IMT.IsNonStock,0) = 0 LEFT JOIN [dbo].[UnitOfMeasure] IUR WITH(NOLOCK) ON IMT.[ConsumeUnitOfMeasureId] = IUR.[UnitOfMeasureId]
 		 LEFT JOIN [dbo].[WorkOrderSettlementDetails] WOS WITH(NOLOCK) ON WOP.[ID] = wos.[workOrderPartNoId] AND WOS.[WorkOrderSettlementId] = @FinalCondCert
 		 LEFT JOIN [dbo].[Condition] COND WITH(NOLOCK) ON WOP.[RevisedConditionId] = COND.[ConditionId]
 		 LEFT JOIN [dbo].[StockLine] SL WITH(NOLOCK) ON WOP.[StockLineId] = SL.[StockLineId]
 		 LEFT JOIN [dbo].[ItemMaster] IMV WITH(NOLOCK) ON BID.[ItemMasterId] = IMV.[ItemMasterId]
-		WHERE WOP.[ID] = @WorkOrderPartId AND BI.[BillingInvoicingId] = @billingInvoicingId;
+		 AND ISNULL(IMV.IsNonStock,0) = 0 WHERE WOP.[ID] = @WorkOrderPartId AND BI.[BillingInvoicingId] = @billingInvoicingId AND ISNULL(IM.IsNonStock,0) = 0 ;
 
 	END TRY    
 	BEGIN CATCH      

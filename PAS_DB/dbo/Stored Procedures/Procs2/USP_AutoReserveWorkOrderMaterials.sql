@@ -19,6 +19,7 @@ EXEC [USP_AutoReserveWorkOrderMaterials]
 ** 8    04/14/2025  HEMANT SALIYA    Added Work Order Work Flow Id for UpdateWOMaterialsCost
 
 EXEC USP_AutoReserveWorkOrderMaterials 638
+	1    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[USP_AutoReserveWorkOrderMaterials]
 @WorkFlowWorkOrderId BIGINT
@@ -107,7 +108,7 @@ BEGIN
 							AND (WOM.ProvisionId = @ProvisionId OR WOM.ProvisionId = @SubWOProvisionId)
 						
 						--Auto Reserve Stockline
-						IF((SELECT COUNT(1) FROM #tmpReserveIssueWOMaterialsStockline) > 0)
+						 AND ISNULL(IM.IsNonStock,0) = 0 IF((SELECT COUNT(1) FROM #tmpReserveIssueWOMaterialsStockline) > 0)
 						BEGIN
 							--CASE 1 UPDATE WORK ORDER MATERILS
 							DECLARE @count INT;

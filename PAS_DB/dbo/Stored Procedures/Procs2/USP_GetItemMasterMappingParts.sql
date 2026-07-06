@@ -10,6 +10,7 @@
  ** PR   Date				Author				Change Description            
  ** --   -------------		----------------	--------------------------------          
     1    04-NOV-2025		Divyesh Kathiriya	Created
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
     
  -- EXEC [USP_GetItemMasterMappingParts] @MappingItemMasterId=96984
 **************************************************************/
@@ -26,7 +27,7 @@ BEGIN
 			[alt].[MappingItemMasterId] AS [Value]
 		FROM [DBO].[Nha_Tla_Alt_Equ_ItemMapping] AS alt WITH(NOLOCK)
 		INNER JOIN [DBO].[ItemMaster] AS im1 WITH(NOLOCK) ON [alt].[MappingItemMasterId] = [im1].[ItemMasterId]
-		WHERE [alt].[MappingItemMasterId] = @MappingItemMasterId;		  		 	   			   	  
+		WHERE [alt].[MappingItemMasterId] = @MappingItemMasterId AND ISNULL(im1.IsNonStock,0) = 0 ;		  		 	   			   	  
 	
 	END TRY 
 	BEGIN CATCH

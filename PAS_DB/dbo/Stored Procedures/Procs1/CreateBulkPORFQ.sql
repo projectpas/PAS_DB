@@ -6,6 +6,7 @@
  ** --   --------					 -------						-------------------------------            
     1   	
 	2    23/10/2024              RAJESH GAMI                        Change the Local date to UTC date by default 
+	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 ****************************************************************************************************************************************/ 
 CREATE    PROCEDURE [dbo].[CreateBulkPORFQ]    
  @tbl_BulkPORFQDetailType BulkPODetailType READONLY,    
@@ -229,7 +230,7 @@ BEGIN
   
   
     /************************************************************************/    
-    EXEC dbo.[PROCAddPOMSData] @NewPurchaseOrderRFQId,@ManagementStructureID,@MstCompanyId,@updatedByName,@updatedByName,20,1,0    
+     AND ISNULL(IM.IsNonStock,0) = 0 EXEC dbo.[PROCAddPOMSData] @NewPurchaseOrderRFQId,@ManagementStructureID,@MstCompanyId,@updatedByName,@updatedByName,20,1,0    
     
      INSERT INTO #tmpVendorParts ([NewId])    
      SELECT VendorRFQPOPartRecordId from dbo.VendorRFQPurchaseOrderPart where VendorRFQPurchaseOrderId = @NewPurchaseOrderRFQId       

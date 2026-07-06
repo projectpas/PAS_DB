@@ -19,6 +19,7 @@
     3    09/27/2024   Vishal Suthar Modified the query to use new so part tables
 	4    21/jul/2025  Bhargav Saliya  Select UOM
 	5    28/Aug/2025  Amit Ghediya		Select Condition
+	6    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 
 EXEC [dbo].[USP_GetSOApprovalList]  1266
 **************************************************************/
@@ -194,7 +195,7 @@ BEGIN
 		--WHERE sop.IsDeleted = 0 AND sop.IsDeleted = 0 AND soq.SalesOrderId = @SalesOrderId;
 
 
-		SELECT DISTINCT so.SalesOrderId,
+		 AND ISNULL(im.IsNonStock,0) = 0 SELECT DISTINCT so.SalesOrderId,
 			so.SalesOrderNumber,
 			so.Version,
 			so.CustomerId,
@@ -272,7 +273,7 @@ BEGIN
 		INNER JOIN DBO.SalesOrderPartCost sopc ON sopc.SalesOrderPartId = sop.SalesOrderPartId
 		LEFT JOIN DBO.SalesOrderApproval sp WITH (NOLOCK) ON sop.SalesOrderPartId = sp.SalesOrderPartId AND sp.SalesOrderId = @SalesOrderId
 		LEFT JOIN DBO.ItemMaster im WITH (NOLOCK) ON sop.ItemMasterId = im.ItemMasterId
-		LEFT JOIN DBO.UnitOfMeasure um WITH (NOLOCK) ON im.PurchaseUnitOfMeasureId = um.UnitOfMeasureId
+		 AND ISNULL(im.IsNonStock,0) = 0 LEFT JOIN DBO.UnitOfMeasure um WITH (NOLOCK) ON im.PurchaseUnitOfMeasureId = um.UnitOfMeasureId
 		LEFT JOIN DBO.Employee app WITH (NOLOCK) ON sp.InternalApprovedById = app.EmployeeId
 		LEFT JOIN DBO.Contact con WITH (NOLOCK) ON sp.CustomerApprovedById = con.ContactId
 		LEFT JOIN DBO.Condition cond WITH (NOLOCK) ON sop.ConditionId = cond.ConditionId

@@ -21,6 +21,7 @@
 	3    06/07/2021   Hemant Saliya			Updated For Update WO Work Flow ID
 	4    08/11/2023	  Devendra Shekh		changes for ReadyToPick
 	5    10/05/2023   Hemant Saliya			Condition Group Changes
+	6    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
      
  EXECUTE GetWOMaterialsPickTicketApproveList 3555, 3019
 
@@ -73,7 +74,7 @@ SET NOCOUNT ON
 					INNER JOIN dbo.Customer cr WITH (NOLOCK) on cr.CustomerId = wo.CustomerId
 				WHERE wom.WorkOrderId=@workOrderId AND wom.WorkFlowWorkOrderId = @workflowWorkOrderId AND (ISNULL(wom.QuantityReserved,0) + ISNULL(wom.QuantityIssued,0)) > 0  
 
-				UNION ALL
+				 AND ISNULL(imt.IsNonStock,0) = 0 UNION ALL
 				
 				SELECT 
 					wom.WorkOrderMaterialsKitId as OrderPartId, 
@@ -107,7 +108,7 @@ SET NOCOUNT ON
 					INNER JOIN dbo.WorkOrder wo WITH (NOLOCK) on wo.WorkOrderId = wom.WorkOrderId
 					INNER JOIN dbo.Customer cr WITH (NOLOCK) on cr.CustomerId = wo.CustomerId
 				WHERE wom.WorkOrderId=@workOrderId AND wom.WorkFlowWorkOrderId = @workflowWorkOrderId AND (ISNULL(wom.QuantityReserved,0) + ISNULL(wom.QuantityIssued,0)) > 0  
-			END
+			 AND ISNULL(imt.IsNonStock,0) = 0 END
 		COMMIT  TRANSACTION
 
 		END TRY    

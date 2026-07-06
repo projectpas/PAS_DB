@@ -16,6 +16,7 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    05/25/2021   Hemant Saliya Created
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
      
 -- EXEC [SearchPickTicketForSubWO] 15,4,92,122
 **************************************************************/
@@ -74,7 +75,8 @@ BEGIN
 					 ,Smf.Name as StkLineManufacturer
 				FROM DBO.ItemMaster im WITH (NOLOCK)
 					JOIN DBO.StockLine sl WITH (NOLOCK) ON im.ItemMasterId = sl.ItemMasterId AND sl.IsDeleted = 0 
-						AND sl.ConditionId = CASE WHEN @ConditionId  IS NOT NULL THEN @ConditionId ELSE sl.ConditionId END
+						AND sl.ConditionId = CASE WHEN @ConditionId  IS NOT NULL THEN @ConditionId  WHERE ISNULL(im.IsNonStock,0) = 0
+ELSE sl.ConditionId END
 					LEFT JOIN DBO.WorkOrderMaterialStockLine wmsl WITH (NOLOCK) on wmsl.StockLineId = sl.StockLineId
 					LEFT JOIN DBO.WorkOrderMaterials wom WITH (NOLOCK) on wom.WorkOrderMaterialsId = wmsl.WorkOrderMaterialsId
 					LEFT JOIN DBO.WorkOrder wo WITH (NOLOCK) on wo.WorkOrderId = wom.WorkOrderId

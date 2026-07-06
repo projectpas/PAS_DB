@@ -14,6 +14,7 @@
  ** PR   Date         Author			Change Description            
  ** --   --------     -------			--------------------------------          
     1    07/03/2025   Ekta Chandegra     Created
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
      
   EXEC USP_GetExchangeQuoteApprovalListNew @ExchangeQuoteId = 113, @InternalApprove = 1, @EmployeeId = 237
 
@@ -108,7 +109,7 @@ BEGIN
 		INNER JOIN [dbo].[ExchangeQuotePart] EQP WITH(NOLOCK) ON EQ.ExchangeQuoteId = EQP.ExchangeQuoteId AND ISNULL(EQP.IsDeleted,0) = 0
 		LEFT JOIN [dbo].[ExchangeQuoteApproval] EQA WITH(NOLOCK) ON EQP.ExchangeQuotePartId = EQA.ExchangeQuotePartId
 		LEFT JOIN [dbo].[ItemMaster] IM WITH(NOLOCK) ON EQP.ItemMasterId = IM.ItemMasterId
-		LEFT JOIN [dbo].[Employee] APP WITH(NOLOCK) ON EQA.InternalApprovedById = APP.EmployeeId
+		 AND ISNULL(IM.IsNonStock,0) = 0 LEFT JOIN [dbo].[Employee] APP WITH(NOLOCK) ON EQA.InternalApprovedById = APP.EmployeeId
 		LEFT JOIN [dbo].[Contact] CON WITH(NOLOCK) ON EQA.CustomerApprovedById = CON.ContactId
 		LEFT JOIN [dbo].[Employee] INTR WITH(NOLOCK) ON EQA.InternalRejectedById = INTR.EmployeeId
 		WHERE EQ.ExchangeQuoteId = @ExchangeQuoteId AND ISNULL(EQ.IsDeleted,0) = 0;

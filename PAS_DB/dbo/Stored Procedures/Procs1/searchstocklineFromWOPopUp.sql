@@ -13,6 +13,7 @@
 	1    20/09/2023   Hemnat Saliya  Created
 	2    06/11/2023   Hemnat Saliya  Updated For Allow all customer stock.
 	3	 25/11/2024	  Divyesh Kathiriya Add New Field "IsCustomerStock" 
+	4    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 
 ************************************************************************
 EXEC [searchstocklineFromWOPopUp] '12',8,108,1,'0'
@@ -50,7 +51,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 
 			SELECT TOP 1 @MasterCompanyId = MasterCompanyId FROM dbo.ItemMaster WITH (NOLOCK) WHERE ItemMasterId IN (SELECT Item FROM DBO.SPLITSTRING(@ItemMasterIdlist,','))     
 
-			SELECT @ConditionGroup = C.GroupCode FROM dbo.Condition C WHERE C.ConditionId = @ConditionId
+			 AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 SELECT @ConditionGroup = C.GroupCode FROM dbo.Condition C WHERE C.ConditionId = @ConditionId
 					
 			INSERT INTO #ConditionGroup (ConditionId)
 			SELECT ConditionId FROM dbo.Condition WITH (NOLOCK) WHERE MasterCompanyId = @MasterCompanyId AND GroupCode = @ConditionGroup
@@ -156,7 +157,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 				--AND (sl.IsCustomerStock = 0 OR (sl.IsCustomerStock = 1 AND sl.CustomerId = @CustomerId))  
 				AND sl.IsParent = 1
 			
-			UNION
+			 AND ISNULL(im.IsNonStock,0) = 0 UNION
 
 			SELECT DISTINCT
 				im.PartNumber
@@ -256,7 +257,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 				LEFT JOIN DBO.LotSetupMaster lsm WITH(NOLOCK) ON sl.LotId = lsm.LotId
 				LEFT JOIN DBO.[Percent] per WITH(NOLOCK) ON lsm.MarginPercentageId = per.PercentId
 			WHERE SL.StockLineId IN (SELECT Item FROM DBO.SPLITSTRING(@StocklineIdlist,','))
-		END
+		 AND ISNULL(im.IsNonStock,0) = 0 END
 		COMMIT  TRANSACTION
 
 		END TRY    

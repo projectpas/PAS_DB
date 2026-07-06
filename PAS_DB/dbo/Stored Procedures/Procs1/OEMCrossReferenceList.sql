@@ -13,6 +13,7 @@
  1   19/12/2023		Seema Mansuri		Created  
  2   25/12/2023		AMIT GHEDIYA		Updated (Get AlterItemMasterId,EquiItemMasterId for viewInventory display).
  3   01/01/2024     EKTA CHANDEGRA      Add manufacturer , Alt PN Manufacturer and Equiv PN Manufacturer fields
+	4    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 **************************************************************/  
 /*
 exec OEMCrossReferenceList @PageNumber=1,@PageSize=10,@SortColumn=N'CreatedDate',@SortOrder=-1,@GlobalFilter=N'',@ItemMasterId=20372,@PartNumber=NULL,@PartDescription=NULL,@CreatedBy=NULL,@CreatedDate=NULL,@UpdatedBy=NULL,@UpdatedDate=NULL,@IsDeleted=0,@MasterCompanyId=1
@@ -80,11 +81,11 @@ BEGIN
 				mapping.MappingType as MappingType
 		FROM  [dbo].[Nha_Tla_Alt_Equ_ItemMapping]   mapping  WITH (NOLOCK)
 		LEFT JOIN [dbo].[ItemMaster] itm   WITH (NOLOCK) ON itm.ItemMasterId = mapping.ItemMasterId
-		LEFT JOIN [dbo].[ItemMaster] alternate  WITH (NOLOCK)  ON alternate.ItemMasterId = mapping.MappingItemMasterId and mapping.MappingType=@AlternateType
-		LEFT JOIN [dbo].[ItemMaster] nha   WITH (NOLOCK) ON nha.ItemMasterId = mapping.MappingItemMasterId and mapping.MappingType=@NHAType
-		LEFT JOIN [dbo].[ItemMaster] equivalent  WITH (NOLOCK) ON equivalent.ItemMasterId = mapping.MappingItemMasterId and mapping.MappingType=@EquilentType
-		LEFT JOIN [dbo].[ItemMaster] tla  WITH (NOLOCK) ON tla.ItemMasterId = mapping.MappingItemMasterId and mapping.MappingType=@TLAType
-		WHERE  mapping.MasterCompanyId = @MasterCompanyId  AND mapping.MappingType <> @OtherType AND ((mapping.IsDeleted =0) AND (mapping.IsActive = 1))
+		 AND ISNULL(itm.IsNonStock,0) = 0 LEFT JOIN [dbo].[ItemMaster] alternate  WITH (NOLOCK)  ON alternate.ItemMasterId = mapping.MappingItemMasterId and mapping.MappingType=@AlternateType
+		 AND ISNULL(alternate.IsNonStock,0) = 0 LEFT JOIN [dbo].[ItemMaster] nha   WITH (NOLOCK) ON nha.ItemMasterId = mapping.MappingItemMasterId and mapping.MappingType=@NHAType
+		 AND ISNULL(nha.IsNonStock,0) = 0 LEFT JOIN [dbo].[ItemMaster] equivalent  WITH (NOLOCK) ON equivalent.ItemMasterId = mapping.MappingItemMasterId and mapping.MappingType=@EquilentType
+		 AND ISNULL(equivalent.IsNonStock,0) = 0 LEFT JOIN [dbo].[ItemMaster] tla  WITH (NOLOCK) ON tla.ItemMasterId = mapping.MappingItemMasterId and mapping.MappingType=@TLAType
+		 AND ISNULL(tla.IsNonStock,0) = 0 WHERE  mapping.MasterCompanyId = @MasterCompanyId  AND mapping.MappingType <> @OtherType AND ((mapping.IsDeleted =0) AND (mapping.IsActive = 1))
 
 		AND (@Oemtype = 0 OR mapping.MappingType = @Oemtype) 
 		)	

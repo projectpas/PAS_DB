@@ -23,6 +23,7 @@
 	5	 01/17/2025	  Moin Bloch		 Modified (Added @WorkOrderFormTypeId from WO Kit)
 	6	 02/10/2025	  Moin Bloch		 Modified (Added condition @WorkOrderQuoteDetailsId in [WorkOrderQuoteDetails] from duplicate WO Kit)
 	7	 02/10/2025	  Abhishek Jirawla	 Added Billing Name
+	8    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 
 -- EXEC [USP_GetWorkOrderQuoteMaterial] 1575,4,0,0
 **************************************************************/
@@ -115,7 +116,7 @@ BEGIN
 					INNER JOIN [dbo].[WorkOrderPartNumber] wop WITH(NOLOCK) ON wfwo.WorkOrderPartNoId = wop.ID 
 				WHERE wom.WorkOrderQuoteDetailsId = @workOrderQuoteDetailsId AND wom.IsDeleted = 0  and ((@loweUnitrCostVal = 0 and @upperUnitCostVal=0) or ( (wom.UnitCost >= @loweUnitrCostVal and wom.UnitCost <= @upperUnitCostVal)) ) --order by wom.CreatedDate desc
 
-				UNION ALL
+				 AND ISNULL(im.IsNonStock,0) = 0 UNION ALL
 				 
 				 SELECT 
 					    wom.KitNumber as PartNumber,
@@ -175,7 +176,7 @@ BEGIN
 					 LEFT JOIN [dbo].[WorkOrderTask] WOT WITH (NOLOCK) ON WOT.WorkOrderTaskId = wom.TaskId
 					INNER JOIN [dbo].[WorkOrderWorkFlow] wfwo WITH(NOLOCK) ON wfwo.WorkFlowWorkOrderId = wq.WorkFlowWorkOrderId 
 					INNER JOIN [dbo].[WorkOrderPartNumber] wop WITH(NOLOCK) ON wfwo.WorkOrderPartNoId = wop.ID 
-				WHERE wom.WorkflowWorkOrderId = @WorkflowWorkOrderId  AND wom.WorkOrderQuoteId = @WorkOrderQuoteId AND wom.IsDeleted = 0  AND ((@loweUnitrCostVal = 0 AND @upperUnitCostVal=0) or ( (wom.UnitCost >= @loweUnitrCostVal AND wom.UnitCost <= @upperUnitCostVal)) ) order by wom.CreatedDate asc
+				WHERE wom.WorkflowWorkOrderId = @WorkflowWorkOrderId  AND wom.WorkOrderQuoteId = @WorkOrderQuoteId AND wom.IsDeleted = 0  AND ((@loweUnitrCostVal = 0 AND @upperUnitCostVal=0) or ( (wom.UnitCost >= @loweUnitrCostVal AND wom.UnitCost <= @upperUnitCostVal)) )  AND ISNULL(im.IsNonStock,0) = 0 order by wom.CreatedDate asc
                 
 		--	END
 		--COMMIT  TRANSACTION

@@ -17,6 +17,7 @@
 	4    19/02/2024		  Ekta Chandegra		  Set Flat price amount and sales price 
 	5	 20/02/2024		  Ekta Chandegra		  Set markup amount and markup percentage empty
 	6	 23/02/2024		  Ekta Chandegra		  Set purchase disc amount and purchase disc percentage empty and set unit purchase price as vendor list price
+	7    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 
 declare @p1 dbo.ItemMasterPurchaseSalesType
 insert into @p1 values(24,1,1,120.00,250.00)
@@ -163,7 +164,7 @@ BEGIN
 					FROM [DBO].[ItemMaster] IM WITH(NOLOCK)
 					--JOIN [DBO].[ItemMaster] IM WITH(NOLOCK) ON IMPS.ItemMasterId = IM.ItemMasterId
 					LEFT JOIN [DBO].[Condition] CON WITH(NOLOCK) ON CON.ConditionId = @ConditionId
-					WHERE IM.ItemMasterId = @ItemMasterId AND CON.ConditionId = @ConditionId;
+					WHERE IM.ItemMasterId = @ItemMasterId AND CON.ConditionId = @ConditionId AND ISNULL(IM.IsNonStock,0) = 0 ;
 
 		  --select * from #tmpItemMasterPurchaseSalesType
 		  MERGE dbo.ItemMasterPurchaseSale AS TARGET  

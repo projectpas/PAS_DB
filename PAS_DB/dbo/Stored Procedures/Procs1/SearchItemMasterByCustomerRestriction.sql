@@ -19,6 +19,7 @@
 	3    02-19-2024		Vishal Suthar	Changed to always exclude customer stocks, and sorting based on availability
 	4    11-21-2024		Amit Ghediya	Get ECCN,HSCODE,Weight,LWH for billing.
 	5    05-01-2025		ABHISHEK JIRAWLA Allow Repair Management Customer Stock Stockline
+	6    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
      
  EXECUTE [SearchItemMasterByCustomerRestriction] 11, 7, 77,-1
 **************************************************************/ 
@@ -57,7 +58,7 @@ BEGIN
 					,ISNULL(STUFF((
 					SELECT DISTINCT ', '+ I.partnumber FROM DBO.Nha_Tla_Alt_Equ_ItemMapping M INNER JOIN ItemMaster I ON I.ItemMasterId = M.ItemMasterId Where M.MappingItemMasterId = im.ItemMasterId AND M.MappingType = 1
 					FOR XML PATH('')
-					)
+					 AND ISNULL(I.IsNonStock,0) = 0 )
 					,1,1,''), '') AlternateFor
 					,CASE 
 						WHEN im.IsPma = 1 and im.IsDER = 1 THEN OEMPMA.partnumber --'PMA&DER'
@@ -93,7 +94,7 @@ BEGIN
 							and imps.ConditionId = c.ConditionId
 				WHERE 
 					im.ItemMasterId IN (SELECT Item FROM DBO.SPLITSTRING(@ItemMasterIdlist,','))
-				GROUP BY
+				 AND ISNULL(im.IsNonStock,0) = 0 GROUP BY
 					im.PartNumber
 					,im.PurchaseUnitOfMeasureId
 					,im.PurchaseUnitOfMeasure

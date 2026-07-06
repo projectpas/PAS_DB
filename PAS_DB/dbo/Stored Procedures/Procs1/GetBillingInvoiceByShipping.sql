@@ -19,6 +19,7 @@
 	8    12/10/2024	  BHARGAV SALIA   Get SalesTotal,Freight,MiscCharges,SubTotal,SalesTax,OtherTax,GrandTotal for the standerd proforma view
 	9    01/july/2025 RAJESH GAMI	 Change the table as per new Billing Structure
 	10   02/july/2025 RAJESH GAMI	 Make changes for origin country id
+	11    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 **************************************************************/ 
 CREATE    PROCEDURE [dbo].[GetBillingInvoiceByShipping]
 	@SalesOrderShippingId bigint,
@@ -69,7 +70,7 @@ SET NOCOUNT ON;
 				LEFT JOIN [dbo].[BillingInvoicingDetails] BID WITH(NOLOCK) ON sobi.[BillingInvoicingId] = BID.[BillingInvoicingId]
 
 				LEFT JOIN DBO.ItemMaster im WITH (NOLOCK) ON sop.ItemMasterId = im.ItemMasterId
-				LEFT JOIN DBO.ItemMasterExportInfo ime WITH (NOLOCK) ON im.ItemMasterId = ime.ItemMasterId
+				 AND ISNULL(im.IsNonStock,0) = 0 LEFT JOIN DBO.ItemMasterExportInfo ime WITH (NOLOCK) ON im.ItemMasterId = ime.ItemMasterId
 
 				
 				WHERE sop.SalesOrderPartId = @SalesOrderPartId AND sobii.BillingInvoicingId = @SOBillingInvoicingId AND sobi.ModuleId = @SOModuleId;
@@ -105,7 +106,7 @@ SET NOCOUNT ON;
 				LEFT JOIN DBO.Employee emp WITH (NOLOCK) ON emp.EmployeeId = so.EmployeeId
 				LEFT JOIN DBO.Employee empsp WITH (NOLOCK) ON empsp.EmployeeId = so.SalesPersonId
 				INNER JOIN DBO.MasterSalesOrderQuoteTypes sotype WITH (NOLOCK) ON sotype.Id = so.TypeId
-				WHERE sos.SalesOrderShippingId = @SalesOrderShippingId;
+				WHERE sos.SalesOrderShippingId = @SalesOrderShippingId AND ISNULL(im.IsNonStock,0) = 0 ;
 			END
 			ELSE
 			BEGIN
@@ -142,7 +143,7 @@ SET NOCOUNT ON;
 				INNER JOIN DBO.ItemMaster im WITH (NOLOCK) ON im.ItemMasterId = sop.ItemMasterId
 				LEFT JOIN DBO.ItemMasterExportInfo imei WITH (NOLOCK) ON imei.ItemMasterId = im.ItemMasterId
 
-				WHERE sop.SalesOrderPartId = @SalesOrderPartId;
+				WHERE sop.SalesOrderPartId = @SalesOrderPartId AND ISNULL(im.IsNonStock,0) = 0 ;
 			END
 		END
 

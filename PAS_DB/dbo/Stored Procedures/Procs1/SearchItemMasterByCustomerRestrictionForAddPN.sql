@@ -18,6 +18,7 @@
 	2    27-July-2023		Hemant Saliya	Allow Customer stockline use in other customer
 	3    05-JAN-2023		Hemant Saliya	Allow Same Customer stockline use in WO
 	4    12-May-2025        Devendra Shekh  checking isActive and isDeleted for Alternate Part Select
+	5    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
      
  EXECUTE [SearchItemMasterByCustomerRestrictionForAddPN] 303, 1, 1,'','0',1
 **************************************************************/ 
@@ -57,7 +58,7 @@ BEGIN
 					,ISNULL(STUFF((
 					SELECT DISTINCT ', '+ I.partnumber FROM DBO.Nha_Tla_Alt_Equ_ItemMapping M INNER JOIN ItemMaster I ON I.ItemMasterId = M.ItemMasterId Where M.MappingItemMasterId = im.ItemMasterId AND M.MappingType = 1 AND M.IsActive = 1 AND M.IsDeleted = 0
 					FOR XML PATH('')
-					)
+					 AND ISNULL(I.IsNonStock,0) = 0 )
 					,1,1,''), '') AlternateFor
 					,CASE 
 						WHEN im.IsPma = 1 and im.IsDER = 1 THEN 'PMA&DER'
@@ -81,7 +82,7 @@ BEGIN
 							and imps.ConditionId = c.ConditionId
 				WHERE 
 					im.ItemMasterId IN (SELECT Item FROM DBO.SPLITSTRING(@ItemMasterIdlist,','))
-				GROUP BY
+				 AND ISNULL(im.IsNonStock,0) = 0 GROUP BY
 					im.PartNumber
 					,im.PurchaseUnitOfMeasureId
 					,im.PurchaseUnitOfMeasure

@@ -19,6 +19,7 @@
 	3    09/20/2023   Devendra Shekh        changes for partwise data
 	3    01/21/2025   HEMANT SALIYA         Updated for Get Pickticket Data
 	4    01/21/2025   Bhargav SALIYA        Get Location
+	5    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 
 EXEC DBO.SearchSubWOStockLinePickTicketPop_WO @ItemMasterIdlist=102553,@ConditionId=111,@WorkOrderId=4776,@SubWorkOrderId=641,@IsMultiplePickTicket=0,@SubWOPartNoId=627, @SubWorkOrderMaterialsId = 224
 **************************************************************/ 
@@ -132,7 +133,7 @@ BEGIN
 						AND
 						((ISNULL(wmsl.QtyReserved,0) + ISNULL(wmsl.QtyIssued,0)) - ISNULL((Select SUM(wopt.QtyToShip) from dbo.SubWorkorderPickTicket wopt WHERE wopt.SubWorkOrderMaterialsId = wom.SubWorkOrderMaterialsId AND wmsl.StockLineId = wopt.StockLineId  ),0)) >0
 
-				UNION ALL
+				 AND ISNULL(im.IsNonStock,0) = 0 UNION ALL
 
 					SELECT DISTINCT
 						wom.SubWorkOrderMaterialsKitId AS SubWorkOrderMaterialsId,
@@ -200,7 +201,7 @@ BEGIN
 						AND 
 						((ISNULL(wmsl.QtyReserved,0) + ISNULL(wmsl.QtyIssued,0)) - ISNULL((Select SUM(wopt.QtyToShip) from dbo.SubWorkorderPickTicket wopt WHERE wopt.SubWorkOrderMaterialsId = wom.SubWorkOrderMaterialsKitId AND wmsl.StockLineId = wopt.StockLineId  ),0)) >0
 
-				END
+				 AND ISNULL(im.IsNonStock,0) = 0 END
 				ELSE
 				BEGIN
 					SELECT DISTINCT
@@ -274,7 +275,7 @@ BEGIN
 							AND wom.SubWorkOrderMaterialsId = @SubWorkOrderMaterialsId
 							AND ((ISNULL(wmsl.QtyReserved,0) + ISNULL(wmsl.QtyIssued,0)) - ISNULL((Select SUM(wopt.QtyToShip) from dbo.SubWorkorderPickTicket wopt WHERE wopt.SubWorkOrderMaterialsId = wom.SubWorkOrderMaterialsId AND wmsl.StockLineId = wopt.StockLineId  ),0)) >0
 				
-				UNION ALL
+				 AND ISNULL(im.IsNonStock,0) = 0 UNION ALL
 								
 					SELECT DISTINCT
 						wom.SubWorkOrderMaterialsKitId AS SubWorkOrderMaterialsId,
@@ -346,7 +347,7 @@ BEGIN
 							AND wom.SubWorkOrderMaterialsKitId = @SubWorkOrderMaterialsId
 						AND ((ISNULL(wmsl.QtyReserved,0) + ISNULL(wmsl.QtyIssued,0)) - ISNULL((Select SUM(wopt.QtyToShip) FROM dbo.SubWorkorderPickTicket wopt WITH (NOLOCK) WHERE wopt.SubWorkOrderMaterialsId = wom.SubWorkOrderMaterialsKitId AND wmsl.StockLineId = wopt.StockLineId  ),0)) > 0
 
-				END
+				 AND ISNULL(im.IsNonStock,0) = 0 END
 				
 			END
 		COMMIT  TRANSACTION

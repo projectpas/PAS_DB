@@ -16,6 +16,7 @@
  ** --   --------     -------		--------------------------------          
 	1    06/19/2023   Amit Ghediya  Created
 	2    07/04/2023   Amit Ghediya  Updated for get RMANum from PArt lavel.
+	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
      
 -- EXEC [dbo].[sp_VendorRMA_GetPickTicketApproveList] 36
 **************************************************************/
@@ -73,7 +74,7 @@ BEGIN
 		--INNER JOIN SalesOrderReserveParts sor WITH(NOLOCK) on sor.SalesOrderId = sop.SalesOrderId and sor.SalesOrderPartId = sop.SalesOrderPartId
 		LEFT JOIN Vendor cr WITH(NOLOCK) on cr.VendorId = so.VendorId
 		where sop.VendorRMAId=@VendorRMAId AND ((sopt.RMAPickTicketId IS NULL) OR sopt.RMAPickTicketId IS NOT NULL)
-		group by sop.VendorRMADetailId,sop.VendorRMAId,imt.PartNumber,imt.PartDescription,
+		 AND ISNULL(imt.IsNonStock,0) = 0 group by sop.VendorRMADetailId,sop.VendorRMAId,imt.PartNumber,imt.PartDescription,
 		sop.RMANum,sop.ItemMasterId,
 		sl.ConditionId, cr.[VendorName],cr.VendorCode, sl.ConditionId
 		,sl.isSerialized, imt.ItemMasterId)

@@ -18,6 +18,7 @@
 	 1   01/29/2024		AMIT GHEDIYA		Created
 	 2   10/16/2024		Abhishek Jirawla	Implemented the new tables for SalesOrder related tables
      3   07-07-2025     Moin Bloch          Changed Old To New Billing Table
+	4    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
  EXEC [dbo].[sp_GetSalesOrderPerformaInvoiceChildList] 814, 318, 15  
 **************************************************************/
 CREATE     PROCEDURE [dbo].[sp_GetSalesOrderPerformaInvoiceChildList]
@@ -65,7 +66,7 @@ BEGIN
 				LEFT JOIN DBO.BillingInvoicing sobi WITH (NOLOCK) ON sobi.BillingInvoicingId = sobii.BillingInvoicingId  AND ISNULL(sobi.IsPerformaInvoice,0) = 1 AND sobi.[ModuleId] = @SOModuleId
 				INNER JOIN DBO.SalesOrder so WITH (NOLOCK) ON so.SalesOrderId = sop.SalesOrderId  
 				LEFT JOIN DBO.ItemMaster imt WITH (NOLOCK) ON imt.ItemMasterId = sop.ItemMasterId  
-				LEFT JOIN DBO.Stockline sl WITH (NOLOCK) ON sl.StockLineId = sov.StockLineId  
+				 AND ISNULL(imt.IsNonStock,0) = 0 LEFT JOIN DBO.Stockline sl WITH (NOLOCK) ON sl.StockLineId = sov.StockLineId  
 				LEFT JOIN DBO.Customer cr WITH (NOLOCK) ON cr.CustomerId = so.CustomerId  
 				LEFT JOIN DBO.Condition cond WITH (NOLOCK) ON cond.ConditionId = sop.ConditionId  
 				LEFT JOIN DBO.Currency curr WITH (NOLOCK) ON curr.CurrencyId = so.CurrencyId  

@@ -24,6 +24,7 @@
  8 08-dec-2025  Ayushi Patel	changed the table name workOrderBillingInvoicing -> BillingInvoicing
  9 11-Dec-2025  Ayushi Patel     Mapped BillingInvoicing through BillingInvoicingItems
  10 23-Dec-2025  Ayushi Patel	 Get The Newly versioned invoice 
+	11    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 EXECUTE   [dbo].[usp_GetWorkOrderTATReport]   
 **************************************************************/  
 --EXEC usp_GetWorkOrderTATReport  '1,4,43,44,45,80,84,88','46,47','58,59','64,65,77'  
@@ -200,7 +201,7 @@ BEGIN
 		   LEFT JOIN DBO.WorkOrderType WITH (NOLOCK) ON WO.WorkOrderTypeId = WorkOrderType.Id  
 		   LEFT JOIN DBO.Customer C WITH (NOLOCK) ON WO.CustomerId = C.CustomerId  
 		   LEFT JOIN DBO.ItemMaster IM WITH (NOLOCK) ON WOPN.ItemMasterId = IM.ItemMasterId  
-		   LEFT JOIN DBO.WorkOrderShippingItem AS WOSI WITH (NOLOCK) ON WOSI.WorkOrderPartNumId = WOPN.ID  
+		    AND ISNULL(IM.IsNonStock,0) = 0 LEFT JOIN DBO.WorkOrderShippingItem AS WOSI WITH (NOLOCK) ON WOSI.WorkOrderPartNumId = WOPN.ID  
 		   LEFT JOIN DBO.WorkOrderShipping AS WOS WITH (NOLOCK) ON WOS.WorkOrderShippingId = WOSI.WorkOrderShippingId  
 		   LEFT JOIN DBO.Employee AS E WITH (NOLOCK) ON WOPN.TechnicianId = E.EmployeeId  
 	  WHERE CAST(@Fromdate AS DATE) <= CAST(WOS.ShipDate AS DATE) AND CAST(WOS.ShipDate AS DATE) <= CAST(@Todate AS DATE)  
@@ -270,7 +271,7 @@ BEGIN
 	   LEFT JOIN DBO.WorkOrderType WITH (NOLOCK) ON WO.WorkOrderTypeId = WorkOrderType.Id  
 	   LEFT JOIN DBO.Customer C WITH (NOLOCK) ON WO.CustomerId = C.CustomerId  
 	   LEFT JOIN DBO.ItemMaster IM WITH (NOLOCK) ON WOPN.ItemMasterId = IM.ItemMasterId  
-	   LEFT JOIN DBO.WorkOrderShippingItem AS WOSI WITH (NOLOCK) ON WOSI.WorkOrderPartNumId = WOPN.ID  
+	    AND ISNULL(IM.IsNonStock,0) = 0 LEFT JOIN DBO.WorkOrderShippingItem AS WOSI WITH (NOLOCK) ON WOSI.WorkOrderPartNumId = WOPN.ID  
 	   LEFT JOIN DBO.WorkOrderShipping AS WOS WITH (NOLOCK) ON WOS.WorkOrderShippingId = WOSI.WorkOrderShippingId  
 	   LEFT JOIN DBO.Employee AS E WITH (NOLOCK) ON WOPN.TechnicianId = E.EmployeeId  
 

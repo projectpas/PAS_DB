@@ -12,6 +12,7 @@
  ** --   --------     -------		-------------------------------            
 	1    30/05/2023   Satish Gohil  Created
 	2    02/06/2023   Satish Gohil  Modify(Added IsSerialized Column)
+	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 **************************************************************/  
 
 CREATE   PROCEDURE [dbo].[Get_AccountingInventoryList]
@@ -150,13 +151,13 @@ BEGIN
 				FROM dbo.Stockline stl WITH(NOLOCK)
 				INNER JOIN dbo.ItemMaster im WITH (NOLOCK) ON stl.ItemMasterId = im.ItemMasterId
 				LEFT JOIN dbo.ItemMaster rPart WITH (NOLOCK) ON im.RevisedPartId = rPart.ItemMasterId  
-				INNER JOIN  dbo.StocklineManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @MSModuelId AND MSD.ReferenceID = stl.StockLineId     
+				 AND ISNULL(rPart.IsNonStock,0) = 0 INNER JOIN  dbo.StocklineManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @MSModuelId AND MSD.ReferenceID = stl.StockLineId     
 				INNER JOIN [dbo].[RoleManagementStructure] RMS WITH (NOLOCK) ON MSD.EntityMSID = RMS.EntityStructureId  
 				INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId  
 				WHERE stl.MasterCompanyId = @MasterCompanyId AND stl.IsParent = 1 AND (stl.IsDeleted = 0)
 				AND (@ItemMasterId = 0 OR stl.ItemMasterId = @ItemMasterId)      
 				AND stl.QuantityAvailable < 0 AND CAST(stl.EntryDate AS date) >= CAST(@FromDate AS DATE)  AND CAST(stl.EntryDate AS date) <= CAST(@ToDate AS DATE)
-			), ResultCount AS(Select COUNT(StockLineId) AS totalItems FROM Result)      
+			 AND ISNULL(im.IsNonStock,0) = 0 ), ResultCount AS(Select COUNT(StockLineId) AS totalItems FROM Result)      
 
 
 			--SELECT * FROM  Result  
@@ -386,13 +387,13 @@ BEGIN
 				FROM dbo.Stockline stl WITH(NOLOCK)
 				INNER JOIN dbo.ItemMaster im WITH (NOLOCK) ON stl.ItemMasterId = im.ItemMasterId
 				LEFT JOIN dbo.ItemMaster rPart WITH (NOLOCK) ON im.RevisedPartId = rPart.ItemMasterId  
-				INNER JOIN  dbo.StocklineManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @MSModuelId AND MSD.ReferenceID = stl.StockLineId     
+				 AND ISNULL(rPart.IsNonStock,0) = 0 INNER JOIN  dbo.StocklineManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @MSModuelId AND MSD.ReferenceID = stl.StockLineId     
 				INNER JOIN [dbo].[RoleManagementStructure] RMS WITH (NOLOCK) ON MSD.EntityMSID = RMS.EntityStructureId  
 				INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId  
 				WHERE stl.MasterCompanyId = @MasterCompanyId AND stl.IsParent = 1 AND (stl.IsDeleted = 0)
 				AND (@ItemMasterId = 0 OR stl.ItemMasterId = @ItemMasterId)      
 				AND ISNULL(stl.QuantityAvailable,0) > 0 AND CAST(stl.EntryDate AS date) >= CAST(@FromDate AS DATE)  AND CAST(stl.EntryDate AS date) <= CAST(@ToDate AS DATE)
-			), ResultCount AS(Select COUNT(StockLineId) AS totalItems FROM Result)      
+			 AND ISNULL(im.IsNonStock,0) = 0 ), ResultCount AS(Select COUNT(StockLineId) AS totalItems FROM Result)      
 
 
 			--SELECT * FROM  Result  

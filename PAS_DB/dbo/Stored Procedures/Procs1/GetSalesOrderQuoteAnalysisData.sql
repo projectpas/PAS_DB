@@ -10,6 +10,7 @@
 ** PR   Date         Author				Change Description
 ** --   --------     -------			----------------------
 	1   12/27/2025   Vishal Suthar		Created
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 
 EXEC [GetSalesOrderQuoteAnalysisData] 230
 **************************************************************/
@@ -50,7 +51,7 @@ BEGIN
 		LEFT JOIN DBO.CustomerFinancial cf WITH (NOLOCK) ON soq.CustomerId = cf.CustomerId
 		INNER JOIN DBO.SalesOrderQuotePartCost partcost WITH (NOLOCK) ON part.SalesOrderQuotePartId = partcost.SalesOrderQuotePartId
 		LEFT JOIN DBO.Currency curr WITH (NOLOCK) ON cf.CurrencyId = curr.CurrencyId
-		WHERE part.SalesOrderQuoteId = @SalesOrderQuoteId AND part.IsDeleted = 0;
+		WHERE part.SalesOrderQuoteId = @SalesOrderQuoteId AND part.IsDeleted = 0 AND ISNULL(itemMaster.IsNonStock,0) = 0 ;
 	END TRY
 	BEGIN CATCH
 		IF @@trancount > 0

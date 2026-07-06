@@ -17,6 +17,7 @@
  ** --   --------		-------				--------------------------------          
 	1	10/15/2024		VISHAL SUTHAR		Modified to make use of new SO part tables
 	1	12/02/2024		AMIT GHEDIYA		Modified for get soPartid for expand & collapse
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
      
  -- [dbo].[sp_GetSOShippingParentList] 1269
 **************************************************************/
@@ -42,7 +43,7 @@ BEGIN
 		LEFT JOIN DBO.SalesOrder so WITH (NOLOCK) ON so.SalesOrderId = sop.SalesOrderId
 		INNER JOIN DBO.SOPickTicket sopt WITH (NOLOCK) ON sopt.SalesOrderId = sop.SalesOrderId AND sopt.SalesOrderPartId = sop.SalesOrderPartId AND sopt.SalesOrderPartStocklineId = stk.SalesOrderStocklineId
 		LEFT JOIN DBO.ItemMaster imt WITH (NOLOCK) ON imt.ItemMasterId = sop.ItemMasterId
-		LEFT JOIN DBO.Stockline sl WITH (NOLOCK) ON sl.StockLineId = stk.StockLineId AND sl.ConditionId = sop.ConditionId
+		 AND ISNULL(imt.IsNonStock,0) = 0 LEFT JOIN DBO.Stockline sl WITH (NOLOCK) ON sl.StockLineId = stk.StockLineId AND sl.ConditionId = sop.ConditionId
 		LEFT JOIN DBO.SalesOrderShippingItem sosi WITH (NOLOCK) ON sosi.SalesOrderPartId = sop.SalesOrderPartId 
 					AND sosi.SOPickTicketId = sopt.SOPickTicketId
 		LEFT JOIN DBO.SalesOrderShipping sos WITH (NOLOCK) ON sos.SalesOrderShippingId = sosi.SalesOrderShippingId 

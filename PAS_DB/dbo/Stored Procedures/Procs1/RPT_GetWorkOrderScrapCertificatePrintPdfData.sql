@@ -12,6 +12,7 @@ EXEC [RPT_GetWorkOrderScrapCertificatePrintPdfData]
 ** 1    16/01/2026   Moin Bloch         CREATED
 ** 2    11/03/2026   Moin Bloch         Modified PartNumber PN-15719
 	EXEC RPT_GetWorkOrderScrapCertificatePrintPdfData 4103,3620
+	1    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 ***************************************************************************************************/
 CREATE     PROCEDURE [dbo].[RPT_GetWorkOrderScrapCertificatePrintPdfData]              
 @WorkorderId BIGINT,              
@@ -77,10 +78,10 @@ BEGIN
 				INNER JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON WOPN.ItemMasterId=IM.ItemMasterId
 				 LEFT JOIN [dbo].[ScrapCertificate] SC WITH (NOLOCK) ON SC.WorkOrderId=WO.WorkOrderId AND WOPN.ID=SC.workOrderPartNoId
 				 LEFT JOIN [dbo].[ItemMaster] imt WITH(NOLOCK) ON imt.ItemMasterId = WOPN.ItemMasterId
-				 LEFT JOIN [dbo].[ScrapReason] SR WITH (NOLOCK) ON SR.Id=SC.ScrapReasonId 
+				  AND ISNULL(imt.IsNonStock,0) = 0 LEFT JOIN [dbo].[ScrapReason] SR WITH (NOLOCK) ON SR.Id=SC.ScrapReasonId 
 		   WHERE WOPN.[ID]=@workOrderPartNoId AND WO.[WorkOrderId]=@workOrderId       
              
-  END TRY                  
+   AND ISNULL(IM.IsNonStock,0) = 0 END TRY                  
   BEGIN CATCH                    
    IF @@trancount > 0              
     PRINT 'ROLLBACK'              

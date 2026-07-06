@@ -20,6 +20,7 @@
 	8	 23/05/2024   Abhishek Jirawla   Changing UnitCost to Total Cost
 	9    19/09/2024	  AMIT GHEDIYA		 Added for AutoPost Batch
 	10   05/12/2025	  AMIT GHEDIYA		 modify dis for WriteDown
+	11    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 
 -- EXEC USP_BatchTriggerBasedonDistribution 3
    EXEC [dbo].[USP_CreateBatch_Asset_inventory] 10406,1,'150.00','AssetInventory','admin',1,'AssetWriteOff',0
@@ -356,7 +357,7 @@ BEGIN
 
 					SELECT @WorkOrderNumber=InventoryNumber,@partId=PurchaseOrderPartRecordId,@ItemMasterId=MasterPartId,@ManagementStructureId=ManagementStructureId FROM AssetInventory WHERE AssetInventoryId=@AssetInventoryId;
 					SELECT @MPNName = partnumber FROM ItemMaster WITH(NOLOCK)  WHERE ItemMasterId=@ItemmasterId 
-					SELECT @LastMSLevel=LastMSLevel,@AllMSlevels=AllMSlevels FROM dbo.AssetManagementStructureDetails  WHERE ReferenceID=@AssetInventoryId AND ModuleID=@AssetMSModuleID
+					 AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 SELECT @LastMSLevel=LastMSLevel,@AllMSlevels=AllMSlevels FROM dbo.AssetManagementStructureDetails  WHERE ReferenceID=@AssetInventoryId AND ModuleID=@AssetMSModuleID
 					Set @ReferencePartId=@partId	
 
 					SELECT @PieceItemmasterId=MasterPartId FROM AssetInventory  WHERE AssetInventoryId=@AssetInventoryId
@@ -364,7 +365,7 @@ BEGIN
 
 					------Depreciation Expense -----------
 
-					SELECT top 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@CrDrType=CRDRType, @IsAutoPost = ISNULL(IsAutoPost,0) 
+					 AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 SELECT top 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@CrDrType=CRDRType, @IsAutoPost = ISNULL(IsAutoPost,0) 
 					FROM dbo.DistributionSetup WITH(NOLOCK)  WHERE UPPER(DistributionSetupCode) =UPPER('DEPRECIATIONEXPENSE') 
 					AND DistributionMasterId=@DistributionMasterId AND MasterCompanyId = @MasterCompanyId
 
@@ -475,13 +476,13 @@ BEGIN
 
 				SELECT @WorkOrderNumber=InventoryNumber,@partId=PurchaseOrderPartRecordId,@ItemMasterId=MasterPartId,@ManagementStructureId=ManagementStructureId FROM AssetInventory WHERE AssetInventoryId=@AssetInventoryId;
 	            SELECT @MPNName = partnumber FROM ItemMaster WITH(NOLOCK)  WHERE ItemMasterId=@ItemmasterId 
-	            SELECT @LastMSLevel=LastMSLevel,@AllMSlevels=AllMSlevels FROM AssetManagementStructureDetails  WHERE ReferenceID=@AssetInventoryId AND ModuleID=@AssetMSModuleID
+	             AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 SELECT @LastMSLevel=LastMSLevel,@AllMSlevels=AllMSlevels FROM AssetManagementStructureDetails  WHERE ReferenceID=@AssetInventoryId AND ModuleID=@AssetMSModuleID
 				Set @ReferencePartId=@partId	
 
 				SELECT @PieceItemmasterId=MasterPartId FROM AssetInventory  WHERE AssetInventoryId=@AssetInventoryId
 		        SELECT @PiecePN = partnumber FROM ItemMaster WITH(NOLOCK)  WHERE ItemMasterId=@PieceItemmasterId 
 
-				IF(@JournalBatchDetailId = 0)
+				 AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 IF(@JournalBatchDetailId = 0)
 				BEGIN
 					INSERT INTO [dbo].[BatchDetails]
 						(JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,
@@ -759,13 +760,13 @@ BEGIN
 
 				SELECT @WorkOrderNumber=InventoryNumber,@partId=PurchaseOrderPartRecordId,@ItemMasterId=MasterPartId,@ManagementStructureId=ManagementStructureId FROM AssetInventory WHERE AssetInventoryId=@AssetInventoryId;
 	            SELECT @MPNName = partnumber FROM ItemMaster WITH(NOLOCK)  WHERE ItemMasterId=@ItemmasterId 
-	            SELECT @LastMSLevel=LastMSLevel,@AllMSlevels=AllMSlevels FROM AssetManagementStructureDetails  WHERE ReferenceID=@AssetInventoryId AND ModuleID=@AssetMSModuleID
+	             AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 SELECT @LastMSLevel=LastMSLevel,@AllMSlevels=AllMSlevels FROM AssetManagementStructureDetails  WHERE ReferenceID=@AssetInventoryId AND ModuleID=@AssetMSModuleID
 				Set @ReferencePartId=@partId	
 
 				SELECT @PieceItemmasterId=MasterPartId FROM AssetInventory  WHERE AssetInventoryId=@AssetInventoryId
 		        SELECT @PiecePN = partnumber FROM ItemMaster WITH(NOLOCK)  WHERE ItemMasterId=@PieceItemmasterId 
 
-				SET @currentNo = @currentNo+1
+				 AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 SET @currentNo = @currentNo+1
 				SET @JournalTypeNumber = (SELECT * FROM dbo.udfGenerateCodeNumber(@currentNo,(SELECT CodePrefix FROM #tmpCodePrefixes WHERE CodeTypeId = @CodeTypeId), (SELECT CodeSufix FROM #tmpCodePrefixes WHERE CodeTypeId = @CodeTypeId)))
 
 				------Asset Account -----------

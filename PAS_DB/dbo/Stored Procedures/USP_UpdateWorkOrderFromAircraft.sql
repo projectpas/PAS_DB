@@ -17,6 +17,7 @@
 	4    09/06/2026     Amit Ghediya		Adding Header data in History module [PN-16581]
 	5    10/06/2026     Divyesh Kathiriya   Update WorkOrderNum on AircraftInstalledPartDetails Table [PN-16780]
     6    30/06/2026     Divyesh Kathiriya   Added WorkSheetStatusId fields [PN-16897]
+	7    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 
 **************************************************************/
 CREATE PROCEDURE [dbo].[USP_UpdateWorkOrderFromAircraft]
@@ -116,7 +117,7 @@ BEGIN
 			@DefaultPriorityId=ISNULL([DefaultPriorityId],0),@DefaultStageCodeId=ISNULL([DefaultStageCodeId],0),@DefaultStatusId=ISNULL([DefaultStatusId],0)
 			FROM [dbo].[WorkOrderSettings] WITH(NOLOCK) WHERE [WorkOrderTypeId] = @WorkOrderTypeId AND [MasterCompanyId] = @MasterCompanyId AND [IsActive] = 1 AND [IsDeleted] = 0;
 						
-		SET @RevisedPartId = (SELECT [RevisedPartId] FROM [dbo].[ItemMaster] WITH(NOLOCK) WHERE [ItemMasterId] = @ItemMasterId);
+		SET @RevisedPartId = (SELECT [RevisedPartId] FROM [dbo].[ItemMaster] WITH(NOLOCK) WHERE [ItemMasterId] = @ItemMasterId AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 );
 
 		IF OBJECT_ID(N'tempdb..#TempTableForPartType') IS NOT NULL
 		BEGIN
@@ -133,7 +134,7 @@ BEGIN
 		JOIN [dbo].[ItemMaster] im WITH(NOLOCK) ON rc.[ItemMasterId] = im.[ItemMasterId]
 		JOIN [dbo].[RestrictedParts] rp WITH(NOLOCK) ON rc.[CustomerId] = rp.[ReferenceId]
 		WHERE rc.[IsActive] = 1 AND rc.[IsDeleted] = 0 AND rp.[ModuleId] = @ModuleEnumCustomer
-		AND rc.[StockLineId] = @StockLineId;
+		AND rc.[StockLineId] = @StockLineId AND ISNULL(im.IsNonStock,0) = 0 ;
 
 		SELECT @PMACOUNT = COUNT([PartType]) FROM #TempTableForPartType WHERE [PartType] = 'PMA';
 		SELECT @DERCOUNT = COUNT([PartType]) FROM #TempTableForPartType WHERE [PartType] = 'DER';
@@ -155,7 +156,7 @@ BEGIN
 			INNER JOIN [dbo].[Condition] con WITH(NOLOCK) ON sl.[ConditionId] = con.[ConditionId]			
 			 LEFT JOIN [dbo].[ItemGroup] ig WITH(NOLOCK) ON im.[ItemGroupId] = ig.[ItemGroupId]
 			 LEFT JOIN [dbo].[StocklineManagementStructureDetails] msd WITH(NOLOCK) ON sl.[StockLineId] = msd.[ReferenceID] AND msd.[ModuleID] = @MSModuleStockline
-			WHERE sl.[StockLineId] = @StockLineId;
+			WHERE sl.[StockLineId] = @StockLineId AND ISNULL(im.IsNonStock,0) = 0 ;
 		
 		SET @TATDaysCurrent = DATEDIFF(DAY, @ReceivedDate, GETUTCDATE())
 
@@ -174,7 +175,7 @@ BEGIN
 			FROM [dbo].[Workflow] wf  WITH(NOLOCK)
 			INNER JOIN [dbo].[ItemMaster] im  WITH(NOLOCK) ON wf.[ItemMasterId] = im.[ItemMasterId]
 			INNER JOIN [dbo].[WorkScope] ws  WITH(NOLOCK) ON wf.[WorkScopeId] = ws.[WorkScopeId]
-			WHERE wf.[IsDeleted] = 0 AND wf.[IsActive] = 1 AND wf.[ItemMasterId] = @ItemMasterId AND wf.[WorkScopeId] = @WorkOrderScopeId AND wf.[IsVersionIncrease] = 0;
+			WHERE wf.[IsDeleted] = 0 AND wf.[IsActive] = 1 AND wf.[ItemMasterId] = @ItemMasterId AND wf.[WorkScopeId] = @WorkOrderScopeId AND wf.[IsVersionIncrease] = 0 AND ISNULL(im.IsNonStock,0) = 0 ;
 
         -- Declare the required table-valued parameter
         DECLARE @tbl_WorkOrderPartNumberType WorkOrderMPNType;

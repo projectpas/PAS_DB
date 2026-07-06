@@ -21,6 +21,7 @@
 	4    12-12-2024   ABHISHEK JIRAWLA  Change made for Asset Inventory Status and Asset Available Status
 	5	 07/Mar/2025  Bhargav Saliya  UTC Date Changes 
 	6	 04/16/2025	  Devendra Shekh Added changes for IsLaborTrackingTurnedOff
+	7    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
      
 EXEC [GetSubWorkOrderSettlementDetails] 3802,188,162
 **************************************************************/
@@ -180,8 +181,8 @@ BEGIN
 					LEFT JOIN dbo.SubWorkOrderSettlementDetails wosd WITH(NOLOCK) on wosd.WorkOrderSettlementId = wos.WorkOrderSettlementId
 					LEFT JOIN dbo.SubWorkOrderPartNumber sop WITH(NOLOCK) on sop.SubWOPartNoId = wosd.SubWOPartNoId
 					LEFT JOIN dbo.ItemMaster Im WITH(NOLOCK) on sop.ItemMasterId = Im.ItemMasterId
-					LEFT JOIN ItemMaster IMR ON IMR.ItemMasterId = wosd.RevisedItemmasterid
-				WHERE wosd.WorkOrderId = @WorkorderId and wosd.SubWorkOrderId = @SubWorkOrderId and wosd.SubWOPartNoId = @SubWOPartNoId 
+					 AND ISNULL(Im.IsNonStock,0) = 0 LEFT JOIN ItemMaster IMR ON IMR.ItemMasterId = wosd.RevisedItemmasterid
+				 AND ISNULL(IMR.IsNonStock,0) = 0 WHERE wosd.WorkOrderId = @WorkorderId and wosd.SubWorkOrderId = @SubWorkOrderId and wosd.SubWOPartNoId = @SubWOPartNoId 
 			END
 		COMMIT  TRANSACTION
 

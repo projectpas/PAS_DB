@@ -13,6 +13,7 @@
  ** PR   Date         Author   Change Description                
  ** --   --------     -------   --------------------------------              
     1    13/11/2024    SHREY CHANDEGARA  Created    
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
          
  EXECUTE GetSalesQuotePartHistory 958  
 **************************************************************/     
@@ -86,7 +87,7 @@ BEGIN
 			LEFT JOIN [dbo].[SalesOrderQuotePartCostAudit] soqc WITH(NOLOCK) ON soqc.SalesOrderQuotePartId = part.SalesOrderQuotePartId
 			LEFT JOIN [dbo].[SalesOrderQuoteStockLineCostAudit] soqsc WITH(NOLOCK) ON soqsc.SalesOrderQuoteStocklineId = soqs.SalesOrderQuoteStocklineId
 			LEFT JOIN [dbo].[ItemMaster] im WITH(NOLOCK) ON part.ItemMasterId = im.ItemMasterId
-			LEFT JOIN [dbo].[SalesOrderQuoteApproval] sqap WITH(NOLOCK) ON part.SalesOrderQuotePartId = sqap.SalesOrderQuotePartId
+			 AND ISNULL(im.IsNonStock,0) = 0 LEFT JOIN [dbo].[SalesOrderQuoteApproval] sqap WITH(NOLOCK) ON part.SalesOrderQuotePartId = sqap.SalesOrderQuotePartId
 			LEFT JOIN [dbo].[UnitOfMeasure] um WITH(NOLOCK) ON im.PurchaseUnitOfMeasureId = um.UnitOfMeasureId
 			LEFT JOIN [dbo].[PurchaseOrder] po WITH(NOLOCK) ON qs.PurchaseOrderId = po.PurchaseOrderId
 			LEFT JOIN [dbo].[RepairOrder] ro WITH(NOLOCK) ON qs.RepairOrderId = ro.RepairOrderId	

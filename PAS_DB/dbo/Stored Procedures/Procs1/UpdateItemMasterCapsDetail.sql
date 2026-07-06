@@ -13,6 +13,7 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    05-Apr-2021    Moin Bloch   Created 
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 
  EXEC UpdateItemMasterCapsDetail 20754
 **************************************************************/ 
@@ -37,9 +38,9 @@ BEGIN
 			INNER JOIN  dbo.CapabilityType CT WITH (NOLOCK) ON IMC.CapabilityTypeId = CT.CapabilityTypeId
 			LEFT JOIN  dbo.Employee EMP WITH (NOLOCK) ON IMC.VerifiedById = EMP.EmployeeId
 			--LEFT JOIN #ItemMasterCapesMSDATA PMS ON PMS.MSID = IMC.ManagementStructureId
-		WHERE IMC.ItemMasterId  = @ItemMasterId;
+		WHERE IMC.ItemMasterId  = @ItemMasterId AND ISNULL(IM.IsNonStock,0) = 0 ;
 		
-		--SELECT partnumber AS value FROM dbo.ItemMaster IM WITH (NOLOCK) WHERE IM.ItemMasterId  = @ItemMasterId ;
+		--SELECT partnumber AS value FROM dbo.ItemMaster IM WITH (NOLOCK) WHERE IM.ItemMasterId  = @ItemMasterId  AND ISNULL(IM.IsNonStock,0) = 0 ;
 		
 		END
 		COMMIT TRANSACTION

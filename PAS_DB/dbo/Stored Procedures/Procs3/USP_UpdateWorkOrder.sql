@@ -20,6 +20,7 @@
 	8	 20/03/2026    RAJESH GAMI      WO Part IsFinishGood update the TRUE when WO is closed PN-15819
 	9    21/05/2026    Moin Bloch        Added  [MtcCategoryId] PN-16469
 	10    21/05/2026   Moin Bloch        Added  [WorksheetId] PN-16469
+	11    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 --   EXEC [USP_UpdateWorkOrder] 
 **************************************************************/
 CREATE    PROCEDURE [dbo].[USP_UpdateWorkOrder]
@@ -489,7 +490,7 @@ BEGIN
 			INNER JOIN dbo.ItemMaster Im WITH(NOLOCK)     ON WOP.ItemMasterId = Im.ItemMasterId
 			INNER JOIN #tmprCreateWorkOrderPartNumber WOPT ON WOPT.ID = WOP.ID  
 			WHERE WOPT.[PKID] = @MinId		
-		END
+		 AND ISNULL(Im.IsNonStock,0) = 0 END
 		ELSE
 		BEGIN
 			IF((@IsSinglePN = 1 AND (@TravelerName = '' OR @TravelerName = '0')) OR @IsSinglePN = 0)
@@ -675,7 +676,7 @@ BEGIN
 				 @NewWorkScopeName = WS.[Description]
 		   FROM [dbo].[WorkOrderPartNumber] WP WITH(NOLOCK) 
 	  LEFT JOIN [dbo].[ItemMaster] IM WITH(NOLOCK) ON WP.[ItemMasterId] = IM.[ItemMasterId]
-	  LEFT JOIN [dbo].[Workflow] WF WITH(NOLOCK) ON WP.[WorkflowId] = WF.[WorkflowId]
+	   AND ISNULL(IM.IsNonStock,0) = 0 LEFT JOIN [dbo].[Workflow] WF WITH(NOLOCK) ON WP.[WorkflowId] = WF.[WorkflowId]
 	  LEFT JOIN [dbo].[Priority] PR WITH(NOLOCK) ON WP.[WorkOrderPriorityId] = PR.[PriorityId]
 	  LEFT JOIN [dbo].[WorkScope] WS WITH(NOLOCK) ON WP.[WorkOrderScopeId] = WS.[WorkScopeId]
 	  WHERE WP.[WorkOrderId] = @WorkOrderId;

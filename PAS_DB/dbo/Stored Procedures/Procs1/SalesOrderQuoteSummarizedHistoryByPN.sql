@@ -17,6 +17,7 @@
  ** --   --------     -------		--------------------------------          
     1    07/12/2021   Vishal Suthar Created
     2    11/04/2024   Vishal Suthar Modified to make use of new tables
+	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
      
 --EXEC [SalesOrderQuoteSummarizedHistoryByPN] 246,0
 **************************************************************/
@@ -62,7 +63,7 @@ BEGIN
 						LEFT JOIN dbo.Currency C WITH (NOLOCK) ON C.CurrencyId = CF.CurrencyId
 						LEFT JOIN dbo.SalesOrderQuotePartCost SOQPC WITH (NOLOCK) ON SOQPC.SalesOrderQuotePartId = SOQP.SalesOrderQuotePartId
 					WHERE SOQP.ItemMasterId = @ItemMasterId AND DATEDIFF(MM, SOQ.OpenDate, GETDATE()) < @Month
-					GROUP BY IM.partnumber, SOQP.ItemMasterId, Cond.Description, APPR.ApprovalActionId, C.Code,
+					 AND ISNULL(IM.IsNonStock,0) = 0 GROUP BY IM.partnumber, SOQP.ItemMasterId, Cond.Description, APPR.ApprovalActionId, C.Code,
 					SOQPC.UnitSalesPrice, SOQP.QtyQuoted, SOQPC.UnitCost
 					)
 

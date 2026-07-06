@@ -25,6 +25,7 @@
 	7    12/07/2024		Hemant Saliya		Convert Serial NUmber to Varchar
 	8 	 08/10/2025     Moin Bloch			Added MPN Tendor 
 	9    26/03/2026     Moin Bloch	        Rename TearDown To Internal Teardown PN-15850
+	10    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 
 exec USP_TenderStockLineForSubAssembly @WorkOrderId=3809,@WorkFlowWorkOrderId=3280,@WorkOrderMaterialsId=15917
 **************************************************************/
@@ -186,7 +187,7 @@ BEGIN
 				SELECT @ProvisionId = ProvisionId, @Quantity = ISNULL(Quantity, 0), @ConditionId = ConditionCodeId, @PartQtyToTurnIn = ISNULL(QtyToTurnIn, 0), @MaterialItemMasterId = ISNULL(ItemMasterId, 0)
 				FROM [dbo].[WorkOrderMaterials] WITH(NOLOCK) WHERE WorkOrderMaterialsId = @WorkOrderMaterialsId;
 
-				SELECT @MaterialIsSerialized = isSerialized FROM [dbo].[ItemMaster] WITH(NOLOCK) WHERE ItemMasterId = @MaterialItemMasterId;
+				SELECT @MaterialIsSerialized = isSerialized FROM [dbo].[ItemMaster] WITH(NOLOCK) WHERE ItemMasterId = @MaterialItemMasterId AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 ;
 				
 				SET @SerialNumber = (SELECT [SerialNumber] FROM [dbo].[ReceivingCustomerWork] RC WITH(NOLOCK) 
 				INNER JOIN [dbo].[WorkOrder] WO WITH(NOLOCK) ON RC.ReceivingCustomerWorkId = WO.ReceivingCustomerWorkId WHERE WO.WorkOrderId = @WorkOrderId)
@@ -216,11 +217,11 @@ BEGIN
 						    iM.IsOEM, iM.IsOemPNId, iM.IsPma, iM.IsDER, iM.ManufacturerId, iM.PurchaseUnitOfMeasureId
 						   FROM [dbo].[ItemMaster] iM WITH(NOLOCK)
 						   LEFT JOIN [dbo].[ItemMaster] rPart WITH(NOLOCK) ON iM.RevisedPartId = rPart.ItemMasterId
-						   LEFT JOIN [dbo].[ItemMasterExchangeLoan] imxl WITH(NOLOCK) ON iM.RevisedPartId = imxl.ItemMasterId
+						    AND ISNULL(rPart.IsNonStock,0) = 0 LEFT JOIN [dbo].[ItemMasterExchangeLoan] imxl WITH(NOLOCK) ON iM.RevisedPartId = imxl.ItemMasterId
 						   LEFT JOIN [dbo].[ItemMasterPurchaseSale] imps WITH(NOLOCK) ON iM.RevisedPartId = imps.ItemMasterId
 						   LEFT JOIN [dbo].[ItemMasterExportInfo] imx WITH(NOLOCK) ON iM.RevisedPartId = imx.ItemMasterId
 						   LEFT JOIN [dbo].[GLAccount] gl WITH(NOLOCK) ON iM.RevisedPartId = gl.GLAccountId
-						   WHERE iM.ItemMasterId = @MaterialItemMasterId)
+						   WHERE iM.ItemMasterId = @MaterialItemMasterId AND ISNULL(iM.IsNonStock,0) = 0 )
 
 				SELECT @UnitOfMeasureId = PurchaseUnitOfMeasureId, @IsSerialized = IsSerialized,
 					   @ManufacturerId = ManufacturerId, @ReceivedDate = GETDATE(), @SiteId = SiteId, @WarehouseId = WarehouseId, @LocationId= LocationId, @ShelfId = ShelfId, @BinId = BinId FROM itemData

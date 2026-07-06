@@ -17,6 +17,7 @@
 ** 5    04/09/2025  Moin Bloch		 Updated Added History
 
 EXEC [dbo].[DeleteWOMaterialsOnIssuedOrReserved] 61067,'ADMIN User'
+	1    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[DeleteWOMaterialsOnIssuedOrReserved]
 @WorkFlowWorkOrderId BIGINT,
@@ -119,7 +120,7 @@ BEGIN
 
 			SELECT @ItemMasterId = [ItemMasterId] FROM [dbo].[WorkOrderPartNumber] WITH(NOLOCK) WHERE [ID] = @WOPartNoId;
 	
-			SELECT @PartNumber = [PartNumber] FROM [dbo].[ItemMaster] WITH(NOLOCK) WHERE [ItemMasterId] = @ItemMasterId;
+			SELECT @PartNumber = [PartNumber] FROM [dbo].[ItemMaster] WITH(NOLOCK) WHERE [ItemMasterId] = @ItemMasterId AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 ;
 							
 			SELECT TOP 1 @TemplateBody = [TemplateBody] FROM [dbo].[HistoryTemplate] WITH(NOLOCK) WHERE [TemplateCode] = @DeleteWOMaterial;	
 

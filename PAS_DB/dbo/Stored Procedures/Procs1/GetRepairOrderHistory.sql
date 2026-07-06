@@ -20,6 +20,7 @@
 	4    18-07-2024   Shrey Chandegara  Modified( use this function @CurrntEmpTimeZoneDesc for date issue.)
 	5    01-04-2025   Amit Ghediya      Update role query for duplicate records.
 	6    19/06/2026   Abhishek Jirawla	Adding IsPiecePart condition in RepairOrderPart table 
+	7    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 **********************/
 CREATE   PROCEDURE [dbo].[GetRepairOrderHistory]
 @PageNumber int = 1,
@@ -121,7 +122,7 @@ BEGIN
 					WHERE (@ItemMasterId = 0 OR POP.ItemMasterId=@ItemMasterId) AND (PO.IsDeleted = 0) AND POP.isParent=1 AND ISNULL(POP.[IsPiecePart], 0) = 0 --AND EMS.EmployeeId = 	@EmployeeId
 					AND PO.MasterCompanyId = @MasterCompanyId
 					AND PO.OpenDate between @FromDate  AND  @ToDate
-			), ResultCount AS(Select COUNT(RepairOrderId) AS totalItems FROM Result)
+			 AND ISNULL(IM.IsNonStock,0) = 0 ), ResultCount AS(Select COUNT(RepairOrderId) AS totalItems FROM Result)
 			SELECT * INTO #TempResult FROM  Result
 			 WHERE ((@GlobalFilter <>'' AND ((RepairOrderNumber LIKE '%' +@GlobalFilter+'%') OR
 					(PartNumber LIKE '%' +@GlobalFilter+'%') OR
@@ -191,7 +192,7 @@ BEGIN
 				WHERE (@ItemMasterId = 0 OR POP.ItemMasterId=@ItemMasterId) AND (PO.IsDeleted = 0) --AND EMS.EmployeeId = 	@EmployeeId
 				  AND PO.MasterCompanyId = @MasterCompanyId
 				  AND PO.OpenDate between @FromDate  AND  @ToDate
-			), ResultCount AS(Select COUNT(RepairOrderId) AS totalItems FROM Result)
+			 AND ISNULL(IM.IsNonStock,0) = 0 ), ResultCount AS(Select COUNT(RepairOrderId) AS totalItems FROM Result)
 			SELECT * INTO #TempResult1 FROM  Result
 			 WHERE ((@GlobalFilter <>'' AND ((RepairOrderNumber LIKE '%' +@GlobalFilter+'%') OR
 					(PartNumber LIKE '%' +@GlobalFilter+'%') OR

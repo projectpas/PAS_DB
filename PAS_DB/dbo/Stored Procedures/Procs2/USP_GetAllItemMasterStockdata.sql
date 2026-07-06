@@ -13,6 +13,7 @@
  ** S NO   Date            Author          Change Description              
  ** --   --------         -------          --------------------------------            
     1    02-09-2025    Bhargav Saliya       Created  
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 
 --EXEC USP_GetAllItemMasterStockdata @MasterCompanyId = 1
 **************************************************************/ 
@@ -211,7 +212,7 @@ BEGIN
 		FROM dbo.ItemMaster im WITH (NOLOCK)
 		WHERE @ItemMasterStockType = im.ItemTypeId AND ISNULL(im.IsDeleted,0) = 0 AND im.MasterCompanyId = @MasterCompanyId  
 
-		SELECT TOP 1
+		 AND ISNULL(im.IsNonStock,0) = 0 SELECT TOP 1
 			M.ManufacturerId
 			,M.Name
 			,M.Comments

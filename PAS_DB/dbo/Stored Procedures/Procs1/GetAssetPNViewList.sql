@@ -18,6 +18,7 @@
 	3    04-03-2025  Shrey Chandegara		Modified due to timezone issue ( Add @CurrntEmpTimeZoneDesc)
 	4    04-03-2025  Shrey Chandegara		Modified due to SortOrder Issue
 	5    28-03-2025  Shrey Chandegara		Modified Due to Filter Issue.
+	6    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 
 ************************************************************************/
 
@@ -163,7 +164,7 @@ BEGIN
         STUFF((SELECT ',' + I.partnumber  
          FROM AssetCapes S WITH (NOLOCK)  
          Left Join ItemMaster I WITH (NOLOCK) On S.ItemMasterId=I.ItemMasterId  
-         Where S.AssetRecordId = PC.AssetRecordId  
+          AND ISNULL(I.IsNonStock,0) = 0 Where S.AssetRecordId = PC.AssetRecordId  
          AND S.IsActive = 1 AND S.IsDeleted = 0  
          FOR XML PATH('')), 1, 1, '') PartNumber  
     ) A  
@@ -181,7 +182,7 @@ BEGIN
         STUFF((SELECT ', ' + I.PartDescription  
          FROM AssetCapes S WITH (NOLOCK)  
          Left Join ItemMaster I WITH (NOLOCK) On S.ItemMasterId=I.ItemMasterId  
-         Where S.AssetRecordId = PC.AssetRecordId  
+          AND ISNULL(I.IsNonStock,0) = 0 Where S.AssetRecordId = PC.AssetRecordId  
          AND S.IsActive = 1 AND S.IsDeleted = 0  
          FOR XML PATH('')), 1, 1, '') PartDescription  
     ) A  

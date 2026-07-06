@@ -20,6 +20,7 @@
     2    08/14/2023   Devendra Shekh		removed comment for ReadyToPick(QtyToPick)
 	3    09/28/2023   Hemant Saliya			Updated Qty Remaining
 	4    01/01/2024   Devendra Shekh		updated for serialnumber for MPN
+	5    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
      
 --EXEC [GetPickTicketPrint_WO_MainPart] 5,0
 **************************************************************/
@@ -63,7 +64,7 @@ BEGIN
 						LEFT JOIN Stockline sl WITH (NOLOCK) on sl.StockLineId = wop.StockLineId
 						INNER JOIN ItemMaster imt WITH (NOLOCK) on imt.ItemMasterId = wop.ItemMasterId
 						LEFT JOIN ItemMaster imtR WITH (NOLOCK) on imtR.ItemMasterId = wop.RevisedItemmasterid
-						LEFT JOIN Condition co WITH (NOLOCK) on co.ConditionId = sl.ConditionId
+						 AND ISNULL(imtR.IsNonStock,0) = 0 LEFT JOIN Condition co WITH (NOLOCK) on co.ConditionId = sl.ConditionId
 						LEFT JOIN UnitOfMeasure uom WITH (NOLOCK) on uom.UnitOfMeasureId = imt.PurchaseUnitOfMeasureId
 						LEFT JOIN UnitOfMeasure uomR WITH (NOLOCK) on uomR.UnitOfMeasureId = imtR.PurchaseUnitOfMeasureId
 						LEFT JOIN [Site] s WITH (NOLOCK) on s.SiteId = sl.SiteId
@@ -73,7 +74,7 @@ BEGIN
 						LEFT JOIN Bin bn WITH (NOLOCK) on bn.BinId = sl.BinId
 						LEFT JOIN PurchaseOrder po WITH (NOLOCK) on po.PurchaseOrderId = sl.PurchaseOrderId
 						LEFT JOIN dbo.Priority p WITH (NOLOCK) on p.PriorityId = wop.WorkOrderPriorityId
-					WHERE wopt.PickTicketId = @WOPickTicketId;
+					WHERE wopt.PickTicketId = @WOPickTicketId AND ISNULL(imt.IsNonStock,0) = 0 ;
 				END
 			COMMIT  TRANSACTION
 

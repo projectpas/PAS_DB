@@ -10,4 +10,4 @@ FROM            dbo.Stockline INNER JOIN
                          dbo.ItemGroup ON dbo.ItemMaster.ItemGroupId = dbo.ItemGroup.ItemGroupId INNER JOIN
                          dbo.Condition ON dbo.Stockline.ConditionId = dbo.Condition.ConditionId INNER JOIN
                          dbo.GLAccount ON dbo.Stockline.GLAccountId = dbo.GLAccount.GLAccountId
-WHERE        (dbo.Stockline.isDeleted = 0)
+WHERE        (dbo.Stockline.isDeleted = 0) AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0

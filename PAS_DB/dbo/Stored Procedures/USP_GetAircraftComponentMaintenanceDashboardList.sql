@@ -18,6 +18,7 @@
 ** 6    25/06/2026	 Amit Ghediya		  Added @LastInspectedDate,@Description,@LastinspectedById [PN-17000]
 ** 7    30/06/2026	 Moin Bloch  		  Added @CreatedDate For Order by PN-17043
 
+	1    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 ***********************************/
 CREATE       PROCEDURE [dbo].[USP_GetAircraftComponentMaintenanceDashboardList]
 (
@@ -240,7 +241,7 @@ BEGIN
                     ON ASEC.AircraftSectionId = WSH.WorksheetTypeId
             ) WS_I ON WS_I.AircraftRegistryId = ARH.AircraftRegistryId AND WS_I.rn = 1
             WHERE AIPD.MasterCompanyId = @MasterCompanyId
-        ),
+         AND ISNULL(IM.IsNonStock,0) = 0 ),
         Filtered AS
         (
             SELECT * FROM Combined

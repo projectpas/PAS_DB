@@ -16,6 +16,7 @@
  ** --   --------         -------          --------------------------------            
     1    01-Sep-2025  Rajesh Gami   Created 
 	2    04-Sep-2025  Rajesh Gami   Remove all taxes from the revenue (Sales and Other Tax)
+	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 **************************************************************/  
 CREATE     PROCEDURE [dbo].[GetSOOperatingMetricReport_MostSoldUnitByIMId] 
 @PageNumber int = 1,
@@ -136,7 +137,7 @@ BEGIN
 			LEFT JOIN [dbo].[EntityStructureSetup] ES ON ES.EntityStructureId=MSD.EntityMSID
 			LEFT JOIN [dbo].[Customer] WITH (NOLOCK) ON SO.CustomerId = Customer.CustomerId  
 			LEFT JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON SOP.itemmasterId = IM.itemmasterId  
-			LEFT JOIN DBO.Condition AS CN WITH (NOLOCK) ON SOP.ConditionId = CN.ConditionId 
+			 AND ISNULL(IM.IsNonStock,0) = 0 LEFT JOIN DBO.Condition AS CN WITH (NOLOCK) ON SOP.ConditionId = CN.ConditionId 
 		  WHERE 
 				   SO.CustomerId=ISNULL(@customerid,SO.CustomerId)  AND SOP.ItemMasterId = ISNULL(@itemMasterId,SOP.ItemMasterId) 
 				   AND BI.InvoiceStatus = 'Invoiced'

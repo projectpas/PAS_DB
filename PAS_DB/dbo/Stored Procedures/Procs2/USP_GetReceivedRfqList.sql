@@ -39,6 +39,7 @@
 	26   10-02-2026  Vishal Suthar		 PN-11778 Added option for PartsBase
 	27   02-03-2026  Vishal Suthar		 Fixed binding PartDescription from Response itself
 	28   04-03-2026  Vishal Suthar		 Added new columns for PartsBase
+	29    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 
 -- EXEC USP_GetReceivedRfqList 
 ************************************************************************/
@@ -183,7 +184,7 @@ BEGIN
 				SELECT MAX(RIM.ItemMasterId) AS ItemMasterId, RIM.partnumber AS partnumber, MAX(RIM.PartDescription) AS PartDescription, RIM.MasterCompanyId 
 				FROM [dbo].[ItemMaster] RIM WITH(NOLOCK) 
 				WHERE RIM.[MasterCompanyId] = @MasterCompanyId AND RIM.IsActive = 1 AND RIM.IsDeleted = 0
-				GROUP BY RIM.partnumber, RIM.MasterCompanyId
+				 AND ISNULL(RIM.IsNonStock,0) = 0 GROUP BY RIM.partnumber, RIM.MasterCompanyId
 			),	
 			StkResult AS (
 				SELECT  MAX(STK.StockLineId) AS StockLineId, STK.ItemMasterId, STK.MasterCompanyId  
@@ -297,7 +298,7 @@ BEGIN
 					,CONVERT(DATETIME2, DATEADD(SECOND, @BaseUtcOffsetSec, RFQ.[FollowUpDate])) AS 'FollowUpDate'
 				FROM dbo.CustomerRfq RFQ WITH (NOLOCK)
 				--LEFT JOIN dbo.ItemMaster IM WITH(NOLOCK) ON RFQ.[LinePartNumber] = IM.[partnumber] AND RFQ.[MasterCompanyId] = IM.[MasterCompanyId]
-				LEFT JOIN ItemResult IM WITH(NOLOCK) ON LOWER(TRIM(RFQ.[LinePartNumber])) = LOWER(TRIM(IM.[partnumber])) AND RFQ.[MasterCompanyId] = IM.[MasterCompanyId]
+				 AND ISNULL(IM.IsNonStock,0) = 0 LEFT JOIN ItemResult IM WITH(NOLOCK) ON LOWER(TRIM(RFQ.[LinePartNumber])) = LOWER(TRIM(IM.[partnumber])) AND RFQ.[MasterCompanyId] = IM.[MasterCompanyId]
 				LEFT JOIN StkResult STK WITH(NOLOCK) ON STK.ItemMasterId = IM.ItemMasterId AND RFQ.[MasterCompanyId] = IM.[MasterCompanyId]
 				LEFT JOIN dbo.Customer CU WITH(NOLOCK) ON (LOWER(TRIM(RFQ.[BuyerCompanyName])) = LOWER(TRIM(CU.[Name])) AND RFQ.[MasterCompanyId] = CU.[MasterCompanyId]) OR (RFQ.CustomerId = CU.CustomerId AND RFQ.[MasterCompanyId] = CU.[MasterCompanyId]) AND CU.IsActive = 1 AND CU.IsDeleted = 0
 				LEFT JOIN  dbo.CustomerContact CC  WITH (NOLOCK) 
@@ -325,7 +326,7 @@ BEGIN
 				AND RFQ.IntegrationPortalId IN (@ILSPortalId, @OneFortyFivePortalId, @PartsBasePortalId)
 				AND RFQ.IsActive = 1 AND RFQ.IsDeleted = 0
 
-				UNION ALL
+				 AND ISNULL(RIM.IsNonStock,0) = 0 UNION ALL
 
 				SELECT RFQ.[CustomerRfqId],
 					RFQ.[RfqId], 
@@ -424,7 +425,7 @@ BEGIN
 				LEFT JOIN dbo.SalesOrder SO WITH(NOLOCK) ON RFQ.[ReferenceId] = SO.[SalesOrderId] AND RFQ.[MasterCompanyId] = SO.[MasterCompanyId]
 				LEFT JOIN dbo.CustomerRfqPartMapping CRPM WITH(NOLOCK) ON RFQ.[CustomerRfqId] = CRPM.[CustomerRfqId]
 				--LEFT JOIN dbo.ItemMaster IM WITH(NOLOCK) ON CRPM.[PartNumber] = IM.[partnumber] AND CRPM.[MasterCompanyId] = IM.[MasterCompanyId]
-				LEFT JOIN ItemResult IM WITH(NOLOCK) ON LOWER(TRIM(CRPM.[PartNumber])) = LOWER(TRIM(IM.[partnumber])) AND CRPM.[MasterCompanyId] = IM.[MasterCompanyId]
+				 AND ISNULL(IM.IsNonStock,0) = 0 LEFT JOIN ItemResult IM WITH(NOLOCK) ON LOWER(TRIM(CRPM.[PartNumber])) = LOWER(TRIM(IM.[partnumber])) AND CRPM.[MasterCompanyId] = IM.[MasterCompanyId]
 				LEFT JOIN StkResult STK WITH(NOLOCK) ON STK.ItemMasterId = IM.ItemMasterId AND RFQ.[MasterCompanyId] = IM.[MasterCompanyId]
 				LEFT JOIN dbo.QuoteSendReview QSR WITH(NOLOCK) ON QSR.QuoteSendReviewId = RFQ.QuoteSendReviewId
 				LEFT JOIN #VendorsRFQResult VRFQ WITH(NOLOCK) ON RFQ.CustomerRfqId = VRFQ.CustomerRfqId AND LOWER(TRIM(CRPM.PartNumber)) = LOWER(TRIM(VRFQ.PartNumber)) AND LOWER(TRIM(CRPM.Condition)) = LOWER(TRIM(VRFQ.Condition))
@@ -439,7 +440,7 @@ BEGIN
 				AND RFQ.IntegrationPortalId IN (@EmailPortalId)
 				AND RFQ.IsActive = 1 AND RFQ.IsDeleted = 0
 				--AND RFQ.IsQuote IS NOT NULL 
-					AND (@IntegrationPortalId IS NULL OR RFQ.IntegrationPortalId = @IntegrationPortalId)),
+					AND (@IntegrationPortalId IS NULL OR RFQ.IntegrationPortalId = @IntegrationPortalId) AND ISNULL(RIM.IsNonStock,0) = 0 ),
 				FinalResult AS (
 				SELECT * FROM Result
 				WHERE (

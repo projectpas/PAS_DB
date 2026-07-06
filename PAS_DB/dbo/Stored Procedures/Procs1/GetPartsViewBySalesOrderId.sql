@@ -25,6 +25,7 @@
 	9    01-09-2025   BHARGAV SALIYA	Fixed: Quote Number Binded issue in Analysis tab.
 	10   19-SEP-2025  RAJESH GAMI	    Added return field: netSalesPricePerUnit
 	11   30-SEP-2025  Vishal Suthar	    Fix for showing Freight Cost in Freight
+	12    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 
 EXEC [dbo].[GetPartsViewBySalesOrderId]  879
 **************************************************************/
@@ -225,7 +226,7 @@ BEGIN
 		LEFT JOIN DBO.SalesOrderFreight f WITH (NOLOCK) ON so.SalesOrderId = f.SalesOrderId AND f.ItemMasterId = part.ItemMasterId AND f.ConditionId = part.ConditionId AND f.IsActive = 1 AND f.IsDeleted = 0
 		LEFT JOIN DBO.SalesOrderCharges ch WITH (NOLOCK) ON so.SalesOrderId = ch.SalesOrderId AND ch.ItemMasterId = part.ItemMasterId AND ch.ConditionId = part.ConditionId AND ch.IsActive = 1 AND ch.IsDeleted = 0
 		LEFT JOIN #TempTaxAmount t ON part.SalesOrderPartId = t.PartId
-		WHERE part.SalesOrderId = @SalesOrderId AND part.IsDeleted = 0;
+		WHERE part.SalesOrderId = @SalesOrderId AND part.IsDeleted = 0 AND ISNULL(itemMaster.IsNonStock,0) = 0 ;
 	END
 COMMIT TRANSACTION
 

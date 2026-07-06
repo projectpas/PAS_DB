@@ -10,6 +10,7 @@
  ** PR   Date				Author				Change Description            
  ** --   -------------		----------------	--------------------------------          
     1    08-Oct-2025		Divyesh Kathiriya	Created  	
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
     
  -- EXEC [USP_CreateUpdateExportInfo] @ExportECCN=N'ECCNFull1',@ITARNumber=N'',@ExportUomId=6,@ExportValue=100,@ExportCurrencyId=2,@ExportWeight=2,@ExportWeightUnit=N'1',
                                       @ExportSizeLength=3,@ExportSizeWidth=4,@ExportSizeHeight=5,@ExportClassificationId=1,@ExportSizeUnitOfMeasureId=3,@IsIATR=1,@IsExportLicense=1,
@@ -60,7 +61,7 @@ BEGIN
 	) 
 /***************Start Save ItemMaster ExportInfo Details***************/
 			
-    IF EXISTS (SELECT 1 FROM [DBO].[ItemMaster] WITH(NOLOCK) WHERE [ItemMasterId] = @ItemMasterId)
+    IF EXISTS (SELECT 1 FROM [DBO].[ItemMaster] WITH(NOLOCK) WHERE [ItemMasterId] = @ItemMasterId AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 )
     BEGIN        
         IF NOT EXISTS (SELECT 1 FROM [DBO].[ItemMasterExportInfo] WITH(NOLOCK) WHERE [ItemMasterId] = @ItemMasterId)
         BEGIN

@@ -11,6 +11,7 @@
  ** PR   Date         Author  		Change Description            
  ** --   --------     -------		---------------------------     
     1    06/23/2023   Moin Bloch     Created
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 *******************************************************************************
 EXEC USP_VendorRMA_Edit_Receiving_DetailsById 39,64,2
 *******************************************************************************/
@@ -88,7 +89,7 @@ BEGIN
 			   LEFT JOIN [dbo].[VendorRMAHeaderStatus] HS WITH (NOLOCK) ON VR.[VendorRMAStatusId] = HS.[VendorRMAStatusId]
 			   LEFT JOIN [dbo].[UnitOfMeasure] UM WITH (NOLOCK) ON SL.[PurchaseUnitOfMeasureId] = UM.[UnitOfMeasureId]
 			   LEFT JOIN [dbo].[StocklineManagementStructureDetails] MS WITH (NOLOCK) ON MS.[ReferenceID] = VD.[StockLineId] AND MS.[ModuleID] = @StocklineModuleId			
-			  WHERE VD.[VendorRMADetailId] IN (SELECT * FROM dbo.SplitString(@Ids,','));
+			  WHERE VD.[VendorRMADetailId] IN (SELECT * FROM dbo.SplitString(@Ids,',')) AND ISNULL(IM.IsNonStock,0) = 0 ;
 		END
 		ELSE IF(@Opr=2)
 		BEGIN

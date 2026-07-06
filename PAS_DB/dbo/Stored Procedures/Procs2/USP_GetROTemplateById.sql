@@ -13,6 +13,7 @@
  ** S NO   Date            Author          Change Description              
  ** --   --------         -------          --------------------------------            
     1    06-05-2025		Amit Ghediya       Created  
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 
 **************************************************************/    
 CREATE    PROCEDURE [dbo].[USP_GetROTemplateById]
@@ -44,7 +45,7 @@ BEGIN
 			 ROT.UpdatedDate
 		FROM [dbo].[RepairOrderTemplate] ROT WITH(NOLOCK)  
 		LEFT JOIN [dbo].[ItemMaster] IM WITH(NOLOCK) ON IM.[ItemMasterId] = ROT.[ItemMasterId]
-		LEFT JOIN [dbo].[Customer] CM WITH(NOLOCK) ON CM.[CustomerId] = ROT.[CustomerId]
+		 AND ISNULL(IM.IsNonStock,0) = 0 LEFT JOIN [dbo].[Customer] CM WITH(NOLOCK) ON CM.[CustomerId] = ROT.[CustomerId]
 		LEFT JOIN [dbo].[Vendor] VN WITH(NOLOCK) ON VN.[VendorId] = ROT.[VendorId]
 		LEFT JOIN [dbo].[Publication] PUB WITH(NOLOCK) ON PUB.[PublicationRecordId] = ROT.[PublicationRecordId]
 		LEFT JOIN [dbo].[CapabilityType] CBT WITH(NOLOCK) ON CBT.[CapabilityTypeId] = ROT.[WorkPerformedId]

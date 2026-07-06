@@ -118,7 +118,7 @@ BEGIN
 				FROM dbo.WorkOrderPartNumber wop WITH(NOLOCK) 
 					   LEFT JOIN DBO.WorkOrder wo  WITH(NOLOCK) on wo.WorkOrderId = wop.WorkOrderId
 					   LEFT JOIN DBO.ItemMaster im  WITH(NOLOCK) on im.ItemMasterId = wop.ItemMasterId
-					   LEFT JOIN DBO.Stockline sl  WITH(NOLOCK) on sl.StockLineId = wop.StockLineId
+					    AND ISNULL(im.IsNonStock,0) = 0 LEFT JOIN DBO.Stockline sl  WITH(NOLOCK) on sl.StockLineId = wop.StockLineId
 					   LEFT JOIN dbo.ReceivingCustomerWork rc  WITH(NOLOCK) on rc.StockLineId = wop.StockLineId
 					   LEFT JOIN DBO.WorkOrderManagementStructureDetails MSD  WITH(NOLOCK) on MSD.ModuleID = @MSModuleId AND MSD.ReferenceID = wop.Id
 					   LEFT JOIN DBO.ManagementStructurelevel MSL WITH(NOLOCK) ON MSL.ID = MSD.Level1Id
@@ -126,7 +126,7 @@ BEGIN
 					   LEFT JOIN DBO.Address  ad  WITH(NOLOCK) on ad.AddressId = le.AddressId 
 					   LEFT JOIN dbo.WorkOrderSettlementDetails wosc WITH(NOLOCK) on wop.WorkOrderId = wosc.WorkOrderId AND wop.ID = wosc.workOrderPartNoId AND wosc.WorkOrderSettlementId = 9
 					   LEFT JOIN dbo.ItemMaster ims WITH(NOLOCK) on ims.ItemMasterId = wosc.RevisedPartId
-					   LEFT JOIN DBO.Condition c WITH(NOLOCK) on c.ConditionId = wop.RevisedConditionId --c.ConditionId = ws.ConditionId
+					    AND ISNULL(ims.IsNonStock,0) = 0 LEFT JOIN DBO.Condition c WITH(NOLOCK) on c.ConditionId = wop.RevisedConditionId --c.ConditionId = ws.ConditionId
 					   LEFT JOIN DBO.Publication pub WITH(NOLOCK) on pub.PublicationRecordId = @CMMIds
 					   LEFT JOIN DBO.Vendor ven WITH(NOLOCK) on pub.PublishedById = ven.VendorId
 					   LEFT JOIN DBO.Manufacturer mf WITH(NOLOCK) on pub.PublishedById = mf.ManufacturerId

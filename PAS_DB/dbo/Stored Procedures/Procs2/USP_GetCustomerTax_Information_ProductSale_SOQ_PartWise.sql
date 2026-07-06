@@ -16,9 +16,11 @@
     1    08/02/2024   Moin Bloch    Created
 	2    05/03/2024   Moin Bloch    Updated changed join ItemMaster To [Stockline]
     3    11/05/2024	  Vishal Suthar	Modified to make use of new SO Part tables 
+	4    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 
 -- EXEC [USP_GetCustomerTax_Information_ProductSale_SOQ_PartWise] 10425,10666,77 
 **************************************************************/
+ WHERE ISNULL(To.IsNonStock,0) = 0
 CREATE    PROCEDURE [dbo].[USP_GetCustomerTax_Information_ProductSale_SOQ_PartWise] 
 @SalesOrderQuoteId BIGINT,
 @SalesOrderQuotePartId BIGINT,
@@ -55,7 +57,7 @@ BEGIN
 			LEFT JOIN [dbo].[SalesOrderQuoteStocklineV1] SOQPS WITH(NOLOCK) ON SOQPS.[SalesOrderQuotePartId] = SOQP.[SalesOrderQuotePartId] 
 			 LEFT JOIN [dbo].[Stockline] STK WITH(NOLOCK) ON SOQPS.[StockLineId] = STK.[StockLineId]
 			 LEFT JOIN [dbo].[ItemMaster] ITM WITH(NOLOCK) ON SOQP.[ItemMasterId] = ITM.[ItemMasterId]
-			 LEFT JOIN [dbo].[AllAddress] AAD WITH(NOLOCK) ON SOQP.[SalesOrderQuoteId] = AAD.[ReffranceId] AND [IsShippingAdd] = 1 AND [ModuleId] = @SOQModuleId
+			  AND ISNULL(ITM.IsNonStock,0) = 0 LEFT JOIN [dbo].[AllAddress] AAD WITH(NOLOCK) ON SOQP.[SalesOrderQuoteId] = AAD.[ReffranceId] AND [IsShippingAdd] = 1 AND [ModuleId] = @SOQModuleId
 			 LEFT JOIN [dbo].[CustomerDomensticShipping] CDS WITH(NOLOCK) ON CDS.[CustomerId] = SOQ.[CustomerId] AND CDS.[IsPrimary] = 1
    		     WHERE SOQ.[SalesOrderQuoteId] = @SalesOrderQuoteId 
 			   AND SOQP.[SalesOrderQuotePartId] = @SalesOrderQuotePartId

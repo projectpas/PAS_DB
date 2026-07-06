@@ -25,6 +25,7 @@
 	8    11/02/2025   Bhargav Saliya  Update GL Account
 	9    16/05/2025   Devendra Shekh  Updatting RepairOrderNumber, PurchaseOrderNumber, IsDocument
 	10   09/02/2026   Sahdev Saliya   UPDATED ItemGroup
+	11    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 
 -- EXEC [dbo].[UpdateStocklineColumnsWithId] 1
 **************************************************************/
@@ -99,10 +100,10 @@ BEGIN
 					INNER JOIN [dbo].[Manufacturer] MF WITH(NOLOCK) ON SL.ManufacturerId = MF.ManufacturerId
 					INNER JOIN [dbo].[Site] S WITH(NOLOCK) ON S.SiteId = SL.SiteId
 					 LEFT JOIN [dbo].[ItemMaster] IMRI WITH(NOLOCK) ON IMRI.ItemMasterId = SL.RevicedPNId
-					 LEFT JOIN [dbo].[ItemMaster] IMoem WITH(NOLOCK) ON IMoem.ItemMasterId = SL.IsOemPNId
-					 LEFT JOIN [dbo].[ItemMaster] IMTLA WITH(NOLOCK) ON IMTLA.ItemMasterId = SL.TLAItemMasterId
-					 LEFT JOIN [dbo].[ItemMaster] IMNHA WITH(NOLOCK) ON IMNHA.ItemMasterId = SL.NHAItemMasterId
-					 LEFT JOIN [dbo].[Itemgroup] IG WITH(NOLOCK) ON IM.ItemGroupId = IG.ItemgroupId
+					  AND ISNULL(IMRI.IsNonStock,0) = 0 LEFT JOIN [dbo].[ItemMaster] IMoem WITH(NOLOCK) ON IMoem.ItemMasterId = SL.IsOemPNId
+					  AND ISNULL(IMoem.IsNonStock,0) = 0 LEFT JOIN [dbo].[ItemMaster] IMTLA WITH(NOLOCK) ON IMTLA.ItemMasterId = SL.TLAItemMasterId
+					  AND ISNULL(IMTLA.IsNonStock,0) = 0 LEFT JOIN [dbo].[ItemMaster] IMNHA WITH(NOLOCK) ON IMNHA.ItemMasterId = SL.NHAItemMasterId
+					  AND ISNULL(IMNHA.IsNonStock,0) = 0 LEFT JOIN [dbo].[Itemgroup] IG WITH(NOLOCK) ON IM.ItemGroupId = IG.ItemgroupId
 					 LEFT JOIN [dbo].[ItemType] IT WITH(NOLOCK) ON IM.ItemTypeId = IT.ItemTypeId
 					 LEFT JOIN [dbo].[GLAccount] GL WITH(NOLOCK) ON SL.GLAccountId = GL.GLAccountId 
 					 LEFT JOIN [dbo].[WorkOrder] WO WITH(NOLOCK) ON SL.WorkOrderId = WO.WorkOrderId 
@@ -118,7 +119,7 @@ BEGIN
 					 LEFT JOIN [dbo].[LOT] lot WITH(NOLOCK) ON SL.LotId = lot.LotId
 			  WHERE SL.StocklineId = @StocklineId
 				
-				UPDATE [dbo].[Stockline] 
+				 AND ISNULL(IM.IsNonStock,0) = 0 UPDATE [dbo].[Stockline] 
 					SET LegalEntityId = MSL.LegalEntityId
 				FROM dbo.Stockline STL WITH(NOLOCK) 
 					JOIN dbo.StocklineManagementStructureDetails SMD WITH(NOLOCK) ON STL.StockLineId = SMD.ReferenceID AND SMD.ModuleID = @MSModuleID
@@ -145,26 +146,26 @@ BEGIN
 					JOIN dbo.ItemMaster IM WITH(NOLOCK) ON STL.ItemMasterId=IM.ItemMasterId
 				WHERE STL.StocklineId = @StocklineId AND IM.DaysReceived > 0 AND STL.DaysReceived IS NULL AND IsParent = 1
 
-				UPDATE [dbo].[Stockline] 
+				 AND ISNULL(IM.IsNonStock,0) = 0 UPDATE [dbo].[Stockline] 
 					SET ManufacturingDays = IM.ManufacturingDays
 				FROM dbo.Stockline STL WITH(NOLOCK) 
 					JOIN dbo.ItemMaster IM WITH(NOLOCK) ON STL.ItemMasterId=IM.ItemMasterId
 				WHERE STL.StocklineId = @StocklineId AND IM.ManufacturingDays > 0 AND STL.ManufacturingDays IS NULL AND IsParent = 1
 
-				UPDATE [dbo].[Stockline] 
+				 AND ISNULL(IM.IsNonStock,0) = 0 UPDATE [dbo].[Stockline] 
 					SET TagDays = IM.TagDays
 				FROM dbo.Stockline STL WITH(NOLOCK) 
 					JOIN dbo.ItemMaster IM WITH(NOLOCK) ON STL.ItemMasterId=IM.ItemMasterId
 				WHERE STL.StocklineId = @StocklineId AND IM.TagDays > 0 AND STL.TagDays IS NULL AND IsParent = 1
 
-				UPDATE [dbo].[Stockline] 
+				 AND ISNULL(IM.IsNonStock,0) = 0 UPDATE [dbo].[Stockline] 
 					SET OpenDays = IM.OpenDays
 				FROM dbo.Stockline STL WITH(NOLOCK) 
 					JOIN dbo.ItemMaster IM WITH(NOLOCK) ON STL.ItemMasterId=IM.ItemMasterId
 				WHERE STL.StocklineId = @StocklineId AND IM.OpenDays > 0 AND STL.OpenDays IS NULL AND IsParent = 1
 
 					-- update glaccount details by bhavesh raval
-				DECLARE @ItemMasterId INT;
+				 AND ISNULL(IM.IsNonStock,0) = 0 DECLARE @ItemMasterId INT;
 				DECLARE @InventoryGLSettingId INT;
 				DECLARE @IMInventoryGLSettingId INT;
 				SELECT TOP 1 @InventoryGLSettingId=InventoryGLSettingId FROM dbo.Stockline SL WITH (NOLOCK)  where SL.StockLineId=@StocklineId
@@ -243,7 +244,7 @@ BEGIN
 					LEFT JOIN
 					GLAccount GL15 WITH (NOLOCK) ON I.COGS_ExchSalesOrderGLAccId = GL15.GLAccountId
 					WHERE SL.StockLineId=@StocklineId
-				END
+				 AND ISNULL(IM.IsNonStock,0) = 0 END
 
 			END		   
 		COMMIT  TRANSACTION

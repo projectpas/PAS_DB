@@ -30,6 +30,7 @@
 	17   05/11/2025   MOIN BLOCH      Added Credit Memo Logic   
 	18   09/01/2026   Vishal Suthar  Added SerialNumber column in BillingInvoicingDetails for SA
 	19   15/01/2026   Vishal Suthar  Issue with new version created for SA
+	20    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 
 -- EXEC USP_AddBillingInvoicingDetails 
 ************************************************************************/  
@@ -592,7 +593,7 @@ BEGIN
 
 				EXEC [dbo].[USP_UpdateWOCostDetails] @ReferenceId,@WFWorkOrderId,@UpdatedBy,@MasterCompanyId
 
-				SELECT @PartNumber = IM.[PartNumber] FROM [dbo].[WorkOrderPartNumber] WP WITH(NOLOCK) INNER JOIN [dbo].[ItemMaster] IM WITH(NOLOCK) ON WP.ItemMasterId = IM.ItemMasterId WHERE WP.[ID] = @SubReferenceId;					   
+				SELECT @PartNumber = IM.[PartNumber] FROM [dbo].[WorkOrderPartNumber] WP WITH(NOLOCK) INNER JOIN [dbo].[ItemMaster] IM WITH(NOLOCK) ON WP.ItemMasterId = IM.ItemMasterId WHERE WP.[ID] = @SubReferenceId AND ISNULL(IM.IsNonStock,0) = 0 ;					   
 				SELECT TOP 1 @TemplateBody = [TemplateBody] FROM [dbo].[HistoryTemplate] WITH(NOLOCK) WHERE [TemplateCode] = 'Invoicing';								   
 				SET @TemplateBody = REPLACE(@TemplateBody, '##WoMPN##', @PartNumber);
 				SET @TemplateBody = REPLACE(@TemplateBody, '##InvoiceNo##', @InvoiceNo);
@@ -694,4 +695,4 @@ BEGIN
               RAISERROR ('Unexpected Error Occured in the database. Please let the support team know of the error number : %d', 16, 1,@ErrorLogID)  
               RETURN(1);  
  END CATCH  
-END
+END                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          

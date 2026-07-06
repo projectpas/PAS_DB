@@ -14,6 +14,7 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    15/04/2025   Moin Bloch     Created
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
      
 --  EXEC [dbo].[USP_GetPurchaseOrderPartsForView] 6732,1
 --  EXEC [dbo].[USP_GetPurchaseOrderPartsForView] 6743,12853,0,1
@@ -158,7 +159,7 @@ BEGIN
 			[part].[POPartSplitUser] AS [PoPartSplitUserName]
 		FROM [dbo].[PurchaseOrderPart] part WITH(NOLOCK)
 		LEFT JOIN [dbo].[ItemMaster] itm WITH(NOLOCK) ON [part].[ItemMasterId] = [itm].[ItemMasterId]
-		LEFT JOIN [dbo].[Asset] asi WITH(NOLOCK) ON [part].[ItemMasterId] = [asi].[AssetRecordId]
+		 AND ISNULL(itm.IsNonStock,0) = 0 LEFT JOIN [dbo].[Asset] asi WITH(NOLOCK) ON [part].[ItemMasterId] = [asi].[AssetRecordId]
 		LEFT JOIN [dbo].[ItemMasterNonStock] nsi WITH(NOLOCK) ON [part].[ItemMasterId] = [nsi].[MasterPartId]
 		WHERE [part].[PurchaseOrderPartRecordId] IN (SELECT [PurchaseOrderPartRecordId] FROM #tblPurchaseOrderPartRecordIds)
    

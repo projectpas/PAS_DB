@@ -17,6 +17,7 @@
     1		15-APR-2022		HEMANT SALIYA			Created  
 	2		16-JUNE-2023     Devendra Shekh			made changes to do total
 	3		29-MARCH-2024    Ekta Chandegra			IsActive and IsDeleted flag is added
+	4    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
   
        
 --EXECUTE   [dbo].[usprpt_GetRCWReport] '','2021-06-15','2022-06-15','1','1,4,43,44,45,80,84,88','46,47,66','48,49,50,58,59,67,68,69','51,52,53,54,55,56,57,60,61,62,64,70,71,72'  
@@ -129,7 +130,7 @@ BEGIN
       AND (ISNULL(@Level8,'') ='' OR MSD.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,',')))  
       AND (ISNULL(@Level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))  
       AND  (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))  
-    END  
+     AND ISNULL(IM.IsNonStock,0) = 0 END  
   
    SET @PageSize = CASE WHEN NULLIF(@PageSize,0) IS NULL THEN 10 ELSE @PageSize END  
    SET @PageNumber = CASE WHEN NULLIF(@PageNumber,0) IS NULL THEN 1 ELSE @PageNumber END  
@@ -187,7 +188,7 @@ BEGIN
     AND (ISNULL(@Level8,'') ='' OR MSD.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,',')))  
     AND (ISNULL(@Level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))  
     AND  (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))  
-	)
+	 AND ISNULL(IM.IsNonStock,0) = 0 )
 	,FinalCTE(TotalRecordsCount, customername, customercode, receivernum, pn, pndescription, serialnum, workscope, manufacturer, receiveddate, opendate,
 				 wonum, stagecode, status, nte, estimatedrevenue, wotype, salesperson, csr, level1, level2, level3, level4, level5, level6, level7, level8,
 			  level9, level10, masterCompanyId) 

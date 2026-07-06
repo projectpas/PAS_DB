@@ -24,6 +24,7 @@
 	11	 21-Aug-2025   Devendra Shekh	 Checking customerId in CustomerRFQ for @CustomerId
 	12	 25-Aug-2025   Devendra Shekh	 Modified (Changes for @QuoteSendReviewId)
 	13	 09-Jan-2026   Amit Ghediya	     Modified (Update custoemrcontactid when manual create soq)
+	14    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 
 -- EXEC USP_SendILSQuote
 ************************************************************************/
@@ -174,7 +175,7 @@ BEGIN
 						    FROM [DBO].[AiIntegrationSetting]  SIS WITH(NOLOCK) 
 						    WHERE SIS.[MasterCompanyId] = @MasterCompanyId;
 
-							SELECT @ItemMasterId = [ItemMasterId] FROM [dbo].[ItemMaster] WITH(NOLOCK) WHERE LOWER(TRIM([PartNumber])) = LOWER(TRIM(@PartNumber));
+							SELECT @ItemMasterId = [ItemMasterId] FROM [dbo].[ItemMaster] WITH(NOLOCK) WHERE LOWER(TRIM([PartNumber])) = LOWER(TRIM(@PartNumber)) AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 ;
 							SELECT @CustomerId = [CustomerId] FROM [dbo].[Customer] WITH(NOLOCK) WHERE LOWER(TRIM([Name])) = LOWER(TRIM(@BuyerCompanyName));
 							SET @CustomerId = CASE WHEN ISNULL(@RfqCustomerId, 0) > 0 THEN @RfqCustomerId ELSE @CustomerId END;
 

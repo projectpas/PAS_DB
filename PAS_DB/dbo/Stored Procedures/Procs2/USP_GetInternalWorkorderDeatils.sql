@@ -19,6 +19,7 @@
 	2    06/07/2023   MOIN BLOCH            REMOVED TRANSACTION AND MAKES CAPITAL RESERVED KEY WORDS  
 	3    06/07/2023   MOIN BLOCH            Added IsDeleted Flag
        4    22/06/2026   Sumit Kumar            Selected Stockline Lot number [PN-16570]
+	5    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
      
 -- EXEC [USP_GetInternalWorkorderDeatils] 2940
 **************************************************************/
@@ -49,7 +50,7 @@ BEGIN
                INNER JOIN [dbo].[ItemMaster]  IM WITH(NOLOCK) ON WOP.ItemMasterId=IM.ItemMasterId
                INNER JOIN [dbo].[Stockline]  SL WITH(NOLOCK) ON WOP.StockLineId=SL.StockLineId AND SL.isDeleted = 0
                LEFT JOIN [dbo].[Lot] L WITH (NOLOCK) ON L.LotId = SL.LotId             
-               WHERE WOP.ID = @WorkOrderPartNoId;
+               WHERE WOP.ID = @WorkOrderPartNoId AND ISNULL(IM.IsNonStock,0) = 0 ;
                 
 		--	END
 		--COMMIT  TRANSACTION

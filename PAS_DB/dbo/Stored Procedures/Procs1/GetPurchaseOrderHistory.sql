@@ -19,6 +19,7 @@
 	3    08-02-2024   Shrey Chandegara  ADD Distinct for duplicate entry.
 	4    18 July 2024   Shrey Chandegara       Modified( use this function @CurrntEmpTimeZoneDesc for date issue.)
 	5    07-08-2024   Sahdev Saliya     Modified For Date Filter issue
+	6    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
      
 **************************************************************/
 CREATE   PROCEDURE [dbo].[GetPurchaseOrderHistory]
@@ -96,7 +97,7 @@ BEGIN
 				WHERE (@ItemMasterId = 0 OR POP.ItemMasterId = @ItemMasterId) AND (PO.IsDeleted = 0) AND POP.isParent= 1
 				  AND PO.MasterCompanyId = @MasterCompanyId
 				  AND PO.OpenDate between @FromDate  AND  @ToDate
-			), ResultCount AS(Select COUNT(PurchaseOrderId) AS totalItems FROM Result)
+			 AND ISNULL(IM.IsNonStock,0) = 0 ), ResultCount AS(Select COUNT(PurchaseOrderId) AS totalItems FROM Result)
 			SELECT * INTO #TempResult FROM  Result
 			 WHERE ((@GlobalFilter <>'' AND ((PurchaseOrderNumber LIKE '%' +@GlobalFilter+'%') OR
 					(PartNumber LIKE '%' +@GlobalFilter+'%') OR
@@ -163,7 +164,7 @@ BEGIN
 				WHERE (@ItemMasterId = 0 OR POP.ItemMasterId=@ItemMasterId) AND (PO.IsDeleted = 0) -- AND EMS.EmployeeId = 	@EmployeeId 
 				  AND PO.MasterCompanyId = @MasterCompanyId
 				  AND PO.OpenDate between @FromDate  AND  @ToDate
-			), ResultCount AS(Select COUNT(PurchaseOrderId) AS totalItems FROM Result)
+			 AND ISNULL(IM.IsNonStock,0) = 0 ), ResultCount AS(Select COUNT(PurchaseOrderId) AS totalItems FROM Result)
 			SELECT * INTO #TempResult1 FROM  Result
 			 WHERE ((@GlobalFilter <>'' AND ((PurchaseOrderNumber LIKE '%' +@GlobalFilter+'%') OR
 					(PartNumber LIKE '%' +@GlobalFilter+'%') OR

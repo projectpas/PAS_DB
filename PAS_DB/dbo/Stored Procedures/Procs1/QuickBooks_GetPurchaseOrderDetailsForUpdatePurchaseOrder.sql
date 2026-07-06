@@ -12,6 +12,7 @@
  ** PR   Date			Author			Change Description            
  ** --   --------		-------			--------------------------------          
     1    07-Feb-2025   Abhishek Jirawla	Created
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
      
  EXECUTE [QuickBooks_GetNewPurchaseOrderListForCreatePurchaseOrder] 1
 **************************************************************/ 
@@ -79,7 +80,7 @@ BEGIN
 					INNER JOIN [dbo].[Vendor] VN WITH(NOLOCK) ON PO.VendorId = VN.VendorId
 					LEFT JOIN [dbo].[PurchaseOrderPart] POP WITH(NOLOCK) ON POP.PurchaseOrderId = PO.PurchaseOrderId
 					LEFT JOIN [dbo].[ItemMaster] IM WITH(NOLOCK) ON IM.ItemMasterId = POP.ItemMasterId
-					LEFT JOIN [dbo].[GLAccount] GL WITH(NOLOCK) ON GL.GLAccountId = @POGlAccountId
+					 AND ISNULL(IM.IsNonStock,0) = 0 LEFT JOIN [dbo].[GLAccount] GL WITH(NOLOCK) ON GL.GLAccountId = @POGlAccountId
 					LEFT JOIN [dbo].[AllAddress] AA WITH(NOLOCK) ON AA.ModuleId = @POModuleId AND AA.ReffranceId = PO.PurchaseOrderId AND AA.IsShippingAdd = 1
 				WHERE PO.QuickBooksReferenceId IS NOT NULL AND PO.PurchaseOrderId = @ReferenceId AND PO.MasterCompanyId = @MasterCompanyId
 				GROUP BY PO.PurchaseOrderId,
@@ -148,7 +149,7 @@ BEGIN
 					INNER JOIN [dbo].[Vendor] VN WITH(NOLOCK) ON RO.VendorId = VN.VendorId
 					LEFT JOIN [dbo].[RepairOrderPart] ROP WITH(NOLOCK) ON ROP.RepairOrderId = RO.RepairOrderId
 					LEFT JOIN [dbo].[ItemMaster] IM WITH(NOLOCK) ON IM.ItemMasterId = ROP.ItemMasterId
-					LEFT JOIN [dbo].[GLAccount] GL WITH(NOLOCK) ON GL.GLAccountId = @ROGlAccountId
+					 AND ISNULL(IM.IsNonStock,0) = 0 LEFT JOIN [dbo].[GLAccount] GL WITH(NOLOCK) ON GL.GLAccountId = @ROGlAccountId
 					LEFT JOIN [dbo].[AllAddress] AA WITH(NOLOCK) ON AA.ModuleId = @ROModuleId AND AA.ReffranceId = RO.RepairOrderId AND AA.IsShippingAdd = 1
 				WHERE RO.QuickBooksReferenceId IS NOT NULL AND RO.RepairOrderId = @ReferenceId AND RO.MasterCompanyId = @MasterCompanyId
 				GROUP BY RO.RepairOrderId,

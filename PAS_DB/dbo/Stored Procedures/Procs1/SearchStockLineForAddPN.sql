@@ -20,6 +20,7 @@
  ** 6    05/12/2025	  Devendra Shekh  checking isActive and isDeleted for Alternate Part Select
        
 -- EXEC [dbo].[SearchStockLineForAddPN] '2', 33, 10,-1,NULL  
+	1    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 **************************************************************/   
   
 CREATE   PROCEDURE [dbo].[SearchStockLineForAddPN]  
@@ -107,7 +108,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 
 		SELECT TOP 1 @MasterCompanyId = MasterCompanyId FROM dbo.ItemMaster WITH (NOLOCK) WHERE ItemMasterId IN (SELECT Item FROM DBO.SPLITSTRING(@ItemMasterIdlist,','))     
 
-		SELECT @ConditionGroup = C.GroupCode FROM dbo.Condition C WHERE C.ConditionId = @ConditionId
+		 AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 SELECT @ConditionGroup = C.GroupCode FROM dbo.Condition C WHERE C.ConditionId = @ConditionId
 					
 		INSERT INTO #ConditionGroup (ConditionId)
 		SELECT ConditionId FROM dbo.Condition WITH (NOLOCK) WHERE MasterCompanyId = @MasterCompanyId AND GroupCode = @ConditionGroup
@@ -116,7 +117,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 		SELECT @AlternatePartNumber = STRING_AGG(Im.partnumber, ',')  
 		FROM [DBO].[Nha_Tla_Alt_Equ_ItemMapping] IMM  
 			JOIN [DBO].[ItemMaster] IM WITH(NOLOCK) ON IMM.ItemMasterId = IM.ItemMasterId  
-		WHERE MappingItemMasterId = @ItemMasterIdlist AND IMM.MappingType IN(1,2) AND IMM.IsActive = 1 AND IMM.IsDeleted = 0;  
+		WHERE MappingItemMasterId = @ItemMasterIdlist AND IMM.MappingType IN(1,2) AND IMM.IsActive = 1 AND IMM.IsDeleted = 0 AND ISNULL(IM.IsNonStock,0) = 0 ;  
   
 		INSERT INTO #StockLineResult (
 			[PartNumber], [StockLineId], [PartId], [ItemMasterId], [Description], [unitOfMeasureId], [unitOfMeasure], [ItemGroup], [Manufacturer], [ManufacturerId],
@@ -197,7 +198,8 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 				AND sl.isActive = 1 AND sl.IsDeleted = 0   
 				--AND SL.ConditionId IN (SELECT ConditionId FROM #ConditionGroup)
 				AND sl.ConditionId = CASE WHEN @ConditionId IS NOT NULL   
-					  THEN @ConditionId ELSE sl.ConditionId   
+					  THEN @ConditionId  WHERE ISNULL(im.IsNonStock,0) = 0
+ELSE sl.ConditionId   
 					  END  
 			LEFT JOIN DBO.Condition c WITH(NOLOCK) ON c.ConditionId = sl.ConditionId  
 			LEFT JOIN DBO.PurchaseOrder po WITH(NOLOCK) ON po.PurchaseOrderId = sl.PurchaseOrderId   
@@ -307,7 +309,8 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 			   AND sl.isActive = 1 AND sl.IsDeleted = 0   
 			   --AND SL.ConditionId IN (SELECT ConditionId FROM #ConditionGroup)
 			   AND sl.ConditionId = CASE WHEN @ConditionId  IS NOT NULL   
-					 THEN @ConditionId ELSE sl.ConditionId   
+					 THEN @ConditionId  WHERE ISNULL(im.IsNonStock,0) = 0
+ELSE sl.ConditionId   
 					 END  
 		   LEFT JOIN DBO.Condition c WITH(NOLOCK) ON c.ConditionId = sl.ConditionId  
 		   LEFT JOIN DBO.PurchaseOrder po WITH(NOLOCK) ON po.PurchaseOrderId = sl.PurchaseOrderId   

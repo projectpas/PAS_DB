@@ -14,6 +14,7 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    07/27/2021   Deep Patel Created
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
      
 --EXEC [SpeedQuoteSummarizedHistoryByCustomer] 125, 1
 **************************************************************/
@@ -60,7 +61,7 @@ BEGIN
 						JOIN dbo.Condition Cond WITH(NOLOCK) ON SOQP.ConditionId = Cond.ConditionId
 						LEFT JOIN dbo.CustomerFinancial CF WITH (NOLOCK) ON CF.CustomerId = SOQ.CustomerId
 						LEFT JOIN dbo.Currency C WITH (NOLOCK) ON C.CurrencyId = CF.CurrencyId
-					WHERE SOQP.ItemMasterId = @ItemMasterId AND DATEDIFF(MM, SOQ.OpenDate, GETDATE()) < @Month)
+					WHERE SOQP.ItemMasterId = @ItemMasterId AND DATEDIFF(MM, SOQ.OpenDate, GETDATE()) < @Month AND ISNULL(IM.IsNonStock,0) = 0 )
 
 					SELECT CustomerName, CustomerId, SpeedQuoteId, Condition, CustApproved, CurrencyName, SpeedQuoteNumber, VersionNumber, SOQDate, StatusName, Revenue AS Revenue,
 					DirectCost AS DirectCost, (Revenue - DirectCost) AS Margin,TAT,

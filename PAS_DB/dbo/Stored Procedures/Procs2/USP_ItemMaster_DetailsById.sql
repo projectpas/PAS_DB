@@ -11,6 +11,7 @@
  ** PR   Date         Author  		Change Description            
  ** --   --------     -------		---------------------------     
     1    06/20/2023   Moin Bloch     Created
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 *******************************************************************************
 EXEC USP_ItemMaster_DetailsById 41186
 *******************************************************************************/
@@ -45,7 +46,7 @@ BEGIN
                   ,IM.[LocationId]
                   ,IM.[ShelfId]
                   ,IM.[BinId]
-              FROM [dbo].[ItemMaster] IM WITH(NOLOCK) WHERE IM.ItemMasterId = @ItemMasterId;
+              FROM [dbo].[ItemMaster] IM WITH(NOLOCK) WHERE IM.ItemMasterId = @ItemMasterId AND ISNULL(IM.IsNonStock,0) = 0 ;
 	END TRY
     BEGIN CATCH
 		IF @@trancount > 0

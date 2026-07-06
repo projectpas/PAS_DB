@@ -14,6 +14,7 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    15-07-20242  Abhishek Jirawla     Created
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
      
 -- EXEC GetVendorRFQROPartById 104
 ************************************************************************/
@@ -35,11 +36,11 @@ BEGIN
 	 
 	SELECT pop.PartNumber,pop.ItemMasterId,pop.VendorRFQROPartRecordId,pop.ManufacturerId,
 	  pop.PartNumber + (CASE WHEN (SELECT COUNT(ISNULL(SD.[ManufacturerId], 0)) FROM [dbo].[ItemMaster]  SD WITH(NOLOCK) 
-	  WHERE im.partnumber = SD.partnumber AND SD.MasterCompanyId = @MasterCompanyId) > 1 then ' - '+ imf.[Name] ELSE '' END) AS [Label],
+	  WHERE im.partnumber = SD.partnumber AND SD.MasterCompanyId = @MasterCompanyId AND ISNULL(SD.IsNonStock,0) = 0 ) > 1 then ' - '+ imf.[Name] ELSE '' END) AS [Label],
 	  imf.[Name] AS Manufacturer
       FROM [dbo].[VendorRFQRepairOrderPart] pop WITH (NOLOCK) 	
 	  LEFT JOIN [dbo].[ItemMaster] im  WITH (NOLOCK)ON   pop.ItemMasterId = im.ItemMasterId 
-	  LEFT JOIN [dbo].[Manufacturer] imf WITH (NOLOCK) ON im.ManufacturerId = imf.ManufacturerId	 
+	   AND ISNULL(im.IsNonStock,0) = 0 LEFT JOIN [dbo].[Manufacturer] imf WITH (NOLOCK) ON im.ManufacturerId = imf.ManufacturerId	 
 	  WHERE pop.VendorRFQRepairOrderId = @VendorRFQROId  AND pop.IsDeleted = 0
 
 	

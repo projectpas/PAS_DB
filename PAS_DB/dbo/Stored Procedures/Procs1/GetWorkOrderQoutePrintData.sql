@@ -18,6 +18,7 @@
  ** --   --------     -------  --------------------------------            
     1    06/02/2020   Subhash Saliya Created  
  2  06/28/2021   Hemant Saliya  Added Transation & Content Managment  
+	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
        
 --EXEC [GetWorkOrderPrintPdfData] 274,258  
 **************************************************************/  
@@ -63,7 +64,7 @@ BEGIN
      LEFT JOIN dbo.WorkOrder wo WITH(NOLOCK) ON wo.WorkOrderId = woq.WorkOrderId  
      INNER JOIN dbo.WorkOrderPartNumber wop WITH(NOLOCK) on wop.WorkOrderId = wo.WorkOrderId --AND wop.ID = wopt.OrderPartId  
      LEFT JOIN dbo.ItemMaster imt WITH(NOLOCK) on imt.ItemMasterId = wop.ItemMasterId  
-     LEFT JOIN dbo.Customer c WITH(NOLOCK) on c.Customerid = wo.Customerid  
+      AND ISNULL(imt.IsNonStock,0) = 0 LEFT JOIN dbo.Customer c WITH(NOLOCK) on c.Customerid = wo.Customerid  
     WHERE wo.WorkOrderId = @WorkorderId and WorkflowWorkOrderId = @workflowWorkorderId and WQD.IsVersionIncrease = 0 AND wop.ID = @workOrderPartNoId   
   END  
   COMMIT  TRANSACTION  

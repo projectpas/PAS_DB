@@ -27,6 +27,7 @@
 	16	 01/12/2025   AMIT GHEDIYA   Update for batch gl account basd on stockline (Goods Received Not Invoiced (GRNI))
 	17   01/29/2026   Hemant Saliya	 Corrected to get Goods Received Not Invoiced (GRNI) from Stockline
 	18   06/29/2026   Abhishek Jirawla Including RPP in inserting batch details
+	19    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 **************************************************************/  
 CREATE    PROCEDURE [dbo].[usp_PostROCreateStocklineBatchDetails]
 @tbl_PostStocklineBatchType PostStocklineBatchType READONLY,
@@ -410,11 +411,11 @@ BEGIN
 										  SET @Amount = (@Qty * @Amount);
 
 										  SELECT @MPNName = partnumber FROM dbo.ItemMaster WITH(NOLOCK)  WHERE ItemMasterId=@ItemmasterId 
-										  SELECT @LastMSLevel=LastMSLevel,@AllMSlevels=AllMSlevels FROM dbo.StocklineManagementStructureDetails WITH(NOLOCK) WHERE ReferenceID=@StockLineId AND ModuleID=@STKMSModuleID
+										   AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 SELECT @LastMSLevel=LastMSLevel,@AllMSlevels=AllMSlevels FROM dbo.StocklineManagementStructureDetails WITH(NOLOCK) WHERE ReferenceID=@StockLineId AND ModuleID=@STKMSModuleID
 										  SET @ReferencePartId=@partId	
 
 										  SELECT @PiecePN = partnumber FROM dbo.ItemMaster WITH(NOLOCK)  WHERE ItemMasterId=@PieceItemmasterId 
-										  SET @Desc = 'Receiving RO-' + @PurchaseOrderNumber + '  PN-' + @MPNName + '  SL-' + @StocklineNumber
+										   AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 SET @Desc = 'Receiving RO-' + @PurchaseOrderNumber + '  PN-' + @MPNName + '  SL-' + @StocklineNumber
 									 
 										 -----Stock - Inventory--------
 
@@ -554,12 +555,12 @@ BEGIN
 
 										SELECT @WorkOrderNumber=InventoryNumber,@partId=PurchaseOrderPartRecordId,@ItemMasterId=MasterPartId,@ManagementStructureId=ManagementStructureId FROM AssetInventory WITH(NOLOCK) WHERE AssetInventoryId=@StocklineId;
 										SELECT @MPNName = partnumber FROM dbo.ItemMaster WITH(NOLOCK)  WHERE ItemMasterId=@ItemmasterId 
-										SELECT @LastMSLevel=LastMSLevel,@AllMSlevels=AllMSlevels FROM dbo.StocklineManagementStructureDetails WITH(NOLOCK) WHERE ReferenceID=@StockLineId AND ModuleID=@STKMSModuleID
+										 AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 SELECT @LastMSLevel=LastMSLevel,@AllMSlevels=AllMSlevels FROM dbo.StocklineManagementStructureDetails WITH(NOLOCK) WHERE ReferenceID=@StockLineId AND ModuleID=@STKMSModuleID
 										SET @ReferencePartId=@partId	
 
 										SELECT @PieceItemmasterId=MasterPartId FROM dbo.AssetInventory WITH(NOLOCK) WHERE AssetInventoryId=@StocklineId
 										SELECT @PiecePN = partnumber FROM dbo.ItemMaster WITH(NOLOCK)  WHERE ItemMasterId = @PieceItemmasterId 
-										SET @Desc = 'Receiving RO-' + @PurchaseOrderNumber + '  PN-' + @MPNName + '  SL-' + @StocklineNumber
+										 AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 SET @Desc = 'Receiving RO-' + @PurchaseOrderNumber + '  PN-' + @MPNName + '  SL-' + @StocklineNumber
 								  
 										-----Fixed Asset--------
 										SELECT top 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@CrDrType=CRDRType, @IsAutoPost = ISNULL(IsAutoPost,0) 
@@ -846,11 +847,11 @@ BEGIN
 										  SET @Amount = (@Qty * @Amount);
 
 										  SELECT @MPNName = partnumber FROM dbo.ItemMaster WITH(NOLOCK)  WHERE ItemMasterId=@ItemmasterId 
-										  SELECT @LastMSLevel=LastMSLevel,@AllMSlevels=AllMSlevels FROM dbo.StocklineManagementStructureDetails WITH(NOLOCK) WHERE ReferenceID=@StockLineId AND ModuleID=@STKMSModuleID
+										   AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 SELECT @LastMSLevel=LastMSLevel,@AllMSlevels=AllMSlevels FROM dbo.StocklineManagementStructureDetails WITH(NOLOCK) WHERE ReferenceID=@StockLineId AND ModuleID=@STKMSModuleID
 										  SET @ReferencePartId=@partId	
 
 										  SELECT @PiecePN = partnumber FROM dbo.ItemMaster WITH(NOLOCK)  WHERE ItemMasterId=@PieceItemmasterId 
-										  SET @Desc = 'Receiving PP-' + @PurchaseOrderNumber + '  PN-' + @MPNName + '  SL-' + @StocklineNumber
+										   AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 SET @Desc = 'Receiving PP-' + @PurchaseOrderNumber + '  PN-' + @MPNName + '  SL-' + @StocklineNumber
 									 
 										 -----Stock - Inventory--------
 
@@ -1062,12 +1063,12 @@ BEGIN
 
 										SELECT @WorkOrderNumber=InventoryNumber,@partId=PurchaseOrderPartRecordId,@ItemMasterId=MasterPartId,@ManagementStructureId=ManagementStructureId FROM AssetInventory WITH(NOLOCK) WHERE AssetInventoryId=@StocklineId;
 										SELECT @MPNName = partnumber FROM dbo.ItemMaster WITH(NOLOCK)  WHERE ItemMasterId=@ItemmasterId 
-										SELECT @LastMSLevel=LastMSLevel,@AllMSlevels=AllMSlevels FROM dbo.StocklineManagementStructureDetails WITH(NOLOCK) WHERE ReferenceID=@StockLineId AND ModuleID=@STKMSModuleID
+										 AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 SELECT @LastMSLevel=LastMSLevel,@AllMSlevels=AllMSlevels FROM dbo.StocklineManagementStructureDetails WITH(NOLOCK) WHERE ReferenceID=@StockLineId AND ModuleID=@STKMSModuleID
 										SET @ReferencePartId=@partId	
 
 										SELECT @PieceItemmasterId=MasterPartId FROM dbo.AssetInventory WITH(NOLOCK) WHERE AssetInventoryId=@StocklineId
 										SELECT @PiecePN = partnumber FROM dbo.ItemMaster WITH(NOLOCK)  WHERE ItemMasterId = @PieceItemmasterId 
-										SET @Desc = 'Receiving RO-' + @PurchaseOrderNumber + '  PN-' + @MPNName + '  SL-' + @StocklineNumber
+										 AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 SET @Desc = 'Receiving RO-' + @PurchaseOrderNumber + '  PN-' + @MPNName + '  SL-' + @StocklineNumber
 								  
 										-----Fixed Asset--------
 										SELECT top 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@CrDrType=CRDRType, @IsAutoPost = ISNULL(IsAutoPost,0) 

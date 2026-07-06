@@ -16,6 +16,7 @@
  ** PR   Date			 Author			Change Description            
  ** --   --------		 -------		--------------------------------          
     1    25-April-2025   Bhargav Saliya		Created
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_GetWOMPNDataByPartNumberId]
     @WorkOrderId BIGINT,
@@ -64,7 +65,7 @@ BEGIN
     LEFT JOIN [dbo].[WorkOrderStage] wos WITH(NOLOCK) ON wop.WorkOrderStageId = wos.WorkOrderStageId
     LEFT JOIN [dbo].[WorkOrderStatus] wostatus WITH(NOLOCK) ON wop.WorkOrderStatusId = wostatus.Id
     WHERE wop.IsDeleted = 0 AND wop.ID = @WorkOrderPartNumberId
-	END TRY
+	 AND ISNULL(im.IsNonStock,0) = 0 END TRY
 	BEGIN CATCH  
    
     DECLARE @ErrorLogID int,  

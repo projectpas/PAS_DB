@@ -15,6 +15,7 @@
  ** S NO   Date            Author          Change Description              
  ** --   --------         -------          --------------------------------            
     1    26-Sep-2025	  Amit Ghediya	   Created 
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
        
 EXECUTE   [dbo].[usprpt_GetCustomerPOFulfillingReport] '2025-10-07','2025-11-25',1,1,'','',2,''
 **************************************************************/  
@@ -105,7 +106,7 @@ BEGIN
 				  AND (@id3 = '' OR @id3 IS NULL
 					   OR SO.CustomerReference LIKE '%' + @id3 + '%'
 					   OR SOP.PONumber LIKE '%' + @id3 + '%')
-				GROUP BY 
+				 AND ISNULL(IM.IsNonStock,0) = 0 GROUP BY 
 					SO.SalesOrderId,
 					SO.CustomerReference,
 					SO.CustomerName,
@@ -185,7 +186,7 @@ BEGIN
 				  AND (@id3 = '' OR @id3 IS NULL
 					   OR SO.CustomerReference LIKE '%' + @id3 + '%'
 					   OR SOP.PONumber LIKE '%' + @id3 + '%')
-			   GROUP BY 
+			    AND ISNULL(IM.IsNonStock,0) = 0 GROUP BY 
 					SO.SalesOrderId,
 					SO.CustomerReference,
 					IM.PartNumber,

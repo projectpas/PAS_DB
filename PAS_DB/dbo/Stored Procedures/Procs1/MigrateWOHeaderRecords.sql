@@ -16,6 +16,7 @@
  ** --   --------     -------			-----------------------
     1    12/28/2023   Vishal Suthar		Created
     2    17/02/2025   Moin Bloch        Updated (Added Publication CMMIds)
+	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 
 declare @p5 int
 set @p5=NULL
@@ -204,7 +205,7 @@ BEGIN
 				@TurnTimeOverhaulHours = [TurnTimeOverhaulHours],@TurnTimeRepairHours = [TurnTimeRepairHours],@turnTimeBenchTest = turnTimeBenchTest,
 				@IsSerialized = IM.isSerialized
 			FROM [dbo].[ItemMaster] IM WITH(NOLOCK) WHERE UPPER(IM.[partnumber]) = UPPER(@Part_NUMBER) AND UPPER(IM.[PartDescription]) = UPPER(@Part_Desc)
-			AND IM.MasterCompanyId = @FromMasterComanyID;
+			AND IM.MasterCompanyId = @FromMasterComanyID AND ISNULL(IM.IsNonStock,0) = 0 ;
 
 			DECLARE @DefaultSiteId BIGINT;
 			DECLARE @ManagementStructureTypeId BIGINT = 0;

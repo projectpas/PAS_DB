@@ -12,6 +12,7 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    18/03/2025   Moin Bloch    Created
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
      
 --   EXEC [dbo].[CreateWorkOrderMaterialsforSubAssy]
 **************************************************************/
@@ -213,7 +214,7 @@ BEGIN
 
 						IF(@ProvisionId > 0 AND @SubItemMasterId > 0)
 						BEGIN
-							SELECT @ItemClassificationId = [ItemClassificationId] FROM [dbo].[ItemMaster] WITH(NOLOCK) WHERE [ItemMasterId] = @MappingItemMasterId;
+							SELECT @ItemClassificationId = [ItemClassificationId] FROM [dbo].[ItemMaster] WITH(NOLOCK) WHERE [ItemMasterId] = @MappingItemMasterId AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 ;
 
 							INSERT INTO #tempWorkOrderMaterialsforSubAssy([ProvisionId],[WorkOrderId],[WorkFlowWorkOrderId],[ItemMasterId],[MasterCompanyId],[CreatedBy],[UpdatedBy],
 								   [CreatedDate],[UpdatedDate],[IsActive],[IsDeleted],[TaskId],[ItemClassificationId],[Quantity],[ConditionCodeId],[MaterialMandatoriesId])
@@ -270,7 +271,7 @@ BEGIN
 
 						SELECT @PartNumber = [PartNumber] FROM [dbo].[ItemMaster] WITH(NOLOCK) WHERE [ItemMasterId] = @ItemMasterId
 
-						SELECT TOP 1 @TemplateBody = [TemplateBody] FROM [dbo].[HistoryTemplate] WITH(NOLOCK) WHERE [TemplateCode] = @AddPNPart;
+						 AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 SELECT TOP 1 @TemplateBody = [TemplateBody] FROM [dbo].[HistoryTemplate] WITH(NOLOCK) WHERE [TemplateCode] = @AddPNPart;
 
 						SET @TemplateBody = REPLACE(@TemplateBody, '##PN##', @PartNumber)
 						
@@ -319,7 +320,7 @@ BEGIN
 							  IF(@MatItemClassificationId = 0)
 							  BEGIN
 									SELECT @MatItemClassificationId = [ItemClassificationId] FROM [dbo].[ItemMaster] WITH(NOLOCK) WHERE [ItemMasterId] = @MatItemMasterId
-							  END
+							   AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 END
 							  IF(@MatProvisionId = @ProvisionId)
 							  BEGIN
 									SET @QtyToTurnIn = @ManQuantity;
@@ -334,7 +335,7 @@ BEGIN
 									ELSE
 									BEGIN
 										SELECT @PurchaseUnitOfMeasureId = [ItemClassificationId] FROM [dbo].[ItemMaster] WITH(NOLOCK) WHERE [ItemMasterId] = @MatItemMasterId
-									END
+									 AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 END
 							  END
 							  IF(@IsAltPart=1)
 							  BEGIN

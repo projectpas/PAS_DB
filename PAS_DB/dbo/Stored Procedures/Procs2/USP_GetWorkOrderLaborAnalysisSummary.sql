@@ -21,6 +21,7 @@
     3    01/09/2025   Moin Bloch		Update Added StandardHours,StandardMinute,VarianceHours,VarianceMinute
 	4    01/29/2025   Moin Bloch		Update SET Hours
 	5    07/11/2025   Devendra Shekh    added PartNumberLabel
+	6    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
      
  EXECUTE USP_GetWorkOrderLaborAnalysisSummary 9752, 0,false
 
@@ -87,7 +88,7 @@ SET NOCOUNT ON
 							JOIN dbo.WorkOrderStatus st WITH (NOLOCK) ON st.Id = wop.WorkOrderStatusId
 							LEFT JOIN [dbo].StockLine sl WITH(NOLOCK) ON wop.StockLineId = sl.StockLineId
 						WHERE wowf.WorkOrderId = @WorkOrderId AND wlh.IsDeleted = 0 AND wlh.IsActive = 1 AND BillableId = 1
-						GROUP BY im.partnumber,im.PartDescription,im.RevisedPart,wop.Id,BillableId,
+						 AND ISNULL(im.IsNonStock,0) = 0 GROUP BY im.partnumber,im.PartDescription,im.RevisedPart,wop.Id,BillableId,
 						 c.[Name],wo.WorkOrderNum,ws.Stage,st.[Description],CTE.AdjustedHours,wop.RevisedPartNumber,wop.RevisedSerialNumber,sl.ControlNumber
 					END
 					if(@workOrderPartNoId > 0)
@@ -180,7 +181,7 @@ SET NOCOUNT ON
 								JOIN dbo.WorkOrderStatus st WITH (NOLOCK) ON st.Id = wop.WorkOrderStatusId
 								LEFT JOIN [dbo].StockLine sl WITH(NOLOCK) ON wop.StockLineId = sl.StockLineId
 							WHERE wowf.WorkOrderId = @WorkOrderId AND wop.ID = @workOrderPartNoId AND wlh.IsDeleted = 0 AND wlh.IsActive = 1 AND BillableId = 1
-							GROUP BY im.partnumber,im.PartDescription,im.RevisedPart,BillableId,
+							 AND ISNULL(im.IsNonStock,0) = 0 GROUP BY im.partnumber,im.PartDescription,im.RevisedPart,BillableId,
 								c.[Name],wo.WorkOrderNum,ws.Stage,st.[Description],CTE.AdjustedHours,wop.RevisedPartNumber,wop.RevisedSerialNumber,sl.ControlNumber
 					END
 

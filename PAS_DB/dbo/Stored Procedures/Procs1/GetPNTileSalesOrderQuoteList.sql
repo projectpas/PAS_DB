@@ -18,6 +18,7 @@
 	3    11/05/2024	  Vishal Suthar			Modified to make use of new SO Part tables
 	4    12/12/2024	  Vishal Suthar			Fixed an issue with SOQ History Unit Price and Unit Price Extended
 	5    31/12/2025	  Bhargav Saliya		Fixed an issue (PN-15053)
+	6    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 
 **************************************************************/
 CREATE      PROCEDURE [dbo].[GetPNTileSalesOrderQuoteList]
@@ -108,7 +109,7 @@ BEGIN
 			    LEFT JOIN [dbo].[SalesOrderQuotePartV1] SP WITH (NOLOCK) ON SOQ.SalesOrderQuoteId = SP.SalesOrderQuoteId and SP.IsDeleted = 0
 			    LEFT JOIN [dbo].[SalesOrderQuotePartCost] SPC WITH (NOLOCK) ON SPC.SalesOrderQuotePartId = SP.SalesOrderQuotePartId
 			    LEFT JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON IM.ItemMasterId = SP.ItemMasterId
-				LEFT JOIN [dbo].[Condition] CO WITH (NOLOCK) ON CO.ConditionId = SP.ConditionId
+				 AND ISNULL(IM.IsNonStock,0) = 0 LEFT JOIN [dbo].[Condition] CO WITH (NOLOCK) ON CO.ConditionId = SP.ConditionId
 		 	    LEFT JOIN [dbo].[SalesOrder] SOD WITH (NOLOCK) on SOD.SalesOrderQuoteId = SOQ.SalesOrderQuoteId AND SOD.SalesOrderQuoteId IS NOT NULL
 			    LEFT JOIN [dbo].[SalesOrderPartV1] SOP WITH (NOLOCK) on SOP.SalesOrderQuotePartId = SP.SalesOrderQuotePartId AND SOP.SalesOrderQuotePartId IS NOT NULL
 			    LEFT JOIN [dbo].[SalesOrderPartCost] SOPC WITH (NOLOCK) on SOPC.SalesOrderPartId = SOP.SalesOrderPartId

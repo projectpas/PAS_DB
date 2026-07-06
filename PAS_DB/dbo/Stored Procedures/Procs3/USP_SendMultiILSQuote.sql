@@ -19,6 +19,7 @@
 	6    15/08/2025   Moin Bloch        Added @SoqId OUTPUT Param
 	7	 21-08-2025   Devendra Shekh	Checking customerId in CustomerRFQ for @CustomerId
 	8	 22-08-2025   Devendra Shekh	Modified (set @QuoteReviewRequiredId based on Review Required)
+	9    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 -- EXEC USP_SendMultiILSQuote
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[USP_SendMultiILSQuote]
@@ -171,7 +172,7 @@ BEGIN
 										FROM [dbo].[CustomerRfqQuoteDetails] WHERE [CustomerRfqQuoteId] = @CustomerRfqQuoteId;
 
 
-				SELECT @ItemMasterId = [ItemMasterId] FROM [dbo].[ItemMaster] WITH(NOLOCK) WHERE LOWER(TRIM([PartNumber])) = LOWER(TRIM(@PartNumber)) AND MasterCompanyId = @MasterCompanyId;
+				SELECT @ItemMasterId = [ItemMasterId] FROM [dbo].[ItemMaster] WITH(NOLOCK) WHERE LOWER(TRIM([PartNumber])) = LOWER(TRIM(@PartNumber)) AND MasterCompanyId = @MasterCompanyId AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 ;
 				SELECT @CustomerId = [CustomerId] FROM [dbo].[Customer] WITH(NOLOCK) WHERE LOWER(TRIM([Name])) = LOWER(TRIM(@BuyerCompanyName)) AND MasterCompanyId = @MasterCompanyId;	
 				SET @CustomerId = CASE WHEN ISNULL(@RfqCustomerId, 0) > 0 THEN @RfqCustomerId ELSE @CustomerId END;
 
@@ -277,7 +278,7 @@ BEGIN
 					LEFT JOIN [dbo].CustomerRfqPartMapping RFQP WITH(NOLOCK) ON RFQP.[CustomerRfqPartMappingId] = TMP.[CustomerRfqPartMappingId]
 					LEFT JOIN dbo.[ItemMaster] IM WITH(NOLOCK) ON LOWER(TRIM(IM.partnumber)) = LOWER(TRIM(RFQP.PartNumber)) AND IM.MasterCompanyId = @MasterCompanyId					
 
-					INSERT  INTO @EmailRfqQuoteDetails
+					 AND ISNULL(IM.IsNonStock,0) = 0 INSERT  INTO @EmailRfqQuoteDetails
 					([CustomerRfqQuoteDetailsId],[CustomerRfqQuoteId],[IlsQty],[IlsTraceability],[IlsUom],[IlsPrice],[IlsPriceType],[IlsTagDate],[IlsLeadTime],[IlsMinQty],[IlsComment],[IlsCondition],[ConditionId],[ItemMasterId])
 					SELECT RFQD.[CustomerRfqQuoteDetailsId],RFQD.[CustomerRfqQuoteId],RFQD.[IlsQty],NULL,NULL,RFQD.[IlsPrice],RFQD.[IlsPriceType],RFQD.[IlsTagDate],NULL,RFQD.[IlsMinQty],NULL,NULL,TMP.ConditionId,[ItemMasterId]
 					FROM [dbo].[CustomerRfqQuoteDetails] RFQD
@@ -285,7 +286,7 @@ BEGIN
 					LEFT JOIN #RfqMultiQuoteDetail TMP ON QD.[CustomerRfqId] = TMP.[CustomerRfqId] AND RFQD.[CustomerRfqPartMappingId] = TMP.[CustomerRfqPartMappingId]
 					WHERE RFQD.[CustomerRfqQuoteId] = @CustomerRfqQuoteId --AND TMP.ID = @MinRFQId;
 
-					--SELECT @ItemMasterId = [ItemMasterId] FROM [dbo].[ItemMaster] WITH(NOLOCK) WHERE LOWER(TRIM([PartNumber])) = LOWER(TRIM(@PartNumber));
+					--SELECT @ItemMasterId = [ItemMasterId] FROM [dbo].[ItemMaster] WITH(NOLOCK) WHERE LOWER(TRIM([PartNumber])) = LOWER(TRIM(@PartNumber)) AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 ;
 					SELECT @CustomerId = [CustomerId] FROM [dbo].[Customer] WITH(NOLOCK) WHERE LOWER(TRIM([Name])) = LOWER(TRIM(@BuyerCompanyName)) AND MasterCompanyId = @MasterCompanyId;	
 					SET @CustomerId = CASE WHEN ISNULL(@RfqCustomerId, 0) > 0 THEN @RfqCustomerId ELSE @CustomerId END;
 

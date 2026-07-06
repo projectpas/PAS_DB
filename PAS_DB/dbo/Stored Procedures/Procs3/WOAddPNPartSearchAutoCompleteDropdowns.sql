@@ -18,6 +18,7 @@
     1    17/11/2021   Hemant Saliya  Created
 	2    20/03/2023   Amit Ghediya   Update Length of #tempTable label 50 to 256
 	3	 18/11/2024   Amit Ghediya	 Updated serach with same text.
+	4    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
      
 --EXEC [WOPartSearchAutoCompleteDropdowns] 5
 **************************************************************/
@@ -70,7 +71,7 @@ CREATE     PROCEDURE [dbo].[WOAddPNPartSearchAutoCompleteDropdowns]
 		SELECT DISTINCT 
 			im.ItemMasterId AS PartId,
 			im.partnumber AS PartNumber,
-			im.partnumber + (CASE WHEN (SELECT COUNT(ISNULL(SD.[ManufacturerId], 0)) FROM [dbo].[ItemMaster]  SD WITH(NOLOCK)  WHERE im.partnumber = SD.partnumber AND SD.MasterCompanyId = @MasterCompanyId) > 1 then ' - '+ im.ManufacturerName ELSE '' END) AS Label,
+			im.partnumber + (CASE WHEN (SELECT COUNT(ISNULL(SD.[ManufacturerId], 0)) FROM [dbo].[ItemMaster]  SD WITH(NOLOCK)  WHERE im.partnumber = SD.partnumber AND SD.MasterCompanyId = @MasterCompanyId AND ISNULL(SD.IsNonStock,0) = 0 ) > 1 then ' - '+ im.ManufacturerName ELSE '' END) AS Label,
 			im.PartDescription AS PartDescription,
 			im.ManufacturerName as ManufacturerName,
 			(CASE WHEN im.IsPma= 1 AND im.IsDER = 1 THEN 'PMA&DER' 
@@ -86,13 +87,13 @@ CREATE     PROCEDURE [dbo].[WOAddPNPartSearchAutoCompleteDropdowns]
 			AND (@partSarchText IS NULL OR im.partnumber LIKE @partSarchText +'%')
 			AND im.IsOEM = 1 AND IsDER = 0
 		--FOR PMA
-		IF( @RestrictPMA <> 1	)
+		 AND ISNULL(im.IsNonStock,0) = 0 IF( @RestrictPMA <> 1	)
 		BEGIN
 		INSERT INTO #TempTable (PartId, PartNumber,Label,PartDescription,ManufacturerName, StockType)
 		SELECT DISTINCT 
 			im.ItemMasterId AS PartId,
 			im.partnumber AS PartNumber,
-			im.partnumber + (CASE WHEN (SELECT COUNT(ISNULL(SD.[ManufacturerId], 0)) FROM [dbo].[ItemMaster]  SD WITH(NOLOCK)  WHERE im.partnumber = SD.partnumber AND SD.MasterCompanyId = @MasterCompanyId) > 1 then ' - '+ im.ManufacturerName ELSE '' END) AS Label,
+			im.partnumber + (CASE WHEN (SELECT COUNT(ISNULL(SD.[ManufacturerId], 0)) FROM [dbo].[ItemMaster]  SD WITH(NOLOCK)  WHERE im.partnumber = SD.partnumber AND SD.MasterCompanyId = @MasterCompanyId AND ISNULL(SD.IsNonStock,0) = 0 ) > 1 then ' - '+ im.ManufacturerName ELSE '' END) AS Label,
 			im.PartDescription AS PartDescription,
 			im.ManufacturerName as ManufacturerName,
 			(CASE WHEN im.IsPma= 1 AND im.IsDER = 1 THEN 'PMA&DER' 
@@ -107,7 +108,7 @@ CREATE     PROCEDURE [dbo].[WOAddPNPartSearchAutoCompleteDropdowns]
 			AND im.MasterCompanyId = @MasterCompanyId
 			AND (@partSarchText IS NULL OR im.partnumber LIKE @partSarchText +'%')
 			AND im.IsPma  =  1	AND IsDER = 0
-        END
+         AND ISNULL(im.IsNonStock,0) = 0 END
 		
 		--FOR DER
 		IF( @RestrictDER <> 1	)
@@ -116,7 +117,7 @@ CREATE     PROCEDURE [dbo].[WOAddPNPartSearchAutoCompleteDropdowns]
 		SELECT DISTINCT 
 			im.ItemMasterId AS PartId,
 			im.partnumber AS PartNumber,
-			im.partnumber + (CASE WHEN (SELECT COUNT(ISNULL(SD.[ManufacturerId], 0)) FROM [dbo].[ItemMaster]  SD WITH(NOLOCK)  WHERE im.partnumber = SD.partnumber AND SD.MasterCompanyId = @MasterCompanyId) > 1 then ' - '+ im.ManufacturerName ELSE '' END) AS Label,
+			im.partnumber + (CASE WHEN (SELECT COUNT(ISNULL(SD.[ManufacturerId], 0)) FROM [dbo].[ItemMaster]  SD WITH(NOLOCK)  WHERE im.partnumber = SD.partnumber AND SD.MasterCompanyId = @MasterCompanyId AND ISNULL(SD.IsNonStock,0) = 0 ) > 1 then ' - '+ im.ManufacturerName ELSE '' END) AS Label,
 			im.PartDescription AS PartDescription,
 			im.ManufacturerName as ManufacturerName,
 			(CASE WHEN im.IsPma= 1 AND im.IsDER = 1 THEN 'PMA&DER' 
@@ -131,7 +132,7 @@ CREATE     PROCEDURE [dbo].[WOAddPNPartSearchAutoCompleteDropdowns]
 			AND im.MasterCompanyId = @MasterCompanyId
 			AND (@partSarchText IS NULL OR im.partnumber LIKE @partSarchText +'%')
 			AND im.IsDER  = 1	
-        END
+         AND ISNULL(im.IsNonStock,0) = 0 END
 
 		--IF( @IncludePMA = 1)
 		--BEGIN 
@@ -187,7 +188,8 @@ CREATE     PROCEDURE [dbo].[WOAddPNPartSearchAutoCompleteDropdowns]
 		--	AND (@partSarchText IS NULL OR im.partnumber LIKE @partSarchText +'%')
 		--END 
 		
-		INSERT INTO #Result 
+		 WHERE ISNULL(im.IsNonStock,0) = 0
+INSERT INTO #Result 
 				SELECT 
 				DISTINCT TOP 20 * 
 				FROM #TempTable t
@@ -199,7 +201,7 @@ CREATE     PROCEDURE [dbo].[WOAddPNPartSearchAutoCompleteDropdowns]
 			SELECT DISTINCT 
 					im.ItemMasterId AS PartId,
 					im.partnumber AS PartNumber,
-					im.partnumber + (CASE WHEN (SELECT COUNT(ISNULL(SD.[ManufacturerId], 0)) FROM [dbo].[ItemMaster]  SD WITH(NOLOCK)  WHERE im.partnumber = SD.partnumber AND SD.MasterCompanyId = @MasterCompanyId) > 1 then ' - '+ im.ManufacturerName ELSE '' END) AS Label,
+					im.partnumber + (CASE WHEN (SELECT COUNT(ISNULL(SD.[ManufacturerId], 0)) FROM [dbo].[ItemMaster]  SD WITH(NOLOCK)  WHERE im.partnumber = SD.partnumber AND SD.MasterCompanyId = @MasterCompanyId AND ISNULL(SD.IsNonStock,0) = 0 ) > 1 then ' - '+ im.ManufacturerName ELSE '' END) AS Label,
 			        im.PartDescription AS PartDescription,
 			        im.ManufacturerName as ManufacturerName,
 					(CASE WHEN im.IsPma= 1 AND im.IsDER = 1 THEN 'PMA&DER' 
@@ -209,7 +211,7 @@ CREATE     PROCEDURE [dbo].[WOAddPNPartSearchAutoCompleteDropdowns]
 					END) AS StockType
 			FROM DBO.ItemMaster im WITH(NOLOCK)
 			WHERE im.ItemMasterId IN (SELECT Item FROM DBO.SPLITSTRING(@Idlist,','))
-		END
+		 AND ISNULL(im.IsNonStock,0) = 0 END
 
 		SELECT DISTINCT TOP 20 
 			r.PartId,

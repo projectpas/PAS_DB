@@ -15,6 +15,7 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    11/14/2022   Subhash Saliya Created
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
      
 --EXEC [GetScrapDeatilsList] 16, 10048,'STL-000030'
 **************************************************************/
@@ -65,7 +66,7 @@ BEGIN
 				LEFT JOIN employee EM WITH (NOLOCK) ON EM.EmployeeId=SC.ScrapedByEmployeeId 
 				LEFT JOIN employee EMc WITH (NOLOCK) ON EMc.EmployeeId=SC.CertifiedById 
 			    Where WOPN.ID=@workOrderPartNoId and WO.WorkOrderId=@workOrderId 
-			END
+			 AND ISNULL(IM.IsNonStock,0) = 0 END
 			BEGIN
 			SELECT WO.WorkOrderNum as WorkOrderNumber
 				,WO.CustomerName CustomerName
@@ -101,7 +102,7 @@ BEGIN
 				LEFT JOIN employee EM WITH (NOLOCK) ON EM.EmployeeId=SC.ScrapedByEmployeeId 
 				LEFT JOIN employee EMc WITH (NOLOCK) ON EMc.EmployeeId=SC.CertifiedById 
 			    Where SWOPN.SubWOPartNoId=@workOrderPartNoId and SWO.SubWorkOrderId=@workOrderId and SC.isSubWorkOrder= 1 
-			END
+			 AND ISNULL(IM.IsNonStock,0) = 0 END
 
 				
 

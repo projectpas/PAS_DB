@@ -15,6 +15,7 @@
     1    16/08/2023   Ekta Chandegra     Convert text into uppercase   
 	2    25/09/2023   Rajesh Gami	     Add Exchange Vendor Related Change(Add new Vendor Join and return flag IsVendor)
 	3	 23-Jan-2025  Ayushi Patel		 converted the date into utc (created , updated) , Added a case to get timeZone
+	4    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 **************************************************************/   
 CREATE   PROCEDURE [dbo].[SearchExchangeSalesOrderData]
 -- Add the parameters for the stored procedure here
@@ -170,7 +171,7 @@ BEGIN
 			LEFT JOIN  [dbo].[ExchangeSalesOrderPart] SP WITH (NOLOCK) on EQ.ExchangeSalesOrderId = SP.ExchangeSalesOrderId and SP.IsDeleted = 0
 			LEFT JOIN  [dbo].[ExchangeQuote] EXQ WITH (NOLOCK) on EXQ.ExchangeQuoteId = EQ.ExchangeQuoteId
 			LEFT JOIN  [dbo].[ItemMaster] IM WITH (NOLOCK) on Im.ItemMasterId = SP.ItemMasterId
-			LEFT JOIN  [dbo].[Employee] E WITH (NOLOCK) on  E.EmployeeId = EQ.SalesPersonId
+			 AND ISNULL(IM.IsNonStock,0) = 0 LEFT JOIN  [dbo].[Employee] E WITH (NOLOCK) on  E.EmployeeId = EQ.SalesPersonId
 			LEFT JOIN  [dbo].[Priority] P WITH (NOLOCK) on EXQ.PriorityId=P.PriorityId			
 			INNER JOIN [dbo].[ExchangeManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ModuleID = @MSModuleID AND MSD.ReferenceID = EQ.ExchangeSalesOrderId
 			INNER JOIN [dbo].[RoleManagementStructure] RMS WITH (NOLOCK) ON EQ.ManagementStructureId = RMS.EntityStructureId

@@ -15,6 +15,7 @@
  ** PR   Date         Author			Change Description
  ** --   --------     -------			--------------------------------   
 	1    07-02-2025   Vishal Suthar		Created
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 
 exec sp_executesql N'EXEC USP_CopyWorkFlowDetailsToSubWorkOrder @WorkOrderId,@WorkflowId,@WorkOrderPartNumberId,@MasterCompanyId,@CreatedBy, @CreatedById, 
 @ListItem ',N'@WorkOrderId bigint,@WorkflowId bigint,@WorkOrderPartNumberId bigint,@MasterCompanyId int,@CreatedBy nvarchar(16),@CreatedById bigint,@listItem nvarchar(28)',
@@ -608,7 +609,7 @@ SET NOCOUNT ON;
 									FROM ItemMaster WITH (NOLOCK)
 									WHERE ItemMasterId = @ItemMasterId AND (ISNULL(IsDER, 0) = 1 OR ISNULL(IsPMA, 0) = 1)
 
-									IF(ISNULL(@PartNumber, '') <> '')
+									 AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 IF(ISNULL(@PartNumber, '') <> '')
 										SET @PartIgnored = @PartIgnored + @PartNumber + ', '
 								END
 
@@ -618,7 +619,7 @@ SET NOCOUNT ON;
 									FROM ItemMaster WITH (NOLOCK)
 									WHERE ItemMasterId = @ItemMasterId AND ISNULL(IsPMA, 0) = 1
 
-									IF(ISNULL(@PartNumber, '') <> '')
+									 AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 IF(ISNULL(@PartNumber, '') <> '')
 										SET @PartIgnored = @PartIgnored + @PartNumber + ', '
 								END
 
@@ -628,7 +629,7 @@ SET NOCOUNT ON;
 									FROM ItemMaster WITH (NOLOCK)
 									WHERE ItemMasterId = @ItemMasterId AND ISNULL(IsDER, 0) = 1
 
-									IF(ISNULL(@PartNumber, '') <> '')
+									 AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 IF(ISNULL(@PartNumber, '') <> '')
 										SET @PartIgnored = @PartIgnored + @PartNumber + ', '
 								END
 
@@ -748,17 +749,17 @@ SET NOCOUNT ON;
 
 								IF (@IsDER = 1 AND @IsPMA = 1)
 								BEGIN
-									IF EXISTS (SELECT 1 FROM DBO.ItemMaster WITH (NOLOCK) WHERE ItemMasterId = @ItemMasterId AND (ISNULL(IsDER, 0) = 1 OR ISNULL(IsPMA, 0) = 1))
+									IF EXISTS (SELECT 1 FROM DBO.ItemMaster WITH (NOLOCK) WHERE ItemMasterId = @ItemMasterId AND (ISNULL(IsDER, 0) = 1 OR ISNULL(IsPMA, 0) = 1) AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 )
 										SET @IsIgnorePartExist = 1
 								END
 								ELSE IF (@IsDER = 0 AND @IsPMA = 1)
 								BEGIN
-									IF EXISTS (SELECT 1 FROM DBO.ItemMaster WITH (NOLOCK) WHERE ItemMasterId = @ItemMasterId AND ISNULL(IsPMA, 0) = 1)
+									IF EXISTS (SELECT 1 FROM DBO.ItemMaster WITH (NOLOCK) WHERE ItemMasterId = @ItemMasterId AND ISNULL(IsPMA, 0) = 1 AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 )
 										SET @IsIgnorePartExist = 1
 								END
 								ELSE IF (@IsDER = 1 AND @IsPMA = 0)
 								BEGIN
-									IF EXISTS (SELECT 1 FROM DBO.ItemMaster WITH (NOLOCK) WHERE ItemMasterId = @ItemMasterId AND ISNULL(IsDER, 0) = 1)
+									IF EXISTS (SELECT 1 FROM DBO.ItemMaster WITH (NOLOCK) WHERE ItemMasterId = @ItemMasterId AND ISNULL(IsDER, 0) = 1 AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 )
 										SET @IsIgnorePartExist = 1
 								END
 

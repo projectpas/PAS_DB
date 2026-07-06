@@ -14,6 +14,7 @@
  ** --   --------         -------		     ----------------------------       
     1    20-03-2025     Ayushi Patel          Created
     2	 20-JAN-2026    Priyansh Patel  	  Added CSN, TSN, CSO, TSO fields
+	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 
 	USP_GetReceivingCustomerWorkAuditById 4203,229
 **************************************************************/
@@ -127,8 +128,8 @@ BEGIN
             LEFT JOIN dbo.Contact con WITH (NOLOCK) ON cc.ContactId = con.ContactId
             LEFT JOIN dbo.TimeLife ti WITH (NOLOCK) ON stl.TimeLifeCyclesId = ti.TimeLifeCyclesId
             LEFT JOIN dbo.ItemMaster rp WITH (NOLOCK) ON stl.RevisePartId = rp.ItemMasterId
-            WHERE stl.ReceivingCustomerWorkId = @ReceivingCustomerWorkId
-            ORDER BY stl.AuditReceivingCustomerWorkId DESC;
+             AND ISNULL(rp.IsNonStock,0) = 0 WHERE stl.ReceivingCustomerWorkId = @ReceivingCustomerWorkId
+             AND ISNULL(im.IsNonStock,0) = 0 ORDER BY stl.AuditReceivingCustomerWorkId DESC;
         END
         COMMIT TRANSACTION;
     

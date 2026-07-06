@@ -18,6 +18,7 @@
  ** 8       15-Oct-2025     Devendra Shekh	    Added [ReferenceNumber]
  
 EXECUTE [dbo].[usp_GetCustomerRFQbyId] 1007
+	1    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 **************************************************************/  
 CREATE   PROCEDURE [dbo].[usp_GetCustomerRfqById]
 @CustomerRfqId BIGINT = NULL
@@ -52,7 +53,7 @@ SET NOCOUNT ON
 			INTO #ItemResults
 			FROM [dbo].[ItemMaster] RIM WITH(NOLOCK) 
 			WHERE RIM.[MasterCompanyId] = @MasterCompanyId AND RIM.IsActive = 1 AND RIM.IsDeleted = 0
-			GROUP BY RIM.partnumber, RIM.MasterCompanyId
+			 AND ISNULL(RIM.IsNonStock,0) = 0 GROUP BY RIM.partnumber, RIM.MasterCompanyId
 
 			SELECT  MAX(STK.StockLineId) AS StockLineId, STK.ItemMasterId, STK.MasterCompanyId  
 			INTO #StkResults

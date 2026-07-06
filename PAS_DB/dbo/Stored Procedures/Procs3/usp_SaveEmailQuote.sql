@@ -24,6 +24,7 @@
    12	 22-Aug-2025    Devendra Shekh		Modified (set @QuoteReviewRequiredId based on Review Required)
    13    26 Aug 2025	Devendra Shekh		Modified (added @EmployeeId Param)
    14	 09-Jan-2026    Amit Ghediya	    Modified (Update custoemrcontactid when manual create soq)
+	15    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[usp_SaveEmailQuote]
 	@tbl_EmailRfqQuoteDetailsType EmailRfqQuoteDetailsType READONLY,
@@ -184,7 +185,7 @@ BEGIN
 				LEFT JOIN dbo.[ItemMaster] IM WITH(NOLOCK) ON LOWER(TRIM(IM.partnumber)) = LOWER(TRIM(CRPM.PartNumber)) AND IM.MasterCompanyId = CRPM.MasterCompanyId AND IM.IsActive = 1 AND IM.IsDeleted = 0
 				
 				--Create SOQ
-				SELECT @PartNumber = [LinePartNumber], @BuyerCompanyName = [BuyerCompanyName], @SourceBy = ISNULL([Type],''),  @MarketplaceRef = ISNULL(RfqId,''), @RfqCustomerId = [CustomerId] FROM [dbo].[CustomerRfq] WITH(NOLOCK) WHERE [CustomerRfqId] = @CustomerRfqId;
+				 AND ISNULL(IM.IsNonStock,0) = 0 SELECT @PartNumber = [LinePartNumber], @BuyerCompanyName = [BuyerCompanyName], @SourceBy = ISNULL([Type],''),  @MarketplaceRef = ISNULL(RfqId,''), @RfqCustomerId = [CustomerId] FROM [dbo].[CustomerRfq] WITH(NOLOCK) WHERE [CustomerRfqId] = @CustomerRfqId;
 
 				--Declare type
 				DECLARE @EmailRfqQuoteDetails IlsRfqQuoteDetailsType;
@@ -195,7 +196,7 @@ BEGIN
 				FROM #tmpCustomerRfqQuoteDetails;
 				--FROM [dbo].[CustomerRfqQuoteDetails] WITH(NOLOCK) WHERE [CustomerRfqQuoteId] = @CustomerRfqQuoteId;
 
-				SELECT @ItemMasterId = [ItemMasterId] FROM [dbo].[ItemMaster] WITH(NOLOCK) WHERE LOWER(TRIM([PartNumber])) = LOWER(TRIM(@PartNumber)) AND [MasterCompanyId] = @MasterCompanyId AND IsActive = 1 AND IsDeleted = 0;
+				SELECT @ItemMasterId = [ItemMasterId] FROM [dbo].[ItemMaster] WITH(NOLOCK) WHERE LOWER(TRIM([PartNumber])) = LOWER(TRIM(@PartNumber)) AND [MasterCompanyId] = @MasterCompanyId AND IsActive = 1 AND IsDeleted = 0 AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 ;
 				SELECT @CustomerId = [CustomerId] FROM [dbo].[Customer] WITH(NOLOCK) WHERE LOWER(TRIM([Name])) = LOWER(TRIM(@BuyerCompanyName)) AND [MasterCompanyId] = @MasterCompanyId AND IsActive = 1 AND IsDeleted = 0;						
 				SET @CustomerId = CASE WHEN ISNULL(@RfqCustomerId, 0) > 0 THEN @RfqCustomerId ELSE @CustomerId END;
 

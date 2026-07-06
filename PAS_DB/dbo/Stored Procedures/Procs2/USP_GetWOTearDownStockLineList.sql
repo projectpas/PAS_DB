@@ -24,6 +24,7 @@
 	12   02/June/2026 Vishal Suthar				Uncommented @DocumentTypeId condition and add document type name (FAA 8130 CERT)
 	13   03/June/2026 Ayushi Patel				[PN-16684] Modified logic to return @DocumentTypeId based on the Code (FAA8130CERT) from the DocumentType table
 	14    22/06/2026   Sumit Kumar            	Selected Stockline Lot number [PN-16570]
+	15    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 exec USP_GetWOTearDownStockLineList 
 @PageNumber=1,@PageSize=10,@SortColumn=N'CreatedDate',@SortOrder=-1,@GlobalFilter=N'',@StatusId=1,@PartNumber=NULL,@PartDescription=NULL,
 @Manufacturer=NULL,@StockLineNumber=NULL,@SerialNumber=NULL,@ControlNumber=NULL,@IdNumber=NULL,@UnitCost=NULL,@QtyOnHand=NULL,
@@ -137,7 +138,7 @@ BEGIN
 				INNER JOIN [dbo].[WorkOrder] WO WITH (NOLOCK) ON WO.WorkOrderId = SL.WorkOrderId
 				INNER JOIN [dbo].[WorkOrderPartNumber] WOP WITH (NOLOCK) ON WO.WorkOrderId = WOP.WorkOrderId AND WOP.ID = @WorkOrderPartNumberId
 				LEFT JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON SL.ItemMasterId = IM.ItemMasterId
-				LEFT JOIN [dbo].[Lot] L WITH (NOLOCK) ON L.LotId = SL.LotId
+				 AND ISNULL(IM.IsNonStock,0) = 0 LEFT JOIN [dbo].[Lot] L WITH (NOLOCK) ON L.LotId = SL.LotId
 				
 		 	  WHERE ((SL.IsDeleted=@IsDeleted) AND (@IsActive IS NULL OR SL.IsActive=@IsActive))			     
 					AND SL.MasterCompanyId=@MasterCompanyId AND SL.WorkOrderId = @WorkOrderId AND SL.IsTurnIn = 1

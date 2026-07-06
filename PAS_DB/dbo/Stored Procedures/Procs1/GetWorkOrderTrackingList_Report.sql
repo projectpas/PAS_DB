@@ -20,6 +20,7 @@
 	4   27-AUG-2024     Devendra Shekh      date issue resolved
 	5   23-Oct-2024     Sahdev Saliya       Added new field WO Number in the Work Order Management Report for filter  
 	3   18/04/2025      Ayushi              Added the condition for pn , pndescription
+	6    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 EXECUTE   [dbo].[usprpt_GetWorkOrderBacklogReport] 'WO Opened','','','','1','1,4,43,44,45,80,84,88','46,47,66','48,49,50,58,59,67,68,69','51,52,53,54,55,56,57,60'
 **************************************************************/
 CREATE     PROCEDURE [dbo].[GetWorkOrderTrackingList_Report] 
@@ -151,7 +152,7 @@ BEGIN
 				AND (ISNULL(@Level8,'') ='' OR MSD.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,',')))
 				AND (ISNULL(@Level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))
 				AND  (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))
-		 END
+		  AND ISNULL(IM.IsNonStock,0) = 0 END
 
 		SET @PageSize = CASE WHEN NULLIF(@PageSize,0) IS NULL THEN 10 ELSE @PageSize END
 		SET @PageNumber = CASE WHEN NULLIF(@PageNumber,0) IS NULL THEN 1 ELSE @PageNumber END
@@ -222,7 +223,7 @@ BEGIN
 			JOIN dbo.WorkOrderStatus WOS WITH(NOLOCK) ON WOS.Id = WPN.WorkOrderStatusId  
 			JOIN dbo.ItemMaster IM WITH(NOLOCK) ON IM.ItemMasterId = WPN.ItemMasterId 
 			LEFT JOIN [dbo].[ItemMaster] RIM WITH (NOLOCK) ON WPN.RevisedItemmasterid = RIM.ItemMasterId
-			LEFT JOIN dbo.Stockline STL WITH(NOLOCK) ON WPN.StockLineId = STL.StockLineId
+			 AND ISNULL(RIM.IsNonStock,0) = 0 LEFT JOIN dbo.Stockline STL WITH(NOLOCK) ON WPN.StockLineId = STL.StockLineId
 			LEFT JOIN dbo.WorkOrderSettings wost WITH(NOLOCK) ON wost.MasterCompanyId = WO.MasterCompanyId AND WO.WorkOrderTypeId = wost.WorkOrderTypeId
 			JOIN dbo.Priority PR WITH(NOLOCK) ON WPN.WorkOrderPriorityId = PR.PriorityId  
 			INNER JOIN dbo.WorkOrderStage WOSG WITH(NOLOCK) ON WTT.CurrentStageId = WOSG.WorkOrderStageId and wosg.IncludeInStageReport=1   
@@ -249,7 +250,7 @@ BEGIN
 				AND (ISNULL(@Level8,'') ='' OR MSD.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,',')))
 				AND (ISNULL(@Level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))
 				AND  (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))
-			 GROUP BY WPN.ID, WTT.CurrentStageId,WO.WorkOrderId  ORDER BY Max(WOSG.Sequence),WTT.CurrentStageId,WO.WorkOrderId Desc
+			  AND ISNULL(IM.IsNonStock,0) = 0 GROUP BY WPN.ID, WTT.CurrentStageId,WO.WorkOrderId  ORDER BY Max(WOSG.Sequence),WTT.CurrentStageId,WO.WorkOrderId Desc
 			OFFSET((@PageNumber-1) * @pageSize) ROWS FETCH NEXT @pageSize ROWS ONLY;
 
     COMMIT TRANSACTION

@@ -4,6 +4,13 @@
 -- Description:	Update name columns into corrosponding reference Id values from respective master table
 -- =============================================
 --  EXEC [dbo].[UpdateSpeedQuoteNameColumnsWithId] 166
+/***************************************************************************************************************************************
+  ** Change History
+ ***************************************************************************************************************************************
+ ** PR   Date						 Author							Change Description
+ ** --   --------					 -------						-------------------------------
+	1    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+****************************************************************************************************************************************/
 CREATE PROCEDURE [dbo].[UpdateSpeedQuoteNameColumnsWithId]
 	@SpeedQuoteId bigint
 AS
@@ -60,7 +67,7 @@ BEGIN
 	StatusName = st.Description
 	FROM [dbo].[SpeedQuotePart] SQP WITH (NOLOCK)
 	LEFT JOIN DBO.ItemMaster im WITH (NOLOCK) ON SQP.ItemMasterId = im.ItemMasterId
-	LEFT JOIN DBO.Currency Curr WITH (NOLOCK) ON Curr.CurrencyId = SQP.CurrencyId
+	 AND ISNULL(im.IsNonStock,0) = 0 LEFT JOIN DBO.Currency Curr WITH (NOLOCK) ON Curr.CurrencyId = SQP.CurrencyId
 	LEFT JOIN DBO.Condition c WITH (NOLOCK) ON SQP.ConditionId = c.ConditionId
 	LEFT JOIN DBO.MasterSalesOrderQuoteStatus st WITH (NOLOCK) ON SQP.StatusId = st.Id
 	LEFT JOIN DBO.MasterSpeedQuoteStatus msoqs WITH (NOLOCK) ON SQP.StatusId = msoqs.Id

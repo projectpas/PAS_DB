@@ -22,6 +22,7 @@
 	10 	 02/12/2024	  Moin Bloch			    Modified (Added [IsFinishGood] For show hide edit SerialNumber icon )
 	11	 02/20/2024   Devendra Shekh			added New Stk Join to read Revised(Update) StockLineNumber 
     12	07/Mar/2025	  Bhargav Saliya			UTC Date Changes
+	13    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 exec USP_GetSubWorkOrderList 
 @PageNumber=1,@PageSize=10,@SortColumn=N'CreatedDate',@SortOrder=-1,@GlobalFilter=N'',@StatusId=1,@SubWorkOrderNo=NULL,
 @MasterPartNo=NULL,@MasterPartDescription=NULL,@Manufacturer=NULL,@WorkScope=NULL,@RevisedPartNo=NULL,@SerialNumber=NULL,
@@ -239,7 +240,7 @@ BEGIN
 
 		 	  WHERE ((SWO.IsDeleted=@IsDeleted) AND (@IsActive IS NULL OR SWO.IsActive=@IsActive))			     
 					AND SWO.MasterCompanyId=@MasterCompanyId AND SWO.WorkOrderId = @WorkOrderId	AND SWO.WorkOrderPartNumberId = @WorkOrderPartNumberId
-			), ResultCount AS(SELECT COUNT(SubWorkOrderId) AS totalItems FROM Result)
+			 AND ISNULL(IM.IsNonStock,0) = 0 ), ResultCount AS(SELECT COUNT(SubWorkOrderId) AS totalItems FROM Result)
 			SELECT * INTO #TempResult FROM  Result
 			 WHERE ((@GlobalFilter <>'' AND (([SubWorkOrderNo] LIKE '%' +@GlobalFilter+'%') OR
 			        ([MasterPartNo] LIKE '%' + @GlobalFilter+'%') OR	

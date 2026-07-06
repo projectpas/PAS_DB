@@ -19,6 +19,7 @@
 	5    08/12/2023   Amit Ghediya          Modify(Added Traceable & Tagged fields)
 	6    04-12-2025	  Amit Ghediya			Added qtyShipped,qtyRemaining for shipping details
 	7    19-Jun-2026  Abhishek Jirawla		Adding IsPiecePart condition in RepairOrderPart table 
+	8    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 
 **************************************************************/
 CREATE  PROCEDURE [dbo].[GetPNTileRepairOrderList]
@@ -134,7 +135,7 @@ BEGIN
 				  AND ROP.ItemMasterId = @ItemMasterId
 				  AND ROP.ItemTypeId = @ItemTypeStock
 				  AND (@ConditionId IS NULL OR ROP.ConditionId IN(SELECT * FROM STRING_SPLIT(@ConditionId , ',')))
-			), ResultCount AS(Select COUNT(RepairOrderId) AS totalItems FROM Result)
+			 AND ISNULL(IM.IsNonStock,0) = 0 ), ResultCount AS(Select COUNT(RepairOrderId) AS totalItems FROM Result)
 			SELECT * INTO #TempResult FROM  Result
 			 WHERE ((@GlobalFilter <>'' AND ((PartNumber LIKE '%' +@GlobalFilter+'%') OR
 					(PartDescription LIKE '%' +@GlobalFilter+'%') OR

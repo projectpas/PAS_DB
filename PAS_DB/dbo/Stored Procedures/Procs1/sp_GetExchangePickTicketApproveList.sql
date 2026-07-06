@@ -11,6 +11,7 @@
  ** PR   Date			Author			Change Description            
  ** --   --------		-------			--------------------------------          
 	1	 11/04/2024		Vishal Suthar	Modified to make use of new SO Part tables
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 
 ************************************************************************/
 CREATE      PROCEDURE [dbo].[sp_GetExchangePickTicketApproveList]
@@ -52,7 +53,7 @@ BEGIN
 		LEFT JOIN Customer cr WITH(NOLOCK) on cr.CustomerId = so.CustomerId  AND ISNULL(SO.IsVendor,0) = 0
 		LEFT JOIN Vendor v WITH(NOLOCK) on so.CustomerId = v.VendorId AND ISNULL(SO.IsVendor,0) = 1
 		where sop.ExchangeSalesOrderId=@ExchangeSalesOrderId AND (sor.QtyToReserve > 0 OR sopt.ExchangeSalesOrderPartId IS NOT NULL)
-		group by sop.ExchangeSalesOrderId,imt.PartNumber,imt.PartDescription,
+		 AND ISNULL(imt.IsNonStock,0) = 0 group by sop.ExchangeSalesOrderId,imt.PartNumber,imt.PartDescription,
 		so.ExchangeSalesOrderNumber,soq.ExchangeQuoteNumber,sop.ItemMasterId,
 		sl.ConditionId, cr.[Name],cr.CustomerCode, sop.ConditionId,SO.IsVendor,v.VendorName,v.VendorCode
 		,sl.isSerialized)

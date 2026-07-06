@@ -1,6 +1,13 @@
 ﻿/* 
 [dbo].[ModuleWiseDataForMigrationByType] 1, 10, 'CreatedDate', -1, 'VRFQPO', 2, 25
 */
+/***************************************************************************************************************************************
+  ** Change History
+ ***************************************************************************************************************************************
+ ** PR   Date						 Author							Change Description
+ ** --   --------					 -------						-------------------------------
+	1    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+****************************************************************************************************************************************/
 CREATE   PROCEDURE [dbo].[ModuleWiseDataForMigrationByType]
 	@PageNumber INT = NULL,
 	@PageSize INT = NULL,
@@ -511,7 +518,7 @@ BEGIN
 				LEFT JOIN dbo.ItemClassification ic ON IMs.ItemClassificationId = ic.ItemClassificationId
 				LEFT JOIN dbo.ItemGroup ig ON IMs.ItemGroupId = ig.ItemGroupId
 				LEFT JOIN dbo.ItemMaster im ON IMs.Migrated_Id = im.ItemMasterId
-				LEFT JOIN dbo.Manufacturer mf ON im.ManufacturerId = mf.ManufacturerId
+				 AND ISNULL(im.IsNonStock,0) = 0 LEFT JOIN dbo.Manufacturer mf ON im.ManufacturerId = mf.ManufacturerId
 		 		  WHERE IMs.MasterCompanyId = @MasterCompanyId
 				), ResultCount AS(Select COUNT(ItemMasterId) AS totalItems FROM Result)
 				SELECT * INTO #TempResult FROM  Result
@@ -580,7 +587,7 @@ BEGIN
 				LEFT JOIN dbo.ItemClassification ic ON IMs.ItemClassificationId = ic.ItemClassificationId
 				LEFT JOIN dbo.ItemGroup ig ON IMs.ItemGroupId = ig.ItemGroupId
 				LEFT JOIN dbo.ItemMaster im ON IMs.Migrated_Id = im.ItemMasterId
-				LEFT JOIN dbo.Manufacturer mf ON im.ManufacturerId = mf.ManufacturerId
+				 AND ISNULL(im.IsNonStock,0) = 0 LEFT JOIN dbo.Manufacturer mf ON im.ManufacturerId = mf.ManufacturerId
 		 		  WHERE IMs.Migrated_Id IS NOT NULL AND IMs.MasterCompanyId = @MasterCompanyId
 				), ResultCount AS(Select COUNT(ItemMasterId) AS totalItems FROM Result)
 				SELECT * INTO #TempResult1 FROM  Result
@@ -648,7 +655,7 @@ BEGIN
 				LEFT JOIN dbo.ItemClassification ic ON IMs.ItemClassificationId = ic.ItemClassificationId
 				LEFT JOIN dbo.ItemGroup ig ON IMs.ItemGroupId = ig.ItemGroupId
 				LEFT JOIN dbo.ItemMaster im ON IMs.Migrated_Id = im.ItemMasterId
-				LEFT JOIN dbo.Manufacturer mf ON im.ManufacturerId = mf.ManufacturerId
+				 AND ISNULL(im.IsNonStock,0) = 0 LEFT JOIN dbo.Manufacturer mf ON im.ManufacturerId = mf.ManufacturerId
 		 		  WHERE IMs.Migrated_Id IS NULL AND (IMs.ErrorMsg IS NOT NULL AND IMs.ErrorMsg NOT like '%Item Master record already exists%') AND IMs.MasterCompanyId = @MasterCompanyId
 				), ResultCount AS(Select COUNT(ItemMasterId) AS totalItems FROM Result)
 				SELECT * INTO #TempResult2 FROM  Result
@@ -716,7 +723,7 @@ BEGIN
 				LEFT JOIN dbo.ItemClassification ic ON IMs.ItemClassificationId = ic.ItemClassificationId
 				LEFT JOIN dbo.ItemGroup ig ON IMs.ItemGroupId = ig.ItemGroupId
 				LEFT JOIN dbo.ItemMaster im ON IMs.Migrated_Id = im.ItemMasterId
-				LEFT JOIN dbo.Manufacturer mf ON im.ManufacturerId = mf.ManufacturerId
+				 AND ISNULL(im.IsNonStock,0) = 0 LEFT JOIN dbo.Manufacturer mf ON im.ManufacturerId = mf.ManufacturerId
 		 		  WHERE IMs.Migrated_Id IS NULL AND (IMs.ErrorMsg IS NOT NULL AND IMs.ErrorMsg like '%Item Master record already exists%') AND IMs.MasterCompanyId = @MasterCompanyId
 				), ResultCount AS(Select COUNT(ItemMasterId) AS totalItems FROM Result)
 				SELECT * INTO #TempResult3 FROM  Result
@@ -822,13 +829,13 @@ BEGIN
 				LEFT JOIN dbo.Stockline stk WITH (NOLOCK) ON stk.StockLineId = Stks.Migrated_Id
 				--LEFT JOIN [Quantum_Staging_BETA].dbo.ItemMasters im WITH (NOLOCK) ON Stks.ItemMasterId = im.ItemMasterId         
 				LEFT JOIN dbo.ItemMaster im_mg WITH (NOLOCK) ON im_mg.ItemMasterId = stk.ItemMasterId         
-				LEFT JOIN dbo.ItemGroup ig WITH (NOLOCK) ON ig.ItemGroupId = im_mg.ItemGroupId
+				 AND ISNULL(im_mg.IsNonStock,0) = 0 LEFT JOIN dbo.ItemGroup ig WITH (NOLOCK) ON ig.ItemGroupId = im_mg.ItemGroupId
 				LEFT JOIN dbo.UnitOfMeasure uom WITH (NOLOCK) ON uom.UnitOfMeasureId = im_mg.PurchaseUnitOfMeasureId
 				LEFT JOIN dbo.Condition cond WITH (NOLOCK) ON cond.ConditionId = stk.ConditionId
 				LEFT JOIN dbo.Manufacturer mf WITH (NOLOCK) ON mf.ManufacturerId = stk.ManufacturerId         
 				LEFT JOIN dbo.[Location] loc WITH (NOLOCK) ON loc.LocationId = stk.LocationId
 				LEFT JOIN dbo.ItemMaster rPart WITH (NOLOCK) ON im_mg.RevisedPartId = rPart.ItemMasterId                  
-		 		  WHERE Stks.MasterCompanyId = @MasterCompanyId
+		 		   AND ISNULL(rPart.IsNonStock,0) = 0 WHERE Stks.MasterCompanyId = @MasterCompanyId
 				), ResultCount AS(Select COUNT(ItemMasterId) AS totalItems FROM Result)
 				SELECT * INTO #TempResultS1 FROM  Result
 
@@ -979,13 +986,13 @@ BEGIN
 				LEFT JOIN dbo.Stockline stk WITH (NOLOCK) ON stk.StockLineId = Stks.Migrated_Id
 				--LEFT JOIN [Quantum_Staging_BETA].dbo.ItemMasters im WITH (NOLOCK) ON Stks.ItemMasterId = im.ItemMasterId         
 				LEFT JOIN dbo.ItemMaster im_mg WITH (NOLOCK) ON im_mg.ItemMasterId = stk.ItemMasterId         
-				LEFT JOIN dbo.ItemGroup ig WITH (NOLOCK) ON ig.ItemGroupId = im_mg.ItemGroupId
+				 AND ISNULL(im_mg.IsNonStock,0) = 0 LEFT JOIN dbo.ItemGroup ig WITH (NOLOCK) ON ig.ItemGroupId = im_mg.ItemGroupId
 				LEFT JOIN dbo.UnitOfMeasure uom WITH (NOLOCK) ON uom.UnitOfMeasureId = im_mg.PurchaseUnitOfMeasureId
 				LEFT JOIN dbo.Condition cond WITH (NOLOCK) ON cond.ConditionId = stk.ConditionId
 				LEFT JOIN dbo.Manufacturer mf WITH (NOLOCK) ON mf.ManufacturerId = stk.ManufacturerId         
 				LEFT JOIN dbo.[Location] loc WITH (NOLOCK) ON loc.LocationId = stk.LocationId
 				LEFT JOIN dbo.ItemMaster rPart WITH (NOLOCK) ON im_mg.RevisedPartId = rPart.ItemMasterId
-		 		  WHERE Stks.Migrated_Id IS NOT NULL AND Stks.MasterCompanyId = @MasterCompanyId
+		 		   AND ISNULL(rPart.IsNonStock,0) = 0 WHERE Stks.Migrated_Id IS NOT NULL AND Stks.MasterCompanyId = @MasterCompanyId
 				), ResultCount AS(Select COUNT(StockLineId) AS totalItems FROM Result)
 				SELECT * INTO #TempResultS2 FROM  Result
 
@@ -1135,14 +1142,14 @@ BEGIN
 				LEFT JOIN dbo.Stockline stk WITH (NOLOCK) ON stk.StockLineId = Stks.Migrated_Id
 				--LEFT JOIN [Quantum_Staging_BETA].dbo.ItemMasters im WITH (NOLOCK) ON Stks.ItemMasterId = im.ItemMasterId         
 				LEFT JOIN dbo.ItemMaster im_mg WITH (NOLOCK) ON im_mg.ItemMasterId = stk.ItemMasterId         
-				LEFT JOIN dbo.ItemGroup ig WITH (NOLOCK) ON ig.ItemGroupId = im_mg.ItemGroupId
+				 AND ISNULL(im_mg.IsNonStock,0) = 0 LEFT JOIN dbo.ItemGroup ig WITH (NOLOCK) ON ig.ItemGroupId = im_mg.ItemGroupId
 				LEFT JOIN dbo.UnitOfMeasure uom WITH (NOLOCK) ON uom.UnitOfMeasureId = im_mg.PurchaseUnitOfMeasureId
 				LEFT JOIN dbo.Condition cond WITH (NOLOCK) ON cond.ConditionId = stk.ConditionId
 				LEFT JOIN dbo.Manufacturer mf WITH (NOLOCK) ON mf.ManufacturerId = stk.ManufacturerId         
 				--LEFT JOIN Quantum.QCTL_NEW_3.Manufacturer mf WITH (NOLOCK) ON mf.MFG_AUTO_KEY = Stks.ManufacturerId         
 				LEFT JOIN dbo.[Location] loc WITH (NOLOCK) ON loc.LocationId = stk.LocationId
 				LEFT JOIN dbo.ItemMaster rPart WITH (NOLOCK) ON im_mg.RevisedPartId = rPart.ItemMasterId
-		 		  WHERE Stks.Migrated_Id IS NULL AND (Stks.ErrorMsg IS NOT NULL AND Stks.ErrorMsg NOT like '%Stockline record already exists%') AND Stks.MasterCompanyId = @MasterCompanyId
+		 		   AND ISNULL(rPart.IsNonStock,0) = 0 WHERE Stks.Migrated_Id IS NULL AND (Stks.ErrorMsg IS NOT NULL AND Stks.ErrorMsg NOT like '%Stockline record already exists%') AND Stks.MasterCompanyId = @MasterCompanyId
 				), ResultCount AS(Select COUNT(ItemMasterId) AS totalItems FROM Result)
 				SELECT * INTO #TempResultS3 FROM  Result
 
@@ -1292,13 +1299,13 @@ BEGIN
 				LEFT JOIN dbo.Stockline stk WITH (NOLOCK) ON stk.StockLineId = Stks.Migrated_Id
 				--LEFT JOIN [Quantum_Staging_BETA].dbo.ItemMasters im WITH (NOLOCK) ON Stks.ItemMasterId = im.ItemMasterId         
 				LEFT JOIN dbo.ItemMaster im_mg WITH (NOLOCK) ON im_mg.ItemMasterId = stk.ItemMasterId         
-				LEFT JOIN dbo.ItemGroup ig WITH (NOLOCK) ON ig.ItemGroupId = im_mg.ItemGroupId
+				 AND ISNULL(im_mg.IsNonStock,0) = 0 LEFT JOIN dbo.ItemGroup ig WITH (NOLOCK) ON ig.ItemGroupId = im_mg.ItemGroupId
 				LEFT JOIN dbo.UnitOfMeasure uom WITH (NOLOCK) ON uom.UnitOfMeasureId = im_mg.PurchaseUnitOfMeasureId
 				LEFT JOIN dbo.Condition cond WITH (NOLOCK) ON cond.ConditionId = stk.ConditionId
 				LEFT JOIN dbo.Manufacturer mf WITH (NOLOCK) ON mf.ManufacturerId = stk.ManufacturerId         
 				LEFT JOIN dbo.[Location] loc WITH (NOLOCK) ON loc.LocationId = stk.LocationId
 				LEFT JOIN dbo.ItemMaster rPart WITH (NOLOCK) ON im_mg.RevisedPartId = rPart.ItemMasterId
-		 		  WHERE Stks.Migrated_Id IS NULL AND (Stks.ErrorMsg IS NOT NULL AND Stks.ErrorMsg like '%Stockline record already exists%') AND Stks.MasterCompanyId = @MasterCompanyId
+		 		   AND ISNULL(rPart.IsNonStock,0) = 0 WHERE Stks.Migrated_Id IS NULL AND (Stks.ErrorMsg IS NOT NULL AND Stks.ErrorMsg like '%Stockline record already exists%') AND Stks.MasterCompanyId = @MasterCompanyId
 				), ResultCount AS(Select COUNT(ItemMasterId) AS totalItems FROM Result)
 				SELECT * INTO #TempResultS4 FROM  Result
 
@@ -1411,7 +1418,7 @@ BEGIN
 				FROM [Quantum_Staging_BETA].dbo.[KitMasters] kitm WITH (NOLOCK)
 				LEFT JOIN dbo.KitMaster km ON km.KitId = kitm.Migrated_Id
 				LEFT JOIN dbo.ItemMaster im ON im.ItemMasterId = kitm.MainItemMasterId
-				LEFT JOIN dbo.Manufacturer mf ON km.ManufacturerId = mf.ManufacturerId
+				 AND ISNULL(im.IsNonStock,0) = 0 LEFT JOIN dbo.Manufacturer mf ON km.ManufacturerId = mf.ManufacturerId
 				LEFT JOIN [dbo].[WorkScope] wos WITH (NOLOCK) ON km.WorkScopeId = wos.WorkScopeId
 		 		  WHERE kitm.MasterCompanyId = @MasterCompanyId
 				), ResultCount AS(Select COUNT(KitId) AS totalItems FROM Result)
@@ -1469,7 +1476,7 @@ BEGIN
 				FROM [Quantum_Staging_BETA].dbo.[KitMasters] kitm WITH (NOLOCK)
 				LEFT JOIN dbo.KitMaster km ON km.KitId = kitm.Migrated_Id
 				LEFT JOIN dbo.ItemMaster im ON im.ItemMasterId = kitm.MainItemMasterId
-				LEFT JOIN dbo.Manufacturer mf ON km.ManufacturerId = mf.ManufacturerId
+				 AND ISNULL(im.IsNonStock,0) = 0 LEFT JOIN dbo.Manufacturer mf ON km.ManufacturerId = mf.ManufacturerId
 				LEFT JOIN [dbo].[WorkScope] wos WITH (NOLOCK) ON km.WorkScopeId = wos.WorkScopeId
 		 		  WHERE kitm.Migrated_Id IS NOT NULL AND kitm.MasterCompanyId = @MasterCompanyId
 				), ResultCount AS(Select COUNT(ItemMasterId) AS totalItems FROM Result)
@@ -1527,7 +1534,7 @@ BEGIN
 				FROM [Quantum_Staging_BETA].dbo.[KitMasters] kitm WITH (NOLOCK)
 				LEFT JOIN dbo.KitMaster km ON km.KitId = kitm.Migrated_Id
 				LEFT JOIN dbo.ItemMaster im ON im.ItemMasterId = kitm.MainItemMasterId
-				LEFT JOIN dbo.Manufacturer mf ON km.ManufacturerId = mf.ManufacturerId
+				 AND ISNULL(im.IsNonStock,0) = 0 LEFT JOIN dbo.Manufacturer mf ON km.ManufacturerId = mf.ManufacturerId
 				LEFT JOIN [dbo].[WorkScope] wos WITH (NOLOCK) ON km.WorkScopeId = wos.WorkScopeId
 		 		  WHERE kitm.Migrated_Id IS NULL AND (kitm.ErrorMsg IS NOT NULL AND kitm.ErrorMsg NOT like '%Item Master record already exists%') AND kitm.MasterCompanyId = @MasterCompanyId
 				), ResultCount AS(Select COUNT(KitId) AS totalItems FROM Result)
@@ -1585,7 +1592,7 @@ BEGIN
 				FROM [Quantum_Staging_BETA].dbo.[KitMasters] kitm WITH (NOLOCK)
 				LEFT JOIN dbo.KitMaster km ON km.KitId = kitm.Migrated_Id
 				LEFT JOIN dbo.ItemMaster im ON im.ItemMasterId = kitm.MainItemMasterId
-				LEFT JOIN dbo.Manufacturer mf ON km.ManufacturerId = mf.ManufacturerId
+				 AND ISNULL(im.IsNonStock,0) = 0 LEFT JOIN dbo.Manufacturer mf ON km.ManufacturerId = mf.ManufacturerId
 				LEFT JOIN [dbo].[WorkScope] wos WITH (NOLOCK) ON km.WorkScopeId = wos.WorkScopeId
 		 		  WHERE kitm.Migrated_Id IS NULL AND (kitm.ErrorMsg IS NOT NULL AND kitm.ErrorMsg like '%Item Master record already exists%') AND kitm.MasterCompanyId = @MasterCompanyId
 				), ResultCount AS(Select COUNT(KitId) AS totalItems FROM Result)
@@ -2071,7 +2078,7 @@ BEGIN
 				FROM [Quantum_Staging_BETA].dbo.[KitMasters] kitm WITH (NOLOCK)
 				LEFT JOIN dbo.KitMaster km ON km.KitId = kitm.Migrated_Id
 				LEFT JOIN dbo.ItemMaster im ON im.ItemMasterId = kitm.MainItemMasterId
-				LEFT JOIN dbo.Manufacturer mf ON km.ManufacturerId = mf.ManufacturerId
+				 AND ISNULL(im.IsNonStock,0) = 0 LEFT JOIN dbo.Manufacturer mf ON km.ManufacturerId = mf.ManufacturerId
 				LEFT JOIN [dbo].[WorkScope] wos WITH (NOLOCK) ON km.WorkScopeId = wos.WorkScopeId
 		 		  WHERE kitm.Migrated_Id IS NOT NULL AND kitm.MasterCompanyId = @MasterCompanyId
 				), ResultCount AS(Select COUNT(ItemMasterId) AS totalItems FROM Result)
@@ -2129,7 +2136,7 @@ BEGIN
 				FROM [Quantum_Staging_BETA].dbo.[KitMasters] kitm WITH (NOLOCK)
 				LEFT JOIN dbo.KitMaster km ON km.KitId = kitm.Migrated_Id
 				LEFT JOIN dbo.ItemMaster im ON im.ItemMasterId = kitm.MainItemMasterId
-				LEFT JOIN dbo.Manufacturer mf ON km.ManufacturerId = mf.ManufacturerId
+				 AND ISNULL(im.IsNonStock,0) = 0 LEFT JOIN dbo.Manufacturer mf ON km.ManufacturerId = mf.ManufacturerId
 				LEFT JOIN [dbo].[WorkScope] wos WITH (NOLOCK) ON km.WorkScopeId = wos.WorkScopeId
 		 		  WHERE kitm.Migrated_Id IS NULL AND (kitm.ErrorMsg IS NOT NULL AND kitm.ErrorMsg NOT like '%Work Order record already exists%') AND kitm.MasterCompanyId = @MasterCompanyId
 				), ResultCount AS(Select COUNT(KitId) AS totalItems FROM Result)
@@ -2187,7 +2194,7 @@ BEGIN
 				FROM [Quantum_Staging_BETA].dbo.[KitMasters] kitm WITH (NOLOCK)
 				LEFT JOIN dbo.KitMaster km ON km.KitId = kitm.Migrated_Id
 				LEFT JOIN dbo.ItemMaster im ON im.ItemMasterId = kitm.MainItemMasterId
-				LEFT JOIN dbo.Manufacturer mf ON km.ManufacturerId = mf.ManufacturerId
+				 AND ISNULL(im.IsNonStock,0) = 0 LEFT JOIN dbo.Manufacturer mf ON km.ManufacturerId = mf.ManufacturerId
 				LEFT JOIN [dbo].[WorkScope] wos WITH (NOLOCK) ON km.WorkScopeId = wos.WorkScopeId
 		 		  WHERE kitm.Migrated_Id IS NULL AND (kitm.ErrorMsg IS NOT NULL AND kitm.ErrorMsg like '%Work Order record already exists%') AND kitm.MasterCompanyId = @MasterCompanyId
 				), ResultCount AS(Select COUNT(KitId) AS totalItems FROM Result)
@@ -2304,7 +2311,7 @@ BEGIN
 				FROM [Quantum_Staging_BETA].dbo.[KitMasters] kitm WITH (NOLOCK)
 				LEFT JOIN dbo.KitMaster km ON km.KitId = kitm.Migrated_Id
 				LEFT JOIN dbo.ItemMaster im ON im.ItemMasterId = kitm.MainItemMasterId
-				LEFT JOIN dbo.Manufacturer mf ON km.ManufacturerId = mf.ManufacturerId
+				 AND ISNULL(im.IsNonStock,0) = 0 LEFT JOIN dbo.Manufacturer mf ON km.ManufacturerId = mf.ManufacturerId
 				LEFT JOIN [dbo].[WorkScope] wos WITH (NOLOCK) ON km.WorkScopeId = wos.WorkScopeId
 		 		  WHERE kitm.Migrated_Id IS NOT NULL AND kitm.MasterCompanyId = @MasterCompanyId
 				), ResultCount AS(Select COUNT(ItemMasterId) AS totalItems FROM Result)
@@ -2362,7 +2369,7 @@ BEGIN
 				FROM [Quantum_Staging_BETA].dbo.[KitMasters] kitm WITH (NOLOCK)
 				LEFT JOIN dbo.KitMaster km ON km.KitId = kitm.Migrated_Id
 				LEFT JOIN dbo.ItemMaster im ON im.ItemMasterId = kitm.MainItemMasterId
-				LEFT JOIN dbo.Manufacturer mf ON km.ManufacturerId = mf.ManufacturerId
+				 AND ISNULL(im.IsNonStock,0) = 0 LEFT JOIN dbo.Manufacturer mf ON km.ManufacturerId = mf.ManufacturerId
 				LEFT JOIN [dbo].[WorkScope] wos WITH (NOLOCK) ON km.WorkScopeId = wos.WorkScopeId
 		 		  WHERE kitm.Migrated_Id IS NULL AND (kitm.ErrorMsg IS NOT NULL AND kitm.ErrorMsg NOT like '%Work Order Quote record already exists%') AND kitm.MasterCompanyId = @MasterCompanyId
 				), ResultCount AS(Select COUNT(KitId) AS totalItems FROM Result)
@@ -2420,7 +2427,7 @@ BEGIN
 				FROM [Quantum_Staging_BETA].dbo.[KitMasters] kitm WITH (NOLOCK)
 				LEFT JOIN dbo.KitMaster km ON km.KitId = kitm.Migrated_Id
 				LEFT JOIN dbo.ItemMaster im ON im.ItemMasterId = kitm.MainItemMasterId
-				LEFT JOIN dbo.Manufacturer mf ON km.ManufacturerId = mf.ManufacturerId
+				 AND ISNULL(im.IsNonStock,0) = 0 LEFT JOIN dbo.Manufacturer mf ON km.ManufacturerId = mf.ManufacturerId
 				LEFT JOIN [dbo].[WorkScope] wos WITH (NOLOCK) ON km.WorkScopeId = wos.WorkScopeId
 		 		  WHERE kitm.Migrated_Id IS NULL AND (kitm.ErrorMsg IS NOT NULL AND kitm.ErrorMsg like '%Work Order Quote record already exists%') AND kitm.MasterCompanyId = @MasterCompanyId
 				), ResultCount AS(Select COUNT(KitId) AS totalItems FROM Result)

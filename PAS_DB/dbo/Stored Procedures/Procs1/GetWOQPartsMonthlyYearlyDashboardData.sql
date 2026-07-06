@@ -17,6 +17,7 @@
 	2    16 OCT 2024	HEMANT SALIYA		UPDATE Open Date Changes   
 	3    18 OCT 2024	HEMANT SALIYA		UPDATE For TAT Calculation 
 	4    03 SEP 2025	Devendra Shekh		WO Stage Count Issue Resolved 
+	5    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 
 EXEC GetWOQPartsMonthlyYearlyDashboardData 1, 2, '2024-10-18',10,1
 ************************************************************************/
@@ -74,7 +75,7 @@ BEGIN
 					WHERE CONVERT(DATE,WO.OpenDate) BETWEEN DATEFROMPARTS(YEAR(@StartDate), MONTH(@StartDate), 1) 
 						AND @StartDate AND WP.MasterCompanyId = @MasterCompanyId AND WO.IsDeleted = 0 AND WP.IsDeleted = 0 
 						AND WP.ManagementStructureId = @ManagementStructureId
-					GROUP BY 
+					 AND ISNULL(IM.IsNonStock,0) = 0 GROUP BY 
 						IM.partnumber, 
 						IM.ItemMasterId
 					)

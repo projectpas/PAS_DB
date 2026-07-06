@@ -23,6 +23,7 @@
 	9    05 Aug 2025   BHARGAV Saliya Fixed ShippingTerms Issue PN_13778
 	10   26/03/2026    Moin Bloch	  Rename TearDown To Internal Teardown PN-15850
 	11   29/06/2026    BHARGAV Saliya 	  get Terms and Id From WO Table [PN-17040]
+	12    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
    EXEC [dbo].[GetBillingInvoicingDetails] 845,1334,2,10,0,9003
    EXEC [dbo].[GetBillingInvoicingDetails] 9800,9938,2,15,0,0
 **************************************************************/ 
@@ -461,7 +462,7 @@ BEGIN
 					INNER JOIN [dbo].[BillingInvoicingDetails] BID WITH(NOLOCK) ON sobi.[BillingInvoicingId] = BID.[BillingInvoicingId]
 					LEFT JOIN [dbo].[Currency] [cr] WITH(NOLOCK) ON SO.FunctionalCurrencyId = [cr].[CurrencyId]
 					LEFT JOIN DBO.ItemMaster im WITH (NOLOCK) ON sop.ItemMasterId = im.ItemMasterId
-					LEFT JOIN DBO.ItemMasterExportInfo ime WITH (NOLOCK) ON im.ItemMasterId = ime.ItemMasterId
+					 AND ISNULL(im.IsNonStock,0) = 0 LEFT JOIN DBO.ItemMasterExportInfo ime WITH (NOLOCK) ON im.ItemMasterId = ime.ItemMasterId
 					LEFT JOIN [dbo].[CustomerDomensticShippingShipVia] [cust_shipVia] WITH(NOLOCK) ON [so].[CustomerId] = [cust_shipVia].[CustomerId] AND [cust_shipVia].[IsPrimary] = 1
 					LEFT JOIN [DBO].[ShippingTerms] [st] WITH(NOLOCK) ON [cust_shipVia].ShippingTermsId = [st].ShippingTermsId
 				  	WHERE  sobi.BillingInvoicingId = @BillingInvoicingId
@@ -526,7 +527,7 @@ BEGIN
 				 	LEFT JOIN DBO.Employee emp WITH (NOLOCK) ON emp.EmployeeId = so.EmployeeId
 				 	LEFT JOIN DBO.Employee empsp WITH (NOLOCK) ON empsp.EmployeeId = so.SalesPersonId
 					LEFT JOIN [dbo].[Currency] [cr] WITH(NOLOCK) ON so.FunctionalCurrencyId = [cr].[CurrencyId]
-				 	WHERE sos.SalesOrderShippingId = @ShippingId;
+				 	WHERE sos.SalesOrderShippingId = @ShippingId AND ISNULL(im.IsNonStock,0) = 0 ;
 				 END
 				 ELSE
 				 BEGIN
@@ -586,7 +587,7 @@ BEGIN
 					LEFT JOIN [dbo].[BillingInvoicingDetails] BID WITH(NOLOCK) ON sobi.[BillingInvoicingId] = BID.[BillingInvoicingId]					
 					LEFT JOIN [dbo].[CustomerDomensticShippingShipVia] [cust_shipVia] WITH(NOLOCK) ON [so].[CustomerId] = [cust_shipVia].[CustomerId] AND [cust_shipVia].[IsPrimary] = 1
 					LEFT JOIN [DBO].[ShippingTerms] [st] WITH(NOLOCK) ON [cust_shipVia].ShippingTermsId = [st].ShippingTermsId
-				 	WHERE so.SalesOrderId = @ReferenceId;
+				 	WHERE so.SalesOrderId = @ReferenceId AND ISNULL(im.IsNonStock,0) = 0 ;
 				 END
 			END			
 					

@@ -13,6 +13,7 @@
 ** 1    20-Nov-2024		RAJESH GAMI		    CREATED
    2    24-Dec-2024		Ayushi Patel		Return functional and report currency
    3	08-May-2026	    Priyansh Patel 		Added Ac tail number (PN-16231)
+	4    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 
 --EXEC [dbo].[USP_GetPurchaseOrderPartViewByPOId] 3131 ,NULL,NULL
 **************************************************************/ 
@@ -527,7 +528,7 @@ BEGIN
 								AircraftRegistryNumber,
 								ACTailNum
 								)
-							SELECT (CASE WHEN @ItemTypeId = @ItemTypeIdStock THEN (SELECT TOP 1 PartNumber  FROM DBO.ItemMaster  WITH(NOLOCK) WHERE ItemMasterId = @ItemMasterId)
+							SELECT (CASE WHEN @ItemTypeId = @ItemTypeIdStock THEN (SELECT TOP 1 PartNumber  FROM DBO.ItemMaster  WITH(NOLOCK) WHERE ItemMasterId = @ItemMasterId AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 )
 										 WHEN @ItemTypeId = @ItemTypeIdNonStock THEN (SELECT TOP 1 PartNumber  FROM DBO.ItemMasterNonStock  WITH(NOLOCK) WHERE MasterPartId = @ItemMasterId)
 										 ELSE  (SELECT TOP 1 AssetId  FROM DBO.Asset  WITH(NOLOCK) WHERE AssetRecordId  = @ItemMasterId)
 										 END) AS PartNumber,
@@ -638,7 +639,7 @@ BEGIN
 								POPartSplitAddress1,
 								POPartSplitUserTypeId,POPartSplitUserType,POPartSplitUserId,POPartSplitUser,POPartSplitSiteId,POPartSplitSiteName,POPartSplitCountryName,[Priority]
 								)
-							SELECT (CASE WHEN @ItemTypeId = @ItemTypeIdStock THEN (SELECT TOP 1 PartNumber  FROM DBO.ItemMaster  WITH(NOLOCK) WHERE ItemMasterId = @ItemMasterId)
+							SELECT (CASE WHEN @ItemTypeId = @ItemTypeIdStock THEN (SELECT TOP 1 PartNumber  FROM DBO.ItemMaster  WITH(NOLOCK) WHERE ItemMasterId = @ItemMasterId AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 )
 										 WHEN @ItemTypeId = @ItemTypeIdNonStock THEN (SELECT TOP 1 PartNumber  FROM DBO.ItemMasterNonStock  WITH(NOLOCK) WHERE MasterPartId = @ItemMasterId)
 										 ELSE  (SELECT TOP 1 AssetId  FROM DBO.Asset  WITH(NOLOCK) WHERE AssetRecordId  = @ItemMasterId)
 										 END) AS PartNumber,

@@ -16,6 +16,7 @@
  ** --   --------     -------		--------------------------------          
     1    05/31/2023   Vishal Suthar Created
     2    04/07/2025   Vishal Suthar Update Part Number, Part Description when part is modified
+	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
      
 -- EXEC [UpdatePartAfterWOCreated] 1005, 2956
 **************************************************************/
@@ -37,13 +38,13 @@ BEGIN
 					SET SL.ItemMasterId = @ItemMasterId,
 					SL.ConditionId = @ConditionId,
 					SL.Condition = (SELECT Con.Code FROM DBO.Condition Con WITH(NOLOCK) WHERE Con.ConditionId = @ConditionId),
-					SL.PartNumber = (SELECT IIM.partnumber FROM DBO.ItemMaster IIM WITH(NOLOCK) WHERE IIM.ItemMasterId = @ItemMasterId),
-					SL.PNDescription = (SELECT IIM.PartDescription FROM DBO.ItemMaster IIM WITH(NOLOCK) WHERE IIM.ItemMasterId = @ItemMasterId)
+					SL.PartNumber = (SELECT IIM.partnumber FROM DBO.ItemMaster IIM WITH(NOLOCK) WHERE IIM.ItemMasterId = @ItemMasterId AND ISNULL(IIM.IsNonStock,0) = 0 ),
+					SL.PNDescription = (SELECT IIM.PartDescription FROM DBO.ItemMaster IIM WITH(NOLOCK) WHERE IIM.ItemMasterId = @ItemMasterId AND ISNULL(IIM.IsNonStock,0) = 0 )
 					FROM [dbo].[Stockline] SL WITH(NOLOCK)
 					INNER JOIN dbo.ReceivingCustomerWork RC WITH(NOLOCK) ON SL.StockLineId = RC.StockLineId
 					INNER JOIN dbo.WorkOrderPartNumber WOP WITH(NOLOCK) ON WOP.ItemMasterId = RC.ItemMasterId
 					INNER JOIN dbo.ItemMaster IM WITH(NOLOCK) ON IM.ItemMasterId = RC.ItemMasterId
-					WHERE WOP.ID = @WorkOrderPartNumberId;
+					WHERE WOP.ID = @WorkOrderPartNumberId AND ISNULL(IM.IsNonStock,0) = 0 ;
 
 					UPDATE WOP 
 					SET WOP.ItemMasterId = @ItemMasterId,
@@ -56,8 +57,8 @@ BEGIN
 					RevisedPartNumber = IMR.PartNumber, RevisedPartDescription = IMR.PartDescription
 					FROM dbo.WorkOrderPartNumber WOP WITH(NOLOCK)
 					LEFT JOIN DBO.ItemMaster IM WITH(NOLOCK) ON IM.ItemMasterId = WOP.ItemMasterId
-					LEFT JOIN DBO.ItemMaster IMR WITH(NOLOCK) ON IMR.ItemMasterId = WOP.RevisedItemmasterid
-					WHERE WOP.ID = @WorkOrderPartNumberId;
+					 AND ISNULL(IM.IsNonStock,0) = 0 LEFT JOIN DBO.ItemMaster IMR WITH(NOLOCK) ON IMR.ItemMasterId = WOP.RevisedItemmasterid
+					 AND ISNULL(IMR.IsNonStock,0) = 0 WHERE WOP.ID = @WorkOrderPartNumberId;
 
 					UPDATE WOSD
 					SET WOSD.RevisedPartId = @ItemMasterId,

@@ -15,6 +15,7 @@
 	3    05/06/2026   Moin Bloch        Fix Discription
 	4    08/06/2026   Abhishek Jirawla  Adding ItemMasterId
 	5    09/06/2026   Moin Bloch        Fix For Due Date PN-16784
+	6    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 
 	EXEC [dbo].[USP_GetCommonBillingInvoicingItemsByInvoiceIdForXeroAccounting] 12682,15,0
 ********************************************************************************************/
@@ -109,7 +110,7 @@ BEGIN
                 OR  (@IsSync = 1 AND ISNULL(BI.QuickBooksReferenceId, '') = ''
                      AND ISNULL(BI.IsUpdated, 0) = 1)
               )
-		END
+		 AND ISNULL(ITM.IsNonStock,0) = 0 END
 		IF(@ModuleId = @SOModuleId) /*********START: SALES ORDER ********/
 		BEGIN
 			SELECT BII.[InvoiceNo],
@@ -185,7 +186,7 @@ BEGIN
                 OR  (@IsSync = 1 AND ISNULL(BI.QuickBooksReferenceId, '') = ''
                      AND ISNULL(BI.IsUpdated, 0) = 1)
               )
-		END
+		 AND ISNULL(ITM.IsNonStock,0) = 0 END
 		IF(@ModuleId = @EXModuleId) /*********START:EXCHANGE SALES ORDER ********/
 		BEGIN
 			SELECT BII.[InvoiceNo],
@@ -233,7 +234,7 @@ BEGIN
 					INNER JOIN [dbo].[ExchangeSalesOrder] SO WITH(NOLOCK) ON SO.ExchangeSalesOrderId= SOBI.ExchangeSalesOrderId AND ISNULL(SO.IsVendor, 0) = 0
 					LEFT JOIN [dbo].[ExchangeSalesOrderScheduleBilling] SSBI WITH(NOLOCK) ON SSBI.ExchangeSalesOrderScheduleBillingId = SOBII.ExchangeSalesOrderScheduleBillingId
 					LEFT JOIN [dbo].[ItemMaster] IM WITH(NOLOCK) ON IM.ItemMasterId= SOBII.ItemMasterId
-				WHERE (
+				 AND ISNULL(IM.IsNonStock,0) = 0 WHERE (
                     (@IsSync = 0 AND SOBII.SOBillingInvoicingId = @BillingInvoicingId)
                 OR  (@IsSync = 1 AND ISNULL(SOBI.QuickBooksReferenceId, '') = ''
                      AND ISNULL(SOBI.IsUpdated, 0) = 1)

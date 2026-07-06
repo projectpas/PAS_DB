@@ -20,6 +20,7 @@
     5    12/05/2024	  Vishal Suthar	Fixed an issue with SO Print after shipping is completed
     6    12/19/2024	  Vishal Suthar	If only part level record is there then Sub Total not coming in SO Print
 	7    07/22/2025	  RAJESH GAMI	Calculate sales and other taxes on sub total instead of line level.
+	8    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 -- EXEC [USP_GetCustomerTax_Information_ProductSale_SO] 608
 **************************************************************/
 CREATE    PROCEDURE [dbo].[USP_GetCustomerTax_Information_ProductSale_SO] 
@@ -123,7 +124,7 @@ BEGIN
 		 LEFT JOIN [dbo].[AllAddress] AAD WITH(NOLOCK) ON SO.[SalesOrderId] = AAD.[ReffranceId] AND [IsShippingAdd] = 1 AND [ModuleId] = @SOModuleId
 		 LEFT JOIN [dbo].[Stockline] STK WITH(NOLOCK) ON SOPS.[StockLineId] = STK.[StockLineId]
 		 LEFT JOIN [dbo].[ItemMaster] ITM WITH(NOLOCK) ON SOP.[ItemMasterId] = ITM.[ItemMasterId]
-		 LEFT JOIN [dbo].[CustomerDomensticShipping] CDS WITH(NOLOCK) ON CDS.[CustomerId] = SO.[CustomerId] AND CDS.[IsPrimary] = 1
+		  AND ISNULL(ITM.IsNonStock,0) = 0 LEFT JOIN [dbo].[CustomerDomensticShipping] CDS WITH(NOLOCK) ON CDS.[CustomerId] = SO.[CustomerId] AND CDS.[IsPrimary] = 1
 	         WHERE SO.[SalesOrderId] = @SalesOrderId AND 
 							SOP.SalesOrderPartId NOT IN (SELECT SOSI.SalesOrderPartId FROM [dbo].[SalesOrderShipping] SOS WITH(NOLOCK)  
 							INNER JOIN [dbo].[SalesOrderShippingItem] SOSI WITH(NOLOCK) ON SOS.[SalesOrderShippingId]  = SOSI.[SalesOrderShippingId]

@@ -15,6 +15,7 @@
  ** S NO   Date            Author          Change Description              
  ** --   --------         -------          --------------------------------            
     1    10-10-2025	  Amit Ghediya	   Created 
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
        
 EXECUTE   [dbo].[usprpt_GetCustomerQuoteReport] '2025-10-07','2025-11-25',1,1,'','',2,''
 **************************************************************/  
@@ -101,7 +102,7 @@ BEGIN
 			  AND SOQ.ManagementStructureId = @managementStructureId
 			  AND SOQ.CustomerId = ISNULL(@CustomerId,SOQ.CustomerId)
 			  AND SOP.ItemMasterId = ISNULL(@ItemMasterId,SOP.ItemMasterId)
-			GROUP BY 
+			 AND ISNULL(IM.IsNonStock,0) = 0 GROUP BY 
 				SOQ.SalesOrderQuoteId,
 				IM.PartNumber,
 				IM.PartDescription,
@@ -175,7 +176,7 @@ BEGIN
 			  AND SOQ.ManagementStructureId = @managementStructureId
 			  AND SOQ.CustomerId = ISNULL(@CustomerId,SOQ.CustomerId)
 			  AND SOP.ItemMasterId = ISNULL(@ItemMasterId,SOP.ItemMasterId)
-			  GROUP BY 
+			   AND ISNULL(IM.IsNonStock,0) = 0 GROUP BY 
 				SOQ.SalesOrderQuoteId,
 				IM.PartNumber,
 				IM.PartDescription,

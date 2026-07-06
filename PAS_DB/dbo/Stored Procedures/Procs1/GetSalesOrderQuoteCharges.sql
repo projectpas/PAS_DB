@@ -14,6 +14,7 @@
  ** PR   Date			 Author			Change Description              
  ** --   --------		-------			--------------------------------            
     1    16/12/2024		EKTA CHANDEGRA	 Created  
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 
  EXEC GetSalesOrderQuoteCharges 965 , 0
 ************************************************************************/  
@@ -66,7 +67,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 		LEFT JOIN [dbo].[GLAccount] gl WITH(NOLOCK) ON ct.GLAccountId = gl.GLAccountId
 		LEFT JOIN [dbo].[SalesOrderQuotePartV1] part WITH(NOLOCK) ON soc.SalesOrderQuotePartId = part.SalesOrderQuotePartId
 		LEFT JOIN [dbo].[ItemMaster] im WITH(NOLOCK) ON soc.ItemMasterId = im.ItemMasterId
-		LEFT JOIN [dbo].[UnitOfMeasure] uom WITH(NOLOCK) ON soc.UnitOfMeasureId = uom.UnitOfMeasureId
+		 AND ISNULL(im.IsNonStock,0) = 0 LEFT JOIN [dbo].[UnitOfMeasure] uom WITH(NOLOCK) ON soc.UnitOfMeasureId = uom.UnitOfMeasureId
 		INNER JOIN [dbo].[Condition] cond WITH(NOLOCK) ON soc.ConditionId = cond.ConditionId
 		WHERE ISNULL(soc.IsDeleted,0) = @IsDeleted
 		AND soc.SalesOrderQuoteId = @SalesOrderQuoteId;

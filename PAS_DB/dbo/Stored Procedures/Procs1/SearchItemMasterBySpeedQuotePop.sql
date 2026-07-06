@@ -8,6 +8,13 @@
      
  EXECUTE [dbo].[SearchItemMasterBySpeedQuotePop] 303,1
 **************************************************************/ 
+/***************************************************************************************************************************************
+  ** Change History
+ ***************************************************************************************************************************************
+ ** PR   Date						 Author							Change Description
+ ** --   --------					 -------						-------------------------------
+	1    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+****************************************************************************************************************************************/
 CREATE PROCEDURE [dbo].[SearchItemMasterBySpeedQuotePop]
 @ItemMasterIdlist VARCHAR(max) = '0',
 @CustomerId BIGINT = 318,
@@ -38,7 +45,7 @@ BEGIN
 					,ISNULL(STUFF((
 					SELECT DISTINCT ', '+ I.partnumber FROM DBO.Nha_Tla_Alt_Equ_ItemMapping M INNER JOIN ItemMaster I ON I.ItemMasterId = M.ItemMasterId Where M.MappingItemMasterId = im.ItemMasterId AND M.MappingType = 1
 					FOR XML PATH('')
-					)
+					 AND ISNULL(I.IsNonStock,0) = 0 )
 					,1,1,''), '') AlternateFor
 					--,CASE 
 					--	WHEN im.IsPma = 1 and im.IsDER = 1 THEN OEMPMA.partnumber --'PMA&DER'
@@ -60,7 +67,7 @@ BEGIN
 				LEFT JOIN (SELECT partnumber, ItemMasterId FROM DBO.ItemMaster) OEMPMA ON OEMPMA.ItemMasterId = im.IsOemPNId
 				WHERE 
 					im.ItemMasterId IN (SELECT Item FROM DBO.SPLITSTRING(@ItemMasterIdlist,','))
-				GROUP BY
+				 AND ISNULL(im.IsNonStock,0) = 0 GROUP BY
 					im.PartNumber
 					,im.PurchaseUnitOfMeasureId
 					,im.PurchaseUnitOfMeasure

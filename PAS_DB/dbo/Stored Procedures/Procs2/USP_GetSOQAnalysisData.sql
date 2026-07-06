@@ -19,6 +19,7 @@
     2    10/17/2024   Vishal Suthar		Modified to make use of new SOQ Part tables
     3    12/09/2024   Vishal Suthar		Fixed an issue with qty in analysis
 	4    19-SEP-2025  RAJESH GAMI	    Added return field: netSalesPricePerUnit
+	5    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 EXEC [dbo].[USP_GetSOQAnalysisData] 1300
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_GetSOQAnalysisData] 
@@ -116,7 +117,7 @@ BEGIN
 			LEFT JOIN DBO.SalesOrderQuoteStockLineCost SOQSC WITH (NOLOCK) ON SOQSC.SalesOrderQuoteStocklineId = stk.SalesOrderQuoteStocklineId
 			LEFT JOIN DBO.StockLine qs WITH (NOLOCK) ON stk.StockLineId = qs.StockLineId
 			LEFT JOIN DBO.ItemMaster itemMaster WITH (NOLOCK) ON part.ItemMasterId = itemMaster.ItemMasterId
-			LEFT JOIN DBO.UnitOfMeasure um WITH (NOLOCK) ON itemMaster.PurchaseUnitOfMeasureId = um.UnitOfMeasureId
+			 AND ISNULL(itemMaster.IsNonStock,0) = 0 LEFT JOIN DBO.UnitOfMeasure um WITH (NOLOCK) ON itemMaster.PurchaseUnitOfMeasureId = um.UnitOfMeasureId
 			LEFT JOIN DBO.PurchaseOrder po WITH (NOLOCK) ON qs.PurchaseOrderId = po.PurchaseOrderId
 			LEFT JOIN DBO.RepairOrder ro WITH (NOLOCK) ON qs.RepairOrderId = ro.RepairOrderId
 			LEFT JOIN DBO.CustomerFinancial cf WITH (NOLOCK) ON soq.CustomerId = cf.CustomerId

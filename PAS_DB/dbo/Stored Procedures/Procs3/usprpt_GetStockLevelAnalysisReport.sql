@@ -14,6 +14,7 @@
     1    04-November-2022	Vishal Suthar			Created
 	2    21-November-2025	Amit ghediya		    Added filter & sortOrder
 	3    21-November-2025	Rajesh Gami				Added Quantity BackOrder
+	4    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 
 EXECUTE   [dbo].[usprpt_GetStockLevelAnalysisReport] '2','2010-01-01','2022-04-26',null,1,10
 **************************************************************/
@@ -308,7 +309,7 @@ BEGIN
 				AND (ISNULL(@Level8,'') = '' OR MSD.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,',')))
 				AND (ISNULL(@Level9,'') = '' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))
 				AND (ISNULL(@Level10,'') = '' OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))
-		)
+		 AND ISNULL(IM.IsNonStock,0) = 0 )
 
 		,GroupedCTE AS (
 			SELECT 

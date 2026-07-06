@@ -12,6 +12,7 @@
 ** 1    03-07-2025   Ayushi Patel   Created
 
 -- EXEC[USP_GetPartDetailsWithIdForSinglePart] 4797
+	1    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_GetPartDetailsWithIdForSinglePart]
     @PartId BIGINT,
@@ -56,7 +57,7 @@ BEGIN
         LEFT JOIN dbo.UnitOfMeasure UM WITH(NOLOCK) ON IM.PurchaseUnitOfMeasureId = UM.UnitOfMeasureId
         INNER JOIN dbo.GLAccount gl WITH(NOLOCK) ON IM.GLAccountId = gl.GLAccountId
         WHERE IM.ItemMasterId = @PartId
-        AND (@ConditionId = 0 OR ps.ConditionId = @ConditionId);
+        AND (@ConditionId = 0 OR ps.ConditionId = @ConditionId) AND ISNULL(IM.IsNonStock,0) = 0 ;
     END TRY
     BEGIN CATCH      
 	         DECLARE @ErrorLogID INT

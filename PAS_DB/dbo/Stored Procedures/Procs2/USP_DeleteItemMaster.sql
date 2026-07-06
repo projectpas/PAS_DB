@@ -10,6 +10,7 @@
  ** PR   Date				Author				Change Description            
  ** --   -------------		----------------	--------------------------------          
     1    19-August-2025		Divyesh Kathiriya	Created	
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
     
  -- EXEC [USP_DeleteItemMaster] @ItemMasterid=96933, @UpdatedBy=N'DANE PERK', @IsDeleted=1
 **************************************************************/
@@ -25,9 +26,9 @@ BEGIN
 	BEGIN TRANSACTION
 
 	DECLARE @MasterPartId AS BIGINT;
-	SELECT @MasterPartId = [MasterPartId] FROM [DBO].[ItemMaster] WITH(NOLOCK) WHERE [ItemMasterId] = @ItemMasterid;	
+	SELECT @MasterPartId = [MasterPartId] FROM [DBO].[ItemMaster] WITH(NOLOCK) WHERE [ItemMasterId] = @ItemMasterid AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 ;	
 
-		IF EXISTS (SELECT 1 FROM [DBO].[ItemMaster] WITH(NOLOCK) WHERE [ItemMasterid] = @ItemMasterid)
+		IF EXISTS (SELECT 1 FROM [DBO].[ItemMaster] WITH(NOLOCK) WHERE [ItemMasterid] = @ItemMasterid AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 )
 		BEGIN
 			UPDATE [DBO].[ItemMaster] 
 			SET	[IsDeleted] = ISNULL(@IsDeleted, 0), [UpdatedBy] = @UpdatedBy, [UpdatedDate] = GETUTCDATE()

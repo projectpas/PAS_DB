@@ -12,6 +12,7 @@
 	3    05/12/2023   Amit Ghediya      Modify(Added Traceable & Tagged fields)
 	4    12/04/2023   Jevik Raiyani		add @statusValue
 	5    02/07/2024   Amit Ghediya		Modify add VendorName set in Global Filter.
+	6    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 
 --   EXEC [GetPNTilePurchaseOrderList]
 **************************************************************/ 
@@ -113,7 +114,7 @@ BEGIN
 				  AND POP.ItemMasterId = @ItemMasterId
 				  AND POP.ItemTypeId = @ItemTypeStock
 				  AND (@ConditionId IS NULL OR POP.ConditionId IN(SELECT * FROM STRING_SPLIT(@ConditionId , ',')))
-			), ResultCount AS(Select COUNT(PurchaseOrderId) AS totalItems FROM Result)
+			 AND ISNULL(IM.IsNonStock,0) = 0 ), ResultCount AS(Select COUNT(PurchaseOrderId) AS totalItems FROM Result)
 			SELECT * INTO #TempResult FROM  Result
 			 WHERE ((@GlobalFilter <>'' AND ((PartNumber LIKE '%' +@GlobalFilter+'%') OR
 					(PartDescription LIKE '%' +@GlobalFilter+'%') OR

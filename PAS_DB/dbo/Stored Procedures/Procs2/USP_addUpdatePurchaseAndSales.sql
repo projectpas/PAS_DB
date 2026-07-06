@@ -16,6 +16,7 @@
  ** PR   Date           Author		    Change Description            
  ** --   --------       -------		  --------------------------------          
     1    18-Nov-2025  Bhargav Saliya     Created
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
      
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[USP_addUpdatePurchaseAndSales]
@@ -169,7 +170,7 @@ BEGIN
 			BEGIN
 				SELECT @PartNumber = I.PartNumber FROM [dbo].ItemMaster I WITH(NOLOCK) WHERE I.ItemMasterId = @ItemMasterId
 
-				IF @PartNumber IS NOT NULL
+				 AND ISNULL(I.IsNonStock,0) = 0 IF @PartNumber IS NOT NULL
 				BEGIN
 						UPDATE #PurchaseSalesTemp 
 						SET PartNumber = @PartNumber,CreatedDate = GETUTCDATE(),UpdatedDate = GETUTCDATE()

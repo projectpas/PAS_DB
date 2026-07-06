@@ -26,6 +26,7 @@
 	13   22-MAY-2026  RAJESH GAMI       Added IsVersionIncrease condition for billing invoicing [PN-16565]
 	14   27-MAY-2026  RAJESH GAMI       Added LotNumber In Every Type [PN-16571]
 	15   09-JUNE-2026 RAJESH GAMI       Fixed: Duplicate data for the RO [PN-16680]
+	16    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 -- EXEC USP_Lot_GetAllLotViewsByLotId_Filter 7,'ViewAllPN',1
 -- EXEC USP_Lot_GetAllLotViewsByLotId 67,'ViewAllPN',1
 ************************************************************************/
@@ -315,7 +316,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 					 LEFT JOIN DBO.Vendor ven WITH(NOLOCK) ON sl.VendorId = ven.VendorId
 					 LEFT JOIN dbo.LotManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID IN (SELECT Item FROM DBO.SPLITSTRING(@AppModuleId,',')) AND MSD.ReferenceID = lot.LotId	
 				WHERE lot.LotId = @LotId AND lot.MasterCompanyId = @MasterCompanyId
-				), ResultCount AS(Select COUNT(*) AS totalItems FROM Result) 
+				 AND ISNULL(im.IsNonStock,0) = 0 ), ResultCount AS(Select COUNT(*) AS totalItems FROM Result) 
 
 
 				SELECT t.*
@@ -794,7 +795,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 						  )
 					  )
 
-				 ), ResultCount AS(Select COUNT(*) AS totalItems FROM Result) 
+				  AND ISNULL(im.IsNonStock,0) = 0 ), ResultCount AS(Select COUNT(*) AS totalItems FROM Result) 
 
 					SELECT * INTO #PNInStockTbl FROM  Result
 					WHERE 
@@ -1077,7 +1078,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 					 INNER join dbo.SalesOrderQuotePartCost soqpc WITH(NOLOCK) on soqpc.SalesOrderQuotePartId = soqp.SalesOrderQuotePartId AND soqpc.IsDeleted = 0
 					 INNER JOIN #commonTemp sl on sov.StockLineId = sl.StockLineId
 					 LEFT JOIN DBO.ItemMaster im WITH(NOLOCK) on sl.ItemMasterId = im.ItemMasterId
-					 LEFT JOIN DBO.SalesOrder so WITH(NOLOCK) on soq.SalesOrderQuoteId = so.SalesOrderQuoteId
+					  AND ISNULL(im.IsNonStock,0) = 0 LEFT JOIN DBO.SalesOrder so WITH(NOLOCK) on soq.SalesOrderQuoteId = so.SalesOrderQuoteId
 					 LEFT JOIN DBO.ItemClassification ic WITH(NOLOCK) ON im.ItemClassificationId = ic.ItemClassificationId
 					 LEFT JOIN DBO.ItemGroup ig WITH(NOLOCK) ON im.ItemGroupId = ig.ItemGroupId
 					 LEFT JOIN DBO.Condition c WITH(NOLOCK) ON c.ConditionId = sl.ConditionId
@@ -1363,7 +1364,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 					 LEFT JOIN DBO.Vendor ven WITH(NOLOCK) ON sl.VendorId = ven.VendorId
 					 LEFT JOIN dbo.LotManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID IN (SELECT Item FROM DBO.SPLITSTRING(@AppModuleId,',')) AND MSD.ReferenceID = lot.LotId	AND MSD.EntityMSID = Lot.ManagementStructureId
 				 WHERE lot.LotId = @LotId AND lot.MasterCompanyId = @MasterCompanyId AND UPPER(REPLACE(ltCal.Type,' ','')) = UPPER(REPLACE(@LOT_TransOut_SO,' ',''))
-				 	 	), ResultCount AS(Select COUNT(*) AS totalItems FROM Result) 
+				 	 	 AND ISNULL(im.IsNonStock,0) = 0 ), ResultCount AS(Select COUNT(*) AS totalItems FROM Result) 
 				
 				SELECT * INTO #PNSoldViewTbl FROM  Result 
 				WHERE 
@@ -1684,7 +1685,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 					 LEFT JOIN DBO.Vendor ven WITH(NOLOCK) ON sl.VendorId = ven.VendorId
 					 LEFT JOIN dbo.LotManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID IN (SELECT Item FROM DBO.SPLITSTRING(@AppModuleId,',')) AND MSD.ReferenceID = lot.LotId	AND MSD.EntityMSID = Lot.ManagementStructureId
 				 WHERE lot.LotId = @LotId AND lot.MasterCompanyId = @MasterCompanyId AND (UPPER(REPLACE(ltCal.Type,' ','')) = UPPER(REPLACE(@LOT_TransIn_RO,' ','')))
-				 ), ResultCount AS(Select COUNT(*) AS totalItems FROM Result) 
+				  AND ISNULL(im.IsNonStock,0) = 0 ), ResultCount AS(Select COUNT(*) AS totalItems FROM Result) 
 
 				SELECT * INTO #RepairedViewTbl FROM  Result 
 				WHERE 
@@ -2086,7 +2087,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 					 LEFT JOIN DBO.BillingInvoicing sobi on so.SalesOrderId = sobi.ReferenceId AND sobi.MasterCompanyId = so.MasterCompanyId AND ISNULL(sobi.IsVersionIncrease,0) = 0 AND ISNULL(sobi.IsPerformaInvoice,0) = 0 AND sobi.[ModuleId] = @SOModuleId
 					 LEFT JOIN dbo.LotManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID IN (SELECT Item FROM DBO.SPLITSTRING(@AppModuleId,',')) AND MSD.ReferenceID = lot.LotId	
 				WHERE lot.LotId = @LotId AND lot.MasterCompanyId = @MasterCompanyId
-				), ResultCount AS(Select COUNT(*) AS totalItems FROM Result) 
+				 AND ISNULL(im.IsNonStock,0) = 0 ), ResultCount AS(Select COUNT(*) AS totalItems FROM Result) 
 
 				SELECT * INTO #CommisionResult FROM  Result
 				WHERE

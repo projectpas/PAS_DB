@@ -19,6 +19,7 @@
     1    02/22/2021   Hemant Saliya Created
     2    02/06/2023   Rajesh Gami   Added Figure and Item field for the audit
     2    11/02/2025   Bhargav Saliya   UTC Date Changes
+	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
  EXECUTE USP_GetWorkOrderMaterialsAuditList 37
 
 **************************************************************/     
@@ -164,7 +165,7 @@ SET NOCOUNT ON
 					LEFT JOIN dbo.RepairOrderPart ROP WITH (NOLOCK) ON SL.RepairOrderPartRecordId = ROP.RepairOrderPartRecordId
 					LEFT JOIN dbo.RepairOrder RO WITH (NOLOCK) ON SL.RepairOrderId = RO.RepairOrderId
 				WHERE WOM.WorkOrderMaterialsId = @WorkOrderMaterialsId
-			END
+			 AND ISNULL(IM.IsNonStock,0) = 0 END
 		COMMIT  TRANSACTION
 
 		END TRY    

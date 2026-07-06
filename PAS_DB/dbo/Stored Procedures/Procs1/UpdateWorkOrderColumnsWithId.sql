@@ -23,6 +23,7 @@
 	5    04/30/2025   Rajesh Gami	    added Missing Fields for WPN update (Revised Part Number and Description)  
 	6    02/09/2026   Moin Bloch	    added CreditTermId 
 	7    29/06/2026   Bhargav Saliya	Get Terms and Id From WO Table [PN-17040]
+	8    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 
 -- EXEC [UpdateWorkOrderColumnsWithId] 8792
 **************************************************************/
@@ -70,8 +71,8 @@ BEGIN
 					LEFT JOIN [dbo].[WorkOrderStage] WOSG WITH(NOLOCK) ON WPN.WorkOrderStageId = WOSG.WorkOrderStageId
 					LEFT JOIN [dbo].[WorkOrderStatus] WOS WITH(NOLOCK) ON WOS.Id = WPN.WorkOrderStatusId  
 					LEFT JOIN [dbo].[ItemMaster] IM WITH(NOLOCK) ON IM.ItemMasterId = WPN.ItemMasterId
-					LEFT JOIN [dbo].[ItemMaster] RIM WITH(NOLOCK) ON RIM.ItemMasterId = WPN.RevisedItemMasterId         
-					LEFT JOIN [dbo].[Priority] PR WITH(NOLOCK) ON WPN.WorkOrderPriorityId = PR.PriorityId  
+					 AND ISNULL(IM.IsNonStock,0) = 0 LEFT JOIN [dbo].[ItemMaster] RIM WITH(NOLOCK) ON RIM.ItemMasterId = WPN.RevisedItemMasterId         
+					 AND ISNULL(RIM.IsNonStock,0) = 0 LEFT JOIN [dbo].[Priority] PR WITH(NOLOCK) ON WPN.WorkOrderPriorityId = PR.PriorityId  
 					LEFT JOIN [dbo].[Employee] EMP WITH(NOLOCK) ON EMP.EmployeeId = WPN.TechnicianId  
 					LEFT JOIN [dbo].[EmployeeStation] EMPS WITH(NOLOCK) ON WPN.TechStationId = EMPS.EmployeeStationId
 				WHERE WO.WorkOrderId = @WorkOrderId

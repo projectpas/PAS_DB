@@ -19,6 +19,7 @@ EXEC [RPT_GetSalesOrderPrintPdfHeaderData]
 
 EXEC RPT_GetSalesOrderPrintPdfHeaderData 814
 
+	1    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 **************************************************************/
 CREATE      PROCEDURE [dbo].[RPT_GetSalesOrderPrintPdfHeaderData]              
 	@salesOrderId BIGINT            
@@ -86,7 +87,7 @@ BEGIN
 			LEFT JOIN dbo.SalesOrderStocklineV1 stk WITH(NOLOCK) ON stk.SalesOrderPartId = sop.SalesOrderPartId
 			LEFT JOIN dbo.SalesOrderPartCost sopc WITH(NOLOCK) ON sopc.SalesOrderPartId = sop.SalesOrderPartId
 			LEFT JOIN dbo.ItemMaster itemMaster WITH(NOLOCK) ON sop.ItemMasterId = itemMaster.ItemMasterId
-			LEFT JOIN dbo.UnitOfMeasure uom WITH(NOLOCK) ON itemMaster.ConsumeUnitOfMeasureId = uom.UnitOfMeasureId
+			 AND ISNULL(itemMaster.IsNonStock,0) = 0 LEFT JOIN dbo.UnitOfMeasure uom WITH(NOLOCK) ON itemMaster.ConsumeUnitOfMeasureId = uom.UnitOfMeasureId
 			LEFT JOIN dbo.Condition cp WITH(NOLOCK) ON sop.ConditionId = cp.ConditionId
 			INNER JOIN dbo.Customer cust WITH(NOLOCK) ON so.CustomerId = cust.CustomerId
 			INNER JOIN dbo.Address custAddress WITH(NOLOCK) ON cust.AddressId = custAddress.AddressId

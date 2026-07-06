@@ -12,6 +12,7 @@
 ** 1    03-07-2025   Ayushi Patel   Created
 
 -- EXEC [USP_GetVendorCapabilityById] 4797
+	1    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_GetVendorCapabilityById]
     @VendorCapabilityId BIGINT
@@ -52,7 +53,7 @@ BEGIN
         FROM dbo.VendorCapability vc WITH(NOLOCK)
         INNER JOIN dbo.Vendor v WITH(NOLOCK) ON vc.VendorId = v.VendorId
         LEFT JOIN dbo.ItemMaster im WITH(NOLOCK) ON vc.ItemMasterId = im.ItemMasterId
-        LEFT JOIN dbo.Manufacturer man WITH(NOLOCK) ON im.ManufacturerId = man.ManufacturerId
+         AND ISNULL(im.IsNonStock,0) = 0 LEFT JOIN dbo.Manufacturer man WITH(NOLOCK) ON im.ManufacturerId = man.ManufacturerId
         LEFT JOIN dbo.CapabilityType vcat WITH(NOLOCK) ON vc.CapabilityTypeId = vcat.CapabilityTypeId
         WHERE vc.VendorCapabilityId = @VendorCapabilityId
     END TRY

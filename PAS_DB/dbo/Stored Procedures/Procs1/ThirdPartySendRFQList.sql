@@ -19,6 +19,7 @@
 	7    04-11-2025   Devendra Shekh  Getting VendorRFQPurchaseOrderNumber, RFQReferenceId, RFQModuleId Based On [PurChaseOrder]-[VendorRFQPurchaseOrderPart]
 	8    04-12-2025   Devendra Shekh  Modified to DateTime For rfqSentDate, vendorResponseDate
 	9    03-02-2026   Vishal Suthar   Fixed ItemMaster duplicate issue with same partnumber with different description we have in PAS
+	10    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 
 **************************************************************
 **************************************************************/
@@ -259,8 +260,8 @@ BEGIN
 					INNER JOIN Dbo.ILSRFQDetail ird WITH(NOLOCK) on part.ILSRFQDetailId = ird.ILSRFQDetailId
 					INNER JOIN Dbo.ThirdPartyRFQ tr WITH(NOLOCK)  on ird.ThirdPartyRFQId = tr.ThirdPartyRFQId
 					LEFT JOIN dbo.ItemMaster IM WITH(NOLOCK) ON part.[PartNumber] = IM.[partnumber] AND part.Description = IM.PartDescription AND part.[MasterCompanyId] = IM.[MasterCompanyId]
-					LEFT JOIN dbo.ItemMaster IMSC WITH(NOLOCK) ON part.[AltPartNumber] = IMSC.[partnumber] AND IMSC.[IsActive] = 1 AND IMSC.[IsDeleted] = 0 AND part.[MasterCompanyId] = IMSC.[MasterCompanyId]
-					LEFT JOIN VendorRFQPartResult VRFQ ON VRFQ.ILSRFQDetailId = ird.ILSRFQDetailId AND VRFQ.[MasterCompanyId] = ird.[MasterCompanyId] 
+					 AND ISNULL(IM.IsNonStock,0) = 0 LEFT JOIN dbo.ItemMaster IMSC WITH(NOLOCK) ON part.[AltPartNumber] = IMSC.[partnumber] AND IMSC.[IsActive] = 1 AND IMSC.[IsDeleted] = 0 AND part.[MasterCompanyId] = IMSC.[MasterCompanyId]
+					 AND ISNULL(IMSC.IsNonStock,0) = 0 LEFT JOIN VendorRFQPartResult VRFQ ON VRFQ.ILSRFQDetailId = ird.ILSRFQDetailId AND VRFQ.[MasterCompanyId] = ird.[MasterCompanyId] 
 					LEFT JOIN VendorRFQReferenceResult RR ON RR.ILSRFQDetailId = ird.ILSRFQDetailId AND RR.[MasterCompanyId] = ird.[MasterCompanyId] 
 					LEFT JOIN RFQReferenceResult RFQR ON RFQR.ILSRFQDetailId = ird.ILSRFQDetailId AND RFQR.[MasterCompanyId] = ird.[MasterCompanyId] 
 		 	  WHERE 

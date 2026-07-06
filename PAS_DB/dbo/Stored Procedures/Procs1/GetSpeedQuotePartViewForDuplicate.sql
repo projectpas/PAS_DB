@@ -14,6 +14,7 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    03/04/2023  Amit Ghediya    Created
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
      
 -- EXEC GetSpeedQuotePartViewForDuplicate 78
 ************************************************************************/
@@ -64,7 +65,7 @@ BEGIN
 				LEFT JOIN Condition condition ON part.ConditionId = condition.ConditionId
 				LEFT JOIN UnitOfMeasure um ON itemMaster.PurchaseUnitOfMeasureId = um.UnitOfMeasureId
 			WHERE part.SpeedQuoteId = @salesQuoteId AND part.IsDeleted = 0
-		END
+		 AND ISNULL(itemMaster.IsNonStock,0) = 0 END
 
 	END TRY    
 	BEGIN CATCH      

@@ -15,6 +15,7 @@
  ** PR   Date         Author			Change Description
  ** --   --------     -------			-----------------------
     1    11/02/2023   Vishal Suthar		Created
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
   
 
 declare @p5 int
@@ -427,7 +428,7 @@ BEGIN
 				DECLARE @DefaultSiteId BIGINT;
 				SELECT @DefaultSiteId = SiteId FROM DBO.[Site] WHERE UPPER([Name]) = UPPER('Beach Aviation Group') AND MasterCompanyId = @FromMasterComanyID;
 
-				IF NOT EXISTS (SELECT 1 FROM DBO.[ItemMaster] WITH (NOLOCK) WHERE UPPER([partnumber]) = UPPER(@PN) AND ManufacturerId = @ManufacturerId AND MasterCompanyId = @FromMasterComanyID)
+				IF NOT EXISTS (SELECT 1 FROM DBO.[ItemMaster] WITH (NOLOCK) WHERE UPPER([partnumber]) = UPPER(@PN) AND ManufacturerId = @ManufacturerId AND MasterCompanyId = @FromMasterComanyID AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 )
 				BEGIN
 					INSERT INTO [MasterParts]
 					([PartNumber], [Description], [MasterCompanyId], [CreatedDate], [CreatedBy], [UpdatedDate], [UpdatedBy], [IsActive], [IsDeleted], [ManufacturerId], [PartType])

@@ -18,6 +18,7 @@
 	5   25-Feb-2025		Devendra Shekh			Modified (Added Missing Address Details for Bill/Ship)
 	6   31-Mar-2025		Devendra Shekh			Modified (Added changes for Notes)
 	7    07-07-2025     Moin Bloch              Changed Old To New Billing Table
+	8    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
      
  EXECUTE [QuickBooks_GetSyncPendingSOInvoiceList] 1, 1, 700
 **************************************************************/ 
@@ -173,7 +174,7 @@ BEGIN
 					--LEFT JOIN [dbo].[Address] billToAddress WITH(NOLOCK) ON billToSite.AddressId = billToAddress.AddressId
 					--LEFT JOIN [dbo].[CustomerDomensticShipping] shipToSite WITH(NOLOCK) ON SOBI.ShipToSiteId = shipToSite.CustomerDomensticShippingId
 					--LEFT JOIN [dbo].[Address] shipToAddress WITH(NOLOCK) ON shipToSite.AddressId = shipToAddress.AddressId
-					LEFT JOIN [dbo].[CreditTerms] CT WITH(NOLOCK) ON CT.CreditTermsId = SO.CreditTermId
+					 AND ISNULL(IM.IsNonStock,0) = 0 LEFT JOIN [dbo].[CreditTerms] CT WITH(NOLOCK) ON CT.CreditTermsId = SO.CreditTermId
 					LEFT JOIN [dbo].[Percent] P with(nolock) ON P.MasterCompanyId = SOBI.MasterCompanyId AND P.PercentId = SOBII.SalesTaxPercent
 					--LEFT JOIN [dbo].[Percent] P with(nolock) ON P.MasterCompanyId = SOBI.MasterCompanyId AND P.PercentValue = ((ISNULL(SOBI.SalesTax,0) + ISNULL(SOBI.OtherTax,0))*100 / ISNULL(SOBI.SubTotal,0))
 				WHERE	ISNULL(SOBI.QuickBooksReferenceId, 0) = 0 AND ISNULL(SOBI.IsUpdated, 0) = 1 AND ISNULL(SOBI.IsPerformaInvoice, 0) = 0 AND sobi.[ModuleId] =@SOModuleId 
@@ -234,7 +235,7 @@ BEGIN
 					--LEFT JOIN [dbo].[Address] billToAddress WITH(NOLOCK) ON billToSite.AddressId = billToAddress.AddressId
 					--LEFT JOIN [dbo].[CustomerDomensticShipping] shipToSite WITH(NOLOCK) ON SOBI.ShipToSiteId = shipToSite.CustomerDomensticShippingId
 					--LEFT JOIN [dbo].[Address] shipToAddress WITH(NOLOCK) ON shipToSite.AddressId = shipToAddress.AddressId
-					LEFT JOIN [dbo].[CreditTerms] CT WITH(NOLOCK) ON CT.CreditTermsId = SO.CreditTermId
+					 AND ISNULL(IM.IsNonStock,0) = 0 LEFT JOIN [dbo].[CreditTerms] CT WITH(NOLOCK) ON CT.CreditTermsId = SO.CreditTermId
 					LEFT JOIN [dbo].[Percent] P with(nolock) ON P.MasterCompanyId = SOBI.MasterCompanyId AND P.PercentId = SOBII.SalesTaxPercent
 					--LEFT JOIN [dbo].[Percent] P with(nolock) ON P.MasterCompanyId = SOBI.MasterCompanyId AND P.PercentValue = ((ISNULL(SOBI.SalesTax,0) + ISNULL(SOBI.OtherTax,0))*100 / ISNULL(SOBI.SubTotal,0))
 				WHERE	ISNULL(SOBI.QuickBooksReferenceId, 0) = 0 AND ISNULL(SOBI.IsUpdated, 0) = 1 AND ISNULL(SOBI.IsPerformaInvoice, 0) = 0 AND sobi.[ModuleId] =@SOModuleId 

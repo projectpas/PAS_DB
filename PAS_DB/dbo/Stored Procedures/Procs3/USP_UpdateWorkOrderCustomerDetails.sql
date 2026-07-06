@@ -14,6 +14,7 @@
 	2    27/07/2024   HEMANT SALIYA      Updated For Serial Number, Cust Reference, and PartNumber  
 	3    11/03/2026   MOIN BLOCH         Updated Logic For Incoming And OutGoing Part PN-15719
 	4    16/03/2026   Moin Bloch         Rename Activity and Description for Incoming and Outgoing MPN updates PN-15736
+	5    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
    
 exec dbo.USP_UpdateWorkOrderCustomerDetails @WorkOrderId=3945,@WorkOrderPartNoId=3468,@CustomerId=default,@ItemMasterId=default,
 @customerReference=default,@SerialNumber=N'SER-745353',@Memo=N'<p>sfcdsfs</p>',@UpdatedBy=N'ADMIN User'
@@ -236,9 +237,9 @@ BEGIN
 			JOIN [dbo].[ItemMaster] IM WITH(NOLOCK) ON IM.[ItemMasterId] = WOP.[ItemMasterId]
 			WHERE WOP.ID = @WorkOrderPartNoId
 
-			SELECT @NewValue = [partnumber] FROM [dbo].[ItemMaster] WITH(NOLOCK) WHERE [ItemMasterId] = @ItemMasterId
+			 AND ISNULL(IM.IsNonStock,0) = 0 SELECT @NewValue = [partnumber] FROM [dbo].[ItemMaster] WITH(NOLOCK) WHERE [ItemMasterId] = @ItemMasterId
 
-			UPDATE WorkOrderPartNumber 
+			 AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 UPDATE WorkOrderPartNumber 
 			SET [ItemMasterId] = @ItemMasterId,
 				[UpdatedBy] = @UpdatedBy, 
 				[UpdatedDate] = GETUTCDATE()
@@ -256,7 +257,7 @@ BEGIN
 				[ClosedDate] = NULL
 			FROM [dbo].[WorkOrderPartNumber] WOP WITH(NOLOCK)
 			LEFT JOIN [dbo].[ItemMaster] IM WITH(NOLOCK) ON IM.[ItemMasterId] = @ItemMasterId
-			WHERE WOP.ID = @WorkOrderPartNoId
+			 AND ISNULL(IM.IsNonStock,0) = 0 WHERE WOP.ID = @WorkOrderPartNoId
 
 			UPDATE dbo.Stockline 
 			   SET [ItemMasterId] = @ItemMasterId , 
@@ -286,7 +287,7 @@ BEGIN
 			JOIN [dbo].[ItemMaster] IM WITH(NOLOCK) ON IM.ItemMasterId = WOP.ItemMasterId
 			WHERE WOP.ID = @WorkOrderPartNoId
 
-			UPDATE ReceivingCustomerWork
+			 AND ISNULL(IM.IsNonStock,0) = 0 UPDATE ReceivingCustomerWork
 			   SET ItemMasterId = @ItemMasterId, 
 				   IsSerialized = im.isSerialized, 
 				   ManufacturerName = IM.ManufacturerName, 
@@ -302,7 +303,7 @@ BEGIN
 			JOIN [dbo].[ItemMaster] IM WITH(NOLOCK) ON IM.ItemMasterId = WOP.ItemMasterId
 			WHERE WOP.ID = @WorkOrderPartNoId
 
-			UPDATE dbo.BillingInvoicingItems SET ItemMasterId = WOP.ItemMasterId, PDFPath = NULL , UpdatedBy = @UpdatedBy, UpdatedDate = GETUTCDATE()
+			 AND ISNULL(IM.IsNonStock,0) = 0 UPDATE dbo.BillingInvoicingItems SET ItemMasterId = WOP.ItemMasterId, PDFPath = NULL , UpdatedBy = @UpdatedBy, UpdatedDate = GETUTCDATE()
 			FROM dbo.BillingInvoicingItems WOBII WITH(NOLOCK) 
 				JOIN dbo.WorkOrderPartNumber WOP WITH(NOLOCK) ON WOP.ID = WOBII.SubReferenceId
 			WHERE WOP.ID = @WorkOrderPartNoId AND WOBII.[ModuleId] = @WOModuleId AND  ISNULL(WOBII.IsVersionIncrease, 0) = 0 AND ISNULL(WOBII.IsPerformaInvoice, 0) = 0
@@ -329,7 +330,7 @@ BEGIN
 			--FROM dbo.WorkOrderSettlementDetails WSD WITH(NOLOCK)
 			--WHERE WSD.WorkOrderId = @WorkOrderId AND WSD.workOrderPartNoId =  @WorkOrderPartNoId AND WSD.WorkOrderSettlementId = @WorkOrderSettlementId
 
-			SELECT @TemplateBody = TemplateBody FROM dbo.HistoryTemplate WITH(NOLOCK) WHERE TemplateCode = @StatusCode
+			 AND ISNULL(IM.IsNonStock,0) = 0 SELECT @TemplateBody = TemplateBody FROM dbo.HistoryTemplate WITH(NOLOCK) WHERE TemplateCode = @StatusCode
 
 			SET @TemplateBody = REPLACE(@TemplateBody, '##WONum##', ISNULL(@WorkOrderNum,''));
 			SET @TemplateBody = REPLACE(@TemplateBody, '##OldValue##', ISNULL(@ExistingValue,''));
@@ -353,9 +354,9 @@ BEGIN
 			JOIN [dbo].[ItemMaster] IM WITH(NOLOCK) ON IM.[ItemMasterId] = WOP.[RevisedItemmasterid]
 			WHERE WOP.ID = @WorkOrderPartNoId
 
-			SELECT @NewValue = [partnumber] FROM [dbo].[ItemMaster] WITH(NOLOCK) WHERE [ItemMasterId] = @RevisedItemmasterid
+			 AND ISNULL(IM.IsNonStock,0) = 0 SELECT @NewValue = [partnumber] FROM [dbo].[ItemMaster] WITH(NOLOCK) WHERE [ItemMasterId] = @RevisedItemmasterid
 
-			UPDATE WorkOrderPartNumber 
+			 AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 UPDATE WorkOrderPartNumber 
 			SET [RevisedItemmasterid] = @RevisedItemmasterid, 
 			    [RevisedPartNumber] = IM.[PartNumber], 
 				[RevisedPartDescription] = IM.[PartDescription], 								
@@ -366,7 +367,7 @@ BEGIN
 				[UpdatedDate] = GETUTCDATE()
 			FROM [dbo].[WorkOrderPartNumber] WOP WITH(NOLOCK)
 			LEFT JOIN [dbo].[ItemMaster] IM WITH(NOLOCK) ON IM.[ItemMasterId] = @RevisedItemmasterid
-			WHERE WOP.ID = @WorkOrderPartNoId
+			 AND ISNULL(IM.IsNonStock,0) = 0 WHERE WOP.ID = @WorkOrderPartNoId
 			
 			UPDATE ReceivingCustomerWork
 			   SET  [OutGoingItemMasterId] = @RevisedItemmasterid, 
@@ -380,7 +381,7 @@ BEGIN
 			JOIN [dbo].[ItemMaster] IM WITH(NOLOCK) ON IM.ItemMasterId = @RevisedItemmasterid
 			WHERE WOP.ID = @WorkOrderPartNoId
 
-			UPDATE Work_ReleaseFrom_8130 
+			 AND ISNULL(IM.IsNonStock,0) = 0 UPDATE Work_ReleaseFrom_8130 
 			SET [PartNumber] = IM.[partnumber], 
 				[Description] = IM.[PartDescription],
 				[UpdatedBy] = @UpdatedBy, 
@@ -390,7 +391,7 @@ BEGIN
 			JOIN [dbo].[ItemMaster] IM WITH(NOLOCK) ON IM.ItemMasterId = @RevisedItemmasterid
 			WHERE WRF.workOrderPartNoId = @WorkOrderPartNoId
 
-			UPDATE [dbo].[WorkOrderSettlementDetails] 
+			 AND ISNULL(IM.IsNonStock,0) = 0 UPDATE [dbo].[WorkOrderSettlementDetails] 
 			   SET [RevisedPartId] = @RevisedItemmasterid,
 			       [UpdatedBy] = @UpdatedBy, 
 				   [UpdatedDate] = GETUTCDATE(),

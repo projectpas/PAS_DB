@@ -18,6 +18,7 @@
 	3    25-APR-2025  Moin Bloch   		    Fixed For WO Part Status    
 	4    27-Jun-2025  Vishal Suthar		    Updating IsClosed flag in WorkOrderPartNumber table when stage is Closed
    	4    20-Mar-2026  RAJESH GAMI		    Updating IsFinishGood flag in WorkOrderPartNumber table when stage is Closed PN-15819    
+	5    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	exec dbo.UpdateWorkOrderStage @WorkOrderId=8412,@WorkOrderStatusId=1,@WorkOrderPartId=8062,@WorkOrderStageId=23,@WorkFlowWorkOrderId=8033,@CreatedBy='BHARGAV S'
 ************************************************************************/   
 
@@ -99,7 +100,7 @@ BEGIN
         -- Get Part Number
         SELECT @PartNumber = PartNumber
         FROM [dbo].[ItemMaster] WITH(NOLOCK)
-        WHERE ItemMasterId = @ItemMasterId;
+        WHERE ItemMasterId = @ItemMasterId AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 ;
 
         -- Get History Template
         SELECT @TemplateBody = TemplateBody

@@ -7,9 +7,16 @@
 
  1    19-may-2021		Deep Patel				Created
  2    05-08-2025		Moin Bloch	            Modified Get [ConditionId] From OVERHAULED,REPAIRED if [Code] 'OVERHAUL' and 'REPAIR' is not available
+	1    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
      
  EXECUTE [dbo].[SearchItemMasterBySpeedQuotePopData] 7,1
 **************************************************************/ 
+/***************************************************************************************************************************************
+  ** Change History
+ ***************************************************************************************************************************************
+ ** PR   Date						 Author							Change Description
+ ** --   --------					 -------						-------------------------------
+****************************************************************************************************************************************/
 CREATE    PROCEDURE [dbo].[SearchItemMasterBySpeedQuotePopData]
 @ItemMasterIdlist VARCHAR(max) = '0',
 @mastercompanyid int
@@ -66,7 +73,7 @@ BEGIN
 					,ISNULL(STUFF((
 					SELECT DISTINCT ', '+ I.partnumber FROM DBO.Nha_Tla_Alt_Equ_ItemMapping M WITH (NOLOCK) INNER JOIN ItemMaster I WITH (NOLOCK) ON I.ItemMasterId = M.ItemMasterId Where M.MappingItemMasterId = im.ItemMasterId AND M.MappingType = 1
 					FOR XML PATH('')
-					)
+					 AND ISNULL(I.IsNonStock,0) = 0 )
 					,1,1,''), '') AlternateFor
 					,CASE 
 						WHEN im.IsPma = 1 and im.IsDER = 1 THEN 'PMA&DER' --'PMA&DER'
@@ -99,7 +106,7 @@ BEGIN
 				WHERE 
 					im.ItemMasterId IN (SELECT Item FROM DBO.SPLITSTRING(@ItemMasterIdlist,','))
 					AND c.ConditionId IN(@OHCondition, @REPCondition, @BCCondition)
-				GROUP BY
+				 AND ISNULL(im.IsNonStock,0) = 0 GROUP BY
 					im.PartNumber
 					,im.PurchaseUnitOfMeasureId
 					,im.PurchaseUnitOfMeasure

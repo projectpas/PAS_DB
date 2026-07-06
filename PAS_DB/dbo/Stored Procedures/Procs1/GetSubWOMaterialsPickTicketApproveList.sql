@@ -19,6 +19,7 @@
  ** --   --------     -------				--------------------------------          
     1    09/20/2021   Hemant Saliya			Created
 	2    12/19/2023	  Devendra Shekh		changes for kit
+	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
      
  EXECUTE GetSubWOMaterialsPickTicketApproveList 48,30,31
 
@@ -74,7 +75,7 @@ SET NOCOUNT ON
 					INNER JOIN dbo.Customer C WITH (NOLOCK) on C.CustomerId = WO.CustomerId
 				WHERE WOM.WorkOrderId=@workOrderId AND WOM.SubWorkOrderId = @SubworkOrderId AND WOM.SubWOPartNoId = @SubworkOrderPartNoId AND (ISNULL(wom.QuantityReserved,0) + ISNULL(wom.QuantityIssued,0)) > 0  
 
-				UNION ALL
+				 AND ISNULL(IM.IsNonStock,0) = 0 UNION ALL
 				
 				SELECT 
 					wom.SubWorkOrderMaterialsKitId as OrderPartId, 
@@ -111,7 +112,7 @@ SET NOCOUNT ON
 					INNER JOIN dbo.Customer cr WITH (NOLOCK) on cr.CustomerId = wo.CustomerId
 				WHERE wom.WorkOrderId=@workOrderId AND WOM.SubWorkOrderId = @SubworkOrderId AND WOM.SubWOPartNoId = @SubworkOrderPartNoId AND (ISNULL(wom.QuantityReserved,0) + ISNULL(wom.QuantityIssued,0)) > 0  
 
-			END
+			 AND ISNULL(imt.IsNonStock,0) = 0 END
 		COMMIT  TRANSACTION
 
 		END TRY    

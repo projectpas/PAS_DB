@@ -18,6 +18,7 @@
 	3    23/09/2025  Rajesh Gami		Added SuggestedPrice (Added New SP)
 	4    17/10/2025  Rajesh Gami		Added PageSize and PageNo
 	5    23/03/2026  Ayushi Patel       PN-15799 Added partDescription
+	6    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 --exec dbo.ItemMasterPriceListForBulkUpdate @ItemMasterId=0,@MasterCompanyId=1
 
 ************************************************************************/
@@ -42,7 +43,7 @@ BEGIN
 		END
 
 	BEGIN TRY 
-	DECLARE @partNumber VARCHAR(120) = (SELECT Top 1 partnumber FROM DBO.ItemMaster WITH(NOLOCK) WHERE ItemMasterId = @ItemMasterId And MasterCompanyId = @MasterCompanyId)
+	DECLARE @partNumber VARCHAR(120) = (SELECT Top 1 partnumber FROM DBO.ItemMaster WITH(NOLOCK) WHERE ItemMasterId = @ItemMasterId And MasterCompanyId = @MasterCompanyId AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 )
 	IF OBJECT_ID(N'tempdb..#RFQHistory') IS NOT NULL
 	BEGIN
 		DROP TABLE #RFQHistory
@@ -140,7 +141,7 @@ BEGIN
 		AND (@ItemMasterId IS NULL OR IM.ItemMasterId = @ItemMasterId)
 		AND IM.IsActive = 1
 		AND IM.IsDeleted = 0
-		;WITH CTE_Item AS
+		 AND ISNULL(IM.IsNonStock,0) = 0 ;WITH CTE_Item AS
 			(
 				SELECT 
 					*,

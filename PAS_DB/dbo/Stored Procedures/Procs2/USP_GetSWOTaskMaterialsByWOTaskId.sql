@@ -15,6 +15,7 @@
  ** PR   Date				Author			Change Description
  ** --   --------			-------			--------------------------------
     1    03/28/2025			Vishal Suthar		Created
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 
 EXEC [dbo].[USP_GetSWOTaskMaterialsByWOTaskId] 831
 **************************************************************/
@@ -48,7 +49,7 @@ BEGIN
 			LEFT JOIN dbo.UnitOfMeasure SUOM WITH (NOLOCK) ON SUOM.UnitOfMeasureId = SL.PurchaseUnitOfMeasureId
 			WHERE WOM.IsDeleted = 0 AND WOT.SubWorkOrderTaskId = @SubWorkOrderTaskId
     
-			UNION ALL
+			 AND ISNULL(IM.IsNonStock,0) = 0 UNION ALL
     
 			SELECT 
 				IM.PartNumber,
@@ -68,7 +69,7 @@ BEGIN
 			LEFT JOIN dbo.UnitOfMeasure SUOM WITH (NOLOCK) ON SUOM.UnitOfMeasureId = SL.PurchaseUnitOfMeasureId
 			LEFT JOIN dbo.Condition Stk_C WITH (NOLOCK) ON Stk_C.ConditionId = SL.ConditionId
 			WHERE WOMKIT.IsDeleted = 0 AND WOT.SubWorkOrderTaskId = @SubWorkOrderTaskId
-		) AS Parts;
+		 AND ISNULL(IM.IsNonStock,0) = 0 ) AS Parts;
 	END TRY
 	BEGIN CATCH
 	DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name()

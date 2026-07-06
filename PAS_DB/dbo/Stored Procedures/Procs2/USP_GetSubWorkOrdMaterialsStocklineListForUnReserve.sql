@@ -17,6 +17,7 @@
  ** --   --------     -------		--------------------------------          
     1    01/03/2022   Hemant Saliya Created
 	1    01/03/2022   Hemant Saliya Added KIT Part
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 
      
  EXECUTE USP_GetSubWorkOrdMaterialsStocklineListForUnReserve 99,15
@@ -121,15 +122,15 @@ SET NOCOUNT ON
 						JOIN dbo.SubWorkOrderMaterialStockLine WOMS WITH (NOLOCK) ON WOMS.SubWorkOrderMaterialsId = WOM.SubWorkOrderMaterialsId AND WOMS.ProvisionId = @ProvisionId AND WOMS.QtyReserved > 0
 						JOIN dbo.Stockline SL WITH (NOLOCK) ON SL.StockLineId = WOMS.StockLineId
 						LEFT JOIN dbo.ItemMaster IM_AltMain WITH (NOLOCK) ON IM_AltMain.ItemMasterId = WOMS.AltPartMasterPartId
-						LEFT JOIN dbo.ItemMaster IM_EquMain WITH (NOLOCK) ON IM_EquMain.ItemMasterId = WOMS.EquPartMasterPartId
-						LEFT JOIN dbo.Condition C WITH (NOLOCK) ON WOM.ConditionCodeId = C.ConditionId
+						 AND ISNULL(IM_AltMain.IsNonStock,0) = 0 LEFT JOIN dbo.ItemMaster IM_EquMain WITH (NOLOCK) ON IM_EquMain.ItemMasterId = WOMS.EquPartMasterPartId
+						 AND ISNULL(IM_EquMain.IsNonStock,0) = 0 LEFT JOIN dbo.Condition C WITH (NOLOCK) ON WOM.ConditionCodeId = C.ConditionId
 						LEFT JOIN dbo.Provision P WITH (NOLOCK) ON P.ProvisionId = WOM.ProvisionId
 						LEFT JOIN dbo.Provision SP WITH (NOLOCK) ON SP.ProvisionId = WOMS.ProvisionId 
 						LEFT JOIN dbo.UnitOfMeasure UOM WITH (NOLOCK) ON UOM.UnitOfMeasureId = WOM.UnitOfMeasureId
 					WHERE WOM.SubWOPartNoId = @SubWOPartNoId AND SL.IsParent = 1 AND WOM.IsDeleted = 0  
 					AND (@ItemMasterId IS NULL OR im.ItemMasterId = @ItemMasterId OR im.ItemMasterId = @ItemMasterId OR IM_AltMain.ItemMasterId = @ItemMasterId OR IM_EquMain.ItemMasterId = @ItemMasterId)
 				
-					UNION ALL
+					 AND ISNULL(IM.IsNonStock,0) = 0 UNION ALL
 
 					SELECT  WOM.WorkOrderId,
 						WOM.SubWorkOrderId,
@@ -203,15 +204,15 @@ SET NOCOUNT ON
 						JOIN dbo.SubWorkOrderMaterialStockLineKit WOMS WITH (NOLOCK) ON WOMS.SubWorkOrderMaterialsKitId = WOM.SubWorkOrderMaterialsKitId AND WOMS.ProvisionId = @ProvisionId AND WOMS.QtyReserved > 0
 						JOIN dbo.Stockline SL WITH (NOLOCK) ON SL.StockLineId = WOMS.StockLineId
 						LEFT JOIN dbo.ItemMaster IM_AltMain WITH (NOLOCK) ON IM_AltMain.ItemMasterId = WOMS.AltPartMasterPartId
-						LEFT JOIN dbo.ItemMaster IM_EquMain WITH (NOLOCK) ON IM_EquMain.ItemMasterId = WOMS.EquPartMasterPartId
-						LEFT JOIN dbo.Condition C WITH (NOLOCK) ON WOM.ConditionCodeId = C.ConditionId
+						 AND ISNULL(IM_AltMain.IsNonStock,0) = 0 LEFT JOIN dbo.ItemMaster IM_EquMain WITH (NOLOCK) ON IM_EquMain.ItemMasterId = WOMS.EquPartMasterPartId
+						 AND ISNULL(IM_EquMain.IsNonStock,0) = 0 LEFT JOIN dbo.Condition C WITH (NOLOCK) ON WOM.ConditionCodeId = C.ConditionId
 						LEFT JOIN dbo.Provision P WITH (NOLOCK) ON P.ProvisionId = WOM.ProvisionId
 						LEFT JOIN dbo.Provision SP WITH (NOLOCK) ON SP.ProvisionId = WOMS.ProvisionId 
 						LEFT JOIN dbo.UnitOfMeasure UOM WITH (NOLOCK) ON UOM.UnitOfMeasureId = WOM.UnitOfMeasureId
 					WHERE WOM.SubWOPartNoId = @SubWOPartNoId AND SL.IsParent = 1 AND WOM.IsDeleted = 0  
 					AND (@ItemMasterId IS NULL OR im.ItemMasterId = @ItemMasterId OR im.ItemMasterId = @ItemMasterId OR IM_AltMain.ItemMasterId = @ItemMasterId OR IM_EquMain.ItemMasterId = @ItemMasterId)
 
-			END
+			 AND ISNULL(IM.IsNonStock,0) = 0 END
 		COMMIT  TRANSACTION
 
 		END TRY    

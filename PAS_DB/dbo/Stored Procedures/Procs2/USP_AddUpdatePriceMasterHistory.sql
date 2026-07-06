@@ -14,6 +14,7 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    08/10/2024  Ekta Chandegra     Created
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
      
 
 -- exec [dbo].[USP_AddUpdatePriceMasterHistory] @ItemMasterPurchaseSaleId=716,@ModuleId=20,@MasterCompanyId=1,@RefferenceId=716
@@ -56,7 +57,7 @@ BEGIN
 						GETUTCDATE(),IMPS.UpdatedBy, GETUTCDATE(),IMPS.IsActive , IMPS.IsDeleted
 						FROM [dbo].[ItemMasterPurchaseSale] IMPS WITH (NOLOCK) 
 						LEFT JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON IMPS.ItemMasterId = IM.ItemMasterId
-						WHERE IMPS.ItemMasterPurchaseSaleId = @ItemMasterPurchaseSaleId 
+						 AND ISNULL(IM.IsNonStock,0) = 0 WHERE IMPS.ItemMasterPurchaseSaleId = @ItemMasterPurchaseSaleId 
 						AND IMPS.MasterCompanyId = @MasterCompanyId
 
 				END

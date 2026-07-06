@@ -13,9 +13,16 @@
 	3    03-07-2025     Moin Bloch              Changed Old To New Billing Table
 	4    21-07-2025		Hemnat Saliya			Added IsVersionIncrease	
 	5    15-01-2026     Sahdev Saliya           Added IsInvoicePosted
+	1    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 		
 	exec dbo.USP_WorkOrderAnalysis 9950,10104
 **************************************************************/
+/***************************************************************************************************************************************
+  ** Change History
+ ***************************************************************************************************************************************
+ ** PR   Date						 Author							Change Description
+ ** --   --------					 -------						-------------------------------
+****************************************************************************************************************************************/
 CREATE   PROCEDURE [dbo].[USP_WorkOrderAnalysis]
 @WorkOrderId BIGINT,
 @WorkOrderPartNoId BIGINT
@@ -79,7 +86,7 @@ BEGIN
 			    LEFT JOIN [dbo].[BillingInvoicingItems] wbi WITH(NOLOCK) ON wop.ID = wbi.SubReferenceId AND ISNULL(wbi.IsVersionIncrease, 0) = 0 AND ISNULL(wbi.IsPerformaInvoice, 0) != 1 AND wbi.[ModuleId] = @WOModuleId
 			    LEFT JOIN [dbo].[BillingInvoicing] wb WITH(NOLOCK) ON wbi.BillingInvoicingId = wb.BillingInvoicingId AND ISNULL(wb.IsVersionIncrease, 0) = 0 AND ISNULL(wb.IsPerformaInvoice, 0) != 1 AND wb.[ModuleId] = @WOModuleId		
 			WHERE wo.WorkOrderId = @WorkOrderId AND woc.WOPartNoId = @WorkOrderPartNoId
-			ORDER BY wop.ID;
+			 AND ISNULL(im.IsNonStock,0) = 0 ORDER BY wop.ID;
 		END
 
 		ELSE
@@ -142,7 +149,7 @@ BEGIN
 				INNER JOIN [dbo].[WorkOrderStatus] st WITH(NOLOCK) ON wop.WorkOrderStatusId = st.Id
 				LEFT JOIN QuoteList q WITH(NOLOCK) ON q.WorkOrderId = woc.WorkOrderId AND q.WOPartNoId = woc.WOPartNoId
 			WHERE wo.WorkOrderId = @WorkOrderId AND woc.WOPartNoId = @WorkOrderPartNoId
-			ORDER BY wop.ID;
+			 AND ISNULL(im.IsNonStock,0) = 0 ORDER BY wop.ID;
 		END
 
 	COMMIT  TRANSACTION

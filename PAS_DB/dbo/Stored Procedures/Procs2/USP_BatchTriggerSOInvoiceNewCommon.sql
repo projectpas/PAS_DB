@@ -14,6 +14,7 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    10/Jun/2025   Rajesh Gami     Created
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	
 ************************************************************************/
 CREATE     PROCEDURE [dbo].[USP_BatchTriggerSOInvoiceNewCommon]
@@ -165,7 +166,7 @@ BEGIN
 	        
 			SELECT @MPNName = partnumber FROM dbo.ItemMaster WITH(NOLOCK)  WHERE ItemMasterId=@ItemmasterId 
 	        
-			SELECT @LastMSLevel=LastMSLevel,@AllMSlevels=AllMSlevels FROM dbo.SalesOrderManagementStructureDetails  WITH(NOLOCK)  WHERE ReferenceID=@ReferenceId AND ModuleID = @ManagementModuleId
+			 AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 SELECT @LastMSLevel=LastMSLevel,@AllMSlevels=AllMSlevels FROM dbo.SalesOrderManagementStructureDetails  WITH(NOLOCK)  WHERE ReferenceID=@ReferenceId AND ModuleID = @ManagementModuleId
 			
 			SELECT @StocklineNumber= STK.[StockLineNumber],
 			       @LotId = STK.[LotId], 
@@ -294,7 +295,7 @@ BEGIN
 					INNER JOIN [dbo].[SalesOrderPartV1] sop WITH(NOLOCK) ON soit.SubReferenceId = sop.SalesOrderPartId
 					INNER JOIN [dbo].[SalesOrderStocklineV1] stk WITH(NOLOCK) ON sop.SalesOrderPartId = stk.SalesOrderPartId AND soit.StockLineId = stk.StockLineId
 					LEFT JOIN [dbo].[ItemMaster] itm WITH(NOLOCK) ON itm.[ItemMasterId] = sop.[ItemMasterId]					
-					WHERE soi.BillingInvoicingId = @InvoiceId 
+					 AND ISNULL(itm.IsNonStock,0) = 0 WHERE soi.BillingInvoicingId = @InvoiceId 
 					AND soit.SubReferenceId = @ReferencePartId
 					AND ISNULL(soi.IsPerformaInvoice,0) = 0 AND ISNULL(soi.IsVersionIncrease,0) = 0
 
@@ -855,7 +856,7 @@ BEGIN
 						INNER JOIN [dbo].[Stockline] STL WITH(NOLOCK) ON stk.StockLineId = STL.StockLineId
 						INNER JOIN [dbo].[SalesOrderStockLineCost] STKC WITH(NOLOCK) ON STKC.SalesOrderStocklineId = stk.SalesOrderStocklineId
 					     LEFT JOIN [dbo].[ItemMaster] itm WITH(NOLOCK) ON itm.[ItemMasterId] = sop.[ItemMasterId]
-						WHERE soi.SalesOrderShippingId=@InvoiceId AND STL.GLAccountId=@PartGLAccountId;
+						 AND ISNULL(itm.IsNonStock,0) = 0 WHERE soi.SalesOrderShippingId=@InvoiceId AND STL.GLAccountId=@PartGLAccountId;
 
 						SELECT @STKGlAccountId=SL.GLAccountId,
 						       @STKGlAccountNumber=GL.AccountCode,

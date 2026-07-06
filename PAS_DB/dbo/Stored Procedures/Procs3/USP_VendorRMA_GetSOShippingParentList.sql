@@ -15,6 +15,7 @@
  ** PR   Date         Author					Change Description            
  ** --   --------     -------				--------------------------------          
     1    06/27/2023   Amit Ghediya			Created
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
      
  EXECUTE USP_VendorRMA_GetSOShippingParentList 60
 **************************************************************/
@@ -39,7 +40,7 @@ BEGIN
 			LEFT JOIN DBO.VendorRMA so WITH (NOLOCK) ON so.VendorRMAId = sop.VendorRMAId
 			INNER JOIN DBO.RMAPickTicket sopt WITH (NOLOCK) ON sopt.VendorRMAId = sop.VendorRMAId AND sopt.VendorRMADetailId = sop.VendorRMADetailId
 			LEFT JOIN DBO.ItemMaster imt WITH (NOLOCK) ON imt.ItemMasterId = sop.ItemMasterId
-			LEFT JOIN DBO.Stockline sl WITH (NOLOCK) ON sl.StockLineId = sop.StockLineId --AND sl.ConditionId = sop.ConditionId
+			 AND ISNULL(imt.IsNonStock,0) = 0 LEFT JOIN DBO.Stockline sl WITH (NOLOCK) ON sl.StockLineId = sop.StockLineId --AND sl.ConditionId = sop.ConditionId
 			LEFT JOIN DBO.RMAShippingItem sosi WITH (NOLOCK) ON sosi.VendorRMADetailId = sop.VendorRMADetailId 
 						AND sosi.RMAPickTicketId = sopt.RMAPickTicketId
 			LEFT JOIN DBO.RMAShipping sos WITH (NOLOCK) ON sos.RMAShippingId = sosi.RMAShippingId 

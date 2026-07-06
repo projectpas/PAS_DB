@@ -19,6 +19,7 @@
 	3    04-Sep-2023   Bhargav Saliya      Excel Data Order By Issue REsolved Using [OrderByDate] Field
 	4    29-MARCH-2024  Ekta Chandegra     IsActive and IsDeleted flag is added
 	5    29-APR-2024  Abhishek Jirawla     Divide By Zero resolved in TotalMarginAmtPerc
+	6    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 
 **************************************************************/    
 CREATE     PROCEDURE [dbo].[usprpt_GetWorkOrderQuotesReport]   
@@ -99,7 +100,7 @@ BEGIN
    LEFT JOIN DBO.WorkOrderQuoteDetails WOQD WITH (NOLOCK) ON WOQ.workorderquoteid = WOQD.workorderquoteid AND WOPN.ID = WOQD.WOPartNoId and ISNULL(WOQD.IsDeleted,0)=0  
    LEFT JOIN Stockline ST WITH (NOLOCK) ON ST.StockLineId=WOPN.StockLineId  
    LEFT JOIN DBO.ItemMaster IM WITH (NOLOCK) ON WOPN.itemmasterId = IM.ItemMasterId  
-   LEFT JOIN DBO.WorkScope AS WS WITH (NOLOCK) ON WOPN.WorkOrderScopeId = WS.WorkScopeId  
+    AND ISNULL(IM.IsNonStock,0) = 0 LEFT JOIN DBO.WorkScope AS WS WITH (NOLOCK) ON WOPN.WorkOrderScopeId = WS.WorkScopeId  
    LEFT JOIN DBO.Employee AS E WITH (NOLOCK) ON WOQ.SalesPersonId = E.EmployeeId  
    LEFT JOIN DBO.Employee AS E1 WITH (NOLOCK) ON WO.CSRId = E1.EmployeeId  
    LEFT JOIN DBO.workorderquotestatus WOQS WITH (NOLOCK) ON WOQ.QuoteStatusId = WOQS.WorkOrderQuoteStatusId  
@@ -178,7 +179,7 @@ BEGIN
         LEFT JOIN DBO.WorkOrderQuoteDetails WOQD WITH (NOLOCK) ON WOQ.workorderquoteid = WOQD.workorderquoteid AND WOPN.ID = WOQD.WOPartNoId and ISNULL(WOQD.IsActive,1)=1  
         LEFT JOIN Stockline ST WITH (NOLOCK) ON ST.StockLineId=WOPN.StockLineId  
         LEFT JOIN DBO.ItemMaster IM WITH (NOLOCK) ON WOPN.itemmasterId = IM.ItemMasterId  
-        LEFT JOIN DBO.WorkScope AS WS WITH (NOLOCK) ON WOPN.WorkOrderScopeId = WS.WorkScopeId  
+         AND ISNULL(IM.IsNonStock,0) = 0 LEFT JOIN DBO.WorkScope AS WS WITH (NOLOCK) ON WOPN.WorkOrderScopeId = WS.WorkScopeId  
         LEFT JOIN DBO.Employee AS E WITH (NOLOCK) ON WOQ.SalesPersonId = E.EmployeeId  
         LEFT JOIN DBO.Employee AS E1 WITH (NOLOCK) ON WO.CSRId = E1.EmployeeId  
         LEFT JOIN DBO.workorderquotestatus WOQS WITH (NOLOCK) ON WOQ.QuoteStatusId = WOQS.WorkOrderQuoteStatusId  

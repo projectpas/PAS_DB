@@ -13,6 +13,7 @@
     1    10/02/2023   Rajesh Gami		Created  
 	2    10/01/2025   Moin Bloch		Updated Added WorkOrderTask Table to Manage Task Name
 	3    02/04/2025   Bhargav Saliya    UTC Date Changes
+	4    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	--[dbo].[GetWorkOrderLaborTrackingList] 1,10,null,1,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,1,2,0,1
 **************************************************************/
 
@@ -146,7 +147,7 @@ BEGIN
 		
        WHERE (WOT.MasterCompanyId = @MasterCompanyId  AND WOT.EmployeeId = @EmployeeId AND (@TaskName = '' OR Ts.[Description] != @TaskStatus)) 
 	   
-	   UNION ALL
+	    AND ISNULL(IM.IsNonStock,0) = 0 UNION ALL
 
 	   SELECT   
 		0 AS WorkOrderLaborTrackingId,
@@ -189,7 +190,7 @@ BEGIN
 		
 		WHERE (WOL.MasterCompanyId = @MasterCompanyId  AND WOL.EmployeeId = @EmployeeId AND (@TaskName = '' OR Ts.[Description] != @TaskStatus)) AND WOL.Adjustments >0
 		
-		UNION ALL
+		 AND ISNULL(IM.IsNonStock,0) = 0 UNION ALL
 
 		SELECT   
 		WOT.SubWorkOrderLaborTrackingId as WorkOrderLaborTrackingId,
@@ -232,7 +233,7 @@ BEGIN
 		
        WHERE (WOT.MasterCompanyId = @MasterCompanyId  AND WOT.EmployeeId = @EmployeeId AND (@TaskName = '' OR Ts.[Description] != @TaskStatus)) 
 	   
-	   UNION ALL
+	    AND ISNULL(IM.IsNonStock,0) = 0 UNION ALL
 
 	   SELECT   
 		0 AS WorkOrderLaborTrackingId,
@@ -271,7 +272,7 @@ BEGIN
         LEFT JOIN dbo.Employee EMP WITH(NOLOCK) ON EMP.EmployeeId = WOL.EmployeeId 
 		
 		WHERE (WOL.MasterCompanyId = @MasterCompanyId  AND WOL.EmployeeId = @EmployeeId AND (@TaskName = '' OR Ts.[Description] != @TaskStatus)) AND WOL.Adjustments >0
-	),ResultCount AS(Select COUNT(WorkOrderId) AS totalItems FROM Result)	
+	 AND ISNULL(IM.IsNonStock,0) = 0 ),ResultCount AS(Select COUNT(WorkOrderId) AS totalItems FROM Result)	
 
 		Select * INTO #TempResult from  Result  
         WHERE (  
@@ -387,7 +388,7 @@ BEGIN
 		
        WHERE (WOT.MasterCompanyId = @MasterCompanyId AND WOL.WorkOrderLaborId = @WorkOrderLaborId  AND WOT.TaskId = @TaskId AND Lh.WorkFlowWorkOrderId = @WorkFlowWOId AND (@TaskName = '' OR Ts.[Description] != @TaskStatus)) 
 	   
-	   UNION ALL
+	    AND ISNULL(IM.IsNonStock,0) = 0 UNION ALL
 
 	    SELECT DISTINCT  
 		0 AS WorkOrderLaborTrackingId,
@@ -430,7 +431,7 @@ BEGIN
        WHERE (WOL.MasterCompanyId = @MasterCompanyId AND WOL.WorkOrderLaborId = @WorkOrderLaborId  AND WOL.TaskId = @TaskId AND Lh.WorkFlowWorkOrderId = @WorkFlowWOId AND (@TaskName = '' OR Ts.[Description] != @TaskStatus)) AND WOL.Adjustments >0
 	   
 
-	   ),ResultCount AS(Select COUNT(WorkOrderId) AS totalItems FROM Result)		
+	    AND ISNULL(IM.IsNonStock,0) = 0 ),ResultCount AS(Select COUNT(WorkOrderId) AS totalItems FROM Result)		
         Select * INTO #TempResultWOF from  Result  
         WHERE (  
         (@GlobalFilter <>'' AND (  

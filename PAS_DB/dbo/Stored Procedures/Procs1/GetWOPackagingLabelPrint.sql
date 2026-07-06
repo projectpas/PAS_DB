@@ -17,6 +17,7 @@
  ** --   --------     -------			--------------------------------          
     1    05/23/2020   Hemant Saliya		Created
 	2    01/01/2024   Devendra Shekh	updated for serialnumber
+	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
      
 --EXEC [GetWOPackagingLabelPrint] 6
 **************************************************************/
@@ -59,7 +60,7 @@ BEGIN
 					LEFT JOIN DBO.WorkOrderShippingItem WOSI WITH (NOLOCK) ON WOSI.WorkOrderPartNumId = wopt.OrderPartId AND wopt.PickTicketId = WOSI.WOPickTicketId
 					LEFT JOIN DBO.WorkOrderShipping WOS WITH (NOLOCK) ON WOS.WorkOrderShippingId = WOSI.WorkOrderShippingId AND WOS.WorkOrderId = @WorkOrderId
 				WHERE WPI.PackagingSlipId = @PackagingSlipId AND WPB.WorkOrderId = @WorkOrderId
-			END
+			 AND ISNULL(imt.IsNonStock,0) = 0 END
 		COMMIT  TRANSACTION
 
 		END TRY    

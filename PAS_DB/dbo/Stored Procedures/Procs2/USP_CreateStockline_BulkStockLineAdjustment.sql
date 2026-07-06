@@ -21,6 +21,7 @@
     4    09/24/2024   RAJESH GAMI    	Added BulkAdjustment Reference number while create new stockline.
     5    04/18/2025   ABHISHEK JIRAWLA	Added Integration Portal in Stockline
 	6    12/11/2025   SAHDEV SALIYA     Modified - Fixed the unit of measure error when creating a new stock line.
+	7    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 
 exec dbo.USP_CreateStocklineForReceivingPO 110715,9,'Admin User',1;
 **************************************************************/  
@@ -53,7 +54,7 @@ BEGIN
 
 			SELECT @ItemMasterId_Part = ItemMasterId FROM DBO.Stockline WITH (NOLOCK) WHERE StockLineId = @StockLineId;
 
-			SELECT @IsSerializedPart = IM.isSerialized FROM DBO.ItemMaster IM WITH (NOLOCK) WHERE IM.ItemMasterId = @ItemMasterId_Part;
+			SELECT @IsSerializedPart = IM.isSerialized FROM DBO.ItemMaster IM WITH (NOLOCK) WHERE IM.ItemMasterId = @ItemMasterId_Part AND ISNULL(IM.IsNonStock,0) = 0 ;
 
 			IF OBJECT_ID(N'tempdb..#tmpStockline') IS NOT NULL
 				BEGIN
@@ -741,7 +742,8 @@ BEGIN
 					ON CSTL.StockLineId = STL.StockLineId  
 					/* PN Manufacturer Combination Stockline logic */
 
-					DELETE FROM #tmpCodePrefixes;
+					 WHERE ISNULL(IM.IsNonStock,0) = 0
+DELETE FROM #tmpCodePrefixes;
 
 					INSERT INTO #tmpCodePrefixes (CodePrefixId,CodeTypeId,CurrentNumber, CodePrefix, CodeSufix, StartsFrom)   
 					SELECT CodePrefixId, CP.CodeTypeId, CurrentNummber, CodePrefix, CodeSufix, StartsFrom   
@@ -784,7 +786,7 @@ BEGIN
 					LEFT JOIN dbo.ItemMasterIntegrationPortal mp WITH(NOLOCK) ON iM.ItemMasterId = mp.ItemMasterId
 					LEFT JOIN dbo.IntegrationPortal ip WITH(NOLOCK) ON mp.IntegrationPortalId = ip.IntegrationPortalId
 					WHERE iM.ItemMasterId = @ItemMasterId AND iM.MasterCompanyId = @MasterCompanyId AND mp.IntegrationPortalId IS NOT NULL
-					GROUP BY iM.ItemMasterId
+					 AND ISNULL(iM.IsNonStock,0) = 0 GROUP BY iM.ItemMasterId
 
 					INSERT INTO DBO.Stockline ([PartNumber],[StockLineNumber],[StocklineMatchKey],[ControlNumber],[ItemMasterId],[Quantity],[ConditionId],[SerialNumber],[ShelfLife],
 					[ShelfLifeExpirationDate],[WarehouseId],[LocationId],[ObtainFrom],[Owner],[TraceableTo],[ManufacturerId],[Manufacturer],[ManufacturerLotNumber],[ManufacturingDate],

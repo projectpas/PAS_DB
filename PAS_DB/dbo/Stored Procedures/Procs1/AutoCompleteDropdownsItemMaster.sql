@@ -15,6 +15,7 @@
  ** --   --------     -------			--------------------------------          
     1    12/23/2020   Hemant Saliya		Created
     2    06/14/2024   Vishal Suthar		Increase limit of records from 20 to 50
+	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
      
 --EXEC [AutoCompleteDropdownsItemMaster] '822',1,200,'108,109,11',1
 **************************************************************/
@@ -36,7 +37,7 @@ BEGIN
 					SELECT DISTINCT TOP 50 
 						Im.ItemMasterId AS Value, 
 						Im.partnumber AS Label,	
-						im.partnumber + (CASE WHEN (SELECT COUNT(ISNULL(SD.[ManufacturerId], 0)) FROM [dbo].[ItemMaster]  SD WITH(NOLOCK)  WHERE im.partnumber = SD.partnumber AND SD.MasterCompanyId = Im.MasterCompanyId) > 1 then ' - '+ im.ManufacturerName ELSE '' END) AS Partnumber,
+						im.partnumber + (CASE WHEN (SELECT COUNT(ISNULL(SD.[ManufacturerId], 0)) FROM [dbo].[ItemMaster]  SD WITH(NOLOCK)  WHERE im.partnumber = SD.partnumber AND SD.MasterCompanyId = Im.MasterCompanyId AND ISNULL(SD.IsNonStock,0) = 0 ) > 1 then ' - '+ im.ManufacturerName ELSE '' END) AS Partnumber,
 						Im.PartDescription, 
 						Im.ItemClassificationId, 
 						Im.ManufacturerId, 
@@ -61,16 +62,16 @@ BEGIN
 						ConditionId = (select top 1 s.ConditionId from dbo.Stockline s with(NoLock) Where s.ItemMasterId = im.ItemMasterId)
 					FROM dbo.ItemMaster Im WITH(NOLOCK) 
 						LEFT JOIN dbo.ItemMaster rp WITH(NOLOCK)  ON Im.ItemMasterId =  rp.ItemMasterId
-						JOIN dbo.UnitOfMeasure uom WITH(NOLOCK)  ON Im.PurchaseUnitOfMeasureId = uom.UnitOfMeasureId
+						 AND ISNULL(rp.IsNonStock,0) = 0 JOIN dbo.UnitOfMeasure uom WITH(NOLOCK)  ON Im.PurchaseUnitOfMeasureId = uom.UnitOfMeasureId
 						LEFT JOIN dbo.Itemgroup Ig WITH(NOLOCK)  ON Im.ItemGroupId =  Ig.ItemGroupId
 						LEFT JOIN dbo.ItemClassification Ic WITH(NOLOCK)  ON Im.ItemClassificationId = Ic.ItemClassificationId
 						LEFT JOIN dbo.Manufacturer M WITH(NOLOCK) ON Im.ManufacturerId = M.ManufacturerId
 						LEFT JOIN dbo.GLAccount GL WITH(NOLOCK) ON Im.GLAccountId = GL.GLAccountId
 					WHERE (Im.IsActive = 1 AND ISNULL(Im.IsDeleted, 0) = 0 AND IM.MasterCompanyId = @MasterCompanyId AND (Im.partnumber LIKE @StartWith + '%' OR Im.partnumber  LIKE '%' + @StartWith + '%'))    
-			   UNION     
+			    AND ISNULL(Im.IsNonStock,0) = 0 UNION     
 					SELECT DISTINCT Im.ItemMasterId AS Value, 
 						Im.partnumber AS Label,	
-						im.partnumber + (CASE WHEN (SELECT COUNT(ISNULL(SD.[ManufacturerId], 0)) FROM [dbo].[ItemMaster]  SD WITH(NOLOCK)  WHERE im.partnumber = SD.partnumber AND SD.MasterCompanyId = Im.MasterCompanyId) > 1 then ' - '+ im.ManufacturerName ELSE '' END) AS Partnumber,
+						im.partnumber + (CASE WHEN (SELECT COUNT(ISNULL(SD.[ManufacturerId], 0)) FROM [dbo].[ItemMaster]  SD WITH(NOLOCK)  WHERE im.partnumber = SD.partnumber AND SD.MasterCompanyId = Im.MasterCompanyId AND ISNULL(SD.IsNonStock,0) = 0 ) > 1 then ' - '+ im.ManufacturerName ELSE '' END) AS Partnumber,
 						Im.PartDescription, 
 						Im.ItemClassificationId, 
 						Im.ManufacturerId, 
@@ -95,20 +96,20 @@ BEGIN
 						ConditionId = (select top 1 s.ConditionId from dbo.Stockline s with(NoLock) Where s.ItemMasterId = im.ItemMasterId)
 					FROM dbo.ItemMaster Im WITH(NOLOCK) 
 						LEFT JOIN dbo.ItemMaster rp WITH(NOLOCK) ON Im.ItemMasterId =  rp.ItemMasterId
-						JOIN dbo.UnitOfMeasure uom WITH(NOLOCK) ON Im.PurchaseUnitOfMeasureId = uom.UnitOfMeasureId
+						 AND ISNULL(rp.IsNonStock,0) = 0 JOIN dbo.UnitOfMeasure uom WITH(NOLOCK) ON Im.PurchaseUnitOfMeasureId = uom.UnitOfMeasureId
 						LEFT JOIN dbo.Itemgroup Ig WITH(NOLOCK) ON Im.ItemGroupId =  Ig.ItemGroupId
 						LEFT JOIN dbo.ItemClassification Ic WITH(NOLOCK) ON Im.ItemClassificationId = Ic.ItemClassificationId
 						LEFT JOIN dbo.Manufacturer M WITH(NOLOCK) ON Im.ManufacturerId = M.ManufacturerId
 						LEFT JOIN dbo.GLAccount GL WITH(NOLOCK) ON Im.GLAccountId = GL.GLAccountId
 					WHERE im.ItemMasterId in (SELECT DISTINCT Item FROM DBO.SPLITSTRING(@Idlist, ','))    
-				ORDER BY Label				
+				 AND ISNULL(Im.IsNonStock,0) = 0 ORDER BY Label				
 			End
 			ELSE
 			BEGIN
 				SELECT DISTINCT TOP 50 
 						Im.ItemMasterId AS Value, 
 						Im.partnumber AS Label,	
-						im.partnumber + (CASE WHEN (SELECT COUNT(ISNULL(SD.[ManufacturerId], 0)) FROM [dbo].[ItemMaster]  SD WITH(NOLOCK)  WHERE im.partnumber = SD.partnumber AND SD.MasterCompanyId = Im.MasterCompanyId) > 1 then ' - '+ im.ManufacturerName ELSE '' END) AS Partnumber,
+						im.partnumber + (CASE WHEN (SELECT COUNT(ISNULL(SD.[ManufacturerId], 0)) FROM [dbo].[ItemMaster]  SD WITH(NOLOCK)  WHERE im.partnumber = SD.partnumber AND SD.MasterCompanyId = Im.MasterCompanyId AND ISNULL(SD.IsNonStock,0) = 0 ) > 1 then ' - '+ im.ManufacturerName ELSE '' END) AS Partnumber,
 						Im.PartDescription, 
 						Im.ItemClassificationId, 
 						Im.ManufacturerId, 
@@ -132,17 +133,17 @@ BEGIN
 						ConditionId = (select top 1 s.ConditionId from dbo.Stockline s with(NoLock) Where s.ItemMasterId = im.ItemMasterId)
 					FROM dbo.ItemMaster Im WITH(NOLOCK) 
 						LEFT JOIN dbo.ItemMaster rp WITH(NOLOCK)  ON Im.ItemMasterId =  rp.ItemMasterId
-						JOIN dbo.UnitOfMeasure uom WITH(NOLOCK)  ON Im.PurchaseUnitOfMeasureId = uom.UnitOfMeasureId
+						 AND ISNULL(rp.IsNonStock,0) = 0 JOIN dbo.UnitOfMeasure uom WITH(NOLOCK)  ON Im.PurchaseUnitOfMeasureId = uom.UnitOfMeasureId
 						LEFT JOIN dbo.Itemgroup Ig WITH(NOLOCK)  ON Im.ItemGroupId =  Ig.ItemGroupId
 						LEFT JOIN dbo.ItemClassification Ic WITH(NOLOCK)  ON Im.ItemClassificationId = Ic.ItemClassificationId
 						LEFT JOIN dbo.Manufacturer M WITH(NOLOCK) ON Im.ManufacturerId = M.ManufacturerId
 						LEFT JOIN dbo.GLAccount GL WITH(NOLOCK)  ON Im.GLAccountId = GL.GLAccountId
-				WHERE Im.IsActive = 1 AND ISNULL(Im.IsDeleted, 0) = 0 AND IM.MasterCompanyId = @MasterCompanyId AND Im.partnumber LIKE '%' + @StartWith + '%' OR Im.partnumber  LIKE '%' + @StartWith + '%'
-				UNION 
+				WHERE ISNULL(Im.IsNonStock,0) = 0 AND ( Im.IsActive = 1 AND ISNULL(Im.IsDeleted, 0) = 0 AND IM.MasterCompanyId = @MasterCompanyId AND Im.partnumber LIKE '%' + @StartWith + '%' OR Im.partnumber  LIKE '%' + @StartWith + '%'
+				) UNION 
 				SELECT DISTINCT TOP 50 
 						Im.ItemMasterId AS Value,  
 						Im.partnumber AS Label,
-						im.partnumber + (CASE WHEN (SELECT COUNT(ISNULL(SD.[ManufacturerId], 0)) FROM [dbo].[ItemMaster]  SD WITH(NOLOCK)  WHERE im.partnumber = SD.partnumber AND SD.MasterCompanyId = Im.MasterCompanyId) > 1 then ' - '+ im.ManufacturerName ELSE '' END) AS Partnumber,
+						im.partnumber + (CASE WHEN (SELECT COUNT(ISNULL(SD.[ManufacturerId], 0)) FROM [dbo].[ItemMaster]  SD WITH(NOLOCK)  WHERE im.partnumber = SD.partnumber AND SD.MasterCompanyId = Im.MasterCompanyId AND ISNULL(SD.IsNonStock,0) = 0 ) > 1 then ' - '+ im.ManufacturerName ELSE '' END) AS Partnumber,
 						Im.PartDescription, 
 						Im.ItemClassificationId, 
 						Im.ManufacturerId, 
@@ -165,13 +166,13 @@ BEGIN
 						ConditionId = (select top 1 s.ConditionId from dbo.Stockline s with(NoLock) Where s.ItemMasterId = im.ItemMasterId)
 					FROM dbo.ItemMaster Im WITH(NOLOCK) 
 						LEFT JOIN dbo.ItemMaster rp WITH(NOLOCK)  ON Im.ItemMasterId =  rp.ItemMasterId
-						JOIN dbo.UnitOfMeasure uom WITH(NOLOCK) ON Im.PurchaseUnitOfMeasureId = uom.UnitOfMeasureId
+						 AND ISNULL(rp.IsNonStock,0) = 0 JOIN dbo.UnitOfMeasure uom WITH(NOLOCK) ON Im.PurchaseUnitOfMeasureId = uom.UnitOfMeasureId
 						LEFT JOIN dbo.Itemgroup Ig WITH(NOLOCK) ON Im.ItemGroupId =  Ig.ItemGroupId
 						LEFT JOIN dbo.ItemClassification Ic WITH(NOLOCK) ON Im.ItemClassificationId = Ic.ItemClassificationId
 						LEFT JOIN dbo.Manufacturer M WITH(NOLOCK) ON Im.ManufacturerId = M.ManufacturerId
 						LEFT JOIN dbo.GLAccount GL WITH(NOLOCK) ON Im.GLAccountId = GL.GLAccountId
 				WHERE Im.ItemMasterId in (SELECT DISTINCT Item FROM DBO.SPLITSTRING(@Idlist, ','))
-				ORDER BY Label	
+				 AND ISNULL(Im.IsNonStock,0) = 0 ORDER BY Label	
 			END
 	END TRY 
 	BEGIN CATCH			  

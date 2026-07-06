@@ -17,6 +17,7 @@
  **	1	10-04-2022   Devendra Shekh			created    
  
 EXECUTE   [dbo].[usprpt_GetWorkOrderBacklogReportNew] 'WO Opened','','','','1','1,4,43,44,45,80,84,88','46,47,66','48,49,50,58,59,67,68,69','51,52,53,54,55,56,57,60'    
+	1    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 **************************************************************/    
 CREATE   PROCEDURE [dbo].[usprpt_GetWorkOrderBacklogReportNew]     
  @PageNumber INT = 1,    
@@ -135,7 +136,7 @@ BEGIN
       AND (ISNULL(@Level8,'') ='' OR MSD.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,',')))    
       AND (ISNULL(@Level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))    
       AND  (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))    
-      END    
+       AND ISNULL(IM.IsNonStock,0) = 0 END    
     
     SET @PageSize = CASE WHEN NULLIF(@PageSize,0) IS NULL THEN 10 ELSE @PageSize END    
     SET @PageNumber = CASE WHEN NULLIF(@PageNumber,0) IS NULL THEN 1 ELSE @PageNumber END    
@@ -219,7 +220,7 @@ BEGIN
     AND (ISNULL(@Level8,'') ='' OR MSD.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,',')))    
     AND (ISNULL(@Level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))    
     AND  (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))  
-     )  
+      AND ISNULL(IM.IsNonStock,0) = 0 )  
     
     ,finalCTE (WorkOrderId,customername, pn, pndescription, wonum, serialnum, wotype, stagecode, statuscode, receiveddate, opendate, approvedamount, unitcost, StocklineId, partscost, laborcost, overheadcost,  
     misccharge, othercost, total, wodayscount, techname, priority, workScope, quoteAmount, daysInStage, level1, level2, level3, level4, level5, level6, level7, level8,  

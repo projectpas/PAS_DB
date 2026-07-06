@@ -12,6 +12,7 @@
  ** --   --------     -------		--------------------------------          
 	1                 Unknown              Created
 	2    03/04/2025   Ekta Chandegra    Convert date using dbo.ConvertUTCtoLocal
+	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_GetAllWOAssignmentOpenItem]      
@@ -142,7 +143,7 @@ SET NOCOUNT ON
             LEFT JOIN dbo.EmployeeExpertise empexp WITH (NOLOCK) ON empexp.EmployeeExpertiseId = wop.ExpertiseId  
          LEFT JOIN dbo.EmployeeStation emps WITH (NOLOCK) ON emps.EmployeeStationId = wop.TechStationId  
         WHERE wo.MasterCompanyId= @MasterCompanyId AND wst.Id != @CloseWOStatusId    
-     ), ResultCount AS(SELECT COUNT(WorkOrderId) AS totalItems FROM Result)  
+      AND ISNULL(im.IsNonStock,0) = 0 ), ResultCount AS(SELECT COUNT(WorkOrderId) AS totalItems FROM Result)  
      SELECT * INTO #TempResult2 from  Result  
      WHERE (  
         (@GlobalFilter <>'' AND (  

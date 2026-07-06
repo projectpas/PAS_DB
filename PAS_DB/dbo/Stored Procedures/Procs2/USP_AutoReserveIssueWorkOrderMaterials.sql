@@ -25,6 +25,7 @@ EXEC [USP_AutoReserveIssueWorkOrderMaterials]
 ** 16   03/16/2026	AMIT GHEDIYA	 Allow AR condition to reserve (PN-15562)
 
 EXEC USP_AutoReserveIssueWorkOrderMaterials 4933,'ADMIN ADMIN'
+	1    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[USP_AutoReserveIssueWorkOrderMaterials]
 @WorkFlowWorkOrderId BIGINT,
@@ -78,20 +79,20 @@ BEGIN
 				
 					--- FOR OEM
 					INSERT INTO #AllowItemMasterIds([ItemMasterId])SELECT [ItemMasterId] FROM [dbo].[ItemMaster] IM WITH(NOLOCK) WHERE IM.IsActive = 1 AND IM.IsDeleted = 0 AND IM.ItemTypeId = @StkItemTypeId
-					AND IM.MasterCompanyId = @MasterCompanyId AND ISNULL(IM.IsOEM ,0) = 1 AND ISNULL(IsDER ,0) = 0;
+					AND IM.MasterCompanyId = @MasterCompanyId AND ISNULL(IM.IsOEM ,0) = 1 AND ISNULL(IsDER ,0) = 0 AND ISNULL(IM.IsNonStock,0) = 0 ;
 
 					--FOR PMA
 					IF(ISNULL(@RestrictPMA, 0) <> 1)
 					BEGIN
 						INSERT INTO #AllowItemMasterIds([ItemMasterId])SELECT [ItemMasterId] FROM [dbo].[ItemMaster] IM WITH(NOLOCK) WHERE IM.IsActive = 1 AND IM.IsDeleted = 0 AND IM.ItemTypeId = @StkItemTypeId
-						AND IM.MasterCompanyId = @MasterCompanyId AND ISNULL(IM.IsPma ,0) = 1 AND ISNULL(IsDER ,0) = 0;
+						AND IM.MasterCompanyId = @MasterCompanyId AND ISNULL(IM.IsPma ,0) = 1 AND ISNULL(IsDER ,0) = 0 AND ISNULL(IM.IsNonStock,0) = 0 ;
 					END
 
 					--FOR DER
 					IF(ISNULL(@RestrictDER, 0) <> 1)
 					BEGIN
 						INSERT INTO #AllowItemMasterIds([ItemMasterId])SELECT [ItemMasterId] FROM [dbo].[ItemMaster] IM WITH(NOLOCK) WHERE IM.IsActive = 1 AND IM.IsDeleted = 0 AND IM.ItemTypeId = @StkItemTypeId
-						AND IM.MasterCompanyId = @MasterCompanyId AND ISNULL(IM.IsDER ,0) = 1;
+						AND IM.MasterCompanyId = @MasterCompanyId AND ISNULL(IM.IsDER ,0) = 1 AND ISNULL(IM.IsNonStock,0) = 0 ;
 					END
 
 					--Except Parts
@@ -166,7 +167,7 @@ BEGIN
 						
 						--PRINT '--Auto Reserve & Issue Stockline'
 						--Auto Reserve & Issue Stockline
-						IF((SELECT COUNT(1) FROM #tmpReserveIssueWOMaterialsStockline) > 0)
+						 AND ISNULL(IM.IsNonStock,0) = 0 IF((SELECT COUNT(1) FROM #tmpReserveIssueWOMaterialsStockline) > 0)
 						BEGIN
 							--CASE 1 UPDATE WORK ORDER MATERILS
 							DECLARE @count INT;

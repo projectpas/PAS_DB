@@ -27,6 +27,7 @@
 	10	 04/14/2025	  Devendra Shekh	Added changes for IsLaborTrackingTurnedOff
 	11	 05/28/2025	  Amit Ghediya		WO settlment material check box not checked issue while material deleted.
 	12   03/07/2025   Moin Bloch        Changed Old To New Billing Table
+	13    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 
 EXEC [GetWorkOrderSettlementDetails] 3555,3025,3019
 **************************************************************/
@@ -213,7 +214,7 @@ BEGIN
 				FROM DBO.WorkOrderSettlement wos  WITH(NOLOCK)
 					LEFT JOIN dbo.WorkOrderSettlementDetails wosd WITH(NOLOCK) on wosd.WorkOrderSettlementId = wos.WorkOrderSettlementId
 					LEFT JOIN ItemMaster IM ON IM.ItemMasterId = wosd.RevisedPartId
-				WHERE wosd.WorkOrderId = @WorkorderId and wosd.WorkflowWorkOrderId = @workflowWorkorderId and wosd.workOrderPartNoId = @workOrderPartNoId 
+				 AND ISNULL(IM.IsNonStock,0) = 0 WHERE wosd.WorkOrderId = @WorkorderId and wosd.WorkflowWorkOrderId = @workflowWorkorderId and wosd.workOrderPartNoId = @workOrderPartNoId 
 			END
 		COMMIT  TRANSACTION
 

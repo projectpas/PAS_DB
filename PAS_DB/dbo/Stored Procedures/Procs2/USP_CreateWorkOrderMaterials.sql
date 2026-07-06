@@ -10,6 +10,7 @@
  ** --   --------				-------					--------------------------------            
  ** 1    28-April-2025			Devendra Shekh				Created
        
+	1    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 **************************************************************/  
   
 CREATE   PROCEDURE [dbo].[USP_CreateWorkOrderMaterials]  
@@ -78,7 +79,7 @@ BEGIN
 			
 			SELECT @WOMQuantity = [Quantity] FROM [dbo].[WorkOrderMaterials] WITH(NOLOCK) WHERE [WorkOrderMaterialsId] = @WorkOrderMaterialsId
 			SELECT @WorkOrderPartNoId = [WorkOrderPartNoId] FROM [dbo].[WorkOrderWorkFlow] WITH(NOLOCK) WHERE [WorkFlowWorkOrderId] = @WorkFlowWorkOrderId;
-			SELECT @partnumber = [PartNumber] FROM [dbo].[ItemMaster] WITH(NOLOCK) WHERE [ItemMasterId] = @ItemMasterId;
+			SELECT @partnumber = [PartNumber] FROM [dbo].[ItemMaster] WITH(NOLOCK) WHERE [ItemMasterId] = @ItemMasterId AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 ;
 
 			SELECT @TemplateBody = [TemplateBody] FROM [dbo].[HistoryTemplate] WITH(NOLOCK) WHERE [TemplateCode] = @AddPNPart;
 			SELECT @historyModuleId = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName] = 'WorkOrder';
@@ -142,7 +143,7 @@ BEGIN
 				TMP.UpdatedDate =  GETUTCDATE()
 			FROM #tmpWorkOrderMaterial TMP
 			LEFT JOIN [dbo].[ItemMaster] IM WITH(NOLOCK) ON TMP.ItemMasterId = IM.ItemMasterId
-			LEFT JOIN [dbo].[StockLine] STK WITH(NOLOCK) ON TMP.StockLineId = STK.StockLineId
+			 AND ISNULL(IM.IsNonStock,0) = 0 LEFT JOIN [dbo].[StockLine] STK WITH(NOLOCK) ON TMP.StockLineId = STK.StockLineId
 
 			SELECT @TotalMaterialCount = COUNT(RowId), @CurrentRowId = MIN(RowId) FROM #tmpWorkOrderMaterial;
 
@@ -167,7 +168,7 @@ BEGIN
 						TMP.UnitOfMeasureId = CASE WHEN ISNULL(TMP.UnitOfMeasureId, 0) = 0 THEN CASE WHEN ISNULL(TMP.StockLineId, 0) > 0 THEN STK.PurchaseUnitOfMeasureId ELSE IM.PurchaseUnitOfMeasureId END ELSE TMP.UnitOfMeasureId END
 					FROM #tmpWorkOrderMaterial TMP 
 					LEFT JOIN [dbo].[ItemMaster] IM WITH(NOLOCK) ON TMP.ItemMasterId = IM.ItemMasterId
-					LEFT JOIN [dbo].[StockLine] STK WITH(NOLOCK) ON TMP.StockLineId = STK.StockLineId
+					 AND ISNULL(IM.IsNonStock,0) = 0 LEFT JOIN [dbo].[StockLine] STK WITH(NOLOCK) ON TMP.StockLineId = STK.StockLineId
 					WHERE [RowId] = @CurrentRowId;
 
 					SELECT @WorkOrderMaterialsId = [WorkOrderMaterialsId], @WOMStockLineId = [StockLineId] FROM #tmpWorkOrderMaterial TMP WHERE TMP.RowId = @CurrentRowId

@@ -21,6 +21,7 @@
 	3    07/27/2023   Vishal Suthar Showing both issued and reserved qty WOM stockline
 	4    12/06/2023   Jevik Raiyani add @statusValue 
 	5    03/11/2025   Bhargav Saliya Added New Field [Stage]
+	6    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 **************************************************************/
 CREATE  PROCEDURE [dbo].[GetPNTileWOMaterialHistoryList]
 	@PageNumber int = 1,
@@ -118,7 +119,7 @@ BEGIN
 				  --AND (WOMS.QtyIssued > 0 OR WOMS.QtyReserved > 0)
 				  AND (@ConditionId IS NULL OR WPN.ConditionId IN(SELECT * FROM STRING_SPLIT(@ConditionId , ',')))
 
-			UNION ALL
+			 AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(IMP.IsNonStock,0) = 0 UNION ALL
 
 			SELECT DISTINCT
 					WO.[WorkOrderId],
@@ -164,7 +165,7 @@ BEGIN
 				  AND WOM.ItemMasterId = @ItemMasterId	
 				  --AND (WOMS.QtyIssued > 0 OR WOMS.QtyReserved > 0)
 				  AND (@ConditionId IS NULL OR WPN.ConditionId IN(SELECT * FROM STRING_SPLIT(@ConditionId , ',')))
-			), ResultCount AS(SELECT COUNT(WorkOrderId) AS totalItems FROM Result)
+			 AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(IMP.IsNonStock,0) = 0 ), ResultCount AS(SELECT COUNT(WorkOrderId) AS totalItems FROM Result)
 			SELECT * INTO #TempResult FROM  Result
 			 WHERE ((@GlobalFilter <>'' AND ((PartNumber LIKE '%' + @GlobalFilter +'%') OR
 					(PartDescription LIKE '%' + @GlobalFilter +'%') OR

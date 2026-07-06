@@ -15,6 +15,7 @@
 	2   03-Feb-2025		Devendra Shekh			Modified (Using [AccountingModule] table for Accounting Modules)
 	3   12-Feb-2025		Devendra Shekh			Modified (Added New Field [ItemQuickBooksReferenceId])
 	4   31-Mar-2025		Devendra Shekh			Modified (Added changes for Notes and bill/ship)
+	5    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
      
  EXECUTE [QuickBooks_GetUpdatePendingExChangeInvoiceList] 1, 1, 523, 0
 **************************************************************/ 
@@ -179,7 +180,7 @@ BEGIN
 					--LEFT JOIN [dbo].[Address] billToAddress WITH(NOLOCK) ON billToSite.AddressId = billToAddress.AddressId
 					--LEFT JOIN [dbo].[CustomerDomensticShipping] shipToSite WITH(NOLOCK) ON SOBI.ShipToSiteId = shipToSite.CustomerDomensticShippingId
 					--LEFT JOIN [dbo].[Address] shipToAddress WITH(NOLOCK) ON shipToSite.AddressId = shipToAddress.AddressId
-					LEFT JOIN  [dbo].[AllAddress] billToAddress WITH(NOLOCK) ON SOBI.ExchangeSalesOrderId = billToAddress.ReffranceId AND billToAddress.IsShippingAdd = 0 AND billToAddress.[ModuleId] = @ExchModuleId
+					 AND ISNULL(IM.IsNonStock,0) = 0 LEFT JOIN  [dbo].[AllAddress] billToAddress WITH(NOLOCK) ON SOBI.ExchangeSalesOrderId = billToAddress.ReffranceId AND billToAddress.IsShippingAdd = 0 AND billToAddress.[ModuleId] = @ExchModuleId
 					LEFT JOIN  [dbo].[AllAddress] shipToAddress WITH(NOLOCK) ON SOBI.ExchangeSalesOrderId = shipToAddress.ReffranceId AND shipToAddress.IsShippingAdd = 1 AND shipToAddress.[ModuleId] = @ExchModuleId
 					LEFT JOIN [dbo].[CreditTerms] CT WITH(NOLOCK) ON CT.CreditTermsId = SO.CreditTermId
 					LEFT JOIN [dbo].[Percent] P with(nolock) ON P.MasterCompanyId = SOBI.MasterCompanyId AND P.PercentId = SOBI.TaxRate
@@ -260,7 +261,7 @@ BEGIN
 					--LEFT JOIN [dbo].[Address] billToAddress WITH(NOLOCK) ON billToSite.AddressId = billToAddress.AddressId
 					--LEFT JOIN [dbo].[CustomerDomensticShipping] shipToSite WITH(NOLOCK) ON SOBI.ShipToSiteId = shipToSite.CustomerDomensticShippingId
 					--LEFT JOIN [dbo].[Address] shipToAddress WITH(NOLOCK) ON shipToSite.AddressId = shipToAddress.AddressId
-					LEFT JOIN  [dbo].[AllAddress] billToAddress WITH(NOLOCK) ON SOBI.ExchangeSalesOrderId = billToAddress.ReffranceId AND billToAddress.IsShippingAdd = 0 AND billToAddress.[ModuleId] = @ExchModuleId
+					 AND ISNULL(IM.IsNonStock,0) = 0 LEFT JOIN  [dbo].[AllAddress] billToAddress WITH(NOLOCK) ON SOBI.ExchangeSalesOrderId = billToAddress.ReffranceId AND billToAddress.IsShippingAdd = 0 AND billToAddress.[ModuleId] = @ExchModuleId
 					LEFT JOIN  [dbo].[AllAddress] shipToAddress WITH(NOLOCK) ON SOBI.ExchangeSalesOrderId = shipToAddress.ReffranceId AND shipToAddress.IsShippingAdd = 1 AND shipToAddress.[ModuleId] = @ExchModuleId
 					LEFT JOIN [dbo].[CreditTerms] CT WITH(NOLOCK) ON CT.CreditTermsId = SO.CreditTermId
 					LEFT JOIN [dbo].[Percent] P with(nolock) ON P.MasterCompanyId = SOBI.MasterCompanyId AND P.PercentId = SOBI.TaxRate

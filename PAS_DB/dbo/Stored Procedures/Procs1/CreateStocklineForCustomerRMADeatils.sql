@@ -19,6 +19,7 @@
  ** --   --------     -------  --------------------------------            
     1    02/05/20221   Subhash Saliya  Created  
     1    06/14/2023   Devendra Shekh   changed function udfGenerateCodeNumber to [udfGenerateCodeNumberWithOutDash]  
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
        
 -- EXEC [CreateStocklineForCustomerRMADeatils] 44  
 **************************************************************/  
@@ -112,7 +113,8 @@ BEGIN
     ON CSTL.StockLineId = STL.StockLineId  
     /* PN Manufacturer Combination Stockline logic */  
   
-    INSERT INTO #tmpCodePrefixes (CodePrefixId,CodeTypeId,CurrentNumber, CodePrefix, CodeSufix, StartsFrom)   
+     WHERE ISNULL(IM.IsNonStock,0) = 0
+INSERT INTO #tmpCodePrefixes (CodePrefixId,CodeTypeId,CurrentNumber, CodePrefix, CodeSufix, StartsFrom)   
     SELECT CodePrefixId, CP.CodeTypeId, CurrentNummber, CodePrefix, CodeSufix, StartsFrom   
     FROM dbo.CodePrefixes CP WITH(NOLOCK) JOIN dbo.CodeTypes CT ON CP.CodeTypeId = CT.CodeTypeId  
     WHERE CT.CodeTypeId IN (30,17,9) AND CP.MasterCompanyId = @MasterCompanyId AND CP.IsActive = 1 AND CP.IsDeleted = 0;  

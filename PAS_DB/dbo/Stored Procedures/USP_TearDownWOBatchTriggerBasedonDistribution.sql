@@ -16,6 +16,7 @@
     1    10/02/2026  Moin Bloch     CREATED
 	2    20/02/2026  Moin Bloch     Tender Stockline Multiply by Tendered Quantity PN-15505
 	3    24/04/2026  Moin Bloch     Tender Stockline GLAccount Fix
+	4    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 
    EXEC [dbo].[USP_TearDownWOBatchTriggerBasedonDistribution] 4,3915,0,0,459,0,0,'',0,0.00,'WO',1,'ADMIN User'
 
@@ -148,7 +149,7 @@ BEGIN
 			  FROM [dbo].[ItemMaster] WITH(NOLOCK)  
 			 WHERE ItemMasterId=@ItemmasterId 
 
-	        SELECT @LastMSLevel=LastMSLevel,
+	         AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 SELECT @LastMSLevel=LastMSLevel,
 			       @AllMSlevels=AllMSlevels 
 			  FROM [dbo].[WorkOrderManagementStructureDetails] WITH(NOLOCK) 
 			  WHERE ReferenceID=@ReferencePartId

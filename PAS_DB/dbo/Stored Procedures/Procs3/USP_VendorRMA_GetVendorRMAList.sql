@@ -28,6 +28,7 @@
 	12   29-03-2024   Shrey Chandegara            Add RevisedStocklineId
 	13   22/07/2024   Amit Ghediya		    Optimization sp.
 	14   22-07-2024   Shrey Chandegara      Modify For date filter issue(use this function @CurrntEmpTimeZoneDesc )
+	15    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
      
  EXECUTE USP_VendorRMA_GetVendorRMAList 
 **************************************************************/
@@ -162,7 +163,7 @@ BEGIN
 		LEFT JOIN [DBO].[VendorRMAReturnReason] RMAR WITH (NOLOCK) ON RMAD.[VendorRMAReturnReasonId] = RMAR.[VendorRMAReturnReasonId]
 		LEFT JOIN [DBO].[Stockline] SL WITH (NOLOCK) ON RMAD.[StockLineId] = SL.[StockLineId]
 		LEFT JOIN [DBO].[ItemMaster] IM WITH (NOLOCK) ON RMAD.[ItemMasterId] = IM.[ItemMasterId]
-		LEFT JOIN [DBO].[PurchaseOrder] PO WITH (NOLOCK) ON SL.[PurchaseOrderId] = PO.[PurchaseOrderId] 
+		 AND ISNULL(IM.IsNonStock,0) = 0 LEFT JOIN [DBO].[PurchaseOrder] PO WITH (NOLOCK) ON SL.[PurchaseOrderId] = PO.[PurchaseOrderId] 
 		LEFT JOIN [DBO].[RepairOrder] RO WITH (NOLOCK) ON SL.[RepairOrderId] = RO.[RepairOrderId]
 		LEFT JOIN [DBO].[VendorCreditMemo] VCM WITH (NOLOCK) ON VCM.VendorRMAId = RMA.VendorRMAId
 		LEFT JOIN [DBO].[VendorRMAStatus] VS WITH (NOLOCK) ON RMAD.VendorRMAStatusId = VS.VendorRMAStatusId
@@ -359,7 +360,7 @@ BEGIN
 			LEFT JOIN [DBO].[VendorCreditMemo] VCM WITH (NOLOCK) ON VCM.VendorRMAId = RMA.VendorRMAId
 			LEFT JOIN [DBO].[Stockline] SL WITH (NOLOCK) ON RMAD.VendorRMADetailId = SL.VendorRMADetailId
 			LEFT JOIN [DBO].[ItemMaster] P WITH (NOLOCK) ON RMAD.ItemMasterId = P.ItemMasterId
-			LEFT JOIN [DBO].[PurchaseOrder] PO WITH (NOLOCK) ON SL.[PurchaseOrderId] = PO.[PurchaseOrderId]
+			 AND ISNULL(P.IsNonStock,0) = 0 LEFT JOIN [DBO].[PurchaseOrder] PO WITH (NOLOCK) ON SL.[PurchaseOrderId] = PO.[PurchaseOrderId]
 			LEFT JOIN [DBO].[RepairOrder] RO WITH (NOLOCK) ON SL.[RepairOrderId] = RO.[RepairOrderId]
 			LEFT JOIN [DBO].[VendorRMAStatus] VS WITH (NOLOCK) ON RMA.VendorRMAStatusId = VS.VendorRMAStatusId
 			LEFT JOIN [DBO].[VendorRMAStatus] VSS WITH (NOLOCK) ON RMAD.VendorRMAStatusId = VSS.VendorRMAStatusId

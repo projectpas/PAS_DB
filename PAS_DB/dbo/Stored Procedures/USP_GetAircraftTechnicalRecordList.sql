@@ -100,6 +100,13 @@ BEGIN
                         ON WSH.ProgramId = AMP.ProgramId
                     WHERE AMP.AircraftRegistryId = ARH.AircraftRegistryId AND AMP.AircraftPublicationId = PUB.AircraftPublicationId
                 ) AS WorksheetNum,
+				(
+                    SELECT TOP 1 WSH.WorksheetHeaderId
+                    FROM dbo.AircraftMaintenanceProgram AMP WITH(NOLOCK)
+                    LEFT JOIN dbo.WorksheetHeader WSH WITH(NOLOCK)
+                        ON WSH.ProgramId = AMP.ProgramId
+                    WHERE AMP.AircraftRegistryId = ARH.AircraftRegistryId AND AMP.AircraftPublicationId = PUB.AircraftPublicationId
+                ) AS WorksheetId,
                 (
                     SELECT TOP 1 WSH.CreatedDate
                     FROM dbo.AircraftMaintenanceProgram AMP WITH(NOLOCK)
@@ -161,6 +168,15 @@ BEGIN
                         ON WO.WorkOrderId = WOPN.WorkOrderId
                     WHERE AMP.AircraftRegistryId = ARH.AircraftRegistryId AND AMP.AircraftPublicationId = PUB.AircraftPublicationId
                 ) AS WorkOrderNum,
+				(
+                    SELECT TOP 1 WO.WorkOrderId
+                    FROM dbo.AircraftMaintenanceProgram AMP WITH(NOLOCK)
+                    LEFT JOIN dbo.WorkOrderPartNumber WOPN WITH(NOLOCK)
+                        ON WOPN.ProgramId = AMP.ProgramId
+                    LEFT JOIN dbo.WorkOrder WO WITH(NOLOCK)
+                        ON WO.WorkOrderId = WOPN.WorkOrderId
+                    WHERE AMP.AircraftRegistryId = ARH.AircraftRegistryId AND AMP.AircraftPublicationId = PUB.AircraftPublicationId
+                ) AS WorkOrderId,
                 (
                     SELECT TOP 1 WO.OpenDate
                     FROM dbo.AircraftMaintenanceProgram AMP WITH(NOLOCK)

@@ -72,7 +72,8 @@ BEGIN
                 WH.AircraftModelId,
                 WH.AircraftModel,
                 WH.AFHours,
-                MT.WorkScopeCode AS InspectionType,
+                --MT.WorkScopeCode AS InspectionType,
+				WH.InspectionType,
 				MC.MtcCategory AS MaintenanceCategory,
                 WH.InspectionDate,
                 WH.QualitySafetyDeptSignOutBy,
@@ -160,7 +161,7 @@ BEGIN
                 AND (@MakeType                   IS NULL OR WH.MakeType                  LIKE '%' + @MakeType                  + '%')
                 AND (@AircraftModel              IS NULL OR WH.AircraftModel             LIKE '%' + @AircraftModel             + '%')
                 AND (@AFHours                    IS NULL OR WH.AFHours                   LIKE '%' + @AFHours                   + '%')
-                AND (@InspectionType             IS NULL OR MT.WorkScopeCode            LIKE '%' + @InspectionType            + '%')
+                AND (@InspectionType             IS NULL OR WH.InspectionType            LIKE '%' + @InspectionType            + '%')
 				AND (@MaintenanceCategory        IS NULL OR MC.MtcCategory            LIKE '%' + @MaintenanceCategory            + '%')
                 AND (@InspectionDate             IS NULL OR CAST(WH.InspectionDate             AS DATE) = CAST(@InspectionDate             AS DATE))
                 AND (@QualitySafetyDeptSignOutBy IS NULL OR WH.QualitySafetyDeptSignOutBy LIKE '%' + @QualitySafetyDeptSignOutBy + '%')

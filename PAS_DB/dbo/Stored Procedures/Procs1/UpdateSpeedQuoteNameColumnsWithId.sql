@@ -1,4 +1,4 @@
-﻿-- =============================================
+-- =============================================
 -- Author:		Deep Patel
 -- Create date: 12-may-2021
 -- Description:	Update name columns into corrosponding reference Id values from respective master table
@@ -67,7 +67,8 @@ BEGIN
 	StatusName = st.Description
 	FROM [dbo].[SpeedQuotePart] SQP WITH (NOLOCK)
 	LEFT JOIN DBO.ItemMaster im WITH (NOLOCK) ON SQP.ItemMasterId = im.ItemMasterId
-	 AND ISNULL(im.IsNonStock,0) = 0 LEFT JOIN DBO.Currency Curr WITH (NOLOCK) ON Curr.CurrencyId = SQP.CurrencyId
+	 AND ISNULL(im.IsNonStock,0) = 0
+	 LEFT JOIN DBO.Currency Curr WITH (NOLOCK) ON Curr.CurrencyId = SQP.CurrencyId
 	LEFT JOIN DBO.Condition c WITH (NOLOCK) ON SQP.ConditionId = c.ConditionId
 	LEFT JOIN DBO.MasterSalesOrderQuoteStatus st WITH (NOLOCK) ON SQP.StatusId = st.Id
 	LEFT JOIN DBO.MasterSpeedQuoteStatus msoqs WITH (NOLOCK) ON SQP.StatusId = msoqs.Id

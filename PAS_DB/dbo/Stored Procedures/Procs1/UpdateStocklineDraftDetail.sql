@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [UpdateStocklineDraftDetail]           
  ** Author: 
  ** Description: This stored procedure is update into stockline draft
@@ -148,7 +148,8 @@ BEGIN
 	    LEFT JOIN  [dbo].[Manufacturer] MF WITH (NOLOCK) ON MF.ManufacturerId = SD.ManufacturerId
 	    LEFT JOIN [dbo].[Condition] CO WITH (NOLOCK) ON CO.ConditionId = SD.ConditionId
 	    LEFT JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON POP.ItemMasterId=IM.ItemMasterId	
-	     AND ISNULL(IM.IsNonStock,0) = 0 LEFT JOIN [dbo].[ItemMasterPurchaseSale] IMPS WITH (NOLOCK) ON IMPS.ItemMasterId = SD.ItemMasterId AND  IMPS.ConditionId = SD.ConditionId
+	     AND ISNULL(IM.IsNonStock,0) = 0
+	     LEFT JOIN [dbo].[ItemMasterPurchaseSale] IMPS WITH (NOLOCK) ON IMPS.ItemMasterId = SD.ItemMasterId AND  IMPS.ConditionId = SD.ConditionId
 	    LEFT JOIN [dbo].[Nha_Tla_Alt_Equ_ItemMapping] NHA WITH (NOLOCK) ON IMPS.ItemMasterId = SD.ItemMasterId AND  IMPS.ConditionId = SD.ConditionId
 	    LEFT JOIN [dbo].[Warehouse] WH WITH (NOLOCK) ON WH.WarehouseId = SD.WarehouseId
 	    LEFT JOIN [dbo].[Location] LC WITH (NOLOCK) ON LC.LocationId = SD.LocationId

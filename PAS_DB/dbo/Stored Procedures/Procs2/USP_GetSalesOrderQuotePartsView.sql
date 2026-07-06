@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [USP_GetSalesOrderQuotePartsView]           
  ** Author:   Vishal Suthar
  ** Description: This stored procedure is used to retrieve SOQ data for print
@@ -157,7 +157,8 @@ BEGIN
     LEFT JOIN DBO.Priority AS pri WITH (NOLOCK) ON part.PriorityId = pri.PriorityId
     INNER JOIN DBO.SalesOrderQuote AS soq WITH (NOLOCK) ON part.SalesOrderQuoteId = soq.SalesOrderQuoteId
     WHERE part.SalesOrderQuoteId = @SalesQuoteId AND part.IsDeleted = 0
-     AND ISNULL(itemMaster.IsNonStock,0) = 0 ORDER BY part.SalesOrderQuotePartId;
+     AND ISNULL(itemMaster.IsNonStock,0) = 0
+     ORDER BY part.SalesOrderQuotePartId;
 
 	COMMIT  TRANSACTION  
   END TRY      

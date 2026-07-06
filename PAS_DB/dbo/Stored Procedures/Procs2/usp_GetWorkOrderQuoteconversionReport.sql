@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [usp_GetWorkOrderQuoteconversionReport]           
  ** Author:   Swetha  
  ** Description: Get Data for WorkOrder Quote Conversion Report
@@ -178,7 +178,8 @@ BEGIN
           ON WO.WorkOrderId = WOPN.WorkOrderId
         LEFT JOIN DBO.ItemMaster IM WITH (NOLOCK)
           ON WOPN.itemmasterId = IM.ItemMasterId
-         AND ISNULL(IM.IsNonStock,0) = 0 LEFT JOIN DBO.WorkScope AS WS WITH (NOLOCK)
+         AND ISNULL(IM.IsNonStock,0) = 0
+           LEFT JOIN DBO.WorkScope AS WS WITH (NOLOCK)
           ON WOPN.WorkOrderScopeId = WS.WorkScopeId
         LEFT JOIN DBO.Workorderbillinginvoicing WOBI WITH (NOLOCK)
           ON WO.workorderid = WOBI.workorderid

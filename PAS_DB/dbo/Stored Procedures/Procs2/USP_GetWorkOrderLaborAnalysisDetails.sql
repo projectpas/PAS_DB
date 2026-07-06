@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [USP_GetWorkOrderLaborAnalysisDetails]           
  ** Author:   Hemant Saliya
  ** Description: This stored procedure is used retrieve WorkOrder Labor Analysis Details    
@@ -82,7 +82,8 @@ SET NOCOUNT ON
 						LEFT JOIN [dbo].[WorkOrderTask] WOT  WITH(NOLOCK) ON WOT.WorkOrderTaskId = wl.TaskId
 						LEFT JOIN dbo.Employee emp WITH (NOLOCK) ON emp.EmployeeId = wl.EmployeeId
 					WHERE wowf.WorkOrderId = @WorkOrderId AND wlh.IsDeleted = 0 AND wlh.IsActive = 1 --AND BillableId = 1
-					 AND ISNULL(im.IsNonStock,0) = 0 GROUP BY im.partnumber,im.PartDescription,im.RevisedPart,c.[Name] ,wo.WorkOrderNum,ws.Stage,BillableId,
+					 AND ISNULL(im.IsNonStock,0) = 0
+					 GROUP BY im.partnumber,im.PartDescription,im.RevisedPart,c.[Name] ,wo.WorkOrderNum,ws.Stage,BillableId,
 						st.[Description],t.[Description],ex.[Description],emp.FirstName + ' ' + emp.LastName,wl.EmployeeId,WOT.[TaskName]
 				END
 				IF(@WorkOrderPartNoId > 0)

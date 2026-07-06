@@ -1,4 +1,4 @@
-﻿
+
 /*************************************************************             
  ** File:   [SearchExchangeSalesOrderData]             
  ** Author:    
@@ -171,7 +171,8 @@ BEGIN
 			LEFT JOIN  [dbo].[ExchangeSalesOrderPart] SP WITH (NOLOCK) on EQ.ExchangeSalesOrderId = SP.ExchangeSalesOrderId and SP.IsDeleted = 0
 			LEFT JOIN  [dbo].[ExchangeQuote] EXQ WITH (NOLOCK) on EXQ.ExchangeQuoteId = EQ.ExchangeQuoteId
 			LEFT JOIN  [dbo].[ItemMaster] IM WITH (NOLOCK) on Im.ItemMasterId = SP.ItemMasterId
-			 AND ISNULL(IM.IsNonStock,0) = 0 LEFT JOIN  [dbo].[Employee] E WITH (NOLOCK) on  E.EmployeeId = EQ.SalesPersonId
+			 AND ISNULL(IM.IsNonStock,0) = 0
+			 LEFT JOIN  [dbo].[Employee] E WITH (NOLOCK) on  E.EmployeeId = EQ.SalesPersonId
 			LEFT JOIN  [dbo].[Priority] P WITH (NOLOCK) on EXQ.PriorityId=P.PriorityId			
 			INNER JOIN [dbo].[ExchangeManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ModuleID = @MSModuleID AND MSD.ReferenceID = EQ.ExchangeSalesOrderId
 			INNER JOIN [dbo].[RoleManagementStructure] RMS WITH (NOLOCK) ON EQ.ManagementStructureId = RMS.EntityStructureId

@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
 --EXEC GetExchangeSOCoreMonitoringList 10075
 ************************************************************************/
 /***************************************************************************************************************************************
@@ -22,11 +22,13 @@ BEGIN
 		INNER JOIN DBO.ExchangeSalesOrderPart EXCHSOP ON EXCHSO.ExchangeSalesOrderId = EXCHSOP.ExchangeSalesOrderId
 		LEFT JOIN DBO.ReceivingCustomerWork RCT ON EXCHSO.ExchangeSalesOrderId = RCT.ExchangeSalesOrderId
 		LEFT JOIN DBO.ItemMaster IM ON EXCHSOP.ItemMasterId = IM.ItemMasterId
-		 AND ISNULL(IM.IsNonStock,0) = 0 LEFT JOIN ItemMasterExchangeLoan IMEXCH ON IM.ItemMasterId = IMEXCH.ItemMasterId
+		 AND ISNULL(IM.IsNonStock,0) = 0
+		 LEFT JOIN ItemMasterExchangeLoan IMEXCH ON IM.ItemMasterId = IMEXCH.ItemMasterId
 		LEFT JOIN Stockline ST ON RCT.StockLineId = ST.StockLineId
 		LEFT JOIN Manufacturer MN ON IM.ManufacturerId = MN.ManufacturerId
 		LEFT JOIN ItemMaster ITM ON Im.ItemMasterId = RCT.RevisePartId
-		 AND ISNULL(ITM.IsNonStock,0) = 0 WHERE EXCHSO.ExchangeSalesOrderId = @ExchangeSalesOrderId;
+		 AND ISNULL(ITM.IsNonStock,0) = 0
+		 WHERE EXCHSO.ExchangeSalesOrderId = @ExchangeSalesOrderId;
 		
 		Select EXCHCMD.LetterTypeId,EXCHCT.[Name],EXCHCMD.ExchangeSalesOrderId,EXCHCMD.LetterSentDate,EXCHSOP.ExchangeSalesOrderPartId,EXCHCMD.ExchangeCoreMonitoringDetailsId From DBO.ExchangeCoreMonitoringDetails EXCHCMD
 		INNER JOIN DBO.ExchangeCoreLetterType EXCHCT ON EXCHCMD.LetterTypeId = EXCHCT.ExchangeCoreLetterTypeId

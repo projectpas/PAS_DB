@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:		[dbo].[USP_GetKitByItemMaster]          
  ** Author:		 Nakul Chandigra
  ** Description: This Stored Procedure Is Used To Get Kit By ItemMasterId 
@@ -37,7 +37,8 @@ BEGIN
 		ISNULL(wos.WorkScopeCode, '') AS WorkScopeName
 	FROM [dbo].[KitMaster] kIM WITH (NOLOCK)
 	LEFT JOIN [dbo].[ItemMaster] imst WITH (NOLOCK) ON kIM.ItemMasterId = imst.ItemMasterId
-	 AND ISNULL(imst.IsNonStock,0) = 0 LEFT JOIN [dbo].[WorkScope] wos WITH (NOLOCK) ON kIM.WorkScopeId = wos.WorkScopeId
+	 AND ISNULL(imst.IsNonStock,0) = 0
+	 LEFT JOIN [dbo].[WorkScope] wos WITH (NOLOCK) ON kIM.WorkScopeId = wos.WorkScopeId
 	WHERE kIM.ItemMasterid = @ItemMasterid;
 
 	END TRY

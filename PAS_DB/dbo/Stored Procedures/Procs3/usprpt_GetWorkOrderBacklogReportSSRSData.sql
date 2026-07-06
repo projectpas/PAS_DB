@@ -1,4 +1,4 @@
-﻿/*************************************************************               
+/*************************************************************               
  ** File:   [usprpt_GetWorkOrderBacklogReportSSRSData]               
  ** Author:   Devendra Shekh      
  ** Description: Get Data for WorkOrderBacklog Report  new SP 
@@ -183,7 +183,8 @@ BEGIN
     INNER JOIN [dbo].[WorkOrderPartNumber] WOPN WITH (NOLOCK) ON WOWF.WorkOrderPartNoId = WOPN.ID    
     INNER JOIN [dbo].[ItemMaster] AS IM WITH (NOLOCK) ON WOPN.ItemMasterId = IM.ItemMasterId 
 	 LEFT JOIN [dbo].[ItemMaster] RIM WITH (NOLOCK) ON WOPN.RevisedItemmasterid = RIM.ItemMasterId
-     AND ISNULL(RIM.IsNonStock,0) = 0 INNER JOIN [dbo].[WorkOrderManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = WOPN.ID    
+     AND ISNULL(RIM.IsNonStock,0) = 0
+	  INNER JOIN [dbo].[WorkOrderManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = WOPN.ID    
      LEFT JOIN [dbo].[WorkOrderQuote] WOQ WITH (NOLOCK) ON WO.WorkOrderId = WOQ.WorkOrderId   
      LEFT JOIN [dbo].[Customer] C WITH (NOLOCK) ON C.CustomerId = WO.CustomerId  
      LEFT JOIN [dbo].[WorkOrderMPNCostDetails] WOC WITH (NOLOCK) ON WOPN.ID = WOC.WOPartNoId    
@@ -219,7 +220,8 @@ BEGIN
     AND (ISNULL(@Level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))    
     AND  (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))  
      
-	  AND ISNULL(IM.IsNonStock,0) = 0 UPDATE  #TEMPWOBackLogReportRecords SET DaysInStage = tmpDaysData.DaysInStage
+	  AND ISNULL(IM.IsNonStock,0) = 0
+     UPDATE  #TEMPWOBackLogReportRecords SET DaysInStage = tmpDaysData.DaysInStage
 			FROM( SELECT WTA.WorkOrderPartNoId,
 						 CASE WHEN WTA.StatusChangedEndDate IS NULL THEN ISNULL(DATEDIFF(day, (WTA.StatusChangedDate), GETDATE()), 0) 
 								ELSE (ISNULL(((WTA.[Days])+ ((WTA.[Hours])/24)+ ((WTA.[Mins])/1440)),0)) END AS 'DaysInStage'

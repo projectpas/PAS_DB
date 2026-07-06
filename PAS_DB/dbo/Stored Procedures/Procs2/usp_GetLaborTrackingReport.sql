@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [usp_GetLaborTrackingReport]           
  ** Author:   Swetha  
  ** Description: Get Data for LaborTracking Report 
@@ -173,7 +173,8 @@ BEGIN
           ON WOQ.WorkOrderQuoteId = WOQD.WorkOrderQuoteId
         LEFT JOIN DBO.ItemMaster IM WITH (NOLOCK)
           ON WOPN.ItemMasterId = im.ItemMasterId
-         AND ISNULL(IM.IsNonStock,0) = 0 INNER JOIN DBO.Task WITH (NOLOCK)
+         AND ISNULL(IM.IsNonStock,0) = 0
+           INNER JOIN DBO.Task WITH (NOLOCK)
           ON WOL.taskid = task.taskid
         LEFT JOIN DBO.EmployeeExpertise EMPEXP WITH (NOLOCK)
           ON WOL.ExpertiseId = EMPEXP.EmployeeExpertiseId

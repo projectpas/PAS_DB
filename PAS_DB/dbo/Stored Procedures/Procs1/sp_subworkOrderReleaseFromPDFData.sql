@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [sp_subworkOrderReleaseFromPDFData]           
  ** Author:   Subhash Saliya
  ** Description: Get Search Data for GetSubWOAsset List    
@@ -103,8 +103,10 @@ BEGIN
 				FROM [dbo].[SubWorkOrder_ReleaseFrom_8130] wro WITH(NOLOCK)
 				      LEFT JOIN [dbo].[SubWorkOrderPartNumber] wop WITH(NOLOCK) ON wro.SubWOPartNoId = wop.SubWOPartNoId
 					  LEFT JOIN [dbo].[ItemMaster] im  WITH(NOLOCK) ON im.ItemMasterId = wop.ItemMasterId  
-					   AND ISNULL(im.IsNonStock,0) = 0 LEFT JOIN [dbo].[ItemMaster] ims WITH(NOLOCK) ON ims.ItemMasterId = wop.RevisedItemmasterid  	
-					   AND ISNULL(ims.IsNonStock,0) = 0 LEFT JOIN [dbo].[WorkOrder] wo WITH(NOLOCK) ON wo.WorkorderId = wop.WorkOrderId
+					   AND ISNULL(im.IsNonStock,0) = 0
+					   LEFT JOIN [dbo].[ItemMaster] ims WITH(NOLOCK) ON ims.ItemMasterId = wop.RevisedItemmasterid  	
+					   AND ISNULL(ims.IsNonStock,0) = 0
+					    LEFT JOIN [dbo].[WorkOrder] wo WITH(NOLOCK) ON wo.WorkorderId = wop.WorkOrderId
 					  LEFT JOIN [dbo].[WorkOrderManagementStructureDetails] MSD  WITH(NOLOCK) ON MSD.ModuleID = @MSModuleId AND MSD.ReferenceID = @WopartId
 					  LEFT JOIN [dbo].[ManagementStructurelevel] MSL WITH(NOLOCK) ON MSL.ID = MSD.Level1Id
 					  LEFT JOIN [dbo].[SubWorkOrderSettlementDetails] wosc WITH(NOLOCK) ON wop.WorkOrderId = wosc.WorkOrderId AND wop.SubWOPartNoId = wosc.SubWOPartNoId AND wosc.WorkOrderSettlementId = 9

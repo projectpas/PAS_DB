@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [usprpt_GetInventoryUnitCostAdjustmentReport]
  ** Author:   
  ** Description: Get Data for Stock Report for Unit Cost AdjustMent
@@ -179,7 +179,8 @@ BEGIN
 	INNER JOIN [dbo].[StocklineManagementStructureDetails] MSD WITH(NOLOCK) ON MSD.[ModuleID] = @ModuleID AND MSD.[ReferenceID] = stl.[StockLineId]    
 	LEFT JOIN  [dbo].[EntityStructureSetup] ES WITH(NOLOCK) ON ES.[EntityStructureId]=MSD.[EntityMSID]    
 	LEFT JOIN [dbo].[ItemMaster] im WITH(NOLOCK) ON stl.[ItemMasterId] = im.[ItemMasterId] 
-	 AND ISNULL(im.IsNonStock,0) = 0 LEFT JOIN [dbo].[UnitOfMeasure] uom WITH(NOLOCK) ON stl.[PurchaseUnitOfMeasureId] = uom.[UnitOfMeasureId]  
+	 AND ISNULL(im.IsNonStock,0) = 0
+	 LEFT JOIN [dbo].[UnitOfMeasure] uom WITH(NOLOCK) ON stl.[PurchaseUnitOfMeasureId] = uom.[UnitOfMeasureId]  
 	LEFT JOIN [dbo].[PurchaseOrder] pox WITH(NOLOCK) ON stl.[PurchaseOrderId] = pox.[PurchaseOrderId]    
 	LEFT JOIN [dbo].[RepairOrder] rox WITH(NOLOCK) ON stl.[RepairOrderId] = rox.[RepairOrderId]
 	LEFT JOIN [dbo].[StocklineAdjustmentReason] sar WITH(NOLOCK) ON stladj.[AdjustmentReasonId] = sar.[AdjustmentReasonId]	
@@ -239,7 +240,8 @@ BEGIN
 	INNER JOIN [dbo].[StocklineManagementStructureDetails] MSD WITH(NOLOCK) ON MSD.[ModuleID] = @ModuleID AND MSD.[ReferenceID] = stl.[StockLineId]    
 	LEFT JOIN  [dbo].[EntityStructureSetup] ES WITH(NOLOCK) ON ES.[EntityStructureId]=MSD.[EntityMSID]    
 	LEFT JOIN [dbo].[ItemMaster] im WITH(NOLOCK) ON stl.[ItemMasterId] = im.[ItemMasterId] 
-	 AND ISNULL(im.IsNonStock,0) = 0 LEFT JOIN [dbo].[UnitOfMeasure] uom WITH(NOLOCK) ON stl.[PurchaseUnitOfMeasureId] = uom.[UnitOfMeasureId]  
+	 AND ISNULL(im.IsNonStock,0) = 0
+	 LEFT JOIN [dbo].[UnitOfMeasure] uom WITH(NOLOCK) ON stl.[PurchaseUnitOfMeasureId] = uom.[UnitOfMeasureId]  
 	LEFT JOIN [dbo].[PurchaseOrder] pox WITH(NOLOCK) ON stl.[PurchaseOrderId] = pox.[PurchaseOrderId]    
 	LEFT JOIN [dbo].[RepairOrder] rox WITH(NOLOCK) ON stl.[RepairOrderId] = rox.[RepairOrderId]
 	LEFT JOIN [dbo].[StocklineAdjustmentReason] sar WITH(NOLOCK) ON bsajd.[AdjustmentReasonId] = sar.[AdjustmentReasonId]	
@@ -389,4 +391,4 @@ BEGIN
 	RAISERROR ('Unexpected Error Occured in the database. Please let the support team know of the error number : %d', 16, 1, @ErrorLogID)    
 	RETURN (1);    
 	END CATCH    
-END                                                                                                   
+END

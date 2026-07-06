@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [GetExchangeSalesOrderPartsById]          
  ** Author: EKTA CHANDEGRA
  ** Description: This stored procedure is used to GetExchangeSalesOrderPartsById
@@ -126,7 +126,8 @@ BEGIN
         FROM [dbo].[ExchangeSalesOrderPart] part WITH(NOLOCK)
         LEFT JOIN [dbo].[StockLine] qs WITH(NOLOCK) ON part.StockLineId = qs.StockLineId
         LEFT JOIN [dbo].[ItemMaster] im WITH(NOLOCK) ON part.ItemMasterId = im.ItemMasterId
-         AND ISNULL(im.IsNonStock,0) = 0 LEFT JOIN [dbo].[Condition] cp WITH(NOLOCK) ON part.ConditionId = cp.ConditionId
+         AND ISNULL(im.IsNonStock,0) = 0
+         LEFT JOIN [dbo].[Condition] cp WITH(NOLOCK) ON part.ConditionId = cp.ConditionId
         LEFT JOIN [dbo].[ExchangeSalesOrder] soq WITH(NOLOCK) ON part.ExchangeSalesOrderId = soq.ExchangeSalesOrderId
         LEFT JOIN [dbo].[UnitOfMeasure] uom WITH(NOLOCK) ON im.ConsumeUnitOfMeasureId = uom.UnitOfMeasureId
         LEFT JOIN [dbo].[ExchangeSalesOrderReserveParts] rpart WITH(NOLOCK) ON part.ExchangeSalesOrderPartId = rpart.ExchangeSalesOrderPartId

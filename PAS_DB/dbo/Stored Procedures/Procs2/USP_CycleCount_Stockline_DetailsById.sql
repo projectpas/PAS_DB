@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [USP_CycleCount_Stockline_DetailsById]           
  ** Author: Moin Bloch
  ** Description: This stored procedure is used to Get Cycle Count Stockline Details
@@ -134,7 +134,8 @@ BEGIN
 					WHERE CCD2.[StockLineId] = SL.[StockLineId]
 					  AND CC2.[StatusId] <> @CycleCountStatusId
 			   )
-	 AND ISNULL(IM.IsNonStock,0) = 0 END TRY  
+	 AND ISNULL(IM.IsNonStock,0) = 0
+			    END TRY  
 		BEGIN CATCH      
 			IF @@trancount > 0			
             DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name() 

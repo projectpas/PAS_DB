@@ -1,4 +1,4 @@
-﻿/********************************************************************************           
+/********************************************************************************           
  ** File:     [USP_CheckTenderStocklineIsGeneratedReleaseForm]           
  ** Author:	  Moin Bloch
  ** Description: This SP IS Used to check Tendor Stockline is Generated 8130 Form or not
@@ -36,7 +36,8 @@ BEGIN
 				INNER JOIN [dbo].[WorkOrder] WO WITH (NOLOCK) ON WO.WorkOrderId = SL.WorkOrderId
 				INNER JOIN [dbo].[WorkOrderPartNumber] WOP WITH (NOLOCK) ON WO.WorkOrderId = WOP.WorkOrderId AND WOP.ID = @WorkOrderPartNumberId
 				 LEFT JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON SL.ItemMasterId = IM.ItemMasterId
-		   AND ISNULL(IM.IsNonStock,0) = 0 WHERE (SL.[IsDeleted] = 0) AND (SL.[IsActive] = 1)			     
+		   AND ISNULL(IM.IsNonStock,0) = 0
+				  WHERE (SL.[IsDeleted] = 0) AND (SL.[IsActive] = 1)			     
 				AND SL.[MasterCompanyId] = @MasterCompanyId 
 				AND SL.[WorkOrderId] = @WorkOrderId 
 				AND SL.[IsTurnIn] = 1

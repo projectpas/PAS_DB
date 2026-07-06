@@ -1,4 +1,4 @@
-﻿/*************************************************************             
+/*************************************************************             
  ** File:   [usprpt_GetWorkOrderMarginReport]             
  ** Author:   Vishal Suthar  
  ** Description: This stored procedure is used Get Work Order Margin Report Data  
@@ -129,7 +129,8 @@ BEGIN
 					 LEFT JOIN DBO.ReceivingCustomerWork RCW WITH (NOLOCK) ON WO.WorkOrderId = RCW.WorkOrderId AND RCW.ReceivingCustomerWorkId = WOPN. ReceivingCustomerWorkId   
 					 LEFT JOIN DBO.Customer C WITH (NOLOCK) ON WO.CustomerId = C.CustomerId    
 					 LEFT JOIN DBO.ItemMaster IM WITH (NOLOCK) ON WOPN.ItemMasterId = IM.ItemMasterId      
-					  AND ISNULL(IM.IsNonStock,0) = 0 LEFT JOIN DBO.Stockline SL WITH (NOLOCK) ON WOPN.StockLineId = SL.StockLineId AND SL.IsParent = 1      
+					  AND ISNULL(IM.IsNonStock,0) = 0
+					  LEFT JOIN DBO.Stockline SL WITH (NOLOCK) ON WOPN.StockLineId = SL.StockLineId AND SL.IsParent = 1      
 					 LEFT JOIN DBO.WorkOrderShippingItem AS WOSI WITH (NOLOCK) ON WOSI.WorkOrderPartNumId = WOPN.ID      
 					 LEFT JOIN DBO.WorkOrderShipping AS WOS WITH (NOLOCK) ON WOS.WorkOrderShippingId = WOSI.WorkOrderShippingId      
 					 LEFT JOIN DBO.Employee AS E WITH (NOLOCK) ON WO.SalesPersonId = E.EmployeeId      
@@ -249,8 +250,10 @@ BEGIN
 						 LEFT JOIN [dbo].ReceivingCustomerWork RCW WITH (NOLOCK) ON WO.WorkOrderId = RCW.WorkOrderId AND RCW.ReceivingCustomerWorkId = WOPN. ReceivingCustomerWorkId     
 						 LEFT JOIN [dbo].Customer C WITH (NOLOCK) ON WO.CustomerId = C.CustomerId    
 						 LEFT JOIN [dbo].ItemMaster IM WITH (NOLOCK) ON WOPN.ItemMasterId = IM.ItemMasterId   
-						  AND ISNULL(IM.IsNonStock,0) = 0 LEFT JOIN [dbo].[ItemMaster] RIM WITH (NOLOCK) ON WOPN.RevisedItemmasterid = RIM.ItemMasterId  
-						  AND ISNULL(RIM.IsNonStock,0) = 0 LEFT JOIN [dbo].Stockline SL WITH (NOLOCK) ON WOPN.StockLineId = SL.StockLineId AND SL.IsParent = 1      
+						  AND ISNULL(IM.IsNonStock,0) = 0
+						  LEFT JOIN [dbo].[ItemMaster] RIM WITH (NOLOCK) ON WOPN.RevisedItemmasterid = RIM.ItemMasterId  
+						  AND ISNULL(RIM.IsNonStock,0) = 0
+						   LEFT JOIN [dbo].Stockline SL WITH (NOLOCK) ON WOPN.StockLineId = SL.StockLineId AND SL.IsParent = 1      
 						 LEFT JOIN [dbo].WorkOrderShippingItem AS WOSI WITH (NOLOCK) ON WOSI.WorkOrderPartNumId = WOPN.ID      
 						 LEFT JOIN [dbo].WorkOrderShipping AS WOS WITH (NOLOCK) ON WOS.WorkOrderShippingId = WOSI.WorkOrderShippingId      
 						 LEFT JOIN [dbo].Employee AS E WITH (NOLOCK) ON WO.SalesPersonId = E.EmployeeId      

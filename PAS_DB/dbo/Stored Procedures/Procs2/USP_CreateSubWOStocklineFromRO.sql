@@ -1,4 +1,4 @@
-﻿-------------------------------------------------------------------------------------------------------------------
+-------------------------------------------------------------------------------------------------------------------
 
 /*************************************************************           
  ** File:   [USP_CreateSubWOStocklineFromRO]          
@@ -153,7 +153,8 @@ SET NOCOUNT ON
 									JOIN #StockLine SL ON RP.RepairOrderPartRecordId = SL.RepairOrderPartRecordId
 								WHERE SL.StockLineId = @StocklineId  AND RP.ItemTypeId=1
 						
-								 AND ISNULL(IM.IsNonStock,0) = 0 IF((SELECT COUNT(1) FROM dbo.SubWorkOrderMaterials WITH(NOLOCK) WHERE SubWorkOrderMaterialsId = ISNULL(@WorkOrderMaterialsId, 0)) = 0)
+								 AND ISNULL(IM.IsNonStock,0) = 0
+								 IF((SELECT COUNT(1) FROM dbo.SubWorkOrderMaterials WITH(NOLOCK) WHERE SubWorkOrderMaterialsId = ISNULL(@WorkOrderMaterialsId, 0)) = 0)
 								BEGIN
 									INSERT INTO dbo.SubWorkOrderMaterials (WorkOrderId, SubWorkOrderId, SubWOPartNoId, ItemMasterId, TaskId, ConditionCodeId, ItemClassificationId, Quantity, UnitOfMeasureId,
 											UnitCost,ExtendedCost,Memo,IsDeferred, QuantityReserved, QuantityIssued, MaterialMandatoriesId,ProvisionId,CreatedDate, CreatedBy, UpdatedDate, 
@@ -222,7 +223,8 @@ SET NOCOUNT ON
 								JOIN #StockLine SL ON RP.RepairOrderPartRecordId = SL.RepairOrderPartRecordId
 							WHERE SL.StockLineId = @StocklineId AND RP.ItemTypeId=1
 
-							 AND ISNULL(IM.IsNonStock,0) = 0 IF((SELECT COUNT(1) FROM #ROStockLineSamePart WITH(NOLOCK) WHERE ISNULL(WorkOrderId, 0) > 0 ) > 0)
+							 AND ISNULL(IM.IsNonStock,0) = 0
+							 IF((SELECT COUNT(1) FROM #ROStockLineSamePart WITH(NOLOCK) WHERE ISNULL(WorkOrderId, 0) > 0 ) > 0)
 							BEGIN
 								SELECT @ExWorkOrderMaterialsId = WOM.SubWorkOrderMaterialsId, @ExWorkOrderMaterialStockLineId = WOMS.SWOMStockLineId
 								FROM dbo.SubWorkOrderMaterialStockLine WOMS WITH(NOLOCK)

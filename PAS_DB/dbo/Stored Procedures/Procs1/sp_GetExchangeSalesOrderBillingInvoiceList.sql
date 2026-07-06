@@ -1,4 +1,4 @@
-﻿-- EXEC [dbo].[sp_GetExchangeSalesOrderBillingInvoiceList] 223
+-- EXEC [dbo].[sp_GetExchangeSalesOrderBillingInvoiceList] 223
 /***************************************************************************************************************************************
   ** Change History
  ***************************************************************************************************************************************
@@ -28,7 +28,8 @@ BEGIN
 				INNER JOIN DBO.ExchangeSalesOrderShipping sos WITH (NOLOCK) on sos.ExchangeSalesOrderId = sop.ExchangeSalesOrderId
 				INNER JOIN DBO.ExchangeSalesOrderShippingItem sosi WITH (NOLOCK) on sos.ExchangeSalesOrderShippingId = sosi.ExchangeSalesOrderShippingId AND sosi.ExchangeSalesOrderPartId = sop.ExchangeSalesOrderPartId
 				LEFT JOIN DBO.ItemMaster imt WITH (NOLOCK) on imt.ItemMasterId = sop.ItemMasterId
-				 AND ISNULL(imt.IsNonStock,0) = 0 LEFT JOIN DBO.Stockline sl WITH (NOLOCK) on sl.StockLineId = sop.StockLineId
+				 AND ISNULL(imt.IsNonStock,0) = 0
+				 LEFT JOIN DBO.Stockline sl WITH (NOLOCK) on sl.StockLineId = sop.StockLineId
 				LEFT JOIN DBO.ExchangeSalesOrderBillingInvoicing sobi WITH (NOLOCK) on sobi.ExchangeSalesOrderId = sos.ExchangeSalesOrderId
 				LEFT JOIN DBO.ExchangeSalesOrderBillingInvoicingItem sobii WITH (NOLOCK) on sobii.SOBillingInvoicingId = sobi.SOBillingInvoicingId
 							AND sobii.ExchangeSalesOrderPartId = sop.ExchangeSalesOrderPartId AND sobii.NoofPieces = sosi.QtyShipped

@@ -1,4 +1,4 @@
-﻿/*************************************************************               
+/*************************************************************               
  ** File:   [GetSalesQuotePartHistory]               
  ** Author:   SHREY CHANDEGARA    
  ** Description:         
@@ -87,7 +87,8 @@ BEGIN
 			LEFT JOIN [dbo].[SalesOrderQuotePartCostAudit] soqc WITH(NOLOCK) ON soqc.SalesOrderQuotePartId = part.SalesOrderQuotePartId
 			LEFT JOIN [dbo].[SalesOrderQuoteStockLineCostAudit] soqsc WITH(NOLOCK) ON soqsc.SalesOrderQuoteStocklineId = soqs.SalesOrderQuoteStocklineId
 			LEFT JOIN [dbo].[ItemMaster] im WITH(NOLOCK) ON part.ItemMasterId = im.ItemMasterId
-			 AND ISNULL(im.IsNonStock,0) = 0 LEFT JOIN [dbo].[SalesOrderQuoteApproval] sqap WITH(NOLOCK) ON part.SalesOrderQuotePartId = sqap.SalesOrderQuotePartId
+			 AND ISNULL(im.IsNonStock,0) = 0
+			 LEFT JOIN [dbo].[SalesOrderQuoteApproval] sqap WITH(NOLOCK) ON part.SalesOrderQuotePartId = sqap.SalesOrderQuotePartId
 			LEFT JOIN [dbo].[UnitOfMeasure] um WITH(NOLOCK) ON im.PurchaseUnitOfMeasureId = um.UnitOfMeasureId
 			LEFT JOIN [dbo].[PurchaseOrder] po WITH(NOLOCK) ON qs.PurchaseOrderId = po.PurchaseOrderId
 			LEFT JOIN [dbo].[RepairOrder] ro WITH(NOLOCK) ON qs.RepairOrderId = ro.RepairOrderId	

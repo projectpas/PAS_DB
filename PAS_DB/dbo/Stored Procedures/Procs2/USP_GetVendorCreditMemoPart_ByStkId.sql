@@ -1,4 +1,4 @@
-﻿/*************************************************************             
+/*************************************************************             
  ** File:   [USP_GetVendorCreditMemoPart_ByStkId]            
  ** Author:   Devendra    
  ** Description: Get Vendor RMA Parts data by itemMaster and stocklineid 
@@ -58,7 +58,8 @@ BEGIN
     FROM [DBO].[VendorCreditMemo] vcm WITH (NOLOCK)   
     LEFT JOIN [dbo].[Vendor] v WITH(NOLOCK) on v.VendorId  = @VendorId
     LEFT JOIN [dbo].[ItemMaster] im WITH(NOLOCK) on im.ItemMasterId = @ItemMasterId
-     AND ISNULL(im.IsNonStock,0) = 0 LEFT JOIN [dbo].[Stockline] sl WITH(NOLOCK) on sl.StockLineId = @StockLineId  
+     AND ISNULL(im.IsNonStock,0) = 0
+     LEFT JOIN [dbo].[Stockline] sl WITH(NOLOCK) on sl.StockLineId = @StockLineId  
     WHERE vcm.VendorCreditMemoId = @VendorCreditMemoId
    END  
   COMMIT  TRANSACTION  

@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [USP_GetWorkOrderMaterialsList]           
  ** Author:   Hemant Saliya
  ** Description: This stored procedure is used retrieve Work Order Materials List    
@@ -433,10 +433,12 @@ SET NOCOUNT ON
 						LEFT JOIN dbo.RepairOrderPart ROP WITH (NOLOCK) ON ROP.RepairOrderId = WOMS_RO.RepairOrderId AND ROP.ItemMasterId = MSTL.ItemMasterId AND ISNULL(ROP.[IsPiecePart], 0) = 0--SL.RepairOrderPartRecordId = ROP.RepairOrderPartRecordId
 						LEFT JOIN dbo.RepairOrderPart WOMS_ROP WITH (NOLOCK) ON WOMS_ROP.RepairOrderId = WOMS_RO.RepairOrderId AND ISNULL(WOMS_ROP.[IsPiecePart], 0) = 0
 						LEFT JOIN dbo.ItemMaster IMS WITH (NOLOCK) ON IMS.ItemMasterId = MSTL.ItemMasterId
-					 AND ISNULL(IMS.IsNonStock,0) = 0 WHERE WOM.IsDeleted = 0 AND WOM.WorkFlowWorkOrderId = @WFWOId
+					 AND ISNULL(IMS.IsNonStock,0) = 0
+						 WHERE WOM.IsDeleted = 0 AND WOM.WorkFlowWorkOrderId = @WFWOId
 					AND (ISNULL(WOM.Quantity,0) - ISNULL(WOM.QuantityIssued,0) > 0)
 
-					 AND ISNULL(IM.IsNonStock,0) = 0 UNION ALL
+					 AND ISNULL(IM.IsNonStock,0) = 0
+					 UNION ALL
 
 					SELECT DISTINCT IM.PartNumber,
 						IM.PartDescription,
@@ -661,11 +663,13 @@ SET NOCOUNT ON
 						LEFT JOIN dbo.RepairOrderPart WOMS_ROP WITH (NOLOCK) ON WOMS_ROP.RepairOrderId = WOMS_RO.RepairOrderId AND ISNULL(WOMS_ROP.[IsPiecePart], 0) = 0
 						LEFT JOIN [dbo].[WorkOrderMaterialsKitMapping] WOMKM WITH (NOLOCK) ON WOMKM.WOPartNoId = WOWF.WorkOrderPartNoId AND WOMKM.WorkOrderMaterialsKitMappingId = WOM.WorkOrderMaterialsKitMappingId
 						LEFT JOIN dbo.ItemMaster IMS WITH (NOLOCK) ON IMS.ItemMasterId = MSTL.ItemMasterId
-					 AND ISNULL(IMS.IsNonStock,0) = 0 WHERE WOM.IsDeleted = 0 AND WOM.WorkFlowWorkOrderId = @WFWOId
+					 AND ISNULL(IMS.IsNonStock,0) = 0
+						 WHERE WOM.IsDeleted = 0 AND WOM.WorkFlowWorkOrderId = @WFWOId
 						AND (ISNULL(WOM.Quantity,0) - ISNULL(WOM.QuantityIssued,0) > 0)
 					--AND (MSTL.Quantity - (SELECT SUM(ISNULL(womsl.QtyIssued, 0)) FROM #tmpWOMStocklineKit womsl WITH (NOLOCK) 
 					--						WHERE womsl.WorkOrderMaterialsId = WOM.WorkOrderMaterialsKitId AND womsl.isActive = 1 AND womsl.isDeleted = 0) > 0);
-				 AND ISNULL(IM.IsNonStock,0) = 0 END
+				 AND ISNULL(IM.IsNonStock,0) = 0
+					 END
 				ELSE
 				BEGIN
 					SELECT DISTINCT IM.PartNumber,
@@ -894,9 +898,11 @@ SET NOCOUNT ON
 						LEFT JOIN dbo.RepairOrderPart ROP WITH (NOLOCK) ON ROP.RepairOrderId = WOMS_RO.RepairOrderId AND ROP.ItemMasterId = MSTL.ItemMasterId AND ISNULL(ROP.[IsPiecePart], 0) = 0 --SL.RepairOrderPartRecordId = ROP.RepairOrderPartRecordId
 						LEFT JOIN dbo.RepairOrderPart WOMS_ROP WITH (NOLOCK) ON WOMS_ROP.RepairOrderId = WOMS_RO.RepairOrderId AND ISNULL(WOMS_ROP.[IsPiecePart], 0) = 0
 						LEFT JOIN dbo.ItemMaster IMS WITH (NOLOCK) ON IMS.ItemMasterId = MSTL.ItemMasterId
-					 AND ISNULL(IMS.IsNonStock,0) = 0 WHERE WOM.IsDeleted = 0 AND WOM.WorkFlowWorkOrderId = @WFWOId
+					 AND ISNULL(IMS.IsNonStock,0) = 0
+						 WHERE WOM.IsDeleted = 0 AND WOM.WorkFlowWorkOrderId = @WFWOId
 
-					 AND ISNULL(IM.IsNonStock,0) = 0 UNION ALL
+					 AND ISNULL(IM.IsNonStock,0) = 0
+					  UNION ALL
 
 					SELECT DISTINCT IM.PartNumber,
 						IM.PartDescription,
@@ -1116,7 +1122,8 @@ SET NOCOUNT ON
 						LEFT JOIN dbo.RepairOrderPart WOMS_ROP WITH (NOLOCK) ON WOMS_ROP.RepairOrderId = WOMS_RO.RepairOrderId AND ISNULL(WOMS_ROP.[IsPiecePart], 0) = 0
 						LEFT JOIN [dbo].[WorkOrderMaterialsKitMapping] WOMKM WITH (NOLOCK) ON WOMKM.WOPartNoId = WOWF.WorkOrderPartNoId AND WOMKM.WorkOrderMaterialsKitMappingId = WOM.WorkOrderMaterialsKitMappingId
 						LEFT JOIN dbo.ItemMaster IMS WITH (NOLOCK) ON IMS.ItemMasterId = MSTL.ItemMasterId
-					 AND ISNULL(IMS.IsNonStock,0) = 0 WHERE WOM.IsDeleted = 0 AND WOM.WorkFlowWorkOrderId = @WFWOId AND ISNULL(IM.IsNonStock,0) = 0 ;
+					 AND ISNULL(IMS.IsNonStock,0) = 0
+						 WHERE WOM.IsDeleted = 0 AND WOM.WorkFlowWorkOrderId = @WFWOId AND ISNULL(IM.IsNonStock,0) = 0 ;
 				END
 
 				IF OBJECT_ID(N'tempdb..#tmpStockline') IS NOT NULL

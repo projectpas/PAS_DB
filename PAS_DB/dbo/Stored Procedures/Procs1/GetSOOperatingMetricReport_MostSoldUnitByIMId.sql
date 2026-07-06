@@ -1,4 +1,4 @@
-﻿/*************************************************************             
+/*************************************************************             
  ** File:   [dbo.GetSOOperatingMetricReport_MostSoldUnitByIMId]             
  ** Author:  Rajesh Gami    
  ** Description: Get Data for Salesorder Operating Metric Report by Most SOLD SO by ItemMasterId
@@ -137,7 +137,8 @@ BEGIN
 			LEFT JOIN [dbo].[EntityStructureSetup] ES ON ES.EntityStructureId=MSD.EntityMSID
 			LEFT JOIN [dbo].[Customer] WITH (NOLOCK) ON SO.CustomerId = Customer.CustomerId  
 			LEFT JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON SOP.itemmasterId = IM.itemmasterId  
-			 AND ISNULL(IM.IsNonStock,0) = 0 LEFT JOIN DBO.Condition AS CN WITH (NOLOCK) ON SOP.ConditionId = CN.ConditionId 
+			 AND ISNULL(IM.IsNonStock,0) = 0
+			 LEFT JOIN DBO.Condition AS CN WITH (NOLOCK) ON SOP.ConditionId = CN.ConditionId 
 		  WHERE 
 				   SO.CustomerId=ISNULL(@customerid,SO.CustomerId)  AND SOP.ItemMasterId = ISNULL(@itemMasterId,SOP.ItemMasterId) 
 				   AND BI.InvoiceStatus = 'Invoiced'

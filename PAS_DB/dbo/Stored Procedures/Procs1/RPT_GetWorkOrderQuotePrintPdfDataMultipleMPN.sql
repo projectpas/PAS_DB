@@ -1,4 +1,4 @@
-﻿/*************************************************************             
+/*************************************************************             
  ** File:   [RPT_GetWorkOrderQuotePrintPdfDataMultipleMPN]             
  ** Author:   RAJESH GAMI  
  ** Description: This stored procedure is used to get work order quote pdf details for multiple MPN 
@@ -332,13 +332,15 @@ BEGIN
 				 INNER JOIN dbo.WorkOrderWorkFlow wf WITH(NOLOCK) ON  wop.ID = wf.WorkOrderPartNoId
 				 INNER JOIN dbo.ItemMaster im WITH(NOLOCK) ON wop.ItemMasterId = im.ItemMasterId  
 				 LEFT JOIN dbo.ItemMaster im1 WITH(NOLOCK) ON im.RevisedPartId = im1.ItemMasterId  
-				  AND ISNULL(im1.IsNonStock,0) = 0 INNER JOIN dbo.WorkScope s WITH(NOLOCK) ON wop.WorkOrderScopeId = s.WorkScopeId  
+				  AND ISNULL(im1.IsNonStock,0) = 0
+				  INNER JOIN dbo.WorkScope s WITH(NOLOCK) ON wop.WorkOrderScopeId = s.WorkScopeId  
 				 INNER JOIN dbo.StockLine sl WITH(NOLOCK) ON wop.StockLineId = sl.StockLineId  
 				 INNER JOIN dbo.Customer cust WITH(NOLOCK)  ON woq.CustomerId = cust.CustomerId
 				 LEFT JOIN #tmpResult tmp ON tmp.WorkOrderQuoteId = woq.WorkOrderQuoteId AND tmp.WorkOrderPartNoId = wop.ID
 			WHERE woq.WorkOrderQuoteId = @WorkOrderQuoteId AND wop.ID IN (SELECT value FROM STRING_SPLIT(@workOrderPartNoIds, ','))
 				 AND woq.IsActive = 1 AND woq.IsDeleted = 0  
-			 AND ISNULL(im.IsNonStock,0) = 0 GROUP BY im.PartNumber, wop.ID, wop.RevisedPartNumber, wop.RevisedPartDescription,
+			 AND ISNULL(im.IsNonStock,0) = 0
+				  GROUP BY im.PartNumber, wop.ID, wop.RevisedPartNumber, wop.RevisedPartDescription,
 				 im.PartDescription, im1.ItemMasterId, im1.PartNumber,im.ItemMasterId, wop.PublicationNotes, tmp.[Remarks],
 				 sl.StockLineNumber, wop.RevisedSerialNumber, wop.CurrentSerialNumber, wop.Quantity, wqd.QuoteMethod, wqd.CommonFlatRate, TATDaysStandard,wqd.EvalFees, cust.CustomerId,wf.WorkFlowWorkOrderId,woq.IsPrintCorrectiveAction,wop.EstimatedShipDate,wop.CustomerReference),
 			AfterTax AS (SELECT *, CAST(((Ct.subtotalfortax * Ct.TAXRates) / 100) AS DECIMAL(18, 2)) AS SalesTaxAmount, CAST(((Ct.subtotalfortax * Ct.Othertax) / 100) AS DECIMAL(18, 2)) AS OtherTaxAmount FROM WOQPartCte Ct)
@@ -460,13 +462,15 @@ BEGIN
 				 --LEFT JOIN dbo.CommonWorkOrderTearDown ctd WITH(NOLOCK) ON wf.WorkFlowWorkOrderId = ctd.WorkFlowWorkOrderId
 				 INNER JOIN dbo.ItemMaster im WITH(NOLOCK) ON wop.ItemMasterId = im.ItemMasterId  
 				 LEFT JOIN dbo.ItemMaster im1 WITH(NOLOCK) ON im.RevisedPartId = im1.ItemMasterId  
-				  AND ISNULL(im1.IsNonStock,0) = 0 INNER JOIN dbo.WorkScope s WITH(NOLOCK) ON wop.WorkOrderScopeId = s.WorkScopeId  
+				  AND ISNULL(im1.IsNonStock,0) = 0
+				  INNER JOIN dbo.WorkScope s WITH(NOLOCK) ON wop.WorkOrderScopeId = s.WorkScopeId  
 				 INNER JOIN dbo.StockLine sl WITH(NOLOCK) ON wop.StockLineId = sl.StockLineId  
 				 INNER JOIN dbo.Customer cust WITH(NOLOCK)  ON woq.CustomerId = cust.CustomerId
 				 LEFT JOIN #tmpResult tmp ON tmp.WorkOrderQuoteId = woq.WorkOrderQuoteId AND tmp.WorkOrderPartNoId = wop.ID
 			WHERE woq.WorkOrderQuoteId = @WorkOrderQuoteId 
 				 AND woq.IsActive = 1 AND woq.IsDeleted = 0  
-			 AND ISNULL(im.IsNonStock,0) = 0 GROUP BY im.PartNumber,  wop.ID, wop.RevisedPartNumber, wop.RevisedPartDescription,
+			 AND ISNULL(im.IsNonStock,0) = 0
+				  GROUP BY im.PartNumber,  wop.ID, wop.RevisedPartNumber, wop.RevisedPartDescription,
 				 im.PartDescription, im1.ItemMasterId, im1.PartNumber, im.ItemMasterId, wop.PublicationNotes, tmp.[Remarks],
 				 sl.StockLineNumber, wop.RevisedSerialNumber, wop.CurrentSerialNumber, wop.Quantity, wqd.QuoteMethod, wqd.CommonFlatRate, TATDaysStandard,wqd.EvalFees, cust.CustomerId,wf.WorkFlowWorkOrderId,woq.IsPrintCorrectiveAction,wop.EstimatedShipDate,wop.CustomerReference),
 			AfterTax AS (SELECT *, CAST(((Ct.subtotalfortax * Ct.TAXRates) / 100) AS DECIMAL(18, 2)) AS SalesTaxAmount, CAST(((Ct.subtotalfortax * Ct.Othertax) / 100) AS DECIMAL(18, 2)) AS OtherTaxAmount FROM WOQPartCte Ct)

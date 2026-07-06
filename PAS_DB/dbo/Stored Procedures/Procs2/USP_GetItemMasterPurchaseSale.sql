@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
 ** File:  [USP_GetItemMasterPurchaseSale]
 ** Author:   Bhargav Saliya
 ** Description: this Store Procedural used to get Purchase Sale Data
@@ -36,7 +36,8 @@ BEGIN
 	SELECT TOP 1 @PartNumber = PartNumber,@MasterCompanyId = MasterCompanyId FROM DBO.ItemMaster I WITH(NOLOCK)
 	WHERE I.ItemMasterId = @ItemMasterId
 
-	 AND ISNULL(I.IsNonStock,0) = 0 DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
+	 AND ISNULL(I.IsNonStock,0) = 0
+	 DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
 		
 	SELECT @CurrntEmpTimeZoneDesc = COALESCE(ETZ.[Description], LTZ.[Description]) FROM dbo.Employee E WITH (NOLOCK) 
 		LEFT JOIN dbo.TimeZone ETZ WITH (NOLOCK) ON E.TimeZoneId = ETZ.TimeZoneId

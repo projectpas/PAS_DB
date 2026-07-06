@@ -1,4 +1,4 @@
-﻿/*************************************************************  
+/*************************************************************  
 ** Author:  <AMIT GHEDIYA>  
 ** Create date: <01/10/2024>  
 ** Description: 
@@ -316,7 +316,8 @@ BEGIN
 			LEFT JOIN dbo.SalesOrderStocklineCost sosc WITH(NOLOCK) ON sosc.SalesOrderStocklineId = stk.SalesOrderStocklineId
 			LEFT JOIN dbo.StockLine sl WITH(NOLOCK) ON stk.StockLineId = sl.StockLineId
 			LEFT JOIN dbo.ItemMaster im WITH(NOLOCK) ON sp.ItemMasterId = im.ItemMasterId
-			 AND ISNULL(im.IsNonStock,0) = 0 LEFT JOIN dbo.ItemMasterExportInfo imx WITH(NOLOCK) ON im.ItemMasterId = imx.ItemMasterId
+			 AND ISNULL(im.IsNonStock,0) = 0
+			 LEFT JOIN dbo.ItemMasterExportInfo imx WITH(NOLOCK) ON im.ItemMasterId = imx.ItemMasterId
 			LEFT JOIN dbo.Manufacturer mf WITH(NOLOCK) ON im.ManufacturerId = mf.ManufacturerId
 			LEFT JOIN dbo.Condition cp WITH(NOLOCK) ON sp.ConditionId = cp.ConditionId
 			LEFT JOIN dbo.SalesOrderQuotePartV1 SOQP WITH(NOLOCK) ON SOQP.SalesOrderQuotePartId = sp.SalesOrderQuotePartId

@@ -1,4 +1,4 @@
-﻿/*************************************************************   
+/*************************************************************   
 ** Author:  <Hemant Saliya>  
 ** Create date: <04/04/2023>  
 ** Description: <Preview Work Order Materials Auto reserve Stockline Details>  
@@ -432,7 +432,8 @@ BEGIN
 					
 					--Select * from #tmpWorkOrderMaterials
 					--#STEP : 1.1 RESERVE EXISTING STOCKLINE
-					 AND ISNULL(IM.IsNonStock,0) = 0 IF((SELECT COUNT(1) FROM #tmpReserveIssueWOMaterialsStockline) > 0)
+					 AND ISNULL(IM.IsNonStock,0) = 0
+					 IF((SELECT COUNT(1) FROM #tmpReserveIssueWOMaterialsStockline) > 0)
 					BEGIN
 						--CASE 1 UPDATE WORK ORDER MATERILS
 						DECLARE @count INT;
@@ -617,7 +618,8 @@ BEGIN
 						FROM #tmpWorkOrderMaterialsKit WOM WITH (NOLOCK)  
 							LEFT JOIN dbo.Nha_Tla_Alt_Equ_ItemMapping AS NhaTla WITH (NOLOCK) ON NhaTla.ItemMasterId = WOM.ItemMasterId AND MappingType = 1 AND NhaTla.IsDeleted = 0 AND NhaTla.IsActive = 1
 							LEFT JOIN dbo.ItemMaster IM_NhaTla WITH (NOLOCK) ON IM_NhaTla.ItemMasterId = NhaTla.MappingItemMasterId
-						 AND ISNULL(IM_NhaTla.IsNonStock,0) = 0 WHERE WOM.WorkFlowWorkOrderId = @WorkFlowWorkOrderId
+						 AND ISNULL(IM_NhaTla.IsNonStock,0) = 0
+							 WHERE WOM.WorkFlowWorkOrderId = @WorkFlowWorkOrderId
 						AND NhaTla.MappingItemMasterId IN (SELECT [ItemMasterId] FROM #AllowItemMasterIds)
 
 						SELECT  
@@ -665,7 +667,8 @@ BEGIN
 							AND ISNULL((ISNULL(WOM.Quantity, 0) - (ISNULL(WOM.QuantityReserved, 0) + ISNULL(WOM.QuantityIssued, 0))) - (SELECT ISNULL(SUM(WOMSL.Quantity), 0) - (ISNULL(SUM(WOMSL.QtyReserved), 0) + ISNULL(SUM(WOMSL.QtyIssued), 0))  FROM #tmpWorkOrderMaterialStocklineKit WOMSL WITH(NOLOCK) WHERE WOM.WorkOrderMaterialsKitId = WOMSL.WorkOrderMaterialsKitId AND WOMSL.ProvisionId <> @ProvisionId), 0) > 0
 							AND (WOM.ProvisionId = @ProvisionId OR WOM.ProvisionId = @SubWOProvisionId)
 
-						 AND ISNULL(IM.IsNonStock,0) = 0 IF OBJECT_ID(N'tempdb..#tmpAutoReserveWOMaterialsStocklineKITAlt') IS NOT NULL
+						 AND ISNULL(IM.IsNonStock,0) = 0
+							 IF OBJECT_ID(N'tempdb..#tmpAutoReserveWOMaterialsStocklineKITAlt') IS NOT NULL
 						BEGIN
 						DROP TABLE #tmpAutoReserveWOMaterialsStocklineKITAlt
 						END
@@ -865,7 +868,8 @@ BEGIN
 						FROM #tmpWorkOrderMaterials WOM WITH (NOLOCK)  
 							LEFT JOIN dbo.Nha_Tla_Alt_Equ_ItemMapping AS NhaTla WITH (NOLOCK) ON NhaTla.ItemMasterId = WOM.ItemMasterId AND MappingType = 1 AND NhaTla.IsDeleted = 0 AND NhaTla.IsActive = 1
 							LEFT JOIN dbo.ItemMaster IM_NhaTla WITH (NOLOCK) ON IM_NhaTla.ItemMasterId = NhaTla.MappingItemMasterId
-						 AND ISNULL(IM_NhaTla.IsNonStock,0) = 0 WHERE WOM.WorkFlowWorkOrderId = @WorkFlowWorkOrderId
+						 AND ISNULL(IM_NhaTla.IsNonStock,0) = 0
+							 WHERE WOM.WorkFlowWorkOrderId = @WorkFlowWorkOrderId
 						AND NhaTla.MappingItemMasterId IN (SELECT [ItemMasterId] FROM #AllowItemMasterIds)
 
 						--Select * from #MaterialsAltPartList
@@ -914,7 +918,8 @@ BEGIN
 
 						--Select * from #tmpAutoReserveIssueWOMaterialsStocklineMaterialsAlt
 
-						 AND ISNULL(IM.IsNonStock,0) = 0 IF OBJECT_ID(N'tempdb..#tmpAutoReserveWOMaterialsStocklineMaterialsAlt') IS NOT NULL
+						 AND ISNULL(IM.IsNonStock,0) = 0
+						 IF OBJECT_ID(N'tempdb..#tmpAutoReserveWOMaterialsStocklineMaterialsAlt') IS NOT NULL
 						BEGIN
 						DROP TABLE #tmpAutoReserveWOMaterialsStocklineMaterialsAlt
 						END
@@ -1108,7 +1113,8 @@ BEGIN
 						FROM #tmpWorkOrderMaterialsKit WOM WITH (NOLOCK)  
 							LEFT JOIN dbo.Nha_Tla_Alt_Equ_ItemMapping AS NhaTla WITH (NOLOCK) ON NhaTla.ItemMasterId = WOM.ItemMasterId AND MappingType = 2 AND NhaTla.IsDeleted = 0 AND NhaTla.IsActive = 1
 							LEFT JOIN dbo.ItemMaster IM_NhaTla WITH (NOLOCK) ON IM_NhaTla.ItemMasterId = NhaTla.MappingItemMasterId
-						 AND ISNULL(IM_NhaTla.IsNonStock,0) = 0 WHERE WOM.WorkFlowWorkOrderId = @WorkFlowWorkOrderId
+						 AND ISNULL(IM_NhaTla.IsNonStock,0) = 0
+							 WHERE WOM.WorkFlowWorkOrderId = @WorkFlowWorkOrderId
 						AND NhaTla.MappingItemMasterId IN (SELECT [ItemMasterId] FROM #AllowItemMasterIds)
 
 						SELECT  WOM.WorkOrderId,
@@ -1155,7 +1161,8 @@ BEGIN
 							AND ISNULL((ISNULL(WOM.Quantity, 0) - (ISNULL(WOM.QuantityReserved, 0) + ISNULL(WOM.QuantityIssued, 0))) - (SELECT ISNULL(SUM(WOMSL.Quantity), 0) - (ISNULL(SUM(WOMSL.QtyReserved), 0) + ISNULL(SUM(WOMSL.QtyIssued), 0))  FROM #tmpWorkOrderMaterialStocklineKit WOMSL WITH(NOLOCK) WHERE WOM.WorkOrderMaterialsKitId = WOMSL.WorkOrderMaterialsKitId AND WOMSL.ProvisionId <> @ProvisionId), 0) > 0
 							AND (WOM.ProvisionId = @ProvisionId OR WOM.ProvisionId = @SubWOProvisionId)
 
-						 AND ISNULL(IM.IsNonStock,0) = 0 IF OBJECT_ID(N'tempdb..#tmpAutoReserveWOMaterialsStocklineKITEqu') IS NOT NULL
+						 AND ISNULL(IM.IsNonStock,0) = 0
+							 IF OBJECT_ID(N'tempdb..#tmpAutoReserveWOMaterialsStocklineKITEqu') IS NOT NULL
 						BEGIN
 						DROP TABLE #tmpAutoReserveWOMaterialsStocklineKITEqu
 						END
@@ -1350,7 +1357,8 @@ BEGIN
 						FROM #tmpWorkOrderMaterials WOM WITH (NOLOCK)  
 							LEFT JOIN dbo.Nha_Tla_Alt_Equ_ItemMapping AS NhaTla WITH (NOLOCK) ON NhaTla.ItemMasterId = WOM.ItemMasterId AND MappingType = 2 AND NhaTla.IsDeleted = 0 AND NhaTla.IsActive = 1
 							LEFT JOIN dbo.ItemMaster IM_NhaTla WITH (NOLOCK) ON IM_NhaTla.ItemMasterId = NhaTla.MappingItemMasterId
-						 AND ISNULL(IM_NhaTla.IsNonStock,0) = 0 WHERE WOM.WorkFlowWorkOrderId = @WorkFlowWorkOrderId
+						 AND ISNULL(IM_NhaTla.IsNonStock,0) = 0
+							 WHERE WOM.WorkFlowWorkOrderId = @WorkFlowWorkOrderId
 						AND NhaTla.MappingItemMasterId IN (SELECT [ItemMasterId] FROM #AllowItemMasterIds)
 
 						SELECT  WOM.WorkOrderId,
@@ -1395,7 +1403,8 @@ BEGIN
 							AND ISNULL((ISNULL(WOM.Quantity, 0) - (ISNULL(WOM.QuantityReserved, 0) + ISNULL(WOM.QuantityIssued, 0))) - (SELECT ISNULL(SUM(WOMSL.Quantity), 0) - (ISNULL(SUM(WOMSL.QtyReserved), 0) + ISNULL(SUM(WOMSL.QtyIssued), 0))  FROM #tmpWorkOrderMaterialStockline WOMSL WITH(NOLOCK) WHERE WOM.WorkOrderMaterialsId = WOMSL.WorkOrderMaterialsId AND WOMSL.ProvisionId <> @ProvisionId), 0) > 0
 							AND (WOM.ProvisionId = @ProvisionId OR WOM.ProvisionId = @SubWOProvisionId)
 
-						 AND ISNULL(IM.IsNonStock,0) = 0 IF OBJECT_ID(N'tempdb..#tmpAutoReserveWOMaterialsStocklineMaterialsEqu') IS NOT NULL
+						 AND ISNULL(IM.IsNonStock,0) = 0
+							 IF OBJECT_ID(N'tempdb..#tmpAutoReserveWOMaterialsStocklineMaterialsEqu') IS NOT NULL
 						BEGIN
 						DROP TABLE #tmpAutoReserveWOMaterialsStocklineMaterialsEqu
 						END
@@ -1605,7 +1614,8 @@ BEGIN
 							AND ISNULL((ISNULL(WOM.Quantity, 0) - (ISNULL(WOM.QuantityReserved, 0) + ISNULL(WOM.QuantityIssued, 0))) - (SELECT ISNULL(SUM(WOMSL.Quantity), 0) - (ISNULL(SUM(WOMSL.QtyReserved), 0) + ISNULL(SUM(WOMSL.QtyIssued), 0))  FROM #tmpWorkOrderMaterialStockline WOMSL WITH(NOLOCK) WHERE WOM.WorkOrderMaterialsId = WOMSL.WorkOrderMaterialsId AND WOMSL.ProvisionId <> @ProvisionId), 0) > 0
 							AND (WOM.ProvisionId = @ProvisionId OR WOM.ProvisionId = @SubWOProvisionId)
 					
-					 AND ISNULL(IM.IsNonStock,0) = 0 IF OBJECT_ID(N'tempdb..#tmpAutoReserveWOMaterialsStockline') IS NOT NULL
+					 AND ISNULL(IM.IsNonStock,0) = 0
+							 IF OBJECT_ID(N'tempdb..#tmpAutoReserveWOMaterialsStockline') IS NOT NULL
 					BEGIN
 					DROP TABLE #tmpAutoReserveWOMaterialsStockline
 					END
@@ -1817,7 +1827,8 @@ BEGIN
 							AND ISNULL((ISNULL(WOM.Quantity, 0) - (ISNULL(WOM.QuantityReserved, 0) + ISNULL(WOM.QuantityIssued, 0))) - (SELECT ISNULL(SUM(WOMSL.Quantity), 0) - (ISNULL(SUM(WOMSL.QtyReserved), 0) + ISNULL(SUM(WOMSL.QtyIssued), 0))  FROM #tmpWorkOrderMaterialStocklineKIT WOMSL WITH(NOLOCK) WHERE WOM.WorkOrderMaterialsKITId = WOMSL.WorkOrderMaterialsKITId AND WOMSL.ProvisionId <> @ProvisionId), 0) > 0
 							AND (WOM.ProvisionId = @ProvisionId OR WOM.ProvisionId = @SubWOProvisionId)
 					
-					 AND ISNULL(IM.IsNonStock,0) = 0 IF OBJECT_ID(N'tempdb..#tmpAutoReserveWOMaterialsStocklineKIT') IS NOT NULL
+					 AND ISNULL(IM.IsNonStock,0) = 0
+							 IF OBJECT_ID(N'tempdb..#tmpAutoReserveWOMaterialsStocklineKIT') IS NOT NULL
 					BEGIN
 						DROP TABLE #tmpAutoReserveWOMaterialsStocklineKIT
 					END
@@ -2118,7 +2129,8 @@ INSERT INTO #WorkOrderMaterials
 						LEFT JOIN dbo.ItemMaster IMM ON IMM.ItemMasterId = WOM.ItemMasterId
 
 					 WHERE ISNULL(IMS.IsNonStock,0) = 0
- AND ISNULL(IMM.IsNonStock,0) = 0 INSERT INTO #WorkOrderMaterials
+ AND ISNULL(IMM.IsNonStock,0) = 0
+						 INSERT INTO #WorkOrderMaterials
 						([WOMStockLineId] ,[WorkOrderMaterialsId] ,[WorkOrderMaterialsKITId], [StockLineId] ,[StkItemMasterId] ,[StkConditionId] ,[StkQuantity] ,[QtyReserved] ,[QtyIssued] ,		
 						[StkAltPartMasterPartId] ,[StkEquPartMasterPartId] ,[StkIsAltPart] ,[StkIsEquPart] ,[StkUnitCost] ,[StkExtendedCost] ,
 						[StkProvisionId] ,[QuantityTurnIn] ,[StkFigure] ,[StkItem], [PartNumber], [PartDesc],[StkPartNumber], [StkPartDesc], [Condition], [stkCondition], [UOM], [Priority],
@@ -2138,7 +2150,8 @@ INSERT INTO #WorkOrderMaterials
 						LEFT JOIN dbo.ItemMaster IMM ON IMM.ItemMasterId = WOM.ItemMasterId
 
 					 WHERE ISNULL(IMS.IsNonStock,0) = 0
- AND ISNULL(IMM.IsNonStock,0) = 0 UPDATE #WorkOrderMaterials SET QuantityShort = ISNULL(Quantity, 0) -  (ISNULL(QuantityReserved, 0) +  ISNULL(QuantityIssued, 0))
+ AND ISNULL(IMM.IsNonStock,0) = 0
+						 UPDATE #WorkOrderMaterials SET QuantityShort = ISNULL(Quantity, 0) -  (ISNULL(QuantityReserved, 0) +  ISNULL(QuantityIssued, 0))
 					
 					UPDATE WOMM SET Condition = (SELECT TOP 1 Condition FROM #WorkOrderMaterials WOM WHERE WOMM.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId AND ISNULL(WOM.Condition, '') != '') 
 					FROM #WorkOrderMaterials WOMM WHERE ISNULL(WOMM.Condition, '') = ''

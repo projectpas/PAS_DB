@@ -1,4 +1,4 @@
-﻿/*************************************************************               
+/*************************************************************               
  ** File:   [USP_CreateStocklineForReceivingPO]              
  ** Author:   Vishal Suthar    
  ** Description: This stored procedure is used to Crate stocklines for receiving PO  
@@ -553,7 +553,8 @@ DELETE FROM #tmpCodePrefixes;
 						LEFT JOIN dbo.ItemMasterIntegrationPortal mp WITH(NOLOCK) ON iM.ItemMasterId = mp.ItemMasterId
 						LEFT JOIN dbo.IntegrationPortal ip WITH(NOLOCK) ON mp.IntegrationPortalId = ip.IntegrationPortalId
 						WHERE iM.ItemMasterId = @ItemMasterId AND iM.MasterCompanyId = @MasterCompanyId AND mp.IntegrationPortalId IS NOT NULL
-						 AND ISNULL(iM.IsNonStock,0) = 0 GROUP BY iM.ItemMasterId
+						 AND ISNULL(iM.IsNonStock,0) = 0
+						 GROUP BY iM.ItemMasterId
 
 
 
@@ -984,7 +985,8 @@ DELETE FROM #tmpCodePrefixes;
                                 FROM DBO.PurchaseOrderPart POP WITH (NOLOCK)
                                     LEFT JOIN DBO.ItemMaster IM WITH (NOLOCK)
                                         ON POP.ItemMasterId = IM.ItemMasterId
-                                 AND ISNULL(IM.IsNonStock,0) = 0 WHERE POP.PurchaseOrderId = @PurchaseOrderId
+                                 AND ISNULL(IM.IsNonStock,0) = 0
+                                         WHERE POP.PurchaseOrderId = @PurchaseOrderId
                                       AND POP.ItemMasterId = @ItemMasterId
                                       AND POP.ConditionId = @ConditionId;
 

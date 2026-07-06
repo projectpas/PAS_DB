@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [SearchSOViewData]
  ** Author:  
  ** Description: This stored procedure is used display sales order list
@@ -245,7 +245,8 @@ BEGIN
           STUFF((SELECT ',' + I.partnumber    
            FROM DBO.SalesOrderPartV1 S WITH (NOLOCK)    
            LEFT JOIN DBO.ItemMaster I WITH (NOLOCK) ON S.ItemMasterId = I.ItemMasterId    
-            AND ISNULL(I.IsNonStock,0) = 0 WHERE S.SalesOrderId = SO.SalesOrderId    
+            AND ISNULL(I.IsNonStock,0) = 0
+            WHERE S.SalesOrderId = SO.SalesOrderId    
            AND S.IsActive = 1 AND S.IsDeleted = 0    
            FOR XML PATH('')), 1, 1, '') PartNumber    
       ) A    
@@ -262,7 +263,8 @@ BEGIN
           STUFF((SELECT ', ' + I.PartDescription    
            FROM DBO.SalesOrderPartV1 S WITH (NOLOCK)
            LEFT JOIN DBO.ItemMaster I WITH (NOLOCK) ON S.ItemMasterId = I.ItemMasterId
-            AND ISNULL(I.IsNonStock,0) = 0 WHERE S.SalesOrderId = SO.SalesOrderId
+            AND ISNULL(I.IsNonStock,0) = 0
+            WHERE S.SalesOrderId = SO.SalesOrderId
            AND S.IsActive = 1 AND S.IsDeleted = 0
            FOR XML PATH('')), 1, 1, '') PartDescription
       ) A
@@ -279,7 +281,8 @@ BEGIN
           FROM SalesOrder S WITH (NOLOCK)
           LEFT JOIN DBO.SalesOrderPartV1 SP WITH (NOLOCK) ON S.SalesOrderId = SP.SalesOrderId
 	   	  LEFT JOIN ItemMaster IM WITH (NOLOCK) ON Im.ItemMasterId = SP.ItemMasterId
-		   AND ISNULL(IM.IsNonStock,0) = 0 LEFT JOIN Manufacturer MA WITH(NOLOCK) ON Im.ManufacturerId = MA.ManufacturerId   
+		   AND ISNULL(IM.IsNonStock,0) = 0
+	   	   LEFT JOIN Manufacturer MA WITH(NOLOCK) ON Im.ManufacturerId = MA.ManufacturerId   
           WHERE S.SalesOrderId = SO.SalesOrderId    
           AND S.IsActive = 1 AND S.IsDeleted = 0    
           FOR XML PATH('')), 1, 1, '') Manufacturer    

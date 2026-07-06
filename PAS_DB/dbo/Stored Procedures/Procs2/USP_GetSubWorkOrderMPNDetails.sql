@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [USP_GetSubWorkOrderMPNDetails]
  ** Author:   
  ** Description: This stored procedure is used to Get MPN details for Sub Work Order
@@ -125,11 +125,13 @@ BEGIN
 					ELSE 0 END AS 'nte'
 		FROM [dbo].[WorkOrderMaterials] wom WITH(NOLOCK)
 		LEFT JOIN [dbo].[ItemMaster] im WITH(NOLOCK) ON wom.ItemMasterId = im.ItemMasterId
-		 AND ISNULL(im.IsNonStock,0) = 0 LEFT JOIN [dbo].[WorkOrderMaterialStockLine] woms WITH(NOLOCK) ON wom.WorkOrderMaterialsId = woms.WorkOrderMaterialsId AND woms.StockLineId = @stocklineId
+		 AND ISNULL(im.IsNonStock,0) = 0
+		 LEFT JOIN [dbo].[WorkOrderMaterialStockLine] woms WITH(NOLOCK) ON wom.WorkOrderMaterialsId = woms.WorkOrderMaterialsId AND woms.StockLineId = @stocklineId
 		LEFT JOIN [dbo].[Condition] con WITH(NOLOCK) ON wom.ConditionCodeId = con.ConditionId
 		LEFT JOIN [dbo].[ItemGroup] ig WITH(NOLOCK) ON im.ItemGroupId = ig.ItemGroupId
 		LEFT JOIN [dbo].[ItemMaster] rp WITH(NOLOCK) ON im.RevisedPartId = rp.ItemMasterId
-		 AND ISNULL(rp.IsNonStock,0) = 0 LEFT JOIN [dbo].[Stockline] sl WITH(NOLOCK) ON woms.StockLineId = sl.StockLineId
+		 AND ISNULL(rp.IsNonStock,0) = 0
+		 LEFT JOIN [dbo].[Stockline] sl WITH(NOLOCK) ON woms.StockLineId = sl.StockLineId
 		JOIN [dbo].[WorkOrderWorkFlow] wowf WITH(NOLOCK) ON wom.WorkFlowWorkOrderId = wowf.WorkFlowWorkOrderId
 		JOIN [dbo].[WorkOrderPartNumber] wop WITH(NOLOCK) ON wowf.WorkOrderPartNoId = wop.ID
 		LEFT JOIN [dbo].[ReceivingCustomerWork] rc WITH(NOLOCK) ON wop.ReceivingCustomerWorkId = rc.ReceivingCustomerWorkId

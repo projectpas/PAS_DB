@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [USP_GetCommonForStocklineByItemMasterId]           
  ** Author:   Sahdev Saliya
  ** Description: This stored procedure is used to Get CommonForStocklineByItemMasterId List
@@ -86,7 +86,8 @@ BEGIN
 
     FROM [DBO].[ItemMaster] iM WITH (NOLOCK)
         LEFT JOIN [DBO].[ItemMaster] rPart WITH (NOLOCK) ON iM.RevisedPartId = rPart.ItemMasterId
-         AND ISNULL(rPart.IsNonStock,0) = 0 LEFT JOIN [DBO].[ItemMasterExchangeLoan] imxl WITH (NOLOCK) ON iM.ItemMasterId = imxl.ItemMasterId
+         AND ISNULL(rPart.IsNonStock,0) = 0
+         LEFT JOIN [DBO].[ItemMasterExchangeLoan] imxl WITH (NOLOCK) ON iM.ItemMasterId = imxl.ItemMasterId
         LEFT JOIN [DBO].[ItemMasterPurchaseSale] imps WITH (NOLOCK) ON iM.ItemMasterId = imps.ItemMasterId
         LEFT JOIN [DBO].[ItemMasterExportInfo] imx WITH (NOLOCK) ON iM.ItemMasterId = imx.ItemMasterId
         LEFT JOIN [DBO].[GLAccount] gl WITH (NOLOCK) ON iM.GLAccountId = gl.GLAccountId

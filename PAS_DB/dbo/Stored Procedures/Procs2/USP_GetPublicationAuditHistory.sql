@@ -1,4 +1,4 @@
-﻿/***************************************************************  
+/***************************************************************  
  ** File:   [USP_GetPublicationAuditHistory]             
  ** Author: Ayushi Patel  
  ** Description: Get Publication Audit History by PublicationId 
@@ -68,7 +68,8 @@ BEGIN
 		INNER JOIN DBO.PublicationType pt WITH (NOLOCK) ON pa.PublicationTypeId = pt.PublicationTypeId
         LEFT JOIN DBO.PublicationItemMasterMapping pum WITH (NOLOCK) ON pa.PublicationRecordId = pum.PublicationRecordId
         LEFT JOIN DBO.ItemMaster im WITH (NOLOCK) ON pum.ItemMasterId = im.ItemMasterId
-         AND ISNULL(im.IsNonStock,0) = 0 LEFT JOIN DBO.ItemMasterATAMapping ima WITH (NOLOCK) ON pum.ItemMasterId = ima.ItemMasterId
+         AND ISNULL(im.IsNonStock,0) = 0
+         LEFT JOIN DBO.ItemMasterATAMapping ima WITH (NOLOCK) ON pum.ItemMasterId = ima.ItemMasterId
         LEFT JOIN DBO.ATAChapter ac WITH (NOLOCK) ON ima.ATAChapterId = ac.ATAChapterId
         LEFT JOIN DBO.Employee e WITH (NOLOCK) ON pa.EmployeeId = e.EmployeeId
         LEFT JOIN DBO.Employee vb WITH (NOLOCK) ON pa.VerifiedBy = vb.EmployeeId

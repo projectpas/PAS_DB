@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [GetVendorRFQROPartById]           
  ** Author:  Abhishek Jirawla
  ** Description: This stored procedure is used to Get Repair Order Part Details
@@ -40,7 +40,8 @@ BEGIN
 	  imf.[Name] AS Manufacturer
       FROM [dbo].[VendorRFQRepairOrderPart] pop WITH (NOLOCK) 	
 	  LEFT JOIN [dbo].[ItemMaster] im  WITH (NOLOCK)ON   pop.ItemMasterId = im.ItemMasterId 
-	   AND ISNULL(im.IsNonStock,0) = 0 LEFT JOIN [dbo].[Manufacturer] imf WITH (NOLOCK) ON im.ManufacturerId = imf.ManufacturerId	 
+	   AND ISNULL(im.IsNonStock,0) = 0
+	   LEFT JOIN [dbo].[Manufacturer] imf WITH (NOLOCK) ON im.ManufacturerId = imf.ManufacturerId	 
 	  WHERE pop.VendorRFQRepairOrderId = @VendorRFQROId  AND pop.IsDeleted = 0
 
 	

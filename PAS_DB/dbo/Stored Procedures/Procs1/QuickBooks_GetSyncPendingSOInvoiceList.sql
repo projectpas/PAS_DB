@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [QuickBooks_GetSyncPendingSOInvoiceList]           
  ** Author:   Devendra Shekh
  ** Description: Get SalesOrder Invoice List to Create Invoice in QuickBooks    
@@ -174,7 +174,8 @@ BEGIN
 					--LEFT JOIN [dbo].[Address] billToAddress WITH(NOLOCK) ON billToSite.AddressId = billToAddress.AddressId
 					--LEFT JOIN [dbo].[CustomerDomensticShipping] shipToSite WITH(NOLOCK) ON SOBI.ShipToSiteId = shipToSite.CustomerDomensticShippingId
 					--LEFT JOIN [dbo].[Address] shipToAddress WITH(NOLOCK) ON shipToSite.AddressId = shipToAddress.AddressId
-					 AND ISNULL(IM.IsNonStock,0) = 0 LEFT JOIN [dbo].[CreditTerms] CT WITH(NOLOCK) ON CT.CreditTermsId = SO.CreditTermId
+					 AND ISNULL(IM.IsNonStock,0) = 0
+					 LEFT JOIN [dbo].[CreditTerms] CT WITH(NOLOCK) ON CT.CreditTermsId = SO.CreditTermId
 					LEFT JOIN [dbo].[Percent] P with(nolock) ON P.MasterCompanyId = SOBI.MasterCompanyId AND P.PercentId = SOBII.SalesTaxPercent
 					--LEFT JOIN [dbo].[Percent] P with(nolock) ON P.MasterCompanyId = SOBI.MasterCompanyId AND P.PercentValue = ((ISNULL(SOBI.SalesTax,0) + ISNULL(SOBI.OtherTax,0))*100 / ISNULL(SOBI.SubTotal,0))
 				WHERE	ISNULL(SOBI.QuickBooksReferenceId, 0) = 0 AND ISNULL(SOBI.IsUpdated, 0) = 1 AND ISNULL(SOBI.IsPerformaInvoice, 0) = 0 AND sobi.[ModuleId] =@SOModuleId 
@@ -235,7 +236,8 @@ BEGIN
 					--LEFT JOIN [dbo].[Address] billToAddress WITH(NOLOCK) ON billToSite.AddressId = billToAddress.AddressId
 					--LEFT JOIN [dbo].[CustomerDomensticShipping] shipToSite WITH(NOLOCK) ON SOBI.ShipToSiteId = shipToSite.CustomerDomensticShippingId
 					--LEFT JOIN [dbo].[Address] shipToAddress WITH(NOLOCK) ON shipToSite.AddressId = shipToAddress.AddressId
-					 AND ISNULL(IM.IsNonStock,0) = 0 LEFT JOIN [dbo].[CreditTerms] CT WITH(NOLOCK) ON CT.CreditTermsId = SO.CreditTermId
+					 AND ISNULL(IM.IsNonStock,0) = 0
+					 LEFT JOIN [dbo].[CreditTerms] CT WITH(NOLOCK) ON CT.CreditTermsId = SO.CreditTermId
 					LEFT JOIN [dbo].[Percent] P with(nolock) ON P.MasterCompanyId = SOBI.MasterCompanyId AND P.PercentId = SOBII.SalesTaxPercent
 					--LEFT JOIN [dbo].[Percent] P with(nolock) ON P.MasterCompanyId = SOBI.MasterCompanyId AND P.PercentValue = ((ISNULL(SOBI.SalesTax,0) + ISNULL(SOBI.OtherTax,0))*100 / ISNULL(SOBI.SubTotal,0))
 				WHERE	ISNULL(SOBI.QuickBooksReferenceId, 0) = 0 AND ISNULL(SOBI.IsUpdated, 0) = 1 AND ISNULL(SOBI.IsPerformaInvoice, 0) = 0 AND sobi.[ModuleId] =@SOModuleId 

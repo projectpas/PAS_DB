@@ -1,4 +1,4 @@
-﻿
+
 /*************************************************************           
  ** File:   [GetWorkOrderQuoteDetailsForInvioce]           
  ** Author:   Hemant Saliya
@@ -80,7 +80,8 @@ BEGIN
 				LEFT JOIN dbo.WorkOrderQuote WOQ WITH(NOLOCK) ON WOQ.WorkOrderQuoteId = WQD.WorkOrderQuoteId
 				LEFT JOIN dbo.WorkOrder WO WITH(NOLOCK) ON WO.WorkOrderId = WOQ.WorkOrderId
 				LEFT JOIN dbo.ItemMaster IM WITH(NOLOCK) ON IM.ItemMasterId = WQD.ItemMasterId
-				 AND ISNULL(IM.IsNonStock,0) = 0 WHERE WQD.WorkflowWorkOrderId = @workflowWorkorderId AND WQD.WOPartNoId = @WorkOrderPartNoId AND WQD.IsVersionIncrease = 0
+				 AND ISNULL(IM.IsNonStock,0) = 0
+				 WHERE WQD.WorkflowWorkOrderId = @workflowWorkorderId AND WQD.WOPartNoId = @WorkOrderPartNoId AND WQD.IsVersionIncrease = 0
 			END
 		COMMIT  TRANSACTION
 

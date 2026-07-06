@@ -1,4 +1,4 @@
-﻿/*********************             
+/*********************             
  ** File:   [SearchExchangeSalesOrderCoreTrackingData]      
  ** Author:    
  ** Description: Get Search Data for ExchangeCoreTrackingList   
@@ -115,7 +115,8 @@ BEGIN
 				LEFT JOIN [dbo].[Vendor] V WITH (NOLOCK) on V.VendorId = exchso.CustomerId AND ISNULL(exchso.IsVendor,0) = 1
 				left join ReceivingCustomerWork rcw WITH (NOLOCK) on exchso.ExchangeSalesOrderId = rcw.ExchangeSalesOrderId
 				left join ItemMaster im WITH (NOLOCK) on exchsop.ItemMasterId = im.ItemMasterId
-				 AND ISNULL(im.IsNonStock,0) = 0 left join ItemMasterExchangeLoan imexch WITH (NOLOCK) on im.ItemMasterId = imexch.ItemMasterId
+				 AND ISNULL(im.IsNonStock,0) = 0
+				 left join ItemMasterExchangeLoan imexch WITH (NOLOCK) on im.ItemMasterId = imexch.ItemMasterId
 				left join Stockline stl WITH (NOLOCK) on rcw.StockLineId = stl.StockLineId
 				inner join Manufacturer mnf WITH (NOLOCK) on im.ManufacturerId = mnf.ManufacturerId
 				left join ExchCoreMonitoringStatus exchcms WITH(NOLOCK) on exchsop.CoreStatusId = exchcms.ExchangeCoreMonitoringStatusId

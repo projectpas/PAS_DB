@@ -1,4 +1,4 @@
-﻿/*************************************************************               
+/*************************************************************               
  ** File:  [GetSalesOrderFreightList]               
  ** Author:  Ekta Chnadegra 
  ** Description: This stored procedure is used to GetSalesOrderFreightList By Id.    
@@ -67,7 +67,8 @@ BEGIN
 			FROM [dbo].[SalesOrderQuoteFreight] sf WITH(NOLOCK)
 			LEFT JOIN [dbo].[SalesOrderQuotePartV1] part WITH(NOLOCK) ON sf.SalesOrderQuotePartId = part.SalesOrderQuotePartId
 			LEFT JOIN [dbo].[ItemMaster] im WITH(NOLOCK) ON sf.ItemMasterId = im.ItemMasterId
-			 AND ISNULL(im.IsNonStock,0) = 0 INNER JOIN [dbo].[Condition] cond WITH(NOLOCK) ON sf.ConditionId = cond.ConditionId
+			 AND ISNULL(im.IsNonStock,0) = 0
+			 INNER JOIN [dbo].[Condition] cond WITH(NOLOCK) ON sf.ConditionId = cond.ConditionId
 			WHERE ISNULL(sf.IsDeleted,0) = @IsDeleted
 			AND sf.SalesOrderQuoteId = @SalesOrderQuoteId;
 		END

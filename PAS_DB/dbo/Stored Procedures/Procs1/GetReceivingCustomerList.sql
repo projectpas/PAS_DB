@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [GetRecevingCustomerList]           
  ** Author:   Hemant Saliya
  ** Description: Get Search Data for Receving Customer List    
@@ -211,7 +211,8 @@ BEGIN
 					LEFT JOIN [dbo].[RepairOrderPart] ROP WITH (NOLOCK) ON RC.RepairOrderPartRecordId = ROP.RepairOrderPartRecordId AND ISNULL(ROP.[IsPiecePart], 0) = 0
 					LEFT JOIN [dbo].[RepairOrder] RO WITH (NOLOCK) ON RO.RepairOrderId = ROP.RepairOrderId
 					LEFT JOIN [dbo].[ItemMaster] RP WITH (NOLOCK) ON RC.RevisePartId = RP.RevisedPartId
-					 AND ISNULL(RP.IsNonStock,0) = 0 LEFT JOIN [dbo].[WorkOrder] WO WITH (NOLOCK) ON RC.WorkOrderId = WO.WorkOrderId
+					 AND ISNULL(RP.IsNonStock,0) = 0
+					 LEFT JOIN [dbo].[WorkOrder] WO WITH (NOLOCK) ON RC.WorkOrderId = WO.WorkOrderId
 					LEFT JOIN [dbo].[WorkOrderPartNumber] WOP WITH (NOLOCK) ON RC.StockLineId = WOP.StockLineId
 					LEFT JOIN [dbo].[WorkOrderStage] WOS WITH (NOLOCK) ON WOP.WorkOrderStageId = WOS.WorkOrderStageId
 					LEFT JOIN [dbo].[WorkOrderStatus] WOST WITH (NOLOCK) ON WOP.WorkOrderStatusId = WOST.Id					

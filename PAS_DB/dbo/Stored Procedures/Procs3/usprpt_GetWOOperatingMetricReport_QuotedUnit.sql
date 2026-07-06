@@ -1,4 +1,4 @@
-﻿/*************************************************************             
+/*************************************************************             
  ** File:   [dbo.usprpt_GetWOOperatingMetricReport_QuotedUnit]             
  ** Author:  Rajesh Gami    
  ** Description: Get Data for Workorder Operating Metric Report by Most Quoted WO
@@ -154,7 +154,8 @@ BEGIN
 			LEFT JOIN [dbo].[EntityStructureSetup] ES ON ES.EntityStructureId=MSD.EntityMSID
 			LEFT JOIN [dbo].[Customer] WITH (NOLOCK) ON WO.CustomerId = Customer.CustomerId  
 			LEFT JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON WOPN.itemmasterId = IM.itemmasterId  
-			 AND ISNULL(IM.IsNonStock,0) = 0 LEFT JOIN [dbo].[Condition] AS CN WITH (NOLOCK) ON WOPN.RevisedConditionId = CN.ConditionId
+			 AND ISNULL(IM.IsNonStock,0) = 0
+			 LEFT JOIN [dbo].[Condition] AS CN WITH (NOLOCK) ON WOPN.RevisedConditionId = CN.ConditionId
 		  
 		  WHERE 
 				--WOQ.QuoteStatusId = @woqApprovedId  AND WBI.InvoiceStatus = 'Invoiced'  AND 

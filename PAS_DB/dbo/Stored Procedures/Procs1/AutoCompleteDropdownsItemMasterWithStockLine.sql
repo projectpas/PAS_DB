@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [AutoCompleteDropdownsItemMaster]           
  ** Author:   Hemant Saliya
  ** Description: This stored procedure is used retrieve Item Master List for Auto complete Dropdown List    
@@ -43,13 +43,15 @@ BEGIN
 					WHERE (Im.IsActive=1 AND ISNULL(Im.IsDeleted,0)=0 
 						  AND SL.QuantityAvailable > 0
 					      AND IM.MasterCompanyId = @MasterCompanyId AND (Im.partnumber LIKE @StartWith + '%' OR Im.partnumber  LIKE '%' + @StartWith + '%'))    
-			    AND ISNULL(Im.IsNonStock,0) = 0 UNION     
+			    AND ISNULL(Im.IsNonStock,0) = 0
+					       UNION     
 					SELECT DISTINCT Im.ItemMasterId AS Value, 
 						  Im.partnumber AS Label
 					FROM dbo.ItemMaster Im WITH(NOLOCK) 
 						 INNER JOIN dbo.Stockline SL WITH(NOLOCK) ON SL.ItemMasterId = Im.ItemMasterId
 					WHERE im.ItemMasterId IN (SELECT Item FROM DBO.SPLITSTRING(@Idlist, ','))    
-				 AND ISNULL(Im.IsNonStock,0) = 0 ORDER BY Label				
+				 AND ISNULL(Im.IsNonStock,0) = 0
+					 ORDER BY Label				
 			End
 			ELSE
 			BEGIN
@@ -68,7 +70,8 @@ BEGIN
 					FROM dbo.ItemMaster Im WITH(NOLOCK)
 						 INNER JOIN dbo.Stockline SL WITH(NOLOCK) ON SL.ItemMasterId = Im.ItemMasterId
 				WHERE Im.ItemMasterId IN (SELECT Item FROM DBO.SPLITSTRING(@Idlist, ','))
-				 AND ISNULL(Im.IsNonStock,0) = 0 ORDER BY Label	
+				 AND ISNULL(Im.IsNonStock,0) = 0
+				 ORDER BY Label	
 			END		
 			
 	  END TRY 

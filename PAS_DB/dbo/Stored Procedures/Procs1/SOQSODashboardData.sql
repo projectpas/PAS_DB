@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [SOQSODashboardData]
  ** Author: Deep Patel
  ** Description: This stored procedure is used to Get SOQSO Dashboard Details
@@ -134,7 +134,8 @@ BEGIN
 				LEFT Join SalesOrderQuotePartV1 SP WITH (NOLOCK) on SOQ.SalesOrderQuoteId=SP.SalesOrderQuoteId and SP.IsDeleted=0
 				LEFT JOIN SalesOrderQuotePartCost SPC WITH (NOLOCK) on SPC.SalesOrderQuotePartId=SP.SalesOrderQuotePartId and SPC.IsDeleted=0
 				Left Join ItemMaster IM WITH (NOLOCK) on Im.ItemMasterId=SP.ItemMasterId
-				 AND ISNULL(IM.IsNonStock,0) = 0 Left Join Employee E WITH (NOLOCK) on  E.EmployeeId=SOQ.SalesPersonId --and SOQ.SalesPersonId is not null
+				 AND ISNULL(IM.IsNonStock,0) = 0
+				 Left Join Employee E WITH (NOLOCK) on  E.EmployeeId=SOQ.SalesPersonId --and SOQ.SalesPersonId is not null
 				Left Join Priority P WITH (NOLOCK) on SP.PriorityId=P.PriorityId
 				Left Join SalesOrder SO WITH (NOLOCK) on SO.SalesOrderQuoteId=SOQ.SalesOrderQuoteId and SO.SalesOrderQuoteId is not Null
 				LEFT JOIN DeduplicatedCharges B ON B.SalesOrderQuotePartId = SP.SalesOrderQuotePartId
@@ -239,7 +240,8 @@ BEGIN
 				INNER Join SalesOrderQuotePartV1 SP WITH (NOLOCK) on SOQ.SalesOrderQuoteId=SP.SalesOrderQuoteId and SP.IsDeleted=0
 				LEFT JOIN SalesOrderQuotePartCost SPC WITH (NOLOCK) on SPC.SalesOrderQuotePartId=SP.SalesOrderQuotePartId and SPC.IsDeleted=0
 				Left Join ItemMaster IM WITH (NOLOCK) on Im.ItemMasterId=SP.ItemMasterId
-				 AND ISNULL(IM.IsNonStock,0) = 0 Left Join Employee E WITH (NOLOCK) on  E.EmployeeId=SOQ.SalesPersonId --and SOQ.SalesPersonId is not null
+				 AND ISNULL(IM.IsNonStock,0) = 0
+				 Left Join Employee E WITH (NOLOCK) on  E.EmployeeId=SOQ.SalesPersonId --and SOQ.SalesPersonId is not null
 				Left Join Priority P WITH (NOLOCK) on SP.PriorityId=P.PriorityId
 				Left Join SalesOrder SO WITH (NOLOCK) on SO.SalesOrderQuoteId=SOQ.SalesOrderQuoteId and SO.SalesOrderQuoteId is not Null
 				LEFT JOIN DeduplicatedCharges B ON B.SalesOrderQuotePartId = SP.SalesOrderQuotePartId
@@ -347,7 +349,8 @@ BEGIN
 				INNER Join SalesOrderQuotePartV1 SP WITH (NOLOCK) on SOQ.SalesOrderQuoteId=SP.SalesOrderQuoteId and SP.IsDeleted=0
 				LEFT JOIN SalesOrderQuotePartCost SPC WITH (NOLOCK) on SPC.SalesOrderQuotePartId=SP.SalesOrderQuotePartId and SPC.IsDeleted=0
 				Left Join ItemMaster IM WITH (NOLOCK) on Im.ItemMasterId=SP.ItemMasterId
-				 AND ISNULL(IM.IsNonStock,0) = 0 Left Join Employee E WITH (NOLOCK) on  E.EmployeeId=SOQ.SalesPersonId --and SOQ.SalesPersonId is not null
+				 AND ISNULL(IM.IsNonStock,0) = 0
+				 Left Join Employee E WITH (NOLOCK) on  E.EmployeeId=SOQ.SalesPersonId --and SOQ.SalesPersonId is not null
 				Left Join Priority P WITH (NOLOCK) on SP.PriorityId=P.PriorityId
 				Left Join SalesOrder SO WITH (NOLOCK) on SO.SalesOrderQuoteId=SOQ.SalesOrderQuoteId and SO.SalesOrderQuoteId is not Null
 				LEFT JOIN DeduplicatedCharges B ON B.SalesOrderQuotePartId = SP.SalesOrderQuotePartId
@@ -455,7 +458,8 @@ BEGIN
 				INNER Join SalesOrderPartV1 SP WITH (NOLOCK) on SO.SalesOrderId=SP.SalesOrderId and SP.IsDeleted=0
 				LEFT JOIN SalesOrderPartCost SPC WITH (NOLOCK) on SPC.SalesOrderPartId=SP.SalesOrderPartId and SPC.IsDeleted=0
 				Left Join ItemMaster IM WITH (NOLOCK) on Im.ItemMasterId=SP.ItemMasterId
-				 AND ISNULL(IM.IsNonStock,0) = 0 Left Join Employee E WITH (NOLOCK) on  E.EmployeeId=SO.SalesPersonId --and SOQ.SalesPersonId is not null
+				 AND ISNULL(IM.IsNonStock,0) = 0
+				 Left Join Employee E WITH (NOLOCK) on  E.EmployeeId=SO.SalesPersonId --and SOQ.SalesPersonId is not null
 				Left Join Priority P WITH (NOLOCK) on SP.PriorityId=P.PriorityId
 				Left Join SalesOrderQuote SOQ WITH (NOLOCK) on SO.SalesOrderQuoteId=SOQ.SalesOrderQuoteId and SO.SalesOrderQuoteId is not Null
 				LEFT JOIN DeduplicatedCharges B ON B.SalesOrderPartId = SP.SalesOrderPartId
@@ -563,7 +567,8 @@ BEGIN
 				INNER Join SalesOrderPartV1 SP WITH (NOLOCK) on SO.SalesOrderId=SP.SalesOrderId and SP.IsDeleted=0
 				LEFT JOIN SalesOrderPartCost SPC WITH (NOLOCK) on SPC.SalesOrderPartId=SP.SalesOrderPartId and SPC.IsDeleted=0			
 				Left Join ItemMaster IM WITH (NOLOCK) on Im.ItemMasterId=SP.ItemMasterId
-				 AND ISNULL(IM.IsNonStock,0) = 0 Left Join Employee E WITH (NOLOCK) on  E.EmployeeId=SO.SalesPersonId --and SOQ.SalesPersonId is not null
+				 AND ISNULL(IM.IsNonStock,0) = 0
+				 Left Join Employee E WITH (NOLOCK) on  E.EmployeeId=SO.SalesPersonId --and SOQ.SalesPersonId is not null
 				Left Join Priority P WITH (NOLOCK) on SP.PriorityId=P.PriorityId
 				Left Join SalesOrderQuote SOQ WITH (NOLOCK) on SO.SalesOrderQuoteId=SOQ.SalesOrderQuoteId and SO.SalesOrderQuoteId is not Null
 				LEFT JOIN DeduplicatedCharges B ON B.SalesOrderPartId = SP.SalesOrderPartId
@@ -660,7 +665,8 @@ BEGIN
 				INNER JOIN SalesOrderPartV1 SP WITH (NOLOCK) on SO.SalesOrderId=SP.SalesOrderId and SP.IsDeleted=0
 				LEFT JOIN SalesOrderPartCost SPC WITH (NOLOCK) on SPC.SalesOrderPartId=SP.SalesOrderPartId and SPC.IsDeleted=0
 				LEFT JOIN ItemMaster IM WITH (NOLOCK) on Im.ItemMasterId=SP.ItemMasterId
-				 AND ISNULL(IM.IsNonStock,0) = 0 LEFT JOIN Employee E WITH (NOLOCK) on  E.EmployeeId=SO.SalesPersonId --and SOQ.SalesPersonId is not null
+				 AND ISNULL(IM.IsNonStock,0) = 0
+				 LEFT JOIN Employee E WITH (NOLOCK) on  E.EmployeeId=SO.SalesPersonId --and SOQ.SalesPersonId is not null
 				LEFT JOIN Priority P WITH (NOLOCK) on SP.PriorityId=P.PriorityId
 				LEFT JOIN SalesOrderQuote SOQ WITH (NOLOCK) on SO.SalesOrderQuoteId=SOQ.SalesOrderQuoteId and SO.SalesOrderQuoteId is not Null
 				INNER JOIN DeduplicatedRoles DR ON DR.ReferenceID = SO.SalesOrderId
@@ -779,7 +785,8 @@ BEGIN
 				INNER JOIN SalesOrderPartV1 SP WITH (NOLOCK) on SO.SalesOrderId=SP.SalesOrderId and SP.IsDeleted=0
 				LEFT JOIN SalesOrderPartCost SPC WITH (NOLOCK) on SPC.SalesOrderPartId=SP.SalesOrderPartId and SPC.IsDeleted=0
 				LEFT JOIN ItemMaster IM WITH (NOLOCK) on Im.ItemMasterId=SP.ItemMasterId
-				 AND ISNULL(IM.IsNonStock,0) = 0 LEFT JOIN Employee E WITH (NOLOCK) on  E.EmployeeId=SO.SalesPersonId --and SOQ.SalesPersonId is not null
+				 AND ISNULL(IM.IsNonStock,0) = 0
+				 LEFT JOIN Employee E WITH (NOLOCK) on  E.EmployeeId=SO.SalesPersonId --and SOQ.SalesPersonId is not null
 				LEFT JOIN Priority P WITH (NOLOCK) on SP.PriorityId=P.PriorityId
 				LEFT JOIN SalesOrderQuote SOQ WITH (NOLOCK) on SO.SalesOrderQuoteId=SOQ.SalesOrderQuoteId and SO.SalesOrderQuoteId is not Null
 				INNER JOIN DBO.SalesOrderApproval SOAPR WITH (NOLOCK) ON SO.SalesOrderId = SOAPR.SalesOrderId AND SP.SalesOrderPartId = SOAPR.SalesOrderPartId AND SOAPR.CustomerStatusId=2
@@ -889,7 +896,8 @@ BEGIN
 				INNER Join SalesOrderPartV1 SP WITH (NOLOCK) on SO.SalesOrderId=SP.SalesOrderId and SP.IsDeleted=0
 				LEFT JOIN SalesOrderPartCost SPC WITH (NOLOCK) on SPC.SalesOrderPartId=SP.SalesOrderPartId and SPC.IsDeleted=0
 				Left Join ItemMaster IM WITH (NOLOCK) on Im.ItemMasterId=SP.ItemMasterId
-				 AND ISNULL(IM.IsNonStock,0) = 0 Left Join Employee E WITH (NOLOCK) on  E.EmployeeId=SO.SalesPersonId --and SOQ.SalesPersonId is not null
+				 AND ISNULL(IM.IsNonStock,0) = 0
+				 Left Join Employee E WITH (NOLOCK) on  E.EmployeeId=SO.SalesPersonId --and SOQ.SalesPersonId is not null
 				Left Join Priority P WITH (NOLOCK) on SP.PriorityId=P.PriorityId
 				Left Join SalesOrderQuote SOQ WITH (NOLOCK) on SO.SalesOrderQuoteId=SOQ.SalesOrderQuoteId and SO.SalesOrderQuoteId is not Null
 			    INNER JOIN DBO.SalesOrderShippingItem SOSI WITH (NOLOCK) ON SP.SalesOrderPartId = SOSI.SalesOrderPartId

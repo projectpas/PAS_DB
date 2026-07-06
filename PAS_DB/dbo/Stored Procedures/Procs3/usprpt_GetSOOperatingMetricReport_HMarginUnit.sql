@@ -1,4 +1,4 @@
-﻿/********************************************************************             
+/********************************************************************             
  ** File:   [dbo.usprpt_GetSOOperatingMetricReport_HMarginUnit]             
  ** Author:  Rajesh Gami    
  ** Description: Get Data for SalesOrder Operating Metric Report Highest Margin to Low Margin
@@ -138,7 +138,8 @@ BEGIN
 			LEFT JOIN DBO.EntityStructureSetup ES ON ES.EntityStructureId=MSD.EntityMSID
 			LEFT JOIN DBO.Customer WITH (NOLOCK) ON SO.CustomerId = Customer.CustomerId  
 			LEFT JOIN DBO.ItemMaster IM WITH (NOLOCK) ON SOP.itemmasterId = IM.itemmasterId  
-			 AND ISNULL(IM.IsNonStock,0) = 0 LEFT JOIN DBO.Condition AS CN WITH (NOLOCK) ON SOP.ConditionId = CN.ConditionId 
+			 AND ISNULL(IM.IsNonStock,0) = 0
+			 LEFT JOIN DBO.Condition AS CN WITH (NOLOCK) ON SOP.ConditionId = CN.ConditionId 
 		  
 		  WHERE SOBI.InvoiceStatus = 'Invoiced' AND ISNULL(SO.IsDeleted,0) = 0 AND SOBI.[ModuleId] = @SOModuleId AND
 				SO.CustomerId=ISNULL(@customerid,SO.CustomerId)  AND SOP.ItemMasterId = ISNULL(@itemMasterId,SOP.ItemMasterId)   

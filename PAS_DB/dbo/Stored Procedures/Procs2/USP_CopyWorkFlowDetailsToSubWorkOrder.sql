@@ -1,4 +1,4 @@
-﻿/*************************************************************
+/*************************************************************
  ** File:   [USP_CopyWorkFlowDetailsToSubWorkOrder]
  ** Author: Vishal Suthar
  ** Description: This stored procedure is used to Copy Work flow to Work Order
@@ -609,7 +609,8 @@ SET NOCOUNT ON;
 									FROM ItemMaster WITH (NOLOCK)
 									WHERE ItemMasterId = @ItemMasterId AND (ISNULL(IsDER, 0) = 1 OR ISNULL(IsPMA, 0) = 1)
 
-									 AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 IF(ISNULL(@PartNumber, '') <> '')
+									 AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0
+									 IF(ISNULL(@PartNumber, '') <> '')
 										SET @PartIgnored = @PartIgnored + @PartNumber + ', '
 								END
 
@@ -619,7 +620,8 @@ SET NOCOUNT ON;
 									FROM ItemMaster WITH (NOLOCK)
 									WHERE ItemMasterId = @ItemMasterId AND ISNULL(IsPMA, 0) = 1
 
-									 AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 IF(ISNULL(@PartNumber, '') <> '')
+									 AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0
+									 IF(ISNULL(@PartNumber, '') <> '')
 										SET @PartIgnored = @PartIgnored + @PartNumber + ', '
 								END
 
@@ -629,7 +631,8 @@ SET NOCOUNT ON;
 									FROM ItemMaster WITH (NOLOCK)
 									WHERE ItemMasterId = @ItemMasterId AND ISNULL(IsDER, 0) = 1
 
-									 AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 IF(ISNULL(@PartNumber, '') <> '')
+									 AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0
+									 IF(ISNULL(@PartNumber, '') <> '')
 										SET @PartIgnored = @PartIgnored + @PartNumber + ', '
 								END
 

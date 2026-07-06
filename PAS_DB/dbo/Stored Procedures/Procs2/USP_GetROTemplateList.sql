@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [usp_GetEmployeeCertificationList]           
  ** Author:   Amit Ghediya
  ** Description: This stored procedure is used to Get RO Template List
@@ -108,7 +108,8 @@ BEGIN
 						(Cast(DBO.ConvertUTCtoLocal(ROT.UpdatedDate,@CurrntEmpTimeZoneDesc)AS DATETIME)) as UpdatedDate
 					   FROM [dbo].[RepairOrderTemplate] ROT WITH(NOLOCK)				
 					LEFT JOIN [dbo].[ItemMaster] IM WITH(NOLOCK) ON IM.[ItemMasterId] = ROT.[ItemMasterId]
-					 AND ISNULL(IM.IsNonStock,0) = 0 LEFT JOIN [dbo].[Customer] CM WITH(NOLOCK) ON CM.[CustomerId] = ROT.[CustomerId]
+					 AND ISNULL(IM.IsNonStock,0) = 0
+					 LEFT JOIN [dbo].[Customer] CM WITH(NOLOCK) ON CM.[CustomerId] = ROT.[CustomerId]
 					LEFT JOIN [dbo].[Vendor] VN WITH(NOLOCK) ON VN.[VendorId] = ROT.[VendorId]
 					LEFT JOIN [dbo].[Publication] PUB WITH(NOLOCK) ON PUB.[PublicationRecordId] = ROT.[PublicationRecordId] AND PUB.MasterCompanyId = @MasterCompanyId
 					LEFT JOIN [dbo].[CapabilityType] CBT WITH(NOLOCK) ON CBT.[CapabilityTypeId] = ROT.[WorkPerformedId] AND CBT.MasterCompanyId = @MasterCompanyId

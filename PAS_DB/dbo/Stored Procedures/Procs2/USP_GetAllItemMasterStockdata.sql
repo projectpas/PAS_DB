@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [USP_GetAllItemMasterStockdata]          
  ** Author:   Bhargav Saliya
  ** Description: 
@@ -212,7 +212,8 @@ BEGIN
 		FROM dbo.ItemMaster im WITH (NOLOCK)
 		WHERE @ItemMasterStockType = im.ItemTypeId AND ISNULL(im.IsDeleted,0) = 0 AND im.MasterCompanyId = @MasterCompanyId  
 
-		 AND ISNULL(im.IsNonStock,0) = 0 SELECT TOP 1
+		 AND ISNULL(im.IsNonStock,0) = 0
+		 SELECT TOP 1
 			M.ManufacturerId
 			,M.Name
 			,M.Comments

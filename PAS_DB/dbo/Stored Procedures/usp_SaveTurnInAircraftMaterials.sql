@@ -1,4 +1,4 @@
-﻿/*************************************************************     
+/*************************************************************     
 ** Author:  <Amit Ghediya>    
 ** Create date: <08/04/2026>    
 ** Description: <This Proc Is used to Same Turn In Aircraft Materials Stockline>    
@@ -237,7 +237,8 @@ SELECT @PurchaseUOMId = PurchaseUnitOfMeasureId, @PartNumber = partnumber, @IsPM
 			LEFT JOIN dbo.ItemMasterIntegrationPortal mp WITH(NOLOCK) ON iM.ItemMasterId = mp.ItemMasterId
 			LEFT JOIN dbo.IntegrationPortal ip WITH(NOLOCK) ON mp.IntegrationPortalId = ip.IntegrationPortalId
 			WHERE iM.ItemMasterId = @ItemMasterId AND iM.MasterCompanyId = @MasterCompanyId AND mp.IntegrationPortalId IS NOT NULL
-			 AND ISNULL(iM.IsNonStock,0) = 0 GROUP BY iM.ItemMasterId
+			 AND ISNULL(iM.IsNonStock,0) = 0
+			 GROUP BY iM.ItemMasterId
 
 		 INSERT INTO [dbo].[Stockline](StockLineNumber, ControlNumber, IDNumber, IsCustomerStock,IsCustomerstockType,ItemMasterId,PartNumber, PurchaseUnitOfMeasureId,ConditionId,Quantity,   
 		   QuantityAvailable, QuantityOnHand,QuantityTurnIn,IsSerialized,SerialNumber, CustomerId, ObtainFromType, ObtainFrom, ObtainFromName, OwnerType, [Owner], OwnerName, TraceableToType,   

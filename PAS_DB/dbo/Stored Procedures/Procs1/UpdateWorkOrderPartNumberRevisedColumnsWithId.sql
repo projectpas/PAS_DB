@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [UpdateWorkOrderPartNumberRevisedColumnsWithId]           
  ** Author:   Hemant Saliya
  ** Description: This stored procedure is used WO Details based in WO Id.    
@@ -40,7 +40,8 @@ BEGIN
 					WPN.RevisedSerialNumber = @SerialNumber
 				FROM dbo.WorkOrderPartNumber WPN WITH(NOLOCK) 
 				LEFT JOIN ItemMaster IM ON IM.ItemMasterId = WPN.RevisedItemmasterid
-				 AND ISNULL(IM.IsNonStock,0) = 0 WHERE WPN.ID = @WorkOrderPartNumberId
+				 AND ISNULL(IM.IsNonStock,0) = 0
+				 WHERE WPN.ID = @WorkOrderPartNumberId
 		
 			END
 		COMMIT  TRANSACTION

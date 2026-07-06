@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [usp_GetTechProductivityReport]           
  ** Author:   Swetha  
  ** Description: Get Data for TechProductivity Report  
@@ -183,7 +183,8 @@ BEGIN
           ON WOLH.WorkOrderLaborHeaderId = WOL.WorkOrderLaborHeaderId
         LEFT JOIN DBO.ItemMaster IM WITH (NOLOCK)
           ON WOPN.ItemMasterId = IM.ItemMasterId
-         AND ISNULL(IM.IsNonStock,0) = 0 LEFT JOIN DBO.customer C WITH (NOLOCK)
+         AND ISNULL(IM.IsNonStock,0) = 0
+           LEFT JOIN DBO.customer C WITH (NOLOCK)
           ON WO.CustomerId = C.CustomerId
         --LEFT JOIN DBO.SalesOrder SO WITH (NOLOCK)
         --  ON C.CustomerId = SO.CustomerId

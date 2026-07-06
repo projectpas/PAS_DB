@@ -1,4 +1,4 @@
-﻿/*************************************************************             
+/*************************************************************             
  ** File:   [GetReceiverStockPO]            
  ** Author:   Vishal Suthar  
  ** Description: This stored procedure is used to get data for PN Label and Receiver Stock Print Report 
@@ -74,7 +74,8 @@ BEGIN
 				INNER JOIN [dbo].[ItemMaster] i WITH(NOLOCK) ON i.ItemMasterId = sl.ItemMasterId
 				INNER JOIN [dbo].[PurchaseOrderPart] POP WITH(NOLOCK) ON POP.PurchaseOrderId = sl.PurchaseOrderId AND POP.ItemMasterId=i.ItemMasterId AND POP.PurchaseOrderPartRecordId=sl.PurchaseOrderPartRecordId
 				WHERE sl.PurchaseOrderId = @PurchaseOrderId AND (@PurchaseOrderPartId = 0 OR sl.PurchaseOrderPartRecordId = @PurchaseOrderPartId) AND sl.IsParent = 1
-				 AND ISNULL(i.IsNonStock,0) = 0 GROUP BY sl.ReceiverNumber,(case when CAST(sl.ReceivedDate as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(sl.ReceivedDate, @CurrntEmpTimeZoneDesc) as Date))end)
+				 AND ISNULL(i.IsNonStock,0) = 0
+				 GROUP BY sl.ReceiverNumber,(case when CAST(sl.ReceivedDate as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(sl.ReceivedDate, @CurrntEmpTimeZoneDesc) as Date))end)
 			UNION
 			SELECT sl.ReceiverNumber,(case when CAST(sl.ReceivedDate as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(sl.ReceivedDate, @CurrntEmpTimeZoneDesc) as Date))end)  AS ReceivedDate,
 				CASE WHEN MAX(POP.WorkOrderId) >1 THEN 3 when MAX(POP.SalesOrderId) > 1 THEN 2 ELSE 1 END AS Modules 
@@ -135,7 +136,8 @@ BEGIN
 			--AND sl.ReceiverNumber = @ReceiverNumber AND CAST(sl.ReceivedDate AS DATE) = CAST(@ReceiverDate AS DATE) AND sl.IsParent=1 and sl.isSerialized = 1
 			AND sl.ReceiverNumber = @ReceiverNumber AND CAST(DBO.ConvertUTCtoLocal(sl.ReceivedDate, @CurrntEmpTimeZoneDesc) AS DATE) = CAST(@ReceiverDate AS DATE) AND sl.IsParent=1 AND sl.isSerialized = 1
 
-			 AND ISNULL(i.IsNonStock,0) = 0 UNION
+			 AND ISNULL(i.IsNonStock,0) = 0
+			 UNION
 
 			SELECT i.ItemMasterId,
 				  sl.ConditionId,
@@ -179,7 +181,8 @@ BEGIN
 			--AND sl.ReceiverNumber = @ReceiverNumber AND CAST(sl.ReceivedDate AS DATE) = CAST(@ReceiverDate AS DATE) AND sl.IsParent=1 and sl.isSerialized = 0 
 			AND sl.ReceiverNumber = @ReceiverNumber AND CAST(DBO.ConvertUTCtoLocal(sl.ReceivedDate, @CurrntEmpTimeZoneDesc) AS DATE) = CAST(@ReceiverDate AS DATE) AND sl.IsParent=1 AND sl.isSerialized = 0 
 
-			 AND ISNULL(i.IsNonStock,0) = 0 UNION
+			 AND ISNULL(i.IsNonStock,0) = 0
+			 UNION
 
 			SELECT i.ItemMasterId,
 				  sl.ConditionId,
@@ -222,7 +225,8 @@ BEGIN
 			--AND sl.ReceiverNumber = @ReceiverNumber AND CAST(sl.ReceivedDate AS DATE) = CAST(@ReceiverDate AS DATE) AND sl.IsParent=1 AND sl.isSerialized = 0 AND sd.ForStockQty > 0
 			AND sl.ReceiverNumber = @ReceiverNumber AND CAST(DBO.ConvertUTCtoLocal(sl.ReceivedDate, @CurrntEmpTimeZoneDesc) AS DATE) = CAST(@ReceiverDate AS DATE) AND sl.IsParent=1 AND sl.isSerialized = 0 AND sd.ForStockQty > 0
 					   
-			 AND ISNULL(i.IsNonStock,0) = 0 UNION
+			 AND ISNULL(i.IsNonStock,0) = 0
+			 UNION
 
 			SELECT sl.MasterPartId AS ItemMasterId,
 				   sl.ConditionId,

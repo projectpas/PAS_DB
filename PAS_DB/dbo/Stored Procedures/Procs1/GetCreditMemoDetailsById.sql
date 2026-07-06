@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [GetCreditMemoDetailsById]           
  ** Author:  Moin Bloch
  ** Description: This stored procedure is used to Get Credit Memo Part Details
@@ -78,7 +78,8 @@ BEGIN
 	FROM [dbo].[CreditMemoDetails] CM WITH (NOLOCK) 		
 	   LEFT JOIN [dbo].[CreditMemoApproval] CA WITH (NOLOCK) ON CA.CreditMemoDetailId = CM.CreditMemoDetailId
 	   LEFT JOIN ItemMaster IM WITH (NOLOCK) ON CM.ItemMasterId=IM.ItemMasterId
-	 AND ISNULL(IM.IsNonStock,0) = 0 WHERE CM.CreditMemoHeaderId = @CreditMemoHeaderId AND CM.IsDeleted = 0 ;
+	 AND ISNULL(IM.IsNonStock,0) = 0
+	    WHERE CM.CreditMemoHeaderId = @CreditMemoHeaderId AND CM.IsDeleted = 0 ;
 
   END TRY    
 	BEGIN CATCH

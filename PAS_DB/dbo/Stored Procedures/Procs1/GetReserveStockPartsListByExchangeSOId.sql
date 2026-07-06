@@ -1,4 +1,4 @@
-﻿
+
 -- EXEC [dbo].[GetReserveStockPartsListByExchangeSOId] 125
 CREATE   PROC [dbo].[GetReserveStockPartsListByExchangeSOId]
 @SalesOrderId  bigint
@@ -29,7 +29,8 @@ BEGIN
 			FROM ExchangeSalesOrder SO WITH (NOLOCK)
 			INNER JOIN ExchangeSalesOrderPart SOP WITH (NOLOCK) ON SO.ExchangeSalesOrderId = SOP.ExchangeSalesOrderId
 			LEFT JOIN ItemMaster im WITH (NOLOCK) on sop.ItemMasterId = im.ItemMasterId
-			 AND ISNULL(im.IsNonStock,0) = 0 LEFT JOIN DBO.Customer C WITH (NOLOCK) ON SO.CustomerId = C.CustomerId AND ISNULL(SO.IsVendor,0) = 0
+			 AND ISNULL(im.IsNonStock,0) = 0
+			 LEFT JOIN DBO.Customer C WITH (NOLOCK) ON SO.CustomerId = C.CustomerId AND ISNULL(SO.IsVendor,0) = 0
 			LEFT JOIN DBO.Vendor V WITH (NOLOCK) ON SO.CustomerId = V.VendorId AND ISNULL(SO.IsVendor,0) = 1
 			LEFT JOIN ExchangeSalesOrderReserveParts SOR WITH (NOLOCK) ON sop.ExchangeSalesOrderPartId = SOR.ExchangeSalesOrderPartId
 			LEFT JOIN StockLine SL WITH (NOLOCK) ON im.ItemMasterId = sl.ItemMasterId

@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [USP_GetNhaTlaAltEquPartHistory]           
  ** Author:   Sahdev Saliya
  ** Description: This stored procedure is used to GetNhaTlaAltEquPartHistory List
@@ -75,7 +75,8 @@ BEGIN
 			LEFT JOIN dbo.Customer cust WITH (NOLOCK) ON alt.CustomerId = cust.CustomerId
 		WHERE alt.ItemMappingId = @ItemMappingId
       
-	 AND ISNULL(im.IsNonStock,0) = 0 AND ISNULL(im1.IsNonStock,0) = 0 END
+	 AND ISNULL(im.IsNonStock,0) = 0 AND ISNULL(im1.IsNonStock,0) = 0
+		 END
 	IF (@Opr = 2)
 	BEGIN
 		SELECT AD.[AttachmentDetailId]

@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [GetExchangeBillingDetailsById]           
  ** Author:  Ekta Chandegra
  ** Description: This stored procedure is used to GetExchangeBillingDetailsById
@@ -78,7 +78,8 @@ BEGIN
 		FROM [dbo].[ExchangeSalesOrder] soq WITH(NOLOCK)
 		LEFT JOIN  [dbo].[ExchangeSalesOrderPart] exp WITH(NOLOCK) ON soq.ExchangeSalesOrderId = exp.ExchangeSalesOrderId
 		LEFT JOIN  [dbo].[ItemMaster] im WITH(NOLOCK) ON exp.ItemMasterId = im.ItemMasterId
-		 AND ISNULL(im.IsNonStock,0) = 0 LEFT JOIN  [dbo].[StockLine] sl WITH(NOLOCK) ON exp.StockLineId = sl.StockLineId
+		 AND ISNULL(im.IsNonStock,0) = 0
+		 LEFT JOIN  [dbo].[StockLine] sl WITH(NOLOCK) ON exp.StockLineId = sl.StockLineId
 		LEFT JOIN  [dbo].[Manufacturer] mf WITH(NOLOCK) ON im.ManufacturerId = mf.ManufacturerId
 		LEFT JOIN  [dbo].[Condition] cn WITH(NOLOCK) ON exp.ConditionId = cn.ConditionId
 		LEFT JOIN  [dbo].[Customer] cust WITH(NOLOCK) ON soq.CustomerId = cust.CustomerId

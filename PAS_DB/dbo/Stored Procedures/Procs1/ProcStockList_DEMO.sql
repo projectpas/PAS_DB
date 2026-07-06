@@ -1,4 +1,4 @@
-﻿
+
 /*************************************************************               
  ** File:   [ProcStockList]               
  ** Author:   Hemant Saliya    
@@ -878,7 +878,7 @@ BEGIN
 		 AND (@ItemMasterId = 0 OR stl.ItemMasterId = @ItemMasterId)       
 		 AND stl.IsParent = 1 
 		 --AND stl.IsCustomerStock = CASE WHEN @ISCS = 1 AND @ISECS = 0 THEN 1 WHEN @ISCS = 0 AND @ISECS = 1 THEN 0 else stl.IsCustomerStock END          
-		 AND stl.IsCustomerStock = CASE WHEN @isElse = 0 THEN @IsCustomerStockInline  AND ISNULL(im.IsNonStock,0) = 0 AND ISNULL(IMAl.IsNonStock,0) = 0 else stl.IsCustomerStock END  
+		 AND stl.IsCustomerStock = CASE WHEN @isElse = 0 THEN @IsCustomerStockInline else stl.IsCustomerStock END  
 	   ), ResultCount AS(Select COUNT(StockLineId) AS totalItems FROM Result)        
 	   SELECT *,
 	   (SELECT TOP 1 WOS.Status FROM DBO.WORKORDER WO WITH (NOLOCK) INNER JOIN dbo.WorkOrderStatus wos WITH (NOLOCK) on wo.WorkOrderStatusId = WOS.Id WHERE WO.WorkOrderId = WorkOrderId) as WorkOrderStatus,        
@@ -1173,7 +1173,7 @@ BEGIN
 	   ',')))                
 		AND (@ItemMasterId = 0 OR stl.ItemMasterId = @ItemMasterId)        
 		--AND stl.IsCustomerStock = CASE WHEN @ISCS = 1 AND @ISECS = 0 THEN 1 WHEN @ISCS = 0 AND @ISECS = 1 THEN 0 else stl.IsCustomerStock END
-		AND stl.IsCustomerStock = CASE WHEN @isElse = 0 THEN @IsCustomerStockInline  AND ISNULL(im.IsNonStock,0) = 0 AND ISNULL(IMAl.IsNonStock,0) = 0 else stl.IsCustomerStock END  
+		AND stl.IsCustomerStock = CASE WHEN @isElse = 0 THEN @IsCustomerStockInline else stl.IsCustomerStock END  
 	  ), ResultCount AS(Select COUNT(StockLineId) AS totalItems FROM Result)        
 	  SELECT *,
 	   (SELECT TOP 1 wos.Status  FROM DBO.WorkOrder wo WITH (NOLOCK) inner join DBO.WorkOrderStatus wos WITH (NOLOCK) on wo.WorkOrderStatusId=wos.Id where wo.WorkOrderId = WorkOrderId) as WorkOrderStatus,        

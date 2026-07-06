@@ -1,4 +1,4 @@
-﻿ /************************************************************* 
+ /************************************************************* 
  ** File:   [USP_UpdateRFQPricebasedOnAISuggestionHistoricalData]           
  ** Author:   HEMANT SALIYA
  ** Description: Update RFQ Price Details based on AI suggestions
@@ -115,7 +115,8 @@ BEGIN
 				  AND WBI.[MasterCompanyId] = @MasterCompanyId
 
 				  --Get data from WOQ
-				   AND ISNULL(IM.IsNonStock,0) = 0 IF(@RecordsTotal = 0)
+				   AND ISNULL(IM.IsNonStock,0) = 0
+				   IF(@RecordsTotal = 0)
 				  BEGIN
 					  SELECT 
 							@RecordsTotal = COUNT(WQD.[WorkOrderQuoteDetailsId]),

@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [USP_BatchTriggerBasedonDistributionForInternalSubWorkOrder]
  ** Author:  Satish Gohil
  ** Description: This stored procedure is used to Accounting entry for Internal SWO
@@ -159,7 +159,8 @@ BEGIN
 			  INNER JOIN [dbo].[ItemMaster] ITM WITH(NOLOCK) ON SWO.ItemMasterId = ITM.ItemMasterId			  
 			  WHERE SWO.[SubWorkOrderId] = @ReferenceId AND SWO.[SubWOPartNoId] = @partId
 					  
-             AND ISNULL(ITM.IsNonStock,0) = 0 IF(UPPER(@DistributionCode) = UPPER('WOMATERIALGRIDTAB'))
+             AND ISNULL(ITM.IsNonStock,0) = 0
+			   IF(UPPER(@DistributionCode) = UPPER('WOMATERIALGRIDTAB'))
 			BEGIN
 				SELECT @LastMSLevel = [LastMSLevel],
 					   @AllMSlevels = [AllMSlevels],

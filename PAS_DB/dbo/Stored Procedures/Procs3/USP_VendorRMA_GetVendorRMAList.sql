@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [USP_VendorRMA_GetVendorRMAList]          
  ** Author:   Amit Ghediya
  ** Description: This stored procedure is used to Create for get Vendor RMA List data.
@@ -163,7 +163,8 @@ BEGIN
 		LEFT JOIN [DBO].[VendorRMAReturnReason] RMAR WITH (NOLOCK) ON RMAD.[VendorRMAReturnReasonId] = RMAR.[VendorRMAReturnReasonId]
 		LEFT JOIN [DBO].[Stockline] SL WITH (NOLOCK) ON RMAD.[StockLineId] = SL.[StockLineId]
 		LEFT JOIN [DBO].[ItemMaster] IM WITH (NOLOCK) ON RMAD.[ItemMasterId] = IM.[ItemMasterId]
-		 AND ISNULL(IM.IsNonStock,0) = 0 LEFT JOIN [DBO].[PurchaseOrder] PO WITH (NOLOCK) ON SL.[PurchaseOrderId] = PO.[PurchaseOrderId] 
+		 AND ISNULL(IM.IsNonStock,0) = 0
+		 LEFT JOIN [DBO].[PurchaseOrder] PO WITH (NOLOCK) ON SL.[PurchaseOrderId] = PO.[PurchaseOrderId] 
 		LEFT JOIN [DBO].[RepairOrder] RO WITH (NOLOCK) ON SL.[RepairOrderId] = RO.[RepairOrderId]
 		LEFT JOIN [DBO].[VendorCreditMemo] VCM WITH (NOLOCK) ON VCM.VendorRMAId = RMA.VendorRMAId
 		LEFT JOIN [DBO].[VendorRMAStatus] VS WITH (NOLOCK) ON RMAD.VendorRMAStatusId = VS.VendorRMAStatusId
@@ -360,7 +361,8 @@ BEGIN
 			LEFT JOIN [DBO].[VendorCreditMemo] VCM WITH (NOLOCK) ON VCM.VendorRMAId = RMA.VendorRMAId
 			LEFT JOIN [DBO].[Stockline] SL WITH (NOLOCK) ON RMAD.VendorRMADetailId = SL.VendorRMADetailId
 			LEFT JOIN [DBO].[ItemMaster] P WITH (NOLOCK) ON RMAD.ItemMasterId = P.ItemMasterId
-			 AND ISNULL(P.IsNonStock,0) = 0 LEFT JOIN [DBO].[PurchaseOrder] PO WITH (NOLOCK) ON SL.[PurchaseOrderId] = PO.[PurchaseOrderId]
+			 AND ISNULL(P.IsNonStock,0) = 0
+			 LEFT JOIN [DBO].[PurchaseOrder] PO WITH (NOLOCK) ON SL.[PurchaseOrderId] = PO.[PurchaseOrderId]
 			LEFT JOIN [DBO].[RepairOrder] RO WITH (NOLOCK) ON SL.[RepairOrderId] = RO.[RepairOrderId]
 			LEFT JOIN [DBO].[VendorRMAStatus] VS WITH (NOLOCK) ON RMA.VendorRMAStatusId = VS.VendorRMAStatusId
 			LEFT JOIN [DBO].[VendorRMAStatus] VSS WITH (NOLOCK) ON RMAD.VendorRMAStatusId = VSS.VendorRMAStatusId

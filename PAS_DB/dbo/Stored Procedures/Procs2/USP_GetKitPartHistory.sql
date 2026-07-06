@@ -1,4 +1,4 @@
-﻿/*************************************************************             
+/*************************************************************             
  ** File:   [USP_GetKitPartHistory]             
  ** Author:  Shrey Chandegara  
  ** Description: This stored procedure is used History data  
@@ -97,7 +97,8 @@ BEGIN
 				FROM DBO.[History] HS WITH (NOLOCK)  
 				INNER JOIN DBO.[KitItemMasterMapping] WO WITH (NOLOCK) ON HS.RefferenceId = Wo.KitItemMasterMappingId  
 				LEFT JOIN DBO.[ItemMaster] IM WITH (NOLOCK) ON HS.SubRefferenceId = IM.ItemMasterId  
-				 AND ISNULL(IM.IsNonStock,0) = 0 WHERE HS.RefferenceId = @RefferenceId --AND HS.MasterCompanyId = @MasterCompanyId    
+				 AND ISNULL(IM.IsNonStock,0) = 0
+				 WHERE HS.RefferenceId = @RefferenceId --AND HS.MasterCompanyId = @MasterCompanyId    
 				),  
 				FinalResult AS (  
 				SELECT HistoryId, ModuleId, partnumber, OldValue, NewValue, HistoryText, FieldsName  
@@ -169,7 +170,8 @@ BEGIN
 				FROM DBO.[History] HS WITH (NOLOCK)  
 				INNER JOIN DBO.[KitItemMasterMapping] WO WITH (NOLOCK) ON HS.RefferenceId = Wo.KitItemMasterMappingId  
 				LEFT JOIN DBO.[ItemMaster] IM WITH (NOLOCK) ON HS.SubRefferenceId = IM.ItemMasterId  
-				 AND ISNULL(IM.IsNonStock,0) = 0 WHERE wo.KitId = @RefferenceId --AND HS.MasterCompanyId = @MasterCompanyId    
+				 AND ISNULL(IM.IsNonStock,0) = 0
+				 WHERE wo.KitId = @RefferenceId --AND HS.MasterCompanyId = @MasterCompanyId    
 				),  
 				FinalResult AS (  
 				SELECT HistoryId, ModuleId, partnumber, OldValue, NewValue, HistoryText, FieldsName  

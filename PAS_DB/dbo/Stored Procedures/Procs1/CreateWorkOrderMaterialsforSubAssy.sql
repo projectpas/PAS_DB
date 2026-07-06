@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [dbo].[CreateWorkOrderMaterialsforSubAssy]
  ** Author:   Moin Bloch
  ** Description: This stored procedure is used to Create a Work Order Materials for Sub Assy : By Rajesh
@@ -271,7 +271,8 @@ BEGIN
 
 						SELECT @PartNumber = [PartNumber] FROM [dbo].[ItemMaster] WITH(NOLOCK) WHERE [ItemMasterId] = @ItemMasterId
 
-						 AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 SELECT TOP 1 @TemplateBody = [TemplateBody] FROM [dbo].[HistoryTemplate] WITH(NOLOCK) WHERE [TemplateCode] = @AddPNPart;
+						 AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0
+						 SELECT TOP 1 @TemplateBody = [TemplateBody] FROM [dbo].[HistoryTemplate] WITH(NOLOCK) WHERE [TemplateCode] = @AddPNPart;
 
 						SET @TemplateBody = REPLACE(@TemplateBody, '##PN##', @PartNumber)
 						
@@ -320,7 +321,8 @@ BEGIN
 							  IF(@MatItemClassificationId = 0)
 							  BEGIN
 									SELECT @MatItemClassificationId = [ItemClassificationId] FROM [dbo].[ItemMaster] WITH(NOLOCK) WHERE [ItemMasterId] = @MatItemMasterId
-							   AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 END
+							   AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0
+									 END
 							  IF(@MatProvisionId = @ProvisionId)
 							  BEGIN
 									SET @QtyToTurnIn = @ManQuantity;
@@ -335,7 +337,8 @@ BEGIN
 									ELSE
 									BEGIN
 										SELECT @PurchaseUnitOfMeasureId = [ItemClassificationId] FROM [dbo].[ItemMaster] WITH(NOLOCK) WHERE [ItemMasterId] = @MatItemMasterId
-									 AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 END
+									 AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0
+										 END
 							  END
 							  IF(@IsAltPart=1)
 							  BEGIN

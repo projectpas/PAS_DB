@@ -1,4 +1,4 @@
-﻿
+
 /*************************************************************           
  ** File:   [SalesOrderQuoteSummarizedHistoryByPN]           
  ** Author:   Vishal Suthar
@@ -63,7 +63,8 @@ BEGIN
 						LEFT JOIN dbo.Currency C WITH (NOLOCK) ON C.CurrencyId = CF.CurrencyId
 						LEFT JOIN dbo.SalesOrderQuotePartCost SOQPC WITH (NOLOCK) ON SOQPC.SalesOrderQuotePartId = SOQP.SalesOrderQuotePartId
 					WHERE SOQP.ItemMasterId = @ItemMasterId AND DATEDIFF(MM, SOQ.OpenDate, GETDATE()) < @Month
-					 AND ISNULL(IM.IsNonStock,0) = 0 GROUP BY IM.partnumber, SOQP.ItemMasterId, Cond.Description, APPR.ApprovalActionId, C.Code,
+					 AND ISNULL(IM.IsNonStock,0) = 0
+					 GROUP BY IM.partnumber, SOQP.ItemMasterId, Cond.Description, APPR.ApprovalActionId, C.Code,
 					SOQPC.UnitSalesPrice, SOQP.QtyQuoted, SOQPC.UnitCost
 					)
 

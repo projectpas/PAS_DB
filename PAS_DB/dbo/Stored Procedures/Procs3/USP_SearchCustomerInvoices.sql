@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [USP_SearchCustomerInvoices]           
  ** Author:  
  ** Description: Search CustomerInvoices 
@@ -218,7 +218,8 @@ BEGIN
 					LEFT JOIN dbo.CustomerRMAHeader CRM WITH (NOLOCK) ON CRM.InvoiceId = WOBI.BillingInvoicingId AND ISNULL(CRM.isWorkOrder, 0) = 1
 					LEFT JOIN dbo.Stockline SL WITH (NOLOCK) ON SL.StockLineId = WOPN.StockLineId
 					LEFT JOIN dbo.ItemMaster I WITH (NOLOCK) On WOBII.ItemMasterId = I.ItemMasterId  
-			 AND ISNULL(I.IsNonStock,0) = 0 WHERE WOBI.MasterCompanyId=@MasterCompanyId AND ISNULL(WOBI.IsVersionIncrease,0) = 0 AND WOBI.ModuleId =@workOrderModuleId 
+			 AND ISNULL(I.IsNonStock,0) = 0
+					 WHERE WOBI.MasterCompanyId=@MasterCompanyId AND ISNULL(WOBI.IsVersionIncrease,0) = 0 AND WOBI.ModuleId =@workOrderModuleId 
 			AND ISNULL(WOBI.[IsStandardInvoicePosted], 0) != 1 
 			--AND ISNULL(WOBI.RemainingAmount,0) > 0
 			AND (ISNULL(@Status, '') = '' OR ISNULL(WOBI.RemainingAmount, 0) > 0)
@@ -310,7 +311,8 @@ BEGIN
 				LEFT JOIN dbo.CustomerRMAHeader CRM WITH (NOLOCK) ON CRM.InvoiceId=SOBI.BillingInvoicingId and CRM.isWorkOrder=0
 				LEFT JOIN dbo.SalesOrderManagementStructureDetails SMS WITH (NOLOCK) ON SMS.ReferenceID = SO.SalesOrderId AND SMS.ModuleID = @SOModuleID 
 				LEFT JOIN dbo.ItemMaster I WITH (NOLOCK) On SOBII.ItemMasterId=I.ItemMasterId  
-			 AND ISNULL(I.IsNonStock,0) = 0 WHERE SOBI.MasterCompanyId=@MasterCompanyId AND ISNULL(SOBI.IsVersionIncrease,0)=0  AND SOBI.ModuleId = @salesOrderModuleId
+			 AND ISNULL(I.IsNonStock,0) = 0
+				 WHERE SOBI.MasterCompanyId=@MasterCompanyId AND ISNULL(SOBI.IsVersionIncrease,0)=0  AND SOBI.ModuleId = @salesOrderModuleId
 			AND ISNULL(SOBI.[IsStandardInvoicePosted], 0) != 1 
 			--AND ISNULL(SOBI.RemainingAmount,0) > 0
 			AND (ISNULL(@Status, '') = '' OR ISNULL(SOBI.RemainingAmount, 0) > 0)
@@ -389,7 +391,8 @@ BEGIN
 				LEFT JOIN dbo.Stockline ST WITH (NOLOCK) ON ST.StockLineId=SOPN.StockLineId
 				LEFT JOIN dbo.ExchangeManagementStructureDetails SMS WITH (NOLOCK) ON SMS.ReferenceID = SO.ExchangeSalesOrderId AND SMS.ModuleID = @ExchSOModuleID 
 				LEFT JOIN dbo.ItemMaster I WITH (NOLOCK) On SOBII.ItemMasterId=I.ItemMasterId  
-			 AND ISNULL(I.IsNonStock,0) = 0 WHERE SOBI.MasterCompanyId=@MasterCompanyId	AND SOBII.IsDeleted=0 
+			 AND ISNULL(I.IsNonStock,0) = 0
+				 WHERE SOBI.MasterCompanyId=@MasterCompanyId	AND SOBII.IsDeleted=0 
 			--AND ISNULL(SOBI.GrandTotal,0) > 0	
 			AND (ISNULL(@Status, '') = '' OR ISNULL(SOBI.GrandTotal, 0) > 0)
 			AND SOBI.IsActive = 1 AND SOBI.IsDeleted = 0
@@ -470,7 +473,8 @@ BEGIN
 				INNER JOIN [dbo].[ManagementStructureLevel] MSL WITH (NOLOCK) ON ES.Level1Id = MSL.ID
 				INNER JOIN [dbo].[LegalEntity] LE WITH (NOLOCK) ON MSL.LegalEntityId = LE.LegalEntityId 
 				 LEFT JOIN [dbo].[ItemMaster] I WITH (NOLOCK) ON CMD.ItemMasterId = I.ItemMasterId  
-			 AND ISNULL(I.IsNonStock,0) = 0 WHERE CM.MasterCompanyId = @MasterCompanyid AND CM.IsActive = 1 AND CM.IsDeleted = 0
+			 AND ISNULL(I.IsNonStock,0) = 0
+				  WHERE CM.MasterCompanyId = @MasterCompanyid AND CM.IsActive = 1 AND CM.IsDeleted = 0
 				GROUP BY CM.[CreditMemoHeaderId],CM.[CreditMemoNumber],CM.[Status],C.[Name],C.CustomerCode, CT.[CustomerTypeName],CMD.[Amount],CM.[CreatedDate], 
 						 CMD.[SOWONum],CMD.[ReferenceNo],MSD.[LastMSLevel],MSD.[AllMSlevels],C.[CustomerId],MSD.[EntityMSID],I.[ItemMasterId],CM.IsStandAloneCM	
 			)		 
@@ -664,7 +668,8 @@ BEGIN
 				LEFT JOIN dbo.WorkOrderQuoteDetails WQD WITH (NOLOCK) ON WQD.WOPartNoId = WOBII.SubReferenceId AND WQD.WorkOrderQuoteId=WQ.WorkOrderQuoteId
 				LEFT JOIN dbo.CustomerType CT WITH (NOLOCK) ON C.CustomerTypeId=CT.CustomerTypeId
 				LEFT JOIN dbo.ItemMaster IM WITH (NOLOCK) ON WOBII.ItemMasterId=IM.ItemMasterId
-				 AND ISNULL(IM.IsNonStock,0) = 0 LEFT JOIN dbo.Stockline ST WITH (NOLOCK) ON ST.StockLineId=WOPN.StockLineId
+				 AND ISNULL(IM.IsNonStock,0) = 0
+				 LEFT JOIN dbo.Stockline ST WITH (NOLOCK) ON ST.StockLineId=WOPN.StockLineId
 				LEFT JOIN dbo.CustomerRMAHeader CRM WITH (NOLOCK) ON CRM.InvoiceId=WOBI.BillingInvoicingId AND ISNULL(CRM.isWorkOrder, 0) = 1
 				LEFT JOIN dbo.WorkorderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ReferenceID = WOPN.ID AND MSD.ModuleID = @ModuleID
 			WHERE WOBI.MasterCompanyId=@MasterCompanyId AND ISNULL(WOBI.IsVersionIncrease, 0) = 0 AND WOBI.ModuleId =@workOrderModuleId 
@@ -723,7 +728,8 @@ BEGIN
 				LEFT JOIN dbo.SalesOrderQuote SQ WITH (NOLOCK) ON SQ.SalesOrderQuoteId = SO.SalesOrderQuoteId
 				LEFT JOIN dbo.CustomerType CT WITH (NOLOCK) ON C.CustomerTypeId=CT.CustomerTypeId
 				LEFT JOIN dbo.ItemMaster IM WITH (NOLOCK) ON SOBII.ItemMasterId=IM.ItemMasterId
-				 AND ISNULL(IM.IsNonStock,0) = 0 LEFT JOIN dbo.Stockline ST WITH (NOLOCK) ON ST.StockLineId=SOPS.StockLineId
+				 AND ISNULL(IM.IsNonStock,0) = 0
+				 LEFT JOIN dbo.Stockline ST WITH (NOLOCK) ON ST.StockLineId=SOPS.StockLineId
 				LEFT JOIN dbo.CustomerRMAHeader CRM WITH (NOLOCK) ON CRM.InvoiceId=SOBI.BillingInvoicingId and CRM.isWorkOrder=0
 				LEFT JOIN dbo.SalesOrderManagementStructureDetails SMS WITH (NOLOCK) ON SMS.ReferenceID = SO.SalesOrderId AND SMS.ModuleID = @SOModuleID 
 			WHERE SOBI.MasterCompanyId=@MasterCompanyId AND ISNULL(SOBII.IsVersionIncrease,0)=0 AND SOBI.ModuleId = @salesOrderModuleId
@@ -790,7 +796,8 @@ BEGIN
 				LEFT JOIN [dbo].[Stockline] ST WITH (NOLOCK) ON ST.StockLineId=SOPN.StockLineId
 				LEFT JOIN [dbo].[ExchangeManagementStructureDetails] SMS WITH (NOLOCK) ON SMS.ReferenceID = SO.ExchangeSalesOrderId AND SMS.ModuleID = @ExchSOModuleID 		
 				LEFT JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON SOBII.ItemMasterId = IM.ItemMasterId
-				 AND ISNULL(IM.IsNonStock,0) = 0 WHERE SOBI.MasterCompanyId=@MasterCompanyId	
+				 AND ISNULL(IM.IsNonStock,0) = 0
+				 WHERE SOBI.MasterCompanyId=@MasterCompanyId	
 				 AND SOBII.[IsDeleted] = 0 
 				 --AND ISNULL(SOBI.[GrandTotal],0) > 0	
 				 AND (ISNULL(@Status, '') = '' OR ISNULL(SOBI.GrandTotal,0) > 0)
@@ -846,7 +853,8 @@ BEGIN
 				INNER JOIN [dbo].[ManagementStructureLevel] MSL WITH (NOLOCK) ON ES.Level1Id = MSL.ID
 				INNER JOIN [dbo].[LegalEntity] LE WITH (NOLOCK) ON MSL.LegalEntityId = LE.LegalEntityId 
 				 LEFT JOIN [dbo].[ItemMaster] I WITH (NOLOCK) ON CMD.ItemMasterId = I.ItemMasterId  
-			 AND ISNULL(I.IsNonStock,0) = 0 WHERE CM.MasterCompanyId = @MasterCompanyid AND CM.IsActive = 1 AND CM.IsDeleted = 0
+			 AND ISNULL(I.IsNonStock,0) = 0
+				  WHERE CM.MasterCompanyId = @MasterCompanyid AND CM.IsActive = 1 AND CM.IsDeleted = 0
 
 			), ResultCount AS(SELECT COUNT(InvoicingId) AS totalItems FROM Result where  RowNum = 1)  
 			   SELECT * INTO #TempResults from  Result

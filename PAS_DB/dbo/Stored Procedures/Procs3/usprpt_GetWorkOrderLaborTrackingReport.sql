@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [usprpt_GetWorkOrderLaborTrackingReport]           
  ** Author:   
  ** Description: Get Data for Work-Order Labor Tracking Report
@@ -146,7 +146,8 @@ BEGIN
 					AND (ISNULL(@Level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))
 					AND  (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))
 
-			 AND ISNULL(IM.IsNonStock,0) = 0 END
+			 AND ISNULL(IM.IsNonStock,0) = 0
+					 END
 
 			SET @PageSize = CASE WHEN NULLIF(@PageSize,0) IS NULL THEN 10 ELSE @PageSize END
 			SET @PageNumber = CASE WHEN NULLIF(@PageNumber,0) IS NULL THEN 1 ELSE @PageNumber END
@@ -189,7 +190,8 @@ BEGIN
 					INNER JOIN dbo.WorkOrderPartNumber WPN WITH(NOLOCK) ON WOF.WorkOrderPartNoId = WPN.ID  
 					INNER JOIN dbo.ItemMaster IM WITH(NOLOCK) ON IM.ItemMasterId = WPN.ItemMasterId
 					LEFT JOIN [dbo].[ItemMaster] RIM WITH (NOLOCK) ON WPN.RevisedItemmasterid = RIM.ItemMasterId
-					 AND ISNULL(RIM.IsNonStock,0) = 0 INNER JOIN dbo.WorkOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = WPN.ID
+					 AND ISNULL(RIM.IsNonStock,0) = 0
+					 INNER JOIN dbo.WorkOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = WPN.ID
 					LEFT JOIN dbo.Task T WITH(NOLOCK) on WOL.TaskId = T.TaskId
 					LEFT JOIN dbo.WorkOrderTask WT WITH(NOLOCK) on WOL.TaskId = WT.WorkOrderTaskId
 					LEFT JOIN dbo.TaskStatus TS WITH(NOLOCK) ON WOL.TaskStatusId = TS.TaskStatusId
@@ -219,7 +221,8 @@ BEGIN
 					AND (ISNULL(@Level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))
 					AND  (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))
 			
-			 AND ISNULL(IM.IsNonStock,0) = 0 UNION ALL 
+			 AND ISNULL(IM.IsNonStock,0) = 0
+					 UNION ALL 
 
 			SELECT 
 			--COUNT(1) OVER () AS TotalRecordsCount,
@@ -256,7 +259,8 @@ BEGIN
 					INNER JOIN dbo.WorkOrderPartNumber WPN WITH(NOLOCK) ON WOF.WorkOrderPartNoId = WPN.ID  
 					INNER JOIN dbo.ItemMaster IM WITH(NOLOCK) ON IM.ItemMasterId = WPN.ItemMasterId
 					LEFT JOIN [dbo].[ItemMaster] RIM WITH (NOLOCK) ON WPN.RevisedItemmasterid = RIM.ItemMasterId
-					 AND ISNULL(RIM.IsNonStock,0) = 0 INNER JOIN dbo.WorkOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = WPN.ID
+					 AND ISNULL(RIM.IsNonStock,0) = 0
+					 INNER JOIN dbo.WorkOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = WPN.ID
 					LEFT JOIN dbo.Task T WITH(NOLOCK) on WOL.TaskId = T.TaskId
 					LEFT JOIN dbo.WorkOrderTask WT WITH(NOLOCK) on WOL.TaskId = WT.WorkOrderTaskId
 					LEFT JOIN dbo.TaskStatus TS WITH(NOLOCK) ON WOL.TaskStatusId = TS.TaskStatusId

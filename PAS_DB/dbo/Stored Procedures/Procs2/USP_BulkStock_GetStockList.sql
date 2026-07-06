@@ -1,4 +1,4 @@
-﻿/*******           
+/*******           
  ** File:   [USP_BulkStock_GetStockList]           
  ** Author: AMIT GHEDIYA
  ** Description: This stored procedure is used to Get Stock Listing 
@@ -330,8 +330,7 @@ BEGIN
 					AND SL.[IsCustomerStock] = 1
 					AND SL.[QuantityAvailable] > 0
 					AND SL.CustomerId  = @CustomerId
-					AND SL.[ManagementStructureId] = @ManagementStructureId
-			 AND ISNULL(IM.IsNonStock,0) = 0 ), ResultCount AS(SELECT COUNT([StockLineId]) AS totalItems FROM Result) 
+					AND SL.[ManagementStructureId] = @ManagementStructureId ), ResultCount AS(SELECT COUNT([StockLineId]) AS totalItems FROM Result) 
 		
 			SELECT * INTO #TempCustStockResult FROM  Result 
 				WHERE 

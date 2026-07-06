@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [USP_GetPNTileExchangeList]           
  ** Author:  Devendra Shekh
  ** Description: This stored procedure is used get list of exhchage history date for dashboard
@@ -112,7 +112,8 @@ BEGIN
 			   INNER JOIN [dbo].[EmployeeUserRole] EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
 			   LEFT JOIN [dbo].[ExchangeSalesOrderPart] SP WITH (NOLOCK) ON SO.ExchangeSalesOrderId = SP.ExchangeSalesOrderId and SP.IsDeleted = 0
 			   LEFT JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON IM.ItemMasterId = SP.ItemMasterId
-			    AND ISNULL(IM.IsNonStock,0) = 0 LEFT JOIN [dbo].[Condition] CO WITH (NOLOCK) ON CO.ConditionId = SP.ConditionId
+			    AND ISNULL(IM.IsNonStock,0) = 0
+			    LEFT JOIN [dbo].[Condition] CO WITH (NOLOCK) ON CO.ConditionId = SP.ConditionId
 			   LEFT JOIN [dbo].[ExchangeSalesOrderShippingItem] SOI WITH (NOLOCK) ON SOI.ExchangeSalesOrderPartId = SP.ExchangeSalesOrderPartId
 			   LEFT JOIN [dbo].[ExchangeSalesOrderShipping] SOS WITH (NOLOCK) ON SOI.ExchangeSalesOrderShippingId = SOS.ExchangeSalesOrderShippingId	
 			   LEFT JOIN [dbo].[Stockline] STL WITH(NOLOCK) ON SP.StockLineId = STL.StockLineId	

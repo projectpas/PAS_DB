@@ -1,4 +1,4 @@
-﻿
+
 /***************************************************************************************************************************************
   ** Change History
  ***************************************************************************************************************************************
@@ -134,7 +134,8 @@ BEGIN
 							INNER JOIN ItemMaster im WITH (NOLOCK) ON stl.ItemMasterId = im.ItemMasterId 
 							INNER JOIN  dbo.EmployeeManagementStructure EMS WITH (NOLOCK) ON EMS.ManagementStructureId = stl.ManagementStructureId
 							LEFT JOIN ItemMaster rPart WITH (NOLOCK) ON im.RevisedPartId = rPart.ItemMasterId									 
-		 		   AND ISNULL(rPart.IsNonStock,0) = 0 WHERE ((stl.IsDeleted=0 ) AND (stl.QuantityOnHand > 0)) AND (@StockLineIds IS NULL OR stl.StockLineId IN (SELECT Item FROM DBO.SPLITSTRING(@StockLineIds,',')))			     
+		 		   AND ISNULL(rPart.IsNonStock,0) = 0
+							 WHERE ((stl.IsDeleted=0 ) AND (stl.QuantityOnHand > 0)) AND (@StockLineIds IS NULL OR stl.StockLineId IN (SELECT Item FROM DBO.SPLITSTRING(@StockLineIds,',')))			     
 						AND stl.MasterCompanyId=@MasterCompanyId AND EMS.EmployeeId = @EmployeeId AND (@ItemMasterId IS NULL OR stl.ItemMasterId = @ItemMasterId)					
 						AND stl.IsParent = 1
 				 AND ISNULL(im.IsNonStock,0) = 0 ), ResultCount AS(Select COUNT(StockLineId) AS totalItems FROM Result)
@@ -324,7 +325,8 @@ BEGIN
 							INNER JOIN ItemMaster im WITH (NOLOCK) ON stl.ItemMasterId = im.ItemMasterId 
 							INNER JOIN  dbo.EmployeeManagementStructure EMS WITH (NOLOCK) ON EMS.ManagementStructureId = stl.ManagementStructureId
 							LEFT JOIN ItemMaster rPart WITH (NOLOCK) ON im.RevisedPartId = rPart.ItemMasterId									 
-		 		   AND ISNULL(rPart.IsNonStock,0) = 0 WHERE ((stl.IsDeleted=0 ) AND (@stockTypeId IS NULL OR im.ItemTypeId=@stockTypeId)) AND (@StockLineIds IS NULL OR stl.StockLineId IN (SELECT Item FROM DBO.SPLITSTRING(@StockLineIds,',')))			     
+		 		   AND ISNULL(rPart.IsNonStock,0) = 0
+							 WHERE ((stl.IsDeleted=0 ) AND (@stockTypeId IS NULL OR im.ItemTypeId=@stockTypeId)) AND (@StockLineIds IS NULL OR stl.StockLineId IN (SELECT Item FROM DBO.SPLITSTRING(@StockLineIds,',')))			     
 						AND stl.MasterCompanyId=@MasterCompanyId AND EMS.EmployeeId = @EmployeeId AND (@ItemMasterId IS NULL OR stl.ItemMasterId = @ItemMasterId)					
 						AND stl.IsParent = 1
 				 AND ISNULL(im.IsNonStock,0) = 0 ), ResultCount AS(Select COUNT(StockLineId) AS totalItems FROM Result)

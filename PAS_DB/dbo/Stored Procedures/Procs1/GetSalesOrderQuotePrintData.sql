@@ -1,4 +1,4 @@
-﻿-- EXEC [DBO].[GetSalesOrderQuotePrintData] 945
+-- EXEC [DBO].[GetSalesOrderQuotePrintData] 945
 /***************************************************************************************************************************************
   ** Change History
  ***************************************************************************************************************************************
@@ -57,7 +57,8 @@ BEGIN
     LEFT JOIN DBO.SalesOrderQuoteStocklineV1 stk WITH (NOLOCK) ON stk.SalesOrderQuotePartId = sop.SalesOrderQuotePartId
     LEFT JOIN DBO.SalesOrderQuotePartCost sopc WITH (NOLOCK) ON sopc.SalesOrderQuotePartId = sop.SalesOrderQuotePartId
     LEFT JOIN DBO.ItemMaster itemMaster WITH (NOLOCK) ON sop.ItemMasterId = itemMaster.ItemMasterId
-     AND ISNULL(itemMaster.IsNonStock,0) = 0 LEFT JOIN DBO.UnitOfMeasure iu WITH (NOLOCK) ON itemMaster.ConsumeUnitOfMeasureId = iu.UnitOfMeasureId
+     AND ISNULL(itemMaster.IsNonStock,0) = 0
+     LEFT JOIN DBO.UnitOfMeasure iu WITH (NOLOCK) ON itemMaster.ConsumeUnitOfMeasureId = iu.UnitOfMeasureId
     LEFT JOIN DBO.Condition cp WITH (NOLOCK) ON sop.ConditionId = cp.ConditionId
     LEFT JOIN DBO.Customer cust WITH (NOLOCK) ON so.CustomerId = cust.CustomerId
     LEFT JOIN DBO.Address custAddress WITH (NOLOCK) ON cust.AddressId = custAddress.AddressId

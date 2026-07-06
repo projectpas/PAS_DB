@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [USP_WorkOrderAnalysisForShippingARbalance]           
  ** Author: [Ayushi Patel]  
  ** Description: This stored procedure is used to analyze Work Order for Shipping AR balance.  
@@ -94,7 +94,8 @@ BEGIN
         INNER JOIN dbo.WorkOrderStatus st WITH (NOLOCK) ON wop.WorkOrderStatusId = st.Id  
         WHERE wo.WorkOrderId = @WorkOrderId  
           AND woc.WOPartNoId = @WorkOrderPartNoId  
-         AND ISNULL(im.IsNonStock,0) = 0 ORDER BY wop.ID;  
+         AND ISNULL(im.IsNonStock,0) = 0
+           ORDER BY wop.ID;  
 
         -- Drop the temporary table after usage
         DROP TABLE #QuoteTable;

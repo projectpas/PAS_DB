@@ -1,4 +1,4 @@
-﻿/*************************************************************             
+/*************************************************************             
  ** File:   [dbo.GetSOOperatingMetricReport_QuotedUnitByIMId]             
  ** Author:  Rajesh Gami    
  ** Description: Get Data for Salesorder Operating Metric Report by Most Quoted SO By ItemMaster Id
@@ -156,7 +156,8 @@ BEGIN
 			LEFT JOIN [dbo].[EntityStructureSetup] ES ON ES.EntityStructureId=MSD.EntityMSID
 			LEFT JOIN [dbo].[Customer] WITH (NOLOCK) ON SOQ.CustomerId = Customer.CustomerId  
 			LEFT JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON SOQP.itemmasterId = IM.itemmasterId  
-			 AND ISNULL(IM.IsNonStock,0) = 0 LEFT JOIN DBO.Condition AS CN WITH (NOLOCK) ON SOQP.ConditionId = CN.ConditionId 
+			 AND ISNULL(IM.IsNonStock,0) = 0
+			 LEFT JOIN DBO.Condition AS CN WITH (NOLOCK) ON SOQP.ConditionId = CN.ConditionId 
 		  WHERE 
 				ISNULL(SOQ.IsDeleted,0) = 0 AND	SOQ.CustomerId=ISNULL(@customerid,SOQ.CustomerId)  AND SOQP.ItemMasterId = ISNULL(@itemMasterId,SOQP.ItemMasterId) 
 				--AND SOQ.SourceBy=ISNULL(@sourceByName,SOQ.SourceBy) 

@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [USP_Lot_GetAllLotViewsByLotId]           
  ** Author:  Rajesh Gami
  ** Description: This stored procedure is used to Get all the views of LOT(All PN, PN IN Stock,PN SOLD, PN REPAIRED etc...
@@ -183,7 +183,8 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 					 LEFT JOIN [dbo].[LegalEntity] CO WITH (NOLOCK) ON CO.[LegalEntityId] = SL.[TaggedBy]
 
 				WHERE lot.LotId = @LotId AND lot.MasterCompanyId = @MasterCompanyId
-				 AND ISNULL(im.IsNonStock,0) = 0 ORDER BY ltin.CreatedDate DESC
+				 AND ISNULL(im.IsNonStock,0) = 0
+				 ORDER BY ltin.CreatedDate DESC
 			END
 			ELSE IF(UPPER(@Type) = UPPER('PNInStockView'))
 			BEGIN
@@ -290,7 +291,8 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 					 LEFT JOIN [dbo].[Vendor] VE WITH (NOLOCK) ON VE.[VendorId] = SL.[TaggedBy]
 					 LEFT JOIN [dbo].[LegalEntity] CO WITH (NOLOCK) ON CO.[LegalEntityId] = SL.[TaggedBy]
 				 WHERE lot.LotId = @LotId AND lot.MasterCompanyId = @MasterCompanyId AND ISNULL(sl.QuantityOnHand,0) > 0 AND (UPPER(ltCal.Type) NOT IN (UPPER(@LOT_TransOut_SO), UPPER(@LOT_TransOut_RO),UPPER(@LOT_TransOut_LOT)))
-				  AND ISNULL(im.IsNonStock,0) = 0 ORDER BY ltin.CreatedDate DESC
+				  AND ISNULL(im.IsNonStock,0) = 0
+				  ORDER BY ltin.CreatedDate DESC
 			END
 			ELSE IF(UPPER(@Type) = UPPER('PNSoldView'))
 			BEGIN
@@ -404,7 +406,8 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 					 LEFT JOIN [dbo].[Vendor] VE WITH (NOLOCK) ON VE.[VendorId] = SL.[TaggedBy]
 					 LEFT JOIN [dbo].[LegalEntity] CO WITH (NOLOCK) ON CO.[LegalEntityId] = SL.[TaggedBy]
 				 WHERE lot.LotId = @LotId AND lot.MasterCompanyId = @MasterCompanyId AND UPPER(ltCal.Type) = UPPER(@LOT_TransOut_SO)
-				  AND ISNULL(im.IsNonStock,0) = 0 ORDER BY ltin.CreatedDate DESC
+				  AND ISNULL(im.IsNonStock,0) = 0
+				  ORDER BY ltin.CreatedDate DESC
 			END
 			ELSE IF(UPPER(@Type) = UPPER('RepairedView'))
 			BEGIN
@@ -512,7 +515,8 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 					 LEFT JOIN [dbo].[Vendor] VE WITH (NOLOCK) ON VE.[VendorId] = SL.[TaggedBy]
 					 LEFT JOIN [dbo].[LegalEntity] CO WITH (NOLOCK) ON CO.[LegalEntityId] = SL.[TaggedBy]
 				 WHERE lot.LotId = @LotId AND lot.MasterCompanyId = @MasterCompanyId AND (UPPER(ltCal.Type) = UPPER(@LOT_TransIn_RO))
-				  AND ISNULL(im.IsNonStock,0) = 0 ORDER BY ltin.CreatedDate DESC
+				  AND ISNULL(im.IsNonStock,0) = 0
+				  ORDER BY ltin.CreatedDate DESC
 			END
 			ELSE IF(UPPER(@Type) = UPPER('OtherCost'))
 			BEGIN

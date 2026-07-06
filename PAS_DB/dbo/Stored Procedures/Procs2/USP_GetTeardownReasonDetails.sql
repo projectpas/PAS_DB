@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [USP_GetTeardownReasonDetails]           
  ** Author:   Devendra Shekh
  ** Description: Retrieves teardown reason details
@@ -65,8 +65,10 @@ BEGIN
 			LEFT JOIN [dbo].[Condition] CD WITH(NOLOCK) ON CD.ConditionId = SWOP.ConditionId
 			LEFT JOIN [dbo].[Stockline] SL WITH(NOLOCK) ON SL.StockLineId = SWOP.StockLineId
 			LEFT JOIN [dbo].[ItemMaster] IM WITH(NOLOCK) ON IM.ItemMasterId = SWOP.ItemMasterId
-			 AND ISNULL(IM.IsNonStock,0) = 0 LEFT JOIN [dbo].[ItemMaster] RIM WITH(NOLOCK) ON RIM.ItemMasterId = SWOP.RevisedItemmasterid
-			 AND ISNULL(RIM.IsNonStock,0) = 0 WHERE SWOP.[SubWOPartNoId] = @SubWOPartNoId;
+			 AND ISNULL(IM.IsNonStock,0) = 0
+			 LEFT JOIN [dbo].[ItemMaster] RIM WITH(NOLOCK) ON RIM.ItemMasterId = SWOP.RevisedItemmasterid
+			 AND ISNULL(RIM.IsNonStock,0) = 0
+			  WHERE SWOP.[SubWOPartNoId] = @SubWOPartNoId;
 		END
 
 		SELECT @RPPubTypeId = [PublicationTypeId] FROM [dbo].[PublicationType] WITH(NOLOCK) WHERE [Name] = 'RSPEC' AND [MasterCompanyId] = @MasterCompanyId;

@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [USP_GetCapesListByAssetId]         
  ** Author:   Ayushi Patel
  ** Description: Get Cape list by AssetRecordId    
@@ -46,7 +46,8 @@ BEGIN
         LEFT JOIN dbo.AircraftDashNumber dn WITH (NOLOCK) ON ac.AircraftDashNumberId = dn.DashNumberId
         WHERE ac.AssetRecordId = @AssetRecordId
           AND ISNULL(ac.IsDeleted,0) = 0
-     AND ISNULL(im.IsNonStock,0) = 0 END TRY
+     AND ISNULL(im.IsNonStock,0) = 0
+           END TRY
     BEGIN CATCH
         DECLARE @ErrorLogID INT,
                 @DatabaseName VARCHAR(100) = DB_NAME(),

@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [AutoCompleteDropdownsSalesorderItemMaster]           
  ** Author:   HEMANT SALIYA
  ** Description: This stored procedure is used retrieve work Order Item Master List for Auto complete Dropdown List    
@@ -44,7 +44,8 @@ AS
 				WHERE (IM.IsActive = 1 AND ISNULL(IM.IsDeleted,0) = 0  
 				AND SOP.SalesOrderId = @SalesOrderId 
 				AND (IM.partnumber LIKE @StartWith + '%' OR IM.partnumber  LIKE '%' + @StartWith + '%'))    
-				 AND ISNULL(IM.IsNonStock,0) = 0 ORDER BY Label	
+				 AND ISNULL(IM.IsNonStock,0) = 0
+				 ORDER BY Label	
 		END TRY    
 		BEGIN CATCH      
 				DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name() 

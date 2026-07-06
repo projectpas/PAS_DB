@@ -1,4 +1,4 @@
-﻿/*************************************************************               
+/*************************************************************               
  ** File:   [usprpt_GetWorkOrderBacklogReportNew]               
  ** Author:   Devendra Shekh      
  ** Description: Get Data for WorkOrderBacklog Report  new SP 
@@ -136,7 +136,8 @@ BEGIN
       AND (ISNULL(@Level8,'') ='' OR MSD.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,',')))    
       AND (ISNULL(@Level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))    
       AND  (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))    
-       AND ISNULL(IM.IsNonStock,0) = 0 END    
+       AND ISNULL(IM.IsNonStock,0) = 0
+       END    
     
     SET @PageSize = CASE WHEN NULLIF(@PageSize,0) IS NULL THEN 10 ELSE @PageSize END    
     SET @PageNumber = CASE WHEN NULLIF(@PageNumber,0) IS NULL THEN 1 ELSE @PageNumber END    

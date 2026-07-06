@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [usp_GetGMWODashboard]           
  ** Author:   Swetha  
  ** Description: Get Data for GMWODashboard 
@@ -63,7 +63,8 @@ BEGIN
         LEFT JOIN dbo.ItemGroup AS IG WITH (NOLOCK)
           ON IM.ItemGroupId = IG.ItemGroupId
 		  WHERE ISNULL(WOBI.IsPerformaInvoice, 0) = 0
-     AND ISNULL(IM.IsNonStock,0) = 0 COMMIT TRANSACTION
+     AND ISNULL(IM.IsNonStock,0) = 0
+		   COMMIT TRANSACTION
   END TRY
 
   BEGIN CATCH

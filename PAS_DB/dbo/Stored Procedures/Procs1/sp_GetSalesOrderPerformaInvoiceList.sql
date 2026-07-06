@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [dbo].[sp_GetSalesOrderPerformaInvoiceList]          
  ** Author:   AMIT GHEDIYA
  ** Description: Get Performa Invoice Data.
@@ -39,7 +39,8 @@ BEGIN
 							LEFT JOIN DBO.SalesOrderStocklineV1 stk WITH (NOLOCK) ON stk.SalesOrderPartId = sop.SalesOrderPartId
 							LEFT JOIN DBO.SalesOrder so WITH (NOLOCK) ON so.SalesOrderId = sop.SalesOrderId
 							LEFT JOIN DBO.ItemMaster imt WITH (NOLOCK) ON imt.ItemMasterId = sop.ItemMasterId
-							 AND ISNULL(imt.IsNonStock,0) = 0 LEFT JOIN DBO.Stockline sl WITH (NOLOCK) ON sl.StockLineId = stk.StockLineId
+							 AND ISNULL(imt.IsNonStock,0) = 0
+							 LEFT JOIN DBO.Stockline sl WITH (NOLOCK) ON sl.StockLineId = stk.StockLineId
 							LEFT JOIN DBO.BillingInvoicing sobi WITH (NOLOCK) ON sobi.ReferenceId = sop.SalesOrderId AND ISNULL(sobi.IsPerformaInvoice,0) = 1 AND sobi.[ModuleId] = @SOModuleId
 							LEFT JOIN DBO.BillingInvoicingItems sobii WITH (NOLOCK) ON sobii.BillingInvoicingId = sobi.BillingInvoicingId AND ISNULL(sobii.IsPerformaInvoice,0) = 1
 										AND sobii.SubReferenceId = sop.SalesOrderPartId AND sobii.QtyBilled = sop.QtyOrder

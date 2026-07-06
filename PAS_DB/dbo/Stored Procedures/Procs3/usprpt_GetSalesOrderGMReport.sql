@@ -1,4 +1,4 @@
-﻿/*************************************************************             
+/*************************************************************             
  ** File:   [usprpt_GetSalesOrderGMReport]             
  ** Author:   Mahesh Sorathiya    
  ** Description: Get Data for SalesOrder GM Report   
@@ -138,7 +138,8 @@ BEGIN
 		  AND (ISNULL(@Level8, '') = '' OR MSD.[Level8Id] IN (SELECT Item FROM dbo.SPLITSTRING(@Level8, ',')))
 		  AND (ISNULL(@Level9, '') = '' OR MSD.[Level9Id] IN (SELECT Item FROM dbo.SPLITSTRING(@Level9, ',')))
 		  AND (ISNULL(@Level10, '') = '' OR MSD.[Level10Id] IN (SELECT Item FROM dbo.SPLITSTRING(@Level10, ',')))	
-			 AND ISNULL(IM.IsNonStock,0) = 0 GROUP BY 
+			 AND ISNULL(IM.IsNonStock,0) = 0
+		   GROUP BY 
 				C.NAME,C.customercode,IM.partnumber,IM.partdescription,CDTN.description,SO.salesordernumber,FORMAT (STL.receiveddate, 'MM/dd/yyyy'),
 				FORMAT (SO.opendate, 'MM/dd/yyyy'),SOBI.invoiceno,SOP.QtyOrder,SOPC.UnitSalesPrice,SOBI.salestax,
 			SOQ.salesorderquotenumber,FORMAT (SOQ.OpenDate, 'MM/dd/yyyy'),CASE  WHEN soq.statusid IN(2,4) THEN FORMAT (soq.ApprovedDate, 'MM/dd/yyyy') END,
@@ -276,7 +277,8 @@ BEGIN
 	  AND (ISNULL(@Level9, '') = '' OR MSD.[Level9Id] IN (SELECT Item FROM dbo.SPLITSTRING(@Level9, ',')))
 	  AND (ISNULL(@Level10, '') = '' OR MSD.[Level10Id] IN (SELECT Item FROM dbo.SPLITSTRING(@Level10, ',')))
 			  
-	 AND ISNULL(IM.IsNonStock,0) = 0 UNION ALL
+	 AND ISNULL(IM.IsNonStock,0) = 0
+	   UNION ALL
 
 	SELECT DISTINCT
 		COUNT(1) OVER () AS TotalRecordsCount,    

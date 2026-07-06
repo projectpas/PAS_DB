@@ -1,4 +1,4 @@
-﻿/*************************************************************   
+/*************************************************************   
 -- =============================================
 -- Author:		<Rajesh Gami>
 -- Create date: <18-Oct-2024>
@@ -767,7 +767,8 @@ BEGIN
 						0 DiscountPerUnit,
 						IM.partnumber PartNumber,@RoutinePriorityId PriorityId,0 ExchangeSalesOrderId
 						FROM #tmpWOMtbl WOM WITH(NOLOCK) LEFT JOIN dbo.ItemMaster IM WITH (NOLOCK) ON WOM.ItemMasterId = IM.ItemMasterId					
-				 AND ISNULL(IM.IsNonStock,0) = 0 END
+				 AND ISNULL(IM.IsNonStock,0) = 0
+						 END
 	--------------- END : Work Order Materials ----------------
 
     --------------- START : Sub Work Order Materials ----------------
@@ -837,7 +838,8 @@ BEGIN
 							IM.partnumber PartNumber,@RoutinePriorityId PriorityId,0 ExchangeSalesOrderId
 							FROM #tmpSubWOMtbl WOM WITH(NOLOCK) LEFT JOIN dbo.ItemMaster IM WITH (NOLOCK) ON WOM.ItemMasterId = IM.ItemMasterId		
 					
-				 AND ISNULL(IM.IsNonStock,0) = 0 END
+				 AND ISNULL(IM.IsNonStock,0) = 0
+							 END
 	--------------- END : Sub Work Order Materials ----------------
 				
 				SELECT * FROM #mainReturnTable ORDER BY PurchaseOrderPartRecordId;

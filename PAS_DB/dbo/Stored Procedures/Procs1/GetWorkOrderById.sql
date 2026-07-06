@@ -1,4 +1,4 @@
-﻿
+
 /*************************************************************           
  ** File:  [GetWorkOrderById]           
  ** Author:  Moin Bloch
@@ -137,7 +137,8 @@ BEGIN
 			   @OutGoingItemMasterId = RC.[OutGoingItemMasterId],@OutGoingPartNumber = RC.[OutGoingPartNumber],@IncomingPartNumber = RC.[PartNumber],@OutGoingPartDescription = IM.[PartDescription]
 		  FROM [dbo].[ReceivingCustomerWork] RC WITH(NOLOCK)
 		  LEFT JOIN [dbo].[ItemMaster] IM WITH(NOLOCK) ON RC.[OutGoingItemMasterId] = IM.[ItemMasterId]
-		   AND ISNULL(IM.IsNonStock,0) = 0 WHERE RC.[ReceivingCustomerWorkId] = @ReceivingCustomerId;
+		   AND ISNULL(IM.IsNonStock,0) = 0
+		   WHERE RC.[ReceivingCustomerWorkId] = @ReceivingCustomerId;
 		
 		SELECT @CustName=[Name],@CustomerAffiliationId=[CustomerAffiliationId],@ContractReference=[ContractReference],@Email=[Email],@CustomerPhone=[CustomerPhone] FROM [dbo].[Customer] WITH(NOLOCK) WHERE [CustomerId] = @CustomerId;
 
@@ -1051,7 +1052,8 @@ BEGIN
 						LEFT JOIN [dbo].[WorkOrderPartNumber] WP WITH(NOLOCK) ON WO.WorkOrderId = WP.WorkOrderId
 						LEFT JOIN [dbo].[Stockline] SL WITH(NOLOCK) ON WP.StockLineId = SL.StockLineId
 						LEFT JOIN [dbo].[ItemMaster] IM WITH(NOLOCK) ON WP.ItemMasterId = IM.ItemMasterId
-						 AND ISNULL(IM.IsNonStock,0) = 0 WHERE WP.[ItemMasterId] = @ItemMasterId AND SL.[SerialNumber] = @SerialNumber AND WO.[MasterCompanyId] = @MasterCompanyId AND YEAR(WO.[CreatedDate]) = YEAR(DATEADD(YEAR, 0, SYSDATETIME())) 
+						 AND ISNULL(IM.IsNonStock,0) = 0
+						 WHERE WP.[ItemMasterId] = @ItemMasterId AND SL.[SerialNumber] = @SerialNumber AND WO.[MasterCompanyId] = @MasterCompanyId AND YEAR(WO.[CreatedDate]) = YEAR(DATEADD(YEAR, 0, SYSDATETIME())) 
 					
 						IF(@OldWorkOrderId > 0)
 						BEGIN

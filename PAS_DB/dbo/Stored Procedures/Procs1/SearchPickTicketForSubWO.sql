@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [SearchPickTicketForSubWO]           
  ** Author:   Hemant Saliya
  ** Description: This stored procedure is used Search Pick Ticket Details  
@@ -75,7 +75,7 @@ BEGIN
 					 ,Smf.Name as StkLineManufacturer
 				FROM DBO.ItemMaster im WITH (NOLOCK)
 					JOIN DBO.StockLine sl WITH (NOLOCK) ON im.ItemMasterId = sl.ItemMasterId AND sl.IsDeleted = 0 
-						AND sl.ConditionId = CASE WHEN @ConditionId  IS NOT NULL THEN @ConditionId  WHERE ISNULL(im.IsNonStock,0) = 0
+						AND sl.ConditionId = CASE WHEN @ConditionId  IS NOT NULL THEN @ConditionId
 ELSE sl.ConditionId END
 					LEFT JOIN DBO.WorkOrderMaterialStockLine wmsl WITH (NOLOCK) on wmsl.StockLineId = sl.StockLineId
 					LEFT JOIN DBO.WorkOrderMaterials wom WITH (NOLOCK) on wom.WorkOrderMaterialsId = wmsl.WorkOrderMaterialsId

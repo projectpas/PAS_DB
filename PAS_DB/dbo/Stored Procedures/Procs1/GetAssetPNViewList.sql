@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [GetAssetPNViewList]
  ** Author:   
  ** Description: This stored procedure is used to Get Asset List PN View
@@ -164,7 +164,8 @@ BEGIN
         STUFF((SELECT ',' + I.partnumber  
          FROM AssetCapes S WITH (NOLOCK)  
          Left Join ItemMaster I WITH (NOLOCK) On S.ItemMasterId=I.ItemMasterId  
-          AND ISNULL(I.IsNonStock,0) = 0 Where S.AssetRecordId = PC.AssetRecordId  
+          AND ISNULL(I.IsNonStock,0) = 0
+          Where S.AssetRecordId = PC.AssetRecordId  
          AND S.IsActive = 1 AND S.IsDeleted = 0  
          FOR XML PATH('')), 1, 1, '') PartNumber  
     ) A  
@@ -182,7 +183,8 @@ BEGIN
         STUFF((SELECT ', ' + I.PartDescription  
          FROM AssetCapes S WITH (NOLOCK)  
          Left Join ItemMaster I WITH (NOLOCK) On S.ItemMasterId=I.ItemMasterId  
-          AND ISNULL(I.IsNonStock,0) = 0 Where S.AssetRecordId = PC.AssetRecordId  
+          AND ISNULL(I.IsNonStock,0) = 0
+          Where S.AssetRecordId = PC.AssetRecordId  
          AND S.IsActive = 1 AND S.IsDeleted = 0  
          FOR XML PATH('')), 1, 1, '') PartDescription  
     ) A  

@@ -1,4 +1,4 @@
-﻿/****** Object:  StoredProcedure [dbo].[GetPNTileExchangeQuoteList]    Script Date: 12/6/2023 3:30:21 PM ******/
+/****** Object:  StoredProcedure [dbo].[GetPNTileExchangeQuoteList]    Script Date: 12/6/2023 3:30:21 PM ******/
 /*************************************************************           
  ** File:   [GetPNTileSalesOrderQuoteList]           
  ** Author:   Bhargav Saliya
@@ -106,7 +106,8 @@ BEGIN
 			   INNER JOIN [dbo].[EmployeeUserRole] EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
 			   LEFT JOIN [dbo].[ExchangeQuotePart] EP WITH (NOLOCK) ON EQ.ExchangeQuoteId = EP.ExchangeQuoteId and EP.IsDeleted = 0
 			   LEFT JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON IM.ItemMasterId = EP.ItemMasterId
-			    AND ISNULL(IM.IsNonStock,0) = 0 LEFT JOIN [dbo].[Condition] CO WITH (NOLOCK) ON CO.ConditionId = EP.ConditionId
+			    AND ISNULL(IM.IsNonStock,0) = 0
+			    LEFT JOIN [dbo].[Condition] CO WITH (NOLOCK) ON CO.ConditionId = EP.ConditionId
 			   LEFT JOIN [dbo].[ExchangeSalesOrder] ESO WITH (NOLOCK) on ESO.ExchangeQuoteId = EQ.ExchangeQuoteId AND ESO.ExchangeQuoteId IS NOT NULL
 			   LEFT JOIN [dbo].[ExchangeSalesOrderPart] ESOP WITH (NOLOCK) on ESOP.ExchangeQuotePartId = EP.ExchangeQuotePartId AND ESOP.ExchangeQuotePartId IS NOT NULL
 			   LEFT JOIN [dbo].[ExchangeSalesOrderShippingItem] ESST WITH (NOLOCK) ON ESST.ExchangeSalesOrderPartId = ESOP.ExchangeQuotePartId

@@ -1,4 +1,4 @@
-﻿/*************************************************************             
+/*************************************************************             
  ** File:   [dbo.usprpt_GetSOOperatingMetricReport_MostQuotedPart]             
  ** Author:  Rajesh Gami    
  ** Description: Get Data for Salesorder Operating Metric Report by Most Quoted SO
@@ -143,7 +143,8 @@ BEGIN
 			LEFT JOIN [dbo].[Customer] WITH (NOLOCK) ON SOQ.CustomerId = Customer.CustomerId  
 			LEFT JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON SOQP.itemmasterId = IM.itemmasterId  
 		  
-		   AND ISNULL(IM.IsNonStock,0) = 0 WHERE 
+		   AND ISNULL(IM.IsNonStock,0) = 0
+			 WHERE 
 				ISNULL(SOQ.IsDeleted,0) = 0 AND	SOQ.CustomerId=ISNULL(@customerid,SOQ.CustomerId)  AND SOQP.ItemMasterId = ISNULL(@itemMasterId,SOQP.ItemMasterId) 
 					AND ( @sourceByName IS NULL OR (@sourceByName = 'PAS'  AND ISNULL(NULLIF(LTRIM(RTRIM(SOQ.SourceBy)), ''), 'PAS') = 'PAS') OR (@sourceByName <> 'PAS' AND SOQ.SourceBy=ISNULL(@sourceByName,SOQ.SourceBy)))
 					AND	SOQ.SalesOrderQuoteId=ISNULL(@quoteId,SOQ.SalesOrderQuoteId) 

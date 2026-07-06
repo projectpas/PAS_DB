@@ -1,4 +1,4 @@
-﻿
+
 /***************************************************************************************************************************************             
   ** Change History             
  ***************************************************************************************************************************************             
@@ -230,7 +230,8 @@ BEGIN
   
   
     /************************************************************************/    
-     AND ISNULL(IM.IsNonStock,0) = 0 EXEC dbo.[PROCAddPOMSData] @NewPurchaseOrderRFQId,@ManagementStructureID,@MstCompanyId,@updatedByName,@updatedByName,20,1,0    
+     AND ISNULL(IM.IsNonStock,0) = 0
+     EXEC dbo.[PROCAddPOMSData] @NewPurchaseOrderRFQId,@ManagementStructureID,@MstCompanyId,@updatedByName,@updatedByName,20,1,0    
     
      INSERT INTO #tmpVendorParts ([NewId])    
      SELECT VendorRFQPOPartRecordId from dbo.VendorRFQPurchaseOrderPart where VendorRFQPurchaseOrderId = @NewPurchaseOrderRFQId       

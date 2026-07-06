@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [RPT_GetCreditMemoPartsForPrint]           
  ** Author: Amit Ghediya
  ** Description: Get Customer RMAPartsDetails for SSRS Report
@@ -64,7 +64,8 @@ BEGIN
 					LEFT JOIN  dbo.SalesOrder SO WITH (NOLOCK) ON SO.SalesOrderId = SOBI.ReferenceId
 					LEFT JOIN  dbo.Condition CO WITH (NOLOCK) ON CO.ConditionId = SOPN.ConditionId
 					LEFT JOIN  dbo.ItemMaster IM WITH (NOLOCK) ON CM.ItemMasterId = IM.ItemMasterId
-				 AND ISNULL(IM.IsNonStock,0) = 0 WHERE CM.InvoiceId = @InvoicingId AND CM.CreditMemoHeaderId=@CreditMemoHeaderId AND SOBI.ModuleId = @SOModuleId;
+				 AND ISNULL(IM.IsNonStock,0) = 0
+					 WHERE CM.InvoiceId = @InvoicingId AND CM.CreditMemoHeaderId=@CreditMemoHeaderId AND SOBI.ModuleId = @SOModuleId;
 		END
 		ELSE 
 		BEGIN
@@ -92,7 +93,8 @@ BEGIN
 					LEFT JOIN  dbo.WorkOrderPartNumber WOPN WITH (NOLOCK) ON WOPN.WorkOrderId = WOBI.ReferenceId AND WOPN.ID = WOBII.SubReferenceId AND CM.StocklineId = WOPN.StockLineId				
 					LEFT JOIN  dbo.Condition CO WITH (NOLOCK) ON CO.ConditionId = WOPN.RevisedConditionId
 					LEFT JOIN  dbo.ItemMaster IM WITH (NOLOCK) ON WOBII.ItemMasterId=IM.ItemMasterId				
-				 AND ISNULL(IM.IsNonStock,0) = 0 WHERE CM.InvoiceId = @InvoicingId AND CM.CreditMemoHeaderId = @CreditMemoHeaderId AND WOBI.ModuleId = @WOModuleId;
+				 AND ISNULL(IM.IsNonStock,0) = 0
+					 WHERE CM.InvoiceId = @InvoicingId AND CM.CreditMemoHeaderId = @CreditMemoHeaderId AND WOBI.ModuleId = @WOModuleId;
 		END
 	END TRY    
 	BEGIN CATCH      

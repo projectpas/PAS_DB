@@ -1,4 +1,4 @@
-﻿/*************************************************************             
+/*************************************************************             
  ** File:   [USP_GetVendorRMAPart_ByStkId]            
  ** Author:   Devendra    
  ** Description: Get Vendor RMA Parts data by vendorrmaid and stocklineid 
@@ -59,7 +59,8 @@ BEGIN
     LEFT JOIN [dbo].[Vendor] v WITH(NOLOCK) on vrm.VendorId = v.VendorId  
     LEFT JOIN [dbo].[VendorRMADetail] vrmd WITH(NOLOCK) on vrm.VendorRMAId = vrmd.VendorRMAId  
     LEFT JOIN [dbo].[ItemMaster] im WITH(NOLOCK) on vrmd.ItemMasterId = im.ItemMasterId  
-     AND ISNULL(im.IsNonStock,0) = 0 LEFT JOIN [dbo].[Stockline] sl WITH(NOLOCK) on vrmd.StockLineId = sl.StockLineId  
+     AND ISNULL(im.IsNonStock,0) = 0
+     LEFT JOIN [dbo].[Stockline] sl WITH(NOLOCK) on vrmd.StockLineId = sl.StockLineId  
     LEFT JOIN [dbo].[VendorCreditMemo] vcm WITH(NOLOCK) on vcm.VendorRMAId = vrm.VendorRMAId  
     WHERE vrmd.[VendorRMAId] = @VendorRMAId and vrmd.StockLineId = @StockLineId  AND vcm.VendorCreditMemoId = @VendorCreditMemoId
                   

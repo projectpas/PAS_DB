@@ -1,4 +1,4 @@
-﻿/*************************************************************               
+/*************************************************************               
  ** File:   [usprpt_GetWorkOrderQuotesReport]               
  ** Author:   Mahesh Sorathiya      
  ** Description: Get Data for WorkOrderQuotes Report      
@@ -100,7 +100,8 @@ BEGIN
    LEFT JOIN DBO.WorkOrderQuoteDetails WOQD WITH (NOLOCK) ON WOQ.workorderquoteid = WOQD.workorderquoteid AND WOPN.ID = WOQD.WOPartNoId and ISNULL(WOQD.IsDeleted,0)=0  
    LEFT JOIN Stockline ST WITH (NOLOCK) ON ST.StockLineId=WOPN.StockLineId  
    LEFT JOIN DBO.ItemMaster IM WITH (NOLOCK) ON WOPN.itemmasterId = IM.ItemMasterId  
-    AND ISNULL(IM.IsNonStock,0) = 0 LEFT JOIN DBO.WorkScope AS WS WITH (NOLOCK) ON WOPN.WorkOrderScopeId = WS.WorkScopeId  
+    AND ISNULL(IM.IsNonStock,0) = 0
+    LEFT JOIN DBO.WorkScope AS WS WITH (NOLOCK) ON WOPN.WorkOrderScopeId = WS.WorkScopeId  
    LEFT JOIN DBO.Employee AS E WITH (NOLOCK) ON WOQ.SalesPersonId = E.EmployeeId  
    LEFT JOIN DBO.Employee AS E1 WITH (NOLOCK) ON WO.CSRId = E1.EmployeeId  
    LEFT JOIN DBO.workorderquotestatus WOQS WITH (NOLOCK) ON WOQ.QuoteStatusId = WOQS.WorkOrderQuoteStatusId  
@@ -179,7 +180,8 @@ BEGIN
         LEFT JOIN DBO.WorkOrderQuoteDetails WOQD WITH (NOLOCK) ON WOQ.workorderquoteid = WOQD.workorderquoteid AND WOPN.ID = WOQD.WOPartNoId and ISNULL(WOQD.IsActive,1)=1  
         LEFT JOIN Stockline ST WITH (NOLOCK) ON ST.StockLineId=WOPN.StockLineId  
         LEFT JOIN DBO.ItemMaster IM WITH (NOLOCK) ON WOPN.itemmasterId = IM.ItemMasterId  
-         AND ISNULL(IM.IsNonStock,0) = 0 LEFT JOIN DBO.WorkScope AS WS WITH (NOLOCK) ON WOPN.WorkOrderScopeId = WS.WorkScopeId  
+         AND ISNULL(IM.IsNonStock,0) = 0
+         LEFT JOIN DBO.WorkScope AS WS WITH (NOLOCK) ON WOPN.WorkOrderScopeId = WS.WorkScopeId  
         LEFT JOIN DBO.Employee AS E WITH (NOLOCK) ON WOQ.SalesPersonId = E.EmployeeId  
         LEFT JOIN DBO.Employee AS E1 WITH (NOLOCK) ON WO.CSRId = E1.EmployeeId  
         LEFT JOIN DBO.workorderquotestatus WOQS WITH (NOLOCK) ON WOQ.QuoteStatusId = WOQS.WorkOrderQuoteStatusId  

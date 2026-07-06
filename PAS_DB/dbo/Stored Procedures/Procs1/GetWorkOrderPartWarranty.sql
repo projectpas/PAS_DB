@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [GetWorkOrderPartWarranty]           
  ** Author: Vishal Suthar
  ** Description: This stored procedure is used retrieve Partnumber and stockline userd
@@ -62,7 +62,8 @@ BEGIN
 			    WHERE WOPN.ItemMasterId = @ItemMasterId and ST.isSerialized = 1 and ST.SerialNumber = @SerialNumber AND ISNULL(ST.SerialNumber,'')  != ''  AND 
 					WS.ShipDate > (DATEADD(year, -1, GETUTCDATE())) --WOBI.InvoiceStatus='Invoiced' AND WOBI.IsVersionIncrease=0
 					AND ISNULL(wobii.IsPerformaInvoice, 0) = 0
-					 AND ISNULL(IM.IsNonStock,0) = 0 ORDER BY WS.ShipDate DESC
+					 AND ISNULL(IM.IsNonStock,0) = 0
+					 ORDER BY WS.ShipDate DESC
 			END
 		COMMIT  TRANSACTION
 

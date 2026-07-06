@@ -1,4 +1,4 @@
-﻿/*************************************************************             
+/*************************************************************             
  ** File:   [SearchExchangeQuoteData]    
  ** Author:    
  ** Description: Get Search Data for ExchangeQuoteList   
@@ -130,7 +130,8 @@ BEGIN
 				Inner Join Customer C WITH (NOLOCK) on C.CustomerId = EQ.CustomerId
 				Left Join ExchangeQuotePart SP WITH (NOLOCK) on EQ.ExchangeQuoteId = SP.ExchangeQuoteId and SP.IsDeleted = 0
 				Left Join ItemMaster IM WITH (NOLOCK) on Im.ItemMasterId = SP.ItemMasterId
-				 AND ISNULL(IM.IsNonStock,0) = 0 Left Join Employee E WITH (NOLOCK) on  E.EmployeeId = EQ.SalesPersonId
+				 AND ISNULL(IM.IsNonStock,0) = 0
+				 Left Join Employee E WITH (NOLOCK) on  E.EmployeeId = EQ.SalesPersonId
 				Left Join Priority P WITH (NOLOCK) on EQ.PriorityId=P.PriorityId
 				INNER JOIN dbo.ExchangeManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @MSModuleID AND MSD.ReferenceID = EQ.ExchangeQuoteId
 				INNER JOIN [dbo].[RoleManagementStructure] RMS WITH (NOLOCK) ON EQ.ManagementStructureId = RMS.EntityStructureId

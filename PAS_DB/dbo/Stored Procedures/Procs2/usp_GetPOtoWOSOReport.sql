@@ -1,4 +1,4 @@
-﻿/*************************************************************               
+/*************************************************************               
  ** File:   [usp_GetPOtoWOSOReport]               
  ** Author:       
  ** Description:         
@@ -126,7 +126,8 @@ BEGIN
           ON SO.SalesOrderId = SOP.SalesOrderId
         LEFT JOIN DBO.ItemMaster IM2 WITH (NOLOCK)
           ON SOP.ItemMasterId = IM2.ItemMasterId
-         AND ISNULL(IM2.IsNonStock,0) = 0 INNER JOIN DBO.ItemMaster IM1 WITH (NOLOCK)
+         AND ISNULL(IM2.IsNonStock,0) = 0
+           INNER JOIN DBO.ItemMaster IM1 WITH (NOLOCK)
           ON WOPN.itemmasterId = IM1.itemmasterid
         LEFT OUTER JOIN DBO.mastercompany MC WITH (NOLOCK)
           ON PO.MasterCompanyId = MC.MasterCompanyId
@@ -140,7 +141,8 @@ BEGIN
         value
       FROM string_split(@status, ','))
       AND PO.MasterCompanyId = @mastercompanyid
-     AND ISNULL(IM1.IsNonStock,0) = 0 COMMIT TRANSACTION
+     AND ISNULL(IM1.IsNonStock,0) = 0
+       COMMIT TRANSACTION
   END TRY
   BEGIN CATCH
     ROLLBACK TRANSACTION

@@ -1,4 +1,4 @@
-﻿/*********************             
+/*********************             
  ** File:   [USP_UpdateCommonBillingInvoicingStatus]             
  ** Author:   Moin Bloch
  ** Description: This stored procedure is used to Update Common Billing Invoicing Status
@@ -286,7 +286,8 @@ BEGIN
 			INNER JOIN [dbo].[ItemMaster] ITM WITH(NOLOCK) ON BII.ItemMasterId = ITM.ItemMasterId
 			WHERE BII.[BillingInvoicingId] = @BillingInvoicingId 
 
-			 AND ISNULL(ITM.IsNonStock,0) = 0 SELECT TOP 1 @TemplateBody = [TemplateBody] FROM [dbo].[HistoryTemplate] WITH(NOLOCK) WHERE [TemplateCode] = @ShippingPostName;
+			 AND ISNULL(ITM.IsNonStock,0) = 0
+			 SELECT TOP 1 @TemplateBody = [TemplateBody] FROM [dbo].[HistoryTemplate] WITH(NOLOCK) WHERE [TemplateCode] = @ShippingPostName;
 			SET @TemplateBody = REPLACE(@TemplateBody, '##WONum##', @WorkOrderNum)
 			SET @TemplateBody = REPLACE(@TemplateBody, '#WoMPN#', @PartNumber)
 			SET @TemplateBody = REPLACE(@TemplateBody, '#CustName#', @CustomerName)

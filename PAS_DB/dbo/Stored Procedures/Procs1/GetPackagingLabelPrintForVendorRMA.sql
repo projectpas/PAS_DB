@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [GetPackagingLabelPrintForVendorRMA]
  ** Author: unknown
  ** Description: 
@@ -47,7 +47,8 @@ BEGIN
 		INNER JOIN dbo.VendorRMA so WITH(NOLOCK) on so.VendorRMAId = sop.VendorRMAId
 		LEFT JOIN  dbo.Stockline sl WITH(NOLOCK) on sl.StockLineId = sop.StockLineId
 		LEFT JOIN  dbo.ItemMaster imt WITH(NOLOCK) on imt.ItemMasterId = sop.ItemMasterId
-		 AND ISNULL(imt.IsNonStock,0) = 0 LEFT JOIN  dbo.Condition co WITH(NOLOCK) on co.ConditionId = sl.ConditionId
+		 AND ISNULL(imt.IsNonStock,0) = 0
+		 LEFT JOIN  dbo.Condition co WITH(NOLOCK) on co.ConditionId = sl.ConditionId
 		LEFT JOIN  dbo.UnitOfMeasure uom WITH(NOLOCK) on uom.UnitOfMeasureId = sl.PurchaseUnitOfMeasureId
 		LEFT JOIN DBO.RMAShippingItem SOSI WITH(NOLOCK) ON SOSI.VendorRMADetailId = sopt.VendorRMADetailId AND sopt.RMAPickTicketId = SOSI.RMAPickTicketId
 		LEFT JOIN DBO.RMAShipping SOS WITH(NOLOCK) ON SOS.RMAShippingId = SOSI.RMAShippingId AND SOS.VendorRMAId = @VendorRMAId

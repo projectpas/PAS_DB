@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [USP_GetWorkOrderLaborAnalysisSummary]           
  ** Author:   Hemant Saliya
  ** Description: This stored procedure is used retrieve Work Order Materials List    
@@ -88,7 +88,8 @@ SET NOCOUNT ON
 							JOIN dbo.WorkOrderStatus st WITH (NOLOCK) ON st.Id = wop.WorkOrderStatusId
 							LEFT JOIN [dbo].StockLine sl WITH(NOLOCK) ON wop.StockLineId = sl.StockLineId
 						WHERE wowf.WorkOrderId = @WorkOrderId AND wlh.IsDeleted = 0 AND wlh.IsActive = 1 AND BillableId = 1
-						 AND ISNULL(im.IsNonStock,0) = 0 GROUP BY im.partnumber,im.PartDescription,im.RevisedPart,wop.Id,BillableId,
+						 AND ISNULL(im.IsNonStock,0) = 0
+						 GROUP BY im.partnumber,im.PartDescription,im.RevisedPart,wop.Id,BillableId,
 						 c.[Name],wo.WorkOrderNum,ws.Stage,st.[Description],CTE.AdjustedHours,wop.RevisedPartNumber,wop.RevisedSerialNumber,sl.ControlNumber
 					END
 					if(@workOrderPartNoId > 0)
@@ -181,7 +182,8 @@ SET NOCOUNT ON
 								JOIN dbo.WorkOrderStatus st WITH (NOLOCK) ON st.Id = wop.WorkOrderStatusId
 								LEFT JOIN [dbo].StockLine sl WITH(NOLOCK) ON wop.StockLineId = sl.StockLineId
 							WHERE wowf.WorkOrderId = @WorkOrderId AND wop.ID = @workOrderPartNoId AND wlh.IsDeleted = 0 AND wlh.IsActive = 1 AND BillableId = 1
-							 AND ISNULL(im.IsNonStock,0) = 0 GROUP BY im.partnumber,im.PartDescription,im.RevisedPart,BillableId,
+							 AND ISNULL(im.IsNonStock,0) = 0
+							 GROUP BY im.partnumber,im.PartDescription,im.RevisedPart,BillableId,
 								c.[Name],wo.WorkOrderNum,ws.Stage,st.[Description],CTE.AdjustedHours,wop.RevisedPartNumber,wop.RevisedSerialNumber,sl.ControlNumber
 					END
 

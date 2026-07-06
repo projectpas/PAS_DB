@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [GetPublicationPNList]           
  ** Author:   Hemant Saliya
  ** Description: Get Search Data for Publication List    
@@ -165,7 +165,8 @@ BEGIN
 				  LEFT JOIN [dbo].[PublicationType] pt WITH (NOLOCK) ON p.PublicationTypeId = pt.PublicationTypeId
 				  LEFT JOIN [dbo].[PublicationItemMasterMapping] pum WITH (NOLOCK) ON p.PublicationRecordId = pum.PublicationRecordId and isnull(pum.IsDeleted,0)=0
 				  LEFT JOIN [dbo].[ItemMaster] im WITH (NOLOCK) ON pum.ItemMasterId = im.ItemMasterId
-				   AND ISNULL(im.IsNonStock,0) = 0 LEFT JOIN [dbo].[ItemMasterATAMapping] ima WITH (NOLOCK) ON pum.ItemMasterId = ima.ItemMasterId
+				   AND ISNULL(im.IsNonStock,0) = 0
+				   LEFT JOIN [dbo].[ItemMasterATAMapping] ima WITH (NOLOCK) ON pum.ItemMasterId = ima.ItemMasterId
 				  LEFT JOIN [dbo].[Employee] e WITH (NOLOCK) ON p.VerifiedBy = e.EmployeeId
 				  LEFT JOIN [dbo].[Location] loc WITH (NOLOCK) ON p.LocationId = loc.LocationId
 				  LEFT JOIN [dbo].[Module] pemp WITH (NOLOCK) ON p.PublishedById = pemp.ModuleId 

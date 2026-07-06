@@ -1,4 +1,4 @@
-﻿/*************************************************************             
+/*************************************************************             
  ** File:   [usprpt_GetSalesOrderQuotesReport]             
  ** Author:   Mahesh Sorathiya    
  ** Description: Get Data for SalesOrderQuotes Report   
@@ -165,7 +165,8 @@ BEGIN
 		  --LEFT JOIN DBO.SalesOrderQuotePart SOQP WITH (NOLOCK) ON SOQ.SalesOrderQuoteId = SOQP.SalesOrderQuoteId   
 		  LEFT JOIN DBO.Stockline STL WITH (NOLOCK) ON SOQV.stocklineId = STL.StockLineId   
 		  LEFT JOIN DBO.ItemMaster ITM WITH (NOLOCK) ON ITM.ItemMasterId = SOQP.ItemMasterId
-		   AND ISNULL(ITM.IsNonStock,0) = 0 LEFT JOIN DBO.Condition CON WITH (NOLOCK) ON CON.ConditionId = SOQP.ConditionId
+		   AND ISNULL(ITM.IsNonStock,0) = 0
+		   LEFT JOIN DBO.Condition CON WITH (NOLOCK) ON CON.ConditionId = SOQP.ConditionId
 		  LEFT JOIN DBO.SalesOrderQuotePartCost SOQPC WITH (NOLOCK) ON SOQPC.SalesOrderQuotePartId = SOQP.SalesOrderQuotePartId
 		  LEFT JOIN (SELECT SalesOrderQuotePartId,SUM(BillingAmount) 'BillingAmount' FROM  dbo.SalesOrderQuoteCharges A1 WITH (NOLOCK) WHERE A1.[IsActive] = 1 
 		    GROUP BY SalesOrderQuotePartId) Charges ON Charges.SalesOrderQuotePartId = SOQP.SalesOrderQuotePartId 

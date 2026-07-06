@@ -1,4 +1,4 @@
-﻿/*************************************************************
+/*************************************************************
 ** File:    [USP_GetVendorCapabilityList]
 ** Author:   Ayushi Patel
 ** Description: Get Vendor CapabilityList
@@ -64,7 +64,8 @@ BEGIN
         FROM [dbo].[VendorCapability] vc WITH (NOLOCK)
         INNER JOIN [dbo].[Vendor] v WITH (NOLOCK) ON vc.VendorId = v.VendorId
          LEFT JOIN [dbo].[ItemMaster] im WITH (NOLOCK) ON vc.ItemMasterId = im.ItemMasterId
-          AND ISNULL(im.IsNonStock,0) = 0 LEFT JOIN [dbo].[Manufacturer] man WITH (NOLOCK) ON im.ManufacturerId = man.ManufacturerId
+          AND ISNULL(im.IsNonStock,0) = 0
+          LEFT JOIN [dbo].[Manufacturer] man WITH (NOLOCK) ON im.ManufacturerId = man.ManufacturerId
          LEFT JOIN [dbo].[CapabilityType] vcat WITH (NOLOCK) ON CONVERT(INT, vc.CapabilityTypeId) = vcat.CapabilityTypeId
 		 LEFT JOIN [dbo].[Employee] E WITH(NOLOCK) ON vc.EmployeeId = E.EmployeeId
         WHERE (@VendorId = 0 OR vc.VendorId = @VendorId)

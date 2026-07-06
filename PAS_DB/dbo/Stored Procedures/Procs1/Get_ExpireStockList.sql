@@ -1,4 +1,4 @@
-﻿/*************************************************************               
+/*************************************************************               
  ** File:   [CreateStocklineForFinishGoodMPN]               
  ** Author:   Hemant Saliya    
  ** Description: This stored procedure is used Get Stockline For Expired Stockline.        
@@ -133,7 +133,8 @@ BEGIN
        left JOIN StocklineSettings sts WITH (NOLOCK) ON sts.MasterCompanyId =@MasterCompanyId     
        INNER JOIN  dbo.StocklineManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ReferenceID = stl.StockLineId AND MSD.ModuleID = @MSModuelId    
        LEFT JOIN ItemMaster rPart WITH (NOLOCK) ON im.RevisedPartId = rPart.ItemMasterId              
-        AND ISNULL(rPart.IsNonStock,0) = 0 WHERE stl.MasterCompanyId = @MasterCompanyId and (stl.IsDeleted=0 ) and (stl.QuantityOnHand >0 or stl.QuantityAvailable >0 )    
+        AND ISNULL(rPart.IsNonStock,0) = 0
+        WHERE stl.MasterCompanyId = @MasterCompanyId and (stl.IsDeleted=0 ) and (stl.QuantityOnHand >0 or stl.QuantityAvailable >0 )    
         AND stl.ExpirationDate is not null --((stl.DaysReceived > 0 or stl.ReceivedDate is not null) or (stl.ManufacturingDays > 0 or stl.ExpirationDate is not null) or (stl.TagDays > 0 or stl.TagDate is not null) or (stl.OpenDays > 0))     
       AND stl.IsParent = 1 and Cast(stl.ExpirationDate as date)   >= Cast(@FromExpiratioDate as date)    and Cast(stl.ExpirationDate as date)  <= Cast(@ToExpirationDate as date)     
      AND ISNULL(im.IsNonStock,0) = 0 ), ResultCount AS(Select COUNT(StockLineId) AS totalItems FROM Result)    

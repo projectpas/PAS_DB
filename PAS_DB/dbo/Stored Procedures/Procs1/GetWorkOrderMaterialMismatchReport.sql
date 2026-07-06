@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
 -- =============================================
 -- Author:		Shrey Chandegara
 -- Create date: 26-09-2024
@@ -43,7 +43,8 @@ BEGIN
 		FROM [dbo].[WorkOrderMaterials] WOM WITH(NOLOCK)
 		LEFT JOIN [dbo].[WorkOrder] WO WITH(NOLOCK) ON WO.WorkOrderId = WOM.WorkOrderId
 		LEFT JOIN [dbo].[ItemMaster] IM WITH(NOLOCK) ON IM.ItemMasterId = WOM.ItemMasterId
-		 AND ISNULL(IM.IsNonStock,0) = 0 LEFT JOIN [dbo].[Condition] C WITH(NOLOCK) ON C.ConditionId = WOM.ConditionCodeId
+		 AND ISNULL(IM.IsNonStock,0) = 0
+		 LEFT JOIN [dbo].[Condition] C WITH(NOLOCK) ON C.ConditionId = WOM.ConditionCodeId
 		WHERE WOM.[MasterCompanyId] = @MasterCompanyId AND (WOM.QuantityReserved != (select ISNULL(SUM(WMS.QtyReserved),0) from dbo.WorkOrderMaterialstockline WMS  with (Nolock) WHERE WMS.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId)
 		OR WOM.QuantityIssued != (select ISNULL(SUM(WMS.QtyIssued),0) from dbo.WorkOrderMaterialstockline WMS  with (Nolock) WHERE WMS.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId))
 		AND (WOM.QuantityReserved > 0)
@@ -69,7 +70,8 @@ BEGIN
 		FROM [dbo].[WorkOrderMaterialsKit] WOM WITH(NOLOCK)
 		LEFT JOIN [dbo].[WorkOrder] WO WITH(NOLOCK) ON WO.WorkOrderId = WOM.WorkOrderId
 		LEFT JOIN [dbo].[ItemMaster] IM WITH(NOLOCK) ON IM.ItemMasterId = WOM.ItemMasterId
-		 AND ISNULL(IM.IsNonStock,0) = 0 LEFT JOIN [dbo].[Condition] C WITH(NOLOCK) ON C.ConditionId = WOM.ConditionCodeId
+		 AND ISNULL(IM.IsNonStock,0) = 0
+		 LEFT JOIN [dbo].[Condition] C WITH(NOLOCK) ON C.ConditionId = WOM.ConditionCodeId
 		WHERE WOM.[MasterCompanyId] = @MasterCompanyId AND (WOM.QuantityReserved != (select ISNULL(SUM(WMS.QtyReserved),0) from dbo.WorkOrderMaterialStockLineKit WMS  with (Nolock) WHERE WMS.WorkOrderMaterialsKitId = WOM.WorkOrderMaterialsKitId)
 		OR WOM.QuantityIssued != (select ISNULL(SUM(WMS.QtyIssued),0) from dbo.WorkOrderMaterialStockLineKit WMS  with (Nolock) WHERE WMS.WorkOrderMaterialsKitId = WOM.WorkOrderMaterialsKitId))
 		AND (WOM.QuantityReserved > 0)

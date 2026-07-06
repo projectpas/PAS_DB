@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [usp_ROListByMasterItemId]           
  ** Author:   Sahdev Saliya
  ** Description: This stored procedure is used to RO List By MasterItemId List
@@ -31,7 +31,8 @@ BEGIN
 				FROM [dbo].RepairOrder RO WITH(NOLOCK)
 				INNER JOIN [dbo].RepairOrderPart ROP WITH(NOLOCK) ON RO.RepairOrderId = ROP.RepairOrderId
 				LEFT JOIN [dbo].ItemMaster ITM WITH(NOLOCK) ON ROP.ItemMasterId = ITM.ItemMasterId AND ITM.ItemMasterId = @ItemMasterId
-				 AND ISNULL(ITM.IsNonStock,0) = 0 LEFT JOIN [dbo].AssetInventory ASI WITH(NOLOCK) ON ROP.ItemMasterId = ASI.AssetRecordId AND ASI.AssetRecordId = @ItemMasterId
+				 AND ISNULL(ITM.IsNonStock,0) = 0
+				 LEFT JOIN [dbo].AssetInventory ASI WITH(NOLOCK) ON ROP.ItemMasterId = ASI.AssetRecordId AND ASI.AssetRecordId = @ItemMasterId
 				WHERE RO.IsDeleted = 0 
         END TRY    
 

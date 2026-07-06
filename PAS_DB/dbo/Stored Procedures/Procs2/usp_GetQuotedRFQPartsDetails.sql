@@ -1,4 +1,4 @@
-﻿/*************************************************************             
+/*************************************************************             
  ** File:   [usp_GetQuotedRFQPartsDetails]             
  ** Author:   Devendra Shekh    
  ** Description: Get Data of quoted RFQ for Speed Quote
@@ -94,8 +94,8 @@ SET NOCOUNT ON
 				,c.Code
 				,ISNULL(STUFF((
 				SELECT DISTINCT ', '+ I.partnumber FROM DBO.Nha_Tla_Alt_Equ_ItemMapping M WITH (NOLOCK) INNER JOIN ItemMaster I WITH (NOLOCK) ON I.ItemMasterId = M.ItemMasterId Where M.MappingItemMasterId = im.ItemMasterId AND M.MappingType = 1
-				FOR XML PATH('')
-				 AND ISNULL(I.IsNonStock,0) = 0 )
+				AND ISNULL(I.IsNonStock,0) = 0
+				FOR XML PATH(''))
 				,1,1,''), '') AlternateFor
 				,CASE 
 					WHEN im.IsPma = 1 and im.IsDER = 1 THEN 'PMA&DER' --'PMA&DER'
@@ -125,7 +125,8 @@ SET NOCOUNT ON
 			LEFT JOIN DBO.ItemMasterPurchaseSale imps WITH (NOLOCK) on imps.ItemMasterId = im.ItemMasterId AND imps.ConditionId = c.ConditionId
 			WHERE	im.ItemMasterId = @ItemMasterId
 					AND c.ConditionId IN (@OHCondition, @REPCondition, @BCCondition)
-			 AND ISNULL(im.IsNonStock,0) = 0 GROUP BY	im.PartNumber, im.PurchaseUnitOfMeasureId, im.PurchaseUnitOfMeasure, im.ItemMasterId, im.PartDescription, ig.Description, mf.Name, im.ManufacturerId
+			 AND ISNULL(im.IsNonStock,0) = 0
+					 GROUP BY	im.PartNumber, im.PurchaseUnitOfMeasureId, im.PurchaseUnitOfMeasure, im.ItemMasterId, im.PartDescription, ig.Description, mf.Name, im.ManufacturerId
 						,ic.ItemClassificationCode, ic.Description, ic.ItemClassificationId, c.Description, c.ConditionId, im.IsPma, im.IsDER, OEMPMA.partnumber, sl.ItemMasterId
 						,imps.PP_UnitPurchasePrice, imps.SP_CalSPByPP_UnitSalePrice, im.TurnTimeOverhaulHours, im.TurnTimeRepairHours, im.turnTimeBenchTest, c.Code
 			ORDER	BY CASE WHEN c.ConditionId = @OHCondition THEN 1

@@ -1,4 +1,4 @@
-﻿
+
 /*************************************************************           
  ** File:   [usp_GetWorkOrderQuoteHistoryReport]           
  ** Author:   Swetha  
@@ -161,7 +161,8 @@ BEGIN
           ON WO.WorkOrderId = WOPN.WorkOrderId
         LEFT JOIN DBO.ItemMaster IM WITH (NOLOCK)
           ON WOPN.ItemMasterId = IM.ItemMasterId
-         AND ISNULL(IM.IsNonStock,0) = 0 LEFT JOIN DBO.WorkScope AS WS WITH (NOLOCK)
+         AND ISNULL(IM.IsNonStock,0) = 0
+           LEFT JOIN DBO.WorkScope AS WS WITH (NOLOCK)
           ON WOPN.WorkOrderScopeId = WS.WorkScopeId
         LEFT JOIN DBO.workorderquotestatus WOQS WITH (NOLOCK)
           ON WOQ.QuoteStatusId = WOQS.WorkOrderQuoteStatusId

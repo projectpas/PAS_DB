@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [sp_GetROShippingParentList]           
  ** Author:   
  ** Description: 
@@ -41,7 +41,8 @@ BEGIN
 		LEFT JOIN DBO.RepairOrder ro WITH (NOLOCK) ON ro.RepairOrderId = rop.RepairOrderId
 		INNER JOIN DBO.ROPickTicket ropt WITH (NOLOCK) ON ropt.RepairOrderId = rop.RepairOrderId AND ropt.RepairOrderPartId = rop.RepairOrderPartRecordId AND ropt.StocklineId = rop.StocklineId
 		LEFT JOIN DBO.ItemMaster imt WITH (NOLOCK) ON imt.ItemMasterId = rop.ItemMasterId
-		 AND ISNULL(imt.IsNonStock,0) = 0 LEFT JOIN DBO.Stockline sl WITH (NOLOCK) ON sl.StockLineId = rop.StockLineId AND sl.ConditionId = rop.ConditionId
+		 AND ISNULL(imt.IsNonStock,0) = 0
+		 LEFT JOIN DBO.Stockline sl WITH (NOLOCK) ON sl.StockLineId = rop.StockLineId AND sl.ConditionId = rop.ConditionId
 		LEFT JOIN DBO.RepairOrderShippingItem rosi WITH (NOLOCK) ON rosi.RepairOrderPartId = rop.RepairOrderPartRecordId AND rosi.ROPickTicketId = ropt.ROPickTicketId
 		LEFT JOIN DBO.RepairOrderShipping ros WITH (NOLOCK) ON ros.RepairOrderShippingId = rosi.RepairOrderShippingId AND ros.RepairOrderId = ropt.RepairOrderId AND ros.RepairOrderId = @RepairOrderId
 		WHERE rop.RepairOrderId = @RepairOrderId AND ropt.IsConfirmed = 1

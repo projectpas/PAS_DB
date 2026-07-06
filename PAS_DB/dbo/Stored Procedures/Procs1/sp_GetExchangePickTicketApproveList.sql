@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [sp_GetExchangePickTicketApproveList]
  ** Author: unknown
  ** Description:
@@ -53,7 +53,8 @@ BEGIN
 		LEFT JOIN Customer cr WITH(NOLOCK) on cr.CustomerId = so.CustomerId  AND ISNULL(SO.IsVendor,0) = 0
 		LEFT JOIN Vendor v WITH(NOLOCK) on so.CustomerId = v.VendorId AND ISNULL(SO.IsVendor,0) = 1
 		where sop.ExchangeSalesOrderId=@ExchangeSalesOrderId AND (sor.QtyToReserve > 0 OR sopt.ExchangeSalesOrderPartId IS NOT NULL)
-		 AND ISNULL(imt.IsNonStock,0) = 0 group by sop.ExchangeSalesOrderId,imt.PartNumber,imt.PartDescription,
+		 AND ISNULL(imt.IsNonStock,0) = 0
+		 group by sop.ExchangeSalesOrderId,imt.PartNumber,imt.PartDescription,
 		so.ExchangeSalesOrderNumber,soq.ExchangeQuoteNumber,sop.ItemMasterId,
 		sl.ConditionId, cr.[Name],cr.CustomerCode, sop.ConditionId,SO.IsVendor,v.VendorName,v.VendorCode
 		,sl.isSerialized)

@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [USP_BatchTriggerForInternalWOBasedonDistribution]
  ** Author:  Devendra Shekh
  ** Description: This stored procedure is used to Accounting entry for Internal WO With JE
@@ -245,7 +245,8 @@ BEGIN
 				[dbo].[ItemMaster] WITH(NOLOCK) 
 				WHERE ItemMasterId=@ItemmasterId 
 
-				 AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 SELECT @LastMSLevel=LastMSLevel,
+				 AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0
+				 SELECT @LastMSLevel=LastMSLevel,
 					   @AllMSlevels=AllMSlevels 
 				  FROM [dbo].[WorkOrderManagementStructureDetails] WITH(NOLOCK) 
 				  WHERE ReferenceID=@partId
@@ -316,7 +317,8 @@ BEGIN
 
 					SELECT @PiecePN = partnumber FROM ItemMaster WITH(NOLOCK)  WHERE ItemMasterId=@PieceItemmasterId
 				
-					 AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 SELECT TOP 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName,@CrDrType = CRDRType,@IsAutoPost = ISNULL(IsAutoPost,0)
+					 AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0
+					 SELECT TOP 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName,@CrDrType = CRDRType,@IsAutoPost = ISNULL(IsAutoPost,0)
 					FROM DistributionSetup WITH(NOLOCK)  WHERE UPPER(DistributionSetupCode) =UPPER('WIPPARTS') and DistributionMasterId =@DistributionMasterId AND MasterCompanyId=@MasterCompanyId
 
 					--GL Selection Saved At StockLine 

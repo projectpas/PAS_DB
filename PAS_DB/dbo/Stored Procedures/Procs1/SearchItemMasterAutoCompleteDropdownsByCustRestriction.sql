@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [SearchItemMasterAutoCompleteDropdownsByRestriction]           
  ** Author		:   Hemant Saliya
  ** Description	:	Get Item Master Details By Customer Restriction    
@@ -133,7 +133,8 @@
 						(rpPMA.ItemMasterId IS NOT NULL OR rpDER.ItemMasterId IS NOT NULL)
 						)
 					AND im.MasterCompanyId = @MasterCompanyId
-					 AND ISNULL(im.IsNonStock,0) = 0 Order BY partnumber
+					 AND ISNULL(im.IsNonStock,0) = 0
+					 Order BY partnumber
 
 				INSERT INTO #Result SELECT DISTINCT TOP 20 * FROM #TempTable t ORDER BY t.PartNumber
 
@@ -170,7 +171,8 @@
 					 LEFT JOIN ItemMasterPurchaseSale imps WITH (NOLOCK) ON im.ItemMasterId = imps.ItemMasterId AND sl.ConditionId = imps.ConditionId
 					 LEFT JOIN ItemClassification Ic WITH (NOLOCK) ON im.ItemClassificationId = Ic.ItemClassificationId
 				 WHERE im.ItemMasterId  IN (SELECT Item FROM DBO.SPLITSTRING(@Idlist,','))
-				 AND ISNULL(im.IsNonStock,0) = 0 END
+				 AND ISNULL(im.IsNonStock,0) = 0
+				  END
 
 				SELECT TOP 20 
 					PartId AS Value, 

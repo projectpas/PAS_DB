@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:		 [dbo].[USP_itemmasterCapesAudit]          
  ** Author:		 Nakul Chandigra
  ** Description: This Stored Procedure Is Used for getting history of ItemMasterCapes
@@ -54,7 +54,8 @@ BEGIN
 		FROM [dbo].[ItemMasterCapesAudit] IMCA WITH (NOLOCK)
 		LEFT JOIN [dbo].[ItemMasterManagementStructureDetailsAudit] msd WITH (NOLOCK) ON IMCA.ItemMasterCapesId = msd.ReferenceID AND msd.ModuleID = @ItemMasterCapesMsModuleId
 		LEFT JOIN [dbo].[ItemMaster] IM WITH (NOLOCK)	ON IMCA.ItemMasterId = IM.ItemMasterId
-		 AND ISNULL(IM.IsNonStock,0) = 0 WHERE IMCA.ItemMasterCapesId = @ItemMasterCapesId AND IMCA.PartNumber IS NOT NULL
+		 AND ISNULL(IM.IsNonStock,0) = 0
+		 WHERE IMCA.ItemMasterCapesId = @ItemMasterCapesId AND IMCA.PartNumber IS NOT NULL
 		ORDER BY IMCA.AuditItemMasterCapesId DESC 
 
 	END TRY 

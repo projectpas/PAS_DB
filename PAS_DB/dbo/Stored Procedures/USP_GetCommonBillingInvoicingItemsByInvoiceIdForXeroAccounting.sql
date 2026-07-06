@@ -1,4 +1,4 @@
-﻿/*****************************************************************************************
+/*****************************************************************************************
  ** File:   [[USP_GetCommonBillingInvoicingItemsByInvoiceIdForXeroAccounting]]
  ** Author:   Moin Bloch
  ** Description: This stored procedure is used to Get Common Billing Invoicing Items
@@ -110,7 +110,8 @@ BEGIN
                 OR  (@IsSync = 1 AND ISNULL(BI.QuickBooksReferenceId, '') = ''
                      AND ISNULL(BI.IsUpdated, 0) = 1)
               )
-		 AND ISNULL(ITM.IsNonStock,0) = 0 END
+		 AND ISNULL(ITM.IsNonStock,0) = 0
+               END
 		IF(@ModuleId = @SOModuleId) /*********START: SALES ORDER ********/
 		BEGIN
 			SELECT BII.[InvoiceNo],
@@ -186,7 +187,8 @@ BEGIN
                 OR  (@IsSync = 1 AND ISNULL(BI.QuickBooksReferenceId, '') = ''
                      AND ISNULL(BI.IsUpdated, 0) = 1)
               )
-		 AND ISNULL(ITM.IsNonStock,0) = 0 END
+		 AND ISNULL(ITM.IsNonStock,0) = 0
+               END
 		IF(@ModuleId = @EXModuleId) /*********START:EXCHANGE SALES ORDER ********/
 		BEGIN
 			SELECT BII.[InvoiceNo],
@@ -234,7 +236,8 @@ BEGIN
 					INNER JOIN [dbo].[ExchangeSalesOrder] SO WITH(NOLOCK) ON SO.ExchangeSalesOrderId= SOBI.ExchangeSalesOrderId AND ISNULL(SO.IsVendor, 0) = 0
 					LEFT JOIN [dbo].[ExchangeSalesOrderScheduleBilling] SSBI WITH(NOLOCK) ON SSBI.ExchangeSalesOrderScheduleBillingId = SOBII.ExchangeSalesOrderScheduleBillingId
 					LEFT JOIN [dbo].[ItemMaster] IM WITH(NOLOCK) ON IM.ItemMasterId= SOBII.ItemMasterId
-				 AND ISNULL(IM.IsNonStock,0) = 0 WHERE (
+				 AND ISNULL(IM.IsNonStock,0) = 0
+					 WHERE (
                     (@IsSync = 0 AND SOBII.SOBillingInvoicingId = @BillingInvoicingId)
                 OR  (@IsSync = 1 AND ISNULL(SOBI.QuickBooksReferenceId, '') = ''
                      AND ISNULL(SOBI.IsUpdated, 0) = 1)

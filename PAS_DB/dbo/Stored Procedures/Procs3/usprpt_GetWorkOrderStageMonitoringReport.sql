@@ -1,4 +1,4 @@
-﻿/*************************************************************
+/*************************************************************
  ** File:   [usprpt_GetWorkOrderStageMonitoringReport]
  ** Author:  
  ** Description: Get Data for Work-Order Stage Monitoring Report
@@ -137,7 +137,8 @@ BEGIN
 				AND (ISNULL(@Level8,'') ='' OR MSD.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,',')))
 				AND (ISNULL(@Level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))
 				AND  (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))
-			 AND ISNULL(IM.IsNonStock,0) = 0 END
+			 AND ISNULL(IM.IsNonStock,0) = 0
+				 END
 
 			SET @PageSize = CASE WHEN NULLIF(@PageSize,0) IS NULL THEN 10 ELSE @PageSize END
 			SET @PageNumber = CASE WHEN NULLIF(@PageNumber,0) IS NULL THEN 1 ELSE @PageNumber END
@@ -216,7 +217,8 @@ BEGIN
 					LEFT JOIN dbo.WorkOrderQuoteDetails woq WITH (NOLOCK) ON woq.WOPartNoId = WPN.ID  
 					JOIN dbo.ItemMaster IM WITH (NOLOCK) ON IM.ItemMasterId = WPN.ItemMasterId  
 					LEFT JOIN [dbo].[ItemMaster] RIM WITH (NOLOCK) ON WPN.RevisedItemmasterid = RIM.ItemMasterId
-					 AND ISNULL(RIM.IsNonStock,0) = 0 LEFT JOIN dbo.Stockline STL WITH (NOLOCK) ON WPN.StockLineId = STL.StockLineId
+					 AND ISNULL(RIM.IsNonStock,0) = 0
+					 LEFT JOIN dbo.Stockline STL WITH (NOLOCK) ON WPN.StockLineId = STL.StockLineId
 					LEFT JOIN dbo.WorkOrderStage WOSG_Old WITH (NOLOCK) ON WTT.OldStageId = WOSG_Old.WorkOrderStageId  
 					LEFT JOIN dbo.WorkOrderStage WOSG WITH (NOLOCK) ON WTT.CurrentStageId = WOSG.WorkOrderStageId  
 					LEFT JOIN dbo.WorkOrderStage WOSG_Curr WITH (NOLOCK) ON WPN.WorkOrderStageId = WOSG_Curr.WorkOrderStageId
@@ -243,7 +245,8 @@ BEGIN
 					  AND (ISNULL(@Level8, '') = '' OR MSD.Level8Id IN (SELECT Item FROM DBO.SPLITSTRING(@Level8, ',')))
 					  AND (ISNULL(@Level9, '') = '' OR MSD.Level9Id IN (SELECT Item FROM DBO.SPLITSTRING(@Level9, ',')))
 					  AND (ISNULL(@Level10, '') = '' OR MSD.Level10Id IN (SELECT Item FROM DBO.SPLITSTRING(@Level10, ',')))
-					 AND ISNULL(IM.IsNonStock,0) = 0 GROUP BY WPN.ID,
+					 AND ISNULL(IM.IsNonStock,0) = 0
+					   GROUP BY WPN.ID,
 					  CASE WHEN ISNULL(@IgnoreDuplicate, '') = 'true' OR ISNULL(@IgnoreDuplicate, '') = '1' THEN WTT.WOTATId ELSE '' END,  
 					  WTT.OldStageId, WTT.CurrentStageId
 				)

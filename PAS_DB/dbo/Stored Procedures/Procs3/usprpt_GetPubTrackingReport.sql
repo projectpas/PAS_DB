@@ -1,4 +1,4 @@
-﻿/*************************************************************             
+/*************************************************************             
  ** File:   [usprpt_GetPubTrackingReport]             
  ** Author:   Mahesh Sorathiya    
  ** Description: Get Data for Publication Tracking (CMM) Report  
@@ -270,7 +270,8 @@ BEGIN
 				(ISNULL(@Level9,'') ='' OR [Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,','))) AND     
 				(ISNULL(@Level10,'') =''  OR [Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))
 				
-		   AND ISNULL(IM.IsNonStock,0) = 0 SET @PageSize = CASE WHEN NULLIF(@PageSize,0) IS NULL THEN 10 ELSE @PageSize END
+		   AND ISNULL(IM.IsNonStock,0) = 0
+				 SET @PageSize = CASE WHEN NULLIF(@PageSize,0) IS NULL THEN 10 ELSE @PageSize END
 		  SET @PageNumber = CASE WHEN NULLIF(@PageNumber,0) IS NULL THEN 1 ELSE @PageNumber END
 
 		 select * into #finalResult

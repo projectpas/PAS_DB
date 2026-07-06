@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [GetWODashboardData]           
  ** Author:   Hemant Saliya
  ** Description: This SP is Used to Get WO list By Stage
@@ -151,7 +151,8 @@ BEGIN
 				WHERE WOP.MasterCompanyId = @MasterCompanyId AND WOP.WorkOrderStageId = @WorkOrderStageId AND WO.IsActive = 1 AND WO.IsDeleted = 0
 					AND C.CustomerAffiliationId IN (SELECT Item FROM DBO.SPLITSTRING(@CustomerAffiliation, ','))
 
-				 AND ISNULL(IM.IsNonStock,0) = 0 UNION ALL 
+				 AND ISNULL(IM.IsNonStock,0) = 0
+					 UNION ALL 
 
 				SELECT DISTINCT '' AS WorkOrderId,'' AS WorkOrderNum, IM.partnumber AS PartNumber, IM.PartDescription, c.Name AS Customer,
 					SL.SerialNumber, 'RECEIVED' AS WOStage, CASE WHEN UPPER(@WOTypeId) = 'INTERNAL' THEN 'INTERNAL' ELSE 'EXTERNAL' END AS WOType, '' AS [Priority], 
@@ -167,7 +168,8 @@ BEGIN
 				WHERE ISNULL(RC.WorkOrderId, 0) = 0 AND ISNULL(RC.RepairOrderPartRecordId, 0) = 0 AND RC.MasterCompanyId = @MasterCompanyId AND @RecStageCode = 'RECEIVED' AND
 				 RC.IsActive = 1 AND RC.IsDeleted = 0 AND C.CustomerAffiliationId IN (SELECT Item FROM DBO.SPLITSTRING(@CustomerAffiliation, ','))
 
-				 AND ISNULL(IM.IsNonStock,0) = 0 UNION ALL 
+				 AND ISNULL(IM.IsNonStock,0) = 0
+				  UNION ALL 
 
 				SELECT DISTINCT WO.WorkOrderId,WO.WorkOrderNum, IM.partnumber AS PartNumber, IM.PartDescription, c.Name AS Customer,
 					SL.SerialNumber, WOSG.Stage AS WOStage, CASE WHEN UPPER(@WOTypeId) = 'INTERNAL' THEN 'INTERNAL' ELSE 'EXTERNAL' END AS WOType, p.Description AS [Priority], 
@@ -190,7 +192,8 @@ BEGIN
 				WHERE WOP.MasterCompanyId = @MasterCompanyId AND ISNULL(WOP.TechnicianId,0) = 0 AND @WorkOrderStageId = 222222 AND WO.IsActive = 1 AND WO.IsDeleted = 0   -- Static Data Bease No Stage Are Present
 					AND WOP.IsClosed = 0 AND C.CustomerAffiliationId IN (SELECT Item FROM DBO.SPLITSTRING(@CustomerAffiliation, ','))
 
-				 AND ISNULL(IM.IsNonStock,0) = 0 UNION ALL 
+				 AND ISNULL(IM.IsNonStock,0) = 0
+					 UNION ALL 
 
 				SELECT DISTINCT '' AS WorkOrderId,'' AS WorkOrderNum, IM.partnumber AS PartNumber, IM.PartDescription, c.Name AS Customer,
 					SL.SerialNumber, 'RECEIVED' AS WOStage, CASE WHEN UPPER(@WOTypeId) = 'INTERNAL' THEN 'INTERNAL' ELSE 'EXTERNAL' END AS WOType, '' AS [Priority], 

@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [USP_GetStocklinePrintDataByStockLineId]           
  ** Author:   Hemant Saliya
  ** Description: This SP is used Get PickTicket Print Lable
@@ -127,7 +127,8 @@ BEGIN
 			LEFT JOIN [dbo].[SubWorkOrderMaterials] womst WITH(NOLOCK) ON mst.SubWorkOrderMaterialsId = womst.SubWorkOrderMaterialsId
 			LEFT JOIN [dbo].[SubWorkOrder] wo WITH(NOLOCK) ON womst.SubWorkOrderId = wo.SubWorkOrderId
         WHERE ISNULL(stl.IsDeleted, 0) = 0 AND stl.StockLineId = @StocklineId
-	 AND ISNULL(im.IsNonStock,0) = 0 END
+	 AND ISNULL(im.IsNonStock,0) = 0
+         END
 	ELSE IF(@PickTicketId > 0)
 	BEGIN
 		IF(@IsKitType = 1)
@@ -179,10 +180,12 @@ BEGIN
 				LEFT JOIN [dbo].[WorkOrderWorkFlow] wowf WITH(NOLOCK) ON womst.WorkFlowWorkOrderId = wowf.WorkFlowWorkOrderId
 				LEFT JOIN [dbo].[WorkOrderPartNumber] wp WITH(NOLOCK) ON wowf.WorkOrderPartNoId = wp.ID
 				LEFT JOIN [dbo].[ItemMaster] itm WITH(NOLOCK) ON wp.ItemMasterId = itm.ItemMasterId
-				 AND ISNULL(itm.IsNonStock,0) = 0 LEFT JOIN [dbo].[WorkOrder] wo WITH(NOLOCK) ON womst.WorkOrderId = wo.WorkOrderId
+				 AND ISNULL(itm.IsNonStock,0) = 0
+				 LEFT JOIN [dbo].[WorkOrder] wo WITH(NOLOCK) ON womst.WorkOrderId = wo.WorkOrderId
 				LEFT JOIN [dbo].[WorkorderPickTicket] wopt WITH(NOLOCK) ON stl.StockLineId = wopt.StocklineId AND wopt.PickTicketId = @PickTicketId
 			WHERE ISNULL(stl.IsDeleted, 0) = 0 AND stl.StockLineId = @StockLineId
-		 AND ISNULL(im.IsNonStock,0) = 0 END 
+		 AND ISNULL(im.IsNonStock,0) = 0
+			 END 
 		ELSE
 		BEGIN
 			SELECT TOP 1
@@ -232,7 +235,8 @@ BEGIN
 				LEFT JOIN [dbo].[WorkOrderWorkFlow] wowf WITH(NOLOCK) ON womst.WorkFlowWorkOrderId = wowf.WorkFlowWorkOrderId
 				LEFT JOIN [dbo].[WorkOrderPartNumber] wp WITH(NOLOCK) ON wowf.WorkOrderPartNoId = wp.ID
 				LEFT JOIN [dbo].[ItemMaster] itm WITH(NOLOCK) ON wp.ItemMasterId = itm.ItemMasterId
-				 AND ISNULL(itm.IsNonStock,0) = 0 LEFT JOIN [dbo].[WorkOrder] wo WITH(NOLOCK) ON womst.WorkOrderId = wo.WorkOrderId
+				 AND ISNULL(itm.IsNonStock,0) = 0
+				 LEFT JOIN [dbo].[WorkOrder] wo WITH(NOLOCK) ON womst.WorkOrderId = wo.WorkOrderId
 				LEFT JOIN [dbo].[WorkorderPickTicket] wopt WITH(NOLOCK) ON stl.StockLineId = wopt.StocklineId AND wopt.PickTicketId = @PickTicketId
 			WHERE ISNULL(stl.IsDeleted, 0) = 0
 			  AND stl.StockLineId = @StockLineId AND ISNULL(im.IsNonStock,0) = 0 ;
@@ -289,9 +293,11 @@ BEGIN
 				LEFT JOIN [dbo].[WorkOrderWorkFlow] wowf WITH(NOLOCK) ON womst.WorkFlowWorkOrderId = wowf.WorkFlowWorkOrderId
 				LEFT JOIN [dbo].[WorkOrderPartNumber] wp WITH(NOLOCK) ON wowf.WorkOrderPartNoId = wp.ID
 				LEFT JOIN [dbo].[ItemMaster] itm WITH(NOLOCK) ON wp.ItemMasterId = itm.ItemMasterId
-				 AND ISNULL(itm.IsNonStock,0) = 0 LEFT JOIN [dbo].[WorkOrder] wo WITH(NOLOCK) ON womst.WorkOrderId = wo.WorkOrderId
+				 AND ISNULL(itm.IsNonStock,0) = 0
+				 LEFT JOIN [dbo].[WorkOrder] wo WITH(NOLOCK) ON womst.WorkOrderId = wo.WorkOrderId
 			WHERE ISNULL(stl.IsDeleted, 0) = 0 AND stl.StockLineId = @StocklineId
-		 AND ISNULL(im.IsNonStock,0) = 0 END
+		 AND ISNULL(im.IsNonStock,0) = 0
+			 END
 		ELSE
 		BEGIN
 			SELECT TOP 1
@@ -340,9 +346,11 @@ BEGIN
 				LEFT JOIN [dbo].[WorkOrderWorkFlow] wowf WITH(NOLOCK) ON womst.WorkFlowWorkOrderId = wowf.WorkFlowWorkOrderId
 				LEFT JOIN [dbo].[WorkOrderPartNumber] wp WITH(NOLOCK) ON wowf.WorkOrderPartNoId = wp.ID
 				LEFT JOIN [dbo].[ItemMaster] itm WITH(NOLOCK) ON wp.ItemMasterId = itm.ItemMasterId
-				 AND ISNULL(itm.IsNonStock,0) = 0 LEFT JOIN [dbo].[WorkOrder] wo WITH(NOLOCK) ON womst.WorkOrderId = wo.WorkOrderId
+				 AND ISNULL(itm.IsNonStock,0) = 0
+				 LEFT JOIN [dbo].[WorkOrder] wo WITH(NOLOCK) ON womst.WorkOrderId = wo.WorkOrderId
 			WHERE ISNULL(stl.IsDeleted, 0) = 0 AND stl.StockLineId = @StocklineId
-		 AND ISNULL(im.IsNonStock,0) = 0 END
+		 AND ISNULL(im.IsNonStock,0) = 0
+			 END
 	END
 	END TRY
 	BEGIN CATCH  

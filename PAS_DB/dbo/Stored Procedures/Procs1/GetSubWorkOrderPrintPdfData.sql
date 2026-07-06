@@ -1,4 +1,4 @@
-﻿/*************************************************************  
+/*************************************************************  
 ** Author:  <Hemant Saliya>  
 ** Create date: <01/23/2023>  
 ** Description: <Get Work order Release Form Data>  
@@ -117,8 +117,8 @@ AS
 				   on nhatae.MappingItemMasterId = imtt.ItemMasterId              
 				   WHERE nhatae.ItemMasterId = imt.ItemMasterId              
 				   AND nhatae.IsActive = 1 AND nhatae.IsDeleted = 0              
-				   FOR XML PATH('')              
-				    AND ISNULL(imtt.IsNonStock,0) = 0 ), 1, 1, '')
+				   AND ISNULL(imtt.IsNonStock,0) = 0
+				   FOR XML PATH('')), 1, 1, '')
 				   ,(SELECT TOP 1 ISNULL(SWLH.IsLaborTrackingTurnedOff, 0) FROM [dbo].[SubWorkOrderLaborHeader] SWLH WITH(NOLOCK) WHERE SWLH.SubWorkOrderId = SWOPN.SubWorkOrderId AND SWLH.SubWOPartNoId = SWOPN.SubWOPartNoId AND SWLH.WorkOrderId = SWOPN.WorkOrderId AND ISNULL(isDeleted, 0) = 0) AS IsLaborTrackingTurnedOff
 				   ,ISNULL(sl.ControlNumber,'') AS ControlNumber,
 				   	ISNULL(wo.WorkOrderFormTypeId,0) IsWorkOrderFormType
@@ -139,8 +139,10 @@ AS
 				LEFT JOIN Dbo.Address shipToAddress WITH(NOLOCK) on shipToSite.AddressId = shipToAddress.AddressId              
 				LEFT JOIN Dbo.Countries shipToCountry WITH(NOLOCK) on shipToAddress.CountryId = shipToCountry.countries_id              
 				LEFT JOIN Dbo.ItemMaster imt WITH(NOLOCK) on imt.ItemMasterId = SWOPN.ItemMasterId              
-				 AND ISNULL(imt.IsNonStock,0) = 0 LEFT JOIN Dbo.ItemMaster imtr WITH(NOLOCK) on imtr.ItemMasterId = SWOPN.RevisedItemmasterid            
-				 AND ISNULL(imtr.IsNonStock,0) = 0 LEFT JOIN Dbo.Priority p WITH(NOLOCK) on p.PriorityId = SWOPN.SubWorkOrderPriorityId              
+				 AND ISNULL(imt.IsNonStock,0) = 0
+				 LEFT JOIN Dbo.ItemMaster imtr WITH(NOLOCK) on imtr.ItemMasterId = SWOPN.RevisedItemmasterid            
+				 AND ISNULL(imtr.IsNonStock,0) = 0
+				  LEFT JOIN Dbo.Priority p WITH(NOLOCK) on p.PriorityId = SWOPN.SubWorkOrderPriorityId              
 				LEFT JOIN Dbo.Stockline sl WITH(NOLOCK) on sl.StockLineId = SWOPN.StockLineId              
 				LEFT JOIN Dbo.Employee el WITH(NOLOCK) on el.EmployeeId = SWOPN.TechnicianId              
 				LEFT JOIN Dbo.WorkOrderStage ws WITH(NOLOCK) on ws.WorkOrderStageId = SWOPN.SubWorkOrderStageId              

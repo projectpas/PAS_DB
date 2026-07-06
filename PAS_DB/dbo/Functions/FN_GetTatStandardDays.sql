@@ -1,4 +1,4 @@
-﻿-- =============================================
+-- =============================================
 -- Author:		Subhash Saliya
 -- Create date: 01 jun 2022
 -- Description:	Get Expire Days in Stockline
@@ -27,7 +27,8 @@ BEGIN
 				
 
 	
-	 AND ISNULL(IM.IsNonStock,0) = 0 return Isnull(@TATDaysStandard,0)
+	 AND ISNULL(IM.IsNonStock,0) = 0
+				 return Isnull(@TATDaysStandard,0)
 
 
 END

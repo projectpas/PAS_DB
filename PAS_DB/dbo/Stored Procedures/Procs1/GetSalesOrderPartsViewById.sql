@@ -1,4 +1,4 @@
-﻿/*************************************************************             
+/*************************************************************             
  ** File:   [GetSalesOrderPartsViewById]             
  ** Author:  AMIT GHEDIYA 
  ** Description: This stored procedure is used GetSalesOrderPartsViewById 
@@ -72,7 +72,8 @@ BEGIN
 		        LEFT JOIN [dbo].[SalesOrderStocklineV1] Stk WITH(NOLOCK) ON part.SalesOrderPartId = Stk.SalesOrderPartId
 				LEFT JOIN [dbo].[StockLine] qs WITH(NOLOCK) ON Stk.StockLineId = qs.StockLineId
 				LEFT JOIN [dbo].[ItemMaster] itemMaster WITH(NOLOCK) ON part.ItemMasterId = itemMaster.ItemMasterId
-				 AND ISNULL(itemMaster.IsNonStock,0) = 0 LEFT JOIN [dbo].[Condition] cp WITH(NOLOCK) ON part.ConditionId = cp.ConditionId
+				 AND ISNULL(itemMaster.IsNonStock,0) = 0
+				 LEFT JOIN [dbo].[Condition] cp WITH(NOLOCK) ON part.ConditionId = cp.ConditionId
 				INNER JOIN [dbo].[SalesOrderReserveParts] rPart WITH(NOLOCK) ON part.SalesOrderPartId = rPart.SalesOrderPartId 
 				AND rPart.SalesOrderId = @SalesOrderId AND rPart.QtyToReserve > 0 
 				LEFT JOIN [dbo].[UnitOfMeasure] uom WITH(NOLOCK) ON itemMaster.PurchaseUnitOfMeasureId = uom.UnitOfMeasureId
@@ -96,7 +97,8 @@ BEGIN
 		        LEFT JOIN [dbo].[SalesOrderStocklineV1] Stk WITH(NOLOCK) ON part.SalesOrderPartId = Stk.SalesOrderPartId
 				LEFT JOIN [dbo].[StockLine] qs WITH(NOLOCK) ON Stk.StockLineId = qs.StockLineId
 				LEFT JOIN [dbo].[ItemMaster] itemMaster WITH(NOLOCK) ON part.ItemMasterId = itemMaster.ItemMasterId
-				 AND ISNULL(itemMaster.IsNonStock,0) = 0 LEFT JOIN [dbo].[Condition] cp WITH(NOLOCK) ON part.ConditionId = cp.ConditionId
+				 AND ISNULL(itemMaster.IsNonStock,0) = 0
+				 LEFT JOIN [dbo].[Condition] cp WITH(NOLOCK) ON part.ConditionId = cp.ConditionId
 				LEFT JOIN [dbo].[SOPickTicket] SOPICK WITH(NOLOCK) ON SOPICK.SalesOrderPartStocklineId = Stk.SalesOrderStocklineId
 				INNER JOIN [dbo].[SalesOrderShippingItem] sos WITH(NOLOCK) ON sos.SOPickTicketId = SOPICK.SOPickTicketId
 				AND sos.IsActive = 1 AND sos.IsDeleted = 0

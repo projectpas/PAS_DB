@@ -1,4 +1,4 @@
-﻿/***************************************************************  
+/***************************************************************  
  ** File:   [USP_SaveCommonUploadData_ByModuleId]             
  ** Author:   Devendra Shekh
  ** Description: This stored procedure is used to add upload Data
@@ -998,7 +998,8 @@ SELECT @currentNo = ISNULL(CurrentStlNo, 0) FROM #tmpPNManufacturer WHERE ItemMa
 				DECLARE @PC_ConditionId BIGINT = (SELECT FieldValue FROM #DynamicKeyValue WHERE FieldName = 'ConditionId');
 				SET @ItemMasterId = (SELECT FieldValue FROM #DynamicKeyValue WHERE FieldName = 'ItemMasterId')
 				SELECT TOP 1 @PartNumber =  ISNULL(partnumber,'') FROM ItemMaster WITH (NOLOCK) WHERE ItemMasterId = @ItemMasterId
-				 AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 SET @ItemMasterPurchaseSaleId = ISNULL((SELECT TOP  1 ItemMasterPurchaseSaleId FROM dbo.ItemMasterPurchaseSale WITH(NOLOCK) WHERE ItemMasterId = @ItemMasterId AND ConditionId = @PC_ConditionId AND MasterCompanyId = @MasterCompanyId AND ISNULL(IsDeleted,0) = 0),0)
+				 AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0
+				 SET @ItemMasterPurchaseSaleId = ISNULL((SELECT TOP  1 ItemMasterPurchaseSaleId FROM dbo.ItemMasterPurchaseSale WITH(NOLOCK) WHERE ItemMasterId = @ItemMasterId AND ConditionId = @PC_ConditionId AND MasterCompanyId = @MasterCompanyId AND ISNULL(IsDeleted,0) = 0),0)
 				SET @isPriceDataExist = (CASE WHEN @ItemMasterPurchaseSaleId > 0 THEN 1 ELSE 0 END);
 				SET @RefFieldName += ' , PartNumber,IsActive, IsDeleted,SP_CalSPByPP_SaleDiscAmount,SP_CalSPByPP_BaseSalePrice,PP_PurchaseDiscAmount,SP_FSP_FXRatePerc, PP_FXRatePerc,PP_LastListPriceDate,PP_LastPurchaseDiscDate, CreatedDate, UpdatedDate,SP_FSP_UOMId,SP_FSP_CurrencyId,SalePriceSelectId,SP_FSP_LastFlatPriceDate, MasterCompanyId, CreatedBy, UpdatedBy ';
 				SET @FieldValue += '''' + @PartNumber + ''',1,0,0,0,0,1.00,1.00, '''
@@ -1025,7 +1026,8 @@ SELECT @currentNo = ISNULL(CurrentStlNo, 0) FROM #tmpPNManufacturer WHERE ItemMa
 			DECLARE @UomId BIGINT;
 			SELECT TOP 1 @ItemClassificationId = IM.ItemClassificationId,@UomId = IM.PurchaseUnitOfMeasureId FROM dbo.ItemMaster IM WITH(NOLOCK) WHERE IM.ItemMasterId=@ItemMasterId
 				
-				 AND ISNULL(IM.IsNonStock,0) = 0 SET @RefFieldName += ',MaterialMandatoriesId, ItemClassificationId, UnitOfMeasureId,WorkOrderId,WorkFlowWorkOrderId,ExtendedCost,MasterCompanyId, CreatedBy, UpdatedBy';
+				 AND ISNULL(IM.IsNonStock,0) = 0
+			 SET @RefFieldName += ',MaterialMandatoriesId, ItemClassificationId, UnitOfMeasureId,WorkOrderId,WorkFlowWorkOrderId,ExtendedCost,MasterCompanyId, CreatedBy, UpdatedBy';
 
 				SET @FieldValue += '1'+',' + CAST(ISNULL(@ItemClassificationId,0) AS VARCHAR(20)) + ',' + CAST(ISNULL(@UomId,0) AS VARCHAR(20)) + ',' + CAST(ISNULL(@WMWorkOrderId,0) AS VARCHAR(20)) + ',' + CAST(ISNULL(@WMWorkFlowWorkOrderId,0) AS VARCHAR(20)) + ','+ CAST(ISNULL(@WMExtendedCost,0) AS VARCHAR(20)) + ','
 

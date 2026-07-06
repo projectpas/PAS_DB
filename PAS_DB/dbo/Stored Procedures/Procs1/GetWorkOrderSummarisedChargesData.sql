@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [GetWorkOrderSummarisedChargesData]           
  ** Author:   Hemant Saliya
  ** Description: Get Work Order Summarised Chanrges Details List    
@@ -67,7 +67,8 @@ BEGIN
 					LEFT JOIN dbo.WorkOrderCharges WC WITH(NOLOCK) ON WOWF.WorkFlowWorkOrderId = WC.WorkFlowWorkOrderId
 					LEFT JOIN  [dbo].StockLine SL WITH(NOLOCK) ON WOP.StockLineId = SL.StockLineId
 				WHERE WOP.IsDeleted = 0 AND WOP.WorkOrderId = @WorkOrderId AND WC.IsDeleted = 0 AND WC.IsActive = 1
-				 AND ISNULL(IM.IsNonStock,0) = 0 GROUP BY IM.partnumber, Im.PartDescription, IM.RevisedPart, WOP.WorkOrderId, WOWF.WorkFlowWorkOrderId,wop.RevisedPartNumber,wop.RevisedSerialNumber,sl.ControlNumber
+				 AND ISNULL(IM.IsNonStock,0) = 0
+				 GROUP BY IM.partnumber, Im.PartDescription, IM.RevisedPart, WOP.WorkOrderId, WOWF.WorkFlowWorkOrderId,wop.RevisedPartNumber,wop.RevisedSerialNumber,sl.ControlNumber
 
 			END
 		COMMIT  TRANSACTION

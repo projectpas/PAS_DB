@@ -1,4 +1,4 @@
-﻿/*********************           
+/*********************           
  ** File:   [USP_GetWOTearDownStockLineList]           
  ** Author:  Devendra Shekh
  ** Description: This stored procedure is used retrieve stockline list for teardown work order
@@ -138,7 +138,8 @@ BEGIN
 				INNER JOIN [dbo].[WorkOrder] WO WITH (NOLOCK) ON WO.WorkOrderId = SL.WorkOrderId
 				INNER JOIN [dbo].[WorkOrderPartNumber] WOP WITH (NOLOCK) ON WO.WorkOrderId = WOP.WorkOrderId AND WOP.ID = @WorkOrderPartNumberId
 				LEFT JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON SL.ItemMasterId = IM.ItemMasterId
-				 AND ISNULL(IM.IsNonStock,0) = 0 LEFT JOIN [dbo].[Lot] L WITH (NOLOCK) ON L.LotId = SL.LotId
+				 AND ISNULL(IM.IsNonStock,0) = 0
+				 LEFT JOIN [dbo].[Lot] L WITH (NOLOCK) ON L.LotId = SL.LotId
 				
 		 	  WHERE ((SL.IsDeleted=@IsDeleted) AND (@IsActive IS NULL OR SL.IsActive=@IsActive))			     
 					AND SL.MasterCompanyId=@MasterCompanyId AND SL.WorkOrderId = @WorkOrderId AND SL.IsTurnIn = 1

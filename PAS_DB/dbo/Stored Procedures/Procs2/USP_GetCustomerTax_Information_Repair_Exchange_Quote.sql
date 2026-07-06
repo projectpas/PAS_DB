@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [USP_GetCustomerTax_Information_Repair_Exchange_Quote]           
  ** Author:   Moin Bloch
  ** Description: This stored procedure is used to get Customer Tax Information based on Repair
@@ -19,7 +19,6 @@
      
 -- EXEC [USP_GetCustomerTax_Information_Repair_Exchange_Quote] 368
 **************************************************************/
- WHERE ISNULL(To.IsNonStock,0) = 0
 CREATE PROCEDURE [dbo].[USP_GetCustomerTax_Information_Repair_Exchange_Quote] 
 @ExchangeQuoteId BIGINT
 AS
@@ -97,7 +96,8 @@ BEGIN
 		 LEFT JOIN [dbo].[AllAddress] AAD WITH(NOLOCK) ON SO.[ExchangeQuoteId] = AAD.[ReffranceId] AND [IsShippingAdd] = 1 AND [ModuleId] = @EXSOQModuleId
  		 LEFT JOIN [dbo].[Stockline] STK WITH(NOLOCK) ON SOP.[StockLineId] = STK.[StockLineId]
 		 LEFT JOIN [dbo].[ItemMaster] ITM WITH(NOLOCK) ON SOP.[ItemMasterId] = ITM.[ItemMasterId]
-		  AND ISNULL(ITM.IsNonStock,0) = 0 LEFT JOIN [dbo].[CustomerDomensticShipping] CDS WITH(NOLOCK) ON CDS.[CustomerId] = SO.[CustomerId] AND CDS.[IsPrimary] = 1
+		  AND ISNULL(ITM.IsNonStock,0) = 0
+		  LEFT JOIN [dbo].[CustomerDomensticShipping] CDS WITH(NOLOCK) ON CDS.[CustomerId] = SO.[CustomerId] AND CDS.[IsPrimary] = 1
 	         WHERE SO.[ExchangeQuoteId] = @ExchangeQuoteId
 	
    -----------------------------------------------------------------------------------------

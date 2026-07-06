@@ -1,4 +1,4 @@
-﻿/**************************************************************           
+/**************************************************************           
   ** Change History           
  **************************************************************           
  ** PR   	Date         Author				Change Description            
@@ -142,8 +142,10 @@ BEGIN
 						INNER JOIN DBO.WorkOrder wo WITH(NOLOCK) on wo.WorkOrderId = wop.WorkOrderId
 						LEFT JOIN dbo.WorkOrderSettlementDetails wosc WITH(NOLOCK) on wop.WorkOrderId = wosc.WorkOrderId AND wop.ID = wosc.workOrderPartNoId AND wosc.WorkOrderSettlementId = 9
 						LEFT JOIN DBO.ItemMaster imt WITH(NOLOCK) on imt.ItemMasterId = wop.ItemMasterId
-						 AND ISNULL(imt.IsNonStock,0) = 0 LEFT JOIN DBO.ItemMaster imv WITH(NOLOCK) on imv.ItemMasterId = wobii.ItemMasterId
-						 AND ISNULL(imv.IsNonStock,0) = 0 LEFT JOIN DBO.Stockline sl WITH(NOLOCK) on sl.StockLineId = wop.StockLineId
+						 AND ISNULL(imt.IsNonStock,0) = 0
+						 LEFT JOIN DBO.ItemMaster imv WITH(NOLOCK) on imv.ItemMasterId = wobii.ItemMasterId
+						 AND ISNULL(imv.IsNonStock,0) = 0
+						  LEFT JOIN DBO.Stockline sl WITH(NOLOCK) on sl.StockLineId = wop.StockLineId
 						LEFT JOIN DBO.WorkOrderCustomsInfo woc WITH(NOLOCK) on woc.WorkOrderShippingId = wos.WorkOrderShippingId
 						LEFT JOIN DBO.Customer cr WITH(NOLOCK) on cr.CustomerId = wo.CustomerId
 						LEFT JOIN DBO.Condition cond  WITH(NOLOCK) on cond.ConditionId = wosc.ConditionId
@@ -245,8 +247,10 @@ BEGIN
 								INNER JOIN DBO.WorkOrder wo WITH(NOLOCK) on wo.WorkOrderId = wop.WorkOrderId
 								LEFT JOIN dbo.WorkOrderSettlementDetails wosc WITH(NOLOCK) on wop.WorkOrderId = wosc.WorkOrderId AND wop.ID = wosc.workOrderPartNoId AND wosc.WorkOrderSettlementId = 9
 								LEFT JOIN DBO.ItemMaster imt WITH(NOLOCK) on imt.ItemMasterId = wop.ItemMasterId
-								 AND ISNULL(imt.IsNonStock,0) = 0 LEFT JOIN DBO.ItemMaster imv WITH(NOLOCK) on imv.ItemMasterId = wobii.ItemMasterId
-								 AND ISNULL(imv.IsNonStock,0) = 0 LEFT JOIN DBO.Stockline sl WITH(NOLOCK) on sl.StockLineId = wop.StockLineId
+								 AND ISNULL(imt.IsNonStock,0) = 0
+								 LEFT JOIN DBO.ItemMaster imv WITH(NOLOCK) on imv.ItemMasterId = wobii.ItemMasterId
+								 AND ISNULL(imv.IsNonStock,0) = 0
+								  LEFT JOIN DBO.Stockline sl WITH(NOLOCK) on sl.StockLineId = wop.StockLineId
 								LEFT JOIN DBO.WorkOrderCustomsInfo woc WITH(NOLOCK) on woc.WorkOrderShippingId = wos.WorkOrderShippingId
 								LEFT JOIN DBO.Customer cr WITH(NOLOCK) on cr.CustomerId = wo.CustomerId
 								LEFT JOIN DBO.Condition cond  WITH(NOLOCK) on cond.ConditionId = wosc.ConditionId
@@ -343,8 +347,10 @@ BEGIN
 							INNER JOIN DBO.WorkOrder wo WITH(NOLOCK) on wo.WorkOrderId = wop.WorkOrderId
 							LEFT JOIN dbo.WorkOrderSettlementDetails wosc WITH(NOLOCK) on wop.WorkOrderId = wosc.WorkOrderId AND wop.ID = wosc.workOrderPartNoId AND wosc.WorkOrderSettlementId = 9
 							LEFT JOIN DBO.ItemMaster imt WITH(NOLOCK) on imt.ItemMasterId = wop.ItemMasterId
-							 AND ISNULL(imt.IsNonStock,0) = 0 LEFT JOIN DBO.ItemMaster imv WITH(NOLOCK) on imv.ItemMasterId = wobii.ItemMasterId
-							 AND ISNULL(imv.IsNonStock,0) = 0 LEFT JOIN DBO.Stockline sl WITH(NOLOCK) on sl.StockLineId = wop.StockLineId
+							 AND ISNULL(imt.IsNonStock,0) = 0
+							 LEFT JOIN DBO.ItemMaster imv WITH(NOLOCK) on imv.ItemMasterId = wobii.ItemMasterId
+							 AND ISNULL(imv.IsNonStock,0) = 0
+							  LEFT JOIN DBO.Stockline sl WITH(NOLOCK) on sl.StockLineId = wop.StockLineId
 							LEFT JOIN DBO.Customer cr WITH(NOLOCK) on cr.CustomerId = wo.CustomerId
 							LEFT JOIN DBO.Condition cond  WITH(NOLOCK) on cond.ConditionId = wosc.ConditionId
 							LEFT JOIN DBO.Currency curr WITH(NOLOCK) on curr.CurrencyId = wobi.CurrencyId
@@ -446,8 +452,10 @@ BEGIN
 						INNER JOIN DBO.WorkOrderWorkFlow wowf WITH(NOLOCK) on wop.ID = wowf.WorkOrderPartNoId 
 						INNER JOIN DBO.WorkOrder wo WITH(NOLOCK) on wo.WorkOrderId = wop.WorkOrderId
 						LEFT JOIN DBO.ItemMaster imt WITH(NOLOCK) on imt.ItemMasterId = wop.ItemMasterId
-						 AND ISNULL(imt.IsNonStock,0) = 0 LEFT JOIN DBO.ItemMaster imv WITH(NOLOCK) on imv.ItemMasterId = wobii.ItemMasterId
-						 AND ISNULL(imv.IsNonStock,0) = 0 LEFT JOIN DBO.Stockline sl WITH(NOLOCK) on sl.StockLineId = wop.StockLineId
+						 AND ISNULL(imt.IsNonStock,0) = 0
+						 LEFT JOIN DBO.ItemMaster imv WITH(NOLOCK) on imv.ItemMasterId = wobii.ItemMasterId
+						 AND ISNULL(imv.IsNonStock,0) = 0
+						  LEFT JOIN DBO.Stockline sl WITH(NOLOCK) on sl.StockLineId = wop.StockLineId
 						LEFT JOIN DBO.Customer cr WITH(NOLOCK) on cr.CustomerId = wo.CustomerId
 						LEFT JOIN DBO.Condition cond  WITH(NOLOCK) on cond.ConditionId = wobii.ConditionId
 						LEFT JOIN DBO.Currency curr WITH(NOLOCK) on curr.CurrencyId = wobi.CurrencyId

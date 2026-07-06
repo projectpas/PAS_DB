@@ -1,4 +1,4 @@
-﻿/*************************************************************             
+/*************************************************************             
  ** File: [USP_GetWOQuoteApprovalList]             
  ** Author:  Moin Bloch
  ** Description: This stored procedure is used to Get WO Quote Approval List
@@ -180,7 +180,8 @@ BEGIN
 		 LEFT JOIN [dbo].[Contact] CON1 WITH(NOLOCK) ON WAP.[CustomerRejectedbyID] = CON1.[ContactId]
 		 WHERE WOC.[WorkOrderQuoteId] = @WorkOrderQuoteId
 		   AND WOC.[IsVersionIncrease] = 0
-		  AND ISNULL(IM.IsNonStock,0) = 0 ORDER BY WOP.[ID];			
+		  AND ISNULL(IM.IsNonStock,0) = 0
+		    ORDER BY WOP.[ID];			
 		END TRY  
  BEGIN CATCH        
    DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name()   

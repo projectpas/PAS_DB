@@ -1,4 +1,4 @@
-﻿/*****************************************************************************           
+/*****************************************************************************           
  ** File:   [USP_GetWorkOrderBillingInvoicingItemData]           
  ** Author:   Moin Bloch 
  ** Description: This stored procedure is used to GET Work Order Billing Invoicing Data
@@ -105,12 +105,14 @@ BEGIN
 		INNER JOIN [dbo].[ItemMaster] IM WITH(NOLOCK) ON WOP.[ItemMasterId] = IM.[ItemMasterId]
 		 LEFT JOIN [dbo].[UnitOfMeasure] IU WITH(NOLOCK) ON IM.[ConsumeUnitOfMeasureId] = IU.[UnitOfMeasureId]
 		 LEFT JOIN [dbo].[ItemMaster] IMT WITH(NOLOCK) ON WOP.[RevisedItemmasterid] = IMT.[ItemMasterId]
-		  AND ISNULL(IMT.IsNonStock,0) = 0 LEFT JOIN [dbo].[UnitOfMeasure] IUR WITH(NOLOCK) ON IMT.[ConsumeUnitOfMeasureId] = IUR.[UnitOfMeasureId]
+		  AND ISNULL(IMT.IsNonStock,0) = 0
+		  LEFT JOIN [dbo].[UnitOfMeasure] IUR WITH(NOLOCK) ON IMT.[ConsumeUnitOfMeasureId] = IUR.[UnitOfMeasureId]
 		 LEFT JOIN [dbo].[WorkOrderSettlementDetails] WOS WITH(NOLOCK) ON WOP.[ID] = wos.[workOrderPartNoId] AND WOS.[WorkOrderSettlementId] = @FinalCondCert
 		 LEFT JOIN [dbo].[Condition] COND WITH(NOLOCK) ON WOP.[RevisedConditionId] = COND.[ConditionId]
 		 LEFT JOIN [dbo].[StockLine] SL WITH(NOLOCK) ON WOP.[StockLineId] = SL.[StockLineId]
 		 LEFT JOIN [dbo].[ItemMaster] IMV WITH(NOLOCK) ON BID.[ItemMasterId] = IMV.[ItemMasterId]
-		 AND ISNULL(IMV.IsNonStock,0) = 0 WHERE WOP.[ID] = @WorkOrderPartId AND BI.[BillingInvoicingId] = @billingInvoicingId AND ISNULL(IM.IsNonStock,0) = 0 ;
+		 AND ISNULL(IMV.IsNonStock,0) = 0
+		  WHERE WOP.[ID] = @WorkOrderPartId AND BI.[BillingInvoicingId] = @billingInvoicingId AND ISNULL(IM.IsNonStock,0) = 0 ;
 
 	END TRY    
 	BEGIN CATCH      

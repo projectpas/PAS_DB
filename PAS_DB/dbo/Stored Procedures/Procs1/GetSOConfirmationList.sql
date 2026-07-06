@@ -1,4 +1,4 @@
-﻿/*************************************************************                 
+/*************************************************************                 
  ** File:   [GetSOConfirmationList]                 
  ** Author:   Ayushi Patel        
  ** Description: Get Data for Sales Order Confirmation listing      
@@ -229,7 +229,8 @@ BEGIN
         LEFT JOIN Customer cust ON so.CustomerId = cust.CustomerId
         LEFT JOIN StockLine qs ON stk.StockLineId = qs.StockLineId
         LEFT JOIN ItemMaster itemMaster ON part.ItemMasterId = itemMaster.ItemMasterId
-         AND ISNULL(itemMaster.IsNonStock,0) = 0 LEFT JOIN Condition cp ON part.ConditionId = cp.ConditionId
+         AND ISNULL(itemMaster.IsNonStock,0) = 0
+         LEFT JOIN Condition cp ON part.ConditionId = cp.ConditionId
         LEFT JOIN dbo.SalesOrderQuotePartV1 soqp WITH (NOLOCK) ON soqp.SalesOrderQuotePartId = part.SalesOrderQuotePartId
 		LEFT JOIN dbo.SalesOrderQuote q WITH (NOLOCK) ON soqp.SalesOrderQuoteId = q.SalesOrderQuoteId
         LEFT JOIN UnitOfMeasure iu ON itemMaster.ConsumeUnitOfMeasureId = iu.UnitOfMeasureId

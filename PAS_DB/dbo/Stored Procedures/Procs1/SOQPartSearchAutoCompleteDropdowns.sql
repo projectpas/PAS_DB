@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [SOQPartSearchAutoCompleteDropdowns]
  ** Author:   
  ** Description: This stored procedure is used to get part details from PN search
@@ -85,7 +85,8 @@ CREATE   PROCEDURE [dbo].[SOQPartSearchAutoCompleteDropdowns]
 			AND im.IsOEM = 1 AND IsDER = 0
 
 		--FOR PMA
-		 AND ISNULL(im.IsNonStock,0) = 0 IF( @CustRestrictedPMA <> 1	)
+		 AND ISNULL(im.IsNonStock,0) = 0
+		 IF( @CustRestrictedPMA <> 1	)
 		BEGIN
 		INSERT INTO #TempTable (PartId, PartNumber,Label, PartDescription,ManufacturerName, StockType)
 		SELECT DISTINCT 
@@ -107,7 +108,8 @@ CREATE   PROCEDURE [dbo].[SOQPartSearchAutoCompleteDropdowns]
 			AND im.MasterCompanyId = @MasterCompanyId
 			AND (@partSarchText IS NULL OR im.partnumber LIKE @partSarchText +'%')
 			AND im.IsPma  =  1	AND IsDER = 0
-         AND ISNULL(im.IsNonStock,0) = 0 END
+         AND ISNULL(im.IsNonStock,0) = 0
+			 END
 			
 		--FOR DER
 		IF( @CustRestrictedDer <> 1	)
@@ -132,7 +134,8 @@ CREATE   PROCEDURE [dbo].[SOQPartSearchAutoCompleteDropdowns]
 			AND im.MasterCompanyId = @MasterCompanyId
 			AND (@partSarchText IS NULL OR im.partnumber LIKE @partSarchText +'%')
 			AND im.IsDER  = 1	
-         AND ISNULL(im.IsNonStock,0) = 0 END
+         AND ISNULL(im.IsNonStock,0) = 0
+			 END
 
 		IF( @IncludePMA = 1)
 		BEGIN 
@@ -156,7 +159,8 @@ CREATE   PROCEDURE [dbo].[SOQPartSearchAutoCompleteDropdowns]
 			AND im.MasterCompanyId = @MasterCompanyId
 			AND (@partSarchText IS NULL OR im.partnumber LIKE @partSarchText +'%')
 			AND im.IsPma  =  1	AND IsDER = 0
-		 AND ISNULL(im.IsNonStock,0) = 0 END 
+		 AND ISNULL(im.IsNonStock,0) = 0
+			 END 
 
 		IF( @IncludeDER = 1)
 		BEGIN 
@@ -180,7 +184,8 @@ CREATE   PROCEDURE [dbo].[SOQPartSearchAutoCompleteDropdowns]
 			AND im.MasterCompanyId = @MasterCompanyId
 			AND (@partSarchText IS NULL OR im.partnumber LIKE @partSarchText +'%')
 			AND im.IsDER  = 1	
-		 AND ISNULL(im.IsNonStock,0) = 0 END 
+		 AND ISNULL(im.IsNonStock,0) = 0
+			 END 
 
 		 --Adding PMA Except Parts
 		INSERT INTO #TempTable (PartId, PartNumber, Label, PartDescription, ManufacturerName, StockType)
@@ -211,7 +216,8 @@ CREATE   PROCEDURE [dbo].[SOQPartSearchAutoCompleteDropdowns]
 			AND (@partSarchText IS NULL OR im.partnumber LIKE '%'+ @partSarchText +'%')
 
 		--Adding DER Except Parts
-		 AND ISNULL(im.IsNonStock,0) = 0 INSERT INTO #TempTable (PartId, PartNumber, Label, PartDescription, ManufacturerName, StockType)
+		 AND ISNULL(im.IsNonStock,0) = 0
+		 INSERT INTO #TempTable (PartId, PartNumber, Label, PartDescription, ManufacturerName, StockType)
 		SELECT DISTINCT 
 			im.ItemMasterId AS PartId,
 			im.partnumber AS PartNumber,
@@ -238,7 +244,8 @@ CREATE   PROCEDURE [dbo].[SOQPartSearchAutoCompleteDropdowns]
 			AND im.MasterCompanyId = @MasterCompanyId
 			AND (@partSarchText IS NULL OR im.partnumber LIKE '%'+ @partSarchText +'%')
 
-		 AND ISNULL(im.IsNonStock,0) = 0 INSERT INTO #Result 
+		 AND ISNULL(im.IsNonStock,0) = 0
+			 INSERT INTO #Result 
 				SELECT 
 				DISTINCT TOP 50 * 
 				FROM #TempTable t
@@ -261,7 +268,8 @@ CREATE   PROCEDURE [dbo].[SOQPartSearchAutoCompleteDropdowns]
 			FROM DBO.ItemMaster im WITH(NOLOCK)
 			LEFT JOIN dbo.Manufacturer M WITH(NOLOCK) ON Im.ManufacturerId = M.ManufacturerId
 			WHERE im.ItemMasterId IN (SELECT Item FROM DBO.SPLITSTRING(@Idlist,','))
-		 AND ISNULL(im.IsNonStock,0) = 0 END
+		 AND ISNULL(im.IsNonStock,0) = 0
+			 END
 
 		SELECT DISTINCT TOP 50 r.PartId,
 			r.PartNumber,

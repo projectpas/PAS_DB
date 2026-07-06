@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [USP_GetCustomerTax_Information_ProductSale_SO_New]           
  ** Author:   Moin Bloch
  ** Description: This stored procedure is used to get Customer Tax Information based on product sale
@@ -75,7 +75,8 @@ BEGIN
 		 LEFT JOIN [dbo].[Stockline] STK WITH(NOLOCK) ON SOPS.[StockLineId] = STK.[StockLineId]
 		 LEFT JOIN [dbo].[AllAddress] AAD WITH(NOLOCK) ON SO.[SalesOrderId] = AAD.[ReffranceId] AND [IsShippingAdd] = 1 AND [ModuleId] = @SOModuleId
 		 LEFT JOIN [dbo].[ItemMaster] ITM WITH(NOLOCK) ON SOP.[ItemMasterId] = ITM.[ItemMasterId]
-		  AND ISNULL(ITM.IsNonStock,0) = 0 LEFT JOIN [dbo].[CustomerDomensticShipping] CDS WITH(NOLOCK) ON CDS.[CustomerId] = SO.[CustomerId] AND CDS.[IsPrimary] = 1
+		  AND ISNULL(ITM.IsNonStock,0) = 0
+		  LEFT JOIN [dbo].[CustomerDomensticShipping] CDS WITH(NOLOCK) ON CDS.[CustomerId] = SO.[CustomerId] AND CDS.[IsPrimary] = 1
 	         WHERE SO.[SalesOrderId] = @SalesOrderId
 			   AND SOP.[SalesOrderPartId] = @SalesOrderPartId
 			   AND SOP.[SalesOrderPartId] NOT IN (SELECT [SalesOrderPartId] FROM #tmprsoShipDetails);

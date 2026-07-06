@@ -1,4 +1,4 @@
-﻿/*************************************************************             
+/*************************************************************             
  ** File:   [usp_GetCustomerRFQbyId]             
  ** Author:   Devendra Shekh    
  ** Description: Get Customer RFQ Details By Id
@@ -53,7 +53,8 @@ SET NOCOUNT ON
 			INTO #ItemResults
 			FROM [dbo].[ItemMaster] RIM WITH(NOLOCK) 
 			WHERE RIM.[MasterCompanyId] = @MasterCompanyId AND RIM.IsActive = 1 AND RIM.IsDeleted = 0
-			 AND ISNULL(RIM.IsNonStock,0) = 0 GROUP BY RIM.partnumber, RIM.MasterCompanyId
+			 AND ISNULL(RIM.IsNonStock,0) = 0
+			 GROUP BY RIM.partnumber, RIM.MasterCompanyId
 
 			SELECT  MAX(STK.StockLineId) AS StockLineId, STK.ItemMasterId, STK.MasterCompanyId  
 			INTO #StkResults

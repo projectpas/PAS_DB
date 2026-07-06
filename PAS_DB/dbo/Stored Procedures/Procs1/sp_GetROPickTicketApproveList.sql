@@ -1,4 +1,4 @@
-﻿/*************************************************************
+/*************************************************************
  ** File:   [sp_GetROPickTicketApproveList]
  ** Author:   Vishal Suthar
  ** Description: This stored procedure is used to retrieve ro pick ticket listing data
@@ -64,7 +64,8 @@ BEGIN
 			ro.IsEnforce IS NULL OR ro.IsEnforce = 0
 			OR (ro.IsEnforce = 1 AND roa.StatusId = 2)
 		)
-		 AND ISNULL(imt.IsNonStock,0) = 0 GROUP BY rop.RepairOrderPartRecordId, rop.RepairOrderId,imt.PartNumber,imt.PartDescription, rop.QuantityOrdered,sl.SerialNumber,
+		 AND ISNULL(imt.IsNonStock,0) = 0
+		 GROUP BY rop.RepairOrderPartRecordId, rop.RepairOrderId,imt.PartNumber,imt.PartDescription, rop.QuantityOrdered,sl.SerialNumber,
 		sl.QuantityAvailable,ro.RepairOrderNumber,rop.ItemMasterId,sl.ConditionId,cr.[VendorName],cr.VendorCode,sl.isSerialized;
 	END
 	COMMIT  TRANSACTION

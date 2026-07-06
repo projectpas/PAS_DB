@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:  [USP_GetCreditMemoDetailsForXero]          
  ** Author:   Bhargav Saliya
  ** Description: Get Credit Memo Part Details    
@@ -100,7 +100,8 @@ BEGIN
             FROM dbo.CreditMemoDetails CMD WITH(NOLOCK)
             INNER JOIN dbo.CreditMemo CM WITH(NOLOCK) ON CM.CreditMemoHeaderId = CMD.CreditMemoHeaderId
             LEFT JOIN dbo.ItemMaster IM WITH(NOLOCK) ON IM.ItemMasterId = CMD.ItemMasterId
-             AND ISNULL(IM.IsNonStock,0) = 0 WHERE CMD.CreditMemoHeaderId = @CreditMemoId
+             AND ISNULL(IM.IsNonStock,0) = 0
+             WHERE CMD.CreditMemoHeaderId = @CreditMemoId
               AND ISNULL(CMD.IsActive,0)  = 1
               AND ISNULL(CMD.IsDeleted,0) = 0
         END
@@ -140,7 +141,8 @@ BEGIN
             INNER JOIN dbo.VendorCreditMemo VCM WITH(NOLOCK) ON VCM.VendorCreditMemoId = VCMD.VendorCreditMemoId
             LEFT JOIN dbo.Stockline SL WITH(NOLOCK) ON VCMD.StockLineId = SL.StockLineId
             LEFT JOIN dbo.ItemMaster IM WITH(NOLOCK) ON IM.ItemMasterId = SL.ItemMasterId
-             AND ISNULL(IM.IsNonStock,0) = 0 WHERE VCMD.VendorCreditMemoId = @CreditMemoId
+             AND ISNULL(IM.IsNonStock,0) = 0
+             WHERE VCMD.VendorCreditMemoId = @CreditMemoId
               AND ISNULL(VCMD.IsActive,0)  = 1
               AND ISNULL(VCMD.IsDeleted,0) = 0
         END

@@ -1,4 +1,4 @@
-﻿/*************************************************************             
+/*************************************************************             
  ** File:   [GetWorkOrderQuoteBuildMethodDetails]             
  ** Author:   Hemant Saliya  
  ** Description: This stored procedure is used Get WorkOrder Quote Build Method Details    
@@ -80,7 +80,8 @@ BEGIN
 		CASE WHEN @UnitPrice > 0 THEN 1 ELSE 0 END [IsMroPrice]
     FROM DBO.WorkOrderQuoteDetails WQD WITH (NOLOCK)  
      LEFT JOIN dbo.ItemMaster IM WITH (NOLOCK) ON IM.ItemMasterId = WQD.ItemMasterId  
-     AND ISNULL(IM.IsNonStock,0) = 0 WHERE WQD.WorkflowWorkOrderId = @workflowWorkorderId AND ISNULL(IsVersionIncrease,0) = 0  
+     AND ISNULL(IM.IsNonStock,0) = 0
+      WHERE WQD.WorkflowWorkOrderId = @workflowWorkorderId AND ISNULL(IsVersionIncrease,0) = 0  
 
    END  
   COMMIT  TRANSACTION  

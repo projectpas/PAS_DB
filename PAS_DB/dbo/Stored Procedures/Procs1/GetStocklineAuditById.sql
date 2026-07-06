@@ -1,4 +1,4 @@
-﻿
+
 /*************************************************************           
  ** File:   [GetStocklineAuditById]           
  ** Author:   Rajesh Gami
@@ -202,8 +202,8 @@ BEGIN
 				 FROM ItemMaster v
 				 INNER JOIN ItemMasterIntegrationPortal mp ON v.ItemMasterId = mp.ItemMasterId
 				 INNER JOIN IntegrationPortal inte ON mp.IntegrationPortalId = inte.IntegrationPortalId
-				 WHERE v.MasterCompanyId = @masteCompnayID AND v.ItemMasterId = im.ItemMasterId
-				 FOR XML PATH(''), TYPE AND ISNULL(v.IsNonStock,0) = 0 ).value('.', 'NVARCHAR(MAX)'), 1, 1, '') AS integrationPortal,
+				 WHERE v.MasterCompanyId = @masteCompnayID AND v.ItemMasterId = im.ItemMasterId AND ISNULL(v.IsNonStock,0) = 0
+				 FOR XML PATH(''), TYPE ).value('.', 'NVARCHAR(MAX)'), 1, 1, '') AS integrationPortal,
 			rPart.PartNumber AS RevisedPart,
 			im.RevisedPartId,
 			stl.WorkOrderNumber,
@@ -234,11 +234,13 @@ BEGIN
 			[BETA_Logs].[dbo].[StockLineAudit] stl WITH(NOLOCK)
 			INNER JOIN  StocklineManagementStructureDetailsAudit msd ON stl.StockLineId = msd.ReferenceID AND msd.ModuleID = @msModuleId
 			LEFT JOIN [dbo].ItemMaster im  WITH(NOLOCK) ON stl.ItemMasterId = im.ItemMasterId
-			 AND ISNULL(im.IsNonStock,0) = 0 LEFT JOIN [dbo].ItemMasterExportInfo imx WITH(NOLOCK) ON im.ItemMasterId = imx.ItemMasterId
+			 AND ISNULL(im.IsNonStock,0) = 0
+			 LEFT JOIN [dbo].ItemMasterExportInfo imx WITH(NOLOCK) ON im.ItemMasterId = imx.ItemMasterId
 			LEFT JOIN [dbo].PurchaseOrder po WITH(NOLOCK) ON stl.PurchaseOrderId = po.PurchaseOrderId
 			LEFT JOIN [dbo].RepairOrder ro WITH(NOLOCK) ON stl.RepairOrderId = ro.RepairOrderId
 			LEFT JOIN [dbo].ItemMaster rPart WITH(NOLOCK) ON im.RevisedPartId = rPart.ItemMasterId
-			 AND ISNULL(rPart.IsNonStock,0) = 0 LEFT JOIN [dbo].AssetAcquisitionType iaty WITH(NOLOCK) ON stl.AcquistionTypeId = iaty.AssetAcquisitionTypeId
+			 AND ISNULL(rPart.IsNonStock,0) = 0
+			 LEFT JOIN [dbo].AssetAcquisitionType iaty WITH(NOLOCK) ON stl.AcquistionTypeId = iaty.AssetAcquisitionTypeId
 			LEFT JOIN [dbo].Employee empr WITH(NOLOCK) ON stl.RequestorId = empr.EmployeeId
 			LEFT JOIN [dbo].Employee empi WITH(NOLOCK) ON stl.InspectionBy = empi.EmployeeId
 			LEFT JOIN [dbo].TimeLife ti WITH(NOLOCK) ON stl.TimeLifeCyclesId = ti.TimeLifeCyclesId

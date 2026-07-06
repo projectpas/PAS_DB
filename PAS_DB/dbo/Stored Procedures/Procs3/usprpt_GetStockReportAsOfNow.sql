@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [usprpt_GetStockReportAsOfNow]           
  ** Author:   VISHAL SUTHAR  
  ** Description: Get Data for Stock Report  
@@ -309,7 +309,7 @@ BEGIN
      WHERE stl.[MasterCompanyId] = @mastercompanyid AND stl.GLAccountId <> @NonStockGLAccountId
 	 AND stl.[IsParent] = 1 
 	 AND stl.[IsDeleted] = 0
-	 AND CAST(stl.[CreatedDate] AS DATE) <= CASE WHEN ISNULL(@id9, 0) = 1 THEN CAST(GETUTCDATE() AS DATE)  AND ISNULL(im.IsNonStock,0) = 0 ELSE CAST(GETUTCDATE()-1 AS DATE) END
+	 AND CAST(stl.[CreatedDate] AS DATE) <= CASE WHEN ISNULL(@id9, 0) = 1 THEN CAST(GETUTCDATE() AS DATE) ELSE CAST(GETUTCDATE()-1 AS DATE) END
 	 AND stl.[IsCustomerStock] = CASE WHEN @id3 = 1 THEN 0 ELSE stl.[IsCustomerStock] END 	 
 	 AND (ISNULL(@id2,'')='' OR ES.OrganizationTagTypeId IN(SELECT value FROM STRING_SPLIT(ISNULL(@id2,''), ',')))
 	 AND (ISNULL(@level1,'') =''  OR MSD.[Level1Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level1,',')))    

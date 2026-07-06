@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [USP_GetCustomerTax_Information_Repair_Exchange]           
  ** Author:   Moin Bloch
  ** Description: This stored procedure is used to get Customer Tax Information based on Repair
@@ -20,7 +20,6 @@
      
 -- EXEC [USP_GetCustomerTax_Information_Repair_Exchange] 368
 **************************************************************/
- WHERE ISNULL(To.IsNonStock,0) = 0
 CREATE PROCEDURE [dbo].[USP_GetCustomerTax_Information_Repair_Exchange] 
 @ExchangeSalesOrderId BIGINT
 AS
@@ -105,7 +104,8 @@ BEGIN
 		 LEFT JOIN [dbo].[AllAddress] AAD WITH(NOLOCK) ON SO.[ExchangeSalesOrderId] = AAD.[ReffranceId] AND [IsShippingAdd] = 1 AND [ModuleId] = @EXSOModuleId
 		 LEFT JOIN [dbo].[Stockline] STK WITH(NOLOCK) ON SOP.[StockLineId] = STK.[StockLineId]
 		 LEFT JOIN [dbo].[ItemMaster] ITM WITH(NOLOCK) ON SOP.[ItemMasterId] = ITM.[ItemMasterId]
-		  AND ISNULL(ITM.IsNonStock,0) = 0 LEFT JOIN [dbo].[CustomerDomensticShipping] CDS WITH(NOLOCK) ON CDS.[CustomerId] = SO.[CustomerId] AND CDS.[IsPrimary] = 1
+		  AND ISNULL(ITM.IsNonStock,0) = 0
+		  LEFT JOIN [dbo].[CustomerDomensticShipping] CDS WITH(NOLOCK) ON CDS.[CustomerId] = SO.[CustomerId] AND CDS.[IsPrimary] = 1
 	         WHERE SO.[ExchangeSalesOrderId] = @ExchangeSalesOrderId AND SOP.[ExchangeSalesOrderPartId] NOT IN (SELECT SOSI.[ExchangeSalesOrderPartId] FROM [dbo].[ExchangeSalesOrderShipping] SOS WITH(NOLOCK)  
 							 INNER JOIN [dbo].[ExchangeSalesOrderShippingItem] SOSI WITH(NOLOCK) ON SOS.[ExchangeSalesOrderShippingId]  = SOSI.[ExchangeSalesOrderShippingId]
 	                        WHERE SOS.[ExchangeSalesOrderId] = @ExchangeSalesOrderId);		   

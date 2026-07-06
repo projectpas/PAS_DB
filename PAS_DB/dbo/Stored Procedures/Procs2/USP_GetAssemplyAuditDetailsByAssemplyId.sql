@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [USP_GetAssemplyAuditDetailsByAssemplyId]           
  ** Author:   BHARGAV SALIYA
  ** Description: This stored procedure is used to get Assemply history Data by AssemplyId
@@ -79,7 +79,8 @@ BEGIN
 				LEFT JOIN [dbo].[Provision] PS WITH (NOLOCK) ON PS.ProvisionId = APL.ProvisionId
 
 				WHERE APL.AssemplyId = @AssemplyId
-				 AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(IMP.IsNonStock,0) = 0 ORDER BY APL.AssemplyAuditId DESC
+				 AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(IMP.IsNonStock,0) = 0
+				 ORDER BY APL.AssemplyAuditId DESC
 		
 
 	END

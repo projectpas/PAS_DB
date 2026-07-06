@@ -1,4 +1,4 @@
-﻿/***************************************************************  
+/***************************************************************  
  ** File:   [USP_WorkOrderAnalysis]             
  ** Author:   Shrey Chandegara
  ** Description: Get WorkOrder Analysis
@@ -86,7 +86,8 @@ BEGIN
 			    LEFT JOIN [dbo].[BillingInvoicingItems] wbi WITH(NOLOCK) ON wop.ID = wbi.SubReferenceId AND ISNULL(wbi.IsVersionIncrease, 0) = 0 AND ISNULL(wbi.IsPerformaInvoice, 0) != 1 AND wbi.[ModuleId] = @WOModuleId
 			    LEFT JOIN [dbo].[BillingInvoicing] wb WITH(NOLOCK) ON wbi.BillingInvoicingId = wb.BillingInvoicingId AND ISNULL(wb.IsVersionIncrease, 0) = 0 AND ISNULL(wb.IsPerformaInvoice, 0) != 1 AND wb.[ModuleId] = @WOModuleId		
 			WHERE wo.WorkOrderId = @WorkOrderId AND woc.WOPartNoId = @WorkOrderPartNoId
-			 AND ISNULL(im.IsNonStock,0) = 0 ORDER BY wop.ID;
+			 AND ISNULL(im.IsNonStock,0) = 0
+			 ORDER BY wop.ID;
 		END
 
 		ELSE
@@ -149,7 +150,8 @@ BEGIN
 				INNER JOIN [dbo].[WorkOrderStatus] st WITH(NOLOCK) ON wop.WorkOrderStatusId = st.Id
 				LEFT JOIN QuoteList q WITH(NOLOCK) ON q.WorkOrderId = woc.WorkOrderId AND q.WOPartNoId = woc.WOPartNoId
 			WHERE wo.WorkOrderId = @WorkOrderId AND woc.WOPartNoId = @WorkOrderPartNoId
-			 AND ISNULL(im.IsNonStock,0) = 0 ORDER BY wop.ID;
+			 AND ISNULL(im.IsNonStock,0) = 0
+			 ORDER BY wop.ID;
 		END
 
 	COMMIT  TRANSACTION

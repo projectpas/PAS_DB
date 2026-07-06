@@ -1,4 +1,4 @@
-﻿/*************************************************************             
+/*************************************************************             
  ** File:   [USP_CreateSubWorkOrderMaterials]             
  ** Author:   Devendra Shekh
  ** Description: This stored procedure is used Create Sub work order materials
@@ -102,7 +102,8 @@ BEGIN
 				TMP.UpdatedDate =  GETUTCDATE()
 			FROM #tmpSubWorkOrderMaterial TMP
 			LEFT JOIN [dbo].[ItemMaster] IM WITH(NOLOCK) ON TMP.ItemMasterId = IM.ItemMasterId
-			 AND ISNULL(IM.IsNonStock,0) = 0 LEFT JOIN [dbo].[StockLine] STK WITH(NOLOCK) ON TMP.StockLineId = STK.StockLineId
+			 AND ISNULL(IM.IsNonStock,0) = 0
+			 LEFT JOIN [dbo].[StockLine] STK WITH(NOLOCK) ON TMP.StockLineId = STK.StockLineId
 
 			SELECT @TotalMaterialCount = COUNT(RowId), @CurrentRowId = MIN(RowId) FROM #tmpSubWorkOrderMaterial;
 
@@ -129,7 +130,8 @@ BEGIN
 						TMP.UnitOfMeasureId = CASE WHEN ISNULL(TMP.UnitOfMeasureId, 0) = 0 THEN CASE WHEN ISNULL(TMP.StockLineId, 0) > 0 THEN STK.PurchaseUnitOfMeasureId ELSE IM.PurchaseUnitOfMeasureId END ELSE TMP.UnitOfMeasureId END
 					FROM #tmpSubWorkOrderMaterial TMP 
 					LEFT JOIN [dbo].[ItemMaster] IM WITH(NOLOCK) ON TMP.ItemMasterId = IM.ItemMasterId
-					 AND ISNULL(IM.IsNonStock,0) = 0 LEFT JOIN [dbo].[StockLine] STK WITH(NOLOCK) ON TMP.StockLineId = STK.StockLineId
+					 AND ISNULL(IM.IsNonStock,0) = 0
+					 LEFT JOIN [dbo].[StockLine] STK WITH(NOLOCK) ON TMP.StockLineId = STK.StockLineId
 					WHERE [RowId] = @CurrentRowId;
 					
 					SELECT @SubWorkOrderMaterialsId = [SubWorkOrderMaterialsId], @WOMStockLineId = [StockLineId] FROM #tmpSubWorkOrderMaterial TMP WHERE TMP.RowId = @CurrentRowId

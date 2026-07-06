@@ -1,4 +1,4 @@
-﻿
+
 /*************************************************************           
  ** File:   [usp_GetCapabilitiesReport]           
  ** Author:   Swetha  
@@ -188,7 +188,8 @@ BEGIN
       OR (@isverified = 3
       AND IMC.isverified IS NOT NULL AND IMC.mastercompanyid = @mastercompanyid))
 
-     AND ISNULL(IM.IsNonStock,0) = 0 COMMIT TRANSACTION
+     AND ISNULL(IM.IsNonStock,0) = 0
+       COMMIT TRANSACTION
   END TRY
 
   BEGIN CATCH

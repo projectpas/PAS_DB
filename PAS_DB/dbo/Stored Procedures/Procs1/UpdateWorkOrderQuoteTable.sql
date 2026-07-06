@@ -1,4 +1,4 @@
-﻿
+
 
 /*************************************************************           
  ** File:   [UpdateWorkOrderTeardownColumnsWithId]           
@@ -71,7 +71,8 @@ BEGIN
 							 INNER JOIN dbo.Provision PO WITH(NOLOCK) ON PO.ProvisionId = WOQM.ProvisionId
 							 LEFT JOIN dbo.[Percent] p WITH(NOLOCK) ON p.PercentId = WOQM.MarkupPercentageId 
 						 WHERE WOQM.WorkOrderQuoteMaterialId = @TableprimaryId
-				  AND ISNULL(Im.IsNonStock,0) = 0 END
+				  AND ISNULL(Im.IsNonStock,0) = 0
+						  END
 				 ELSE IF(LOWER(@TableName) ='workorderquotelabor')
 				 BEGIN
 

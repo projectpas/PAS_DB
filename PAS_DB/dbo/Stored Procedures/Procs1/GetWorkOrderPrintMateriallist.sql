@@ -1,4 +1,4 @@
-﻿/*******           
+/*******           
  ** File:   [GetWorkOrderPrintPdfData]           
  ** Author:   Subhash Saliya
  ** Description: This stored procedure is used Work order Print  Details    
@@ -63,7 +63,8 @@ BEGIN
 				INNER JOIN [dbo].[WorkOrderMaterials] WOM WITH(NOLOCK) ON WOM.WorkOrderMaterialsId = WOMS.WorkOrderMaterialsId
 				INNER JOIN [dbo].[Stockline] STK WITH(NOLOCK) ON STk.StockLineId = WOMS.StockLineId
 				LEFT JOIN  [dbo].[ItemMaster] imt WITH(NOLOCK) ON imt.ItemMasterId = WOMS.ItemMasterId
-				 AND ISNULL(imt.IsNonStock,0) = 0 LEFT JOIN  [dbo].[RepairOrder] RO WITH(NOLOCK) ON RO.RepairOrderId = WOMS.RepairOrderId
+				 AND ISNULL(imt.IsNonStock,0) = 0
+				 LEFT JOIN  [dbo].[RepairOrder] RO WITH(NOLOCK) ON RO.RepairOrderId = WOMS.RepairOrderId
 				WHERE WOM.WorkFlowWorkOrderId = @workFlowWorkOrderId AND WOMS.IsDeleted = 0 AND WOMS.ProvisionId <> @ProvisionId
 				GROUP BY WOMS.RepairOrderId,STK.PurchaseOrderNumber,imt.partnumber,imt.PartDescription,STK.StockLineNumber,
 						 STK.ControlNumber,STK.IsTurnIn,STK.WorkOrderNumber,STK.SerialNumber,STK.RepairOrderId,STK.RepairOrderNumber,RO.RepairOrderNumber,WOMS.QuantityTurnIn
@@ -92,7 +93,8 @@ BEGIN
 				INNER JOIN [dbo].[WorkOrderMaterialsKit] WOM WITH(NOLOCK) ON WOM.WorkOrderMaterialsKitId= WOMS.WorkOrderMaterialsKitId
 				INNER JOIN [dbo].[Stockline] STK WITH(NOLOCK) ON STk.StockLineId = WOMS.StockLineId
 				LEFT JOIN [dbo].[ItemMaster] imt WITH(NOLOCK) ON imt.ItemMasterId = WOMS.ItemMasterId
-				 AND ISNULL(imt.IsNonStock,0) = 0 LEFT JOIN  [dbo].[RepairOrder] RO WITH(NOLOCK) ON RO.RepairOrderId = WOMS.RepairOrderId
+				 AND ISNULL(imt.IsNonStock,0) = 0
+				 LEFT JOIN  [dbo].[RepairOrder] RO WITH(NOLOCK) ON RO.RepairOrderId = WOMS.RepairOrderId
 				WHERE WOM.WorkFlowWorkOrderId = @workFlowWorkOrderId AND WOMS.IsDeleted = 0
 				GROUP BY WOMS.RepairOrderId,STK.PurchaseOrderNumber,imt.partnumber,imt.PartDescription,STK.StockLineNumber,
 						 STK.ControlNumber,STK.IsTurnIn,STK.WorkOrderNumber,STK.SerialNumber,STK.RepairOrderId,STK.RepairOrderNumber,RO.RepairOrderNumber,WOMS.QuantityTurnIn

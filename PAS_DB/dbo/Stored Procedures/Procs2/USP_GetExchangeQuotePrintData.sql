@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [USP_GetExchangeQuotePrintData]           
  ** Author:  Ekta Chandegra
  ** Description: This stored procedure is used to USP_GetExchangeQuotePrintData
@@ -65,7 +65,8 @@ BEGIN
 		INNER JOIN [dbo].[CreditTerms] ct WITH(NOLOCK) ON cf.CreditTermsId = ct.CreditTermsId
 		LEFT JOIN [dbo].[ExchangeQuotePart] sop WITH(NOLOCK) ON so.ExchangeQuoteId = sop.ExchangeQuoteId
 		LEFT JOIN [dbo].[ItemMaster] itemMaster WITH(NOLOCK) ON sop.ItemMasterId = itemMaster.ItemMasterId
-		 AND ISNULL(itemMaster.IsNonStock,0) = 0 LEFT JOIN [dbo].[UnitOfMeasure] iu WITH(NOLOCK) ON itemMaster.ConsumeUnitOfMeasureId = iu.UnitOfMeasureId
+		 AND ISNULL(itemMaster.IsNonStock,0) = 0
+		 LEFT JOIN [dbo].[UnitOfMeasure] iu WITH(NOLOCK) ON itemMaster.ConsumeUnitOfMeasureId = iu.UnitOfMeasureId
 		LEFT JOIN [dbo].[Condition] cp WITH(NOLOCK) ON sop.ConditionId = cp.ConditionId
 		LEFT JOIN [dbo].[Employee] emp WITH(NOLOCK) ON so.EmployeeId = emp.EmployeeId
 		LEFT JOIN [dbo].[Employee] sp WITH(NOLOCK) ON so.SalesPersonId = sp.EmployeeId

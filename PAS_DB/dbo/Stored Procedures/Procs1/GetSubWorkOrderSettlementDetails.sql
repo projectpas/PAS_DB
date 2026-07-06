@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [GetWorkOrderSettlementDetails]           
  ** Author:   Subhash Saliya
  ** Description: This stored procedure is used Work order Settlement Details  
@@ -181,8 +181,10 @@ BEGIN
 					LEFT JOIN dbo.SubWorkOrderSettlementDetails wosd WITH(NOLOCK) on wosd.WorkOrderSettlementId = wos.WorkOrderSettlementId
 					LEFT JOIN dbo.SubWorkOrderPartNumber sop WITH(NOLOCK) on sop.SubWOPartNoId = wosd.SubWOPartNoId
 					LEFT JOIN dbo.ItemMaster Im WITH(NOLOCK) on sop.ItemMasterId = Im.ItemMasterId
-					 AND ISNULL(Im.IsNonStock,0) = 0 LEFT JOIN ItemMaster IMR ON IMR.ItemMasterId = wosd.RevisedItemmasterid
-				 AND ISNULL(IMR.IsNonStock,0) = 0 WHERE wosd.WorkOrderId = @WorkorderId and wosd.SubWorkOrderId = @SubWorkOrderId and wosd.SubWOPartNoId = @SubWOPartNoId 
+					 AND ISNULL(Im.IsNonStock,0) = 0
+					 LEFT JOIN ItemMaster IMR ON IMR.ItemMasterId = wosd.RevisedItemmasterid
+				 AND ISNULL(IMR.IsNonStock,0) = 0
+					  WHERE wosd.WorkOrderId = @WorkorderId and wosd.SubWorkOrderId = @SubWorkOrderId and wosd.SubWOPartNoId = @SubWOPartNoId 
 			END
 		COMMIT  TRANSACTION
 

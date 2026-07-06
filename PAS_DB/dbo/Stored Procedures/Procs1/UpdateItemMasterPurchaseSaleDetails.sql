@@ -1,7 +1,3 @@
-﻿
-
-
-
 /*************************************************************           
  ** File:   [UpdateItemMasterPurchaseSaleDetails]           
  ** Author:   Moin Bloch
@@ -56,7 +52,7 @@ BEGIN
 	  	  LEFT JOIN dbo.Discount SP WITH (NOLOCK) ON IMPS.SP_CalSPByPP_MarkUpPercOnListPrice = SP.DiscountId 
 	  	  LEFT JOIN dbo.ItemMasterPurchaseSaleMaster IMP WITH (NOLOCK) ON IMPS.SalePriceSelectId = IMP.ItemMasterPurchaseSaleMasterId 
 	  	  
-	  WHERE IMPS.ItemMasterId = @ItemMasterId AND ISNULL(IM.IsNonStock,0) = 0 ;
+	  WHERE IMPS.ItemMasterId = @ItemMasterId ;
 	  
 	  SELECT partnumber AS value FROM dbo.ItemMaster IM WITH (NOLOCK) WHERE IM.ItemMasterId  = @ItemMasterId AND ISNULL(IM.IsNonStock,0) = 0 ;
 

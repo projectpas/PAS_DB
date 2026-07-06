@@ -1,4 +1,4 @@
-﻿/*************************************************************             
+/*************************************************************             
  ** File:   [AutoCompleteDropdownsItemMasterWithManufacturer]             
  ** Author:   Rajesh Gami  
  ** Description: This stored procedure is used retrieve Item Master List with Manufacturer detail for Auto complete Dropdown List      
@@ -73,13 +73,15 @@ BEGIN
 		  Ig.ItemGroupCode As ItemGroup
      FROM dbo.ItemMaster Im WITH(NOLOCK)   
 		  LEFT JOIN dbo.ItemMaster rp WITH(NOLOCK)  ON Im.ItemMasterId =  rp.ItemMasterId  
-		   AND ISNULL(rp.IsNonStock,0) = 0 LEFT JOIN dbo.Manufacturer M WITH(NOLOCK) ON Im.ManufacturerId = M.ManufacturerId 
+		   AND ISNULL(rp.IsNonStock,0) = 0
+		   LEFT JOIN dbo.Manufacturer M WITH(NOLOCK) ON Im.ManufacturerId = M.ManufacturerId 
 		  LEFT JOIN dbo.ItemClassification Ic WITH(NOLOCK) ON Ic.ItemClassificationId = Im.ItemClassificationId
 		  LEFT JOIN dbo.UnitOfMeasure uom WITH(NOLOCK)  ON Im.PurchaseUnitOfMeasureId = uom.UnitOfMeasureId
 		  LEFT JOIN dbo.Itemgroup Ig WITH(NOLOCK)  ON Im.ItemGroupId =  Ig.ItemGroupId
      WHERE (Im.IsActive = 1 AND ISNULL(Im.IsDeleted, 0) = 0 AND IM.MasterCompanyId = @MasterCompanyId AND (Im.partnumber LIKE @StartWith + '%'))      
      
-	  AND ISNULL(Im.IsNonStock,0) = 0 UNION   
+	  AND ISNULL(Im.IsNonStock,0) = 0
+      UNION   
 	 
      SELECT DISTINCT Im.ItemMasterId,  
 		  Im.ItemMasterId AS Value,   
@@ -114,12 +116,14 @@ BEGIN
 		  Ig.ItemGroupCode As ItemGroup
      FROM dbo.ItemMaster Im WITH(NOLOCK)   
 		  LEFT JOIN dbo.ItemMaster rp WITH(NOLOCK) ON Im.ItemMasterId =  rp.ItemMasterId  
-		   AND ISNULL(rp.IsNonStock,0) = 0 LEFT JOIN dbo.Manufacturer M WITH(NOLOCK) ON Im.ManufacturerId = M.ManufacturerId  
+		   AND ISNULL(rp.IsNonStock,0) = 0
+		   LEFT JOIN dbo.Manufacturer M WITH(NOLOCK) ON Im.ManufacturerId = M.ManufacturerId  
 		  LEFT JOIN dbo.ItemClassification Ic WITH(NOLOCK) ON Ic.ItemClassificationId = Im.ItemClassificationId
 		  LEFT JOIN dbo.UnitOfMeasure uom WITH(NOLOCK)  ON Im.PurchaseUnitOfMeasureId = uom.UnitOfMeasureId
 		  LEFT JOIN dbo.Itemgroup Ig WITH(NOLOCK)  ON Im.ItemGroupId =  Ig.ItemGroupId
      WHERE im.ItemMasterId in (SELECT Item FROM DBO.SPLITSTRING(@Idlist, ','))      
-	  AND ISNULL(Im.IsNonStock,0) = 0 ORDER BY Label      
+	  AND ISNULL(Im.IsNonStock,0) = 0
+      ORDER BY Label      
    End  
    ELSE  
    BEGIN  
@@ -156,12 +160,14 @@ BEGIN
      FROM dbo.ItemMaster Im WITH(NOLOCK)   
 		LEFT JOIN dbo.ItemClassification Ic WITH(NOLOCK) ON Ic.ItemClassificationId = Im.ItemClassificationId
 		LEFT JOIN dbo.ItemMaster rp WITH(NOLOCK)  ON Im.ItemMasterId =  rp.ItemMasterId  
-		 AND ISNULL(rp.IsNonStock,0) = 0 LEFT JOIN dbo.Manufacturer M WITH(NOLOCK) ON Im.ManufacturerId = M.ManufacturerId
+		 AND ISNULL(rp.IsNonStock,0) = 0
+		 LEFT JOIN dbo.Manufacturer M WITH(NOLOCK) ON Im.ManufacturerId = M.ManufacturerId
 		LEFT JOIN dbo.UnitOfMeasure uom WITH(NOLOCK)  ON Im.PurchaseUnitOfMeasureId = uom.UnitOfMeasureId
 		LEFT JOIN dbo.Itemgroup Ig WITH(NOLOCK)  ON Im.ItemGroupId =  Ig.ItemGroupId
     WHERE Im.IsActive = 1 AND ISNULL(Im.IsDeleted, 0) = 0 AND IM.MasterCompanyId = @MasterCompanyId AND Im.partnumber LIKE @StartWith + '%'  
     
-	 AND ISNULL(Im.IsNonStock,0) = 0 UNION   
+	 AND ISNULL(Im.IsNonStock,0) = 0
+     UNION   
 
     SELECT DISTINCT TOP 50   
 		  Im.ItemMasterId,  
@@ -195,12 +201,14 @@ BEGIN
 		  Ig.ItemGroupCode As ItemGroup
      FROM dbo.ItemMaster Im WITH(NOLOCK)   
 		  LEFT JOIN dbo.ItemMaster rp WITH(NOLOCK)  ON Im.ItemMasterId =  rp.ItemMasterId  
-		   AND ISNULL(rp.IsNonStock,0) = 0 LEFT JOIN dbo.ItemClassification Ic WITH(NOLOCK) ON Ic.ItemClassificationId = Im.ItemClassificationId
+		   AND ISNULL(rp.IsNonStock,0) = 0
+		   LEFT JOIN dbo.ItemClassification Ic WITH(NOLOCK) ON Ic.ItemClassificationId = Im.ItemClassificationId
 		  LEFT JOIN dbo.Manufacturer M WITH(NOLOCK) ON Im.ManufacturerId = M.ManufacturerId  
 		  LEFT JOIN dbo.UnitOfMeasure uom WITH(NOLOCK)  ON Im.PurchaseUnitOfMeasureId = uom.UnitOfMeasureId
 		  LEFT JOIN dbo.Itemgroup Ig WITH(NOLOCK)  ON Im.ItemGroupId =  Ig.ItemGroupId
     WHERE Im.ItemMasterId in (SELECT Item FROM DBO.SPLITSTRING(@Idlist, ','))  
-     AND ISNULL(Im.IsNonStock,0) = 0 ORDER BY Label   
+     AND ISNULL(Im.IsNonStock,0) = 0
+     ORDER BY Label   
    END  
  END TRY   
  BEGIN CATCH       

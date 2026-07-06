@@ -1,4 +1,4 @@
-﻿/*************************************************************************************
+/*************************************************************************************
  ** File:   [USP_GetSOFrightsById]           
  ** Author:   Shrey Chandegara
  ** Description: This stored procedure is used get SO Freight By SOId    
@@ -66,7 +66,8 @@ BEGIN
 		LEFT JOIN [dbo].[Currency] cur WITH(NOLOCK) ON sf.CurrencyId = cur.CurrencyId
 		LEFT JOIN [dbo].[SalesOrderPartV1] part WITH(NOLOCK) ON sf.SalesOrderPartId = part.SalesOrderPartId
 		LEFT JOIN [dbo].[ItemMaster] im WITH(NOLOCK) ON part.ItemMasterId = im.ItemMasterId
-		 AND ISNULL(im.IsNonStock,0) = 0 WHERE sf.IsDeleted = ISNULL(@IsDeleted,0) AND sf.SalesOrderId = @SalesOrderId;
+		 AND ISNULL(im.IsNonStock,0) = 0
+		 WHERE sf.IsDeleted = ISNULL(@IsDeleted,0) AND sf.SalesOrderId = @SalesOrderId;
 
 	END TRY
 	BEGIN CATCH

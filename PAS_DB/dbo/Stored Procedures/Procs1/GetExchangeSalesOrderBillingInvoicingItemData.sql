@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [GetExchangeSalesOrderBillingInvoicingItemData]          
  ** Author: EKTA CHANDEGRA
  ** Description: This stored procedure is used to GetExchangeSalesOrderBillingInvoicingItemData
@@ -43,7 +43,8 @@ BEGIN
 		LEFT JOIN [dbo].[Condition] cond WITH(NOLOCK) ON sop.ConditionId = cond.ConditionId
 		LEFT JOIN [dbo].[StockLine] sl WITH(NOLOCK) ON sop.StockLineId = sl.StockLineId
 		WHERE sop.ExchangeSalesOrderPartId = @ExchangeSalesOrderPartId
-	 AND ISNULL(im.IsNonStock,0) = 0 END TRY
+	 AND ISNULL(im.IsNonStock,0) = 0
+		 END TRY
 	BEGIN CATCH
 	DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name()     
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------    

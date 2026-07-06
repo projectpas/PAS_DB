@@ -1,4 +1,4 @@
-﻿/*************************************************************             
+/*************************************************************             
  ** File:   [CreateStocklineForFinishGoodMPN]             
  ** Author:   Hemant Saliya  
  ** Description: This stored procedure is used Create Stockline For Finished Good.      
@@ -123,7 +123,8 @@ BEGIN
     FROM dbo.WorkOrderPartNumber WOP WITH(NOLOCK)  
      LEFT JOIN [dbo].WorkOrderSettlementDetails WOS WITH(NOLOCK) ON WOS.workOrderPartNoId = WOP.id AND WOS.WorkOrderSettlementId = 9  
      LEFT JOIN dbo.ItemMaster IM WITH(NOLOCK) ON IM.ItemMasterId = WOP.ItemMasterId  
-     AND ISNULL(IM.IsNonStock,0) = 0 WHERE WOP.ID = @WorkOrderPartNumberId
+     AND ISNULL(IM.IsNonStock,0) = 0
+      WHERE WOP.ID = @WorkOrderPartNumberId
   
     SELECT @WorkOrderNumber = WorkOrderNum, @CustomerId = CustomerId, @WorkOrderTypeId = WorkOrderTypeId FROM dbo.WorkOrder WITH(NOLOCK) WHERE WorkOrderId = @WorkOrderId  
     SELECT @ReferencePartId = WorkFlowWorkOrderId FROM dbo.WorkOrderWorkFlow WITH(NOLOCK) WHERE WorkOrderPartNoId = @WorkOrderPartNumberId  
@@ -248,7 +249,8 @@ INSERT INTO #tmpCodePrefixes (CodePrefixId,CodeTypeId,CurrentNumber, CodePrefix,
 	LEFT JOIN dbo.ItemMasterIntegrationPortal mp WITH(NOLOCK) ON iM.ItemMasterId = mp.ItemMasterId
 	LEFT JOIN dbo.IntegrationPortal ip WITH(NOLOCK) ON mp.IntegrationPortalId = ip.IntegrationPortalId
 	WHERE iM.ItemMasterId = @ItemMasterId AND iM.MasterCompanyId = @MasterCompanyId AND mp.IntegrationPortalId IS NOT NULL
-	 AND ISNULL(iM.IsNonStock,0) = 0 GROUP BY iM.ItemMasterId
+	 AND ISNULL(iM.IsNonStock,0) = 0
+	 GROUP BY iM.ItemMasterId
   
     INSERT INTO [dbo].[Stockline]  
        ([PartNumber],[StockLineNumber],[StocklineMatchKey],[ControlNumber],[ItemMasterId],[Quantity],[ConditionId]  

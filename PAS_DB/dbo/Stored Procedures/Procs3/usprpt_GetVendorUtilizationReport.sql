@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [usprpt_GetPurchaseOrderReport]           
  ** Author:    
  ** Description: Get Data for PurchaseOrderReport  
@@ -98,12 +98,15 @@ BEGIN
    LEFT JOIN DBO.Workorder WO WITH (NOLOCK) ON POP.workorderid = WO.workorderid   
    --LEFT JOIN DBO.Customer C WITH (NOLOCK) ON WO.CustomerId = C.CustomerId  
    LEFT JOIN DBO.Itemmaster IM WITH (NOLOCK) ON POP.itemmasterid = IM.itemmasterid  
-    AND ISNULL(IM.IsNonStock,0) = 0 LEFT JOIN DBO.WorkOrderMaterials WOM WITH (NOLOCK) ON POP.PurchaseOrderId = WOM.POId  
+    AND ISNULL(IM.IsNonStock,0) = 0
+    LEFT JOIN DBO.WorkOrderMaterials WOM WITH (NOLOCK) ON POP.PurchaseOrderId = WOM.POId  
    LEFT JOIN DBO.itemmaster IM1 WITH (NOLOCK) ON WOM.itemmasterid = IM1.itemmasterid  
-          AND ISNULL(IM1.IsNonStock,0) = 0 LEFT JOIN DBO.SalesOrder SO WITH (NOLOCK) ON POP.salesorderid = SO.SalesOrderId  
+          AND ISNULL(IM1.IsNonStock,0) = 0
+    LEFT JOIN DBO.SalesOrder SO WITH (NOLOCK) ON POP.salesorderid = SO.SalesOrderId  
    LEFT JOIN DBO.SalesOrderPartV1 SOP WITH (NOLOCK) ON POP.salesorderid = SOP.SalesOrderId AND SOP.ItemMasterId = POP.ItemMasterId    
    LEFT JOIN DBO.itemmaster IM2 WITH (NOLOCK) ON SOP.ItemMasterId = IM2.itemmasterid   
-     AND ISNULL(IM2.IsNonStock,0) = 0 WHERE PO.VendorId = ISNULL(@vendorname,PO.VendorId)   
+     AND ISNULL(IM2.IsNonStock,0) = 0
+    WHERE PO.VendorId = ISNULL(@vendorname,PO.VendorId)   
    AND CAST(PO.opendate AS DATE) BETWEEN CAST(@Fromdate AS DATE) AND CAST(@Todate AS DATE)  
    AND (PO.StatusId IN (SELECT value FROM String_split(@status, ',')) OR ISNULL(@status,'') = '')   
    AND PO.mastercompanyid = @mastercompanyid AND   
@@ -183,12 +186,15 @@ UPPER(MSD.Level8Name) AS level8,    UPPER(MSD.Level9Name) AS level9,    UPPER(MS
         LEFT JOIN DBO.Workorder WO WITH (NOLOCK) ON POP.workorderid = WO.workorderid   
   --LEFT JOIN DBO.Customer C WITH (NOLOCK) ON WO.CustomerId = C.CustomerId  
         LEFT JOIN DBO.Itemmaster IM WITH (NOLOCK) ON POP.itemmasterid = IM.itemmasterid  
-         AND ISNULL(IM.IsNonStock,0) = 0 LEFT JOIN DBO.WorkOrderMaterials WOM WITH (NOLOCK) ON POP.PurchaseOrderId = WOM.POId  
+         AND ISNULL(IM.IsNonStock,0) = 0
+         LEFT JOIN DBO.WorkOrderMaterials WOM WITH (NOLOCK) ON POP.PurchaseOrderId = WOM.POId  
         LEFT JOIN DBO.itemmaster IM1 WITH (NOLOCK) ON WOM.itemmasterid = IM1.itemmasterid  
-         AND ISNULL(IM1.IsNonStock,0) = 0 LEFT JOIN DBO.SalesOrder SO WITH (NOLOCK) ON POP.salesorderid = SO.SalesOrderId  
+         AND ISNULL(IM1.IsNonStock,0) = 0
+         LEFT JOIN DBO.SalesOrder SO WITH (NOLOCK) ON POP.salesorderid = SO.SalesOrderId  
      LEFT JOIN DBO.SalesOrderPartV1 SOP WITH (NOLOCK) ON POP.salesorderid = SOP.SalesOrderId AND SOP.ItemMasterId = POP.ItemMasterId    
      LEFT JOIN DBO.itemmaster IM2 WITH (NOLOCK) ON SOP.ItemMasterId = IM2.itemmasterid   
-       AND ISNULL(IM2.IsNonStock,0) = 0 WHERE PO.VendorId = ISNULL(@vendorname,PO.VendorId)   
+       AND ISNULL(IM2.IsNonStock,0) = 0
+      WHERE PO.VendorId = ISNULL(@vendorname,PO.VendorId)   
   AND CAST(PO.opendate AS DATE) BETWEEN CAST(@Fromdate AS DATE) AND CAST(@Todate AS DATE)  
   AND (PO.StatusId IN (SELECT value FROM String_split(@status, ',')) OR ISNULL(@status,'') = '')   
   AND PO.mastercompanyid = @mastercompanyid AND  

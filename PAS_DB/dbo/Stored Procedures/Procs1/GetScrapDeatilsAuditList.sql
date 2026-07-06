@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [GetScrapDeatilsById]           
  ** Author: Subhahs Saliya
  ** Description: This stored procedure is used retrieve Scrap Certificate Data userd
@@ -66,7 +66,8 @@ BEGIN
 				LEFT JOIN employee EM WITH (NOLOCK) ON EM.EmployeeId=SC.ScrapedByEmployeeId 
 				LEFT JOIN employee EMc WITH (NOLOCK) ON EMc.EmployeeId=SC.CertifiedById 
 			    Where WOPN.ID=@workOrderPartNoId and WO.WorkOrderId=@workOrderId 
-			 AND ISNULL(IM.IsNonStock,0) = 0 END
+			 AND ISNULL(IM.IsNonStock,0) = 0
+			     END
 			BEGIN
 			SELECT WO.WorkOrderNum as WorkOrderNumber
 				,WO.CustomerName CustomerName
@@ -102,7 +103,8 @@ BEGIN
 				LEFT JOIN employee EM WITH (NOLOCK) ON EM.EmployeeId=SC.ScrapedByEmployeeId 
 				LEFT JOIN employee EMc WITH (NOLOCK) ON EMc.EmployeeId=SC.CertifiedById 
 			    Where SWOPN.SubWOPartNoId=@workOrderPartNoId and SWO.SubWorkOrderId=@workOrderId and SC.isSubWorkOrder= 1 
-			 AND ISNULL(IM.IsNonStock,0) = 0 END
+			 AND ISNULL(IM.IsNonStock,0) = 0
+			     END
 
 				
 

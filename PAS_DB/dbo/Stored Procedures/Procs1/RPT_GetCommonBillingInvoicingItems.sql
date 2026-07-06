@@ -1,4 +1,4 @@
-﻿/*****************************************************************************************           
+/*****************************************************************************************           
  ** File:   [RPT_GetCommonBillingInvoicingItems]           
  ** Author:   Moin Bloch 
  ** Description: This stored procedure is used to Get Common Billing Invoicing Items
@@ -110,7 +110,8 @@ BEGIN
 		   LEFT JOIN [dbo].[WorkOrderSettlementDetails] WOS WITH(NOLOCK) ON WOP.[ID] = wos.[workOrderPartNoId] AND WOS.[WorkOrderSettlementId] = @FinalCondCert
 		   LEFT JOIN [dbo].[Condition] COND WITH(NOLOCK) ON WOP.[RevisedConditionId] = COND.[ConditionId]
 		   LEFT JOIN [dbo].[ItemMaster] ITM WITH(NOLOCK) ON WOP.[RevisedItemmasterid] = ITM.[ItemMasterId]
-		    AND ISNULL(ITM.IsNonStock,0) = 0 LEFT JOIN [dbo].[UnitOfMeasure] UOM WITH(NOLOCK) ON [ITM].[PurchaseUnitOfMeasureId] = UOM.[UnitOfMeasureId]
+		    AND ISNULL(ITM.IsNonStock,0) = 0
+		    LEFT JOIN [dbo].[UnitOfMeasure] UOM WITH(NOLOCK) ON [ITM].[PurchaseUnitOfMeasureId] = UOM.[UnitOfMeasureId]
 		   --LEFT JOIN [dbo].[WorkOrderCharges] WOC WITH(NOLOCK) ON BII.[WorkFlowWorkOrderId] = WOC.[WorkFlowWorkOrderId] AND woc.[IsDeleted] = 0  AND BII.ModuleId = @WOModuleId
 		  WHERE BII.[BillingInvoicingId] = @BillingInvoicingId AND BII.ModuleId = @WOModuleId
 		  		  

@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [GetScrapDeatilsById]           
  ** Author: Subhahs Saliya
  ** Description: This stored procedure is used retrieve Scrap Certificate Data userd
@@ -59,9 +59,11 @@ BEGIN
 				INNER JOIN [dbo].[Stockline] ST WITH (NOLOCK) ON ST.StockLineId=WOPN.StockLineId AND ST.IsParent = 1
 				 LEFT JOIN [dbo].[ScrapCertificate] SC WITH (NOLOCK) ON SC.WorkOrderId=WO.WorkOrderId AND WOPN.ID=SC.workOrderPartNoId
 				 LEFT JOIN [dbo].[ItemMaster] imt WITH(NOLOCK) ON imt.ItemMasterId = WOPN.ItemMasterId
-				  AND ISNULL(imt.IsNonStock,0) = 0 LEFT JOIN [dbo].[ScrapReason] SR WITH (NOLOCK) ON SR.Id=SC.ScrapReasonId 
+				  AND ISNULL(imt.IsNonStock,0) = 0
+				  LEFT JOIN [dbo].[ScrapReason] SR WITH (NOLOCK) ON SR.Id=SC.ScrapReasonId 
 			    Where WOPN.ID=@workOrderPartNoId and WO.WorkOrderId=@workOrderId 
-			 AND ISNULL(IM.IsNonStock,0) = 0 END
+			 AND ISNULL(IM.IsNonStock,0) = 0
+			     END
 			ELSE
 			BEGIN
 			SELECT WO.WorkOrderNum AS WorkOrderNumber
@@ -89,7 +91,8 @@ BEGIN
 				 LEFT JOIN [dbo].[ScrapReason] SR WITH (NOLOCK) ON SR.Id=SC.ScrapReasonId 
 				 LEFT JOIN [dbo].[WorkOrder] WO WITH (NOLOCK) ON WO.WorkOrderId=SWO.WorkOrderId 
 			    WHERE SWOPN.SubWOPartNoId=@workOrderPartNoId AND SWO.SubWorkOrderId=@workOrderId  
-			 AND ISNULL(IM.IsNonStock,0) = 0 END
+			 AND ISNULL(IM.IsNonStock,0) = 0
+			     END
 
 				
 

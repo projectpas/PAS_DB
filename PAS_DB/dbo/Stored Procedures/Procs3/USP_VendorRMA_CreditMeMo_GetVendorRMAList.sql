@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [USP_VendorRMA_CreditMeMo_GetVendorRMAList]          
  ** Author:   Devendra Shekh
  ** Description: This stored procedure is used to get vendorrma for credit memo create
@@ -94,7 +94,7 @@ BEGIN
 		LEFT JOIN [DBO].[VendorCreditMemo] VCM WITH (NOLOCK) ON VCM.VendorRMAId = RMA.VendorRMAId
 		LEFT JOIN [DBO].[VendorRMAStatus] VS WITH (NOLOCK) ON RMAD.VendorRMAStatusId = VS.VendorRMAStatusId
 		LEFT JOIN [DBO].[RMAShippingItem] RMS WITH (NOLOCK) ON RMAD.VendorRMADetailId = RMS.VendorRMADetailId
-		WHERE RMA.[VendorRMAId] = CASE WHEN @VendorRMAId != 0 and @VendorRMAId is not null THEN @VendorRMAId  AND ISNULL(IM.IsNonStock,0) = 0 ELSE RMAD.[VendorRMAId] END
+		WHERE RMA.[VendorRMAId] = CASE WHEN @VendorRMAId != 0 and @VendorRMAId is not null THEN @VendorRMAId ELSE RMAD.[VendorRMAId] END
 		AND VS.VendorRMAStatusId = @VendorRMADetailStatusId AND RMA.VendorRMAId NOT IN (SELECT ISNULL(VendorRMAId,0) VendorRMAId FROM VendorCreditMemo WHERE MasterCompanyId = @MasterCompanyId)
 		),
     FinalResult AS (  

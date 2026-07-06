@@ -1,4 +1,4 @@
-﻿/*************************************************************   
+/*************************************************************   
 ** Author:  <Hemant Saliya>  
 ** Create date: <05/10/2023>  
 ** Description: <Re-Open Closed WO>  
@@ -96,7 +96,8 @@ AS
 			JOIN dbo.WorkOrderStatus WS WITH (NOLOCK) ON WOP.WorkOrderStatusId = WS.Id
 			WHERE WOP.ID = @workOrderPartNoId
 
-			 AND ISNULL(IM.IsNonStock,0) = 0 SELECT @WorkOrderStageId = WorkOrderStageId FROM dbo.WorkOrderStage WITH(NOLOCK) WHERE [StageCode] = 'RECEIVED' AND MasterCompanyId = @MasterCompanyId
+			 AND ISNULL(IM.IsNonStock,0) = 0
+			 SELECT @WorkOrderStageId = WorkOrderStageId FROM dbo.WorkOrderStage WITH(NOLOCK) WHERE [StageCode] = 'RECEIVED' AND MasterCompanyId = @MasterCompanyId
 
 			SELECT @WorkOrderShippingId = MAX(WOS.WorkOrderShippingId), @IsShippingDone = CASE WHEN COUNT(WOS.WorkOrderShippingId) > 0 THEN 1 ELSE 0 END 
 			FROM dbo.WorkOrderShipping WOS WITH (NOLOCK) 

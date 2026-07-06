@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [sp_GetWOShippingChildList]           
  ** Author:   
  ** Description: This SP is Used to GetWOShippingChildList
@@ -72,7 +72,8 @@ BEGIN
 			LEFT JOIN [dbo].[WorkOrderShippingItem] wosi WITH (NOLOCK) ON wosi.[WorkOrderPartNumId] = wop.ID AND wosi.[WOPickTicketId] = wopt.[PickTicketId]
 			LEFT JOIN [dbo].[WorkOrderShipping] wos WITH (NOLOCK) ON wos.[WorkOrderShippingId] = wosi.[WorkOrderShippingId]  
 			LEFT JOIN [dbo].[ItemMaster] imt  WITH (NOLOCK) ON imt.[ItemMasterId] = wop.[ItemMasterId]  
-			 AND ISNULL(imt.IsNonStock,0) = 0 LEFT JOIN [dbo].[Stockline] sl WITH (NOLOCK) ON sl.[StockLineId] = wop.[StockLineId]  
+			 AND ISNULL(imt.IsNonStock,0) = 0
+			 LEFT JOIN [dbo].[Stockline] sl WITH (NOLOCK) ON sl.[StockLineId] = wop.[StockLineId]  
 			LEFT JOIN [dbo].[WorkOrderCustomsInfo] woc WITH (NOLOCK) ON woc.[WorkOrderShippingId] = wos.[WorkOrderShippingId]  
 			LEFT JOIN [dbo].[Customer] cr WITH (NOLOCK) ON cr.[CustomerId] = wo.[CustomerId]  
 			LEFT JOIN [dbo].[WorkOrderPackaginSlipItems] wPI  WITH (NOLOCK) ON wopt.[PickTicketId] = wPI.[WOPickTicketId] AND wPI.[WOPartNoId] = wop.[id]  

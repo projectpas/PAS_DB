@@ -1,4 +1,4 @@
-﻿
+
 /*************************************************************                   
  ** File:   [USP_GetReceivingPurchaseOrderEdit_POPart]                  
  ** Author:   Vishal Suthar        
@@ -362,7 +362,8 @@ BEGIN
   END AS ACTailNum
   FROM DBO.PurchaseOrderPart part WITH (NOLOCK)      
   LEFT JOIN DBO.ItemMaster itm WITH (NOLOCK) ON part.ItemMasterId = itm.ItemMasterId      
-   AND ISNULL(itm.IsNonStock,0) = 0 LEFT JOIN DBO.Asset asi WITH (NOLOCK) ON part.ItemMasterId = asi.AssetRecordId      
+   AND ISNULL(itm.IsNonStock,0) = 0
+   LEFT JOIN DBO.Asset asi WITH (NOLOCK) ON part.ItemMasterId = asi.AssetRecordId      
   LEFT JOIN DBO.ItemMasterNonStock nsi WITH (NOLOCK) ON part.ItemMasterId = nsi.MasterPartId      
   LEFT JOIN DBO.StocklineDraft StkD_Ser WITH (NOLOCK) ON StkD_Ser.PurchaseOrderPartRecordId = part.PurchaseOrderPartRecordId AND StkD_Ser.isSerialized = 1 AND StkD_Ser.IsParent = 0      
   LEFT JOIN DBO.StocklineDraft StkD_NonSer WITH (NOLOCK) ON StkD_NonSer.PurchaseOrderPartRecordId = part.PurchaseOrderPartRecordId AND StkD_NonSer.isSerialized = 0 AND ( StkD_NonSer.IsParent = 1 OR ISNULL(StkD_NonSer.StockLineId,0) = 0 OR StkD_NonSer.Quantity > @maxQtyLimit)
@@ -463,7 +464,8 @@ BEGIN
   FROM DBO.StockLineDraft SL WITH (NOLOCK)       
   LEFT JOIN DBO.PurchaseOrderPart part WITH (NOLOCK) ON part.PurchaseOrderId = SL.PurchaseOrderId AND part.PurchaseOrderPartRecordId = SL.PurchaseOrderPartRecordId      
   LEFT JOIN DBO.ItemMaster itm WITH (NOLOCK) ON part.ItemMasterId = itm.ItemMasterId      
-   AND ISNULL(itm.IsNonStock,0) = 0 WHERE SL.PurchaseOrderId = @PurchaseOrderId AND SL.StockLineNumber IS NULL)
+   AND ISNULL(itm.IsNonStock,0) = 0
+   WHERE SL.PurchaseOrderId = @PurchaseOrderId AND SL.StockLineNumber IS NULL)
   
   SELECT * FROM StockCTE ORDER BY 
   CASE WHEN IsSerialized = 0 THEN IsParent END DESC,
@@ -561,7 +563,8 @@ BEGIN
   FROM DBO.AssetInventoryDraft SL WITH (NOLOCK)       
   LEFT JOIN DBO.PurchaseOrderPart part WITH (NOLOCK) ON part.PurchaseOrderId = SL.PurchaseOrderId AND part.PurchaseOrderPartRecordId = SL.PurchaseOrderPartRecordId      
   LEFT JOIN DBO.ItemMaster itm WITH (NOLOCK) ON part.ItemMasterId = itm.ItemMasterId      
-   AND ISNULL(itm.IsNonStock,0) = 0 WHERE SL.PurchaseOrderId = @PurchaseOrderId    
+   AND ISNULL(itm.IsNonStock,0) = 0
+   WHERE SL.PurchaseOrderId = @PurchaseOrderId    
   AND SL.StklineNumber IS NULL)
 
   SELECT * FROM AssetCTE ORDER BY 
@@ -661,7 +664,8 @@ BEGIN
    FROM DBO.NonStockInventoryDraft SL WITH (NOLOCK)       
   LEFT JOIN DBO.PurchaseOrderPart part WITH (NOLOCK) ON part.PurchaseOrderId = SL.PurchaseOrderId AND part.PurchaseOrderPartRecordId = SL.PurchaseOrderPartRecordId      
   LEFT JOIN DBO.ItemMaster itm WITH (NOLOCK) ON part.ItemMasterId = itm.ItemMasterId      
-   AND ISNULL(itm.IsNonStock,0) = 0 WHERE SL.PurchaseOrderId = @PurchaseOrderId AND SL.NonStockInventoryNumber IS NULL)
+   AND ISNULL(itm.IsNonStock,0) = 0
+   WHERE SL.PurchaseOrderId = @PurchaseOrderId AND SL.NonStockInventoryNumber IS NULL)
 
   SELECT * FROM NonStockCTE ORDER BY 
   CASE WHEN IsSerialized = 0 THEN IsParent END DESC,

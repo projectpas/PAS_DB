@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [GetSOSOQPartsMonthlyYearlyDashboardData]
  ** Author:   
  ** Description: This stored procedure is used to Get Parts Dashboard details
@@ -514,7 +514,8 @@ BEGIN
 					AND MONTH(SOQ.OpenDate) = @CurrentMonth 
 					AND CAST(SOQ.OpenDate AS DATE) <= CAST(@StartDate AS DATE)
 					AND SOQP.MasterCompanyId = @MasterCompanyId AND SOQP.IsDeleted = 0
-					 AND ISNULL(IM.IsNonStock,0) = 0 GROUP BY 
+					 AND ISNULL(IM.IsNonStock,0) = 0
+					 GROUP BY 
 						IM.partnumber, 
 						IM.ItemMasterId
 					)
@@ -564,7 +565,8 @@ BEGIN
 						AND CAST(SOBI.InvoiceDate AS DATE) <= CAST(@StartDate AS DATE)
 						AND BillingInvoicingItemId IS NOT NULL AND SOBI.InvoiceStatus = @PostedStatusId))
 						AND SOP.MasterCompanyId = @MasterCompanyId AND ISNULL(SOP.IsDeleted,0) = 0 AND ISNULL(SO.IsDeleted,0) = 0 AND ISNULL(SO.IsActive,0) = 1
-						 AND ISNULL(IM.IsNonStock,0) = 0 GROUP BY
+						 AND ISNULL(IM.IsNonStock,0) = 0
+						 GROUP BY
 							IM.partnumber, 
 							IM.ItemMasterId
 					)

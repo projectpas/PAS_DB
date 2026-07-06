@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [QuickBooks_GetItemDetailsForUpdateItem]           
  ** Author:   Abhishek Jirawla
  ** Description: Get Item Details to Update Item in QuickBooks    
@@ -64,7 +64,8 @@ BEGIN
 				INNER JOIN DBO.GLAccount GLExpense WITH(NOLOCK) ON IM.COGS_SalesOrderGLAccId = GLExpense.GLAccountId
 			WHERE ISNULL(IM.QuickBooksReferenceId, '') != '' AND IM.ItemMasterId = @ReferenceId AND IM.MasterCompanyId = @MasterCompanyId
 		
-		 AND ISNULL(IM.IsNonStock,0) = 0 END
+		 AND ISNULL(IM.IsNonStock,0) = 0
+			 END
 	END TRY    
 	BEGIN CATCH      
 

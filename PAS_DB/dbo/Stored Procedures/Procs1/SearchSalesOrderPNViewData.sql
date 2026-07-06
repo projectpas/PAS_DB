@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [SearchSalesOrderPNViewData]
  ** Author:  
  ** Description: This stored procedure is used display sales order list
@@ -139,7 +139,8 @@ BEGIN
     LEFT JOIN DBO.SalesOrderPartV1 SP WITH (NOLOCK) on SO.SalesOrderId = SP.SalesOrderId and SP.IsDeleted = 0
     LEFT JOIN DBO.SalesOrderPartCost SPC WITH (NOLOCK) on SPC.SalesOrderPartId = SP.SalesOrderPartId
     LEFT JOIN DBO.ItemMaster IM WITH (NOLOCK) on Im.ItemMasterId = SP.ItemMasterId
-     AND ISNULL(IM.IsNonStock,0) = 0 LEFT JOIN dbo.Manufacturer M WITH(NOLOCK) ON Im.ManufacturerId = M.ManufacturerId
+     AND ISNULL(IM.IsNonStock,0) = 0
+     LEFT JOIN dbo.Manufacturer M WITH(NOLOCK) ON Im.ManufacturerId = M.ManufacturerId
     LEFT JOIN DBO.Employee E WITH (NOLOCK) on  E.EmployeeId = SO.SalesPersonId
     LEFT JOIN DBO.SalesOrderQuote SOQ WITH (NOLOCK) on SO.SalesOrderQuoteId = SOQ.SalesOrderQuoteId
     INNER JOIN dbo.SalesOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @MSModuleID AND MSD.ReferenceID = SO.SalesOrderId

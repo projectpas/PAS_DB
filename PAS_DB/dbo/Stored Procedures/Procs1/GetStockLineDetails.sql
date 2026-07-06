@@ -1,4 +1,4 @@
-﻿/*********************************************************************************************           
+/*********************************************************************************************           
  ** File:   [GetStockLineDetails]           
  ** Author:  MOIN BLOCH
  ** Description: This stored procedure is used GET Stockline Details By StockLineId
@@ -298,7 +298,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
               ,ISNULL(stl.[TaxAdjustment], 0) AS TaxAdjustment
 			  ,'' AS TaxAdjustmentAmounts
 			  ,ISNULL(stl.[IsStkTimeLife], im.[IsTimeLife]) AS isTimeLife
-			  ,CASE WHEN stl.[IsSerialized] = 1 AND (stl.[SerialNumber] IS NULL OR stl.[SerialNumber] = '') THEN 1  WHERE ISNULL(v.IsNonStock,0) = 0
+			  ,CASE WHEN stl.[IsSerialized] = 1 AND (stl.[SerialNumber] IS NULL OR stl.[SerialNumber] = '') THEN 1
 ELSE 0 END AS IsSkipSerialNo
 			  ,stl.[RepairOrderNumber] RONumber
 			,stl.InventoryGLSettingId      
@@ -359,7 +359,8 @@ ELSE 0 END AS IsSkipSerialNo
 			LEFT JOIN dbo.ItemMasterIntegrationPortal mp WITH(NOLOCK) ON iM.ItemMasterId = mp.ItemMasterId
 			LEFT JOIN dbo.IntegrationPortal ip WITH(NOLOCK) ON mp.IntegrationPortalId = ip.IntegrationPortalId
 			WHERE mp.IntegrationPortalId IS NOT NULL
-			 AND ISNULL(iM.IsNonStock,0) = 0 GROUP BY iM.ItemMasterId
+			 AND ISNULL(iM.IsNonStock,0) = 0
+			 GROUP BY iM.ItemMasterId
 		) AS ipAgg ON stl.ItemMasterId = ipAgg.ItemMasterId
 		 LEFT JOIN [dbo].[InventoryGLSetting] igls WITH(NOLOCK) ON igls.InventoryGLSettingId=stl.InventoryGLSettingId
 		 LEFT JOIN [dbo].[ItemMasterExportInfo] imx WITH(NOLOCK) ON im.[ItemMasterId] = imx.[ItemMasterId]
@@ -367,11 +368,13 @@ ELSE 0 END AS IsSkipSerialNo
 		 LEFT JOIN [dbo].[RepairOrder] ro WITH(NOLOCK) ON stl.[RepairOrderId] = ro.[RepairOrderId]
 		 LEFT JOIN [dbo].[TimeLife] ti WITH(NOLOCK) ON stl.[StockLineId] = ti.[StockLineId]
 		 LEFT JOIN [dbo].[ItemMaster] oempnpart WITH(NOLOCK) ON stl.[IsOemPNId] = oempnpart.[ItemMasterId]
-		  AND ISNULL(oempnpart.IsNonStock,0) = 0 LEFT JOIN [dbo].[AssetAcquisitionType] iaty WITH(NOLOCK) ON stl.[AcquistionTypeId] = iaty.[AssetAcquisitionTypeId]
+		  AND ISNULL(oempnpart.IsNonStock,0) = 0
+		  LEFT JOIN [dbo].[AssetAcquisitionType] iaty WITH(NOLOCK) ON stl.[AcquistionTypeId] = iaty.[AssetAcquisitionTypeId]
 		 LEFT JOIN [dbo].[Employee] empr WITH(NOLOCK) ON stl.[RequestorId] = empr.[EmployeeId]
 		 LEFT JOIN [dbo].[Employee] empi WITH(NOLOCK) ON stl.[InspectionBy] = empi.[EmployeeId]
 		 LEFT JOIN [dbo].[ItemMaster] rPart WITH(NOLOCK) ON im.[RevisedPartId] = rPart.[ItemMasterId]
-		  AND ISNULL(rPart.IsNonStock,0) = 0 LEFT JOIN [dbo].[Vendor] ve WITH(NOLOCK) ON stl.[VendorId] = ve.[VendorId]
+		  AND ISNULL(rPart.IsNonStock,0) = 0
+		  LEFT JOIN [dbo].[Vendor] ve WITH(NOLOCK) ON stl.[VendorId] = ve.[VendorId]
 		 LEFT JOIN [dbo].[TagType] tt WITH(NOLOCK) ON stl.[TagTypeId] = tt.[TagTypeId]
 		 LEFT JOIN [dbo].[Customer] ct WITH(NOLOCK) ON stl.[CustomerId] = ct.[CustomerId]
 		 LEFT JOIN [dbo].[ReceivingInspection] rc WITH(NOLOCK) ON stl.[StockLineId] = rc.StockLineId
@@ -387,7 +390,8 @@ ELSE 0 END AS IsSkipSerialNo
 		 LEFT JOIN DBO.ExchangeSalesOrder ES WITH (NOLOCK) ON stl.ExchangeSalesOrderId = ES.ExchangeSalesOrderId
 		WHERE stl.[IsDeleted] = 0 AND stl.[StockLineId] = @StockLineId
 
-	 AND ISNULL(im.IsNonStock,0) = 0 END TRY    
+	 AND ISNULL(im.IsNonStock,0) = 0
+		 END TRY    
 	BEGIN CATCH 
 	DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name() 
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------

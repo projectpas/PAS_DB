@@ -1,4 +1,4 @@
-﻿/*****************************************************************************************           
+/*****************************************************************************************           
  ** File:   [USP_GetCommonBillingInvoicingItems]           
  ** Author:   Moin Bloch 
  ** Description: This stored procedure is used to Get Common Billing Invoicing Items
@@ -108,7 +108,8 @@ BEGIN
 			   LEFT JOIN [dbo].[WorkOrderSettlementDetails] WOS WITH(NOLOCK) ON WOP.[ID] = wos.[workOrderPartNoId] AND WOS.[WorkOrderSettlementId] = @FinalCondCert
 			   LEFT JOIN [dbo].[Condition] COND WITH(NOLOCK) ON WOP.[RevisedConditionId] = COND.[ConditionId]
 			   WHERE BII.[BillingInvoicingId] = @BillingInvoicingId AND ISNULL(BII.[IsVersionIncrease],0) = 0 AND ISNULL(BII.[IsPerformaInvoice],0) = 0		  		  
-		 AND ISNULL(ITM.IsNonStock,0) = 0 END 
+		 AND ISNULL(ITM.IsNonStock,0) = 0
+			    END 
 		
 	END TRY    
 	BEGIN CATCH      

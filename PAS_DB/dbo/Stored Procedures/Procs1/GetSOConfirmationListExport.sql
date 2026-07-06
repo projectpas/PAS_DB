@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [GetSalesOrderChargesBySOId]           
  ** Author:   Abhishek Jirawla
  ** Description: Get Sales Order Confirmation list By SOId
@@ -102,7 +102,8 @@ BEGIN
 
 			WHERE part.IsDeleted = 0
 			  AND part.MasterCompanyId = @MasterCompanyId
-		 AND ISNULL(itemMaster.IsNonStock,0) = 0 END
+		 AND ISNULL(itemMaster.IsNonStock,0) = 0
+			   END
 		ELSE IF @ListViewType = @SoView -- SO View
 		BEGIN
 			SELECT 
@@ -159,7 +160,8 @@ BEGIN
 
 			WHERE part.IsDeleted = 0
 			  AND part.MasterCompanyId = @MasterCompanyId
-		 AND ISNULL(itemMaster.IsNonStock,0) = 0 END
+		 AND ISNULL(itemMaster.IsNonStock,0) = 0
+			   END
 
 		
 

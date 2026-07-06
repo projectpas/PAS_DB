@@ -1,4 +1,4 @@
-﻿/*************************************************************             
+/*************************************************************             
  ** File:   [GetReceivingOurchaseOrderViewById]             
  ** Author:    
  ** Description: Get Search Data for SOQ List   
@@ -167,8 +167,10 @@ BEGIN
 		LEFT JOIN  [dbo].[GLAccount] GL WITH(NOLOCK) ON GL.GLAccountId = SLD.GLAccountId
 		LEFT JOIN  [dbo].[Condition] C WITH(NOLOCK) ON C.ConditionId = SLD.ConditionId
 		LEFT JOIN  [dbo].[ItemMaster] IMN WITH(NOLOCK) ON IMN.ItemMasterId = SLD.NHAItemMasterId
-		 AND ISNULL(IMN.IsNonStock,0) = 0 LEFT JOIN  [dbo].[ItemMaster] IMT WITH(NOLOCK) ON IMT.ItemMasterId = SLD.TLAItemMasterId
-		 AND ISNULL(IMT.IsNonStock,0) = 0 LEFT JOIN  [dbo].[Site] S WITH(NOLOCK) ON S.SiteId = SLD.SiteId
+		 AND ISNULL(IMN.IsNonStock,0) = 0
+		 LEFT JOIN  [dbo].[ItemMaster] IMT WITH(NOLOCK) ON IMT.ItemMasterId = SLD.TLAItemMasterId
+		 AND ISNULL(IMT.IsNonStock,0) = 0
+		  LEFT JOIN  [dbo].[Site] S WITH(NOLOCK) ON S.SiteId = SLD.SiteId
 		LEFT JOIN  [dbo].[Warehouse] W WITH(NOLOCK) ON W.WarehouseId = SLD.WarehouseId
 		LEFT JOIN  [dbo].[Location] L WITH(NOLOCK) ON L.LocationId = SLD.LocationId
 		LEFT JOIN  [dbo].[Shelf] SH WITH(NOLOCK) ON SH.ShelfId = SLD.ShelfId
@@ -392,8 +394,10 @@ BEGIN
 		LEFT JOIN  [dbo].[GLAccount] GL WITH(NOLOCK) ON GL.GLAccountId = SL.GLAccountId
 		LEFT JOIN  [dbo].[Condition] C WITH(NOLOCK) ON C.ConditionId = SL.ConditionId
 		LEFT JOIN  [dbo].[ItemMaster] IMN WITH(NOLOCK) ON IMN.ItemMasterId = SL.NHAItemMasterId
-		 AND ISNULL(IMN.IsNonStock,0) = 0 LEFT JOIN  [dbo].[ItemMaster] IMT WITH(NOLOCK) ON IMT.ItemMasterId = SL.TLAItemMasterId
-		 AND ISNULL(IMT.IsNonStock,0) = 0 LEFT JOIN  [dbo].[Site] S WITH(NOLOCK) ON S.SiteId = SL.SiteId
+		 AND ISNULL(IMN.IsNonStock,0) = 0
+		 LEFT JOIN  [dbo].[ItemMaster] IMT WITH(NOLOCK) ON IMT.ItemMasterId = SL.TLAItemMasterId
+		 AND ISNULL(IMT.IsNonStock,0) = 0
+		  LEFT JOIN  [dbo].[Site] S WITH(NOLOCK) ON S.SiteId = SL.SiteId
 		LEFT JOIN  [dbo].[Warehouse] W WITH(NOLOCK) ON W.WarehouseId = SL.WarehouseId
 		LEFT JOIN  [dbo].[Location] L WITH(NOLOCK) ON L.LocationId = SL.LocationId
 		LEFT JOIN  [dbo].[Shelf] SH WITH(NOLOCK) ON SH.ShelfId = SL.ShelfId

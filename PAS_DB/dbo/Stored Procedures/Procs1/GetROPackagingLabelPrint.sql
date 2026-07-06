@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [GetROPackagingLabelPrint]
  ** Author: unknown
  ** Description:
@@ -44,7 +44,8 @@ BEGIN
 		INNER JOIN RepairOrder so WITH(NOLOCK) on so.RepairOrderId = sop.RepairOrderId
 		LEFT JOIN Stockline sl WITH(NOLOCK) on sl.StockLineId = sop.StockLineId
 		LEFT JOIN ItemMaster imt WITH(NOLOCK) on imt.ItemMasterId = sop.ItemMasterId
-		 AND ISNULL(imt.IsNonStock,0) = 0 LEFT JOIN Condition co WITH(NOLOCK) on co.ConditionId = sop.ConditionId
+		 AND ISNULL(imt.IsNonStock,0) = 0
+		 LEFT JOIN Condition co WITH(NOLOCK) on co.ConditionId = sop.ConditionId
 		LEFT JOIN UnitOfMeasure uom WITH(NOLOCK) on uom.UnitOfMeasureId = sl.PurchaseUnitOfMeasureId
 		LEFT JOIN DBO.RepairOrderShippingItem SOSI WITH(NOLOCK) ON SOSI.RepairOrderPartId = sopt.RepairOrderPartId AND sopt.ROPickTicketId = SOSI.ROPickTicketId
 		LEFT JOIN DBO.RepairOrderShipping SOS WITH(NOLOCK) ON SOS.RepairOrderShippingId = SOSI.RepairOrderShippingId AND SOS.RepairOrderId = @RepairOrderId

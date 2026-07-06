@@ -1,4 +1,4 @@
-﻿/*************************************************************             
+/*************************************************************             
  ** File:   [GetCommonScrapCertificateist]             
  ** Author:   SUBHASH  Saliya  
  ** Description: Get Search Data for Scrap Certificate List  
@@ -124,9 +124,11 @@ BEGIN
 				INNER JOIN [dbo].[Stockline] ST WITH (NOLOCK) ON ST.StockLineId=WOPN.StockLineId AND ST.IsParent = 1
 				 LEFT JOIN [dbo].[ScrapCertificate] SC WITH (NOLOCK) ON SC.WorkOrderId=WO.WorkOrderId AND WOPN.ID=SC.workOrderPartNoId
 				 LEFT JOIN [dbo].[ItemMaster] imt WITH(NOLOCK) on imt.ItemMasterId = WOPN.ItemMasterId
-				 AND ISNULL(imt.IsNonStock,0) = 0 WHERE SC.MasterCompanyId=@MasterCompanyId and isnull(SC.isSubWorkOrder,0)= 0 
+				 AND ISNULL(imt.IsNonStock,0) = 0
+				  WHERE SC.MasterCompanyId=@MasterCompanyId and isnull(SC.isSubWorkOrder,0)= 0 
 
-			 AND ISNULL(IM.IsNonStock,0) = 0 UNION ALL
+			 AND ISNULL(IM.IsNonStock,0) = 0
+				  UNION ALL
 
 			SELECT DISTINCT UPPER(WO.WorkOrderNum) as WorkOrderNumber
 				,UPPER(WO.CustomerName) CustomerName

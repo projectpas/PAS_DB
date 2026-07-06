@@ -1,4 +1,4 @@
-﻿/***************************************************************  
+/***************************************************************  
  ** File:  [USP_GetAircraftMappingDataByPublicationId]            
  ** Author: Ayushi Patel  
  ** Description: Get aircraft mapping data by publication ID.
@@ -49,7 +49,8 @@ BEGIN
           AND ISNULL(im.IsActive,0) = 1
           AND ISNULL(im.IsDeleted,0) = 0
           AND pim.PublicationRecordId = @PublicationId
-     AND ISNULL(im.IsNonStock,0) = 0 END TRY
+     AND ISNULL(im.IsNonStock,0) = 0
+           END TRY
     BEGIN CATCH
 		SELECT
 		ERROR_NUMBER() AS ErrorNumber,

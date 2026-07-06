@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [sp_GetPickTicketApproveList_MainPart]           
  ** Author:   Hemant Saliya
  ** Description: This stored procedure is used Get WO MPN List that are Ready to Pick.    
@@ -66,7 +66,8 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 				LEFT JOIN Customer cr WITH (NOLOCK) on cr.CustomerId = wo.CustomerId
 			WHERE wowf.WorkOrderId = @referenceId AND (@IsTearDownWO = 1 OR wop.IsFinishGood = 1)
 				AND (wop.Quantity > 0 OR wopt.WorkFlowWorkOrderId IS NOT NULL)
-			 AND ISNULL(imt.IsNonStock,0) = 0 GROUP BY wowf.WorkOrderPartNoId,wop.WorkOrderId,imt.PartNumber,imt.PartDescription, wop.Quantity,sl.SerialNumber,
+			 AND ISNULL(imt.IsNonStock,0) = 0
+				 GROUP BY wowf.WorkOrderPartNoId,wop.WorkOrderId,imt.PartNumber,imt.PartDescription, wop.Quantity,sl.SerialNumber,
 				sl.QuantityAvailable,wo.WorkOrderNum,wop.ItemMasterId,sl.ConditionId,cr.[Name],cr.CustomerCode,sl.isSerialized,wop.RevisedItemmasterid,wop.RevisedPartNumber,wop.RevisedPartDescription,wop.RevisedSerialNumber;
 				
 		END

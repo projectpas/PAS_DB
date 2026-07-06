@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [GetScrapDeatilsById]           
  ** Author: Subhahs Saliya
  ** Description: This stored procedure is used retrieve Scrap Certificate Data userd
@@ -68,12 +68,14 @@ BEGIN
 				INNER JOIN [dbo].[Stockline] ST WITH (NOLOCK) ON ST.StockLineId=WOPN.StockLineId AND ST.IsParent = 1
 				 LEFT JOIN [dbo].[ScrapCertificate] SC WITH (NOLOCK) ON SC.WorkOrderId=WO.WorkOrderId AND WOPN.ID=SC.workOrderPartNoId
 				 LEFT JOIN [dbo].[ItemMaster] imt WITH(NOLOCK) ON imt.ItemMasterId = WOPN.ItemMasterId
-				  AND ISNULL(imt.IsNonStock,0) = 0 LEFT JOIN [dbo].[ScrapReason] SR WITH (NOLOCK) ON SR.Id=SC.ScrapReasonId 
+				  AND ISNULL(imt.IsNonStock,0) = 0
+				  LEFT JOIN [dbo].[ScrapReason] SR WITH (NOLOCK) ON SR.Id=SC.ScrapReasonId 
 				 LEFT JOIN [dbo].[vendor] vo WITH (NOLOCK) ON vo.vendorid=SC.ScrapedByVendorId 
 				 LEFT JOIN [dbo].[employee] EM WITH (NOLOCK) ON EM.EmployeeId=SC.ScrapedByEmployeeId 
 				 LEFT JOIN [dbo].[employee] EMc WITH (NOLOCK) ON EMc.EmployeeId=SC.CertifiedById 
 			    WHERE WOPN.ID=@workOrderPartNoId and WO.WorkOrderId=@workOrderId 
-			 AND ISNULL(IM.IsNonStock,0) = 0 END
+			 AND ISNULL(IM.IsNonStock,0) = 0
+			     END
 			BEGIN
 
 			  DECLARE @ManagementStructureId INT;
@@ -116,7 +118,8 @@ BEGIN
 				 LEFT JOIN [dbo].[employee] EM WITH (NOLOCK) ON EM.EmployeeId=SC.ScrapedByEmployeeId 
 				 LEFT JOIN [dbo].[employee] EMc WITH (NOLOCK) ON EMc.EmployeeId=SC.CertifiedById 
 			    Where SWOPN.SubWOPartNoId=@workOrderPartNoId and SWO.SubWorkOrderId=@workOrderId and SC.isSubWorkOrder= 1 
-			 AND ISNULL(IM.IsNonStock,0) = 0 END
+			 AND ISNULL(IM.IsNonStock,0) = 0
+			     END
 
 				
 

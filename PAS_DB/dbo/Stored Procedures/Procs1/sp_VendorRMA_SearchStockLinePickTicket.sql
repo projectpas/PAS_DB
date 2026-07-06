@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [dbo].[sp_VendorRMA_SearchStockLinePickTicket]          
  ** Author:   Amit Ghediya
  ** Description: Get pick ticket stockline data to pick for Vendor RMA.
@@ -97,7 +97,8 @@ BEGIN
 					--((
 					--(SELECT ISNULL(SUM(ship_item.QtyShipped), 0) FROM DBO.RMAShipping ship WITH(NOLOCK) LEFT JOIN RMAShippingItem ship_item WITH(NOLOCK) on ship_item.RMAShippingId = ship.RMAShippingId AND ship.VendorRMAId = @VendorRMAId and ship_item.VendorRMADetailId = sop.VendorRMADetailId)) - 
 					--(SELECT ISNULL(SUM(QtyToShip), 0) FROM RMAPickTicket s WITH(NOLOCK) Where s.VendorRMAId = @VendorRMAId AND s.VendorRMADetailId = sop.VendorRMADetailId)) > 0
-				 AND ISNULL(im.IsNonStock,0) = 0 GROUP BY sop.VendorRMADetailId,im.PartNumber,sl.StockLineId,im.ItemMasterId ,im.ItemMasterId,im.PartDescription ,ig.Description ,mf.Name,im.ManufacturerId,sl.ConditionId
+				 AND ISNULL(im.IsNonStock,0) = 0
+					 GROUP BY sop.VendorRMADetailId,im.PartNumber,sl.StockLineId,im.ItemMasterId ,im.ItemMasterId,im.PartDescription ,ig.Description ,mf.Name,im.ManufacturerId,sl.ConditionId
 					,sl.StockLineNumber ,sl.SerialNumber,sl.ControlNumber,sl.IdNumber,sl.QuantityAvailable,sl.QuantityOnHand,im.IsPma,im.IsDER,so.VendorRMAId ,sop.ItemMasterId,sl.PurchaseOrderUnitCost
 					,sl.TraceableToType,cusTraceble.Name,vTraceble.VendorName,leTraceble.Name,sl.TraceableTo,sl.TagType,sl.TagDate,sl.CertifiedBy,sl.CertifiedDate,sl.Memo,Smf.Name
 		END
@@ -175,7 +176,8 @@ BEGIN
 					--(((SELECT ISNULL(SUM(ship_item.QtyShipped), 0) FROM DBO.RMAShipping ship WITH(NOLOCK) LEFT JOIN RMAShippingItem ship_item WITH(NOLOCK) on ship_item.RMAShippingId = ship.RMAShippingId AND ship.VendorRMAId = @VendorRMAId and ship_item.VendorRMADetailId = sop.VendorRMADetailId)) - 
 					--(SELECT ISNULL(SUM(QtyToShip), 0) FROM RMAPickTicket s WITH(NOLOCK) Where s.VendorRMAId = @VendorRMAId AND s.VendorRMADetailId = sop.VendorRMADetailId)
 					--) > 0
-				 AND ISNULL(im.IsNonStock,0) = 0 GROUP BY sop.VendorRMADetailId,im.PartNumber,sl.StockLineId,im.ItemMasterId ,im.ItemMasterId,im.PartDescription ,ig.Description ,mf.Name,im.ManufacturerId,sl.ConditionId
+				 AND ISNULL(im.IsNonStock,0) = 0
+					 GROUP BY sop.VendorRMADetailId,im.PartNumber,sl.StockLineId,im.ItemMasterId ,im.ItemMasterId,im.PartDescription ,ig.Description ,mf.Name,im.ManufacturerId,sl.ConditionId
 					,sl.StockLineNumber ,sl.SerialNumber,sl.ControlNumber,sl.IdNumber,sl.QuantityAvailable,sl.QuantityOnHand,im.IsPma,im.IsDER,so.VendorRMAId ,sop.ItemMasterId,sl.PurchaseOrderUnitCost
 					,sl.TraceableToType,cusTraceble.Name,vTraceble.VendorName,leTraceble.Name,sl.TraceableTo,sl.TagType,sl.TagDate,sl.CertifiedBy,sl.CertifiedDate,sl.Memo,Smf.Name
 					

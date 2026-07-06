@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [USP_GetWorkOrderPartsView]           
  ** Author:   Abhishek Jirawla
  ** Description: Get work order parts view
@@ -110,7 +110,8 @@ BEGIN
 		INNER JOIN [dbo].[WorkScope] ws WITH (NOLOCK) ON wop.[WorkOrderScopeId] = ws.[WorkScopeId]
 		INNER JOIN [dbo].[ItemMaster] im WITH (NOLOCK) ON wop.[ItemMasterId] = im.[ItemMasterId]
 		 LEFT JOIN [dbo].[ItemMaster] im1 WITH (NOLOCK) ON im.[RevisedPartId] = im1.[ItemMasterId]
-		  AND ISNULL(im1.IsNonStock,0) = 0 LEFT JOIN [dbo].[ItemGroup] ig WITH (NOLOCK) ON im.[ItemGroupId] = ig.[ItemGroupId]
+		  AND ISNULL(im1.IsNonStock,0) = 0
+		  LEFT JOIN [dbo].[ItemGroup] ig WITH (NOLOCK) ON im.[ItemGroupId] = ig.[ItemGroupId]
 		INNER JOIN [dbo].[WorkOrderStage] wos WITH (NOLOCK) ON wop.[WorkOrderStageId] = wos.[WorkOrderStageId]
 		INNER JOIN [dbo].[WorkOrderStatus] wost WITH (NOLOCK) ON wop.[WorkOrderStatusId] = wost.[Id]
 		 LEFT JOIN [dbo].[WorkOrderApproval] wopp WITH (NOLOCK) ON wop.[ID] = wopp.[WorkOrderPartNoId]
@@ -128,7 +129,8 @@ BEGIN
 		WHERE wop.WorkOrderId = @WorkOrderId
 		  AND wop.IsDeleted = 0
 		  --AND (cm.Name IS NULL OR cm.Code = @CorrectiveActionCode)
-		 AND ISNULL(im.IsNonStock,0) = 0 ORDER BY Wop.ID
+		 AND ISNULL(im.IsNonStock,0) = 0
+		   ORDER BY Wop.ID
 
 	END TRY    
 	BEGIN CATCH      

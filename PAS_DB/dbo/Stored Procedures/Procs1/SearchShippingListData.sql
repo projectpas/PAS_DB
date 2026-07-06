@@ -1,4 +1,4 @@
-﻿-- =============================================
+-- =============================================
 -- Author:		<Ayesha Sultana>
 -- Create date: <7/8/2023>
 -- Description:	<Search Shipping List Data>
@@ -111,7 +111,8 @@ BEGIN
 							INNER JOIN DBO.WorkOrder wo WITH (NOLOCK)  ON wo.WorkOrderId = wop.WorkOrderId
 							LEFT JOIN DBO.WorkOrderShipping wos WITH (NOLOCK)  ON wos.WorkOrderId = wo.WorkOrderId
 							LEFT JOIN DBO.ItemMaster imt  WITH (NOLOCK) on imt.ItemMasterId = wop.ItemMasterId
-							 AND ISNULL(imt.IsNonStock,0) = 0 LEFT JOIN DBO.Priority P WITH (NOLOCK)  ON P.PriorityId = wop.WorkOrderPriorityId
+							 AND ISNULL(imt.IsNonStock,0) = 0
+							 LEFT JOIN DBO.Priority P WITH (NOLOCK)  ON P.PriorityId = wop.WorkOrderPriorityId
 							LEFT JOIN DBO.WorkOrderShippingItem WOSI WITH (NOLOCK) ON WOSI.WorkOrderShippingId = WOS.WorkOrderShippingId AND WOSI.WOPickTicketId=WOPT.PickTicketId
 							LEFT JOIN DBO.WorkOrderPackaginSlipItems WOPSI WITH (NOLOCK) ON WOPSI.WOPartNoId = WOP.ID AND WOPSI.WOPickTicketId=WOPT.PickTicketId
 							LEFT JOIN DBO.ShippingVia SV WITH (NOLOCK)  ON SV.ShippingViaId = wos.ShipViaId -- and SV.IsPrimary=1
@@ -158,7 +159,8 @@ BEGIN
 						LEFT JOIN DBO.SalesOrderPackaginSlipItems SOPSI WITH (NOLOCK) ON SOPSI.SalesOrderPartId = SOP.SalesOrderPartId and SOPSI.SOPickTicketId = sopt.SOPickTicketId					
 						LEFT JOIN DBO.SalesOrderShipping SOS WITH (NOLOCK) ON SOS.SalesOrderShippingId = SOSI.SalesOrderShippingId
 						LEFT JOIN DBO.ItemMaster ITM WITH (NOLOCK) ON ITM.ItemMasterId = sop.ItemMasterId
-						 AND ISNULL(ITM.IsNonStock,0) = 0 LEFT JOIN DBO.Priority P WITH (NOLOCK)  ON P.PriorityId = sop.PriorityId
+						 AND ISNULL(ITM.IsNonStock,0) = 0
+						 LEFT JOIN DBO.Priority P WITH (NOLOCK)  ON P.PriorityId = sop.PriorityId
 						LEFT JOIN DBO.ShippingVia SV WITH (NOLOCK)  ON SV.ShippingViaId = sos.ShipViaId -- and SV.IsPrimary=1
 						LEFT JOIN [dbo].[BillingInvoicingItems] BII WITH (NOLOCK) ON BII.SubReferenceId = sop.SalesOrderPartId AND ISNULL(BII.IsVersionIncrease,0) = 0 AND ISNULL(BII.IsPerformaInvoice, 0) = 0 AND BII.ModuleId = @salesOrderModuleId
 						LEFT JOIN [dbo].[BillingInvoicing] BI WITH (NOLOCK) ON BI.BillingInvoicingId = BII.BillingInvoicingId AND ISNULL(BI.IsVersionIncrease,0) = 0 AND BI.IsVersionIncrease = 0 AND ISNULL(BI.IsPerformaInvoice, 0) = 0 AND BI.ModuleId = @salesOrderModuleId      
@@ -199,7 +201,8 @@ BEGIN
 							LEFT JOIN DBO.ExchangeSalesOrderShipping SOS WITH (NOLOCK) ON SOS.ExchangeSalesOrderId = SO.ExchangeSalesOrderId
 							INNER JOIN DBO.ExchangeSOPickTicket sopt WITH (NOLOCK) on sopt.ExchangeSalesOrderId = sop.ExchangeSalesOrderId AND sopt.ExchangeSalesOrderPartId = sop.ExchangeSalesOrderPartId
 							LEFT JOIN DBO.ItemMaster ITM WITH (NOLOCK) on ITM.ItemMasterId = sop.ItemMasterId
-							 AND ISNULL(ITM.IsNonStock,0) = 0 LEFT JOIN DBO.Priority P WITH (NOLOCK)  ON P.PriorityId = sop.PriorityId
+							 AND ISNULL(ITM.IsNonStock,0) = 0
+							 LEFT JOIN DBO.Priority P WITH (NOLOCK)  ON P.PriorityId = sop.PriorityId
 							LEFT JOIN DBO.ExchangeSalesOrderShippingItem SOSI WITH (NOLOCK) ON SOSI.ExchangeSalesOrderShippingId = SOS.ExchangeSalesOrderShippingId AND sosi.SOPickTicketId = sopt.SOPickTicketId
 							LEFT JOIN DBO.ExchangeSalesOrderPackaginSlipItems SOPSI WITH (NOLOCK) ON SOPSI.ExchangeSalesOrderPartId = SOP.ExchangeSalesOrderPartId and SOPSI.SOPickTicketId = sopt.SOPickTicketId
 							LEFT JOIN DBO.ShippingVia SV WITH (NOLOCK)  ON SV.ShippingViaId = sos.ShipViaId -- and SV.IsPrimary=1
@@ -251,7 +254,8 @@ BEGIN
 					 	--and RPT.RMAPickTicketId not in(SELECT RMAPickTicketId FROM DBO.RMAShippingItem RSI 
 							--			WHERE RSI.IsDeleted = 0) 
 
-					 AND ISNULL(IMT.IsNonStock,0) = 0 GROUP BY VD.VendorRMAId,VR.RMANumber,IMT.partnumber,IMT.PartDescription,V.VendorName,v.VendorId,IMT.[Priority],RS.AirwayBill,RPT.ConfirmedDate,RS.AirwayBill,
+					 AND ISNULL(IMT.IsNonStock,0) = 0
+							 GROUP BY VD.VendorRMAId,VR.RMANumber,IMT.partnumber,IMT.PartDescription,V.VendorName,v.VendorId,IMT.[Priority],RS.AirwayBill,RPT.ConfirmedDate,RS.AirwayBill,
 								IMT.ItemMasterId , RPT.RMAPickTicketId , RS.RMAShippingId,RSI.QtyShipped,VD.Qty ,RPSI.PackagingSlipId ,VD.VendorRMADetailId,RS.ShipDate,SV.Name
 
 						),
@@ -395,7 +399,8 @@ BEGIN
 							INNER JOIN DBO.WorkOrder wo WITH (NOLOCK)  ON wo.WorkOrderId = wop.WorkOrderId
 							LEFT JOIN DBO.WorkOrderShipping wos WITH (NOLOCK)  ON wos.WorkOrderId = wo.WorkOrderId
 							LEFT JOIN DBO.ItemMaster imt  WITH (NOLOCK) on imt.ItemMasterId = wop.ItemMasterId
-							 AND ISNULL(imt.IsNonStock,0) = 0 LEFT JOIN DBO.Priority P WITH (NOLOCK)  ON P.PriorityId = wop.WorkOrderPriorityId
+							 AND ISNULL(imt.IsNonStock,0) = 0
+							 LEFT JOIN DBO.Priority P WITH (NOLOCK)  ON P.PriorityId = wop.WorkOrderPriorityId
 							LEFT JOIN DBO.WorkOrderShippingItem WOSI WITH (NOLOCK) ON WOSI.WorkOrderShippingId = WOS.WorkOrderShippingId AND WOSI.WOPickTicketId=WOPT.PickTicketId
 							LEFT JOIN DBO.WorkOrderPackaginSlipItems WOPSI WITH (NOLOCK) ON WOPSI.WOPartNoId = WOP.ID AND WOPSI.WOPickTicketId=WOPT.PickTicketId
 							LEFT JOIN DBO.ShippingVia SV WITH (NOLOCK)  ON SV.ShippingViaId = wos.ShipViaId -- and sv.CustomerId=wos.customerid and SV.IsPrimary=1
@@ -441,7 +446,8 @@ BEGIN
 						LEFT JOIN DBO.SalesOrderPackaginSlipItems SOPSI WITH (NOLOCK) ON SOPSI.SalesOrderPartId = SOP.SalesOrderPartId and SOPSI.SOPickTicketId = sopt.SOPickTicketId					
 						LEFT JOIN DBO.SalesOrderShipping SOS WITH (NOLOCK) ON SOS.SalesOrderShippingId = SOSI.SalesOrderShippingId
 						LEFT JOIN DBO.ItemMaster ITM WITH (NOLOCK) ON ITM.ItemMasterId = sop.ItemMasterId
-						 AND ISNULL(ITM.IsNonStock,0) = 0 LEFT JOIN DBO.Priority P WITH (NOLOCK)  ON P.PriorityId = sop.PriorityId
+						 AND ISNULL(ITM.IsNonStock,0) = 0
+						 LEFT JOIN DBO.Priority P WITH (NOLOCK)  ON P.PriorityId = sop.PriorityId
 						LEFT JOIN DBO.ShippingVia SV WITH (NOLOCK)  ON SV.ShippingViaId = sos.ShipViaId
 						LEFT JOIN [dbo].[BillingInvoicingItems] BII WITH (NOLOCK) ON BII.SubReferenceId = sop.SalesOrderPartId AND ISNULL(BII.IsVersionIncrease,0) = 0 AND ISNULL(BII.IsPerformaInvoice, 0) = 0 AND BII.ModuleId = @salesOrderModuleId
 						LEFT JOIN [dbo].[BillingInvoicing] BI WITH (NOLOCK) ON BI.BillingInvoicingId = BII.BillingInvoicingId AND ISNULL(BI.IsVersionIncrease,0) = 0 AND BI.IsVersionIncrease = 0 AND ISNULL(BI.IsPerformaInvoice, 0) = 0 AND BI.ModuleId = @salesOrderModuleId      
@@ -483,7 +489,8 @@ BEGIN
 							LEFT JOIN DBO.ExchangeSalesOrderShipping SOS WITH (NOLOCK) ON SOS.ExchangeSalesOrderId = SO.ExchangeSalesOrderId
 							INNER JOIN DBO.ExchangeSOPickTicket sopt WITH (NOLOCK) on sopt.ExchangeSalesOrderId = sop.ExchangeSalesOrderId AND sopt.ExchangeSalesOrderPartId = sop.ExchangeSalesOrderPartId
 							LEFT JOIN DBO.ItemMaster ITM WITH (NOLOCK) on ITM.ItemMasterId = sop.ItemMasterId
-							 AND ISNULL(ITM.IsNonStock,0) = 0 LEFT JOIN DBO.Priority P WITH (NOLOCK)  ON P.PriorityId = sop.PriorityId
+							 AND ISNULL(ITM.IsNonStock,0) = 0
+							 LEFT JOIN DBO.Priority P WITH (NOLOCK)  ON P.PriorityId = sop.PriorityId
 							LEFT JOIN DBO.ExchangeSalesOrderShippingItem SOSI WITH (NOLOCK) ON SOSI.ExchangeSalesOrderShippingId = SOS.ExchangeSalesOrderShippingId AND sosi.SOPickTicketId = sopt.SOPickTicketId
 							LEFT JOIN DBO.ExchangeSalesOrderPackaginSlipItems SOPSI WITH (NOLOCK) ON SOPSI.ExchangeSalesOrderPartId = SOP.ExchangeSalesOrderPartId and SOPSI.SOPickTicketId = sopt.SOPickTicketId
 							LEFT JOIN DBO.ShippingVia SV WITH (NOLOCK)  ON SV.ShippingViaId = sos.ShipViaId -- and sv.CustomerId=sos.CustomerId and SV.IsPrimary=1
@@ -532,7 +539,8 @@ BEGIN
 
 					 WHERE  RPT.IsDeleted = 0 and RPT.MasterCompanyId= @MasterCompanyId  and vr.IsDeleted = 0 and RPT.IsConfirmed = 1 AND  RS.AirwayBill IS NOT NULL
 
-					  AND ISNULL(IMT.IsNonStock,0) = 0 GROUP BY VD.VendorRMAId,VR.RMANumber,IMT.partnumber,IMT.PartDescription,V.VendorName,v.VendorId,IMT.[Priority],RS.AirwayBill,RS.ShipDate,SV.Name,RS.AirwayBill,
+					  AND ISNULL(IMT.IsNonStock,0) = 0
+					  GROUP BY VD.VendorRMAId,VR.RMANumber,IMT.partnumber,IMT.PartDescription,V.VendorName,v.VendorId,IMT.[Priority],RS.AirwayBill,RS.ShipDate,SV.Name,RS.AirwayBill,
 								IMT.RevisedPartId , RPT.RMAPickTicketId , RS.RMAShippingId,RSI.QtyShipped,VD.Qty ,RPSI.PackagingSlipId ,VD.VendorRMADetailId
 
 						),
@@ -674,7 +682,8 @@ BEGIN
 							INNER JOIN DBO.WorkOrder wo WITH (NOLOCK)  ON wo.WorkOrderId = wop.WorkOrderId
 							LEFT JOIN DBO.WorkOrderShipping wos WITH (NOLOCK)  ON wos.WorkOrderId = wo.WorkOrderId
 							LEFT JOIN DBO.ItemMaster imt  WITH (NOLOCK) on imt.ItemMasterId = wop.ItemMasterId
-							 AND ISNULL(imt.IsNonStock,0) = 0 LEFT JOIN DBO.Priority P WITH (NOLOCK)  ON P.PriorityId = wop.WorkOrderPriorityId
+							 AND ISNULL(imt.IsNonStock,0) = 0
+							 LEFT JOIN DBO.Priority P WITH (NOLOCK)  ON P.PriorityId = wop.WorkOrderPriorityId
 							LEFT JOIN DBO.WorkOrderShippingItem WOSI WITH (NOLOCK) ON WOSI.WorkOrderShippingId = WOS.WorkOrderShippingId AND WOSI.WOPickTicketId=WOPT.PickTicketId
 							LEFT JOIN DBO.WorkOrderPackaginSlipItems WOPSI WITH (NOLOCK) ON WOPSI.WOPartNoId = WOP.ID AND WOPSI.WOPickTicketId=WOPT.PickTicketId
 							LEFT JOIN DBO.CustomerDomensticShippingShipVia SV WITH (NOLOCK)  ON SV.CustomerId = wo.CustomerId and SV.IsPrimary=1
@@ -723,7 +732,8 @@ BEGIN
 						LEFT JOIN DBO.SalesOrderPackaginSlipItems SOPSI WITH (NOLOCK) ON SOPSI.SalesOrderPartId = SOP.SalesOrderPartId and SOPSI.SOPickTicketId = sopt.SOPickTicketId					
 						LEFT JOIN DBO.SalesOrderShipping SOS WITH (NOLOCK) ON SOS.SalesOrderShippingId = SOSI.SalesOrderShippingId
 						LEFT JOIN DBO.ItemMaster ITM WITH (NOLOCK) ON ITM.ItemMasterId = sop.ItemMasterId
-						 AND ISNULL(ITM.IsNonStock,0) = 0 LEFT JOIN DBO.Priority P WITH (NOLOCK)  ON P.PriorityId = sop.PriorityId
+						 AND ISNULL(ITM.IsNonStock,0) = 0
+						 LEFT JOIN DBO.Priority P WITH (NOLOCK)  ON P.PriorityId = sop.PriorityId
 						LEFT JOIN DBO.ShippingVia SV WITH (NOLOCK)  ON SV.ShippingViaId = sos.ShipViaId
 						LEFT JOIN [dbo].[BillingInvoicingItems] BII WITH (NOLOCK) ON BII.SubReferenceId = sop.SalesOrderPartId AND ISNULL(BII.IsVersionIncrease,0) = 0 AND ISNULL(BII.IsPerformaInvoice, 0) = 0 AND BII.ModuleId = @salesOrderModuleId
 						LEFT JOIN [dbo].[BillingInvoicing] BI WITH (NOLOCK) ON BI.BillingInvoicingId = BII.BillingInvoicingId AND ISNULL(BI.IsVersionIncrease,0) = 0 AND BI.IsVersionIncrease = 0 AND ISNULL(BI.IsPerformaInvoice, 0) = 0 AND BI.ModuleId = @salesOrderModuleId      
@@ -766,7 +776,8 @@ BEGIN
 							LEFT JOIN DBO.ExchangeSalesOrderShipping SOS WITH (NOLOCK) ON SOS.ExchangeSalesOrderId = SO.ExchangeSalesOrderId
 							INNER JOIN DBO.ExchangeSOPickTicket sopt WITH (NOLOCK) on sopt.ExchangeSalesOrderId = sop.ExchangeSalesOrderId AND sopt.ExchangeSalesOrderPartId = sop.ExchangeSalesOrderPartId
 							LEFT JOIN DBO.ItemMaster ITM WITH (NOLOCK) on ITM.ItemMasterId = sop.ItemMasterId
-							 AND ISNULL(ITM.IsNonStock,0) = 0 LEFT JOIN DBO.Priority P WITH (NOLOCK)  ON P.PriorityId = sop.PriorityId
+							 AND ISNULL(ITM.IsNonStock,0) = 0
+							 LEFT JOIN DBO.Priority P WITH (NOLOCK)  ON P.PriorityId = sop.PriorityId
 							LEFT JOIN DBO.ExchangeSalesOrderShippingItem SOSI WITH (NOLOCK) ON SOSI.ExchangeSalesOrderShippingId = SOS.ExchangeSalesOrderShippingId AND sosi.SOPickTicketId = sopt.SOPickTicketId
 							LEFT JOIN DBO.ExchangeSalesOrderPackaginSlipItems SOPSI WITH (NOLOCK) ON SOPSI.ExchangeSalesOrderPartId = SOP.ExchangeSalesOrderPartId and SOPSI.SOPickTicketId = sopt.SOPickTicketId
 							LEFT JOIN DBO.CustomerDomensticShippingShipVia SV WITH (NOLOCK)  ON SV.CustomerId = so.CustomerId and SV.IsPrimary=1
@@ -819,7 +830,8 @@ BEGIN
 								and RPT.RMAPickTicketId not in(SELECT RMAPickTicketId FROM DBO.RMAShippingItem RSI 
 										WHERE RSI.IsDeleted = 0) 
 
-					  AND ISNULL(IMT.IsNonStock,0) = 0 GROUP BY VD.VendorRMAId,VR.RMANumber,IMT.partnumber,IMT.PartDescription,V.VendorName,v.VendorId,IMT.[Priority],RS.AirwayBill,RPT.ConfirmedDate,RS.AirwayBill,
+					  AND ISNULL(IMT.IsNonStock,0) = 0
+										 GROUP BY VD.VendorRMAId,VR.RMANumber,IMT.partnumber,IMT.PartDescription,V.VendorName,v.VendorId,IMT.[Priority],RS.AirwayBill,RPT.ConfirmedDate,RS.AirwayBill,
 								IMT.ItemMasterId , RPT.RMAPickTicketId , RS.RMAShippingId,RSI.QtyShipped,VD.Qty ,RPSI.PackagingSlipId ,VD.VendorRMADetailId
 
 						),

@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [USP_SubWorkOrderHeaderDetails]           
  ** Author:   Bhargav Saliya 
  ** Description: Get Data for SubWork Order Header Details    
@@ -81,7 +81,8 @@ BEGIN
 		LEFT JOIN [dbo].[Currency] fcu WITH(NOLOCK) ON wo.FunctionalCurrencyId = fcu.CurrencyId AND fcu.IsActive = 1 AND fcu.IsDeleted = 0
 		LEFT JOIN [dbo].[Currency] rcu WITH(NOLOCK) ON wo.ReportCurrencyId = rcu.CurrencyId AND rcu.IsActive = 1 AND rcu.IsDeleted = 0
 		WHERE wo.WorkOrderId = @WorkOrderId AND wop.ID = @WorkOrderPartNumberId
-	 AND ISNULL(im.IsNonStock,0) = 0 END TRY
+	 AND ISNULL(im.IsNonStock,0) = 0
+		 END TRY
 	BEGIN CATCH  
    
     DECLARE @ErrorLogID int,  

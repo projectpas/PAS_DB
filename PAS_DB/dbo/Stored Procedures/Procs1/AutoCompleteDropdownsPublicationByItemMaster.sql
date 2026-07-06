@@ -1,4 +1,4 @@
-﻿
+
 /*************************************************************           
  ** File:   [AutoCompleteDropdownsItemMaster]           
  ** Author:   Hemant Saliya
@@ -50,7 +50,8 @@ AS
 					JOIN dbo.ItemMaster im WITH(NOLOCK) ON im.ItemMasterId = pim.ItemMasterId
 					WHERE (pb.IsActive = 1 AND ISNULL(pb.IsDeleted, 0) = 0 AND pb.MasterCompanyId = @MasterCompanyId AND pim.ItemMasterId = @ItemMasterId
 					AND (pb.PublicationId LIKE @StartWith + '%' OR pb.PublicationId  LIKE '%' + @StartWith + '%'))    
-			    AND ISNULL(im.IsNonStock,0) = 0 UNION     
+			    AND ISNULL(im.IsNonStock,0) = 0
+					 UNION     
 					SELECT 
 						pb.PublicationId AS Value, 
 						pb.PublicationRecordId AS Label,

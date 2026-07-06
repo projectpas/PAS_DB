@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [sp_GetPickTicketApproveList]           
  ** Author:   Vishal Suthar
  ** Description: This stored procedure is used to retrieve pickticket listing data
@@ -124,7 +124,8 @@ BEGIN
           AND sao.SalesOrderPartId = sop.SalesOrderPartId
           AND sao.ApprovalActionId = 5
         )
-		 AND ISNULL(imt.IsNonStock,0) = 0 group by sop.SalesOrderId,imt.PartNumber,imt.PartDescription,
+		 AND ISNULL(imt.IsNonStock,0) = 0
+         group by sop.SalesOrderId,imt.PartNumber,imt.PartDescription,
 		so.SalesOrderNumber,soq.SalesOrderQuoteNumber,sop.ItemMasterId,
 		sl.ConditionId, cr.[Name],cr.CustomerCode, sop.ConditionId
 		,sl.isSerialized, imt.ItemMasterId)

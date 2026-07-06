@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [USP_Lot_GetInitialPODetails]           
  ** Author:  Rajesh Gami
  ** Description: This stored procedure is used to Get Initial PO detail
@@ -884,7 +884,8 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 					 INNER JOIN dbo.SalesOrderQuote soq WITH(NOLOCK) on soqp.SalesOrderQuoteId = soq.SalesOrderQuoteId
 					 INNER JOIN #commonTemp sl on soqv.StockLineId = sl.StockLineId
 					 LEFT JOIN DBO.ItemMaster im WITH(NOLOCK) on sl.ItemMasterId = im.ItemMasterId
-					  AND ISNULL(im.IsNonStock,0) = 0 LEFT JOIN DBO.SalesOrder so WITH(NOLOCK) on soq.SalesOrderQuoteId = so.SalesOrderQuoteId
+					  AND ISNULL(im.IsNonStock,0) = 0
+					  LEFT JOIN DBO.SalesOrder so WITH(NOLOCK) on soq.SalesOrderQuoteId = so.SalesOrderQuoteId
 					 LEFT JOIN DBO.ItemClassification ic WITH(NOLOCK) ON im.ItemClassificationId = ic.ItemClassificationId
 					 LEFT JOIN DBO.ItemGroup ig WITH(NOLOCK) ON im.ItemGroupId = ig.ItemGroupId
 					 LEFT JOIN DBO.Condition c WITH(NOLOCK) ON c.ConditionId = sl.ConditionId

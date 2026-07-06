@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [GetPackagingLabelPrint]
  ** Author: unknown
  ** Description:
@@ -49,7 +49,8 @@ BEGIN
 		INNER JOIN dbo.SalesOrder so WITH(NOLOCK) on so.SalesOrderId = sop.SalesOrderId
 		LEFT JOIN dbo.Stockline sl WITH(NOLOCK) on sl.StockLineId = stk.StockLineId
 		LEFT JOIN dbo.ItemMaster imt WITH(NOLOCK) on imt.ItemMasterId = sop.ItemMasterId
-		 AND ISNULL(imt.IsNonStock,0) = 0 LEFT JOIN dbo.Condition co WITH(NOLOCK) on co.ConditionId = sop.ConditionId
+		 AND ISNULL(imt.IsNonStock,0) = 0
+		 LEFT JOIN dbo.Condition co WITH(NOLOCK) on co.ConditionId = sop.ConditionId
 		LEFT JOIN dbo.UnitOfMeasure uom WITH(NOLOCK) on uom.UnitOfMeasureId = sl.PurchaseUnitOfMeasureId
 		LEFT JOIN DBO.SalesOrderShippingItem SOSI WITH(NOLOCK) ON SOSI.SalesOrderPartId = sopt.SalesOrderPartId AND sopt.SOPickTicketId = SOSI.SOPickTicketId
 		LEFT JOIN DBO.SalesOrderShipping SOS WITH(NOLOCK) ON SOS.SalesOrderShippingId = SOSI.SalesOrderShippingId AND SOS.SalesOrderId = @SalesOrderId

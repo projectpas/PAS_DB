@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [usp_GetWorkOrderQuotesReport]           
  ** Author:   Swetha  
  ** Description: Get Data for WorkOrderQuotes Report
@@ -127,7 +127,8 @@ BEGIN
           ON WO.WorkOrderId = WOPN.WorkOrderId
         LEFT JOIN DBO.ItemMaster IM WITH (NOLOCK)
           ON WOPN.itemmasterId = IM.ItemMasterId
-         AND ISNULL(IM.IsNonStock,0) = 0 INNER JOIN DBO.WorkScope AS WS WITH (NOLOCK)
+         AND ISNULL(IM.IsNonStock,0) = 0
+           INNER JOIN DBO.WorkScope AS WS WITH (NOLOCK)
           ON WOPN.WorkOrderScopeId = WS.WorkScopeId
         LEFT JOIN DBO.CustomerContact CC WITH (NOLOCK)
           ON WO.CustomercontactId = CC.CustomerContactId

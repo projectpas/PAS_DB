@@ -1,4 +1,4 @@
-﻿
+
 /*************************************************************           
  ** File:   [usp_GetVendorUtilizationReport]           
  ** Author:   Swetha  
@@ -158,11 +158,13 @@ BEGIN
           ON WO.CustomerId = C.CustomerId
         LEFT JOIN DBO.Itemmaster IM WITH (NOLOCK)
           ON POP.itemmasterid = IM.itemmasterid
-         AND ISNULL(IM.IsNonStock,0) = 0 LEFT JOIN DBO.WorkOrderMaterials WOM WITH (NOLOCK)
+         AND ISNULL(IM.IsNonStock,0) = 0
+           LEFT JOIN DBO.WorkOrderMaterials WOM WITH (NOLOCK)
           ON POP.PurchaseOrderId = WOM.POId
         LEFT JOIN DBO.itemmaster IM1 WITH (NOLOCK)
           ON WOM.itemmasterid = IM1.itemmasterid
-         AND ISNULL(IM1.IsNonStock,0) = 0 INNER JOIN #ManagmetnStrcture MS WITH (NOLOCK)
+         AND ISNULL(IM1.IsNonStock,0) = 0
+           INNER JOIN #ManagmetnStrcture MS WITH (NOLOCK)
           ON MS.ManagementStructureId = PO.ManagementStructureId
 
       WHERE (PO.vendorname = @vendorname
@@ -235,10 +237,12 @@ BEGIN
           ON SO.CustomerId = C.CustomerId
         LEFT JOIN DBO.Itemmaster IM WITH (NOLOCK)
           ON POP.itemmasterid = IM.itemmasterid
-         AND ISNULL(IM.IsNonStock,0) = 0 LEFT JOIN DBO.itemmaster IM2 WITH (NOLOCK)
+         AND ISNULL(IM.IsNonStock,0) = 0
+           LEFT JOIN DBO.itemmaster IM2 WITH (NOLOCK)
           ON SOP.ItemMasterId = IM2.itemmasterid
           AND (SOP.ItemMasterId = POP.ItemMasterId)
-         AND ISNULL(IM2.IsNonStock,0) = 0 INNER JOIN #ManagmetnStrcture MS WITH (NOLOCK)
+         AND ISNULL(IM2.IsNonStock,0) = 0
+           INNER JOIN #ManagmetnStrcture MS WITH (NOLOCK)
           ON MS.ManagementStructureId = PO.ManagementStructureId
 
       WHERE (PO.vendorname = @vendorname

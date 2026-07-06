@@ -1,4 +1,4 @@
-﻿/***************************************************************  
+/***************************************************************  
  ** File:   [USP_GetWorkOrderQuoteDetails]             
  ** Author:   Hemnat Saliya
  ** Description: Get WorkOrder Quote Details
@@ -97,7 +97,8 @@ BEGIN
 			INNER JOIN [dbo].WorkOrderStatus st WITH(NOLOCK) ON wop.WorkOrderStatusId = st.Id
 			INNER JOIN [dbo].WorkScope ws WITH(NOLOCK) ON wop.WorkOrderScopeId = ws.WorkScopeId
 		WHERE wo.WorkOrderId = @WorkOrderId
-		 AND ISNULL(im.IsNonStock,0) = 0 ORDER BY wop.ID
+		 AND ISNULL(im.IsNonStock,0) = 0
+		 ORDER BY wop.ID
 	END TRY      
 	  BEGIN CATCH        
 	   IF @@trancount > 0  

@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [dbo].[SearchStockLinePickTicketPopForRO]          
  ** Author:   Vishal Suthar
  ** Description: Get pick ticket stockline data to pick
@@ -96,7 +96,8 @@ BEGIN
 					--	INNER JOIN ROPickTicket sopi with(nolock) on ship_item.SOPickTicketId = sopi.SOPickTicketId and sopi.SOPickTicketId = Pick.SOPickTicketId)
 					) - 
 					(SELECT ISNULL(SUM(QtyToShip), 0) FROM ROPickTicket s WITH(NOLOCK) Where s.RepairOrderId = @RepairOrderId AND s.StocklineId = sl.StocklineId)) > 0
-		 AND ISNULL(im.IsNonStock,0) = 0 END
+		 AND ISNULL(im.IsNonStock,0) = 0
+					 END
 		ELSE
 		BEGIN
 			SELECT DISTINCT
@@ -173,7 +174,8 @@ BEGIN
 					) - 
 					(SELECT ISNULL(SUM(QtyToShip), 0) FROM ROPickTicket s WITH(NOLOCK) Where s.RepairOrderId = @RepairOrderId AND s.StocklineId = sl.StocklineId)
 					) > 0
-		 AND ISNULL(im.IsNonStock,0) = 0 END
+		 AND ISNULL(im.IsNonStock,0) = 0
+					 END
 
 				
 	END

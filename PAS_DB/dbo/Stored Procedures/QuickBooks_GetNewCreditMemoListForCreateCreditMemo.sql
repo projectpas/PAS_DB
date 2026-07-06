@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:  [QuickBooks_GetNewCreditMemoListForCreateCreditMemo]          
  ** Author:   Bhargav Saliya
  ** Description: Get Credit Memo For Sync In  Xero    
@@ -98,7 +98,8 @@ BEGIN
                 FROM dbo.CreditMemoDetails CMD WITH(NOLOCK)
                 INNER JOIN dbo.CreditMemo CM WITH(NOLOCK) ON CM.CreditMemoHeaderId = CMD.CreditMemoHeaderId
                 LEFT JOIN dbo.ItemMaster IM WITH(NOLOCK) ON IM.ItemMasterId = CMD.ItemMasterId
-                 AND ISNULL(IM.IsNonStock,0) = 0 WHERE ISNULL(CM.QuickBooksReferenceId, '') = ''
+                 AND ISNULL(IM.IsNonStock,0) = 0
+                 WHERE ISNULL(CM.QuickBooksReferenceId, '') = ''
                   AND ISNULL(CM.IsUpdated, 1) = 1
                   AND CM.IsActive  = 1
                   AND CM.IsDeleted = 0
@@ -144,7 +145,8 @@ BEGIN
                 INNER JOIN dbo.VendorCreditMemo VCM WITH(NOLOCK) ON VCM.VendorCreditMemoId = VCMD.VendorCreditMemoId
                 LEFT JOIN dbo.Stockline SL WITH(NOLOCK) ON VCMD.StockLineId = SL.StockLineId
                 LEFT JOIN dbo.ItemMaster IM WITH(NOLOCK) ON IM.ItemMasterId = SL.ItemMasterId
-                 AND ISNULL(IM.IsNonStock,0) = 0 WHERE ISNULL(VCM.QuickBooksReferenceId, '') = ''
+                 AND ISNULL(IM.IsNonStock,0) = 0
+                 WHERE ISNULL(VCM.QuickBooksReferenceId, '') = ''
                   AND ISNULL(VCM.IsUpdated, 1) = 1
                   AND VCM.IsActive  = 1
                   AND VCM.IsDeleted = 0

@@ -1,4 +1,4 @@
-﻿/*************************************************************  
+/*************************************************************  
 ** Author:  <AMIT GHEDIYA>  
 ** Create date: <01/09/2024>  
 ** Description: 
@@ -87,7 +87,8 @@ BEGIN
 			LEFT JOIN dbo.SalesOrderStocklineV1 stk WITH(NOLOCK) ON stk.SalesOrderPartId = sop.SalesOrderPartId
 			LEFT JOIN dbo.SalesOrderPartCost sopc WITH(NOLOCK) ON sopc.SalesOrderPartId = sop.SalesOrderPartId
 			LEFT JOIN dbo.ItemMaster itemMaster WITH(NOLOCK) ON sop.ItemMasterId = itemMaster.ItemMasterId
-			 AND ISNULL(itemMaster.IsNonStock,0) = 0 LEFT JOIN dbo.UnitOfMeasure uom WITH(NOLOCK) ON itemMaster.ConsumeUnitOfMeasureId = uom.UnitOfMeasureId
+			 AND ISNULL(itemMaster.IsNonStock,0) = 0
+			 LEFT JOIN dbo.UnitOfMeasure uom WITH(NOLOCK) ON itemMaster.ConsumeUnitOfMeasureId = uom.UnitOfMeasureId
 			LEFT JOIN dbo.Condition cp WITH(NOLOCK) ON sop.ConditionId = cp.ConditionId
 			INNER JOIN dbo.Customer cust WITH(NOLOCK) ON so.CustomerId = cust.CustomerId
 			INNER JOIN dbo.Address custAddress WITH(NOLOCK) ON cust.AddressId = custAddress.AddressId

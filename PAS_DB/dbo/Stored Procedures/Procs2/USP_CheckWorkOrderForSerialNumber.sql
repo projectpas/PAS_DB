@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [USP_CheckWorkOrderForSerialNumber]           
  ** Author:  AMIT GHEDIYA
  ** Description: This stored procedure is used CheckWorkOrderForSerialNumber
@@ -34,7 +34,8 @@ BEGIN
 		LEFT JOIN [dbo].[WorkOrderPartNumber] WP WITH(NOLOCK) ON WO.WorkOrderId = WP.WorkOrderId
 		LEFT JOIN [dbo].[Stockline] SL WITH(NOLOCK) ON WP.StockLineId = SL.StockLineId
 		LEFT JOIN [dbo].[ItemMaster] IM WITH(NOLOCK) ON WP.ItemMasterId = IM.ItemMasterId
-		 AND ISNULL(IM.IsNonStock,0) = 0 WHERE 
+		 AND ISNULL(IM.IsNonStock,0) = 0
+		 WHERE 
 			  WP.[ItemMasterId] = @ItemMasterId
 			  AND SL.[SerialNumber] = @SerialNumber
 			  AND WO.[MasterCompanyId] = @MasterCompanyId

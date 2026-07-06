@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [usp_GetSOBacklogReport]           
  ** Author:   Swetha  
  ** Description: Get Data for SOBacklog Report  
@@ -115,7 +115,8 @@ BEGIN
         LEFT JOIN DBO.SalesOrderQuotePartCost SOQPC WITH (NOLOCK) ON SOQPC.SalesOrderQuotePartId = SOQP.SalesOrderQuotePartId
         LEFT JOIN DBO.Customer C WITH (NOLOCK) ON SOQ.CustomerId = C.CustomerId
         LEFT JOIN DBO.ItemMaster IM WITH (NOLOCK) ON SOQP.ItemMasterId = IM.ItemMasterId
-         AND ISNULL(IM.IsNonStock,0) = 0 LEFT JOIN DBO.SalesOrderPartV1 SOP WITH (NOLOCK) ON SO.SalesOrderId = SOP.SalesOrderId
+         AND ISNULL(IM.IsNonStock,0) = 0
+         LEFT JOIN DBO.SalesOrderPartV1 SOP WITH (NOLOCK) ON SO.SalesOrderId = SOP.SalesOrderId
         LEFT JOIN DBO.SalesOrderPartCost SOPC WITH (NOLOCK) ON SOPC.SalesOrderPartId = SOP.SalesOrderPartId
         LEFT JOIN DBO.Salesorderapproval SOA WITH (NOLOCK) ON So.SalesOrderId = SOA.SalesOrderId
         LEFT JOIN DBO.SalesOrderShipping SOS WITH (NOLOCK)

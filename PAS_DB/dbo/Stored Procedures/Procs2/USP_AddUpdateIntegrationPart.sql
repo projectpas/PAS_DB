@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [USP_AddUpdateIntegrationPart]           
  ** Author:  Rajesh Gami
  ** Description: This stored procedure is used to add update integration part like ILS,145 etc...
@@ -381,8 +381,10 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 					LEFT JOIN [dbo].[ILSChildPartDetail] ILS WITH (NOLOCK) ON IM.IntegrationMasterId = ILS.IntegrationMasterId
 					LEFT JOIN [dbo].[OneFourtyFiveChildPartDetail] OFC WITH (NOLOCK) ON IM.IntegrationMasterId = OFC.IntegrationMasterId
 					LEFT JOIN dbo.ItemMaster IMS WITH(NOLOCK) ON IM.[PartNumber] = IMS.[partnumber] AND IMS.[IsActive] = 1 AND IMS.[IsDeleted] = 0 AND IM.[MasterCompanyId] = IMS.[MasterCompanyId]
-					 AND ISNULL(IMS.IsNonStock,0) = 0 LEFT JOIN dbo.ItemMaster IMSC WITH(NOLOCK) ON ILS.[AltPartNumber] = IMSC.[partnumber] AND IMSC.[IsActive] = 1 AND IMSC.[IsDeleted] = 0 AND ILS.[MasterCompanyId] = IMSC.[MasterCompanyId]
-					 AND ISNULL(IMSC.IsNonStock,0) = 0 LEFT JOIN [dbo].[Customer] CU WITH(NOLOCK) ON IM.RepairStation = CU.[Name] AND IM.MasterCompanyId = CU.MasterCompanyId AND CU.[IsActive] = 1 AND CU.[IsDeleted] = 0
+					 AND ISNULL(IMS.IsNonStock,0) = 0
+					 LEFT JOIN dbo.ItemMaster IMSC WITH(NOLOCK) ON ILS.[AltPartNumber] = IMSC.[partnumber] AND IMSC.[IsActive] = 1 AND IMSC.[IsDeleted] = 0 AND ILS.[MasterCompanyId] = IMSC.[MasterCompanyId]
+					 AND ISNULL(IMSC.IsNonStock,0) = 0
+					  LEFT JOIN [dbo].[Customer] CU WITH(NOLOCK) ON IM.RepairStation = CU.[Name] AND IM.MasterCompanyId = CU.MasterCompanyId AND CU.[IsActive] = 1 AND CU.[IsDeleted] = 0
 					WHERE IM.IntegrationMasterId IN(SELECT ID FROM #tempTableIntegration)
 
 				
@@ -527,7 +529,8 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 					FROM DBO.IntegrationMaster IM WITH (NOLOCK) 
 					INNER JOIN [dbo].[OneFourtyFiveChildPartDetail] OFC WITH (NOLOCK) ON IM.IntegrationMasterId = OFC.IntegrationMasterId
 					LEFT JOIN dbo.ItemMaster IMS WITH(NOLOCK) ON IM.[PartNumber] = IMS.[partnumber] AND IMS.[IsActive] = 1 AND IMS.[IsDeleted] = 0 AND IM.[MasterCompanyId] = IMS.[MasterCompanyId]
-					 AND ISNULL(IMS.IsNonStock,0) = 0 LEFT JOIN [dbo].[Customer] CU WITH(NOLOCK) ON IM.RepairStation = CU.[Name] AND IM.MasterCompanyId = CU.MasterCompanyId AND CU.[IsActive] = 1 AND CU.[IsDeleted] = 0
+					 AND ISNULL(IMS.IsNonStock,0) = 0
+					 LEFT JOIN [dbo].[Customer] CU WITH(NOLOCK) ON IM.RepairStation = CU.[Name] AND IM.MasterCompanyId = CU.MasterCompanyId AND CU.[IsActive] = 1 AND CU.[IsDeleted] = 0
 					WHERE IM.IntegrationMasterId IN(SELECT ID FROM #tempTableIntegration)
 
 			END   /**** End:  145 Integration ******/
@@ -674,8 +677,10 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 					FROM DBO.IntegrationMaster IM WITH (NOLOCK) 
 					INNER JOIN [dbo].[ILSChildPartDetail] ILS WITH (NOLOCK) ON IM.IntegrationMasterId = ILS.IntegrationMasterId
 					LEFT JOIN dbo.ItemMaster IMS WITH(NOLOCK) ON IM.[PartNumber] = IMS.[partnumber] AND IMS.[IsActive] = 1 AND IMS.[IsDeleted] = 0 AND IM.[MasterCompanyId] = IMS.[MasterCompanyId]
-					 AND ISNULL(IMS.IsNonStock,0) = 0 LEFT JOIN dbo.ItemMaster IMSC WITH(NOLOCK) ON ILS.[AltPartNumber] = IMSC.[partnumber] AND IMSC.[IsActive] = 1 AND IMSC.[IsDeleted] = 0 AND ILS.[MasterCompanyId] = IMSC.[MasterCompanyId]
-					 AND ISNULL(IMSC.IsNonStock,0) = 0 LEFT JOIN [dbo].[Customer] CU WITH(NOLOCK) ON IM.RepairStation = CU.[Name] AND IM.MasterCompanyId = CU.MasterCompanyId AND CU.[IsActive] = 1 AND CU.[IsDeleted] = 0
+					 AND ISNULL(IMS.IsNonStock,0) = 0
+					 LEFT JOIN dbo.ItemMaster IMSC WITH(NOLOCK) ON ILS.[AltPartNumber] = IMSC.[partnumber] AND IMSC.[IsActive] = 1 AND IMSC.[IsDeleted] = 0 AND ILS.[MasterCompanyId] = IMSC.[MasterCompanyId]
+					 AND ISNULL(IMSC.IsNonStock,0) = 0
+					  LEFT JOIN [dbo].[Customer] CU WITH(NOLOCK) ON IM.RepairStation = CU.[Name] AND IM.MasterCompanyId = CU.MasterCompanyId AND CU.[IsActive] = 1 AND CU.[IsDeleted] = 0
 					WHERE IM.IntegrationMasterId IN(SELECT ID FROM #tempTableIntegration) AND ISNULL(IsMRO,0) = @IsMRO
 				END  /**** End:  ILS Integration ******/
 				ELSE IF (UPPER(@PortalType) = UPPER(@PartsBaseName))  -- Start: PartBase Integration
@@ -889,7 +894,8 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 					   AND IMS.IsActive = 1
 					   AND IMS.IsDeleted = 0
 					   AND IM.MasterCompanyId = IMS.MasterCompanyId
-					 AND ISNULL(IMS.IsNonStock,0) = 0 LEFT JOIN DBO.Customer CU WITH (NOLOCK)
+					 AND ISNULL(IMS.IsNonStock,0) = 0
+					    LEFT JOIN DBO.Customer CU WITH (NOLOCK)
 						ON IM.RepairStation = CU.Name
 					   AND IM.MasterCompanyId = CU.MasterCompanyId
 					   AND CU.IsActive = 1

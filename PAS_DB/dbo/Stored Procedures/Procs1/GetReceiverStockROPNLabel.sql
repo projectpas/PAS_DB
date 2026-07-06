@@ -1,4 +1,4 @@
-﻿/*************************************************************             
+/*************************************************************             
  ** File:   [GetReceiverStockROPNLabel]            
  ** Author:   
  ** Description: This stored procedure is used to get data for PN Label
@@ -62,7 +62,8 @@ BEGIN
 			SELECT sl.ReceiverNumber,(case when CAST(sl.ReceivedDate as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(sl.ReceivedDate, @CurrntEmpTimeZoneDesc) as Date))end) AS ReceivedDate FROM [dbo].[Stockline] sl WITH(NOLOCK)
 			INNER JOIN [dbo].[ItemMaster] i WITH(NOLOCK) ON i.ItemMasterId = sl.ItemMasterId
 			WHERE RepairOrderId=@RepairOrderId and IsParent=1
-			 AND ISNULL(i.IsNonStock,0) = 0 GROUP BY sl.ReceiverNumber,(case when CAST(sl.ReceivedDate as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(sl.ReceivedDate, @CurrntEmpTimeZoneDesc) as Date))end)
+			 AND ISNULL(i.IsNonStock,0) = 0
+			 GROUP BY sl.ReceiverNumber,(case when CAST(sl.ReceivedDate as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(sl.ReceivedDate, @CurrntEmpTimeZoneDesc) as Date))end)
 
 			UNION
 
@@ -113,7 +114,8 @@ BEGIN
 			WHERE sl.RepairOrderId=@RepairOrderId 			
 			AND sl.ReceiverNumber = @ReceiverNumber AND sl.IsParent=1
 
-			 AND ISNULL(i.IsNonStock,0) = 0 UNION
+			 AND ISNULL(i.IsNonStock,0) = 0
+			 UNION
 
 			SELECT i.ItemMasterId,
 				  sl.ConditionId,
@@ -154,7 +156,8 @@ BEGIN
 			WHERE sl.RepairOrderId=@RepairOrderId 		
 			AND sl.ReceiverNumber = @ReceiverNumber AND sl.IsParent=1 AND sd.ForStockQty > 0
 
-			 AND ISNULL(i.IsNonStock,0) = 0 UNION
+			 AND ISNULL(i.IsNonStock,0) = 0
+			 UNION
 
 			SELECT sl.AssetRecordId AS ItemMasterId,
 				    0 AS ConditionId,

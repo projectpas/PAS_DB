@@ -1,4 +1,4 @@
-﻿/*************************************************************               
+/*************************************************************               
  ** File:   [usprpt_GetWorkOrderBacklogCustomerServiceReport]               
  ** Author:   Rajesh Gami      
  ** Description: Get Data for WorkOrderBacklog Customer Service Report    
@@ -125,7 +125,8 @@ BEGIN
       AND (ISNULL(@Level8,'') ='' OR MSD.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,',')))    
       AND (ISNULL(@Level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))    
       AND  (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))    
-       AND ISNULL(IM.IsNonStock,0) = 0 END    
+       AND ISNULL(IM.IsNonStock,0) = 0
+       END    
     
     SET @PageSize = CASE WHEN NULLIF(@PageSize,0) IS NULL THEN 10 ELSE @PageSize END    
     SET @PageNumber = CASE WHEN NULLIF(@PageNumber,0) IS NULL THEN 1 ELSE @PageNumber END    
@@ -169,7 +170,8 @@ BEGIN
     INNER JOIN DBO.WorkOrderPartNumber WOPN WITH (NOLOCK) ON WOWF.WorkOrderPartNoId = WOPN.ID    
     INNER JOIN DBO.ItemMaster AS IM WITH (NOLOCK) ON WOPN.ItemMasterId = IM.ItemMasterId 
 	LEFT JOIN [dbo].[ItemMaster] RIM WITH (NOLOCK) ON WOPN.RevisedItemmasterid = RIM.ItemMasterId
-     AND ISNULL(RIM.IsNonStock,0) = 0 INNER JOIN dbo.WorkOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = WOPN.ID    
+     AND ISNULL(RIM.IsNonStock,0) = 0
+	 INNER JOIN dbo.WorkOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = WOPN.ID    
     LEFT JOIN dbo.WorkOrderTurnArroundTime WTT WITH(NOLOCK) ON WTT.WorkOrderPartNoId = WOPN.ID AND WOPN.WorkOrderStageId = WTT.CurrentStageId  
     LEFT JOIN dbo.RepairOrder RO WITH(NOLOCK) ON WOPN.RepairOrderId = RO.RepairOrderId  
     LEFT JOIN DBO.WorkOrderQuote WOQ WITH (NOLOCK) ON WO.WorkOrderId = WOQ.WorkOrderId   
@@ -201,7 +203,8 @@ BEGIN
     AND (ISNULL(@Level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))    
     AND  (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))  
   
-      AND ISNULL(IM.IsNonStock,0) = 0 GROUP BY WO.WorkOrderId, WOPN.ID
+      AND ISNULL(IM.IsNonStock,0) = 0
+     GROUP BY WO.WorkOrderId, WOPN.ID
      )  
       
     

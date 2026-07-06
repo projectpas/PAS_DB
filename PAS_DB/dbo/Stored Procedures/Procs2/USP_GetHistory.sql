@@ -1,4 +1,4 @@
-﻿/*************************************************************             
+/*************************************************************             
  ** File:   [USP_GetHistory]             
  ** Author:  Amit Ghediya  
  ** Description: This stored procedure is used History data  
@@ -85,7 +85,8 @@ BEGIN
 		INNER JOIN [dbo].[WorkOrder] WO WITH (NOLOCK) ON HS.RefferenceId = Wo.WorkOrderId  
 		 LEFT JOIN [dbo].[WorkOrderPartNumber] WOPN WITH (NOLOCK) ON HS.SubRefferenceId = WOPN.ID  
 		 LEFT JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON WOPN.ItemMasterId = IM.ItemMasterId  
-     AND ISNULL(IM.IsNonStock,0) = 0 WHERE HS.RefferenceId = @RefferenceId --AND HS.MasterCompanyId = @MasterCompanyId    
+     AND ISNULL(IM.IsNonStock,0) = 0
+		  WHERE HS.RefferenceId = @RefferenceId --AND HS.MasterCompanyId = @MasterCompanyId    
     ),  
     FinalResult AS (  
     SELECT HistoryId, ModuleId, WorkOrderNum, partnumber, OldValue, NewValue,Activity,HistoryText, FieldsName  

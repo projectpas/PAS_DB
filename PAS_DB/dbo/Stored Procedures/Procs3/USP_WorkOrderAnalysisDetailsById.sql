@@ -1,4 +1,4 @@
-﻿/***************************************************************  
+/***************************************************************  
  ** File:   [USP_WorkOrderAnalysisDetailsById]             
  ** Author:   HEMANT SALIYA
  ** Description: Get WorkOrder Analysis data by work Order Id
@@ -85,7 +85,8 @@ BEGIN
 				LEFT JOIN [dbo].[BillingInvoicing] wb WITH(NOLOCK) ON wbi.BillingInvoicingId = wb.BillingInvoicingId AND ISNULL(wb.IsVersionIncrease, 0) = 0 AND ISNULL(wb.IsPerformaInvoice, 0) != 1 AND wb.[ModuleId] =@WOModuleId
 				LEFT JOIN  [dbo].StockLine sl WITH(NOLOCK) ON wop.StockLineId = sl.StockLineId
 			WHERE wo.WorkOrderId = @WorkOrderId 
-			 AND ISNULL(im.IsNonStock,0) = 0 ORDER BY wop.ID;
+			 AND ISNULL(im.IsNonStock,0) = 0
+			 ORDER BY wop.ID;
 		END
 
 		ELSE
@@ -151,7 +152,8 @@ BEGIN
 				LEFT JOIN QuoteList q WITH(NOLOCK) ON q.WorkOrderId = woc.WorkOrderId AND q.WOPartNoId = woc.WOPartNoId
 				LEFT JOIN  [dbo].StockLine sl WITH(NOLOCK) ON wop.StockLineId = sl.StockLineId
 			WHERE wo.WorkOrderId = @WorkOrderId 
-			 AND ISNULL(im.IsNonStock,0) = 0 ORDER BY wop.ID;
+			 AND ISNULL(im.IsNonStock,0) = 0
+			 ORDER BY wop.ID;
 		END
 
 	COMMIT  TRANSACTION

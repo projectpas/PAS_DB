@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [usp_GetMainWODashboardsample]           
  ** Author:   Swetha  
  ** Description: Get Data for MainWODashboard sample 
@@ -59,7 +59,8 @@ BEGIN
           ON WOPN.WorkOrderStatusId = WOST.Id
         LEFT JOIN dbo.ItemMaster AS IM WITH (NOLOCK)
           ON WOPN.itemmasterId = IM.ItemMasterId
-         AND ISNULL(IM.IsNonStock,0) = 0 LEFT JOIN dbo.ItemGroup AS IG WITH (NOLOCK)
+         AND ISNULL(IM.IsNonStock,0) = 0
+           LEFT JOIN dbo.ItemGroup AS IG WITH (NOLOCK)
           ON IM.ItemGroupId = IG.ItemGroupId
 
     COMMIT TRANSACTION

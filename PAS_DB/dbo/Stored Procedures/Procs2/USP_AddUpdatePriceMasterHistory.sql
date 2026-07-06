@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [USP_AddUpdatePriceMasterHistory]           
  ** Author:  Ekta Chandegra
  ** Description: This stored procedure is used USP_AddUpdatePriceMasterHistory
@@ -57,7 +57,8 @@ BEGIN
 						GETUTCDATE(),IMPS.UpdatedBy, GETUTCDATE(),IMPS.IsActive , IMPS.IsDeleted
 						FROM [dbo].[ItemMasterPurchaseSale] IMPS WITH (NOLOCK) 
 						LEFT JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON IMPS.ItemMasterId = IM.ItemMasterId
-						 AND ISNULL(IM.IsNonStock,0) = 0 WHERE IMPS.ItemMasterPurchaseSaleId = @ItemMasterPurchaseSaleId 
+						 AND ISNULL(IM.IsNonStock,0) = 0
+						 WHERE IMPS.ItemMasterPurchaseSaleId = @ItemMasterPurchaseSaleId 
 						AND IMPS.MasterCompanyId = @MasterCompanyId
 
 				END

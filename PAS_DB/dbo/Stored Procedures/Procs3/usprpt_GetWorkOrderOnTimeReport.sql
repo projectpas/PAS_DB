@@ -1,4 +1,4 @@
-﻿/*************************************************************             
+/*************************************************************             
  ** File:   [usprpt_GetWorkOrderOnTimeReport]             
  ** Author:   Mahesh Sorathiya    
  ** Description: Get Data for WorkOrderOnTime Report    
@@ -98,7 +98,8 @@ BEGIN
 			LEFT JOIN DBO.EntityStructureSetup ES ON ES.EntityStructureId=MSD.EntityMSID
 			LEFT JOIN DBO.Customer WITH (NOLOCK) ON WO.CustomerId = Customer.CustomerId  
 			LEFT JOIN DBO.ItemMaster IM WITH (NOLOCK) ON WOPN.itemmasterId = IM.itemmasterId  
-			 AND ISNULL(IM.IsNonStock,0) = 0 LEFT JOIN DBO.WorkScope AS WS WITH (NOLOCK) ON WOPN.WorkOrderScopeId = WS.WorkScopeId  
+			 AND ISNULL(IM.IsNonStock,0) = 0
+			 LEFT JOIN DBO.WorkScope AS WS WITH (NOLOCK) ON WOPN.WorkOrderScopeId = WS.WorkScopeId  
 			LEFT JOIN DBO.Condition CDTN WITH (NOLOCK) ON WOPN.ConditionId = CDTN.ConditionId  
 			LEFT JOIN DBO.Employee AS E WITH (NOLOCK) ON WO.salespersonid = E.EmployeeId  
 			LEFT JOIN DBO.Employee AS E1 WITH (NOLOCK) ON WO.csrid = E1.Employeeid  
@@ -162,7 +163,8 @@ BEGIN
 		LEFT JOIN DBO.EntityStructureSetup ES ON ES.EntityStructureId=MSD.EntityMSID
 		LEFT JOIN DBO.Customer WITH (NOLOCK) ON WO.CustomerId = Customer.CustomerId  
 		LEFT JOIN DBO.ItemMaster IM WITH (NOLOCK) ON WOPN.itemmasterId = IM.itemmasterId  
-         AND ISNULL(IM.IsNonStock,0) = 0 LEFT JOIN DBO.WorkScope AS WS WITH (NOLOCK) ON WOPN.WorkOrderScopeId = WS.WorkScopeId  
+         AND ISNULL(IM.IsNonStock,0) = 0
+		 LEFT JOIN DBO.WorkScope AS WS WITH (NOLOCK) ON WOPN.WorkOrderScopeId = WS.WorkScopeId  
         LEFT JOIN DBO.Condition CDTN WITH (NOLOCK) ON WOPN.ConditionId = CDTN.ConditionId  
         LEFT JOIN DBO.Employee AS E WITH (NOLOCK) ON WO.salespersonid = E.EmployeeId  
         LEFT JOIN DBO.Employee AS E1 WITH (NOLOCK) ON WO.csrid = E1.Employeeid  

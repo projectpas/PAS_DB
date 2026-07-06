@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [GetVendorCreditMemoPartsById]           
  ** Author: Devendra SHekh
  ** Description: This stored procedure is used to Get Vendor Credit Memo Part Details
@@ -63,7 +63,8 @@ BEGIN
 			   LEFT JOIN VendorRMADetail vrmd WITH (NOLOCK) ON CM.VendorRMADetailId = vrmd.[VendorRMADetailId]
 			   LEFT JOIN Stockline sl WITH (NOLOCK) ON vrmd.StockLineId = sl.StockLineId
 			   LEFT JOIN ItemMaster IM WITH (NOLOCK) ON vrmd.ItemMasterId=IM.ItemMasterId
-			    AND ISNULL(IM.IsNonStock,0) = 0 LEFT JOIN VendorRMA vr WITH (NOLOCK) ON vr.VendorRMAId = CM.VendorRMAId
+			    AND ISNULL(IM.IsNonStock,0) = 0
+			    LEFT JOIN VendorRMA vr WITH (NOLOCK) ON vr.VendorRMAId = CM.VendorRMAId
 			   LEFT JOIN Vendor v WITH (NOLOCK) ON vr.VendorId = v.VendorId
 			  WHERE CM.[VendorCreditMemoId] = @VendorCreditMemoId AND CM.IsDeleted = 0 ;
 		END
@@ -99,7 +100,8 @@ BEGIN
 			   LEFT JOIN VendorCreditMemo vcm WITH (NOLOCK) ON CM.VendorCreditMemoId = vcm.VendorCreditMemoId
 			   LEFT JOIN Stockline sl WITH (NOLOCK) ON CM.StockLineId = sl.StockLineId
 			   LEFT JOIN ItemMaster IM WITH (NOLOCK) ON sl.ItemMasterId=IM.ItemMasterId
-			    AND ISNULL(IM.IsNonStock,0) = 0 LEFT JOIN Vendor v WITH (NOLOCK) ON vcm.VendorId = v.VendorId
+			    AND ISNULL(IM.IsNonStock,0) = 0
+			    LEFT JOIN Vendor v WITH (NOLOCK) ON vcm.VendorId = v.VendorId
 			  WHERE CM.[VendorCreditMemoId] = @VendorCreditMemoId AND CM.IsDeleted = 0;
 			END
   END TRY    

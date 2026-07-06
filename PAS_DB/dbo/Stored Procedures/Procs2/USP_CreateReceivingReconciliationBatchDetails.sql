@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [USP_BatchTriggerBasedonDistribution]           
  ** Author:  Subhash Saliya
  ** Description: This stored procedure is used USP_BatchTriggerBasedonDistribution
@@ -119,7 +119,8 @@ AS BEGIN
 					 select @VendorName =VendorName from Vendor WITH(NOLOCK)  where VendorId= @VendorId;
 					 select @PurchaseOrderNumber=PurchaseOrderNumber from PurchaseOrder WITH(NOLOCK)  where PurchaseOrderId= @PurchaseOrderId;
 		             SELECT @PiecePN = partnumber from ItemMaster WITH(NOLOCK)  where ItemMasterId=@PieceItemmasterId 
-             AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 IF(@PackagingId>0)BEGIN
+             AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0
+		              IF(@PackagingId>0)BEGIN
                 SET @Amount=(@Qty * @Amount);
                 SELECT top 1 @DistributionSetupId=ID, @DistributionName=Name, @JournalTypeId=JournalTypeId, @GlAccountId=GlAccountId, @GlAccountNumber=GlAccountNumber, @GlAccountName=GlAccountName
                 from DistributionSetup WITH(NOLOCK)
@@ -393,7 +394,8 @@ AS BEGIN
 
 					  SELECT @PieceItemmasterId=ItemMasterId from Stockline  where StockLineId=@StocklineId
 		              SELECT @PiecePN = partnumber from ItemMaster WITH(NOLOCK)  where ItemMasterId=@PieceItemmasterId 
-                  AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 IF(@PackagingId>0)BEGIN
+                  AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0
+		               IF(@PackagingId>0)BEGIN
                      SELECT top 1 @DistributionSetupId=ID, @DistributionName=Name, @JournalTypeId=JournalTypeId, @GlAccountId=GlAccountId, @GlAccountNumber=GlAccountNumber, @GlAccountName=GlAccountName
                      from DistributionSetup WITH(NOLOCK)
                      where UPPER(Name)=UPPER('VAR - Cost/Qty - COGS')AND JournalTypeId=7;

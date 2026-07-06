@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [GetPickTicketPrint_WO_MainPart]           
  ** Author:   Hemant Saliya
  ** Description: This stored procedure is used Get WO MPN List that are Ready to Pick FOR PDF.    
@@ -64,7 +64,8 @@ BEGIN
 						LEFT JOIN Stockline sl WITH (NOLOCK) on sl.StockLineId = wop.StockLineId
 						INNER JOIN ItemMaster imt WITH (NOLOCK) on imt.ItemMasterId = wop.ItemMasterId
 						LEFT JOIN ItemMaster imtR WITH (NOLOCK) on imtR.ItemMasterId = wop.RevisedItemmasterid
-						 AND ISNULL(imtR.IsNonStock,0) = 0 LEFT JOIN Condition co WITH (NOLOCK) on co.ConditionId = sl.ConditionId
+						 AND ISNULL(imtR.IsNonStock,0) = 0
+						 LEFT JOIN Condition co WITH (NOLOCK) on co.ConditionId = sl.ConditionId
 						LEFT JOIN UnitOfMeasure uom WITH (NOLOCK) on uom.UnitOfMeasureId = imt.PurchaseUnitOfMeasureId
 						LEFT JOIN UnitOfMeasure uomR WITH (NOLOCK) on uomR.UnitOfMeasureId = imtR.PurchaseUnitOfMeasureId
 						LEFT JOIN [Site] s WITH (NOLOCK) on s.SiteId = sl.SiteId

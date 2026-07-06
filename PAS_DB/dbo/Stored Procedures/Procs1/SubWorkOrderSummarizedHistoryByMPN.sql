@@ -1,4 +1,4 @@
-﻿
+
 /*************************************************************           
  ** File:   [SubWorkOrderSummarizedHistoryByMPN]           
  ** Author:   Hemant Saliya
@@ -63,7 +63,8 @@ BEGIN
 						LEFT JOIN dbo.CustomerFinancial CF WITH (NOLOCK) ON CF.CustomerId = WO.CustomerId
 						LEFT JOIN dbo.Currency C WITH (NOLOCK) ON C.CurrencyId = CF.CurrencyId						
 					WHERE SWOP.ItemMasterId = @ItemMasterId AND DATEDIFF(MM, SWC.createdDate, GETDATE()) < @Month
-					 AND ISNULL(IM.IsNonStock,0) = 0 GROUP BY IM.partnumber, SWOP.ItemMasterId, WS.WorkScopeCode, WS.WorkScopeId ,C.Code
+					 AND ISNULL(IM.IsNonStock,0) = 0
+					 GROUP BY IM.partnumber, SWOP.ItemMasterId, WS.WorkScopeCode, WS.WorkScopeId ,C.Code
 				END
 			COMMIT  TRANSACTION
 		END TRY    

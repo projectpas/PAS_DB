@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   SearchCreditMemoPNViewData         
  ** Author:  Moin
  ** Description: Get Credit Memo Filter Data
@@ -175,7 +175,8 @@ BEGIN
 		LEFT JOIN dbo.CreditMemoDetails CD WITH (NOLOCK)  ON CD.CreditMemoHeaderId = CM.CreditMemoHeaderId
 		LEFT JOIN dbo.StandAloneCreditMemoDetails SACD WITH (NOLOCK)  ON SACD.CreditMemoHeaderId = CM.CreditMemoHeaderId AND SACD.IsActive = 1
 		LEFT JOIN ItemMaster IM WITH (NOLOCK) ON CD.ItemMasterId=IM.ItemMasterId
-         AND ISNULL(IM.IsNonStock,0) = 0 WHERE ((CM.MasterCompanyId = @MasterCompanyId) AND (CM.IsDeleted = @IsDeleted) 
+         AND ISNULL(IM.IsNonStock,0) = 0
+		 WHERE ((CM.MasterCompanyId = @MasterCompanyId) AND (CM.IsDeleted = @IsDeleted) 
 		AND (@StatusID IS NULL OR CM.StatusId = @StatusID)) 
 		GROUP BY   
 		 CM.[CreditMemoHeaderId],CM.[CreditMemoNumber],CM.[RMAHeaderId],CM.[RMANumber],CM.[InvoiceId],CM.[InvoiceNumber]

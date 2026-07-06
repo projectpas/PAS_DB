@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [USP_GetVendorCreditMemoDetails_ById]          
  ** Author:   Hemant  
  ** Description: Get Data to edit vendor credit memo
@@ -70,7 +70,8 @@ BEGIN
 				LEFT JOIN [dbo].[Vendor] v WITH(NOLOCK) on vrm.VendorId = v.VendorId
 				LEFT JOIN [dbo].[VendorRMADetail] vrmd WITH(NOLOCK) on vrm.VendorRMAId = vrmd.VendorRMAId
 				LEFT JOIN [dbo].[ItemMaster] im WITH(NOLOCK) on vrmd.ItemMasterId = im.ItemMasterId
-				 AND ISNULL(im.IsNonStock,0) = 0 WHERE vcm.VendorCreditMemoId = @VendorCreditMemoId
+				 AND ISNULL(im.IsNonStock,0) = 0
+				 WHERE vcm.VendorCreditMemoId = @VendorCreditMemoId
 				END
 			ELSE 
 				BEGIN
@@ -108,7 +109,8 @@ BEGIN
 				LEFT JOIN [dbo].[VendorRMA] vrm WITH(NOLOCK) on vcm.VendorRMAId = vrm.VendorRMAId
 				LEFT JOIN [dbo].[VendorRMADetail] vrmd WITH(NOLOCK) on vrm.VendorRMAId = vrmd.VendorRMAId
 				LEFT JOIN [dbo].[ItemMaster] im WITH(NOLOCK) on vrmd.ItemMasterId = im.ItemMasterId
-				 AND ISNULL(im.IsNonStock,0) = 0 LEFT JOIN [dbo].[Stockline] stk WITH(NOLOCK) on vcmd.StockLineId = stk.StockLineId
+				 AND ISNULL(im.IsNonStock,0) = 0
+				 LEFT JOIN [dbo].[Stockline] stk WITH(NOLOCK) on vcmd.StockLineId = stk.StockLineId
 				LEFT JOIN [dbo].[Vendor] v WITH(NOLOCK) on vcm.VendorId = v.VendorId
 				WHERE vcm.VendorCreditMemoId = @VendorCreditMemoId
 				END		

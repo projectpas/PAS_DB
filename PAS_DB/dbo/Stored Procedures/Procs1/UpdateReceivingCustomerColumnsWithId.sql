@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [UpdateReceivingCustomerColumnsWithId]           
  ** Author:   Hemant Saliya
  ** Description: This stored procedure is used retrieve Item Master List for Auto complete Dropdown List    
@@ -112,7 +112,8 @@ BEGIN
 
 				WHERE RCW.ReceivingCustomerWorkId = @ReceivingCustomerWorkId
 
-				 AND ISNULL(IM.IsNonStock,0) = 0 UPDATE SL SET CustomerName= c.Name FROM [dbo].[Stockline] SL WITH(NOLOCK)
+				 AND ISNULL(IM.IsNonStock,0) = 0
+				 UPDATE SL SET CustomerName= c.Name FROM [dbo].[Stockline] SL WITH(NOLOCK)
 					INNER JOIN dbo.Customer C WITH(NOLOCK) ON SL.CustomerId = C.CustomerId 
 				WHERE StockLineId=@stocklineid
 			END

@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [QuickBooks_GetSyncPendingWOInvoiceList]           
  ** Author:   Devendra Shekh
  ** Description: Get WorkOrder Invoice List to Create Invoice in QuickBooks    
@@ -180,7 +180,8 @@ BEGIN
 					JOIN [dbo].[Customer] C WITH(NOLOCK) ON C.CustomerId = WOBI.CustomerId
 					JOIN [dbo].[WorkOrder] WO WITH(NOLOCK) ON WO.WorkOrderId= WOBI.ReferenceId
 					LEFT JOIN [dbo].[ItemMaster] IM WITH(NOLOCK) ON IM.ItemMasterId= WOBII.ItemMasterId					
-					 AND ISNULL(IM.IsNonStock,0) = 0 LEFT JOIN [dbo].[CreditTerms] CT WITH(NOLOCK) ON CT.CreditTermsId = WO.CreditTermId
+					 AND ISNULL(IM.IsNonStock,0) = 0
+					 LEFT JOIN [dbo].[CreditTerms] CT WITH(NOLOCK) ON CT.CreditTermsId = WO.CreditTermId
 					LEFT JOIN [dbo].[Percent] P with(nolock) ON P.MasterCompanyId = WOBI.MasterCompanyId AND P.PercentId = WOBII.SalesTaxPercent
 					LEFT JOIN [dbo].[ShippingVia] AS sipVia WITH(NOLOCK) ON WOBID.ShipViaId = sipVia.ShippingViaId
 				WHERE ISNULL(WOBI.QuickBooksReferenceId, 0) = 0 AND ISNULL(WOBI.IsUpdated, 0) = 1 AND ISNULL(WOBI.IsPerformaInvoice, 0) = 0 
@@ -246,7 +247,8 @@ BEGIN
 					JOIN [dbo].[Customer] C WITH(NOLOCK) ON C.CustomerId = WOBI.CustomerId
 					JOIN [dbo].[WorkOrder] WO WITH(NOLOCK) ON WO.WorkOrderId= WOBI.ReferenceId
 					LEFT JOIN [dbo].[ItemMaster] IM WITH(NOLOCK) ON IM.ItemMasterId= WOBII.ItemMasterId
-					 AND ISNULL(IM.IsNonStock,0) = 0 LEFT JOIN [dbo].[CreditTerms] CT WITH(NOLOCK) ON CT.CreditTermsId = WO.CreditTermId
+					 AND ISNULL(IM.IsNonStock,0) = 0
+					 LEFT JOIN [dbo].[CreditTerms] CT WITH(NOLOCK) ON CT.CreditTermsId = WO.CreditTermId
 					LEFT JOIN [dbo].[Percent] P with(nolock) ON P.MasterCompanyId = WOBI.MasterCompanyId AND P.PercentId = WOBII.SalesTaxPercent
 					LEFT JOIN [dbo].[ShippingVia] AS sipVia WITH(NOLOCK) ON WOBID.ShipViaId = sipVia.ShippingViaId
 				WHERE	ISNULL(WOBI.QuickBooksReferenceId, 0) = 0 AND ISNULL(WOBI.IsUpdated, 0) = 1 AND ISNULL(WOBI.IsPerformaInvoice, 0) = 0 

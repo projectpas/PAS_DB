@@ -1,4 +1,4 @@
-﻿
+
 /*************************************************************           
  ** File:   [usp_GetReceivingLogReport]           
  ** Author:   Swetha  
@@ -137,7 +137,8 @@ BEGIN
 	  AND CAST(STL.receiveddate AS DATE) BETWEEN CAST(@Fromdate AS DATE)  AND CAST(@Todate AS DATE)
       AND STL.mastercompanyid = @mastercompanyid 
 
-     AND ISNULL(im.IsNonStock,0) = 0 COMMIT TRANSACTION
+     AND ISNULL(im.IsNonStock,0) = 0
+       COMMIT TRANSACTION
   END TRY
 
   BEGIN CATCH

@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [usp_GetWorkOrderTATReport]           
  ** Author:   Swetha  
  ** Description: Get Data for WorkOrderTAT Report
@@ -119,7 +119,8 @@ BEGIN
           ON WO.WorkOrderId = WOPN.WorkOrderId
         LEFT JOIN DBO.ItemMaster IM WITH (NOLOCK)
           ON WOPN.itemmasterId = IM.itemmasterId
-         AND ISNULL(IM.IsNonStock,0) = 0 LEFT JOIN DBO.WorkScope AS WS WITH (NOLOCK)
+         AND ISNULL(IM.IsNonStock,0) = 0
+           LEFT JOIN DBO.WorkScope AS WS WITH (NOLOCK)
           ON WOPN.WorkOrderScopeId = WS.WorkScopeId
         LEFT JOIN DBO.Condition CDTN WITH (NOLOCK)
           ON WOPN.ConditionId = CDTN.ConditionId

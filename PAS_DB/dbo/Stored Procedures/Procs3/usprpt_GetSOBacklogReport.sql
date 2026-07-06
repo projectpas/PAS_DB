@@ -1,4 +1,4 @@
-﻿/*************************************************************             
+/*************************************************************             
  ** File:   [usprpt_GetSOBacklogReport]             
  ** Author:   Mahesh Sorathiya    
  ** Description: Get Data for SOBacklog Report  
@@ -105,7 +105,8 @@ BEGIN
 			LEFT JOIN dbo.SalesOrderStocklineV1 SOV WITH (NOLOCK) ON SOP.SalesOrderPartId = SOV.SalesOrderPartId
 		    LEFT JOIN DBO.SalesOrderPartCost SOPC WITH (NOLOCK) ON SOPC.SalesOrderPartId = SOP.SalesOrderPartId
 			LEFT JOIN DBO.ItemMaster IM WITH (NOLOCK) ON SOP.ItemMasterId = IM.ItemMasterId
-		   AND ISNULL(IM.IsNonStock,0) = 0 WHERE SO.CustomerId=ISNULL(@customerid,SO.CustomerId)  
+		   AND ISNULL(IM.IsNonStock,0) = 0
+			 WHERE SO.CustomerId=ISNULL(@customerid,SO.CustomerId)  
 		        AND CAST(SO.OpenDate AS DATE) BETWEEN CAST(@FromDate AS DATE) AND CAST(@ToDate AS DATE) AND SO.mastercompanyid = @mastercompanyid  
 				AND SO.IsActive = 1 AND SO.IsDeleted = 0
 				AND  
@@ -174,7 +175,8 @@ BEGIN
 		    LEFT JOIN DBO.SalesOrderPartCost SOPC WITH (NOLOCK) ON SOPC.SalesOrderPartId = SOP.SalesOrderPartId
 		    LEFT JOIN DBO.SalesOrderStockLineCost SOSC WITH (NOLOCK) ON SOSC.SalesOrderStocklineId = SOV.SalesOrderStocklineId
 			LEFT JOIN DBO.ItemMaster IM WITH (NOLOCK) ON SOP.ItemMasterId = IM.ItemMasterId
-       AND ISNULL(IM.IsNonStock,0) = 0 WHERE SO.CustomerId=ISNULL(@customerid,SO.CustomerId)  
+       AND ISNULL(IM.IsNonStock,0) = 0
+			 WHERE SO.CustomerId=ISNULL(@customerid,SO.CustomerId)  
 		    AND CAST(SO.OpenDate AS DATE) BETWEEN CAST(@FromDate AS DATE) AND CAST(@ToDate AS DATE) AND SO.mastercompanyid = @mastercompanyid
 			AND SO.IsActive = 1 AND SO.IsDeleted = 0
 			AND  

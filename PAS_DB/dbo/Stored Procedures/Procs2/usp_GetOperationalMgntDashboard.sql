@@ -1,4 +1,4 @@
-﻿----------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------
 
 /*************************************************************           
  ** File:   [usp_GetOperationalMgntDashboard]           
@@ -56,7 +56,8 @@ BEGIN
         ON RCW.CustomerId = C.CustomerId
         LEFT JOIN DBO.ItemMaster IM WITH (NOLOCK)
           ON RCW.ItemMasterId = IM.ItemMasterId
-         AND ISNULL(IM.IsNonStock,0) = 0 LEFT JOIN DBO.ItemGroup IG WITH (NOLOCK)
+         AND ISNULL(IM.IsNonStock,0) = 0
+           LEFT JOIN DBO.ItemGroup IG WITH (NOLOCK)
           ON IM.ItemGroupId = IG.ItemGroupId
         LEFT JOIN DBO.Workorder WO WITH (NOLOCK)
           ON RCW.workorderid = WO.workorderid

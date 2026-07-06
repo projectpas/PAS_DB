@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [GetPublicationViewList]           
  ** Author:   Hemant Saliya
  ** Description: Get Search Data for Publication List    
@@ -179,7 +179,8 @@ BEGIN
 						(SELECT TOP 1 I.partnumber
 								FROM [dbo].[PublicationItemMasterMapping] S2 WITH (NOLOCK)
 								Left Join [dbo].[ItemMaster] I WITH (NOLOCK) On S2.ItemMasterId=I.ItemMasterId
-								 AND ISNULL(I.IsNonStock,0) = 0 Where S.PublicationRecordId = S2.PublicationRecordId AND S2.IsActive = 1 AND S2.IsDeleted = 0
+								 AND ISNULL(I.IsNonStock,0) = 0
+								 Where S.PublicationRecordId = S2.PublicationRecordId AND S2.IsActive = 1 AND S2.IsDeleted = 0
 								) PartNumber
 							--END AS PartNumber
                     FROM [dbo].[PublicationItemMasterMapping] S WITH (NOLOCK)
@@ -199,7 +200,8 @@ BEGIN
 										(SELECT TOP 1 I.PartDescription
 												FROM [dbo].[PublicationItemMasterMapping] S2 WITH (NOLOCK)
 												Left Join [dbo].[ItemMaster] I WITH (NOLOCK) On S2.ItemMasterId=I.ItemMasterId
-												 AND ISNULL(I.IsNonStock,0) = 0 Where S.PublicationRecordId = S2.PublicationRecordId AND S2.IsActive = 1 AND S2.IsDeleted = 0
+												 AND ISNULL(I.IsNonStock,0) = 0
+												 Where S.PublicationRecordId = S2.PublicationRecordId AND S2.IsActive = 1 AND S2.IsDeleted = 0
 												) PartDescription
 									FROM [dbo].[PublicationItemMasterMapping] S WITH (NOLOCK)
 									GROUP BY S.PublicationRecordId
@@ -218,7 +220,8 @@ BEGIN
 										(SELECT TOP 1 MF.[Name]
 												FROM [dbo].[PublicationItemMasterMapping] S2 WITH (NOLOCK)
 												Left Join [dbo].[ItemMaster] I WITH (NOLOCK) On S2.ItemMasterId=I.ItemMasterId
-												 AND ISNULL(I.IsNonStock,0) = 0 LEFT JOIN [dbo].[Manufacturer] MF WITH (NOLOCK) On I.ManufacturerId = MF.ManufacturerId
+												 AND ISNULL(I.IsNonStock,0) = 0
+												 LEFT JOIN [dbo].[Manufacturer] MF WITH (NOLOCK) On I.ManufacturerId = MF.ManufacturerId
 												Where S.PublicationRecordId = S2.PublicationRecordId AND S2.IsActive = 1 AND S2.IsDeleted = 0
 												) Manufacturer
 								FROM [dbo].[PublicationItemMasterMapping] S WITH (NOLOCK)

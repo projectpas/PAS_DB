@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [USP_GetSOApprovalList]          
  ** Author:   Vishal Suthar
  ** Description: This stored procedure is used to get SO approval list
@@ -193,9 +193,7 @@ BEGIN
 		--LEFT JOIN Employee app ON sqp.InternalApprovedById = app.EmployeeId
 		--LEFT JOIN Contact con ON sqp.CustomerApprovedById = con.ContactId
 		--WHERE sop.IsDeleted = 0 AND sop.IsDeleted = 0 AND soq.SalesOrderId = @SalesOrderId;
-
-
-		 AND ISNULL(im.IsNonStock,0) = 0 SELECT DISTINCT so.SalesOrderId,
+		 SELECT DISTINCT so.SalesOrderId,
 			so.SalesOrderNumber,
 			so.Version,
 			so.CustomerId,
@@ -273,7 +271,8 @@ BEGIN
 		INNER JOIN DBO.SalesOrderPartCost sopc ON sopc.SalesOrderPartId = sop.SalesOrderPartId
 		LEFT JOIN DBO.SalesOrderApproval sp WITH (NOLOCK) ON sop.SalesOrderPartId = sp.SalesOrderPartId AND sp.SalesOrderId = @SalesOrderId
 		LEFT JOIN DBO.ItemMaster im WITH (NOLOCK) ON sop.ItemMasterId = im.ItemMasterId
-		 AND ISNULL(im.IsNonStock,0) = 0 LEFT JOIN DBO.UnitOfMeasure um WITH (NOLOCK) ON im.PurchaseUnitOfMeasureId = um.UnitOfMeasureId
+		 AND ISNULL(im.IsNonStock,0) = 0
+		 LEFT JOIN DBO.UnitOfMeasure um WITH (NOLOCK) ON im.PurchaseUnitOfMeasureId = um.UnitOfMeasureId
 		LEFT JOIN DBO.Employee app WITH (NOLOCK) ON sp.InternalApprovedById = app.EmployeeId
 		LEFT JOIN DBO.Contact con WITH (NOLOCK) ON sp.CustomerApprovedById = con.ContactId
 		LEFT JOIN DBO.Condition cond WITH (NOLOCK) ON sop.ConditionId = cond.ConditionId

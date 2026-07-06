@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File: [USP_GetAircraftMappedByAssetId]        
  ** Author:   Ayushi Patel
  ** Description: Get Asset Inventory Adjustment Data By Asset Inventory Id    
@@ -57,7 +57,8 @@ BEGIN
             AND ISNULL(iM.IsActive,0) = 1
             AND ISNULL(iM.IsDeleted,0) = 0
             AND ac.AssetRecordId = @AssetRecordId
-     AND ISNULL(iM.IsNonStock,0) = 0 END TRY
+     AND ISNULL(iM.IsNonStock,0) = 0
+             END TRY
     BEGIN CATCH
         DECLARE @ErrorLogID INT,
                 @DatabaseName VARCHAR(100) = DB_NAME(),

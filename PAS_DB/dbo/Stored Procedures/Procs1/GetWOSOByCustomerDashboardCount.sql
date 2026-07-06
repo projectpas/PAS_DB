@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [GetWOSOByCustomerDashboardCount]           
  ** Author:   Vishal Suthar
  ** Description: This stored procedure is used get work order and sales order count based on customer  
@@ -42,7 +42,8 @@ BEGIN
 				LEFT JOIN DBO.SalesOrderPartV1 SOP WITH (NOLOCK) ON SOP.SalesOrderId = SO.SalesOrderId
 				LEFT JOIN DBO.SalesOrderPartCost SOPC WITH (NOLOCK) ON SOPC.SalesOrderPartId=SOP.SalesOrderPartId and SOPC.IsDeleted=0
 				LEFT JOIN DBO.ItemMaster IM WITH (NOLOCK) ON SOP.ItemMasterId = IM.ItemMasterId
-				 AND ISNULL(IM.IsNonStock,0) = 0 LEFT JOIN DBO.Condition CON WITH (NOLOCK) ON SOP.ConditionId = CON.ConditionId
+				 AND ISNULL(IM.IsNonStock,0) = 0
+				 LEFT JOIN DBO.Condition CON WITH (NOLOCK) ON SOP.ConditionId = CON.ConditionId
 				LEFT JOIN DBO.Customer C WITH (NOLOCK) ON SO.CustomerId = C.CustomerId
 				LEFT JOIN DBO.BillingInvoicing SOB WITH (NOLOCK) ON SOB.ReferenceId = SOP.SalesOrderId AND ISNULL(SOB.IsPerformaInvoice,0) = 0  AND SOB.[ModuleId] = @SOModuleId
 				Where SO.MasterCompanyId = @MasterCompanyId

@@ -1,4 +1,4 @@
-﻿
+
 
 
 
@@ -124,7 +124,8 @@ BEGIN
 									 LEFT JOIN ManagementStructure level2 ON level3.ParentId = level2.ManagementStructureId
 									 LEFT JOIN ManagementStructure level1 ON level2.ParentId = level1.ManagementStructureId
 									 LEFT JOIN ItemMaster rPart ON im.RevisedPartId = rPart.ItemMasterId
-									  AND ISNULL(rPart.IsNonStock,0) = 0 LEFT JOIN Manufacturer man ON stl.ManufacturerId = man.ManufacturerId
+									  AND ISNULL(rPart.IsNonStock,0) = 0
+									  LEFT JOIN Manufacturer man ON stl.ManufacturerId = man.ManufacturerId
 									 LEFT JOIN UnitOfMeasure um ON stl.PurchaseUnitOfMeasureId = um.UnitOfMeasureId 								 
 																				 
 		 	  WHERE ((stl.IsDeleted=0 ) AND (@stockTypeId IS NULL OR im.ItemTypeId=@stockTypeId) 

@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [GetReceiverStockRMAPNLabel]           
  ** Author: Moin Bloch
  ** Description: This stored procedure is used to Get Vendor RMA STOCKLINE Details
@@ -30,7 +30,8 @@ BEGIN
 			SELECT SL.[ReceiverNumber],CAST(SL.[ReceivedDate] AS DATETIME) AS [ReceivedDate] FROM [dbo].[Stockline] SL WITH(NOLOCK)
 			INNER JOIN [dbo].[ItemMaster] IM WITH(NOLOCK) ON IM.[ItemMasterId] = SL.[ItemMasterId]
 			WHERE [VendorRMAId] = @VendorRMAId AND [IsParent] = 1
-			 AND ISNULL(IM.IsNonStock,0) = 0 GROUP BY SL.[ReceiverNumber],CAST(SL.[ReceivedDate] AS DATETIME)
+			 AND ISNULL(IM.IsNonStock,0) = 0
+			 GROUP BY SL.[ReceiverNumber],CAST(SL.[ReceivedDate] AS DATETIME)
 		END
 		IF(@IsParent = '0')
 		BEGIN

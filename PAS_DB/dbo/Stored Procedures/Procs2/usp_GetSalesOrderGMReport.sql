@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [usp_GetSalesOrderGMReport]           
  ** Author:   Swetha  
  ** Description: Get Data for SalesOrder GM Report 
@@ -128,7 +128,8 @@ BEGIN
           ON SOBI.customerid = C.customerid
         LEFT JOIN dbo.itemmaster IM WITH (NOLOCK)
           ON SOP.itemmasterid = IM.itemmasterid
-         AND ISNULL(IM.IsNonStock,0) = 0 LEFT JOIN dbo.stockline STL WITH (NOLOCK)
+         AND ISNULL(IM.IsNonStock,0) = 0
+           LEFT JOIN dbo.stockline STL WITH (NOLOCK)
           ON SOPS.stocklineid = STL.stocklineid and stl.IsParent=1
         LEFT JOIN dbo.workorder WO WITH (NOLOCK)
           ON STL.workorderid = WO.workorderid

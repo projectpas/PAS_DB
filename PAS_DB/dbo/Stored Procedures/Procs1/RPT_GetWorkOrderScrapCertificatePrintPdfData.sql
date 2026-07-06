@@ -1,4 +1,4 @@
-﻿/***************************************************************************************************
+/***************************************************************************************************
 ** Author:  <Moin Bloch>  
 ** Create date: 16/01/2026
 ** Description: <Get Work order Scrap Certificate Form Data>  
@@ -78,10 +78,12 @@ BEGIN
 				INNER JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON WOPN.ItemMasterId=IM.ItemMasterId
 				 LEFT JOIN [dbo].[ScrapCertificate] SC WITH (NOLOCK) ON SC.WorkOrderId=WO.WorkOrderId AND WOPN.ID=SC.workOrderPartNoId
 				 LEFT JOIN [dbo].[ItemMaster] imt WITH(NOLOCK) ON imt.ItemMasterId = WOPN.ItemMasterId
-				  AND ISNULL(imt.IsNonStock,0) = 0 LEFT JOIN [dbo].[ScrapReason] SR WITH (NOLOCK) ON SR.Id=SC.ScrapReasonId 
+				  AND ISNULL(imt.IsNonStock,0) = 0
+				  LEFT JOIN [dbo].[ScrapReason] SR WITH (NOLOCK) ON SR.Id=SC.ScrapReasonId 
 		   WHERE WOPN.[ID]=@workOrderPartNoId AND WO.[WorkOrderId]=@workOrderId       
              
-   AND ISNULL(IM.IsNonStock,0) = 0 END TRY                  
+   AND ISNULL(IM.IsNonStock,0) = 0
+		    END TRY                  
   BEGIN CATCH                    
    IF @@trancount > 0              
     PRINT 'ROLLBACK'              

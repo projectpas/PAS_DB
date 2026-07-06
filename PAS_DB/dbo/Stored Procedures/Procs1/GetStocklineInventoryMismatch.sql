@@ -1,4 +1,4 @@
-﻿-- =============================================
+-- =============================================
 -- Author:		Ekta Chandegra
 -- Create date: 26-12-2023
 -- Description:	This stored procedure is used to count Stockline Inventory mismatch.
@@ -42,7 +42,8 @@ BEGIN
 		INNER JOIN [dbo].[ChildStockline] child WITH (NOLOCK) ON sl.StockLineId = child.StockLineId
 		WHERE sl.[MasterCompanyId] = @MasterCompanyId AND sl.isActive = 1 AND sl.isDeleted = 0 AND sl.IsParent = 1
 		AND (ISNULL(sl.QuantityOnHand,0) + ISNULL(sl.QuantityIssued,0)) <> (ISNULL(sl.QuantityReserved,0) + ISNULL(sl.QuantityAvailable,0) + ISNULL(sl.QuantityIssued,0))
-		 AND ISNULL(im.IsNonStock,0) = 0 GROUP BY sl.StockLineId, sl.PartNumber, sl.PNDescription,sl.Manufacturer, sl.QuantityOnHand, con.Description, sl.MasterCompanyId, sl.StocklineNumber , sl.ControlNumber,
+		 AND ISNULL(im.IsNonStock,0) = 0
+		 GROUP BY sl.StockLineId, sl.PartNumber, sl.PNDescription,sl.Manufacturer, sl.QuantityOnHand, con.Description, sl.MasterCompanyId, sl.StocklineNumber , sl.ControlNumber,
 		sl.IdNumber,sl.SerialNumber, sl.QuantityIssued, sl.QuantityReserved, sl.QuantityAvailable
 		HAVING SUM(ISNULL(child.QuantityOnHand,0)) <> ISNULL(sl.QuantityOnHand,0)
 		ORDER BY sl.StockLineId DESC

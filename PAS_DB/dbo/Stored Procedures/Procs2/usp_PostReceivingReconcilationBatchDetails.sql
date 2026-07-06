@@ -1,4 +1,4 @@
-﻿/*************************************************************             
+/*************************************************************             
  ** File:   [usp_PostReceivingReconcilationBatchDetails]             
  ** Author:   
  ** Description: This stored procedure is used to Posting Reconsilation to Batch
@@ -542,7 +542,8 @@ BEGIN
 							SELECT @PiecePN = partnumber FROM dbo.ItemMaster WITH(NOLOCK)  WHERE ItemMasterId=@PieceItemmasterId 
 							
 								-- Reconciliation PO
-							 AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 SELECT @LastMSLevel=LastMSLevel, @AllMSlevels=AllMSlevels FROM dbo.StocklineManagementStructureDetails WITH(NOLOCK) WHERE ReferenceID=@StockLineId AND ModuleID=@STKMSModuleID;
+							 AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0
+								 SELECT @LastMSLevel=LastMSLevel, @AllMSlevels=AllMSlevels FROM dbo.StocklineManagementStructureDetails WITH(NOLOCK) WHERE ReferenceID=@StockLineId AND ModuleID=@STKMSModuleID;
 
 							SET @Desc='Receiving PO-'+@PurchaseOrderNumber+'  PN-'+@MPNName+'  SL-'+@StocklineNumber
 							SET @Amount=(ISNULL(@StocklineQtyAvail, 0) * @Amount);
@@ -1495,7 +1496,8 @@ BEGIN
 							SELECT @PieceItemmasterId=ItemMasterId FROM dbo.Stockline  WHERE StockLineId=@StocklineId
 							SELECT @PiecePN = partnumber FROM dbo.ItemMaster WITH(NOLOCK)  WHERE ItemMasterId=@PieceItemmasterId 
 								
-							 AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 SELECT @LastMSLevel=LastMSLevel, @AllMSlevels=AllMSlevels FROM dbo.StocklineManagementStructureDetails WITH(NOLOCK) WHERE ReferenceID=@StockLineId AND ModuleID=@STKMSModuleID;
+							 AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0
+							 SELECT @LastMSLevel=LastMSLevel, @AllMSlevels=AllMSlevels FROM dbo.StocklineManagementStructureDetails WITH(NOLOCK) WHERE ReferenceID=@StockLineId AND ModuleID=@STKMSModuleID;
 
 							SET @Desc='Receiving RO-'+@RepairOrderNumber+'  PN-'+@MPNName+'  SL-'+@StocklineNumber
 							SET @Amount=(ISNULL(@StocklineQtyAvail, 0)* @Amount);

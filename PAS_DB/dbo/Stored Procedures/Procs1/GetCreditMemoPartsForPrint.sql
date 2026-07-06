@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [GetCreditMemoPartsForPrint]           
  ** Author: Moin Bloch
  ** Description: Get Customer RMAPartsDetails
@@ -52,7 +52,8 @@ BEGIN
 					INNER JOIN  dbo.Condition CO WITH (NOLOCK) ON CO.ConditionId = SOPN.ConditionId
 					INNER JOIN  dbo.ItemMaster IM WITH (NOLOCK) ON CM.ItemMasterId=IM.ItemMasterId
 				WHERE CM.InvoiceId=@InvoicingId AND CM.CreditMemoHeaderId=@CreditMemoHeaderId AND SOBI.[ModuleId] = @SOModuleId
-		 AND ISNULL(IM.IsNonStock,0) = 0 END
+		 AND ISNULL(IM.IsNonStock,0) = 0
+				 END
 		ELSE 
 		BEGIN
 				SELECT CM.InvoiceId,	
@@ -72,7 +73,8 @@ BEGIN
 					INNER JOIN  dbo.Condition CO WITH (NOLOCK) ON CO.ConditionId = WOPN.RevisedConditionId
 					INNER JOIN  dbo.ItemMaster IM WITH (NOLOCK) ON WOBII.ItemMasterId=IM.ItemMasterId				
 				WHERE CM.InvoiceId=@InvoicingId AND CM.CreditMemoHeaderId=@CreditMemoHeaderId AND WOBI.[ModuleId] = @WOModuleId
-		 AND ISNULL(IM.IsNonStock,0) = 0 END
+		 AND ISNULL(IM.IsNonStock,0) = 0
+				 END
 	END TRY    
 	BEGIN CATCH      
 	IF @@trancount > 0				

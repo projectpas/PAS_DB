@@ -1,4 +1,4 @@
-﻿/*************************************************************                 
+/*************************************************************                 
  ** File:  [getReceivingCustomerWorkById]      
  ** Author:    Shrey Chandegara   
  ** Description: Receiving CustomerWork By Id    
@@ -206,7 +206,8 @@ AS BEGIN
 			INNER JOIN [dbo].[Manufacturer] man WITH(NOLOCK) ON im.ManufacturerId = man.ManufacturerId
 			INNER JOIN [dbo].[WorkOrderManagementStructureDetails] msd WITH(NOLOCK) ON rc.ReceivingCustomerWorkId = msd.ReferenceID AND msd.ModuleID = @ModuleId 
 			LEFT JOIN [dbo].[ItemMaster] rp WITH(NOLOCK) ON im.ItemMasterId = rp.RevisedPartId
-			 AND ISNULL(rp.IsNonStock,0) = 0 LEFT JOIN [dbo].[WorkOrder] wo WITH(NOLOCK) ON rc.WorkOrderId = wo.WorkOrderId
+			 AND ISNULL(rp.IsNonStock,0) = 0
+			 LEFT JOIN [dbo].[WorkOrder] wo WITH(NOLOCK) ON rc.WorkOrderId = wo.WorkOrderId
 			LEFT JOIN [dbo].[ItemGroup] ig WITH(NOLOCK) ON im.ItemGroupId = ig.ItemGroupId
 			LEFT JOIN [dbo].[WOInspectionChecklist] woi WITH(NOLOCK) ON rc.ReceivingCustomerWorkId = woi.ReceivingCustomerWorkId
 			LEFT JOIN [dbo].[ExchangeSalesOrder] eso WITH(NOLOCK) ON rc.ExchangeSalesOrderId = eso.ExchangeSalesOrderId

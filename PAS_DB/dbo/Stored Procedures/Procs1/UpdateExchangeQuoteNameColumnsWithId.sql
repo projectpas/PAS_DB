@@ -1,4 +1,4 @@
-﻿/*************************************************************             
+/*************************************************************             
  ** File:   [UpdateExchangeQuoteNameColumnsWithId]
  ** Author:   Deep Patel
  ** Description:	Update name columns into corrosponding reference Id values from respective master table
@@ -68,7 +68,8 @@ BEGIN
 		--StatusName = st.Description
 		FROM [dbo].[ExchangeQuotePart] EQP WITH (NOLOCK)
 		LEFT JOIN DBO.ItemMaster im WITH (NOLOCK) ON EQP.ItemMasterId = im.ItemMasterId
-		 AND ISNULL(im.IsNonStock,0) = 0 LEFT JOIN DBO.Stockline sl WITH (NOLOCK) ON EQP.StockLineId = sl.StockLineId
+		 AND ISNULL(im.IsNonStock,0) = 0
+		 LEFT JOIN DBO.Stockline sl WITH (NOLOCK) ON EQP.StockLineId = sl.StockLineId
 		LEFT JOIN DBO.Currency Curr WITH (NOLOCK) ON Curr.CurrencyId = EQP.CurrencyId
 		LEFT JOIN DBO.Condition c WITH (NOLOCK) ON EQP.ConditionId = c.ConditionId
 		Where EQP.ExchangeQuoteId = @ExchangeQuoteId

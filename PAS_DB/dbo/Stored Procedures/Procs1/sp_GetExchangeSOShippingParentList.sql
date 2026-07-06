@@ -1,4 +1,4 @@
-﻿/***************************************************************************************************************************************
+/***************************************************************************************************************************************
   ** Change History
  ***************************************************************************************************************************************
  ** PR   Date						 Author							Change Description
@@ -27,7 +27,8 @@ BEGIN
 		LEFT JOIN DBO.ExchangeSalesOrder so WITH (NOLOCK) on so.ExchangeSalesOrderId = sop.ExchangeSalesOrderId
 		INNER JOIN DBO.ExchangeSOPickTicket sopt WITH (NOLOCK) on sopt.ExchangeSalesOrderId = sop.ExchangeSalesOrderId AND sopt.ExchangeSalesOrderPartId = sop.ExchangeSalesOrderPartId
 		LEFT JOIN DBO.ItemMaster imt WITH (NOLOCK) on imt.ItemMasterId = sop.ItemMasterId
-		 AND ISNULL(imt.IsNonStock,0) = 0 LEFT JOIN DBO.Stockline sl WITH (NOLOCK) on sl.StockLineId = sop.StockLineId
+		 AND ISNULL(imt.IsNonStock,0) = 0
+		 LEFT JOIN DBO.Stockline sl WITH (NOLOCK) on sl.StockLineId = sop.StockLineId
 		LEFT JOIN DBO.ExchangeSalesOrderShippingItem sosi WITH (NOLOCK) on sosi.ExchangeSalesOrderPartId = sop.ExchangeSalesOrderPartId AND sosi.SOPickTicketId = sopt.SOPickTicketId
 		LEFT JOIN DBO.ExchangeSalesOrderShipping sos WITH (NOLOCK) on sos.ExchangeSalesOrderShippingId = sosi.ExchangeSalesOrderShippingId AND sos.ExchangeSalesOrderId = sopt.ExchangeSalesOrderId
 		WHERE sop.ExchangeSalesOrderId = @ExchangeSalesOrderId AND sopt.IsConfirmed = 1

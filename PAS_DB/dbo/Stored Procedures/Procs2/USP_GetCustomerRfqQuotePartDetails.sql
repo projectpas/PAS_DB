@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [USP_GetCustomerRfqQuotePartDetails]           
  ** Author:  Amit Ghediya
  ** Description: This stored procedure is used USP_GetCustomerRfqQuotePartDetails
@@ -71,7 +71,8 @@ BEGIN
 		 LEFT JOIN WorkOrderTurnArroundTime wotat ON wopn.ID = wotat.WorkOrderPartNoId
 		 LEFT JOIN WorkOrderStage wos ON wotat.CurrentStageId = wos.WorkOrderStageId AND wos.IncludeInStageReport = 1
 		 WHERE im.partnumber = @PartNumber AND wopn.IsClosed = 1 AND wopn.MasterCompanyId = @MasterCompanyId
-		  AND ISNULL(im.IsNonStock,0) = 0 group by wotat.WorkOrderPartNoId;
+		  AND ISNULL(im.IsNonStock,0) = 0
+		  group by wotat.WorkOrderPartNoId;
 		 IF(@OverHaulTotalDays > @OverHaulCount)
 		 BEGIN
 			SET @OverHaulAvgTat = @OverHaulTotalDays / @OverHaulCount;
@@ -106,7 +107,8 @@ BEGIN
 		 LEFT JOIN WorkOrderTurnArroundTime wotat ON wopn.ID = wotat.WorkOrderPartNoId
 		 LEFT JOIN WorkOrderStage wos ON wotat.CurrentStageId = wos.WorkOrderStageId AND wos.IncludeInStageReport = 1
 		 WHERE im.partnumber = @PartNumber AND wopn.IsClosed = 1 AND wopn.MasterCompanyId=1
-		  AND ISNULL(im.IsNonStock,0) = 0 group by wotat.WorkOrderPartNoId;
+		  AND ISNULL(im.IsNonStock,0) = 0
+		  group by wotat.WorkOrderPartNoId;
 
 		 SELECT @RepairTotalDays = SUM(wotat.Days)--,@RepairCount = Count(*)
 			FROM WorkOrderPartNumber wopn
@@ -149,7 +151,8 @@ BEGIN
 		 LEFT JOIN WorkOrderTurnArroundTime wotat ON wopn.ID = wotat.WorkOrderPartNoId
 		 LEFT JOIN WorkOrderStage wos ON wotat.CurrentStageId = wos.WorkOrderStageId AND wos.IncludeInStageReport = 1
 		 WHERE im.partnumber = @PartNumber AND wopn.IsClosed = 1 AND wopn.MasterCompanyId=1
-		  AND ISNULL(im.IsNonStock,0) = 0 group by wotat.WorkOrderPartNoId;
+		  AND ISNULL(im.IsNonStock,0) = 0
+		  group by wotat.WorkOrderPartNoId;
 
 		 SELECT @BenchTotalDays = SUM(wotat.Days)--,@BenchCount = Count(*)
 			FROM WorkOrderPartNumber wopn

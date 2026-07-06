@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [SearchItemMasterAutoCompleteDropdownsByRestriction]           
  ** Author		:   Vishal Suthar
  ** Description	:	Get Item Master Details By Customer Restriction    
@@ -57,8 +57,8 @@ BEGIN
 					,c.Description ConditionDescription
 					,ISNULL(STUFF((
 					SELECT DISTINCT ', '+ I.partnumber FROM DBO.Nha_Tla_Alt_Equ_ItemMapping M INNER JOIN ItemMaster I ON I.ItemMasterId = M.ItemMasterId Where M.MappingItemMasterId = im.ItemMasterId AND M.MappingType = 1
-					FOR XML PATH('')
-					 AND ISNULL(I.IsNonStock,0) = 0 )
+					AND ISNULL(I.IsNonStock,0) = 0
+					FOR XML PATH(''))
 					,1,1,''), '') AlternateFor
 					,CASE 
 						WHEN im.IsPma = 1 and im.IsDER = 1 THEN OEMPMA.partnumber --'PMA&DER'
@@ -94,7 +94,8 @@ BEGIN
 							and imps.ConditionId = c.ConditionId
 				WHERE 
 					im.ItemMasterId IN (SELECT Item FROM DBO.SPLITSTRING(@ItemMasterIdlist,','))
-				 AND ISNULL(im.IsNonStock,0) = 0 GROUP BY
+				 AND ISNULL(im.IsNonStock,0) = 0
+					 GROUP BY
 					im.PartNumber
 					,im.PurchaseUnitOfMeasureId
 					,im.PurchaseUnitOfMeasure

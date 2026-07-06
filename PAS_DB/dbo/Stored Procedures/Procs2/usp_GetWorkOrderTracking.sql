@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [usp_GetWorkOrderTracking]           
  ** Author:      
  ** Description: Get Data FOR WorkOrderTracking
@@ -182,7 +182,8 @@ BEGIN
           ON WO.ReceivingCustomerWorkId = RCW.ReceivingCustomerWorkId
         LEFT JOIN ItemMaster IM WITH (NOLOCK)
           ON WOPN.ItemMasterId = im.ItemMasterId
-         AND ISNULL(IM.IsNonStock,0) = 0 LEFT JOIN WorkOrderShipping AS WOS WITH (NOLOCK)
+         AND ISNULL(IM.IsNonStock,0) = 0
+           LEFT JOIN WorkOrderShipping AS WOS WITH (NOLOCK)
           ON WOS.WorkOrderId = WO.WorkOrderId
         LEFT JOIN WorkOrderStage WOSG WITH (NOLOCK)
           ON WOPN.WorkOrderStageId = WOSG.WorkOrderStageId

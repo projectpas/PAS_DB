@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [GetPickTicketPrint_WO]           
  ** Author:    
  ** Description: This stored procedure is used Get Pick Ticket Details for pdf   
@@ -110,7 +110,8 @@ BEGIN
 						LEFT JOIN dbo.WorkOrderMaterialStockLine wmsl WITH (NOLOCK) ON wmsl.WorkOrderMaterialsId = wom.WorkOrderMaterialsId
 						LEFT JOIN dbo.Stockline sl WITH (NOLOCK) on sl.StockLineId = wopt.StockLineId
 						LEFT JOIN dbo.ItemMaster imts WITH (NOLOCK) on imts.ItemMasterId = sl.ItemMasterId
-						 AND ISNULL(imts.IsNonStock,0) = 0 LEFT JOIN dbo.Condition co WITH (NOLOCK) on co.ConditionId = sl.ConditionId
+						 AND ISNULL(imts.IsNonStock,0) = 0
+						 LEFT JOIN dbo.Condition co WITH (NOLOCK) on co.ConditionId = sl.ConditionId
 						LEFT JOIN dbo.UnitOfMeasure uom WITH (NOLOCK) on uom.UnitOfMeasureId = imts.ConsumeUnitOfMeasureId	
 						LEFT JOIN dbo.Priority p WITH (NOLOCK) on p.PriorityId = wop.WorkOrderPriorityId
 						LEFT JOIN dbo.ReceivingCustomerWork rc WITH (NOLOCK) on rc.StockLineId = wop.StockLineId
@@ -119,8 +120,7 @@ BEGIN
 							AND wopt.MasterCompanyId = @masterCompanyId
 							AND wopt.PickTicketNumber = @pickTicketNo
 							AND wowf.WorkFlowWorkOrderId = @WorkOrderPartId
-
-					 AND ISNULL(imt.IsNonStock,0) = 0 UNION ALL
+							 UNION ALL
 					
 					SELECT DISTINCT wopt.PickTicketId, wopt.CreatedDate as PickTicketDate, wopt.WorkOrderId, sl.StockLineNumber, wom.Quantity AS Qty, 
 						imts.partnumber as PartNumber,imts.PartDescription,wopt.PickTicketNumber,sl.SerialNumber,sl.ControlNumber,sl.IdNumber,
@@ -150,7 +150,8 @@ BEGIN
 						LEFT JOIN dbo.WorkOrderMaterialStockLineKit wmsl WITH (NOLOCK) ON wmsl.WorkOrderMaterialsKitId = wom.WorkOrderMaterialsKitId
 						LEFT JOIN dbo.Stockline sl WITH (NOLOCK) on sl.StockLineId = wopt.StockLineId
 						LEFT JOIN dbo.ItemMaster imts WITH (NOLOCK) on imts.ItemMasterId = sl.ItemMasterId
-						 AND ISNULL(imts.IsNonStock,0) = 0 LEFT JOIN dbo.Condition co WITH (NOLOCK) on co.ConditionId = sl.ConditionId
+						 AND ISNULL(imts.IsNonStock,0) = 0
+						 LEFT JOIN dbo.Condition co WITH (NOLOCK) on co.ConditionId = sl.ConditionId
 						LEFT JOIN dbo.UnitOfMeasure uom WITH (NOLOCK) on uom.UnitOfMeasureId = imts.ConsumeUnitOfMeasureId	
 						LEFT JOIN dbo.Priority p WITH (NOLOCK) on p.PriorityId = wop.WorkOrderPriorityId
 						LEFT JOIN dbo.ReceivingCustomerWork rc WITH (NOLOCK) on rc.StockLineId = wop.StockLineId
@@ -159,7 +160,7 @@ BEGIN
 							AND wopt.MasterCompanyId = @masterCompanyId
 							AND wopt.PickTicketNumber = @pickTicketNo
 							AND wowf.WorkFlowWorkOrderId = @WorkOrderPartId
-				 AND ISNULL(imt.IsNonStock,0) = 0 END
+							 END
 			COMMIT  TRANSACTION
 
 		END TRY    

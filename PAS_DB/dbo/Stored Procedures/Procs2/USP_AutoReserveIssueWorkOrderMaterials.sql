@@ -1,4 +1,4 @@
-﻿/*************************************************************   
+/*************************************************************   
 ** Author:  <Hemant Saliya>  
 ** Create date: <01/23/2023>  
 ** Description: <Save Work Order Materials reserve & Issue Stockline Details>  
@@ -167,7 +167,8 @@ BEGIN
 						
 						--PRINT '--Auto Reserve & Issue Stockline'
 						--Auto Reserve & Issue Stockline
-						 AND ISNULL(IM.IsNonStock,0) = 0 IF((SELECT COUNT(1) FROM #tmpReserveIssueWOMaterialsStockline) > 0)
+						 AND ISNULL(IM.IsNonStock,0) = 0
+						 IF((SELECT COUNT(1) FROM #tmpReserveIssueWOMaterialsStockline) > 0)
 						BEGIN
 							--CASE 1 UPDATE WORK ORDER MATERILS
 							DECLARE @count INT;

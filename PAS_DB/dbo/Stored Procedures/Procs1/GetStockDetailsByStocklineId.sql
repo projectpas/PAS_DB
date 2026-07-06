@@ -1,4 +1,4 @@
-﻿
+
 -- EXEC [dbo].[GetStockDetailsByStocklineId] 189
 CREATE PROC [dbo].[GetStockDetailsByStocklineId]
 	@StocklineId  bigint
@@ -15,7 +15,8 @@ BEGIN
 		INNER JOIN ItemMaster im WITH (NOLOCK) ON sl.ItemMasterId = im.ItemMasterId
 		INNER JOIN Condition cond WITH (NOLOCK) on sl.ConditionId = cond.ConditionId
 		WHERE StockLineId = @StocklineId
-		 AND ISNULL(im.IsNonStock,0) = 0 ORDER BY sl.CreatedDate
+		 AND ISNULL(im.IsNonStock,0) = 0
+		 ORDER BY sl.CreatedDate
 	END
 	COMMIT  TRANSACTION
 	END TRY    

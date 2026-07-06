@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:  [UpdateSONameColumnsWithId]           
  ** Author:   Vishal Suthar
  ** Description: Update name columns into corrosponding reference Id values from respective master table                 
@@ -118,7 +118,8 @@ BEGIN
 		StatusName = st.Description
 		FROM [dbo].[SalesOrderPartV1] sop WITH (NOLOCK)
 		LEFT JOIN DBO.ItemMaster im WITH (NOLOCK) ON sop.ItemMasterId = im.ItemMasterId
-		 AND ISNULL(im.IsNonStock,0) = 0 LEFT JOIN DBO.Currency Curr WITH (NOLOCK) ON Curr.CurrencyId = sop.CurrencyId
+		 AND ISNULL(im.IsNonStock,0) = 0
+		 LEFT JOIN DBO.Currency Curr WITH (NOLOCK) ON Curr.CurrencyId = sop.CurrencyId
 		LEFT JOIN DBO.Condition c WITH (NOLOCK) ON sop.ConditionId = c.ConditionId
 		LEFT JOIN DBO.MasterSalesOrderQuoteStatus st WITH (NOLOCK) ON sop.StatusId = st.Id
 		LEFT JOIN DBO.Priority p WITH (NOLOCK) ON sop.PriorityId = p.PriorityId

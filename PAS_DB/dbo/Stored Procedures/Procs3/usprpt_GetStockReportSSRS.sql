@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [usprpt_GetStockReportSSRS]
  ** Author: [Bhargav Saliya]
  ** Description: Get Data for Stock Report ssrs
@@ -146,7 +146,8 @@ BEGIN TRY
 				FROM dbo.ItemMaster iM WITH(NOLOCK)
 				left JOIN dbo.ItemMasterRanking mp WITH(NOLOCK) ON iM.ItemMasterId = mp.ItemMasterId
 				left JOIN dbo.Ranking R WITH(NOLOCK) ON mp.RankingId = R.RankingId
-				WHERE mp.RankingId IS NOT NULL  AND ISNULL(iM.IsNonStock,0) = 0 GROUP BY iM.ItemMasterId
+				WHERE mp.RankingId IS NOT NULL  AND ISNULL(iM.IsNonStock,0) = 0
+				 GROUP BY iM.ItemMasterId
 			),
 
      rptCTE (TotalRecordsCount, pn, pndescription, sernum, slnum, cond, itemgroup, iscustomerstock, uom, itemtype, stocktype, Alt_Equiv,

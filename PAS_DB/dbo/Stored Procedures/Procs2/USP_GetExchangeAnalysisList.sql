@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [USP_GetExchangeAnalysisList]          
  ** Author: EKTA CHANDEGRA
  ** Description: This stored procedure is used to USP_GetExchangeAnalysisList
@@ -75,7 +75,8 @@ BEGIN
 		INNER JOIN [dbo].[ExchangeSalesOrderBillingInvoicing] esb WITH(NOLOCK) ON esbi.SOBillingInvoicingId = esb.SOBillingInvoicingId
 		LEFT JOIN [dbo].[ExchangeSalesOrderPart] part WITH(NOLOCK) ON sqe.ExchangeSalesOrderPartId = part.ExchangeSalesOrderPartId
 		LEFT JOIN [dbo].[ItemMaster] itemMaster WITH(NOLOCK) ON part.ItemMasterId = itemMaster.ItemMasterId
-		 AND ISNULL(itemMaster.IsNonStock,0) = 0 LEFT JOIN [dbo].[UnitOfMeasure] um WITH(NOLOCK) ON itemMaster.PurchaseUnitOfMeasureId = um.UnitOfMeasureId
+		 AND ISNULL(itemMaster.IsNonStock,0) = 0
+		 LEFT JOIN [dbo].[UnitOfMeasure] um WITH(NOLOCK) ON itemMaster.PurchaseUnitOfMeasureId = um.UnitOfMeasureId
 		LEFT JOIN [dbo].[ExchangeBillingType] ebt WITH(NOLOCK) ON sqe.BillingTypeId = ebt.ExchangeBillingTypeId
 		WHERE sqe.ExchangeSalesOrderId = @ExchangeSalesOrderId
 		  AND ISNULL(esbi.IsDeleted,0) = 0

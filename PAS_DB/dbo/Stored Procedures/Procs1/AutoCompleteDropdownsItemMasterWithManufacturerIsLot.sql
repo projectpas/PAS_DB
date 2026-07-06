@@ -1,4 +1,4 @@
-﻿/*************************************************************             
+/*************************************************************             
  ** File:   [AutoCompleteDropdownsItemMasterWithManufacturerIsLot]             
  ** Author:   Rajesh Gami  
  ** Description: This stored procedure is used retrieve Item Master List based on lot with Manufacturer detail for Auto complete Dropdown List      
@@ -71,10 +71,12 @@ BEGIN
 		 FROM dbo.ItemMaster Im WITH(NOLOCK)   
 		  INNER JOIN dbo.Stockline stl WITH(NOLOCK) ON Im.ItemMasterId = stl.ItemMasterId AND ISNULL(stl.LotId,0) >0 AND stl.StockLineId in(SELECT Item FROM dbo.SplitString(@StockLineId, ','))
 		  LEFT JOIN dbo.ItemMaster rp WITH(NOLOCK)  ON Im.ItemMasterId =  rp.ItemMasterId  
-		   AND ISNULL(rp.IsNonStock,0) = 0 LEFT JOIN dbo.Manufacturer M WITH(NOLOCK) ON Im.ManufacturerId = M.ManufacturerId 
+		   AND ISNULL(rp.IsNonStock,0) = 0
+		   LEFT JOIN dbo.Manufacturer M WITH(NOLOCK) ON Im.ManufacturerId = M.ManufacturerId 
 		  LEFT JOIN dbo.ItemClassification Ic WITH(NOLOCK) ON Ic.ItemClassificationId = Im.ItemClassificationId
 		 WHERE (Im.IsActive = 1 AND ISNULL(Im.IsDeleted, 0) = 0 AND IM.MasterCompanyId = @MasterCompanyId AND (Im.partnumber LIKE @StartWith + '%' OR Im.partnumber  LIKE '%' + @StartWith + '%'))      
-		   AND ISNULL(Im.IsNonStock,0) = 0 UNION       
+		   AND ISNULL(Im.IsNonStock,0) = 0
+		  UNION       
 		 SELECT DISTINCT Im.ItemMasterId,  
 		  Im.ItemMasterId AS Value,   
 		  Im.partnumber AS PartNumber,   
@@ -101,10 +103,12 @@ BEGIN
 		 FROM dbo.ItemMaster Im WITH(NOLOCK)   
 		  INNER JOIN dbo.Stockline stl WITH(NOLOCK) ON Im.ItemMasterId = stl.ItemMasterId AND ISNULL(stl.LotId,0) >0 AND stl.StockLineId in(SELECT Item FROM dbo.SplitString(@StockLineId, ','))
 		  LEFT JOIN dbo.ItemMaster rp WITH(NOLOCK) ON Im.ItemMasterId =  rp.ItemMasterId  
-		   AND ISNULL(rp.IsNonStock,0) = 0 LEFT JOIN dbo.Manufacturer M WITH(NOLOCK) ON Im.ManufacturerId = M.ManufacturerId  
+		   AND ISNULL(rp.IsNonStock,0) = 0
+		   LEFT JOIN dbo.Manufacturer M WITH(NOLOCK) ON Im.ManufacturerId = M.ManufacturerId  
 		  LEFT JOIN dbo.ItemClassification Ic WITH(NOLOCK) ON Ic.ItemClassificationId = Im.ItemClassificationId
 		 WHERE im.ItemMasterId in (SELECT Item FROM DBO.SPLITSTRING(@Idlist, ','))      
-		 AND ISNULL(Im.IsNonStock,0) = 0 ORDER BY Label      
+		 AND ISNULL(Im.IsNonStock,0) = 0
+		  ORDER BY Label      
 	   End  
 	   ELSE  
 	   BEGIN  
@@ -134,7 +138,8 @@ BEGIN
 		  INNER JOIN dbo.Stockline stl WITH(NOLOCK) ON Im.ItemMasterId = stl.ItemMasterId AND ISNULL(stl.LotId,0) >0 AND stl.RepairOrderId = @ReferenceId
 		  LEFT JOIN dbo.ItemClassification Ic WITH(NOLOCK) ON Ic.ItemClassificationId = Im.ItemClassificationId
 		  LEFT JOIN dbo.ItemMaster rp WITH(NOLOCK)  ON Im.ItemMasterId =  rp.ItemMasterId  
-		   AND ISNULL(rp.IsNonStock,0) = 0 LEFT JOIN dbo.Manufacturer M WITH(NOLOCK) ON Im.ManufacturerId = M.ManufacturerId  
+		   AND ISNULL(rp.IsNonStock,0) = 0
+		   LEFT JOIN dbo.Manufacturer M WITH(NOLOCK) ON Im.ManufacturerId = M.ManufacturerId  
 		WHERE ISNULL(Im.IsNonStock,0) = 0 AND ( Im.IsActive = 1 AND ISNULL(Im.IsDeleted, 0) = 0 AND IM.MasterCompanyId = @MasterCompanyId AND Im.partnumber LIKE '%' + @StartWith + '%' OR Im.partnumber  LIKE '%' + @StartWith + '%'  
 		) UNION   
 		SELECT DISTINCT TOP 50   
@@ -162,10 +167,12 @@ BEGIN
 		 FROM dbo.ItemMaster Im WITH(NOLOCK)    
 		  INNER JOIN dbo.Stockline stl WITH(NOLOCK) ON Im.ItemMasterId = stl.ItemMasterId AND ISNULL(stl.LotId,0) >0 AND stl.RepairOrderId = @ReferenceId
 		  LEFT JOIN dbo.ItemMaster rp WITH(NOLOCK)  ON Im.ItemMasterId =  rp.ItemMasterId  
-		   AND ISNULL(rp.IsNonStock,0) = 0 LEFT JOIN dbo.ItemClassification Ic WITH(NOLOCK) ON Ic.ItemClassificationId = Im.ItemClassificationId
+		   AND ISNULL(rp.IsNonStock,0) = 0
+		   LEFT JOIN dbo.ItemClassification Ic WITH(NOLOCK) ON Ic.ItemClassificationId = Im.ItemClassificationId
 		  LEFT JOIN dbo.Manufacturer M WITH(NOLOCK) ON Im.ManufacturerId = M.ManufacturerId  
 		WHERE Im.ItemMasterId in (SELECT Item FROM DBO.SPLITSTRING(@Idlist, ','))  
-		 AND ISNULL(Im.IsNonStock,0) = 0 ORDER BY Label  
+		 AND ISNULL(Im.IsNonStock,0) = 0
+		 ORDER BY Label  
 	 END
   END
   ELSE IF(UPPER(@ModuleName) = @SalesModule)
@@ -207,10 +214,12 @@ BEGIN
 		 FROM dbo.ItemMaster Im WITH(NOLOCK)   
 		  INNER JOIN dbo.Stockline stl WITH(NOLOCK) ON Im.ItemMasterId = stl.ItemMasterId AND ISNULL(stl.LotId,0) >0 AND stl.StockLineId in(SELECT Item FROM dbo.SplitString(@StockLineId, ','))
 		  LEFT JOIN dbo.ItemMaster rp WITH(NOLOCK)  ON Im.ItemMasterId =  rp.ItemMasterId  
-		   AND ISNULL(rp.IsNonStock,0) = 0 LEFT JOIN dbo.Manufacturer M WITH(NOLOCK) ON Im.ManufacturerId = M.ManufacturerId 
+		   AND ISNULL(rp.IsNonStock,0) = 0
+		   LEFT JOIN dbo.Manufacturer M WITH(NOLOCK) ON Im.ManufacturerId = M.ManufacturerId 
 		  LEFT JOIN dbo.ItemClassification Ic WITH(NOLOCK) ON Ic.ItemClassificationId = Im.ItemClassificationId
 		 WHERE (Im.IsActive = 1 AND ISNULL(Im.IsDeleted, 0) = 0 AND IM.MasterCompanyId = @MasterCompanyId AND (Im.partnumber LIKE @StartWith + '%' OR Im.partnumber  LIKE '%' + @StartWith + '%'))      
-		   AND ISNULL(Im.IsNonStock,0) = 0 UNION       
+		   AND ISNULL(Im.IsNonStock,0) = 0
+		  UNION       
 		 SELECT DISTINCT Im.ItemMasterId,  
 		  Im.ItemMasterId AS Value,   
 		  Im.partnumber AS PartNumber,   
@@ -237,10 +246,12 @@ BEGIN
 		 FROM dbo.ItemMaster Im WITH(NOLOCK)   
 		  INNER JOIN dbo.Stockline stl WITH(NOLOCK) ON Im.ItemMasterId = stl.ItemMasterId AND ISNULL(stl.LotId,0) >0 AND stl.StockLineId in(SELECT Item FROM dbo.SplitString(@StockLineId, ','))
 		  LEFT JOIN dbo.ItemMaster rp WITH(NOLOCK) ON Im.ItemMasterId =  rp.ItemMasterId  
-		   AND ISNULL(rp.IsNonStock,0) = 0 LEFT JOIN dbo.Manufacturer M WITH(NOLOCK) ON Im.ManufacturerId = M.ManufacturerId  
+		   AND ISNULL(rp.IsNonStock,0) = 0
+		   LEFT JOIN dbo.Manufacturer M WITH(NOLOCK) ON Im.ManufacturerId = M.ManufacturerId  
 		  LEFT JOIN dbo.ItemClassification Ic WITH(NOLOCK) ON Ic.ItemClassificationId = Im.ItemClassificationId
 		 WHERE im.ItemMasterId in (SELECT Item FROM DBO.SPLITSTRING(@Idlist, ','))      
-		 AND ISNULL(Im.IsNonStock,0) = 0 ORDER BY Label   
+		 AND ISNULL(Im.IsNonStock,0) = 0
+		  ORDER BY Label   
   END
 
 

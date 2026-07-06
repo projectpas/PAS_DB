@@ -1,4 +1,4 @@
-﻿
+
 /*************************************************************           
  ** File:   [dbo].[GetBillingInvoiceByShipping]          
  ** Author:   Deep Patel
@@ -70,7 +70,8 @@ SET NOCOUNT ON;
 				LEFT JOIN [dbo].[BillingInvoicingDetails] BID WITH(NOLOCK) ON sobi.[BillingInvoicingId] = BID.[BillingInvoicingId]
 
 				LEFT JOIN DBO.ItemMaster im WITH (NOLOCK) ON sop.ItemMasterId = im.ItemMasterId
-				 AND ISNULL(im.IsNonStock,0) = 0 LEFT JOIN DBO.ItemMasterExportInfo ime WITH (NOLOCK) ON im.ItemMasterId = ime.ItemMasterId
+				 AND ISNULL(im.IsNonStock,0) = 0
+				 LEFT JOIN DBO.ItemMasterExportInfo ime WITH (NOLOCK) ON im.ItemMasterId = ime.ItemMasterId
 
 				
 				WHERE sop.SalesOrderPartId = @SalesOrderPartId AND sobii.BillingInvoicingId = @SOBillingInvoicingId AND sobi.ModuleId = @SOModuleId;

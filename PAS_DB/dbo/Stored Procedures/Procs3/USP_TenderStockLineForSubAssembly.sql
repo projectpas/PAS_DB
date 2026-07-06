@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [USP_TenderStockLineForSubAssembly]           
  ** Author:   Hemant Saliya
  ** Description: This stored procedure is used to tender stockline for sub-assembly 
@@ -217,7 +217,8 @@ BEGIN
 						    iM.IsOEM, iM.IsOemPNId, iM.IsPma, iM.IsDER, iM.ManufacturerId, iM.PurchaseUnitOfMeasureId
 						   FROM [dbo].[ItemMaster] iM WITH(NOLOCK)
 						   LEFT JOIN [dbo].[ItemMaster] rPart WITH(NOLOCK) ON iM.RevisedPartId = rPart.ItemMasterId
-						    AND ISNULL(rPart.IsNonStock,0) = 0 LEFT JOIN [dbo].[ItemMasterExchangeLoan] imxl WITH(NOLOCK) ON iM.RevisedPartId = imxl.ItemMasterId
+						    AND ISNULL(rPart.IsNonStock,0) = 0
+						    LEFT JOIN [dbo].[ItemMasterExchangeLoan] imxl WITH(NOLOCK) ON iM.RevisedPartId = imxl.ItemMasterId
 						   LEFT JOIN [dbo].[ItemMasterPurchaseSale] imps WITH(NOLOCK) ON iM.RevisedPartId = imps.ItemMasterId
 						   LEFT JOIN [dbo].[ItemMasterExportInfo] imx WITH(NOLOCK) ON iM.RevisedPartId = imx.ItemMasterId
 						   LEFT JOIN [dbo].[GLAccount] gl WITH(NOLOCK) ON iM.RevisedPartId = gl.GLAccountId

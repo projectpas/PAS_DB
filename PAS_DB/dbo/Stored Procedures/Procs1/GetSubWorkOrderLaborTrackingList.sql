@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [GetWorkOrderLaborTrackingList]           
  ** Author:   Subhash Saliya
  ** Description: This stored procedure is used Get WorkOrder Labor Tracking Detail 
@@ -154,7 +154,8 @@ BEGIN
 		
        WHERE (WOT.MasterCompanyId = @MasterCompanyId  AND WOT.EmployeeId = @EmployeeId AND (@TaskName = '' OR Ts.[Description] != @TaskStatus)) 
 	   
-	    AND ISNULL(IM.IsNonStock,0) = 0 UNION ALL
+	    AND ISNULL(IM.IsNonStock,0) = 0
+        UNION ALL
 
 	   SELECT   
 		0 AS WorkOrderLaborTrackingId,
@@ -302,7 +303,8 @@ BEGIN
 		
        WHERE (WOT.MasterCompanyId = @MasterCompanyId AND WOL.SubWorkOrderLaborId = @WorkOrderLaborId  AND WOT.TaskId = @TaskId AND Lh.SubWorkOrderLaborHeaderId = @WorkFlowWOId AND (@TaskName = '' OR Ts.[Description] != @TaskStatus)) 
 	   
-	    AND ISNULL(IM.IsNonStock,0) = 0 UNION ALL
+	    AND ISNULL(IM.IsNonStock,0) = 0
+        UNION ALL
 
 	    SELECT DISTINCT  
 		0 AS WorkOrderLaborTrackingId,

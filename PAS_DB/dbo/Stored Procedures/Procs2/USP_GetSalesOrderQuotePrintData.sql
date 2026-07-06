@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [dbo].[USP_GetSalesOrderQuotePrintData]          
  ** Author:   BHARGAV SALIA
  ** Description: Get Sales Order Quote Print Data
@@ -70,7 +70,8 @@ BEGIN
 		LEFT JOIN [dbo].SalesOrderQuoteStocklineV1 stk WITH (NOLOCK) ON sop.SalesOrderQuotePartId = stk.SalesOrderQuotePartId
 		LEFT JOIN [dbo].SalesOrderQuotePartCost partc WITH (NOLOCK) ON sop.SalesOrderQuotePartId = partc.SalesOrderQuotePartId
 		LEFT JOIN [dbo].ItemMaster itemMaster WITH (NOLOCK) ON sop.ItemMasterId = itemMaster.ItemMasterId
-		 AND ISNULL(itemMaster.IsNonStock,0) = 0 LEFT JOIN [dbo].UnitOfMeasure iu WITH (NOLOCK) ON itemMaster.ConsumeUnitOfMeasureId = iu.UnitOfMeasureId
+		 AND ISNULL(itemMaster.IsNonStock,0) = 0
+		 LEFT JOIN [dbo].UnitOfMeasure iu WITH (NOLOCK) ON itemMaster.ConsumeUnitOfMeasureId = iu.UnitOfMeasureId
 		LEFT JOIN [dbo].Condition cp WITH (NOLOCK) ON sop.ConditionId = cp.ConditionId
 		LEFT JOIN [dbo].Customer cust WITH (NOLOCK) ON so.CustomerId = cust.CustomerId
 		LEFT JOIN [dbo].Address custAddress WITH (NOLOCK) ON cust.AddressId = custAddress.AddressId

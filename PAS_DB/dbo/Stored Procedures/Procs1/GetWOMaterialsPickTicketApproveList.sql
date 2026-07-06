@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [sp_GetPickTicketApproveList_New]           
  ** Author:   Hemant Saliya
  ** Description: This stored procedure is used Get Pick Ticket Details    
@@ -74,7 +74,8 @@ SET NOCOUNT ON
 					INNER JOIN dbo.Customer cr WITH (NOLOCK) on cr.CustomerId = wo.CustomerId
 				WHERE wom.WorkOrderId=@workOrderId AND wom.WorkFlowWorkOrderId = @workflowWorkOrderId AND (ISNULL(wom.QuantityReserved,0) + ISNULL(wom.QuantityIssued,0)) > 0  
 
-				 AND ISNULL(imt.IsNonStock,0) = 0 UNION ALL
+				 AND ISNULL(imt.IsNonStock,0) = 0
+				 UNION ALL
 				
 				SELECT 
 					wom.WorkOrderMaterialsKitId as OrderPartId, 
@@ -108,7 +109,8 @@ SET NOCOUNT ON
 					INNER JOIN dbo.WorkOrder wo WITH (NOLOCK) on wo.WorkOrderId = wom.WorkOrderId
 					INNER JOIN dbo.Customer cr WITH (NOLOCK) on cr.CustomerId = wo.CustomerId
 				WHERE wom.WorkOrderId=@workOrderId AND wom.WorkFlowWorkOrderId = @workflowWorkOrderId AND (ISNULL(wom.QuantityReserved,0) + ISNULL(wom.QuantityIssued,0)) > 0  
-			 AND ISNULL(imt.IsNonStock,0) = 0 END
+			 AND ISNULL(imt.IsNonStock,0) = 0
+				 END
 		COMMIT  TRANSACTION
 
 		END TRY    

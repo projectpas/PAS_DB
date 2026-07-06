@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:		[dbo].[USP_GetATAMappedByItemMasterId]      
  ** Author:		 Nakul Chandigra
  ** Description: This stored procedure retrieves part details for the Add Multiple Part search in a PO, filtered by MasterCompanyId.
@@ -56,7 +56,8 @@ BEGIN
 	JOIN [DBO].ItemMaster item WITH (NOLOCK) ON iM.ItemMasterId = item.ItemMasterId
 	WHERE  iM.ItemMasterId = @ItemMasterId AND iM.IsActive = 1 AND iM.IsDeleted = @IsDeleted
 
-	 AND ISNULL(item.IsNonStock,0) = 0 END TRY
+	 AND ISNULL(item.IsNonStock,0) = 0
+	 END TRY
 	BEGIN CATCH
 		DECLARE @ErrorLogID INT, @DatabaseName VARCHAR(100) = db_name() 
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------

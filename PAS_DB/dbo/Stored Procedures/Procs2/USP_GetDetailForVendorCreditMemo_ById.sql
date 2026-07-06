@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [USP_GetDetailForVendorCreditMemo_ById]           
  ** Author:   Hemant  
  ** Description: Get Data to create vendor credit memo from vendorRMA data
@@ -44,7 +44,8 @@ BEGIN
 				LEFT JOIN [dbo].[VendorRMADetail] rmad WITH(NOLOCK) ON vra.VendorRMAId = rmad.VendorRMAId
 				LEFT JOIN [dbo].[VendorRMAStatus] vrs WITH(NOLOCK) ON vra.VendorRMAStatusId = vrs.VendorRMAStatusId
 				LEFT JOIN [dbo].[ItemMaster] im WITH(NOLOCK) ON rmad.ItemMasterId = im.ItemMasterId
-				 AND ISNULL(im.IsNonStock,0) = 0 LEFT JOIN [dbo].[Vendor] vr WITH(NOLOCK) ON vra.VendorId = vr.VendorId
+				 AND ISNULL(im.IsNonStock,0) = 0
+				 LEFT JOIN [dbo].[Vendor] vr WITH(NOLOCK) ON vra.VendorId = vr.VendorId
 				LEFT JOIN [dbo].[VendorPayment] vrp WITH(NOLOCK) ON vr.VendorId = vrp.VendorId
 				LEFT JOIN [dbo].[VendorPaymentDetails] vrpd WITH(NOLOCK) ON vrp.VendorPaymentId = vrpd.VendorPaymentDetailsId
 				WHERE vra.VendorRMAId = @VRMAId

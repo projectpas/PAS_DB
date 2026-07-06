@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [usp_GetSalesOrderQuoteHistoryReport]           
  ** Author:   Swetha  
  ** Description: Get Data for SalesOrderQuote History Report 
@@ -152,7 +152,8 @@ BEGIN
 		LEFT JOIN DBO.SalesOrderQuoteStocklineV1 STK WITH (NOLOCK) ON STK.SalesOrderQuotePartId = SOQP.SalesOrderQuotePartId
         LEFT JOIN DBO.SalesOrderQuotePartCost SOQPC WITH (NOLOCK) ON SOQPC.SalesOrderQuotePartId = SOQP.SalesOrderQuotePartId
         LEFT JOIN DBO.ItemMaster IM WITH (NOLOCK) ON SOQP.ItemMasterId = IM.ItemMasterId
-         AND ISNULL(IM.IsNonStock,0) = 0 LEFT JOIN DBO.Stockline STL WITH (NOLOCK) ON STK.stocklineId = STL.StockLineId
+         AND ISNULL(IM.IsNonStock,0) = 0
+         LEFT JOIN DBO.Stockline STL WITH (NOLOCK) ON STK.stocklineId = STL.StockLineId
         LEFT JOIN DBO.CustomerType CT WITH (NOLOCK)
           ON SOQ.AccountTypeId = CT.CustomerTypeId
         --LEFT JOIN DBO.SalesOrderBillingInvoicing SOBI WITH(NOLOCK) ON SO.SalesOrderId=SOBI.SalesOrderId

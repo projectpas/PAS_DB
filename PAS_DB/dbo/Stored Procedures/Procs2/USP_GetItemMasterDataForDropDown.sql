@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:		[dbo].[USP_GetItemMasterDataForDropDown]       
  ** Author:		 Nakul Chandigra
  ** Description: This Stored Procedure Is Used for get Data of ItemMasterDataForDropDown
@@ -43,7 +43,8 @@ BEGIN
           AND im.IsActive = 1
           AND im.IsDeleted = 0
           AND im.ItemTypeId = 1 
-     AND ISNULL(im.IsNonStock,0) = 0 END
+     AND ISNULL(im.IsNonStock,0) = 0
+           END
     ELSE
     BEGIN
         SELECT DISTINCT

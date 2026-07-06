@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [GetWorkFlowList]           
  ** Author:   Hemant Saliya
  ** Description: Get Search Data for Work Flow List    
@@ -167,8 +167,10 @@ BEGIN
 					LEFT JOIN dbo.WorkScope ws WITH (NOLOCK) on wf.WorkScopeId = ws.WorkScopeId
 					LEFT JOIN dbo.Customer c WITH (NOLOCK) on c.CustomerId =  wf.CustomerId
 					LEFT JOIN dbo.ItemMaster im WITH (NOLOCK) on im.ItemMasterId =  wf.ItemMasterId
-					 AND ISNULL(im.IsNonStock,0) = 0 LEFT JOIN dbo.ItemMaster cp WITH (NOLOCK) on cp.ItemMasterId =  wf.ChangedPartNumberId
-					 AND ISNULL(cp.IsNonStock,0) = 0 LEFT JOIN dbo.AircraftModel ACM WITH (NOLOCK) on ACM.AircraftModelId =  wf.AircraftModelId
+					 AND ISNULL(im.IsNonStock,0) = 0
+					 LEFT JOIN dbo.ItemMaster cp WITH (NOLOCK) on cp.ItemMasterId =  wf.ChangedPartNumberId
+					 AND ISNULL(cp.IsNonStock,0) = 0
+					  LEFT JOIN dbo.AircraftModel ACM WITH (NOLOCK) on ACM.AircraftModelId =  wf.AircraftModelId
 					LEFT JOIN dbo.AircraftType ACT WITH (NOLOCK) on ACT.AircraftTypeId =  wf.MakeTypeId
 					--LEFT JOIN dbo.MaintenanceType MT WITH (NOLOCK) on MT.MaintenanceTypeId =  wf.MaintenanceTypeId
 					LEFT JOIN dbo.[MaintenanceClass] MC WITH (NOLOCK) on MC.MaintenanceClassId =  wf.MaintenanceClassId

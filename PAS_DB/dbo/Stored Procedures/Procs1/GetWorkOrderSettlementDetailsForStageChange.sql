@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [GetWorkOrderSettlementDetailsForStageChange]
  ** Author:   Vishal Suthar
  ** Description: This stored procedure is used Work order Settlement Details for stage change popup
@@ -203,7 +203,8 @@ BEGIN
 		FROM DBO.WorkOrderSettlement wos  WITH(NOLOCK)
 			LEFT JOIN dbo.WorkOrderSettlementDetails wosd WITH(NOLOCK) on wosd.WorkOrderSettlementId = wos.WorkOrderSettlementId
 			LEFT JOIN ItemMaster IM ON IM.ItemMasterId = wosd.RevisedPartId
-		 AND ISNULL(IM.IsNonStock,0) = 0 WHERE wosd.WorkOrderId = @WorkorderId and wosd.WorkflowWorkOrderId = @workflowWorkorderId and wosd.workOrderPartNoId = @workOrderPartNoId 
+		 AND ISNULL(IM.IsNonStock,0) = 0
+			 WHERE wosd.WorkOrderId = @WorkorderId and wosd.WorkflowWorkOrderId = @workflowWorkorderId and wosd.workOrderPartNoId = @workOrderPartNoId 
 		END
 	COMMIT  TRANSACTION
 	END TRY    

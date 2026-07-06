@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [sp_GetWOShippingParentList]           
  ** Author:   Subhash Saliya
  ** Description: Get  for Work order Shipping List    
@@ -61,7 +61,8 @@ BEGIN
 					LEFT JOIN DBO.WorkOrder wo  WITH(NOLOCK) ON wo.WorkOrderId = wop.WorkOrderId
 					INNER JOIN DBO.WOPickTicket wopt  WITH(NOLOCK) ON wopt.WorkorderId = wop.WorkorderId  AND wopt.OrderPartId = wop.ID
 					LEFT JOIN DBO.ItemMaster imt WITH(NOLOCK) ON imt.ItemMasterId = wop.ItemMasterId
-					 AND ISNULL(imt.IsNonStock,0) = 0 LEFT JOIN DBO.Stockline sl WITH(NOLOCK) ON sl.StockLineId = wop.StockLineId
+					 AND ISNULL(imt.IsNonStock,0) = 0
+					 LEFT JOIN DBO.Stockline sl WITH(NOLOCK) ON sl.StockLineId = wop.StockLineId
 					LEFT JOIN DBO.CustomerDomensticShipping CDSD WITH(NOLOCK) ON CDSD.CustomerId = wo.CustomerId and CDSD.IsPrimary=1
 					LEFT JOIN DBO.CustomerDomensticShippingShipVia cds WITH(NOLOCK) ON CDSD.CustomerDomensticShippingId = cds.CustomerDomensticShippingId and cds.IsPrimary=1					
 					LEFT JOIN DBO.WorkOrderShippingItem wosi  WITH(NOLOCK) ON wosi.WorkOrderPartNumId = wop.ID AND wosi.WOPickTicketId = wopt.PickTicketId

@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [usp_GetPurchaseOrderSSRSDashboard]           
  ** Author:   Swetha  
  ** Description: Get Data for PurchaseOrderSSRSDashboard 
@@ -88,7 +88,8 @@ BEGIN
 
 		  where PO.MasterCompanyId = @mastercompanyid
 
-     AND ISNULL(IM.IsNonStock,0) = 0 COMMIT TRANSACTION
+     AND ISNULL(IM.IsNonStock,0) = 0
+		   COMMIT TRANSACTION
   END TRY
 
   BEGIN CATCH

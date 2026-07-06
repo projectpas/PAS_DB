@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [GetRepairOrderPartById]           
  ** Author:  Deep Patel
  ** Description: This stored procedure is used to Get Repair Order Part Details
@@ -59,7 +59,8 @@ BEGIN
 	FROM [dbo].[RepairOrderPart] pop WITH (NOLOCK) 
 	-- Join conditionally based on ItemTypeId
 		LEFT JOIN [dbo].[ItemMaster] im WITH (NOLOCK) ON pop.ItemMasterId = im.ItemMasterId AND pop.ItemTypeId IN (@STOCKTYPE, @NONSTOCKTYPE)
-		 AND ISNULL(im.IsNonStock,0) = 0 LEFT JOIN [dbo].[Manufacturer] imf WITH (NOLOCK) ON im.ManufacturerId = imf.ManufacturerId AND pop.ItemTypeId IN (@STOCKTYPE, @NONSTOCKTYPE)
+		 AND ISNULL(im.IsNonStock,0) = 0
+		 LEFT JOIN [dbo].[Manufacturer] imf WITH (NOLOCK) ON im.ManufacturerId = imf.ManufacturerId AND pop.ItemTypeId IN (@STOCKTYPE, @NONSTOCKTYPE)
 		LEFT JOIN [dbo].[Asset] AST WITH (NOLOCK) ON pop.ItemMasterId = AST.AssetRecordId AND pop.ItemTypeId = @ASSETTYPE
 		LEFT JOIN [dbo].[Manufacturer] Amf WITH (NOLOCK) ON AST.ManufacturerId = Amf.ManufacturerId AND pop.ItemTypeId = @ASSETTYPE
 	WHERE pop.RepairOrderId = @RepairOrderId 

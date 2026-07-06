@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [USP_CreateSOStocklineFromRO]          
  ** Author:   Vishal Suthar
  ** Description: This stored procedure is used to Crate A Stockline from SO Parts
@@ -194,7 +194,8 @@ BEGIN
                   JOIN #StockLine SL ON RP.RepairOrderPartRecordId = SL.RepairOrderPartRecordId
                   WHERE SL.StockLineId = @StocklineId and RP.ItemTypeId = 1
 
-				 AND ISNULL(IM.IsNonStock,0) = 0 SET @SalesOrderPartId = 0;
+				 AND ISNULL(IM.IsNonStock,0) = 0
+                   SET @SalesOrderPartId = 0;
 
 				SELECT @SalesOrderPartId = ISNULL(SalesOrderPartId, 0) FROM [dbo].[SalesOrderPartV1] SOP WITH(NOLOCK) 
 						JOIN #ROStockLineRevisedPart ROS ON ROS.SalesOrderId = SOP.SalesOrderId
@@ -458,7 +459,8 @@ BEGIN
                   JOIN [dbo].[RepairOrder] RO WITH (NOLOCK) ON RO.RepairOrderId = RP.RepairOrderId
                   WHERE SL.StockLineId = @StocklineId AND RP.ItemTypeId=1
 
-                 AND ISNULL(IM.IsNonStock,0) = 0 IF ((SELECT COUNT(1) FROM #ROStockLineSamePart WITH (NOLOCK) WHERE ISNULL(SalesOrderId, 0) > 0) > 0)
+                 AND ISNULL(IM.IsNonStock,0) = 0
+                   IF ((SELECT COUNT(1) FROM #ROStockLineSamePart WITH (NOLOCK) WHERE ISNULL(SalesOrderId, 0) > 0) > 0)
                 BEGIN
 				
 					DECLARE @OldConditionId BIGINT = 0;

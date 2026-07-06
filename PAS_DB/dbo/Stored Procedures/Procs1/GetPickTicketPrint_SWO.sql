@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [GetPickTicketPrint_SWO]           
  ** Author:   Hemant Saliya
  ** Description: This SP is used Get Sub WO Pick Ticket Details for pdf   
@@ -124,7 +124,8 @@ BEGIN
 						LEFT JOIN dbo.SubWorkOrderMaterialStockLine wmsl WITH (NOLOCK) ON wmsl.SubWorkOrderMaterialsId = wom.SubWorkOrderMaterialsId
 						LEFT JOIN dbo.Stockline sl WITH (NOLOCK) on sl.StockLineId = wopt.StockLineId
 						LEFT JOIN dbo.ItemMaster imts WITH (NOLOCK) on imts.ItemMasterId = sl.ItemMasterId
-						 AND ISNULL(imts.IsNonStock,0) = 0 LEFT JOIN dbo.Condition co WITH (NOLOCK) on co.ConditionId = wom.ConditionCodeId
+						 AND ISNULL(imts.IsNonStock,0) = 0
+						 LEFT JOIN dbo.Condition co WITH (NOLOCK) on co.ConditionId = wom.ConditionCodeId
 						LEFT JOIN dbo.UnitOfMeasure uom WITH (NOLOCK) on uom.UnitOfMeasureId = imts.ConsumeUnitOfMeasureId	
 						LEFT JOIN dbo.Priority p WITH (NOLOCK) on p.PriorityId = wop.SubWorkOrderPriorityId
 						LEFT JOIN totakWMSTK on totakWMSTK.WorkOrderId = wopt.WorkOrderId AND totakWMSTK.SubWorkOrderMaterialsId = wopt.SubWorkOrderMaterialsId
@@ -132,8 +133,7 @@ BEGIN
 							and wopt.MasterCompanyId = @masterCompanyId
 							and wopt.PickTicketNumber = @pickTicketNo
 					--wopt.PickTicketId = @WOPickTicketId;
-
-					 AND ISNULL(imt.IsNonStock,0) = 0 UNION ALL
+					 UNION ALL
 					
 					SELECT DISTINCT wopt.PickTicketId, wopt.CreatedDate as PickTicketDate, wopt.WorkOrderId, swo.SubWorkOrderId, sl.StockLineNumber, wom.Quantity AS Qty, 
 						imts.partnumber as PartNumber,imts.PartDescription,wopt.PickTicketNumber,sl.SerialNumber,sl.ControlNumber,sl.IdNumber,
@@ -157,14 +157,15 @@ BEGIN
 						LEFT JOIN dbo.SubWorkOrderMaterialStockLineKit wmsl WITH (NOLOCK) ON wmsl.SubWorkOrderMaterialsKitId = wom.SubWorkOrderMaterialsKitId
 						LEFT JOIN dbo.Stockline sl WITH (NOLOCK) on sl.StockLineId = wopt.StockLineId
 						LEFT JOIN dbo.ItemMaster imts WITH (NOLOCK) on imts.ItemMasterId = sl.ItemMasterId
-						 AND ISNULL(imts.IsNonStock,0) = 0 LEFT JOIN dbo.Condition co WITH (NOLOCK) on co.ConditionId = wom.ConditionCodeId
+						 AND ISNULL(imts.IsNonStock,0) = 0
+						 LEFT JOIN dbo.Condition co WITH (NOLOCK) on co.ConditionId = wom.ConditionCodeId
 						LEFT JOIN dbo.UnitOfMeasure uom WITH (NOLOCK) on uom.UnitOfMeasureId = imts.ConsumeUnitOfMeasureId	
 						LEFT JOIN dbo.Priority p WITH (NOLOCK) on p.PriorityId = wop.SubWorkOrderPriorityId
 						LEFT JOIN totakWMSTKit on totakWMSTKit.WorkOrderId = wopt.WorkOrderId AND totakWMSTKit.SubWorkOrderMaterialsId = wopt.SubWorkOrderMaterialsId
 					WHERE  wopt.SubWorkorderId=@SubWorkOrderId 
 							and wopt.MasterCompanyId = @masterCompanyId
 							and wopt.PickTicketNumber = @pickTicketNo
-				 AND ISNULL(imt.IsNonStock,0) = 0 END
+							 END
 			COMMIT  TRANSACTION
 
 		END TRY    

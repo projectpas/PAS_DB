@@ -1,4 +1,4 @@
-﻿/*************************************************************
+/*************************************************************
  ** File:  [usp_GetVendorRFQPartDetails] 
  ** Author:   Devendra Shekh
  ** Description: This stored procedure is used get Vendor RFQ Part Details
@@ -95,7 +95,8 @@ SET NOCOUNT ON
 		INNER JOIN [dbo].[ThirdPartyRFQ] TPR WITH(NOLOCK) ON TPR.ThirdPartyRFQId = ILSD.ThirdPartyRFQId
 		LEFT JOIN [dbo].[IntegrationEmail] IE WITH(NOLOCK) ON IE.IntegrationEmailID = VRFQ.IntegrationEmailID
 		LEFT JOIN dbo.ItemMaster IM WITH(NOLOCK) ON LOWER(TRIM(VRFQ.[PartNumber])) = LOWER(TRIM(IM.[partnumber])) AND VRFQ.[MasterCompanyId] = IM.[MasterCompanyId] AND IM.IsActive = 1 AND IM.IsDeleted = 0
-		 AND ISNULL(IM.IsNonStock,0) = 0 WHERE TPR.ThirdPartyRFQId = @ThirdPartyRFQId AND TPR.MasterCompanyId = @MasterCompanyId 
+		 AND ISNULL(IM.IsNonStock,0) = 0
+		 WHERE TPR.ThirdPartyRFQId = @ThirdPartyRFQId AND TPR.MasterCompanyId = @MasterCompanyId 
 		AND ISNULL(TPR.IsActive, 0) = 1 AND ISNULL(TPR.IsDeleted, 0) = 0 ;
 
 		UPDATE TMP

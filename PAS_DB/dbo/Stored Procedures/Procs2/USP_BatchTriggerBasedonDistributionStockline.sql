@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [USP_BatchTriggerBasedonDistribution]           
  ** Author:  Subhash Saliya
  ** Description: This stored procedure is used USP_BatchTriggerBasedonDistribution
@@ -249,13 +249,15 @@ BEGIN
 
 					  Select @WorkOrderNumber=StockLineNumber,@partId=PurchaseOrderPartRecordId,@ItemMasterId=ItemMasterId,@ManagementStructureId=ManagementStructureId from Stockline where StockLineId=@StocklineId;
 	                  select @MPNName = partnumber from ItemMaster WITH(NOLOCK)  where ItemMasterId=@ItemmasterId 
-	                   AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 select @LastMSLevel=LastMSLevel,@AllMSlevels=AllMSlevels from StocklineManagementStructureDetails  where ReferenceID=@StockLineId AND ModuleID=@STKMSModuleID
+	                   AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0
+	                   select @LastMSLevel=LastMSLevel,@AllMSlevels=AllMSlevels from StocklineManagementStructureDetails  where ReferenceID=@StockLineId AND ModuleID=@STKMSModuleID
 					  Set @ReferencePartId=@partId	
 
 		              --SELECT @PieceItemmasterId=ItemMasterId,@UnitPrice=UnitCost,@Amount=(@Qty * UnitCost) from WorkOrderMaterialStockLine  where StockLineId=@StocklineId
 					  SELECT @PieceItemmasterId=ItemMasterId from Stockline  where StockLineId=@StocklineId
 		              SELECT @PiecePN = partnumber from ItemMaster WITH(NOLOCK)  where ItemMasterId=@PieceItemmasterId 
-				      					 AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 SET @Desc = 'Receiving PO-' + @PurchaseOrderNumber + '  PN-' + @MPNName + '  SL-' + @StocklineNumber
+				      					 AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0
+		               SET @Desc = 'Receiving PO-' + @PurchaseOrderNumber + '  PN-' + @MPNName + '  SL-' + @StocklineNumber
 					  SELECT top 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName from DistributionSetup WITH(NOLOCK)  where UPPER(Name) =UPPER('Stock - Inventory') AND DistributionMasterId=@DistributionMasterId
 
 				     INSERT INTO [dbo].[BatchDetails]
@@ -345,12 +347,14 @@ BEGIN
 
 					  Select @WorkOrderNumber=NonStockInventoryNumber,@partId=PurchaseOrderPartRecordId,@ItemMasterId=MasterPartId,@ManagementStructureId=ManagementStructureId from NonStockInventory where NonStockInventoryId=@StocklineId;
 	                  select @MPNName = partnumber from ItemMaster WITH(NOLOCK)  where ItemMasterId=@ItemmasterId 
-	                   AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 select @LastMSLevel=LastMSLevel,@AllMSlevels=AllMSlevels from NonStocklineManagementStructureDetails  where ReferenceID=@StockLineId AND ModuleID=@NONStockMSModuleID
+	                   AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0
+	                   select @LastMSLevel=LastMSLevel,@AllMSlevels=AllMSlevels from NonStocklineManagementStructureDetails  where ReferenceID=@StockLineId AND ModuleID=@NONStockMSModuleID
 					  Set @ReferencePartId=@partId	
 
 					  SELECT @PieceItemmasterId=MasterPartId from NonStockInventory  where NonStockInventoryId=@StocklineId
 		              SELECT @PiecePN = partnumber from ItemMaster WITH(NOLOCK)  where ItemMasterId=@PieceItemmasterId 
-				       AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 SET @Desc = 'Receiving PO-' + @PurchaseOrderNumber + '  PN-' + @MPNName + '  SL-' + @StocklineNumber
+				       AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0
+		               SET @Desc = 'Receiving PO-' + @PurchaseOrderNumber + '  PN-' + @MPNName + '  SL-' + @StocklineNumber
 					  -----NonStock - Inventory--------
 					  SELECT top 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName from DistributionSetup WITH(NOLOCK)  where UPPER(Name) =UPPER('NonStock - Inventory') AND DistributionMasterId=@DistributionMasterId
 
@@ -441,12 +445,14 @@ BEGIN
 
 					  Select @WorkOrderNumber=InventoryNumber,@partId=PurchaseOrderPartRecordId,@ItemMasterId=MasterPartId,@ManagementStructureId=ManagementStructureId from AssetInventory where AssetInventoryId=@StocklineId;
 	                  select @MPNName = partnumber from ItemMaster WITH(NOLOCK)  where ItemMasterId=@ItemmasterId 
-	                   AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 select @LastMSLevel=LastMSLevel,@AllMSlevels=AllMSlevels from AssetManagementStructureDetails  where ReferenceID=@StockLineId AND ModuleID=@AssetMSModuleID
+	                   AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0
+	                   select @LastMSLevel=LastMSLevel,@AllMSlevels=AllMSlevels from AssetManagementStructureDetails  where ReferenceID=@StockLineId AND ModuleID=@AssetMSModuleID
 					  Set @ReferencePartId=@partId	
 
 					  SELECT @PieceItemmasterId=MasterPartId from AssetInventory  where AssetInventoryId=@StocklineId
 		              SELECT @PiecePN = partnumber from ItemMaster WITH(NOLOCK)  where ItemMasterId=@PieceItemmasterId 
-				       AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 SELECT top 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName from DistributionSetup WITH(NOLOCK)  where UPPER(Name) =UPPER('Asset - Inventory') AND DistributionMasterId=@DistributionMasterId
+				       AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0
+		               SELECT top 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName from DistributionSetup WITH(NOLOCK)  where UPPER(Name) =UPPER('Asset - Inventory') AND DistributionMasterId=@DistributionMasterId
 
 				     INSERT INTO [dbo].[BatchDetails]
                             (JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,

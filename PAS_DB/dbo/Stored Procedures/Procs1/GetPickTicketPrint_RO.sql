@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [GetPickTicketPrint_RO]           
  ** Author:    
  ** Description: This stored procedure is used to retrieve pickticket data for pdf
@@ -96,7 +96,8 @@ BEGIN
 		LEFT JOIN [dbo].[PurchaseOrder] po WITH(NOLOCK) ON po.PurchaseOrderId = sl.PurchaseOrderId
 		LEFT JOIN TResrvePart WITH(NOLOCK) ON TResrvePart.RepairOrderId = ropt.RepairOrderId
 		WHERE ro.RepairOrderId = @RepairOrderId AND ropt.ROPickTicketNumber = @pickTicketNo
-		 AND ISNULL(imt.IsNonStock,0) = 0 ORDER BY ropt.ROPickTicketId ASC
+		 AND ISNULL(imt.IsNonStock,0) = 0
+		 ORDER BY ropt.ROPickTicketId ASC
 	END TRY    
 	BEGIN CATCH      
 		IF @@trancount > 0

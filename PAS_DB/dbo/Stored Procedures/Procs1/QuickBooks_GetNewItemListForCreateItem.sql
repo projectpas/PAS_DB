@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [QuickBooks_GetNewItemListForCreateItem]           
  ** Author:   Abhishek Jirawla
  ** Description: Get Item List to Create Item in QuickBooks    
@@ -66,7 +66,8 @@ BEGIN
 				INNER JOIN DBO.GLAccount GLAsset WITH(NOLOCK) ON IM.GLAccountId = GLAsset.GLAccountId
 				INNER JOIN DBO.GLAccount GLExpense WITH(NOLOCK) ON IM.COGS_SalesOrderGLAccId = GLExpense.GLAccountId
 			WHERE IM.MasterCompanyId = @MasterCompanyId AND IM.IsDeleted = 0 AND IM.IsActive = 1 AND ISNULL(IM.QuickBooksReferenceId, '') = '' AND ISNULL(IM.IsUpdated, 0) = 1
-		 AND ISNULL(IM.IsNonStock,0) = 0 END
+		 AND ISNULL(IM.IsNonStock,0) = 0
+			 END
 		--For Xero
 		IF(ISNULL(@IntegrationTypeId, 0) = @XeroIntegrationTypeId) 
 		BEGIN
@@ -82,7 +83,8 @@ BEGIN
 				  AND IM.IsActive = 1 
 				  AND ISNULL(IM.QuickBooksReferenceId, '') = '' 
 				  AND ISNULL(IM.IsUpdated, 0) = 1
-		 AND ISNULL(IM.IsNonStock,0) = 0 END
+		 AND ISNULL(IM.IsNonStock,0) = 0
+				   END
 	END TRY    
 	BEGIN CATCH      
 

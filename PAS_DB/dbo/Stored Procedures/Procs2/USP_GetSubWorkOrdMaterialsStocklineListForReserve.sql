@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [USP_GetWorkOrdMaterialsStocklineListForReserve]           
  ** Author:   Hemant Saliya
  ** Description: This SP is Used to get Stockline list to reserve Stockline    
@@ -112,7 +112,8 @@ SET NOCOUNT ON
 					AND ISNULL((ISNULL(WOM.Quantity, 0) - (ISNULL(WOM.QuantityReserved, 0) + ISNULL(WOM.QuantityIssued, 0))) - (SELECT ISNULL(SUM(WOMSL.Quantity), 0) - (ISNULL(SUM(WOMSL.QtyReserved), 0) + ISNULL(SUM(WOMSL.QtyIssued), 0))  FROM dbo.SubWorkOrderMaterialStockLine WOMSL WITH(NOLOCK) WHERE WOM.SubWorkOrderMaterialsId = WOMSL.SubWorkOrderMaterialsId AND WOMSL.ProvisionId <> @ProvisionId), 0) > 0
 					AND (@ItemMasterId IS NULL OR im.ItemMasterId = @ItemMasterId)
 					AND WOM.ConditionCodeId <> @ARConditionId
-			 AND ISNULL(IM.IsNonStock,0) = 0 END
+			 AND ISNULL(IM.IsNonStock,0) = 0
+					 END
 		COMMIT  TRANSACTION
 
 		END TRY    

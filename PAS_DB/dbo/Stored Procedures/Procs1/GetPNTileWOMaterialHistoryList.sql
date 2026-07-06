@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [GetPNTileWOMaterialHistoryList]           
  ** Author:   Vishal Suthar
  ** Description: This stored procedure is used get list of work orders where the given part is consumed in materials
@@ -119,7 +119,8 @@ BEGIN
 				  --AND (WOMS.QtyIssued > 0 OR WOMS.QtyReserved > 0)
 				  AND (@ConditionId IS NULL OR WPN.ConditionId IN(SELECT * FROM STRING_SPLIT(@ConditionId , ',')))
 
-			 AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(IMP.IsNonStock,0) = 0 UNION ALL
+			 AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(IMP.IsNonStock,0) = 0
+				   UNION ALL
 
 			SELECT DISTINCT
 					WO.[WorkOrderId],

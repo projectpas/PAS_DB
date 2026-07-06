@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [SearchStockLinePickTicketPop_WO]           
  ** Author:   
  ** Description: This SP is Used to get Stockline list for Pick Ticket    
@@ -136,7 +136,8 @@ BEGIN
 								AND 
 								((ISNULL(wmsl.QtyReserved,0) + ISNULL(wmsl.QtyIssued,0)) - ISNULL((Select SUM(wopt.QtyToShip) from dbo.WorkorderPickTicket wopt WHERE wopt.WorkOrderMaterialsId = wom.WorkOrderMaterialsId AND wmsl.StockLineId = wopt.StockLineId  ),0)) >0
 
-							 AND ISNULL(im.IsNonStock,0) = 0 UNION ALL
+							 AND ISNULL(im.IsNonStock,0) = 0
+								 UNION ALL
 
 							SELECT DISTINCT
 							wom.WorkOrderMaterialsKitId WorkOrderMaterialsId,
@@ -201,7 +202,8 @@ BEGIN
 								AND ((ISNULL(wmsl.QtyReserved,0) + ISNULL(wmsl.QtyIssued,0)) > 0)
 								AND 
 								((ISNULL(wmsl.QtyReserved,0) + ISNULL(wmsl.QtyIssued,0)) - ISNULL((Select SUM(wopt.QtyToShip) from dbo.WorkorderPickTicket wopt WHERE wopt.WorkOrderMaterialsId = wom.WorkOrderMaterialsKitId AND wmsl.StockLineId = wopt.StockLineId  ),0)) >0
-						 AND ISNULL(im.IsNonStock,0) = 0 END
+						 AND ISNULL(im.IsNonStock,0) = 0
+								 END
 						ELSE
 							BEGIN
 							SELECT DISTINCT
@@ -268,7 +270,8 @@ BEGIN
 								WHERE 
 								so.WorkOrderId = @WorkOrderId
 								AND wop.ID IN (SELECT Item FROM DBO.SPLITSTRING(@WorkFlowWorkOrderIds,','))
-							 AND ISNULL(im.IsNonStock,0) = 0 END
+							 AND ISNULL(im.IsNonStock,0) = 0
+								 END
 				END
 				ELSE
 				BEGIN
@@ -348,7 +351,8 @@ BEGIN
 								AND ((ISNULL(wmsl.QtyReserved,0) + ISNULL(wmsl.QtyIssued,0)) - ISNULL((SELECT SUM(wopt.QtyToShip) FROM dbo.WorkorderPickTicket wopt WITH (NOLOCK) 
 								WHERE wopt.WorkOrderMaterialsId = wom.WorkOrderMaterialsId AND wmsl.StockLineId = wopt.StockLineId  ),0)) > 0
 
-							 AND ISNULL(im.IsNonStock,0) = 0 UNION ALL
+							 AND ISNULL(im.IsNonStock,0) = 0
+								 UNION ALL
 
 							SELECT DISTINCT
 								wom.WorkOrderMaterialsKitId AS WorkOrderMaterialsId,
@@ -416,7 +420,8 @@ BEGIN
 								AND wo.WorkOrderId = @WorkOrderId AND ISNULL(wom.QuantityReserved,0) > 0
 								AND ((ISNULL(wmsl.QtyReserved,0) + ISNULL(wmsl.QtyIssued,0)) > 0)
 								AND ((ISNULL(wmsl.QtyReserved,0) + ISNULL(wmsl.QtyIssued,0)) - ISNULL((Select SUM(wopt.QtyToShip) FROM dbo.WorkorderPickTicket wopt WITH (NOLOCK) WHERE wopt.WorkOrderMaterialsId = wom.WorkOrderMaterialsKitId AND wmsl.StockLineId = wopt.StockLineId  ),0)) > 0
-						 AND ISNULL(im.IsNonStock,0) = 0 END
+						 AND ISNULL(im.IsNonStock,0) = 0
+								 END
 						ELSE
 							BEGIN
 							SELECT DISTINCT
@@ -463,7 +468,7 @@ BEGIN
 								FROM DBO.ItemMaster im  WITH (NOLOCK)
 								JOIN DBO.StockLine sl WITH (NOLOCK) ON im.ItemMasterId = sl.ItemMasterId AND sl.IsDeleted = 0 
 									AND sl.ConditionId = CASE WHEN @ConditionId  IS NOT NULL 
-															THEN @ConditionId  WHERE ISNULL(im.IsNonStock,0) = 0
+															THEN @ConditionId
 ELSE sl.ConditionId 
 															END
 								INNER JOIN DBO.WorkOrderPartNumber wop WITH (NOLOCK) on wop.StockLineId = sl.StockLineId

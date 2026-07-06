@@ -1,4 +1,4 @@
-﻿/***************************************************************************************************************************************
+/***************************************************************************************************************************************
   ** Change History
  ***************************************************************************************************************************************
  ** PR   Date						 Author							Change Description
@@ -31,7 +31,8 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
   LEFT JOIN DBO.ExchangeSalesOrderShipping sos WITH (NOLOCK) on sos.ExchangeSalesOrderShippingId = sosi.ExchangeSalesOrderShippingId AND sos.ExchangeSalesOrderId = sopt.ExchangeSalesOrderId  
   INNER JOIN DBO.ExchangeSalesOrder so WITH (NOLOCK) on so.ExchangeSalesOrderId = sop.ExchangeSalesOrderId  
   LEFT JOIN DBO.ItemMaster imt WITH (NOLOCK) on imt.ItemMasterId = sop.ItemMasterId  
-   AND ISNULL(imt.IsNonStock,0) = 0 LEFT JOIN DBO.Stockline sl WITH (NOLOCK) on sl.StockLineId = sop.StockLineId  
+   AND ISNULL(imt.IsNonStock,0) = 0
+   LEFT JOIN DBO.Stockline sl WITH (NOLOCK) on sl.StockLineId = sop.StockLineId  
   LEFT JOIN DBO.ExchangeSalesOrderCustomsInfo soc on soc.ExchangeSalesOrderShippingId = sos.ExchangeSalesOrderShippingId  
   LEFT JOIN DBO.Customer cr WITH (NOLOCK) on cr.CustomerId = so.CustomerId  
   LEFT JOIN DBO.ExchangeSalesOrderPackaginSlipItems SPI WITH (NOLOCK) ON sopt.SOPickTicketId = SPI.SOPickTicketId AND SPI.ExchangeSalesOrderPartId = sop.ExchangeSalesOrderPartId  

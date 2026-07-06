@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [GetPickTicketPrint]           
  ** Author:    
  ** Description: This stored procedure is used to retrieve pickticket data for pdf
@@ -113,7 +113,8 @@ BEGIN
 		WHERE 
 		so.SalesOrderId = @SalesOrderId
 		AND sopt.SOPickTicketNumber = @pickTicketNo
-		 AND ISNULL(imt.IsNonStock,0) = 0 ORDER BY sopt.SOPickTicketId ASC
+		 AND ISNULL(imt.IsNonStock,0) = 0
+		 ORDER BY sopt.SOPickTicketId ASC
 	--END
 	--COMMIT  TRANSACTION
 

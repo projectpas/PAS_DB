@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:  [GetSpeedQuotePartViewForDuplicate]           
  ** Author:  Amit Ghediya
  ** Description: This stored procedure is used to get SpeedQuotePartData for duplicate.
@@ -65,7 +65,8 @@ BEGIN
 				LEFT JOIN Condition condition ON part.ConditionId = condition.ConditionId
 				LEFT JOIN UnitOfMeasure um ON itemMaster.PurchaseUnitOfMeasureId = um.UnitOfMeasureId
 			WHERE part.SpeedQuoteId = @salesQuoteId AND part.IsDeleted = 0
-		 AND ISNULL(itemMaster.IsNonStock,0) = 0 END
+		 AND ISNULL(itemMaster.IsNonStock,0) = 0
+			 END
 
 	END TRY    
 	BEGIN CATCH      

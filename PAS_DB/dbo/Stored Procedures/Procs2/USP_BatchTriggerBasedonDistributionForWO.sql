@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [USP_BatchTriggerBasedonDistributionForWO]
  ** Author:  Subhash Saliya
  ** Description: This stored procedure is used for BatchTrigger Based on Distribution For WO
@@ -231,7 +231,8 @@ BEGIN
 				  FROM [dbo].[ItemMaster] WITH(NOLOCK)  
 				 WHERE ItemMasterId=@ItemmasterId 
 
-				 AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 SELECT @LastMSLevel=LastMSLevel,
+				 AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0
+				  SELECT @LastMSLevel=LastMSLevel,
 					   @AllMSlevels=AllMSlevels 
 				  FROM [dbo].[WorkOrderManagementStructureDetails] WITH(NOLOCK) 
 				  WHERE ReferenceID=@partId

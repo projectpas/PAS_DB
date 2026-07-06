@@ -1,4 +1,4 @@
-﻿/********************************************************************             
+/********************************************************************             
  ** File:   [dbo.GetWOOperatingMetricReport_LMarginUnitUnitByIMId]             
  ** Author:  Rajesh Gami    
  ** Description: Get Data for Workorder Operating Metric Report Low Margin To Highest Margin  By ItemMaster Id
@@ -159,7 +159,8 @@ BEGIN
 			LEFT JOIN DBO.EntityStructureSetup ES ON ES.EntityStructureId=MSD.EntityMSID
 			LEFT JOIN DBO.Customer WITH (NOLOCK) ON WO.CustomerId = Customer.CustomerId  
 			LEFT JOIN DBO.ItemMaster IM WITH (NOLOCK) ON WOPN.itemmasterId = IM.itemmasterId  
-			 AND ISNULL(IM.IsNonStock,0) = 0 LEFT JOIN DBO.Condition AS CN WITH (NOLOCK) ON WOPN.RevisedConditionId = CN.ConditionId
+			 AND ISNULL(IM.IsNonStock,0) = 0
+			 LEFT JOIN DBO.Condition AS CN WITH (NOLOCK) ON WOPN.RevisedConditionId = CN.ConditionId
 			--LEFT JOIN DBO.WorkScope AS WS WITH (NOLOCK) ON WOPN.WorkOrderScopeId = WS.WorkScopeId 
 			LEFT JOIN dbo.WorkOrderStage wos WITH (NOLOCK) ON  WOPN.WorkOrderStageId = wos.WorkOrderStageId
 		  

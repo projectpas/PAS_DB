@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [WOPartSearchAutoCompleteDropdowns]           
  ** Author:   Hemant Saliya
  ** Description: This stored procedure is used Search WO Part for add to Materials List
@@ -87,7 +87,8 @@ CREATE     PROCEDURE [dbo].[WOAddPNPartSearchAutoCompleteDropdowns]
 			AND (@partSarchText IS NULL OR im.partnumber LIKE @partSarchText +'%')
 			AND im.IsOEM = 1 AND IsDER = 0
 		--FOR PMA
-		 AND ISNULL(im.IsNonStock,0) = 0 IF( @RestrictPMA <> 1	)
+		 AND ISNULL(im.IsNonStock,0) = 0
+		 IF( @RestrictPMA <> 1	)
 		BEGIN
 		INSERT INTO #TempTable (PartId, PartNumber,Label,PartDescription,ManufacturerName, StockType)
 		SELECT DISTINCT 
@@ -108,7 +109,8 @@ CREATE     PROCEDURE [dbo].[WOAddPNPartSearchAutoCompleteDropdowns]
 			AND im.MasterCompanyId = @MasterCompanyId
 			AND (@partSarchText IS NULL OR im.partnumber LIKE @partSarchText +'%')
 			AND im.IsPma  =  1	AND IsDER = 0
-         AND ISNULL(im.IsNonStock,0) = 0 END
+         AND ISNULL(im.IsNonStock,0) = 0
+			 END
 		
 		--FOR DER
 		IF( @RestrictDER <> 1	)
@@ -132,7 +134,8 @@ CREATE     PROCEDURE [dbo].[WOAddPNPartSearchAutoCompleteDropdowns]
 			AND im.MasterCompanyId = @MasterCompanyId
 			AND (@partSarchText IS NULL OR im.partnumber LIKE @partSarchText +'%')
 			AND im.IsDER  = 1	
-         AND ISNULL(im.IsNonStock,0) = 0 END
+         AND ISNULL(im.IsNonStock,0) = 0
+			 END
 
 		--IF( @IncludePMA = 1)
 		--BEGIN 
@@ -186,10 +189,9 @@ CREATE     PROCEDURE [dbo].[WOAddPNPartSearchAutoCompleteDropdowns]
 		--	AND im.ItemTypeId = 1 -- ItemMasterStockTypeEnum.Stock
 		--	AND im.MasterCompanyId = @MasterCompanyId
 		--	AND (@partSarchText IS NULL OR im.partnumber LIKE @partSarchText +'%')
-		--END 
-		
-		 WHERE ISNULL(im.IsNonStock,0) = 0
-INSERT INTO #Result 
+		--END
+
+INSERT INTO #Result
 				SELECT 
 				DISTINCT TOP 20 * 
 				FROM #TempTable t
@@ -211,7 +213,8 @@ INSERT INTO #Result
 					END) AS StockType
 			FROM DBO.ItemMaster im WITH(NOLOCK)
 			WHERE im.ItemMasterId IN (SELECT Item FROM DBO.SPLITSTRING(@Idlist,','))
-		 AND ISNULL(im.IsNonStock,0) = 0 END
+		 AND ISNULL(im.IsNonStock,0) = 0
+			 END
 
 		SELECT DISTINCT TOP 20 
 			r.PartId,

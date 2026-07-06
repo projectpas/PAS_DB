@@ -1,4 +1,4 @@
-﻿/*********************             
+/*********************             
  ** File:   SearchCreditMemoData           
  ** Author:  Moin  
  ** Description: Get Credit Memo Filter Data  
@@ -178,7 +178,8 @@ BEGIN
      STUFF((SELECT CASE WHEN LEN(I.partnumber) >0 THEN ',' ELSE '' END + I.partnumber    
       FROM dbo.CreditMemoDetails S WITH (NOLOCK)    
       Left Join dbo.ItemMaster I WITH (NOLOCK) On S.ItemMasterId=I.ItemMasterId    
-       AND ISNULL(I.IsNonStock,0) = 0 Where S.CreditMemoHeaderId = CRD.CreditMemoHeaderId    
+       AND ISNULL(I.IsNonStock,0) = 0
+       Where S.CreditMemoHeaderId = CRD.CreditMemoHeaderId    
       AND S.IsActive = 1 AND S.IsDeleted = 0    
       FOR XML PATH('')), 1, 1, '') PartNumber    
     ) A    
@@ -194,7 +195,8 @@ BEGIN
      STUFF((SELECT CASE WHEN LEN(I.PartDescription) >0 then ',' ELSE '' END + I.PartDescription    
       FROM dbo.CreditMemoDetails S WITH (NOLOCK)    
       LEFT JOIN dbo.ItemMaster I WITH (NOLOCK) On S.ItemMasterId=I.ItemMasterId    
-       AND ISNULL(I.IsNonStock,0) = 0 Where S.CreditMemoHeaderId = CRD.CreditMemoHeaderId    
+       AND ISNULL(I.IsNonStock,0) = 0
+       Where S.CreditMemoHeaderId = CRD.CreditMemoHeaderId    
       AND S.IsActive = 1 AND S.IsDeleted = 0    
       FOR XML PATH('')), 1, 1, '') PartDescription    
     ) A    
@@ -211,7 +213,8 @@ BEGIN
      STUFF((SELECT CASE WHEN LEN(I.ManufacturerName) > 0 THEN ',' ELSE '' END + I.ManufacturerName    
       FROM dbo.CreditMemoDetails S WITH (NOLOCK)    
       LEFT JOIN dbo.ItemMaster I WITH (NOLOCK) ON S.ItemMasterId=I.ItemMasterId    
-       AND ISNULL(I.IsNonStock,0) = 0 Where S.CreditMemoHeaderId = CRD.CreditMemoHeaderId    
+       AND ISNULL(I.IsNonStock,0) = 0
+       Where S.CreditMemoHeaderId = CRD.CreditMemoHeaderId    
       AND S.IsActive = 1 AND S.IsDeleted = 0    
       FOR XML PATH('')), 1, 1, '') ManufacturerName    
     ) A    

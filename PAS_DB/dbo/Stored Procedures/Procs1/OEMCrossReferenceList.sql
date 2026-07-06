@@ -1,4 +1,4 @@
-﻿
+
 /*************************************************************               
 ** File:   [OEMCrossReferenceList]              
 ** Author:   Seema Mansuri 
@@ -81,11 +81,16 @@ BEGIN
 				mapping.MappingType as MappingType
 		FROM  [dbo].[Nha_Tla_Alt_Equ_ItemMapping]   mapping  WITH (NOLOCK)
 		LEFT JOIN [dbo].[ItemMaster] itm   WITH (NOLOCK) ON itm.ItemMasterId = mapping.ItemMasterId
-		 AND ISNULL(itm.IsNonStock,0) = 0 LEFT JOIN [dbo].[ItemMaster] alternate  WITH (NOLOCK)  ON alternate.ItemMasterId = mapping.MappingItemMasterId and mapping.MappingType=@AlternateType
-		 AND ISNULL(alternate.IsNonStock,0) = 0 LEFT JOIN [dbo].[ItemMaster] nha   WITH (NOLOCK) ON nha.ItemMasterId = mapping.MappingItemMasterId and mapping.MappingType=@NHAType
-		 AND ISNULL(nha.IsNonStock,0) = 0 LEFT JOIN [dbo].[ItemMaster] equivalent  WITH (NOLOCK) ON equivalent.ItemMasterId = mapping.MappingItemMasterId and mapping.MappingType=@EquilentType
-		 AND ISNULL(equivalent.IsNonStock,0) = 0 LEFT JOIN [dbo].[ItemMaster] tla  WITH (NOLOCK) ON tla.ItemMasterId = mapping.MappingItemMasterId and mapping.MappingType=@TLAType
-		 AND ISNULL(tla.IsNonStock,0) = 0 WHERE  mapping.MasterCompanyId = @MasterCompanyId  AND mapping.MappingType <> @OtherType AND ((mapping.IsDeleted =0) AND (mapping.IsActive = 1))
+		 AND ISNULL(itm.IsNonStock,0) = 0
+		 LEFT JOIN [dbo].[ItemMaster] alternate  WITH (NOLOCK)  ON alternate.ItemMasterId = mapping.MappingItemMasterId and mapping.MappingType=@AlternateType
+		 AND ISNULL(alternate.IsNonStock,0) = 0
+		  LEFT JOIN [dbo].[ItemMaster] nha   WITH (NOLOCK) ON nha.ItemMasterId = mapping.MappingItemMasterId and mapping.MappingType=@NHAType
+		 AND ISNULL(nha.IsNonStock,0) = 0
+		  LEFT JOIN [dbo].[ItemMaster] equivalent  WITH (NOLOCK) ON equivalent.ItemMasterId = mapping.MappingItemMasterId and mapping.MappingType=@EquilentType
+		 AND ISNULL(equivalent.IsNonStock,0) = 0
+		  LEFT JOIN [dbo].[ItemMaster] tla  WITH (NOLOCK) ON tla.ItemMasterId = mapping.MappingItemMasterId and mapping.MappingType=@TLAType
+		 AND ISNULL(tla.IsNonStock,0) = 0
+		  WHERE  mapping.MasterCompanyId = @MasterCompanyId  AND mapping.MappingType <> @OtherType AND ((mapping.IsDeleted =0) AND (mapping.IsActive = 1))
 
 		AND (@Oemtype = 0 OR mapping.MappingType = @Oemtype) 
 		)	

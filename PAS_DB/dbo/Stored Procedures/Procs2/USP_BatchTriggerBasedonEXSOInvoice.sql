@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [USP_BatchTriggerBasedonEXSOInvoice]
  ** Author:  Moin Bloch
  ** Description: This stored procedure is used to store Batch Details on Excahnge SO Shipping.
@@ -176,7 +176,8 @@ BEGIN
 			  INNER JOIN [dbo].[ItemMaster] IM WITH(NOLOCK) ON EP.[ItemMasterId] = IM.[ItemMasterId]
 			 WHERE EP.[ExchangeSalesOrderId] = @ReferenceId AND EP.[ExchangeSalesOrderPartId] = @partId
 			 	        
-	         AND ISNULL(IM.IsNonStock,0) = 0 SELECT @LastMSLevel = [LastMSLevel],
+	         AND ISNULL(IM.IsNonStock,0) = 0
+			  SELECT @LastMSLevel = [LastMSLevel],
 			       @AllMSlevels = [AllMSlevels] 
 			  FROM [dbo].[ExchangeManagementStructureDetails] WITH(NOLOCK) 
 			 WHERE [ReferenceID] = @ReferenceId AND [ModuleID] = @EXSOHeaderMSModuleId;
@@ -839,7 +840,8 @@ BEGIN
 							@MPNName = itm.[partnumber]
 					FROM [dbo].[ExchangeSalesOrderPart] esop WITH(NOLOCK) 
 					 LEFT JOIN [dbo].[ItemMaster] itm WITH(NOLOCK) ON itm.[ItemMasterId] = esop.[ItemMasterId]					
-					 AND ISNULL(itm.IsNonStock,0) = 0 WHERE esop.ExchangeSalesOrderPartId = @ReferencePartId ;
+					 AND ISNULL(itm.IsNonStock,0) = 0
+					  WHERE esop.ExchangeSalesOrderPartId = @ReferencePartId ;
 										
 					SELECT @LotId = SL.[LotId],
 						   @LotNumber = LO.[LotNumber],						  

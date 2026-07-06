@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [usp_GetPubTrackingReport]           
  ** Author:   Swetha  
  ** Description: Get Data for PubTracking Report  
@@ -76,7 +76,8 @@ BEGIN
           ON PUB.MasterCompanyId = MC.MasterCompanyId
       WHERE PUB.entrydate BETWEEN (@Fromdate) AND (@Todate)
       AND PUB.MasterCompanyId = @mastercompanyid
-     AND ISNULL(IM.IsNonStock,0) = 0 COMMIT TRANSACTION
+     AND ISNULL(IM.IsNonStock,0) = 0
+       COMMIT TRANSACTION
   END TRY
   BEGIN CATCH
     ROLLBACK TRANSACTION

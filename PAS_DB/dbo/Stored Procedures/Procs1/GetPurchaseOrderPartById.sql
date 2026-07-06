@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [GetPurchaseOrderPartById]           
  ** Author:  Subhash saliya
  ** Description: This stored procedure is used to Get Purchase Order Part Details
@@ -40,7 +40,8 @@ BEGIN
 	  imf.[Name] AS Manufacturer
       FROM [dbo].[PurchaseOrderPart] pop WITH (NOLOCK) 	
 	  LEFT JOIN [dbo].[ItemMaster] im  WITH (NOLOCK)ON   pop.ItemMasterId = im.ItemMasterId 
-	   AND ISNULL(im.IsNonStock,0) = 0 LEFT JOIN [dbo].[Manufacturer] imf WITH (NOLOCK) ON im.ManufacturerId = imf.ManufacturerId	 
+	   AND ISNULL(im.IsNonStock,0) = 0
+	   LEFT JOIN [dbo].[Manufacturer] imf WITH (NOLOCK) ON im.ManufacturerId = imf.ManufacturerId	 
 	  WHERE pop.PurchaseOrderId = @PurchaseOrderId and pop.isParent=1 AND pop.IsDeleted = 0 AND (pop.ItemTypeId = @STOCKTYPE OR pop.ItemTypeId = @NONSTOCKTYPE)
 
 	UNION 

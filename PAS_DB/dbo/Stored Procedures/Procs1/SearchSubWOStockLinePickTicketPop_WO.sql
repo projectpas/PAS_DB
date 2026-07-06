@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [SearchSubWOStockLinePickTicketPop_WO]           
  ** Author:   
  ** Description: This SP is Used to get Stockline list for Pick Ticket for sub wo   
@@ -133,7 +133,8 @@ BEGIN
 						AND
 						((ISNULL(wmsl.QtyReserved,0) + ISNULL(wmsl.QtyIssued,0)) - ISNULL((Select SUM(wopt.QtyToShip) from dbo.SubWorkorderPickTicket wopt WHERE wopt.SubWorkOrderMaterialsId = wom.SubWorkOrderMaterialsId AND wmsl.StockLineId = wopt.StockLineId  ),0)) >0
 
-				 AND ISNULL(im.IsNonStock,0) = 0 UNION ALL
+				 AND ISNULL(im.IsNonStock,0) = 0
+						 UNION ALL
 
 					SELECT DISTINCT
 						wom.SubWorkOrderMaterialsKitId AS SubWorkOrderMaterialsId,
@@ -201,7 +202,8 @@ BEGIN
 						AND 
 						((ISNULL(wmsl.QtyReserved,0) + ISNULL(wmsl.QtyIssued,0)) - ISNULL((Select SUM(wopt.QtyToShip) from dbo.SubWorkorderPickTicket wopt WHERE wopt.SubWorkOrderMaterialsId = wom.SubWorkOrderMaterialsKitId AND wmsl.StockLineId = wopt.StockLineId  ),0)) >0
 
-				 AND ISNULL(im.IsNonStock,0) = 0 END
+				 AND ISNULL(im.IsNonStock,0) = 0
+						 END
 				ELSE
 				BEGIN
 					SELECT DISTINCT
@@ -275,7 +277,8 @@ BEGIN
 							AND wom.SubWorkOrderMaterialsId = @SubWorkOrderMaterialsId
 							AND ((ISNULL(wmsl.QtyReserved,0) + ISNULL(wmsl.QtyIssued,0)) - ISNULL((Select SUM(wopt.QtyToShip) from dbo.SubWorkorderPickTicket wopt WHERE wopt.SubWorkOrderMaterialsId = wom.SubWorkOrderMaterialsId AND wmsl.StockLineId = wopt.StockLineId  ),0)) >0
 				
-				 AND ISNULL(im.IsNonStock,0) = 0 UNION ALL
+				 AND ISNULL(im.IsNonStock,0) = 0
+							 UNION ALL
 								
 					SELECT DISTINCT
 						wom.SubWorkOrderMaterialsKitId AS SubWorkOrderMaterialsId,
@@ -347,7 +350,8 @@ BEGIN
 							AND wom.SubWorkOrderMaterialsKitId = @SubWorkOrderMaterialsId
 						AND ((ISNULL(wmsl.QtyReserved,0) + ISNULL(wmsl.QtyIssued,0)) - ISNULL((Select SUM(wopt.QtyToShip) FROM dbo.SubWorkorderPickTicket wopt WITH (NOLOCK) WHERE wopt.SubWorkOrderMaterialsId = wom.SubWorkOrderMaterialsKitId AND wmsl.StockLineId = wopt.StockLineId  ),0)) > 0
 
-				 AND ISNULL(im.IsNonStock,0) = 0 END
+				 AND ISNULL(im.IsNonStock,0) = 0
+						 END
 				
 			END
 		COMMIT  TRANSACTION

@@ -1,4 +1,4 @@
-﻿/*************************************************************             
+/*************************************************************             
  ** File:   [usprpt_GetCustomerQuoteReport]             
  ** Author:   Amit Ghediya   
  ** Description: Get Data for Customer PO Fulfilling Report   
@@ -102,7 +102,8 @@ BEGIN
 			  AND SOQ.ManagementStructureId = @managementStructureId
 			  AND SOQ.CustomerId = ISNULL(@CustomerId,SOQ.CustomerId)
 			  AND SOP.ItemMasterId = ISNULL(@ItemMasterId,SOP.ItemMasterId)
-			 AND ISNULL(IM.IsNonStock,0) = 0 GROUP BY 
+			 AND ISNULL(IM.IsNonStock,0) = 0
+			   GROUP BY 
 				SOQ.SalesOrderQuoteId,
 				IM.PartNumber,
 				IM.PartDescription,
@@ -176,7 +177,8 @@ BEGIN
 			  AND SOQ.ManagementStructureId = @managementStructureId
 			  AND SOQ.CustomerId = ISNULL(@CustomerId,SOQ.CustomerId)
 			  AND SOP.ItemMasterId = ISNULL(@ItemMasterId,SOP.ItemMasterId)
-			   AND ISNULL(IM.IsNonStock,0) = 0 GROUP BY 
+			   AND ISNULL(IM.IsNonStock,0) = 0
+			   GROUP BY 
 				SOQ.SalesOrderQuoteId,
 				IM.PartNumber,
 				IM.PartDescription,

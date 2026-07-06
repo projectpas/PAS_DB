@@ -1,4 +1,4 @@
-﻿/*************************************************************             
+/*************************************************************             
  ** File:   [usprpt_GetSalesOrderQuoteConversion]             
  ** Author:   
  ** Description: Get Data for SalesOrderQuotes Report   
@@ -109,7 +109,8 @@ BEGIN
 			  LEFT JOIN DBO.SalesOrderStocklineV1 SOV WITH (NOLOCK) ON SOP.SalesOrderPartId = SOV.SalesOrderPartId
 			  --LEFT JOIN DBO.SalesOrderPart SOP WITH (NOLOCK) ON SO.SalesOrderId = SOP.SalesOrderId
 			  LEFT JOIN DBO.ItemMaster IM WITH (NOLOCK) ON SOP.ItemMasterId = IM.ItemMasterId
-			   AND ISNULL(IM.IsNonStock,0) = 0 LEFT JOIN (SELECT SalesOrderQuotePartId,SUM(BillingAmount) 'BillingAmount' FROM  dbo.SalesOrderQuoteCharges A1 WITH (NOLOCK) WHERE A1.[IsActive] = 1 
+			   AND ISNULL(IM.IsNonStock,0) = 0
+			   LEFT JOIN (SELECT SalesOrderQuotePartId,SUM(BillingAmount) 'BillingAmount' FROM  dbo.SalesOrderQuoteCharges A1 WITH (NOLOCK) WHERE A1.[IsActive] = 1 
 		        GROUP BY SalesOrderQuotePartId) Charges ON Charges.SalesOrderQuotePartId = SOQP.SalesOrderQuotePartId 
 		  WHERE SOQ.CustomerId=ISNULL(@customername,SOQ.CustomerId)
 				AND  SOQP.ItemMasterId = ISNULL(@partnumber,SOQP.ItemMasterId)
@@ -218,7 +219,8 @@ BEGIN
 		  LEFT JOIN DBO.SalesOrderQuotePartV1 SOQP WITH (NOLOCK) ON SOQ.SalesOrderQuoteId = SOQP.SalesOrderQuoteId
 		  LEFT JOIN DBO.SalesOrderQuoteStocklineV1 SOQV WITH (NOLOCK) ON SOQP.SalesOrderQuotePartId = SOQV.SalesOrderQuotePartId
 		  LEFT JOIN DBO.ItemMaster IMQ WITH (NOLOCK) ON SOQP.ItemMasterId = IMQ.ItemMasterId
-		   AND ISNULL(IMQ.IsNonStock,0) = 0 LEFT JOIN DBO.Condition CON WITH (NOLOCK) ON CON.ConditionId = SOQP.ConditionId
+		   AND ISNULL(IMQ.IsNonStock,0) = 0
+		   LEFT JOIN DBO.Condition CON WITH (NOLOCK) ON CON.ConditionId = SOQP.ConditionId
 		  LEFT JOIN DBO.SalesOrderQuotePartCost SOQPC WITH (NOLOCK) ON SOQPC.SalesOrderQuotePartId = SOQP.SalesOrderQuotePartId
 		  LEFT JOIN DBO.Stockline STL WITH (NOLOCK) ON SOQV.stocklineId = STL.StockLineId
 		  OUTER APPLY(
@@ -227,7 +229,8 @@ BEGIN
 			INNER JOIN DBO.SalesOrderPartV1 SOP WITH (NOLOCK) ON SO.SalesOrderId = SOP.SalesOrderId AND SOP.SalesOrderQuotePartId = SOQP.SalesOrderQuotePartId
 			LEFT JOIN DBO.SalesOrderPartCost SOPC WITH (NOLOCK) ON SOP.SalesOrderPartId = SOPC.SalesOrderPartId
 			LEFT JOIN DBO.ItemMaster IM WITH (NOLOCK) ON SOP.ItemMasterId = IM.ItemMasterId
-			 AND ISNULL(IM.IsNonStock,0) = 0 LEFT JOIN (SELECT InvoiceNo,SOBII.SubReferenceId,SOBII.SalesTax,SOBII.OtherTax 
+			 AND ISNULL(IM.IsNonStock,0) = 0
+			 LEFT JOIN (SELECT InvoiceNo,SOBII.SubReferenceId,SOBII.SalesTax,SOBII.OtherTax 
 			FROM  DBO.BillingInvoicing SOBI WITH (NOLOCK)
 			LEFT JOIN DBO.BillingInvoicingItems SOBII ON SOBI.BillingInvoicingId = SOBII.BillingInvoicingId AND ISNULL(SOBII.IsPerformaInvoice,0) = 0
 			WHERE ISNULL(SOBI.IsPerformaInvoice,0) = 0 AND SOBI.ModuleId = @SOModuleId

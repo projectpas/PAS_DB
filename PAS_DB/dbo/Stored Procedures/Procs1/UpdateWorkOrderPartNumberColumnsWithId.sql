@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [UpdateWorkOrderColumnsWithId]           
  ** Author:   Hemant Saliya
  ** Description: This stored procedure is used WO Details based in WO Id.    
@@ -22,7 +22,8 @@
     5    14/Feb/2025  RAJESH GAMI		added PublicationNo in WO Part Number
     6    28/APR/2025  Vishal Suthar		added partnumber column to update from itemmaster
 	7    30/APR/2025  Hemant Saliya		Added Revised PN, Revised Serial Number , Revised PN Desc
-	8    27/MAY/2025  Abhishek Jirawla	Added WHERE condition in Publication CMM number  AND ISNULL(7.IsNonStock,0) = 0 update last step
+	8    27/MAY/2025  Abhishek Jirawla	Added WHERE condition in Publication CMM number
+	 update last step
 	9    31/MAR/2026  RAJESH GAMI		Add the space after and before '-' while adding Workorder Stage [PN-15871]
 	10    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 -- EXEC [UpdateWorkOrderPartNumberColumnsWithId] 30
@@ -110,7 +111,8 @@ BEGIN
 				LEFT JOIN #WorkOrderPartMSDATA WMS ON WMS.MSID = WPN.ManagementStructureId
 				LEFT JOIN [dbo].[WorkOrderStatus] WOS WITH(NOLOCK) ON WOS.Id = WPN.WorkOrderStatusId  
 				LEFT JOIN [dbo].[ItemMaster] IM WITH(NOLOCK) ON IM.ItemMasterId = WPN.ItemMasterId         
-				 AND ISNULL(IM.IsNonStock,0) = 0 LEFT JOIN [dbo].[Priority] PR WITH(NOLOCK) ON WPN.WorkOrderPriorityId = PR.PriorityId  
+				 AND ISNULL(IM.IsNonStock,0) = 0
+				 LEFT JOIN [dbo].[Priority] PR WITH(NOLOCK) ON WPN.WorkOrderPriorityId = PR.PriorityId  
 				LEFT JOIN [dbo].[WorkOrderStage] WOSG WITH(NOLOCK) ON WPN.WorkOrderStageId = WOSG.WorkOrderStageId
 				LEFT JOIN [dbo].[Employee] EMP WITH(NOLOCK) ON EMP.EmployeeId = WPN.TechnicianId  
 				LEFT JOIN [dbo].[EmployeeStation] EMPS WITH(NOLOCK) ON WPN.TechStationId = EMPS.EmployeeStationId
@@ -122,7 +124,8 @@ BEGIN
 						WPN.[RevisedPartDescription] = IM.[PartDescription]				
 					FROM [dbo].[WorkOrderPartNumber] WPN WITH(NOLOCK) 
 					LEFT JOIN [dbo].[ItemMaster] IM WITH(NOLOCK) ON IM.[ItemMasterId] = WPN.[RevisedItemmasterid]
-					 AND ISNULL(IM.IsNonStock,0) = 0 WHERE WPN.[ID] = @WorkOrderPartNumberId
+					 AND ISNULL(IM.IsNonStock,0) = 0
+					 WHERE WPN.[ID] = @WorkOrderPartNumberId
 				END		
 
 				IF EXISTS(SELECT ID FROM [dbo].[WorkOrderPartNumber] WITH(NOLOCK) WHERE [ID] = @WorkOrderPartNumberId AND ISNULL([RevisedPartNumber] ,'') = '')
@@ -132,7 +135,8 @@ BEGIN
 						WPN.[RevisedPartDescription] = IM.[PartDescription]
 					FROM [dbo].[WorkOrderPartNumber] WPN WITH(NOLOCK) 
 					LEFT JOIN [dbo].[ItemMaster] IM WITH(NOLOCK) ON IM.[ItemMasterId] = WPN.[RevisedItemmasterid]
-					 AND ISNULL(IM.IsNonStock,0) = 0 WHERE WPN.[ID] = @WorkOrderPartNumberId
+					 AND ISNULL(IM.IsNonStock,0) = 0
+					 WHERE WPN.[ID] = @WorkOrderPartNumberId
 				END
 
 				IF EXISTS(SELECT ID FROM [dbo].[WorkOrderPartNumber] WITH(NOLOCK) WHERE [ID] = @WorkOrderPartNumberId AND ISNULL([CurrentSerialNumber], '') = '')

@@ -1,4 +1,4 @@
-﻿/*********************           
+/*********************           
  ** File:   [USP_GetMROPriceMasterList]         
  ** Author: Priyansh Patel
  ** Description: This stored procedure returns all MRO Price Master records
@@ -128,7 +128,8 @@ BEGIN
         AND IM.IsActive = 1
         AND IM.IsDeleted = @IsDeleted
 		
-     AND ISNULL(IM.IsNonStock,0) = 0 ORDER BY IM.ItemMasterId DESC;
+     AND ISNULL(IM.IsNonStock,0) = 0
+         ORDER BY IM.ItemMasterId DESC;
 
     -- Total count
     SELECT COUNT(DISTINCT IM.ItemMasterId) AS TotalRecords

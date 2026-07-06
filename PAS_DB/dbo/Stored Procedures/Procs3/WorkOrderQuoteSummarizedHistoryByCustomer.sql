@@ -1,4 +1,4 @@
-﻿
+
 /*************************************************************           
  ** File:   [WorkOrderQuoteSummarizedHistoryByCustomer]           
  ** Author:   Hemant Saliya
@@ -76,7 +76,8 @@ BEGIN
 						LEFT JOIN dbo.Currency C WITH (NOLOCK) ON C.CurrencyId = WOQ.CurrencyId						
 					WHERE IM.ItemMasterId = @ItemMasterId AND DATEDIFF(MM, WOQ.createdDate, GETDATE()) < @Month 
 					--GROUP BY IM.partnumber, WOP.ItemMasterId, WS.WorkScopeCode, WS.WorkScopeId ,C.Code
-				 AND ISNULL(IM.IsNonStock,0) = 0 END
+				 AND ISNULL(IM.IsNonStock,0) = 0
+					 END
 			COMMIT  TRANSACTION
 		END TRY    
 		BEGIN CATCH      

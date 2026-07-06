@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [USP_GetWorkFlowNos]           
  ** Author:   Devendra Shekh
  ** Description: This stored procedure is used to get the WorkFlowNumbers
@@ -49,7 +49,8 @@ BEGIN
 						AND wf.ItemMasterId = @PartId
 						AND wf.WorkScopeId = @WorkScopeId
 
-				 AND ISNULL(im.IsNonStock,0) = 0 UNION
+				 AND ISNULL(im.IsNonStock,0) = 0
+						 UNION
 
 				SELECT DISTINCT
 					WorkFlowNo = wf.[WorkOrderNumber] + '_' + wf.[Version],
@@ -68,7 +69,8 @@ BEGIN
 				WHERE	ISNULL(wf.IsDeleted, 0) = 0
 						AND wf.IsActive = 1
 						AND wf.WorkflowId = @workflowId
-			 AND ISNULL(im.IsNonStock,0) = 0 END
+			 AND ISNULL(im.IsNonStock,0) = 0
+						 END
 			ELSE
 			BEGIN
 				 SELECT DISTINCT
@@ -92,7 +94,8 @@ BEGIN
 						AND wf.ItemMasterId = @PartId
 						AND wf.WorkScopeId = @WorkScopeId
 
-				 AND ISNULL(im.IsNonStock,0) = 0 UNION
+				 AND ISNULL(im.IsNonStock,0) = 0
+						 UNION
 
 				SELECT DISTINCT
 					WorkFlowNo = wf.[WorkOrderNumber] + '_' + wf.[Version],
@@ -111,7 +114,8 @@ BEGIN
 				WHERE	ISNULL(wf.IsDeleted, 0) = 0
 						AND wf.IsActive = 1
 						AND wf.WorkflowId = @workflowId
-			 AND ISNULL(im.IsNonStock,0) = 0 END
+			 AND ISNULL(im.IsNonStock,0) = 0
+						 END
 
 		END TRY    
 		BEGIN CATCH      

@@ -1,4 +1,4 @@
-﻿/*************************************************************
+/*************************************************************
  ** File:     [RPT_GetExchangeSOCoreMonitoringList]
  ** Author:   Ekta Chandegra
  ** Description: 
@@ -43,11 +43,13 @@ BEGIN
 		LEFT JOIN [DBO].ExchangeCoreLetterType EXCHCT WITH (NOLOCK) ON EMD.LetterTypeId = EXCHCT.ExchangeCoreLetterTypeId
 		LEFT JOIN [DBO].ReceivingCustomerWork RCT WITH (NOLOCK) ON EXCHSO.ExchangeSalesOrderId = RCT.ExchangeSalesOrderId
 		LEFT JOIN [DBO].ItemMaster IM WITH (NOLOCK) ON EXCHSOP.ItemMasterId = IM.ItemMasterId
-		 AND ISNULL(IM.IsNonStock,0) = 0 LEFT JOIN [DBO].ItemMasterExchangeLoan IMEXCH WITH (NOLOCK) ON IM.ItemMasterId = IMEXCH.ItemMasterId
+		 AND ISNULL(IM.IsNonStock,0) = 0
+		 LEFT JOIN [DBO].ItemMasterExchangeLoan IMEXCH WITH (NOLOCK) ON IM.ItemMasterId = IMEXCH.ItemMasterId
 		LEFT JOIN [DBO].Stockline ST WITH (NOLOCK) ON RCT.StockLineId = ST.StockLineId
 		LEFT JOIN [DBO].Manufacturer MN WITH (NOLOCK) ON IM.ManufacturerId = MN.ManufacturerId
 		LEFT JOIN [DBO].ItemMaster ITM WITH (NOLOCK) ON Im.ItemMasterId = RCT.RevisePartId
-		 AND ISNULL(ITM.IsNonStock,0) = 0 WHERE EXCHSO.ExchangeSalesOrderId = @ExchangeSalesOrderId AND EMD.ExchangeCoreMonitoringDetailsId = @ExchangeCoreMonitoringDetailsId;
+		 AND ISNULL(ITM.IsNonStock,0) = 0
+		 WHERE EXCHSO.ExchangeSalesOrderId = @ExchangeSalesOrderId AND EMD.ExchangeCoreMonitoringDetailsId = @ExchangeCoreMonitoringDetailsId;
     END TRY
 	BEGIN CATCH      
 		IF @@trancount > 0

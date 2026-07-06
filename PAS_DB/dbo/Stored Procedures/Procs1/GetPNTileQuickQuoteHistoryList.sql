@@ -1,4 +1,4 @@
-﻿-- ==================================================
+-- ==================================================
 -- Author:		Ekta Chandegra
 -- Description:	Get Search Data for Quick Quote History List
 
@@ -92,7 +92,8 @@ BEGIN
 			FROM [DBO].[SpeedQuote] SOQ WITH (NOLOCK)
 			LEFT JOIN [DBO].[SpeedQuotePart] SOQP WITH (NOLOCK) ON SOQP.SpeedQuoteId = SOQ.SpeedQuoteId
 			LEFT JOIN [DBO].[ItemMaster] IM WITH (NOLOCK) ON IM.ItemMasterId = SOQP.ItemMasterId
-			 AND ISNULL(IM.IsNonStock,0) = 0 LEFT JOIN [DBO].Currency cr WITH (NOLOCK) ON cr.CurrencyId = SOQ.CurrencyId
+			 AND ISNULL(IM.IsNonStock,0) = 0
+			 LEFT JOIN [DBO].Currency cr WITH (NOLOCK) ON cr.CurrencyId = SOQ.CurrencyId
 			LEFT JOIN [DBO].[Condition] Cond WITH (NOLOCK) ON Cond.ConditionId = SOQP.ConditionId
 			LEFT JOIN [DBO].[Status] St WITH (NOLOCK) ON St.SatusId = SOQP.StatusId 
 			WHERE SOQ.MasterCompanyId = @MasterCompanyId 

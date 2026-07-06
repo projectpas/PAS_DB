@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [USP_GetVendorRMANumber]           
  ** Author:   Sahdev Saliya
  ** Description: This stored procedure is used to Get VendorRMANumber List
@@ -45,7 +45,8 @@ BEGIN
 			INNER JOIN [dbo].ItemMaster im WITH(NOLOCK) ON vrmad.ItemMasterId = im.ItemMasterId
 			INNER JOIN [dbo].StockLine stk WITH(NOLOCK) ON vrmad.StockLineId = stk.StockLineId
 			WHERE vrma.VendorRMAId = @VendorRMAId
-		 AND ISNULL(im.IsNonStock,0) = 0 END TRY    
+		 AND ISNULL(im.IsNonStock,0) = 0
+			 END TRY    
 
     BEGIN CATCH      
 				IF @@trancount > 0

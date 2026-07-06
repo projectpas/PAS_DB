@@ -1,4 +1,4 @@
-﻿/*************************************************************
+/*************************************************************
 ** File:  [USP_GetVendorCapabilityById]
 ** Author:   Ayushi Patel
 ** Description: Get Vendor Capability By Id
@@ -53,7 +53,8 @@ BEGIN
         FROM dbo.VendorCapability vc WITH(NOLOCK)
         INNER JOIN dbo.Vendor v WITH(NOLOCK) ON vc.VendorId = v.VendorId
         LEFT JOIN dbo.ItemMaster im WITH(NOLOCK) ON vc.ItemMasterId = im.ItemMasterId
-         AND ISNULL(im.IsNonStock,0) = 0 LEFT JOIN dbo.Manufacturer man WITH(NOLOCK) ON im.ManufacturerId = man.ManufacturerId
+         AND ISNULL(im.IsNonStock,0) = 0
+         LEFT JOIN dbo.Manufacturer man WITH(NOLOCK) ON im.ManufacturerId = man.ManufacturerId
         LEFT JOIN dbo.CapabilityType vcat WITH(NOLOCK) ON vc.CapabilityTypeId = vcat.CapabilityTypeId
         WHERE vc.VendorCapabilityId = @VendorCapabilityId
     END TRY

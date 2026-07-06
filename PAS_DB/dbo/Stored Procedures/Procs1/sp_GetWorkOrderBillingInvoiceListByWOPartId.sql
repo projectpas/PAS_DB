@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:     [sp_GetWorkOrderBillingInvoiceListByWOPartId]           
  ** Author:	  Vishal Suthar
  ** Description: This SP is Used to Get WorkOrder Billing InvoiceList By WOPartId
@@ -73,8 +73,7 @@ BEGIN
 				--				WHERE WorkOrderId=@WorkOrderId AND ISNULL(IsPerformaInvoice, 0) = 0 ORDER BY BillingInvoicingId DESC))  --= @workOrderPartNumberId
 				--GROUP BY wo.WorkOrderNum,wop.ID, imt.partnumber, imt.PartDescription,wo.WorkOrderId,
 				--	wop.WorkOrderId, imt.ItemMasterId,wop.RevisedItemmasterid,wop.RevisedPartNumber,wop.RevisedPartDescription
-
-					 AND ISNULL(imt.IsNonStock,0) = 0 SELECT 
+				 SELECT 
 					wo.WorkOrderNum as WorkOrderNumber, 
 					CASE WHEN ISNULL(wop.RevisedItemmasterid, 0) > 0 THEN wop.RevisedPartNumber ELSE imt.PartNumber END as 'PartNumber',
 			        CASE WHEN ISNULL(wop.RevisedItemmasterid, 0) > 0 THEN wop.RevisedPartDescription ELSE imt.PartDescription END as 'PartDescription',
@@ -98,7 +97,8 @@ BEGIN
 					LEFT JOIN DBO.WorkOrderShipping wos WITH(NOLOCK) on wos.WorkOrderId = wop.WorkOrderId
 					LEFT JOIN DBO.WorkOrderShippingItem wosi WITH(NOLOCK) on wos.WorkOrderShippingId = wosi.WorkOrderShippingId AND wosi.WorkOrderPartNumId = wop.ID
 					LEFT JOIN DBO.ItemMaster imt WITH(NOLOCK) on imt.ItemMasterId = wop.ItemMasterId
-					 AND ISNULL(imt.IsNonStock,0) = 0 LEFT JOIN DBO.Stockline sl WITH(NOLOCK) on sl.StockLineId = wop.StockLineId
+					 AND ISNULL(imt.IsNonStock,0) = 0
+					 LEFT JOIN DBO.Stockline sl WITH(NOLOCK) on sl.StockLineId = wop.StockLineId
 					LEFT JOIN DBO.BillingInvoicingItems wobii WITH(NOLOCK) on wop.ID = wobii.SubReferenceId AND ISNULL(wobII.IsPerformaInvoice, 0) = 0 AND wobii.[ModuleId] =@WOModuleId
 					LEFT JOIN DBO.BillingInvoicing wobi WITH(NOLOCK) on wobii.BillingInvoicingId = wobi.BillingInvoicingId and wobi.IsVersionIncrease=0
 					AND wobii.SubReferenceId = wop.ID AND wobii.QtyBilled = wosi.QtyShipped AND ISNULL(wobi.IsPerformaInvoice, 0) = 0

@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [usprpt_GetStockReportAsOfNow]           
  ** Author:   Moin Bloch
  ** Description: Get Data for Stock Report  
@@ -218,7 +218,8 @@ BEGIN
 	 AND  (ISNULL(@ExcludedLocations,'') = '' OR stl.[LocationId] NOT IN (SELECT Item FROM DBO.SPLITSTRING(@ExcludedLocations,',')))
 	   
 	/* Reduce Received Items from AsOfNow till Today */
-	 AND ISNULL(im.IsNonStock,0) = 0 IF OBJECT_ID(N'tempdb..#TEMPStocklineReceivedDate') IS NOT NULL    
+	 AND ISNULL(im.IsNonStock,0) = 0
+	 IF OBJECT_ID(N'tempdb..#TEMPStocklineReceivedDate') IS NOT NULL    
 	BEGIN    
 		DROP TABLE #TEMPStocklineReceivedDate
 	END

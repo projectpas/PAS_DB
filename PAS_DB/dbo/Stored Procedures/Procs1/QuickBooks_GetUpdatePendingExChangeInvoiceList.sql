@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [QuickBooks_GetUpdatePendingExChangeInvoiceList]           
  ** Author:   Devendra Shekh
  ** Description: Get ExChange Invoice List to Update Invoice in QuickBooks    
@@ -180,7 +180,8 @@ BEGIN
 					--LEFT JOIN [dbo].[Address] billToAddress WITH(NOLOCK) ON billToSite.AddressId = billToAddress.AddressId
 					--LEFT JOIN [dbo].[CustomerDomensticShipping] shipToSite WITH(NOLOCK) ON SOBI.ShipToSiteId = shipToSite.CustomerDomensticShippingId
 					--LEFT JOIN [dbo].[Address] shipToAddress WITH(NOLOCK) ON shipToSite.AddressId = shipToAddress.AddressId
-					 AND ISNULL(IM.IsNonStock,0) = 0 LEFT JOIN  [dbo].[AllAddress] billToAddress WITH(NOLOCK) ON SOBI.ExchangeSalesOrderId = billToAddress.ReffranceId AND billToAddress.IsShippingAdd = 0 AND billToAddress.[ModuleId] = @ExchModuleId
+					 AND ISNULL(IM.IsNonStock,0) = 0
+					 LEFT JOIN  [dbo].[AllAddress] billToAddress WITH(NOLOCK) ON SOBI.ExchangeSalesOrderId = billToAddress.ReffranceId AND billToAddress.IsShippingAdd = 0 AND billToAddress.[ModuleId] = @ExchModuleId
 					LEFT JOIN  [dbo].[AllAddress] shipToAddress WITH(NOLOCK) ON SOBI.ExchangeSalesOrderId = shipToAddress.ReffranceId AND shipToAddress.IsShippingAdd = 1 AND shipToAddress.[ModuleId] = @ExchModuleId
 					LEFT JOIN [dbo].[CreditTerms] CT WITH(NOLOCK) ON CT.CreditTermsId = SO.CreditTermId
 					LEFT JOIN [dbo].[Percent] P with(nolock) ON P.MasterCompanyId = SOBI.MasterCompanyId AND P.PercentId = SOBI.TaxRate
@@ -261,7 +262,8 @@ BEGIN
 					--LEFT JOIN [dbo].[Address] billToAddress WITH(NOLOCK) ON billToSite.AddressId = billToAddress.AddressId
 					--LEFT JOIN [dbo].[CustomerDomensticShipping] shipToSite WITH(NOLOCK) ON SOBI.ShipToSiteId = shipToSite.CustomerDomensticShippingId
 					--LEFT JOIN [dbo].[Address] shipToAddress WITH(NOLOCK) ON shipToSite.AddressId = shipToAddress.AddressId
-					 AND ISNULL(IM.IsNonStock,0) = 0 LEFT JOIN  [dbo].[AllAddress] billToAddress WITH(NOLOCK) ON SOBI.ExchangeSalesOrderId = billToAddress.ReffranceId AND billToAddress.IsShippingAdd = 0 AND billToAddress.[ModuleId] = @ExchModuleId
+					 AND ISNULL(IM.IsNonStock,0) = 0
+					 LEFT JOIN  [dbo].[AllAddress] billToAddress WITH(NOLOCK) ON SOBI.ExchangeSalesOrderId = billToAddress.ReffranceId AND billToAddress.IsShippingAdd = 0 AND billToAddress.[ModuleId] = @ExchModuleId
 					LEFT JOIN  [dbo].[AllAddress] shipToAddress WITH(NOLOCK) ON SOBI.ExchangeSalesOrderId = shipToAddress.ReffranceId AND shipToAddress.IsShippingAdd = 1 AND shipToAddress.[ModuleId] = @ExchModuleId
 					LEFT JOIN [dbo].[CreditTerms] CT WITH(NOLOCK) ON CT.CreditTermsId = SO.CreditTermId
 					LEFT JOIN [dbo].[Percent] P with(nolock) ON P.MasterCompanyId = SOBI.MasterCompanyId AND P.PercentId = SOBI.TaxRate

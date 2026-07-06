@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [GetWOQPartsMonthlyYearlyDashboardData]
  ** Author:   
  ** Description: This stored procedure is used to Get Parts Dashboard details
@@ -75,7 +75,8 @@ BEGIN
 					WHERE CONVERT(DATE,WO.OpenDate) BETWEEN DATEFROMPARTS(YEAR(@StartDate), MONTH(@StartDate), 1) 
 						AND @StartDate AND WP.MasterCompanyId = @MasterCompanyId AND WO.IsDeleted = 0 AND WP.IsDeleted = 0 
 						AND WP.ManagementStructureId = @ManagementStructureId
-					 AND ISNULL(IM.IsNonStock,0) = 0 GROUP BY 
+					 AND ISNULL(IM.IsNonStock,0) = 0
+						 GROUP BY 
 						IM.partnumber, 
 						IM.ItemMasterId
 					)

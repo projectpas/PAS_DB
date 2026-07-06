@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:		[dbo].[USP_searchItemmasterfordashboardheader]       
  ** Author:		 Nakul Chandigra
  ** Description: This Stored Procedure Is Used To Search Itemmaster For Dashboardheader
@@ -27,7 +27,8 @@ BEGIN
 		imst.ItemGroup
 	FROM [dbo].[ItemMasterPurchaseSale] imp WITH (NOLOCK)
 	LEFT JOIN [dbo].[ItemMaster] imst ON imp.ItemMasterId = imst.ItemMasterId
-	 AND ISNULL(imst.IsNonStock,0) = 0 WHERE imp.ItemMasterId = @ItemMasterId AND imp.ConditionId = @ConditionId
+	 AND ISNULL(imst.IsNonStock,0) = 0
+	 WHERE imp.ItemMasterId = @ItemMasterId AND imp.ConditionId = @ConditionId
 
     END TRY
 	BEGIN CATCH    

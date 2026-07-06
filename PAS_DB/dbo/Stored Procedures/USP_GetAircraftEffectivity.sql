@@ -1,4 +1,4 @@
-﻿/*************************************************************     
+/*************************************************************     
 ** Author:  <Amit Ghediya>    
 ** Create date: <05/04/2026>    
 ** Description: <This Proc Is used to Get Aircraft AircraftEffectivity>    
@@ -74,7 +74,8 @@ BEGIN
             LEFT JOIN dbo.aircrafttype MT WITH(NOLOCK) ON AE.MakeTypeId = MT.AircraftTypeId
             LEFT JOIN dbo.AircraftModel AM WITH(NOLOCK) ON AE.AircraftModelId = AM.AircraftModelId
             LEFT JOIN dbo.ItemMaster IM WITH(NOLOCK) ON AE.ItemMasterId = IM.ItemMasterId
-             AND ISNULL(IM.IsNonStock,0) = 0 WHERE (@AircraftPublicationsId IS NULL OR @AircraftPublicationsId = 0 OR AE.AircraftPublicationId = @AircraftPublicationsId) 
+             AND ISNULL(IM.IsNonStock,0) = 0
+             WHERE (@AircraftPublicationsId IS NULL OR @AircraftPublicationsId = 0 OR AE.AircraftPublicationId = @AircraftPublicationsId) 
 			AND AE.MasterCompanyId = @MasterCompanyId
         )
 

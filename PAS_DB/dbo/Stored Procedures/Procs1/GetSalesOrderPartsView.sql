@@ -1,4 +1,4 @@
-﻿/*************************************************************             
+/*************************************************************             
  ** File:   [GetSalesOrderPartsView]            
  ** Author:  EKTA CHANDEGRA
  ** Description: This stored procedure is used GetSalesOrderPartsView
@@ -105,7 +105,8 @@ BEGIN
 		LEFT JOIN [dbo].[SalesOrderPartCost] sopc WITH(NOLOCK) ON part.SalesOrderPartId = sopc.SalesOrderPartId
 		LEFT JOIN [dbo].[StockLine] qs WITH(NOLOCK) ON sops.StockLineId = qs.StockLineId
 		LEFT JOIN [dbo].[ItemMaster] itemMaster WITH(NOLOCK) ON part.ItemMasterId = itemMaster.ItemMasterId
-		 AND ISNULL(itemMaster.IsNonStock,0) = 0 LEFT JOIN [dbo].[Condition] cp WITH(NOLOCK) ON part.ConditionId = cp.ConditionId
+		 AND ISNULL(itemMaster.IsNonStock,0) = 0
+		 LEFT JOIN [dbo].[Condition] cp WITH(NOLOCK) ON part.ConditionId = cp.ConditionId
 		LEFT JOIN [dbo].[SalesOrderQuotePartV1] soqps WITH(NOLOCK) ON part.SalesOrderQuotePartId = soqps.SalesOrderQuotePartId
 		LEFT JOIN [dbo].[SalesOrderQuote] q WITH(NOLOCK) ON soqps.SalesOrderQuoteId = q.SalesOrderQuoteId
 		LEFT JOIN [dbo].[UnitOfMeasure] iu WITH(NOLOCK) ON itemMaster.ConsumeUnitOfMeasureId = iu.UnitOfMeasureId

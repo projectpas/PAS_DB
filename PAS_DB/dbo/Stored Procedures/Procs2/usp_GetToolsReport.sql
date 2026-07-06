@@ -1,4 +1,4 @@
-﻿
+
 /*************************************************************           
  ** File:   [usp_GetToolsReport]           
  ** Author:   Swetha  
@@ -123,7 +123,8 @@ BEGIN
           ON Asset.assetrecordid = ACS.assetrecordid
         LEFT JOIN DBO.itemmaster IM WITH (NOLOCK)
           ON ACS.itemmasterId = IM.ItemMasterId
-		 AND ISNULL(IM.IsNonStock,0) = 0 LEFT JOIN dbo.AssetAttributeType asty WITH(NOLOCK) on asset.TangibleClassId = asty.TangibleClassId
+		 AND ISNULL(IM.IsNonStock,0) = 0
+           LEFT JOIN dbo.AssetAttributeType asty WITH(NOLOCK) on asset.TangibleClassId = asty.TangibleClassId
         LEFT OUTER JOIN DBO.mastercompany MC WITH (NOLOCK)
           ON Asset.MasterCompanyId = MC.MasterCompanyId
         INNER JOIN #ManagmetnStrcture MS WITH (NOLOCK)

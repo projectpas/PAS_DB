@@ -1,4 +1,4 @@
-﻿/***************************************************************************************************************************************
+/***************************************************************************************************************************************
   ** Change History
  ***************************************************************************************************************************************
  ** PR   Date						 Author							Change Description
@@ -63,7 +63,7 @@ BEGIN
 		JOIN DBO.StockLine sl WITH(NOLOCK) ON im.ItemMasterId = sl.ItemMasterId AND sl.IsDeleted = 0 
 		LEFT JOIN DBO.ExchangeSalesOrderPart sop WITH(NOLOCK) on sop.StockLineId = sl.StockLineId
 			AND sop.ConditionId = CASE WHEN @ConditionId  IS NOT NULL 
-									THEN @ConditionId  WHERE ISNULL(im.IsNonStock,0) = 0
+									THEN @ConditionId
 ELSE sl.ConditionId 
 									END
 		LEFT JOIN DBO.ExchangeSalesOrder so WITH(NOLOCK) on so.ExchangeSalesOrderId = sop.ExchangeSalesOrderId

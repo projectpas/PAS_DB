@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [GetBillingInvoicingDetails]           
  ** Author:   Moin Bloch
  ** Description: Get Billing Invoicing Details
@@ -462,7 +462,8 @@ BEGIN
 					INNER JOIN [dbo].[BillingInvoicingDetails] BID WITH(NOLOCK) ON sobi.[BillingInvoicingId] = BID.[BillingInvoicingId]
 					LEFT JOIN [dbo].[Currency] [cr] WITH(NOLOCK) ON SO.FunctionalCurrencyId = [cr].[CurrencyId]
 					LEFT JOIN DBO.ItemMaster im WITH (NOLOCK) ON sop.ItemMasterId = im.ItemMasterId
-					 AND ISNULL(im.IsNonStock,0) = 0 LEFT JOIN DBO.ItemMasterExportInfo ime WITH (NOLOCK) ON im.ItemMasterId = ime.ItemMasterId
+					 AND ISNULL(im.IsNonStock,0) = 0
+					 LEFT JOIN DBO.ItemMasterExportInfo ime WITH (NOLOCK) ON im.ItemMasterId = ime.ItemMasterId
 					LEFT JOIN [dbo].[CustomerDomensticShippingShipVia] [cust_shipVia] WITH(NOLOCK) ON [so].[CustomerId] = [cust_shipVia].[CustomerId] AND [cust_shipVia].[IsPrimary] = 1
 					LEFT JOIN [DBO].[ShippingTerms] [st] WITH(NOLOCK) ON [cust_shipVia].ShippingTermsId = [st].ShippingTermsId
 				  	WHERE  sobi.BillingInvoicingId = @BillingInvoicingId

@@ -1,4 +1,4 @@
-﻿/*******************************************************************************************
+/*******************************************************************************************
  ** File:   [GetVendorCapabilityAudit]           
  ** Author:  Ayushi Patel
  ** Description: This SP gets audit history of Vendor Capability with timezone adjusted dates
@@ -79,7 +79,8 @@ BEGIN
             dbo.CapabilityType vcat WITH (NOLOCK) ON CONVERT(INT, vca.CapabilityTypeId) = vcat.CapabilityTypeId
         LEFT JOIN 
             dbo.ItemMaster itm WITH (NOLOCK) ON vca.ItemMasterId = itm.ItemMasterId
-         AND ISNULL(itm.IsNonStock,0) = 0 LEFT JOIN 
+         AND ISNULL(itm.IsNonStock,0) = 0
+             LEFT JOIN 
             dbo.Manufacturer man WITH (NOLOCK) ON itm.ManufacturerId = man.ManufacturerId
         WHERE 
             vca.VendorCapabilityId = @VendorCapabilityId 

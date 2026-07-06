@@ -1,4 +1,4 @@
-﻿
+
 /*************************************************************           
  ** File:   [WorkOrderSummarizedHistoryByMPN]           
  ** Author:   Hemant Saliya
@@ -88,7 +88,8 @@ BEGIN
 						LEFT JOIN dbo.CustomerFinancial CF WITH (NOLOCK) ON CF.CustomerId = WO.CustomerId
 						LEFT JOIN dbo.Currency C WITH (NOLOCK) ON C.CurrencyId = CF.CurrencyId
 					WHERE WOP.ItemMasterId = @ItemMasterId AND DATEDIFF(MM, WC.createdDate, GETDATE()) < @Month
-					 AND ISNULL(IM.IsNonStock,0) = 0 GROUP BY IM.partnumber, WOP.ItemMasterId, WOP.WorkScope, WOP.WorkOrderScopeId
+					 AND ISNULL(IM.IsNonStock,0) = 0
+					 GROUP BY IM.partnumber, WOP.ItemMasterId, WOP.WorkScope, WOP.WorkOrderScopeId
 
 					IF((SELECT COUNT(1) FROM #tmpWorkOrderCostDetails) > 0)
 					BEGIN

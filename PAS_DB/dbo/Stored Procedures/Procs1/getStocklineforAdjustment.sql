@@ -1,4 +1,4 @@
-﻿/***************************************************************************
+/***************************************************************************
 -- EXEC [dbo].[getStocklineforAdjustment] '',1,'0',1,11,1
 ****************************************************************************/
 /***************************************************************************************************************************************
@@ -35,7 +35,8 @@ BEGIN
 					WHERE (stl.IsActive = 1 AND ISNULL(stl.IsDeleted, 0) = 0 AND stl.MasterCompanyId = @MasterCompanyId AND (stl.StockLineNumber LIKE '%' + @StartWith + '%') AND stl.ItemMasterId = @ItemMasterId AND stl.ManagementStructureId = @ManagementStructureId
 					AND stl.QuantityOnHand > 0) AND stl.IsParent=1 and im.ItemTypeId=1 and stl.IsCustomerStock=0
 					--GROUP by stl.StocklineId,stl.StockLineNumber,im.ItemMasterId,im.partnumber,im.PartDescription,stl.Quantity,stl.QuantityOnHand,stl.SerialNumber,stl.ControlNumber
-					 AND ISNULL(im.IsNonStock,0) = 0 ORDER BY StockLineNumber
+					 AND ISNULL(im.IsNonStock,0) = 0
+					 ORDER BY StockLineNumber
 		END TRY    
 		BEGIN CATCH      
 				DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name() 

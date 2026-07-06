@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:		[dbo].[USP_GetPartDetailsWithmasterCompanyI       
  ** Author:		 Nakul Chandigra
  ** Description: This stored procedure retrieves part details for the Add Multiple Part search in a PO, filtered by MasterCompanyId.
@@ -97,7 +97,8 @@ BEGIN
 		LEFT JOIN [DBO].[Priority] P WITH(NOLOCK) ON IM.PriorityId = P.PriorityId
 		WHERE IM.PartNumber = @PartNo AND  IM.IsActive =1 AND IM.IsDeleted = 0 AND IM.MasterCompanyId = @MasterCompanyId
 	
-		 AND ISNULL(IM.IsNonStock,0) = 0 IF NOT EXISTS(SELECT 1 FROM dbo.ItemMaster IM WITH(NOLOCK) WHERE IM.PartNumber = @PartNo AND IM.IsActive = 1 AND IM.IsDeleted = 0 AND IM.MasterCompanyId = @MasterCompanyId AND ISNULL(IM.IsNonStock,0) = 0 )
+		 AND ISNULL(IM.IsNonStock,0) = 0
+		 IF NOT EXISTS(SELECT 1 FROM dbo.ItemMaster IM WITH(NOLOCK) WHERE IM.PartNumber = @PartNo AND IM.IsActive = 1 AND IM.IsDeleted = 0 AND IM.MasterCompanyId = @MasterCompanyId AND ISNULL(IM.IsNonStock,0) = 0 )
         BEGIN
             INSERT INTO #tmpPartsNotFound (PartNumber)
             VALUES (@PartNo);

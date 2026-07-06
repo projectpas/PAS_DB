@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File: GetPartUploadToILS
  ** Author: Amit Ghediya
  ** Description: This stored procedure is used All part for ils upload.
@@ -89,7 +89,8 @@ BEGIN
 				INNER JOIN [dbo].[ItemMaster] IM WITH(NOLOCK) ON IM.ItemMasterId = STK.ItemMasterId
 				LEFT JOIN [dbo].[Nha_Tla_Alt_Equ_ItemMapping] TLA WITH(NOLOCK) ON STK.ItemMasterId = TLA.ItemMasterId AND TLA.MappingType = @NHA_MappingType
 				LEFT JOIN [dbo].[ItemMaster] IM1 WITH(NOLOCK) ON IM1.ItemMasterId = TLA.MappingItemMasterId
-				 AND ISNULL(IM1.IsNonStock,0) = 0 INNER JOIN [dbo].[Condition] CON WITH(NOLOCK) ON CON.ConditionId = STK.ConditionId
+				 AND ISNULL(IM1.IsNonStock,0) = 0
+				 INNER JOIN [dbo].[Condition] CON WITH(NOLOCK) ON CON.ConditionId = STK.ConditionId
 				WHERE ISNULL(IM.IsNonStock,0) = 0 AND ( STK.MasterCompanyId = @MasterCompanyId 
 				AND @SiteId IS NULL OR STK.SiteId = @SiteId
 				AND @WarehouseId IS NULL OR STK.WarehouseId = @WarehouseId
@@ -168,7 +169,8 @@ BEGIN
 				INNER JOIN [dbo].[ItemMaster] IM WITH(NOLOCK) ON IM.ItemMasterId = STK.ItemMasterId
 				LEFT JOIN [dbo].[Nha_Tla_Alt_Equ_ItemMapping] TLA WITH(NOLOCK) ON STK.ItemMasterId = TLA.ItemMasterId AND TLA.MappingType = @NHA_MappingType_PartsBase
 				LEFT JOIN [dbo].[ItemMaster] IM1 WITH(NOLOCK) ON IM1.ItemMasterId = TLA.MappingItemMasterId
-				 AND ISNULL(IM1.IsNonStock,0) = 0 INNER JOIN [dbo].[Condition] CON WITH(NOLOCK) ON CON.ConditionId = STK.ConditionId
+				 AND ISNULL(IM1.IsNonStock,0) = 0
+				 INNER JOIN [dbo].[Condition] CON WITH(NOLOCK) ON CON.ConditionId = STK.ConditionId
 				WHERE ISNULL(IM.IsNonStock,0) = 0 AND ( STK.MasterCompanyId = @MasterCompanyId 
 				AND @SiteId_PartsBase IS NULL OR STK.SiteId = @SiteId_PartsBase
 				AND @WarehouseId_PartsBase IS NULL OR STK.WarehouseId = @WarehouseId_PartsBase

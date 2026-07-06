@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [usp_GetSODashboardforunfulfilleddata]           
  ** Author:   Swetha  
  ** Description: Get Data for SODashboardforunfulfilleddata 
@@ -60,7 +60,8 @@ BEGIN
         LEFT OUTER JOIN dbo.SalesOrderPartV1 AS SOP WITH (NOLOCK) ON SOP.SalesOrderId = SO.SalesOrderId
         LEFT OUTER JOIN dbo.ItemMaster AS IM WITH (NOLOCK)
           ON SOP.ItemMasterId = IM.ItemMasterId
-         AND ISNULL(IM.IsNonStock,0) = 0 LEFT JOIN dbo.SOMarginSummary SOMS WITH (NOLOCK)
+         AND ISNULL(IM.IsNonStock,0) = 0
+           LEFT JOIN dbo.SOMarginSummary SOMS WITH (NOLOCK)
           ON SO.SalesOrderId = SOMS.SalesOrderId
         LEFT JOIN dbo.SalesOrderApproval SOA WITH (NOLOCK)
           ON SOP.SalesOrderPartId = SOA.SalesOrderPartId

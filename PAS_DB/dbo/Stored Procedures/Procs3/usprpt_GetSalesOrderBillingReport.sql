@@ -1,4 +1,4 @@
-﻿/************************************************************* 
+/************************************************************* 
  ** File:[usprpt_GetRCWReport] 
  ** Author:		HEMANT SALIYA 
  ** Description: Get Data for RCW Report
@@ -126,7 +126,8 @@ select
 			AND (ISNULL(@Level9, '') = '' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9, ',')))  
 			AND (ISNULL(@Level10, '') = '' OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10, ',')))
 
-		 AND ISNULL(IM.IsNonStock,0) = 0 SELECT @PageSizeCM=COUNT(*) 
+		 AND ISNULL(IM.IsNonStock,0) = 0
+			 SELECT @PageSizeCM=COUNT(*) 
 		FROM dbo.CreditMemo CM WITH (NOLOCK) 
 			INNER JOIN DBO.CreditMemoDetails CMD WITH (NOLOCK) ON CM.CreditMemoHeaderId = CMD.CreditMemoHeaderId  
 			INNER JOIN DBO.BillingInvoicing SOBI WITH (NOLOCK) ON CM.InvoiceId = SOBI.BillingInvoicingId AND ISNULL(SOBI.IsVersionIncrease, 0) = 0  AND ISNULL(SOBI.IsPerformaInvoice,0) = 0  
@@ -248,7 +249,8 @@ select
 			AND (ISNULL(@Level9, '') = '' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9, ',')))  
 			AND (ISNULL(@Level10, '') = '' OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10, ',')))  
 
-		 AND ISNULL(IM.IsNonStock,0) = 0 UNION ALL  
+		 AND ISNULL(IM.IsNonStock,0) = 0
+			 UNION ALL  
   
 		SELECT DISTINCT 
 			COUNT(1) OVER () AS TotalRecordsCount,

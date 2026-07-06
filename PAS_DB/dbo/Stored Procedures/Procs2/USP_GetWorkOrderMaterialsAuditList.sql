@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [USP_GetWorkOrderMaterialsAuditList]           
  ** Author:   Hemant Saliya
  ** Description: This stored procedure is used retrieve Work Order Materials List    
@@ -165,7 +165,8 @@ SET NOCOUNT ON
 					LEFT JOIN dbo.RepairOrderPart ROP WITH (NOLOCK) ON SL.RepairOrderPartRecordId = ROP.RepairOrderPartRecordId
 					LEFT JOIN dbo.RepairOrder RO WITH (NOLOCK) ON SL.RepairOrderId = RO.RepairOrderId
 				WHERE WOM.WorkOrderMaterialsId = @WorkOrderMaterialsId
-			 AND ISNULL(IM.IsNonStock,0) = 0 END
+			 AND ISNULL(IM.IsNonStock,0) = 0
+				 END
 		COMMIT  TRANSACTION
 
 		END TRY    

@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [USP_GetRecevingStocklineDetails]           
  ** Author:   Sahdev Saliya
  ** Description: This stored procedure is used to Get RecevingStocklineDetails List
@@ -40,7 +40,8 @@ BEGIN
         WHERE st.ItemMasterId = @ItemMasterId
 	      AND st.ConditionId = @ConditionId
 		  AND st.PurchaseOrderId > 0
-         AND ISNULL(im.IsNonStock,0) = 0 ORDER BY st.StockLineId DESC;
+         AND ISNULL(im.IsNonStock,0) = 0
+		   ORDER BY st.StockLineId DESC;
 
     END TRY
     BEGIN CATCH

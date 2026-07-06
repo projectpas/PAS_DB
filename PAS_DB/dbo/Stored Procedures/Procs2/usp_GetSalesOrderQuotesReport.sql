@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [usp_GetSalesOrderQuotesReport]           
  ** Author:   Swetha  
  ** Description: Get Data for SalesOrderQuotes Report 
@@ -166,7 +166,8 @@ BEGIN
         LEFT JOIN DBO.Customer C WITH (NOLOCK) ON SOQ.CustomerId = C.CustomerId
         LEFT JOIN DBO.ItemMaster IM WITH (NOLOCK)
           ON SOQP.ItemMasterId = IM.ItemMasterId
-         AND ISNULL(IM.IsNonStock,0) = 0 LEFT JOIN DBO.Stockline STL WITH (NOLOCK)
+         AND ISNULL(IM.IsNonStock,0) = 0
+           LEFT JOIN DBO.Stockline STL WITH (NOLOCK)
           ON STK.stocklineId = STL.StockLineId
         LEFT JOIN DBO.BillingInvoicing SOBI WITH (NOLOCK)
           ON SO.SalesOrderId = SOBI.ReferenceId AND ISNULL(SOBI.IsPerformaInvoice,0) = 0 AND sobi.[ModuleId] = @SOModuleId

@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [USP_GetWorkOrderLaborAnalysisDetails]           
  ** Author:   Hemant Saliya
  ** Description: This stored procedure is used retrieve Sub WorkOrder Labor Analysis Details    
@@ -76,7 +76,8 @@ SET NOCOUNT ON
 						JOIN dbo.EmployeeExpertise ex WITH (NOLOCK) ON wl.ExpertiseId = ex.EmployeeExpertiseId	
 						LEFT JOIN dbo.Employee emp WITH (NOLOCK) ON emp.EmployeeId = wl.EmployeeId
 					WHERE wlh.SubWOPartNoId = @SubWorkOrderPartNoId AND wo.WorkOrderId = @WorkOrderId AND wlh.IsDeleted = 0 AND wlh.IsActive = 1 --AND BillableId = 1 
-					 AND ISNULL(im.IsNonStock,0) = 0 GROUP BY im.partnumber,im.PartDescription,im.RevisedPart,c.[Name] ,wo.WorkOrderNum,ws.Stage,BillableId,
+					 AND ISNULL(im.IsNonStock,0) = 0
+					 GROUP BY im.partnumber,im.PartDescription,im.RevisedPart,c.[Name] ,wo.WorkOrderNum,ws.Stage,BillableId,
 						st.[Description],t.[Description],ex.[Description],emp.FirstName + ' ' + emp.LastName,wl.EmployeeId,swo.SubWorkOrderNo
 		--	END
 		--COMMIT  TRANSACTION

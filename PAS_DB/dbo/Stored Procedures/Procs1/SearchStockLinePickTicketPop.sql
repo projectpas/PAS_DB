@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [dbo].[SearchStockLinePickTicketPop]          
  ** Author:   Vishal Suthar
  ** Description: Get pick ticket stockline data to pick
@@ -108,7 +108,8 @@ BEGIN
 						INNER JOIN SalesOrderShippingItem ship_item WITH(NOLOCK) on ship_item.SalesOrderShippingId = ship.SalesOrderShippingId AND ship.SalesOrderId = @SalesOrderId and ship_item.SalesOrderPartId = sop.SalesOrderPartId
 						INNER JOIN SOPickTicket sopi with(nolock) on ship_item.SOPickTicketId = sopi.SOPickTicketId and sopi.SOPickTicketId = Pick.SOPickTicketId)) - 
 					(SELECT ISNULL(SUM(QtyToShip), 0) FROM SOPickTicket s WITH(NOLOCK) Where s.SalesOrderId = @SalesOrderId AND s.SalesOrderPartStocklineId = stk.SalesOrderStocklineId)) > 0
-		 AND ISNULL(im.IsNonStock,0) = 0 END
+		 AND ISNULL(im.IsNonStock,0) = 0
+					 END
 		ELSE
 		BEGIN
 			SELECT DISTINCT
@@ -183,7 +184,8 @@ BEGIN
 						INNER JOIN SOPickTicket sopi with(nolock) on ship_item.SOPickTicketId = sopi.SOPickTicketId and sopi.SOPickTicketId = Pick.SOPickTicketId)) - 
 					(SELECT ISNULL(SUM(QtyToShip), 0) FROM SOPickTicket s WITH(NOLOCK) Where s.SalesOrderId = @SalesOrderId AND s.SalesOrderPartStocklineId = stk.SalesOrderStocklineId)
 					) > 0
-		 AND ISNULL(im.IsNonStock,0) = 0 END
+		 AND ISNULL(im.IsNonStock,0) = 0
+					 END
 
 				
 	END

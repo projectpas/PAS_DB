@@ -1,4 +1,4 @@
-﻿/***************************************************************************************************************************************
+/***************************************************************************************************************************************
   ** Change History
  ***************************************************************************************************************************************
  ** PR   Date						 Author							Change Description
@@ -144,11 +144,14 @@ BEGIN
 			  LEFT JOIN SubWorkOrder SWO WITH (NOLOCK) ON SWO.SubWorkOrderId = ROP.SubWorkOrderId	  
 			  LEFT JOIN SalesOrder SO WITH (NOLOCK) ON SO.SalesOrderId = ROP.SalesOrderId
 			  LEFT JOIN ItemMaster AIM WITH (NOLOCK) ON AIM.ItemMasterId = ROP.AltEquiPartNumberId			  
-			   AND ISNULL(AIM.IsNonStock,0) = 0 LEFT JOIN ItemMaster ST WITH (NOLOCK) ON ST.ItemMasterId=ROP.ItemMasterId	
-			   AND ISNULL(ST.IsNonStock,0) = 0 LEFT JOIN ItemType IT WITH (NOLOCK) ON IM.ItemTypeId = IT.ItemTypeId				 
+			   AND ISNULL(AIM.IsNonStock,0) = 0
+			   LEFT JOIN ItemMaster ST WITH (NOLOCK) ON ST.ItemMasterId=ROP.ItemMasterId	
+			   AND ISNULL(ST.IsNonStock,0) = 0
+			    LEFT JOIN ItemType IT WITH (NOLOCK) ON IM.ItemTypeId = IT.ItemTypeId				 
 			  LEFT JOIN ItemMaster RIM WITH (NOLOCK) ON ROP.RevisedPartId=RIM.ItemMasterId	
 			  --LEFT JOIN WorkPerformed WP WITH (NOLOCK) ON ROP.WorkPerformedId=WP.WorkPerformedId	
-			   AND ISNULL(RIM.IsNonStock,0) = 0 LEFT JOIN CapabilityType WP WITH (NOLOCK) ON ROP.WorkPerformedId=WP.CapabilityTypeId
+			   AND ISNULL(RIM.IsNonStock,0) = 0
+			   LEFT JOIN CapabilityType WP WITH (NOLOCK) ON ROP.WorkPerformedId=WP.CapabilityTypeId
 
 		WHERE ROP.VendorRFQRepairOrderId = @VendorRFQRepairOrderId AND ISNULL(IM.IsNonStock,0) = 0 ; 
 		

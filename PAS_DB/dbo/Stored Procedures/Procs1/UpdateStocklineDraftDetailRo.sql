@@ -1,4 +1,4 @@
-﻿/*************************************************************             
+/*************************************************************             
  ** File:   [UpdateStocklineDraftDetailRo]            
  ** Author:     
  ** Description: This stored procedure is used to UPDATE stockline details for RO
@@ -97,7 +97,8 @@ BEGIN TRANSACTION
 		LEFT JOIN dbo.Manufacturer MF  WITH (NOLOCK) ON MF.ManufacturerId = SD.ManufacturerId
 		LEFT JOIN dbo.Condition CO  WITH (NOLOCK) ON CO.ConditionId = SD.ConditionId
 		LEFT JOIN dbo.ItemMaster IM  WITH (NOLOCK) ON ROP.ItemMasterId=IM.ItemMasterId
-		 AND ISNULL(IM.IsNonStock,0) = 0 LEFT JOIN dbo.ItemMasterPurchaseSale IMPS  WITH (NOLOCK) ON IMPS.ItemMasterId = SD.ItemMasterId AND  IMPS.ConditionId = SD.ConditionId
+		 AND ISNULL(IM.IsNonStock,0) = 0
+		 LEFT JOIN dbo.ItemMasterPurchaseSale IMPS  WITH (NOLOCK) ON IMPS.ItemMasterId = SD.ItemMasterId AND  IMPS.ConditionId = SD.ConditionId
 		LEFT JOIN dbo.Nha_Tla_Alt_Equ_ItemMapping NHA  WITH (NOLOCK) ON IMPS.ItemMasterId = SD.ItemMasterId AND  IMPS.ConditionId = SD.ConditionId
 		LEFT JOIN dbo.Warehouse WH  WITH (NOLOCK) ON WH.WarehouseId = SD.WarehouseId
 		LEFT JOIN dbo.[Location] LC  WITH (NOLOCK) ON LC.LocationId = SD.LocationId
@@ -128,7 +129,8 @@ BEGIN TRANSACTION
 		LEFT JOIN dbo.Employee Emp   WITH (NOLOCK) ON Emp.EmployeeId = SD.TaggedBy
 		LEFT JOIN dbo.UnitOfMeasure UM  WITH (NOLOCK) ON UM.unitOfMeasureId = SD.UnitOfMeasureId
 		LEFT JOIN ItemMaster RIM  WITH (NOLOCK) ON RIM.ItemMasterId =  SD.RevisedPartId	
-		 AND ISNULL(RIM.IsNonStock,0) = 0 LEFT JOIN dbo.TagType  TT WITH (NOLOCK) ON TT.TagTypeId = SD.TagTypeId
+		 AND ISNULL(RIM.IsNonStock,0) = 0
+		 LEFT JOIN dbo.TagType  TT WITH (NOLOCK) ON TT.TagTypeId = SD.TagTypeId
 		WHERE SD.RepairOrderId = @RepairOrderId
 
 		--UPDATE dbo.RepairOrderPart SET QuantityBackOrdered = (QuantityOrdered - (SELECT ISNULL(SUM(Quantity),0) FROM dbo.Stockline  WITH (NOLOCK)

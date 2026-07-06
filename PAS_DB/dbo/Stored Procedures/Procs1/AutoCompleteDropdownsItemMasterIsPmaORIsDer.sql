@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [AutoCompleteDropdownsItemMasterIsPmaORIsDer]           
  ** Author:   Moin
  ** Description: This stored procedure is used retrieve Item Master List for Auto complete Dropdown List    
@@ -43,13 +43,15 @@ BEGIN
 						im.partnumber + (CASE WHEN (SELECT COUNT(ISNULL(SD.[ManufacturerId], 0)) FROM [dbo].[ItemMaster]  SD WITH(NOLOCK)  WHERE im.partnumber = SD.partnumber AND SD.MasterCompanyId = im.MasterCompanyId AND ISNULL(SD.IsNonStock,0) = 0 ) > 1 then ' - '+ im.ManufacturerName ELSE '' END) AS PartNumber
 					FROM dbo.ItemMaster Im WITH(NOLOCK) 						
 					WHERE (Im.IsActive = 1 AND ISNULL(Im.IsDeleted, 0) = 0 AND IM.MasterCompanyId = @MasterCompanyId AND Im.IsPma = 1 AND (Im.partnumber LIKE @StartWith + '%' OR Im.partnumber  LIKE '%' + @StartWith + '%'))    
-					 AND ISNULL(Im.IsNonStock,0) = 0 UNION     
+					 AND ISNULL(Im.IsNonStock,0) = 0
+					 UNION     
 					SELECT DISTINCT Im.ItemMasterId AS Value, 
 						Im.partnumber AS Label,
 						im.partnumber + (CASE WHEN (SELECT COUNT(ISNULL(SD.[ManufacturerId], 0)) FROM [dbo].[ItemMaster]  SD WITH(NOLOCK)  WHERE im.partnumber = SD.partnumber AND SD.MasterCompanyId = im.MasterCompanyId AND ISNULL(SD.IsNonStock,0) = 0 ) > 1 then ' - '+ im.ManufacturerName ELSE '' END) AS PartNumber
 					FROM dbo.ItemMaster Im WITH(NOLOCK) 						
 					WHERE im.ItemMasterId IN (SELECT Item FROM DBO.SPLITSTRING(@Idlist, ','))    
-					 AND ISNULL(Im.IsNonStock,0) = 0 ORDER BY Label				
+					 AND ISNULL(Im.IsNonStock,0) = 0
+					 ORDER BY Label				
 				END
 				ELSE
 				BEGIN
@@ -66,7 +68,8 @@ BEGIN
 						im.partnumber + (CASE WHEN (SELECT COUNT(ISNULL(SD.[ManufacturerId], 0)) FROM [dbo].[ItemMaster]  SD WITH(NOLOCK)  WHERE im.partnumber = SD.partnumber AND SD.MasterCompanyId = im.MasterCompanyId AND ISNULL(SD.IsNonStock,0) = 0 ) > 1 then ' - '+ im.ManufacturerName ELSE '' END) AS PartNumber
 					FROM dbo.ItemMaster Im 	WITH(NOLOCK) 					
 					WHERE Im.ItemMasterId IN (SELECT Item FROM DBO.SPLITSTRING(@Idlist, ','))
-					 AND ISNULL(Im.IsNonStock,0) = 0 ORDER BY Label	
+					 AND ISNULL(Im.IsNonStock,0) = 0
+					 ORDER BY Label	
 				END	
 		END
 		ELSE
@@ -80,13 +83,15 @@ BEGIN
 							im.partnumber + (CASE WHEN (SELECT COUNT(ISNULL(SD.[ManufacturerId], 0)) FROM [dbo].[ItemMaster]  SD WITH(NOLOCK)  WHERE im.partnumber = SD.partnumber AND SD.MasterCompanyId = im.MasterCompanyId AND ISNULL(SD.IsNonStock,0) = 0 ) > 1 then ' - '+ im.ManufacturerName ELSE '' END) AS PartNumber
 							FROM dbo.ItemMaster Im WITH(NOLOCK) 						
 							WHERE (Im.IsActive=1 AND ISNULL(Im.IsDeleted,0)=0 AND IM.MasterCompanyId = @MasterCompanyId AND Im.IsDER = 1 AND (Im.partnumber LIKE @StartWith + '%' OR Im.partnumber  LIKE '%' + @StartWith + '%'))    
-						    AND ISNULL(Im.IsNonStock,0) = 0 UNION     
+						    AND ISNULL(Im.IsNonStock,0) = 0
+							 UNION     
 					SELECT DISTINCT Im.ItemMasterId AS Value, 
 							Im.partnumber AS Label,
 							im.partnumber + (CASE WHEN (SELECT COUNT(ISNULL(SD.[ManufacturerId], 0)) FROM [dbo].[ItemMaster]  SD WITH(NOLOCK)  WHERE im.partnumber = SD.partnumber AND SD.MasterCompanyId = im.MasterCompanyId AND ISNULL(SD.IsNonStock,0) = 0 ) > 1 then ' - '+ im.ManufacturerName ELSE '' END) AS PartNumber
 							FROM dbo.ItemMaster Im WITH(NOLOCK) 						
 							WHERE im.ItemMasterId IN (SELECT Item FROM DBO.SPLITSTRING(@Idlist, ','))    
-							 AND ISNULL(Im.IsNonStock,0) = 0 ORDER BY Label				
+							 AND ISNULL(Im.IsNonStock,0) = 0
+							 ORDER BY Label				
 				END
 				ELSE
 				BEGIN
@@ -103,7 +108,8 @@ BEGIN
 							im.partnumber + (CASE WHEN (SELECT COUNT(ISNULL(SD.[ManufacturerId], 0)) FROM [dbo].[ItemMaster]  SD WITH(NOLOCK)  WHERE im.partnumber = SD.partnumber AND SD.MasterCompanyId = im.MasterCompanyId AND ISNULL(SD.IsNonStock,0) = 0 ) > 1 then ' - '+ im.ManufacturerName ELSE '' END) AS PartNumber
 							FROM dbo.ItemMaster Im 	WITH(NOLOCK) 					
 							WHERE Im.ItemMasterId IN (SELECT Item FROM DBO.SPLITSTRING(@Idlist, ','))
-							 AND ISNULL(Im.IsNonStock,0) = 0 ORDER BY Label	
+							 AND ISNULL(Im.IsNonStock,0) = 0
+							 ORDER BY Label	
 				END	
 		END
 

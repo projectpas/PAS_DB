@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [GetPNTileSalesOrderList]           
  ** Author:  
  ** Description: This stored procedure is used get list of sales order history date for dashboard
@@ -116,7 +116,8 @@ BEGIN
 			   LEFT JOIN [dbo].[SalesOrderStocklineV1] SPS WITH (NOLOCK) ON SPS.SalesOrderPartId = SP.SalesOrderPartId
 			   LEFT JOIN [dbo].[SalesOrderPartCost] SPC WITH (NOLOCK) ON SPC.SalesOrderPartId = SP.SalesOrderPartId
 			   LEFT JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON IM.ItemMasterId = SP.ItemMasterId
-			    AND ISNULL(IM.IsNonStock,0) = 0 LEFT JOIN [dbo].[Condition] CO WITH (NOLOCK) ON CO.ConditionId = SP.ConditionId
+			    AND ISNULL(IM.IsNonStock,0) = 0
+			    LEFT JOIN [dbo].[Condition] CO WITH (NOLOCK) ON CO.ConditionId = SP.ConditionId
 			   LEFT JOIN [dbo].[SalesOrderShippingItem] SOI WITH (NOLOCK) ON SOI.SalesOrderPartId = SP.SalesOrderPartId
 			   LEFT JOIN [dbo].[SalesOrderShipping] SOS WITH (NOLOCK) ON SOI.SalesOrderShippingId = SOS.SalesOrderShippingId
 			   LEFT JOIN [dbo].[Stockline] STL WITH(NOLOCK) ON SPS.StockLineId = STL.StockLineId

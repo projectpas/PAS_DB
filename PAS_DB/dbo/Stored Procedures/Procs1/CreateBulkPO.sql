@@ -1,4 +1,4 @@
-﻿/***************************************************************************************************************************************             
+/***************************************************************************************************************************************             
   ** Change History             
  ***************************************************************************************************************************************             
  ** PR   Date						 Author							Change Description              
@@ -250,7 +250,8 @@ BEGIN
 					WHERE Typ.VendorId = @LoopVendorId 
 
 
-				 AND ISNULL(IM.IsNonStock,0) = 0 EXEC dbo.[PROCAddPOMSData] @NewPurchaseOrderId,@ManagementStructureID,@MstCompanyId,@updatedByName,@updatedByName,4,1,0
+				 AND ISNULL(IM.IsNonStock,0) = 0
+					 EXEC dbo.[PROCAddPOMSData] @NewPurchaseOrderId,@ManagementStructureID,@MstCompanyId,@updatedByName,@updatedByName,4,1,0
 
 					INSERT INTO #tmpVendorParts ([NewId])
 					SELECT PurchaseOrderPartRecordId from dbo.PurchaseOrderPart	where PurchaseOrderId = @NewPurchaseOrderId			

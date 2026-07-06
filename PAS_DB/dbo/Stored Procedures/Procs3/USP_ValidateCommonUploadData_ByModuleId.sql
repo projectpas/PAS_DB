@@ -1,4 +1,4 @@
-﻿/*******  
+/*******  
  ** File:   [USP_ValidateCommonUploadData_ByModuleId]             
  ** Author:   Devendra Shekh
  ** Description: This stored procedure is used to add upload Data
@@ -913,7 +913,8 @@ BEGIN
 					BEGIN
 						SELECT	@DuplicateRefeValue2 = CASE WHEN ISNULL(DropdownListTable, '') = '' THEN FieldValue ELSE DropdownListValueId END FROM #ImportFields WHERE FieldName = 'ItemMasterId';
 						SELECT	@DuplicateRefeValue2 = partnumber FROM ItemMaster WHERE ItemMasterId = @DuplicateRefeValue2
-					 AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 END
+					 AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0
+						 END
 					SET @IsDuplicate = 0;
 					IF(@ModuleId=@StocklineModule)
 					BEGIN
@@ -1422,7 +1423,8 @@ BEGIN
 						  AND ISNULL(IM.IsDeleted, 0) = 0
 						  AND ISNULL(IM.IsActive, 0) = 1
 						  AND IM.MasterCompanyId = @MasterCompanyId
-						 AND ISNULL(IM.IsNonStock,0) = 0 ORDER BY IM.ManufacturerName ASC;
+						 AND ISNULL(IM.IsNonStock,0) = 0
+						   ORDER BY IM.ManufacturerName ASC;
 					END
 
 					IF ISNULL(@ManufacturerName, '') <> ''

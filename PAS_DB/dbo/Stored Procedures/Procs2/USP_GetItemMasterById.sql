@@ -1,4 +1,4 @@
-﻿/*********************             
+/*********************             
  ** File:   UPDATE CUSTOMER IN WO           
  ** Author:  HEMANT SALIYA  
  ** Description: This SP Is Used to Get Item Master By Id
@@ -128,7 +128,8 @@ BEGIN
 			iM.Item
 		FROM dbo.ItemMaster iM WITH (NOLOCK)
 			LEFT JOIN dbo.ItemMaster imst ON iM.IsOemPNId = imst.ItemMasterId
-		 AND ISNULL(imst.IsNonStock,0) = 0 WHERE 
+		 AND ISNULL(imst.IsNonStock,0) = 0
+			 WHERE 
 			iM.ItemMasterId = @ItemMasterId AND ISNULL(iM.IsNonStock,0) = 0 ;
 
   

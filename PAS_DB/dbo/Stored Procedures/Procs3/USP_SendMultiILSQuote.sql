@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [USP_SendMultiILSQuote]           
  ** Author:  Amit Ghediya
  ** Description: This stored procedure is used Send Multiple ILS QUOTE Into Our Database
@@ -278,7 +278,8 @@ BEGIN
 					LEFT JOIN [dbo].CustomerRfqPartMapping RFQP WITH(NOLOCK) ON RFQP.[CustomerRfqPartMappingId] = TMP.[CustomerRfqPartMappingId]
 					LEFT JOIN dbo.[ItemMaster] IM WITH(NOLOCK) ON LOWER(TRIM(IM.partnumber)) = LOWER(TRIM(RFQP.PartNumber)) AND IM.MasterCompanyId = @MasterCompanyId					
 
-					 AND ISNULL(IM.IsNonStock,0) = 0 INSERT  INTO @EmailRfqQuoteDetails
+					 AND ISNULL(IM.IsNonStock,0) = 0
+					 INSERT  INTO @EmailRfqQuoteDetails
 					([CustomerRfqQuoteDetailsId],[CustomerRfqQuoteId],[IlsQty],[IlsTraceability],[IlsUom],[IlsPrice],[IlsPriceType],[IlsTagDate],[IlsLeadTime],[IlsMinQty],[IlsComment],[IlsCondition],[ConditionId],[ItemMasterId])
 					SELECT RFQD.[CustomerRfqQuoteDetailsId],RFQD.[CustomerRfqQuoteId],RFQD.[IlsQty],NULL,NULL,RFQD.[IlsPrice],RFQD.[IlsPriceType],RFQD.[IlsTagDate],NULL,RFQD.[IlsMinQty],NULL,NULL,TMP.ConditionId,[ItemMasterId]
 					FROM [dbo].[CustomerRfqQuoteDetails] RFQD

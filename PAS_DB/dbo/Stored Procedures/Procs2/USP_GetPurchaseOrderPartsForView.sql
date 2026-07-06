@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [USP_GetPurchaseOrderPartsForView]           
  ** Author:  Moin Bloch
  ** Description: This stored procedure is used to get PurchaseOrderPartRecordId from StockLineDraft NonStockInventoryDraft  AssetInventoryDraft Tables
@@ -159,7 +159,8 @@ BEGIN
 			[part].[POPartSplitUser] AS [PoPartSplitUserName]
 		FROM [dbo].[PurchaseOrderPart] part WITH(NOLOCK)
 		LEFT JOIN [dbo].[ItemMaster] itm WITH(NOLOCK) ON [part].[ItemMasterId] = [itm].[ItemMasterId]
-		 AND ISNULL(itm.IsNonStock,0) = 0 LEFT JOIN [dbo].[Asset] asi WITH(NOLOCK) ON [part].[ItemMasterId] = [asi].[AssetRecordId]
+		 AND ISNULL(itm.IsNonStock,0) = 0
+		 LEFT JOIN [dbo].[Asset] asi WITH(NOLOCK) ON [part].[ItemMasterId] = [asi].[AssetRecordId]
 		LEFT JOIN [dbo].[ItemMasterNonStock] nsi WITH(NOLOCK) ON [part].[ItemMasterId] = [nsi].[MasterPartId]
 		WHERE [part].[PurchaseOrderPartRecordId] IN (SELECT [PurchaseOrderPartRecordId] FROM #tblPurchaseOrderPartRecordIds)
    

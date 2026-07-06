@@ -1,4 +1,4 @@
-﻿/***************************************************************************************************************************************
+/***************************************************************************************************************************************
   ** Change History
  ***************************************************************************************************************************************
  ** PR   Date						 Author							Change Description
@@ -33,7 +33,8 @@ BEGIN
 		INNER JOIN ExchangeSalesOrder so WITH(NOLOCK) on so.ExchangeSalesOrderId = sop.ExchangeSalesOrderId
 		LEFT JOIN Stockline sl WITH(NOLOCK) on sl.StockLineId = sop.StockLineId
 		LEFT JOIN ItemMaster imt WITH(NOLOCK) on imt.ItemMasterId = sop.ItemMasterId
-		 AND ISNULL(imt.IsNonStock,0) = 0 LEFT JOIN Condition co WITH(NOLOCK) on co.ConditionId = sop.ConditionId
+		 AND ISNULL(imt.IsNonStock,0) = 0
+		 LEFT JOIN Condition co WITH(NOLOCK) on co.ConditionId = sop.ConditionId
 		LEFT JOIN UnitOfMeasure uom WITH(NOLOCK) on uom.UnitOfMeasureId = sl.PurchaseUnitOfMeasureId
 		LEFT JOIN DBO.ExchangeSalesOrderShippingItem SOSI WITH(NOLOCK) ON SOSI.ExchangeSalesOrderPartId = sopt.ExchangeSalesOrderPartId AND sopt.SOPickTicketId = SOSI.SOPickTicketId
 		LEFT JOIN DBO.ExchangeSalesOrderShipping SOS WITH(NOLOCK) ON SOS.ExchangeSalesOrderShippingId = SOSI.ExchangeSalesOrderShippingId AND SOS.ExchangeSalesOrderId = @ExchangeSalesOrderId

@@ -1,4 +1,4 @@
-﻿
+
 /*************************************************************           
  ** File:   [USP_GetReceivingCustomerWorkAuditById]           
  ** Author:   [Ayushi Patel]
@@ -128,8 +128,10 @@ BEGIN
             LEFT JOIN dbo.Contact con WITH (NOLOCK) ON cc.ContactId = con.ContactId
             LEFT JOIN dbo.TimeLife ti WITH (NOLOCK) ON stl.TimeLifeCyclesId = ti.TimeLifeCyclesId
             LEFT JOIN dbo.ItemMaster rp WITH (NOLOCK) ON stl.RevisePartId = rp.ItemMasterId
-             AND ISNULL(rp.IsNonStock,0) = 0 WHERE stl.ReceivingCustomerWorkId = @ReceivingCustomerWorkId
-             AND ISNULL(im.IsNonStock,0) = 0 ORDER BY stl.AuditReceivingCustomerWorkId DESC;
+             AND ISNULL(rp.IsNonStock,0) = 0
+             WHERE stl.ReceivingCustomerWorkId = @ReceivingCustomerWorkId
+             AND ISNULL(im.IsNonStock,0) = 0
+              ORDER BY stl.AuditReceivingCustomerWorkId DESC;
         END
         COMMIT TRANSACTION;
     

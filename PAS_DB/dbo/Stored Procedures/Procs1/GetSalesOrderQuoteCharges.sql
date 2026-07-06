@@ -1,4 +1,4 @@
-﻿/*************************************************************             
+/*************************************************************             
  ** File:   [GetSalesOrderQuoteCharges]            
  ** Author:  EKTA CHANDEGRA
  ** Description: This stored procedure is used GetSalesOrderQuoteCharges
@@ -67,7 +67,8 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 		LEFT JOIN [dbo].[GLAccount] gl WITH(NOLOCK) ON ct.GLAccountId = gl.GLAccountId
 		LEFT JOIN [dbo].[SalesOrderQuotePartV1] part WITH(NOLOCK) ON soc.SalesOrderQuotePartId = part.SalesOrderQuotePartId
 		LEFT JOIN [dbo].[ItemMaster] im WITH(NOLOCK) ON soc.ItemMasterId = im.ItemMasterId
-		 AND ISNULL(im.IsNonStock,0) = 0 LEFT JOIN [dbo].[UnitOfMeasure] uom WITH(NOLOCK) ON soc.UnitOfMeasureId = uom.UnitOfMeasureId
+		 AND ISNULL(im.IsNonStock,0) = 0
+		 LEFT JOIN [dbo].[UnitOfMeasure] uom WITH(NOLOCK) ON soc.UnitOfMeasureId = uom.UnitOfMeasureId
 		INNER JOIN [dbo].[Condition] cond WITH(NOLOCK) ON soc.ConditionId = cond.ConditionId
 		WHERE ISNULL(soc.IsDeleted,0) = @IsDeleted
 		AND soc.SalesOrderQuoteId = @SalesOrderQuoteId;

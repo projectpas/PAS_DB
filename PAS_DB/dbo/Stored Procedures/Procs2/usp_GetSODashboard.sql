@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [usp_GetSODashboard]           
  ** Author:   Swetha  
  ** Description: Get Data for SODashboard 
@@ -67,7 +67,8 @@ BEGIN
         LEFT OUTER JOIN dbo.SalesOrderPartCost AS SOPC WITH (NOLOCK) ON SOPC.SalesOrderPartId = SOP.SalesOrderPartId
         LEFT OUTER JOIN dbo.ItemMaster AS IM WITH (NOLOCK)
           ON SOP.ItemMasterId = IM.ItemMasterId
-         AND ISNULL(IM.IsNonStock,0) = 0 LEFT JOIN dbo.SOMarginSummary SOMS WITH (NOLOCK)
+         AND ISNULL(IM.IsNonStock,0) = 0
+           LEFT JOIN dbo.SOMarginSummary SOMS WITH (NOLOCK)
           ON SO.SalesOrderId = SOMS.SalesOrderId
         LEFT JOIN dbo.SalesOrderApproval SOA WITH (NOLOCK)
           ON SO.SalesOrderId = SOA.SalesOrderId

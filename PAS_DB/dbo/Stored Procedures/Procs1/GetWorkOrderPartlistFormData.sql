@@ -1,4 +1,4 @@
-﻿
+
 /*************************************************************           
  ** File:   [GetWorkOrderPrintPdfData]           
  ** Author:   Subhash Saliya
@@ -55,7 +55,8 @@ BEGIN
 					INNER JOIN WorkOrderPartNumber wop WITH (NOLOCK) on wop.WorkOrderId = wo.WorkOrderId 
 					LEFT JOIN WorkOrderQuote woq WITH (NOLOCK) on wo.WorkOrderId = woq.WorkOrderId and woq.IsVersionIncrease=0
 					LEFT JOIN ItemMaster imt WITH (NOLOCK) on imt.ItemMasterId = wop.ItemMasterId
-				 AND ISNULL(imt.IsNonStock,0) = 0 WHERE wo.WorkOrderId = @WorkorderId AND wop.ID = @workOrderPartNoId
+				 AND ISNULL(imt.IsNonStock,0) = 0
+					 WHERE wo.WorkOrderId = @WorkorderId AND wop.ID = @workOrderPartNoId
 		END
 		COMMIT  TRANSACTION
 

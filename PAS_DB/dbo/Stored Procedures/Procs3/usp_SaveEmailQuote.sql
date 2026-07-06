@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [usp_SaveEmailQuote]           
  ** Author:  Devendra Shekh
  ** Description: This stored procedure is used Send ILS QUOTE Into Our Database
@@ -185,7 +185,8 @@ BEGIN
 				LEFT JOIN dbo.[ItemMaster] IM WITH(NOLOCK) ON LOWER(TRIM(IM.partnumber)) = LOWER(TRIM(CRPM.PartNumber)) AND IM.MasterCompanyId = CRPM.MasterCompanyId AND IM.IsActive = 1 AND IM.IsDeleted = 0
 				
 				--Create SOQ
-				 AND ISNULL(IM.IsNonStock,0) = 0 SELECT @PartNumber = [LinePartNumber], @BuyerCompanyName = [BuyerCompanyName], @SourceBy = ISNULL([Type],''),  @MarketplaceRef = ISNULL(RfqId,''), @RfqCustomerId = [CustomerId] FROM [dbo].[CustomerRfq] WITH(NOLOCK) WHERE [CustomerRfqId] = @CustomerRfqId;
+				 AND ISNULL(IM.IsNonStock,0) = 0
+				 SELECT @PartNumber = [LinePartNumber], @BuyerCompanyName = [BuyerCompanyName], @SourceBy = ISNULL([Type],''),  @MarketplaceRef = ISNULL(RfqId,''), @RfqCustomerId = [CustomerId] FROM [dbo].[CustomerRfq] WITH(NOLOCK) WHERE [CustomerRfqId] = @CustomerRfqId;
 
 				--Declare type
 				DECLARE @EmailRfqQuoteDetails IlsRfqQuoteDetailsType;

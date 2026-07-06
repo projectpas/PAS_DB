@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [USP_AddEdit_WorkOrderTurnArroundTime]           
  ** Author:   Subhash Saliya
  ** Description: This stored procedure is used Create Stockline ForCustomer RMA   
@@ -217,7 +217,8 @@ BEGIN
 			LEFT JOIN dbo.Employee EMPsales WITH(NOLOCK) ON EMPsales.EmployeeId = WO.SalesPersonId
 			LEFT JOIN dbo.Employee EMPcsr WITH(NOLOCK) ON EMPcsr.EmployeeId = WO.CSRId 
 			LEFT JOIN dbo.EmployeeStation EMPS WITH(NOLOCK) ON WPN.TechStationId = EMPS.EmployeeStationId
-       WHERE ((WO.MasterCompanyId = @MasterCompanyId) AND (WO.IsDeleted = @IsDeleted) AND (@IsActive is null or WO.IsActive = @IsActive)   AND (@WorkOrderStatusId = 0 OR WPN.WorkOrderStatusId = @WorkOrderStatusId))     AND ISNULL(IM.IsNonStock,0) = 0 GROUP BY WPN.ID, WTT.OldStageId,WO.WorkOrderId HAVING isnull((sum(WTT.[Days])+ (sum(WTT.[Hours])/24)+ (sum(WTT.[Mins])/1440)),0) >=1
+       WHERE ((WO.MasterCompanyId = @MasterCompanyId) AND (WO.IsDeleted = @IsDeleted) AND (@IsActive is null or WO.IsActive = @IsActive)   AND (@WorkOrderStatusId = 0 OR WPN.WorkOrderStatusId = @WorkOrderStatusId))     AND ISNULL(IM.IsNonStock,0) = 0
+        GROUP BY WPN.ID, WTT.OldStageId,WO.WorkOrderId HAVING isnull((sum(WTT.[Days])+ (sum(WTT.[Hours])/24)+ (sum(WTT.[Mins])/1440)),0) >=1
         ), ResultCount AS(Select COUNT(WorkOrderId) AS totalItems FROM Result)  
         Select * INTO #TempResult from  Result  
         WHERE (  
@@ -413,7 +414,8 @@ BEGIN
             STUFF((SELECT ',' + I.partnumber  
               FROM dbo.WorkOrderPartNumber WOPN WITH(NOLOCK)  
               LEFT JOIN dbo.ItemMaster I WITH(NOLOCK) On WOPN.ItemMasterId  = I.ItemMasterId  
-               AND ISNULL(I.IsNonStock,0) = 0 Where WOPN.WorkOrderId = WO.WorkOrderId AND WOPN.IsActive = 1 AND WOPN.IsDeleted = 0  
+               AND ISNULL(I.IsNonStock,0) = 0
+               Where WOPN.WorkOrderId = WO.WorkOrderId AND WOPN.IsActive = 1 AND WOPN.IsDeleted = 0  
               FOR XML PATH('')), 1, 1, '') PartNumber  
           ) A   
           WHERE (WO.MasterCompanyId = @MasterCompanyId AND WO.IsDeleted=@IsDeleted )  
@@ -427,7 +429,8 @@ BEGIN
             STUFF((SELECT ',' + im.PartDescription  
               FROM dbo.WorkOrderPartNumber WOPN WITH(NOLOCK)  
               LEFT JOIN dbo.ItemMaster im WITH(NOLOCK) On WOPN.ItemMasterId  = im.ItemMasterId  
-               AND ISNULL(im.IsNonStock,0) = 0 Where WOPN.WorkOrderId = WO.WorkOrderId AND WOPN.IsActive = 1 AND WOPN.IsDeleted = 0  
+               AND ISNULL(im.IsNonStock,0) = 0
+               Where WOPN.WorkOrderId = WO.WorkOrderId AND WOPN.IsActive = 1 AND WOPN.IsDeleted = 0  
               FOR XML PATH('')), 1, 1, '') PartDescription  
           ) A  
           WHERE (WO.MasterCompanyId = @MasterCompanyId AND WO.IsDeleted=@IsDeleted)  
@@ -607,7 +610,8 @@ BEGIN
             STUFF((SELECT ',' + im.ItemGroup  
               FROM dbo.WorkOrderPartNumber WOPN WITH(NOLOCK)  
               LEFT JOIN dbo.ItemMaster im WITH(NOLOCK) On WOPN.ItemMasterId  = im.ItemMasterId  
-               AND ISNULL(im.IsNonStock,0) = 0 Where WOPN.WorkOrderId = WO.WorkOrderId AND WOPN.IsActive = 1 AND WOPN.IsDeleted = 0  
+               AND ISNULL(im.IsNonStock,0) = 0
+               Where WOPN.WorkOrderId = WO.WorkOrderId AND WOPN.IsActive = 1 AND WOPN.IsDeleted = 0  
               FOR XML PATH('')), 1, 1, '') ItemGroup  
           ) A  
           WHERE (WO.MasterCompanyId = @MasterCompanyId AND WO.IsDeleted=@IsDeleted)  

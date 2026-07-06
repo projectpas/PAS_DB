@@ -1,4 +1,4 @@
-﻿
+
 -- Author:		Ekta Chandegra
 -- Description:	Get Search Data for Price Masters List
 
@@ -125,7 +125,8 @@ BEGIN
 		FROM [DBO].[ItemMasterPurchaseSale] IMPS WITH (NOLOCK)
 		LEFT JOIN [DBO].[ItemMasterPurchaseSaleMaster] IMPSM WITH (NOLOCK) ON IMPS.SalePriceSelectId = IMPSM.ItemMasterPurchaseSaleMasterId
 		LEFT JOIN [DBO].[ItemMaster] IM WITH (NOLOCK) ON IMPS.ItemMasterId = IM.ItemMasterId
-		 AND ISNULL(IM.IsNonStock,0) = 0 WHERE IMPS.MasterCompanyId = @MasterCompanyId
+		 AND ISNULL(IM.IsNonStock,0) = 0
+		 WHERE IMPS.MasterCompanyId = @MasterCompanyId
 		AND IMPS.IsActive = 1
 		AND IMPS.IsDeleted = 0
 		AND IMPS.ItemMasterId = @ItemMasterId

@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [USP_BatchTriggerBasedonSOInvoice]
  ** Author:  Deep Patel
  ** Description: This stored procedure is used USP_BatchTriggerBasedonSOInvoice
@@ -126,7 +126,8 @@ BEGIN
 					  SET @partId = @ReferencePartId;
 	                  select @ItemmasterId=ItemMasterId from SalesOrderPartV1 WITH(NOLOCK)  where SalesOrderId=@ReferenceId and SalesOrderPartId=@partId
 	                  select @MPNName = partnumber from ItemMaster WITH(NOLOCK)  where ItemMasterId=@ItemmasterId 
-	                   AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 select @LastMSLevel=LastMSLevel,@AllMSlevels=AllMSlevels from SalesOrderManagementStructureDetails  where ReferenceID=@ReferenceId
+	                   AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0
+	                   select @LastMSLevel=LastMSLevel,@AllMSlevels=AllMSlevels from SalesOrderManagementStructureDetails  where ReferenceID=@ReferenceId
 					  select @StocklineNumber=StockLineNumber from Stockline  where StockLineId=@StockLineId
 					  select top 1  @AccountingPeriodId=acc.AccountingCalendarId,@AccountingPeriod=PeriodName from EntityStructureSetup est WITH(NOLOCK) 
 					  inner join ManagementStructureLevel msl WITH(NOLOCK) on est.Level1Id = msl.ID 

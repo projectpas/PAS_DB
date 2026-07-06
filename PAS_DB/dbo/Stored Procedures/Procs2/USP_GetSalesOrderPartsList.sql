@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [USP_GetSalesOrderPartsList]           
  ** Author:   Hemant Saliya
  ** Description: 
@@ -37,7 +37,8 @@ SET NOCOUNT ON
 				FROM dbo.SalesOrderPartV1 SOP  WITH(NOLOCK) 
 				JOIN dbo.ItemMaster IM WITH(NOLOCK)  ON SOP.ItemMasterId = IM.ItemMasterId
 				WHERE SOP.SalesOrderId = @SalesOrderId
-				 AND ISNULL(IM.IsNonStock,0) = 0 GROUP BY SOP.ItemMasterId, SalesOrderPartId, IM.partnumber
+				 AND ISNULL(IM.IsNonStock,0) = 0
+				 GROUP BY SOP.ItemMasterId, SalesOrderPartId, IM.partnumber
 				END
 			COMMIT  TRANSACTION
 		END TRY    

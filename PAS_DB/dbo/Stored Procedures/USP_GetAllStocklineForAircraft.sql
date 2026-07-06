@@ -1,4 +1,4 @@
-﻿/*************************************************************
+/*************************************************************
 ** File:        [USP_GetAllStocklineForAircraft]
 ** Description:
 ** Purpose:
@@ -67,7 +67,8 @@ BEGIN
 			AND sl.MasterCompanyId = @MasterCompanyId
 			AND sl.QuantityAvailable > 0
 			AND sl.IsParent = 1
-     AND ISNULL(im.IsNonStock,0) = 0 END TRY
+     AND ISNULL(im.IsNonStock,0) = 0
+			 END TRY
     BEGIN CATCH
         DECLARE
             @ErrorLogID INT,

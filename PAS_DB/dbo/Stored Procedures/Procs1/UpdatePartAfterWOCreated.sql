@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [UpdatePartAfterWOCreated]           
  ** Author:   Vishal Suthar
  ** Description: This stored procedure is used to update part details after WO is created in receiving customer
@@ -57,8 +57,10 @@ BEGIN
 					RevisedPartNumber = IMR.PartNumber, RevisedPartDescription = IMR.PartDescription
 					FROM dbo.WorkOrderPartNumber WOP WITH(NOLOCK)
 					LEFT JOIN DBO.ItemMaster IM WITH(NOLOCK) ON IM.ItemMasterId = WOP.ItemMasterId
-					 AND ISNULL(IM.IsNonStock,0) = 0 LEFT JOIN DBO.ItemMaster IMR WITH(NOLOCK) ON IMR.ItemMasterId = WOP.RevisedItemmasterid
-					 AND ISNULL(IMR.IsNonStock,0) = 0 WHERE WOP.ID = @WorkOrderPartNumberId;
+					 AND ISNULL(IM.IsNonStock,0) = 0
+					 LEFT JOIN DBO.ItemMaster IMR WITH(NOLOCK) ON IMR.ItemMasterId = WOP.RevisedItemmasterid
+					 AND ISNULL(IMR.IsNonStock,0) = 0
+					  WHERE WOP.ID = @WorkOrderPartNumberId;
 
 					UPDATE WOSD
 					SET WOSD.RevisedPartId = @ItemMasterId,

@@ -1,4 +1,4 @@
-﻿/***************************************************************  
+/***************************************************************  
  ** File: [USP_GetATAMappingDataByPublicationId]            
  ** Author: Ayushi Patel  
  ** Description: Get ATA Mapping Data by Publication ID
@@ -43,7 +43,8 @@ BEGIN
           AND ISNULL(it.IsActive,0) = 1
           AND ISNULL(im.IsActive,0) = 1
           AND ISNULL(im.IsDeleted,0) = 0
-     AND ISNULL(im.IsNonStock,0) = 0 END TRY
+     AND ISNULL(im.IsNonStock,0) = 0
+           END TRY
     BEGIN CATCH
 		SELECT
 		ERROR_NUMBER() AS ErrorNumber,

@@ -1,4 +1,4 @@
-﻿
+
 /*************************************************************           
  ** File:   [usp_GetWorkOrderBacklogReport]           
  ** Author:   Swetha  
@@ -130,7 +130,8 @@ BEGIN
           ON WO.ReceivingCustomerWorkId = RCW.ReceivingCustomerWorkId
         LEFT JOIN DBO.ItemMaster IM WITH (NOLOCK)
           ON WOPN.itemmasterId = IM.itemmasterid
-         AND ISNULL(IM.IsNonStock,0) = 0 LEFT JOIN DBO.Stockline STL WITH (NOLOCK)
+         AND ISNULL(IM.IsNonStock,0) = 0
+           LEFT JOIN DBO.Stockline STL WITH (NOLOCK)
           ON WOPN.StockLineId = STL.StockLineId and stl.IsParent=1
         LEFT JOIN DBO.Employee E WITH (NOLOCK)
           ON WOPN.TechnicianId = E.EmployeeId

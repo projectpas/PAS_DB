@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [AutoCompleteDropdownsItemMasterKit]           
  ** Author:   Vishal Suthar
  ** Description: This stored procedure is used to search part
@@ -55,7 +55,8 @@ BEGIN
 			im.partnumber + (CASE WHEN (SELECT COUNT(ISNULL(SD.[ManufacturerId], 0)) FROM [dbo].[ItemMaster]  SD WITH(NOLOCK)  WHERE im.partnumber = SD.partnumber AND SD.MasterCompanyId = @MasterCompanyId AND ISNULL(SD.IsNonStock,0) = 0 ) > 1 then ' - '+ IM.ManufacturerName ELSE '' END) AS Label,
 			IM.MasterCompanyId,im.ManufacturerName As ManufacturerName 
 			FROM dbo.ItemMaster IM WHERE Im.MasterCompanyId = @MasterCompanyId AND ISNULL(IsActive,1) = 1 AND ISNULL(IsDeleted,0) = 0 AND Im.PartNumber like '%'+ @Parameter3+'%'
-		   AND ISNULL(IM.IsNonStock,0) = 0 END		  	 
+		   AND ISNULL(IM.IsNonStock,0) = 0
+			 END		  	 
      END    
      ELSE    
      BEGIN  			
@@ -83,7 +84,8 @@ BEGIN
 			IM.MasterCompanyId, im.ManufacturerName AS ManufacturerName
 			FROM dbo.ItemMaster IM WHERE Im.MasterCompanyId = @MasterCompanyId AND ISNULL(IsActive,1) = 1 AND ISNULL(IsDeleted,0) = 0 AND Im.PartNumber like '%'+ @Parameter3+'%'
 		  
-		 AND ISNULL(IM.IsNonStock,0) = 0 END		 		  
+		 AND ISNULL(IM.IsNonStock,0) = 0
+			 END		 		  
    END    
    ELSE    
    BEGIN   

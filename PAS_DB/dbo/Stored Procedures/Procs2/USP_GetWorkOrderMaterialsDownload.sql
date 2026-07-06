@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [USP_GetWorkOrderMaterialsDownload]           
  ** Author:   Moin Bloch
  ** Description: This stored procedure is used to download Work Order Materials List
@@ -264,7 +264,8 @@ SET NOCOUNT ON
 						WHERE WOM.[IsDeleted] = 0 AND WOM.[WorkFlowWorkOrderId] = @WorkFlowWorkOrderId
 						AND (ISNULL(WOM.[Quantity],0) - ISNULL(WOM.[QuantityIssued],0) > 0)
 						
-						 AND ISNULL(IM.IsNonStock,0) = 0 UNION ALL
+						 AND ISNULL(IM.IsNonStock,0) = 0
+						 UNION ALL
 						
 --------------------------------------------------MATERIAL KIT--------------------------------------------------
 
@@ -458,7 +459,8 @@ SET NOCOUNT ON
 							  LEFT JOIN [dbo].[WorkOrderTask] WOT WITH (NOLOCK) ON WOT.[WorkOrderTaskId] = WOM.[TaskId]							
 						WHERE WOM.[IsDeleted] = 0 AND WOM.[WorkFlowWorkOrderId] = @WorkFlowWorkOrderId 
 						
-						 AND ISNULL(IM.IsNonStock,0) = 0 UNION ALL
+						 AND ISNULL(IM.IsNonStock,0) = 0
+						 UNION ALL
 
 --------------------------------------------------MATERIAL KIT--------------------------------------------------
 
@@ -629,10 +631,12 @@ SET NOCOUNT ON
 						 LEFT JOIN [dbo].[RepairOrder] WOMS_RO WITH (NOLOCK) ON MSTL.RepairOrderId = WOMS_RO.RepairOrderId
 						 LEFT JOIN [dbo].[RepairOrderPart] ROP WITH (NOLOCK) ON ROP.RepairOrderId = WOMS_RO.RepairOrderId AND ROP.ItemMasterId = MSTL.ItemMasterId AND ISNULL(ROP.[IsPiecePart], 0) = 0--SL.RepairOrderPartRecordId = ROP.RepairOrderPartRecordId
 						 LEFT JOIN [dbo].[ItemMaster] IMS WITH (NOLOCK) ON IMS.ItemMasterId = MSTL.ItemMasterId
-					 AND ISNULL(IMS.IsNonStock,0) = 0 WHERE WOM.[IsDeleted] = 0 AND WOM.[WorkFlowWorkOrderId] = @WorkFlowWorkOrderId
+					 AND ISNULL(IMS.IsNonStock,0) = 0
+						  WHERE WOM.[IsDeleted] = 0 AND WOM.[WorkFlowWorkOrderId] = @WorkFlowWorkOrderId
 					AND (ISNULL(WOM.[Quantity],0) - ISNULL(WOM.[QuantityIssued],0) > 0)
 
-					 AND ISNULL(IM.IsNonStock,0) = 0 UNION ALL 
+					 AND ISNULL(IM.IsNonStock,0) = 0
+					 UNION ALL 
 
 --------------------------------------------------MATERIAL KIT--------------------------------------------------
 
@@ -698,7 +702,8 @@ SET NOCOUNT ON
 						 LEFT JOIN [dbo].[RepairOrder] WOMS_RO WITH (NOLOCK) ON MSTL.RepairOrderId = WOMS_RO.RepairOrderId
 						 LEFT JOIN [dbo].[RepairOrderPart] ROP WITH (NOLOCK) ON ROP.RepairOrderId = WOMS_RO.RepairOrderId AND ROP.ItemMasterId = MSTL.ItemMasterId AND ISNULL(ROP.[IsPiecePart], 0) = 0--SL.RepairOrderPartRecordId = ROP.RepairOrderPartRecordId
 						 LEFT JOIN [dbo].[ItemMaster] IMS WITH (NOLOCK) ON IMS.ItemMasterId = MSTL.ItemMasterId
-					 AND ISNULL(IMS.IsNonStock,0) = 0 WHERE WOM.[IsDeleted] = 0 AND WOM.[WorkFlowWorkOrderId] = @WorkFlowWorkOrderId
+					 AND ISNULL(IMS.IsNonStock,0) = 0
+						  WHERE WOM.[IsDeleted] = 0 AND WOM.[WorkFlowWorkOrderId] = @WorkFlowWorkOrderId
 						AND (ISNULL(WOM.[Quantity],0) - ISNULL(WOM.[QuantityIssued],0) > 0)
 				 AND ISNULL(IM.IsNonStock,0) = 0 )
 				SELECT * FROM MaterialResult
@@ -772,9 +777,11 @@ SET NOCOUNT ON
 						 LEFT JOIN [dbo].[RepairOrder] WOMS_RO WITH (NOLOCK) ON MSTL.RepairOrderId = WOMS_RO.RepairOrderId
 						 LEFT JOIN [dbo].[RepairOrderPart] ROP WITH (NOLOCK) ON ROP.RepairOrderId = WOMS_RO.RepairOrderId AND ROP.ItemMasterId = MSTL.ItemMasterId AND ISNULL(ROP.[IsPiecePart], 0) = 0--SL.RepairOrderPartRecordId = ROP.RepairOrderPartRecordId
 						 LEFT JOIN [dbo].[ItemMaster] IMS WITH (NOLOCK) ON IMS.ItemMasterId = MSTL.ItemMasterId
-					 AND ISNULL(IMS.IsNonStock,0) = 0 WHERE WOM.[IsDeleted] = 0 AND WOM.[WorkFlowWorkOrderId] = @WorkFlowWorkOrderId
+					 AND ISNULL(IMS.IsNonStock,0) = 0
+						  WHERE WOM.[IsDeleted] = 0 AND WOM.[WorkFlowWorkOrderId] = @WorkFlowWorkOrderId
 					
-					 AND ISNULL(IM.IsNonStock,0) = 0 UNION ALL 
+					 AND ISNULL(IM.IsNonStock,0) = 0
+					  UNION ALL 
 
 --------------------------------------------------MATERIAL KIT--------------------------------------------------
 
@@ -839,7 +846,8 @@ SET NOCOUNT ON
 						 LEFT JOIN [dbo].[RepairOrder] WOMS_RO WITH (NOLOCK) ON MSTL.RepairOrderId = WOMS_RO.RepairOrderId
 						 LEFT JOIN [dbo].[RepairOrderPart] ROP WITH (NOLOCK) ON ROP.RepairOrderId = WOMS_RO.RepairOrderId AND ROP.ItemMasterId = MSTL.ItemMasterId AND ISNULL(ROP.[IsPiecePart], 0) = 0--SL.RepairOrderPartRecordId = ROP.RepairOrderPartRecordId						
 						 LEFT JOIN [dbo].[ItemMaster] IMS WITH (NOLOCK) ON IMS.ItemMasterId = MSTL.ItemMasterId
-					 AND ISNULL(IMS.IsNonStock,0) = 0 WHERE WOM.[IsDeleted] = 0 AND WOM.[WorkFlowWorkOrderId] = @WorkFlowWorkOrderId			
+					 AND ISNULL(IMS.IsNonStock,0) = 0
+						  WHERE WOM.[IsDeleted] = 0 AND WOM.[WorkFlowWorkOrderId] = @WorkFlowWorkOrderId			
 				 AND ISNULL(IM.IsNonStock,0) = 0 )
 			    SELECT* FROM MaterialResult 
 				END			

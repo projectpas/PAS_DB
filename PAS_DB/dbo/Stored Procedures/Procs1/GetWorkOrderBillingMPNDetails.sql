@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:  [GetWorkOrderBillingMPNDetails]           
  ** Author:  Moin Bloch
  ** Description: This stored procedure is used to Get Work Order Part Details     
@@ -138,7 +138,8 @@ BEGIN
 					WHERE wop.[WorkOrderId] = @ReferenceId AND wop.[ID] = @ID
 
 				-- Calculate parts cost (Materials)
-				 AND ISNULL(im.IsNonStock,0) = 0 SELECT @PartsCost = ISNULL(SUM(ISNULL(WOMS.[UnitCost],0) * ISNULL(WOMS.[QtyIssued],0)), 0)
+				 AND ISNULL(im.IsNonStock,0) = 0
+				 SELECT @PartsCost = ISNULL(SUM(ISNULL(WOMS.[UnitCost],0) * ISNULL(WOMS.[QtyIssued],0)), 0)
 				FROM [dbo].[WorkOrderMaterials] WOM WITH(NOLOCK)
 				JOIN [dbo].[WorkOrderMaterialStockLine] WOMS WITH(NOLOCK) ON WOM.[WorkOrderMaterialsId] = WOMS.[WorkOrderMaterialsId]
 				WHERE WOM.[WorkFlowWorkOrderId] = @WorkFlowWorkOrderId AND WOM.[IsDeleted] = 0;

@@ -1,4 +1,4 @@
-﻿/*************************************************************             
+/*************************************************************             
  ** File:   [Get_AccountingInventoryList]             
  ** Author:   
  ** Description: This stored procedure is used to display all stockline between period 
@@ -151,7 +151,8 @@ BEGIN
 				FROM dbo.Stockline stl WITH(NOLOCK)
 				INNER JOIN dbo.ItemMaster im WITH (NOLOCK) ON stl.ItemMasterId = im.ItemMasterId
 				LEFT JOIN dbo.ItemMaster rPart WITH (NOLOCK) ON im.RevisedPartId = rPart.ItemMasterId  
-				 AND ISNULL(rPart.IsNonStock,0) = 0 INNER JOIN  dbo.StocklineManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @MSModuelId AND MSD.ReferenceID = stl.StockLineId     
+				 AND ISNULL(rPart.IsNonStock,0) = 0
+				 INNER JOIN  dbo.StocklineManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @MSModuelId AND MSD.ReferenceID = stl.StockLineId     
 				INNER JOIN [dbo].[RoleManagementStructure] RMS WITH (NOLOCK) ON MSD.EntityMSID = RMS.EntityStructureId  
 				INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId  
 				WHERE stl.MasterCompanyId = @MasterCompanyId AND stl.IsParent = 1 AND (stl.IsDeleted = 0)
@@ -387,7 +388,8 @@ BEGIN
 				FROM dbo.Stockline stl WITH(NOLOCK)
 				INNER JOIN dbo.ItemMaster im WITH (NOLOCK) ON stl.ItemMasterId = im.ItemMasterId
 				LEFT JOIN dbo.ItemMaster rPart WITH (NOLOCK) ON im.RevisedPartId = rPart.ItemMasterId  
-				 AND ISNULL(rPart.IsNonStock,0) = 0 INNER JOIN  dbo.StocklineManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @MSModuelId AND MSD.ReferenceID = stl.StockLineId     
+				 AND ISNULL(rPart.IsNonStock,0) = 0
+				 INNER JOIN  dbo.StocklineManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @MSModuelId AND MSD.ReferenceID = stl.StockLineId     
 				INNER JOIN [dbo].[RoleManagementStructure] RMS WITH (NOLOCK) ON MSD.EntityMSID = RMS.EntityStructureId  
 				INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId  
 				WHERE stl.MasterCompanyId = @MasterCompanyId AND stl.IsParent = 1 AND (stl.IsDeleted = 0)

@@ -1,4 +1,4 @@
-﻿
+
 /*************************************************************             
  ** File:   [USP_SearchCustomerRMAData]             
  ** Author:   Subhash Saliya  
@@ -177,7 +177,8 @@ BEGIN
         ON CM.RMAHeaderId = CRH.RMAHeaderId
       LEFT JOIN [dbo].[ItemMaster] IM WITH (NOLOCK)
         ON CRD.ItemMasterId = IM.ItemMasterId
-       AND ISNULL(IM.IsNonStock,0) = 0 WHERE ((CRH.MasterCompanyId = @MasterCompanyId)
+       AND ISNULL(IM.IsNonStock,0) = 0
+         WHERE ((CRH.MasterCompanyId = @MasterCompanyId)
       AND (CRH.IsDeleted = @IsDeleted)
       AND (@StatusID = 0
       OR CRH.RMAStatusId = @StatusID))
@@ -484,7 +485,8 @@ BEGIN
           END + I.partnumber
         FROM CustomerRMADeatils S WITH (NOLOCK)
         LEFT JOIN ItemMaster I WITH (NOLOCK) ON S.ItemMasterId = I.ItemMasterId
-         AND ISNULL(I.IsNonStock,0) = 0 WHERE S.RMAHeaderId = CRD.RMAHeaderId AND S.IsActive = 1 AND S.IsDeleted = 0
+         AND ISNULL(I.IsNonStock,0) = 0
+         WHERE S.RMAHeaderId = CRD.RMAHeaderId AND S.IsActive = 1 AND S.IsDeleted = 0
         FOR xml PATH ('')), 1, 1, '') PartNumber) A
       WHERE CRH.MasterCompanyId = @MasterCompanyId AND ISNULL(CRH.IsDeleted, 0) = 0
       GROUP BY CRD.RMAHeaderId, A.PartNumber),
@@ -501,7 +503,8 @@ BEGIN
           END + I.PartDescription
         FROM CustomerRMADeatils S WITH (NOLOCK)
         LEFT JOIN ItemMaster I WITH (NOLOCK) ON S.ItemMasterId = I.ItemMasterId
-         AND ISNULL(I.IsNonStock,0) = 0 WHERE S.RMAHeaderId = CRD.RMAHeaderId AND S.IsActive = 1 AND S.IsDeleted = 0
+         AND ISNULL(I.IsNonStock,0) = 0
+         WHERE S.RMAHeaderId = CRD.RMAHeaderId AND S.IsActive = 1 AND S.IsDeleted = 0
         FOR xml PATH ('')), 1, 1, '') PartDescription) A
       WHERE CRH.MasterCompanyId = @MasterCompanyId
       AND ISNULL(CRH.IsDeleted, 0) = 0 GROUP BY CRD.RMAHeaderId, A.PartDescription),
@@ -522,7 +525,8 @@ BEGIN
           END + I.ManufacturerName
         FROM CustomerRMADeatils S WITH (NOLOCK)
         LEFT JOIN ItemMaster I WITH (NOLOCK) ON S.ItemMasterId = I.ItemMasterId
-         AND ISNULL(I.IsNonStock,0) = 0 WHERE S.RMAHeaderId = CRD.RMAHeaderId AND S.IsActive = 1 AND S.IsDeleted = 0 
+         AND ISNULL(I.IsNonStock,0) = 0
+         WHERE S.RMAHeaderId = CRD.RMAHeaderId AND S.IsActive = 1 AND S.IsDeleted = 0 
 		FOR xml PATH ('')), 1, 1, '') ManufacturerName) A
       WHERE CRH.MasterCompanyId = @MasterCompanyId
       AND ISNULL(CRH.IsDeleted, 0) = 0

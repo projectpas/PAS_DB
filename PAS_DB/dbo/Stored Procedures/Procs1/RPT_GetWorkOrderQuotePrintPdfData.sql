@@ -1,4 +1,4 @@
-﻿/*************************************************************             
+/*************************************************************             
  ** File:   [RPT_GetWorkOrderQuotePrintPdfData]             
  ** Author:   AMIT GHEDIYA  
  ** Description: This stored procedure is used to get work order quote pdf details  
@@ -307,13 +307,15 @@ BEGIN
 		 INNER JOIN dbo.WorkOrderPartNumber wop WITH(NOLOCK) ON wqd.WOPartNoId = wop.ID  
 		 INNER JOIN dbo.ItemMaster im WITH(NOLOCK) ON wop.ItemMasterId = im.ItemMasterId  
 		 LEFT JOIN dbo.ItemMaster im1 WITH(NOLOCK) ON im.RevisedPartId = im1.ItemMasterId  
-		  AND ISNULL(im1.IsNonStock,0) = 0 INNER JOIN dbo.WorkScope s WITH(NOLOCK) ON wop.WorkOrderScopeId = s.WorkScopeId  
+		  AND ISNULL(im1.IsNonStock,0) = 0
+		  INNER JOIN dbo.WorkScope s WITH(NOLOCK) ON wop.WorkOrderScopeId = s.WorkScopeId  
 		 INNER JOIN dbo.StockLine sl WITH(NOLOCK) ON wop.StockLineId = sl.StockLineId  
 		 INNER JOIN dbo.Customer cust WITH(NOLOCK)  ON woq.CustomerId = cust.CustomerId
 		 LEFT JOIN #tmpResult tmp ON tmp.WorkOrderQuoteId = woq.WorkOrderQuoteId AND tmp.WorkOrderPartNoId = @workOrderPartNoId
 	WHERE woq.WorkOrderQuoteId = @WorkOrderQuoteId AND wop.ID = @workOrderPartNoId  
 		 AND woq.IsActive = 1 AND woq.IsDeleted = 0  
-	 AND ISNULL(im.IsNonStock,0) = 0 GROUP BY im.PartNumber,  
+	 AND ISNULL(im.IsNonStock,0) = 0
+		  GROUP BY im.PartNumber,  
 		 im.PartDescription, im1.ItemMasterId, im1.PartNumber,wop.PublicationNotes,  tmp.Remarks,
 		 sl.StockLineNumber, sl.SerialNumber, wop.Quantity, wqd.QuoteMethod, wqd.CommonFlatRate, TATDaysStandard,wqd.EvalFees, cust.CustomerId,wop.RevisedPartNumber, wop.RevisedPartDescription
 		 ,wop.RevisedSerialNumber,wop.CurrentSerialNumber, wf.WorkFlowWorkOrderId,woq.IsPrintCorrectiveAction,wop.EstimatedShipDate),

@@ -1,4 +1,4 @@
-﻿/*************************************************************             
+/*************************************************************             
  ** File:   [usprpt_GetCustomerPOFulfillingReport]             
  ** Author:   Amit Ghediya   
  ** Description: Get Data for Customer PO Fulfilling Report   
@@ -106,7 +106,8 @@ BEGIN
 				  AND (@id3 = '' OR @id3 IS NULL
 					   OR SO.CustomerReference LIKE '%' + @id3 + '%'
 					   OR SOP.PONumber LIKE '%' + @id3 + '%')
-				 AND ISNULL(IM.IsNonStock,0) = 0 GROUP BY 
+				 AND ISNULL(IM.IsNonStock,0) = 0
+					    GROUP BY 
 					SO.SalesOrderId,
 					SO.CustomerReference,
 					SO.CustomerName,
@@ -186,7 +187,8 @@ BEGIN
 				  AND (@id3 = '' OR @id3 IS NULL
 					   OR SO.CustomerReference LIKE '%' + @id3 + '%'
 					   OR SOP.PONumber LIKE '%' + @id3 + '%')
-			    AND ISNULL(IM.IsNonStock,0) = 0 GROUP BY 
+			    AND ISNULL(IM.IsNonStock,0) = 0
+					    GROUP BY 
 					SO.SalesOrderId,
 					SO.CustomerReference,
 					IM.PartNumber,

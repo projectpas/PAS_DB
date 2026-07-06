@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [GetRMADetailsById]           
  ** Author:  Moin Bloch
  ** Description: This stored procedure is used to Get RMA Part Details
@@ -80,7 +80,8 @@ BEGIN
 			  (ISNULL(SOBII.QtyBilled, 1) * ISNULL(SOBII.UnitPrice, 0)) as Amount			  
 		  FROM [dbo].[CustomerRMADeatils] CRD WITH (NOLOCK) 
 				LEFT JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON CRD.ItemMasterId = IM.ItemMasterId
-				 AND ISNULL(IM.IsNonStock,0) = 0 LEFT JOIN [dbo].[BillingInvoicingItems] SOBII WITH (NOLOCK) ON SOBII.BillingInvoicingItemId = CRD.BillingInvoicingItemId
+				 AND ISNULL(IM.IsNonStock,0) = 0
+				 LEFT JOIN [dbo].[BillingInvoicingItems] SOBII WITH (NOLOCK) ON SOBII.BillingInvoicingItemId = CRD.BillingInvoicingItemId
 				LEFT JOIN [dbo].[BillingInvoicing] SOBI WITH (NOLOCK) ON SOBI.BillingInvoicingId = CRD.InvoiceId AND SOBI.BillingInvoicingId = SOBII.BillingInvoicingId AND ISNULL(SOBI.IsPerformaInvoice,0) = 0
 				LEFT JOIN [dbo].[SalesOrderPartV1] SOPN WITH (NOLOCK) ON SOPN.SalesOrderId = SOBI.ReferenceId AND SOPN.SalesOrderPartId = SOBII.SubReferenceId
 				LEFT JOIN [dbo].[SalesOrderPartCost] SOPC WITH (NOLOCK) ON SOPC.SalesOrderPartId = SOPN.SalesOrderPartId
@@ -139,7 +140,8 @@ BEGIN
 			  ,CRD.BillingInvoicingItemId
 		  FROM [dbo].[CustomerRMADeatils] CRD WITH (NOLOCK) 
 			  LEFT JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON CRD.ItemMasterId = IM.ItemMasterId
-			   AND ISNULL(IM.IsNonStock,0) = 0 LEFT JOIN [dbo].[BillingInvoicingItems] WOBII WITH (NOLOCK) ON WOBII.BillingInvoicingItemId = CRD.BillingInvoicingItemId
+			   AND ISNULL(IM.IsNonStock,0) = 0
+			   LEFT JOIN [dbo].[BillingInvoicingItems] WOBII WITH (NOLOCK) ON WOBII.BillingInvoicingItemId = CRD.BillingInvoicingItemId
 			  LEFT JOIN [dbo].[WorkOrderPartNumber] WOPN WITH (NOLOCK) ON WOPN.ID = WOBII.SubReferenceId
 			  LEFT JOIN [dbo].[WorkOrderMPNCostDetails] WOMPN WITH (NOLOCK) ON WOMPN.WorkOrderId = WOPN.WorkOrderId AND WOBII.SubReferenceId = WOMPN.WOPartNoId
 		  WHERE RMAHeaderId = @RMAHeaderId AND CRD.IsDeleted = 0 AND CRD.IsActive = 1;

@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [USP_BatchTriggerBasedonDistributionNew]
  ** Author:  Moin Bloch
  ** Description: This stored procedure is used USP_BatchTriggerBasedonDistribution
@@ -181,7 +181,8 @@ BEGIN
 			  FROM [dbo].[ItemMaster] WITH(NOLOCK)  
 			 WHERE ItemMasterId=@ItemmasterId 
 
-	         AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 SELECT @LastMSLevel=LastMSLevel,
+	         AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0
+			  SELECT @LastMSLevel=LastMSLevel,
 			       @AllMSlevels=AllMSlevels 
 			  FROM [dbo].[WorkOrderManagementStructureDetails] WITH(NOLOCK) 
 			  WHERE ReferenceID=@partId

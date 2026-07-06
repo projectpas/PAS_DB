@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [QuickBooks_UpdateModuleCountDetails]           
  ** Author:   Abhishek Jirawla
  ** Description: Update Module Count Details
@@ -517,7 +517,8 @@ BEGIN
 				SELECT MasterCompanyId, COUNT(QuickBooksReferenceId) AS ItemMasterCount
 				FROM dbo.ItemMaster  WITH(NOLOCK)
 				WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(QuickBooksReferenceId, '') <> '' AND [IntegrationTypeId] = @QBIntegrationTypeId
-				 AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 GROUP BY MasterCompanyId
+				 AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0
+				 GROUP BY MasterCompanyId
 			) AS ItemMasterData ON ItemMasterData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @ItemMasterModuleId
 
 			-- Pending ItemMaster Data
@@ -525,7 +526,8 @@ BEGIN
 				SELECT MasterCompanyId, COUNT(IsUpdated) AS ItemMasterCount
 				FROM dbo.ItemMaster  WITH(NOLOCK)
 				WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(IsUpdated, 0) = 1 AND [IntegrationTypeId] = @QBIntegrationTypeId
-				 AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 GROUP BY MasterCompanyId
+				 AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0
+				 GROUP BY MasterCompanyId
 			) AS PendingItemMasterData ON PendingItemMasterData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @ItemMasterModuleId
 
 			-- All ItemMaster Data
@@ -533,7 +535,8 @@ BEGIN
 				SELECT MasterCompanyId, COUNT(ItemMasterId) AS ItemMasterCount
 				FROM dbo.ItemMaster  WITH(NOLOCK)
 				WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND [IntegrationTypeId] = @QBIntegrationTypeId
-				 AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 GROUP BY MasterCompanyId
+				 AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0
+				 GROUP BY MasterCompanyId
 			) AS AllItemMasterData ON AllItemMasterData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @ItemMasterModuleId
 			WHERE ACI.ModuleId = @ItemMasterModuleId
 
@@ -551,7 +554,8 @@ BEGIN
 				SELECT MasterCompanyId, COUNT(QuickBooksReferenceId) AS ItemMasterCount
 				FROM dbo.ItemMaster  WITH(NOLOCK)
 				WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(QuickBooksReferenceId, '') <> '' AND [IntegrationTypeId] = @XeroIntegrationTypeId
-				 AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 GROUP BY MasterCompanyId
+				 AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0
+				 GROUP BY MasterCompanyId
 			) AS ItemMasterData ON ItemMasterData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @ItemMasterModuleId
 
 			-- Pending ItemMaster Data
@@ -559,7 +563,8 @@ BEGIN
 				SELECT MasterCompanyId, COUNT(IsUpdated) AS ItemMasterCount
 				FROM dbo.ItemMaster  WITH(NOLOCK)
 				WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(IsUpdated, 0) = 1 AND [IntegrationTypeId] = @XeroIntegrationTypeId
-				 AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 GROUP BY MasterCompanyId
+				 AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0
+				 GROUP BY MasterCompanyId
 			) AS PendingItemMasterData ON PendingItemMasterData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @ItemMasterModuleId
 
 			-- All ItemMaster Data
@@ -567,7 +572,8 @@ BEGIN
 				SELECT MasterCompanyId, COUNT(ItemMasterId) AS ItemMasterCount
 				FROM dbo.ItemMaster  WITH(NOLOCK)
 				WHERE ISNULL(IsActive, 0) = 1 AND ISNULL(IsDeleted, 0) = 0 AND [IntegrationTypeId] = @XeroIntegrationTypeId
-				 AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 GROUP BY MasterCompanyId
+				 AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0
+				 GROUP BY MasterCompanyId
 			) AS AllItemMasterData ON AllItemMasterData.MasterCompanyId = ACI.MasterCompanyId AND ACI.ModuleId = @ItemMasterModuleId
 			WHERE ACI.ModuleId = @ItemMasterModuleId
 

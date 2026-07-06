@@ -1,4 +1,4 @@
-﻿/*********************           
+/*********************           
  ** File:   [USP_GetMROPriceMasterByItemMasterId]           
  ** Author: Priyansh Patel
  ** Description: This stored procedure returns all MRO Price Master records
@@ -66,7 +66,8 @@ BEGIN
               AND MPM.[MasterCompanyId] = @MasterCompanyId
               AND MPM.[IsActive] = 1
               AND MPM.[IsDeleted] = @IsDeleted
-             AND ISNULL(IM.IsNonStock,0) = 0 ORDER BY MPM.[ItemMasterId], MPM.[CreatedDate] DESC;
+             AND ISNULL(IM.IsNonStock,0) = 0
+               ORDER BY MPM.[ItemMasterId], MPM.[CreatedDate] DESC;
         END
     END TRY
  BEGIN CATCH

@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [GetLabourAuditList]           
  ** Author:   Subhash Saliya
  ** Description: Get Search Data for Labour Audit List    
@@ -106,7 +106,8 @@ BEGIN
 				LEFT JOIN dbo.EmployeeStation emps WITH (NOLOCK) ON emps.EmployeeStationId = wop.TechStationId
 				WHERE wlb.WorkOrderLaborId = @WorkOrderLaborId
 
-				 AND ISNULL(im.IsNonStock,0) = 0 END
+				 AND ISNULL(im.IsNonStock,0) = 0
+				 END
 			COMMIT  TRANSACTION
 		END TRY    
 		BEGIN CATCH      

@@ -1,4 +1,4 @@
-﻿/*************************************************************             
+/*************************************************************             
  ** File:   [searchstocklineFromWOPopUp]             
  ** Author:  Hemnat Saliya
  ** Description: This stored procedure is used to Get Stockline Data
@@ -51,7 +51,8 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 
 			SELECT TOP 1 @MasterCompanyId = MasterCompanyId FROM dbo.ItemMaster WITH (NOLOCK) WHERE ItemMasterId IN (SELECT Item FROM DBO.SPLITSTRING(@ItemMasterIdlist,','))     
 
-			 AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 SELECT @ConditionGroup = C.GroupCode FROM dbo.Condition C WHERE C.ConditionId = @ConditionId
+			 AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0
+			 SELECT @ConditionGroup = C.GroupCode FROM dbo.Condition C WHERE C.ConditionId = @ConditionId
 					
 			INSERT INTO #ConditionGroup (ConditionId)
 			SELECT ConditionId FROM dbo.Condition WITH (NOLOCK) WHERE MasterCompanyId = @MasterCompanyId AND GroupCode = @ConditionGroup
@@ -157,7 +158,8 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 				--AND (sl.IsCustomerStock = 0 OR (sl.IsCustomerStock = 1 AND sl.CustomerId = @CustomerId))  
 				AND sl.IsParent = 1
 			
-			 AND ISNULL(im.IsNonStock,0) = 0 UNION
+			 AND ISNULL(im.IsNonStock,0) = 0
+				 UNION
 
 			SELECT DISTINCT
 				im.PartNumber
@@ -257,7 +259,8 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 				LEFT JOIN DBO.LotSetupMaster lsm WITH(NOLOCK) ON sl.LotId = lsm.LotId
 				LEFT JOIN DBO.[Percent] per WITH(NOLOCK) ON lsm.MarginPercentageId = per.PercentId
 			WHERE SL.StockLineId IN (SELECT Item FROM DBO.SPLITSTRING(@StocklineIdlist,','))
-		 AND ISNULL(im.IsNonStock,0) = 0 END
+		 AND ISNULL(im.IsNonStock,0) = 0
+			 END
 		COMMIT  TRANSACTION
 
 		END TRY    

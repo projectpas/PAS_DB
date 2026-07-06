@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [USP_VendorRMA_GetVendorRMAShippingChildList]          
  ** Author:   Amit Ghediya
  ** Description: This stored procedure is used to get shipping child list data.
@@ -50,7 +50,8 @@ BEGIN
 		 AND sos.VendorRMAId = sopt.VendorRMAId  
 	  INNER JOIN DBO.VendorRMA so WITH (NOLOCK) ON so.VendorRMAId = sop.VendorRMAId  
 	  LEFT JOIN DBO.ItemMaster imt WITH (NOLOCK) ON imt.ItemMasterId = sop.ItemMasterId  
-	   AND ISNULL(imt.IsNonStock,0) = 0 LEFT JOIN DBO.Stockline sl WITH (NOLOCK) ON sl.StockLineId = sop.StockLineId  
+	   AND ISNULL(imt.IsNonStock,0) = 0
+	   LEFT JOIN DBO.Stockline sl WITH (NOLOCK) ON sl.StockLineId = sop.StockLineId  
 	  LEFT JOIN DBO.VendorRMACustomsInfo soc WITH (NOLOCK) ON soc.RMAShippingId = sos.RMAShippingId  
 	  LEFT JOIN DBO.Vendor cr WITH (NOLOCK)  on cr.VendorId = so.VendorId  
 	  LEFT JOIN DBO.VendorRMAPackaginSlipItems SPI WITH (NOLOCK) ON sopt.RMAPickTicketId = SPI.RMAPickTicketId  AND SPI.VendorRMADetailId = sop.VendorRMADetailId  

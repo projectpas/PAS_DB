@@ -1,4 +1,4 @@
-﻿/*************************************************************
+/*************************************************************
  ** File:   [SearchPNViewData]
  ** Description: Get Search Data for PN View
  **************************************************************
@@ -130,7 +130,8 @@ BEGIN
     LEFT JOIN DBO.SalesOrderQuotePartV1 SP WITH (NOLOCK) ON SOQ.SalesOrderQuoteId = SP.SalesOrderQuoteId and SP.IsDeleted = 0
     LEFT JOIN DBO.SalesOrderQuotePartCost SPC WITH (NOLOCK) ON SPC.SalesOrderQuotePartId = SP.SalesOrderQuotePartId
     LEFT JOIN DBO.ItemMaster IM WITH (NOLOCK) ON Im.ItemMasterId=SP.ItemMasterId
-     AND ISNULL(IM.IsNonStock,0) = 0 LEFT JOIN dbo.Manufacturer M WITH(NOLOCK) ON Im.ManufacturerId = M.ManufacturerId
+     AND ISNULL(IM.IsNonStock,0) = 0
+     LEFT JOIN dbo.Manufacturer M WITH(NOLOCK) ON Im.ManufacturerId = M.ManufacturerId
     LEFT JOIN DBO.Employee E WITH (NOLOCK) ON E.EmployeeId=SOQ.SalesPersonId
     WHERE (SOQ.IsDeleted = @IsDeleted)
       AND (@StatusID IS NULL OR SOQ.StatusId = @StatusID)

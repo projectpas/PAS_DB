@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [usprpt_GetWorkOrderBacklogReport]           
  ** Author:   Subhash Saliya  
  ** Description: Get Data for WorkOrderBacklog Report
@@ -152,7 +152,8 @@ BEGIN
 				AND (ISNULL(@Level8,'') ='' OR MSD.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,',')))
 				AND (ISNULL(@Level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))
 				AND  (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))
-		  AND ISNULL(IM.IsNonStock,0) = 0 END
+		  AND ISNULL(IM.IsNonStock,0) = 0
+				 END
 
 		SET @PageSize = CASE WHEN NULLIF(@PageSize,0) IS NULL THEN 10 ELSE @PageSize END
 		SET @PageNumber = CASE WHEN NULLIF(@PageNumber,0) IS NULL THEN 1 ELSE @PageNumber END
@@ -223,7 +224,8 @@ BEGIN
 			JOIN dbo.WorkOrderStatus WOS WITH(NOLOCK) ON WOS.Id = WPN.WorkOrderStatusId  
 			JOIN dbo.ItemMaster IM WITH(NOLOCK) ON IM.ItemMasterId = WPN.ItemMasterId 
 			LEFT JOIN [dbo].[ItemMaster] RIM WITH (NOLOCK) ON WPN.RevisedItemmasterid = RIM.ItemMasterId
-			 AND ISNULL(RIM.IsNonStock,0) = 0 LEFT JOIN dbo.Stockline STL WITH(NOLOCK) ON WPN.StockLineId = STL.StockLineId
+			 AND ISNULL(RIM.IsNonStock,0) = 0
+			 LEFT JOIN dbo.Stockline STL WITH(NOLOCK) ON WPN.StockLineId = STL.StockLineId
 			LEFT JOIN dbo.WorkOrderSettings wost WITH(NOLOCK) ON wost.MasterCompanyId = WO.MasterCompanyId AND WO.WorkOrderTypeId = wost.WorkOrderTypeId
 			JOIN dbo.Priority PR WITH(NOLOCK) ON WPN.WorkOrderPriorityId = PR.PriorityId  
 			INNER JOIN dbo.WorkOrderStage WOSG WITH(NOLOCK) ON WTT.CurrentStageId = WOSG.WorkOrderStageId and wosg.IncludeInStageReport=1   
@@ -250,7 +252,8 @@ BEGIN
 				AND (ISNULL(@Level8,'') ='' OR MSD.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,',')))
 				AND (ISNULL(@Level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))
 				AND  (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))
-			  AND ISNULL(IM.IsNonStock,0) = 0 GROUP BY WPN.ID, WTT.CurrentStageId,WO.WorkOrderId  ORDER BY Max(WOSG.Sequence),WTT.CurrentStageId,WO.WorkOrderId Desc
+			  AND ISNULL(IM.IsNonStock,0) = 0
+				 GROUP BY WPN.ID, WTT.CurrentStageId,WO.WorkOrderId  ORDER BY Max(WOSG.Sequence),WTT.CurrentStageId,WO.WorkOrderId Desc
 			OFFSET((@PageNumber-1) * @pageSize) ROWS FETCH NEXT @pageSize ROWS ONLY;
 
     COMMIT TRANSACTION

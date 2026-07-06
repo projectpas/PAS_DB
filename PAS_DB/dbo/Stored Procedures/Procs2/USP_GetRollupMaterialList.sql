@@ -1,4 +1,4 @@
-﻿-------------------------------------------------------------------------------------------------------------------
+-------------------------------------------------------------------------------------------------------------------
 
 /*************************************************************           
  ** File:   [USP_GetWorkOrderMaterialsList]           
@@ -148,4 +148,5 @@ SET NOCOUNT ON
 		LEFT JOIN dbo.SubWorkOrderMaterialMapping SBWOMM WITH (NOLOCK) ON SBWOMM.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId
 		LEFT JOIN dbo.SubWorkOrder SWO WITH (NOLOCK) ON SWO.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId
 		WHERE WOM.WorkOrderMaterialsId = @workOrderMaterialId --AND WOM.IsAltPart = 0 AND WOM.IsEquPart = 0;
- AND ISNULL(IM.IsNonStock,0) = 0 END
+ AND ISNULL(IM.IsNonStock,0) = 0
+		 END

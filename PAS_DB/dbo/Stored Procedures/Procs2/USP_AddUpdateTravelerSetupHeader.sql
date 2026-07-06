@@ -1,4 +1,4 @@
-﻿-----------------------------------------------------------------------------------------------------  
+-----------------------------------------------------------------------------------------------------  
   
 /*************************************************************             
  ** File:   [USP_AddUpdateTravelerSetupHeader]             
@@ -56,7 +56,8 @@ BEGIN
                 SELECT TOP 1 @PartNumber=partnumber from [dbo].[ItemMaster] WITH(NOLOCK) WHERE  ItemMasterId=@ItemMasterId   
                  
   
-                 AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 IF OBJECT_ID(N'tempdb..#tmpCodePrefixes') IS NOT NULL  
+                 AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0
+                 IF OBJECT_ID(N'tempdb..#tmpCodePrefixes') IS NOT NULL  
 				BEGIN  
 					DROP TABLE #tmpCodePrefixes  
 				END  

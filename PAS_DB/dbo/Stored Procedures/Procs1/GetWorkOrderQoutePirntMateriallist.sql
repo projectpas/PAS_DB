@@ -1,4 +1,4 @@
-﻿/*************************************************************             
+/*************************************************************             
  ** File:   [GetWorkOrderPrintPdfData]             
  ** Author:   Subhash Saliya  
  ** Description: This stored procedure is used Work order Print  Details      
@@ -45,7 +45,8 @@ BEGIN
     FROM WorkOrderQuoteMaterial mt WITH(NOLOCK)    
         INNER JOIN WorkOrderQuoteDetails wop WITH(NOLOCK) on wop.WorkOrderQuoteDetailsId = mt.WorkOrderQuoteDetailsId   
         LEFT JOIN ItemMaster imt WITH(NOLOCK) on imt.ItemMasterId = mt.ItemMasterId  
-     AND ISNULL(imt.IsNonStock,0) = 0 WHERE wop.WorkflowWorkOrderId = @WorkflowWorkOrderId AND wop.WOPartNoId = @workOrderPartNoId  AND ISNULL(mt.IsDeleted, 0) = 0 AND ISNULL(mt.IsActive, 0) = 1
+     AND ISNULL(imt.IsNonStock,0) = 0
+         WHERE wop.WorkflowWorkOrderId = @WorkflowWorkOrderId AND wop.WOPartNoId = @workOrderPartNoId  AND ISNULL(mt.IsDeleted, 0) = 0 AND ISNULL(mt.IsActive, 0) = 1
     --WHERE wop.WorkOrderQuoteDetailsId = @workOrderQuoteDetailsId  
 
 	UNION ALL
@@ -59,7 +60,8 @@ BEGIN
 	  FROM DBO.WorkOrderQuoteMaterialKitMapping wom WITH(NOLOCK)
 	       INNER JOIN DBO.ItemMaster im WITH(NOLOCK) on im.ItemMasterId = wom.ItemMasterId
 	       LEFT JOIN [dbo].KitMaster KIM WITH (NOLOCK) ON KIM.KitId = wom.KitId 
-	  WHERE wom.WorkflowWorkOrderId = @WorkflowWorkOrderId AND ISNULL(wom.IsDeleted, 0) = 0 AND ISNULL(wom.IsActive, 0) = 1    AND ISNULL(im.IsNonStock,0) = 0 END  
+	  WHERE wom.WorkflowWorkOrderId = @WorkflowWorkOrderId AND ISNULL(wom.IsDeleted, 0) = 0 AND ISNULL(wom.IsActive, 0) = 1    AND ISNULL(im.IsNonStock,0) = 0
+	   END  
   COMMIT  TRANSACTION  
   
   END TRY      

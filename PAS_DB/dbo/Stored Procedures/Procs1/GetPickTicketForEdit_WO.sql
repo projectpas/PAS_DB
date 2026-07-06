@@ -1,4 +1,4 @@
-﻿/***************************************************************************************************************************************
+/***************************************************************************************************************************************
   ** Change History
  ***************************************************************************************************************************************
  ** PR   Date						 Author							Change Description
@@ -71,7 +71,8 @@ BEGIN
 		INNER JOIN DBO.Stockline sl WITH(NOLOCK) on sl.StockLineId = wop.StockLineId
 		LEFT JOIN DBO.Manufacturer mf  WITH(NOLOCK) ON imt.ManufacturerId = mf.ManufacturerId
 		LEFT JOIN DBO.ItemMaster imtR WITH(NOLOCK) on imtR.ItemMasterId = wop.RevisedItemmasterid
-		 AND ISNULL(imtR.IsNonStock,0) = 0 LEFT JOIN DBO.Manufacturer mfR  WITH(NOLOCK) ON imtR.ManufacturerId = mfR.ManufacturerId
+		 AND ISNULL(imtR.IsNonStock,0) = 0
+		 LEFT JOIN DBO.Manufacturer mfR  WITH(NOLOCK) ON imtR.ManufacturerId = mfR.ManufacturerId
 		LEFT JOIN DBO.Customer cusTraceble WITH(NOLOCK) ON sl.TraceableTo = cusTraceble.CustomerId
 		LEFT JOIN DBO.Vendor vTraceble WITH(NOLOCK) ON sl.TraceableTo = vTraceble.VendorId
 		LEFT JOIN DBO.LegalEntity leTraceble WITH(NOLOCK) ON sl.TraceableTo = leTraceble.LegalEntityId

@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [USP_GetExchangeQuoteAnalysisList]           
  ** Author:  Ekta Chandegra
  ** Description: This stored procedure is used to USP_GetExchangeQuoteAnalysisList
@@ -123,7 +123,8 @@ BEGIN
 		INNER JOIN [dbo].[ExchangeQuotePart] part WITH(NOLOCK)  ON eq.ExchangeQuoteId = part.ExchangeQuoteId
 		LEFT JOIN [dbo].[ItemMasterExchangeLoan] iml WITH(NOLOCK)  ON part.ItemMasterId = iml.ItemMasterId
 		LEFT JOIN [dbo].[ItemMaster] im WITH(NOLOCK)  ON part.ItemMasterId = im.ItemMasterId
-		 AND ISNULL(im.IsNonStock,0) = 0 LEFT JOIN [dbo].[Percent] epc WITH(NOLOCK)  ON iml.EFcogs = epc.PercentId
+		 AND ISNULL(im.IsNonStock,0) = 0
+		 LEFT JOIN [dbo].[Percent] epc WITH(NOLOCK)  ON iml.EFcogs = epc.PercentId
 		LEFT JOIN [dbo].[Percent] opc WITH(NOLOCK)  ON iml.OPcogs = opc.PercentId
 		WHERE eq.ExchangeQuoteId = @ExchangeQuoteId;
 	END TRY

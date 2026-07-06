@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [usp_GetWorkOrderMarginReport]           
  ** Author:   Swetha  
  ** Description: Get Data for WorkOrderMargin Report
@@ -149,7 +149,8 @@ BEGIN
           ON WOBI.CustomerId = C.CustomerId
         LEFT JOIN DBO.ItemMaster IM WITH (NOLOCK)
           ON WOBI.ItemMasterId = IM.ItemMasterId
-         AND ISNULL(IM.IsNonStock,0) = 0 LEFT JOIN DBO.WorkOrderShipping AS WOS WITH (NOLOCK)
+         AND ISNULL(IM.IsNonStock,0) = 0
+           LEFT JOIN DBO.WorkOrderShipping AS WOS WITH (NOLOCK)
           ON WO.WorkOrderId = WOS.WorkOrderId
         LEFT JOIN DBO.Employee AS E WITH (NOLOCK)
           ON WO.SalesPersonId = E.EmployeeId

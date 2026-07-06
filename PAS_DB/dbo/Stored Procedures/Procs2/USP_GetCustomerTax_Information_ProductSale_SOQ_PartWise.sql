@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [USP_GetCustomerTax_Information_ProductSale_SOQ_PartWise]           
  ** Author:   Moin Bloch
  ** Description: This stored procedure is used to get Customer Tax Information based on ProductSale
@@ -20,7 +20,6 @@
 
 -- EXEC [USP_GetCustomerTax_Information_ProductSale_SOQ_PartWise] 10425,10666,77 
 **************************************************************/
- WHERE ISNULL(To.IsNonStock,0) = 0
 CREATE    PROCEDURE [dbo].[USP_GetCustomerTax_Information_ProductSale_SOQ_PartWise] 
 @SalesOrderQuoteId BIGINT,
 @SalesOrderQuotePartId BIGINT,
@@ -57,7 +56,8 @@ BEGIN
 			LEFT JOIN [dbo].[SalesOrderQuoteStocklineV1] SOQPS WITH(NOLOCK) ON SOQPS.[SalesOrderQuotePartId] = SOQP.[SalesOrderQuotePartId] 
 			 LEFT JOIN [dbo].[Stockline] STK WITH(NOLOCK) ON SOQPS.[StockLineId] = STK.[StockLineId]
 			 LEFT JOIN [dbo].[ItemMaster] ITM WITH(NOLOCK) ON SOQP.[ItemMasterId] = ITM.[ItemMasterId]
-			  AND ISNULL(ITM.IsNonStock,0) = 0 LEFT JOIN [dbo].[AllAddress] AAD WITH(NOLOCK) ON SOQP.[SalesOrderQuoteId] = AAD.[ReffranceId] AND [IsShippingAdd] = 1 AND [ModuleId] = @SOQModuleId
+			  AND ISNULL(ITM.IsNonStock,0) = 0
+			  LEFT JOIN [dbo].[AllAddress] AAD WITH(NOLOCK) ON SOQP.[SalesOrderQuoteId] = AAD.[ReffranceId] AND [IsShippingAdd] = 1 AND [ModuleId] = @SOQModuleId
 			 LEFT JOIN [dbo].[CustomerDomensticShipping] CDS WITH(NOLOCK) ON CDS.[CustomerId] = SOQ.[CustomerId] AND CDS.[IsPrimary] = 1
    		     WHERE SOQ.[SalesOrderQuoteId] = @SalesOrderQuoteId 
 			   AND SOQP.[SalesOrderQuotePartId] = @SalesOrderQuotePartId

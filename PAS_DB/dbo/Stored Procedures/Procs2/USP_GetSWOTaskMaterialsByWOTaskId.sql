@@ -1,4 +1,4 @@
-﻿/*************************************************************
+/*************************************************************
  ** File:   [USP_GetSWOTaskMaterialsByWOTaskId]
  ** Author: Vishal Suthar
  ** Description: This stored procedure is used to get SWO Task Instruction by SWO Task Id
@@ -49,7 +49,8 @@ BEGIN
 			LEFT JOIN dbo.UnitOfMeasure SUOM WITH (NOLOCK) ON SUOM.UnitOfMeasureId = SL.PurchaseUnitOfMeasureId
 			WHERE WOM.IsDeleted = 0 AND WOT.SubWorkOrderTaskId = @SubWorkOrderTaskId
     
-			 AND ISNULL(IM.IsNonStock,0) = 0 UNION ALL
+			 AND ISNULL(IM.IsNonStock,0) = 0
+			 UNION ALL
     
 			SELECT 
 				IM.PartNumber,

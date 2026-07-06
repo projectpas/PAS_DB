@@ -1,4 +1,4 @@
-﻿--DROP PROCEDURE [dbo].[CreateUpdateReceivingCustomerWork]
+--DROP PROCEDURE [dbo].[CreateUpdateReceivingCustomerWork]
 
 /*************************************************************           
  ** File:   [CreateUpdateReceivingCustomerWork]        
@@ -493,7 +493,8 @@ DELETE FROM #tmpCodePrefixes;
 					LEFT JOIN dbo.ItemMasterIntegrationPortal mp WITH(NOLOCK) ON iM.ItemMasterId = mp.ItemMasterId
 					LEFT JOIN dbo.IntegrationPortal ip WITH(NOLOCK) ON mp.IntegrationPortalId = ip.IntegrationPortalId
 					WHERE iM.ItemMasterId = @ItemMasterId AND iM.MasterCompanyId = @MasterCompanyId AND mp.IntegrationPortalId IS NOT NULL
-					 AND ISNULL(iM.IsNonStock,0) = 0 GROUP BY iM.ItemMasterId
+					 AND ISNULL(iM.IsNonStock,0) = 0
+					 GROUP BY iM.ItemMasterId
 
 					INSERT INTO [dbo].[Stockline]([PartNumber],[StockLineNumber],[StocklineMatchKey],[ControlNumber],[ItemMasterId],[Quantity],[ConditionId],[SerialNumber]						   
 						   ,[ShelfLife],[ShelfLifeExpirationDate],[WarehouseId],[LocationId],[ObtainFrom],[Owner],[TraceableTo],[ManufacturerId],[Manufacturer],[ManufacturerLotNumber]	                       

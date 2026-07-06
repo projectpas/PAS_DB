@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [GetAssetList]
  ** Author:   
  ** Description: This stored procedure is used to Get Asset List
@@ -157,7 +157,8 @@ BEGIN
 	  --INNER JOIN dbo.AssetManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID IN (SELECT Item FROM DBO.SPLITSTRING(@ModuleID,',')) AND MSD.ReferenceID = asm.AssetRecordId
 	  --INNER JOIN dbo.RoleManagementStructure RMS WITH (NOLOCK) ON asm.ManagementStructureId = RMS.EntityStructureId
 	  --INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId	
-      AND ISNULL(IM.IsNonStock,0) = 0 WHERE ((asm.IsDeleted = @IsDeleted) and (asm.MasterCompanyId = @MasterCompanyId) AND (@IsActive is null or ISNULL(asm.IsActive,1) = @IsActive))  
+      AND ISNULL(IM.IsNonStock,0) = 0
+	   WHERE ((asm.IsDeleted = @IsDeleted) and (asm.MasterCompanyId = @MasterCompanyId) AND (@IsActive is null or ISNULL(asm.IsActive,1) = @IsActive))  
    ), ResultCount AS(SELECT COUNT(AssetRecordId) AS totalItems FROM Result)  
    SELECT * INTO #TempResult from  Result  
    WHERE (  

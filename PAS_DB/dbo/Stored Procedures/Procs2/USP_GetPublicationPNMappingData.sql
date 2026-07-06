@@ -1,4 +1,4 @@
-﻿/***************************************************************  
+/***************************************************************  
  ** File:  [USP_GetPublicationPNMappingData]            
  ** Author: Ayushi Patel  
  ** Description: Get part number mapping data by comma-separated PublicationRecordIds
@@ -52,7 +52,8 @@ BEGIN
         AND ISNULL(pim.IsDeleted,0) = @IsDeleted
         AND ISNULL(pim.IsActive,0) = 1
         AND ISNULL(im.IsActive,0) = 1
-     AND ISNULL(im.IsNonStock,0) = 0 END TRY
+     AND ISNULL(im.IsNonStock,0) = 0
+         END TRY
     BEGIN CATCH
 		SELECT
 		ERROR_NUMBER() AS ErrorNumber,

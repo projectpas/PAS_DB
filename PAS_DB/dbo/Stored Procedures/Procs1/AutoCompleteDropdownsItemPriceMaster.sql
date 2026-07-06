@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [AutoCompleteDropdownsItemPriceMaster]           
  ** Author:  Ekta Chandegra
  ** Description: This stored procedure is used to retrieve AutoCompleteDropdownsItemPriceMaster List
@@ -35,7 +35,8 @@ AS BEGIN
 		LEFT JOIN [dbo].[Manufacturer] M WITH(NOLOCK) ON M.ManufacturerId = IM.ManufacturerId
 		WHERE IM.MasterCompanyId = @MasterCompanyId AND IM.IsActive = 1 AND ISNULL(IM.IsDeleted,0) = 0 AND
 		(IM.partnumber LIKE '%' + @SearchText OR IM.partnumber LIKE @SearchText + '%' OR  IM.partnumber LIKE '%' + @SearchText + '%')
-	 AND ISNULL(IM.IsNonStock,0) = 0 END TRY
+	 AND ISNULL(IM.IsNonStock,0) = 0
+		 END TRY
 	BEGIN CATCH
 		DECLARE @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name() 
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------  

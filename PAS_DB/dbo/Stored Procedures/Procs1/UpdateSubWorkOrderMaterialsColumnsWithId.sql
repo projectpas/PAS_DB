@@ -1,4 +1,4 @@
-﻿
+
 /*************************************************************           
  ** File:   [UpdateWorkOrderTeardownColumnsWithId]           
  ** Author:   Subhash Saliya
@@ -63,7 +63,8 @@ BEGIN
 						LEFT JOIN dbo.Task T WITH (NOLOCK) ON T.TaskId = WOM.TaskId
 						LEFT JOIN dbo.WorkOrderTask WT WITH (NOLOCK) ON WT.WorkOrderTaskId = WOM.TaskId
 					WHERE WOM.SubWorkOrderMaterialsId = @SubWorkOrderMaterialsId
-			 AND ISNULL(IM.IsNonStock,0) = 0 END
+			 AND ISNULL(IM.IsNonStock,0) = 0
+					 END
 		COMMIT  TRANSACTION
 
 		END TRY    

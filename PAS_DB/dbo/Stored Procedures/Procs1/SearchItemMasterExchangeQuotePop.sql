@@ -1,4 +1,4 @@
-﻿--EXEC SearchItemMasterExchangeQuotePop '3','1,2,3,7,8,9,10,11,12,13,14,15,101,111',NULL,-1,1
+--EXEC SearchItemMasterExchangeQuotePop '3','1,2,3,7,8,9,10,11,12,13,14,15,101,111',NULL,-1,1
 /***************************************************************************************************************************************
   ** Change History
  ***************************************************************************************************************************************
@@ -41,8 +41,8 @@ BEGIN
 				,c.Description ConditionDescription
 				,ISNULL(STUFF((
 			    SELECT DISTINCT ', '+ I.partnumber FROM DBO.Nha_Tla_Alt_Equ_ItemMapping M INNER JOIN ItemMaster I ON I.ItemMasterId = M.ItemMasterId Where M.MappingItemMasterId = im.ItemMasterId AND M.MappingType = 1
-			    FOR XML PATH('')
-			     AND ISNULL(I.IsNonStock,0) = 0 )
+			    AND ISNULL(I.IsNonStock,0) = 0
+			    FOR XML PATH(''))
 			    ,1,1,''), '') AlternateFor
 				,CASE 
 					WHEN im.IsPma = 1 and im.IsDER = 1 THEN OEMPMA.partnumber --'PMA&DER'
@@ -86,7 +86,8 @@ BEGIN
 			LEFT JOIN DBO.ItemMasterExchangeLoan imel WITH (NOLOCK) on imel.ItemMasterId = im.ItemMasterId
 			WHERE 
 				im.ItemMasterId IN (SELECT Item FROM DBO.SPLITSTRING(@ItemMasterIdlist,','))
-			 AND ISNULL(im.IsNonStock,0) = 0 GROUP BY
+			 AND ISNULL(im.IsNonStock,0) = 0
+				 GROUP BY
 				im.PartNumber
 				,im.ItemMasterId 
 				,im.PartDescription

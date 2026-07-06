@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [sp_VendorRMA_GetPickTicketApproveList]           
  ** Author:   Amit Ghediya
  ** Description: This stored procedure is used to retrieve pickticket listing data for Vendor RMA
@@ -74,7 +74,8 @@ BEGIN
 		--INNER JOIN SalesOrderReserveParts sor WITH(NOLOCK) on sor.SalesOrderId = sop.SalesOrderId and sor.SalesOrderPartId = sop.SalesOrderPartId
 		LEFT JOIN Vendor cr WITH(NOLOCK) on cr.VendorId = so.VendorId
 		where sop.VendorRMAId=@VendorRMAId AND ((sopt.RMAPickTicketId IS NULL) OR sopt.RMAPickTicketId IS NOT NULL)
-		 AND ISNULL(imt.IsNonStock,0) = 0 group by sop.VendorRMADetailId,sop.VendorRMAId,imt.PartNumber,imt.PartDescription,
+		 AND ISNULL(imt.IsNonStock,0) = 0
+		 group by sop.VendorRMADetailId,sop.VendorRMAId,imt.PartNumber,imt.PartDescription,
 		sop.RMANum,sop.ItemMasterId,
 		sl.ConditionId, cr.[VendorName],cr.VendorCode, sl.ConditionId
 		,sl.isSerialized, imt.ItemMasterId)

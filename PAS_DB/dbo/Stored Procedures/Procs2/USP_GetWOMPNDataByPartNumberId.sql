@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [USP_GetWOMPNDataByPartNumberId]           
  ** Author:   Bhargav Saliya 
  ** Description: Get Data for WO MPN Data By Part Number Id   
@@ -65,7 +65,8 @@ BEGIN
     LEFT JOIN [dbo].[WorkOrderStage] wos WITH(NOLOCK) ON wop.WorkOrderStageId = wos.WorkOrderStageId
     LEFT JOIN [dbo].[WorkOrderStatus] wostatus WITH(NOLOCK) ON wop.WorkOrderStatusId = wostatus.Id
     WHERE wop.IsDeleted = 0 AND wop.ID = @WorkOrderPartNumberId
-	 AND ISNULL(im.IsNonStock,0) = 0 END TRY
+	 AND ISNULL(im.IsNonStock,0) = 0
+     END TRY
 	BEGIN CATCH  
    
     DECLARE @ErrorLogID int,  

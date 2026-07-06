@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [GetSubWorkOrderMPNs]           
  ** Author:  Abhishek Jirawla
  ** Description: This stored procedure is used to Get sub work order MPNs
@@ -83,7 +83,8 @@ BEGIN
 		WHERE ISNULL(wop.IsDeleted,0) = 0
 		  AND wop.SubWorkOrderId = @SubWorkOrderId
 
-	 AND ISNULL(im.IsNonStock,0) = 0 END TRY    
+	 AND ISNULL(im.IsNonStock,0) = 0
+		   END TRY    
 	BEGIN CATCH      
 		SELECT  
         ERROR_NUMBER() AS ErrorNumber  

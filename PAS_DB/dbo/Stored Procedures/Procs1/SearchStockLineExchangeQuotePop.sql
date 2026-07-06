@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [SearchStockLineExchangeQuotePop]           
  ** Author:  Unknown
  ** Description: Get Search Data for Exchange Quote  search for from part list tab
@@ -119,7 +119,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 					AND sl.isActive = 1 AND sl.IsDeleted = 0 
 					--AND sl.ConditionId IN (SELECT Item FROM DBO.SPLITSTRING(@ConditionIds,','))
 					AND sl.ConditionId = CASE WHEN @ConditionId  IS NOT NULL 
-											THEN @ConditionId  WHERE ISNULL(im.IsNonStock,0) = 0
+											THEN @ConditionId
 ELSE sl.ConditionId 
 											END
 				LEFT JOIN DBO.Condition c WITH(NOLOCK) ON c.ConditionId = sl.ConditionId

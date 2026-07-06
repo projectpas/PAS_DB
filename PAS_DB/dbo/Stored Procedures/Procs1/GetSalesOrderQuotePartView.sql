@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [GetSalesOrderQuotePartView]           
  ** Author:   Vishal Suthar
  ** Description: This stored procedure is used to get Sales Order Quote Part Data
@@ -184,7 +184,8 @@ BEGIN
 		LEFT JOIN DBO.SOPartStatus st WITH (NOLOCK) ON part.StatusId = st.SOPartStatusId
 		LEFT JOIN DBO.Currency fcu WITH (NOLOCK) ON part.CurrencyId = fcu.CurrencyId AND fcu.IsActive = 1 AND fcu.IsDeleted = 0
 		WHERE part.SalesOrderQuoteId = @SalesQuoteId AND part.IsDeleted = 0
-		 AND ISNULL(itemMaster.IsNonStock,0) = 0 ORDER BY part.SalesOrderQuotePartId;
+		 AND ISNULL(itemMaster.IsNonStock,0) = 0
+		 ORDER BY part.SalesOrderQuotePartId;
 
 	/****** Total Part Wise COST Calculation ******/
 		;WITH CTE_Cost AS (

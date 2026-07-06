@@ -1,4 +1,4 @@
-﻿/*************************************************************             
+/*************************************************************             
  ** File:   [usp_GetRFQPriceSuggestionDetails]             
  ** Author:   Devendra Shekh    
  ** Description: Get RFQ Price Suggetion Based on Invoices
@@ -118,7 +118,8 @@ SET NOCOUNT ON
 				AND WBI.[MasterCompanyId] = @MasterCompanyId
 
 				--Get data from WOQ
-				 AND ISNULL(IM.IsNonStock,0) = 0 IF(@RecordsTotal = 0)
+				 AND ISNULL(IM.IsNonStock,0) = 0
+				 IF(@RecordsTotal = 0)
 				BEGIN
 					SELECT 
 						@RecordsTotal = COUNT(WQD.[WorkOrderQuoteDetailsId]),

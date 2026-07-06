@@ -1,4 +1,4 @@
-﻿/***************************************************************  
+/***************************************************************  
  ** File:  [USP_GetWorkOrderTypeIdAndShippingName]       
  ** Author:   Priyansh Patel
  ** Description: Get WorkOrderTypeId, ShippingName and ship to Customer details
@@ -47,7 +47,8 @@ BEGIN TRY
 					@WorkOrderTypeId AS WorkOrderTypeId
 			FROM [dbo].[WorkOrderPartNumber] WOP WITH(NOLOCK)
 			LEFT JOIN [dbo].[ItemMaster] IM WITH(NOLOCK) ON IM.[ItemMasterId] = WOP.[ItemMasterId]
-			 AND ISNULL(IM.IsNonStock,0) = 0 WHERE WOP.[ID] = @WoPartNoId AND WOP.[MasterCompanyId] = @MasterCompanyId;
+			 AND ISNULL(IM.IsNonStock,0) = 0
+			 WHERE WOP.[ID] = @WoPartNoId AND WOP.[MasterCompanyId] = @MasterCompanyId;
 
 END TRY
 

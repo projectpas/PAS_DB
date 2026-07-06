@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [TrasnferStocklineAndCreateBatch]           
  ** Author: 
  ** Description: This stored procedure is used insert account report in batch FROM Stockline Adjustment.
@@ -475,12 +475,14 @@ INSERT INTO #tmpCodePrefixestable (CodePrefixId,CodeTypeId,CurrentNumber, CodePr
 					  SET @Amount = (@Qty * @Amount);
 					  SET @ManagementStructureId = @ManagementStructureIdTo;
 	                  SELECT @MPNName = partnumber FROM DBO.ItemMaster WITH(NOLOCK)  WHERE ItemMasterId=@ItemmasterId 
-	                   AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 SELECT @LastMSLevel=LastMSLevel,@AllMSlevels=AllMSlevels FROM StocklineManagementStructureDetails WITH(NOLOCK)  WHERE ReferenceID=@NewStocklineId AND ModuleID=@STKMSModuleID
+	                   AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0
+	                   SELECT @LastMSLevel=LastMSLevel,@AllMSlevels=AllMSlevels FROM StocklineManagementStructureDetails WITH(NOLOCK)  WHERE ReferenceID=@NewStocklineId AND ModuleID=@STKMSModuleID
 					  Set @ReferencePartId=0
 
 					  SELECT @PieceItemmasterId=ItemMasterId FROM Stockline WITH(NOLOCK) WHERE StockLineId=@StocklineId
 		              SELECT @PiecePN = partnumber FROM ItemMaster WITH(NOLOCK)  WHERE ItemMasterId=@PieceItemmasterId 
-				      					 AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 SET @Desc = 'Transfer - PN-' + @MPNName + '  SL-' + @StocklineNumber
+				      					 AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0
+		               SET @Desc = 'Transfer - PN-' + @MPNName + '  SL-' + @StocklineNumber
 
 					  SELECT top 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId 
 					  FROM dbo.DistributionSetup WITH(NOLOCK)  WHERE UPPER([DistributionSetupCode]) =UPPER('ADJSPEC') 

@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [USP_addUpdatePurchaseAndSales]           
  ** Author:   Bhargav Saliya
  ** Description: This Sp Used For the Add Update Purchase and Sales  
@@ -170,7 +170,8 @@ BEGIN
 			BEGIN
 				SELECT @PartNumber = I.PartNumber FROM [dbo].ItemMaster I WITH(NOLOCK) WHERE I.ItemMasterId = @ItemMasterId
 
-				 AND ISNULL(I.IsNonStock,0) = 0 IF @PartNumber IS NOT NULL
+				 AND ISNULL(I.IsNonStock,0) = 0
+				 IF @PartNumber IS NOT NULL
 				BEGIN
 						UPDATE #PurchaseSalesTemp 
 						SET PartNumber = @PartNumber,CreatedDate = GETUTCDATE(),UpdatedDate = GETUTCDATE()

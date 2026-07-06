@@ -1,4 +1,4 @@
-﻿/***************************************************************************************************************************************
+/***************************************************************************************************************************************
   ** Change History
  ***************************************************************************************************************************************
  ** PR   Date						 Author							Change Description
@@ -112,7 +112,8 @@ BEGIN
 				LEFT JOIN DBO.ItemMaster IM_ITM WITH (NOLOCK) ON IM_ITM.ItemMasterId = WOM.ItemMasterId
 				--LEFT JOIN DBO.WorkOrderMaterialStockLine WOMS WITH (NOLOCK) ON WOM.WorkOrderMaterialsId = WOMS.WorkOrderMaterialsId
 				
-				 AND ISNULL(IM_ITM.IsNonStock,0) = 0 INNER JOIN DBO.WorkOrder WO WITH (NOLOCK) ON WOM.WorkOrderId = WO.WorkOrderId
+				 AND ISNULL(IM_ITM.IsNonStock,0) = 0
+				 INNER JOIN DBO.WorkOrder WO WITH (NOLOCK) ON WOM.WorkOrderId = WO.WorkOrderId
 				INNER JOIN DBO.ItemMaster IM_WOP WITH (NOLOCK) ON IM_WOP.ItemMasterId = WOP.ItemMasterId
 				INNER JOIN DBO.ItemMaster IM_Mat WITH (NOLOCK) ON IM_Mat.ItemMasterId = WOM.ItemMasterId
 				INNER JOIN DBO.Condition Cond WITH (NOLOCK) ON Cond.ConditionId = WOM.ConditionCodeId
@@ -123,7 +124,8 @@ BEGIN
 			  WHERE
 			  WOP.MasterCompanyId = @MasterCompanyId AND WOStage.StageCode = 'READYTOORDERPARTS' AND PO.IsFromBulkPO  = 1			  
 
-			   AND ISNULL(IM_WOP.IsNonStock,0) = 0 AND ISNULL(IM_Mat.IsNonStock,0) = 0 UNION 
+			   AND ISNULL(IM_WOP.IsNonStock,0) = 0 AND ISNULL(IM_Mat.IsNonStock,0) = 0
+			   UNION 
 
 			 SELECT DISTINCT
 			 	'Pending' AS [Status],
@@ -167,7 +169,8 @@ BEGIN
 				LEFT JOIN DBO.ItemMaster IM_ITM WITH (NOLOCK) ON IM_ITM.ItemMasterId = WOM.ItemMasterId
 				--LEFT JOIN DBO.WorkOrderMaterialStockLine WOMS WITH (NOLOCK) ON WOM.WorkOrderMaterialsId = WOMS.WorkOrderMaterialsId
 				
-				 AND ISNULL(IM_ITM.IsNonStock,0) = 0 INNER JOIN DBO.WorkOrder WO WITH (NOLOCK) ON WOM.WorkOrderId = WO.WorkOrderId
+				 AND ISNULL(IM_ITM.IsNonStock,0) = 0
+				 INNER JOIN DBO.WorkOrder WO WITH (NOLOCK) ON WOM.WorkOrderId = WO.WorkOrderId
 				INNER JOIN DBO.ItemMaster IM_WOP WITH (NOLOCK) ON IM_WOP.ItemMasterId = WOP.ItemMasterId
 				INNER JOIN DBO.ItemMaster IM_Mat WITH (NOLOCK) ON IM_Mat.ItemMasterId = WOM.ItemMasterId
 				INNER JOIN DBO.Condition Cond WITH (NOLOCK) ON Cond.ConditionId = WOM.ConditionCodeId

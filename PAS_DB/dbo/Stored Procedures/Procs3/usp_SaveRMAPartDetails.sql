@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [sp_GetCustomerRMAPartsDetails]           
  ** Author:   Subhash Saliya
  ** Description: Save Customer RMAPartsDetails
@@ -206,7 +206,8 @@ BEGIN
 									 INNER Join dbo.ItemMaster AI WITH (NOLOCK) On AL.MappingItemMasterId=AI.ItemMasterId 
 									 Where I.ItemMasterId = SOBIIA.ItemMasterId  and MappingType=1  
 									 AND AL.IsActive = 1 AND AL.IsDeleted = 0  
-									 FOR XML PATH('') AND ISNULL(I.IsNonStock,0) = 0 AND ISNULL(AI.IsNonStock,0) = 0 ), 1, 1, '') PartNumber  
+									 AND ISNULL(I.IsNonStock,0) = 0 AND ISNULL(AI.IsNonStock,0) = 0
+									 FOR XML PATH('')), 1, 1, '') PartNumber  
 								) A  
 								WHERE SOBIIA.MasterCompanyId=CRM.MasterCompanyId and SOBIIA.ItemMasterId =CRM.ItemMasterId AND isnull(SOBIIA.IsDeleted,0)=0
 								Group By SOBIIA.ItemMasterId, A.PartNumber  
@@ -215,7 +216,8 @@ BEGIN
 							LEFT JOIN dbo.CustomerRMAHeader CRH WITH (NOLOCK) ON CRH.RMAHeaderId=CRM.RMAHeaderId 
 			                LEFT JOIN dbo.Stockline ST WITH (NOLOCK) ON ST.StockLineId=CRM.StockLineId
 							LEFT JOIN dbo.ItemMaster IM WITH (NOLOCK) ON Im.ItemMasterId=CRM.ItemMasterId 
-				             AND ISNULL(IM.IsNonStock,0) = 0 WHERE isnull(CRM.IsDeleted,0) = 0  and CRM.RMAHeaderId =@RMAHeaderId 
+				             AND ISNULL(IM.IsNonStock,0) = 0
+							 WHERE isnull(CRM.IsDeleted,0) = 0  and CRM.RMAHeaderId =@RMAHeaderId 
 				
 				END
 				COMMIT  TRANSACTION

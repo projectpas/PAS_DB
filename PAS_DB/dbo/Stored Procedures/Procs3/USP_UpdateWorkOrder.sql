@@ -19,8 +19,9 @@
 	7	 19/02/2026    Moin Bloch       Added IncomingPartNumber
 	8	 20/03/2026    RAJESH GAMI      WO Part IsFinishGood update the TRUE when WO is closed PN-15819
 	9    21/05/2026    Moin Bloch        Added  [MtcCategoryId] PN-16469
-	10    21/05/2026   Moin Bloch        Added  [WorksheetId] PN-16469
-	11    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	10   21/05/2026    Moin Bloch        Added  [WorksheetId] PN-16469
+	11   02/07/2026    Moin Bloch        Fix For Credit Terms [PN-17098]
+	12    01/July/2026	RAJESH GAMI		[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 --   EXEC [USP_UpdateWorkOrder] 
 **************************************************************/
 CREATE    PROCEDURE [dbo].[USP_UpdateWorkOrder]
@@ -328,8 +329,11 @@ BEGIN
 		SET @MinId = @MinId + 1
 	END	 
 	
-	SELECT @CreditTermsId = [CreditTermId] FROM [dbo].[WorkOrder] WHERE [WorkOrderId] = @WorkOrderId AND [MasterCompanyId] = @MasterCompanyId AND [IsActive] = 1 AND [IsDeleted] = 0;
+	---SELECT @CreditTermsId = [CreditTermId] FROM [dbo].[WorkOrder] WITH(NOLOCK) WHERE [WorkOrderId] = @WorkOrderId AND [MasterCompanyId] = @MasterCompanyId AND [IsActive] = 1 AND [IsDeleted] = 0;
     
+	SELECT @Days=[Days], @NetDays=[NetDays] FROM  [dbo].[CreditTerms] WITH(NOLOCK) WHERE [CreditTermsId] = @CreditTermId;
+
+
 	SELECT TOP 1 @OldWorkScopeId = WP.[WorkOrderScopeId],	               
 				 @OldWorkPriorityId = WP.[WorkOrderPriorityId],
 				 @OldWorkFlowId = WP.[WorkflowId],

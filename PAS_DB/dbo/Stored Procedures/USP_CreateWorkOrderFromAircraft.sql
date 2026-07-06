@@ -16,8 +16,10 @@
 	3    8/06/2026		Divyesh Kathiriya   Update WorkOrderNum on AircraftMaintenanceProgram Table [PN-16704]
 	4    02/06/2026     Amit Ghediya		Update for get CustomerId from AircraftRegistryHeader [PN-16679]
 	5    10/06/2026     Divyesh Kathiriya   Update WorkOrderNum on AircraftInstalledPartDetails Table [PN-16780]
-    6    30/06/2026     Divyesh Kathiriya   Added WorkSheetStatusId fields [PN-16897]
-	7    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	6    26/06/2026     Divyesh Kathiriya   Update WorksheetStatusId Fields [PN-16897]
+	7    29/06/2026     Divyesh Kathiriya   Update field 'MaintenanceTypeId' to 'WorkScopeId' [PN-17041]
+	8    01/07/2026     Moin Bloch          Set Default 'WorkScopeId' From Aircraft [PN-17041]
+	9    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_CreateWorkOrderFromAircraft]
@@ -145,14 +147,14 @@ BEGIN
 			 LEFT JOIN [dbo].[StocklineManagementStructureDetails] msd WITH(NOLOCK) ON sl.[StockLineId] = msd.[ReferenceID] AND msd.[ModuleID] = @MSModuleStockline
 			WHERE sl.[StockLineId] = @StockLineId AND ISNULL(im.IsNonStock,0) = 0 ;
 						
-			IF(@MaintenanceTypeId > 0)
-			BEGIN
-				SET @WorkOrderScopeId = @MaintenanceTypeId
-			END
-			ELSE 
-			BEGIN
-				SET @WorkOrderScopeId = (SELECT TOP 1 [MaintenanceTypeId] FROM [dbo].[AircraftSetup] WITH(NOLOCK) WHERE [MasterCompanyId] = @MasterCompanyId)				
-			END
+			--IF(@MaintenanceTypeId > 0)
+			--BEGIN
+			--	SET @WorkOrderScopeId = @MaintenanceTypeId
+			--END
+			--ELSE 
+			--BEGIN
+				SET @WorkOrderScopeId = (SELECT TOP 1 [WorkScopeId] FROM [dbo].[AircraftSetup] WITH(NOLOCK) WHERE [MasterCompanyId] = @MasterCompanyId)				
+			--END
 
 			SELECT TOP 1 @WorkflowId = CASE WHEN  wf.[WorkflowId] = 0 THEN NULL ELSE wf.[WorkflowId] END					 
 			FROM [dbo].[Workflow] wf  WITH(NOLOCK)

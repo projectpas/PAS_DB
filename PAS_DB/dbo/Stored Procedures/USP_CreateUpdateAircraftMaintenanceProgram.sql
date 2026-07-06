@@ -23,6 +23,7 @@
    13    25/06/2026	    Amit Ghediya			Added @LastInspectedDate,@Description,@LastinspectedById [PN-17000]
    14    29/06/2026	    Moin Bloch			    Removed MaintenanceTypeId PN-17043
    15    30/06/2026	    Amit Ghediya	        Update for Engine data [PN-17075]
+   16    01/07/2026	    Amit Ghediya	        Add auto SequenceNo when insert data
 **************************************************************/
 CREATE PROCEDURE [dbo].[USP_CreateUpdateAircraftMaintenanceProgram]
     @ProgramId                  BIGINT,
@@ -50,7 +51,6 @@ CREATE PROCEDURE [dbo].[USP_CreateUpdateAircraftMaintenanceProgram]
     @IsMtceRecordUpdated        BIT             = NULL,
 	@AircraftPublicationId		BIGINT          = NULL,
     @IsScheduled                BIT             = NULL,
-
 	@LastInspectedDate			DATETIME2(7)    = NULL,
 	@Description				VARCHAR(256)    = NULL,
 	@LastinspectedById			BIGINT			= NULL,
@@ -227,6 +227,12 @@ BEGIN
                 WHERE ProgramId = @ProgramId AND [MasterCompanyId] = @MasterCompanyId;
             END
 
+			--Update engine maintance records
+			IF(ISNULL(@TailNumber,'') = '' AND ISNULL(@IsFromAircraft,0) = 0)
+			BEGIN
+				 SELECT @TailNumber = [TailNum] FROM dbo.EngineRegistryHeader WHERE [EngineRegistryId] = @AircraftRegistryId;
+			END
+
             -- ── Main UPDATE ───────────────────────────────────
             UPDATE dbo.AircraftMaintenanceProgram
             SET
@@ -312,6 +318,8 @@ BEGIN
         BEGIN
             SET @NewVersionNum = (SELECT * FROM dbo.udfGenerateCodeNumber(1, ISNULL(@VersionCodePrefix,''), ISNULL(@VersionCodeSuffix,'')));
 
+			DECLARE @OldNum INT = ISNULL((SELECT MAX(SequenceNo) FROM dbo.AircraftMaintenanceProgram), 0);
+
             INSERT INTO dbo.AircraftMaintenanceProgram
             (
                 AircraftRegistryId, EngineRegistryId, IsFromAircraft,VersionNumber, TailNumber,
@@ -324,7 +332,7 @@ BEGIN
                 IsActive, IsDeleted, MasterCompanyId,
                 CreatedBy, UpdatedBy, CreatedDate, UpdatedDate,
                 MtcCategoryId, IsMtceRecordUpdated, AircraftPublicationId, IsScheduled,
-				LastInspectedDate , [Description], LastinspectedById,FlightHoursLimitMonthsOrDays
+				LastInspectedDate , [Description], LastinspectedById,FlightHoursLimitMonthsOrDays,SequenceNo
             )
             VALUES
             (
@@ -338,7 +346,7 @@ BEGIN
                 ISNULL(@IsActive, 1), ISNULL(@IsDeleted, 0), @MasterCompanyId,
                 @CreatedBy, @UpdatedBy, GETUTCDATE(), GETUTCDATE(),
                 @MtcCategoryId, @IsMtceRecordUpdated, @AircraftPublicationId, @IsScheduled,
-				@LastInspectedDate, @Description, @LastinspectedById,@FlightHoursLimitMonthsOrDays
+				@LastInspectedDate, @Description, @LastinspectedById,@FlightHoursLimitMonthsOrDays,@OldNum + 1
             );
 
             SET @ProgramId = SCOPE_IDENTITY();

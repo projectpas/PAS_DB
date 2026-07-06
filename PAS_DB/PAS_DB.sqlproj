@@ -4729,9 +4729,11 @@
     <Build Include="dbo\Stored Procedures\USP_GetEngineList.sql" />
     <Build Include="dbo\Stored Procedures\USP_CreateEngineRegistryHeader.sql" />
     <Build Include="dbo\User Defined Types\EngineRegistryTableType.sql" />
+    <Build Include="dbo\Stored Procedures\USP_UpdateEngineRegistryState.sql" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Snapshots\PAS_DB_20220518_07-53-10.dacpac" />
     <None Include="Snapshots\PAS_DB_20220629_03-47-03.dacpac" />
+    <None Include="Snapshots\PAS_SPRINT_66.dacpac" />
   </ItemGroup>
 </Project>

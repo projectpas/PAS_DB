@@ -198,7 +198,7 @@ BEGIN
 						  END
 						  ELSE
 						  BEGIN
-								IF @RPPReferenceModuleName = (SELECT ModuleName FROM @tbl_PostStocklineBatchType)
+								IF @RPPReferenceModuleName = (SELECT TOP 1 [ModuleName] FROM @tbl_PostStocklineBatchType)
 								BEGIN
 									SELECT @DistributionMasterId = ID, @DistributionCode =DistributionCode FROM dbo.DistributionMaster WITH(NOLOCK)  
 									WHERE UPPER(DistributionCode)= UPPER('ReceivingPiecePart');
@@ -485,11 +485,11 @@ BEGIN
 												@StocklineNumber,'',@Desc,@SiteId,@Site,@WarehouseId,@Warehouse,@LocationId,@Location,@BinId,@Bin,@ShelfId,@Shelf,@StockType,@CommonJournalBatchDetailId)
 
 											-----Goods Received Not Invoiced (GRNI)--------
-											DECLARE @QtyCon INT, @QtyDam INT;
+											--DECLARE @QtyCon INT, @QtyDam INT;
 
-											SELECT TOP 1 @QtyCon = QtyConsumed, @QtyDam = QtyDamagedLost FROM dbo.PiecePartReconciliation
-											WHERE StocklineId = @StocklineId
-											ORDER BY PiecePartReconciliationId DESC
+											--SELECT TOP 1 @QtyCon = QtyConsumed, @QtyDam = QtyDamagedLost FROM dbo.PiecePartReconciliation
+											--WHERE StocklineId = @StocklineId
+											--ORDER BY PiecePartReconciliationId DESC
 
 											--GET GL Accounting Data from GLAccout based on stockline
 											SELECT @GRNIGLAccId = [GLAccountId],
@@ -504,7 +504,7 @@ BEGIN
 												--@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName,
 												@CrDrType = CRDRType  
 											 FROM [DBO].DistributionSetup WITH(NOLOCK)  
-											 WHERE UPPER(DistributionSetupCode) = UPPER('RPPWIPFG') AND MasterCompanyId = @MasterCompanyId
+											 WHERE UPPER(DistributionSetupCode) = UPPER('RROGRNI') AND MasterCompanyId = @MasterCompanyId
 											 AND DistributionMasterId = @DistributionMasterId
 
 											 INSERT INTO [dbo].[CommonBatchDetails]

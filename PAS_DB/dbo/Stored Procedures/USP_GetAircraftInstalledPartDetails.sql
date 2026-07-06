@@ -104,6 +104,7 @@ BEGIN
 				AIPD.SequenceNum,
 				AIPD.ItemMasterId,
 				ISNULL(ARH.AircraftRegistryId, ERH.EngineRegistryId) AS AircraftRegistryId,
+				ERH.EngineRegistryId,
 				COALESCE(ARH.AircraftRegistryNumber, ERH.EngineRegistryNumber, '') AS AircraftRegistryNumber,
 				STK.Condition,
 				STK.ConditionId,
@@ -177,8 +178,8 @@ BEGIN
                 WSH.WorksheetHeaderId
             FROM dbo.AircraftInstalledPartDetails AS AIPD WITH (NOLOCK)
 			LEFT JOIN dbo.ItemMasterAircraftMapping IMAM WITH (NOLOCK) ON AIPD.ATAChapterId = IMAM.ItemMasterAircraftMappingId
-			LEFT JOIN dbo.AircraftRegistryHeader ARH WITH (NOLOCK) ON ARH.AircraftRegistryId = AIPD.AircraftRegistryId
-			LEFT JOIN dbo.EngineRegistryHeader ERH WITH (NOLOCK) ON ISNULL(@IsFromAircraft,0) = 0 AND ERH.EngineRegistryId = AIPD.AircraftRegistryId
+			LEFT JOIN dbo.AircraftRegistryHeader ARH WITH (NOLOCK) ON ARH.AircraftRegistryId = AIPD.AircraftRegistryId AND ARH.MasterCompanyId = @MasterCompanyId
+			LEFT JOIN dbo.EngineRegistryHeader ERH WITH (NOLOCK) ON ERH.EngineRegistryId = AIPD.EngineRegistryId AND ERH.MasterCompanyId = @MasterCompanyId
 			INNER JOIN dbo.ItemMaster IM WITH (NOLOCK) ON AIPD.ItemMasterId = IM.ItemMasterId
 			LEFT JOIN dbo.AircraftStatus AST WITH (NOLOCK) ON AST.AircraftStatusId = ARH.AircraftStatusId
 			LEFT JOIN dbo.Stockline STK WITH (NOLOCK) ON STK.StockLineId = AIPD.StockLineId
@@ -192,13 +193,37 @@ BEGIN
 					SELECT MAX(SequenceNum) AS LastSequence
 					FROM dbo.AircraftInstalledPartDetails WITH (NOLOCK)
 					WHERE 
-						IsFromAircraft = ISNULL(@IsFromAircraft, 1)
-						AND ( @AircraftRegistryId IS NULL OR @AircraftRegistryId = 0
-							  OR (ISNULL(@IsFromAircraft,0) = 1 AND AircraftRegistryId = @AircraftRegistryId)
-							  OR (ISNULL(@IsFromAircraft,0) = 0 AND EngineRegistryId   = @AircraftRegistryId)
-							 )
-					--(@AircraftRegistryId IS NULL OR @AircraftRegistryId = 0 OR AircraftRegistryId = @AircraftRegistryId)
-					AND MasterCompanyId = @MasterCompanyId
+					--	IsFromAircraft = ISNULL(@IsFromAircraft, 1)
+					--	AND ( @AircraftRegistryId IS NULL OR @AircraftRegistryId = 0
+					--		  OR (ISNULL(@IsFromAircraft,0) = 1 AND AircraftRegistryId = @AircraftRegistryId)
+					--		  OR (ISNULL(@IsFromAircraft,0) = 0 AND EngineRegistryId   = @AircraftRegistryId)
+					--		 )
+					----(@AircraftRegistryId IS NULL OR @AircraftRegistryId = 0 OR AircraftRegistryId = @AircraftRegistryId)
+					--AND MasterCompanyId = @MasterCompanyId
+					 MasterCompanyId = @MasterCompanyId
+					  AND (
+							@AircraftRegistryId IS NULL OR @AircraftRegistryId = 0
+							OR ( ISNULL(@IsFromAircraft,0) = 1
+								 AND (
+									   ( AircraftRegistryId = @AircraftRegistryId
+										 AND ISNULL(IsFromAircraft,0) = 1 )
+									   OR ( ISNULL(IsFromAircraft,0) = 0
+											AND EngineRegistryId IS NOT NULL
+											AND EXISTS (
+												 SELECT 1
+												 FROM dbo.AircraftRegistryHeader ARH2 WITH (NOLOCK)
+												 CROSS APPLY STRING_SPLIT(ARH2.EngineRegistryIds, ',') s
+												 WHERE ARH2.AircraftRegistryId = @AircraftRegistryId
+												   AND ARH2.MasterCompanyId = @MasterCompanyId
+												   AND TRY_CONVERT(BIGINT, LTRIM(RTRIM(s.value))) = EngineRegistryId
+											   ) )
+									 )
+							   )
+
+							OR ( ISNULL(@IsFromAircraft,0) = 0
+								 AND ISNULL(IsFromAircraft,0) = 0
+								 AND EngineRegistryId = @AircraftRegistryId )
+						  )
 			) LS
 			OUTER APPLY (SELECT TOP 1 WOP_inner.WorkOrderId,WOP_inner.ID AS WOPartNumberId
 				FROM dbo.WorkOrderPartNumber WOP_inner WITH (NOLOCK)
@@ -207,13 +232,59 @@ BEGIN
 			) AS WOP
 			LEFT JOIN dbo.WorkOrder WO WITH (NOLOCK) ON WO.WorkOrderId = WOP.WorkOrderId
             WHERE 
-				AIPD.IsFromAircraft = ISNULL(@IsFromAircraft, 1)
-						AND ( @AircraftRegistryId IS NULL OR @AircraftRegistryId = 0
-							  OR (ISNULL(@IsFromAircraft,0) = 1 AND AIPD.AircraftRegistryId = @AircraftRegistryId)
-							  OR (ISNULL(@IsFromAircraft,0) = 0 AND AIPD.EngineRegistryId   = @AircraftRegistryId) )
-			--(@AircraftRegistryId IS NULL OR @AircraftRegistryId = 0 OR AIPD.AircraftRegistryId = @AircraftRegistryId)
-			AND AIPD.MasterCompanyId = @MasterCompanyId
-         AND ISNULL(IM.IsNonStock,0) = 0 ), ResultCount AS(SELECT COUNT(AircraftInstalledPartDetailsId) AS totalItems FROM Result)
+			--	AIPD.IsFromAircraft = ISNULL(@IsFromAircraft, 1)
+			--			AND ( @AircraftRegistryId IS NULL OR @AircraftRegistryId = 0
+			--				  OR (ISNULL(@IsFromAircraft,0) = 1 AND AIPD.AircraftRegistryId = @AircraftRegistryId)
+			--				  OR (ISNULL(@IsFromAircraft,0) = 0 AND AIPD.EngineRegistryId   = @AircraftRegistryId) )
+			----(@AircraftRegistryId IS NULL OR @AircraftRegistryId = 0 OR AIPD.AircraftRegistryId = @AircraftRegistryId)
+			--AND AIPD.MasterCompanyId = @MasterCompanyId
+			       AIPD.MasterCompanyId = @MasterCompanyId
+					  AND (
+							@AircraftRegistryId IS NULL OR @AircraftRegistryId = 0
+							OR ( ISNULL(@IsFromAircraft,0) = 1
+								 AND (
+									   ( AIPD.AircraftRegistryId = @AircraftRegistryId
+										 AND ISNULL(AIPD.IsFromAircraft,0) = 1 )
+									   OR ( ISNULL(AIPD.IsFromAircraft,0) = 0
+											AND AIPD.EngineRegistryId IS NOT NULL
+											AND EXISTS (
+												 SELECT 1
+												 FROM dbo.AircraftRegistryHeader ARH2 WITH (NOLOCK)
+												 CROSS APPLY STRING_SPLIT(ARH2.EngineRegistryIds, ',') s
+												 WHERE ARH2.AircraftRegistryId = @AircraftRegistryId
+												   AND ARH2.MasterCompanyId = @MasterCompanyId
+												   AND TRY_CONVERT(BIGINT, LTRIM(RTRIM(s.value))) = AIPD.EngineRegistryId
+											   ) )
+									 )
+							   )
+
+							OR ( ISNULL(@IsFromAircraft,0) = 0
+								 AND ISNULL(AIPD.IsFromAircraft,0) = 0
+								 AND AIPD.EngineRegistryId = @AircraftRegistryId )
+						  )
+			--AIPD.MasterCompanyId = @MasterCompanyId
+			--	  AND (
+			--			@AircraftRegistryId IS NULL OR @AircraftRegistryId = 0
+
+			--			-- AIRCRAFT MODE (=1): the aircraft's own program + all its engines' programs
+			--			OR ( ISNULL(@IsFromAircraft,0) = 1
+			--				 AND (
+			--					   AIPD.AircraftRegistryId = @AircraftRegistryId
+			--					   OR AIPD.EngineRegistryId IN (
+			--							SELECT TRY_CONVERT(BIGINT, LTRIM(RTRIM(s.value)))
+			--							FROM dbo.AircraftRegistryHeader ARH2 WITH (NOLOCK)
+			--							CROSS APPLY STRING_SPLIT(ARH2.EngineRegistryIds, ',') s
+			--							WHERE ARH2.AircraftRegistryId = @AircraftRegistryId
+			--							  AND ARH2.MasterCompanyId = @MasterCompanyId
+			--							  AND ISNULL(s.value,'') <> ''
+			--						  )
+			--					 )
+			--			   )
+
+			--			-- ENGINE MODE (0/NULL): only the selected engine's program
+			--			OR ( ISNULL(@IsFromAircraft,0) = 0 AND AIPD.EngineRegistryId = @AircraftRegistryId )
+			--		  )
+        ), ResultCount AS(SELECT COUNT(AircraftInstalledPartDetailsId) AS totalItems FROM Result)
 			SELECT * INTO #TempResult FROM  Result
 			 WHERE ((@GlobalFilter <>'' AND ((AircraftRegistryNumber LIKE '%' +@GlobalFilter+'%') OR
 					(MakeType LIKE '%' +@GlobalFilter+'%') OR

@@ -264,11 +264,11 @@ SELECT @PurchaseUOMId = PurchaseUnitOfMeasureId, @PartNumber = partnumber, @IsPM
 		 
 		 IF(ISNULL(@IsFromAircraft,0) = 1)
 		 BEGIN
-			  UPDATE [dbo].[AircraftRegistryHeader] SET StockLineId = @StockLineId WHERE [AircraftRegistryId] = @AircraftRegistryId;
+			  UPDATE [dbo].[AircraftRegistryHeader] SET [StockLineId] = @StockLineId WHERE [AircraftRegistryId] = @AircraftRegistryId;
 		 END
 		 ELSE
 		 BEGIN
-			  UPDATE [dbo].[EngineRegistryHeader] SET StockLineId = @StockLineId WHERE [EngineRegistryId] = @AircraftRegistryId;
+			  UPDATE [dbo].[EngineRegistryHeader] SET [StockLineId] = @StockLineId,[EngineName] = @PartNumber WHERE [EngineRegistryId] = @AircraftRegistryId;
 		 END
 		 
 	 

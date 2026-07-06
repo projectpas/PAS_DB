@@ -22,9 +22,9 @@
 	4    22/06/2026   Amit Ghediya		   Adding TTSN H/M & TCSN H/M [PN-16533]
 	5    02/06/2026   Abhishek Jirawla	   Adding CustomerId and CustomerName [PN-16679]
 	6    04/06/2026   Amit Ghediya		   Adding Header data in History module [PN-16581]
-	7    01/07/2026   Amit Ghediya		   Update for Engine data [PN-17075]
+	7    01/07/2026   Amit Ghediya		   Update for Engine data  [PN-17075]
 **************************************************************/
-CREATE   PROCEDURE [dbo].[USP_CreateAircraftRegistryHeader]
+create     PROCEDURE [dbo].[USP_CreateAircraftRegistryHeader]
     @tbl_AircraftRegistryHeaderType dbo.AircraftRegistryTableType READONLY
 AS
 BEGIN
@@ -162,7 +162,7 @@ BEGIN
                 AR.UpdatedBy = T.UpdatedBy,
                 AR.UpdatedDate = GETUTCDATE(),
 				AR.[Description] = T.[Description],
-				AR.[EngineRegistryId] = T.[EngineRegistryId]
+				AR.[EngineRegistryIds] = T.[EngineRegistryIds]
             FROM dbo.[AircraftRegistryHeader] AR
             INNER JOIN @tbl_AircraftRegistryHeaderType T ON AR.AircraftRegistryId = T.AircraftRegistryId
             WHERE T.AircraftRegistryId IS NOT NULL;
@@ -259,7 +259,7 @@ BEGIN
                 UpdatedDate,
 			    AircraftRegistryNumber,
 				[Description],
-				[EngineRegistryId]
+				[EngineRegistryIds]
             )
             SELECT
                 T.MakeTypeId,
@@ -296,7 +296,7 @@ BEGIN
                 GETUTCDATE(),
 			    @AircraftRegistryNum,
 				T.[Description],
-				T.[EngineRegistryId]
+				T.[EngineRegistryIds]
             FROM @tbl_AircraftRegistryHeaderType T
 
 			SET @AircraftRegistryId = SCOPE_IDENTITY();

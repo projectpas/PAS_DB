@@ -69,11 +69,11 @@ CREATE  PROCEDURE [dbo].[USP_GetAircraftMaintenanceList]
     @MtcCategory			 VARCHAR(256) = NULL,
     @WoNumber				 VARCHAR(256) = NULL,
 	@LastMtced				 DATETIME     = NULL,
-
 	@LastInspectedDate		 DATETIME     = NULL,
 	@Description			 VARCHAR(256) = NULL,
 	@LastinspectedBy		 VARCHAR(256) = NULL,
-	@IsFromAircraft          BIT          = NULL
+	@IsFromAircraft          BIT          = NULL,
+	@SequenceNo				 BIGINT       = NULL
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -84,15 +84,19 @@ BEGIN
         WITH CTE AS
         (
             SELECT
-                AMP.ProgramId,AMP.AircraftRegistryId,ARH.AircraftRegistryNumber,AMP.VersionNumber,AMP.MaintenanceType, AMP.MaintenanceTypeId,AMP.NextScheduledMaintenance,
+                AMP.ProgramId,AMP.AircraftRegistryId,AMP.EngineRegistryId,ARH.AircraftRegistryNumber,AMP.VersionNumber,AMP.MaintenanceType, AMP.MaintenanceTypeId,AMP.NextScheduledMaintenance,
 				AMP.TemplateId AS TemplateId,
                 WF.WorkOrderNumber AS TemplateIdNumber,AMP.TemplateVersionNumber,
-                CASE WHEN ISNULL(@IsFromAircraft,0) = 1 THEN ARH.TailNum ELSE ERH.TailNum END AS TailNumber,
-                CASE WHEN ISNULL(@IsFromAircraft,0) = 1 THEN ARH.MakeType ELSE ERH.MakeType END AS AircraftMake,
-               -- ARH.AircraftModel,
-			    CASE WHEN ISNULL(@IsFromAircraft,0) = 1 THEN ARH.AircraftModel ELSE ERH.EngineModel END AS AircraftModel,
-                --ARH.SerialNum AS SerialNumber,
-				CASE WHEN ISNULL(@IsFromAircraft,0) = 1 THEN ARH.SerialNum ELSE ERH.SerialNum END AS SerialNumber,
+    --            CASE WHEN ISNULL(@IsFromAircraft,0) = 1 THEN ARH.TailNum ELSE ERH.TailNum END AS TailNumber,
+    --            CASE WHEN ISNULL(@IsFromAircraft,0) = 1 THEN ARH.MakeType ELSE ERH.MakeType END AS AircraftMake,
+			 --   CASE WHEN ISNULL(@IsFromAircraft,0) = 1 THEN ARH.AircraftModel ELSE ERH.EngineModel END AS AircraftModel,
+				--CASE WHEN ISNULL(@IsFromAircraft,0) = 1 THEN ARH.SerialNum ELSE ERH.SerialNum END AS SerialNumber,
+
+				CASE WHEN ISNULL(AMP.IsFromAircraft,0) = 1 THEN ARH.TailNum ELSE ERH.TailNum END AS TailNumber,
+                CASE WHEN ISNULL(AMP.IsFromAircraft,0) = 1 THEN ARH.MakeType ELSE ERH.MakeType END AS AircraftMake,
+			    CASE WHEN ISNULL(AMP.IsFromAircraft,0) = 1 THEN ARH.AircraftModel ELSE ERH.EngineModel END AS AircraftModel,
+				CASE WHEN ISNULL(AMP.IsFromAircraft,0) = 1 THEN ARH.SerialNum ELSE ERH.SerialNum END AS SerialNumber,
+
                 MC.[Name] AS MaintenanceClassName,
                 AMP.FlightHoursLimitHours,
                 AMP.FlightHoursLimitMinutes,
@@ -131,8 +135,7 @@ BEGIN
                 AMP.MtcCategoryId,
                 LWO.WorkOrderNum,
                 LWO.WorkOrderId ,
-                --ARH.StockLineId,	
-				CASE WHEN ISNULL(@IsFromAircraft,0) = 1 THEN ARH.StockLineId ELSE ERH.StockLineId END AS StockLineId,
+				ISNULL(ARH.StockLineId, ERH.StockLineId) AS StockLineId,
                 CASE WHEN STK.[IsCustomerStock] = 1 THEN 'Yes' ELSE 'No' END AS [IsCustomerStock], 
                 ISNULL(STK.[QuantityAvailable],0) [QuantityAvailable],
                 ISNULL(STK.[QuantityOnHand],0) [QuantityOnHand],
@@ -142,10 +145,13 @@ BEGIN
 				AMP.[Description],
 				EMP.EmployeeId AS LastinspectedById,
 				EMP.EmployeeName AS LastinspectedBy,
+				AMP.SequenceNo,
+				AMP.IsFromAircraft,
                 COUNT(1) OVER () AS TotalRecords
             FROM [dbo].[AircraftMaintenanceProgram] AMP WITH (NOLOCK)
-            LEFT JOIN [dbo].[AircraftRegistryHeader] ARH WITH (NOLOCK) ON ISNULL(@IsFromAircraft,0) = 1 AND AMP.AircraftRegistryId = ARH.AircraftRegistryId  AND ARH.MasterCompanyId = @MasterCompanyId 
-			LEFT JOIN [dbo].[EngineRegistryHeader] ERH WITH (NOLOCK) ON ISNULL(@IsFromAircraft,0) = 0 AND AMP.AircraftRegistryId = ERH.EngineRegistryId  AND ERH.MasterCompanyId = @MasterCompanyId 
+            LEFT JOIN [dbo].[AircraftRegistryHeader] ARH WITH (NOLOCK) ON AMP.AircraftRegistryId = ARH.AircraftRegistryId  AND ARH.MasterCompanyId = @MasterCompanyId 
+			LEFT JOIN [dbo].[EngineRegistryHeader] ERH WITH (NOLOCK) ON AMP.EngineRegistryId = ERH.EngineRegistryId  AND ERH.MasterCompanyId = @MasterCompanyId 
+			--LEFT JOIN [dbo].[EngineRegistryHeader] ERH WITH (NOLOCK) ON ISNULL(@IsFromAircraft,0) = 0 AND AMP.EngineRegistryId = ERH.EngineRegistryId AND ERH.MasterCompanyId = @MasterCompanyId
             LEFT JOIN [dbo].[MaintenanceClass] MC WITH (NOLOCK)  ON AMP.MaintenanceClassId = MC.MaintenanceClassId
             LEFT JOIN [dbo].[Workflow] WF WITH (NOLOCK)  ON AMP.TemplateId = WF.WorkflowId AND WF.TemplateType = @ACTemplateType
             LEFT JOIN [dbo].[MaintenanceCategory] mtc WITH (NOLOCK) ON AMP.[MtcCategoryId] = mtc.[MtcCategoryId]
@@ -159,15 +165,31 @@ BEGIN
                     JOIN [dbo].[WorkOrder] WO WITH (NOLOCK) ON WOP.[WorkOrderId] = WO.[WorkOrderId]
                 ) LWO ON LWO.[ProgramId] = AMP.[ProgramId] AND LWO.rn = 1
             WHERE
-			 AMP.IsFromAircraft = ISNULL(@IsFromAircraft, 1)
-			  AND (
-					@AircraftRegistryId IS NULL OR @AircraftRegistryId = 0
-					OR (ISNULL(@IsFromAircraft,0) = 1 AND AMP.AircraftRegistryId = @AircraftRegistryId)
-					OR (ISNULL(@IsFromAircraft,0) = 0 AND AMP.EngineRegistryId   = @AircraftRegistryId)
-				  )
-			--(@AircraftRegistryId IS NULL OR @AircraftRegistryId = 0 OR AMP.AircraftRegistryId = @AircraftRegistryId) --AMP.AircraftRegistryId = @AircraftRegistryId  
-			AND AMP.MasterCompanyId = @MasterCompanyId  AND (@IsDeleted IS NULL OR AMP.IsDeleted = @IsDeleted)
-                -- Global Filter
+				AMP.MasterCompanyId = @MasterCompanyId
+				  AND (@IsDeleted IS NULL OR AMP.IsDeleted = @IsDeleted)
+				  AND (
+						@AircraftRegistryId IS NULL OR @AircraftRegistryId = 0
+						OR ( ISNULL(@IsFromAircraft,0) = 1
+							 AND (
+								   ( AMP.AircraftRegistryId = @AircraftRegistryId
+									 AND ISNULL(AMP.IsFromAircraft,0) = 1 )
+								   OR ( ISNULL(AMP.IsFromAircraft,0) = 0
+										AND AMP.EngineRegistryId IS NOT NULL
+										AND EXISTS (
+											 SELECT 1
+											 FROM dbo.AircraftRegistryHeader ARH2 WITH (NOLOCK)
+											 CROSS APPLY STRING_SPLIT(ARH2.EngineRegistryIds, ',') s
+											 WHERE ARH2.AircraftRegistryId = @AircraftRegistryId
+											   AND ARH2.MasterCompanyId = @MasterCompanyId
+											   AND TRY_CONVERT(BIGINT, LTRIM(RTRIM(s.value))) = AMP.EngineRegistryId
+										   ) )
+								 )
+						   )
+
+						OR ( ISNULL(@IsFromAircraft,0) = 0
+							 AND ISNULL(AMP.IsFromAircraft,0) = 0
+							 AND AMP.EngineRegistryId = @AircraftRegistryId )
+					  )
                 AND ( @GlobalFilter IS NULL OR AMP.TailNumber       LIKE '%' + @GlobalFilter + '%' OR CAST(AMP.ProgramId AS VARCHAR(50))   LIKE '%' + @GlobalFilter + '%' OR
                     AMP.MaintenanceType  LIKE '%' + @GlobalFilter + '%'
                 )
@@ -209,7 +231,8 @@ BEGIN
                 AND (ISNULL(@WorksheetNumber,'') ='' OR WSH.WorksheetNumber LIKE '%' + @WorksheetNumber + '%')
                 AND (ISNULL(@MtcCategory,'') ='' OR mtc.MtcCategory LIKE '%' + @MtcCategory + '%')
                 AND (ISNULL(@WoNumber,'') ='' OR LWO.WorkOrderNum LIKE '%' + @WoNumber + '%')
-
+				AND (ISNULL(@Description,'') ='' OR AMP.[Description] LIKE '%' + @Description + '%')
+				AND (@SequenceNo IS NULL OR CAST(AMP.SequenceNo AS VARCHAR(50)) LIKE '%' + CAST(@SequenceNo AS VARCHAR(50)) + '%')
         )
 
         SELECT *
@@ -277,11 +300,14 @@ BEGIN
             CASE WHEN @SortColumn = 'MtcCategory'       AND @SortOrder = 'DESC' THEN MtcCategory END DESC,
             CASE WHEN @SortColumn = 'woNumber'       AND @SortOrder = 'ASC'  THEN WorkOrderNum END ASC,
             CASE WHEN @SortColumn = 'woNumber'       AND @SortOrder = 'DESC' THEN WorkOrderNum END DESC,
-
 			CASE WHEN @SortColumn = 'LastInspectedDate'       AND @SortOrder = 'ASC'  THEN LastInspectedDate END ASC,
             CASE WHEN @SortColumn = 'LastInspectedDate'       AND @SortOrder = 'DESC' THEN LastInspectedDate END DESC,
 			CASE WHEN @SortColumn = 'LastinspectedBy'       AND @SortOrder = 'ASC'  THEN LastinspectedBy END ASC,
             CASE WHEN @SortColumn = 'LastinspectedBy'       AND @SortOrder = 'DESC' THEN LastinspectedBy END DESC,
+			CASE WHEN @SortColumn = 'Description'       AND @SortOrder = 'ASC'  THEN Description END ASC,
+            CASE WHEN @SortColumn = 'Description'       AND @SortOrder = 'DESC' THEN Description END DESC,
+			CASE WHEN @SortColumn = 'SequenceNo'        AND @SortOrder = 'ASC'  THEN SequenceNo END ASC,
+            CASE WHEN @SortColumn = 'SequenceNo'        AND @SortOrder = 'DESC' THEN SequenceNo END DESC,
 
             ProgramId DESC
 

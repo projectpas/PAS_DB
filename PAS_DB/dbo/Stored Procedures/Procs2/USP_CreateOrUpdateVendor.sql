@@ -13,9 +13,9 @@
 ** 2     08-APR-2026   Hemant Saliya     Corrected to Get customer type Id based on name  
 ** 3     22-APR-2026   Moin Bloch        Moved to API Due TO Xero Accounting Changes PN-16009
 ** 4     09-JUNE-2026  Priyansh Patel    Fixed the issue with the @ExistingCustomerId [PN-16747]
-** 5     25-June-2026  Sahdev Saliya     Added Notes [PN-16968]
-** 6     26-June-2026  Sahdev Saliya     Fixed the issue with the @Notes [PN-16968]
-
+** 5     24-June-2026  Sahdev Saliya     Added Notes [PN-16968]
+** 6     26-June-2026  Sahdev Saliya     Fixed the issue with the @Notes [PN-17015]
+** 7     02-July-2026  Sahdev Saliya     Added Resale Number [PN-17018]
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_CreateOrUpdateVendor]
     @VendorId BIGINT OUTPUT,
@@ -67,7 +67,8 @@ CREATE   PROCEDURE [dbo].[USP_CreateOrUpdateVendor]
 	@CurrencyId INT = NULL,
 	@DiscountId BIGINT = NULL,
 	@Is1099Required BIT,
-	@Notes NVARCHAR(MAX) = NULL
+	@Notes NVARCHAR(MAX) = NULL,
+	@ResaleNumber VARCHAR(200) = NULL
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -120,7 +121,7 @@ BEGIN
 			IsAllowNettingAPAR, IsTradeRestricted, TradeRestrictedMemo, IsTrackScoreCard,
 			IsVendorOnHold, IsUpdated, IsWarningRestriction,
 			Is1099Required, EDI, EDIDescription, AeroExchange, AeroExchangeDescription,
-			CreditLimit, CurrencyId, DiscountId, IsAllow, IsWarning, IsRestrict, Notes
+			CreditLimit, CurrencyId, DiscountId, IsAllow, IsWarning, IsRestrict, Notes, ResaleNumber
 		)
 		VALUES (
 			@VendorName, @LicenseNumber, @VendorPhone, @VendorPhoneExt, @VendorTypeId, @IsPreferredVendor,
@@ -131,7 +132,7 @@ BEGIN
 			@IsAllowNettingAPAR, @IsTradeRestricted, @TradeRestrictedMemo, @IsTrackScoreCard,
 			@IsVendorOnHold, 1, @IsWarningRestriction,
 			@Is1099Required, @EDI, @EDIDescription, @AeroExchange, @AeroExchangeDescription,
-			@CreditLimit, @CurrencyId, @DiscountId, 1, 0, 0, @Notes
+			@CreditLimit, @CurrencyId, @DiscountId, 1, 0, 0, @Notes, @ResaleNumber
 		);
 
         SET @VendorId = SCOPE_IDENTITY();
@@ -251,7 +252,8 @@ BEGIN
 										IsUpdated,
 										LastSyncDate,
 										Memo,
-										SyncToken
+										SyncToken,
+										ResaleNumber
 									)
 									VALUES (
 										@VendorTypeId,
@@ -297,7 +299,8 @@ BEGIN
 										NULL, -- IsUpdated default true
 										NULL, -- LastSyncDate
 										@Notes, -- Memo
-										NULL  -- SyncToken
+										NULL,  -- SyncToken
+										@ResaleNumber -- ResaleNumber
 									);
 
                 SET @RelatedCustomerId = SCOPE_IDENTITY();

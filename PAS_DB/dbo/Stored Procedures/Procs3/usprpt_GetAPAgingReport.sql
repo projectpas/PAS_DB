@@ -26,6 +26,7 @@
 	10   12-MAR-2026    Amit Ghediya       Updated for get isactive records (PN-15588)
 	11   04-MAY-2026    Hemant Saliya      Re-Structure the SP to change the days calculation
 	12   25-JUN-2026    Moin Bloch         Added PO Number PN-16991
+	13   02-JUL-2026    Moin Bloch         Fix For Distinct PO Number PN-17059
 
   --[dbo].[usprpt_GetAPAgingReport] 1,'2026-01-27',3654,2,null,null
 ***************************************************************************************************/  
@@ -821,7 +822,7 @@ BEGIN
 				/* ── DaysPastDue: days since DueDate ── */
 				CASE WHEN DATEDIFF(DAY, rrh.DueDate, GETUTCDATE()) > 0
 					 THEN DATEDIFF(DAY, rrh.DueDate, GETUTCDATE()) ELSE 0 END AS DaysPastDue,
-				ISNULL((SELECT STRING_AGG(po.POReference, ', ') FROM [dbo].[ReceivingReconciliationDetails] po WITH (NOLOCK) WHERE po.[ReceivingReconciliationId] = rrh.[ReceivingReconciliationId] AND po.[Type] > 0), '') AS poReference				
+			    ISNULL((SELECT STRING_AGG(d.POReference, ', ')	FROM (SELECT DISTINCT po.POReference FROM [dbo].[ReceivingReconciliationDetails] po WITH (NOLOCK) WHERE po.[ReceivingReconciliationId] = rrh.[ReceivingReconciliationId] AND po.[Type] > 0) d), '') AS poReference			
 			INTO #tempReceivingReconciliationElse
 			FROM dbo.ReceivingReconciliationHeader      rrh  WITH (NOLOCK)
 			INNER JOIN dbo.ReceivingReconciliationDetails rrd  WITH (NOLOCK) ON rrd.ReceivingReconciliationId = rrh.ReceivingReconciliationId AND rrd.[Type] > 0

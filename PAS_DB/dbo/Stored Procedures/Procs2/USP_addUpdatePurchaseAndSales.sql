@@ -16,7 +16,7 @@
  ** PR   Date           Author		    Change Description            
  ** --   --------       -------		  --------------------------------          
     1    18-Nov-2025  Bhargav Saliya     Created
-     
+    2    06-Jul-2026  Ayushi Patel       [PN-17115]Added validation to check existing active/deleted Purchase & Sales records before update and return a message. 
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[USP_addUpdatePurchaseAndSales]
  @ItemMasterPurchaseSaleType [PurchaseSalesType] readonly,
@@ -112,6 +112,25 @@ BEGIN
 
 		IF @ItemMasterPurchaseSaleId > 0
 		BEGIN
+
+			DECLARE @ExistingIsDeleted BIT;
+
+			SELECT TOP (1) @ExistingIsDeleted = IsDeleted FROM dbo.ItemMasterPurchaseSale WITH (NOLOCK)
+			WHERE ItemMasterId = @ItemMasterId
+			  AND ConditionId = @ConditionId
+			  AND MasterCompanyId = @MasterCompanyId
+			  AND ItemMasterPurchaseSaleId <> @ItemMasterPurchaseSaleId;
+
+			IF @ExistingIsDeleted IS NOT NULL
+			BEGIN
+				IF @ExistingIsDeleted = 1
+					SET @RetMessage = 'A record with this Condition already exists and is deleted. Please restore the existing record.';
+				ELSE
+					SET @RetMessage = 'A record with this Condition already exists.';
+
+				RETURN;
+			END
+
 			UPDATE IMP
 			SET 
 				IMP.PartNumber = PST.PartNumber,
@@ -209,7 +228,14 @@ BEGIN
 	EXEC dbo.UpdateItemMasterPurchaseSaleDetails @ItemMasterId
 
  END TRY
- BEGIN CATCH      
+ BEGIN CATCH  
+ SELECT
+    ERROR_NUMBER() AS ErrorNumber,
+    ERROR_STATE() AS ErrorState,
+    ERROR_SEVERITY() AS ErrorSeverity,
+    ERROR_PROCEDURE() AS ErrorProcedure,
+    ERROR_LINE() AS ErrorLine,
+    ERROR_MESSAGE() AS ErrorMessage;
   IF @@trancount > 0
   PRINT 'ROLLBACK'
   ROLLBACK TRAN;

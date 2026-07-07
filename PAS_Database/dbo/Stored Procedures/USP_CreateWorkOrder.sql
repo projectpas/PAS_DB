@@ -34,6 +34,7 @@
 	20   21/05/2026   Moin Bloch        Added  [MtcCategoryId] PN-16469
 	21   22/05/2026   Moin Bloch        Added  [AircraftRegistryId],[ProgramId] PN-16469
 	22   27/05/2026   Ayushi Patel      [PN-16476]added CSN, CSO, TSN, TSO in WorkOrderPartNumber from StockLine TimeLife for internal workorder
+	23   06/07/2026   Moin Bloch        Fix For Credit Terms [PN-17098]
 --   EXEC [USP_CreateWorkOrder] 
 **************************************************************/
 CREATE     PROCEDURE [dbo].[USP_CreateWorkOrder]

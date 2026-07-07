@@ -19,7 +19,8 @@
 	4    22/05/2025  Devendra Shekh		checking IsParent for @TotalPartCost
 	5    12 Nov 2025 RAJESH GAMI        Make changes for PAR company (BillTo|ShipTo Address)  
 	6    19-12-2025  Ayushi Patel		removed the condition from email that we applied for 'PAR'
-	4    01/05/2026  Ayushi Patel       [PN-16030] Added MasterCompanyCode/NULL parameter in ValidatePDFAddress calls.
+	7    01/05/2026  Ayushi Patel       [PN-16030] Added MasterCompanyCode/NULL parameter in ValidatePDFAddress calls.
+	8    06/07/2026  Bhargav Saliya     [PN-17125] Handle Null for Terms.
 -- EXEC RPT_PrintPurchaseOrderDataById 7881
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[RPT_PrintPurchaseOrderDataById]
@@ -88,7 +89,7 @@ BEGIN
 			   PO.[Status] AS 'Status',
 			   PO.[Priority] AS 'Description',
 			   PO.[CreditLimit] AS' CreditLimit',
-			   PO.[Terms] AS 'CreditTerm',
+			   ISNULL(PO.[Terms],'') AS 'CreditTerm',
 			   PO.[Resale] AS 'Resale',
 			   PO.[Notes] AS 'Notes',
 			   PO.[POMemo] AS 'POMemo',

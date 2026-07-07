@@ -45,6 +45,7 @@
 	38   05-JUN-2026        Ayushi Patel            Added ParentTable insted of ParentTableRereneceTypeId for IsModuleTableColumn = 0 to support dynamic parent table insert functionality for upload module.
 	39   19-JUN-2026		Moin Bloch			    Fixed Error Log Error For Address PN-16924
 	40   22-JUN-2026		Ayushi Patel			Set The Default GLAccountID For ItemMaster Module 
+	41	 02-JULY-2026       Ayushi Patel            [PN-16862]Generate vendorCode and CustomerCode dynamically 
 exec USP_SaveCommonUploadData_ByModuleId @ModuleId=4,@UserName=N'VICTOR ADMAS',@MasterCompanyId=1, @EmployeeId = 236;
 **************************************************************/
 CREATE PROCEDURE [dbo].[USP_SaveCommonUploadData_ByModuleId]
@@ -945,6 +946,49 @@ BEGIN
 			END
 			ELSE IF(@ModuleId = @CustomerModule)
 			BEGIN
+			/*************** Prefixes ***************/				
+
+				-- Declare variables
+				DECLARE @CustomerCodePrefix INT, @CustomerNum NVARCHAR(100);
+				DECLARE @cCodePrefix NVARCHAR(50), @cCodeSuffix NVARCHAR(50);
+				
+				SET @CurrentNo = 0;
+
+				-- Code Types Of CodePrefix	
+				SELECT @CustomerCodePrefix = [CodeTypeId] FROM [DBO].[CodeTypes] WITH(NOLOCK) WHERE [CodeType]='Customer';
+				SELECT TOP 1 @cCodePrefix = [CodePrefix], @cCodeSuffix = [CodeSufix] FROM [DBO].[CodePrefixes] WITH(NOLOCK) WHERE [IsActive] = 1 AND [IsDeleted] = 0 AND [CodeTypeId] = @CustomerCodePrefix AND [MasterCompanyId] = @MasterCompanyId;
+
+				IF (@cCodePrefix IS NOT NULL AND @cCodePrefix <> '')
+				BEGIN
+					SELECT @CurrentNo = ISNULL([CurrentNummber], 0) FROM [DBO].[CodePrefixes] WITH(NOLOCK) WHERE [CodePrefix] = @cCodePrefix AND [MasterCompanyId] = @MasterCompanyId;
+					IF (@CurrentNo > 0)
+					BEGIN
+						SET @CurrentNo = @CurrentNo + 1;
+
+						UPDATE [DBO].[CodePrefixes] 
+						SET [CurrentNummber] = @CurrentNo
+						WHERE [CodePrefix] = @cCodePrefix AND [MasterCompanyId] = @MasterCompanyId;
+					END
+					ELSE
+					BEGIN
+						SET @CurrentNo = (SELECT ISNULL([StartsFrom], 0) FROM [DBO].[CodePrefixes] WITH(NOLOCK) WHERE [CodePrefix] = @cCodePrefix AND [MasterCompanyId] = @MasterCompanyId) + 1;
+
+						UPDATE [DBO].[CodePrefixes]
+						SET [CurrentNummber] = @CurrentNo
+						WHERE [CodePrefix] = @cCodePrefix AND [MasterCompanyId] = @MasterCompanyId;
+					END
+
+					-- Generate Customer Number
+					SET @CustomerNum = (SELECT * FROM DBO.udfGenerateCodeNumberWithOutDash(@CurrentNo, ISNULL(@cCodePrefix,''),ISNULL(@cCodeSuffix, '')))
+				END
+				ELSE
+				BEGIN
+					-- Generate Customer Number
+
+					SET @CustomerNum = (SELECT * FROM DBO.udfGenerateCodeNumberWithOutDash(@CurrentNo, '',''))
+
+				END
+			/*****************End Prefixes*******************/
 				DECLARE @CustomerCode VARCHAR(120) = 'C-NEW';
 
 				--SET @RefFieldName += ' , CustomerCode,IsParent,AddressId,IsAddressForBilling,IsAddressForShipping,IsCustomerAlsoVendor,IsPBHCustomer,RestrictPMA,RestrictDER,
@@ -953,18 +997,61 @@ BEGIN
 
 				SET @RefFieldName += ' , CustomerCode,IsParent,AddressId,IsCustomerAlsoVendor,IsPBHCustomer,RestrictPMA,RestrictDER,
 				IsCRMCustomer,Ismiscellaneous,MasterCompanyId,CreatedBy, UpdatedBy'
-				SET @FieldValue += '''' + @CustomerCode + ''', 0, ' + CAST(@ParentModuleTableId AS VARCHAR(20)) + ', 0, 0, 1, 1, 0, 0, ';
+				SET @FieldValue += '''' + @CustomerNum + ''', 0, ' + CAST(@ParentModuleTableId AS VARCHAR(20)) + ', 0, 0, 1, 1, 0, 0, ';
 			END
 			ELSE IF(@ModuleId = @VendorModule)
 			BEGIN
-				DECLARE @VendorCode VARCHAR(120) = 'Creating';
+				/*************** Prefixes ***************/				
+
+				-- Declare variables
+				DECLARE @VendorCodePrefix INT, @VendorNum NVARCHAR(100);
+				DECLARE @vCodePrefix NVARCHAR(50), @vCodeSuffix NVARCHAR(50);
+				
+				SET @CurrentNo = 0;
+
+				-- Code Types Of CodePrefix	
+				SELECT @VendorCodePrefix = [CodeTypeId] FROM [DBO].[CodeTypes] WITH(NOLOCK) WHERE [CodeType]='Vendor';
+				SELECT TOP 1 @vCodePrefix = [CodePrefix], @vCodeSuffix = [CodeSufix] FROM [DBO].[CodePrefixes] WITH(NOLOCK) WHERE [IsActive] = 1 AND [IsDeleted] = 0 AND [CodeTypeId] = @VendorCodePrefix AND [MasterCompanyId] = @MasterCompanyId;
+
+				IF (@vCodePrefix IS NOT NULL AND @vCodePrefix <> '')
+				BEGIN
+					SELECT @CurrentNo = ISNULL([CurrentNummber], 0) FROM [DBO].[CodePrefixes] WITH(NOLOCK) WHERE [CodePrefix] = @vCodePrefix AND [MasterCompanyId] = @MasterCompanyId;
+					IF (@CurrentNo > 0)
+					BEGIN
+						SET @CurrentNo = @CurrentNo + 1;
+
+						UPDATE [DBO].[CodePrefixes] 
+						SET [CurrentNummber] = @CurrentNo
+						WHERE [CodePrefix] = @vCodePrefix AND [MasterCompanyId] = @MasterCompanyId;
+					END
+					ELSE
+					BEGIN
+						SET @CurrentNo = (SELECT ISNULL([StartsFrom], 0) FROM [DBO].[CodePrefixes] WITH(NOLOCK) WHERE [CodePrefix] = @vCodePrefix AND [MasterCompanyId] = @MasterCompanyId) + 1;
+
+						UPDATE [DBO].[CodePrefixes]
+						SET [CurrentNummber] = @CurrentNo
+						WHERE [CodePrefix] = @vCodePrefix AND [MasterCompanyId] = @MasterCompanyId;
+					END
+
+					-- Generate Vendor Number
+					SET @VendorNum = (SELECT * FROM DBO.udfGenerateCodeNumberWithOutDash(@CurrentNo, ISNULL(@vCodePrefix,''),ISNULL(@vCodeSuffix, '')))
+				END
+				ELSE
+				BEGIN
+					-- Generate Vendor Number
+
+					SET @VendorNum = (SELECT * FROM DBO.udfGenerateCodeNumberWithOutDash(@CurrentNo, '',''))
+
+				END
+			/*****************End Prefixes*******************/
+				--DECLARE @VendorCode VARCHAR(120) = 'Creating';
 				--SET @RefFieldName += ' , VendorCode,IsParent,AddressId,IsAddressForBilling,IsAddressForShipping,IsVendorAlsoCustomer,IsAllowNettingAPAR,IsPreferredVendor,IsCertified,
 				--VendorAudit,EDI,AeroExchange,Is1099Required,IsAllow,IsWarning,IsRestrict,IsWarningRestriction,MasterCompanyId,CreatedBy, UpdatedBy'
 				--SET @FieldValue += '''' + @VendorCode + ''', 0, ' + CAST(@ParentModuleTableId AS VARCHAR(20)) + ', 1, 1, 0, 0, 0, 0, 0, 0,0,0,1,0,0,0, ';
 
 				SET @RefFieldName += ' , VendorCode,IsParent,AddressId,IsVendorAlsoCustomer,IsAllowNettingAPAR,IsPreferredVendor,IsCertified,
 				VendorAudit,EDI,AeroExchange,Is1099Required,IsAllow,IsWarning,IsRestrict,IsWarningRestriction,MasterCompanyId,CreatedBy, UpdatedBy'
-				SET @FieldValue += '''' + @VendorCode + ''', 0, ' + CAST(@ParentModuleTableId AS VARCHAR(20)) + ', 0, 0, 0, 0, 0, 0,0,0,1,0,0,0, ';
+				SET @FieldValue += '''' + @VendorNum + ''', 0, ' + CAST(@ParentModuleTableId AS VARCHAR(20)) + ', 0, 0, 0, 0, 0, 0,0,0,1,0,0,0, ';
 			END
 			ELSE IF(@ModuleId = @SiteModule)
 			BEGIN

@@ -4585,6 +4585,7 @@
     <Build Include="dbo\Stored Procedures\USP_GetGenericWorkFlowTemplates.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetTasksByWorkflowIds.sql" />
     <Build Include="dbo\Stored Procedures\USP_AddTasksFromTemplatesToWorkOrder.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetWorkOrderTasksForTemplateCopy.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

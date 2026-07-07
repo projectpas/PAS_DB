@@ -40,6 +40,7 @@ BEGIN
             WH.SerialNum,
             WH.AFHours,
             WH.InspectionType,
+			WH.InspectionTypeId,
             WH.InspectionDate,
             WH.QualitySafetyDeptSignOutBy,
             WH.QualitySafetyDeptSignOutDate,
@@ -69,7 +70,9 @@ BEGIN
             WH.CreatedBy,
             WH.UpdatedBy,
             WH.CreatedDate,
-            WH.UpdatedDate
+            WH.UpdatedDate,
+			WH.IsFromAircraft,
+			WH.IsScheduled
         FROM [dbo].[WorksheetHeader] WH WITH (NOLOCK)
         WHERE WH.WorksheetHeaderId = @WorksheetHeaderId AND WH.MasterCompanyId =  @MasterCompanyId
           AND WH.IsDeleted = 0;

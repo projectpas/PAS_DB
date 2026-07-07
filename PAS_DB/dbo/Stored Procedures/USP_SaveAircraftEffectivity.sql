@@ -12,9 +12,10 @@
 ** 3    20/05/2026  Amit Ghediya    Removed Part Validation
 ** 4    29/05/2026  Amit Ghediya    Fixed Serial Range Insert
 ** 5    02/06/2026  Amit Ghediya    Fixed alphanumeric serial (no dash) range insert e.g. AC454245 -> AC454247 with allow duplicate for other pub.
+** 6    06/07/2026  Amit Ghediya    Added AcSection,ComponentSerialNum,ComponentToSerialNum [PN-17117]
 **************************************************************/
  
-CREATE PROCEDURE [dbo].[USP_SaveAircraftEffectivity]
+CREATE    PROCEDURE [dbo].[USP_SaveAircraftEffectivity]
     @tbl_AircraftEffectivityType dbo.AircraftEffectivityTableType READONLY
 AS
 BEGIN
@@ -56,6 +57,7 @@ BEGIN
         UPDATE AE
         SET
             AE.AircraftPublicationId = T.AircraftPublicationsId,
+			AE.ACPSectionId          = T.ACPSectionId,
             AE.MakeTypeId            = T.MakeTypeId,
             AE.AircraftModelId       = T.AircraftModelId,
             AE.AircraftSubModel      = T.AircraftSubModel,
@@ -63,6 +65,8 @@ BEGIN
             AE.ItemMasterId          = T.ItemMasterId,
             AE.PartNumber            = T.PartNumber,
             AE.PartDescription       = T.PartDescription,
+			AE.ComponentSerialNum    = T.ComponentSerialNum,
+			AE.ComponentToSerialNum  = T.ComponentToSerialNum,
             AE.Notes                 = T.Notes,
             AE.UpdatedBy             = T.UpdatedBy,
             AE.UpdatedDate           = GETUTCDATE()
@@ -101,14 +105,14 @@ BEGIN
  
             INSERT INTO dbo.AircraftEffectivity
             (
-                AircraftPublicationId, MakeTypeId, AircraftModelId, AircraftSubModel,
-                SerialNum, ItemMasterId, PartNumber, PartDescription, Notes,
+                AircraftPublicationId, ACPSectionId, MakeTypeId, AircraftModelId, AircraftSubModel,
+                SerialNum, ItemMasterId, PartNumber, PartDescription, ComponentSerialNum, ComponentToSerialNum, Notes,
                 MasterCompanyId, CreatedBy, UpdatedBy, CreatedDate, UpdatedDate,
                 IsActive, IsDeleted
             )
             SELECT
-                T.AircraftPublicationsId, T.MakeTypeId, T.AircraftModelId, T.AircraftSubModel,
-                @FromSerial, T.ItemMasterId, T.PartNumber, T.PartDescription, T.Notes,
+                T.AircraftPublicationsId, T.ACPSectionId, T.MakeTypeId, T.AircraftModelId, T.AircraftSubModel,
+                @FromSerial, T.ItemMasterId, T.PartNumber, T.PartDescription, ComponentSerialNum, ComponentToSerialNum, T.Notes,
                 T.MasterCompanyId, T.CreatedBy, T.UpdatedBy,
                 GETUTCDATE(), GETUTCDATE(), 1, 0
             FROM @tbl_AircraftEffectivityType T
@@ -242,13 +246,14 @@ BEGIN
  
                 INSERT INTO dbo.AircraftEffectivity
                 (
-                    AircraftPublicationId, MakeTypeId, AircraftModelId, AircraftSubModel,
-                    SerialNum, ItemMasterId, PartNumber, PartDescription, Notes,
+                    AircraftPublicationId, ACPSectionId, MakeTypeId, AircraftModelId, AircraftSubModel,
+                    SerialNum, ItemMasterId, PartNumber, PartDescription, ComponentSerialNum, ComponentToSerialNum, Notes,
                     MasterCompanyId, CreatedBy, UpdatedBy, CreatedDate, UpdatedDate,
                     IsActive, IsDeleted
                 )
                 SELECT
                     T.AircraftPublicationsId,
+					T.ACPSectionId,
                     T.MakeTypeId,
                     T.AircraftModelId,
                     T.AircraftSubModel,
@@ -266,6 +271,8 @@ BEGIN
                     T.ItemMasterId,
                     T.PartNumber,
                     T.PartDescription,
+					T.ComponentSerialNum, 
+					T.ComponentToSerialNum,
                     T.Notes,
                     T.MasterCompanyId,
                     T.CreatedBy,

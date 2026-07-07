@@ -19,7 +19,7 @@
 	2    26-07-2024			SAHDEV SALIYA		Set DistributionSetupAuditId Order by desc
 	3    17-09-2024			AMIT GHEDIYA		added AutoPost..
 	4    04-Mar-2025		Divyesh Kathiriya	Update CreatedDate and UpdateDate based on Employee time zone
-
+	5	 06/07/2026	        Moin Bloch          Modify (Added IsBypassAccounting Flag to bypass Accounting Entry PN-16871)
 	exec [USP_GetGLAllocationDetailsHistoryById] 16,1,226
 
 **************************************************************/ 
@@ -76,7 +76,8 @@ BEGIN
 					CASE WHEN Dt.CRDRType=1 THEN 'DR'  WHEN Dt.CRDRType=0 THEN 'CR' WHEN Dt.CRDRType=2 THEN 'DR/CR' ELSE '' END as 'CRDRTypeName',
 					Dt.GlAccountNumber,
 					Dt.GlAccountName,
-					Dt.IsAutoPost
+					Dt.IsAutoPost,
+					Dt.IsBypassAccounting
 				FROM DBO.DistributionSetupAudit DT  WITH(NOLOCK)
 				LEFT JOIN DBO.JournalType JT WITH (NOLOCK) ON JT.ID = DT.JournalTypeId
 				WHERE DT.JournalTypeId = @journalTypeID and Dt.MasterCompanyId = @MasterCompanyId

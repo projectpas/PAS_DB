@@ -20,6 +20,8 @@
 	8    23/07/2025   Rajesh Gami		Remove Transaction
 	9    27/03/2026   Moin Bloch	    Rename Internal To Internal Repair   PN-15850
 	10   09/06/2026   Rajesh Gami	    [IsStandardInvoicePosted] = 1 Update for the proforma invoice while Standard Invoice being INVOICED   PN-16775
+	11   23/06/2026   Moin Bloch	    Moved TO Common SP PN-16871
+
     EXEC [dbo].[USP_UpdateCommonBillingInvoicingStatus] 10157,8998,0,3,15,'ADMIN User',1
 
 **********************/ 
@@ -202,6 +204,10 @@ BEGIN
 					  AND ([GlAccountId] IS NULL OR [GlAccountId] = 0)
 					  AND ISNULL([IsManualText], 0) = 0;
 
+				    DECLARE @WOBatchTriggerType BatchTriggerWorkOrderType;
+					DECLARE @IWOBatchTriggerType BatchTriggerWorkOrderType;
+
+
 					IF(@DistributionSetupId > 0)
 					BEGIN
 						SET @ValidBatchDetails = 0
@@ -214,16 +220,28 @@ BEGIN
 							EXEC [dbo].[USP_GetSubLadgerGLAccountRestriction] @DistributionCode, @MasterCompanyId, 0, @UpdatedBy, @IsRestrict = @IsRestrict OUTPUT, @IsAccountByPass = @IsAccountByPass OUTPUT
 							IF(@IsAccountByPass <> 1)
 							BEGIN
-								EXEC [dbo].[USP_BatchTriggerBasedonDistributionNew] @DistributionMasterId,@ReferenceId,0,0,@BillingInvoicingId,0,0,'',1,0,'WO',@MasterCompanyId,@UpdatedBy;
+								INSERT INTO @WOBatchTriggerType VALUES (@DistributionMasterId,@ReferenceId,0,0,@BillingInvoicingId,0,0,'',1,1,'WO',@MasterCompanyId,@UpdatedBy)
+					
+								IF NOT EXISTS(SELECT 1 FROM dbo.DistributionSetup WITH(NOLOCK) WHERE DistributionMasterId =@DistributionMasterId AND MasterCompanyId=@MasterCompanyId AND ISNULL(GlAccountId,0) = 0 AND ISNULL([IsManualText],0) = 0)
+								BEGIN
+									EXEC [USP_BatchTriggerBasedonDistributionForWO] @WOBatchTriggerType;
+								END								
+								--EXEC [dbo].[USP_BatchTriggerBasedonDistributionNew] @DistributionMasterId,@ReferenceId,0,0,@BillingInvoicingId,0,0,'',1,0,'WO',@MasterCompanyId,@UpdatedBy;
 							END
 						END
-						-- WO Customer
+						-- WO Internal Customer
 						IF(@WorkOrderTypeId = @Internal)
 						BEGIN
 							EXEC [dbo].[USP_GetSubLadgerGLAccountRestriction] @DistributionCode, @MasterCompanyId, 0, @UpdatedBy, @IsRestrict = @IsRestrict OUTPUT, @IsAccountByPass = @IsAccountByPass OUTPUT
 							IF(@IsAccountByPass <> 1)
 							BEGIN
-								EXEC [dbo].[USP_BatchTriggerBasedonDistributionForInternalWONew] @DistributionMasterId,@ReferenceId,0,0,@BillingInvoicingId,0,0,'',1,0,'WO',@MasterCompanyId,@UpdatedBy;
+								INSERT INTO @IWOBatchTriggerType VALUES (@DistributionMasterId,@ReferenceId,0,0,@BillingInvoicingId,0,0,'',1,1,'WO',@MasterCompanyId,@UpdatedBy)
+								
+								IF NOT EXISTS(SELECT 1 FROM dbo.DistributionSetup WITH(NOLOCK) WHERE DistributionMasterId =@DistributionMasterId AND MasterCompanyId=@MasterCompanyId AND ISNULL(GlAccountId,0) = 0 AND ISNULL([IsManualText],0) = 0)
+								BEGIN
+									EXEC [USP_BatchTriggerForInternalWOBasedonDistribution] @IWOBatchTriggerType;
+								END									
+								--EXEC [dbo].[USP_BatchTriggerBasedonDistributionForInternalWONew] @DistributionMasterId,@ReferenceId,0,0,@BillingInvoicingId,0,0,'',1,0,'WO',@MasterCompanyId,@UpdatedBy;
 							END
 						END
 					END

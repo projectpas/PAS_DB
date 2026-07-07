@@ -65,6 +65,7 @@ BEGIN
         (
             SELECT DISTINCT
                 ARH.AircraftRegistryId,
+				ACE.AircraftEffectivityId,
                 ARH.TailNum AS TailNumber,
                 ARH.MakeType AS AircraftMake,
                 ARH.AircraftModel,

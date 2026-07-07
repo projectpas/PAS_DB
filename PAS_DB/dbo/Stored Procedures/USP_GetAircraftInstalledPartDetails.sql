@@ -31,9 +31,7 @@
 ** 17   2026-05-26   Priyansh Patel     Added Worksheet Header Id [PN-16537]
 ** 18   2026-06-03   Amit Ghediya       Update for get latest wo created from ACIC [PN-16699]
 ** 19   30/06/2026	 Amit Ghediya	    Update for Engine data [PN-17075]
-
-
-	1    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+   20   01/July/2026	RAJESH GAMI		[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 *********************/
 CREATE       PROCEDURE [dbo].[USP_GetAircraftInstalledPartDetails]
 (
@@ -239,6 +237,7 @@ BEGIN
 			----(@AircraftRegistryId IS NULL OR @AircraftRegistryId = 0 OR AIPD.AircraftRegistryId = @AircraftRegistryId)
 			--AND AIPD.MasterCompanyId = @MasterCompanyId
 			       AIPD.MasterCompanyId = @MasterCompanyId
+					  AND ISNULL(IM.IsNonStock,0) = 0
 					  AND (
 							@AircraftRegistryId IS NULL OR @AircraftRegistryId = 0
 							OR ( ISNULL(@IsFromAircraft,0) = 1

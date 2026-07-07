@@ -42,6 +42,7 @@ BEGIN
             AND w.IsActive = 1
             AND ISNULL(w.IsDeleted, 0) = 0
             AND w.ItemMasterId IS NULL -- Only Generic WO Templates
+            AND w.TemplateType = 1 -- WO Template only
             AND TaskCount > 0
         ORDER BY w.WorkflowDescription;
     END TRY

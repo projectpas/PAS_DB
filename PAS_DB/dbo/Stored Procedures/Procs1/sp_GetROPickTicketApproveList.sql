@@ -16,6 +16,7 @@
  ** --   --------     -------			--------------------------------          
 	1    04/14/2025   Vishal Suthar		Created
 	2    06/04/2025   Vishal Suthar		If approval is enforced then pick ticket list will be visible only after approval of the part
+	3    07/07/2025   Abhishek Jirawla	RO Piece Parts do not need approval
      
 -- EXEC [dbo].[sp_GetROPickTicketApproveList] 2651
 **************************************************************/
@@ -62,6 +63,7 @@ BEGIN
 		AND (
 			ro.IsEnforce IS NULL OR ro.IsEnforce = 0
 			OR (ro.IsEnforce = 1 AND roa.StatusId = 2)
+			OR (ISNULL(rop.IsPiecePart, 0) = 1)
 		)
 		GROUP BY rop.RepairOrderPartRecordId, rop.RepairOrderId,imt.PartNumber,imt.PartDescription, rop.QuantityOrdered,sl.SerialNumber,
 		sl.QuantityAvailable,ro.RepairOrderNumber,rop.ItemMasterId,sl.ConditionId,cr.[VendorName],cr.VendorCode,sl.isSerialized;

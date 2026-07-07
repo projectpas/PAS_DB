@@ -18,6 +18,8 @@
 	3    23/04/2026   Ayushi Patel		[PN-15960] changed the uom convertion for Quantity from 'stock to purchase' TO 'purchase to stock' ,
 										also returned StockUnitOfMeasure insted of PurchaseUnitOfMeasure (UnitOfMeasure)
     4	 19/06/2026	  Ayushi		    [PN-16911]Skip fn_ConvertUOM call when ToUOM = FromUOM 
+    5	 02/07/2026	  Priyansh Patel	Set max quantity threshold to 0 (was 500) for StocklineDraft entries Changes [PN-16893]
+
 --  EXEC [dbo].[USP_GetPurchaseOrderPartsForView] 6732,1
 --  EXEC [dbo].[USP_GetPurchaseOrderPartsForView] 6743,12853,0,1
 --  EXEC [dbo].[USP_GetPurchaseOrderPartsForView] 6743,12855,0,3
@@ -45,7 +47,7 @@ BEGIN
 
 		SELECT @AssetMSID = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] = 'AssetInventoryTangible'
 
-		DECLARE @MaxStockDraftQuantity DECIMAL(18,6) = 500;
+		DECLARE @MaxStockDraftQuantity DECIMAL(18,6) = 0;
 				
 		IF(@Opr=1)
 		BEGIN

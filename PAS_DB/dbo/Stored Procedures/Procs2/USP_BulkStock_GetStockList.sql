@@ -17,6 +17,7 @@
 	5    15/12/2023         BHARGAV SALIYA          ADD ONE Condition to get Customer Stock Data when [QuantityAvailable] > 0
 	6    24/04/2026         AMIT GHEDIYA            Bulk stock adjustmet Qty Available to Qty OH on UnitCost Adjustment
 	7    24/06/2026         Moin Bloch              Allow Custome Stock As well in Quantity PN-16973
+	8    06/07/2026         BHARGAV SALIYA          Added [StockLineId] as tie-breaker in ORDER BY for stable pagination PN-17116
 *********
 *********/
 CREATE      PROCEDURE [dbo].[USP_BulkStock_GetStockList] 
@@ -136,7 +137,8 @@ BEGIN
 			CASE WHEN (@SortOrder = 1  AND @SortColumn='SerialNumber') THEN SerialNumber END ASC,
 			CASE WHEN (@SortOrder = -1 AND @SortColumn='SerialNumber') THEN SerialNumber END DESC,
 			CASE WHEN (@SortOrder = 1  AND @SortColumn='StockLineNumber') THEN StockLineNumber END ASC,
-			CASE WHEN (@SortOrder = -1 AND @SortColumn='StockLineNumber') THEN StockLineNumber END DESC	
+			CASE WHEN (@SortOrder = -1 AND @SortColumn='StockLineNumber') THEN StockLineNumber END DESC,
+			[StockLineId] DESC	
 		OFFSET @RecordFrom ROWS 
 		FETCH NEXT @PageSize ROWS ONLY	
 		END
@@ -215,7 +217,8 @@ BEGIN
 				CASE WHEN (@SortOrder = 1  AND @SortColumn='SerialNumber') THEN SerialNumber END ASC,
 				CASE WHEN (@SortOrder = -1 AND @SortColumn='SerialNumber') THEN SerialNumber END DESC,
 				CASE WHEN (@SortOrder = 1  AND @SortColumn='StockLineNumber') THEN StockLineNumber END ASC,
-				CASE WHEN (@SortOrder = -1 AND @SortColumn='StockLineNumber') THEN StockLineNumber END DESC	
+				CASE WHEN (@SortOrder = -1 AND @SortColumn='StockLineNumber') THEN StockLineNumber END DESC,
+			[StockLineId] DESC	
 			OFFSET @RecordFrom ROWS 
 			FETCH NEXT @PageSize ROWS ONLY	
 		END
@@ -295,7 +298,8 @@ BEGIN
 				CASE WHEN (@SortOrder = 1  AND @SortColumn='SerialNumber') THEN SerialNumber END ASC,
 				CASE WHEN (@SortOrder = -1 AND @SortColumn='SerialNumber') THEN SerialNumber END DESC,
 				CASE WHEN (@SortOrder = 1  AND @SortColumn='StockLineNumber') THEN StockLineNumber END ASC,
-				CASE WHEN (@SortOrder = -1 AND @SortColumn='StockLineNumber') THEN StockLineNumber END DESC	
+				CASE WHEN (@SortOrder = -1 AND @SortColumn='StockLineNumber') THEN StockLineNumber END DESC,
+			[StockLineId] DESC	
 			OFFSET @RecordFrom ROWS 
 			FETCH NEXT @PageSize ROWS ONLY	
 		END
@@ -380,7 +384,8 @@ BEGIN
 				CASE WHEN (@SortOrder = 1  AND @SortColumn='SerialNumber') THEN SerialNumber END ASC,
 				CASE WHEN (@SortOrder = -1 AND @SortColumn='SerialNumber') THEN SerialNumber END DESC,
 				CASE WHEN (@SortOrder = 1  AND @SortColumn='StockLineNumber') THEN StockLineNumber END ASC,
-				CASE WHEN (@SortOrder = -1 AND @SortColumn='StockLineNumber') THEN StockLineNumber END DESC	
+				CASE WHEN (@SortOrder = -1 AND @SortColumn='StockLineNumber') THEN StockLineNumber END DESC,
+			[StockLineId] DESC	
 			OFFSET @RecordFrom ROWS 
 			FETCH NEXT @PageSize ROWS ONLY	
 		END
@@ -461,7 +466,8 @@ BEGIN
 				CASE WHEN (@SortOrder = 1  AND @SortColumn='SerialNumber') THEN SerialNumber END ASC,
 				CASE WHEN (@SortOrder = -1 AND @SortColumn='SerialNumber') THEN SerialNumber END DESC,
 				CASE WHEN (@SortOrder = 1  AND @SortColumn='StockLineNumber') THEN StockLineNumber END ASC,
-				CASE WHEN (@SortOrder = -1 AND @SortColumn='StockLineNumber') THEN StockLineNumber END DESC	
+				CASE WHEN (@SortOrder = -1 AND @SortColumn='StockLineNumber') THEN StockLineNumber END DESC,
+			[StockLineId] DESC	
 			OFFSET @RecordFrom ROWS 
 			FETCH NEXT @PageSize ROWS ONLY	
 		END

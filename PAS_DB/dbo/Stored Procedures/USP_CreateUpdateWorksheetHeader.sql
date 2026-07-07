@@ -25,7 +25,7 @@
 
 **************************************************************/
 
-CREATE   PROCEDURE [dbo].[USP_CreateUpdateWorksheetHeader]
+CREATE     PROCEDURE [dbo].[USP_CreateUpdateWorksheetHeader]
     @tbl_WorksheetHeaderType dbo.WorksheetHeaderTableType READONLY
 AS
 BEGIN
@@ -112,6 +112,7 @@ BEGIN
                     WH.WorkOrderNo                   = T.WorkOrderNo,                    
                     WH.AFHours                       = T.AFHours,
                     WH.InspectionType                = T.InspectionType,
+					WH.InspectionTypeId              = T.InspectionTypeId,
                     WH.InspectionDate                = T.InspectionDate,
                     WH.QualitySafetyDeptSignOutBy    = T.QualitySafetyDeptSignOutBy,
                     WH.QualitySafetyDeptSignOutDate  = T.QualitySafetyDeptSignOutDate,
@@ -137,11 +138,14 @@ BEGIN
                     WH.DupInspSignatory2Time        = T.DupInspSignatory2Time,
                     WH.AircraftInstalledPartDetailsId = T.AircraftInstalledPartDetailsId,
                     WH.ProgramId                    = T.ProgramId,
+					WH.IsFromAircraft				= T.IsFromAircraft,
                     WH.AircraftRegistryId           = T.AircraftRegistryId,
+					WH.EngineRegistryId				= T.EngineRegistryId,
                     WH.IsActive                      = ISNULL(T.IsActive,  WH.IsActive),
                     WH.IsDeleted                     = ISNULL(T.IsDeleted, WH.IsDeleted),
                     WH.UpdatedBy                     = T.UpdatedBy,
-                    WH.UpdatedDate                   = GETUTCDATE()
+                    WH.UpdatedDate                   = GETUTCDATE(),
+					WH.IsScheduled                   = T.IsScheduled
                 FROM dbo.[WorksheetHeader] WH
                 INNER JOIN @tbl_WorksheetHeaderType T
                     ON WH.WorksheetHeaderId = T.WorksheetHeaderId
@@ -233,6 +237,7 @@ BEGIN
 					SerialNum,
                     AFHours,
                     InspectionType,
+					InspectionTypeId,
                     InspectionDate,
                     QualitySafetyDeptSignOutBy,
                     QualitySafetyDeptSignOutDate,
@@ -258,14 +263,17 @@ BEGIN
                     DupInspSignatory2Time,
                     AircraftInstalledPartDetailsId ,
                     ProgramId,
-                    AircraftRegistryId,
+					IsFromAircraft,
+					AircraftRegistryId,
+					EngineRegistryId,
                     IsActive,
                     IsDeleted,
                     MasterCompanyId,
                     CreatedBy,
                     UpdatedBy,
                     CreatedDate,
-                    UpdatedDate
+                    UpdatedDate,
+					IsScheduled
                 )
                 SELECT
                     @WorksheetNum,
@@ -282,6 +290,7 @@ BEGIN
                     ISNULL(@SerialNum, T.SerialNum),
                     T.AFHours,
                     T.InspectionType,
+					T.InspectionTypeId,
                     T.InspectionDate,
                     T.QualitySafetyDeptSignOutBy,
                     T.QualitySafetyDeptSignOutDate,
@@ -307,14 +316,17 @@ BEGIN
                     T.DupInspSignatory2Time,
                     T.AircraftInstalledPartDetailsId,
                     T.ProgramId,
-                    T.AircraftRegistryId,
+					T.IsFromAircraft,
+					T.AircraftRegistryId,
+					T.EngineRegistryId,
                     ISNULL(T.IsActive,  1),
                     ISNULL(T.IsDeleted, 0),
                     T.MasterCompanyId,
                     T.CreatedBy,
                     T.UpdatedBy,
                     GETUTCDATE(),
-                    GETUTCDATE()
+                    GETUTCDATE(),
+					T.IsScheduled
                 FROM @tbl_WorksheetHeaderType T;
 
                 SET @WorksheetHeaderId = SCOPE_IDENTITY();

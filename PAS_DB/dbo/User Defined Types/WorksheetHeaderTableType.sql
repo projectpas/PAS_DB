@@ -21,7 +21,8 @@
     [TechnicalRecordsWO]             VARCHAR (100)  NULL,
     [CalmSysWO]                      VARCHAR (100)  NULL,
     [CertificationStatement]         VARCHAR (2000) NULL,
-    [InspectionType]                 BIGINT         NULL,
+    [InspectionType]                 VARCHAR (100)  NULL,
+    [InspectionTypeId]               BIGINT         NULL,
     [MtcCategoryId]                  BIGINT         NULL,
     [QualitySafetyDeptSignOutBy]     BIGINT         NULL,
     [QualitySafetyDeptSignInBy]      BIGINT         NULL,
@@ -38,10 +39,13 @@
     [DupInspSignatory2Time]          VARCHAR (20)   NULL,
     [AircraftInstalledPartDetailsId] BIGINT         NULL,
     [ProgramId]                      BIGINT         NULL,
+    [IsFromAircraft]                 BIT            NULL,
     [AircraftRegistryId]             BIGINT         NULL,
+    [EngineRegistryId]               BIGINT         NULL,
     [IsActive]                       BIT            NULL,
     [IsDeleted]                      BIT            NULL,
     [MasterCompanyId]                INT            NOT NULL,
     [CreatedBy]                      VARCHAR (256)  NULL,
-    [UpdatedBy]                      VARCHAR (256)  NULL);
+    [UpdatedBy]                      VARCHAR (256)  NULL,
+    [IsScheduled]                    BIT            NULL);
 

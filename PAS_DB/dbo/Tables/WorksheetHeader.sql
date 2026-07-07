@@ -8,7 +8,7 @@
     [WorksheetType]                  BIGINT         NULL,
     [WorkOrderNo]                    VARCHAR (50)   NULL,
     [AFHours]                        VARCHAR (50)   NULL,
-    [InspectionType]                 BIGINT         NULL,
+    [InspectionType]                 VARCHAR (50)   NULL,
     [InspectionDate]                 DATE           NULL,
     [QualitySafetyDeptSignOutBy]     BIGINT         NULL,
     [QualitySafetyDeptSignOutDate]   DATETIME       NULL,
@@ -47,10 +47,16 @@
     [DupInspSignatory2Time]          VARCHAR (20)   NULL,
     [MtcCategoryId]                  BIGINT         NULL,
     [WorkSheetStatusId]              INT            NULL,
+    [IsScheduled]                    BIT            NULL,
+    [InspectionTypeId]               BIGINT         NULL,
+    [IsFromAircraft]                 BIT            NULL,
+    [EngineRegistryId]               BIGINT         NULL,
     CONSTRAINT [PK_WorksheetHeader] PRIMARY KEY CLUSTERED ([WorksheetHeaderId] ASC),
     CONSTRAINT [FK_WorksheetHeader_AircraftModel] FOREIGN KEY ([AircraftModelId]) REFERENCES [dbo].[AircraftModel] ([AircraftModelId]),
     CONSTRAINT [FK_WorksheetHeader_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId])
 );
+
+
 
 
 

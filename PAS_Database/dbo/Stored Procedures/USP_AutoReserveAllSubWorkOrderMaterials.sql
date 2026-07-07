@@ -20,6 +20,7 @@ EXEC [USP_AutoReserveAllSubWorkOrderMaterials]
 ***9    16/Mar/2026		 Rajesh Gami			Added UOM Changes [PN-15714]   
 **10    03/16/2026		 AMIT GHEDIYA			Allow AR condition to reserve (PN-15562)
 **11    04/08/2026		 Priyansh Patel			Fixed the Reserve Qty decimal for accurate history notes (PN-15936)
+**12    06/07/2026		 Nakul Chandigra		Updated the calling stored procedures to pass SubWorkOrderId instead of WorkOrderId as the ReferenceId to USP_AddUpdateStocklineHistory.[PN-15937]
 
 EXEC USP_AutoReserveAllSubWorkOrderMaterials 161,0,0,2,0
 **************************************************************/ 
@@ -469,7 +470,7 @@ BEGIN
 
 							SELECT	@StocklineId = tmpWOM.StockLineId,
 									@MasterCompanyId = tmpWOM.MasterCompanyId,
-									@ReferenceId = tmpWOM.WorkOrderId,
+									@ReferenceId = tmpWOM.SubWorkOrderId,
 									@SubReferenceId = tmpWOM.SubWorkOrderMaterialsId,
 									@ReservedQty = QuantityActReserved,
 									@UpdateBy = UpdatedBy
@@ -769,7 +770,7 @@ BEGIN
 							BEGIN
 								SELECT	@StocklineId = tmpWOM.StockLineId,
 										@MasterCompanyId = tmpWOM.MasterCompanyId,
-										@ReferenceId = tmpWOM.WorkOrderId,
+										@ReferenceId = tmpWOM.SubWorkOrderId,
 										@SubReferenceId = tmpWOM.SubWorkOrderMaterialsId,
 										@ReservedQty = QuantityActReserved,
 										@UpdateBy = UpdatedBy
@@ -1051,7 +1052,7 @@ BEGIN
 							BEGIN
 								SELECT	@StocklineId = tmpWOM.StockLineId,
 										@MasterCompanyId = tmpWOM.MasterCompanyId,
-										@ReferenceId = tmpWOM.WorkOrderId,
+										@ReferenceId = tmpWOM.SubWorkOrderId,
 										@SubReferenceId = tmpWOM.SubWorkOrderMaterialsId,
 										@ReservedQty = tmpWOM.QuantityActReserved,
 										@UpdateBy = tmpWOM.UpdatedBy
@@ -1340,7 +1341,7 @@ BEGIN
 							BEGIN
 								SELECT	@StocklineId = tmpWOM.StockLineId,
 										@MasterCompanyId = tmpWOM.MasterCompanyId,
-										@ReferenceId = tmpWOM.WorkOrderId,
+										@ReferenceId = tmpWOM.SubWorkOrderId,
 										@SubReferenceId = tmpWOM.SubWorkOrderMaterialsId,
 										@ReservedQty = tmpWOM.QuantityActReserved,
 										@UpdateBy = tmpWOM.UpdatedBy
@@ -1623,7 +1624,7 @@ BEGIN
 							BEGIN
 								SELECT	@StocklineId = tmpWOM.StockLineId,
 										@MasterCompanyId = tmpWOM.MasterCompanyId,
-										@ReferenceId = tmpWOM.WorkOrderId,
+										@ReferenceId = tmpWOM.SubWorkOrderId,
 										@SubReferenceId = tmpWOM.SubWorkOrderMaterialsId,
 										@ReservedQty = tmpWOM.QuantityActReserved,
 										@UpdateBy = tmpWOM.UpdatedBy
@@ -1909,7 +1910,7 @@ BEGIN
 						BEGIN
 							SELECT	@StocklineId = tmpWOM.StockLineId,
 									@MasterCompanyId = tmpWOM.MasterCompanyId,
-									@ReferenceId = tmpWOM.WorkOrderId,
+									@ReferenceId = tmpWOM.SubWorkOrderId,
 									@SubReferenceId = tmpWOM.SubWorkOrderMaterialsId,
 									@ReservedQty = tmpWOM.QuantityActReserved,
 									@UpdateBy = tmpWOM.UpdatedBy
@@ -2201,7 +2202,7 @@ BEGIN
 						BEGIN
 							SELECT	@StocklineId = tmpWOM.StockLineId,
 									@MasterCompanyId = tmpWOM.MasterCompanyId,
-									@ReferenceId = tmpWOM.WorkOrderId,
+									@ReferenceId = tmpWOM.SubWorkOrderId,
 									@SubReferenceId = tmpWOM.SubWorkOrderMaterialsId,
 									@ReservedQty = tmpWOM.QuantityActReserved,
 									@UpdateBy = tmpWOM.UpdatedBy

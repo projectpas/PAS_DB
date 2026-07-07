@@ -14,6 +14,7 @@
 	3   07-Oct-2025			Bhargav Saliya			Added ReferenceNumber Field
 	4   30-Oct-2025			Devendra Shekh			Added @BaseUtcOffsetSec for EntryDate
 	5   02-Feb-2026			Bhargav Saliya			Added JournalTypeName Field
+    6   15-Jun-2026			Moin Bloch			    Fixed For Duplicate Record PN-16616
 **************************************************************/  
 /*************************************************************             
 exec dbo.USP_GetJournalEntriesDetailsByLeafNodeId_BalanceSheet_WithFilter 
@@ -21,6 +22,11 @@ exec dbo.USP_GetJournalEntriesDetailsByLeafNodeId_BalanceSheet_WithFilter
 @CreditAmount=default,@DebitAmount=default,@Amount=default,@PeriodName=default,@EntryDate=default,@ReferenceName=default,@ReferenceModule=default,
 @LastMSLevel=default,@StartAccountingPeriodId=187,@EndAccountingPeriodId=187,@ReportingStructureId=23,
 @ManagementStructureId=1,@MasterCompanyId=1,@LeafNodeId=153,@GLAccountId=1225,@strFilter=N'1,5,6,20,22,52,53,84!2,7,8,9!3,11,10!4,13,12'
+
+exec dbo.USP_GetJournalEntriesDetailsByLeafNodeId_BalanceSheet_WithFilter @PageSize=10,@PageNumber=1,@SortColumn=N'JournalNumber',@SortOrder=-1,@GlobalFilter=N'',
+@NodeName=default,@GLAccount=default,@JournalNumber=default,@CreditAmount=default,@DebitAmount=default,@Amount=default,@PeriodName=default,@EntryDate=default,
+@ReferenceName=default,@ReferenceModule=default,@LastMSLevel=default,@StartAccountingPeriodId=326,@EndAccountingPeriodId=326,@ReportingStructureId=19,@ManagementStructureId=41,
+@MasterCompanyId=21,@LeafNodeId=622,@GLAccountId=3431,@ReferenceNumber=default,@strFilter=N'70!71',@EmployeeId=249,@JournalTypeName=default
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[USP_GetJournalEntriesDetailsByLeafNodeId_BalanceSheet_WithFilter]
 (  
@@ -271,6 +277,7 @@ BEGIN
     	  
 	CREATE TABLE #GLBalance (
 		ID bigint NOT NULL IDENTITY (1, 1),
+		CommonJournalBatchDetailId BIGINT NULL,
 		LeafNodeId BIGINT,
 		GLAccountId BIGINT,
 		AccountingPeriodId BIGINT NULL,
@@ -297,8 +304,8 @@ BEGIN
 	CAST(Fromdate AS DATE) >= CAST(@INITIALFROMDATE AS DATE) and CAST(ToDate AS DATE) <= CAST(@LETODATE AS DATE)  --AND ISNULL(IsAdjustPeriod, 0) = 0 
 	ORDER BY FiscalYear, [Period]
 
-	INSERT INTO #GLBalance (LeafNodeId, AccountingPeriodId, DebitAmount, CreaditAmount,  Amount,GLAccountId, JournalNumber, JournalBatchDetailId, EntryDate, PeriodNameDistinct, IsManualJournal)
-	(SELECT DISTINCT	LF.LeafNodeId , @AccountcalID, 
+	INSERT INTO #GLBalance (CommonJournalBatchDetailId,LeafNodeId, AccountingPeriodId, DebitAmount, CreaditAmount,  Amount,GLAccountId, JournalNumber, JournalBatchDetailId, EntryDate, PeriodNameDistinct, IsManualJournal)
+	(SELECT DISTINCT	CMD.CommonJournalBatchDetailId,LF.LeafNodeId , @AccountcalID, 
 						CASE WHEN ISNULL(GLM.IsPositive, 0) = 1 THEN SUM(ISNULL(CMD.DebitAmount, 0)) ELSE ISNULL(SUM(ISNULL(CMD.DebitAmount, 0)), 0) * -1 END 'DebitAmount',
 						CASE WHEN ISNULL(GLM.IsPositive, 0) = 1 THEN SUM(ISNULL(CMD.CreditAmount, 0)) ELSE ISNULL(SUM(ISNULL(CMD.CreditAmount, 0)), 0) * -1 END 'CreditAmount',
 						CASE WHEN GL.GLAccountTypeId = @AssetGLAccountTypeId THEN
@@ -309,7 +316,6 @@ BEGIN
 							(CASE WHEN ISNULL(GLM.IsPositive, 0) = 1 THEN SUM(ISNULL(CMD.DebitAmount, 0)) ELSE ISNULL(SUM(ISNULL(CMD.DebitAmount, 0)), 0) * -1 END)
 						END AS AMONUT,
 						CMD.GLAccountId, BD.JournalTypeNumber, BD.JournalBatchDetailId, CONVERT(DATETIME, DATEADD(SECOND, @BaseUtcOffsetSec, CMD.EntryDate)),				
-						--REPLACE(BD.AccountingPeriod,' - ','')
 						@periodNameDistinct
 						,0
 	FROM dbo.CommonBatchDetails CMD WITH (NOLOCK)
@@ -332,7 +338,7 @@ BEGIN
 		AND (ISNULL(@Level8,'') ='' OR MSD.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,',')))  
 		AND (ISNULL(@Level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))  
 		AND  (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))
-	GROUP BY LF.LeafNodeId , GLM.IsPositive, CMD.GLAccountId, BD.JournalTypeNumber, BD.JournalBatchDetailId, CONVERT(DATETIME, DATEADD(SECOND, @BaseUtcOffsetSec, CMD.EntryDate)), GL.GLAccountTypeId, BD.AccountingPeriod)
+	GROUP BY CMD.CommonJournalBatchDetailId,LF.LeafNodeId , GLM.IsPositive, CMD.GLAccountId, BD.JournalTypeNumber, BD.JournalBatchDetailId, CONVERT(DATETIME, DATEADD(SECOND, @BaseUtcOffsetSec, CMD.EntryDate)), GL.GLAccountTypeId, BD.AccountingPeriod)
 		
 	IF(@IsDebugMode = 1)
 	BEGIN
@@ -475,6 +481,7 @@ BEGIN
 
 	CREATE TABLE #AccTrendTable (
 		ID bigint NOT NULL IDENTITY (1, 1),
+		CommonJournalBatchDetailId BIGINT NULL,
 		LeafNodeId BIGINT,
 		NodeName VARCHAR(500),
 		GLAccountId BIGINT,
@@ -509,8 +516,8 @@ BEGIN
 
 		SELECT  @AccountcalMonth = PeriodName, @AccountcalID = AccountcalID,@INITIALENDDATE = ToDate FROM #AccPeriodTable where ID = @COUNT AND ID NOT IN(9999999)		  
 			  
-		INSERT INTO #AccTrendTable(LeafNodeId, NodeName, GLAccountId, GLAccountCode, GLAccountName, JournalNumber, JournalBatchDetailId, CreditAmount, DebitAmount, AccountingPeriodId, AccountingPeriod, PeriodName, EntryDate, IsManualJournal,IsStandAloneCM) --, ReferenceId, DistributionSetupCode)
-		SELECT T.LeafNodeId, T.[Name] , GL.GLAccountId, GLA.AccountCode, GLA.AccountName, JournalNumber, JournalBatchDetailId, GL.CreaditAmount, DebitAmount, GL.AccountingPeriodId, AP.PeriodName, REPLACE(AP.PeriodName ,' - ',' '), EntryDate, ISNULL(GL.IsManualJournal, 0),NULL  --CBD.ReferenceId, CBD.DistributionSetupCode, EntryDate 
+		INSERT INTO #AccTrendTable(CommonJournalBatchDetailId,LeafNodeId, NodeName, GLAccountId, GLAccountCode, GLAccountName, JournalNumber, JournalBatchDetailId, CreditAmount, DebitAmount, AccountingPeriodId, AccountingPeriod, PeriodName, EntryDate, IsManualJournal,IsStandAloneCM) --, ReferenceId, DistributionSetupCode)
+		SELECT GL.CommonJournalBatchDetailId,T.LeafNodeId, T.[Name] , GL.GLAccountId, GLA.AccountCode, GLA.AccountName, JournalNumber, JournalBatchDetailId, GL.CreaditAmount, DebitAmount, GL.AccountingPeriodId, AP.PeriodName, REPLACE(AP.PeriodName ,' - ',' '), EntryDate, ISNULL(GL.IsManualJournal, 0),NULL  --CBD.ReferenceId, CBD.DistributionSetupCode, EntryDate 
 		FROM #TempTable T  
 			JOIN #GLBalance GL ON T.LeafNodeId = GL.LeafNodeId AND T.periodNameDistinct = REPLACE(GL.periodNameDistinct ,' - ','') 
 			JOIN dbo.GLAccount GLA WITH (NOLOCK) ON GLA.GLAccountId = GL.GLAccountId
@@ -535,18 +542,10 @@ BEGIN
 		ReferenceNumber = ISNULL(CB.ReferenceNumber, ''),
 		JournalTypeName = ISNULL(CB.JournalTypeName, '')
 	FROM #AccTrendTable tmp 
-		JOIN [dbo].[CommonBatchDetails] CB WITH (NOLOCK) ON tmp.JournalBatchDetailId = cb.JournalBatchDetailId 
+		JOIN [dbo].[CommonBatchDetails] CB WITH (NOLOCK) ON tmp.JournalBatchDetailId = cb.JournalBatchDetailId AND tmp.CommonJournalBatchDetailId = CB.CommonJournalBatchDetailId
 		JOIN [dbo].[DistributionSetup] DS WITH (NOLOCK) ON DS.ID = CB.DistributionSetupId
 		JOIN [dbo].[DistributionMaster] DM WITH (NOLOCK) ON DS.DistributionMasterId = DM.ID
-		--LEFT JOIN [dbo].[WorkOrderBatchDetails] WBD WITH (NOLOCK) ON tmp.JournalBatchDetailId = WBD.JournalBatchDetailId 
 		LEFT JOIN [dbo].[SalesOrderBatchDetails] SBD WITH (NOLOCK) ON tmp.JournalBatchDetailId = SBD.JournalBatchDetailId 
-		--LEFT JOIN [dbo].[StocklineBatchDetails] SD WITH (NOLOCK) ON tmp.JournalBatchDetailId = SD.JournalBatchDetailId 
-		--LEFT JOIN [dbo].[StocklineBatchDetails] AST WITH (NOLOCK) ON tmp.JournalBatchDetailId = AST.JournalBatchDetailId AND AST.StockType = 'ASSET'
-		--LEFT JOIN [dbo].[ManualJournalPaymentBatchDetails] MJSD WITH (NOLOCK) ON tmp.JournalBatchDetailId = MJSD.JournalBatchDetailId
-		--LEFT JOIN [dbo].[VendorPaymentBatchDetails] VPBD WITH (NOLOCK) ON tmp.JournalBatchDetailId = VPBD.JournalBatchDetailId 
-		--LEFT JOIN [dbo].[VendorRMAPaymentBatchDetails] VRBD WITH (NOLOCK) ON tmp.JournalBatchDetailId = VRBD.JournalBatchDetailId 
-		--LEFT JOIN [dbo].[CustomerReceiptBatchDetails] CRBD WITH (NOLOCK) ON tmp.JournalBatchDetailId = CRBD.JournalBatchDetailId 
-		--LEFT JOIN [dbo].[BulkStocklineAdjPaymentBatchDetails] BSAD WITH (NOLOCK) ON tmp.JournalBatchDetailId = BSAD.JournalBatchDetailId 
 		LEFT JOIN [dbo].[CreditMemoPaymentBatchDetails] CMBD WITH (NOLOCK) ON tmp.JournalBatchDetailId = CMBD.JournalBatchDetailId 		
 		LEFT JOIN [dbo].[RefundCreditMemoMapping] RFCM WITH (NOLOCK) ON CMBD.ReferenceId  = RFCM.CustomerRefundId AND RFCM.CustomerRefundId =
 		(
@@ -554,12 +553,8 @@ BEGIN
 		WHERE RCMP.[CustomerRefundId] = RFCM.[CustomerRefundId]
 		) AND CMBD.ModuleId = @CustomerRefundModuleId			  			  
 		LEFT JOIN [dbo].[ExchangeBatchDetails] EXBD WITH (NOLOCK) ON tmp.JournalBatchDetailId = EXBD.JournalBatchDetailId 
-		--LEFT JOIN [dbo].[NonPOInvoiceBatchDetails] NPOBD WITH (NOLOCK) ON tmp.JournalBatchDetailId = NPOBD.JournalBatchDetailId 
-		--LEFT JOIN [dbo].[SuspenseAndUnAppliedPaymentBatchDetails] SPBD WITH (NOLOCK) ON tmp.JournalBatchDetailId = SPBD.JournalBatchDetailId 			  
-		--LEFT JOIN [dbo].[Vendor] V WITH (NOLOCK) ON V.VendorId = VRBD.VendorId
 		LEFT JOIN [dbo].[Customer] ExchC WITH (NOLOCK) ON ExchC.CustomerId = EXBD.CustomerId
 		LEFT JOIN [dbo].[CreditMemo] CM WITH (NOLOCK) ON CM.CreditMemoHeaderId = RFCM.CreditMemoHeaderId
-		--LEFT JOIN [dbo].[ManualJournalHeader] MJH WITH (NOLOCK) ON MJH.ManualJournalHeaderId = MJSD.ReferenceId
 	WHERE ISNULL(tmp.IsManualJournal, 0) = 0
 
 	UPDATE #AccTrendTable 

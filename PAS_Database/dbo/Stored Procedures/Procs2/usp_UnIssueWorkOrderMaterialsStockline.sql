@@ -23,6 +23,7 @@ EXEC [usp_UnIssueWorkOrderMaterialsStockline]
 ** 10	04/24/2025		Devendra Shekh		Modify (Added [IsManualText] check for DistributionSetup)
    11   04-March-2026	Rajesh Gami		   Implemented UOM Changes [PN-14832]
 ** 11   27/03/2026      Moin Bloch	        Rename Internal To Internal Repair   PN-15850
+** 12   23/06/2026      Moin Bloch	        Added Teardown WO Issue Accounting Entry
 DECLARE @p1 dbo.ReserveWOMaterialsStocklineType
 
 INSERT INTO @p1 values(65,72,87,1073,4,6,1,14,6,N'REPAIR',N'FLYSKY CT6B FS-CT6B',N'USED FOR WING REPAIR',5,3,1,N'CNTL-000463',N'ID_NUM-000001',N'STL-000123',N'',N'ADMIN ADMIN',1)
@@ -103,6 +104,7 @@ BEGIN
 					DECLARE @WOTypeId INT= 0;
 					DECLARE @CustomerWOTypeId INT= 0;
 					DECLARE @InternalWOTypeId INT= 0;
+					DECLARE @TeardownWOTypeId INT= 0;
 					DECLARE @historyPartNumber VARCHAR(150);
 
 					IF OBJECT_ID(N'tempdb..#tmpUnIssueWOMaterialsStockline') IS NOT NULL
@@ -158,6 +160,7 @@ BEGIN
 
 					SELECT TOP 1 @CustomerWOTypeId =Id FROM dbo.WorkOrderType WITH (NOLOCK) WHERE [Description] = 'Customer'
 					SELECT TOP 1 @InternalWOTypeId =Id FROM dbo.WorkOrderType WITH (NOLOCK) WHERE [Description] = 'Internal Repair'
+					SELECT TOP 1 @TeardownWOTypeId =Id FROM dbo.WorkOrderType WITH (NOLOCK) WHERE [Description] = 'Internal Teardown'
 
 					INSERT INTO #tmpUnIssueWOMaterialsStockline ([WorkOrderId],[WorkFlowWorkOrderId], [WorkOrderMaterialsId], [StockLineId],[ItemMasterId],[ConditionId], [ProvisionId], 
 							[TaskId], [Condition], [PartNumber], [PartDescription], [Quantity], [QtyToBeReserved], [QuantityActUnIssued], [ControlNo], [ControlId],
@@ -406,6 +409,15 @@ BEGIN
 							END
 						END
 
+						IF(ISNULL(@WOTypeId,0) = @TeardownWOTypeId AND ISNULL(@IsAccountByPass, 0) = 0)
+						BEGIN
+							IF NOT EXISTS(SELECT 1 FROM dbo.DistributionSetup WITH(NOLOCK) WHERE DistributionMasterId =@DistributionMasterId AND MasterCompanyId=@MasterCompanyId AND ISNULL(GlAccountId,0) = 0 AND ISNULL([IsManualText],0) = 0)
+							BEGIN
+								INSERT INTO @WOBatchTriggerType VALUES
+								(@DistributionMasterId,@ReferenceId,@ReferencePartId,@ReferencePieceId,@InvoiceId,@StocklineId,@IssueQty,@laborType,@issued,@Amount,@ModuleName,@MasterCompanyId,@UpdateBy)
+							END
+						END
+
 						SET @slcount = @slcount + 1;
 					END;
 
@@ -431,6 +443,14 @@ BEGIN
 						IF NOT EXISTS(SELECT 1 FROM dbo.DistributionSetup WITH(NOLOCK) WHERE DistributionMasterId =@DistributionMasterId AND MasterCompanyId=@MasterCompanyId AND ISNULL(GlAccountId,0) = 0 AND ISNULL([IsManualText],0) = 0)
 						BEGIN
 							EXEC [USP_BatchTriggerForInternalWOBasedonDistribution] @IWOBatchTriggerType;
+						END
+					END
+
+					IF(ISNULL(@WOTypeId,0) = @TeardownWOTypeId AND ISNULL(@IsAccountByPassNew, 0) = 0 AND @WOBatchCount > 0)
+					BEGIN
+						IF NOT EXISTS(SELECT 1 FROM dbo.DistributionSetup WITH(NOLOCK) WHERE DistributionMasterId =@DistributionMasterId AND MasterCompanyId=@MasterCompanyId AND ISNULL(GlAccountId,0) = 0 AND ISNULL([IsManualText],0) = 0)
+						BEGIN
+							EXEC [USP_BatchTriggerBasedonDistributionForWO] @WOBatchTriggerType;
 						END
 					END
 					/*** Same JE Changes : End ***/

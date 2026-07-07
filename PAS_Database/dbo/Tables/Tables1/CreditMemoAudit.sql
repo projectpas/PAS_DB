@@ -58,6 +58,7 @@
     [IsUpdated]               BIT             NULL,
     [LastSyncDate]            DATETIME2 (7)   NULL,
     [SyncToken]               VARCHAR (200)   NULL,
+    [IntegrationTypeId]       INT             NULL,
     CONSTRAINT [PK_CreditMemoAudit] PRIMARY KEY CLUSTERED ([CreditMemoHeaderAuditId] ASC)
 );
 

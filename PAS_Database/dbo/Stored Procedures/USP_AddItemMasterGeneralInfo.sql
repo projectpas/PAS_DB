@@ -13,8 +13,9 @@
 	2    26-Mar-2026        Sahdev Saliya       Added [LifeLimitedPart] :-([IsFlightHoursAvailable], [IsFlightCyclesAvailable], [IsLandingsAvailable], [IsStartsAvailable], [IsCalendarTimeAvailable], [FlightHours], [FlightMinutes], [FlightCycles], [Landings], [Starts], [CalendarDate]) (PN-15833)
 	3    03-Apr-2026        Sahdev Saliya       Remove LifeLimitedPart (PN-15833)
 	4    27-May-2026        Sahdev Saliya       Added Model [PN-16353]
-    
- -- EXEC [USP_AddItemMasterGeneralInfo] 
+	5    04-May-2026		    Moin Bloch	        Moved TO API SIDE PN-16014
+
+ -- EXEC [USP_AddItemMasterGeneralInfo]
 **************************************************************/
 CREATE       PROCEDURE [dbo].[USP_AddItemMasterGeneralInfo]
 @tbl_ItemMasterTableType [DBO].[ItemMasterTableType] READONLY
@@ -141,7 +142,7 @@ BEGIN
 
 			EXEC [DBO].[UpdateItemMasterDetail] @ItemMasterId;				
 
-			EXEC [DBO].[QuickBooks_UpdateModuleCountDetails] @MasterCompanyId, @ItemMasterModuleId; 
+			--EXEC [DBO].[QuickBooks_UpdateModuleCountDetails] @MasterCompanyId, @ItemMasterModuleId;
 
 		END
 		ELSE

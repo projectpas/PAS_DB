@@ -18,7 +18,10 @@
 	6    24/09/2025    RAJESH GAMI		Added MPN Notes
 	7	 19/02/2026    Moin Bloch       Added IncomingPartNumber
 	8	 20/03/2026    RAJESH GAMI      WO Part IsFinishGood update the TRUE when WO is closed PN-15819
-	9    21/05/2026   Moin Bloch        Added  [MtcCategoryId] PN-16469
+	9    21/05/2026    Moin Bloch        Added  [MtcCategoryId] PN-16469
+	10   21/05/2026    Moin Bloch        Added  [WorksheetId] PN-16469
+	11   02/07/2026    Moin Bloch        Fix For Credit Terms [PN-17098]
+
 --   EXEC [USP_UpdateWorkOrder] 
 **************************************************************/
 CREATE    PROCEDURE [dbo].[USP_UpdateWorkOrder]
@@ -69,6 +72,7 @@ CREATE    PROCEDURE [dbo].[USP_UpdateWorkOrder]
 @IsTraveler BIT=NULL,
 @AllowInvoiceBeforeShipping BIT=NULL,
 @MtcCategoryId BIGINT = NULL,
+@WorksheetId BIGINT = NULL,
 @tbl_WorkOrderPartNumberType WorkOrderMPNType READONLY
 AS
 BEGIN
@@ -182,7 +186,13 @@ BEGIN
 		[SerialNumber] [VARCHAR](100) NULL,
 		[MasterPartId] [BIGINT] NULL,
 		[Isadd] [BIT] NULL,
-		[Notes] [nvarchar](MAX) NULL
+		[Notes] [nvarchar](MAX) NULL,		
+		[AircraftRegistryNumber] [VARCHAR](30) NULL,
+		[IsFromAircraft] [BIT] NULL,
+		[AircraftInstalledPartDetailsId] [BIGINT] NULL,
+		[AircraftSerialNumber] [VARCHAR](100)  NULL,
+		[AircraftRegistryId] [BIGINT] NULL,
+		[ProgramId] [BIGINT] NULL
 	)
 
 	IF OBJECT_ID(N'tempdb..#tmpNewAddedWorkOrderPartNumber') IS NOT NULL
@@ -214,14 +224,16 @@ BEGIN
 		   [ContractNo],[WorkScope],[isLocked],[ReceivedDate],[IsClosed],[ACTailNum],[ClosedDate],[PDFPath],[IsFinishGood],[RevisedConditionId],[CustomerReference],[Level1],[Level2],[Level3],
 		   [Level4],[AssignDate],[ReceivingCustomerWorkId],[ExpertiseId],[RevisedItemmasterid],[RevisedPartNumber],[RevisedPartDescription],[IsTraveler],[AllowInvoiceBeforeShipping],
 		   [WOFPrintDate],[CurrentSerialNumber],[StocklineCost],[TendorStocklineCost],[RepairOrderId],[RONumber],[RevisedSerialNumber],[IsROCreated],[PartNumber],[PartDescription],
-		   [WorkOrderStatus],[Priority],[WorkOrderStage],[ManufacturerName],[TechName],[EmployeeStation],[PublicationNo],[SerialNumber],[MasterPartId],[Isadd],Notes)
+		   [WorkOrderStatus],[Priority],[WorkOrderStage],[ManufacturerName],[TechName],[EmployeeStation],[PublicationNo],[SerialNumber],[MasterPartId],[Isadd],Notes,
+		   [AircraftRegistryNumber],[IsFromAircraft],[AircraftInstalledPartDetailsId],[AircraftSerialNumber],[AircraftRegistryId],[ProgramId])
 	SELECT [ID],@WorkOrderId,[WorkOrderScopeId],[EstimatedShipDate],[CustomerRequestDate],[PromisedDate],[EstimatedCompletionDate],[NTE],[Quantity],
 		   [StockLineId],[CMMIds],[WorkflowId],[WorkOrderStageId],[WorkOrderStatusId],[WorkOrderPriorityId],[IsPMA],[IsDER],[TechStationId],[TATDaysStandard],[MasterCompanyId],[CreatedBy],
 		   [UpdatedBy],@CreatedDate,@UpdatedDate,[IsActive],[IsDeleted],[ItemMasterId],[TechnicianId],[ConditionId],[TATDaysCurrent],[RevisedPartId],[ManagementStructureId],[IsMPNContract],
 		   [ContractNo],[WorkScope],[isLocked],[ReceivedDate],[IsClosed],[ACTailNum],[ClosedDate],[PDFPath],CASE WHEN [IsClosed] = 1 THEN 1 ELSE [IsFinishGood] END,[RevisedConditionId],[CustomerReference],[Level1],[Level2],[Level3],
 		   [Level4],[AssignDate],[ReceivingCustomerWorkId],[ExpertiseId],[RevisedItemmasterid],[RevisedPartNumber],[RevisedPartDescription],[IsTraveler],[AllowInvoiceBeforeShipping],
 		   [WOFPrintDate],[CurrentSerialNumber],[StocklineCost],[TendorStocklineCost],[RepairOrderId],[RONumber],[RevisedSerialNumber],[IsROCreated],[PartNumber],[PartDescription],
-		   [WorkOrderStatus],[Priority],[WorkOrderStage],[ManufacturerName],[TechName],[EmployeeStation],[PublicationNo],[SerialNumber],[MasterPartId],0,Notes FROM @tbl_WorkOrderPartNumberType
+		   [WorkOrderStatus],[Priority],[WorkOrderStage],[ManufacturerName],[TechName],[EmployeeStation],[PublicationNo],[SerialNumber],[MasterPartId],0,Notes,
+		   [AircraftRegistryNumber],[IsFromAircraft],[AircraftInstalledPartDetailsId],[AircraftSerialNumber],[AircraftRegistryId],[ProgramId] FROM @tbl_WorkOrderPartNumberType
 
 	SELECT @TotalRecord = COUNT(*), @MinId = MIN([PKID]) FROM #tmprCreateWorkOrderPartNumber    
 
@@ -317,8 +329,11 @@ BEGIN
 		SET @MinId = @MinId + 1
 	END	 
 	
-	SELECT @CreditTermsId = [CreditTermId] FROM [dbo].[WorkOrder] WHERE [WorkOrderId] = @WorkOrderId AND [MasterCompanyId] = @MasterCompanyId AND [IsActive] = 1 AND [IsDeleted] = 0;
+	---SELECT @CreditTermsId = [CreditTermId] FROM [dbo].[WorkOrder] WITH(NOLOCK) WHERE [WorkOrderId] = @WorkOrderId AND [MasterCompanyId] = @MasterCompanyId AND [IsActive] = 1 AND [IsDeleted] = 0;
     
+	SELECT @Days=[Days], @NetDays=[NetDays] FROM  [dbo].[CreditTerms] WITH(NOLOCK) WHERE [CreditTermsId] = @CreditTermId;
+
+
 	SELECT TOP 1 @OldWorkScopeId = WP.[WorkOrderScopeId],	               
 				 @OldWorkPriorityId = WP.[WorkOrderPriorityId],
 				 @OldWorkFlowId = WP.[WorkflowId],
@@ -527,14 +542,16 @@ BEGIN
 					[IsMPNContract],[ContractNo],[WorkScope],[isLocked],[ReceivedDate],[IsClosed],[ACTailNum],[ClosedDate],[PDFPath],[IsFinishGood],[RevisedConditionId],[CustomerReference],
 					[Level1],[Level2],[Level3],[Level4],[AssignDate],[ReceivingCustomerWorkId],[ExpertiseId],[RevisedItemmasterid],[RevisedPartNumber],[RevisedPartDescription],[IsTraveler],
 					[AllowInvoiceBeforeShipping],[WOFPrintDate],[CurrentSerialNumber],[StocklineCost],[TendorStocklineCost],[RepairOrderId],[RONumber],[RevisedSerialNumber],[IsROCreated],
-					[PartNumber],[PartDescription],[WorkOrderStatus],[Priority],[WorkOrderStage],[ManufacturerName],[TechName],[EmployeeStation],[PublicationNo],TravelerNumber,Notes,[IncomingPartNumber])
+					[PartNumber],[PartDescription],[WorkOrderStatus],[Priority],[WorkOrderStage],[ManufacturerName],[TechName],[EmployeeStation],[PublicationNo],TravelerNumber,Notes,[IncomingPartNumber],
+					[AircraftRegistryNumber],[IsFromAircraft],[AircraftInstalledPartDetailsId],[AircraftSerialNumber],[AircraftRegistryId],[ProgramId])
 			 SELECT [WorkOrderId],[WorkOrderScopeId],[EstimatedShipDate],[CustomerRequestDate],[PromisedDate],[EstimatedCompletionDate],[NTE],[Quantity],
 					[StockLineId],[CMMIds],[WorkflowId],[WorkOrderStageId],[WorkOrderStatusId],[WorkOrderPriorityId],[IsPMA],[IsDER],[TechStationId],[TATDaysStandard],[MasterCompanyId],
 					[CreatedBy],[UpdatedBy],@CreatedDate,@UpdatedDate,[IsActive],[IsDeleted],[ItemMasterId],[TechnicianId],[ConditionId],[TATDaysCurrent],[RevisedPartId],[ManagementStructureId],
 					[IsMPNContract],[ContractNo],[WorkScope],[isLocked],[ReceivedDate],[IsClosed],[ACTailNum],[ClosedDate],[PDFPath],[IsFinishGood],[RevisedConditionId],[CustomerReference],
 					[Level1],[Level2],[Level3],[Level4],[AssignDate],[ReceivingCustomerWorkId],[ExpertiseId],ItemMasterId,[PartNumber],[PartDescription],[IsTraveler],
 					[AllowInvoiceBeforeShipping],[WOFPrintDate],[CurrentSerialNumber],[StocklineCost],[TendorStocklineCost],[RepairOrderId],[RONumber],[RevisedSerialNumber],[IsROCreated],
-					[PartNumber],[PartDescription],[WorkOrderStatus],[Priority],[WorkOrderStage],[ManufacturerName],[TechName],[EmployeeStation],[PublicationNo],@TravelerName,Notes,[PartNumber]
+					[PartNumber],[PartDescription],[WorkOrderStatus],[Priority],[WorkOrderStage],[ManufacturerName],[TechName],[EmployeeStation],[PublicationNo],@TravelerName,Notes,[PartNumber],
+					[AircraftRegistryNumber],[IsFromAircraft],[AircraftInstalledPartDetailsId],[AircraftSerialNumber],[AircraftRegistryId],[ProgramId]
 			   FROM #tmprCreateWorkOrderPartNumber 
 			  WHERE [PKID] = @MinId
 
@@ -586,6 +603,14 @@ BEGIN
 
 	-- CREATING TRAVELER LABOUR TASK
 	EXEC [dbo].[CreateTravelerLabourTask] @WorkOrderParts,@WorkOrderId,@CreatedBy,@CreatedDate,@MasterCompanyId;
+
+	IF(@WorksheetId > 0)
+	BEGIN
+		DECLARE @WorkOrderPartNoId BIGINT = 0 
+		SELECT TOP 1 @WorkOrderPartNoId  = [ID] FROM @WorkOrderParts 
+
+		EXEC [dbo].[CreateWorkOrderTasksForWorksheet] @WorkOrderParts,@WorkOrderId,@WorkOrderPartNoId,@WorkOrderTypeId,@CreatedBy,@CreatedDate,@MasterCompanyId,@WorksheetId	
+	END
 
 	-- Adding New Added MPN To WorkOrder Quote
 	IF EXISTS(SELECT 1 FROM [dbo].[WorkOrderQuote] WITH(NOLOCK) WHERE [WorkOrderId] = @WorkOrderId)

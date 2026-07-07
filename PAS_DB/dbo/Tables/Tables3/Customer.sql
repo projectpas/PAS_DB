@@ -46,6 +46,7 @@
     [SyncToken]                 VARCHAR (200)  NULL,
     [IntegrationTypeId]         INT            NULL,
     [ResaleNumber]              VARCHAR (200)  NULL,
+    [VatNumber]                 VARCHAR (50)   NULL,
     CONSTRAINT [PK_Customer] PRIMARY KEY CLUSTERED ([CustomerId] ASC),
     CONSTRAINT [FK_Customer_Address] FOREIGN KEY ([AddressId]) REFERENCES [dbo].[Address] ([AddressId]),
     CONSTRAINT [FK_Customer_Customer] FOREIGN KEY ([CustomerId]) REFERENCES [dbo].[Customer] ([CustomerId]),
@@ -55,16 +56,7 @@
     CONSTRAINT [FK_Customer_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId]),
     CONSTRAINT [Unique_CustomerCode] UNIQUE NONCLUSTERED ([CustomerCode] ASC, [MasterCompanyId] ASC)
 );
-
-
-
-
-
-
-
-
 GO
-    
 CREATE TRIGGER [dbo].[trg_Audit_dbo_Customer]
 ON [dbo].[Customer]
 AFTER INSERT, UPDATE, DELETE
@@ -72,8 +64,8 @@ AS
 BEGIN
     SET NOCOUNT ON;
     ;WITH
-    d AS (SELECT d.[CustomerId],d.[CustomerAffiliationId],d.[CustomerTypeId],d.[Name],d.[CustomerCode],d.[DoingBuinessAsName],d.[IsParent],d.[ParentId],d.[CustomerPhone],d.[CustomerPhoneExt],d.[Email],d.[AddressId],d.[IsAddressForBilling],d.[IsAddressForShipping],d.[IsCustomerAlsoVendor],d.[ContractReference],d.[IsPBHCustomer],d.[PBHCustomerMemo],d.[CustomerURL],d.[RestrictPMA],d.[RestrictDER],d.[ManagementStructureId],d.[MasterCompanyId],d.[CreatedBy],d.[UpdatedBy],d.[CreatedDate],d.[UpdatedDate],d.[IsActive],d.[IsDeleted],d.[IsCRMCustomer],d.[BillingAddressId],d.[ShippingAddressId],d.[IsTradeRestricted],d.[TradeRestrictedMemo],d.[IsTrackScoreCard],d.[CommunicationPreference],d.[Ismiscellaneous],d.[IsStageChange],d.[IsCommunicationPreference],d.[IsCustomerShipping],d.[QuickBooksReferenceId],d.[IsUpdated],d.[LastSyncDate],d.[Memo],d.[SyncToken] FROM deleted d),
-    i AS (SELECT i.[CustomerId],i.[CustomerAffiliationId],i.[CustomerTypeId],i.[Name],i.[CustomerCode],i.[DoingBuinessAsName],i.[IsParent],i.[ParentId],i.[CustomerPhone],i.[CustomerPhoneExt],i.[Email],i.[AddressId],i.[IsAddressForBilling],i.[IsAddressForShipping],i.[IsCustomerAlsoVendor],i.[ContractReference],i.[IsPBHCustomer],i.[PBHCustomerMemo],i.[CustomerURL],i.[RestrictPMA],i.[RestrictDER],i.[ManagementStructureId],i.[MasterCompanyId],i.[CreatedBy],i.[UpdatedBy],i.[CreatedDate],i.[UpdatedDate],i.[IsActive],i.[IsDeleted],i.[IsCRMCustomer],i.[BillingAddressId],i.[ShippingAddressId],i.[IsTradeRestricted],i.[TradeRestrictedMemo],i.[IsTrackScoreCard],i.[CommunicationPreference],i.[Ismiscellaneous],i.[IsStageChange],i.[IsCommunicationPreference],i.[IsCustomerShipping],i.[QuickBooksReferenceId],i.[IsUpdated],i.[LastSyncDate],i.[Memo],i.[SyncToken] FROM inserted i),
+    d AS (SELECT d.[CustomerId],d.[CustomerAffiliationId],d.[CustomerTypeId],d.[Name],d.[CustomerCode],d.[DoingBuinessAsName],d.[IsParent],d.[ParentId],d.[CustomerPhone],d.[CustomerPhoneExt],d.[Email],d.[AddressId],d.[IsAddressForBilling],d.[IsAddressForShipping],d.[IsCustomerAlsoVendor],d.[ContractReference],d.[IsPBHCustomer],d.[PBHCustomerMemo],d.[CustomerURL],d.[RestrictPMA],d.[RestrictDER],d.[ManagementStructureId],d.[MasterCompanyId],d.[CreatedBy],d.[UpdatedBy],d.[CreatedDate],d.[UpdatedDate],d.[IsActive],d.[IsDeleted],d.[IsCRMCustomer],d.[BillingAddressId],d.[ShippingAddressId],d.[IsTradeRestricted],d.[TradeRestrictedMemo],d.[IsTrackScoreCard],d.[CommunicationPreference],d.[Ismiscellaneous],d.[IsStageChange],d.[IsCommunicationPreference],d.[IsCustomerShipping],d.[QuickBooksReferenceId],d.[IsUpdated],d.[LastSyncDate],d.[Memo],d.[SyncToken],d.[IntegrationTypeId],d.[ResaleNumber],d.[VatNumber] FROM deleted d),
+    i AS (SELECT i.[CustomerId],i.[CustomerAffiliationId],i.[CustomerTypeId],i.[Name],i.[CustomerCode],i.[DoingBuinessAsName],i.[IsParent],i.[ParentId],i.[CustomerPhone],i.[CustomerPhoneExt],i.[Email],i.[AddressId],i.[IsAddressForBilling],i.[IsAddressForShipping],i.[IsCustomerAlsoVendor],i.[ContractReference],i.[IsPBHCustomer],i.[PBHCustomerMemo],i.[CustomerURL],i.[RestrictPMA],i.[RestrictDER],i.[ManagementStructureId],i.[MasterCompanyId],i.[CreatedBy],i.[UpdatedBy],i.[CreatedDate],i.[UpdatedDate],i.[IsActive],i.[IsDeleted],i.[IsCRMCustomer],i.[BillingAddressId],i.[ShippingAddressId],i.[IsTradeRestricted],i.[TradeRestrictedMemo],i.[IsTrackScoreCard],i.[CommunicationPreference],i.[Ismiscellaneous],i.[IsStageChange],i.[IsCommunicationPreference],i.[IsCustomerShipping],i.[QuickBooksReferenceId],i.[IsUpdated],i.[LastSyncDate],i.[Memo],i.[SyncToken],i.[IntegrationTypeId],i.[ResaleNumber],i.[VatNumber] FROM inserted i),
     paired AS (
         SELECT
             COALESCE(i.CustomerId, d.CustomerId ) AS CustomerId,

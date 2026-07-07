@@ -22,6 +22,7 @@
     [ManualText]               VARCHAR (100)  NULL,
     [IsAutoPost]               BIT            NULL,
     [Memo]                     NVARCHAR (MAX) NULL,
+    [IsBypassAccounting]       BIT            NULL,
     CONSTRAINT [PK_DistributionSetupAudit] PRIMARY KEY CLUSTERED ([DistributionSetupAuditId] ASC)
 );
 

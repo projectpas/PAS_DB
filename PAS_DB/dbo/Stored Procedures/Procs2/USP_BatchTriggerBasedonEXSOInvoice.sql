@@ -26,6 +26,7 @@
 	11	 15/04/2025   Devendra Shekh Shipping Accounting Entry Issue Resolved
 	12	 17/04/2025   Devendra Shekh Invoice Accounting Entry Issue Resolved
 	13	 24/04/2025	  Devendra Shekh Modify (Added [IsManualText] check for DistributionSetup)
+	14	 06/07/2026	  Moin Bloch     Modify (Added IsBypassAccounting Flag to bypass Accounting Entry PN-16871)
      
    EXEC [dbo].[USP_BatchTriggerBasedonEXSOInvoice] 
 ************************************************************************/
@@ -121,6 +122,7 @@ BEGIN
 		DECLARE @InvoiceCurrencyCode VARCHAR(20) = '';
 		DECLARE @FXRate DECIMAL(9,2) = 1;	--Default Value set to : 1
 		DECLARE @ReferenceModule VARCHAR(100) = 'EXCH';
+		DECLARE @IsBypassAccounting BIT = 0;		
 
 		DECLARE @InventoryToBillGLAccId BIGINT = 0;
 		DECLARE @InventoryGLAccId BIGINT = 0;
@@ -246,7 +248,8 @@ BEGIN
 					
 					IF(@PartUnitSalesPrices > 0)
 					BEGIN
-						SELECT TOP 1 @IsAutoPost = ISNULL(IsAutoPost,0)
+						SELECT TOP 1 @IsAutoPost = ISNULL(IsAutoPost,0),
+						             @IsBypassAccounting = ISNULL([IsBypassAccounting],0)
 							        FROM [dbo].[DistributionSetup] WITH(NOLOCK) 
 							       WHERE UPPER([DistributionSetupCode]) = UPPER('EX-INVAGM') 
 							         AND [DistributionMasterId] = @DistributionMasterId 
@@ -477,7 +480,8 @@ BEGIN
 									     @GlAccountId = [GlAccountId],
 									     @GlAccountNumber = [GlAccountNumber],
 									     @GlAccountName = [GlAccountName],
-									     @CrDrType = [CRDRType]
+									     @CrDrType = [CRDRType],
+									     @IsBypassAccounting = ISNULL([IsBypassAccounting],0)
 							        FROM [dbo].[DistributionSetup] WITH(NOLOCK) 
 							       WHERE UPPER([DistributionSetupCode]) = UPPER('EX-INVAGM') 
 							         AND [DistributionMasterId] = @DistributionMasterId 
@@ -491,6 +495,8 @@ BEGIN
 							WHERE [GLAccountId] = @InventoryExchAgreementGLAccId
 							AND [MasterCompanyId] = @MasterCompanyId;
 
+							IF(@IsBypassAccounting = 0)
+							BEGIN
 							INSERT INTO [dbo].[CommonBatchDetails]
 									   ([JournalBatchDetailId],
 									    [JournalTypeNumber],
@@ -593,7 +599,8 @@ BEGIN
 									   ,@InvoiceId
 									   ,@InvoiceNo
 									   ,1
-									   ,'EX-INVAGM');                                                               
+									   ,'EX-INVAGM');
+							END                                                               
 						END	
 						---------------------------------------------------End ---------------------------------------------------
 
@@ -607,7 +614,8 @@ BEGIN
 										 @GlAccountId = [GlAccountId],
 										 @GlAccountNumber = [GlAccountNumber],
 										 @GlAccountName = [GlAccountName],
-										 @CrDrType = [CRDRType]
+										 @CrDrType = [CRDRType],
+										 @IsBypassAccounting = ISNULL([IsBypassAccounting],0)
 							        FROM [dbo].[DistributionSetup] WITH(NOLOCK)  
 									WHERE UPPER(DistributionSetupCode) = UPPER('EX-INVPARTS') 
 									AND [DistributionMasterId] = @DistributionMasterId 
@@ -621,6 +629,8 @@ BEGIN
 							WHERE [GLAccountId] = @InventoryGLAccId
 							AND [MasterCompanyId] = @MasterCompanyId;
 													    
+				    		IF(@IsBypassAccounting = 0)
+				    		BEGIN
 				    		INSERT INTO [dbo].[CommonBatchDetails]
 				    			       ([JournalBatchDetailId],
 									    [JournalTypeNumber],
@@ -723,7 +733,8 @@ BEGIN
 									   ,@InvoiceId
 									   ,@InvoiceNo
 									   ,1
-									   ,'EX-INVPARTS');    
+									   ,'EX-INVPARTS');
+				    		END    
 				    	 
 						END
 					    ---------------------------------------------------End ---------------------------------------------------
@@ -816,7 +827,8 @@ BEGIN
 					
 					SELECT @ExchangeBillingStatusId = [ExchangeBillingStatusId] FROM [dbo].[ExchangeBillingStatus] WITH(NOLOCK) WHERE UPPER([Name]) = UPPER('INVOICED');
 					
-					SELECT TOP 1 @IsAutoPost = ISNULL(IsAutoPost,0)
+					SELECT TOP 1 @IsAutoPost = ISNULL(IsAutoPost,0),
+					             @IsBypassAccounting = ISNULL([IsBypassAccounting],0)
 								FROM [dbo].[DistributionSetup] WITH(NOLOCK) 
 							   WHERE UPPER([DistributionSetupCode]) = UPPER('EX-FBACCRECTRADE') 
 								 AND [DistributionMasterId] = @DistributionMasterId 
@@ -1073,12 +1085,15 @@ BEGIN
 									 @GlAccountId = [GlAccountId],
 									 @GlAccountNumber = [GlAccountNumber],
 									 @GlAccountName = [GlAccountName],
-									 @CrDrType = [CRDRType]
+									 @CrDrType = [CRDRType],
+									 @IsBypassAccounting = ISNULL([IsBypassAccounting],0)
 								FROM [dbo].[DistributionSetup] WITH(NOLOCK) 
 							   WHERE UPPER([DistributionSetupCode]) = UPPER('EX-FBACCRECTRADE') 
 								 AND [DistributionMasterId] = @DistributionMasterId 
 								 AND [MasterCompanyId] = @MasterCompanyId;
 
+						IF(@IsBypassAccounting = 0)
+						BEGIN
 						INSERT INTO [dbo].[CommonBatchDetails]
 									   ([JournalBatchDetailId],
 									    [JournalTypeNumber],
@@ -1181,13 +1196,15 @@ BEGIN
 									   ,@InvoiceId
 									   ,@BillInvoiceNo
 									   ,2
-									   ,'EX-FBACCRECTRADE'); 
+									   ,'EX-FBACCRECTRADE');
+						END 
 
 					END
 					IF(@TotalCogsAmount > 0)
 					BEGIN
 						SELECT TOP 1 @DistributionSetupId = [ID], @DistributionName = [Name], @JournalTypeId = [JournalTypeId], @GlAccountId = [GlAccountId], 
-						             @GlAccountNumber = [GlAccountNumber], @GlAccountName = [GlAccountName], @CrDrType = [CRDRType]
+						             @GlAccountNumber = [GlAccountNumber], @GlAccountName = [GlAccountName], @CrDrType = [CRDRType],
+						             @IsBypassAccounting = ISNULL([IsBypassAccounting],0)
 								FROM [dbo].[DistributionSetup] WITH(NOLOCK) 
 							   WHERE UPPER([DistributionSetupCode]) = UPPER('EX-FBCOGSPARTS') 
 								 AND [DistributionMasterId] = @DistributionMasterId 
@@ -1201,6 +1218,8 @@ BEGIN
 						WHERE [GLAccountId] = @COGSExchSalesOrderGLAccId
 						AND [MasterCompanyId] = @MasterCompanyId;
 
+						IF(@IsBypassAccounting = 0)
+						BEGIN
 						INSERT INTO [dbo].[CommonBatchDetails]
 									   ([JournalBatchDetailId],
 									    [JournalTypeNumber],
@@ -1303,7 +1322,8 @@ BEGIN
 									   ,@InvoiceId
 									   ,@CogsInvoiceNo
 									   ,2
-									   ,'EX-FBCOGSPARTS'); 
+									   ,'EX-FBCOGSPARTS');
+						END 
 					END
 					IF(@TotalCreditBilling > 0)
 					BEGIN
@@ -1313,7 +1333,8 @@ BEGIN
 									 @GlAccountId = [GlAccountId],
 									 @GlAccountNumber = [GlAccountNumber],
 									 @GlAccountName = [GlAccountName],
-									 @CrDrType = [CRDRType]
+									 @CrDrType = [CRDRType],
+									 @IsBypassAccounting = ISNULL([IsBypassAccounting],0)
 								FROM [dbo].[DistributionSetup] WITH(NOLOCK) 
 							   WHERE UPPER([DistributionSetupCode]) = UPPER('EX-FBREVENUE') 
 								 AND [DistributionMasterId] = @DistributionMasterId 
@@ -1327,6 +1348,8 @@ BEGIN
 						WHERE [GLAccountId] = @RevenueEXCSoGLAccId
 						AND [MasterCompanyId] = @MasterCompanyId;
 
+						IF(@IsBypassAccounting = 0)
+						BEGIN
 						INSERT INTO [dbo].[CommonBatchDetails]
 									   ([JournalBatchDetailId],
 									    [JournalTypeNumber],
@@ -1429,7 +1452,8 @@ BEGIN
 									   ,@InvoiceId
 									   ,@BillInvoiceNo
 									   ,2
-									   ,'EX-FBREVENUE'); 
+									   ,'EX-FBREVENUE');
+						END 
 
 					END
 					IF(@MiscChargesCost > 0)
@@ -1440,12 +1464,15 @@ BEGIN
 									 @GlAccountId = [GlAccountId],
 									 @GlAccountNumber = [GlAccountNumber],
 									 @GlAccountName = [GlAccountName],
-									 @CrDrType = [CRDRType]
+									 @CrDrType = [CRDRType],
+									 @IsBypassAccounting = ISNULL([IsBypassAccounting],0)
 								FROM [dbo].[DistributionSetup] WITH(NOLOCK) 
 							   WHERE UPPER([DistributionSetupCode]) = UPPER('EX-FBMISCCHARGE') 
 								 AND [DistributionMasterId] = @DistributionMasterId 
 								 AND [MasterCompanyId] = @MasterCompanyId;
 
+						IF(@IsBypassAccounting = 0)
+						BEGIN
 						INSERT INTO [dbo].[CommonBatchDetails]
 									   ([JournalBatchDetailId],
 									    [JournalTypeNumber],
@@ -1549,6 +1576,7 @@ BEGIN
 									   ,@ChargesInvoiceNo
 									   ,2
 									   ,'EX-FBMISCCHARGE');
+						END
 
 					END
 					IF(@FreightCost > 0)
@@ -1559,12 +1587,15 @@ BEGIN
 									 @GlAccountId = [GlAccountId],
 									 @GlAccountNumber = [GlAccountNumber],
 									 @GlAccountName = [GlAccountName],
-									 @CrDrType = [CRDRType]
+									 @CrDrType = [CRDRType],
+									 @IsBypassAccounting = ISNULL([IsBypassAccounting],0)
 								FROM [dbo].[DistributionSetup] WITH(NOLOCK) 
 							   WHERE UPPER([DistributionSetupCode]) = UPPER('EX-FBREVENUEFREIGHT') 
 								 AND [DistributionMasterId] = @DistributionMasterId 
 								 AND [MasterCompanyId] = @MasterCompanyId;
 
+						IF(@IsBypassAccounting = 0)
+						BEGIN
 						INSERT INTO [dbo].[CommonBatchDetails]
 									   ([JournalBatchDetailId],
 									    [JournalTypeNumber],
@@ -1668,12 +1699,14 @@ BEGIN
 									   ,@FreightInvoiceNo
 									   ,2
 									   ,'EX-FBREVENUEFREIGHT');
+						END
 
 					END
 					IF(@TotalCogsAmount > 0)
 					BEGIN
 						SELECT TOP 1 @DistributionSetupId = [ID], @DistributionName = [Name], @JournalTypeId = [JournalTypeId], @GlAccountId = [GlAccountId], 
-						             @GlAccountNumber = [GlAccountNumber], @GlAccountName = [GlAccountName], @CrDrType = [CRDRType]
+						             @GlAccountNumber = [GlAccountNumber], @GlAccountName = [GlAccountName], @CrDrType = [CRDRType],
+						             @IsBypassAccounting = ISNULL([IsBypassAccounting],0)
 								FROM [dbo].[DistributionSetup] WITH(NOLOCK) 
 							   WHERE UPPER([DistributionSetupCode]) = UPPER('EX-FBINVAGM') 
 								 AND [DistributionMasterId] = @DistributionMasterId 
@@ -1687,6 +1720,8 @@ BEGIN
 						WHERE [GLAccountId] = @InventoryExchAgreementGLAccId
 						AND [MasterCompanyId] = @MasterCompanyId;
 
+						IF(@IsBypassAccounting = 0)
+						BEGIN
 						INSERT INTO [dbo].[CommonBatchDetails]
 									   ([JournalBatchDetailId],
 									    [JournalTypeNumber],
@@ -1790,6 +1825,7 @@ BEGIN
 									   ,@CogsInvoiceNo
 									   ,2
 									   ,'EX-FBINVAGM');
+						END
 					END
 					IF(@TotalSalesTaxAmount > 0)
 					BEGIN
@@ -1799,12 +1835,15 @@ BEGIN
 									 @GlAccountId = [GlAccountId],
 									 @GlAccountNumber = [GlAccountNumber],
 									 @GlAccountName = [GlAccountName],
-									 @CrDrType = [CRDRType]
+									 @CrDrType = [CRDRType],
+									 @IsBypassAccounting = ISNULL([IsBypassAccounting],0)
 								FROM [dbo].[DistributionSetup] WITH(NOLOCK) 
 							   WHERE UPPER([DistributionSetupCode]) = UPPER('EX-FBSTP') 
 								 AND [DistributionMasterId] = @DistributionMasterId 
 								 AND [MasterCompanyId] = @MasterCompanyId;
 
+						IF(@IsBypassAccounting = 0)
+						BEGIN
 						INSERT INTO [dbo].[CommonBatchDetails]
 									   ([JournalBatchDetailId],
 									    [JournalTypeNumber],
@@ -1909,6 +1948,7 @@ BEGIN
 									   ,@BillInvoiceNo
 									   ,2
 									   ,'EX-FBSTP');
+						END
 
 					END
 					IF(@TotalOtherTaxAmount > 0)
@@ -1919,12 +1959,15 @@ BEGIN
 									 @GlAccountId = [GlAccountId],
 									 @GlAccountNumber = [GlAccountNumber],
 									 @GlAccountName = [GlAccountName],
-									 @CrDrType = [CRDRType]
+									 @CrDrType = [CRDRType],
+									 @IsBypassAccounting = ISNULL([IsBypassAccounting],0)
 								FROM [dbo].[DistributionSetup] WITH(NOLOCK) 
 							   WHERE UPPER([DistributionSetupCode]) = UPPER('EX-FBTPO') 
 								 AND [DistributionMasterId] = @DistributionMasterId 
 								 AND [MasterCompanyId] = @MasterCompanyId;
 
+						IF(@IsBypassAccounting = 0)
+						BEGIN
 						INSERT INTO [dbo].[CommonBatchDetails]
 									   ([JournalBatchDetailId],
 									    [JournalTypeNumber],
@@ -2028,6 +2071,7 @@ BEGIN
 									   ,@BillInvoiceNo
 									   ,2
 									   ,'EX-FBTPO')
+						END
 
 					END
 											
@@ -2277,12 +2321,15 @@ BEGIN
 									 @GlAccountNumber = [GlAccountNumber],
 									 @GlAccountName = [GlAccountName],
 									 @CrDrType = [CRDRType],
-									 @IsAutoPost = ISNULL(IsAutoPost,0)
+									 @IsAutoPost = ISNULL(IsAutoPost,0),
+									 @IsBypassAccounting = ISNULL([IsBypassAccounting],0)
 								FROM [dbo].[DistributionSetup] WITH(NOLOCK) 
 							   WHERE UPPER([DistributionSetupCode]) = UPPER('EX-CRINV') 
 								 AND [DistributionMasterId] = @DistributionMasterId 
 								 AND [MasterCompanyId] = @MasterCompanyId;
 
+						IF(@IsBypassAccounting = 0)
+						BEGIN
 						INSERT INTO [dbo].[CommonBatchDetails]
 									   ([JournalBatchDetailId],
 									    [JournalTypeNumber],
@@ -2381,7 +2428,8 @@ BEGIN
 									   ,@InvoiceId
 									   ,@InvoiceNo
 									   ,3
-									   ,'EX-CRINV'); 
+									   ,'EX-CRINV');
+						END 
 
 						----------------------------------------------------- Core Returned Inventory On Exchange Agreeement -----------------------------------------------------
 
@@ -2391,12 +2439,15 @@ BEGIN
 									 @GlAccountId = [GlAccountId],
 									 @GlAccountNumber = [GlAccountNumber],
 									 @GlAccountName = [GlAccountName],
-									 @CrDrType = [CRDRType]
+									 @CrDrType = [CRDRType],
+									 @IsBypassAccounting = ISNULL([IsBypassAccounting],0)
 								FROM [dbo].[DistributionSetup] WITH(NOLOCK) 
 							   WHERE UPPER([DistributionSetupCode]) = UPPER('EX-CRINVAGM') 
 								 AND [DistributionMasterId] = @DistributionMasterId 
 								 AND [MasterCompanyId] = @MasterCompanyId;
 						
+						IF(@IsBypassAccounting = 0)
+						BEGIN
 						INSERT INTO [dbo].[CommonBatchDetails]
 									   ([JournalBatchDetailId],
 									    [JournalTypeNumber],
@@ -2495,7 +2546,8 @@ BEGIN
 									   ,@InvoiceId
 									   ,@InvoiceNo
 									   ,3
-									   ,'EX-CRINVAGM'); 
+									   ,'EX-CRINVAGM');
+						END 
 						
 						----------------------------------------------------Updating Receiving Customer Batch Entry Flag Here -----------------------------------------------------
 

@@ -82,118 +82,17 @@ BEGIN
                     ELSE ISNULL(PUB.PublishedByOthers,'')
                 END AS PublishedBy,
 				PUB.AircraftPublicationId,
-                CASE
-                    WHEN EXISTS
-                    (
-                        SELECT 1
-                        FROM dbo.AircraftMaintenanceProgram AMP WITH(NOLOCK)
-                        WHERE AMP.AircraftRegistryId = ARH.AircraftRegistryId
-                        AND ISNULL(AMP.IsMtceRecordUpdated,0) = 1 AND AMP.AircraftPublicationId = PUB.AircraftPublicationId
-                    )
-                    THEN 1
-                    ELSE 0
-                END AS IsMtceRecordUpdated,
+				ISNULL(MR.IsMtceRecordUpdated,0) AS IsMtceRecordUpdated,
                 '' AS MELNumber,
-                (
-                    SELECT TOP 1 WSH.WorksheetNumber
-                    FROM dbo.AircraftMaintenanceProgram AMP WITH(NOLOCK)
-                    LEFT JOIN dbo.WorksheetHeader WSH WITH(NOLOCK)
-                        ON WSH.ProgramId = AMP.ProgramId
-                    WHERE AMP.AircraftRegistryId = ARH.AircraftRegistryId AND AMP.AircraftPublicationId = PUB.AircraftPublicationId
-                ) AS WorksheetNum,
-				(
-                    SELECT TOP 1 WSH.WorksheetHeaderId
-                    FROM dbo.AircraftMaintenanceProgram AMP WITH(NOLOCK)
-                    LEFT JOIN dbo.WorksheetHeader WSH WITH(NOLOCK)
-                        ON WSH.ProgramId = AMP.ProgramId
-                    WHERE AMP.AircraftRegistryId = ARH.AircraftRegistryId AND AMP.AircraftPublicationId = PUB.AircraftPublicationId
-                ) AS WorksheetId,
-                (
-                    SELECT TOP 1 WSH.CreatedDate
-                    FROM dbo.AircraftMaintenanceProgram AMP WITH(NOLOCK)
-                    LEFT JOIN dbo.WorksheetHeader WSH WITH(NOLOCK)
-                        ON WSH.ProgramId = AMP.ProgramId
-                    WHERE AMP.AircraftRegistryId = ARH.AircraftRegistryId AND AMP.AircraftPublicationId = PUB.AircraftPublicationId
-                ) AS InspectionDate,
-                (
-                    SELECT TOP 1 WSH.CreatedBy
-                    FROM dbo.AircraftMaintenanceProgram AMP WITH(NOLOCK)
-                    LEFT JOIN dbo.WorksheetHeader WSH WITH(NOLOCK)
-                        ON WSH.ProgramId = AMP.ProgramId
-                    WHERE AMP.AircraftRegistryId = ARH.AircraftRegistryId AND AMP.AircraftPublicationId = PUB.AircraftPublicationId
-                ) AS WorkSheetCompletedBy,
-				(
-					SELECT TOP 1
-						CASE
-							WHEN AMP.ProgramId IS NULL OR WSH.WorksheetHeaderId IS NULL
-							THEN NULL
-
-							-- No worksheet created → Open
-							WHEN WSH.WorksheetHeaderId IS NULL
-							THEN 'Open'
-
-							-- Worksheet exists but no Work Order linked → Open
-							WHEN WOP2.WorkOrderId IS NULL
-							THEN 'Open'
-
-							-- Work Order exists and status = 2 → Closed
-							WHEN ISNULL(WO2.WorkOrderStatusId, 0) = 2
-							THEN 'Closed'
-
-							WHEN UPPER(ISNULL(WOP2.WorkOrderStatus, '')) = 'CLOSED'
-							THEN 'Closed'
-
-							WHEN ISNULL(
-									CASE
-										WHEN ISNULL(WSH.AircraftInstalledPartDetailsId, 0) > 0
-										THEN WOP2.WorkOrderStatusId
-										ELSE WO2.WorkOrderStatusId
-									END, 0) = 2
-							THEN 'Closed'
-
-							-- Work Order exists and not closed → In Process
-							ELSE 'In Process'
-						END
-					FROM dbo.AircraftMaintenanceProgram AMP WITH(NOLOCK)
-					LEFT JOIN dbo.WorksheetHeader WSH WITH(NOLOCK) ON WSH.ProgramId = AMP.ProgramId
-					LEFT JOIN [dbo].[WorkOrderPartNumber] WOP2 WITH(NOLOCK) ON WOP2.ProgramId = AMP.ProgramId
-					LEFT JOIN [dbo].[WorkOrder] WO2 WITH(NOLOCK) ON WO2.WorkOrderId = WOP2.WorkOrderId
-					WHERE AMP.AircraftRegistryId = ARH.AircraftRegistryId AND AMP.AircraftPublicationId = PUB.AircraftPublicationId
-				) AS WorkSheetStatus,
-                (
-                    SELECT TOP 1 WO.WorkOrderNum
-                    FROM dbo.AircraftMaintenanceProgram AMP WITH(NOLOCK)
-                    LEFT JOIN dbo.WorkOrderPartNumber WOPN WITH(NOLOCK)
-                        ON WOPN.ProgramId = AMP.ProgramId
-                    LEFT JOIN dbo.WorkOrder WO WITH(NOLOCK)
-                        ON WO.WorkOrderId = WOPN.WorkOrderId
-                    WHERE AMP.AircraftRegistryId = ARH.AircraftRegistryId AND AMP.AircraftPublicationId = PUB.AircraftPublicationId
-                ) AS WorkOrderNum,
-				(
-                    SELECT TOP 1 WO.WorkOrderId
-                    FROM dbo.AircraftMaintenanceProgram AMP WITH(NOLOCK)
-                    LEFT JOIN dbo.WorkOrderPartNumber WOPN WITH(NOLOCK)
-                        ON WOPN.ProgramId = AMP.ProgramId
-                    LEFT JOIN dbo.WorkOrder WO WITH(NOLOCK)
-                        ON WO.WorkOrderId = WOPN.WorkOrderId
-                    WHERE AMP.AircraftRegistryId = ARH.AircraftRegistryId AND AMP.AircraftPublicationId = PUB.AircraftPublicationId
-                ) AS WorkOrderId,
-                (
-                    SELECT TOP 1 WO.OpenDate
-                    FROM dbo.AircraftMaintenanceProgram AMP WITH(NOLOCK)
-                    LEFT JOIN dbo.WorkOrderPartNumber WOPN WITH(NOLOCK)
-                        ON WOPN.ProgramId = AMP.ProgramId
-					LEFT JOIN dbo.WorkOrder WO WITH(NOLOCK)
-                        ON WO.WorkOrderId = WOPN.WorkOrderId
-                    WHERE AMP.AircraftRegistryId = ARH.AircraftRegistryId AND AMP.AircraftPublicationId = PUB.AircraftPublicationId
-                ) AS OpenDate,
-                (
-                    SELECT TOP 1 WOPN.WorkOrderStatus
-                    FROM dbo.AircraftMaintenanceProgram AMP WITH(NOLOCK)
-                    LEFT JOIN dbo.WorkOrderPartNumber WOPN WITH(NOLOCK)
-                        ON WOPN.ProgramId = AMP.ProgramId
-                    WHERE AMP.AircraftRegistryId = ARH.AircraftRegistryId AND AMP.AircraftPublicationId = PUB.AircraftPublicationId
-                ) AS WorkOrderStatus,
+                WS.WorksheetNumber   AS WorksheetNum,
+                WS.WorksheetHeaderId AS WorksheetId,
+                WS.CreatedDate       AS InspectionDate,
+                WS.CreatedBy         AS WorkSheetCompletedBy,
+                WSS.WorkSheetStatus  AS WorkSheetStatus,
+                WOX.WorkOrderNum,
+                WOX.WorkOrderId,
+                WOX.OpenDate,
+                WOX.WorkOrderStatus,
                 ARH.IsActive,
                 ARH.IsDeleted,
                 ARH.UpdatedDate,
@@ -204,11 +103,59 @@ BEGIN
                 CASE WHEN EXISTS (SELECT 1 FROM dbo.AircraftMaintenanceProgram AMP WITH(NOLOCK) WHERE AMP.AircraftRegistryId = ARH.AircraftRegistryId AND AMP.AircraftPublicationId = PUB.AircraftPublicationId AND ISNULL(AMP.IsMtceRecordUpdated, 0) = 1)
                 THEN 'YES' ELSE 'NO' END AS MtceRecordUpdated
              FROM [dbo].[AircraftRegistryHeader] ARH WITH(NOLOCK) 			
-			INNER JOIN [dbo].[AircraftEffectivity] ACE WITH(NOLOCK) ON ARH.[MakeTypeId] = ACE.[MakeTypeId] AND ARH.[SerialNum] = ACE.[SerialNum]
-			INNER JOIN [dbo].[AircraftPublication] PUB WITH(NOLOCK) ON ACE.[AircraftPublicationId] = PUB.[AircraftPublicationId]
+			 INNER JOIN [dbo].[AircraftEffectivity] ACE WITH(NOLOCK) ON ARH.[MakeTypeId] = ACE.[MakeTypeId] AND ARH.[SerialNum] = ACE.[SerialNum]
+			 INNER JOIN [dbo].[AircraftPublication] PUB WITH(NOLOCK) ON ACE.[AircraftPublicationId] = PUB.[AircraftPublicationId]
 			 LEFT JOIN [dbo].[PublicationType] PUT WITH(NOLOCK) ON PUB.[PublicationTypeId] = PUT.[PublicationTypeId]
 			 LEFT JOIN [dbo].[Manufacturer] M WITH(NOLOCK) ON PUB.[PublishedByRefId] = M.[ManufacturerId]
 			 LEFT JOIN [dbo].[Vendor] V WITH(NOLOCK) ON PUB.[PublishedByRefId] = V.[VendorId]
+			 LEFT JOIN (
+					SELECT AMP.AircraftRegistryId, AMP.AircraftPublicationId,
+						   MAX(CAST(ISNULL(AMP.IsMtceRecordUpdated,0) AS INT)) AS IsMtceRecordUpdated
+					FROM dbo.AircraftMaintenanceProgram AMP WITH(NOLOCK)
+					GROUP BY AMP.AircraftRegistryId, AMP.AircraftPublicationId
+				 ) MR ON MR.AircraftRegistryId = ARH.AircraftRegistryId
+					 AND MR.AircraftPublicationId = PUB.AircraftPublicationId
+			LEFT JOIN (
+					SELECT AMP.AircraftRegistryId, AMP.AircraftPublicationId,
+						   WSH.WorksheetNumber, WSH.WorksheetHeaderId, WSH.CreatedDate, WSH.CreatedBy,
+						   ROW_NUMBER() OVER (PARTITION BY AMP.AircraftRegistryId, AMP.AircraftPublicationId
+											  ORDER BY WSH.CreatedDate DESC, WSH.WorksheetHeaderId DESC) AS rn
+					FROM dbo.AircraftMaintenanceProgram AMP WITH(NOLOCK)
+					LEFT JOIN dbo.WorksheetHeader WSH WITH(NOLOCK) ON WSH.ProgramId = AMP.ProgramId
+				 ) WS ON WS.AircraftRegistryId = ARH.AircraftRegistryId
+					 AND WS.AircraftPublicationId = PUB.AircraftPublicationId AND WS.rn = 1
+			LEFT JOIN (
+					SELECT AMP.AircraftRegistryId, AMP.AircraftPublicationId,
+						   WO.WorkOrderNum, WO.WorkOrderId, WO.OpenDate, WOPN.WorkOrderStatus,
+						   ROW_NUMBER() OVER (PARTITION BY AMP.AircraftRegistryId, AMP.AircraftPublicationId
+											  ORDER BY WO.WorkOrderId DESC) AS rn
+					FROM dbo.AircraftMaintenanceProgram AMP WITH(NOLOCK)
+					LEFT JOIN dbo.WorkOrderPartNumber WOPN WITH(NOLOCK) ON WOPN.ProgramId = AMP.ProgramId
+					LEFT JOIN dbo.WorkOrder WO WITH(NOLOCK) ON WO.WorkOrderId = WOPN.WorkOrderId
+				 ) WOX ON WOX.AircraftRegistryId = ARH.AircraftRegistryId
+					 AND WOX.AircraftPublicationId = PUB.AircraftPublicationId AND WOX.rn = 1
+			LEFT JOIN (
+					SELECT AMP.AircraftRegistryId, AMP.AircraftPublicationId,
+						CASE
+							WHEN AMP.ProgramId IS NULL OR WSH.WorksheetHeaderId IS NULL THEN NULL
+							WHEN WSH.WorksheetHeaderId IS NULL THEN 'Open'
+							WHEN WOP2.WorkOrderId IS NULL THEN 'Open'
+							WHEN ISNULL(WO2.WorkOrderStatusId, 0) = 2 THEN 'Closed'
+							WHEN UPPER(ISNULL(WOP2.WorkOrderStatus, '')) = 'CLOSED' THEN 'Closed'
+							WHEN ISNULL(
+									CASE WHEN ISNULL(WSH.AircraftInstalledPartDetailsId, 0) > 0
+										 THEN WOP2.WorkOrderStatusId ELSE WO2.WorkOrderStatusId END, 0) = 2
+							THEN 'Closed'
+							ELSE 'In Process'
+						END AS WorkSheetStatus,
+						ROW_NUMBER() OVER (PARTITION BY AMP.AircraftRegistryId, AMP.AircraftPublicationId
+										   ORDER BY WSH.WorksheetHeaderId DESC, WOP2.WorkOrderId DESC) AS rn
+					FROM dbo.AircraftMaintenanceProgram AMP WITH(NOLOCK)
+					LEFT JOIN dbo.WorksheetHeader WSH WITH(NOLOCK) ON WSH.ProgramId = AMP.ProgramId
+					LEFT JOIN dbo.WorkOrderPartNumber WOP2 WITH(NOLOCK) ON WOP2.ProgramId = AMP.ProgramId
+					LEFT JOIN dbo.WorkOrder WO2 WITH(NOLOCK) ON WO2.WorkOrderId = WOP2.WorkOrderId
+				 ) WSS ON WSS.AircraftRegistryId = ARH.AircraftRegistryId
+					 AND WSS.AircraftPublicationId = PUB.AircraftPublicationId AND WSS.rn = 1
             WHERE ARH.MasterCompanyId = @MasterCompanyId  AND (@IsDeleted IS NULL OR ARH.IsDeleted = @IsDeleted)
         )
 

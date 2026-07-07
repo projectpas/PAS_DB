@@ -50,7 +50,9 @@ BEGIN
 			BEGIN
 				INSERT INTO @TasksWithData (WorkOrderTaskId)
 				SELECT DISTINCT TaskId FROM dbo.WorkOrderMaterialsKit WITH(NOLOCK) 
-				WHERE TaskId IN (SELECT WorkOrderTaskId FROM @TargetTasks WHERE WorkOrderTaskId NOT IN (SELECT WorkOrderTaskId FROM @TasksWithData)) AND IsDeleted = 0;
+				WHERE TaskId IN (SELECT WorkOrderTaskId FROM @TargetTasks)
+				  AND TaskId NOT IN (SELECT WorkOrderTaskId FROM @TasksWithData)
+				  AND IsDeleted = 0;
 			END
 
 			-- Query 3: WorkOrderLaborTracking
@@ -58,7 +60,9 @@ BEGIN
 			BEGIN
 				INSERT INTO @TasksWithData (WorkOrderTaskId)
 				SELECT DISTINCT TaskId FROM dbo.WorkOrderLaborTracking WITH(NOLOCK) 
-				WHERE TaskId IN (SELECT WorkOrderTaskId FROM @TargetTasks WHERE WorkOrderTaskId NOT IN (SELECT WorkOrderTaskId FROM @TasksWithData)) AND IsDeleted = 0;
+				WHERE TaskId IN (SELECT WorkOrderTaskId FROM @TargetTasks)
+				  AND TaskId NOT IN (SELECT WorkOrderTaskId FROM @TasksWithData)
+				  AND IsDeleted = 0;
 			END
 
 			-- Query 4: WorkOrderAssets
@@ -66,7 +70,9 @@ BEGIN
 			BEGIN
 				INSERT INTO @TasksWithData (WorkOrderTaskId)
 				SELECT DISTINCT TaskId FROM dbo.WorkOrderAssets WITH(NOLOCK) 
-				WHERE TaskId IN (SELECT WorkOrderTaskId FROM @TargetTasks WHERE WorkOrderTaskId NOT IN (SELECT WorkOrderTaskId FROM @TasksWithData)) AND IsDeleted = 0;
+				WHERE TaskId IN (SELECT WorkOrderTaskId FROM @TargetTasks)
+				  AND TaskId NOT IN (SELECT WorkOrderTaskId FROM @TasksWithData)
+				  AND IsDeleted = 0;
 			END
 
 			-- Query 5: WorkOrderFreight
@@ -74,7 +80,9 @@ BEGIN
 			BEGIN
 				INSERT INTO @TasksWithData (WorkOrderTaskId)
 				SELECT DISTINCT TaskId FROM dbo.WorkOrderFreight WITH(NOLOCK) 
-				WHERE TaskId IN (SELECT WorkOrderTaskId FROM @TargetTasks WHERE WorkOrderTaskId NOT IN (SELECT WorkOrderTaskId FROM @TasksWithData)) AND IsDeleted = 0;
+				WHERE TaskId IN (SELECT WorkOrderTaskId FROM @TargetTasks)
+				  AND TaskId NOT IN (SELECT WorkOrderTaskId FROM @TasksWithData)
+				  AND IsDeleted = 0;
 			END
 
 			-- Query 6: WorkOrderCharges
@@ -82,15 +90,19 @@ BEGIN
 			BEGIN
 				INSERT INTO @TasksWithData (WorkOrderTaskId)
 				SELECT DISTINCT TaskId FROM dbo.WorkOrderCharges WITH(NOLOCK) 
-				WHERE TaskId IN (SELECT WorkOrderTaskId FROM @TargetTasks WHERE WorkOrderTaskId NOT IN (SELECT WorkOrderTaskId FROM @TasksWithData)) AND IsDeleted = 0;
+				WHERE TaskId IN (SELECT WorkOrderTaskId FROM @TargetTasks)
+				  AND TaskId NOT IN (SELECT WorkOrderTaskId FROM @TasksWithData)
+				  AND IsDeleted = 0;
 			END
 
 			-- Query 7: WorkOrderTaskInstruction
 			IF (SELECT COUNT(1) FROM @TasksWithData) < @TargetCount
 			BEGIN
 				INSERT INTO @TasksWithData (WorkOrderTaskId)
-				SELECT WorkOrderTaskId FROM dbo.WorkOrderTaskInstruction WITH(NOLOCK) 
-				WHERE WorkOrderTaskId IN (SELECT WorkOrderTaskId FROM @TargetTasks WHERE WorkOrderTaskId NOT IN (SELECT WorkOrderTaskId FROM @TasksWithData)) AND IsDeleted = 0;
+				SELECT DISTINCT WorkOrderTaskId FROM dbo.WorkOrderTaskInstruction WITH(NOLOCK) 
+				WHERE WorkOrderTaskId IN (SELECT WorkOrderTaskId FROM @TargetTasks)
+				  AND WorkOrderTaskId NOT IN (SELECT WorkOrderTaskId FROM @TasksWithData)
+				  AND IsDeleted = 0;
 			END
 		END
 

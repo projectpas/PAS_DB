@@ -25,6 +25,8 @@
     [IsDeleted]                 BIT            DEFAULT ((0)) NOT NULL,
     [ComplianceDate]            DATETIME2 (7)  NULL,
     [RactificationDate]         DATETIME2 (7)  NULL,
+    [Applicability]             BIT            NULL,
+    [MEL]                       BIT            NULL,
     PRIMARY KEY CLUSTERED ([AircraftPublicationId] ASC),
     CONSTRAINT [FK_AircraftPublication_MasterCompany] FOREIGN KEY ([MasterCompanyId]) REFERENCES [dbo].[MasterCompany] ([MasterCompanyId])
 );

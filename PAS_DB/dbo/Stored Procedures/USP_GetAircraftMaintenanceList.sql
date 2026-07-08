@@ -24,6 +24,7 @@
 ** 12   25/06/2026	 Amit Ghediya	    Added @LastInspectedDate,@Description,@LastinspectedById [PN-17000]
 ** 13   22/05/2026   Moin Bloch         Added @FlightHoursLimitDays PN-17043
 ** 14   30/06/2026	 Amit Ghediya	    Update for Engine data [PN-17075]
+** 14   07/07/2026	 Amit Ghediya	    Update for get is from Aircraft Or Engine maintanace
 
 
 *****************************************************************************************************/
@@ -73,7 +74,8 @@ CREATE  PROCEDURE [dbo].[USP_GetAircraftMaintenanceList]
 	@Description			 VARCHAR(256) = NULL,
 	@LastinspectedBy		 VARCHAR(256) = NULL,
 	@IsFromAircraft          BIT          = NULL,
-	@SequenceNo				 BIGINT       = NULL
+	@SequenceNo				 BIGINT       = NULL,
+	@MaintanaceType			 VARCHAR(256) = NULL
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -96,7 +98,7 @@ BEGIN
                 CASE WHEN ISNULL(AMP.IsFromAircraft,0) = 1 THEN ARH.MakeType ELSE ERH.MakeType END AS AircraftMake,
 			    CASE WHEN ISNULL(AMP.IsFromAircraft,0) = 1 THEN ARH.AircraftModel ELSE ERH.EngineModel END AS AircraftModel,
 				CASE WHEN ISNULL(AMP.IsFromAircraft,0) = 1 THEN ARH.SerialNum ELSE ERH.SerialNum END AS SerialNumber,
-
+				CASE WHEN ISNULL(AMP.IsFromAircraft,0) = 1 THEN 'AIRFRAME' ELSE 'ENGINE' END AS MaintanaceType,
                 MC.[Name] AS MaintenanceClassName,
                 AMP.FlightHoursLimitHours,
                 AMP.FlightHoursLimitMinutes,

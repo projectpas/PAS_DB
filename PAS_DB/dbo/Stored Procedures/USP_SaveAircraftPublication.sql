@@ -1,5 +1,4 @@
-
-/*************************************************************     
+﻿/*************************************************************     
 ** Author:  <Amit Ghediya>    
 ** Create date: <01/04/2026>    
 ** Description: <This Proc Is used to Save Aircraft Publication GeneralInfo>    
@@ -11,10 +10,11 @@ Exec [USP_SaveAircraftPublication]
 ** PR   Date        Author          Change Description    
 ** --   --------    -------         --------------------------------  
    1    01/05/2026  Amit Ghediya		Created
-   2    27/05/2026  Code Review		Removed READ UNCOMMITTED isolation; atomic code number generation via UPDATE OUTPUT
+   2    27/05/2026  Code Review			Removed READ UNCOMMITTED isolation; atomic code number generation via UPDATE OUTPUT
+   3    08/07/2026  Amit Ghediya		Added Applicability,MEL [PN-17157]
 
 **************************************************************/
-CREATE   PROCEDURE [dbo].[USP_SaveAircraftPublication]
+CREATE     PROCEDURE [dbo].[USP_SaveAircraftPublication]
     @tbl_AircraftPublicationType dbo.AircraftPublicationType READONLY
 AS
 BEGIN
@@ -51,7 +51,9 @@ BEGIN
 				AP.EntryDate = T.EntryDate,
 				AP.VerifiedBy = T.VerifiedBy,
 				AP.UpdatedBy = T.UpdatedBy,
-				AP.UpdatedDate = GETUTCDATE()
+				AP.UpdatedDate = GETUTCDATE(),
+				AP.Applicability = T.Applicability,
+				AP.MEL = T.MEL
 			FROM [dbo].[AircraftPublication] AP
 			INNER JOIN @tbl_AircraftPublicationType T
 				ON AP.AircraftPublicationId = T.AircraftPublicationId;
@@ -105,7 +107,9 @@ BEGIN
 				CreatedDate,
 				UpdatedDate,
 				IsActive,
-				IsDeleted
+				IsDeleted,
+				Applicability,
+				MEL
 			)
 			SELECT
 				@AircraftPublicationNum,
@@ -130,7 +134,9 @@ BEGIN
 				GETUTCDATE(),
 				GETUTCDATE(),
 				IsActive,
-				IsDeleted
+				IsDeleted,
+				Applicability,
+				MEL
 			FROM @tbl_AircraftPublicationType;
 
 			DECLARE @NewId BIGINT = SCOPE_IDENTITY();

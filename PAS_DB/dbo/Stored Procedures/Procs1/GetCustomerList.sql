@@ -12,22 +12,23 @@
  **************************************************************
   ** Change History
  **************************************************************
- ** PR   Date         Author		Change Description
- ** --   --------     -------		--------------------------------
-    1    12/14/2020   Hemant Saliya Created
+ ** PR   Date         Author				Change Description
+ ** --   --------     -------				--------------------------------
+    1    12/14/2020   Hemant Saliya			Created
 	2    12/17/2020   Updated Like for General Filter
-    3    03/13/2024   Ekta Chandegra Add master company on join
-    4    10/18/2024   Devendra Shekh Add fields related to quickBooks
-	5    15/01/2025   Ayushi Patel   converted the date into utc (created , updated) , Added a case to get timeZone
-	6    06-03-2025   Shrey Chandegara     Modified due to add view in Accouting Integration List's PendingSync(Add @IsUpdated parameter)
-	7	 17-06-2025   Bhargav Saliya      Select Is Customer also a vendor flag and vendor Name
-	8    03-03-2026   Sahdev Saliya   Added Memo (PN-15567)
-	9    02-07-2026   Sahdev Saliya   Added Resale Number [PN-17018] 
-	10    07-07-2026   Bhargav Saliya   Added @IntegrationTypeId [PN-16810] 
+    3    03/13/2024   Ekta Chandegra		Add master company on join
+    4    10/18/2024   Devendra Shekh		Add fields related to quickBooks
+	5    15/01/2025   Ayushi Patel			converted the date into utc (created , updated) , Added a case to get timeZone
+	6    06-03-2025   Shrey Chandegara      Modified due to add view in Accouting Integration List's PendingSync(Add @IsUpdated parameter)
+	7	 17-06-2025   Bhargav Saliya        Select Is Customer also a vendor flag and vendor Name
+	8    03-03-2026   Sahdev Saliya			Added Memo (PN-15567)
+	9    02-07-2026   Sahdev Saliya			Added Resale Number [PN-17018]
+	10   07-07-2026   Bhargav Saliya		Added @IntegrationTypeId [PN-16810]
+	11   07-07-2026   Divyesh Kathitiya		Added VAT Number [PN-17124]
 
  EXECUTE [GetCustomerList] 1, 10, null, -1, 1, '', 'uday', 'CUS-00','','HYD'
 **************************************************************/
-CREATE   PROCEDURE [dbo].[GetCustomerList]
+CREATE PROCEDURE [dbo].[GetCustomerList]
 	-- Add the parameters for the stored procedure here
 	@PageNumber int,
 	@PageSize int,
@@ -61,8 +62,8 @@ CREATE   PROCEDURE [dbo].[GetCustomerList]
 	@VendorName varchar(100)=null,
 	@Memo varchar(max) = NULL,
 	@ResaleNumber varchar(200) = null,
-	@IntegrationTypeId BIGINT = null
-
+	@IntegrationTypeId BIGINT = null,
+	@VatNumber VARCHAR(50) = NULL
 AS
 BEGIN
 
@@ -152,7 +153,8 @@ BEGIN
 					CASE WHEN ISNULL(C.IsCustomerAlsoVendor,0) = 1 THEN 'YES' ELSE 'NO' END AS 'IsCustVendor',
 					V.VendorName,
 					C.Memo,
-					C.ResaleNumber
+					C.ResaleNumber,
+					C.VatNumber
 					FROM dbo.Customer C WITH (NOLOCK)
 					INNER JOIN dbo.CustomerType CT  WITH (NOLOCK) ON C.CustomerTypeId=CT.CustomerTypeId
 					INNER JOIN dbo.CustomerAffiliation CA  WITH (NOLOCK) ON C.CustomerAffiliationId=CA.CustomerAffiliationId
@@ -186,7 +188,8 @@ BEGIN
 					(UpdatedBy LIKE '%' +@GlobalFilter+'%') OR
 					(VendorName LIKE '%' +@GlobalFilter+'%') OR
 					(Memo LIKE '%' +@GlobalFilter+'%') OR
-					(ResaleNumber LIKE '%' +@GlobalFilter+'%')
+					(ResaleNumber LIKE '%' +@GlobalFilter+'%') OR
+					(VatNumber LIKE '%' +@GlobalFilter+'%')
 					))
 					OR
 					(@GlobalFilter='' AND (ISNULL(@Name,'') ='' OR Name LIKE '%' + @Name+'%') AND
@@ -208,6 +211,7 @@ BEGIN
 					(ISNULL(@VendorName,'') ='' OR VendorName LIKE '%' + @VendorName+'%') AND
 					(ISNULL(@Memo,'') ='' OR Memo LIKE '%' + @Memo+'%') AND
 					(ISNULL(@ResaleNumber,'') ='' OR ResaleNumber LIKE '%' + @ResaleNumber+'%') AND
+					(ISNULL(@VatNumber,'') ='' OR VatNumber LIKE '%' + @VatNumber+'%') AND
 					(ISNULL(@CreatedDate,'') ='' OR CAST(CreatedDate as Date)=CAST(@CreatedDate as date)) AND
 					(ISNULL(@UpdatedDate,'') ='' OR CAST(UpdatedDate as date)=CAST(@UpdatedDate as date)))
 					)
@@ -237,6 +241,7 @@ BEGIN
 			CASE WHEN (@SortOrder=1 AND @SortColumn='VENDORNAME')  THEN VendorName END ASC,
 			CASE WHEN (@SortOrder=1 AND @SortColumn='Memo')  THEN Memo END ASC,
 			CASE WHEN (@SortOrder=1 AND @SortColumn='ResaleNumber')  THEN ResaleNumber END ASC,
+			CASE WHEN (@SortOrder=1 AND @SortColumn='VATNUMBER')  THEN VatNumber END ASC,
 
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='EMAIL')  THEN Email END DESC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='City')  THEN City END DESC,
@@ -258,7 +263,8 @@ BEGIN
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='ISCUSTVENDOR')  THEN IsCustVendor END DESC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='VENDORNAME')  THEN VendorName END DESC,
 		    CASE WHEN (@SortOrder=-1 AND @SortColumn='Memo')  THEN Memo END DESC,
-			CASE WHEN (@SortOrder=-1 AND @SortColumn='ResaleNumber')  THEN ResaleNumber END DESC
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='ResaleNumber')  THEN ResaleNumber END DESC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='VATNUMBER')  THEN VatNumber END DESC
 
 			OFFSET @RecordFrom ROWS
 			FETCH NEXT @PageSize ROWS ONLY
@@ -293,6 +299,7 @@ BEGIN
 			  + '@Parameter22 = ''' + CAST(ISNULL(@masterCompanyID, '') AS varchar(100))
 			  + '@Parameter23 = ''' + CAST(ISNULL(@VendorName, '') AS varchar(100))
 			  + '@Parameter24 = ''' + CAST(ISNULL(@Memo, '') AS varchar(100))
+			  + '@Parameter25 = ''' + CAST(ISNULL(@VatNumber, '') AS varchar(100))
 			,@ApplicationName VARCHAR(100) = 'PAS'
 		-----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------
 		EXEC spLogException @DatabaseName = @DatabaseName

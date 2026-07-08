@@ -7,15 +7,16 @@
 **************************************************************           
 ** Change History           
 **************************************************************           
-** PR     Date         Author           Change Description            
-** --    --------     -------           -------------------------------          
-** 1     09-07-2025   Ayushi Patel      Created  
-** 2     08-Dec-2025  Bhargav Saliya    Add SP [USP_UpdateVendorContact] for Updat Vendor Contact Detail
-** 3     22-APR-2026  Moin Bloch        Moved to API Due TO Xero Accounting Changes PN-16009
-** 4     09-JUNE-2026  Priyansh Patel   Added Flow to create Customer if not available [PN-16747]
-** 5     24-June-2026  Sahdev Saliya    Added Notes [PN-16968]
-** 6     29-June-2026  Sahdev Saliya    Fixed the issue with the @Notes [PN-17015]
-** 7     02-July-2026  Sahdev Saliya    Added Resale Number [PN-17018]
+** PR     Date         Author               Change Description            
+** --    --------      -------              -------------------------------          
+** 1     09-07-2025    Ayushi Patel         Created  
+** 2     08-Dec-2025   Bhargav Saliya       Add SP [USP_UpdateVendorContact] for Updat Vendor Contact Detail
+** 3     22-APR-2026   Moin Bloch           Moved to API Due TO Xero Accounting Changes PN-16009
+** 4     09-JUNE-2026  Priyansh Patel       Added Flow to create Customer if not available [PN-16747]
+** 5     24-June-2026  Sahdev Saliya        Added Notes [PN-16968]
+** 6     29-June-2026  Sahdev Saliya        Fixed the issue with the @Notes [PN-17015]
+** 7     02-July-2026  Sahdev Saliya        Added Resale Number [PN-17018]
+** 8     06-July-2026  Divyesh Kathitiya    Added VAT Number [PN-17124]
 
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_UpdateVendor]
@@ -57,7 +58,8 @@ CREATE   PROCEDURE [dbo].[USP_UpdateVendor]
     @VendorClassificationIds TVP_BigInt READONLY,
     @IntegrationPortalIds TVP_BigInt READONLY,
 	@Notes NVARCHAR(MAX) = NULL,
-	@ResaleNumber VARCHAR(200) = NULL
+	@ResaleNumber VARCHAR(200) = NULL,
+    @VatNumber VARCHAR(50) = NULL
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -114,7 +116,8 @@ BEGIN
             IsWarningRestriction = @IsWarningRestriction,
             IsActive = @IsActive,
 			Notes = @Notes,
-			ResaleNumber = @ResaleNumber
+			ResaleNumber = @ResaleNumber,
+            VatNumber = @VatNumber
         WHERE VendorId = @VendorId;
 
         -- Update Vendor Shipping/Billing Address
@@ -214,7 +217,8 @@ BEGIN
                     IsDeleted = 0,
                     AddressId = @AddressId,
 					Memo = @Notes,
-					ResaleNumber = @ResaleNumber
+					ResaleNumber = @ResaleNumber,
+                    VatNumber = @VatNumber
                 WHERE CustomerId = @RelatedCustomerId;
 
                 IF @IsAddressForShipping = 1
@@ -327,7 +331,8 @@ BEGIN
 										LastSyncDate,
 										Memo,
 										SyncToken,
-										ResaleNumber
+										ResaleNumber,
+                                        VatNumber
 									)
 									VALUES (
 										@VendorTypeId,
@@ -374,7 +379,8 @@ BEGIN
 										NULL, -- LastSyncDate
 										@Notes, -- Memo
 										NULL,  -- SyncToken
-										@ResaleNumber -- ResaleNumber
+										@ResaleNumber, -- ResaleNumber
+                                        @VatNumber -- VAT Number
 									);
 
                 SET @RelatedCustomerId = SCOPE_IDENTITY();

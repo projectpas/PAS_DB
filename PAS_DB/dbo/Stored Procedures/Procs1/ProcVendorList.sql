@@ -20,10 +20,11 @@
 	9	 30-07-2025     AMIT GHEDIYA		VendorId for select vendor data by id.
 	10   24-06-2026     Sahdev Saliya       Added Notes [PN-16968]
 	11   02-07-2026     Sahdev Saliya       Added Resale Number [PN-17018]
-	12    07-07-2026   Bhargav Saliya   Added @IntegrationTypeId [PN-16810] 
+	12   07-07-2026     Bhargav Saliya      Added @IntegrationTypeId [PN-16810] 
+	13   07-07-2026     Divyesh Kathitiya	Added VAT Number [PN-17124]
 
 **************************************************************/ 
-CREATE     PROCEDURE [dbo].[ProcVendorList]
+CREATE PROCEDURE [dbo].[ProcVendorList]
 @PageNumber int = NULL,
 @PageSize int = NULL,
 @SortColumn varchar(50)=NULL,
@@ -56,7 +57,8 @@ CREATE     PROCEDURE [dbo].[ProcVendorList]
 @IsVendorCust  varchar(20)=null,
 @Notes NVARCHAR(MAX) = NULL,
 @ResaleNumber VARCHAR(200) = NULL,
-@IntegrationTypeId BIGINT = null
+@IntegrationTypeId BIGINT = null,
+@VatNumber VARCHAR(50) = NULL
 AS
 BEGIN	
 	    SET NOCOUNT ON;
@@ -145,7 +147,8 @@ BEGIN
 					C.[Name] AS CustomerName,
 					CASE WHEN ISNULL(V.IsVendorAlsoCustomer,'') != '' THEN 'YES' ELSE 'NO' END AS 'IsVendorCust',
 					V.Notes,
-					V.ResaleNumber
+					V.ResaleNumber,
+					V.VatNumber
 			   FROM dbo.Vendor V  WITH (NOLOCK) INNER JOIN  dbo.[Address] AD WITH (NOLOCK) ON V.AddressId=AD.AddressId
 			                 LEFT JOIN   dbo.VendorType VT WITH (NOLOCK) ON V.VendorTypeId = VT.VendorTypeId
 							 LEFT JOIN   dbo.VendorContact CC WITH (NOLOCK) ON V.VendorId = CC.VendorId AND CC.IsDefaultContact = 1
@@ -181,7 +184,8 @@ BEGIN
 					([CustomerName] LIKE '%' +@GlobalFilter+'%') OR
 					(IsVendorCust LIKE '%' +@GlobalFilter+'%') OR
 					(Notes LIKE '%' +@GlobalFilter+'%') OR
-					(ResaleNumber LIKE '%' +@GlobalFilter+'%')))
+					(ResaleNumber LIKE '%' +@GlobalFilter+'%') OR
+					(VatNumber LIKE '%' +@GlobalFilter+'%')))
 					OR   
 					(@GlobalFilter='' AND (ISNULL(@VendorCode,'') ='' OR VendorCode LIKE '%' + @VendorCode+'%') AND
 					(ISNULL(@VendorName,'') ='' OR VendorName LIKE '%' + @VendorName + '%') AND
@@ -202,7 +206,8 @@ BEGIN
 					(ISNULL(@CustomerName,'') ='' OR CustomerName LIKE '%' + @CustomerName+'%') AND
 					(ISNULL(@IsVendorCust,'') ='' OR IsVendorCust LIKE '%' + @IsVendorCust+'%') AND
 					(ISNULL(@Notes,'') ='' OR Notes LIKE '%' + @Notes+'%') AND
-					(ISNULL(@ResaleNumber,'') ='' OR ResaleNumber LIKE '%' + @ResaleNumber+'%'))
+					(ISNULL(@ResaleNumber,'') ='' OR ResaleNumber LIKE '%' + @ResaleNumber+'%') AND
+					(ISNULL(@VatNumber,'') ='' OR VatNumber LIKE '%' + @VatNumber+'%'))
 				   )
 
 		SELECT @Count = COUNT(VendorId) FROM #TempResult			
@@ -248,7 +253,9 @@ BEGIN
 			CASE WHEN (@SortOrder=1  AND @SortColumn='Notes')  THEN Notes END ASC,
 			CASE WHEN (@SortOrder=-1 AND @SortColumn='Notes')  THEN Notes END DESC,
 			CASE WHEN (@SortOrder=1  AND @SortColumn='ResaleNumber')  THEN ResaleNumber END ASC,
-			CASE WHEN (@SortOrder=-1 AND @SortColumn='ResaleNumber')  THEN ResaleNumber END DESC
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='ResaleNumber')  THEN ResaleNumber END DESC,
+			CASE WHEN (@SortOrder=1  AND @SortColumn='VATNUMBER')  THEN VatNumber END ASC,
+			CASE WHEN (@SortOrder=-1 AND @SortColumn='VATNUMBER')  THEN VatNumber END DESC
 			OFFSET @RecordFrom ROWS 
 			FETCH NEXT @PageSize ROWS ONLY
 

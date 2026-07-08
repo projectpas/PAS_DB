@@ -20,7 +20,7 @@
 ** 7    10/06/2026	 Amit Ghediya		Update name WorksheetNumber to WorksheetNum due to use in other [PN-16797]
 ** 8    15/06/2026	 Amit Ghediya		Update TotalRecords when filter not worked.
 ** 9    16/06/2026	 Amit Ghediya		Get AircraftPublicationId for records [PN-16797]
-** 10   07/07/2026	 <author>			Standards & performance pass (no logic change):
+** 10   07/07/2026	 <AI>			Standards & performance pass (no logic change):
 **										- CREATE OR ALTER, SET XACT_ABORT ON
 **										- Single lookup for Module IDs
 **										- LEFT JOIN + ROW_NUMBER derived tables converted to OUTER APPLY TOP(1)
@@ -53,7 +53,7 @@
 ** CREATE INDEX IX_ARH_MasterCompany
 **     ON dbo.AircraftRegistryHeader (MasterCompanyId, IsDeleted);
 */
-CREATE PROCEDURE [dbo].[USP_GetAircraftTechnicalRecordList]
+CREATE   PROCEDURE [dbo].[USP_GetAircraftTechnicalRecordList]
 @PageNumber           INT          = 1,
 @PageSize             INT          = 10,
 @SortColumn           VARCHAR(100) = 'AircraftRegistryId',
@@ -78,7 +78,10 @@ CREATE PROCEDURE [dbo].[USP_GetAircraftTechnicalRecordList]
 @WorkOrderStatus      VARCHAR(100) = NULL,
 @WorkSheetStatus      VARCHAR(100) = NULL,
 @OpenDate             DATETIME     = NULL,
-@MtceRecordUpdated    VARCHAR(50)  = NULL
+@MtceRecordUpdated    VARCHAR(50)  = NULL,
+@ComplianceDate		  DATETIME     = NULL,
+@Ractification        VARCHAR(50)  = NULL,
+@ACSection			  VARCHAR(50)  = NULL
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -100,6 +103,9 @@ BEGIN
             SELECT DISTINCT
                 ARH.AircraftRegistryId,
                 ACE.AircraftEffectivityId,
+				ACE.ComplianceDate,
+				ACE.Ractification,
+				ACS.Section AS ACSection,
                 ARH.TailNum       AS TailNumber,
                 ARH.MakeType      AS AircraftMake,
                 ARH.AircraftModel,
@@ -148,6 +154,8 @@ BEGIN
                     ON PUB.[PublishedByRefId] = M.[ManufacturerId]
             LEFT JOIN [dbo].[Vendor] V WITH (NOLOCK)
                     ON PUB.[PublishedByRefId] = V.[VendorId]
+			LEFT JOIN [dbo].[AircraftSection] ACS WITH (NOLOCK)
+                    ON ACS.[AircraftSectionId] = ACE.[ACPSectionId]
             -- Aggregate flag: evaluated only for qualifying (registry, publication) pairs
             OUTER APPLY (
                 SELECT MAX(CAST(ISNULL(AMP.IsMtceRecordUpdated, 0) AS INT)) AS IsMtceRecordUpdated
@@ -230,7 +238,9 @@ BEGIN
             OR ISNULL(WorkOrderNum, '')       LIKE '%' + @GlobalFilter + '%'
             OR ISNULL(WorkOrderStatus, '')    LIKE '%' + @GlobalFilter + '%'
             OR ISNULL(WorkSheetStatus, '')    LIKE '%' + @GlobalFilter + '%'
+			OR ACSection					  LIKE '%' + @GlobalFilter + '%'
             OR PublishedBy                    LIKE '%' + @GlobalFilter + '%'
+			OR Ractification                  LIKE '%' + @GlobalFilter + '%'
         )
         AND (NULLIF(@TailNumber, '')          IS NULL OR TailNumber      LIKE '%' + @TailNumber + '%')
         AND (NULLIF(@AircraftMake, '')        IS NULL OR AircraftMake    LIKE '%' + @AircraftMake + '%')
@@ -246,7 +256,9 @@ BEGIN
         AND (NULLIF(@WorkSheetCompletedBy,'') IS NULL OR ISNULL(WorkSheetCompletedBy,'') LIKE '%' + @WorkSheetCompletedBy + '%')
         AND (NULLIF(@WorkOrderNum, '')        IS NULL OR ISNULL(WorkOrderNum, '')        LIKE '%' + @WorkOrderNum + '%')
         AND (NULLIF(@WorkOrderStatus, '')     IS NULL OR ISNULL(WorkOrderStatus, '')     LIKE '%' + @WorkOrderStatus + '%')
-        AND (NULLIF(@WorkSheetStatus, '')     IS NULL OR ISNULL(WorkSheetStatus, '')     LIKE '%' + @WorkSheetStatus + '%')
+		AND (@ComplianceDate       IS NULL OR CAST(ComplianceDate       AS DATE) = CAST(@ComplianceDate AS DATE))
+		AND (NULLIF(@Ractification, '')          IS NULL OR Ractification      LIKE '%' + @Ractification + '%')
+		AND (NULLIF(@ACSection, '')          IS NULL OR ACSection      LIKE '%' + @ACSection + '%')
         AND (ISNULL(@MtceRecordUpdated, '') = ''
              OR (CASE WHEN ISNULL([IsMtceRecordUpdated], 0) = 1 THEN 'YES' ELSE 'NO' END) LIKE '%' + @MtceRecordUpdated + '%')
 
@@ -287,6 +299,15 @@ BEGIN
 
             CASE WHEN @SortColumn = 'MtceRecordUpdated'    AND @SortOrder = 'ASC'  THEN [MtceRecordUpdated] END ASC,
             CASE WHEN @SortColumn = 'MtceRecordUpdated'    AND @SortOrder = 'DESC' THEN [MtceRecordUpdated] END DESC,
+
+			CASE WHEN @SortColumn = 'ComplianceDate'      AND @SortOrder = 'ASC'  THEN ComplianceDate END ASC,
+            CASE WHEN @SortColumn = 'ComplianceDate'       AND @SortOrder = 'DESC' THEN ComplianceDate END DESC,
+
+		    CASE WHEN @SortColumn = 'Ractification'       AND @SortOrder = 'ASC'  THEN Ractification END ASC,
+            CASE WHEN @SortColumn = 'Ractification'        AND @SortOrder = 'DESC' THEN Ractification END DESC,
+
+			CASE WHEN @SortColumn = 'ACSection'           AND @SortOrder = 'ASC'  THEN ACSection END ASC,
+            CASE WHEN @SortColumn = 'ACSection'           AND @SortOrder = 'DESC' THEN ACSection END DESC,
 
             AircraftRegistryId DESC
 

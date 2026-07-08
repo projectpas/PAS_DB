@@ -20,9 +20,10 @@
 	9	 30-07-2025     AMIT GHEDIYA		VendorId for select vendor data by id.
 	10   24-06-2026     Sahdev Saliya       Added Notes [PN-16968]
 	11   02-07-2026     Sahdev Saliya       Added Resale Number [PN-17018]
+	12    07-07-2026   Bhargav Saliya   Added @IntegrationTypeId [PN-16810] 
 
 **************************************************************/ 
-CREATE       PROCEDURE [dbo].[ProcVendorList]
+CREATE     PROCEDURE [dbo].[ProcVendorList]
 @PageNumber int = NULL,
 @PageSize int = NULL,
 @SortColumn varchar(50)=NULL,
@@ -54,7 +55,8 @@ CREATE       PROCEDURE [dbo].[ProcVendorList]
 @CustomerName varchar(100)= NULL,
 @IsVendorCust  varchar(20)=null,
 @Notes NVARCHAR(MAX) = NULL,
-@ResaleNumber VARCHAR(200) = NULL
+@ResaleNumber VARCHAR(200) = NULL,
+@IntegrationTypeId BIGINT = null
 AS
 BEGIN	
 	    SET NOCOUNT ON;
@@ -157,7 +159,10 @@ BEGIN
 			                
 		 	  WHERE ((V.IsDeleted=@IsDeleted) AND (@IsActive IS NULL OR V.IsActive = @IsActive))
 					 AND (@VendorId IS NULL OR V.VendorId = @VendorId)
-			         AND V.MasterCompanyId=@MasterCompanyId	AND (ISNULL(@IsUpdated,0) <> 1 OR ISNULL(V.isUpdated,0) = ISNULL(@IsUpdated,0))	 AND (@IsVendorAlsoCustomer IS NULL OR V.IsVendorAlsoCustomer = @IsVendorAlsoCustomer)
+			         AND V.MasterCompanyId=@MasterCompanyId	
+					 AND (ISNULL(@IsUpdated,0) <> 1 OR ISNULL(V.isUpdated,0) = ISNULL(@IsUpdated,0))
+					 AND (@IntegrationTypeId IS NULL OR V.IntegrationTypeId = @IntegrationTypeId)
+					 AND (@IsVendorAlsoCustomer IS NULL OR V.IsVendorAlsoCustomer = @IsVendorAlsoCustomer)
 			), ResultCount AS(SELECT COUNT(VendorId) AS totalItems FROM Result)
 			SELECT * INTO #TempResult FROM  Result
 			 WHERE ((@GlobalFilter <>'' AND ((VendorCode LIKE '%' +@GlobalFilter+'%') OR

@@ -25,6 +25,7 @@
 	11   09-Sep-2025    Sahdev Saliya        Added Filter For RankingsName And WorkOrderType
 	12   12-Nov-2025    Divyesh Kathiriya    Update HasSubAssy only return 'WoSubAssy' value due to column name change.
 	13   14-Nov-2025    Divyesh Kathiriya     Get RoSubAssy.
+	14    07-07-2026   Bhargav Saliya   Added @IntegrationTypeId [PN-16810] 
 
 **********************/
 CREATE   PROCEDURE [dbo].[ProcItemMasterStockList]
@@ -57,7 +58,8 @@ CREATE   PROCEDURE [dbo].[ProcItemMasterStockList]
 @WorkOrderFormTypeId INT = NULL,
 @RankingsName VARCHAR(50) = NULL,
 @workOrderType VARCHAR(50) = NULL,
-@RoSubAssy varchar(50) = NULL
+@RoSubAssy varchar(50) = NULL,
+@IntegrationTypeId BIGINT = null
 AS
 BEGIN	
 	    SET NOCOUNT ON;
@@ -165,7 +167,9 @@ BEGIN
 			   FROM dbo.ItemMaster im WITH (NOLOCK)	
 			   left join CTE_IntegrationPortal itp WITH(NOLOCK) ON iM.ItemMasterId = itp.ItemMasterId
 		 	  WHERE ((im.IsDeleted=@IsDeleted) AND (@IsActive IS NULL OR im.IsActive=@IsActive) AND (@IsHazardousMaterial IS NULL OR im.IsHazardousMaterial=@IsHazardousMaterial))			     
-					AND im.MasterCompanyId=@MasterCompanyId AND im.ItemTypeId = 1 	AND (ISNULL(@IsUpdated,0) <> 1 OR ISNULL(im.IsUpdated,0) = ISNULL(@IsUpdated,0))		
+					AND im.MasterCompanyId=@MasterCompanyId AND im.ItemTypeId = 1 	
+					AND (ISNULL(@IsUpdated,0) <> 1 OR ISNULL(im.isUpdated,0) = ISNULL(@IsUpdated,0))
+					AND (@IntegrationTypeId IS NULL OR im.IntegrationTypeId = @IntegrationTypeId)
 			),
 			ResultCount AS(Select COUNT(ItemMasterId) AS totalItems FROM Result)
 			SELECT * INTO #TempResult FROM  Result

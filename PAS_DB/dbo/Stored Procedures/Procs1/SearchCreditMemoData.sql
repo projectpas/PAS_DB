@@ -20,6 +20,7 @@
 	7    06/25/2024   Moin Bloch        Updated Multiple Reson
 	8    06-03-2025   Shrey Chandegara  Modified due to add view in Accouting Integration List's PendingSync(Add @IsUpdated parameter)
 	9    24-Mar-2025  Divyesh Kathiriya	Update IssueDate and returnDate based on Employee time zone
+    10    07-07-2026   Bhargav Saliya   Added @IntegrationTypeId [PN-16810] 
    
  -- exec SearchCreditMemoData 10,1,'CreatedDate',-1,'',1,null,null,'',null,null,null,null,null,null,null,null,null,null,null,null,null,null,2,'',15,0,1   
 **********************/   
@@ -54,7 +55,8 @@ CREATE   PROCEDURE [dbo].[SearchCreditMemoData]
 	@IsDeleted bit=NULL,  
 	@IsActive bit=NULL,  
 	@ManufacturerName varchar(50)= NULL,
-	@IsUpdated BIT = NULL
+	@IsUpdated BIT = NULL,
+    @IntegrationTypeId BIGINT = null
 AS  
 BEGIN  
  SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED  
@@ -166,7 +168,10 @@ BEGIN
               INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId   
               LEFT JOIN dbo.Vendor VR WITH (NOLOCK) ON VR.RelatedCustomerId = CM.CustomerId
   
-        WHERE ((CM.MasterCompanyId = @MasterCompanyId) AND (CM.IsDeleted = @IsDeleted) AND (@StatusID IS NULL OR CM.StatusId = @StatusID) AND (ISNULL(@IsUpdated,0) <> 1 OR ISNULL(CM.IsUpdated,0) = ISNULL(@IsUpdated,0)))    
+        WHERE ((CM.MasterCompanyId = @MasterCompanyId) AND (CM.IsDeleted = @IsDeleted) AND (@StatusID IS NULL OR CM.StatusId = @StatusID) 
+        AND (ISNULL(@IsUpdated,0) <> 1 OR ISNULL(CM.isUpdated,0) = ISNULL(@IsUpdated,0))
+		AND (@IntegrationTypeId IS NULL OR CM.IntegrationTypeId = @IntegrationTypeId)  
+        )    
    ),  
    PartCTE AS(    
     Select CRD.CreditMemoHeaderId,(Case When COUNT(CRD.CreditMemoHeaderId) > 1 Then 'Multiple' ELse A.PartNumber End)  as 'PartNumber',    

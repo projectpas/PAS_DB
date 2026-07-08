@@ -19,6 +19,7 @@
     6    15-APR-2026   Divyesh Kathiriya	Handle Multiple EmployeeId. [PN-15934]
 	7    22-APR-2026   Sahdev Saliya        Added condion of IsDeleted for EmployeeTraining report List.(PN-16144)
     8    08/07/2026    Kishor Makwana       Added categoryType in select statement [PN-17166]
+    9    08/07/2026    Kishor Makwana       Added categoryId and isRecurring filters [PN-17166]
 
 ************************************************************************/
 CREATE     PROCEDURE [dbo].[usprpt_GetTrainingReport]
@@ -43,7 +44,10 @@ BEGIN
             @Level10        VARCHAR(MAX) = NULL,
             @EmployeeRaw    VARCHAR(100) = NULL,
             @TrainingTypeRaw VARCHAR(100) = NULL,
-            @ModuleID       INT = 0;
+            @ModuleID       INT = 0,
+            @CategoryIdRaw   VARCHAR(100) = NULL,
+            @IsRecurringRaw     VARCHAR(10)  = NULL;
+
 
     BEGIN TRY
 
@@ -63,7 +67,10 @@ BEGIN
             @Level9          = CASE WHEN filterby.value('(FieldName/text())[1]', 'VARCHAR(100)') = 'Level9'         THEN filterby.value('(FieldValue/text())[1]', 'VARCHAR(100)') ELSE @Level9          END,
             @Level10         = CASE WHEN filterby.value('(FieldName/text())[1]', 'VARCHAR(100)') = 'Level10'        THEN filterby.value('(FieldValue/text())[1]', 'VARCHAR(100)') ELSE @Level10         END,
             @EmployeeRaw     = CASE WHEN filterby.value('(FieldName/text())[1]', 'VARCHAR(100)') = 'Employee Name'  THEN filterby.value('(FieldValue/text())[1]', 'VARCHAR(100)') ELSE @EmployeeRaw     END,
-            @TrainingTypeRaw = CASE WHEN filterby.value('(FieldName/text())[1]', 'VARCHAR(100)') = 'Training Type'  THEN filterby.value('(FieldValue/text())[1]', 'VARCHAR(100)') ELSE @TrainingTypeRaw END
+            @TrainingTypeRaw = CASE WHEN filterby.value('(FieldName/text())[1]', 'VARCHAR(100)') = 'Training Type'  THEN filterby.value('(FieldValue/text())[1]', 'VARCHAR(100)') ELSE @TrainingTypeRaw END,
+            @CategoryIdRaw = CASE WHEN filterby.value('(FieldName/text())[1]', 'VARCHAR(100)') = 'categoryId'   THEN filterby.value('(FieldValue/text())[1]', 'VARCHAR(100)') ELSE @CategoryIdRaw END,
+            @IsRecurringRaw   = CASE WHEN filterby.value('(FieldName/text())[1]', 'VARCHAR(100)') = 'isRecurring'  THEN filterby.value('(FieldValue/text())[1]', 'VARCHAR(100)') ELSE @IsRecurringRaw   END
+           
         FROM @xmlFilter.nodes('/ArrayOfFilter/Filter') AS TEMPTABLE(filterby);       
 
         -- Pre-compute level filter values once; avoids calling SPLITSTRING up to 20 times
@@ -79,6 +86,9 @@ BEGIN
         CREATE TABLE #Level10Ids (Item INT);
         CREATE TABLE #EmployeeIds (Item INT);
         CREATE TABLE #TrainingTypeIds (Item INT);
+        CREATE TABLE #CategoryIds (Item INT);
+        CREATE TABLE #IsRecurringIds (Item INT);
+        
 
         IF NULLIF(@Level1,  '') IS NOT NULL  INSERT INTO #Level1Ids  SELECT Item FROM DBO.SPLITSTRING(@Level1,  ',');
         IF NULLIF(@Level2,  '') IS NOT NULL  INSERT INTO #Level2Ids  SELECT Item FROM DBO.SPLITSTRING(@Level2,  ',');
@@ -94,6 +104,20 @@ BEGIN
             FROM DBO.SPLITSTRING(@EmployeeRaw, ',') WHERE TRY_CAST(Item AS INT) IS NOT NULL;
         IF NULLIF(@TrainingTypeRaw, '') IS NOT NULL INSERT INTO #TrainingTypeIds(Item) SELECT DISTINCT TRY_CAST(Item AS INT)
             FROM DBO.SPLITSTRING(@TrainingTypeRaw, ',') WHERE TRY_CAST(Item AS INT) IS NOT NULL;
+
+        IF NULLIF(@CategoryIdRaw, '') IS NOT NULL INSERT INTO #CategoryIds(Item) SELECT DISTINCT TRY_CAST(Item AS INT) FROM DBO.SPLITSTRING(@CategoryIdRaw, ',')
+            WHERE TRY_CAST(Item AS INT) IS NOT NULL AND TRY_CAST(Item AS INT) > 0;  
+        
+        IF NULLIF(@IsRecurringRaw, '') IS NOT NULL
+    INSERT INTO #IsRecurringIds(Item)
+    SELECT DISTINCT
+        CASE WHEN TRY_CAST(Item AS INT) = 1 THEN 1   -- YES → 1
+             WHEN TRY_CAST(Item AS INT) = 2 THEN 0   -- NO  → 0
+        END
+    FROM DBO.SPLITSTRING(@IsRecurringRaw, ',')
+    WHERE TRY_CAST(Item AS INT) IN (1, 2); 
+
+        
 
         IF ISNULL(@PageSize, 0) = 0
         BEGIN
@@ -163,7 +187,8 @@ BEGIN
                 UPPER(MSD.Level8Name)  AS level8,
                 UPPER(MSD.Level9Name)  AS level9,
                 UPPER(MSD.Level10Name) AS level10,
-                ET.CategoryType AS categoryType
+                ET.CategoryType AS categoryType,
+                ET.CategoryId  AS CategoryId 
             FROM DBO.Employee E WITH (NOLOCK)
                 INNER JOIN dbo.EmployeeManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = E.EmployeeId
                 LEFT JOIN dbo.JobTitle J WITH (NOLOCK) ON E.JobTitleId = J.JobTitleId
@@ -191,6 +216,8 @@ BEGIN
                 AND (NOT EXISTS (SELECT 1 FROM #Level8Ids)  OR MSD.[Level8Id]  IN (SELECT Item FROM #Level8Ids))
                 AND (NOT EXISTS (SELECT 1 FROM #Level9Ids)  OR MSD.[Level9Id]  IN (SELECT Item FROM #Level9Ids))
                 AND (NOT EXISTS (SELECT 1 FROM #Level10Ids) OR MSD.[Level10Id] IN (SELECT Item FROM #Level10Ids))
+                AND (NOT EXISTS (SELECT 1 FROM #CategoryIds) OR ET.CategoryId  IN (SELECT Item FROM #CategoryIds))
+                AND (NOT EXISTS (SELECT 1 FROM #IsRecurringIds) OR ISNULL(ET.IsRecurring, 0) IN (SELECT Item FROM #IsRecurringIds))
             GROUP BY
                 E.EmployeeId, E.FirstName, E.LastName, J.Description,
                 E.Email, E.MobilePhone, ETP.TrainingType, ET.Provider, ET.IndustryCode,
@@ -199,7 +226,7 @@ BEGIN
                 EC.CertifyingInstitution, EC.CertificationNumber, ET.CreatedDate, TN.[Name], ET.ProviderType, ET.IsRecurring,
                 MSD.Level1Name, MSD.Level2Name, MSD.Level3Name, MSD.Level4Name,
                 MSD.Level5Name, MSD.Level6Name, MSD.Level7Name, MSD.Level8Name,
-                MSD.Level9Name, MSD.Level10Name, E.EmployeeExpIds,ET.CategoryType
+                MSD.Level9Name, MSD.Level10Name, E.EmployeeExpIds,ET.CategoryType,ET.CategoryId
         )
         SELECT
             COUNT(1) OVER () AS TotalRecordsCount,

@@ -23,6 +23,7 @@
 	7	 17-06-2025   Bhargav Saliya      Select Is Customer also a vendor flag and vendor Name
 	8    03-03-2026   Sahdev Saliya   Added Memo (PN-15567)
 	9    02-07-2026   Sahdev Saliya   Added Resale Number [PN-17018] 
+	10    07-07-2026   Bhargav Saliya   Added @IntegrationTypeId [PN-16810] 
 
  EXECUTE [GetCustomerList] 1, 10, null, -1, 1, '', 'uday', 'CUS-00','','HYD'
 **************************************************************/
@@ -59,7 +60,8 @@ CREATE   PROCEDURE [dbo].[GetCustomerList]
 	@IsCustVendor  varchar(20)=null,
 	@VendorName varchar(100)=null,
 	@Memo varchar(max) = NULL,
-	@ResaleNumber varchar(200) = null
+	@ResaleNumber varchar(200) = null,
+	@IntegrationTypeId BIGINT = null
 
 AS
 BEGIN
@@ -161,7 +163,9 @@ BEGIN
 					LEFT JOIN  dbo.Contact  WITH (NOLOCK) ON CC.ContactId=Contact.ContactId
 					LEFT JOIN  dbo.Vendor V  WITH (NOLOCK) ON V.RelatedCustomerId = C.CustomerId
 					Where ((C.IsDeleted=@IsDeleted) AND (@IsActive IS NULL OR C.IsActive=@IsActive))
-					AND C.MasterCompanyId=@MasterCompanyId AND (ISNULL(@IsUpdated,0) <> 1 OR ISNULL(c.isUpdated,0) = ISNULL(@IsUpdated,0))
+					AND C.MasterCompanyId=@MasterCompanyId 
+					AND (ISNULL(@IsUpdated,0) <> 1 OR ISNULL(c.isUpdated,0) = ISNULL(@IsUpdated,0))
+					AND (@IntegrationTypeId IS NULL OR C.IntegrationTypeId = @IntegrationTypeId)
 					AND (@IsCustomerAlsoVendor IS NULL OR C.IsCustomerAlsoVendor = @IsCustomerAlsoVendor)
 			), ResultCount AS(SELECT COUNT(CustomerId) AS totalItems FROM Result)
 			SELECT * INTO #TempResult FROM  Result

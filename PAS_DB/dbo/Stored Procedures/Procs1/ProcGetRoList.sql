@@ -28,6 +28,7 @@
 	12   04-12-2025     Amit Ghediya        Added qtyShipped,qtyRemaining for shipping details
 	13   14-05-2026     Bhargav Saliya      Remove The VendoreId Condition [PN-16416]
 	14	 22/06/2026		Abhishek Jirawla	Adding IsPiecePart condition in RepairOrderPart table
+	15	 07/07/2026		Abhishek Jirawla	Added @StatusIds parameter to filter RO list by multiple ROStatusEnum values (PN-16786)
      
 -- exec ProcGetRoList @PageNumber=1,@PageSize=20,@SortColumn=N'CreatedDate',@SortOrder=-1,@StatusID=6,@GlobalFilter=N'',@RepairOrderNumber=NULL,@OpenDate=NULL,@ClosedDate=NULL,@VendorName=NULL,@VendorCode=NULL,@Status=N'open',@ApprovedBy=NULL,@RequestedBy=NULL,@CreatedDate=NULL,@UpdatedDate=NULL,@CreatedBy=NULL,@UpdatedBy=NULL,@IsDeleted=0,@EmployeeId=223,@MasterCompanyId=1,@VendorId=NULL,@ViewType=N'roview',@PartNumberType=NULL,@PartDescription=NULL,@EstDeliveryType=NULL,@ManufacturerType=NULL,@SalesOrderNumberType=NULL,@WorkOrderNumType=NULL,@IsUpdated=0
 **************************************************************/
@@ -63,7 +64,8 @@ CREATE   PROCEDURE [dbo].[ProcGetRoList]
 	@WorkOrderNumType varchar(50) = null,
 	@IsUpdated BIT = NULL,
 	@qtyShipped varchar(50) = NULL,
-	@qtyRemaining varchar(50) = NULL
+	@qtyRemaining varchar(50) = NULL,
+	@StatusIds nvarchar(max) = NULL
 AS
 BEGIN
 	SET NOCOUNT ON;
@@ -93,7 +95,7 @@ BEGIN
 			dbo.TimeZone LTZ WITH (NOLOCK) 
 			ON LE.TimeZoneId = LTZ.TimeZoneId
 		WHERE 
-			E.EmployeeId = @EmployeeId; -- Use appropriate filter for the specific employee
+			E.EmployeeId = @EmployeeId; -- Use appropriate filter for the specific�employee
 
 		SELECT @ItemTypeStock = ItemTypeId FROM dbo.ItemType WITH(NOLOCK) WHERE [name] = 'Stock'
 		SELECT @ItemTypeNonStock = ItemTypeId FROM dbo.ItemType WITH(NOLOCK) WHERE [name] = 'Non-Stock'
@@ -182,7 +184,12 @@ BEGIN
 			 INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
 			 LEFT JOIN dbo.RepairOrderPart ROP WITH (NOLOCK) ON ROP.RepairOrderId = RO.RepairOrderId AND ROP.isParent=1
 			 LEFT JOIN RepairOrderPartAggregated ROPA ON ROPA.RepairOrderId = RO.RepairOrderId
-			WHERE ((RO.IsDeleted=@IsDeleted) AND (@StatusID IS NULL OR RO.StatusId=@StatusID)) AND
+			WHERE ((RO.IsDeleted=@IsDeleted) AND
+					(
+						(@StatusIds IS NOT NULL AND LTRIM(RTRIM(@StatusIds)) <> '' AND RO.StatusId IN (SELECT CAST(value AS INT) FROM STRING_SPLIT(@StatusIds, ',')))
+						OR
+						((@StatusIds IS NULL OR LTRIM(RTRIM(@StatusIds)) = '') AND (@StatusID IS NULL OR RO.StatusId=@StatusID))
+					)) AND
 					RO.MasterCompanyId=@MasterCompanyId AND (ISNULL(@IsUpdated,0) <> 1 OR ISNULL(RO.IsUpdated,0) = ISNULL(@IsUpdated,0)) --AND (@VendorId IS NULL OR RO.VendorId = @VendorId)
 			GROUP BY RO.RepairOrderId,RO.RepairOrderNumber,RO.RepairOrderNumber,RO.OpenDate,RO.ClosedDate,RO.CreatedDate,RO.CreatedBy,
 				   RO.UpdatedDate,RO.UpdatedBy,RO.IsActive,RO.IsDeleted,RO.VendorId,RO.VendorName,RO.VendorCode,RO.StatusId,RO.[Status],
@@ -359,7 +366,12 @@ BEGIN
 			 INNER JOIN dbo.EmployeeUserRole EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
 			 LEFT JOIN dbo.RepairOrderPart ROP WITH (NOLOCK) ON ROP.RepairOrderId = RO.RepairOrderId AND ROP.isParent=1
 
-			WHERE ((RO.IsDeleted=@IsDeleted) AND (@StatusID IS NULL OR RO.StatusId=@StatusID)) AND
+			WHERE ((RO.IsDeleted=@IsDeleted) AND
+				(
+					(@StatusIds IS NOT NULL AND LTRIM(RTRIM(@StatusIds)) <> '' AND RO.StatusId IN (SELECT CAST(value AS INT) FROM STRING_SPLIT(@StatusIds, ',')))
+					OR
+					((@StatusIds IS NULL OR LTRIM(RTRIM(@StatusIds)) = '') AND (@StatusID IS NULL OR RO.StatusId=@StatusID))
+				)) AND
 			        RO.MasterCompanyId=@MasterCompanyId --AND (@VendorId IS NULL OR RO.VendorId = @VendorId)
 		    
 			UPDATE TMP

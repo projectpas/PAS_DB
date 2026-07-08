@@ -26,6 +26,7 @@ Exec [ReverseWorkOrder]
 ** 15   06/25/2025  Moin Bloch		     Change Old To new Table
 ** 16   12/22/2025  Hemant Saliya        Handle Reopen Billing case for Posted Invoice.
 ** 17   27/03/2026  Moin Bloch	         Rename Internal To Internal Repair   PN-15850
+** 18   25/06/2026   Moin Bloch	         Replace To Common Accounting SP PN-16871
 
 EXEC dbo.USP_ReOpen_FinishGood_WorkOrder 286,'Admin'
 **************************************************************/ 
@@ -197,14 +198,25 @@ AS
 						ISNULL(WOBII.[IsPerformaInvoice], 0) = 0 AND ISNULL(WOBII.[IsVersionIncrease], 0) = 0 AND WOBII.[IsDeleted] = 0 AND ISNULL(WOBI.[IsReversedJE], 0) = 0
 						AND  WOBI.[ModuleId] = @WOModuleId
 
+					DECLARE @WOBatchTriggerType BatchTriggerWorkOrderType;
+					DECLARE @IWOBatchTriggerType BatchTriggerWorkOrderType;
+
 					SELECT @IsInvoiceEntry = CASE WHEN COUNT(WorkOrderBatchId) > 0 THEN 1 ELSE 0 END FROM  dbo.WorkOrderBatchDetails WITH(NOLOCK) WHERE InvoiceId = @BillingInvoicingId
 					IF(ISNULL(@WOTypeId,0) = @CustomerWOTypeId AND ISNULL(@IsAccountByPass, 0) = 0 AND ISNULL(@IsInvoiceEntry, 0) > 0)
 					BEGIN
 						IF NOT EXISTS(SELECT 1 FROM dbo.DistributionSetup WITH(NOLOCK) WHERE DistributionMasterId = @DistributionMasterId AND MasterCompanyId = @MasterCompanyId AND ISNULL(GlAccountId,0) = 0 AND ISNULL([IsManualText],0) = 0)  
 						BEGIN  
-							EXEC [dbo].[USP_BatchTriggerBasedonDistribution]     
-							@DistributionMasterId,@WorkOrderId,@ReferencePartId,@ReferencePieceId,@InvoiceId,@StocklineId,@IssueQty,@laborType,@issued,@Amount,@ModuleName,@MasterCompanyId,@UpdatedBy    
-					        
+							--EXEC [dbo].[USP_BatchTriggerBasedonDistribution]     
+							--@DistributionMasterId,@WorkOrderId,@ReferencePartId,@ReferencePieceId,@InvoiceId,@StocklineId,@IssueQty,@laborType,@issued,@Amount,@ModuleName,@MasterCompanyId,@UpdatedBy    
+
+							INSERT INTO @WOBatchTriggerType VALUES 
+							(@DistributionMasterId,@WorkOrderId,@ReferencePartId,@ReferencePieceId,@InvoiceId,@StocklineId,@IssueQty,@laborType,@issued,1,@ModuleName,@MasterCompanyId,@UpdatedBy)
+					
+							IF NOT EXISTS(SELECT 1 FROM dbo.DistributionSetup WITH(NOLOCK) WHERE DistributionMasterId =@DistributionMasterId AND MasterCompanyId=@MasterCompanyId AND ISNULL(GlAccountId,0) = 0 AND ISNULL([IsManualText],0) = 0)
+							BEGIN
+								EXEC [USP_BatchTriggerBasedonDistributionForWO] @WOBatchTriggerType;
+							END	
+
 							--NEW TABLE
 							UPDATE [dbo].[BillingInvoicing] SET [IsReversedJE] = 1 WHERE [BillingInvoicingId] = @InvoiceId
 						END
@@ -215,11 +227,17 @@ AS
 					BEGIN
 						IF NOT EXISTS(SELECT 1 FROM dbo.DistributionSetup WITH(NOLOCK) WHERE DistributionMasterId = @DistributionMasterId AND MasterCompanyId = @MasterCompanyId AND ISNULL(GlAccountId,0) = 0 AND ISNULL([IsManualText],0) = 0)  
 						BEGIN  
-							EXEC [dbo].[USP_BatchTriggerBasedonDistributionForInternalWO]      
-							@DistributionMasterId,@WorkOrderId,@ReferencePartId,@ReferencePieceId,@InvoiceId,@StocklineId,@IssueQty,@laborType,@issued,@Amount,@ModuleName,@MasterCompanyId,@UpdatedBy    
+							--EXEC [dbo].[USP_BatchTriggerBasedonDistributionForInternalWO]      
+							--@DistributionMasterId,@WorkOrderId,@ReferencePartId,@ReferencePieceId,@InvoiceId,@StocklineId,@IssueQty,@laborType,@issued,@Amount,@ModuleName,@MasterCompanyId,@UpdatedBy    
 							
+							INSERT INTO @IWOBatchTriggerType VALUES (@DistributionMasterId,@WorkOrderId,@ReferencePartId,@ReferencePieceId,@InvoiceId,@StocklineId,@IssueQty,@laborType,@issued,1,@ModuleName,@MasterCompanyId,@UpdatedBy)
+
+							IF NOT EXISTS(SELECT 1 FROM dbo.DistributionSetup WITH(NOLOCK) WHERE DistributionMasterId =@DistributionMasterId AND MasterCompanyId=@MasterCompanyId AND ISNULL(GlAccountId,0) = 0 AND ISNULL([IsManualText],0) = 0)
+							BEGIN
+								EXEC [USP_BatchTriggerForInternalWOBasedonDistribution] @IWOBatchTriggerType;
+							END	
 							--NEW TABLE
-							  UPDATE [dbo].[BillingInvoicing] SET [IsReversedJE] = 1 WHERE [BillingInvoicingId] = @InvoiceId
+							UPDATE [dbo].[BillingInvoicing] SET [IsReversedJE] = 1 WHERE [BillingInvoicingId] = @InvoiceId
 						END
 					END
 					PRINT 'END ReOpen FinishGood Execution'

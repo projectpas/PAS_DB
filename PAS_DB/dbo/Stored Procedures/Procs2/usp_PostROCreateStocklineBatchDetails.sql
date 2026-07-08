@@ -843,7 +843,7 @@ BEGIN
 										  SELECT @VendorName = VendorName FROM dbo.Vendor V WITH(NOLOCK) WHERE VendorId= @VendorId;
 
 										  SET @UnitPrice = @Amount;
-										  SET @Amount = (@Qty * @Amount);
+										  --SET @Amount = (@Qty * @Amount);
 
 										  SELECT @MPNName = partnumber FROM dbo.ItemMaster WITH(NOLOCK)  WHERE ItemMasterId=@ItemmasterId 
 										  SELECT @LastMSLevel=LastMSLevel,@AllMSlevels=AllMSlevels FROM dbo.StocklineManagementStructureDetails WITH(NOLOCK) WHERE ReferenceID=@StockLineId AND ModuleID=@STKMSModuleID
@@ -904,6 +904,7 @@ BEGIN
 
 											IF @lastQtyCon > 0
 											BEGIN
+												SET @Amount = (@lastQtyCon * @Amount);
 											 INSERT INTO [dbo].[CommonBatchDetails]
 												(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
 												[IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId],[ModuleName],LastMSLevel,AllMSlevels,[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[LotId],[LotNumber],[ReferenceNumber],[ReferenceName],[LocalCurrency],[FXRate],[ForeignCurrency],[ReferenceId],[ReferenceModule])
@@ -969,6 +970,8 @@ BEGIN
 
 											IF @lastQtyDam > 0
 											BEGIN
+												SET @Amount = @UnitPrice;
+												SET @Amount = (@lastQtyDam * @Amount);
 										  SELECT TOP 1 @DistributionSetupId=ID, @DistributionName=Name, @JournalTypeId =JournalTypeId,@CrDrType = CRDRType, @IsAutoPost = ISNULL(IsAutoPost,0)
 										  FROM dbo.DistributionSetup WITH(NOLOCK)  
 										  WHERE UPPER(DistributionSetupCode) = UPPER('RPPINVSTK') AND MasterCompanyId = @MasterCompanyId

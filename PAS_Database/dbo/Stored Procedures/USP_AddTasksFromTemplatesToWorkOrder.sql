@@ -94,6 +94,16 @@ BEGIN
 
                     DECLARE @SeqStr VARCHAR(50) = RIGHT('00' + CAST(@NextSeq AS VARCHAR(10)), 3);
 
+                    -- Fetch task print settings from Task master definitions
+                    DECLARE @TaskIsPrintInWO BIT = 1, @TaskIsPrintInWOQ BIT = 1, @TaskIsPrintInspector BIT = 0, @TaskIsPrintTechnician BIT = 0;
+                    SELECT TOP 1 
+                        @TaskIsPrintInWO = ISNULL(IsPrintInWO, 1),
+                        @TaskIsPrintInWOQ = ISNULL(IsPrintInWOQ, 1),
+                        @TaskIsPrintInspector = ISNULL(IsPrintInspector, 0),
+                        @TaskIsPrintTechnician = ISNULL(IsPrintTechnician, 0)
+                    FROM dbo.Task WITH(NOLOCK)
+                    WHERE TaskId = @TskId;
+
                     -- Insert WorkOrderTask header
                     DECLARE @NewTaskId BIGINT;
                     INSERT INTO dbo.WorkOrderTask (
@@ -113,7 +123,7 @@ BEGIN
                         0,
                         @WorkOrderPartNumberId,
                         @SeqStr,
-                        T.IsPrintInWO,
+                        @TaskIsPrintInWO,
                         CASE WHEN EXISTS (SELECT 1 FROM dbo.WorkflowDirection WITH(NOLOCK) WHERE WorkflowId = @WfId AND TaskId = @TskId AND ISNULL(IsDeleted, 0) = 0 AND ISNULL(IsActive, 0) = 1) THEN 1 ELSE 0 END,
                         T.[Description],
                         1
@@ -139,10 +149,10 @@ BEGIN
                         GETUTCDATE(),
                         1,
                         0,
-                        1,
-                        1,
-                        0,
-                        0,
+                        @TaskIsPrintInWO,
+                        @TaskIsPrintInWOQ,
+                        @TaskIsPrintInspector,
+                        @TaskIsPrintTechnician,
                         0
                     FROM dbo.WorkflowTask wft WITH(NOLOCK)
                     WHERE wft.WorkflowId = @WfId AND wft.TaskId = @TskId;
@@ -230,6 +240,17 @@ BEGIN
                         FROM dbo.WorkflowExpertiseList wfe WITH(NOLOCK)
                         JOIN dbo.Task T WITH(NOLOCK) ON T.TaskId = wfe.TaskId
                         WHERE wfe.WorkflowId = @WfId AND wfe.TaskId = @TskId AND ISNULL(wfe.IsDeleted, 0) = 0;
+
+                        -- Copy to WorkOrderExpertise
+                        INSERT INTO dbo.WorkOrderExpertise (
+                            CreatedBy, UpdatedBy, CreatedDate, UpdatedDate, IsActive, IsDeleted, WorkOrderId, MasterCompanyId, ExpertiseTypeId, EstimatedHours,
+                            WorkFlowWorkOrderId, TaskId, IsFromWorkFlow
+                        )
+                        SELECT 
+                            @CreatedBy, @CreatedBy, GETUTCDATE(), GETUTCDATE(), 1, 0, @WorkOrderId, @MasterCompanyId, CAST(wfe.ExpertiseTypeId AS INT), wfe.EstimatedHours,
+                            @WorkFlowWorkOrderId, wfe.TaskId, 1
+                        FROM dbo.WorkflowExpertiseList wfe WITH(NOLOCK)
+                        WHERE wfe.WorkflowId = @WfId AND wfe.TaskId = @TskId AND ISNULL(wfe.IsDeleted, 0) = 0;
                     END
 
                     -- SUB-SECTION 4.3: Copy Charges
@@ -282,7 +303,7 @@ BEGIN
                         WFD.[Action],
                         CAST(ROW_NUMBER() OVER (ORDER BY WFD.WorkflowDirectionId) AS VARCHAR(100)),
                         WFD.[Description],
-                        1
+                        @TaskIsPrintInWO
                     FROM dbo.WorkflowDirection WFD WITH(NOLOCK)
                     WHERE WFD.WorkflowId = @WfId 
                       AND ISNULL(WFD.IsTaskDetails, 0) = 0
@@ -300,7 +321,7 @@ BEGIN
                         WFD.[Action],
                         CAST(ROW_NUMBER() OVER (PARTITION BY WFD.ParentId ORDER BY WFD.WorkflowDirectionId) AS VARCHAR(100)),
                         WFD.[Description],
-                        1
+                        @TaskIsPrintInWO
                     FROM dbo.WorkflowDirection WFD WITH(NOLOCK)
                     WHERE WFD.WorkflowId = @WfId 
                       AND ISNULL(WFD.IsTaskDetails, 0) = 0

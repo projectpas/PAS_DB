@@ -20,7 +20,8 @@
 	8    15/May/2026   Bhargav Saliya	UOM Changes [PN-15067]
 	9    18/06/2026    Bhargav Saliya	Added Case For Skip UOM Function If FROM uom and TO uom Both are Same
 	10   25/06/2026    Bhargav saliya   Get Consume UOM
---   EXEC [dbo].[RPT_GetCommonBillingInvoicingItems_SO] 9328,10
+	11   08/07/2026    Bhargav saliya   did formatting for billing amount 
+--   EXEC [dbo].[RPT_GetCommonBillingInvoicingItems_SO] 9399,10
 ********************************************************************************************/
 CREATE   PROCEDURE [dbo].[RPT_GetCommonBillingInvoicingItems_SO]
 @BillingInvoicingId BIGINT = NULL,
@@ -91,7 +92,7 @@ BEGIN
 										WHEN so.FreightBilingMethodId <> @FlateRateBillingMethodId THEN
 											ISNULL((
 												SELECT STRING_AGG(
-													UPPER(CONCAT(f.ShipViaName, ': ', FORMAT(ISNULL(f.BillingAmount, 0), ''))), ', '
+													UPPER(CONCAT(f.ShipViaName, ': ', FORMAT(ISNULL(f.BillingAmount, 0), '0.00'))), ', '
 												) 
 												FROM DBO.SalesOrderFreight f WITH(NOLOCK)
 												WHERE f.SalesOrderId = so.SalesOrderId 

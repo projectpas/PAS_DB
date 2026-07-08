@@ -46,7 +46,7 @@ CREATE   PROCEDURE [dbo].[USP_GetAircraftPublicationList]
 	@FromPubDate   DATETIME        = NULL,
 	@ToPubDate   DATETIME        = NULL,
 	@ComplianceDate		  DATETIME     = NULL,
-	@Ractification        VARCHAR(50)  = NULL
+	@RactificationDate    DATETIME     = NULL
 AS
 BEGIN
     --SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
@@ -85,7 +85,7 @@ BEGIN
                 AP.IsDeleted,
 				AP.MasterCompanyId,
 				AP.ComplianceDate,
-				AP.Ractification,
+				AP.RactificationDate,
                 COUNT(1) OVER () AS TotalRecords
             FROM [dbo].[AircraftPublication] AS AP WITH (NOLOCK)
 			LEFT JOIN dbo.PublicationType PT WITH (NOLOCK) ON AP.PublicationTypeId = PT.PublicationTypeId
@@ -122,7 +122,6 @@ BEGIN
 					OR AP.ComplianceCategory LIKE '%' + @GlobalFilter + '%'
 					OR AP.Timeframe LIKE '%' + @GlobalFilter + '%'
 					OR AP.PurposeReasonBackground LIKE '%' + @GlobalFilter + '%'
-					OR Ractification   LIKE '%' + @GlobalFilter + '%'
                 )
     --            AND (@AircraftPublicationNumber          IS NULL OR AP.AircraftPublicationNumber         LIKE '%' + @AircraftPublicationNumber         + '%')
     --            AND (@PublicationType     IS NULL OR PT.[Name]    LIKE '%' + @PublicationType    + '%')
@@ -149,7 +148,7 @@ BEGIN
 				AND (@UpdatedDate IS NULL OR CAST(AP.UpdatedDate AS DATE) = CAST(@UpdatedDate AS DATE))
 				AND (NULLIF(@UpdatedBy, '') IS NULL OR AP.UpdatedBy LIKE '%' + @UpdatedBy + '%')
 				AND (@ComplianceDate       IS NULL OR CAST(ComplianceDate       AS DATE) = CAST(@ComplianceDate AS DATE))
-				AND (NULLIF(@Ractification, '')          IS NULL OR Ractification      LIKE '%' + @Ractification + '%')
+				AND (@RactificationDate       IS NULL OR CAST(RactificationDate       AS DATE) = CAST(@RactificationDate AS DATE))
         )
         SELECT
             AircraftPublicationId,
@@ -174,7 +173,7 @@ BEGIN
             IsDeleted,
 			MasterCompanyId,
 			ComplianceDate,
-			Ractification,
+			RactificationDate,
             TotalRecords
         FROM CTE
         ORDER BY
@@ -261,8 +260,8 @@ BEGIN
 			CASE WHEN @SortColumn = 'ComplianceDate'  AND @SortOrder = 'ASC'  THEN ComplianceDate END ASC,
             CASE WHEN @SortColumn = 'ComplianceDate'  AND @SortOrder = 'DESC' THEN ComplianceDate END DESC,
 
-		    CASE WHEN @SortColumn = 'Ractification'   AND @SortOrder = 'ASC'  THEN Ractification END ASC,
-            CASE WHEN @SortColumn = 'Ractification'   AND @SortOrder = 'DESC' THEN Ractification END DESC,
+		    CASE WHEN @SortColumn = 'RactificationDate'   AND @SortOrder = 'ASC'  THEN RactificationDate END ASC,
+            CASE WHEN @SortColumn = 'RactificationDate'   AND @SortOrder = 'DESC' THEN RactificationDate END DESC,
 
 			-- Default fallback
 			AircraftPublicationId DESC

@@ -19,7 +19,7 @@
 CREATE      PROCEDURE [dbo].[USP_UpdateAircraftPublicationCompliance] 
     @AircraftPublicationId BIGINT,
     @ComplianceDate DATETIME2(7) = NULL,
-    @Ractification VARCHAR(500) = NULL,
+    @RactificationDate  DATETIME2(7) = NULL,
     @MasterCompanyId INT,
     @UpdatedBy VARCHAR(256) = NULL
 AS
@@ -31,7 +31,7 @@ BEGIN
 
         UPDATE [dbo].[AircraftPublication]
 		SET [ComplianceDate] = @ComplianceDate,
-			[Ractification] = @Ractification,
+			[RactificationDate] = @RactificationDate,
 			[UpdatedBy] = @UpdatedBy,
 			[UpdatedDate] = GETDATE()
 		WHERE [AircraftPublicationId] = @AircraftPublicationId

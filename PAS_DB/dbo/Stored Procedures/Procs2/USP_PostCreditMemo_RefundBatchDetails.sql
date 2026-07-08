@@ -16,10 +16,12 @@
 	3    03/04/2024	    HEMANT SALIYA	         Updated for Restrict Accounting Entry by Master Company
 	4    25/09/2024		AMIT GHEDIYA			 Added for AutoPost Batch
 	5	 11/04/2024		Devendra Shekh			 Added new fields for [CommonBatchDetails]
+	6	 08/07/2026	    Moin Bloch               Modify (Added IsBypassAccounting Flag to bypass Accounting Entry PN-16871)
+
 
  -- exec USP_PostCreditMemo_RefundBatchDetails 
-**********************/   
-  
+**********************/
+
 CREATE   PROCEDURE [dbo].[USP_PostCreditMemo_RefundBatchDetails]  
 	@CustomerRefundId BIGINT
 AS  
@@ -75,6 +77,7 @@ BEGIN
 		DECLARE @SumAmount decimal(18,2); 
 		DECLARE @IsAutoPost INT = 0;
 		DECLARE @IsBatchGenerated INT = 0;
+		DECLARE @IsBypassAccounting BIT = 0;
 		DECLARE @LocalCurrencyCode VARCHAR(20) = '';
 		DECLARE @ForeignCurrencyCode VARCHAR(20) = '';
 		DECLARE @FXRate DECIMAL(9,2) = 1;	--Default Value set to : 1
@@ -99,7 +102,7 @@ BEGIN
 			)   
 
 		SELECT @SumAmount = ABS(SUM(Amount)) FROM [dbo].[CreditMemo] WITH(NOLOCK) WHERE [CustomerRefundId] = @CustomerRefundId
-		SELECT @DistributionMasterId =ID,@DistributionCode =DistributionCode FROM DistributionMaster WITH(NOLOCK)  WHERE UPPER(DistributionCode)= UPPER('CRFD')	
+		SELECT @DistributionMasterId =ID,@DistributionCode =DistributionCode FROM [dbo].[DistributionMaster] WITH(NOLOCK)  WHERE UPPER(DistributionCode)= UPPER('CRFD')	
 		SELECT TOP 1 @MasterCompanyId=MasterCompanyId,@UpdateBy=CreatedBy, @CurrentManagementStructureId =ManagementStructureId FROM dbo.CustomerRefund WITH(NOLOCK) WHERE CustomerRefundId = @CustomerRefundId
 
 		DECLARE @IsRestrict BIT;
@@ -110,8 +113,8 @@ BEGIN
 		IF(ISNULL(@SumAmount,0) <> 0 AND ISNULL(@IsAccountByPass, 0) = 0)
 			BEGIN		
 				
-				SELECT @StatusId =Id,@StatusName=name FROM BatchStatus WITH(NOLOCK)  WHERE Name= 'Open'
-				SELECT TOP 1 @JournalTypeId =JournalTypeId FROM dbo.DistributionSetup WITH(NOLOCK)  WHERE DistributionMasterId =@DistributionMasterId
+				SELECT @StatusId =Id,@StatusName=name FROM BatchStatus WITH(NOLOCK)  WHERE [Name]= 'Open'
+				SELECT TOP 1 @JournalTypeId =JournalTypeId FROM [dbo].[DistributionSetup] WITH(NOLOCK)  WHERE DistributionMasterId =@DistributionMasterId
 				
 				SELECT @JournalTypeCode =JournalTypeCode,@JournalTypename=JournalTypeName FROM JournalType WITH(NOLOCK)  WHERE ID= @JournalTypeId
 				SELECT @ModuleId = ModuleId FROM dbo.Module WITH(NOLOCK) WHERE ModuleName = 'CustomerRefund'
@@ -131,7 +134,7 @@ BEGIN
 				WHERE est.EntityStructureId=@CurrentManagementStructureId AND acc.MasterCompanyId=@MasterCompanyId
 				AND CAST(GETUTCDATE() AS DATE)   >= CAST(FromDate AS DATE) AND  CAST(GETUTCDATE() AS DATE) <= CAST(ToDate AS DATE)
 
-				SELECT @JournalBatchHeaderId =JournalBatchHeaderId FROM BatchHeader WITH(NOLOCK)  WHERE JournalTypeId= @JournalTypeId AND StatusId=@StatusId AND AccountingPeriodId = @AccountingPeriodId 
+				SELECT @JournalBatchHeaderId =JournalBatchHeaderId FROM [dbo].[BatchHeader] WITH(NOLOCK)  WHERE JournalTypeId= @JournalTypeId AND StatusId=@StatusId AND AccountingPeriodId = @AccountingPeriodId 
 
 				SELECT	@VendorName = VendorName, @LocalCurrencyCode = ISNULL(CU.Code, ''), @ForeignCurrencyCode = ISNULL(CU.Code, '') 
 				FROM [dbo].[CustomerRefund] CF WITH(NOLOCK) 
@@ -208,7 +211,7 @@ BEGIN
           
 					IF(@CurrentPeriodId =0)  
 					begin  
-					   Update BatchHeader set AccountingPeriodId=@AccountingPeriodId,AccountingPeriod=@AccountingPeriod   WHERE JournalBatchHeaderId= @JournalBatchHeaderId  
+					   UPDATE [dbo].[BatchHeader] SET AccountingPeriodId=@AccountingPeriodId,AccountingPeriod=@AccountingPeriod   WHERE JournalBatchHeaderId= @JournalBatchHeaderId  
 					END  
 
 					SET @IsBatchGenerated = 1;
@@ -226,9 +229,12 @@ BEGIN
 				 ----- Account Receivable --------
 			 				
 				 SELECT TOP 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId, @CRDRType =CRDRType,
-				 @GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName,@IsAutoPost = ISNULL(IsAutoPost,0) 
+				 @GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName,@IsAutoPost = ISNULL(IsAutoPost,0), @IsBypassAccounting = ISNULL(IsBypassAccounting,0)
 				 FROM dbo.DistributionSetup WITH(NOLOCK) WHERE UPPER(DistributionSetupCode) = UPPER('CRFDACCREC') 
 				 AND DistributionMasterId = (SELECT TOP 1 ID FROM dbo.DistributionMaster WITH(NOLOCK) WHERE DistributionCode = 'CRFD')
+
+				 IF(@IsBypassAccounting = 0)
+				 BEGIN
 
 				 INSERT INTO [dbo].[CommonBatchDetails]
 					(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],
@@ -253,14 +259,18 @@ BEGIN
 				INSERT INTO [dbo].[CreditMemoPaymentBatchDetails](JournalBatchHeaderId,JournalBatchDetailId,ReferenceId,DocumentNo,ModuleId,CheckDate,CommonJournalBatchDetailId,InvoiceReferenceId,ManagementStructureId)
 				VALUES(@JournalBatchHeaderId,@JournalBatchDetailId,@CustomerRefundId,NULL,@ModuleId,NULL,@CommonBatchDetailId,0,@CurrentManagementStructureId);
 
+				 END
 				 ----- Account Receivable --------
 
 				-----Account Payable--------
 
 				SELECT TOP 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId, @CRDRType =CRDRType,
-				@GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName 
+				@GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName, @IsBypassAccounting = ISNULL(IsBypassAccounting,0)
 				FROM dbo.DistributionSetup WITH(NOLOCK) WHERE UPPER(DistributionSetupCode) = UPPER('CRFDACCAP') 
 				AND DistributionMasterId = (SELECT TOP 1 ID FROM dbo.DistributionMaster WITH(NOLOCK) WHERE DistributionCode = 'CRFD')
+
+				IF(@IsBypassAccounting = 0)
+				BEGIN
 
 				INSERT INTO [dbo].[CommonBatchDetails]
 					(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],
@@ -285,19 +295,20 @@ BEGIN
 				INSERT INTO [dbo].[CreditMemoPaymentBatchDetails](JournalBatchHeaderId,JournalBatchDetailId,ReferenceId,DocumentNo,ModuleId,CheckDate,CommonJournalBatchDetailId,InvoiceReferenceId,ManagementStructureId)
 				VALUES(@JournalBatchHeaderId,@JournalBatchDetailId,@CustomerRefundId,NULL,@ModuleId,NULL,@CommonBatchDetailId,0,@CurrentManagementStructureId);
 
+				END
 				 -----Account Payable--------
 
 				SET @TotalDebit=0;
 				SET @TotalCredit=0;
 				SELECT @TotalDebit = SUM(DebitAmount),@TotalCredit = SUM(CreditAmount) FROM [dbo].[CommonBatchDetails] WITH(NOLOCK) WHERE JournalBatchDetailId=@JournalBatchDetailId group by JournalBatchDetailId
-				UPDATE BatchDetails SET DebitAmount=@TotalDebit,CreditAmount=@TotalCredit,UpdatedDate = GETUTCDATE(),UpdatedBy=@UpdateBy   WHERE JournalBatchDetailId=@JournalBatchDetailId
+				UPDATE [dbo].[BatchDetails] SET DebitAmount=@TotalDebit,CreditAmount=@TotalCredit,UpdatedDate = GETUTCDATE(),UpdatedBy=@UpdateBy   WHERE JournalBatchDetailId=@JournalBatchDetailId
 
 				SELECT @TotalDebit = SUM(DebitAmount),@TotalCredit = SUM(CreditAmount) FROM BatchDetails 
 				WITH(NOLOCK) WHERE JournalBatchHeaderId=@JournalBatchHeaderId AND IsDeleted=0 
 				SET @TotalBalance =@TotalDebit-@TotalCredit
 
-				UPDATE CodePrefixes SET CurrentNummber = @currentNo WHERE CodeTypeId = @CodeTypeId AND MasterCompanyId = @MasterCompanyId    
-				UPDATE BatchHeader SET TotalDebit=@TotalDebit,TotalCredit=@TotalCredit,TotalBalance=@TotalBalance,UpdatedDate=GETUTCDATE(),UpdatedBy=@UpdateBy WHERE JournalBatchHeaderId= @JournalBatchHeaderId
+				UPDATE [dbo].[CodePrefixes] SET CurrentNummber = @currentNo WHERE CodeTypeId = @CodeTypeId AND MasterCompanyId = @MasterCompanyId    
+				UPDATE [dbo].[BatchHeader] SET TotalDebit=@TotalDebit,TotalCredit=@TotalCredit,TotalBalance=@TotalBalance,UpdatedDate=GETUTCDATE(),UpdatedBy=@UpdateBy WHERE JournalBatchHeaderId= @JournalBatchHeaderId
 
 				--AutoPost Batch
 				IF(@IsAutoPost = 1 AND @IsBatchGenerated = 0)
@@ -316,7 +327,7 @@ BEGIN
  BEGIN CATCH  
   DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name()   
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------  
-        , @AdhocComments     VARCHAR(150)    = 'USP_UpdateCreditMemoStatus_Refund'   
+        , @AdhocComments     VARCHAR(150)    = 'USP_PostCreditMemo_RefundBatchDetails'   
         ,@ProcedureParameters VARCHAR(3000) = '@Parameter1 = ''' + CAST(ISNULL(@CustomerRefundId, '') AS varchar(100))  
         , @ApplicationName VARCHAR(100) = 'PAS'  
 -----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------  

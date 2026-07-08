@@ -34,6 +34,7 @@
 	18  08-12-2025      Sahdev Saliya       Added New Field :- VendorRFQPurchaseOrderNumber
 	19  01-20-2026      Vishal Suthar       Added filter to skip migrated PO from the listing for PAR
 	20  05-14-2026      Bhargav Saliya      Remove The [VendoreId] Condition [PN-16416]
+	21    07-07-2026   Bhargav Saliya   Added @IntegrationTypeId [PN-16810] 
 
 **************************************************************/      
 CREATE    PROCEDURE [dbo].[GetPurchaseOrderList]
@@ -71,7 +72,8 @@ CREATE    PROCEDURE [dbo].[GetPurchaseOrderList]
 	@IsUpdated BIT = NULL,  
     @Priority varchar(100) = NULL,
 	@CustomerRFQNo varchar(400)=NULL,
-    @VendorRFQPurchaseOrderNumber varchar(50) = NULL     
+    @VendorRFQPurchaseOrderNumber varchar(50) = NULL,
+	@IntegrationTypeId BIGINT = null
 AS      
 BEGIN      
 	SET NOCOUNT ON;       
@@ -231,7 +233,9 @@ BEGIN
 					WHERE rfqPart.ModuleId = @poModuleId AND rfqPart.ReferenceId = PO.PurchaseOrderId) rfqData
 				LEFT JOIN  [dbo].[VendorRFQPurchaseOrder] VRPO WITH (NOLOCK) ON VRPO.VendorRFQPurchaseOrderId = PO.VendorRFQPurchaseOrderId
 				WHERE ((PO.IsDeleted = @IsDeleted) AND (@StatusID IS NULL OR PO.StatusId = @StatusID))      
-				AND PO.MasterCompanyId = @MasterCompanyId AND (ISNULL(@IsUpdated,0) <> 1 OR ISNULL(PO.IsUpdated,0) = ISNULL(@IsUpdated,0))   
+				AND PO.MasterCompanyId = @MasterCompanyId 
+				AND (ISNULL(@IsUpdated,0) <> 1 OR ISNULL(PO.isUpdated,0) = ISNULL(@IsUpdated,0))
+				AND (@IntegrationTypeId IS NULL OR PO.IntegrationTypeId = @IntegrationTypeId)   
 				--AND (@VendorId IS NULL OR PO.VendorId = @VendorId)
 				AND (PO.Notes <> 'PARMigrate' AND PO.CreatedBy <> 'TBD')
 				GROUP BY PO.PurchaseOrderId, 				   

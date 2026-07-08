@@ -160,7 +160,10 @@ BEGIN
 			                
 		 	  WHERE ((V.IsDeleted=@IsDeleted) AND (@IsActive IS NULL OR V.IsActive = @IsActive))
 					 AND (@VendorId IS NULL OR V.VendorId = @VendorId)
-			         AND V.MasterCompanyId=@MasterCompanyId	AND (ISNULL(@IsUpdated,0) <> 1 OR ISNULL(V.isUpdated,0) = ISNULL(@IsUpdated,0))	 AND (@IsVendorAlsoCustomer IS NULL OR V.IsVendorAlsoCustomer = @IsVendorAlsoCustomer)
+			         AND V.MasterCompanyId=@MasterCompanyId	
+					 AND (ISNULL(@IsUpdated,0) <> 1 OR ISNULL(V.isUpdated,0) = ISNULL(@IsUpdated,0))
+					 AND (@IntegrationTypeId IS NULL OR V.IntegrationTypeId = @IntegrationTypeId)
+					 AND (@IsVendorAlsoCustomer IS NULL OR V.IsVendorAlsoCustomer = @IsVendorAlsoCustomer)
 			), ResultCount AS(SELECT COUNT(VendorId) AS totalItems FROM Result)
 			SELECT * INTO #TempResult FROM  Result
 			 WHERE ((@GlobalFilter <>'' AND ((VendorCode LIKE '%' +@GlobalFilter+'%') OR

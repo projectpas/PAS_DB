@@ -163,7 +163,9 @@ BEGIN
 					LEFT JOIN  dbo.Contact  WITH (NOLOCK) ON CC.ContactId=Contact.ContactId
 					LEFT JOIN  dbo.Vendor V  WITH (NOLOCK) ON V.RelatedCustomerId = C.CustomerId
 					Where ((C.IsDeleted=@IsDeleted) AND (@IsActive IS NULL OR C.IsActive=@IsActive))
-					AND C.MasterCompanyId=@MasterCompanyId AND (ISNULL(@IsUpdated,0) <> 1 OR ISNULL(c.isUpdated,0) = ISNULL(@IsUpdated,0))
+					AND C.MasterCompanyId=@MasterCompanyId 
+					AND (ISNULL(@IsUpdated,0) <> 1 OR ISNULL(c.isUpdated,0) = ISNULL(@IsUpdated,0))
+					AND (@IntegrationTypeId IS NULL OR C.IntegrationTypeId = @IntegrationTypeId)
 					AND (@IsCustomerAlsoVendor IS NULL OR C.IsCustomerAlsoVendor = @IsCustomerAlsoVendor)
 			), ResultCount AS(SELECT COUNT(CustomerId) AS totalItems FROM Result)
 			SELECT * INTO #TempResult FROM  Result

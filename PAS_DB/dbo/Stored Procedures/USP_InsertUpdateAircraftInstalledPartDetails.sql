@@ -18,6 +18,7 @@
  **  6   05-15-2026   Abhishek Jirawla  Added Tail Number in Params. (PN-16384)
  **  7   09/06/2026   Amit Ghediya		Adding Header data in History module [PN-16581]
  **  8   30/06/2026	  Amit Ghediya	    Update for Engine data [PN-17075]
+ **  9   07/07/2026	  Kishor Makwana	[PN-17162] insert/Update ServiceLifeUnitMonthsOrDays, ServiceLifeLimit 
  ************************************************************************/
 CREATE    PROCEDURE [dbo].[USP_InsertUpdateAircraftInstalledPartDetails]
 (
@@ -54,7 +55,9 @@ CREATE    PROCEDURE [dbo].[USP_InsertUpdateAircraftInstalledPartDetails]
 	@InstallFlightHours DECIMAL(18,6) = NULL,
 	@InstallFlightTime DECIMAL(18,6) = NULL,
 	@InstallCycles DECIMAL(18,6) = NULL,
-	@IsFromAircraft BIT = NULL
+	@IsFromAircraft BIT = NULL,
+	@ServiceLifeUnitMonthsOrDays	INT = NULL,
+	@ServiceLifeLimit	BIGINT = NULL
 )
 AS
 BEGIN
@@ -221,7 +224,9 @@ BEGIN
 				PartEngineStarts = @PartEngineStarts,
 				InstallFlightHours = @InstallFlightHours,
 				InstallFlightTime = @InstallFlightTime,
-				InstallCycles = @InstallCycles
+				InstallCycles = @InstallCycles,
+				ServiceLifeUnitMonthsOrDays = @ServiceLifeUnitMonthsOrDays,
+				ServiceLifeLimit = @ServiceLifeLimit
 			WHERE AircraftInstalledPartDetailsId = @AircraftInstalledPartDetailsId;
 			
 			--Update stockline for part
@@ -277,7 +282,9 @@ BEGIN
 				PartEngineStarts,
 				InstallFlightHours,
 				InstallFlightTime,
-				InstallCycles
+				InstallCycles,
+				ServiceLifeUnitMonthsOrDays,
+				ServiceLifeLimit
 			)
 			VALUES
 			(
@@ -317,7 +324,9 @@ BEGIN
 				@PartEngineStarts,
 				@InstallFlightHours,
 				@InstallFlightTime,
-				@InstallCycles
+				@InstallCycles,
+				@ServiceLifeUnitMonthsOrDays,
+				@ServiceLifeLimit
 			);
 
 			SELECT @AircraftPartDetailsId = SCOPE_IDENTITY() 

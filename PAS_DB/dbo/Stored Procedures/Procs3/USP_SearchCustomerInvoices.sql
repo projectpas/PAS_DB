@@ -54,6 +54,7 @@
 	38  05 Aug 2025   RAJESH GAMI       Implemented: Added new filter for creditmemo ('OPEN', 'POSTED', 'FULFILLING', 'CLOSED' status consider under the INVOICED filter) 
 	39  15 Jan 2025   Moin Bloch        Modify No need to check RemainingAmount when Invoice Status Is ALL PBI  PN-15177
 	40  28 Jan 2025   Bhargav Saliya    Get RemainingAmount From The [BillingInvoicing] table instead of [BillingInvoicingItems]
+	41    07-07-2026   Bhargav Saliya   Added @IntegrationTypeId [PN-16810] 
 exec dbo.USP_SearchCustomerInvoices
 @PageSize=10,@PageNumber=1,@SortColumn=NULL,@SortOrder=-1,@StatusID=0,@GlobalFilter=N'',@InvoiceNo=NULL,@InvoiceStatus=NULL,@InvoiceDate=NULL,
 @OrderNumber=NULL,@CustomerName=NULL,@CustomerType=NULL,@InvoiceAmt=NULL,@PN=NULL,@PNDescription=NULL,@VersionNo=NULL,@QuoteNumber=NULL,
@@ -89,7 +90,8 @@ CREATE    PROCEDURE [dbo].[USP_SearchCustomerInvoices]
 @Status varchar(50)=null,
 @IsUpdated BIT = NULL,
 @FromDate datetime=null,
-@ToDate datetime=null
+@ToDate datetime=null,
+@IntegrationTypeId BIGINT = null
 AS
 BEGIN
 	  DECLARE @RecordFrom INT; 
@@ -223,7 +225,9 @@ BEGIN
 			AND (ISNULL(@Status, '') = '' OR ISNULL(WOBI.RemainingAmount, 0) > 0)
 			AND WOBI.IsActive = 1 AND WOBI.IsDeleted = 0
 			--AND WOBI.[BillingInvoicingId] NOT IN (SELECT ISNULL(CM.[InvoiceId], 0) FROM [dbo].[CreditMemo] CM WITH (NOLOCK) WHERE CM.[StatusId] IN(@CMPostedStatusId,@ClosedCreditMemoStatus,@RefundedCreditMemoStatus,@RefundRequestedCreditMemoStatus) AND CM.[InvoiceTypeId] = @WOInvoiceTypeId)      
-			AND (ISNULL(@IsUpdated,0) <> 1 OR (ISNULL(WOBI.IsUpdated,0) = ISNULL(@IsUpdated,0) AND ISNULL(WOBI.IsPerformaInvoice,0) = 0))
+			AND (ISNULL(@IsUpdated,0) <> 1 OR (ISNULL(WOBI.IsUpdated,0) = ISNULL(@IsUpdated,0)
+			AND (@IntegrationTypeId IS NULL OR WOBI.IntegrationTypeId = @IntegrationTypeId)
+			AND ISNULL(WOBI.IsPerformaInvoice,0) = 0))
 			GROUP BY	WOBI.BillingInvoicingId, WOBI.InvoiceNo, WOBI.InvoiceStatus, WOBI.InvoiceDate, WO.WorkOrderNum, C.[Name],C.CustomerCode, CT.CustomerTypeName, WOBI.GrandTotal, WOBI.RemainingAmount, WQ.QuoteNumber, WOBI.ReferenceId
 						, C.CustomerId, CRM.RMAHeaderId, WOBI.IsPerformaInvoice, WOPN.ManagementStructureId
 			),				
@@ -315,7 +319,9 @@ BEGIN
 			AND (ISNULL(@Status, '') = '' OR ISNULL(SOBI.RemainingAmount, 0) > 0)
 			AND SOBI.IsActive = 1 AND SOBI.IsDeleted = 0
 				--AND SOBI.[BillingInvoicingId] NOT IN (SELECT ISNULL(CM.[InvoiceId], 0) FROM [dbo].[CreditMemo] CM WITH (NOLOCK) WHERE CM.[StatusId] IN(@CMPostedStatusId,@ClosedCreditMemoStatus,@RefundedCreditMemoStatus,@RefundRequestedCreditMemoStatus) AND CM.[InvoiceTypeId] = @SOInvoiceTypeId)
-				AND (ISNULL(@IsUpdated,0) <> 1 OR (ISNULL(SOBI.IsUpdated,0) = ISNULL(@IsUpdated,0) AND ISNULL(SOBI.IsPerformaInvoice,0) = 0))
+				AND (ISNULL(@IsUpdated,0) <> 1 OR (ISNULL(SOBI.IsUpdated,0) = ISNULL(@IsUpdated,0)
+				AND (@IntegrationTypeId IS NULL OR SOBI.IntegrationTypeId = @IntegrationTypeId)
+				AND ISNULL(SOBI.IsPerformaInvoice,0) = 0))
 				GROUP BY	SOBI.BillingInvoicingId, SOBI.InvoiceNo, SOBI.InvoiceStatus, SOBI.InvoiceDate, SO.SalesOrderNumber, C.[Name],C.CustomerCode, CT.CustomerTypeName, SOBI.GrandTotal, SOBI.RemainingAmount, SQ.SalesOrderQuoteNumber
 							, SMS.LastMSLevel, SMS.AllMSlevels, SOBI.ReferenceId, C.CustomerId, CRM.RMAHeaderId, SOBI.IsPerformaInvoice, SMS.EntityMSID 
 						),
@@ -394,6 +400,7 @@ BEGIN
 			AND SOBI.IsActive = 1 AND SOBI.IsDeleted = 0
 			--AND SOBI.[SOBillingInvoicingId] NOT IN (SELECT ISNULL(CM.[InvoiceId], 0) FROM [dbo].[CreditMemo] CM WITH (NOLOCK) WHERE CM.[StatusId] IN(@CMPostedStatusId,@ClosedCreditMemoStatus,@RefundedCreditMemoStatus,@RefundRequestedCreditMemoStatus) AND CM.[InvoiceTypeId] = @EXInvoiceTypeId)
 			AND (ISNULL(@IsUpdated,0) <> 1 OR ISNULL(SOBI.IsUpdated,0) = ISNULL(@IsUpdated,0))
+			AND (@IntegrationTypeId IS NULL OR SOBI.IntegrationTypeId = @IntegrationTypeId)
 			GROUP BY	SOBI.SOBillingInvoicingId, SOBI.InvoiceNo, SOBI.InvoiceStatus, SOBI.InvoiceDate, SO.ExchangeSalesOrderNumber, C.[Name],C.CustomerCode, CT.CustomerTypeName, SOBI.GrandTotal, SOBI.RemainingAmount
 						, SO.CustomerReference, SMS.LastMSLevel, SMS.AllMSlevels, SOBI.ExchangeSalesOrderId, C.CustomerId, SMS.EntityMSID,I.ItemMasterId
 						),

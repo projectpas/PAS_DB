@@ -1,5 +1,4 @@
-﻿
-/*************************************************************
+﻿/*************************************************************
 ** File:        [USP_GetAircraftPublicationById]
 ** Description:
 ** Purpose:
@@ -12,6 +11,7 @@
 ** PR   Date         Author         Change Description
 ** --   ----------   -------------  --------------------------------
 **  1    01/05/2026  Amit Ghediya		Created
+**  2    08/07/2026  Amit Ghediya		Get Applicability,MEL [PN-17157]
 *************************************************************/
 CREATE     PROCEDURE [dbo].[USP_GetAircraftPublicationById]
 (
@@ -40,7 +40,9 @@ BEGIN
 			PurposeReasonBackground,
 			EntryDate,
 			VerifiedBy,
-			MasterCompanyId
+			MasterCompanyId,
+			Applicability,
+			MEL
 		FROM DBO.AircraftPublication WITH (NOLOCK)
 		WHERE AircraftPublicationId = @AircraftPublicationId
 		  AND ISNULL(IsDeleted,0) = 0;

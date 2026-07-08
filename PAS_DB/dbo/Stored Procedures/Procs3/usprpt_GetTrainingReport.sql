@@ -18,6 +18,7 @@
     5    15-APR-2026   Sahdev Saliya        Standards and performance improvements (PN-15933)
     6    15-APR-2026   Divyesh Kathiriya	Handle Multiple EmployeeId. [PN-15934]
 	7    22-APR-2026   Sahdev Saliya        Added condion of IsDeleted for EmployeeTraining report List.(PN-16144)
+    8    08/07/2026    Kishor Makwana       Added categoryType in select statement [PN-17166]
 
 ************************************************************************/
 CREATE     PROCEDURE [dbo].[usprpt_GetTrainingReport]
@@ -161,7 +162,8 @@ BEGIN
                 UPPER(MSD.Level7Name)  AS level7,
                 UPPER(MSD.Level8Name)  AS level8,
                 UPPER(MSD.Level9Name)  AS level9,
-                UPPER(MSD.Level10Name) AS level10
+                UPPER(MSD.Level10Name) AS level10,
+                ET.CategoryType AS categoryType
             FROM DBO.Employee E WITH (NOLOCK)
                 INNER JOIN dbo.EmployeeManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = E.EmployeeId
                 LEFT JOIN dbo.JobTitle J WITH (NOLOCK) ON E.JobTitleId = J.JobTitleId
@@ -197,7 +199,7 @@ BEGIN
                 EC.CertifyingInstitution, EC.CertificationNumber, ET.CreatedDate, TN.[Name], ET.ProviderType, ET.IsRecurring,
                 MSD.Level1Name, MSD.Level2Name, MSD.Level3Name, MSD.Level4Name,
                 MSD.Level5Name, MSD.Level6Name, MSD.Level7Name, MSD.Level8Name,
-                MSD.Level9Name, MSD.Level10Name, E.EmployeeExpIds
+                MSD.Level9Name, MSD.Level10Name, E.EmployeeExpIds,ET.CategoryType
         )
         SELECT
             COUNT(1) OVER () AS TotalRecordsCount,
@@ -207,7 +209,7 @@ BEGIN
             scheduleDate, completionDate, expirationDate,
             daysToExpiration, inforce, aircraftType, model, issuingEntity, certNum, issueDate,
             trainingName, providerType, isRecurring,
-            level1, level2, level3, level4, level5, level6, level7, level8, level9, level10
+            level1, level2, level3, level4, level5, level6, level7, level8, level9, level10,categoryType
         FROM rptCTE
         ORDER BY EmployeeId DESC
         OFFSET ((@PageNumber - 1) * @PageSize) ROWS FETCH NEXT @PageSize ROWS ONLY

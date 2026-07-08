@@ -19,10 +19,11 @@
 	3    17/09/2024   AMIT GHEDIYA		added AutoPost.
 	4    27/10/2025   AMIT GHEDIYA		update for get glaccount from LE.
 	5	 26/01/2026   AMIT GHEDIYA		update for get glaccount details.
+	6	 06/07/2026	  Moin Bloch        Modify (Added IsBypassAccounting Flag to bypass Accounting Entry PN-16871)
        
  EXECUTE [GetDistributionSetupData] 1,9 ,1
 **************************************************************/  
-CREATE   PROCEDURE [dbo].[GetDistributionSetupData](  
+CREATE    PROCEDURE [dbo].[GetDistributionSetupData](  
 	@masterCompanyId BIGINT = NULL,  
 	@JournalTypeID BIGINT = NULL,
 	@legalEntityId BIGINT = NULL
@@ -99,7 +100,8 @@ BEGIN
 						ELSE '' END AS CRDRTypeName,
 					 CASE WHEN ISNULL(IsManualText,0) = 1 THEN 0 ELSE ISNULL(IsManualText,0) END AS IsManualText,
 					 ManualText,
-					 IsAutoPost
+					 IsAutoPost,
+					 IsBypassAccounting
 				FROM dbo.DistributionSetup WITH (NOLOCK)
 				WHERE IsDeleted = 0
 					AND MasterCompanyId = @masterCompanyId
@@ -156,7 +158,8 @@ BEGIN
 						ELSE '' END AS CRDRTypeName,
 					 CASE WHEN ISNULL(IsManualText,0) = 1 THEN 0 ELSE ISNULL(IsManualText,0) END AS IsManualText,
 					 ManualText,
-					 IsAutoPost
+					 IsAutoPost,
+					 IsBypassAccounting
 				FROM dbo.DistributionSetup WITH (NOLOCK)
 				WHERE IsDeleted = 0
 					AND MasterCompanyId = @masterCompanyId
@@ -219,7 +222,8 @@ BEGIN
 						ELSE '' END AS CRDRTypeName,
 					 CASE WHEN ISNULL(IsManualText,0) = 1 THEN 0 ELSE ISNULL(IsManualText,0) END AS IsManualText,
 					 ManualText,
-					 IsAutoPost
+					 IsAutoPost,
+					 IsBypassAccounting
 				FROM dbo.DistributionSetup WITH (NOLOCK)
 				WHERE IsDeleted = 0
 					AND MasterCompanyId = @masterCompanyId
@@ -283,7 +287,8 @@ BEGIN
 						ELSE '' END AS CRDRTypeName,
 					 CASE WHEN ISNULL(IsManualText,0) = 1 THEN 0 ELSE ISNULL(IsManualText,0) END AS IsManualText,
 					 ManualText,
-					 IsAutoPost
+					 IsAutoPost,
+					 IsBypassAccounting
 				FROM dbo.DistributionSetup WITH (NOLOCK)
 				WHERE IsDeleted = 0
 					AND MasterCompanyId = @masterCompanyId
@@ -314,7 +319,8 @@ BEGIN
 				 WHEN CRDRType=2 THEN 'DR/CR' ELSE '' END as 'CRDRTypeName',
 				 ISNULL(IsManualText,0) IsManualText,
 				 ManualText,
-				 IsAutoPost
+				 IsAutoPost,
+				 IsBypassAccounting
 			 FROM dbo.DistributionSetup  WITH(NOLOCK)  
 			 WHERE  IsDeleted = 0 and MasterCompanyId = @masterCompanyId and JournalTypeId= @JournalTypeID  order by DisplayNumber ASC 
 		END

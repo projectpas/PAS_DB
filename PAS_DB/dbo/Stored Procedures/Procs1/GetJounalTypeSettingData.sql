@@ -23,6 +23,8 @@
 	6    27/11/2025   Bhargav Saliya		Modified(Get GL accound code and name from the GLAcount Table instead of [DistributionSetup] table).
 	7    03/12/2025   Bhargav Saliya		Added Memo.
 	8    04/12/2025   Bhargav Saliya		Fixed Filter issues For [IsAutoPost] 
+	9	 06/07/2026	  Moin Bloch            Modify (Added IsBypassAccounting Flag to bypass Accounting Entry PN-16871)
+
 
      
  EXECUTE [GetJounalTypeSettingData] 1
@@ -71,7 +73,8 @@ BEGIN
 					[CRDRTypeName] VARCHAR(30) NULL,
 					[IsManualText] BIT NULL,
 					[ManualText] VARCHAR(100) NULL,
-					[Memo] VARCHAR(MAX) NULL
+					[Memo] VARCHAR(MAX) NULL,
+					[IsBypassAccounting] VARCHAR(50) NULL
 				)
 
 				;WITH JournalTypeData AS (
@@ -97,7 +100,7 @@ BEGIN
 
 				INSERT INTO #GLAllocationResults ( [JournalTypeCode], [JournalTypeName], [ID], [IsEnforcePrint], [IsAppendtoBatch], [IsAutoPost],
 							[DistributionSetupID], [Name], [GlAccountId], [GlAccountName], [JournalTypeId], [DistributionMasterId], [IsDebit], [DisplayNumber], [MasterCompanyId], 
-							[CreatedBy], [UpdatedBy], [IsActive], [IsDeleted], [UpdatedDate], [CreatedDate], [CRDRType], [CRDRTypeName], [IsManualText], [ManualText], [SequenceNo],[Memo])
+							[CreatedBy], [UpdatedBy], [IsActive], [IsDeleted], [UpdatedDate], [CreatedDate], [CRDRType], [CRDRTypeName], [IsManualText], [ManualText], [SequenceNo],[Memo],[IsBypassAccounting])
 				SELECT	[JournalTypeCode], [JournalTypeName], JTD.ID, [IsEnforcePrint], [IsAppendtoBatch], (CASE WHEN ISNULL(DS.[IsAutoPost],0) = 1 THEN 'Yes' ELSE 'No' END),
 						DS.[ID], [Name], DS.[GlAccountId], (CASE WHEN ISNULL(G.[AccountCode], '') = '' THEN ISNULL(G.[AccountName], '') ELSE ISNULL(G.[AccountCode], '') + ' - ' + ISNULL(G.[AccountName], '') END),
 						JTD.[JournalTypeId], [DistributionMasterId], [IsDebit], [DisplayNumber], JTD.[MasterCompanyId], 
@@ -106,7 +109,7 @@ BEGIN
 						CASE	WHEN CRDRType=1 THEN 'DR' 
 								WHEN CRDRType=0 THEN 'CR'
 								WHEN CRDRType=2 THEN 'DR/CR' ELSE '' END as 'CRDRTypeName',
-						ISNULL(IsManualText,0) IsManualText, ISNULL(ManualText, '') ManualText, [SequenceNo],Memo
+						ISNULL(IsManualText,0) IsManualText, ISNULL(ManualText, '') ManualText, [SequenceNo],Memo,(CASE WHEN ISNULL(DS.[IsBypassAccounting],0) = 1 THEN 'Yes' ELSE 'No' END)
 				FROM JournalTypeData JTD WITH(NOLOCK) 
 				LEFT JOIN dbo.DistributionSetup DS WITH(NOLOCK) ON DS.JournalTypeID = JTD.JournalTypeId AND DS.MasterCompanyId = JTD.MasterCompanyId
 				LEFT JOIN dbo.GLAccount G WITH(NOLOCK) ON DS.GlAccountId = G.GlAccountId AND DS.MasterCompanyId = G.MasterCompanyId;

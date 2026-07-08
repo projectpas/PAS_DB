@@ -1,4 +1,6 @@
-﻿ /***************************************************************  
+﻿
+
+ /***************************************************************  
  ** File:   USP_GetVendorAddressById             
  ** Author: Ayushi Patel 
  ** Description: Get vendor address details including merged address using ValidatePDFAddress  
@@ -11,6 +13,7 @@
  ** --   --------			-------				--------------------------------            
     1    2025-05-26		  Ayushi Patel				Created
     2    01/05/2026       Ayushi Patel              [PN-16030] Added MasterCompanyCode/NULL parameter in ValidatePDFAddress calls.
+    3    07/07/2026       Kishor Makwana            [PN-16935]   Added Resale Number
 *************************************************************/ 
 CREATE   PROCEDURE [dbo].[USP_GetVendorAddressById]  
     @VendorId BIGINT  
@@ -46,7 +49,8 @@ BEGIN
                 '',
 				'',
                 MS.MasterCompanyCode
-            ) AS MergedAddress
+            ) AS MergedAddress,
+            v.ResaleNumber
         FROM dbo.Vendor v WITH (NOLOCK)  
         LEFT JOIN [dbo].[MasterCompany] MS WITH(NOLOCK) ON v.MasterCompanyId = MS.MasterCompanyId
         INNER JOIN dbo.Address a WITH (NOLOCK) ON v.AddressId = a.AddressId  

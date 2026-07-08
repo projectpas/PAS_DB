@@ -1,4 +1,4 @@
-﻿/*********************
+/*********************
 ** File:        [USP_GetAircraftTechnicalRecordList]
 ** Description: Returns paged/filtered/sorted aircraft technical record list
 **              (registry + publication + latest worksheet/work order info).

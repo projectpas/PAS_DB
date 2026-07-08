@@ -16,8 +16,8 @@
  ** --   --------     -------				--------------------------------          
     1    06/27/2023   Amit Ghediya			Created
 	2    06-03-2026	  Amit Ghediya			UOM Conversion Changes [PN-15140]
-	3   19-06-2026	  Priyansh Patel		Add Condition to skip fn_ConvertUOM call [PN-16911]
-     
+	3    19-06-2026	  Priyansh Patel		Add Condition to skip fn_ConvertUOM call [PN-16911]
+    5    07/07/2026   Ayushi                [PN-16865] Added ROUND(,2) to quantity fields after UOM conversion 
  EXECUTE USP_VendorRMA_GetVendorRMAShippingChildList 
 **************************************************************/
 CREATE       Procedure [dbo].[USP_VendorRMA_GetVendorRMAShippingChildList]  
@@ -35,11 +35,11 @@ BEGIN
   SELECT DISTINCT sopt.RMAPickTicketId, sos.RMAShippingId, CASE WHEN sosi.VendorRMADetailId	 IS NOT NULL THEN sos.ShipDate ELSE NULL END AS ShipDate,  
 	  CASE WHEN sosi.VendorRMADetailId IS NOT NULL THEN sos.RMAShippingNum ELSE NULL END AS RMAShippingNum,  
 	  sopt.RMAPickTicketNumber,
-	(CASE WHEN NULLIF(imt.[StockUnitOfMeasure], '') IS NULL OR NULLIF(imt.[PurchaseUnitOfMeasure], '') IS NULL OR imt.[StockUnitOfMeasure] = imt.[PurchaseUnitOfMeasure] THEN ISNULL(sopt.QtyToShip, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(sopt.QtyToShip, 0),imt.[StockUnitOfMeasure],imt.[PurchaseUnitOfMeasure],0,imt.[MasterCompanyId]) END) AS QtyToShip,
+	  ROUND((CASE WHEN NULLIF(imt.[StockUnitOfMeasure], '') IS NULL OR NULLIF(imt.[PurchaseUnitOfMeasure], '') IS NULL OR imt.[StockUnitOfMeasure] = imt.[PurchaseUnitOfMeasure] THEN ISNULL(sopt.QtyToShip, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(sopt.QtyToShip, 0),imt.[StockUnitOfMeasure],imt.[PurchaseUnitOfMeasure],0,imt.[MasterCompanyId]) END),2) AS QtyToShip,
 
 	  so.RMANumber, imt.partnumber, imt.PartDescription, sl.StockLineNumber,  
 	  sl.SerialNumber, cr.[VendorName] as CustomerName, soc.CustomsValue, soc.CommodityCode, 
-	  (CASE WHEN NULLIF(imt.[StockUnitOfMeasure], '') IS NULL OR NULLIF(imt.[PurchaseUnitOfMeasure], '') IS NULL OR imt.[StockUnitOfMeasure] = imt.[PurchaseUnitOfMeasure] THEN ISNULL(sosi.QtyShipped, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(sosi.QtyShipped, 0),imt.[StockUnitOfMeasure],imt.[PurchaseUnitOfMeasure],0,imt.[MasterCompanyId]) END) AS QtyShipped,
+	  ROUND((CASE WHEN NULLIF(imt.[StockUnitOfMeasure], '') IS NULL OR NULLIF(imt.[PurchaseUnitOfMeasure], '') IS NULL OR imt.[StockUnitOfMeasure] = imt.[PurchaseUnitOfMeasure] THEN ISNULL(sosi.QtyShipped, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(sosi.QtyShipped, 0),imt.[StockUnitOfMeasure],imt.[PurchaseUnitOfMeasure],0,imt.[MasterCompanyId]) END),2) AS QtyShipped,
 
 	  sos.VendorRMAId, (CASE WHEN sosi.VendorRMADetailId IS NOT NULL THEN sosi.VendorRMADetailId ELSE sop.VendorRMADetailId END) VendorRMADetailId,  
 	  sos.AirwayBill, SPB.PackagingSlipNo, SPB.PackagingSlipId,   

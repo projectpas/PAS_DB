@@ -20,7 +20,8 @@
 	9	 30-07-2025     AMIT GHEDIYA		VendorId for select vendor data by id.
 	10   24-06-2026     Sahdev Saliya       Added Notes [PN-16968]
 	11   02-07-2026     Sahdev Saliya       Added Resale Number [PN-17018]
-	10   06-07-2026     Divyesh Kathitiya	Added VAT Number [PN-17124]
+	12   07-07-2026     Bhargav Saliya      Added @IntegrationTypeId [PN-16810] 
+	13   07-07-2026     Divyesh Kathitiya	Added VAT Number [PN-17124]
 
 **************************************************************/ 
 CREATE PROCEDURE [dbo].[ProcVendorList]
@@ -56,6 +57,7 @@ CREATE PROCEDURE [dbo].[ProcVendorList]
 @IsVendorCust  varchar(20)=null,
 @Notes NVARCHAR(MAX) = NULL,
 @ResaleNumber VARCHAR(200) = NULL,
+@IntegrationTypeId BIGINT = null,
 @VatNumber VARCHAR(50) = NULL
 AS
 BEGIN	

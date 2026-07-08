@@ -23,7 +23,8 @@
 	7	 17-06-2025   Bhargav Saliya        Select Is Customer also a vendor flag and vendor Name
 	8    03-03-2026   Sahdev Saliya			Added Memo (PN-15567)
 	9    02-07-2026   Sahdev Saliya			Added Resale Number [PN-17018]
-	10   06-07-2026   Divyesh Kathitiya		Added VAT Number [PN-17124]
+	10   07-07-2026   Bhargav Saliya		Added @IntegrationTypeId [PN-16810]
+	11   07-07-2026   Divyesh Kathitiya		Added VAT Number [PN-17124]
 
  EXECUTE [GetCustomerList] 1, 10, null, -1, 1, '', 'uday', 'CUS-00','','HYD'
 **************************************************************/
@@ -61,6 +62,7 @@ CREATE PROCEDURE [dbo].[GetCustomerList]
 	@VendorName varchar(100)=null,
 	@Memo varchar(max) = NULL,
 	@ResaleNumber varchar(200) = null,
+	@IntegrationTypeId BIGINT = null,
 	@VatNumber VARCHAR(50) = NULL
 AS
 BEGIN

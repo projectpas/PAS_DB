@@ -57,22 +57,9 @@ BEGIN
 				  ,IM.[PartDescription]
 				--,VD.[Qty] AS [QuantityOrdered]
 				--,[QuantityBackOrdered] = (VD.[Qty] - (SELECT ISNULL(SUM(ISNULL(SL.[Quantity],0)),0) FROM [dbo].[StockLine] SL WITH (NOLOCK) WHERE SL.[VendorRMADetailId] = VD.[VendorRMADetailId] AND SL.[IsDeleted] = 0 AND SL.[IsParent] = 1))
-				  ,CASE WHEN ISNULL(IM.[StockUnitOfMeasure],'') = ISNULL(IM.[PurchaseUnitOfMeasure],'') 
-						  THEN ISNULL(VD.[QtyShipped],0)
-						  ELSE dbo.fn_ConvertUOM(ISNULL(VD.[QtyShipped],0),IM.[StockUnitOfMeasure],IM.[PurchaseUnitOfMeasure],0,IM.[MasterCompanyId])
-				   END AS QuantityOrdered
+				  ,ROUND((CASE WHEN ISNULL(IM.[StockUnitOfMeasure],'') = ISNULL(IM.[PurchaseUnitOfMeasure],'') THEN ISNULL(VD.[QtyShipped],0) ELSE dbo.fn_ConvertUOM(ISNULL(VD.[QtyShipped],0),IM.[StockUnitOfMeasure],IM.[PurchaseUnitOfMeasure],0,IM.[MasterCompanyId]) END),2) AS QuantityOrdered
 
-				   ,[dbo].[fn_ConvertUOM](
-						(
-							VD.[QtyShipped] - (
-								SELECT ISNULL(SUM(ISNULL(SL.[Quantity],0)),0)
-								FROM [dbo].[StockLine] SL WITH (NOLOCK)
-								WHERE SL.[VendorRMADetailId] = VD.[VendorRMADetailId]
-								  AND SL.[IsDeleted] = 0
-								  AND SL.[IsParent] = 1
-							)
-						),
-				   IM.[StockUnitOfMeasure],IM.[PurchaseUnitOfMeasure], 0,IM.[MasterCompanyId]) AS QuantityBackOrdered
+				  ,ROUND([dbo].[fn_ConvertUOM]((VD.[QtyShipped] - (SELECT ISNULL(SUM(ISNULL(SL.[Quantity],0)),0) FROM [dbo].[StockLine] SL WITH (NOLOCK) WHERE SL.[VendorRMADetailId] = VD.[VendorRMADetailId] AND SL.[IsDeleted] = 0 AND SL.[IsParent] = 1)),IM.[StockUnitOfMeasure],IM.[PurchaseUnitOfMeasure],0,IM.[MasterCompanyId]),2) AS QuantityBackOrdered
 				  ,SL.[ManufacturerId]
 				  ,SL.[Manufacturer] AS [ManufacturerName]
 				  ,SL.[ManagementStructureId]

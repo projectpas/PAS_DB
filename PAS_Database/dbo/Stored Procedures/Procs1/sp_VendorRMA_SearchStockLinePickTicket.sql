@@ -53,24 +53,9 @@ BEGIN
 					,sl.SerialNumber
 					,sl.ControlNumber
 					,sl.IdNumber
-					,ISNULL(
-						CASE WHEN ISNULL(IM.StockUnitOfMeasure,'') = ISNULL(IM.PurchaseUnitOfMeasure,'')
-							 THEN ISNULL(sl.QuantityAvailable,0)
-							 ELSE [dbo].[fn_ConvertUOM](ISNULL(sl.QuantityAvailable,0),IM.StockUnitOfMeasure,IM.PurchaseUnitOfMeasure,0,IM.MasterCompanyId)
-						END
-					,0) AS QtyAvailable
-					,ISNULL(
-						CASE WHEN ISNULL(IM.StockUnitOfMeasure,'') = ISNULL(IM.PurchaseUnitOfMeasure,'')
-							 THEN ISNULL(sl.QuantityOnHand,0)
-							 ELSE [dbo].[fn_ConvertUOM](ISNULL(sl.QuantityOnHand,0),IM.StockUnitOfMeasure,IM.PurchaseUnitOfMeasure,0,IM.MasterCompanyId)
-						END
-					,0) AS QtyOnHand
-					,ISNULL(((SELECT TOP 1 CASE WHEN ISNULL(IM.StockUnitOfMeasure,'') = ISNULL(IM.PurchaseUnitOfMeasure,'') THEN ISNULL(VR.Qty,0) ELSE dbo.fn_ConvertUOM(ISNULL(VR.Qty,0),IM.StockUnitOfMeasure,IM.PurchaseUnitOfMeasure,0,IM.MasterCompanyId) END
-					FROM VendorRMADetail VR WITH(NOLOCK)
-					INNER JOIN dbo.Stockline ST WITH(NOLOCK) ON ST.StockLineId = VR.StockLineId
-					INNER JOIN dbo.ItemMaster IM WITH(NOLOCK) ON ST.ItemMasterId = IM.ItemMasterId
-					WHERE VR.VendorRMADetailId = sop.VendorRMADetailId
-					AND VR.ItemMasterId = sop.ItemMasterId) - SUM(ISNULL(Pick.QtyToShip,0))),0) AS QtyToPick
+					,ROUND(ISNULL(CASE WHEN ISNULL(IM.StockUnitOfMeasure,'') = ISNULL(IM.PurchaseUnitOfMeasure,'') THEN ISNULL(sl.QuantityAvailable,0) ELSE [dbo].[fn_ConvertUOM](ISNULL(sl.QuantityAvailable,0),IM.StockUnitOfMeasure,IM.PurchaseUnitOfMeasure,0,IM.MasterCompanyId) END,0),2) AS QtyAvailable
+					,ROUND(ISNULL(CASE WHEN ISNULL(IM.StockUnitOfMeasure,'') = ISNULL(IM.PurchaseUnitOfMeasure,'') THEN ISNULL(sl.QuantityOnHand,0) ELSE [dbo].[fn_ConvertUOM](ISNULL(sl.QuantityOnHand,0),IM.StockUnitOfMeasure,IM.PurchaseUnitOfMeasure,0,IM.MasterCompanyId) END,0),2) AS QtyOnHand
+					,ROUND(ISNULL(((SELECT TOP 1 CASE WHEN ISNULL(IM.StockUnitOfMeasure,'') = ISNULL(IM.PurchaseUnitOfMeasure,'') THEN ISNULL(VR.Qty,0) ELSE dbo.fn_ConvertUOM(ISNULL(VR.Qty,0),IM.StockUnitOfMeasure,IM.PurchaseUnitOfMeasure,0,IM.MasterCompanyId) END FROM VendorRMADetail VR WITH(NOLOCK) INNER JOIN dbo.Stockline ST WITH(NOLOCK) ON ST.StockLineId = VR.StockLineId INNER JOIN dbo.ItemMaster IM WITH(NOLOCK) ON ST.ItemMasterId = IM.ItemMasterId WHERE VR.VendorRMADetailId = sop.VendorRMADetailId AND VR.ItemMasterId = sop.ItemMasterId) - SUM(ISNULL(Pick.QtyToShip,0))),0),2) AS QtyToPick
 					,ISNULL(sl.PurchaseOrderUnitCost, 0) AS unitCost
 					,CASE WHEN sl.TraceableToType = 1 THEN cusTraceble.Name
 							WHEN sl.TraceableToType = 2 THEN vTraceble.VendorName
@@ -141,29 +126,31 @@ BEGIN
 					,sl.SerialNumber
 					,sl.ControlNumber
 					,sl.IdNumber
-					,ISNULL(CASE WHEN ISNULL(IM.StockUnitOfMeasure,'') = ISNULL(IM.PurchaseUnitOfMeasure,'') THEN ISNULL(sl.QuantityAvailable,0) ELSE dbo.fn_ConvertUOM(ISNULL(sl.QuantityAvailable,0),IM.StockUnitOfMeasure,IM.PurchaseUnitOfMeasure,0,IM.MasterCompanyId) END,0) AS QtyAvailable
-					,ISNULL(CASE WHEN ISNULL(IM.StockUnitOfMeasure,'') = ISNULL(IM.PurchaseUnitOfMeasure,'') THEN ISNULL(sl.QuantityOnHand,0) ELSE dbo.fn_ConvertUOM(ISNULL(sl.QuantityOnHand,0),IM.StockUnitOfMeasure,IM.PurchaseUnitOfMeasure,0,IM.MasterCompanyId) END,0) AS QtyOnHand
-					,ISNULL(
-						(
-							SELECT TOP 1
-								CASE
-									WHEN ISNULL(IM.StockUnitOfMeasure,'') = ISNULL(IM.PurchaseUnitOfMeasure,'')
-										THEN ISNULL(VR.Qty,0)
-									ELSE dbo.fn_ConvertUOM(
-											ISNULL(VR.Qty,0),
-											IM.StockUnitOfMeasure,
-											IM.PurchaseUnitOfMeasure,
-											0,
-											IM.MasterCompanyId
-										 )
-								END
-							FROM VendorRMADetail VR WITH(NOLOCK)
-							INNER JOIN dbo.Stockline ST WITH(NOLOCK) ON ST.StockLineId = VR.StockLineId
-							INNER JOIN dbo.ItemMaster IM WITH(NOLOCK) ON ST.ItemMasterId = IM.ItemMasterId
-							WHERE VR.VendorRMADetailId = sop.VendorRMADetailId
-							  AND VR.ItemMasterId = sop.ItemMasterId
-						) - SUM(ISNULL(Pick.QtyToShip,0))
-					,0) AS QtyToPick
+					,ROUND(ISNULL(CASE WHEN ISNULL(IM.StockUnitOfMeasure,'') = ISNULL(IM.PurchaseUnitOfMeasure,'') THEN ISNULL(sl.QuantityAvailable,0) ELSE dbo.fn_ConvertUOM(ISNULL(sl.QuantityAvailable,0),IM.StockUnitOfMeasure,IM.PurchaseUnitOfMeasure,0,IM.MasterCompanyId) END,0),2) AS QtyAvailable
+					,ROUND(ISNULL(CASE WHEN ISNULL(IM.StockUnitOfMeasure,'') = ISNULL(IM.PurchaseUnitOfMeasure,'') THEN ISNULL(sl.QuantityOnHand,0) ELSE dbo.fn_ConvertUOM(ISNULL(sl.QuantityOnHand,0),IM.StockUnitOfMeasure,IM.PurchaseUnitOfMeasure,0,IM.MasterCompanyId) END,0),2) AS QtyOnHand
+					,ROUND(
+						ISNULL(
+							(
+								SELECT TOP 1
+									CASE
+										WHEN ISNULL(IM.StockUnitOfMeasure,'') = ISNULL(IM.PurchaseUnitOfMeasure,'')
+											THEN ISNULL(VR.Qty,0)
+										ELSE dbo.fn_ConvertUOM(
+												ISNULL(VR.Qty,0),
+												IM.StockUnitOfMeasure,
+												IM.PurchaseUnitOfMeasure,
+												0,
+												IM.MasterCompanyId
+											 )
+									END
+								FROM VendorRMADetail VR WITH(NOLOCK)
+								INNER JOIN dbo.Stockline ST WITH(NOLOCK) ON ST.StockLineId = VR.StockLineId
+								INNER JOIN dbo.ItemMaster IM WITH(NOLOCK) ON ST.ItemMasterId = IM.ItemMasterId
+								WHERE VR.VendorRMADetailId = sop.VendorRMADetailId
+								  AND VR.ItemMasterId = sop.ItemMasterId
+							) - SUM(ISNULL(Pick.QtyToShip,0)),
+						0),
+					2) AS QtyToPick
 
 					,ISNULL(sl.PurchaseOrderUnitCost,0) AS unitCost
 					,CASE WHEN sl.TraceableToType = 1 THEN cusTraceble.Name

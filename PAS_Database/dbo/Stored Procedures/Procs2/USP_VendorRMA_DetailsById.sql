@@ -63,8 +63,8 @@ BEGIN
 			      ,IM.[PartDescription]
 				  ,VD.[SerialNumber]
 				  ,CASE WHEN SL.[PurchaseOrderId] > 0 THEN PO.[PurchaseOrderNumber] WHEN SL.[RepairOrderId] > 0 THEN RO.[RepairOrderNumber] ELSE '' END 'ReferenceNumber' 
-				  ,CASE WHEN ISNULL(IM.[StockUnitOfMeasure],'') = ISNULL(IM.[PurchaseUnitOfMeasure],'') THEN ISNULL(VD.[Qty],0) ELSE dbo.fn_ConvertUOM(ISNULL(VD.[Qty],0),IM.[StockUnitOfMeasure],IM.[PurchaseUnitOfMeasure],0,IM.[MasterCompanyId]) END AS Qty
-				  ,(CASE WHEN ISNULL(IM.[StockUnitOfMeasure],'') = ISNULL(IM.[PurchaseUnitOfMeasure],'') THEN ISNULL(SL.[QuantityAvailable],0) ELSE dbo.fn_ConvertUOM(ISNULL(SL.[QuantityAvailable],0),IM.[StockUnitOfMeasure],IM.[PurchaseUnitOfMeasure],0,IM.[MasterCompanyId]) END + CASE WHEN ISNULL(IM.[StockUnitOfMeasure],'') = ISNULL(IM.[PurchaseUnitOfMeasure],'') THEN ISNULL(VD.[Qty],0) ELSE dbo.fn_ConvertUOM(ISNULL(VD.[Qty],0),IM.[StockUnitOfMeasure],IM.[PurchaseUnitOfMeasure],0,IM.[MasterCompanyId]) END) AS OriginalQty
+				  ,ROUND((CASE WHEN ISNULL(IM.[StockUnitOfMeasure],'') = ISNULL(IM.[PurchaseUnitOfMeasure],'') THEN ISNULL(VD.[Qty],0) ELSE dbo.fn_ConvertUOM(ISNULL(VD.[Qty],0),IM.[StockUnitOfMeasure],IM.[PurchaseUnitOfMeasure],0,IM.[MasterCompanyId]) END),2) AS Qty
+				  ,ROUND((CASE WHEN ISNULL(IM.[StockUnitOfMeasure],'') = ISNULL(IM.[PurchaseUnitOfMeasure],'') THEN ISNULL(SL.[QuantityAvailable],0) ELSE dbo.fn_ConvertUOM(ISNULL(SL.[QuantityAvailable],0),IM.[StockUnitOfMeasure],IM.[PurchaseUnitOfMeasure],0,IM.[MasterCompanyId]) END + CASE WHEN ISNULL(IM.[StockUnitOfMeasure],'') = ISNULL(IM.[PurchaseUnitOfMeasure],'') THEN ISNULL(VD.[Qty],0) ELSE dbo.fn_ConvertUOM(ISNULL(VD.[Qty],0),IM.[StockUnitOfMeasure],IM.[PurchaseUnitOfMeasure],0,IM.[MasterCompanyId]) END),2) AS OriginalQty
 				  ,CASE WHEN ISNULL(IM.[StockUnitOfMeasure],'') = ISNULL(IM.[PurchaseUnitOfMeasure],'') THEN ISNULL(VD.[UnitCost],0) ELSE dbo.fn_ConvertUOM(ISNULL(VD.[UnitCost],0),IM.[StockUnitOfMeasure],IM.[PurchaseUnitOfMeasure],1,IM.[MasterCompanyId]) END AS UnitCost
 				  ,VD.[ExtendedCost]
 				  ,VD.[VendorRMAReturnReasonId]

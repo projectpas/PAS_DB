@@ -32,7 +32,7 @@ BEGIN
                 @PubNum VARCHAR(50) = NULL,
                 @OldSequenceNum INT = NULL;
 
-        SELECT @MtcCategoryId = [MtcCategoryId] FROM DBO.MaintenanceCategory WITH(NOLOCK) WHERE [MtcCategory] = 'Unscheduled Maintenance' AND [MasterCompanyId] = @MasterCompanyId;
+        SELECT @MtcCategoryId = [MtcCategoryId] FROM DBO.MaintenanceCategory WITH(NOLOCK) WHERE [MaintenanceCode] = 'unscheduled' AND [MasterCompanyId] = @MasterCompanyId;
 
         SELECT @PubNum = [PubNum] FROM [dbo].[AircraftPublication] WITH (NOLOCK) WHERE [AircraftPublicationId] = @AircraftPublicationId;
 

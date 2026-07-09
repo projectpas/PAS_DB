@@ -208,7 +208,7 @@ BEGIN
         -----------------------------------------------------------------------
         IF (@IsStockUOMEdited = 1 AND (SELECT COUNT(StocklineId) From DBO.Stockline WITH(NOLOCK) WHERE ItemMasterId= @ItemMasterId
                                         AND MasterCompanyId       = @MasterCompanyId AND ISNULL(isDeleted,  0) = 0 AND ISNULL(isActive,   0) = 1 AND ISNULL(QuantityOnHand,   0) > 0
-                                        AND ISNULL(QuantityReserved, 0) = 0AND ISNULL(QuantityIssued,   0) = 0) > 0)
+                                        AND ISNULL(QuantityReserved, 0) = 0 AND ISNULL(QuantityIssued,   0) = 0) > 0)
         BEGIN
             SELECT @UOMUpdateActionId = ActionId
             FROM [dbo].[StklineHistory_Action] WITH(NOLOCK)

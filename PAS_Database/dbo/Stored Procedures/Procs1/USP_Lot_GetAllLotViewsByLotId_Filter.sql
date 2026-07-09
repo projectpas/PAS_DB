@@ -28,6 +28,7 @@
 	15   27-MAY-2026  RAJESH GAMI       Added LotNumber In Every Type [PN-16571]
 	16   09-JUNE-2026 RAJESH GAMI       Fixed: Duplicate data for the RO [PN-16680]
 	17   23-JUNE-2026 Priyansh Patel    Added StockUnitOfMeasure And ConsumeUnitOfMeasure  [PN-16771]
+	18   08-JULY-2026 Priyansh Patel    Changed UnitSalesPrice price to NetSaleAmount for soq [PN-17130]
 
 -- EXEC USP_Lot_GetAllLotViewsByLotId_Filter 7,'ViewAllPN',1
 -- EXEC USP_Lot_GetAllLotViewsByLotId 67,'ViewAllPN',1
@@ -1025,8 +1026,8 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 				,'Quote' AS Status
 				,Soq.CustomerName
 				,soqp.QtyRequested Qty
-				,soqpc.UnitSalesPrice UnitPrice
-				,ISNULL(soqpc.UnitSalesPrice,0) * ISNULL(soqp.QtyQuoted,0) ExtendedPrice		
+				,soqpc.NetSaleAmount UnitPrice
+				,ISNULL(soqpc.NetSaleAmount,0) * ISNULL(soqp.QtyQuoted,0) ExtendedPrice		
 				,ISNULL(sl.QuantityOnHand, 0) AS QtyOnHand
 				,ISNULL(sl.QuantityReserved, 0) AS QtyRes
 				,ISNULL(sl.QuantityIssued, 0) AS QtyIss

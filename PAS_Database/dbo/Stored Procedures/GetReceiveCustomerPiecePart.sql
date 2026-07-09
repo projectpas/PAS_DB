@@ -14,6 +14,7 @@
     1    02/09/2024   Moin Bloch    Created
 	2    27/09/2024   Moin Bloch    Added WOInspectionId   
 	3    06/02/2026   Amit Ghediya  Update to add condition for remove record from list after stk QuantityOnHand = 0 (PN-15162)
+	4    08/07/2026   Priyansh Patel  Added StockUnitOfMeasureId [PN-17179]
 	     
     EXEC GetReceiveCustomerPiecePart 1831,109,1
 ************************************************************************/    
@@ -69,6 +70,7 @@ BEGIN
                ,TL.[LastSinceOVH],TL.[LastSinceInspection],TL.[DetailsNotProvided]
 			   ,MS.[LastMSLevel],MS.[AllMSlevels]			  
 			   ,ISNULL(WI.WOInspectionId,0) WOInspectionId
+			   ,SL.[StockUnitOfMeasureId]
           FROM [dbo].[ReceivingCustomerWork] RC WITH(NOLOCK) 
 		  INNER JOIN [dbo].[ItemMaster] IM  WITH(NOLOCK) ON RC.[ItemMasterId] = IM.[ItemMasterId]
 		  INNER JOIN [dbo].[WorkOrderManagementStructureDetails] MS WITH (NOLOCK) ON RC.[ReceivingCustomerWorkId] = MS.[ReferenceID] AND MS.[ModuleID] = @RCManagementStructureModuleId  		  

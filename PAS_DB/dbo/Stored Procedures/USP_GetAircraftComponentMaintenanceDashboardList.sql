@@ -17,6 +17,7 @@
 ** 5    10/06/2026   Amit Ghediya         Get ATAChapterId flag for bind [PN-16802]
 ** 6    25/06/2026	 Amit Ghediya		  Added @LastInspectedDate,@Description,@LastinspectedById [PN-17000]
 ** 7    30/06/2026	 Moin Bloch  		  Added @CreatedDate For Order by PN-17043
+** 8    08/07/2026	 Amit Ghediya  		  Allow to get aircraft data not engine data
 
 ***********************************/
 CREATE       PROCEDURE [dbo].[USP_GetAircraftComponentMaintenanceDashboardList]
@@ -145,7 +146,7 @@ BEGIN
                     ON ASEC.AircraftSectionId = WSH.WorksheetTypeId
             ) WS_M ON WS_M.AircraftRegistryId = ARH.AircraftRegistryId AND WS_M.rn = 1
 			LEFT JOIN [dbo].[View_Employee_Cert] EMP WITH (NOLOCK) ON EMP.EmployeeId = AMP.LastinspectedById          
-            WHERE AMP.MasterCompanyId = @MasterCompanyId AND AMP.IsDeleted = 0
+            WHERE AMP.MasterCompanyId = @MasterCompanyId AND AMP.IsDeleted = 0 AND ISNULL(AMP.IsFromAircraft,0) = 1
 
             UNION ALL
 
@@ -239,7 +240,7 @@ BEGIN
                 INNER JOIN [dbo].[AircraftSection] ASEC WITH (NOLOCK)
                     ON ASEC.AircraftSectionId = WSH.WorksheetTypeId
             ) WS_I ON WS_I.AircraftRegistryId = ARH.AircraftRegistryId AND WS_I.rn = 1
-            WHERE AIPD.MasterCompanyId = @MasterCompanyId
+            WHERE AIPD.MasterCompanyId = @MasterCompanyId AND ISNULL(AIPD.IsFromAircraft,0) = 1
         ),
         Filtered AS
         (

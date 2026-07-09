@@ -10,6 +10,7 @@
 **  1    01/05/2026  Amit Ghediya		Created
 **  2    27/05/2026  Code Review		Fix VerifiedBy name space; add IsActive filter; remove unused pemp JOIN
 **  3    07/07/2026  Code Review		GET ComplianceDate,Ractification [PN-17153]
+**  2    08/07/2026  Amit Ghediya		Get Applicability,MEL [PN-17157]
 
 ************************************************************/
 CREATE   PROCEDURE [dbo].[USP_GetAircraftPublicationList]
@@ -46,7 +47,9 @@ CREATE   PROCEDURE [dbo].[USP_GetAircraftPublicationList]
 	@FromPubDate   DATETIME        = NULL,
 	@ToPubDate   DATETIME        = NULL,
 	@ComplianceDate		  DATETIME     = NULL,
-	@RactificationDate    DATETIME     = NULL
+	@RactificationDate    DATETIME     = NULL,
+	@Applicability    VARCHAR(50)  = NULL,
+	@MEL			  VARCHAR(50)  = NULL
 AS
 BEGIN
     --SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
@@ -86,6 +89,8 @@ BEGIN
 				AP.MasterCompanyId,
 				AP.ComplianceDate,
 				AP.RactificationDate,
+				AP.Applicability,
+				AP.MEL,
                 COUNT(1) OVER () AS TotalRecords
             FROM [dbo].[AircraftPublication] AS AP WITH (NOLOCK)
 			LEFT JOIN dbo.PublicationType PT WITH (NOLOCK) ON AP.PublicationTypeId = PT.PublicationTypeId
@@ -149,6 +154,8 @@ BEGIN
 				AND (NULLIF(@UpdatedBy, '') IS NULL OR AP.UpdatedBy LIKE '%' + @UpdatedBy + '%')
 				AND (@ComplianceDate       IS NULL OR CAST(ComplianceDate       AS DATE) = CAST(@ComplianceDate AS DATE))
 				AND (@RactificationDate       IS NULL OR CAST(RactificationDate       AS DATE) = CAST(@RactificationDate AS DATE))
+				AND (ISNULL(@Applicability, '') = '' OR (CASE WHEN ISNULL([Applicability], 0) = 1 THEN 'YES' ELSE 'NO' END) LIKE '%' + @Applicability + '%')
+				AND (ISNULL(@MEL, '') = '' OR (CASE WHEN ISNULL([MEL], 0) = 1 THEN 'YES' ELSE 'NO' END) LIKE '%' + @MEL + '%')
         )
         SELECT
             AircraftPublicationId,
@@ -174,6 +181,8 @@ BEGIN
 			MasterCompanyId,
 			ComplianceDate,
 			RactificationDate,
+			Applicability,
+			MEL,
             TotalRecords
         FROM CTE
         ORDER BY
@@ -262,6 +271,12 @@ BEGIN
 
 		    CASE WHEN @SortColumn = 'RactificationDate'   AND @SortOrder = 'ASC'  THEN RactificationDate END ASC,
             CASE WHEN @SortColumn = 'RactificationDate'   AND @SortOrder = 'DESC' THEN RactificationDate END DESC,
+
+			CASE WHEN @SortColumn = 'Applicability'    AND @SortOrder = 'ASC'  THEN Applicability END ASC,
+            CASE WHEN @SortColumn = 'Applicability'    AND @SortOrder = 'DESC' THEN Applicability END DESC,
+
+			CASE WHEN @SortColumn = 'Mel'    AND @SortOrder = 'ASC'  THEN MEL END ASC,
+            CASE WHEN @SortColumn = 'Mel'    AND @SortOrder = 'DESC' THEN MEL END DESC,
 
 			-- Default fallback
 			AircraftPublicationId DESC

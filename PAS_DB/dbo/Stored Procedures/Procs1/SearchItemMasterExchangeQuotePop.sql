@@ -5,6 +5,7 @@
  ** PR   Date						 Author							Change Description
  ** --   --------					 -------						-------------------------------
 	1    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	2    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 ****************************************************************************************************************************************/
 CREATE   PROCEDURE [dbo].[SearchItemMasterExchangeQuotePop]
 @ItemMasterIdlist VARCHAR(max), 
@@ -71,7 +72,7 @@ BEGIN
 			LEFT JOIN DBO.Condition c WITH (NOLOCK) ON c.ConditionId in (SELECT Item FROM DBO.SPLITSTRING(@ConditionIds,','))
 			LEFT JOIN DBO.StockLine sl WITH (NOLOCK) ON im.ItemMasterId = sl.ItemMasterId AND sl.ConditionId = c.ConditionId 
 				--AND sl.IsDeleted = 0 AND sl.isActive = 1 AND sl.IsParent = 1 AND sl.IsCustomerStock = 0
-				AND sl.IsDeleted = 0 AND sl.isActive = 1 AND sl.IsParent = 1 AND (sl.IsCustomerStock = 0 OR (sl.IsCustomerStock = 1 AND sl.CustomerId = @CustomerId) OR  (ISNULL(@IsVendor,0) = 1 AND sl.IsCustomerStock = 1))
+				AND sl.IsDeleted = 0 AND sl.isActive = 1 AND sl.IsParent = 1 AND (sl.IsCustomerStock = 0 OR (sl.IsCustomerStock = 1 AND sl.CustomerId = @CustomerId) OR  (ISNULL(@IsVendor,0) = 1 AND sl.IsCustomerStock = 1)) AND ISNULL(sl.IsNonStock,0) = 0
 			--LEFT JOIN DBO.PurchaseOrder po WITH (NOLOCK) ON po.PurchaseOrderId = sl.PurchaseOrderId 
 			--	AND sl.IsDeleted = 0
 			--LEFT JOIN DBO.PurchaseOrderPart pop WITH (NOLOCK) ON po.PurchaseOrderId = pop.PurchaseOrderId 

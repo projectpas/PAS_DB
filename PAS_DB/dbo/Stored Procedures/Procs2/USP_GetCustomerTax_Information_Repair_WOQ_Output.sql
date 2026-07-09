@@ -14,6 +14,7 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    21/02/2025   RAJESH GAMI    Created
+    2    09/July/2026   RAJESH GAMI    [PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
      
 --   EXEC [USP_GetCustomerTax_Information_Repair_WOQ_Output] 2169,4106,3596
 **************************************************************/
@@ -107,7 +108,7 @@ BEGIN
 		 WHERE WOQ.[WorkOrderQuoteId] = @WorkOrderQuoteId 
 		   AND WOP.[ID] = @workOrderPartNoId 
 		   AND WOQ.[IsActive] = 1 
-		   AND WOQ.[IsDeleted] = 0;
+		   AND WOQ.[IsDeleted] = 0 AND ISNULL(STK.IsNonStock,0) = 0;
 		 	      
    ---------------------------------Freight--------------------------------------------------------
  	

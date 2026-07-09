@@ -22,6 +22,7 @@
 	6    26-12-2024		Amit Ghediya		Modified to add SoPartId param set default value is o & get partwise data, if partid=0 then all part come.
 	7    28-10-2025		Vishal Suthar		Fixed issue with fetching wrong Qty from SalesOrderReserveParts table
 	8    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	9    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 
 -- exec GetSalesOrderPartsViewById 758,0
 ************************************************************************/   
@@ -70,7 +71,7 @@ BEGIN
 			UPPER(CU.Name) AS Customer
 		FROM  [dbo].[SalesOrderPartV1] part WITH(NOLOCK)
 		        LEFT JOIN [dbo].[SalesOrderStocklineV1] Stk WITH(NOLOCK) ON part.SalesOrderPartId = Stk.SalesOrderPartId
-				LEFT JOIN [dbo].[StockLine] qs WITH(NOLOCK) ON Stk.StockLineId = qs.StockLineId
+				LEFT JOIN [dbo].[StockLine] qs WITH(NOLOCK) ON Stk.StockLineId = qs.StockLineId AND ISNULL(qs.IsNonStock,0) = 0
 				LEFT JOIN [dbo].[ItemMaster] itemMaster WITH(NOLOCK) ON part.ItemMasterId = itemMaster.ItemMasterId
 				 AND ISNULL(itemMaster.IsNonStock,0) = 0
 				 LEFT JOIN [dbo].[Condition] cp WITH(NOLOCK) ON part.ConditionId = cp.ConditionId
@@ -95,7 +96,7 @@ BEGIN
 			UPPER(CU.Name) AS Customer
 		FROM  [dbo].[SalesOrderPartV1] part WITH(NOLOCK)
 		        LEFT JOIN [dbo].[SalesOrderStocklineV1] Stk WITH(NOLOCK) ON part.SalesOrderPartId = Stk.SalesOrderPartId
-				LEFT JOIN [dbo].[StockLine] qs WITH(NOLOCK) ON Stk.StockLineId = qs.StockLineId
+				LEFT JOIN [dbo].[StockLine] qs WITH(NOLOCK) ON Stk.StockLineId = qs.StockLineId AND ISNULL(qs.IsNonStock,0) = 0
 				LEFT JOIN [dbo].[ItemMaster] itemMaster WITH(NOLOCK) ON part.ItemMasterId = itemMaster.ItemMasterId
 				 AND ISNULL(itemMaster.IsNonStock,0) = 0
 				 LEFT JOIN [dbo].[Condition] cp WITH(NOLOCK) ON part.ConditionId = cp.ConditionId

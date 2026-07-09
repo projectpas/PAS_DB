@@ -22,6 +22,7 @@
 	5    07/28/2025   Moin Bloch        Added Condition For Enforce Mpn Pick Ticket Confirmation
 	6    10/11/2025   Rajesh Gami       Added [UPSPdfPath]
 	7    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	8    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 EXEC DBO.sp_GetWOShippingChildList @WorkOrderId =19769 ,@WorkOrderPartId=19892
 **************************************************************/ 
 CREATE Procedure [dbo].[sp_GetWOShippingChildList]  
@@ -73,7 +74,7 @@ BEGIN
 			LEFT JOIN [dbo].[WorkOrderShipping] wos WITH (NOLOCK) ON wos.[WorkOrderShippingId] = wosi.[WorkOrderShippingId]  
 			LEFT JOIN [dbo].[ItemMaster] imt  WITH (NOLOCK) ON imt.[ItemMasterId] = wop.[ItemMasterId]  
 			 AND ISNULL(imt.IsNonStock,0) = 0
-			 LEFT JOIN [dbo].[Stockline] sl WITH (NOLOCK) ON sl.[StockLineId] = wop.[StockLineId]  
+			 LEFT JOIN [dbo].[Stockline] sl WITH (NOLOCK) ON sl.[StockLineId] = wop.[StockLineId] AND ISNULL(sl.IsNonStock,0) = 0  
 			LEFT JOIN [dbo].[WorkOrderCustomsInfo] woc WITH (NOLOCK) ON woc.[WorkOrderShippingId] = wos.[WorkOrderShippingId]  
 			LEFT JOIN [dbo].[Customer] cr WITH (NOLOCK) ON cr.[CustomerId] = wo.[CustomerId]  
 			LEFT JOIN [dbo].[WorkOrderPackaginSlipItems] wPI  WITH (NOLOCK) ON wopt.[PickTicketId] = wPI.[WOPickTicketId] AND wPI.[WOPartNoId] = wop.[id]  

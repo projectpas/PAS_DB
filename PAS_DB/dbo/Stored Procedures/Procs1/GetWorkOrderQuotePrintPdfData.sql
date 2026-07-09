@@ -15,6 +15,7 @@
  ** --   --------     -------  --------------------------------            
     1    11/08/2021   Vishal Suthar Created  
 	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	3    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 --EXEC [GetWorkOrderPrintPdfData] 274,258  
 **************************************************************/  
 CREATE   PROCEDURE [dbo].[GetWorkOrderQuotePrintPdfData]  
@@ -69,7 +70,7 @@ BEGIN
      INNER JOIN StockLine sl on wop.StockLineId = sl.StockLineId  
      Where woq.WorkOrderQuoteId = @WorkOrderQuoteId AND wop.ID = @workOrderPartNoId  
      AND woq.IsActive = 1 AND woq.IsDeleted = 0  
-      AND ISNULL(im.IsNonStock,0) = 0
+      AND ISNULL(im.IsNonStock,0) = 0 AND ISNULL(sl.IsNonStock,0) = 0
       GROUP BY im.PartNumber,  
      im.PartDescription, im1.ItemMasterId, im1.PartNumber, s.Description,  
      sl.StockLineNumber, sl.SerialNumber, wop.Quantity, wqd.QuoteMethod, wqd.CommonFlatRate, TATDaysStandard,wqd.EvalFees  

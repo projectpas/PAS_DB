@@ -17,6 +17,7 @@
 	1    06/19/2023   Amit Ghediya  Created
 	2    07/04/2023   Amit Ghediya  Updated for get RMANum from PArt lavel.
 	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	4    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
      
 -- EXEC [dbo].[sp_VendorRMA_GetPickTicketApproveList] 36
 **************************************************************/
@@ -34,7 +35,7 @@ BEGIN
 		(SELECT TOP 1 Qty FROM VendorRMADetail WITH(NOLOCK) Where VendorRMADetailId = sop.VendorRMADetailId AND ItemMasterId = sop.ItemMasterId) AS Qty,
 		'' AS SerialNumber, 
 		(SELECT SUM(QuantityAvailable) FROM StockLine sll WITH(NOLOCK) INNER JOIN VendorRMADetail sp WITH(NOLOCK) ON sll.StockLineId = sp.StockLineId 
-		AND sll.ItemMasterId = sop.ItemMasterId Where sp.VendorRMAId = @VendorRMAId) AS QuantityAvailable,
+		AND sll.ItemMasterId = sop.ItemMasterId Where sp.VendorRMAId = @VendorRMAId AND ISNULL(sll.IsNonStock,0) = 0) AS QuantityAvailable,
 		sop.RMANum AS RMANumber
 		,(SELECT SUM(SP.QtyToShip) FROM DBO.RMAPickTicket SP WITH(NOLOCK)
 		INNER JOIN VendorRMA S_O WITH(NOLOCK) ON S_O.VendorRMAId = SP.VendorRMAId
@@ -66,7 +67,7 @@ BEGIN
 
 		from dbo.VendorRMADetail sop WITH(NOLOCK)
 		INNER JOIN ItemMaster imt WITH(NOLOCK) on imt.ItemMasterId = sop.ItemMasterId
-		LEFT JOIN StockLine sl WITH(NOLOCK) on sl.StockLineId = sop.StockLineId
+		LEFT JOIN StockLine sl WITH(NOLOCK) on sl.StockLineId = sop.StockLineId AND ISNULL(sl.IsNonStock,0) = 0
 		LEFT JOIN VendorRMA so WITH(NOLOCK) on so.VendorRMAId = sop.VendorRMAId
 		--LEFT JOIN SalesOrderQuote soq WITH(NOLOCK) on soq.SalesOrderQuoteId = sop.SalesOrderQuoteId
 		LEFT JOIN RMAPickTicket sopt WITH(NOLOCK) on sopt.VendorRMAId = sop.VendorRMAId

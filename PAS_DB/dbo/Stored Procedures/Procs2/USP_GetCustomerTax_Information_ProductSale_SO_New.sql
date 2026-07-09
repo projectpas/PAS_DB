@@ -16,6 +16,7 @@
     1    02/26/2024   Moin Bloch    Created
     2    11/05/2024	  Vishal Suthar	Modified to make use of new SO Part tables
 	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	4    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 
 -- EXEC [USP_GetCustomerTax_Information_ProductSale_SO_New] 638,983,3383
 **************************************************************/
@@ -72,7 +73,7 @@ BEGIN
 			  FROM [dbo].[SalesOrder] SO WITH(NOLOCK) 
 	    INNER JOIN [dbo].[SalesOrderPartV1] SOP WITH(NOLOCK) ON SO.[SalesOrderId] = SOP.[SalesOrderId] 
 	    LEFT JOIN [dbo].[SalesOrderStocklineV1] SOPS WITH(NOLOCK) ON SOPS.[SalesOrderPartId] = SOP.[SalesOrderPartId] 
-		 LEFT JOIN [dbo].[Stockline] STK WITH(NOLOCK) ON SOPS.[StockLineId] = STK.[StockLineId]
+		 LEFT JOIN [dbo].[Stockline] STK WITH(NOLOCK) ON SOPS.[StockLineId] = STK.[StockLineId] AND ISNULL(STK.IsNonStock,0) = 0
 		 LEFT JOIN [dbo].[AllAddress] AAD WITH(NOLOCK) ON SO.[SalesOrderId] = AAD.[ReffranceId] AND [IsShippingAdd] = 1 AND [ModuleId] = @SOModuleId
 		 LEFT JOIN [dbo].[ItemMaster] ITM WITH(NOLOCK) ON SOP.[ItemMasterId] = ITM.[ItemMasterId]
 		  AND ISNULL(ITM.IsNonStock,0) = 0

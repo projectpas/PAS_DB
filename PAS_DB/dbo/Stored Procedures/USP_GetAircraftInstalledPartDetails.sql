@@ -32,6 +32,7 @@
 ** 18   2026-06-03   Amit Ghediya       Update for get latest wo created from ACIC [PN-16699]
 ** 19   30/06/2026	 Amit Ghediya	    Update for Engine data [PN-17075]
    20   01/July/2026	RAJESH GAMI		[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+   21   09/July/2026	RAJESH GAMI		[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 *********************/
 CREATE       PROCEDURE [dbo].[USP_GetAircraftInstalledPartDetails]
 (
@@ -180,8 +181,8 @@ BEGIN
 			LEFT JOIN dbo.EngineRegistryHeader ERH WITH (NOLOCK) ON ERH.EngineRegistryId = AIPD.EngineRegistryId AND ERH.MasterCompanyId = @MasterCompanyId
 			INNER JOIN dbo.ItemMaster IM WITH (NOLOCK) ON AIPD.ItemMasterId = IM.ItemMasterId
 			LEFT JOIN dbo.AircraftStatus AST WITH (NOLOCK) ON AST.AircraftStatusId = ARH.AircraftStatusId
-			LEFT JOIN dbo.Stockline STK WITH (NOLOCK) ON STK.StockLineId = AIPD.StockLineId
-			LEFT JOIN [dbo].[Stockline] CSTK WITH (NOLOCK) ON CSTK.[StockLineId] = ISNULL(ARH.[StockLineId], ERH.[StockLineId])
+			LEFT JOIN dbo.Stockline STK WITH (NOLOCK) ON STK.StockLineId = AIPD.StockLineId AND ISNULL(STK.IsNonStock,0) = 0
+			LEFT JOIN [dbo].[Stockline] CSTK WITH (NOLOCK) ON CSTK.[StockLineId] = ISNULL(ARH.[StockLineId], ERH.[StockLineId]) AND ISNULL(CSTK.IsNonStock,0) = 0
 			LEFT JOIN dbo.PurchaseOrderPart POP WITH (NOLOCK) ON POP.AircraftInstalledPartDetailsId = AIPD.AircraftInstalledPartDetailsId
 			LEFT JOIN dbo.PurchaseOrder PO WITH (NOLOCK) ON PO.PurchaseOrderId = POP.PurchaseOrderId
 			LEFT JOIN dbo.RepairOrderPart ROP WITH (NOLOCK) ON ROP.AircraftInstalledPartDetailsId = AIPD.AircraftInstalledPartDetailsId

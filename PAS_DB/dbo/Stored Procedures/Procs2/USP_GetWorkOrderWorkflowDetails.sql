@@ -15,6 +15,7 @@
 	3    30-04-2025   HEMANT SALIYA			UPDATED for revisedpartnumber
     4    14/11/2025   Sahdev Saliya         Added New Field : RevisedCondition
 	5    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	6    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 
 EXEC USP_GetWorkOrderWorkflowDetails 8736
 **************************************************************/
@@ -98,7 +99,7 @@ BEGIN
 			INNER JOIN [dbo].WorkScope ws WITH(NOLOCK) ON wop.WorkOrderScopeId = ws.WorkScopeId
 			INNER JOIN [dbo].WorkOrderStage stage WITH(NOLOCK) ON wop.WorkOrderStageId = stage.WorkOrderStageId
 			INNER JOIN [dbo].[Priority] pri WITH(NOLOCK) ON wop.WorkOrderPriorityId = pri.PriorityId
-			LEFT JOIN  [dbo].StockLine sl WITH(NOLOCK) ON wop.StockLineId = sl.StockLineId
+			LEFT JOIN  [dbo].StockLine sl WITH(NOLOCK) ON wop.StockLineId = sl.StockLineId AND ISNULL(sl.IsNonStock,0) = 0
 			LEFT JOIN  [dbo].ReceivingCustomerWork rc WITH(NOLOCK) ON sl.StockLineId = rc.StockLineId
 			LEFT JOIN WorkOrderStatus st WITH(NOLOCK) ON wop.WorkOrderStatusId = st.Id
 			LEFT JOIN [dbo].[Condition] rcon WITH(NOLOCK) ON wop.[RevisedConditionId] = rcon.[ConditionId]

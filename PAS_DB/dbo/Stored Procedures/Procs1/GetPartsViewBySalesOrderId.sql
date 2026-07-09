@@ -26,6 +26,7 @@
 	10   19-SEP-2025  RAJESH GAMI	    Added return field: netSalesPricePerUnit
 	11   30-SEP-2025  Vishal Suthar	    Fix for showing Freight Cost in Freight
 	12    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	13    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 
 EXEC [dbo].[GetPartsViewBySalesOrderId]  879
 **************************************************************/
@@ -204,7 +205,7 @@ BEGIN
 		FROM DBO.SalesOrder so WITH(NOLOCK)
 		INNER JOIN DBO.SalesOrderPartV1 part WITH(NOLOCK) ON so.SalesOrderId = part.SalesOrderId
 		LEFT JOIN DBO.SalesOrderStocklineV1 stk WITH(NOLOCK) ON stk.SalesOrderPartId = part.SalesOrderPartId
-		LEFT JOIN DBO.StockLine qs WITH(NOLOCK) ON stk.StockLineId = qs.StockLineId
+		LEFT JOIN DBO.StockLine qs WITH(NOLOCK) ON stk.StockLineId = qs.StockLineId AND ISNULL(qs.IsNonStock,0) = 0
 		LEFT JOIN DBO.SalesOrderPartCost SOPC WITH (NOLOCK) ON SOPC.SalesOrderPartId = part.SalesOrderPartId
 		LEFT JOIN DBO.SalesOrderStockLineCost SOSC WITH (NOLOCK) ON SOSC.SalesOrderStocklineId = stk.SalesOrderStocklineId
 		INNER JOIN DBO.ItemMaster itemMaster WITH (NOLOCK) ON part.ItemMasterId = itemMaster.ItemMasterId

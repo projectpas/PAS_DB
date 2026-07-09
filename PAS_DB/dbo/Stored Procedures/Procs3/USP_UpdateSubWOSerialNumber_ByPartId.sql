@@ -13,6 +13,7 @@
  ** --   	--------		-------				--------------------------------     
 	1		05/29/2024		Devendra Shekh			CREATED
 	2		02/11/2024		Moin Bloch			    Modified (Updated [RevisedSerialNumber] When Update SerialNumber)
+	3		09/July/2026		RAJESH GAMI			    [PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	
 	EXEC [USP_UpdateSubWOSerialNumber_ByPartId] 'testSr44',238,'Admin User'
 **************************************************************/ 
@@ -36,13 +37,13 @@ BEGIN
 				BEGIN
 					UPDATE RSTK
 					SET RSTK.SerialNumber = @NewSerialNumber, RSTK.isSerialized = 1, RSTK.UpdatedBy = @UserName, RSTK.UpdatedDate = GETUTCDATE()
-					FROM [DBO].[Stockline] RSTK WHERE RSTK.StockLineId = @RevisedStkId
+					FROM [DBO].[Stockline] RSTK WHERE RSTK.StockLineId = @RevisedStkId AND ISNULL(RSTK.IsNonStock,0) = 0
 				END
 				ELSE
 				BEGIN
 					UPDATE STK
 					SET STK.SerialNumber = @NewSerialNumber, STK.isSerialized = 1, STK.UpdatedBy = @UserName, STK.UpdatedDate = GETUTCDATE()
-					FROM [DBO].[Stockline] STK WHERE STK.StockLineId = @StockLineId
+					FROM [DBO].[Stockline] STK WHERE STK.StockLineId = @StockLineId AND ISNULL(STK.IsNonStock,0) = 0
 				END
 
 				UPDATE SWOP 

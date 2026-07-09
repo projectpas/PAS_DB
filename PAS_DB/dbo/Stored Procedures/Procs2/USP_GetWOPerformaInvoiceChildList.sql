@@ -19,6 +19,7 @@
 	3    22/02/2024		 Devendra Shekh	    added [IsAllowIncreaseVersionForBillItem] field for select
 	4    07-07-2025     Moin Bloch          Changed Old To New Billing Table SP NOT IN USE
 	5    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	6    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 
 	EXEC [USP_GetWOPerformaInvoiceChildList] 3543,3013
 
@@ -84,7 +85,7 @@ BEGIN
 					 AND ISNULL(imt.IsNonStock,0) = 0
 					 LEFT JOIN DBO.ItemMaster imv WITH(NOLOCK) on imv.ItemMasterId = wobii.ItemMasterId
 					 AND ISNULL(imv.IsNonStock,0) = 0
-					  LEFT JOIN DBO.Stockline sl WITH(NOLOCK) on sl.StockLineId = wop.StockLineId
+					  LEFT JOIN DBO.Stockline sl WITH(NOLOCK) on sl.StockLineId = wop.StockLineId AND ISNULL(sl.IsNonStock,0) = 0
 					LEFT JOIN DBO.Customer cr WITH(NOLOCK) on cr.CustomerId = wo.CustomerId
 					LEFT JOIN DBO.Condition cond  WITH(NOLOCK) on cond.ConditionId = wobii.ConditionId
 					LEFT JOIN DBO.Currency curr WITH(NOLOCK) on curr.CurrencyId = wobi.CurrencyId

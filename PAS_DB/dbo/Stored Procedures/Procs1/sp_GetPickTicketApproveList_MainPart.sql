@@ -20,6 +20,7 @@
     1    01/01/2024   Devendra Shekh	update for SerialNumber
  	3    05/JUNE/2026 Rajesh Gami		Skip the IsFinishGood = 1 condition when the Work Order type is Teardown.[PN-16719]    
 	4    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	5    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 --EXEC [sp_GetPickTicketApproveList_MainPart] 5,0
 **************************************************************/
 
@@ -60,7 +61,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 			FROM dbo.WorkOrderWorkFlow wowf WITH (NOLOCK)
 				INNER JOIN WorkOrderPartNumber wop WITH (NOLOCK) ON wowf.WorkOrderPartNoId = wop.ID
 				INNER JOIN ItemMaster imt WITH (NOLOCK) on imt.ItemMasterId = wop.ItemMasterId
-				LEFT JOIN StockLine sl WITH (NOLOCK) on sl.StockLineId = wop.StockLineId
+				LEFT JOIN StockLine sl WITH (NOLOCK) on sl.StockLineId = wop.StockLineId AND ISNULL(sl.IsNonStock,0) = 0
 				LEFT JOIN WorkOrder wo WITH (NOLOCK) on wo.WorkOrderId = wop.WorkOrderId
 				LEFT JOIN WOPickTicket wopt WITH (NOLOCK) on wopt.WorkorderId = wop.WorkOrderId and wopt.OrderPartId = wop.ID
 				LEFT JOIN Customer cr WITH (NOLOCK) on cr.CustomerId = wo.CustomerId

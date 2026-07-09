@@ -13,6 +13,7 @@
     1    16/05/2025   Moin Bloch		Created
     2    05/06/2025   RAJESH GAMI		SO implemented
 	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	4    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 --   EXEC [dbo].[USP_GetWorkOrderBillingInvoicingItemData] 7929,1,3193,2
 ********************************************************************************/
 CREATE   PROCEDURE [dbo].[USP_GetCommonBillingInvoicingItemData]
@@ -150,7 +151,7 @@ IF(@Opr = 1)
             LEFT JOIN DBO.SalesOrderPartCost sopc WITH (NOLOCK) ON sop.SalesOrderPartId = sopc.SalesOrderPartId
             LEFT JOIN DBO.SalesOrderStocklineCost sosc WITH (NOLOCK) ON stock.SalesOrderStocklineId = sosc.SalesOrderStocklineId
             LEFT JOIN DBO.Condition c WITH (NOLOCK) ON sop.ConditionId = c.ConditionId
-            LEFT JOIN DBO.StockLine sl WITH (NOLOCK) ON stock.StockLineId = sl.StockLineId
+            LEFT JOIN DBO.StockLine sl WITH (NOLOCK) ON stock.StockLineId = sl.StockLineId AND ISNULL(sl.IsNonStock,0) = 0
             WHERE sop.SalesOrderPartId = @SubReferenceId
               AND (@StocklineId IS NULL OR stock.StockLineId = @StocklineId)
 	 AND ISNULL(im.IsNonStock,0) = 0

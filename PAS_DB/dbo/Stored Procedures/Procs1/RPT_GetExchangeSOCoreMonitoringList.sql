@@ -15,6 +15,7 @@
     1    12/06/2023   Ekta Chandegra  Created
 	2    16 FEB 2024  BHARGAV SALIYA  Resolved Print Issue
 	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	4    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 
  EXECUTE RPT_GetExchangeSOCoreMonitoringList 370,83
 **************************************************************/ 
@@ -45,7 +46,7 @@ BEGIN
 		LEFT JOIN [DBO].ItemMaster IM WITH (NOLOCK) ON EXCHSOP.ItemMasterId = IM.ItemMasterId
 		 AND ISNULL(IM.IsNonStock,0) = 0
 		 LEFT JOIN [DBO].ItemMasterExchangeLoan IMEXCH WITH (NOLOCK) ON IM.ItemMasterId = IMEXCH.ItemMasterId
-		LEFT JOIN [DBO].Stockline ST WITH (NOLOCK) ON RCT.StockLineId = ST.StockLineId
+		LEFT JOIN [DBO].Stockline ST WITH (NOLOCK) ON RCT.StockLineId = ST.StockLineId AND ISNULL(ST.IsNonStock,0) = 0
 		LEFT JOIN [DBO].Manufacturer MN WITH (NOLOCK) ON IM.ManufacturerId = MN.ManufacturerId
 		LEFT JOIN [DBO].ItemMaster ITM WITH (NOLOCK) ON Im.ItemMasterId = RCT.RevisePartId
 		 AND ISNULL(ITM.IsNonStock,0) = 0

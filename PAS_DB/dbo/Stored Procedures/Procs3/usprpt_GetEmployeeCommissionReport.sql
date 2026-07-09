@@ -15,6 +15,7 @@
 	2	 19-SEPT-2025	Vishal Suthar		PN-14291 Only Posted CM should be considered
 	3    16-OCT-2025    RAJESH GAMI			handle Null value
 	4    13-JAN-2025    Vishal Suthar		Fixed an issue with doubling the amount so added DISTINCT to fix it
+	5    09/July/2026    RAJESH GAMI		[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 
 ************************************************************************/
 CREATE    PROCEDURE [dbo].[usprpt_GetEmployeeCommissionReport]
@@ -112,7 +113,7 @@ BEGIN
 		LEFT JOIN dbo.CreditMemo CM WITH (NOLOCK) ON CM.InvoiceId = BI.BillingInvoicingId AND CM.[Status] = 'Posted'
         WHERE BI.InvoiceStatus = 'Invoiced' AND ISNULL(BI.IsVersionIncrease, 0) = 0 AND ISNULL(BI.IsPerformaInvoice, 0) = 0
         AND BI.ModuleId IN (@SalesOrderModuleId, @WorkOrderModuleId)
-        AND CAST(BI.InvoiceDate AS DATE) BETWEEN CAST(@FromDate AS DATE) AND CAST(@ToDate AS DATE)
+        AND CAST(BI.InvoiceDate AS DATE) BETWEEN CAST(@FromDate AS DATE) AND CAST(@ToDate AS DATE) AND ISNULL(Stk.IsNonStock,0) = 0
     ),
     InvoiceWithPercentageValue AS (
 			SELECT DISTINCT

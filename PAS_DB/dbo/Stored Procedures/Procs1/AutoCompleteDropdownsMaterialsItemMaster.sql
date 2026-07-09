@@ -18,6 +18,7 @@
     1    12/23/2020   Hemant Saliya		Created
 	2    06/14/2024   Vishal Suthar		Increased Limit of records from 20 to 50 for Item Master Module
 	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	4    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
      
 --EXEC [AutoCompleteDropdownsItemMaster] '822',1,200,'108,109,11',1
 **************************************************************/
@@ -46,7 +47,7 @@ BEGIN
 						Im.GLAccountId,
 						Im.PurchaseUnitOfMeasureId AS UnitOfMeasureId,
 						uom.ShortName AS UnitOfMeasure, 
-						UnitCost = (select top 1 imps.PP_UnitPurchasePrice FROM dbo.ItemMasterPurchaseSale imps with(NoLock) INNER JOIN dbo.Stockline SL on SL.ItemMasterId = Im.ItemMasterId AND SL.ConditionId = imps.ConditionId Where imps.ItemMasterId = im.ItemMasterId),
+						UnitCost = (select top 1 imps.PP_UnitPurchasePrice FROM dbo.ItemMasterPurchaseSale imps with(NoLock) INNER JOIN dbo.Stockline SL on SL.ItemMasterId = Im.ItemMasterId AND SL.ConditionId = imps.ConditionId Where imps.ItemMasterId = im.ItemMasterId AND ISNULL(SL.IsNonStock,0) = 0),
 						Ig.Description As ItemGroup,
 						CASE WHEN Im.IsPma = 1 AND IM.IsDER = 1 THEN 'PMA&DER'
 							 WHEN Im.IsPma = 1 AND IM.IsDER = 0 THEN 'PMA'
@@ -69,7 +70,7 @@ BEGIN
 						LEFT JOIN dbo.ItemClassification Ic WITH(NOLOCK) ON Im.ItemClassificationId = Ic.ItemClassificationId
 						LEFT JOIN dbo.Manufacturer M WITH(NOLOCK) ON Im.ManufacturerId = M.ManufacturerId
 						LEFT JOIN dbo.GLAccount GL WITH(NOLOCK) ON Im.GLAccountId = GL.GLAccountId
-						LEFT JOIN dbo.Stockline sl WITH(NOLOCK) ON Im.ItemMasterId =  sl.ItemMasterId 
+						LEFT JOIN dbo.Stockline sl WITH(NOLOCK) ON Im.ItemMasterId =  sl.ItemMasterId AND ISNULL(sl.IsNonStock,0) = 0 
 					WHERE (Im.IsActive=1 AND ISNULL(Im.IsDeleted,0)=0 AND IM.MasterCompanyId = @MasterCompanyId AND (Im.partnumber LIKE @StartWith + '%' OR Im.partnumber  LIKE '%' + @StartWith + '%'))    
 			    AND ISNULL(Im.IsNonStock,0) = 0
 					 UNION     
@@ -81,7 +82,7 @@ BEGIN
 						Im.GLAccountId,
 						Im.PurchaseUnitOfMeasureId AS UnitOfMeasureId,
 						uom.ShortName AS UnitOfMeasure, 
-						UnitCost = (select top 1 imps.PP_UnitPurchasePrice FROM dbo.ItemMasterPurchaseSale imps with(NoLock) INNER JOIN dbo.Stockline SL on SL.ItemMasterId = Im.ItemMasterId AND SL.ConditionId = imps.ConditionId Where imps.ItemMasterId = im.ItemMasterId),
+						UnitCost = (select top 1 imps.PP_UnitPurchasePrice FROM dbo.ItemMasterPurchaseSale imps with(NoLock) INNER JOIN dbo.Stockline SL on SL.ItemMasterId = Im.ItemMasterId AND SL.ConditionId = imps.ConditionId Where imps.ItemMasterId = im.ItemMasterId AND ISNULL(SL.IsNonStock,0) = 0),
 						Ig.Description As ItemGroup,
 						CASE WHEN Im.IsPma = 1 AND IM.IsDER = 1 THEN 'PMA&DER'
 							 WHEN Im.IsPma = 1 AND IM.IsDER = 0 THEN 'PMA'
@@ -104,7 +105,7 @@ BEGIN
 						LEFT JOIN dbo.ItemClassification Ic WITH(NOLOCK) ON Im.ItemClassificationId = Ic.ItemClassificationId
 						LEFT JOIN dbo.Manufacturer M WITH(NOLOCK) ON Im.ManufacturerId = M.ManufacturerId
 						LEFT JOIN dbo.GLAccount GL WITH(NOLOCK) ON Im.GLAccountId = GL.GLAccountId
-						LEFT JOIN dbo.Stockline sl WITH(NOLOCK) ON Im.ItemMasterId =  sl.ItemMasterId
+						LEFT JOIN dbo.Stockline sl WITH(NOLOCK) ON Im.ItemMasterId =  sl.ItemMasterId AND ISNULL(sl.IsNonStock,0) = 0
 					WHERE im.ItemMasterId in (SELECT Item FROM DBO.SPLITSTRING(@Idlist, ','))    
 				 AND ISNULL(Im.IsNonStock,0) = 0
 					 ORDER BY Label				
@@ -120,7 +121,7 @@ BEGIN
 						Im.GLAccountId,
 						Im.PurchaseUnitOfMeasureId AS UnitOfMeasureId,
 						uom.ShortName AS UnitOfMeasure, 
-						UnitCost = (select top 1 imps.PP_UnitPurchasePrice FROM dbo.ItemMasterPurchaseSale imps with(NoLock) INNER JOIN dbo.Stockline SL on SL.ItemMasterId = Im.ItemMasterId AND SL.ConditionId = imps.ConditionId Where imps.ItemMasterId = im.ItemMasterId),
+						UnitCost = (select top 1 imps.PP_UnitPurchasePrice FROM dbo.ItemMasterPurchaseSale imps with(NoLock) INNER JOIN dbo.Stockline SL on SL.ItemMasterId = Im.ItemMasterId AND SL.ConditionId = imps.ConditionId Where imps.ItemMasterId = im.ItemMasterId AND ISNULL(SL.IsNonStock,0) = 0),
 						Ig.Description As ItemGroup,
 						CASE WHEN Im.IsPma = 1 AND IM.IsDER = 1 THEN 'PMA&DER'
 							 WHEN Im.IsPma = 1 AND IM.IsDER = 0 THEN 'PMA'
@@ -143,7 +144,7 @@ BEGIN
 						LEFT JOIN dbo.ItemClassification Ic WITH(NOLOCK) ON Im.ItemClassificationId = Ic.ItemClassificationId
 						LEFT JOIN dbo.Manufacturer M WITH(NOLOCK) ON Im.ManufacturerId = M.ManufacturerId
 						LEFT JOIN dbo.GLAccount GL WITH(NOLOCK) ON Im.GLAccountId = GL.GLAccountId
-						LEFT JOIN dbo.Stockline sl WITH(NOLOCK) ON Im.ItemMasterId =  sl.ItemMasterId
+						LEFT JOIN dbo.Stockline sl WITH(NOLOCK) ON Im.ItemMasterId =  sl.ItemMasterId AND ISNULL(sl.IsNonStock,0) = 0
 				WHERE ISNULL(Im.IsNonStock,0) = 0 AND ( Im.IsActive=1 AND ISNULL(Im.IsDeleted, 0) = 0 AND IM.MasterCompanyId = @MasterCompanyId AND Im.partnumber LIKE '%' + @StartWith + '%' OR Im.partnumber  LIKE '%' + @StartWith + '%'
 				) UNION 
 				SELECT DISTINCT TOP 50 
@@ -155,7 +156,7 @@ BEGIN
 						Im.GLAccountId,
 						Im.PurchaseUnitOfMeasureId AS UnitOfMeasureId,
 						uom.ShortName AS UnitOfMeasure, 
-						UnitCost = (select top 1 imps.PP_UnitPurchasePrice FROM dbo.ItemMasterPurchaseSale imps with(NoLock) INNER JOIN dbo.Stockline SL on SL.ItemMasterId = Im.ItemMasterId AND SL.ConditionId = imps.ConditionId Where imps.ItemMasterId = im.ItemMasterId),
+						UnitCost = (select top 1 imps.PP_UnitPurchasePrice FROM dbo.ItemMasterPurchaseSale imps with(NoLock) INNER JOIN dbo.Stockline SL on SL.ItemMasterId = Im.ItemMasterId AND SL.ConditionId = imps.ConditionId Where imps.ItemMasterId = im.ItemMasterId AND ISNULL(SL.IsNonStock,0) = 0),
 						Ig.Description As ItemGroup,
 						CASE WHEN Im.IsPma = 1 AND IM.IsDER = 1 THEN 'PMA&DER'
 							 WHEN Im.IsPma = 1 AND IM.IsDER = 0 THEN 'PMA'
@@ -178,7 +179,7 @@ BEGIN
 						LEFT JOIN dbo.ItemClassification Ic WITH(NOLOCK) ON Im.ItemClassificationId = Ic.ItemClassificationId
 						LEFT JOIN dbo.Manufacturer M WITH(NOLOCK) ON Im.ManufacturerId = M.ManufacturerId
 						LEFT JOIN dbo.GLAccount GL WITH(NOLOCK) ON Im.GLAccountId = GL.GLAccountId
-						LEFT JOIN dbo.Stockline sl WITH(NOLOCK) ON Im.ItemMasterId =  sl.ItemMasterId
+						LEFT JOIN dbo.Stockline sl WITH(NOLOCK) ON Im.ItemMasterId =  sl.ItemMasterId AND ISNULL(sl.IsNonStock,0) = 0
 				WHERE Im.ItemMasterId in (SELECT Item FROM DBO.SPLITSTRING(@Idlist,','))
 				 AND ISNULL(Im.IsNonStock,0) = 0
 				 ORDER BY Label	

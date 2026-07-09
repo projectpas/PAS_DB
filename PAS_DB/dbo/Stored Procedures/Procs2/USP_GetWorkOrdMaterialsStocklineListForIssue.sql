@@ -22,6 +22,7 @@
 	5    10/04/2023   Hemant Saliya		Condition Group Changes
 	6    26/06/2024   Devendra Shekh	added TaskName To Select
 	7    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	8    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 
  EXECUTE USP_GetWorkOrdMaterialsStocklineListForIssue 2940,0
 **************************************************************/ 
@@ -188,7 +189,7 @@ SET NOCOUNT ON
 						--AND (sl.IsCustomerStock = 0 OR (sl.IsCustomerStock = 1 AND sl.CustomerId = @CustomerId))
 						AND (@ItemMasterId IS NULL OR im.ItemMasterId = @ItemMasterId OR IM_AltMain.ItemMasterId = @ItemMasterId OR IM_EquMain.ItemMasterId = @ItemMasterId)
 
-					 AND ISNULL(IM.IsNonStock,0) = 0
+					 AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(SL.IsNonStock,0) = 0
 						 UNION ALL
 
 					SELECT DISTINCT WOM.WorkOrderId,
@@ -279,7 +280,7 @@ SET NOCOUNT ON
 						AND WOM.IsDeleted = 0 						
 						AND (@ItemMasterId IS NULL OR im.ItemMasterId = @ItemMasterId OR IM_AltMain.ItemMasterId = @ItemMasterId OR IM_EquMain.ItemMasterId = @ItemMasterId)
 					
-				 AND ISNULL(IM.IsNonStock,0) = 0
+				 AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(SL.IsNonStock,0) = 0
 						 END
 				ELSE
 				BEGIN
@@ -371,7 +372,7 @@ SET NOCOUNT ON
 						AND WOM.IsDeleted = 0 						
 						AND (@ItemMasterId IS NULL OR im.ItemMasterId = @ItemMasterId)
 
-					 AND ISNULL(IM.IsNonStock,0) = 0
+					 AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(SL.IsNonStock,0) = 0
 						 UNION ALL
 
 					SELECT DISTINCT WOM.WorkOrderId,
@@ -459,7 +460,7 @@ SET NOCOUNT ON
 					WHERE WOM.WorkFlowWorkOrderId = @WorkFlowWorkOrderId AND ISNULL(SL.QuantityOnHand,0) > 0 
 						AND WOM.IsDeleted = 0 						
 						AND (@ItemMasterId IS NULL OR im.ItemMasterId = @ItemMasterId)
-				 AND ISNULL(IM.IsNonStock,0) = 0
+				 AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(SL.IsNonStock,0) = 0
 						 END
 			END
 		COMMIT  TRANSACTION

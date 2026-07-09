@@ -19,6 +19,7 @@
 	2	        	  Swetha	Added Transaction & NO LOCK
 	3	 27 Nov 2021  HEMANT	Updated Date Filter condition
 	4    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	5    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 
      
 EXECUTE   [dbo].[usp_GetStockReport] '1','1,4,43,44,45,80,84,88','46,47,66','48,49,50,58,59,67,68,69','51,52,53,54,55,56,57,60,61,62,64,70,71,72'
@@ -161,7 +162,7 @@ BEGIN
         INNER JOIN #ManagmetnStrcture MS WITH (NOLOCK)
           ON MS.ManagementStructureId = stl.ManagementStructureId
      
-      WHERE stl.mastercompanyid = @mastercompanyid and stl.IsParent =1 and  CAST(stl.CreatedDate AS DATE) BETWEEN CAST(@Fromdate AS DATE)  AND CAST(@Todate AS DATE)
+      WHERE stl.mastercompanyid = @mastercompanyid and stl.IsParent =1 and  CAST(stl.CreatedDate AS DATE) BETWEEN CAST(@Fromdate AS DATE)  AND CAST(@Todate AS DATE) AND ISNULL(stl.IsNonStock,0) = 0
 
     COMMIT TRANSACTION
   END TRY

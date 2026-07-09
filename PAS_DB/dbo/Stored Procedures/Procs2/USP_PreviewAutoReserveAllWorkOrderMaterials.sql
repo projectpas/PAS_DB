@@ -21,6 +21,7 @@ EXEC [USP_AutoReserveAllWorkOrderMaterials]
 
 EXEC USP_PreviewAutoReserveAllWorkOrderMaterials 23794,0,0,2,0
 	1    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	10    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[USP_PreviewAutoReserveAllWorkOrderMaterials]
 	@WorkFlowWorkOrderId BIGINT,
@@ -358,14 +359,14 @@ BEGIN
 					INTO #Stockline
 					FROM dbo.Stockline SL WITH(NOLOCK) JOIN #tmpWorkOrderMaterials WOM ON SL.ItemMasterId = WOM.ItemMasterId AND SL.ConditionId IN (SELECT ConditionId FROM #ConditionGroup tmpC WHERE WOM.ConditionGroupCode = tmpC.ConditionGroup) 
 					WHERE ISNULL(SL.QuantityAvailable,0) > 0 AND SL.IsParent = 1 AND WOM.IsDeleted = 0  
-							AND (sl.IsCustomerStock = 0 OR @IncludeCustomerStock = 1 OR (sl.IsCustomerStock = 1 AND sl.CustomerId = @CustomerId))
+							AND (sl.IsCustomerStock = 0 OR @IncludeCustomerStock = 1 OR (sl.IsCustomerStock = 1 AND sl.CustomerId = @CustomerId)) AND ISNULL(SL.IsNonStock,0) = 0
 
 					INSERT INTO #Stockline
 					SELECT SL.*
 					FROM dbo.Stockline SL WITH(NOLOCK) JOIN #tmpWorkOrderMaterialsKit WOM ON SL.ItemMasterId = WOM.ItemMasterId AND SL.ConditionId IN (SELECT ConditionId FROM #ConditionGroup tmpC WHERE WOM.ConditionGroupCode = tmpC.ConditionGroup) 
 					WHERE ISNULL(SL.QuantityAvailable,0) > 0 AND SL.IsParent = 1 AND WOM.IsDeleted = 0  
 							AND (sl.IsCustomerStock = 0 OR @IncludeCustomerStock = 1 OR (sl.IsCustomerStock = 1 AND sl.CustomerId = @CustomerId))
-							AND SL.StockLineId NOT IN (SELECT StockLineId FROM #Stockline)
+							AND SL.StockLineId NOT IN (SELECT StockLineId FROM #Stockline) AND ISNULL(SL.IsNonStock,0) = 0
 
 					--#STEP : 1 RESERVE EXISTING STOCKLINE					
 					SELECT  WOM.WorkOrderId,
@@ -720,14 +721,14 @@ BEGIN
 						FROM #tmpAutoReserveIssueWOMaterialsStocklineKITAlt tblMS  JOIN dbo.Stockline SL ON SL.ItemMasterId = tblMS.ItemMasterId AND SL.ConditionId IN (SELECT ConditionId FROM #ConditionGroup tmpC WHERE tblMS.ConditionGroupCode = tmpC.ConditionGroup)  
 						WHERE SL.QuantityAvailable > 0 
 						AND SL.IsParent = 1 
-						AND (sl.IsCustomerStock = 0 OR @IncludeCustomerStock = 1 OR (sl.IsCustomerStock = 1 AND sl.CustomerId = @CustomerId))
+						AND (sl.IsCustomerStock = 0 OR @IncludeCustomerStock = 1 OR (sl.IsCustomerStock = 1 AND sl.CustomerId = @CustomerId)) AND ISNULL(SL.IsNonStock,0) = 0
 						ORDER BY SL.CreatedDate
 
 						INSERT INTO #Stockline
 						SELECT SL.*
 						FROM dbo.Stockline SL WITH(NOLOCK) 
 						JOIN #tmpAutoReserveWOMaterialsStocklineKITAlt WOM ON SL.[StockLineId] = WOM.StockLineId
-						WHERE WOM.StockLineId NOT IN (SELECT StockLineId FROM #Stockline)
+						WHERE WOM.StockLineId NOT IN (SELECT StockLineId FROM #Stockline) AND ISNULL(SL.IsNonStock,0) = 0
 
 						SET @ARcount = 1;
 						SET @ARTotalCounts = 0;
@@ -973,7 +974,7 @@ BEGIN
 						-- AND SL.ConditionId = tblMS.ConditionId 
 						WHERE SL.QuantityAvailable > 0 
 						AND SL.IsParent = 1 
-						AND (sl.IsCustomerStock = 0 OR @IncludeCustomerStock = 1 OR (sl.IsCustomerStock = 1 AND sl.CustomerId = @CustomerId))
+						AND (sl.IsCustomerStock = 0 OR @IncludeCustomerStock = 1 OR (sl.IsCustomerStock = 1 AND sl.CustomerId = @CustomerId)) AND ISNULL(SL.IsNonStock,0) = 0
 						ORDER BY SL.CreatedDate
 
 						--Select * from #tmpAutoReserveWOMaterialsStocklineMaterialsAlt
@@ -982,7 +983,7 @@ BEGIN
 						SELECT SL.*
 						FROM dbo.Stockline SL WITH(NOLOCK) 
 						JOIN #tmpAutoReserveWOMaterialsStocklineMaterialsAlt WOM ON SL.[StockLineId] = WOM.StockLineId
-						WHERE WOM.StockLineId NOT IN (SELECT StockLineId FROM #Stockline)
+						WHERE WOM.StockLineId NOT IN (SELECT StockLineId FROM #Stockline) AND ISNULL(SL.IsNonStock,0) = 0
 
 						SET @ARcount = 1;
 						SET @ARTotalCounts = 0;
@@ -1214,14 +1215,14 @@ BEGIN
 						FROM #tmpAutoReserveIssueWOMaterialsStocklineKITEqu tblMS JOIN dbo.Stockline SL ON SL.ItemMasterId = tblMS.ItemMasterId AND SL.ConditionId IN (SELECT ConditionId FROM #ConditionGroup tmpC WHERE tblMS.ConditionGroupCode = tmpC.ConditionGroup) 
 						WHERE SL.QuantityAvailable > 0 
 						AND SL.IsParent = 1 
-						AND (sl.IsCustomerStock = 0 OR @IncludeCustomerStock = 1 OR (sl.IsCustomerStock = 1 AND sl.CustomerId = @CustomerId))
+						AND (sl.IsCustomerStock = 0 OR @IncludeCustomerStock = 1 OR (sl.IsCustomerStock = 1 AND sl.CustomerId = @CustomerId)) AND ISNULL(SL.IsNonStock,0) = 0
 						ORDER BY SL.CreatedDate
 
 						INSERT INTO #Stockline
 						SELECT SL.*
 						FROM dbo.Stockline SL WITH(NOLOCK) 
 						JOIN #tmpAutoReserveWOMaterialsStocklineKITEqu WOM ON SL.[StockLineId] = WOM.StockLineId
-						WHERE WOM.StockLineId NOT IN (SELECT StockLineId FROM #Stockline)
+						WHERE WOM.StockLineId NOT IN (SELECT StockLineId FROM #Stockline) AND ISNULL(SL.IsNonStock,0) = 0
 
 						SET @ARcount = 1;
 						SET @ARTotalCounts = 0;
@@ -1456,14 +1457,14 @@ BEGIN
 						FROM #tmpAutoReserveIssueWOMaterialsStocklineMaterialsEqu tblMS  JOIN dbo.Stockline SL ON SL.ItemMasterId = tblMS.ItemMasterId AND SL.ConditionId IN (SELECT ConditionId FROM #ConditionGroup tmpC WHERE tblMS.ConditionGroupCode = tmpC.ConditionGroup) 
 						WHERE SL.QuantityAvailable > 0 
 						AND SL.IsParent = 1 
-						AND (sl.IsCustomerStock = 0 OR @IncludeCustomerStock = 1 OR (sl.IsCustomerStock = 1 AND sl.CustomerId = @CustomerId))
+						AND (sl.IsCustomerStock = 0 OR @IncludeCustomerStock = 1 OR (sl.IsCustomerStock = 1 AND sl.CustomerId = @CustomerId)) AND ISNULL(SL.IsNonStock,0) = 0
 						ORDER BY SL.CreatedDate
 
 						INSERT INTO #Stockline
 						SELECT SL.*
 						FROM dbo.Stockline SL WITH(NOLOCK) 
 						JOIN #tmpAutoReserveWOMaterialsStocklineMaterialsEqu WOM ON SL.[StockLineId] = WOM.StockLineId
-						WHERE WOM.StockLineId NOT IN (SELECT StockLineId FROM #Stockline)
+						WHERE WOM.StockLineId NOT IN (SELECT StockLineId FROM #Stockline) AND ISNULL(SL.IsNonStock,0) = 0
 
 						SET @ARcount = 1;
 						SET @ARTotalCounts = 0;

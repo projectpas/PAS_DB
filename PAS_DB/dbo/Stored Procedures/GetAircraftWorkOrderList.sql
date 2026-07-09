@@ -16,6 +16,7 @@
  ** --   --------     -------             --------------------------------
     1    28/05/2026   Amit Ghediya        Initial Create - Aircraft WO list (IsFromAircraft = 1)
     2    02/06/2026   Amit Ghediya        Fixed duplicate WorkOrderNum/WorkOrderId in MPN view. [PN-16688]
+    3    09/July/2026   RAJESH GAMI        [PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
  
 **************************************************************/
  
@@ -415,7 +416,7 @@ BEGIN
                 LEFT JOIN dbo.AircraftRegistryHeader ARH WITH (NOLOCK)
                     ON ARH.AircraftRegistryId = WPN.AircraftRegistryId
                 LEFT JOIN dbo.Stockline STK WITH (NOLOCK)
-                    ON WPN.StockLineId = STK.StockLineId
+                    ON WPN.StockLineId = STK.StockLineId AND ISNULL(STK.IsNonStock,0) = 0
                 LEFT JOIN dbo.WorkOrderQuoteDetails WOQD WITH (NOLOCK)
                     ON WPN.ID = WOQD.WOPartNoId
                    AND WOQD.IsActive = 1

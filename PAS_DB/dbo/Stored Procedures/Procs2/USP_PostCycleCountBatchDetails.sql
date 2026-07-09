@@ -19,6 +19,7 @@
 	7    27/12/2024          Moin Bloch          Updated Added LegalEntityId
 	8    31/01/2025          AMIT GHEDIYA        Modify(get Distribution based on new settings from stockline level)
 	9    28/11/2025          Moin Bloch          Changed Logic For CR/DR
+	10    09/July/2026          RAJESH GAMI          [PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 
     EXEC [dbo].[USP_PostCycleCountBatchDetails] 
 **************************************************************/
@@ -429,7 +430,7 @@ BEGIN
 				 --GET STOCKLINE GLACCOUNT.
 				 SELECT @InventoryGLAccId = SL.GLAccountId -- For PARTS INVENTORY Distribution.
 				    FROM [dbo].[Stockline] SL WITH(NOLOCK)					 
-				    WHERE SL.[StockLineId] = @StocklineId;
+				    WHERE SL.[StockLineId] = @StocklineId AND ISNULL(SL.IsNonStock,0) = 0;
 				 
 				 --GET GL Accounting Data from GLAccout based on stockline
 				 SELECT @GlAccountId = [GLAccountId],

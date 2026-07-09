@@ -16,6 +16,7 @@
  ** --   --------     -------			-----------------------
     1    11/24/2023   Vishal Suthar		Created
 	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	3    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
   
 
 declare @p5 int
@@ -214,7 +215,7 @@ BEGIN
 				DECLARE @DefaultSiteId BIGINT;
 				SELECT @DefaultSiteId = SiteId FROM DBO.[Site] WHERE UPPER([Name]) = UPPER('Beach Aviation Group') AND MasterCompanyId = @FromMasterComanyID;
 
-				IF NOT EXISTS (SELECT * FROM DBO.Stockline stock WHERE StockLineNumber = (SELECT CAST(StocklineNumber AS VARCHAR(100)) FROM #TempStockline STL WHERE STL.ID = @LoopID) AND stock.ControlNumber = (SELECT CAST(STL.Ctrl_Number AS VARCHAR(100)) FROM #TempStockline STL WHERE STL.ID = @LoopID) AND stock.IdNumber = (SELECT CAST(STL.Ctrl_ID AS VARCHAR(100)) FROM #TempStockline STL WHERE STL.ID = @LoopID) AND MasterCompanyId = @FromMasterComanyID)
+				IF NOT EXISTS (SELECT * FROM DBO.Stockline stock WHERE StockLineNumber = (SELECT CAST(StocklineNumber AS VARCHAR(100)) FROM #TempStockline STL WHERE STL.ID = @LoopID) AND stock.ControlNumber = (SELECT CAST(STL.Ctrl_Number AS VARCHAR(100)) FROM #TempStockline STL WHERE STL.ID = @LoopID) AND stock.IdNumber = (SELECT CAST(STL.Ctrl_ID AS VARCHAR(100)) FROM #TempStockline STL WHERE STL.ID = @LoopID) AND MasterCompanyId = @FromMasterComanyID AND ISNULL(stock.IsNonStock,0) = 0)
 				BEGIN
 					--PRINT @CurrentStocklineId;
 					--PRINT @ConditionId;
@@ -289,7 +290,7 @@ BEGIN
 						[QtyOH],[QtyAvailable],[QtyReserved],[QtyIssued],[QtyOnAction],[Notes],[UpdatedBy],[UpdatedDate],UnitSalesPrice,SalesPriceExpiryDate)
 					SELECT STL.StockLineId, 22, STL.StockLineId, STL.StockLineNumber, NULL, NULL, NULL, 1, 'Create', 
 						STL.QuantityOnHand, STL.QuantityAvailable, STL.QuantityReserved, STL.QuantityIssued, STL.QuantityAvailable, STL.StockLineNumber + ' has been added through Migration', @UserName, GETUTCDATE(),UnitSalesPrice,SalesPriceExpiryDate
-					FROM DBO.[Stockline] STL WITH (NOLOCK) WHERE StockLineId = @InsertedStocklineId;
+					FROM DBO.[Stockline] STL WITH (NOLOCK) WHERE StockLineId = @InsertedStocklineId AND ISNULL(STL.IsNonStock,0) = 0;
 
 					UPDATE Stk
 					SET Stk.Migrated_Id = @InsertedStocklineId,

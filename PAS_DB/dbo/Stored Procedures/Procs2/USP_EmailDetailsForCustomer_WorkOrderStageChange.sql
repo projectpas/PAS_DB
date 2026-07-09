@@ -11,6 +11,7 @@
  ** --   --------     -------			--------------------------------            
     1    -				UNKNOWN
     2    20-Feb-2025   Bhargav Saliya	Handle NULL Value
+    3    09/July/2026   RAJESH GAMI	[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 
 **************************************************************/
 CREATE       PROCEDURE [dbo].[USP_EmailDetailsForCustomer_WorkOrderStageChange]
@@ -43,7 +44,7 @@ BEGIN
 							WS.WorkScopeCode 'Workscope',
 							WOPN.MasterCompanyId
 								From [dbo].[WorkOrderPartNumber] WOPN WITH(NOLOCK)
-								LEFT JOIN [dbo].[StockLine] SL WITH(NOLOCK) ON SL.StockLineId = WOPN.StockLineId
+								LEFT JOIN [dbo].[StockLine] SL WITH(NOLOCK) ON SL.StockLineId = WOPN.StockLineId AND ISNULL(SL.IsNonStock,0) = 0
 								LEFT JOIN [dbo].[WorkOrder] WO WITH(NOLOCK) ON WO.WorkOrderId = WOPN.WorkOrderId
 								LEFT JOIN [dbo].[WorkOrderStage] WOS WITH(NOLOCK) ON WOS.WorkOrderStageId = @OldStageId
 								LEFT JOIN [dbo].[WorkOrderStage] WOSD WITH(NOLOCK) ON WOSD.WorkOrderStageId = @WorkOrderStageId

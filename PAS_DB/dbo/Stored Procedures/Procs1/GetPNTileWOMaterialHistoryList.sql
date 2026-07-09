@@ -22,6 +22,7 @@
 	4    12/06/2023   Jevik Raiyani add @statusValue 
 	5    03/11/2025   Bhargav Saliya Added New Field [Stage]
 	6    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	7    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 **************************************************************/
 CREATE  PROCEDURE [dbo].[GetPNTileWOMaterialHistoryList]
 	@PageNumber int = 1,
@@ -107,7 +108,7 @@ BEGIN
 			   INNER JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON WOM.ItemMasterId = IM.ItemMasterId
 			   INNER JOIN [dbo].[ItemMaster] IMP WITH (NOLOCK) ON WPN.ItemMasterId = IMP.ItemMasterId
 			   LEFT JOIN [dbo].[WorkOrderMaterialStockLine] WOMS WITH (NOLOCK) ON WOMS.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId
-			   LEFT JOIN [dbo].[Stockline] Stk WITH (NOLOCK) ON WOMS.StockLineId = Stk.StockLineId
+			   LEFT JOIN [dbo].[Stockline] Stk WITH (NOLOCK) ON WOMS.StockLineId = Stk.StockLineId AND ISNULL(Stk.IsNonStock,0) = 0
 			   LEFT JOIN [dbo].[Condition] Cond WITH (NOLOCK) ON WOMS.ConditionId = Cond.ConditionId
 			   LEFT JOIN [dbo].[Condition] matCon WITH (NOLOCK) ON WOM.ConditionCodeId = matCon.ConditionId
 			   LEFT JOIN [dbo].[WorkOrderStatus] WS WITH (NOLOCK) ON WS.Id = WO.WorkOrderStatusId
@@ -154,7 +155,7 @@ BEGIN
 			   INNER JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON WOM.ItemMasterId = IM.ItemMasterId
 			   INNER JOIN [dbo].[ItemMaster] IMP WITH (NOLOCK) ON WPN.ItemMasterId = IMP.ItemMasterId
 			   LEFT JOIN [dbo].[WorkOrderMaterialStockLineKit] WOMS WITH (NOLOCK) ON WOM.WorkOrderMaterialsKitId = WOMS.WorkOrderMaterialsKitId
-			   LEFT JOIN [dbo].[Stockline] Stk WITH (NOLOCK) ON WOMS.StockLineId = Stk.StockLineId
+			   LEFT JOIN [dbo].[Stockline] Stk WITH (NOLOCK) ON WOMS.StockLineId = Stk.StockLineId AND ISNULL(Stk.IsNonStock,0) = 0
 			   LEFT JOIN [dbo].[Condition] Cond WITH (NOLOCK) ON WOMS.ConditionId = Cond.ConditionId
 			   LEFT JOIN [dbo].[Condition] matCon WITH (NOLOCK) ON WOM.ConditionCodeId = matCon.ConditionId
 			   LEFT JOIN [dbo].[WorkOrderStatus] WS WITH (NOLOCK) ON WS.Id = WO.WorkOrderStatusId

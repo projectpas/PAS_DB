@@ -15,6 +15,7 @@
  ** -----------------------------------------------------------          
     1    06/13/2025  EKTA CHANDEGRA    Created
 	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	3    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	     
  EXEC GetExchangeSalesOrderBillingInvoicingItemData @ExchangeSalesOrderPartId = 153 , @QtyShipped = 1
 ************************************************************************/ 
@@ -41,7 +42,7 @@ BEGIN
 		INNER JOIN [dbo].[ItemMaster] im WITH(NOLOCK) ON sop.ItemMasterId = im.ItemMasterId
 		LEFT JOIN [dbo].[UnitOfMeasure] uom WITH(NOLOCK) ON im.ConsumeUnitOfMeasureId = uom.UnitOfMeasureId
 		LEFT JOIN [dbo].[Condition] cond WITH(NOLOCK) ON sop.ConditionId = cond.ConditionId
-		LEFT JOIN [dbo].[StockLine] sl WITH(NOLOCK) ON sop.StockLineId = sl.StockLineId
+		LEFT JOIN [dbo].[StockLine] sl WITH(NOLOCK) ON sop.StockLineId = sl.StockLineId AND ISNULL(sl.IsNonStock,0) = 0
 		WHERE sop.ExchangeSalesOrderPartId = @ExchangeSalesOrderPartId
 	 AND ISNULL(im.IsNonStock,0) = 0
 		 END TRY

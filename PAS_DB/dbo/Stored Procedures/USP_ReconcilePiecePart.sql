@@ -15,6 +15,7 @@
   ** S NO   Date            Author				Change Description
   ** --   --------			-------				--------------------------------
      1    22/06/2026		Abhishek Jirawla	Created
+     2    09/July/2026		RAJESH GAMI	[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
  **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_ReconcilePiecePart]
     @RepairOrderPartRecordId    BIGINT,
@@ -355,7 +356,7 @@ BEGIN
             WHERE rop.RepairOrderId          = @ConsumedRepairOrderId
               AND ISNULL(rop.IsPiecePart, 0) = 0
               AND sl.IsParent                = 1
-              AND sl.IsDeleted               = 0;
+              AND sl.IsDeleted               = 0 AND ISNULL(sl.IsNonStock,0) = 0;
 
             IF @MainStockLineId IS NOT NULL
             BEGIN
@@ -483,7 +484,7 @@ BEGIN
         JOIN  dbo.RepairOrder  srcRO WITH (NOLOCK) ON srcRO.RepairOrderId = ppr.SourceRepairOrderId
         LEFT JOIN dbo.RepairOrder conRO WITH (NOLOCK) ON conRO.RepairOrderId = ppr.ConsumedRepairOrderId
         JOIN  dbo.StockLine    sl    WITH (NOLOCK) ON sl.StockLineId      = ppr.StockLineId
-        WHERE ppr.PiecePartReconciliationId = @NewReconciliationId;
+        WHERE ppr.PiecePartReconciliationId = @NewReconciliationId AND ISNULL(sl.IsNonStock,0) = 0;
 
         COMMIT TRANSACTION;
 

@@ -15,6 +15,7 @@
 	3    11/03/2026   MOIN BLOCH         Updated Logic For Incoming And OutGoing Part PN-15719
 	4    16/03/2026   Moin Bloch         Rename Activity and Description for Incoming and Outgoing MPN updates PN-15736
 	5    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	6    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
    
 exec dbo.USP_UpdateWorkOrderCustomerDetails @WorkOrderId=3945,@WorkOrderPartNoId=3468,@CustomerId=default,@ItemMasterId=default,
 @customerReference=default,@SerialNumber=N'SER-745353',@Memo=N'<p>sfcdsfs</p>',@UpdatedBy=N'ADMIN User'
@@ -113,14 +114,14 @@ BEGIN
 			FROM dbo.WorkOrderPartNumber WOP WITH(NOLOCK)
 				JOIN dbo.WorkOrder WO WITH(NOLOCK) ON WOP.WorkOrderId = WO.WorkOrderId
 				JOIN dbo.Stockline SL WITH(NOLOCK) ON SL.StockLineId = WOP.StockLineId
-			WHERE WO.WorkOrderId = @WorkOrderId
+			WHERE WO.WorkOrderId = @WorkOrderId AND ISNULL(SL.IsNonStock,0) = 0
 
 			UPDATE dbo.Stockline SET CustomerId =  @CustomerId , 
 				Memo = CASE WHEN ISNULL(SL.Memo,'') = '' THEN '</p>Updated Customer ' + @ExistingValue + ' to ' + @CustomerName + 'From Work Order : ' + WO.WorkOrderNum + ' </p>' ELSE REPLACE(SL.Memo, '</p>','<br>') + 'Updated Customer ' + @ExistingValue + ' to ' + @CustomerName + 'From Work Order : ' + WO.WorkOrderNum + ' </p>' END
 			FROM dbo.WorkOrderPartNumber WOP WITH(NOLOCK)
 				JOIN dbo.WorkOrder WO WITH(NOLOCK) ON WOP.WorkOrderId = WO.WorkOrderId
 				JOIN dbo.Stockline SL WITH(NOLOCK) ON SL.StockLineId = WOP.StockLineId
-			WHERE WO.WorkOrderId = @WorkOrderId
+			WHERE WO.WorkOrderId = @WorkOrderId AND ISNULL(SL.IsNonStock,0) = 0
 			PRINT 'UPDATE STOCKLINE DETAILS DONE'
 
 			UPDATE WorkOrder
@@ -268,7 +269,7 @@ BEGIN
 			FROM [dbo].[WorkOrderPartNumber] WOP WITH(NOLOCK)
 			JOIN [dbo].[WorkOrder] WO WITH(NOLOCK) ON WOP.WorkOrderId = WO.WorkOrderId
 			JOIN [dbo].[Stockline] SL WITH(NOLOCK) ON SL.StockLineId = WOP.StockLineId
-			WHERE WOP.ID = @WorkOrderPartNoId
+			WHERE WOP.ID = @WorkOrderPartNoId AND ISNULL(SL.IsNonStock,0) = 0
 
 			UPDATE dbo.Stockline 
 			   SET PartNumber = IM.partnumber, 
@@ -290,7 +291,7 @@ BEGIN
 			JOIN [dbo].[ItemMaster] IM WITH(NOLOCK) ON IM.ItemMasterId = WOP.ItemMasterId
 			WHERE WOP.ID = @WorkOrderPartNoId
 
-			 AND ISNULL(IM.IsNonStock,0) = 0
+			 AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(SL.IsNonStock,0) = 0
 			 UPDATE ReceivingCustomerWork
 			   SET ItemMasterId = @ItemMasterId, 
 				   IsSerialized = im.isSerialized, 
@@ -440,7 +441,7 @@ BEGIN
 			UPDATE dbo.Stockline SET RepairOrderNumber =  @CustomerReference, RepairOrderId =  NULL 
 			FROM dbo.WorkOrderPartNumber WOP WITH(NOLOCK)
 				JOIN dbo.Stockline SL WITH(NOLOCK) ON SL.StockLineId = WOP.StockLineId
-			WHERE WOP.ID = @WorkOrderPartNoId
+			WHERE WOP.ID = @WorkOrderPartNoId AND ISNULL(SL.IsNonStock,0) = 0
 
 			UPDATE ReceivingCustomerWork
 				SET Reference = @CustomerReference 
@@ -472,7 +473,7 @@ BEGIN
 			SELECT @ExistingValue = CASE WHEN ISNULL(WOP.RevisedSerialNumber, '') = '' THEN SL.SerialNumber ELSE WOP.RevisedSerialNumber END 
 			FROM dbo.WorkOrderPartNumber WOP WITH(NOLOCK) 
 			JOIN dbo.Stockline SL WITH(NOLOCK) ON SL.StockLineId = WOP.StockLineId
-			WHERE WOP.ID = @WorkOrderPartNoId
+			WHERE WOP.ID = @WorkOrderPartNoId AND ISNULL(SL.IsNonStock,0) = 0
 
 			PRINT 'UPDATE SERIAL NUMBER'
 			UPDATE WorkOrderPartNumber SET RevisedSerialNumber = @SerialNumber, UpdatedBy = @UpdatedBy, UpdatedDate = GETUTCDATE()
@@ -483,7 +484,7 @@ BEGIN
 			UPDATE dbo.Stockline SET SerialNumber = @SerialNumber, isSerialized =  1 
 			FROM dbo.WorkOrderPartNumber WOP WITH(NOLOCK)
 				JOIN dbo.Stockline SL WITH(NOLOCK) ON SL.StockLineId = WOP.StockLineId
-			WHERE WOP.ID = @WorkOrderPartNoId
+			WHERE WOP.ID = @WorkOrderPartNoId AND ISNULL(SL.IsNonStock,0) = 0
 
 			PRINT '4.2'
 			UPDATE ReceivingCustomerWork
@@ -517,7 +518,7 @@ BEGIN
 			UPDATE dbo.Stockline SET Memo = CASE WHEN ISNULL(SL.Memo,'') = '' THEN @Memo ELSE REPLACE(SL.Memo, '</p>','<br>') + @Memo + ' </p>' END
 			FROM dbo.WorkOrderPartNumber WOP WITH(NOLOCK)
 				JOIN dbo.Stockline SL WITH(NOLOCK) ON SL.StockLineId = WOP.StockLineId
-			WHERE WOP.ID = @WorkOrderPartNoId
+			WHERE WOP.ID = @WorkOrderPartNoId AND ISNULL(SL.IsNonStock,0) = 0
 
 			UPDATE ReceivingCustomerWork
 				SET Memo = CASE WHEN ISNULL(Memo,'') = '' THEN @Memo ELSE REPLACE(Memo, '</p>','<br>') + @Memo + ' </p>' END

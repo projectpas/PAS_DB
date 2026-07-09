@@ -20,6 +20,7 @@
 	4    11-21-2024		Amit Ghediya	Get ECCN,HSCODE,Weight,LWH for billing.
 	5    05-01-2025		ABHISHEK JIRAWLA Allow Repair Management Customer Stock Stockline
 	6    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	7    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
      
  EXECUTE [SearchItemMasterByCustomerRestriction] 11, 7, 77,-1
 **************************************************************/ 
@@ -83,7 +84,7 @@ BEGIN
 					AND (
 							(sl.IsRepairManagement = 1) OR 
 							((sl.IsRepairManagement = 0 OR sl.IsRepairManagement IS NULL) AND sl.IsCustomerStock = 0)
-						)
+						) AND ISNULL(sl.IsNonStock,0) = 0
 					--AND (sl.IsCustomerStock = 0 OR (sl.IsCustomerStock = 1 AND sl.CustomerId = @CustomerId))
 				LEFT JOIN DBO.ItemGroup ig WITH (NOLOCK) ON im.ItemGroupId = ig.ItemGroupId
 				LEFT JOIN DBO.Manufacturer mf WITH (NOLOCK) ON im.ManufacturerId = mf.ManufacturerId

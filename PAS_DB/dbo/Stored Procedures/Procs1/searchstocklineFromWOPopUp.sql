@@ -14,6 +14,7 @@
 	2    06/11/2023   Hemnat Saliya  Updated For Allow all customer stock.
 	3	 25/11/2024	  Divyesh Kathiriya Add New Field "IsCustomerStock" 
 	4    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	5    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 
 ************************************************************************
 EXEC [searchstocklineFromWOPopUp] '12',8,108,1,'0'
@@ -158,7 +159,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 				--AND (sl.IsCustomerStock = 0 OR (sl.IsCustomerStock = 1 AND sl.CustomerId = @CustomerId))  
 				AND sl.IsParent = 1
 			
-			 AND ISNULL(im.IsNonStock,0) = 0
+			 AND ISNULL(im.IsNonStock,0) = 0 AND ISNULL(sl.IsNonStock,0) = 0
 				 UNION
 
 			SELECT DISTINCT
@@ -259,7 +260,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 				LEFT JOIN DBO.LotSetupMaster lsm WITH(NOLOCK) ON sl.LotId = lsm.LotId
 				LEFT JOIN DBO.[Percent] per WITH(NOLOCK) ON lsm.MarginPercentageId = per.PercentId
 			WHERE SL.StockLineId IN (SELECT Item FROM DBO.SPLITSTRING(@StocklineIdlist,','))
-		 AND ISNULL(im.IsNonStock,0) = 0
+		 AND ISNULL(im.IsNonStock,0) = 0 AND ISNULL(sl.IsNonStock,0) = 0
 			 END
 		COMMIT  TRANSACTION
 

@@ -1,3 +1,9 @@
+/*************************************************************
+ ** Change History
+ **************************************************************
+ ** PR   Date         Author			Change Description
+	1    09/July/2026   RAJESH GAMI   [PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+**************************************************************/
 CREATE   PROC [dbo].[GetWorkorderReleaseEasaFromData]
 @WorkorderId bigint,
 @workOrderPartNumberId bigint
@@ -119,7 +125,7 @@ BEGIN
 					   LEFT JOIN DBO.WorkOrder wo  WITH(NOLOCK) on wo.WorkOrderId = wop.WorkOrderId
 					   LEFT JOIN DBO.ItemMaster im  WITH(NOLOCK) on im.ItemMasterId = wop.ItemMasterId
 					    AND ISNULL(im.IsNonStock,0) = 0
-					    LEFT JOIN DBO.Stockline sl  WITH(NOLOCK) on sl.StockLineId = wop.StockLineId
+					    LEFT JOIN DBO.Stockline sl  WITH(NOLOCK) on sl.StockLineId = wop.StockLineId AND ISNULL(sl.IsNonStock,0) = 0
 					   LEFT JOIN dbo.ReceivingCustomerWork rc  WITH(NOLOCK) on rc.StockLineId = wop.StockLineId
 					   LEFT JOIN DBO.WorkOrderManagementStructureDetails MSD  WITH(NOLOCK) on MSD.ModuleID = @MSModuleId AND MSD.ReferenceID = wop.Id
 					   LEFT JOIN DBO.ManagementStructurelevel MSL WITH(NOLOCK) ON MSL.ID = MSD.Level1Id

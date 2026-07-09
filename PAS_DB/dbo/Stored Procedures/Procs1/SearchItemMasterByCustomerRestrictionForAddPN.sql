@@ -19,6 +19,7 @@
 	3    05-JAN-2023		Hemant Saliya	Allow Same Customer stockline use in WO
 	4    12-May-2025        Devendra Shekh  checking isActive and isDeleted for Alternate Part Select
 	5    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	6    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
      
  EXECUTE [SearchItemMasterByCustomerRestrictionForAddPN] 303, 1, 1,'','0',1
 **************************************************************/ 
@@ -73,7 +74,7 @@ BEGIN
 				FROM DBO.ItemMaster im WITH (NOLOCK)
 				LEFT JOIN DBO.Condition c WITH (NOLOCK) ON c.ConditionId in (SELECT Item FROM DBO.SPLITSTRING(@ConditionIds,','))
 				LEFT JOIN DBO.StockLine sl WITH (NOLOCK) ON im.ItemMasterId = sl.ItemMasterId AND sl.ConditionId = c.ConditionId 
-					AND sl.IsDeleted = 0  AND sl.isActive = 1 AND sl.IsParent = 1 AND (sl.IsCustomerStock = 0 OR (sl.IsCustomerStock = 1 AND sl.CustomerId = @CustomerId))
+					AND sl.IsDeleted = 0  AND sl.isActive = 1 AND sl.IsParent = 1 AND (sl.IsCustomerStock = 0 OR (sl.IsCustomerStock = 1 AND sl.CustomerId = @CustomerId)) AND ISNULL(sl.IsNonStock,0) = 0
 				LEFT JOIN DBO.ItemGroup ig WITH (NOLOCK) ON im.ItemGroupId = ig.ItemGroupId
 				LEFT JOIN DBO.Manufacturer mf WITH (NOLOCK) ON im.ManufacturerId = mf.ManufacturerId
 				LEFT JOIN DBO.ItemClassification ic WITH (NOLOCK) ON im.ItemClassificationId = ic.ItemClassificationId

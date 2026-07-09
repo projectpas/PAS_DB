@@ -15,6 +15,7 @@
  ** --   --------     -------		--------------------------------          
     1    15/04/2025   Moin Bloch     Created
 	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	3    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
      
 --  EXEC [dbo].[USP_GetPurchaseOrderPartsForView] 6732,1
 --  EXEC [dbo].[USP_GetPurchaseOrderPartsForView] 6743,12853,0,1
@@ -266,7 +267,7 @@ BEGIN
 		FROM [dbo].[Stockline] SL WITH(NOLOCK) 
 		LEFT JOIN [dbo].[ShippingVia] SV WITH(NOLOCK) ON SL.[ShippingViaId] = SV.[ShippingViaId]
 		LEFT JOIN [dbo].[StockLineManagementStructureDetails] MD WITH(NOLOCK) ON MD.[ReferenceID] = SL.[StockLineId] AND [ModuleID] = @StocklineMSID
-		WHERE SL.[PurchaseOrderId] = @PurchaseOrderId AND SL.[PurchaseOrderPartRecordId] = @PurchaseOrderPartRecordId AND SL.isDeleted = 0
+		WHERE SL.[PurchaseOrderId] = @PurchaseOrderId AND SL.[PurchaseOrderPartRecordId] = @PurchaseOrderPartRecordId AND SL.isDeleted = 0 AND ISNULL(SL.IsNonStock,0) = 0
 		
 		END
 		IF(@Opr=3)

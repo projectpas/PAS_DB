@@ -12,6 +12,7 @@
 	2    03-07-2025     Moin Bloch              Changed Old To New Billing Table
 	3    11-07-2025		Devendra Shekh			added PartNumberLabel
 	1    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	4    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 		
 	exec dbo.USP_WorkOrderAnalysisDetailsById 8631,8331
 **************************************************************/
@@ -83,7 +84,7 @@ BEGIN
 				--LEFT JOIN [dbo].[WorkOrderBillingInvoicing] wb WITH(NOLOCK) ON wbi.BillingInvoicingId = wb.BillingInvoicingId AND ISNULL(wb.IsVersionIncrease, 0) = 0 AND ISNULL(wb.IsPerformaInvoice, 0) != 1
 				LEFT JOIN [dbo].[BillingInvoicingItems] wbi WITH(NOLOCK) ON wop.ID = wbi.SubReferenceId AND ISNULL(wbi.IsVersionIncrease, 0) = 0 AND ISNULL(wbi.IsPerformaInvoice, 0) != 1 AND wbi.[ModuleId] =@WOModuleId
 				LEFT JOIN [dbo].[BillingInvoicing] wb WITH(NOLOCK) ON wbi.BillingInvoicingId = wb.BillingInvoicingId AND ISNULL(wb.IsVersionIncrease, 0) = 0 AND ISNULL(wb.IsPerformaInvoice, 0) != 1 AND wb.[ModuleId] =@WOModuleId
-				LEFT JOIN  [dbo].StockLine sl WITH(NOLOCK) ON wop.StockLineId = sl.StockLineId
+				LEFT JOIN  [dbo].StockLine sl WITH(NOLOCK) ON wop.StockLineId = sl.StockLineId AND ISNULL(sl.IsNonStock,0) = 0
 			WHERE wo.WorkOrderId = @WorkOrderId 
 			 AND ISNULL(im.IsNonStock,0) = 0
 			 ORDER BY wop.ID;
@@ -150,7 +151,7 @@ BEGIN
 				INNER JOIN [dbo].[WorkOrderStage] s WITH(NOLOCK) ON wop.WorkOrderStageId = s.WorkOrderStageId
 				INNER JOIN [dbo].[WorkOrderStatus] st WITH(NOLOCK) ON wop.WorkOrderStatusId = st.Id
 				LEFT JOIN QuoteList q WITH(NOLOCK) ON q.WorkOrderId = woc.WorkOrderId AND q.WOPartNoId = woc.WOPartNoId
-				LEFT JOIN  [dbo].StockLine sl WITH(NOLOCK) ON wop.StockLineId = sl.StockLineId
+				LEFT JOIN  [dbo].StockLine sl WITH(NOLOCK) ON wop.StockLineId = sl.StockLineId AND ISNULL(sl.IsNonStock,0) = 0
 			WHERE wo.WorkOrderId = @WorkOrderId 
 			 AND ISNULL(im.IsNonStock,0) = 0
 			 ORDER BY wop.ID;

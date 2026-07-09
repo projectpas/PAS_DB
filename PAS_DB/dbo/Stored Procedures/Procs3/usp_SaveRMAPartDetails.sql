@@ -16,6 +16,7 @@
 	3	 02/1/2024	  AMIT GHEDIYA	 added isperforma Flage for SO
 	4    04-07-2025   AMIT GHEDIYA   Changed Old To New Billing Table
 	5    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	6    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	
 declare @p1 dbo.CustomerRMADeatilsType
 insert into @p1 values(3,2,1,N'ADS-B',N'GARMIN GTX 335 ADS-B TRANSPONDER WITH GPS',N'',N'',N'',7427,N'STL-000063',N'CNTL-000778',N'ID_NUM-000002',145,N'WO-000111',45,74,3330,5,N'Non Functional',N'',N'True',2,N'ADMIN ADMIN',N'ADMIN ADMIN','2022-04-22 05:20:26.5100000','2022-04-22 05:20:26.5100000',1,0)
@@ -214,7 +215,7 @@ BEGIN
 								) 
 		                    FROM dbo.CustomerRMADeatils CRM  WITH (NOLOCK)
 							LEFT JOIN dbo.CustomerRMAHeader CRH WITH (NOLOCK) ON CRH.RMAHeaderId=CRM.RMAHeaderId 
-			                LEFT JOIN dbo.Stockline ST WITH (NOLOCK) ON ST.StockLineId=CRM.StockLineId
+			                LEFT JOIN dbo.Stockline ST WITH (NOLOCK) ON ST.StockLineId=CRM.StockLineId AND ISNULL(ST.IsNonStock,0) = 0
 							LEFT JOIN dbo.ItemMaster IM WITH (NOLOCK) ON Im.ItemMasterId=CRM.ItemMasterId 
 				             AND ISNULL(IM.IsNonStock,0) = 0
 							 WHERE isnull(CRM.IsDeleted,0) = 0  and CRM.RMAHeaderId =@RMAHeaderId 

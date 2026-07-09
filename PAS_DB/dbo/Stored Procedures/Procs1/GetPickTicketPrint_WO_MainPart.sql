@@ -21,6 +21,7 @@
 	3    09/28/2023   Hemant Saliya			Updated Qty Remaining
 	4    01/01/2024   Devendra Shekh		updated for serialnumber for MPN
 	5    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	6    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
      
 --EXEC [GetPickTicketPrint_WO_MainPart] 5,0
 **************************************************************/
@@ -61,7 +62,7 @@ BEGIN
 						INNER JOIN DBO.WorkOrderWorkFlow wowf WITH (NOLOCK) on wopt.WorkFlowWorkOrderId = wowf.WorkOrderPartNoId
 						INNER JOIN WorkOrderPartNumber wop WITH (NOLOCK) on wop.WorkOrderId = wopt.WorkorderId and wowf.WorkOrderPartNoId = wop.ID
 						INNER JOIN WorkOrder so WITH (NOLOCK) on so.WorkOrderId = wop.WorkOrderId
-						LEFT JOIN Stockline sl WITH (NOLOCK) on sl.StockLineId = wop.StockLineId
+						LEFT JOIN Stockline sl WITH (NOLOCK) on sl.StockLineId = wop.StockLineId AND ISNULL(sl.IsNonStock,0) = 0
 						INNER JOIN ItemMaster imt WITH (NOLOCK) on imt.ItemMasterId = wop.ItemMasterId
 						LEFT JOIN ItemMaster imtR WITH (NOLOCK) on imtR.ItemMasterId = wop.RevisedItemmasterid
 						 AND ISNULL(imtR.IsNonStock,0) = 0

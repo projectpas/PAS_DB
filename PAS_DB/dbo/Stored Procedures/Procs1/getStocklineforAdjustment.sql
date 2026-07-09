@@ -7,6 +7,7 @@
  ** PR   Date						 Author							Change Description
  ** --   --------					 -------						-------------------------------
 	1    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	2    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 ****************************************************************************************************************************************/
 CREATE PROCEDURE [dbo].[getStocklineforAdjustment]
 @StartWith VARCHAR(50)='',
@@ -35,7 +36,7 @@ BEGIN
 					WHERE (stl.IsActive = 1 AND ISNULL(stl.IsDeleted, 0) = 0 AND stl.MasterCompanyId = @MasterCompanyId AND (stl.StockLineNumber LIKE '%' + @StartWith + '%') AND stl.ItemMasterId = @ItemMasterId AND stl.ManagementStructureId = @ManagementStructureId
 					AND stl.QuantityOnHand > 0) AND stl.IsParent=1 and im.ItemTypeId=1 and stl.IsCustomerStock=0
 					--GROUP by stl.StocklineId,stl.StockLineNumber,im.ItemMasterId,im.partnumber,im.PartDescription,stl.Quantity,stl.QuantityOnHand,stl.SerialNumber,stl.ControlNumber
-					 AND ISNULL(im.IsNonStock,0) = 0
+					 AND ISNULL(im.IsNonStock,0) = 0 AND ISNULL(stl.IsNonStock,0) = 0
 					 ORDER BY StockLineNumber
 		END TRY    
 		BEGIN CATCH      

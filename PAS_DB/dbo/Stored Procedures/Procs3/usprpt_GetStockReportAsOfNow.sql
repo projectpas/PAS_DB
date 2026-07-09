@@ -26,6 +26,7 @@
 	10   26-02-2026		Priyansh Patel      Added Total Posted,Unposted and reconcile values
 	11	 28-04-2026		HEMANT SALIYA		Exclude Non-Stock GL account from get GL balance
 	12    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	13    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 
 **************************************************************/
 CREATE   PROCEDURE [dbo].[usprpt_GetStockReportAsOfNow]
@@ -328,7 +329,7 @@ BEGIN
 	 AND (ISNULL(@shelfId,'') ='' OR stl.[ShelfId] IN (SELECT Item FROM DBO.SPLITSTRING(@shelfId,',')))
 	 AND (ISNULL(@binId,'') ='' OR stl.[BinId] IN (SELECT Item FROM DBO.SPLITSTRING(@binId,',')))
 	 AND (@id6 IS NULL OR im.[ItemMasterId]=@id6)
-	 AND (ISNULL(@id8,'') = '' OR ISNULL(LTRIM(RTRIM(stl.[LocationId])), '') = '' OR stl.[LocationId] NOT IN (SELECT LTRIM(RTRIM(Item)) FROM DBO.SPLITSTRING(@id8, ',') WHERE ISNULL(LTRIM(RTRIM(Item)), '') <> ''))
+	 AND (ISNULL(@id8,'') = '' OR ISNULL(LTRIM(RTRIM(stl.[LocationId])), '') = '' OR stl.[LocationId] NOT IN (SELECT LTRIM(RTRIM(Item)) FROM DBO.SPLITSTRING(@id8, ',') WHERE ISNULL(LTRIM(RTRIM(Item)), '') <> '')) AND ISNULL(stl.IsNonStock,0) = 0
 	 	 
 	DECLARE @PostedStatusId INT, @OpenStatusId INT;
 
@@ -346,7 +347,7 @@ BEGIN
 		AND stl.[MasterCompanyId] = @mastercompanyid
 		AND stl.[IsParent] = 1 
 		AND stl.GLAccountId <> @NonStockGLAccountId
-		AND stl.[IsDeleted] = 0 AND CAST(stl.[CreatedDate] AS DATE) <= CASE WHEN ISNULL(@id9, 0) = 1 THEN CAST(GETUTCDATE() AS DATE) ELSE CAST(GETUTCDATE()-1 AS DATE) END
+		AND stl.[IsDeleted] = 0 AND CAST(stl.[CreatedDate] AS DATE) <= CASE WHEN ISNULL(@id9, 0) = 1 THEN CAST(GETUTCDATE() AS DATE) ELSE CAST(GETUTCDATE()-1 AS DATE) END AND ISNULL(stl.IsNonStock,0) = 0
 	) AND BD.StatusId = @PostedStatusId AND CBD.GLAccountId <> @NonStockGLAccountId AND CBD.[MasterCompanyId] = @mastercompanyid AND ISNULL(CBD.IsDeleted, 0) = 0 AND ISNULL(CBD.IsActive, 0) = 1
 
 
@@ -357,7 +358,7 @@ BEGIN
 		AND stl.[MasterCompanyId] = @mastercompanyid 
 		AND stl.[IsParent] = 1
 		AND stl.GLAccountId <> @NonStockGLAccountId
-		AND stl.[IsDeleted] = 0 AND CAST(stl.[CreatedDate] AS DATE) <= CASE WHEN ISNULL(@id9, 0) = 1 THEN CAST(GETUTCDATE() AS DATE) ELSE CAST(GETUTCDATE()-1 AS DATE) END
+		AND stl.[IsDeleted] = 0 AND CAST(stl.[CreatedDate] AS DATE) <= CASE WHEN ISNULL(@id9, 0) = 1 THEN CAST(GETUTCDATE() AS DATE) ELSE CAST(GETUTCDATE()-1 AS DATE) END AND ISNULL(stl.IsNonStock,0) = 0
 	) AND BD.StatusId = @OpenStatusId AND CBD.GLAccountId <> @NonStockGLAccountId AND CBD.[MasterCompanyId] = @mastercompanyid AND ISNULL(CBD.IsDeleted, 0) = 0 AND ISNULL(CBD.IsActive, 0) = 1
 
 	DECLARE @TotalInventory DECIMAL(18,2) = 0 

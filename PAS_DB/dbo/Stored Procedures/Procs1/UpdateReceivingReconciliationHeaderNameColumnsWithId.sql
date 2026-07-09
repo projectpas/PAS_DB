@@ -1,4 +1,10 @@
 ﻿--  EXEC [dbo].[UpdateReceivingReconciliationHeaderNameColumnsWithId] 5
+/*************************************************************
+ ** Change History
+ **************************************************************
+ ** PR   Date         Author			Change Description
+	1    09/July/2026   RAJESH GAMI   [PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+**************************************************************/
 CREATE PROCEDURE [dbo].[UpdateReceivingReconciliationHeaderNameColumnsWithId]
 	@ReceivingReconciliationId int
 AS
@@ -31,7 +37,7 @@ BEGIN
 		FROM [dbo].Stockline ST WITH (NOLOCK)
 		LEFT JOIN DBO.[ReceivingReconciliationDetails] RRDE WITH (NOLOCK) ON st.StockLineId = RRDE.StocklineId
 		LEFT JOIN DBO.ReceivingReconciliationHeader RRDH WITH (NOLOCK) ON RRDH.ReceivingReconciliationId = RRDE.ReceivingReconciliationId
-		Where RRDE.ReceivingReconciliationId = @ReceivingReconciliationId and RRDE.IsManual=0
+		Where RRDE.ReceivingReconciliationId = @ReceivingReconciliationId and RRDE.IsManual=0 AND ISNULL(ST.IsNonStock,0) = 0
 	END
 	COMMIT  TRANSACTION
 

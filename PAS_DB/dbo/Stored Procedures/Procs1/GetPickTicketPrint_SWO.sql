@@ -24,6 +24,7 @@
     4    12/19/2021   Devendra Shekh		changes for kit
     5    12/21/2021   Devendra Shekh		changes for itemmaster join 
 	6    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	7    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
      
  EXEC GetPickTicketPrint_SWO 3797,90,97,58
 
@@ -122,7 +123,7 @@ BEGIN
 						INNER JOIN dbo.SubWorkOrderPartNumber wop WITH (NOLOCK) on wo.WorkOrderId = wop.WorkOrderId AND wom.SubWorkOrderId = wopt.SubWorkorderId
 						--INNER JOIN dbo.ItemMaster imt WITH (NOLOCK) on imt.ItemMasterId = wom.ItemMasterId
 						LEFT JOIN dbo.SubWorkOrderMaterialStockLine wmsl WITH (NOLOCK) ON wmsl.SubWorkOrderMaterialsId = wom.SubWorkOrderMaterialsId
-						LEFT JOIN dbo.Stockline sl WITH (NOLOCK) on sl.StockLineId = wopt.StockLineId
+						LEFT JOIN dbo.Stockline sl WITH (NOLOCK) on sl.StockLineId = wopt.StockLineId AND ISNULL(sl.IsNonStock,0) = 0
 						LEFT JOIN dbo.ItemMaster imts WITH (NOLOCK) on imts.ItemMasterId = sl.ItemMasterId
 						 AND ISNULL(imts.IsNonStock,0) = 0
 						 LEFT JOIN dbo.Condition co WITH (NOLOCK) on co.ConditionId = wom.ConditionCodeId
@@ -155,7 +156,7 @@ BEGIN
 						INNER JOIN dbo.SubWorkOrderPartNumber wop WITH (NOLOCK) on wo.WorkOrderId = wop.WorkOrderId AND wom.SubWorkOrderId = wopt.SubWorkorderId
 						--INNER JOIN dbo.ItemMaster imt WITH (NOLOCK) on imt.ItemMasterId = wom.ItemMasterId
 						LEFT JOIN dbo.SubWorkOrderMaterialStockLineKit wmsl WITH (NOLOCK) ON wmsl.SubWorkOrderMaterialsKitId = wom.SubWorkOrderMaterialsKitId
-						LEFT JOIN dbo.Stockline sl WITH (NOLOCK) on sl.StockLineId = wopt.StockLineId
+						LEFT JOIN dbo.Stockline sl WITH (NOLOCK) on sl.StockLineId = wopt.StockLineId AND ISNULL(sl.IsNonStock,0) = 0
 						LEFT JOIN dbo.ItemMaster imts WITH (NOLOCK) on imts.ItemMasterId = sl.ItemMasterId
 						 AND ISNULL(imts.IsNonStock,0) = 0
 						 LEFT JOIN dbo.Condition co WITH (NOLOCK) on co.ConditionId = wom.ConditionCodeId

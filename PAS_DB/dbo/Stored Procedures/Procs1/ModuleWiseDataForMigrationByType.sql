@@ -7,6 +7,7 @@
  ** PR   Date						 Author							Change Description
  ** --   --------					 -------						-------------------------------
 	1    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	2    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 ****************************************************************************************************************************************/
 CREATE   PROCEDURE [dbo].[ModuleWiseDataForMigrationByType]
 	@PageNumber INT = NULL,
@@ -830,7 +831,7 @@ BEGIN
 					Stks.SuccessMsg,
 					Stks.ErrorMsg
 				FROM [Quantum_Staging_BETA].dbo.Stocklines Stks WITH (NOLOCK)
-				LEFT JOIN dbo.Stockline stk WITH (NOLOCK) ON stk.StockLineId = Stks.Migrated_Id
+				LEFT JOIN dbo.Stockline stk WITH (NOLOCK) ON stk.StockLineId = Stks.Migrated_Id AND ISNULL(stk.IsNonStock,0) = 0
 				--LEFT JOIN [Quantum_Staging_BETA].dbo.ItemMasters im WITH (NOLOCK) ON Stks.ItemMasterId = im.ItemMasterId         
 				LEFT JOIN dbo.ItemMaster im_mg WITH (NOLOCK) ON im_mg.ItemMasterId = stk.ItemMasterId         
 				 AND ISNULL(im_mg.IsNonStock,0) = 0
@@ -989,7 +990,7 @@ BEGIN
 					Stks.SuccessMsg,
 					Stks.ErrorMsg
 				FROM [Quantum_Staging_BETA].dbo.Stocklines Stks WITH (NOLOCK)
-				LEFT JOIN dbo.Stockline stk WITH (NOLOCK) ON stk.StockLineId = Stks.Migrated_Id
+				LEFT JOIN dbo.Stockline stk WITH (NOLOCK) ON stk.StockLineId = Stks.Migrated_Id AND ISNULL(stk.IsNonStock,0) = 0
 				--LEFT JOIN [Quantum_Staging_BETA].dbo.ItemMasters im WITH (NOLOCK) ON Stks.ItemMasterId = im.ItemMasterId         
 				LEFT JOIN dbo.ItemMaster im_mg WITH (NOLOCK) ON im_mg.ItemMasterId = stk.ItemMasterId         
 				 AND ISNULL(im_mg.IsNonStock,0) = 0
@@ -1147,7 +1148,7 @@ BEGIN
 					Stks.SuccessMsg,
 					Stks.ErrorMsg
 				FROM [Quantum_Staging_BETA].dbo.Stocklines Stks WITH (NOLOCK)
-				LEFT JOIN dbo.Stockline stk WITH (NOLOCK) ON stk.StockLineId = Stks.Migrated_Id
+				LEFT JOIN dbo.Stockline stk WITH (NOLOCK) ON stk.StockLineId = Stks.Migrated_Id AND ISNULL(stk.IsNonStock,0) = 0
 				--LEFT JOIN [Quantum_Staging_BETA].dbo.ItemMasters im WITH (NOLOCK) ON Stks.ItemMasterId = im.ItemMasterId         
 				LEFT JOIN dbo.ItemMaster im_mg WITH (NOLOCK) ON im_mg.ItemMasterId = stk.ItemMasterId         
 				 AND ISNULL(im_mg.IsNonStock,0) = 0
@@ -1306,7 +1307,7 @@ BEGIN
 					Stks.SuccessMsg,
 					Stks.ErrorMsg
 				FROM [Quantum_Staging_BETA].dbo.Stocklines Stks WITH (NOLOCK)
-				LEFT JOIN dbo.Stockline stk WITH (NOLOCK) ON stk.StockLineId = Stks.Migrated_Id
+				LEFT JOIN dbo.Stockline stk WITH (NOLOCK) ON stk.StockLineId = Stks.Migrated_Id AND ISNULL(stk.IsNonStock,0) = 0
 				--LEFT JOIN [Quantum_Staging_BETA].dbo.ItemMasters im WITH (NOLOCK) ON Stks.ItemMasterId = im.ItemMasterId         
 				LEFT JOIN dbo.ItemMaster im_mg WITH (NOLOCK) ON im_mg.ItemMasterId = stk.ItemMasterId         
 				 AND ISNULL(im_mg.IsNonStock,0) = 0

@@ -10,6 +10,7 @@
 ** 1	20/11/2024		BHARGAV SALIYA			Created
 ** 2	26/11/2024		BHARGAV SALIYA			Change The Filter Field Stockline Number To Control Number
 ** 3    28-11-2024      BHARGAV SALIYA           Fixed ManagementStructure filter issue 
+4    09/July/2026      RAJESH GAMI           [PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 **************************************************************/
 -----------------------------------------------------------------------------
 CREATE    PROCEDURE [dbo].[USP_GetStockInventorySearchData]   
@@ -244,7 +245,7 @@ AS
 				AND  (ISNULL(@Level7,'') ='' OR SLM.[Level7Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level7,',')))    
 				AND  (ISNULL(@Level8,'') ='' OR SLM.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,',')))    
 				AND  (ISNULL(@Level9,'') ='' OR SLM.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))    
-				AND  (ISNULL(@Level10,'') =''  OR SLM.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))  
+				AND  (ISNULL(@Level10,'') =''  OR SLM.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,','))) AND ISNULL(S.IsNonStock,0) = 0  
 				ORDER  BY S.StockLineId DESC
 					
 				SET @PageSize = CASE WHEN NULLIF(@PageSize,0) IS NULL THEN 10 ELSE @PageSize END

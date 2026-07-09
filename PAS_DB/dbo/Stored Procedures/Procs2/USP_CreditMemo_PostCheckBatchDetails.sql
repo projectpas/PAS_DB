@@ -33,6 +33,7 @@
 	17   16/10/2024	  Abhishek Jirawla	Implemented the new tables for SalesOrder related tables
 	18	 02/06/2025	  Abhishek Jirawla  Fixed Name concat read script
 	19   03-07-2025     Moin Bloch      Changed Old To New Billing Table
+	20   09/July/2026     RAJESH GAMI      [PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 
 	EXEC USP_CreditMemo_PostCheckBatchDetails 179
      
@@ -278,7 +279,7 @@ BEGIN
 						FROM [dbo].[BillingInvoicingItems] SOBII WITH(NOLOCK) 
 							JOIN [dbo].[SalesOrderPartV1] SOP ON SOP.SalesOrderPartId = SOBII.SubReferenceId
 							JOIN [dbo].[Stockline] SL ON SOBII.StockLineId = SL.StockLineId
-						WHERE BillingInvoicingItemId = @BillingInvoicingItemId  AND SOBII.[ModuleId] =@SOModuleId
+						WHERE BillingInvoicingItemId = @BillingInvoicingItemId  AND SOBII.[ModuleId] =@SOModuleId AND ISNULL(SL.IsNonStock,0) = 0
 
 
 						SELECT @LastMSLevel = (SELECT LastMSName FROM DBO.udfGetAllEntityMSLevelString(@ManagementStructureId))
@@ -334,7 +335,7 @@ BEGIN
 							JOIN [dbo].[ExchangeSalesOrderPart]  ESOPN ON ESOPN.ExchangeSalesOrderPartId = ESOBII.ExchangeSalesOrderPartId
 							JOIN [dbo].[Stockline] SL ON ESOPN.StockLineId = SL.StockLineId
 							--JOIN [dbo].[ExchangeSalesOrder]  ESO ON ESO.ExchangeSalesOrderId = ESOPN.ExchangeSalesOrderId
-						WHERE ExchangeSOBillingInvoicingItemId = @BillingInvoicingItemId;
+						WHERE ExchangeSOBillingInvoicingItemId = @BillingInvoicingItemId AND ISNULL(SL.IsNonStock,0) = 0;
 
 						SELECT @LastMSLevel = (SELECT LastMSName FROM DBO.udfGetAllEntityMSLevelString(@ManagementStructureId))
 						SELECT @AllMSlevels = (SELECT AllMSlevels FROM DBO.udfGetAllEntityMSLevelString(@ManagementStructureId))

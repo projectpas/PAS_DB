@@ -15,6 +15,7 @@
 	3    19/02/2025		 Ayushi Patel			converted the date into utc (created) , Added a case to get timeZone
 	4    28 May 2026	 Rajesh Gami			Added VendorName [PN-16601]
 	5    12 June 2026    Rajesh Gami			Fixed the Amount related issue (PN-16799)
+	6    09/July/2026 RAJESH GAMI    [PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 **************************************************************
 **************************************************************/
 CREATE PROCEDURE [dbo].[USP_Lot_GetLotList]
@@ -171,7 +172,7 @@ BEGIN
 			           SELECT SUM(ISNULL(sl.Adjustment, 0) * ISNULL(sl.QuantityOnHand, 0))
 			           FROM DBO.LotTransInOutDetails ltin WITH(NOLOCK)
 			           INNER JOIN DBO.Stockline sl WITH(NOLOCK) ON ltin.StockLineId = sl.StockLineId
-			           WHERE ltin.LotId = LT.LotId
+			           WHERE ltin.LotId = LT.LotId AND ISNULL(sl.IsNonStock,0) = 0
 			       ), 0)
 			   ) AS AcqusitionCost
  

@@ -21,6 +21,7 @@
     1    08/19/2021   Hemant Saliya		Created
     2    04/14/2025   HEMANT SALIYA		Added Work Order Work Flow Id for UpdateWOMaterialsCost
 	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	4    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
      
  EXECUTE USP_CreateSubWOStocklineFromRO 134
 
@@ -130,7 +131,7 @@ SET NOCOUNT ON
 				)
 
 				SELECT * INTO #StockLine
-				FROM dbo.Stockline SL WITH(NOLOCK) WHERE SL.RepairOrderId = @RepairOrderId AND IsParent = 1 AND Sl.QuantityAvailable > 0
+				FROM dbo.Stockline SL WITH(NOLOCK) WHERE SL.RepairOrderId = @RepairOrderId AND IsParent = 1 AND Sl.QuantityAvailable > 0 AND ISNULL(SL.IsNonStock,0) = 0
 
 				INSERT INTO #StockLineData (StockLineID) SELECT StockLineID FROM #StockLine
 				

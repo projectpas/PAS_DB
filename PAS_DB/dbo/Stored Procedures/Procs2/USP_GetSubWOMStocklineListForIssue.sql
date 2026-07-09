@@ -11,6 +11,7 @@
  ** --   --------			-------					--------------------------------          
     1    03-June-2025		 Devendra Shekh				Created
 	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	3    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
      
  exec dbo.USP_GetSubWOMStocklineListForIssue @PageNumber=1,@PageSize=100,@SortColumn=default,@SortOrder=1,@SubWOPartNoId=413,@ItemMasterId=0
 **************************************************************/ 
@@ -205,7 +206,7 @@ SET NOCOUNT ON
 				AND (@ItemMasterId IS NULL OR im.ItemMasterId = @ItemMasterId OR IM_AltMain.ItemMasterId = @ItemMasterId OR IM_EquMain.ItemMasterId = @ItemMasterId)
 				
 				-- Sub Work Order Material Kit Data
-				 AND ISNULL(IM.IsNonStock,0) = 0
+				 AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(SL.IsNonStock,0) = 0
 				 INSERT INTO #TMPSubWOIssueMaterialParentListData
 				SELECT DISTINCT WOM.SubWorkOrderMaterialsKitId AS WorkOrderMaterialsId, WOM.SubWOPartNoId, 1 AS IsKit
 				FROM dbo.SubWorkOrderMaterialsKit WOM WITH (NOLOCK)  
@@ -224,7 +225,7 @@ SET NOCOUNT ON
 				LEFT JOIN dbo.UnitOfMeasure UOM WITH (NOLOCK) ON UOM.UnitOfMeasureId = WOM.UnitOfMeasureId
 				WHERE WOM.SubWOPartNoId = @SubWOPartNoId AND ISNULL(SL.QuantityOnHand,0) > 0 AND ISNULL(SL.IsParent, 0) = 1 AND WOM.IsDeleted = 0 
 				AND (@ItemMasterId IS NULL OR im.ItemMasterId = @ItemMasterId OR IM_AltMain.ItemMasterId = @ItemMasterId OR IM_EquMain.ItemMasterId = @ItemMasterId)
-			 AND ISNULL(IM.IsNonStock,0) = 0
+			 AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(SL.IsNonStock,0) = 0
 				 END
 			ELSE
 			BEGIN
@@ -248,7 +249,7 @@ SET NOCOUNT ON
 				AND (@ItemMasterId IS NULL OR im.ItemMasterId = @ItemMasterId)
 
 				-- Sub Work Order Material Kit Data
-				 AND ISNULL(IM.IsNonStock,0) = 0
+				 AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(SL.IsNonStock,0) = 0
 				 INSERT INTO #TMPSubWOIssueMaterialParentListData
 				SELECT DISTINCT WOM.SubWorkOrderMaterialsKitId AS WorkOrderMaterialsId, WOM.SubWOPartNoId, 1 AS IsKit
 				FROM dbo.SubWorkOrderMaterialsKit WOM WITH (NOLOCK)  
@@ -266,7 +267,7 @@ SET NOCOUNT ON
 				WHERE WOM.SubWOPartNoId = @SubWOPartNoId AND ISNULL(SL.QuantityOnHand,0) > 0 AND ISNULL(SL.IsParent, 0) = 1 AND WOM.IsDeleted = 0 
 				AND (sl.IsCustomerStock = 0 OR (sl.IsCustomerStock = 1 AND sl.CustomerId = @CustomerId))
 				AND (@ItemMasterId IS NULL OR im.ItemMasterId = @ItemMasterId)
-			 AND ISNULL(IM.IsNonStock,0) = 0
+			 AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(SL.IsNonStock,0) = 0
 				 END
 
 			SELECT * INTO #TMPSubWOMaterialResultListData FROM #TMPSubWOIssueMaterialParentListData tmp 
@@ -373,7 +374,7 @@ SET NOCOUNT ON
 				AND WOM.SubWorkOrderMaterialsId IN (SELECT [SubWorkOrderMaterialsId] FROM #TMPSubWOMaterialResultListData WHERE [IsKit] = 0)
 				--AND (@ItemMasterId IS NULL OR im.ItemMasterId = @ItemMasterId OR IM_AltMain.ItemMasterId = @ItemMasterId OR IM_EquMain.ItemMasterId = @ItemMasterId)
 
-				 AND ISNULL(IM.IsNonStock,0) = 0
+				 AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(SL.IsNonStock,0) = 0
 				 INSERT INTO #listResult ([WorkOrderId], [SubWorkOrderId], [SubWOPartNoId], [SubWorkOrderMaterialsId], [ItemMasterId], [ConditionId], [MasterCompanyId], [Quantity], [QuantityReserved], [QuantityIssued], [QtyToBeIssued], 
 						[UnitCost], [ExtendedCost], [TaskId], [ProvisionId], [PartNumber], [PartDescription], [MainPartNumber], [MainPartDescription], [MainManufacturer], [MainCondition], [StockLineId], [Condition], [StockLineNumber], 
 						[ControlNumber], [IdNumber], [Manufacturer], [SerialNumber], [QuantityAvailable], [QuantityOnHand], [StocklineQuantityOnOrder], [StocklineQuantityTurnIn], [UnitOfMeasure], [Provision], [ProvisionStatusCode], [StockType],
@@ -470,7 +471,7 @@ SET NOCOUNT ON
 				AND WOM.SubWorkOrderMaterialsKitId IN (SELECT [SubWorkOrderMaterialsId] FROM #TMPSubWOMaterialResultListData WHERE [IsKit] = 1)
 				--AND (@ItemMasterId IS NULL OR im.ItemMasterId = @ItemMasterId OR IM_AltMain.ItemMasterId = @ItemMasterId OR IM_EquMain.ItemMasterId = @ItemMasterId)
 					
-			 AND ISNULL(IM.IsNonStock,0) = 0
+			 AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(SL.IsNonStock,0) = 0
 				 END
 			ELSE
 			BEGIN
@@ -568,7 +569,7 @@ SET NOCOUNT ON
 				--AND (sl.IsCustomerStock = 0 OR (sl.IsCustomerStock = 1 AND sl.CustomerId = @CustomerId))
 				--AND (@ItemMasterId IS NULL OR im.ItemMasterId = @ItemMasterId)
 
-				 AND ISNULL(IM.IsNonStock,0) = 0
+				 AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(SL.IsNonStock,0) = 0
 				 INSERT INTO #listResult ([WorkOrderId], [SubWorkOrderId], [SubWOPartNoId], [SubWorkOrderMaterialsId], [ItemMasterId], [ConditionId], [MasterCompanyId], [Quantity], [QuantityReserved], [QuantityIssued], [QtyToBeIssued], 
 						[UnitCost], [ExtendedCost], [TaskId], [ProvisionId], [PartNumber], [PartDescription], [MainPartNumber], [MainPartDescription], [MainManufacturer], [MainCondition], [StockLineId], [Condition], [StockLineNumber], 
 						[ControlNumber], [IdNumber], [Manufacturer], [SerialNumber], [QuantityAvailable], [QuantityOnHand], [StocklineQuantityOnOrder], [StocklineQuantityTurnIn], [UnitOfMeasure], [Provision], [ProvisionStatusCode], [StockType],
@@ -664,7 +665,7 @@ SET NOCOUNT ON
 				--AND (sl.IsCustomerStock = 0 OR (sl.IsCustomerStock = 1 AND sl.CustomerId = @CustomerId))
 				--AND (@ItemMasterId IS NULL OR im.ItemMasterId = @ItemMasterId)
 
-			 AND ISNULL(IM.IsNonStock,0) = 0
+			 AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(SL.IsNonStock,0) = 0
 				 END
 		END
 

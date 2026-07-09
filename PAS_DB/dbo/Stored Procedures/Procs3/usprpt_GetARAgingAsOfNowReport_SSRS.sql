@@ -22,6 +22,7 @@
 	6	 13-Feb-2026	Devendra Shekh		Added New param @id5 
 	7	 20-Feb-2026	Devendra Shekh		Added Missing Report Changes
 	8    17/March/2026	Amit Ghediya		add IncludeInternalCustomer flag for allow internal & Affiliate customer(PN-15762)
+	9    09/July/2026	RAJESH GAMI		[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 EXEC usprpt_GetARAgingAsOfNowReport_SSRS 
 **************************************************************/
 CREATE    PROCEDURE [dbo].[usprpt_GetARAgingAsOfNowReport_SSRS]
@@ -490,7 +491,7 @@ BEGIN
 										JOIN [dbo].[EntityStructureSetup] ES ON ES.EntityStructureId = SL.ManagementStructureId
 										JOIN [dbo].[ManagementStructureLevel] MSL ON ES.Level1Id = MSL.ID
 										JOIN [dbo].[LegalEntity] LE ON MSL.LegalEntityId = LE.LegalEntityId  
-									WHERE SOP.SalesOrderId = SO.SalesOrderId
+									WHERE SOP.SalesOrderId = SO.SalesOrderId AND ISNULL(SL.IsNonStock,0) = 0
 									FOR XML PATH('')), 1, 1, '')),
 								0
 				FROM [dbo].[BillingInvoicing] SOBI WITH (NOLOCK)       
@@ -605,7 +606,7 @@ BEGIN
 										JOIN [dbo].[EntityStructureSetup] ES ON ES.EntityStructureId = SL.ManagementStructureId
 										JOIN [dbo].[ManagementStructureLevel] MSL ON ES.Level1Id = MSL.ID
 										JOIN [dbo].[LegalEntity] LE ON MSL.LegalEntityId = LE.LegalEntityId  
-									WHERE ESOP.ExchangeSalesOrderId = ESO.ExchangeSalesOrderId
+									WHERE ESOP.ExchangeSalesOrderId = ESO.ExchangeSalesOrderId AND ISNULL(SL.IsNonStock,0) = 0
 									FOR XML PATH('')), 1, 1, '')),
 							0
 				FROM [dbo].[ExchangeSalesOrderBillingInvoicing] ESOBI WITH (NOLOCK)    
@@ -1399,7 +1400,7 @@ BEGIN
 										JOIN [dbo].[EntityStructureSetup] ES ON ES.EntityStructureId = SL.ManagementStructureId
 										JOIN [dbo].[ManagementStructureLevel] MSL ON ES.Level1Id = MSL.ID
 										JOIN [dbo].[LegalEntity] LE ON MSL.LegalEntityId = LE.LegalEntityId  
-									WHERE SOP.SalesOrderId = SO.SalesOrderId
+									WHERE SOP.SalesOrderId = SO.SalesOrderId AND ISNULL(SL.IsNonStock,0) = 0
 									FOR XML PATH('')), 1, 1, '')),
 								0
 				FROM [dbo].[BillingInvoicing] SOBI WITH (NOLOCK)       
@@ -1537,7 +1538,7 @@ BEGIN
 											JOIN [dbo].[EntityStructureSetup] ES ON ES.EntityStructureId = SL.ManagementStructureId
 											JOIN [dbo].[ManagementStructureLevel] MSL ON ES.Level1Id = MSL.ID
 											JOIN [dbo].[LegalEntity] LE ON MSL.LegalEntityId = LE.LegalEntityId  
-										WHERE ESOP.ExchangeSalesOrderId = ESO.ExchangeSalesOrderId
+										WHERE ESOP.ExchangeSalesOrderId = ESO.ExchangeSalesOrderId AND ISNULL(SL.IsNonStock,0) = 0
 										FOR XML PATH('')), 1, 1, '')),
 									0
 				FROM [dbo].[ExchangeSalesOrderBillingInvoicing] ESOBI WITH (NOLOCK)    

@@ -13,6 +13,7 @@
  ** --   --------     -------           --------------------------------            
     1    16/08/2023   Ekta Chandegra     Convert text into uppercase   
 	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	3    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 **********************/   
 
 --exec SearchExchangeSalesOrderCoreTrackingData 1,20,'ExchangeSalesOrderNumber',1,'','','','','','','','',0,1,0
@@ -117,7 +118,7 @@ BEGIN
 				left join ItemMaster im WITH (NOLOCK) on exchsop.ItemMasterId = im.ItemMasterId
 				 AND ISNULL(im.IsNonStock,0) = 0
 				 left join ItemMasterExchangeLoan imexch WITH (NOLOCK) on im.ItemMasterId = imexch.ItemMasterId
-				left join Stockline stl WITH (NOLOCK) on rcw.StockLineId = stl.StockLineId
+				left join Stockline stl WITH (NOLOCK) on rcw.StockLineId = stl.StockLineId AND ISNULL(stl.IsNonStock,0) = 0
 				inner join Manufacturer mnf WITH (NOLOCK) on im.ManufacturerId = mnf.ManufacturerId
 				left join ExchCoreMonitoringStatus exchcms WITH(NOLOCK) on exchsop.CoreStatusId = exchcms.ExchangeCoreMonitoringStatusId
 				left join ExchangeCoreLetterType exchclt WITH(NOLOCK) on exchsop.LetterTypeId = exchclt.ExchangeCoreLetterTypeId

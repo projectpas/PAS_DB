@@ -25,6 +25,7 @@
 	9    12/05/2024   Vishal Suthar			Fixed issue with printing and picked qty issue
 	10   12/10/2024	  Moin Bloch		    Modified fixed dublicate Pickticket issue
 	11    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	12    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
      
 -- EXEC [dbo].[GetPickTicketPrint] 1457, 1776, 1236
 **************************************************************/
@@ -113,7 +114,7 @@ BEGIN
 		WHERE 
 		so.SalesOrderId = @SalesOrderId
 		AND sopt.SOPickTicketNumber = @pickTicketNo
-		 AND ISNULL(imt.IsNonStock,0) = 0
+		 AND ISNULL(imt.IsNonStock,0) = 0 AND ISNULL(sl.IsNonStock,0) = 0
 		 ORDER BY sopt.SOPickTicketId ASC
 	--END
 	--COMMIT  TRANSACTION

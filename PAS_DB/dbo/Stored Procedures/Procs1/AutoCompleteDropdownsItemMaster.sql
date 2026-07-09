@@ -16,6 +16,7 @@
     1    12/23/2020   Hemant Saliya		Created
     2    06/14/2024   Vishal Suthar		Increase limit of records from 20 to 50
 	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	4    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
      
 --EXEC [AutoCompleteDropdownsItemMaster] '822',1,200,'108,109,11',1
 **************************************************************/
@@ -46,7 +47,7 @@ BEGIN
 						uom.ShortName AS UnitOfMeasure, 
 						Im.Figure,
 						Im.Item,
-						UnitCost = (select top 1 imps.PP_UnitPurchasePrice FROM dbo.ItemMasterPurchaseSale imps with(NoLock) INNER JOIN dbo.Stockline SL with(NoLock) on SL.ItemMasterId = Im.ItemMasterId AND SL.ConditionId = imps.ConditionId Where imps.ItemMasterId = im.ItemMasterId),
+						UnitCost = (select top 1 imps.PP_UnitPurchasePrice FROM dbo.ItemMasterPurchaseSale imps with(NoLock) INNER JOIN dbo.Stockline SL with(NoLock) on SL.ItemMasterId = Im.ItemMasterId AND SL.ConditionId = imps.ConditionId Where imps.ItemMasterId = im.ItemMasterId AND ISNULL(SL.IsNonStock,0) = 0),
 						Ig.ItemGroupCode As ItemGroup,
 						CASE WHEN Im.IsPma = 1 AND IM.IsDER = 1 THEN 'PMA&DER'
 							 WHEN Im.IsPma = 1 AND IM.IsDER = 0 THEN 'PMA'
@@ -59,7 +60,7 @@ BEGIN
 						isnull(rp. RevisedPart,'')  AS RevisedPart,
 						Im.isSerialized AS IsSerialized,
 						Im.isTimeLife AS IsTimeLife,
-						ConditionId = (select top 1 s.ConditionId from dbo.Stockline s with(NoLock) Where s.ItemMasterId = im.ItemMasterId)
+						ConditionId = (select top 1 s.ConditionId from dbo.Stockline s with(NoLock) Where s.ItemMasterId = im.ItemMasterId AND ISNULL(s.IsNonStock,0) = 0)
 					FROM dbo.ItemMaster Im WITH(NOLOCK) 
 						LEFT JOIN dbo.ItemMaster rp WITH(NOLOCK)  ON Im.ItemMasterId =  rp.ItemMasterId
 						 AND ISNULL(rp.IsNonStock,0) = 0
@@ -82,7 +83,7 @@ BEGIN
 						uom.ShortName AS UnitOfMeasure,
 						Im.Figure,
 						Im.Item,
-						UnitCost = (select top 1 imps.PP_UnitPurchasePrice FROM dbo.ItemMasterPurchaseSale imps with(NoLock) INNER JOIN dbo.Stockline SL with(NoLock) on SL.ItemMasterId = Im.ItemMasterId AND SL.ConditionId = imps.ConditionId Where imps.ItemMasterId = im.ItemMasterId),
+						UnitCost = (select top 1 imps.PP_UnitPurchasePrice FROM dbo.ItemMasterPurchaseSale imps with(NoLock) INNER JOIN dbo.Stockline SL with(NoLock) on SL.ItemMasterId = Im.ItemMasterId AND SL.ConditionId = imps.ConditionId Where imps.ItemMasterId = im.ItemMasterId AND ISNULL(SL.IsNonStock,0) = 0),
 						Ig.ItemGroupCode As ItemGroup,
 						CASE WHEN Im.IsPma = 1 AND IM.IsDER = 1 THEN 'PMA&DER'
 							 WHEN Im.IsPma = 1 AND IM.IsDER = 0 THEN 'PMA'
@@ -95,7 +96,7 @@ BEGIN
 						isnull(rp. RevisedPart, '')  AS RevisedPart,
 						Im.isSerialized AS IsSerialized,
 						Im.isTimeLife AS IsTimeLife,
-						ConditionId = (select top 1 s.ConditionId from dbo.Stockline s with(NoLock) Where s.ItemMasterId = im.ItemMasterId)
+						ConditionId = (select top 1 s.ConditionId from dbo.Stockline s with(NoLock) Where s.ItemMasterId = im.ItemMasterId AND ISNULL(s.IsNonStock,0) = 0)
 					FROM dbo.ItemMaster Im WITH(NOLOCK) 
 						LEFT JOIN dbo.ItemMaster rp WITH(NOLOCK) ON Im.ItemMasterId =  rp.ItemMasterId
 						 AND ISNULL(rp.IsNonStock,0) = 0
@@ -121,7 +122,7 @@ BEGIN
 						Im.PurchaseUnitOfMeasureId AS UnitOfMeasureId,
 						uom.ShortName AS UnitOfMeasure, 
 						--imps.PP_UnitPurchasePrice AS UnitCost,
-						UnitCost = (select top 1 imps.PP_UnitPurchasePrice FROM dbo.ItemMasterPurchaseSale imps with(NoLock) INNER JOIN dbo.Stockline SL with(NoLock) on SL.ItemMasterId = Im.ItemMasterId AND SL.ConditionId = imps.ConditionId Where imps.ItemMasterId = im.ItemMasterId),
+						UnitCost = (select top 1 imps.PP_UnitPurchasePrice FROM dbo.ItemMasterPurchaseSale imps with(NoLock) INNER JOIN dbo.Stockline SL with(NoLock) on SL.ItemMasterId = Im.ItemMasterId AND SL.ConditionId = imps.ConditionId Where imps.ItemMasterId = im.ItemMasterId AND ISNULL(SL.IsNonStock,0) = 0),
 						Ig.ItemGroupCode As ItemGroup,
 						CASE WHEN Im.IsPma = 1 AND IM.IsDER = 1 THEN 'PMA&DER'
 							 WHEN Im.IsPma = 1 AND IM.IsDER = 0 THEN 'PMA'
@@ -134,7 +135,7 @@ BEGIN
 						isnull(rp. RevisedPart, '')  AS RevisedPart,
 						Im.isSerialized AS IsSerialized,
 						Im.isTimeLife AS IsTimeLife,
-						ConditionId = (select top 1 s.ConditionId from dbo.Stockline s with(NoLock) Where s.ItemMasterId = im.ItemMasterId)
+						ConditionId = (select top 1 s.ConditionId from dbo.Stockline s with(NoLock) Where s.ItemMasterId = im.ItemMasterId AND ISNULL(s.IsNonStock,0) = 0)
 					FROM dbo.ItemMaster Im WITH(NOLOCK) 
 						LEFT JOIN dbo.ItemMaster rp WITH(NOLOCK)  ON Im.ItemMasterId =  rp.ItemMasterId
 						 AND ISNULL(rp.IsNonStock,0) = 0
@@ -155,7 +156,7 @@ BEGIN
 						Im.GLAccountId,
 						Im.PurchaseUnitOfMeasureId AS UnitOfMeasureId,
 						uom.ShortName AS UnitOfMeasure,
-						UnitCost = (select top 1 imps.PP_UnitPurchasePrice FROM dbo.ItemMasterPurchaseSale imps with(NoLock) INNER JOIN dbo.Stockline SL with(NoLock) on SL.ItemMasterId = Im.ItemMasterId AND SL.ConditionId = imps.ConditionId Where imps.ItemMasterId = im.ItemMasterId),
+						UnitCost = (select top 1 imps.PP_UnitPurchasePrice FROM dbo.ItemMasterPurchaseSale imps with(NoLock) INNER JOIN dbo.Stockline SL with(NoLock) on SL.ItemMasterId = Im.ItemMasterId AND SL.ConditionId = imps.ConditionId Where imps.ItemMasterId = im.ItemMasterId AND ISNULL(SL.IsNonStock,0) = 0),
 						Ig.ItemGroupCode As ItemGroup,
 						CASE WHEN Im.IsPma = 1 AND IM.IsDER = 1 THEN 'PMA&DER'
 							 WHEN Im.IsPma = 1 AND IM.IsDER = 0 THEN 'PMA'
@@ -168,7 +169,7 @@ BEGIN
 						isnull(rp. RevisedPart, '')  AS RevisedPart,
 						Im.isSerialized AS IsSerialized,
 						Im.isTimeLife AS IsTimeLife,
-						ConditionId = (select top 1 s.ConditionId from dbo.Stockline s with(NoLock) Where s.ItemMasterId = im.ItemMasterId)
+						ConditionId = (select top 1 s.ConditionId from dbo.Stockline s with(NoLock) Where s.ItemMasterId = im.ItemMasterId AND ISNULL(s.IsNonStock,0) = 0)
 					FROM dbo.ItemMaster Im WITH(NOLOCK) 
 						LEFT JOIN dbo.ItemMaster rp WITH(NOLOCK)  ON Im.ItemMasterId =  rp.ItemMasterId
 						 AND ISNULL(rp.IsNonStock,0) = 0

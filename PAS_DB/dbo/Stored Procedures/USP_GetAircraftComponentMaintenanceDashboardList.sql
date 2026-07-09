@@ -19,6 +19,7 @@
 ** 7    30/06/2026	 Moin Bloch  		  Added @CreatedDate For Order by PN-17043
 
 	1    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	8    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 ***********************************/
 CREATE       PROCEDURE [dbo].[USP_GetAircraftComponentMaintenanceDashboardList]
 (
@@ -131,7 +132,7 @@ BEGIN
             LEFT JOIN [dbo].[MaintenanceCategory] mtc WITH (NOLOCK)
                 ON AMP.MtcCategoryId = mtc.MtcCategoryId
             LEFT JOIN [dbo].[Stockline] STK WITH (NOLOCK)
-                ON STK.StockLineId = ARH.StockLineId
+                ON STK.StockLineId = ARH.StockLineId AND ISNULL(STK.IsNonStock,0) = 0
             LEFT JOIN (
                 SELECT WOP.[ProgramId], WO.[WorkOrderId], WO.[WorkOrderNum],
                        ROW_NUMBER() OVER (PARTITION BY WOP.[ProgramId] ORDER BY WO.[WorkOrderId] DESC) AS rn
@@ -226,7 +227,7 @@ BEGIN
             LEFT JOIN dbo.ItemMasterAircraftMapping IMAM WITH (NOLOCK) ON AIPD.ATAChapterId = IMAM.ItemMasterAircraftMappingId
             INNER JOIN dbo.AircraftRegistryHeader ARH WITH (NOLOCK) ON ARH.AircraftRegistryId = AIPD.AircraftRegistryId
             INNER JOIN dbo.ItemMaster IM WITH (NOLOCK) ON AIPD.ItemMasterId = IM.ItemMasterId
-            LEFT JOIN dbo.Stockline STK WITH (NOLOCK) ON STK.StockLineId = AIPD.StockLineId
+            LEFT JOIN dbo.Stockline STK WITH (NOLOCK) ON STK.StockLineId = AIPD.StockLineId AND ISNULL(STK.IsNonStock,0) = 0
             LEFT JOIN (
                 SELECT WOP.AircraftInstalledPartDetailsId, WO.WorkOrderId, WO.WorkOrderNum,
                        ROW_NUMBER() OVER (PARTITION BY WOP.AircraftInstalledPartDetailsId ORDER BY WO.WorkOrderId DESC) AS rn

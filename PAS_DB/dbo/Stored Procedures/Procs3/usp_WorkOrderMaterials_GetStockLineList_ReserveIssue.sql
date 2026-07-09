@@ -14,6 +14,7 @@
     1    24-Sept-2025		Devendra Shekh					Created
 	2    16-March-2026		AMIT GHEDIYA					Allow AR condition to reserve (PN-15562)
 	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	4    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
      
 exec usp_WorkOrderMaterials_GetStockLineList_ReserveIssue @WorkFlowWorkOrderId=9904,@ItemMasterId=0,@WorkOrderMaterialsId=0,@KitId=0,@IncludeCustomerStock=0
 **************************************************************/ 
@@ -326,7 +327,7 @@ SET NOCOUNT ON
 					AND (@WorkOrderMaterialsId IS NULL OR WOM.WorkOrderMaterialsId = @WorkOrderMaterialsId)
 					AND WOM.ItemMasterId IN (SELECT [ItemMasterId] FROM #AllowItemMasterIds)
 
-			 AND ISNULL(IM.IsNonStock,0) = 0
+			 AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(SL.IsNonStock,0) = 0
 					 INSERT INTO #tmpWorkOrderMaterialStockLineResult
 			SELECT  WOM.WorkOrderId,
 					WOM.WorkFlowWorkOrderId,
@@ -407,7 +408,7 @@ SET NOCOUNT ON
 					AND (@WorkOrderMaterialsId IS NULL OR WOM.WorkOrderMaterialsId = @WorkOrderMaterialsId)
 					AND WOM.ItemMasterId IN (SELECT [ItemMasterId] FROM #AllowItemMasterIds)
 
-			 AND ISNULL(IM.IsNonStock,0) = 0
+			 AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(SL.IsNonStock,0) = 0
 					 INSERT INTO #tmpWorkOrderMaterialStockLineResult
 			SELECT  WOM.WorkOrderId,
 					WOM.WorkFlowWorkOrderId,
@@ -489,7 +490,7 @@ SET NOCOUNT ON
 					AND WOM.ItemMasterId IN (SELECT [ItemMasterId] FROM #AllowItemMasterIds)
 
 					-- Saving Work Order Materials Kit Part Details
-			 AND ISNULL(IM.IsNonStock,0) = 0 TRUNCATE TABLE #AltPartList;
+			 AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(SL.IsNonStock,0) = 0 TRUNCATE TABLE #AltPartList;
 			TRUNCATE TABLE #EquPartList;
 			TRUNCATE TABLE #ConditionGroup;
 
@@ -604,7 +605,7 @@ SET NOCOUNT ON
 					AND (@KitId IS NULL OR WOMKM.KitId = @KitId)
 					AND WOM.ItemMasterId IN (SELECT [ItemMasterId] FROM #AllowItemMasterIds)
 
-			 AND ISNULL(IM.IsNonStock,0) = 0
+			 AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(SL.IsNonStock,0) = 0
 					 INSERT INTO #tmpWorkOrderMaterialStockLineResult
 			SELECT  DISTINCT WOM.WorkOrderId,
 					WOM.WorkFlowWorkOrderId,
@@ -685,7 +686,7 @@ SET NOCOUNT ON
 					AND (@KitId IS NULL OR WOMKM.KitId = @KitId)
 					AND WOM.ItemMasterId IN (SELECT [ItemMasterId] FROM #AllowItemMasterIds)
 
-			 AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(IM_AltMain.IsNonStock,0) = 0
+			 AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(IM_AltMain.IsNonStock,0) = 0 AND ISNULL(SL.IsNonStock,0) = 0
 					 INSERT INTO #tmpWorkOrderMaterialStockLineResult
 			SELECT  DISTINCT WOM.WorkOrderId,
 					WOM.WorkFlowWorkOrderId,
@@ -765,7 +766,7 @@ SET NOCOUNT ON
 					AND (@KitId IS NULL OR WOMKM.KitId = @KitId)
 					AND WOM.ItemMasterId IN (SELECT [ItemMasterId] FROM #AllowItemMasterIds)
 
-				 AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(IM_EquMain.IsNonStock,0) = 0
+				 AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(IM_EquMain.IsNonStock,0) = 0 AND ISNULL(SL.IsNonStock,0) = 0
 					 SELECT * FROM #tmpWorkOrderMaterialStockLineResult;
 
 			END

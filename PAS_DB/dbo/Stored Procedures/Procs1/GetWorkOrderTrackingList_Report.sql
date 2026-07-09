@@ -21,6 +21,7 @@
 	5   23-Oct-2024     Sahdev Saliya       Added new field WO Number in the Work Order Management Report for filter  
 	3   18/04/2025      Ayushi              Added the condition for pn , pndescription
 	6    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	7    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 EXECUTE   [dbo].[usprpt_GetWorkOrderBacklogReport] 'WO Opened','','','','1','1,4,43,44,45,80,84,88','46,47,66','48,49,50,58,59,67,68,69','51,52,53,54,55,56,57,60'
 **************************************************************/
 CREATE     PROCEDURE [dbo].[GetWorkOrderTrackingList_Report] 
@@ -125,7 +126,7 @@ BEGIN
 				JOIN dbo.WorkOrderWorkFlow WOWF WITH(NOLOCK) ON WPN.ID = WOWF.WorkOrderPartNoId  
 				JOIN dbo.WorkOrderStatus WOS WITH(NOLOCK) ON WOS.Id = WPN.WorkOrderStatusId  
 				JOIN dbo.ItemMaster IM WITH(NOLOCK) ON IM.ItemMasterId = WPN.ItemMasterId  
-				LEFT JOIN dbo.Stockline STL WITH(NOLOCK) ON WPN.StockLineId = STL.StockLineId
+				LEFT JOIN dbo.Stockline STL WITH(NOLOCK) ON WPN.StockLineId = STL.StockLineId AND ISNULL(STL.IsNonStock,0) = 0
 				LEFT JOIN dbo.WorkOrderSettings wost WITH(NOLOCK) ON wost.MasterCompanyId = WO.MasterCompanyId AND WO.WorkOrderTypeId = wost.WorkOrderTypeId
 				JOIN dbo.Priority PR WITH(NOLOCK) ON WPN.WorkOrderPriorityId = PR.PriorityId  
 				JOIN dbo.WorkOrderStage WOSG WITH(NOLOCK) ON WTT.CurrentStageId = WOSG.WorkOrderStageId and wosg.IncludeInStageReport=1   
@@ -225,7 +226,7 @@ BEGIN
 			JOIN dbo.ItemMaster IM WITH(NOLOCK) ON IM.ItemMasterId = WPN.ItemMasterId 
 			LEFT JOIN [dbo].[ItemMaster] RIM WITH (NOLOCK) ON WPN.RevisedItemmasterid = RIM.ItemMasterId
 			 AND ISNULL(RIM.IsNonStock,0) = 0
-			 LEFT JOIN dbo.Stockline STL WITH(NOLOCK) ON WPN.StockLineId = STL.StockLineId
+			 LEFT JOIN dbo.Stockline STL WITH(NOLOCK) ON WPN.StockLineId = STL.StockLineId AND ISNULL(STL.IsNonStock,0) = 0
 			LEFT JOIN dbo.WorkOrderSettings wost WITH(NOLOCK) ON wost.MasterCompanyId = WO.MasterCompanyId AND WO.WorkOrderTypeId = wost.WorkOrderTypeId
 			JOIN dbo.Priority PR WITH(NOLOCK) ON WPN.WorkOrderPriorityId = PR.PriorityId  
 			INNER JOIN dbo.WorkOrderStage WOSG WITH(NOLOCK) ON WTT.CurrentStageId = WOSG.WorkOrderStageId and wosg.IncludeInStageReport=1   

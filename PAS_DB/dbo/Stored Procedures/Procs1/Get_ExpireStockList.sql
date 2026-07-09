@@ -17,6 +17,7 @@
  ** --   --------     -------  --------------------------------              
     1    05/23/2023   Hemant Saliya  Created 
 	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	3    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
     
 -- EXEC [Get_ExpireStockList] 947    
 **************************************************************/    
@@ -137,7 +138,7 @@ BEGIN
         WHERE stl.MasterCompanyId = @MasterCompanyId and (stl.IsDeleted=0 ) and (stl.QuantityOnHand >0 or stl.QuantityAvailable >0 )    
         AND stl.ExpirationDate is not null --((stl.DaysReceived > 0 or stl.ReceivedDate is not null) or (stl.ManufacturingDays > 0 or stl.ExpirationDate is not null) or (stl.TagDays > 0 or stl.TagDate is not null) or (stl.OpenDays > 0))     
       AND stl.IsParent = 1 and Cast(stl.ExpirationDate as date)   >= Cast(@FromExpiratioDate as date)    and Cast(stl.ExpirationDate as date)  <= Cast(@ToExpirationDate as date)     
-     AND ISNULL(im.IsNonStock,0) = 0 ), ResultCount AS(Select COUNT(StockLineId) AS totalItems FROM Result)    
+     AND ISNULL(im.IsNonStock,0) = 0 AND ISNULL(stl.IsNonStock,0) = 0 ), ResultCount AS(Select COUNT(StockLineId) AS totalItems FROM Result)    
     SELECT * INTO #TempResults FROM  Result    
      WHERE ((@GlobalFilter <>'' AND ((PartNumber LIKE '%' +@GlobalFilter+'%') OR    
       (PartDescription LIKE '%' +@GlobalFilter+'%') OR     

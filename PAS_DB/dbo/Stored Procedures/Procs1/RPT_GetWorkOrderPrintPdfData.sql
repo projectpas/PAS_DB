@@ -30,6 +30,7 @@ EXEC [RPT_GetWorkOrderPrintPdfData]
 EXEC RPT_GetWorkOrderPrintPdfData 4108,3625
 
 	1    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	19    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 **************************************************************/
 CREATE PROCEDURE [dbo].[RPT_GetWorkOrderPrintPdfData]              
 	@WorkorderId BIGINT,              
@@ -234,7 +235,7 @@ BEGIN
 			 LEFT JOIN [dbo].[ItemMaster] imtr WITH(NOLOCK) ON imtr.ItemMasterId = wop.RevisedItemmasterid            
 			 AND ISNULL(imtr.IsNonStock,0) = 0
 			  LEFT JOIN [dbo].[Priority] p WITH(NOLOCK) ON p.PriorityId = wop.WorkOrderPriorityId              
-			LEFT JOIN [dbo].[Stockline] sl WITH(NOLOCK) ON sl.StockLineId = wop.StockLineId              
+			LEFT JOIN [dbo].[Stockline] sl WITH(NOLOCK) ON sl.StockLineId = wop.StockLineId AND ISNULL(sl.IsNonStock,0) = 0              
 			LEFT JOIN [dbo].[Employee] el WITH(NOLOCK) ON el.EmployeeId = wop.TechnicianId              
 			LEFT JOIN [dbo].[WorkOrderStage] ws WITH(NOLOCK) ON ws.WorkOrderStageId = wop.WorkOrderStageId              
 			LEFT JOIN [dbo].[ReceivingCustomerWork] rc WITH(NOLOCK) ON rc.ReceivingCustomerWorkId = wop.ReceivingCustomerWorkId            

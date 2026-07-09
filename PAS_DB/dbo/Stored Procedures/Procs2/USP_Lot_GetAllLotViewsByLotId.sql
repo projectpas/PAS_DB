@@ -16,6 +16,7 @@
 	3    10/16/2024	 Abhishek Jirawla	Implemented the new tables for SalesOrder related tables
     4    07-07-2025  Moin Bloch         Changed Old To New Billing Table 
 	5    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	6    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 
 -- EXEC USP_Lot_GetAllLotViewsByLotId 7,'ViewAllPN',1
 ************************************************************************/
@@ -183,7 +184,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 					 LEFT JOIN [dbo].[LegalEntity] CO WITH (NOLOCK) ON CO.[LegalEntityId] = SL.[TaggedBy]
 
 				WHERE lot.LotId = @LotId AND lot.MasterCompanyId = @MasterCompanyId
-				 AND ISNULL(im.IsNonStock,0) = 0
+				 AND ISNULL(im.IsNonStock,0) = 0 AND ISNULL(sl.IsNonStock,0) = 0
 				 ORDER BY ltin.CreatedDate DESC
 			END
 			ELSE IF(UPPER(@Type) = UPPER('PNInStockView'))
@@ -291,7 +292,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 					 LEFT JOIN [dbo].[Vendor] VE WITH (NOLOCK) ON VE.[VendorId] = SL.[TaggedBy]
 					 LEFT JOIN [dbo].[LegalEntity] CO WITH (NOLOCK) ON CO.[LegalEntityId] = SL.[TaggedBy]
 				 WHERE lot.LotId = @LotId AND lot.MasterCompanyId = @MasterCompanyId AND ISNULL(sl.QuantityOnHand,0) > 0 AND (UPPER(ltCal.Type) NOT IN (UPPER(@LOT_TransOut_SO), UPPER(@LOT_TransOut_RO),UPPER(@LOT_TransOut_LOT)))
-				  AND ISNULL(im.IsNonStock,0) = 0
+				  AND ISNULL(im.IsNonStock,0) = 0 AND ISNULL(sl.IsNonStock,0) = 0
 				  ORDER BY ltin.CreatedDate DESC
 			END
 			ELSE IF(UPPER(@Type) = UPPER('PNSoldView'))
@@ -406,7 +407,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 					 LEFT JOIN [dbo].[Vendor] VE WITH (NOLOCK) ON VE.[VendorId] = SL.[TaggedBy]
 					 LEFT JOIN [dbo].[LegalEntity] CO WITH (NOLOCK) ON CO.[LegalEntityId] = SL.[TaggedBy]
 				 WHERE lot.LotId = @LotId AND lot.MasterCompanyId = @MasterCompanyId AND UPPER(ltCal.Type) = UPPER(@LOT_TransOut_SO)
-				  AND ISNULL(im.IsNonStock,0) = 0
+				  AND ISNULL(im.IsNonStock,0) = 0 AND ISNULL(sl.IsNonStock,0) = 0
 				  ORDER BY ltin.CreatedDate DESC
 			END
 			ELSE IF(UPPER(@Type) = UPPER('RepairedView'))
@@ -515,7 +516,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 					 LEFT JOIN [dbo].[Vendor] VE WITH (NOLOCK) ON VE.[VendorId] = SL.[TaggedBy]
 					 LEFT JOIN [dbo].[LegalEntity] CO WITH (NOLOCK) ON CO.[LegalEntityId] = SL.[TaggedBy]
 				 WHERE lot.LotId = @LotId AND lot.MasterCompanyId = @MasterCompanyId AND (UPPER(ltCal.Type) = UPPER(@LOT_TransIn_RO))
-				  AND ISNULL(im.IsNonStock,0) = 0
+				  AND ISNULL(im.IsNonStock,0) = 0 AND ISNULL(sl.IsNonStock,0) = 0
 				  ORDER BY ltin.CreatedDate DESC
 			END
 			ELSE IF(UPPER(@Type) = UPPER('OtherCost'))
@@ -574,7 +575,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 					 LEFT JOIN dbo.LotManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID IN (SELECT Item FROM DBO.SPLITSTRING(@AppModuleId,',')) AND MSD.ReferenceID = lot.LotId	AND MSD.EntityMSID = Lot.ManagementStructureId
 				 WHERE lot.LotId = @LotId AND lot.MasterCompanyId = @MasterCompanyId 
 					   AND (ISNULL((SELECT SUM(ISNULL(PF.Amount,0)) FROM dbo.PurchaseOrderFreight PF WITH(NOLOCK) WHERE PF.PurchaseOrderPartRecordId = part.PurchaseOrderPartRecordId AND ISNULL(PF.IsDeleted,0) = 0),0) > 0 
-							OR ISNULL((SELECT SUM(ISNULL(PC.ExtendedCost,0)) FROM dbo.PurchaseOrderCharges PC WITH(NOLOCK) WHERE PC.PurchaseOrderPartRecordId = part.PurchaseOrderPartRecordId AND ISNULL(PC.IsDeleted,0) = 0),0) >0)
+							OR ISNULL((SELECT SUM(ISNULL(PC.ExtendedCost,0)) FROM dbo.PurchaseOrderCharges PC WITH(NOLOCK) WHERE PC.PurchaseOrderPartRecordId = part.PurchaseOrderPartRecordId AND ISNULL(PC.IsDeleted,0) = 0),0) >0) AND ISNULL(sl.IsNonStock,0) = 0
 				 )
 
 				 Select * from Lot_CTE Group by LotId,PurchaseOrderId,Vendor,VendorCode,VendorId,FreightCost,ChargesCost,PoDate,PoNum,PartNumber,PartDescription,Condition,Manufacturer ORDER BY PoDate DESC

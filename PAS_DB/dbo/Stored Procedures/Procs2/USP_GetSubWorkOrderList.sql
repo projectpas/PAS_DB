@@ -23,6 +23,7 @@
 	11	 02/20/2024   Devendra Shekh			added New Stk Join to read Revised(Update) StockLineNumber 
     12	07/Mar/2025	  Bhargav Saliya			UTC Date Changes
 	13    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	14    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 exec USP_GetSubWorkOrderList 
 @PageNumber=1,@PageSize=10,@SortColumn=N'CreatedDate',@SortOrder=-1,@GlobalFilter=N'',@StatusId=1,@SubWorkOrderNo=NULL,
 @MasterPartNo=NULL,@MasterPartDescription=NULL,@Manufacturer=NULL,@WorkScope=NULL,@RevisedPartNo=NULL,@SerialNumber=NULL,
@@ -236,11 +237,11 @@ BEGIN
 				LEFT JOIN [dbo].[WorkOrderStatus] STS WITH (NOLOCK) ON SWPT.SubWorkOrderStatusId = STS.Id
 				LEFT JOIN #tempSubWO tmpSub WITH (NOLOCK) ON SWO.SubWorkOrderId = tmpSub.SubWorkOrderId
 				LEFT JOIN [dbo].[WorkOrderMaterialStockLine] WOMS WITH (NOLOCK) ON WOMS.StockLineId = SWPT.RevisedStockLineId 
-				LEFT JOIN [dbo].[Stockline] RSL WITH (NOLOCK) ON SWPT.RevisedStockLineId = RSL.StockLineId
+				LEFT JOIN [dbo].[Stockline] RSL WITH (NOLOCK) ON SWPT.RevisedStockLineId = RSL.StockLineId AND ISNULL(RSL.IsNonStock,0) = 0
 
 		 	  WHERE ((SWO.IsDeleted=@IsDeleted) AND (@IsActive IS NULL OR SWO.IsActive=@IsActive))			     
 					AND SWO.MasterCompanyId=@MasterCompanyId AND SWO.WorkOrderId = @WorkOrderId	AND SWO.WorkOrderPartNumberId = @WorkOrderPartNumberId
-			 AND ISNULL(IM.IsNonStock,0) = 0 ), ResultCount AS(SELECT COUNT(SubWorkOrderId) AS totalItems FROM Result)
+			 AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(SL.IsNonStock,0) = 0 ), ResultCount AS(SELECT COUNT(SubWorkOrderId) AS totalItems FROM Result)
 			SELECT * INTO #TempResult FROM  Result
 			 WHERE ((@GlobalFilter <>'' AND (([SubWorkOrderNo] LIKE '%' +@GlobalFilter+'%') OR
 			        ([MasterPartNo] LIKE '%' + @GlobalFilter+'%') OR	

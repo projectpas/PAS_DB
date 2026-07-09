@@ -4,6 +4,7 @@
  ** PR   Date						 Author							Change Description
  ** --   --------					 -------						-------------------------------
 	1    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	2    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 ****************************************************************************************************************************************/
 Create   PROCEDURE [dbo].[GetPickTicketForEdit_WO]
 @WOPickTicketId bigint,
@@ -77,9 +78,9 @@ BEGIN
 		LEFT JOIN DBO.Vendor vTraceble WITH(NOLOCK) ON sl.TraceableTo = vTraceble.VendorId
 		LEFT JOIN DBO.LegalEntity leTraceble WITH(NOLOCK) ON sl.TraceableTo = leTraceble.LegalEntityId
 		LEFT JOIN (SELECT ItemMasterId, [Name],StockLineId FROM DBO.Stockline S WITH(NOLOCK)
-			INNER JOIN DBO.Manufacturer M WITH(NOLOCK) ON M.ManufacturerId = S.ManufacturerId) Smf ON Smf.ItemMasterId = imt.ItemMasterId 
+			INNER JOIN DBO.Manufacturer M WITH(NOLOCK) ON M.ManufacturerId = S.ManufacturerId WHERE ISNULL(S.IsNonStock,0) = 0) Smf ON Smf.ItemMasterId = imt.ItemMasterId 
 					AND Smf.StockLineId = sl.StockLineId
-		WHERE wopt.PickTicketId=@WOPickTicketId AND ISNULL(imt.IsNonStock,0) = 0 ;
+		WHERE wopt.PickTicketId=@WOPickTicketId AND ISNULL(imt.IsNonStock,0) = 0 AND ISNULL(sl.IsNonStock,0) = 0 ;
 	END
 	ELSE
 	BEGIN
@@ -128,9 +129,9 @@ BEGIN
 		LEFT JOIN DBO.Vendor vTraceble WITH(NOLOCK) ON sl.TraceableTo = vTraceble.VendorId
 		LEFT JOIN DBO.LegalEntity leTraceble WITH(NOLOCK) ON sl.TraceableTo = leTraceble.LegalEntityId
 		LEFT JOIN (SELECT ItemMasterId, [Name],StockLineId FROM DBO.Stockline S WITH(NOLOCK)
-			INNER JOIN DBO.Manufacturer M WITH(NOLOCK) ON M.ManufacturerId = S.ManufacturerId) Smf ON Smf.ItemMasterId = imt.ItemMasterId 
+			INNER JOIN DBO.Manufacturer M WITH(NOLOCK) ON M.ManufacturerId = S.ManufacturerId WHERE ISNULL(S.IsNonStock,0) = 0) Smf ON Smf.ItemMasterId = imt.ItemMasterId 
 			AND Smf.StockLineId = sl.StockLineId
-		WHERE wopt.PickTicketId = @WOPickTicketId AND ISNULL(imt.IsNonStock,0) = 0 ;
+		WHERE wopt.PickTicketId = @WOPickTicketId AND ISNULL(imt.IsNonStock,0) = 0 AND ISNULL(sl.IsNonStock,0) = 0 ;
 	END
 	END
 	COMMIT  TRANSACTION

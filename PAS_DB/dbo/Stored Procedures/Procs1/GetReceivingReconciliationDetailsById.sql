@@ -18,6 +18,7 @@
     7    18/12/2024   Devendra Shekh	Added QtyVariance,PriceVariance Field
 	8    12/31/2024   RAJESH GAMI   Getting Vendor Proforma Invoice Amount From the PO/RO 
 	9    03/01/2025   RAJESH GAMI   Modified logic for get the VEndorproforma Invoice Amount
+	10    09/July/2026   RAJESH GAMI   [PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 
 	
 --  EXEC GetReceivingReconciliationDetailsById 321
@@ -114,7 +115,7 @@ BEGIN
 
 				 FROM [dbo].[ReceivingReconciliationDetails] JBD WITH(NOLOCK)
 					 INNER JOIN [dbo].[ReceivingReconciliationHeader] JBH WITH(NOLOCK) ON JBD.ReceivingReconciliationId=JBH.ReceivingReconciliationId					 
-					  LEFT JOIN [dbo].[Stockline] SLI WITH(NOLOCK) ON SLI.[StockLineId] = JBD.[StockLineId] AND UPPER(JBD.StockType)= 'STOCK'						
+					  LEFT JOIN [dbo].[Stockline] SLI WITH(NOLOCK) ON SLI.[StockLineId] = JBD.[StockLineId] AND UPPER(JBD.StockType)= 'STOCK' AND ISNULL(SLI.IsNonStock,0) = 0 						
 					  LEFT JOIN [dbo].[NonStockInventory] NSI WITH(NOLOCK) ON NSI.[NonStockInventoryId] = JBD.[StockLineId] AND UPPER(JBD.StockType)= 'NONSTOCK'					  
 					  LEFT JOIN [dbo].[AssetInventory] ASI WITH(NOLOCK) ON ASI.[AssetInventoryId] = JBD.[StockLineId] AND UPPER(JBD.StockType)= 'ASSET'
 					  LEFT JOIN [dbo].[StocklineManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = JBD.StockLineId AND UPPER(JBD.StockType)= 'STOCK'

@@ -16,6 +16,7 @@
  ** --   --------         -------          --------------------------------            
     1    26-Sep-2025	  Amit Ghediya	   Created 
 	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	3    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
        
 EXECUTE   [dbo].[usprpt_GetCustomerPOFulfillingReport] '2025-10-07','2025-11-25',1,1,'','',2,''
 **************************************************************/  
@@ -89,7 +90,7 @@ BEGIN
 				INNER JOIN [DBO].[ItemMaster] IM WITH(NOLOCK) ON SOP.ItemMasterId = IM.ItemMasterId
 				LEFT JOIN [DBO].[UnitOfMeasure] IU WITH(NOLOCK) ON IM.ConsumeUnitOfMeasureId = IU.UnitOfMeasureId
 				LEFT JOIN [DBO].[SalesOrderStocklineV1] SST WITH(NOLOCK) ON SST.SalesOrderPartId = SOP.SalesOrderPartId
-				LEFT JOIN [DBO].[Stockline] STK WITH(NOLOCK) ON STK.StockLineId = SST.StockLineId
+				LEFT JOIN [DBO].[Stockline] STK WITH(NOLOCK) ON STK.StockLineId = SST.StockLineId AND ISNULL(STK.IsNonStock,0) = 0
 				LEFT JOIN [DBO].[SalesOrderStockLineCost] STKC WITH(NOLOCK) ON STKC.SalesOrderPartId = SST.SalesOrderPartId AND STKC.SalesOrderStocklineId = SST.SalesOrderStocklineId
 				LEFT JOIN [DBO].[BillingInvoicingItems] BII WITH(NOLOCK) ON BII.ReferenceId = SOP.SalesOrderId AND BII.SubReferenceId = SOP.SalesOrderPartId AND BII.ModuleId = @ModuleId AND BII.IsVersionIncrease = 0
 				LEFT JOIN [DBO].[BillingInvoicing] BI WITH(NOLOCK) ON BII.BillingInvoicingId = BI.BillingInvoicingId
@@ -166,7 +167,7 @@ BEGIN
 				INNER JOIN [DBO].[ItemMaster] IM WITH(NOLOCK) ON SOP.ItemMasterId = IM.ItemMasterId
 				LEFT JOIN [DBO].[UnitOfMeasure] IU WITH(NOLOCK) ON IM.ConsumeUnitOfMeasureId = IU.UnitOfMeasureId
 				LEFT JOIN [DBO].[SalesOrderStocklineV1] SST WITH(NOLOCK) ON SST.SalesOrderPartId = SOP.SalesOrderPartId
-				LEFT JOIN [DBO].[Stockline] STK WITH(NOLOCK) ON STK.StockLineId = SST.StockLineId
+				LEFT JOIN [DBO].[Stockline] STK WITH(NOLOCK) ON STK.StockLineId = SST.StockLineId AND ISNULL(STK.IsNonStock,0) = 0
 				LEFT JOIN [DBO].[SalesOrderStockLineCost] STKC WITH(NOLOCK) ON STKC.SalesOrderPartId = SST.SalesOrderPartId 
 				   AND STKC.SalesOrderStocklineId = SST.SalesOrderStocklineId
 				LEFT JOIN [DBO].[BillingInvoicingItems] BII WITH(NOLOCK) ON BII.ReferenceId = SOP.SalesOrderId 

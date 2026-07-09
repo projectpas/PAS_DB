@@ -19,6 +19,7 @@
 	4	 20-JAN-2026        Priyansh Patel  		Added CSN, TSN, CSO, TSO fields
 	5	 24-FEB-2026        Moin Bloch   		    Added OutGoingItemMasterId And OutGoingPartNumber
 	6    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	7    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
  --exec dbo.getReceivingCustomerWorkById 5837
       
 **************************************************************/    
@@ -212,7 +213,7 @@ AS BEGIN
 			LEFT JOIN [dbo].[WOInspectionChecklist] woi WITH(NOLOCK) ON rc.ReceivingCustomerWorkId = woi.ReceivingCustomerWorkId
 			LEFT JOIN [dbo].[ExchangeSalesOrder] eso WITH(NOLOCK) ON rc.ExchangeSalesOrderId = eso.ExchangeSalesOrderId
 			LEFT JOIN [dbo].[UnitOfMeasure] uom WITH(NOLOCK) ON im.PurchaseUnitOfMeasureId = uom.UnitOfMeasureId
-			LEFT JOIN [dbo].[Stockline] stk WITH(NOLOCK) ON rc.StockLineId = stk.StockLineId
+			LEFT JOIN [dbo].[Stockline] stk WITH(NOLOCK) ON rc.StockLineId = stk.StockLineId AND ISNULL(stk.IsNonStock,0) = 0
 			WHERE rc.ReceivingCustomerWorkId = @ReceivingCustomerWorkId AND ISNULL(im.IsNonStock,0) = 0 ;
 
 

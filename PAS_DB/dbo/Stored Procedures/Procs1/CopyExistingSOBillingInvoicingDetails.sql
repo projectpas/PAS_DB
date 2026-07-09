@@ -13,6 +13,7 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    28/04/2025   HEMANT SALIYA    Created
+    2    09/July/2026   RAJESH GAMI    [PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 
 DELETE from BillingInvoicing WHERE MasterCompanyId = 2
 DELETE from dbo.BillingInvoicingItems WHERE MasterCompanyId = 2
@@ -98,7 +99,7 @@ BEGIN
 		FROM dbo.SalesOrderBillingInvoicingItem SOBII 
 			JOIN dbo.SalesOrderBillingInvoicing SOBI ON SOBII.SOBillingInvoicingId = SOBI.SOBillingInvoicingId
 			JOIN dbo.BillingInvoicing BI ON BI.OldBillingInvoicingId = SOBII.SOBillingInvoicingId AND ModuleId = 10
-			LEFT JOIN DBO.Stockline SL ON SOBII.StockLineId = SL.StockLineId
+			LEFT JOIN DBO.Stockline SL ON SOBII.StockLineId = SL.StockLineId AND ISNULL(SL.IsNonStock,0) = 0
 		WHERE SOBII.MasterCompanyId = @MasterCompanyId AND ModuleId = @ModuleId
 		
 

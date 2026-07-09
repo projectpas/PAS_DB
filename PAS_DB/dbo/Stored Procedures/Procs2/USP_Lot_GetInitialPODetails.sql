@@ -16,6 +16,7 @@
 	3    10/16/2024	  Abhishek Jirawla	Implemented the new tables for SalesOrder related tables
     4    07-07-2025   Moin Bloch        Changed Old To New Billing Table
 	5    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	6    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[USP_Lot_GetInitialPODetails]
 	@PageNumber int = 1,
@@ -152,7 +153,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
            ,SL.[CertType],SL.[TagTypeId],SL.[IsFinishGood],SL.[IsTurnIn],SL.[IsCustomerRMA],SL.[RMADeatilsId],SL.[DaysReceived],SL.[ManufacturingDays],SL.[TagDays],SL.[OpenDays],SL.[ExchangeSalesOrderId],SL.[RRQty],SL.[SubWorkOrderNumber] ,SL.[IsManualEntry],SL.[WorkOrderMaterialsKitId],SL.[LotId],SL.[IsLotAssigned],SL.[LOTQty],SL.[LOTQtyReserve],SL.[OriginalCost],SL.[POOriginalCost],SL.[ROOriginalCost] ,SL.[VendorRMAId]
            ,SL.[VendorRMADetailId] ,SL.[LotMainStocklineId],SL.[IsFromInitialPO],SL.[LotSourceId],SL.[Adjustment]
 				INTO #commonTemp FROM DBO.LotTransInOutDetails ltin WITH(NOLOCK) 
-				INNER JOIN DBO.Stockline sl WITH(NOLOCK) on ltin.StockLineId = sl.StockLineId WHERE ltin.LotId = @LotId
+				INNER JOIN DBO.Stockline sl WITH(NOLOCK) on ltin.StockLineId = sl.StockLineId WHERE ltin.LotId = @LotId AND ISNULL(sl.IsNonStock,0) = 0
 
 			IF(UPPER(@Type) = UPPER('ViewAllPN'))
 			BEGIN

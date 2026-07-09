@@ -4,6 +4,7 @@
  ** PR   Date						 Author							Change Description
  ** --   --------					 -------						-------------------------------
 	1    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	2    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 ****************************************************************************************************************************************/
 CREATE PROCEDURE [dbo].[GetExchangePackagingLabelPrint]
 	@ExchangeSalesOrderId bigint=10022,
@@ -31,7 +32,7 @@ BEGIN
 		LEFT JOIN DBO.SalesOrderShippingItem SSI WITH(NOLOCK) ON SSI.SOPickTicketId = sopt.SOPickTicketId
 		INNER JOIN ExchangeSalesOrderPart sop WITH(NOLOCK) on sop.ExchangeSalesOrderId = sopt.ExchangeSalesOrderId AND sop.ExchangeSalesOrderPartId = sopt.ExchangeSalesOrderPartId
 		INNER JOIN ExchangeSalesOrder so WITH(NOLOCK) on so.ExchangeSalesOrderId = sop.ExchangeSalesOrderId
-		LEFT JOIN Stockline sl WITH(NOLOCK) on sl.StockLineId = sop.StockLineId
+		LEFT JOIN Stockline sl WITH(NOLOCK) on sl.StockLineId = sop.StockLineId AND ISNULL(sl.IsNonStock,0) = 0
 		LEFT JOIN ItemMaster imt WITH(NOLOCK) on imt.ItemMasterId = sop.ItemMasterId
 		 AND ISNULL(imt.IsNonStock,0) = 0
 		 LEFT JOIN Condition co WITH(NOLOCK) on co.ConditionId = sop.ConditionId

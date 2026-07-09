@@ -11,6 +11,7 @@
  ** 1    28-April-2025			Devendra Shekh				Created
        
 	1    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	2    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 **************************************************************/  
   
 CREATE   PROCEDURE [dbo].[USP_CreateSubWorkOrderMaterials]  
@@ -103,7 +104,7 @@ BEGIN
 			FROM #tmpSubWorkOrderMaterial TMP
 			LEFT JOIN [dbo].[ItemMaster] IM WITH(NOLOCK) ON TMP.ItemMasterId = IM.ItemMasterId
 			 AND ISNULL(IM.IsNonStock,0) = 0
-			 LEFT JOIN [dbo].[StockLine] STK WITH(NOLOCK) ON TMP.StockLineId = STK.StockLineId
+			 LEFT JOIN [dbo].[StockLine] STK WITH(NOLOCK) ON TMP.StockLineId = STK.StockLineId AND ISNULL(STK.IsNonStock,0) = 0
 
 			SELECT @TotalMaterialCount = COUNT(RowId), @CurrentRowId = MIN(RowId) FROM #tmpSubWorkOrderMaterial;
 
@@ -131,7 +132,7 @@ BEGIN
 					FROM #tmpSubWorkOrderMaterial TMP 
 					LEFT JOIN [dbo].[ItemMaster] IM WITH(NOLOCK) ON TMP.ItemMasterId = IM.ItemMasterId
 					 AND ISNULL(IM.IsNonStock,0) = 0
-					 LEFT JOIN [dbo].[StockLine] STK WITH(NOLOCK) ON TMP.StockLineId = STK.StockLineId
+					 LEFT JOIN [dbo].[StockLine] STK WITH(NOLOCK) ON TMP.StockLineId = STK.StockLineId AND ISNULL(STK.IsNonStock,0) = 0
 					WHERE [RowId] = @CurrentRowId;
 					
 					SELECT @SubWorkOrderMaterialsId = [SubWorkOrderMaterialsId], @WOMStockLineId = [StockLineId] FROM #tmpSubWorkOrderMaterial TMP WHERE TMP.RowId = @CurrentRowId

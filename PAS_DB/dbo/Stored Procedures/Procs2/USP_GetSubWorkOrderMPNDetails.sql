@@ -17,6 +17,7 @@
     2    15/10/2024  Abhishek Jirawla		Modified to return blank instead of GETDATE() for Promise, Ship Date and Completion Date
 	3    17/02/2025  Moin Bloch             Updated (Added Publication CMMIds)
 	4    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	5    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 
 ************************************************************************/
 -- EXEC [USP_GetSubWorkOrderMPNDetails] 1169,76771,721
@@ -131,7 +132,7 @@ BEGIN
 		LEFT JOIN [dbo].[ItemGroup] ig WITH(NOLOCK) ON im.ItemGroupId = ig.ItemGroupId
 		LEFT JOIN [dbo].[ItemMaster] rp WITH(NOLOCK) ON im.RevisedPartId = rp.ItemMasterId
 		 AND ISNULL(rp.IsNonStock,0) = 0
-		 LEFT JOIN [dbo].[Stockline] sl WITH(NOLOCK) ON woms.StockLineId = sl.StockLineId
+		 LEFT JOIN [dbo].[Stockline] sl WITH(NOLOCK) ON woms.StockLineId = sl.StockLineId AND ISNULL(sl.IsNonStock,0) = 0
 		JOIN [dbo].[WorkOrderWorkFlow] wowf WITH(NOLOCK) ON wom.WorkFlowWorkOrderId = wowf.WorkFlowWorkOrderId
 		JOIN [dbo].[WorkOrderPartNumber] wop WITH(NOLOCK) ON wowf.WorkOrderPartNoId = wop.ID
 		LEFT JOIN [dbo].[ReceivingCustomerWork] rc WITH(NOLOCK) ON wop.ReceivingCustomerWorkId = rc.ReceivingCustomerWorkId

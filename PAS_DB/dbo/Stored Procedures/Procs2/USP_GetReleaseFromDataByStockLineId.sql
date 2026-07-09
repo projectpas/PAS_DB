@@ -29,6 +29,7 @@ EXEC [USP_GetReleaseFromDataByStockLineId]
 
  EXEC [dbo].[USP_GetReleaseFromDataByStockLineId] 3553,1,0
 	1    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	24    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 **************************************************************/ 
 
 CREATE   PROC [dbo].[USP_GetReleaseFromDataByStockLineId]
@@ -70,7 +71,7 @@ BEGIN
 		SET @MSModuleId = 2 ; -- For WO PART NUMBER  
 		SET @MTIMasterCompanyId = 11; -- For MTI
 	  	  
-		SELECT @MasterCompanyId = [MasterCompanyId] FROM [DBO].[Stockline] CTT WITH(NOLOCK) WHERE [StockLineId] = @StockLineId;
+		SELECT @MasterCompanyId = [MasterCompanyId] FROM [DBO].[Stockline] CTT WITH(NOLOCK) WHERE [StockLineId] = @StockLineId AND ISNULL(CTT.IsNonStock,0) = 0;
 
 		SELECT @WorkorderId = [WorkorderId] FROM [DBO].[WorkOrderPartNumber] WITH(NOLOCK) WHERE [ID]=@workOrderPartNumberId
 
@@ -363,7 +364,7 @@ BEGIN
 			  LEFT JOIN [dbo].[Vendor] ven WITH(NOLOCK) ON sl.VendorId = ven.VendorId  
 			  LEFT JOIN [dbo].[Manufacturer] mf WITH(NOLOCK) ON sl.ManufacturerId = mf.ManufacturerId 
 			  LEFT JOIN [dbo].[CommonWorkOrderTearDown] cwt WITH(NOLOCK) ON wo.WorkOrderId = cwt.WorkOrderId AND [CommonTeardownTypeId] = @CommonTeardownTypeId
-		 WHERE sl.StockLineId = @StockLineId
+		 WHERE sl.StockLineId = @StockLineId AND ISNULL(sl.IsNonStock,0) = 0
 			END
 			ELSE
 			BEGIN
@@ -452,7 +453,7 @@ BEGIN
 			  LEFT JOIN [dbo].[Vendor] ven WITH(NOLOCK) ON sl.VendorId = ven.VendorId  
 			  LEFT JOIN [dbo].[Manufacturer] mf WITH(NOLOCK) ON sl.ManufacturerId = mf.ManufacturerId 
 			  LEFT JOIN [dbo].[CommonWorkOrderTearDown] cwt WITH(NOLOCK) ON wo.WorkOrderId = cwt.WorkOrderId AND [CommonTeardownTypeId] = @CommonTeardownTypeId
-		 WHERE sl.StockLineId = @StockLineId
+		 WHERE sl.StockLineId = @StockLineId AND ISNULL(sl.IsNonStock,0) = 0
 
 			END
 		END
@@ -535,7 +536,7 @@ BEGIN
 			  LEFT JOIN [dbo].[Vendor] ven WITH(NOLOCK) ON sl.VendorId = ven.VendorId  
 			  LEFT JOIN [dbo].[Manufacturer] mf WITH(NOLOCK) ON sl.ManufacturerId = mf.ManufacturerId 
 			  LEFT JOIN [dbo].[CommonWorkOrderTearDown] cwt WITH(NOLOCK) ON wo.WorkOrderId = cwt.WorkOrderId AND [CommonTeardownTypeId] = @CommonTeardownTypeId
-		 WHERE sl.StockLineId = @StockLineId
+		 WHERE sl.StockLineId = @StockLineId AND ISNULL(sl.IsNonStock,0) = 0
 
 		END
   END TRY      

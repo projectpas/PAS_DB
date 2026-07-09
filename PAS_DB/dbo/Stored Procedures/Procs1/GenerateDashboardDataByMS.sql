@@ -35,6 +35,7 @@
 	22   06 NOV 2025    Moin Bloch          Exclude Credit Memo Condition 
 	23   14 NOV 2025    Moin Bloch          Fix For Partial Credit Memo
 	24    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	25    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 **********************/
 
 CREATE   PROCEDURE [dbo].[GenerateDashboardDataByMS] 
@@ -221,7 +222,7 @@ BEGIN
 			AND sobi.MasterCompanyId = @MasterCompanyId
 			AND ISNULL(sobi.IsPerformaInvoice,0) = 0
 			AND SOBI.ModuleId = @SOModuleId
-			 AND ISNULL(IM.IsNonStock,0) = 0
+			 AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(STL.IsNonStock,0) = 0
 			 GROUP BY IM.PartNumber, IM.PartDescription,CDTN.[Description],IM.ItemGroup,cust.Name, so.SalesOrderNumber, SO.SalesPersonName
 		) AS SOBillingResult
 

@@ -18,6 +18,7 @@
     1    02/05/20221   Subhash Saliya		Created
 	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
  ** 1    05/26/2023    HEMANT SALIYA    Updated For WorkOrder Settings
+	3    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
  
 -- EXEC [USP_AddEdit_WorkOrderTurnArroundTime] 44
 **************************************************************/
@@ -208,7 +209,7 @@ BEGIN
 			JOIN dbo.WorkOrderWorkFlow WOWF WITH(NOLOCK) ON WPN.ID = WOWF.WorkOrderPartNoId  
 			JOIN dbo.WorkOrderStatus WOS WITH(NOLOCK) ON WOS.Id = WPN.WorkOrderStatusId  
 			JOIN dbo.ItemMaster IM WITH(NOLOCK) ON IM.ItemMasterId = WPN.ItemMasterId  
-			LEFT JOIN dbo.Stockline STL WITH(NOLOCK) ON WPN.StockLineId = STL.StockLineId
+			LEFT JOIN dbo.Stockline STL WITH(NOLOCK) ON WPN.StockLineId = STL.StockLineId AND ISNULL(STL.IsNonStock,0) = 0
 			LEFT JOIN dbo.WorkOrderSettings wost WITH(NOLOCK) ON wost.MasterCompanyId = WO.MasterCompanyId  AND wost.WorkOrderTypeId = WO.WorkOrderTypeId
 			JOIN dbo.Priority PR WITH(NOLOCK) ON WPN.WorkOrderPriorityId = PR.PriorityId  
 			JOIN dbo.WorkOrderStage WOSG WITH(NOLOCK) ON WTT.OldStageId = WOSG.WorkOrderStageId and wosg.IncludeInDashboard=1   

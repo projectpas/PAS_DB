@@ -1,5 +1,11 @@
 
 -- EXEC [dbo].[GetStockDetailsByStocklineId] 189
+/*************************************************************
+ ** Change History
+ **************************************************************
+ ** PR   Date         Author			Change Description
+	1    09/July/2026   RAJESH GAMI   [PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+**************************************************************/
 CREATE PROC [dbo].[GetStockDetailsByStocklineId]
 	@StocklineId  bigint
 AS
@@ -15,7 +21,7 @@ BEGIN
 		INNER JOIN ItemMaster im WITH (NOLOCK) ON sl.ItemMasterId = im.ItemMasterId
 		INNER JOIN Condition cond WITH (NOLOCK) on sl.ConditionId = cond.ConditionId
 		WHERE StockLineId = @StocklineId
-		 AND ISNULL(im.IsNonStock,0) = 0
+		 AND ISNULL(im.IsNonStock,0) = 0 AND ISNULL(sl.IsNonStock,0) = 0
 		 ORDER BY sl.CreatedDate
 	END
 	COMMIT  TRANSACTION

@@ -28,6 +28,7 @@
 	17	 02/06/2025	  Abhishek Jirawla	   Fixed Name concat read script
 	18   24/07/2025   Moin Bloch		   Modify(Fixed For Amount 0 then getting Error at the time of Receiving) 
 	19    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	20    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 **************************************************************/
 
 CREATE   PROCEDURE [dbo].[usp_PostCreateStocklineBatchDetails]
@@ -367,7 +368,7 @@ BEGIN
 								  ,@LotNumber = LO.LotNumber
 							FROM [dbo].[Stockline] ST WITH(NOLOCK) 
 							     LEFT JOIN [dbo].[Lot] LO WITH(NOLOCK) ON ST.[LotId] = LO.[LotId]
-							WHERE ST.[StockLineId] = @StocklineId;
+							WHERE ST.[StockLineId] = @StocklineId AND ISNULL(ST.IsNonStock,0) = 0;
 
 							IF NOT EXISTS(SELECT 1 FROM [dbo].[StocklineBatchDetails] SLBD WITH(NOLOCK) WHERE SLBD.[PoId] = @PurchaseOrderId AND SLBD.[StocklineId] = @StocklineId)
 							BEGIN
@@ -414,7 +415,7 @@ BEGIN
 							--GET STOCKLINE GLACCOUNT.
 							SELECT @InventoryGLAccId = SL.GLAccountId -- For PARTS INVENTORY Distribution.
 						    FROM [dbo].[Stockline] SL WITH(NOLOCK)					 
-						    WHERE SL.[StockLineId] = @StocklineId;
+						    WHERE SL.[StockLineId] = @StocklineId AND ISNULL(SL.IsNonStock,0) = 0;
 
 							--GET GL Accounting Data from GLAccout based on stockline
 							SELECT @GlAccountId = [GLAccountId],
@@ -425,7 +426,7 @@ BEGIN
 							AND [MasterCompanyId] = @MasterCompanyId;
 
 							SELECT TOP 1 @STKGlAccountId=SL.GLAccountId,@STKGlAccountNumber=GL.AccountCode,@STKGlAccountName=GL.AccountName FROM DBO.Stockline SL WITH(NOLOCK)
-							INNER JOIN DBO.GLAccount GL WITH(NOLOCK) ON SL.GLAccountId=GL.GLAccountId WHERE SL.StockLineId=@StocklineId
+							INNER JOIN DBO.GLAccount GL WITH(NOLOCK) ON SL.GLAccountId=GL.GLAccountId WHERE SL.StockLineId=@StocklineId AND ISNULL(SL.IsNonStock,0) = 0
 
 							--Check is allow to AutoPost
 							IF(@IsAutoPost = 0 AND @IsAutoPostForAll > 0)
@@ -541,7 +542,7 @@ BEGIN
 							--GET STOCKLINE GLACCOUNT.
 							SELECT @InventoryGLAccId = SL.GLAccountId -- For PARTS INVENTORY Distribution.
 						    FROM [dbo].[Stockline] SL WITH(NOLOCK)					 
-						    WHERE SL.[StockLineId] = @StocklineId;
+						    WHERE SL.[StockLineId] = @StocklineId AND ISNULL(SL.IsNonStock,0) = 0;
 
 							--GET GL Accounting Data from GLAccout based on stockline
 							SELECT @GlAccountId = [GLAccountId],

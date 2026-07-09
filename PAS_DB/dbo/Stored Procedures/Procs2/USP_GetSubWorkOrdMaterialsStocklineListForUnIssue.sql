@@ -18,6 +18,7 @@
     1    02/07/2022   Hemant Saliya Created
 	2    12/19/2023   Hemant Saliya Updated for Add Kit Items
 	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	4    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 
      
  EXECUTE USP_GetSubWorkOrdMaterialsStocklineListForUnIssue 99,15
@@ -133,7 +134,7 @@ SET NOCOUNT ON
 					WHERE WOM.SubWOPartNoId = @SubWOPartNoId AND SL.IsParent = 1 AND WOM.IsDeleted = 0 
 					AND (@ItemMasterId IS NULL OR im.ItemMasterId = @ItemMasterId OR IM_AltMain.ItemMasterId = @ItemMasterId OR IM_EquMain.ItemMasterId = @ItemMasterId)
 
-					 AND ISNULL(IM.IsNonStock,0) = 0
+					 AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(SL.IsNonStock,0) = 0
 					 UNION ALL
 
 					SELECT DISTINCT WOM.WorkOrderId,
@@ -219,7 +220,7 @@ SET NOCOUNT ON
 						LEFT JOIN dbo.UnitOfMeasure UOM WITH (NOLOCK) ON UOM.UnitOfMeasureId = WOM.UnitOfMeasureId
 					WHERE WOM.SubWOPartNoId = @SubWOPartNoId AND SL.IsParent = 1 AND WOM.IsDeleted = 0 AND (@ItemMasterId IS NULL OR im.ItemMasterId = @ItemMasterId OR IM_AltMain.ItemMasterId = @ItemMasterId OR IM_EquMain.ItemMasterId = @ItemMasterId)
 
-			 AND ISNULL(IM.IsNonStock,0) = 0
+			 AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(SL.IsNonStock,0) = 0
 					 END
 		COMMIT  TRANSACTION
 

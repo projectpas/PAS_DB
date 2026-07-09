@@ -17,6 +17,7 @@
     1    05/31/2023   Vishal Suthar Created
     2    04/07/2025   Vishal Suthar Update Part Number, Part Description when part is modified
 	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	4    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
      
 -- EXEC [UpdatePartAfterWOCreated] 1005, 2956
 **************************************************************/
@@ -44,7 +45,7 @@ BEGIN
 					INNER JOIN dbo.ReceivingCustomerWork RC WITH(NOLOCK) ON SL.StockLineId = RC.StockLineId
 					INNER JOIN dbo.WorkOrderPartNumber WOP WITH(NOLOCK) ON WOP.ItemMasterId = RC.ItemMasterId
 					INNER JOIN dbo.ItemMaster IM WITH(NOLOCK) ON IM.ItemMasterId = RC.ItemMasterId
-					WHERE WOP.ID = @WorkOrderPartNumberId AND ISNULL(IM.IsNonStock,0) = 0 ;
+					WHERE WOP.ID = @WorkOrderPartNumberId AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(SL.IsNonStock,0) = 0 ;
 
 					UPDATE WOP 
 					SET WOP.ItemMasterId = @ItemMasterId,

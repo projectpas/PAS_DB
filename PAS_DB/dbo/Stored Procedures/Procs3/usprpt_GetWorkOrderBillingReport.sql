@@ -28,6 +28,7 @@
 	12  10-Nov-2025	    Moin Bloch			Updated Fix For Duplicate Credit Memo
 	13  16-Jun-2026	    Bhargav Saliya		Fixed Date Converation Issue as per selected time zone
 	14    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	15    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 
 
 EXECUTE   [dbo].[usp_GetWorkOrderBillingReport] 'krunal','','','1','1,4,43,44,45,80,84,88','46,47,66','48,49,50,59','51,52,53'
@@ -174,7 +175,7 @@ BEGIN
 				 AND (ISNULL(@Level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))  
 				 AND (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))  
   
-		    AND ISNULL(IM.IsNonStock,0) = 0
+		    AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(SL.IsNonStock,0) = 0
 				  SELECT @PageSizeCM=COUNT(*)  
 			FROM [dbo].[CreditMemo] CM WITH (NOLOCK)  
 				  INNER JOIN [dbo].[CreditMemoDetails] CMD WITH (NOLOCK) ON CM.CreditMemoHeaderId = CMD.CreditMemoHeaderId AND CMD.[IsDeleted] = 0 AND CMD.[IsActive] = 1
@@ -274,7 +275,7 @@ BEGIN
 				INNER JOIN [dbo].[BillingInvoicingItems] WOBIM WITH (NOLOCK) ON WOBI.BillingInvoicingId = WOBIM.BillingInvoicingId AND WOBIM.SubReferenceId = WOPN.ID AND WOBIM.IsVersionIncrease = 0 AND ISNULL(WOBIM.IsPerformaInvoice, 0) = 0 AND WOBIM.SubModuleId = @SubModuleId
 				LEFT JOIN [dbo].[WorkOrderShippingItem] AS WOSI WITH (NOLOCK) ON WOSI.WorkOrderPartNumId = WOBIM.SubReferenceId  
 				LEFT JOIN [dbo].[WorkOrderShipping] AS WOS WITH (NOLOCK) ON WOS.WorkOrderShippingId = WOSI.WorkOrderShippingId   
-				LEFT JOIN [dbo].[Stockline] SL WITH (NOLOCK) ON WOPN.StockLineId = SL.StockLineId AND SL.IsParent = 1  
+				LEFT JOIN [dbo].[Stockline] SL WITH (NOLOCK) ON WOPN.StockLineId = SL.StockLineId AND SL.IsParent = 1 AND ISNULL(SL.IsNonStock,0) = 0  
 				LEFT JOIN [dbo].[EntityStructureSetup] ES ON ES.EntityStructureId=MSD.EntityMSID  
 				LEFT JOIN [dbo].[WorkOrderQuote] woq WITH (NOLOCK) ON WO.WorkOrderId = woq.WorkOrderId AND woq.IsVersionIncrease = 0  
 				LEFT JOIN [dbo].[WorkOrderType] WITH (NOLOCK) ON WO.WorkOrderTypeId = WorkOrderType.Id  

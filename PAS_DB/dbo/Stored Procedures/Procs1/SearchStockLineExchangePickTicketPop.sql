@@ -4,6 +4,7 @@
  ** PR   Date						 Author							Change Description
  ** --   --------					 -------						-------------------------------
 	1    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	2    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 ****************************************************************************************************************************************/
 CREATE PROCEDURE [dbo].[SearchStockLineExchangePickTicketPop]
 @ItemMasterIdlist bigint, 
@@ -76,10 +77,10 @@ ELSE sl.ConditionId
 		LEFT JOIN DBO.Vendor vTraceble WITH(NOLOCK) ON sl.TraceableTo = vTraceble.VendorId
 		LEFT JOIN DBO.LegalEntity leTraceble WITH(NOLOCK) ON sl.TraceableTo = leTraceble.LegalEntityId
 		LEFT JOIN DBO.ExchangeSOPickTicket Pick WITH(NOLOCK) ON Pick.ExchangeSalesOrderPartId = sop.ExchangeSalesOrderPartId
-		LEFT JOIN (SELECT ItemMasterId, [Name],StockLineId FROM DBO.Stockline S INNER JOIN DBO.Manufacturer M WITH(NOLOCK) ON M.ManufacturerId = S.ManufacturerId) Smf ON Smf.ItemMasterId = im.ItemMasterId AND Smf.StockLineId = sl.StockLineId
+		LEFT JOIN (SELECT ItemMasterId, [Name],StockLineId FROM DBO.Stockline S INNER JOIN DBO.Manufacturer M WITH(NOLOCK) ON M.ManufacturerId = S.ManufacturerId WHERE ISNULL(S.IsNonStock,0) = 0) Smf ON Smf.ItemMasterId = im.ItemMasterId AND Smf.StockLineId = sl.StockLineId
 		WHERE 
 			im.ItemMasterId = @ItemMasterIdlist AND so.ExchangeSalesOrderId=@ExchangeSalesOrderId AND 
-			(sor.QtyToReserve - (SELECT ISNULL(SUM(QtyToShip), 0) FROM ExchangeSOPickTicket s Where s.ExchangeSalesOrderId = @ExchangeSalesOrderId AND s.ExchangeSalesOrderPartId = sop.ExchangeSalesOrderPartId)) > 0
+			(sor.QtyToReserve - (SELECT ISNULL(SUM(QtyToShip), 0) FROM ExchangeSOPickTicket s Where s.ExchangeSalesOrderId = @ExchangeSalesOrderId AND s.ExchangeSalesOrderPartId = sop.ExchangeSalesOrderPartId)) > 0 AND ISNULL(sl.IsNonStock,0) = 0
 	END
 	COMMIT  TRANSACTION
 

@@ -5,6 +5,7 @@
  ** PR   Date						 Author							Change Description
  ** --   --------					 -------						-------------------------------
 	1    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	2    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 ****************************************************************************************************************************************/
 CREATE    Procedure [dbo].[UpdateRepairOrderDetail]
 @RepairOrderId  bigint
@@ -323,7 +324,7 @@ BEGIN
 			  LEFT JOIN LegalEntity COM WITH (NOLOCK) ON COM.LegalEntityId = ROP.RoPartSplitUserId
 			  LEFT JOIN ItemMaster ST WITH (NOLOCK) ON ST.ItemMasterId=ROP.ItemMasterId	
 			   AND ISNULL(ST.IsNonStock,0) = 0
-			   LEFT JOIN StockLine SL WITH (NOLOCK) ON SL.StockLineId=ROP.StockLineId	
+			   LEFT JOIN StockLine SL WITH (NOLOCK) ON SL.StockLineId=ROP.StockLineId AND ISNULL(SL.IsNonStock,0) = 0	
 			  LEFT JOIN Purchaseorder PO WITH (NOLOCK) ON SL.PurchaseOrderId=PO.PurchaseOrderId	
 			  LEFT JOIN  ItemType IT WITH (NOLOCK) ON IM.ItemTypeId = IT.ItemTypeId	
 			  LEFT JOIN  dbo.Module M WITH (NOLOCK) ON M.ModuleId = ROP.RoPartSplitUserTypeId	

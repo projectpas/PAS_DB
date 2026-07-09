@@ -16,6 +16,7 @@
 	5    01-May-2026     Rajesh Gami				Added NonStock and ASSET Inventory [PN-16267]
 	6    04-May-2026     Rajesh Gami				Return PN and PN Desc for Asset and NonStock [PN-16267]
 	7	 22/06/2026		 Abhishek Jirawla			Adding IsPiecePart condition in RepairOrderPart table
+	8	 09/July/2026		 RAJESH GAMI			[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 EXEC [dbo].[usprpt_GetGoodsReceiptNotInvoicedReport_SSRS] 1,'1/1/2025','01/02/2025','2','1,5,6!2,7,8,9!3,11,10!4,12,13!!!!!!'
 **************************************************************/
 CREATE   PROCEDURE [dbo].[usprpt_GetGoodsReceiptNotInvoicedReport_SSRS]     
@@ -123,7 +124,7 @@ BEGIN
 			,RRCD.ReceivingReconciliationDetailId
 		FROM [dbo].[PurchaseOrder] PO WITH(NOLOCK)
 		INNER JOIN [dbo].[PurchaseOrderPart] POP WITH(NOLOCK) ON PO.PurchaseOrderId = POP.PurchaseOrderId
-		LEFT JOIN DBO.Stockline STK WITH(NOLOCK) ON POP.PurchaseOrderPartRecordId = STK.PurchaseOrderPartRecordId
+		LEFT JOIN DBO.Stockline STK WITH(NOLOCK) ON POP.PurchaseOrderPartRecordId = STK.PurchaseOrderPartRecordId AND ISNULL(STK.IsNonStock,0) = 0
 		LEFT JOIN DBO.NonStockInventory NSTK WITH(NOLOCK) ON POP.PurchaseOrderPartRecordId = NSTK.PurchaseOrderPartRecordId
 		LEFT JOIN DBO.AssetInventory AI WITH(NOLOCK) ON POP.PurchaseOrderPartRecordId = AI.PurchaseOrderPartRecordId
 		--INNER JOIN DBO.StocklineDraft STD WITH(NOLOCK) ON STK.StockLineId = STD.StockLineId AND POP.PurchaseOrderPartRecordId = STD.RepairOrderPartRecordId
@@ -195,7 +196,7 @@ BEGIN
 			,RRCD.ReceivingReconciliationDetailId
 		FROM [dbo].[RepairOrder] RO WITH(NOLOCK)
 		INNER JOIN [dbo].[RepairOrderPart] ROP WITH(NOLOCK) ON RO.RepairOrderId = ROP.RepairOrderId AND ISNULL(ROP.[IsPiecePart], 0) = 0
-		LEFT JOIN DBO.Stockline STK WITH(NOLOCK) ON ROP.RepairOrderPartRecordId = STK.RepairOrderPartRecordId
+		LEFT JOIN DBO.Stockline STK WITH(NOLOCK) ON ROP.RepairOrderPartRecordId = STK.RepairOrderPartRecordId AND ISNULL(STK.IsNonStock,0) = 0
 		LEFT JOIN DBO.AssetInventory AI WITH(NOLOCK) ON ROP.RepairOrderPartRecordId = AI.RepairOrderPartRecordId
 		INNER JOIN [dbo].[RepairOrderManagementStructureDetails] MSD WITH(NOLOCK) ON MSD.[ModuleID] = @ROModuleID AND MSD.[ReferenceID] = RO.RepairOrderId    
 		LEFT JOIN [dbo].[ReceivingReconciliationHeader] RRCH WITH(NOLOCK) ON RO.VendorId = RRCH.VendorId AND RRCH.StatusId =  @postedStatusId

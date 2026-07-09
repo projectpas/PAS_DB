@@ -20,6 +20,7 @@
 	4    18 July 2024   Shrey Chandegara       Modified( use this function @CurrntEmpTimeZoneDesc for date issue.)
 	5    03/04/2025   Ekta Chandegra    Convert date using dbo.ConvertUTCtoLocal
 	6    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	7    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	
  EXECUTE [GetCommonScrapCertificateist] 1, 50, null, -1, 1, '', 'mpn', '','','','','','','','','all'  
 **************************************************************/   
@@ -127,7 +128,7 @@ BEGIN
 				 AND ISNULL(imt.IsNonStock,0) = 0
 				  WHERE SC.MasterCompanyId=@MasterCompanyId and isnull(SC.isSubWorkOrder,0)= 0 
 
-			 AND ISNULL(IM.IsNonStock,0) = 0
+			 AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(ST.IsNonStock,0) = 0
 				  UNION ALL
 
 			SELECT DISTINCT UPPER(WO.WorkOrderNum) as WorkOrderNumber
@@ -149,7 +150,7 @@ BEGIN
 				 LEFT JOIN [dbo].[ScrapCertificate] SC WITH (NOLOCK) ON SC.WorkOrderId=SWOPN.SubWorkOrderId AND SWOPN.SubWOPartNoId=SC.workOrderPartNoId
 				 LEFT JOIN [dbo].[WorkOrder] WO WITH (NOLOCK) ON WO.WorkOrderId=SWO.WorkOrderId 
 			  	WHERE SWO.MasterCompanyId=@MasterCompanyId and SC.isSubWorkOrder= 1 
-			   AND ISNULL(IM.IsNonStock,0) = 0 )
+			   AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(ST.IsNonStock,0) = 0 )
 		,Result AS(  
          SELECT UPPER(CTE.WorkOrderNumber) as WorkOrderNumber
 				,UPPER(CTE.CustomerName) CustomerName

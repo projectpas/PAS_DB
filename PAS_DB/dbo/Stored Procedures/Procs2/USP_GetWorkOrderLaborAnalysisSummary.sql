@@ -22,6 +22,7 @@
 	4    01/29/2025   Moin Bloch		Update SET Hours
 	5    07/11/2025   Devendra Shekh    added PartNumberLabel
 	6    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	7    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
      
  EXECUTE USP_GetWorkOrderLaborAnalysisSummary 9752, 0,false
 
@@ -86,7 +87,7 @@ SET NOCOUNT ON
 							JOIN dbo.Customer c WITH (NOLOCK) ON c.CustomerId = wo.CustomerId
 							JOIN dbo.ItemMaster im WITH (NOLOCK) ON im.ItemMasterId = wop.ItemMasterId
 							JOIN dbo.WorkOrderStatus st WITH (NOLOCK) ON st.Id = wop.WorkOrderStatusId
-							LEFT JOIN [dbo].StockLine sl WITH(NOLOCK) ON wop.StockLineId = sl.StockLineId
+							LEFT JOIN [dbo].StockLine sl WITH(NOLOCK) ON wop.StockLineId = sl.StockLineId AND ISNULL(sl.IsNonStock,0) = 0
 						WHERE wowf.WorkOrderId = @WorkOrderId AND wlh.IsDeleted = 0 AND wlh.IsActive = 1 AND BillableId = 1
 						 AND ISNULL(im.IsNonStock,0) = 0
 						 GROUP BY im.partnumber,im.PartDescription,im.RevisedPart,wop.Id,BillableId,
@@ -180,7 +181,7 @@ SET NOCOUNT ON
 								JOIN dbo.Customer c WITH (NOLOCK) ON c.CustomerId = wo.CustomerId
 								JOIN dbo.ItemMaster im WITH (NOLOCK) ON im.ItemMasterId = wop.ItemMasterId
 								JOIN dbo.WorkOrderStatus st WITH (NOLOCK) ON st.Id = wop.WorkOrderStatusId
-								LEFT JOIN [dbo].StockLine sl WITH(NOLOCK) ON wop.StockLineId = sl.StockLineId
+								LEFT JOIN [dbo].StockLine sl WITH(NOLOCK) ON wop.StockLineId = sl.StockLineId AND ISNULL(sl.IsNonStock,0) = 0
 							WHERE wowf.WorkOrderId = @WorkOrderId AND wop.ID = @workOrderPartNoId AND wlh.IsDeleted = 0 AND wlh.IsActive = 1 AND BillableId = 1
 							 AND ISNULL(im.IsNonStock,0) = 0
 							 GROUP BY im.partnumber,im.PartDescription,im.RevisedPart,BillableId,

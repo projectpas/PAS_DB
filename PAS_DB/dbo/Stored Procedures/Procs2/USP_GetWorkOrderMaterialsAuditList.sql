@@ -20,6 +20,7 @@
     2    02/06/2023   Rajesh Gami   Added Figure and Item field for the audit
     2    11/02/2025   Bhargav Saliya   UTC Date Changes
 	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	4    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
  EXECUTE USP_GetWorkOrderMaterialsAuditList 37
 
 **************************************************************/     
@@ -84,23 +85,23 @@ SET NOCOUNT ON
 					SL.ReceiverNumber AS Receiver,
 					PartQuantityOnHand = (SELECT SUM(sl.QuantityOnHand)
 									FROM WorkOrderMaterialStockLine womsl WITH (NOLOCK) JOIN StockLine sl WITH (NOLOCK) on womsl.StockLIneId = sl.StockLIneId
-									Where womsl.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId
+									Where womsl.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId AND ISNULL(sl.IsNonStock,0) = 0
 									),
 					PartQuantityAvailable = (SELECT SUM(sl.QuantityAvailable) FROM WorkOrderMaterialStockLine womsl  WITH (NOLOCK)
 									JOIN StockLine sl WITH (NOLOCK) on womsl.StockLIneId = sl.StockLIneId
-									Where womsl.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId
+									Where womsl.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId AND ISNULL(sl.IsNonStock,0) = 0
 									),
 					PartQuantityReserved = (SELECT SUM(sl.QuantityReserved) FROM WorkOrderMaterialStockLine womsl  WITH (NOLOCK)
 									JOIN StockLine sl WITH (NOLOCK) on womsl.StockLIneId = sl.StockLIneId 
-									Where womsl.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId
+									Where womsl.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId AND ISNULL(sl.IsNonStock,0) = 0
 									),
 					PartQuantityTurnIn = (SELECT SUM(sl.QuantityTurnIn) FROM WorkOrderMaterialStockLine womsl  WITH (NOLOCK)
 									JOIN StockLine sl WITH (NOLOCK) on womsl.StockLIneId = sl.StockLIneId
-									Where womsl.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId
+									Where womsl.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId AND ISNULL(sl.IsNonStock,0) = 0
 									),
 					PartQuantityOnOrder = (SELECT SUM(sl.QuantityOnOrder) FROM WorkOrderMaterialStockLine womsl  WITH (NOLOCK)
 									JOIN StockLine sl WITH (NOLOCK) on womsl.StockLIneId = sl.StockLIneId
-									Where womsl.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId
+									Where womsl.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId AND ISNULL(sl.IsNonStock,0) = 0
 									),
 					CostDate = (SELECT TOP 1 CONVERT(varchar, IMPS.PP_LastListPriceDate, 101) FROM dbo.ItemMasterPurchaseSale IMPS WITH (NOLOCK) WHERE IMPS.ItemMasterId = WOM.ItemMasterId AND
 								IMPS.ConditionId = WOM.ConditionCodeId AND IMPS.PP_LastListPriceDate IS NOT NULL),
@@ -154,7 +155,7 @@ SET NOCOUNT ON
 					JOIN dbo.WorkOrderWorkFlow WOWF WITH (NOLOCK) ON WOWF.WorkFlowWorkOrderId = WOM.WorkFlowWorkOrderId
 					JOIN dbo.MaterialMandatories MM WITH (NOLOCK) ON MM.Id = WOM.MaterialMandatoriesId
 					LEFT JOIN dbo.WorkOrderMaterialStockLine MSTL WITH (NOLOCK) ON MSTL.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId AND MSTL.IsDeleted = 0
-					LEFT JOIN dbo.Stockline SL WITH (NOLOCK) ON SL.StockLineId = MSTL.StockLineId
+					LEFT JOIN dbo.Stockline SL WITH (NOLOCK) ON SL.StockLineId = MSTL.StockLineId AND ISNULL(SL.IsNonStock,0) = 0
 					LEFT JOIN dbo.Site S WITH (NOLOCK) ON S.SiteId = IM.SiteId
 					LEFT JOIN dbo.Warehouse W WITH (NOLOCK) ON W.WarehouseId = IM.WarehouseId
 					LEFT JOIN dbo.Location L WITH (NOLOCK) ON L.LocationId = IM.LocationId

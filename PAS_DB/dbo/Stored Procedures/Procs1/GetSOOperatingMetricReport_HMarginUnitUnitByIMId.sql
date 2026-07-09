@@ -16,6 +16,7 @@
     1    01-Sep-2025  Rajesh Gami   Created  
 	2    04-Sep-2025  Rajesh Gami   Remove all taxes from the revenue (Sales and Other Tax)
 	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	4    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 ***********************************************************************/  
 CREATE       PROCEDURE [dbo].[GetSOOperatingMetricReport_HMarginUnitUnitByIMId] 
 @PageNumber int = 1,
@@ -160,7 +161,7 @@ BEGIN
 		
 		SELECT * INTO #tmpBeforeFinalResult FROM 
 					(SELECT t.pn,t.pnDescription,t.ItemMasterId ,totalRevenue, partsCost,otherCost,totalCost,marginAmount,t.condition,salesOrderNum,invoiceDate,openDate,customer,salesOrderId,t.CustomerId,stk.StockLineNumber
-					 FROM #TempSOOperatingFinal t LEFT JOIN dbo.Stockline stk WITH(NOLOCK) ON t.StocklineId = stk.StockLineId) as result
+					 FROM #TempSOOperatingFinal t LEFT JOIN dbo.Stockline stk WITH(NOLOCK) ON t.StocklineId = stk.StockLineId AND ISNULL(stk.IsNonStock,0) = 0) as result
 
 
 		SELECT * INTO #tmpFinalResult FROM

@@ -16,6 +16,7 @@
  ** --    --------			-----------				--------------------------------          
 	 1    4-10-2025			Amit Ghediya			Created
 	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	3    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 
 	 EXEC [dbo].[SubWorkOrderDetails] 282
 ****************************************************************************************/
@@ -52,7 +53,7 @@ BEGIN
 				INNER JOIN [DBO].[Customer] CUST WITH(NOLOCK) ON WO.CustomerId = CUST.CustomerId
 				LEFT JOIN [DBO].[Currency] FCU WITH(NOLOCK) ON WO.FunctionalCurrencyId = FCU.CurrencyId AND FCU.IsActive = 1 AND FCU.IsDeleted = 0
 				LEFT JOIN [DBO].[Currency] RCU WITH(NOLOCK) ON WO.ReportCurrencyId = RCU.CurrencyId AND RCU.IsActive = 1 AND RCU.IsDeleted = 0
-				WHERE SWO.SubWorkOrderId = @SubWorkOrderId AND ISNULL(IM.IsNonStock,0) = 0 ;
+				WHERE SWO.SubWorkOrderId = @SubWorkOrderId AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(SL.IsNonStock,0) = 0 ;
 
 		END TRY    
 		BEGIN CATCH      

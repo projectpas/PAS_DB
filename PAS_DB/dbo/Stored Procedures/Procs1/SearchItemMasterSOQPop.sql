@@ -7,6 +7,7 @@
  ** PR   Date						 Author							Change Description
  ** --   --------					 -------						-------------------------------
 	1    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	2    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 ****************************************************************************************************************************************/
 CREATE PROCEDURE [dbo].[SearchItemMasterSOQPop]
 @ItemMasterIdlist VARCHAR(max) = '0', 
@@ -50,7 +51,7 @@ BEGIN
 	FROM DBO.ItemMaster im 
 	LEFT JOIN DBO.Condition c ON c.ConditionId in (SELECT Item FROM DBO.SPLITSTRING(@ConditionIds,','))
 	LEFT JOIN DBO.StockLine sl ON im.ItemMasterId = sl.ItemMasterId AND sl.ConditionId = c.ConditionId 
-		AND sl.IsDeleted = 0 
+		AND sl.IsDeleted = 0 AND ISNULL(sl.IsNonStock,0) = 0 
 		--AND ((sl.ConditionId = CASE WHEN @ConditionIds = '' THEN @ConditionIds ELSE sl.ConditionId END)
 		--	OR sl.ConditionId IN (SELECT Item FROM DBO.SPLITSTRING(@ConditionIds,',')))
 	LEFT JOIN DBO.PurchaseOrder po ON po.PurchaseOrderId = sl.PurchaseOrderId 

@@ -16,6 +16,7 @@
     1    14/02/2024   Moin Bloch    Created
 	2    05/03/2024   Moin Bloch    Updated changed join ItemMaster To [Stockline]
 	3    14/02/2024   Hemant Saliya Created for Marerials, labor, flat rate changes
+	4    09/July/2026   RAJESH GAMI   [PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
      
 --   EXEC [USP_GetCustomerTax_Information_Repair_WOQ] 2169,4106,3596
 **************************************************************/
@@ -103,7 +104,7 @@ BEGIN
 		 WHERE WOQ.[WorkOrderQuoteId] = @WorkOrderQuoteId 
 		   AND WOP.[ID] = @workOrderPartNoId 
 		   AND WOQ.[IsActive] = 1 
-		   AND WOQ.[IsDeleted] = 0;
+		   AND WOQ.[IsDeleted] = 0 AND ISNULL(STK.IsNonStock,0) = 0;
 		 	      
    ---------------------------------Freight--------------------------------------------------------
  	

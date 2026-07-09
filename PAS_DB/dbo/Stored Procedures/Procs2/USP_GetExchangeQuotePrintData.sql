@@ -15,6 +15,7 @@
  ** --   --------     -------			--------------------------------          
     1    07/15/2025   Ekta Chandegra     Created
 	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	3    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
      
   EXEC USP_GetExchangeQuotePrintData @ExchangeQuoteId = 113
 
@@ -71,7 +72,7 @@ BEGIN
 		LEFT JOIN [dbo].[Employee] emp WITH(NOLOCK) ON so.EmployeeId = emp.EmployeeId
 		LEFT JOIN [dbo].[Employee] sp WITH(NOLOCK) ON so.SalesPersonId = sp.EmployeeId
 		LEFT JOIN [dbo].[Countries] cont WITH(NOLOCK) ON custAddress.CountryId = cont.countries_id
-		LEFT JOIN [dbo].[StockLine] sl WITH(NOLOCK) ON sop.StockLineId = sl.StockLineId
+		LEFT JOIN [dbo].[StockLine] sl WITH(NOLOCK) ON sop.StockLineId = sl.StockLineId AND ISNULL(sl.IsNonStock,0) = 0
 		WHERE so.ExchangeQuoteId = @ExchangeQuoteId AND ISNULL(so.IsActive,0) = 1 AND ISNULL(so.IsDeleted,0) = 0;
 	END TRY
 	BEGIN CATCH

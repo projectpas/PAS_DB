@@ -12,6 +12,7 @@
   ** S NO   Date            Author          Change Description              
  ** --   --------         -------          --------------------------------            
 	1    30-Jan-2026     Devendra Shekh		created
+	2    09/July/2026     RAJESH GAMI		[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 
 **************************************************************/
 CREATE   PROCEDURE [dbo].[usprpt_GetInventoryQuantityAdjustmentReport_SSRS]     
@@ -149,7 +150,7 @@ BEGIN
 	AND (ISNULL(@level7Ids,'') =''  OR MSD.[Level7Id]  IN (SELECT Item FROM DBO.SPLITSTRING(@level7Ids,',')))    
 	AND (ISNULL(@level8Ids,'') =''  OR MSD.[Level8Id]  IN (SELECT Item FROM DBO.SPLITSTRING(@level8Ids,',')))    
 	AND (ISNULL(@level9Ids,'') =''  OR MSD.[Level9Id]  IN (SELECT Item FROM DBO.SPLITSTRING(@level9Ids,',')))    
-	AND (ISNULL(@level10Ids,'') ='' OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level10Ids,',')))
+	AND (ISNULL(@level10Ids,'') ='' OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level10Ids,','))) AND ISNULL(stl.IsNonStock,0) = 0
    
 	UNION
 
@@ -209,7 +210,7 @@ BEGIN
 	AND (ISNULL(@level7Ids,'') =''  OR MSD.[Level7Id]  IN (SELECT Item FROM DBO.SPLITSTRING(@level7Ids,',')))    
 	AND (ISNULL(@level8Ids,'') =''  OR MSD.[Level8Id]  IN (SELECT Item FROM DBO.SPLITSTRING(@level8Ids,',')))    
 	AND (ISNULL(@level9Ids,'') =''  OR MSD.[Level9Id]  IN (SELECT Item FROM DBO.SPLITSTRING(@level9Ids,',')))    
-	AND (ISNULL(@level10Ids,'') ='' OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level10Ids,',')))
+	AND (ISNULL(@level10Ids,'') ='' OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level10Ids,','))) AND ISNULL(stl.IsNonStock,0) = 0
 
 	UNION
 
@@ -270,7 +271,7 @@ BEGIN
 	AND (ISNULL(@level7Ids,'') =''  OR MSD.[Level7Id]  IN (SELECT Item FROM DBO.SPLITSTRING(@level7Ids,',')))    
 	AND (ISNULL(@level8Ids,'') =''  OR MSD.[Level8Id]  IN (SELECT Item FROM DBO.SPLITSTRING(@level8Ids,',')))    
 	AND (ISNULL(@level9Ids,'') =''  OR MSD.[Level9Id]  IN (SELECT Item FROM DBO.SPLITSTRING(@level9Ids,',')))    
-	AND (ISNULL(@level10Ids,'') ='' OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level10Ids,',')))
+	AND (ISNULL(@level10Ids,'') ='' OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level10Ids,','))) AND ISNULL(stl.IsNonStock,0) = 0
    )
 
 	,FinalCTE([pn], [pndescription], [cond], [sernum], [slnum], [ctrlnum], [unitcost], [origqty], [newqty], [qtychange], [qtyadjustmentamount],

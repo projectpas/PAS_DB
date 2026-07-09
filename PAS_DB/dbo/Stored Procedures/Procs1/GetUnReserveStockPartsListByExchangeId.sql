@@ -16,6 +16,7 @@
  ** --   --------     -------			--------------------------------            
     1   21/10/2023    Rajesh Gami		Created
 	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	3    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 
 exec dbo.GetUnReserveStockPartsListByExchangeId 120
 **************************************************************/  
@@ -59,7 +60,7 @@ BEGIN
 			 LEFT JOIN DBO.Customer C WITH (NOLOCK) ON SO.CustomerId = C.CustomerId AND ISNULL(SO.IsVendor,0) = 0
 			LEFT JOIN DBO.Vendor V WITH (NOLOCK) ON SO.CustomerId = V.VendorId AND ISNULL(SO.IsVendor,0) = 1
 			LEFT JOIN ExchangeSalesOrderReserveParts SOR WITH (NOLOCK) ON sop.ExchangeSalesOrderPartId = SOR.ExchangeSalesOrderPartId AND SOR.TotalReserved >0
-			LEFT JOIN StockLine SL WITH (NOLOCK) ON SOR.StockLineId = SL.StockLineId --im.ItemMasterId = sl.ItemMasterId
+			LEFT JOIN StockLine SL WITH (NOLOCK) ON SOR.StockLineId = SL.StockLineId AND ISNULL(SL.IsNonStock,0) = 0 --im.ItemMasterId = sl.ItemMasterId
 			LEFT JOIN Condition cond WITH (NOLOCK) ON sop.ConditionId = cond.ConditionId
 			WHERE so.IsDeleted = 0 AND sop.IsDeleted = 0 AND so.ExchangeSalesOrderId = @ExchangeId AND (CASE WHEN ISNULL(SOR.ExchangeSalesOrderReservePartId,0) > 0 THEN 
 																																 CASE WHEN SOR.TotalReserved > 0 THEN 1 ELSE 0 END

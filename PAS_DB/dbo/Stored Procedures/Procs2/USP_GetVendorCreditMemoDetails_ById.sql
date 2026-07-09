@@ -18,6 +18,7 @@
 	2    07-Nov-2023	    Devendra Shekh		added new columns for select 
     3    02-JUN-2026		Rajesh Gami			return IsAdhoc [PN-16521]   
 	4    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	5    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 EXECUTE   [dbo].[USP_GetVendorCreditMemoDetails_ById] 63
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_GetVendorCreditMemoDetails_ById]
@@ -110,7 +111,7 @@ BEGIN
 				LEFT JOIN [dbo].[VendorRMADetail] vrmd WITH(NOLOCK) on vrm.VendorRMAId = vrmd.VendorRMAId
 				LEFT JOIN [dbo].[ItemMaster] im WITH(NOLOCK) on vrmd.ItemMasterId = im.ItemMasterId
 				 AND ISNULL(im.IsNonStock,0) = 0
-				 LEFT JOIN [dbo].[Stockline] stk WITH(NOLOCK) on vcmd.StockLineId = stk.StockLineId
+				 LEFT JOIN [dbo].[Stockline] stk WITH(NOLOCK) on vcmd.StockLineId = stk.StockLineId AND ISNULL(stk.IsNonStock,0) = 0
 				LEFT JOIN [dbo].[Vendor] v WITH(NOLOCK) on vcm.VendorId = v.VendorId
 				WHERE vcm.VendorCreditMemoId = @VendorCreditMemoId
 				END		

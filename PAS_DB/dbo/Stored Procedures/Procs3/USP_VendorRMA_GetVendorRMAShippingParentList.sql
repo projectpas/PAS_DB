@@ -17,6 +17,7 @@
     1    06/27/2023   Amit Ghediya			Created
 	2    07/04/2023   Amit Ghediya  Updated for get RMANum from PArt lavel.
 	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	4    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
      
  EXECUTE USP_VendorRMA_GetVendorRMAShippingParentList 41
 **************************************************************/
@@ -42,7 +43,7 @@ BEGIN
 			INNER JOIN DBO.RMAPickTicket sopt WITH (NOLOCK) ON sopt.VendorRMAId = sop.VendorRMAId AND sopt.VendorRMADetailId = sop.VendorRMADetailId
 			LEFT JOIN DBO.ItemMaster imt WITH (NOLOCK) ON imt.ItemMasterId = sop.ItemMasterId
 			 AND ISNULL(imt.IsNonStock,0) = 0
-			 LEFT JOIN DBO.Stockline sl WITH (NOLOCK) ON sl.StockLineId = sop.StockLineId --AND sl.ConditionId = sop.ConditionId
+			 LEFT JOIN DBO.Stockline sl WITH (NOLOCK) ON sl.StockLineId = sop.StockLineId AND ISNULL(sl.IsNonStock,0) = 0 --AND sl.ConditionId = sop.ConditionId
 			LEFT JOIN DBO.RMAShippingItem sosi WITH (NOLOCK) ON sosi.VendorRMADetailId = sop.VendorRMADetailId 
 						AND sosi.RMAPickTicketId = sopt.RMAPickTicketId
 			LEFT JOIN DBO.RMAShipping sos WITH (NOLOCK) ON sos.RMAShippingId = sosi.RMAShippingId 

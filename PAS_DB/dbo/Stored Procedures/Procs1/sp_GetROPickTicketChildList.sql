@@ -15,6 +15,7 @@
  ** PR   Date         Author			Change Description            
  ** --   --------     -------			-----------------------
 	1    04/14/2025   Vishal Suthar		Created
+	2    09/July/2026   RAJESH GAMI		[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
      
   EXEC [dbo].[sp_GetROPickTicketChildList] 2547, 20751, 1, 2
 **************************************************************/
@@ -53,7 +54,7 @@ BEGIN
 		sl.StockLineId, ropt.IsConfirmed 
 		FROM DBO.ROPickTicket ropt WITH(NOLOCK)
 		INNER JOIN DBO.RepairOrderPart rop WITH(NOLOCK) on rop.RepairOrderId = ropt.RepairOrderId  AND rop.RepairOrderPartRecordId = ropt.RepairOrderPartId
-		LEFT JOIN DBO.StockLine sl WITH(NOLOCK) on sl.StockLineId = rop.StockLineId
+		LEFT JOIN DBO.StockLine sl WITH(NOLOCK) on sl.StockLineId = rop.StockLineId AND ISNULL(sl.IsNonStock,0) = 0
 		INNER JOIN DBO.Employee emp WITH(NOLOCK) on emp.EmployeeId = ropt.PickedById
 		LEFT JOIN DBO.Employee empy WITH(NOLOCK) on empy.EmployeeId = ropt.ConfirmedById
 		WHERE ropt.RepairOrderId = @RepairOrderId AND rop.RepairOrderPartRecordId = @RepairOrderPartId;

@@ -15,6 +15,7 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
 	1    06/19/2023   Amit Ghediya  Created
+	2    09/July/2026   RAJESH GAMI  [PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
      
 -- EXEC [dbo].[sp_VendorRMA_GetPickTicketChildList] 478
 **************************************************************/
@@ -38,7 +39,7 @@ BEGIN
 		sl.StockLineId, sopt.IsConfirmed 
 		FROM RMAPickTicket sopt WITH(NOLOCK)
 		INNER JOIN VendorRMADetail sop WITH(NOLOCK) on sop.VendorRMAId = sopt.VendorRMAId AND sop.VendorRMADetailId = sopt.VendorRMADetailId
-		LEFT JOIN StockLine sl WITH(NOLOCK) on sl.StockLineId = sop.StockLineId
+		LEFT JOIN StockLine sl WITH(NOLOCK) on sl.StockLineId = sop.StockLineId AND ISNULL(sl.IsNonStock,0) = 0
 		INNER JOIN Employee emp WITH(NOLOCK) on emp.EmployeeId = sopt.PickedById
 		LEFT JOIN Employee empy WITH(NOLOCK) on empy.EmployeeId = sopt.ConfirmedById
 		WHERE sopt.VendorRMAId = @VendorRMAId AND sopt.VendorRMADetailId = @VendorRMADetailId AND sop.ItemMasterId = @ItemMasterId and sl.ConditionId = @ConditionId

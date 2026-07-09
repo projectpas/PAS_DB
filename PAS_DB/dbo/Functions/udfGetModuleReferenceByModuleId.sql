@@ -18,6 +18,7 @@
 	2    20-03-2024  Abhishek Jirawla   Adding detail regarding BulStockAdjustment Module
 	3    20-03-2024  Rajesh Gami        Added StockAdjustments 
 	4    07-11-2024  Moin Bloch        Added CycleCount Module 	
+	5    09/July/2026  RAJESH GAMI        [PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	
 **************************************************************/
 CREATE   FUNCTION [dbo].[udfGetModuleReferenceByModuleId]
@@ -55,7 +56,7 @@ BEGIN
 		END
 		IF (@ModuleName = 'StockLine' OR @ModuleName = 'StockAdjustments')
 		BEGIN
-			SELECT @ReferenceNumber = Stk.StockLineNumber FROM DBO.Stockline Stk WITH (NOLOCK) WHERE Stk.StockLineId = @ReferenceId;
+			SELECT @ReferenceNumber = Stk.StockLineNumber FROM DBO.Stockline Stk WITH (NOLOCK) WHERE Stk.StockLineId = @ReferenceId AND ISNULL(Stk.IsNonStock,0) = 0;
 		END
 		IF (@ModuleName = 'RepairOrder' OR @ModuleName = 'ReceivingRepairOrder')
 		BEGIN
@@ -91,7 +92,7 @@ BEGIN
 		END
 		IF (@ModuleName = 'BulkStockAdjustments')
 		BEGIN
-			SELECT @ReferenceNumber = Stk.StockLineNumber FROM DBO.Stockline Stk WITH (NOLOCK) WHERE Stk.StockLineId = @ReferenceId;
+			SELECT @ReferenceNumber = Stk.StockLineNumber FROM DBO.Stockline Stk WITH (NOLOCK) WHERE Stk.StockLineId = @ReferenceId AND ISNULL(Stk.IsNonStock,0) = 0;
 		END
 		IF (@ModuleName = 'StockAdjustments')
 		BEGIN

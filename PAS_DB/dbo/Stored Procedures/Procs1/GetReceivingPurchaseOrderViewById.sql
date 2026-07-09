@@ -14,6 +14,7 @@
     1    26/12/2023   Shrey Chandegara     Created 
 	2    10/04/2025   Moin Bloch           Modified change logic for QuantityReceived
 	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	4    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 
 	exec GetReceivingPurchaseOrderViewById 4715
 **************************************************************/ 
@@ -402,7 +403,7 @@ BEGIN
 		LEFT JOIN  [dbo].[Location] L WITH(NOLOCK) ON L.LocationId = SL.LocationId
 		LEFT JOIN  [dbo].[Shelf] SH WITH(NOLOCK) ON SH.ShelfId = SL.ShelfId
 		LEFT JOIN  [dbo].[Bin] B WITH(NOLOCK) ON B.BinId = SL.BinId
-		WHERE SL.PurchaseOrderId = @PurchaseOrderId
+		WHERE SL.PurchaseOrderId = @PurchaseOrderId AND ISNULL(SL.IsNonStock,0) = 0
 
 		SELECT * FROM TimeLifeDraft WHERE PurchaseOrderId= @PurchaseOrderId
 		SELECT * FROM TimeLife WHERE PurchaseOrderId= @PurchaseOrderId

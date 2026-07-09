@@ -19,6 +19,7 @@
 	2    10/04/2023   Hemant Saliya		Condition Group Changes
 	3    26/06/2024   Devendra Shekh	added TaskName To Select
 	4    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	5    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 
  EXECUTE USP_GetWorkOrdMaterialsStocklineListForUnIssue 852, 0
 **************************************************************/ 
@@ -122,7 +123,7 @@ SET NOCOUNT ON
 						LEFT JOIN dbo.Task TS WITH (NOLOCK) ON TS.TaskId = WOM.TaskId
 					WHERE WOM.WorkFlowWorkOrderId = @WorkFlowWorkOrderId AND SL.IsParent = 1 AND WOM.IsDeleted = 0 AND (@ItemMasterId IS NULL OR im.ItemMasterId = @ItemMasterId OR IM_AltMain.ItemMasterId = @ItemMasterId OR IM_EquMain.ItemMasterId = @ItemMasterId)
 				
-				 AND ISNULL(IM.IsNonStock,0) = 0
+				 AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(SL.IsNonStock,0) = 0
 					 UNION ALL
 
 				SELECT DISTINCT WOM.WorkOrderId,
@@ -207,7 +208,7 @@ SET NOCOUNT ON
 						LEFT JOIN dbo.UnitOfMeasure UOM WITH (NOLOCK) ON UOM.UnitOfMeasureId = WOM.UnitOfMeasureId
 						LEFT JOIN dbo.Task TS WITH (NOLOCK) ON TS.TaskId = WOM.TaskId
 					WHERE WOM.WorkFlowWorkOrderId = @WorkFlowWorkOrderId AND SL.IsParent = 1 AND WOM.IsDeleted = 0 AND (@ItemMasterId IS NULL OR im.ItemMasterId = @ItemMasterId OR IM_AltMain.ItemMasterId = @ItemMasterId OR IM_EquMain.ItemMasterId = @ItemMasterId)
-			 AND ISNULL(IM.IsNonStock,0) = 0
+			 AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(SL.IsNonStock,0) = 0
 					 END
 		COMMIT  TRANSACTION
 

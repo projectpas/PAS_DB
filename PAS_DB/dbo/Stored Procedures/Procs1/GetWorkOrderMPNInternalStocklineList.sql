@@ -13,6 +13,7 @@ EXEC [GetWorkOrderMPNInternalStocklineList]
    2    28/03/2024  Moin Bloch       Resolved IsCustomerStock filter issue.
    3    26/03/2026  Moin Bloch	     Rename TearDown To Internal Teardown PN-15850
 	4    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	5    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 
 exec GetWorkOrderMPNInternalStocklineList @PageNumber=1,@PageSize=10,@SortColumn=N'CreatedDate',@SortOrder=-1,@GlobalFilter=N'',@PartNumber=NULL,@PartDescription=NULL,
 @ManufacturerName=NULL,@SerialNumber=NULL,@Condition=NULL,@StocklineNumber=NULL,@QuantityAvailable=NULL,@QuantityOnHand=NULL,@UnitCost=NULL,@EmployeeId=2,@MasterCompanyId=1,
@@ -97,7 +98,7 @@ BEGIN
 					INNER JOIN [dbo].[StocklineManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ReferenceID = stl.StockLineId AND MSD.ModuleID = @MSModuelId  
 			  WHERE (stl.IsDeleted = 0) AND stl.MasterCompanyId = @MasterCompanyId AND ISNULL(stl.QuantityOnHand, 0) > 0 AND ISNULL(stl.QuantityAvailable, 0) > 0     
 			  AND stl.IsParent = 1 AND (stl.IsCustomerStock = 0 OR (stl.IsCustomerStock = 1 AND stl.CustomerId = @CustomerId AND @WorkOrderTypeId = @TeardownWorkOrderTypeId))
-			 AND ISNULL(im.IsNonStock,0) = 0 ), ResultCount AS(Select COUNT(StockLineId) AS totalItems FROM Result)  
+			 AND ISNULL(im.IsNonStock,0) = 0 AND ISNULL(stl.IsNonStock,0) = 0 ), ResultCount AS(Select COUNT(StockLineId) AS totalItems FROM Result)  
 			SELECT * INTO #TempResults FROM  Result  
 			 WHERE ((@GlobalFilter <>'' AND   
 				   ((PartNumber LIKE '%' +@GlobalFilter+'%') OR  

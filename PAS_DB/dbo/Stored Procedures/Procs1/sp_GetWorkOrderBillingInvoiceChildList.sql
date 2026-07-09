@@ -22,6 +22,7 @@
 	17	 11/04/2025	  Moin Bloch		    Updated Fix For Finished Goods 
 	18   08-07-2025   Moin Bloch            Changed Old To New Billing Table SP NOT IN USE
 	19    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	20    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 
 	EXEC [sp_GetWorkOrderBillingInvoiceChildList] 4176,3668
 
@@ -145,7 +146,7 @@ BEGIN
 						 AND ISNULL(imt.IsNonStock,0) = 0
 						 LEFT JOIN DBO.ItemMaster imv WITH(NOLOCK) on imv.ItemMasterId = wobii.ItemMasterId
 						 AND ISNULL(imv.IsNonStock,0) = 0
-						  LEFT JOIN DBO.Stockline sl WITH(NOLOCK) on sl.StockLineId = wop.StockLineId
+						  LEFT JOIN DBO.Stockline sl WITH(NOLOCK) on sl.StockLineId = wop.StockLineId AND ISNULL(sl.IsNonStock,0) = 0
 						LEFT JOIN DBO.WorkOrderCustomsInfo woc WITH(NOLOCK) on woc.WorkOrderShippingId = wos.WorkOrderShippingId
 						LEFT JOIN DBO.Customer cr WITH(NOLOCK) on cr.CustomerId = wo.CustomerId
 						LEFT JOIN DBO.Condition cond  WITH(NOLOCK) on cond.ConditionId = wosc.ConditionId
@@ -250,7 +251,7 @@ BEGIN
 								 AND ISNULL(imt.IsNonStock,0) = 0
 								 LEFT JOIN DBO.ItemMaster imv WITH(NOLOCK) on imv.ItemMasterId = wobii.ItemMasterId
 								 AND ISNULL(imv.IsNonStock,0) = 0
-								  LEFT JOIN DBO.Stockline sl WITH(NOLOCK) on sl.StockLineId = wop.StockLineId
+								  LEFT JOIN DBO.Stockline sl WITH(NOLOCK) on sl.StockLineId = wop.StockLineId AND ISNULL(sl.IsNonStock,0) = 0
 								LEFT JOIN DBO.WorkOrderCustomsInfo woc WITH(NOLOCK) on woc.WorkOrderShippingId = wos.WorkOrderShippingId
 								LEFT JOIN DBO.Customer cr WITH(NOLOCK) on cr.CustomerId = wo.CustomerId
 								LEFT JOIN DBO.Condition cond  WITH(NOLOCK) on cond.ConditionId = wosc.ConditionId
@@ -350,7 +351,7 @@ BEGIN
 							 AND ISNULL(imt.IsNonStock,0) = 0
 							 LEFT JOIN DBO.ItemMaster imv WITH(NOLOCK) on imv.ItemMasterId = wobii.ItemMasterId
 							 AND ISNULL(imv.IsNonStock,0) = 0
-							  LEFT JOIN DBO.Stockline sl WITH(NOLOCK) on sl.StockLineId = wop.StockLineId
+							  LEFT JOIN DBO.Stockline sl WITH(NOLOCK) on sl.StockLineId = wop.StockLineId AND ISNULL(sl.IsNonStock,0) = 0
 							LEFT JOIN DBO.Customer cr WITH(NOLOCK) on cr.CustomerId = wo.CustomerId
 							LEFT JOIN DBO.Condition cond  WITH(NOLOCK) on cond.ConditionId = wosc.ConditionId
 							LEFT JOIN DBO.Currency curr WITH(NOLOCK) on curr.CurrencyId = wobi.CurrencyId
@@ -455,7 +456,7 @@ BEGIN
 						 AND ISNULL(imt.IsNonStock,0) = 0
 						 LEFT JOIN DBO.ItemMaster imv WITH(NOLOCK) on imv.ItemMasterId = wobii.ItemMasterId
 						 AND ISNULL(imv.IsNonStock,0) = 0
-						  LEFT JOIN DBO.Stockline sl WITH(NOLOCK) on sl.StockLineId = wop.StockLineId
+						  LEFT JOIN DBO.Stockline sl WITH(NOLOCK) on sl.StockLineId = wop.StockLineId AND ISNULL(sl.IsNonStock,0) = 0
 						LEFT JOIN DBO.Customer cr WITH(NOLOCK) on cr.CustomerId = wo.CustomerId
 						LEFT JOIN DBO.Condition cond  WITH(NOLOCK) on cond.ConditionId = wobii.ConditionId
 						LEFT JOIN DBO.Currency curr WITH(NOLOCK) on curr.CurrencyId = wobi.CurrencyId

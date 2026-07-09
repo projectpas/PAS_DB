@@ -17,6 +17,7 @@
 	4    04-07-2025   AMIT GHEDIYA	  Changed Old To New Billing Table
 	5    07-07-2025   Moin Bloch      Changed Old To New Billing Table
 	6    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	7    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 
  -- exec RPT_GetCustomerRMAPartsDetails 120,0,13,1    
 **************************************************************/ 
@@ -97,7 +98,7 @@ BEGIN
 					LEFT JOIN [dbo].[SalesOrderQuote] SQ WITH (NOLOCK) ON SQ.SalesOrderQuoteId = SO.SalesOrderQuoteId
 					LEFT JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON SOBII.ItemMasterId=IM.ItemMasterId
 					 AND ISNULL(IM.IsNonStock,0) = 0
-					 LEFT JOIN [dbo].[Stockline] ST WITH (NOLOCK) ON ST.StockLineId = STK.StockLineId AND ST.IsParent = 1
+					 LEFT JOIN [dbo].[Stockline] ST WITH (NOLOCK) ON ST.StockLineId = STK.StockLineId AND ST.IsParent = 1 AND ISNULL(ST.IsNonStock,0) = 0
 					LEFT JOIN [dbo].[RMACreditMemoSettings] RMAC WITH (NOLOCK) ON so.MasterCompanyId = RMAC.MasterCompanyId
 					WHERE SOBI.BillingInvoicingId=@InvoicingId AND ISNULL(SOBI.IsPerformaInvoice,0) = 0	AND SOBI.ModuleId = @SOModuleId
 
@@ -152,7 +153,7 @@ BEGIN
 				LEFT JOIN [dbo].[WorkOrder] WO WITH (NOLOCK) ON WOBI.ReferenceId = WO.WorkOrderId
 				LEFT JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON WOBII.ItemMasterId=IM.ItemMasterId
 				 AND ISNULL(IM.IsNonStock,0) = 0
-				 LEFT JOIN [dbo].[Stockline] ST WITH (NOLOCK) ON ST.StockLineId=WOPN.StockLineId AND ST.IsParent = 1
+				 LEFT JOIN [dbo].[Stockline] ST WITH (NOLOCK) ON ST.StockLineId=WOPN.StockLineId AND ST.IsParent = 1 AND ISNULL(ST.IsNonStock,0) = 0
 				LEFT JOIN [dbo].[RMACreditMemoSettings] RMAC WITH (NOLOCK) ON WO.MasterCompanyId = RMAC.MasterCompanyId
 			    WHERE WOBI.BillingInvoicingId=@InvoicingId AND WOBI.IsVersionIncrease=0 AND WOBI.ModuleId = @WOModuleId;	
 			END
@@ -238,7 +239,7 @@ BEGIN
 			   LEFT JOIN [dbo].[CustomerRMAHeader] CRH WITH (NOLOCK) ON CRH.RMAHeaderId=CRM.RMAHeaderId 
 			   LEFT JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON CRM.ItemMasterId=IM.ItemMasterId
 			    AND ISNULL(IM.IsNonStock,0) = 0
-			    LEFT JOIN [dbo].[Stockline] ST WITH (NOLOCK) ON ST.StockLineId=CRM.StockLineId AND ST.IsParent = 1 WHERE  CRM.RMAHeaderId =@RMAheaderId AND ISNULL(CRM.IsDeleted,0) =0 AND  ISNULL(CRM.IsActive,1)=1
+			    LEFT JOIN [dbo].[Stockline] ST WITH (NOLOCK) ON ST.StockLineId=CRM.StockLineId AND ST.IsParent = 1 AND ISNULL(ST.IsNonStock,0) = 0 WHERE  CRM.RMAHeaderId =@RMAheaderId AND ISNULL(CRM.IsDeleted,0) =0 AND  ISNULL(CRM.IsActive,1)=1
 
 			END		
 			

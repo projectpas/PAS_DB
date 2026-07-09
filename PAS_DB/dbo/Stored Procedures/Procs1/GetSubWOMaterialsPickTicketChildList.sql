@@ -17,6 +17,7 @@
  ** --   --------     -------				--------------------------------          
     1    09/20/2021   Hemant Saliya			Created
 	2    12/19/2023   Devendra Shekh        changes for kit part added
+	3    09/July/2026   RAJESH GAMI        [PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
      
 --EXEC [GetSubWOMaterialsPickTicketChildList] 343,768
 **************************************************************/
@@ -53,7 +54,7 @@ BEGIN
 			FROM dbo.SubWorkorderPickTicket wopt WITH(NOLOCK)
 				INNER JOIN dbo.Employee emp WITH(NOLOCK) on emp.EmployeeId = wopt.PickedById
 				INNER JOIN dbo.SubWorkOrderMaterials wop WITH(NOLOCK) ON wop.WorkOrderId = wopt.WorkorderId AND wop.SubWorkOrderId = wopt.SubWorkOrderId AND wop.SubWorkOrderMaterialsId = wopt.SubWorkOrderMaterialsId
-				LEFT JOIN dbo.StockLine sl WITH(NOLOCK) on sl.StockLineId = wopt.StocklineId
+				LEFT JOIN dbo.StockLine sl WITH(NOLOCK) on sl.StockLineId = wopt.StocklineId AND ISNULL(sl.IsNonStock,0) = 0
 				LEFT JOIN dbo.Employee empy WITH(NOLOCK) on empy.EmployeeId = wopt.ConfirmedById
 			WHERE wopt.WorkorderId=@WorkOrderId AND wopt.SubWorkOrderId=@SubWorkOrderId AND wopt.SubWorkOrderMaterialsId = @OrderPartId AND wopt.QtyToShip > 0 
 
@@ -80,7 +81,7 @@ BEGIN
 			FROM dbo.SubWorkorderPickTicket wopt WITH(NOLOCK)
 				INNER JOIN dbo.Employee emp WITH(NOLOCK) on emp.EmployeeId = wopt.PickedById
 				INNER JOIN dbo.SubWorkOrderMaterialsKit wop WITH(NOLOCK) ON wop.WorkOrderId = wopt.WorkorderId AND wop.SubWorkOrderId = wopt.SubWorkOrderId AND  wop.SubWorkOrderMaterialsKitId = wopt.SubWorkOrderMaterialsId
-				LEFT JOIN dbo.StockLine sl WITH(NOLOCK) on sl.StockLineId = wopt.StocklineId
+				LEFT JOIN dbo.StockLine sl WITH(NOLOCK) on sl.StockLineId = wopt.StocklineId AND ISNULL(sl.IsNonStock,0) = 0
 				LEFT JOIN dbo.Employee empy WITH(NOLOCK) on empy.EmployeeId = wopt.ConfirmedById
 			WHERE wopt.WorkorderId=@WorkOrderId AND wopt.SubWorkOrderId=@SubWorkOrderId AND wopt.SubWorkOrderMaterialsId=@OrderPartId AND wopt.QtyToShip > 0 
 

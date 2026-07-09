@@ -17,6 +17,7 @@
     1    11/14/2022   Subhash Saliya  Created
 	2    16/04/2024   Moin Bloch      Added New Field Scrap Certificate Date	
 	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	4    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
      
 --EXEC [GetScrapDeatilsById] 16, 10048,'STL-000030'
 **************************************************************/
@@ -62,7 +63,7 @@ BEGIN
 				  AND ISNULL(imt.IsNonStock,0) = 0
 				  LEFT JOIN [dbo].[ScrapReason] SR WITH (NOLOCK) ON SR.Id=SC.ScrapReasonId 
 			    Where WOPN.ID=@workOrderPartNoId and WO.WorkOrderId=@workOrderId 
-			 AND ISNULL(IM.IsNonStock,0) = 0
+			 AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(ST.IsNonStock,0) = 0
 			     END
 			ELSE
 			BEGIN
@@ -91,7 +92,7 @@ BEGIN
 				 LEFT JOIN [dbo].[ScrapReason] SR WITH (NOLOCK) ON SR.Id=SC.ScrapReasonId 
 				 LEFT JOIN [dbo].[WorkOrder] WO WITH (NOLOCK) ON WO.WorkOrderId=SWO.WorkOrderId 
 			    WHERE SWOPN.SubWOPartNoId=@workOrderPartNoId AND SWO.SubWorkOrderId=@workOrderId  
-			 AND ISNULL(IM.IsNonStock,0) = 0
+			 AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(ST.IsNonStock,0) = 0
 			     END
 
 				

@@ -23,6 +23,7 @@
 	6    08/02/2024   Ekta Chandegra    Retrieve PP_UnitPurchasePrice from ItemMasterPurchaseSales
 	7    14/02/2024   Ekta Chandegra    Retrieve ManufacturerId from ItemMaster
 	8    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	9    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
     
 -- EXEC [ProcStockList] 947    
 **************************************************************/
@@ -223,7 +224,7 @@ BEGIN
 		 AND stl.IsParent = 1 
 		 AND (@SearchItemMasterId IS NULL OR im.ItemMasterId = @SearchItemMasterId)
 		 AND (@ConditionIds IS NULL OR stl.ConditionId IN(SELECT * FROM STRING_SPLIT(@ConditionIds , ',')))     
-		 AND stl.IsCustomerStock = CASE WHEN @ISCS = 1 AND @ISECS = 0 THEN 1 WHEN @ISCS = 0 AND @ISECS = 1 THEN 0 else stl.IsCustomerStock END          
+		 AND stl.IsCustomerStock = CASE WHEN @ISCS = 1 AND @ISECS = 0 THEN 1 WHEN @ISCS = 0 AND @ISECS = 1 THEN 0 else stl.IsCustomerStock END AND ISNULL(stl.IsNonStock,0) = 0          
 	   ), ResultCount AS(Select COUNT(StockLineId) AS totalItems FROM Result)        
 	   SELECT * INTO #TempResults FROM  Result        
 		 WHERE ((@GlobalFilter <>'' AND ((MainPartNumber LIKE '%' +@GlobalFilter+'%') OR        
@@ -476,7 +477,7 @@ BEGIN
         AND (@ConditionIds IS NULL OR stl.ConditionId IN(SELECT * FROM STRING_SPLIT(@ConditionIds , ',')))   
 		
 		--AND stl.IsCustomerStock = CASE WHEN @ISCS = 1 AND @ISECS = 0 THEN 1 WHEN @ISCS = 0 AND @ISECS = 1 THEN 0 else stl.IsCustomerStock END        
-	   AND ISNULL(im.IsNonStock,0) = 0 ), ResultCount AS(Select COUNT(StockLineId) AS totalItems FROM Result)        
+	   AND ISNULL(im.IsNonStock,0) = 0 AND ISNULL(stl.IsNonStock,0) = 0 ), ResultCount AS(Select COUNT(StockLineId) AS totalItems FROM Result)        
 	  SELECT * INTO #TempResult FROM  Result        
 	   WHERE ((@GlobalFilter <>'' AND ((MainPartNumber LIKE '%' +@GlobalFilter+'%') OR        
 		(PartDescription LIKE '%' +@GlobalFilter+'%') OR 
@@ -734,7 +735,7 @@ BEGIN
 		 AND ISNULL(stl.QuantityAvailable,0) >0
 		 AND stl.IsCustomerStock = CASE WHEN @ISCS = 1 AND @ISECS = 0 THEN 1 WHEN @ISCS = 0 AND @ISECS = 1 THEN 0 else stl.IsCustomerStock END       
 		 AND (@SearchItemMasterId IS NULL OR im.ItemMasterId = @SearchItemMasterId)
-		 AND (@ConditionIds IS NULL OR stl.ConditionId IN(SELECT * FROM STRING_SPLIT(@ConditionIds , ',')))   
+		 AND (@ConditionIds IS NULL OR stl.ConditionId IN(SELECT * FROM STRING_SPLIT(@ConditionIds , ','))) AND ISNULL(stl.IsNonStock,0) = 0   
 	   ), ResultCount AS(Select COUNT(StockLineId) AS totalItems FROM Result)        
 	   SELECT * INTO #TempALTResults FROM  Result        
 		 WHERE ((@GlobalFilter <>'' AND ((MainPartNumber LIKE '%' +@GlobalFilter+'%') OR        
@@ -994,7 +995,7 @@ BEGIN
 	    AND (@SearchItemMasterId IS NULL OR im.ItemMasterId = @SearchItemMasterId)
 		AND (@ConditionIds IS NULL OR stl.ConditionId IN(SELECT * FROM STRING_SPLIT(@ConditionIds , ',')))   
 		--AND stl.IsCustomerStock = CASE WHEN @ISCS = 1 AND @ISECS = 0 THEN 1 WHEN @ISCS = 0 AND @ISECS = 1 THEN 0 else stl.IsCustomerStock END        
-	   AND ISNULL(im.IsNonStock,0) = 0 AND ISNULL(IMAl.IsNonStock,0) = 0 ), ResultCount AS(Select COUNT(StockLineId) AS totalItems FROM Result)        
+	   AND ISNULL(im.IsNonStock,0) = 0 AND ISNULL(IMAl.IsNonStock,0) = 0 AND ISNULL(stl.IsNonStock,0) = 0 ), ResultCount AS(Select COUNT(StockLineId) AS totalItems FROM Result)        
 	  SELECT * INTO #TempALTResult FROM  Result        
 	   WHERE ((@GlobalFilter <>'' AND ((MainPartNumber LIKE '%' +@GlobalFilter+'%') OR        
 		(PartNumber LIKE '%' +@GlobalFilter+'%') OR    

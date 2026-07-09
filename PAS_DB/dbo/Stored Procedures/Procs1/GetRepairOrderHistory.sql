@@ -21,6 +21,7 @@
 	5    01-04-2025   Amit Ghediya      Update role query for duplicate records.
 	6    19/06/2026   Abhishek Jirawla	Adding IsPiecePart condition in RepairOrderPart table 
 	7    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	8    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 **********************/
 CREATE   PROCEDURE [dbo].[GetRepairOrderHistory]
 @PageNumber int = 1,
@@ -93,7 +94,7 @@ BEGIN
 		BEGIN TRY
 		BEGIN TRANSACTION
 		BEGIN
-			SELECT * INTO #TempStkList FROM (SELECT ST.ReceivedDate, ST.ItemMasterId, ST.RepairOrderId, ST.RepairOrderPartRecordId FROM DBO.Stockline ST WITH (NOLOCK) WHERE ST.MasterCompanyId = @MasterCompanyId AND ST.IsParent = 1 AND ISNULL(ST.RepairOrderId, 0) != 0 AND ISNULL(ST.RepairOrderPartRecordId, 0) != 0) AS Stk;
+			SELECT * INTO #TempStkList FROM (SELECT ST.ReceivedDate, ST.ItemMasterId, ST.RepairOrderId, ST.RepairOrderPartRecordId FROM DBO.Stockline ST WITH (NOLOCK) WHERE ST.MasterCompanyId = @MasterCompanyId AND ST.IsParent = 1 AND ISNULL(ST.RepairOrderId, 0) != 0 AND ISNULL(ST.RepairOrderPartRecordId, 0) != 0 AND ISNULL(ST.IsNonStock,0) = 0) AS Stk;
 
 			IF(@ViewType = 'roview')
 			BEGIN

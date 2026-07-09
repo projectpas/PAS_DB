@@ -20,6 +20,7 @@
 	6    04-12-2025	  Amit Ghediya			Added qtyShipped,qtyRemaining for shipping details
 	7    19-Jun-2026  Abhishek Jirawla		Adding IsPiecePart condition in RepairOrderPart table 
 	8    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	9    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 
 **************************************************************/
 CREATE  PROCEDURE [dbo].[GetPNTileRepairOrderList]
@@ -127,7 +128,7 @@ BEGIN
 				GROUP BY RepairOrderPartId
 			 ) ROSI ON ROSI.RepairOrderPartId = ROP.RepairOrderPartRecordId
 			 INNER JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON IM.ItemMasterId = ROP.ItemMasterId 
-			  LEFT JOIN [dbo].[Stockline] STL WITH (NOLOCK) ON STL.StockLineId = ROP.StockLineId AND STL.IsParent = 1 AND STL.isActive = 1 AND STL.isDeleted = 0  	
+			  LEFT JOIN [dbo].[Stockline] STL WITH (NOLOCK) ON STL.StockLineId = ROP.StockLineId AND STL.IsParent = 1 AND STL.isActive = 1 AND STL.isDeleted = 0 AND ISNULL(STL.IsNonStock,0) = 0  	
 			  LEFT JOIN [dbo].[TagType] TAT WITH (NOLOCK) ON ROP.TagTypeId = TAT.TagTypeId
 		 	  WHERE RO.IsDeleted = 0
 			      AND RO.IsActive = 1

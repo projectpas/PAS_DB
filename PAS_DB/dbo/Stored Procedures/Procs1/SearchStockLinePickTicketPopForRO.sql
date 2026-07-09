@@ -10,6 +10,7 @@
  ** --   --------     -------			--------------------------------          
     1    04/14/2025   Vishal Suthar		Created
 	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	3    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 
 EXEC [dbo].[SearchStockLinePickTicketPopForRO] 20751, 1, 2547, 0
 **************************************************************/ 
@@ -87,7 +88,7 @@ BEGIN
 				LEFT JOIN DBO.Vendor vTraceble WITH(NOLOCK) ON sl.TraceableTo = vTraceble.VendorId
 				LEFT JOIN DBO.LegalEntity leTraceble WITH(NOLOCK) ON sl.TraceableTo = leTraceble.LegalEntityId
 				LEFT JOIN DBO.ROPickTicket Pick WITH(NOLOCK) ON Pick.RepairOrderPartId = rop.RepairOrderPartRecordId and sl.StocklineId = pick.StocklineId
-				LEFT JOIN (SELECT ItemMasterId, [Name],StockLineId FROM DBO.Stockline S WITH(NOLOCK) INNER JOIN DBO.Manufacturer M WITH(NOLOCK) ON M.ManufacturerId = S.ManufacturerId) Smf ON Smf.ItemMasterId = im.ItemMasterId AND Smf.StockLineId = sl.StockLineId
+				LEFT JOIN (SELECT ItemMasterId, [Name],StockLineId FROM DBO.Stockline S WITH(NOLOCK) INNER JOIN DBO.Manufacturer M WITH(NOLOCK) ON M.ManufacturerId = S.ManufacturerId WHERE ISNULL(S.IsNonStock,0) = 0) Smf ON Smf.ItemMasterId = im.ItemMasterId AND Smf.StockLineId = sl.StockLineId
 				WHERE 
 					so.RepairOrderId = @RepairOrderId AND 
 					((rop.QuantityReserved + 0
@@ -96,7 +97,7 @@ BEGIN
 					--	INNER JOIN ROPickTicket sopi with(nolock) on ship_item.SOPickTicketId = sopi.SOPickTicketId and sopi.SOPickTicketId = Pick.SOPickTicketId)
 					) - 
 					(SELECT ISNULL(SUM(QtyToShip), 0) FROM ROPickTicket s WITH(NOLOCK) Where s.RepairOrderId = @RepairOrderId AND s.StocklineId = sl.StocklineId)) > 0
-		 AND ISNULL(im.IsNonStock,0) = 0
+		 AND ISNULL(im.IsNonStock,0) = 0 AND ISNULL(sl.IsNonStock,0) = 0
 					 END
 		ELSE
 		BEGIN
@@ -163,7 +164,7 @@ BEGIN
 				LEFT JOIN DBO.Vendor vTraceble WITH(NOLOCK) ON sl.TraceableTo = vTraceble.VendorId
 				LEFT JOIN DBO.LegalEntity leTraceble WITH(NOLOCK) ON sl.TraceableTo = leTraceble.LegalEntityId
 				LEFT JOIN DBO.ROPickTicket Pick WITH(NOLOCK) ON Pick.RepairOrderPartId = rop.RepairOrderPartRecordId and sl.StockLineId = pick.StockLineId
-				LEFT JOIN (SELECT ItemMasterId, [Name],StockLineId FROM DBO.Stockline S WITH(NOLOCK) INNER JOIN DBO.Manufacturer M WITH(NOLOCK) ON M.ManufacturerId = S.ManufacturerId) Smf ON Smf.ItemMasterId = im.ItemMasterId AND Smf.StockLineId = sl.StockLineId
+				LEFT JOIN (SELECT ItemMasterId, [Name],StockLineId FROM DBO.Stockline S WITH(NOLOCK) INNER JOIN DBO.Manufacturer M WITH(NOLOCK) ON M.ManufacturerId = S.ManufacturerId WHERE ISNULL(S.IsNonStock,0) = 0) Smf ON Smf.ItemMasterId = im.ItemMasterId AND Smf.StockLineId = sl.StockLineId
 				WHERE 
 					im.ItemMasterId = @ItemMasterIdlist AND 
 					so.RepairOrderId = @RepairOrderId AND 
@@ -174,7 +175,7 @@ BEGIN
 					) - 
 					(SELECT ISNULL(SUM(QtyToShip), 0) FROM ROPickTicket s WITH(NOLOCK) Where s.RepairOrderId = @RepairOrderId AND s.StocklineId = sl.StocklineId)
 					) > 0
-		 AND ISNULL(im.IsNonStock,0) = 0
+		 AND ISNULL(im.IsNonStock,0) = 0 AND ISNULL(sl.IsNonStock,0) = 0
 					 END
 
 				

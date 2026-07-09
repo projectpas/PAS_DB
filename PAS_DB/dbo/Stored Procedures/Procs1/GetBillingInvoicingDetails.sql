@@ -24,6 +24,7 @@
 	10   26/03/2026    Moin Bloch	  Rename TearDown To Internal Teardown PN-15850
 	11   29/06/2026    BHARGAV Saliya 	  get Terms and Id From WO Table [PN-17040]
 	12    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	13    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
    EXEC [dbo].[GetBillingInvoicingDetails] 845,1334,2,10,0,9003
    EXEC [dbo].[GetBillingInvoicingDetails] 9800,9938,2,15,0,0
 **************************************************************/ 
@@ -145,7 +146,7 @@ BEGIN
 			 LEFT JOIN [dbo].[Employee] [sp] WITH(NOLOCK) ON [wo].[SalesPersonId] = [sp].[EmployeeId]
 			INNER JOIN [dbo].[CreditTerms] [ct] WITH(NOLOCK) ON [cf].[CreditTermsId] = [ct].[CreditTermsId]
 			 LEFT JOIN [dbo].[Employee] [csr] WITH(NOLOCK) ON [wo].[CSRId] = [csr].[EmployeeId]
-			 LEFT JOIN [dbo].[StockLine] [sl] WITH(NOLOCK) ON [wop].[StockLineId] = [sl].[StockLineId]
+			 LEFT JOIN [dbo].[StockLine] [sl] WITH(NOLOCK) ON [wop].[StockLineId] = [sl].[StockLineId] AND ISNULL(sl.IsNonStock,0) = 0
 			 LEFT JOIN [dbo].[Currency] [fcu] WITH(NOLOCK) ON [wo].[FunctionalCurrencyId] = [fcu].[CurrencyId] AND [fcu].[IsActive] = 1 AND [fcu].[IsDeleted] = 0
 			WHERE [wosh].[WorkOrderId] = @ReferenceId AND [wosi].[WorkOrderPartNumId] = @SubReferenceId;
 			END
@@ -225,7 +226,7 @@ BEGIN
 				 LEFT JOIN [dbo].[Employee] [sp] WITH(NOLOCK) ON [wo].[SalesPersonId] = [sp].[EmployeeId]
 				INNER JOIN [dbo].[CreditTerms] [ct]  WITH(NOLOCK) ON [cf].[CreditTermsId] = [ct].[CreditTermsId]
 				 LEFT JOIN [dbo].[Employee] [csr] WITH(NOLOCK) ON [wo].[CSRId] = [csr].[EmployeeId]
-				 LEFT JOIN [dbo].[StockLine] [sl] WITH(NOLOCK) ON [wop].[StockLineId] = [sl].[StockLineId]
+				 LEFT JOIN [dbo].[StockLine] [sl] WITH(NOLOCK) ON [wop].[StockLineId] = [sl].[StockLineId] AND ISNULL(sl.IsNonStock,0) = 0
 				 LEFT JOIN [dbo].[Currency] [fcu] WITH(NOLOCK) ON [wo].[FunctionalCurrencyId] = [fcu].[CurrencyId] AND [fcu].[IsActive] = 1 AND [fcu].[IsDeleted] = 0
 				 LEFT JOIN [DBO].[ShippingTerms] [st] WITH(NOLOCK) ON [cust_shipVia].ShippingTermsId = [st].ShippingTermsId
 				WHERE [wo].[WorkOrderId] = @ReferenceId AND [wop].[ID] = @SubReferenceId;				
@@ -304,7 +305,7 @@ BEGIN
 				 LEFT JOIN [dbo].[Employee] [sp] WITH(NOLOCK) ON [wo].[SalesPersonId] = [sp].[EmployeeId]
 				INNER JOIN [dbo].[CreditTerms] [ct]  WITH(NOLOCK) ON [cf].[CreditTermsId] = [ct].[CreditTermsId]
 				 LEFT JOIN [dbo].[Employee] [csr] WITH(NOLOCK) ON [wo].[CSRId] = [csr].[EmployeeId]
-				 LEFT JOIN [dbo].[StockLine] [sl] WITH(NOLOCK) ON [wop].[StockLineId] = [sl].[StockLineId]
+				 LEFT JOIN [dbo].[StockLine] [sl] WITH(NOLOCK) ON [wop].[StockLineId] = [sl].[StockLineId] AND ISNULL(sl.IsNonStock,0) = 0
 				 LEFT JOIN [dbo].[Currency] [fcu] WITH(NOLOCK) ON [wo].[FunctionalCurrencyId] = [fcu].[CurrencyId] AND [fcu].[IsActive] = 1 AND [fcu].[IsDeleted] = 0
 				WHERE [wo].[WorkOrderId] = @ReferenceId AND [wop].[ID] = @SubReferenceId;				
 			END
@@ -383,7 +384,7 @@ BEGIN
 				LEFT JOIN [dbo].[Employee] [sp] WITH(NOLOCK) ON [wo].[SalesPersonId] = [sp].[EmployeeId]
 				LEFT JOIN [dbo].[CreditTerms] [ct] WITH(NOLOCK) ON [cf].[CreditTermsId] = [ct].[CreditTermsId]
 				LEFT JOIN [dbo].[Employee] [csr] WITH(NOLOCK) ON [wo].[CSRId] = [csr].[EmployeeId]
-				LEFT JOIN [dbo].[StockLine] [sl] WITH(NOLOCK) ON [wop].[StockLineId] = [sl].[StockLineId]
+				LEFT JOIN [dbo].[StockLine] [sl] WITH(NOLOCK) ON [wop].[StockLineId] = [sl].[StockLineId] AND ISNULL(sl.IsNonStock,0) = 0
 				WHERE [wosh].[WorkOrderId] = @ReferenceId AND [wosi].[WorkOrderPartNumId] = @SubReferenceId;
 			
 			END

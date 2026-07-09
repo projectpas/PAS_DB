@@ -16,6 +16,7 @@
  ** --   --------			-------			-------------------          
     1    02-April-2020		Hemant Saliya	Created
 	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	3    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
      
  EXECUTE [SearchItemMasterAutoCompleteDropdownsByCustRestriction] 303, 1, 1,'','0',1
 **************************************************************/ 
@@ -133,7 +134,7 @@
 						(rpPMA.ItemMasterId IS NOT NULL OR rpDER.ItemMasterId IS NOT NULL)
 						)
 					AND im.MasterCompanyId = @MasterCompanyId
-					 AND ISNULL(im.IsNonStock,0) = 0
+					 AND ISNULL(im.IsNonStock,0) = 0 AND ISNULL(sl.IsNonStock,0) = 0
 					 Order BY partnumber
 
 				INSERT INTO #Result SELECT DISTINCT TOP 20 * FROM #TempTable t ORDER BY t.PartNumber
@@ -171,7 +172,7 @@
 					 LEFT JOIN ItemMasterPurchaseSale imps WITH (NOLOCK) ON im.ItemMasterId = imps.ItemMasterId AND sl.ConditionId = imps.ConditionId
 					 LEFT JOIN ItemClassification Ic WITH (NOLOCK) ON im.ItemClassificationId = Ic.ItemClassificationId
 				 WHERE im.ItemMasterId  IN (SELECT Item FROM DBO.SPLITSTRING(@Idlist,','))
-				 AND ISNULL(im.IsNonStock,0) = 0
+				 AND ISNULL(im.IsNonStock,0) = 0 AND ISNULL(sl.IsNonStock,0) = 0
 				  END
 
 				SELECT TOP 20 

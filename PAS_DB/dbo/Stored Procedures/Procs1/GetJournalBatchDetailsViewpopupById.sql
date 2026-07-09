@@ -59,6 +59,7 @@
  43	  10/02/2026  Moin Bloch		     added TWO
  44	  06/03/2026  AMIT GHEDIYA		     added added IsReversedJE Flag for NPO (PN-15580)
 	45    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	46    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 
  EXEC [GetJournalBatchDetailsViewpopupById] 1045,0,'ManualJournal'  
  exec dbo.GetJournalBatchDetailsViewpopupById @JournalBatchDetailId=5944,@IsDeleted=0,@Module=N'CKS'
@@ -156,7 +157,7 @@ BEGIN
 					LEFT JOIN [dbo].[StocklineManagementStructureDetails] SMSD WITH (NOLOCK) ON SMSD.ModuleID = @STKLModuleID AND SMSD.ReferenceID = WBD.StockLineId AND WBD.IsWorkOrder = 0 	       
 					LEFT JOIN [dbo].[GLAccount] GL WITH(NOLOCK) ON GL.GLAccountId=JBD.GLAccountId  
 					LEFT JOIN [dbo].[GLAccountClass] GLC WITH(NOLOCK) ON GLC.GLAccountClassId=GL.GLAccountTypeId 
-					LEFT JOIN [dbo].[Stockline] SL WITH(NOLOCK) ON SL.StockLineId=WBD.StocklineId   
+					LEFT JOIN [dbo].[Stockline] SL WITH(NOLOCK) ON SL.StockLineId=WBD.StocklineId AND ISNULL(SL.IsNonStock,0) = 0   
 					LEFT JOIN [dbo].[AccountingBatchManagementStructureDetails] ESP WITH(NOLOCK) ON JBD.[CommonJournalBatchDetailId] = ESP.[ReferenceId] AND JBD.[ManagementStructureId] = ESP.[EntityMSID]  
 					LEFT JOIN [dbo].[ManagementStructureLevel] msl WITH(NOLOCK) ON ESP.Level1Id = msl.ID  
 					LEFT JOIN [dbo].[LegalEntity] le WITH(NOLOCK) ON msl.LegalEntityId = le.LegalEntityId  
@@ -1318,7 +1319,7 @@ BEGIN
 					 INNER JOIN [dbo].[BatchDetails] BD WITH(NOLOCK) ON JBD.JournalBatchDetailId=BD.JournalBatchDetailId  
 					 INNER JOIN [dbo].[BatchHeader] JBH WITH(NOLOCK) ON BD.JournalBatchHeaderId=JBH.JournalBatchHeaderId  
 					 LEFT JOIN [dbo].[BulkStocklineAdjPaymentBatchDetails] stbd WITH(NOLOCK) ON JBD.CommonJournalBatchDetailId = stbd.CommonJournalBatchDetailId 
-					 LEFT JOIN [dbo].[Stockline] STKL WITH(NOLOCK) ON STKL.StockLineId = stbd.StockLineId  	 
+					 LEFT JOIN [dbo].[Stockline] STKL WITH(NOLOCK) ON STKL.StockLineId = stbd.StockLineId AND ISNULL(STKL.IsNonStock,0) = 0  	 
 					 LEFT JOIN [dbo].[EntityStructureSetup] ESS WITH (NOLOCK) ON stbd.ManagementStructureId = ESS.[EntityStructureId]
 					 LEFT JOIN [dbo].[ManagementStructureLevel] MSL1 WITH (NOLOCK) ON ESS.Level1Id = MSL1.ID
 					 LEFT JOIN [dbo].[ManagementStructureLevel] MSL2 WITH (NOLOCK) ON ESS.Level2Id = MSL2.ID
@@ -1416,7 +1417,7 @@ BEGIN
 					 INNER JOIN [dbo].[BatchDetails] BD WITH(NOLOCK) ON JBD.JournalBatchDetailId=BD.JournalBatchDetailId  
 					 INNER JOIN [dbo].[BatchHeader] JBH WITH(NOLOCK) ON BD.JournalBatchHeaderId=JBH.JournalBatchHeaderId  
 					 LEFT JOIN [dbo].[BulkStocklineAdjPaymentBatchDetails] stbd WITH(NOLOCK) ON JBD.CommonJournalBatchDetailId = stbd.CommonJournalBatchDetailId 
-					 LEFT JOIN [dbo].[Stockline] STKL WITH(NOLOCK) ON STKL.StockLineId = stbd.StockLineId  	 	 
+					 LEFT JOIN [dbo].[Stockline] STKL WITH(NOLOCK) ON STKL.StockLineId = stbd.StockLineId AND ISNULL(STKL.IsNonStock,0) = 0  	 	 
 					 --LEFT JOIN [dbo].[StocklineManagementStructureDetails] SMSD WITH (NOLOCK) ON SMSD.ModuleID = @blkSTKLEModuleID AND SMSD.ReferenceID = stbd.StockLineId 
 					 --LEFT JOIN [dbo].[EmployeeManagementStructureDetails] EMSD WITH (NOLOCK) ON EMSD.ReferenceID = stbd.EmployeeId AND EMSD.EntityMSID = stbd.ManagementStructureId AND EMSD.ModuleID = @ManagementStructureModuleLEId
 					-- LEFT JOIN [dbo].[ManagementStructureDetails] EMSD WITH (NOLOCK) ON stbd.ManagementStructureId = EMSD.[MSDetailsId]
@@ -1588,7 +1589,7 @@ BEGIN
 					 INNER JOIN [dbo].[BatchDetails] BD WITH(NOLOCK) ON JBD.JournalBatchDetailId=BD.JournalBatchDetailId  
 					 INNER JOIN [dbo].[BatchHeader] JBH WITH(NOLOCK) ON BD.JournalBatchHeaderId=JBH.JournalBatchHeaderId  
 					 LEFT JOIN [dbo].[BulkStocklineAdjPaymentBatchDetails] stbd WITH(NOLOCK) ON JBD.CommonJournalBatchDetailId = stbd.CommonJournalBatchDetailId 
-					 LEFT JOIN [dbo].[Stockline] STKL WITH(NOLOCK) ON STKL.StockLineId = stbd.StockLineId  	 	 
+					 LEFT JOIN [dbo].[Stockline] STKL WITH(NOLOCK) ON STKL.StockLineId = stbd.StockLineId AND ISNULL(STKL.IsNonStock,0) = 0  	 	 
 					 LEFT JOIN [dbo].[EntityStructureSetup] ESS WITH (NOLOCK) ON stbd.ManagementStructureId = ESS.[EntityStructureId]
 					 LEFT JOIN [dbo].[ManagementStructureLevel] MSL1 WITH (NOLOCK) ON ESS.Level1Id = MSL1.ID
 					 LEFT JOIN [dbo].[ManagementStructureLevel] MSL3 WITH (NOLOCK) ON ESS.Level3Id = MSL3.ID

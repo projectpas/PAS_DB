@@ -26,6 +26,7 @@
 	12   17-March-2026	 Ayushi Patel		PN-15746 Return CustomerReference Partwise
 	13   23-March-2026	 BHARGAV SALIYA		PN-15822 Added CustomerReference field in Group By clause
 	14    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	15    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 --EXEC [RPT_GetWorkOrderQuotePrintPdfDataMultipleMPN] 2304,'3823,3824,3825',0  
 exec RPT_GetWorkOrderQuotePrintPdfDataMultipleMPN @WorkOrderQuoteId=2303,@workOrderPartNoIds=N'3820,3821,3822',@isByPartIds=1
 **************************************************************/  
@@ -339,7 +340,7 @@ BEGIN
 				 LEFT JOIN #tmpResult tmp ON tmp.WorkOrderQuoteId = woq.WorkOrderQuoteId AND tmp.WorkOrderPartNoId = wop.ID
 			WHERE woq.WorkOrderQuoteId = @WorkOrderQuoteId AND wop.ID IN (SELECT value FROM STRING_SPLIT(@workOrderPartNoIds, ','))
 				 AND woq.IsActive = 1 AND woq.IsDeleted = 0  
-			 AND ISNULL(im.IsNonStock,0) = 0
+			 AND ISNULL(im.IsNonStock,0) = 0 AND ISNULL(sl.IsNonStock,0) = 0
 				  GROUP BY im.PartNumber, wop.ID, wop.RevisedPartNumber, wop.RevisedPartDescription,
 				 im.PartDescription, im1.ItemMasterId, im1.PartNumber,im.ItemMasterId, wop.PublicationNotes, tmp.[Remarks],
 				 sl.StockLineNumber, wop.RevisedSerialNumber, wop.CurrentSerialNumber, wop.Quantity, wqd.QuoteMethod, wqd.CommonFlatRate, TATDaysStandard,wqd.EvalFees, cust.CustomerId,wf.WorkFlowWorkOrderId,woq.IsPrintCorrectiveAction,wop.EstimatedShipDate,wop.CustomerReference),
@@ -469,7 +470,7 @@ BEGIN
 				 LEFT JOIN #tmpResult tmp ON tmp.WorkOrderQuoteId = woq.WorkOrderQuoteId AND tmp.WorkOrderPartNoId = wop.ID
 			WHERE woq.WorkOrderQuoteId = @WorkOrderQuoteId 
 				 AND woq.IsActive = 1 AND woq.IsDeleted = 0  
-			 AND ISNULL(im.IsNonStock,0) = 0
+			 AND ISNULL(im.IsNonStock,0) = 0 AND ISNULL(sl.IsNonStock,0) = 0
 				  GROUP BY im.PartNumber,  wop.ID, wop.RevisedPartNumber, wop.RevisedPartDescription,
 				 im.PartDescription, im1.ItemMasterId, im1.PartNumber, im.ItemMasterId, wop.PublicationNotes, tmp.[Remarks],
 				 sl.StockLineNumber, wop.RevisedSerialNumber, wop.CurrentSerialNumber, wop.Quantity, wqd.QuoteMethod, wqd.CommonFlatRate, TATDaysStandard,wqd.EvalFees, cust.CustomerId,wf.WorkFlowWorkOrderId,woq.IsPrintCorrectiveAction,wop.EstimatedShipDate,wop.CustomerReference),

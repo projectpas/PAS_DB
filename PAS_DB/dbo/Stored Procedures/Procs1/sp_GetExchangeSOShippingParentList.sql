@@ -4,6 +4,7 @@
  ** PR   Date						 Author							Change Description
  ** --   --------					 -------						-------------------------------
 	1    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	2    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 ****************************************************************************************************************************************/
 CREATE Procedure [dbo].[sp_GetExchangeSOShippingParentList]
 @ExchangeSalesOrderId  bigint
@@ -28,7 +29,7 @@ BEGIN
 		INNER JOIN DBO.ExchangeSOPickTicket sopt WITH (NOLOCK) on sopt.ExchangeSalesOrderId = sop.ExchangeSalesOrderId AND sopt.ExchangeSalesOrderPartId = sop.ExchangeSalesOrderPartId
 		LEFT JOIN DBO.ItemMaster imt WITH (NOLOCK) on imt.ItemMasterId = sop.ItemMasterId
 		 AND ISNULL(imt.IsNonStock,0) = 0
-		 LEFT JOIN DBO.Stockline sl WITH (NOLOCK) on sl.StockLineId = sop.StockLineId
+		 LEFT JOIN DBO.Stockline sl WITH (NOLOCK) on sl.StockLineId = sop.StockLineId AND ISNULL(sl.IsNonStock,0) = 0
 		LEFT JOIN DBO.ExchangeSalesOrderShippingItem sosi WITH (NOLOCK) on sosi.ExchangeSalesOrderPartId = sop.ExchangeSalesOrderPartId AND sosi.SOPickTicketId = sopt.SOPickTicketId
 		LEFT JOIN DBO.ExchangeSalesOrderShipping sos WITH (NOLOCK) on sos.ExchangeSalesOrderShippingId = sosi.ExchangeSalesOrderShippingId AND sos.ExchangeSalesOrderId = sopt.ExchangeSalesOrderId
 		WHERE sop.ExchangeSalesOrderId = @ExchangeSalesOrderId AND sopt.IsConfirmed = 1

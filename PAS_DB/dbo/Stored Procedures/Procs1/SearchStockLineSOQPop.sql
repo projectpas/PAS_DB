@@ -19,6 +19,7 @@
 	3    05-01-2025			ABHISHEK JIRAWLA Allow Repair Management Customer Stock Stockline
 	4    05-30-2025			ABHISHEK JIRAWLA Adding Traceability Changes
 	5    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	6    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
      
  EXEC [dbo].[SearchStockLineSOQPop] '2', 33, 10,-1,NULL
 **************************************************************/ 
@@ -162,7 +163,7 @@ ELSE sl.ConditionId
 				AND ISNULL(sl.QuantityAvailable, 0) > 0 
 				--AND (sl.IsCustomerStock = 0) --OR (sl.IsCustomerStock = 1 AND sl.CustomerId = @CustomerId))
 				AND ((sl.IsRepairManagement = 1) OR ((sl.IsRepairManagement = 0 OR sl.IsRepairManagement IS NULL) AND sl.IsCustomerStock = 0))
-				AND sl.IsParent = 1
+				AND sl.IsParent = 1 AND ISNULL(sl.IsNonStock,0) = 0
 			
 			UNION
 
@@ -282,7 +283,7 @@ ELSE sl.ConditionId
 			LEFT JOIN DBO.LotSetupMaster lsm WITH(NOLOCK) ON sl.LotId = lsm.LotId
 			LEFT JOIN DBO.[Percent] per WITH(NOLOCK) ON lsm.MarginPercentageId = per.PercentId
 			LEFT JOIN DBO.ItemMasterExportInfo ime WITH (NOLOCK) ON im.ItemMasterId = ime.ItemMasterId
-			WHERE SL.StockLineId IN (SELECT Item FROM DBO.SPLITSTRING(@StocklineIdlist,','))
+			WHERE SL.StockLineId IN (SELECT Item FROM DBO.SPLITSTRING(@StocklineIdlist,',')) AND ISNULL(sl.IsNonStock,0) = 0
 		END
 		COMMIT  TRANSACTION
 

@@ -19,6 +19,7 @@
  3	18/04/2025			Ayushi				Added the condition for pn , pndescription , serialnum 
  4	26-Jun-2025			Devendra Shekh		Added WOPartdId (ID) to Group by
 	5    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	6    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
           
 **************************************************************/    
 CREATE    PROCEDURE [dbo].[usprpt_GetWorkOrderBacklogCustomerServiceReport]     
@@ -107,7 +108,7 @@ BEGIN
       LEFT JOIN DBO.WorkOrderQuoteDetails WQD WITH (NOLOCK) ON WOQ.WorkOrderQuoteId = WQD.WorkOrderQuoteId  
       LEFT JOIN DBO.Customer C WITH (NOLOCK) ON C.CustomerId = WO.CustomerId  
       LEFT JOIN DBO.WorkOrderShipping woshi WITH (NOLOCK) ON WO.WorkOrderId = woshi.WorkOrderId  
-      LEFT JOIN DBO.Stockline SL WITH (NOLOCK) ON WOPN.StockLineId = SL.StockLineId AND SL.IsParent = 1    
+      LEFT JOIN DBO.Stockline SL WITH (NOLOCK) ON WOPN.StockLineId = SL.StockLineId AND SL.IsParent = 1 AND ISNULL(SL.IsNonStock,0) = 0    
       LEFT JOIN dbo.EntityStructureSetup ES ON ES.EntityStructureId=MSD.EntityMSID    
       LEFT JOIN DBO.WorkOrderStage AS WOS WITH (NOLOCK) ON WOPN.WorkOrderStageId = WOS.WorkOrderStageId    
        WHERE  WO.CustomerId=ISNULL(@customerid,WO.CustomerId) AND CAST(WO.opendate AS DATE) BETWEEN CAST(@Fromdate AS DATE) AND CAST(@Todate AS DATE)    
@@ -178,7 +179,7 @@ BEGIN
     LEFT JOIN DBO.WorkOrderQuoteDetails WQD WITH (NOLOCK) ON WOQ.WorkOrderQuoteId = WQD.WorkOrderQuoteId  
     LEFT JOIN DBO.Customer C WITH (NOLOCK) ON C.CustomerId = WO.CustomerId  
     LEFT JOIN DBO.WorkOrderShipping woshi WITH (NOLOCK) ON WO.WorkOrderId = woshi.WorkOrderId  
-    LEFT JOIN DBO.Stockline SL WITH (NOLOCK) ON WOPN.StockLineId = SL.StockLineId AND SL.IsParent = 1    
+    LEFT JOIN DBO.Stockline SL WITH (NOLOCK) ON WOPN.StockLineId = SL.StockLineId AND SL.IsParent = 1 AND ISNULL(SL.IsNonStock,0) = 0    
     LEFT JOIN dbo.EntityStructureSetup ES ON ES.EntityStructureId=MSD.EntityMSID    
     LEFT JOIN DBO.WorkOrderStage AS WOS WITH (NOLOCK) ON WOPN.WorkOrderStageId = WOS.WorkOrderStageId   
 	

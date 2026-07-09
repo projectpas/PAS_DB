@@ -12,6 +12,7 @@
  ** --   --------		-------			--------------------------------
 	1	 11/04/2024		Vishal Suthar	Modified to make use of new SO Part tables
 	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	3    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 
 ************************************************************************/
 CREATE      PROCEDURE [dbo].[GetPickTicketForEdit]
@@ -66,7 +67,7 @@ BEGIN
 		LEFT JOIN DBO.Customer cusTraceble WITH(NOLOCK) ON sl.TraceableTo = cusTraceble.CustomerId
 		LEFT JOIN DBO.Vendor vTraceble WITH(NOLOCK) ON sl.TraceableTo = vTraceble.VendorId
 		LEFT JOIN DBO.LegalEntity leTraceble WITH(NOLOCK) ON sl.TraceableTo = leTraceble.LegalEntityId
-		WHERE sopt.SOPickTicketId = @SOPickTicketId AND ISNULL(imt.IsNonStock,0) = 0 ;
+		WHERE sopt.SOPickTicketId = @SOPickTicketId AND ISNULL(imt.IsNonStock,0) = 0 AND ISNULL(sl.IsNonStock,0) = 0 ;
 	END
 	COMMIT  TRANSACTION
 

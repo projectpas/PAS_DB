@@ -16,6 +16,7 @@
 	2    12/06/2023   Vishal Suthar		Modified to see work order from material KIT
     3    11/05/2024	  Vishal Suthar		Modified to make use of new SO Part tables
 	4    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	5    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	
  EXECUTE USP_GetDataForAddMultipleSOWOForVendorRFQPO 'loadeso',7,7,2114,3765        
 **************************************************************/           
@@ -178,7 +179,7 @@ BEGIN
 				@viewType AS 'ViewType'        
 			FROM [ExchangeSalesOrderPart] ESOP WITH(NOLOCK)        
 			LEFT JOIN [DBO].[ExchangeSalesOrder] ESO WITH (NOLOCK) ON ESO.ExchangeSalesOrderId = ESOP.ExchangeSalesOrderId        
-			LEFT JOIN [DBO].[Stockline] SL WITH (NOLOCK) ON SL.StockLineId = ESOP.StockLineId  
+			LEFT JOIN [DBO].[Stockline] SL WITH (NOLOCK) ON SL.StockLineId = ESOP.StockLineId AND ISNULL(SL.IsNonStock,0) = 0  
 			LEFT JOIN [DBO].[ItemMaster] IM WITH (NOLOCK) ON IM.ItemMasterId = @ItemMasterId        
 			 AND ISNULL(IM.IsNonStock,0) = 0
 			 LEFT JOIN [DBO].[Condition] C WITH (NOLOCK) ON C.ConditionId = @ConditionId        

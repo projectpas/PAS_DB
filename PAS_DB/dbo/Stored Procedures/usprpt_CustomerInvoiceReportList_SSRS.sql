@@ -15,6 +15,7 @@
  ** SrNO Date			Author  			Change Description            
  ** --   --------		-------				--------------------------------          
 	1	 17-FEB-2026	Vishal Suthar  		CREATED
+	2	 09/July/2026	RAJESH GAMI  		[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 
 exec usprpt_CustomerInvoiceReportList @PageNumber=1,@PageSize=20,@SortColumn=N'InvoiceDate',@SortOrder=-1,@GlobalFilter=N'',@ViewType=N'Details',
 @FromDate='2026-01-11 00:00:00',@ToDate='2026-02-11 00:00:00',@CustomerId=NULL,@strFilter=N'1,5,6!2,7,8,9!3,11,10!4,12,13!!!!!!',@CustomerName=NULL,
@@ -302,7 +303,7 @@ BEGIN
 					LEFT JOIN dbo.WorkOrderQuoteDetails WQD WITH (NOLOCK) ON WQD.WOPartNoId = WOPN.ID AND WQD.WorkOrderQuoteId=WQ.WorkOrderQuoteId
 					LEFT JOIN dbo.CustomerType CT WITH (NOLOCK) ON C.CustomerTypeId = CT.CustomerTypeId
 					LEFT JOIN dbo.CustomerRMAHeader CRM WITH (NOLOCK) ON CRM.InvoiceId = WOBI.BillingInvoicingId AND ISNULL(CRM.isWorkOrder, 0) = 1
-					LEFT JOIN dbo.Stockline SL WITH (NOLOCK) ON SL.StockLineId = WOPN.StockLineId
+					LEFT JOIN dbo.Stockline SL WITH (NOLOCK) ON SL.StockLineId = WOPN.StockLineId AND ISNULL(SL.IsNonStock,0) = 0
 					LEFT JOIN dbo.ItemMaster I WITH (NOLOCK) On WOBII.ItemMasterId = I.ItemMasterId
 					INNER JOIN [dbo].[Currency] CR WITH(NOLOCK) ON CR.CurrencyId = WOBI.CurrencyId
 					LEFT JOIN [dbo].ManagementStructureLevel MSL WITH(NOLOCK) ON M.[Level1Id] = MSL.ID
@@ -421,7 +422,7 @@ BEGIN
 				LEFT JOIN dbo.SalesOrderQuotePartV1 SQPart WITH (NOLOCK) ON SQPart.SalesOrderQuotePartId = SOPN.SalesOrderQuotePartId
 				LEFT JOIN dbo.SalesOrderQuote SQP WITH (NOLOCK) ON SQP.SalesOrderQuoteId = SQPart.SalesOrderQuoteId
 				LEFT JOIN dbo.CustomerType CT WITH (NOLOCK) ON C.CustomerTypeId=CT.CustomerTypeId
-				LEFT JOIN dbo.Stockline ST WITH (NOLOCK) ON ST.StockLineId=SOPS.StockLineId
+				LEFT JOIN dbo.Stockline ST WITH (NOLOCK) ON ST.StockLineId=SOPS.StockLineId AND ISNULL(ST.IsNonStock,0) = 0
 				LEFT JOIN dbo.CustomerRMAHeader CRM WITH (NOLOCK) ON CRM.InvoiceId=SOBI.BillingInvoicingId and CRM.isWorkOrder=0
 				LEFT JOIN dbo.SalesOrderManagementStructureDetails SMS WITH (NOLOCK) ON SMS.ReferenceID = SO.SalesOrderId AND SMS.ModuleID = @SOModuleID 
 				LEFT JOIN dbo.ItemMaster I WITH (NOLOCK) On SOBII.ItemMasterId=I.ItemMasterId
@@ -527,7 +528,7 @@ BEGIN
 				LEFT JOIN dbo.Customer C WITH (NOLOCK) ON SOBI.CustomerId = C.CustomerId
 				LEFT JOIN dbo.ExchangeSalesOrder SO WITH (NOLOCK) ON SOBI.ExchangeSalesOrderId = SO.ExchangeSalesOrderId
 				LEFT JOIN dbo.CustomerType CT WITH (NOLOCK) ON C.CustomerTypeId=CT.CustomerTypeId
-				LEFT JOIN dbo.Stockline ST WITH (NOLOCK) ON ST.StockLineId=SOPN.StockLineId
+				LEFT JOIN dbo.Stockline ST WITH (NOLOCK) ON ST.StockLineId=SOPN.StockLineId AND ISNULL(ST.IsNonStock,0) = 0
 				LEFT JOIN dbo.ExchangeManagementStructureDetails SMS WITH (NOLOCK) ON SMS.ReferenceID = SO.ExchangeSalesOrderId AND SMS.ModuleID = @ExchSOModuleID 
 				LEFT JOIN dbo.ItemMaster I WITH (NOLOCK) On SOBII.ItemMasterId=I.ItemMasterId
 				INNER JOIN [dbo].[Currency] CR WITH(NOLOCK) ON CR.CurrencyId = SOBI.CurrencyId
@@ -852,7 +853,7 @@ BEGIN
 					LEFT JOIN dbo.WorkOrderQuoteDetails WQD WITH (NOLOCK) ON WQD.WOPartNoId = WOPN.ID AND WQD.WorkOrderQuoteId=WQ.WorkOrderQuoteId
 					LEFT JOIN dbo.CustomerType CT WITH (NOLOCK) ON C.CustomerTypeId = CT.CustomerTypeId
 					LEFT JOIN dbo.CustomerRMAHeader CRM WITH (NOLOCK) ON CRM.InvoiceId = WOBI.BillingInvoicingId AND ISNULL(CRM.isWorkOrder, 0) = 1
-					LEFT JOIN dbo.Stockline SL WITH (NOLOCK) ON SL.StockLineId = WOPN.StockLineId
+					LEFT JOIN dbo.Stockline SL WITH (NOLOCK) ON SL.StockLineId = WOPN.StockLineId AND ISNULL(SL.IsNonStock,0) = 0
 					LEFT JOIN dbo.ItemMaster I WITH (NOLOCK) On WOBII.ItemMasterId = I.ItemMasterId
 					INNER JOIN [dbo].[Currency] CR WITH(NOLOCK) ON CR.CurrencyId = WOBI.CurrencyId
 					LEFT JOIN [dbo].ManagementStructureLevel MSL WITH(NOLOCK) ON M.[Level1Id] = MSL.ID
@@ -972,7 +973,7 @@ BEGIN
 				LEFT JOIN dbo.SalesOrderQuotePartV1 SQPart WITH (NOLOCK) ON SQPart.SalesOrderQuotePartId = SOPN.SalesOrderQuotePartId
 				LEFT JOIN dbo.SalesOrderQuote SQP WITH (NOLOCK) ON SQP.SalesOrderQuoteId = SQPart.SalesOrderQuoteId
 				LEFT JOIN dbo.CustomerType CT WITH (NOLOCK) ON C.CustomerTypeId=CT.CustomerTypeId
-				LEFT JOIN dbo.Stockline ST WITH (NOLOCK) ON ST.StockLineId=SOPS.StockLineId
+				LEFT JOIN dbo.Stockline ST WITH (NOLOCK) ON ST.StockLineId=SOPS.StockLineId AND ISNULL(ST.IsNonStock,0) = 0
 				LEFT JOIN dbo.CustomerRMAHeader CRM WITH (NOLOCK) ON CRM.InvoiceId=SOBI.BillingInvoicingId and CRM.isWorkOrder=0
 				LEFT JOIN dbo.SalesOrderManagementStructureDetails SMS WITH (NOLOCK) ON SMS.ReferenceID = SO.SalesOrderId AND SMS.ModuleID = @SOModuleID 
 				LEFT JOIN dbo.ItemMaster I WITH (NOLOCK) On SOBII.ItemMasterId=I.ItemMasterId
@@ -1080,7 +1081,7 @@ BEGIN
 				LEFT JOIN dbo.Customer C WITH (NOLOCK) ON SOBI.CustomerId = C.CustomerId
 				LEFT JOIN dbo.ExchangeSalesOrder SO WITH (NOLOCK) ON SOBI.ExchangeSalesOrderId = SO.ExchangeSalesOrderId
 				LEFT JOIN dbo.CustomerType CT WITH (NOLOCK) ON C.CustomerTypeId=CT.CustomerTypeId
-				LEFT JOIN dbo.Stockline ST WITH (NOLOCK) ON ST.StockLineId=SOPN.StockLineId
+				LEFT JOIN dbo.Stockline ST WITH (NOLOCK) ON ST.StockLineId=SOPN.StockLineId AND ISNULL(ST.IsNonStock,0) = 0
 				LEFT JOIN dbo.ExchangeManagementStructureDetails SMS WITH (NOLOCK) ON SMS.ReferenceID = SO.ExchangeSalesOrderId AND SMS.ModuleID = @ExchSOModuleID 
 				LEFT JOIN dbo.ItemMaster I WITH (NOLOCK) On SOBII.ItemMasterId=I.ItemMasterId
 				INNER JOIN [dbo].[Currency] CR WITH(NOLOCK) ON CR.CurrencyId = SOBI.CurrencyId
@@ -1523,7 +1524,7 @@ BEGIN
 				LEFT JOIN dbo.WorkOrderQuoteDetails WQD WITH (NOLOCK) ON WQD.WOPartNoId = WOBII.SubReferenceId AND WQD.WorkOrderQuoteId=WQ.WorkOrderQuoteId
 				LEFT JOIN dbo.CustomerType CT WITH (NOLOCK) ON C.CustomerTypeId=CT.CustomerTypeId
 				LEFT JOIN dbo.ItemMaster IM WITH (NOLOCK) ON WOBII.ItemMasterId=IM.ItemMasterId
-				LEFT JOIN dbo.Stockline ST WITH (NOLOCK) ON ST.StockLineId=WOPN.StockLineId
+				LEFT JOIN dbo.Stockline ST WITH (NOLOCK) ON ST.StockLineId=WOPN.StockLineId AND ISNULL(ST.IsNonStock,0) = 0
 				LEFT JOIN dbo.CustomerRMAHeader CRM WITH (NOLOCK) ON CRM.InvoiceId=WOBI.BillingInvoicingId AND ISNULL(CRM.isWorkOrder, 0) = 1
 				LEFT JOIN dbo.WorkorderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ReferenceID = WOPN.ID AND MSD.ModuleID = @ModuleID
 				INNER JOIN [dbo].[Currency] CR WITH(NOLOCK) ON CR.CurrencyId = wobi.CurrencyId
@@ -1611,7 +1612,7 @@ BEGIN
 				LEFT JOIN dbo.SalesOrderQuote SQP WITH (NOLOCK) ON SQP.SalesOrderQuoteId = SQPart.SalesOrderQuoteId
 				LEFT JOIN dbo.CustomerType CT WITH (NOLOCK) ON C.CustomerTypeId=CT.CustomerTypeId
 				LEFT JOIN dbo.ItemMaster IM WITH (NOLOCK) ON SOBII.ItemMasterId=IM.ItemMasterId
-				LEFT JOIN dbo.Stockline ST WITH (NOLOCK) ON ST.StockLineId=SOPS.StockLineId
+				LEFT JOIN dbo.Stockline ST WITH (NOLOCK) ON ST.StockLineId=SOPS.StockLineId AND ISNULL(ST.IsNonStock,0) = 0
 				LEFT JOIN dbo.CustomerRMAHeader CRM WITH (NOLOCK) ON CRM.InvoiceId=SOBI.BillingInvoicingId and CRM.isWorkOrder=0
 				LEFT JOIN dbo.SalesOrderManagementStructureDetails SMS WITH (NOLOCK) ON SMS.ReferenceID = SO.SalesOrderId AND SMS.ModuleID = @SOModuleID 
 				INNER JOIN [dbo].[Currency] CR WITH(NOLOCK) ON CR.CurrencyId = SOBI.CurrencyId
@@ -1702,7 +1703,7 @@ BEGIN
 				LEFT JOIN [dbo].[ExchangeSalesOrder] SO WITH (NOLOCK) ON SOBI.ExchangeSalesOrderId = SO.ExchangeSalesOrderId
 				LEFT JOIN [dbo].[ExchangeQuote] SQ WITH (NOLOCK) ON SQ.ExchangeQuoteId = SO.ExchangeQuoteId
 				LEFT JOIN [dbo].[CustomerType] CT WITH (NOLOCK) ON C.CustomerTypeId=CT.CustomerTypeId
-				LEFT JOIN [dbo].[Stockline] ST WITH (NOLOCK) ON ST.StockLineId=SOPN.StockLineId
+				LEFT JOIN [dbo].[Stockline] ST WITH (NOLOCK) ON ST.StockLineId=SOPN.StockLineId AND ISNULL(ST.IsNonStock,0) = 0
 				LEFT JOIN [dbo].[ExchangeManagementStructureDetails] SMS WITH (NOLOCK) ON SMS.ReferenceID = SO.ExchangeSalesOrderId AND SMS.ModuleID = @ExchSOModuleID 		
 				LEFT JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON SOBII.ItemMasterId = IM.ItemMasterId
 				INNER JOIN [dbo].[Currency] CR WITH(NOLOCK) ON CR.CurrencyId = SOBI.CurrencyId

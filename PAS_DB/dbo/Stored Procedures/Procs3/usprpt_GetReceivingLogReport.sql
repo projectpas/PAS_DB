@@ -22,6 +22,7 @@
 	 6    09-APR-2025		RAJESH GAMI			Resolved the Extend cost and receivied Qty(Exclude the Adustment Qty from the calculation)
 	 7    22-DEC-2025       SAHDEV SALIYA       Remove the tag type and add the vendor name.
 	 8	  22/06/2026		Abhishek Jirawla	Adding IsPiecePart condition in RepairOrderPart table
+	 9	  09/July/2026		RAJESH GAMI	[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 
 EXECUTE   [dbo].[usprpt_GetReceivingLogReport] '','2020-06-15','2021-06-15','1','1,4,43,44,45,80,84,88','46,47,66','48,49,50,58,59,67,68,69','51,52,53,54,55,56,57,60,61,62,64,70,71,72'  
 **************************************************************/  
@@ -163,7 +164,7 @@ BEGIN
 				AND  (ISNULL(@Level7,'') ='' OR MSD.[Level7Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level7,',')))
 				AND  (ISNULL(@Level8,'') ='' OR MSD.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,',')))
 				AND  (ISNULL(@Level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))
-				AND  (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))
+				AND  (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,','))) AND ISNULL(STL.IsNonStock,0) = 0
 		  UNION
 			SELECT 
 				UPPER(POP.partnumber) 'pn',  
@@ -234,7 +235,7 @@ BEGIN
 				AND  (ISNULL(@Level7,'') ='' OR MSD.[Level7Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level7,',')))
 				AND  (ISNULL(@Level8,'') ='' OR MSD.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,',')))
 				AND  (ISNULL(@Level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))
-				AND  (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))
+				AND  (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,','))) AND ISNULL(STL.IsNonStock,0) = 0
 		   ) T 
   
         END
@@ -318,7 +319,7 @@ SELECT COUNT(1) OVER () AS TotalRecordsCount,* FROM(
 		AND  (ISNULL(@Level7,'') ='' OR MSD.[Level7Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level7,',')))
 		AND  (ISNULL(@Level8,'') ='' OR MSD.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,',')))
 		AND  (ISNULL(@Level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))
-		AND  (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))
+		AND  (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,','))) AND ISNULL(STL.IsNonStock,0) = 0
   UNION
 	SELECT 
         UPPER(POP.partnumber) 'pn',  
@@ -390,7 +391,7 @@ SELECT COUNT(1) OVER () AS TotalRecordsCount,* FROM(
 		AND  (ISNULL(@Level7,'') ='' OR MSD.[Level7Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level7,',')))
 		AND  (ISNULL(@Level8,'') ='' OR MSD.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,',')))
 		AND  (ISNULL(@Level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))
-		AND  (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))
+		AND  (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,','))) AND ISNULL(STL.IsNonStock,0) = 0
    ) T )
    ,FinalCTE(TotalRecordsCount, pn, pndescription, recnum, vendorName, orderdate, rcvddate, poronum, porostatus, ctrlnum, idnum, slnum, sernum, stocktype, altequiv, manufacturer, itemtype, qtyord, qtyrcvd, unitcost, extcost, qtyrej, qtyonbacklog,
 				receivedby, requestor, approver, site, warehouse, location, shelf, bin, level1, level2, level3, level4, level5, level6, level7, level8, level9, level10, masterCompanyId) 

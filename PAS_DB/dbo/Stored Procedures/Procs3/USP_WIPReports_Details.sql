@@ -11,6 +11,7 @@
  ** PR   Date         Author			Change Description              
  ** --   --------     -------			--------------------------------            
     1    05/08/2024   HEMANT SALIYA      Created  for Initial Requirements	
+    2    09/July/2026   RAJESH GAMI      [PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 
      
 exec USP_WIPReports @mastercompanyid=1,@id='2024-01-25 00:00:00',@id2='2024-05-24 00:00:00',@id3='',@strFilter='1,5,6,20,22,52,53!2,7,8,9!3,11,10!4,13,12!!!!!!'
@@ -169,7 +170,7 @@ BEGIN
 			 AND  (ISNULL(@level7,'') = '' OR MSD.[Level7Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level7,',')))
 			 AND  (ISNULL(@level8,'') = '' OR MSD.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level8,',')))
 			 AND  (ISNULL(@level9,'') = '' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level9,',')))
-			 AND  (ISNULL(@level10,'') ='' OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level10,',')))
+			 AND  (ISNULL(@level10,'') ='' OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@level10,','))) AND ISNULL(SL.IsNonStock,0) = 0
 
 		--UPDATE #TEMPOriginalStocklineRecords SET PartCost = 0 FROM(
 		--	SELECT WO.WorkOrderId, WOP.ID AS WorkOrderPartNoId, WOP.StockLineId, WO.CustomerId, WO.MasterCompanyId, 

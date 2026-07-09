@@ -28,6 +28,7 @@
 	17   07-07-2025   Moin Bloch        Changed Old To New Billing Table
 	18 	 16-Jun-2026  Bhargav Saliya    Select SOBII.UnitPrice as PartsUnitCost insted of SOBII.PartCost
 	19    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	20    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
  -- exec sp_GetCustomerRMAPartsDetails 216,0,0,1,1   
 **************************************************************/ 
 CREATE    PROCEDURE [dbo].[sp_GetCustomerRMAPartsDetails]
@@ -194,7 +195,7 @@ BEGIN
 						LEFT JOIN [dbo].[SalesOrderQuote] SQ WITH (NOLOCK) ON SQ.SalesOrderQuoteId = SO.SalesOrderQuoteId
 						LEFT JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON SOBII.ItemMasterId=IM.ItemMasterId
 						 AND ISNULL(IM.IsNonStock,0) = 0
-						 LEFT JOIN [dbo].[Stockline] ST WITH (NOLOCK) ON ST.StockLineId=STK.StockLineId AND ST.IsParent = 1
+						 LEFT JOIN [dbo].[Stockline] ST WITH (NOLOCK) ON ST.StockLineId=STK.StockLineId AND ST.IsParent = 1 AND ISNULL(ST.IsNonStock,0) = 0
 						LEFT JOIN [dbo].[RMACreditMemoSettings] RMAC WITH (NOLOCK) ON so.MasterCompanyId = RMAC.MasterCompanyId
 					WHERE SOBI.BillingInvoicingId=@InvoicingId AND ISNULL(SOBI.IsPerformaInvoice,0) = 0		
 				END
@@ -268,7 +269,7 @@ BEGIN
 						LEFT JOIN [dbo].[ExchangeQuote] ESQ WITH (NOLOCK) ON ESQ.ExchangeQuoteId = ESO.ExchangeQuoteId
 						LEFT JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON ESOBII.ItemMasterId=IM.ItemMasterId
 						 AND ISNULL(IM.IsNonStock,0) = 0
-						 LEFT JOIN [dbo].[Stockline] ST WITH (NOLOCK) ON ST.StockLineId = ESOPN.StockLineId AND ST.IsParent = 1
+						 LEFT JOIN [dbo].[Stockline] ST WITH (NOLOCK) ON ST.StockLineId = ESOPN.StockLineId AND ST.IsParent = 1 AND ISNULL(ST.IsNonStock,0) = 0
 						LEFT JOIN [dbo].[RMACreditMemoSettings] RMAC WITH (NOLOCK) ON ESO.MasterCompanyId = RMAC.MasterCompanyId
 					WHERE ESOBI.SOBillingInvoicingId=@InvoicingId AND UPPER(EBT.[Description]) IN ('EXCH FEE')
 					AND ISNULL(ESO.IsVendor, 0) = 0
@@ -353,7 +354,7 @@ BEGIN
 						LEFT JOIN [dbo].[WorkOrder] WO WITH (NOLOCK) ON WOBI.ReferenceId = WO.WorkOrderId
 						LEFT JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON WOBII.ItemMasterId=IM.ItemMasterId
 						 AND ISNULL(IM.IsNonStock,0) = 0
-						 LEFT JOIN [dbo].[Stockline] ST WITH (NOLOCK) ON ST.StockLineId=WOPN.StockLineId AND ST.IsParent = 1
+						 LEFT JOIN [dbo].[Stockline] ST WITH (NOLOCK) ON ST.StockLineId=WOPN.StockLineId AND ST.IsParent = 1 AND ISNULL(ST.IsNonStock,0) = 0
 						LEFT JOIN [dbo].[RMACreditMemoSettings] RMAC WITH (NOLOCK) ON WO.MasterCompanyId = RMAC.MasterCompanyId
 					WHERE WOBI.BillingInvoicingId=@InvoicingId AND WOBI.IsVersionIncrease=0			
 				END
@@ -400,7 +401,7 @@ BEGIN
 					   LEFT JOIN [dbo].[CustomerRMAHeader] CRH WITH (NOLOCK) ON CRH.RMAHeaderId=CRM.RMAHeaderId 
 					   LEFT JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON CRM.ItemMasterId = IM.ItemMasterId
 					    AND ISNULL(IM.IsNonStock,0) = 0
-					    LEFT JOIN [dbo].[Stockline] ST WITH (NOLOCK) ON ST.StockLineId = CRM.StockLineId AND ST.IsParent = 1 
+					    LEFT JOIN [dbo].[Stockline] ST WITH (NOLOCK) ON ST.StockLineId = CRM.StockLineId AND ST.IsParent = 1 AND ISNULL(ST.IsNonStock,0) = 0 
 					WHERE  CRM.RMAHeaderId =@RMAheaderId AND ISNULL(CRM.IsDeleted,0) = 0 AND ISNULL(CRM.IsActive,1)=1
 				END
 			END

@@ -16,6 +16,7 @@
     1    20-AUG-2024     Rajesh Gami       Created  
 	2    05-NOV-2025     Amit Ghediya      Update for Avg price & totalPOs count fix
 	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	4    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 **************************************************************/  
 CREATE   PROCEDURE [dbo].[usprpt_GetPurchaseAnalysis_POStock]
 @PageNumber int = 1,
@@ -144,7 +145,7 @@ BEGIN
 			  AND CAST(STK.CreatedDate AS DATE) BETWEEN CAST(@fromdate AS DATE) AND CAST(@todate AS DATE)
 			  AND PO.MasterCompanyId=@mastercompanyid
 			  AND (ISNULL(@conditionIds,'')='' OR STK.ConditionId IN(SELECT value FROM STRING_SPLIT(@conditionIds,',')))
-		 AND ISNULL(IM.IsNonStock,0) = 0 ) AS a;
+		 AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(STK.IsNonStock,0) = 0 ) AS a;
 
 	  SELECT * INTO #TempPOAnalysisFinal FROM
 		(SELECT 

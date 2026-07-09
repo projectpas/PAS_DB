@@ -14,6 +14,7 @@
 	3    03/21/2025		 Devendra Shekh				Updated For Checking PMA/DER Restrict Parts
 	4    03/16/2026		 AMIT GHEDIYA				Allow AR condition to reserve (PN-15562)
 	5    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	6    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
      
 
 exec dbo.USP_GetSubWOMaterialStocklineListForManualReserve @PageNumber=1,@PageSize=20,@SortColumn=default,@SortOrder=1,@SubWOPartNoId=335,@ItemMasterId=0,@SubWorkOrderMaterialsId=0,@KitId=3399,@IncludeCustomerStock=0
@@ -307,7 +308,7 @@ SET NOCOUNT ON
 								AND (sl.IsCustomerStock = 0 OR @IncludeCustomerStock = 1 OR (sl.IsCustomerStock = 1 AND sl.CustomerId = @CustomerId))
 								AND (WOM.ProvisionId = @ProvisionId OR WOM.ProvisionId = @SubWOProvisionId)
 								AND WOM.ItemMasterId IN (SELECT [ItemMasterId] FROM #AllowItemMasterIds)
-								AND ISNULL((ISNULL(WOM.Quantity, 0) - (ISNULL(WOM.QuantityReserved, 0) + ISNULL(WOM.QuantityIssued, 0))) - (SELECT ISNULL(SUM(WOMSL.Quantity), 0) - (ISNULL(SUM(WOMSL.QtyReserved), 0) + ISNULL(SUM(WOMSL.QtyIssued), 0))  FROM dbo.SubWorkOrderMaterialStockLine WOMSL WITH(NOLOCK) WHERE WOM.SubWorkOrderMaterialsId = WOMSL.SubWorkOrderMaterialsId AND WOMSL.ProvisionId <> @ProvisionId), 0) > 0;
+								AND ISNULL((ISNULL(WOM.Quantity, 0) - (ISNULL(WOM.QuantityReserved, 0) + ISNULL(WOM.QuantityIssued, 0))) - (SELECT ISNULL(SUM(WOMSL.Quantity), 0) - (ISNULL(SUM(WOMSL.QtyReserved), 0) + ISNULL(SUM(WOMSL.QtyIssued), 0))  FROM dbo.SubWorkOrderMaterialStockLine WOMSL WITH(NOLOCK) WHERE WOM.SubWorkOrderMaterialsId = WOMSL.SubWorkOrderMaterialsId AND WOMSL.ProvisionId <> @ProvisionId), 0) > 0 AND ISNULL(SL.IsNonStock,0) = 0;
 
 						INSERT INTO #TMPSubWOReserveMaterialParentListData
 						([SubWorkOrderMaterialsId], [SubWOPartNoId], [SubWorkOrderMaterialsKitMappingId], [ItemMasterId], [IsKit], [IsAltPart], [IsEquPart])
@@ -324,7 +325,7 @@ SET NOCOUNT ON
 								AND (sl.IsCustomerStock = 0 OR @IncludeCustomerStock = 1 OR (sl.IsCustomerStock = 1 AND sl.CustomerId = @CustomerId))
 								AND (WOM.ProvisionId = @ProvisionId OR WOM.ProvisionId = @SubWOProvisionId)
 								AND WOM.ItemMasterId IN (SELECT [ItemMasterId] FROM #AllowItemMasterIds)
-								AND ISNULL((ISNULL(WOM.Quantity, 0) - (ISNULL(WOM.QuantityReserved, 0) + ISNULL(WOM.QuantityIssued, 0))) - (SELECT ISNULL(SUM(WOMSL.Quantity), 0) - (ISNULL(SUM(WOMSL.QtyReserved), 0) + ISNULL(SUM(WOMSL.QtyIssued), 0))  FROM dbo.SubWorkOrderMaterialStockLine WOMSL WITH(NOLOCK) WHERE WOM.SubWorkOrderMaterialsId = WOMSL.SubWorkOrderMaterialsId AND WOMSL.ProvisionId <> @ProvisionId), 0) > 0 AND ISNULL(IM.IsNonStock,0) = 0 ;
+								AND ISNULL((ISNULL(WOM.Quantity, 0) - (ISNULL(WOM.QuantityReserved, 0) + ISNULL(WOM.QuantityIssued, 0))) - (SELECT ISNULL(SUM(WOMSL.Quantity), 0) - (ISNULL(SUM(WOMSL.QtyReserved), 0) + ISNULL(SUM(WOMSL.QtyIssued), 0))  FROM dbo.SubWorkOrderMaterialStockLine WOMSL WITH(NOLOCK) WHERE WOM.SubWorkOrderMaterialsId = WOMSL.SubWorkOrderMaterialsId AND WOMSL.ProvisionId <> @ProvisionId), 0) > 0 AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(SL.IsNonStock,0) = 0 ;
 
 						INSERT INTO #TMPSubWOReserveMaterialParentListData
 						([SubWorkOrderMaterialsId], [SubWOPartNoId], [SubWorkOrderMaterialsKitMappingId], [ItemMasterId], [IsKit], [IsAltPart], [IsEquPart])
@@ -341,7 +342,7 @@ SET NOCOUNT ON
 								AND (sl.IsCustomerStock = 0 OR @IncludeCustomerStock = 1 OR (sl.IsCustomerStock = 1 AND sl.CustomerId = @CustomerId))
 								AND (WOM.ProvisionId = @ProvisionId OR WOM.ProvisionId = @SubWOProvisionId)
 								AND WOM.ItemMasterId IN (SELECT [ItemMasterId] FROM #AllowItemMasterIds)
-								AND ISNULL((ISNULL(WOM.Quantity, 0) - (ISNULL(WOM.QuantityReserved, 0) + ISNULL(WOM.QuantityIssued, 0))) - (SELECT ISNULL(SUM(WOMSL.Quantity), 0) - (ISNULL(SUM(WOMSL.QtyReserved), 0) + ISNULL(SUM(WOMSL.QtyIssued), 0))  FROM dbo.SubWorkOrderMaterialStockLine WOMSL WITH(NOLOCK) WHERE WOM.SubWorkOrderMaterialsId = WOMSL.SubWorkOrderMaterialsId AND WOMSL.ProvisionId <> @ProvisionId), 0) > 0 AND ISNULL(IM.IsNonStock,0) = 0 ;
+								AND ISNULL((ISNULL(WOM.Quantity, 0) - (ISNULL(WOM.QuantityReserved, 0) + ISNULL(WOM.QuantityIssued, 0))) - (SELECT ISNULL(SUM(WOMSL.Quantity), 0) - (ISNULL(SUM(WOMSL.QtyReserved), 0) + ISNULL(SUM(WOMSL.QtyIssued), 0))  FROM dbo.SubWorkOrderMaterialStockLine WOMSL WITH(NOLOCK) WHERE WOM.SubWorkOrderMaterialsId = WOMSL.SubWorkOrderMaterialsId AND WOMSL.ProvisionId <> @ProvisionId), 0) > 0 AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(SL.IsNonStock,0) = 0 ;
 				END
 				ELSE
 				BEGIN
@@ -389,7 +390,7 @@ SET NOCOUNT ON
 								AND ISNULL(SL.QuantityAvailable,0) > 0 AND SL.IsParent = 1 AND WOM.IsDeleted = 0  
 								AND (sl.IsCustomerStock = 0 OR @IncludeCustomerStock = 1 OR (sl.IsCustomerStock = 1 AND sl.CustomerId = @CustomerId))
 								AND WOM.ItemMasterId IN (SELECT [ItemMasterId] FROM #AllowItemMasterIds)
-								AND ISNULL((ISNULL(WOM.Quantity, 0) - (ISNULL(WOM.QuantityReserved, 0) + ISNULL(WOM.QuantityIssued, 0))) - (SELECT ISNULL(SUM(WOMSL.Quantity), 0) - (ISNULL(SUM(WOMSL.QtyReserved), 0) + ISNULL(SUM(WOMSL.QtyIssued), 0))  FROM dbo.SubWorkOrderMaterialStockLineKit WOMSL WITH(NOLOCK) WHERE WOM.SubWorkOrderMaterialsKitId = WOMSL.SubWorkOrderMaterialsKitId AND WOMSL.ProvisionId <> @ProvisionId), 0) > 0;
+								AND ISNULL((ISNULL(WOM.Quantity, 0) - (ISNULL(WOM.QuantityReserved, 0) + ISNULL(WOM.QuantityIssued, 0))) - (SELECT ISNULL(SUM(WOMSL.Quantity), 0) - (ISNULL(SUM(WOMSL.QtyReserved), 0) + ISNULL(SUM(WOMSL.QtyIssued), 0))  FROM dbo.SubWorkOrderMaterialStockLineKit WOMSL WITH(NOLOCK) WHERE WOM.SubWorkOrderMaterialsKitId = WOMSL.SubWorkOrderMaterialsKitId AND WOMSL.ProvisionId <> @ProvisionId), 0) > 0 AND ISNULL(SL.IsNonStock,0) = 0;
 
 						INSERT INTO #TMPSubWOReserveMaterialParentListData
 						([SubWorkOrderMaterialsId], [SubWOPartNoId], [SubWorkOrderMaterialsKitMappingId], [ItemMasterId], [IsKit], [IsAltPart], [IsEquPart])
@@ -405,7 +406,7 @@ SET NOCOUNT ON
 								AND (@KitId IS NULL OR WOMKM.KitId = @KitId)
 								AND WOM.SubWorkOrderMaterialsKitId NOT IN (SELECT [SubWorkOrderMaterialsId] FROM #TMPSubWOReserveMaterialParentListData WHERE IsKit = 1)
 								AND WOM.ItemMasterId IN (SELECT [ItemMasterId] FROM #AllowItemMasterIds)
-								AND ISNULL((ISNULL(WOM.Quantity, 0) - (ISNULL(WOM.QuantityReserved, 0) + ISNULL(WOM.QuantityIssued, 0))) - (SELECT ISNULL(SUM(WOMSL.Quantity), 0) - (ISNULL(SUM(WOMSL.QtyReserved), 0) + ISNULL(SUM(WOMSL.QtyIssued), 0))  FROM dbo.SubWorkOrderMaterialStockLineKit WOMSL WITH(NOLOCK) WHERE WOM.SubWorkOrderMaterialsKitId = WOMSL.SubWorkOrderMaterialsKitId AND WOMSL.ProvisionId <> @ProvisionId), 0) > 0 AND ISNULL(IM.IsNonStock,0) = 0 ;
+								AND ISNULL((ISNULL(WOM.Quantity, 0) - (ISNULL(WOM.QuantityReserved, 0) + ISNULL(WOM.QuantityIssued, 0))) - (SELECT ISNULL(SUM(WOMSL.Quantity), 0) - (ISNULL(SUM(WOMSL.QtyReserved), 0) + ISNULL(SUM(WOMSL.QtyIssued), 0))  FROM dbo.SubWorkOrderMaterialStockLineKit WOMSL WITH(NOLOCK) WHERE WOM.SubWorkOrderMaterialsKitId = WOMSL.SubWorkOrderMaterialsKitId AND WOMSL.ProvisionId <> @ProvisionId), 0) > 0 AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(SL.IsNonStock,0) = 0 ;
 
 						INSERT INTO #TMPSubWOReserveMaterialParentListData
 						([SubWorkOrderMaterialsId], [SubWOPartNoId], [SubWorkOrderMaterialsKitMappingId], [ItemMasterId], [IsKit], [IsAltPart], [IsEquPart])
@@ -421,7 +422,7 @@ SET NOCOUNT ON
 								AND (@KitId IS NULL OR WOMKM.KitId = @KitId) AND (WOM.ProvisionId = @ProvisionId OR WOM.ProvisionId = @SubWOProvisionId)
 								AND WOM.SubWorkOrderMaterialsKitId NOT IN (SELECT [SubWorkOrderMaterialsId] FROM #TMPSubWOReserveMaterialParentListData WHERE IsKit = 1)
 								AND WOM.ItemMasterId IN (SELECT [ItemMasterId] FROM #AllowItemMasterIds)
-								AND ISNULL((ISNULL(WOM.Quantity, 0) - (ISNULL(WOM.QuantityReserved, 0) + ISNULL(WOM.QuantityIssued, 0))) - (SELECT ISNULL(SUM(WOMSL.Quantity), 0) - (ISNULL(SUM(WOMSL.QtyReserved), 0) + ISNULL(SUM(WOMSL.QtyIssued), 0))  FROM dbo.SubWorkOrderMaterialStockLineKit WOMSL WITH(NOLOCK) WHERE WOM.SubWorkOrderMaterialsKitId = WOMSL.SubWorkOrderMaterialsKitId AND WOMSL.ProvisionId <> @ProvisionId), 0) > 0 AND ISNULL(IM.IsNonStock,0) = 0 ;
+								AND ISNULL((ISNULL(WOM.Quantity, 0) - (ISNULL(WOM.QuantityReserved, 0) + ISNULL(WOM.QuantityIssued, 0))) - (SELECT ISNULL(SUM(WOMSL.Quantity), 0) - (ISNULL(SUM(WOMSL.QtyReserved), 0) + ISNULL(SUM(WOMSL.QtyIssued), 0))  FROM dbo.SubWorkOrderMaterialStockLineKit WOMSL WITH(NOLOCK) WHERE WOM.SubWorkOrderMaterialsKitId = WOMSL.SubWorkOrderMaterialsKitId AND WOMSL.ProvisionId <> @ProvisionId), 0) > 0 AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(SL.IsNonStock,0) = 0 ;
 				END
 				--Inserting Data For #AltPartList / #EquPartList : End
 
@@ -519,7 +520,7 @@ SET NOCOUNT ON
 								--AND (@ItemMasterId IS NULL OR im.ItemMasterId = @ItemMasterId)
 								AND (WOM.ProvisionId = @ProvisionId OR WOM.ProvisionId = @SubWOProvisionId)
 								--AND (@SubWorkOrderMaterialsId IS NULL OR WOM.SubWorkOrderMaterialsId = @SubWorkOrderMaterialsId)
-								AND	(WOM.SubWorkOrderMaterialsId IN (SELECT SubWorkOrderMaterialsId FROM #TMPSubWOMaterialResultListData WHERE IsKit = 0)) AND ISNULL(IM.IsNonStock,0) = 0 ;
+								AND	(WOM.SubWorkOrderMaterialsId IN (SELECT SubWorkOrderMaterialsId FROM #TMPSubWOMaterialResultListData WHERE IsKit = 0)) AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(SL.IsNonStock,0) = 0 ;
 
 						INSERT INTO #finalReserveMaterialListResult([WorkOrderId], [SubWorkOrderId], [SubWOPartNoId], [SubWorkOrderMaterialsId], [SWOMStockLineId], [ItemMasterId],
 										[AltPartMasterPartId], [EquPartMasterPartId], [ConditionId], [StocklineConditionId], [ConditionGroup], [MasterCompanyId], [Quantity], [QuantityReserved], [QuantityIssued], [QuantityOnOrder], 
@@ -606,7 +607,7 @@ SET NOCOUNT ON
 								--AND (@ItemMasterId IS NULL OR im.ItemMasterId = @ItemMasterId OR IM_AltMain.ItemMasterId = @ItemMasterId)
 								AND (WOM.ProvisionId = @ProvisionId OR WOM.ProvisionId = @SubWOProvisionId)
 								--AND (@SubWorkOrderMaterialsId IS NULL OR WOM.SubWorkOrderMaterialsId = @SubWorkOrderMaterialsId)
-								AND	(WOM.SubWorkOrderMaterialsId IN (SELECT SubWorkOrderMaterialsId FROM #TMPSubWOMaterialResultListData WHERE IsKit = 0)) AND ISNULL(IM.IsNonStock,0) = 0 ;
+								AND	(WOM.SubWorkOrderMaterialsId IN (SELECT SubWorkOrderMaterialsId FROM #TMPSubWOMaterialResultListData WHERE IsKit = 0)) AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(SL.IsNonStock,0) = 0 ;
 
 						INSERT INTO #finalReserveMaterialListResult([WorkOrderId], [SubWorkOrderId], [SubWOPartNoId], [SubWorkOrderMaterialsId], [SWOMStockLineId], [ItemMasterId],
 										[AltPartMasterPartId], [EquPartMasterPartId], [ConditionId], [StocklineConditionId], [ConditionGroup], [MasterCompanyId], [Quantity], [QuantityReserved], [QuantityIssued], [QuantityOnOrder], 
@@ -692,7 +693,7 @@ SET NOCOUNT ON
 								--AND (@ItemMasterId IS NULL OR im.ItemMasterId = @ItemMasterId OR IM_EquMain.ItemMasterId = @ItemMasterId)
 								AND (WOM.ProvisionId = @ProvisionId OR WOM.ProvisionId = @SubWOProvisionId)
 								--AND (@SubWorkOrderMaterialsId IS NULL OR WOM.SubWorkOrderMaterialsId = @SubWorkOrderMaterialsId)
-								AND	(WOM.SubWorkOrderMaterialsId IN (SELECT SubWorkOrderMaterialsId FROM #TMPSubWOMaterialResultListData WHERE IsKit = 0)) AND ISNULL(IM.IsNonStock,0) = 0 ;
+								AND	(WOM.SubWorkOrderMaterialsId IN (SELECT SubWorkOrderMaterialsId FROM #TMPSubWOMaterialResultListData WHERE IsKit = 0)) AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(SL.IsNonStock,0) = 0 ;
 					END
 					ELSE
 					BEGIN			
@@ -780,7 +781,7 @@ SET NOCOUNT ON
 								--AND (@ItemMasterId IS NULL OR im.ItemMasterId = @ItemMasterId) 
 								AND (WOM.ProvisionId = @ProvisionId OR WOM.ProvisionId = @SubWOProvisionId)
 								--AND (@KitId IS NULL OR WOMKM.KitId = @KitId)
-								AND	(WOM.SubWorkOrderMaterialsKitId IN (SELECT SubWorkOrderMaterialsId FROM #TMPSubWOMaterialResultListData WHERE IsKit = 1)) AND ISNULL(IM.IsNonStock,0) = 0 ;
+								AND	(WOM.SubWorkOrderMaterialsKitId IN (SELECT SubWorkOrderMaterialsId FROM #TMPSubWOMaterialResultListData WHERE IsKit = 1)) AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(SL.IsNonStock,0) = 0 ;
 
 						INSERT INTO #finalReserveMaterialListResult([WorkOrderId], [SubWorkOrderId], [SubWOPartNoId], [SubWorkOrderMaterialsId], [SWOMStockLineId], [ItemMasterId],
 										[AltPartMasterPartId], [EquPartMasterPartId], [ConditionId], [StocklineConditionId], [ConditionGroup], [MasterCompanyId], [Quantity], [QuantityReserved], [QuantityIssued], [QuantityOnOrder], 
@@ -866,7 +867,7 @@ SET NOCOUNT ON
 								--AND (@ItemMasterId IS NULL OR im.ItemMasterId = @ItemMasterId OR IM_AltMain.ItemMasterId = @ItemMasterId) 
 								AND (WOM.ProvisionId = @ProvisionId OR WOM.ProvisionId = @SubWOProvisionId)
 								--AND (@KitId IS NULL OR WOMKM.KitId = @KitId)
-								AND	(WOM.SubWorkOrderMaterialsKitId IN (SELECT SubWorkOrderMaterialsId FROM #TMPSubWOMaterialResultListData WHERE IsKit = 1)) AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(IM_AltMain.IsNonStock,0) = 0 ;
+								AND	(WOM.SubWorkOrderMaterialsKitId IN (SELECT SubWorkOrderMaterialsId FROM #TMPSubWOMaterialResultListData WHERE IsKit = 1)) AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(IM_AltMain.IsNonStock,0) = 0 AND ISNULL(SL.IsNonStock,0) = 0 ;
 
 						INSERT INTO #finalReserveMaterialListResult([WorkOrderId], [SubWorkOrderId], [SubWOPartNoId], [SubWorkOrderMaterialsId], [SWOMStockLineId], [ItemMasterId],
 										[AltPartMasterPartId], [EquPartMasterPartId], [ConditionId], [StocklineConditionId], [ConditionGroup], [MasterCompanyId], [Quantity], [QuantityReserved], [QuantityIssued], [QuantityOnOrder], 
@@ -951,7 +952,7 @@ SET NOCOUNT ON
 								--AND (@ItemMasterId IS NULL OR im.ItemMasterId = @ItemMasterId OR IM_EquMain.ItemMasterId = @ItemMasterId) 
 								AND (WOM.ProvisionId = @ProvisionId OR WOM.ProvisionId = @SubWOProvisionId)
 								--AND (@KitId IS NULL OR WOMKM.KitId = @KitId)
-								AND	(WOM.SubWorkOrderMaterialsKitId IN (SELECT SubWorkOrderMaterialsId FROM #TMPSubWOMaterialResultListData WHERE IsKit = 1)) AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(IM_EquMain.IsNonStock,0) = 0 ;
+								AND	(WOM.SubWorkOrderMaterialsKitId IN (SELECT SubWorkOrderMaterialsId FROM #TMPSubWOMaterialResultListData WHERE IsKit = 1)) AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(IM_EquMain.IsNonStock,0) = 0 AND ISNULL(SL.IsNonStock,0) = 0 ;
 					END
 				END
 

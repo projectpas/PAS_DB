@@ -13,6 +13,7 @@
  ** --   --------		  -------				--------------------------------              
     1    19/AUG/2025	  RAJESH GAMI			Created
 	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	3    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 ************************************************************************/    
 CREATE     PROCEDURE [dbo].[ProcStockListFromExpiredDays]  
 @PageNumber int = NULL,      
@@ -176,7 +177,7 @@ BEGIN
 								BETWEEN CAST(GETDATE() AS DATE) 
 									AND CAST(DATEADD(DAY, @ExpiredInDays, GETDATE()) AS DATE)
 						)
-				 AND ISNULL(im.IsNonStock,0) = 0 ), ResultCount AS(Select COUNT(StockLineId) AS totalItems FROM Result)      
+				 AND ISNULL(im.IsNonStock,0) = 0 AND ISNULL(stl.IsNonStock,0) = 0 ), ResultCount AS(Select COUNT(StockLineId) AS totalItems FROM Result)      
 				SELECT * INTO #TempResults FROM  Result      
 				 WHERE ((@GlobalFilter <>'' AND       
 					   ((PartNumber LIKE '%' +@GlobalFilter+'%') OR      

@@ -27,6 +27,7 @@
 	10   14/May/2026  Rajesh Gami	 Return EmployeeId [PN-16405 :  Generate Multiple Release Forms for Teardown Work Orders]     
 	12   24/06/2026   Amit Ghediya   Get LogBook Label data [PN-16471]  
 	13    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	14    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
  EXECUTE [sp_workOrderReleaseFromPDFData] 482
 **************************************************************/ 
 
@@ -126,7 +127,7 @@ BEGIN
 					  ,0 as IsAircraftLogBook
 				FROM [dbo].[Work_ReleaseFrom_8130] wro WITH(NOLOCK)
 				      LEFT JOIN [dbo].[WorkOrderPartNumber] wop WITH(NOLOCK) on wro.workOrderPartNoId = wop.Id
-					  LEFT JOIN [dbo].[Stockline] sl  WITH(NOLOCK) ON sl.StockLineId = wop.StockLineId  
+					  LEFT JOIN [dbo].[Stockline] sl  WITH(NOLOCK) ON sl.StockLineId = wop.StockLineId AND ISNULL(sl.IsNonStock,0) = 0  
 					  LEFT JOIN [dbo].[ItemMaster] im  WITH(NOLOCK) ON im.ItemMasterId = wop.ItemMasterId  
 					   AND ISNULL(im.IsNonStock,0) = 0
 					   LEFT JOIN [dbo].[ItemMaster] ims WITH(NOLOCK) ON ims.ItemMasterId = wop.RevisedItemmasterid  
@@ -194,7 +195,7 @@ BEGIN
 					  ,lcf.IsAircraftLogBook
 					FROM [dbo].[Work_LogbookCertificateFrom] lcf WITH(NOLOCK)
 						  LEFT JOIN [dbo].[WorkOrderPartNumber] wop WITH(NOLOCK) ON wop.Id = lcf.workOrderPartNoId
-						  LEFT JOIN [dbo].[Stockline] sl WITH(NOLOCK) ON sl.StockLineId = wop.StockLineId
+						  LEFT JOIN [dbo].[Stockline] sl WITH(NOLOCK) ON sl.StockLineId = wop.StockLineId AND ISNULL(sl.IsNonStock,0) = 0
 					WHERE lcf.[LogbookCertificateFromId] = @ReleaseFromId
 				END
 			END

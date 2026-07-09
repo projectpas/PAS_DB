@@ -17,6 +17,7 @@
 	2    15/02/2024   Ekta Chandegra        @IsVendor parameter is added
 	3    16/02/2024   Ekta Chandegra        Filter is added on @IsVendor 
 	4    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	5    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 
 
 **************************************************************/
@@ -116,7 +117,7 @@ BEGIN
 			    LEFT JOIN [dbo].[Condition] CO WITH (NOLOCK) ON CO.ConditionId = SP.ConditionId
 			   LEFT JOIN [dbo].[ExchangeSalesOrderShippingItem] SOI WITH (NOLOCK) ON SOI.ExchangeSalesOrderPartId = SP.ExchangeSalesOrderPartId
 			   LEFT JOIN [dbo].[ExchangeSalesOrderShipping] SOS WITH (NOLOCK) ON SOI.ExchangeSalesOrderShippingId = SOS.ExchangeSalesOrderShippingId	
-			   LEFT JOIN [dbo].[Stockline] STL WITH(NOLOCK) ON SP.StockLineId = STL.StockLineId	
+			   LEFT JOIN [dbo].[Stockline] STL WITH(NOLOCK) ON SP.StockLineId = STL.StockLineId AND ISNULL(STL.IsNonStock,0) = 0	
 			   LEFT JOIN [dbo].[ExchangeStatus] MSOS WITH (NOLOCK) ON SO.[StatusId] = MSOS.ExchangeStatusId
 
 			WHERE SO.MasterCompanyId = @MasterCompanyId	

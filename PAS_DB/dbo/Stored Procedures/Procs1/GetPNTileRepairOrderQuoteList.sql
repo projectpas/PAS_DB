@@ -11,6 +11,7 @@
 	1    08/12/2023   Amit Ghediya          Modify(Added Traceable & Tagged fields)
 	2    19/06/2026   Abhishek Jirawla		Adding IsPiecePart condition in RepairOrderPart table 
 	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	4    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 
 --   EXEC [GetPNTileRepairOrderQuoteList]
 **************************************************************/ 
@@ -108,7 +109,7 @@ BEGIN
 			   INNER JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON IM.ItemMasterId = ROP.ItemMasterId 
 			   LEFT OUTER JOIN [dbo].[RepairOrderPart] ROT WITH (NOLOCK) ON ROP.RepairOrderId = ROT.RepairOrderId AND ROT.isParent=1
 			   LEFT OUTER JOIN [dbo].[RepairOrder] RO WITH (NOLOCK) ON RO.RepairOrderId = ROP.RepairOrderId 
-			   LEFT JOIN [dbo].[Stockline] STL WITH (NOLOCK) ON ROT.RepairOrderPartRecordId = STL.RepairOrderPartRecordId AND STL.IsParent = 1 AND STL.isActive = 1 AND STL.isDeleted = 0					 
+			   LEFT JOIN [dbo].[Stockline] STL WITH (NOLOCK) ON ROT.RepairOrderPartRecordId = STL.RepairOrderPartRecordId AND STL.IsParent = 1 AND STL.isActive = 1 AND STL.isDeleted = 0 AND ISNULL(STL.IsNonStock,0) = 0					 
 			    LEFT JOIN [dbo].[TagType] TAT WITH (NOLOCK) ON ROP.TagTypeId = TAT.TagTypeId
 		 	  WHERE ROQ.IsDeleted = @IsDeleted 			     
 				  AND ROQ.MasterCompanyId = @MasterCompanyId	

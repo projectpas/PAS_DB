@@ -11,6 +11,7 @@
 ** --   --------     -------			----------------------
 	1   12/27/2025   Vishal Suthar		Created
 	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	3    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 
 EXEC [GetSalesOrderQuoteAnalysisData] 230
 **************************************************************/
@@ -43,7 +44,7 @@ BEGIN
 		FROM DBO.SalesOrderQuote soq WITH (NOLOCK)
 		INNER JOIN DBO.SalesOrderQuotePartV1 part WITH (NOLOCK) ON soq.SalesOrderQuoteId = part.SalesOrderQuoteId
 		LEFT JOIN DBO.SalesOrderQuoteStocklineV1 stk WITH (NOLOCK) ON part.SalesOrderQuotePartId = stk.SalesOrderQuotePartId
-		LEFT JOIN DBO.StockLine qs WITH (NOLOCK) ON stk.StockLineId = qs.StockLineId
+		LEFT JOIN DBO.StockLine qs WITH (NOLOCK) ON stk.StockLineId = qs.StockLineId AND ISNULL(qs.IsNonStock,0) = 0
 		INNER JOIN DBO.ItemMaster itemMaster WITH (NOLOCK) ON part.ItemMasterId = itemMaster.ItemMasterId
 		LEFT JOIN DBO.UnitOfMeasure um WITH (NOLOCK) ON itemMaster.PurchaseUnitOfMeasureId = um.UnitOfMeasureId
 		LEFT JOIN DBO.PurchaseOrder po WITH (NOLOCK) ON qs.PurchaseOrderId = po.PurchaseOrderId

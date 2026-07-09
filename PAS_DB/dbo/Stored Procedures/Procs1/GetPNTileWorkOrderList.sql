@@ -17,6 +17,7 @@
  ** --   --------     -------          --------------------------------     
     1    02/03/2026   Bhargav Saliya       PN-15582: Added New Field [IncomingPartNumber]
 	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	3    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 **************************************************************/ 
 CREATE         PROCEDURE [dbo].[GetPNTileWorkOrderList]
 @PageNumber int = 1,
@@ -87,7 +88,7 @@ BEGIN
 			   INNER JOIN [dbo].[WorkOrderPartNumber] WPN WITH(NOLOCK) ON WO.WorkOrderId = WPN.WorkOrderId  
 			   INNER JOIN [dbo].[ItemMaster] IM WITH(NOLOCK) ON IM.ItemMasterId = WPN.ItemMasterId 
 			   INNER JOIN [dbo].[WorkOrderStatus] WOS WITH(NOLOCK) ON WOS.Id = WPN.WorkOrderStatusId
-			    LEFT JOIN [dbo].[Stockline] STL WITH(NOLOCK) ON WPN.StockLineId = STL.StockLineId
+			    LEFT JOIN [dbo].[Stockline] STL WITH(NOLOCK) ON WPN.StockLineId = STL.StockLineId AND ISNULL(STL.IsNonStock,0) = 0
 				LEFT JOIN [dbo].[WorkOrderShippingitem] WSI WITH(NOLOCK) ON WSI.WorkOrderPartNumId = WPN.ID
 				LEFT JOIN [dbo].[WorkOrderShipping] WOP WITH(NOLOCK) ON WOP.WorkOrderShippingId = WSI.WorkOrderShippingId
 				

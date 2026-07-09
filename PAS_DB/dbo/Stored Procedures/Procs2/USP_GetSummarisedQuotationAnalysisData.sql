@@ -12,6 +12,7 @@
     2    16-06-2025		Devendra Shekh			Modified Calculation for MarginPercentage	
 	3    11-07-2025     Devendra Shekh			added PartNumberLabel
 	1    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	4    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 		
 	exec dbo.USP_GetSummarisedQuotationAnalysisData 8941
 **************************************************************/
@@ -102,7 +103,7 @@ BEGIN
 			INNER JOIN [dbo].WorkOrderStage s WITH(NOLOCK) ON wop.WorkOrderStageId = s.WorkOrderStageId
 			INNER JOIN [dbo].WorkOrderStatus st WITH(NOLOCK) ON wop.WorkOrderStatusId = st.Id
 			INNER JOIN [dbo].WorkScope ws WITH(NOLOCK) ON wop.WorkOrderScopeId = ws.WorkScopeId
-			LEFT JOIN  [dbo].StockLine sl WITH(NOLOCK) ON wop.StockLineId = sl.StockLineId
+			LEFT JOIN  [dbo].StockLine sl WITH(NOLOCK) ON wop.StockLineId = sl.StockLineId AND ISNULL(sl.IsNonStock,0) = 0
 		WHERE wo.WorkOrderId = @WorkOrderId
 		--ORDER BY wop.ID
 		 AND ISNULL(im.IsNonStock,0) = 0 )

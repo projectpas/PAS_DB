@@ -10,6 +10,7 @@ EXEC [usp_CreateWorkOrderMaterialsKitStockline]
 ** PR   Date        Author          Change Description  
 ** --   --------    -------         --------------------------------
 ** 1    04/06/2023  Vishal Suthar    CREATED
+2    09/July/2026  RAJESH GAMI    [PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 
 exec dbo.usp_ReserveWorkOrderMaterialsStockline @tbl_MaterialsStocklineType=@p1
 **************************************************************/ 
@@ -77,7 +78,7 @@ BEGIN
 						[TaskId], [ReservedById], tblMS.[Condition], tblMS.[PartNumber], [PartDescription], tblMS.[Quantity], [QtyToBeReserved], [QuantityActReserved], [ControlNo], [ControlId],
 						tblMS.[StockLineNumber], tblMS.[SerialNumber], [ReservedBy], [IsStocklineAdded], SL.MasterCompanyId, [ReservedBy], SL.UnitCost, SL.isSerialized, tblMS.[KitId], tblMS.[IsAltPart], tblMS.[IsEquPart], tblMS.[AltPartMasterPartId], tblMS.[EquPartMasterPartId]
 					FROM @tbl_MaterialsStocklineType tblMS  JOIN dbo.Stockline SL ON SL.StockLineId = tblMS.StockLineId 
-					WHERE SL.QuantityAvailable > 0 AND SL.QuantityAvailable >= tblMS.QuantityActReserved
+					WHERE SL.QuantityAvailable > 0 AND SL.QuantityAvailable >= tblMS.QuantityActReserved AND ISNULL(SL.IsNonStock,0) = 0
 
 					INSERT INTO dbo.WorkOrderMaterialStockLineKit
 					(StocklineId, WorkOrderMaterialskitId, ItemMasterId, ConditionId, ProvisionId, Quantity, QtyReserved, QtyIssued, UnitCost, ExtendedCost, UnitPrice, ExtendedPrice, CreatedDate, CreatedBy, UpdatedDate, UpdatedBy, MasterCompanyId, IsActive, IsDeleted, AltPartMasterPartId, EquPartMasterPartId, IsAltPart, IsEquPart)

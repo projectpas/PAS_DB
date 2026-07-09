@@ -17,6 +17,7 @@
  1	 10-July-2023			Devendra		created  
  1	 12-July-2023			Devendra		changed quantity to   QuantityAvailable
 	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	3    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
        
 EXECUTE   [dbo].[USP_GetVendorCreditMemoPart_ByStkId] 37,1  
 **************************************************************/  
@@ -59,7 +60,7 @@ BEGIN
     LEFT JOIN [dbo].[Vendor] v WITH(NOLOCK) on v.VendorId  = @VendorId
     LEFT JOIN [dbo].[ItemMaster] im WITH(NOLOCK) on im.ItemMasterId = @ItemMasterId
      AND ISNULL(im.IsNonStock,0) = 0
-     LEFT JOIN [dbo].[Stockline] sl WITH(NOLOCK) on sl.StockLineId = @StockLineId  
+     LEFT JOIN [dbo].[Stockline] sl WITH(NOLOCK) on sl.StockLineId = @StockLineId AND ISNULL(sl.IsNonStock,0) = 0  
     WHERE vcm.VendorCreditMemoId = @VendorCreditMemoId
    END  
   COMMIT  TRANSACTION  

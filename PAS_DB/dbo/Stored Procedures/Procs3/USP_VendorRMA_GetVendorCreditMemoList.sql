@@ -18,6 +18,7 @@
 	2    29/06/2023   Devendra Shekh    Added list filter by vendorRMAId  
 	3    18/07/2023   Amit Ghediya		updated filter for status all not working. 
 	4    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	5    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
  
 **************************************************************/  
 CREATE     PROCEDURE [dbo].[USP_VendorRMA_GetVendorCreditMemoList]
@@ -232,7 +233,7 @@ BEGIN
 				 AND ISNULL(im.IsNonStock,0) = 0
 				 LEFT JOIN dbo.[Currency] c WITH (NOLOCK) ON c.CurrencyId = vcm.CurrencyId									
 				LEFT JOIN dbo.[CreditMemoStatus] cms WITH (NOLOCK) ON vcm.VendorCreditMemoStatusId = cms.Id
-				LEFT JOIN dbo.[Stockline] sl WITH (NOLOCK) ON sl.StockLineId = vcmd.StockLineId
+				LEFT JOIN dbo.[Stockline] sl WITH (NOLOCK) ON sl.StockLineId = vcmd.StockLineId AND ISNULL(sl.IsNonStock,0) = 0
 				LEFT JOIN dbo.[ItemMaster] imd WITH (NOLOCK) ON sl.ItemMasterId = imd.ItemMasterId
 
 		 	   AND ISNULL(imd.IsNonStock,0) = 0

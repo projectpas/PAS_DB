@@ -3,6 +3,12 @@
 -- Create date: 01 jun 2022
 -- Description:	Get Expire Days in Stockline
 -- =============================================
+/*************************************************************
+ ** Change History
+ **************************************************************
+ ** PR   Date         Author			Change Description
+	1    09/July/2026   RAJESH GAMI   [PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+**************************************************************/
 CREATE FUNCTION [dbo].[FN_GetExpireDaysStockline]
 (
 	@StocklineId as bigint
@@ -23,7 +29,7 @@ BEGIN
 	
 	            SELECT @DaysReceived = nullif(DaysReceived, 0), @ManufacturingDays = nullif(ManufacturingDays, 0), @TagDays = nullif(TagDays, 0), @OpenDays = nullif(OpenDays, 0),@DiffDays =DATEDIFF(year, CreatedDate, GETDATE())
 				       ,@expirationDate= ExpirationDate  ,@tagDate= tagDate,@receivedDate= receivedDate FROM dbo.Stockline STL WITH(NOLOCK) 
-				WHERE STL.StocklineId = @StocklineId  AND IsParent = 1
+				WHERE STL.StocklineId = @StocklineId  AND IsParent = 1 AND ISNULL(STL.IsNonStock,0) = 0
 
 				if(@DaysReceived >0)
 				begin

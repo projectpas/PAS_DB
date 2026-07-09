@@ -13,6 +13,7 @@
 	1    30/05/2023   Satish Gohil  Created
 	2    02/06/2023   Satish Gohil  Modify(Added IsSerialized Column)
 	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	4    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 **************************************************************/  
 
 CREATE   PROCEDURE [dbo].[Get_AccountingInventoryList]
@@ -158,7 +159,7 @@ BEGIN
 				WHERE stl.MasterCompanyId = @MasterCompanyId AND stl.IsParent = 1 AND (stl.IsDeleted = 0)
 				AND (@ItemMasterId = 0 OR stl.ItemMasterId = @ItemMasterId)      
 				AND stl.QuantityAvailable < 0 AND CAST(stl.EntryDate AS date) >= CAST(@FromDate AS DATE)  AND CAST(stl.EntryDate AS date) <= CAST(@ToDate AS DATE)
-			 AND ISNULL(im.IsNonStock,0) = 0 ), ResultCount AS(Select COUNT(StockLineId) AS totalItems FROM Result)      
+			 AND ISNULL(im.IsNonStock,0) = 0 AND ISNULL(stl.IsNonStock,0) = 0 ), ResultCount AS(Select COUNT(StockLineId) AS totalItems FROM Result)      
 
 
 			--SELECT * FROM  Result  
@@ -395,7 +396,7 @@ BEGIN
 				WHERE stl.MasterCompanyId = @MasterCompanyId AND stl.IsParent = 1 AND (stl.IsDeleted = 0)
 				AND (@ItemMasterId = 0 OR stl.ItemMasterId = @ItemMasterId)      
 				AND ISNULL(stl.QuantityAvailable,0) > 0 AND CAST(stl.EntryDate AS date) >= CAST(@FromDate AS DATE)  AND CAST(stl.EntryDate AS date) <= CAST(@ToDate AS DATE)
-			 AND ISNULL(im.IsNonStock,0) = 0 ), ResultCount AS(Select COUNT(StockLineId) AS totalItems FROM Result)      
+			 AND ISNULL(im.IsNonStock,0) = 0 AND ISNULL(stl.IsNonStock,0) = 0 ), ResultCount AS(Select COUNT(StockLineId) AS totalItems FROM Result)      
 
 
 			--SELECT * FROM  Result  

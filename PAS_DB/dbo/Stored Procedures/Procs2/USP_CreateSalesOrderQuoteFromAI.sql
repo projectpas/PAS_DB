@@ -19,6 +19,7 @@
     6    28/08/2025      Devendra Shekh      removed Text (Created From AI)
     7    09/06/2026      Amit Ghediya        Get latest from mgn stc table [PN-16491]
     8    19/06/2026      Hemant Saliya       Corrected MS details Name
+    9    09/July/2026      RAJESH GAMI       [PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 *********************************************************************************************/
 CREATE PROCEDURE [dbo].[USP_CreateSalesOrderQuoteFromAI]
     @tbl_IlsRfqQuoteDetailsType IlsRfqQuoteDetailsType READONLY,
@@ -548,7 +549,7 @@ BEGIN
                             INSERT INTO [dbo].[SalesOrderQuoteStocklineV1] ([SalesOrderQuotePartId], [StockLineId], [ConditionId], [QtyQuoted], [QtyAvailable], [QtyOH], [CustomerRequestDate], [PromisedDate], [EstimatedShipDate], [StatusId], [MasterCompanyId], [CreatedBy], [CreatedDate], [UpdatedBy], [UpdatedDate], [IsActive], [IsDeleted], [Notes])
                             SELECT @SalesOrderQuotePartId, STK.StockLineId, @ConditionId, @QuantityToQuote, STK.QuantityAvailable, STK.QuantityOnHand, @CustomerRequestDate, @PromisedDate, @EstimatedShipDate, @SOQPartStatus, @MasterCompanyId, @CreatedBy, GETUTCDATE(), @CreatedBy, GETUTCDATE(), 1, 0, @Notes
                             FROM [dbo].[Stockline] STK WITH (NOLOCK)
-                            WHERE STK.StockLineId = @StockLineId;
+                            WHERE STK.StockLineId = @StockLineId AND ISNULL(STK.IsNonStock,0) = 0;
 
                             SET @InsertedSalesOrderQuoteStocklineId = SCOPE_IDENTITY();
 
@@ -566,7 +567,7 @@ BEGIN
                                 @UnitCost, ISNULL((@UnitCost * @QuantityToQuote), 0), @MarginAmount, @MarginPercentage, @DiscountPercentage, ISNULL((@DiscountAmount * @QtyQuoted), 0),
                                 @MasterCompanyId, @CreatedBy, GETUTCDATE(), @CreatedBy, GETUTCDATE(), 1, 0, @NetSalesPerUnitAmt
                             FROM [dbo].[StockLine] Stkl WITH (NOLOCK)
-                            WHERE Stkl.StockLineId = @StockLineId;
+                            WHERE Stkl.StockLineId = @StockLineId AND ISNULL(Stkl.IsNonStock,0) = 0;
                         END
                     END
                     ELSE

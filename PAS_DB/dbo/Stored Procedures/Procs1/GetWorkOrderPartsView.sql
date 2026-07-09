@@ -21,6 +21,7 @@
 	8    11-MAR-2026   Moin Bloch       added IncomingPartNumber For Quote MPN PN-15719
 	9    23-MAR-2026   Ayushi Patel     PN-15825 added lineNum
 	10    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	11    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
  EXECUTE [GetWorkOrderPartsView] 9756
 **************************************************************/ 
 CREATE      PROCEDURE [dbo].[GetWorkOrderPartsView]
@@ -119,7 +120,7 @@ BEGIN
 		 LEFT JOIN [dbo].[ApprovalStatus] appsA WITH (NOLOCK) ON CAST(@WaitingForApprovalStatusId AS INT) = appsA.[ApprovalStatusId]
 		 LEFT JOIN [dbo].[ApprovalStatus] appsC WITH (NOLOCK) ON wopp.[CustomerStatusId] = appsC.[ApprovalStatusId]
 		 LEFT JOIN [dbo].[Condition] con WITH (NOLOCK) ON wop.[ConditionId] = con.[ConditionId]
-		 LEFT JOIN [dbo].[StockLine] sl WITH (NOLOCK) ON wop.[StockLineId] = sl.[StockLineId]
+		 LEFT JOIN [dbo].[StockLine] sl WITH (NOLOCK) ON wop.[StockLineId] = sl.[StockLineId] AND ISNULL(sl.IsNonStock,0) = 0
 		 LEFT JOIN [dbo].[Employee] tech WITH (NOLOCK) ON wop.[TechnicianId] = tech.[EmployeeId]
 		 LEFT JOIN [dbo].[ReceivingCustomerWork] rc WITH (NOLOCK) ON sl.[StockLineId] = rc.[StockLineId]
 		 LEFT JOIN [dbo].[Workflow] wf WITH (NOLOCK) ON wop.[WorkflowId] = wf.[WorkflowId]

@@ -19,6 +19,7 @@
 	5    01/07/2025	  Devendra Shekh    added New Field : MPNPartNumber
 	6    03/09/2026   Moin Bloch		added OutGoingPartNumber,OutGoingPartDescription PN-15681 
 	7    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	8    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
      
 EXEC dbo.AutoCompleteDropdownsWorkOrderPartNumber @StartWith=default,@Idlist=N'160489',@customerId=2450,@WorkOrderId=0,@WorkOrderTypeId=2,@MasterCompanyId=1
 exec dbo.AutoCompleteDropdownsWorkOrderPartNumber @StartWith=default,@Idlist=N'1',@customerId=92,@WorkOrderId=0,@WorkOrderTypeId=1,@MasterCompanyId=1
@@ -126,7 +127,7 @@ BEGIN
 						 WHERE RCW.IsActive = 1 AND RCW.IsDeleted = 0 AND ISNULL(RCW.WorkOrderId, 0) = 0 AND SL.CustomerId = @CustomerId AND ISNULL(SL.IsCustomerStock, 0) = 1 AND ISNULL(SL.IsParent, 0) = 1
 					  AND ISNULL(RCW.IsPiecePart,0) = 0 AND RCW.MasterCompanyId = @MasterCompanyId AND (Im.partnumber LIKE @StartWith + '%' OR Im.partnumber  LIKE '%' + @StartWith + '%') 
 
-					 AND ISNULL(IM.IsNonStock,0) = 0
+					 AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(SL.IsNonStock,0) = 0
 					   UNION 
 
 					SELECT DISTINCT TOP 20 RCW.ReceivingCustomerWorkId,
@@ -177,7 +178,7 @@ BEGIN
 						LEFT JOIN dbo.ItemMaster OIM WITH(NOLOCK) ON RCW.OutGoingItemMasterId = OIM.ItemMasterId
 					 AND ISNULL(OIM.IsNonStock,0) = 0
 						 WHERE SL.StockLineId IN (SELECT DISTINCT Item FROM DBO.SPLITSTRING(@Idlist, ',')) AND ISNULL(SL.IsCustomerStock, 0) = 1 AND ISNULL(SL.IsParent, 0) = 1 AND ISNULL(RCW.IsPiecePart,0) = 0
-					 AND ISNULL(IM.IsNonStock,0) = 0
+					 AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(SL.IsNonStock,0) = 0
 					  ORDER BY [Label]				
 			END
 			ELSE IF(@WorkOrderTypeId = 2 OR  @WorkOrderTypeId = 4) -- FOR INTERNAL AND SHOP SERVER WO TYPE
@@ -198,7 +199,7 @@ BEGIN
                     WHERE SL.IsActive = 1 AND SL.IsDeleted = 0 AND RP.ModuleId = @StocklineModuleID AND ISNULL(SL.WorkOrderId, 0) = 0
                           AND SL.CustomerId = @CustomerId AND SL.ItemMasterId = RP.ItemMasterId AND RP.IsActive = 1 AND RP.IsDeleted = 0
 
-					 AND ISNULL(IM.IsNonStock,0) = 0
+					 AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(SL.IsNonStock,0) = 0
                            SELECT DISTINCT TOP 20  0 AS ReceivingCustomerWorkId,
 						SL.ItemMasterId,
 						IM.partnumber AS PartNumber,
@@ -245,7 +246,7 @@ BEGIN
 					WHERE SL.IsActive = 1 AND SL.IsDeleted = 0 AND ISNULL(SL.WorkOrderId, 0) = 0 AND ISNULL(SL.IsParent,0) = 1 AND ISNULL(SL.IsCustomerStock, 0) = 0 AND ISNULL(SL.QuantityAvailable, 0) > 0
 						AND ISNULL(RCW.IsPiecePart,0) = 0 AND SL.MasterCompanyId = @MasterCompanyId AND (Im.partnumber LIKE @StartWith + '%' OR Im.partnumber  LIKE '%' + @StartWith + '%')
 
-					 AND ISNULL(IM.IsNonStock,0) = 0
+					 AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(SL.IsNonStock,0) = 0
 						 UNION
 
 					SELECT  0 AS ReceivingCustomerWorkId,
@@ -292,7 +293,7 @@ BEGIN
 						LEFT JOIN dbo.Workflow WF WITH(NOLOCK) ON WF.WorkflowId = WOWF.WorkflowId
 						LEFT JOIN dbo.ReceivingCustomerWork RCW WITH(NOLOCK) ON RCW.StockLineId = SL.StockLineId
 					WHERE SL.StockLineId IN (SELECT DISTINCT Item FROM DBO.SPLITSTRING(@Idlist, ',')) AND ISNULL(SL.IsParent,0) = 1 AND ISNULL(SL.IsCustomerStock, 0) = 0 AND ISNULL(RCW.IsPiecePart,0) = 0
-					 AND ISNULL(IM.IsNonStock,0) = 0
+					 AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(SL.IsNonStock,0) = 0
 					 ORDER BY [Label]	
 			END
 			ELSE IF(@WorkOrderTypeId = 3)
@@ -313,7 +314,7 @@ BEGIN
                     WHERE SL.IsActive = 1 AND SL.IsDeleted = 0 AND RP.ModuleId = @StocklineModuleID AND ISNULL(SL.WorkOrderId, 0) = 0
                           AND SL.CustomerId = @CustomerId AND SL.ItemMasterId = RP.ItemMasterId AND RP.IsActive = 1 AND RP.IsDeleted = 0
 
-					 AND ISNULL(IM.IsNonStock,0) = 0
+					 AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(SL.IsNonStock,0) = 0
                            SELECT DISTINCT TOP 20 
 						0 AS ReceivingCustomerWorkId,
 						SL.ItemMasterId,
@@ -361,7 +362,7 @@ BEGIN
 					WHERE SL.IsActive = 1 AND SL.IsDeleted = 0 AND ISNULL(SL.WorkOrderId, 0) = 0 AND ISNULL(SL.IsParent,0) = 1 AND ISNULL(SL.QuantityAvailable, 0) > 0
 					 AND ISNULL(RCW.IsPiecePart,0) = 0 AND SL.MasterCompanyId = @MasterCompanyId AND (Im.partnumber LIKE @StartWith + '%' OR Im.partnumber  LIKE '%' + @StartWith + '%')
 
-					 AND ISNULL(IM.IsNonStock,0) = 0
+					 AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(SL.IsNonStock,0) = 0
 					  UNION
 
 					SELECT 0 AS ReceivingCustomerWorkId,
@@ -408,7 +409,7 @@ BEGIN
 						LEFT JOIN dbo.Workflow WF WITH(NOLOCK) ON WF.WorkflowId = WOWF.WorkflowId
 						LEFT JOIN dbo.ReceivingCustomerWork RCW WITH(NOLOCK) ON RCW.StockLineId = SL.StockLineId
 					WHERE SL.StockLineId IN (SELECT DISTINCT Item FROM DBO.SPLITSTRING(@Idlist, ',')) AND ISNULL(SL.IsParent,0) = 1 AND ISNULL(RCW.IsPiecePart,0) = 0
-					 AND ISNULL(IM.IsNonStock,0) = 0
+					 AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(SL.IsNonStock,0) = 0
 					 ORDER BY [Label]	
 			END
 

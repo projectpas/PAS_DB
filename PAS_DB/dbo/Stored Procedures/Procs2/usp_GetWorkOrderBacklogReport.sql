@@ -19,6 +19,7 @@
 	2	        		Swetha		Added Transaction & NO LOCK
 	3	30-Nov-2021		Hemant		Updated Managment Structure Details and Date filter Condition
 	4    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	5    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
      
 EXECUTE   [dbo].[usp_GetWorkOrderBacklogReport] 'WO Opened','','','','1','1,4,43,44,45,80,84,88','46,47,66','48,49,50,58,59,67,68,69','51,52,53,54,55,56,57,60'
 **************************************************************/
@@ -132,7 +133,7 @@ BEGIN
           ON WOPN.itemmasterId = IM.itemmasterid
          AND ISNULL(IM.IsNonStock,0) = 0
            LEFT JOIN DBO.Stockline STL WITH (NOLOCK)
-          ON WOPN.StockLineId = STL.StockLineId and stl.IsParent=1
+          ON WOPN.StockLineId = STL.StockLineId and stl.IsParent=1 AND ISNULL(STL.IsNonStock,0) = 0
         LEFT JOIN DBO.Employee E WITH (NOLOCK)
           ON WOPN.TechnicianId = E.EmployeeId
         LEFT OUTER JOIN DBO.mastercompany MC WITH (NOLOCK)

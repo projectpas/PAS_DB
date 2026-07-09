@@ -26,6 +26,7 @@
 	8 	 08/10/2025     Moin Bloch			Added MPN Tendor 
 	9    26/03/2026     Moin Bloch	        Rename TearDown To Internal Teardown PN-15850
 	10    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	11    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 
 exec USP_TenderStockLineForSubAssembly @WorkOrderId=3809,@WorkFlowWorkOrderId=3280,@WorkOrderMaterialsId=15917
 **************************************************************/
@@ -177,7 +178,7 @@ BEGIN
 												JOIN dbo.WorkOrderMaterials WOM WITH (NOLOCK) on womsl.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId
 												JOIN dbo.Stockline sl WITH (NOLOCK) on womsl.StockLIneId = sl.StockLIneId
 												WHERE womsl.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId AND womsl.ConditionId = WOM.ConditionCodeId
-												AND womsl.isActive = 1 AND womsl.isDeleted = 0 AND ISNULL(sl.QuantityTurnIn, 0) > 0 AND WOM.WorkOrderMaterialsId = @WorkOrderMaterialsId)
+												AND womsl.isActive = 1 AND womsl.isDeleted = 0 AND ISNULL(sl.QuantityTurnIn, 0) > 0 AND WOM.WorkOrderMaterialsId = @WorkOrderMaterialsId AND ISNULL(sl.IsNonStock,0) = 0)
 
 				SET @QuantityIssued = (SELECT SUM(ISNULL(womsl.QtyIssued, 0)) FROM #tmpWOMStockline womsl WITH (NOLOCK) 
 											JOIN dbo.WorkOrderMaterials WOM WITH (NOLOCK) on womsl.WorkOrderMaterialsId = WOM.WorkOrderMaterialsId

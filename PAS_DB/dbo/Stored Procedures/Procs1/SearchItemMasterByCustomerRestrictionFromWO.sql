@@ -17,6 +17,7 @@
     1    12-Oct-2023		HEMANT SALIYA		Created
 	2    15-DEC-2023		Ayesha Sultana		BugFix - View Inventory in add/edit work order
 	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	4    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
      
  EXECUTE [SearchItemMasterByCustomerRestrictionFromWO] 3, 12, 2461,1
 **************************************************************/ 
@@ -106,7 +107,7 @@ BEGIN
 				FROM DBO.ItemMaster im WITH (NOLOCK)
 				LEFT JOIN DBO.Condition c WITH (NOLOCK) ON c.ConditionId in (SELECT ConditionId FROM #ConditionGroup) 
 				LEFT JOIN DBO.StockLine sl WITH (NOLOCK) ON im.ItemMasterId = sl.ItemMasterId AND sl.ConditionId in (SELECT ConditionId FROM #ConditionGroup) 
-					AND sl.IsDeleted = 0  AND sl.isActive = 1 AND sl.IsParent = 1 --AND (sl.IsCustomerStock = 0 OR (sl.IsCustomerStock = 1 AND sl.CustomerId = @CustomerId))
+					AND sl.IsDeleted = 0  AND sl.isActive = 1 AND sl.IsParent = 1 AND ISNULL(sl.IsNonStock,0) = 0 --AND (sl.IsCustomerStock = 0 OR (sl.IsCustomerStock = 1 AND sl.CustomerId = @CustomerId))
 				LEFT JOIN DBO.ItemGroup ig WITH (NOLOCK) ON im.ItemGroupId = ig.ItemGroupId
 				LEFT JOIN DBO.Manufacturer mf WITH (NOLOCK) ON im.ManufacturerId = mf.ManufacturerId
 				LEFT JOIN DBO.ItemClassification ic WITH (NOLOCK) ON im.ItemClassificationId = ic.ItemClassificationId

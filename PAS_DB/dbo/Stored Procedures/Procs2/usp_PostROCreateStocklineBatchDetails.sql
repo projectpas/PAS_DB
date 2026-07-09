@@ -28,6 +28,7 @@
 	17   01/29/2026   Hemant Saliya	 Corrected to get Goods Received Not Invoiced (GRNI) from Stockline
 	18   06/29/2026   Abhishek Jirawla Including RPP in inserting batch details
 	19    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	20    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 **************************************************************/  
 CREATE    PROCEDURE [dbo].[usp_PostROCreateStocklineBatchDetails]
 @tbl_PostStocklineBatchType PostStocklineBatchType READONLY,
@@ -394,7 +395,7 @@ BEGIN
 												 @LotNumber = LO.LotNumber
 											FROM [dbo].[Stockline] ST WITH(NOLOCK) 
 												LEFT JOIN [dbo].[Lot] LO WITH(NOLOCK) ON ST.[LotId] = LO.[LotId]
-											WHERE ST.[StockLineId] = @StocklineId;
+											WHERE ST.[StockLineId] = @StocklineId AND ISNULL(ST.IsNonStock,0) = 0;
 								
 										  SELECT	@RepairOrderNumber=RepairOrderNumber,@VendorId=VendorId,
 													@LocalCurrencyCode = ISNULL(CF.Code, ''),
@@ -429,12 +430,12 @@ BEGIN
 										SELECT TOP 1 @STKGlAccountId=SL.GLAccountId,@STKGlAccountNumber=GL.AccountCode,@STKGlAccountName=GL.AccountName 
 										FROM DBO.Stockline SL WITH(NOLOCK)
 											INNER JOIN DBO.GLAccount GL WITH(NOLOCK) ON SL.GLAccountId=GL.GLAccountId 
-										WHERE SL.StockLineId=@StocklineId;
+										WHERE SL.StockLineId=@StocklineId AND ISNULL(SL.IsNonStock,0) = 0;
 										
 										--GET STOCKLINE GLACCOUNT.
 										SELECT @RepairOrderPartRecordId = SL.RepairOrderPartRecordId
 										FROM [dbo].[Stockline] SL WITH(NOLOCK)					 
-										WHERE SL.[StockLineId] = @StocklineId;
+										WHERE SL.[StockLineId] = @StocklineId AND ISNULL(SL.IsNonStock,0) = 0;
 
 										SELECT @GlStocklineId = ROP.StockLineId -- For PARTS StocklineId.
 										FROM [dbo].[RepairOrderPart] ROP WITH(NOLOCK)					 
@@ -443,7 +444,7 @@ BEGIN
 										--GET STOCKLINE GLACCOUNT.
 										SELECT @InventoryGLAccId = SL.GLAccountId, @GRNIGLAccId = SL.GoodsReceivedNotInvoicesGLAccId -- For PARTS INVENTORY Distribution.
 										FROM [dbo].[Stockline] SL WITH(NOLOCK)					 
-										WHERE SL.[StockLineId] = @GlStocklineId;
+										WHERE SL.[StockLineId] = @GlStocklineId AND ISNULL(SL.IsNonStock,0) = 0;
 										
 										--GET GL Accounting Data from GLAccout based on stockline
 										SELECT @GlAccountId = [GLAccountId],
@@ -834,7 +835,7 @@ BEGIN
 												 @LotNumber = LO.LotNumber
 											FROM [dbo].[Stockline] ST WITH(NOLOCK) 
 												LEFT JOIN [dbo].[Lot] LO WITH(NOLOCK) ON ST.[LotId] = LO.[LotId]
-											WHERE ST.[StockLineId] = @StocklineId;
+											WHERE ST.[StockLineId] = @StocklineId AND ISNULL(ST.IsNonStock,0) = 0;
 								
 										  SELECT	@RepairOrderNumber=RepairOrderNumber,@VendorId=VendorId,
 													@LocalCurrencyCode = ISNULL(CF.Code, ''),
@@ -869,7 +870,7 @@ BEGIN
 										SELECT TOP 1 @STKGlAccountId=SL.GLAccountId,@STKGlAccountNumber=GL.AccountCode,@STKGlAccountName=GL.AccountName 
 										FROM DBO.Stockline SL WITH(NOLOCK)
 											INNER JOIN DBO.GLAccount GL WITH(NOLOCK) ON SL.GLAccountId=GL.GLAccountId 
-										WHERE SL.StockLineId=@StocklineId;
+										WHERE SL.StockLineId=@StocklineId AND ISNULL(SL.IsNonStock,0) = 0;
 										
 										----GET STOCKLINE GLACCOUNT.
 										--SELECT @RepairOrderPartRecordId = SL.RepairOrderPartRecordId
@@ -883,7 +884,7 @@ BEGIN
 										--GET STOCKLINE GLACCOUNT.
 										SELECT @InventoryGLAccId = SL.GLAccountId, @GRNIGLAccId = SL.GoodsReceivedNotInvoicesGLAccId, @finishedGoodsGLAccId = SL.FinishedGoodsGLAccId, @cogs_WorkOrderGLAccId = SL.COGS_WorkOrderGLAccId -- For PARTS INVENTORY Distribution.
 										FROM [dbo].[Stockline] SL WITH(NOLOCK)					 
-										WHERE SL.[StockLineId] = @StocklineId;
+										WHERE SL.[StockLineId] = @StocklineId AND ISNULL(SL.IsNonStock,0) = 0;
 										
 										--GET GL Accounting Data from GLAccout based on stockline
 										SELECT @GlAccountId = [GLAccountId],

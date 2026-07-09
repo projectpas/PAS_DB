@@ -14,6 +14,7 @@
  ** --   --------     -------			--------------------------------          
     1    04/05/2023   Vishal Suthar		Created
 	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	3    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
      
  EXECUTE USP_GetWorkOrdMaterialsStocklineListForAddInKitMaterial 881,0,1293,0
 **************************************************************/ 
@@ -171,7 +172,7 @@ SET NOCOUNT ON
 						AND (@KitId IS NULL OR WOMKM.KitId = @KitId)
 						AND (@WorkOrderMaterialsId IS NULL OR WOM.WorkOrderMaterialsKitId = @WorkOrderMaterialsId)
 
-				 AND ISNULL(IM.IsNonStock,0) = 0
+				 AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(SL.IsNonStock,0) = 0
 						 UNION ALL
 
 				SELECT  DISTINCT WOM.WorkOrderId,
@@ -246,7 +247,7 @@ SET NOCOUNT ON
 						AND (@KitId IS NULL OR WOMKM.KitId = @KitId)
 						AND (@WorkOrderMaterialsId IS NULL OR WOM.WorkOrderMaterialsKitId = @WorkOrderMaterialsId)
 
-				 AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(IM_AltMain.IsNonStock,0) = 0
+				 AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(IM_AltMain.IsNonStock,0) = 0 AND ISNULL(SL.IsNonStock,0) = 0
 						 UNION ALL
 
 				SELECT  DISTINCT WOM.WorkOrderId,
@@ -320,7 +321,7 @@ SET NOCOUNT ON
 						AND (@ItemMasterId IS NULL OR im.ItemMasterId = @ItemMasterId OR IM_EquMain.ItemMasterId = @ItemMasterId) AND (WOM.ProvisionId = @ProvisionId OR WOM.ProvisionId = @SubWOProvisionId)
 						AND (@KitId IS NULL OR WOMKM.KitId = @KitId)
 						AND (@WorkOrderMaterialsId IS NULL OR WOM.WorkOrderMaterialsKitId = @WorkOrderMaterialsId)
-			 AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(IM_EquMain.IsNonStock,0) = 0
+			 AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(IM_EquMain.IsNonStock,0) = 0 AND ISNULL(SL.IsNonStock,0) = 0
 						 END
 		COMMIT  TRANSACTION
 

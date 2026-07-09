@@ -20,6 +20,7 @@
 	3    06/04/2020   Devendra Shekh	removal reason update issue resolved
 	4    13/09/2024   Moin Bloch	    WorkScope makes left join from inner join
 	5    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	6    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
      
 --EXEC [UpdateReceivingCustomerColumnsWithId] 5
 **************************************************************/
@@ -115,7 +116,7 @@ BEGIN
 				 AND ISNULL(IM.IsNonStock,0) = 0
 				 UPDATE SL SET CustomerName= c.Name FROM [dbo].[Stockline] SL WITH(NOLOCK)
 					INNER JOIN dbo.Customer C WITH(NOLOCK) ON SL.CustomerId = C.CustomerId 
-				WHERE StockLineId=@stocklineid
+				WHERE StockLineId=@stocklineid AND ISNULL(SL.IsNonStock,0) = 0
 			END
 		COMMIT  TRANSACTION
 

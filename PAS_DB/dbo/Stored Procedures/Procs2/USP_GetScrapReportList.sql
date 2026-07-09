@@ -19,6 +19,7 @@
  3 08/04/2024   Devendra Shekh   added customerReference     
  4 18/04/2025   Ayushi			Added the condition for pn , pndescription , serialnum 
 	5    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	6    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 EXECUTE   [dbo].[USP_GetScrapReportList] 'krunal','','','1','1,4,43,44,45,80,84,88','46,47,66','48,49,50,59','51,52,53'  
 **************************************************************/  
 CREATE   PROCEDURE [dbo].[USP_GetScrapReportList]   
@@ -120,7 +121,7 @@ BEGIN
      AND (ISNULL(@Level8,'') ='' OR MSD.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,',')))  
      AND (ISNULL(@Level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))  
      AND  (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))  
-    AND ISNULL(IM.IsNonStock,0) = 0
+    AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(ST.IsNonStock,0) = 0
       END  
   
    SET @PageSize = CASE WHEN NULLIF(@PageSize,0) IS NULL THEN 10 ELSE @PageSize END  
@@ -172,7 +173,7 @@ BEGIN
     AND (ISNULL(@Level8,'') ='' OR MSD.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,',')))  
     AND (ISNULL(@Level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))  
     AND  (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))  
-    AND ISNULL(IM.IsNonStock,0) = 0
+    AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(ST.IsNonStock,0) = 0
      ORDER BY IM.partnumber  
    OFFSET((@PageNumber-1) * @pageSize) ROWS FETCH NEXT @pageSize ROWS ONLY;  
   

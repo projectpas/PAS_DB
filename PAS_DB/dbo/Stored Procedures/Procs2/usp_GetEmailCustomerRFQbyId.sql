@@ -18,6 +18,7 @@
  
 EXECUTE [dbo].[usp_GetEmailCustomerRFQbyId] 1005
 	1    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	8    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 **************************************************************/  
 CREATE     PROCEDURE [dbo].[usp_GetEmailCustomerRFQbyId]
 @CustomerRfqId BIGINT = NULL
@@ -91,7 +92,7 @@ SET NOCOUNT ON
 				SELECT  MAX(STK.StockLineId) AS StockLineId, STK.ItemMasterId, STK.MasterCompanyId  
 				FROM [dbo].[Stockline] STK WITH(NOLOCK) 
 				INNER JOIN ItemResult RIM ON STK.ItemMasterId = RIM.ItemMasterId AND STK.MasterCompanyId = RIM.MasterCompanyId
-				WHERE STK.[MasterCompanyId] = @MasterCompanyId AND STK.IsActive = 1 AND STK.IsDeleted = 0 AND ISNULL(STK.[QuantityAvailable],0) > 0 AND ISNULL(STK.[IsCustomerStock],0) = 0
+				WHERE STK.[MasterCompanyId] = @MasterCompanyId AND STK.IsActive = 1 AND STK.IsDeleted = 0 AND ISNULL(STK.[QuantityAvailable],0) > 0 AND ISNULL(STK.[IsCustomerStock],0) = 0 AND ISNULL(STK.IsNonStock,0) = 0
 				GROUP BY STK.ItemMasterId, STK.MasterCompanyId
 			)
 			INSERT INTO #tmpCustomerRfqPartMapping

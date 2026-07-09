@@ -18,6 +18,7 @@
     2    08/16/2023   Devendra shekh			commented RMAPickTicketNumber for cte and added ReadyToPick to result
     3    08/17/2023   Devendra shekh			removed commented RMAPickTicketNumber for cte and added ReadyToPick
 	4    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	5    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
      
 **************************************************************/
 -- EXEC [dbo].[USP_VendorRMA_GetPickTicketPrint] 262, 399, 172
@@ -64,7 +65,7 @@ BEGIN
 		INNER JOIN cte WITH(NOLOCK) ON cte.VendorRMAId = sopt.VendorRMAId AND cte.VendorRMADetailId = sopt.VendorRMADetailId
 		INNER JOIN VendorRMADetail sop WITH(NOLOCK) ON sop.VendorRMAId = sopt.VendorRMAId AND sop.VendorRMADetailId = sopt.VendorRMADetailId
 		INNER JOIN VendorRMA so WITH(NOLOCK) ON so.VendorRMAId = sop.VendorRMAId
-		LEFT JOIN Stockline sl WITH(NOLOCK) ON sl.StockLineId = sop.StockLineId
+		LEFT JOIN Stockline sl WITH(NOLOCK) ON sl.StockLineId = sop.StockLineId AND ISNULL(sl.IsNonStock,0) = 0
 		INNER JOIN ItemMaster imt WITH(NOLOCK) ON imt.ItemMasterId = sop.ItemMasterId
 		LEFT JOIN Condition co WITH(NOLOCK) ON co.ConditionId = sl.ConditionId
 		LEFT JOIN UnitOfMeasure uom WITH(NOLOCK) ON uom.UnitOfMeasureId = imt.ConsumeUnitOfMeasureId

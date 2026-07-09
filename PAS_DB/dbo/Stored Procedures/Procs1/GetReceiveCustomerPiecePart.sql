@@ -15,6 +15,7 @@
 	2    27/09/2024   Moin Bloch    Added WOInspectionId   
 	3    06/02/2026   Amit Ghediya  Update to add condition for remove record from list after stk QuantityOnHand = 0 (PN-15162)
 	4    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	5    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	     
     EXEC GetReceiveCustomerPiecePart 1831,109,1
 ************************************************************************/    
@@ -79,7 +80,7 @@ BEGIN
 		  WHERE RC.[MasterCompanyId] = @MasterCompanyId 
 		  AND RC.[CustomerId] = @CustomerId 
 		  AND RC.[ReceivingNumber] IN (@FinalReceivingNumber)
-		  AND ISNULL(SL.[QuantityOnHand],0) > 0 AND ISNULL(IM.IsNonStock,0) = 0 ;		   			    
+		  AND ISNULL(SL.[QuantityOnHand],0) > 0 AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(SL.IsNonStock,0) = 0 ;		   			    
  END TRY        
  BEGIN CATCH  
   IF @@trancount > 0    

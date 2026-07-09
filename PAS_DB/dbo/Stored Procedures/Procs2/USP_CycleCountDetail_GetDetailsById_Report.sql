@@ -13,6 +13,7 @@
  ** -----------------------------------------------------------          
     1    23/11/2024   BHARGAV SALIYA       Created
     1    25/12/2024   BHARGAV SALIYA       Truncate the PartNumber
+    2    09/July/2026   RAJESH GAMI       [PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	exec [USP_CycleCountDetail_GetDetailsById_Report] 15,1
 ************************************************************************/    
 CREATE   PROCEDURE [dbo].[USP_CycleCountDetail_GetDetailsById_Report]  
@@ -54,7 +55,7 @@ BEGIN
 		 FROM [dbo].[CycleCountDetail] CC WITH(NOLOCK)	
 		 INNER JOIN [dbo].[Stockline] SL WITH(NOLOCK) ON SL.[StockLineId] = CC.[StockLineId]
 		  WHERE CC.[MasterCompanyId] = @MasterCompanyId 
-		    AND CC.[CycleCountId] = @CycleCountId
+		    AND CC.[CycleCountId] = @CycleCountId AND ISNULL(SL.IsNonStock,0) = 0
  END TRY        
  BEGIN CATCH  
   IF @@trancount > 0    

@@ -34,6 +34,7 @@
 16    28-Aug-2025  RAJESH GAMI			Added the OtherCost (Charges)
 17    14-Nov-2025  Moin Bloch			Fix For Duplicate isssue
 	18    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	19    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 **************************************************************/  
 CREATE PROCEDURE [dbo].[usprpt_GetWorkOrderMarginReport]  
 @PageNumber INT = 1,      
@@ -130,7 +131,7 @@ BEGIN
 					 LEFT JOIN DBO.Customer C WITH (NOLOCK) ON WO.CustomerId = C.CustomerId    
 					 LEFT JOIN DBO.ItemMaster IM WITH (NOLOCK) ON WOPN.ItemMasterId = IM.ItemMasterId      
 					  AND ISNULL(IM.IsNonStock,0) = 0
-					  LEFT JOIN DBO.Stockline SL WITH (NOLOCK) ON WOPN.StockLineId = SL.StockLineId AND SL.IsParent = 1      
+					  LEFT JOIN DBO.Stockline SL WITH (NOLOCK) ON WOPN.StockLineId = SL.StockLineId AND SL.IsParent = 1 AND ISNULL(SL.IsNonStock,0) = 0      
 					 LEFT JOIN DBO.WorkOrderShippingItem AS WOSI WITH (NOLOCK) ON WOSI.WorkOrderPartNumId = WOPN.ID      
 					 LEFT JOIN DBO.WorkOrderShipping AS WOS WITH (NOLOCK) ON WOS.WorkOrderShippingId = WOSI.WorkOrderShippingId      
 					 LEFT JOIN DBO.Employee AS E WITH (NOLOCK) ON WO.SalesPersonId = E.EmployeeId      
@@ -253,7 +254,7 @@ BEGIN
 						  AND ISNULL(IM.IsNonStock,0) = 0
 						  LEFT JOIN [dbo].[ItemMaster] RIM WITH (NOLOCK) ON WOPN.RevisedItemmasterid = RIM.ItemMasterId  
 						  AND ISNULL(RIM.IsNonStock,0) = 0
-						   LEFT JOIN [dbo].Stockline SL WITH (NOLOCK) ON WOPN.StockLineId = SL.StockLineId AND SL.IsParent = 1      
+						   LEFT JOIN [dbo].Stockline SL WITH (NOLOCK) ON WOPN.StockLineId = SL.StockLineId AND SL.IsParent = 1 AND ISNULL(SL.IsNonStock,0) = 0      
 						 LEFT JOIN [dbo].WorkOrderShippingItem AS WOSI WITH (NOLOCK) ON WOSI.WorkOrderPartNumId = WOPN.ID      
 						 LEFT JOIN [dbo].WorkOrderShipping AS WOS WITH (NOLOCK) ON WOS.WorkOrderShippingId = WOSI.WorkOrderShippingId      
 						 LEFT JOIN [dbo].Employee AS E WITH (NOLOCK) ON WO.SalesPersonId = E.EmployeeId      

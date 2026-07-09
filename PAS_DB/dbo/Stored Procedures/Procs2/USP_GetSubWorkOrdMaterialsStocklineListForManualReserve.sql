@@ -20,6 +20,7 @@
 	3    12/19/2023		 HEMANT SALIYA				Updated for Customer stock check box not validating
 	4    03/21/2025		 Devendra Shekh				Updated For Checking PMA/DER Restrict Parts
 	5    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	6    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
      
  EXECUTE USP_GetSubWorkOrdMaterialsStocklineListForManualReserve 3118,0,0,3375,0
 **************************************************************/ 
@@ -277,7 +278,7 @@ SET NOCOUNT ON
 							AND (@SubWorkOrderMaterialsId IS NULL OR WOM.SubWorkOrderMaterialsId = @SubWorkOrderMaterialsId)
 							AND WOM.ItemMasterId IN (SELECT [ItemMasterId] FROM #AllowItemMasterIds)
 
-					 AND ISNULL(IM.IsNonStock,0) = 0
+					 AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(SL.IsNonStock,0) = 0
 							 UNION ALL
 
 					SELECT  WOM.WorkOrderId,
@@ -360,7 +361,7 @@ SET NOCOUNT ON
 							AND (@SubWorkOrderMaterialsId IS NULL OR WOM.SubWorkOrderMaterialsId = @SubWorkOrderMaterialsId)
 							AND WOM.ItemMasterId IN (SELECT [ItemMasterId] FROM #AllowItemMasterIds)
 
-					 AND ISNULL(IM.IsNonStock,0) = 0
+					 AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(SL.IsNonStock,0) = 0
 							 UNION ALL
 
 					SELECT  WOM.WorkOrderId,
@@ -441,7 +442,7 @@ SET NOCOUNT ON
 							AND (@ItemMasterId IS NULL OR im.ItemMasterId = @ItemMasterId OR IM_EquMain.ItemMasterId = @ItemMasterId) AND (WOM.ProvisionId = @ProvisionId OR WOM.ProvisionId = @SubWOProvisionId)
 							AND (@SubWorkOrderMaterialsId IS NULL OR WOM.SubWorkOrderMaterialsId = @SubWorkOrderMaterialsId)
 							AND WOM.ItemMasterId IN (SELECT [ItemMasterId] FROM #AllowItemMasterIds)
-				 AND ISNULL(IM.IsNonStock,0) = 0
+				 AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(SL.IsNonStock,0) = 0
 							 END
 				ELSE
 				BEGIN
@@ -555,7 +556,7 @@ SET NOCOUNT ON
 							AND (@KitId IS NULL OR WOMKM.KitId = @KitId)
 							AND WOM.ItemMasterId IN (SELECT [ItemMasterId] FROM #AllowItemMasterIds)
 
-					 AND ISNULL(IM.IsNonStock,0) = 0
+					 AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(SL.IsNonStock,0) = 0
 							 UNION ALL
 
 					SELECT  DISTINCT WOM.WorkOrderId,
@@ -637,7 +638,7 @@ SET NOCOUNT ON
 							AND (@KitId IS NULL OR WOMKM.KitId = @KitId)
 							AND WOM.ItemMasterId IN (SELECT [ItemMasterId] FROM #AllowItemMasterIds)
 
-					 AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(IM_AltMain.IsNonStock,0) = 0
+					 AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(IM_AltMain.IsNonStock,0) = 0 AND ISNULL(SL.IsNonStock,0) = 0
 							 UNION ALL
 
 					SELECT  DISTINCT WOM.WorkOrderId,
@@ -717,7 +718,7 @@ SET NOCOUNT ON
 							AND (@ItemMasterId IS NULL OR im.ItemMasterId = @ItemMasterId OR IM_EquMain.ItemMasterId = @ItemMasterId) AND (WOM.ProvisionId = @ProvisionId OR WOM.ProvisionId = @SubWOProvisionId)
 							AND (@KitId IS NULL OR WOMKM.KitId = @KitId)
 							AND WOM.ItemMasterId IN (SELECT [ItemMasterId] FROM #AllowItemMasterIds)
-				 AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(IM_EquMain.IsNonStock,0) = 0
+				 AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(IM_EquMain.IsNonStock,0) = 0 AND ISNULL(SL.IsNonStock,0) = 0
 							 END
 
 			END

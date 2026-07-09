@@ -21,6 +21,7 @@
        
 -- EXEC [dbo].[SearchStockLineForAddPN] '2', 33, 10,-1,NULL  
 	1    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	7    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 **************************************************************/   
   
 CREATE   PROCEDURE [dbo].[SearchStockLineForAddPN]  
@@ -230,7 +231,7 @@ ELSE sl.ConditionId
 			im.ItemMasterId IN (SELECT Item FROM DBO.SPLITSTRING(@ItemMasterIdlist,','))    
 			AND ISNULL(sl.QuantityAvailable, 0) > 0   
 			AND (sl.IsCustomerStock = 0 OR (sl.IsCustomerStock = 1 AND sl.CustomerId = @CustomerId))  
-			AND sl.IsParent = 1  
+			AND sl.IsParent = 1 AND ISNULL(sl.IsNonStock,0) = 0  
 	   
 	   --UNION  
   
@@ -338,7 +339,7 @@ ELSE sl.ConditionId
 		   LEFT JOIN DBO.ItemMasterPurchaseSale imps WITH (NOLOCK) on imps.ItemMasterId = im.ItemMasterId  
 				AND imps.ConditionId = c.ConditionId  
 		WHERE SL.StockLineId IN (SELECT Item FROM DBO.SPLITSTRING(@StocklineIdlist,','))  
-		AND SL.StockLineId NOT IN (SELECT StockLineId FROM #StockLineResult);
+		AND SL.StockLineId NOT IN (SELECT StockLineId FROM #StockLineResult) AND ISNULL(sl.IsNonStock,0) = 0;
 
 		SELECT * FROM #StockLineResult;
 	  END  

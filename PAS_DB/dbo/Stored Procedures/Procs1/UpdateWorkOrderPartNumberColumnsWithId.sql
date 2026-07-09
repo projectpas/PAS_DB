@@ -26,6 +26,7 @@
 	 update last step
 	9    31/MAR/2026  RAJESH GAMI		Add the space after and before '-' while adding Workorder Stage [PN-15871]
 	10    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	11    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 -- EXEC [UpdateWorkOrderPartNumberColumnsWithId] 30
 **************************************************************/
 CREATE   PROCEDURE [dbo].[UpdateWorkOrderPartNumberColumnsWithId]
@@ -144,7 +145,7 @@ BEGIN
 					UPDATE WPN SET 
 						WPN.[CurrentSerialNumber] = SL.[SerialNumber]								
 					FROM [dbo].[WorkOrderPartNumber] WPN WITH(NOLOCK) 
-					LEFT JOIN [dbo].[Stockline] SL WITH(NOLOCK) ON SL.[StockLineId] = WPN.[StockLineId]
+					LEFT JOIN [dbo].[Stockline] SL WITH(NOLOCK) ON SL.[StockLineId] = WPN.[StockLineId] AND ISNULL(SL.IsNonStock,0) = 0
 					WHERE WPN.[ID] = @WorkOrderPartNumberId
 				END
 
@@ -153,7 +154,7 @@ BEGIN
 					UPDATE WPN SET 
 						WPN.[RevisedSerialNumber] = CASE WHEN ISNULL(WPN.CurrentSerialNumber, '') = '' THEN SL.[SerialNumber] ELSE WPN.CurrentSerialNumber END								
 					FROM [dbo].[WorkOrderPartNumber] WPN WITH(NOLOCK) 
-					LEFT JOIN [dbo].[Stockline] SL WITH(NOLOCK) ON SL.[StockLineId] = WPN.[StockLineId]
+					LEFT JOIN [dbo].[Stockline] SL WITH(NOLOCK) ON SL.[StockLineId] = WPN.[StockLineId] AND ISNULL(SL.IsNonStock,0) = 0
 					WHERE WPN.[ID] = @WorkOrderPartNumberId
 				END
 								

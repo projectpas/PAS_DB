@@ -22,6 +22,7 @@
 	5	 07/Mar/2025  Bhargav Saliya  UTC Date Changes 
 	6	 04/16/2025	  Devendra Shekh Added changes for IsLaborTrackingTurnedOff
 	7    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	8    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
      
 EXEC [GetSubWorkOrderSettlementDetails] 3802,188,162
 **************************************************************/
@@ -110,7 +111,7 @@ BEGIN
 					JOIN dbo.Stockline sl WITH (NOLOCK) ON womsl.StockLIneId = sl.StockLIneId
 					JOIN dbo.SubWorkOrderMaterials WOM WITH(NOLOCK) ON womsl.SubWorkOrderMaterialsId = WOM.SubWorkOrderMaterialsId
 				WHERE WOM.WorkOrderId=@WorkorderId AND WOM.SubWorkOrderId=@SubWorkOrderId AND WOM.SubWOPartNoId =@SubWOPartNoId AND womsl.ConditionId = WOM.ConditionCodeId
-					AND womsl.isActive = 1 AND womsl.isDeleted = 0 AND ISNULL(sl.QuantityTurnIn, 0) > 0
+					AND womsl.isActive = 1 AND womsl.isDeleted = 0 AND ISNULL(sl.QuantityTurnIn, 0) > 0 AND ISNULL(sl.IsNonStock,0) = 0
 
 				SET  @qtyrequested = ISNULL(@qtyreq,0) + ISNULL(@kitqtyreq,0) - ISNULL(@OtherMaterialsProvisionQty, 0) - ISNULL(@OtherMaterialsProvisionKitQty, 0)
 				SET  @qtyissued = ISNULL(@qtyissue,0) + ISNULL(@kitqtyissue,0) + ISNULL(@OtherProvisionQty, 0) + ISNULL(@OtherProvisionKitQty, 0)

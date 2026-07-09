@@ -19,6 +19,7 @@
 	1    08/02/2023   Vishal Suthar Created
     2    12/06/202    Jevik Raiyani added @statusValue
 	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	4    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 **************************************************************/
 CREATE   PROCEDURE [dbo].[GetPNTileWOKitMaterialHistoryList]
 	@PageNumber int = 1,
@@ -112,7 +113,7 @@ BEGIN
 				  AND WOMS.ItemMasterId = @ItemMasterId	
 				  AND (WOMS.QtyIssued > 0 OR WOMS.QtyReserved > 0)
 				  AND (@ConditionId IS NULL OR WPN.ConditionId IN(SELECT * FROM STRING_SPLIT(@ConditionId , ',')))
-			 AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(IMP.IsNonStock,0) = 0 ), ResultCount AS(SELECT COUNT(WorkOrderId) AS totalItems FROM Result)
+			 AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(IMP.IsNonStock,0) = 0 AND ISNULL(Stk.IsNonStock,0) = 0 ), ResultCount AS(SELECT COUNT(WorkOrderId) AS totalItems FROM Result)
 			SELECT * INTO #TempResult FROM  Result
 			 WHERE ((@GlobalFilter <>'' AND ((PartNumber LIKE '%' + @GlobalFilter +'%') OR
 					(PartDescription LIKE '%' + @GlobalFilter +'%') OR

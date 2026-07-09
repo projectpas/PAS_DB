@@ -40,6 +40,7 @@
 	27   02-03-2026  Vishal Suthar		 Fixed binding PartDescription from Response itself
 	28   04-03-2026  Vishal Suthar		 Added new columns for PartsBase
 	29    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	30    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 
 -- EXEC USP_GetReceivedRfqList 
 ************************************************************************/
@@ -191,7 +192,7 @@ BEGIN
 				SELECT  MAX(STK.StockLineId) AS StockLineId, STK.ItemMasterId, STK.MasterCompanyId  
 				FROM [dbo].[Stockline] STK WITH(NOLOCK) 
 				INNER JOIN ItemResult RIM ON STK.ItemMasterId = RIM.ItemMasterId AND STK.MasterCompanyId = RIM.MasterCompanyId
-				WHERE STK.[MasterCompanyId] = @MasterCompanyId AND STK.IsActive = 1 AND STK.IsDeleted = 0 AND ISNULL(STK.[QuantityAvailable],0) > 0 AND ISNULL(STK.[IsCustomerStock],0) = 0
+				WHERE STK.[MasterCompanyId] = @MasterCompanyId AND STK.IsActive = 1 AND STK.IsDeleted = 0 AND ISNULL(STK.[QuantityAvailable],0) > 0 AND ISNULL(STK.[IsCustomerStock],0) = 0 AND ISNULL(STK.IsNonStock,0) = 0
 				GROUP BY STK.ItemMasterId, STK.MasterCompanyId
 			),			
 			VendorRFQReferenceResult AS (

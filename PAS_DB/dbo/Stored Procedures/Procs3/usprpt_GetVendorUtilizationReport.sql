@@ -19,6 +19,7 @@
 	4	 11/05/2024		Vishal Suthar		Modified to make use of new SO Part tables
   5	 02/06/2024		Sumit Kumar		Modified to correct Extended amount value
 	6    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	7    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 **************************************************************/
 
 CREATE      PROCEDURE [dbo].[usprpt_GetVendorUtilizationReport]  
@@ -94,7 +95,7 @@ BEGIN
    INNER JOIN DBO.PurchaseOrder PO WITH (NOLOCK) ON POP.PurchaseOrderId = PO.PurchaseOrderId  
    INNER JOIN dbo.PurchaseOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = 4 AND MSD.ReferenceID = POP.PurchaseOrderId  
    LEFT JOIN dbo.EntityStructureSetup ES ON ES.EntityStructureId=MSD.EntityMSID  
-   LEFT JOIN DBO.Stockline STL WITH (NOLOCK)  ON POP.PurchaseOrderPartRecordId = STL.PurchaseOrderPartRecordId and stl.IsParent=1  
+   LEFT JOIN DBO.Stockline STL WITH (NOLOCK)  ON POP.PurchaseOrderPartRecordId = STL.PurchaseOrderPartRecordId and stl.IsParent=1 AND ISNULL(STL.IsNonStock,0) = 0  
    LEFT JOIN DBO.Workorder WO WITH (NOLOCK) ON POP.workorderid = WO.workorderid   
    --LEFT JOIN DBO.Customer C WITH (NOLOCK) ON WO.CustomerId = C.CustomerId  
    LEFT JOIN DBO.Itemmaster IM WITH (NOLOCK) ON POP.itemmasterid = IM.itemmasterid  
@@ -182,7 +183,7 @@ UPPER(MSD.Level8Name) AS level8,    UPPER(MSD.Level9Name) AS level9,    UPPER(MS
   INNER JOIN DBO.PurchaseOrder PO WITH (NOLOCK) ON POP.PurchaseOrderId = PO.PurchaseOrderId  
   INNER JOIN dbo.PurchaseOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = 4 AND MSD.ReferenceID = POP.PurchaseOrderId  
   LEFT JOIN dbo.EntityStructureSetup ES ON ES.EntityStructureId=MSD.EntityMSID  
-        LEFT JOIN DBO.Stockline STL WITH (NOLOCK)  ON POP.PurchaseOrderPartRecordId = STL.PurchaseOrderPartRecordId and stl.IsParent=1  
+        LEFT JOIN DBO.Stockline STL WITH (NOLOCK)  ON POP.PurchaseOrderPartRecordId = STL.PurchaseOrderPartRecordId and stl.IsParent=1 AND ISNULL(STL.IsNonStock,0) = 0  
         LEFT JOIN DBO.Workorder WO WITH (NOLOCK) ON POP.workorderid = WO.workorderid   
   --LEFT JOIN DBO.Customer C WITH (NOLOCK) ON WO.CustomerId = C.CustomerId  
         LEFT JOIN DBO.Itemmaster IM WITH (NOLOCK) ON POP.itemmasterid = IM.itemmasterid  

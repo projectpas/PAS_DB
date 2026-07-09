@@ -16,6 +16,7 @@
 	3    25/11/2024   Moin Bloch		Added QuantityReserved Field	
 	4    26/12/2024   Moin Bloch		Added LegalEntityId Field	
 	5    14/05/2025   Amit Ghediya      Added Adjustment Reason.
+	6    09/July/2026   RAJESH GAMI      [PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	     
     EXEC USP_CycleCountDetail_GetDetailsById 7,1
 ************************************************************************/    
@@ -82,7 +83,7 @@ BEGIN
 		 INNER JOIN [dbo].[Stockline] SL WITH(NOLOCK) ON SL.[StockLineId] = CC.[StockLineId]
 		 LEFT JOIN [dbo].[StocklineManagementStructureDetails] MS WITH (NOLOCK) ON MS.[ModuleID] = @ModuleID AND MS.[ReferenceID] = CC.StockLineId 
 		  WHERE CC.[MasterCompanyId] = @MasterCompanyId 
-		    AND CC.[CycleCountId] = @CycleCountId
+		    AND CC.[CycleCountId] = @CycleCountId AND ISNULL(SL.IsNonStock,0) = 0
  END TRY        
  BEGIN CATCH  
   IF @@trancount > 0    

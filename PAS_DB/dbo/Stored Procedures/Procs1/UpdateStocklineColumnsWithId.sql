@@ -26,6 +26,7 @@
 	9    16/05/2025   Devendra Shekh  Updatting RepairOrderNumber, PurchaseOrderNumber, IsDocument
 	10   09/02/2026   Sahdev Saliya   UPDATED ItemGroup
 	11    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	12    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 
 -- EXEC [dbo].[UpdateStocklineColumnsWithId] 1
 **************************************************************/
@@ -50,7 +51,7 @@ BEGIN
 				SELECT @CustomerAffiliationId = CU.[CustomerAffiliationId]
 				  FROM [dbo].[Stockline] SL WITH(NOLOCK) 
 				INNER JOIN [dbo].[Customer] CU WITH(NOLOCK) ON SL.CustomerId = CU.CustomerId	
-				WHERE SL.StocklineId = @StocklineId;
+				WHERE SL.StocklineId = @StocklineId AND ISNULL(SL.IsNonStock,0) = 0;
 
 				IF(@CustomerAffiliationId = 2)  -- 2 For External Customer
 				BEGIN
@@ -123,13 +124,13 @@ BEGIN
 					 LEFT JOIN [dbo].[LOT] lot WITH(NOLOCK) ON SL.LotId = lot.LotId
 			  WHERE SL.StocklineId = @StocklineId
 				
-				 AND ISNULL(IM.IsNonStock,0) = 0
+				 AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(SL.IsNonStock,0) = 0
 			   UPDATE [dbo].[Stockline] 
 					SET LegalEntityId = MSL.LegalEntityId
 				FROM dbo.Stockline STL WITH(NOLOCK) 
 					JOIN dbo.StocklineManagementStructureDetails SMD WITH(NOLOCK) ON STL.StockLineId = SMD.ReferenceID AND SMD.ModuleID = @MSModuleID
 					JOIN dbo.ManagementStructureLevel MSL WITH(NOLOCK) ON MSL.ID = SMD.Level1Id
-				WHERE STL.StocklineId = @StocklineId AND STL.LegalEntityId IS NULL AND IsParent = 1
+				WHERE STL.StocklineId = @StocklineId AND STL.LegalEntityId IS NULL AND IsParent = 1 AND ISNULL(STL.IsNonStock,0) = 0
 
 				UPDATE [dbo].[Stockline] SET IsParent = 1 WHERE ISNULL(ParentId, 0) = 0 AND IsParent = 0
 			
@@ -137,13 +138,13 @@ BEGIN
 					SET NHAItemMasterId = (SELECT TOP 1 NHA.MappingItemMasterId FROM dbo.Nha_Tla_Alt_Equ_ItemMapping NHA WITH(NOLOCK)
 											WHERE NHA.ItemMasterId = SD.ItemMasterId AND NHA.MappingType = 3 AND NHA.IsDeleted = 0)
 				FROM [dbo].[Stockline]  SD
-				WHERE SD.StockLineId = @StocklineId AND ISNULL(SD.NHAItemMasterId,0) = 0 AND IsParent = 1
+				WHERE SD.StockLineId = @StocklineId AND ISNULL(SD.NHAItemMasterId,0) = 0 AND IsParent = 1 AND ISNULL(SD.IsNonStock,0) = 0
 
 				UPDATE [dbo].[Stockline] 
 					SET TLAItemMasterId = (SELECT TOP 1 NHA.MappingItemMasterId FROM dbo.Nha_Tla_Alt_Equ_ItemMapping NHA WITH(NOLOCK)
 											WHERE NHA.ItemMasterId = SD.ItemMasterId AND NHA.MappingType = 4 AND NHA.IsDeleted = 0)
 				FROM [dbo].[Stockline]  SD
-				WHERE SD.StockLineId = @StocklineId AND ISNULL(SD.TLAItemMasterId,0) = 0 AND IsParent = 1
+				WHERE SD.StockLineId = @StocklineId AND ISNULL(SD.TLAItemMasterId,0) = 0 AND IsParent = 1 AND ISNULL(SD.IsNonStock,0) = 0
 				
 				UPDATE [dbo].[Stockline] 
 					SET DaysReceived = IM.DaysReceived
@@ -151,21 +152,21 @@ BEGIN
 					JOIN dbo.ItemMaster IM WITH(NOLOCK) ON STL.ItemMasterId=IM.ItemMasterId
 				WHERE STL.StocklineId = @StocklineId AND IM.DaysReceived > 0 AND STL.DaysReceived IS NULL AND IsParent = 1
 
-				 AND ISNULL(IM.IsNonStock,0) = 0
+				 AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(STL.IsNonStock,0) = 0
 				 UPDATE [dbo].[Stockline] 
 					SET ManufacturingDays = IM.ManufacturingDays
 				FROM dbo.Stockline STL WITH(NOLOCK) 
 					JOIN dbo.ItemMaster IM WITH(NOLOCK) ON STL.ItemMasterId=IM.ItemMasterId
 				WHERE STL.StocklineId = @StocklineId AND IM.ManufacturingDays > 0 AND STL.ManufacturingDays IS NULL AND IsParent = 1
 
-				 AND ISNULL(IM.IsNonStock,0) = 0
+				 AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(STL.IsNonStock,0) = 0
 				 UPDATE [dbo].[Stockline] 
 					SET TagDays = IM.TagDays
 				FROM dbo.Stockline STL WITH(NOLOCK) 
 					JOIN dbo.ItemMaster IM WITH(NOLOCK) ON STL.ItemMasterId=IM.ItemMasterId
 				WHERE STL.StocklineId = @StocklineId AND IM.TagDays > 0 AND STL.TagDays IS NULL AND IsParent = 1
 
-				 AND ISNULL(IM.IsNonStock,0) = 0
+				 AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(STL.IsNonStock,0) = 0
 				 UPDATE [dbo].[Stockline] 
 					SET OpenDays = IM.OpenDays
 				FROM dbo.Stockline STL WITH(NOLOCK) 
@@ -173,11 +174,11 @@ BEGIN
 				WHERE STL.StocklineId = @StocklineId AND IM.OpenDays > 0 AND STL.OpenDays IS NULL AND IsParent = 1
 
 					-- update glaccount details by bhavesh raval
-				 AND ISNULL(IM.IsNonStock,0) = 0
+				 AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(STL.IsNonStock,0) = 0
 					 DECLARE @ItemMasterId INT;
 				DECLARE @InventoryGLSettingId INT;
 				DECLARE @IMInventoryGLSettingId INT;
-				SELECT TOP 1 @InventoryGLSettingId=InventoryGLSettingId FROM dbo.Stockline SL WITH (NOLOCK)  where SL.StockLineId=@StocklineId
+				SELECT TOP 1 @InventoryGLSettingId=InventoryGLSettingId FROM dbo.Stockline SL WITH (NOLOCK)  where SL.StockLineId=@StocklineId AND ISNULL(SL.IsNonStock,0) = 0
 				
 				IF ISNULL(@InventoryGLSettingId,0)=0
 				BEGIN
@@ -253,7 +254,7 @@ BEGIN
 					LEFT JOIN
 					GLAccount GL15 WITH (NOLOCK) ON I.COGS_ExchSalesOrderGLAccId = GL15.GLAccountId
 					WHERE SL.StockLineId=@StocklineId
-				 AND ISNULL(IM.IsNonStock,0) = 0
+				 AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(SL.IsNonStock,0) = 0
 					 END
 
 			END		   

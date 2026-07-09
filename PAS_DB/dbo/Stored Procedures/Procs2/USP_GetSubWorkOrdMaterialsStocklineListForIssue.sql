@@ -18,6 +18,7 @@
     1    01/03/2022   Hemant Saliya Created
 	2    12/18/2022   Hemant Saliya Added KIT Changes
 	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	4    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 
      
  EXECUTE USP_GetSubWorkOrdMaterialsStocklineListForIssue 28,0
@@ -188,7 +189,7 @@ SET NOCOUNT ON
 						--AND (sl.IsCustomerStock = 0 OR (sl.IsCustomerStock = 1 AND sl.CustomerId = @CustomerId))
 						--AND (@ItemMasterId IS NULL OR im.ItemMasterId = @ItemMasterId)
 
-					 AND ISNULL(IM.IsNonStock,0) = 0
+					 AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(SL.IsNonStock,0) = 0
 						 UNION ALL
 
 					SELECT  WOM.WorkOrderId,
@@ -276,7 +277,7 @@ SET NOCOUNT ON
 					WHERE WOM.SubWOPartNoId = @SubWOPartNoId AND ISNULL(SL.QuantityOnHand,0) > 0 AND SL.IsParent = 1 AND WOM.IsDeleted = 0 
 						AND (@ItemMasterId IS NULL OR im.ItemMasterId = @ItemMasterId OR IM_AltMain.ItemMasterId = @ItemMasterId OR IM_EquMain.ItemMasterId = @ItemMasterId)
 					
-				 AND ISNULL(IM.IsNonStock,0) = 0
+				 AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(SL.IsNonStock,0) = 0
 						 END
 				ELSE
 				BEGIN
@@ -362,7 +363,7 @@ SET NOCOUNT ON
 					AND (sl.IsCustomerStock = 0 OR (sl.IsCustomerStock = 1 AND sl.CustomerId = @CustomerId))
 					AND (@ItemMasterId IS NULL OR im.ItemMasterId = @ItemMasterId)
 
-					 AND ISNULL(IM.IsNonStock,0) = 0
+					 AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(SL.IsNonStock,0) = 0
 					 UNION ALL
 
 					SELECT  WOM.WorkOrderId,
@@ -449,7 +450,7 @@ SET NOCOUNT ON
 					AND (sl.IsCustomerStock = 0 OR (sl.IsCustomerStock = 1 AND sl.CustomerId = @CustomerId))
 					AND (@ItemMasterId IS NULL OR im.ItemMasterId = @ItemMasterId)
 
-				 AND ISNULL(IM.IsNonStock,0) = 0
+				 AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(SL.IsNonStock,0) = 0
 					 END
 			END
 		COMMIT  TRANSACTION

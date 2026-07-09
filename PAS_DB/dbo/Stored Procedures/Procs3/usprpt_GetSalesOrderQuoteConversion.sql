@@ -20,6 +20,7 @@
    5   21-01-2025       Shrey Chandegara   Changes for sorevenue and soqrevenue (charge ,salestax and othertax not come in sorevenue)
    6   01/july/2025		RAJESH GAMI		   Change the table as per new Billing Structure for SO  
 	7    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	8    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 @ModuleID
 EXECUTE   [dbo].[usprpt_GetSalesOrderQuoteConversion] '','2020-06-15','2022-06-15','2','1,4,43,44,45,80,84,88','46,47,66','48,49,50,58,59,67,68,69','51,52,53,54,55,56,57,60,61,62,64,70,71,72'  
 **************************************************************/  
@@ -103,7 +104,7 @@ BEGIN
 			  --LEFT JOIN DBO.SalesOrderQuotePart SOQP WITH (NOLOCK) ON SOQ.SalesOrderQuoteId = SOQP.SalesOrderQuoteId   
 			  LEFT JOIN DBO.SalesOrderQuotePartV1 SOQP WITH (NOLOCK) ON SOQ.SalesOrderQuoteId = SOQP.SalesOrderQuoteId
 		      LEFT JOIN DBO.SalesOrderQuoteStocklineV1 SOQV WITH (NOLOCK) ON SOQP.SalesOrderQuotePartId = SOQV.SalesOrderQuotePartId
-			  LEFT JOIN DBO.Stockline STL WITH (NOLOCK) ON SOQV.stocklineId = STL.StockLineId   
+			  LEFT JOIN DBO.Stockline STL WITH (NOLOCK) ON SOQV.stocklineId = STL.StockLineId AND ISNULL(STL.IsNonStock,0) = 0   
 			  LEFT JOIN DBO.SalesOrder SO WITH (NOLOCK) ON SOQ.SalesOrderQuoteId = SO.SalesOrderQuoteId   
 			  LEFT JOIN DBO.SalesOrderPartV1 SOP WITH (NOLOCK) ON SO.SalesOrderId = SOP.SalesOrderId
 			  LEFT JOIN DBO.SalesOrderStocklineV1 SOV WITH (NOLOCK) ON SOP.SalesOrderPartId = SOV.SalesOrderPartId
@@ -222,7 +223,7 @@ BEGIN
 		   AND ISNULL(IMQ.IsNonStock,0) = 0
 		   LEFT JOIN DBO.Condition CON WITH (NOLOCK) ON CON.ConditionId = SOQP.ConditionId
 		  LEFT JOIN DBO.SalesOrderQuotePartCost SOQPC WITH (NOLOCK) ON SOQPC.SalesOrderQuotePartId = SOQP.SalesOrderQuotePartId
-		  LEFT JOIN DBO.Stockline STL WITH (NOLOCK) ON SOQV.stocklineId = STL.StockLineId
+		  LEFT JOIN DBO.Stockline STL WITH (NOLOCK) ON SOQV.stocklineId = STL.StockLineId AND ISNULL(STL.IsNonStock,0) = 0
 		  OUTER APPLY(
 			SELECT IM.partnumber,IM.PartDescription,SO.SalesOrderNumber,SOCharges.BillingAmount,SOPC.TotalRevenue,SOBilling.InvoiceNo,SOBilling.SalesTax,SOBilling.OtherTax
 			FROM DBO.SalesOrder SO WITH (NOLOCK)   

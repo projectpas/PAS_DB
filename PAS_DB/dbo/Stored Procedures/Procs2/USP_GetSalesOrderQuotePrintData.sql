@@ -10,6 +10,7 @@
  ** --   --------     -------		--------------------------------          
 	1    12/16/2024   BHARGAV SALIA	     Created
 	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	3    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 **************************************************************/ 
 CREATE   PROCEDURE [USP_GetSalesOrderQuotePrintData]
     @SalesOrderId INT
@@ -81,10 +82,10 @@ BEGIN
 		LEFT JOIN [dbo].Countries cont WITH (NOLOCK) ON custAddress.CountryId = cont.countries_id
 		LEFT JOIN [dbo].Currency cur WITH (NOLOCK) ON so.CurrencyId = cur.CurrencyId
 		LEFT JOIN [dbo].CreditTerms ct WITH (NOLOCK) ON cf.CreditTermsId = ct.CreditTermsId
-		LEFT JOIN [dbo].StockLine sl WITH (NOLOCK) ON stk.StockLineId = sl.StockLineId
+		LEFT JOIN [dbo].StockLine sl WITH (NOLOCK) ON stk.StockLineId = sl.StockLineId AND ISNULL(sl.IsNonStock,0) = 0
 		LEFT JOIN [dbo].SalesOrderQuoteFreight soFreight WITH (NOLOCK) ON so.SalesOrderQuoteId = soFreight.SalesOrderQuoteId AND soFreight.IsDeleted = 0 AND soFreight.IsActive = 1
 		LEFT JOIN [dbo].SalesOrderQuoteCharges soCharges WITH (NOLOCK) ON so.SalesOrderQuoteId = soCharges.SalesOrderQuoteId AND soCharges.IsDeleted = 0 AND soCharges.IsActive = 1
-		LEFT JOIN [dbo].StockLine qs WITH (NOLOCK) ON stk.StockLineId = qs.StockLineId
+		LEFT JOIN [dbo].StockLine qs WITH (NOLOCK) ON stk.StockLineId = qs.StockLineId AND ISNULL(qs.IsNonStock,0) = 0
 		LEFT JOIN [dbo].PurchaseOrder po WITH (NOLOCK) ON qs.PurchaseOrderId = po.PurchaseOrderId
 		LEFT JOIN [dbo].RepairOrder ro WITH (NOLOCK) ON qs.RepairOrderId = ro.RepairOrderId
 		WHERE so.SalesOrderQuoteId = @SalesOrderId

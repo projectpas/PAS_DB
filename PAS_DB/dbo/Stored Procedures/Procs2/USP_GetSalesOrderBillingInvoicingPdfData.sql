@@ -20,6 +20,7 @@
 	5    10/16/2024	  Abhishek Jirawla	Implemented the new tables for SalesOrder related tables
 	6	 11/08/2024	  AMIT GHEDIYA		Modified to get shipping weight & ShipSize etc from item table.
     7    07-07-2025   Moin Bloch        Changed Old To New Billing Table commentd not in use
+    8    09/July/2026   RAJESH GAMI        [PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 
 -- EXEC USP_GetSalesOrderBillingInvoicingPdfData 847
 ************************************************************************/
@@ -214,7 +215,7 @@ BEGIN
 		 LEFT JOIN  [dbo].[Currency] AS cur WITH(NOLOCK) ON bi.CurrencyId = cur.CurrencyId
 		 LEFT JOIN  [dbo].[Currency] AS scur WITH(NOLOCK) ON so.FunctionalCurrencyId = scur.CurrencyId
 		 --LEFT JOIN  [dbo].[CreditTerms] AS ct WITH(NOLOCK) ON cf.CreditTermsId = ct.CreditTermsId
-		 LEFT JOIN  [dbo].[StockLine] AS sl WITH(NOLOCK) ON sov.StockLineId = sl.StockLineId
+		 LEFT JOIN  [dbo].[StockLine] AS sl WITH(NOLOCK) ON sov.StockLineId = sl.StockLineId AND ISNULL(sl.IsNonStock,0) = 0
 		 LEFT JOIN  [dbo].[BillingInvoicingItems] AS sabi WITH(NOLOCK) ON bi.BillingInvoicingId = sabi.BillingInvoicingId
 		 LEFT JOIN  [dbo].[SalesOrderShipping] AS saos WITH(NOLOCK) ON sabi.ShippingId = saos.SalesOrderShippingId AND saos.SalesOrderId = @SalesOrderId
 		 LEFT JOIN  [dbo].[ShippingVia] AS sipVia WITH(NOLOCK) ON saos.ShipviaId = sipVia.ShippingViaId

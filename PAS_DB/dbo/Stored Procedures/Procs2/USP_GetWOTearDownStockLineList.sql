@@ -25,6 +25,7 @@
 	13   03/June/2026 Ayushi Patel				[PN-16684] Modified logic to return @DocumentTypeId based on the Code (FAA8130CERT) from the DocumentType table
 	14    22/06/2026   Sumit Kumar            	Selected Stockline Lot number [PN-16570]
 	15    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	16    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 exec USP_GetWOTearDownStockLineList 
 @PageNumber=1,@PageSize=10,@SortColumn=N'CreatedDate',@SortOrder=-1,@GlobalFilter=N'',@StatusId=1,@PartNumber=NULL,@PartDescription=NULL,
 @Manufacturer=NULL,@StockLineNumber=NULL,@SerialNumber=NULL,@ControlNumber=NULL,@IdNumber=NULL,@UnitCost=NULL,@QtyOnHand=NULL,
@@ -145,7 +146,7 @@ BEGIN
 					AND SL.MasterCompanyId=@MasterCompanyId AND SL.WorkOrderId = @WorkOrderId AND SL.IsTurnIn = 1
 					AND WOP.ID = @WorkOrderPartNumberId AND SL.WorkOrderPartNoId = @WorkOrderPartNumberId AND
 					SL.StockLineId NOT IN(SELECT StocklineId FROM [DBO].[WorkOrderPartNumber] WITH(NOLOCK) WHERE WorkOrderId = @WorkOrderId AND ID = @WorkOrderPartNumberId)
-					AND (@isFromMultipleReleaseFormModal IS NULL OR (ISNULL(SL.IsGenerateReleaseForm,0) = 0 AND ISNULL(SL.IsReadyReleaseForm,0) = 1) )
+					AND (@isFromMultipleReleaseFormModal IS NULL OR (ISNULL(SL.IsGenerateReleaseForm,0) = 0 AND ISNULL(SL.IsReadyReleaseForm,0) = 1) ) AND ISNULL(SL.IsNonStock,0) = 0
 			), ResultCount AS(SELECT COUNT(StockLineId) AS totalItems FROM Result)
 			SELECT * INTO #TempResult FROM  Result
 			 WHERE ((@GlobalFilter <>'' AND ((PartNumber LIKE '%' +@GlobalFilter+'%') OR

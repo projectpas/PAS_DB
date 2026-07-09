@@ -21,6 +21,7 @@
     4   11/05/2024	  Vishal Suthar	Modified to make use of new SO Part tables
 	5   07-07-2025    Moin Bloch    Changed Old To New Billing Table
 	6    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	7    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 
 EXECUTE   [dbo].[usp_GetSalesOrderTATReport] '','2020-06-15','2021-06-15','1','1,4,43,44,45,80,84,88','46,47,66','48,49,50,58,59,67,68,69','51,52,53,54,55,56,57,60,61,62,64,70,71,72'
 **************************************************************/
@@ -159,7 +160,7 @@ BEGIN
         --LEFT OUTER JOIN DBO.WorkOrderPartNumber AS WOPN WITH(NOLOCK) ON WOPN.WorkOrderId = WOPN.ID 
         LEFT OUTER JOIN DBO.SalesOrderPartV1 AS SOP WITH (NOLOCK) ON SO.SalesOrderId = SOP.SalesOrderId
         LEFT OUTER JOIN DBO.SalesOrderStocklineV1 AS SOPS WITH (NOLOCK) ON SOPS.SalesOrderPartId = SOP.SalesOrderPartId
-        LEFT OUTER JOIN DBO.Stockline AS STL WITH (NOLOCK) ON SOPS.StockLineId = STL.StockLineId
+        LEFT OUTER JOIN DBO.Stockline AS STL WITH (NOLOCK) ON SOPS.StockLineId = STL.StockLineId AND ISNULL(STL.IsNonStock,0) = 0
         --LEFT OUTER JOIN DBO.WorkOrder AS WO WITH(NOLOCK) ON STL.WorkOrderId = WO.WorkOrderId 
         LEFT OUTER JOIN DBO.ItemMaster WITH (NOLOCK)
           ON SOP.ItemMasterId = ItemMaster.ItemMasterId

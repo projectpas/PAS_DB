@@ -21,6 +21,12 @@
      
 EXECUTE   [dbo].[usp_GetRepairOrderReport] '','','','','2020-06-15','2021-06-15','1','1,4,43,44,45,80,84,88','46,47,66','48,49,50,58,59,67,68,69','51,52,53,54,55,56,57,60,61,62,64,70,71,72'
 **************************************************************/
+/*************************************************************
+ ** Change History
+ **************************************************************
+ ** PR   Date         Author			Change Description
+	1    09/July/2026   RAJESH GAMI   [PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+**************************************************************/
 CREATE PROCEDURE [dbo].[usp_GetRepairOrderReport] @name varchar(40) = NULL,
 @workordernum varchar(40) = NULL,
 @salesordernumber varchar(40) = NULL,
@@ -119,7 +125,7 @@ BEGIN
       JOIN DBO.Repairorderpart ROP WITH (NOLOCK)
         ON RO.RepairOrderId = ROP.repairorderid AND ROP.ItemTypeId=1
         LEFT JOIN DBO.Stockline STL WITH (NOLOCK)
-          ON ROP.stocklineid = STL.stocklineid and STL.IsParent =1
+          ON ROP.stocklineid = STL.stocklineid and STL.IsParent =1 AND ISNULL(STL.IsNonStock,0) = 0
         LEFT JOIN DBO.Workorder WO WITH (NOLOCK)
           ON ROP.workorderid = WO.workorderid and ROP.SalesOrderId is null
         LEFT JOIN DBO.WorkOrderPartNumber WOPN WITH (NOLOCK)
@@ -178,7 +184,7 @@ BEGIN
       JOIN DBO.Repairorderpart ROP WITH (NOLOCK)
         ON RO.RepairOrderId = ROP.repairorderid AND ROP.ItemTypeId=1
         LEFT JOIN DBO.Stockline STL WITH (NOLOCK)
-          ON ROP.stocklineid = STL.stocklineid and STL.IsParent =1
+          ON ROP.stocklineid = STL.stocklineid and STL.IsParent =1 AND ISNULL(STL.IsNonStock,0) = 0
         inner JOIN DBO.Workorder WO WITH (NOLOCK)
           ON ROP.workorderid = WO.workorderid and ROP.SalesOrderId is null
         LEFT JOIN DBO.WorkOrderPartNumber WOPN WITH (NOLOCK)

@@ -13,6 +13,7 @@
     1	05/15/2025	VISHAL SUTHAR	Created
 	2   06/19/2026  Abhishek JirawlaAdding IsPiecePart condition in RepairOrderPart table 
 	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	4    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	
 EXEC GetROPackagingLabelPrint 2601, 1
 ************************************************************************/
@@ -42,7 +43,7 @@ BEGIN
 		LEFT JOIN DBO.RepairOrderShippingItem SSI WITH(NOLOCK) ON SSI.ROPickTicketId = sopt.ROPickTicketId
 		INNER JOIN RepairOrderPart sop WITH(NOLOCK) on sop.RepairOrderId = sopt.RepairOrderId AND sop.RepairOrderPartRecordId = sopt.RepairOrderPartId AND ISNULL(SOP.[IsPiecePart], 0) = 0
 		INNER JOIN RepairOrder so WITH(NOLOCK) on so.RepairOrderId = sop.RepairOrderId
-		LEFT JOIN Stockline sl WITH(NOLOCK) on sl.StockLineId = sop.StockLineId
+		LEFT JOIN Stockline sl WITH(NOLOCK) on sl.StockLineId = sop.StockLineId AND ISNULL(sl.IsNonStock,0) = 0
 		LEFT JOIN ItemMaster imt WITH(NOLOCK) on imt.ItemMasterId = sop.ItemMasterId
 		 AND ISNULL(imt.IsNonStock,0) = 0
 		 LEFT JOIN Condition co WITH(NOLOCK) on co.ConditionId = sop.ConditionId

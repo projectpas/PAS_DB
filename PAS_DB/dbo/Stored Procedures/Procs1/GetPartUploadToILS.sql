@@ -15,6 +15,7 @@
     1    25/06/2025   Amit Ghediya		Created
     2    10/03/2026   Vishal Suthar     Modified to include both ILS and PartsBase
 	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	4    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
     
  EXEC GetPartUploadToILS 1, 'PARTSBASE'
 
@@ -101,7 +102,7 @@ BEGIN
 				AND STK.isDeleted = 0
 				AND STk.MasterCompanyId = @MasterCompanyId
 				AND CON.[Description] IN(SELECT item FROM SplitString(@Condition_Code,','))
-				) ORDER BY STK.CreatedDate DESC
+				) AND ISNULL(STK.IsNonStock,0) = 0 ORDER BY STK.CreatedDate DESC
 			END
 			ELSE IF (@Portal = 'PARTSBASE')
 			BEGIN
@@ -181,7 +182,7 @@ BEGIN
 				AND STK.isDeleted = 0
 				AND STk.MasterCompanyId = @MasterCompanyId
 				AND CON.[Description] IN(SELECT item FROM SplitString(@Condition_Code_PartsBase,','))
-				) ORDER BY STK.CreatedDate DESC
+				) AND ISNULL(STK.IsNonStock,0) = 0 ORDER BY STK.CreatedDate DESC
 			END
 	END TRY    
 	BEGIN CATCH      

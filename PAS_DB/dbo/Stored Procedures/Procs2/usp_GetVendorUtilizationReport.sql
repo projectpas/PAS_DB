@@ -19,6 +19,7 @@
 	2	        	  Swetha		Added Transaction & NO LOCK
     3   11/05/2024	  Vishal Suthar	Modified to make use of new SO Part tables
 	4    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	5    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 
 EXECUTE   [dbo].[usp_GetVendorUtilizationReport] '','','2020-06-15','2021-06-15','1','1,4,43,44,45,80,84,88','46,47,66','48,49,50,58,59,67,68,69','51,52,53,54,55,56,57,60,61,62,64,70,71,72'
 **************************************************************/
@@ -151,7 +152,7 @@ BEGIN
       LEFT JOIN DBO.PurchaseOrder PO WITH (NOLOCK)
         ON POP.PurchaseOrderId = PO.PurchaseOrderId
         LEFT JOIN DBO.Stockline STL WITH (NOLOCK)
-          ON POP.PurchaseOrderPartRecordId = STL.PurchaseOrderPartRecordId and stl.IsParent=1
+          ON POP.PurchaseOrderPartRecordId = STL.PurchaseOrderPartRecordId and stl.IsParent=1 AND ISNULL(STL.IsNonStock,0) = 0
         LEFT JOIN DBO.Workorder WO WITH (NOLOCK)
           ON POP.workorderid = WO.workorderid
         LEFT JOIN DBO.Customer C WITH (NOLOCK)
@@ -229,7 +230,7 @@ BEGIN
       LEFT JOIN DBO.PurchaseOrder PO WITH (NOLOCK)
         ON POP.PurchaseOrderId = PO.PurchaseOrderId
         LEFT JOIN DBO.Stockline STL WITH (NOLOCK)
-          ON POP.PurchaseOrderPartRecordId = STL.PurchaseOrderPartRecordId and stl.IsParent=1
+          ON POP.PurchaseOrderPartRecordId = STL.PurchaseOrderPartRecordId and stl.IsParent=1 AND ISNULL(STL.IsNonStock,0) = 0
 	   LEFT JOIN DBO.SalesOrder SO WITH (NOLOCK)
           ON POP.salesorderid = SO.SalesOrderId
 	    LEFT JOIN DBO.SalesOrderPartV1 SOP WITH (NOLOCK) ON POP.salesorderid = SOP.SalesOrderId

@@ -29,6 +29,7 @@
 	13   22/07/2024   Amit Ghediya		    Optimization sp.
 	14   22-07-2024   Shrey Chandegara      Modify For date filter issue(use this function @CurrntEmpTimeZoneDesc )
 	15    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	16    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
      
  EXECUTE USP_VendorRMA_GetVendorRMAList 
 **************************************************************/
@@ -153,7 +154,7 @@ BEGIN
 				WHERE SL.[VendorRMAId] = RMA.[VendorRMAId]
 				AND SL.[VendorRMADetailId] = RMAD.[VendorRMADetailId]
 				AND SL.[IsParent] = 1
-				AND SL.[IsDeleted] = 0
+				AND SL.[IsDeleted] = 0 AND ISNULL(SL.IsNonStock,0) = 0
 			)AS QuantityReceived,
 			SL.Condition
 		FROM [DBO].[VendorRMA] RMA WITH (NOLOCK)
@@ -161,7 +162,7 @@ BEGIN
 		LEFT JOIN [DBO].[VendorRMADetail] RMAD WITH (NOLOCK) ON RMA.[VendorRMAId] = RMAD.[VendorRMAId]
 		LEFT JOIN [DBO].[VendorRMAHeaderStatus] RMAS WITH (NOLOCK) ON RMA.[VendorRMAStatusId] = RMAS.[VendorRMAStatusId]
 		LEFT JOIN [DBO].[VendorRMAReturnReason] RMAR WITH (NOLOCK) ON RMAD.[VendorRMAReturnReasonId] = RMAR.[VendorRMAReturnReasonId]
-		LEFT JOIN [DBO].[Stockline] SL WITH (NOLOCK) ON RMAD.[StockLineId] = SL.[StockLineId]
+		LEFT JOIN [DBO].[Stockline] SL WITH (NOLOCK) ON RMAD.[StockLineId] = SL.[StockLineId] AND ISNULL(SL.IsNonStock,0) = 0
 		LEFT JOIN [DBO].[ItemMaster] IM WITH (NOLOCK) ON RMAD.[ItemMasterId] = IM.[ItemMasterId]
 		 AND ISNULL(IM.IsNonStock,0) = 0
 		 LEFT JOIN [DBO].[PurchaseOrder] PO WITH (NOLOCK) ON SL.[PurchaseOrderId] = PO.[PurchaseOrderId] 
@@ -337,7 +338,7 @@ BEGIN
 					FROM [dbo].[Stockline] SL WITH(NOLOCK) 
 					WHERE SL.[VendorRMAId] = RMA.[VendorRMAId] 
 				   AND SL.[IsParent] = 1 
-				   AND SL.[IsDeleted] = 0		
+				   AND SL.[IsDeleted] = 0 AND ISNULL(SL.IsNonStock,0) = 0		
 				) AS QuantityReceived,
 				(CASE WHEN COUNT(RMAD.VendorRMADetailId) > 1 Then 'Multiple' ELse CAST(CONVERT(VARCHAR, MAX(SL.Quantity), 101) AS VARCHAR(MAX))  END) AS 'QuantityReceivedType',
 				(CASE WHEN COUNT(RMAD.VendorRMADetailId) > 1 Then 'Multiple' ELse MAX(P.partnumber) END) AS 'PartNumberType',
@@ -359,7 +360,7 @@ BEGIN
 			INNER JOIN [DBO].[Vendor] V WITH (NOLOCK) ON RMA.VendorId = V.VendorId
 			LEFT JOIN [DBO].[VendorRMADetail] RMAD WITH (NOLOCK) ON RMA.[VendorRMAId] = RMAD.[VendorRMAId]
 			LEFT JOIN [DBO].[VendorCreditMemo] VCM WITH (NOLOCK) ON VCM.VendorRMAId = RMA.VendorRMAId
-			LEFT JOIN [DBO].[Stockline] SL WITH (NOLOCK) ON RMAD.VendorRMADetailId = SL.VendorRMADetailId
+			LEFT JOIN [DBO].[Stockline] SL WITH (NOLOCK) ON RMAD.VendorRMADetailId = SL.VendorRMADetailId AND ISNULL(SL.IsNonStock,0) = 0
 			LEFT JOIN [DBO].[ItemMaster] P WITH (NOLOCK) ON RMAD.ItemMasterId = P.ItemMasterId
 			 AND ISNULL(P.IsNonStock,0) = 0
 			 LEFT JOIN [DBO].[PurchaseOrder] PO WITH (NOLOCK) ON SL.[PurchaseOrderId] = PO.[PurchaseOrderId]

@@ -18,6 +18,7 @@
     5    10/06/2026     Sahdev Saliya           Added AdjustmentReasonId and AdjustmentReason [PN-16773]
     6    19/06/2026     Divyesh Kathiriya       Handle delete item not seen list. [PN-16885]
 	7    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	8    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 
 -- EXEC USP_SearchBulkStockData
 ************************************************************************/  
@@ -196,7 +197,7 @@ BEGIN
                     bsadj.MasterCompanyId = @MasterCompanyId
                     AND ISNULL(BSAD.IsDeleted, 0) = 0
                     AND (@StatusId IS NULL OR bsadj.StatusId = @StatusId )
-             AND ISNULL(IM.IsNonStock,0) = 0 ),
+             AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(STL.IsNonStock,0) = 0 ),
             FinalResult AS
             (
                 SELECT

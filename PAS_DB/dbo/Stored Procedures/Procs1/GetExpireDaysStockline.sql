@@ -12,6 +12,7 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    04/20/2022   Subhash Saliya Created
+    2    09/July/2026   RAJESH GAMI   [PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	
 
 -- EXEC [dbo].[GetExpireDaysStockline] 68,1
@@ -38,7 +39,7 @@ BEGIN
 	
 	           SELECT @DaysReceived = nullif(DaysReceived, 0), @ManufacturingDays = nullif(ManufacturingDays, 0), @TagDays = nullif(TagDays, 0), @OpenDays = nullif(OpenDays, 0),@DiffDays =DATEDIFF(year, CreatedDate, GETDATE())
 				       ,@expirationDate= ExpirationDate  ,@tagDate= tagDate,@receivedDate= receivedDate FROM dbo.Stockline STL WITH(NOLOCK) 
-				WHERE STL.StocklineId = @StocklineId  AND IsParent = 1
+				WHERE STL.StocklineId = @StocklineId  AND IsParent = 1 AND ISNULL(STL.IsNonStock,0) = 0
 
 				print @ManufacturingDays
 				print @DaysReceived

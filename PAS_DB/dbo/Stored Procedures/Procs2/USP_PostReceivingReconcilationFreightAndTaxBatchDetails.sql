@@ -17,6 +17,7 @@
 	5    13/02/2026   Amit Ghediya  Update gl to get it from line level for tax (PN-15443)
 	6    03/09/2024   Moin Bloch    Batch: Duplicate JE Number generated for multiple entries on same day PN-15921
 	7    08/06/2026   Moin Bloch    Added ReferenceNumber, ReferenceName, LocalCurrency to all CommonBatchDetails inserts
+	8    09/July/2026   RAJESH GAMI    [PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 
 	EXEC USP_PostReceivingReconcilationFreightAndTaxBatchDetails 173
 
@@ -216,7 +217,7 @@ BEGIN
 								   @StkGlAccountName = GL.[AccountName] 
 							  FROM [dbo].[Stockline] SL WITH(NOLOCK)
 							  INNER JOIN [dbo].[GLAccount] GL WITH(NOLOCK) ON SL.GLAccountId = GL.GLAccountId 
-							  WHERE SL.StockLineId = @StocklineId;	
+							  WHERE SL.StockLineId = @StocklineId AND ISNULL(SL.IsNonStock,0) = 0;	
 						END
 						ELSE
 						BEGIN
@@ -226,7 +227,7 @@ BEGIN
 								   @StkGlAccountName = GL.[AccountName] 
 							  FROM [dbo].[Stockline] SL WITH(NOLOCK)
 							  INNER JOIN [dbo].[GLAccount] GL WITH(NOLOCK) ON SL.GLAccountId = GL.GLAccountId 
-							  WHERE SL.StockLineId = @StocklineId;	
+							  WHERE SL.StockLineId = @StocklineId AND ISNULL(SL.IsNonStock,0) = 0;	
 						END
 					END
 					IF(UPPER(@StockType) = 'NONSTOCK')

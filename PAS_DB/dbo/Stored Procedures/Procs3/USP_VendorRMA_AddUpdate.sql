@@ -14,6 +14,7 @@
     2    08/04/2023   Vishal Suthar		Added stockline history
 	3    12/16/2024   AMIT GHEDIYA		Add RefrenceNumber in stocktable.
 	4    07/23/2024   Vishal Suthar		Updating EnforcePickTicketConfirmation column from VendorRMASettings
+	5    09/July/2026   RAJESH GAMI		[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 
 *******************************************************************************/
 CREATE   PROCEDURE [dbo].[USP_VendorRMA_AddUpdate]
@@ -100,14 +101,14 @@ BEGIN
 				,GETUTCDATE(),@UpdatedBy,GETUTCDATE(),1,0,VR.[Qty],0,VR.[ModuleId],0,
 				(@StkReserveRefNumber + ' PN -' + ST.PartNumber + ' StockId -' + ST.StockLineNumber)
 			FROM @VendorRMADetail VR
-			INNER JOIN [dbo].[Stockline] ST WITH (NOLOCK) ON ST.[StockLineId] = VR.[StockLineId];
+			INNER JOIN [dbo].[Stockline] ST WITH (NOLOCK) ON ST.[StockLineId] = VR.[StockLineId] WHERE ISNULL(ST.IsNonStock,0) = 0;
 
 			UPDATE  [dbo].[Stockline]
 			SET [QuantityAvailable] -= VR.[Qty],
 				[QuantityReserved] += VR.[Qty]
 				,[Memo] = 'StockLine Added into RMA ' + VR.RMANum				  
 			FROM @VendorRMADetail VR
-			INNER JOIN [dbo].[Stockline] ST WITH (NOLOCK) ON ST.[StockLineId] = VR.[StockLineId]
+			INNER JOIN [dbo].[Stockline] ST WITH (NOLOCK) ON ST.[StockLineId] = VR.[StockLineId] WHERE ISNULL(ST.IsNonStock,0) = 0
 					
 			SELECT @EnforcePickTicketConfirmation = EnforcePickTicketConfirmation FROM DBO.VendorRMASettings WITH (NOLOCK) WHERE MasterCompanyId = @MasterCompanyId;
 
@@ -200,7 +201,7 @@ BEGIN
              FROM @VendorRMADetail t 
 			 INNER JOIN [dbo].[VendorRMADetail] vc WITH (NOLOCK) ON vc.[VendorRMADetailId] = t.[VendorRMADetailId]
 			 INNER JOIN [dbo].[Stockline] ST WITH (NOLOCK) ON ST.[StockLineId] = vc.[StockLineId]
-             WHERE t.[VendorRMADetailId] > 0;	
+             WHERE t.[VendorRMADetailId] > 0 AND ISNULL(ST.IsNonStock,0) = 0;	
 
 			INSERT INTO [dbo].[VendorRMADetail]([VendorRMAId],[RMANum],[StockLineId],[ReferenceId],[ItemMasterId],[SerialNumber],[Qty],[UnitCost],[ExtendedCost]
 										   ,[VendorRMAReturnReasonId],[VendorRMAStatusId],[VendorShippingAddressId],[Notes],[MasterCompanyId],[CreatedBy]
@@ -212,7 +213,7 @@ BEGIN
 										   ,(@StkReserveRefNumber + ' PN -' + ST.PartNumber + ' StockId -' + ST.StockLineNumber)
 			FROM @VendorRMADetail t 
 			INNER JOIN [dbo].[Stockline] ST WITH (NOLOCK) ON ST.[StockLineId] = t.[StockLineId]
-			WHERE t.[VendorRMADetailId] = 0;
+			WHERE t.[VendorRMADetailId] = 0 AND ISNULL(ST.IsNonStock,0) = 0;
 
 			-- Add New Part On Update
 	        UPDATE  [dbo].[Stockline]
@@ -221,7 +222,7 @@ BEGIN
 				   ,[Memo] = 'StockLine Added into RMA ' + VR.RMANum				  
 			FROM @VendorRMADetail VR
 			INNER JOIN [dbo].[Stockline] ST WITH (NOLOCK) ON ST.[StockLineId] = VR.[StockLineId]
-			WHERE VR.[VendorRMADetailId] = 0;
+			WHERE VR.[VendorRMADetailId] = 0 AND ISNULL(ST.IsNonStock,0) = 0;
 
 			-- DELETE PART
 		    UPDATE  [dbo].[Stockline] 
@@ -230,7 +231,7 @@ BEGIN
 				   ,[Memo] = 'StockLine DELETED FROM RMA ' + VR.RMANum	
 			FROM @VendorRMADetail VR
 			INNER JOIN [dbo].[Stockline] ST WITH (NOLOCK) ON ST.[StockLineId] = VR.[StockLineId]
-			WHERE VR.[VendorRMADetailId] > 0 AND VR.[IsDeleted] = 1;
+			WHERE VR.[VendorRMADetailId] > 0 AND VR.[IsDeleted] = 1 AND ISNULL(ST.IsNonStock,0) = 0;
 			
 			DELETE FROM #tmpReturnVendorRMACreate;
 

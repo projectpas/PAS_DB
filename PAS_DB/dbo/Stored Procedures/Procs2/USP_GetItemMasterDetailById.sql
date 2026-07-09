@@ -19,11 +19,11 @@
 	8    02/12/2025  Bhargav Saliya	  Revert Changes.
 	9    26-Mar-2026    Sahdev Saliya       Added [LifeLimitedPart] :-([IsFlightHoursAvailable], [IsFlightCyclesAvailable], [IsLandingsAvailable], [IsStartsAvailable], [IsCalendarTimeAvailable], [FlightHours], [FlightMinutes], [FlightCycles], [Landings], [Starts], [CalendarDate]) (PN-15833, PN-16649_65)
     10   03-Apr-2026    Sahdev Saliya       Remove LifeLimitedPart (PN-15833, PN-16649_65)
-
+	11   29-Jun-2026    Rajesh Gami			Merging the NonStock Inventory to Inventory [PN-17008]
 **************************************************************
  EXEC USP_GetItemMasterDetailById 96978
 **************************************************************/
-create       PROCEDURE [dbo].[USP_GetItemMasterDetailById] 
+CREATE       PROCEDURE [dbo].[USP_GetItemMasterDetailById] 
 @ItemMasterId bigint =0
 AS
 BEGIN
@@ -44,16 +44,6 @@ BEGIN
 				left JOIN dbo.Ranking R WITH(NOLOCK) ON mp.RankingId = R.RankingId
 				WHERE mp.RankingId IS NOT NULL GROUP BY iM.ItemMasterId
 			),
-		   -- WITH CTE_IntegrationPortal AS (
-					--	SELECT
-					--		iM.ItemMasterId,
-					--		STRING_AGG(CAST(ip.[Description] AS NVARCHAR(MAX)), ',') AS integrationPortal,
-					--		STRING_AGG(mp.IntegrationPortalId, ',') AS IntegrationPortalStringIds
-					--	FROM dbo.ItemMaster iM WITH(NOLOCK)
-					--	LEFT JOIN dbo.ItemMasterIntegrationPortal mp WITH(NOLOCK) ON iM.ItemMasterId = mp.ItemMasterId
-					--	LEFT JOIN dbo.IntegrationPortal ip WITH(NOLOCK) ON mp.IntegrationPortalId = ip.IntegrationPortalId
-					--	WHERE mp.IntegrationPortalId IS NOT NULL GROUP BY iM.ItemMasterId
-					--),
 			CTE_InventoryGLSetting AS (
 					SELECT
 						gl.InventoryGLSettingId,
@@ -200,7 +190,19 @@ BEGIN
 				        iM.FlightCycles,
 						iM.Landings,
 						iM.Starts,
-						iM.CalendarDate
+						iM.CalendarDate,
+						ISNULL(IM.IsNonStock,0)IsNonStock,
+						ISNULL(iM.DiscountPurchasePercent,0) DiscountPurchasePercent,
+						ISNULL(iM.UnitCost,0) UnitCost,
+						ISNULL(iM.ListPrice,0) ListPrice,
+						 iM.PriceDate PriceDate,
+						ISNULL(iM.IsAcquiredMethodBuy,0) IsAcquiredMethodBuy,
+						ISNULL(iM.IsMfgExpirationDate,0) IsMfgExpirationDate,
+						iM.MfgExpirationDate MfgExpirationDate,
+						ISNULL(iM.ListPrice,0) ListPrice,
+						Im.PriceDate,
+						ISNULL(iM.UnitCost,0) UnitCost,
+						ISNULL(iM.InWarranty,0) InWarranty
 					FROM dbo.ItemMaster iM WITH(NOLOCK)
 					LEFT JOIN CTE_IntegrationPortal itp ON iM.ItemMasterId = itp.ItemMasterId
 					LEFT JOIN CTE_InventoryGLSetting its ON iM.InventoryGLSettingId = its.InventoryGLSettingId

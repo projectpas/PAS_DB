@@ -25,10 +25,11 @@
 	11   09-Sep-2025    Sahdev Saliya        Added Filter For RankingsName And WorkOrderType
 	12   12-Nov-2025    Divyesh Kathiriya    Update HasSubAssy only return 'WoSubAssy' value due to column name change.
 	13   14-Nov-2025    Divyesh Kathiriya     Get RoSubAssy.
-	14    07-07-2026   Bhargav Saliya   Added @IntegrationTypeId [PN-16810] 
+	14   29-Jun-2026    Rajesh Gami			 Merging the NonStock Inventory to Inventory [PN-17008]
+	15    07-07-2026   Bhargav Saliya   Added @IntegrationTypeId [PN-16810] 
 
 **********************/
-CREATE   PROCEDURE [dbo].[ProcItemMasterStockList]
+CREATE     PROCEDURE [dbo].[ProcItemMasterStockList]
 @PageNumber int = NULL,
 @PageSize int = NULL,
 @SortColumn varchar(50)=NULL,
@@ -59,7 +60,8 @@ CREATE   PROCEDURE [dbo].[ProcItemMasterStockList]
 @RankingsName VARCHAR(50) = NULL,
 @workOrderType VARCHAR(50) = NULL,
 @RoSubAssy varchar(50) = NULL,
-@IntegrationTypeId BIGINT = null
+@IntegrationTypeId BIGINT = null,
+@ItemTypeStatusId varchar(50) = NULL
 AS
 BEGIN	
 	    SET NOCOUNT ON;
@@ -93,6 +95,7 @@ BEGIN
 						E.EmployeeId = @EmployeeId; -- Use appropriate filter for the specific employee
 
 		SET @RecordFrom = (@PageNumber-1)*@PageSize;
+		SET @ItemTypeStatusId = CASE WHEN @ItemTypeStatusId > 0 THEN @ItemTypeStatusId ELSE NULL END
 		IF @IsDeleted IS NULL
 		BEGIN
 			SET @IsDeleted=0
@@ -163,11 +166,14 @@ BEGIN
                        im.UpdatedBy,	
 					   im.IsDeleted,
 					   itp.Ranking as RankingsName,
-					   CASE WHEN im.WorkOrderFormTypeId = 1 THEN 'Dynamic' WHEN im.WorkOrderFormTypeId = 2 THEN 'Static' ELSE 'At WO creation' END AS workOrderType
+					   CASE WHEN im.WorkOrderFormTypeId = 1 THEN 'Dynamic' WHEN im.WorkOrderFormTypeId = 2 THEN 'Static' ELSE 'At WO creation' END AS workOrderType,
+					    ISNULL(IM.IsNonStock,0)IsNonStock,
+						im.ItemTypeId
 			   FROM dbo.ItemMaster im WITH (NOLOCK)	
 			   left join CTE_IntegrationPortal itp WITH(NOLOCK) ON iM.ItemMasterId = itp.ItemMasterId
 		 	  WHERE ((im.IsDeleted=@IsDeleted) AND (@IsActive IS NULL OR im.IsActive=@IsActive) AND (@IsHazardousMaterial IS NULL OR im.IsHazardousMaterial=@IsHazardousMaterial))			     
-					AND im.MasterCompanyId=@MasterCompanyId AND im.ItemTypeId = 1 	
+					AND im.MasterCompanyId=@MasterCompanyId
+					 AND (@ItemTypeStatusId IS NULL OR im.ItemTypeId = @ItemTypeStatusId)
 					AND (ISNULL(@IsUpdated,0) <> 1 OR ISNULL(im.isUpdated,0) = ISNULL(@IsUpdated,0))
 					AND (@IntegrationTypeId IS NULL OR im.IntegrationTypeId = @IntegrationTypeId)
 			),

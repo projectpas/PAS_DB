@@ -28,6 +28,8 @@
 	10   29/05/2026  Priyansh Patel 	Added new field 'TTSN, TCSN '(PN-16477)
 	14   30/06/2026  Nakul Chandigra    Added new field 'Note' [Note] [PN-17012]
 	15    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	16    07/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory into Stockline : Return IsNonStock, Currency, CurrencyId
+	17    08/July/2026			 RAJESH GAMI						[PN-17009] - Return ItemNonStockClassificationId, NonStockClassification
 
     EXEC dbo.GetStockLineDetails  179632  180170
 ***********************************************************************************************/
@@ -182,6 +184,11 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
               ,NULL  'PurchaseOrderPartRecord'
 			  ,ISNULL(stl.[RepairOrderExtendedCost],0) RepairOrderExtendedCost
               ,ISNULL(stl.[IsHazardousMaterial],0) IsHazardousMaterial
+              ,ISNULL(stl.[IsNonStock],0) IsNonStock
+              ,stl.[Currency]
+              ,stl.[CurrencyId]
+              ,stl.[ItemNonStockClassificationId]
+              ,stl.[NonStockClassification]
               ,ISNULL(stl.[QuantityToReceive],0) QuantityToReceive
               ,stl.[ManufacturingTrace]
               ,stl.[WorkOrderMaterialsId]

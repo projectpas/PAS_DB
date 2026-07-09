@@ -15,6 +15,7 @@
     2    13/11/2024    SHREY CHANDEGARA      UPDATED for @SalesOrderModuleId
 	3    17/06/2025    Amit Ghediya			 UPDATED for add @PackagingSlipId
 	4    07-07-2025    Moin Bloch            Changed Old To New Billing Table
+	5    09-07-2026    Bhargav Saliya        Get ResaleNumber AND CustomerVATNumber
          
 -- EXEC [dbo].[GetPackagingLabel] 1300, 1507
 **************************************************************/  
@@ -67,7 +68,9 @@ BEGIN
         soq.UpdatedBy updatedBy,
         soq.UpdatedDate updatedDate,
         soq.ManagementStructureId managementStructureId,
-        soq.CustomerReference customerReference
+        soq.CustomerReference customerReference,
+        ISNULL(cust.ResaleNumber, '') as ResaleNumber,
+        ISNULL(cust.VatNumber, '') as CustomerVATNumber
     FROM [dbo].[SOPickTicket] sopkt WITH(NOLOCK)
     JOIN [dbo].SalesOrder soq WITH(NOLOCK) ON sopkt.SalesOrderId = soq.SalesOrderId
     LEFT JOIN [dbo].[SalesOrderPartV1] part WITH(NOLOCK) ON soq.SalesOrderId = part.SalesOrderId

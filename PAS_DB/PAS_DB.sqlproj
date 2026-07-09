@@ -4732,6 +4732,7 @@
     <Build Include="dbo\Stored Procedures\USP_UpdateEngineRegistryState.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdateAircraftTechnicalRecordCompliance.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdateAircraftPublicationCompliance.sql" />
+    <Build Include="dbo\Stored Procedures\USP_CreateAircraftPublicationMaintenance.sql" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Snapshots\PAS_DB_20220518_07-53-10.dacpac" />

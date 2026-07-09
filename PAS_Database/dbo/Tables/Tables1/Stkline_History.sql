@@ -19,6 +19,7 @@
     [UpdatedDate]          DATETIME2 (7)   NULL,
     [UnitSalesPrice]       DECIMAL (18, 2) NULL,
     [SalesPriceExpiryDate] DATETIME2 (7)   NULL,
+    [UOM]                  VARCHAR (100)   NULL,
     CONSTRAINT [PK_Stkline_History] PRIMARY KEY CLUSTERED ([StklineHistoryId] ASC)
 );
 

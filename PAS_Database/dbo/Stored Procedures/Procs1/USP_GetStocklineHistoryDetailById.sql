@@ -21,7 +21,7 @@
  5  14/07/2025     RajeshGami        By default latest record should be on the top
  6  11/12/2025     RajeshGami        Retunr DecimalPlaces
  7  17/03/2026     Sahdev Saliya     Added UnitOfMeasure (PN-15729)
- 8  09/07/2026     Ayushi Patel      Return UnitOfMeasure FROM Stkline_History [PN-17152]
+ 8  09/07/2026     Ayushi Patel      Return UnitOfMeasure FROM Stkline_History [PN-17083]
 
 exec USP_GetStocklineHistoryDetailById @PageSize=10,@PageNumber=1,@SortColumn=N'StocklineHistoryId',@SortOrder=1,  
 @GlobalFilter=N'',@StocklineId=164065,@QuantityAvailable=0,@QuantityIssued=0,@QuantityOnHand=0,@QuantityReserved=0,  

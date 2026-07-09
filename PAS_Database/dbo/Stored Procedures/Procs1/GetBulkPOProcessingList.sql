@@ -893,7 +893,7 @@ BEGIN
 				FROM #TEMPBulkPORecords t
 				JOIN (
 					SELECT 
-						Stk.[PurchaseOrderUnitCost],
+						Stk.PoPartUnitCost AS PurchaseOrderUnitCost,
 						PO.[PurchaseOrderNumber],
 						Stk.[EntryDate],
 						Stk.[ItemMasterId],
@@ -1792,7 +1792,7 @@ BEGIN
 					FROM #TEMPBulkPORecords t
 					JOIN (
 						SELECT 
-							Stk.[PurchaseOrderUnitCost],
+							Stk.PoPartUnitCost AS PurchaseOrderUnitCost,
 							PO.[PurchaseOrderNumber],
 							Stk.[EntryDate],
 							Stk.[ItemMasterId],

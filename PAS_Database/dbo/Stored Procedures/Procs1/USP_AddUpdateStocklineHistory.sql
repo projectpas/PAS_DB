@@ -22,7 +22,7 @@
  	4	 25/11/2025		Rajesh Gami		Change the stockline Quantiy related fields datatype INT to DECIMAL 
 	5    16/06/2026   Priyansh Patel 	Removed the ChildStockline Sp call [PN-16124]
 	6    01/07/2026   Ayushi Patel		[PN-17083]Added @StockOldUOM/@StockNewUOM for UOM-Update history template
-	7	 09/07/2026   Ayushi Patel		[PN-17152]Added new field UOM into Stkline_History table 
+	7	 09/07/2026   Ayushi Patel		[PN-17083]Added new field UOM into Stkline_History table 
  EXEC [dbo].[USP_AddUpdateStocklineHistory] 163201, 16, 259, NULL, NULL, 16, 0, 'Admin User'
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_AddUpdateStocklineHistory]

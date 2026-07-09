@@ -27,8 +27,9 @@
 	16	 01/12/2025   AMIT GHEDIYA   Update for batch gl account basd on stockline (Goods Received Not Invoiced (GRNI))
 	17   01/29/2026   Hemant Saliya	 Corrected to get Goods Received Not Invoiced (GRNI) from Stockline
 	18   06/29/2026   Abhishek Jirawla Including RPP in inserting batch details
-	19    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
-	20    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	19	 08/07/2026	  Moin Bloch       Modify (Added IsBypassAccounting Flag to bypass Accounting Entry PN-16871)
+	20    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	21    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 **************************************************************/  
 CREATE    PROCEDURE [dbo].[usp_PostROCreateStocklineBatchDetails]
 @tbl_PostStocklineBatchType PostStocklineBatchType READONLY,
@@ -71,6 +72,7 @@ BEGIN
 					DECLARE @RPPReferenceModule VARCHAR(100) = 'RPP';
 					DECLARE @RPPReferenceModuleName VARCHAR(100) = 'ReceivingPiecePart';
 					DECLARE @ASSETReferenceModule VARCHAR(100) = 'ASSET';
+					DECLARE @IsBypassAccounting BIT = 0;
 
 					DECLARE @InventoryGLAccId BIGINT = 0;
 					DECLARE @GRNIGLAccId BIGINT = 0;
@@ -422,7 +424,7 @@ BEGIN
 									 
 										 -----Stock - Inventory--------
 
-										  SELECT TOP 1 @DistributionSetupId=ID, @DistributionName=Name, @JournalTypeId =JournalTypeId,@CrDrType = CRDRType, @IsAutoPost = ISNULL(IsAutoPost,0)
+										  SELECT TOP 1 @DistributionSetupId=ID, @DistributionName=Name, @JournalTypeId =JournalTypeId,@CrDrType = CRDRType, @IsAutoPost = ISNULL(IsAutoPost,0), @IsBypassAccounting = ISNULL(IsBypassAccounting,0)
 										  FROM dbo.DistributionSetup WITH(NOLOCK)  
 										  WHERE UPPER(DistributionSetupCode) = UPPER('RROSTKINV') AND MasterCompanyId = @MasterCompanyId
 										  AND DistributionMasterId = @DistributionMasterId;										
@@ -460,7 +462,7 @@ BEGIN
 											SET @IsAutoPostForAll = 0;
 										END
 
-										IF(ISNULL(@Amount,0) > 0)
+										IF(ISNULL(@Amount,0) > 0 AND @IsBypassAccounting = 0)
 										BEGIN
 											 INSERT INTO [dbo].[CommonBatchDetails]
 												(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
@@ -503,10 +505,13 @@ BEGIN
 											 SELECT top 1 @DistributionSetupId=ID, @DistributionName=Name, @JournalTypeId =JournalTypeId,
 											 --@GlAccountId=GlAccountId,
 												--@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName,
-												@CrDrType = CRDRType  
+												@CrDrType = CRDRType, @IsBypassAccounting = ISNULL(IsBypassAccounting,0)
 											 FROM [DBO].DistributionSetup WITH(NOLOCK)  
 											 WHERE UPPER(DistributionSetupCode) = UPPER('RROGRNI') AND MasterCompanyId = @MasterCompanyId
 											 AND DistributionMasterId = @DistributionMasterId
+
+											 IF(@IsBypassAccounting = 0)
+											 BEGIN
 
 											 INSERT INTO [dbo].[CommonBatchDetails]
 												(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
@@ -532,6 +537,8 @@ BEGIN
 												@StocklineNumber,'',@Desc,@SiteId,@Site,@WarehouseId,@Warehouse,@LocationId,@Location,@BinId,@Bin,@ShelfId,@Shelf,@StockType,@CommonJournalBatchDetailId)
 
 											EXEC [DBO].[UpdateStocklineBatchDetailsColumnsWithId] @StocklineId
+
+											END
 										END
 									 END
 
@@ -568,7 +575,7 @@ BEGIN
 										 SET @Desc = 'Receiving RO-' + @PurchaseOrderNumber + '  PN-' + @MPNName + '  SL-' + @StocklineNumber
 								  
 										-----Fixed Asset--------
-										SELECT top 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@CrDrType=CRDRType, @IsAutoPost = ISNULL(IsAutoPost,0) 
+										SELECT top 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@CrDrType=CRDRType, @IsAutoPost = ISNULL(IsAutoPost,0), @IsBypassAccounting = ISNULL(IsBypassAccounting,0)
 										FROM DistributionSetup WITH(NOLOCK)  
 										WHERE UPPER(DistributionSetupCode) =UPPER('FIXEDASSETAC') AND DistributionMasterId = @DistributionMasterId
 										AND MasterCompanyId = @MasterCompanyId
@@ -584,7 +591,7 @@ BEGIN
 											SET @IsAutoPostForAll = 0;
 										END
 
-										IF(ISNULL(@Amount,0) > 0)
+										IF(ISNULL(@Amount,0) > 0 AND @IsBypassAccounting = 0)
 										BEGIN
 											INSERT INTO [dbo].[CommonBatchDetails]
 											(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
@@ -611,10 +618,13 @@ BEGIN
 
 											-----Goods Received Not Invoiced (GRNI)--------
 											SELECT TOP 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@GlAccountId=GlAccountId,
-												@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName,@CrDrType = CRDRType  
+												@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName,@CrDrType = CRDRType, @IsBypassAccounting = ISNULL(IsBypassAccounting,0)
 											FROM DistributionSetup WITH(NOLOCK)  
 											WHERE UPPER(DistributionSetupCode) =UPPER('GOODSRECEIPTNOTINVOICED') AND MasterCompanyId = @MasterCompanyId
 												AND DistributionMasterId = @DistributionMasterId
+
+											IF(@IsBypassAccounting = 0)
+											BEGIN
 
 										INSERT INTO [dbo].[CommonBatchDetails]
 											(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
@@ -640,6 +650,8 @@ BEGIN
 											@StocklineNumber,'',@Desc,@SiteId,@Site,@WarehouseId,@Warehouse,@LocationId,@Location,@BinId,@Bin,@ShelfId,@Shelf,@StockType,@CommonJournalBatchDetailId)
 
 										EXEC [DBO].[UpdateStocklineBatchDetailsColumnsWithId] @StocklineId
+
+										END
 										END
 										END
 
@@ -849,7 +861,7 @@ BEGIN
 										  SELECT @VendorName = VendorName FROM dbo.Vendor V WITH(NOLOCK) WHERE VendorId= @VendorId;
 
 										  SET @UnitPrice = @Amount;
-										  SET @Amount = (@Qty * @Amount);
+										  --SET @Amount = (@Qty * @Amount);
 
 										  SELECT @MPNName = partnumber FROM dbo.ItemMaster WITH(NOLOCK)  WHERE ItemMasterId=@ItemmasterId 
 										   AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0
@@ -862,7 +874,7 @@ BEGIN
 									 
 										 -----Stock - Inventory--------
 
-										  SELECT TOP 1 @DistributionSetupId=ID, @DistributionName=Name, @JournalTypeId =JournalTypeId,@CrDrType = CRDRType, @IsAutoPost = ISNULL(IsAutoPost,0)
+										  SELECT TOP 1 @DistributionSetupId=ID, @DistributionName=Name, @JournalTypeId =JournalTypeId,@CrDrType = CRDRType, @IsAutoPost = ISNULL(IsAutoPost,0), @IsBypassAccounting = ISNULL(IsBypassAccounting,0)
 										  FROM dbo.DistributionSetup WITH(NOLOCK)  
 										  WHERE UPPER(DistributionSetupCode) = UPPER('RPPINVSTK') AND MasterCompanyId = @MasterCompanyId
 										  AND DistributionMasterId = @DistributionMasterId;										
@@ -910,8 +922,9 @@ BEGIN
 											WHERE StocklineId = @StocklineId
 											ORDER BY PiecePartReconciliationId DESC
 
-											IF @lastQtyCon > 0
+											IF @lastQtyCon > 0 AND @IsBypassAccounting = 0
 											BEGIN
+												SET @Amount = (@lastQtyCon * @Amount);
 											 INSERT INTO [dbo].[CommonBatchDetails]
 												(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
 												[IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId],[ModuleName],LastMSLevel,AllMSlevels,[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[LotId],[LotNumber],[ReferenceNumber],[ReferenceName],[LocalCurrency],[FXRate],[ForeignCurrency],[ReferenceId],[ReferenceModule])
@@ -935,7 +948,7 @@ BEGIN
 												@StocklineNumber,'',@Desc,@SiteId,@Site,@WarehouseId,@Warehouse,@LocationId,@Location,@BinId,@Bin,@ShelfId,@Shelf,@StockType,@CommonJournalBatchDetailId)
 											
 
-												SELECT TOP 1 @DistributionSetupId=ID, @DistributionName=Name, @JournalTypeId =JournalTypeId,@CrDrType = CRDRType, @IsAutoPost = ISNULL(IsAutoPost,0)
+												SELECT TOP 1 @DistributionSetupId=ID, @DistributionName=Name, @JournalTypeId =JournalTypeId,@CrDrType = CRDRType, @IsAutoPost = ISNULL(IsAutoPost,0), @IsBypassAccounting = ISNULL(IsBypassAccounting,0)
 												FROM dbo.DistributionSetup WITH(NOLOCK)  
 												WHERE UPPER(DistributionSetupCode) = UPPER('RPPWIPFG') AND MasterCompanyId = @MasterCompanyId
 												AND DistributionMasterId = @DistributionMasterId;
@@ -948,7 +961,9 @@ BEGIN
 												WHERE [GLAccountId] = @finishedGoodsGLAccId
 												AND [MasterCompanyId] = @MasterCompanyId;
 												
-											
+											IF(@IsBypassAccounting = 0)
+											BEGIN
+
 												INSERT INTO [dbo].[CommonBatchDetails]
 													(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
 													[IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId],[ModuleName],LastMSLevel,AllMSlevels,[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[LotId],[LotNumber],[ReferenceNumber],[ReferenceName],[LocalCurrency],[FXRate],[ForeignCurrency],[ReferenceId],[ReferenceModule])
@@ -973,16 +988,22 @@ BEGIN
 													@StocklineNumber,'',@Desc,@SiteId,@Site,@WarehouseId,@Warehouse,@LocationId,@Location,@BinId,@Bin,@ShelfId,@Shelf,@StockType,@CommonJournalBatchDetailId)
 
 												EXEC [DBO].[UpdateStocklineBatchDetailsColumnsWithId] @StocklineId
+
+											END
 											END
 
 											IF @lastQtyDam > 0
 											BEGIN
-										  SELECT TOP 1 @DistributionSetupId=ID, @DistributionName=Name, @JournalTypeId =JournalTypeId,@CrDrType = CRDRType, @IsAutoPost = ISNULL(IsAutoPost,0)
+												SET @Amount = @UnitPrice;
+												SET @Amount = (@lastQtyDam * @Amount);
+										  SELECT TOP 1 @DistributionSetupId=ID, @DistributionName=Name, @JournalTypeId =JournalTypeId,@CrDrType = CRDRType, @IsAutoPost = ISNULL(IsAutoPost,0), @IsBypassAccounting = ISNULL(IsBypassAccounting,0)
 										  FROM dbo.DistributionSetup WITH(NOLOCK)  
 										  WHERE UPPER(DistributionSetupCode) = UPPER('RPPINVSTK') AND MasterCompanyId = @MasterCompanyId
 										  AND DistributionMasterId = @DistributionMasterId;		
 
-											
+											IF(@IsBypassAccounting = 0)
+											BEGIN
+
 											 INSERT INTO [dbo].[CommonBatchDetails]
 												(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
 												[IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId],[ModuleName],LastMSLevel,AllMSlevels,[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted],[LotId],[LotNumber],[ReferenceNumber],[ReferenceName],[LocalCurrency],[FXRate],[ForeignCurrency],[ReferenceId],[ReferenceModule])
@@ -1005,7 +1026,9 @@ BEGIN
 												(@JournalBatchDetailId,@JournalBatchHeaderId,@VendorId,@VendorName,@ItemMasterId,@partId,@MPNName,@PurchaseOrderId,@PurchaseOrderNumber,@RepairOrderId,@RepairOrderNumber,@StocklineId,
 												@StocklineNumber,'',@Desc,@SiteId,@Site,@WarehouseId,@Warehouse,@LocationId,@Location,@BinId,@Bin,@ShelfId,@Shelf,@StockType,@CommonJournalBatchDetailId)
 											
-												SELECT TOP 1 @DistributionSetupId=ID, @DistributionName=Name, @JournalTypeId =JournalTypeId,@CrDrType = CRDRType, @IsAutoPost = ISNULL(IsAutoPost,0)
+											END
+
+												SELECT TOP 1 @DistributionSetupId=ID, @DistributionName=Name, @JournalTypeId =JournalTypeId,@CrDrType = CRDRType, @IsAutoPost = ISNULL(IsAutoPost,0), @IsBypassAccounting = ISNULL(IsBypassAccounting,0)
 												FROM dbo.DistributionSetup WITH(NOLOCK)  
 												WHERE UPPER(DistributionSetupCode) = UPPER('RPPCOGS') AND MasterCompanyId = @MasterCompanyId
 												AND DistributionMasterId = @DistributionMasterId;
@@ -1017,6 +1040,9 @@ BEGIN
 												FROM [dbo].[GLAccount] WITH(NOLOCK)
 												WHERE [GLAccountId] = @cogs_WorkOrderGLAccId
 												AND [MasterCompanyId] = @MasterCompanyId;
+
+												IF(@IsBypassAccounting = 0)
+												BEGIN
 
 												INSERT INTO [dbo].[CommonBatchDetails]
 													(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
@@ -1041,9 +1067,11 @@ BEGIN
 													@StocklineNumber,'',@Desc,@SiteId,@Site,@WarehouseId,@Warehouse,@LocationId,@Location,@BinId,@Bin,@ShelfId,@Shelf,@StockType,@CommonJournalBatchDetailId)
 
 												EXEC [DBO].[UpdateStocklineBatchDetailsColumnsWithId] @StocklineId
-											END
+
+												END
 
 											 
+										END
 										END
 									 END
 
@@ -1080,7 +1108,7 @@ BEGIN
 										 SET @Desc = 'Receiving RO-' + @PurchaseOrderNumber + '  PN-' + @MPNName + '  SL-' + @StocklineNumber
 								  
 										-----Fixed Asset--------
-										SELECT top 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@CrDrType=CRDRType, @IsAutoPost = ISNULL(IsAutoPost,0) 
+										SELECT top 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@CrDrType=CRDRType, @IsAutoPost = ISNULL(IsAutoPost,0), @IsBypassAccounting = ISNULL(IsBypassAccounting,0)
 										FROM DistributionSetup WITH(NOLOCK)  
 										WHERE UPPER(DistributionSetupCode) =UPPER('FIXEDASSETAC') AND DistributionMasterId = @DistributionMasterId
 										AND MasterCompanyId = @MasterCompanyId
@@ -1096,7 +1124,7 @@ BEGIN
 											SET @IsAutoPostForAll = 0;
 										END
 
-										IF(ISNULL(@Amount,0) > 0)
+										IF(ISNULL(@Amount,0) > 0 AND @IsBypassAccounting = 0)
 										BEGIN
 											INSERT INTO [dbo].[CommonBatchDetails]
 											(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
@@ -1123,10 +1151,13 @@ BEGIN
 
 											-----Goods Received Not Invoiced (GRNI)--------
 											SELECT TOP 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@GlAccountId=GlAccountId,
-												@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName,@CrDrType = CRDRType  
+												@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName,@CrDrType = CRDRType, @IsBypassAccounting = ISNULL(IsBypassAccounting,0)
 											FROM DistributionSetup WITH(NOLOCK)  
 											WHERE UPPER(DistributionSetupCode) =UPPER('GOODSRECEIPTNOTINVOICED') AND MasterCompanyId = @MasterCompanyId
 												AND DistributionMasterId = @DistributionMasterId
+
+											IF(@IsBypassAccounting = 0)
+											BEGIN
 
 										INSERT INTO [dbo].[CommonBatchDetails]
 											(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
@@ -1152,6 +1183,8 @@ BEGIN
 											@StocklineNumber,'',@Desc,@SiteId,@Site,@WarehouseId,@Warehouse,@LocationId,@Location,@BinId,@Bin,@ShelfId,@Shelf,@StockType,@CommonJournalBatchDetailId)
 
 										EXEC [DBO].[UpdateStocklineBatchDetailsColumnsWithId] @StocklineId
+
+										END
 										END
 										END
 

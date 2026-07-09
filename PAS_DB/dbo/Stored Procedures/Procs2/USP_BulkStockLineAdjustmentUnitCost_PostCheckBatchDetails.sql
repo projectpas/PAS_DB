@@ -27,6 +27,7 @@
 	11	 15/01/2025   AMIT GHEDIYA		Modify(get Distribution based on new settings from stockline level)
 	12	 02/06/2025	  Abhishek Jirawla  Fixed Name concat read script
 	13   27/11/2025   AMIT GHEDIYA		update for get glaccount from setup.
+	14	 08/07/2026	  Moin Bloch        Modify (Added IsBypassAccounting Flag to bypass Accounting Entry PN-16871)
      
 **************************************************************/
 
@@ -106,6 +107,7 @@ BEGIN
 		DECLARE @UnitCostAdjustment DECIMAL(18,2);
 		DECLARE @IsAutoPost INT = 0;
 		DECLARE @IsBatchGenerated INT = 0;
+		DECLARE @IsBypassAccounting BIT = 0;
 		DECLARE @LocalCurrencyCode VARCHAR(20) = '';
 		DECLARE @ForeignCurrencyCode VARCHAR(20) = '';
 		DECLARE @ReferenceNumber VARCHAR(50) = '';
@@ -326,8 +328,11 @@ BEGIN
 					AND [MasterCompanyId] = @MasterCompanyId;
 
 					-----Inventory-Stock--------
-					SELECT TOP 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@CrDrType = CRDRType
+					SELECT TOP 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@CrDrType = CRDRType, @IsBypassAccounting = ISNULL(IsBypassAccounting,0)
 					 FROM [DBO].[DistributionSetup] WITH(NOLOCK)  WHERE DistributionSetupCode = 'BULKSAINVENTORYSTOCKUNITCOST' AND MasterCompanyId = @MasterCompanyId AND DistributionMasterId = (SELECT TOP 1 ID FROM [DBO].[DistributionMaster] WITH(NOLOCK) WHERE DistributionCode = @DistributionCodeName)
+
+					IF(@IsBypassAccounting = 0)
+					BEGIN
 
 					IF(@AdjustmentAmount > 0) -- Debit entry
 					BEGIN
@@ -374,12 +379,14 @@ BEGIN
 					INSERT INTO [dbo].[BulkStocklineAdjPaymentBatchDetails](JournalBatchHeaderId,JournalBatchDetailId,ManagementStructureId,ReferenceId,CommonJournalBatchDetailId,ModuleId,StockLineId,EmployeeId)
 					VALUES(@JournalBatchHeaderId,@JournalBatchDetailId,@BlkManagementStructureId,@BulkStkLineAdjHeaderId,@CommonBatchDetailId,@BlkModuleID,@StockLineId,@EmployeeId)
 
+					END
+
 					-----Inventory-Stock--------
 
 					-----Inventory Reserve Or COGS - Parts--------
 
 					 SELECT TOP 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,
-					 @CrDrType = CRDRType
+					 @CrDrType = CRDRType, @IsBypassAccounting = ISNULL(IsBypassAccounting,0)
 					 FROM [DBO].[DistributionSetup] WITH(NOLOCK)  WHERE DistributionSetupCode = 'INVENTORYRESCOGSPARTSUNITCOST' AND MasterCompanyId = @MasterCompanyId AND DistributionMasterId = (SELECT TOP 1 ID FROM [DBO].[DistributionMaster] WITH(NOLOCK) WHERE DistributionCode = @DistributionCodeName)
 
 					 SELECT @GlAccountId = GlAccountId FROM [DBO].[DistributionSetup]  WITH(NOLOCK) WHERE [DistributionSetupCode] = 'INVENTORYRESCOGSPARTSUNITCOST' AND MasterCompanyId = @MasterCompanyId;
@@ -392,6 +399,9 @@ BEGIN
 					 --FROM [dbo].[GLAccount] WITH(NOLOCK)
 					 --WHERE [GLAccountId] = @InventoryReserveGLAccId
 					 --AND [MasterCompanyId] = @MasterCompanyId;
+
+					 IF(@IsBypassAccounting = 0)
+					 BEGIN
 
 					 IF(@AdjustmentAmount > 0) -- Debit entry
 					 BEGIN
@@ -437,6 +447,8 @@ BEGIN
 						INSERT INTO [dbo].[BulkStocklineAdjPaymentBatchDetails](JournalBatchHeaderId,JournalBatchDetailId,ManagementStructureId,ReferenceId,CommonJournalBatchDetailId,ModuleId,StockLineId,EmployeeId)
 						VALUES(@JournalBatchHeaderId,@JournalBatchDetailId,@ManagementStructureIds,@BulkStkLineAdjHeaderId,@CommonBatchDetailId,@BlkModuleID,0,@EmployeeId)
 					
+					 END
+
 					-----Inventory Reserve Or COGS - Parts--------
 
 					--Update Stockline table Adjustment & Freight,Tax

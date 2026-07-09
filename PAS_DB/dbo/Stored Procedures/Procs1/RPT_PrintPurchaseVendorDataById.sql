@@ -16,6 +16,7 @@
  ** --   --------     -------		--------------------------------          
     1    09/03/2023  Amit Ghediya    Created
     2    01/05/2026  Ayushi Patel    [PN-16030] Added MasterCompanyCode/NULL parameter in ValidatePDFAddress calls.
+	3	 06/07/2026  Kishor Makwana  Added ResaleNumver Column in Select --PN-16954
 -- EXEC RPT_PrintPurchaseVendorDataById 7
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[RPT_PrintPurchaseVendorDataById]
@@ -53,7 +54,8 @@ BEGIN
 			   CO.[countries_name],
 			   CO.[countries_id],
 			   CU.[Code],
-			   PO.[VendorContactEmail] AS 'VendorEmail'
+			   PO.[VendorContactEmail] AS 'VendorEmail',
+			   ISNULL(VN.ResaleNumber,'') ResaleNumber
 		FROM [DBO].[Vendor] VN WITH (NOLOCK)
 		LEFT JOIN [dbo].[MasterCompany] MS WITH(NOLOCK) ON VN.MasterCompanyId = MS.MasterCompanyId
 		LEFT JOIN [DBO].[PurchaseOrder] PO WITH (NOLOCK) ON PO.PurchaseOrderId = @PurchaseOrderId

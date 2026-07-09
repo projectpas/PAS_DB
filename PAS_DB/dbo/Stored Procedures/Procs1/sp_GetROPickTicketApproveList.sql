@@ -17,7 +17,8 @@
 	1    04/14/2025   Vishal Suthar		Created
 	2    06/04/2025   Vishal Suthar		If approval is enforced then pick ticket list will be visible only after approval of the part
 	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
-	4    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	3    07/07/2025   Abhishek Jirawla	RO Piece Parts do not need approval
+	4    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0	
      
 -- EXEC [dbo].[sp_GetROPickTicketApproveList] 2651
 **************************************************************/
@@ -64,6 +65,7 @@ BEGIN
 		AND (
 			ro.IsEnforce IS NULL OR ro.IsEnforce = 0
 			OR (ro.IsEnforce = 1 AND roa.StatusId = 2)
+			OR (ISNULL(rop.IsPiecePart, 0) = 1)
 		)
 		 AND ISNULL(imt.IsNonStock,0) = 0
 		 GROUP BY rop.RepairOrderPartRecordId, rop.RepairOrderId,imt.PartNumber,imt.PartDescription, rop.QuantityOrdered,sl.SerialNumber,

@@ -31,6 +31,8 @@ CREATE   PROCEDURE [dbo].[USP_GetRoPiecePartForVendorReconcilationList]
     @RONumber               NVARCHAR(100)   = NULL,
     @WONumber               NVARCHAR(100)   = NULL,
     @ReconciliationStatus   NVARCHAR(50)    = NULL,
+    @VendorId               BIGINT          = NULL,
+    @RepairOrderId          BIGINT          = NULL,
     -- Standard params
     @IsDeleted              BIT             = 0,
     @EmployeeId             BIGINT,
@@ -62,6 +64,7 @@ BEGIN
             ISNULL(rop.StockLineNumber, sl.StockLineNumber) AS StocklineNumber,
             ISNULL(rop.ControlNumber,   sl.ControlNumber)   AS ControlNumber,
             rop.ControlId,
+            rop.StockLineId,
 
             -- Total pieces the customer sent in
             ISNULL((
@@ -106,6 +109,10 @@ BEGIN
         WHERE rop.IsPiecePart       = 1
           AND rop.IsDeleted         = ISNULL(@IsDeleted, 0)
           AND rop.MasterCompanyId   = @MasterCompanyId
+          AND ro.StatusId IN (
+              SELECT ROStatusId FROM dbo.ROStatus WITH(NOLOCK)
+              WHERE Description IN ('Fulfilling', 'Closed', 'Shipped')
+          )
 
           AND (
               @GlobalFilter = ''
@@ -125,6 +132,8 @@ BEGIN
           AND (@RONumber        IS NULL OR ro.RepairOrderNumber  LIKE '%' + @RONumber        + '%')
           AND (@WONumber        IS NULL OR ISNULL(rop.WorkOrderNo, wo.WorkOrderNum)
                                               LIKE '%' + @WONumber + '%')
+          AND (@VendorId        IS NULL OR ro.VendorId          = @VendorId)
+          AND (@RepairOrderId   IS NULL OR rop.RepairOrderId    = @RepairOrderId)
     ),
 
     /* ────────────────────────────────────────────────────────────────────
@@ -144,6 +153,7 @@ BEGIN
             bp.PartDescription,
             bp.Condition,
             bp.SerialNumber,
+            bp.StockLineId,
             bp.StocklineNumber,
             bp.ControlNumber,
             bp.ControlId,
@@ -182,6 +192,7 @@ BEGIN
             bp.PartDescription,
             bp.Condition,
             bp.SerialNumber,
+            bp.StockLineId,
             bp.StocklineNumber,
             bp.ControlNumber,
             bp.ControlId,
@@ -206,6 +217,7 @@ BEGIN
         PartDescription,
         Condition,
         SerialNumber,
+        StockLineId,
         StocklineNumber,
         ControlNumber,
         ControlId,

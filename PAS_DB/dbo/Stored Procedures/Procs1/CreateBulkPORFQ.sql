@@ -6,9 +6,10 @@
  ** --   --------					 -------						-------------------------------            
     1   	
 	2    23/10/2024              RAJESH GAMI                        Change the Local date to UTC date by default 
+	3    12/May/2026             RAJESH GAMI						Implemented : Bulk PO For Sales Order [PN-16401]
 	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 ****************************************************************************************************************************************/ 
-CREATE    PROCEDURE [dbo].[CreateBulkPORFQ]    
+CREATE      PROCEDURE [dbo].[CreateBulkPORFQ]    
  @tbl_BulkPORFQDetailType BulkPODetailType READONLY,    
  @loginUserName varchar(50) = NULL,    
  @employeeId bigint = NULL,    
@@ -92,15 +93,19 @@ BEGIN
     [EstReceivedDate] [datetime2](7) NULL,    
     [StatusId] [int] NULL,    
     [WorkOrderMaterialsId] [bigint] NULL,    
-    [WorkOrderMaterialsKitId] [bigint] NULL    
+    [WorkOrderMaterialsKitId] [bigint] NULL,
+	[SalesOrderId] [bigint] NULL,
+	[SalesOrderPartId] [bigint] NULL,
+	[SONum] [varchar](250) NULL,
+	[SourceType] [varchar](10) NULL    
    )    
              
    INSERT INTO #BulkPORFQItemType ([ItemMasterId], [StockType], [ManufacturerId], [Manufacturer], [PN], [PNDescription],[PriorityId],[Priority],[ConditionId], [Condition],     
    [Quantity], [UnitCost], [VendorId], [VendorName], [VendorCode], [GlAccountId], [GlAccount], [UOMId], [UnitOfMeasure], [WorkOrderId], [WorkOrderNo],    
-   [ManagementStructureId], [MasterCompanyId],[NeedBy],[EstReceivedDate],[StatusId],[WorkOrderMaterialsId],[WorkOrderMaterialsKitId])    
+   [ManagementStructureId], [MasterCompanyId],[NeedBy],[EstReceivedDate],[StatusId],[WorkOrderMaterialsId],[WorkOrderMaterialsKitId],SalesOrderId,SalesOrderPartId,SONum,SourceType)    
    SELECT [ItemMasterId], [StockType], [ManufacturerId], [Manufacturer], [PN], [PNDescription],[PriorityId],[Priority], [ConditionId], [Condition],     
-   [Quantity], [UnitCost], [VendorId], [VendorName], [VendorCode], [GlAccountId], [GlAccount], [UOMId], [UnitOfMeasure], [WorkOrderId], [WorkOrderNo],     
-   [ManagementStructureId], [MasterCompanyId],[NeedBy],[EstReceivedDate],@OpenStatusId,[WorkOrderMaterialsId],[WorkOrderMaterialsKitId] FROM @tbl_BulkPORFQDetailType;    
+   [Quantity], [UnitCost], [VendorId], [VendorName], [VendorCode], [GlAccountId], [GlAccount], [UOMId], [UnitOfMeasure], CASE WHEN [WorkOrderId] > 0 THEN [WorkOrderId] ELSE NULL END , CASE WHEN [WorkOrderId] > 0 THEN [WorkOrderNo] ELSE NULL END,     
+   [ManagementStructureId], [MasterCompanyId],[NeedBy],[EstReceivedDate],@OpenStatusId,[WorkOrderMaterialsId],[WorkOrderMaterialsKitId],CASE WHEN SalesOrderId > 0  THEN SalesOrderId ELSE NULL END,SalesOrderPartId,CASE WHEN SalesOrderId > 0  THEN SONum ELSE NULL END,SourceType FROM @tbl_BulkPORFQDetailType;    
       
    INSERT INTO #tempGroupByCount (VendorId) SELECT VendorId FROM #BulkPORFQItemType GROUP BY VendorId    
    Set @TotalRecord = (Select Count(*) from #BulkPORFQItemType)    
@@ -202,7 +207,7 @@ BEGIN
         [UOMId], [UnitOfMeasure],    
      [ManagementStructureId],    
      [MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted],    
-     NeedByDate,PromisedDate)    
+     NeedByDate,PromisedDate,SalesOrderId,SalesOrderNo)    
      --OUTPUT INSERTED.PurchaseOrderPartRecordId INTO @NewId(MyNewId)    
      SELECT    
       @NewPurchaseOrderRFQId, TYP.ItemMasterId,IM.partnumber, IM.PartDescription,    
@@ -217,7 +222,8 @@ BEGIN
      IM.PurchaseUnitOfMeasureId,IM.PurchaseUnitOfMeasure,    
      TYP.ManagementStructureId,    
      TYP.MasterCompanyId,@updatedByName,@updatedByName,GETUTCDATE(),GETUTCDATE(),1,0,    
-     cast(TYP.NeedBy as DATE),cast(TYP.EstReceivedDate as DATE)    
+     cast(TYP.NeedBy as DATE),cast(TYP.EstReceivedDate as DATE)  ,
+	 CASE WHEN ISNULL(SalesOrderId,0) = 0 THEN NULL ELSE SalesOrderId END,CASE WHEN ISNULL(SONum,'') = '' THEN NULL ELSE SONum END
      FROM #BulkPORFQItemType TYP    
      INNER JOIN dbo.ItemMaster IM on TYP.ItemMasterId = IM.ItemMasterId    
      LEFT JOIN dbo.Currency C on Im.PurchaseCurrencyId = C.CurrencyId    
@@ -265,7 +271,13 @@ BEGIN
     
   IF @@trancount > 0    
    PRINT 'ROLLBACK'   
-    
+    SELECT
+    ERROR_NUMBER() AS ErrorNumber,
+    ERROR_STATE() AS ErrorState,
+    ERROR_SEVERITY() AS ErrorSeverity,
+    ERROR_PROCEDURE() AS ErrorProcedure,
+    ERROR_LINE() AS ErrorLine,
+    ERROR_MESSAGE() AS ErrorMessage;
    ROLLBACK TRAN;    
    DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name()     
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------    

@@ -59,14 +59,22 @@ BEGIN
                 ppr.ReconciliationStatus,
                 ppr.Memo,
                 ppr.CreatedBy,
-                ppr.CreatedDate
+                ppr.CreatedDate,
+                ppr.ParentRepairOrderPartId,
+                CASE
+                    WHEN parentROP.RepairOrderPartRecordId IS NULL THEN NULL
+                    WHEN ISNULL(parentROP.SerialNumber, '') = ''   THEN parentROP.PartNumber
+                    ELSE parentROP.PartNumber + ' / SN: ' + parentROP.SerialNumber
+                END                                 AS ParentPartNumber
             FROM  dbo.PiecePartReconciliation  ppr  WITH (NOLOCK)
-            JOIN  dbo.RepairOrderPart          rop  WITH (NOLOCK)
+            LEFT JOIN dbo.RepairOrderPart      rop  WITH (NOLOCK)
                   ON  rop.RepairOrderPartRecordId = ppr.RepairOrderPartRecordId
-            JOIN  dbo.RepairOrder              srcRO WITH (NOLOCK)
+            LEFT JOIN dbo.RepairOrder          srcRO WITH (NOLOCK)
                   ON  srcRO.RepairOrderId         = ppr.SourceRepairOrderId
             LEFT JOIN dbo.RepairOrder          conRO WITH (NOLOCK)
                   ON  conRO.RepairOrderId         = ppr.ConsumedRepairOrderId
+            LEFT JOIN dbo.RepairOrderPart      parentROP WITH (NOLOCK)
+                  ON  parentROP.RepairOrderPartRecordId = ppr.ParentRepairOrderPartId
             WHERE ppr.RepairOrderPartRecordId = @RepairOrderPartRecordId
               AND ppr.MasterCompanyId         = @MasterCompanyId
               AND ISNULL(ppr.IsDeleted, 0)    = 0
@@ -91,7 +99,9 @@ BEGIN
             ReconciliationStatus,
             Memo,
             CreatedBy,
-            CreatedDate
+            CreatedDate,
+            ParentRepairOrderPartId,
+            ParentPartNumber
         FROM  RankedHistory
         ORDER BY CreatedDate DESC, PiecePartReconciliationId DESC;
 

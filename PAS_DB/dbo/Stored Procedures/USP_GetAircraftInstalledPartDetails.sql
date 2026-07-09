@@ -31,8 +31,10 @@
 ** 17   2026-05-26   Priyansh Patel     Added Worksheet Header Id [PN-16537]
 ** 18   2026-06-03   Amit Ghediya       Update for get latest wo created from ACIC [PN-16699]
 ** 19   30/06/2026	 Amit Ghediya	    Update for Engine data [PN-17075]
-   20   01/July/2026	RAJESH GAMI		[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
-   21   09/July/2026	RAJESH GAMI		[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+** 20   07/07/2026	  Kishor Makwana	[PN-17162] Updated for Get ServiceLifeUnitMonthsOrDays, ServiceLifeLimit
+
+   21   01/July/2026	RAJESH GAMI		[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+   22   09/July/2026	RAJESH GAMI		[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 *********************/
 CREATE       PROCEDURE [dbo].[USP_GetAircraftInstalledPartDetails]
 (
@@ -174,7 +176,9 @@ BEGIN
 				WSH.WorksheetNumber,
 				WOP.WorkOrderId AS WOId,
 				WO.WorkOrderNum AS 'WONumber',
-                WSH.WorksheetHeaderId
+                WSH.WorksheetHeaderId,
+				AIPD.ServiceLifeUnitMonthsOrDays,
+				AIPD.ServiceLifeLimit
             FROM dbo.AircraftInstalledPartDetails AS AIPD WITH (NOLOCK)
 			LEFT JOIN dbo.ItemMasterAircraftMapping IMAM WITH (NOLOCK) ON AIPD.ATAChapterId = IMAM.ItemMasterAircraftMappingId
 			LEFT JOIN dbo.AircraftRegistryHeader ARH WITH (NOLOCK) ON ARH.AircraftRegistryId = AIPD.AircraftRegistryId AND ARH.MasterCompanyId = @MasterCompanyId

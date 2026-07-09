@@ -13,7 +13,8 @@
 	2    07/23/2024		AMIT GHEDIYA			Update new BatchCode,J-Type Code & update New Destribution as per new distribution.
 	3    08/05/2024		Devendra Shekh			JE Number issue Resolved
 	4    19/09/2024	    AMIT GHEDIYA		    Added for AutoPost Batch
-	5    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	5  	 07/07/2026	    Moin Bloch              Modify (Added IsBypassAccounting Flag to bypass Accounting Entry PN-16871)
+	6    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 
 declare @p1 dbo.DepreciableInventory
 insert into @p1 values(620,1,500.00,N'AssetInventory',N'ADMIN User',1,N'AssetPeriodDepreciation',185)
@@ -182,6 +183,7 @@ BEGIN
 		DECLARE @IsAutoPost INT = 0;
 		DECLARE @AccountMSModuleId INT = 0;
 		DECLARE @IsBatchGenerated INT = 0;
+		DECLARE @IsBypassAccounting BIT = 0;
 
 		SELECT @AccountMSModuleId = [ManagementStructureModuleId] FROM [dbo].[ManagementStructureModule] WITH(NOLOCK) WHERE [ModuleName] ='Accounting';
 
@@ -400,17 +402,19 @@ BEGIN
 						Set @ReferencePartId=@partId	
 
 						SELECT @PieceItemmasterId=MasterPartId FROM AssetInventory  WHERE AssetInventoryId=@AssetInventoryId
-						SELECT @PiecePN = partnumber FROM dbo.ItemMaster WITH(NOLOCK)  WHERE ItemMasterId=@PieceItemmasterId 
+						SELECT @PiecePN = partnumber FROM dbo.ItemMaster WITH(NOLOCK)  WHERE ItemMasterId=@PieceItemmasterId AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0
 
 						------Depreciation Expense -----------
 
-						 AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0
-						 SELECT top 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@CrDrType=CRDRType,@IsAutoPost = ISNULL(IsAutoPost,0) 
+						SELECT top 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@CrDrType=CRDRType,@IsAutoPost = ISNULL(IsAutoPost,0), @IsBypassAccounting  = ISNULL(IsBypassAccounting,0)
 						FROM dbo.DistributionSetup WITH(NOLOCK)  WHERE UPPER(DistributionSetupCode) =UPPER('DEPRECIATIONEXPENSEDEP') 
 						AND DistributionMasterId=@DistributionMasterId AND MasterCompanyId = @MasterCompanyId
 
 						SELECT @GlAccountNumber=AccountCode,@GlAccountName=AccountName,@GlAccountId=@DeprExpenseGLAccountId 
 						FROM dbo.GLAccount WITH(NOLOCK) WHERE GLAccountId=@DeprExpenseGLAccountId
+
+						IF(@IsBypassAccounting = 0)
+						BEGIN
 
 						IF(@StartCount = 1)
 						BEGIN
@@ -452,16 +456,21 @@ BEGIN
 							(@JournalBatchDetailId,@JournalBatchHeaderId,@VendorId,@VendorName,@ItemMasterId,@partId,@MPNName,@ReferenceId,@AssetInventoryName,@ReferenceId,@AssetInventoryName,@AssetInventoryId,
 							@StocklineNumber,'',@Desc,@SiteId,@Site,@WarehouseId,@Warehouse,@LocationId,@Location,@BinId,@Bin,@ShelfId,@Shelf,@StocktypeAsset,@CommonJournalBatchDetailId)
 
+						END
+
 						------Accumulated Depreciation -----------
 
 						SET @Amount = isnull(@DepreciationAmount,0);
-						SELECT TOP 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@CrDrType=CRDRType
+						SELECT TOP 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@CrDrType=CRDRType, @IsBypassAccounting  = ISNULL(IsBypassAccounting,0)
 						FROM dbo.DistributionSetup WITH(NOLOCK)  
 						WHERE UPPER(DistributionSetupCode) =UPPER('ACCUMULATEDDEPRECIATIONDEP') AND 
 						DistributionMasterId=@DistributionMasterId AND MasterCompanyId = @MasterCompanyId
 					
 						SELECT @GlAccountNumber=AccountCode,@GlAccountName=AccountName,@GlAccountId=@AdDepsGLAccountId
 						FROM DBO.GLAccount WITH(NOLOCK) WHERE GLAccountId=@AdDepsGLAccountId
+
+						IF(@IsBypassAccounting = 0)
+						BEGIN
 
 						INSERT INTO [dbo].[CommonBatchDetails]
 								(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
@@ -491,6 +500,8 @@ BEGIN
 
 
 						EXEC [DBO].[UpdateStocklineBatchDetailsColumnsWithId] @AssetInventoryId
+
+						END
 					END
 				END
 
@@ -536,7 +547,7 @@ BEGIN
 
 					------Accounts Receivable (Trade or Other) -----------
 					SELECT top 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,
-					@GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName,@CrDrType=CRDRType,@IsAutoPost = ISNULL(IsAutoPost,0) 
+					@GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName,@CrDrType=CRDRType,@IsAutoPost = ISNULL(IsAutoPost,0), @IsBypassAccounting  = ISNULL(IsBypassAccounting,0)
 					FROM DBO.DistributionSetup WITH(NOLOCK)  
 					WHERE UPPER(DistributionSetupCode) =UPPER('ACCOUNTSRECEIVABLE(TRADE)') 
 					AND DistributionMasterId=@DistributionMasterId AND MasterCompanyId = @MasterCompanyId
@@ -544,6 +555,9 @@ BEGIN
 
 					IF(@Amount >0)
 					BEGIN
+						IF(@IsBypassAccounting = 0)
+						BEGIN
+
 						INSERT INTO [dbo].[CommonBatchDetails]
 							(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
 							[IsDebit],[DebitAmount] ,[CreditAmount],[ManagementStructureId],[ModuleName],LastMSLevel,AllMSlevels,[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate] ,[IsActive] ,[IsDeleted])
@@ -570,13 +584,14 @@ BEGIN
 							(@JournalBatchDetailId,@JournalBatchHeaderId,@VendorId,@VendorName,@ItemMasterId,@partId,@MPNName,@ReferenceId,@AssetInventoryName,@ReferenceId,@AssetInventoryName,@AssetInventoryId,
 							@StocklineNumber,'',@Desc,@SiteId,@Site,@WarehouseId,@Warehouse,@LocationId,@Location,@BinId,@Bin,@ShelfId,@Shelf,@StocktypeAsset,@CommonJournalBatchDetailId)
 
+						END
 					END
 				
 					------Accounts Receivable (Trade or Other) -----------
 
 					------Accumulated Depreciation -----------
 					SET @Amount = (@DepreciationAmount);
-					SELECT top 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@CrDrType=CRDRType 
+					SELECT top 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@CrDrType=CRDRType, @IsBypassAccounting  = ISNULL(IsBypassAccounting,0)
 					FROM dbo.DistributionSetup WITH(NOLOCK) 
 					WHERE UPPER(DistributionSetupCode) =UPPER('ACCUMULATEDDEPRECIATION') AND DistributionMasterId=@DistributionMasterId
 					 AND MasterCompanyId = @MasterCompanyId
@@ -599,6 +614,9 @@ BEGIN
 
 						SET @JournalBatchDetailId=SCOPE_IDENTITY()
 					END
+
+					IF(@IsBypassAccounting = 0)
+					BEGIN
 
 					INSERT INTO [dbo].[CommonBatchDetails]
 						(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
@@ -623,12 +641,14 @@ BEGIN
 						(@JournalBatchDetailId,@JournalBatchHeaderId,@VendorId,@VendorName,@ItemMasterId,@partId,@MPNName,@ReferenceId,@AssetInventoryName,@ReferenceId,@AssetInventoryName,@AssetInventoryId,
 						@StocklineNumber,'',@Desc,@SiteId,@Site,@WarehouseId,@Warehouse,@LocationId,@Location,@BinId,@Bin,@ShelfId,@Shelf,@StocktypeAsset,@CommonJournalBatchDetailId)
 
+					END
+
 					------Accumulated Depreciation -----------
 
 					------Asset Account -----------
 					SET @Amount =  ISNULL((ISNULL(@AssetTotalPrice,0)-ISNULL(@PercentageAmount,0)),0);
 
-					SELECT top 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@CrDrType=CRDRType 
+					SELECT top 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@CrDrType=CRDRType, @IsBypassAccounting  = ISNULL(IsBypassAccounting,0)
 					FROM dbo.DistributionSetup WITH(NOLOCK)  WHERE UPPER(DistributionSetupCode) =UPPER('ASSETACCOUNT') AND
 					DistributionMasterId=@DistributionMasterId AND MasterCompanyId = @MasterCompanyId
 
@@ -650,6 +670,9 @@ BEGIN
 						
 						SET @JournalBatchDetailId=SCOPE_IDENTITY()
 					END
+
+					IF(@IsBypassAccounting = 0)
+					BEGIN
 
 					INSERT INTO [dbo].[CommonBatchDetails]
 						(JournalBatchDetailId,JournalTypeNumber,CurrentNumber,DistributionSetupId,DistributionName,[JournalBatchHeaderId],[LineNumber],[GlAccountId],[GlAccountNumber],[GlAccountName] ,[TransactionDate],[EntryDate] ,[JournalTypeId],[JournalTypeName],
@@ -676,16 +699,21 @@ BEGIN
 						(@JournalBatchDetailId,@JournalBatchHeaderId,@VendorId,@VendorName,@ItemMasterId,@partId,@MPNName,@ReferenceId,@AssetInventoryName,@ReferenceId,@AssetInventoryName,@AssetInventoryId,
 						@StocklineNumber,'',@Desc,@SiteId,@Site,@WarehouseId,@Warehouse,@LocationId,@Location,@BinId,@Bin,@ShelfId,@Shelf,@StocktypeAsset,@CommonJournalBatchDetailId)
 
+					END
+
 					------Asset Account -----------
 
 					------Loss/(Gain) on Disposal of Assets -----------
 					SET @Amount =  Isnull((@ARCaseAmount+@DepreciationAmount),0)-(ISNULL(@AssetTotalPrice,0)-ISNULL(@PercentageAmount,0));
 
 					SELECT top 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,
-					@GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName
+					@GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName, @IsBypassAccounting  = ISNULL(IsBypassAccounting,0)
 					FROM dbo.DistributionSetup WITH(NOLOCK)  WHERE UPPER(DistributionSetupCode) =UPPER('LOSSGAINONDISPOSALOFASSETS') 
 					AND DistributionMasterId=@DistributionMasterId  AND MasterCompanyId = @MasterCompanyId
 				
+					IF(@IsBypassAccounting = 0)
+					BEGIN
+
 					IF(isnull(@Amount,0) >= 0)
 					BEGIN
 
@@ -768,6 +796,7 @@ BEGIN
 
 					EXEC [DBO].[UpdateStocklineBatchDetailsColumnsWithId] @AssetInventoryId
 
+					END
 				END
 			
 				IF(UPPER(@DistributionCode) = UPPER('AssetInventory') AND UPPER(@StockType) = 'AssetWriteDown')
@@ -796,13 +825,15 @@ BEGIN
 					--SET @JournalTypeNumber = (SELECT * FROM dbo.udfGenerateCodeNumber(@currentNo,(SELECT CodePrefix FROM #tmpCodePrefixes WHERE CodeTypeId = @CodeTypeId), (SELECT CodeSufix FROM #tmpCodePrefixes WHERE CodeTypeId = @CodeTypeId)))
 
 					------Asset Account -----------
-					 AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0
-					 SELECT top 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@IsAutoPost = ISNULL(IsAutoPost,0) 
+					SELECT top 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@IsAutoPost = ISNULL(IsAutoPost,0), @IsBypassAccounting  = ISNULL(IsBypassAccounting,0)
 					FROM dbo.DistributionSetup WITH(NOLOCK)  WHERE UPPER(DistributionSetupCode) =UPPER('ASSETACCOUNT') 
 					AND DistributionMasterId=@DistributionMasterId AND MasterCompanyId = @MasterCompanyId
 
 					SELECT @GlAccountNumber=AccountCode,@GlAccountName=AccountName,@GlAccountId=@AcquiredGLAccountId 
 					FROM GLAccount WHERE GLAccountId=@AcquiredGLAccountId
+
+					IF(@IsBypassAccounting = 0)
+					BEGIN
 
 					IF(@JournalBatchDetailId = 0)
 					BEGIN
@@ -845,13 +876,18 @@ BEGIN
 							@StocklineNumber,'',@Desc,@SiteId,@Site,@WarehouseId,@Warehouse,@LocationId,@Location,@BinId,@Bin,@ShelfId,@Shelf,@StocktypeAsset,@CommonJournalBatchDetailId)
 
 					END
+
+					END
 					------Asset Account -----------
 
 					------Loss/(Gain) on Disposal of Assets -----------
 					SELECT top 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,
-					@GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName
+					@GlAccountId=GlAccountId,@GlAccountNumber=GlAccountNumber,@GlAccountName=GlAccountName, @IsBypassAccounting  = ISNULL(IsBypassAccounting,0)
 					FROM dbo.DistributionSetup WITH(NOLOCK)  WHERE  UPPER(DistributionSetupCode) =UPPER('LOSSGAINONDISPOSALOFASSETS') AND
 					DistributionMasterId=@DistributionMasterId AND MasterCompanyId = @MasterCompanyId
+
+					IF(@IsBypassAccounting = 0)
+					BEGIN
 
 					IF(@JournalBatchDetailId = 0)
 					BEGIN
@@ -900,6 +936,7 @@ BEGIN
 				
 					EXEC [DBO].[UpdateStocklineBatchDetailsColumnsWithId] @AssetInventoryId
 
+					END
 				END
 
 				SELECT @TotalDebit =SUM(DebitAmount),@TotalCredit=SUM(CreditAmount) FROM BatchDetails WITH(NOLOCK) WHERE JournalBatchHeaderId=@JournalBatchHeaderId and IsDeleted=0 group by JournalBatchHeaderId

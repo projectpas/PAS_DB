@@ -28,6 +28,7 @@
 	17   01/29/2026   Hemant Saliya	 Corrected to get Goods Received Not Invoiced (GRNI) from Stockline
 	18   06/29/2026   Abhishek Jirawla Including RPP in inserting batch details
 	19	 08/07/2026	  Moin Bloch       Modify (Added IsBypassAccounting Flag to bypass Accounting Entry PN-16871)
+	20   08/07/2026   Abhishek Jirawla Including RO Num in Batch details
 **************************************************************/  
 CREATE    PROCEDURE [dbo].[usp_PostROCreateStocklineBatchDetails]
 @tbl_PostStocklineBatchType PostStocklineBatchType READONLY,
@@ -909,10 +910,15 @@ BEGIN
 											
 
 											-----Goods Received Not Invoiced (GRNI)--------
-											DECLARE @lastQtyCon INT, @lastQtyDam INT;
-											SELECT TOP 1 @lastQtyCon = QtyConsumed, @lastQtyDam = QtyDamagedLost FROM dbo.PiecePartReconciliation WITH(NOLOCK)
+											DECLARE @lastQtyCon INT, @lastQtyDam INT, @ConsumeRepairOrderId BIGINT, @ConsumeRepairOrderNum varchar(50)='';
+											SELECT TOP 1 @lastQtyCon = QtyConsumed, @lastQtyDam = QtyDamagedLost, @ConsumeRepairOrderId = ConsumedRepairOrderId 
+											FROM dbo.PiecePartReconciliation WITH(NOLOCK)
 											WHERE StocklineId = @StocklineId
 											ORDER BY PiecePartReconciliationId DESC
+
+											SELECT TOP 1 @ConsumeRepairOrderNum = RepairOrderNumber 
+											FROM dbo.RepairOrder WITH(NOLOCK)
+											WHERE RepairOrderId = @ConsumeRepairOrderId
 
 											IF @lastQtyCon > 0 AND @IsBypassAccounting = 0
 											BEGIN
@@ -925,7 +931,7 @@ BEGIN
 												CASE WHEN @CrDrType = 1 THEN 1 ELSE 0 END,
 												CASE WHEN @CrDrType = 1 THEN @Amount ELSE 0 END,
 												CASE WHEN @CrDrType = 1 THEN 0 ELSE @Amount END,
-												@ManagementStructureId ,@ModuleName,@LastMSLevel,@AllMSlevels ,@MasterCompanyId,@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@LotId,@LotNumber,@RepairOrderNumber,@VendorName,@LocalCurrencyCode,@FXRate,@ForeignCurrencyCode,@RepairOrderId,@RROReferenceModule)
+												@ManagementStructureId ,@ModuleName,@LastMSLevel,@AllMSlevels ,@MasterCompanyId,@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@LotId,@LotNumber,@ConsumeRepairOrderNum,@VendorName,@LocalCurrencyCode,@FXRate,@ForeignCurrencyCode,@ConsumeRepairOrderId,@RROReferenceModule)
 
 											 SET @CommonJournalBatchDetailId = SCOPE_IDENTITY()
 
@@ -936,7 +942,7 @@ BEGIN
 												(JournalBatchDetailId,JournalBatchHeaderId,VendorId,VendorName,ItemMasterId,PartId,PartNumber,PoId,PONum,RoId,RONum,StocklineId,StocklineNumber,Consignment,[Description],
 												[SiteId],[Site],[WarehouseId],[Warehouse],[LocationId],[Location],[BinId],[Bin],[ShelfId],[Shelf],[StockType],[CommonJournalBatchDetailId])
 											VALUES
-												(@JournalBatchDetailId,@JournalBatchHeaderId,@VendorId,@VendorName,@ItemMasterId,@partId,@MPNName,@PurchaseOrderId,@PurchaseOrderNumber,@RepairOrderId,@RepairOrderNumber,@StocklineId,
+												(@JournalBatchDetailId,@JournalBatchHeaderId,@VendorId,@VendorName,@ItemMasterId,@partId,@MPNName,@PurchaseOrderId,@PurchaseOrderNumber,@ConsumeRepairOrderId,@ConsumeRepairOrderNum,@StocklineId,
 												@StocklineNumber,'',@Desc,@SiteId,@Site,@WarehouseId,@Warehouse,@LocationId,@Location,@BinId,@Bin,@ShelfId,@Shelf,@StockType,@CommonJournalBatchDetailId)
 											
 
@@ -964,7 +970,7 @@ BEGIN
 													CASE WHEN @CrDrType = 1 THEN 1 ELSE 0 END,
 													CASE WHEN @CrDrType = 1 THEN @Amount ELSE 0 END,
 													CASE WHEN @CrDrType = 1 THEN 0 ELSE @Amount END,
-													@ManagementStructureId ,@ModuleName,@LastMSLevel,@AllMSlevels ,@MasterCompanyId,@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@LotId,@LotNumber,@RepairOrderNumber,@VendorName,@LocalCurrencyCode,@FXRate,@ForeignCurrencyCode,@RepairOrderId,@RROReferenceModule)
+													@ManagementStructureId ,@ModuleName,@LastMSLevel,@AllMSlevels ,@MasterCompanyId,@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@LotId,@LotNumber,@ConsumeRepairOrderNum,@VendorName,@LocalCurrencyCode,@FXRate,@ForeignCurrencyCode,@ConsumeRepairOrderId,@RROReferenceModule)
 
 												 SET @CommonJournalBatchDetailId = SCOPE_IDENTITY()
 
@@ -976,7 +982,7 @@ BEGIN
 													(JournalBatchDetailId,JournalBatchHeaderId,VendorId,VendorName,ItemMasterId,PartId,PartNumber,PoId,PONum,RoId,RONum,StocklineId,StocklineNumber,Consignment,[Description],
 													[SiteId],[Site],[WarehouseId],[Warehouse],[LocationId],[Location],[BinId],[Bin],[ShelfId],[Shelf],[StockType],[CommonJournalBatchDetailId])
 												VALUES
-													(@JournalBatchDetailId,@JournalBatchHeaderId,@VendorId,@VendorName,@ItemMasterId,@partId,@MPNName,@PurchaseOrderId,@PurchaseOrderNumber,@RepairOrderId,@RepairOrderNumber,@StocklineId,
+													(@JournalBatchDetailId,@JournalBatchHeaderId,@VendorId,@VendorName,@ItemMasterId,@partId,@MPNName,@PurchaseOrderId,@PurchaseOrderNumber,@ConsumeRepairOrderId,@ConsumeRepairOrderNum, @StocklineId,
 													@StocklineNumber,'',@Desc,@SiteId,@Site,@WarehouseId,@Warehouse,@LocationId,@Location,@BinId,@Bin,@ShelfId,@Shelf,@StockType,@CommonJournalBatchDetailId)
 
 												EXEC [DBO].[UpdateStocklineBatchDetailsColumnsWithId] @StocklineId
@@ -1004,7 +1010,7 @@ BEGIN
 												CASE WHEN @CrDrType = 1 THEN 1 ELSE 0 END,
 												CASE WHEN @CrDrType = 1 THEN @Amount ELSE 0 END,
 												CASE WHEN @CrDrType = 1 THEN 0 ELSE @Amount END,
-												@ManagementStructureId ,@ModuleName,@LastMSLevel,@AllMSlevels ,@MasterCompanyId,@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@LotId,@LotNumber,@RepairOrderNumber,@VendorName,@LocalCurrencyCode,@FXRate,@ForeignCurrencyCode,@RepairOrderId,@RROReferenceModule)
+												@ManagementStructureId ,@ModuleName,@LastMSLevel,@AllMSlevels ,@MasterCompanyId,@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@LotId,@LotNumber,@ConsumeRepairOrderNum,@VendorName,@LocalCurrencyCode,@FXRate,@ForeignCurrencyCode,@ConsumeRepairOrderId,@RROReferenceModule)
 
 											 SET @CommonJournalBatchDetailId = SCOPE_IDENTITY()
 
@@ -1015,7 +1021,7 @@ BEGIN
 												(JournalBatchDetailId,JournalBatchHeaderId,VendorId,VendorName,ItemMasterId,PartId,PartNumber,PoId,PONum,RoId,RONum,StocklineId,StocklineNumber,Consignment,[Description],
 												[SiteId],[Site],[WarehouseId],[Warehouse],[LocationId],[Location],[BinId],[Bin],[ShelfId],[Shelf],[StockType],[CommonJournalBatchDetailId])
 											VALUES
-												(@JournalBatchDetailId,@JournalBatchHeaderId,@VendorId,@VendorName,@ItemMasterId,@partId,@MPNName,@PurchaseOrderId,@PurchaseOrderNumber,@RepairOrderId,@RepairOrderNumber,@StocklineId,
+												(@JournalBatchDetailId,@JournalBatchHeaderId,@VendorId,@VendorName,@ItemMasterId,@partId,@MPNName,@PurchaseOrderId,@PurchaseOrderNumber,@ConsumeRepairOrderId,@ConsumeRepairOrderNum,@StocklineId,
 												@StocklineNumber,'',@Desc,@SiteId,@Site,@WarehouseId,@Warehouse,@LocationId,@Location,@BinId,@Bin,@ShelfId,@Shelf,@StockType,@CommonJournalBatchDetailId)
 											
 											END
@@ -1044,7 +1050,7 @@ BEGIN
 													CASE WHEN @CrDrType = 1 THEN 1 ELSE 0 END,
 													CASE WHEN @CrDrType = 1 THEN @Amount ELSE 0 END,
 													CASE WHEN @CrDrType = 1 THEN 0 ELSE @Amount END,
-													@ManagementStructureId ,@ModuleName,@LastMSLevel,@AllMSlevels ,@MasterCompanyId,@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@LotId,@LotNumber,@RepairOrderNumber,@VendorName,@LocalCurrencyCode,@FXRate,@ForeignCurrencyCode,@RepairOrderId,@RROReferenceModule)
+													@ManagementStructureId ,@ModuleName,@LastMSLevel,@AllMSlevels ,@MasterCompanyId,@UpdateBy,@UpdateBy,GETUTCDATE(),GETUTCDATE(),1,0,@LotId,@LotNumber,@ConsumeRepairOrderNum,@VendorName,@LocalCurrencyCode,@FXRate,@ForeignCurrencyCode,@ConsumeRepairOrderId,@RROReferenceModule)
 
 												 SET @CommonJournalBatchDetailId = SCOPE_IDENTITY()
 
@@ -1055,7 +1061,7 @@ BEGIN
 													(JournalBatchDetailId,JournalBatchHeaderId,VendorId,VendorName,ItemMasterId,PartId,PartNumber,PoId,PONum,RoId,RONum,StocklineId,StocklineNumber,Consignment,[Description],
 													[SiteId],[Site],[WarehouseId],[Warehouse],[LocationId],[Location],[BinId],[Bin],[ShelfId],[Shelf],[StockType],[CommonJournalBatchDetailId])
 												VALUES
-													(@JournalBatchDetailId,@JournalBatchHeaderId,@VendorId,@VendorName,@ItemMasterId,@partId,@MPNName,@PurchaseOrderId,@PurchaseOrderNumber,@RepairOrderId,@RepairOrderNumber,@StocklineId,
+													(@JournalBatchDetailId,@JournalBatchHeaderId,@VendorId,@VendorName,@ItemMasterId,@partId,@MPNName,@PurchaseOrderId,@PurchaseOrderNumber,@ConsumeRepairOrderId,@ConsumeRepairOrderNum,@StocklineId,
 													@StocklineNumber,'',@Desc,@SiteId,@Site,@WarehouseId,@Warehouse,@LocationId,@Location,@BinId,@Bin,@ShelfId,@Shelf,@StockType,@CommonJournalBatchDetailId)
 
 												EXEC [DBO].[UpdateStocklineBatchDetailsColumnsWithId] @StocklineId

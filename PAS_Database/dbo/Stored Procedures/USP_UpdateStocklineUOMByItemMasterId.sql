@@ -11,6 +11,7 @@
  ** --   --------			-------				---------------------------     
     1    16/June/2026		Rajesh Gami			Created [PN-16878]
     2    01/July/2026		Ayushi Patel		[PN-17083]Added Stockline history log for UOM-Update action
+    3    09/July/2026		Ayushi Patel        [PN-17083]added new condition in if to Log Stockline History for the UOM-Update action
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_UpdateStocklineUOMByItemMasterId]
     @ItemMasterId             BIGINT,
@@ -206,7 +207,9 @@ BEGIN
         -----------------------------------------------------------------------
         --Step 4: Log Stockline History for the UOM-Update action              
         -----------------------------------------------------------------------
-        IF (@IsStockUOMEdited = 1)
+        IF (@IsStockUOMEdited = 1 AND (SELECT COUNT(StocklineId) From DBO.Stockline WITH(NOLOCK) WHERE ItemMasterId= @ItemMasterId
+                                        AND MasterCompanyId       = @MasterCompanyId AND ISNULL(isDeleted,  0) = 0 AND ISNULL(isActive,   0) = 1 AND ISNULL(QuantityOnHand,   0) > 0
+                                        AND ISNULL(QuantityReserved, 0) = 0 AND ISNULL(QuantityIssued,   0) = 0) > 0)
         BEGIN
             SELECT @UOMUpdateActionId = ActionId
             FROM [dbo].[StklineHistory_Action] WITH(NOLOCK)

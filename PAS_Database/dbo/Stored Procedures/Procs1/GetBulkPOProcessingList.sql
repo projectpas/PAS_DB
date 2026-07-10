@@ -18,6 +18,7 @@
 	12   12/May/2026             RAJESH GAMI						Implemented : Bulk PO For Sales Order [PN-16401]
 	13   26/June/2026            RAJESH GAMI						Fixes for the LastPONumber [PN-16964]
 	14   29/June/2026            Ayushi Patel						UOM Changes [PN-16708]
+	15	 09/July/2027            Ayushi Patel						return PoPartUnitCost from stockline table insted of PurchaseOrderUnitCost / uom chnages [PN-17152]
 ****************************************************************************************************************************************/ 
 
 CREATE      PROCEDURE [dbo].[GetBulkPOProcessingList]
@@ -175,8 +176,8 @@ BEGIN
 				IM_ITM.PartDescription,				
 				Cond.[Description],	
 				WOM.ConditionCodeId,				
-				CASE WHEN ISNULL(PO.IsFromBulkPO,0) = 0 THEN ((ISNULL(WOM.Quantity, 0) - (ISNULL(WOM.TotalReserved, 0) + ISNULL(WOM.TotalIssued, 0))) - (SELECT ISNULL(SUM(QuantityAvailable), 0) FROM [DBO].Stockline Stk WITH (NOLOCK) WHERE Stk.ItemMasterId = WOM.ItemMasterId AND Stk.ConditionId = WOM.ConditionCodeId AND Stk.IsParent = 1 AND Stk.IsCustomerStock = 0)) ELSE ISNULL(POP.QuantityOrdered,0) END,
-				CASE WHEN ISNULL(PO.IsFromBulkPO,0) = 0 THEN  ISNULL(IM_PS.PP_UnitPurchasePrice,0) ELSE ISNULL(POP.UnitCost,0) END,
+				CASE WHEN ISNULL(PO.IsFromBulkPO,0) = 0 THEN ((ISNULL(WOM.Quantity,0) - (ISNULL(WOM.TotalReserved,0) + ISNULL(WOM.TotalIssued,0))) - (SELECT ISNULL(SUM(QuantityAvailable),0) FROM DBO.Stockline Stk WITH (NOLOCK) WHERE Stk.ItemMasterId = WOM.ItemMasterId AND Stk.ConditionId = WOM.ConditionCodeId AND Stk.IsParent = 1 AND Stk.IsCustomerStock = 0)) ELSE CASE WHEN ISNULL(IM_ITM.StockUnitOfMeasure,'') = ISNULL(IM_ITM.PurchaseUnitOfMeasure,'') THEN ISNULL(POP.QuantityOrdered,0) ELSE dbo.fn_ConvertUOM(ISNULL(POP.QuantityOrdered,0), IM_ITM.PurchaseUnitOfMeasure, IM_ITM.StockUnitOfMeasure, 0, IM_ITM.MasterCompanyId) END END,
+				CASE WHEN ISNULL(PO.IsFromBulkPO,0) = 0 THEN CASE WHEN ISNULL(IM_ITM.StockUnitOfMeasure,'') = ISNULL(IM_ITM.PurchaseUnitOfMeasure,'') THEN ISNULL(IM_PS.PP_UnitPurchasePrice,0) ELSE dbo.fn_ConvertUOM(ISNULL(IM_PS.PP_UnitPurchasePrice,0), IM_ITM.PurchaseUnitOfMeasure, IM_ITM.StockUnitOfMeasure, 1, IM_ITM.MasterCompanyId) END ELSE CASE WHEN ISNULL(IM_ITM.StockUnitOfMeasure,'') = ISNULL(IM_ITM.PurchaseUnitOfMeasure,'') THEN ISNULL(POP.UnitCost,0) ELSE dbo.fn_ConvertUOM(ISNULL(POP.UnitCost,0), IM_ITM.PurchaseUnitOfMeasure, IM_ITM.StockUnitOfMeasure, 1, IM_ITM.MasterCompanyId) END END,
 				((CASE WHEN ISNULL(PO.IsFromBulkPO,0) = 0 THEN ((ISNULL(WOM.Quantity, 0) - (ISNULL(WOM.TotalReserved, 0) + ISNULL(WOM.TotalIssued, 0))) - (SELECT ISNULL(SUM(QuantityAvailable), 0) FROM [DBO].Stockline Stk WITH (NOLOCK) WHERE Stk.ItemMasterId = WOM.ItemMasterId AND Stk.ConditionId = WOM.ConditionCodeId AND Stk.IsParent = 1 AND Stk.IsCustomerStock = 0)) ELSE ISNULL(POP.QuantityOrdered,0) END) * (CASE WHEN ISNULL(PO.IsFromBulkPO,0) = 0 THEN  ISNULL(IM_PS.PP_UnitPurchasePrice,0) ELSE ISNULL(POP.UnitCost,0) END)),													
 				0,
 				'',
@@ -233,7 +234,7 @@ BEGIN
 				Cond.[Description],
 				WOM.ConditionCodeId,
 				((ISNULL(WOM.Quantity, 0) - (ISNULL(WOM.TotalReserved, 0) + ISNULL(WOM.TotalIssued, 0))) - (SELECT ISNULL(SUM(QuantityAvailable), 0) FROM [DBO].Stockline Stk WITH (NOLOCK) WHERE Stk.ItemMasterId = WOM.ItemMasterId AND Stk.ConditionId = WOM.ConditionCodeId AND Stk.IsParent = 1 AND Stk.IsCustomerStock = 0)),
-				ISNULL(IM_PS.PP_UnitPurchasePrice,0),
+				CASE WHEN ISNULL(IM_ITM.StockUnitOfMeasure,'') = ISNULL(IM_ITM.PurchaseUnitOfMeasure,'') THEN ISNULL(IM_PS.PP_UnitPurchasePrice,0) ELSE dbo.fn_ConvertUOM(ISNULL(IM_PS.PP_UnitPurchasePrice,0), IM_ITM.PurchaseUnitOfMeasure, IM_ITM.StockUnitOfMeasure, 1, IM_ITM.MasterCompanyId) END,
 				((ISNULL(WOM.Quantity, 0) - (ISNULL(WOM.TotalReserved, 0) + ISNULL(WOM.TotalIssued, 0))) - (SELECT ISNULL(SUM(QuantityAvailable), 0) FROM [DBO].Stockline Stk WITH (NOLOCK) WHERE Stk.ItemMasterId = WOM.ItemMasterId AND Stk.ConditionId = WOM.ConditionCodeId AND Stk.IsParent = 1 AND Stk.IsCustomerStock = 0)) * ISNULL(IM_PS.PP_UnitPurchasePrice,0),						
 				0,
 				'',
@@ -293,8 +294,14 @@ BEGIN
 				IM_ITM.PartDescription,
 				Cond.[Description],
 				WOM.ConditionCodeId,
-				CASE WHEN ISNULL(PO.IsFromBulkPO,0) = 0 THEN ((ISNULL(WOM.Quantity, 0) - (ISNULL(WOM.TotalReserved, 0) + ISNULL(WOM.TotalIssued, 0))) - (SELECT ISNULL(SUM(QuantityAvailable), 0) FROM [DBO].Stockline Stk WITH (NOLOCK) WHERE Stk.ItemMasterId = WOM.ItemMasterId AND Stk.ConditionId = WOM.ConditionCodeId AND Stk.IsParent = 1 AND Stk.IsCustomerStock = 0)) ELSE ISNULL(POP.QuantityOrdered,0) END,
-				CASE WHEN ISNULL(PO.IsFromBulkPO,0) = 0 THEN  ISNULL(IM_PS.PP_UnitPurchasePrice,0) ELSE ISNULL(POP.UnitCost,0) END,
+				CASE WHEN ISNULL(PO.IsFromBulkPO,0) = 0 
+				THEN ((ISNULL(WOM.Quantity, 0) - (ISNULL(WOM.TotalReserved, 0) + ISNULL(WOM.TotalIssued, 0))) - (SELECT ISNULL(SUM(QuantityAvailable), 0) FROM DBO.Stockline Stk WITH (NOLOCK) WHERE Stk.ItemMasterId = WOM.ItemMasterId AND Stk.ConditionId = WOM.ConditionCodeId AND Stk.IsParent = 1 AND Stk.IsCustomerStock = 0))
+				ELSE CASE WHEN ISNULL(IM_ITM.StockUnitOfMeasure,'') = ISNULL(IM_ITM.PurchaseUnitOfMeasure,'') THEN ISNULL(POP.QuantityOrdered,0) ELSE dbo.fn_ConvertUOM(ISNULL(POP.QuantityOrdered,0), IM_ITM.PurchaseUnitOfMeasure, IM_ITM.StockUnitOfMeasure, 0, IM_ITM.MasterCompanyId) END
+				END,
+				CASE WHEN ISNULL(PO.IsFromBulkPO,0) = 0 
+				THEN CASE WHEN ISNULL(IM_ITM.StockUnitOfMeasure,'') = ISNULL(IM_ITM.PurchaseUnitOfMeasure,'') THEN ISNULL(IM_PS.PP_UnitPurchasePrice,0) ELSE dbo.fn_ConvertUOM(ISNULL(IM_PS.PP_UnitPurchasePrice,0), IM_ITM.PurchaseUnitOfMeasure, IM_ITM.StockUnitOfMeasure, 1, IM_ITM.MasterCompanyId) END
+				ELSE CASE WHEN ISNULL(IM_ITM.StockUnitOfMeasure,'') = ISNULL(IM_ITM.PurchaseUnitOfMeasure,'') THEN ISNULL(POP.UnitCost,0) ELSE dbo.fn_ConvertUOM(ISNULL(POP.UnitCost,0), IM_ITM.PurchaseUnitOfMeasure, IM_ITM.StockUnitOfMeasure, 1, IM_ITM.MasterCompanyId) END
+				END,
 				((CASE WHEN ISNULL(PO.IsFromBulkPO,0) = 0 THEN ((ISNULL(WOM.Quantity, 0) - (ISNULL(WOM.TotalReserved, 0) + ISNULL(WOM.TotalIssued, 0))) - (SELECT ISNULL(SUM(QuantityAvailable), 0) FROM [DBO].Stockline Stk WITH (NOLOCK) WHERE Stk.ItemMasterId = WOM.ItemMasterId AND Stk.ConditionId = WOM.ConditionCodeId AND Stk.IsParent = 1 AND Stk.IsCustomerStock = 0)) ELSE ISNULL(POP.QuantityOrdered,0) END) * (CASE WHEN ISNULL(PO.IsFromBulkPO,0) = 0 THEN  ISNULL(IM_PS.PP_UnitPurchasePrice,0) ELSE ISNULL(POP.UnitCost,0) END)),
 				0,
 				'', 
@@ -349,8 +356,8 @@ BEGIN
 				IM_ITM.PartDescription,
 				Cond.[Description],
 				WOM.ConditionCodeId,
-				CASE WHEN ISNULL(PO.IsFromBulkPO,0) = 0 THEN ((ISNULL(WOM.Quantity, 0) - (ISNULL(WOM.TotalReserved, 0) + ISNULL(WOM.TotalIssued, 0))) - (SELECT ISNULL(SUM(QuantityAvailable), 0) FROM [DBO].Stockline Stk WITH (NOLOCK) WHERE Stk.ItemMasterId = WOM.ItemMasterId AND Stk.ConditionId = WOM.ConditionCodeId AND Stk.IsParent = 1 AND Stk.IsCustomerStock = 0)) ELSE ISNULL(POP.QuantityOrdered,0) END,
-				CASE WHEN ISNULL(PO.IsFromBulkPO,0) = 0 THEN  ISNULL(IM_PS.PP_UnitPurchasePrice,0) ELSE ISNULL(POP.UnitCost,0) END,
+				CASE WHEN ISNULL(PO.IsFromBulkPO,0) = 0 THEN ((ISNULL(WOM.Quantity, 0) - (ISNULL(WOM.TotalReserved, 0) + ISNULL(WOM.TotalIssued, 0))) - (SELECT ISNULL(SUM(QuantityAvailable), 0) FROM DBO.Stockline Stk WITH (NOLOCK) WHERE Stk.ItemMasterId = WOM.ItemMasterId AND Stk.ConditionId = WOM.ConditionCodeId AND Stk.IsParent = 1 AND Stk.IsCustomerStock = 0)) ELSE CASE WHEN ISNULL(IM_ITM.StockUnitOfMeasure,'') = ISNULL(IM_ITM.PurchaseUnitOfMeasure,'') THEN ISNULL(POP.QuantityOrdered,0) ELSE dbo.fn_ConvertUOM(ISNULL(POP.QuantityOrdered,0), IM_ITM.PurchaseUnitOfMeasure, IM_ITM.StockUnitOfMeasure, 0, IM_ITM.MasterCompanyId) END END,
+				CASE WHEN ISNULL(PO.IsFromBulkPO,0) = 0 THEN ISNULL(IM_PS.PP_UnitPurchasePrice,0) ELSE CASE WHEN ISNULL(IM_ITM.StockUnitOfMeasure,'') = ISNULL(IM_ITM.PurchaseUnitOfMeasure,'') THEN ISNULL(POP.UnitCost,0) ELSE dbo.fn_ConvertUOM(ISNULL(POP.UnitCost,0), IM_ITM.PurchaseUnitOfMeasure, IM_ITM.StockUnitOfMeasure, 1, IM_ITM.MasterCompanyId) END END,
 				((CASE WHEN ISNULL(PO.IsFromBulkPO,0) = 0 THEN ((ISNULL(WOM.Quantity, 0) - (ISNULL(WOM.TotalReserved, 0) + ISNULL(WOM.TotalIssued, 0))) - (SELECT ISNULL(SUM(QuantityAvailable), 0) FROM [DBO].Stockline Stk WITH (NOLOCK) WHERE Stk.ItemMasterId = WOM.ItemMasterId AND Stk.ConditionId = WOM.ConditionCodeId AND Stk.IsParent = 1 AND Stk.IsCustomerStock = 0)) ELSE ISNULL(POP.QuantityOrdered,0) END) * (CASE WHEN ISNULL(PO.IsFromBulkPO,0) = 0 THEN  ISNULL(IM_PS.PP_UnitPurchasePrice,0) ELSE ISNULL(POP.UnitCost,0) END)),				
 				0,
 				'',
@@ -407,7 +414,7 @@ BEGIN
 				Cond.[Description],
 				WOM.ConditionCodeId,
 				((ISNULL(WOM.Quantity, 0) - (ISNULL(WOM.TotalReserved, 0) + ISNULL(WOM.TotalIssued, 0))) - (SELECT ISNULL(SUM(QuantityAvailable), 0) FROM [DBO].Stockline Stk WITH (NOLOCK) WHERE Stk.ItemMasterId = WOM.ItemMasterId AND Stk.ConditionId = WOM.ConditionCodeId AND Stk.IsParent = 1 AND Stk.IsCustomerStock = 0)),
-				ISNULL(IM_PS.PP_UnitPurchasePrice,0),
+				CASE WHEN ISNULL(IM_ITM.StockUnitOfMeasure,'') = ISNULL(IM_ITM.PurchaseUnitOfMeasure,'') THEN ISNULL(IM_PS.PP_UnitPurchasePrice,0) ELSE dbo.fn_ConvertUOM(ISNULL(IM_PS.PP_UnitPurchasePrice,0), IM_ITM.PurchaseUnitOfMeasure, IM_ITM.StockUnitOfMeasure, 1, IM_ITM.MasterCompanyId) END,
 				((ISNULL(WOM.Quantity, 0) - (ISNULL(WOM.TotalReserved, 0) + ISNULL(WOM.TotalIssued, 0))) - (SELECT ISNULL(SUM(QuantityAvailable), 0) FROM [DBO].Stockline Stk WITH (NOLOCK) WHERE Stk.ItemMasterId = WOM.ItemMasterId AND Stk.ConditionId = WOM.ConditionCodeId AND Stk.IsParent = 1 AND Stk.IsCustomerStock = 0)) * ISNULL(IM_PS.PP_UnitPurchasePrice,0),
 	            0,
 				'',
@@ -467,8 +474,8 @@ BEGIN
 				IM_ITM.PartDescription,
 				Cond.[Description],
 				WOM.ConditionCodeId,
-				CASE WHEN ISNULL(PO.IsFromBulkPO,0) = 0 THEN ((ISNULL(WOM.Quantity, 0) - (ISNULL(WOM.TotalReserved, 0) + ISNULL(WOM.TotalIssued, 0))) - (SELECT ISNULL(SUM(QuantityAvailable), 0) FROM [DBO].Stockline Stk WITH (NOLOCK) WHERE Stk.ItemMasterId = WOM.ItemMasterId AND Stk.ConditionId = WOM.ConditionCodeId AND Stk.IsParent = 1 AND Stk.IsCustomerStock = 0)) ELSE ISNULL(POP.QuantityOrdered,0) END,
-				CASE WHEN ISNULL(PO.IsFromBulkPO,0) = 0 THEN  ISNULL(IM_PS.PP_UnitPurchasePrice,0) ELSE ISNULL(POP.UnitCost,0) END,
+				CASE WHEN ISNULL(PO.IsFromBulkPO,0) = 0 THEN ((ISNULL(WOM.Quantity, 0) - (ISNULL(WOM.TotalReserved, 0) + ISNULL(WOM.TotalIssued, 0))) - (SELECT ISNULL(SUM(QuantityAvailable), 0) FROM DBO.Stockline Stk WITH (NOLOCK) WHERE Stk.ItemMasterId = WOM.ItemMasterId AND Stk.ConditionId = WOM.ConditionCodeId AND Stk.IsParent = 1 AND Stk.IsCustomerStock = 0)) ELSE CASE WHEN ISNULL(IM_ITM.StockUnitOfMeasure,'') = ISNULL(IM_ITM.PurchaseUnitOfMeasure,'') THEN ISNULL(POP.QuantityOrdered,0) ELSE dbo.fn_ConvertUOM(ISNULL(POP.QuantityOrdered,0), IM_ITM.PurchaseUnitOfMeasure, IM_ITM.StockUnitOfMeasure, 0, IM_ITM.MasterCompanyId) END END,
+				CASE WHEN ISNULL(PO.IsFromBulkPO,0) = 0 THEN ISNULL(IM_PS.PP_UnitPurchasePrice,0) ELSE CASE WHEN ISNULL(IM_ITM.StockUnitOfMeasure,'') = ISNULL(IM_ITM.PurchaseUnitOfMeasure,'') THEN ISNULL(POP.UnitCost,0) ELSE dbo.fn_ConvertUOM(ISNULL(POP.UnitCost,0), IM_ITM.PurchaseUnitOfMeasure, IM_ITM.StockUnitOfMeasure, 1, IM_ITM.MasterCompanyId) END END,
 				((CASE WHEN ISNULL(PO.IsFromBulkPO,0) = 0 THEN ((ISNULL(WOM.Quantity, 0) - (ISNULL(WOM.TotalReserved, 0) + ISNULL(WOM.TotalIssued, 0))) - (SELECT ISNULL(SUM(QuantityAvailable), 0) FROM [DBO].Stockline Stk WITH (NOLOCK) WHERE Stk.ItemMasterId = WOM.ItemMasterId AND Stk.ConditionId = WOM.ConditionCodeId AND Stk.IsParent = 1 AND Stk.IsCustomerStock = 0)) ELSE ISNULL(POP.QuantityOrdered,0) END) * (CASE WHEN ISNULL(PO.IsFromBulkPO,0) = 0 THEN  ISNULL(IM_PS.PP_UnitPurchasePrice,0) ELSE ISNULL(POP.UnitCost,0) END)),
 	            0,
 				'',
@@ -536,29 +543,13 @@ BEGIN
 				SOP.ConditionId,
 
 				-- Quantity: if already on Bulk PO use POP.QuantityOrdered, else calculate shortage
-				CASE 
-					WHEN ISNULL(PO.IsFromBulkPO, 0) = 0 
-					THEN (
-						(ISNULL(SOP.QtyRequested, 0) - ISNULL(SOP.QtyReserved, 0))
-						- (
-							SELECT ISNULL(SUM(Stk.QuantityAvailable), 0)
-							FROM [dbo].[Stockline] Stk WITH (NOLOCK)
-							WHERE Stk.ItemMasterId = SOP.ItemMasterId
-							  AND Stk.ConditionId  = SOP.ConditionId
-							  AND Stk.IsParent     = 1
-							  AND Stk.IsCustomerStock = 0
-							  AND Stk.isDeleted    = 0
-							  AND Stk.isActive     = 1
-						)
-					)
-					ELSE ISNULL(POP.QuantityOrdered, 0)
+				CASE WHEN ISNULL(PO.IsFromBulkPO,0) = 0 THEN ((ISNULL(SOP.QtyRequested,0) - ISNULL(SOP.QtyReserved,0)) - (SELECT ISNULL(SUM(Stk.QuantityAvailable),0) FROM DBO.Stockline Stk WITH (NOLOCK) WHERE Stk.ItemMasterId = SOP.ItemMasterId AND Stk.ConditionId = SOP.ConditionId AND Stk.IsParent = 1 AND Stk.IsCustomerStock = 0 AND Stk.isDeleted = 0 AND Stk.isActive = 1)) 
+				ELSE 
+					CASE WHEN ISNULL(IM.StockUnitOfMeasure,'') = ISNULL(IM.PurchaseUnitOfMeasure,'') THEN ISNULL(POP.QuantityOrdered,0) ELSE dbo.fn_ConvertUOM(ISNULL(POP.QuantityOrdered,0), IM.PurchaseUnitOfMeasure, IM.StockUnitOfMeasure, 0, IM.MasterCompanyId) END 
 				END,
 
 				-- UnitCost
-				CASE 
-					WHEN ISNULL(PO.IsFromBulkPO, 0) = 0 THEN ISNULL(IM_PS.PP_UnitPurchasePrice, 0) 
-					ELSE ISNULL(POP.UnitCost, 0) 
-				END,
+				CASE WHEN ISNULL(PO.IsFromBulkPO,0) = 0 THEN CASE WHEN ISNULL(IM.StockUnitOfMeasure,'') = ISNULL(IM.PurchaseUnitOfMeasure,'') THEN ISNULL(IM_PS.PP_UnitPurchasePrice,0) ELSE dbo.fn_ConvertUOM(ISNULL(IM_PS.PP_UnitPurchasePrice,0), IM.PurchaseUnitOfMeasure, IM.StockUnitOfMeasure, 1, IM.MasterCompanyId) END ELSE CASE WHEN ISNULL(IM.StockUnitOfMeasure,'') = ISNULL(IM.PurchaseUnitOfMeasure,'') THEN ISNULL(POP.UnitCost,0) ELSE dbo.fn_ConvertUOM(ISNULL(POP.UnitCost,0), IM.PurchaseUnitOfMeasure, IM.StockUnitOfMeasure, 1, IM.MasterCompanyId) END END,
 
 				-- ExtendedCost
 				(
@@ -691,7 +682,7 @@ BEGIN
 					)
 				),
 
-				ISNULL(IM_PS.PP_UnitPurchasePrice, 0),
+				CASE WHEN ISNULL(IM.StockUnitOfMeasure,'') = ISNULL(IM.PurchaseUnitOfMeasure,'') THEN ISNULL(IM_PS.PP_UnitPurchasePrice,0) ELSE dbo.fn_ConvertUOM(ISNULL(IM_PS.PP_UnitPurchasePrice,0), IM.PurchaseUnitOfMeasure, IM.StockUnitOfMeasure, 1, IM.MasterCompanyId) END,
 
 				-- ExtendedCost
 				(
@@ -813,20 +804,9 @@ BEGIN
 				IM.PartDescription,
 				Cond.[Description],
 				SOP.ConditionId,
-				CASE
-					WHEN ISNULL(PO.IsFromBulkPO, 0) = 0
-					THEN (
-						(ISNULL(SOP.QtyRequested, 0) - ISNULL(SOP.QtyReserved, 0))
-						- (SELECT ISNULL(SUM(Stk.QuantityAvailable), 0) FROM [dbo].[Stockline] Stk WITH (NOLOCK)
-						   WHERE Stk.ItemMasterId = SOP.ItemMasterId AND Stk.ConditionId = SOP.ConditionId
-							 AND Stk.IsParent = 1 AND Stk.IsCustomerStock = 0 AND Stk.isDeleted = 0 AND Stk.isActive = 1)
-					)
-					ELSE ISNULL(POP.QuantityOrdered, 0)
-				END,
-				CASE
-					WHEN ISNULL(PO.IsFromBulkPO, 0) = 0 THEN ISNULL(IM_PS.PP_UnitPurchasePrice, 0)
-					ELSE ISNULL(POP.UnitCost, 0)
-				END,
+				CASE WHEN ISNULL(PO.IsFromBulkPO,0) = 0 THEN ((ISNULL(SOP.QtyRequested,0) - ISNULL(SOP.QtyReserved,0)) - (SELECT ISNULL(SUM(Stk.QuantityAvailable),0) FROM DBO.Stockline Stk WITH (NOLOCK) WHERE Stk.ItemMasterId = SOP.ItemMasterId AND Stk.ConditionId = SOP.ConditionId AND Stk.IsParent = 1 AND Stk.IsCustomerStock = 0 AND Stk.isDeleted = 0 AND Stk.isActive = 1)) ELSE CASE WHEN ISNULL(IM.StockUnitOfMeasure,'') = ISNULL(IM.PurchaseUnitOfMeasure,'') THEN ISNULL(POP.QuantityOrdered,0) ELSE dbo.fn_ConvertUOM(ISNULL(POP.QuantityOrdered,0), IM.PurchaseUnitOfMeasure, IM.StockUnitOfMeasure,0,IM.MasterCompanyId) END END,
+
+				CASE WHEN ISNULL(PO.IsFromBulkPO,0) = 0 THEN CASE WHEN ISNULL(IM.StockUnitOfMeasure,'') = ISNULL(IM.PurchaseUnitOfMeasure,'') THEN ISNULL(IM_PS.PP_UnitPurchasePrice,0) ELSE dbo.fn_ConvertUOM(ISNULL(IM_PS.PP_UnitPurchasePrice,0),IM.PurchaseUnitOfMeasure,IM.StockUnitOfMeasure,1,IM.MasterCompanyId) END ELSE CASE WHEN ISNULL(IM.StockUnitOfMeasure,'') = ISNULL(IM.PurchaseUnitOfMeasure,'') THEN ISNULL(POP.UnitCost,0) ELSE dbo.fn_ConvertUOM(ISNULL(POP.UnitCost,0),IM.PurchaseUnitOfMeasure,IM.StockUnitOfMeasure,1,IM.MasterCompanyId) END END,
 				(CASE
 					WHEN ISNULL(PO.IsFromBulkPO, 0) = 0
 					THEN (
@@ -893,7 +873,7 @@ BEGIN
 				FROM #TEMPBulkPORecords t
 				JOIN (
 					SELECT 
-						Stk.[PurchaseOrderUnitCost],
+						Stk.PoPartUnitCost AS PurchaseOrderUnitCost,
 						PO.[PurchaseOrderNumber],
 						Stk.[EntryDate],
 						Stk.[ItemMasterId],
@@ -1052,8 +1032,8 @@ BEGIN
 				IM_ITM.PartDescription,				
 				Cond.[Description],	
 				WOM.ConditionCodeId,				
-				CASE WHEN ISNULL(PO.IsFromBulkPO,0) = 0 THEN ((ISNULL(WOM.Quantity, 0) - (ISNULL(WOM.TotalReserved, 0) + ISNULL(WOM.TotalIssued, 0))) - (SELECT ISNULL(SUM(QuantityAvailable), 0) FROM [DBO].Stockline Stk WITH (NOLOCK) WHERE Stk.ItemMasterId = WOM.ItemMasterId AND Stk.ConditionId = WOM.ConditionCodeId AND Stk.IsParent = 1 AND Stk.IsCustomerStock = 0)) ELSE ISNULL(POP.QuantityOrdered,0) END,
-				CASE WHEN ISNULL(PO.IsFromBulkPO,0) = 0 THEN  ISNULL(IM_PS.PP_UnitPurchasePrice,0) ELSE ISNULL(POP.UnitCost,0) END,
+				CASE WHEN ISNULL(PO.IsFromBulkPO,0) = 0 THEN ((ISNULL(WOM.Quantity,0) - (ISNULL(WOM.TotalReserved,0) + ISNULL(WOM.TotalIssued,0))) - (SELECT ISNULL(SUM(QuantityAvailable),0) FROM DBO.Stockline Stk WITH (NOLOCK) WHERE Stk.ItemMasterId = WOM.ItemMasterId AND Stk.ConditionId = WOM.ConditionCodeId AND Stk.IsParent = 1 AND Stk.IsCustomerStock = 0)) ELSE CASE WHEN ISNULL(IM_ITM.StockUnitOfMeasure,'') = ISNULL(IM_ITM.PurchaseUnitOfMeasure,'') THEN ISNULL(POP.QuantityOrdered,0) ELSE dbo.fn_ConvertUOM(ISNULL(POP.QuantityOrdered,0),IM_ITM.PurchaseUnitOfMeasure,IM_ITM.StockUnitOfMeasure,0,IM_ITM.MasterCompanyId) END END,
+				CASE WHEN ISNULL(PO.IsFromBulkPO,0) = 0 THEN CASE WHEN ISNULL(IM_ITM.StockUnitOfMeasure,'') = ISNULL(IM_ITM.PurchaseUnitOfMeasure,'') THEN ISNULL(IM_PS.PP_UnitPurchasePrice,0) ELSE dbo.fn_ConvertUOM(ISNULL(IM_PS.PP_UnitPurchasePrice,0),IM_ITM.PurchaseUnitOfMeasure,IM_ITM.StockUnitOfMeasure,1,IM_ITM.MasterCompanyId) END ELSE CASE WHEN ISNULL(IM_ITM.StockUnitOfMeasure,'') = ISNULL(IM_ITM.PurchaseUnitOfMeasure,'') THEN ISNULL(POP.UnitCost,0) ELSE dbo.fn_ConvertUOM(ISNULL(POP.UnitCost,0),IM_ITM.PurchaseUnitOfMeasure,IM_ITM.StockUnitOfMeasure,1,IM_ITM.MasterCompanyId) END END,
 				((CASE WHEN ISNULL(PO.IsFromBulkPO,0) = 0 THEN ((ISNULL(WOM.Quantity, 0) - (ISNULL(WOM.TotalReserved, 0) + ISNULL(WOM.TotalIssued, 0))) - (SELECT ISNULL(SUM(QuantityAvailable), 0) FROM [DBO].Stockline Stk WITH (NOLOCK) WHERE Stk.ItemMasterId = WOM.ItemMasterId AND Stk.ConditionId = WOM.ConditionCodeId AND Stk.IsParent = 1 AND Stk.IsCustomerStock = 0)) ELSE ISNULL(POP.QuantityOrdered,0) END) * (CASE WHEN ISNULL(PO.IsFromBulkPO,0) = 0 THEN  ISNULL(IM_PS.PP_UnitPurchasePrice,0) ELSE ISNULL(POP.UnitCost,0) END)),													
 				0,
 				'',
@@ -1111,7 +1091,7 @@ BEGIN
 				Cond.[Description],
 				WOM.ConditionCodeId,
 				((ISNULL(WOM.Quantity, 0) - (ISNULL(WOM.TotalReserved, 0) + ISNULL(WOM.TotalIssued, 0))) - (SELECT ISNULL(SUM(QuantityAvailable), 0) FROM [DBO].Stockline Stk WITH (NOLOCK) WHERE Stk.ItemMasterId = WOM.ItemMasterId AND Stk.ConditionId = WOM.ConditionCodeId AND Stk.IsParent = 1 AND Stk.IsCustomerStock = 0)),
-				ISNULL(IM_PS.PP_UnitPurchasePrice,0),
+				CASE WHEN ISNULL(IM_ITM.StockUnitOfMeasure,'') = ISNULL(IM_ITM.PurchaseUnitOfMeasure,'') THEN ISNULL(IM_PS.PP_UnitPurchasePrice,0) ELSE dbo.fn_ConvertUOM(ISNULL(IM_PS.PP_UnitPurchasePrice,0),IM_ITM.PurchaseUnitOfMeasure,IM_ITM.StockUnitOfMeasure,1,IM_ITM.MasterCompanyId) END,
 				((ISNULL(WOM.Quantity, 0) - (ISNULL(WOM.TotalReserved, 0) + ISNULL(WOM.TotalIssued, 0))) - (SELECT ISNULL(SUM(QuantityAvailable), 0) FROM [DBO].Stockline Stk WITH (NOLOCK) WHERE Stk.ItemMasterId = WOM.ItemMasterId AND Stk.ConditionId = WOM.ConditionCodeId AND Stk.IsParent = 1 AND Stk.IsCustomerStock = 0)) * ISNULL(IM_PS.PP_UnitPurchasePrice,0),						
 				0,
 				'',
@@ -1175,8 +1155,8 @@ BEGIN
 				IM_ITM.PartDescription,
 				Cond.[Description],
 				WOM.ConditionCodeId,
-				CASE WHEN ISNULL(PO.IsFromBulkPO,0) = 0 THEN ((ISNULL(WOM.Quantity, 0) - (ISNULL(WOM.TotalReserved, 0) + ISNULL(WOM.TotalIssued, 0))) - (SELECT ISNULL(SUM(QuantityAvailable), 0) FROM [DBO].Stockline Stk WITH (NOLOCK) WHERE Stk.ItemMasterId = WOM.ItemMasterId AND Stk.ConditionId = WOM.ConditionCodeId AND Stk.IsParent = 1 AND Stk.IsCustomerStock = 0)) ELSE ISNULL(POP.QuantityOrdered,0) END,
-				CASE WHEN ISNULL(PO.IsFromBulkPO,0) = 0 THEN  ISNULL(IM_PS.PP_UnitPurchasePrice,0) ELSE ISNULL(POP.UnitCost,0) END,
+				CASE WHEN ISNULL(PO.IsFromBulkPO,0) = 0 THEN ((ISNULL(WOM.Quantity,0) - (ISNULL(WOM.TotalReserved,0) + ISNULL(WOM.TotalIssued,0))) - (SELECT ISNULL(SUM(QuantityAvailable),0) FROM DBO.Stockline Stk WITH (NOLOCK) WHERE Stk.ItemMasterId = WOM.ItemMasterId AND Stk.ConditionId = WOM.ConditionCodeId AND Stk.IsParent = 1 AND Stk.IsCustomerStock = 0)) ELSE CASE WHEN ISNULL(IM_ITM.StockUnitOfMeasure,'') = ISNULL(IM_ITM.PurchaseUnitOfMeasure,'') THEN ISNULL(POP.QuantityOrdered,0) ELSE dbo.fn_ConvertUOM(ISNULL(POP.QuantityOrdered,0),IM_ITM.PurchaseUnitOfMeasure,IM_ITM.StockUnitOfMeasure,0,IM_ITM.MasterCompanyId) END END,
+				CASE WHEN ISNULL(PO.IsFromBulkPO,0) = 0 THEN CASE WHEN ISNULL(IM_ITM.StockUnitOfMeasure,'') = ISNULL(IM_ITM.PurchaseUnitOfMeasure,'') THEN ISNULL(IM_PS.PP_UnitPurchasePrice,0) ELSE dbo.fn_ConvertUOM(ISNULL(IM_PS.PP_UnitPurchasePrice,0),IM_ITM.PurchaseUnitOfMeasure,IM_ITM.StockUnitOfMeasure,1,IM_ITM.MasterCompanyId) END ELSE CASE WHEN ISNULL(IM_ITM.StockUnitOfMeasure,'') = ISNULL(IM_ITM.PurchaseUnitOfMeasure,'') THEN ISNULL(POP.UnitCost,0) ELSE dbo.fn_ConvertUOM(ISNULL(POP.UnitCost,0),IM_ITM.PurchaseUnitOfMeasure,IM_ITM.StockUnitOfMeasure,1,IM_ITM.MasterCompanyId) END END,
 				((CASE WHEN ISNULL(PO.IsFromBulkPO,0) = 0 THEN ((ISNULL(WOM.Quantity, 0) - (ISNULL(WOM.TotalReserved, 0) + ISNULL(WOM.TotalIssued, 0))) - (SELECT ISNULL(SUM(QuantityAvailable), 0) FROM [DBO].Stockline Stk WITH (NOLOCK) WHERE Stk.ItemMasterId = WOM.ItemMasterId AND Stk.ConditionId = WOM.ConditionCodeId AND Stk.IsParent = 1 AND Stk.IsCustomerStock = 0)) ELSE ISNULL(POP.QuantityOrdered,0) END) * (CASE WHEN ISNULL(PO.IsFromBulkPO,0) = 0 THEN  ISNULL(IM_PS.PP_UnitPurchasePrice,0) ELSE ISNULL(POP.UnitCost,0) END)),
 				0,
 				'', 
@@ -1235,8 +1215,8 @@ BEGIN
 				IM_ITM.PartDescription,
 				Cond.[Description],
 				WOM.ConditionCodeId,
-				CASE WHEN ISNULL(PO.IsFromBulkPO,0) = 0 THEN ((ISNULL(WOM.Quantity, 0) - (ISNULL(WOM.TotalReserved, 0) + ISNULL(WOM.TotalIssued, 0))) - (SELECT ISNULL(SUM(QuantityAvailable), 0) FROM [DBO].Stockline Stk WITH (NOLOCK) WHERE Stk.ItemMasterId = WOM.ItemMasterId AND Stk.ConditionId = WOM.ConditionCodeId AND Stk.IsParent = 1 AND Stk.IsCustomerStock = 0)) ELSE ISNULL(POP.QuantityOrdered,0) END,
-				CASE WHEN ISNULL(PO.IsFromBulkPO,0) = 0 THEN  ISNULL(IM_PS.PP_UnitPurchasePrice,0) ELSE ISNULL(POP.UnitCost,0) END,
+				CASE WHEN ISNULL(PO.IsFromBulkPO,0) = 0 THEN ((ISNULL(WOM.Quantity,0) - (ISNULL(WOM.TotalReserved,0) + ISNULL(WOM.TotalIssued,0))) - (SELECT ISNULL(SUM(QuantityAvailable),0) FROM DBO.Stockline Stk WITH (NOLOCK) WHERE Stk.ItemMasterId = WOM.ItemMasterId AND Stk.ConditionId = WOM.ConditionCodeId AND Stk.IsParent = 1 AND Stk.IsCustomerStock = 0)) ELSE CASE WHEN ISNULL(IM_ITM.StockUnitOfMeasure,'') = ISNULL(IM_ITM.PurchaseUnitOfMeasure,'') THEN ISNULL(POP.QuantityOrdered,0) ELSE dbo.fn_ConvertUOM(ISNULL(POP.QuantityOrdered,0),IM_ITM.PurchaseUnitOfMeasure,IM_ITM.StockUnitOfMeasure,0,IM_ITM.MasterCompanyId) END END,
+				CASE WHEN ISNULL(PO.IsFromBulkPO,0) = 0 THEN CASE WHEN ISNULL(IM_ITM.StockUnitOfMeasure,'') = ISNULL(IM_ITM.PurchaseUnitOfMeasure,'') THEN ISNULL(IM_PS.PP_UnitPurchasePrice,0) ELSE dbo.fn_ConvertUOM(ISNULL(IM_PS.PP_UnitPurchasePrice,0),IM_ITM.PurchaseUnitOfMeasure,IM_ITM.StockUnitOfMeasure,1,IM_ITM.MasterCompanyId) END ELSE CASE WHEN ISNULL(IM_ITM.StockUnitOfMeasure,'') = ISNULL(IM_ITM.PurchaseUnitOfMeasure,'') THEN ISNULL(POP.UnitCost,0) ELSE dbo.fn_ConvertUOM(ISNULL(POP.UnitCost,0),IM_ITM.PurchaseUnitOfMeasure,IM_ITM.StockUnitOfMeasure,1,IM_ITM.MasterCompanyId) END END,
 				((CASE WHEN ISNULL(PO.IsFromBulkPO,0) = 0 THEN ((ISNULL(WOM.Quantity, 0) - (ISNULL(WOM.TotalReserved, 0) + ISNULL(WOM.TotalIssued, 0))) - (SELECT ISNULL(SUM(QuantityAvailable), 0) FROM [DBO].Stockline Stk WITH (NOLOCK) WHERE Stk.ItemMasterId = WOM.ItemMasterId AND Stk.ConditionId = WOM.ConditionCodeId AND Stk.IsParent = 1 AND Stk.IsCustomerStock = 0)) ELSE ISNULL(POP.QuantityOrdered,0) END) * (CASE WHEN ISNULL(PO.IsFromBulkPO,0) = 0 THEN  ISNULL(IM_PS.PP_UnitPurchasePrice,0) ELSE ISNULL(POP.UnitCost,0) END)),				
 				0,
 				'',
@@ -1294,7 +1274,7 @@ BEGIN
 				Cond.[Description],
 				WOM.ConditionCodeId,
 				((ISNULL(WOM.Quantity, 0) - (ISNULL(WOM.TotalReserved, 0) + ISNULL(WOM.TotalIssued, 0))) - (SELECT ISNULL(SUM(QuantityAvailable), 0) FROM [DBO].Stockline Stk WITH (NOLOCK) WHERE Stk.ItemMasterId = WOM.ItemMasterId AND Stk.ConditionId = WOM.ConditionCodeId AND Stk.IsParent = 1 AND Stk.IsCustomerStock = 0)),
-				ISNULL(IM_PS.PP_UnitPurchasePrice,0),
+				CASE WHEN ISNULL(IM_ITM.StockUnitOfMeasure,'') = ISNULL(IM_ITM.PurchaseUnitOfMeasure,'') THEN ISNULL(IM_PS.PP_UnitPurchasePrice,0) ELSE dbo.fn_ConvertUOM(ISNULL(IM_PS.PP_UnitPurchasePrice,0),IM_ITM.PurchaseUnitOfMeasure,IM_ITM.StockUnitOfMeasure,1,IM_ITM.MasterCompanyId) END,
 				((ISNULL(WOM.Quantity, 0) - (ISNULL(WOM.TotalReserved, 0) + ISNULL(WOM.TotalIssued, 0))) - (SELECT ISNULL(SUM(QuantityAvailable), 0) FROM [DBO].Stockline Stk WITH (NOLOCK) WHERE Stk.ItemMasterId = WOM.ItemMasterId AND Stk.ConditionId = WOM.ConditionCodeId AND Stk.IsParent = 1 AND Stk.IsCustomerStock = 0)) * ISNULL(IM_PS.PP_UnitPurchasePrice,0),
 	            0,
 				'',
@@ -1356,8 +1336,8 @@ BEGIN
 				IM_ITM.PartDescription,
 				Cond.[Description],
 				WOM.ConditionCodeId,
-				CASE WHEN ISNULL(PO.IsFromBulkPO,0) = 0 THEN ((ISNULL(WOM.Quantity, 0) - (ISNULL(WOM.TotalReserved, 0) + ISNULL(WOM.TotalIssued, 0))) - (SELECT ISNULL(SUM(QuantityAvailable), 0) FROM [DBO].Stockline Stk WITH (NOLOCK) WHERE Stk.ItemMasterId = WOM.ItemMasterId AND Stk.ConditionId = WOM.ConditionCodeId AND Stk.IsParent = 1 AND Stk.IsCustomerStock = 0)) ELSE ISNULL(POP.QuantityOrdered,0) END,
-				CASE WHEN ISNULL(PO.IsFromBulkPO,0) = 0 THEN  ISNULL(IM_PS.PP_UnitPurchasePrice,0) ELSE ISNULL(POP.UnitCost,0) END,
+				CASE WHEN ISNULL(PO.IsFromBulkPO,0) = 0 THEN ((ISNULL(WOM.Quantity,0) - (ISNULL(WOM.TotalReserved,0) + ISNULL(WOM.TotalIssued,0))) - (SELECT ISNULL(SUM(QuantityAvailable),0) FROM DBO.Stockline Stk WITH (NOLOCK) WHERE Stk.ItemMasterId = WOM.ItemMasterId AND Stk.ConditionId = WOM.ConditionCodeId AND Stk.IsParent = 1 AND Stk.IsCustomerStock = 0)) ELSE CASE WHEN ISNULL(IM_ITM.StockUnitOfMeasure,'') = ISNULL(IM_ITM.PurchaseUnitOfMeasure,'') THEN ISNULL(POP.QuantityOrdered,0) ELSE dbo.fn_ConvertUOM(ISNULL(POP.QuantityOrdered,0),IM_ITM.PurchaseUnitOfMeasure,IM_ITM.StockUnitOfMeasure,0,IM_ITM.MasterCompanyId) END END,
+				CASE WHEN ISNULL(PO.IsFromBulkPO,0) = 0 THEN CASE WHEN ISNULL(IM_ITM.StockUnitOfMeasure,'') = ISNULL(IM_ITM.PurchaseUnitOfMeasure,'') THEN ISNULL(IM_PS.PP_UnitPurchasePrice,0) ELSE dbo.fn_ConvertUOM(ISNULL(IM_PS.PP_UnitPurchasePrice,0),IM_ITM.PurchaseUnitOfMeasure,IM_ITM.StockUnitOfMeasure,1,IM_ITM.MasterCompanyId) END ELSE CASE WHEN ISNULL(IM_ITM.StockUnitOfMeasure,'') = ISNULL(IM_ITM.PurchaseUnitOfMeasure,'') THEN ISNULL(POP.UnitCost,0) ELSE dbo.fn_ConvertUOM(ISNULL(POP.UnitCost,0),IM_ITM.PurchaseUnitOfMeasure,IM_ITM.StockUnitOfMeasure,1,IM_ITM.MasterCompanyId) END END,
 				((CASE WHEN ISNULL(PO.IsFromBulkPO,0) = 0 THEN ((ISNULL(WOM.Quantity, 0) - (ISNULL(WOM.TotalReserved, 0) + ISNULL(WOM.TotalIssued, 0))) - (SELECT ISNULL(SUM(QuantityAvailable), 0) FROM [DBO].Stockline Stk WITH (NOLOCK) WHERE Stk.ItemMasterId = WOM.ItemMasterId AND Stk.ConditionId = WOM.ConditionCodeId AND Stk.IsParent = 1 AND Stk.IsCustomerStock = 0)) ELSE ISNULL(POP.QuantityOrdered,0) END) * (CASE WHEN ISNULL(PO.IsFromBulkPO,0) = 0 THEN  ISNULL(IM_PS.PP_UnitPurchasePrice,0) ELSE ISNULL(POP.UnitCost,0) END)),
 	            0,
 				'',
@@ -1428,28 +1408,29 @@ BEGIN
 
 				-- Quantity
 				CASE 
-					WHEN ISNULL(PO.IsFromBulkPO, 0) = 0 
-					THEN (
-						(ISNULL(SOP.QtyRequested, 0) - ISNULL(SOP.QtyReserved, 0))
-						- (
-							SELECT ISNULL(SUM(Stk.QuantityAvailable), 0)
-							FROM [dbo].[Stockline] Stk WITH (NOLOCK)
-							WHERE Stk.ItemMasterId    = SOP.ItemMasterId
-							  AND Stk.ConditionId     = SOP.ConditionId
-							  AND Stk.IsParent        = 1
-							  AND Stk.IsCustomerStock = 0
-							  AND Stk.isDeleted       = 0
-							  AND Stk.isActive        = 1
-						)
+				WHEN ISNULL(PO.IsFromBulkPO, 0) = 0 
+				THEN (
+					(ISNULL(SOP.QtyRequested, 0) - ISNULL(SOP.QtyReserved, 0))
+					- (
+						SELECT ISNULL(SUM(Stk.QuantityAvailable), 0)
+						FROM [dbo].[Stockline] Stk WITH (NOLOCK)
+						WHERE Stk.ItemMasterId    = SOP.ItemMasterId
+						  AND Stk.ConditionId     = SOP.ConditionId
+						  AND Stk.IsParent        = 1
+						  AND Stk.IsCustomerStock = 0
+						  AND Stk.isDeleted       = 0
+						  AND Stk.isActive        = 1
 					)
-					ELSE ISNULL(POP.QuantityOrdered, 0)
+				)
+				ELSE CASE 
+						 WHEN ISNULL(IM.StockUnitOfMeasure,'') = ISNULL(IM.PurchaseUnitOfMeasure,'') 
+							 THEN ISNULL(POP.QuantityOrdered, 0)
+						 ELSE dbo.fn_ConvertUOM(ISNULL(POP.QuantityOrdered, 0), IM.PurchaseUnitOfMeasure, IM.StockUnitOfMeasure, 0, IM.MasterCompanyId)
+					 END
 				END,
 
 				-- UnitCost
-				CASE 
-					WHEN ISNULL(PO.IsFromBulkPO, 0) = 0 THEN ISNULL(IM_PS.PP_UnitPurchasePrice, 0) 
-					ELSE ISNULL(POP.UnitCost, 0) 
-				END,
+				CASE WHEN ISNULL(PO.IsFromBulkPO,0) = 0 THEN CASE WHEN ISNULL(IM.StockUnitOfMeasure,'') = ISNULL(IM.PurchaseUnitOfMeasure,'') THEN ISNULL(IM_PS.PP_UnitPurchasePrice,0) ELSE dbo.fn_ConvertUOM(ISNULL(IM_PS.PP_UnitPurchasePrice,0),IM.PurchaseUnitOfMeasure,IM.StockUnitOfMeasure,1,IM.MasterCompanyId) END ELSE CASE WHEN ISNULL(IM.StockUnitOfMeasure,'') = ISNULL(IM.PurchaseUnitOfMeasure,'') THEN ISNULL(POP.UnitCost,0) ELSE dbo.fn_ConvertUOM(ISNULL(POP.UnitCost,0),IM.StockUnitOfMeasure,IM.PurchaseUnitOfMeasure,1,IM.MasterCompanyId) END END,
 
 				-- ExtendedCost
 				(
@@ -1585,7 +1566,7 @@ BEGIN
 					)
 				),
 
-				ISNULL(IM_PS.PP_UnitPurchasePrice, 0),
+				CASE WHEN ISNULL(IM.StockUnitOfMeasure,'') = ISNULL(IM.PurchaseUnitOfMeasure,'') THEN ISNULL(IM_PS.PP_UnitPurchasePrice,0) ELSE dbo.fn_ConvertUOM(ISNULL(IM_PS.PP_UnitPurchasePrice,0),IM.PurchaseUnitOfMeasure,IM.StockUnitOfMeasure,1,IM.MasterCompanyId) END,
 
 				-- ExtendedCost
 				(
@@ -1708,18 +1689,31 @@ BEGIN
 				Cond.[Description],
 				SOP.ConditionId,
 				CASE
-					WHEN ISNULL(PO.IsFromBulkPO, 0) = 0
-					THEN (
-						(ISNULL(SOP.QtyRequested, 0) - ISNULL(SOP.QtyReserved, 0))
-						- (SELECT ISNULL(SUM(Stk.QuantityAvailable), 0) FROM [dbo].[Stockline] Stk WITH (NOLOCK)
-						   WHERE Stk.ItemMasterId = SOP.ItemMasterId AND Stk.ConditionId = SOP.ConditionId
-							 AND Stk.IsParent = 1 AND Stk.IsCustomerStock = 0 AND Stk.isDeleted = 0 AND Stk.isActive = 1)
-					)
-					ELSE ISNULL(POP.QuantityOrdered, 0)
+								WHEN ISNULL(PO.IsFromBulkPO, 0) = 0
+								THEN (
+									(ISNULL(SOP.QtyRequested, 0) - ISNULL(SOP.QtyReserved, 0))
+									- (SELECT ISNULL(SUM(Stk.QuantityAvailable), 0) FROM [dbo].[Stockline] Stk WITH (NOLOCK)
+									   WHERE Stk.ItemMasterId = SOP.ItemMasterId AND Stk.ConditionId = SOP.ConditionId
+										 AND Stk.IsParent = 1 AND Stk.IsCustomerStock = 0 AND Stk.isDeleted = 0 AND Stk.isActive = 1)
+								)
+								ELSE CASE
+										 WHEN ISNULL(IM.StockUnitOfMeasure,'') = ISNULL(IM.PurchaseUnitOfMeasure,'')
+											 THEN ISNULL(POP.QuantityOrdered, 0)
+										 ELSE dbo.fn_ConvertUOM(ISNULL(POP.QuantityOrdered, 0), IM.PurchaseUnitOfMeasure, IM.StockUnitOfMeasure, 0, IM.MasterCompanyId)
+									 END
 				END,
+
 				CASE
-					WHEN ISNULL(PO.IsFromBulkPO, 0) = 0 THEN ISNULL(IM_PS.PP_UnitPurchasePrice, 0)
-					ELSE ISNULL(POP.UnitCost, 0)
+								WHEN ISNULL(PO.IsFromBulkPO, 0) = 0 THEN CASE
+																		 WHEN ISNULL(IM.StockUnitOfMeasure,'') = ISNULL(IM.PurchaseUnitOfMeasure,'')
+																			 THEN ISNULL(IM_PS.PP_UnitPurchasePrice, 0)
+																		 ELSE dbo.fn_ConvertUOM(ISNULL(IM_PS.PP_UnitPurchasePrice, 0), IM.PurchaseUnitOfMeasure, IM.StockUnitOfMeasure, 1, IM.MasterCompanyId)
+																	 END
+								ELSE CASE
+										 WHEN ISNULL(IM.StockUnitOfMeasure,'') = ISNULL(IM.PurchaseUnitOfMeasure,'')
+											 THEN ISNULL(POP.UnitCost, 0)
+										 ELSE dbo.fn_ConvertUOM(ISNULL(POP.UnitCost, 0), IM.PurchaseUnitOfMeasure, IM.StockUnitOfMeasure, 1, IM.MasterCompanyId)
+									 END
 				END,
 				(CASE
 					WHEN ISNULL(PO.IsFromBulkPO, 0) = 0
@@ -1792,7 +1786,7 @@ BEGIN
 					FROM #TEMPBulkPORecords t
 					JOIN (
 						SELECT 
-							Stk.[PurchaseOrderUnitCost],
+							Stk.PoPartUnitCost AS PurchaseOrderUnitCost,
 							PO.[PurchaseOrderNumber],
 							Stk.[EntryDate],
 							Stk.[ItemMasterId],

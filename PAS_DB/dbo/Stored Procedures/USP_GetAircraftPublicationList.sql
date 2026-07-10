@@ -11,9 +11,10 @@
 **  2    27/05/2026  Code Review		Fix VerifiedBy name space; add IsActive filter; remove unused pemp JOIN
 **  3    07/07/2026  Code Review		GET ComplianceDate,Ractification [PN-17153]
 **  2    08/07/2026  Amit Ghediya		Get Applicability,MEL [PN-17157]
+**  4    10/07/2026  Amit Ghediya		RactificationDate (date) renamed to Ractification (free text)
 
 ************************************************************/
-CREATE   PROCEDURE [dbo].[USP_GetAircraftPublicationList]
+CREATE    PROCEDURE [dbo].[USP_GetAircraftPublicationList]
     @PageNumber         INT             = 1,
     @PageSize           INT             = 10,
     @SortColumn         VARCHAR(100)    = 'AircraftPublicationId',
@@ -47,7 +48,7 @@ CREATE   PROCEDURE [dbo].[USP_GetAircraftPublicationList]
 	@FromPubDate   DATETIME        = NULL,
 	@ToPubDate   DATETIME        = NULL,
 	@ComplianceDate		  DATETIME     = NULL,
-	@RactificationDate    DATETIME     = NULL,
+	@Ractification        VARCHAR(MAX) = NULL,
 	@Applicability    VARCHAR(50)  = NULL,
 	@MEL			  VARCHAR(50)  = NULL
 AS
@@ -88,7 +89,7 @@ BEGIN
                 AP.IsDeleted,
 				AP.MasterCompanyId,
 				AP.ComplianceDate,
-				AP.RactificationDate,
+				AP.Ractification,
 				AP.Applicability,
 				AP.MEL,
                 COUNT(1) OVER () AS TotalRecords
@@ -153,7 +154,7 @@ BEGIN
 				AND (@UpdatedDate IS NULL OR CAST(AP.UpdatedDate AS DATE) = CAST(@UpdatedDate AS DATE))
 				AND (NULLIF(@UpdatedBy, '') IS NULL OR AP.UpdatedBy LIKE '%' + @UpdatedBy + '%')
 				AND (@ComplianceDate       IS NULL OR CAST(ComplianceDate       AS DATE) = CAST(@ComplianceDate AS DATE))
-				AND (@RactificationDate       IS NULL OR CAST(RactificationDate       AS DATE) = CAST(@RactificationDate AS DATE))
+				AND (NULLIF(@Ractification, '') IS NULL OR Ractification LIKE '%' + @Ractification + '%')
 				AND (ISNULL(@Applicability, '') = '' OR (CASE WHEN ISNULL([Applicability], 0) = 1 THEN 'YES' ELSE 'NO' END) LIKE '%' + @Applicability + '%')
 				AND (ISNULL(@MEL, '') = '' OR (CASE WHEN ISNULL([MEL], 0) = 1 THEN 'YES' ELSE 'NO' END) LIKE '%' + @MEL + '%')
         )
@@ -180,7 +181,7 @@ BEGIN
             IsDeleted,
 			MasterCompanyId,
 			ComplianceDate,
-			RactificationDate,
+			Ractification,
 			Applicability,
 			MEL,
             TotalRecords
@@ -269,8 +270,8 @@ BEGIN
 			CASE WHEN @SortColumn = 'ComplianceDate'  AND @SortOrder = 'ASC'  THEN ComplianceDate END ASC,
             CASE WHEN @SortColumn = 'ComplianceDate'  AND @SortOrder = 'DESC' THEN ComplianceDate END DESC,
 
-		    CASE WHEN @SortColumn = 'RactificationDate'   AND @SortOrder = 'ASC'  THEN RactificationDate END ASC,
-            CASE WHEN @SortColumn = 'RactificationDate'   AND @SortOrder = 'DESC' THEN RactificationDate END DESC,
+		    CASE WHEN @SortColumn = 'Ractification'   AND @SortOrder = 'ASC'  THEN Ractification END ASC,
+            CASE WHEN @SortColumn = 'Ractification'   AND @SortOrder = 'DESC' THEN Ractification END DESC,
 
 			CASE WHEN @SortColumn = 'Applicability'    AND @SortOrder = 'ASC'  THEN Applicability END ASC,
             CASE WHEN @SortColumn = 'Applicability'    AND @SortOrder = 'DESC' THEN Applicability END DESC,

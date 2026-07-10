@@ -1,4 +1,3 @@
-
 /*************************************************************           
  ** File:   [AutoCompleteDropdowns]           
  ** Author:   Vishal Suthar
@@ -43,6 +42,8 @@
 	25   21/04/2026   Sahdev Saliya			Display Only Trainer Expertise EMPLOYEE list for EMP TRAINER SCREEN(PN-16113)
 	26    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 
+	26   09/07/2026   AMIT GHEDIYA			Get for EngineRegistryHeader table merge for dropdown
+	
 --select * from dbo.Employee      
 --EXEC AutoCompleteDropdowns 'ItemMasterALL','ItemMasterId','PartDescription','',1,0,'',1,0       
 --EXEC AutoCompleteDropdowns 'Vendor','VendorId','VendorName','',1,20,'0',1  
@@ -99,6 +100,27 @@ AS BEGIN
                     SELECT DISTINCT EmployeeId AS Value, FirstName+' '+LastName AS Label
                     FROM dbo.Employee WITH(NOLOCK)
                     WHERE MasterCompanyId=@MasterCompanyId AND EmployeeId IN(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') )
+                END
+            END
+			ELSE IF(@TableName='EngineRegistryHeader')BEGIN
+                IF(@Parameter4=1)BEGIN
+                    SELECT DISTINCT EngineRegistryId AS Value, SerialNum+' '+EngineName+' '+EngineModel AS Label
+                    FROM dbo.EngineRegistryHeader WITH(NOLOCK)
+                    WHERE MasterCompanyId=@MasterCompanyId AND(IsActive=1 AND ISNULL(IsDeleted, 0)=0 AND(SerialNum LIKE '%'+@Parameter3+'%' OR EngineName LIKE '%'+@Parameter3+'%'))
+                    UNION
+                    SELECT DISTINCT EngineRegistryId AS Value, SerialNum+' '+EngineName AS Label
+                    FROM dbo.EngineRegistryHeader WITH(NOLOCK)
+                    WHERE MasterCompanyId=@MasterCompanyId AND EngineRegistryId IN(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') )
+                    ORDER BY SerialNum+' '+EngineName+' '+EngineModel
+                END
+                ELSE BEGIN
+                    SELECT DISTINCT EngineRegistryId AS Value, SerialNum+' '+EngineName+' '+EngineModel AS Label
+                    FROM dbo.EngineRegistryHeader WITH(NOLOCK)
+                    WHERE MasterCompanyId=@MasterCompanyId AND IsActive=1 AND ISNULL(IsDeleted, 0)=0 AND SerialNum LIKE '%'+@Parameter3+'%' OR EngineName LIKE '%'+@Parameter3+'%'
+                    UNION
+                    SELECT DISTINCT EngineRegistryId AS Value, SerialNum+' '+EngineName AS Label
+                    FROM dbo.EngineRegistryHeader WITH(NOLOCK)
+                    WHERE MasterCompanyId=@MasterCompanyId AND EngineRegistryId IN(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') )
                 END
             END
 			ELSE IF (@TableName='EmpTrainer')
@@ -500,6 +522,26 @@ AS BEGIN
                     SELECT DISTINCT EmployeeId AS Value, FirstName+' '+LastName AS Label
                     FROM dbo.Employee WITH(NOLOCK)
                     WHERE MasterCompanyId=@MasterCompanyId AND EmployeeId in(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') )
+                END
+            END
+			ELSE IF(@TableName='EngineRegistryHeader')BEGIN
+                IF(@Parameter4=1)BEGIN
+                    SELECT DISTINCT top 20 EngineRegistryId AS Value, SerialNum+' '+EngineName+' '+EngineModel AS Label
+                    FROM dbo.EngineRegistryHeader WITH(NOLOCK)
+                    WHERE MasterCompanyId=@MasterCompanyId AND(IsActive=1 AND ISNULL(IsDeleted, 0)=0 AND(SerialNum LIKE '%'+@Parameter3+'%' OR EngineName LIKE '%'+@Parameter3+'%'))
+                    UNION
+                    SELECT DISTINCT EngineRegistryId AS Value, SerialNum+' '+EngineName AS Label
+                    FROM dbo.EngineRegistryHeader WITH(NOLOCK)
+                    WHERE MasterCompanyId=@MasterCompanyId AND EngineRegistryId in(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') )
+                END
+                ELSE BEGIN
+                    SELECT DISTINCT top 20 EngineRegistryId AS Value, SerialNum+' '+EngineName+' '+EngineModel AS Label
+                    FROM dbo.EngineRegistryHeader WITH(NOLOCK)
+                    WHERE MasterCompanyId=@MasterCompanyId AND IsActive=1 AND ISNULL(IsDeleted, 0)=0 AND(SerialNum LIKE '%'+@Parameter3+'%' OR EngineName LIKE '%'+@Parameter3+'%')
+                    UNION
+                    SELECT DISTINCT EngineRegistryId AS Value, SerialNum+' '+EngineName AS Label
+                    FROM dbo.EngineRegistryHeader WITH(NOLOCK)
+                    WHERE MasterCompanyId=@MasterCompanyId AND EngineRegistryId in(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') )
                 END
             END
 			ELSE IF (@TableName='EmpTrainer')

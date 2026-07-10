@@ -58,6 +58,7 @@
  42	  25/08/2025  Moin Bloch		     added Some Remaining Fields For Common API
  43	  10/02/2026  Moin Bloch		     added TWO
  44	  06/03/2026  AMIT GHEDIYA		     added added IsReversedJE Flag for NPO (PN-15580)
+ 45	  08/07/2026  ABHISHEK JIRAWLA		 Added RoNum as Document Number When It is RO
 	45    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	46    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 
@@ -306,7 +307,7 @@ BEGIN
 					  ,JBH.[Module]  
 					  ,MPNPartId = stbd.PartId  
 					  ,MPNName = stbd.PartNumber  
-					  ,'' AS [DocumentNumber]  
+					  ,ISNULL(stbd.RONum, '') AS [DocumentNumber]  
 					  ,stbd.[SIte]  
 					  ,stbd.[Warehouse]  
 					  ,stbd.[Location]  

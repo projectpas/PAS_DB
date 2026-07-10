@@ -18,6 +18,7 @@
 	4    15/Apr/2026	Ayushi Patel	Added UOM Changes [PN-15910]
 	5	 19/06/2026	    Ayushi			[PN-16911]Skip fn_ConvertUOM call when ToUOM = FromUOM
 	6	 30/06/2026	    Sumit			[PN-17058] Selected the Stockline Lot number and EngineSerialNumber
+	7    10/07/2026     Ayushi Patel	[PN-17211] revert the UOM covertion changes for stockline print
 --EXEC [USP_GetStocklinePrintDataByStockLineId] 
 **************************************************************/
 CREATE PROCEDURE [dbo].[USP_GetStocklinePrintDataByStockLineId]
@@ -51,15 +52,16 @@ BEGIN
 			stl.Shelf AS shelfName,
 			stl.Bin AS binName,
 			ISNULL(ve.VendorName, '') AS VendorName,
-			CASE 
-				WHEN ISNULL(stl.QuantityOnHand,0) > 0 
-					THEN CASE 
-							 WHEN ISNULL(uomStock.ShortName,'') = ISNULL(uomConsume.ShortName,'')
-								 THEN ISNULL(stl.QuantityOnHand,0)
-							 ELSE dbo.fn_ConvertUOM(stl.QuantityOnHand,uomStock.ShortName,uomConsume.ShortName,0,stl.MasterCompanyId)
-						 END
-				ELSE 0
-			END AS Quantity,
+			--CASE 
+			--	WHEN ISNULL(stl.QuantityOnHand,0) > 0 
+			--		THEN CASE 
+			--				 WHEN ISNULL(uomStock.ShortName,'') = ISNULL(uomConsume.ShortName,'')
+			--					 THEN ISNULL(stl.QuantityOnHand,0)
+			--				 ELSE dbo.fn_ConvertUOM(stl.QuantityOnHand,uomStock.ShortName,uomConsume.ShortName,0,stl.MasterCompanyId)
+			--			 END
+			--	ELSE 0
+			--END AS Quantity,
+			stl.QuantityOnHand AS Quantity,
 			stl.IdNumber AS ControlId,
 			ISNULL(po.PurchaseOrderNumber, '') AS PurchaseOrderNumber,
 			stl.ExpirationDate,
@@ -72,8 +74,8 @@ BEGIN
 			stl.UpdatedDate,
 			stl.IsSerialized,
 			stl.TraceableToName,
-			--stl.UnitOfMeasure AS UnitOfMeasureName,
-			uomConsume.ShortName AS UnitOfMeasureName,
+			stl.StockUnitOfMeasure AS UnitOfMeasureName,
+			--uomConsume.ShortName AS UnitOfMeasureName,
 			'' AS MPNNum,
 			wo.WorkOrderNum AS WoNum,
 			CAST(0 AS BIT) AS IsFromSubWO,

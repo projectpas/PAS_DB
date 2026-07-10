@@ -9,6 +9,7 @@
  ** PR   Date				Author					Change Description            
  ** --   --------			-------				--------------------------------          
     1    12-May-2025		Devendra Shekh			Created
+	2    10-July-2026		Sumit Kumar				Selected 'WorkFlowDescription' [PN-17112]
 
 EXEC [USP_GetWorkFlowNos] 3, 10, 1, 101, 23
 **************************************************************/
@@ -35,7 +36,8 @@ BEGIN
 					im.[PartDescription],
 					WorkScope = ws.[Description],
 					Currency = cur.[DisplayName],
-					ExpirationDate = wf.[WorkflowExpirationDate]
+					ExpirationDate = wf.[WorkflowExpirationDate],
+					wf.WorkFlowDescription
 				FROM dbo.Workflow wf WITH (NOLOCK)
 				LEFT JOIN dbo.Customer c WITH (NOLOCK) ON wf.CustomerId = c.CustomerId
 				INNER JOIN dbo.ItemMaster im WITH (NOLOCK) ON wf.ItemMasterId = im.ItemMasterId
@@ -58,7 +60,8 @@ BEGIN
 					im.[PartDescription],
 					WorkScope = ws.[Description],
 					Currency = cur.[DisplayName],
-					ExpirationDate = wf.[WorkflowExpirationDate]
+					ExpirationDate = wf.[WorkflowExpirationDate],
+					wf.WorkFlowDescription
 				FROM dbo.Workflow wf WITH (NOLOCK)
 				LEFT JOIN dbo.Customer c WITH (NOLOCK) ON wf.CustomerId = c.CustomerId
 				INNER JOIN dbo.ItemMaster im WITH (NOLOCK) ON wf.ItemMasterId = im.ItemMasterId
@@ -78,7 +81,8 @@ BEGIN
 					im.[PartDescription],
 					WorkScope = ws.[Description],
 					Currency = cur.[DisplayName],
-					ExpirationDate = wf.[WorkflowExpirationDate]
+					ExpirationDate = wf.[WorkflowExpirationDate],
+					wf.WorkFlowDescription
 				FROM dbo.Workflow wf WITH (NOLOCK)
 				LEFT JOIN dbo.Customer c WITH (NOLOCK) ON wf.CustomerId = c.CustomerId
 				INNER JOIN dbo.ItemMaster im WITH (NOLOCK) ON wf.ItemMasterId = im.ItemMasterId
@@ -101,7 +105,8 @@ BEGIN
 					im.[PartDescription],
 					WorkScope = ws.[Description],
 					Currency = cur.[DisplayName],
-					ExpirationDate = wf.[WorkflowExpirationDate]
+					ExpirationDate = wf.[WorkflowExpirationDate],
+					wf.WorkFlowDescription
 				FROM dbo.Workflow wf WITH (NOLOCK)
 				LEFT JOIN dbo.Customer c WITH (NOLOCK) ON wf.CustomerId = c.CustomerId
 				INNER JOIN dbo.ItemMaster im WITH (NOLOCK) ON wf.ItemMasterId = im.ItemMasterId

@@ -11,6 +11,7 @@
  ** --   --------			-------				---------------------------     
     1    16/June/2026		Rajesh Gami			Created [PN-16878]
     2    01/July/2026		Ayushi Patel		[PN-17083]Added Stockline history log for UOM-Update action
+    3    09/July/2026		Ayushi Patel        [PN-17083]added new condition in if to Log Stockline History for the UOM-Update action
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_UpdateStocklineUOMByItemMasterId]
     @ItemMasterId             BIGINT,

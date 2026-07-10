@@ -12,6 +12,7 @@
 **  3    07/07/2026  Code Review		GET ComplianceDate,Ractification [PN-17153]
 **  2    08/07/2026  Amit Ghediya		Get Applicability,MEL [PN-17157]
 **  4    10/07/2026  Amit Ghediya		RactificationDate (date) renamed to Ractification (free text)
+**  5    10/07/2026  Amit Ghediya		WO,Ws Filter [PN-17160]
 
 ************************************************************/
 CREATE    PROCEDURE [dbo].[USP_GetAircraftPublicationList]
@@ -50,7 +51,15 @@ CREATE    PROCEDURE [dbo].[USP_GetAircraftPublicationList]
 	@ComplianceDate		  DATETIME     = NULL,
 	@Ractification        VARCHAR(MAX) = NULL,
 	@Applicability    VARCHAR(50)  = NULL,
-	@MEL			  VARCHAR(50)  = NULL
+	@MEL			  VARCHAR(50)  = NULL,
+
+	@WorksheetNumber      VARCHAR(100) = NULL,
+	@WorksheetDate       DATETIME     = NULL,
+	@WorkSheetStatus      VARCHAR(100) = NULL,
+
+	@WorkOrderNo         VARCHAR(100) = NULL,
+	@OpenDate             DATETIME     = NULL,
+	@WorkOrderStatus      VARCHAR(100) = NULL
 AS
 BEGIN
     --SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
@@ -92,6 +101,14 @@ BEGIN
 				AP.Ractification,
 				AP.Applicability,
 				AP.MEL,
+				WS.WorksheetNumber AS WorkSheetNumber,
+                WS.WorksheetHeaderId AS WorkSheetId,
+                WS.CreatedDate       AS WorkSheetDate,
+                WSS.WorkSheetStatus  AS WorkSheetStatus,
+                WOX.WorkOrderNum     AS WorkOrderNo,
+                WOX.WorkOrderId,
+                WOX.OpenDate,
+                WOX.WorkOrderStatus,
                 COUNT(1) OVER () AS TotalRecords
             FROM [dbo].[AircraftPublication] AS AP WITH (NOLOCK)
 			LEFT JOIN dbo.PublicationType PT WITH (NOLOCK) ON AP.PublicationTypeId = PT.PublicationTypeId
@@ -99,6 +116,59 @@ BEGIN
 			LEFT JOIN dbo.Employee EMP WITH (NOLOCK) ON EMP.EmployeeId = AP.VerifiedBy
 			LEFT JOIN [dbo].[Manufacturer] M with (NOLOCK) ON AP.PublishedByRefId = M.ManufacturerId
 			LEFT JOIN [dbo].[Vendor] V with (NOLOCK) ON AP.PublishedByRefId = V.VendorId
+			-- Aggregate flag: evaluated only for qualifying (registry, publication) pairs
+            OUTER APPLY (
+                SELECT MAX(CAST(ISNULL(AMP.IsMtceRecordUpdated, 0) AS INT)) AS IsMtceRecordUpdated
+                FROM dbo.AircraftMaintenanceProgram AMP WITH (NOLOCK)
+                WHERE AMP.AircraftPublicationId = AP.AircraftPublicationId
+            ) MR
+            -- Latest worksheet: replaces ROW_NUMBER over the full table with a per-row TOP(1)
+            OUTER APPLY (
+                SELECT TOP (1)
+                       WSH.WorksheetNumber, WSH.WorksheetHeaderId, WSH.CreatedDate, WSH.CreatedBy
+                FROM dbo.AircraftMaintenanceProgram AMP WITH (NOLOCK)
+                LEFT JOIN dbo.WorksheetHeader WSH WITH (NOLOCK)
+                       ON WSH.ProgramId = AMP.ProgramId
+                WHERE AMP.AircraftPublicationId = AP.AircraftPublicationId
+                ORDER BY WSH.CreatedDate DESC, WSH.WorksheetHeaderId DESC
+            ) WS
+            -- Latest work order
+            OUTER APPLY (
+                SELECT TOP (1)
+                       WO.WorkOrderNum, WO.WorkOrderId, WO.OpenDate, WOPN.WorkOrderStatus
+                FROM dbo.AircraftMaintenanceProgram AMP WITH (NOLOCK)
+                LEFT JOIN dbo.WorkOrderPartNumber WOPN WITH (NOLOCK)
+                       ON WOPN.ProgramId = AMP.ProgramId
+                LEFT JOIN dbo.WorkOrder WO WITH (NOLOCK)
+                       ON WO.WorkOrderId = WOPN.WorkOrderId
+                WHERE AMP.AircraftPublicationId = AP.AircraftPublicationId
+                ORDER BY WO.WorkOrderId DESC
+            ) WOX
+            -- Worksheet status
+            OUTER APPLY (
+                SELECT TOP (1)
+                    CASE
+                        WHEN AMP.ProgramId IS NULL OR WSH.WorksheetHeaderId IS NULL THEN NULL
+                        WHEN WSH.WorksheetHeaderId IS NULL THEN 'Open'
+                        WHEN WOP2.WorkOrderId IS NULL THEN 'Open'
+                        WHEN ISNULL(WO2.WorkOrderStatusId, 0) = 2 THEN 'Closed'
+                        WHEN UPPER(ISNULL(WOP2.WorkOrderStatus, '')) = 'CLOSED' THEN 'Closed'
+                        WHEN ISNULL(
+                                CASE WHEN ISNULL(WSH.AircraftInstalledPartDetailsId, 0) > 0
+                                     THEN WOP2.WorkOrderStatusId ELSE WO2.WorkOrderStatusId END, 0) = 2
+                             THEN 'Closed'
+                        ELSE 'In Process'
+                    END AS WorkSheetStatus
+                FROM dbo.AircraftMaintenanceProgram AMP WITH (NOLOCK)
+                LEFT JOIN dbo.WorksheetHeader WSH WITH (NOLOCK)
+                       ON WSH.ProgramId = AMP.ProgramId
+                LEFT JOIN dbo.WorkOrderPartNumber WOP2 WITH (NOLOCK)
+                       ON WOP2.ProgramId = AMP.ProgramId
+                LEFT JOIN dbo.WorkOrder WO2 WITH (NOLOCK)
+                       ON WO2.WorkOrderId = WOP2.WorkOrderId
+                WHERE AMP.AircraftPublicationId = AP.AircraftPublicationId
+                ORDER BY WSH.WorksheetHeaderId DESC, WOP2.WorkOrderId DESC
+            ) WSS
             WHERE
                 AP.MasterCompanyId = @MasterCompanyId
                 AND (@IsDeleted IS NULL OR AP.IsDeleted = @IsDeleted)
@@ -128,6 +198,10 @@ BEGIN
 					OR AP.ComplianceCategory LIKE '%' + @GlobalFilter + '%'
 					OR AP.Timeframe LIKE '%' + @GlobalFilter + '%'
 					OR AP.PurposeReasonBackground LIKE '%' + @GlobalFilter + '%'
+					OR ISNULL(WorksheetNumber, '')       LIKE '%' + @GlobalFilter + '%'
+					OR ISNULL(WorkOrderNum, '')       LIKE '%' + @GlobalFilter + '%'
+					OR ISNULL(WorkOrderStatus, '')    LIKE '%' + @GlobalFilter + '%'
+					OR ISNULL(WorkSheetStatus, '')    LIKE '%' + @GlobalFilter + '%'
                 )
     --            AND (@AircraftPublicationNumber          IS NULL OR AP.AircraftPublicationNumber         LIKE '%' + @AircraftPublicationNumber         + '%')
     --            AND (@PublicationType     IS NULL OR PT.[Name]    LIKE '%' + @PublicationType    + '%')
@@ -157,6 +231,14 @@ BEGIN
 				AND (NULLIF(@Ractification, '') IS NULL OR Ractification LIKE '%' + @Ractification + '%')
 				AND (ISNULL(@Applicability, '') = '' OR (CASE WHEN ISNULL([Applicability], 0) = 1 THEN 'YES' ELSE 'NO' END) LIKE '%' + @Applicability + '%')
 				AND (ISNULL(@MEL, '') = '' OR (CASE WHEN ISNULL([MEL], 0) = 1 THEN 'YES' ELSE 'NO' END) LIKE '%' + @MEL + '%')
+
+				AND (NULLIF(@WorksheetNumber, '')   IS NULL OR ISNULL(WorksheetNumber, '')        LIKE '%' + @WorksheetNumber + '%')
+				AND (@WorksheetDate IS NULL OR CAST(WS.CreatedDate AS DATE) = CAST(@WorksheetDate AS DATE))
+				AND (NULLIF(@WorkSheetStatus, '')     IS NULL OR ISNULL(WorkSheetStatus, '')     LIKE '%' + @WorkSheetStatus + '%')
+
+				AND (NULLIF(@WorkOrderNo, '')   IS NULL OR ISNULL(WOX.WorkOrderNum, '')        LIKE '%' + @WorkOrderNo + '%')
+				AND (@OpenDate IS NULL OR CAST(WOX.OpenDate AS DATE) = CAST(@OpenDate AS DATE))
+				AND (NULLIF(@WorkOrderStatus, '')     IS NULL OR ISNULL(WorkOrderStatus, '')     LIKE '%' + @WorkOrderStatus + '%')
         )
         SELECT
             AircraftPublicationId,
@@ -184,6 +266,14 @@ BEGIN
 			Ractification,
 			Applicability,
 			MEL,
+			WorksheetNumber,
+            WorkSheetId,
+            WorkSheetDate,
+            WorkSheetStatus,
+            WorkOrderNo,
+            WorkOrderId,
+            OpenDate,
+            WorkOrderStatus,
             TotalRecords
         FROM CTE
         ORDER BY
@@ -278,6 +368,24 @@ BEGIN
 
 			CASE WHEN @SortColumn = 'Mel'    AND @SortOrder = 'ASC'  THEN MEL END ASC,
             CASE WHEN @SortColumn = 'Mel'    AND @SortOrder = 'DESC' THEN MEL END DESC,
+
+			CASE WHEN @SortColumn = 'WorksheetNumber'    AND @SortOrder = 'ASC'  THEN WorksheetNumber END ASC,
+            CASE WHEN @SortColumn = 'WorksheetNumber'    AND @SortOrder = 'DESC' THEN WorksheetNumber END DESC,
+
+			CASE WHEN @SortColumn = 'WorksheetDate' AND @SortOrder = 'ASC'  THEN WorksheetDate END ASC,
+			CASE WHEN @SortColumn = 'WorksheetDate' AND @SortOrder = 'DESC' THEN WorksheetDate END DESC,
+
+			CASE WHEN @SortColumn = 'WorkSheetStatus'    AND @SortOrder = 'ASC'  THEN WorkSheetStatus END ASC,
+            CASE WHEN @SortColumn = 'WorkSheetStatus'    AND @SortOrder = 'DESC' THEN WorkSheetStatus END DESC,
+
+			CASE WHEN @SortColumn = 'WorkOrderNo'    AND @SortOrder = 'ASC'  THEN WorkOrderNo END ASC,
+            CASE WHEN @SortColumn = 'WorkOrderNo'    AND @SortOrder = 'DESC' THEN WorkOrderNo END DESC,
+
+			CASE WHEN @SortColumn = 'OpenDate' AND @SortOrder = 'ASC'  THEN OpenDate END ASC,
+			CASE WHEN @SortColumn = 'OpenDate' AND @SortOrder = 'DESC' THEN OpenDate END DESC,
+
+			CASE WHEN @SortColumn = 'WorkOrderStatus'    AND @SortOrder = 'ASC'  THEN WorkOrderStatus END ASC,
+            CASE WHEN @SortColumn = 'WorkOrderStatus'    AND @SortOrder = 'DESC' THEN WorkOrderStatus END DESC,
 
 			-- Default fallback
 			AircraftPublicationId DESC

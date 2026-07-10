@@ -20,9 +20,10 @@
 	7    22-APR-2026   Sahdev Saliya        Added condion of IsDeleted for EmployeeTraining report List.(PN-16144)
     8    08/07/2026    Kishor Makwana       Added categoryType in select statement [PN-17166]
     9    08/07/2026    Kishor Makwana       Added categoryId and isRecurring filters [PN-17166]
+    10   10-JUL-2026   Bhargav Saliya       Added Provider Type filter (Internal/External) [PN-17163]
 
 ************************************************************************/
-CREATE     PROCEDURE [dbo].[usprpt_GetTrainingReport]
+CREATE      PROCEDURE [dbo].[usprpt_GetTrainingReport]
     @PageNumber      INT = 1,
     @PageSize        INT = NULL,
     @mastercompanyid INT,
@@ -46,7 +47,8 @@ BEGIN
             @TrainingTypeRaw VARCHAR(100) = NULL,
             @ModuleID       INT = 0,
             @CategoryIdRaw   VARCHAR(100) = NULL,
-            @IsRecurringRaw     VARCHAR(10)  = NULL;
+            @IsRecurringRaw     VARCHAR(10)  = NULL,
+            @ProviderTypeRaw VARCHAR(50)  = NULL;
 
 
     BEGIN TRY
@@ -69,9 +71,10 @@ BEGIN
             @EmployeeRaw     = CASE WHEN filterby.value('(FieldName/text())[1]', 'VARCHAR(100)') = 'Employee Name'  THEN filterby.value('(FieldValue/text())[1]', 'VARCHAR(100)') ELSE @EmployeeRaw     END,
             @TrainingTypeRaw = CASE WHEN filterby.value('(FieldName/text())[1]', 'VARCHAR(100)') = 'Training Type'  THEN filterby.value('(FieldValue/text())[1]', 'VARCHAR(100)') ELSE @TrainingTypeRaw END,
             @CategoryIdRaw = CASE WHEN filterby.value('(FieldName/text())[1]', 'VARCHAR(100)') = 'categoryId'   THEN filterby.value('(FieldValue/text())[1]', 'VARCHAR(100)') ELSE @CategoryIdRaw END,
-            @IsRecurringRaw   = CASE WHEN filterby.value('(FieldName/text())[1]', 'VARCHAR(100)') = 'isRecurring'  THEN filterby.value('(FieldValue/text())[1]', 'VARCHAR(100)') ELSE @IsRecurringRaw   END
-           
-        FROM @xmlFilter.nodes('/ArrayOfFilter/Filter') AS TEMPTABLE(filterby);       
+            @IsRecurringRaw   = CASE WHEN filterby.value('(FieldName/text())[1]', 'VARCHAR(100)') = 'isRecurring'  THEN filterby.value('(FieldValue/text())[1]', 'VARCHAR(100)') ELSE @IsRecurringRaw   END,
+            @ProviderTypeRaw  = CASE WHEN filterby.value('(FieldName/text())[1]', 'VARCHAR(100)') = 'ProviderType' THEN filterby.value('(FieldValue/text())[1]', 'VARCHAR(100)') ELSE @ProviderTypeRaw END
+
+        FROM @xmlFilter.nodes('/ArrayOfFilter/Filter') AS TEMPTABLE(filterby);
 
         -- Pre-compute level filter values once; avoids calling SPLITSTRING up to 20 times
         CREATE TABLE #Level1Ids  (Item INT);
@@ -218,6 +221,7 @@ BEGIN
                 AND (NOT EXISTS (SELECT 1 FROM #Level10Ids) OR MSD.[Level10Id] IN (SELECT Item FROM #Level10Ids))
                 AND (NOT EXISTS (SELECT 1 FROM #CategoryIds) OR ET.CategoryId  IN (SELECT Item FROM #CategoryIds))
                 AND (NOT EXISTS (SELECT 1 FROM #IsRecurringIds) OR ISNULL(ET.IsRecurring, 0) IN (SELECT Item FROM #IsRecurringIds))
+                AND (NULLIF(@ProviderTypeRaw, '') IS NULL OR UPPER(ET.ProviderType) = UPPER(@ProviderTypeRaw))
             GROUP BY
                 E.EmployeeId, E.FirstName, E.LastName, J.Description,
                 E.Email, E.MobilePhone, ETP.TrainingType, ET.Provider, ET.IndustryCode,

@@ -25,7 +25,8 @@
 	12   08/25/2025   Moin Bloch     Updated For Get [FormStatus]
 	13   10/10/2025   Moin Bloch     Updated For Get VersionNo & IsVersionIncrease Flag
 	14   14/10/2025   Moin Bloch     Updated For Type Wise Order
-	
+	15   10/07/2026   Priyansh Patel Added missing IsFromLogBook field  [PN-17081]
+
 
  EXECUTE [sp_workOrderReleaseFromListData] 4655,4218
 **************************************************************/ 
@@ -116,6 +117,7 @@ BEGIN
 					  ,CASE WHEN wro.[IsLocked] = 1 THEN 'Locked' ELSE 'Unlock' END AS [FormStatus]
 					  ,wro.[VersionNo]
 					  ,ISNULL(wro.[IsVersionIncrease],0) [IsVersionIncrease]
+					   ,0 AS [IsFromLogBook]
 				FROM [dbo].[Work_ReleaseFrom_8130] wro WITH(NOLOCK)
 				      LEFT JOIN [dbo].[WorkOrderPartNumber] wop WITH(NOLOCK) ON wro.workOrderPartNoId = wop.Id
 					  LEFT JOIN [dbo].[Stockline] sl  WITH(NOLOCK) ON sl.StockLineId = wop.StockLineId  

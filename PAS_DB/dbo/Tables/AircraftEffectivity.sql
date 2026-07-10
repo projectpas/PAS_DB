@@ -6,7 +6,7 @@
     [AircraftModelId]       BIGINT         NULL,
     [AircraftModel]         VARCHAR (100)  NULL,
     [AircraftSubModel]      VARCHAR (100)  NULL,
-    [SerialNum]             VARCHAR (100)  NOT NULL,
+    [SerialNum]             VARCHAR (100)  NULL,
     [ItemMasterId]          BIGINT         NOT NULL,
     [PartNumber]            VARCHAR (50)   NULL,
     [PartDescription]       NVARCHAR (MAX) NULL,

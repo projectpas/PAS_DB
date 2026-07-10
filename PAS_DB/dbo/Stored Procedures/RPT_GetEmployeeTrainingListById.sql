@@ -13,13 +13,14 @@
 	2    17-APR-2026		Divyesh Kathiriya	Handle Boolean Issuse AND Other Change [PN-16047]
 	3    05-MAY-2026		Bhargav Saliya  	Add Para @IsCategoryType and  [CategoryType] [PN-16203]
 	4    08-MAY-2026		Bhargav Saliya  	Modified @IsCategoryType to @CategoryId
+	5    10-JUL-2026		Divyesh Kathiriya	Return "All" as CategoryType when @CategoryId is 0. [PN-17218]
     
  -- EXEC [RPT_GetEmployeeTrainingListById] @EmployeeId= 374, @MasterCompanyId = 1,@CategoryId = 0
 **************************************************************/
 CREATE    PROCEDURE [dbo].[RPT_GetEmployeeTrainingListById]
 @EmployeeId BIGINT,
 @MasterCompanyId BIGINT ,
-@CategoryId BIGINT = null
+@CategoryId BIGINT
 AS
 BEGIN
 	SET NOCOUNT ON;
@@ -42,7 +43,10 @@ BEGIN
 			ET.[ScheduleDate],			
 			ET.[CompletionDate],			
 			ET.[ExpirationDate],			
-			ET.[CategoryType]			
+			CASE
+				WHEN @CategoryId = 0 THEN 'All'
+				ELSE ET.[CategoryType]
+			END AS [CategoryType]
 		FROM [DBO].[EmployeeTraining] ET WITH(NOLOCK)
 		LEFT JOIN [DBO].[TrainingName] ETN WITH(NOLOCK) ON ET.[TrainingNameId] = ETN.[TrainingNameId]
 		LEFT JOIN [DBO].[EmployeeTrainingType] ETP WITH(NOLOCK) ON ET.[EmployeeTrainingTypeId] = ETP.[EmployeeTrainingTypeId]		

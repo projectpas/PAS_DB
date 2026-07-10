@@ -14,7 +14,7 @@
 	3	02/1/2024		AMIT GHEDIYA	added isperforma Flage for SO
 	4   07-07-2025      Moin Bloch      Changed Old To New Billing Table
 	5   09-06-2026      Priyansh Patel  UOM changes releted to qtyshipped [PN-16778]
-
+	6	10/07/2026		Nakul Chandigra  Renamed sopt.QtyToShip from QtyToShip to QtyPicked.
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[GetPackagingLabelPrintForVendorRMA]
 	@VendorRMAId bigint,
@@ -32,7 +32,7 @@ BEGIN
 
 		SELECT SPB.PackagingSlipId, SPB.PackagingSlipNo, sopt.VendorRMAId, sl.StockLineNumber, 
 		FORMAT(ISNULL(sop.Qty,0), 'N', 'en-us') AS Qty, 
-		FORMAT(ISNULL(sopt.QtyToShip,0), 'N', 'en-us') AS QtyToShip,
+		FORMAT(ISNULL(sopt.QtyToShip,0), 'N', 'en-us') AS QtyPicked,
 		imt.partnumber as PartNumber,imt.PartDescription, sopt.RMAPickTicketNumber,
 		sl.SerialNumber, sl.ControlNumber, sl.IdNumber, co.[Description] as ConditionDescription,
 		so.RMANumber,uom.ShortName as UOM, 

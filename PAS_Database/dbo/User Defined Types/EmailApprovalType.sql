@@ -1,8 +1,8 @@
 ﻿CREATE TYPE [dbo].[EmailApprovalType] AS TABLE (
     [PartNumber]           VARCHAR (256)   NULL,
     [PartDescription]      VARCHAR (256)   NULL,
-    [Qty]                  INT             NULL,
-    [TotalSales]           DECIMAL (18, 4) NULL,
+    [Qty]                  DECIMAL (18, 6) NULL,
+    [TotalSales]           DECIMAL (18, 6) NULL,
     [RefrenceId]           BIGINT          NULL,
     [SubRefrenceId]        BIGINT          NULL,
     [ModuleId]             INT             NULL,

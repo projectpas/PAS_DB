@@ -24,6 +24,7 @@
 	8    11/05/2026   Bhargav Saliya	Modified UOM Related Changes [PN-16192]
 	9    18/06/2026   Bhargav Saliya	Added Case For Skip UOM Function If FROM uom and TO uom Both are Same
 	10   29/06/2026   Bhargav saliya    Already saved extended margin amt in table so no need to calculate with qty
+	11   09/07/2026   Bhargav Saliya    Get Consume UOM [PN-17163]
 EXEC [dbo].[USP_GetSOApprovalList]  1266
 **************************************************************/
 CREATE PROCEDURE [dbo].[USP_GetSOApprovalList] 
@@ -291,7 +292,7 @@ BEGIN
 			INNER JOIN [dbo].[SalesOrderPartCost] sopc WITH(NOLOCK) ON sopc.SalesOrderPartId = sop.SalesOrderPartId
 			  LEFT JOIN [dbo].[SalesOrderApproval] sp WITH (NOLOCK) ON sop.SalesOrderPartId = sp.SalesOrderPartId AND sp.SalesOrderId = @SalesOrderId
 			  LEFT JOIN [dbo].[ItemMaster] im WITH (NOLOCK) ON sop.ItemMasterId = im.ItemMasterId
-			  LEFT JOIN [dbo].[UnitOfMeasure] um WITH (NOLOCK) ON im.PurchaseUnitOfMeasureId = um.UnitOfMeasureId
+			  LEFT JOIN [dbo].[UnitOfMeasure] um WITH (NOLOCK) ON im.ConsumeUnitOfMeasureId = um.UnitOfMeasureId
 			  LEFT JOIN [dbo].[Employee] app WITH (NOLOCK) ON sp.InternalApprovedById = app.EmployeeId
 			  LEFT JOIN [dbo].[Contact] con WITH (NOLOCK) ON sp.CustomerApprovedById = con.ContactId
 			  LEFT JOIN [dbo].[Condition] cond WITH (NOLOCK) ON sop.ConditionId = cond.ConditionId

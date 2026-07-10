@@ -24,7 +24,7 @@
 ** 12   25/06/2026	 Amit Ghediya	    Added @LastInspectedDate,@Description,@LastinspectedById [PN-17000]
 ** 13   22/05/2026   Moin Bloch         Added @FlightHoursLimitDays PN-17043
 ** 14   30/06/2026	 Amit Ghediya	    Update for Engine data [PN-17075]
-** 14   07/07/2026	 Amit Ghediya	    Update for get is from Aircraft Or Engine maintanace
+** 14   07/07/2026	 Amit Ghediya	    Update for get is from Aircraft Or Engine maintanace for get stockline logic
 
 
 *****************************************************************************************************/
@@ -137,7 +137,7 @@ BEGIN
                 AMP.MtcCategoryId,
                 LWO.WorkOrderNum,
                 LWO.WorkOrderId ,
-				ISNULL(ARH.StockLineId, ERH.StockLineId) AS StockLineId,
+				CASE WHEN ISNULL(AMP.IsFromAircraft,0) = 1 THEN ISNULL(ARH.StockLineId,0) ELSE ISNULL(ERH.StockLineId,0) END AS StockLineId,
                 CASE WHEN STK.[IsCustomerStock] = 1 THEN 'Yes' ELSE 'No' END AS [IsCustomerStock], 
                 ISNULL(STK.[QuantityAvailable],0) [QuantityAvailable],
                 ISNULL(STK.[QuantityOnHand],0) [QuantityOnHand],
@@ -153,11 +153,10 @@ BEGIN
             FROM [dbo].[AircraftMaintenanceProgram] AMP WITH (NOLOCK)
             LEFT JOIN [dbo].[AircraftRegistryHeader] ARH WITH (NOLOCK) ON AMP.AircraftRegistryId = ARH.AircraftRegistryId  AND ARH.MasterCompanyId = @MasterCompanyId 
 			LEFT JOIN [dbo].[EngineRegistryHeader] ERH WITH (NOLOCK) ON AMP.EngineRegistryId = ERH.EngineRegistryId  AND ERH.MasterCompanyId = @MasterCompanyId 
-			--LEFT JOIN [dbo].[EngineRegistryHeader] ERH WITH (NOLOCK) ON ISNULL(@IsFromAircraft,0) = 0 AND AMP.EngineRegistryId = ERH.EngineRegistryId AND ERH.MasterCompanyId = @MasterCompanyId
             LEFT JOIN [dbo].[MaintenanceClass] MC WITH (NOLOCK)  ON AMP.MaintenanceClassId = MC.MaintenanceClassId
             LEFT JOIN [dbo].[Workflow] WF WITH (NOLOCK)  ON AMP.TemplateId = WF.WorkflowId AND WF.TemplateType = @ACTemplateType
             LEFT JOIN [dbo].[MaintenanceCategory] mtc WITH (NOLOCK) ON AMP.[MtcCategoryId] = mtc.[MtcCategoryId]
-            LEFT JOIN [dbo].[Stockline] STK WITH (NOLOCK) ON STK.[StockLineId] = ISNULL(ARH.[StockLineId], ERH.[StockLineId])      
+            LEFT JOIN [dbo].[Stockline] STK WITH (NOLOCK) ON STK.[StockLineId] = CASE WHEN ISNULL(AMP.IsFromAircraft,0) = 1 THEN ISNULL(ARH.StockLineId,0) ELSE ISNULL(ERH.StockLineId,0) END
 			LEFT JOIN [dbo].[View_Employee_Cert] EMP WITH (NOLOCK) ON EMP.EmployeeId = AMP.LastinspectedById          
             LEFT JOIN (SELECT *, ROW_NUMBER() OVER (PARTITION BY ProgramId ORDER BY CreatedDate DESC) AS RN FROM [dbo].[WorksheetHeader] WITH (NOLOCK)) WSH ON AMP.ProgramId = WSH.ProgramId AND WSH.RN = 1
             LEFT JOIN (

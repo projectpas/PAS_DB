@@ -1,3 +1,4 @@
+﻿-- ===== PROCEDURE: [dbo].[sp_workOrderReleaseFromListData]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs1/sp_workOrderReleaseFromListData.sql) =====
 /*************************************************************           
  ** File:   [sp_workOrderReleaseFromListData]           
  ** Author:   Subhash Saliya
@@ -32,7 +33,7 @@
  EXECUTE [sp_workOrderReleaseFromListData] 4655,4218
 **************************************************************/ 
 
-CREATE    Procedure [dbo].[sp_workOrderReleaseFromListData]
+CREATE   PROCEDURE [dbo].[sp_workOrderReleaseFromListData]
 @WorkorderId bigint,
 @workOrderPartNoId bigint,
 @ReleaseFromId bigint,

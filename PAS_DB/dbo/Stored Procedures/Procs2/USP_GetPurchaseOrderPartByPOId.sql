@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.USP_GetPurchaseOrderPartByPOId   (source: PAS_DB/dbo/Stored Procedures/Procs2/USP_GetPurchaseOrderPartByPOId.sql)
+-- ---------------------------------------------------------------------------------------------------
 /*************************************************************   
 -- =============================================
 -- Author:		<Rajesh Gami>
@@ -19,7 +23,7 @@
 --EXEC [dbo].[USP_GetPurchaseOrderPartByPOId] 7910 ,NULL,NULL
 **************************************************************/ 
 
-CREATE       PROCEDURE [dbo].[USP_GetPurchaseOrderPartByPOId]
+CREATE         PROCEDURE [dbo].[USP_GetPurchaseOrderPartByPOId]
 @PurchaseOrderId bigint,
 @WorkOrderPartNoId bigint NULL =0,
 @SubWorkOrderMaterialsId bigint NULL = 0

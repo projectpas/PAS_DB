@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.CreateUpdateReceivingCustomerWork   (source: PAS_DB/dbo/Stored Procedures/Procs1/CreateUpdateReceivingCustomerWork.sql)
+-- ---------------------------------------------------------------------------------------------------
 --DROP PROCEDURE [dbo].[CreateUpdateReceivingCustomerWork]
 
 /*************************************************************           
@@ -27,7 +31,7 @@
 
  EXECUTE [USP_GetWorkOrderPartsView] 1
 **************************************************************/ 
-CREATE   PROCEDURE [dbo].[CreateUpdateReceivingCustomerWork]  
+CREATE     PROCEDURE [dbo].[CreateUpdateReceivingCustomerWork]  
 @ReceivingCustomerWorkId [bigint] NULL,
 @MasterCompanyId [int] NULL,
 @IsRepairManagement [bit] NULL,

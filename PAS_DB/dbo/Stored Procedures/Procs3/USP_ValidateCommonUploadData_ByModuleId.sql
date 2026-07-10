@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.USP_ValidateCommonUploadData_ByModuleId   (source: PAS_DB/dbo/Stored Procedures/Procs3/USP_ValidateCommonUploadData_ByModuleId.sql)
+-- ---------------------------------------------------------------------------------------------------
 /*******  
  ** File:   [USP_ValidateCommonUploadData_ByModuleId]             
  ** Author:   Devendra Shekh
@@ -73,7 +77,7 @@ insert into @p4 values(4,N'VICTOR ADMAS',1,N'{
 
 exec USP_ValidateCommonUploadData_ByModuleId @ModuleId=4,@UserName=N'VICTOR ADMAS',@MasterCompanyId=1,@UploadData=@p4
 ********/
-CREATE    PROCEDURE [dbo].[USP_ValidateCommonUploadData_ByModuleId]
+CREATE      PROCEDURE [dbo].[USP_ValidateCommonUploadData_ByModuleId]
 	@ModuleId BIGINT = NULL,    
 	@UserName VARCHAR(256) = NULL,
 	@MasterCompanyId INT = NULL, 

@@ -1,3 +1,4 @@
+﻿-- ===== PROCEDURE: [dbo].[USP_VendorRMA_GetVendorRMAShippingChildList]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs3/USP_VendorRMA_GetVendorRMAShippingChildList.sql) =====
 /*************************************************************           
  ** File:   [USP_VendorRMA_GetVendorRMAShippingChildList]          
  ** Author:   Amit Ghediya
@@ -20,7 +21,7 @@
      
  EXECUTE USP_VendorRMA_GetVendorRMAShippingChildList 
 **************************************************************/
-CREATE      Procedure [dbo].[USP_VendorRMA_GetVendorRMAShippingChildList]  
+CREATE   PROCEDURE [dbo].[USP_VendorRMA_GetVendorRMAShippingChildList]  
  @VendorRMAId  bigint,  
  @VendorRMADetailId bigint,  
  @ConditionId bigint  

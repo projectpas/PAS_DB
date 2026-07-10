@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿-- ===== PROCEDURE: [dbo].[USP_VendorRMA_UpdateRMAStatus]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs3/USP_VendorRMA_UpdateRMAStatus.sql) =====
+/*************************************************************           
  ** File:   [USP_VendorRMA_UpdateRMAStatus]          
  ** Author:   Moin Bloch 
  ** Description: This stored procedure is used to Update RMA Status After Receive RMA   

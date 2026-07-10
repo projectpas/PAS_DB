@@ -1,3 +1,4 @@
+﻿-- ===== PROCEDURE: [dbo].[USP_GetCustomerTax_Information_ProductSale_SO_INVBS]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs2/USP_GetCustomerTax_Information_ProductSale_SO_INVBS.sql) =====
 /*************************************************************           
  ** File:   [USP_GetCustomerTax_Information_ProductSale_SO_INVBS]           
  ** Author:   Moin Bloch
@@ -20,7 +21,7 @@
 
 -- EXEC [USP_GetCustomerTax_Information_ProductSale_SO_INVBS] 10803,11245 
 **************************************************************/
-CREATE    PROCEDURE [dbo].[USP_GetCustomerTax_Information_ProductSale_SO_INVBS] 
+CREATE   PROCEDURE [dbo].[USP_GetCustomerTax_Information_ProductSale_SO_INVBS] 
 @SalesOrderId BIGINT,
 @SalesOrderPartId BIGINT
 AS

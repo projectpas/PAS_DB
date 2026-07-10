@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.USP_CreateStocklineForReceivingPO   (source: PAS_DB/dbo/Stored Procedures/Procs2/USP_CreateStocklineForReceivingPO.sql)
+-- ---------------------------------------------------------------------------------------------------
 /*************************************************************               
  ** File:   [USP_CreateStocklineForReceivingPO]              
  ** Author:   Vishal Suthar    
@@ -46,7 +50,7 @@ insert into @p2 values(2371,4051,2)
   
 exec dbo.USP_CreateStocklineForReceivingPO @PurchaseOrderId=2371,@tbl_POPartsToReceive=@p2,@UpdatedBy=N'ADMIN User',@MasterCompanyId=1  
 **************************************************************/
-CREATE   PROCEDURE [dbo].[USP_CreateStocklineForReceivingPO]
+CREATE     PROCEDURE [dbo].[USP_CreateStocklineForReceivingPO]
 (
     @PurchaseOrderId BIGINT = NULL,
     @UpdatedBy VARCHAR(100) = NULL,

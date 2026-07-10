@@ -1,3 +1,4 @@
+﻿-- ===== PROCEDURE: [dbo].[USP_GetCommonBillingInvoicingItemData]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs2/USP_GetCommonBillingInvoicingItemData.sql) =====
 /*****************************************************************************           
  ** File: [USP_GetCommonBillingInvoicingItemData]           
  ** Author:   Moin Bloch 

@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.AutoCompleteDropdownsROByItemMaster   (source: PAS_DB/dbo/Stored Procedures/Procs1/AutoCompleteDropdownsROByItemMaster.sql)
+-- ---------------------------------------------------------------------------------------------------
 
 
 /*************************************************************           
@@ -23,7 +27,7 @@
 --EXEC [AutoCompleteDropdownsAsset] '',1,200,'108,109,11'
 **************************************************************/
 
-CREATE PROCEDURE [dbo].[AutoCompleteDropdownsROByItemMaster]
+CREATE   PROCEDURE [dbo].[AutoCompleteDropdownsROByItemMaster]
 @StartWith VARCHAR(50),
 @Count VARCHAR(10) = '0',
 @Idlist VARCHAR(max) = '0',

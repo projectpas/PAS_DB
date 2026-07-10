@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.QuickBooks_GetNewPurchaseOrderListForCreatePurchaseOrder   (source: PAS_DB/dbo/Stored Procedures/Procs1/QuickBooks_GetNewPurchaseOrderListForCreatePurchaseOrder.sql)
+-- ---------------------------------------------------------------------------------------------------
 /*************************************************************           
  ** File:   [QuickBooks_GetNewPurchaseOrderListForCreatePurchaseOrder]           
  ** Author:   Abhishek Jirawla
@@ -20,7 +24,7 @@
      
  EXECUTE [QuickBooks_GetNewPurchaseOrderListForCreatePurchaseOrder] 3,1,2768,13
 **************************************************************/ 
-CREATE     PROCEDURE [dbo].[QuickBooks_GetNewPurchaseOrderListForCreatePurchaseOrder]
+CREATE       PROCEDURE [dbo].[QuickBooks_GetNewPurchaseOrderListForCreatePurchaseOrder]
 	@IntegrationTypeId INT = NULL,
 	@MasterCompanyId INT = NULL,
 	@ReferenceId BIGINT = NULL,

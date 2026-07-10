@@ -1,4 +1,8 @@
-﻿/*************************************************************           
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.USP_SendILSQuote   (source: PAS_DB/dbo/Stored Procedures/Procs3/USP_SendILSQuote.sql)
+-- ---------------------------------------------------------------------------------------------------
+/*************************************************************           
  ** File:   [USP_SendILSQuote]           
  ** Author:  Rajesh Gami
  ** Description: This stored procedure is used Send ILS QUOTE Into Our Database
@@ -28,7 +32,7 @@
 
 -- EXEC USP_SendILSQuote
 ************************************************************************/
-CREATE         PROCEDURE [dbo].[USP_SendILSQuote]
+CREATE           PROCEDURE [dbo].[USP_SendILSQuote]
 	@tbl_IlsRfqQuoteDetailsType IlsRfqQuoteDetailsType READONLY,
 	@CustomerRfqQuoteId BIGINT = NULL,
 	@CustomerRfqId BIGINT,

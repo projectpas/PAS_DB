@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.UpdateStocklineDraftDetailVendorRMA   (source: PAS_DB/dbo/Stored Procedures/Procs1/UpdateStocklineDraftDetailVendorRMA.sql)
+-- ---------------------------------------------------------------------------------------------------
 /*************************************************************           
  ** File:   [UpdateStocklineDraftDetailVendorRMA]           
  ** Author: Moin Bloch
@@ -15,7 +19,7 @@
 *******************************************************************************
 EXEC UpdateStocklineDraftDetailVendorRMA 34
 *******************************************************************************/
-CREATE   PROCEDURE [dbo].[UpdateStocklineDraftDetailVendorRMA]
+CREATE     PROCEDURE [dbo].[UpdateStocklineDraftDetailVendorRMA]
 @VendorRMAId  BIGINT
 AS
 BEGIN

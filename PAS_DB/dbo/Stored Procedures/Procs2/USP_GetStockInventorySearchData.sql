@@ -1,4 +1,5 @@
-﻿/*************************************************************   
+﻿-- ===== PROCEDURE: [dbo].[USP_GetStockInventorySearchData]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs2/USP_GetStockInventorySearchData.sql) =====
+/*************************************************************   
 ** Author:  <BHARGAV SALIYA>  
 ** Create date: <20/11/2024>  [mm/dd/yyyy]
 ** Description: <Get The Stock/Inventory Search Data>  
@@ -13,7 +14,7 @@
 4    09/July/2026      RAJESH GAMI           [PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 **************************************************************/
 -----------------------------------------------------------------------------
-CREATE    PROCEDURE [dbo].[USP_GetStockInventorySearchData]   
+CREATE   PROCEDURE [dbo].[USP_GetStockInventorySearchData]   
 	@PageNumber INT,
 	@PageSize INT,
 	@SortColumn VARCHAR(50) = NULL,

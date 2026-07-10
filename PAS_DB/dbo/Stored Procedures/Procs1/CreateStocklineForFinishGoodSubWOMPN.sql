@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.CreateStocklineForFinishGoodSubWOMPN   (source: PAS_DB/dbo/Stored Procedures/Procs1/CreateStocklineForFinishGoodSubWOMPN.sql)
+-- ---------------------------------------------------------------------------------------------------
 /*************************************************************             
  ** File:   [CreateStocklineForFinishGoodSubWOMPN]             
  ** Author:   Hemant Saliya  
@@ -38,7 +42,7 @@
 ADMIN',@IsMaterialStocklineCreate=1  
 **************************************************************/  
   
-CREATE   PROCEDURE [dbo].[CreateStocklineForFinishGoodSubWOMPN]  
+CREATE     PROCEDURE [dbo].[CreateStocklineForFinishGoodSubWOMPN]  
 @SubWOPartNumberId BIGINT,  
 @UpdatedBy VARCHAR(50),  
 @IsMaterialStocklineCreate BIT = FLASE,  

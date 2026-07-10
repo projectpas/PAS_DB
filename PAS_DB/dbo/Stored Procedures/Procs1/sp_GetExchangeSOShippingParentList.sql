@@ -1,3 +1,4 @@
+﻿-- ===== PROCEDURE: [dbo].[sp_GetExchangeSOShippingParentList]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs1/sp_GetExchangeSOShippingParentList.sql) =====
 /***************************************************************************************************************************************
   ** Change History
  ***************************************************************************************************************************************
@@ -6,7 +7,7 @@
 	1    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	2    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 ****************************************************************************************************************************************/
-CREATE Procedure [dbo].[sp_GetExchangeSOShippingParentList]
+CREATE   PROCEDURE [dbo].[sp_GetExchangeSOShippingParentList]
 @ExchangeSalesOrderId  bigint
 AS
 BEGIN

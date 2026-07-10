@@ -1,3 +1,4 @@
+﻿-- ===== PROCEDURE: [dbo].[USP_GetStockReportAsOfNowJob]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs2/USP_GetStockReportAsOfNowJob.sql) =====
 /*************************************************************           
  ** File:   [usprpt_GetStockReportAsOfNow]           
  ** Author:   Moin Bloch
@@ -18,7 +19,7 @@
    EXEC USP_GetStockReportAsOfNowJob @mastercompanyid=1, @id=N'09/09/2025',@id2=N'', @id3=1, @id5='2,7,17,24!!!!', @id6=0,@id8 = '', @strFilter=N'1,5,6!2,7,8,9!3,11,10!4,12,13!!!!!!' 
    EXEC USP_GetStockReportAsOfNowJob @StartDate = '2025-08-16',@EndDate='2025-09-16',@mastercompanyid=1
 **************************************************************/
-CREATE      PROCEDURE [dbo].[USP_GetStockReportAsOfNowJob]	
+CREATE   PROCEDURE [dbo].[USP_GetStockReportAsOfNowJob]	
 	@StartDate DATE = NULL,
 	@EndDate DATE = NULL,
 	@MasterCompanyId INT = NULL,

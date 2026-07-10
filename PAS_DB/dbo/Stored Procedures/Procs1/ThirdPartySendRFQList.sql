@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.ThirdPartySendRFQList   (source: PAS_DB/dbo/Stored Procedures/Procs1/ThirdPartySendRFQList.sql)
+-- ---------------------------------------------------------------------------------------------------
 /*************************************************************           
  ** File:   [ThirdPartySendRFQList]           
  ** Author: Rajesh Gami
@@ -23,7 +27,7 @@
 
 **************************************************************
 **************************************************************/
-CREATE   PROCEDURE [dbo].[ThirdPartySendRFQList]
+CREATE     PROCEDURE [dbo].[ThirdPartySendRFQList]
 @PageNumber int = NULL,
 @PageSize int = NULL,
 @SortColumn varchar(50)=NULL,

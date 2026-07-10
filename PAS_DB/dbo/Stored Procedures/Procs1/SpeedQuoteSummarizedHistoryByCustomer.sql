@@ -1,4 +1,8 @@
 ﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.SpeedQuoteSummarizedHistoryByCustomer   (source: PAS_DB/dbo/Stored Procedures/Procs1/SpeedQuoteSummarizedHistoryByCustomer.sql)
+-- ---------------------------------------------------------------------------------------------------
+
 /*************************************************************           
  ** File:   [SpeedQuoteSummarizedHistoryByCustomer]           
  ** Author:   Deep Patel
@@ -19,7 +23,7 @@
 --EXEC [SpeedQuoteSummarizedHistoryByCustomer] 125, 1
 **************************************************************/
 
-CREATE PROCEDURE [dbo].[SpeedQuoteSummarizedHistoryByCustomer]
+CREATE   PROCEDURE [dbo].[SpeedQuoteSummarizedHistoryByCustomer]
 @ItemMasterId BIGINT,
 @IsTwelveMonth BIT = 1
 AS

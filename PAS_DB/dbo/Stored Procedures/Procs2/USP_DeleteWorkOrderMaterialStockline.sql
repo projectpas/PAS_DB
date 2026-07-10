@@ -1,4 +1,8 @@
-﻿/*************************************************************             
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.USP_DeleteWorkOrderMaterialStockline   (source: PAS_DB/dbo/Stored Procedures/Procs2/USP_DeleteWorkOrderMaterialStockline.sql)
+-- ---------------------------------------------------------------------------------------------------
+/*************************************************************             
  ** File:   [USP_DeleteWorkOrderMaterialStockline]             
  ** Author:  Amit Ghediya  
  ** Description: This stored procedure is used to delete SubWorkOrder Materials Stockline.  
@@ -19,7 +23,7 @@
        
 -- EXEC USP_DeleteWorkOrderMaterialStockline 129,194091,'AMIT GHEDIYA'  
 ************************************************************************/  
-CREATE     PROCEDURE [dbo].[USP_DeleteWorkOrderMaterialStockline]  
+CREATE       PROCEDURE [dbo].[USP_DeleteWorkOrderMaterialStockline]  
 	@WorkOrderMaterialsId BIGINT,
 	@StocklineId BIGINT,
     @UpdatedBy VARCHAR(100)

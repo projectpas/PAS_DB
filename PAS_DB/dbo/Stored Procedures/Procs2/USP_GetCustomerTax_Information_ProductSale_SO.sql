@@ -1,3 +1,4 @@
+﻿-- ===== PROCEDURE: [dbo].[USP_GetCustomerTax_Information_ProductSale_SO]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs2/USP_GetCustomerTax_Information_ProductSale_SO.sql) =====
 /*************************************************************           
  ** File:   [USP_GetCustomerTax_Information_ProductSale_SO]           
  ** Author:   Moin Bloch
@@ -24,7 +25,7 @@
 	9    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 -- EXEC [USP_GetCustomerTax_Information_ProductSale_SO] 608
 **************************************************************/
-CREATE    PROCEDURE [dbo].[USP_GetCustomerTax_Information_ProductSale_SO] 
+CREATE   PROCEDURE [dbo].[USP_GetCustomerTax_Information_ProductSale_SO] 
 @salesOrderId bigint
 AS
 BEGIN

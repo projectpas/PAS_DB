@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.usp_GetSODashboard   (source: PAS_DB/dbo/Stored Procedures/Procs2/usp_GetSODashboard.sql)
+-- ---------------------------------------------------------------------------------------------------
 /*************************************************************           
  ** File:   [usp_GetSODashboard]           
  ** Author:   Swetha  
@@ -24,7 +28,7 @@
 EXECUTE   [dbo].[usp_GetSODashboard] 
 **************************************************************/
 
-CREATE      PROCEDURE [dbo].[usp_GetSODashboard]
+CREATE        PROCEDURE [dbo].[usp_GetSODashboard]
 AS
 BEGIN
   SET NOCOUNT ON;

@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.usp_GetCapabilitiesReport   (source: PAS_DB/dbo/Stored Procedures/Procs2/usp_GetCapabilitiesReport.sql)
+-- ---------------------------------------------------------------------------------------------------
 
 /*************************************************************           
  ** File:   [usp_GetCapabilitiesReport]           
@@ -22,7 +26,7 @@
 EXECUTE   [dbo].[usp_GetCapabilitiesReport] '','4',3,'4','0','0','0'
 **************************************************************/
 
-CREATE PROCEDURE [dbo].[usp_GetCapabilitiesReport] @partnumber varchar(40) = NULL,
+CREATE   PROCEDURE [dbo].[usp_GetCapabilitiesReport] @partnumber varchar(40) = NULL,
 @mastercompanyid int,
 @isverified int = NULL,
 @Level1 varchar(max) = NULL,

@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.SearchExchangeSalesOrderData   (source: PAS_DB/dbo/Stored Procedures/Procs1/SearchExchangeSalesOrderData.sql)
+-- ---------------------------------------------------------------------------------------------------
 
 /*************************************************************             
  ** File:   [SearchExchangeSalesOrderData]             
@@ -17,7 +21,7 @@
 	3	 23-Jan-2025  Ayushi Patel		 converted the date into utc (created , updated) , Added a case to get timeZone
 	4    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 **************************************************************/   
-CREATE   PROCEDURE [dbo].[SearchExchangeSalesOrderData]
+CREATE     PROCEDURE [dbo].[SearchExchangeSalesOrderData]
 -- Add the parameters for the stored procedure here
 @PageNumber int=1,
 @PageSize int=10,

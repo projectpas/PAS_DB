@@ -1,3 +1,4 @@
+﻿-- ===== PROCEDURE: [dbo].[USP_GetVendorRMAPartsDetails_ById]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs2/USP_GetVendorRMAPartsDetails_ById.sql) =====
 /*************************************************************             
  ** File:   [USP_GetVendorRMAPartsDetails_ById]            
  ** Author:   Devendra    
@@ -20,7 +21,7 @@
        
 EXECUTE   [dbo].[USP_GetVendorRMAPartsDetails_ById] 37,1  
 **************************************************************/  
-Create   PROCEDURE [dbo].[USP_GetVendorRMAPartsDetails_ById]  
+CREATE   PROCEDURE [dbo].[USP_GetVendorRMAPartsDetails_ById]  
 @VRMAId bigint,  
 @VendorCreditMemoId bigint  
 AS  

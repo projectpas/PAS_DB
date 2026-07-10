@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.WorkOrderQuoteSummarizedHistoryByCustomer   (source: PAS_DB/dbo/Stored Procedures/Procs3/WorkOrderQuoteSummarizedHistoryByCustomer.sql)
+-- ---------------------------------------------------------------------------------------------------
 
 /*************************************************************           
  ** File:   [WorkOrderQuoteSummarizedHistoryByCustomer]           
@@ -23,7 +27,7 @@
 --EXEC [WorkOrderQuoteSummarizedHistoryByCustomer] 295,0
 **************************************************************/
 
-CREATE PROCEDURE [dbo].[WorkOrderQuoteSummarizedHistoryByCustomer]
+CREATE   PROCEDURE [dbo].[WorkOrderQuoteSummarizedHistoryByCustomer]
 @ItemMasterId BIGINT,
 @IsTwelveMonth BIT = 1
 AS

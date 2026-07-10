@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿-- ===== PROCEDURE: [dbo].[usprpt_GetStockReport]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs3/usprpt_GetStockReport.sql) =====
+/*************************************************************           
  ** File:   [usprpt_GetNonStockReport]
  ** Author:   
  ** Description: Get Data for Stock Report

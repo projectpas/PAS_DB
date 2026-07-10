@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.USP_GetSalesOrderPartsList   (source: PAS_DB/dbo/Stored Procedures/Procs2/USP_GetSalesOrderPartsList.sql)
+-- ---------------------------------------------------------------------------------------------------
 /*************************************************************           
  ** File:   [USP_GetSalesOrderPartsList]           
  ** Author:   Hemant Saliya
@@ -21,7 +25,7 @@
      
  EXECUTE USP_GetSalesOrderPartsList 254
 **************************************************************/
-CREATE PROCEDURE [dbo].[USP_GetSalesOrderPartsList]    
+CREATE   PROCEDURE [dbo].[USP_GetSalesOrderPartsList]    
 (    
 @SalesOrderId INT
 )    

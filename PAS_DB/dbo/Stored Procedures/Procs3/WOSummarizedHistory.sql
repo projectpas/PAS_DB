@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.WOSummarizedHistory   (source: PAS_DB/dbo/Stored Procedures/Procs3/WOSummarizedHistory.sql)
+-- ---------------------------------------------------------------------------------------------------
 
 /*************************************************************           
  ** File:   [WOSummarizedHistory]           
@@ -23,7 +27,7 @@
 --EXEC [WOSummarizedHistory] 378,369,1
 **************************************************************/
 
-CREATE PROCEDURE [dbo].[WOSummarizedHistory]
+CREATE   PROCEDURE [dbo].[WOSummarizedHistory]
 @WorkOrderId BIGINT,
 @WorkOrderPartNumberId BIGINT,
 @IsTwelveMonth BIT = 1

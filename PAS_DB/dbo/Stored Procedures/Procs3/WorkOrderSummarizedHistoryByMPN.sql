@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.WorkOrderSummarizedHistoryByMPN   (source: PAS_DB/dbo/Stored Procedures/Procs3/WorkOrderSummarizedHistoryByMPN.sql)
+-- ---------------------------------------------------------------------------------------------------
 
 /*************************************************************           
  ** File:   [WorkOrderSummarizedHistoryByMPN]           
@@ -23,7 +27,7 @@
 --EXEC [WorkOrderSummarizedHistoryByMPN] 18,1
 **************************************************************/
 
-CREATE   PROCEDURE [dbo].[WorkOrderSummarizedHistoryByMPN]
+CREATE     PROCEDURE [dbo].[WorkOrderSummarizedHistoryByMPN]
 @ItemMasterId BIGINT,
 @IsTwelveMonth BIT = 1
 AS

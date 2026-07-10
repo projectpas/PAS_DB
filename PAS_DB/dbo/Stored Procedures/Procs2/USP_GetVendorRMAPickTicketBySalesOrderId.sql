@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿-- ===== PROCEDURE: [dbo].[USP_GetVendorRMAPickTicketBySalesOrderId]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs2/USP_GetVendorRMAPickTicketBySalesOrderId.sql) =====
+/*************************************************************           
  ** File:   [USP_GetVendorRMAPickTicketBySalesOrderId]           
  ** Author:   Sahdev Saliya
  ** Description: This stored procedure is used to Get GetVendorRMAPickTicketBySalesOrderId Pdf

@@ -1,3 +1,4 @@
+﻿-- ===== PROCEDURE: [dbo].[USP_GetItemMasterForExchange_ById]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs2/USP_GetItemMasterForExchange_ById.sql) =====
 /*************************************************************           
  ** File:   [USP_GetItemMasterForExchange_ById]           
  ** Author:   Devendra Shekh

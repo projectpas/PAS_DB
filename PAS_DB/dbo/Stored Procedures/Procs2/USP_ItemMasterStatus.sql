@@ -1,4 +1,8 @@
-﻿/*************************************************************           
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: DBO.USP_ItemMasterStatus   (source: PAS_DB/dbo/Stored Procedures/Procs2/USP_ItemMasterStatus.sql)
+-- ---------------------------------------------------------------------------------------------------
+/*************************************************************           
  ** File:		 [USP_ItemMasterStatus]           
  ** Author:		 Divyesh Kathiriya
  ** Description: This Stored Procedure Is Used To Update ItemMaster Status.
@@ -14,7 +18,7 @@
     
  -- EXEC [USP_ItemMasterStatus] @ItemMasterid=35, @UpdatedBy=N'DANE PERK', @Status=N'Active'
 **************************************************************/
-CREATE   PROCEDURE [DBO].[USP_ItemMasterStatus]
+CREATE     PROCEDURE [DBO].[USP_ItemMasterStatus]
 @ItemMasterid BIGINT = 0,
 @UpdatedBy VARCHAR(256),
 @Status BIT

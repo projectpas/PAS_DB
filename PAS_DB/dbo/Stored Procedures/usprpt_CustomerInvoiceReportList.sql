@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿-- ===== PROCEDURE: [dbo].[usprpt_CustomerInvoiceReportList]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/usprpt_CustomerInvoiceReportList.sql) =====
+/*************************************************************           
  ** File:   [usprpt_CustomerInvoiceReportList]           
  ** Author:   Vishal Suthar  
  ** Description: Get Data for Customer invoice report

@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.GetPublicationPNList   (source: PAS_DB/dbo/Stored Procedures/Procs1/GetPublicationPNList.sql)
+-- ---------------------------------------------------------------------------------------------------
 /*************************************************************           
  ** File:   [GetPublicationPNList]           
  ** Author:   Hemant Saliya
@@ -27,7 +31,7 @@
 
  EXECUTE [GetPublicationPNList] 1,100, null, -1, 'testitem', null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,2,0,null,null,1,1
 **************************************************************/ 
-CREATE   PROCEDURE [dbo].[GetPublicationPNList]	
+CREATE     PROCEDURE [dbo].[GetPublicationPNList]	
 @PageNumber int=NULL,
 @PageSize int=NULL,
 @SortColumn varchar(50)=null,

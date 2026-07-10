@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.sp_UpdatePurchaseOrderDetail   (source: PAS_DB/dbo/Stored Procedures/Procs1/sp_UpdatePurchaseOrderDetail.sql)
+-- ---------------------------------------------------------------------------------------------------
 /*************************************************************           
  ** File:   [sp_UpdatePurchaseOrderDetail]           
  ** Author:   -
@@ -23,7 +27,7 @@
 	
  EXEC sp_UpdatePurchaseOrderDetail 2985
 **************************************************************/
-CREATE    PROCEDURE [dbo].[sp_UpdatePurchaseOrderDetail]
+CREATE      PROCEDURE [dbo].[sp_UpdatePurchaseOrderDetail]
 	@PurchaseOrderId  bigint
 AS
 BEGIN

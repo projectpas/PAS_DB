@@ -1,3 +1,4 @@
+﻿-- ===== PROCEDURE: [dbo].[USP_WorkOrderAnalysisDetailsById]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs3/USP_WorkOrderAnalysisDetailsById.sql) =====
 /***************************************************************  
  ** File:   [USP_WorkOrderAnalysisDetailsById]             
  ** Author:   HEMANT SALIYA
@@ -22,7 +23,7 @@
  ** PR   Date						 Author							Change Description
  ** --   --------					 -------						-------------------------------
 ****************************************************************************************************************************************/
-CREATE    PROCEDURE [dbo].[USP_WorkOrderAnalysisDetailsById]
+CREATE   PROCEDURE [dbo].[USP_WorkOrderAnalysisDetailsById]
 @WorkOrderId BIGINT
 AS
 BEGIN

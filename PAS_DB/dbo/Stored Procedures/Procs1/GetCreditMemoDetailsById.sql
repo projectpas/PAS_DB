@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.GetCreditMemoDetailsById   (source: PAS_DB/dbo/Stored Procedures/Procs1/GetCreditMemoDetailsById.sql)
+-- ---------------------------------------------------------------------------------------------------
 /*************************************************************           
  ** File:   [GetCreditMemoDetailsById]           
  ** Author:  Moin Bloch
@@ -19,7 +23,7 @@
      
 -- EXEC GetCreditMemoDetailsById 34
 ************************************************************************/
-CREATE   PROCEDURE [dbo].[GetCreditMemoDetailsById]
+CREATE     PROCEDURE [dbo].[GetCreditMemoDetailsById]
 @CreditMemoHeaderId bigint
 AS
 BEGIN

@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.usprpt_GetCapabilitiesReport   (source: PAS_DB/dbo/Stored Procedures/Procs3/usprpt_GetCapabilitiesReport.sql)
+-- ---------------------------------------------------------------------------------------------------
 /*************************************************************             
  ** File:   [usprpt_GetCapabilitiesReport]             
  ** Author:   Mahesh Sorathiya    
@@ -22,7 +26,7 @@
 EXECUTE   [dbo].[usprpt_GetCapabilitiesReport] '','2',3,'','1','10','0'  
 **************************************************************/  
   
-CREATE   PROCEDURE [dbo].[usprpt_GetCapabilitiesReport] 
+CREATE     PROCEDURE [dbo].[usprpt_GetCapabilitiesReport] 
 @PageNumber int = 1,
 @PageSize int = NULL,
 @mastercompanyid int,

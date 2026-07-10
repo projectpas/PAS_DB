@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.USP_SearchCustomerRMAData   (source: PAS_DB/dbo/Stored Procedures/Procs3/USP_SearchCustomerRMAData.sql)
+-- ---------------------------------------------------------------------------------------------------
 
 /*************************************************************             
  ** File:   [USP_SearchCustomerRMAData]             
@@ -21,7 +25,7 @@
 
  -- exec USP_SearchCustomerRMAData 92,1      
 **************************************************************/
-CREATE   PROCEDURE [dbo].[USP_SearchCustomerRMAData]
+CREATE     PROCEDURE [dbo].[USP_SearchCustomerRMAData]
 	@PageSize int,
 	@PageNumber int,
 	@SortColumn varchar(50),

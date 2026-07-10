@@ -1,3 +1,4 @@
+﻿-- ===== PROCEDURE: [dbo].[usprpt_GetVendorUtilizationReport]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs3/usprpt_GetVendorUtilizationReport.sql) =====
 /*************************************************************           
  ** File:   [usprpt_GetPurchaseOrderReport]           
  ** Author:    
@@ -22,7 +23,7 @@
 	7    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 **************************************************************/
 
-CREATE      PROCEDURE [dbo].[usprpt_GetVendorUtilizationReport]  
+CREATE   PROCEDURE [dbo].[usprpt_GetVendorUtilizationReport]  
 @PageNumber int = 1,  
 @PageSize int = NULL,  
 @mastercompanyid int,  

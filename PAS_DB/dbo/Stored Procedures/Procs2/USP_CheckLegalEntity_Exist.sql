@@ -1,4 +1,5 @@
-﻿ /*************************************************************           
+﻿-- ===== PROCEDURE: [dbo].[USP_CheckLegalEntity_Exist]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs2/USP_CheckLegalEntity_Exist.sql) =====
+ /*************************************************************           
  ** File:   [USP_CheckLegalEntity_Exist]          
  ** Author:   Bhargav Saliya
  ** Description: This stored procedure is used to get Time Zone  
@@ -25,7 +26,7 @@
 **************************************************************/
 
  --EXEC [USP_CheckLegalEntity_Exist] 22,184425,207
-CREATE     PROCEDURE [dbo].[USP_CheckLegalEntity_Exist]
+CREATE   PROCEDURE [dbo].[USP_CheckLegalEntity_Exist]
 --@LegalEntiryId bigint,
 @ModuleId bigint,
 @ReferenceId bigint,

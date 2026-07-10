@@ -1,4 +1,8 @@
-﻿/*************************************************************           
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.USP_GetCustomerTax_Information_ProductSale_WO_INVBS_Parts   (source: PAS_DB/dbo/Stored Procedures/Procs2/USP_GetCustomerTax_Information_ProductSale_WO_INVBS_Parts.sql)
+-- ---------------------------------------------------------------------------------------------------
+/*************************************************************           
  ** File:   [USP_GetCustomerTax_Information_ProductSale_WO_INVBS_Parts]           
  ** Author:   Moin Bloch
  ** Description: This stored procedure is used to get Customer Tax Information based on Repair
@@ -18,7 +22,7 @@
      
 -- EXEC [USP_GetCustomerTax_Information_ProductSale_WO_INVBS_Parts] 10803,11245 
 **************************************************************/
-CREATE PROCEDURE [dbo].[USP_GetCustomerTax_Information_ProductSale_WO_INVBS_Parts] 
+CREATE   PROCEDURE [dbo].[USP_GetCustomerTax_Information_ProductSale_WO_INVBS_Parts] 
 @WorkOrderId BIGINT,
 @WorkOrderPartId BIGINT,
 @BillingOriginSiteId BIGINT OUTPUT,

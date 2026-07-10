@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.UpdateStocklineDraftDetail   (source: PAS_DB/dbo/Stored Procedures/Procs1/UpdateStocklineDraftDetail.sql)
+-- ---------------------------------------------------------------------------------------------------
 /*************************************************************           
  ** File:   [UpdateStocklineDraftDetail]           
  ** Author: 
@@ -22,7 +26,7 @@
 	6    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 -- EXEC [dbo].[UpdateStocklineDraftDetail] 251
 **************************************************************/
-CREATE     Procedure [dbo].[UpdateStocklineDraftDetail]
+CREATE       Procedure [dbo].[UpdateStocklineDraftDetail]
 	@PurchaseOrderId  bigint
 AS
 BEGIN

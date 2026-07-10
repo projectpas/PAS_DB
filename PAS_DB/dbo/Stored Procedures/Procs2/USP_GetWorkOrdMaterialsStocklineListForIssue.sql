@@ -1,3 +1,4 @@
+﻿-- ===== PROCEDURE: [dbo].[USP_GetWorkOrdMaterialsStocklineListForIssue]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs2/USP_GetWorkOrdMaterialsStocklineListForIssue.sql) =====
 /*************************************************************           
  ** File:   [USP_GetWorkOrdMaterialsStocklineListForIssue]           
  ** Author:   Hemant Saliya

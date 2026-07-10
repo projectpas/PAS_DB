@@ -1,4 +1,8 @@
-﻿/*************************************************************             
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.MigrateWorkFlowRecord   (source: PAS_DB/dbo/Stored Procedures/Procs1/MigrateWorkFlowRecord.sql)
+-- ---------------------------------------------------------------------------------------------------
+/*************************************************************             
  ** File:   [MigrateWorkFlowRecord]
  ** Author:   Vishal Suthar
  ** Description: This stored procedure is used to Migrate Work Flow (Templates) Records
@@ -29,7 +33,7 @@ set @p8=NULL
 exec sp_executesql N'EXEC MigrateWorkFlowRecord @FromMasterComanyID, @UserName, @Processed OUTPUT, @Migrated OUTPUT, @Failed OUTPUT, @Exists OUTPUT',N'@FromMasterComanyID int,@UserName nvarchar(12),@Processed int output,@Migrated int output,@Failed int output,@Exists int output',@FromMasterComanyID=20,@UserName=N'ADMIN ADMIN',@Processed=@p5 output,@Migrated=@p6 output,@Failed=@p7 output,@Exists=@p8 output
 select @p5, @p6, @p7, @p8
 **************************************************************/
-CREATE   PROCEDURE [dbo].[MigrateWorkFlowRecord]
+CREATE     PROCEDURE [dbo].[MigrateWorkFlowRecord]
 (
 	@FromMasterComanyID INT = NULL,
 	@UserName VARCHAR(100) NULL,

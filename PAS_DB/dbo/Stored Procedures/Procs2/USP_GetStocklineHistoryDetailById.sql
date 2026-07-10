@@ -1,4 +1,5 @@
-﻿
+﻿-- ===== PROCEDURE: [dbo].[USP_GetStocklineHistoryDetailById]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs2/USP_GetStocklineHistoryDetailById.sql) =====
+
 /*************************************************************               
  ** File:   [USP_GetStocklineHistoryDetailById]              
  ** Author:   Devendra      
@@ -26,7 +27,7 @@ exec USP_GetStocklineHistoryDetailById @PageSize=10,@PageNumber=1,@SortColumn=N'
 @TextMessage=NULL,@RefferenceId=NULL,@ModuleName=NULL,@UpdatedDate=NULL,@UpdatedBy=NULL,@Action=NULL,@SubModuleName=NULL,@SubRefferenceNumber=NULL  
   
 **************************************************************/    
-CREATE    PROCEDURE [dbo].[USP_GetStocklineHistoryDetailById]  
+CREATE   PROCEDURE [dbo].[USP_GetStocklineHistoryDetailById]  
  @PageNumber INT,    
  @PageSize INT,    
  @SortColumn VARCHAR(50)=null,    

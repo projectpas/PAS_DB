@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿-- ===== PROCEDURE: [dbo].[USP_TmpStockLineBulkUpload]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs3/USP_TmpStockLineBulkUpload.sql) =====
+/*************************************************************           
  ** File:   [USP_TmpStockLineBulkUpload]           
  ** Author:  Amit Ghediya
  ** Description: This stored procedure is used to GetJournalBatchHeaderById
@@ -18,7 +19,7 @@
      
 -- EXEC USP_TmpStockLineBulkUpload
 ************************************************************************/
-CREATE       PROCEDURE [dbo].[USP_TmpStockLineBulkUpload]  
+CREATE   PROCEDURE [dbo].[USP_TmpStockLineBulkUpload]  
 	@tbl_StockLineBulkUpload StockLineBulkUploadType READONLY,
 	@isDeleted INT = 0,
 	@fileName VARCHAR(100) = NULL

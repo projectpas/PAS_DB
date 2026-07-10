@@ -1,3 +1,4 @@
+﻿-- ===== PROCEDURE: [dbo].[sp_GetROShippingParentList]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs1/sp_GetROShippingParentList.sql) =====
 /*************************************************************           
  ** File:   [sp_GetROShippingParentList]           
  ** Author:   
@@ -21,7 +22,7 @@
      
  -- [dbo].[sp_GetROShippingParentList] 2561
 **************************************************************/
-CREATE   Procedure [dbo].[sp_GetROShippingParentList]
+CREATE   PROCEDURE [dbo].[sp_GetROShippingParentList]
 	@RepairOrderId  bigint
 AS
 BEGIN

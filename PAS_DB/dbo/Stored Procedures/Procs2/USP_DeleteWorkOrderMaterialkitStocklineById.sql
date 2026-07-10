@@ -1,4 +1,8 @@
-﻿-- =============================================
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.USP_DeleteWorkOrderMaterialkitStocklineById   (source: PAS_DB/dbo/Stored Procedures/Procs2/USP_DeleteWorkOrderMaterialkitStocklineById.sql)
+-- ---------------------------------------------------------------------------------------------------
+-- =============================================
 -- Author:		HEMANT SALIYA	
 -- Create date: 27-03-2025
 -- Description:	This stored procedure is used to Detete kit Stockline 
@@ -17,7 +21,7 @@
 	EXEC USP_DeleteWorkOrderMaterialkitStocklineById 18573, 188319, 'Brandon  Taylor'
 **************************************************************/
 
-CREATE   PROC [dbo].[USP_DeleteWorkOrderMaterialkitStocklineById]
+CREATE     PROC [dbo].[USP_DeleteWorkOrderMaterialkitStocklineById]
 (
 	@WorkOrderMaterialsKitId BIGINT = NULL,
 	@StocklineId BIGINT = NULL,

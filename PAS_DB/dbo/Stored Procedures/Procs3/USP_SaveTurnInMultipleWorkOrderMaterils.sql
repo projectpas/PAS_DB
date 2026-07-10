@@ -1,4 +1,8 @@
-﻿/*************************************************************   
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.USP_SaveTurnInMultipleWorkOrderMaterils   (source: PAS_DB/dbo/Stored Procedures/Procs3/USP_SaveTurnInMultipleWorkOrderMaterils.sql)
+-- ---------------------------------------------------------------------------------------------------
+/*************************************************************   
 ** Author:  <Devendra Shekh>  
 ** Create date: <09/12/2024>  
 ** Description: <Tender Multiple StockLine>  
@@ -14,7 +18,7 @@
 	
 	1    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 **************************************************************/ 
-CREATE   PROCEDURE [dbo].[USP_SaveTurnInMultipleWorkOrderMaterils]
+CREATE     PROCEDURE [dbo].[USP_SaveTurnInMultipleWorkOrderMaterils]
 	@tbl_SaveAndTenderMultipleStocklineType [SaveAndTenderMultipleStocklineType] READONLY
 AS
 BEGIN

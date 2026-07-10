@@ -1,4 +1,5 @@
-﻿
+﻿-- ===== PROCEDURE: [dbo].[usp_DeleteWFMaterialsFromWOMaterils]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs2/usp_DeleteWFMaterialsFromWOMaterils.sql) =====
+
 /*************************************************************   
 ** Author:  <Hemant Saliya>  
 ** Create date: <07/30/2021>  
@@ -16,7 +17,7 @@ Exec [usp_SaveWorkOrderMaterials]
 EXEC dbo.usp_DeleteWFMaterialsFromWOMaterils 54,'Admin'
 
 **************************************************************/ 
-CREATE PROCEDURE [dbo].[usp_DeleteWFMaterialsFromWOMaterils]
+CREATE   PROCEDURE [dbo].[usp_DeleteWFMaterialsFromWOMaterils]
 	@WorkFlowWorkOrderId BIGINT
 AS
 BEGIN

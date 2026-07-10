@@ -1,3 +1,4 @@
+﻿-- ===== PROCEDURE: [dbo].[usp_GetSalesOrderBillingReport]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs2/usp_GetSalesOrderBillingReport.sql) =====
 
 /*************************************************************           
  ** File:   [usp_GetSalesOrderBillingReport]           
@@ -29,7 +30,7 @@ EXECUTE   [dbo].[usp_GetSalesOrderBillingReport] '','2020-06-15','2021-06-15','1
 --select * from dbo.ManagementStructure WHERE ParentId in (1,4,43,44,45,80,84,88) 
 --select * from dbo.ManagementStructure WHERE ParentId in (46,47,66) 
 --select * from dbo.ManagementStructure WHERE ParentId in (48,49,50,58,59,67,68,69) 
-CREATE      PROCEDURE [dbo].[usp_GetSalesOrderBillingReport] @name varchar(40) = NULL,
+CREATE   PROCEDURE [dbo].[usp_GetSalesOrderBillingReport] @name varchar(40) = NULL,
 @Fromdate datetime,
 @Todate datetime,
 @mastercompanyid int,

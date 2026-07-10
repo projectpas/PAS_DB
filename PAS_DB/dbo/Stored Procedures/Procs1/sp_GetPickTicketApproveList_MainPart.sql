@@ -1,3 +1,4 @@
+﻿-- ===== PROCEDURE: [dbo].[sp_GetPickTicketApproveList_MainPart]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs1/sp_GetPickTicketApproveList_MainPart.sql) =====
 /*************************************************************           
  ** File:   [sp_GetPickTicketApproveList_MainPart]           
  ** Author:   Hemant Saliya
@@ -24,7 +25,7 @@
 --EXEC [sp_GetPickTicketApproveList_MainPart] 5,0
 **************************************************************/
 
-CREATE   Procedure [dbo].[sp_GetPickTicketApproveList_MainPart]
+CREATE   PROCEDURE [dbo].[sp_GetPickTicketApproveList_MainPart]
 	@referenceId bigint,
 	@wfwoId bigint
 AS

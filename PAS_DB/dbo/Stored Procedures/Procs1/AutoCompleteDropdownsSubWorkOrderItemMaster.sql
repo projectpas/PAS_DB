@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.AutoCompleteDropdownsSubWorkOrderItemMaster   (source: PAS_DB/dbo/Stored Procedures/Procs1/AutoCompleteDropdownsSubWorkOrderItemMaster.sql)
+-- ---------------------------------------------------------------------------------------------------
 /*************************************************************           
  ** File:   [AutoCompleteDropdownsSubWorkOrderItemMaster]           
  ** Author:   HEMANT SALIYA
@@ -23,7 +27,7 @@
 EXEC [AutoCompleteDropdownsSubWorkOrderItemMaster] '',20,'',335
 **************************************************************/
 
-CREATE   PROCEDURE [dbo].[AutoCompleteDropdownsSubWorkOrderItemMaster]
+CREATE     PROCEDURE [dbo].[AutoCompleteDropdownsSubWorkOrderItemMaster]
 @StartWith VARCHAR(50),
 @Count VARCHAR(10) = '0',
 @Idlist VARCHAR(max) = '0',

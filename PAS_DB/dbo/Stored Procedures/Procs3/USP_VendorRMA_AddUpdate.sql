@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿-- ===== PROCEDURE: [dbo].[USP_VendorRMA_AddUpdate]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs3/USP_VendorRMA_AddUpdate.sql) =====
+/*************************************************************           
  ** File:   [USP_VendorRMA_AddUpdate]           
  ** Author: Moin Bloch
  ** Description: This stored procedure is used to Add & Update Vendor RMA Details

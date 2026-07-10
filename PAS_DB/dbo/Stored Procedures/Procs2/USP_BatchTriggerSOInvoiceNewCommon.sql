@@ -1,3 +1,4 @@
+﻿-- ===== PROCEDURE: [dbo].[USP_BatchTriggerSOInvoiceNewCommon]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs2/USP_BatchTriggerSOInvoiceNewCommon.sql) =====
 /*************************************************************           
  ** File:   [USP_BatchTriggerSOInvoiceNewCommon]
  ** Author:  RAJESH GAMI
@@ -18,7 +19,7 @@
 	3    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	
 ************************************************************************/
-CREATE     PROCEDURE [dbo].[USP_BatchTriggerSOInvoiceNewCommon]
+CREATE   PROCEDURE [dbo].[USP_BatchTriggerSOInvoiceNewCommon]
 	@DistributionMasterId BIGINT = NULL,
 	@ReferenceId BIGINT = NULL,
 	@ReferencePartId BIGINT = NULL,

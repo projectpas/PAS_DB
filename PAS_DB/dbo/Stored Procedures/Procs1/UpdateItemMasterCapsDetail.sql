@@ -1,4 +1,8 @@
-﻿/*************************************************************           
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.UpdateItemMasterCapsDetail   (source: PAS_DB/dbo/Stored Procedures/Procs1/UpdateItemMasterCapsDetail.sql)
+-- ---------------------------------------------------------------------------------------------------
+/*************************************************************           
  ** File:   [UpdateItemMasterCapsDetail]           
  ** Author:   Moin Bloch
  ** Description: Update Item Master Caps All Id Wise Names
@@ -18,7 +22,7 @@
  EXEC UpdateItemMasterCapsDetail 20754
 **************************************************************/ 
 
-CREATE   Procedure [dbo].[UpdateItemMasterCapsDetail]
+CREATE     Procedure [dbo].[UpdateItemMasterCapsDetail]
 @ItemMasterId  bigint
 AS
 BEGIN

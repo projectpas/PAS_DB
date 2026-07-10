@@ -1,4 +1,8 @@
-﻿/*************************************************************             
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.GetPNTileWorkOrderQuoteList   (source: PAS_DB/dbo/Stored Procedures/Procs1/GetPNTileWorkOrderQuoteList.sql)
+-- ---------------------------------------------------------------------------------------------------
+/*************************************************************             
  ** File:   [GetPNTileWorkOrderQuoteList]             
  ** Author:   
  ** Description: This stored procedure is used Get PN Tile Work Order Quote List
@@ -18,7 +22,7 @@
     1    27/02/2026   Bhargav Saliya       PN-15581: Added New Fields [QuoteAmount],[Qty],[Notes]
 	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 **************************************************************/  
-CREATE PROCEDURE [dbo].[GetPNTileWorkOrderQuoteList]
+CREATE   PROCEDURE [dbo].[GetPNTileWorkOrderQuoteList]
 @PageNumber int = 1,
 @PageSize int = 10,
 @SortColumn varchar(50)=NULL,

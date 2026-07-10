@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.OEMCrossReferenceList   (source: PAS_DB/dbo/Stored Procedures/Procs1/OEMCrossReferenceList.sql)
+-- ---------------------------------------------------------------------------------------------------
 
 /*************************************************************               
 ** File:   [OEMCrossReferenceList]              
@@ -18,7 +22,7 @@
 /*
 exec OEMCrossReferenceList @PageNumber=1,@PageSize=10,@SortColumn=N'CreatedDate',@SortOrder=-1,@GlobalFilter=N'',@ItemMasterId=20372,@PartNumber=NULL,@PartDescription=NULL,@CreatedBy=NULL,@CreatedDate=NULL,@UpdatedBy=NULL,@UpdatedDate=NULL,@IsDeleted=0,@MasterCompanyId=1
 */
-CREATE    PROCEDURE [dbo].[OEMCrossReferenceList]
+CREATE      PROCEDURE [dbo].[OEMCrossReferenceList]
 @PageNumber int = NULL,
 @PageSize int = NULL,
 @SortColumn varchar(50)=NULL,

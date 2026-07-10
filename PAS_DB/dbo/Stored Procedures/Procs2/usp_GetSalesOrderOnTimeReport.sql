@@ -1,4 +1,5 @@
-﻿
+﻿-- ===== PROCEDURE: [dbo].[usp_GetSalesOrderOnTimeReport]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs2/usp_GetSalesOrderOnTimeReport.sql) =====
+
 /*************************************************************           
  ** File:   [usp_GetSalesOrderOnTimeReport]           
  ** Author:   Swetha  
@@ -26,7 +27,7 @@
 
 EXECUTE   [dbo].[usp_GetSalesOrderOnTimeReport] '','2020-06-15','2021-06-15','1','1,4,43,44,45,80,84,88','46,47,66','48,49,50,58,59,67,68,69','51,52,53,54,55,56,57,60,61,62,64,70,71,72'
 **************************************************************/
-CREATE      PROCEDURE [dbo].[usp_GetSalesOrderOnTimeReport] @customername varchar(40) = NULL,
+CREATE   PROCEDURE [dbo].[usp_GetSalesOrderOnTimeReport] @customername varchar(40) = NULL,
 @Fromdate datetime,
 @Todate datetime,
 @mastercompanyid int,

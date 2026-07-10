@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿-- ===== PROCEDURE: [dbo].[USP_GetInternalWorkorderDeatils]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs2/USP_GetInternalWorkorderDeatils.sql) =====
+/*************************************************************           
  ** File:   [USP_GetInternalWorkorderDeatils]           
  ** Author:   Subhash Saliya
  ** Description: This stored procedure is used Create USP_GetInternalWorkorderDeatils   

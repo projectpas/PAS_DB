@@ -1,4 +1,8 @@
-﻿/*************************************************************           
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.USP_CycleCountDetail_UpdateColumnsWithId   (source: PAS_DB/dbo/Stored Procedures/Procs2/USP_CycleCountDetail_UpdateColumnsWithId.sql)
+-- ---------------------------------------------------------------------------------------------------
+/*************************************************************           
  ** File:   [USP_CycleCountDetail_UpdateColumnsWithId]           
  ** Author:   MOIN BLOCH
  ** Description: This stored procedure is used Update Cycle Count Stockline Details
@@ -20,7 +24,7 @@
 -- EXEC [dbo].[USP_CycleCountDetail_UpdateColumnsWithId] 1
 **************************************************************/
 
-CREATE   PROCEDURE [dbo].[USP_CycleCountDetail_UpdateColumnsWithId]
+CREATE     PROCEDURE [dbo].[USP_CycleCountDetail_UpdateColumnsWithId]
 @CycleCountDetailId INT
 AS
 BEGIN

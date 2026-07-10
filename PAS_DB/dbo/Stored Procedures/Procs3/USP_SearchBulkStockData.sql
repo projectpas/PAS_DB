@@ -1,4 +1,5 @@
-﻿/*************************************************************             
+﻿-- ===== PROCEDURE: [dbo].[USP_SearchBulkStockData]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs3/USP_SearchBulkStockData.sql) =====
+/*************************************************************             
  ** File:   [USP_SearchBulkStockData]             
  ** Author:  AMIT GHEDIYA  
  ** Description: This stored procedure is used to Get Bulk Stockline Adjustment listing  
@@ -22,7 +23,7 @@
 
 -- EXEC USP_SearchBulkStockData
 ************************************************************************/  
-CREATE PROCEDURE [dbo].[USP_SearchBulkStockData]
+CREATE   PROCEDURE [dbo].[USP_SearchBulkStockData]
 	@PageNumber int = NULL,
 	@PageSize int = NULL,
 	@SortColumn varchar(50)=NULL,

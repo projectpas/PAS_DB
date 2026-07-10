@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.SOQSODashboardData   (source: PAS_DB/dbo/Stored Procedures/Procs1/SOQSODashboardData.sql)
+-- ---------------------------------------------------------------------------------------------------
 /*************************************************************           
  ** File:   [SOQSODashboardData]
  ** Author: Deep Patel
@@ -17,7 +21,7 @@
 	6   30-Jun-2025     Devendra Shekh	 Modified(SO Billing Table Changes)
 	7    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 ************************************************************************/
-CREATE PROCEDURE [dbo].[SOQSODashboardData]
+CREATE   PROCEDURE [dbo].[SOQSODashboardData]
 	-- Add the parameters for the stored procedure here
 	@PageSize int,
 	@PageNumber int,	

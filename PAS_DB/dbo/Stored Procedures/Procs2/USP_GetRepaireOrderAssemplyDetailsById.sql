@@ -1,4 +1,8 @@
-﻿/*************************************************************           
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.USP_GetRepaireOrderAssemplyDetailsById   (source: PAS_DB/dbo/Stored Procedures/Procs2/USP_GetRepaireOrderAssemplyDetailsById.sql)
+-- ---------------------------------------------------------------------------------------------------
+/*************************************************************           
  ** File:   [USP_GetRepaireOrderAssemplyDetailsById]           
  ** Author:   BHARGAV SALIYA
  ** Description: This stored procedure is used to Ger Repair Order Sub Assembly Details List
@@ -15,7 +19,7 @@
     1    28 jul 2025    BHARGAV SALIYA               Created
 	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 **************************************************************/
-CREATE   PROCEDURE [dbo].[USP_GetRepaireOrderAssemplyDetailsById]
+CREATE     PROCEDURE [dbo].[USP_GetRepaireOrderAssemplyDetailsById]
 @PageNumber int = NULL,
 @PageSize int = NULL,
 @SortColumn varchar(50)=NULL,

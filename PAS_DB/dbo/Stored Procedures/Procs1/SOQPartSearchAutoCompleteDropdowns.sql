@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.SOQPartSearchAutoCompleteDropdowns   (source: PAS_DB/dbo/Stored Procedures/Procs1/SOQPartSearchAutoCompleteDropdowns.sql)
+-- ---------------------------------------------------------------------------------------------------
 /*************************************************************           
  ** File:   [SOQPartSearchAutoCompleteDropdowns]
  ** Author:   
@@ -18,7 +22,7 @@
 	3	 03/21/2025  Devendra Shekh		Added Except Parts for PMA/DER
 	4    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 ************************************************************************/
-CREATE   PROCEDURE [dbo].[SOQPartSearchAutoCompleteDropdowns]
+CREATE     PROCEDURE [dbo].[SOQPartSearchAutoCompleteDropdowns]
   @CustomerId INT=0,
   @CustRestrictedDer BIT=0,
   @CustRestrictedPMA BIT=0,

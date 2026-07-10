@@ -1,3 +1,4 @@
+﻿-- ===== PROCEDURE: [dbo].[sp_GetSalesOrderBillingInvoiceChildList]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs1/sp_GetSalesOrderBillingInvoiceChildList.sql) =====
 /*************************************************************           
  ** File:   [sp_GetSalesOrderBillingInvoiceChildList]           
  ** Author:   Vishal Suthar
@@ -58,7 +59,7 @@
 
   EXEC [dbo].[sp_GetSalesOrderBillingInvoiceChildList] 1584,20745,1
 **************************************************************/
-CREATE     PROCEDURE [dbo].[sp_GetSalesOrderBillingInvoiceChildList]
+CREATE   PROCEDURE [dbo].[sp_GetSalesOrderBillingInvoiceChildList]
 @SalesOrderId  bigint,  
 @SalesOrderPartId bigint,  
 @ConditionId bigint,

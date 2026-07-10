@@ -1,4 +1,8 @@
-﻿/***************************************************************  
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.usp_UpdateItemMasterWithGLAccountNames   (source: PAS_DB/dbo/Stored Procedures/Procs3/usp_UpdateItemMasterWithGLAccountNames.sql)
+-- ---------------------------------------------------------------------------------------------------
+/***************************************************************  
  ** File:  [usp_UpdateItemMasterWithGLAccountNames]            
  ** Author:   Devendra Shekh
  ** Description: Update Item Master with default values
@@ -13,7 +17,7 @@
 	4    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 
 **************************************************************/
-CREATE PROCEDURE [dbo].[usp_UpdateItemMasterWithGLAccountNames]
+CREATE   PROCEDURE [dbo].[usp_UpdateItemMasterWithGLAccountNames]
     @ItemMasterId BIGINT,
     @PartSourceVal VARCHAR(256) = NULL,
     @MasterCompanyId INT

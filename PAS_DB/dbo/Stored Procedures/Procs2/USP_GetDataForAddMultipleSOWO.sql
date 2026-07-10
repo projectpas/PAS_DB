@@ -1,3 +1,4 @@
+﻿-- ===== PROCEDURE: [dbo].[USP_GetDataForAddMultipleSOWO]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs2/USP_GetDataForAddMultipleSOWO.sql) =====
 /*************************************************************                   
  ** File:   [USP_GetDataForAddMultipleSOWO]                   
  ** Author:   Shrey Chandegara      
@@ -26,7 +27,7 @@
 
  EXECUTE USP_GetDataForAddMultipleSOWO 'loadwo',102539,7,2688,14760     
 **************************************************************/         
-CREATE    PROCEDURE [dbo].[USP_GetDataForAddMultipleSOWO]      
+CREATE   PROCEDURE [dbo].[USP_GetDataForAddMultipleSOWO]      
 	@viewType VARCHAR (50) = NULL,      
 	@ItemMasterId BIGINT,      
 	@ConditionId BIGINT,      

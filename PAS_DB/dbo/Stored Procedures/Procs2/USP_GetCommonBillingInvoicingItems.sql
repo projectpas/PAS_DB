@@ -1,4 +1,8 @@
-﻿/*****************************************************************************************           
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.USP_GetCommonBillingInvoicingItems   (source: PAS_DB/dbo/Stored Procedures/Procs2/USP_GetCommonBillingInvoicingItems.sql)
+-- ---------------------------------------------------------------------------------------------------
+/*****************************************************************************************           
  ** File:   [USP_GetCommonBillingInvoicingItems]           
  ** Author:   Moin Bloch 
  ** Description: This stored procedure is used to Get Common Billing Invoicing Items
@@ -19,7 +23,7 @@
 	7    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 --   EXEC [dbo].[USP_GetCommonBillingInvoicingItems] 20070,15
 ********************************************************************************************/
-CREATE PROCEDURE [dbo].[USP_GetCommonBillingInvoicingItems]
+CREATE   PROCEDURE [dbo].[USP_GetCommonBillingInvoicingItems]
 @BillingInvoicingId BIGINT = NULL,
 @ModuleId INT = NULL
 AS

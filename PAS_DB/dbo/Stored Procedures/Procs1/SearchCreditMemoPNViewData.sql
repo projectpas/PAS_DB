@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.SearchCreditMemoPNViewData   (source: PAS_DB/dbo/Stored Procedures/Procs1/SearchCreditMemoPNViewData.sql)
+-- ---------------------------------------------------------------------------------------------------
 /*************************************************************           
  ** File:   SearchCreditMemoPNViewData         
  ** Author:  Moin
@@ -22,7 +26,7 @@
 **************************************************************/ 
 
 
-CREATE       PROCEDURE [dbo].[SearchCreditMemoPNViewData]
+CREATE         PROCEDURE [dbo].[SearchCreditMemoPNViewData]
 	@PageSize int=NULL,
 	@PageNumber int=NULL,
 	@SortColumn varchar(50)=NULL, 

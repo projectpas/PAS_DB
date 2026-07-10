@@ -1,4 +1,5 @@
-﻿/*************************************************************             
+﻿-- ===== PROCEDURE: [dbo].[USP_ReserveStocklineForReceivingPO]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs2/USP_ReserveStocklineForReceivingPO.sql) =====
+/*************************************************************             
  ** File:   [USP_ReserveStocklineForReceivingPO]            
  ** Author:   Vishal Suthar  
  ** Description: This stored procedure is used to reserve stocklines for receiving PO
@@ -47,7 +48,7 @@
 
 exec dbo.USP_ReserveStocklineForReceivingPO @PurchaseOrderId=7671,@SelectedPartsToReserve=N'8963,8964,8965,8969',@UpdatedBy=N'Alex Torres',@AllowAutoIssue=default
 **************************************************************/  
-CREATE PROCEDURE [dbo].[USP_ReserveStocklineForReceivingPO]
+CREATE   PROCEDURE [dbo].[USP_ReserveStocklineForReceivingPO]
 (
 	@PurchaseOrderId BIGINT = NULL,
 	@SelectedPartsToReserve VARCHAR(256) = NULL,

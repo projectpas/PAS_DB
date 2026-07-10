@@ -1,4 +1,8 @@
-﻿/*************************************************************           
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.USP_UpdateRFQQuoteDetails   (source: PAS_DB/dbo/Stored Procedures/Procs3/USP_UpdateRFQQuoteDetails.sql)
+-- ---------------------------------------------------------------------------------------------------
+/*************************************************************           
  ** File:   [USP_UpdateQuoteDetails]           
  ** Author:  Amit Ghediya
  ** Description: This stored procedure is used for update old quote parice & if new will add parts.
@@ -16,7 +20,7 @@
 	
 -- EXEC USP_UpdateQuoteDetails
 ************************************************************************/
-CREATE   PROCEDURE [dbo].[USP_UpdateRFQQuoteDetails]
+CREATE     PROCEDURE [dbo].[USP_UpdateRFQQuoteDetails]
 	@tbl_IlsRfqQuoteDetailsType IlsRfqQuoteDetailsType READONLY,
 	@CustomerRfqQuoteId BIGINT = NULL,
 	@CustomerRfqId BIGINT,

@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿-- ===== PROCEDURE: [dbo].[sp_VendorRMA_GetPickTicketForEdit]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs1/sp_VendorRMA_GetPickTicketForEdit.sql) =====
+/*************************************************************           
  ** File:   [dbo].[sp_VendorRMA_GetPickTicketForEdit]          
  ** Author:   Amit Ghediya
  ** Description: Get Vendor RMA pick ticket stockline data for edit.

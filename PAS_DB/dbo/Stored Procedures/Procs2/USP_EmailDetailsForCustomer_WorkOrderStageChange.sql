@@ -1,4 +1,5 @@
-﻿/***************************************************************  
+﻿-- ===== PROCEDURE: [dbo].[USP_EmailDetailsForCustomer_WorkOrderStageChange]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs2/USP_EmailDetailsForCustomer_WorkOrderStageChange.sql) =====
+/***************************************************************  
  ** File:   [USP_EmailDetailsForCustomer_WorkOrderStageChange]            
  ** Author:   
  ** Description: 
@@ -14,7 +15,7 @@
     3    09/July/2026   RAJESH GAMI	[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 
 **************************************************************/
-CREATE       PROCEDURE [dbo].[USP_EmailDetailsForCustomer_WorkOrderStageChange]
+CREATE   PROCEDURE [dbo].[USP_EmailDetailsForCustomer_WorkOrderStageChange]
 @WorkOrderId BIGINT,
 @WorkOrderStageId BIGINT,
 @WorkOrderPartNumberId BIGINT

@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.GetWorkOrderSettlementDetails   (source: PAS_DB/dbo/Stored Procedures/Procs1/GetWorkOrderSettlementDetails.sql)
+-- ---------------------------------------------------------------------------------------------------
 /*************************************************************           
  ** File:   [GetWorkOrderSettlementDetails]           
  ** Author:   Subhash Saliya
@@ -31,7 +35,7 @@
 
 EXEC [GetWorkOrderSettlementDetails] 3555,3025,3019
 **************************************************************/
-CREATE     PROCEDURE [dbo].[GetWorkOrderSettlementDetails]
+CREATE       PROCEDURE [dbo].[GetWorkOrderSettlementDetails]
 	@WorkorderId bigint,
 	@workOrderPartNoId bigint,
 	@workflowWorkorderId BIGINT,

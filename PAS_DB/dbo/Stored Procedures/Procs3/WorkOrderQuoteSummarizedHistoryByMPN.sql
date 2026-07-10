@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.WorkOrderQuoteSummarizedHistoryByMPN   (source: PAS_DB/dbo/Stored Procedures/Procs3/WorkOrderQuoteSummarizedHistoryByMPN.sql)
+-- ---------------------------------------------------------------------------------------------------
 /*************************************************************           
  ** File:   [WorkOrderQuoteSummarizedHistoryByMPN]           
  ** Author:   Hemant Saliya
@@ -21,7 +25,7 @@
      
  EXEC [WorkOrderQuoteSummarizedHistoryByMPN] 129,0
 **************************************************************/
-CREATE   PROCEDURE [dbo].[WorkOrderQuoteSummarizedHistoryByMPN]
+CREATE     PROCEDURE [dbo].[WorkOrderQuoteSummarizedHistoryByMPN]
 	@ItemMasterId BIGINT,
 	@IsTwelveMonth BIT = 1
 AS

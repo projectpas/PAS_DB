@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.usp_GetLaborTrackingReport   (source: PAS_DB/dbo/Stored Procedures/Procs2/usp_GetLaborTrackingReport.sql)
+-- ---------------------------------------------------------------------------------------------------
 /*************************************************************           
  ** File:   [usp_GetLaborTrackingReport]           
  ** Author:   Swetha  
@@ -21,7 +25,7 @@
      
 EXECUTE   [dbo].[usp_GetLaborTrackingReport] '','2019-04-25','2021-07-25','1','1,4,43,44,45,80,84,88','46,47,66','48,49,50,58,59,67,68,69','51,52,53,54,55,56,57,60'
 **************************************************************/
-CREATE PROCEDURE [dbo].[usp_GetLaborTrackingReport] @itemmasterid varchar(40) = NULL,
+CREATE   PROCEDURE [dbo].[usp_GetLaborTrackingReport] @itemmasterid varchar(40) = NULL,
 @Fromdate datetime,
 @Todate datetime,
 @Level1 varchar(max) = NULL,

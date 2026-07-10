@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿-- ===== PROCEDURE: [dbo].[USP_Lot_ProcStockListFromItemMasterId]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs2/USP_Lot_ProcStockListFromItemMasterId.sql) =====
+/*************************************************************           
  ** File:   [USP_Lot_ProcStockListFromItemMasterId]           
  ** Author:  Rajesh Gami
  ** Description: This stored procedure is used to get available qty >0 stocklines from the Item Master.

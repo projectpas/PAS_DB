@@ -1,4 +1,8 @@
-﻿/*************************************************************           
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.ItemMasterPriceListForBulkUpdate   (source: PAS_DB/dbo/Stored Procedures/Procs1/ItemMasterPriceListForBulkUpdate.sql)
+-- ---------------------------------------------------------------------------------------------------
+/*************************************************************           
  ** File:   [ItemMasterPriceListForBulkUpdate]           
  ** Author:  Ekta Chandegra
  ** Description: This stored procedure is used ItemMasterPriceListForBulkUpdate
@@ -23,7 +27,7 @@
 
 ************************************************************************/
 
-CREATE      PROCEDURE [dbo].[ItemMasterPriceListForBulkUpdate]
+CREATE        PROCEDURE [dbo].[ItemMasterPriceListForBulkUpdate]
 (
 	@ItemMasterId BIGINT,
 	@MasterCompanyId BIGINT,

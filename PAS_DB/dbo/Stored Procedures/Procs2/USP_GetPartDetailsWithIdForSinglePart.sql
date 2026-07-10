@@ -1,4 +1,8 @@
-﻿/*************************************************************
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.USP_GetPartDetailsWithIdForSinglePart   (source: PAS_DB/dbo/Stored Procedures/Procs2/USP_GetPartDetailsWithIdForSinglePart.sql)
+-- ---------------------------------------------------------------------------------------------------
+/*************************************************************
 ** File: [USP_GetPartDetailsWithIdForSinglePart]
 ** Author:   Ayushi Patel
 ** Description: Get Part Details With Id For Single Part
@@ -14,7 +18,7 @@
 -- EXEC[USP_GetPartDetailsWithIdForSinglePart] 4797
 	1    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 **************************************************************/
-CREATE   PROCEDURE [dbo].[USP_GetPartDetailsWithIdForSinglePart]
+CREATE     PROCEDURE [dbo].[USP_GetPartDetailsWithIdForSinglePart]
     @PartId BIGINT,
     @ConditionId BIGINT = 0
 AS

@@ -1,4 +1,8 @@
-﻿/*************************************************************           
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.USP_NhaTlaAltEquPartList   (source: PAS_DB/dbo/Stored Procedures/Procs2/USP_NhaTlaAltEquPartList.sql)
+-- ---------------------------------------------------------------------------------------------------
+/*************************************************************           
  ** File:   [USP_NhaTlaAltEquPartList]           
  ** Author:   Sahdev Saliya
  ** Description: This stored procedure is used to Get NhaTlaAltEquPart List
@@ -17,7 +21,7 @@
 
     exec [dbo].[USP_NhaTlaAltEquPartList]
 **************************************************************/
-CREATE   PROCEDURE [dbo].[USP_NhaTlaAltEquPartList]
+CREATE     PROCEDURE [dbo].[USP_NhaTlaAltEquPartList]
     @SortField VARCHAR(256) = NULL,
 	@SortOrder VARCHAR(256) = NULL,
     @ItemMasterId BIGINT = NULL,

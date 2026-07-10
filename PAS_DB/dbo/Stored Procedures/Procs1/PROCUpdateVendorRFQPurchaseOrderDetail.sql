@@ -1,4 +1,8 @@
-﻿--- EXEC PROCUpdateVendorRFQPurchaseOrderDetail  1
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.PROCUpdateVendorRFQPurchaseOrderDetail   (source: PAS_DB/dbo/Stored Procedures/Procs1/PROCUpdateVendorRFQPurchaseOrderDetail.sql)
+-- ---------------------------------------------------------------------------------------------------
+--- EXEC PROCUpdateVendorRFQPurchaseOrderDetail  1
 /***************************************************************************************************************************************
   ** Change History
  ***************************************************************************************************************************************
@@ -6,7 +10,7 @@
  ** --   --------					 -------						-------------------------------
 	1    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 ****************************************************************************************************************************************/
-CREATE PROCEDURE [dbo].[PROCUpdateVendorRFQPurchaseOrderDetail]
+CREATE   PROCEDURE [dbo].[PROCUpdateVendorRFQPurchaseOrderDetail]
 @VendorRFQPurchaseOrderId  bigint
 AS
 BEGIN

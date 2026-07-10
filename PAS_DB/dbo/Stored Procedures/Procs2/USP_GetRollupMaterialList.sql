@@ -1,3 +1,4 @@
+﻿-- ===== PROCEDURE: [dbo].[USP_GetRollupMaterialList]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs2/USP_GetRollupMaterialList.sql) =====
 -------------------------------------------------------------------------------------------------------------------
 
 /*************************************************************           
@@ -26,7 +27,7 @@
 
 **************************************************************/ 
     
-CREATE PROCEDURE [dbo].[USP_GetRollupMaterialList]    
+CREATE   PROCEDURE [dbo].[USP_GetRollupMaterialList]    
 (    
 @workOrderMaterialId BIGINT = NULL 
 )    

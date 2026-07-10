@@ -1,3 +1,4 @@
+﻿-- ===== PROCEDURE: [dbo].[USP_VendorRMA_CreditMeMo_GetVendorRMAList]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs3/USP_VendorRMA_CreditMeMo_GetVendorRMAList.sql) =====
 /*************************************************************           
  ** File:   [USP_VendorRMA_CreditMeMo_GetVendorRMAList]          
  ** Author:   Devendra Shekh

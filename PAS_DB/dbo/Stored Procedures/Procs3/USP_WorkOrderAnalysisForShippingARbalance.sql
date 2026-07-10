@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.USP_WorkOrderAnalysisForShippingARbalance   (source: PAS_DB/dbo/Stored Procedures/Procs3/USP_WorkOrderAnalysisForShippingARbalance.sql)
+-- ---------------------------------------------------------------------------------------------------
 /*************************************************************           
  ** File:   [USP_WorkOrderAnalysisForShippingARbalance]           
  ** Author: [Ayushi Patel]  
@@ -18,7 +22,7 @@
 
     USP_WorkOrderAnalysisForShippingARbalance 8473 , 8128
 **************************************************************/ 
-CREATE   PROCEDURE [dbo].[USP_WorkOrderAnalysisForShippingARbalance]  
+CREATE     PROCEDURE [dbo].[USP_WorkOrderAnalysisForShippingARbalance]  
 @WorkOrderId BIGINT,  
 @WorkOrderPartNoId BIGINT  
 AS  

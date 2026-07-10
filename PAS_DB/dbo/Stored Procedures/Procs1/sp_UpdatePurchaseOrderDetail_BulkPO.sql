@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.sp_UpdatePurchaseOrderDetail_BulkPO   (source: PAS_DB/dbo/Stored Procedures/Procs1/sp_UpdatePurchaseOrderDetail_BulkPO.sql)
+-- ---------------------------------------------------------------------------------------------------
 /*************************************************************           
  ** File:     [sp_UpdatePurchaseOrderDetail_BulkPO]           
  ** Author:	   
@@ -18,7 +22,7 @@
 	
 --- exec sp_UpdatePurchaseOrderDetail  214
 **************************************************************/ 
-CREATE    PROCEDURE [dbo].[sp_UpdatePurchaseOrderDetail_BulkPO]
+CREATE      PROCEDURE [dbo].[sp_UpdatePurchaseOrderDetail_BulkPO]
 @PurchaseOrderId  bigint,
 @WorkOrderMaterialsIds VARCHAR(MAX) = NULL,
 @WorkOrderMaterialsKitIds VARCHAR(MAX) = NULL

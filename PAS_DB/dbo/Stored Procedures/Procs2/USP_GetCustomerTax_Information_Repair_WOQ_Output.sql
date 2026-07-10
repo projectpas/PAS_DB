@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿-- ===== PROCEDURE: [dbo].[USP_GetCustomerTax_Information_Repair_WOQ_Output]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs2/USP_GetCustomerTax_Information_Repair_WOQ_Output.sql) =====
+/*************************************************************           
  ** File:   [USP_GetCustomerTax_Information_Repair_WOQ_Output]           
  ** Author:   Moin Bloch
  ** Description: This stored procedure is used to get Customer Tax Information based on Repair in WOQ

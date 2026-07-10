@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿-- ===== PROCEDURE: [dbo].[USP_VendorRMA_DetailsById]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs3/USP_VendorRMA_DetailsById.sql) =====
+/*************************************************************           
  ** File:   [USP_VendorRMA_DetailsById]           
  ** Author: Moin Bloch
  ** Description: This stored procedure is used to Get Vendor RMA Details
@@ -18,7 +19,7 @@
 *******************************************************************************
 EXEC USP_VendorRMA_DetailsById 113,2
 *******************************************************************************/
-CREATE    PROCEDURE [dbo].[USP_VendorRMA_DetailsById] 
+CREATE   PROCEDURE [dbo].[USP_VendorRMA_DetailsById] 
 @VendorRMAId BIGINT,
 @Opr INT
 AS

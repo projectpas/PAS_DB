@@ -1,4 +1,5 @@
-﻿/*************************************************************             
+﻿-- ===== PROCEDURE: [dbo].[USP_GetbulkstocklineadjustmentById]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs2/USP_GetbulkstocklineadjustmentById.sql) =====
+/*************************************************************             
  ** File:   [USP_GetbulkstocklineadjustmentById]             
  ** Author:  AMIT GHEDIYA  
  ** Description: This stored procedure is used to Get Bulk Stockline Adjustment Details  
@@ -23,7 +24,7 @@
 -- EXEC USP_GetbulkstocklineadjustmentById 110,2  
   
 ************************************************************************/  
-CREATE    PROCEDURE [dbo].[USP_GetbulkstocklineadjustmentById]  
+CREATE   PROCEDURE [dbo].[USP_GetbulkstocklineadjustmentById]  
 	@BulkStkLineAdjId BIGINT,
 	@Opr INT
 AS  

@@ -1,4 +1,5 @@
-﻿
+﻿-- ===== PROCEDURE: [dbo].[USP_UpdateStockLineWorkOrderPart]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs3/USP_UpdateStockLineWorkOrderPart.sql) =====
+
 /*************************************************************             
  ** File:   [USP_UpdateStockLineWorkOrderPart]            
  ** Author:    Priyansh Patel  
@@ -17,7 +18,7 @@
 	4    09/July/2026 RAJESH GAMI		[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
  EXEC [dbo].[USP_UpdateStockLineWorkOrderPart] 1052,'ADMIN',2,4,6,5,6,1,1
 **************************************************************/
-CREATE PROCEDURE [dbo].[USP_UpdateStockLineWorkOrderPart]
+CREATE   PROCEDURE [dbo].[USP_UpdateStockLineWorkOrderPart]
 (
     @WorkOrderPartNoId BIGINT,
     @UpdatedBy NVARCHAR(100),

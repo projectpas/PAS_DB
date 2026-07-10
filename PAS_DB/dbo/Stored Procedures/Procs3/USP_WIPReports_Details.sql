@@ -1,4 +1,5 @@
-﻿/*********************             
+﻿-- ===== PROCEDURE: [dbo].[USP_WIPReports_Details]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs3/USP_WIPReports_Details.sql) =====
+/*********************             
  ** File:   GET WIP REPORTS DATA          
  ** Author:  HEMANT SALIYA  
  ** Description: This SP Is Used to Get WIP reports Data

@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.TrasnferStocklineAndCreateBatch   (source: PAS_DB/dbo/Stored Procedures/Procs1/TrasnferStocklineAndCreateBatch.sql)
+-- ---------------------------------------------------------------------------------------------------
 /*************************************************************           
  ** File:   [TrasnferStocklineAndCreateBatch]           
  ** Author: 
@@ -23,7 +27,7 @@
 /*************************************************************
 -- EXEC [TrasnferStocklineAndCreateBatch] 50573,1,1,9,0,0,0,0,0,0
 **************************************************************/
-CREATE     PROCEDURE [dbo].[TrasnferStocklineAndCreateBatch]
+CREATE       PROCEDURE [dbo].[TrasnferStocklineAndCreateBatch]
 --@WorkOrderPartNumberId BIGINT
 	@StocklineId BIGINT,
 	@Qty INT,

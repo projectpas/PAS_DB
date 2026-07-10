@@ -1,3 +1,4 @@
+﻿-- ===== PROCEDURE: [dbo].[USP_CheckTenderStocklineIsGeneratedReleaseForm]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs2/USP_CheckTenderStocklineIsGeneratedReleaseForm.sql) =====
 /********************************************************************************           
  ** File:     [USP_CheckTenderStocklineIsGeneratedReleaseForm]           
  ** Author:	  Moin Bloch

@@ -1,4 +1,5 @@
-﻿/*************************************************************             
+﻿-- ===== PROCEDURE: [dbo].[USP_GetBulkStockScrapCertificateForPDF]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/USP_GetBulkStockScrapCertificateForPDF.sql) =====
+/*************************************************************             
  ** File:   [USP_GetBulkStockScrapCertificateForPDF]             
  ** Author:  AMIT GHEDIYA  
  ** Description: This stored procedure is used to Get Bulk Stockline Scrap Certificate Adjustment Details  

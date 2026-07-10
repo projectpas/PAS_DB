@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿-- ===== PROCEDURE: [dbo].[USP_Lot_GetLotList]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs2/USP_Lot_GetLotList.sql) =====
+/*************************************************************           
  ** File:   [USP_Lot_GetLotList]           
  ** Author: Rajesh Gami
  ** Description: This stored procedure is used to Get Lot Listing 
@@ -18,7 +19,7 @@
 	6    09/July/2026 RAJESH GAMI    [PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 **************************************************************
 **************************************************************/
-CREATE PROCEDURE [dbo].[USP_Lot_GetLotList]
+CREATE   PROCEDURE [dbo].[USP_Lot_GetLotList]
 	@PageNumber int = 1,
 	@PageSize int = 10,
 	@SortColumn varchar(50)=NULL,

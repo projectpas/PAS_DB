@@ -1,3 +1,4 @@
+﻿-- ===== PROCEDURE: [dbo].[USP_WorkOrderReleaseFromListData_ByWOId]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs3/USP_WorkOrderReleaseFromListData_ByWOId.sql) =====
 /*************************************************************           
  ** File:   [USP_WorkOrderReleaseFromListData_ByWOId]           
  ** Author:   Devendra Shekh
@@ -22,7 +23,7 @@
  EXECUTE [USP_WorkOrderReleaseFromListData_ByWOId] 8992,2
 **************************************************************/ 
 
-CREATE   Procedure [dbo].[USP_WorkOrderReleaseFromListData_ByWOId]
+CREATE   PROCEDURE [dbo].[USP_WorkOrderReleaseFromListData_ByWOId]
 @WorkorderId BIGINT,
 @EmployeeId BIGINT = 0,
 @IsFromLogBook BIT = 0

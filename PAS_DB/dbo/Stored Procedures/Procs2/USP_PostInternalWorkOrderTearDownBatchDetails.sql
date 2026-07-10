@@ -1,4 +1,8 @@
-﻿/*************************************************************           
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.USP_PostInternalWorkOrderTearDownBatchDetails   (source: PAS_DB/dbo/Stored Procedures/Procs2/USP_PostInternalWorkOrderTearDownBatchDetails.sql)
+-- ---------------------------------------------------------------------------------------------------
+/*************************************************************           
  ** File:   [USP_PostInternalWorkOrderTearDownBatchDetails]           
  ** Author: Moin Bloch
  ** Description: This stored procedure is used insert Internal Work Order - Teardown  detail in batch
@@ -25,7 +29,7 @@
      
     EXEC USP_PostInternalWorkOrderTearDownBatchDetails 3731,3222
 **************************************************************/
-CREATE   PROCEDURE [dbo].[USP_PostInternalWorkOrderTearDownBatchDetails]
+CREATE     PROCEDURE [dbo].[USP_PostInternalWorkOrderTearDownBatchDetails]
 @WorkOrderId BIGINT,
 @WorkOrderPartNoId BIGINT
 AS

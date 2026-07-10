@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.UpdateStocklineDraftDetailRo   (source: PAS_DB/dbo/Stored Procedures/Procs1/UpdateStocklineDraftDetailRo.sql)
+-- ---------------------------------------------------------------------------------------------------
 /*************************************************************             
  ** File:   [UpdateStocklineDraftDetailRo]            
  ** Author:     
@@ -23,7 +27,7 @@
 
  exec UpdateStocklineDraftDetailRo  132
 **************************************************************/  
-CREATE   Procedure [dbo].[UpdateStocklineDraftDetailRo]
+CREATE     Procedure [dbo].[UpdateStocklineDraftDetailRo]
 	@RepairOrderId bigint
 AS
 BEGIN

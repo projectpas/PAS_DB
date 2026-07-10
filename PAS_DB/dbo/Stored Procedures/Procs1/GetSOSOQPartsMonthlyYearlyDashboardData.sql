@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.GetSOSOQPartsMonthlyYearlyDashboardData   (source: PAS_DB/dbo/Stored Procedures/Procs1/GetSOSOQPartsMonthlyYearlyDashboardData.sql)
+-- ---------------------------------------------------------------------------------------------------
 /*************************************************************           
  ** File:   [GetSOSOQPartsMonthlyYearlyDashboardData]
  ** Author:   
@@ -25,7 +29,7 @@
 	10    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 EXEC GetSOSOQPartsMonthlyYearlyDashboardData 1, 2, '11/29/2024', 10
 ************************************************************************/
-CREATE  PROCEDURE [dbo].[GetSOSOQPartsMonthlyYearlyDashboardData]
+CREATE    PROCEDURE [dbo].[GetSOSOQPartsMonthlyYearlyDashboardData]
 	@MasterCompanyId BIGINT = NULL,
 	@EmployeeId BIGINT = NULL,
 	@StartDate DATETIME2 = NULL,

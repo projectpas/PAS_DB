@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.USP_GetDetailForVendorCreditMemo_ById   (source: PAS_DB/dbo/Stored Procedures/Procs2/USP_GetDetailForVendorCreditMemo_ById.sql)
+-- ---------------------------------------------------------------------------------------------------
 /*************************************************************           
  ** File:   [USP_GetDetailForVendorCreditMemo_ById]           
  ** Author:   Hemant  
@@ -19,7 +23,7 @@
      
 EXECUTE   [dbo].[USP_GetDetailForVendorCreditMemo_ById] 23
 **************************************************************/
-Create   PROCEDURE [dbo].[USP_GetDetailForVendorCreditMemo_ById]
+CREATE     PROCEDURE [dbo].[USP_GetDetailForVendorCreditMemo_ById]
 @VRMAId bigint
 AS
 BEGIN

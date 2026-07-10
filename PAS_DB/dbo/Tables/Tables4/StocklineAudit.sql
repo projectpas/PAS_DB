@@ -45,6 +45,8 @@
     [IsNonStock]                          BIT             NULL,
     [Currency]                            VARCHAR (100)   NULL,
     [CurrencyId]                          BIGINT          NULL,
+    [ItemNonStockClassificationId]        BIGINT          NULL,
+    [NonStockClassification]              VARCHAR (100)   NULL,
     [IsPMA]                               BIT             NULL,
     [IsDER]                               BIT             NULL,
     [OEM]                                 BIT             NULL,

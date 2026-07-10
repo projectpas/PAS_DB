@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿-- ===== PROCEDURE: [dbo].[USP_GetVendorRMAPackagingLabelByVendorRMAId]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs2/USP_GetVendorRMAPackagingLabelByVendorRMAId.sql) =====
+/*************************************************************           
  ** File:   [USP_GetVendorRMAPackagingLabelByVendorRMAId]           
  ** Author:   Sahdev Saliya
  ** Description: This stored procedure is used to Get VendorRMAPackagingLabel By VendorRMAId pdf

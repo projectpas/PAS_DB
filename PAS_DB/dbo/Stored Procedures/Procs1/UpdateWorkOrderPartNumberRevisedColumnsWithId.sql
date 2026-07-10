@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.UpdateWorkOrderPartNumberRevisedColumnsWithId   (source: PAS_DB/dbo/Stored Procedures/Procs1/UpdateWorkOrderPartNumberRevisedColumnsWithId.sql)
+-- ---------------------------------------------------------------------------------------------------
 /*************************************************************           
  ** File:   [UpdateWorkOrderPartNumberRevisedColumnsWithId]           
  ** Author:   Hemant Saliya
@@ -22,7 +26,7 @@
 -- EXEC [UpdateWorkOrderPartNumberRevisedColumnsWithId] 30
 **************************************************************/
 
-CREATE   PROCEDURE [dbo].[UpdateWorkOrderPartNumberRevisedColumnsWithId]
+CREATE     PROCEDURE [dbo].[UpdateWorkOrderPartNumberRevisedColumnsWithId]
 	@WorkOrderPartNumberId BIGINT,
 	@SerialNumber VARCHAR(100)
 AS

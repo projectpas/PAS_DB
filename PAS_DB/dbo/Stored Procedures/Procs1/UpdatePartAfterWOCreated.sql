@@ -1,3 +1,4 @@
+﻿-- ===== PROCEDURE: [dbo].[UpdatePartAfterWOCreated]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs1/UpdatePartAfterWOCreated.sql) =====
 /*************************************************************           
  ** File:   [UpdatePartAfterWOCreated]           
  ** Author:   Vishal Suthar

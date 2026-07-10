@@ -1,3 +1,4 @@
+﻿-- ===== PROCEDURE: [dbo].[USP_GetPNTileExchangeList]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs2/USP_GetPNTileExchangeList.sql) =====
 /*************************************************************           
  ** File:   [USP_GetPNTileExchangeList]           
  ** Author:  Devendra Shekh
@@ -21,7 +22,7 @@
 
 
 **************************************************************/
-CREATE    PROCEDURE [dbo].[USP_GetPNTileExchangeList]
+CREATE   PROCEDURE [dbo].[USP_GetPNTileExchangeList]
 	@PageNumber int = 1,
 	@PageSize int = 10,
 	@SortColumn varchar(50)=NULL,

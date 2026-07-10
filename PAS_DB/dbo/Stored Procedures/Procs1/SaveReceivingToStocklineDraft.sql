@@ -1,4 +1,8 @@
-﻿/*************************************************************               
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.SaveReceivingToStocklineDraft   (source: PAS_DB/dbo/Stored Procedures/Procs1/SaveReceivingToStocklineDraft.sql)
+-- ---------------------------------------------------------------------------------------------------
+/*************************************************************               
  ** File:   [SaveReceivingToStocklineDraft]               
  ** Author: Vishal Suthar    
  ** Description: This stored procedure is save receiving PO data into stockline draft    
@@ -33,7 +37,7 @@
 	17    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
  EXEC [SaveReceivingToStocklineDraft] 2281, 'ADMIN User'    
 **************************************************************/    
-CREATE    PROCEDURE [dbo].[SaveReceivingToStocklineDraft]
+CREATE      PROCEDURE [dbo].[SaveReceivingToStocklineDraft]
  @PurchaseOrderId bigint = 0,    
  @UserName VARCHAR(100)    
 AS    

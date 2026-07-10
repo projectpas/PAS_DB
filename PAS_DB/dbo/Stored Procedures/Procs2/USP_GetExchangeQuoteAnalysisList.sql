@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.USP_GetExchangeQuoteAnalysisList   (source: PAS_DB/dbo/Stored Procedures/Procs2/USP_GetExchangeQuoteAnalysisList.sql)
+-- ---------------------------------------------------------------------------------------------------
 /*************************************************************           
  ** File:   [USP_GetExchangeQuoteAnalysisList]           
  ** Author:  Ekta Chandegra
@@ -20,7 +24,7 @@
   EXEC USP_GetExchangeQuoteAnalysisList @ExchangeQuoteId = 113
 
 ************************************************************************/
-CREATE   PROCEDURE [dbo].[USP_GetExchangeQuoteAnalysisList]
+CREATE     PROCEDURE [dbo].[USP_GetExchangeQuoteAnalysisList]
     @ExchangeQuoteId BIGINT
 AS
 BEGIN

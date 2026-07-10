@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.RPT_GetCreditMemoPartsForPrint   (source: PAS_DB/dbo/Stored Procedures/Procs1/RPT_GetCreditMemoPartsForPrint.sql)
+-- ---------------------------------------------------------------------------------------------------
 /*************************************************************           
  ** File:   [RPT_GetCreditMemoPartsForPrint]           
  ** Author: Amit Ghediya
@@ -20,7 +24,7 @@
  --  EXEC RPT_GetCreditMemoPartsForPrint 546,1,190
 **************************************************************/ 
 
-CREATE    PROCEDURE [dbo].[RPT_GetCreditMemoPartsForPrint]
+CREATE      PROCEDURE [dbo].[RPT_GetCreditMemoPartsForPrint]
 @InvoicingId bigint,
 @IsWorkOrder bit,
 @CreditMemoHeaderId bigint

@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.usp_GetWorkOrderOnTimeReport   (source: PAS_DB/dbo/Stored Procedures/Procs2/usp_GetWorkOrderOnTimeReport.sql)
+-- ---------------------------------------------------------------------------------------------------
 /*************************************************************           
  ** File:   [usp_GetWorkOrderOnTimeReport]           
  ** Author:   Swetha  
@@ -26,7 +30,7 @@ EXECUTE   [dbo].[usp_GetWorkOrderOnTimeReport] '','2020-04-25','2021-04-25','1',
 --select * from dbo.ManagementStructure WHERE ParentId in (1,4,43,44,45,80,84,88) 
 --select * from dbo.ManagementStructure WHERE ParentId in (46,47,66) 
 	--select * from dbo.ManagementStructure WHERE ParentId in (48,49,50,58,59,67,68,69) 
-CREATE   PROCEDURE [dbo].[usp_GetWorkOrderOnTimeReport] @name varchar(40) = NULL,
+CREATE     PROCEDURE [dbo].[usp_GetWorkOrderOnTimeReport] @name varchar(40) = NULL,
 @Fromdate datetime,
 @Todate datetime,
 @mastercompanyid varchar(200),

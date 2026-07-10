@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.SearchPNViewData   (source: PAS_DB/dbo/Stored Procedures/Procs1/SearchPNViewData.sql)
+-- ---------------------------------------------------------------------------------------------------
 /*************************************************************
  ** File:   [SearchPNViewData]
  ** Description: Get Search Data for PN View
@@ -24,7 +28,7 @@
  **                                      because the group key contained the unique part id).
 	1    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
  **************************************************************/
-CREATE PROCEDURE [dbo].[SearchPNViewData]
+CREATE   PROCEDURE [dbo].[SearchPNViewData]
  @PageNumber int,
  @PageSize int,
  @SortColumn varchar(50)=null,

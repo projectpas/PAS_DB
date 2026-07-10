@@ -1,4 +1,5 @@
-﻿-- =============================================
+﻿-- ===== PROCEDURE: [dbo].[USP_GetWorkOrderWorkflowDetails]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs2/USP_GetWorkOrderWorkflowDetails.sql) =====
+-- =============================================
 -- Author:		HEMANT SALIYA	
 -- Create date: 15-04-2025
 -- Description:	This stored procedure is used to Detete kit Stockline 

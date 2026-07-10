@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.USP_BatchTriggerBasedonDistributionNew   (source: PAS_DB/dbo/Stored Procedures/Procs2/USP_BatchTriggerBasedonDistributionNew.sql)
+-- ---------------------------------------------------------------------------------------------------
 /*************************************************************           
  ** File:   [USP_BatchTriggerBasedonDistributionNew]
  ** Author:  Moin Bloch
@@ -19,7 +23,7 @@
 
 -- EXEC USP_BatchTriggerBasedonDistributionNew 3
 ************************************************************************/
-CREATE PROCEDURE [dbo].[USP_BatchTriggerBasedonDistributionNew]
+CREATE   PROCEDURE [dbo].[USP_BatchTriggerBasedonDistributionNew]
 @DistributionMasterId BIGINT=NULL,
 @ReferenceId BIGINT=NULL,
 @ReferencePartId BIGINT=NULL,

@@ -1,3 +1,4 @@
+﻿-- ===== PROCEDURE: [dbo].[USP_Lot_GetInitialPODetails]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs2/USP_Lot_GetInitialPODetails.sql) =====
 /*************************************************************           
  ** File:   [USP_Lot_GetInitialPODetails]           
  ** Author:  Rajesh Gami

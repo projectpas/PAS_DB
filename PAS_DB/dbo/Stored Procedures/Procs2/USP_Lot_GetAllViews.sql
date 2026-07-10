@@ -1,4 +1,5 @@
-﻿
+﻿-- ===== PROCEDURE: [dbo].[USP_Lot_GetAllViews]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs2/USP_Lot_GetAllViews.sql) =====
+
 /*************************************************************           
  ** File:   [USP_Lot_GetAllViews]           
  ** Author:  Amit Ghediya
@@ -19,7 +20,7 @@
 -- EXEC USP_Lot_GetAllViews 2,'ALL',1
 ************************************************************************/
 
-CREATE       PROCEDURE [dbo].[USP_Lot_GetAllViews]
+CREATE   PROCEDURE [dbo].[USP_Lot_GetAllViews]
 @LotId VARCHAR(max) = '0', 
 @Type VARCHAR(50) = NULL,
 @MasterCompanyId int

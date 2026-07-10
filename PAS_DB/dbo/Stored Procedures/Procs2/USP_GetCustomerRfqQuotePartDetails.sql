@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.USP_GetCustomerRfqQuotePartDetails   (source: PAS_DB/dbo/Stored Procedures/Procs2/USP_GetCustomerRfqQuotePartDetails.sql)
+-- ---------------------------------------------------------------------------------------------------
 /*************************************************************           
  ** File:   [USP_GetCustomerRfqQuotePartDetails]           
  ** Author:  Amit Ghediya
@@ -16,7 +20,7 @@
      
 -- EXEC USP_GetCustomerRfqQuotePartDetails '1211318-006',1,1,'ARKWIN'
 ************************************************************************/
-CREATE        PROCEDURE [dbo].[USP_GetCustomerRfqQuotePartDetails] 
+CREATE          PROCEDURE [dbo].[USP_GetCustomerRfqQuotePartDetails] 
 @PartNumber VARCHAR(50),
 @LegalEntityId BIGINT,
 @MasterCompanyId INT,

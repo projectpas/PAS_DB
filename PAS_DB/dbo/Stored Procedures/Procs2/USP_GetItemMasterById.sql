@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.USP_GetItemMasterById   (source: PAS_DB/dbo/Stored Procedures/Procs2/USP_GetItemMasterById.sql)
+-- ---------------------------------------------------------------------------------------------------
 /*********************             
  ** File:   UPDATE CUSTOMER IN WO           
  ** Author:  HEMANT SALIYA  
@@ -16,7 +20,7 @@
 exec USP_GetItemMasterById 
 *************************************************************/   
   
-CREATE   PROCEDURE [dbo].[USP_GetItemMasterById] 	
+CREATE     PROCEDURE [dbo].[USP_GetItemMasterById] 	
 @ItemMasterId BIGINT = NULL	
 AS  
 BEGIN  

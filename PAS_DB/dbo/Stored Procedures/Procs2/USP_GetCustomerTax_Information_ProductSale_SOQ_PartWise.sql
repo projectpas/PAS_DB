@@ -1,3 +1,4 @@
+﻿-- ===== PROCEDURE: [dbo].[USP_GetCustomerTax_Information_ProductSale_SOQ_PartWise]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs2/USP_GetCustomerTax_Information_ProductSale_SOQ_PartWise.sql) =====
 /*************************************************************           
  ** File:   [USP_GetCustomerTax_Information_ProductSale_SOQ_PartWise]           
  ** Author:   Moin Bloch
@@ -21,7 +22,7 @@
 
 -- EXEC [USP_GetCustomerTax_Information_ProductSale_SOQ_PartWise] 10425,10666,77 
 **************************************************************/
-CREATE    PROCEDURE [dbo].[USP_GetCustomerTax_Information_ProductSale_SOQ_PartWise] 
+CREATE   PROCEDURE [dbo].[USP_GetCustomerTax_Information_ProductSale_SOQ_PartWise] 
 @SalesOrderQuoteId BIGINT,
 @SalesOrderQuotePartId BIGINT,
 @CustomerId BIGINT 

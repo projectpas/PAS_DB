@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.GetExchangeBillingList   (source: PAS_DB/dbo/Stored Procedures/Procs1/GetExchangeBillingList.sql)
+-- ---------------------------------------------------------------------------------------------------
 /*************************************************************           
  ** File:   [GetExchangeBillingList]           
  ** Author:  Ekta Chandegra
@@ -20,7 +24,7 @@
 
  EXEC GetExchangeBillingList @ExchangeSalesOrderId=188
 ************************************************************************/ 
-CREATE   PROCEDURE [dbo].[GetExchangeBillingList]
+CREATE     PROCEDURE [dbo].[GetExchangeBillingList]
     @ExchangeSalesOrderId BIGINT
 AS
 BEGIN

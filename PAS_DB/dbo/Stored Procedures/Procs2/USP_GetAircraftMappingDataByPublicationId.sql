@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.USP_GetAircraftMappingDataByPublicationId   (source: PAS_DB/dbo/Stored Procedures/Procs2/USP_GetAircraftMappingDataByPublicationId.sql)
+-- ---------------------------------------------------------------------------------------------------
 /***************************************************************  
  ** File:  [USP_GetAircraftMappingDataByPublicationId]            
  ** Author: Ayushi Patel  
@@ -13,7 +17,7 @@
 	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	
  ***************************************************************/ 
-CREATE   PROCEDURE [dbo].[USP_GetAircraftMappingDataByPublicationId]
+CREATE     PROCEDURE [dbo].[USP_GetAircraftMappingDataByPublicationId]
     @PublicationId BIGINT
 AS
 BEGIN

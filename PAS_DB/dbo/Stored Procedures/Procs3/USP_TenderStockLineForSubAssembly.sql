@@ -1,3 +1,4 @@
+﻿-- ===== PROCEDURE: [dbo].[USP_TenderStockLineForSubAssembly]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs3/USP_TenderStockLineForSubAssembly.sql) =====
 /*************************************************************           
  ** File:   [USP_TenderStockLineForSubAssembly]           
  ** Author:   Hemant Saliya

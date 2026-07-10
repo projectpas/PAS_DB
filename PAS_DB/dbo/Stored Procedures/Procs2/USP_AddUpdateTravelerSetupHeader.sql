@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.USP_AddUpdateTravelerSetupHeader   (source: PAS_DB/dbo/Stored Procedures/Procs2/USP_AddUpdateTravelerSetupHeader.sql)
+-- ---------------------------------------------------------------------------------------------------
 -----------------------------------------------------------------------------------------------------  
   
 /*************************************************************             
@@ -25,7 +29,7 @@
 -- EXEC [USP_AddUpdateTravelerSetupHeader] 44  
 **************************************************************/  
   
-CREATE   PROCEDURE [dbo].[USP_AddUpdateTravelerSetupHeader]  
+CREATE     PROCEDURE [dbo].[USP_AddUpdateTravelerSetupHeader]  
  @WorkScopeId bigint,    
  @MasterCompanyId bigint,    
  @CreatedBy varchar(100),  

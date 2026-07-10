@@ -1,5 +1,12 @@
 ﻿
-CREATE VIEW [dbo].[vw_itemmaster_list_main]
+
+/* ================================ VIEWS  (4) ================================ */
+
+-- ---------------------------------------------------------------------------------------------------
+-- View: dbo.vw_itemmaster_list_main   (source: PAS_DB/dbo/Views/vw_itemmaster_list_main.sql)
+-- ---------------------------------------------------------------------------------------------------
+
+CREATE   VIEW [dbo].[vw_itemmaster_list_main]
 AS
 SELECT        dbo.ItemMaster.ItemMasterId, dbo.ItemMaster.NationalStockNumber, dbo.ItemMaster.partnumber AS PartNumber, dbo.ItemMaster.PartDescription, dbo.ItemMaster.isTimeLife AS IsTimeLife, 
                          dbo.ItemMaster.isSerialized AS IsSerialized, dbo.ItemMaster.ItemGroupId, dbo.ItemMaster.ItemClassificationId, dbo.ItemClassification.ItemClassificationCode, dbo.ItemGroup.Description AS ItemGroup, dbo.ItemMaster.IsActive, 

@@ -1,4 +1,5 @@
-﻿
+﻿-- ===== PROCEDURE: [dbo].[USP_Lot_GetStockPartNumbersFromLot]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs2/USP_Lot_GetStockPartNumbersFromLot.sql) =====
+
 /*************************************************************           
  ** File:   [USP_Lot_GetStockPartNumbersFromLot]           
  ** Author: Amit Ghediya
@@ -17,7 +18,7 @@
 **************************************************************
  EXEC USP_Lot_GetStockPartNumbersFromLot 1,1
 **************************************************************/
-Create    PROCEDURE [dbo].[USP_Lot_GetStockPartNumbersFromLot] 
+CREATE   PROCEDURE [dbo].[USP_Lot_GetStockPartNumbersFromLot] 
 @LotId BIGINT =0,
 @MasterCompanyId INT
 AS

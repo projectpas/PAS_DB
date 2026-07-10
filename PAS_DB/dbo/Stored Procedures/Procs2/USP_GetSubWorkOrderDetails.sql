@@ -1,4 +1,5 @@
-﻿/************************************************************************************           
+﻿-- ===== PROCEDURE: [dbo].[USP_GetSubWorkOrderDetails]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs2/USP_GetSubWorkOrderDetails.sql) =====
+/************************************************************************************           
  ** File:   [USP_GetSubWorkOrderDetails]           
  ** Author: 
  ** Description: This stored procedure is used to get SubWorkOrderDetails.
@@ -20,7 +21,7 @@
 
 	 EXEC [dbo].[USP_GetSubWorkOrderDetails] 282
 ****************************************************************************************/
-CREATE    PROCEDURE [dbo].[USP_GetSubWorkOrderDetails]
+CREATE   PROCEDURE [dbo].[USP_GetSubWorkOrderDetails]
 	@SubWorkOrderId BIGINT
 AS
 BEGIN

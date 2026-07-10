@@ -1,4 +1,5 @@
-﻿/*********************             
+﻿-- ===== PROCEDURE: [dbo].[usp_GetSalesQuoteVerificationResult]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs2/usp_GetSalesQuoteVerificationResult.sql) =====
+/*********************             
  ** File:   [usp_GetSalesQuoteVerificationResult]             
  ** Author:  Ekta Chnadegra 
  ** Description: This stored procedure is used to GetSalesQuoteVerificationResult

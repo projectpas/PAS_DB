@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.USP_UpdateRFQPricebasedOnAISuggestionHistoricalData_WOQ   (source: PAS_DB/dbo/Stored Procedures/Procs3/USP_UpdateRFQPricebasedOnAISuggestionHistoricalData_WOQ.sql)
+-- ---------------------------------------------------------------------------------------------------
  /************************************************************* 
  ** File:   [USP_UpdateRFQPricebasedOnAISuggestionHistoricalData]           
  ** Author:   HEMANT SALIYA
@@ -18,7 +22,7 @@
 
 EXEC USP_UpdateRFQPricebasedOnAISuggestionHistoricalData_WOQ '','',1
 **************************************************************/ 
-CREATE   PROCEDURE [dbo].[USP_UpdateRFQPricebasedOnAISuggestionHistoricalData_WOQ]
+CREATE     PROCEDURE [dbo].[USP_UpdateRFQPricebasedOnAISuggestionHistoricalData_WOQ]
 	--@MasterCompanyId BIGINT = NULL,
 	@FromDate DATETIME = NULL,
 	@ToDate DATETIME = NULL,

@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.RPT_GetWorkOrderScrapCertificatePrintPdfData   (source: PAS_DB/dbo/Stored Procedures/Procs1/RPT_GetWorkOrderScrapCertificatePrintPdfData.sql)
+-- ---------------------------------------------------------------------------------------------------
 /***************************************************************************************************
 ** Author:  <Moin Bloch>  
 ** Create date: 16/01/2026
@@ -14,7 +18,7 @@ EXEC [RPT_GetWorkOrderScrapCertificatePrintPdfData]
 	EXEC RPT_GetWorkOrderScrapCertificatePrintPdfData 4103,3620
 	1    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 ***************************************************************************************************/
-CREATE     PROCEDURE [dbo].[RPT_GetWorkOrderScrapCertificatePrintPdfData]              
+CREATE       PROCEDURE [dbo].[RPT_GetWorkOrderScrapCertificatePrintPdfData]              
 @WorkorderId BIGINT,              
 @workOrderPartNoId BIGINT              
 AS              

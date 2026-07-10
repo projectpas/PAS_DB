@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.sp_subworkOrderReleaseFromPDFData   (source: PAS_DB/dbo/Stored Procedures/Procs1/sp_subworkOrderReleaseFromPDFData.sql)
+-- ---------------------------------------------------------------------------------------------------
 /*************************************************************           
  ** File:   [sp_subworkOrderReleaseFromPDFData]           
  ** Author:   Subhash Saliya
@@ -26,7 +30,7 @@
  EXECUTE [sp_subworkOrderReleaseFromPDFData] 10, 1, null, -1, '',null, '','','',null,null,null,null,null,null,0,1
 **************************************************************/ 
 
-CREATE   Procedure [dbo].[sp_subworkOrderReleaseFromPDFData]
+CREATE     Procedure [dbo].[sp_subworkOrderReleaseFromPDFData]
 @ReleaseFromId bigint
 
 AS

@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿-- ===== PROCEDURE: [dbo].[sp_GetPickTicketChildList_MainPart]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs1/sp_GetPickTicketChildList_MainPart.sql) =====
+/*************************************************************           
  ** File:   [sp_GetPickTicketChildList_MainPart]           
  ** Author:   
  ** Description: This SP is Used to get Stockline list for Pick Ticket childlist data   
@@ -22,7 +23,7 @@
 
 EXEC DBO.sp_GetPickTicketChildList_MainPart @referenceId=20751,@OrderPartId =618
 **************************************************************/ 
-CREATE   Procedure [dbo].[sp_GetPickTicketChildList_MainPart]
+CREATE   PROCEDURE [dbo].[sp_GetPickTicketChildList_MainPart]
 	@referenceId BIGINT,
 	@OrderPartId BIGINT,
 	@EmployeeId BIGINT = 0

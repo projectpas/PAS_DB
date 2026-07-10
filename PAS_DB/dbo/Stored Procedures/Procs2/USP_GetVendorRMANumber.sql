@@ -1,3 +1,4 @@
+﻿-- ===== PROCEDURE: [dbo].[USP_GetVendorRMANumber]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs2/USP_GetVendorRMANumber.sql) =====
 /*************************************************************           
  ** File:   [USP_GetVendorRMANumber]           
  ** Author:   Sahdev Saliya

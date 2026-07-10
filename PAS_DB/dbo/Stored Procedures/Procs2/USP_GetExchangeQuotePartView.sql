@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿-- ===== PROCEDURE: [dbo].[USP_GetExchangeQuotePartView]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs2/USP_GetExchangeQuotePartView.sql) =====
+/*************************************************************           
  ** File:   [USP_GetExchangeQuotePartView]           
  ** Author:  Ekta Chandegra
  ** Description: This stored procedure is used to USP_GetExchangeQuotePartView

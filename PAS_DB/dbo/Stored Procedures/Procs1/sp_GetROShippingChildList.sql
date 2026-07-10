@@ -1,3 +1,4 @@
+﻿-- ===== PROCEDURE: [dbo].[sp_GetROShippingChildList]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs1/sp_GetROShippingChildList.sql) =====
 /*************************************************************           
  ** File:   [sp_GetROShippingChildList]
  ** Author:   
@@ -22,7 +23,7 @@
 	5    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 EXEC [dbo].[sp_GetROShippingChildList] 2566, 14, 7
 **************************************************************/
-CREATE   Procedure [dbo].[sp_GetROShippingChildList]  
+CREATE   PROCEDURE [dbo].[sp_GetROShippingChildList]  
 	@RepairOrderId  bigint,  
 	@RepairOrderPartId bigint
 AS  

@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.usp_GetRFQPriceSuggestionDetails   (source: PAS_DB/dbo/Stored Procedures/Procs2/usp_GetRFQPriceSuggestionDetails.sql)
+-- ---------------------------------------------------------------------------------------------------
 /*************************************************************             
  ** File:   [usp_GetRFQPriceSuggestionDetails]             
  ** Author:   Devendra Shekh    
@@ -15,7 +19,7 @@
 EXECUTE [dbo].[usp_GetRFQPriceSuggestionDetails] 6, 1   
 	1    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 **************************************************************/  
-CREATE    PROCEDURE [dbo].[usp_GetRFQPriceSuggestionDetails]
+CREATE      PROCEDURE [dbo].[usp_GetRFQPriceSuggestionDetails]
 @CustomerRfqId BIGINT = NULL,
 @MasterCompanyId INT = NULL,
 @CustomerRfqPartMappingId BIGINT NULL

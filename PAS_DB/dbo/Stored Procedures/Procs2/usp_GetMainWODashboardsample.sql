@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.usp_GetMainWODashboardsample   (source: PAS_DB/dbo/Stored Procedures/Procs2/usp_GetMainWODashboardsample.sql)
+-- ---------------------------------------------------------------------------------------------------
 /*************************************************************           
  ** File:   [usp_GetMainWODashboardsample]           
  ** Author:   Swetha  
@@ -21,7 +25,7 @@
 EXECUTE   [dbo].[usp_GetMainWODashboardsample] 
 **************************************************************/
 
-CREATE PROCEDURE [dbo].[usp_GetMainWODashboardsample]
+CREATE   PROCEDURE [dbo].[usp_GetMainWODashboardsample]
 AS
 BEGIN
   SET NOCOUNT ON;

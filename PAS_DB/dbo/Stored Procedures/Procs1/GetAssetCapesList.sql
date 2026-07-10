@@ -1,4 +1,8 @@
-﻿  
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.GetAssetCapesList   (source: PAS_DB/dbo/Stored Procedures/Procs1/GetAssetCapesList.sql)
+-- ---------------------------------------------------------------------------------------------------
+  
   
 /*************************************************************             
  ** File:   [GetAssetCapesList]             
@@ -24,7 +28,7 @@
  EXECUTE [GetAssetCapesList] 10, 1, null, -1, '',null, '','','',null,null,null,null,null,null,0,1  
 **************************************************************/   
   
-CREATE PROCEDURE [dbo].[GetAssetCapesList]  
+CREATE   PROCEDURE [dbo].[GetAssetCapesList]  
  -- Add the parameters for the stored procedure here   
  @PageSize int,  
  @PageNumber int,  

@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.SearchSpeedQuotePNViewData   (source: PAS_DB/dbo/Stored Procedures/Procs1/SearchSpeedQuotePNViewData.sql)
+-- ---------------------------------------------------------------------------------------------------
 
 /***************************************************************************************************************************************
   ** Change History
@@ -6,7 +10,7 @@
  ** --   --------					 -------						-------------------------------
 	1    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 ****************************************************************************************************************************************/
-CREATE   PROCEDURE [dbo].[SearchSpeedQuotePNViewData]
+CREATE     PROCEDURE [dbo].[SearchSpeedQuotePNViewData]
 	-- Add the parameters for the stored procedure here
 	@PageNumber int=1,
 	@PageSize int=10,

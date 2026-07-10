@@ -1,3 +1,4 @@
+﻿-- ===== PROCEDURE: [dbo].[usp_GetEmailCustomerRFQbyId]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs2/usp_GetEmailCustomerRFQbyId.sql) =====
 /*************************************************************             
  ** File:   [usp_GetEmailCustomerRFQbyId]             
  ** Author:   Devendra Shekh    
@@ -20,7 +21,7 @@ EXECUTE [dbo].[usp_GetEmailCustomerRFQbyId] 1005
 	1    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	8    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 **************************************************************/  
-CREATE     PROCEDURE [dbo].[usp_GetEmailCustomerRFQbyId]
+CREATE   PROCEDURE [dbo].[usp_GetEmailCustomerRFQbyId]
 @CustomerRfqId BIGINT = NULL
 AS
 BEGIN

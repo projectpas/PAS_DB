@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.GetBillingInvoiceByShipping   (source: PAS_DB/dbo/Stored Procedures/Procs1/GetBillingInvoiceByShipping.sql)
+-- ---------------------------------------------------------------------------------------------------
 
 /*************************************************************           
  ** File:   [dbo].[GetBillingInvoiceByShipping]          
@@ -21,7 +25,7 @@
 	10   02/july/2025 RAJESH GAMI	 Make changes for origin country id
 	11    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 **************************************************************/ 
-CREATE    PROCEDURE [dbo].[GetBillingInvoiceByShipping]
+CREATE      PROCEDURE [dbo].[GetBillingInvoiceByShipping]
 	@SalesOrderShippingId bigint,
 	@SalesOrderPartId bigint,
 	@SOBillingInvoicingId bigint

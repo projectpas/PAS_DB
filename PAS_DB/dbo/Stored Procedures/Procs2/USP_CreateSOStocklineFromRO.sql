@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.USP_CreateSOStocklineFromRO   (source: PAS_DB/dbo/Stored Procedures/Procs2/USP_CreateSOStocklineFromRO.sql)
+-- ---------------------------------------------------------------------------------------------------
 /*************************************************************           
  ** File:   [USP_CreateSOStocklineFromRO]          
  ** Author:   Vishal Suthar
@@ -31,7 +35,7 @@
  EXECUTE USP_CreateSOStocklineFromRO 2667
 
 **************************************************************/
-CREATE    PROCEDURE [dbo].[USP_CreateSOStocklineFromRO] 
+CREATE      PROCEDURE [dbo].[USP_CreateSOStocklineFromRO] 
 (
 	@RepairOrderId bigint = NULL
 )

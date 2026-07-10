@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.GetWorkOrderMaterialMismatchReport   (source: PAS_DB/dbo/Stored Procedures/Procs1/GetWorkOrderMaterialMismatchReport.sql)
+-- ---------------------------------------------------------------------------------------------------
 /*************************************************************           
 -- =============================================
 -- Author:		Shrey Chandegara
@@ -16,7 +20,7 @@
 	EXEC [GetWorkOrderMaterialMismatchReport]
 **************************************************************/
 
-CREATE   PROCEDURE [dbo].[GetWorkOrderMaterialMismatchReport]
+CREATE     PROCEDURE [dbo].[GetWorkOrderMaterialMismatchReport]
 @MasterCompanyId INT = NULL
 AS
 BEGIN

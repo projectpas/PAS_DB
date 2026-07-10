@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.sp_SubworkOrderReleaseFromListData   (source: PAS_DB/dbo/Stored Procedures/Procs1/sp_SubworkOrderReleaseFromListData.sql)
+-- ---------------------------------------------------------------------------------------------------
 /*************************************************************           
  ** File:   [sp_SubworkOrderReleaseFromListData]           
  ** Author:   Subhash Saliya
@@ -31,7 +35,7 @@
  EXECUTE [sp_SubworkOrderReleaseFromListData] 10, 1, null, -1, '',null, '','','',null,null,null,null,null,null,0,1
 **************************************************************/ 
 
-CREATE   Procedure [dbo].[sp_SubworkOrderReleaseFromListData]
+CREATE     Procedure [dbo].[sp_SubworkOrderReleaseFromListData]
 @SubWorkOrderId bigint,
 @SubWOPartNoId bigint,
 @EmployeeId bigint= 0

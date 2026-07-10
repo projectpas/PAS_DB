@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.GetSalesOrderQuoteCharges   (source: PAS_DB/dbo/Stored Procedures/Procs1/GetSalesOrderQuoteCharges.sql)
+-- ---------------------------------------------------------------------------------------------------
 /*************************************************************             
  ** File:   [GetSalesOrderQuoteCharges]            
  ** Author:  EKTA CHANDEGRA
@@ -18,7 +22,7 @@
 
  EXEC GetSalesOrderQuoteCharges 965 , 0
 ************************************************************************/  
-CREATE   PROCEDURE [dbo].[GetSalesOrderQuoteCharges]
+CREATE     PROCEDURE [dbo].[GetSalesOrderQuoteCharges]
     @SalesOrderQuoteId BIGINT,
     @IsDeleted BIT
 AS

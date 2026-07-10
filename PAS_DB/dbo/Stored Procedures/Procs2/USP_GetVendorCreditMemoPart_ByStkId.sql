@@ -1,3 +1,4 @@
+﻿-- ===== PROCEDURE: [dbo].[USP_GetVendorCreditMemoPart_ByStkId]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs2/USP_GetVendorCreditMemoPart_ByStkId.sql) =====
 /*************************************************************             
  ** File:   [USP_GetVendorCreditMemoPart_ByStkId]            
  ** Author:   Devendra    

@@ -1,3 +1,10 @@
+﻿
+
+/* ================================ STORED PROCEDURES  (702) ================================ */
+
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo   (source: PAS_DB/dbo/Stored Procedures/Procs1/GetPNTileExchangeQuoteList.sql)
+-- ---------------------------------------------------------------------------------------------------
 /****** Object:  StoredProcedure [dbo].[GetPNTileExchangeQuoteList]    Script Date: 12/6/2023 3:30:21 PM ******/
 /*************************************************************           
  ** File:   [GetPNTileSalesOrderQuoteList]           
@@ -18,7 +25,7 @@
 	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	
 **************************************************************/
-CREATE    PROCEDURE [dbo].GetPNTileExchangeQuoteList
+CREATE      PROCEDURE [dbo].GetPNTileExchangeQuoteList
 	@PageNumber int = 1,
 	@PageSize int = 10,
 	@SortColumn varchar(50)=NULL,

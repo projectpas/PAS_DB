@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.usprpt_GetWorkOrderTATReport   (source: PAS_DB/dbo/Stored Procedures/Procs3/usprpt_GetWorkOrderTATReport.sql)
+-- ---------------------------------------------------------------------------------------------------
 /*************************************************************             
  ** File:   [usp_GetWorkOrderTATReport]             
  ** Author:   Hemant    
@@ -28,7 +32,7 @@
 EXECUTE   [dbo].[usp_GetWorkOrderTATReport]   
 **************************************************************/  
 --EXEC usp_GetWorkOrderTATReport  '1,4,43,44,45,80,84,88','46,47','58,59','64,65,77'  
-CREATE    PROCEDURE [dbo].[usprpt_GetWorkOrderTATReport]   
+CREATE      PROCEDURE [dbo].[usprpt_GetWorkOrderTATReport]   
 @PageNumber INT = 1,  
 @PageSize INT = NULL,  
 @mastercompanyid INT,  

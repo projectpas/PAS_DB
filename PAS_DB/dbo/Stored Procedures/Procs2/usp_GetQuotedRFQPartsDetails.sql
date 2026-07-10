@@ -1,3 +1,4 @@
+﻿-- ===== PROCEDURE: [dbo].[usp_GetQuotedRFQPartsDetails]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs2/usp_GetQuotedRFQPartsDetails.sql) =====
 /*************************************************************             
  ** File:   [usp_GetQuotedRFQPartsDetails]             
  ** Author:   Devendra Shekh    

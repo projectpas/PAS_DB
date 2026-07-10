@@ -1,4 +1,5 @@
-﻿/*************************************************************             
+﻿-- ===== PROCEDURE: [dbo].[USP_CreateSubWorkOrderMaterialsStoclkine]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs2/USP_CreateSubWorkOrderMaterialsStoclkine.sql) =====
+/*************************************************************             
  ** File:   [USP_CreateSubWorkOrderMaterialsStoclkine]             
  ** Author:   Devendra Shekh
  ** Description: This stored procedure is used Create work order materials

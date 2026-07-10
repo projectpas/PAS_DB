@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.usprpt_GetWOOperatingMetricReport_RepairedUnit   (source: PAS_DB/dbo/Stored Procedures/Procs3/usprpt_GetWOOperatingMetricReport_RepairedUnit.sql)
+-- ---------------------------------------------------------------------------------------------------
 /*************************************************************             
  ** File:   [dbo.usprpt_GetWOOperatingMetricReport_RepairedUnit]             
  ** Author:  Rajesh Gami    
@@ -20,7 +24,7 @@
 	4    23-June-2025	Devendra Shekh		Billing Table Changes
 	5    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 **************************************************************/  
-CREATE   PROCEDURE [dbo].[usprpt_GetWOOperatingMetricReport_RepairedUnit] 
+CREATE     PROCEDURE [dbo].[usprpt_GetWOOperatingMetricReport_RepairedUnit] 
 @PageNumber int = 1,
 @PageSize int = NULL,
 @mastercompanyid int,

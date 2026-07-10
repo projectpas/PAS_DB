@@ -1,3 +1,4 @@
+﻿-- ===== PROCEDURE: [dbo].[UpdateExchangeQuoteNameColumnsWithId]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs1/UpdateExchangeQuoteNameColumnsWithId.sql) =====
 /*************************************************************             
  ** File:   [UpdateExchangeQuoteNameColumnsWithId]
  ** Author:   Deep Patel
@@ -21,7 +22,7 @@
 
 --  EXEC [dbo].[UpdateExchangeQuoteNameColumnsWithId] 5
 **************************************************************/
-CREATE PROCEDURE [dbo].[UpdateExchangeQuoteNameColumnsWithId]
+CREATE   PROCEDURE [dbo].[UpdateExchangeQuoteNameColumnsWithId]
 	@ExchangeQuoteId int
 AS
 BEGIN

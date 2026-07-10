@@ -1,3 +1,4 @@
+﻿-- ===== PROCEDURE: [dbo].[sp_GetPickTicketApproveList]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs1/sp_GetPickTicketApproveList.sql) =====
 /*************************************************************           
  ** File:   [sp_GetPickTicketApproveList]           
  ** Author:   Vishal Suthar
@@ -27,7 +28,7 @@
      
 -- EXEC [dbo].[sp_GetPickTicketApproveList] 851
 **************************************************************/
-CREATE   Procedure [dbo].[sp_GetPickTicketApproveList]
+CREATE   PROCEDURE [dbo].[sp_GetPickTicketApproveList]
 	@SalesOrderId  bigint
 AS
 BEGIN

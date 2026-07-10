@@ -1,4 +1,8 @@
-﻿/*************************************************************
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.USP_InsertOrUpdateItemMasterPurchaseSales   (source: PAS_DB/dbo/Stored Procedures/Procs2/USP_InsertOrUpdateItemMasterPurchaseSales.sql)
+-- ---------------------------------------------------------------------------------------------------
+/*************************************************************
  ** File:  [USP_InsertOrUpdateItemMasterPurchaseSales] 
  ** Author:   Ekta Chandegra
  ** Description: This stored procedure is used to Insert or Update UnitSalePrice And UnitPurchasePrice
@@ -27,7 +31,7 @@ exec [dbo].[USP_InsertOrUpdateItemMasterPurchaseSales] @tbl_ItemMasterPurchaseSa
 
 
 **************************************************************/ 
-CREATE   PROCEDURE [dbo].[USP_InsertOrUpdateItemMasterPurchaseSales]      
+CREATE     PROCEDURE [dbo].[USP_InsertOrUpdateItemMasterPurchaseSales]      
 (
     @tbl_ItemMasterPurchaseSalesType ItemMasterPurchaseSalesType READONLY
 )

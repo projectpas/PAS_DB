@@ -1,4 +1,8 @@
-﻿CREATE VIEW [dbo].[vw_mpn_list]
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- View: dbo.vw_mpn_list   (source: PAS_DB/dbo/Views/vw_mpn_list.sql)
+-- ---------------------------------------------------------------------------------------------------
+CREATE   VIEW [dbo].[vw_mpn_list]
 AS
 SELECT        dbo.MasterParts.MasterPartId, dbo.MasterParts.PartNumber, dbo.MasterParts.Description, dbo.ItemMaster.ItemGroupId, dbo.ItemMaster.IsDER, dbo.ItemMaster.IsPma, dbo.ItemMaster.RevisedPartId, 
                          ItemMaster_1.PartDescription AS revised_mpn, dbo.ItemGroup.Description AS item_group

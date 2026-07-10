@@ -1,3 +1,4 @@
+﻿-- ===== PROCEDURE: [dbo].[sp_GetExchangeSalesOrderBillingInvoiceList]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs1/sp_GetExchangeSalesOrderBillingInvoiceList.sql) =====
 -- EXEC [dbo].[sp_GetExchangeSalesOrderBillingInvoiceList] 223
 /***************************************************************************************************************************************
   ** Change History
@@ -7,7 +8,7 @@
 	1    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	2    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 ****************************************************************************************************************************************/
-CREATE Procedure [dbo].[sp_GetExchangeSalesOrderBillingInvoiceList]
+CREATE   PROCEDURE [dbo].[sp_GetExchangeSalesOrderBillingInvoiceList]
 @ExchangeSalesOrderId  bigint
 AS
 BEGIN

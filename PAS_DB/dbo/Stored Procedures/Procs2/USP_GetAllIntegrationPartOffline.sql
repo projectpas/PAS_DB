@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.USP_GetAllIntegrationPartOffline   (source: PAS_DB/dbo/Stored Procedures/Procs2/USP_GetAllIntegrationPartOffline.sql)
+-- ---------------------------------------------------------------------------------------------------
 /*************************************************************           
  ** File:   [USP_GetAllIntegrationPartOffline]           
  ** Author:  Rajesh Gami
@@ -18,7 +22,7 @@
 	5    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
      
 ************************************************************************/
-CREATE   PROCEDURE [dbo].[USP_GetAllIntegrationPartOffline]
+CREATE     PROCEDURE [dbo].[USP_GetAllIntegrationPartOffline]
 	@PartNumber varchar(200),
 	@IntegrationPortalId int = NULL,	
 	@ConditionIds varchar(max) = NULL,

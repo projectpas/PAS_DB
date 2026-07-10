@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.usprpt_GetWorkOrderOnTimeReport   (source: PAS_DB/dbo/Stored Procedures/Procs3/usprpt_GetWorkOrderOnTimeReport.sql)
+-- ---------------------------------------------------------------------------------------------------
 /*************************************************************             
  ** File:   [usprpt_GetWorkOrderOnTimeReport]             
  ** Author:   Mahesh Sorathiya    
@@ -22,7 +26,7 @@
 	6	 23-Dec-2025   Ayushi Patel		Get The Newly versioned invoice 
 	7    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 **************************************************************/  
-CREATE   PROCEDURE [dbo].[usprpt_GetWorkOrderOnTimeReport] 
+CREATE     PROCEDURE [dbo].[usprpt_GetWorkOrderOnTimeReport] 
 @PageNumber int = 1,
 @PageSize int = NULL,
 @mastercompanyid int,

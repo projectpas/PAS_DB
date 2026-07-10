@@ -1,3 +1,4 @@
+﻿-- ===== PROCEDURE: [dbo].[USP_GetWorkOrderLaborAnalysisSummary]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs2/USP_GetWorkOrderLaborAnalysisSummary.sql) =====
 /*************************************************************           
  ** File:   [USP_GetWorkOrderLaborAnalysisSummary]           
  ** Author:   Hemant Saliya
@@ -28,7 +29,7 @@
 
 **************************************************************/ 
     
-CREATE PROCEDURE [dbo].[USP_GetWorkOrderLaborAnalysisSummary]    
+CREATE   PROCEDURE [dbo].[USP_GetWorkOrderLaborAnalysisSummary]    
 (    
 @WorkOrderId BIGINT = NULL,   
 @WorkOrderPartNoId BIGINT  = NULL,

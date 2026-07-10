@@ -1,3 +1,4 @@
+﻿-- ===== PROCEDURE: [dbo].[USP_SearchCustomerInvoicesQBExtract]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs3/USP_SearchCustomerInvoicesQBExtract.sql) =====
 
 /*************************************************************           
  ** File:   [USP_SearchCustomerInvoicesQBExtract]           
@@ -27,7 +28,7 @@
 	9    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	10    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 **************************************************************/ 
-CREATE      PROCEDURE [dbo].[USP_SearchCustomerInvoicesQBExtract]
+CREATE   PROCEDURE [dbo].[USP_SearchCustomerInvoicesQBExtract]
 @PageSize int,  
 @PageNumber int,  
 @SortColumn varchar(50),  

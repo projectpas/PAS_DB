@@ -1,3 +1,4 @@
+﻿-- ===== PROCEDURE: [dbo].[USP_GetWOTearDownStockLineList]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs2/USP_GetWOTearDownStockLineList.sql) =====
 /*********************           
  ** File:   [USP_GetWOTearDownStockLineList]           
  ** Author:  Devendra Shekh

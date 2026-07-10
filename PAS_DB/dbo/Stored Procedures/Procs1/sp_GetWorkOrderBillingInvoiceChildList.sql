@@ -1,3 +1,4 @@
+﻿-- ===== PROCEDURE: [dbo].[sp_GetWorkOrderBillingInvoiceChildList]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs1/sp_GetWorkOrderBillingInvoiceChildList.sql) =====
 /**************************************************************           
   ** Change History           
  **************************************************************           
@@ -28,7 +29,7 @@
 
 **************************************************************/ 
 
-CREATE   Procedure [dbo].[sp_GetWorkOrderBillingInvoiceChildList]
+CREATE   PROCEDURE [dbo].[sp_GetWorkOrderBillingInvoiceChildList]
 	@WorkOrderId  BIGINT,
 	@WorkOrderPartId BIGINT,
 	@IncludeProformaInvoice BIT

@@ -1,4 +1,5 @@
-﻿/*************************************************************               
+﻿-- ===== PROCEDURE: [dbo].[USP_GetStocklineList_ByLocation]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/USP_GetStocklineList_ByLocation.sql) =====
+/*************************************************************               
  ** File:   [USP_GetStocklineList_ByLocation]               
  ** Author:   Sumit Kumar
  ** Description: Stored procedure to get stockline list filtered by exact Location, Shelf, or Bin label value
@@ -13,7 +14,7 @@
  2    09/July/2026  RAJESH GAMI     [PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
  **************************************************************/
  
-CREATE PROCEDURE [dbo].[USP_GetStocklineList_ByLocation]
+CREATE   PROCEDURE [dbo].[USP_GetStocklineList_ByLocation]
 	@PageNumber int = NULL,        
 	@PageSize int = NULL,        
 	@SortColumn varchar(50) = NULL,        

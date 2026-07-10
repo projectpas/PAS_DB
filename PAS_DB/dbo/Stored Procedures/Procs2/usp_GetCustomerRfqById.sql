@@ -1,3 +1,4 @@
+﻿-- ===== PROCEDURE: [dbo].[usp_GetCustomerRfqById]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs2/usp_GetCustomerRfqById.sql) =====
 /*************************************************************             
  ** File:   [usp_GetCustomerRFQbyId]             
  ** Author:   Devendra Shekh    

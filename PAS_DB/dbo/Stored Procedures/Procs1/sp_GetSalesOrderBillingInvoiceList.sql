@@ -1,3 +1,4 @@
+﻿-- ===== PROCEDURE: [dbo].[sp_GetSalesOrderBillingInvoiceList]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs1/sp_GetSalesOrderBillingInvoiceList.sql) =====
 /*************************************************************           
  ** File:   [dbo].[GetBillingInvoiceByShipping]          
  ** Author:   Deep Patel
@@ -24,7 +25,7 @@
 
 --   EXEC sp_GetSalesOrderBillingInvoiceList 20845
 **************************************************************/ 
-CREATE    PROCEDURE [dbo].[sp_GetSalesOrderBillingInvoiceList]
+CREATE   PROCEDURE [dbo].[sp_GetSalesOrderBillingInvoiceList]
 	@SalesOrderId  bigint
 AS
 BEGIN

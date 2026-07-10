@@ -1,4 +1,8 @@
-﻿/*************************************************************           
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: DBO.USP_CreateUpdateExportInfo   (source: PAS_DB/dbo/Stored Procedures/Procs2/USP_CreateUpdateExportInfo.sql)
+-- ---------------------------------------------------------------------------------------------------
+/*************************************************************           
  ** File:		 [USP_CreateUpdateExportInfo]           
  ** Author:		 Divyesh Kathiriya
  ** Description: This Stored Procedure Is Used To Create or Update ExportInfo of Item Master.
@@ -17,7 +21,7 @@
                                       @ScheduleB=N'Schedule B',@HSCode=N'HS Code',@HTSCode=N'HTS Code',@ECCNDeterminationSourceID=13,@CreatedBy=N'dane park',@UpdatedBy=N'dane park',
                                       @MasterCompanyId=1,@ItemMasterId=97000
 **************************************************************/
-Create   PROCEDURE [DBO].[USP_CreateUpdateExportInfo]
+CREATE     PROCEDURE [DBO].[USP_CreateUpdateExportInfo]
 @ExportECCN VARCHAR(200),
 @ITARNumber VARCHAR(200) = NULL,
 @ExportUomId BIGINT = NULL,

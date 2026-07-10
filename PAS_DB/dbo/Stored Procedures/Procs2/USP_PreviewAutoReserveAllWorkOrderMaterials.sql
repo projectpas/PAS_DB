@@ -1,3 +1,4 @@
+﻿-- ===== PROCEDURE: [dbo].[USP_PreviewAutoReserveAllWorkOrderMaterials]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs2/USP_PreviewAutoReserveAllWorkOrderMaterials.sql) =====
 /*************************************************************   
 ** Author:  <Hemant Saliya>  
 ** Create date: <04/04/2023>  

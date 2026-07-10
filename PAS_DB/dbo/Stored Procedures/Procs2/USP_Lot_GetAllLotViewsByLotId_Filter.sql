@@ -1,3 +1,4 @@
+﻿-- ===== PROCEDURE: [dbo].[USP_Lot_GetAllLotViewsByLotId_Filter]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs2/USP_Lot_GetAllLotViewsByLotId_Filter.sql) =====
 /*************************************************************           
  ** File:   [USP_Lot_GetAllLotViewsByLotId_Filter]           
  ** Author:  Rajesh Gami

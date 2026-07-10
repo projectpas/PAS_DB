@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿-- ===== PROCEDURE: [dbo].[USP_GetStockLineLessQtyCheckList]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs2/USP_GetStockLineLessQtyCheckList.sql) =====
+/*************************************************************           
  ** File:     [USP_GetStockLineLessQtyCheckList]           
  ** Author:	  Devendra Shekh
  ** Description: This SP IS Used to get StockLine List fot Stk which has Less Qty than requested

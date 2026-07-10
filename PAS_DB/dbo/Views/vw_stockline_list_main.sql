@@ -1,5 +1,9 @@
 ﻿
-CREATE VIEW [dbo].[vw_stockline_list_main]
+-- ---------------------------------------------------------------------------------------------------
+-- View: dbo.vw_stockline_list_main   (source: PAS_DB/dbo/Views/vw_stockline_list_main.sql)
+-- ---------------------------------------------------------------------------------------------------
+
+CREATE   VIEW [dbo].[vw_stockline_list_main]
 AS
 SELECT        dbo.Stockline.StockLineId, dbo.Stockline.PartNumber, dbo.ItemMaster.PartDescription, dbo.ItemType.Description AS ItemType, dbo.ItemGroup.Description AS ItemGroup, dbo.Stockline.StockLineNumber, 
                          dbo.Stockline.SerialNumber, dbo.Stockline.ConditionId, dbo.Condition.Description AS ConditionType, dbo.Stockline.Quantity, dbo.Stockline.GLAccountId, dbo.GLAccount.AccountCode, dbo.Stockline.QuantityOnHand, 

@@ -1,4 +1,8 @@
-﻿/*************************************************************           
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.USP_UpdateRFQPricebasedOnAISuggestionHistoricalData   (source: PAS_DB/dbo/Stored Procedures/Procs3/USP_UpdateRFQPricebasedOnAISuggestionHistoricalData.sql)
+-- ---------------------------------------------------------------------------------------------------
+/*************************************************************           
  ** File:   [USP_UpdateRFQPricebasedOnAISuggestionHistoricalData]           
  ** Author:   HEMANT SALIYA
  ** Description: Update RFQ Price Details based on AI suggestions
@@ -19,7 +23,7 @@
 
 EXEC USP_UpdateRFQPricebasedOnAISuggestionHistoricalData '','',1
 **************************************************************/ 
-CREATE   PROCEDURE [dbo].[USP_UpdateRFQPricebasedOnAISuggestionHistoricalData]
+CREATE     PROCEDURE [dbo].[USP_UpdateRFQPricebasedOnAISuggestionHistoricalData]
 	--@MasterCompanyId BIGINT = NULL,
 	@FromDate DATETIME = NULL,
 	@ToDate DATETIME = NULL,

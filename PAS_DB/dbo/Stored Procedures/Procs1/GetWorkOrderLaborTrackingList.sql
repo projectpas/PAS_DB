@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.GetWorkOrderLaborTrackingList   (source: PAS_DB/dbo/Stored Procedures/Procs1/GetWorkOrderLaborTrackingList.sql)
+-- ---------------------------------------------------------------------------------------------------
 /*************************************************************           
  ** File:   [GetWorkOrderLaborTrackingList]           
  ** Author:   Rajesh Gami
@@ -17,7 +21,7 @@
 	--[dbo].[GetWorkOrderLaborTrackingList] 1,10,null,1,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,1,2,0,1
 **************************************************************/
 
-CREATE   PROCEDURE [dbo].[GetWorkOrderLaborTrackingList]  
+CREATE     PROCEDURE [dbo].[GetWorkOrderLaborTrackingList]  
  -- Add the parameters for the stored procedure here  
  @PageNumber int=null,  
  @PageSize int=null,  

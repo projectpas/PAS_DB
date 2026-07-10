@@ -1,4 +1,8 @@
 ﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.usp_SaveWorkOrderMaterialKit   (source: PAS_DB/dbo/Stored Procedures/Procs3/usp_SaveWorkOrderMaterialKit.sql)
+-- ---------------------------------------------------------------------------------------------------
+
 /*************************************************************           
  ** File:     [usp_SaveWorkOrderMaterialKit]           
  ** Author:	  Vishal Suthar
@@ -23,7 +27,7 @@
 	6    17/11/2024	  Ayuhi Patel			Added logic to set @ProvisionId
 	7    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 **************************************************************/ 
-CREATE    PROCEDURE [dbo].[usp_SaveWorkOrderMaterialKit]
+CREATE      PROCEDURE [dbo].[usp_SaveWorkOrderMaterialKit]
 	@tbl_WorkOrderMaterialKitType WorkOrderMaterialKitType READONLY
 AS
 BEGIN

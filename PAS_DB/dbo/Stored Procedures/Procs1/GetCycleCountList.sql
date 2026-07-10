@@ -1,4 +1,8 @@
-﻿/*************************************************************           
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.GetCycleCountList   (source: PAS_DB/dbo/Stored Procedures/Procs1/GetCycleCountList.sql)
+-- ---------------------------------------------------------------------------------------------------
+/*************************************************************           
  ** File:   [GetCycleCountList]           
  ** Author:   Moin Bloch
  ** Description: Get Search Data for Cycle Count List    
@@ -20,7 +24,7 @@
 
    EXEC [GetCycleCountList] 
 **************************************************************/ 
-CREATE   PROCEDURE [dbo].[GetCycleCountList]
+CREATE     PROCEDURE [dbo].[GetCycleCountList]
 @PageSize INT,
 @PageNumber INT,
 @SortColumn VARCHAR(50),

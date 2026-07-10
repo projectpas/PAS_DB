@@ -1,3 +1,4 @@
+﻿-- ===== PROCEDURE: [dbo].[UpdateReceivingCustomerColumnsWithId]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs1/UpdateReceivingCustomerColumnsWithId.sql) =====
 /*************************************************************           
  ** File:   [UpdateReceivingCustomerColumnsWithId]           
  ** Author:   Hemant Saliya

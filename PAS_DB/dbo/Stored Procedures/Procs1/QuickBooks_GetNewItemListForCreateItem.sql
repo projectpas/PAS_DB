@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.QuickBooks_GetNewItemListForCreateItem   (source: PAS_DB/dbo/Stored Procedures/Procs1/QuickBooks_GetNewItemListForCreateItem.sql)
+-- ---------------------------------------------------------------------------------------------------
 /*************************************************************           
  ** File:   [QuickBooks_GetNewItemListForCreateItem]           
  ** Author:   Abhishek Jirawla
@@ -17,7 +21,7 @@
      
  EXECUTE [QuickBooks_GetNewItemListForCreateItem] 1
 **************************************************************/ 
-CREATE   PROCEDURE [dbo].[QuickBooks_GetNewItemListForCreateItem]
+CREATE     PROCEDURE [dbo].[QuickBooks_GetNewItemListForCreateItem]
 	@IntegrationTypeId INT = NULL,
 	@MasterCompanyId INT = NULL
 AS

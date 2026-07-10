@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.USP_GetPartDetailsWithmasterCompanyId   (source: PAS_DB/dbo/Stored Procedures/Procs2/USP_GetPartDetailsWithmasterCompanyId.sql)
+-- ---------------------------------------------------------------------------------------------------
 /*************************************************************           
  ** File:		[dbo].[USP_GetPartDetailsWithmasterCompanyI       
  ** Author:		 Nakul Chandigra
@@ -15,7 +19,7 @@
 	EXEC [USP_GetPartDetailsWithId] 'Part9,part,199999,test',1 
 	EXEC [USP_GetPartDetailsWithId] 'a',1
 **************************************************************/
-CREATE    PROCEDURE [dbo].[USP_GetPartDetailsWithmasterCompanyId]
+CREATE      PROCEDURE [dbo].[USP_GetPartDetailsWithmasterCompanyId]
 @PartsList VARCHAR(MAX),
 @MasterCompanyId BIGINT 
 AS

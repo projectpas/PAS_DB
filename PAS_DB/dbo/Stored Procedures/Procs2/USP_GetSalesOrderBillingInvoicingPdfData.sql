@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿-- ===== PROCEDURE: [dbo].[USP_GetSalesOrderBillingInvoicingPdfData]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs2/USP_GetSalesOrderBillingInvoicingPdfData.sql) =====
+/*************************************************************           
  ** File:   [USP_GetSalesOrderBillingInvoicingPdfData]           
  ** Author:  Moin Bloch
  ** Description: This stored procedure is used to Get SalesOrder Billing Invoicing Pdf Data 
@@ -24,7 +25,7 @@
 
 -- EXEC USP_GetSalesOrderBillingInvoicingPdfData 847
 ************************************************************************/
-CREATE PROCEDURE [dbo].[USP_GetSalesOrderBillingInvoicingPdfData]  
+CREATE   PROCEDURE [dbo].[USP_GetSalesOrderBillingInvoicingPdfData]  
 @SOBillingInvoicingId BIGINT
 AS  
 BEGIN  

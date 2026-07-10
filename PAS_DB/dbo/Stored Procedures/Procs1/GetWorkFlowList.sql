@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.GetWorkFlowList   (source: PAS_DB/dbo/Stored Procedures/Procs1/GetWorkFlowList.sql)
+-- ---------------------------------------------------------------------------------------------------
 /*************************************************************           
  ** File:   [GetWorkFlowList]           
  ** Author:   Hemant Saliya
@@ -32,7 +36,7 @@
 exec GetWorkFlowList @PageSize=20,@PageNumber=1,@SortColumn=NULL,@SortOrder=-1,@StatusID=1,@GlobalFilter=N'',@WorkOrderNumber=NULL,@Version=NULL,@PartNumber=NULL,@PartDescription=NULL,@ManufacturerName=NULL,@WorkScopeCode=NULL,@CustomerName=NULL,@WorkflowCreateDate=NULL,@WorkflowExpirationDate=NULL,@CreatedDate=NULL,@UpdatedDate=NULL,@CreatedBy=NULL,@UpdatedBy=NULL,@IsDeleted=0,@MasterCompanyId=1,@TemplateDescription=NULL,@EmployeeId=223
 **************************************************************/ 
 
-CREATE     PROCEDURE [dbo].[GetWorkFlowList]
+CREATE       PROCEDURE [dbo].[GetWorkFlowList]
 	-- Add the parameters for the stored procedure here
 	@PageNumber int,
 	@PageSize int,

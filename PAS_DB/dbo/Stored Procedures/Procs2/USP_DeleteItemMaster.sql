@@ -1,4 +1,8 @@
-﻿/*************************************************************           
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: DBO.USP_DeleteItemMaster   (source: PAS_DB/dbo/Stored Procedures/Procs2/USP_DeleteItemMaster.sql)
+-- ---------------------------------------------------------------------------------------------------
+/*************************************************************           
  ** File:		 [USP_DeleteItemMaster]           
  ** Author:		 Divyesh Kathiriya
  ** Description: This Stored Procedure Is Used To Delete ItemMaster by Id.
@@ -14,7 +18,7 @@
     
  -- EXEC [USP_DeleteItemMaster] @ItemMasterid=96933, @UpdatedBy=N'DANE PERK', @IsDeleted=1
 **************************************************************/
-CREATE   PROCEDURE [DBO].[USP_DeleteItemMaster]
+CREATE     PROCEDURE [DBO].[USP_DeleteItemMaster]
 @ItemMasterid BIGINT,
 @UpdatedBy VARCHAR(256),
 @IsDeleted BIT

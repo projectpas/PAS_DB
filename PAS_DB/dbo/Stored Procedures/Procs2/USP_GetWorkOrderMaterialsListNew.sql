@@ -1,3 +1,4 @@
+﻿-- ===== PROCEDURE: [dbo].[USP_GetWorkOrderMaterialsListNew]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs2/USP_GetWorkOrderMaterialsListNew.sql) =====
  /*************************************************************           
  ** File:   [USP_GetWorkOrderMaterialsListNew]           
  ** Author:   Devendra Shekh

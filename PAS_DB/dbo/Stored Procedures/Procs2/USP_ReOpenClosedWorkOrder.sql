@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.USP_ReOpenClosedWorkOrder   (source: PAS_DB/dbo/Stored Procedures/Procs2/USP_ReOpenClosedWorkOrder.sql)
+-- ---------------------------------------------------------------------------------------------------
 /*************************************************************   
 ** Author:  <Hemant Saliya>  
 ** Create date: <05/10/2023>  
@@ -24,7 +28,7 @@ exec sp_executesql N'EXEC dbo.USP_ReOpenClosedWorkOrder @workOrderPartNoId, @Upd
 
 	1    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 **************************************************************/ 
-CREATE   PROCEDURE [dbo].[USP_ReOpenClosedWorkOrder]
+CREATE     PROCEDURE [dbo].[USP_ReOpenClosedWorkOrder]
 	@workOrderPartNoId BIGINT,
 	@UpdatedBy VARCHAR(256)
 AS

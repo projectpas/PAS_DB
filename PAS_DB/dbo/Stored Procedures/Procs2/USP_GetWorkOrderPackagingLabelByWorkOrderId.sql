@@ -1,4 +1,5 @@
-﻿/************************************************************************************           
+﻿-- ===== PROCEDURE: [dbo].[USP_GetWorkOrderPackagingLabelByWorkOrderId]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs2/USP_GetWorkOrderPackagingLabelByWorkOrderId.sql) =====
+/************************************************************************************           
  ** File:   [USP_GetWorkOrderPackagingLabelByWorkOrderId]           
  ** Author: 
  ** Description: This stored procedure is used to get USP_GetWorkOrderPackagingLabelByWorkOrderId.
@@ -21,7 +22,7 @@
 
 	 EXEC [dbo].[USP_GetWorkOrderPackagingLabelByWorkOrderId] 8936,8731
 ****************************************************************************************/
-CREATE    PROCEDURE [dbo].[USP_GetWorkOrderPackagingLabelByWorkOrderId]
+CREATE   PROCEDURE [dbo].[USP_GetWorkOrderPackagingLabelByWorkOrderId]
 @WorkOrderId BIGINT,
 @WorkOrderPartNoId BIGINT = NULL
 AS

@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.USP_GetPublicationAuditHistory   (source: PAS_DB/dbo/Stored Procedures/Procs2/USP_GetPublicationAuditHistory.sql)
+-- ---------------------------------------------------------------------------------------------------
 /***************************************************************  
  ** File:   [USP_GetPublicationAuditHistory]             
  ** Author: Ayushi Patel  
@@ -15,7 +19,7 @@
 	4    10/13/2025       Bhargav Saliya            Remove added
 	5    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
  ***************************************************************/  
-CREATE   PROCEDURE [dbo].[USP_GetPublicationAuditHistory]
+CREATE     PROCEDURE [dbo].[USP_GetPublicationAuditHistory]
     @PublicationId BIGINT,
     @EmployeeId BIGINT
 AS

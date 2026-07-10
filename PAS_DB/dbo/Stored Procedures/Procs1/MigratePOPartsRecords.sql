@@ -1,4 +1,8 @@
-﻿/*************************************************************             
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.MigratePOPartsRecords   (source: PAS_DB/dbo/Stored Procedures/Procs1/MigratePOPartsRecords.sql)
+-- ---------------------------------------------------------------------------------------------------
+/*************************************************************             
  ** File:   [MigratePOPartsRecords]
  ** Author:   Vishal Suthar
  ** Description: This stored procedure is used to Migrate Purchase Order Parts Records
@@ -29,7 +33,7 @@ set @p8=NULL
 exec sp_executesql N'EXEC MigratePOPartsRecords @FromMasterComanyID, @UserName, @Processed OUTPUT, @Migrated OUTPUT, @Failed OUTPUT, @Exists OUTPUT',N'@FromMasterComanyID int,@UserName nvarchar(12),@Processed int output,@Migrated int output,@Failed int output,@Exists int output',@FromMasterComanyID=25,@UserName=N'ADMIN ADMIN',@Processed=@p5 output,@Migrated=@p6 output,@Failed=@p7 output,@Exists=@p8 output
 select @p5, @p6, @p7, @p8
 **************************************************************/
-CREATE   PROCEDURE [dbo].[MigratePOPartsRecords]
+CREATE     PROCEDURE [dbo].[MigratePOPartsRecords]
 (
 	@FromMasterComanyID INT = NULL,
 	@UserName VARCHAR(100) NULL,

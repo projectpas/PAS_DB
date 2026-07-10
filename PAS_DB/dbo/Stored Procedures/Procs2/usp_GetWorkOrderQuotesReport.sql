@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.usp_GetWorkOrderQuotesReport   (source: PAS_DB/dbo/Stored Procedures/Procs2/usp_GetWorkOrderQuotesReport.sql)
+-- ---------------------------------------------------------------------------------------------------
 /*************************************************************           
  ** File:   [usp_GetWorkOrderQuotesReport]           
  ** Author:   Swetha  
@@ -22,7 +26,7 @@
      
 EXECUTE   [dbo].[usp_GetWorkOrderQuotesReport] '','2020-04-25','2021-09-25','4','4','','',''
 **************************************************************/
-CREATE PROCEDURE [dbo].[usp_GetWorkOrderQuotesReport] @name varchar(40) = NULL,
+CREATE   PROCEDURE [dbo].[usp_GetWorkOrderQuotesReport] @name varchar(40) = NULL,
 @Fromdate datetime,
 @Todate datetime,
 @mastercompanyid int,

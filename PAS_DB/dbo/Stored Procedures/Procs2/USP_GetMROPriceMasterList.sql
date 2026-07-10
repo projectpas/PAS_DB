@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.USP_GetMROPriceMasterList   (source: PAS_DB/dbo/Stored Procedures/Procs2/USP_GetMROPriceMasterList.sql)
+-- ---------------------------------------------------------------------------------------------------
 /*********************           
  ** File:   [USP_GetMROPriceMasterList]         
  ** Author: Priyansh Patel
@@ -17,7 +21,7 @@
 **********************/
 -- Example: EXEC [USP_GetMROPriceMasterList] 0, 0, 1, 1, 10
 
-CREATE PROCEDURE [dbo].[USP_GetMROPriceMasterList] 
+CREATE   PROCEDURE [dbo].[USP_GetMROPriceMasterList] 
     @ItemMasterId BIGINT = NULL, 
     @IsDeleted BIT = 0,
     @MasterCompanyId INT,

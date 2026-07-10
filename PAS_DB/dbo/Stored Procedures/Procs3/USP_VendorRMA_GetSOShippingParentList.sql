@@ -1,3 +1,4 @@
+﻿-- ===== PROCEDURE: [dbo].[USP_VendorRMA_GetSOShippingParentList]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs3/USP_VendorRMA_GetSOShippingParentList.sql) =====
 /*************************************************************           
  ** File:   [USP_VendorRMA_GetSOShippingParentList]          
  ** Author:   Amit Ghediya
@@ -20,7 +21,7 @@
      
  EXECUTE USP_VendorRMA_GetSOShippingParentList 60
 **************************************************************/
-CREATE     Procedure [dbo].[USP_VendorRMA_GetSOShippingParentList]
+CREATE   PROCEDURE [dbo].[USP_VendorRMA_GetSOShippingParentList]
 @VendorRMAId  bigint
 AS
 BEGIN

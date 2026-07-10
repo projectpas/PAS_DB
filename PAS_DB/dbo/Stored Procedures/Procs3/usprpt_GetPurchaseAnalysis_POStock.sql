@@ -1,4 +1,5 @@
-﻿/*************************************************************             
+﻿-- ===== PROCEDURE: [dbo].[usprpt_GetPurchaseAnalysis_POStock]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs3/usprpt_GetPurchaseAnalysis_POStock.sql) =====
+/*************************************************************             
  ** File:   [dbo.usprpt_GetPurchaseAnalysis_POStock]             
  ** Author:  Rajesh Gami    
  ** Description: Get Data for Purchase Order Analysis Report Data [Most Purchased Stock]

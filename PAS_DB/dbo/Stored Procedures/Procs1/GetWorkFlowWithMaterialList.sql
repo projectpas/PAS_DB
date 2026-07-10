@@ -1,4 +1,8 @@
-﻿/*************************************************************               
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: GetWorkFlowWithMaterialList   (source: PAS_DB/dbo/Stored Procedures/Procs1/GetWorkFlowWithMaterialList.sql)
+-- ---------------------------------------------------------------------------------------------------
+/*************************************************************               
  ** File:   [GetWorkFlowWithMaterialList]              
  ** Author:   Ayushi Patel      
  ** Description: Get Work Flow With Material List by WorkflowId  
@@ -19,7 +23,7 @@
   
 -- EXEC GetWorkFlowWithMaterialList 80
 **************************************************************/
-CREATE   PROCEDURE GetWorkFlowWithMaterialList
+CREATE     PROCEDURE GetWorkFlowWithMaterialList
     @WorkflowId BIGINT
 AS
 BEGIN

@@ -1,4 +1,8 @@
-﻿/*************************************************************           
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.USP_GetAllWOAssignmentOpenItem   (source: PAS_DB/dbo/Stored Procedures/Procs2/USP_GetAllWOAssignmentOpenItem.sql)
+-- ---------------------------------------------------------------------------------------------------
+/*************************************************************           
  ** File:   [USP_GetAllWOAssignmentOpenItem]           
  ** Author: Unknown
  ** Description: This stored procedure is used GetAllWOAssignmentOpenItem 
@@ -15,7 +19,7 @@
 	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	
 **************************************************************/
-CREATE   PROCEDURE [dbo].[USP_GetAllWOAssignmentOpenItem]      
+CREATE     PROCEDURE [dbo].[USP_GetAllWOAssignmentOpenItem]      
 (   
 @PageNumber int,  
 @PageSize int,  

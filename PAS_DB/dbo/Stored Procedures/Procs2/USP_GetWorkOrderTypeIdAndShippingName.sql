@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.USP_GetWorkOrderTypeIdAndShippingName   (source: PAS_DB/dbo/Stored Procedures/Procs2/USP_GetWorkOrderTypeIdAndShippingName.sql)
+-- ---------------------------------------------------------------------------------------------------
 /***************************************************************  
  ** File:  [USP_GetWorkOrderTypeIdAndShippingName]       
  ** Author:   Priyansh Patel
@@ -13,7 +17,7 @@
 --EXEC [dbo].[USP_GetWorkOrderTypeIdAndShippingName] @WoPartNoId = 4348,@ShipviaId = 32459,@ShippingName = 'hong1',@ShipToCustomerId = 44,@WorkOrderId = 10052,@MasterCompanyId=1
 
 **************************************************************/
-CREATE PROCEDURE [dbo].[USP_GetWorkOrderTypeIdAndShippingName]
+CREATE   PROCEDURE [dbo].[USP_GetWorkOrderTypeIdAndShippingName]
     @WoPartNoId BIGINT,
     @ShipviaId BIGINT,
     @ShippingName VARCHAR(100),

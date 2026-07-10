@@ -1,3 +1,4 @@
+﻿-- ===== PROCEDURE: [USP_GetSalesOrderQuotePrintData]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs2/USP_GetSalesOrderQuotePrintData.sql) =====
 /*************************************************************           
  ** File:   [dbo].[USP_GetSalesOrderQuotePrintData]          
  ** Author:   BHARGAV SALIA

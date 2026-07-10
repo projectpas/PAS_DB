@@ -1,4 +1,5 @@
-﻿/*************************************************************                   
+﻿-- ===== PROCEDURE: [dbo].[USP_GetReqQtyFromPart]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs2/USP_GetReqQtyFromPart.sql) =====
+/*************************************************************                   
  ** File:   [USP_GetReqQtyFromPart]                   
  ** Author:   Shrey Chandegara        
  ** Description:             
@@ -20,7 +21,7 @@
 	
  EXECUTE USP_GetReqQtyFromPart 6691, 12684, 751, 3
 **************************************************************/         
-CREATE      PROCEDURE [dbo].[USP_GetReqQtyFromPart]
+CREATE   PROCEDURE [dbo].[USP_GetReqQtyFromPart]
 	@PurchaseOrderId BIGINT,      
 	@PurchaseOrderPartRecordId BIGINT,      
 	@ReferenceId BIGINT,      

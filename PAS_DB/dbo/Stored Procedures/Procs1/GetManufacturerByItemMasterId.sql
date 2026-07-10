@@ -1,4 +1,8 @@
-﻿/*************************************************************             
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.GetManufacturerByItemMasterId   (source: PAS_DB/dbo/Stored Procedures/Procs1/GetManufacturerByItemMasterId.sql)
+-- ---------------------------------------------------------------------------------------------------
+/*************************************************************             
 ** File:   [GetManufacturerByItemMasterId]
 ** Author:   Vishal Suthar
 ** Description: This procedre is used to get manufacturer by part id
@@ -14,7 +18,7 @@
 
  EXEC [dbo].[GetManufacturerByItemMasterId] 96877
 **************************************************************/
-CREATE   PROCEDURE [dbo].[GetManufacturerByItemMasterId]
+CREATE     PROCEDURE [dbo].[GetManufacturerByItemMasterId]
     @ItemMasterId INT
 AS
 BEGIN

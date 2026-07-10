@@ -1,3 +1,4 @@
+﻿-- ===== PROCEDURE: [dbo].[USP_GetRecevingStocklineDetails]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs2/USP_GetRecevingStocklineDetails.sql) =====
 /*************************************************************           
  ** File:   [USP_GetRecevingStocklineDetails]           
  ** Author:   Sahdev Saliya

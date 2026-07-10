@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.USP_GetWOMRODashboardData   (source: PAS_DB/dbo/Stored Procedures/Procs2/USP_GetWOMRODashboardData.sql)
+-- ---------------------------------------------------------------------------------------------------
 /*****************************************************************************************           
  ** File:   [USP_GetWOMRODashboardData]        
  ** Author:   Devendra Shekh
@@ -21,7 +25,7 @@
 	
 	EXEC dbo.[USP_GetWOMRODashboardData] @MasterCompanyId=1,@StartDate='2024-10-17 00:00:00',@EmployeeId=2,@ManagementStructureId=1
 *********************************************************************************************/
-CREATE   PROCEDURE [dbo].[USP_GetWOMRODashboardData]
+CREATE     PROCEDURE [dbo].[USP_GetWOMRODashboardData]
 	@MasterCompanyId INT = NULL,
 	@StartDate DATETIME = NULL,
 	@EmployeeId BIGINT = NULL,

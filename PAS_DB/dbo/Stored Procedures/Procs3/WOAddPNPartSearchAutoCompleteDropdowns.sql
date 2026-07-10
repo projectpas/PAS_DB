@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.WOAddPNPartSearchAutoCompleteDropdowns   (source: PAS_DB/dbo/Stored Procedures/Procs3/WOAddPNPartSearchAutoCompleteDropdowns.sql)
+-- ---------------------------------------------------------------------------------------------------
 /*************************************************************           
  ** File:   [WOPartSearchAutoCompleteDropdowns]           
  ** Author:   Hemant Saliya
@@ -22,7 +26,7 @@
      
 --EXEC [WOPartSearchAutoCompleteDropdowns] 5
 **************************************************************/
-CREATE     PROCEDURE [dbo].[WOAddPNPartSearchAutoCompleteDropdowns]  
+CREATE       PROCEDURE [dbo].[WOAddPNPartSearchAutoCompleteDropdowns]  
   @CustomerId INT,
   @RestrictDER BIT = 0 ,
   @RestrictPMA BIT = 0,

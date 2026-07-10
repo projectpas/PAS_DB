@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿-- ===== PROCEDURE: [dbo].[usprpt_GetInventoryUnitCostAdjustmentReport]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/usprpt_GetInventoryUnitCostAdjustmentReport.sql) =====
+/*************************************************************           
  ** File:   [usprpt_GetInventoryUnitCostAdjustmentReport]
  ** Author:   
  ** Description: Get Data for Stock Report for Unit Cost AdjustMent

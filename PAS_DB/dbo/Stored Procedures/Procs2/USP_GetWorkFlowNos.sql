@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.USP_GetWorkFlowNos   (source: PAS_DB/dbo/Stored Procedures/Procs2/USP_GetWorkFlowNos.sql)
+-- ---------------------------------------------------------------------------------------------------
 /*************************************************************           
  ** File:   [USP_GetWorkFlowNos]           
  ** Author:   Devendra Shekh
@@ -13,7 +17,7 @@
 
 EXEC [USP_GetWorkFlowNos] 3, 10, 1, 101, 23
 **************************************************************/
-CREATE   PROCEDURE [dbo].[USP_GetWorkFlowNos]
+CREATE     PROCEDURE [dbo].[USP_GetWorkFlowNos]
  @PartId BIGINT = NULL,  
  @WorkScopeId BIGINT = NULL,
  @MasterCompanyId BIGINT = NULL,

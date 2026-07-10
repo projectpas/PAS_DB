@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.GetWOQPartsMonthlyYearlyDashboardData   (source: PAS_DB/dbo/Stored Procedures/Procs1/GetWOQPartsMonthlyYearlyDashboardData.sql)
+-- ---------------------------------------------------------------------------------------------------
 /*************************************************************           
  ** File:   [GetWOQPartsMonthlyYearlyDashboardData]
  ** Author:   
@@ -21,7 +25,7 @@
 
 EXEC GetWOQPartsMonthlyYearlyDashboardData 1, 2, '2024-10-18',10,1
 ************************************************************************/
-CREATE   PROCEDURE [dbo].[GetWOQPartsMonthlyYearlyDashboardData]
+CREATE     PROCEDURE [dbo].[GetWOQPartsMonthlyYearlyDashboardData]
 	@MasterCompanyId BIGINT = NULL,
 	@EmployeeId BIGINT = NULL,
 	@StartDate DATETIME2 = NULL,

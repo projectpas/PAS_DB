@@ -1,5 +1,9 @@
 ﻿
-CREATE VIEW dbo.vw_ItemMasterPartManufacturer
+-- ---------------------------------------------------------------------------------------------------
+-- View: dbo.vw_ItemMasterPartManufacturer   (source: PAS_DB/dbo/Views/vw_ItemMasterPartManufacturer.sql)
+-- ---------------------------------------------------------------------------------------------------
+
+CREATE   VIEW dbo.vw_ItemMasterPartManufacturer
 AS
 
 WITH PartCounts AS

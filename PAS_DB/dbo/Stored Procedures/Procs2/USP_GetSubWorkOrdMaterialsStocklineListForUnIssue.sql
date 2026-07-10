@@ -1,3 +1,4 @@
+﻿-- ===== PROCEDURE: [dbo].[USP_GetSubWorkOrdMaterialsStocklineListForUnIssue]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs2/USP_GetSubWorkOrdMaterialsStocklineListForUnIssue.sql) =====
 /*************************************************************           
  ** File:   [USP_GetSubWorkOrdMaterialsStocklineListForUnIssue]           
  ** Author:   Hemant Saliya
@@ -25,7 +26,7 @@
 
 **************************************************************/ 
     
-CREATE PROCEDURE [dbo].[USP_GetSubWorkOrdMaterialsStocklineListForUnIssue]    
+CREATE   PROCEDURE [dbo].[USP_GetSubWorkOrdMaterialsStocklineListForUnIssue]    
 (    
 @SubWOPartNoId BIGINT = NULL,
 @ItemMasterId BIGINT = NULL

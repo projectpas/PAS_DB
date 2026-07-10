@@ -1,4 +1,8 @@
 ﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.USP_GetPartsEmailContentByWoQuoteId   (source: PAS_DB/dbo/Stored Procedures/Procs2/USP_GetPartsEmailContentByWoQuoteId.sql)
+-- ---------------------------------------------------------------------------------------------------
+
 /*************************************************************           
  ** File:   [USP_GetPartsEmailContentByWoQuoteId]           
  ** Author: Rajesh Gami
@@ -16,7 +20,7 @@
 **************************************************************
 EXEC USP_GetPartsEmailContentByWoQuoteId 6610
 **************************************************************/
-CREATE     PROCEDURE [dbo].[USP_GetPartsEmailContentByWoQuoteId] 
+CREATE       PROCEDURE [dbo].[USP_GetPartsEmailContentByWoQuoteId] 
 @WorkOrderQuoteId bigint =0
 AS
 BEGIN

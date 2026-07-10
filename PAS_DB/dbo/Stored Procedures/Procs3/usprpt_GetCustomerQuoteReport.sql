@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.usprpt_GetCustomerQuoteReport   (source: PAS_DB/dbo/Stored Procedures/Procs3/usprpt_GetCustomerQuoteReport.sql)
+-- ---------------------------------------------------------------------------------------------------
 /*************************************************************             
  ** File:   [usprpt_GetCustomerQuoteReport]             
  ** Author:   Amit Ghediya   
@@ -20,7 +24,7 @@
 EXECUTE   [dbo].[usprpt_GetCustomerQuoteReport] '2025-10-07','2025-11-25',1,1,'','',2,''
 **************************************************************/  
   
-CREATE     PROCEDURE [dbo].[usprpt_GetCustomerQuoteReport] 
+CREATE       PROCEDURE [dbo].[usprpt_GetCustomerQuoteReport] 
 	@id DATE = NULL,
 	@id2 DATE = NULL,
 	@mastercompanyid INT,

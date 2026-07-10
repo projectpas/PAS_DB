@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.AutoCompleteDropdownsItemPriceMaster   (source: PAS_DB/dbo/Stored Procedures/Procs1/AutoCompleteDropdownsItemPriceMaster.sql)
+-- ---------------------------------------------------------------------------------------------------
 /*************************************************************           
  ** File:   [AutoCompleteDropdownsItemPriceMaster]           
  ** Author:  Ekta Chandegra
@@ -21,7 +25,7 @@
 
 ************************************************************************/
 
-CREATE   PROCEDURE [dbo].[AutoCompleteDropdownsItemPriceMaster]
+CREATE     PROCEDURE [dbo].[AutoCompleteDropdownsItemPriceMaster]
 @SearchText VARCHAR(50),
 @MasterCompanyId BIGINT
 AS BEGIN

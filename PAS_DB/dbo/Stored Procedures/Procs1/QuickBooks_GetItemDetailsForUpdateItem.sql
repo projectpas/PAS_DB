@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.QuickBooks_GetItemDetailsForUpdateItem   (source: PAS_DB/dbo/Stored Procedures/Procs1/QuickBooks_GetItemDetailsForUpdateItem.sql)
+-- ---------------------------------------------------------------------------------------------------
 /*************************************************************           
  ** File:   [QuickBooks_GetItemDetailsForUpdateItem]           
  ** Author:   Abhishek Jirawla
@@ -16,7 +20,7 @@
      
  EXECUTE [QuickBooks_GetNewItemListForCreateItem] 1
 **************************************************************/ 
-CREATE     PROCEDURE [dbo].[QuickBooks_GetItemDetailsForUpdateItem]
+CREATE       PROCEDURE [dbo].[QuickBooks_GetItemDetailsForUpdateItem]
 	@IntegrationTypeId INT = NULL,
 	@MasterCompanyId INT = NULL,
 	@ReferenceId BIGINT = NULL

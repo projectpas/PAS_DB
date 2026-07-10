@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.USP_GetExchangeAnalysisList   (source: PAS_DB/dbo/Stored Procedures/Procs2/USP_GetExchangeAnalysisList.sql)
+-- ---------------------------------------------------------------------------------------------------
 /*************************************************************           
  ** File:   [USP_GetExchangeAnalysisList]          
  ** Author: EKTA CHANDEGRA
@@ -18,7 +22,7 @@
 	     
  EXEC USP_GetExchangeAnalysisList @ExchangeSalesOrderId = 150 , @EmployeeId = 223
 ************************************************************************/ 
-CREATE   PROCEDURE [dbo].[USP_GetExchangeAnalysisList]
+CREATE     PROCEDURE [dbo].[USP_GetExchangeAnalysisList]
     @ExchangeSalesOrderId BIGINT,
     @EmployeeId BIGINT
 AS

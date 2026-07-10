@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.USP_WorkOrderAnalysis   (source: PAS_DB/dbo/Stored Procedures/Procs3/USP_WorkOrderAnalysis.sql)
+-- ---------------------------------------------------------------------------------------------------
 /***************************************************************  
  ** File:   [USP_WorkOrderAnalysis]             
  ** Author:   Shrey Chandegara
@@ -23,7 +27,7 @@
  ** PR   Date						 Author							Change Description
  ** --   --------					 -------						-------------------------------
 ****************************************************************************************************************************************/
-CREATE   PROCEDURE [dbo].[USP_WorkOrderAnalysis]
+CREATE     PROCEDURE [dbo].[USP_WorkOrderAnalysis]
 @WorkOrderId BIGINT,
 @WorkOrderPartNoId BIGINT
 AS

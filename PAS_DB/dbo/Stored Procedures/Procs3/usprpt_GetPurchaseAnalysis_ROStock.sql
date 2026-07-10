@@ -1,4 +1,5 @@
-﻿/*************************************************************             
+﻿-- ===== PROCEDURE: [dbo].[usprpt_GetPurchaseAnalysis_ROStock]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs3/usprpt_GetPurchaseAnalysis_ROStock.sql) =====
+/*************************************************************             
  ** File:   [dbo.usprpt_GetPurchaseAnalysis_ROStock]             
  ** Author:  Rajesh Gami    
  ** Description: Get Data for Purchase Order Analysis Report Data [Most Repaired Stock]
@@ -21,7 +22,7 @@
 	5    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 
 **************************************************************/  
-CREATE PROCEDURE [dbo].[usprpt_GetPurchaseAnalysis_ROStock]
+CREATE   PROCEDURE [dbo].[usprpt_GetPurchaseAnalysis_ROStock]
 @PageNumber int = 1,
 @PageSize int = NULL,
 @mastercompanyid int,

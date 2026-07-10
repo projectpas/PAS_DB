@@ -1,4 +1,8 @@
-﻿/*************************************************************           
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.USP_GetTenderMultipleStockLineList   (source: PAS_DB/dbo/Stored Procedures/Procs2/USP_GetTenderMultipleStockLineList.sql)
+-- ---------------------------------------------------------------------------------------------------
+/*************************************************************           
  ** File:   [USP_GetTenderMultipleStockLineList]           
  ** Author:    Devendra Shekh
  ** Description:  get Tender Multiple StockLine List
@@ -19,7 +23,7 @@
 exec USP_GetTenderMultipleStockLineList @PageSize=10,@PageNumber=1,@SortColumn=NULL,@SortOrder=1,@WorkOrderId=4390,@WorkFlowWorkOrderId=3917,@MasterCompanyId=1
 exec dbo.USP_GetTenderMultipleStockLineList @PageNumber=1,@PageSize=10,@SortColumn=default,@SortOrder=1,@WorkOrderId=4404,@WorkFlowWorkOrderId=3925,@MasterCompanyId=1
 **************************************************************/ 
-CREATE   PROCEDURE [dbo].[USP_GetTenderMultipleStockLineList]
+CREATE     PROCEDURE [dbo].[USP_GetTenderMultipleStockLineList]
 	@PageSize INT,
 	@PageNumber INT,
 	@SortColumn VARCHAR(50) = NULL,

@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.USP_GetNhaTlaAltEquPartHistory   (source: PAS_DB/dbo/Stored Procedures/Procs2/USP_GetNhaTlaAltEquPartHistory.sql)
+-- ---------------------------------------------------------------------------------------------------
 /*************************************************************           
  ** File:   [USP_GetNhaTlaAltEquPartHistory]           
  ** Author:   Sahdev Saliya
@@ -17,7 +21,7 @@
 
 	exec [dbo].[USP_GetNhaTlaAltEquPartHistory]
 **************************************************************/
-CREATE   PROCEDURE [dbo].[USP_GetNhaTlaAltEquPartHistory]
+CREATE     PROCEDURE [dbo].[USP_GetNhaTlaAltEquPartHistory]
    @ItemMappingId BIGINT = NULL,
    @EmployeeId BIGINT = NULL,
    @Opr INT = NULL

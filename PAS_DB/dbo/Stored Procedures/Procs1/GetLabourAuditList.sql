@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.GetLabourAuditList   (source: PAS_DB/dbo/Stored Procedures/Procs1/GetLabourAuditList.sql)
+-- ---------------------------------------------------------------------------------------------------
 /*************************************************************           
  ** File:   [GetLabourAuditList]           
  ** Author:   Subhash Saliya
@@ -19,7 +23,7 @@
  EXECUTE [GetLabourAuditList] 14
 **************************************************************/ 
 
-CREATE PROCEDURE [dbo].[GetLabourAuditList]
+CREATE   PROCEDURE [dbo].[GetLabourAuditList]
 	@WorkOrderLaborId bigint = null,
 	@EmployeeId bigint
 AS

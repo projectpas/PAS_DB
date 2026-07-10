@@ -1,4 +1,8 @@
-﻿/***************************************************************  
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.GetItemMasterCapesList   (source: PAS_DB/dbo/Stored Procedures/Procs1/GetItemMasterCapesList.sql)
+-- ---------------------------------------------------------------------------------------------------
+/***************************************************************  
  ** File:   [GetItemMasterCapesList]             
  ** Author:  
  ** Description: This stored procedure is used to Get ItemMasterCapesList 
@@ -15,7 +19,7 @@
  ** PR   Date						 Author							Change Description
  ** --   --------					 -------						-------------------------------
 ****************************************************************************************************************************************/
-CREATE     PROCEDURE [dbo].[GetItemMasterCapesList]
+CREATE       PROCEDURE [dbo].[GetItemMasterCapesList]
 @PageNumber int = NULL,
 @PageSize int = NULL,
 @SortColumn varchar(50)=NULL,

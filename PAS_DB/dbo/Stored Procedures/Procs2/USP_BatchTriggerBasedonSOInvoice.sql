@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.USP_BatchTriggerBasedonSOInvoice   (source: PAS_DB/dbo/Stored Procedures/Procs2/USP_BatchTriggerBasedonSOInvoice.sql)
+-- ---------------------------------------------------------------------------------------------------
 /*************************************************************           
  ** File:   [USP_BatchTriggerBasedonSOInvoice]
  ** Author:  Deep Patel
@@ -22,7 +26,7 @@
 -- EXEC USP_BatchTriggerBasedonSOInvoice 3
    EXEC [dbo].[USP_BatchTriggerBasedonSOInvoice] 1,267,283,385,0,52712,1,'fff',0,90,'wo',1,'admin'
 ************************************************************************/
-CREATE      PROCEDURE [dbo].[USP_BatchTriggerBasedonSOInvoice]
+CREATE        PROCEDURE [dbo].[USP_BatchTriggerBasedonSOInvoice]
 @DistributionMasterId bigint=NULL,
 @ReferenceId bigint=NULL,
 @ReferencePartId bigint=NULL,

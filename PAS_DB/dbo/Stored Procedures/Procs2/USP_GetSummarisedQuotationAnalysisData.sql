@@ -1,4 +1,5 @@
-﻿/***************************************************************  
+﻿-- ===== PROCEDURE: [dbo].[USP_GetSummarisedQuotationAnalysisData]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs2/USP_GetSummarisedQuotationAnalysisData.sql) =====
+/***************************************************************  
  ** File:   [USP_GetSummarisedQuotationAnalysisData]             
  ** Author:   Hemnat Saliya
  ** Description: Get WorkOrder Quote Analysis Details

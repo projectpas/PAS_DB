@@ -1,3 +1,4 @@
+﻿-- ===== PROCEDURE: [dbo].[sp_GetSalesOrderPerformaInvoiceChildList]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs1/sp_GetSalesOrderPerformaInvoiceChildList.sql) =====
 /*************************************************************           
  ** File:   [sp_GetSalesOrderPerformaInvoiceChildList]           
  ** Author:   AMIT GHEDIYA
@@ -22,7 +23,7 @@
 	5    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
  EXEC [dbo].[sp_GetSalesOrderPerformaInvoiceChildList] 814, 318, 15  
 **************************************************************/
-CREATE     PROCEDURE [dbo].[sp_GetSalesOrderPerformaInvoiceChildList]
+CREATE   PROCEDURE [dbo].[sp_GetSalesOrderPerformaInvoiceChildList]
 	 @SalesOrderId  bigint,  
 	 @SalesOrderPartId bigint,  
 	 @ConditionId bigint  

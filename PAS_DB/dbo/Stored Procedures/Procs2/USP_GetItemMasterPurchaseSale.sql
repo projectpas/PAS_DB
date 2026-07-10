@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.USP_GetItemMasterPurchaseSale   (source: PAS_DB/dbo/Stored Procedures/Procs2/USP_GetItemMasterPurchaseSale.sql)
+-- ---------------------------------------------------------------------------------------------------
 /*************************************************************           
 ** File:  [USP_GetItemMasterPurchaseSale]
 ** Author:   Bhargav Saliya
@@ -13,7 +17,7 @@
 
 	1    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 **************************************************************/
-CREATE   PROCEDURE [dbo].[USP_GetItemMasterPurchaseSale]
+CREATE     PROCEDURE [dbo].[USP_GetItemMasterPurchaseSale]
     @ItemMasterId BIGINT,
 	@EmployeeId BIGINT = 0
 AS

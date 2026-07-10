@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.AutoCompleteDropdownsItemMasterKit   (source: PAS_DB/dbo/Stored Procedures/Procs1/AutoCompleteDropdownsItemMasterKit.sql)
+-- ---------------------------------------------------------------------------------------------------
 /*************************************************************           
  ** File:   [AutoCompleteDropdownsItemMasterKit]           
  ** Author:   Vishal Suthar
@@ -22,7 +26,7 @@
      
 -- EXEC AutoCompleteDropdownsItemMasterKit 'ItemMaster','ItemMasterId','PartNumber','',1,'20','0',1
 **************************************************************/
-CREATE   PROCEDURE [dbo].[AutoCompleteDropdownsItemMasterKit]    
+CREATE     PROCEDURE [dbo].[AutoCompleteDropdownsItemMasterKit]    
 @TableName VARCHAR(50) = null,    
 @Parameter1 VARCHAR(50)= null,    
 @Parameter2 VARCHAR(100)= null,    

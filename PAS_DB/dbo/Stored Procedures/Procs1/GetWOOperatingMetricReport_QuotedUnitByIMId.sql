@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.GetWOOperatingMetricReport_QuotedUnitByIMId   (source: PAS_DB/dbo/Stored Procedures/Procs1/GetWOOperatingMetricReport_QuotedUnitByIMId.sql)
+-- ---------------------------------------------------------------------------------------------------
 /*************************************************************             
  ** File:   [dbo.GetWOOperatingMetricReport_QuotedUnitByIMId]             
  ** Author:  Rajesh Gami    
@@ -18,7 +22,7 @@
 	2    03-07-2025   Moin Bloch           Changed Old To New Billing Table
 	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 **************************************************************/  
-CREATE   PROCEDURE [dbo].[GetWOOperatingMetricReport_QuotedUnitByIMId] 
+CREATE     PROCEDURE [dbo].[GetWOOperatingMetricReport_QuotedUnitByIMId] 
 @PageNumber int = 1,
 @PageSize int = NULL,
 @mastercompanyid int,

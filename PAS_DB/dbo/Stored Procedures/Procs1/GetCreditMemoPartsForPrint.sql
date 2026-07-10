@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.GetCreditMemoPartsForPrint   (source: PAS_DB/dbo/Stored Procedures/Procs1/GetCreditMemoPartsForPrint.sql)
+-- ---------------------------------------------------------------------------------------------------
 /*************************************************************           
  ** File:   [GetCreditMemoPartsForPrint]           
  ** Author: Moin Bloch
@@ -18,7 +22,7 @@
  --  EXEC GetCreditMemoPartsForPrint 93,0,38
 **************************************************************/ 
 
-CREATE PROCEDURE [dbo].[GetCreditMemoPartsForPrint]
+CREATE   PROCEDURE [dbo].[GetCreditMemoPartsForPrint]
 @InvoicingId bigint,
 @IsWorkOrder bit,
 @CreditMemoHeaderId bigint

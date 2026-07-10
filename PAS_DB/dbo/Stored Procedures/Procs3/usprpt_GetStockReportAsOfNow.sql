@@ -1,3 +1,4 @@
+﻿-- ===== PROCEDURE: [dbo].[usprpt_GetStockReportAsOfNow]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs3/usprpt_GetStockReportAsOfNow.sql) =====
 /*************************************************************           
  ** File:   [usprpt_GetStockReportAsOfNow]           
  ** Author:   VISHAL SUTHAR  

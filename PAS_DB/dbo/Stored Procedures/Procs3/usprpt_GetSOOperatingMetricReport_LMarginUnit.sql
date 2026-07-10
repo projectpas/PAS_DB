@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.usprpt_GetSOOperatingMetricReport_LMarginUnit   (source: PAS_DB/dbo/Stored Procedures/Procs3/usprpt_GetSOOperatingMetricReport_LMarginUnit.sql)
+-- ---------------------------------------------------------------------------------------------------
 /********************************************************************             
  ** File:   [dbo.usprpt_GetSOOperatingMetricReport_LMarginUnit]             
  ** Author:  Rajesh Gami    
@@ -19,7 +23,7 @@
 	4    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 
 ***********************************************************************/  
-CREATE     PROCEDURE [dbo].[usprpt_GetSOOperatingMetricReport_LMarginUnit] 
+CREATE       PROCEDURE [dbo].[usprpt_GetSOOperatingMetricReport_LMarginUnit] 
 @PageNumber int = 1,
 @PageSize int = NULL,
 @mastercompanyid int,

@@ -1,3 +1,4 @@
+﻿-- ===== PROCEDURE: [dbo].[usprpt_GetStockReportSSRS]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs3/usprpt_GetStockReportSSRS.sql) =====
 /*************************************************************           
  ** File:   [usprpt_GetStockReportSSRS]
  ** Author: [Bhargav Saliya]

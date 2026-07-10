@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿-- ===== PROCEDURE: [dbo].[UpdateItemMasterDetail]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs1/UpdateItemMasterDetail.sql) =====
+/*************************************************************           
  ** File:   [UpdateItemMasterDetail]           
  ** Author:   Moin Bloch
  ** Description: Update Item Master All Id Wise Names
@@ -18,7 +19,7 @@
  EXEC UpdateItemMasterDetail 268
 **************************************************************/ 
 
-CREATE Procedure [dbo].[UpdateItemMasterDetail]
+CREATE   PROCEDURE [dbo].[UpdateItemMasterDetail]
 @ItemMasterId  bigint
 AS
 BEGIN

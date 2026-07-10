@@ -1,4 +1,8 @@
-﻿/*************************************************************           
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.USP_CheckDuplicatePNSNByPass   (source: PAS_DB/dbo/Stored Procedures/Procs2/USP_CheckDuplicatePNSNByPass.sql)
+-- ---------------------------------------------------------------------------------------------------
+/*************************************************************           
  ** File:   [USP_CheckDuplicatePNSNByPass]           
  ** Author:   Devendra Shekh
  ** Description: This stored procedure is used to Check Duplicate PN - Serial Number before create stockLine(on receive Customer, PO, RO)
@@ -16,7 +20,7 @@
 	 
 exec dbo.USP_CheckDuplicatePNSNByPass @ItemMasterId=318,@SerialNumber=N'TDGRGRDG',@ModuleId=27,@MasterCompanyId=1
 **************************************************************/
-CREATE    PROCEDURE [dbo].[USP_CheckDuplicatePNSNByPass]
+CREATE      PROCEDURE [dbo].[USP_CheckDuplicatePNSNByPass]
 @ItemMasterId BIGINT = NULL,
 @SerialNumber VARCHAR(50) = NULL,
 @ModuleId BIGINT = NULL,

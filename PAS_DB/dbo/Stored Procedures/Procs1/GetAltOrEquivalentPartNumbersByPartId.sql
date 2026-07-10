@@ -1,4 +1,8 @@
-﻿/*************************************************************           
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.GetAltOrEquivalentPartNumbersByPartId   (source: PAS_DB/dbo/Stored Procedures/Procs1/GetAltOrEquivalentPartNumbersByPartId.sql)
+-- ---------------------------------------------------------------------------------------------------
+/*************************************************************           
  ** File:     [GetAltOrEquivalentPartNumbersByPartId]           
  ** Author:	  Vishal Suthar
  ** Description: This SP is Used to Get Alt or Equ part details
@@ -18,7 +22,7 @@
 	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 
 ************************************************************************/
-CREATE   PROCEDURE [dbo].[GetAltOrEquivalentPartNumbersByPartId]
+CREATE     PROCEDURE [dbo].[GetAltOrEquivalentPartNumbersByPartId]
     @PartId INT,
 	@MappingType INT
 AS

@@ -1,4 +1,8 @@
-﻿/*************************************************************               
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.UpdateWorkOrderStage   (source: PAS_DB/dbo/Stored Procedures/Procs1/UpdateWorkOrderStage.sql)
+-- ---------------------------------------------------------------------------------------------------
+/*************************************************************               
  ** File:  [UpdateWorkOrderStage]          
  ** Author:  Bhargav Saliya
  ** Description: This stored procedure is used to [UpdateWorkOrderStage].    
@@ -22,7 +26,7 @@
 	exec dbo.UpdateWorkOrderStage @WorkOrderId=8412,@WorkOrderStatusId=1,@WorkOrderPartId=8062,@WorkOrderStageId=23,@WorkFlowWorkOrderId=8033,@CreatedBy='BHARGAV S'
 ************************************************************************/   
 
-CREATE   PROCEDURE [dbo].[UpdateWorkOrderStage]
+CREATE     PROCEDURE [dbo].[UpdateWorkOrderStage]
     @WorkOrderId BIGINT,
     @WorkOrderStatusId INT,
     @WorkOrderPartId BIGINT,

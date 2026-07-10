@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.USP_GetWorkFlowDetails_byId   (source: PAS_DB/dbo/Stored Procedures/Procs2/USP_GetWorkFlowDetails_byId.sql)
+-- ---------------------------------------------------------------------------------------------------
 /*************************************************************           
  ** File:   [USP_GetWorkFlowDetails_byId]           
  ** Author:   Devendra Shekh
@@ -18,7 +22,7 @@
 
 EXEC [USP_GetWorkFlowDetails_byId] 5242, 2
 **************************************************************/
-CREATE   PROCEDURE [dbo].[USP_GetWorkFlowDetails_byId]
+CREATE     PROCEDURE [dbo].[USP_GetWorkFlowDetails_byId]
  @WorkflowId BIGINT = NULL,  
  @EmployeeId BIGINT	= NULL
 AS

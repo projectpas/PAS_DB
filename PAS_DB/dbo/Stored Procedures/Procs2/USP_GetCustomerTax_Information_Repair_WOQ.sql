@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿-- ===== PROCEDURE: [dbo].[USP_GetCustomerTax_Information_Repair_WOQ]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs2/USP_GetCustomerTax_Information_Repair_WOQ.sql) =====
+/*************************************************************           
  ** File:   [USP_GetCustomerTax_Information_Repair_WOQ]           
  ** Author:   Moin Bloch
  ** Description: This stored procedure is used to get Customer Tax Information based on Repair in WOQ
@@ -20,7 +21,7 @@
      
 --   EXEC [USP_GetCustomerTax_Information_Repair_WOQ] 2169,4106,3596
 **************************************************************/
-CREATE PROCEDURE [dbo].[USP_GetCustomerTax_Information_Repair_WOQ] 
+CREATE   PROCEDURE [dbo].[USP_GetCustomerTax_Information_Repair_WOQ] 
 @WorkOrderQuoteId BIGINT,
 @WorkorderId BIGINT,
 @workOrderPartNoId BIGINT

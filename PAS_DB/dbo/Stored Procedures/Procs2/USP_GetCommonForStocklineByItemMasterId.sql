@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: DBO.USP_GetCommonForStocklineByItemMasterId   (source: PAS_DB/dbo/Stored Procedures/Procs2/USP_GetCommonForStocklineByItemMasterId.sql)
+-- ---------------------------------------------------------------------------------------------------
 /*************************************************************           
  ** File:   [USP_GetCommonForStocklineByItemMasterId]           
  ** Author:   Sahdev Saliya
@@ -17,7 +21,7 @@
 
 	exec [dbo].[USP_GetCommonForStocklineByItemMasterId]
 **************************************************************/
-CREATE   PROCEDURE [DBO].[USP_GetCommonForStocklineByItemMasterId]
+CREATE     PROCEDURE [DBO].[USP_GetCommonForStocklineByItemMasterId]
     @ItemMasterId BIGINT = NULL
 
 AS

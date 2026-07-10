@@ -1,3 +1,4 @@
+﻿-- ===== PROCEDURE: [dbo].[sp_workOrderReleaseFromPDFData]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs1/sp_workOrderReleaseFromPDFData.sql) =====
 /*************************************************************           
  ** File:   [sp_workOrderReleaseFromListData]           
  ** Author:   Subhash Saliya
@@ -31,7 +32,7 @@
  EXECUTE [sp_workOrderReleaseFromPDFData] 482
 **************************************************************/ 
 
-CREATE   Procedure [dbo].[sp_workOrderReleaseFromPDFData]
+CREATE   PROCEDURE [dbo].[sp_workOrderReleaseFromPDFData]
 	@IsFromLogBook BIT = 0,
 	@ReleaseFromId BIGINT
 AS

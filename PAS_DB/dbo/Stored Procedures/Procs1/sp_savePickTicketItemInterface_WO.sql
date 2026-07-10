@@ -1,4 +1,8 @@
-﻿/*************************************************************             
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.sp_savePickTicketItemInterface_WO   (source: PAS_DB/dbo/Stored Procedures/Procs1/sp_savePickTicketItemInterface_WO.sql)
+-- ---------------------------------------------------------------------------------------------------
+/*************************************************************             
  ** File:   [sp_savePickTicketItemInterface_WO]             
  ** Author:     
  ** Description: This SP is Used to save pick ticket details      
@@ -24,7 +28,7 @@
   
  EXECUTE sp_savePickTicketItemInterface_WO 828,0  
 **************************************************************/   
-CREATE   PROCEDURE [dbo].[sp_savePickTicketItemInterface_WO]  
+CREATE     PROCEDURE [dbo].[sp_savePickTicketItemInterface_WO]  
 (      
   @WOPickTicketId bigint = 0,  
   @WOPickTicketNumber varchar(100)='',  

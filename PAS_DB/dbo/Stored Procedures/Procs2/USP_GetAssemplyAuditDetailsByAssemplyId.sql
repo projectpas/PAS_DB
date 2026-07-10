@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.USP_GetAssemplyAuditDetailsByAssemplyId   (source: PAS_DB/dbo/Stored Procedures/Procs2/USP_GetAssemplyAuditDetailsByAssemplyId.sql)
+-- ---------------------------------------------------------------------------------------------------
 /*************************************************************           
  ** File:   [USP_GetAssemplyAuditDetailsByAssemplyId]           
  ** Author:   BHARGAV SALIYA
@@ -17,7 +21,7 @@
 	3    05/02/2025	   Ayushi Patel					converted the date into utc (created , updated) , Added a case to get timeZone
 	4    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 **************************************************************/
-CREATE     PROCEDURE [dbo].[USP_GetAssemplyAuditDetailsByAssemplyId]
+CREATE       PROCEDURE [dbo].[USP_GetAssemplyAuditDetailsByAssemplyId]
 @AssemplyId bigint,
 @EmployeeId bigint
 AS

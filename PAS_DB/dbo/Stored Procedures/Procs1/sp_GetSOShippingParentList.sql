@@ -1,3 +1,4 @@
+﻿-- ===== PROCEDURE: [dbo].[sp_GetSOShippingParentList]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs1/sp_GetSOShippingParentList.sql) =====
 /*************************************************************           
  ** File:   [sp_GetSOShippingParentList]           
  ** Author:   
@@ -22,7 +23,7 @@
      
  -- [dbo].[sp_GetSOShippingParentList] 1269
 **************************************************************/
-CREATE Procedure [dbo].[sp_GetSOShippingParentList]
+CREATE   PROCEDURE [dbo].[sp_GetSOShippingParentList]
 @SalesOrderId  bigint
 AS
 BEGIN

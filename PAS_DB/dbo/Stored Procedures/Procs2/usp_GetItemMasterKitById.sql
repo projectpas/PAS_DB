@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.usp_GetItemMasterKitById   (source: PAS_DB/dbo/Stored Procedures/Procs2/usp_GetItemMasterKitById.sql)
+-- ---------------------------------------------------------------------------------------------------
 /*************************************************************           
  ** File:		[dbo].[usp_GetItemMasterKitById]         
  ** Author:		 Nakul Chandigra
@@ -12,7 +16,7 @@
 	1	 01-12-2025         Nakul Chandigra     Created 
 	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 **************************************************************/
-CREATE    PROCEDURE [dbo].[usp_GetItemMasterKitById]
+CREATE      PROCEDURE [dbo].[usp_GetItemMasterKitById]
 @kitId BIGINT
 AS
 BEGIN

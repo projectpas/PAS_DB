@@ -1,4 +1,5 @@
-﻿/*****************************************************************************************
+﻿-- ===== PROCEDURE: [dbo].[USP_CreateSalesOrderQuoteFromAI]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs2/USP_CreateSalesOrderQuoteFromAI.sql) =====
+/*****************************************************************************************
  ** File:        [USP_CreateSalesOrderQuoteFromAI]
  ** Author:      Amit Ghediya
  ** Description: This stored procedure is used to create SO quote automatically from AI
@@ -21,7 +22,7 @@
     8    19/06/2026      Hemant Saliya       Corrected MS details Name
     9    09/July/2026      RAJESH GAMI       [PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 *********************************************************************************************/
-CREATE PROCEDURE [dbo].[USP_CreateSalesOrderQuoteFromAI]
+CREATE   PROCEDURE [dbo].[USP_CreateSalesOrderQuoteFromAI]
     @tbl_IlsRfqQuoteDetailsType IlsRfqQuoteDetailsType READONLY,
     @CustomerId                 BIGINT,
     @MasterCompanyId            INT,

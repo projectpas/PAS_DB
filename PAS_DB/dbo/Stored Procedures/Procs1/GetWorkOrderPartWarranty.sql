@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.GetWorkOrderPartWarranty   (source: PAS_DB/dbo/Stored Procedures/Procs1/GetWorkOrderPartWarranty.sql)
+-- ---------------------------------------------------------------------------------------------------
 /*************************************************************           
  ** File:   [GetWorkOrderPartWarranty]           
  ** Author: Vishal Suthar
@@ -22,7 +26,7 @@
 
 --EXEC [GetWorkOrderPartWarranty] 9, 158651,'STL-000037'
 **************************************************************/
-CREATE   PROCEDURE [dbo].[GetWorkOrderPartWarranty]
+CREATE     PROCEDURE [dbo].[GetWorkOrderPartWarranty]
 @ItemMasterId bigint = 0,
 @StocklineId bigint = 0,
 @StocklineNumber varchar(100) 

@@ -1,4 +1,5 @@
-﻿/***************************************************************  
+﻿-- ===== PROCEDURE: [dbo].[USP_AddUpdateSalesOrderPart]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs2/USP_AddUpdateSalesOrderPart.sql) =====
+/***************************************************************  
  ** File:   [USP_AddUpdateSalesOrderPart]
  ** Author:   Vishal Suthar
  ** Description: This stored procedure is used add or update sales order part details
@@ -27,7 +28,7 @@ insert into @p1 values(501,1269,264,2,2,NULL,NULL,1,3,0,NULL,NULL,3,1,0,0,0,0,0,
 exec USP_AddUpdateSalesOrderPart @tbl_SalesOrderPartList=@p1
 
 **************************************************************/
-CREATE     PROCEDURE [dbo].[USP_AddUpdateSalesOrderPart]
+CREATE   PROCEDURE [dbo].[USP_AddUpdateSalesOrderPart]
 	@tbl_SalesOrderPartList SOPartListType READONLY
 AS
 BEGIN

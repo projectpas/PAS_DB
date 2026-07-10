@@ -1,4 +1,5 @@
-﻿/*************************************************************   
+﻿-- ===== PROCEDURE: [dbo].[usp_CreateWorkOrderMaterialsKitStockline]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs2/usp_CreateWorkOrderMaterialsKitStockline.sql) =====
+/*************************************************************   
 ** Author:  <Vishal Suthar>  
 ** Create date: <04/06/2023>  
 ** Description: <Save Work Order Materials KIT Stockline Details>  

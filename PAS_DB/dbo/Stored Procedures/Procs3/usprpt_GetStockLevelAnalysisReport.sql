@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿-- ===== PROCEDURE: [dbo].[usprpt_GetStockLevelAnalysisReport]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs3/usprpt_GetStockLevelAnalysisReport.sql) =====
+/*************************************************************           
  ** File:   [usprpt_GetStockLevelAnalysisReport]
  ** Author:   Vishal Suthar
  ** Description: Get Data for Stock Level Analysis Report
@@ -19,7 +20,7 @@
 
 EXECUTE   [dbo].[usprpt_GetStockLevelAnalysisReport] '2','2010-01-01','2022-04-26',null,1,10
 **************************************************************/
-CREATE    PROCEDURE [dbo].[usprpt_GetStockLevelAnalysisReport] 
+CREATE   PROCEDURE [dbo].[usprpt_GetStockLevelAnalysisReport] 
 @PageNumber int = 1,
 @PageSize int = NULL,
 @mastercompanyid int,

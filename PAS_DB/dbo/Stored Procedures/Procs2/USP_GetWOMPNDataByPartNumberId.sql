@@ -1,3 +1,4 @@
+﻿-- ===== PROCEDURE: [dbo].[USP_GetWOMPNDataByPartNumberId]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs2/USP_GetWOMPNDataByPartNumberId.sql) =====
 /*************************************************************           
  ** File:   [USP_GetWOMPNDataByPartNumberId]           
  ** Author:   Bhargav Saliya 

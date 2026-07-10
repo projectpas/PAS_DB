@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.GetWOSOByCustomerDashboardCount   (source: PAS_DB/dbo/Stored Procedures/Procs1/GetWOSOByCustomerDashboardCount.sql)
+-- ---------------------------------------------------------------------------------------------------
 /*************************************************************           
  ** File:   [GetWOSOByCustomerDashboardCount]           
  ** Author:   Vishal Suthar
@@ -21,7 +25,7 @@
 	5    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 -- EXEC [GetWOSOByCustomerDashboardCount] 1
 **************************************************************/
-CREATE   PROCEDURE [dbo].[GetWOSOByCustomerDashboardCount]
+CREATE     PROCEDURE [dbo].[GetWOSOByCustomerDashboardCount]
 	@MasterCompanyId BIGINT
 AS
 BEGIN

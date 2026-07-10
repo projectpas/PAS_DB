@@ -1,4 +1,5 @@
-﻿/*************************************************************               
+﻿-- ===== PROCEDURE: [dbo].[usprpt_GetEmployeeCommissionReport_IncludeCustomerAndInvoiceDetails]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs3/usprpt_GetEmployeeCommissionReport_IncludeCustomerAndInvoiceDetails.sql) =====
+/*************************************************************               
  ** File:  [usprpt_GetEmployeeCommissionReport_IncludeCustomerAndInvoiceDetails]      
  ** Author:  Vishal Suthar
  ** Description: This stored procedure is used to Employee Commission DATA Including Customer & Invoice Details.    
@@ -18,7 +19,7 @@
 	5    09/July/2026    RAJESH GAMI		[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 
 ************************************************************************/ 
-CREATE        PROCEDURE [dbo].[usprpt_GetEmployeeCommissionReport_IncludeCustomerAndInvoiceDetails]
+CREATE   PROCEDURE [dbo].[usprpt_GetEmployeeCommissionReport_IncludeCustomerAndInvoiceDetails]
 	@PageNumber int = 1,  
 	@PageSize int = NULL,  
 	@mastercompanyid int,  

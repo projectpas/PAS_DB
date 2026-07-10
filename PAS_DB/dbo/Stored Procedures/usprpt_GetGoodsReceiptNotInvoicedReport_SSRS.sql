@@ -1,4 +1,5 @@
-﻿
+﻿-- ===== PROCEDURE: [dbo].[usprpt_GetGoodsReceiptNotInvoicedReport_SSRS]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/usprpt_GetGoodsReceiptNotInvoicedReport_SSRS.sql) =====
+
 /*************************************************************           
  ** File:   [usprpt_GetGoodsReceiptNotInvoicedReport_SSRS]
  ** Author:   Devendra Shekh

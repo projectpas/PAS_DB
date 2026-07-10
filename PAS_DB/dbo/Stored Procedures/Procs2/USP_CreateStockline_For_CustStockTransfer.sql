@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.USP_CreateStockline_For_CustStockTransfer   (source: PAS_DB/dbo/Stored Procedures/Procs2/USP_CreateStockline_For_CustStockTransfer.sql)
+-- ---------------------------------------------------------------------------------------------------
 /*************************************************************             
  ** File:   [USP_CreateStockline_For_CustStockTransfer]            
  ** Author:   Bhargav Saliya  
@@ -22,7 +26,7 @@
 
 exec dbo.USP_CreateStockline_For_CustStockTransfer 59820,236,'Admin User',1,0;
 **************************************************************/  
-CREATE   PROCEDURE [dbo].[USP_CreateStockline_For_CustStockTransfer]
+CREATE     PROCEDURE [dbo].[USP_CreateStockline_For_CustStockTransfer]
 (  
 	@StockLineId BIGINT = NULL,
 	@BulkStockLineAdjustmentDetailsId BIGINT = NULL,

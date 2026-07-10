@@ -1,3 +1,4 @@
+﻿-- ===== PROCEDURE: [dbo].[sp_GetSalesOrderPerformaInvoiceList]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs1/sp_GetSalesOrderPerformaInvoiceList.sql) =====
 /*************************************************************           
  ** File:   [dbo].[sp_GetSalesOrderPerformaInvoiceList]          
  ** Author:   AMIT GHEDIYA
@@ -15,7 +16,7 @@
 
 --   EXEC sp_GetSalesOrderPerformaInvoiceList 814
 **************************************************************/ 
-CREATE      PROCEDURE [dbo].[sp_GetSalesOrderPerformaInvoiceList]
+CREATE   PROCEDURE [dbo].[sp_GetSalesOrderPerformaInvoiceList]
 	@SalesOrderId  bigint
 AS
 BEGIN

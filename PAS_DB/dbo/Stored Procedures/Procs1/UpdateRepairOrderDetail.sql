@@ -1,3 +1,4 @@
+﻿-- ===== PROCEDURE: [dbo].[UpdateRepairOrderDetail]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs1/UpdateRepairOrderDetail.sql) =====
 
 /***************************************************************************************************************************************
   ** Change History
@@ -7,7 +8,7 @@
 	1    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	2    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 ****************************************************************************************************************************************/
-CREATE    Procedure [dbo].[UpdateRepairOrderDetail]
+CREATE   PROCEDURE [dbo].[UpdateRepairOrderDetail]
 @RepairOrderId  bigint
 AS
 BEGIN

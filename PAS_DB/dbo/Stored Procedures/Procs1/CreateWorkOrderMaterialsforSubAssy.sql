@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.CreateWorkOrderMaterialsforSubAssy   (source: PAS_DB/dbo/Stored Procedures/Procs1/CreateWorkOrderMaterialsforSubAssy.sql)
+-- ---------------------------------------------------------------------------------------------------
 /*************************************************************           
  ** File:   [dbo].[CreateWorkOrderMaterialsforSubAssy]
  ** Author:   Moin Bloch
@@ -16,7 +20,7 @@
      
 --   EXEC [dbo].[CreateWorkOrderMaterialsforSubAssy]
 **************************************************************/
-CREATE   PROCEDURE [dbo].[CreateWorkOrderMaterialsforSubAssy]
+CREATE     PROCEDURE [dbo].[CreateWorkOrderMaterialsforSubAssy]
 @tbl_WorkOrderPartNumberType WorkOrderPartNumberType READONLY,
 @WorkOrderId BIGINT,
 @WorkOrderTypeId BIGINT,

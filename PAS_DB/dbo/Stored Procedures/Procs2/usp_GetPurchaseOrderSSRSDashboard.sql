@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.usp_GetPurchaseOrderSSRSDashboard   (source: PAS_DB/dbo/Stored Procedures/Procs2/usp_GetPurchaseOrderSSRSDashboard.sql)
+-- ---------------------------------------------------------------------------------------------------
 /*************************************************************           
  ** File:   [usp_GetPurchaseOrderSSRSDashboard]           
  ** Author:   Swetha  
@@ -22,7 +26,7 @@
 EXECUTE   [dbo].[usp_GetPurchaseOrderSSRSDashboard] 
 **************************************************************/
 
-CREATE PROCEDURE [dbo].[usp_GetPurchaseOrderSSRSDashboard]
+CREATE   PROCEDURE [dbo].[usp_GetPurchaseOrderSSRSDashboard]
 @mastercompanyid int =0
 --@vendorname varchar(max)
 --@partnumber varchar(max)

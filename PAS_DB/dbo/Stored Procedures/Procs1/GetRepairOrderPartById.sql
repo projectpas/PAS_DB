@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.GetRepairOrderPartById   (source: PAS_DB/dbo/Stored Procedures/Procs1/GetRepairOrderPartById.sql)
+-- ---------------------------------------------------------------------------------------------------
 /*************************************************************           
  ** File:   [GetRepairOrderPartById]           
  ** Author:  Deep Patel
@@ -17,7 +21,7 @@
 	4    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 -- EXEC GetRepairOrderPartById 303
 ************************************************************************/
-CREATE   PROCEDURE [dbo].[GetRepairOrderPartById]
+CREATE     PROCEDURE [dbo].[GetRepairOrderPartById]
 @RepairOrderId bigint
 AS
 BEGIN

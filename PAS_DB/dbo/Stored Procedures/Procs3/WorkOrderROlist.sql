@@ -1,4 +1,5 @@
-﻿-------------------------------------------------------------------------------------------------------------
+﻿-- ===== PROCEDURE: [dbo].[WorkOrderROlist]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs3/WorkOrderROlist.sql) =====
+-------------------------------------------------------------------------------------------------------------
 
 /*************************************************************           
  ** File:   [WorkOrderROlist]           
@@ -25,7 +26,7 @@
  EXECUTE [WorkOrderROlist] 1, 50, null, -1, 1, '', 'mpn', '','','','','','','','','all'
 **************************************************************/ 
 
-CREATE PROCEDURE [dbo].[WorkOrderROlist]
+CREATE   PROCEDURE [dbo].[WorkOrderROlist]
 	-- Add the parameters for the stored procedure here
 	@PageNumber int,
 	@PageSize int,

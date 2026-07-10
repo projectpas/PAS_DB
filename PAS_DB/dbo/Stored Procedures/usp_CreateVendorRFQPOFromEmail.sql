@@ -1,4 +1,8 @@
-﻿/*************************************************************           
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.usp_CreateVendorRFQPOFromEmail   (source: PAS_DB/dbo/Stored Procedures/usp_CreateVendorRFQPOFromEmail.sql)
+-- ---------------------------------------------------------------------------------------------------
+/*************************************************************           
  ** File:   [usp_CreateVendorRFQPOFromEmail]           
  ** Author:   Vishal Suthar
  ** Description: Create Vendor RFQ PO from Email for A2Z
@@ -16,7 +20,7 @@
 	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 
 **************************************************************/ 
-CREATE   PROCEDURE [dbo].[usp_CreateVendorRFQPOFromEmail]
+CREATE     PROCEDURE [dbo].[usp_CreateVendorRFQPOFromEmail]
     @IntegrationEmailID   BIGINT,
     @MasterCompanyId      INT,
     @EmployeeId           BIGINT,

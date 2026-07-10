@@ -1,4 +1,5 @@
-﻿/*************************************************************                
+﻿-- ===== PROCEDURE: [dbo].[SP_InsertUnitSalesPriceHistory]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs1/SP_InsertUnitSalesPriceHistory.sql) =====
+/*************************************************************                
  ** Author: Ekta Chandegra
  ** Description: This stored procedure is used to Create history of unit sales price in stockline
  ** Date:   08/01/2024

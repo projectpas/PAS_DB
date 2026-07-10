@@ -1,3 +1,4 @@
+﻿-- ===== PROCEDURE: [dbo].[USP_GetPurchaseOrderPartsForView]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs2/USP_GetPurchaseOrderPartsForView.sql) =====
 /*************************************************************           
  ** File:   [USP_GetPurchaseOrderPartsForView]           
  ** Author:  Moin Bloch

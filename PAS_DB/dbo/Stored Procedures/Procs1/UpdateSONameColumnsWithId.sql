@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.UpdateSONameColumnsWithId   (source: PAS_DB/dbo/Stored Procedures/Procs1/UpdateSONameColumnsWithId.sql)
+-- ---------------------------------------------------------------------------------------------------
 /*************************************************************           
  ** File:  [UpdateSONameColumnsWithId]           
  ** Author:   Vishal Suthar
@@ -16,7 +20,7 @@
 
 	EXEC [dbo].[UpdateSONameColumnsWithId] 255
 **************************************************************/ 
-CREATE      PROCEDURE [dbo].[UpdateSONameColumnsWithId]
+CREATE        PROCEDURE [dbo].[UpdateSONameColumnsWithId]
 	@SalesOrderId int
 AS
 BEGIN

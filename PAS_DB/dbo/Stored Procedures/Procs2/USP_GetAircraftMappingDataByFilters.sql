@@ -1,4 +1,8 @@
-﻿/***************************************************************  
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.USP_GetAircraftMappingDataByFilters   (source: PAS_DB/dbo/Stored Procedures/Procs2/USP_GetAircraftMappingDataByFilters.sql)
+-- ---------------------------------------------------------------------------------------------------
+/***************************************************************  
  ** File: [USP_GetAircraftMappingDataByFilters]            
  ** Author: Ayushi Patel  
  ** Description: Get Aircraft Mapping Data based on AircraftTypeId, AircraftModelId, DashNumberId and PartNumber filters
@@ -12,7 +16,7 @@
     1    2025-06-03		  Ayushi Patel				Created
 	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
  ***************************************************************/ 
-CREATE   PROCEDURE [dbo].[USP_GetAircraftMappingDataByFilters]
+CREATE     PROCEDURE [dbo].[USP_GetAircraftMappingDataByFilters]
     @PublicationID BIGINT,
     @PartNumber VARCHAR(100) = NULL,
     @AircraftTypeIdList VARCHAR(MAX) = NULL,  

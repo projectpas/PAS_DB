@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.GetPurchaseOrderPartById   (source: PAS_DB/dbo/Stored Procedures/Procs1/GetPurchaseOrderPartById.sql)
+-- ---------------------------------------------------------------------------------------------------
 /*************************************************************           
  ** File:   [GetPurchaseOrderPartById]           
  ** Author:  Subhash saliya
@@ -18,7 +22,7 @@
      
 -- EXEC GetPurchaseOrderPartById 303
 ************************************************************************/
-CREATE   PROCEDURE [dbo].[GetPurchaseOrderPartById]
+CREATE     PROCEDURE [dbo].[GetPurchaseOrderPartById]
 @PurchaseOrderId bigint
 AS
 BEGIN

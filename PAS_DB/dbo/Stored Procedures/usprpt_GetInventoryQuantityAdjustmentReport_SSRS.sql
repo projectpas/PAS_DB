@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿-- ===== PROCEDURE: [dbo].[usprpt_GetInventoryQuantityAdjustmentReport_SSRS]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/usprpt_GetInventoryQuantityAdjustmentReport_SSRS.sql) =====
+/*************************************************************           
  ** File:   [usprpt_GetInventoryQuantityAdjustmentReport_SSRS]
  ** Author:    Devendra Shekh
  ** Description: Get the Inventory Quantity Adjustment Report Data for the SSRS

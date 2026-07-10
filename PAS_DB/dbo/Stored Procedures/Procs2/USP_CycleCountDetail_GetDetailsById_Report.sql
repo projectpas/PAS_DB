@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿-- ===== PROCEDURE: [dbo].[USP_CycleCountDetail_GetDetailsById_Report]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs2/USP_CycleCountDetail_GetDetailsById_Report.sql) =====
+/*************************************************************           
  ** File:   [USP_CycleCountDetail_GetDetailsById_Repot]           
  ** Author: BHARGAV SALIYA 
  ** Description: This stored procedure is used to get Cycle Count Details for the reports

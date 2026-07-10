@@ -1,3 +1,4 @@
+﻿-- ===== PROCEDURE: [dbo].[USP_UpdateWorkOrderCustomerDetails]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs3/USP_UpdateWorkOrderCustomerDetails.sql) =====
 /*********************             
  ** File:   UPDATE CUSTOMER IN WO           
  ** Author:  HEMANT SALIYA  

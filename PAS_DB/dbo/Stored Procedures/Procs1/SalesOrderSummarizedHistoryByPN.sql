@@ -1,4 +1,8 @@
-﻿/*************************************************************           
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.SalesOrderSummarizedHistoryByPN   (source: PAS_DB/dbo/Stored Procedures/Procs1/SalesOrderSummarizedHistoryByPN.sql)
+-- ---------------------------------------------------------------------------------------------------
+/*************************************************************           
  ** File:   [SalesOrderSummarizedHistoryByPN]           
  ** Author:   Vishal Suthar
  ** Description: This stored procedure is used for SO Summarized History By PN.    
@@ -20,7 +24,7 @@
 
 --EXEC [SalesOrderSummarizedHistoryByPN] 246,0
 **************************************************************/
-CREATE      PROCEDURE [dbo].[SalesOrderSummarizedHistoryByPN]
+CREATE        PROCEDURE [dbo].[SalesOrderSummarizedHistoryByPN]
 @ItemMasterId BIGINT=3,
 @IsTwelveMonth BIT = 1
 AS

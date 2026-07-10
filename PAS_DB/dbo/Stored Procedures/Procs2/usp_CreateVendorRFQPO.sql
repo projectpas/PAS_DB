@@ -1,4 +1,8 @@
-﻿/*************************************************************           
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.usp_CreateVendorRFQPO   (source: PAS_DB/dbo/Stored Procedures/Procs2/usp_CreateVendorRFQPO.sql)
+-- ---------------------------------------------------------------------------------------------------
+/*************************************************************           
  ** File:   [usp_CreateVendorRFQPO]           
  ** Author:  Devendra Shekh
  ** Description: This stored Procedure is used to Create the Vendor RFQ PO
@@ -22,7 +26,7 @@ set @p5=2190
 exec dbo.usp_CreateVendorRFQPO @SourceBy=N'ILS',@MarketplaceRef=N'9159021',@QuoteWithinDays=3,@tbl_VendorRFQPOPartType=@p4,@VendorRFQPurchaseOrderId=@p5 output
 select @p5    
 ************************************************************************/
-CREATE   PROCEDURE [dbo].[usp_CreateVendorRFQPO]
+CREATE     PROCEDURE [dbo].[usp_CreateVendorRFQPO]
 @SourceBy VARCHAR(50) = NULL,
 @MarketplaceRef VARCHAR(50) = NULL,
 @QuoteWithinDays INT = NULL,

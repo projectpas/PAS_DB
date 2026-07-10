@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.USP_itemmasterCapesAudit   (source: PAS_DB/dbo/Stored Procedures/Procs2/USP_itemmasterCapesAudit.sql)
+-- ---------------------------------------------------------------------------------------------------
 /*************************************************************           
  ** File:		 [dbo].[USP_itemmasterCapesAudit]          
  ** Author:		 Nakul Chandigra
@@ -13,7 +17,7 @@
 	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	EXEC [dbo].[USP_itemmasterCapesAudit] 8750 , 2
 **************************************************************/
-CREATE    PROCEDURE [dbo].[USP_itemmasterCapesAudit]
+CREATE      PROCEDURE [dbo].[USP_itemmasterCapesAudit]
 @itemMasterCapesId BIGINT,
 @EmpId BIGINT
 AS

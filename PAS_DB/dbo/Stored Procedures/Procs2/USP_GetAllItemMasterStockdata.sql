@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.USP_GetAllItemMasterStockdata   (source: PAS_DB/dbo/Stored Procedures/Procs2/USP_GetAllItemMasterStockdata.sql)
+-- ---------------------------------------------------------------------------------------------------
 /*************************************************************           
  ** File:   [USP_GetAllItemMasterStockdata]          
  ** Author:   Bhargav Saliya
@@ -17,7 +21,7 @@
 
 --EXEC USP_GetAllItemMasterStockdata @MasterCompanyId = 1
 **************************************************************/ 
-CREATE   PROCEDURE [dbo].[USP_GetAllItemMasterStockdata]
+CREATE     PROCEDURE [dbo].[USP_GetAllItemMasterStockdata]
     @MasterCompanyId INT
 AS
 BEGIN

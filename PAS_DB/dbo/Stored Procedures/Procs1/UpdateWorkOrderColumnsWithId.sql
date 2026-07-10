@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.UpdateWorkOrderColumnsWithId   (source: PAS_DB/dbo/Stored Procedures/Procs1/UpdateWorkOrderColumnsWithId.sql)
+-- ---------------------------------------------------------------------------------------------------
 /*************************************************************           
  ** File:   [UpdateWorkOrderColumnsWithId]           
  ** Author:   Hemant Saliya
@@ -28,7 +32,7 @@
 -- EXEC [UpdateWorkOrderColumnsWithId] 8792
 **************************************************************/
 
-CREATE   PROCEDURE [dbo].[UpdateWorkOrderColumnsWithId]
+CREATE     PROCEDURE [dbo].[UpdateWorkOrderColumnsWithId]
 	@WorkOrderId int
 AS
 BEGIN

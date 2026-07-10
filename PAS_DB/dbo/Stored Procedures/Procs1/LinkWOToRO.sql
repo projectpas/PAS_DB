@@ -1,4 +1,8 @@
-﻿/*************************************************************             
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.LinkWOToRO   (source: PAS_DB/dbo/Stored Procedures/Procs1/LinkWOToRO.sql)
+-- ---------------------------------------------------------------------------------------------------
+/*************************************************************             
  ** File:   [LinkWOToRO]
  ** Author:   Vishal Suthar
  ** Description: This stored procedure is used to link Work Order to RO Records
@@ -29,7 +33,7 @@ set @p8=NULL
 exec sp_executesql N'EXEC LinkWOToRO @FromMasterComanyID, @UserName, @Processed OUTPUT, @Migrated OUTPUT, @Failed OUTPUT, @Exists OUTPUT',N'@FromMasterComanyID int,@UserName nvarchar(12),@Processed int output,@Migrated int output,@Failed int output,@Exists int output',@FromMasterComanyID=12,@UserName=N'ROGER BENTLY',@Processed=@p5 output,@Migrated=@p6 output,@Failed=@p7 output,@Exists=@p8 output
 select @p5, @p6, @p7, @p8
 **************************************************************/
-CREATE   PROCEDURE [dbo].[LinkWOToRO]
+CREATE     PROCEDURE [dbo].[LinkWOToRO]
 (
 	@FromMasterComanyID INT = NULL,
 	@UserName VARCHAR(100) NULL,

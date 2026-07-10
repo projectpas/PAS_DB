@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.GetWorkOrderLaborTracking   (source: PAS_DB/dbo/Stored Procedures/Procs1/GetWorkOrderLaborTracking.sql)
+-- ---------------------------------------------------------------------------------------------------
 /*************************************************************             
  ** File:   [GetWorkOrderLaborTracking]             
  ** Author:  Moin Bloch
@@ -16,7 +20,7 @@
 
 	EXEC [dbo].[GetWorkOrderLaborTracking] 13
 ************************************************************************/   
-CREATE   PROCEDURE [dbo].[GetWorkOrderLaborTracking]    
+CREATE     PROCEDURE [dbo].[GetWorkOrderLaborTracking]    
 @EmployeeId BIGINT
 AS    
 BEGIN    

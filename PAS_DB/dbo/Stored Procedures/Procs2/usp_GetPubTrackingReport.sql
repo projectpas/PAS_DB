@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.usp_GetPubTrackingReport   (source: PAS_DB/dbo/Stored Procedures/Procs2/usp_GetPubTrackingReport.sql)
+-- ---------------------------------------------------------------------------------------------------
 /*************************************************************           
  ** File:   [usp_GetPubTrackingReport]           
  ** Author:   Swetha  
@@ -21,7 +25,7 @@
 EXECUTE   [dbo].[usp_GetPubTrackingReport] '2020-06-15','2021-06-15','1'
 **************************************************************/
 
-CREATE PROCEDURE [dbo].[usp_GetPubTrackingReport] @Fromdate datetime,
+CREATE   PROCEDURE [dbo].[usp_GetPubTrackingReport] @Fromdate datetime,
 @Todate datetime,
 @mastercompanyid int
 AS

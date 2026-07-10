@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.AutoCompleteDropdownsItemMasterIsPmaORIsDer   (source: PAS_DB/dbo/Stored Procedures/Procs1/AutoCompleteDropdownsItemMasterIsPmaORIsDer.sql)
+-- ---------------------------------------------------------------------------------------------------
 /*************************************************************           
  ** File:   [AutoCompleteDropdownsItemMasterIsPmaORIsDer]           
  ** Author:   Moin
@@ -19,7 +23,7 @@
      
 --exec dbo.AutoCompleteDropdownsItemMasterIsPmaORIsDer @StartWith=N'',@IsActive=1,@Count=20,@Idlist=N'0',@MasterCompanyId=1,@IsPmaorISDer=N'IsDer'
 **************************************************************/
-CREATE   PROCEDURE [dbo].[AutoCompleteDropdownsItemMasterIsPmaORIsDer]
+CREATE     PROCEDURE [dbo].[AutoCompleteDropdownsItemMasterIsPmaORIsDer]
 @StartWith VARCHAR(50),
 @IsActive bit,
 @Count VARCHAR(10) = '0',

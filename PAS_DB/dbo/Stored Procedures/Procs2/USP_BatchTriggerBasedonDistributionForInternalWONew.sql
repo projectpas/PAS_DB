@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.USP_BatchTriggerBasedonDistributionForInternalWONew   (source: PAS_DB/dbo/Stored Procedures/Procs2/USP_BatchTriggerBasedonDistributionForInternalWONew.sql)
+-- ---------------------------------------------------------------------------------------------------
 /*************************************************************           
  ** File:   [USP_BatchTriggerBasedonDistributionForInternalWONew]
  ** Author:  Moin Bloch
@@ -14,7 +18,7 @@
 	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 ************************************************************************/
 
-create   PROCEDURE [dbo].[USP_BatchTriggerBasedonDistributionForInternalWONew]
+CREATE     PROCEDURE [dbo].[USP_BatchTriggerBasedonDistributionForInternalWONew]
 @DistributionMasterId bigint=NULL,
 @ReferenceId bigint=NULL,
 @ReferencePartId bigint=NULL,

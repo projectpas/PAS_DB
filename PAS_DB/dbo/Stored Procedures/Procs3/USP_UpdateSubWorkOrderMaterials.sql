@@ -1,4 +1,5 @@
-﻿/*************************************************************             
+﻿-- ===== PROCEDURE: [dbo].[USP_UpdateSubWorkOrderMaterials]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs3/USP_UpdateSubWorkOrderMaterials.sql) =====
+/*************************************************************             
  ** File:   [USP_UpdateSubWorkOrderMaterials]             
  ** Author:   Devendra Shekh
  ** Description: This stored procedure is used Create Sub work order materials

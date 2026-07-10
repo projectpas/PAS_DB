@@ -1,3 +1,4 @@
+﻿-- ===== PROCEDURE: [dbo].[USP_GetCustomerTax_Information_Repair_Exchange]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs2/USP_GetCustomerTax_Information_Repair_Exchange.sql) =====
 /*************************************************************           
  ** File:   [USP_GetCustomerTax_Information_Repair_Exchange]           
  ** Author:   Moin Bloch
@@ -21,7 +22,7 @@
      
 -- EXEC [USP_GetCustomerTax_Information_Repair_Exchange] 368
 **************************************************************/
-CREATE PROCEDURE [dbo].[USP_GetCustomerTax_Information_Repair_Exchange] 
+CREATE   PROCEDURE [dbo].[USP_GetCustomerTax_Information_Repair_Exchange] 
 @ExchangeSalesOrderId BIGINT
 AS
 BEGIN

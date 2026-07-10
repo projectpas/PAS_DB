@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿-- ===== PROCEDURE: [dbo].[sp_GetPickTicketChildList]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs1/sp_GetPickTicketChildList.sql) =====
+/*************************************************************           
  ** File:   [sp_GetPickTicketChildList]           
  ** Author:   Vishal Suthar
  ** Description: This stored procedure is used to get Pick ticket child table list
@@ -20,7 +21,7 @@
      
 	-- EXEC [dbo].[sp_GetPickTicketChildList] 1271, 10, 7
 **************************************************************/
-CREATE  Procedure [dbo].[sp_GetPickTicketChildList]
+CREATE   PROCEDURE [dbo].[sp_GetPickTicketChildList]
 	@SalesOrderId  bigint,
 	@ItemMasterId bigint,
 	@ConditionId bigint,

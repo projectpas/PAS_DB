@@ -1,4 +1,8 @@
-﻿/*************************************************************           
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.USP_ItemMaster_DetailsById   (source: PAS_DB/dbo/Stored Procedures/Procs2/USP_ItemMaster_DetailsById.sql)
+-- ---------------------------------------------------------------------------------------------------
+/*************************************************************           
  ** File:   [USP_ItemMaster_DetailsById]           
  ** Author: Moin Bloch
  ** Description: This stored procedure is used to Get ItemMaster Details By ItemMasterId
@@ -15,7 +19,7 @@
 *******************************************************************************
 EXEC USP_ItemMaster_DetailsById 41186
 *******************************************************************************/
-CREATE   PROCEDURE [dbo].[USP_ItemMaster_DetailsById] 
+CREATE     PROCEDURE [dbo].[USP_ItemMaster_DetailsById] 
 @ItemMasterId BIGINT
 AS
 BEGIN

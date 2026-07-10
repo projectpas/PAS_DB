@@ -1,3 +1,4 @@
+﻿-- ===== PROCEDURE: [dbo].[USP_GetCreditMemoDetailsForXero]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/USP_GetCreditMemoDetailsForXero.sql) =====
 /*************************************************************           
  ** File:  [USP_GetCreditMemoDetailsForXero]          
  ** Author:   Bhargav Saliya

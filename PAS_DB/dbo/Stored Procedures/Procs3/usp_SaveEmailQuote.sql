@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.usp_SaveEmailQuote   (source: PAS_DB/dbo/Stored Procedures/Procs3/usp_SaveEmailQuote.sql)
+-- ---------------------------------------------------------------------------------------------------
 /*************************************************************           
  ** File:   [usp_SaveEmailQuote]           
  ** Author:  Devendra Shekh
@@ -26,7 +30,7 @@
    14	 09-Jan-2026    Amit Ghediya	    Modified (Update custoemrcontactid when manual create soq)
 	15    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 ************************************************************************/
-CREATE   PROCEDURE [dbo].[usp_SaveEmailQuote]
+CREATE     PROCEDURE [dbo].[usp_SaveEmailQuote]
 	@tbl_EmailRfqQuoteDetailsType EmailRfqQuoteDetailsType READONLY,
 	@CustomerRfqQuoteId BIGINT = NULL,
 	@CustomerRfqId BIGINT,

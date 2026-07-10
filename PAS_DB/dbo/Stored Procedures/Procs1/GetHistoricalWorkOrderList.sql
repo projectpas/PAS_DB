@@ -1,4 +1,8 @@
-﻿/*************************************************************             
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.GetHistoricalWorkOrderList   (source: PAS_DB/dbo/Stored Procedures/Procs1/GetHistoricalWorkOrderList.sql)
+-- ---------------------------------------------------------------------------------------------------
+/*************************************************************             
  ** File:   [GetHistoricalWorkOrderList]             
  ** Author:   Hemant Saliya  
  ** Description: Get Search Historical Data for Work Order List      
@@ -20,7 +24,7 @@
  EXECUTE [GetHistoricalWorkOrderList] 1, 100, null, -1, 1, '', '','','','','','','','','','2021-02-26','','','','','','','',1  
 **************************************************************/   
   
-CREATE   PROCEDURE [dbo].[GetHistoricalWorkOrderList]   
+CREATE     PROCEDURE [dbo].[GetHistoricalWorkOrderList]   
  @PageNumber int,  
  @PageSize int,  
  @SortColumn varchar(50)=null,  

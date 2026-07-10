@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿-- ===== PROCEDURE: [dbo].[USP_WorkOrder_GetWorkOrderandCostAnalysisDetails]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs3/USP_WorkOrder_GetWorkOrderandCostAnalysisDetails.sql) =====
+/*************************************************************           
  ** File:   [USP_WorkOrder_GetWorkOrderandCostAnalysisDetails]           
  ** Author: Amit Ghediya
  ** Description: This stored procedure is used to Get WorkOrder/SubWorkOrder CostAnalysis Details.
@@ -29,7 +30,7 @@
 EXEC [dbo].[USP_WorkOrder_GetWorkOrderandCostAnalysisDetails_Hem] 3679 ,4165    
 EXEC [dbo].[USP_WorkOrder_GetWorkOrderandCostAnalysisDetails] 3679 ,4165  
 **************************************************************/
-CREATE      PROCEDURE [dbo].[USP_WorkOrder_GetWorkOrderandCostAnalysisDetails]
+CREATE   PROCEDURE [dbo].[USP_WorkOrder_GetWorkOrderandCostAnalysisDetails]
 (
 	@WorkOrderWorkflowId BIGINT,
 	@WorkOrderId BIGINT

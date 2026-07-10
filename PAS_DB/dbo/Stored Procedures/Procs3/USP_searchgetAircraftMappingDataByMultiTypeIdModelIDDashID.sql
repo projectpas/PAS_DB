@@ -1,4 +1,8 @@
-﻿/***********************************************************
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.USP_searchgetAircraftMappingDataByMultiTypeIdModelIDDashID   (source: PAS_DB/dbo/Stored Procedures/Procs3/USP_searchgetAircraftMappingDataByMultiTypeIdModelIDDashID.sql)
+-- ---------------------------------------------------------------------------------------------------
+/***********************************************************
 ** File:   [USP_searchgetAircraftMappingDataByMultiTypeIdModelIDDashID]
 ** Author: Ayushi Patel
 ** Description: Get Aircraft Mapping Data by AircraftTypeId, AircraftModelId and DashNumberId filters
@@ -16,7 +20,7 @@
 
    exec USP_searchgetAircraftMappingDataByMultiTypeIdModelIDDashID 214,57,'247,251',null,1001145
 ***************************************************************/
-CREATE   PROCEDURE [dbo].[USP_searchgetAircraftMappingDataByMultiTypeIdModelIDDashID]
+CREATE     PROCEDURE [dbo].[USP_searchgetAircraftMappingDataByMultiTypeIdModelIDDashID]
     @AssetId BIGINT,
     @AircraftTypeId VARCHAR(MAX) = NULL,
     @AircraftModelId VARCHAR(MAX) = NULL,

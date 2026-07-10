@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿-- ===== PROCEDURE: [dbo].[usprpt_GetARAgingAsOfNowReport]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs3/usprpt_GetARAgingAsOfNowReport.sql) =====
+/*************************************************************           
  ** File:   [usprpt_GetARAgingAsOfNowReport]           
  ** Author:   HEMANT SALIYA  
  ** Description: Get Data for AR Agging Report  

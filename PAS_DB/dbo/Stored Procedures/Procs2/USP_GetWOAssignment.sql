@@ -1,4 +1,8 @@
 ﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.USP_GetWOAssignment   (source: PAS_DB/dbo/Stored Procedures/Procs2/USP_GetWOAssignment.sql)
+-- ---------------------------------------------------------------------------------------------------
+
 /*************************************************************           
  ** File:   [USP_GetWOAssignment]           
  ** Author:   Subhash Saliya
@@ -25,7 +29,7 @@
 
 **************************************************************/ 
     
-CREATE PROCEDURE [dbo].[USP_GetWOAssignment]    
+CREATE   PROCEDURE [dbo].[USP_GetWOAssignment]    
 ( 
 @PageNumber int,
 @PageSize int,

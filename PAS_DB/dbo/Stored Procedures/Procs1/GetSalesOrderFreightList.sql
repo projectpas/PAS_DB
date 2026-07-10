@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.GetSalesOrderFreightList   (source: PAS_DB/dbo/Stored Procedures/Procs1/GetSalesOrderFreightList.sql)
+-- ---------------------------------------------------------------------------------------------------
 /*************************************************************               
  ** File:  [GetSalesOrderFreightList]               
  ** Author:  Ekta Chnadegra 
@@ -18,7 +22,7 @@
          
 -- EXEC GetSalesOrderFreightList 915 ,0
 ************************************************************************/   
-CREATE   PROCEDURE [dbo].[GetSalesOrderFreightList]
+CREATE     PROCEDURE [dbo].[GetSalesOrderFreightList]
     @SalesOrderQuoteId BIGINT,
     @IsDeleted BIT
 AS

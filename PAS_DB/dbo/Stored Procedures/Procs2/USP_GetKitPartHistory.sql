@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.USP_GetKitPartHistory   (source: PAS_DB/dbo/Stored Procedures/Procs2/USP_GetKitPartHistory.sql)
+-- ---------------------------------------------------------------------------------------------------
 /*************************************************************             
  ** File:   [USP_GetKitPartHistory]             
  ** Author:  Shrey Chandegara  
@@ -17,7 +21,7 @@
        
 -- EXEC USP_GetKitPartHistory 1,1,'',0,'',1,1  
 ************************************************************************/  
-CREATE       PROCEDURE [dbo].[USP_GetKitPartHistory]  
+CREATE         PROCEDURE [dbo].[USP_GetKitPartHistory]  
  @PageNumber INT,  
  @PageSize INT,  
  @SortColumn VARCHAR(50)=null,  

@@ -1,4 +1,5 @@
-﻿/*************************************************************             
+﻿-- ===== PROCEDURE: [dbo].[USP_UpdateWorkOrderMaterials]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs3/USP_UpdateWorkOrderMaterials.sql) =====
+/*************************************************************             
  ** File:   [USP_UpdateWorkOrderMaterials]             
  ** Author:   Devendra Shekh
  ** Description: This stored procedure is used Create work order materials

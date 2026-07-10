@@ -1,3 +1,4 @@
+﻿-- ===== PROCEDURE: [dbo].[USP_CreateSubWorkOrderMaterials]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs2/USP_CreateSubWorkOrderMaterials.sql) =====
 /*************************************************************             
  ** File:   [USP_CreateSubWorkOrderMaterials]             
  ** Author:   Devendra Shekh

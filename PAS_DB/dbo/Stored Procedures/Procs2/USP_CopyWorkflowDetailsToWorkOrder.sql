@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.USP_CopyWorkflowDetailsToWorkOrder   (source: PAS_DB/dbo/Stored Procedures/Procs2/USP_CopyWorkflowDetailsToWorkOrder.sql)
+-- ---------------------------------------------------------------------------------------------------
 /*************************************************************
  ** File:   [USP_CopyWorkflowDetailsToWorkOrder]
  ** Author: HEMANT SALIYA
@@ -31,7 +35,7 @@ exec sp_executesql N'EXEC USP_CopyWorkflowDetailsToWorkOrder @WorkOrderId,@Workf
 @ListItem ',N'@WorkOrderId bigint,@WorkflowId bigint,@WorkOrderPartNumberId bigint,@MasterCompanyId int,@CreatedBy nvarchar(16),@CreatedById bigint,@listItem nvarchar(28)',
 @WorkOrderId=8625,@WorkflowId=2852,@WorkOrderPartNumberId=8253,@MasterCompanyId=1,@CreatedBy=N'Brandon  Taylor ',@CreatedById=58,@listItem=N',Directions'
 **************************************************************/
-CREATE   PROCEDURE [dbo].[USP_CopyWorkflowDetailsToWorkOrder]
+CREATE     PROCEDURE [dbo].[USP_CopyWorkflowDetailsToWorkOrder]
 	@WorkOrderId BIGINT = 0,
 	@WorkflowId BIGINT = 0,
 	@WorkOrderPartNumberId BIGINT = 0,

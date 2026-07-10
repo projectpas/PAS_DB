@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.USP_BatchTriggerBasedonDistributionStockline   (source: PAS_DB/dbo/Stored Procedures/Procs2/USP_BatchTriggerBasedonDistributionStockline.sql)
+-- ---------------------------------------------------------------------------------------------------
 /*************************************************************           
  ** File:   [USP_BatchTriggerBasedonDistribution]           
  ** Author:  Subhash Saliya
@@ -18,7 +22,7 @@
 -- EXEC USP_BatchTriggerBasedonDistribution 3
    EXEC [dbo].[USP_BatchTriggerBasedonDistributionStockline] 2,5,'10','ReceivingPO','Deep'
 ************************************************************************/
-CREATE PROCEDURE [dbo].[USP_BatchTriggerBasedonDistributionStockline]
+CREATE   PROCEDURE [dbo].[USP_BatchTriggerBasedonDistributionStockline]
 @StocklineId bigint=NULL,
 @Qty int=0,
 @Amount Decimal(18,2),

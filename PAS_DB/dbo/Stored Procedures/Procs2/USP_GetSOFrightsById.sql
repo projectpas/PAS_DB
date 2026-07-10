@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.USP_GetSOFrightsById   (source: PAS_DB/dbo/Stored Procedures/Procs2/USP_GetSOFrightsById.sql)
+-- ---------------------------------------------------------------------------------------------------
 /*************************************************************************************
  ** File:   [USP_GetSOFrightsById]           
  ** Author:   Shrey Chandegara
@@ -14,7 +18,7 @@
 
 -- EXEC USP_GetSOFrightsById 760,0  
 **************************************************************************************/
-CREATE   PROCEDURE [dbo].[USP_GetSOFrightsById]
+CREATE     PROCEDURE [dbo].[USP_GetSOFrightsById]
 @SalesOrderId BIGINT,
 @IsDeleted BIT
 

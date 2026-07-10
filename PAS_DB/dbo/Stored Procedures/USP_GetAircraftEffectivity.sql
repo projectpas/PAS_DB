@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.USP_GetAircraftEffectivity   (source: PAS_DB/dbo/Stored Procedures/USP_GetAircraftEffectivity.sql)
+-- ---------------------------------------------------------------------------------------------------
 /*************************************************************     
 ** Author:  <Amit Ghediya>    
 ** Create date: <05/04/2026>    
@@ -14,7 +18,7 @@ Exec [USP_GetAircraftEffectivity]
 	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 
 **************************************************************/
-CREATE   PROCEDURE [dbo].[USP_GetAircraftEffectivity]
+CREATE     PROCEDURE [dbo].[USP_GetAircraftEffectivity]
 (
     @PageNumber INT,
     @PageSize INT,

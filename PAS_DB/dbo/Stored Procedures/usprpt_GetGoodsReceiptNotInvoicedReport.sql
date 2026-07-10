@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿-- ===== PROCEDURE: [dbo].[usprpt_GetGoodsReceiptNotInvoicedReport]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/usprpt_GetGoodsReceiptNotInvoicedReport.sql) =====
+/*************************************************************           
  ** File:   [usprpt_GetGoodsReceiptNotInvoicedReport]
  ** Author:   Devendra Shekh
  ** Description: Get Goods Receipt which are not Invoiced
@@ -17,7 +18,7 @@
 	7	 22/06/2026		 Abhishek Jirawla			Adding IsPiecePart condition in RepairOrderPart table
 	8	 09/July/2026		 RAJESH GAMI			[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 **************************************************************/
-CREATE       PROCEDURE [dbo].[usprpt_GetGoodsReceiptNotInvoicedReport]     
+CREATE   PROCEDURE [dbo].[usprpt_GetGoodsReceiptNotInvoicedReport]     
 @PageNumber INT = 1,    
 @PageSize INT = NULL,    
 @mastercompanyid INT,    

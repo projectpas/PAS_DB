@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.USP_GetExchangeQuoteApprovalListNew   (source: PAS_DB/dbo/Stored Procedures/Procs2/USP_GetExchangeQuoteApprovalListNew.sql)
+-- ---------------------------------------------------------------------------------------------------
 /*************************************************************           
  ** File:   [USP_GetExchangeQuoteApprovalListNew]           
  ** Author:  Ekta Chandegra
@@ -20,7 +24,7 @@
 
 ************************************************************************/
 
-CREATE   PROCEDURE [dbo].[USP_GetExchangeQuoteApprovalListNew]
+CREATE     PROCEDURE [dbo].[USP_GetExchangeQuoteApprovalListNew]
     @ExchangeQuoteId BIGINT,
     @InternalApprove BIT,
     @EmployeeId BIGINT

@@ -1,3 +1,4 @@
+﻿-- ===== PROCEDURE: [dbo].[usprpt_GetSalesOrderQuotesReport]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs3/usprpt_GetSalesOrderQuotesReport.sql) =====
 /*************************************************************             
  ** File:   [usprpt_GetSalesOrderQuotesReport]             
  ** Author:   Mahesh Sorathiya    

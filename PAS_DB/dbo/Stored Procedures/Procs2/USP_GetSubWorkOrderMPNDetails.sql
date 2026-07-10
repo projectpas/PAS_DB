@@ -1,3 +1,4 @@
+﻿-- ===== PROCEDURE: [dbo].[USP_GetSubWorkOrderMPNDetails]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs2/USP_GetSubWorkOrderMPNDetails.sql) =====
 /*************************************************************           
  ** File:   [USP_GetSubWorkOrderMPNDetails]
  ** Author:   

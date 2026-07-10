@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿-- ===== PROCEDURE: [dbo].[usprpt_GetARAgingAsOfNowReport_SSRS]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs3/usprpt_GetARAgingAsOfNowReport_SSRS.sql) =====
+/*************************************************************           
  ** File:   [usprpt_GetARAgingAsOfNowReport_SSRS]           
  ** Author:   Moin Bloch 
  ** Description: Get Data for AR Agging Report For SSRS
@@ -25,7 +26,7 @@
 	9    09/July/2026	RAJESH GAMI		[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 EXEC usprpt_GetARAgingAsOfNowReport_SSRS 
 **************************************************************/
-CREATE    PROCEDURE [dbo].[usprpt_GetARAgingAsOfNowReport_SSRS]
+CREATE   PROCEDURE [dbo].[usprpt_GetARAgingAsOfNowReport_SSRS]
 @id VARCHAR(MAX) = NULL,
 @id2 VARCHAR(MAX) = NULL,
 @id3 VARCHAR(MAX) = NULL,

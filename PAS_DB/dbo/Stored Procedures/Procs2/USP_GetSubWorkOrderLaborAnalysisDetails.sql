@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.USP_GetSubWorkOrderLaborAnalysisDetails   (source: PAS_DB/dbo/Stored Procedures/Procs2/USP_GetSubWorkOrderLaborAnalysisDetails.sql)
+-- ---------------------------------------------------------------------------------------------------
 /*************************************************************           
  ** File:   [USP_GetWorkOrderLaborAnalysisDetails]           
  ** Author:   Hemant Saliya
@@ -25,7 +29,7 @@
 
 **************************************************************/ 
     
-CREATE   PROCEDURE [dbo].[USP_GetSubWorkOrderLaborAnalysisDetails]    
+CREATE     PROCEDURE [dbo].[USP_GetSubWorkOrderLaborAnalysisDetails]    
 (       
 @WorkOrderId BIGINT = NULL, 
 @SubWorkOrderPartNoId BIGINT  = NULL,

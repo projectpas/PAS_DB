@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.UpdateItemMasterPurchaseSaleDetails   (source: PAS_DB/dbo/Stored Procedures/Procs1/UpdateItemMasterPurchaseSaleDetails.sql)
+-- ---------------------------------------------------------------------------------------------------
 /*************************************************************           
  ** File:   [UpdateItemMasterPurchaseSaleDetails]           
  ** Author:   Moin Bloch
@@ -18,7 +22,7 @@
  EXEC UpdateItemMasterPurchaseSaleDetails 234
 **************************************************************/ 
 
-CREATE PROCEDURE [dbo].[UpdateItemMasterPurchaseSaleDetails]
+CREATE   PROCEDURE [dbo].[UpdateItemMasterPurchaseSaleDetails]
 @ItemMasterId  bigint
 AS
 BEGIN

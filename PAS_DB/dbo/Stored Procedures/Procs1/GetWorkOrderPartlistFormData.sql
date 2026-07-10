@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.GetWorkOrderPartlistFormData   (source: PAS_DB/dbo/Stored Procedures/Procs1/GetWorkOrderPartlistFormData.sql)
+-- ---------------------------------------------------------------------------------------------------
 
 /*************************************************************           
  ** File:   [GetWorkOrderPrintPdfData]           
@@ -23,7 +27,7 @@
 --EXEC [GetWorkOrderPrintPdfData] 274,258
 **************************************************************/
 
-Create   PROCEDURE [dbo].[GetWorkOrderPartlistFormData]
+CREATE     PROCEDURE [dbo].[GetWorkOrderPartlistFormData]
 @WorkorderId bigint,
 @workOrderPartNoId bigint
 AS

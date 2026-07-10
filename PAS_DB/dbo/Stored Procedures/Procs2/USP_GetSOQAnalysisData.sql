@@ -1,3 +1,4 @@
+﻿-- ===== PROCEDURE: [dbo].[USP_GetSOQAnalysisData]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs2/USP_GetSOQAnalysisData.sql) =====
 
 /*************************************************************           
  ** File:   [USP_GetSOQAnalysisData]          

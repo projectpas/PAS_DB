@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.GetWorkOrderById   (source: PAS_DB/dbo/Stored Procedures/Procs1/GetWorkOrderById.sql)
+-- ---------------------------------------------------------------------------------------------------
 
 /*************************************************************           
  ** File:  [GetWorkOrderById]           
@@ -37,7 +41,7 @@
 --    EXEC [dbo].[GetWorkOrderById] 8927,0,0,0,4
 
 ************************************************************************/
-CREATE   PROCEDURE [dbo].[GetWorkOrderById]
+CREATE     PROCEDURE [dbo].[GetWorkOrderById]
 @WorkOrderId BIGINT=0,
 @ReceivingCustomerId BIGINT=0,
 @RMAHeaderId BIGINT=0,

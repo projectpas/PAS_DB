@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.usp_GetSODashboardforunfulfilleddata   (source: PAS_DB/dbo/Stored Procedures/Procs2/usp_GetSODashboardforunfulfilleddata.sql)
+-- ---------------------------------------------------------------------------------------------------
 /*************************************************************           
  ** File:   [usp_GetSODashboardforunfulfilleddata]           
  ** Author:   Swetha  
@@ -24,7 +28,7 @@
 EXECUTE   [dbo].[usp_GetSODashboardforunfulfilleddata] 
 **************************************************************/
 
-CREATE      PROCEDURE [dbo].[usp_GetSODashboardforunfulfilleddata]
+CREATE        PROCEDURE [dbo].[usp_GetSODashboardforunfulfilleddata]
 AS
 BEGIN
   SET NOCOUNT ON;

@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿-- ===== PROCEDURE: [dbo].[sp_VendorRMA_GetPickTicketChildList]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs1/sp_VendorRMA_GetPickTicketChildList.sql) =====
+/*************************************************************           
  ** File:   [sp_VendorRMA_GetPickTicketChildList]           
  ** Author:   Amit Ghediya
  ** Description: This stored procedure is used to retrieve pickticket listing data for Vendor RMA STK details
@@ -19,7 +20,7 @@
      
 -- EXEC [dbo].[sp_VendorRMA_GetPickTicketChildList] 478
 **************************************************************/
-CREATE      Procedure [dbo].[sp_VendorRMA_GetPickTicketChildList]
+CREATE   PROCEDURE [dbo].[sp_VendorRMA_GetPickTicketChildList]
 	@VendorRMAId  bigint,
 	@VendorRMADetailId  bigint,
 	@ItemMasterId bigint,

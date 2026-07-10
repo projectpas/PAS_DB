@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.USP_GetSOQApprovalList   (source: PAS_DB/dbo/Stored Procedures/Procs2/USP_GetSOQApprovalList.sql)
+-- ---------------------------------------------------------------------------------------------------
 /*************************************************************           
  ** File:   [USP_GetSOQApprovalList]          
  ** Author:   Vishal Suthar
@@ -22,7 +26,7 @@
 
 EXEC [dbo].[USP_GetSOQApprovalList] 866
 **************************************************************/
-CREATE   PROCEDURE [dbo].[USP_GetSOQApprovalList] 
+CREATE     PROCEDURE [dbo].[USP_GetSOQApprovalList] 
 (
 	@SalesOrderQuoteId BIGINT = NULL
 )

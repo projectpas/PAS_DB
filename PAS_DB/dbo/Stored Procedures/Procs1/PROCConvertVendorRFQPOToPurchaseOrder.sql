@@ -1,4 +1,8 @@
-﻿/*************************************************************               
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.PROCConvertVendorRFQPOToPurchaseOrder   (source: PAS_DB/dbo/Stored Procedures/Procs1/PROCConvertVendorRFQPOToPurchaseOrder.sql)
+-- ---------------------------------------------------------------------------------------------------
+/*************************************************************               
  ** File:   [PROCConvertVendorRFQPOToPurchaseOrder]               
  ** Author:  Moin Bloch    
  ** Description: This stored procedure is used to convert vendor RFQ PO to Purchase Order      
@@ -32,7 +36,7 @@
 -- EXEC [PROCConvertVendorRFQPOToPurchaseOrder] 13,0,0,2,22,3,0    
 ************************************************************************/    
     
-CREATE      PROCEDURE [dbo].[PROCConvertVendorRFQPOToPurchaseOrder]    
+CREATE        PROCEDURE [dbo].[PROCConvertVendorRFQPOToPurchaseOrder]    
 @VendorRFQPurchaseOrderId bigint,    
 @VendorRFQPOPartRecordId bigint,    
 @PurchaseOrderId bigint,    

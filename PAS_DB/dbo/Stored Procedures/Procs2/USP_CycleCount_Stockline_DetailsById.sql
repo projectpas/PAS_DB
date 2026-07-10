@@ -1,3 +1,4 @@
+﻿-- ===== PROCEDURE: [dbo].[USP_CycleCount_Stockline_DetailsById]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs2/USP_CycleCount_Stockline_DetailsById.sql) =====
 /*************************************************************           
  ** File:   [USP_CycleCount_Stockline_DetailsById]           
  ** Author: Moin Bloch

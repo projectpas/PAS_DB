@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.RPT_GetCommonBillingInvoicingItems   (source: PAS_DB/dbo/Stored Procedures/Procs1/RPT_GetCommonBillingInvoicingItems.sql)
+-- ---------------------------------------------------------------------------------------------------
 /*****************************************************************************************           
  ** File:   [RPT_GetCommonBillingInvoicingItems]           
  ** Author:   Moin Bloch 
@@ -19,7 +23,7 @@
 	7    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 --   EXEC [dbo].[RPT_GetCommonBillingInvoicingItems] 89,15
 ********************************************************************************************/
-CREATE PROCEDURE [dbo].[RPT_GetCommonBillingInvoicingItems]
+CREATE   PROCEDURE [dbo].[RPT_GetCommonBillingInvoicingItems]
 @BillingInvoicingId BIGINT = NULL,
 @ModuleId INT = NULL
 AS

@@ -1,3 +1,4 @@
+﻿-- ===== PROCEDURE: [dbo].[USP_GetWOQuoteApprovalList]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs2/USP_GetWOQuoteApprovalList.sql) =====
 /*************************************************************             
  ** File: [USP_GetWOQuoteApprovalList]             
  ** Author:  Moin Bloch

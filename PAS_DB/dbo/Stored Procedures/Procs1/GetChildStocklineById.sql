@@ -1,4 +1,8 @@
 ﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: GetChildStocklineById   (source: PAS_DB/dbo/Stored Procedures/Procs1/GetChildStocklineById.sql)
+-- ---------------------------------------------------------------------------------------------------
+
 /***************************************************************  
  ** File:   [GetChildStocklineById]             
  ** Author:   Ayushi Patel
@@ -12,7 +16,7 @@
     1	 14-Aug-2025		Ayushi Patel			Created
 	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 **************************************************************/
-CREATE   PROCEDURE GetChildStocklineById
+CREATE     PROCEDURE GetChildStocklineById
     @StocklineId BIGINT,
     @EmployeeId BIGINT
 AS

@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.USP_BatchTriggerBasedonDistributionForInternalWO   (source: PAS_DB/dbo/Stored Procedures/Procs2/USP_BatchTriggerBasedonDistributionForInternalWO.sql)
+-- ---------------------------------------------------------------------------------------------------
 /*************************************************************           
  ** File:   [USP_BatchTriggerBasedonDistributionForInternalWO]
  ** Author:  Satish Gohil
@@ -35,7 +39,7 @@
 
 ************************************************************************/
 
-CREATE   PROCEDURE [dbo].[USP_BatchTriggerBasedonDistributionForInternalWO]
+CREATE     PROCEDURE [dbo].[USP_BatchTriggerBasedonDistributionForInternalWO]
 @DistributionMasterId bigint=NULL,
 @ReferenceId bigint=NULL,
 @ReferencePartId bigint=NULL,

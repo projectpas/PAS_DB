@@ -1,4 +1,8 @@
-﻿/*************************************************************           
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.USP_CreateUpdateReleaseForm   (source: PAS_DB/dbo/Stored Procedures/Procs2/USP_CreateUpdateReleaseForm.sql)
+-- ---------------------------------------------------------------------------------------------------
+/*************************************************************           
  ** File:   [USP_CreateUpdateReleaseForm]
  ** Author:   Moin Bloch
  ** Description: This stored procedure is used to Create And Update Work Order Release Form 8130
@@ -17,7 +21,7 @@
 
 --   EXEC [dbo].[USP_CreateUpdateReleaseForm]
 **************************************************************/
-CREATE   PROCEDURE [dbo].[USP_CreateUpdateReleaseForm]
+CREATE     PROCEDURE [dbo].[USP_CreateUpdateReleaseForm]
 @ReleaseFromId BIGINT = NULL,
 @WorkorderId BIGINT = NULL,
 @workOrderPartNoId BIGINT = NULL,

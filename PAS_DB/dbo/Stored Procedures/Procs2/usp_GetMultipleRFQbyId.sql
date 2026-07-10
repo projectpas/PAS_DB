@@ -1,3 +1,4 @@
+﻿-- ===== PROCEDURE: [dbo].[usp_GetMultipleRFQbyId]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs2/usp_GetMultipleRFQbyId.sql) =====
 
 /*************************************************************             
  ** File:   [usp_GetMultipleRFQbyId]             
@@ -19,7 +20,7 @@ EXECUTE [dbo].[usp_GetMultipleRFQbyId] '880'
 	1    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	6    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 **************************************************************/  
-CREATE     PROCEDURE [dbo].[usp_GetMultipleRFQbyId]
+CREATE   PROCEDURE [dbo].[usp_GetMultipleRFQbyId]
 @CustomerRfqId VARCHAR(MAX) = NULL
 AS
 BEGIN

@@ -1,3 +1,4 @@
+﻿-- ===== PROCEDURE: [dbo].[sp_GetWorkOrderBillingInvoiceList]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs1/sp_GetWorkOrderBillingInvoiceList.sql) =====
 /*************************************************************           
  ** File:     [sp_GetWorkOrderBillingInvoiceList]           
  ** Author:	  Vishal Suthar
@@ -23,7 +24,7 @@
 
 **************************************************************/ 
 -- EXEC [dbo].[sp_GetWorkOrderBillingInvoiceList] 4268, 3771
-CREATE   Procedure [dbo].[sp_GetWorkOrderBillingInvoiceList]
+CREATE   PROCEDURE [dbo].[sp_GetWorkOrderBillingInvoiceList]
 	@WorkOrderId  bigint,
 	@workOrderPartNumberId  bigint
 AS

@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.USP_AutoReserveAllSubWorkOrderMaterials   (source: PAS_DB/dbo/Stored Procedures/Procs2/USP_AutoReserveAllSubWorkOrderMaterials.sql)
+-- ---------------------------------------------------------------------------------------------------
 /*************************************************************   
 ** Author:  <Hemant Saliya>  
 ** Create date: <12/13/2023>  
@@ -22,7 +26,7 @@ EXEC [USP_AutoReserveAllSubWorkOrderMaterials]
 EXEC USP_AutoReserveAllSubWorkOrderMaterials 161,0,0,2,0
 	1    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 **************************************************************/ 
-CREATE   PROCEDURE [dbo].[USP_AutoReserveAllSubWorkOrderMaterials]
+CREATE     PROCEDURE [dbo].[USP_AutoReserveAllSubWorkOrderMaterials]
 @SubWOPartNoId BIGINT,
 @IncludeAlternate BIT,
 @IncludeEquiv BIT,

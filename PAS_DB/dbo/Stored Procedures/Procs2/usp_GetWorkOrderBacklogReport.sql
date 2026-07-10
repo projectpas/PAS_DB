@@ -1,3 +1,4 @@
+﻿-- ===== PROCEDURE: [dbo].[usp_GetWorkOrderBacklogReport]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs2/usp_GetWorkOrderBacklogReport.sql) =====
 
 /*************************************************************           
  ** File:   [usp_GetWorkOrderBacklogReport]           
@@ -23,7 +24,7 @@
      
 EXECUTE   [dbo].[usp_GetWorkOrderBacklogReport] 'WO Opened','','','','1','1,4,43,44,45,80,84,88','46,47,66','48,49,50,58,59,67,68,69','51,52,53,54,55,56,57,60'
 **************************************************************/
-CREATE PROCEDURE [dbo].[usp_GetWorkOrderBacklogReport] @stage varchar(40) = NULL,
+CREATE   PROCEDURE [dbo].[usp_GetWorkOrderBacklogReport] @stage varchar(40) = NULL,
 @description varchar(40) = NULL,
 @Fromdate datetime = NULL,
 @Todate datetime = NULL,

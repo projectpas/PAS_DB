@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.QuickBooks_GetUpdatePendingInvoiceList   (source: PAS_DB/dbo/Stored Procedures/Procs1/QuickBooks_GetUpdatePendingInvoiceList.sql)
+-- ---------------------------------------------------------------------------------------------------
 /*************************************************************           
  ** File:   [QuickBooks_GetUpdatePendingInvoiceList]           
  ** Author:   Devendra Shekh
@@ -20,7 +24,7 @@
      
  EXECUTE [QuickBooks_GetUpdatePendingInvoiceList] 1
 **************************************************************/ 
-CREATE   PROCEDURE [dbo].[QuickBooks_GetUpdatePendingInvoiceList]
+CREATE     PROCEDURE [dbo].[QuickBooks_GetUpdatePendingInvoiceList]
 @IntegrationTypeId INT = NULL
 AS
 BEGIN

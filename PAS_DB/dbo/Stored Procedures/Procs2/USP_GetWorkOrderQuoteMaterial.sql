@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.USP_GetWorkOrderQuoteMaterial   (source: PAS_DB/dbo/Stored Procedures/Procs2/USP_GetWorkOrderQuoteMaterial.sql)
+-- ---------------------------------------------------------------------------------------------------
 
 /*************************************************************           
  ** File:   [USP_AddEdit_WorkOrderTurnArroundTime]           
@@ -27,7 +31,7 @@
 
 -- EXEC [USP_GetWorkOrderQuoteMaterial] 1575,4,0,0
 **************************************************************/
-CREATE   PROCEDURE [dbo].[USP_GetWorkOrderQuoteMaterial]
+CREATE     PROCEDURE [dbo].[USP_GetWorkOrderQuoteMaterial]
 	 @workOrderQuoteDetailsId bigint,  
 	 @buildMethodId bigint,  
 	 @loweUnitrCostVal bigint ,

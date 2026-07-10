@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.usprpt_GetSOBacklogReport   (source: PAS_DB/dbo/Stored Procedures/Procs3/usprpt_GetSOBacklogReport.sql)
+-- ---------------------------------------------------------------------------------------------------
 /*************************************************************             
  ** File:   [usprpt_GetSOBacklogReport]             
  ** Author:   Mahesh Sorathiya    
@@ -24,7 +28,7 @@
 	3    20-APR-2026	    AYUSHI PATEL	    return the LEVEL1 based on MasterCompanyCode (lower case for a2z)
 	8    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 **************************************************************/  
-CREATE   PROCEDURE [dbo].[usprpt_GetSOBacklogReport] 
+CREATE     PROCEDURE [dbo].[usprpt_GetSOBacklogReport] 
 @PageNumber int = 1,
 @PageSize int = NULL,
 @mastercompanyid int,

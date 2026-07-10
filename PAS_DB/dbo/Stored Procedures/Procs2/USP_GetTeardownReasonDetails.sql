@@ -1,3 +1,4 @@
+﻿-- ===== PROCEDURE: [dbo].[USP_GetTeardownReasonDetails]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs2/USP_GetTeardownReasonDetails.sql) =====
 /*************************************************************           
  ** File:   [USP_GetTeardownReasonDetails]           
  ** Author:   Devendra Shekh

@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.UpdateSpeedQuoteNameColumnsWithId   (source: PAS_DB/dbo/Stored Procedures/Procs1/UpdateSpeedQuoteNameColumnsWithId.sql)
+-- ---------------------------------------------------------------------------------------------------
 -- =============================================
 -- Author:		Deep Patel
 -- Create date: 12-may-2021
@@ -11,7 +15,7 @@
  ** --   --------					 -------						-------------------------------
 	1    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 ****************************************************************************************************************************************/
-CREATE PROCEDURE [dbo].[UpdateSpeedQuoteNameColumnsWithId]
+CREATE   PROCEDURE [dbo].[UpdateSpeedQuoteNameColumnsWithId]
 	@SpeedQuoteId bigint
 AS
 BEGIN

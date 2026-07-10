@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.GetPublicationViewList   (source: PAS_DB/dbo/Stored Procedures/Procs1/GetPublicationViewList.sql)
+-- ---------------------------------------------------------------------------------------------------
 /*************************************************************           
  ** File:   [GetPublicationViewList]           
  ** Author:   Hemant Saliya
@@ -27,7 +31,7 @@
      
 EXECUTE [GetPublicationViewList] 1,100, null, -1, '', null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,1,0,null,null,4,4
 **************************************************************/ 
-CREATE   PROCEDURE [dbo].[GetPublicationViewList]	
+CREATE     PROCEDURE [dbo].[GetPublicationViewList]	
 @PageNumber int=null,
 @PageSize int=null,
 @SortColumn varchar(50)=null,

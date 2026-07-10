@@ -1,3 +1,4 @@
+﻿-- ===== PROCEDURE: [dbo].[USP_VendorRMA_GetVendorRMAList]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs3/USP_VendorRMA_GetVendorRMAList.sql) =====
 /*************************************************************           
  ** File:   [USP_VendorRMA_GetVendorRMAList]          
  ** Author:   Amit Ghediya
@@ -33,7 +34,7 @@
      
  EXECUTE USP_VendorRMA_GetVendorRMAList 
 **************************************************************/
-CREATE    PROCEDURE [dbo].[USP_VendorRMA_GetVendorRMAList]  
+CREATE   PROCEDURE [dbo].[USP_VendorRMA_GetVendorRMAList]  
 @PageNumber INT,  
 @PageSize INT,  
 @SortColumn VARCHAR(50)=null,  

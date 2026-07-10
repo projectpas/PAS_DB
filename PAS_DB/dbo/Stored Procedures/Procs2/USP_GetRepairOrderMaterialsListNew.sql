@@ -1,4 +1,8 @@
-﻿/*************************************************************           
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.USP_GetRepairOrderMaterialsListNew   (source: PAS_DB/dbo/Stored Procedures/Procs2/USP_GetRepairOrderMaterialsListNew.sql)
+-- ---------------------------------------------------------------------------------------------------
+/*************************************************************           
  ** File:   [USP_GetRepairOrderMaterialsListNew]           
  ** Author:   Abhishek Jirawla
  ** Description: This stored procedure is used retrieve Repair Order Materials List With Pagination
@@ -14,7 +18,7 @@
 	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	
 **************************************************************/
-CREATE   PROCEDURE [dbo].[USP_GetRepairOrderMaterialsListNew]
+CREATE     PROCEDURE [dbo].[USP_GetRepairOrderMaterialsListNew]
 (    
 	@PageNumber INT,  
 	@PageSize INT,  

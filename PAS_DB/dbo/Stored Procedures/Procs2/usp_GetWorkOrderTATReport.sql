@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.usp_GetWorkOrderTATReport   (source: PAS_DB/dbo/Stored Procedures/Procs2/usp_GetWorkOrderTATReport.sql)
+-- ---------------------------------------------------------------------------------------------------
 /*************************************************************           
  ** File:   [usp_GetWorkOrderTATReport]           
  ** Author:   Swetha  
@@ -23,7 +27,7 @@
 EXECUTE   [dbo].[usp_GetWorkOrderTATReport] '','2020-04-25','2021-04-25','1','1,4,43,44,45,80,84,88','46,47,66','48,49,50,58,59,67,68,69','51,52,53,54,55,56,57,60,61,62,64,70,71,72'
 **************************************************************/
 --EXEC usp_GetWorkOrderTATReport  '1,4,43,44,45,80,84,88','46,47','58,59','64,65,77'
-CREATE PROCEDURE [dbo].[usp_GetWorkOrderTATReport] @name varchar(40) = NULL,
+CREATE   PROCEDURE [dbo].[usp_GetWorkOrderTATReport] @name varchar(40) = NULL,
 @Fromdate datetime,
 @Todate datetime,
 @mastercompanyid int,

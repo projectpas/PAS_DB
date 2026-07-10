@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: DBO.GetPNTileQuickQuoteHistoryList   (source: PAS_DB/dbo/Stored Procedures/Procs1/GetPNTileQuickQuoteHistoryList.sql)
+-- ---------------------------------------------------------------------------------------------------
 -- ==================================================
 -- Author:		Ekta Chandegra
 -- Description:	Get Search Data for Quick Quote History List
@@ -13,7 +17,7 @@
 ****************************************************************************************************************************************/ 
 
 -- ==================================================
-CREATE   PROCEDURE [DBO].[GetPNTileQuickQuoteHistoryList]
+CREATE     PROCEDURE [DBO].[GetPNTileQuickQuoteHistoryList]
 	@PageNumber int = 1,
 	@PageSize int = 10,
 	@SortColumn varchar(50)=NULL,

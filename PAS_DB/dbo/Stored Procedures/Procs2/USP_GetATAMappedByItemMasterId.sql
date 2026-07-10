@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.USP_GetATAMappedByItemMasterId   (source: PAS_DB/dbo/Stored Procedures/Procs2/USP_GetATAMappedByItemMasterId.sql)
+-- ---------------------------------------------------------------------------------------------------
 /*************************************************************           
  ** File:		[dbo].[USP_GetATAMappedByItemMasterId]      
  ** Author:		 Nakul Chandigra
@@ -12,7 +16,7 @@
 	1	 16-12-2025         Nakul Chandigra     Created 
 	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 **************************************************************/
-CREATE   PROCEDURE [dbo].[USP_GetATAMappedByItemMasterId]
+CREATE     PROCEDURE [dbo].[USP_GetATAMappedByItemMasterId]
 @ItemMasterId BIGINT,
 @IsDeleted BIT,
 @EmployeeId BIGINT

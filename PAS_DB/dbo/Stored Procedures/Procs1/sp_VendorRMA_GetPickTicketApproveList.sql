@@ -1,3 +1,4 @@
+﻿-- ===== PROCEDURE: [dbo].[sp_VendorRMA_GetPickTicketApproveList]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs1/sp_VendorRMA_GetPickTicketApproveList.sql) =====
 /*************************************************************           
  ** File:   [sp_VendorRMA_GetPickTicketApproveList]           
  ** Author:   Amit Ghediya
@@ -21,7 +22,7 @@
      
 -- EXEC [dbo].[sp_VendorRMA_GetPickTicketApproveList] 36
 **************************************************************/
-CREATE   Procedure [dbo].[sp_VendorRMA_GetPickTicketApproveList]
+CREATE   PROCEDURE [dbo].[sp_VendorRMA_GetPickTicketApproveList]
 	@VendorRMAId  bigint
 AS
 BEGIN

@@ -1,3 +1,4 @@
+﻿-- ===== PROCEDURE: [dbo].[usp_GetReceivingLogReport]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs2/usp_GetReceivingLogReport.sql) =====
 
 /*************************************************************           
  ** File:   [usp_GetReceivingLogReport]           
@@ -23,7 +24,7 @@
      
 EXECUTE   [dbo].[usp_GetReceivingLogReport] '','2020-06-15','2021-06-15','1','1,4,43,44,45,80,84,88','46,47,66','48,49,50,58,59,67,68,69','51,52,53,54,55,56,57,60,61,62,64,70,71,72'
 **************************************************************/
-CREATE PROCEDURE [dbo].[usp_GetReceivingLogReport] @partnumber varchar(50) = NULL,
+CREATE   PROCEDURE [dbo].[usp_GetReceivingLogReport] @partnumber varchar(50) = NULL,
 @Fromdate datetime2,
 @Todate datetime2,
 @mastercompanyid int,

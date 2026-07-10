@@ -1,3 +1,4 @@
+﻿-- ===== PROCEDURE: [dbo].[USP_GetDataForAddMultipleSOWOForVendorRFQPO]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs2/USP_GetDataForAddMultipleSOWOForVendorRFQPO.sql) =====
 /*************************************************************                     
  ** File:   [USP_GetDataForAddMultipleSOWOForVendorRFQPO]                     
  ** Author:   Shrey Chandegara        
@@ -20,7 +21,7 @@
 	
  EXECUTE USP_GetDataForAddMultipleSOWOForVendorRFQPO 'loadeso',7,7,2114,3765        
 **************************************************************/           
-CREATE    PROCEDURE [dbo].[USP_GetDataForAddMultipleSOWOForVendorRFQPO]
+CREATE   PROCEDURE [dbo].[USP_GetDataForAddMultipleSOWOForVendorRFQPO]
 	@viewType VARCHAR (50) = NULL,        
 	@ItemMasterId BIGINT,        
 	@ConditionId BIGINT,        

@@ -1,3 +1,4 @@
+﻿-- ===== PROCEDURE: [dbo].[UpdateSOQNameColumnsWithId]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs1/UpdateSOQNameColumnsWithId.sql) =====
 
 -- =============================================
 -- Author:		Vishal Suthar
@@ -18,7 +19,7 @@
 
 	EXEC [dbo].[UpdateSOQNameColumnsWithId] 31
 **************************************************************/ 
-CREATE PROCEDURE [dbo].[UpdateSOQNameColumnsWithId]
+CREATE   PROCEDURE [dbo].[UpdateSOQNameColumnsWithId]
 	@SalesOrderQuoteId int
 AS
 BEGIN

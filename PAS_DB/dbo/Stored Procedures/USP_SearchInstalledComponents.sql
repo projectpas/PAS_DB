@@ -1,4 +1,5 @@
-﻿/*************************************************************
+﻿-- ===== PROCEDURE: [dbo].[USP_SearchInstalledComponents]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/USP_SearchInstalledComponents.sql) =====
+/*************************************************************
 ** File:        [USP_SearchInstalledComponents]
 ** Description: To search the installed components
 ** Date:        21/04/2026

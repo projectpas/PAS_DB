@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.usprpt_GetWorkOrderAwaitingPartsReport   (source: PAS_DB/dbo/Stored Procedures/Procs3/usprpt_GetWorkOrderAwaitingPartsReport.sql)
+-- ---------------------------------------------------------------------------------------------------
   
 /*************************************************************
  ** File:   [usprpt_GetWorkOrderAwaitingPartsReport]
@@ -18,7 +22,7 @@
 	1	22-10-2024		Abhishek Jirawla	CREATED  
 	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 **************************************************************/
-CREATE   PROCEDURE [dbo].[usprpt_GetWorkOrderAwaitingPartsReport]
+CREATE     PROCEDURE [dbo].[usprpt_GetWorkOrderAwaitingPartsReport]
  @PageNumber INT = 1,
  @PageSize INT = NULL,
  @mastercompanyid INT,

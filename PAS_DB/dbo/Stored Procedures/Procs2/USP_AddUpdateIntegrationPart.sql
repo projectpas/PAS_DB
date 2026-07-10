@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.USP_AddUpdateIntegrationPart   (source: PAS_DB/dbo/Stored Procedures/Procs2/USP_AddUpdateIntegrationPart.sql)
+-- ---------------------------------------------------------------------------------------------------
 /*************************************************************           
  ** File:   [USP_AddUpdateIntegrationPart]           
  ** Author:  Rajesh Gami
@@ -23,7 +27,7 @@
 exec USP_AddUpdateIntegrationPart @PartNumber=N'10-0114-5',@PartDescription=N'EXIT LIGHT',@RepairStation=NULL,@PhoneNumber=N'+1305-716-0128',@IntegrationPortalId=54,@IntegrationPortal=N'PartsBase',@RepairCertiNo=NULL,@LastUpdate=NULL,@QuoteDate='2026-01-16 00:00:00',@OHPrice=NULL,@OHTAT=NULL,@RepairPrice=NULL,@RepairTAT=NULL,@TestPrice=NULL,@TestTAT=NULL,@WebLink=N'http://www.gmair.com',@Location=NULL,@AltPartNumber=NULL,@Qty=4,@Cage=N'5A964',@Condition=NULL,@Distance=NULL,@ExchangeOption=NULL,@MasterCompanyId=1,@UserName=N'ADMIN User',@AddressLine1=NULL,@AddressLine2=NULL,@City=N'DORAL',@State=N'FL',@PostalCode=N'33178',@Country=N'United States',@IsMRO=0,@Index=1,@InventoryId=N'2201221029',@Currency=N'dollars',@Manufacturer=N'',@UnitPrice=0.0,@UoM=N'EA'
 
 ************************************************************************/
-CREATE   PROCEDURE [dbo].[USP_AddUpdateIntegrationPart]
+CREATE     PROCEDURE [dbo].[USP_AddUpdateIntegrationPart]
 	@PartNumber varchar(200),
 	@PartDescription varchar(MAX),
 	@RepairStation varchar(100)=NULL,

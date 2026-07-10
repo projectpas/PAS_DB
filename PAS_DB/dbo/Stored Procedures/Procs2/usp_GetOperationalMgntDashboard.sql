@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.usp_GetOperationalMgntDashboard   (source: PAS_DB/dbo/Stored Procedures/Procs2/usp_GetOperationalMgntDashboard.sql)
+-- ---------------------------------------------------------------------------------------------------
 ----------------------------------------------------------------------------------------
 
 /*************************************************************           
@@ -23,7 +27,7 @@
 EXECUTE   [dbo].[usp_GetOperationalMgntDashboard] 
 **************************************************************/
 
-CREATE PROCEDURE [dbo].[usp_GetOperationalMgntDashboard]
+CREATE   PROCEDURE [dbo].[usp_GetOperationalMgntDashboard]
 AS
 BEGIN
   SET NOCOUNT ON;

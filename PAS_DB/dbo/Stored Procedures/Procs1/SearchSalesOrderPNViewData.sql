@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.SearchSalesOrderPNViewData   (source: PAS_DB/dbo/Stored Procedures/Procs1/SearchSalesOrderPNViewData.sql)
+-- ---------------------------------------------------------------------------------------------------
 /*************************************************************           
  ** File:   [SearchSalesOrderPNViewData]
  ** Author:  
@@ -22,7 +26,7 @@
 	11   19/JUN/2026 AMIT GHEDIYA		Get [MarketplaceRef] data [PN-16922]
 	12    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 ************************************************************************/  
-CREATE   PROCEDURE [dbo].[SearchSalesOrderPNViewData]  
+CREATE     PROCEDURE [dbo].[SearchSalesOrderPNViewData]  
 	@PageNumber int,  
 	@PageSize int,  
 	@SortColumn varchar(50)=null,  

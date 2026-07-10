@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.USP_AutoReserveIssueWorkOrderMaterials   (source: PAS_DB/dbo/Stored Procedures/Procs2/USP_AutoReserveIssueWorkOrderMaterials.sql)
+-- ---------------------------------------------------------------------------------------------------
 /*************************************************************   
 ** Author:  <Hemant Saliya>  
 ** Create date: <01/23/2023>  
@@ -27,7 +31,7 @@ EXEC [USP_AutoReserveIssueWorkOrderMaterials]
 EXEC USP_AutoReserveIssueWorkOrderMaterials 4933,'ADMIN ADMIN'
 	1    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 **************************************************************/ 
-CREATE   PROCEDURE [dbo].[USP_AutoReserveIssueWorkOrderMaterials]
+CREATE     PROCEDURE [dbo].[USP_AutoReserveIssueWorkOrderMaterials]
 @WorkFlowWorkOrderId BIGINT,
 @UpdatedBy VARCHAR(200)
 AS

@@ -1,4 +1,5 @@
-﻿/*************************************************************             
+﻿-- ===== PROCEDURE: [dbo].[usprpt_GetReceivingLogReport]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs3/usprpt_GetReceivingLogReport.sql) =====
+/*************************************************************             
  ** File:   [usprpt_GetReceivingLogReport]             
  ** Author:   Mahesh Sorathiya    
  ** Description: Get Data for ReceivingLog Report    

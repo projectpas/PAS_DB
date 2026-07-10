@@ -1,13 +1,11 @@
 ﻿
----------------------------------------------------------------------------------------------------
-
 /*************************************************************
  ** Change History
  **************************************************************
  ** PR   Date         Author			Change Description
 	1    09/July/2026   RAJESH GAMI   [PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 **************************************************************/
-CREATE view [dbo].[StocklinePurchaseHistory] as
+CREATE   VIEW [dbo].[StocklinePurchaseHistory] as
 select distinct
 IT.Description as ItemType,
 PO.purchaseordernumber as #ofPO,

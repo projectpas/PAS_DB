@@ -1,3 +1,4 @@
+﻿-- ===== PROCEDURE: [dbo].[USP_GetReceivedRfqList]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs2/USP_GetReceivedRfqList.sql) =====
 /*************************************************************           
  ** File:   [USP_GetReceivedRfqList]           
  ** Author:  Rajesh Gami

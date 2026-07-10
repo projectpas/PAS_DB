@@ -1,3 +1,4 @@
+﻿-- ===== PROCEDURE: [dbo].[USP_GetVendorRMAPart_ByStkId]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs2/USP_GetVendorRMAPart_ByStkId.sql) =====
 /*************************************************************             
  ** File:   [USP_GetVendorRMAPart_ByStkId]            
  ** Author:   Devendra    
@@ -20,7 +21,7 @@
        
 EXECUTE   [dbo].[USP_GetVendorRMAPart_ByStkId] 37,1  
 **************************************************************/  
-Create   PROCEDURE [dbo].[USP_GetVendorRMAPart_ByStkId]  
+CREATE   PROCEDURE [dbo].[USP_GetVendorRMAPart_ByStkId]  
 @StockLineId bigint,  
 @VendorRMAId bigint,
 @VendorCreditMemoId bigint

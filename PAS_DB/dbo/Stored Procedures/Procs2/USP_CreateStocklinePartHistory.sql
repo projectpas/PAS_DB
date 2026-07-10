@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿-- ===== PROCEDURE: [dbo].[USP_CreateStocklinePartHistory]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs2/USP_CreateStocklinePartHistory.sql) =====
+/*************************************************************           
  ** File:   [USP_CreateStocklinePartHistory]           
  ** Author: Moin Bloch
  ** Description: This stored procedure is used to Store Stock Line History

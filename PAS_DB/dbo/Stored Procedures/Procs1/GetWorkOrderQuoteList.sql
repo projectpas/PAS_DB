@@ -1,4 +1,8 @@
-﻿/*************************************************************             
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.GetWorkOrderQuoteList   (source: PAS_DB/dbo/Stored Procedures/Procs1/GetWorkOrderQuoteList.sql)
+-- ---------------------------------------------------------------------------------------------------
+/*************************************************************             
  ** File:   [GetWorkOrderQuoteList]             
  ** Author:    
  ** Description: Get Search Data for WorkOrderQuoteList   
@@ -21,7 +25,7 @@
 	8    4 Apr 2025   RAJESH GAMI			Resolved issue: Need to display latest record on the top
 	9    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 **************************************************************/   
-CREATE   PROCEDURE [dbo].[GetWorkOrderQuoteList]  
+CREATE     PROCEDURE [dbo].[GetWorkOrderQuoteList]  
  @PageNumber int,  
  @PageSize int,  
  @SortColumn varchar(50) = null,  

@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.GetVendorRFQPOPartById   (source: PAS_DB/dbo/Stored Procedures/Procs1/GetVendorRFQPOPartById.sql)
+-- ---------------------------------------------------------------------------------------------------
 /*************************************************************           
  ** File:   [GetVendorRFQPOPartById]           
  ** Author:  SHREY CHANDEGARA
@@ -18,7 +22,7 @@
      
 -- EXEC GetVendorRFQPOPartById 104
 ************************************************************************/
-CREATE     PROCEDURE [dbo].[GetVendorRFQPOPartById]
+CREATE       PROCEDURE [dbo].[GetVendorRFQPOPartById]
 @VendorRFQPOId bigint
 AS
 BEGIN

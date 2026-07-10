@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.USP_GetCommonBillingInvoicingItemsByInvoiceIdForXeroAccounting   (source: PAS_DB/dbo/Stored Procedures/USP_GetCommonBillingInvoicingItemsByInvoiceIdForXeroAccounting.sql)
+-- ---------------------------------------------------------------------------------------------------
 /*****************************************************************************************
  ** File:   [[USP_GetCommonBillingInvoicingItemsByInvoiceIdForXeroAccounting]]
  ** Author:   Moin Bloch
@@ -19,7 +23,7 @@
 
 	EXEC [dbo].[USP_GetCommonBillingInvoicingItemsByInvoiceIdForXeroAccounting] 12682,15,0
 ********************************************************************************************/
-CREATE PROCEDURE [dbo].[USP_GetCommonBillingInvoicingItemsByInvoiceIdForXeroAccounting]
+CREATE   PROCEDURE [dbo].[USP_GetCommonBillingInvoicingItemsByInvoiceIdForXeroAccounting]
 @BillingInvoicingId BIGINT = NULL,
 @ModuleId INT = NULL,
 @IsSync BIT = 0

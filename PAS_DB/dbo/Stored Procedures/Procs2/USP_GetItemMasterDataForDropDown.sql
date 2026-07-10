@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.USP_GetItemMasterDataForDropDown   (source: PAS_DB/dbo/Stored Procedures/Procs2/USP_GetItemMasterDataForDropDown.sql)
+-- ---------------------------------------------------------------------------------------------------
 /*************************************************************           
  ** File:		[dbo].[USP_GetItemMasterDataForDropDown]       
  ** Author:		 Nakul Chandigra
@@ -12,7 +16,7 @@
 	1	 26-09-2025			Nakul Chandigra		Created
 	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 **************************************************************/
-CREATE    PROCEDURE [dbo].[USP_GetItemMasterDataForDropDown]
+CREATE      PROCEDURE [dbo].[USP_GetItemMasterDataForDropDown]
 @MasterCompanyId BIGINT,
 @type VARCHAR (256)
 AS

@@ -1,3 +1,4 @@
+﻿-- ===== PROCEDURE: [dbo].[USP_GetWOPerformaInvoiceChildList]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs2/USP_GetWOPerformaInvoiceChildList.sql) =====
 /*************************************************************           
  ** File:     [USP_GetWOPerformaInvoiceChildList]           
  ** Author:	  Devendra Shekh
@@ -25,7 +26,7 @@
 
 **************************************************************/ 
 
-CREATE   Procedure [dbo].[USP_GetWOPerformaInvoiceChildList]
+CREATE   PROCEDURE [dbo].[USP_GetWOPerformaInvoiceChildList]
 	@WorkOrderId  BIGINT,
 	@WorkOrderPartId BIGINT
 AS

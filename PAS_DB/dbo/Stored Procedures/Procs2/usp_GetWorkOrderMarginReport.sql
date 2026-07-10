@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.usp_GetWorkOrderMarginReport   (source: PAS_DB/dbo/Stored Procedures/Procs2/usp_GetWorkOrderMarginReport.sql)
+-- ---------------------------------------------------------------------------------------------------
 /*************************************************************           
  ** File:   [usp_GetWorkOrderMarginReport]           
  ** Author:   Swetha  
@@ -23,7 +27,7 @@
      
 EXECUTE   [dbo].[usp_GetWorkOrderMarginReport] '128','','','1','1,4,43,44,45,80,84,88','46,47,66','48,49,50,59','51,52,53'
 **************************************************************/
-CREATE PROCEDURE [dbo].[usp_GetWorkOrderMarginReport] @name varchar(40) = NULL,
+CREATE   PROCEDURE [dbo].[usp_GetWorkOrderMarginReport] @name varchar(40) = NULL,
 @Fromdate datetime = NULL,
 @Todate datetime = NULL,
 @mastercompanyid varchar(200),

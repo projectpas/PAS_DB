@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.USP_GetROTemplateById   (source: PAS_DB/dbo/Stored Procedures/Procs2/USP_GetROTemplateById.sql)
+-- ---------------------------------------------------------------------------------------------------
 /*************************************************************           
  ** File:   [USP_GetROTemplateById]           
  ** Author:   Amit Ghediya
@@ -16,7 +20,7 @@
 	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 
 **************************************************************/    
-CREATE    PROCEDURE [dbo].[USP_GetROTemplateById]
+CREATE      PROCEDURE [dbo].[USP_GetROTemplateById]
     @RepairOrderTemplateId BIGINT
 AS
 BEGIN

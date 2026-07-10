@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.AutoCompleteDropdownsItemMasterWithManufacturer   (source: PAS_DB/dbo/Stored Procedures/Procs1/AutoCompleteDropdownsItemMasterWithManufacturer.sql)
+-- ---------------------------------------------------------------------------------------------------
 /*************************************************************             
  ** File:   [AutoCompleteDropdownsItemMasterWithManufacturer]             
  ** Author:   Rajesh Gami  
@@ -24,7 +28,7 @@
 --EXEC [AutoCompleteDropdownsItemMasterWithManufacturer] '725',1,20,'',18  
 EXEC [AutoCompleteDropdownsItemMasterWithManufacturer] '100',1,50,'',18  
 **************************************************************/
-CREATE   PROCEDURE [dbo].[AutoCompleteDropdownsItemMasterWithManufacturer]  
+CREATE     PROCEDURE [dbo].[AutoCompleteDropdownsItemMasterWithManufacturer]  
 @StartWith VARCHAR(50),  
 @IsActive bit = true,  
 @Count VARCHAR(10) = '0',  

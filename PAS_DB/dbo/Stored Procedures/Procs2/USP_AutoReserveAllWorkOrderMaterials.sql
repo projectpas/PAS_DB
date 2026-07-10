@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.USP_AutoReserveAllWorkOrderMaterials   (source: PAS_DB/dbo/Stored Procedures/Procs2/USP_AutoReserveAllWorkOrderMaterials.sql)
+-- ---------------------------------------------------------------------------------------------------
 /*************************************************************   
 ** Author:  <Hemant Saliya>  
 ** Create date: <01/23/2023>  
@@ -33,7 +37,7 @@ EXEC USP_AutoReserveAllWorkOrderMaterials 4761,0,0,98,0
 exec sp_executesql N'exec USP_AutoReserveAllWorkOrderMaterials @WorkFlowWorkOrderId, @IncludeAlternate, @IncludeEquiv, @EmployeeId, @IncludeCustomerStk',N'@WorkFlowWorkOrderId bigint,@IncludeAlternate bit,@IncludeEquiv bit,@EmployeeId bigint,@IncludeCustomerStk bit',@WorkFlowWorkOrderId=4761,@IncludeAlternate=0,@IncludeEquiv=0,@EmployeeId=98,@IncludeCustomerStk=0
 	1    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 **************************************************************/ 
-CREATE   PROCEDURE [dbo].[USP_AutoReserveAllWorkOrderMaterials]
+CREATE     PROCEDURE [dbo].[USP_AutoReserveAllWorkOrderMaterials]
 @WorkFlowWorkOrderId BIGINT,
 @IncludeAlternate BIT,
 @IncludeEquiv BIT,

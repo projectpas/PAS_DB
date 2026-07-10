@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.QuickBooks_GetSyncPendingCreditMemo   (source: PAS_DB/dbo/Stored Procedures/Procs1/QuickBooks_GetSyncPendingCreditMemo.sql)
+-- ---------------------------------------------------------------------------------------------------
 /*************************************************************           
  ** File:   [QuickBooks_GetSyncPendingCreditMemo]           
  ** Author:   Devendra Shekh
@@ -16,7 +20,7 @@
 
 EXEC [dbo].[QuickBooks_GetSyncPendingCreditMemo] 1, 1, 87
 **************************************************************/ 
-CREATE   PROCEDURE [dbo].[QuickBooks_GetSyncPendingCreditMemo]
+CREATE     PROCEDURE [dbo].[QuickBooks_GetSyncPendingCreditMemo]
 	@IntegrationTypeId INT = NULL,
 	@MasterCompanyId INT = NULL,
 	@ReferenceId BIGINT = NULL

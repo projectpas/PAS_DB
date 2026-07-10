@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.UpdateSubWorkOrderMaterialsColumnsWithId   (source: PAS_DB/dbo/Stored Procedures/Procs1/UpdateSubWorkOrderMaterialsColumnsWithId.sql)
+-- ---------------------------------------------------------------------------------------------------
 
 /*************************************************************           
  ** File:   [UpdateWorkOrderTeardownColumnsWithId]           
@@ -26,7 +30,7 @@
 --EXEC [UpdateSubWorkOrderMaterialsColumnsWithId] subworkordermaterial,28
 **************************************************************/
 
-CREATE PROCEDURE [dbo].[UpdateSubWorkOrderMaterialsColumnsWithId]
+CREATE   PROCEDURE [dbo].[UpdateSubWorkOrderMaterialsColumnsWithId]
 	@SubWorkOrderMaterialsId bigint
 AS
 BEGIN

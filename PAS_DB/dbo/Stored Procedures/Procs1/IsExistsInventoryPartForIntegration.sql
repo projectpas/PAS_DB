@@ -1,4 +1,8 @@
-﻿/*************************************************************           
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.IsExistsInventoryPartForIntegration   (source: PAS_DB/dbo/Stored Procedures/Procs1/IsExistsInventoryPartForIntegration.sql)
+-- ---------------------------------------------------------------------------------------------------
+/*************************************************************           
  ** File:  [IsExistsInventoryPartForIntegration]  
  ** Author:   Amit Ghediya
  ** Description: Retrieve part is exist or not
@@ -17,7 +21,7 @@ EXEC [IsExistsInventoryPartForIntegration]  'A100,5360002916111,Part9,part7'
 
 **************************************************************/ 
 
-CREATE    PROCEDURE [dbo].[IsExistsInventoryPartForIntegration]
+CREATE      PROCEDURE [dbo].[IsExistsInventoryPartForIntegration]
 	@PartString NVARCHAR(MAX) = NULL,
 	@MasterCompanyId BIGINT
 AS

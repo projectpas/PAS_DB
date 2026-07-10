@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: USP_GetWorkOrderQuoteDetails   (source: PAS_DB/dbo/Stored Procedures/Procs2/USP_GetWorkOrderQuoteDetails.sql)
+-- ---------------------------------------------------------------------------------------------------
 /***************************************************************  
  ** File:   [USP_GetWorkOrderQuoteDetails]             
  ** Author:   Hemnat Saliya
@@ -20,7 +24,7 @@
  ** PR   Date						 Author							Change Description
  ** --   --------					 -------						-------------------------------
 ****************************************************************************************************************************************/
-CREATE PROCEDURE USP_GetWorkOrderQuoteDetails
+CREATE   PROCEDURE USP_GetWorkOrderQuoteDetails
     @WorkOrderId INT
 AS
 BEGIN

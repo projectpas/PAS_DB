@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.QuickBooks_UpdateModuleCountDetails   (source: PAS_DB/dbo/Stored Procedures/Procs1/QuickBooks_UpdateModuleCountDetails.sql)
+-- ---------------------------------------------------------------------------------------------------
 /*************************************************************           
  ** File:   [QuickBooks_UpdateModuleCountDetails]           
  ** Author:   Abhishek Jirawla
@@ -20,7 +24,7 @@
      
  EXECUTE [QuickBooks_UpdateModuleCountDetails] 1, 1
 **************************************************************/ 
-CREATE      PROCEDURE [dbo].[QuickBooks_UpdateModuleCountDetails]
+CREATE        PROCEDURE [dbo].[QuickBooks_UpdateModuleCountDetails]
 	@MasterCompanyId INT = NULL,
 	@ModuleId BIGINT = NULL
 AS

@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.USP_BatchTriggerBasedonDistribution   (source: PAS_DB/dbo/Stored Procedures/Procs2/USP_BatchTriggerBasedonDistribution.sql)
+-- ---------------------------------------------------------------------------------------------------
 /*************************************************************           
  ** File:   [USP_BatchTriggerBasedonDistribution]
  ** Author:  Subhash Saliya
@@ -43,7 +47,7 @@
 
 ************************************************************************/
 
-CREATE   PROCEDURE [dbo].[USP_BatchTriggerBasedonDistribution]
+CREATE     PROCEDURE [dbo].[USP_BatchTriggerBasedonDistribution]
 @DistributionMasterId BIGINT=NULL,
 @ReferenceId BIGINT=NULL,
 @ReferencePartId BIGINT=NULL,

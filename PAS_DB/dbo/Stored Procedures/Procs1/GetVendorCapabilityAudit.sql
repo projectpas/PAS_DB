@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.GetVendorCapabilityAudit   (source: PAS_DB/dbo/Stored Procedures/Procs1/GetVendorCapabilityAudit.sql)
+-- ---------------------------------------------------------------------------------------------------
 /*******************************************************************************************
  ** File:   [GetVendorCapabilityAudit]           
  ** Author:  Ayushi Patel
@@ -18,7 +22,7 @@
      
  *******************************************************************************************/           
 
-CREATE   PROCEDURE [dbo].[GetVendorCapabilityAudit]
+CREATE     PROCEDURE [dbo].[GetVendorCapabilityAudit]
     @VendorCapabilityId BIGINT,
     @VendorId BIGINT,
     @EmployeeId BIGINT

@@ -1,3 +1,4 @@
+﻿-- ===== PROCEDURE: [dbo].[USP_GetReleaseFromDataByStockLineId]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs2/USP_GetReleaseFromDataByStockLineId.sql) =====
 /*************************************************************   
 ** Author:  <Devendra Shekh>  
 ** Create date: <12/26/2023>  

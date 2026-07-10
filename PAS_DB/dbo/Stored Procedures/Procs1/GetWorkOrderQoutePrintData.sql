@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.GetWorkOrderQoutePrintData   (source: PAS_DB/dbo/Stored Procedures/Procs1/GetWorkOrderQoutePrintData.sql)
+-- ---------------------------------------------------------------------------------------------------
   
 /*************************************************************             
  ** File:   [GetWorkOrderPrintPdfData]             
@@ -23,7 +27,7 @@
 --EXEC [GetWorkOrderPrintPdfData] 274,258  
 **************************************************************/  
   
-CREATE   PROCEDURE [dbo].[GetWorkOrderQoutePrintData]  
+CREATE     PROCEDURE [dbo].[GetWorkOrderQoutePrintData]  
 @WorkorderId bigint,  
 @workOrderPartNoId bigint,  
 @workflowWorkorderId BIGINT  

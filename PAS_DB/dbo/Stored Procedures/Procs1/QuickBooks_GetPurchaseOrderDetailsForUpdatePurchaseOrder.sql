@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.QuickBooks_GetPurchaseOrderDetailsForUpdatePurchaseOrder   (source: PAS_DB/dbo/Stored Procedures/Procs1/QuickBooks_GetPurchaseOrderDetailsForUpdatePurchaseOrder.sql)
+-- ---------------------------------------------------------------------------------------------------
 /*************************************************************           
  ** File:   [QuickBooks_GetPurchaseOrderDetailsForUpdatePurchaseOrder]           
  ** Author:   Abhishek Jirawla
@@ -16,7 +20,7 @@
      
  EXECUTE [QuickBooks_GetNewPurchaseOrderListForCreatePurchaseOrder] 1
 **************************************************************/ 
-CREATE     PROCEDURE [dbo].[QuickBooks_GetPurchaseOrderDetailsForUpdatePurchaseOrder]
+CREATE       PROCEDURE [dbo].[QuickBooks_GetPurchaseOrderDetailsForUpdatePurchaseOrder]
 	@IntegrationTypeId INT = NULL,
 	@MasterCompanyId INT = NULL,
 	@ReferenceId BIGINT = NULL,

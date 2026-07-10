@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.SalesOrderQuoteSummarizedHistoryByPN   (source: PAS_DB/dbo/Stored Procedures/Procs1/SalesOrderQuoteSummarizedHistoryByPN.sql)
+-- ---------------------------------------------------------------------------------------------------
 
 /*************************************************************           
  ** File:   [SalesOrderQuoteSummarizedHistoryByPN]           
@@ -22,7 +26,7 @@
 --EXEC [SalesOrderQuoteSummarizedHistoryByPN] 246,0
 **************************************************************/
 
-CREATE      PROCEDURE [dbo].[SalesOrderQuoteSummarizedHistoryByPN]
+CREATE        PROCEDURE [dbo].[SalesOrderQuoteSummarizedHistoryByPN]
 @ItemMasterId BIGINT,
 @IsTwelveMonth BIT = 1
 AS

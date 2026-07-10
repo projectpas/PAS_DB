@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.GetPNTilePriceMasters   (source: PAS_DB/dbo/Stored Procedures/Procs1/GetPNTilePriceMasters.sql)
+-- ---------------------------------------------------------------------------------------------------
 
 -- Author:		Ekta Chandegra
 -- Description:	Get Search Data for Price Masters List
@@ -11,7 +15,7 @@
     2   10-SEPT-2024			  Ekta Chandegra					If Value is -ve then return 0
 	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 ****************************************************************************************************************************************/ 
-CREATE      PROCEDURE [dbo].[GetPNTilePriceMasters]
+CREATE        PROCEDURE [dbo].[GetPNTilePriceMasters]
 	@PageNumber int = 1,
 	@PageSize int = 10,
 	@SortColumn varchar(50)=NULL,

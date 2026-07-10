@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.USP_AddUpdatePriceMasterHistory   (source: PAS_DB/dbo/Stored Procedures/Procs2/USP_AddUpdatePriceMasterHistory.sql)
+-- ---------------------------------------------------------------------------------------------------
 /*************************************************************           
  ** File:   [USP_AddUpdatePriceMasterHistory]           
  ** Author:  Ekta Chandegra
@@ -19,7 +23,7 @@
 
 -- exec [dbo].[USP_AddUpdatePriceMasterHistory] @ItemMasterPurchaseSaleId=716,@ModuleId=20,@MasterCompanyId=1,@RefferenceId=716
 ************************************************************************/
-CREATE     PROCEDURE [dbo].[USP_AddUpdatePriceMasterHistory]
+CREATE       PROCEDURE [dbo].[USP_AddUpdatePriceMasterHistory]
 (
 	@ItemMasterPurchaseSaleId BIGINT = NULL,
 	@ModuleId BIGINT = NULL,

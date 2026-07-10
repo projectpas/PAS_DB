@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.AddUpdateReceiveCustomerPiecePart   (source: PAS_DB/dbo/Stored Procedures/Procs1/AddUpdateReceiveCustomerPiecePart.sql)
+-- ---------------------------------------------------------------------------------------------------
 
 /*************************************************************           
  ** File:   [AddUpdateReceiveCustomerPiecePart]           
@@ -21,7 +25,7 @@
 	
 -- EXEC AddUpdateReceiveCustomerPiecePart 
 ************************************************************************/    
-CREATE   PROCEDURE [dbo].[AddUpdateReceiveCustomerPiecePart]  
+CREATE     PROCEDURE [dbo].[AddUpdateReceiveCustomerPiecePart]  
 @ReceivingCustomerWorkId [bigint] NULL,
 @MasterCompanyId [int] NULL,
 @tbl_ReceivingCustomerWorkType ReceivingCustomerWorkType READONLY      

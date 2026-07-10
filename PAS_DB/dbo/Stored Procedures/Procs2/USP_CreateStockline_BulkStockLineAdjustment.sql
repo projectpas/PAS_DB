@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.USP_CreateStockline_BulkStockLineAdjustment   (source: PAS_DB/dbo/Stored Procedures/Procs2/USP_CreateStockline_BulkStockLineAdjustment.sql)
+-- ---------------------------------------------------------------------------------------------------
 
 /*************************************************************             
  ** File:   [USP_CreateStockline_BulkStockLineAdjustment]            
@@ -25,7 +29,7 @@
 
 exec dbo.USP_CreateStocklineForReceivingPO 110715,9,'Admin User',1;
 **************************************************************/  
-CREATE   PROCEDURE [dbo].[USP_CreateStockline_BulkStockLineAdjustment]
+CREATE     PROCEDURE [dbo].[USP_CreateStockline_BulkStockLineAdjustment]
 (  
 	@StockLineId BIGINT = NULL,
 	@BulkStockLineAdjustmentDetailsId BIGINT = NULL,

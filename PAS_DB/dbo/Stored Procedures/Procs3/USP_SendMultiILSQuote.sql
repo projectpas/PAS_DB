@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.USP_SendMultiILSQuote   (source: PAS_DB/dbo/Stored Procedures/Procs3/USP_SendMultiILSQuote.sql)
+-- ---------------------------------------------------------------------------------------------------
 /*************************************************************           
  ** File:   [USP_SendMultiILSQuote]           
  ** Author:  Amit Ghediya
@@ -22,7 +26,7 @@
 	9    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 -- EXEC USP_SendMultiILSQuote
 ************************************************************************/
-CREATE   PROCEDURE [dbo].[USP_SendMultiILSQuote]
+CREATE     PROCEDURE [dbo].[USP_SendMultiILSQuote]
 	@tbl_IlsRfqMultipleQuoteDetailsType IlsRfqMultipleQuoteDetailsType READONLY,
 	@LegalEntityId BIGINT,
 	@MasterCompanyId INT,

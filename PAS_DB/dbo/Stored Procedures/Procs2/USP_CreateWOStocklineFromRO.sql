@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.USP_CreateWOStocklineFromRO   (source: PAS_DB/dbo/Stored Procedures/Procs2/USP_CreateWOStocklineFromRO.sql)
+-- ---------------------------------------------------------------------------------------------------
 /*************************************************************           
  ** File:   [USP_CreateWOStocklineFromRO]          
  ** Author:   Hemant Saliya
@@ -35,7 +39,7 @@
 exec sp_executesql N'EXEC dbo.USP_CreateWOStocklineFromRO @RepairOrderId',N'@RepairOrderId bigint',@RepairOrderId=692
 EXEC [dbo].[USP_CreateWOStocklineFromRO]   3043,'ADMIN User' 
 **************************************************************/
-CREATE   PROCEDURE [dbo].[USP_CreateWOStocklineFromRO]    
+CREATE     PROCEDURE [dbo].[USP_CreateWOStocklineFromRO]    
 (    
 	@RepairOrderId BIGINT = NULL,
 	@UserName VARCHAR(100) = NULL

@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.usp_GetWorkOrderTracking   (source: PAS_DB/dbo/Stored Procedures/Procs2/usp_GetWorkOrderTracking.sql)
+-- ---------------------------------------------------------------------------------------------------
 /*************************************************************           
  ** File:   [usp_GetWorkOrderTracking]           
  ** Author:      
@@ -20,7 +24,7 @@
      
 EXECUTE   [dbo].[usp_GetWorkOrderTracking] 'krunal','','','1','1,4,43,44,45,80,84,88','46,47,66','48,49,50,59','51,52,53'
 **************************************************************/
-CREATE PROCEDURE [dbo].[usp_GetWorkOrderTracking] @Fromdate datetime,
+CREATE   PROCEDURE [dbo].[usp_GetWorkOrderTracking] @Fromdate datetime,
 @Todate datetime,
 @Level1 varchar(max) = NULL,
 @Level2 varchar(max) = NULL,

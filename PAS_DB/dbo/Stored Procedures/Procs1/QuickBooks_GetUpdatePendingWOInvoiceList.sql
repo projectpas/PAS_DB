@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.QuickBooks_GetUpdatePendingWOInvoiceList   (source: PAS_DB/dbo/Stored Procedures/Procs1/QuickBooks_GetUpdatePendingWOInvoiceList.sql)
+-- ---------------------------------------------------------------------------------------------------
 /*************************************************************           
  ** File:   [QuickBooks_GetUpdatePendingWOInvoiceList]           
  ** Author:   Devendra Shekh
@@ -21,7 +25,7 @@
  EXECUTE [QuickBooks_GetUpdatePendingWOInvoiceList] 1, 1, 4771, 4336
  EXECUTE [QuickBooks_GetUpdatePendingWOInvoiceList] 1, 1, 4772, 0
 **************************************************************/ 
-CREATE   PROCEDURE [dbo].[QuickBooks_GetUpdatePendingWOInvoiceList]
+CREATE     PROCEDURE [dbo].[QuickBooks_GetUpdatePendingWOInvoiceList]
 	@IntegrationTypeId INT = NULL,
 	@MasterCompanyId INT = NULL,
 	@ReferenceId BIGINT = NULL,

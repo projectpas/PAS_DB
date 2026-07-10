@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.usprpt_GetPubTrackingReport   (source: PAS_DB/dbo/Stored Procedures/Procs3/usprpt_GetPubTrackingReport.sql)
+-- ---------------------------------------------------------------------------------------------------
 /*************************************************************             
  ** File:   [usprpt_GetPubTrackingReport]             
  ** Author:   Mahesh Sorathiya    
@@ -26,7 +30,7 @@ exec usprpt_GetPubTrackingReport @PageNumber=1,@PageSize=20,@SortColumn=NULL,@So
 @NextRevDate=NULL,@RevDate=NULL,@ExpirationDate=NULL,@VerifiedDate=NULL,@level1Str=NULL,@level2Str=NULL,@level3Str=NULL,@level4Str=NULL,@level5Str=NULL,@level6Str=NULL,@level7Str=NULL,@level8Str=NULL,@level9Str=NULL,@level10Str=NULL,@MasterCompanyId=1
 
 **************************************************************/  
-CREATE   PROCEDURE [dbo].[usprpt_GetPubTrackingReport] 
+CREATE     PROCEDURE [dbo].[usprpt_GetPubTrackingReport] 
 @PageNumber INT = NULL,
 @PageSize INT = NULL,
 @SortColumn VARCHAR(50)=NULL,

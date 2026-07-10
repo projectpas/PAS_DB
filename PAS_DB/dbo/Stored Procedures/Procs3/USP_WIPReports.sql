@@ -1,4 +1,5 @@
-﻿/*********************             
+﻿-- ===== PROCEDURE: [dbo].[USP_WIPReports]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs3/USP_WIPReports.sql) =====
+/*********************             
  ** File:   GET WIP REPORTS DATA          
  ** Author:  HEMANT SALIYA  
  ** Description: This SP Is Used to Get WIP reports Data
@@ -23,7 +24,7 @@ exec USP_WIPReports @mastercompanyid=1,@id='2024-01-05 00:00:00',@id2='2024-05-1
 
 *************************************************************/   
   
-CREATE     PROCEDURE [dbo].[USP_WIPReports] 	
+CREATE   PROCEDURE [dbo].[USP_WIPReports] 	
 @mastercompanyid INT,
 @id VARCHAR(MAX),
 @id2 VARCHAR(MAX),

@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.USP_GetCapesListByAssetId   (source: PAS_DB/dbo/Stored Procedures/Procs2/USP_GetCapesListByAssetId.sql)
+-- ---------------------------------------------------------------------------------------------------
 /*************************************************************           
  ** File:   [USP_GetCapesListByAssetId]         
  ** Author:   Ayushi Patel
@@ -19,7 +23,7 @@
      
  EXECUTE [USP_GetCapesListByAssetId] 214
 **************************************************************/ 
-CREATE   PROCEDURE [dbo].[USP_GetCapesListByAssetId]
+CREATE     PROCEDURE [dbo].[USP_GetCapesListByAssetId]
     @AssetRecordId BIGINT
 AS
 BEGIN

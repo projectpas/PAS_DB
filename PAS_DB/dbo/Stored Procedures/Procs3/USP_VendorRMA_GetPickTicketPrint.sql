@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿-- ===== PROCEDURE: [dbo].[USP_VendorRMA_GetPickTicketPrint]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs3/USP_VendorRMA_GetPickTicketPrint.sql) =====
+/*************************************************************           
  ** File:   [ EXECUTE USP_VendorRMA_GetVendorRMAList]          
  ** Author:   Amit Ghediya
  ** Description: This stored procedure is used to Create for get Vendor RMA List data.

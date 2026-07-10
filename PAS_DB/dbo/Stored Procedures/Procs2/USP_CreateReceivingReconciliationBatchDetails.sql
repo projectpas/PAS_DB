@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.USP_CreateReceivingReconciliationBatchDetails   (source: PAS_DB/dbo/Stored Procedures/Procs2/USP_CreateReceivingReconciliationBatchDetails.sql)
+-- ---------------------------------------------------------------------------------------------------
 /*************************************************************           
  ** File:   [USP_BatchTriggerBasedonDistribution]           
  ** Author:  Subhash Saliya
@@ -15,7 +19,7 @@
 	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
    EXEC [dbo].[USP_CreateReceivingReconciliationBatchDetails] 'RPO',10023,0
 ************************************************************************/
-CREATE   PROCEDURE [dbo].[USP_CreateReceivingReconciliationBatchDetails] @StocklineId bigint=NULL, @Qty int=0, @Amount Decimal(18, 2), @ModuleName varchar(200), @UpdateBy varchar(200), @DistributionCode varchar(200), @JournalBatchHeaderId bigint, @JournalTypename varchar(200), @StockType varchar(50), @PackagingId int, @EmployeeId BIGINT, @RRId BIGINT, @ReceivingReconciliationDetailId BIGINT, @BatchId BIGINT OUTPUT
+CREATE     PROCEDURE [dbo].[USP_CreateReceivingReconciliationBatchDetails] @StocklineId bigint=NULL, @Qty int=0, @Amount Decimal(18, 2), @ModuleName varchar(200), @UpdateBy varchar(200), @DistributionCode varchar(200), @JournalBatchHeaderId bigint, @JournalTypename varchar(200), @StockType varchar(50), @PackagingId int, @EmployeeId BIGINT, @RRId BIGINT, @ReceivingReconciliationDetailId BIGINT, @BatchId BIGINT OUTPUT
 AS BEGIN
     SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
     SET NOCOUNT ON;

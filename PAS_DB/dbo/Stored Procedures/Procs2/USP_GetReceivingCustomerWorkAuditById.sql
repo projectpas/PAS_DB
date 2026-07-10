@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.USP_GetReceivingCustomerWorkAuditById   (source: PAS_DB/dbo/Stored Procedures/Procs2/USP_GetReceivingCustomerWorkAuditById.sql)
+-- ---------------------------------------------------------------------------------------------------
 
 /*************************************************************           
  ** File:   [USP_GetReceivingCustomerWorkAuditById]           
@@ -19,7 +23,7 @@
 	USP_GetReceivingCustomerWorkAuditById 4203,229
 **************************************************************/
 
-CREATE   PROCEDURE [dbo].[USP_GetReceivingCustomerWorkAuditById]
+CREATE     PROCEDURE [dbo].[USP_GetReceivingCustomerWorkAuditById]
     @ReceivingCustomerWorkId BIGINT,
     @EmployeeId BIGINT
 AS

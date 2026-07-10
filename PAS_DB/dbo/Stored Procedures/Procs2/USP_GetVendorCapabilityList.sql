@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.USP_GetVendorCapabilityList   (source: PAS_DB/dbo/Stored Procedures/Procs2/USP_GetVendorCapabilityList.sql)
+-- ---------------------------------------------------------------------------------------------------
 /*************************************************************
 ** File:    [USP_GetVendorCapabilityList]
 ** Author:   Ayushi Patel
@@ -15,7 +19,7 @@
 -- EXEC USP_GetVendorCapabilityList 4797
 	1    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 **************************************************************/
-CREATE   PROCEDURE [dbo].[USP_GetVendorCapabilityList]
+CREATE     PROCEDURE [dbo].[USP_GetVendorCapabilityList]
     @VendorId BIGINT = 0,
     @Status VARCHAR(10) = 'all'
 AS

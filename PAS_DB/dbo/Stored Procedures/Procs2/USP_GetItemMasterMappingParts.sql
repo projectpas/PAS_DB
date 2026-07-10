@@ -1,4 +1,8 @@
-﻿/*************************************************************           
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: DBO.USP_GetItemMasterMappingParts   (source: PAS_DB/dbo/Stored Procedures/Procs2/USP_GetItemMasterMappingParts.sql)
+-- ---------------------------------------------------------------------------------------------------
+/*************************************************************           
  ** File:		 [USP_GetItemMasterMappingParts]           
  ** Author:		 Divyesh Kathiriya
  ** Description: This Stored Procedure Is Used To Get ItemMaster Mapping Parts Data.
@@ -14,7 +18,7 @@
     
  -- EXEC [USP_GetItemMasterMappingParts] @MappingItemMasterId=96984
 **************************************************************/
-CREATE   PROCEDURE [DBO].[USP_GetItemMasterMappingParts]
+CREATE     PROCEDURE [DBO].[USP_GetItemMasterMappingParts]
 @MappingItemMasterId BIGINT
 AS
 BEGIN

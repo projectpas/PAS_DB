@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.GetWorkOrderQuoteBuildMethodDetails   (source: PAS_DB/dbo/Stored Procedures/Procs1/GetWorkOrderQuoteBuildMethodDetails.sql)
+-- ---------------------------------------------------------------------------------------------------
 /*************************************************************             
  ** File:   [GetWorkOrderQuoteBuildMethodDetails]             
  ** Author:   Hemant Saliya  
@@ -23,7 +27,7 @@
 -- EXEC [GetWorkOrderQuoteBuildMethodDetails] 29871  
 **************************************************************/  
   
-CREATE   PROCEDURE [dbo].[GetWorkOrderQuoteBuildMethodDetails]  
+CREATE     PROCEDURE [dbo].[GetWorkOrderQuoteBuildMethodDetails]  
 @workflowWorkorderId BIGINT  
 AS  
 BEGIN  

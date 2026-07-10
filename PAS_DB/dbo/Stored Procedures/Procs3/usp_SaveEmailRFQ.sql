@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.usp_SaveEmailRFQ   (source: PAS_DB/dbo/Stored Procedures/Procs3/usp_SaveEmailRFQ.sql)
+-- ---------------------------------------------------------------------------------------------------
 /*************************************************************           
  ** File:   [usp_SaveEmailRFQ]           
  ** Author:  Devendra Shekh
@@ -26,7 +30,7 @@
 	15    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 
 ************************************************************************/
-CREATE   PROCEDURE [dbo].[usp_SaveEmailRFQ]
+CREATE     PROCEDURE [dbo].[usp_SaveEmailRFQ]
 	@IntegrationEmailID BIGINT = NULL,
     @tbl_RfqCustomerType dbo.RfqCustomerType READONLY,
     @tbl_RfqPartDetailType dbo.RfqPartDetailType READONLY,

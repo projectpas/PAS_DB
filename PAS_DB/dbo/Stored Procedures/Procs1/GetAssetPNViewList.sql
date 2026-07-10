@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.GetAssetPNViewList   (source: PAS_DB/dbo/Stored Procedures/Procs1/GetAssetPNViewList.sql)
+-- ---------------------------------------------------------------------------------------------------
 /*************************************************************           
  ** File:   [GetAssetPNViewList]
  ** Author:   
@@ -22,7 +26,7 @@
 
 ************************************************************************/
 
-CREATE PROCEDURE [dbo].[GetAssetPNViewList]  
+CREATE   PROCEDURE [dbo].[GetAssetPNViewList]  
  -- Add the parameters for the stored procedure here   
 @PageSize int,  
 @PageNumber int,  

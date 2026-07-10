@@ -1,3 +1,4 @@
+﻿-- ===== PROCEDURE: [dbo].[USP_VendorRMA_GetVendorCreditMemoList]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs3/USP_VendorRMA_GetVendorCreditMemoList.sql) =====
 /*************************************************************             
  ** File:   [USP_VendorRMA_GetVendorCreditMemoList]            
  ** Author:   Shrey Chandegara
@@ -21,7 +22,7 @@
 	5    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
  
 **************************************************************/  
-CREATE     PROCEDURE [dbo].[USP_VendorRMA_GetVendorCreditMemoList]
+CREATE   PROCEDURE [dbo].[USP_VendorRMA_GetVendorCreditMemoList]
 @PageNumber int = NULL,
 @PageSize int = NULL,
 @SortColumn varchar(50)=NULL,

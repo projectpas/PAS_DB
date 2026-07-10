@@ -1,4 +1,8 @@
-﻿/*************************************************************   
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.usp_IssueSubWorkOrderMaterialsStockline   (source: PAS_DB/dbo/Stored Procedures/Procs2/usp_IssueSubWorkOrderMaterialsStockline.sql)
+-- ---------------------------------------------------------------------------------------------------
+/*************************************************************   
 ** Author:  <Hemant Saliya>  
 ** Create date: <12/30/2021>  
 ** Description: <Save Sub Work Order Materials Issue Stockline Details>  
@@ -30,7 +34,7 @@ INSERT INTO @p1 values(65,72,10099,513,15,34,2,14,6,N'INSPECTED',N'AIR-MAZE',N'A
 EXEC dbo.usp_IssueSubWorkOrderMaterialsStockline @tbl_MaterialsStocklineType=@p1
 	1    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 **************************************************************/ 
-CREATE   PROCEDURE [dbo].[usp_IssueSubWorkOrderMaterialsStockline]
+CREATE     PROCEDURE [dbo].[usp_IssueSubWorkOrderMaterialsStockline]
 @tbl_MaterialsStocklineType SubWOMaterialsStocklineType READONLY
 AS
 BEGIN

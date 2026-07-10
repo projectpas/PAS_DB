@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.UpdateWorkOrderQuoteTable   (source: PAS_DB/dbo/Stored Procedures/Procs1/UpdateWorkOrderQuoteTable.sql)
+-- ---------------------------------------------------------------------------------------------------
 
 
 /*************************************************************           
@@ -24,7 +28,7 @@
 --EXEC [UpdateWorkOrderQuoteTable] 'WorkOrderQuoteMaterial', 284
 **************************************************************/
 
-CREATE PROCEDURE [dbo].[UpdateWorkOrderQuoteTable]
+CREATE   PROCEDURE [dbo].[UpdateWorkOrderQuoteTable]
     @TableName varchar(100),
 	@TableprimaryId bigint
 AS

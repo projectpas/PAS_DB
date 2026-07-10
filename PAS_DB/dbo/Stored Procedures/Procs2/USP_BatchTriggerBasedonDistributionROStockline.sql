@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.USP_BatchTriggerBasedonDistributionROStockline   (source: PAS_DB/dbo/Stored Procedures/Procs2/USP_BatchTriggerBasedonDistributionROStockline.sql)
+-- ---------------------------------------------------------------------------------------------------
 /*************************************************************           
  ** File:   [USP_BatchTriggerBasedonDistributionROStockline]           
  ** Author: 
@@ -22,7 +26,7 @@
 /*************************************************************           
 EXEC [dbo].[USP_BatchTriggerBasedonDistributionROStockline] 64201,1,'10.00','ReceivingRO','deep patel',1,'STOCK',0
 ************************************************************************/
-CREATE PROCEDURE [dbo].[USP_BatchTriggerBasedonDistributionROStockline]
+CREATE   PROCEDURE [dbo].[USP_BatchTriggerBasedonDistributionROStockline]
 @StocklineId bigint=NULL,
 @Qty int=0,
 @Amount Decimal(18,2),

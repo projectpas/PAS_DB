@@ -1,4 +1,8 @@
-﻿/*************************************************************   
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.USP_GetPurchaseOrderPartViewByPOId   (source: PAS_DB/dbo/Stored Procedures/Procs2/USP_GetPurchaseOrderPartViewByPOId.sql)
+-- ---------------------------------------------------------------------------------------------------
+/*************************************************************   
 -- =============================================
 -- Author:		<Rajesh Gami>
 -- Create date: <20-Nov-2024>
@@ -18,7 +22,7 @@
 --EXEC [dbo].[USP_GetPurchaseOrderPartViewByPOId] 3131 ,NULL,NULL
 **************************************************************/ 
 
-CREATE         PROCEDURE [dbo].[USP_GetPurchaseOrderPartViewByPOId]
+CREATE           PROCEDURE [dbo].[USP_GetPurchaseOrderPartViewByPOId]
 @PurchaseOrderId bigint
 AS
 BEGIN

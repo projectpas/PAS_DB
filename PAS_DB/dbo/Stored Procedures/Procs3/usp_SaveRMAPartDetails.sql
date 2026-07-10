@@ -1,3 +1,4 @@
+﻿-- ===== PROCEDURE: [dbo].[usp_SaveRMAPartDetails]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs3/usp_SaveRMAPartDetails.sql) =====
 /*************************************************************           
  ** File:   [sp_GetCustomerRMAPartsDetails]           
  ** Author:   Subhash Saliya

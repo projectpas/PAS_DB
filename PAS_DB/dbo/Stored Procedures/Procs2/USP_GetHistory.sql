@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.USP_GetHistory   (source: PAS_DB/dbo/Stored Procedures/Procs2/USP_GetHistory.sql)
+-- ---------------------------------------------------------------------------------------------------
 /*************************************************************             
  ** File:   [USP_GetHistory]             
  ** Author:  Amit Ghediya  
@@ -18,7 +22,7 @@
 	4    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 -- EXEC USP_GetHistory 1,1,'',0,'',1,1  
 ************************************************************************/  
-CREATE     PROCEDURE [dbo].[USP_GetHistory]  
+CREATE       PROCEDURE [dbo].[USP_GetHistory]  
  @PageNumber INT,  
  @PageSize INT,  
  @SortColumn VARCHAR(50)=null,  

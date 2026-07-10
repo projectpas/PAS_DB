@@ -1,3 +1,4 @@
+﻿-- ===== PROCEDURE: [dbo].[sp_VendorRMA_SearchStockLinePickTicket]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs1/sp_VendorRMA_SearchStockLinePickTicket.sql) =====
 /*************************************************************           
  ** File:   [dbo].[sp_VendorRMA_SearchStockLinePickTicket]          
  ** Author:   Amit Ghediya
@@ -17,7 +18,7 @@
 -- EXEC [dbo].[sp_VendorRMA_SearchStockLinePickTicket] 330,1,42,0
 -- EXEC [dbo].[sp_VendorRMA_SearchStockLinePickTicket] 1,1,42,1
 **************************************************************/ 
-CREATE       PROCEDURE [dbo].[sp_VendorRMA_SearchStockLinePickTicket]
+CREATE   PROCEDURE [dbo].[sp_VendorRMA_SearchStockLinePickTicket]
 	@ItemMasterIdlist bigint, 
 	@ConditionId BIGINT,
 	@VendorRMAId bigint,

@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.GetWorkOrderQuoteDetailsForInvioce   (source: PAS_DB/dbo/Stored Procedures/Procs1/GetWorkOrderQuoteDetailsForInvioce.sql)
+-- ---------------------------------------------------------------------------------------------------
 
 /*************************************************************           
  ** File:   [GetWorkOrderQuoteDetailsForInvioce]           
@@ -25,7 +29,7 @@
 -- EXEC [GetWorkOrderQuoteDetailsForInvioce] 3566, 3596
 **************************************************************/
 
-CREATE PROCEDURE [dbo].[GetWorkOrderQuoteDetailsForInvioce]
+CREATE   PROCEDURE [dbo].[GetWorkOrderQuoteDetailsForInvioce]
 	@workflowWorkorderId BIGINT,
 	@WorkOrderPartNoId BIGINT
 AS

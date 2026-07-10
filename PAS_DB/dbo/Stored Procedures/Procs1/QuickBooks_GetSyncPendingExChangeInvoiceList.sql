@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.QuickBooks_GetSyncPendingExChangeInvoiceList   (source: PAS_DB/dbo/Stored Procedures/Procs1/QuickBooks_GetSyncPendingExChangeInvoiceList.sql)
+-- ---------------------------------------------------------------------------------------------------
 /*************************************************************           
  ** File:   [QuickBooks_GetSyncPendingExChangeInvoiceList]           
  ** Author:   Devendra Shekh
@@ -21,7 +25,7 @@
      
  EXECUTE [QuickBooks_GetSyncPendingExChangeInvoiceList] 1, 1, 136, 0
 **************************************************************/ 
-CREATE   PROCEDURE [dbo].[QuickBooks_GetSyncPendingExChangeInvoiceList]
+CREATE     PROCEDURE [dbo].[QuickBooks_GetSyncPendingExChangeInvoiceList]
 	@IntegrationTypeId INT = NULL,
 	@MasterCompanyId INT = NULL,
 	@ReferenceId BIGINT = NULL,

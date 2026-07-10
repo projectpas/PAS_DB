@@ -1,3 +1,4 @@
+﻿-- ===== PROCEDURE: [dbo].[USP_CheckWorkOrderForSerialNumber]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs2/USP_CheckWorkOrderForSerialNumber.sql) =====
 /*************************************************************           
  ** File:   [USP_CheckWorkOrderForSerialNumber]           
  ** Author:  AMIT GHEDIYA
@@ -19,7 +20,7 @@
 -- EXEC USP_CheckWorkOrderForSerialNumber 41216,'AMIT6767',1
 
 ************************************************************************/
-CREATE     PROCEDURE [dbo].[USP_CheckWorkOrderForSerialNumber]
+CREATE   PROCEDURE [dbo].[USP_CheckWorkOrderForSerialNumber]
 	@ItemMasterId BIGINT,
 	@SerialNumber VARCHAR(50),
 	@MasterCompanyId INT

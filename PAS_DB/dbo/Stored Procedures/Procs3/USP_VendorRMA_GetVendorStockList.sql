@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿-- ===== PROCEDURE: [dbo].[USP_VendorRMA_GetVendorStockList]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs3/USP_VendorRMA_GetVendorStockList.sql) =====
+/*************************************************************           
  ** File:   [USP_VendorRMA_GetVendorStockList]           
  ** Author: Moin Bloch
  ** Description: This stored procedure is used to Get Vendor Stock Listing 

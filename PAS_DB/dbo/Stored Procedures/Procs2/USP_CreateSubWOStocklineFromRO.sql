@@ -1,3 +1,4 @@
+﻿-- ===== PROCEDURE: [dbo].[USP_CreateSubWOStocklineFromRO]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs2/USP_CreateSubWOStocklineFromRO.sql) =====
 -------------------------------------------------------------------------------------------------------------------
 
 /*************************************************************           
@@ -27,7 +28,7 @@
 
 **************************************************************/ 
     
-CREATE PROCEDURE [dbo].[USP_CreateSubWOStocklineFromRO]    
+CREATE   PROCEDURE [dbo].[USP_CreateSubWOStocklineFromRO]    
 (    
 @RepairOrderId  BIGINT  = NULL
 )    

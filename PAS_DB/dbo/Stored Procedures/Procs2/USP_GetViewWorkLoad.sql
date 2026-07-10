@@ -1,4 +1,8 @@
-﻿/*************************************************************           
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.USP_GetViewWorkLoad   (source: PAS_DB/dbo/Stored Procedures/Procs2/USP_GetViewWorkLoad.sql)
+-- ---------------------------------------------------------------------------------------------------
+/*************************************************************           
  ** File:   [USP_GetViewWorkLoad]           
  ** Author:   Subhash Saliya
  ** Description: This stored procedure is used retrieve WorkOrder Assignment Details    
@@ -24,7 +28,7 @@
 
 **************************************************************/ 
     
-CREATE   PROCEDURE [dbo].[USP_GetViewWorkLoad]    
+CREATE     PROCEDURE [dbo].[USP_GetViewWorkLoad]    
 ( 
 @PageNumber int,
 @PageSize int,

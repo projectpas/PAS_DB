@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.AutoCompleteDropdownsPublicationByItemMaster   (source: PAS_DB/dbo/Stored Procedures/Procs1/AutoCompleteDropdownsPublicationByItemMaster.sql)
+-- ---------------------------------------------------------------------------------------------------
 
 /*************************************************************           
  ** File:   [AutoCompleteDropdownsItemMaster]           
@@ -20,7 +24,7 @@
 --EXEC [AutoCompleteDropdownsPublicationByItemMaster] '',20,'100',245,1
 **************************************************************/
 
-CREATE PROCEDURE [dbo].[AutoCompleteDropdownsPublicationByItemMaster]
+CREATE   PROCEDURE [dbo].[AutoCompleteDropdownsPublicationByItemMaster]
 @StartWith VARCHAR(50),
 @Count VARCHAR(10) = '0',
 @Idlist VARCHAR(max) = '0',

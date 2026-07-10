@@ -1,3 +1,4 @@
+﻿-- ===== PROCEDURE: [dbo].[USP_GetSWOTaskMaterialsByWOTaskId]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs2/USP_GetSWOTaskMaterialsByWOTaskId.sql) =====
 /*************************************************************
  ** File:   [USP_GetSWOTaskMaterialsByWOTaskId]
  ** Author: Vishal Suthar

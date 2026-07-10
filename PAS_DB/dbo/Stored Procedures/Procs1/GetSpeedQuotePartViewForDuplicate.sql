@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.GetSpeedQuotePartViewForDuplicate   (source: PAS_DB/dbo/Stored Procedures/Procs1/GetSpeedQuotePartViewForDuplicate.sql)
+-- ---------------------------------------------------------------------------------------------------
 /*************************************************************           
  ** File:  [GetSpeedQuotePartViewForDuplicate]           
  ** Author:  Amit Ghediya
@@ -18,7 +22,7 @@
      
 -- EXEC GetSpeedQuotePartViewForDuplicate 78
 ************************************************************************/
-CREATE     PROCEDURE [dbo].[GetSpeedQuotePartViewForDuplicate]  
+CREATE       PROCEDURE [dbo].[GetSpeedQuotePartViewForDuplicate]  
   @salesQuoteId BIGINT
 AS
 BEGIN

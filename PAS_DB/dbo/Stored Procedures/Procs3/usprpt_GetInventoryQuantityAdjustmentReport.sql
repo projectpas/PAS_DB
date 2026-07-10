@@ -1,3 +1,4 @@
+﻿-- ===== PROCEDURE: [dbo].[usprpt_GetInventoryQuantityAdjustmentReport]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs3/usprpt_GetInventoryQuantityAdjustmentReport.sql) =====
 /*************************************************************           
  ** File:   [usprpt_GetInventoryQuantityAdjustmentReport]
  ** Author:   

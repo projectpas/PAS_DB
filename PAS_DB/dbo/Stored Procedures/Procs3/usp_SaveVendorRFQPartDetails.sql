@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.usp_SaveVendorRFQPartDetails   (source: PAS_DB/dbo/Stored Procedures/Procs3/usp_SaveVendorRFQPartDetails.sql)
+-- ---------------------------------------------------------------------------------------------------
 /*************************************************************
  ** File:  [usp_SaveVendorRFQPartDetails] 
  ** Author:   Devendra Shekh
@@ -18,7 +22,7 @@
 	7    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 
 **************************************************************/ 
-CREATE   PROCEDURE [dbo].[usp_SaveVendorRFQPartDetails] (
+CREATE     PROCEDURE [dbo].[usp_SaveVendorRFQPartDetails] (
 	@tbl_VendorRFQPartType VendorRFQPartType READONLY,
 	@EmployeeId  BIGINT = NULL
 )

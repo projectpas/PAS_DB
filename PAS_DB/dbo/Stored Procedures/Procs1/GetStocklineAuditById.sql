@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.GetStocklineAuditById   (source: PAS_DB/dbo/Stored Procedures/Procs1/GetStocklineAuditById.sql)
+-- ---------------------------------------------------------------------------------------------------
 
 /*************************************************************           
  ** File:   [GetStocklineAuditById]           
@@ -20,7 +24,7 @@
 	 EXEC [dbo].[GetStocklineAuditById] 178385
 **************************************************************/ 
 
-CREATE PROCEDURE [dbo].[GetStocklineAuditById]
+CREATE   PROCEDURE [dbo].[GetStocklineAuditById]
 @stocklineId BIGINT = null
 AS
 BEGIN

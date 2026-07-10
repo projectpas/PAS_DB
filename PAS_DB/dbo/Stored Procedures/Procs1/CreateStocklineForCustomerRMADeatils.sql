@@ -1,4 +1,8 @@
-﻿-----------------------------------------------------------------------------------------------------  
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.CreateStocklineForCustomerRMADeatils   (source: PAS_DB/dbo/Stored Procedures/Procs1/CreateStocklineForCustomerRMADeatils.sql)
+-- ---------------------------------------------------------------------------------------------------
+-----------------------------------------------------------------------------------------------------  
   
 /*************************************************************             
  ** File:   [CreateStocklineForCustomerRMADeatils]             
@@ -24,7 +28,7 @@
 -- EXEC [CreateStocklineForCustomerRMADeatils] 44  
 **************************************************************/  
   
-CREATE   PROCEDURE [dbo].[CreateStocklineForCustomerRMADeatils]  
+CREATE     PROCEDURE [dbo].[CreateStocklineForCustomerRMADeatils]  
 @RMADeatilsId BIGINT,  
 @ModuleId INT  
 AS  

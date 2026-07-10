@@ -1,4 +1,8 @@
 ﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.UpdateItemMasterExportInfoDetails   (source: PAS_DB/dbo/Stored Procedures/Procs1/UpdateItemMasterExportInfoDetails.sql)
+-- ---------------------------------------------------------------------------------------------------
+
 
 /*************************************************************           
  ** File:   [UpdateItemMasterExportInfoDetails]           
@@ -20,7 +24,7 @@
  EXEC UpdateItemMasterExportInfoDetails 351
 **************************************************************/ 
 
-CREATE PROCEDURE [dbo].[UpdateItemMasterExportInfoDetails]
+CREATE   PROCEDURE [dbo].[UpdateItemMasterExportInfoDetails]
 @ItemMasterId  bigint
 AS
 BEGIN

@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.SubWorkOrderSummarizedHistoryByMPN   (source: PAS_DB/dbo/Stored Procedures/Procs1/SubWorkOrderSummarizedHistoryByMPN.sql)
+-- ---------------------------------------------------------------------------------------------------
 
 /*************************************************************           
  ** File:   [SubWorkOrderSummarizedHistoryByMPN]           
@@ -23,7 +27,7 @@
 --EXEC [SubWorkOrderSummarizedHistoryByMPN] 295,0
 **************************************************************/
 
-CREATE PROCEDURE [dbo].[SubWorkOrderSummarizedHistoryByMPN]
+CREATE   PROCEDURE [dbo].[SubWorkOrderSummarizedHistoryByMPN]
 @ItemMasterId BIGINT,
 @IsTwelveMonth BIT = 1
 AS

@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.UpdateVendorRFQRepairOrderDetail   (source: PAS_DB/dbo/Stored Procedures/Procs1/UpdateVendorRFQRepairOrderDetail.sql)
+-- ---------------------------------------------------------------------------------------------------
 /***************************************************************************************************************************************
   ** Change History
  ***************************************************************************************************************************************
@@ -5,7 +9,7 @@
  ** --   --------					 -------						-------------------------------
 	1    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 ****************************************************************************************************************************************/
-CREATE PROCEDURE [dbo].[UpdateVendorRFQRepairOrderDetail]
+CREATE   PROCEDURE [dbo].[UpdateVendorRFQRepairOrderDetail]
 @VendorRFQRepairOrderId  bigint
 AS
 BEGIN

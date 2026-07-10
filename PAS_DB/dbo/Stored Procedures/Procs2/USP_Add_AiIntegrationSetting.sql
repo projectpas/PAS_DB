@@ -14,9 +14,11 @@ EXEC [USP_GetPNLabelSettingData]
 ** 3	Aug-07-2025	    Amit Ghediya      Modified add Fields IsAutoInternalQuote
 ** 4	Aug-11-2025	    Moin Bloch        Modified add Fields OpenAIAPIKeys
 ** 5	Dec-03-2025	    Ayushi Patel      Modified add Fields DocumentTypeId
+** 6	July-09-2026	Divyesh Kathiriya Add Fields VRFQEmailSubject [PN-16868]
+
 exec dbo.USP_GetPNLabelSettingData 1  
 **********************/   
-CREATE   PROCEDURE [dbo].[USP_Add_AiIntegrationSetting]
+CREATE PROCEDURE [dbo].[USP_Add_AiIntegrationSetting]
 	@AiIntegrationSettingId BIGINT,
 	@CreatedBy VARCHAR(50),
 	@UpdatedBy VARCHAR(50),
@@ -28,8 +30,9 @@ CREATE   PROCEDURE [dbo].[USP_Add_AiIntegrationSetting]
 	@YearId bigint = 0,
 	@MonthId bigint = 0,
 	@PercentId bigint = 0,
-	@OpenAIAPIKeys NVARCHAR(MAX)=NULL,
-	@DocumentTypeId NVARCHAR(MAX)=NULL
+	@OpenAIAPIKeys NVARCHAR(MAX) = NULL,	
+	@DocumentTypeId NVARCHAR(MAX) = NULL,
+	@VRFQEmailSubject NVARCHAR(250) = NULL
 AS
 BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
@@ -73,13 +76,14 @@ BEGIN
 				TARGET.[IsAutoInternalQuote] = @IsAutoInternalQuote,
 				TARGET.[PercentId] = @PercentId,
 				TARGET.[PercentValue] = @PercentValue,
-				TARGET.[OpenAIAPIKeys] = @OpenAIAPIKeys,
-				TARGET.[DocumentTypeId] = @DocumentTypeId,
+				TARGET.[OpenAIAPIKeys] = @OpenAIAPIKeys,				
+				TARGET.[DocumentTypeId] = @DocumentTypeId,				
 				TARGET.[UpdatedDate] = GETUTCDATE(),
-				TARGET.[UpdatedBy] = @UpdatedBy
+				TARGET.[UpdatedBy] = @UpdatedBy,
+				TARGET.[VRFQEmailSubject] = @VRFQEmailSubject
 		WHEN NOT MATCHED BY TARGET THEN
-			INSERT ([IsEnableDisableAIintegration], [IsReviewRequired], [IsAutoEmailSend], [IsAutoInternalQuote],[PercentId],[PercentValue], [MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted],[YearId], [MonthId],[OpenAIAPIKeys],[DocumentTypeId])
-			VALUES (@IsEnableDisableAIintegration, @IsReviewRequired, @IsAutoEmailSend,@IsAutoInternalQuote,@PercentId,@PercentValue, @MasterCompanyId, @CreatedBy, @UpdatedBy, GETUTCDATE(), GETUTCDATE(), 1, 0,@YearId, @MonthId,@OpenAIAPIKeys,@DocumentTypeId);
+			INSERT ([IsEnableDisableAIintegration], [IsReviewRequired], [IsAutoEmailSend], [IsAutoInternalQuote],[PercentId],[PercentValue], [MasterCompanyId], [CreatedBy], [UpdatedBy], [CreatedDate], [UpdatedDate], [IsActive], [IsDeleted],[YearId], [MonthId],[OpenAIAPIKeys],[DocumentTypeId],[VRFQEmailSubject])
+			VALUES (@IsEnableDisableAIintegration, @IsReviewRequired, @IsAutoEmailSend,@IsAutoInternalQuote,@PercentId,@PercentValue, @MasterCompanyId, @CreatedBy, @UpdatedBy, GETUTCDATE(), GETUTCDATE(), 1, 0,@YearId, @MonthId,@OpenAIAPIKeys,@DocumentTypeId,@VRFQEmailSubject);
 
 		COMMIT TRANSACTION;
 	END TRY

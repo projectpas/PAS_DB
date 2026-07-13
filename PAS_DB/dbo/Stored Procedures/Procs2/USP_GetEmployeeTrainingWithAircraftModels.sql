@@ -15,6 +15,7 @@
 	2    14-APR-2026   Sahdev Saliya        Added TrainingName, ProviderId, ProviderType, IsRecurring, DurationHours, DurationMinutes (PN-15932)
 	3    16-APR-2026   Sahdev Saliya        Added TrainingNameId
 	4    04-May-2026   Sahdev Saliya        Added CategoryId, CategoryType, CurrencyId, CurrencyCode (PN-16203)
+	5    13-Jul-2026   Bhargav Saliya       GET start Date (PN-17217)
 
 	--EXEC [USP_GetEmployeeTrainingWithAircraftModels] @EmployeeId= 232, @EmployeeTrainingId = 39
 ********************************************************************************/ 
@@ -76,6 +77,7 @@ BEGIN
 			,ET.CategoryType
 			,ET.CurrencyId
 			,CR.[Code] as CurrencyCode
+			,ET.StartDate
 		FROM dbo.EmployeeTraining ET WITH (NOLOCK)
 			LEFT JOIN dbo.EmployeeTrainingType ETP WITH (NOLOCK) ON ET.EmployeeTrainingTypeId = ETP.EmployeeTrainingTypeId
 			LEFT JOIN dbo.AircraftType AFT WITH (NOLOCK) ON ET.AircraftManufacturerId = AFT.AircraftTypeId

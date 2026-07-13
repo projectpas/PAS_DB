@@ -28,11 +28,10 @@ BEGIN
             w.WorkflowDescription,
             wt.WorkflowTaskId,
             wt.TaskId,
-            t.Description AS TaskDescription,
             t.Description AS Task,
             wt.SequenceNumber,
             ws.WorkScopeId,
-            ws.Description AS WorkScope,
+            ws.WorkScopeCode AS WorkScope,
             w.WorkOrderNumber as WorkFlowNo,
             CAST(CASE WHEN wot.TaskId IS NOT NULL THEN 1 ELSE 0 END AS BIT) AS AlreadyInWO
         FROM dbo.WorkflowTask wt WITH(NOLOCK)

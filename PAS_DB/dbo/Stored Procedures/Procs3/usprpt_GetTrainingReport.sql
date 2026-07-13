@@ -21,7 +21,7 @@
     8    08/07/2026    Kishor Makwana       Added categoryType in select statement [PN-17166]
     9    08/07/2026    Kishor Makwana       Added categoryId and isRecurring filters [PN-17166]
     10   10-JUL-2026   Bhargav Saliya       Added Provider Type filter (Internal/External) [PN-17163]
-
+    11   13-Jul-2026   Bhargav Saliya       Get start Date (PN-17217)
 ************************************************************************/
 CREATE      PROCEDURE [dbo].[usprpt_GetTrainingReport]
     @PageNumber      INT = 1,
@@ -171,7 +171,10 @@ BEGIN
                 UPPER(MSD.Level7Name)  AS level7,
                 UPPER(MSD.Level8Name)  AS level8,
                 UPPER(MSD.Level9Name)  AS level9,
-                UPPER(MSD.Level10Name) AS level10
+                UPPER(MSD.Level10Name) AS level10,
+                ET.CategoryType AS categoryType,
+                ET.CategoryId  AS CategoryId,
+                CONVERT(VARCHAR(10), ET.StartDate, 110) AS StartDate
             FROM DBO.Employee E WITH (NOLOCK)
                 INNER JOIN dbo.EmployeeManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = E.EmployeeId
                 LEFT JOIN dbo.JobTitle J WITH (NOLOCK) ON E.JobTitleId = J.JobTitleId
@@ -210,7 +213,7 @@ BEGIN
                 EC.CertifyingInstitution, EC.CertificationNumber, ET.CreatedDate, TN.[Name], ET.ProviderType, ET.IsRecurring,
                 MSD.Level1Name, MSD.Level2Name, MSD.Level3Name, MSD.Level4Name,
                 MSD.Level5Name, MSD.Level6Name, MSD.Level7Name, MSD.Level8Name,
-                MSD.Level9Name, MSD.Level10Name, E.EmployeeExpIds
+                MSD.Level9Name, MSD.Level10Name, E.EmployeeExpIds,ET.CategoryType,ET.CategoryId,ET.StartDate
         )
         SELECT
             COUNT(1) OVER () AS TotalRecordsCount,
@@ -220,7 +223,7 @@ BEGIN
             scheduleDate, completionDate, expirationDate,
             daysToExpiration, inforce, aircraftType, model, issuingEntity, certNum, issueDate,
             trainingName, providerType, isRecurring,
-            level1, level2, level3, level4, level5, level6, level7, level8, level9, level10
+            level1, level2, level3, level4, level5, level6, level7, level8, level9, level10,categoryType,StartDate
         FROM rptCTE
         ORDER BY EmployeeId DESC
         OFFSET ((@PageNumber - 1) * @PageSize) ROWS FETCH NEXT @PageSize ROWS ONLY

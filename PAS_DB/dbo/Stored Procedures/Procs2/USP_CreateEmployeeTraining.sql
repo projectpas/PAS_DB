@@ -15,6 +15,7 @@
     1    28-08-2025    Sahdev Saliya       Created  
 	2    14-APR-2026   Sahdev Saliya       Added TrainingName, ProviderId, ProviderType, IsRecurring, DurationHours, DurationMinutes (PN-15932)
 	3    04-May-2026   Sahdev Saliya       Added CategoryId, CategoryType, CurrencyId (PN-16203)
+	4    13-Jul-2026   Bhargav Saliya      Added New Field start Date (PN-17217)
 	 
 	exec [USP_CreateEmployeeTraining] 
 **************************************************************/ 
@@ -48,7 +49,8 @@ CREATE   PROCEDURE [dbo].[USP_CreateEmployeeTraining]
 	@DurationMinutes VARCHAR(200) = NULL,
 	@CategoryId BIGINT= NULL,
 	@CategoryType VARCHAR(50) = NULL,
-	@CurrencyId BIGINT = NULL
+	@CurrencyId BIGINT = NULL,
+	@StartDate DATETIME = NULL
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -86,7 +88,8 @@ BEGIN
 			DurationMinutes,
 			CategoryId,
 			CategoryType,
-			CurrencyId)
+			CurrencyId,
+			StartDate)
         VALUES
         (   @EmployeeId ,
 			@AircraftManufacturerId, 
@@ -117,7 +120,8 @@ BEGIN
 			@DurationMinutes,
 		    @CategoryId,
 			@CategoryType,
-			@CurrencyId);
+			@CurrencyId,
+			@StartDate);
 		
 		IF (LEN(@AircraftModelIds) > 0)
         BEGIN

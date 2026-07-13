@@ -13,6 +13,7 @@
  ** PR   Date			Author			Change Description            
  ** --   --------		-------			--------------------------------          
     1    02-June-2026   Vishal Suthar   Created
+    2    13-July-2026   Vishal Suthar   Modified to prevent unique key constraint error for ItemMaster creation for new email template
 
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[usp_CreateVendorRFQPOFromEmail]
@@ -280,7 +281,8 @@ BEGIN
             (
                 PartNumber       NVARCHAR(200),
                 ManufacturerId   BIGINT,
-                ManufacturerName NVARCHAR(500)
+                ManufacturerName NVARCHAR(500),
+				PRIMARY KEY (PartNumber, ManufacturerId)
             );
 
             DECLARE
@@ -342,9 +344,18 @@ BEGIN
                     SET @LoopManufacturerId = SCOPE_IDENTITY();
                 END
 
-                -- Store resolved ManufacturerId against PartNumber
-                INSERT INTO @PartManufacturers (PartNumber, ManufacturerId, ManufacturerName)
-                VALUES (@LoopPartNumber, @LoopManufacturerId, @LoopManufacturer);
+				IF NOT EXISTS
+				(
+					SELECT 1
+					FROM @PartManufacturers
+					WHERE PartNumber = @LoopPartNumber
+					  AND ManufacturerId = @LoopManufacturerId
+				)
+				BEGIN
+					-- Store resolved ManufacturerId against PartNumber
+					INSERT INTO @PartManufacturers (PartNumber, ManufacturerId, ManufacturerName)
+					VALUES (@LoopPartNumber, @LoopManufacturerId, @LoopManufacturer);
+				END
 
                 FETCH NEXT FROM mfg_cursor INTO @LoopPartNumber, @LoopManufacturer;
             END
@@ -376,6 +387,18 @@ BEGIN
             -- Uses per-part ManufacturerId from @PartManufacturers
             ------------------------------------------------------------
             DECLARE @NewItemMasters TABLE (ItemMasterId BIGINT);
+
+			;WITH DistinctParts AS
+			(
+				SELECT DISTINCT
+					LTRIM(RTRIM(p.PartNumber)) AS PartNumber,
+					ISNULL(LTRIM(RTRIM(p.Description)), 'N/A') AS Description,
+					pm.ManufacturerId,
+					pm.ManufacturerName
+				FROM @tbl_EmailParts p
+				INNER JOIN @PartManufacturers pm
+					ON pm.PartNumber = LTRIM(RTRIM(p.PartNumber))
+			)
 
             INSERT INTO dbo.ItemMaster
             (
@@ -414,7 +437,7 @@ BEGIN
                 im.IsOpenDateAvailable, im.OpenDays, im.IsShippedDateAvailable, im.ShippedDays,
                 im.IsOtherDateAvailable, im.OtherDays, im.IsDER, im.IsSchematic, im.OverhaulHours,
                 im.RPHours, im.TestHours, im.RFQTracking,
-                pm.ManufacturerId,              -- per-part manufacturer from @PartManufacturers
+                dp.ManufacturerId,              -- per-part manufacturer from @PartManufacturers
                 im.GLAccountId, @DefaultUnitOfMeasureId, @DefaultUnitOfMeasureId, @DefaultUnitOfMeasureId,
                 im.LeadTimeDays, im.ReorderPoint, im.ReorderQuantiy, im.MinimumOrderQuantity,
                 im.CurrencyId, im.PurchaseCurrencyId, im.SalesCurrencyId,
@@ -424,8 +447,8 @@ BEGIN
                 im.turnTimeMfg, im.turnTimeBenchTest, im.SiteId, im.ItemMasterAssetTypeId,
                 im.IsHotItem, im.IsAcquiredMethodBuy, im.IsOEM, im.MTBUR,
                 im.NE, im.NS, im.OH, im.REP, im.SVC,
-                LTRIM(RTRIM(p.PartNumber)),
-                ISNULL(LTRIM(RTRIM(p.Description)), 'N/A'),
+                LTRIM(RTRIM(dp.PartNumber)),
+                ISNULL(LTRIM(RTRIM(dp.Description)), 'N/A'),
                 1, 0,
                 im.InventoryGLSettingId, im.GoodsReceivedNotInvoicesGLAccId, im.WorkInProgressGLAccId,
                 im.InventoryToBillGLAccId, im.FinishedGoodsGLAccId, im.InventoryExchAgreementGLAccId,
@@ -437,18 +460,32 @@ BEGIN
                 im.COGS_WorkOrderGLAccName, im.COGS_SalesOrderGLAccName, im.COGS_QtyVarianceGLAccName,
                 im.COGS_UnitCostVarianceGLAccName, im.RevenueMroGLAccName, im.RevenueSoGLAccName,
                 im.RevenueExchGLAccName, im.COGS_ExchSalesOrderGLAccName
-            FROM @tbl_EmailParts p
-            INNER JOIN @PartManufacturers pm ON pm.PartNumber = LTRIM(RTRIM(p.PartNumber))
-            CROSS JOIN dbo.ItemMaster im
-            WHERE im.ItemMasterId = @TemplateItemMasterId
-              AND NOT EXISTS
-              (
-                  SELECT 1 FROM dbo.ItemMaster x WITH (NOLOCK)
-                  WHERE x.MasterCompanyId = @MasterCompanyId
-                    AND x.PartNumber = LTRIM(RTRIM(p.PartNumber))
-					AND x.PartDescription = ISNULL(LTRIM(RTRIM(p.Description)), 'N/A')
-                    AND x.IsDeleted = 0
-              );
+			FROM DistinctParts dp
+			CROSS JOIN dbo.ItemMaster im
+			WHERE im.ItemMasterId = @TemplateItemMasterId
+			AND NOT EXISTS
+			(
+				SELECT 1
+				FROM dbo.ItemMaster x
+				WHERE x.MasterCompanyId = @MasterCompanyId
+				  AND x.PartNumber = dp.PartNumber
+				  AND x.PartDescription = dp.Description
+				  AND x.ManufacturerId = dp.ManufacturerId
+				  AND x.IsDeleted = 0
+			);
+     --       FROM @tbl_EmailParts p
+     --       INNER JOIN @PartManufacturers pm ON pm.PartNumber = LTRIM(RTRIM(p.PartNumber))
+     --       CROSS JOIN dbo.ItemMaster im
+     --       WHERE im.ItemMasterId = @TemplateItemMasterId
+     --         AND NOT EXISTS
+     --         (
+     --             SELECT 1 FROM dbo.ItemMaster x WITH (NOLOCK)
+     --             WHERE x.MasterCompanyId = @MasterCompanyId
+     --               AND x.PartNumber = LTRIM(RTRIM(p.PartNumber))
+					--AND x.PartDescription = ISNULL(LTRIM(RTRIM(p.Description)), 'N/A')
+					--AND x.ManufacturerId = pm.ManufacturerId
+     --               AND x.IsDeleted = 0
+     --         );
 
             ------------------------------------------------------------
             -- RUN UpdateItemMasterDetail FOR EACH NEW ITEM MASTER
@@ -512,6 +549,7 @@ BEGIN
                   AND im.IsActive = 1 AND im.IsDeleted = 0
                   AND im.PartNumber = LTRIM(RTRIM(p.PartNumber))
                   AND im.PartDescription = ISNULL(LTRIM(RTRIM(p.Description)), 'N/A')
+				  AND im.ManufacturerId = pm.ManufacturerId
             WHERE LTRIM(RTRIM(ISNULL(p.PartNumber, ''))) <> '';
 
             -- 7a. Save part management structure details

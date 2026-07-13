@@ -19,7 +19,7 @@
 **************************************************************/
 CREATE    PROCEDURE [dbo].[RPT_GetEmployeeTrainingListById]
 @EmployeeId BIGINT,
-@MasterCompanyId BIGINT ,
+@MasterCompanyId BIGINT,
 @CategoryId BIGINT
 AS
 BEGIN
@@ -44,7 +44,7 @@ BEGIN
 			ET.[CompletionDate],			
 			ET.[ExpirationDate],			
 			CASE
-				WHEN @CategoryId = 0 THEN 'All'
+				WHEN ISNULL(@CategoryId, 0) = 0 THEN 'All'
 				ELSE ET.[CategoryType]
 			END AS [CategoryType]
 		FROM [DBO].[EmployeeTraining] ET WITH(NOLOCK)

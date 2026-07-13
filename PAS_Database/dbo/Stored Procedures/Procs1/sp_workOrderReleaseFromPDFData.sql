@@ -24,12 +24,15 @@
 	7    10/10/2025   Moin Bloch     Updated For Get VersionNo & IsVersionIncrease Flag
 	8    13/10/2025   Moin Bloch     Updated to Dynamic VersionNo
 	9    12/11/2025   Moin Bloch     Updated trackingNo For PAR Company
-	10   14/May/2026  Rajesh Gami	 Return EmployeeId [PN-16405 :  Generate Multiple Release Forms for Teardown Work Orders]     
+	10   14/May/2026  Rajesh Gami	 Return EmployeeId [PN-16405 :  Generate Multiple Release Forms for Teardown Work Orders]    
+	11   13/July/2026 Priyansh Patel Added missing longbook Id [PN-17081]     
+	
  EXECUTE [sp_workOrderReleaseFromPDFData] 482
 **************************************************************/ 
 
 CREATE   Procedure [dbo].[sp_workOrderReleaseFromPDFData]
-@ReleaseFromId bigint
+@ReleaseFromId bigint,
+@IsFromLogBook BIT = 0
 AS
 BEGIN
 
@@ -113,6 +116,7 @@ BEGIN
 					  ,ISNULL(wro.[VersionNo],@VersionNo) VersionNo
 					  ,ISNULL(wro.[IsVersionIncrease],0) IsVersionIncrease
 					  ,wro.[EmployeeId]
+					   ,0 as IsAircraftLogBook
 				FROM [dbo].[Work_ReleaseFrom_8130] wro WITH(NOLOCK)
 				      LEFT JOIN [dbo].[WorkOrderPartNumber] wop WITH(NOLOCK) on wro.workOrderPartNoId = wop.Id
 					  LEFT JOIN [dbo].[Stockline] sl  WITH(NOLOCK) ON sl.StockLineId = wop.StockLineId  

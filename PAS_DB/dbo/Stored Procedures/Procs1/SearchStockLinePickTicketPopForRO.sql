@@ -27,7 +27,7 @@ BEGIN
 	BEGIN
 
 		DECLARE @ApprovalStatusId INT = 0;
-		SELECT @ApprovalStatusId = ApprovalStatusId FROM ApprovalStatus WHERE Name = 'Approved'
+		SELECT @ApprovalStatusId = ApprovalStatusId FROM DBO.[ApprovalStatus] WITH(NOLOCK) WHERE Name = 'Approved'
 
 		IF (@IsMultiplePickTicket = 1)
 		BEGIN
@@ -81,7 +81,7 @@ BEGIN
 						 (SELECT ISNULL(SUM(QtyToShip), 0) FROM ROPickTicket s WITH(NOLOCK) Where s.RepairOrderId = @RepairOrderId AND s.StocklineId = sl.StocklineId)) AS QtyToReserve
 				FROM DBO.ItemMaster im  WITH(NOLOCK)
 				JOIN DBO.StockLine sl WITH(NOLOCK) ON im.ItemMasterId = sl.ItemMasterId AND sl.IsDeleted = 0
-				LEFT JOIN DBO.RepairOrderPart rop on rop.ItemMasterId = im.ItemMasterId AND rop.StockLineId = sl.StockLineId AND rop.IsParent = 1
+				LEFT JOIN DBO.RepairOrderPart rop WITH(NOLOCK) on rop.ItemMasterId = im.ItemMasterId AND rop.StockLineId = sl.StockLineId AND rop.IsParent = 1
 				LEFT JOIN DBO.RepairOrder so WITH(NOLOCK) on so.RepairOrderId = rop.RepairOrderId
 				LEFT JOIN DBO.RepairOrderApproval roa WITH (NOLOCK) ON roa.RepairOrderPartId = rop.RepairOrderPartRecordId
 				LEFT JOIN DBO.Condition c WITH(NOLOCK) ON c.ConditionId = sl.ConditionId
@@ -161,7 +161,7 @@ BEGIN
 				FROM DBO.ItemMaster im  WITH(NOLOCK)
 				JOIN DBO.StockLine sl WITH(NOLOCK) ON im.ItemMasterId = sl.ItemMasterId AND sl.IsDeleted = 0
 				--LEFT JOIN DBO.SalesOrderStocklineV1 stk on stk.StockLineId = sl.StockLineId
-				LEFT JOIN DBO.RepairOrderPart rop on rop.ItemMasterId = im.ItemMasterId AND rop.StockLineId = sl.StockLineId AND rop.IsParent = 1
+				LEFT JOIN DBO.RepairOrderPart rop WITH(NOLOCK) on rop.ItemMasterId = im.ItemMasterId AND rop.StockLineId = sl.StockLineId AND rop.IsParent = 1
 				LEFT JOIN DBO.RepairOrder so WITH(NOLOCK) on so.RepairOrderId = rop.RepairOrderId
 				LEFT JOIN DBO.RepairOrderApproval roa WITH (NOLOCK) ON roa.RepairOrderPartId = rop.RepairOrderPartRecordId
 				--INNER JOIN DBO.SalesOrderReserveParts sor WITH(NOLOCK) on sor.SalesOrderId = so.RepairOrderId AND sor.SalesOrderPartId = sop.SalesOrderPartId AND SOR.StockLineId = stk.StockLineId

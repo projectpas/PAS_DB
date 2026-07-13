@@ -27,12 +27,13 @@ BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 	SET NOCOUNT ON;
 
-	DECLARE @ApprovalStatusId INT = 0;
-	SELECT @ApprovalStatusId = ApprovalStatusId FROM ApprovalStatus WHERE Name = 'Approved'
-
 	BEGIN TRY
 	BEGIN TRANSACTION
 	BEGIN
+		
+		DECLARE @ApprovalStatusId INT = 0;
+		SELECT @ApprovalStatusId = ApprovalStatusId FROM DBO.[ApprovalStatus] WITH(NOLOCK) WHERE Name = 'Approved'
+
 		SELECT 
 			rop.RepairOrderPartRecordId as RepairOrderPartId, 
 			rop.RepairOrderId as RepairOrderId,

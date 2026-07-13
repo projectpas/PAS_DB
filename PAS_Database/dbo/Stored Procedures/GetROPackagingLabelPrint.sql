@@ -11,7 +11,7 @@
  ** PR  Date		Author			Change Description            
  ** --  --------	-------			--------------------------------          
     1	05/15/2025	VISHAL SUTHAR	Created
-	
+	2   13/07/2026  Ayushi Patel	UOM Changes [PN-17172]
 EXEC GetROPackagingLabelPrint 2601, 1
 ************************************************************************/
 CREATE   PROCEDURE [dbo].[GetROPackagingLabelPrint]
@@ -43,7 +43,7 @@ BEGIN
 		LEFT JOIN Stockline sl WITH(NOLOCK) on sl.StockLineId = sop.StockLineId
 		LEFT JOIN ItemMaster imt WITH(NOLOCK) on imt.ItemMasterId = sop.ItemMasterId
 		LEFT JOIN Condition co WITH(NOLOCK) on co.ConditionId = sop.ConditionId
-		LEFT JOIN UnitOfMeasure uom WITH(NOLOCK) on uom.UnitOfMeasureId = sl.PurchaseUnitOfMeasureId
+		LEFT JOIN UnitOfMeasure uom WITH(NOLOCK) on uom.UnitOfMeasureId = sl.StockUnitOfMeasureId
 		LEFT JOIN DBO.RepairOrderShippingItem SOSI WITH(NOLOCK) ON SOSI.RepairOrderPartId = sopt.RepairOrderPartId AND sopt.ROPickTicketId = SOSI.ROPickTicketId
 		LEFT JOIN DBO.RepairOrderShipping SOS WITH(NOLOCK) ON SOS.RepairOrderShippingId = SOSI.RepairOrderShippingId AND SOS.RepairOrderId = @RepairOrderId
 		WHERE SPI.PackagingSlipId = @PackagingSlipId AND SPB.RepairOrderId = @RepairOrderId

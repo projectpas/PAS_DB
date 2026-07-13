@@ -16,6 +16,8 @@
 	4    19/02/2025   Ayushi Patel      converted the date into utc (created) , Added a case to get timeZone
 	5    04/Apr/2025  RAJESH GAMI      Add DISTINCT due to duplicate data and Add the Reference Number related change
 	6	 27-MAY-2026  RAJESH GAMI      Added Lot Number & Transfer From Lot Num In Every Type [PN-16572]
+	7	 13-JULY-2026 Priyansh Patel   change the uom to stock uom from stockline [PN-17070]
+
 **************************************************************
 **************************************************************/
 CREATE     PROCEDURE [dbo].[USP_Lot_GetStockToLotList] 
@@ -129,7 +131,7 @@ BEGIN
 					ind.TransInMemo AS memo
 					,UPPER(MSD.LastMSLevel)	LastMSLevel
 					,UPPER(MSD.AllMSlevels) AllMSlevels
-					,UPPER(stl.UnitOfMeasure) AS Uom
+					,UPPER(stl.StockUnitOfMeasure) AS Uom
 				    ,UPPER(stl.ControlNumber) AS CntrlNumber
 					--,ind.CreatedDate AS AddedDate
 					,case when CAST(ind.CreatedDate as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(ind.CreatedDate, @CurrntEmpTimeZoneDesc) as Date))end AddedDate
@@ -290,7 +292,7 @@ BEGIN
 					UPPER(ind.TransOutMemo) AS memo
 					,UPPER(MSD.LastMSLevel)	LastMSLevel
 					,UPPER(MSD.AllMSlevels) AllMSlevels
-					,UPPER(stl.UnitOfMeasure) AS Uom
+					,UPPER(stl.StockUnitOfMeasure) AS Uom
 				    ,UPPER(stl.ControlNumber) AS CntrlNumber
 					--,ind.CreatedDate AS AddedDate
 					,case when CAST(ind.CreatedDate as date) = CAST('0001-01-01 00:00:00' as date)then null else (Cast(DBO.ConvertUTCtoLocal(ind.CreatedDate, @CurrntEmpTimeZoneDesc) as Date))end AddedDate

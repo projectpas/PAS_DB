@@ -13,6 +13,7 @@
 	4    18 MAR 2024             RAJESH GAMI                        Correction the Generate Code issue 
 	5    26/12/2025				 Amit Ghediya						Update Part memo
 	6    12/May/2026             RAJESH GAMI						Implemented : Bulk PO For Sales Order [PN-16401]
+	7    09/07/2026				 Ayushi Patel						Chnaged Qty type from INT to DECIMAL(18,6) [PN-17152]
 ****************************************************************************************************************************************/ 
 CREATE     PROCEDURE [dbo].[CreateBulkPO]
 	@tbl_BulkPODetailType BulkPODetailType READONLY,
@@ -86,7 +87,7 @@ BEGIN
 				[Priority] [nvarchar](max) NULL,
 				[ConditionId] [bigint] NULL,
 				[Condition] [varchar](256) NULL,
-				[Quantity] [int] NULL,
+				[Quantity] [decimal](18, 6) NULL,
 				[UnitCost] [decimal](18, 6) NULL,
 				[VendorId] [bigint] NULL,
 				[VendorName] [varchar](100) NULL,

@@ -30,23 +30,26 @@ BEGIN
 				  ,1 AS [ItemTypeId]
 				  ,0 AS [QuantityRejected]          --> Default SET 0   
 				  --,VD.[Qty] AS [QuantityOrdered]				  
-				  ,(CASE WHEN NULLIF(IM.[StockUnitOfMeasure], '') IS NULL OR NULLIF(IM.[PurchaseUnitOfMeasure], '') IS NULL OR IM.[StockUnitOfMeasure] = IM.[PurchaseUnitOfMeasure] THEN ISNULL(VD.[QtyShipped], 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(VD.[QtyShipped], 0),IM.[StockUnitOfMeasure],IM.[PurchaseUnitOfMeasure],0,IM.[MasterCompanyId]) END) AS [QuantityOrdered]
-  			    --,[QuantityBackOrdered] = (VD.[Qty] - (SELECT ISNULL(SUM(ISNULL(SL.[Quantity],0)),0) FROM [dbo].[StockLine] SL WITH (NOLOCK) WHERE SL.[VendorRMADetailId] = VD.[VendorRMADetailId] AND SL.[IsDeleted] = 0 AND SL.[IsParent] = 1))
-					,[QuantityBackOrdered] = (
+				  ,ROUND((CASE WHEN NULLIF(IM.[StockUnitOfMeasure], '') IS NULL OR NULLIF(IM.[PurchaseUnitOfMeasure], '') IS NULL OR IM.[StockUnitOfMeasure] = IM.[PurchaseUnitOfMeasure] THEN ISNULL(VD.[QtyShipped], 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(VD.[QtyShipped], 0),IM.[StockUnitOfMeasure],IM.[PurchaseUnitOfMeasure],0,IM.[MasterCompanyId]) END),2) AS [QuantityOrdered]
+
+					,[QuantityBackOrdered] = ROUND(
+					(
 					(CASE WHEN NULLIF(IM.[StockUnitOfMeasure], '') IS NULL OR NULLIF(IM.[PurchaseUnitOfMeasure], '') IS NULL OR IM.[StockUnitOfMeasure] = IM.[PurchaseUnitOfMeasure] THEN ISNULL(VD.[QtyShipped], 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(VD.[QtyShipped], 0),IM.[StockUnitOfMeasure],IM.[PurchaseUnitOfMeasure],0,IM.[MasterCompanyId]) END)
 					- (SELECT ISNULL(SUM(ISNULL((CASE WHEN NULLIF(IM.[StockUnitOfMeasure], '') IS NULL OR NULLIF(IM.[PurchaseUnitOfMeasure], '') IS NULL OR IM.[StockUnitOfMeasure] = IM.[PurchaseUnitOfMeasure] THEN SL.[Quantity] ELSE [dbo].[fn_ConvertUOM](ISNULL(SL.[Quantity], 0),IM.[StockUnitOfMeasure],IM.[PurchaseUnitOfMeasure],0,IM.[MasterCompanyId]) END),0)),0)
 					FROM [dbo].[StockLine] SL WITH (NOLOCK) 
 					INNER JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON SL.[ItemMasterId] = IM.[ItemMasterId] 
 					WHERE SL.[VendorRMADetailId] = VD.[VendorRMADetailId] AND SL.[IsDeleted] = 0 AND SL.[IsParent] = 1)
-					)
-					,[QuantityDrafted] = (SELECT ISNULL(SUM(ISNULL((CASE WHEN NULLIF(IM.[StockUnitOfMeasure], '') IS NULL OR NULLIF(IM.[PurchaseUnitOfMeasure], '') IS NULL OR IM.[StockUnitOfMeasure] = IM.[PurchaseUnitOfMeasure] THEN SD.[Quantity] ELSE [dbo].[fn_ConvertUOM](ISNULL(SD.[Quantity], 0),IM.[StockUnitOfMeasure],IM.[PurchaseUnitOfMeasure],0,IM.[MasterCompanyId]) END),0)),0)
+					),2)
+
+					,[QuantityDrafted] = ROUND((SELECT ISNULL(SUM(ISNULL((CASE WHEN NULLIF(IM.[StockUnitOfMeasure], '') IS NULL OR NULLIF(IM.[PurchaseUnitOfMeasure], '') IS NULL OR IM.[StockUnitOfMeasure] = IM.[PurchaseUnitOfMeasure] THEN SD.[Quantity] ELSE [dbo].[fn_ConvertUOM](ISNULL(SD.[Quantity], 0),IM.[StockUnitOfMeasure],IM.[PurchaseUnitOfMeasure],0,IM.[MasterCompanyId]) END),0)),0)
 					FROM [dbo].[StockLineDraft] SD WITH (NOLOCK) 
 					INNER JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON SD.[ItemMasterId] = IM.[ItemMasterId] 
-					WHERE SD.[VendorRMADetailId] = VD.[VendorRMADetailId] AND SD.[IsDeleted] = 0 AND SD.[IsParent] = 1 AND ISNULL(SD.[StockLineId],0) = 0)
-					,[QuantityReceived] = (SELECT ISNULL(SUM(ISNULL((CASE WHEN NULLIF(IM.[StockUnitOfMeasure], '') IS NULL OR NULLIF(IM.[PurchaseUnitOfMeasure], '') IS NULL OR IM.[StockUnitOfMeasure] = IM.[PurchaseUnitOfMeasure] THEN SL.[Quantity] ELSE [dbo].[fn_ConvertUOM](ISNULL(SL.[Quantity], 0),IM.[StockUnitOfMeasure],IM.[PurchaseUnitOfMeasure],0,IM.[MasterCompanyId]) END),0)),0)
+					WHERE SD.[VendorRMADetailId] = VD.[VendorRMADetailId] AND SD.[IsDeleted] = 0 AND SD.[IsParent] = 1 AND ISNULL(SD.[StockLineId],0) = 0),2)
+
+					,[QuantityReceived] = ROUND((SELECT ISNULL(SUM(ISNULL((CASE WHEN NULLIF(IM.[StockUnitOfMeasure], '') IS NULL OR NULLIF(IM.[PurchaseUnitOfMeasure], '') IS NULL OR IM.[StockUnitOfMeasure] = IM.[PurchaseUnitOfMeasure] THEN SL.[Quantity] ELSE [dbo].[fn_ConvertUOM](ISNULL(SL.[Quantity], 0),IM.[StockUnitOfMeasure],IM.[PurchaseUnitOfMeasure],0,IM.[MasterCompanyId]) END),0)),0)
 					FROM [dbo].[StockLine] SL WITH (NOLOCK) 
 					INNER JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON SL.[ItemMasterId] = IM.[ItemMasterId] 
-					WHERE SL.[VendorRMADetailId] = VD.[VendorRMADetailId] AND SL.[IsDeleted] = 0 AND SL.[IsParent] = 1)
+					WHERE SL.[VendorRMADetailId] = VD.[VendorRMADetailId] AND SL.[IsDeleted] = 0 AND SL.[IsParent] = 1),2)
 				  ,VD.[SerialNumber]
 				  ,SL.[ConditionId]
 				  ,SL.[Condition]

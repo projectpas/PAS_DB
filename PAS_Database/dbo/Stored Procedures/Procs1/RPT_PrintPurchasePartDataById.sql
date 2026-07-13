@@ -19,7 +19,7 @@
 	4    11/09/2024  Amit Ghediya    Update to get Header level Functional Curr.
 	5    20/09/2024  Amit Ghediya    Update for get part data in sequentially.
 	6    19/05/2025  Devendra Shekh	 Update to get PartLineTotal
-     
+    7    10/07/2026  Ayushi Patel	 [PN-17203] UOM Changes
 -- EXEC RPT_PrintPurchasePartDataById 2537
 ************************************************************************/
 CREATE PROCEDURE [dbo].[RPT_PrintPurchasePartDataById]
@@ -74,21 +74,21 @@ BEGIN
 			UnitOfMeasure VARCHAR(200) NULL,
 			NeedByDate DATETIME,
 			Condition VARCHAR(200) NULL,
-			QuantityOrdered INT NULL,
-			UnitCost DECIMAL(18,2) NULL,
-			VendorListPrice DECIMAL(18,2) NULL,
+			QuantityOrdered DECIMAL(18,6) NULL,
+			UnitCost DECIMAL(18,6) NULL,
+			VendorListPrice DECIMAL(18,6) NULL,
 			[Priority] VARCHAR(200) NULL,
-			DiscountAmount DECIMAL(18,2) NULL,
+			DiscountAmount DECIMAL(18,6) NULL,
 			DiscountPercent BIGINT NULL,
-			DiscountPercentValue DECIMAL(18,2) NULL,
-			DiscountPerUnit DECIMAL(18,2) NULL,
-			ExtendedCost DECIMAL(18,2) NULL,
+			DiscountPercentValue DECIMAL(18,6) NULL,
+			DiscountPerUnit DECIMAL(18,6) NULL,
+			ExtendedCost DECIMAL(18,6) NULL,
 			Memo VARCHAR(MAX) NULL,
 			LastMSLevel VARCHAR(200) NULL,
 			AllMSlevels VARCHAR(200) NULL,
-			BillingAmount DECIMAL(18,2) NULL,
+			BillingAmount DECIMAL(18,6) NULL,
 			ChargeMethodId INT NULL,
-			FreightBillingAmount DECIMAL(18,2) NULL,
+			FreightBillingAmount DECIMAL(18,6) NULL,
 			FreightMethodId INT NULL,
 			NumOfRecord BIGINT NULL,
 			CurrencyCode VARCHAR(100) NULL

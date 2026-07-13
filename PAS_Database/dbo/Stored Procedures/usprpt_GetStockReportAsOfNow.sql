@@ -26,7 +26,7 @@
 	10   26-02-2026		Priyansh Patel      Added Total Posted,Unposted and reconcile values
 	11	 24-04-2026		HEMANT SALIYA		Added Is Delete Condition for Batch GL account total
 	12	 28-04-2026		HEMANT SALIYA		Exclude Non-Stock GL account from get GL balance
-
+	13   10-07-2026     Ayushi Patel		Return stockUnitOfMeasure [PN-17191]
 **************************************************************/
 CREATE   PROCEDURE [dbo].[usprpt_GetStockReportAsOfNow]
 	@mastercompanyid INT,
@@ -217,7 +217,7 @@ BEGIN
         UPPER(stl.[Condition]) 'Cond',    
         UPPER(stl.[itemGroup]) 'Item_Group',   
 		UPPER(stl.[IsCustomerStock]) 'Is_Customer_Stock',  
-        UPPER(stl.[UnitOfMeasure]) 'UOM',    
+        UPPER(stl.[StockUnitOfMeasure]) 'UOM',    
         UPPER(stl.[itemType]) 'Item_Type',    
         CASE WHEN stl.[IsPMA] = 1 AND stl.[IsDER] = 1 THEN 'PMA&DER'    
 			 WHEN stl.[IsPMA] = 1 AND (stl.[IsDER] IS NULL OR stl.[IsDER] = 0) THEN 'PMA'    

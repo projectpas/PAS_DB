@@ -16,6 +16,7 @@
 ** 5     26-June-2026  Sahdev Saliya     Fixed the issue with the @Notes [PN-17015]
 ** 6     02-July-2026  Sahdev Saliya     Added Resale Number [PN-17018]
 ** 7     22-APR-2026   Moin Bloch        Moved to API Due TO Xero Accounting Changes PN-16009
+** 8     06-July-2026  Divyesh Kathitiya Added VAT Number [PN-17124] 
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_CreateOrUpdateVendor]
     @VendorId BIGINT OUTPUT,
@@ -68,7 +69,8 @@ CREATE   PROCEDURE [dbo].[USP_CreateOrUpdateVendor]
 	@DiscountId BIGINT = NULL,
 	@Is1099Required BIT,
 	@Notes NVARCHAR(MAX) = NULL,
-	@ResaleNumber VARCHAR(200) = NULL
+	@ResaleNumber VARCHAR(200) = NULL,
+	@VatNumber VARCHAR(50) = NULL
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -121,7 +123,7 @@ BEGIN
 			IsAllowNettingAPAR, IsTradeRestricted, TradeRestrictedMemo, IsTrackScoreCard,
 			IsVendorOnHold, IsUpdated, IsWarningRestriction,
 			Is1099Required, EDI, EDIDescription, AeroExchange, AeroExchangeDescription,
-			CreditLimit, CurrencyId, DiscountId, IsAllow, IsWarning, IsRestrict, Notes, ResaleNumber
+			CreditLimit, CurrencyId, DiscountId, IsAllow, IsWarning, IsRestrict, Notes, ResaleNumber, VatNumber
 		)
 		VALUES (
 			@VendorName, @LicenseNumber, @VendorPhone, @VendorPhoneExt, @VendorTypeId, @IsPreferredVendor,
@@ -132,7 +134,7 @@ BEGIN
 			@IsAllowNettingAPAR, @IsTradeRestricted, @TradeRestrictedMemo, @IsTrackScoreCard,
 			@IsVendorOnHold, 1, @IsWarningRestriction,
 			@Is1099Required, @EDI, @EDIDescription, @AeroExchange, @AeroExchangeDescription,
-			@CreditLimit, @CurrencyId, @DiscountId, 1, 0, 0, @Notes, @ResaleNumber
+			@CreditLimit, @CurrencyId, @DiscountId, 1, 0, 0, @Notes, @ResaleNumber, @VatNumber
 		);
 
         SET @VendorId = SCOPE_IDENTITY();
@@ -253,7 +255,8 @@ BEGIN
 										LastSyncDate,
 										Memo,
 										SyncToken,
-										ResaleNumber
+										ResaleNumber,
+										VatNumber
 									)
 									VALUES (
 										@VendorTypeId,
@@ -300,7 +303,8 @@ BEGIN
 										NULL, -- LastSyncDate
 										@Notes, -- Memo
 										NULL,  -- SyncToken
-										@ResaleNumber -- ResaleNumber
+										@ResaleNumber, -- ResaleNumber
+										@VatNumber -- VAT Number
 									);
 
                 SET @RelatedCustomerId = SCOPE_IDENTITY();

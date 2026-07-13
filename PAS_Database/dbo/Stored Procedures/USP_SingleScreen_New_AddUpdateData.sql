@@ -16,6 +16,7 @@
 	5    10/11/2025   Sahdev Saliya    New field named “IsDefault” and a Sequence have been added to the Single Screen Default Message.
     6    30/03/2026   Nakul Chandigra  Handle the empty value to null for sequence number (PN-15865,PN-15867)
     7    05/05/2026   Nakul Chandigra  Added a Case for null in Update*(PN-16281)
+    8    07/07/2026   Priyansh Patel   Changed the Id parameter to be Output [PN-17039]
 
 declare @p5 dbo.SingleScreenColumnType
 insert into @p5 values(N'Description',N'TEST',N'string',N'')
@@ -32,7 +33,7 @@ exec USP_SingleScreen_New_AddUpdateData @ID=0,@PageName=N'employeeexpertise',@Mo
 
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_SingleScreen_New_AddUpdateData]
- @ID int = NULL,    
+ @ID int = NULL OUTPUT,    
  @PageName varchar(100) = NULL,    
  @Fields SingleScreenColumnType READONLY,    
  @Mode varchar(50) = NULL,    

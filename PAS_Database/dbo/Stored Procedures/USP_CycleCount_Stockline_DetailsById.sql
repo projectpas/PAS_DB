@@ -18,6 +18,7 @@
 	5    22/11/2024   Moin Bloch		Added QuantityIssued Field
 	6    27/11/2024   Moin Bloch		Replaced QuantityOnHand on QuantityAvailable
 	7    01/04/2025   Devendra Shekh	added new param @QtyTypeId to hangle QuantityOnHand
+	8    10/07/2026   Sahdev Saliya     Replaced PurchaseUnitOfMeasureId with StockUnitOfMeasureId to show correct Stock UOM     
 
    EXEC [dbo].[USP_CycleCount_Stockline_DetailsById] @UnitCost=10.00,@IsCustomerStock=0,@SiteId=2,@WarehouseId=0,@LocationId=0,@ShelfId=0,@BinId=0,@ManagementStructureId=1,@MasterCompanyId=1
 ************************************************************************/
@@ -83,7 +84,7 @@ BEGIN
 			   MF.[Name] [ManufacturerName],
 			   SL.[ConditionId],
 			   CO.[Description] [ConditionName],
-			   SL.[PurchaseUnitOfMeasureId],
+			   SL.[StockUnitOfMeasureId],
 			   UM.[ShortName] [UnitOfMeasureName],
 			   ISNULL(SL.[QuantityAvailable],0) [QuantityAvailable],
 			   SL.[QuantityOnHand],
@@ -109,7 +110,7 @@ BEGIN
 		  JOIN [dbo].[Site] SI WITH(NOLOCK) ON SL.[SiteId] = SI.[SiteId]			  
 		  LEFT JOIN [dbo].[Manufacturer] MF WITH(NOLOCK) ON SL.[ManufacturerId] = MF.[ManufacturerId] 
 		  LEFT JOIN [dbo].[Condition] CO WITH(NOLOCK) ON SL.[ConditionId] = CO.[ConditionId] 
-		  LEFT JOIN [dbo].[UnitOfMeasure] UM WITH(NOLOCK) ON SL.[PurchaseUnitOfMeasureId] = UM.[UnitOfMeasureId]		       		 
+		  LEFT JOIN [dbo].[UnitOfMeasure] UM WITH(NOLOCK) ON SL.[StockUnitOfMeasureId] = UM.[UnitOfMeasureId]		       		 
 		  LEFT JOIN [dbo].[Warehouse] WH WITH(NOLOCK) ON SL.[WarehouseId] = WH.[WarehouseId]
 		  LEFT JOIN [dbo].[Location] LO WITH(NOLOCK) ON SL.[LocationId] = LO.[LocationId]
 		  LEFT JOIN [dbo].[Shelf] SF WITH(NOLOCK) ON SL.[ShelfId] = SF.[ShelfId]

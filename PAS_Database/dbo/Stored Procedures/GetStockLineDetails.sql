@@ -32,6 +32,8 @@
 	12   26/05/2026  Priyansh Patel 	Added new field 'TTSN, TCSN '(PN-16477)
 	13   03/06/2026  Sahdev Saliya      Added new field Model [PN-16667]
 	14   29/06/2026  Nakul Chandigra    Added new field 'Note' [Note] [PN-17012]
+	15   07/07/2026  Priyansh Patel 	Added consumeuom from item master if not avilable in stock [PN-17057]
+
 
     EXEC dbo.GetStockLineDetails  179632  180170
 ***********************************************************************************************/
@@ -398,7 +400,8 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
          LEFT JOIN [dbo].[LegalEntity] COMOBF  WITH (NOLOCK) ON COMOBF.[LegalEntityId] = stl.[ObtainFrom]
 		 LEFT JOIN DBO.UnitOfMeasure uom WITH (NOLOCK) ON stl.PurchaseUnitOfMeasureId = uom.UnitOfMeasureId
 		 LEFT JOIN DBO.UnitOfMeasure uomStock WITH (NOLOCK) ON stl.StockUnitOfMeasureId = uomStock.UnitOfMeasureId
-		 LEFT JOIN DBO.UnitOfMeasure uomConsume WITH (NOLOCK) ON stl.ConsumeUnitOfMeasureId = uomConsume.UnitOfMeasureId
+		 LEFT JOIN DBO.UnitOfMeasure uomConsume WITH (NOLOCK) ON uomConsume.UnitOfMeasureId = CASE WHEN stl.ConsumeUnitOfMeasureId > 0 
+		 THEN stl.ConsumeUnitOfMeasureId ELSE im.ConsumeUnitOfMeasureId END
 		 LEFT JOIN DBO.ExchangeSalesOrder ES WITH (NOLOCK) ON stl.ExchangeSalesOrderId = ES.ExchangeSalesOrderId
 		WHERE stl.[IsDeleted] = 0 AND stl.[StockLineId] = @StockLineId
 

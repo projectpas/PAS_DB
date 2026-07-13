@@ -571,7 +571,7 @@ BEGIN TRANSACTION
 		ORDER BY WorkOrderId DESC
 	END
 
-	DECLARE @TotalWorkOrder INT = 0, @TotalAwaitingParts INT = 0;
+	DECLARE @TotalWorkOrder INT = 0, @TotalAwaitingParts DECIMAL(18, 6) = 0;
 
 	SELECT @TotalWorkOrder = COUNT(DISTINCT WorkOrderId) FROM #AwaitingPartsData FC WITH (NOLOCK)
 	WHERE  (ISNULL(quantityRequested, 0) - ISNULL(quantityReserved, 0) - ISNULL(quantityIssued, 0) - ISNULL(quantityAvailable, 0) - ISNULL(backlog, 0) - ISNULL(customerStock, 0)) > 0 OR 

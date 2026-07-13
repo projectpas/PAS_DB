@@ -30,7 +30,7 @@ BEGIN
         DECLARE @EmpLegalEntiyId BIGINT = 0;
         DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
 
-        SELECT @EmpLegalEntiyId = LegalEntityId FROM dbo.Employee WHERE EmployeeId = @EmployeeId;
+        SELECT @EmpLegalEntiyId = LegalEntityId FROM dbo.Employee WITH (NOLOCK) WHERE EmployeeId = @EmployeeId;
 
         SELECT
                 @CurrntEmpTimeZoneDesc = COALESCE(

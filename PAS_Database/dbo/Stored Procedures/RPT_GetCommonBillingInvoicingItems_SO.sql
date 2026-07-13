@@ -21,6 +21,7 @@
 	9    18/06/2026    Bhargav Saliya	Added Case For Skip UOM Function If FROM uom and TO uom Both are Same
 	10   25/06/2026    Bhargav saliya   Get Consume UOM
 	11   08/07/2026    Bhargav saliya   did formatting for billing amount 
+	12   13/07/2026    Bhargav saliya   did formatting for MiscChargesDetails amount (PN-17258)
 --   EXEC [dbo].[RPT_GetCommonBillingInvoicingItems_SO] 9399,10
 ********************************************************************************************/
 CREATE   PROCEDURE [dbo].[RPT_GetCommonBillingInvoicingItems_SO]
@@ -108,7 +109,7 @@ BEGIN
 										WHEN so.ChargesBilingMethodId <> @FlateRateBillingMethodId THEN
 											ISNULL((
 												SELECT STRING_AGG(
-													UPPER(ct.[ChargeType]) + ':  ' + FORMAT(ISNULL(c.BillingAmount, 0), ''), ',  '
+													UPPER(ct.[ChargeType]) + ':  ' + FORMAT(ISNULL(c.BillingAmount, 0), '0.00'), ',  '
 												)
 												FROM dbo.SalesOrderCharges c WITH(NOLOCK) INNER JOIN dbo.Charge ct  WITH(NOLOCK) ON c.ChargesTypeId = ct.ChargeId
 												WHERE c.SalesOrderId = so.SalesOrderId 

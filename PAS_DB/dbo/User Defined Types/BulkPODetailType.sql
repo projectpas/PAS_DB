@@ -26,5 +26,9 @@
     [EstReceivedDate]         DATETIME2 (7)   NULL,
     [StatusId]                INT             NULL,
     [WorkOrderMaterialsId]    BIGINT          NULL,
-    [WorkOrderMaterialsKitId] BIGINT          NULL);
+    [WorkOrderMaterialsKitId] BIGINT          NULL,
+    [SalesOrderId]            BIGINT          NULL,
+    [SalesOrderPartId]        BIGINT          NULL,
+    [SONum]                   VARCHAR (250)   NULL,
+    [SourceType]              VARCHAR (10)    NULL);
 

@@ -8,6 +8,7 @@
 ** PR   Date         Author          Description
 ** --   ----------   -------------   -------------------------
 ** 1    29/06/2026   Amit Ghediya  Created [PN-17037]
+** 2    09/07/2026   Amit Ghediya  Get Engine name for list
 
 ********************/
 CREATE     PROCEDURE [dbo].[USP_GetEngineList]
@@ -36,7 +37,8 @@ CREATE     PROCEDURE [dbo].[USP_GetEngineList]
     @MEL                VARCHAR(200)    = NULL,
     @IsDeleted          BIT             = 0,
     @MasterCompanyId    INT,
-    @Custname           VARCHAR(200)    = NULL
+    @Custname           VARCHAR(200)    = NULL,
+	@EngineName         VARCHAR(200)    = NULL
 AS
 BEGIN
     --SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
@@ -49,6 +51,7 @@ BEGIN
             SELECT
                 AR.EngineRegistryId,
                 AR.MakeType,
+				AR.EngineName,
                 AR.EngineModel,
                 AR.EngineSubModel,
                 AR.NumOfEngines,
@@ -67,7 +70,7 @@ BEGIN
 				ASS.[Name] AS EngineStatus,
                 AR.IsActive,
                 AR.CreatedDate,
-                C.[Name] AS Custname,
+                C.[Name] AS Custname,				
                 COUNT(1) OVER () AS TotalRecords
             FROM [dbo].[EngineRegistryHeader] AS AR WITH (NOLOCK)
 			LEFT JOIN [dbo].[AircraftStatus] ASS WITH (NOLOCK) ON AR.[EngineStatusId] = ASS.[AircraftStatusId]
@@ -86,6 +89,7 @@ BEGIN
                     OR C.[Name] LIKE '%' + @GlobalFilter + '%'
                 )
                 AND (@MakeType          IS NULL OR AR.MakeType         LIKE '%' + @MakeType         + '%')
+				AND (@EngineName          IS NULL OR AR.EngineName LIKE '%' + @EngineName + '%')
                 AND (@EngineModel     IS NULL OR AR.EngineModel    LIKE '%' + @EngineModel    + '%')
                 AND (@EngineSubModel  IS NULL OR AR.EngineSubModel LIKE '%' + @EngineSubModel + '%')
                 AND (@TailNum           IS NULL OR AR.TailNum          LIKE '%' + @TailNum          + '%')
@@ -103,11 +107,12 @@ BEGIN
                 AND (@NextScheduled     IS NULL OR CAST(AR.NextScheduled AS DATE) = CAST(@NextScheduled AS DATE))
                 AND (@MEL               IS NULL OR AR.MEL              LIKE '%' + @MEL              + '%')
                 AND (@EngineStatusId  IS NULL OR AR.EngineStatusId = @EngineStatusId)
-                AND (@Custname          IS NULL OR C.[Name] LIKE '%' + @Custname + '%')
+                AND (@Custname          IS NULL OR C.[Name] LIKE '%' + @Custname + '%')				
         )
         SELECT
             EngineRegistryId,
             MakeType,
+			EngineName,
             EngineModel,
             EngineSubModel,
             NumOfEngines,
@@ -132,6 +137,8 @@ BEGIN
         ORDER BY
             CASE WHEN @SortColumn = 'MakeType'           AND @SortOrder = 'ASC'  THEN MakeType          END ASC,
             CASE WHEN @SortColumn = 'MakeType'           AND @SortOrder = 'DESC' THEN MakeType          END DESC,
+			CASE WHEN @SortColumn = 'EngineName'      AND @SortOrder = 'ASC'  THEN EngineName     END ASC,
+            CASE WHEN @SortColumn = 'EngineName'      AND @SortOrder = 'DESC' THEN EngineName     END DESC,
             CASE WHEN @SortColumn = 'EngineModel'      AND @SortOrder = 'ASC'  THEN EngineModel     END ASC,
             CASE WHEN @SortColumn = 'EngineModel'      AND @SortOrder = 'DESC' THEN EngineModel     END DESC,
             CASE WHEN @SortColumn = 'EngineSubModel'   AND @SortOrder = 'ASC'  THEN EngineSubModel  END ASC,

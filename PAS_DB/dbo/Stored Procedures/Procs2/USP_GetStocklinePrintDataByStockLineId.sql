@@ -13,6 +13,7 @@
  ** --   --------     -------		--------------------------------          
     1    09/24/2021   Hemant Saliya Created
 	2    29/01/2026   Moin Bloch    Getting Quantity From PickTicket Insted of Stockline PN-15111
+	3	 30/06/2026	    Sumit			[PN-17058] Selected the Stockline Lot number and EngineSerialNumber
      
 --EXEC [USP_GetStocklinePrintDataByStockLineId] 
 **************************************************************/
@@ -69,7 +70,9 @@ BEGIN
 			CAST(0 AS BIT) AS IsFromSubWO,
 			'' Figure,
             '' Item,
-			'' MPNDesc
+			'' MPNDesc,
+			stl.LotNumber,
+			stl.EngineSerialNumber
 		FROM [dbo].[Stockline] stl WITH(NOLOCK)
 			INNER JOIN [dbo].[ItemMaster] im WITH(NOLOCK)ON stl.ItemMasterId = im.ItemMasterId
 			LEFT JOIN [dbo].[PurchaseOrder] po WITH(NOLOCK) ON stl.PurchaseOrderId = po.PurchaseOrderId
@@ -117,7 +120,9 @@ BEGIN
             im.PartDescription AS MPNDesc,
             mst.Figure,
             mst.Item,
-            1 AS IsFromSubWO
+            1 AS IsFromSubWO,
+			stl.LotNumber,
+			stl.EngineSerialNumber
         FROM [dbo].[Stockline] stl WITH(NOLOCK)
 			INNER JOIN [dbo].[ItemMaster] im WITH(NOLOCK) ON stl.ItemMasterId = im.ItemMasterId
 			LEFT JOIN [dbo].[PurchaseOrder] po WITH(NOLOCK) ON stl.PurchaseOrderId = po.PurchaseOrderId
@@ -168,7 +173,9 @@ BEGIN
 				mst.Item,
 				CAST(0 AS BIT) AS IsFromSubWO,
 				stl.TraceableToName,
-				stl.UnitOfMeasure AS UnitOfMeasureName
+				stl.UnitOfMeasure AS UnitOfMeasureName,
+				stl.LotNumber,
+				stl.EngineSerialNumber
 			FROM [dbo].[Stockline] stl WITH(NOLOCK)
 				INNER JOIN [dbo].[ItemMaster] im WITH(NOLOCK) ON stl.ItemMasterId = im.ItemMasterId
 				LEFT JOIN [dbo].[PurchaseOrder] po WITH(NOLOCK) ON stl.PurchaseOrderId = po.PurchaseOrderId
@@ -221,7 +228,9 @@ BEGIN
 				mst.Item,
 				CAST(0 AS BIT) AS IsFromSubWO,
 				stl.TraceableToName,
-				stl.UnitOfMeasure AS UnitOfMeasureName
+				stl.UnitOfMeasure AS UnitOfMeasureName,
+				stl.LotNumber,
+				stl.EngineSerialNumber
 			FROM [dbo].[Stockline] stl WITH(NOLOCK)
 				INNER JOIN [dbo].[ItemMaster] im WITH(NOLOCK) ON stl.ItemMasterId = im.ItemMasterId
 				LEFT JOIN [dbo].[PurchaseOrder] po WITH(NOLOCK) ON stl.PurchaseOrderId = po.PurchaseOrderId
@@ -277,7 +286,9 @@ BEGIN
 				mst.Item,
 				0 AS IsFromSubWO,
 				stl.TraceableToName,
-				stl.UnitOfMeasure AS UnitOfMeasureName
+				stl.UnitOfMeasure AS UnitOfMeasureName,
+				stl.LotNumber,
+				stl.EngineSerialNumber
 			FROM [dbo].[Stockline] stl WITH(NOLOCK)
 				INNER JOIN [dbo].[ItemMaster] im WITH(NOLOCK) ON stl.ItemMasterId = im.ItemMasterId
 				LEFT JOIN [dbo].[PurchaseOrder] po WITH(NOLOCK) ON stl.PurchaseOrderId = po.PurchaseOrderId
@@ -329,7 +340,9 @@ BEGIN
 				mst.Item,
 				0 AS IsFromSubWO,
 				stl.TraceableToName,
-				stl.UnitOfMeasure AS UnitOfMeasureName
+				stl.UnitOfMeasure AS UnitOfMeasureName,
+				stl.LotNumber,
+				stl.EngineSerialNumber
 			FROM [dbo].[Stockline] stl WITH(NOLOCK)
 				INNER JOIN [dbo].[ItemMaster] im WITH(NOLOCK) ON stl.ItemMasterId = im.ItemMasterId
 				LEFT JOIN [dbo].[PurchaseOrder] po WITH(NOLOCK) ON stl.PurchaseOrderId = po.PurchaseOrderId

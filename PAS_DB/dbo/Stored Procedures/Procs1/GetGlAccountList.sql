@@ -18,6 +18,7 @@
  7   06-03-2025     Shrey Chandegara     Modified due to add view in Accouting Integration List's PendingSync(Add @IsUpdated parameter)
  8   13-Mar-2025	Divyesh Kathiriya	Update CreatedDate and UpdateDate based on Employee time zone
  9   19-Mar-2025	Devendra Shekh	    Added QuickBooks Columns
+ 10    07-07-2026   Bhargav Saliya   Added @IntegrationTypeId [PN-16810] 
 
 **************************************************************/   
 CREATE   PROCEDURE [dbo].[GetGlAccountList](     
@@ -46,7 +47,8 @@ CREATE   PROCEDURE [dbo].[GetGlAccountList](
  @EmployeeId bigint = Null,
  @QuickBooksReferenceId  varchar(200)=null,
  @isSynced  varchar(20)=null,
- @LastSyncDate datetime=null
+ @LastSyncDate datetime=null,
+ @IntegrationTypeId BIGINT = null
 )  
 AS    
 BEGIN  
@@ -145,7 +147,10 @@ BEGIN
 					GROUP BY cb.GlAccountId  
 				   ) AS ManualBatch  
 			   WHERE ((GL.IsDeleted = @IsDeleted) AND (@StatusID IS NULL OR GL.IsActive = @StatusID))  
-					AND GL.MasterCompanyId = @MasterCompanyId AND (ISNULL(@IsUpdated,0) <> 1 OR ISNULL(GL.IsUpdated,0) = ISNULL(@IsUpdated,0))) 	
+					AND GL.MasterCompanyId = @MasterCompanyId
+					AND (ISNULL(@IsUpdated,0) <> 1 OR ISNULL(GL.isUpdated,0) = ISNULL(@IsUpdated,0))
+					AND (@IntegrationTypeId IS NULL OR GL.IntegrationTypeId = @IntegrationTypeId)
+					) 	
   
 		  SELECT * INTO #TempResult FROM Result  
 			  WHERE(  

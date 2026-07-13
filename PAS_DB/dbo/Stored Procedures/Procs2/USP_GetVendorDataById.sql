@@ -13,6 +13,7 @@
     2    2026-04-22		  Moin Bloch				Added QuickBooksReferenceId PN-16009
 	3    24-06-2026       Sahdev Saliya             Added Notes [PN-16968]
 	4    02-07-2026       Sahdev Saliya             Added Resale Number [PN-17018]
+    5    06-07-2026       Divyesh Kathitiya         Added VAT Number [PN-17124] 
 
 	exec [USP_GetVendorDataById] 4787
 *************************************************************/ 
@@ -66,7 +67,7 @@ BEGIN
             v.VendorParentId,
 			v.Notes,
 			v.ResaleNumber,
-
+            v.VatNumber,
             VendorClassificationNames = (
                 SELECT STRING_AGG(vc.ClassificationName, ',')
                 FROM DBO.ClassificationMapping mp WITH (NOLOCK)

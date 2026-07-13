@@ -27,6 +27,7 @@
 	12   21/01/2026     AMIT GHEDIYA                    Added InvoiceDate
     13   27/01/2026     Sahdev Saliya                   Added DueDate
 	14   11/03/2026     AMIT GHEDIYA                    Updated for get isactive records (PN-15588)
+	15    07-07-2026   Bhargav Saliya                   Added @IntegrationTypeId [PN-16810] 
 
 --EXEC [USP_GetNonPOInvoiceList] 3577,3047
 
@@ -62,7 +63,8 @@ CREATE   PROCEDURE [dbo].[USP_GetNonPOInvoiceList]
 @IsUpdated BIT = NULL,
 @EmployeeId bigint = NULL,
 @InvoiceDate datetime = NULL,
-@DueDate datetime = NULL
+@DueDate datetime = NULL,
+@IntegrationTypeId BIGINT = null
 AS
 BEGIN	
 	    SET NOCOUNT ON;
@@ -159,7 +161,9 @@ BEGIN
 				LEFT JOIN [dbo].[GLAccount] GL WITH (NOLOCK) ON NPD.GlAccountId = GL.GlAccountId
 
 				WHERE ((NPH.IsDeleted=@IsDeleted) AND (@IsActive IS NULL OR NPH.IsActive=@IsActive)) AND (@HeaderStatusId IS NULL OR NPH.StatusId = @HeaderStatusId)	     
-					AND NPH.MasterCompanyId=@MasterCompanyId AND (ISNULL(@IsUpdated,0) <> 1 OR ISNULL(NPH.IsUpdated,0) = ISNULL(@IsUpdated,0))	 
+					AND NPH.MasterCompanyId=@MasterCompanyId 
+					AND (ISNULL(@IsUpdated,0) <> 1 OR ISNULL(NPH.isUpdated,0) = ISNULL(@IsUpdated,0))
+					AND (@IntegrationTypeId IS NULL OR NPH.IntegrationTypeId = @IntegrationTypeId)	 
 				GROUP BY NPH.NonPOInvoiceId,
 					NPH.VendorId,
 					NPH.VendorName,

@@ -19,6 +19,7 @@
     [IsActive]                       BIT            CONSTRAINT [DF_PPRA_IsActive] DEFAULT ((1)) NOT NULL,
     [IsDeleted]                      BIT            CONSTRAINT [DF_PPRA_IsDeleted] DEFAULT ((0)) NOT NULL,
     [QtyDamagedLost]                 INT            DEFAULT ((0)) NOT NULL,
+    [ParentRepairOrderPartId]        BIGINT         NULL,
     CONSTRAINT [PK_PiecePartReconciliationAudit] PRIMARY KEY CLUSTERED ([PiecePartReconciliationAuditId] ASC)
 );
 

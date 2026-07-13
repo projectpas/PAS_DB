@@ -74,7 +74,7 @@ BEGIN
 
             -- Total pieces actually shipped to the vendor
             ISNULL((
-                SELECT SUM(rsi.QtyShipped)
+                SELECT SUM(ISNULL(rsi.QtyShipped, 0))
                 FROM   dbo.RepairOrderShippingItem rsi WITH (NOLOCK)
                 WHERE  rsi.RepairOrderPartId = rop.RepairOrderPartRecordId
                   AND  rsi.IsDeleted         = 0

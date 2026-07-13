@@ -25,6 +25,10 @@ BEGIN
 	BEGIN TRY
 	BEGIN TRANSACTION
 	BEGIN
+
+		DECLARE @ApprovalStatusId INT = 0;
+		SELECT @ApprovalStatusId = ApprovalStatusId FROM ApprovalStatus WHERE Name = 'Approved'
+
 		IF (@IsMultiplePickTicket = 1)
 		BEGIN
 			SELECT DISTINCT
@@ -93,7 +97,7 @@ BEGIN
 					so.RepairOrderId = @RepairOrderId AND 
 					(
 						so.IsEnforce IS NULL OR so.IsEnforce = 0
-						OR (so.IsEnforce = 1 AND roa.StatusId = 2)
+						OR (so.IsEnforce = 1 AND roa.StatusId = @ApprovalStatusId)
 						OR (ISNULL(rop.IsPiecePart, 0) = 1)
 					) AND
 					((rop.QuantityReserved + 0
@@ -175,7 +179,7 @@ BEGIN
 					so.RepairOrderId = @RepairOrderId AND 
 					(
 						so.IsEnforce IS NULL OR so.IsEnforce = 0
-						OR (so.IsEnforce = 1 AND roa.StatusId = 2)
+						OR (so.IsEnforce = 1 AND roa.StatusId = @ApprovalStatusId)
 						OR (ISNULL(rop.IsPiecePart, 0) = 1)
 					) AND
 					((rop.QuantityReserved + 0

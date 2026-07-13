@@ -27,6 +27,9 @@ BEGIN
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 	SET NOCOUNT ON;
 
+	DECLARE @ApprovalStatusId INT = 0;
+	SELECT @ApprovalStatusId = ApprovalStatusId FROM ApprovalStatus WHERE Name = 'Approved'
+
 	BEGIN TRY
 	BEGIN TRANSACTION
 	BEGIN
@@ -62,7 +65,7 @@ BEGIN
 		rop.RepairOrderId = @RepairOrderId AND (rop.QuantityReserved > 0)
 		AND (
 			ro.IsEnforce IS NULL OR ro.IsEnforce = 0
-			OR (ro.IsEnforce = 1 AND roa.StatusId = 2)
+			OR (ro.IsEnforce = 1 AND roa.StatusId = @ApprovalStatusId)
 			OR (ISNULL(rop.IsPiecePart, 0) = 1)
 		)
 		GROUP BY rop.RepairOrderPartRecordId, rop.RepairOrderId,imt.PartNumber,imt.PartDescription, rop.QuantityOrdered,sl.SerialNumber,

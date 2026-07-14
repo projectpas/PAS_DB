@@ -4733,6 +4733,14 @@
     <Build Include="dbo\Stored Procedures\USP_UpdateAircraftTechnicalRecordCompliance.sql" />
     <Build Include="dbo\Stored Procedures\USP_UpdateAircraftPublicationCompliance.sql" />
     <Build Include="dbo\Stored Procedures\USP_CreateAircraftPublicationMaintenance.sql" />
+    <Build Include="dbo\Stored Procedures\usp_GetInventoryDataForPowerBIReport.sql" />
+    <Build Include="dbo\Tables\AircraftEffectivitySerialDetail.sql" />
+    <Build Include="dbo\Functions\UFN_SerialInRange.sql" />
+    <Build Include="dbo\Stored Procedures\USP_SaveAircraftEffectivitySerialDetails.sql" />
+    <Build Include="dbo\Stored Procedures\USP_RestoreAircraftEffectivity.sql" />
+    <Build Include="dbo\Stored Procedures\USP_GetAircraftEffectivitySerialDetails.sql" />
+    <Build Include="dbo\Stored Procedures\USP_DeleteAircraftEffectivity.sql" />
+    <Build Include="dbo\User Defined Types\AircraftEffectivitySerialDetailTableType.sql" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Snapshots\PAS_DB_20220518_07-53-10.dacpac" />

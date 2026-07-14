@@ -30,6 +30,13 @@ CREATE   PROCEDURE [dbo].[USP_GetRoPiecePartForVendorReconcilationList]
     @PartDescription        NVARCHAR(500)   = NULL,
     @RONumber               NVARCHAR(100)   = NULL,
     @WONumber               NVARCHAR(100)   = NULL,
+    @Condition              NVARCHAR(100)   = NULL,
+    @SerialNumber           NVARCHAR(100)   = NULL,
+    @StocklineNumber        NVARCHAR(100)   = NULL,
+    @ControlNumber          NVARCHAR(100)   = NULL,
+    @ControlId              NVARCHAR(50)    = NULL,
+    @MPN                    NVARCHAR(255)   = NULL,
+    @MPNDescription         NVARCHAR(500)   = NULL,
     @ReconciliationStatus   NVARCHAR(50)    = NULL,
     @VendorId               BIGINT          = NULL,
     @RepairOrderId          BIGINT          = NULL,
@@ -66,14 +73,13 @@ BEGIN
             rop.ControlId,
             rop.StockLineId,
 
-            -- Total pieces the customer sent in
+            -- Total pieces actually shipped to the vendor
             ISNULL((
-                SELECT SUM(rcw.Quantity)
-                FROM   dbo.ReceivingCustomerWork rcw WITH (NOLOCK)
-                WHERE  rcw.RepairOrderPartRecordId = rop.RepairOrderPartRecordId
-                  AND  rcw.IsPiecePart = 1
-                  AND  rcw.IsDeleted   = 0
-            ), rop.QuantityOrdered)                         AS QtyShipped,
+                SELECT SUM(ISNULL(rsi.QtyShipped, 0))
+                FROM   dbo.RepairOrderShippingItem rsi WITH (NOLOCK)
+                WHERE  rsi.RepairOrderPartId = rop.RepairOrderPartRecordId
+                  AND  rsi.IsDeleted         = 0
+            ), 0)                                            AS QtyShipped,
 
             rop.UnitCost,
             rop.ExtendedCost,
@@ -132,6 +138,16 @@ BEGIN
           AND (@RONumber        IS NULL OR ro.RepairOrderNumber  LIKE '%' + @RONumber        + '%')
           AND (@WONumber        IS NULL OR ISNULL(rop.WorkOrderNo, wo.WorkOrderNum)
                                               LIKE '%' + @WONumber + '%')
+          AND (@Condition       IS NULL OR rop.Condition        LIKE '%' + @Condition       + '%')
+          AND (@SerialNumber    IS NULL OR ISNULL(rop.SerialNumber, sl.SerialNumber)
+                                              LIKE '%' + @SerialNumber    + '%')
+          AND (@StocklineNumber IS NULL OR ISNULL(rop.StockLineNumber, sl.StockLineNumber)
+                                              LIKE '%' + @StocklineNumber + '%')
+          AND (@ControlNumber   IS NULL OR ISNULL(rop.ControlNumber, sl.ControlNumber)
+                                              LIKE '%' + @ControlNumber   + '%')
+          AND (@ControlId       IS NULL OR rop.ControlId        LIKE '%' + @ControlId       + '%')
+          AND (@MPN             IS NULL OR rop.ManufacturerPN   LIKE '%' + @MPN             + '%')
+          AND (@MPNDescription  IS NULL OR im.PartDescription   LIKE '%' + @MPNDescription  + '%')
           AND (@VendorId        IS NULL OR ro.VendorId          = @VendorId)
           AND (@RepairOrderId   IS NULL OR rop.RepairOrderId    = @RepairOrderId)
     ),

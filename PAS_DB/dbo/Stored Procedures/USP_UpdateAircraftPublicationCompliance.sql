@@ -12,14 +12,15 @@
  ** PR   Date          Author			Change Description
  ** --   --------      -------			--------------------------------
     1    07/07/2026    Amit Ghediya      Created
-
+    2    10/07/2026    Amit Ghediya      RactificationDate (date) renamed to
+                                          Ractification (free text)
 
  EXEC USP_UpdateAircraftPublicationCompliance 1,'','ref',1,'admin'
  **************************************************************/
-CREATE      PROCEDURE [dbo].[USP_UpdateAircraftPublicationCompliance] 
+CREATE       PROCEDURE [dbo].[USP_UpdateAircraftPublicationCompliance]
     @AircraftPublicationId BIGINT,
     @ComplianceDate DATETIME2(7) = NULL,
-    @RactificationDate  DATETIME2(7) = NULL,
+    @Ractification  VARCHAR(MAX) = NULL,
     @MasterCompanyId INT,
     @UpdatedBy VARCHAR(256) = NULL
 AS
@@ -31,7 +32,7 @@ BEGIN
 
         UPDATE [dbo].[AircraftPublication]
 		SET [ComplianceDate] = @ComplianceDate,
-			[RactificationDate] = @RactificationDate,
+			[Ractification] = @Ractification,
 			[UpdatedBy] = @UpdatedBy,
 			[UpdatedDate] = GETDATE()
 		WHERE [AircraftPublicationId] = @AircraftPublicationId

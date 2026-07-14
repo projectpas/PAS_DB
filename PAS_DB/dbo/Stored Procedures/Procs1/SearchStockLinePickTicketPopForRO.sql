@@ -11,6 +11,7 @@
     1    04/14/2025   Vishal Suthar		Created
 	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	3    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	4	 07/13/2026   Abhishek Jirawla  Added checking for Approval (PN-17234)
 
 EXEC [dbo].[SearchStockLinePickTicketPopForRO] 20751, 1, 2547, 0
 **************************************************************/ 
@@ -26,6 +27,10 @@ BEGIN
 	BEGIN TRY
 	BEGIN TRANSACTION
 	BEGIN
+
+		DECLARE @ApprovalStatusId INT = 0;
+		SELECT @ApprovalStatusId = ApprovalStatusId FROM DBO.[ApprovalStatus] WITH(NOLOCK) WHERE Name = 'Approved'
+
 		IF (@IsMultiplePickTicket = 1)
 		BEGIN
 			SELECT DISTINCT
@@ -78,8 +83,9 @@ BEGIN
 						 (SELECT ISNULL(SUM(QtyToShip), 0) FROM ROPickTicket s WITH(NOLOCK) Where s.RepairOrderId = @RepairOrderId AND s.StocklineId = sl.StocklineId)) AS QtyToReserve
 				FROM DBO.ItemMaster im  WITH(NOLOCK)
 				JOIN DBO.StockLine sl WITH(NOLOCK) ON im.ItemMasterId = sl.ItemMasterId AND sl.IsDeleted = 0
-				LEFT JOIN DBO.RepairOrderPart rop on rop.ItemMasterId = im.ItemMasterId AND rop.StockLineId = sl.StockLineId AND rop.IsParent = 1
+				LEFT JOIN DBO.RepairOrderPart rop WITH(NOLOCK) on rop.ItemMasterId = im.ItemMasterId AND rop.StockLineId = sl.StockLineId AND rop.IsParent = 1
 				LEFT JOIN DBO.RepairOrder so WITH(NOLOCK) on so.RepairOrderId = rop.RepairOrderId
+				LEFT JOIN DBO.RepairOrderApproval roa WITH (NOLOCK) ON roa.RepairOrderPartId = rop.RepairOrderPartRecordId
 				LEFT JOIN DBO.Condition c WITH(NOLOCK) ON c.ConditionId = sl.ConditionId
 				LEFT JOIN DBO.PurchaseOrder po WITH(NOLOCK) ON po.PurchaseOrderId = sl.PurchaseOrderId AND sl.IsDeleted = 0
 				LEFT JOIN DBO.ItemGroup ig WITH(NOLOCK) ON im.ItemGroupId = ig.ItemGroupId
@@ -91,6 +97,11 @@ BEGIN
 				LEFT JOIN (SELECT ItemMasterId, [Name],StockLineId FROM DBO.Stockline S WITH(NOLOCK) INNER JOIN DBO.Manufacturer M WITH(NOLOCK) ON M.ManufacturerId = S.ManufacturerId WHERE ISNULL(S.IsNonStock,0) = 0) Smf ON Smf.ItemMasterId = im.ItemMasterId AND Smf.StockLineId = sl.StockLineId
 				WHERE 
 					so.RepairOrderId = @RepairOrderId AND 
+					(
+						so.IsEnforce IS NULL OR so.IsEnforce = 0
+						OR (so.IsEnforce = 1 AND roa.StatusId = @ApprovalStatusId)
+						OR (ISNULL(rop.IsPiecePart, 0) = 1)
+					) AND
 					((rop.QuantityReserved + 0
 					--(SELECT ISNULL(SUM(ship_item.QtyShipped), 0) FROM DBO.SalesOrderShipping ship WITH(NOLOCK) 
 					--	INNER JOIN SalesOrderShippingItem ship_item WITH(NOLOCK) on ship_item.SalesOrderShippingId = ship.SalesOrderShippingId AND ship.SalesOrderId = @RepairOrderId and ship_item.SalesOrderPartId = sop.SalesOrderPartId
@@ -153,8 +164,9 @@ BEGIN
 				FROM DBO.ItemMaster im  WITH(NOLOCK)
 				JOIN DBO.StockLine sl WITH(NOLOCK) ON im.ItemMasterId = sl.ItemMasterId AND sl.IsDeleted = 0
 				--LEFT JOIN DBO.SalesOrderStocklineV1 stk on stk.StockLineId = sl.StockLineId
-				LEFT JOIN DBO.RepairOrderPart rop on rop.ItemMasterId = im.ItemMasterId AND rop.StockLineId = sl.StockLineId AND rop.IsParent = 1
+				LEFT JOIN DBO.RepairOrderPart rop WITH(NOLOCK) on rop.ItemMasterId = im.ItemMasterId AND rop.StockLineId = sl.StockLineId AND rop.IsParent = 1
 				LEFT JOIN DBO.RepairOrder so WITH(NOLOCK) on so.RepairOrderId = rop.RepairOrderId
+				LEFT JOIN DBO.RepairOrderApproval roa WITH (NOLOCK) ON roa.RepairOrderPartId = rop.RepairOrderPartRecordId
 				--INNER JOIN DBO.SalesOrderReserveParts sor WITH(NOLOCK) on sor.SalesOrderId = so.RepairOrderId AND sor.SalesOrderPartId = sop.SalesOrderPartId AND SOR.StockLineId = stk.StockLineId
 				LEFT JOIN DBO.Condition c WITH(NOLOCK) ON c.ConditionId = sl.ConditionId
 				LEFT JOIN DBO.PurchaseOrder po WITH(NOLOCK) ON po.PurchaseOrderId = sl.PurchaseOrderId AND sl.IsDeleted = 0
@@ -168,6 +180,11 @@ BEGIN
 				WHERE 
 					im.ItemMasterId = @ItemMasterIdlist AND 
 					so.RepairOrderId = @RepairOrderId AND 
+					(
+						so.IsEnforce IS NULL OR so.IsEnforce = 0
+						OR (so.IsEnforce = 1 AND roa.StatusId = @ApprovalStatusId)
+						OR (ISNULL(rop.IsPiecePart, 0) = 1)
+					) AND
 					((rop.QuantityReserved + 0
 					--(SELECT ISNULL(SUM(ship_item.QtyShipped), 0) FROM DBO.SalesOrderShipping ship WITH(NOLOCK) 
 					--	INNER JOIN SalesOrderShippingItem ship_item WITH(NOLOCK) on ship_item.SalesOrderShippingId = ship.SalesOrderShippingId AND ship.SalesOrderId = @RepairOrderId and ship_item.SalesOrderPartId = sop.SalesOrderPartId

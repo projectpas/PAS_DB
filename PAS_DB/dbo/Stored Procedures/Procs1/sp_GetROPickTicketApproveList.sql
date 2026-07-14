@@ -32,6 +32,10 @@ BEGIN
 	BEGIN TRY
 	BEGIN TRANSACTION
 	BEGIN
+		
+		DECLARE @ApprovalStatusId INT = 0;
+		SELECT @ApprovalStatusId = ApprovalStatusId FROM DBO.[ApprovalStatus] WITH(NOLOCK) WHERE Name = 'Approved'
+
 		SELECT 
 			rop.RepairOrderPartRecordId as RepairOrderPartId, 
 			rop.RepairOrderId as RepairOrderId,
@@ -64,7 +68,7 @@ BEGIN
 		rop.RepairOrderId = @RepairOrderId AND (rop.QuantityReserved > 0)
 		AND (
 			ro.IsEnforce IS NULL OR ro.IsEnforce = 0
-			OR (ro.IsEnforce = 1 AND roa.StatusId = 2)
+			OR (ro.IsEnforce = 1 AND roa.StatusId = @ApprovalStatusId)
 			OR (ISNULL(rop.IsPiecePart, 0) = 1)
 		)
 		 AND ISNULL(imt.IsNonStock,0) = 0

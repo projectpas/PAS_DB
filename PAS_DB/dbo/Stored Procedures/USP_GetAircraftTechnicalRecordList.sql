@@ -1,4 +1,4 @@
-/*********************
+﻿/*********************
 ** File:        [USP_GetAircraftTechnicalRecordList]
 ** Description: Returns paged/filtered/sorted aircraft technical record list
 **              (registry + publication + latest worksheet/work order info).
@@ -26,6 +26,8 @@
 **										- LEFT JOIN + ROW_NUMBER derived tables converted to OUTER APPLY TOP(1)
 **										  so they evaluate only for qualifying rows
 **										- MtceRecordUpdated reuses MR aggregate instead of a second EXISTS probe
+** 13   13/07/2026	 Amit Ghediya		Replaced EntityType string column with IsAircraftSerialNum
+**										bit flag (1 = AC Serial Num, 0 = Component Serial Num). [PN-17223]
 *******************************************************************************/
 --EXEC dbo.USP_GetAircraftTechnicalRecordList @PageNumber=1,@PageSize=20,@SortColumn=NULL,@SortOrder=N'ASC',
 --@GlobalFilter=NULL,@TailNumber=NULL,@AircraftMake=NULL,@AircraftModel=NULL,@SerialNumber=NULL,@PubDate=NULL,
@@ -53,7 +55,7 @@
 ** CREATE INDEX IX_ARH_MasterCompany
 **     ON dbo.AircraftRegistryHeader (MasterCompanyId, IsDeleted);
 */
-CREATE   PROCEDURE [dbo].[USP_GetAircraftTechnicalRecordList]
+CREATE    PROCEDURE [dbo].[USP_GetAircraftTechnicalRecordList]
 @PageNumber           INT          = 1,
 @PageSize             INT          = 10,
 @SortColumn           VARCHAR(100) = 'AircraftRegistryId',
@@ -145,7 +147,76 @@ BEGIN
             FROM [dbo].[AircraftRegistryHeader] ARH WITH (NOLOCK)
             INNER JOIN [dbo].[AircraftEffectivity] ACE WITH (NOLOCK)
                     ON ARH.[MakeTypeId] = ACE.[MakeTypeId]
-                   AND ARH.[SerialNum]  = ACE.[SerialNum]
+                   AND (ACE.[AircraftModelId] IS NULL OR ARH.[AircraftModelId] = ACE.[AircraftModelId])
+                   AND (ISNULL(ACE.[AircraftSubModel], '') = '' OR ARH.[AircraftSubModel] = ACE.[AircraftSubModel])
+                   AND (ISNULL(ACE.[SerialNum], '') = '' OR ARH.[SerialNum] = ACE.[SerialNum])
+                   -- Aircraft-level exclusion: skip this (registry, effectivity) match if this specific
+                   -- aircraft's serial has been explicitly excluded for the group
+                   AND NOT EXISTS (
+                       SELECT 1
+                       FROM dbo.AircraftEffectivitySerialDetail EXC WITH (NOLOCK)
+                       WHERE EXC.IsAircraftSerialNum    = 1
+                         AND EXC.IsAffect               = 0
+                         AND EXC.IsDeleted              = 0
+                         AND EXC.AircraftPublicationId  = ACE.AircraftPublicationId
+                         AND EXC.MakeTypeId             = ACE.MakeTypeId
+                         AND ISNULL(EXC.AircraftModelId, 0)   = ISNULL(ACE.AircraftModelId, 0)
+                         AND ISNULL(EXC.AircraftSubModel, '') = ISNULL(ACE.AircraftSubModel, '')
+                         AND EXC.FromSerial             = ARH.SerialNum
+                   )
+                   -- Component-level match: only enforced when this effectivity row references a
+                   -- specific component (ItemMasterId > 0). If no component serial entries were
+                   -- configured for the group, component serial is treated as a wildcard.
+                   AND (
+                       ISNULL(ACE.ItemMasterId, 0) = 0
+                       OR NOT EXISTS (
+                           SELECT 1 FROM dbo.AircraftEffectivitySerialDetail WITH (NOLOCK)
+                           WHERE AircraftPublicationId = ACE.AircraftPublicationId
+                             AND MakeTypeId            = ACE.MakeTypeId
+                             AND ISNULL(AircraftModelId, 0)   = ISNULL(ACE.AircraftModelId, 0)
+                             AND ISNULL(AircraftSubModel, '') = ISNULL(ACE.AircraftSubModel, '')
+                             AND ItemMasterId          = ACE.ItemMasterId
+                             AND IsAircraftSerialNum   = 0
+                             AND IsAffect              = 1
+                             AND IsDeleted             = 0
+                       )
+                       OR EXISTS (
+                           SELECT 1
+                           FROM dbo.AircraftInstalledPartDetails AIPD WITH (NOLOCK)
+                           WHERE AIPD.AircraftRegistryId = ARH.AircraftRegistryId
+                             AND AIPD.ItemMasterId       = ACE.ItemMasterId
+                             AND AIPD.IsDeleted          = 0
+                             AND EXISTS (
+                                 SELECT 1
+                                 FROM dbo.AircraftEffectivitySerialDetail AECS WITH (NOLOCK)
+                                 WHERE AECS.AircraftPublicationId = ACE.AircraftPublicationId
+                                   AND AECS.MakeTypeId            = ACE.MakeTypeId
+                                   AND ISNULL(AECS.AircraftModelId, 0)   = ISNULL(ACE.AircraftModelId, 0)
+                                   AND ISNULL(AECS.AircraftSubModel, '') = ISNULL(ACE.AircraftSubModel, '')
+                                   AND AECS.ItemMasterId          = ACE.ItemMasterId
+                                   AND AECS.IsAircraftSerialNum   = 0
+                                   AND AECS.IsAffect              = 1
+                                   AND AECS.IsDeleted             = 0
+                                   AND (
+                                       (AECS.SerialType = 'Individual' AND AECS.FromSerial = AIPD.SerialNumber)
+                                       OR
+                                       (AECS.SerialType = 'Range' AND dbo.UFN_SerialInRange(AIPD.SerialNumber, AECS.FromSerial, AECS.ToSerial) = 1)
+                                   )
+                             )
+                             AND NOT EXISTS (
+                                 SELECT 1 FROM dbo.AircraftEffectivitySerialDetail EXC2 WITH (NOLOCK)
+                                 WHERE EXC2.IsAircraftSerialNum  = 0
+                                   AND EXC2.IsAffect             = 0
+                                   AND EXC2.IsDeleted            = 0
+                                   AND EXC2.AircraftPublicationId = ACE.AircraftPublicationId
+                                   AND EXC2.MakeTypeId            = ACE.MakeTypeId
+                                   AND ISNULL(EXC2.AircraftModelId, 0)   = ISNULL(ACE.AircraftModelId, 0)
+                                   AND ISNULL(EXC2.AircraftSubModel, '') = ISNULL(ACE.AircraftSubModel, '')
+                                   AND ISNULL(EXC2.ItemMasterId, 0)      = ACE.ItemMasterId
+                                   AND EXC2.FromSerial            = AIPD.SerialNumber
+                             )
+                       )
+                   )
             INNER JOIN [dbo].[AircraftPublication] PUB WITH (NOLOCK)
                     ON ACE.[AircraftPublicationId] = PUB.[AircraftPublicationId]
             LEFT JOIN [dbo].[PublicationType] PUT WITH (NOLOCK)

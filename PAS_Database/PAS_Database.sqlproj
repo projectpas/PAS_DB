@@ -4586,6 +4586,8 @@
     <Build Include="dbo\Stored Procedures\USP_GetTasksByWorkflowIds.sql" />
     <Build Include="dbo\Stored Procedures\USP_AddTasksFromTemplatesToWorkOrder.sql" />
     <Build Include="dbo\Stored Procedures\USP_GetWorkOrderTasksForTemplateCopy.sql" />
+    <Build Include="dbo\Stored Procedures\usp_CreateVendorRFQPOFromEmail.sql" />
+    <Build Include="dbo\User Defined Types\tbl_EmailVendorRFQPartType.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="dbo\Stored Procedures\GetManualJournalBatchAccountingDetailsById.sql" />

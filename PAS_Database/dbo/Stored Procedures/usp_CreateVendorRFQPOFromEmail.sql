@@ -79,11 +79,11 @@ BEGIN
             DECLARE @DefaultEmployeeId BIGINT;
             DECLARE @DefaultCurrencyId BIGINT;
 
-            SELECT @DefaultEmployeeId = EmployeeId FROM dbo.Employee
+            SELECT @DefaultEmployeeId = EmployeeId FROM dbo.Employee WITH (NOLOCK)
             WHERE MasterCompanyId = @MasterCompanyId AND IsActive = 1 AND IsDeleted = 0
               AND FirstName = 'ADMIN';
 
-            SELECT TOP 1 @DefaultCurrencyId = CurrencyId FROM dbo.Currency
+            SELECT TOP 1 @DefaultCurrencyId = CurrencyId FROM dbo.Currency WITH (NOLOCK)
             WHERE MasterCompanyId = @MasterCompanyId AND IsActive = 1 AND IsDeleted = 0;
 
             -- 2. Create vendor if not found

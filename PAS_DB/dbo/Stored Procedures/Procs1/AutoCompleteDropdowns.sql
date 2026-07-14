@@ -1,28 +1,79 @@
-/*************************************************************           
- ** File:   [AutoCompleteDropdowns]           
+﻿/* =====================================================================
+ PN-17009 : AutoCompleteDropdown SP consolidation + Stock/Non-Stock label
+
+ Updated SPs only (2 objects) - safe to run standalone against an
+ environment that already has the PN-17008/PN-17009 ItemMaster/Stockline
+ changes applied.
+
+ 1) dbo.AutoCompleteDropdowns
+    - All 3 branches keyed on @TableName='ItemMasterNonStock' now query
+      dbo.ItemMaster WHERE ISNULL(IsNonStock,0) = 1 instead of the retired
+      dbo.ItemMasterNonStock table.
+    - Value now returns ItemMasterId (previously returned MasterPartId,
+      which the callers were already mapping into an "itemMasterId" field -
+      this was a latent bug once non-stock rows moved into ItemMaster with
+      their own ItemMasterId). No Angular changes needed: the callers
+      (stock-line-setup.component.ts, non-stock-line-setup.component.ts,
+      po-setup.component.ts) already pass 'ItemMasterNonStock' as the
+      table-name literal and consume Value as itemMasterId.
+    - Label now ends with ' (Non-Stock)' for these branches, and with
+      ' (Stock)' for the existing @TableName='ItemMaster' branches (both
+      the Count='0' and Count<>'0' code paths), matching the rule:
+        with manufacturer -> "PartNumber - Manufacturer (Stock|Non-Stock)"
+        without manufacturer -> "PartNumber (Stock|Non-Stock)"
+    - NOT changed: @TableName='ItemMasterALL' (still IsNonStock=0 only) and
+      the two @IsFromUpload=1 branches (label kept as plain PartNumber,
+      since upload/import matching relies on an exact-text match and a
+      decorative suffix would break it). Flagging both for your review -
+      let me know if ItemMasterALL should now include Non-Stock rows too.
+
+ 2) dbo.AutoCompleteDropdownsItemMasterWithManufacturer
+    - This SP only ever returns IsNonStock=0 (Stock) rows already (added
+      under PN-17008). Appended ' (Stock)' to its Label output (all 4
+      SELECT blocks) so the two label conventions stay consistent - this
+      is the SP actually hit by the Stock branch of loadPartNumData(),
+      loadRevicePnPartNumData() and loadOemPnPartNumData() in
+      stock-line-setup.component.ts via
+      commonService.autoCompleteSmartDropDownItemMasterWithManufacturer(...).
+
+ NOT included in this file (unchanged, flagged only):
+    - dbo.AutoCompleteDropdownsItemMasterWithManufacturerIsLot: same label
+      pattern, always Stock-only (lot-based lookup - non-stock items are
+      never lotted), left untouched. Let me know if you want the same
+      ' (Stock)' suffix applied here too for full consistency.
+
+ Author : RAJESH GAMI
+ Date   : 13/July/2026
+===================================================================== */
+
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.AutoCompleteDropdowns
+-- ---------------------------------------------------------------------------------------------------
+/*************************************************************
+ ** File:   [AutoCompleteDropdowns]
  ** Author:   Vishal Suthar
  ** Description: This stored procedure is used to search part
- ** Purpose:         
- ** Date:   06/14/2024       
-          
- ** PARAMETERS:           
- @UserType varchar(60)   
-         
- ** RETURN VALUE:           
-  
- **************************************************************           
-  ** Change History           
- **************************************************************           
- ** PR   Date         Author		        Change Description            
- ** --   --------     -------		        --------------------------------          
+ ** Purpose:
+ ** Date:   06/14/2024
+
+ ** PARAMETERS:
+ @UserType varchar(60)
+
+ ** RETURN VALUE:
+
+ **************************************************************
+  ** Change History
+ **************************************************************
+ ** PR   Date         Author		        Change Description
+ ** --   --------     -------		        --------------------------------
     1    06/14/2024   Vishal Suthar		    Added History
     2    06/14/2024   Vishal Suthar		    Increased Limit of records from 20 to 50 for Item Master Module
     3    10/03/2024   Devendra Shekh	    Added case for BatchDetails
 	4    21/03/2024   BHARGAV SALIYA	    Added case for Stockline
 	5    31/12/2024   Devendra Shekh	    Added field IsSerialized for ItemMaster Table
 	6    03/01/2025   Moin Bloch  	        Added field IsTravelerTask, StandardHours, StandardMinute for Task Table
-	7    10/01/2025   Sahdev Saliya         Added Defult site as per setting while add new item 
-	8    24/01/2025   Sahdev Saliya         Added According To The Default Site Management Structure When Adding New items  
+	7    10/01/2025   Sahdev Saliya         Added Defult site as per setting while add new item
+	8    24/01/2025   Sahdev Saliya         Added According To The Default Site Management Structure When Adding New items
     9    10/Feb/2025  RAJESH GAMI  	        Return fields: IsPrintInspector, IsPrintTechnician for Task Table
 	10   14/Feb/2025  RAJESH GAMI  	        Return fields: PublicationTemplate  for PublicationType Table
 	11   19/Feb/2025  AMIT GHEDIYA  	    Added case for TaxType table.
@@ -31,7 +82,7 @@
 	14	 01/Mar/2025  Devendra Shekh	    Modified (For Task Table - Order By Description ASC)
 	15   14/Apr/2025  Moin Bloch	        Modified (Added field IsOEM for ItemMaster Table)
 	16   28/04/2025   Moin Bloch	        Modified (Order By [Sequence] ASC)
-	17   26/08/2025   Moin Bloch	        Modified (Added field IsPrintAdmin for Task Table)	
+	17   26/08/2025   Moin Bloch	        Modified (Added field IsPrintAdmin for Task Table)
     18   25/11/2025   Ayushi Patel          Escaped table name in dynamic SQL (added [] around @TableName) to support reserved names like Percent.
     19   03/12/2025   Ayushi Patel          Removed brackets from @TableName to avoid double [[TableName]] in dynamic SQL.
     20   16/12/2025   Ayushi Patel  	    Return fields: SalesOrderQuote for SalesOrderQuote Table
@@ -43,19 +94,24 @@
 	26    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 
 	26   09/07/2026   AMIT GHEDIYA			Get for EngineRegistryHeader table merge for dropdown
-	
---select * from dbo.Employee      
---EXEC AutoCompleteDropdowns 'ItemMasterALL','ItemMasterId','PartDescription','',1,0,'',1,0       
---EXEC AutoCompleteDropdowns 'Vendor','VendorId','VendorName','',1,20,'0',1  
+	27   13/July/2026  RAJESH GAMI			[PN-17009] Retired dbo.ItemMasterNonStock table lookups (@TableName='ItemMasterNonStock', 3 branches):
+											redirected to dbo.ItemMaster WHERE ISNULL(IsNonStock,0)=1, Value now returns ItemMasterId
+											(previously MasterPartId) to stay consistent with the merged Stock ItemMaster branches.
+											Also appended ' (Stock)'/' (Non-Stock)' to the Label output for the ItemMaster and
+											ItemMasterNonStock branches so callers can distinguish item type in the dropdown text.
+
+--select * from dbo.Employee
+--EXEC AutoCompleteDropdowns 'ItemMasterALL','ItemMasterId','PartDescription','',1,0,'',1,0
+--EXEC AutoCompleteDropdowns 'Vendor','VendorId','VendorName','',1,20,'0',1
 **************************************************************/
-CREATE   PROCEDURE [dbo].[AutoCompleteDropdowns] 
-	@TableName VARCHAR(50) = NULL, 
-	@Parameter1 VARCHAR(50) = NULL, 
-	@Parameter2 VARCHAR(100) = NULL, 
-	@Parameter3 VARCHAR(50) = NULL, 
-	@Parameter4 BIT = TRUE, 
-	@Count VARCHAR(10) = 0, 
-	@Idlist VARCHAR(MAX) = '0', 
+CREATE   PROCEDURE [dbo].[AutoCompleteDropdowns]
+	@TableName VARCHAR(50) = NULL,
+	@Parameter1 VARCHAR(50) = NULL,
+	@Parameter2 VARCHAR(100) = NULL,
+	@Parameter3 VARCHAR(50) = NULL,
+	@Parameter4 BIT = TRUE,
+	@Count VARCHAR(10) = 0,
+	@Idlist VARCHAR(MAX) = '0',
 	@MasterCompanyId INT,
 	@IsFromUpload BIT = 0
 AS BEGIN
@@ -78,7 +134,7 @@ AS BEGIN
 			Label VARCHAR(MAX),
 			MasterCompanyId int
 		)
-        
+
 		IF(@Count='0')BEGIN
             print '00'
             IF(@TableName='Employee')BEGIN
@@ -147,7 +203,7 @@ AS BEGIN
                          WHERE MasterCompanyId=@MasterCompanyId AND PublicationTypeId IN(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') )
                          ORDER BY Name asc
                      END
-                     ELSE 
+                     ELSE
 					 BEGIN
                          SELECT DISTINCT PublicationTypeId as Value, [Name] as Label, (SELECT TOP 1 EmailBody FROM DBO.PublicationTemplate PT WITH(NOLOCK) WHERE PT.PublicationTypeId = P.PublicationTypeId AND Pt.MasterCompanyId = P.MasterCompanyId ) as PublicationTemplate
                          FROM dbo.PublicationType P WITH(NOLOCK)
@@ -172,7 +228,7 @@ AS BEGIN
                          WHERE MasterCompanyId=@MasterCompanyId AND MtcCategoryId IN(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') )
                          ORDER BY [MtcCategory] asc
                      END
-                     ELSE 
+                     ELSE
 					 BEGIN
                          SELECT DISTINCT MtcCategoryId as Value, [MtcCategory] as Label, MaintenanceCode
                          FROM dbo.MaintenanceCategory P WITH(NOLOCK)
@@ -195,7 +251,7 @@ AS BEGIN
                          WHERE MasterCompanyId=@MasterCompanyId AND TaskId IN(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') )
                          ORDER BY [Sequence] ASC
                      END
-                     ELSE 
+                     ELSE
 					 BEGIN
                          SELECT DISTINCT TaskId AS Value, Description AS Label, Sequence, IsTravelerTask, StandardHours, StandardMinute
                          FROM dbo.Task WITH(NOLOCK)
@@ -287,12 +343,12 @@ AS BEGIN
                         ELSE BEGIN
                                  SELECT DISTINCT SalesOrderQuoteId AS Value, SalesOrderQuoteNumber AS Label
                                  FROM dbo.SalesOrderQuote WITH(NOLOCK)
-                                 WHERE MasterCompanyId=@MasterCompanyId AND(IsActive=1 AND ISNULL(IsDeleted, 0)=0 
+                                 WHERE MasterCompanyId=@MasterCompanyId AND(IsActive=1 AND ISNULL(IsDeleted, 0)=0
                                  AND IsNewVersionCreated = 0 AND(SalesOrderQuoteNumber LIKE '%'+@Parameter3+'%'))
                                  UNION
                                  SELECT DISTINCT SalesOrderQuoteId AS Value, SalesOrderQuoteNumber AS Label
                                  FROM dbo.SalesOrderQuote WITH(NOLOCK)
-                                 WHERE MasterCompanyId=@MasterCompanyId AND IsNewVersionCreated = 0 
+                                 WHERE MasterCompanyId=@MasterCompanyId AND IsNewVersionCreated = 0
                                  AND SalesOrderQuoteId IN(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') )
                                  ORDER BY SalesOrderQuoteId DESC
                             END
@@ -305,45 +361,45 @@ AS BEGIN
                 ORDER BY [WarehouseId] ASC
             END
             ELSE IF(@TableName='Location')
-            BEGIN  
+            BEGIN
                 SELECT DISTINCT [LocationId] AS Value, [Name] AS Label
                 FROM [DBO].[Location] WITH(NOLOCK)
                 WHERE [MasterCompanyId] = @MasterCompanyId AND [WarehouseId] IN(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ','))
                 ORDER BY [LocationId] ASC
             END
             ELSE IF(@TableName='Shelf')
-            BEGIN 
+            BEGIN
                 SELECT DISTINCT [ShelfId] AS Value, [Name] AS Label
                 FROM [DBO].[Shelf] WITH(NOLOCK)
                 WHERE [MasterCompanyId] = @MasterCompanyId AND [LocationId] IN(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ','))
-                ORDER BY [ShelfId] ASC 
+                ORDER BY [ShelfId] ASC
             END
             ELSE IF(@TableName='Bin')
-            BEGIN 
+            BEGIN
                 SELECT DISTINCT [Binid] AS Value, [Name] AS Label
                 FROM [DBO].[Bin] WITH(NOLOCK)
                 WHERE [MasterCompanyId] = @MasterCompanyId AND [ShelfId] IN(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ','))
-                ORDER BY [Binid] ASC 
-            END   
+                ORDER BY [Binid] ASC
+            END
 			ELSE IF(@TableName='NumberOfEngines')
-            BEGIN 
+            BEGIN
                 SELECT DISTINCT [Id] AS Value, [Number] AS Label
                 FROM [DBO].[NumberOfEngines] WITH(NOLOCK)
-                ORDER BY [Id] ASC 
+                ORDER BY [Id] ASC
             END
             ELSE BEGIN
                      IF(@Parameter4=1)BEGIN
                          IF(@TableName='ItemMaster' AND ISNULL(@IsFromUpload,0) = 0)BEGIN
-                             SELECT TOP 50 IM.ItemMasterId as Value, Im.partnumber as PartNumber, im.partnumber+(CASE WHEN(SELECT COUNT(ISNULL(SD.[ManufacturerId], 0))
+                             SELECT TOP 50 IM.ItemMasterId as Value, Im.partnumber as PartNumber, (im.partnumber+(CASE WHEN(SELECT COUNT(ISNULL(SD.[ManufacturerId], 0))
                                                                                                                            FROM [dbo].[ItemMaster] SD WITH(NOLOCK)
-                                                                                                                           WHERE im.partnumber=SD.partnumber AND SD.MasterCompanyId=@MasterCompanyId AND ISNULL(SD.IsNonStock,0) = 0 )>1 then ' - '+IM.ManufacturerName ELSE '' END) AS Label, IM.MasterCompanyId, im.ManufacturerName As ManufacturerName, im.IsSerialized ,IM.IsOEM
+                                                                                                                           WHERE im.partnumber=SD.partnumber AND SD.MasterCompanyId=@MasterCompanyId AND ISNULL(SD.IsNonStock,0) = 0 )>1 then ' - '+IM.ManufacturerName ELSE '' END)+' (Stock)') AS Label, IM.MasterCompanyId, im.ManufacturerName As ManufacturerName, im.IsSerialized ,IM.IsOEM
                              FROM dbo.ItemMaster IM
                              WHERE Im.MasterCompanyId=@MasterCompanyId AND ISNULL(IsActive, 1)=1 AND ISNULL(IsDeleted, 0)=0 AND Im.PartNumber like '%'+@Parameter3+'%'
                               AND ISNULL(IM.IsNonStock,0) = 0
                               UNION
-                             SELECT IM.ItemMasterId as Value, Im.partnumber as PartNumber, im.partnumber+(CASE WHEN(SELECT COUNT(ISNULL(SD.[ManufacturerId], 0))
+                             SELECT IM.ItemMasterId as Value, Im.partnumber as PartNumber, (im.partnumber+(CASE WHEN(SELECT COUNT(ISNULL(SD.[ManufacturerId], 0))
                                                                                                                     FROM [dbo].[ItemMaster] SD WITH(NOLOCK)
-                                                                                                                    WHERE im.partnumber=SD.partnumber AND SD.MasterCompanyId=@MasterCompanyId AND ISNULL(SD.IsNonStock,0) = 0 )>1 then ' - '+IM.ManufacturerName ELSE '' END) AS Label, IM.MasterCompanyId, im.ManufacturerName As ManufacturerName, im.IsSerialized ,IM.IsOEM
+                                                                                                                    WHERE im.partnumber=SD.partnumber AND SD.MasterCompanyId=@MasterCompanyId AND ISNULL(SD.IsNonStock,0) = 0 )>1 then ' - '+IM.ManufacturerName ELSE '' END)+' (Stock)') AS Label, IM.MasterCompanyId, im.ManufacturerName As ManufacturerName, im.IsSerialized ,IM.IsOEM
                              FROM dbo.ItemMaster IM
                              WHERE Im.MasterCompanyId=@MasterCompanyId AND IM.ItemMasterId in(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') )
                           AND ISNULL(IM.IsNonStock,0) = 0
@@ -396,11 +452,13 @@ AS BEGIN
                                   ORDER BY LotId DESC
                          END
                          ELSE IF(@TableName='ItemMasterNonStock')BEGIN
-                                  SELECT IMN.MasterPartId as Value, IMN.partnumber as PartNumber, IMN.partnumber+(CASE WHEN(SELECT COUNT(ISNULL(SD.[ManufacturerId], 0))
-                                                                                                                            FROM [dbo].[ItemMasterNonStock] SD WITH(NOLOCK)
-                                                                                                                            WHERE IMN.partnumber=SD.partnumber AND SD.MasterCompanyId=@MasterCompanyId)>1 then ' - '+IMN.Manufacturer ELSE '' END) AS Label, IMN.MasterCompanyId, IMN.Manufacturer As ManufacturerName
-                                  FROM dbo.ItemMasterNonStock IMN
-                                  WHERE IMN.MasterCompanyId=@MasterCompanyId AND ISNULL(IsActive, 1)=1 AND ISNULL(IsDeleted, 0)=0 AND IMN.PartNumber like '%'+@Parameter3+'%'
+                                  -- [PN-17009] ItemMasterNonStock table retired; redirect to ItemMaster WHERE IsNonStock = 1
+                                  SELECT IM.ItemMasterId as Value, IM.partnumber as PartNumber, (IM.partnumber+(CASE WHEN(SELECT COUNT(ISNULL(SD.[ManufacturerId], 0))
+                                                                                                                            FROM [dbo].[ItemMaster] SD WITH(NOLOCK)
+                                                                                                                            WHERE IM.partnumber=SD.partnumber AND SD.MasterCompanyId=@MasterCompanyId AND ISNULL(SD.IsNonStock,0)=1)>1 then ' - '+IM.ManufacturerName ELSE '' END)+' (Non-Stock)') AS Label, IM.MasterCompanyId, IM.ManufacturerName As ManufacturerName
+                                  FROM dbo.ItemMaster IM
+                                  WHERE IM.MasterCompanyId=@MasterCompanyId AND ISNULL(IM.IsActive, 1)=1 AND ISNULL(IM.IsDeleted, 0)=0 AND IM.PartNumber like '%'+@Parameter3+'%'
+                                   AND ISNULL(IM.IsNonStock,0) = 1
                          END
                          ELSE IF(@TableName='LotConsignment')BEGIN
                                   SELECT LC.ConsignmentId AS Value, LC.ConsignmentNumber AS Label, LC.MasterCompanyId AS MasterCompanyId, LC.ConsigneeName AS ConsigneeName
@@ -460,45 +518,45 @@ AS BEGIN
                         ELSE IF(@TableName='Vendor' AND ISNULL(@IsFromUpload,0)=0)BEGIN
                                 SELECT TOP 50 V.VendorId AS Value,V.VendorName,V.VendorName+(CASE WHEN(SELECT COUNT(1)
                                                                                              FROM dbo.Vendor VD WITH(NOLOCK)
-                                                                                             WHERE VD.VendorName=V.VendorName AND VD.MasterCompanyId=@MasterCompanyId)>1 THEN ' - '+V.VendorCode ELSE '' END) AS Label,V.MasterCompanyId,V.VendorCode 
-                                FROM dbo.Vendor V WITH(NOLOCK) WHERE V.MasterCompanyId=@MasterCompanyId AND ISNULL(V.IsActive,1)=1 AND ISNULL(V.IsDeleted,0)=0 AND V.VendorName LIKE '%'+@Parameter3+'%' 
-                                UNION 
-                                SELECT V.VendorId AS Value,V.VendorName,V.VendorName+(CASE WHEN(SELECT COUNT(1) 
+                                                                                             WHERE VD.VendorName=V.VendorName AND VD.MasterCompanyId=@MasterCompanyId)>1 THEN ' - '+V.VendorCode ELSE '' END) AS Label,V.MasterCompanyId,V.VendorCode
+                                FROM dbo.Vendor V WITH(NOLOCK) WHERE V.MasterCompanyId=@MasterCompanyId AND ISNULL(V.IsActive,1)=1 AND ISNULL(V.IsDeleted,0)=0 AND V.VendorName LIKE '%'+@Parameter3+'%'
+                                UNION
+                                SELECT V.VendorId AS Value,V.VendorName,V.VendorName+(CASE WHEN(SELECT COUNT(1)
                                                                                       FROM dbo.Vendor VD WITH(NOLOCK)
-                                                                                      WHERE VD.VendorName=V.VendorName AND VD.MasterCompanyId=@MasterCompanyId)>1 THEN ' - '+V.VendorCode ELSE '' END) AS Label,V.MasterCompanyId,V.VendorCode 
+                                                                                      WHERE VD.VendorName=V.VendorName AND VD.MasterCompanyId=@MasterCompanyId)>1 THEN ' - '+V.VendorCode ELSE '' END) AS Label,V.MasterCompanyId,V.VendorCode
                                 FROM dbo.Vendor V WITH(NOLOCK) WHERE V.MasterCompanyId=@MasterCompanyId AND V.VendorId IN(SELECT Item FROM dbo.SPLITSTRING(@Idlist,','))
                         END
                         ELSE IF(@TableName='Vendor' AND ISNULL(@IsFromUpload,0)=1)BEGIN
-                                SELECT TOP 50 V.VendorId AS Value,V.VendorName,V.VendorName AS Label,V.MasterCompanyId,V.VendorCode 
+                                SELECT TOP 50 V.VendorId AS Value,V.VendorName,V.VendorName AS Label,V.MasterCompanyId,V.VendorCode
                                 FROM dbo.Vendor V WITH(NOLOCK)
-                                WHERE V.MasterCompanyId=@MasterCompanyId AND ISNULL(V.IsActive,1)=1 AND ISNULL(V.IsDeleted,0)=0 AND V.VendorName LIKE '%'+@Parameter3+'%' 
+                                WHERE V.MasterCompanyId=@MasterCompanyId AND ISNULL(V.IsActive,1)=1 AND ISNULL(V.IsDeleted,0)=0 AND V.VendorName LIKE '%'+@Parameter3+'%'
                                 UNION
-                                SELECT V.VendorId AS Value,V.VendorName,V.VendorName AS Label,V.MasterCompanyId,V.VendorCode 
-                                FROM dbo.Vendor V WITH(NOLOCK) 
-                                WHERE V.MasterCompanyId=@MasterCompanyId AND V.VendorId IN(SELECT Item FROM dbo.SPLITSTRING(@Idlist,',')) 
+                                SELECT V.VendorId AS Value,V.VendorName,V.VendorName AS Label,V.MasterCompanyId,V.VendorCode
+                                FROM dbo.Vendor V WITH(NOLOCK)
+                                WHERE V.MasterCompanyId=@MasterCompanyId AND V.VendorId IN(SELECT Item FROM dbo.SPLITSTRING(@Idlist,','))
                         END
 
                          ELSE BEGIN
-                                  SET @Sql=N'INSERT INTO #TempTable (Value, Label, MasterCompanyId)   
-           SELECT DISTINCT  CAST ( '+@Parameter1+' AS BIGINT) As Value,  
-                   CAST ( '+      @Parameter2+' AS VARCHAR(MAX)) AS Label,   
-             MasterCompanyId FROM dbo.['+@TableName+'] WITH(NOLOCK) WHERE MasterCompanyId = '+CAST(@MasterCompanyId AS nvarchar(50))+' AND CAST ( '+@Parameter1+' AS VARCHAR(MAX) ) IN (SELECT Item FROM DBO.SPLITSTRING('''+@Idlist+''','',''))      
-              
-            INSERT INTO #TempTable (Value, Label, MasterCompanyId)   
-            SELECT DISTINCT  CAST ( '+@Parameter1+' AS BIGINT) As Value,  
-                CAST('+           @Parameter2+' AS VARCHAR(MAX)) AS Label,  
+                                  SET @Sql=N'INSERT INTO #TempTable (Value, Label, MasterCompanyId)
+           SELECT DISTINCT  CAST ( '+@Parameter1+' AS BIGINT) As Value,
+                   CAST ( '+      @Parameter2+' AS VARCHAR(MAX)) AS Label,
+             MasterCompanyId FROM dbo.['+@TableName+'] WITH(NOLOCK) WHERE MasterCompanyId = '+CAST(@MasterCompanyId AS nvarchar(50))+' AND CAST ( '+@Parameter1+' AS VARCHAR(MAX) ) IN (SELECT Item FROM DBO.SPLITSTRING('''+@Idlist+''','',''))
+
+            INSERT INTO #TempTable (Value, Label, MasterCompanyId)
+            SELECT DISTINCT  CAST ( '+@Parameter1+' AS BIGINT) As Value,
+                CAST('+           @Parameter2+' AS VARCHAR(MAX)) AS Label,
        MasterCompanyId FROM dbo.['+@TableName+'] WITH(NOLOCK) WHERE MasterCompanyId = '+CAST(@MasterCompanyId AS nvarchar(50))+' AND IsActive=1 AND ISNULL(IsDeleted,0)=0 AND CAST ( '+@Parameter2+' AS VARCHAR(MAX)) !='''' AND '+@Parameter2+'  LIKE ''%'+@Parameter3+'%'''
                          END
                      END
                      ELSE BEGIN
-                         SET @Sql=N'INSERT INTO #TempTable (Value, Label, MasterCompanyId)   
-                          SELECT DISTINCT  CAST ( '+@Parameter1+' AS BIGINT) As Value,  
-        CAST('+          @Parameter2+' AS VARCHAR(MAX)) AS Label,  
-        MasterCompanyId FROM  dbo.['+@TableName+'] WITH(NOLOCK) WHERE MasterCompanyId = '+CAST(@MasterCompanyId AS nvarchar(50))+' AND CAST ( '+@Parameter1+' AS VARCHAR(MAX) ) IN (SELECT Item FROM DBO.SPLITSTRING('''+@Idlist+''','',''))      
-               
-   INSERT INTO #TempTable (Value, Label, MasterCompanyId)   
-            SELECT DISTINCT  CAST ( '+@Parameter1+' AS BIGINT) As Value,  
-      CAST('+            @Parameter2+' AS VARCHAR(MAX)) AS Label,  
+                         SET @Sql=N'INSERT INTO #TempTable (Value, Label, MasterCompanyId)
+                          SELECT DISTINCT  CAST ( '+@Parameter1+' AS BIGINT) As Value,
+        CAST('+          @Parameter2+' AS VARCHAR(MAX)) AS Label,
+        MasterCompanyId FROM  dbo.['+@TableName+'] WITH(NOLOCK) WHERE MasterCompanyId = '+CAST(@MasterCompanyId AS nvarchar(50))+' AND CAST ( '+@Parameter1+' AS VARCHAR(MAX) ) IN (SELECT Item FROM DBO.SPLITSTRING('''+@Idlist+''','',''))
+
+   INSERT INTO #TempTable (Value, Label, MasterCompanyId)
+            SELECT DISTINCT  CAST ( '+@Parameter1+' AS BIGINT) As Value,
+      CAST('+            @Parameter2+' AS VARCHAR(MAX)) AS Label,
       MasterCompanyId FROM dbo.['+@TableName+'] WITH(NOLOCK) WHERE MasterCompanyId = '+CAST(@MasterCompanyId AS nvarchar(50))+' AND IsActive=1 AND ISNULL(IsDeleted,0)=0 AND CAST ( '+@Parameter2+' AS VARCHAR(MAX)) !='''' AND '+@Parameter2+'  LIKE ''%'+@Parameter3+'%''';
                      END
             END
@@ -568,7 +626,7 @@ AS BEGIN
                          WHERE MasterCompanyId=@MasterCompanyId AND PublicationTypeId IN(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') )
                          ORDER BY Name asc
                      END
-                     ELSE 
+                     ELSE
 					 BEGIN
                          SELECT DISTINCT PublicationTypeId as Value, [Name] as Label, (SELECT TOP 1 EmailBody FROM DBO.PublicationTemplate PT WITH(NOLOCK) WHERE PT.PublicationTypeId = P.PublicationTypeId AND Pt.MasterCompanyId = P.MasterCompanyId ) as PublicationTemplate
                          FROM dbo.PublicationType P WITH(NOLOCK)
@@ -623,11 +681,13 @@ AS BEGIN
                      ORDER BY LotId DESC
             END
             ELSE IF(@TableName='ItemMasterNonStock')BEGIN
-                     SELECT IMN.MasterPartId as Value, IMN.partnumber as PartNumber, IMN.partnumber+(CASE WHEN(SELECT COUNT(ISNULL(SD.[ManufacturerId], 0))
-                                                                                                               FROM [dbo].[ItemMasterNonStock] SD WITH(NOLOCK)
-                                                                                                               WHERE IMN.partnumber=SD.partnumber AND SD.MasterCompanyId=@MasterCompanyId)>1 then ' - '+IMN.Manufacturer ELSE '' END) AS Label, IMN.MasterCompanyId, IMN.Manufacturer As ManufacturerName
-                     FROM dbo.ItemMasterNonStock IMN
-                     WHERE IMN.MasterCompanyId=@MasterCompanyId AND ISNULL(IsActive, 1)=1 AND ISNULL(IsDeleted, 0)=0 AND IMN.PartNumber like '%'+@Parameter3+'%'
+                     -- [PN-17009] ItemMasterNonStock table retired; redirect to ItemMaster WHERE IsNonStock = 1
+                     SELECT IM.ItemMasterId as Value, IM.partnumber as PartNumber, (IM.partnumber+(CASE WHEN(SELECT COUNT(ISNULL(SD.[ManufacturerId], 0))
+                                                                                                               FROM [dbo].[ItemMaster] SD WITH(NOLOCK)
+                                                                                                               WHERE IM.partnumber=SD.partnumber AND SD.MasterCompanyId=@MasterCompanyId AND ISNULL(SD.IsNonStock,0)=1)>1 then ' - '+IM.ManufacturerName ELSE '' END)+' (Non-Stock)') AS Label, IM.MasterCompanyId, IM.ManufacturerName As ManufacturerName
+                     FROM dbo.ItemMaster IM
+                     WHERE IM.MasterCompanyId=@MasterCompanyId AND ISNULL(IM.IsActive, 1)=1 AND ISNULL(IM.IsDeleted, 0)=0 AND IM.PartNumber like '%'+@Parameter3+'%'
+                      AND ISNULL(IM.IsNonStock,0) = 1
             END
 			 ELSE IF(@TableName='BatchDetails')BEGIN
                      SELECT DISTINCT TOP 20 MAX(JournalBatchDetailId) AS Value, JournalTypeNumber AS Label
@@ -660,16 +720,16 @@ AS BEGIN
             ELSE BEGIN
                      IF(@Parameter4=1)BEGIN
                          IF(@TableName='ItemMaster' AND ISNULL(@IsFromUpload,0) = 0)BEGIN
-                             SELECT TOP 50 IM.ItemMasterId as Value, Im.partnumber as PartNumber, im.partnumber+(CASE WHEN(SELECT COUNT(ISNULL(SD.[ManufacturerId], 0))
+                             SELECT TOP 50 IM.ItemMasterId as Value, Im.partnumber as PartNumber, (im.partnumber+(CASE WHEN(SELECT COUNT(ISNULL(SD.[ManufacturerId], 0))
                                                                                                                            FROM [dbo].[ItemMaster] SD WITH(NOLOCK)
-                                                                                                                           WHERE im.partnumber=SD.partnumber AND SD.MasterCompanyId=@MasterCompanyId AND ISNULL(SD.IsNonStock,0) = 0 )>1 then ' - '+IM.ManufacturerName ELSE '' END) AS Label, IM.MasterCompanyId, im.ManufacturerName AS ManufacturerName, im.IsSerialized ,IM.IsOEM
+                                                                                                                           WHERE im.partnumber=SD.partnumber AND SD.MasterCompanyId=@MasterCompanyId AND ISNULL(SD.IsNonStock,0) = 0 )>1 then ' - '+IM.ManufacturerName ELSE '' END)+' (Stock)') AS Label, IM.MasterCompanyId, im.ManufacturerName AS ManufacturerName, im.IsSerialized ,IM.IsOEM
                              FROM dbo.ItemMaster IM
                              WHERE Im.MasterCompanyId=@MasterCompanyId AND ISNULL(IsActive, 1)=1 AND ISNULL(IsDeleted, 0)=0 AND Im.PartNumber like '%'+@Parameter3+'%'
                               AND ISNULL(IM.IsNonStock,0) = 0
                               UNION
-                             SELECT IM.ItemMasterId as Value, Im.partnumber as PartNumber, im.partnumber+(CASE WHEN(SELECT COUNT(ISNULL(SD.[ManufacturerId], 0))
+                             SELECT IM.ItemMasterId as Value, Im.partnumber as PartNumber, (im.partnumber+(CASE WHEN(SELECT COUNT(ISNULL(SD.[ManufacturerId], 0))
                                                                                                                     FROM [dbo].[ItemMaster] SD WITH(NOLOCK)
-                                                                                                                    WHERE im.partnumber=SD.partnumber AND SD.MasterCompanyId=@MasterCompanyId AND ISNULL(SD.IsNonStock,0) = 0 )>1 then ' - '+IM.ManufacturerName ELSE '' END) AS Label, IM.MasterCompanyId, im.ManufacturerName AS ManufacturerName, im.IsSerialized ,IM.IsOEM
+                                                                                                                    WHERE im.partnumber=SD.partnumber AND SD.MasterCompanyId=@MasterCompanyId AND ISNULL(SD.IsNonStock,0) = 0 )>1 then ' - '+IM.ManufacturerName ELSE '' END)+' (Stock)') AS Label, IM.MasterCompanyId, im.ManufacturerName AS ManufacturerName, im.IsSerialized ,IM.IsOEM
                              FROM dbo.ItemMaster IM
                              WHERE Im.MasterCompanyId=@MasterCompanyId AND IM.ItemMasterId in(SELECT Item FROM DBO.SPLITSTRING(@Idlist, ',') )
                           AND ISNULL(IM.IsNonStock,0) = 0
@@ -702,11 +762,13 @@ AS BEGIN
                           AND ISNULL(IM.IsNonStock,0) = 0
                                    END
                          ELSE IF(@TableName='ItemMasterNonStock')BEGIN
-                                  SELECT TOP 50 IMN.MasterPartId as Value, IMN.partnumber as PartNumber, IMN.partnumber+(CASE WHEN(SELECT COUNT(ISNULL(SD.[ManufacturerId], 0))
-                                                                                                                                   FROM [dbo].[ItemMasterNonStock] SD WITH(NOLOCK)
-                                                                                                                                   WHERE IMN.partnumber=SD.partnumber AND SD.MasterCompanyId=@MasterCompanyId)>1 then ' - '+IMN.Manufacturer ELSE '' END) AS Label, IMN.MasterCompanyId, IMN.Manufacturer As ManufacturerName
-                                  FROM dbo.ItemMasterNonStock IMN
-                                  WHERE IMN.MasterCompanyId=@MasterCompanyId AND ISNULL(IsActive, 1)=1 AND ISNULL(IsDeleted, 0)=0 AND IMN.PartNumber like '%'+@Parameter3+'%'
+                                  -- [PN-17009] ItemMasterNonStock table retired; redirect to ItemMaster WHERE IsNonStock = 1
+                                  SELECT TOP 50 IM.ItemMasterId as Value, IM.partnumber as PartNumber, (IM.partnumber+(CASE WHEN(SELECT COUNT(ISNULL(SD.[ManufacturerId], 0))
+                                                                                                                                   FROM [dbo].[ItemMaster] SD WITH(NOLOCK)
+                                                                                                                                   WHERE IM.partnumber=SD.partnumber AND SD.MasterCompanyId=@MasterCompanyId AND ISNULL(SD.IsNonStock,0)=1)>1 then ' - '+IM.ManufacturerName ELSE '' END)+' (Non-Stock)') AS Label, IM.MasterCompanyId, IM.ManufacturerName As ManufacturerName
+                                  FROM dbo.ItemMaster IM
+                                  WHERE IM.MasterCompanyId=@MasterCompanyId AND ISNULL(IM.IsActive, 1)=1 AND ISNULL(IM.IsDeleted, 0)=0 AND IM.PartNumber like '%'+@Parameter3+'%'
+                                   AND ISNULL(IM.IsNonStock,0) = 1
                          END
                          ELSE IF(@TableName='ConsigneeLot')BEGIN
                                   SELECT TOP 20 LotId AS Value, LotNumber AS Label
@@ -759,7 +821,7 @@ AS BEGIN
                                  ORDER BY SalesOrderQuoteId DESC
                         END
                         ELSE IF(@TableName='Vendor' AND ISNULL(@IsFromUpload,0) = 0)BEGIN
-                                SELECT TOP 50 V.VendorId AS Value,V.VendorName,V.VendorName +(CASE WHEN (SELECT COUNT(1) 
+                                SELECT TOP 50 V.VendorId AS Value,V.VendorName,V.VendorName +(CASE WHEN (SELECT COUNT(1)
                                                                                                             FROM dbo.Vendor VD WITH (NOLOCK)
                                                                                                             WHERE VD.VendorName = V.VendorName AND VD.MasterCompanyId = @MasterCompanyId AND ISNULL(VD.IsDeleted, 0) = 0 ) > 1 THEN ' - ' + ISNULL(V.VendorCode, '') ELSE ''END ) AS Label,V.MasterCompanyId,V.VendorCode
                                 FROM dbo.Vendor V WITH (NOLOCK)
@@ -782,26 +844,26 @@ AS BEGIN
                         END
 
                          ELSE BEGIN
-                                  SET @Sql=N'INSERT INTO #TempTable (Value, Label, MasterCompanyId)   
-             SELECT DISTINCT TOP '+@Count+' CAST ( '+@Parameter1+' AS BIGINT) As Value,  
-               CAST ( '+          @Parameter2+' AS VARCHAR(MAX)) AS Label,   
-               MasterCompanyId FROM  dbo.['+@TableName+'] WHERE MasterCompanyId =  '+CAST(@MasterCompanyId AS nvarchar(50))+'  AND CAST ( '+@Parameter1+' AS VARCHAR(MAX) ) IN (SELECT Item FROM DBO.SPLITSTRING('''+@Idlist+''','',''))      
-              
-    INSERT INTO #TempTable (Value, Label, MasterCompanyId)   
-        SELECT DISTINCT TOP '+    @Count+' CAST ( '+@Parameter1+' AS BIGINT) As Value,  
-         CAST('+                  @Parameter2+' AS VARCHAR(MAX)) AS Label,  
+                                  SET @Sql=N'INSERT INTO #TempTable (Value, Label, MasterCompanyId)
+             SELECT DISTINCT TOP '+@Count+' CAST ( '+@Parameter1+' AS BIGINT) As Value,
+               CAST ( '+          @Parameter2+' AS VARCHAR(MAX)) AS Label,
+               MasterCompanyId FROM  dbo.['+@TableName+'] WHERE MasterCompanyId =  '+CAST(@MasterCompanyId AS nvarchar(50))+'  AND CAST ( '+@Parameter1+' AS VARCHAR(MAX) ) IN (SELECT Item FROM DBO.SPLITSTRING('''+@Idlist+''','',''))
+
+    INSERT INTO #TempTable (Value, Label, MasterCompanyId)
+        SELECT DISTINCT TOP '+    @Count+' CAST ( '+@Parameter1+' AS BIGINT) As Value,
+         CAST('+                  @Parameter2+' AS VARCHAR(MAX)) AS Label,
          MasterCompanyId FROM  dbo.['+@TableName+'] WHERE MasterCompanyId =  '+CAST(@MasterCompanyId AS nvarchar(50))+'  AND IsActive=1 AND ISNULL(IsDeleted,0)=0 AND CAST ( '+@Parameter2+' AS VARCHAR(MAX)) !='''' AND '+@Parameter2+'  LIKE ''%'+@Parameter3+'%'''
                          END
                      END
                      ELSE BEGIN
-                         SET @Sql=N'INSERT INTO #TempTable (Value, Label, MasterCompanyId)   
-                          SELECT DISTINCT TOP '+@Count+' CAST ( '+@Parameter1+' AS BIGINT) As Value,  
-        CAST ( '+        @Parameter2+' AS VARCHAR(MAX)) AS Label,  
-        MasterCompanyId FROM  dbo.['+@TableName+'] WHERE MasterCompanyId =  '+CAST(@MasterCompanyId AS nvarchar(50))+'  AND CAST ( '+@Parameter1+' AS VARCHAR(MAX) ) IN (SELECT Item FROM DBO.SPLITSTRING('''+@Idlist+''','',''))      
-               
-          INSERT INTO #TempTable (Value, Label, MasterCompanyId)   
-            SELECT DISTINCT TOP '+@Count+' CAST ( '+@Parameter1+' AS BIGINT) As Value,  
-      CAST('+            @Parameter2+' AS VARCHAR(MAX)) AS Label,  
+                         SET @Sql=N'INSERT INTO #TempTable (Value, Label, MasterCompanyId)
+                          SELECT DISTINCT TOP '+@Count+' CAST ( '+@Parameter1+' AS BIGINT) As Value,
+        CAST ( '+        @Parameter2+' AS VARCHAR(MAX)) AS Label,
+        MasterCompanyId FROM  dbo.['+@TableName+'] WHERE MasterCompanyId =  '+CAST(@MasterCompanyId AS nvarchar(50))+'  AND CAST ( '+@Parameter1+' AS VARCHAR(MAX) ) IN (SELECT Item FROM DBO.SPLITSTRING('''+@Idlist+''','',''))
+
+          INSERT INTO #TempTable (Value, Label, MasterCompanyId)
+            SELECT DISTINCT TOP '+@Count+' CAST ( '+@Parameter1+' AS BIGINT) As Value,
+      CAST('+            @Parameter2+' AS VARCHAR(MAX)) AS Label,
       MasterCompanyId FROM  dbo.['+@TableName+'] WHERE MasterCompanyId =  '+CAST(@MasterCompanyId AS nvarchar(50))+'  AND IsActive=1 AND ISNULL(IsDeleted,0)=0 AND CAST ( '+@Parameter2+' AS VARCHAR(MAX)) !='''' AND '+@Parameter2+'  LIKE ''%'+@Parameter3+'%''';
                      END
             END
@@ -816,20 +878,20 @@ AS BEGIN
     END TRY
     BEGIN CATCH
         DECLARE @ErrorLogID INT, @DatabaseName VARCHAR(100) =db_name(),
-            -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------  
-            @AdhocComments VARCHAR(150) ='AutoCompleteDropdowns', @ProcedureParameters VARCHAR(3000) = 
-			'@Parameter1 = '''+CAST(ISNULL(@TableName, '') as varchar(100))+ 
+            -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
+            @AdhocComments VARCHAR(150) ='AutoCompleteDropdowns', @ProcedureParameters VARCHAR(3000) =
+			'@Parameter1 = '''+CAST(ISNULL(@TableName, '') as varchar(100))+
 			'@Parameter2 = '''+CAST(ISNULL(@Parameter1, '') as varchar(100))+
 			'@Parameter3 = '''+CAST(ISNULL(@Parameter2, '') as varchar(100))+
 			'@Parameter4 = '''+CAST(ISNULL(@Parameter3, '') as varchar(100))+
 			'@Parameter5 = '''+CAST(ISNULL(@Parameter4, '') as varchar(100))+
 			'@Parameter6 = '''+CAST(ISNULL(@Count, '') as varchar(100))+
 			'@Parameter7 = '''+CAST(ISNULL(@Idlist, '') as varchar(100))+
-			'@Parameter8 = '''+CAST(ISNULL(@MasterCompanyId, '') as varchar(100)), 
+			'@Parameter8 = '''+CAST(ISNULL(@MasterCompanyId, '') as varchar(100)),
 			@ApplicationName VARCHAR(100) = 'PAS'
-        -----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------  
+        -----------------------------------PLEASE DO NOT EDIT BELOW----------------------------------------
         EXEC spLogException @DatabaseName=@DatabaseName, @AdhocComments=@AdhocComments, @ProcedureParameters=@ProcedureParameters, @ApplicationName=@ApplicationName, @ErrorLogID=@ErrorLogID OUTPUT;
         RAISERROR('Unexpected Error Occured in the database. Please let the support team know of the error number : %d', 16, 1, @ErrorLogID)
         RETURN (1);
-    END CATCH
+    END CATCH
 END

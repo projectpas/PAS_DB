@@ -1,8 +1,4 @@
 ﻿
--- ---------------------------------------------------------------------------------------------------
--- Stored Procedure: dbo.GetStocklineAuditById   (source: PAS_DB/dbo/Stored Procedures/Procs1/GetStocklineAuditById.sql)
--- ---------------------------------------------------------------------------------------------------
-
 /*************************************************************           
  ** File:   [GetStocklineAuditById]           
  ** Author:   Rajesh Gami
@@ -20,7 +16,12 @@
  ** --   --------       -------		    --------------------------------          
     1    12-Aug-2024    Rajesh Gami  Created
 	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
-     
+	3    13/July/2026			 RAJESH GAMI						[PN-17009] - BUGFIX: removed 2 redundant "AND ISNULL(im/v.IsNonStock,0) = 0"
+										 filters on the Stockline's own ItemMaster join and its self-correlated integration-
+										 portal subquery. This SP is already scoped to one exact @stocklineId, so these
+										 filters were silently blanking ItemMaster-derived fields for migrated Non-Stock
+										 Stockline records.
+
 	 EXEC [dbo].[GetStocklineAuditById] 178385
 **************************************************************/ 
 
@@ -206,7 +207,7 @@ BEGIN
 				 FROM ItemMaster v
 				 INNER JOIN ItemMasterIntegrationPortal mp ON v.ItemMasterId = mp.ItemMasterId
 				 INNER JOIN IntegrationPortal inte ON mp.IntegrationPortalId = inte.IntegrationPortalId
-				 WHERE v.MasterCompanyId = @masteCompnayID AND v.ItemMasterId = im.ItemMasterId AND ISNULL(v.IsNonStock,0) = 0
+				 WHERE v.MasterCompanyId = @masteCompnayID AND v.ItemMasterId = im.ItemMasterId
 				 FOR XML PATH(''), TYPE ).value('.', 'NVARCHAR(MAX)'), 1, 1, '') AS integrationPortal,
 			rPart.PartNumber AS RevisedPart,
 			im.RevisedPartId,
@@ -238,7 +239,6 @@ BEGIN
 			[BETA_Logs].[dbo].[StockLineAudit] stl WITH(NOLOCK)
 			INNER JOIN  StocklineManagementStructureDetailsAudit msd ON stl.StockLineId = msd.ReferenceID AND msd.ModuleID = @msModuleId
 			LEFT JOIN [dbo].ItemMaster im  WITH(NOLOCK) ON stl.ItemMasterId = im.ItemMasterId
-			 AND ISNULL(im.IsNonStock,0) = 0
 			 LEFT JOIN [dbo].ItemMasterExportInfo imx WITH(NOLOCK) ON im.ItemMasterId = imx.ItemMasterId
 			LEFT JOIN [dbo].PurchaseOrder po WITH(NOLOCK) ON stl.PurchaseOrderId = po.PurchaseOrderId
 			LEFT JOIN [dbo].RepairOrder ro WITH(NOLOCK) ON stl.RepairOrderId = ro.RepairOrderId

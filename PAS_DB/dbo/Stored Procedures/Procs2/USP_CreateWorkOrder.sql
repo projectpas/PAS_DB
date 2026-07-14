@@ -1,4 +1,9 @@
-﻿/*************************************************************           
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.USP_CreateWorkOrder   (source: PAS_DB/dbo/Stored Procedures/Procs2/USP_CreateWorkOrder.sql)
+-- ---------------------------------------------------------------------------------------------------
+
+/*************************************************************           
  ** File:   [USP_CreateWorkOrder]           
  ** Author:   HEMANT SALIYA
  ** Description: This stored procedure is used to Create Work Order Quote
@@ -36,7 +41,7 @@
 	23    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 --   EXEC [USP_CreateWorkOrder] 
 **************************************************************/
-CREATE     PROCEDURE [dbo].[USP_CreateWorkOrder]
+CREATE       PROCEDURE [dbo].[USP_CreateWorkOrder]
 @WorkOrderId BIGINT = NULL,
 @WorkOrderNum VARCHAR(30) = NULL,
 @IsSinglePN BIT = NULL,
@@ -485,12 +490,10 @@ BEGIN
 		SET @WorkOrderNum = (SELECT * FROM dbo.udfGenerateCodeNumberWithOutDash(@CurrentNo, '',''))
 	END
 
-	--IF(@CustomerFinancialId > 0 AND @CreditTermsId > 0)
-	--BEGIN			
-	--	SELECT @PercentId=[PercentId],@Days=[Days],@NetDays=[NetDays] FROM [dbo].[CreditTerms] WITH(NOLOCK) WHERE [CreditTermsId]=@CreditTermsId AND [MasterCompanyId]=@MasterCompanyId AND [IsActive]=1 AND [IsDeleted]=0;
-	--END
-
-	SELECT @PercentId=[PercentId],@Days=[Days],@NetDays=[NetDays] FROM [dbo].[CreditTerms] WITH(NOLOCK) WHERE [CreditTermsId]=@CreditTermId AND [MasterCompanyId]=@MasterCompanyId
+	IF(@CustomerFinancialId > 0 AND @CreditTermsId > 0)
+	BEGIN			
+		SELECT @PercentId=[PercentId],@Days=[Days],@NetDays=[NetDays] FROM [dbo].[CreditTerms] WITH(NOLOCK) WHERE [CreditTermsId]=@CreditTermsId AND [MasterCompanyId]=@MasterCompanyId AND [IsActive]=1 AND [IsDeleted]=0;
+	END
 
     -- Insert or Update WorkOrder table (simplified)   
 

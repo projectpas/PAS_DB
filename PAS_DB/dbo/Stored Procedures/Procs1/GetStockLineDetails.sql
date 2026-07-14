@@ -1,3 +1,45 @@
+﻿/* =====================================================================
+ PN-17009 : BUGFIX - remove redundant/harmful IsNonStock filters on
+            queries and updates that are already scoped to one exact
+            @StockLineId (or equivalent single-record parameter).
+
+ Root cause: during the PN-17009 sweep, many Stockline-related SPs got
+ an "AND ISNULL(im.IsNonStock,0) = 0" / "AND ISNULL(stl.IsNonStock,0) = 0"
+ style filter added wherever dbo.ItemMaster or dbo.Stockline appeared in
+ a query. That filter makes sense for LIST queries (e.g. the Stockline
+ grid, PN dropdowns) where you're choosing WHICH rows to return. It does
+ NOT make sense - and actively breaks things - on a query/UPDATE that is
+ already pinned to one exact StockLineId via a parameter: the row you
+ want is already uniquely identified, so filtering it out again by type
+ just makes migrated Non-Stock Stockline records silently disappear
+ (INNER JOIN cases) or lose their derived fields (LEFT JOIN cases).
+
+ This is very likely the root cause of the "editing a migrated NonStock
+ Stockline record redirects to /unauthorized-access" issue: with the
+ filter in place, dbo.GetStockLineDetails returned ZERO rows for those
+ records, so the API response body was empty and
+ res.masterCompanyId != this.currentUserMasterCompanyId evaluated to
+ true in stock-line-setup.component.ts, triggering the redirect.
+
+ 4 objects fixed (this file only - no other SPs changed):
+   1) dbo.GetStockLineDetails                         (2 filters removed)
+   2) dbo.UpdateStocklineColumnsWithId                 (8 filters removed)
+   3) dbo.GetStocklineAuditById                        (2 filters removed)
+   4) dbo.USP_GetStocklinePrintDataByStockLineId       (6 filters removed)
+
+ In every case, filters on auxiliary/reference ItemMaster joins that
+ point at a DIFFERENT item than the Stockline's own (RevisedPN, OEM PN,
+ TLA, NHA, WorkOrderPartNumber's MPN) were deliberately left untouched -
+ those are legitimate "only let Stock items be picked as this reference"
+ rules, not the single-record redundancy bug.
+
+ Author : RAJESH GAMI
+ Date   : 13/July/2026
+===================================================================== */
+
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.GetStockLineDetails   (source: PAS_DB/dbo/Stored Procedures/Procs1/GetStockLineDetails.sql)
+-- ---------------------------------------------------------------------------------------------------
 /*********************************************************************************************           
  ** File:   [GetStockLineDetails]           
  ** Author:  MOIN BLOCH
@@ -30,11 +72,19 @@
 	15    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	16    07/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory into Stockline : Return IsNonStock, Currency, CurrencyId
 	17    08/July/2026			 RAJESH GAMI						[PN-17009] - Return ItemNonStockClassificationId, NonStockClassification
+	18    13/July/2026			 RAJESH GAMI						[PN-17009] - BUGFIX: removed 2 redundant "AND ISNULL(im/iM.IsNonStock,0) = 0"
+										 filters. (1) The final WHERE clause filtered on im.IsNonStock even though this SP is
+										 already scoped to one exact @StockLineId and im is joined via INNER JOIN
+										 dbo.ItemMaster ON stl.ItemMasterId = im.ItemMasterId (the Stockline's own item) -
+										 this returned ZERO rows for every migrated Non-Stock Stockline record, which is very
+										 likely why editing a migrated Non-Stock record was failing. (2) The ipAgg integration-
+										 portal subquery filtered the same way, silently blanking that field for Non-Stock
+										 records. Left the oempnpart/rPart joins untouched (different ItemMaster rows).
 
     EXEC dbo.GetStockLineDetails  179632  180170
 ***********************************************************************************************/
 
-CREATE    PROCEDURE [dbo].[GetStockLineDetails]
+CREATE   PROCEDURE [dbo].[GetStockLineDetails]
 @StockLineId BIGINT
 AS
 BEGIN
@@ -366,7 +416,6 @@ ELSE 0 END AS IsSkipSerialNo
 			LEFT JOIN dbo.ItemMasterIntegrationPortal mp WITH(NOLOCK) ON iM.ItemMasterId = mp.ItemMasterId
 			LEFT JOIN dbo.IntegrationPortal ip WITH(NOLOCK) ON mp.IntegrationPortalId = ip.IntegrationPortalId
 			WHERE mp.IntegrationPortalId IS NOT NULL
-			 AND ISNULL(iM.IsNonStock,0) = 0
 			 GROUP BY iM.ItemMasterId
 		) AS ipAgg ON stl.ItemMasterId = ipAgg.ItemMasterId
 		 LEFT JOIN [dbo].[InventoryGLSetting] igls WITH(NOLOCK) ON igls.InventoryGLSettingId=stl.InventoryGLSettingId
@@ -396,9 +445,7 @@ ELSE 0 END AS IsSkipSerialNo
          LEFT JOIN [dbo].[LegalEntity] COMOBF  WITH (NOLOCK) ON COMOBF.[LegalEntityId] = stl.[ObtainFrom]
 		 LEFT JOIN DBO.ExchangeSalesOrder ES WITH (NOLOCK) ON stl.ExchangeSalesOrderId = ES.ExchangeSalesOrderId
 		WHERE stl.[IsDeleted] = 0 AND stl.[StockLineId] = @StockLineId
-
-	 AND ISNULL(im.IsNonStock,0) = 0
-		 END TRY    
+		 END TRY
 	BEGIN CATCH 
 	DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name() 
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------
@@ -416,5 +463,4 @@ ELSE 0 END AS IsSkipSerialNo
 
 		RETURN (1); 
 	END CATCH
-
-END
+	END

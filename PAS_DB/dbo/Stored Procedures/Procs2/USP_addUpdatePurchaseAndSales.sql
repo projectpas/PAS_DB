@@ -1,3 +1,7 @@
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.USP_addUpdatePurchaseAndSales   (source: PAS_DB/dbo/Stored Procedures/Procs2/USP_addUpdatePurchaseAndSales.sql)
+-- ---------------------------------------------------------------------------------------------------
 /*************************************************************           
  ** File:   [USP_addUpdatePurchaseAndSales]           
  ** Author:   Bhargav Saliya
@@ -20,7 +24,7 @@
 	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
      
 **************************************************************/ 
-CREATE   PROCEDURE [dbo].[USP_addUpdatePurchaseAndSales]
+CREATE    PROCEDURE [dbo].[USP_addUpdatePurchaseAndSales]
  @ItemMasterPurchaseSaleType [PurchaseSalesType] readonly,
  @RetMessage varchar(500) OUTPUT
 AS

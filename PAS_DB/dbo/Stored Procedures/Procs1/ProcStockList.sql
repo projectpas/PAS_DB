@@ -1,4 +1,4 @@
-/*************************************************************               
+﻿/*************************************************************               
  ** File:   [ProcStockList]               
  ** Author:   Hemant Saliya    
  ** Description: This stored procedure is used to get stockline list      
@@ -57,7 +57,7 @@
 @LastMSLevel=NULL,@QuantityReserved=NULL,@WorkOrderStage=NULL,@IsECStock=1,@IsCStock=0,@Site=NULL,@Location=NULL,@IsALTStock=0,@WorkOrderNumber=NULL,@IsTimeLife=NULL,
 @CustomerName=NULL,@IsTurnIn=NULL,@GLAccount=NULL,@PNSource=NULL
 **************************************************************/   
-CREATE       PROCEDURE [dbo].[ProcStockList]	
+CREATE         PROCEDURE [dbo].[ProcStockList]	
 	@PageNumber int = NULL,
 	@PageSize int = NULL,        
 	@SortColumn varchar(50)=NULL,        
@@ -207,6 +207,7 @@ BEGIN
 	 BEGIN     
 	  IF @stockTypeId = 1 -- Qty OH > 0        
 	  BEGIN        
+	  PRINT '`111111111'
 	   ;WITH Result AS(        
 	   SELECT DISTINCT stl.StockLineId,            
 		(ISNULL(stl.ItemMasterId,0)) 'ItemMasterId',        

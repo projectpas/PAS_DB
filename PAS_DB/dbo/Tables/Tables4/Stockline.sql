@@ -41,11 +41,6 @@
     [GLAccountId]                         BIGINT          NULL,
     [AssetId]                             BIGINT          NULL,
     [IsHazardousMaterial]                 BIT             CONSTRAINT [DF_Stockline_IsHazardousMaterial] DEFAULT ((0)) NULL,
-    [IsNonStock]                          BIT             NULL,
-    [Currency]                            VARCHAR (100)   NULL,
-    [CurrencyId]                          BIGINT          NULL,
-    [ItemNonStockClassificationId]        BIGINT          NULL,
-    [NonStockClassification]              VARCHAR (100)   NULL,
     [IsPMA]                               BIT             CONSTRAINT [Stockline_DC_IsPMA] DEFAULT ((0)) NOT NULL,
     [IsDER]                               BIT             CONSTRAINT [Stockline_DC_IsDER] DEFAULT ((0)) NOT NULL,
     [OEM]                                 BIT             CONSTRAINT [Stockline_DC_OEM] DEFAULT ((0)) NOT NULL,
@@ -253,6 +248,11 @@
     [TransferredFromLotId]                BIGINT          NULL,
     [TransferredFromLotNumber]            VARCHAR (200)   NULL,
     [Note]                                NVARCHAR (MAX)  NULL,
+    [IsNonStock]                          BIT             NULL,
+    [Currency]                            VARCHAR (100)   NULL,
+    [CurrencyId]                          BIGINT          NULL,
+    [ItemNonStockClassificationId]        BIGINT          NULL,
+    [NonStockClassification]              VARCHAR (100)   NULL,
     CONSTRAINT [PK_Stockline] PRIMARY KEY CLUSTERED ([StockLineId] ASC),
     CONSTRAINT [FK_StockLine_AcquistionType] FOREIGN KEY ([AcquistionTypeId]) REFERENCES [dbo].[AssetAcquisitionType] ([AssetAcquisitionTypeId]),
     CONSTRAINT [FK_StockLine_Bin] FOREIGN KEY ([BinId]) REFERENCES [dbo].[Bin] ([BinId]),
@@ -269,6 +269,8 @@
     CONSTRAINT [FK_StockLine_Warehouse] FOREIGN KEY ([WarehouseId]) REFERENCES [dbo].[Warehouse] ([WarehouseId]),
     CONSTRAINT [FK_StockLine_WorkOrder] FOREIGN KEY ([WorkOrderId]) REFERENCES [dbo].[WorkOrder] ([WorkOrderId])
 );
+
+
 
 
 

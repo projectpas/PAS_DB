@@ -1,4 +1,4 @@
-/*************************************************************           
+﻿/*************************************************************           
  ** File: [USP_GetAircraftMappedByAssetId]        
  ** Author:   Ayushi Patel
  ** Description: Get Asset Inventory Adjustment Data By Asset Inventory Id    
@@ -15,7 +15,6 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    18-06-2025   Ayushi Patel  Created
-	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
      
  EXECUTE [USP_GetAircraftMappedByAssetId] 214
 **************************************************************/ 
@@ -57,8 +56,7 @@ BEGIN
             AND ISNULL(iM.IsActive,0) = 1
             AND ISNULL(iM.IsDeleted,0) = 0
             AND ac.AssetRecordId = @AssetRecordId
-     AND ISNULL(iM.IsNonStock,0) = 0
-             END TRY
+    END TRY
     BEGIN CATCH
         DECLARE @ErrorLogID INT,
                 @DatabaseName VARCHAR(100) = DB_NAME(),

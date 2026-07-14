@@ -42,11 +42,6 @@
     [GLAccountId]                         BIGINT          NULL,
     [AssetId]                             BIGINT          NULL,
     [IsHazardousMaterial]                 BIT             NULL,
-    [IsNonStock]                          BIT             NULL,
-    [Currency]                            VARCHAR (100)   NULL,
-    [CurrencyId]                          BIGINT          NULL,
-    [ItemNonStockClassificationId]        BIGINT          NULL,
-    [NonStockClassification]              VARCHAR (100)   NULL,
     [IsPMA]                               BIT             NULL,
     [IsDER]                               BIT             NULL,
     [OEM]                                 BIT             NULL,
@@ -250,6 +245,11 @@
     [TotalCSN]                            DECIMAL (18, 2) NULL,
     [TotalTSNMM]                          DECIMAL (18, 6) NULL,
     [TotalCSNMM]                          DECIMAL (18, 6) NULL,
+    [IsNonStock]                          BIT             NULL,
+    [Currency]                            VARCHAR (100)   NULL,
+    [CurrencyId]                          BIGINT          NULL,
+    [ItemNonStockClassificationId]        BIGINT          NULL,
+    [NonStockClassification]              VARCHAR (100)   NULL,
     CONSTRAINT [PK_StocklineAudit] PRIMARY KEY CLUSTERED ([AuditStockLineId] ASC)
 );
 

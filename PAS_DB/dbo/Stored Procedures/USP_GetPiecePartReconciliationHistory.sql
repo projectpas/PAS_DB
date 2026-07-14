@@ -78,6 +78,11 @@ BEGIN
             WHERE ppr.RepairOrderPartRecordId = @RepairOrderPartRecordId
               AND ppr.MasterCompanyId         = @MasterCompanyId
               AND ISNULL(ppr.IsDeleted, 0)    = 0
+              -- Defense-in-depth: re-check the tenant boundary against the parent RO/part's own
+              -- MasterCompanyId, not just ppr.MasterCompanyId. NULL-safe (IS NULL) so history for
+              -- a hard-deleted RepairOrderPart/RepairOrder (rop/srcRO are LEFT JOINed) stays visible.
+              AND (rop.MasterCompanyId IS NULL OR rop.MasterCompanyId = @MasterCompanyId)
+              AND (srcRO.MasterCompanyId IS NULL OR srcRO.MasterCompanyId = @MasterCompanyId)
         )
         SELECT
             PiecePartReconciliationId,

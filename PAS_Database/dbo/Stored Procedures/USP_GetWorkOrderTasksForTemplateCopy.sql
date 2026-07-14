@@ -112,8 +112,7 @@ BEGIN
 			WOT.TaskId,
 			WOT.SequenceNumber,
 			WOT.TaskName,
-			TSK.[Description] AS TaskDescription,
-			WS.Description AS WorkScope,
+			WS.WorkScopeCode AS WorkScope,
 			WOTD.TechId,
 			WOTD.InspectorId,
 			CAST(CASE WHEN TWD.WorkOrderTaskId IS NOT NULL THEN 1 ELSE 0 END AS BIT) AS HasAssociatedData

@@ -22,6 +22,7 @@
 	10   25/06/2026    Bhargav saliya   Get Consume UOM
 	11   08/07/2026    Bhargav saliya   did formatting for billing amount 
 	12   13/07/2026    Bhargav saliya   did formatting for MiscChargesDetails amount (PN-17258)
+	13   14/07/2026    Bhargav saliya   Revert Changes For Part Cost [PN-16986]
 --   EXEC [dbo].[RPT_GetCommonBillingInvoicingItems_SO] 9399,10
 ********************************************************************************************/
 CREATE   PROCEDURE [dbo].[RPT_GetCommonBillingInvoicingItems_SO]
@@ -81,7 +82,7 @@ BEGIN
 					QtyShipped = (CASE WHEN ISNULL(im.[StockUnitOfMeasure],'') = ISNULL(im.[ConsumeUnitOfMeasure],'') THEN ISNULL(BII.QtyBilled, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(BII.QtyBilled, 0),im.[StockUnitOfMeasure],im.[ConsumeUnitOfMeasure],0,so.MasterCompanyId) END),
 					QTYOnBACKOrder = (CASE WHEN ISNULL(im.[StockUnitOfMeasure],'') = ISNULL(im.[ConsumeUnitOfMeasure],'') THEN ISNULL(sop.QtyRequested, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(sop.QtyRequested, 0),im.[StockUnitOfMeasure],im.[ConsumeUnitOfMeasure],0,so.MasterCompanyId) END) - (CASE WHEN ISNULL(im.[StockUnitOfMeasure],'') = ISNULL(im.[ConsumeUnitOfMeasure],'') THEN ISNULL(BII.QtyBilled, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(BII.QtyBilled, 0),im.[StockUnitOfMeasure],im.[ConsumeUnitOfMeasure],0,so.MasterCompanyId) END),
 					UnitPrice = (CASE WHEN ISNULL(im.[StockUnitOfMeasure],'') = ISNULL(im.[ConsumeUnitOfMeasure],'') THEN ISNULL(BII.UnitPrice, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(BII.UnitPrice, 0),im.[StockUnitOfMeasure],im.[ConsumeUnitOfMeasure],1,so.MasterCompanyId) END),
-					Amount = (CASE WHEN ISNULL(im.[StockUnitOfMeasure],'') = ISNULL(im.[ConsumeUnitOfMeasure],'') THEN ISNULL(BII.PartCost, 0) ELSE [dbo].[fn_ConvertUOM](ISNULL(BII.PartCost, 0),im.[StockUnitOfMeasure],im.[ConsumeUnitOfMeasure],1,so.MasterCompanyId) END),
+					Amount = ISNULL(BII.PartCost, 0),
 					StockLineId = sl.StockLineId,
 					ISNULL(UPPER(SOP.ECCN),'-')ExportECCN,
 					ISNULL(UPPER(SOP.HSCODE),'-')HSCode,

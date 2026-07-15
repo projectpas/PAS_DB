@@ -39,6 +39,8 @@
 	28  02-02-2026		Hemant Saliiya			Modify to handle StocklineQtytobeReserved and StocklineQtyRemaining For For Stock Provision
 	29  08-05-2026      Moin Bloch              Added Part Number Filter  PN-16363
 	30  11-05-2026      Moin Bloch              Fixed Pagination For Part Number Filter PN-16388
+	30  15-07-2026      Priyansh Patel          Convert the kitqty to consume uom PN-17079
+
  EXECUTE [dbo].[USP_GetWorkOrderMaterialsList] 4257,3782, 0
 exec dbo.USP_GetWorkOrderMaterialsListNew @PageNumber=1,@PageSize=10,@SortColumn=default,@SortOrder=1,@WorkOrderId=5960,@WFWOId=5553,@ShowPendingToIssue=1
 **************************************************************/
@@ -1551,7 +1553,14 @@ SET NOCOUNT ON
 						,CASE WHEN isnull(MSTL.StockLineId,0)=0 then WOM.Item else MSTL.Item end StockLineItem
 						,ISNULL(SL.StockLineId, 0) as StockLineId
 						,1 AS IsKitType
-						,ISNULL((SELECT SUM(ISNULL(WOMK.Quantity, 0)) FROM dbo.WorkOrderMaterialsKit WOMK WITH (NOLOCK) WHERE WOMK.WorkOrderMaterialsKitMappingId = WOMKM.WorkOrderMaterialsKitMappingId), 0) AS KitQty
+						,ISNULL((SELECT SUM(CASE WHEN ISNULL(uomStock.ShortName, '') = ISNULL(uomConsume.ShortName, '') THEN ISNULL(WOMK.Quantity, 0)
+							ELSE dbo.fn_ConvertUOM(ISNULL(WOMK.Quantity, 0), uomStock.ShortName, uomConsume.ShortName, 0, @MasterCompanyId) END)
+						FROM dbo.WorkOrderMaterialsKit WOMK WITH (NOLOCK)
+						INNER JOIN dbo.ItemMaster IM WITH (NOLOCK) ON IM.ItemMasterId = WOMK.ItemMasterId
+						LEFT JOIN dbo.UnitOfMeasure uomStock WITH (NOLOCK) ON uomStock.UnitOfMeasureId = IM.StockUnitOfMeasureId
+						LEFT JOIN dbo.UnitOfMeasure uomConsume WITH (NOLOCK) ON uomConsume.UnitOfMeasureId = IM.ConsumeUnitOfMeasureId
+						WHERE WOMK.WorkOrderMaterialsKitMappingId = WOMKM.WorkOrderMaterialsKitMappingId
+						), 0) AS KitQty
 						,'' AS ExpectedSerialNumber
 						,0  AS IsExchangeTender
 						,'Yes' [IsKitItem]

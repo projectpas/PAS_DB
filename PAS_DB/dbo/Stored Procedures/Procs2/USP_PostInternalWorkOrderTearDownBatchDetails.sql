@@ -1,4 +1,8 @@
-﻿/*************************************************************           
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.USP_PostInternalWorkOrderTearDownBatchDetails   (source: PAS_DB/dbo/Stored Procedures/Procs2/USP_PostInternalWorkOrderTearDownBatchDetails.sql)
+-- ---------------------------------------------------------------------------------------------------
+/*************************************************************           
  ** File:   [USP_PostInternalWorkOrderTearDownBatchDetails]           
  ** Author: Moin Bloch
  ** Description: This stored procedure is used insert Internal Work Order - Teardown  detail in batch
@@ -21,10 +25,11 @@
 	5	 13/01/2025			 Devendra Shekh		 Modify (StockLine GL selection Changes)
 	6    12/02/2026          Moin Bloch          Only Tear Down Entry Condition Check 
 	7    26/03/2026          Moin Bloch	         Rename TearDown To Internal Teardown PN-15850
+	8    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
      
     EXEC USP_PostInternalWorkOrderTearDownBatchDetails 3731,3222
 **************************************************************/
-CREATE   PROCEDURE [dbo].[USP_PostInternalWorkOrderTearDownBatchDetails]
+CREATE     PROCEDURE [dbo].[USP_PostInternalWorkOrderTearDownBatchDetails]
 @WorkOrderId BIGINT,
 @WorkOrderPartNoId BIGINT
 AS
@@ -152,7 +157,7 @@ BEGIN
 			  FROM [dbo].[WorkOrderPartNumber] WOP WITH(NOLOCK) 	
 			  INNER JOIN [dbo].[ItemMaster] ITM WITH(NOLOCK) ON WOP.ItemMasterId = ITM.ItemMasterId 
 			  WHERE WOP.[WorkOrderId] = @WorkOrderId 
-			    AND WOP.[ID] = @WorkOrderPartNoId;
+			    AND WOP.[ID] = @WorkOrderPartNoId AND ISNULL(ITM.IsNonStock,0) = 0 ;
 			
 			INSERT INTO #tmpCodePrefixes 
 			      ([CodePrefixId],

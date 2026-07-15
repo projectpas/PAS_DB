@@ -1,4 +1,8 @@
-﻿-- =============================================
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.USP_DeleteWorkOrderMaterialkitStocklineById   (source: PAS_DB/dbo/Stored Procedures/Procs2/USP_DeleteWorkOrderMaterialkitStocklineById.sql)
+-- ---------------------------------------------------------------------------------------------------
+-- =============================================
 -- Author:		HEMANT SALIYA	
 -- Create date: 27-03-2025
 -- Description:	This stored procedure is used to Detete kit Stockline 
@@ -12,11 +16,12 @@
  ** --   --------     -------				--------------------------------          
     1    27-03-2025   HEMANT SALIYA			Created
 	2    04/14/2025   HEMANT SALIYA			Added Work Order Work Flow Id for UpdateWOMaterialsCost
+	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 
 	EXEC USP_DeleteWorkOrderMaterialkitStocklineById 18573, 188319, 'Brandon  Taylor'
 **************************************************************/
 
-CREATE   PROC [dbo].[USP_DeleteWorkOrderMaterialkitStocklineById]
+CREATE     PROC [dbo].[USP_DeleteWorkOrderMaterialkitStocklineById]
 (
 	@WorkOrderMaterialsKitId BIGINT = NULL,
 	@StocklineId BIGINT = NULL,
@@ -59,7 +64,7 @@ BEGIN
 		FROM [dbo].WorkOrderMaterialsKit WMK WITH(NOLOCK)
 		JOIN [dbo].ItemMaster IM WITH(NOLOCK) ON IM.ItemMasterId = WMK.ItemMasterId
 		JOIN [dbo].Condition C WITH(NOLOCK) ON C.ConditionId = WMK.ConditionCodeId
-		WHERE WMK.WorkOrderMaterialsKitId = @WorkOrderMaterialsKitId;
+		WHERE WMK.WorkOrderMaterialsKitId = @WorkOrderMaterialsKitId AND ISNULL(IM.IsNonStock,0) = 0 ;
 
 		SELECT TOP 1 @historyModuleId = ModuleId FROM dbo.Module WITH(NOLOCK) WHERE ModuleName = 'WORKORDER'
 

@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿-- ===== PROCEDURE: [dbo].[USP_VendorRMA_DetailsById]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs3/USP_VendorRMA_DetailsById.sql) =====
+/*************************************************************           
  ** File:   [USP_VendorRMA_DetailsById]           
  ** Author: Moin Bloch
  ** Description: This stored procedure is used to Get Vendor RMA Details
@@ -13,10 +14,12 @@
     1    06/15/2023   Moin Bloch			Created
 	2    03-29-2024   Shrey Chandegara      Add RevisedStocklineId
 	3    07-23-2024   Vishal Suthar			Added EnforcePickTicketConfirmation column
+	4    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	5    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 *******************************************************************************
 EXEC USP_VendorRMA_DetailsById 113,2
 *******************************************************************************/
-CREATE    PROCEDURE [dbo].[USP_VendorRMA_DetailsById] 
+CREATE   PROCEDURE [dbo].[USP_VendorRMA_DetailsById] 
 @VendorRMAId BIGINT,
 @Opr INT
 AS
@@ -80,7 +83,7 @@ BEGIN
 		      LEFT JOIN  [dbo].[RepairOrder] RO WITH (NOLOCK) ON SL.[RepairOrderId] = RO.[RepairOrderId]
 			  LEFT JOIN  [dbo].[VendorRMAReturnReason] RR WITH (NOLOCK) ON VD.[VendorRMAReturnReasonId] = RR.[VendorRMAReturnReasonId]
 			  LEFT JOIN  [dbo].[VendorRMAStatus] RS WITH (NOLOCK) ON VD.[VendorRMAStatusId] = RS.[VendorRMAStatusId]			   
-			  WHERE VD.[VendorRMAId] = @VendorRMAId;
+			  WHERE VD.[VendorRMAId] = @VendorRMAId AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(SL.IsNonStock,0) = 0 ;
 		END	
 	END TRY
     BEGIN CATCH

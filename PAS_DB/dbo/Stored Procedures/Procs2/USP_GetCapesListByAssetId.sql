@@ -1,4 +1,8 @@
-﻿/*************************************************************           
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.USP_GetCapesListByAssetId   (source: PAS_DB/dbo/Stored Procedures/Procs2/USP_GetCapesListByAssetId.sql)
+-- ---------------------------------------------------------------------------------------------------
+/*************************************************************           
  ** File:   [USP_GetCapesListByAssetId]         
  ** Author:   Ayushi Patel
  ** Description: Get Cape list by AssetRecordId    
@@ -15,10 +19,11 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    02/23/2021   Ayushi Patel  Created
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
      
  EXECUTE [USP_GetCapesListByAssetId] 214
 **************************************************************/ 
-CREATE   PROCEDURE [dbo].[USP_GetCapesListByAssetId]
+CREATE     PROCEDURE [dbo].[USP_GetCapesListByAssetId]
     @AssetRecordId BIGINT
 AS
 BEGIN
@@ -45,7 +50,8 @@ BEGIN
         LEFT JOIN dbo.AircraftDashNumber dn WITH (NOLOCK) ON ac.AircraftDashNumberId = dn.DashNumberId
         WHERE ac.AssetRecordId = @AssetRecordId
           AND ISNULL(ac.IsDeleted,0) = 0
-    END TRY
+     AND ISNULL(im.IsNonStock,0) = 0
+           END TRY
     BEGIN CATCH
         DECLARE @ErrorLogID INT,
                 @DatabaseName VARCHAR(100) = DB_NAME(),

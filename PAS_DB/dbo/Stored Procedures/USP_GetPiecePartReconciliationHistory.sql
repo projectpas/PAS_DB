@@ -76,8 +76,8 @@ BEGIN
             LEFT JOIN dbo.RepairOrderPart      parentROP WITH (NOLOCK)
                   ON  parentROP.RepairOrderPartRecordId = ppr.ParentRepairOrderPartId
             WHERE ppr.RepairOrderPartRecordId = @RepairOrderPartRecordId
-              AND ppr.MasterCompanyId         = @MasterCompanyId
               AND ISNULL(ppr.IsDeleted, 0)    = 0
+              AND (rop.MasterCompanyId = @MasterCompanyId)
         )
         SELECT
             PiecePartReconciliationId,

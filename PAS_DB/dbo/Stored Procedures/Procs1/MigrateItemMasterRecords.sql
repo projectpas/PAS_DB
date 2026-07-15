@@ -1,4 +1,8 @@
-﻿/*************************************************************             
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.MigrateItemMasterRecords   (source: PAS_DB/dbo/Stored Procedures/Procs1/MigrateItemMasterRecords.sql)
+-- ---------------------------------------------------------------------------------------------------
+/*************************************************************             
  ** File:   [MigrateItemMasterRecords]
  ** Author:   Vishal Suthar
  ** Description: This stored procedure is used to Migrate Item Master Records
@@ -15,6 +19,7 @@
  ** PR   Date         Author			Change Description
  ** --   --------     -------			-----------------------
     1    11/02/2023   Vishal Suthar		Created
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
   
 
 declare @p5 int
@@ -28,7 +33,7 @@ set @p8=NULL
 exec sp_executesql N'EXEC MigrateItemMasterRecords @FromMasterComanyID, @UserName, @Processed OUTPUT, @Migrated OUTPUT, @Failed OUTPUT, @Exists OUTPUT',N'@FromMasterComanyID int,@UserName nvarchar(12),@Processed int output,@Migrated int output,@Failed int output,@Exists int output',@FromMasterComanyID=25,@UserName=N'ADMIN ADMIN',@Processed=@p5 output,@Migrated=@p6 output,@Failed=@p7 output,@Exists=@p8 output
 select @p5, @p6, @p7, @p8
 **************************************************************/
-CREATE   PROCEDURE [dbo].[MigrateItemMasterRecords]
+CREATE     PROCEDURE [dbo].[MigrateItemMasterRecords]
 (
 	@FromMasterComanyID INT = NULL,
 	@UserName VARCHAR(100) NULL,
@@ -427,7 +432,7 @@ BEGIN
 				DECLARE @DefaultSiteId BIGINT;
 				SELECT @DefaultSiteId = SiteId FROM DBO.[Site] WHERE UPPER([Name]) = UPPER('Beach Aviation Group') AND MasterCompanyId = @FromMasterComanyID;
 
-				IF NOT EXISTS (SELECT 1 FROM DBO.[ItemMaster] WITH (NOLOCK) WHERE UPPER([partnumber]) = UPPER(@PN) AND ManufacturerId = @ManufacturerId AND MasterCompanyId = @FromMasterComanyID)
+				IF NOT EXISTS (SELECT 1 FROM DBO.[ItemMaster] WITH (NOLOCK) WHERE UPPER([partnumber]) = UPPER(@PN) AND ManufacturerId = @ManufacturerId AND MasterCompanyId = @FromMasterComanyID AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 )
 				BEGIN
 					INSERT INTO [MasterParts]
 					([PartNumber], [Description], [MasterCompanyId], [CreatedDate], [CreatedBy], [UpdatedDate], [UpdatedBy], [IsActive], [IsDeleted], [ManufacturerId], [PartType])

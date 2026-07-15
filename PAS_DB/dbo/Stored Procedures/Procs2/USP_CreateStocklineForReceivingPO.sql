@@ -1,4 +1,8 @@
-﻿/*************************************************************               
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.USP_CreateStocklineForReceivingPO   (source: PAS_DB/dbo/Stored Procedures/Procs2/USP_CreateStocklineForReceivingPO.sql)
+-- ---------------------------------------------------------------------------------------------------
+/*************************************************************               
  ** File:   [USP_CreateStocklineForReceivingPO]              
  ** Author:   Vishal Suthar    
  ** Description: This stored procedure is used to Crate stocklines for receiving PO  
@@ -40,12 +44,13 @@
 	23   26-MAr-2026  Moin Bloch        Modified Fix Issue For Close PO When SO Shipped Partial Stockline Qty
 	24   01-May-2026  RAJESH GAMI       Insert Stock,NonStock,Asset InventoryId In the DRAFT Table when Order QTY more than 500 (Where IsParent = 1) [PN-16244]
 	25   27-APR-2026  Priyansh patel 	Updated Aircraftpartdetails with New StocklineId [PN-16177]
+	26    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 declare @p2 dbo.POPartsToReceive  
 insert into @p2 values(2371,4051,2)  
   
 exec dbo.USP_CreateStocklineForReceivingPO @PurchaseOrderId=2371,@tbl_POPartsToReceive=@p2,@UpdatedBy=N'ADMIN User',@MasterCompanyId=1  
 **************************************************************/
-CREATE   PROCEDURE [dbo].[USP_CreateStocklineForReceivingPO]
+CREATE     PROCEDURE [dbo].[USP_CreateStocklineForReceivingPO]
 (
     @PurchaseOrderId BIGINT = NULL,
     @UpdatedBy VARCHAR(100) = NULL,
@@ -127,7 +132,7 @@ BEGIN
 
                 IF (@ItemTypeId = 1)
                 BEGIN
-                    SELECT @IsSerializedPart = IM.isSerialized FROM DBO.ItemMaster IM WITH (NOLOCK) WHERE IM.ItemMasterId = @ItemMasterId_Part;
+                    SELECT @IsSerializedPart = IM.isSerialized FROM DBO.ItemMaster IM WITH (NOLOCK) WHERE IM.ItemMasterId = @ItemMasterId_Part AND ISNULL(IM.IsNonStock,0) = 0 ;
 
                     IF OBJECT_ID(N'tempdb..#tmpStocklineDraft') IS NOT NULL
                     BEGIN
@@ -478,7 +483,8 @@ BEGIN
 						ON CSTL.StockLineId = STL.StockLineId
                         /* PN Manufacturer Combination Stockline logic */
 
-                        DELETE FROM #tmpCodePrefixes;
+                         WHERE ISNULL(IM.IsNonStock,0) = 0
+DELETE FROM #tmpCodePrefixes;
 
                         INSERT INTO #tmpCodePrefixes
                         (
@@ -551,7 +557,8 @@ BEGIN
 						LEFT JOIN dbo.ItemMasterIntegrationPortal mp WITH(NOLOCK) ON iM.ItemMasterId = mp.ItemMasterId
 						LEFT JOIN dbo.IntegrationPortal ip WITH(NOLOCK) ON mp.IntegrationPortalId = ip.IntegrationPortalId
 						WHERE iM.ItemMasterId = @ItemMasterId AND iM.MasterCompanyId = @MasterCompanyId AND mp.IntegrationPortalId IS NOT NULL
-						GROUP BY iM.ItemMasterId
+						 AND ISNULL(iM.IsNonStock,0) = 0
+						 GROUP BY iM.ItemMasterId
 
 
 
@@ -982,7 +989,8 @@ BEGIN
                                 FROM DBO.PurchaseOrderPart POP WITH (NOLOCK)
                                     LEFT JOIN DBO.ItemMaster IM WITH (NOLOCK)
                                         ON POP.ItemMasterId = IM.ItemMasterId
-                                WHERE POP.PurchaseOrderId = @PurchaseOrderId
+                                 AND ISNULL(IM.IsNonStock,0) = 0
+                                         WHERE POP.PurchaseOrderId = @PurchaseOrderId
                                       AND POP.ItemMasterId = @ItemMasterId
                                       AND POP.ConditionId = @ConditionId;
 

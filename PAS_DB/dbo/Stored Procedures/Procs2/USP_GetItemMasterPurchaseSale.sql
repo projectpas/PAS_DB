@@ -1,4 +1,8 @@
-﻿/*************************************************************           
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.USP_GetItemMasterPurchaseSale   (source: PAS_DB/dbo/Stored Procedures/Procs2/USP_GetItemMasterPurchaseSale.sql)
+-- ---------------------------------------------------------------------------------------------------
+/*************************************************************           
 ** File:  [USP_GetItemMasterPurchaseSale]
 ** Author:   Bhargav Saliya
 ** Description: this Store Procedural used to get Purchase Sale Data
@@ -11,8 +15,9 @@
 ** --    --------     -------           -------------------------------          
 ** 1     27-Oct-2025   Bhargav Saliya      Created  
 
+	1    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 **************************************************************/
-CREATE   PROCEDURE [dbo].[USP_GetItemMasterPurchaseSale]
+CREATE     PROCEDURE [dbo].[USP_GetItemMasterPurchaseSale]
     @ItemMasterId BIGINT,
 	@EmployeeId BIGINT = 0
 AS
@@ -35,7 +40,8 @@ BEGIN
 	SELECT TOP 1 @PartNumber = PartNumber,@MasterCompanyId = MasterCompanyId FROM DBO.ItemMaster I WITH(NOLOCK)
 	WHERE I.ItemMasterId = @ItemMasterId
 
-	DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
+	 AND ISNULL(I.IsNonStock,0) = 0
+	 DECLARE @CurrntEmpTimeZoneDesc VARCHAR(100) = '';
 		
 	SELECT @CurrntEmpTimeZoneDesc = COALESCE(ETZ.[Description], LTZ.[Description]) FROM dbo.Employee E WITH (NOLOCK) 
 		LEFT JOIN dbo.TimeZone ETZ WITH (NOLOCK) ON E.TimeZoneId = ETZ.TimeZoneId

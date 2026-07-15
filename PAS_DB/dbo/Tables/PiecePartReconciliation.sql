@@ -31,21 +31,6 @@
 
 
 GO
-CREATE NONCLUSTERED INDEX [IX_PPRA_ConsumedRepairOrderId]
-    ON [dbo].[PiecePartReconciliation]([ConsumedRepairOrderId] ASC) WHERE ([ConsumedRepairOrderId] IS NOT NULL);
-
-
-GO
-CREATE NONCLUSTERED INDEX [IX_PPRA_SourceRepairOrderId]
-    ON [dbo].[PiecePartReconciliation]([SourceRepairOrderId] ASC);
-
-
-GO
-CREATE NONCLUSTERED INDEX [IX_PPRA_RepairOrderPartRecordId]
-    ON [dbo].[PiecePartReconciliation]([RepairOrderPartRecordId] ASC);
-
-
-GO
 CREATE NONCLUSTERED INDEX [IX_PPR_ConsumedRepairOrderId]
     ON [dbo].[PiecePartReconciliation]([ConsumedRepairOrderId] ASC) WHERE ([ConsumedRepairOrderId] IS NOT NULL);
 

@@ -1,4 +1,8 @@
-﻿/*************************************************************           
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.UpdateSONameColumnsWithId   (source: PAS_DB/dbo/Stored Procedures/Procs1/UpdateSONameColumnsWithId.sql)
+-- ---------------------------------------------------------------------------------------------------
+/*************************************************************           
  ** File:  [UpdateSONameColumnsWithId]           
  ** Author:   Vishal Suthar
  ** Description: Update name columns into corrosponding reference Id values from respective master table                 
@@ -12,10 +16,11 @@
     2    03-Apr-2024   Bhargav Saliya	Credit Terms Changes
 	3    11/05/2024	   Vishal Suthar	Modified to make use of new SO Part tables
 	4    10/04/2025	   Vishal Suthar	Modified to update value columns in SalesOrderPartV1 table
+	5    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 
 	EXEC [dbo].[UpdateSONameColumnsWithId] 255
 **************************************************************/ 
-CREATE      PROCEDURE [dbo].[UpdateSONameColumnsWithId]
+CREATE        PROCEDURE [dbo].[UpdateSONameColumnsWithId]
 	@SalesOrderId int
 AS
 BEGIN
@@ -117,7 +122,8 @@ BEGIN
 		StatusName = st.Description
 		FROM [dbo].[SalesOrderPartV1] sop WITH (NOLOCK)
 		LEFT JOIN DBO.ItemMaster im WITH (NOLOCK) ON sop.ItemMasterId = im.ItemMasterId
-		LEFT JOIN DBO.Currency Curr WITH (NOLOCK) ON Curr.CurrencyId = sop.CurrencyId
+		 AND ISNULL(im.IsNonStock,0) = 0
+		 LEFT JOIN DBO.Currency Curr WITH (NOLOCK) ON Curr.CurrencyId = sop.CurrencyId
 		LEFT JOIN DBO.Condition c WITH (NOLOCK) ON sop.ConditionId = c.ConditionId
 		LEFT JOIN DBO.MasterSalesOrderQuoteStatus st WITH (NOLOCK) ON sop.StatusId = st.Id
 		LEFT JOIN DBO.Priority p WITH (NOLOCK) ON sop.PriorityId = p.PriorityId

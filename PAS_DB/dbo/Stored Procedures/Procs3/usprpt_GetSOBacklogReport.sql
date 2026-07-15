@@ -1,4 +1,8 @@
-﻿/*************************************************************             
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.usprpt_GetSOBacklogReport   (source: PAS_DB/dbo/Stored Procedures/Procs3/usprpt_GetSOBacklogReport.sql)
+-- ---------------------------------------------------------------------------------------------------
+/*************************************************************             
  ** File:   [usprpt_GetSOBacklogReport]             
  ** Author:   Mahesh Sorathiya    
  ** Description: Get Data for SOBacklog Report  
@@ -22,8 +26,9 @@
 	6    01-DEC-2024		Vishal Suthar		Fixed amount and qty issues in the report
 	7    12-DEC-2024		Vishal Suthar		Fixed an issue with dates printed with 01-01-0001 even when it is NULL
 	3    20-APR-2026	    AYUSHI PATEL	    return the LEVEL1 based on MasterCompanyCode (lower case for a2z)
+	8    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 **************************************************************/  
-CREATE   PROCEDURE [dbo].[usprpt_GetSOBacklogReport] 
+CREATE     PROCEDURE [dbo].[usprpt_GetSOBacklogReport] 
 @PageNumber int = 1,
 @PageSize int = NULL,
 @mastercompanyid int,
@@ -104,7 +109,8 @@ BEGIN
 			LEFT JOIN dbo.SalesOrderStocklineV1 SOV WITH (NOLOCK) ON SOP.SalesOrderPartId = SOV.SalesOrderPartId
 		    LEFT JOIN DBO.SalesOrderPartCost SOPC WITH (NOLOCK) ON SOPC.SalesOrderPartId = SOP.SalesOrderPartId
 			LEFT JOIN DBO.ItemMaster IM WITH (NOLOCK) ON SOP.ItemMasterId = IM.ItemMasterId
-		  WHERE SO.CustomerId=ISNULL(@customerid,SO.CustomerId)  
+		   AND ISNULL(IM.IsNonStock,0) = 0
+			 WHERE SO.CustomerId=ISNULL(@customerid,SO.CustomerId)  
 		        AND CAST(SO.OpenDate AS DATE) BETWEEN CAST(@FromDate AS DATE) AND CAST(@ToDate AS DATE) AND SO.mastercompanyid = @mastercompanyid  
 				AND SO.IsActive = 1 AND SO.IsDeleted = 0
 				AND  
@@ -173,7 +179,8 @@ BEGIN
 		    LEFT JOIN DBO.SalesOrderPartCost SOPC WITH (NOLOCK) ON SOPC.SalesOrderPartId = SOP.SalesOrderPartId
 		    LEFT JOIN DBO.SalesOrderStockLineCost SOSC WITH (NOLOCK) ON SOSC.SalesOrderStocklineId = SOV.SalesOrderStocklineId
 			LEFT JOIN DBO.ItemMaster IM WITH (NOLOCK) ON SOP.ItemMasterId = IM.ItemMasterId
-      WHERE SO.CustomerId=ISNULL(@customerid,SO.CustomerId)  
+       AND ISNULL(IM.IsNonStock,0) = 0
+			 WHERE SO.CustomerId=ISNULL(@customerid,SO.CustomerId)  
 		    AND CAST(SO.OpenDate AS DATE) BETWEEN CAST(@FromDate AS DATE) AND CAST(@ToDate AS DATE) AND SO.mastercompanyid = @mastercompanyid
 			AND SO.IsActive = 1 AND SO.IsDeleted = 0
 			AND  

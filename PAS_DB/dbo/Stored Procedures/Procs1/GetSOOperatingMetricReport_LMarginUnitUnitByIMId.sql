@@ -1,4 +1,4 @@
-﻿/********************************************************************             
+/********************************************************************             
  ** File:   [dbo.GetSOOperatingMetricReport_LMarginUnitUnitByIMId]             
  ** Author:  Rajesh Gami    
  ** Description: Get Data for SalesOrder Operating Metric Report Low Margin to High Margin By Item
@@ -15,6 +15,8 @@
  ** --   --------         -------          --------------------------------            
     1    01-Sep-2025  Rajesh Gami   Created
 	2    04-Sep-2025  Rajesh Gami   Remove all taxes from the revenue (Sales and Other Tax)
+	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	4    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 ***********************************************************************/  
 CREATE       PROCEDURE [dbo].[GetSOOperatingMetricReport_LMarginUnitUnitByIMId] 
 @PageNumber int = 1,
@@ -137,7 +139,8 @@ BEGIN
 			LEFT JOIN DBO.EntityStructureSetup ES ON ES.EntityStructureId=MSD.EntityMSID
 			LEFT JOIN DBO.Customer WITH (NOLOCK) ON SO.CustomerId = Customer.CustomerId  
 			LEFT JOIN DBO.ItemMaster IM WITH (NOLOCK) ON SOP.itemmasterId = IM.itemmasterId  
-			LEFT JOIN DBO.Condition AS CN WITH (NOLOCK) ON SOP.ConditionId = CN.ConditionId 
+			 AND ISNULL(IM.IsNonStock,0) = 0
+			 LEFT JOIN DBO.Condition AS CN WITH (NOLOCK) ON SOP.ConditionId = CN.ConditionId 
 		  
 		  WHERE SOBI.InvoiceStatus = 'Invoiced' AND ISNULL(SO.IsDeleted,0) = 0 AND SOBI.[ModuleId] = @SOModuleId AND
 				SO.CustomerId=ISNULL(@customerid,SO.CustomerId)  AND SOP.ItemMasterId = ISNULL(@itemMasterId,SOP.ItemMasterId)   
@@ -158,7 +161,7 @@ BEGIN
 		
 		SELECT * INTO #tmpBeforeFinalResult FROM 
 					(SELECT pn,t.pnDescription,t.ItemMasterId ,totalRevenue, partsCost,otherCost,totalCost,marginAmount,t.condition,salesOrderNum,invoiceDate,openDate,customer,salesOrderId,t.CustomerId,stk.StockLineNumber
-					 FROM #TempSOOperatingFinal t LEFT JOIN dbo.Stockline stk WITH(NOLOCK) ON t.StocklineId = stk.StockLineId ) as result
+					 FROM #TempSOOperatingFinal t LEFT JOIN dbo.Stockline stk WITH(NOLOCK) ON t.StocklineId = stk.StockLineId AND ISNULL(stk.IsNonStock,0) = 0 ) as result
 
 
 		SELECT * INTO #tmpFinalResult FROM

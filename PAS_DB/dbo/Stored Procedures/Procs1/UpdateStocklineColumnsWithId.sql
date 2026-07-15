@@ -25,6 +25,17 @@
 	8    11/02/2025   Bhargav Saliya  Update GL Account
 	9    16/05/2025   Devendra Shekh  Updatting RepairOrderNumber, PurchaseOrderNumber, IsDocument
 	10   09/02/2026   Sahdev Saliya   UPDATED ItemGroup
+	11    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	12    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+	13    13/July/2026			 RAJESH GAMI						[PN-17009] - BUGFIX: removed 8 redundant "AND ISNULL(IM/SL/STL/SD.IsNonStock,0) = 0"
+											 filters. Every query/UPDATE in this SP is already scoped to one exact @StocklineId,
+											 so filtering on the Stockline's own IsNonStock silently skipped ALL of Condition,
+											 UnitOfMeasure, Manufacturer, Site/Warehouse/Location/Shelf/Bin, ItemGroup, TLA/NHA
+											 part info, PNDescription/PartNumber, LotNumber/LotId, GL Account fields, DaysReceived,
+											 ManufacturingDays, TagDays, OpenDays and LegalEntityId updates for migrated Non-Stock
+											 Stockline records. Left the RevisedPN/OEM PN/TLA/NHA reference joins (IMRI/IMoem/
+											 IMTLA/IMNHA) untouched - those point at a DIFFERENT ItemMaster row and are meant to
+											 stay Stock-only.
 
 -- EXEC [dbo].[UpdateStocklineColumnsWithId] 1
 **************************************************************/
@@ -99,10 +110,14 @@ BEGIN
 					INNER JOIN [dbo].[Manufacturer] MF WITH(NOLOCK) ON SL.ManufacturerId = MF.ManufacturerId
 					INNER JOIN [dbo].[Site] S WITH(NOLOCK) ON S.SiteId = SL.SiteId
 					 LEFT JOIN [dbo].[ItemMaster] IMRI WITH(NOLOCK) ON IMRI.ItemMasterId = SL.RevicedPNId
-					 LEFT JOIN [dbo].[ItemMaster] IMoem WITH(NOLOCK) ON IMoem.ItemMasterId = SL.IsOemPNId
-					 LEFT JOIN [dbo].[ItemMaster] IMTLA WITH(NOLOCK) ON IMTLA.ItemMasterId = SL.TLAItemMasterId
-					 LEFT JOIN [dbo].[ItemMaster] IMNHA WITH(NOLOCK) ON IMNHA.ItemMasterId = SL.NHAItemMasterId
-					 LEFT JOIN [dbo].[Itemgroup] IG WITH(NOLOCK) ON IM.ItemGroupId = IG.ItemgroupId
+					  AND ISNULL(IMRI.IsNonStock,0) = 0
+					  LEFT JOIN [dbo].[ItemMaster] IMoem WITH(NOLOCK) ON IMoem.ItemMasterId = SL.IsOemPNId
+					  AND ISNULL(IMoem.IsNonStock,0) = 0
+					   LEFT JOIN [dbo].[ItemMaster] IMTLA WITH(NOLOCK) ON IMTLA.ItemMasterId = SL.TLAItemMasterId
+					  AND ISNULL(IMTLA.IsNonStock,0) = 0
+					   LEFT JOIN [dbo].[ItemMaster] IMNHA WITH(NOLOCK) ON IMNHA.ItemMasterId = SL.NHAItemMasterId
+					  AND ISNULL(IMNHA.IsNonStock,0) = 0
+					   LEFT JOIN [dbo].[Itemgroup] IG WITH(NOLOCK) ON IM.ItemGroupId = IG.ItemgroupId
 					 LEFT JOIN [dbo].[ItemType] IT WITH(NOLOCK) ON IM.ItemTypeId = IT.ItemTypeId
 					 LEFT JOIN [dbo].[GLAccount] GL WITH(NOLOCK) ON SL.GLAccountId = GL.GLAccountId 
 					 LEFT JOIN [dbo].[WorkOrder] WO WITH(NOLOCK) ON SL.WorkOrderId = WO.WorkOrderId 
@@ -117,8 +132,7 @@ BEGIN
 					 LEFT JOIN [dbo].[SubWorkOrder] SWO WITH(NOLOCK) ON SL.SubWorkOrderId = SWO.SubWorkOrderId 
 					 LEFT JOIN [dbo].[LOT] lot WITH(NOLOCK) ON SL.LotId = lot.LotId
 			  WHERE SL.StocklineId = @StocklineId
-				
-				UPDATE [dbo].[Stockline] 
+			   UPDATE [dbo].[Stockline]
 					SET LegalEntityId = MSL.LegalEntityId
 				FROM dbo.Stockline STL WITH(NOLOCK) 
 					JOIN dbo.StocklineManagementStructureDetails SMD WITH(NOLOCK) ON STL.StockLineId = SMD.ReferenceID AND SMD.ModuleID = @MSModuleID
@@ -145,26 +159,26 @@ BEGIN
 					JOIN dbo.ItemMaster IM WITH(NOLOCK) ON STL.ItemMasterId=IM.ItemMasterId
 				WHERE STL.StocklineId = @StocklineId AND IM.DaysReceived > 0 AND STL.DaysReceived IS NULL AND IsParent = 1
 
-				UPDATE [dbo].[Stockline] 
+				 UPDATE [dbo].[Stockline]
 					SET ManufacturingDays = IM.ManufacturingDays
-				FROM dbo.Stockline STL WITH(NOLOCK) 
+				FROM dbo.Stockline STL WITH(NOLOCK)
 					JOIN dbo.ItemMaster IM WITH(NOLOCK) ON STL.ItemMasterId=IM.ItemMasterId
 				WHERE STL.StocklineId = @StocklineId AND IM.ManufacturingDays > 0 AND STL.ManufacturingDays IS NULL AND IsParent = 1
 
-				UPDATE [dbo].[Stockline] 
+				 UPDATE [dbo].[Stockline]
 					SET TagDays = IM.TagDays
-				FROM dbo.Stockline STL WITH(NOLOCK) 
+				FROM dbo.Stockline STL WITH(NOLOCK)
 					JOIN dbo.ItemMaster IM WITH(NOLOCK) ON STL.ItemMasterId=IM.ItemMasterId
 				WHERE STL.StocklineId = @StocklineId AND IM.TagDays > 0 AND STL.TagDays IS NULL AND IsParent = 1
 
-				UPDATE [dbo].[Stockline] 
+				 UPDATE [dbo].[Stockline]
 					SET OpenDays = IM.OpenDays
-				FROM dbo.Stockline STL WITH(NOLOCK) 
+				FROM dbo.Stockline STL WITH(NOLOCK)
 					JOIN dbo.ItemMaster IM WITH(NOLOCK) ON STL.ItemMasterId=IM.ItemMasterId
 				WHERE STL.StocklineId = @StocklineId AND IM.OpenDays > 0 AND STL.OpenDays IS NULL AND IsParent = 1
 
 					-- update glaccount details by bhavesh raval
-				DECLARE @ItemMasterId INT;
+					 DECLARE @ItemMasterId INT;
 				DECLARE @InventoryGLSettingId INT;
 				DECLARE @IMInventoryGLSettingId INT;
 				SELECT TOP 1 @InventoryGLSettingId=InventoryGLSettingId FROM dbo.Stockline SL WITH (NOLOCK)  where SL.StockLineId=@StocklineId
@@ -243,7 +257,7 @@ BEGIN
 					LEFT JOIN
 					GLAccount GL15 WITH (NOLOCK) ON I.COGS_ExchSalesOrderGLAccId = GL15.GLAccountId
 					WHERE SL.StockLineId=@StocklineId
-				END
+					 END
 
 			END		   
 		COMMIT  TRANSACTION

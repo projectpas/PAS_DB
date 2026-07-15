@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿-- ===== PROCEDURE: [dbo].[usp_GetGMWODashboard]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs2/usp_GetGMWODashboard.sql) =====
+/*************************************************************           
  ** File:   [usp_GetGMWODashboard]           
  ** Author:   Swetha  
  ** Description: Get Data for GMWODashboard 
@@ -16,6 +17,8 @@
     1                 Swetha Created
 	2	        	  Swetha Added Transaction & NO LOCK
     4	01/31/2024   Devendra Shekh	added isperforma Flage for WO 
+	5    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	6    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
      
 EXECUTE   [dbo].[usp_GetGMWODashboard] 
 **************************************************************/
@@ -62,7 +65,8 @@ BEGIN
         LEFT JOIN dbo.ItemGroup AS IG WITH (NOLOCK)
           ON IM.ItemGroupId = IG.ItemGroupId
 		  WHERE ISNULL(WOBI.IsPerformaInvoice, 0) = 0
-    COMMIT TRANSACTION
+     AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(STL.IsNonStock,0) = 0
+		   COMMIT TRANSACTION
   END TRY
 
   BEGIN CATCH

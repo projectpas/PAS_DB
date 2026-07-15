@@ -1,4 +1,5 @@
-﻿/********************************************************************************           
+﻿-- ===== PROCEDURE: [dbo].[USP_CheckTenderStocklineIsGeneratedReleaseForm]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs2/USP_CheckTenderStocklineIsGeneratedReleaseForm.sql) =====
+/********************************************************************************           
  ** File:     [USP_CheckTenderStocklineIsGeneratedReleaseForm]           
  ** Author:	  Moin Bloch
  ** Description: This SP IS Used to check Tendor Stockline is Generated 8130 Form or not
@@ -12,6 +13,8 @@
  ** PR   	Date			Author					Change Description            
  ** --   	--------		-------				--------------------------------     
 	1		02/04/2024		Moin Bloch			CREATED
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	3    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 
 	EXEC [USP_CheckTenderStocklineIsGeneratedReleaseForm] 3784,3282,1
 **********************************************************************************/ 
@@ -35,14 +38,15 @@ BEGIN
 				INNER JOIN [dbo].[WorkOrder] WO WITH (NOLOCK) ON WO.WorkOrderId = SL.WorkOrderId
 				INNER JOIN [dbo].[WorkOrderPartNumber] WOP WITH (NOLOCK) ON WO.WorkOrderId = WOP.WorkOrderId AND WOP.ID = @WorkOrderPartNumberId
 				 LEFT JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON SL.ItemMasterId = IM.ItemMasterId
-		  WHERE (SL.[IsDeleted] = 0) AND (SL.[IsActive] = 1)			     
+		   AND ISNULL(IM.IsNonStock,0) = 0
+				  WHERE (SL.[IsDeleted] = 0) AND (SL.[IsActive] = 1)			     
 				AND SL.[MasterCompanyId] = @MasterCompanyId 
 				AND SL.[WorkOrderId] = @WorkOrderId 
 				AND SL.[IsTurnIn] = 1
 				AND WOP.[ID] = @WorkOrderPartNumberId 
 				AND SL.[WorkOrderPartNoId] = @WorkOrderPartNumberId 
 				AND SL.[StockLineId] NOT IN(SELECT [StocklineId] FROM [dbo].[WorkOrderPartNumber] WITH(NOLOCK) WHERE [WorkOrderId] = @WorkOrderId AND [ID] = @WorkOrderPartNumberId)
-				AND ISNULL(SL.[IsGenerateReleaseForm],0) = 0
+				AND ISNULL(SL.[IsGenerateReleaseForm],0) = 0 AND ISNULL(SL.IsNonStock,0) = 0
 
 		END TRY    
 		BEGIN CATCH      		

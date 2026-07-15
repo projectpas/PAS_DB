@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿-- ===== PROCEDURE: [dbo].[USP_GetPurchaseOrderPartsForView]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs2/USP_GetPurchaseOrderPartsForView.sql) =====
+/*************************************************************           
  ** File:   [USP_GetPurchaseOrderPartsForView]           
  ** Author:  Moin Bloch
  ** Description: This stored procedure is used to get PurchaseOrderPartRecordId from StockLineDraft NonStockInventoryDraft  AssetInventoryDraft Tables
@@ -14,6 +15,8 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    15/04/2025   Moin Bloch     Created
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	3    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
      
 --  EXEC [dbo].[USP_GetPurchaseOrderPartsForView] 6732,1
 --  EXEC [dbo].[USP_GetPurchaseOrderPartsForView] 6743,12853,0,1
@@ -158,7 +161,8 @@ BEGIN
 			[part].[POPartSplitUser] AS [PoPartSplitUserName]
 		FROM [dbo].[PurchaseOrderPart] part WITH(NOLOCK)
 		LEFT JOIN [dbo].[ItemMaster] itm WITH(NOLOCK) ON [part].[ItemMasterId] = [itm].[ItemMasterId]
-		LEFT JOIN [dbo].[Asset] asi WITH(NOLOCK) ON [part].[ItemMasterId] = [asi].[AssetRecordId]
+		 AND ISNULL(itm.IsNonStock,0) = 0
+		 LEFT JOIN [dbo].[Asset] asi WITH(NOLOCK) ON [part].[ItemMasterId] = [asi].[AssetRecordId]
 		LEFT JOIN [dbo].[ItemMasterNonStock] nsi WITH(NOLOCK) ON [part].[ItemMasterId] = [nsi].[MasterPartId]
 		WHERE [part].[PurchaseOrderPartRecordId] IN (SELECT [PurchaseOrderPartRecordId] FROM #tblPurchaseOrderPartRecordIds)
    
@@ -264,7 +268,7 @@ BEGIN
 		FROM [dbo].[Stockline] SL WITH(NOLOCK) 
 		LEFT JOIN [dbo].[ShippingVia] SV WITH(NOLOCK) ON SL.[ShippingViaId] = SV.[ShippingViaId]
 		LEFT JOIN [dbo].[StockLineManagementStructureDetails] MD WITH(NOLOCK) ON MD.[ReferenceID] = SL.[StockLineId] AND [ModuleID] = @StocklineMSID
-		WHERE SL.[PurchaseOrderId] = @PurchaseOrderId AND SL.[PurchaseOrderPartRecordId] = @PurchaseOrderPartRecordId AND SL.isDeleted = 0
+		WHERE SL.[PurchaseOrderId] = @PurchaseOrderId AND SL.[PurchaseOrderPartRecordId] = @PurchaseOrderPartRecordId AND SL.isDeleted = 0 AND ISNULL(SL.IsNonStock,0) = 0
 		
 		END
 		IF(@Opr=3)

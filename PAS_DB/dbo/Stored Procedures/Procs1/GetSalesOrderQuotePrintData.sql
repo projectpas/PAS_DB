@@ -1,4 +1,12 @@
-﻿-- EXEC [DBO].[GetSalesOrderQuotePrintData] 945
+-- EXEC [DBO].[GetSalesOrderQuotePrintData] 945
+/***************************************************************************************************************************************
+  ** Change History
+ ***************************************************************************************************************************************
+ ** PR   Date						 Author							Change Description
+ ** --   --------					 -------						-------------------------------
+	1    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	2    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+****************************************************************************************************************************************/
 CREATE   PROCEDURE [dbo].[GetSalesOrderQuotePrintData]
     @SalesQuoteId INT
 AS
@@ -50,7 +58,8 @@ BEGIN
     LEFT JOIN DBO.SalesOrderQuoteStocklineV1 stk WITH (NOLOCK) ON stk.SalesOrderQuotePartId = sop.SalesOrderQuotePartId
     LEFT JOIN DBO.SalesOrderQuotePartCost sopc WITH (NOLOCK) ON sopc.SalesOrderQuotePartId = sop.SalesOrderQuotePartId
     LEFT JOIN DBO.ItemMaster itemMaster WITH (NOLOCK) ON sop.ItemMasterId = itemMaster.ItemMasterId
-    LEFT JOIN DBO.UnitOfMeasure iu WITH (NOLOCK) ON itemMaster.ConsumeUnitOfMeasureId = iu.UnitOfMeasureId
+     AND ISNULL(itemMaster.IsNonStock,0) = 0
+     LEFT JOIN DBO.UnitOfMeasure iu WITH (NOLOCK) ON itemMaster.ConsumeUnitOfMeasureId = iu.UnitOfMeasureId
     LEFT JOIN DBO.Condition cp WITH (NOLOCK) ON sop.ConditionId = cp.ConditionId
     LEFT JOIN DBO.Customer cust WITH (NOLOCK) ON so.CustomerId = cust.CustomerId
     LEFT JOIN DBO.Address custAddress WITH (NOLOCK) ON cust.AddressId = custAddress.AddressId
@@ -60,10 +69,10 @@ BEGIN
     LEFT JOIN DBO.Countries cont WITH (NOLOCK) ON custAddress.CountryId = cont.countries_id
     LEFT JOIN DBO.Currency cur WITH (NOLOCK) ON so.CurrencyId = cur.CurrencyId
     LEFT JOIN DBO.CreditTerms ct WITH (NOLOCK) ON cf.CreditTermsId = ct.CreditTermsId
-    LEFT JOIN DBO.StockLine sl WITH (NOLOCK) ON stk.StockLineId = sl.StockLineId
+    LEFT JOIN DBO.StockLine sl WITH (NOLOCK) ON stk.StockLineId = sl.StockLineId AND ISNULL(sl.IsNonStock,0) = 0
     LEFT JOIN DBO.SalesOrderQuoteFreight soFreight WITH (NOLOCK) ON so.SalesOrderQuoteId = soFreight.SalesOrderQuoteId AND soFreight.IsActive = 1 AND soFreight.IsDeleted = 0
     LEFT JOIN DBO.SalesOrderQuoteCharges soCharges WITH (NOLOCK) ON so.SalesOrderQuoteId = soCharges.SalesOrderQuoteId AND soCharges.IsActive = 1 AND soCharges.IsDeleted = 0
-    LEFT JOIN DBO.StockLine qs WITH (NOLOCK) ON stk.StockLineId = qs.StockLineId
+    LEFT JOIN DBO.StockLine qs WITH (NOLOCK) ON stk.StockLineId = qs.StockLineId AND ISNULL(qs.IsNonStock,0) = 0
     LEFT JOIN DBO.PurchaseOrder po WITH (NOLOCK) ON qs.PurchaseOrderId = po.PurchaseOrderId
     LEFT JOIN DBO.RepairOrder ro WITH (NOLOCK) ON qs.RepairOrderId = ro.RepairOrderId
     WHERE so.SalesOrderQuoteId = @SalesQuoteId 

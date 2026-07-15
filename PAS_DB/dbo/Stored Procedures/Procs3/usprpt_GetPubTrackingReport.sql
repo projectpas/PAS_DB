@@ -1,4 +1,8 @@
-﻿/*************************************************************             
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.usprpt_GetPubTrackingReport   (source: PAS_DB/dbo/Stored Procedures/Procs3/usprpt_GetPubTrackingReport.sql)
+-- ---------------------------------------------------------------------------------------------------
+/*************************************************************             
  ** File:   [usprpt_GetPubTrackingReport]             
  ** Author:   Mahesh Sorathiya    
  ** Description: Get Data for Publication Tracking (CMM) Report  
@@ -18,6 +22,7 @@
 	2    01-SEPT-2023   Ekta Chandegra	   Convert text into uppercase
 	3	 04-12-2024     Shrey Chandegara   Modified due to add some new column and add filter
 	4    17-Jun-2026    Sahdev Saliya      Added PublicationType and PublicationTypeGloble [PN-15971]
+	5    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 
 exec usprpt_GetPubTrackingReport @PageNumber=1,@PageSize=20,@SortColumn=NULL,@SortOrder=-1,@GlobalFilter=N'',@strFilter=N'1,5,6,52,84!2,7,8,9!3,11,10!4,13,12!!!!!!',@PublicationRecordId=0,
 @PublicationId=NULL,@PartNumber=NULL,@PartDescription=NULL,@PublicationDescription=NULL,@VerifiedStatus=N'0',@DayToExpiry=NULL,@RedIndicator=0,@GreenIndicator=0,@YellowIndicator=0,@ExpirationStatus=N'0',
@@ -25,7 +30,7 @@ exec usprpt_GetPubTrackingReport @PageNumber=1,@PageSize=20,@SortColumn=NULL,@So
 @NextRevDate=NULL,@RevDate=NULL,@ExpirationDate=NULL,@VerifiedDate=NULL,@level1Str=NULL,@level2Str=NULL,@level3Str=NULL,@level4Str=NULL,@level5Str=NULL,@level6Str=NULL,@level7Str=NULL,@level8Str=NULL,@level9Str=NULL,@level10Str=NULL,@MasterCompanyId=1
 
 **************************************************************/  
-CREATE   PROCEDURE [dbo].[usprpt_GetPubTrackingReport] 
+CREATE     PROCEDURE [dbo].[usprpt_GetPubTrackingReport] 
 @PageNumber INT = NULL,
 @PageSize INT = NULL,
 @SortColumn VARCHAR(50)=NULL,
@@ -269,7 +274,8 @@ BEGIN
 				(ISNULL(@Level9,'') ='' OR [Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,','))) AND     
 				(ISNULL(@Level10,'') =''  OR [Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))
 				
-		  SET @PageSize = CASE WHEN NULLIF(@PageSize,0) IS NULL THEN 10 ELSE @PageSize END
+		   AND ISNULL(IM.IsNonStock,0) = 0
+				 SET @PageSize = CASE WHEN NULLIF(@PageSize,0) IS NULL THEN 10 ELSE @PageSize END
 		  SET @PageNumber = CASE WHEN NULLIF(@PageNumber,0) IS NULL THEN 1 ELSE @PageNumber END
 
 		 select * into #finalResult

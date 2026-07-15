@@ -1,10 +1,21 @@
-﻿-- ==================================================
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.SearchSpeedQuoteViewData   (source: PAS_DB/dbo/Stored Procedures/Procs1/SearchSpeedQuoteViewData.sql)
+-- ---------------------------------------------------------------------------------------------------
+-- ==================================================
 -- Author:		Deep Patel
 -- Create date: 3-Sep-2021
 -- Description:	Get Search Data for Speed Quote List
 -- 22/01/2025   Ayushi Patel      converted the date into utc (created , updated) , Added a case to get timeZone
 -- ==================================================
-CREATE   PROCEDURE [dbo].[SearchSpeedQuoteViewData]
+/***************************************************************************************************************************************
+  ** Change History
+ ***************************************************************************************************************************************
+ ** PR   Date						 Author							Change Description
+ ** --   --------					 -------						-------------------------------
+	1    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+****************************************************************************************************************************************/
+CREATE     PROCEDURE [dbo].[SearchSpeedQuoteViewData]
 	-- Add the parameters for the stored procedure here
 	@PageNumber int,
 	@PageSize int,
@@ -137,7 +148,8 @@ BEGIN
 								   STUFF((SELECT ',' + I.partnumber
 										  FROM SpeedQuotePart S WITH (NOLOCK)
 										  Left Join ItemMaster I WITH (NOLOCK) On S.ItemMasterId=I.ItemMasterId
-										  WHERE S.SpeedQuoteId=SQ.SpeedQuoteId AND S.IsActive = 1 AND S.IsDeleted = 0
+										   AND ISNULL(I.IsNonStock,0) = 0
+										   WHERE S.SpeedQuoteId=SQ.SpeedQuoteId AND S.IsActive = 1 AND S.IsDeleted = 0
 										  FOR XML PATH('')), 1, 1, '') PartNumber
 							) A
 							WHERE ((SQ.IsDeleted=@IsDeleted) and (@StatusID is null or sq.StatusId=@StatusID))
@@ -150,7 +162,8 @@ BEGIN
 								   STUFF((SELECT ', ' + I.PartDescription
 										  FROM SpeedQuotePart S WITH (NOLOCK)
 										  Left Join ItemMaster I WITH (NOLOCK) On S.ItemMasterId=I.ItemMasterId
-										  WHERE S.SpeedQuoteId=SQ.SpeedQuoteId AND S.IsActive = 1 AND S.IsDeleted = 0
+										   AND ISNULL(I.IsNonStock,0) = 0
+										   WHERE S.SpeedQuoteId=SQ.SpeedQuoteId AND S.IsActive = 1 AND S.IsDeleted = 0
 										  FOR XML PATH('')), 1, 1, '') PartDescription
 							) A
 							WHERE ((SQ.IsDeleted=@IsDeleted) and (@StatusID is null or SQ.StatusId=@StatusID))
@@ -164,7 +177,8 @@ BEGIN
 								   STUFF((SELECT ', ' + I.ManufacturerName
 										  FROM SpeedQuotePart S WITH (NOLOCK)
 										  Left Join ItemMaster I WITH (NOLOCK) On S.ItemMasterId=I.ItemMasterId
-										  WHERE S.SpeedQuoteId=SQ.SpeedQuoteId AND S.IsActive = 1 AND S.IsDeleted = 0
+										   AND ISNULL(I.IsNonStock,0) = 0
+										   WHERE S.SpeedQuoteId=SQ.SpeedQuoteId AND S.IsActive = 1 AND S.IsDeleted = 0
 										  FOR XML PATH('')), 1, 1, '') ManufacturerName
 							) A
 							WHERE ((SQ.IsDeleted=@IsDeleted) and (@StatusID is null or SQ.StatusId=@StatusID))

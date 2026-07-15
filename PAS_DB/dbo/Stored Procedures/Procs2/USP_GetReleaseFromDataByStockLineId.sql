@@ -1,4 +1,5 @@
-﻿/*************************************************************   
+﻿-- ===== PROCEDURE: [dbo].[USP_GetReleaseFromDataByStockLineId]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs2/USP_GetReleaseFromDataByStockLineId.sql) =====
+/*************************************************************   
 ** Author:  <Devendra Shekh>  
 ** Create date: <12/26/2023>  
 ** Description: <Get Release Form Data by stocklineid>  
@@ -28,6 +29,8 @@ EXEC [USP_GetReleaseFromDataByStockLineId]
 ** 23   18/MAY/2026     Rajesh Gami			8130 Release Form Enhancements for the ATI [PN-16447]	
 
  EXEC [dbo].[USP_GetReleaseFromDataByStockLineId] 3553,1,0
+	1    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	24    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 **************************************************************/ 
 
 CREATE   PROC [dbo].[USP_GetReleaseFromDataByStockLineId]
@@ -69,7 +72,7 @@ BEGIN
 		SET @MSModuleId = 2 ; -- For WO PART NUMBER  
 		SET @MTIMasterCompanyId = 11; -- For MTI
 	  	  
-		SELECT @MasterCompanyId = [MasterCompanyId] FROM [DBO].[Stockline] CTT WITH(NOLOCK) WHERE [StockLineId] = @StockLineId;
+		SELECT @MasterCompanyId = [MasterCompanyId] FROM [DBO].[Stockline] CTT WITH(NOLOCK) WHERE [StockLineId] = @StockLineId AND ISNULL(CTT.IsNonStock,0) = 0;
 
 		SELECT @WorkorderId = [WorkorderId] FROM [DBO].[WorkOrderPartNumber] WITH(NOLOCK) WHERE [ID]=@workOrderPartNumberId
 
@@ -353,7 +356,8 @@ BEGIN
 			  LEFT JOIN [dbo].[WorkOrderDualReleaseSettings] wods  WITH(NOLOCK) ON wods.MasterCompanyId = wop.MasterCompanyId AND wo.WorkOrderTypeId = wods.WorkOrderTypeId AND wods.WOReleaseFormId = @formTypeId	
 			 --LEFT JOIN [dbo].[WorkOrderSettlementDetails] wosc WITH(NOLOCK) ON wop.WorkOrderId = wosc.WorkOrderId AND wop.ID = wosc.workOrderPartNoId AND wosc.WorkOrderSettlementId = 9 
 			  LEFT JOIN [dbo].[ItemMaster] im  WITH(NOLOCK) ON im.ItemMasterId = sl.ItemMasterId  
-			  LEFT JOIN [dbo].[StocklineManagementStructureDetails] MSD  WITH(NOLOCK) ON MSD.ModuleID = @MSModuleId AND MSD.ReferenceID = sl.StockLineId  
+			   AND ISNULL(im.IsNonStock,0) = 0
+			   LEFT JOIN [dbo].[StocklineManagementStructureDetails] MSD  WITH(NOLOCK) ON MSD.ModuleID = @MSModuleId AND MSD.ReferenceID = sl.StockLineId  
 			  LEFT JOIN [dbo].[ManagementStructurelevel] MSL WITH(NOLOCK) ON MSL.ID = MSD.Level1Id  
 			  LEFT JOIN [dbo].[LegalEntity] le  WITH(NOLOCK) ON le.LegalEntityId   = MSL.LegalEntityId  
 			  LEFT JOIN [dbo].[Address] ad  WITH(NOLOCK) ON ad.AddressId = le.AddressId   
@@ -361,7 +365,7 @@ BEGIN
 			  LEFT JOIN [dbo].[Vendor] ven WITH(NOLOCK) ON sl.VendorId = ven.VendorId  
 			  LEFT JOIN [dbo].[Manufacturer] mf WITH(NOLOCK) ON sl.ManufacturerId = mf.ManufacturerId 
 			  LEFT JOIN [dbo].[CommonWorkOrderTearDown] cwt WITH(NOLOCK) ON wo.WorkOrderId = cwt.WorkOrderId AND [CommonTeardownTypeId] = @CommonTeardownTypeId
-		 WHERE sl.StockLineId = @StockLineId
+		 WHERE sl.StockLineId = @StockLineId AND ISNULL(sl.IsNonStock,0) = 0
 			END
 			ELSE
 			BEGIN
@@ -439,7 +443,8 @@ BEGIN
 			  LEFT JOIN [dbo].[WorkOrderPartNumber] wop  WITH(NOLOCK) ON wo.WorkOrderId = wop.WorkOrderId AND wop.ID = @WorkOrderPartNumberId
 			  LEFT JOIN [dbo].[WorkOrderDualReleaseSettings] wods  WITH(NOLOCK) ON wods.MasterCompanyId = wop.MasterCompanyId AND wo.WorkOrderTypeId = wods.WorkOrderTypeId AND wods.WOReleaseFormId = @formTypeId	
 			  LEFT JOIN [dbo].[ItemMaster] im  WITH(NOLOCK) ON im.ItemMasterId = sl.ItemMasterId  
-			  LEFT JOIN [dbo].[StocklineManagementStructureDetails] MSD  WITH(NOLOCK) ON MSD.ModuleID = @MSModuleId AND MSD.ReferenceID = sl.StockLineId  
+			   AND ISNULL(im.IsNonStock,0) = 0
+			   LEFT JOIN [dbo].[StocklineManagementStructureDetails] MSD  WITH(NOLOCK) ON MSD.ModuleID = @MSModuleId AND MSD.ReferenceID = sl.StockLineId  
 			  LEFT JOIN [dbo].[ManagementStructurelevel] MSL WITH(NOLOCK) ON MSL.ID = MSD.Level1Id  
 			  LEFT JOIN [dbo].[LegalEntity] le  WITH(NOLOCK) ON le.LegalEntityId   = MSL.LegalEntityId  
 			  LEFT JOIN [dbo].[Address] ad  WITH(NOLOCK) ON ad.AddressId = le.AddressId 
@@ -449,7 +454,7 @@ BEGIN
 			  LEFT JOIN [dbo].[Vendor] ven WITH(NOLOCK) ON sl.VendorId = ven.VendorId  
 			  LEFT JOIN [dbo].[Manufacturer] mf WITH(NOLOCK) ON sl.ManufacturerId = mf.ManufacturerId 
 			  LEFT JOIN [dbo].[CommonWorkOrderTearDown] cwt WITH(NOLOCK) ON wo.WorkOrderId = cwt.WorkOrderId AND [CommonTeardownTypeId] = @CommonTeardownTypeId
-		 WHERE sl.StockLineId = @StockLineId
+		 WHERE sl.StockLineId = @StockLineId AND ISNULL(sl.IsNonStock,0) = 0
 
 			END
 		END
@@ -523,7 +528,8 @@ BEGIN
 			  LEFT JOIN [dbo].[WorkOrderPartNumber] wop  WITH(NOLOCK) ON wo.WorkOrderId = wop.WorkOrderId AND wop.ID = @WorkOrderPartNumberId
 			  LEFT JOIN [dbo].[WorkOrderDualReleaseSettings] wods  WITH(NOLOCK) ON wods.MasterCompanyId = wop.MasterCompanyId AND wo.WorkOrderTypeId = wods.WorkOrderTypeId AND wods.WOReleaseFormId = @formTypeId	
 			  LEFT JOIN [dbo].[ItemMaster] im  WITH(NOLOCK) ON im.ItemMasterId = sl.ItemMasterId  
-			  LEFT JOIN [dbo].[StocklineManagementStructureDetails] MSD  WITH(NOLOCK) ON MSD.ModuleID = @MSModuleId AND MSD.ReferenceID = sl.StockLineId  
+			   AND ISNULL(im.IsNonStock,0) = 0
+			   LEFT JOIN [dbo].[StocklineManagementStructureDetails] MSD  WITH(NOLOCK) ON MSD.ModuleID = @MSModuleId AND MSD.ReferenceID = sl.StockLineId  
 			  LEFT JOIN [dbo].[ManagementStructurelevel] MSL WITH(NOLOCK) ON MSL.ID = MSD.Level1Id  
 			  LEFT JOIN [dbo].[LegalEntity] le  WITH(NOLOCK) ON le.LegalEntityId   = MSL.LegalEntityId  
 			  LEFT JOIN [dbo].[Address] ad  WITH(NOLOCK) ON ad.AddressId = le.AddressId   
@@ -531,7 +537,7 @@ BEGIN
 			  LEFT JOIN [dbo].[Vendor] ven WITH(NOLOCK) ON sl.VendorId = ven.VendorId  
 			  LEFT JOIN [dbo].[Manufacturer] mf WITH(NOLOCK) ON sl.ManufacturerId = mf.ManufacturerId 
 			  LEFT JOIN [dbo].[CommonWorkOrderTearDown] cwt WITH(NOLOCK) ON wo.WorkOrderId = cwt.WorkOrderId AND [CommonTeardownTypeId] = @CommonTeardownTypeId
-		 WHERE sl.StockLineId = @StockLineId
+		 WHERE sl.StockLineId = @StockLineId AND ISNULL(sl.IsNonStock,0) = 0
 
 		END
   END TRY      

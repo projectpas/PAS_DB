@@ -1,4 +1,5 @@
-﻿/*************************************************************             
+﻿-- ===== PROCEDURE: [dbo].[usprpt_GetWorkOrderBillingReport]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs3/usprpt_GetWorkOrderBillingReport.sql) =====
+/*************************************************************             
  ** File:   [usprpt_GetWorkOrderBillingReport]             
  ** Author:       
  ** Description: Get Data for WorkOrderBillingReport  
@@ -27,6 +28,8 @@
 	11  10-Nov-2025	    Moin Bloch			Updated Credit memo Amount Get From CreditMemoDetails
 	12  10-Nov-2025	    Moin Bloch			Updated Fix For Duplicate Credit Memo
 	13  16-Jun-2026	    Bhargav Saliya		Fixed Date Converation Issue as per selected time zone
+	14    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	15    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 
 
 EXECUTE   [dbo].[usp_GetWorkOrderBillingReport] 'krunal','','','1','1,4,43,44,45,80,84,88','46,47,66','48,49,50,59','51,52,53'
@@ -173,7 +176,8 @@ BEGIN
 				 AND (ISNULL(@Level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))  
 				 AND (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))  
   
-		   SELECT @PageSizeCM=COUNT(*)  
+		    AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(SL.IsNonStock,0) = 0
+				  SELECT @PageSizeCM=COUNT(*)  
 			FROM [dbo].[CreditMemo] CM WITH (NOLOCK)  
 				  INNER JOIN [dbo].[CreditMemoDetails] CMD WITH (NOLOCK) ON CM.CreditMemoHeaderId = CMD.CreditMemoHeaderId AND CMD.[IsDeleted] = 0 AND CMD.[IsActive] = 1
 				  LEFT JOIN [dbo].[WorkOrder] WO WITH (NOLOCK) ON CM.ReferenceId = WO.WorkOrderId  
@@ -267,11 +271,12 @@ BEGIN
 				INNER JOIN [dbo].[WorkOrderManagementStructureDetails] MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = WOPN.ID  
 				INNER JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON WOPN.ItemMasterId = IM.ItemMasterId  
 				LEFT JOIN [dbo].[ItemMaster] RIM WITH (NOLOCK) ON WOPN.RevisedItemmasterid = RIM.ItemMasterId  
-				INNER JOIN [dbo].[BillingInvoicing] WOBI WITH (NOLOCK) ON WO.WorkOrderId = WOBI.ReferenceId AND WOBI.IsVersionIncrease = 0 AND WOBI.IsVersionIncrease = 0 AND ISNULL(WOBI.IsPerformaInvoice, 0) = 0 AND WOBI.ModuleId = @WOModuleId
+				 AND ISNULL(RIM.IsNonStock,0) = 0
+				 INNER JOIN [dbo].[BillingInvoicing] WOBI WITH (NOLOCK) ON WO.WorkOrderId = WOBI.ReferenceId AND WOBI.IsVersionIncrease = 0 AND WOBI.IsVersionIncrease = 0 AND ISNULL(WOBI.IsPerformaInvoice, 0) = 0 AND WOBI.ModuleId = @WOModuleId
 				INNER JOIN [dbo].[BillingInvoicingItems] WOBIM WITH (NOLOCK) ON WOBI.BillingInvoicingId = WOBIM.BillingInvoicingId AND WOBIM.SubReferenceId = WOPN.ID AND WOBIM.IsVersionIncrease = 0 AND ISNULL(WOBIM.IsPerformaInvoice, 0) = 0 AND WOBIM.SubModuleId = @SubModuleId
 				LEFT JOIN [dbo].[WorkOrderShippingItem] AS WOSI WITH (NOLOCK) ON WOSI.WorkOrderPartNumId = WOBIM.SubReferenceId  
 				LEFT JOIN [dbo].[WorkOrderShipping] AS WOS WITH (NOLOCK) ON WOS.WorkOrderShippingId = WOSI.WorkOrderShippingId   
-				LEFT JOIN [dbo].[Stockline] SL WITH (NOLOCK) ON WOPN.StockLineId = SL.StockLineId AND SL.IsParent = 1  
+				LEFT JOIN [dbo].[Stockline] SL WITH (NOLOCK) ON WOPN.StockLineId = SL.StockLineId AND SL.IsParent = 1 AND ISNULL(SL.IsNonStock,0) = 0  
 				LEFT JOIN [dbo].[EntityStructureSetup] ES ON ES.EntityStructureId=MSD.EntityMSID  
 				LEFT JOIN [dbo].[WorkOrderQuote] woq WITH (NOLOCK) ON WO.WorkOrderId = woq.WorkOrderId AND woq.IsVersionIncrease = 0  
 				LEFT JOIN [dbo].[WorkOrderType] WITH (NOLOCK) ON WO.WorkOrderTypeId = WorkOrderType.Id  
@@ -299,7 +304,8 @@ BEGIN
 				AND (ISNULL(@Level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))  
 				AND  (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))  
       
-			UNION ALL  
+			 AND ISNULL(IM.IsNonStock,0) = 0
+				 UNION ALL  
   
 			SELECT DISTINCT COUNT(1) OVER () AS TotalRecordsCount,  
 				 CM.WorkOrderId,  

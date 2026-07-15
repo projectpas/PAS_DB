@@ -1,4 +1,8 @@
-﻿/*************************************************************   
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.usp_UnIssueSubWorkOrderMaterialsStockline   (source: PAS_DB/dbo/Stored Procedures/Procs3/usp_UnIssueSubWorkOrderMaterialsStockline.sql)
+-- ---------------------------------------------------------------------------------------------------
+/*************************************************************   
 ** Author:  <Hemant Saliya>  
 ** Create date: <02/07/2022>  
 ** Description: <Save Sub Work Order Materials Issue Stockline Details>  
@@ -22,8 +26,9 @@ insert into @p1 values(3801,187,161,79,161326,20751,7,1,10,2,N'NE',N'PART9',N'A 
 
 exec dbo.usp_UnIssueSubWorkOrderMaterialsStockline @tbl_MaterialsStocklineType=@p1
 
+	1    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 **************************************************************/ 
-CREATE   PROCEDURE [dbo].[usp_UnIssueSubWorkOrderMaterialsStockline]
+CREATE     PROCEDURE [dbo].[usp_UnIssueSubWorkOrderMaterialsStockline]
 	@tbl_MaterialsStocklineType SubWOMaterialsStocklineType READONLY
 AS
 BEGIN	
@@ -307,7 +312,7 @@ BEGIN
 						SELECT @SubWorkOrderPartNoId = SubWOPartNoId, @historySubWorkOrderId = SubWorkOrderId FROM dbo.SubWorkOrderMaterials WITH(NOLOCK) WHERE SubWorkOrderMaterialsId = @HistorySubWorkOrderMaterialsId;
 						SELECT @ItemMasterId = SWOP.ItemMasterId, @MPNPartnumber = IM.partnumber FROM dbo.SubWorkOrderPartNumber AS SWOP WITH(NOLOCK)
 							JOIN dbo.ItemMaster IM WITH(NOLOCK) ON IM.ItemMasterId = SWOP.ItemMasterId
-						 WHERE SubWOPartNoId = @SubWorkOrderPartNoId;
+						 WHERE SubWOPartNoId = @SubWorkOrderPartNoId AND ISNULL(IM.IsNonStock,0) = 0 ;
 						
 						SELECT @SubWorkOrderNum = SubWorkOrderNo FROM dbo.SubWorkOrder WITH(NOLOCK) WHERE SubWorkOrderId = @historysUBWorkOrderId;
 						SELECT @ConditionCode = Code FROM dbo.Condition WITH(NOLOCK) WHERE ConditionId = @ConditionId;

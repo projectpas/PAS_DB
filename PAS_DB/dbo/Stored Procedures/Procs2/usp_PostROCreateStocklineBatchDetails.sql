@@ -1,4 +1,4 @@
-﻿/*************************************************************             
+/*************************************************************             
  ** File:   [usp_PostROCreateStocklineBatchDetails]             
  ** Author:   Satish Gohil  
  ** Description: This stored procedure is used to create Batch while Post RRO
@@ -29,6 +29,8 @@
 	18   06/29/2026   Abhishek Jirawla Including RPP in inserting batch details
 	19	 08/07/2026	  Moin Bloch       Modify (Added IsBypassAccounting Flag to bypass Accounting Entry PN-16871)
 	20   08/07/2026   Abhishek Jirawla Including RO Num in Batch details
+	20    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	21    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 **************************************************************/  
 CREATE    PROCEDURE [dbo].[usp_PostROCreateStocklineBatchDetails]
 @tbl_PostStocklineBatchType PostStocklineBatchType READONLY,
@@ -396,7 +398,7 @@ BEGIN
 												 @LotNumber = LO.LotNumber
 											FROM [dbo].[Stockline] ST WITH(NOLOCK) 
 												LEFT JOIN [dbo].[Lot] LO WITH(NOLOCK) ON ST.[LotId] = LO.[LotId]
-											WHERE ST.[StockLineId] = @StocklineId;
+											WHERE ST.[StockLineId] = @StocklineId AND ISNULL(ST.IsNonStock,0) = 0;
 								
 										  SELECT	@RepairOrderNumber=RepairOrderNumber,@VendorId=VendorId,
 													@LocalCurrencyCode = ISNULL(CF.Code, ''),
@@ -413,11 +415,13 @@ BEGIN
 										  SET @Amount = (@Qty * @Amount);
 
 										  SELECT @MPNName = partnumber FROM dbo.ItemMaster WITH(NOLOCK)  WHERE ItemMasterId=@ItemmasterId 
-										  SELECT @LastMSLevel=LastMSLevel,@AllMSlevels=AllMSlevels FROM dbo.StocklineManagementStructureDetails WITH(NOLOCK) WHERE ReferenceID=@StockLineId AND ModuleID=@STKMSModuleID
+										   AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0
+										   SELECT @LastMSLevel=LastMSLevel,@AllMSlevels=AllMSlevels FROM dbo.StocklineManagementStructureDetails WITH(NOLOCK) WHERE ReferenceID=@StockLineId AND ModuleID=@STKMSModuleID
 										  SET @ReferencePartId=@partId	
 
 										  SELECT @PiecePN = partnumber FROM dbo.ItemMaster WITH(NOLOCK)  WHERE ItemMasterId=@PieceItemmasterId 
-										  SET @Desc = 'Receiving RO-' + @PurchaseOrderNumber + '  PN-' + @MPNName + '  SL-' + @StocklineNumber
+										   AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0
+										   SET @Desc = 'Receiving RO-' + @PurchaseOrderNumber + '  PN-' + @MPNName + '  SL-' + @StocklineNumber
 									 
 										 -----Stock - Inventory--------
 
@@ -429,12 +433,12 @@ BEGIN
 										SELECT TOP 1 @STKGlAccountId=SL.GLAccountId,@STKGlAccountNumber=GL.AccountCode,@STKGlAccountName=GL.AccountName 
 										FROM DBO.Stockline SL WITH(NOLOCK)
 											INNER JOIN DBO.GLAccount GL WITH(NOLOCK) ON SL.GLAccountId=GL.GLAccountId 
-										WHERE SL.StockLineId=@StocklineId;
+										WHERE SL.StockLineId=@StocklineId AND ISNULL(SL.IsNonStock,0) = 0;
 										
 										--GET STOCKLINE GLACCOUNT.
 										SELECT @RepairOrderPartRecordId = SL.RepairOrderPartRecordId
 										FROM [dbo].[Stockline] SL WITH(NOLOCK)					 
-										WHERE SL.[StockLineId] = @StocklineId;
+										WHERE SL.[StockLineId] = @StocklineId AND ISNULL(SL.IsNonStock,0) = 0;
 
 										SELECT @GlStocklineId = ROP.StockLineId -- For PARTS StocklineId.
 										FROM [dbo].[RepairOrderPart] ROP WITH(NOLOCK)					 
@@ -443,7 +447,7 @@ BEGIN
 										--GET STOCKLINE GLACCOUNT.
 										SELECT @InventoryGLAccId = SL.GLAccountId, @GRNIGLAccId = SL.GoodsReceivedNotInvoicesGLAccId -- For PARTS INVENTORY Distribution.
 										FROM [dbo].[Stockline] SL WITH(NOLOCK)					 
-										WHERE SL.[StockLineId] = @GlStocklineId;
+										WHERE SL.[StockLineId] = @GlStocklineId AND ISNULL(SL.IsNonStock,0) = 0;
 										
 										--GET GL Accounting Data from GLAccout based on stockline
 										SELECT @GlAccountId = [GLAccountId],
@@ -562,12 +566,14 @@ BEGIN
 
 										SELECT @WorkOrderNumber=InventoryNumber,@partId=PurchaseOrderPartRecordId,@ItemMasterId=MasterPartId,@ManagementStructureId=ManagementStructureId FROM AssetInventory WITH(NOLOCK) WHERE AssetInventoryId=@StocklineId;
 										SELECT @MPNName = partnumber FROM dbo.ItemMaster WITH(NOLOCK)  WHERE ItemMasterId=@ItemmasterId 
-										SELECT @LastMSLevel=LastMSLevel,@AllMSlevels=AllMSlevels FROM dbo.StocklineManagementStructureDetails WITH(NOLOCK) WHERE ReferenceID=@StockLineId AND ModuleID=@STKMSModuleID
+										 AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0
+										 SELECT @LastMSLevel=LastMSLevel,@AllMSlevels=AllMSlevels FROM dbo.StocklineManagementStructureDetails WITH(NOLOCK) WHERE ReferenceID=@StockLineId AND ModuleID=@STKMSModuleID
 										SET @ReferencePartId=@partId	
 
 										SELECT @PieceItemmasterId=MasterPartId FROM dbo.AssetInventory WITH(NOLOCK) WHERE AssetInventoryId=@StocklineId
 										SELECT @PiecePN = partnumber FROM dbo.ItemMaster WITH(NOLOCK)  WHERE ItemMasterId = @PieceItemmasterId 
-										SET @Desc = 'Receiving RO-' + @PurchaseOrderNumber + '  PN-' + @MPNName + '  SL-' + @StocklineNumber
+										 AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0
+										 SET @Desc = 'Receiving RO-' + @PurchaseOrderNumber + '  PN-' + @MPNName + '  SL-' + @StocklineNumber
 								  
 										-----Fixed Asset--------
 										SELECT top 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@CrDrType=CRDRType, @IsAutoPost = ISNULL(IsAutoPost,0), @IsBypassAccounting = ISNULL(IsBypassAccounting,0)
@@ -842,7 +848,7 @@ BEGIN
 												 @LotNumber = LO.LotNumber
 											FROM [dbo].[Stockline] ST WITH(NOLOCK) 
 												LEFT JOIN [dbo].[Lot] LO WITH(NOLOCK) ON ST.[LotId] = LO.[LotId]
-											WHERE ST.[StockLineId] = @StocklineId;
+											WHERE ST.[StockLineId] = @StocklineId AND ISNULL(ST.IsNonStock,0) = 0;
 								
 										  SELECT	@RepairOrderNumber=RepairOrderNumber,@VendorId=VendorId,
 													@LocalCurrencyCode = ISNULL(CF.Code, ''),
@@ -859,11 +865,13 @@ BEGIN
 										  --SET @Amount = (@Qty * @Amount);
 
 										  SELECT @MPNName = partnumber FROM dbo.ItemMaster WITH(NOLOCK)  WHERE ItemMasterId=@ItemmasterId 
-										  SELECT @LastMSLevel=LastMSLevel,@AllMSlevels=AllMSlevels FROM dbo.StocklineManagementStructureDetails WITH(NOLOCK) WHERE ReferenceID=@StockLineId AND ModuleID=@STKMSModuleID
+										   AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0
+										   SELECT @LastMSLevel=LastMSLevel,@AllMSlevels=AllMSlevels FROM dbo.StocklineManagementStructureDetails WITH(NOLOCK) WHERE ReferenceID=@StockLineId AND ModuleID=@STKMSModuleID
 										  SET @ReferencePartId=@partId	
 
 										  SELECT @PiecePN = partnumber FROM dbo.ItemMaster WITH(NOLOCK)  WHERE ItemMasterId=@PieceItemmasterId 
-										  SET @Desc = 'Receiving PP-' + @PurchaseOrderNumber + '  PN-' + @MPNName + '  SL-' + @StocklineNumber
+										   AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0
+										   SET @Desc = 'Receiving PP-' + @PurchaseOrderNumber + '  PN-' + @MPNName + '  SL-' + @StocklineNumber
 									 
 										 -----Stock - Inventory--------
 
@@ -875,7 +883,7 @@ BEGIN
 										SELECT TOP 1 @STKGlAccountId=SL.GLAccountId,@STKGlAccountNumber=GL.AccountCode,@STKGlAccountName=GL.AccountName 
 										FROM DBO.Stockline SL WITH(NOLOCK)
 											INNER JOIN DBO.GLAccount GL WITH(NOLOCK) ON SL.GLAccountId=GL.GLAccountId 
-										WHERE SL.StockLineId=@StocklineId;
+										WHERE SL.StockLineId=@StocklineId AND ISNULL(SL.IsNonStock,0) = 0;
 										
 										----GET STOCKLINE GLACCOUNT.
 										--SELECT @RepairOrderPartRecordId = SL.RepairOrderPartRecordId
@@ -889,7 +897,7 @@ BEGIN
 										--GET STOCKLINE GLACCOUNT.
 										SELECT @InventoryGLAccId = SL.GLAccountId, @GRNIGLAccId = SL.GoodsReceivedNotInvoicesGLAccId, @finishedGoodsGLAccId = SL.FinishedGoodsGLAccId, @cogs_WorkOrderGLAccId = SL.COGS_WorkOrderGLAccId -- For PARTS INVENTORY Distribution.
 										FROM [dbo].[Stockline] SL WITH(NOLOCK)					 
-										WHERE SL.[StockLineId] = @StocklineId;
+										WHERE SL.[StockLineId] = @StocklineId AND ISNULL(SL.IsNonStock,0) = 0;
 										
 										--GET GL Accounting Data from GLAccout based on stockline
 										SELECT @GlAccountId = [GLAccountId],
@@ -1096,12 +1104,14 @@ BEGIN
 
 										SELECT @WorkOrderNumber=InventoryNumber,@partId=PurchaseOrderPartRecordId,@ItemMasterId=MasterPartId,@ManagementStructureId=ManagementStructureId FROM AssetInventory WITH(NOLOCK) WHERE AssetInventoryId=@StocklineId;
 										SELECT @MPNName = partnumber FROM dbo.ItemMaster WITH(NOLOCK)  WHERE ItemMasterId=@ItemmasterId 
-										SELECT @LastMSLevel=LastMSLevel,@AllMSlevels=AllMSlevels FROM dbo.StocklineManagementStructureDetails WITH(NOLOCK) WHERE ReferenceID=@StockLineId AND ModuleID=@STKMSModuleID
+										 AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0
+										 SELECT @LastMSLevel=LastMSLevel,@AllMSlevels=AllMSlevels FROM dbo.StocklineManagementStructureDetails WITH(NOLOCK) WHERE ReferenceID=@StockLineId AND ModuleID=@STKMSModuleID
 										SET @ReferencePartId=@partId	
 
 										SELECT @PieceItemmasterId=MasterPartId FROM dbo.AssetInventory WITH(NOLOCK) WHERE AssetInventoryId=@StocklineId
 										SELECT @PiecePN = partnumber FROM dbo.ItemMaster WITH(NOLOCK)  WHERE ItemMasterId = @PieceItemmasterId 
-										SET @Desc = 'Receiving RO-' + @PurchaseOrderNumber + '  PN-' + @MPNName + '  SL-' + @StocklineNumber
+										 AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0
+										 SET @Desc = 'Receiving RO-' + @PurchaseOrderNumber + '  PN-' + @MPNName + '  SL-' + @StocklineNumber
 								  
 										-----Fixed Asset--------
 										SELECT top 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId,@CrDrType=CRDRType, @IsAutoPost = ISNULL(IsAutoPost,0), @IsBypassAccounting = ISNULL(IsBypassAccounting,0)

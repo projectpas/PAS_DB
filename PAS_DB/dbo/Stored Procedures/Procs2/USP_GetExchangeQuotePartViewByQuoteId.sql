@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿-- ===== PROCEDURE: [dbo].[USP_GetExchangeQuotePartViewByQuoteId]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs2/USP_GetExchangeQuotePartViewByQuoteId.sql) =====
+/*************************************************************           
  ** File:   [USP_GetExchangeQuotePartView]           
  ** Author:  Ekta Chandegra
  ** Description: This stored procedure is used to USP_GetExchangeQuotePartView
@@ -14,6 +15,8 @@
  ** PR   Date         Author			Change Description            
  ** --   --------     -------			--------------------------------          
     1    07/17/2025   Ekta Chandegra     Created
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	3    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
      
   EXEC USP_GetExchangeQuotePartViewByQuoteId @ExchangeQuoteId = 10119
 
@@ -84,10 +87,10 @@ BEGIN
 		FROM [dbo].[ExchangeQuotePart] eqp WITH(NOLOCK)
 		INNER JOIN [dbo].[ItemMaster] im WITH(NOLOCK) ON eqp.ItemMasterId = im.ItemMasterId
 		INNER JOIN [dbo].[ExchangeQuote] soq WITH(NOLOCK) ON eqp.ExchangeQuoteId = soq.ExchangeQuoteId
-		LEFT JOIN [dbo].[StockLine] sl WITH(NOLOCK) ON eqp.StockLineId = sl.StockLineId
+		LEFT JOIN [dbo].[StockLine] sl WITH(NOLOCK) ON eqp.StockLineId = sl.StockLineId AND ISNULL(sl.IsNonStock,0) = 0
 		LEFT JOIN [dbo].[Condition] cond WITH(NOLOCK) ON eqp.ConditionId = cond.ConditionId
 		LEFT JOIN [dbo].[UnitOfMeasure] uom WITH(NOLOCK) ON im.PurchaseUnitOfMeasureId = uom.UnitOfMeasureId
-		WHERE eqp.ExchangeQuoteId = @ExchangeQuoteId AND ISNULL(eqp.IsDeleted,0) = 0;
+		WHERE eqp.ExchangeQuoteId = @ExchangeQuoteId AND ISNULL(eqp.IsDeleted,0) = 0 AND ISNULL(im.IsNonStock,0) = 0 ;
 
 		SELECT 
 			EXQS.ExchangeQuoteScheduleBillingId,

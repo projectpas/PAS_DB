@@ -1,4 +1,8 @@
-﻿/***************************************************************  
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.USP_GetPublicationPNMappingData   (source: PAS_DB/dbo/Stored Procedures/Procs2/USP_GetPublicationPNMappingData.sql)
+-- ---------------------------------------------------------------------------------------------------
+/***************************************************************  
  ** File:  [USP_GetPublicationPNMappingData]            
  ** Author: Ayushi Patel  
  ** Description: Get part number mapping data by comma-separated PublicationRecordIds
@@ -10,9 +14,10 @@
  ** PR   Date				Author  				Change Description              
  ** --   --------			-------				--------------------------------            
     1    2025-06-02		  Ayushi Patel				Created
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	
  ***************************************************************/ 
-CREATE   PROCEDURE [dbo].[USP_GetPublicationPNMappingData]
+CREATE     PROCEDURE [dbo].[USP_GetPublicationPNMappingData]
     @PublicationRecordIds VARCHAR(MAX),
     @IsDeleted BIT
 AS
@@ -51,7 +56,8 @@ BEGIN
         AND ISNULL(pim.IsDeleted,0) = @IsDeleted
         AND ISNULL(pim.IsActive,0) = 1
         AND ISNULL(im.IsActive,0) = 1
-    END TRY
+     AND ISNULL(im.IsNonStock,0) = 0
+         END TRY
     BEGIN CATCH
 		SELECT
 		ERROR_NUMBER() AS ErrorNumber,

@@ -1,4 +1,8 @@
-﻿/********************************************************************             
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.usprpt_GetSOOperatingMetricReport_LMarginUnit   (source: PAS_DB/dbo/Stored Procedures/Procs3/usprpt_GetSOOperatingMetricReport_LMarginUnit.sql)
+-- ---------------------------------------------------------------------------------------------------
+/********************************************************************             
  ** File:   [dbo.usprpt_GetSOOperatingMetricReport_LMarginUnit]             
  ** Author:  Rajesh Gami    
  ** Description: Get Data for SalesOrder Operating Metric Report LOW Margin to High Margin
@@ -16,9 +20,10 @@
     1    01-Sep-2025  Rajesh Gami		Created 
 	2    04-Sep-2025  Rajesh Gami		Remove all taxes from the revenue (Sales and Other Tax)
 	3    25-Sep-2025  Vishal Suthar		Modified Revenue calculation
+	4    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 
 ***********************************************************************/  
-CREATE     PROCEDURE [dbo].[usprpt_GetSOOperatingMetricReport_LMarginUnit] 
+CREATE       PROCEDURE [dbo].[usprpt_GetSOOperatingMetricReport_LMarginUnit] 
 @PageNumber int = 1,
 @PageSize int = NULL,
 @mastercompanyid int,
@@ -137,7 +142,8 @@ BEGIN
 			LEFT JOIN DBO.EntityStructureSetup ES ON ES.EntityStructureId=MSD.EntityMSID
 			LEFT JOIN DBO.Customer WITH (NOLOCK) ON SO.CustomerId = Customer.CustomerId  
 			LEFT JOIN DBO.ItemMaster IM WITH (NOLOCK) ON SOP.itemmasterId = IM.itemmasterId  
-			LEFT JOIN DBO.Condition AS CN WITH (NOLOCK) ON SOP.ConditionId = CN.ConditionId 
+			 AND ISNULL(IM.IsNonStock,0) = 0
+			 LEFT JOIN DBO.Condition AS CN WITH (NOLOCK) ON SOP.ConditionId = CN.ConditionId 
 		  
 		  WHERE SOBI.InvoiceStatus = 'Invoiced' AND ISNULL(SO.IsDeleted,0) = 0 AND SOBI.[ModuleId] = @SOModuleId AND
 			SO.CustomerId=ISNULL(@customerid,SO.CustomerId)  AND SOP.ItemMasterId = ISNULL(@itemMasterId,SOP.ItemMasterId)   

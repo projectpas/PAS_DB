@@ -1,4 +1,8 @@
-﻿/*************************************************************           
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.GetSpeedQuotePartViewForDuplicate   (source: PAS_DB/dbo/Stored Procedures/Procs1/GetSpeedQuotePartViewForDuplicate.sql)
+-- ---------------------------------------------------------------------------------------------------
+/*************************************************************           
  ** File:  [GetSpeedQuotePartViewForDuplicate]           
  ** Author:  Amit Ghediya
  ** Description: This stored procedure is used to get SpeedQuotePartData for duplicate.
@@ -14,10 +18,11 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    03/04/2023  Amit Ghediya    Created
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
      
 -- EXEC GetSpeedQuotePartViewForDuplicate 78
 ************************************************************************/
-CREATE     PROCEDURE [dbo].[GetSpeedQuotePartViewForDuplicate]  
+CREATE       PROCEDURE [dbo].[GetSpeedQuotePartViewForDuplicate]  
   @salesQuoteId BIGINT
 AS
 BEGIN
@@ -64,7 +69,8 @@ BEGIN
 				LEFT JOIN Condition condition ON part.ConditionId = condition.ConditionId
 				LEFT JOIN UnitOfMeasure um ON itemMaster.PurchaseUnitOfMeasureId = um.UnitOfMeasureId
 			WHERE part.SpeedQuoteId = @salesQuoteId AND part.IsDeleted = 0
-		END
+		 AND ISNULL(itemMaster.IsNonStock,0) = 0
+			 END
 
 	END TRY    
 	BEGIN CATCH      

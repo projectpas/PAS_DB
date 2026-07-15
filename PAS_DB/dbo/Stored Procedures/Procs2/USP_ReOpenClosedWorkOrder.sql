@@ -1,4 +1,8 @@
-﻿/*************************************************************   
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.USP_ReOpenClosedWorkOrder   (source: PAS_DB/dbo/Stored Procedures/Procs2/USP_ReOpenClosedWorkOrder.sql)
+-- ---------------------------------------------------------------------------------------------------
+/*************************************************************   
 ** Author:  <Hemant Saliya>  
 ** Create date: <05/10/2023>  
 ** Description: <Re-Open Closed WO>  
@@ -22,8 +26,9 @@ Exec [USP_ReOpenClosedWorkOrder]
 
 exec sp_executesql N'EXEC dbo.USP_ReOpenClosedWorkOrder @workOrderPartNoId, @UpdatedBy',N'@WorkOrderPartNoId bigint,@UpdatedBy nvarchar(10)',@WorkOrderPartNoId=3474,@UpdatedBy=N'ADMIN User'
 
+	1    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 **************************************************************/ 
-CREATE   PROCEDURE [dbo].[USP_ReOpenClosedWorkOrder]
+CREATE     PROCEDURE [dbo].[USP_ReOpenClosedWorkOrder]
 	@workOrderPartNoId BIGINT,
 	@UpdatedBy VARCHAR(256)
 AS
@@ -95,7 +100,8 @@ AS
 			JOIN dbo.WorkOrderStatus WS WITH (NOLOCK) ON WOP.WorkOrderStatusId = WS.Id
 			WHERE WOP.ID = @workOrderPartNoId
 
-			SELECT @WorkOrderStageId = WorkOrderStageId FROM dbo.WorkOrderStage WITH(NOLOCK) WHERE [StageCode] = 'RECEIVED' AND MasterCompanyId = @MasterCompanyId
+			 AND ISNULL(IM.IsNonStock,0) = 0
+			 SELECT @WorkOrderStageId = WorkOrderStageId FROM dbo.WorkOrderStage WITH(NOLOCK) WHERE [StageCode] = 'RECEIVED' AND MasterCompanyId = @MasterCompanyId
 
 			SELECT @WorkOrderShippingId = MAX(WOS.WorkOrderShippingId), @IsShippingDone = CASE WHEN COUNT(WOS.WorkOrderShippingId) > 0 THEN 1 ELSE 0 END 
 			FROM dbo.WorkOrderShipping WOS WITH (NOLOCK) 

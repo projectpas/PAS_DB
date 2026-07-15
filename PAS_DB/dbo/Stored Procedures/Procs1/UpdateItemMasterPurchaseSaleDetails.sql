@@ -1,7 +1,7 @@
 ﻿
-
-
-
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.UpdateItemMasterPurchaseSaleDetails   (source: PAS_DB/dbo/Stored Procedures/Procs1/UpdateItemMasterPurchaseSaleDetails.sql)
+-- ---------------------------------------------------------------------------------------------------
 /*************************************************************           
  ** File:   [UpdateItemMasterPurchaseSaleDetails]           
  ** Author:   Moin Bloch
@@ -17,11 +17,12 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    06-Apr-2021   Moin Bloch   Created
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 
  EXEC UpdateItemMasterPurchaseSaleDetails 234
 **************************************************************/ 
 
-CREATE PROCEDURE [dbo].[UpdateItemMasterPurchaseSaleDetails]
+CREATE   PROCEDURE [dbo].[UpdateItemMasterPurchaseSaleDetails]
 @ItemMasterId  bigint
 AS
 BEGIN
@@ -55,9 +56,9 @@ BEGIN
 	  	  LEFT JOIN dbo.Discount SP WITH (NOLOCK) ON IMPS.SP_CalSPByPP_MarkUpPercOnListPrice = SP.DiscountId 
 	  	  LEFT JOIN dbo.ItemMasterPurchaseSaleMaster IMP WITH (NOLOCK) ON IMPS.SalePriceSelectId = IMP.ItemMasterPurchaseSaleMasterId 
 	  	  
-	  WHERE IMPS.ItemMasterId = @ItemMasterId;
+	  WHERE IMPS.ItemMasterId = @ItemMasterId ;
 	  
-	  SELECT partnumber AS value FROM dbo.ItemMaster IM WITH (NOLOCK) WHERE IM.ItemMasterId  = @ItemMasterId;
+	  SELECT partnumber AS value FROM dbo.ItemMaster IM WITH (NOLOCK) WHERE IM.ItemMasterId  = @ItemMasterId AND ISNULL(IM.IsNonStock,0) = 0 ;
 
 	COMMIT TRANSACTION
 

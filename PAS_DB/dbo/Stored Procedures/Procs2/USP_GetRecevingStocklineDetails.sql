@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿-- ===== PROCEDURE: [dbo].[USP_GetRecevingStocklineDetails]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs2/USP_GetRecevingStocklineDetails.sql) =====
+/*************************************************************           
  ** File:   [USP_GetRecevingStocklineDetails]           
  ** Author:   Sahdev Saliya
  ** Description: This stored procedure is used to Get RecevingStocklineDetails List
@@ -13,6 +14,8 @@
  ** S NO   Date            Author          Change Description              
  ** --   --------         -------          --------------------------------            
     1    05-11-2025    Sahdev Saliya       Created  
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	3    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 
     exec [dbo].[USP_GetRecevingStocklineDetails]
 **************************************************************/
@@ -39,7 +42,8 @@ BEGIN
         WHERE st.ItemMasterId = @ItemMasterId
 	      AND st.ConditionId = @ConditionId
 		  AND st.PurchaseOrderId > 0
-        ORDER BY st.StockLineId DESC;
+         AND ISNULL(im.IsNonStock,0) = 0 AND ISNULL(st.IsNonStock,0) = 0
+		   ORDER BY st.StockLineId DESC;
 
     END TRY
     BEGIN CATCH

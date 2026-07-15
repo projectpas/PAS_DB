@@ -1,4 +1,8 @@
-﻿ /************************************************************* 
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.USP_UpdateRFQPricebasedOnAISuggestionHistoricalData_WOQ   (source: PAS_DB/dbo/Stored Procedures/Procs3/USP_UpdateRFQPricebasedOnAISuggestionHistoricalData_WOQ.sql)
+-- ---------------------------------------------------------------------------------------------------
+ /************************************************************* 
  ** File:   [USP_UpdateRFQPricebasedOnAISuggestionHistoricalData]           
  ** Author:   HEMANT SALIYA
  ** Description: Update RFQ Price Details based on AI suggestions
@@ -14,10 +18,11 @@
  ** --   --------     -------		--------------------------------          
     1    30/06/2025   HEMANT SALIYA    Created (Update RFQ Price Details based on AI suggestions)
 	2    24/06/2026   Moin Bloch       Fixed Error Log Errors PN-16924
+	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 
 EXEC USP_UpdateRFQPricebasedOnAISuggestionHistoricalData_WOQ '','',1
 **************************************************************/ 
-CREATE   PROCEDURE [dbo].[USP_UpdateRFQPricebasedOnAISuggestionHistoricalData_WOQ]
+CREATE     PROCEDURE [dbo].[USP_UpdateRFQPricebasedOnAISuggestionHistoricalData_WOQ]
 	--@MasterCompanyId BIGINT = NULL,
 	@FromDate DATETIME = NULL,
 	@ToDate DATETIME = NULL,
@@ -114,7 +119,8 @@ BEGIN
 				  AND WBI.[MasterCompanyId] = @MasterCompanyId
 
 				  --Get data from WOQ
-				  IF(@RecordsTotal = 0)
+				   AND ISNULL(IM.IsNonStock,0) = 0
+				   IF(@RecordsTotal = 0)
 				  BEGIN
 					  SELECT 
 							@RecordsTotal = COUNT(WQD.[WorkOrderQuoteDetailsId]),
@@ -134,7 +140,8 @@ BEGIN
 					  AND MONTH(WOQ.[OpenDate]) >= @Month
 					  AND YEAR(WOQ.[OpenDate]) >= @Year
 					  AND WOQ.[MasterCompanyId] = @MasterCompanyId
-				  END
+				   WHERE ISNULL(IM.IsNonStock,0) = 0
+END
 				  
 				  IF(@RecordsTotal > 0)
 				  BEGIN

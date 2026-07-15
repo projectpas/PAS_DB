@@ -1,4 +1,8 @@
-﻿/*************************************************************           
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.USP_GetExchangeAnalysisList   (source: PAS_DB/dbo/Stored Procedures/Procs2/USP_GetExchangeAnalysisList.sql)
+-- ---------------------------------------------------------------------------------------------------
+/*************************************************************           
  ** File:   [USP_GetExchangeAnalysisList]          
  ** Author: EKTA CHANDEGRA
  ** Description: This stored procedure is used to USP_GetExchangeAnalysisList
@@ -14,10 +18,11 @@
  ** PR   Date         Author		Change Description            
  ** -----------------------------------------------------------          
     1    06/03/2025  EKTA CHANDEGRA    Created
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	     
  EXEC USP_GetExchangeAnalysisList @ExchangeSalesOrderId = 150 , @EmployeeId = 223
 ************************************************************************/ 
-CREATE   PROCEDURE [dbo].[USP_GetExchangeAnalysisList]
+CREATE     PROCEDURE [dbo].[USP_GetExchangeAnalysisList]
     @ExchangeSalesOrderId BIGINT,
     @EmployeeId BIGINT
 AS
@@ -74,7 +79,8 @@ BEGIN
 		INNER JOIN [dbo].[ExchangeSalesOrderBillingInvoicing] esb WITH(NOLOCK) ON esbi.SOBillingInvoicingId = esb.SOBillingInvoicingId
 		LEFT JOIN [dbo].[ExchangeSalesOrderPart] part WITH(NOLOCK) ON sqe.ExchangeSalesOrderPartId = part.ExchangeSalesOrderPartId
 		LEFT JOIN [dbo].[ItemMaster] itemMaster WITH(NOLOCK) ON part.ItemMasterId = itemMaster.ItemMasterId
-		LEFT JOIN [dbo].[UnitOfMeasure] um WITH(NOLOCK) ON itemMaster.PurchaseUnitOfMeasureId = um.UnitOfMeasureId
+		 AND ISNULL(itemMaster.IsNonStock,0) = 0
+		 LEFT JOIN [dbo].[UnitOfMeasure] um WITH(NOLOCK) ON itemMaster.PurchaseUnitOfMeasureId = um.UnitOfMeasureId
 		LEFT JOIN [dbo].[ExchangeBillingType] ebt WITH(NOLOCK) ON sqe.BillingTypeId = ebt.ExchangeBillingTypeId
 		WHERE sqe.ExchangeSalesOrderId = @ExchangeSalesOrderId
 		  AND ISNULL(esbi.IsDeleted,0) = 0

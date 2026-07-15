@@ -1,4 +1,8 @@
-﻿/*************************************************************               
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.usp_GetPOtoWOSOReport   (source: PAS_DB/dbo/Stored Procedures/Procs2/usp_GetPOtoWOSOReport.sql)
+-- ---------------------------------------------------------------------------------------------------
+/*************************************************************               
  ** File:   [usp_GetPOtoWOSOReport]               
  ** Author:       
  ** Description:         
@@ -13,9 +17,10 @@
  ** PR   Date         Author		Change Description                
  ** --   --------     -------		--------------------------------              
     1  11/05/2024	  Vishal Suthar	Modified to make use of new SO Part tables
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
          
 **************************************************************/ 
-CREATE      PROCEDURE [dbo].[usp_GetPOtoWOSOReport] @status varchar(20),
+CREATE        PROCEDURE [dbo].[usp_GetPOtoWOSOReport] @status varchar(20),
 @vendorname varchar(40) = NULL,
 @fromdate datetime,
 @todate datetime,
@@ -125,7 +130,8 @@ BEGIN
           ON SO.SalesOrderId = SOP.SalesOrderId
         LEFT JOIN DBO.ItemMaster IM2 WITH (NOLOCK)
           ON SOP.ItemMasterId = IM2.ItemMasterId
-        INNER JOIN DBO.ItemMaster IM1 WITH (NOLOCK)
+         AND ISNULL(IM2.IsNonStock,0) = 0
+           INNER JOIN DBO.ItemMaster IM1 WITH (NOLOCK)
           ON WOPN.itemmasterId = IM1.itemmasterid
         LEFT OUTER JOIN DBO.mastercompany MC WITH (NOLOCK)
           ON PO.MasterCompanyId = MC.MasterCompanyId
@@ -139,7 +145,8 @@ BEGIN
         value
       FROM string_split(@status, ','))
       AND PO.MasterCompanyId = @mastercompanyid
-    COMMIT TRANSACTION
+     AND ISNULL(IM1.IsNonStock,0) = 0
+       COMMIT TRANSACTION
   END TRY
   BEGIN CATCH
     ROLLBACK TRANSACTION

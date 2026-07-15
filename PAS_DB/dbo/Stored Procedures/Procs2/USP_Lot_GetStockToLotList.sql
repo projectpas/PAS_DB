@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿-- ===== PROCEDURE: [dbo].[USP_Lot_GetStockToLotList]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs2/USP_Lot_GetStockToLotList.sql) =====
+/*************************************************************           
  ** File:   [USP_Lot_GetStockToLotList]           
  ** Author: Amit Ghediya
  ** Description: This stored procedure is used to Get Stock To Lot Listing 
@@ -16,9 +17,11 @@
 	4    19/02/2025   Ayushi Patel      converted the date into utc (created) , Added a case to get timeZone
 	5    04/Apr/2025  RAJESH GAMI      Add DISTINCT due to duplicate data and Add the Reference Number related change
 	6	 27-MAY-2026  RAJESH GAMI      Added Lot Number & Transfer From Lot Num In Every Type [PN-16572]
+	7    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	8    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 **************************************************************
 **************************************************************/
-CREATE     PROCEDURE [dbo].[USP_Lot_GetStockToLotList] 
+CREATE   PROCEDURE [dbo].[USP_Lot_GetStockToLotList] 
 	@PageNumber int = 1,
 	@PageSize int = 10,
 	@SortColumn varchar(50)=NULL,
@@ -151,7 +154,7 @@ BEGIN
 				LEFT JOIN [dbo].[Vendor] vp WITH (NOLOCK) ON stl.VendorId = vp.VendorId
 				LEFT JOIN [dbo].[Condition] con WITH(NOLOCK) ON stl.ConditionId = con.ConditionId
 				WHERE ISNULL(ind.QtyToTransIn,0) != 0 AND ind.LotId = @LotId AND ISNULL(po.PurchaseOrderId,1) != ISNULL(lt.InitialPOId,0) AND (SELECT ISNULL(IsFromPreCostStk,0) FROM DBO.LotCalculationDetails LC WITH(NOLOCK) WHERE ind.LotTransInOutId = LC.LotTransInOutId AND REPLACE([Type],' ','') = REPLACE('Trans In(Lot)',' ','') ) = 0
-		  		) ,FinalResult AS (
+		  		 AND ISNULL(im.IsNonStock,0) = 0 AND ISNULL(stl.IsNonStock,0) = 0 ) ,FinalResult AS (
 					SELECT * FROM Result
 			WHERE (
 					(@GlobalFilter <>'' AND ((PN like '%' +@GlobalFilter+'%') OR 
@@ -312,7 +315,7 @@ BEGIN
 				LEFT JOIN [dbo].[Vendor] vp WITH (NOLOCK) ON stl.VendorId = vp.VendorId
 				LEFT JOIN [dbo].[Condition] con WITH(NOLOCK) ON stl.ConditionId = con.ConditionId
 				WHERE ISNULL(ind.QtyToTransOut,0) != 0 AND ind.LotId = @LotId AND (SELECT ISNULL(IsFromPreCostStk,0) FROM DBO.LotCalculationDetails LC WITH(NOLOCK) WHERE ind.LotTransInOutId = LC.LotTransInOutId AND REPLACE([Type],' ','') = REPLACE('Trans Out(Lot)',' ','') ) = 0 
-		  		) ,FinalResult AS (
+		  		 AND ISNULL(im.IsNonStock,0) = 0 AND ISNULL(stl.IsNonStock,0) = 0 ) ,FinalResult AS (
 					SELECT * FROM Result
 			WHERE (
 					(@GlobalFilter <>'' AND ((PN like '%' +@GlobalFilter+'%') OR 

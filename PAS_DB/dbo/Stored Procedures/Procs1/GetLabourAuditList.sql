@@ -1,4 +1,8 @@
-﻿/*************************************************************           
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.GetLabourAuditList   (source: PAS_DB/dbo/Stored Procedures/Procs1/GetLabourAuditList.sql)
+-- ---------------------------------------------------------------------------------------------------
+/*************************************************************           
  ** File:   [GetLabourAuditList]           
  ** Author:   Subhash Saliya
  ** Description: Get Search Data for Labour Audit List    
@@ -14,11 +18,12 @@
  ** --   --------     -------		--------------------------------          
     1    09/20/2021   Subhash Saliya Created
 	2    03/04/2025   Ekta Chandegra    Convert date using dbo.ConvertUTCtoLocal
+	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
      
  EXECUTE [GetLabourAuditList] 14
 **************************************************************/ 
 
-CREATE PROCEDURE [dbo].[GetLabourAuditList]
+CREATE   PROCEDURE [dbo].[GetLabourAuditList]
 	@WorkOrderLaborId bigint = null,
 	@EmployeeId bigint
 AS
@@ -105,7 +110,8 @@ BEGIN
 				LEFT JOIN dbo.EmployeeStation emps WITH (NOLOCK) ON emps.EmployeeStationId = wop.TechStationId
 				WHERE wlb.WorkOrderLaborId = @WorkOrderLaborId
 
-				END
+				 AND ISNULL(im.IsNonStock,0) = 0
+				 END
 			COMMIT  TRANSACTION
 		END TRY    
 		BEGIN CATCH      

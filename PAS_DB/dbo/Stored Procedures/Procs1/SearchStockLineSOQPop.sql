@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [SearchStockLineSOQPop]           
  ** Author		:   Vishal Suthar
  ** Description	:	Get Search Data for SOQ, SO  search for from part list tab
@@ -18,6 +18,8 @@
 	2    11-25-2024			Amit Ghediya	Get ECCN,HSCODE,Weight,LWH for billing.
 	3    05-01-2025			ABHISHEK JIRAWLA Allow Repair Management Customer Stock Stockline
 	4    05-30-2025			ABHISHEK JIRAWLA Adding Traceability Changes
+	5    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	6    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
      
  EXEC [dbo].[SearchStockLineSOQPop] '2', 33, 10,-1,NULL
 **************************************************************/ 
@@ -126,7 +128,8 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 			JOIN DBO.StockLine sl WITH(NOLOCK) ON im.ItemMasterId = sl.ItemMasterId 
 				AND sl.isActive = 1 AND sl.IsDeleted = 0 
 				AND sl.ConditionId = CASE WHEN @ConditionId  IS NOT NULL 
-										THEN @ConditionId ELSE sl.ConditionId 
+										THEN @ConditionId
+ELSE sl.ConditionId 
 										END
 			LEFT JOIN DBO.Condition c WITH(NOLOCK) ON c.ConditionId = sl.ConditionId
 			LEFT JOIN DBO.PurchaseOrder po WITH(NOLOCK) ON po.PurchaseOrderId = sl.PurchaseOrderId 
@@ -160,7 +163,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 				AND ISNULL(sl.QuantityAvailable, 0) > 0 
 				--AND (sl.IsCustomerStock = 0) --OR (sl.IsCustomerStock = 1 AND sl.CustomerId = @CustomerId))
 				AND ((sl.IsRepairManagement = 1) OR ((sl.IsRepairManagement = 0 OR sl.IsRepairManagement IS NULL) AND sl.IsCustomerStock = 0))
-				AND sl.IsParent = 1
+				AND sl.IsParent = 1 AND ISNULL(sl.IsNonStock,0) = 0
 			
 			UNION
 
@@ -250,7 +253,8 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 			JOIN DBO.StockLine sl WITH(NOLOCK) ON im.ItemMasterId = sl.ItemMasterId 
 				AND sl.isActive = 1 AND sl.IsDeleted = 0 
 				AND sl.ConditionId = CASE WHEN @ConditionId  IS NOT NULL 
-										THEN @ConditionId ELSE sl.ConditionId 
+										THEN @ConditionId
+ELSE sl.ConditionId 
 										END
 			LEFT JOIN DBO.Condition c WITH(NOLOCK) ON c.ConditionId = sl.ConditionId
 			LEFT JOIN DBO.PurchaseOrder po WITH(NOLOCK) ON po.PurchaseOrderId = sl.PurchaseOrderId 
@@ -279,7 +283,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 			LEFT JOIN DBO.LotSetupMaster lsm WITH(NOLOCK) ON sl.LotId = lsm.LotId
 			LEFT JOIN DBO.[Percent] per WITH(NOLOCK) ON lsm.MarginPercentageId = per.PercentId
 			LEFT JOIN DBO.ItemMasterExportInfo ime WITH (NOLOCK) ON im.ItemMasterId = ime.ItemMasterId
-			WHERE SL.StockLineId IN (SELECT Item FROM DBO.SPLITSTRING(@StocklineIdlist,','))
+			WHERE SL.StockLineId IN (SELECT Item FROM DBO.SPLITSTRING(@StocklineIdlist,',')) AND ISNULL(sl.IsNonStock,0) = 0
 		END
 		COMMIT  TRANSACTION
 

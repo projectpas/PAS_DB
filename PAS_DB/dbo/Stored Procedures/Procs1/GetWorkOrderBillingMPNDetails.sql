@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:  [GetWorkOrderBillingMPNDetails]           
  ** Author:  Moin Bloch
  ** Description: This stored procedure is used to Get Work Order Part Details     
@@ -11,6 +11,8 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    01/05/2025   Moin Bloch    Created
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	3    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
      
 --  EXEC [dbo].[GetWorkOrderBillingMPNDetails] 8809,0,'',15
 --  EXEC [dbo].[GetWorkOrderBillingMPNDetails] 8800,0,'',15
@@ -137,7 +139,8 @@ BEGIN
 					WHERE wop.[WorkOrderId] = @ReferenceId AND wop.[ID] = @ID
 
 				-- Calculate parts cost (Materials)
-				SELECT @PartsCost = ISNULL(SUM(ISNULL(WOMS.[UnitCost],0) * ISNULL(WOMS.[QtyIssued],0)), 0)
+				 AND ISNULL(im.IsNonStock,0) = 0 AND ISNULL(sl.IsNonStock,0) = 0
+				 SELECT @PartsCost = ISNULL(SUM(ISNULL(WOMS.[UnitCost],0) * ISNULL(WOMS.[QtyIssued],0)), 0)
 				FROM [dbo].[WorkOrderMaterials] WOM WITH(NOLOCK)
 				JOIN [dbo].[WorkOrderMaterialStockLine] WOMS WITH(NOLOCK) ON WOM.[WorkOrderMaterialsId] = WOMS.[WorkOrderMaterialsId]
 				WHERE WOM.[WorkFlowWorkOrderId] = @WorkFlowWorkOrderId AND WOM.[IsDeleted] = 0;

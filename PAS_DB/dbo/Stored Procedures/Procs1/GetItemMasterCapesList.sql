@@ -1,4 +1,8 @@
-﻿/***************************************************************  
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.GetItemMasterCapesList   (source: PAS_DB/dbo/Stored Procedures/Procs1/GetItemMasterCapesList.sql)
+-- ---------------------------------------------------------------------------------------------------
+/***************************************************************  
  ** File:   [GetItemMasterCapesList]             
  ** Author:  
  ** Description: This stored procedure is used to Get ItemMasterCapesList 
@@ -7,8 +11,15 @@
 	2.   28/05/2024   Amit Ghediya     Update for get Item Details from Item Master table.
 	3    17 July 2024   Shrey Chandegara       Modified( use this function @CurrntEmpTimeZoneDesc for date issue.)
 	3    30/01/2025   Ayushi Patel      converted the date into utc (created , updated, verified) , Added a case to get timeZone
+	1    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 **************************************************************/
-CREATE     PROCEDURE [dbo].[GetItemMasterCapesList]
+/***************************************************************************************************************************************
+  ** Change History
+ ***************************************************************************************************************************************
+ ** PR   Date						 Author							Change Description
+ ** --   --------					 -------						-------------------------------
+****************************************************************************************************************************************/
+CREATE       PROCEDURE [dbo].[GetItemMasterCapesList]
 @PageNumber int = NULL,
 @PageSize int = NULL,
 @SortColumn varchar(50)=NULL,
@@ -126,7 +137,7 @@ BEGIN
 				--AND (@VerifiedBy IS NULL OR imc.VerifiedBy IN (@VerifiedBy)))
 				  AND imc.MasterCompanyId=@MasterCompanyId	AND EUR.EmployeeId = @EmployeeId
 				
-				), ResultCount AS(SELECT COUNT(ItemMasterCapesId) AS totalItems FROM Result)
+				 AND ISNULL(im.IsNonStock,0) = 0 ), ResultCount AS(SELECT COUNT(ItemMasterCapesId) AS totalItems FROM Result)
 
 				SELECT * INTO #TempResult FROM  Result
 				WHERE ((@GlobalFilter <>'' AND ((capabilityType LIKE '%' +@GlobalFilter+'%') OR

@@ -1,4 +1,8 @@
 ﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.USP_GetPartsEmailContentByWoQuoteId   (source: PAS_DB/dbo/Stored Procedures/Procs2/USP_GetPartsEmailContentByWoQuoteId.sql)
+-- ---------------------------------------------------------------------------------------------------
+
 /*************************************************************           
  ** File:   [USP_GetPartsEmailContentByWoQuoteId]           
  ** Author: Rajesh Gami
@@ -12,10 +16,11 @@
  ** PR   Date         Author  		Change Description            
  ** --   --------     -------		---------------------------     
     1   04 Apr 2025  Rajesh Gami     Created
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 **************************************************************
 EXEC USP_GetPartsEmailContentByWoQuoteId 6610
 **************************************************************/
-CREATE     PROCEDURE [dbo].[USP_GetPartsEmailContentByWoQuoteId] 
+CREATE       PROCEDURE [dbo].[USP_GetPartsEmailContentByWoQuoteId] 
 @WorkOrderQuoteId bigint =0
 AS
 BEGIN
@@ -48,7 +53,7 @@ BEGIN
 		INNER JOIN dbo.ItemMaster im WITH (NOLOCK) ON wop.ItemMasterId = im.ItemMasterId
 		INNER JOIN dbo.Customer cust WITH (NOLOCK) ON woq.CustomerId = cust.CustomerId
 		WHERE ISNULL(woq.IsDeleted, 0) = 0
-		  AND wapp.WorkOrderQuoteId = @WorkOrderQuoteId ;
+		  AND wapp.WorkOrderQuoteId = @WorkOrderQuoteId  AND ISNULL(im.IsNonStock,0) = 0 ;
 
 		-- Quote Materials
 		SELECT 
@@ -68,7 +73,7 @@ BEGIN
 		INNER JOIN dbo.WorkOrderQuoteMaterial wqm WITH (NOLOCK) ON wqd.WorkOrderQuoteDetailsId = wqm.WorkOrderQuoteDetailsId
 		INNER JOIN dbo.ItemMaster im WITH (NOLOCK) ON wqm.ItemMasterId = im.ItemMasterId
 		WHERE ISNULL(wqm.IsDeleted, 0) = 0
-		AND wapp.WorkOrderQuoteId = @WorkOrderQuoteId;
+		AND wapp.WorkOrderQuoteId = @WorkOrderQuoteId AND ISNULL(im.IsNonStock,0) = 0 ;
 
 	END
 	COMMIT  TRANSACTION

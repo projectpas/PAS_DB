@@ -1,4 +1,8 @@
-﻿/*************************************************************           
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.SalesOrderSummarizedHistoryByPN   (source: PAS_DB/dbo/Stored Procedures/Procs1/SalesOrderSummarizedHistoryByPN.sql)
+-- ---------------------------------------------------------------------------------------------------
+/*************************************************************           
  ** File:   [SalesOrderSummarizedHistoryByPN]           
  ** Author:   Vishal Suthar
  ** Description: This stored procedure is used for SO Summarized History By PN.    
@@ -16,10 +20,11 @@
  ** --   --------     -------		--------------------------------          
     1    07/13/2021   Vishal Suthar Created
     2	 11/04/2024	  Vishal Suthar	Modified to make use of new SO Part tables
+	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 
 --EXEC [SalesOrderSummarizedHistoryByPN] 246,0
 **************************************************************/
-CREATE      PROCEDURE [dbo].[SalesOrderSummarizedHistoryByPN]
+CREATE        PROCEDURE [dbo].[SalesOrderSummarizedHistoryByPN]
 @ItemMasterId BIGINT=3,
 @IsTwelveMonth BIT = 1
 AS
@@ -58,7 +63,7 @@ BEGIN
 						LEFT JOIN dbo.SalesOrderCharges Charges WITH (NOLOCK) ON Charges.SalesOrderId = SO.SalesOrderId AND Charges.ItemMasterId = SOP.ItemMasterId
 						LEFT JOIN dbo.CustomerFinancial CF WITH (NOLOCK) ON CF.CustomerId = SO.CustomerId
 						LEFT JOIN dbo.Currency C WITH (NOLOCK) ON C.CurrencyId = CF.CurrencyId
-					WHERE SOP.ItemMasterId = @ItemMasterId AND DATEDIFF(MM, SO.OpenDate, GETDATE()) < @Month)
+					WHERE SOP.ItemMasterId = @ItemMasterId AND DATEDIFF(MM, SO.OpenDate, GETDATE()) < @Month AND ISNULL(IM.IsNonStock,0) = 0 )
 
 					SELECT PartNumber,PartDescription,ItemMasterId, Condition, CurrencyName, SUM(Revenue) AS Revenue,(SUM(ISNULL(Revenue,0))) / COUNT(ConditionId) AS AvgRevenue,
 					--SUM(DirectCost) AS DirectCost,

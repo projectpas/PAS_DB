@@ -1,6 +1,14 @@
-﻿/*************************************************************           
+/*************************************************************           
 --EXEC GetExchangeSOCoreMonitoringList 10075
 ************************************************************************/
+/***************************************************************************************************************************************
+  ** Change History
+ ***************************************************************************************************************************************
+ ** PR   Date						 Author							Change Description
+ ** --   --------					 -------						-------------------------------
+	1    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	2    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+****************************************************************************************************************************************/
 CREATE   PROCEDURE [dbo].[GetExchangeSOCoreMonitoringList]
 @ExchangeSalesOrderId bigint
 AS
@@ -15,11 +23,13 @@ BEGIN
 		INNER JOIN DBO.ExchangeSalesOrderPart EXCHSOP ON EXCHSO.ExchangeSalesOrderId = EXCHSOP.ExchangeSalesOrderId
 		LEFT JOIN DBO.ReceivingCustomerWork RCT ON EXCHSO.ExchangeSalesOrderId = RCT.ExchangeSalesOrderId
 		LEFT JOIN DBO.ItemMaster IM ON EXCHSOP.ItemMasterId = IM.ItemMasterId
-		LEFT JOIN ItemMasterExchangeLoan IMEXCH ON IM.ItemMasterId = IMEXCH.ItemMasterId
-		LEFT JOIN Stockline ST ON RCT.StockLineId = ST.StockLineId
+		 AND ISNULL(IM.IsNonStock,0) = 0
+		 LEFT JOIN ItemMasterExchangeLoan IMEXCH ON IM.ItemMasterId = IMEXCH.ItemMasterId
+		LEFT JOIN Stockline ST ON RCT.StockLineId = ST.StockLineId AND ISNULL(ST.IsNonStock,0) = 0
 		LEFT JOIN Manufacturer MN ON IM.ManufacturerId = MN.ManufacturerId
 		LEFT JOIN ItemMaster ITM ON Im.ItemMasterId = RCT.RevisePartId
-		WHERE EXCHSO.ExchangeSalesOrderId = @ExchangeSalesOrderId;
+		 AND ISNULL(ITM.IsNonStock,0) = 0
+		 WHERE EXCHSO.ExchangeSalesOrderId = @ExchangeSalesOrderId;
 		
 		Select EXCHCMD.LetterTypeId,EXCHCT.[Name],EXCHCMD.ExchangeSalesOrderId,EXCHCMD.LetterSentDate,EXCHSOP.ExchangeSalesOrderPartId,EXCHCMD.ExchangeCoreMonitoringDetailsId From DBO.ExchangeCoreMonitoringDetails EXCHCMD
 		INNER JOIN DBO.ExchangeCoreLetterType EXCHCT ON EXCHCMD.LetterTypeId = EXCHCT.ExchangeCoreLetterTypeId

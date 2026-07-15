@@ -1,4 +1,8 @@
 ﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.AutoCompleteDropdownsROByItemMaster   (source: PAS_DB/dbo/Stored Procedures/Procs1/AutoCompleteDropdownsROByItemMaster.sql)
+-- ---------------------------------------------------------------------------------------------------
+
 
 /*************************************************************           
  ** File:   [AutoCompleteDropdownsAsset]           
@@ -18,11 +22,12 @@
  ** --   --------     -------		--------------------------------          
     1    12/29/2020   Subhash Saliya Created
 	2    06/19/2026  Abhishek Jirawla  Adding IsPiecePart condition in RepairOrderPart table 
+	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
      
 --EXEC [AutoCompleteDropdownsAsset] '',1,200,'108,109,11'
 **************************************************************/
 
-CREATE PROCEDURE [dbo].[AutoCompleteDropdownsROByItemMaster]
+CREATE   PROCEDURE [dbo].[AutoCompleteDropdownsROByItemMaster]
 @StartWith VARCHAR(50),
 @Count VARCHAR(10) = '0',
 @Idlist VARCHAR(max) = '0',
@@ -49,7 +54,8 @@ BEGIN
 					 JOIN dbo.ItemMaster im WITH(NOLOCK) ON im.ItemMasterId = rop.ItemMasterId
 					WHERE (ro.IsActive = 1 AND ISNULL(ro.IsDeleted,0) = 0 AND (im.ItemMasterId = @itemmasterid)
 						AND (ro.RepairOrderNumber LIKE @StartWith + '%') )
-		UNION     
+		 AND ISNULL(im.IsNonStock,0) = 0
+						 UNION     
 		SELECT DISTINCT  
 			             ro.RepairOrderId as value,
                          ro.RepairOrderNumber as label
@@ -57,7 +63,8 @@ BEGIN
                     JOIN dbo.RepairOrderPart rop WITH(NOLOCK) ON ro.RepairOrderId = rop.RepairOrderId and rop.ItemTypeId=1 AND ISNULL(ROP.[IsPiecePart], 0) = 0
 					JOIN dbo.ItemMaster im WITH(NOLOCK) ON im.ItemMasterId = rop.ItemMasterId
 					WHERE ro.RepairOrderId IN (SELECT Item FROM DBO.SPLITSTRING(@Idlist, ','))    
-				ORDER BY RepairOrderNumber
+				 AND ISNULL(im.IsNonStock,0) = 0
+					 ORDER BY RepairOrderNumber
 
 	END TRY 
 	BEGIN CATCH 

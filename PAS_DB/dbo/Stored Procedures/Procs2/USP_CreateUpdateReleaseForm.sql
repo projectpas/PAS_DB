@@ -1,4 +1,8 @@
-﻿/*************************************************************           
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.USP_CreateUpdateReleaseForm   (source: PAS_DB/dbo/Stored Procedures/Procs2/USP_CreateUpdateReleaseForm.sql)
+-- ---------------------------------------------------------------------------------------------------
+/*************************************************************           
  ** File:   [USP_CreateUpdateReleaseForm]
  ** Author:   Moin Bloch
  ** Description: This stored procedure is used to Create And Update Work Order Release Form 8130
@@ -13,10 +17,11 @@
  ** --   --------     -------		--------------------------------          
 	1    09/10/2025   Moin Bloch       Created
 	2    14/10/2025   Moin Bloch       Update For New Version
+	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 
 --   EXEC [dbo].[USP_CreateUpdateReleaseForm]
 **************************************************************/
-CREATE   PROCEDURE [dbo].[USP_CreateUpdateReleaseForm]
+CREATE     PROCEDURE [dbo].[USP_CreateUpdateReleaseForm]
 @ReleaseFromId BIGINT = NULL,
 @WorkorderId BIGINT = NULL,
 @workOrderPartNoId BIGINT = NULL,
@@ -269,7 +274,7 @@ BEGIN
 		SELECT @WorkOrderModuleID = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName]='WorkOrder';
 		SELECT @WorkOrderMPNModuleID = [ModuleId] FROM [dbo].[Module] WITH(NOLOCK) WHERE [ModuleName]='WorkOrderMPN';		
 
-		SELECT @MPNPartNumber = im.[PartNumber] FROM [dbo].[ItemMaster] im WITH(NOLOCK) INNER JOIN [dbo].[WorkOrderPartNumber] wopn WITH(NOLOCK) ON im.[ItemMasterId] = wopn.[ItemMasterId] WHERE wopn.[ID] = @workOrderPartNoId;
+		SELECT @MPNPartNumber = im.[PartNumber] FROM [dbo].[ItemMaster] im WITH(NOLOCK) INNER JOIN [dbo].[WorkOrderPartNumber] wopn WITH(NOLOCK) ON im.[ItemMasterId] = wopn.[ItemMasterId] WHERE wopn.[ID] = @workOrderPartNoId AND ISNULL(im.IsNonStock,0) = 0 ;
 		
 		IF(@firstTimeReleaseFromId > 0)
 		BEGIN

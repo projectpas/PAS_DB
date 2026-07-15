@@ -9,6 +9,7 @@
 	4    21/12/2023		 Moin Bloch  		Added ReferenceNumber
 	5	 19/12/2024		 Abhishek Jirawla	Switching between Po view and PN view
 	6    19/06/2026		 Abhishek Jirawla	Adding IsPiecePart condition in RepairOrderPart table 
+	7    09/July/2026		 RAJESH GAMI	[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	
 	EXEC GetReceivingReconciliationPopupData 1,10,NULL,-1,'',NULL,NULL,NULL,NULL,1,59
 **************************************************************/ 
@@ -104,7 +105,7 @@ BEGIN
 									  AND pop.isParent = 1
 								) AS partData
 							WHERE po.VendorId=@VendorId AND pop.ItemTypeId = @StockTypeId AND po.MasterCompanyId = @MasterCompanyId
-							AND ISNULL((SELECT COUNT(POS.PurchaseOrderPartRecordId) from dbo.PurchaseOrderPart POS  WITH(NOLOCK) WHERE POS.ParentId =stk.PurchaseOrderPartRecordId ),0) = 0
+							AND ISNULL((SELECT COUNT(POS.PurchaseOrderPartRecordId) from dbo.PurchaseOrderPart POS  WITH(NOLOCK) WHERE POS.ParentId =stk.PurchaseOrderPartRecordId ),0) = 0 AND ISNULL(stk.IsNonStock,0) = 0
 							GROUP BY po.[PurchaseOrderId],
 								po.[PurchaseOrderNumber],
 								po.[CreatedDate],
@@ -136,7 +137,7 @@ BEGIN
 									WHERE pop.PurchaseOrderId = po.PurchaseOrderId 
 									  AND pop.isParent = 1
 								) AS partData
-							WHERE po.VendorId=@VendorId AND pop.ItemTypeId = @StockTypeId AND po.MasterCompanyId = @MasterCompanyId
+							WHERE po.VendorId=@VendorId AND pop.ItemTypeId = @StockTypeId AND po.MasterCompanyId = @MasterCompanyId AND ISNULL(stk.IsNonStock,0) = 0
 							GROUP BY po.[PurchaseOrderId],
 								po.[PurchaseOrderNumber],
 								po.[CreatedDate],
@@ -232,7 +233,7 @@ BEGIN
 									WHERE pop.RepairOrderId = po.RepairOrderId 
 									  AND pop.isParent = 1 AND ISNULL(POP.[IsPiecePart], 0) = 0
 								) AS partData
-							WHERE po.VendorId=@VendorId AND POP.ItemTypeId = @StockTypeId AND po.MasterCompanyId = @MasterCompanyId
+							WHERE po.VendorId=@VendorId AND POP.ItemTypeId = @StockTypeId AND po.MasterCompanyId = @MasterCompanyId AND ISNULL(stk.IsNonStock,0) = 0
 							GROUP BY po.[RepairOrderId],
 								po.[RepairOrderNumber],
 								po.[CreatedDate],
@@ -326,7 +327,7 @@ BEGIN
 				INNER JOIN [dbo].[Stockline] stk WITH(NOLOCK) ON po.PurchaseOrderId = stk.PurchaseOrderId  AND stk.IsParent=1 AND stk.RRQty > 0 --AND (pop.PurchaseOrderPartRecordId = stk.PurchaseOrderPartRecordId)
 				WHERE po.VendorId=@VendorId AND pop.ItemTypeId = @StockTypeId AND po.MasterCompanyId = @MasterCompanyId
 				AND ISNULL((SELECT COUNT(POS.PurchaseOrderPartRecordId) from dbo.PurchaseOrderPart POS  WITH(NOLOCK) 
-				WHERE POS.ParentId =stk.PurchaseOrderPartRecordId ),0) = 0
+				WHERE POS.ParentId =stk.PurchaseOrderPartRecordId ),0) = 0 AND ISNULL(stk.IsNonStock,0) = 0
 		
 				UNION
 
@@ -341,7 +342,7 @@ BEGIN
 						   FROM [dbo].[PurchaseOrder] po WITH(NOLOCK)
 				INNER JOIN [dbo].[PurchaseOrderPart] pop WITH(NOLOCK) ON po.PurchaseOrderId = pop.PurchaseOrderId --AND pop.ItemType='Stock'
 				INNER JOIN [dbo].[Stockline] stk WITH(NOLOCK) ON po.PurchaseOrderId = stk.PurchaseOrderId AND (pop.ParentId = stk.PurchaseOrderPartRecordId) and stk.IsParent=1 AND stk.RRQty > 0
-				WHERE po.VendorId=@VendorId AND pop.ItemTypeId = @StockTypeId AND po.MasterCompanyId = @MasterCompanyId
+				WHERE po.VendorId=@VendorId AND pop.ItemTypeId = @StockTypeId AND po.MasterCompanyId = @MasterCompanyId AND ISNULL(stk.IsNonStock,0) = 0
 		
 				UNION
 		
@@ -386,7 +387,7 @@ BEGIN
 						   FROM [dbo].[RepairOrder] po WITH(NOLOCK)
 				INNER JOIN [dbo].[RepairOrderPart] pop WITH(NOLOCK) ON po.RepairOrderId = pop.RepairOrderId AND pop.isParent=1 AND ISNULL(POP.[IsPiecePart], 0) = 0 --AND pop.ItemType='Stock'
 				INNER JOIN [dbo].[Stockline] stk WITH(NOLOCK) ON po.RepairOrderId = stk.RepairOrderId and stk.IsParent=1 AND stk.RRQty > 0 -- AND pop.RepairOrderPartRecordId = stk.RepairOrderPartRecordId
-				WHERE po.VendorId=@VendorId AND POP.ItemTypeId = @StockTypeId AND po.MasterCompanyId = @MasterCompanyId
+				WHERE po.VendorId=@VendorId AND POP.ItemTypeId = @StockTypeId AND po.MasterCompanyId = @MasterCompanyId AND ISNULL(stk.IsNonStock,0) = 0
 		
 				UNION
 

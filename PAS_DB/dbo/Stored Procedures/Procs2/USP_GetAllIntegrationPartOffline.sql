@@ -1,4 +1,8 @@
-﻿/*************************************************************           
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.USP_GetAllIntegrationPartOffline   (source: PAS_DB/dbo/Stored Procedures/Procs2/USP_GetAllIntegrationPartOffline.sql)
+-- ---------------------------------------------------------------------------------------------------
+/*************************************************************           
  ** File:   [USP_GetAllIntegrationPartOffline]           
  ** Author:  Rajesh Gami
  ** Description: This stored procedure is used to add update integration part like ILS,145 etc...
@@ -15,9 +19,10 @@
 	2    23-07-2025  Amit Ghediya   MOdify for get RFQ part is in our inventory or not (ItemMasterId)
 	3    23-07-2025  Devendra Shekh	Modify to get customerId and address Details
 	4	 25-12-2025  Amit Ghediya	Get part details from PartsBase
+	5    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
      
 ************************************************************************/
-CREATE   PROCEDURE [dbo].[USP_GetAllIntegrationPartOffline]
+CREATE     PROCEDURE [dbo].[USP_GetAllIntegrationPartOffline]
 	@PartNumber varchar(200),
 	@IntegrationPortalId int = NULL,	
 	@ConditionIds varchar(max) = NULL,
@@ -83,7 +88,8 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 						FROM DBO.IntegrationMaster IM WITH (NOLOCK) 
 						INNER JOIN [dbo].[OneFourtyFiveChildPartDetail] OFC WITH (NOLOCK) ON IM.IntegrationMasterId = OFC.IntegrationMasterId
 						LEFT JOIN dbo.ItemMaster IMS WITH(NOLOCK) ON IM.[PartNumber] = IMS.[partnumber] AND IMS.[IsActive] = 1 AND IMS.[IsDeleted] = 0 AND IM.[MasterCompanyId] = IMS.[MasterCompanyId]
-						LEFT JOIN [dbo].[Customer] CU WITH(NOLOCK) ON IM.RepairStation = CU.[Name] AND IM.MasterCompanyId = CU.MasterCompanyId AND CU.[IsActive] = 1 AND CU.[IsDeleted] = 0
+						 AND ISNULL(IMS.IsNonStock,0) = 0
+						 LEFT JOIN [dbo].[Customer] CU WITH(NOLOCK) ON IM.RepairStation = CU.[Name] AND IM.MasterCompanyId = CU.MasterCompanyId AND CU.[IsActive] = 1 AND CU.[IsDeleted] = 0
 						WHERE (@PartNumber IS NULL OR IM.PartNumber = @PartNumber) AND IM.IntegrationPortalId = @IntegrationPortalId AND Im.MasterCompanyId = @MasterCompanyId
 
 				END   /**** End:  145 Integration ******/
@@ -119,8 +125,10 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 						FROM DBO.IntegrationMaster IM WITH (NOLOCK) 
 						INNER JOIN [dbo].[ILSChildPartDetail] ILS WITH (NOLOCK) ON IM.IntegrationMasterId = ILS.IntegrationMasterId
 						LEFT JOIN dbo.ItemMaster IMS WITH(NOLOCK) ON IM.[PartNumber] = IMS.[partnumber] AND IMS.[IsActive] = 1 AND IMS.[IsDeleted] = 0 AND IM.[MasterCompanyId] = IMS.[MasterCompanyId]
-						LEFT JOIN dbo.ItemMaster IMSC WITH(NOLOCK) ON ILS.[AltPartNumber] = IMSC.[partnumber] AND IMSC.[IsActive] = 1 AND IMSC.[IsDeleted] = 0 AND ILS.[MasterCompanyId] = IMSC.[MasterCompanyId]
-						LEFT JOIN [dbo].[Customer] CU WITH(NOLOCK) ON IM.RepairStation = CU.[Name] AND IM.MasterCompanyId = CU.MasterCompanyId AND CU.[IsActive] = 1 AND CU.[IsDeleted] = 0
+						 AND ISNULL(IMS.IsNonStock,0) = 0
+						 LEFT JOIN dbo.ItemMaster IMSC WITH(NOLOCK) ON ILS.[AltPartNumber] = IMSC.[partnumber] AND IMSC.[IsActive] = 1 AND IMSC.[IsDeleted] = 0 AND ILS.[MasterCompanyId] = IMSC.[MasterCompanyId]
+						 AND ISNULL(IMSC.IsNonStock,0) = 0
+						  LEFT JOIN [dbo].[Customer] CU WITH(NOLOCK) ON IM.RepairStation = CU.[Name] AND IM.MasterCompanyId = CU.MasterCompanyId AND CU.[IsActive] = 1 AND CU.[IsDeleted] = 0
 						WHERE (@PartNumber IS NULL OR IM.PartNumber = @PartNumber) AND IM.IntegrationPortalId = @IntegrationPortalId AND Im.MasterCompanyId = @MasterCompanyId AND (@ConditionIds IS NULL OR ILS.Condition IN(SELECT * FROM STRING_SPLIT(@ConditionIds , ',')))
 				END  /**** END:  ILS Integration ******/
 				ELSE IF(UPPER(@PortalType) = UPPER(@PartsBaseName)) /**** Start:  PartsBase Integration ******/
@@ -155,8 +163,10 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 						FROM DBO.IntegrationMaster IM WITH (NOLOCK) 
 						INNER JOIN [dbo].[PartsBaseChildPartDetail] ILS WITH (NOLOCK) ON IM.IntegrationMasterId = ILS.IntegrationMasterId
 						LEFT JOIN dbo.ItemMaster IMS WITH(NOLOCK) ON IM.[PartNumber] = IMS.[partnumber] AND IMS.[IsActive] = 1 AND IMS.[IsDeleted] = 0 AND IM.[MasterCompanyId] = IMS.[MasterCompanyId]
-						LEFT JOIN dbo.ItemMaster IMSC WITH(NOLOCK) ON ILS.[PartNumber] = IMSC.[partnumber] AND IMSC.[IsActive] = 1 AND IMSC.[IsDeleted] = 0 AND ILS.[MasterCompanyId] = IMSC.[MasterCompanyId]
-						LEFT JOIN [dbo].[Customer] CU WITH(NOLOCK) ON IM.RepairStation = CU.[Name] AND IM.MasterCompanyId = CU.MasterCompanyId AND CU.[IsActive] = 1 AND CU.[IsDeleted] = 0
+						 AND ISNULL(IMS.IsNonStock,0) = 0
+						 LEFT JOIN dbo.ItemMaster IMSC WITH(NOLOCK) ON ILS.[PartNumber] = IMSC.[partnumber] AND IMSC.[IsActive] = 1 AND IMSC.[IsDeleted] = 0 AND ILS.[MasterCompanyId] = IMSC.[MasterCompanyId]
+						 AND ISNULL(IMSC.IsNonStock,0) = 0
+						  LEFT JOIN [dbo].[Customer] CU WITH(NOLOCK) ON IM.RepairStation = CU.[Name] AND IM.MasterCompanyId = CU.MasterCompanyId AND CU.[IsActive] = 1 AND CU.[IsDeleted] = 0
 						WHERE (@PartNumber IS NULL OR IM.PartNumber = @PartNumber) AND IM.IntegrationPortalId = @IntegrationPortalId AND Im.MasterCompanyId = @MasterCompanyId 
 				END  /**** END:  PartsBase Integration ******/
 			END /***** End: @IsAll = 0 ******/
@@ -208,7 +218,8 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 						FROM DBO.IntegrationMaster IM WITH (NOLOCK) 
 						INNER JOIN [dbo].[OneFourtyFiveChildPartDetail] OFC WITH (NOLOCK) ON IM.IntegrationMasterId = OFC.IntegrationMasterId
 						LEFT JOIN dbo.ItemMaster IMS WITH(NOLOCK) ON IM.[PartNumber] = IMS.[partnumber] AND IMS.[IsActive] = 1 AND IMS.[IsDeleted] = 0 AND IM.[MasterCompanyId] = IMS.[MasterCompanyId]
-						LEFT JOIN [dbo].[Customer] CU WITH(NOLOCK) ON IM.RepairStation = CU.[Name] AND IM.MasterCompanyId = CU.MasterCompanyId AND CU.[IsActive] = 1 AND CU.[IsDeleted] = 0
+						 AND ISNULL(IMS.IsNonStock,0) = 0
+						 LEFT JOIN [dbo].[Customer] CU WITH(NOLOCK) ON IM.RepairStation = CU.[Name] AND IM.MasterCompanyId = CU.MasterCompanyId AND CU.[IsActive] = 1 AND CU.[IsDeleted] = 0
 						WHERE (@PartNumber IS NULL OR IM.PartNumber = @PartNumber) AND IM.IntegrationPortalId = @OneFourtyIntegrationPortalId AND Im.MasterCompanyId = @MasterCompanyId
 					
 					UNION ALL
@@ -255,8 +266,10 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 						FROM DBO.IntegrationMaster IM WITH (NOLOCK) 
 						INNER JOIN [dbo].[ILSChildPartDetail] ILS WITH (NOLOCK) ON IM.IntegrationMasterId = ILS.IntegrationMasterId
 						LEFT JOIN dbo.ItemMaster IMS WITH(NOLOCK) ON IM.[PartNumber] = IMS.[partnumber] AND IMS.[IsActive] = 1 AND IMS.[IsDeleted] = 0 AND IM.[MasterCompanyId] = IMS.[MasterCompanyId]
-						LEFT JOIN dbo.ItemMaster IMSC WITH(NOLOCK) ON ILS.[AltPartNumber] = IMSC.[partnumber] AND IMSC.[IsActive] = 1 AND IMSC.[IsDeleted] = 0 AND ILS.[MasterCompanyId] = IMSC.[MasterCompanyId]
-						LEFT JOIN [dbo].[Customer] CU WITH(NOLOCK) ON IM.RepairStation = CU.[Name] AND IM.MasterCompanyId = CU.MasterCompanyId AND CU.[IsActive] = 1 AND CU.[IsDeleted] = 0
+						 AND ISNULL(IMS.IsNonStock,0) = 0
+						 LEFT JOIN dbo.ItemMaster IMSC WITH(NOLOCK) ON ILS.[AltPartNumber] = IMSC.[partnumber] AND IMSC.[IsActive] = 1 AND IMSC.[IsDeleted] = 0 AND ILS.[MasterCompanyId] = IMSC.[MasterCompanyId]
+						 AND ISNULL(IMSC.IsNonStock,0) = 0
+						  LEFT JOIN [dbo].[Customer] CU WITH(NOLOCK) ON IM.RepairStation = CU.[Name] AND IM.MasterCompanyId = CU.MasterCompanyId AND CU.[IsActive] = 1 AND CU.[IsDeleted] = 0
 						WHERE (@PartNumber IS NULL OR IM.PartNumber = @PartNumber) AND IM.IntegrationPortalId = @IlsIntegrationPortalId AND Im.MasterCompanyId = @MasterCompanyId AND (@ConditionIds IS NULL OR ILS.Condition IN(SELECT * FROM STRING_SPLIT(@ConditionIds , ',')))
 
 						UNION ALL
@@ -303,8 +316,10 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 						FROM DBO.IntegrationMaster IM WITH (NOLOCK) 
 						INNER JOIN [dbo].[PartsBaseChildPartDetail] ILS WITH (NOLOCK) ON IM.IntegrationMasterId = ILS.IntegrationMasterId
 						LEFT JOIN dbo.ItemMaster IMS WITH(NOLOCK) ON IM.[PartNumber] = IMS.[partnumber] AND IMS.[IsActive] = 1 AND IMS.[IsDeleted] = 0 AND IM.[MasterCompanyId] = IMS.[MasterCompanyId]
-						LEFT JOIN dbo.ItemMaster IMSC WITH(NOLOCK) ON ILS.[PartNumber] = IMSC.[partnumber] AND IMSC.[IsActive] = 1 AND IMSC.[IsDeleted] = 0 AND ILS.[MasterCompanyId] = IMSC.[MasterCompanyId]
-						LEFT JOIN [dbo].[Customer] CU WITH(NOLOCK) ON IM.RepairStation = CU.[Name] AND IM.MasterCompanyId = CU.MasterCompanyId AND CU.[IsActive] = 1 AND CU.[IsDeleted] = 0
+						 AND ISNULL(IMS.IsNonStock,0) = 0
+						 LEFT JOIN dbo.ItemMaster IMSC WITH(NOLOCK) ON ILS.[PartNumber] = IMSC.[partnumber] AND IMSC.[IsActive] = 1 AND IMSC.[IsDeleted] = 0 AND ILS.[MasterCompanyId] = IMSC.[MasterCompanyId]
+						 AND ISNULL(IMSC.IsNonStock,0) = 0
+						  LEFT JOIN [dbo].[Customer] CU WITH(NOLOCK) ON IM.RepairStation = CU.[Name] AND IM.MasterCompanyId = CU.MasterCompanyId AND CU.[IsActive] = 1 AND CU.[IsDeleted] = 0
 						WHERE (@PartNumber IS NULL OR IM.PartNumber = @PartNumber) 
 						--AND IM.IntegrationPortalId = @IntegrationPortalId
 						AND Im.MasterCompanyId = @MasterCompanyId 

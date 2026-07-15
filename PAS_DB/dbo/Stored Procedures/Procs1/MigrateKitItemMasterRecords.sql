@@ -1,4 +1,8 @@
-﻿/*************************************************************             
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.MigrateKitItemMasterRecords   (source: PAS_DB/dbo/Stored Procedures/Procs1/MigrateKitItemMasterRecords.sql)
+-- ---------------------------------------------------------------------------------------------------
+/*************************************************************             
  ** File:   [MigrateKitItemMasterRecords]
  ** Author:   Vishal Suthar
  ** Description: This stored procedure is used to Migrate KIT Item Master Records
@@ -15,6 +19,7 @@
  ** PR   Date         Author			Change Description
  ** --   --------     -------			-----------------------
     1    11/29/2023   Vishal Suthar		Created
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
   
 
 declare @p5 int
@@ -28,7 +33,7 @@ set @p8=NULL
 exec sp_executesql N'EXEC MigrateKitItemMasterRecords @FromMasterComanyID, @UserName, @Processed OUTPUT, @Migrated OUTPUT, @Failed OUTPUT, @Exists OUTPUT',N'@FromMasterComanyID int,@UserName nvarchar(12),@Processed int output,@Migrated int output,@Failed int output,@Exists int output',@FromMasterComanyID=12,@UserName=N'ROGER BENTLY',@Processed=@p5 output,@Migrated=@p6 output,@Failed=@p7 output,@Exists=@p8 output
 select @p5, @p6, @p7, @p8
 **************************************************************/
-CREATE   PROCEDURE [dbo].[MigrateKitItemMasterRecords]
+CREATE     PROCEDURE [dbo].[MigrateKitItemMasterRecords]
 (
 	@FromMasterComanyID INT = NULL,
 	@UserName VARCHAR(100) NULL,
@@ -115,13 +120,13 @@ BEGIN
 			FROM [Quantum].[QCTL_NEW_3].[PARTS_MASTER] IM WITH(NOLOCK) WHERE IM.PNM_AUTO_KEY = @PNM_AUTO_KEY;		
 	   
 			SELECT @ITEMMASTER_ID = IM.[ItemMasterId] FROM [dbo].[ItemMaster] IM WITH(NOLOCK) 
-			WHERE UPPER(IM.partnumber) = UPPER(@PART_NUMBER) AND UPPER(IM.PartDescription) = UPPER(@PART_DESC) AND IM.MasterCompanyId = @FromMasterComanyID;
+			WHERE UPPER(IM.partnumber) = UPPER(@PART_NUMBER) AND UPPER(IM.PartDescription) = UPPER(@PART_DESC) AND IM.MasterCompanyId = @FromMasterComanyID AND ISNULL(IM.IsNonStock,0) = 0 ;
 		 		
 			SELECT @PN = IM.[partnumber], 
 		       @PN_DESC = IM.[PartDescription], 
 			   @ManufacturerId = IM.[ManufacturerId], 
 			   @ManufacturerName = IM.[ManufacturerName] 
-			FROM [dbo].[ItemMaster] IM WITH(NOLOCK) WHERE IM.ItemMasterId = @ITEMMASTER_ID AND MasterCompanyId = @FromMasterComanyID;
+			FROM [dbo].[ItemMaster] IM WITH(NOLOCK) WHERE IM.ItemMasterId = @ITEMMASTER_ID AND MasterCompanyId = @FromMasterComanyID AND ISNULL(IM.IsNonStock,0) = 0 ;
 
 			SELECT @CodeTypeId = [CodeTypeId] FROM [CodeTypes] WHERE [CodeType] = 'KitMaster';
 	   
@@ -209,7 +214,7 @@ BEGIN
 
 						SELECT @PART_MAP_NUMBER = IM.PN,@PART_MAP_DESC = IM.[DESCRIPTION] FROM [Quantum].[QCTL_NEW_3].[PARTS_MASTER] IM WITH(NOLOCK) WHERE IM.PNM_AUTO_KEY = @KIT_PNM_AUTO_KEY;	
 
-						SELECT @ITEMMASTER_MAP_ID = IM.[ItemMasterId] FROM [dbo].[ItemMaster] IM WITH(NOLOCK) WHERE UPPER(IM.partnumber) = UPPER(@PART_MAP_NUMBER) AND UPPER(IM.PartDescription) = UPPER(@PART_MAP_DESC) AND IM.MasterCompanyId = @FromMasterComanyID;
+						SELECT @ITEMMASTER_MAP_ID = IM.[ItemMasterId] FROM [dbo].[ItemMaster] IM WITH(NOLOCK) WHERE UPPER(IM.partnumber) = UPPER(@PART_MAP_NUMBER) AND UPPER(IM.PartDescription) = UPPER(@PART_MAP_DESC) AND IM.MasterCompanyId = @FromMasterComanyID AND ISNULL(IM.IsNonStock,0) = 0 ;
 					
 						SELECT @CONDITIONCODE = CC.CONDITION_CODE,@CONDDESCRIPTION = [DESCRIPTION] FROM [Quantum].QCTL_NEW_3.[PART_CONDITION_CODES] CC WITH(NOLOCK) WHERE CC.PCC_AUTO_KEY = @PCC_AUTO_KEY;	
 					
@@ -223,7 +228,7 @@ BEGIN
 								@ManufacturerName = IM.[ManufacturerName], 
 								@UOMId = IM.[PurchaseUnitOfMeasureId],
 								@UnitOfMeasure = IM.PurchaseUnitOfMeasure
-							FROM [dbo].[ItemMaster] IM WITH(NOLOCK) WHERE IM.ItemMasterId = @ITEMMASTER_MAP_ID AND MasterCompanyId = @FromMasterComanyID;
+							FROM [dbo].[ItemMaster] IM WITH(NOLOCK) WHERE IM.ItemMasterId = @ITEMMASTER_MAP_ID AND MasterCompanyId = @FromMasterComanyID AND ISNULL(IM.IsNonStock,0) = 0 ;
 
 						INSERT INTO [dbo].[KitItemMasterMapping]([KitId],[ItemMasterId],[ManufacturerId],[ConditionId],[UOMId],[Qty]
 							,[UnitCost],[StocklineUnitCost],[PartNumber],[PartDescription],[Manufacturer],[Condition],[UOM]

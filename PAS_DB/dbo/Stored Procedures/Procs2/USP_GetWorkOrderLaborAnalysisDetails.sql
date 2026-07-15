@@ -1,4 +1,8 @@
-﻿/*************************************************************           
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.USP_GetWorkOrderLaborAnalysisDetails   (source: PAS_DB/dbo/Stored Procedures/Procs2/USP_GetWorkOrderLaborAnalysisDetails.sql)
+-- ---------------------------------------------------------------------------------------------------
+/*************************************************************           
  ** File:   [USP_GetWorkOrderLaborAnalysisDetails]           
  ** Author:   Hemant Saliya
  ** Description: This stored procedure is used retrieve WorkOrder Labor Analysis Details    
@@ -20,13 +24,14 @@
 	2    01/19/2022   Hemant Saliya Update Calculated Values
 	3    01/09/2025   Moin Bloch    Update Added StandardHours,StandardMinute,VarianceHours,VarianceMinute
 	2    02/04/2026   Hemant Saliya Update Adjust -Ve Hours in Calculation
+	4    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
      
  EXECUTE USP_GetWorkOrderLaborAnalysisDetails 270, 254
  EXECUTE USP_GetWorkOrderLaborAnalysisDetails 4135, 3653,true
 
 **************************************************************/ 
     
-CREATE PROCEDURE [dbo].[USP_GetWorkOrderLaborAnalysisDetails]    
+CREATE   PROCEDURE [dbo].[USP_GetWorkOrderLaborAnalysisDetails]    
 (    
 @WorkOrderId BIGINT = NULL,   
 @WorkOrderPartNoId BIGINT  = NULL,
@@ -81,7 +86,8 @@ SET NOCOUNT ON
 						LEFT JOIN [dbo].[WorkOrderTask] WOT  WITH(NOLOCK) ON WOT.WorkOrderTaskId = wl.TaskId
 						LEFT JOIN dbo.Employee emp WITH (NOLOCK) ON emp.EmployeeId = wl.EmployeeId
 					WHERE wowf.WorkOrderId = @WorkOrderId AND wlh.IsDeleted = 0 AND wlh.IsActive = 1 --AND BillableId = 1
-					GROUP BY im.partnumber,im.PartDescription,im.RevisedPart,c.[Name] ,wo.WorkOrderNum,ws.Stage,BillableId,
+					 AND ISNULL(im.IsNonStock,0) = 0
+					 GROUP BY im.partnumber,im.PartDescription,im.RevisedPart,c.[Name] ,wo.WorkOrderNum,ws.Stage,BillableId,
 						st.[Description],t.[Description],ex.[Description],emp.FirstName + ' ' + emp.LastName,wl.EmployeeId,WOT.[TaskName]
 				END
 				IF(@WorkOrderPartNoId > 0)
@@ -136,7 +142,7 @@ SET NOCOUNT ON
 							LEFT JOIN [dbo].[WorkOrderTask] WOT  WITH(NOLOCK) ON WOT.WorkOrderTaskId = wl.TaskId
 							LEFT JOIN dbo.Employee emp WITH (NOLOCK) ON emp.EmployeeId = wl.EmployeeId
 						WHERE wowf.WorkOrderId = @WorkOrderId AND wop.ID = @workOrderPartNoId AND wlh.IsDeleted = 0 AND wlh.IsActive = 1
-					), 
+					 AND ISNULL(im.IsNonStock,0) = 0 ), 
 					results As(
 						SELECT
 							SUM([Hours] * 60 + [Minutes]) AS TotalMinutes,

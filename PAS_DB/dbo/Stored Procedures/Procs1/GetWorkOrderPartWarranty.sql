@@ -1,4 +1,8 @@
-﻿/*************************************************************           
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.GetWorkOrderPartWarranty   (source: PAS_DB/dbo/Stored Procedures/Procs1/GetWorkOrderPartWarranty.sql)
+-- ---------------------------------------------------------------------------------------------------
+/*************************************************************           
  ** File:   [GetWorkOrderPartWarranty]           
  ** Author: Vishal Suthar
  ** Description: This stored procedure is used retrieve Partnumber and stockline userd
@@ -18,10 +22,11 @@
 	2    05/13/2022   Subhash Saliya	Updated for Check
 	3	 01/31/2024   Devendra Shekh	added isperforma Flage for WO
     4    03/07/2025   Moin Bloch        Changed Old To New Billing Table
+	5    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 
 --EXEC [GetWorkOrderPartWarranty] 9, 158651,'STL-000037'
 **************************************************************/
-CREATE   PROCEDURE [dbo].[GetWorkOrderPartWarranty]
+CREATE     PROCEDURE [dbo].[GetWorkOrderPartWarranty]
 @ItemMasterId bigint = 0,
 @StocklineId bigint = 0,
 @StocklineNumber varchar(100) 
@@ -61,7 +66,8 @@ BEGIN
 			    WHERE WOPN.ItemMasterId = @ItemMasterId and ST.isSerialized = 1 and ST.SerialNumber = @SerialNumber AND ISNULL(ST.SerialNumber,'')  != ''  AND 
 					WS.ShipDate > (DATEADD(year, -1, GETUTCDATE())) --WOBI.InvoiceStatus='Invoiced' AND WOBI.IsVersionIncrease=0
 					AND ISNULL(wobii.IsPerformaInvoice, 0) = 0
-					ORDER BY WS.ShipDate DESC
+					 AND ISNULL(IM.IsNonStock,0) = 0
+					 ORDER BY WS.ShipDate DESC
 			END
 		COMMIT  TRANSACTION
 

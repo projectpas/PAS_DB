@@ -1,4 +1,8 @@
-﻿/*************************************************************           
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.GetVendorRFQPOPartById   (source: PAS_DB/dbo/Stored Procedures/Procs1/GetVendorRFQPOPartById.sql)
+-- ---------------------------------------------------------------------------------------------------
+/*************************************************************           
  ** File:   [GetVendorRFQPOPartById]           
  ** Author:  SHREY CHANDEGARA
  ** Description: This stored procedure is used to Get Purchase Order Part Details
@@ -14,10 +18,11 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    05-07-20242  SHREY CHANDEGARA     Created
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
      
 -- EXEC GetVendorRFQPOPartById 104
 ************************************************************************/
-CREATE     PROCEDURE [dbo].[GetVendorRFQPOPartById]
+CREATE       PROCEDURE [dbo].[GetVendorRFQPOPartById]
 @VendorRFQPOId bigint
 AS
 BEGIN
@@ -35,11 +40,12 @@ BEGIN
 	 
 	SELECT pop.PartNumber,pop.ItemMasterId,pop.VendorRFQPOPartRecordId,pop.ManufacturerId,
 	  pop.PartNumber + (CASE WHEN (SELECT COUNT(ISNULL(SD.[ManufacturerId], 0)) FROM [dbo].[ItemMaster]  SD WITH(NOLOCK) 
-	  WHERE im.partnumber = SD.partnumber AND SD.MasterCompanyId = @MasterCompanyId) > 1 then ' - '+ imf.[Name] ELSE '' END) AS [Label],
+	  WHERE im.partnumber = SD.partnumber AND SD.MasterCompanyId = @MasterCompanyId AND ISNULL(SD.IsNonStock,0) = 0 ) > 1 then ' - '+ imf.[Name] ELSE '' END) AS [Label],
 	  imf.[Name] AS Manufacturer
       FROM [dbo].[VendorRFQPurchaseOrderPart] pop WITH (NOLOCK) 	
 	  LEFT JOIN [dbo].[ItemMaster] im  WITH (NOLOCK)ON   pop.ItemMasterId = im.ItemMasterId 
-	  LEFT JOIN [dbo].[Manufacturer] imf WITH (NOLOCK) ON im.ManufacturerId = imf.ManufacturerId	 
+	   AND ISNULL(im.IsNonStock,0) = 0
+	   LEFT JOIN [dbo].[Manufacturer] imf WITH (NOLOCK) ON im.ManufacturerId = imf.ManufacturerId	 
 	  WHERE pop.VendorRFQPurchaseOrderId = @VendorRFQPOId  AND pop.IsDeleted = 0
 
 	

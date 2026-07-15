@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [GetPNTileSalesOrderList]           
  ** Author:  
  ** Description: This stored procedure is used get list of sales order history date for dashboard
@@ -18,6 +18,8 @@
 	3    08/12/2023   Jevik Raiyani			add @statusValue
 	4    06/18/2024   Vishal Suthar         Added @UnitSalesPrice column
 	5    11/05/2024	  Vishal Suthar			Modified to make use of new SO Part tables
+	6    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	7    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 
 exec GetPNTileSalesOrderList @PageNumber=1,@PageSize=5,@SortColumn=NULL,@SortOrder=-1,@StatusID=0,@Status=N'All',@GlobalFilter=N'',@PartNumber=NULL,@PartDescription=NULL,@ManufacturerName=NULL,@SalesOrderNumber=NULL,@OpenDate=NULL,@CustomerReference=NULL,@UnitSalesPrice=112.5,@UnitCost=NULL,@Qty=NULL,@UnitCostExtended=NULL,@ConditionName=NULL,@SalesPersonName=NULL,@ShipDate=NULL,@CustomerName=NULL,@IsDeleted=0,@EmployeeId=2,@ItemMasterId=318,@MasterCompanyId=1,@ConditionId=N'9,1,111,10,7,8,2,11,101,3,12,14,13,15',@SerialNumber=NULL,@StatusValue=NULL
 
@@ -115,10 +117,11 @@ BEGIN
 			   LEFT JOIN [dbo].[SalesOrderStocklineV1] SPS WITH (NOLOCK) ON SPS.SalesOrderPartId = SP.SalesOrderPartId
 			   LEFT JOIN [dbo].[SalesOrderPartCost] SPC WITH (NOLOCK) ON SPC.SalesOrderPartId = SP.SalesOrderPartId
 			   LEFT JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON IM.ItemMasterId = SP.ItemMasterId
-			   LEFT JOIN [dbo].[Condition] CO WITH (NOLOCK) ON CO.ConditionId = SP.ConditionId
+			    AND ISNULL(IM.IsNonStock,0) = 0
+			    LEFT JOIN [dbo].[Condition] CO WITH (NOLOCK) ON CO.ConditionId = SP.ConditionId
 			   LEFT JOIN [dbo].[SalesOrderShippingItem] SOI WITH (NOLOCK) ON SOI.SalesOrderPartId = SP.SalesOrderPartId
 			   LEFT JOIN [dbo].[SalesOrderShipping] SOS WITH (NOLOCK) ON SOI.SalesOrderShippingId = SOS.SalesOrderShippingId
-			   LEFT JOIN [dbo].[Stockline] STL WITH(NOLOCK) ON SPS.StockLineId = STL.StockLineId
+			   LEFT JOIN [dbo].[Stockline] STL WITH(NOLOCK) ON SPS.StockLineId = STL.StockLineId AND ISNULL(STL.IsNonStock,0) = 0
 			   LEFT JOIN [dbo].[MasterSalesOrderStatus] MSOS WITH (NOLOCK) ON SO.[StatusId] = MSOS.Id
 			WHERE SO.MasterCompanyId = @MasterCompanyId	
 				AND SP.ItemMasterId = @ItemMasterId

@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿-- ===== PROCEDURE: [dbo].[sp_GetROShippingParentList]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs1/sp_GetROShippingParentList.sql) =====
+/*************************************************************           
  ** File:   [sp_GetROShippingParentList]           
  ** Author:   
  ** Description: 
@@ -16,10 +17,12 @@
  ** PR   Date			Author				Change Description            
  ** --   --------		-------				--------------------------------          
 	1	04/17/2024		VISHAL SUTHAR		Created
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	3    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
      
  -- [dbo].[sp_GetROShippingParentList] 2561
 **************************************************************/
-CREATE   Procedure [dbo].[sp_GetROShippingParentList]
+CREATE   PROCEDURE [dbo].[sp_GetROShippingParentList]
 	@RepairOrderId  bigint
 AS
 BEGIN
@@ -40,7 +43,8 @@ BEGIN
 		LEFT JOIN DBO.RepairOrder ro WITH (NOLOCK) ON ro.RepairOrderId = rop.RepairOrderId
 		INNER JOIN DBO.ROPickTicket ropt WITH (NOLOCK) ON ropt.RepairOrderId = rop.RepairOrderId AND ropt.RepairOrderPartId = rop.RepairOrderPartRecordId AND ropt.StocklineId = rop.StocklineId
 		LEFT JOIN DBO.ItemMaster imt WITH (NOLOCK) ON imt.ItemMasterId = rop.ItemMasterId
-		LEFT JOIN DBO.Stockline sl WITH (NOLOCK) ON sl.StockLineId = rop.StockLineId AND sl.ConditionId = rop.ConditionId
+		 AND ISNULL(imt.IsNonStock,0) = 0
+		 LEFT JOIN DBO.Stockline sl WITH (NOLOCK) ON sl.StockLineId = rop.StockLineId AND sl.ConditionId = rop.ConditionId AND ISNULL(sl.IsNonStock,0) = 0
 		LEFT JOIN DBO.RepairOrderShippingItem rosi WITH (NOLOCK) ON rosi.RepairOrderPartId = rop.RepairOrderPartRecordId AND rosi.ROPickTicketId = ropt.ROPickTicketId
 		LEFT JOIN DBO.RepairOrderShipping ros WITH (NOLOCK) ON ros.RepairOrderShippingId = rosi.RepairOrderShippingId AND ros.RepairOrderId = ropt.RepairOrderId AND ros.RepairOrderId = @RepairOrderId
 		WHERE rop.RepairOrderId = @RepairOrderId AND ropt.IsConfirmed = 1

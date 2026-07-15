@@ -1,4 +1,8 @@
-﻿/*************************************************************           
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.USP_ItemMaster_DetailsById   (source: PAS_DB/dbo/Stored Procedures/Procs2/USP_ItemMaster_DetailsById.sql)
+-- ---------------------------------------------------------------------------------------------------
+/*************************************************************           
  ** File:   [USP_ItemMaster_DetailsById]           
  ** Author: Moin Bloch
  ** Description: This stored procedure is used to Get ItemMaster Details By ItemMasterId
@@ -11,10 +15,11 @@
  ** PR   Date         Author  		Change Description            
  ** --   --------     -------		---------------------------     
     1    06/20/2023   Moin Bloch     Created
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 *******************************************************************************
 EXEC USP_ItemMaster_DetailsById 41186
 *******************************************************************************/
-CREATE   PROCEDURE [dbo].[USP_ItemMaster_DetailsById] 
+CREATE     PROCEDURE [dbo].[USP_ItemMaster_DetailsById] 
 @ItemMasterId BIGINT
 AS
 BEGIN
@@ -45,7 +50,7 @@ BEGIN
                   ,IM.[LocationId]
                   ,IM.[ShelfId]
                   ,IM.[BinId]
-              FROM [dbo].[ItemMaster] IM WITH(NOLOCK) WHERE IM.ItemMasterId = @ItemMasterId;
+              FROM [dbo].[ItemMaster] IM WITH(NOLOCK) WHERE IM.ItemMasterId = @ItemMasterId AND ISNULL(IM.IsNonStock,0) = 0 ;
 	END TRY
     BEGIN CATCH
 		IF @@trancount > 0

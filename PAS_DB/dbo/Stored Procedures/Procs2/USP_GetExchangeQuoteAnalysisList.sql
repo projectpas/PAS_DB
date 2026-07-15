@@ -1,4 +1,8 @@
-﻿/*************************************************************           
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.USP_GetExchangeQuoteAnalysisList   (source: PAS_DB/dbo/Stored Procedures/Procs2/USP_GetExchangeQuoteAnalysisList.sql)
+-- ---------------------------------------------------------------------------------------------------
+/*************************************************************           
  ** File:   [USP_GetExchangeQuoteAnalysisList]           
  ** Author:  Ekta Chandegra
  ** Description: This stored procedure is used to USP_GetExchangeQuoteAnalysisList
@@ -15,11 +19,12 @@
  ** --   --------     -------			--------------------------------          
     1    07/07/2025   Ekta Chandegra     Created
     2    07/28/2025   Ekta Chandegra     Retrieve billing amount as OtherCharges and ExtendedCost as OtherCost
+	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
      
   EXEC USP_GetExchangeQuoteAnalysisList @ExchangeQuoteId = 113
 
 ************************************************************************/
-CREATE   PROCEDURE [dbo].[USP_GetExchangeQuoteAnalysisList]
+CREATE     PROCEDURE [dbo].[USP_GetExchangeQuoteAnalysisList]
     @ExchangeQuoteId BIGINT
 AS
 BEGIN
@@ -122,7 +127,8 @@ BEGIN
 		INNER JOIN [dbo].[ExchangeQuotePart] part WITH(NOLOCK)  ON eq.ExchangeQuoteId = part.ExchangeQuoteId
 		LEFT JOIN [dbo].[ItemMasterExchangeLoan] iml WITH(NOLOCK)  ON part.ItemMasterId = iml.ItemMasterId
 		LEFT JOIN [dbo].[ItemMaster] im WITH(NOLOCK)  ON part.ItemMasterId = im.ItemMasterId
-		LEFT JOIN [dbo].[Percent] epc WITH(NOLOCK)  ON iml.EFcogs = epc.PercentId
+		 AND ISNULL(im.IsNonStock,0) = 0
+		 LEFT JOIN [dbo].[Percent] epc WITH(NOLOCK)  ON iml.EFcogs = epc.PercentId
 		LEFT JOIN [dbo].[Percent] opc WITH(NOLOCK)  ON iml.OPcogs = opc.PercentId
 		WHERE eq.ExchangeQuoteId = @ExchangeQuoteId;
 	END TRY

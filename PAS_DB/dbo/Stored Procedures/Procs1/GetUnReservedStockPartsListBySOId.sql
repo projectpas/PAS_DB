@@ -18,6 +18,8 @@
      2    12/07/2024	VISHAL SUTHAR		Removing the stockline from unreserve list those are already billed
 	 3    17/01/2025	AMIT GHEDIYA		Handle mutiple invoiced data with laytest invoiced.
 	 4    07-07-2025    Moin Bloch          Changed Old To New Billing Table
+	5    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	6    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 
 EXEC [dbo].[GetUnReservedStockPartsListBySOId]  1736,0,0
 **************************************************************/
@@ -100,7 +102,7 @@ BEGIN
 		AND sop.IsDeleted = 0
 		AND (sopi.TotalReserved > 0)
 		AND so.SalesOrderId = @SalesOrderId
-		AND (@ItemMasterId IS NULL OR im.ItemMasterId = @ItemMasterId))
+		AND (@ItemMasterId IS NULL OR im.ItemMasterId = @ItemMasterId) AND ISNULL(im.IsNonStock,0) = 0 AND ISNULL(stl.IsNonStock,0) = 0 )
 
 		SELECT SalesOrderReservePartId,
 			   SalesOrderPartId,

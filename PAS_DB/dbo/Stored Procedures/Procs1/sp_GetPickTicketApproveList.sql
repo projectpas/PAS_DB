@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿-- ===== PROCEDURE: [dbo].[sp_GetPickTicketApproveList]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs1/sp_GetPickTicketApproveList.sql) =====
+/*************************************************************           
  ** File:   [sp_GetPickTicketApproveList]           
  ** Author:   Vishal Suthar
  ** Description: This stored procedure is used to retrieve pickticket listing data
@@ -22,10 +23,12 @@
 	6    05/20/2025   Vishal Suthar		Fixed issue with readytopick which is populating wrong when qdjusted the qty
 	7    08/07/2025   Vishal Suthar		Added a check for approval of the part before generating pick ticket
 	8    26/12/2025   Amit Ghediya		Update condition for ReadyToPick
+	9    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	10    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
      
 -- EXEC [dbo].[sp_GetPickTicketApproveList] 851
 **************************************************************/
-CREATE   Procedure [dbo].[sp_GetPickTicketApproveList]
+CREATE   PROCEDURE [dbo].[sp_GetPickTicketApproveList]
 	@SalesOrderId  bigint
 AS
 BEGIN
@@ -40,7 +43,7 @@ BEGIN
 			Where SalesOrderId = @SalesOrderId AND ItemMasterId = sop.ItemMasterId AND ConditionId = sop.ConditionId) AS Qty,
 		'' AS SerialNumber, 
 		(SELECT SUM(QuantityAvailable) FROM DBO.StockLine sll WITH(NOLOCK) 
-		Where sll.ItemMasterId = sop.ItemMasterId AND sll.ConditionId = sop.ConditionId) AS QuantityAvailable,
+		Where sll.ItemMasterId = sop.ItemMasterId AND sll.ConditionId = sop.ConditionId AND ISNULL(sll.IsNonStock,0) = 0) AS QuantityAvailable,
 		so.SalesOrderNumber,soq.SalesOrderQuoteNumber,
 		(SELECT SUM(SP.QtyToShip) FROM DBO.SOPickTicket SP WITH(NOLOCK)
 		INNER JOIN DBO.SalesOrder S_O WITH(NOLOCK) ON S_O.SalesOrderId = SP.SalesOrderId
@@ -110,7 +113,7 @@ BEGIN
 		from dbo.SalesOrderPartV1 sop WITH(NOLOCK)
 		LEFT JOIN DBO.SalesOrderStockLineV1 stk WITH(NOLOCK) on stk.SalesOrderPartId = sop.SalesOrderPartId
 		INNER JOIN DBO.ItemMaster imt WITH(NOLOCK) on imt.ItemMasterId = sop.ItemMasterId
-		LEFT JOIN DBO.StockLine sl WITH(NOLOCK) on sl.StockLineId = stk.StockLineId
+		LEFT JOIN DBO.StockLine sl WITH(NOLOCK) on sl.StockLineId = stk.StockLineId AND ISNULL(sl.IsNonStock,0) = 0
 		LEFT JOIN DBO.SalesOrder so WITH(NOLOCK) on so.SalesOrderId = sop.SalesOrderId
 		LEFT JOIN DBO.SalesOrderQuote soq WITH(NOLOCK) on soq.SalesOrderQuoteId = so.SalesOrderQuoteId
 		LEFT JOIN DBO.SOPickTicket sopt WITH(NOLOCK) on sopt.SalesOrderId = sop.SalesOrderId
@@ -123,7 +126,8 @@ BEGIN
           AND sao.SalesOrderPartId = sop.SalesOrderPartId
           AND sao.ApprovalActionId = 5
         )
-		group by sop.SalesOrderId,imt.PartNumber,imt.PartDescription,
+		 AND ISNULL(imt.IsNonStock,0) = 0
+         group by sop.SalesOrderId,imt.PartNumber,imt.PartDescription,
 		so.SalesOrderNumber,soq.SalesOrderQuoteNumber,sop.ItemMasterId,
 		sl.ConditionId, cr.[Name],cr.CustomerCode, sop.ConditionId
 		,sl.isSerialized, imt.ItemMasterId)

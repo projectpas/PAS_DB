@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿-- ===== PROCEDURE: [dbo].[USP_VendorRMA_GetPickTicketPrint]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs3/USP_VendorRMA_GetPickTicketPrint.sql) =====
+/*************************************************************           
  ** File:   [ EXECUTE USP_VendorRMA_GetVendorRMAList]          
  ** Author:   Amit Ghediya
  ** Description: This stored procedure is used to Create for get Vendor RMA List data.
@@ -17,6 +18,8 @@
     1    06/26/2023   Amit Ghediya				Created
     2    08/16/2023   Devendra shekh			commented RMAPickTicketNumber for cte and added ReadyToPick to result
     3    08/17/2023   Devendra shekh			removed commented RMAPickTicketNumber for cte and added ReadyToPick
+	4    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	5    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
      
 **************************************************************/
 -- EXEC [dbo].[USP_VendorRMA_GetPickTicketPrint] 262, 399, 172
@@ -63,7 +66,7 @@ BEGIN
 		INNER JOIN cte WITH(NOLOCK) ON cte.VendorRMAId = sopt.VendorRMAId AND cte.VendorRMADetailId = sopt.VendorRMADetailId
 		INNER JOIN VendorRMADetail sop WITH(NOLOCK) ON sop.VendorRMAId = sopt.VendorRMAId AND sop.VendorRMADetailId = sopt.VendorRMADetailId
 		INNER JOIN VendorRMA so WITH(NOLOCK) ON so.VendorRMAId = sop.VendorRMAId
-		LEFT JOIN Stockline sl WITH(NOLOCK) ON sl.StockLineId = sop.StockLineId
+		LEFT JOIN Stockline sl WITH(NOLOCK) ON sl.StockLineId = sop.StockLineId AND ISNULL(sl.IsNonStock,0) = 0
 		INNER JOIN ItemMaster imt WITH(NOLOCK) ON imt.ItemMasterId = sop.ItemMasterId
 		LEFT JOIN Condition co WITH(NOLOCK) ON co.ConditionId = sl.ConditionId
 		LEFT JOIN UnitOfMeasure uom WITH(NOLOCK) ON uom.UnitOfMeasureId = imt.ConsumeUnitOfMeasureId
@@ -77,7 +80,7 @@ BEGIN
 		WHERE 
 		so.VendorRMAId = @VendorRMAId
 		--sopt.SOPickTicketId = @SOPickTicketId;
-		AND sopt.RMAPickTicketNumber = @pickTicketNo;
+		AND sopt.RMAPickTicketNumber = @pickTicketNo AND ISNULL(imt.IsNonStock,0) = 0 ;
 
 		--SELECT DISTINCT cte.RMAPickTicketId, cte.RMAPickTicketDate, cte.VendorRMAId, cte.StockLineNumber,cte.Qty, QtyShipped,PartNumber, PartDescription,
 		--cte.RMAPickTicketNumber, cte.SerialNumber, cte.ControlNumber, cte.IdNumber, cte.ConditionDescription, cte.RMANumber, cte.UOM,

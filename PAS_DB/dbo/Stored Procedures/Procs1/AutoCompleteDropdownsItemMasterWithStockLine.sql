@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [AutoCompleteDropdownsItemMaster]           
  ** Author:   Hemant Saliya
  ** Description: This stored procedure is used retrieve Item Master List for Auto complete Dropdown List    
@@ -14,6 +14,8 @@
  ** --   --------     -------			--------------------------------          
     1    12/23/2020   Hemant Saliya		Created
 	2    06/14/2024   Vishal Suthar		Increased Limit of records from 20 to 50 for Item Master Module
+	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	4    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
      
 --EXEC [AutoCompleteDropdownsItemMasterWithStockLine] '',1,200,'108,109,11'
 **************************************************************/
@@ -42,13 +44,15 @@ BEGIN
 					WHERE (Im.IsActive=1 AND ISNULL(Im.IsDeleted,0)=0 
 						  AND SL.QuantityAvailable > 0
 					      AND IM.MasterCompanyId = @MasterCompanyId AND (Im.partnumber LIKE @StartWith + '%' OR Im.partnumber  LIKE '%' + @StartWith + '%'))    
-			   UNION     
+			    AND ISNULL(Im.IsNonStock,0) = 0 AND ISNULL(SL.IsNonStock,0) = 0
+					       UNION     
 					SELECT DISTINCT Im.ItemMasterId AS Value, 
 						  Im.partnumber AS Label
 					FROM dbo.ItemMaster Im WITH(NOLOCK) 
 						 INNER JOIN dbo.Stockline SL WITH(NOLOCK) ON SL.ItemMasterId = Im.ItemMasterId
 					WHERE im.ItemMasterId IN (SELECT Item FROM DBO.SPLITSTRING(@Idlist, ','))    
-				ORDER BY Label				
+				 AND ISNULL(Im.IsNonStock,0) = 0 AND ISNULL(SL.IsNonStock,0) = 0
+					 ORDER BY Label				
 			End
 			ELSE
 			BEGIN
@@ -57,17 +61,18 @@ BEGIN
 						Im.partnumber AS Label
 					FROM dbo.ItemMaster Im WITH(NOLOCK) 
 						 INNER JOIN dbo.Stockline SL WITH(NOLOCK) ON SL.ItemMasterId = Im.ItemMasterId
-				WHERE Im.IsActive = 1
+				WHERE ISNULL(Im.IsNonStock,0) = 0 AND ( Im.IsActive = 1
 					  AND SL.QuantityAvailable > 0
 				      AND ISNULL(Im.IsDeleted,0) = 0 AND IM.MasterCompanyId = @MasterCompanyId AND Im.partnumber LIKE '%' + @StartWith + '%' OR Im.partnumber  LIKE '%' + @StartWith + '%'
-				UNION 
+				) AND ISNULL(SL.IsNonStock,0) = 0 UNION 
 				SELECT DISTINCT TOP 50 
 						Im.ItemMasterId AS Value,  
 						Im.partnumber AS Label
 					FROM dbo.ItemMaster Im WITH(NOLOCK)
 						 INNER JOIN dbo.Stockline SL WITH(NOLOCK) ON SL.ItemMasterId = Im.ItemMasterId
 				WHERE Im.ItemMasterId IN (SELECT Item FROM DBO.SPLITSTRING(@Idlist, ','))
-				ORDER BY Label	
+				 AND ISNULL(Im.IsNonStock,0) = 0 AND ISNULL(SL.IsNonStock,0) = 0
+				 ORDER BY Label	
 			END		
 			
 	  END TRY 

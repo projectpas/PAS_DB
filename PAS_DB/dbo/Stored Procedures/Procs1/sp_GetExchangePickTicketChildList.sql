@@ -13,6 +13,7 @@
  ** --   --------		 -------				--------------------------------            
     1    Unknown		Unknown					Unknown
 	2    27-Mar-2025	Divyesh Kathiriya		Update PickedDate based on Employee time zone
+	3    09/July/2026	RAJESH GAMI		[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 
 	EXEC [dbo].[sp_GetExchangePickTicketChildList] 135,3,1,226
 ***************************************************************/
@@ -65,7 +66,7 @@ BEGIN
 		sl.StockLineId, sopt.IsConfirmed 
 		from ExchangeSOPickTicket sopt WITH(NOLOCK)
 		INNER JOIN ExchangeSalesOrderPart sop WITH(NOLOCK) on sop.ExchangeSalesOrderId = sopt.ExchangeSalesOrderId and sop.ExchangeSalesOrderPartId = sopt.ExchangeSalesOrderPartId
-		LEFT JOIN StockLine sl WITH(NOLOCK) on sl.StockLineId = sop.StockLineId
+		LEFT JOIN StockLine sl WITH(NOLOCK) on sl.StockLineId = sop.StockLineId AND ISNULL(sl.IsNonStock,0) = 0
 		INNER JOIN Employee emp WITH(NOLOCK) on emp.EmployeeId = sopt.PickedById
 		LEFT JOIN Employee empy WITH(NOLOCK) on empy.EmployeeId = sopt.ConfirmedById
 		where sopt.ExchangeSalesOrderId=@ExchangeSalesOrderId AND sop.ItemMasterId=@ItemMasterId and sop.ConditionId = @ConditionId

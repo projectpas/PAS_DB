@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿-- ===== PROCEDURE: [dbo].[USP_VendorRMA_UpdateRMAStatus]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs3/USP_VendorRMA_UpdateRMAStatus.sql) =====
+/*************************************************************           
  ** File:   [USP_VendorRMA_UpdateRMAStatus]          
  ** Author:   Moin Bloch 
  ** Description: This stored procedure is used to Update RMA Status After Receive RMA   
@@ -15,6 +16,7 @@
  ** PR   Date         Author		   Change Description            
  ** --   --------     -------		   --------------------------------             
 	1    07/03/2023   Moin Bloch       Created
+	2    09/July/2026   RAJESH GAMI       [PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 
   EXEC dbo.USP_VendorRMA_UpdateRMAStatus 60
 **************************************************************/
@@ -65,7 +67,7 @@ SET NOCOUNT ON
 					BEGIN
 						SET @AllPartQty = @AllPartQty + @Qty;
 
-						SELECT @StockQty = ISNULL(SUM(ISNULL(SL.[Quantity],0)),0) FROM [dbo].[Stockline] SL WITH(NOLOCK) WHERE SL.[VendorRMAId] = @VendorRMAId AND SL.[VendorRMADetailId] = @VendorRMADetailId AND SL.[IsParent] = 1 AND SL.[IsDeleted] = 0
+						SELECT @StockQty = ISNULL(SUM(ISNULL(SL.[Quantity],0)),0) FROM [dbo].[Stockline] SL WITH(NOLOCK) WHERE SL.[VendorRMAId] = @VendorRMAId AND SL.[VendorRMADetailId] = @VendorRMADetailId AND SL.[IsParent] = 1 AND SL.[IsDeleted] = 0 AND ISNULL(SL.IsNonStock,0) = 0
 						IF(@StockQty > 0)
 						BEGIN
 							SET @AllStockQty = @AllStockQty + @StockQty;

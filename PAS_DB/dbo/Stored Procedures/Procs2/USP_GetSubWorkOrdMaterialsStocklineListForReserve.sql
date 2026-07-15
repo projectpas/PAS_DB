@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿-- ===== PROCEDURE: [dbo].[USP_GetSubWorkOrdMaterialsStocklineListForReserve]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs2/USP_GetSubWorkOrdMaterialsStocklineListForReserve.sql) =====
+/*************************************************************           
  ** File:   [USP_GetWorkOrdMaterialsStocklineListForReserve]           
  ** Author:   Hemant Saliya
  ** Description: This SP is Used to get Stockline list to reserve Stockline    
@@ -17,6 +18,8 @@
  ** --   --------     -------			--------------------------------          
     1    12/24/2021   Hemant Saliya		Created
 	2    08/11/2023   Amit Ghediya		Not allow AR condition record when populate reserve list
+	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	4    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 
      
  EXECUTE [USP_GetSubWorkOrdMaterialsStocklineListForReserve] 31
@@ -111,7 +114,8 @@ SET NOCOUNT ON
 					AND ISNULL((ISNULL(WOM.Quantity, 0) - (ISNULL(WOM.QuantityReserved, 0) + ISNULL(WOM.QuantityIssued, 0))) - (SELECT ISNULL(SUM(WOMSL.Quantity), 0) - (ISNULL(SUM(WOMSL.QtyReserved), 0) + ISNULL(SUM(WOMSL.QtyIssued), 0))  FROM dbo.SubWorkOrderMaterialStockLine WOMSL WITH(NOLOCK) WHERE WOM.SubWorkOrderMaterialsId = WOMSL.SubWorkOrderMaterialsId AND WOMSL.ProvisionId <> @ProvisionId), 0) > 0
 					AND (@ItemMasterId IS NULL OR im.ItemMasterId = @ItemMasterId)
 					AND WOM.ConditionCodeId <> @ARConditionId
-			END
+			 AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(SL.IsNonStock,0) = 0
+					 END
 		COMMIT  TRANSACTION
 
 		END TRY    

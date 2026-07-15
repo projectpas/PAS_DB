@@ -1,5 +1,14 @@
-﻿
-CREATE    Procedure [dbo].[UpdateRepairOrderDetail]
+﻿-- ===== PROCEDURE: [dbo].[UpdateRepairOrderDetail]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs1/UpdateRepairOrderDetail.sql) =====
+
+/***************************************************************************************************************************************
+  ** Change History
+ ***************************************************************************************************************************************
+ ** PR   Date						 Author							Change Description
+ ** --   --------					 -------						-------------------------------
+	1    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	2    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+****************************************************************************************************************************************/
+CREATE   PROCEDURE [dbo].[UpdateRepairOrderDetail]
 @RepairOrderId  bigint
 AS
 BEGIN
@@ -296,7 +305,8 @@ BEGIN
 			  --INNER JOIN #RepairOrderPartMSDATA RMS ON RMS.MSID = ROP.ManagementStructureId
 			  INNER JOIN RepairOrder RO WITH (NOLOCK) ON RO.RepairOrderId=ROP.RepairOrderId	
 			  LEFT JOIN ItemMaster IM WITH (NOLOCK) ON ROP.ItemMasterId=IM.ItemMasterId	
-			  LEFT JOIN AssetInventory ASI WITH (NOLOCK) ON ROP.ItemMasterId=ASI.AssetRecordId and ROP.StockLineId=ASI.AssetInventoryId	
+			   AND ISNULL(IM.IsNonStock,0) = 0
+			   LEFT JOIN AssetInventory ASI WITH (NOLOCK) ON ROP.ItemMasterId=ASI.AssetRecordId and ROP.StockLineId=ASI.AssetInventoryId	
 			  LEFT JOIN Condition CO WITH (NOLOCK) ON CO.ConditionId = ROP.ConditionId
 			  INNER JOIN Priority PR WITH (NOLOCK) ON PR.PriorityId = ROP.PriorityId
 			  INNER JOIN Currency CR WITH (NOLOCK) ON CR.CurrencyId = ROP.FunctionalCurrencyId
@@ -309,17 +319,20 @@ BEGIN
 			  LEFT JOIN SubWorkOrder SWO WITH (NOLOCK) ON SWO.SubWorkOrderId = ROP.SubWorkOrderId	  
 			  LEFT JOIN SalesOrder SO WITH (NOLOCK) ON SO.SalesOrderId = ROP.SalesOrderId
 			  LEFT JOIN ItemMaster AIM WITH (NOLOCK) ON AIM.ItemMasterId = ROP.AltEquiPartNumberId
-			  LEFT JOIN Customer CUST WITH (NOLOCK) ON CUST.CustomerId = ROP.RoPartSplitUserId
+			   AND ISNULL(AIM.IsNonStock,0) = 0
+			   LEFT JOIN Customer CUST WITH (NOLOCK) ON CUST.CustomerId = ROP.RoPartSplitUserId
 			  LEFT JOIN Vendor VEN WITH (NOLOCK) ON VEN.VendorId = ROP.RoPartSplitUserId
 			  LEFT JOIN LegalEntity COM WITH (NOLOCK) ON COM.LegalEntityId = ROP.RoPartSplitUserId
 			  LEFT JOIN ItemMaster ST WITH (NOLOCK) ON ST.ItemMasterId=ROP.ItemMasterId	
-			  LEFT JOIN StockLine SL WITH (NOLOCK) ON SL.StockLineId=ROP.StockLineId	
+			   AND ISNULL(ST.IsNonStock,0) = 0
+			   LEFT JOIN StockLine SL WITH (NOLOCK) ON SL.StockLineId=ROP.StockLineId AND ISNULL(SL.IsNonStock,0) = 0	
 			  LEFT JOIN Purchaseorder PO WITH (NOLOCK) ON SL.PurchaseOrderId=PO.PurchaseOrderId	
 			  LEFT JOIN  ItemType IT WITH (NOLOCK) ON IM.ItemTypeId = IT.ItemTypeId	
 			  LEFT JOIN  dbo.Module M WITH (NOLOCK) ON M.ModuleId = ROP.RoPartSplitUserTypeId	
 			  LEFT JOIN ItemMaster RIM WITH (NOLOCK) ON ROP.RevisedPartId=RIM.ItemMasterId	
 			  --LEFT JOIN WorkPerformed WP WITH (NOLOCK) ON ROP.WorkPerformedId=WP.WorkPerformedId
-			  LEFT JOIN CapabilityType CPT WITH (NOLOCK) ON ROP.WorkPerformedId=CPT.CapabilityTypeId
+			   AND ISNULL(RIM.IsNonStock,0) = 0
+			   LEFT JOIN CapabilityType CPT WITH (NOLOCK) ON ROP.WorkPerformedId=CPT.CapabilityTypeId
 
 		WHERE ROP.RepairOrderId  = @RepairOrderId 
 

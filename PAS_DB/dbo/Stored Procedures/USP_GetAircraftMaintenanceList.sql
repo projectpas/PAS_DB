@@ -35,6 +35,14 @@
 **                                      - Wired up previously-unused @MaintanaceType filter (AIRFRAME/ENGINE)
 **                                      - Explicit output column list (removed SELECT *)
 **                                      - Expanded error-log parameter capture
+** 17   14/07/2026	 Amit Ghediya	    Added @IsScheduled filter; added WoStatus (latest linked work
+**                                      order's status, same source as the WO Status shown on the
+**                                      Airworthiness Compliance Tracking / ADs and SBs list); added
+**                                      ApplicableSbAd (comma-separated PubNum list of publications
+**                                      flagged Applicability=1 whose AircraftEffectivity/
+**                                      AircraftEffectivitySerialDetail criteria match this aircraft --
+**                                      aircraft-linked records only, NULL for engine-linked rows)
+** 18   14/07/2026	 Amit Ghediya	    Added @ApplicableSbAd,@WoStatus filter [PN-17161]
 *****************************************************************************************************/
 -- EXEC [dbo].[USP_GetAircraftMaintenanceList] @MasterCompanyId = 1, @AircraftRegistryId = 22;
 CREATE   PROCEDURE [dbo].[USP_GetAircraftMaintenanceList]
@@ -83,7 +91,10 @@ CREATE   PROCEDURE [dbo].[USP_GetAircraftMaintenanceList]
     @LastinspectedBy         VARCHAR(256)    = NULL,
     @IsFromAircraft          BIT             = NULL,
     @SequenceNo              BIGINT          = NULL,
-    @MaintanaceType          VARCHAR(256)    = NULL
+    @MaintanaceType          VARCHAR(256)    = NULL,
+    @IsScheduled             BIT             = NULL,
+	@ApplicableSbAd          BIT             = NULL,
+	@WoStatus                VARCHAR(50)     = NULL
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -188,6 +199,8 @@ BEGIN
                 EMP.EmployeeName            AS LastinspectedBy,
                 AMP.SequenceNo,
                 AMP.IsFromAircraft,
+                LWO.WorkOrderStatus         AS WoStatus,
+				CASE WHEN ISNULL(AMP.AircraftPublicationId,0) > 0 THEN 1 ELSE 0 END AS ApplicableSbAd,
                 COUNT(1) OVER ()            AS TotalRecords
             FROM [dbo].[AircraftMaintenanceProgram] AMP WITH (NOLOCK)
             LEFT JOIN [dbo].[AircraftRegistryHeader] ARH WITH (NOLOCK)
@@ -233,7 +246,7 @@ BEGIN
             ) WSH
             -- Latest work order per program (replaces ranking the whole WorkOrder join)
             OUTER APPLY (
-                SELECT TOP (1) WO.[WorkOrderId], WO.[WorkOrderNum]
+                SELECT TOP (1) WO.[WorkOrderId], WO.[WorkOrderNum], WOP.[WorkOrderStatus]
                 FROM [dbo].[WorkOrderPartNumber] WOP WITH (NOLOCK)
                 JOIN [dbo].[WorkOrder] WO WITH (NOLOCK)
                   ON WOP.[WorkOrderId] = WO.[WorkOrderId]
@@ -303,6 +316,9 @@ BEGIN
                 AND (ISNULL(@WoNumber, '')        = '' OR LWO.WorkOrderNum    LIKE '%' + @WoNumber        + '%')
                 AND (ISNULL(@Description, '')     = '' OR AMP.[Description]   LIKE '%' + @Description     + '%')
                 AND (@SequenceNo IS NULL OR CAST(AMP.SequenceNo AS VARCHAR(50)) LIKE '%' + CAST(@SequenceNo AS VARCHAR(50)) + '%')
+                AND (@IsScheduled IS NULL OR AMP.IsScheduled = @IsScheduled)
+				AND (@ApplicableSbAd IS NULL OR CASE WHEN ISNULL(AMP.AircraftPublicationId,0) > 0 THEN 1 ELSE 0 END = @ApplicableSbAd)
+				AND (ISNULL(@WoStatus, '') = '' OR LWO.WorkOrderStatus LIKE '%' + @WoStatus + '%')
         )
 
         SELECT
@@ -327,6 +343,7 @@ BEGIN
             LastMtced, LastInspectedDate, [Description],
             LastinspectedById, LastinspectedBy,
             SequenceNo, IsFromAircraft,
+            WoStatus, ApplicableSbAd,
             TotalRecords
         FROM CTE
         ORDER BY
@@ -404,6 +421,13 @@ BEGIN
             CASE WHEN @SortColumn = 'Description'              AND @SortOrder = 'DESC' THEN [Description] END DESC,
             CASE WHEN @SortColumn = 'SequenceNo'               AND @SortOrder = 'ASC'  THEN SequenceNo END ASC,
             CASE WHEN @SortColumn = 'SequenceNo'               AND @SortOrder = 'DESC' THEN SequenceNo END DESC,
+
+			CASE WHEN @SortColumn = 'IsScheduled'               AND @SortOrder = 'ASC'  THEN IsScheduled END ASC,
+            CASE WHEN @SortColumn = 'IsScheduled'               AND @SortOrder = 'DESC' THEN IsScheduled END DESC,
+			CASE WHEN @SortColumn = 'WoStatus'               AND @SortOrder = 'ASC'  THEN WoStatus END ASC,
+            CASE WHEN @SortColumn = 'WoStatus'               AND @SortOrder = 'DESC' THEN WoStatus END DESC,
+			CASE WHEN @SortColumn = 'ApplicableSbAd'               AND @SortOrder = 'ASC'  THEN ApplicableSbAd END ASC,
+            CASE WHEN @SortColumn = 'ApplicableSbAd'               AND @SortOrder = 'DESC' THEN ApplicableSbAd END DESC,
             ProgramId DESC
         OFFSET (@PageNumber - 1) * @PageSize ROWS
         FETCH NEXT @PageSize ROWS ONLY

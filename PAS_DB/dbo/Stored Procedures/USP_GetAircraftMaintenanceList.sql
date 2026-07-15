@@ -36,6 +36,13 @@
 **                                      - Explicit output column list (removed SELECT *)
 **                                      - Expanded error-log parameter capture
 ** 17   09/July/2026	 RAJESH GAMI	    [PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+** 17   14/07/2026	 Amit Ghediya	    Added @IsScheduled filter; added WoStatus (latest linked work
+**                                      order's status, same source as the WO Status shown on the
+**                                      Airworthiness Compliance Tracking / ADs and SBs list); added
+**                                      ApplicableSbAd (comma-separated PubNum list of publications
+**                                      flagged Applicability=1 whose AircraftEffectivity/
+**                                      AircraftEffectivitySerialDetail criteria match this aircraft --
+**                                      aircraft-linked records only, NULL for engine-linked rows)
 *****************************************************************************************************/
 -- EXEC [dbo].[USP_GetAircraftMaintenanceList] @MasterCompanyId = 1, @AircraftRegistryId = 22;
 CREATE   PROCEDURE [dbo].[USP_GetAircraftMaintenanceList]
@@ -84,7 +91,8 @@ CREATE   PROCEDURE [dbo].[USP_GetAircraftMaintenanceList]
     @LastinspectedBy         VARCHAR(256)    = NULL,
     @IsFromAircraft          BIT             = NULL,
     @SequenceNo              BIGINT          = NULL,
-    @MaintanaceType          VARCHAR(256)    = NULL
+    @MaintanaceType          VARCHAR(256)    = NULL,
+    @IsScheduled             BIT             = NULL
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -189,6 +197,8 @@ BEGIN
                 EMP.EmployeeName            AS LastinspectedBy,
                 AMP.SequenceNo,
                 AMP.IsFromAircraft,
+                LWO.WorkOrderStatus         AS WoStatus,
+                SBAD.ApplicableSbAd,
                 COUNT(1) OVER ()            AS TotalRecords
             FROM [dbo].[AircraftMaintenanceProgram] AMP WITH (NOLOCK)
             LEFT JOIN [dbo].[AircraftRegistryHeader] ARH WITH (NOLOCK)
@@ -234,13 +244,114 @@ BEGIN
             ) WSH
             -- Latest work order per program (replaces ranking the whole WorkOrder join)
             OUTER APPLY (
-                SELECT TOP (1) WO.[WorkOrderId], WO.[WorkOrderNum]
+                SELECT TOP (1) WO.[WorkOrderId], WO.[WorkOrderNum], WOP.[WorkOrderStatus]
                 FROM [dbo].[WorkOrderPartNumber] WOP WITH (NOLOCK)
                 JOIN [dbo].[WorkOrder] WO WITH (NOLOCK)
                   ON WOP.[WorkOrderId] = WO.[WorkOrderId]
                 WHERE WOP.[ProgramId] = AMP.[ProgramId]
                 ORDER BY WO.[WorkOrderId] DESC
             ) LWO
+            -- Applicable SB/AD: publications flagged Applicability = 1 whose AC Type/Model/SubModel/
+            -- Serial (and, where component-scoped, installed-component serial) effectivity criteria
+            -- match this aircraft -- same matching pattern as USP_CreateAircraftPublicationMaintenance /
+            -- USP_GetAircraftPublicationById, plus the Applicability=1 gate. Aircraft-linked records
+            -- only (IsFromAircraft=1); engine-linked rows get NULL since there's no established
+            -- engine-level effectivity/publication matching elsewhere in the app.
+            OUTER APPLY (
+                SELECT STRING_AGG(PubData.PubNum, ', ') WITHIN GROUP (ORDER BY PubData.PubNum) AS ApplicableSbAd
+                FROM (
+                    SELECT DISTINCT PUB.PubNum
+                    FROM dbo.AircraftEffectivity ACE WITH (NOLOCK)
+                    INNER JOIN dbo.AircraftPublication PUB WITH (NOLOCK)
+                            ON PUB.AircraftPublicationId = ACE.AircraftPublicationId
+                           AND PUB.MasterCompanyId        = @MasterCompanyId
+                           AND ISNULL(PUB.IsDeleted, 0)   = 0
+                           AND ISNULL(PUB.Applicability, 0) = 1
+                    WHERE ISNULL(AMP.IsFromAircraft, 0) = 1
+                      AND ISNULL(ACE.IsDeleted, 0) = 0
+                      AND ARH.MakeTypeId = ACE.MakeTypeId
+                      AND (ACE.AircraftModelId IS NULL OR ARH.AircraftModelId = ACE.AircraftModelId)
+                      AND (ISNULL(ACE.AircraftSubModel, '') = '' OR ARH.AircraftSubModel = ACE.AircraftSubModel)
+                      -- Aircraft serial match: exact ACE.SerialNum, or wildcard/affects-list/range via
+                      -- AircraftEffectivitySerialDetail (scoped to this specific rule)
+                      AND (
+                          (ISNULL(ACE.SerialNum, '') <> '' AND ARH.SerialNum = ACE.SerialNum)
+                          OR
+                          (
+                              ISNULL(ACE.SerialNum, '') = ''
+                              AND (
+                                  NOT EXISTS (
+                                      SELECT 1 FROM dbo.AircraftEffectivitySerialDetail WITH (NOLOCK)
+                                      WHERE AircraftEffectivityId = ACE.AircraftEffectivityId
+                                        AND IsAircraftSerialNum    = 1
+                                        AND IsAffect               = 1
+                                        AND IsDeleted              = 0
+                                  )
+                                  OR EXISTS (
+                                      SELECT 1
+                                      FROM dbo.AircraftEffectivitySerialDetail AEAS WITH (NOLOCK)
+                                      WHERE AEAS.AircraftEffectivityId = ACE.AircraftEffectivityId
+                                        AND AEAS.IsAircraftSerialNum    = 1
+                                        AND AEAS.IsAffect               = 1
+                                        AND AEAS.IsDeleted              = 0
+                                        AND (
+                                            (AEAS.SerialType = 'Individual' AND AEAS.FromSerial = ARH.SerialNum)
+                                        )
+                                  )
+                              )
+                          )
+                      )
+                      -- Aircraft-level exclusion
+                      AND NOT EXISTS (
+                          SELECT 1
+                          FROM dbo.AircraftEffectivitySerialDetail EXC WITH (NOLOCK)
+                          WHERE EXC.AircraftEffectivityId = ACE.AircraftEffectivityId
+                            AND EXC.IsAircraftSerialNum    = 1
+                            AND EXC.IsAffect               = 0
+                            AND EXC.IsDeleted              = 0
+                            AND EXC.FromSerial             = ARH.SerialNum
+                      )
+                      -- Component-level: only enforced when this effectivity row targets a specific component
+                      AND (
+                          ISNULL(ACE.ItemMasterId, 0) = 0
+                          OR NOT EXISTS (
+                              SELECT 1 FROM dbo.AircraftEffectivitySerialDetail WITH (NOLOCK)
+                              WHERE AircraftEffectivityId = ACE.AircraftEffectivityId
+                                AND ItemMasterId          = ACE.ItemMasterId
+                                AND IsAircraftSerialNum   = 0
+                                AND IsAffect              = 1
+                                AND IsDeleted             = 0
+                          )
+                          OR EXISTS (
+                              SELECT 1
+                              FROM dbo.AircraftInstalledPartDetails AIPD WITH (NOLOCK)
+                              WHERE AIPD.AircraftRegistryId = ARH.AircraftRegistryId
+                                AND AIPD.ItemMasterId       = ACE.ItemMasterId
+                                AND AIPD.IsDeleted          = 0
+                                AND EXISTS (
+                                    SELECT 1
+                                    FROM dbo.AircraftEffectivitySerialDetail AECS WITH (NOLOCK)
+                                    WHERE AECS.AircraftEffectivityId = ACE.AircraftEffectivityId
+                                      AND AECS.ItemMasterId          = ACE.ItemMasterId
+                                      AND AECS.IsAircraftSerialNum   = 0
+                                      AND AECS.IsAffect              = 1
+                                      AND AECS.IsDeleted             = 0
+                                      AND (
+                                          (AECS.SerialType = 'Individual' AND AECS.FromSerial = AIPD.SerialNumber)
+                                      )
+                                )
+                                AND NOT EXISTS (
+                                    SELECT 1 FROM dbo.AircraftEffectivitySerialDetail EXC2 WITH (NOLOCK)
+                                    WHERE EXC2.AircraftEffectivityId = ACE.AircraftEffectivityId
+                                      AND EXC2.IsAircraftSerialNum    = 0
+                                      AND EXC2.IsAffect               = 0
+                                      AND EXC2.IsDeleted              = 0
+                                      AND EXC2.FromSerial             = AIPD.SerialNumber
+                                )
+                          )
+                      )
+                ) PubData
+            ) SBAD
             WHERE
                 AMP.MasterCompanyId = @MasterCompanyId
                 AND (@IsDeleted IS NULL OR AMP.IsDeleted = @IsDeleted)
@@ -304,6 +415,7 @@ BEGIN
                 AND (ISNULL(@WoNumber, '')        = '' OR LWO.WorkOrderNum    LIKE '%' + @WoNumber        + '%')
                 AND (ISNULL(@Description, '')     = '' OR AMP.[Description]   LIKE '%' + @Description     + '%')
                 AND (@SequenceNo IS NULL OR CAST(AMP.SequenceNo AS VARCHAR(50)) LIKE '%' + CAST(@SequenceNo AS VARCHAR(50)) + '%')
+                AND (@IsScheduled IS NULL OR AMP.IsScheduled = @IsScheduled)
         )
 
         SELECT
@@ -328,6 +440,7 @@ BEGIN
             LastMtced, LastInspectedDate, [Description],
             LastinspectedById, LastinspectedBy,
             SequenceNo, IsFromAircraft,
+            WoStatus, ApplicableSbAd,
             TotalRecords
         FROM CTE
         ORDER BY

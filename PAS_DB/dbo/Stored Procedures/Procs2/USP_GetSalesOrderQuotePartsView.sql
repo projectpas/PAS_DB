@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿-- ===== PROCEDURE: [dbo].[USP_GetSalesOrderQuotePartsView]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs2/USP_GetSalesOrderQuotePartsView.sql) =====
+/*************************************************************           
  ** File:   [USP_GetSalesOrderQuotePartsView]           
  ** Author:   Vishal Suthar
  ** Description: This stored procedure is used to retrieve SOQ data for print
@@ -17,6 +18,8 @@
  ** --   --------     -------		--------------------------------          
 	1    12/04/2024   Vishal Suthar Created
 	2    06/11/2026   Vishal Suthar Added/Fixed Order By to keep the sequence same. 
+	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	4    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 
   EXEC [dbo].[USP_GetSalesOrderQuotePartsView] 701
 **************************************************************/
@@ -145,7 +148,7 @@ BEGIN
     FROM 
     DBO.SalesOrderQuotePartV1 AS part WITH (NOLOCK)
     LEFT JOIN DBO.SalesOrderQuoteStocklineV1 AS stk WITH (NOLOCK) ON part.SalesOrderQuotePartId = stk.SalesOrderQuotePartId
-    LEFT JOIN DBO.StockLine AS qs WITH (NOLOCK) ON stk.StockLineId = qs.StockLineId
+    LEFT JOIN DBO.StockLine AS qs WITH (NOLOCK) ON stk.StockLineId = qs.StockLineId AND ISNULL(qs.IsNonStock,0) = 0
     INNER JOIN DBO.SalesOrderQuotePartCost AS partc WITH (NOLOCK) ON part.SalesOrderQuotePartId = partc.SalesOrderQuotePartId
     INNER JOIN DBO.ItemMaster AS itemMaster WITH (NOLOCK) ON part.ItemMasterId = itemMaster.ItemMasterId
     LEFT JOIN DBO.Condition AS cp WITH (NOLOCK) ON part.ConditionId = cp.ConditionId
@@ -156,7 +159,8 @@ BEGIN
     LEFT JOIN DBO.Priority AS pri WITH (NOLOCK) ON part.PriorityId = pri.PriorityId
     INNER JOIN DBO.SalesOrderQuote AS soq WITH (NOLOCK) ON part.SalesOrderQuoteId = soq.SalesOrderQuoteId
     WHERE part.SalesOrderQuoteId = @SalesQuoteId AND part.IsDeleted = 0
-    ORDER BY part.SalesOrderQuotePartId;
+     AND ISNULL(itemMaster.IsNonStock,0) = 0
+     ORDER BY part.SalesOrderQuotePartId;
 
 	COMMIT  TRANSACTION  
   END TRY      

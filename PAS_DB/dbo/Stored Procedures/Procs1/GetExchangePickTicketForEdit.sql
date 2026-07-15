@@ -1,4 +1,12 @@
-﻿CREATE PROCEDURE [dbo].[GetExchangePickTicketForEdit]
+﻿/***************************************************************************************************************************************
+  ** Change History
+ ***************************************************************************************************************************************
+ ** PR   Date						 Author							Change Description
+ ** --   --------					 -------						-------------------------------
+	1    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	2    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+****************************************************************************************************************************************/
+CREATE PROCEDURE [dbo].[GetExchangePickTicketForEdit]
 @SOPickTicketId bigint,
 @ExchangeSalesOrderId bigint,
 @ExchangeSalesOrderPartId bigint
@@ -50,7 +58,7 @@ BEGIN
 		LEFT JOIN DBO.Customer cusTraceble WITH(NOLOCK) ON sl.TraceableTo = cusTraceble.CustomerId
 		LEFT JOIN DBO.Vendor vTraceble WITH(NOLOCK) ON sl.TraceableTo = vTraceble.VendorId
 		LEFT JOIN DBO.LegalEntity leTraceble WITH(NOLOCK) ON sl.TraceableTo = leTraceble.LegalEntityId
-		WHERE sopt.SOPickTicketId = @SOPickTicketId;
+		WHERE sopt.SOPickTicketId = @SOPickTicketId AND ISNULL(imt.IsNonStock,0) = 0 AND ISNULL(sl.IsNonStock,0) = 0 ;
 	END
 	COMMIT  TRANSACTION
 

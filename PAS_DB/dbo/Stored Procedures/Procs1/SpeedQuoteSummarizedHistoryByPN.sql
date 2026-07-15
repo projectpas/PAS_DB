@@ -1,4 +1,8 @@
 ﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.SpeedQuoteSummarizedHistoryByPN   (source: PAS_DB/dbo/Stored Procedures/Procs1/SpeedQuoteSummarizedHistoryByPN.sql)
+-- ---------------------------------------------------------------------------------------------------
+
 /*************************************************************           
  ** File:   [SpeedQuoteSummarizedHistoryByPN]           
  ** Author:   Deep Patel
@@ -16,11 +20,12 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    07/27/2021   Deep Patel Created
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
      
 --EXEC [SpeedQuoteSummarizedHistoryByPN] 246,0
 **************************************************************/
 
-CREATE PROCEDURE [dbo].[SpeedQuoteSummarizedHistoryByPN]
+CREATE   PROCEDURE [dbo].[SpeedQuoteSummarizedHistoryByPN]
 @ItemMasterId BIGINT,
 @IsTwelveMonth BIT = 1
 AS
@@ -58,7 +63,7 @@ BEGIN
 						JOIN dbo.Condition Cond WITH(NOLOCK) ON SOQP.ConditionId = Cond.ConditionId
 						LEFT JOIN dbo.CustomerFinancial CF WITH (NOLOCK) ON CF.CustomerId = SOQ.CustomerId
 						LEFT JOIN dbo.Currency C WITH (NOLOCK) ON C.CurrencyId = CF.CurrencyId
-					WHERE SOQP.ItemMasterId = @ItemMasterId AND DATEDIFF(MM, SOQ.OpenDate, GETDATE()) < @Month)
+					WHERE SOQP.ItemMasterId = @ItemMasterId AND DATEDIFF(MM, SOQ.OpenDate, GETDATE()) < @Month AND ISNULL(IM.IsNonStock,0) = 0 )
 
 					SELECT PartNumber, ItemMasterId, Condition, CustApproved, CurrencyName, SUM(Revenue) AS Revenue,(SUM(ISNULL(Revenue,0))) / COUNT(ConditionId) AS AvgRevenue,
 					--SUM(DirectCost) AS DirectCost,

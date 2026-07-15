@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿-- ===== PROCEDURE: [dbo].[USP_GetPNTileExchangeList]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs2/USP_GetPNTileExchangeList.sql) =====
+/*************************************************************           
  ** File:   [USP_GetPNTileExchangeList]           
  ** Author:  Devendra Shekh
  ** Description: This stored procedure is used get list of exhchage history date for dashboard
@@ -16,10 +17,12 @@
 	1    16/01/2024   Devendra Shekh		Created
 	2    15/02/2024   Ekta Chandegra        @IsVendor parameter is added
 	3    16/02/2024   Ekta Chandegra        Filter is added on @IsVendor 
+	4    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	5    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 
 
 **************************************************************/
-CREATE    PROCEDURE [dbo].[USP_GetPNTileExchangeList]
+CREATE   PROCEDURE [dbo].[USP_GetPNTileExchangeList]
 	@PageNumber int = 1,
 	@PageSize int = 10,
 	@SortColumn varchar(50)=NULL,
@@ -111,10 +114,11 @@ BEGIN
 			   INNER JOIN [dbo].[EmployeeUserRole] EUR WITH (NOLOCK) ON EUR.RoleId = RMS.RoleId AND EUR.EmployeeId = @EmployeeId
 			   LEFT JOIN [dbo].[ExchangeSalesOrderPart] SP WITH (NOLOCK) ON SO.ExchangeSalesOrderId = SP.ExchangeSalesOrderId and SP.IsDeleted = 0
 			   LEFT JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON IM.ItemMasterId = SP.ItemMasterId
-			   LEFT JOIN [dbo].[Condition] CO WITH (NOLOCK) ON CO.ConditionId = SP.ConditionId
+			    AND ISNULL(IM.IsNonStock,0) = 0
+			    LEFT JOIN [dbo].[Condition] CO WITH (NOLOCK) ON CO.ConditionId = SP.ConditionId
 			   LEFT JOIN [dbo].[ExchangeSalesOrderShippingItem] SOI WITH (NOLOCK) ON SOI.ExchangeSalesOrderPartId = SP.ExchangeSalesOrderPartId
 			   LEFT JOIN [dbo].[ExchangeSalesOrderShipping] SOS WITH (NOLOCK) ON SOI.ExchangeSalesOrderShippingId = SOS.ExchangeSalesOrderShippingId	
-			   LEFT JOIN [dbo].[Stockline] STL WITH(NOLOCK) ON SP.StockLineId = STL.StockLineId	
+			   LEFT JOIN [dbo].[Stockline] STL WITH(NOLOCK) ON SP.StockLineId = STL.StockLineId AND ISNULL(STL.IsNonStock,0) = 0	
 			   LEFT JOIN [dbo].[ExchangeStatus] MSOS WITH (NOLOCK) ON SO.[StatusId] = MSOS.ExchangeStatusId
 
 			WHERE SO.MasterCompanyId = @MasterCompanyId	

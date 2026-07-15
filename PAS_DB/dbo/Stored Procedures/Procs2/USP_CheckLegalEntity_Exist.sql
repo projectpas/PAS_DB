@@ -1,4 +1,5 @@
-﻿ /*************************************************************           
+﻿-- ===== PROCEDURE: [dbo].[USP_CheckLegalEntity_Exist]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs2/USP_CheckLegalEntity_Exist.sql) =====
+ /*************************************************************           
  ** File:   [USP_CheckLegalEntity_Exist]          
  ** Author:   Bhargav Saliya
  ** Description: This stored procedure is used to get Time Zone  
@@ -20,11 +21,12 @@
 	4   24/01/2025 Bhargav Saliya Add EmployeeId
 	5   28/01/2025 Devendra Shekh	Modified (Handling Null @CurrntEmpTimeZoneDesc )
 	6   22/08/2025 Devendra Shekh	Modified (added LegalEntity join for @CurrntEmpTimeZoneDesc)
+	7   09/July/2026 RAJESH GAMI	[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
      
 **************************************************************/
 
  --EXEC [USP_CheckLegalEntity_Exist] 22,184425,207
-CREATE     PROCEDURE [dbo].[USP_CheckLegalEntity_Exist]
+CREATE   PROCEDURE [dbo].[USP_CheckLegalEntity_Exist]
 --@LegalEntiryId bigint,
 @ModuleId bigint,
 @ReferenceId bigint,
@@ -212,7 +214,7 @@ BEGIN
 				  FROM [Stockline] SL WITH(NOLOCK)
 				  LEFT JOIN [dbo].LegalEntity LE WITH(NOLOCK) ON SL.LegalEntityId = LE.LegalEntityId
 				  LEFT JOIN [dbo].TimeZone TZ WITH(NOLOCK) ON LE.TimeZoneId = TZ.TimeZoneId
-				  WHERE SL.[StockLineId] = @ReferenceId 
+				  WHERE SL.[StockLineId] = @ReferenceId AND ISNULL(SL.IsNonStock,0) = 0 
 			  END
 			  END
 		COMMIT  TRANSACTION

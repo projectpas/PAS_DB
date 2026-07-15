@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [SalesOrderQuoteSummarizedHistoryByCustomer]           
  ** Author:   Hemant Saliya
  ** Description: This stored procedure is used for SOQ Summarized History By Customer.    
@@ -14,6 +14,8 @@
  ** --   --------     -------		--------------------------------          
     1    07/13/2021   Vishal Suthar Created
     2    11/04/2024   Vishal Suthar Modified to make use of new tables
+	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	4    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
      
 --EXEC [SalesOrderQuoteSummarizedHistoryByCustomer] 125, 1
 **************************************************************/
@@ -67,7 +69,7 @@ BEGIN
 						JOIN dbo.SalesOrderQuote SOQ WITH(NOLOCK) ON SOQ.SalesOrderQuoteId = SOQP.SalesOrderQuoteId
 						LEFT JOIN dbo.SalesOrderQuoteStocklineV1 STK WITH(NOLOCK) ON STK.SalesOrderQuotePartId = SOQP.SalesOrderQuotePartId
 						LEFT JOIN dbo.SalesOrderQuotePartCost SOQPC WITH(NOLOCK) ON SOQPC.SalesOrderQuotePartId = SOQP.SalesOrderQuotePartId
-						LEFT JOIN dbo.Stockline SL WITH (NOLOCK) ON SL.StockLineId = STK.StockLineId
+						LEFT JOIN dbo.Stockline SL WITH (NOLOCK) ON SL.StockLineId = STK.StockLineId AND ISNULL(SL.IsNonStock,0) = 0
 						LEFT JOIN DBO.Customer cusTraceble WITH(NOLOCK) ON sl.TraceableTo = cusTraceble.CustomerId
 						LEFT JOIN DBO.Vendor vTraceble WITH(NOLOCK) ON sl.TraceableTo = vTraceble.VendorId
 						LEFT JOIN DBO.LegalEntity leTraceble WITH(NOLOCK) ON sl.TraceableTo = leTraceble.LegalEntityId
@@ -79,7 +81,8 @@ BEGIN
 						LEFT JOIN dbo.Currency C WITH (NOLOCK) ON C.CurrencyId = CF.CurrencyId
 						LEFT JOIN dbo.SalesOrder SO WITH (NOLOCK) ON SO.SalesOrderQuoteId = SOQ.SalesOrderQuoteId
 						WHERE SOQP.ItemMasterId = @ItemMasterId AND DATEDIFF(MM, SOQ.OpenDate, GETDATE()) < @Month
-						GROUP BY SOQ.CustomerName,
+						 AND ISNULL(IM.IsNonStock,0) = 0
+						 GROUP BY SOQ.CustomerName,
 						SOQ.CustomerId,
 						SOQ.SalesOrderQuoteId,
 						Cond.Description, APPR.ApprovalActionId, C.Code, SOQPC.UnitSalesPrice, SOQP.QtyQuoted, SOQPC.UnitCost,

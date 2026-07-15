@@ -1,4 +1,8 @@
-﻿/***************************************************************  
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.USP_GetWorkOrderTypeIdAndShippingName   (source: PAS_DB/dbo/Stored Procedures/Procs2/USP_GetWorkOrderTypeIdAndShippingName.sql)
+-- ---------------------------------------------------------------------------------------------------
+/***************************************************************  
  ** File:  [USP_GetWorkOrderTypeIdAndShippingName]       
  ** Author:   Priyansh Patel
  ** Description: Get WorkOrderTypeId, ShippingName and ship to Customer details
@@ -8,11 +12,12 @@
  ** PR   Date				Author  				Change Description              
  ** --   --------			-------				--------------------------------            
     1    05-Nov-2025		Priyansh Patel			Created
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
  
 --EXEC [dbo].[USP_GetWorkOrderTypeIdAndShippingName] @WoPartNoId = 4348,@ShipviaId = 32459,@ShippingName = 'hong1',@ShipToCustomerId = 44,@WorkOrderId = 10052,@MasterCompanyId=1
 
 **************************************************************/
-CREATE PROCEDURE [dbo].[USP_GetWorkOrderTypeIdAndShippingName]
+CREATE   PROCEDURE [dbo].[USP_GetWorkOrderTypeIdAndShippingName]
     @WoPartNoId BIGINT,
     @ShipviaId BIGINT,
     @ShippingName VARCHAR(100),
@@ -46,7 +51,8 @@ BEGIN TRY
 					@WorkOrderTypeId AS WorkOrderTypeId
 			FROM [dbo].[WorkOrderPartNumber] WOP WITH(NOLOCK)
 			LEFT JOIN [dbo].[ItemMaster] IM WITH(NOLOCK) ON IM.[ItemMasterId] = WOP.[ItemMasterId]
-			WHERE WOP.[ID] = @WoPartNoId AND WOP.[MasterCompanyId] = @MasterCompanyId;
+			 AND ISNULL(IM.IsNonStock,0) = 0
+			 WHERE WOP.[ID] = @WoPartNoId AND WOP.[MasterCompanyId] = @MasterCompanyId;
 
 END TRY
 

@@ -1,4 +1,5 @@
-﻿/*************************************************************             
+﻿-- ===== PROCEDURE: [dbo].[usp_GetCustomerRfqById]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs2/usp_GetCustomerRfqById.sql) =====
+/*************************************************************             
  ** File:   [usp_GetCustomerRFQbyId]             
  ** Author:   Devendra Shekh    
  ** Description: Get Customer RFQ Details By Id
@@ -18,6 +19,8 @@
  ** 8       15-Oct-2025     Devendra Shekh	    Added [ReferenceNumber]
  
 EXECUTE [dbo].[usp_GetCustomerRFQbyId] 1007
+	1    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	9    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 **************************************************************/  
 CREATE   PROCEDURE [dbo].[usp_GetCustomerRfqById]
 @CustomerRfqId BIGINT = NULL
@@ -52,13 +55,14 @@ SET NOCOUNT ON
 			INTO #ItemResults
 			FROM [dbo].[ItemMaster] RIM WITH(NOLOCK) 
 			WHERE RIM.[MasterCompanyId] = @MasterCompanyId AND RIM.IsActive = 1 AND RIM.IsDeleted = 0
-			GROUP BY RIM.partnumber, RIM.MasterCompanyId
+			 AND ISNULL(RIM.IsNonStock,0) = 0
+			 GROUP BY RIM.partnumber, RIM.MasterCompanyId
 
 			SELECT  MAX(STK.StockLineId) AS StockLineId, STK.ItemMasterId, STK.MasterCompanyId  
 			INTO #StkResults
 			FROM [dbo].[Stockline] STK WITH(NOLOCK) 
 			INNER JOIN #ItemResults RIM ON STK.ItemMasterId = RIM.ItemMasterId AND STK.MasterCompanyId = RIM.MasterCompanyId
-			WHERE STK.[MasterCompanyId] = @MasterCompanyId AND STK.IsActive = 1 AND STK.IsDeleted = 0 AND ISNULL(STK.[QuantityAvailable],0) > 0 AND ISNULL(STK.[IsCustomerStock],0) = 0
+			WHERE STK.[MasterCompanyId] = @MasterCompanyId AND STK.IsActive = 1 AND STK.IsDeleted = 0 AND ISNULL(STK.[QuantityAvailable],0) > 0 AND ISNULL(STK.[IsCustomerStock],0) = 0 AND ISNULL(STK.IsNonStock,0) = 0
 			GROUP BY STK.ItemMasterId, STK.MasterCompanyId
 
 			SELECT	RFQ.[CustomerRfqId], RFQ.[RfqId], [RfqCreatedDate], [IntegrationPortalId], [Type], [Notes], [BuyerName], [BuyerCompanyName], [BuyerAddress], [BuyerCity], [BuyerCountry], 

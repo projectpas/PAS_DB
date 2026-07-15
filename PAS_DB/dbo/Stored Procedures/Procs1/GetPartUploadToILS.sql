@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File: GetPartUploadToILS
  ** Author: Amit Ghediya
  ** Description: This stored procedure is used All part for ils upload.
@@ -14,6 +14,8 @@
  ** --   --------     -------			-------------------------------          
     1    25/06/2025   Amit Ghediya		Created
     2    10/03/2026   Vishal Suthar     Modified to include both ILS and PartsBase
+	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	4    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
     
  EXEC GetPartUploadToILS 1, 'PARTSBASE'
 
@@ -88,8 +90,9 @@ BEGIN
 				INNER JOIN [dbo].[ItemMaster] IM WITH(NOLOCK) ON IM.ItemMasterId = STK.ItemMasterId
 				LEFT JOIN [dbo].[Nha_Tla_Alt_Equ_ItemMapping] TLA WITH(NOLOCK) ON STK.ItemMasterId = TLA.ItemMasterId AND TLA.MappingType = @NHA_MappingType
 				LEFT JOIN [dbo].[ItemMaster] IM1 WITH(NOLOCK) ON IM1.ItemMasterId = TLA.MappingItemMasterId
-				INNER JOIN [dbo].[Condition] CON WITH(NOLOCK) ON CON.ConditionId = STK.ConditionId
-				WHERE STK.MasterCompanyId = @MasterCompanyId 
+				 AND ISNULL(IM1.IsNonStock,0) = 0
+				 INNER JOIN [dbo].[Condition] CON WITH(NOLOCK) ON CON.ConditionId = STK.ConditionId
+				WHERE ISNULL(IM.IsNonStock,0) = 0 AND ( STK.MasterCompanyId = @MasterCompanyId 
 				AND @SiteId IS NULL OR STK.SiteId = @SiteId
 				AND @WarehouseId IS NULL OR STK.WarehouseId = @WarehouseId
 				AND @LocationId IS NULL OR STK.LocationId = @LocationId
@@ -99,7 +102,7 @@ BEGIN
 				AND STK.isDeleted = 0
 				AND STk.MasterCompanyId = @MasterCompanyId
 				AND CON.[Description] IN(SELECT item FROM SplitString(@Condition_Code,','))
-				ORDER BY STK.CreatedDate DESC
+				) AND ISNULL(STK.IsNonStock,0) = 0 ORDER BY STK.CreatedDate DESC
 			END
 			ELSE IF (@Portal = 'PARTSBASE')
 			BEGIN
@@ -167,8 +170,9 @@ BEGIN
 				INNER JOIN [dbo].[ItemMaster] IM WITH(NOLOCK) ON IM.ItemMasterId = STK.ItemMasterId
 				LEFT JOIN [dbo].[Nha_Tla_Alt_Equ_ItemMapping] TLA WITH(NOLOCK) ON STK.ItemMasterId = TLA.ItemMasterId AND TLA.MappingType = @NHA_MappingType_PartsBase
 				LEFT JOIN [dbo].[ItemMaster] IM1 WITH(NOLOCK) ON IM1.ItemMasterId = TLA.MappingItemMasterId
-				INNER JOIN [dbo].[Condition] CON WITH(NOLOCK) ON CON.ConditionId = STK.ConditionId
-				WHERE STK.MasterCompanyId = @MasterCompanyId 
+				 AND ISNULL(IM1.IsNonStock,0) = 0
+				 INNER JOIN [dbo].[Condition] CON WITH(NOLOCK) ON CON.ConditionId = STK.ConditionId
+				WHERE ISNULL(IM.IsNonStock,0) = 0 AND ( STK.MasterCompanyId = @MasterCompanyId 
 				AND @SiteId_PartsBase IS NULL OR STK.SiteId = @SiteId_PartsBase
 				AND @WarehouseId_PartsBase IS NULL OR STK.WarehouseId = @WarehouseId_PartsBase
 				AND @LocationId_PartsBase IS NULL OR STK.LocationId = @LocationId_PartsBase
@@ -178,7 +182,7 @@ BEGIN
 				AND STK.isDeleted = 0
 				AND STk.MasterCompanyId = @MasterCompanyId
 				AND CON.[Description] IN(SELECT item FROM SplitString(@Condition_Code_PartsBase,','))
-				ORDER BY STK.CreatedDate DESC
+				) AND ISNULL(STK.IsNonStock,0) = 0 ORDER BY STK.CreatedDate DESC
 			END
 	END TRY    
 	BEGIN CATCH      

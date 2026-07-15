@@ -1,4 +1,8 @@
-﻿/*************************************************************             
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.usprpt_GetCustomerQuoteReport   (source: PAS_DB/dbo/Stored Procedures/Procs3/usprpt_GetCustomerQuoteReport.sql)
+-- ---------------------------------------------------------------------------------------------------
+/*************************************************************             
  ** File:   [usprpt_GetCustomerQuoteReport]             
  ** Author:   Amit Ghediya   
  ** Description: Get Data for Customer PO Fulfilling Report   
@@ -15,11 +19,12 @@
  ** S NO   Date            Author          Change Description              
  ** --   --------         -------          --------------------------------            
     1    10-10-2025	  Amit Ghediya	   Created 
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
        
 EXECUTE   [dbo].[usprpt_GetCustomerQuoteReport] '2025-10-07','2025-11-25',1,1,'','',2,''
 **************************************************************/  
   
-CREATE     PROCEDURE [dbo].[usprpt_GetCustomerQuoteReport] 
+CREATE       PROCEDURE [dbo].[usprpt_GetCustomerQuoteReport] 
 	@id DATE = NULL,
 	@id2 DATE = NULL,
 	@mastercompanyid INT,
@@ -101,7 +106,8 @@ BEGIN
 			  AND SOQ.ManagementStructureId = @managementStructureId
 			  AND SOQ.CustomerId = ISNULL(@CustomerId,SOQ.CustomerId)
 			  AND SOP.ItemMasterId = ISNULL(@ItemMasterId,SOP.ItemMasterId)
-			GROUP BY 
+			 AND ISNULL(IM.IsNonStock,0) = 0
+			   GROUP BY 
 				SOQ.SalesOrderQuoteId,
 				IM.PartNumber,
 				IM.PartDescription,
@@ -175,7 +181,8 @@ BEGIN
 			  AND SOQ.ManagementStructureId = @managementStructureId
 			  AND SOQ.CustomerId = ISNULL(@CustomerId,SOQ.CustomerId)
 			  AND SOP.ItemMasterId = ISNULL(@ItemMasterId,SOP.ItemMasterId)
-			  GROUP BY 
+			   AND ISNULL(IM.IsNonStock,0) = 0
+			   GROUP BY 
 				SOQ.SalesOrderQuoteId,
 				IM.PartNumber,
 				IM.PartDescription,

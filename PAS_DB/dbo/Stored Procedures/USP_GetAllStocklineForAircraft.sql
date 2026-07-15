@@ -1,4 +1,5 @@
-﻿/*************************************************************
+﻿-- ===== PROCEDURE: [dbo].[USP_GetAllStocklineForAircraft]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/USP_GetAllStocklineForAircraft.sql) =====
+/*************************************************************
 ** File:        [USP_GetAllStocklineForAircraft]
 ** Description:
 ** Purpose:
@@ -11,8 +12,10 @@
 ** PR   Date         Author         Change Description
 ** --   ----------   -------------  --------------------------------
 ** 1    2026-04-08   Amit Ghediya   Created
+	1    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	2    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 *************************************************************/
-create     PROCEDURE [dbo].[USP_GetAllStocklineForAircraft]
+CREATE   PROCEDURE [dbo].[USP_GetAllStocklineForAircraft]
 (
     @ItemMasterId BIGINT,
     @MasterCompanyId INT
@@ -66,7 +69,8 @@ BEGIN
 			AND sl.MasterCompanyId = @MasterCompanyId
 			AND sl.QuantityAvailable > 0
 			AND sl.IsParent = 1
-    END TRY
+     AND ISNULL(im.IsNonStock,0) = 0 AND ISNULL(sl.IsNonStock,0) = 0
+			 END TRY
     BEGIN CATCH
         DECLARE
             @ErrorLogID INT,

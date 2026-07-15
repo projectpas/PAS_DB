@@ -1,7 +1,15 @@
-﻿
 
 
 
+
+/***************************************************************************************************************************************
+  ** Change History
+ ***************************************************************************************************************************************
+ ** PR   Date						 Author							Change Description
+ ** --   --------					 -------						-------------------------------
+	1    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	2    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+****************************************************************************************************************************************/
 CREATE PROCEDURE [dbo].[ProcStockList_123]
 @PageNumber int = NULL,
 @PageSize int = NULL,
@@ -117,7 +125,8 @@ BEGIN
 									 LEFT JOIN ManagementStructure level2 ON level3.ParentId = level2.ManagementStructureId
 									 LEFT JOIN ManagementStructure level1 ON level2.ParentId = level1.ManagementStructureId
 									 LEFT JOIN ItemMaster rPart ON im.RevisedPartId = rPart.ItemMasterId
-									 LEFT JOIN Manufacturer man ON stl.ManufacturerId = man.ManufacturerId
+									  AND ISNULL(rPart.IsNonStock,0) = 0
+									  LEFT JOIN Manufacturer man ON stl.ManufacturerId = man.ManufacturerId
 									 LEFT JOIN UnitOfMeasure um ON stl.PurchaseUnitOfMeasureId = um.UnitOfMeasureId 								 
 																				 
 		 	  WHERE ((stl.IsDeleted=0 ) AND (@stockTypeId IS NULL OR im.ItemTypeId=@stockTypeId) 
@@ -126,7 +135,7 @@ BEGIN
 					AND stl.MasterCompanyId=@MasterCompanyId 
 					--AND EMS.EmployeeId = @EmployeeId					
 				    --AND stl.IsParent = 1
-			), ResultCount AS(Select COUNT(StockLineId) AS totalItems FROM Result)
+			 AND ISNULL(im.IsNonStock,0) = 0 AND ISNULL(stl.IsNonStock,0) = 0 ), ResultCount AS(Select COUNT(StockLineId) AS totalItems FROM Result)
 			SELECT * INTO #TempResult FROM  Result
 			 WHERE ((@GlobalFilter <>'' AND ((PartNumber LIKE '%' +@GlobalFilter+'%') OR
 			        (PartDescription LIKE '%' +@GlobalFilter+'%') OR	

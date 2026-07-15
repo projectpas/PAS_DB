@@ -18,6 +18,8 @@
 	2    08/14/2023	  Devendra SHekh		added ReadyToPick to result 
 	2    08/16/2023	  Devendra SHekh		changes temptable to result for data
 	2    08/18/2023	  Devendra SHekh		commneted ReadyToPick and added QtyRemaining to result
+	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	4    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
      
 -- EXEC [dbo].[GetExchangePickTicketPrint] 107, 101, 76
 
@@ -65,7 +67,7 @@ BEGIN
   INNER JOIN cte  WITH(NOLOCK) on cte.ExchangeSalesOrderId = sopt.ExchangeSalesOrderId AND cte.ExchangeSalesOrderPartId = sopt.ExchangeSalesOrderPartId  
   INNER JOIN ExchangeSalesOrderPart sop WITH(NOLOCK) on sop.ExchangeSalesOrderId = sopt.ExchangeSalesOrderId AND sop.ExchangeSalesOrderPartId = sopt.ExchangeSalesOrderPartId  
   INNER JOIN ExchangeSalesOrder so WITH(NOLOCK) on so.ExchangeSalesOrderId = sop.ExchangeSalesOrderId  
-  LEFT JOIN Stockline sl WITH(NOLOCK) on sl.StockLineId = sop.StockLineId  
+  LEFT JOIN Stockline sl WITH(NOLOCK) on sl.StockLineId = sop.StockLineId AND ISNULL(sl.IsNonStock,0) = 0  
   INNER JOIN ItemMaster imt WITH(NOLOCK) on imt.ItemMasterId = sop.ItemMasterId  
   LEFT JOIN Condition co WITH(NOLOCK) on co.ConditionId = sop.ConditionId  
   LEFT JOIN UnitOfMeasure uom WITH(NOLOCK) on uom.UnitOfMeasureId = imt.ConsumeUnitOfMeasureId  
@@ -76,7 +78,7 @@ BEGIN
   LEFT JOIN Bin bn WITH(NOLOCK) on bn.BinId = sl.BinId  
   LEFT JOIN PurchaseOrder po WITH(NOLOCK) on po.PurchaseOrderId = sl.PurchaseOrderId  
   LEFT JOIN [Priority] p WITH(NOLOCK) ON sop.PriorityId = p.PriorityId
-  WHERE sopt.SOPickTicketId = @SOPickTicketId;
+  WHERE sopt.SOPickTicketId = @SOPickTicketId AND ISNULL(imt.IsNonStock,0) = 0 ;
 
 	--SELECT DISTINCT cte.SOPickTicketId, cte.SOPickTicketDate, cte.ExchangeSalesOrderId, cte.StockLineNumber,cte.Qty, QtyShipped,PartNumber, PartDescription,
 	--	cte.SOPickTicketNumber, cte.SerialNumber, cte.ControlNumber, cte.IdNumber, cte.ConditionDescription, cte.ExchangeSalesOrderNumber, cte.UOM,

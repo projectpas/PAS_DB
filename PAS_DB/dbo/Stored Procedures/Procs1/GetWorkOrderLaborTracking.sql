@@ -1,4 +1,8 @@
-﻿/*************************************************************             
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.GetWorkOrderLaborTracking   (source: PAS_DB/dbo/Stored Procedures/Procs1/GetWorkOrderLaborTracking.sql)
+-- ---------------------------------------------------------------------------------------------------
+/*************************************************************             
  ** File:   [GetWorkOrderLaborTracking]             
  ** Author:  Moin Bloch
  ** Description: This stored procedure is used Get Work Order Labor Tracking 
@@ -12,10 +16,11 @@
  ** PR   Date			 Author				Change Description              
  ** --   --------		 -------			--------------------------------            
     1    02/09/2025		 Moin Bloch			Created  
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 
 	EXEC [dbo].[GetWorkOrderLaborTracking] 13
 ************************************************************************/   
-CREATE   PROCEDURE [dbo].[GetWorkOrderLaborTracking]    
+CREATE     PROCEDURE [dbo].[GetWorkOrderLaborTracking]    
 @EmployeeId BIGINT
 AS    
 BEGIN    
@@ -35,7 +40,8 @@ BEGIN
 		 LEFT JOIN [dbo].[WorkOrderWorkFlow] WOF WITH(NOLOCK) ON WLH.[WorkFlowWorkOrderId] = WOF.[WorkFlowWorkOrderId]		 
 		 LEFT JOIN [dbo].[WorkOrderPartNumber] WOP WITH(NOLOCK) ON WOF.[WorkOrderPartNoId] = WOP.[ID]
 		 LEFT JOIN [dbo].[ItemMaster] ITM WITH(NOLOCK) ON WOP.[ItemMasterId] = ITM.[ItemMasterId]
-		 WHERE WLT.[EmployeeId] = @EmployeeId AND ISNULL(WLT.[IsCompleted],0) = 0
+		  AND ISNULL(ITM.IsNonStock,0) = 0
+		  WHERE WLT.[EmployeeId] = @EmployeeId AND ISNULL(WLT.[IsCompleted],0) = 0
   END    
   END TRY    
  BEGIN CATCH          

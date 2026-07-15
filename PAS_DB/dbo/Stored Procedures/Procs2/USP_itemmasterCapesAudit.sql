@@ -1,4 +1,8 @@
-﻿/*************************************************************           
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.USP_itemmasterCapesAudit   (source: PAS_DB/dbo/Stored Procedures/Procs2/USP_itemmasterCapesAudit.sql)
+-- ---------------------------------------------------------------------------------------------------
+/*************************************************************           
  ** File:		 [dbo].[USP_itemmasterCapesAudit]          
  ** Author:		 Nakul Chandigra
  ** Description: This Stored Procedure Is Used for getting history of ItemMasterCapes
@@ -10,9 +14,10 @@
  ** PR   Date				Author				Change Description            
  ** --   -------------		----------------	--------------------------------          
 	1	 26-09-2025			Nakul Chandigra		Created
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 	EXEC [dbo].[USP_itemmasterCapesAudit] 8750 , 2
 **************************************************************/
-CREATE    PROCEDURE [dbo].[USP_itemmasterCapesAudit]
+CREATE      PROCEDURE [dbo].[USP_itemmasterCapesAudit]
 @itemMasterCapesId BIGINT,
 @EmpId BIGINT
 AS
@@ -53,7 +58,8 @@ BEGIN
 		FROM [dbo].[ItemMasterCapesAudit] IMCA WITH (NOLOCK)
 		LEFT JOIN [dbo].[ItemMasterManagementStructureDetailsAudit] msd WITH (NOLOCK) ON IMCA.ItemMasterCapesId = msd.ReferenceID AND msd.ModuleID = @ItemMasterCapesMsModuleId
 		LEFT JOIN [dbo].[ItemMaster] IM WITH (NOLOCK)	ON IMCA.ItemMasterId = IM.ItemMasterId
-		WHERE IMCA.ItemMasterCapesId = @ItemMasterCapesId AND IMCA.PartNumber IS NOT NULL
+		 AND ISNULL(IM.IsNonStock,0) = 0
+		 WHERE IMCA.ItemMasterCapesId = @ItemMasterCapesId AND IMCA.PartNumber IS NOT NULL
 		ORDER BY IMCA.AuditItemMasterCapesId DESC 
 
 	END TRY 

@@ -1,4 +1,8 @@
-﻿/***************************************************************  
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.usp_UpdateItemMasterWithGLAccountNames   (source: PAS_DB/dbo/Stored Procedures/Procs3/usp_UpdateItemMasterWithGLAccountNames.sql)
+-- ---------------------------------------------------------------------------------------------------
+/***************************************************************  
  ** File:  [usp_UpdateItemMasterWithGLAccountNames]            
  ** Author:   Devendra Shekh
  ** Description: Update Item Master with default values
@@ -10,9 +14,10 @@
     1    22-July-2025		Ayushi Patel			Created
     2    27-OCt-2025		Devendra Shekh			Added Missing GLAccountIds Update for ItemMaster
     3 	 20-Nov-2025        Divyesh Kathiriya		Added Default Value for "OEM/PMA/DER"
+	4    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 
 **************************************************************/
-CREATE PROCEDURE [dbo].[usp_UpdateItemMasterWithGLAccountNames]
+CREATE   PROCEDURE [dbo].[usp_UpdateItemMasterWithGLAccountNames]
     @ItemMasterId BIGINT,
     @PartSourceVal VARCHAR(256) = NULL,
     @MasterCompanyId INT
@@ -49,7 +54,7 @@ BEGIN
 			IM.IsActive,
 			IM.IsDeleted
 		FROM dbo.ItemMaster IM WITH (NOLOCK)
-		WHERE IM.ItemMasterId = @ItemMasterId AND IM.MasterCompanyId = @MasterCompanyId;
+		WHERE IM.ItemMasterId = @ItemMasterId AND IM.MasterCompanyId = @MasterCompanyId AND ISNULL(IM.IsNonStock,0) = 0 ;
 
 		SET @MasterPartId = SCOPE_IDENTITY();
 
@@ -138,7 +143,7 @@ BEGIN
         LEFT JOIN dbo.ItemGroup IG WITH (NOLOCK) ON IM.ItemGroupId = IG.ItemGroupId
         WHERE
             IM.ItemMasterId = @ItemMasterId AND
-            IM.MasterCompanyId = @MasterCompanyId;
+            IM.MasterCompanyId = @MasterCompanyId AND ISNULL(IM.IsNonStock,0) = 0 ;
 
     END TRY
     BEGIN CATCH

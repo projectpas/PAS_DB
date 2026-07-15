@@ -48,6 +48,7 @@
 	29   20/02/2026   Moin Bloch		    added WorkOrderStatus Filter MultiSelect PN-15536
 	30	 06/03/2026   Priyash Patel		    added Memo column for CALDATA teardown type PN-15567
 	31	 10/03/2026   Priyash Patel		    changed the column to cal data PN-15709
+	32	 09/July/2026   RAJESH GAMI		    [PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	
 	exec dbo.GetWorkOrderList @PageNumber=1,@PageSize=100,@SortColumn=default,@SortOrder=-1,@StatusID=1,@GlobalFilter=default,@ViewType=N'mpn',
 	@WorkOrderNum=default,@PartNumber=default,@PartDescription=default,@WorkScope=default,@Priority=default,@CustomerName=default,@CustomerAffiliation=default,@Stage=default,
@@ -342,7 +343,7 @@ BEGIN
 			ISNULL(CWTD.Memo,'') AS CalData
 			FROM [dbo].[WorkOrder] WO WITH(NOLOCK)  
 			JOIN [dbo].[WorkOrderPartNumber] WPN WITH(NOLOCK) ON WO.[WorkOrderId] = WPN.[WorkOrderId]  
-			LEFT JOIN [dbo].[Stockline] STK WITH(NOLOCK) ON WPN.StockLineId = STK.StockLineId
+			LEFT JOIN [dbo].[Stockline] STK WITH(NOLOCK) ON WPN.StockLineId = STK.StockLineId AND ISNULL(STK.IsNonStock,0) = 0
 			LEFT JOIN [dbo].[WorkOrderQuoteDetails] WOQD WITH (NOLOCK) ON WPN.[ID] = WOQD.[WOPartNoId] AND WOQD.[IsActive] = 1 AND WOQD.[IsVersionIncrease] = 0 
 			LEFT JOIN [dbo].[WorkOrderQuote] woq WITH (NOLOCK) ON woq.[workorderquoteid] = WOQD.[workorderquoteid]
 			LEFT JOIN [dbo].[WorkOrderQuoteStatus] wqs WITH (NOLOCK) ON woq.[QuoteStatusId] = wqs.[WorkOrderQuoteStatusId] 

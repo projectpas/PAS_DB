@@ -1,4 +1,8 @@
-﻿/*************************************************************           
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.TrasnferStocklineAndCreateBatch   (source: PAS_DB/dbo/Stored Procedures/Procs1/TrasnferStocklineAndCreateBatch.sql)
+-- ---------------------------------------------------------------------------------------------------
+/*************************************************************           
  ** File:   [TrasnferStocklineAndCreateBatch]           
  ** Author: 
  ** Description: This stored procedure is used insert account report in batch FROM Stockline Adjustment.
@@ -17,12 +21,13 @@
 	1    08/23/2023   Amit Ghediya	Modify for restrict entry when amount is 0.	
 	2    01/01/2024   BHARGAV SALIYA  CONVERT DATE IN UTC
 	3    14/02/2023	  Moin Bloch	  Updated Used Distribution Setup Code Insted of Name 
+	4    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 **************************************************************/
 -----------------------------------------------------------------------------------------------------
 /*************************************************************
 -- EXEC [TrasnferStocklineAndCreateBatch] 50573,1,1,9,0,0,0,0,0,0
 **************************************************************/
-CREATE     PROCEDURE [dbo].[TrasnferStocklineAndCreateBatch]
+CREATE       PROCEDURE [dbo].[TrasnferStocklineAndCreateBatch]
 --@WorkOrderPartNumberId BIGINT
 	@StocklineId BIGINT,
 	@Qty INT,
@@ -133,7 +138,8 @@ BEGIN
 				ON CSTL.StockLineId = STL.StockLineId
 				/* PN Manufacturer Combination Stockline logic */
 
-				INSERT INTO #tmpCodePrefixestable (CodePrefixId,CodeTypeId,CurrentNumber, CodePrefix, CodeSufix, StartsFrom) 
+				 WHERE ISNULL(IM.IsNonStock,0) = 0
+INSERT INTO #tmpCodePrefixestable (CodePrefixId,CodeTypeId,CurrentNumber, CodePrefix, CodeSufix, StartsFrom) 
 				SELECT CodePrefixId, CP.CodeTypeId, CurrentNummber, CodePrefix, CodeSufix, StartsFrom 
 				FROM dbo.CodePrefixes CP WITH(NOLOCK) JOIN dbo.CodeTypes CT ON CP.CodeTypeId = CT.CodeTypeId
 				WHERE CT.CodeTypeId IN (30,17,9) AND CP.MasterCompanyId = @MasterCompanyId AND CP.IsActive = 1 AND CP.IsDeleted = 0;
@@ -473,12 +479,14 @@ BEGIN
 					  SET @Amount = (@Qty * @Amount);
 					  SET @ManagementStructureId = @ManagementStructureIdTo;
 	                  SELECT @MPNName = partnumber FROM DBO.ItemMaster WITH(NOLOCK)  WHERE ItemMasterId=@ItemmasterId 
-	                  SELECT @LastMSLevel=LastMSLevel,@AllMSlevels=AllMSlevels FROM StocklineManagementStructureDetails WITH(NOLOCK)  WHERE ReferenceID=@NewStocklineId AND ModuleID=@STKMSModuleID
+	                   AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0
+	                   SELECT @LastMSLevel=LastMSLevel,@AllMSlevels=AllMSlevels FROM StocklineManagementStructureDetails WITH(NOLOCK)  WHERE ReferenceID=@NewStocklineId AND ModuleID=@STKMSModuleID
 					  Set @ReferencePartId=0
 
 					  SELECT @PieceItemmasterId=ItemMasterId FROM Stockline WITH(NOLOCK) WHERE StockLineId=@StocklineId
 		              SELECT @PiecePN = partnumber FROM ItemMaster WITH(NOLOCK)  WHERE ItemMasterId=@PieceItemmasterId 
-				      					SET @Desc = 'Transfer - PN-' + @MPNName + '  SL-' + @StocklineNumber
+				      					 AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0
+		               SET @Desc = 'Transfer - PN-' + @MPNName + '  SL-' + @StocklineNumber
 
 					  SELECT top 1 @DistributionSetupId=ID,@DistributionName=Name,@JournalTypeId =JournalTypeId 
 					  FROM dbo.DistributionSetup WITH(NOLOCK)  WHERE UPPER([DistributionSetupCode]) =UPPER('ADJSPEC') 

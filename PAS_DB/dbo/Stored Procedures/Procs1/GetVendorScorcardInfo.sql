@@ -15,6 +15,7 @@
  ** PR   Date					Author				Change Description            
  ** --   --------				 -------		  --------------------------------          
 	 1    12-03-2025			Amit Ghediya		Created
+	 2    09/July/2026			RAJESH GAMI		[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 
 	 EXEC [dbo].[GetVendorScorcardInfo] 1,225,4767
 ****************************************************************************************/
@@ -107,7 +108,7 @@ BEGIN
     				WHERE SL.[vendorid] = @VendorId 
 					AND Sl.isActive = 1 AND SL.isDeleted = 0
     				AND SL.[IsParent] = 1 
-    				AND CAST(SL.[CreatedDate] AS DATE) BETWEEN DATEADD(yy, DATEDIFF(yy, 0, DATEADD(yy, -2, GETUTCDATE())), 0) AND GETUTCDATE()
+    				AND CAST(SL.[CreatedDate] AS DATE) BETWEEN DATEADD(yy, DATEDIFF(yy, 0, DATEADD(yy, -2, GETUTCDATE())), 0) AND GETUTCDATE() AND ISNULL(SL.IsNonStock,0) = 0
 					GROUP BY SL.PurchaseOrderPartRecordId,SL.[vendorid],tmp.[TotalQty];
 				
 			 INSERT INTO #tmpdatastk(VendorId,PurchaseOrderPartRecordId,TotalQty,OnTimeQty)
@@ -122,7 +123,7 @@ BEGIN
     				WHERE SL.[vendorid] = @VendorId 
 					AND Sl.isActive = 1 AND SL.isDeleted = 0
     				AND SL.[IsParent] = 1 
-    				AND CAST(SL.[CreatedDate] AS DATE) BETWEEN DATEADD(yy, DATEDIFF(yy, 0, DATEADD(yy, -2, GETUTCDATE())), 0) AND GETUTCDATE()
+    				AND CAST(SL.[CreatedDate] AS DATE) BETWEEN DATEADD(yy, DATEDIFF(yy, 0, DATEADD(yy, -2, GETUTCDATE())), 0) AND GETUTCDATE() AND ISNULL(SL.IsNonStock,0) = 0
 					GROUP BY SL.RepairOrderPartRecordId,SL.[vendorid],tmp.[TotalQty]	
 				
 				--Set Final calculation

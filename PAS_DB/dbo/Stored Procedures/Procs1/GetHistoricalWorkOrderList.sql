@@ -1,4 +1,8 @@
-﻿/*************************************************************             
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.GetHistoricalWorkOrderList   (source: PAS_DB/dbo/Stored Procedures/Procs1/GetHistoricalWorkOrderList.sql)
+-- ---------------------------------------------------------------------------------------------------
+/*************************************************************             
  ** File:   [GetHistoricalWorkOrderList]             
  ** Author:   Hemant Saliya  
  ** Description: Get Search Historical Data for Work Order List      
@@ -15,11 +19,12 @@
     1    03/15/2020   Hemant Saliya Created  
 	2    06/06/2023   Hemant Saliya Updated Teardown WO Name  
 	3    26/03/2026   Moin Bloch	Rename TearDown To Internal Teardown PN-15850
+	4    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
   
  EXECUTE [GetHistoricalWorkOrderList] 1, 100, null, -1, 1, '', '','','','','','','','','','2021-02-26','','','','','','','',1  
 **************************************************************/   
   
-CREATE   PROCEDURE [dbo].[GetHistoricalWorkOrderList]   
+CREATE     PROCEDURE [dbo].[GetHistoricalWorkOrderList]   
  @PageNumber int,  
  @PageSize int,  
  @SortColumn varchar(50)=null,  
@@ -119,7 +124,7 @@ BEGIN
         INNER JOIN dbo.ItemMaster IM WITH (NOLOCK) on IM.ItemMasterId =  WOP.ItemMasterId  
         INNER JOIN dbo.Customer C WITH (NOLOCK) on C.CustomerId = WO.CustomerId  
       WHERE (WO.MasterCompanyId = @MasterCompanyId  and wo.CustomerId=@customerId and WOP.ItemMasterId = @ItemMasterID and WOP.WorkOrderScopeId = @WorkScope AND (ISNULL(WO.IsDeleted, 0) = @IsDeleted) and (@IsActive is null or WO.IsActive = @IsActive))  
-      ), ResultCount AS(Select COUNT(WorkOrderId) AS totalItems FROM Result)  
+       AND ISNULL(IM.IsNonStock,0) = 0 ), ResultCount AS(Select COUNT(WorkOrderId) AS totalItems FROM Result)  
       SELECT * INTO #TempResult from  Result  
       WHERE (  
       (@GlobalFilter <>'' AND ((WorkOrderNum like '%' +@GlobalFilter+'%' ) OR   
@@ -217,7 +222,7 @@ BEGIN
         INNER JOIN dbo.ItemMaster IM WITH (NOLOCK) on IM.ItemMasterId =  WOP.ItemMasterId  
         INNER JOIN dbo.Customer C WITH (NOLOCK) on C.CustomerId = WO.CustomerId  
       WHERE (WO.MasterCompanyId = @MasterCompanyId and WOP.ItemMasterId = @ItemMasterID and WOP.WorkOrderScopeId = @WorkScope AND (ISNULL(WO.IsDeleted, 0) = @IsDeleted) and (@IsActive is null or WO.IsActive = @IsActive))  
-      ), ResultCount AS(Select COUNT(WorkOrderId) AS totalItems FROM Result)  
+       AND ISNULL(IM.IsNonStock,0) = 0 ), ResultCount AS(Select COUNT(WorkOrderId) AS totalItems FROM Result)  
       SELECT * INTO #TempResult1 from  Result  
       WHERE (  
       (@GlobalFilter <>'' AND ((WorkOrderNum like '%' +@GlobalFilter+'%' ) OR   

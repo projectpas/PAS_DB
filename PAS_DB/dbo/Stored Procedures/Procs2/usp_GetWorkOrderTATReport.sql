@@ -1,4 +1,8 @@
-﻿/*************************************************************           
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.usp_GetWorkOrderTATReport   (source: PAS_DB/dbo/Stored Procedures/Procs2/usp_GetWorkOrderTATReport.sql)
+-- ---------------------------------------------------------------------------------------------------
+/*************************************************************           
  ** File:   [usp_GetWorkOrderTATReport]           
  ** Author:   Swetha  
  ** Description: Get Data for WorkOrderTAT Report
@@ -18,11 +22,12 @@
 	2	        		Swetha		Added Transaction & NO LOCK
 	3	30-Nov-2021		Hemant		Updated Managment Structure Details and Date filter Condition
 	4	01/31/2024		Devendra Shekh	added isperforma Flage for WO 
+	5    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
      
 EXECUTE   [dbo].[usp_GetWorkOrderTATReport] '','2020-04-25','2021-04-25','1','1,4,43,44,45,80,84,88','46,47,66','48,49,50,58,59,67,68,69','51,52,53,54,55,56,57,60,61,62,64,70,71,72'
 **************************************************************/
 --EXEC usp_GetWorkOrderTATReport  '1,4,43,44,45,80,84,88','46,47','58,59','64,65,77'
-CREATE PROCEDURE [dbo].[usp_GetWorkOrderTATReport] @name varchar(40) = NULL,
+CREATE   PROCEDURE [dbo].[usp_GetWorkOrderTATReport] @name varchar(40) = NULL,
 @Fromdate datetime,
 @Todate datetime,
 @mastercompanyid int,
@@ -118,7 +123,8 @@ BEGIN
           ON WO.WorkOrderId = WOPN.WorkOrderId
         LEFT JOIN DBO.ItemMaster IM WITH (NOLOCK)
           ON WOPN.itemmasterId = IM.itemmasterId
-        LEFT JOIN DBO.WorkScope AS WS WITH (NOLOCK)
+         AND ISNULL(IM.IsNonStock,0) = 0
+           LEFT JOIN DBO.WorkScope AS WS WITH (NOLOCK)
           ON WOPN.WorkOrderScopeId = WS.WorkScopeId
         LEFT JOIN DBO.Condition CDTN WITH (NOLOCK)
           ON WOPN.ConditionId = CDTN.ConditionId

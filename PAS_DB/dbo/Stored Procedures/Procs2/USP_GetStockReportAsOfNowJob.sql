@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿-- ===== PROCEDURE: [dbo].[USP_GetStockReportAsOfNowJob]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs2/USP_GetStockReportAsOfNowJob.sql) =====
+/*************************************************************           
  ** File:   [usprpt_GetStockReportAsOfNow]           
  ** Author:   Moin Bloch
  ** Description: Get Data for Stock Report  
@@ -12,11 +13,13 @@
  ** S NO   Date         Author  			Change Description            
  ** --   --------		-------				--------------------------------          
 	1	 12-09-2025		Moin Bloch		     Created
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	3    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
    
    EXEC USP_GetStockReportAsOfNowJob @mastercompanyid=1, @id=N'09/09/2025',@id2=N'', @id3=1, @id5='2,7,17,24!!!!', @id6=0,@id8 = '', @strFilter=N'1,5,6!2,7,8,9!3,11,10!4,12,13!!!!!!' 
    EXEC USP_GetStockReportAsOfNowJob @StartDate = '2025-08-16',@EndDate='2025-09-16',@mastercompanyid=1
 **************************************************************/
-CREATE      PROCEDURE [dbo].[USP_GetStockReportAsOfNowJob]	
+CREATE   PROCEDURE [dbo].[USP_GetStockReportAsOfNowJob]	
 	@StartDate DATE = NULL,
 	@EndDate DATE = NULL,
 	@MasterCompanyId INT = NULL,
@@ -217,7 +220,8 @@ BEGIN
 	 AND  (ISNULL(@ExcludedLocations,'') = '' OR stl.[LocationId] NOT IN (SELECT Item FROM DBO.SPLITSTRING(@ExcludedLocations,',')))
 	   
 	/* Reduce Received Items from AsOfNow till Today */
-	IF OBJECT_ID(N'tempdb..#TEMPStocklineReceivedDate') IS NOT NULL    
+	 AND ISNULL(im.IsNonStock,0) = 0 AND ISNULL(stl.IsNonStock,0) = 0
+	 IF OBJECT_ID(N'tempdb..#TEMPStocklineReceivedDate') IS NOT NULL    
 	BEGIN    
 		DROP TABLE #TEMPStocklineReceivedDate
 	END
@@ -243,7 +247,7 @@ BEGIN
 	 AND stl.[IsDeleted] = 0 
 	 AND ISNULL(stl.[IsCustomerStock],0) = 0
      AND (CAST(stl.[ReceivedDate] AS DATE) > CAST(@EndDate AS DATE) AND CAST(stl.[ReceivedDate] AS DATE) < CAST(@EndDate AS DATE)) 
-     AND (ISNULL(@ExcludedLocations,'') = '' OR stl.LocationId NOT IN (SELECT Item FROM DBO.SPLITSTRING(@ExcludedLocations,',')))
+     AND (ISNULL(@ExcludedLocations,'') = '' OR stl.LocationId NOT IN (SELECT Item FROM DBO.SPLITSTRING(@ExcludedLocations,','))) AND ISNULL(stl.IsNonStock,0) = 0
 
 	 UPDATE StkOriginal
 	 SET StkOriginal.[QTY_on_Hand] = StkOriginal.[QTY_on_Hand] - StkReceived.[Qty],
@@ -277,7 +281,7 @@ BEGIN
 	AND stl.[IsDeleted] = 0 	
 	AND ISNULL(stl.[IsCustomerStock],0) = 0
 	AND (CAST(StkHistory.[UpdatedDate] AS DATE) > CAST(@EndDate AS DATE) AND CAST(StkHistory.[UpdatedDate] AS DATE) < CAST(@EndDate AS DATE))	
-	AND (ISNULL(@ExcludedLocations,'') = '' OR stl.[LocationId] NOT IN (SELECT Item FROM DBO.SPLITSTRING(@ExcludedLocations,',')))
+	AND (ISNULL(@ExcludedLocations,'') = '' OR stl.[LocationId] NOT IN (SELECT Item FROM DBO.SPLITSTRING(@ExcludedLocations,','))) AND ISNULL(stl.IsNonStock,0) = 0
 	 GROUP BY StkHistory.[StockLineId], stl.[MasterCompanyId]
 
 	 UPDATE StkOriginal
@@ -312,7 +316,7 @@ BEGIN
 	AND stl.[IsDeleted] = 0 	
 	AND ISNULL(stl.[IsCustomerStock],0) = 0
 	AND (CAST(StkHistory.[UpdatedDate] AS DATE) > CAST(@EndDate AS DATE) AND CAST(StkHistory.[UpdatedDate] AS DATE) < CAST(@EndDate AS DATE))	
-	AND (ISNULL(@ExcludedLocations,'') = '' OR stl.[LocationId] NOT IN (SELECT Item FROM DBO.SPLITSTRING(@ExcludedLocations,',')))
+	AND (ISNULL(@ExcludedLocations,'') = '' OR stl.[LocationId] NOT IN (SELECT Item FROM DBO.SPLITSTRING(@ExcludedLocations,','))) AND ISNULL(stl.IsNonStock,0) = 0
 	GROUP BY StkHistory.[StockLineId], stl.[MasterCompanyId];
 
 	-- Increase Consumed Qty
@@ -347,7 +351,7 @@ BEGIN
 	  AND stl.[IsDeleted] = 0 	  
 	  AND ISNULL(stl.[IsCustomerStock],0) = 0
 	  AND (CAST(StkHistory.[UpdatedDate] AS DATE) > CAST(@EndDate AS DATE) AND CAST(StkHistory.[UpdatedDate] AS DATE) < CAST(@EndDate AS DATE))	
-	  AND (ISNULL(@ExcludedLocations,'') = '' OR stl.[LocationId] NOT IN (SELECT Item FROM DBO.SPLITSTRING(@ExcludedLocations,',')))
+	  AND (ISNULL(@ExcludedLocations,'') = '' OR stl.[LocationId] NOT IN (SELECT Item FROM DBO.SPLITSTRING(@ExcludedLocations,','))) AND ISNULL(stl.IsNonStock,0) = 0
 	GROUP BY StkHistory.[StockLineId], stl.[MasterCompanyId];
 
 	-- Remove Un-Issued Qty
@@ -383,7 +387,7 @@ BEGIN
 	AND stl.[IsDeleted] = 0	
 	AND ISNULL(stl.[IsCustomerStock],0) = 0
 	AND (CAST(StkAdjust.[CreatedDate] AS DATE) > CAST(@EndDate AS DATE) AND CAST(StkAdjust.[CreatedDate] AS DATE) < CAST(@EndDate AS DATE))	
-	AND (ISNULL(@ExcludedLocations,'') = '' OR stl.[LocationId] NOT IN (SELECT Item FROM DBO.SPLITSTRING(@ExcludedLocations,',')))
+	AND (ISNULL(@ExcludedLocations,'') = '' OR stl.[LocationId] NOT IN (SELECT Item FROM DBO.SPLITSTRING(@ExcludedLocations,','))) AND ISNULL(stl.IsNonStock,0) = 0
 	GROUP BY StkAdjust.[StockLineId], stl.[MasterCompanyId];
 
 	INSERT INTO #TEMPStocklineQtyAdjusted_Reduced ([StocklineId], [QTY_OH], [MasterCompanyId])
@@ -399,7 +403,7 @@ BEGIN
 	AND stl.[IsDeleted] = 0	
 	AND ISNULL(stl.[IsCustomerStock],0) = 0
 	AND (CAST(StkAdjust.[CreatedDate] AS DATE) > CAST(@EndDate AS DATE) AND CAST(StkAdjust.[CreatedDate] AS DATE) < CAST(@EndDate AS DATE))	
-	AND (ISNULL(@ExcludedLocations,'') = '' OR stl.LocationId NOT IN (SELECT Item FROM DBO.SPLITSTRING(@ExcludedLocations,',')))
+	AND (ISNULL(@ExcludedLocations,'') = '' OR stl.LocationId NOT IN (SELECT Item FROM DBO.SPLITSTRING(@ExcludedLocations,','))) AND ISNULL(stl.IsNonStock,0) = 0
 	GROUP BY StkAdjust.StockLineId, stl.MasterCompanyId;
 
 	-- Increase Adjusted Qty (Decreased Qty)
@@ -435,7 +439,7 @@ BEGIN
 	AND stl.[IsDeleted] = 0
 	AND ISNULL(stl.[IsCustomerStock],0) = 0
 	AND CAST(StkAdjust.[CreatedDate] AS DATE) BETWEEN CAST(@EndDate AS DATE) AND CAST(@EndDate AS DATE)  	
-	AND (ISNULL(@ExcludedLocations,'') = '' OR stl.LocationId NOT IN (SELECT Item FROM DBO.SPLITSTRING(@ExcludedLocations,',')))
+	AND (ISNULL(@ExcludedLocations,'') = '' OR stl.LocationId NOT IN (SELECT Item FROM DBO.SPLITSTRING(@ExcludedLocations,','))) AND ISNULL(stl.IsNonStock,0) = 0
 	GROUP BY StkAdjust.StockLineId, stl.MasterCompanyId;
 
 	INSERT INTO #TEMPStocklineQtyAdjusted_Increased ([StocklineId], [QTY_OH], [MasterCompanyId])
@@ -451,7 +455,7 @@ BEGIN
 	AND stl.[IsDeleted] = 0
 	AND ISNULL(stl.[IsCustomerStock],0) = 0
 	AND (CAST(StkAdjust.[CreatedDate] AS DATE) > CAST(@EndDate AS DATE) AND CAST(StkAdjust.[CreatedDate] AS DATE) < CAST(@EndDate AS DATE))	
-	AND (ISNULL(@ExcludedLocations,'') = '' OR stl.LocationId NOT IN (SELECT Item FROM DBO.SPLITSTRING(@ExcludedLocations,',')))
+	AND (ISNULL(@ExcludedLocations,'') = '' OR stl.LocationId NOT IN (SELECT Item FROM DBO.SPLITSTRING(@ExcludedLocations,','))) AND ISNULL(stl.IsNonStock,0) = 0
 	GROUP BY StkAdjust.StockLineId, stl.MasterCompanyId;
 
 	-- Removed Adjusted Qty (Increased Qty)
@@ -487,7 +491,7 @@ BEGIN
 	  AND stl.[IsDeleted] = 0 
 	  AND ISNULL(stl.[IsCustomerStock],0) = 0
 	  AND (CAST(StkAdjust.[CreatedDate] AS DATE) > CAST(@EndDate AS DATE) AND CAST(StkAdjust.[CreatedDate] AS DATE) < CAST(@EndDate AS DATE))	
-	  AND (ISNULL(@ExcludedLocations,'') = '' OR stl.LocationId NOT IN (SELECT Item FROM DBO.SPLITSTRING(@ExcludedLocations,',')))
+	  AND (ISNULL(@ExcludedLocations,'') = '' OR stl.LocationId NOT IN (SELECT Item FROM DBO.SPLITSTRING(@ExcludedLocations,','))) AND ISNULL(stl.IsNonStock,0) = 0
 	GROUP BY StkAdjust.StockLineId, stl.MasterCompanyId;
 
 	UPDATE StkOriginal
@@ -521,7 +525,7 @@ BEGIN
 	  AND stl.[IsDeleted] = 0 
 	  AND ISNULL(stl.[IsCustomerStock],0) = 0
 	  AND (CAST(StkAdjust.[CreatedDate] AS DATE) > CAST(@EndDate AS DATE) AND CAST(StkAdjust.[CreatedDate] AS DATE) < CAST(@EndDate AS DATE))	
-	  AND (ISNULL(@ExcludedLocations,'') = '' OR stl.[LocationId] NOT IN (SELECT Item FROM DBO.SPLITSTRING(@ExcludedLocations,',')))
+	  AND (ISNULL(@ExcludedLocations,'') = '' OR stl.[LocationId] NOT IN (SELECT Item FROM DBO.SPLITSTRING(@ExcludedLocations,','))) AND ISNULL(stl.IsNonStock,0) = 0
 	GROUP BY StkAdjust.[StockLineId], stl.[MasterCompanyId];
 
 	UPDATE StkOriginal
@@ -556,7 +560,7 @@ BEGIN
 	  AND stl.[IsDeleted]= 0 
 	  AND ISNULL(stl.[IsCustomerStock],0) = 0
 	  AND (CAST(BStkAdjust.[UpdatedDate] AS DATE) > CAST(@EndDate AS DATE) AND CAST(BStkAdjust.[UpdatedDate] AS DATE) < CAST(@EndDate AS DATE))	
-	  AND  (ISNULL(@ExcludedLocations,'') = '' OR stl.LocationId NOT IN (SELECT Item FROM DBO.SPLITSTRING(@ExcludedLocations,',')))
+	  AND  (ISNULL(@ExcludedLocations,'') = '' OR stl.LocationId NOT IN (SELECT Item FROM DBO.SPLITSTRING(@ExcludedLocations,','))) AND ISNULL(stl.IsNonStock,0) = 0
 	GROUP BY BStkAdjustD.StockLineId, stl.MasterCompanyId;
 
 	UPDATE StkOriginal

@@ -24,6 +24,7 @@
     11   12-02-2026    Moin Bloch		Modified Added TearDown Work Order Issue Operation PN-15435
 	12   26-03-2026    Moin Bloch	    Rename TearDown To Internal Teardown PN-15850
 	13	 26-06-2026	   Abhishek Jirawla Added Repair Order Piece part listing and calculations in the SP.
+	14	 09/July/2026   RAJESH GAMI   [PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 
 	EXEC [dbo].[GetStocklineReservedIssuedReportByStocklineId] 183296,1,1
 
@@ -194,7 +195,7 @@ BEGIN
 					INNER JOIN [dbo].[StocklineManagementStructureDetails] SLM WITH(NOLOCK) ON SLM.ReferenceID = SL.StockLineId AND WOP.MasterCompanyId = SLM.MasterCompanyId
 					--INNER JOIN [dbo].[Employee] EM WITH(NOLOCK) ON EM.EmployeeId = WM.ReservedById
 					WHERE WOP.MasterCompanyId = @MasterCompanyId AND WOP.StockLineId = @StocklineId AND ISNULL(WOP.Quantity,0) > 0 AND ISNULL(WOP.IsClosed,0) = 0 AND ISNULL(WOP.IsFinishGood,0) = 0
-					AND (ISNULL(WOP.RepairOrderId,0) = 0 OR ISNULL((SELECT RO.StatusId FROM Dbo.RepairOrder RO WITH (NOLOCK) WHERE Ro.RepairOrderId = ISNULL(WOP.RepairOrderId,0)),0) = @ROClosedStatusId )
+					AND (ISNULL(WOP.RepairOrderId,0) = 0 OR ISNULL((SELECT RO.StatusId FROM Dbo.RepairOrder RO WITH (NOLOCK) WHERE Ro.RepairOrderId = ISNULL(WOP.RepairOrderId,0)),0) = @ROClosedStatusId ) AND ISNULL(SL.IsNonStock,0) = 0
 				   --AND (ISNULL(WOP.IsFinishGood,0) != 1 OR ISNULL(WOP.IsClosed,0) != 1 OR ISNULL(WOP.WorkOrderStatusId,0) != @WOCloseStatusId OR ISNULL(WO.WorkOrderStatusId,0) != @WOCloseStatusId)
 				   --AND ISNULL(WO.IsActive,0) = 1 AND ISNULL(WMS.IsActive,0) = 1 AND ISNULL(WMS.IsDeleted,0) = 0 AND ISNULL(WO.IsDeleted,0) = 0 
 				--* END: WorkOrderPartNumber For Reserve *--
@@ -250,7 +251,7 @@ BEGIN
 					AND ISNULL(ROP.IsDeleted,0) = 0 AND ISNULL(RO.IsDeleted,0) = 0 AND ISNULL(ROP.IsParent,0) = 1
 					AND ISNULL(ROP.QuantityReserved,0) > 0  AND ISNULL(ROP.IsDeleted,0) = 0
 					AND ISNULL(RO.StatusId,0) != @ROClosedStatusId AND ISNULL(RO.StatusId,0) != @ROCancelStatusId
-					AND ISNULL(ROP.IsPiecePart, 0) = 0
+					AND ISNULL(ROP.IsPiecePart, 0) = 0 AND ISNULL(SL.IsNonStock,0) = 0
 						
 				--* END: RepairOrder For Reserve *--
 
@@ -304,7 +305,7 @@ BEGIN
 					AND ISNULL(ESR.IsActive,0) = 1 AND ISNULL(ESO.IsActive,0) = 1 AND ISNULL(ESR.IsDeleted,0) = 0 
 					AND ISNULL(ESO.IsDeleted,0) = 0 
 					AND ISNULL(ESR.QtyToReserve,0) > 0 
-					AND (ISNULL(ESO.StatusId,0) != @ExchClosedStatusId OR ISNULL(ESR.PartStatusId,0) != @ExchCancelStatusId OR ISNULL(ESO.IsVendor,0) != 1)
+					AND (ISNULL(ESO.StatusId,0) != @ExchClosedStatusId OR ISNULL(ESR.PartStatusId,0) != @ExchCancelStatusId OR ISNULL(ESO.IsVendor,0) != 1) AND ISNULL(SL.IsNonStock,0) = 0
 			
 				--* END: ExchangeSalesOrder For Reserve *--
 
@@ -353,7 +354,7 @@ BEGIN
 					WHERE VRD.MasterCompanyId = @MasterCompanyId AND VRD.StockLineId = @StocklineId 
 					AND ISNULL(VRD.IsActive,0) = 1 AND ISNULL(VRD.IsDeleted,0) = 0 
 					AND ISNULL(VRD.Qty,0) > 0 
-					AND (ISNULL(VRD.VendorRMAStatusId,0) NOT IN(@RMAShipToVendor,@RMAReplaced,@RMARefunded,@RMACancel))
+					AND (ISNULL(VRD.VendorRMAStatusId,0) NOT IN(@RMAShipToVendor,@RMAReplaced,@RMARefunded,@RMACancel)) AND ISNULL(SL.IsNonStock,0) = 0
 		
 				--* END: RMA For Reserve *--
 
@@ -405,7 +406,7 @@ BEGIN
 					LEFT JOIN dbo.Employee emp WITH(NOLOCK) ON SOR.ReservedById = emp.EmployeeId
 					WHERE SSTL.MasterCompanyId = @MasterCompanyId AND SSTL.StockLineId = @StocklineId 
 					AND ISNULL(ESO.IsDeleted,0) = 0 
-					AND ISNULL(SSTL.QtyReserved,0) > 0 AND ISNULL(SOP.IsActive,0) = 1 AND ISNULL(ESO.IsActive,0) = 1 AND ISNULL(SOP.IsDeleted,0) = 0
+					AND ISNULL(SSTL.QtyReserved,0) > 0 AND ISNULL(SOP.IsActive,0) = 1 AND ISNULL(ESO.IsActive,0) = 1 AND ISNULL(SOP.IsDeleted,0) = 0 AND ISNULL(SL.IsNonStock,0) = 0
 				--* END: SalesOrder For Reserve *--
 
 				--* START: Stockline Bulk Adjustment For Reserve *--
@@ -443,7 +444,7 @@ BEGIN
 					WHERE SSTL.MasterCompanyId = @MasterCompanyId AND SSTL.StockLineId = @StocklineId 
 					AND ISNULL(ESO.IsDeleted,0) = 0 AND ISNULL(SSTL.IsDeleted,0) = 0
 					AND ISNULL(SSTL.NewQty,0) > 0 AND  ISNULL(SSTL.QtyAdjustment,0) > 0
-					AND ESO.StatusId != @AdjPostedStatusId
+					AND ESO.StatusId != @AdjPostedStatusId AND ISNULL(SL.IsNonStock,0) = 0
 				--* END: Stockline Bulk Adjustment For Reserve *--
 		 END
 		 IF(@DisplayType = 1)
@@ -497,7 +498,7 @@ BEGIN
 					--INNER JOIN [dbo].[Employee] EM WITH(NOLOCK) ON EM.EmployeeId = WM.ReservedById
 					WHERE WMS.MasterCompanyId = @MasterCompanyId AND WMS.StockLineId = @StocklineId AND ISNULL(WMS.QtyReserved,0) > 0 
 						 AND ISNULL(WO.IsActive,0) = 1 AND ISNULL(WMS.IsActive,0) = 1 AND ISNULL(WMS.IsDeleted,0) = 0 AND ISNULL(WO.IsDeleted,0) = 0 
-						 AND (ISNULL(WOP.IsFinishGood,0) != 1 OR ISNULL(WOP.IsClosed,0) != 1 OR ISNULL(WOP.WorkOrderStatusId,0) != @WOCloseStatusId OR ISNULL(WO.WorkOrderStatusId,0) != @WOCloseStatusId)
+						 AND (ISNULL(WOP.IsFinishGood,0) != 1 OR ISNULL(WOP.IsClosed,0) != 1 OR ISNULL(WOP.WorkOrderStatusId,0) != @WOCloseStatusId OR ISNULL(WO.WorkOrderStatusId,0) != @WOCloseStatusId) AND ISNULL(SL.IsNonStock,0) = 0
 			
 				--* END: WorkOrderMaterialStockline For Reserve *--
 
@@ -551,7 +552,7 @@ BEGIN
 					WHERE WMS.MasterCompanyId = @MasterCompanyId AND WMS.StockLineId = @StocklineId 
 					AND ISNULL(WMS.QtyReserved,0) > 0 
 					AND ISNULL(WO.IsActive,0) = 1 AND ISNULL(WMS.IsActive,0) = 1 AND ISNULL(WMS.IsDeleted,0) = 0 AND ISNULL(WO.IsDeleted,0) = 0 
-					AND (ISNULL(WOP.IsFinishGood,0) != 1 OR ISNULL(WOP.IsClosed,0) != 1 OR ISNULL(WOP.WorkOrderStatusId,0) != @WOCloseStatusId OR ISNULL(WO.WorkOrderStatusId,0) != @WOCloseStatusId)
+					AND (ISNULL(WOP.IsFinishGood,0) != 1 OR ISNULL(WOP.IsClosed,0) != 1 OR ISNULL(WOP.WorkOrderStatusId,0) != @WOCloseStatusId OR ISNULL(WO.WorkOrderStatusId,0) != @WOCloseStatusId) AND ISNULL(SL.IsNonStock,0) = 0
 						
 				--* END: WorkOrderMaterialStocklineKit For Reserve *--
 
@@ -608,7 +609,7 @@ BEGIN
 					AND ISNULL(SWMS.QtyReserved,0) > 0 
 					AND ISNULL(SWO.IsActive,0) = 1 AND ISNULL(SWMS.IsActive,0) = 1 
 					AND ISNULL(SWMS.IsDeleted,0) = 0 AND ISNULL(SWO.IsDeleted,0) = 0 
-					AND (ISNULL(SWOP.IsFinishGood,0) != 1 OR ISNULL(SWOP.IsClosed,0) != 1 OR ISNULL(SWOP.SubWorkOrderStatusId,0) != @WOCloseStatusId OR ISNULL(SWO.SubWorkOrderStatusId,0) != @WOCloseStatusId)
+					AND (ISNULL(SWOP.IsFinishGood,0) != 1 OR ISNULL(SWOP.IsClosed,0) != 1 OR ISNULL(SWOP.SubWorkOrderStatusId,0) != @WOCloseStatusId OR ISNULL(SWO.SubWorkOrderStatusId,0) != @WOCloseStatusId) AND ISNULL(SL.IsNonStock,0) = 0
 						
 				--* END: SubWorkOrderMaterialStockline For Reserve *--
 
@@ -664,7 +665,7 @@ BEGIN
 					AND ISNULL(SWMS.QtyReserved,0) > 0 
 					AND ISNULL(SWO.IsActive,0) = 1 AND ISNULL(SWMS.IsActive,0) = 1 
 					AND ISNULL(SWMS.IsDeleted,0) = 0 AND ISNULL(SWO.IsDeleted,0) = 0 
-					AND (ISNULL(SWOP.IsFinishGood,0) != 1 OR ISNULL(SWOP.IsClosed,0) != 1 OR ISNULL(SWOP.SubWorkOrderStatusId,0) != @WOCloseStatusId OR ISNULL(SWO.SubWorkOrderStatusId,0) != @WOCloseStatusId)
+					AND (ISNULL(SWOP.IsFinishGood,0) != 1 OR ISNULL(SWOP.IsClosed,0) != 1 OR ISNULL(SWOP.SubWorkOrderStatusId,0) != @WOCloseStatusId OR ISNULL(SWO.SubWorkOrderStatusId,0) != @WOCloseStatusId) AND ISNULL(SL.IsNonStock,0) = 0
 					
 				--* END: SubWorkOrderMaterialStocklineKit For Reserve *--
 
@@ -715,7 +716,7 @@ BEGIN
 						WHERE ROP.MasterCompanyId = @MasterCompanyId AND ROP.StockLineId = @StocklineId
 						AND ISNULL(RO.IsActive,0) = 1 AND ISNULL(ROP.IsActive,0) = 1 AND ISNULL(ROP.IsDeleted,0) = 0 AND ISNULL(RO.IsDeleted,0) = 0 
 						AND ISNULL(ROP.QuantityReserved,0) > 0
-						AND ISNULL(ROP.IsPiecePart, 0) = 1
+						AND ISNULL(ROP.IsPiecePart, 0) = 1 AND ISNULL(SL.IsNonStock,0) = 0
 
 				--* END: Repair Order Part For Issued (Incase of piece part) *--
 
@@ -773,7 +774,7 @@ BEGIN
 						WHERE WMS.MasterCompanyId = @MasterCompanyId AND WMS.StockLineId = @StocklineId
 						AND ISNULL(WO.IsActive,0) = 1 AND ISNULL(WMS.IsActive,0) = 1 AND ISNULL(WMS.IsDeleted,0) = 0 AND ISNULL(WO.IsDeleted,0) = 0 
 						AND ISNULL(WMS.QtyIssued,0) > 0 
-						AND (ISNULL(WOP.IsFinishGood,0) != 1 OR ISNULL(WOP.IsClosed,0) != 1 OR ISNULL(WOP.WorkOrderStatusId,0) != @WOCloseStatusId OR ISNULL(WO.WorkOrderStatusId,0) != @WOCloseStatusId)
+						AND (ISNULL(WOP.IsFinishGood,0) != 1 OR ISNULL(WOP.IsClosed,0) != 1 OR ISNULL(WOP.WorkOrderStatusId,0) != @WOCloseStatusId OR ISNULL(WO.WorkOrderStatusId,0) != @WOCloseStatusId) AND ISNULL(SL.IsNonStock,0) = 0
 							
 				--* END: WorkOrderMaterialStockline For Issued *--
 
@@ -826,7 +827,7 @@ BEGIN
 					--INNER JOIN [dbo].[Employee] EM  WITH(NOLOCK) ON EM.EmployeeId = WM.IssuedById
 					WHERE WMS.MasterCompanyId = @MasterCompanyId AND WMS.StockLineId = @StocklineId AND ISNULL(WMS.QtyIssued,0) > 0 
 					AND ISNULL(WO.IsActive,0) = 1  AND ISNULL(WMS.IsActive,0) = 1 AND ISNULL(WMS.IsDeleted,0) = 0 AND ISNULL(WO.IsDeleted,0) = 0 
-					AND (ISNULL(WOP.IsFinishGood,0) != 1 OR ISNULL(WOP.IsClosed,0) != 1 OR ISNULL(WOP.WorkOrderStatusId,0) != @WOCloseStatusId OR ISNULL(WO.WorkOrderStatusId,0) != @WOCloseStatusId)
+					AND (ISNULL(WOP.IsFinishGood,0) != 1 OR ISNULL(WOP.IsClosed,0) != 1 OR ISNULL(WOP.WorkOrderStatusId,0) != @WOCloseStatusId OR ISNULL(WO.WorkOrderStatusId,0) != @WOCloseStatusId) AND ISNULL(SL.IsNonStock,0) = 0
 						
 				--* END: WorkOrderMaterialStocklineKit For Issued *--
 
@@ -882,7 +883,7 @@ BEGIN
 					WHERE SWMS.MasterCompanyId = @MasterCompanyId AND SWMS.StockLineId = @StocklineId  AND ISNULL(SWMS.QtyIssued,0) > 0  
 					AND ISNULL(SWO.IsActive,0) = 1 
 					AND ISNULL(SWMS.IsActive,0) = 1 AND ISNULL(SWMS.IsDeleted,0) = 0 AND ISNULL(SWO.IsDeleted,0) = 0  
-					AND (ISNULL(SWOP.IsFinishGood,0) != 1 OR ISNULL(SWOP.IsClosed,0) != 1 OR ISNULL(SWOP.SubWorkOrderStatusId,0) != @WOCloseStatusId OR ISNULL(SWO.SubWorkOrderStatusId,0) != @WOCloseStatusId)
+					AND (ISNULL(SWOP.IsFinishGood,0) != 1 OR ISNULL(SWOP.IsClosed,0) != 1 OR ISNULL(SWOP.SubWorkOrderStatusId,0) != @WOCloseStatusId OR ISNULL(SWO.SubWorkOrderStatusId,0) != @WOCloseStatusId) AND ISNULL(SL.IsNonStock,0) = 0
 				--* END: SUBWorkOrderMaterialStockline For Issued *--
 
 				--* START: SUBWorkOrderMaterialStocklineKit For Issued *--
@@ -936,7 +937,7 @@ BEGIN
 					--INNER JOIN [dbo].[Employee] EM WITH(NOLOCK) ON EM.EmployeeId = SWM.IssuedById
 					WHERE SWMS.MasterCompanyId = @MasterCompanyId AND SWMS.StockLineId = @StocklineId AND ISNULL(SWMS.QtyIssued,0) > 0 
 					AND ISNULL(SWMS.IsActive,0) = 1AND ISNULL(SWMS.IsDeleted,0) = 0  AND ISNULL(SWO.IsActive,0) = 1  
-					AND ISNULL(SWO.IsDeleted,0) = 0  AND (ISNULL(SWOP.IsFinishGood,0) != 1 OR ISNULL(SWOP.IsClosed,0) != 1 OR ISNULL(SWOP.SubWorkOrderStatusId,0) != @WOCloseStatusId OR ISNULL(SWO.SubWorkOrderStatusId,0) != @WOCloseStatusId)
+					AND ISNULL(SWO.IsDeleted,0) = 0  AND (ISNULL(SWOP.IsFinishGood,0) != 1 OR ISNULL(SWOP.IsClosed,0) != 1 OR ISNULL(SWOP.SubWorkOrderStatusId,0) != @WOCloseStatusId OR ISNULL(SWO.SubWorkOrderStatusId,0) != @WOCloseStatusId) AND ISNULL(SL.IsNonStock,0) = 0
 
 				--* END: SUBWorkOrderMaterialStockline For Issued *--
 
@@ -988,7 +989,7 @@ BEGIN
 						INNER JOIN [dbo].[WorkOrder] WO WITH(NOLOCK) ON WO.WorkOrderId = WOP.WorkOrderId AND WO.[WorkOrderTypeId] = @TearDown
 					WHERE WOP.MasterCompanyId = @MasterCompanyId AND WOP.StockLineId = @StocklineId
 						AND ISNULL(WO.IsActive,0) = 1 AND ISNULL(WOP.IsActive,0) = 1 AND ISNULL(WOP.IsDeleted,0) = 0 AND ISNULL(WO.IsDeleted,0) = 0 
-						AND ISNULL(SL.[QuantityIssued],0) > 0 
+						AND ISNULL(SL.[QuantityIssued],0) > 0 AND ISNULL(SL.IsNonStock,0) = 0 
 
 				--* END: TearDown WorkOrder For Issued *--
 
@@ -1039,7 +1040,7 @@ BEGIN
 						WHERE ROP.MasterCompanyId = @MasterCompanyId AND ROP.StockLineId = @StocklineId
 						AND ISNULL(RO.IsActive,0) = 1 AND ISNULL(ROP.IsActive,0) = 1 AND ISNULL(ROP.IsDeleted,0) = 0 AND ISNULL(RO.IsDeleted,0) = 0 
 						AND ISNULL(SL.QuantityIssued,0) > 0 
-						AND ISNULL(ROP.IsPiecePart, 0) = 1
+						AND ISNULL(ROP.IsPiecePart, 0) = 1 AND ISNULL(SL.IsNonStock,0) = 0
 							
 				--* END: Repair Order Part For Issued (Incase of piece part) *--
 
@@ -1096,7 +1097,7 @@ BEGIN
 						WHERE (ISNULL(WMS.QtyIssued,0) > 0 OR ISNULL(WMS.QtyReserved,0) > 0)  AND WMS.StockLineId = @StocklineId
 						AND ISNULL(WMS.IsActive,0) = 1 AND ISNULL(WO.IsActive,0) = 1 AND ISNULL(WMS.IsDeleted,0) = 0 AND ISNULL(WO.IsDeleted,0) = 0 
 						AND WMS.MasterCompanyId = @MasterCompanyId 
-						AND (ISNULL(WOP.IsFinishGood,0) != 1 OR ISNULL(WOP.IsClosed,0) != 1 OR ISNULL(WOP.WorkOrderStatusId,0) != @WOCloseStatusId OR ISNULL(WO.WorkOrderStatusId,0) != @WOCloseStatusId)
+						AND (ISNULL(WOP.IsFinishGood,0) != 1 OR ISNULL(WOP.IsClosed,0) != 1 OR ISNULL(WOP.WorkOrderStatusId,0) != @WOCloseStatusId OR ISNULL(WO.WorkOrderStatusId,0) != @WOCloseStatusId) AND ISNULL(SL.IsNonStock,0) = 0
 				
 				--* END: WorkOrderMaterialStockline For ALL *--
 
@@ -1149,7 +1150,7 @@ BEGIN
 					WHERE (ISNULL(WMS.QtyIssued,0) > 0 OR ISNULL(WMS.QtyReserved,0) > 0)  AND WMS.StockLineId = @StocklineId
 					AND ISNULL(WO.IsActive,0) = 1 AND ISNULL(WMS.IsActive,0) = 1 AND ISNULL(WMS.IsDeleted,0) = 0 AND ISNULL(WO.IsDeleted,0) = 0 
 					AND WMS.MasterCompanyId = @MasterCompanyId 
-					AND (ISNULL(WOP.IsFinishGood,0) != 1 OR ISNULL(WOP.IsClosed,0) != 1 OR ISNULL(WOP.WorkOrderStatusId,0) != @WOCloseStatusId OR ISNULL(WO.WorkOrderStatusId,0) != @WOCloseStatusId)
+					AND (ISNULL(WOP.IsFinishGood,0) != 1 OR ISNULL(WOP.IsClosed,0) != 1 OR ISNULL(WOP.WorkOrderStatusId,0) != @WOCloseStatusId OR ISNULL(WO.WorkOrderStatusId,0) != @WOCloseStatusId) AND ISNULL(SL.IsNonStock,0) = 0
 				
 				--* End: WorkOrderMaterialStocklinekit For ALL *--
 
@@ -1204,7 +1205,7 @@ BEGIN
 					WHERE (ISNULL(SWMS.QtyIssued,0) > 0 OR ISNULL(SWMS.QtyReserved,0) > 0)  AND SWMS.StockLineId = @StocklineId
 					AND ISNULL(SWO.IsActive,0) = 1 AND ISNULL(SWMS.IsActive,0) = 1 AND ISNULL(SWMS.IsDeleted,0) = 0 AND ISNULL(SWO.IsDeleted,0) = 0  
 					AND SWMS.MasterCompanyId = @MasterCompanyId 
-					AND (ISNULL(SWOP.IsFinishGood,0) != 1 OR ISNULL(SWOP.IsClosed,0) != 1 OR ISNULL(SWOP.SubWorkOrderStatusId,0) != @WOCloseStatusId OR ISNULL(SWO.SubWorkOrderStatusId,0) != @WOCloseStatusId)
+					AND (ISNULL(SWOP.IsFinishGood,0) != 1 OR ISNULL(SWOP.IsClosed,0) != 1 OR ISNULL(SWOP.SubWorkOrderStatusId,0) != @WOCloseStatusId OR ISNULL(SWO.SubWorkOrderStatusId,0) != @WOCloseStatusId) AND ISNULL(SL.IsNonStock,0) = 0
 				
 				--* END: SubWorkOrderMaterialStockline For ALL *--				
 
@@ -1259,7 +1260,7 @@ BEGIN
 					WHERE (ISNULL(SWMS.QtyIssued,0) > 0 OR ISNULL(SWMS.QtyReserved,0) > 0)  AND SWMS.StockLineId = @StocklineId
 					AND ISNULL(SWO.IsActive,0) = 1 AND ISNULL(SWMS.IsActive,0) = 1 AND ISNULL(SWMS.IsDeleted,0) = 0 AND ISNULL(SWO.IsDeleted,0) = 0  
 					AND SWMS.MasterCompanyId = @MasterCompanyId 
-					AND (ISNULL(SWOP.IsFinishGood,0) != 1 OR ISNULL(SWOP.IsClosed,0) != 1 OR ISNULL(SWOP.SubWorkOrderStatusId,0) != @WOCloseStatusId OR ISNULL(SWO.SubWorkOrderStatusId,0) != @WOCloseStatusId)
+					AND (ISNULL(SWOP.IsFinishGood,0) != 1 OR ISNULL(SWOP.IsClosed,0) != 1 OR ISNULL(SWOP.SubWorkOrderStatusId,0) != @WOCloseStatusId OR ISNULL(SWO.SubWorkOrderStatusId,0) != @WOCloseStatusId) AND ISNULL(SL.IsNonStock,0) = 0
 					
 				--* END: SubWorkOrderMaterialStockline For ALL *--
 
@@ -1310,7 +1311,7 @@ BEGIN
 						INNER JOIN [dbo].[WorkOrder] WO WITH(NOLOCK) ON WO.WorkOrderId = WOP.WorkOrderId AND WO.[WorkOrderTypeId] = @TearDown
 					WHERE WOP.MasterCompanyId = @MasterCompanyId AND WOP.StockLineId = @StocklineId
 						AND ISNULL(WO.IsActive,0) = 1 AND ISNULL(WOP.IsActive,0) = 1 AND ISNULL(WOP.IsDeleted,0) = 0 AND ISNULL(WO.IsDeleted,0) = 0 
-						AND ISNULL(SL.[QuantityIssued],0) > 0 
+						AND ISNULL(SL.[QuantityIssued],0) > 0 AND ISNULL(SL.IsNonStock,0) = 0 
 
 				--* END: TearDown WorkOrder For Issued *--
 
@@ -1361,7 +1362,7 @@ BEGIN
 						WHERE ROP.MasterCompanyId = @MasterCompanyId AND ROP.StockLineId = @StocklineId
 						AND ISNULL(RO.IsActive,0) = 1 AND ISNULL(ROP.IsActive,0) = 1 AND ISNULL(ROP.IsDeleted,0) = 0 AND ISNULL(RO.IsDeleted,0) = 0 
 						AND (ISNULL(ROP.QuantityReserved,0) > 0 OR ISNULL(SL.QuantityIssued,0) > 0)
-						AND ISNULL(ROP.IsPiecePart, 0) = 1
+						AND ISNULL(ROP.IsPiecePart, 0) = 1 AND ISNULL(SL.IsNonStock,0) = 0
 							
 				--* END: Repair Order Part For Issued (Incase of piece part) *--
 

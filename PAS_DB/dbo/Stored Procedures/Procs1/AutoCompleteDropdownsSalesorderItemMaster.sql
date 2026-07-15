@@ -1,4 +1,8 @@
-﻿/*************************************************************           
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.AutoCompleteDropdownsSalesorderItemMaster   (source: PAS_DB/dbo/Stored Procedures/Procs1/AutoCompleteDropdownsSalesorderItemMaster.sql)
+-- ---------------------------------------------------------------------------------------------------
+/*************************************************************           
  ** File:   [AutoCompleteDropdownsSalesorderItemMaster]           
  ** Author:   HEMANT SALIYA
  ** Description: This stored procedure is used retrieve work Order Item Master List for Auto complete Dropdown List    
@@ -16,10 +20,11 @@
  ** PR   Date         Author			Change Description            
  ** --   --------     -------			--------------------------------          
     1    18/10/2024   AMIT GHEDIYA		Created
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
      
 --EXEC [AutoCompleteDropdownsSalesorderItemMaster] '5',20,'',1110
 **************************************************************/
-CREATE     PROCEDURE [dbo].[AutoCompleteDropdownsSalesorderItemMaster]
+CREATE       PROCEDURE [dbo].[AutoCompleteDropdownsSalesorderItemMaster]
 	@StartWith VARCHAR(50),
 	@Count VARCHAR(10) = '0',
 	@Idlist VARCHAR(max) = '0',
@@ -36,14 +41,15 @@ AS
 
 				SELECT DISTINCT TOP 20 
 					IM.ItemMasterId AS Value,
-					im.partnumber + (CASE WHEN (SELECT COUNT(ISNULL(SD.[ManufacturerId], 0)) FROM [dbo].[ItemMaster]  SD WITH(NOLOCK)  WHERE im.partnumber = SD.partnumber AND SD.MasterCompanyId = SOP.MasterCompanyId) > 1 then ' - '+ im.ManufacturerName ELSE '' END) AS Partnumber,
+					im.partnumber + (CASE WHEN (SELECT COUNT(ISNULL(SD.[ManufacturerId], 0)) FROM [dbo].[ItemMaster]  SD WITH(NOLOCK)  WHERE im.partnumber = SD.partnumber AND SD.MasterCompanyId = SOP.MasterCompanyId AND ISNULL(SD.IsNonStock,0) = 0 ) > 1 then ' - '+ im.ManufacturerName ELSE '' END) AS Partnumber,
 					IM.partnumber AS Label
 				FROM dbo.ItemMaster IM WITH(NOLOCK) 	
 					JOIN dbo.SalesOrderPartV1 SOP WITH(NOLOCK) ON SOP.ItemMasterId = IM.ItemMasterId
 				WHERE (IM.IsActive = 1 AND ISNULL(IM.IsDeleted,0) = 0  
 				AND SOP.SalesOrderId = @SalesOrderId 
 				AND (IM.partnumber LIKE @StartWith + '%' OR IM.partnumber  LIKE '%' + @StartWith + '%'))    
-				ORDER BY Label	
+				 AND ISNULL(IM.IsNonStock,0) = 0
+				 ORDER BY Label	
 		END TRY    
 		BEGIN CATCH      
 				DECLARE   @ErrorLogID  INT, @DatabaseName VARCHAR(100) = db_name() 

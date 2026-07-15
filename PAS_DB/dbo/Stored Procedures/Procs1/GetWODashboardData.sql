@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [GetWODashboardData]           
  ** Author:   Hemant Saliya
  ** Description: This SP is Used to Get WO list By Stage
@@ -18,6 +18,8 @@
     1    07/22/2022   Hemant Saliya Created
 	2    05/03/2022   Hemant Saliya Remove Duplicate Records
 	3	 04/04/2024	  Bhargav saliya Resolved WO open Count issue in WO DashBoard(More Info)
+	4    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	5    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 
 exec GetWODashboardData @PageSize=10,@PageNumber=1,@SortColumn=N'OpenDate',@SortOrder=1,@WOTypeId=N'ALL',@GlobalFilter=N'',
 @WorkOrderStageId=18,@WorkOrderNum=NULL,@PartNumber=NULL,@PartDescription=NULL,@Customer=NULL,@SerialNumber=NULL,
@@ -150,7 +152,8 @@ BEGIN
 				WHERE WOP.MasterCompanyId = @MasterCompanyId AND WOP.WorkOrderStageId = @WorkOrderStageId AND WO.IsActive = 1 AND WO.IsDeleted = 0
 					AND C.CustomerAffiliationId IN (SELECT Item FROM DBO.SPLITSTRING(@CustomerAffiliation, ','))
 
-				UNION ALL 
+				 AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(SL.IsNonStock,0) = 0
+					 UNION ALL 
 
 				SELECT DISTINCT '' AS WorkOrderId,'' AS WorkOrderNum, IM.partnumber AS PartNumber, IM.PartDescription, c.Name AS Customer,
 					SL.SerialNumber, 'RECEIVED' AS WOStage, CASE WHEN UPPER(@WOTypeId) = 'INTERNAL' THEN 'INTERNAL' ELSE 'EXTERNAL' END AS WOType, '' AS [Priority], 
@@ -166,7 +169,8 @@ BEGIN
 				WHERE ISNULL(RC.WorkOrderId, 0) = 0 AND ISNULL(RC.RepairOrderPartRecordId, 0) = 0 AND RC.MasterCompanyId = @MasterCompanyId AND @RecStageCode = 'RECEIVED' AND
 				 RC.IsActive = 1 AND RC.IsDeleted = 0 AND C.CustomerAffiliationId IN (SELECT Item FROM DBO.SPLITSTRING(@CustomerAffiliation, ','))
 
-				UNION ALL 
+				 AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(SL.IsNonStock,0) = 0
+				  UNION ALL 
 
 				SELECT DISTINCT WO.WorkOrderId,WO.WorkOrderNum, IM.partnumber AS PartNumber, IM.PartDescription, c.Name AS Customer,
 					SL.SerialNumber, WOSG.Stage AS WOStage, CASE WHEN UPPER(@WOTypeId) = 'INTERNAL' THEN 'INTERNAL' ELSE 'EXTERNAL' END AS WOType, p.Description AS [Priority], 
@@ -189,7 +193,8 @@ BEGIN
 				WHERE WOP.MasterCompanyId = @MasterCompanyId AND ISNULL(WOP.TechnicianId,0) = 0 AND @WorkOrderStageId = 222222 AND WO.IsActive = 1 AND WO.IsDeleted = 0   -- Static Data Bease No Stage Are Present
 					AND WOP.IsClosed = 0 AND C.CustomerAffiliationId IN (SELECT Item FROM DBO.SPLITSTRING(@CustomerAffiliation, ','))
 
-				UNION ALL 
+				 AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(SL.IsNonStock,0) = 0
+					 UNION ALL 
 
 				SELECT DISTINCT '' AS WorkOrderId,'' AS WorkOrderNum, IM.partnumber AS PartNumber, IM.PartDescription, c.Name AS Customer,
 					SL.SerialNumber, 'RECEIVED' AS WOStage, CASE WHEN UPPER(@WOTypeId) = 'INTERNAL' THEN 'INTERNAL' ELSE 'EXTERNAL' END AS WOType, '' AS [Priority], 
@@ -206,7 +211,7 @@ BEGIN
 				WHERE ISNULL(RC.WorkOrderId, 0) = 0 AND ISNULL(RC.RepairOrderPartRecordId, 0) = 0 AND RC.MasterCompanyId = @MasterCompanyId AND @WorkOrderStageId = 111111    -- Static Data Bease No Stage Are Present
 				AND RC.IsActive = 1 AND RC.IsDeleted = 0 AND C.CustomerAffiliationId IN (SELECT Item FROM DBO.SPLITSTRING(@CustomerAffiliation, ','))
 
-				;With Result AS(
+				 AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(SL.IsNonStock,0) = 0 ;With Result AS(
 					SELECT DISTINCT WorkOrderId,WorkOrderNum, PartNumber, PartDescription, Customer, SerialNumber, WOStage, WOType,
 						[Priority], Techname, OpenDate, CustReqDate, EstRevenue, EstCost, EstMargin, PONumber, RONumber,WOpartId FROM #tmpWorkOrderData
 					),

@@ -1,4 +1,13 @@
-﻿CREATE Procedure [dbo].[sp_GetExchangeSalesOrderBillingInvoiceChildList]
+﻿-- ===== PROCEDURE: [dbo].[sp_GetExchangeSalesOrderBillingInvoiceChildList]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs1/sp_GetExchangeSalesOrderBillingInvoiceChildList.sql) =====
+/***************************************************************************************************************************************
+  ** Change History
+ ***************************************************************************************************************************************
+ ** PR   Date						 Author							Change Description
+ ** --   --------					 -------						-------------------------------
+	1    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	2    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
+****************************************************************************************************************************************/
+CREATE   PROCEDURE [dbo].[sp_GetExchangeSalesOrderBillingInvoiceChildList]
 	@ExchangeSalesOrderId  bigint,
 	@ExchangeSalesOrderPartId bigint
 AS
@@ -29,7 +38,8 @@ BEGIN
 				INNER JOIN DBO.ExchangeSalesOrderPart sop WITH (NOLOCK) on sop.ExchangeSalesOrderId = sos.ExchangeSalesOrderId AND sop.ExchangeSalesOrderPartId = sosi.ExchangeSalesOrderPartId
 				INNER JOIN DBO.ExchangeSalesOrder so WITH (NOLOCK) on so.ExchangeSalesOrderId = sop.ExchangeSalesOrderId
 				LEFT JOIN DBO.ItemMaster imt WITH (NOLOCK) on imt.ItemMasterId = sop.ItemMasterId
-				LEFT JOIN DBO.Stockline sl WITH (NOLOCK) on sl.StockLineId = sop.StockLineId
+				 AND ISNULL(imt.IsNonStock,0) = 0
+				 LEFT JOIN DBO.Stockline sl WITH (NOLOCK) on sl.StockLineId = sop.StockLineId AND ISNULL(sl.IsNonStock,0) = 0
 				LEFT JOIN DBO.ExchangeSalesOrderCustomsInfo soc WITH (NOLOCK) on soc.ExchangeSalesOrderShippingId = sos.ExchangeSalesOrderShippingId
 				LEFT JOIN DBO.Customer cr WITH (NOLOCK) on cr.CustomerId = so.CustomerId
 				LEFT JOIN DBO.Condition cond WITH (NOLOCK) on cond.ConditionId = sop.ConditionId

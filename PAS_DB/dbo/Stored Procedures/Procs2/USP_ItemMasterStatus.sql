@@ -1,4 +1,8 @@
-﻿/*************************************************************           
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: DBO.USP_ItemMasterStatus   (source: PAS_DB/dbo/Stored Procedures/Procs2/USP_ItemMasterStatus.sql)
+-- ---------------------------------------------------------------------------------------------------
+/*************************************************************           
  ** File:		 [USP_ItemMasterStatus]           
  ** Author:		 Divyesh Kathiriya
  ** Description: This Stored Procedure Is Used To Update ItemMaster Status.
@@ -10,10 +14,11 @@
  ** PR   Date				Author				Change Description            
  ** --   -------------		----------------	--------------------------------          
     1    20-August-2025		Divyesh Kathiriya	Created
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
     
  -- EXEC [USP_ItemMasterStatus] @ItemMasterid=35, @UpdatedBy=N'DANE PERK', @Status=N'Active'
 **************************************************************/
-CREATE   PROCEDURE [DBO].[USP_ItemMasterStatus]
+CREATE     PROCEDURE [DBO].[USP_ItemMasterStatus]
 @ItemMasterid BIGINT = 0,
 @UpdatedBy VARCHAR(256),
 @Status BIT
@@ -25,7 +30,7 @@ BEGIN
 	BEGIN TRANSACTION
 
 	DECLARE @MasterPartId AS BIGINT;
-	SELECT @MasterPartId = [MasterPartId] FROM [DBO].[ItemMaster] WITH(NOLOCK) WHERE [ItemMasterId] = @ItemMasterid;	
+	SELECT @MasterPartId = [MasterPartId] FROM [DBO].[ItemMaster] WITH(NOLOCK) WHERE [ItemMasterId] = @ItemMasterid AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 ;	
 
 	IF(ISNULL(@ItemMasterid, 0) > 0)		
 	BEGIN

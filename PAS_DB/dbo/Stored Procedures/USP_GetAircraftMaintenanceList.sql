@@ -35,6 +35,7 @@
 **                                      - Wired up previously-unused @MaintanaceType filter (AIRFRAME/ENGINE)
 **                                      - Explicit output column list (removed SELECT *)
 **                                      - Expanded error-log parameter capture
+** 17   09/July/2026	 RAJESH GAMI	    [PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 ** 17   14/07/2026	 Amit Ghediya	    Added @IsScheduled filter; added WoStatus (latest linked work
 **                                      order's status, same source as the WO Status shown on the
 **                                      Airworthiness Compliance Tracking / ADs and SBs list); added

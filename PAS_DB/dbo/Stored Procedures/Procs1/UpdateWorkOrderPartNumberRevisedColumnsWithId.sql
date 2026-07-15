@@ -1,4 +1,8 @@
-﻿/*************************************************************           
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.UpdateWorkOrderPartNumberRevisedColumnsWithId   (source: PAS_DB/dbo/Stored Procedures/Procs1/UpdateWorkOrderPartNumberRevisedColumnsWithId.sql)
+-- ---------------------------------------------------------------------------------------------------
+/*************************************************************           
  ** File:   [UpdateWorkOrderPartNumberRevisedColumnsWithId]           
  ** Author:   Hemant Saliya
  ** Description: This stored procedure is used WO Details based in WO Id.    
@@ -17,11 +21,12 @@
  ** --   --------     -------			--------------------------------          
     1    10/27/2020   Subhash Saliya	Created
     2    01/01/2024   Devendra Shekh	added new param to update seialnumber
+	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
      
 -- EXEC [UpdateWorkOrderPartNumberRevisedColumnsWithId] 30
 **************************************************************/
 
-CREATE   PROCEDURE [dbo].[UpdateWorkOrderPartNumberRevisedColumnsWithId]
+CREATE     PROCEDURE [dbo].[UpdateWorkOrderPartNumberRevisedColumnsWithId]
 	@WorkOrderPartNumberId BIGINT,
 	@SerialNumber VARCHAR(100)
 AS
@@ -39,7 +44,8 @@ BEGIN
 					WPN.RevisedSerialNumber = @SerialNumber
 				FROM dbo.WorkOrderPartNumber WPN WITH(NOLOCK) 
 				LEFT JOIN ItemMaster IM ON IM.ItemMasterId = WPN.RevisedItemmasterid
-				WHERE WPN.ID = @WorkOrderPartNumberId
+				 AND ISNULL(IM.IsNonStock,0) = 0
+				 WHERE WPN.ID = @WorkOrderPartNumberId
 		
 			END
 		COMMIT  TRANSACTION

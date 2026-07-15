@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [GetSalesOrderChargesBySOId]           
  ** Author:   Abhishek Jirawla
  ** Description: Get Sales Order Confirmation list By SOId
@@ -13,6 +13,8 @@
  ** --   --------		-------			--------------------------------          
     1    08-APR-2025   Abhishek Jirawla Created
 	2    26-12-2025    Nakul Chandigra  removed Formate from the Opendate 
+	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	4    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
      
  EXECUTE [GetSOConfirmationListExport] 1, pnview
 **************************************************************/ 
@@ -79,7 +81,7 @@ BEGIN
 			LEFT JOIN dbo.Customer cust WITH (NOLOCK) 
 				ON so.CustomerId = cust.CustomerId
 			LEFT JOIN dbo.StockLine qs WITH (NOLOCK) 
-				ON sops.StockLineId = qs.StockLineId
+				ON sops.StockLineId = qs.StockLineId AND ISNULL(qs.IsNonStock,0) = 0
 			INNER JOIN dbo.ItemMaster itemMaster WITH (NOLOCK) 
 				ON part.ItemMasterId = itemMaster.ItemMasterId
 			LEFT JOIN dbo.Condition cp WITH (NOLOCK) 
@@ -101,7 +103,8 @@ BEGIN
 
 			WHERE part.IsDeleted = 0
 			  AND part.MasterCompanyId = @MasterCompanyId
-		END
+		 AND ISNULL(itemMaster.IsNonStock,0) = 0
+			   END
 		ELSE IF @ListViewType = @SoView -- SO View
 		BEGIN
 			SELECT 
@@ -145,7 +148,7 @@ BEGIN
 			LEFT JOIN dbo.SalesOrderApproval soc WITH (NOLOCK) ON part.SalesOrderPartId = soc.SalesOrderPartId
 			INNER JOIN dbo.SalesOrder so WITH (NOLOCK) ON part.SalesOrderId = so.SalesOrderId
 			LEFT JOIN dbo.Customer cust WITH (NOLOCK) ON so.CustomerId = cust.CustomerId
-			LEFT JOIN dbo.StockLine qs WITH (NOLOCK) ON sops.StockLineId = qs.StockLineId
+			LEFT JOIN dbo.StockLine qs WITH (NOLOCK) ON sops.StockLineId = qs.StockLineId AND ISNULL(qs.IsNonStock,0) = 0
 			INNER JOIN dbo.ItemMaster itemMaster WITH (NOLOCK) ON part.ItemMasterId = itemMaster.ItemMasterId
 			LEFT JOIN dbo.Condition cp WITH (NOLOCK) ON part.ConditionId = cp.ConditionId
 			LEFT JOIN dbo.SalesOrderQuotePartV1 soqp WITH (NOLOCK) ON part.SalesOrderQuotePartId = soqp.SalesOrderQuotePartId
@@ -158,7 +161,8 @@ BEGIN
 
 			WHERE part.IsDeleted = 0
 			  AND part.MasterCompanyId = @MasterCompanyId
-		END
+		 AND ISNULL(itemMaster.IsNonStock,0) = 0
+			   END
 
 		
 

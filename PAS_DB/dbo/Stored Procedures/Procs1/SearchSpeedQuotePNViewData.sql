@@ -1,5 +1,16 @@
 ﻿
-CREATE   PROCEDURE [dbo].[SearchSpeedQuotePNViewData]
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.SearchSpeedQuotePNViewData   (source: PAS_DB/dbo/Stored Procedures/Procs1/SearchSpeedQuotePNViewData.sql)
+-- ---------------------------------------------------------------------------------------------------
+
+/***************************************************************************************************************************************
+  ** Change History
+ ***************************************************************************************************************************************
+ ** PR   Date						 Author							Change Description
+ ** --   --------					 -------						-------------------------------
+	1    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+****************************************************************************************************************************************/
+CREATE     PROCEDURE [dbo].[SearchSpeedQuotePNViewData]
 	-- Add the parameters for the stored procedure here
 	@PageNumber int=1,
 	@PageSize int=10,
@@ -130,7 +141,8 @@ BEGIN
 				Inner Join CustomerType CT WITH (NOLOCK) on CT.CustomerTypeId=SOQ.AccountTypeId
 				Left Join SpeedQuotePart SP WITH (NOLOCK) on SOQ.SpeedQuoteId=SP.SpeedQuoteId and SP.IsDeleted=0
 				Left Join ItemMaster IM WITH (NOLOCK) on Im.ItemMasterId=SP.ItemMasterId
-				Left Join Employee E WITH (NOLOCK) on  E.EmployeeId=SOQ.SalesPersonId --and SOQ.SalesPersonId is not null
+				 AND ISNULL(IM.IsNonStock,0) = 0
+				 Left Join Employee E WITH (NOLOCK) on  E.EmployeeId=SOQ.SalesPersonId --and SOQ.SalesPersonId is not null
 				Left join [Percent] p WITH (NOLOCK) on P.PercentId = SOQ.ProbabilityId
 				Left join [Condition] cn WITH (NOLOCK) on cn.ConditionId = SP.ConditionId
 				--Left join SpeedQuoteExclusionPart spe on spe.SpeedQuoteId = SOQ.SpeedQuoteId

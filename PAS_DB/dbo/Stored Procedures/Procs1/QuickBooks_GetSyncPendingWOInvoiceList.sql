@@ -1,4 +1,8 @@
-﻿/*************************************************************           
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.QuickBooks_GetSyncPendingWOInvoiceList   (source: PAS_DB/dbo/Stored Procedures/Procs1/QuickBooks_GetSyncPendingWOInvoiceList.sql)
+-- ---------------------------------------------------------------------------------------------------
+/*************************************************************           
  ** File:   [QuickBooks_GetSyncPendingWOInvoiceList]           
  ** Author:   Devendra Shekh
  ** Description: Get WorkOrder Invoice List to Create Invoice in QuickBooks    
@@ -19,12 +23,13 @@
 	6   25-Feb-2025		Devendra Shekh			Modified (Added Missing Address Details for Bill/Ship)
 	7   31-Mar-2025		Devendra Shekh			Modified (Added changes for Notes)
 	8   03-Jul-2025     Moin Bloch              Changed Old To New Billing Table
+	9    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
      
  EXECUTE [QuickBooks_GetSyncPendingWOInvoiceList] 1, 1, 4771, 4336
  EXECUTE [QuickBooks_GetSyncPendingWOInvoiceList] 1, 1, 8317, 0
  EXECUTE [QuickBooks_GetSyncPendingWOInvoiceList] 1, 1, 8346, 0
 **************************************************************/ 
-CREATE    PROCEDURE [dbo].[QuickBooks_GetSyncPendingWOInvoiceList]
+CREATE      PROCEDURE [dbo].[QuickBooks_GetSyncPendingWOInvoiceList]
 	@IntegrationTypeId INT = NULL,
 	@MasterCompanyId INT = NULL,
 	@ReferenceId BIGINT = NULL,
@@ -179,7 +184,8 @@ BEGIN
 					JOIN [dbo].[Customer] C WITH(NOLOCK) ON C.CustomerId = WOBI.CustomerId
 					JOIN [dbo].[WorkOrder] WO WITH(NOLOCK) ON WO.WorkOrderId= WOBI.ReferenceId
 					LEFT JOIN [dbo].[ItemMaster] IM WITH(NOLOCK) ON IM.ItemMasterId= WOBII.ItemMasterId					
-					LEFT JOIN [dbo].[CreditTerms] CT WITH(NOLOCK) ON CT.CreditTermsId = WO.CreditTermId
+					 AND ISNULL(IM.IsNonStock,0) = 0
+					 LEFT JOIN [dbo].[CreditTerms] CT WITH(NOLOCK) ON CT.CreditTermsId = WO.CreditTermId
 					LEFT JOIN [dbo].[Percent] P with(nolock) ON P.MasterCompanyId = WOBI.MasterCompanyId AND P.PercentId = WOBII.SalesTaxPercent
 					LEFT JOIN [dbo].[ShippingVia] AS sipVia WITH(NOLOCK) ON WOBID.ShipViaId = sipVia.ShippingViaId
 				WHERE ISNULL(WOBI.QuickBooksReferenceId, 0) = 0 AND ISNULL(WOBI.IsUpdated, 0) = 1 AND ISNULL(WOBI.IsPerformaInvoice, 0) = 0 
@@ -245,7 +251,8 @@ BEGIN
 					JOIN [dbo].[Customer] C WITH(NOLOCK) ON C.CustomerId = WOBI.CustomerId
 					JOIN [dbo].[WorkOrder] WO WITH(NOLOCK) ON WO.WorkOrderId= WOBI.ReferenceId
 					LEFT JOIN [dbo].[ItemMaster] IM WITH(NOLOCK) ON IM.ItemMasterId= WOBII.ItemMasterId
-					LEFT JOIN [dbo].[CreditTerms] CT WITH(NOLOCK) ON CT.CreditTermsId = WO.CreditTermId
+					 AND ISNULL(IM.IsNonStock,0) = 0
+					 LEFT JOIN [dbo].[CreditTerms] CT WITH(NOLOCK) ON CT.CreditTermsId = WO.CreditTermId
 					LEFT JOIN [dbo].[Percent] P with(nolock) ON P.MasterCompanyId = WOBI.MasterCompanyId AND P.PercentId = WOBII.SalesTaxPercent
 					LEFT JOIN [dbo].[ShippingVia] AS sipVia WITH(NOLOCK) ON WOBID.ShipViaId = sipVia.ShippingViaId
 				WHERE	ISNULL(WOBI.QuickBooksReferenceId, 0) = 0 AND ISNULL(WOBI.IsUpdated, 0) = 1 AND ISNULL(WOBI.IsPerformaInvoice, 0) = 0 

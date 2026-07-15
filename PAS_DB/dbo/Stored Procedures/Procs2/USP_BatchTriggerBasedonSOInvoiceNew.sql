@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [USP_BatchTriggerBasedonSOInvoiceNew]
  ** Author:  Deep Patel
  ** Description: This stored procedure is used to enter acounting entry for SO
@@ -38,6 +38,8 @@
 	24	 23/06/2026	 Moin Bloch   	Modify (Added IsBypassAccounting Flag to bypass Accounting Entry PN-16871)
 
 
+	25    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	26    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 EXEC dbo.USP_BatchTriggerBasedonSOInvoiceNew 
 @DistributionMasterId=12,@ReferenceId=515,@ReferencePartId=252,@ReferencePieceId=252,@InvoiceId=252,
 @StocklineId=0,@Qty=0,@Amount=0,@ModuleName=N'SO',@MasterCompanyId=1,@UpdateBy=N'ADMIN User'
@@ -193,14 +195,15 @@ BEGIN
 	        
 			SELECT @MPNName = partnumber FROM dbo.ItemMaster WITH(NOLOCK)  WHERE ItemMasterId=@ItemmasterId 
 	        
-			SELECT @LastMSLevel=LastMSLevel,@AllMSlevels=AllMSlevels FROM dbo.SalesOrderManagementStructureDetails  WITH(NOLOCK)  WHERE ReferenceID=@ReferenceId AND ModuleID = @ManagementModuleId
+			 AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0
+			 SELECT @LastMSLevel=LastMSLevel,@AllMSlevels=AllMSlevels FROM dbo.SalesOrderManagementStructureDetails  WITH(NOLOCK)  WHERE ReferenceID=@ReferenceId AND ModuleID = @ManagementModuleId
 			
 			SELECT @StocklineNumber= STK.[StockLineNumber],
 			       @LotId = STK.[LotId], 
 				   @LotNumber = LO.[LotNumber]				   
 			  FROM [dbo].[Stockline] STK WITH(NOLOCK) 
 			  LEFT JOIN [dbo].[Lot] LO WITH(NOLOCK) ON  LO.LotId = STK.LotId  
-			  WHERE StockLineId=@StockLineId
+			  WHERE StockLineId=@StockLineId AND ISNULL(STK.IsNonStock,0) = 0
 
 			SELECT TOP 1 @AccountingPeriodId = AccountingCalendarId, @AccountingPeriod = PeriodName 
 			FROM dbo.AccountingCalendar WITH(NOLOCK) 
@@ -332,7 +335,8 @@ BEGIN
 					INNER JOIN [dbo].[SalesOrderPartV1] sop WITH(NOLOCK) ON soit.SubReferenceId = sop.SalesOrderPartId
 					INNER JOIN [dbo].[SalesOrderStocklineV1] stk WITH(NOLOCK) ON sop.SalesOrderPartId = stk.SalesOrderPartId AND soit.StockLineId = stk.StockLineId
 					LEFT JOIN [dbo].[ItemMaster] itm WITH(NOLOCK) ON itm.[ItemMasterId] = sop.[ItemMasterId]					
-					WHERE soi.BillingInvoicingId = @InvoiceId 
+					 AND ISNULL(itm.IsNonStock,0) = 0
+					 WHERE soi.BillingInvoicingId = @InvoiceId 
 					AND soit.SubReferenceId = @ReferencePartId
 					AND ISNULL(soi.IsPerformaInvoice,0) = 0 AND ISNULL(soi.IsVersionIncrease,0) = 0 AND soi.ModuleId = @soModuleId
 
@@ -341,7 +345,7 @@ BEGIN
 						   @StocklineNumber = SL.[StockLineNumber]
 					  FROM [dbo].[Stockline] SL WITH(NOLOCK)					 
 					  LEFT JOIN [dbo].[Lot] LO WITH(NOLOCK) ON  LO.LotId = SL.LotId  
-					  WHERE SL.[StockLineId] = @StocklineId;
+					  WHERE SL.[StockLineId] = @StocklineId AND ISNULL(SL.IsNonStock,0) = 0;
 
 					SELECT top 1 @GLStocklineId = soi.[StockLineId] 
 					FROM [dbo].[BillingInvoicingItems] soi WITH(NOLOCK) 
@@ -354,7 +358,7 @@ BEGIN
 						   @COGSSalesOrderGLAccId = SL.COGS_SalesOrderGLAccId,  -- For COGS EXc Sales Order Distribution (Billing)
 						   @RevenueSoGLAccId = SL.RevenueSoGLAccId -- For Revenue EXc SO Distribution (Billing)
 					  FROM [dbo].[Stockline] SL WITH(NOLOCK)					 
-					  WHERE SL.[StockLineId] = @GLStocklineId;
+					  WHERE SL.[StockLineId] = @GLStocklineId AND ISNULL(SL.IsNonStock,0) = 0;
 					  			PRINT @RevenueSoGLAccId
 					PRINT '---@@RevenueSoGLAccId---'
 					SET @COGSDifference = (@PartUnitSalesPrice - @InoiceGrandTotal);
@@ -682,7 +686,7 @@ BEGIN
 					INNER JOIN dbo.SalesOrderPartV1 sop WITH(NOLOCK) ON soit.SubReferenceId = sop.SalesOrderPartId
 					INNER JOIN dbo.SalesOrderStocklineV1 stk WITH(NOLOCK) ON stk.SalesOrderPartId = sop.SalesOrderPartId AND soit.StockLineId = stk.StockLineId
 					INNER JOIN dbo.Stockline STL WITH(NOLOCK) ON stk.StockLineId = STL.StockLineId
-					WHERE soi.BillingInvoicingId=@InvoiceId AND ISNULL(soi.IsPerformaInvoice,0) = 0 AND ISNULL(soi.IsVersionIncrease,0) = 0
+					WHERE soi.BillingInvoicingId=@InvoiceId AND ISNULL(soi.IsPerformaInvoice,0) = 0 AND ISNULL(soi.IsVersionIncrease,0) = 0 AND ISNULL(STL.IsNonStock,0) = 0
 					GROUP BY STL.GLAccountId
 					
 					OPEN @SalesOrderPartDetailsCursor;
@@ -696,7 +700,7 @@ BEGIN
 						INNER JOIN dbo.Stockline STL WITH(NOLOCK) ON SOP.StockLineId = STL.StockLineId
 						INNER JOIN dbo.SalesOrderStockLineCost sosc WITH(NOLOCK) ON sosc.SalesOrderStocklineId = sop.SalesOrderStocklineId
 						WHERE soi.BillingInvoicingId=@InvoiceId AND ISNULL(soi.IsPerformaInvoice,0) = 0 AND ISNULL(soi.IsVersionIncrease,0) = 0 
-						AND STL.GLAccountId=@PartGLAccountId;
+						AND STL.GLAccountId=@PartGLAccountId AND ISNULL(STL.IsNonStock,0) = 0;
 
 						SELECT TOP 1 @STKId = STL.StockLineId,
 									 @InventoryToBillGLAccId = STL.InventoryToBillGLAccId, --For INVENTORY TO BILL Distribution (Shipping & Billing)
@@ -710,10 +714,10 @@ BEGIN
 						INNER JOIN DBO.Stockline STL WITH(NOLOCK) ON SOP.StockLineId = STL.StockLineId
 						WHERE soi.BillingInvoicingId=@InvoiceId AND ISNULL(soi.IsPerformaInvoice,0) = 0 
 						AND ISNULL(soi.IsVersionIncrease,0) = 0 
-						AND STL.GLAccountId=@PartGLAccountId;
+						AND STL.GLAccountId=@PartGLAccountId AND ISNULL(STL.IsNonStock,0) = 0;
 
 						SELECT TOP 1 @STKGlAccountId=SL.GLAccountId,@STKGlAccountNumber=GL.AccountCode,@STKGlAccountName=GL.AccountName FROM DBO.Stockline SL WITH(NOLOCK)
-						INNER JOIN DBO.GLAccount GL WITH(NOLOCK) ON SL.GLAccountId=GL.GLAccountId WHERE SL.StockLineId=@STKId;
+						INNER JOIN DBO.GLAccount GL WITH(NOLOCK) ON SL.GLAccountId=GL.GLAccountId WHERE SL.StockLineId=@STKId AND ISNULL(SL.IsNonStock,0) = 0;
 
 						----COGS - Parts----
 						IF(@PartUnitSalesPrices >0)
@@ -857,7 +861,7 @@ BEGIN
 					INNER JOIN [dbo].[SalesOrderStocklineV1] stk WITH(NOLOCK) ON STK.SalesOrderStocklineId = SOPT.SalesOrderPartStocklineId
 					INNER JOIN [dbo].[Stockline] STL WITH(NOLOCK) ON stk.StockLineId = STL.StockLineId
 					INNER JOIN [dbo].[SalesOrderStockLineCost] STKC WITH(NOLOCK) ON STKC.SalesOrderStocklineId = stk.SalesOrderStocklineId
-					WHERE soi.SalesOrderShippingId=@InvoiceId
+					WHERE soi.SalesOrderShippingId=@InvoiceId AND ISNULL(STL.IsNonStock,0) = 0
 					
 					IF(@PartUnitSalesPrices > 0)
 					BEGIN
@@ -937,7 +941,7 @@ BEGIN
 					INNER JOIN [dbo].[SalesOrderPartV1] sop WITH(NOLOCK) ON soit.SalesOrderPartId = sop.SalesOrderPartId
 					INNER JOIN [dbo].[SalesOrderStocklineV1] stk WITH(NOLOCK) ON stk.SalesOrderPartId = sop.SalesOrderPartId
 					INNER JOIN [dbo].[Stockline] STL WITH(NOLOCK) ON stk.StockLineId = STL.StockLineId
-					WHERE soi.[SalesOrderShippingId] = @InvoiceId GROUP BY STL.GLAccountId
+					WHERE soi.[SalesOrderShippingId] = @InvoiceId AND ISNULL(STL.IsNonStock,0) = 0 GROUP BY STL.GLAccountId
 
 					OPEN @SalesOrderPartDetailsCursor1;
 					FETCH NEXT FROM @SalesOrderPartDetailsCursor1 INTO @PartGLAccountId;
@@ -951,7 +955,7 @@ BEGIN
 						INNER JOIN [dbo].[SalesOrderStocklineV1] stk WITH(NOLOCK) ON stk.SalesOrderPartId = sop.SalesOrderPartId AND stk.SalesOrderStocklineId = sopt.SalesOrderPartStocklineId
 						INNER JOIN [dbo].[Stockline] STL WITH(NOLOCK) ON stk.StockLineId = STL.StockLineId
 						INNER JOIN [dbo].[SalesOrderStockLineCost] STKC WITH(NOLOCK) ON STKC.SalesOrderStocklineId = stk.SalesOrderStocklineId
-						WHERE soi.SalesOrderShippingId=@InvoiceId AND STL.GLAccountId=@PartGLAccountId;
+						WHERE soi.SalesOrderShippingId=@InvoiceId AND STL.GLAccountId=@PartGLAccountId AND ISNULL(STL.IsNonStock,0) = 0;
 
 						SELECT TOP 1 @STKId = STL.StockLineId,
 						             @partId = sop.[SalesOrderPartId],--sop.[ItemMasterId],
@@ -968,7 +972,8 @@ BEGIN
 						INNER JOIN [dbo].[Stockline] STL WITH(NOLOCK) ON stk.StockLineId = STL.StockLineId
 						INNER JOIN [dbo].[SalesOrderStockLineCost] STKC WITH(NOLOCK) ON STKC.SalesOrderStocklineId = stk.SalesOrderStocklineId
 					     LEFT JOIN [dbo].[ItemMaster] itm WITH(NOLOCK) ON itm.[ItemMasterId] = sop.[ItemMasterId]
-						WHERE soi.SalesOrderShippingId=@InvoiceId AND STL.GLAccountId=@PartGLAccountId;
+						 AND ISNULL(itm.IsNonStock,0) = 0
+					      WHERE soi.SalesOrderShippingId=@InvoiceId AND STL.GLAccountId=@PartGLAccountId AND ISNULL(STL.IsNonStock,0) = 0;
 
 						SELECT @STKGlAccountId=SL.GLAccountId,
 						       @STKGlAccountNumber=GL.AccountCode,
@@ -980,7 +985,7 @@ BEGIN
 						  FROM [dbo].[Stockline] SL WITH(NOLOCK)
 						  INNER JOIN [dbo].[GLAccount] GL WITH(NOLOCK) ON SL.GLAccountId=GL.GLAccountId 
 						  LEFT JOIN [dbo].[Lot] LO WITH(NOLOCK) ON  LO.LotId = SL.LotId  
-						  WHERE SL.StockLineId = @STKId;
+						  WHERE SL.StockLineId = @STKId AND ISNULL(SL.IsNonStock,0) = 0;
 						  
 						----Inventory to Bill------
 						IF(@PartUnitSalesPrices >0)

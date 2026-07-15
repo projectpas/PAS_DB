@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿-- ===== PROCEDURE: [dbo].[USP_VendorRMA_CreditMeMo_GetVendorRMAList]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs3/USP_VendorRMA_CreditMeMo_GetVendorRMAList.sql) =====
+/*************************************************************           
  ** File:   [USP_VendorRMA_CreditMeMo_GetVendorRMAList]          
  ** Author:   Devendra Shekh
  ** Description: This stored procedure is used to get vendorrma for credit memo create
@@ -15,6 +16,8 @@
  ** PR   Date         Author					Change Description            
  ** --   --------     -------				--------------------------------          
     1    07/05/2023   Devendra Shekh			Created
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	3    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
      
  exec USP_VendorRMA_CreditMeMo_GetVendorRMAList 
 @PageNumber=1,@PageSize=10,@SortColumn=NULL,@SortOrder=-1,@GlobalFilter=N'',
@@ -94,7 +97,7 @@ BEGIN
 		LEFT JOIN [DBO].[VendorRMAStatus] VS WITH (NOLOCK) ON RMAD.VendorRMAStatusId = VS.VendorRMAStatusId
 		LEFT JOIN [DBO].[RMAShippingItem] RMS WITH (NOLOCK) ON RMAD.VendorRMADetailId = RMS.VendorRMADetailId
 		WHERE RMA.[VendorRMAId] = CASE WHEN @VendorRMAId != 0 and @VendorRMAId is not null THEN @VendorRMAId ELSE RMAD.[VendorRMAId] END
-		AND VS.VendorRMAStatusId = @VendorRMADetailStatusId AND RMA.VendorRMAId NOT IN (SELECT ISNULL(VendorRMAId,0) VendorRMAId FROM VendorCreditMemo WHERE MasterCompanyId = @MasterCompanyId)
+		AND VS.VendorRMAStatusId = @VendorRMADetailStatusId AND RMA.VendorRMAId NOT IN (SELECT ISNULL(VendorRMAId,0) VendorRMAId FROM VendorCreditMemo WHERE MasterCompanyId = @MasterCompanyId) AND ISNULL(SL.IsNonStock,0) = 0
 		),
     FinalResult AS (  
     SELECT VendorRMAId, VendorId, VendorName, VendorCode, RMANumber, ItemMasterId, PartNumberType, StockLineIdType, StockLineNumberType, PartDescriptionType, 

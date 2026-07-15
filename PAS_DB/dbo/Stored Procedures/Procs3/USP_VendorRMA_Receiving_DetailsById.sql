@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿-- ===== PROCEDURE: [dbo].[USP_VendorRMA_Receiving_DetailsById]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs3/USP_VendorRMA_Receiving_DetailsById.sql) =====
+/*************************************************************           
  ** File:   [USP_VendorRMA_Receiving_DetailsById]           
  ** Author: Moin Bloch
  ** Description: This stored procedure is used to Get Vendor RMA Receiving List Details
@@ -11,6 +12,8 @@
  ** PR   Date         Author  		Change Description            
  ** --   --------     -------		---------------------------     
     1    06/20/2023   Moin Bloch     Created
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	3    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 *******************************************************************************
 EXEC USP_VendorRMA_Receiving_DetailsById 34
 *******************************************************************************/
@@ -29,9 +32,9 @@ BEGIN
 				  --,VD.[Qty] AS [QuantityOrdered]				  
 				  ,VD.[QtyShipped] AS [QuantityOrdered]		
   			    --,[QuantityBackOrdered] = (VD.[Qty] - (SELECT ISNULL(SUM(ISNULL(SL.[Quantity],0)),0) FROM [dbo].[StockLine] SL WITH (NOLOCK) WHERE SL.[VendorRMADetailId] = VD.[VendorRMADetailId] AND SL.[IsDeleted] = 0 AND SL.[IsParent] = 1))
-				  ,[QuantityBackOrdered] = (VD.[QtyShipped] - (SELECT ISNULL(SUM(ISNULL(SL.[Quantity],0)),0) FROM [dbo].[StockLine] SL WITH (NOLOCK) WHERE SL.[VendorRMADetailId] = VD.[VendorRMADetailId] AND SL.[IsDeleted] = 0 AND SL.[IsParent] = 1))
+				  ,[QuantityBackOrdered] = (VD.[QtyShipped] - (SELECT ISNULL(SUM(ISNULL(SL.[Quantity],0)),0) FROM [dbo].[StockLine] SL WITH (NOLOCK) WHERE SL.[VendorRMADetailId] = VD.[VendorRMADetailId] AND SL.[IsDeleted] = 0 AND SL.[IsParent] = 1 AND ISNULL(SL.IsNonStock,0) = 0))
 				  ,[QuantityDrafted] = (SELECT ISNULL(SUM(ISNULL(SD.[Quantity],0)),0) FROM [dbo].[StockLineDraft] SD WITH (NOLOCK) WHERE SD.[VendorRMADetailId] = VD.[VendorRMADetailId] AND SD.[IsDeleted] = 0 AND SD.[IsParent] = 1 AND ISNULL(SD.[StockLineId],0) = 0)
-				  ,[QuantityReceived] = (SELECT ISNULL(SUM(ISNULL(SL.[Quantity],0)),0) FROM [dbo].[StockLine] SL WITH (NOLOCK) WHERE SL.[VendorRMADetailId] = VD.[VendorRMADetailId] AND SL.[IsDeleted] = 0 AND SL.[IsParent] = 1)
+				  ,[QuantityReceived] = (SELECT ISNULL(SUM(ISNULL(SL.[Quantity],0)),0) FROM [dbo].[StockLine] SL WITH (NOLOCK) WHERE SL.[VendorRMADetailId] = VD.[VendorRMADetailId] AND SL.[IsDeleted] = 0 AND SL.[IsParent] = 1 AND ISNULL(SL.IsNonStock,0) = 0)
 				  ,VD.[SerialNumber]
 				  ,SL.[ConditionId]
 				  ,SL.[Condition]
@@ -94,7 +97,7 @@ BEGIN
 			  INNER JOIN [dbo].[ItemMaster] IM WITH (NOLOCK) ON VD.[ItemMasterId] = IM.[ItemMasterId]	
 			   LEFT JOIN [dbo].[VendorRMAHeaderStatus] HS WITH (NOLOCK) ON VR.[VendorRMAStatusId] = HS.[VendorRMAStatusId]
 			   LEFT JOIN [dbo].[StocklineManagementStructureDetails] MS WITH (NOLOCK) ON MS.ReferenceID = VD.StockLineId AND MS.ModuleID = 2			
-			  WHERE VD.[VendorRMAId] = @VendorRMAId;
+			  WHERE VD.[VendorRMAId] = @VendorRMAId AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(SL.IsNonStock,0) = 0 ;
 	END TRY
     BEGIN CATCH
 		IF @@trancount > 0

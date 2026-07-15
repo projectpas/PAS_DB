@@ -1,4 +1,8 @@
 ﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.WOSummarizedHistory   (source: PAS_DB/dbo/Stored Procedures/Procs3/WOSummarizedHistory.sql)
+-- ---------------------------------------------------------------------------------------------------
+
 /*************************************************************           
  ** File:   [WOSummarizedHistory]           
  ** Author:   Hemant Saliya
@@ -18,11 +22,12 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    07/06/2021   Hemant Saliya Created
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
      
 --EXEC [WOSummarizedHistory] 378,369,1
 **************************************************************/
 
-CREATE PROCEDURE [dbo].[WOSummarizedHistory]
+CREATE   PROCEDURE [dbo].[WOSummarizedHistory]
 @WorkOrderId BIGINT,
 @WorkOrderPartNumberId BIGINT,
 @IsTwelveMonth BIT = 1
@@ -63,7 +68,8 @@ BEGIN
 						LEFT JOIN dbo.CustomerFinancial CF WITH (NOLOCK) ON CF.CustomerId = WO.CustomerId
 						LEFT JOIN dbo.Currency C WITH (NOLOCK) ON C.CurrencyId = CF.CurrencyId
 					WHERE WC.WorkOrderId = @WorkOrderId AND WC.WOPartNoId = @WorkOrderPartNumberId AND DATEDIFF(MM, WC.createdDate, GETDATE()) < @Month
-					GROUP BY IM.partnumber, WOP.ItemMasterId, WOP.WorkScope, WOP.WorkOrderScopeId,C.Code
+					 AND ISNULL(IM.IsNonStock,0) = 0
+					 GROUP BY IM.partnumber, WOP.ItemMasterId, WOP.WorkScope, WOP.WorkOrderScopeId,C.Code
 				END
 			COMMIT  TRANSACTION
 		END TRY    

@@ -1,4 +1,4 @@
-﻿
+
 
 
 /*************************************************************  
@@ -23,6 +23,8 @@ EXEC [GetSubWorkorderReleaseFromData]
 
 EXEC GetWorkOrderPrintPdfData 8560,8227
 
+	1    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	9    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 **************************************************************/
 CREATE     PROCEDURE [dbo].[GetWorkOrderPrintPdfData]              
 @WorkorderId bigint,              
@@ -114,8 +116,8 @@ BEGIN
 		   on nhatae.MappingItemMasterId = imtt.ItemMasterId              
 		   WHERE nhatae.ItemMasterId = imt.ItemMasterId              
 		   AND nhatae.IsActive = 1 AND nhatae.IsDeleted = 0              
-		   FOR XML PATH('')              
-		   ), 1, 1, ''),
+		   AND ISNULL(imtt.IsNonStock,0) = 0
+		   FOR XML PATH('')), 1, 1, ''),
 		   Wo.WorkOrderFormTypeId as IsWorkOrderFormType,
 		   (SELECT TOP 1 ISNULL(WLH.IsLaborTrackingTurnedOff, 0) FROM [dbo].[WorkOrderLaborHeader] WLH WITH(NOLOCK) WHERE WLH.WorkFlowWorkOrderId = wf.WorkFlowWorkOrderId AND WLH.WorkOrderId = wf.WorkOrderId AND ISNULL(isDeleted, 0) = 0) AS IsLaborTrackingTurnedOff,
 		   ISNULL(sl.ControlNumber,'') AS ControlNumber
@@ -134,9 +136,11 @@ BEGIN
 		LEFT JOIN Dbo.Address shipToAddress WITH(NOLOCK) on shipToSite.AddressId = shipToAddress.AddressId              
 		LEFT JOIN Dbo.Countries shipToCountry WITH(NOLOCK) on shipToAddress.CountryId = shipToCountry.countries_id              
 		LEFT JOIN Dbo.ItemMaster imt WITH(NOLOCK) on imt.ItemMasterId = wop.ItemMasterId              
-		LEFT JOIN Dbo.ItemMaster imtr WITH(NOLOCK) on imtr.ItemMasterId = wop.RevisedItemmasterid            
-		LEFT JOIN Dbo.Priority p WITH(NOLOCK) on p.PriorityId = wop.WorkOrderPriorityId              
-		LEFT JOIN Dbo.Stockline sl WITH(NOLOCK) on sl.StockLineId = wop.StockLineId              
+		 AND ISNULL(imt.IsNonStock,0) = 0
+		 LEFT JOIN Dbo.ItemMaster imtr WITH(NOLOCK) on imtr.ItemMasterId = wop.RevisedItemmasterid            
+		 AND ISNULL(imtr.IsNonStock,0) = 0
+		  LEFT JOIN Dbo.Priority p WITH(NOLOCK) on p.PriorityId = wop.WorkOrderPriorityId              
+		LEFT JOIN Dbo.Stockline sl WITH(NOLOCK) on sl.StockLineId = wop.StockLineId AND ISNULL(sl.IsNonStock,0) = 0              
 		LEFT JOIN Dbo.Employee el WITH(NOLOCK) on el.EmployeeId = wop.TechnicianId              
 		LEFT JOIN Dbo.WorkOrderStage ws WITH(NOLOCK) on ws.WorkOrderStageId = wop.WorkOrderStageId              
 		LEFT JOIN Dbo.ReceivingCustomerWork rc WITH(NOLOCK) on rc.ReceivingCustomerWorkId = wop.ReceivingCustomerWorkId            
@@ -144,7 +148,8 @@ BEGIN
 		LEFT JOIN Dbo.Condition con WITH(NOLOCK) on con.ConditionId = wop.ConditionId            
 		LEFT JOIN dbo.WorkOrderSettlementDetails wosc WITH(NOLOCK) on wop.WorkOrderId = wosc.WorkOrderId AND wop.ID = wosc.workOrderPartNoId AND wosc.WorkOrderSettlementId = 9        
 		LEFT JOIN Dbo.ItemMaster rimt WITH(NOLOCK) on rimt.ItemMasterId = wosc.RevisedPartId    
-		LEFT JOIN Dbo.WorkOrderSettings wost WITH(NOLOCK) on wost.MasterCompanyId = wop.MasterCompanyId AND wo.WorkOrderTypeId = wost.WorkOrderTypeId    
+		 AND ISNULL(rimt.IsNonStock,0) = 0
+		 LEFT JOIN Dbo.WorkOrderSettings wost WITH(NOLOCK) on wost.MasterCompanyId = wop.MasterCompanyId AND wo.WorkOrderTypeId = wost.WorkOrderTypeId    
 		WHERE wo.WorkOrderId = @WorkorderId AND wop.ID = @workOrderPartNoId                       
              
   END TRY                  

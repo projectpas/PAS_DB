@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿-- ===== PROCEDURE: [dbo].[USP_GetCustomerTax_Information_Repair_Exchange_Quote]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs2/USP_GetCustomerTax_Information_Repair_Exchange_Quote.sql) =====
+/*************************************************************           
  ** File:   [USP_GetCustomerTax_Information_Repair_Exchange_Quote]           
  ** Author:   Moin Bloch
  ** Description: This stored procedure is used to get Customer Tax Information based on Repair
@@ -15,10 +16,12 @@
  ** --   --------     -------		--------------------------------          
     1    16/02/2024   Moin Bloch    Created
 	2    05/03/2024   Moin Bloch    Updated changed join ItemMaster To [Stockline]
+	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	4    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
      
 -- EXEC [USP_GetCustomerTax_Information_Repair_Exchange_Quote] 368
 **************************************************************/
-CREATE PROCEDURE [dbo].[USP_GetCustomerTax_Information_Repair_Exchange_Quote] 
+CREATE   PROCEDURE [dbo].[USP_GetCustomerTax_Information_Repair_Exchange_Quote] 
 @ExchangeQuoteId BIGINT
 AS
 BEGIN
@@ -93,9 +96,10 @@ BEGIN
 			  FROM [dbo].[ExchangeQuote] SO WITH(NOLOCK) 
 	    INNER JOIN [dbo].[ExchangeQuotePart] SOP WITH(NOLOCK) ON SO.[ExchangeQuoteId] = SOP.[ExchangeQuoteId] 
 		 LEFT JOIN [dbo].[AllAddress] AAD WITH(NOLOCK) ON SO.[ExchangeQuoteId] = AAD.[ReffranceId] AND [IsShippingAdd] = 1 AND [ModuleId] = @EXSOQModuleId
- 		 LEFT JOIN [dbo].[Stockline] STK WITH(NOLOCK) ON SOP.[StockLineId] = STK.[StockLineId]
+ 		 LEFT JOIN [dbo].[Stockline] STK WITH(NOLOCK) ON SOP.[StockLineId] = STK.[StockLineId] AND ISNULL(STK.IsNonStock,0) = 0
 		 LEFT JOIN [dbo].[ItemMaster] ITM WITH(NOLOCK) ON SOP.[ItemMasterId] = ITM.[ItemMasterId]
-		 LEFT JOIN [dbo].[CustomerDomensticShipping] CDS WITH(NOLOCK) ON CDS.[CustomerId] = SO.[CustomerId] AND CDS.[IsPrimary] = 1
+		  AND ISNULL(ITM.IsNonStock,0) = 0
+		  LEFT JOIN [dbo].[CustomerDomensticShipping] CDS WITH(NOLOCK) ON CDS.[CustomerId] = SO.[CustomerId] AND CDS.[IsPrimary] = 1
 	         WHERE SO.[ExchangeQuoteId] = @ExchangeQuoteId
 	
    -----------------------------------------------------------------------------------------

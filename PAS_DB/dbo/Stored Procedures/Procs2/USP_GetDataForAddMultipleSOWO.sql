@@ -1,4 +1,5 @@
-﻿/*************************************************************                   
+﻿-- ===== PROCEDURE: [dbo].[USP_GetDataForAddMultipleSOWO]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs2/USP_GetDataForAddMultipleSOWO.sql) =====
+/*************************************************************                   
  ** File:   [USP_GetDataForAddMultipleSOWO]                   
  ** Author:   Shrey Chandegara      
  ** Description:       
@@ -21,10 +22,12 @@
 	7	 12/05/2024	  Ayushi Patel			Added missing brackets in where clouse 
 	8	 12/17/2024	  Ayushi Patel			Added cancel so condition in where clouse
 	9    12/30/2025   Sahdev Saliya         Implemented filtering in all spaces using the search text.
+	10    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	11    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 
  EXECUTE USP_GetDataForAddMultipleSOWO 'loadwo',102539,7,2688,14760     
 **************************************************************/         
-CREATE    PROCEDURE [dbo].[USP_GetDataForAddMultipleSOWO]      
+CREATE   PROCEDURE [dbo].[USP_GetDataForAddMultipleSOWO]      
 	@viewType VARCHAR (50) = NULL,      
 	@ItemMasterId BIGINT,      
 	@ConditionId BIGINT,      
@@ -47,7 +50,7 @@ BEGIN
 				C.Code AS 'Condition',      
 				WO.WorkOrderNum AS 'ReferenceNum',      
 				WO.WorkOrderId AS 'ReferenceId',      
-				CASE WHEN  ( (((ISNULL(SUM(WOM.Quantity),0))  -  ((ISNULL(SUM(WOM.TotalReserved),0))  +  (ISNULL(SUM(WOM.TotalIssued),0))))  +   (ISNULL(SUM(WOMK.Quantity),0))) - (SELECT ISNULL(SUM(Sl.QuantityAvailable), 0) FROM dbo.Stockline Sl where Sl.ItemMasterId = @ItemMasterId and Sl.ConditionId = @ConditionId AND IsParent = 1) )  > 0 THEN  (    (((ISNULL(SUM(WOM.Quantity),0))  -  ((ISNULL(SUM(WOM.TotalReserved),0))  +  (ISNULL(SUM(WOM.TotalIssued),0))))  +  (ISNULL(SUM(WOMK.Quantity),0))) - (SELECT ISNULL(SUM(Sl.QuantityAvailable), 0) FROM dbo.Stockline Sl where Sl.ItemMasterId = @ItemMasterId and Sl.ConditionId = @ConditionId AND IsParent = 1) ) ELSE 0 END as RequestedQty,      
+				CASE WHEN  ( (((ISNULL(SUM(WOM.Quantity),0))  -  ((ISNULL(SUM(WOM.TotalReserved),0))  +  (ISNULL(SUM(WOM.TotalIssued),0))))  +   (ISNULL(SUM(WOMK.Quantity),0))) - (SELECT ISNULL(SUM(Sl.QuantityAvailable), 0) FROM dbo.Stockline Sl where Sl.ItemMasterId = @ItemMasterId and Sl.ConditionId = @ConditionId AND IsParent = 1 AND ISNULL(Sl.IsNonStock,0) = 0) )  > 0 THEN  (    (((ISNULL(SUM(WOM.Quantity),0))  -  ((ISNULL(SUM(WOM.TotalReserved),0))  +  (ISNULL(SUM(WOM.TotalIssued),0))))  +  (ISNULL(SUM(WOMK.Quantity),0))) - (SELECT ISNULL(SUM(Sl.QuantityAvailable), 0) FROM dbo.Stockline Sl where Sl.ItemMasterId = @ItemMasterId and Sl.ConditionId = @ConditionId AND IsParent = 1 AND ISNULL(Sl.IsNonStock,0) = 0) ) ELSE 0 END as RequestedQty,      
 				WOP.PromisedDate AS 'PromisedDate',      
 				WOP.EstimatedCompletionDate AS 'EstimatedCompletionDate',      
 				WOP.EstimatedShipDate AS 'EstimatedShipDate',      
@@ -59,7 +62,8 @@ BEGIN
 			LEFT JOIN [DBO].[Nha_Tla_Alt_Equ_ItemMapping] MainNha WITH (NOLOCK) ON MainNha.MappingItemMasterId = @ItemMasterId AND (MainNha.MappingType = 1 OR MainNha.MappingType = 2)
 			LEFT JOIN [DBO].[WorkOrderPartNumber] WOP WITH (NOLOCK) ON WOP.WorkOrderId = WOM.WorkOrderId      
 			LEFT JOIN [DBO].[ItemMaster] IM WITH (NOLOCK) ON IM.ItemMasterId = @ItemMasterId      
-			LEFT JOIN [DBO].[Condition] C WITH (NOLOCK) ON C.ConditionId = @ConditionId      
+			 AND ISNULL(IM.IsNonStock,0) = 0
+			 LEFT JOIN [DBO].[Condition] C WITH (NOLOCK) ON C.ConditionId = @ConditionId      
 			WHERE (WOM.ItemMasterId = @ItemMasterId AND WOM.ConditionCodeId = @ConditionId)
 			OR ((WOM.ItemMasterId = Nha.MappingItemMasterId OR WOM.ItemMasterId = MainNha.ItemMasterId) AND WOM.ConditionCodeId = @ConditionId) AND (@SearchText is null or WO.WorkOrderNum LIKE '%'+@SearchText+'%')
 			GROUP BY WO.WorkOrderNum, WOP.PromisedDate, WOP.EstimatedCompletionDate, WOP.EstimatedShipDate, IM.partnumber, C.code, WO.WorkOrderId
@@ -85,7 +89,8 @@ BEGIN
 			LEFT JOIN [DBO].[Nha_Tla_Alt_Equ_ItemMapping] MainNha WITH (NOLOCK) ON MainNha.MappingItemMasterId = @ItemMasterId AND (MainNha.MappingType = 1 OR MainNha.MappingType = 2)
 			LEFT JOIN [DBO].[SalesOrder] SO WITH (NOLOCK) ON SO.SalesOrderId = SOP.SalesOrderId      
 			LEFT JOIN [DBO].[ItemMaster] IM WITH (NOLOCK) ON IM.ItemMasterId = @ItemMasterId      
-			LEFT JOIN [DBO].[Condition] C WITH (NOLOCK) ON C.ConditionId = @ConditionId      
+			 AND ISNULL(IM.IsNonStock,0) = 0
+			 LEFT JOIN [DBO].[Condition] C WITH (NOLOCK) ON C.ConditionId = @ConditionId      
 			WHERE (SOP.ItemMasterId = @ItemMasterId AND SOP.ConditionId = @ConditionId 
 			OR ((SOP.ItemMasterId = Nha.MappingItemMasterId OR SOP.ItemMasterId = MainNha.ItemMasterId) AND SOP.ConditionId = @ConditionId))
 			AND SO.StatusId != @CloseSOStatusId AND SO.StatusId != @CancelSOStatusId AND (@SearchText is null or SO.SalesOrderNumber LIKE '%'+@SearchText+'%')
@@ -99,7 +104,7 @@ BEGIN
 				C.Code AS 'Condition',      
 				WO.WorkOrderNum AS 'ReferenceNum',      
 				WO.WorkOrderId AS 'ReferenceId',      
-				CASE WHEN  ( (((ISNULL(SUM(WOM.Quantity),0))  -  ((ISNULL(SUM(WOM.TotalReserved),0))  +  (ISNULL(SUM(WOM.TotalIssued),0))))  +   (ISNULL(SUM(WOMK.Quantity),0))) - (SELECT ISNULL(SUM(Sl.QuantityAvailable), 0) FROM dbo.Stockline Sl where Sl.ItemMasterId = @ItemMasterId and Sl.ConditionId = @ConditionId AND IsParent = 1 AND IsCustomerStock = 0) )  > 0 THEN  (    (((ISNULL(SUM(WOM.Quantity),0))  -  ((ISNULL(SUM(WOM.TotalReserved),0))  +  (ISNULL(SUM(WOM.TotalIssued),0))))  +  (ISNULL(SUM(WOMK.Quantity),0))) - (SELECT ISNULL(SUM(Sl.QuantityAvailable), 0) FROM dbo.Stockline Sl where Sl.ItemMasterId = @ItemMasterId and Sl.ConditionId = @ConditionId AND IsParent = 1 AND IsCustomerStock = 0) ) ELSE 0 END as RequestedQty,      
+				CASE WHEN  ( (((ISNULL(SUM(WOM.Quantity),0))  -  ((ISNULL(SUM(WOM.TotalReserved),0))  +  (ISNULL(SUM(WOM.TotalIssued),0))))  +   (ISNULL(SUM(WOMK.Quantity),0))) - (SELECT ISNULL(SUM(Sl.QuantityAvailable), 0) FROM dbo.Stockline Sl where Sl.ItemMasterId = @ItemMasterId and Sl.ConditionId = @ConditionId AND IsParent = 1 AND IsCustomerStock = 0 AND ISNULL(Sl.IsNonStock,0) = 0) )  > 0 THEN  (    (((ISNULL(SUM(WOM.Quantity),0))  -  ((ISNULL(SUM(WOM.TotalReserved),0))  +  (ISNULL(SUM(WOM.TotalIssued),0))))  +  (ISNULL(SUM(WOMK.Quantity),0))) - (SELECT ISNULL(SUM(Sl.QuantityAvailable), 0) FROM dbo.Stockline Sl where Sl.ItemMasterId = @ItemMasterId and Sl.ConditionId = @ConditionId AND IsParent = 1 AND IsCustomerStock = 0 AND ISNULL(Sl.IsNonStock,0) = 0) ) ELSE 0 END as RequestedQty,      
 				WOP.PromisedDate AS 'PromisedDate',      
 				WOP.EstimatedCompletionDate AS 'EstimatedCompletionDate',      
 				WOP.EstimatedShipDate AS 'EstimatedShipDate',      
@@ -109,7 +114,8 @@ BEGIN
 			LEFT JOIN [DBO].[WorkOrderMaterialsKit] WOMK WITH (NOLOCK) ON WOMK.WorkOrderId = WO.WorkOrderId --AND WOMK.WorkFlowWorkOrderId = WOM.WorkFlowWorkOrderId        
 			LEFT JOIN [DBO].[WorkOrderPartNumber] WOP WITH (NOLOCK) ON WOP.WorkOrderId = WOM.WorkOrderId      
 			LEFT JOIN [DBO].[ItemMaster] IM WITH (NOLOCK) ON IM.ItemMasterId = @ItemMasterId      
-			LEFT JOIN [DBO].[Nha_Tla_Alt_Equ_ItemMapping] Nha WITH (NOLOCK) ON Nha.ItemMasterId = @ItemMasterId AND (Nha.MappingType = 1 OR Nha.MappingType = 2)
+			 AND ISNULL(IM.IsNonStock,0) = 0
+			 LEFT JOIN [DBO].[Nha_Tla_Alt_Equ_ItemMapping] Nha WITH (NOLOCK) ON Nha.ItemMasterId = @ItemMasterId AND (Nha.MappingType = 1 OR Nha.MappingType = 2)
 			LEFT JOIN [DBO].[Nha_Tla_Alt_Equ_ItemMapping] MainNha WITH (NOLOCK) ON MainNha.MappingItemMasterId = @ItemMasterId AND (MainNha.MappingType = 1 OR MainNha.MappingType = 2)
 			LEFT JOIN [DBO].[Condition] C WITH (NOLOCK) ON C.ConditionId = @ConditionId      
 			WHERE ((WOM.ItemMasterId = @ItemMasterId AND WOM.ConditionCodeId = @ConditionId) OR 
@@ -140,7 +146,8 @@ BEGIN
             LEFT JOIN [DBO].[SalesOrderReserveParts] SOR WITH (NOLOCK) ON SOR.SalesOrderPartId = SOP.SalesOrderPartId      
             LEFT JOIN [DBO].[SalesOrder] SO WITH (NOLOCK) ON SO.SalesOrderId = SOP.SalesOrderId      
 			LEFT JOIN [DBO].[ItemMaster] IM WITH (NOLOCK) ON IM.ItemMasterId = @ItemMasterId      
-            LEFT JOIN [DBO].[Condition] C WITH (NOLOCK) ON C.ConditionId = @ConditionId      
+             AND ISNULL(IM.IsNonStock,0) = 0
+			 LEFT JOIN [DBO].[Condition] C WITH (NOLOCK) ON C.ConditionId = @ConditionId      
 			LEFT JOIN [DBO].[Nha_Tla_Alt_Equ_ItemMapping] Nha WITH (NOLOCK) ON Nha.ItemMasterId = @ItemMasterId AND (Nha.MappingType = 1 OR Nha.MappingType = 2)
 			LEFT JOIN [DBO].[Nha_Tla_Alt_Equ_ItemMapping] MainNha WITH (NOLOCK) ON MainNha.MappingItemMasterId = @ItemMasterId AND (MainNha.MappingType = 1 OR MainNha.MappingType = 2)
 			WHERE (SOP.ItemMasterId = @ItemMasterId AND SOP.ConditionId = @ConditionId OR
@@ -164,7 +171,8 @@ BEGIN
 			FROM [RepairOrderPart] ROP WITH(NOLOCK)       
             LEFT JOIN [DBO].[RepairOrder] RO WITH (NOLOCK) ON RO.RepairOrderId = ROP.RepairOrderId       
 			LEFT JOIN [DBO].[ItemMaster] IM WITH (NOLOCK) ON IM.ItemMasterId = @ItemMasterId      
-            LEFT JOIN [DBO].[Condition] C WITH (NOLOCK) ON C.ConditionId = @ConditionId      
+             AND ISNULL(IM.IsNonStock,0) = 0
+			 LEFT JOIN [DBO].[Condition] C WITH (NOLOCK) ON C.ConditionId = @ConditionId      
 			WHERE ROP.ItemMasterId = @ItemMasterId AND ROP.ConditionId = @ConditionId AND (@SearchText is null or RO.RepairOrderNumber LIKE '%'+@SearchText+'%')
 			ORDER BY RO.RepairOrderId DESC;
 		END      
@@ -182,9 +190,10 @@ BEGIN
 				@viewType AS 'ViewType'      
             FROM [ExchangeSalesOrderPart] ESOP WITH(NOLOCK)           
             LEFT JOIN [DBO].[ExchangeSalesOrder] ESO WITH (NOLOCK) ON ESO.ExchangeSalesOrderId = ESOP.ExchangeSalesOrderId      
-			LEFT JOIN [DBO].[Stockline] SL WITH (NOLOCK) ON SL.StockLineId = ESOP.StockLineId
+			LEFT JOIN [DBO].[Stockline] SL WITH (NOLOCK) ON SL.StockLineId = ESOP.StockLineId AND ISNULL(SL.IsNonStock,0) = 0
 			LEFT JOIN [DBO].[ItemMaster] IM WITH (NOLOCK) ON IM.ItemMasterId = @ItemMasterId      
-            LEFT JOIN [DBO].[Condition] C WITH (NOLOCK) ON C.ConditionId = @ConditionId      
+             AND ISNULL(IM.IsNonStock,0) = 0
+			 LEFT JOIN [DBO].[Condition] C WITH (NOLOCK) ON C.ConditionId = @ConditionId      
 			LEFT JOIN [DBO].[Nha_Tla_Alt_Equ_ItemMapping] Nha WITH (NOLOCK) ON Nha.ItemMasterId = @ItemMasterId AND (Nha.MappingType = 1 OR Nha.MappingType = 2)
 			LEFT JOIN [DBO].[Nha_Tla_Alt_Equ_ItemMapping] MainNha WITH (NOLOCK) ON MainNha.MappingItemMasterId = @ItemMasterId AND (MainNha.MappingType = 1 OR MainNha.MappingType = 2)
             WHERE (ESOP.ItemMasterId = @ItemMasterId AND ESOP.ConditionId = @ConditionId
@@ -200,7 +209,7 @@ BEGIN
 				SWO.SubWorkOrderNo AS 'ReferenceNum',      
 				SWO.SubWorkOrderId As 'ReferenceId',      
 				--ISNULL(SWM.Quantity,0)  as RequestedQty, -- ISNULL(SOP.qty ,0)  - ISNULL(SOP.QtyRequested ,0)) as RequestedQty,    
-				CASE WHEN  ( (((ISNULL(SUM(SWM.Quantity),0)) - ((ISNULL(SUM(SWM.TotalReserved),0)) + (ISNULL(SUM(SWM.TotalIssued),0)))) + (ISNULL(SUM(SWMK.Quantity),0))) - (SELECT ISNULL(SUM(Sl.QuantityAvailable), 0) FROM dbo.Stockline Sl where Sl.ItemMasterId = @ItemMasterId and Sl.ConditionId = @ConditionId AND IsParent = 1 AND IsCustomerStock = 0) ) > 0 THEN ( (((ISNULL(SUM(SWM.Quantity),0)) - ((ISNULL(SUM(SWM.TotalReserved),0)) + (ISNULL(SUM(SWM.TotalIssued),0)))) + (ISNULL(SUM(SWMK.Quantity),0))) - (SELECT ISNULL(SUM(Sl.QuantityAvailable), 0) FROM dbo.Stockline Sl where Sl.ItemMasterId = @ItemMasterId and Sl.ConditionId = @ConditionId AND IsParent = 1 AND IsCustomerStock = 0) ) ELSE 0 END as RequestedQty,      
+				CASE WHEN  ( (((ISNULL(SUM(SWM.Quantity),0)) - ((ISNULL(SUM(SWM.TotalReserved),0)) + (ISNULL(SUM(SWM.TotalIssued),0)))) + (ISNULL(SUM(SWMK.Quantity),0))) - (SELECT ISNULL(SUM(Sl.QuantityAvailable), 0) FROM dbo.Stockline Sl where Sl.ItemMasterId = @ItemMasterId and Sl.ConditionId = @ConditionId AND IsParent = 1 AND IsCustomerStock = 0 AND ISNULL(Sl.IsNonStock,0) = 0) ) > 0 THEN ( (((ISNULL(SUM(SWM.Quantity),0)) - ((ISNULL(SUM(SWM.TotalReserved),0)) + (ISNULL(SUM(SWM.TotalIssued),0)))) + (ISNULL(SUM(SWMK.Quantity),0))) - (SELECT ISNULL(SUM(Sl.QuantityAvailable), 0) FROM dbo.Stockline Sl where Sl.ItemMasterId = @ItemMasterId and Sl.ConditionId = @ConditionId AND IsParent = 1 AND IsCustomerStock = 0 AND ISNULL(Sl.IsNonStock,0) = 0) ) ELSE 0 END as RequestedQty,      
 				NULL AS 'PromisedDate',      
 				NULL AS 'EstimatedCompletionDate',      
 				NULL 'EstimatedShipDate',      
@@ -209,7 +218,8 @@ BEGIN
             LEFT JOIN [DBO]. [SubWorkOrderMaterials] SWM WITH (NOLOCK) ON SWO.SubWorkOrderId = SWM.SubWorkOrderId      
             LEFT JOIN [DBO]. [SubWorkOrderMaterialsKit] SWMK WITH (NOLOCK) ON SWO.SubWorkOrderId = SWMK.SubWorkOrderId      
             LEFT JOIN [DBO].[ItemMaster] IM WITH (NOLOCK) ON IM.ItemMasterId = @ItemMasterId      
-            LEFT JOIN [DBO].[Condition] C WITH (NOLOCK) ON C.ConditionId = @ConditionId      
+             AND ISNULL(IM.IsNonStock,0) = 0
+             LEFT JOIN [DBO].[Condition] C WITH (NOLOCK) ON C.ConditionId = @ConditionId      
 			LEFT JOIN [DBO].[Nha_Tla_Alt_Equ_ItemMapping] Nha WITH (NOLOCK) ON Nha.ItemMasterId = @ItemMasterId AND (Nha.MappingType = 1 OR Nha.MappingType = 2)
 			LEFT JOIN [DBO].[Nha_Tla_Alt_Equ_ItemMapping] MainNha WITH (NOLOCK) ON MainNha.MappingItemMasterId = @ItemMasterId AND (MainNha.MappingType = 1 OR MainNha.MappingType = 2)
             WHERE ((SWM.ItemMasterId = @ItemMasterId AND SWM.ConditionCodeId = @ConditionId) 

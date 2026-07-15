@@ -1,4 +1,8 @@
 ﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.UpdateItemMasterExportInfoDetails   (source: PAS_DB/dbo/Stored Procedures/Procs1/UpdateItemMasterExportInfoDetails.sql)
+-- ---------------------------------------------------------------------------------------------------
+
 
 /*************************************************************           
  ** File:   [UpdateItemMasterExportInfoDetails]           
@@ -15,11 +19,12 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    06-Apr-2021   Moin Bloch   Created
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 
  EXEC UpdateItemMasterExportInfoDetails 351
 **************************************************************/ 
 
-CREATE PROCEDURE [dbo].[UpdateItemMasterExportInfoDetails]
+CREATE   PROCEDURE [dbo].[UpdateItemMasterExportInfoDetails]
 @ItemMasterId  bigint
 AS
 BEGIN
@@ -49,7 +54,7 @@ SET NOCOUNT ON;
 	   	  
 	   WHERE IMEI.ItemMasterId = @ItemMasterId;
 	   
-	   SELECT partnumber AS value FROM dbo.ItemMaster IM WITH (NOLOCK) WHERE IM.ItemMasterId  = @ItemMasterId;
+	   SELECT partnumber AS value FROM dbo.ItemMaster IM WITH (NOLOCK) WHERE IM.ItemMasterId  = @ItemMasterId AND ISNULL(IM.IsNonStock,0) = 0 ;
 	   
 	   COMMIT TRANSACTION
    END TRY

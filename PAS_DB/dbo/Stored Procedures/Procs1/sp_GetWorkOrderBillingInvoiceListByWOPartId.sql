@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿-- ===== PROCEDURE: [dbo].[sp_GetWorkOrderBillingInvoiceListByWOPartId]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs1/sp_GetWorkOrderBillingInvoiceListByWOPartId.sql) =====
+/*************************************************************           
  ** File:     [sp_GetWorkOrderBillingInvoiceListByWOPartId]           
  ** Author:	  Vishal Suthar
  ** Description: This SP is Used to Get WorkOrder Billing InvoiceList By WOPartId
@@ -19,11 +20,13 @@
 	3    02/02/2024   Devendra Shekh	modified sp for performaInvoice
 	4    02/08/2024   Devendra Shekh	changed join for shipping to left
 	5    03-07-2025   Moin Bloch        Changed Old To New Billing Table
+	6    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	7    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 
 	-- EXEC [dbo].[sp_GetWorkOrderBillingInvoiceListByWOPartId] 8996, 8829
 **************************************************************/ 
 
-CREATE   Procedure [dbo].[sp_GetWorkOrderBillingInvoiceListByWOPartId]
+CREATE   PROCEDURE [dbo].[sp_GetWorkOrderBillingInvoiceListByWOPartId]
 @WorkOrderId  bigint,
 @workOrderPartNumberId  bigint
 AS
@@ -72,8 +75,7 @@ BEGIN
 				--				WHERE WorkOrderId=@WorkOrderId AND ISNULL(IsPerformaInvoice, 0) = 0 ORDER BY BillingInvoicingId DESC))  --= @workOrderPartNumberId
 				--GROUP BY wo.WorkOrderNum,wop.ID, imt.partnumber, imt.PartDescription,wo.WorkOrderId,
 				--	wop.WorkOrderId, imt.ItemMasterId,wop.RevisedItemmasterid,wop.RevisedPartNumber,wop.RevisedPartDescription
-
-					SELECT 
+				 SELECT 
 					wo.WorkOrderNum as WorkOrderNumber, 
 					CASE WHEN ISNULL(wop.RevisedItemmasterid, 0) > 0 THEN wop.RevisedPartNumber ELSE imt.PartNumber END as 'PartNumber',
 			        CASE WHEN ISNULL(wop.RevisedItemmasterid, 0) > 0 THEN wop.RevisedPartDescription ELSE imt.PartDescription END as 'PartDescription',
@@ -97,7 +99,8 @@ BEGIN
 					LEFT JOIN DBO.WorkOrderShipping wos WITH(NOLOCK) on wos.WorkOrderId = wop.WorkOrderId
 					LEFT JOIN DBO.WorkOrderShippingItem wosi WITH(NOLOCK) on wos.WorkOrderShippingId = wosi.WorkOrderShippingId AND wosi.WorkOrderPartNumId = wop.ID
 					LEFT JOIN DBO.ItemMaster imt WITH(NOLOCK) on imt.ItemMasterId = wop.ItemMasterId
-					LEFT JOIN DBO.Stockline sl WITH(NOLOCK) on sl.StockLineId = wop.StockLineId
+					 AND ISNULL(imt.IsNonStock,0) = 0
+					 LEFT JOIN DBO.Stockline sl WITH(NOLOCK) on sl.StockLineId = wop.StockLineId AND ISNULL(sl.IsNonStock,0) = 0
 					LEFT JOIN DBO.BillingInvoicingItems wobii WITH(NOLOCK) on wop.ID = wobii.SubReferenceId AND ISNULL(wobII.IsPerformaInvoice, 0) = 0 AND wobii.[ModuleId] =@WOModuleId
 					LEFT JOIN DBO.BillingInvoicing wobi WITH(NOLOCK) on wobii.BillingInvoicingId = wobi.BillingInvoicingId and wobi.IsVersionIncrease=0
 					AND wobii.SubReferenceId = wop.ID AND wobii.QtyBilled = wosi.QtyShipped AND ISNULL(wobi.IsPerformaInvoice, 0) = 0

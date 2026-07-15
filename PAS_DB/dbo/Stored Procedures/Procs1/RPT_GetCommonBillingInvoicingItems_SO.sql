@@ -17,6 +17,7 @@
 	5    17/JUL/2025   RAJESH GAMI		SO: Freight Charges Amount Issue Fixed
 	6    17/JUL/2025   VISHAL SUTHAR	Trimming the Notes field with "<p></p>" tag in the beginning and end.
 	7    12/Jan/2026   VISHAL SUTHAR	Use Serial Number from BillingInvoicingItems if exists
+	8    09/July/2026   RAJESH GAMI	[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 
 --   EXEC [dbo].[RPT_GetCommonBillingInvoicingItems_SO] 4729,10
 ********************************************************************************************/
@@ -133,7 +134,7 @@ BEGIN
 				LEFT JOIN DBO.SalesOrderPartCost sopc WITH (NOLOCK) ON sop.SalesOrderPartId = sopc.SalesOrderPartId
 				LEFT JOIN DBO.SalesOrderStocklineCost sosc WITH (NOLOCK) ON stock.SalesOrderStocklineId = sosc.SalesOrderStocklineId
 				LEFT JOIN DBO.Condition c WITH (NOLOCK) ON sop.ConditionId = c.ConditionId
-				LEFT JOIN DBO.StockLine sl WITH (NOLOCK) ON BII.StockLineId = sl.StockLineId
+				LEFT JOIN DBO.StockLine sl WITH (NOLOCK) ON BII.StockLineId = sl.StockLineId AND ISNULL(sl.IsNonStock,0) = 0
 				WHERE BI.BillingInvoicingId = @BillingInvoicingId	 
 				--UPDATE #tmprRptInvoicingItem SET Freight = 0, MiscCharges = 0 WHERE RowData > 1
 				SELECT 

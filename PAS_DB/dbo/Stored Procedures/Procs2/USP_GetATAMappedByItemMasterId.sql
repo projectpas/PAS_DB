@@ -1,4 +1,8 @@
-﻿/*************************************************************           
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.USP_GetATAMappedByItemMasterId   (source: PAS_DB/dbo/Stored Procedures/Procs2/USP_GetATAMappedByItemMasterId.sql)
+-- ---------------------------------------------------------------------------------------------------
+/*************************************************************           
  ** File:		[dbo].[USP_GetATAMappedByItemMasterId]      
  ** Author:		 Nakul Chandigra
  ** Description: This stored procedure retrieves part details for the Add Multiple Part search in a PO, filtered by MasterCompanyId.
@@ -10,8 +14,9 @@
  ** PR   Date				Author				Change Description            
  ** --   -------------		----------------	-------------------         
 	1	 16-12-2025         Nakul Chandigra     Created 
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 **************************************************************/
-CREATE   PROCEDURE [dbo].[USP_GetATAMappedByItemMasterId]
+CREATE     PROCEDURE [dbo].[USP_GetATAMappedByItemMasterId]
 @ItemMasterId BIGINT,
 @IsDeleted BIT,
 @EmployeeId BIGINT
@@ -55,7 +60,8 @@ BEGIN
 	JOIN [DBO].ItemMaster item WITH (NOLOCK) ON iM.ItemMasterId = item.ItemMasterId
 	WHERE  iM.ItemMasterId = @ItemMasterId AND iM.IsActive = 1 AND iM.IsDeleted = @IsDeleted
 
-	END TRY
+	 AND ISNULL(item.IsNonStock,0) = 0
+	 END TRY
 	BEGIN CATCH
 		DECLARE @ErrorLogID INT, @DatabaseName VARCHAR(100) = db_name() 
 -----------------------------------PLEASE CHANGE THE VALUES FROM HERE TILL THE NEXT LINE----------------------------------------

@@ -1,4 +1,4 @@
-﻿/*************************************************************       
+/*************************************************************       
 ** Author:  <Hemant Saliya>      
 ** Create date: <01/23/2023>      
 ** Description: <Get Work order Release Form Data>      
@@ -22,6 +22,8 @@ EXEC [GetSubWorkorderReleaseFromData]
    11   18/02/2025  Moin Bloch       Updated (Added Publication CMMIds)
    12   19/02/2025  Moin Bloch       Updated (Changed Logic For Publication CMMIds For MasterCompanyId Wise)
    13   20/02/2025  Moin Bloch       Updated (Checked @CMMIds Empty)
+	14    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	15    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
     
 EXEC GetSubWorkorderReleaseFromData 4933,'ADMIN ADMIN'    
     
@@ -256,7 +258,8 @@ BEGIN
 				   LEFT JOIN [dbo].[WorkOrder] wo  WITH(NOLOCK) ON wo.WorkOrderId = wop.WorkOrderId    
 				   LEFT JOIN [dbo].[WorkOrderDualReleaseSettings] wods  WITH(NOLOCK) ON wods.MasterCompanyId = wop.MasterCompanyId AND wo.WorkOrderTypeId = wods.WorkOrderTypeId AND wods.CountriesId = @CountryId
 				   LEFT JOIN [dbo].[ItemMaster] im  WITH(NOLOCK) ON im.ItemMasterId = wop.ItemMasterId    
-				   LEFT JOIN [dbo].[Stockline] sl  WITH(NOLOCK) ON sl.StockLineId = wop.StockLineId    
+				    AND ISNULL(im.IsNonStock,0) = 0
+				    LEFT JOIN [dbo].[Stockline] sl  WITH(NOLOCK) ON sl.StockLineId = wop.StockLineId AND ISNULL(sl.IsNonStock,0) = 0    
 				   LEFT JOIN [dbo].[ReceivingCustomerWork] rc  WITH(NOLOCK) ON rc.WorkOrderId = wo.WorkOrderId --rc.StockLineId = wop.StockLineId    
 				   LEFT JOIN [dbo].[WorkOrderManagementStructureDetails] MSD  WITH(NOLOCK) ON MSD.ModuleID = @MSModuleId AND MSD.ReferenceID = @WopartId    
 				   LEFT JOIN [dbo].[ManagementStructurelevel] MSL WITH(NOLOCK) ON MSL.ID = MSD.Level1Id    
@@ -264,7 +267,8 @@ BEGIN
 				   LEFT JOIN [dbo].[Address]  ad  WITH(NOLOCK) ON ad.AddressId = le.AddressId     
 				   LEFT JOIN [dbo].[SubWorkOrderSettlementDetails] wosc WITH(NOLOCK) ON wop.WorkOrderId = wosc.WorkOrderId AND wop.SubWOPartNoId = wosc.SubWOPartNoId AND wosc.WorkOrderSettlementId = 9    
 				   LEFT JOIN [dbo].[ItemMaster] ims WITH(NOLOCK) ON ims.ItemMasterId = wosc.RevisedItemmasterid      
-				   LEFT JOIN [dbo].[Publication] pub WITH(NOLOCK) ON pub.PublicationRecordId = @CMMIds
+				    AND ISNULL(ims.IsNonStock,0) = 0
+				    LEFT JOIN [dbo].[Publication] pub WITH(NOLOCK) ON pub.PublicationRecordId = @CMMIds
 				   LEFT JOIN [dbo].[Vendor] ven WITH(NOLOCK) on pub.PublishedById = ven.VendorId    
 				   LEFT JOIN [dbo].[Manufacturer] mf WITH(NOLOCK) ON pub.PublishedById = mf.ManufacturerId    
 				   LEFT JOIN [dbo].[WorkOrderPartNumber] wopn  WITH(NOLOCK) ON wopn.ID = swo.WorkOrderPartNumberId    
@@ -355,7 +359,8 @@ BEGIN
 				   LEFT JOIN [dbo].[WorkOrder] wo  WITH(NOLOCK) ON wo.WorkOrderId = wop.WorkOrderId    
 				   LEFT JOIN [dbo].[WorkOrderDualReleaseSettings] wods  WITH(NOLOCK) ON wods.MasterCompanyId = wop.MasterCompanyId AND wo.WorkOrderTypeId = wods.WorkOrderTypeId AND wods.CountriesId = @CountryId
 				   LEFT JOIN [dbo].[ItemMaster] im  WITH(NOLOCK) ON im.ItemMasterId = wop.ItemMasterId    
-				   LEFT JOIN [dbo].[Stockline] sl  WITH(NOLOCK) ON sl.StockLineId = wop.StockLineId    
+				    AND ISNULL(im.IsNonStock,0) = 0
+				    LEFT JOIN [dbo].[Stockline] sl  WITH(NOLOCK) ON sl.StockLineId = wop.StockLineId AND ISNULL(sl.IsNonStock,0) = 0    
 				   LEFT JOIN [dbo].[ReceivingCustomerWork] rc  WITH(NOLOCK) ON rc.WorkOrderId = wo.WorkOrderId --rc.StockLineId = wop.StockLineId    
 				   LEFT JOIN [dbo].[WorkOrderManagementStructureDetails] MSD  WITH(NOLOCK) ON MSD.ModuleID = @MSModuleId AND MSD.ReferenceID = @WopartId    
 				   LEFT JOIN [dbo].[ManagementStructurelevel] MSL WITH(NOLOCK) ON MSL.ID = MSD.Level1Id    
@@ -363,7 +368,8 @@ BEGIN
 				   LEFT JOIN [dbo].[Address]  ad  WITH(NOLOCK) ON ad.AddressId = le.AddressId     
 				   LEFT JOIN [dbo].[SubWorkOrderSettlementDetails] wosc WITH(NOLOCK) ON wop.WorkOrderId = wosc.WorkOrderId AND wop.SubWOPartNoId = wosc.SubWOPartNoId AND wosc.WorkOrderSettlementId = 9    
 				   LEFT JOIN [dbo].[ItemMaster] ims WITH(NOLOCK) ON ims.ItemMasterId = wosc.RevisedItemmasterid      
-				   LEFT JOIN [dbo].[Publication] pub WITH(NOLOCK) ON pub.PublicationRecordId = @CMMID1
+				    AND ISNULL(ims.IsNonStock,0) = 0
+				    LEFT JOIN [dbo].[Publication] pub WITH(NOLOCK) ON pub.PublicationRecordId = @CMMID1
 				   LEFT JOIN [dbo].[Publication] pub2 WITH(NOLOCK) ON pub2.[PublicationRecordId] = @CMMID2 	
 				   LEFT JOIN [dbo].[Vendor] ven WITH(NOLOCK) on pub.PublishedById = ven.VendorId    
 				   LEFT JOIN [dbo].[Manufacturer] mf WITH(NOLOCK) ON pub.PublishedById = mf.ManufacturerId    
@@ -434,7 +440,8 @@ BEGIN
 				   LEFT JOIN [dbo].[WorkOrder] wo  WITH(NOLOCK) ON wo.WorkOrderId = wop.WorkOrderId    
 				   LEFT JOIN [dbo].[WorkOrderDualReleaseSettings] wods  WITH(NOLOCK) ON wods.MasterCompanyId = wop.MasterCompanyId AND wo.WorkOrderTypeId = wods.WorkOrderTypeId AND wods.CountriesId = @CountryId
 				   LEFT JOIN [dbo].[ItemMaster] im  WITH(NOLOCK) ON im.ItemMasterId = wop.ItemMasterId    
-				   LEFT JOIN [dbo].[Stockline] sl  WITH(NOLOCK) ON sl.StockLineId = wop.StockLineId    
+				    AND ISNULL(im.IsNonStock,0) = 0
+				    LEFT JOIN [dbo].[Stockline] sl  WITH(NOLOCK) ON sl.StockLineId = wop.StockLineId AND ISNULL(sl.IsNonStock,0) = 0    
 				   LEFT JOIN [dbo].[ReceivingCustomerWork] rc  WITH(NOLOCK) ON rc.WorkOrderId = wo.WorkOrderId --rc.StockLineId = wop.StockLineId    
 				   LEFT JOIN [dbo].[WorkOrderManagementStructureDetails] MSD  WITH(NOLOCK) ON MSD.ModuleID = @MSModuleId AND MSD.ReferenceID = @WopartId    
 				   LEFT JOIN [dbo].[ManagementStructurelevel] MSL WITH(NOLOCK) ON MSL.ID = MSD.Level1Id    
@@ -442,7 +449,8 @@ BEGIN
 				   LEFT JOIN [dbo].[Address]  ad  WITH(NOLOCK) ON ad.AddressId = le.AddressId     
 				   LEFT JOIN [dbo].[SubWorkOrderSettlementDetails] wosc WITH(NOLOCK) ON wop.WorkOrderId = wosc.WorkOrderId AND wop.SubWOPartNoId = wosc.SubWOPartNoId AND wosc.WorkOrderSettlementId = 9    
 				   LEFT JOIN [dbo].[ItemMaster] ims WITH(NOLOCK) ON ims.ItemMasterId = wosc.RevisedItemmasterid      
-				   LEFT JOIN [dbo].[Publication] pub WITH(NOLOCK) ON pub.PublicationRecordId = @CMMIds
+				    AND ISNULL(ims.IsNonStock,0) = 0
+				    LEFT JOIN [dbo].[Publication] pub WITH(NOLOCK) ON pub.PublicationRecordId = @CMMIds
 				   LEFT JOIN [dbo].[Vendor] ven WITH(NOLOCK) on pub.PublishedById = ven.VendorId    
 				   LEFT JOIN [dbo].[Manufacturer] mf WITH(NOLOCK) ON pub.PublishedById = mf.ManufacturerId    
 				   LEFT JOIN [dbo].[WorkOrderPartNumber] wopn  WITH(NOLOCK) ON wopn.ID = swo.WorkOrderPartNumberId    

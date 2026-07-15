@@ -1,4 +1,5 @@
-﻿/*************************************************************                
+﻿-- ===== PROCEDURE: [dbo].[SP_InsertUnitSalesPriceHistory]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs1/SP_InsertUnitSalesPriceHistory.sql) =====
+/*************************************************************                
  ** Author: Ekta Chandegra
  ** Description: This stored procedure is used to Create history of unit sales price in stockline
  ** Date:   08/01/2024
@@ -10,6 +11,7 @@
  ** PR   Date         Author  		Change Description            
  ** --   --------     -------		---------------------------     
     1    08/01/2024   Ekta Chandegra    Created
+    2    09/July/2026   RAJESH GAMI    [PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 **************************************************************
  EXECUTE SP_InsertUnitSalesPriceHistory  163178 , 1 , 'Admin'
 **************************************************************/
@@ -29,7 +31,7 @@ BEGIN
 		BEGIN
 		DECLARE @unitSalesPrice decimal , @salesExpiryDate datetime, @id bigint = 0;
 			SELECT DISTINCT *
-				INTO #TempUnitSalesPriceHistory FROM DBO.Stockline stk WITH(NOLOCK)  WHERE stocklineId = @StockLineId  AND MasterCompanyId = @MasterCompanyId
+				INTO #TempUnitSalesPriceHistory FROM DBO.Stockline stk WITH(NOLOCK)  WHERE stocklineId = @StockLineId  AND MasterCompanyId = @MasterCompanyId AND ISNULL(stk.IsNonStock,0) = 0
 			SELECT TOP 1 @id = ISNULL(UnitSalePriceHistoryAuditId,0) ,@unitSalesPrice = UnitSalesPrice, @salesExpiryDate = SalesPriceExpiryDate from DBO.UnitSalePriceHistoryAudit usp WITH(NOLOCK) WHERE stocklineId = @StockLineId ORDER BY UnitSalePriceHistoryAuditId DESC
 
 			INSERT INTO [dbo].[UnitSalePriceHistoryAudit]

@@ -1,4 +1,8 @@
-﻿/*************************************************************             
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.GetWorkOrderQuoteList   (source: PAS_DB/dbo/Stored Procedures/Procs1/GetWorkOrderQuoteList.sql)
+-- ---------------------------------------------------------------------------------------------------
+/*************************************************************             
  ** File:   [GetWorkOrderQuoteList]             
  ** Author:    
  ** Description: Get Search Data for WorkOrderQuoteList   
@@ -19,8 +23,9 @@
 	6    15-Jan-2024  Moin Bloch  		    Added New Fields WOPartNoId,IsWoAlwaysOrOndemandId,WorkOrderFormTypeId                               
 	7    20-March-2025   Ekta Chandegra        Convert date using dbo.ConvertUTCtoLocal
 	8    4 Apr 2025   RAJESH GAMI			Resolved issue: Need to display latest record on the top
+	9    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 **************************************************************/   
-CREATE   PROCEDURE [dbo].[GetWorkOrderQuoteList]  
+CREATE     PROCEDURE [dbo].[GetWorkOrderQuoteList]  
  @PageNumber int,  
  @PageSize int,  
  @SortColumn varchar(50) = null,  
@@ -169,7 +174,7 @@ BEGIN
 			LEFT JOIN dbo.ApprovalStatus appsC WITH (NOLOCK) on wopp.CustomerStatusId = appsC.ApprovalStatusId  
 			LEFT JOIN DBO.WorkOrderQuoteDetails WOQD WITH (NOLOCK) ON woq.workorderquoteid = WOQD.workorderquoteid AND wopn.ID = WOQD.WOPartNoId and ISNULL(WOQD.IsActive,1)=1  
 		WHERE woq.MasterCompanyId = @MasterCompanyId AND isnull(woq.IsDeleted, 0) = 0 AND (((@IsPendingApproval = 0 OR @IsPendingApproval IS NULL) AND (@StatusId = 0 OR woq.QuoteStatusId = @StatusId)) OR (@IsPendingApproval = 1 AND (wopp.ApprovalActionId IN (0, 1, 2, 4) OR wopp.ApprovalActionId IS NULL)))
-			 ), ResultCount AS(SELECT COUNT(WorkOrderQuoteId) AS totalItems FROM Result)  
+			  AND ISNULL(im.IsNonStock,0) = 0 ), ResultCount AS(SELECT COUNT(WorkOrderQuoteId) AS totalItems FROM Result)  
 			  SELECT * INTO #TempResult FROM  Result  
 			  WHERE (  
 			  (@GlobalFilter <>'' AND (  

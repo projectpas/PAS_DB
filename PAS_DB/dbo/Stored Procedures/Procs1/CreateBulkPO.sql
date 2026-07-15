@@ -1,4 +1,4 @@
-﻿
+
 
 
 /***************************************************************************************************************************************             
@@ -13,6 +13,7 @@
 	4    18 MAR 2024             RAJESH GAMI                        Correction the Generate Code issue 
 	5    26/12/2025				 Amit Ghediya						Update Part memo
 	6    12/May/2026             RAJESH GAMI						Implemented : Bulk PO For Sales Order [PN-16401]
+	6    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 ****************************************************************************************************************************************/ 
 CREATE     PROCEDURE [dbo].[CreateBulkPO]
 	@tbl_BulkPODetailType BulkPODetailType READONLY,
@@ -257,7 +258,8 @@ BEGIN
 					WHERE Typ.VendorId = @LoopVendorId 
 
 
-				EXEC dbo.[PROCAddPOMSData] @NewPurchaseOrderId,@ManagementStructureID,@MstCompanyId,@updatedByName,@updatedByName,4,1,0
+				 AND ISNULL(IM.IsNonStock,0) = 0
+					 EXEC dbo.[PROCAddPOMSData] @NewPurchaseOrderId,@ManagementStructureID,@MstCompanyId,@updatedByName,@updatedByName,4,1,0
 
 					INSERT INTO #tmpVendorParts ([NewId])
 					SELECT PurchaseOrderPartRecordId from dbo.PurchaseOrderPart	where PurchaseOrderId = @NewPurchaseOrderId			

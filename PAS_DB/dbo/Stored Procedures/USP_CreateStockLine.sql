@@ -16,7 +16,10 @@
 	4    26/MAY/2026   Priyansh Patel 	Added new field 'TTSN, TCSN '(PN-16477)
 	5    27/05/2026    Ayushi Patel     [PN-16476]Sync CSN, CSO, TSN, TSO in WorkOrderPartNumber on StockLine TimeLife update
 	7    30/06/2026    Nakul Chandigra  Added new field 'Note' [Note] [PN-17012]
---   EXEC [USP_CreateStockLine] 
+	8    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	9    07/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory into Stockline : Accept and persist IsNonStock, Currency, CurrencyId on Insert/Update
+	10    08/July/2026			 RAJESH GAMI						[PN-17009] - Accept and persist ItemNonStockClassificationId, NonStockClassification on Insert/Update
+--   EXEC [USP_CreateStockLine]
 **************************************************************/
 CREATE   PROCEDURE [dbo].[USP_CreateStockLine]
 @StockLineId BIGINT = NULL,
@@ -61,6 +64,11 @@ CREATE   PROCEDURE [dbo].[USP_CreateStockLine]
 @GLAccountId BIGINT = NULL,
 @AssetId BIGINT = NULL,
 @IsHazardousMaterial BIT = NULL,
+@IsNonStock BIT = NULL,
+@Currency VARCHAR(100) = NULL,
+@CurrencyId BIGINT = NULL,
+@ItemNonStockClassificationId BIGINT = NULL,
+@NonStockClassification VARCHAR(100) = NULL,
 @IsPMA BIT = NULL,
 @IsDER BIT= NULL,
 @OEM BIT= NULL,
@@ -326,7 +334,7 @@ BEGIN
 			RETURN;
 		END
 
-		SELECT @UniqItemMasterId = [ItemMasterId],@IsTimeLife = [IsTimeLife] FROM [dbo].[ItemMaster] WITH(NOLOCK) WHERE [MasterCompanyId] = @MasterCompanyId AND [ItemMasterId] = @ItemMasterId;
+		SELECT @UniqItemMasterId = [ItemMasterId],@IsTimeLife = [IsTimeLife] FROM [dbo].[ItemMaster] WITH(NOLOCK) WHERE [MasterCompanyId] = @MasterCompanyId AND [ItemMasterId] = @ItemMasterId AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 ;
 		IF(@UniqItemMasterId > 0)
 		BEGIN
 			SET @IsStkTimeLife = @IsTimeLife;
@@ -459,7 +467,7 @@ BEGIN
 			INSERT INTO [dbo].[Stockline]([PartNumber],[StockLineNumber],[StocklineMatchKey],[ControlNumber],[ItemMasterId],[Quantity],[ConditionId],[SerialNumber],[ShelfLife],[ShelfLifeExpirationDate]
 			   ,[WarehouseId],[LocationId],[ObtainFrom],[Owner],[TraceableTo],[ManufacturerId],[Manufacturer],[ManufacturerLotNumber],[ManufacturingDate],[ManufacturingBatchNumber],[PartCertificationNumber]			   
 			   ,[CertifiedBy],[CertifiedDate],[TagDate],[TagType],[CertifiedDueDate],[CalibrationMemo],[OrderDate],[PurchaseOrderId],[PurchaseOrderUnitCost],[InventoryUnitCost],[RepairOrderId],[RepairOrderUnitCost]			   
-			   ,[ReceivedDate],[ReceiverNumber],[ReconciliationNumber],[UnitSalesPrice],[CoreUnitCost],[GLAccountId],[AssetId],[IsHazardousMaterial],[IsPMA],[IsDER],[OEM],[Memo],[ManagementStructureId]			   
+			   ,[ReceivedDate],[ReceiverNumber],[ReconciliationNumber],[UnitSalesPrice],[CoreUnitCost],[GLAccountId],[AssetId],[IsHazardousMaterial],[IsNonStock],[Currency],[CurrencyId],[ItemNonStockClassificationId],[NonStockClassification],[IsPMA],[IsDER],[OEM],[Memo],[ManagementStructureId]
 			   ,[LegalEntityId],[MasterCompanyId],[CreatedBy],[UpdatedBy],[CreatedDate],[UpdatedDate],[isSerialized],[ShelfId]
 			   ,[BinId],[SiteId],[ObtainFromType],[OwnerType],[TraceableToType],[UnitCostAdjustmentReasonTypeId]			   
 			   ,[UnitSalePriceAdjustmentReasonTypeId],[IdNumber],[QuantityToReceive],[PurchaseOrderExtendedCost],[ManufacturingTrace],[ExpirationDate],[AircraftTailNumber],[ShippingViaId],[EngineSerialNumber]			   
@@ -484,7 +492,7 @@ BEGIN
 	     SELECT @PartNumber,@StockLineNumber,@StocklineMatchKey,@ControlNumber,@ItemMasterId,@QuantityOnHand,@ConditionId,@SerialNumber,@ShelfLife,@ShelfLifeExpirationDate
                ,@WarehouseId,@LocationId,@ObtainFrom,@Owner,@TraceableTo,@ManufacturerId,@Manufacturer,@ManufacturerLotNumber,@ManufacturingDate,@ManufacturingBatchNumber,@PartCertificationNumber
                ,@CertifiedBy,@CertifiedDate,@TagDate,@TagType,@CertifiedDueDate,@CalibrationMemo,@OrderDate,@PurchaseOrderId,@PurchaseOrderUnitCost,@InventoryUnitCost,@RepairOrderId,@RepairOrderUnitCost
-               ,@ReceivedDate,@ReceiverNumber,@ReconciliationNumber,@UnitSalesPrice,@CoreUnitCost,@GLAccountId,@AssetId,@IsHazardousMaterial,@IsPMA,@IsDER,@OEM,@Memo,@ManagementStructureId
+               ,@ReceivedDate,@ReceiverNumber,@ReconciliationNumber,@UnitSalesPrice,@CoreUnitCost,@GLAccountId,@AssetId,@IsHazardousMaterial,@IsNonStock,@Currency,@CurrencyId,@ItemNonStockClassificationId,@NonStockClassification,@IsPMA,@IsDER,@OEM,@Memo,@ManagementStructureId
                ,CASE WHEN @MSLegalEntityId > 0 THEN @MSLegalEntityId ELSE @LegalEntityId END,@MasterCompanyId ,@CreatedBy,@UpdatedBy,@CreatedDate,@UpdatedDate,@isSerialized,CASE WHEN @ShelfId = 0 THEN NULL ELSE @ShelfId END
 			   ,CASE WHEN @BinId = 0 THEN NULL ELSE @BinId END,@SiteId,@ObtainFromType,@OwnerType,@TraceableToType,@UnitCostAdjustmentReasonTypeId
                ,@UnitSalePriceAdjustmentReasonTypeId,@IdNumber,@QuantityToReceive,(ISNULL(@QuantityOnHand,0) * ISNULL(@PurchaseOrderUnitCost,0)),@ManufacturingTrace,@ExpirationDate,@AircraftTailNumber,ISNULL(@ShippingViaId,0),@EngineSerialNumber
@@ -552,7 +560,7 @@ BEGIN
 	  BEGIN
 	    DECLARE @OldUnitCost DECIMAL(18,2) = 0
         SELECT @OldUnitCost = ISNULL([UnitCost],0) FROM [dbo].[StockLine] WITH(NOLOCK) WHERE [StockLineId] = @StockLineId
-		SELECT @UniqItemMasterId = [ItemMasterId],@IsTimeLife = [IsTimeLife] FROM [dbo].[ItemMaster] WITH(NOLOCK) WHERE [MasterCompanyId] = @MasterCompanyId AND [ItemMasterId] = @ItemMasterId;
+		SELECT @UniqItemMasterId = [ItemMasterId],@IsTimeLife = [IsTimeLife] FROM [dbo].[ItemMaster] WITH(NOLOCK) WHERE [MasterCompanyId] = @MasterCompanyId AND [ItemMasterId] = @ItemMasterId AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 ;
 		IF(@UniqItemMasterId > 0)
 		BEGIN
 			SET @IsStkTimeLife = CASE WHEN @IsStkTimeLife IS NOT NULL THEN @IsStkTimeLife ELSE @IsTimeLife END;
@@ -627,6 +635,11 @@ BEGIN
                [CoreUnitCost]= ISNULL(@CoreUnitCost,0),
                [AssetId] = @AssetId,
                [IsHazardousMaterial] = @IsHazardousMaterial,
+               [IsNonStock] = @IsNonStock,
+               [Currency] = @Currency,
+               [CurrencyId] = @CurrencyId,
+               [ItemNonStockClassificationId] = @ItemNonStockClassificationId,
+               [NonStockClassification] = @NonStockClassification,
                [IsPMA] = @IsPMA,
                [IsDER] = @IsDER,
                [IsOemPNId] = @IsOemPNId,

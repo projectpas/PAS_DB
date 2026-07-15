@@ -1,4 +1,4 @@
-﻿/*************************************************************  
+/*************************************************************  
 ** Author:  <AMIT GHEDIYA>  
 ** Create date: <01/01/2024>  
 ** Description: <Get Work order Release Form Data>  
@@ -18,6 +18,8 @@ EXEC [RPT_GetSubWorkOrderPrintPdfData]
 ** 7    01/05/2026  Ayushi Patel    [PN-16030] Added MasterCompanyCode/NULL parameter in ValidatePDFAddress calls.
 EXEC RPT_GetSubWorkOrderPrintPdfData 177,179,2
 
+	1    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	8    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 **************************************************************/
 CREATE   PROCEDURE [dbo].[RPT_GetSubWorkOrderPrintPdfData]              
 	@SubWorkorderId BIGINT,              
@@ -160,8 +162,8 @@ AS
 				   on nhatae.MappingItemMasterId = imtt.ItemMasterId              
 				   WHERE nhatae.ItemMasterId = imt.ItemMasterId              
 				   AND nhatae.IsActive = 1 AND nhatae.IsDeleted = 0              
-				   FOR XML PATH('')              
-				   ), 1, 1, '')              
+				   AND ISNULL(imtt.IsNonStock,0) = 0
+				   FOR XML PATH('')), 1, 1, '')              
 			FROM [dbo].[SubWorkOrder] SWO WITH(NOLOCK) 
 				LEFT JOIN [dbo].[MasterCompany] MS WITH(NOLOCK) ON SWO.MasterCompanyId = MS.MasterCompanyId
 				INNER JOIN [dbo].[SubWorkOrderPartNumber] SWOPN WITH(NOLOCK) ON SWO.SubWorkOrderId = SWOPN.SubWorkOrderId
@@ -180,9 +182,11 @@ AS
 				 LEFT JOIN [dbo].[Address] shipToAddress WITH(NOLOCK) ON shipToSite.AddressId = shipToAddress.AddressId              
 				 LEFT JOIN [dbo].[Countries] shipToCountry WITH(NOLOCK) ON shipToAddress.CountryId = shipToCountry.countries_id              
 				 LEFT JOIN [dbo].[ItemMaster] imt WITH(NOLOCK) ON imt.ItemMasterId = SWOPN.ItemMasterId              
-				 LEFT JOIN [dbo].[ItemMaster] imtr WITH(NOLOCK) ON imtr.ItemMasterId = SWOPN.RevisedItemmasterid            
-				 LEFT JOIN [dbo].[Priority] p WITH(NOLOCK) on p.PriorityId = SWOPN.SubWorkOrderPriorityId              
-				 LEFT JOIN [dbo].[Stockline] sl WITH(NOLOCK) ON sl.StockLineId = SWOPN.StockLineId              
+				  AND ISNULL(imt.IsNonStock,0) = 0
+				  LEFT JOIN [dbo].[ItemMaster] imtr WITH(NOLOCK) ON imtr.ItemMasterId = SWOPN.RevisedItemmasterid            
+				  AND ISNULL(imtr.IsNonStock,0) = 0
+				   LEFT JOIN [dbo].[Priority] p WITH(NOLOCK) on p.PriorityId = SWOPN.SubWorkOrderPriorityId              
+				 LEFT JOIN [dbo].[Stockline] sl WITH(NOLOCK) ON sl.StockLineId = SWOPN.StockLineId AND ISNULL(sl.IsNonStock,0) = 0              
 				 LEFT JOIN [dbo].[Employee] el WITH(NOLOCK) ON el.EmployeeId = SWOPN.TechnicianId              
 				 LEFT JOIN [dbo].[WorkOrderStage] ws WITH(NOLOCK) ON ws.WorkOrderStageId = SWOPN.SubWorkOrderStageId              
 				 LEFT JOIN [dbo].[ReceivingCustomerWork] rc WITH(NOLOCK) ON rc.ReceivingCustomerWorkId = wop.ReceivingCustomerWorkId            
@@ -192,7 +196,8 @@ AS
 				--LEFT JOIN dbo.WorkOrderSettlementDetails wosc WITH(NOLOCK) on wop.WorkOrderId = wosc.WorkOrderId AND wop.ID = wosc.workOrderPartNoId AND wosc.WorkOrderSettlementId = 9        
 				 LEFT JOIN [dbo].[SubWorkOrderSettlementDetails] swosc WITH(NOLOCK) ON SWOPN.SubWorkOrderId = swosc.SubWorkOrderId AND SWOPN.SubWOPartNoId = swosc.SubWOPartNoId AND swosc.WorkOrderSettlementId = 9        
 				 LEFT JOIN [dbo].[ItemMaster] rimt WITH(NOLOCK) ON rimt.ItemMasterId = swosc.RevisedItemmasterid    
-				 LEFT JOIN [dbo].[WorkOrderSettings] wost WITH(NOLOCK) ON wost.MasterCompanyId = wop.MasterCompanyId AND wo.WorkOrderTypeId = wost.WorkOrderTypeId    
+				  AND ISNULL(rimt.IsNonStock,0) = 0
+				  LEFT JOIN [dbo].[WorkOrderSettings] wost WITH(NOLOCK) ON wost.MasterCompanyId = wop.MasterCompanyId AND wo.WorkOrderTypeId = wost.WorkOrderTypeId    
 				 LEFT JOIN [dbo].[WorkScope] WSP WITH(NOLOCK) ON WSP.WorkScopeId = SWOPN.SubWorkOrderScopeId 
 			WHERE SWO.SubWorkOrderId = @SubWorkorderId AND SWOPN.SubWOPartNoId = @SubWOPartNoId              
 	  -- END              

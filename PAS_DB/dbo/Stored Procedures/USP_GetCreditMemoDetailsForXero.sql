@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿-- ===== PROCEDURE: [dbo].[USP_GetCreditMemoDetailsForXero]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/USP_GetCreditMemoDetailsForXero.sql) =====
+/*************************************************************           
  ** File:  [USP_GetCreditMemoDetailsForXero]          
  ** Author:   Bhargav Saliya
  ** Description: Get Credit Memo Part Details    
@@ -13,6 +14,8 @@
  ** --   --------		-------			--------------------------------          
     1    02-Jun-2026     Bhargav Saliya	  Created
     2    11-Jun-2026     Bhargav Saliya	  Modified  
+	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	4    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 
 --  EXECUTE [USP_GetCreditMemoDetailsForXero] 1, 36
  EXECUTE [USP_GetCreditMemoDetailsForXero] 77, 68
@@ -99,7 +102,8 @@ BEGIN
             FROM dbo.CreditMemoDetails CMD WITH(NOLOCK)
             INNER JOIN dbo.CreditMemo CM WITH(NOLOCK) ON CM.CreditMemoHeaderId = CMD.CreditMemoHeaderId
             LEFT JOIN dbo.ItemMaster IM WITH(NOLOCK) ON IM.ItemMasterId = CMD.ItemMasterId
-            WHERE CMD.CreditMemoHeaderId = @CreditMemoId
+             AND ISNULL(IM.IsNonStock,0) = 0
+             WHERE CMD.CreditMemoHeaderId = @CreditMemoId
               AND ISNULL(CMD.IsActive,0)  = 1
               AND ISNULL(CMD.IsDeleted,0) = 0
         END
@@ -137,9 +141,10 @@ BEGIN
                 IM.ItemMasterId
             FROM dbo.VendorCreditMemoDetail VCMD WITH(NOLOCK)
             INNER JOIN dbo.VendorCreditMemo VCM WITH(NOLOCK) ON VCM.VendorCreditMemoId = VCMD.VendorCreditMemoId
-            LEFT JOIN dbo.Stockline SL WITH(NOLOCK) ON VCMD.StockLineId = SL.StockLineId
+            LEFT JOIN dbo.Stockline SL WITH(NOLOCK) ON VCMD.StockLineId = SL.StockLineId AND ISNULL(SL.IsNonStock,0) = 0
             LEFT JOIN dbo.ItemMaster IM WITH(NOLOCK) ON IM.ItemMasterId = SL.ItemMasterId
-            WHERE VCMD.VendorCreditMemoId = @CreditMemoId
+             AND ISNULL(IM.IsNonStock,0) = 0
+             WHERE VCMD.VendorCreditMemoId = @CreditMemoId
               AND ISNULL(VCMD.IsActive,0)  = 1
               AND ISNULL(VCMD.IsDeleted,0) = 0
         END

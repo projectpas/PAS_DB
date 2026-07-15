@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿-- ===== PROCEDURE: [dbo].[usp_GetSalesOrderQuotesReport]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs2/usp_GetSalesOrderQuotesReport.sql) =====
+/*************************************************************           
  ** File:   [usp_GetSalesOrderQuotesReport]           
  ** Author:   Swetha  
  ** Description: Get Data for SalesOrderQuotes Report 
@@ -19,10 +20,12 @@
 	3	02/1/2024	  AMIT GHEDIYA	added isperforma Flage for SO
 	4	11/04/2024    Vishal Suthar Modified to make use of new SOQ-SO new tables
 	3   07-07-2025    Moin Bloch    Changed Old To New Billing Table
+	5    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	6    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
      
 EXECUTE   [dbo].[usp_GetSalesOrderQuotesReport] '','2020-06-15','2021-06-15','1','1,4,43,44,45,80,84,88','46,47,66','48,49,50,58,59,67,68,69','51,52,53,54,55,56,57,60,61,62,64,70,71,72'
 **************************************************************/
-CREATE      PROCEDURE [dbo].[usp_GetSalesOrderQuotesReport] @customername varchar(40) = NULL,
+CREATE   PROCEDURE [dbo].[usp_GetSalesOrderQuotesReport] @customername varchar(40) = NULL,
 @Fromdate datetime,
 @Todate datetime,
 @Level1 varchar(max) = NULL,
@@ -165,8 +168,9 @@ BEGIN
         LEFT JOIN DBO.Customer C WITH (NOLOCK) ON SOQ.CustomerId = C.CustomerId
         LEFT JOIN DBO.ItemMaster IM WITH (NOLOCK)
           ON SOQP.ItemMasterId = IM.ItemMasterId
-        LEFT JOIN DBO.Stockline STL WITH (NOLOCK)
-          ON STK.stocklineId = STL.StockLineId
+         AND ISNULL(IM.IsNonStock,0) = 0
+           LEFT JOIN DBO.Stockline STL WITH (NOLOCK)
+          ON STK.stocklineId = STL.StockLineId AND ISNULL(STL.IsNonStock,0) = 0
         LEFT JOIN DBO.BillingInvoicing SOBI WITH (NOLOCK)
           ON SO.SalesOrderId = SOBI.ReferenceId AND ISNULL(SOBI.IsPerformaInvoice,0) = 0 AND sobi.[ModuleId] = @SOModuleId
         LEFT JOIN DBO.Employee E WITH (NOLOCK)

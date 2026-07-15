@@ -1,4 +1,8 @@
 ﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.usp_GetRCWReport   (source: PAS_DB/dbo/Stored Procedures/Procs2/usp_GetRCWReport.sql)
+-- ---------------------------------------------------------------------------------------------------
+
 /*************************************************************           
  ** File:   [usp_GetRCWReport]           
  ** Author:   Swetha  
@@ -17,10 +21,11 @@
  ** --   --------     -------		--------------------------------          
     1                 Swetha Created
 	2	        	  Swetha Added Transaction & NO LOCK
+	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
      
 --EXECUTE   [dbo].[usp_GetRCWReport] '','2020-06-15','2021-06-15','1','1,4,43,44,45,80,84,88','46,47,66','48,49,50,58,59,67,68,69','51,52,53,54,55,56,57,60,61,62,64,70,71,72'
 **************************************************************/
-CREATE PROCEDURE [dbo].[usp_GetRCWReport] @customername varchar(40) = NULL,
+CREATE   PROCEDURE [dbo].[usp_GetRCWReport] @customername varchar(40) = NULL,
 @Fromdate datetime,
 @Todate datetime,
 @mastercompanyid int,
@@ -141,12 +146,12 @@ BEGIN
         INNER JOIN #ManagmetnStrcture MS WITH (NOLOCK)
           ON MS.ManagementStructureId = RCW.ManagementStructureId
 
-      WHERE CAST(RCW.receiveddate AS DATE) BETWEEN CAST(@FromDate AS DATE) AND CAST(@ToDate AS DATE)
+      WHERE ISNULL(IM.IsNonStock,0) = 0 AND ( CAST(RCW.receiveddate AS DATE) BETWEEN CAST(@FromDate AS DATE) AND CAST(@ToDate AS DATE)
       AND RCW.CustomerName IN (@customername)
       OR @customername = ' '
       AND RCW.mastercompanyid = @mastercompanyid
 
-    COMMIT TRANSACTION
+    ) COMMIT TRANSACTION
   END TRY
 
   BEGIN CATCH

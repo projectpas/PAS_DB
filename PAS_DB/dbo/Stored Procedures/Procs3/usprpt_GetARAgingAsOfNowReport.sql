@@ -1,4 +1,5 @@
-﻿/*************************************************************           
+﻿-- ===== PROCEDURE: [dbo].[usprpt_GetARAgingAsOfNowReport]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs3/usprpt_GetARAgingAsOfNowReport.sql) =====
+/*************************************************************           
  ** File:   [usprpt_GetARAgingAsOfNowReport]           
  ** Author:   HEMANT SALIYA  
  ** Description: Get Data for AR Agging Report  
@@ -24,6 +25,7 @@
 	8	 26-Jun-2025	Rajesh Gami			Modified as per new billing table changes (WO, SO)
 	9	 27-JAN-2026	Rajesh Gami			Added InvoiceNumber
 	10   17/March/2026	Amit Ghediya		add IncludeInternalCustomer flag for allow internal & Affiliate customer (PN-15762)
+	11   09/July/2026	RAJESH GAMI		[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 EXEC usprpt_GetARAgingAsOfNowReport @PageNumber=1,@PageSize=20,@SortColumn=N'InvoiceDate',@SortOrder=-1,@GlobalFilter=N'',@ViewType=N'Details',@AsOfDate='2025-05-05 00:00:00',@CustomerId=NULL,@IsInvoice=1,@IsCredits=1,@IsDeposit=0,@IsUnappliedAmounts=1,@strFilter=N'!!!!!!!!!',@CustomerName=NULL,@CustomerCode=NULL,@CurrencyCode=NULL,@InvoiceNo=NULL,@InvoiceDate=NULL,@DSI=0,@DSO=0,@DSS=0,@DocType=NULL,@CustomerRef=NULL,@Salesperson=NULL,@CreditTerms=NULL,@DueDate=NULL,@FxRateAmount=NULL,@InvoiceAmount=NULL,@BalanceAmount=NULL,@CurrentAmount=NULL,@PaymentAmount=NULL,@Amountlessthan0days=NULL,@Amountlessthan30days=NULL,@Amountlessthan60days=NULL,@Amountlessthan90days=NULL,@Amountlessthan120days=NULL,@Amountmorethan120days=NULL,@level1Str=NULL,@level2Str=NULL,@level3Str=NULL,@level4Str=NULL,@level5Str=NULL,@level6Str=NULL,@level7Str=NULL,@level8Str=NULL,@level9Str=NULL,@level10Str=NULL,@LegalEntityName=NULL,@EmployeeId=180,@MasterCompanyId=20
 **************************************************************/
 CREATE   PROCEDURE [dbo].[usprpt_GetARAgingAsOfNowReport]
@@ -448,7 +450,7 @@ BEGIN
 										JOIN [dbo].[EntityStructureSetup] ES ON ES.EntityStructureId = SL.ManagementStructureId
 										JOIN [dbo].[ManagementStructureLevel] MSL ON ES.Level1Id = MSL.ID
 										JOIN [dbo].[LegalEntity] LE ON MSL.LegalEntityId = LE.LegalEntityId  
-									WHERE SOP.SalesOrderId = SO.SalesOrderId
+									WHERE SOP.SalesOrderId = SO.SalesOrderId AND ISNULL(SL.IsNonStock,0) = 0
 									FOR XML PATH('')), 1, 1, '')),
 							    0
 				FROM [dbo].[BillingInvoicing] SOBI WITH (NOLOCK)       
@@ -563,7 +565,7 @@ BEGIN
 										JOIN [dbo].[EntityStructureSetup] ES ON ES.EntityStructureId = SL.ManagementStructureId
 										JOIN [dbo].[ManagementStructureLevel] MSL ON ES.Level1Id = MSL.ID
 										JOIN [dbo].[LegalEntity] LE ON MSL.LegalEntityId = LE.LegalEntityId  
-									WHERE ESOP.ExchangeSalesOrderId = ESO.ExchangeSalesOrderId
+									WHERE ESOP.ExchangeSalesOrderId = ESO.ExchangeSalesOrderId AND ISNULL(SL.IsNonStock,0) = 0
 									FOR XML PATH('')), 1, 1, '')),
 							0
 				FROM [dbo].[ExchangeSalesOrderBillingInvoicing] ESOBI WITH (NOLOCK)    
@@ -1379,7 +1381,7 @@ BEGIN
 										JOIN [dbo].[EntityStructureSetup] ES ON ES.EntityStructureId = SL.ManagementStructureId
 										JOIN [dbo].[ManagementStructureLevel] MSL ON ES.Level1Id = MSL.ID
 										JOIN [dbo].[LegalEntity] LE ON MSL.LegalEntityId = LE.LegalEntityId  
-									WHERE SOP.SalesOrderId = SO.SalesOrderId
+									WHERE SOP.SalesOrderId = SO.SalesOrderId AND ISNULL(SL.IsNonStock,0) = 0
 									FOR XML PATH('')), 1, 1, '')),
 								0
 				FROM [dbo].[BillingInvoicing] SOBI WITH (NOLOCK)       
@@ -1517,7 +1519,7 @@ BEGIN
 											JOIN [dbo].[EntityStructureSetup] ES ON ES.EntityStructureId = SL.ManagementStructureId
 											JOIN [dbo].[ManagementStructureLevel] MSL ON ES.Level1Id = MSL.ID
 											JOIN [dbo].[LegalEntity] LE ON MSL.LegalEntityId = LE.LegalEntityId  
-										WHERE ESOP.ExchangeSalesOrderId = ESO.ExchangeSalesOrderId
+										WHERE ESOP.ExchangeSalesOrderId = ESO.ExchangeSalesOrderId AND ISNULL(SL.IsNonStock,0) = 0
 										FOR XML PATH('')), 1, 1, '')),
 								0
 				FROM [dbo].[ExchangeSalesOrderBillingInvoicing] ESOBI WITH (NOLOCK)    

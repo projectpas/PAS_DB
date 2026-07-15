@@ -1,4 +1,8 @@
 ﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.usp_GetWorkOrderQuoteHistoryReport   (source: PAS_DB/dbo/Stored Procedures/Procs2/usp_GetWorkOrderQuoteHistoryReport.sql)
+-- ---------------------------------------------------------------------------------------------------
+
 /*************************************************************           
  ** File:   [usp_GetWorkOrderQuoteHistoryReport]           
  ** Author:   Swetha  
@@ -17,11 +21,12 @@
  ** --   --------     -------		--------------------------------          
     1                 Swetha Created
 	2	        	  Swetha Added Transaction & NO LOCK
+	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
      
 EXECUTE   [dbo].[usp_GetWorkOrderQuoteHistoryReport] '','2020-04-25','2021-04-25','1','1,4,43,44,45,80,84,88','46,47,66','48,49,50,58,59,67,68,69','51,52,53,54,55,56,57,60,61,62,64,70,71,72'
 **************************************************************/
 --EXEC usp_GetWorkOrderQuoteHistoryReport  '1,4,43,44,45,80,84,88','46,47','58,59','64,65,77'
-CREATE PROCEDURE [dbo].[usp_GetWorkOrderQuoteHistoryReport] @name varchar(40) = NULL,
+CREATE   PROCEDURE [dbo].[usp_GetWorkOrderQuoteHistoryReport] @name varchar(40) = NULL,
 @Fromdate datetime,
 @Todate datetime,
 @mastercompanyid int,
@@ -160,7 +165,8 @@ BEGIN
           ON WO.WorkOrderId = WOPN.WorkOrderId
         LEFT JOIN DBO.ItemMaster IM WITH (NOLOCK)
           ON WOPN.ItemMasterId = IM.ItemMasterId
-        LEFT JOIN DBO.WorkScope AS WS WITH (NOLOCK)
+         AND ISNULL(IM.IsNonStock,0) = 0
+           LEFT JOIN DBO.WorkScope AS WS WITH (NOLOCK)
           ON WOPN.WorkOrderScopeId = WS.WorkScopeId
         LEFT JOIN DBO.workorderquotestatus WOQS WITH (NOLOCK)
           ON WOQ.QuoteStatusId = WOQS.WorkOrderQuoteStatusId

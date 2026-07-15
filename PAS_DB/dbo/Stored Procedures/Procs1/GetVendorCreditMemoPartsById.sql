@@ -1,4 +1,4 @@
-﻿/*************************************************************           
+/*************************************************************           
  ** File:   [GetVendorCreditMemoPartsById]           
  ** Author: Devendra SHekh
  ** Description: This stored procedure is used to Get Vendor Credit Memo Part Details
@@ -14,6 +14,8 @@
  ** PR   Date         Author		Change Description            
  ** --   --------     -------		--------------------------------          
     1    27/06/2023  Devendra SHekh     Created
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	3    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
      
 -- EXEC [GetVendorCreditMemoPartsById] 56
 ************************************************************************/
@@ -60,9 +62,10 @@ BEGIN
 		  FROM [dbo].[VendorCreditMemoDetail] CM WITH (NOLOCK) 		
 			   --LEFT JOIN VendorCreditMemo vcm WITH (NOLOCK) ON CM.VendorCreditMemoId = vcm.VendorCreditMemodId
 			   LEFT JOIN VendorRMADetail vrmd WITH (NOLOCK) ON CM.VendorRMADetailId = vrmd.[VendorRMADetailId]
-			   LEFT JOIN Stockline sl WITH (NOLOCK) ON vrmd.StockLineId = sl.StockLineId
+			   LEFT JOIN Stockline sl WITH (NOLOCK) ON vrmd.StockLineId = sl.StockLineId AND ISNULL(sl.IsNonStock,0) = 0
 			   LEFT JOIN ItemMaster IM WITH (NOLOCK) ON vrmd.ItemMasterId=IM.ItemMasterId
-			   LEFT JOIN VendorRMA vr WITH (NOLOCK) ON vr.VendorRMAId = CM.VendorRMAId
+			    AND ISNULL(IM.IsNonStock,0) = 0
+			    LEFT JOIN VendorRMA vr WITH (NOLOCK) ON vr.VendorRMAId = CM.VendorRMAId
 			   LEFT JOIN Vendor v WITH (NOLOCK) ON vr.VendorId = v.VendorId
 			  WHERE CM.[VendorCreditMemoId] = @VendorCreditMemoId AND CM.IsDeleted = 0 ;
 		END
@@ -96,9 +99,10 @@ BEGIN
 					,'' as 'RMANum'
 		  FROM [dbo].[VendorCreditMemoDetail] CM WITH (NOLOCK) 		
 			   LEFT JOIN VendorCreditMemo vcm WITH (NOLOCK) ON CM.VendorCreditMemoId = vcm.VendorCreditMemoId
-			   LEFT JOIN Stockline sl WITH (NOLOCK) ON CM.StockLineId = sl.StockLineId
+			   LEFT JOIN Stockline sl WITH (NOLOCK) ON CM.StockLineId = sl.StockLineId AND ISNULL(sl.IsNonStock,0) = 0
 			   LEFT JOIN ItemMaster IM WITH (NOLOCK) ON sl.ItemMasterId=IM.ItemMasterId
-			   LEFT JOIN Vendor v WITH (NOLOCK) ON vcm.VendorId = v.VendorId
+			    AND ISNULL(IM.IsNonStock,0) = 0
+			    LEFT JOIN Vendor v WITH (NOLOCK) ON vcm.VendorId = v.VendorId
 			  WHERE CM.[VendorCreditMemoId] = @VendorCreditMemoId AND CM.IsDeleted = 0;
 			END
   END TRY    

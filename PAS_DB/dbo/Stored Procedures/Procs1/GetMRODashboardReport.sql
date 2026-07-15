@@ -14,6 +14,8 @@
  ** --   --------     -------			--------------------------------          
     1    08/25/2023   Vishal Suthar		Created
 	2	 01/31/2024   Devendra Shekh	added isperforma Flage for WO
+	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	4    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
      
  EXECUTE [GetMRODashboardReport] 1
 **************************************************************/
@@ -91,7 +93,7 @@ BEGIN
 		INNER JOIN DBO.WorkOrderMPNCostDetails WOPCost WITH (NOLOCK) ON WOPCost.WOPartNoId = WOP.ID
 		LEFT JOIN DBO.[Address] Addr WITH (NOLOCK) ON Addr.AddressId = C.AddressId
 		LEFT JOIN DBO.Countries Cont WITH (NOLOCK) ON Cont.countries_id = Addr.CountryId
-		LEFT JOIN DBO.Stockline Stk WITH (NOLOCK) ON WOP.StockLineId = Stk.StockLineId		
+		LEFT JOIN DBO.Stockline Stk WITH (NOLOCK) ON WOP.StockLineId = Stk.StockLineId AND ISNULL(Stk.IsNonStock,0) = 0		
 		LEFT JOIN DBO.WorkOrderTurnArroundTime WOTAT WITH (NOLOCK) ON WOP.ID = WOTAT.WorkOrderPartNoId AND WOTAT.CurrentStageId = WOP.WorkOrderStageId
 		LEFT JOIN DBO.WorkOrderShippingItem WOShipItem WITH (NOLOCK) ON WOShipItem.WorkOrderPartNumId = WOP.ID
 		LEFT JOIN DBO.WorkOrderShipping WOShip WITH (NOLOCK) ON WOShipItem.WorkOrderShippingId = WOShip.WorkOrderShippingId
@@ -102,7 +104,7 @@ BEGIN
 		LEFT JOIN DBO.WorkOrderLaborHeader WOLH WITH (NOLOCK) ON WOLH.WorkOrderId = WO.WorkOrderId
 		LEFT JOIN DBO.Employee EMP_Tech WITH (NOLOCK) ON EMP_Tech.EmployeeId = WOP.TechnicianId
 		LEFT JOIN DBO.Condition FinalWorkScope WITH (NOLOCK) ON FinalWorkScope.ConditionId = WOP.RevisedConditionId
-		WHERE WO.IsActive = 1 AND WO.IsDeleted = 0 AND WO.MasterCompanyId = @MasterCompanyId;
+		WHERE WO.IsActive = 1 AND WO.IsDeleted = 0 AND WO.MasterCompanyId = @MasterCompanyId AND ISNULL(IM.IsNonStock,0) = 0 ;
 
 	END TRY    
 	BEGIN CATCH      

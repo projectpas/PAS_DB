@@ -1,4 +1,8 @@
-﻿/*************************************************************           
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.USP_addUpdatePurchaseAndSales   (source: PAS_DB/dbo/Stored Procedures/Procs2/USP_addUpdatePurchaseAndSales.sql)
+-- ---------------------------------------------------------------------------------------------------
+/*************************************************************           
  ** File:   [USP_addUpdatePurchaseAndSales]           
  ** Author:   Bhargav Saliya
  ** Description: This Sp Used For the Add Update Purchase and Sales  
@@ -17,8 +21,10 @@
  ** --   --------       -------		  --------------------------------          
     1    18-Nov-2025  Bhargav Saliya     Created
     2    06-Jul-2026  Ayushi Patel       [PN-17115]Added validation to check existing active/deleted Purchase & Sales records before update and return a message. 
+	3    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+     
 **************************************************************/ 
-CREATE   PROCEDURE [dbo].[USP_addUpdatePurchaseAndSales]
+CREATE    PROCEDURE [dbo].[USP_addUpdatePurchaseAndSales]
  @ItemMasterPurchaseSaleType [PurchaseSalesType] readonly,
  @RetMessage varchar(500) OUTPUT
 AS
@@ -188,7 +194,8 @@ BEGIN
 			BEGIN
 				SELECT @PartNumber = I.PartNumber FROM [dbo].ItemMaster I WITH(NOLOCK) WHERE I.ItemMasterId = @ItemMasterId
 
-				IF @PartNumber IS NOT NULL
+				 AND ISNULL(I.IsNonStock,0) = 0
+				 IF @PartNumber IS NOT NULL
 				BEGIN
 						UPDATE #PurchaseSalesTemp 
 						SET PartNumber = @PartNumber,CreatedDate = GETUTCDATE(),UpdatedDate = GETUTCDATE()

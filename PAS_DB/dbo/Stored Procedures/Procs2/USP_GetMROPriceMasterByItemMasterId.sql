@@ -1,4 +1,8 @@
-﻿/*********************           
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.USP_GetMROPriceMasterByItemMasterId   (source: PAS_DB/dbo/Stored Procedures/Procs2/USP_GetMROPriceMasterByItemMasterId.sql)
+-- ---------------------------------------------------------------------------------------------------
+/*********************           
  ** File:   [USP_GetMROPriceMasterByItemMasterId]           
  ** Author: Priyansh Patel
  ** Description: This stored procedure returns all MRO Price Master records
@@ -14,10 +18,11 @@
 	2	 10/11/2025	   Priyansh Patel	Updated column name UnitPrice to FlatRatePrice
     3    13/11/2025    Ayushi Patel     Sort By created Date
 	4    14/11/2025    Moin Bloch       Added Some Field
+	5    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 **********************/
 -- Example: EXEC USP_GetMROPriceMasterByItemMasterId 97005, 0, 1
 
-CREATE PROCEDURE [dbo].[USP_GetMROPriceMasterByItemMasterId] 
+CREATE   PROCEDURE [dbo].[USP_GetMROPriceMasterByItemMasterId] 
     @ItemMasterId BIGINT = NULL, 
 	@IsDeleted BIT,
 	@MasterCompanyId int = 0
@@ -65,7 +70,8 @@ BEGIN
               AND MPM.[MasterCompanyId] = @MasterCompanyId
               AND MPM.[IsActive] = 1
               AND MPM.[IsDeleted] = @IsDeleted
-            ORDER BY MPM.[ItemMasterId], MPM.[CreatedDate] DESC;
+             AND ISNULL(IM.IsNonStock,0) = 0
+               ORDER BY MPM.[ItemMasterId], MPM.[CreatedDate] DESC;
         END
     END TRY
  BEGIN CATCH

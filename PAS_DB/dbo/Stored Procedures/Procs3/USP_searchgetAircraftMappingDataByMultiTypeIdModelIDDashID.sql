@@ -1,4 +1,8 @@
-﻿/***********************************************************
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.USP_searchgetAircraftMappingDataByMultiTypeIdModelIDDashID   (source: PAS_DB/dbo/Stored Procedures/Procs3/USP_searchgetAircraftMappingDataByMultiTypeIdModelIDDashID.sql)
+-- ---------------------------------------------------------------------------------------------------
+/***********************************************************
 ** File:   [USP_searchgetAircraftMappingDataByMultiTypeIdModelIDDashID]
 ** Author: Ayushi Patel
 ** Description: Get Aircraft Mapping Data by AircraftTypeId, AircraftModelId and DashNumberId filters
@@ -12,10 +16,11 @@
 ** PR   Date			Author			Change Description
 ** --   --------		-------			--------------------------------
    1   19-JUN-2025    AYUSHI PATEL	    Created
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 
    exec USP_searchgetAircraftMappingDataByMultiTypeIdModelIDDashID 214,57,'247,251',null,1001145
 ***************************************************************/
-CREATE   PROCEDURE [dbo].[USP_searchgetAircraftMappingDataByMultiTypeIdModelIDDashID]
+CREATE     PROCEDURE [dbo].[USP_searchgetAircraftMappingDataByMultiTypeIdModelIDDashID]
     @AssetId BIGINT,
     @AircraftTypeId VARCHAR(MAX) = NULL,
     @AircraftModelId VARCHAR(MAX) = NULL,
@@ -99,7 +104,7 @@ BEGIN
                 AND (
                     NOT EXISTS (SELECT 1 FROM #DashNumber) OR imap.DashNumberId IN (SELECT Id FROM #DashNumber)
                 )
-        )
+         AND ISNULL(im.IsNonStock,0) = 0 )
         SELECT
             ItemMasterId,
             AssetId,

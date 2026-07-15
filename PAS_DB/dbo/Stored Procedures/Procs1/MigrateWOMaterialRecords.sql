@@ -1,4 +1,8 @@
-﻿/*************************************************************             
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.MigrateWOMaterialRecords   (source: PAS_DB/dbo/Stored Procedures/Procs1/MigrateWOMaterialRecords.sql)
+-- ---------------------------------------------------------------------------------------------------
+/*************************************************************             
  ** File:   [MigrateWOMaterialRecords]
  ** Author:   Vishal Suthar
  ** Description: This stored procedure is used to Migrate Work Order Header Records
@@ -15,6 +19,7 @@
  ** PR   Date         Author			Change Description
  ** --   --------     -------			-----------------------
     1    01/02/2024   Vishal Suthar		Created
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
   
 
 declare @p5 int
@@ -28,7 +33,7 @@ set @p8=NULL
 exec sp_executesql N'EXEC MigrateWOMaterialRecords @FromMasterComanyID, @UserName, @Processed OUTPUT, @Migrated OUTPUT, @Failed OUTPUT, @Exists OUTPUT',N'@FromMasterComanyID int,@UserName nvarchar(12),@Processed int output,@Migrated int output,@Failed int output,@Exists int output',@FromMasterComanyID=12,@UserName=N'ROGER BENTLY',@Processed=@p5 output,@Migrated=@p6 output,@Failed=@p7 output,@Exists=@p8 output
 select @p5, @p6, @p7, @p8
 **************************************************************/
-CREATE   PROCEDURE [dbo].[MigrateWOMaterialRecords]
+CREATE     PROCEDURE [dbo].[MigrateWOMaterialRecords]
 (
 	@FromMasterComanyID INT = NULL,
 	@UserName VARCHAR(100) NULL,
@@ -133,7 +138,7 @@ BEGIN
 			SELECT @WO_MPNId_PAS = IM.Migrated_Id FROM Quantum_Staging.dbo.ItemMasters IM WHERE IM.ItemMasterId = @WO_MPNId AND IM.MasterCompanyId = @FromMasterComanyID;
 
 			SELECT @QuantumPartNumber = PartNumber, @PTC_AUTO_KEY = IM.ItemClassificationId, @UOM_AUTO_KEY = UnitOfMeasureId FROM Quantum_Staging.dbo.ItemMasters IM WHERE ItemMasterId = @PNM_AUTO_KEY;
-			SELECT @WOM_PartId  = ItemMasterId FROM dbo.[ItemMaster] WHERE UPPER(partnumber) = UPPER(@QuantumPartNumber) AND MasterCompanyId = @FromMasterComanyID;
+			SELECT @WOM_PartId  = ItemMasterId FROM dbo.[ItemMaster] WHERE UPPER(partnumber) = UPPER(@QuantumPartNumber) AND MasterCompanyId = @FromMasterComanyID AND ISNULL(dbo.ItemMaster.IsNonStock,0) = 0 ;
 			SELECT @QuantumWorkOrderNum = WOH.WorkOrderNumber FROM Quantum_Staging.dbo.WorkOrderHeaders WOH WHERE WOH.WorkOrderId = @WOO_AUTO_KEY;
 			SELECT @WorkOrderId = WO.WorkOrderId FROM dbo.WorkOrder WO WHERE UPPER(WO.WorkOrderNum) = UPPER(@QuantumWorkOrderNum) AND MasterCompanyId = @FromMasterComanyID;
 			SELECT @WorkFlowWorkOrderId = WOWF.WorkFlowWorkOrderId FROM dbo.[WorkOrderWorkFlow] WOWF WHERE WOWF.WorkOrderId = @WorkOrderId AND MasterCompanyId = @FromMasterComanyID;
@@ -188,7 +193,7 @@ BEGIN
 						[UpdatedDate],[IsActive],[IsDeleted],[CustomerId],[CustomerName],[KitCost],[KitDescription],[WorkScopeId],[WorkScopeName],[Memo])
 						SELECT '100% KIT', @WO_MPNId_PAS,NULL, IM.partnumber, IM.PartDescription, IM.ManufacturerName, @FromMasterComanyID, @UserName, @UserName, GETUTCDATE(),
 						GETUTCDATE(), 1, 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL
-						FROM DBO.ItemMaster IM WITH (NOLOCK) WHERE IM.ItemMasterId = @WO_MPNId_PAS;
+						FROM DBO.ItemMaster IM WITH (NOLOCK) WHERE IM.ItemMasterId = @WO_MPNId_PAS AND ISNULL(IM.IsNonStock,0) = 0 ;
 
 						SELECT @KitMasterId = SCOPE_IDENTITY();
 					END

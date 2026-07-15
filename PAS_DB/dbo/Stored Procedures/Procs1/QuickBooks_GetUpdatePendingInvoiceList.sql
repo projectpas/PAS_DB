@@ -1,4 +1,8 @@
-﻿/*************************************************************           
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.QuickBooks_GetUpdatePendingInvoiceList   (source: PAS_DB/dbo/Stored Procedures/Procs1/QuickBooks_GetUpdatePendingInvoiceList.sql)
+-- ---------------------------------------------------------------------------------------------------
+/*************************************************************           
  ** File:   [QuickBooks_GetUpdatePendingInvoiceList]           
  ** Author:   Devendra Shekh
  ** Description: Get Invoice List to Update Invoice in QuickBooks    
@@ -16,10 +20,11 @@
 	3   03-DEC-2024		Devendra Shekh			Modified(excluding Profoma Invoices)
 	4   17-DEC-2024		Devendra Shekh			Modified(added Changes to read TaxRateRef values from Percent table)
 	5   03-07-2025     Moin Bloch               Changed Old To New Billing Table
+	6    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
      
  EXECUTE [QuickBooks_GetUpdatePendingInvoiceList] 1
 **************************************************************/ 
-CREATE   PROCEDURE [dbo].[QuickBooks_GetUpdatePendingInvoiceList]
+CREATE     PROCEDURE [dbo].[QuickBooks_GetUpdatePendingInvoiceList]
 @IntegrationTypeId INT = NULL
 AS
 BEGIN
@@ -143,7 +148,8 @@ BEGIN
 				JOIN [dbo].[Customer] C WITH(NOLOCK) ON C.CustomerId = WOBI.CustomerId
 				JOIN [dbo].[WorkOrder] WO WITH(NOLOCK) ON WO.WorkOrderId= WOBI.ReferenceId
 				LEFT JOIN [dbo].[ItemMaster] IM WITH(NOLOCK) ON IM.ItemMasterId= WOBII.ItemMasterId
-				LEFT JOIN [dbo].[CustomerBillingAddress] billToSite WITH(NOLOCK) ON SOBD.SoldToSiteId = billToSite.CustomerBillingAddressId
+				 AND ISNULL(IM.IsNonStock,0) = 0
+				 LEFT JOIN [dbo].[CustomerBillingAddress] billToSite WITH(NOLOCK) ON SOBD.SoldToSiteId = billToSite.CustomerBillingAddressId
 				LEFT JOIN [dbo].[Address] billToAddress WITH(NOLOCK) ON billToSite.AddressId = billToAddress.AddressId
 				LEFT JOIN [dbo].[CustomerDomensticShipping] shipToSite WITH(NOLOCK) ON SOBD.ShipToSiteId = shipToSite.CustomerDomensticShippingId
 				LEFT JOIN [dbo].[Address] shipToAddress WITH(NOLOCK) ON shipToSite.AddressId = shipToAddress.AddressId
@@ -206,7 +212,8 @@ BEGIN
 				JOIN [dbo].[Customer] C WITH(NOLOCK) ON C.CustomerId = SOBI.CustomerId
 				JOIN [dbo].[SalesOrder] SO WITH(NOLOCK) ON SO.SalesOrderId= SOBI.ReferenceId
 				LEFT JOIN [dbo].[ItemMaster] IM WITH(NOLOCK) ON IM.ItemMasterId= SOBII.ItemMasterId
-				LEFT JOIN [dbo].[CustomerBillingAddress] billToSite WITH(NOLOCK) ON SOBD.SoldToSiteId = billToSite.CustomerBillingAddressId
+				 AND ISNULL(IM.IsNonStock,0) = 0
+				 LEFT JOIN [dbo].[CustomerBillingAddress] billToSite WITH(NOLOCK) ON SOBD.SoldToSiteId = billToSite.CustomerBillingAddressId
 				LEFT JOIN [dbo].[Address] billToAddress WITH(NOLOCK) ON billToSite.AddressId = billToAddress.AddressId
 				LEFT JOIN [dbo].[CustomerDomensticShipping] shipToSite WITH(NOLOCK) ON SOBD.ShipToSiteId = shipToSite.CustomerDomensticShippingId
 				LEFT JOIN [dbo].[Address] shipToAddress WITH(NOLOCK) ON shipToSite.AddressId = shipToAddress.AddressId
@@ -267,7 +274,8 @@ BEGIN
 				JOIN [dbo].[Customer] C WITH(NOLOCK) ON C.CustomerId = SOBI.CustomerId
 				JOIN [dbo].[ExchangeSalesOrder] SO WITH(NOLOCK) ON SO.ExchangeSalesOrderId= SOBI.ExchangeSalesOrderId AND ISNULL(SO.IsVendor, 0) = 0
 				LEFT JOIN [dbo].[ItemMaster] IM WITH(NOLOCK) ON IM.ItemMasterId= SOBII.ItemMasterId
-				LEFT JOIN [dbo].[CustomerBillingAddress] billToSite WITH(NOLOCK) ON SOBI.BillToSiteId = billToSite.CustomerBillingAddressId
+				 AND ISNULL(IM.IsNonStock,0) = 0
+				 LEFT JOIN [dbo].[CustomerBillingAddress] billToSite WITH(NOLOCK) ON SOBI.BillToSiteId = billToSite.CustomerBillingAddressId
 				LEFT JOIN [dbo].[Address] billToAddress WITH(NOLOCK) ON billToSite.AddressId = billToAddress.AddressId
 				LEFT JOIN [dbo].[CustomerDomensticShipping] shipToSite WITH(NOLOCK) ON SOBI.ShipToSiteId = shipToSite.CustomerDomensticShippingId
 				LEFT JOIN [dbo].[Address] shipToAddress WITH(NOLOCK) ON shipToSite.AddressId = shipToAddress.AddressId

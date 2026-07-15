@@ -1,4 +1,8 @@
-﻿/*************************************************************             
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.usp_GetRFQPriceSuggestionDetails   (source: PAS_DB/dbo/Stored Procedures/Procs2/usp_GetRFQPriceSuggestionDetails.sql)
+-- ---------------------------------------------------------------------------------------------------
+/*************************************************************             
  ** File:   [usp_GetRFQPriceSuggestionDetails]             
  ** Author:   Devendra Shekh    
  ** Description: Get RFQ Price Suggetion Based on Invoices
@@ -13,8 +17,9 @@
  **	3		13-Aug-2025		Devendra Shekh		Added Changes for @CustomerRfqPartMappingId Param
  
 EXECUTE [dbo].[usp_GetRFQPriceSuggestionDetails] 6, 1   
+	1    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 **************************************************************/  
-CREATE    PROCEDURE [dbo].[usp_GetRFQPriceSuggestionDetails]
+CREATE      PROCEDURE [dbo].[usp_GetRFQPriceSuggestionDetails]
 @CustomerRfqId BIGINT = NULL,
 @MasterCompanyId INT = NULL,
 @CustomerRfqPartMappingId BIGINT NULL
@@ -117,7 +122,8 @@ SET NOCOUNT ON
 				AND WBI.[MasterCompanyId] = @MasterCompanyId
 
 				--Get data from WOQ
-				IF(@RecordsTotal = 0)
+				 AND ISNULL(IM.IsNonStock,0) = 0
+				 IF(@RecordsTotal = 0)
 				BEGIN
 					SELECT 
 						@RecordsTotal = COUNT(WQD.[WorkOrderQuoteDetailsId]),
@@ -137,7 +143,8 @@ SET NOCOUNT ON
 					AND MONTH(WOQ.[OpenDate]) >= @Month
 					AND YEAR(WOQ.[OpenDate]) >= @Year
 					AND WOQ.[MasterCompanyId] = @MasterCompanyId
-				END
+				 WHERE ISNULL(IM.IsNonStock,0) = 0
+END
 				  
 				IF(@RecordsTotal > 0)
 				BEGIN

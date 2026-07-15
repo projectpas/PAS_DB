@@ -1,4 +1,5 @@
-﻿/************************************************************* 
+﻿-- ===== PROCEDURE: [dbo].[usprpt_GetSalesOrderBillingReport]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs3/usprpt_GetSalesOrderBillingReport.sql) =====
+/************************************************************* 
  ** File:[usprpt_GetRCWReport] 
  ** Author:		HEMANT SALIYA 
  ** Description: Get Data for RCW Report
@@ -25,6 +26,8 @@
 	9	26-DEC-2024		Abhishek Jirawla	Fixed report calculations
  	10	01/july/2025	RAJESH GAMI			Change the table as per new Billing Structure
 	11	11/SEP/2025		Vishal Suthar		PN-14126 - Fixed the Revenue to exclude taxes
+	12    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	13    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 
 --EXECUTE[dbo].[usprpt_GetRCWReport] '','2021-06-15','2022-06-15','1','1,4,43,44,45,80,84,88','46,47,66','48,49,50,58,59,67,68,69','51,52,53,54,55,56,57,60,61,62,64,70,71,72'  
 **************************************************************/  
@@ -125,7 +128,8 @@ select
 			AND (ISNULL(@Level9, '') = '' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9, ',')))  
 			AND (ISNULL(@Level10, '') = '' OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10, ',')))
 
-		SELECT @PageSizeCM=COUNT(*) 
+		 AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(STL.IsNonStock,0) = 0
+			 SELECT @PageSizeCM=COUNT(*) 
 		FROM dbo.CreditMemo CM WITH (NOLOCK) 
 			INNER JOIN DBO.CreditMemoDetails CMD WITH (NOLOCK) ON CM.CreditMemoHeaderId = CMD.CreditMemoHeaderId  
 			INNER JOIN DBO.BillingInvoicing SOBI WITH (NOLOCK) ON CM.InvoiceId = SOBI.BillingInvoicingId AND ISNULL(SOBI.IsVersionIncrease, 0) = 0  AND ISNULL(SOBI.IsPerformaInvoice,0) = 0  
@@ -137,7 +141,7 @@ select
 			LEFT JOIN DBO.Condition CDTN WITH (NOLOCK) ON SOP.ConditionId = CDTN.ConditionId 
 			LEFT JOIN DBO.SalesOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = SO.SalesOrderId  
 			LEFT JOIN DBO.EntityStructureSetup ES ON ES.EntityStructureId=MSD.EntityMSID  
-			LEFT JOIN DBO.Stockline STL WITH (NOLOCK) ON SOV.StockLineId = STL.StockLineId and STL.IsParent=1
+			LEFT JOIN DBO.Stockline STL WITH (NOLOCK) ON SOV.StockLineId = STL.StockLineId and STL.IsParent=1 AND ISNULL(STL.IsNonStock,0) = 0
 		WHERE SOBI.customerid=ISNULL(@name,SOBI.customerid) AND SOBI.ModuleId = @SOModuleId AND SOBII.ModuleId = @SOModuleId AND
 		CAST(CM.InvoiceDate AS DATE) BETWEEN CAST(@FromDate AS DATE) AND CAST(@ToDate AS DATE)  AND  
 		SO.mastercompanyid = @mastercompanyid AND SO.IsDeleted = 0 AND SO.IsActive = 1 
@@ -247,7 +251,8 @@ select
 			AND (ISNULL(@Level9, '') = '' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9, ',')))  
 			AND (ISNULL(@Level10, '') = '' OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10, ',')))  
 
-		UNION ALL  
+		 AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(STL.IsNonStock,0) = 0
+			 UNION ALL  
   
 		SELECT DISTINCT 
 			COUNT(1) OVER () AS TotalRecordsCount,
@@ -299,7 +304,7 @@ select
 			LEFT JOIN DBO.Condition CDTN WITH (NOLOCK) ON SOP.ConditionId = CDTN.ConditionId 
 			LEFT JOIN DBO.SalesOrderManagementStructureDetails MSD WITH (NOLOCK) ON MSD.ModuleID = @ModuleID AND MSD.ReferenceID = SO.SalesOrderId  
 			LEFT JOIN DBO.EntityStructureSetup ES ON ES.EntityStructureId = MSD.EntityMSID  
-			LEFT JOIN DBO.Stockline STL WITH (NOLOCK) ON SOV.StockLineId = STL.StockLineId and STL.IsParent=1
+			LEFT JOIN DBO.Stockline STL WITH (NOLOCK) ON SOV.StockLineId = STL.StockLineId and STL.IsParent=1 AND ISNULL(STL.IsNonStock,0) = 0
   
 		WHERE SOBI.customerid=ISNULL(@name,SOBI.customerid) AND  SOBI.ModuleId = @SOModuleId AND SOBII.ModuleId = @SOModuleId AND
 		CAST(CM.InvoiceDate AS DATE) BETWEEN CAST(@FromDate AS DATE) AND CAST(@ToDate AS DATE)  AND  

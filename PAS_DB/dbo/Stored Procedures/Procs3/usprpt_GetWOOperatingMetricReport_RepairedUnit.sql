@@ -1,4 +1,8 @@
-﻿/*************************************************************             
+﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.usprpt_GetWOOperatingMetricReport_RepairedUnit   (source: PAS_DB/dbo/Stored Procedures/Procs3/usprpt_GetWOOperatingMetricReport_RepairedUnit.sql)
+-- ---------------------------------------------------------------------------------------------------
+/*************************************************************             
  ** File:   [dbo.usprpt_GetWOOperatingMetricReport_RepairedUnit]             
  ** Author:  Rajesh Gami    
  ** Description: Get Data for Workorder Operating Metric Report
@@ -18,8 +22,9 @@
 	2    13-sept-2024	Shrey Chandegara	Modified due to add sum total revenue.
 	3    18/04/2025		Ayushi				Added the condition for pn , pndescription 
 	4    23-June-2025	Devendra Shekh		Billing Table Changes
+	5    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 **************************************************************/  
-CREATE   PROCEDURE [dbo].[usprpt_GetWOOperatingMetricReport_RepairedUnit] 
+CREATE     PROCEDURE [dbo].[usprpt_GetWOOperatingMetricReport_RepairedUnit] 
 @PageNumber int = 1,
 @PageSize int = NULL,
 @mastercompanyid int,
@@ -157,8 +162,10 @@ BEGIN
 			LEFT JOIN DBO.EntityStructureSetup ES ON ES.EntityStructureId=MSD.EntityMSID
 			LEFT JOIN DBO.Customer WITH (NOLOCK) ON WO.CustomerId = Customer.CustomerId  
 			LEFT JOIN DBO.ItemMaster IM WITH (NOLOCK) ON WOPN.itemmasterId = IM.itemmasterId
-			LEFT JOIN [dbo].[ItemMaster] RIM WITH (NOLOCK) ON WOPN.RevisedItemmasterid = RIM.ItemMasterId
-			LEFT JOIN DBO.Condition AS CN WITH (NOLOCK) ON WOPN.RevisedConditionId = CN.ConditionId 
+			 AND ISNULL(IM.IsNonStock,0) = 0
+			 LEFT JOIN [dbo].[ItemMaster] RIM WITH (NOLOCK) ON WOPN.RevisedItemmasterid = RIM.ItemMasterId
+			 AND ISNULL(RIM.IsNonStock,0) = 0
+			  LEFT JOIN DBO.Condition AS CN WITH (NOLOCK) ON WOPN.RevisedConditionId = CN.ConditionId 
 			--LEFT JOIN DBO.WorkScope AS WS WITH (NOLOCK) ON WOPN.WorkOrderScopeId = WS.WorkScopeId 
 		  
 		  WHERE WBI.InvoiceStatus = 'Invoiced' AND ISNULL(WO.IsDeleted,0) = 0 AND

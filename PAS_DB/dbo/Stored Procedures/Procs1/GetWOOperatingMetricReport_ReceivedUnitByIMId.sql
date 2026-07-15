@@ -1,4 +1,8 @@
 ﻿
+-- ---------------------------------------------------------------------------------------------------
+-- Stored Procedure: dbo.GetWOOperatingMetricReport_ReceivedUnitByIMId   (source: PAS_DB/dbo/Stored Procedures/Procs1/GetWOOperatingMetricReport_ReceivedUnitByIMId.sql)
+-- ---------------------------------------------------------------------------------------------------
+
 /*************************************************************             
  ** File:   [dbo.GetWOOperatingMetricReport_ReceivedUnitByIMId]             
  ** Author:  Rajesh Gami    
@@ -16,9 +20,10 @@
  ** S NO   Date            Author          Change Description              
  ** --   --------         -------          --------------------------------            
     1    19-Mar-2024  Rajesh Gami   Created  
+	2    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
 
 **************************************************************/  
-CREATE   PROCEDURE [dbo].[GetWOOperatingMetricReport_ReceivedUnitByIMId] 
+CREATE     PROCEDURE [dbo].[GetWOOperatingMetricReport_ReceivedUnitByIMId] 
 @PageNumber int = 1,
 @PageSize int = NULL,
 @mastercompanyid int,
@@ -168,7 +173,7 @@ BEGIN
 					AND  (ISNULL(@Level8,'') ='' OR MSD.[Level8Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level8,',')))
 					AND  (ISNULL(@Level9,'') ='' OR MSD.[Level9Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level9,',')))
 					AND  (ISNULL(@Level10,'') =''  OR MSD.[Level10Id] IN (SELECT Item FROM DBO.SPLITSTRING(@Level10,',')))
-		) as a
+		 AND ISNULL(IM.IsNonStock,0) = 0 ) as a
 		SELECT * FROM #TempWOOperating ORDER BY InvoiceDate DESC
 		
 

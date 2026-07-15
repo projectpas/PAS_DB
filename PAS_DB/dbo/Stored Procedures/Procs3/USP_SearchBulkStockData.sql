@@ -1,4 +1,5 @@
-﻿/*************************************************************             
+﻿-- ===== PROCEDURE: [dbo].[USP_SearchBulkStockData]   (file: _PAS_DB/PAS_DB/dbo/Stored Procedures/Procs3/USP_SearchBulkStockData.sql) =====
+/*************************************************************             
  ** File:   [USP_SearchBulkStockData]             
  ** Author:  AMIT GHEDIYA  
  ** Description: This stored procedure is used to Get Bulk Stockline Adjustment listing  
@@ -17,10 +18,12 @@
     4    26/01/2026     Ayushi Patel            Enhancement: Added ViewType-based data handling (SUMMARY / DETAILS).  
     5    10/06/2026     Sahdev Saliya           Added AdjustmentReasonId and AdjustmentReason [PN-16773]
     6    19/06/2026     Divyesh Kathiriya       Handle delete item not seen list. [PN-16885]
+	7    01/July/2026			 RAJESH GAMI						[PN-17008] - Merge Non Stock Inventory to ItemMaster : Get only Stock Inventory Data Where IsNonStock = 0
+	8    09/July/2026			 RAJESH GAMI						[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 
 -- EXEC USP_SearchBulkStockData
 ************************************************************************/  
-CREATE PROCEDURE [dbo].[USP_SearchBulkStockData]
+CREATE   PROCEDURE [dbo].[USP_SearchBulkStockData]
 	@PageNumber int = NULL,
 	@PageSize int = NULL,
 	@SortColumn varchar(50)=NULL,
@@ -195,7 +198,7 @@ BEGIN
                     bsadj.MasterCompanyId = @MasterCompanyId
                     AND ISNULL(BSAD.IsDeleted, 0) = 0
                     AND (@StatusId IS NULL OR bsadj.StatusId = @StatusId )
-            ),
+             AND ISNULL(IM.IsNonStock,0) = 0 AND ISNULL(STL.IsNonStock,0) = 0 ),
             FinalResult AS
             (
                 SELECT

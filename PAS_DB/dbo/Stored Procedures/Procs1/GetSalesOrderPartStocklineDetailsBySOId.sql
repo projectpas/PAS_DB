@@ -12,6 +12,7 @@
  ** PR   Date         Author			Change Description            
  ** --   --------     -------			--------------------------------     
 	1    29/May/2025   Rajesh Gami		Created
+	2    09/July/2026   RAJESH GAMI		[PN-17009] - Merge Non-Stock Inventory to Stockline : Get only Stock Inventory Data Where IsNonStock = 0
 	[dbo].[GetSalesOrderPartStocklineDetailsBySOId] 846
 **************************************************************/ 
 CREATE   PROCEDURE [dbo].[GetSalesOrderPartStocklineDetailsBySOId]
@@ -29,7 +30,7 @@ BEGIN
         qs.SerialNumber
     FROM dbo.SalesOrderPartV1 part WITH(NOLOCK)
     LEFT JOIN dbo.SalesOrderStockLineV1 sops WITH(NOLOCK) ON part.SalesOrderPartId = sops.SalesOrderPartId
-    LEFT JOIN dbo.StockLine qs WITH(NOLOCK) ON sops.StockLineId = qs.StockLineId
+    LEFT JOIN dbo.StockLine qs WITH(NOLOCK) ON sops.StockLineId = qs.StockLineId AND ISNULL(qs.IsNonStock,0) = 0
     WHERE part.SalesOrderId = @SalesOrderId
 	END TRY    
 		BEGIN CATCH      

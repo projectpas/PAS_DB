@@ -22,6 +22,7 @@
     9    08/07/2026    Kishor Makwana       Added categoryId and isRecurring filters [PN-17166]
     10   10-JUL-2026   Bhargav Saliya       Added Provider Type filter (Internal/External) [PN-17163]
     11   13-Jul-2026   Bhargav Saliya       Get start Date (PN-17217)
+
 ************************************************************************/
 CREATE      PROCEDURE [dbo].[usprpt_GetTrainingReport]
     @PageNumber      INT = 1,
@@ -88,6 +89,9 @@ BEGIN
         CREATE TABLE #Level10Ids (Item INT);
         CREATE TABLE #EmployeeIds (Item INT);
         CREATE TABLE #TrainingTypeIds (Item INT);
+        CREATE TABLE #CategoryIds (Item INT);
+        CREATE TABLE #IsRecurringIds (Item INT);
+        
 
         IF NULLIF(@Level1,  '') IS NOT NULL  INSERT INTO #Level1Ids  SELECT Item FROM DBO.SPLITSTRING(@Level1,  ',');
         IF NULLIF(@Level2,  '') IS NOT NULL  INSERT INTO #Level2Ids  SELECT Item FROM DBO.SPLITSTRING(@Level2,  ',');
@@ -103,6 +107,20 @@ BEGIN
             FROM DBO.SPLITSTRING(@EmployeeRaw, ',') WHERE TRY_CAST(Item AS INT) IS NOT NULL;
         IF NULLIF(@TrainingTypeRaw, '') IS NOT NULL INSERT INTO #TrainingTypeIds(Item) SELECT DISTINCT TRY_CAST(Item AS INT)
             FROM DBO.SPLITSTRING(@TrainingTypeRaw, ',') WHERE TRY_CAST(Item AS INT) IS NOT NULL;
+
+        IF NULLIF(@CategoryIdRaw, '') IS NOT NULL INSERT INTO #CategoryIds(Item) SELECT DISTINCT TRY_CAST(Item AS INT) FROM DBO.SPLITSTRING(@CategoryIdRaw, ',')
+            WHERE TRY_CAST(Item AS INT) IS NOT NULL AND TRY_CAST(Item AS INT) > 0;  
+        
+        IF NULLIF(@IsRecurringRaw, '') IS NOT NULL
+    INSERT INTO #IsRecurringIds(Item)
+    SELECT DISTINCT
+        CASE WHEN TRY_CAST(Item AS INT) = 1 THEN 1   -- YES → 1
+             WHEN TRY_CAST(Item AS INT) = 2 THEN 0   -- NO  → 0
+        END
+    FROM DBO.SPLITSTRING(@IsRecurringRaw, ',')
+    WHERE TRY_CAST(Item AS INT) IN (1, 2); 
+
+        
 
         IF ISNULL(@PageSize, 0) = 0
         BEGIN
